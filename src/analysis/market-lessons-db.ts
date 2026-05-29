@@ -1,12 +1,14 @@
 import { MARKET_LESSONS, type LessonMatch, type MarketLesson } from "./market-lessons.js";
 import { EXTRA_MARKET_LESSONS } from "./market-lessons-extra.js";
 import { CRISIS_MARKET_LESSONS } from "./market-lessons-crisis.js";
+import { STRUCTURAL_RISK_MARKET_LESSONS } from "./market-lessons-structural-risks.js";
 import { enrichMarketLesson } from "./market-lesson-context.js";
 
 export const ALL_MARKET_LESSONS: MarketLesson[] = [
   ...MARKET_LESSONS,
   ...EXTRA_MARKET_LESSONS,
   ...CRISIS_MARKET_LESSONS,
+  ...STRUCTURAL_RISK_MARKET_LESSONS,
 ].map(enrichMarketLesson);
 
 export function getMarketLessonById(id: string): MarketLesson | undefined {
