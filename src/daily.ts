@@ -5,6 +5,7 @@ import { scoreCandidate } from "./score/index.js";
 import { fetchCandidateData } from "./fetcher/index.js";
 import { generateReport, generateSummaryReport } from "./report.js";
 import { sendUrgentNotifications, sendDailySummary } from "./notify.js";
+import { filterSuppressed, recordNotification } from "./history.js";
 import type { AlertLevel, ScoreResult } from "./types.js";
 
 const ALERT_ICONS: Record<AlertLevel, string> = {
@@ -24,6 +25,7 @@ async function main() {
   const rules = loadRules();
   const themes = loadThemes();
   const { alertThresholds } = rules.scoring;
+  const { sameCandidateDays, scoreImprovementThreshold } = rules.alertSuppression;
 
   const activeSymbols = watchlist.symbols.filter(
     s => s.status !== "ignore" && s.status !== "expired"
@@ -103,12 +105,25 @@ async function main() {
   console.log(`\n即通知: ${urgentCount}件 / 朝まとめ: ${dailyCount}件`);
   console.log(`レポート: reports/latest.md`);
 
-  // 通知送信
-  if (urgentCount > 0) {
-    console.log("\n通知送信中...");
-    await sendUrgentNotifications(results);
+  // 重複通知抑制
+  const { notifiable, suppressed } = filterSuppressed(
+    results.filter(r => r.alertLevel !== "ignore" && r.alertLevel !== "log"),
+    sameCandidateDays,
+    scoreImprovementThreshold
+  );
+
+  if (suppressed.length > 0) {
+    console.log(`\n重複抑制: ${suppressed.map(r => r.candidate.code).join(", ")}`);
   }
-  await sendDailySummary(results, today);
+
+  // 通知送信
+  const urgentNotifiable = notifiable.filter(r => r.alertLevel === "urgent");
+  if (urgentNotifiable.length > 0) {
+    console.log("\n通知送信中...");
+    await sendUrgentNotifications(urgentNotifiable);
+    urgentNotifiable.forEach(r => recordNotification(r));
+  }
+  await sendDailySummary(notifiable, today);
 }
 
 main().catch(err => {
