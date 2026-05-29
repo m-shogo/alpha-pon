@@ -14,3 +14,4 @@ data/ipo/*.json
 reports/*.md
 reports/*.json
 !reports/.gitkeep
+logs/
