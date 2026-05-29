@@ -1,4 +1,4 @@
-import type { ScoreResult, AlertLevel } from "./types.js";
+import type { ScoreResult, AlertLevel, ExpertVerdict } from "./types.js";
 
 const ALERT_LABELS: Record<AlertLevel, string> = {
   urgent: "🚨 即通知 (URGENT)",
@@ -43,6 +43,16 @@ function decisionLabel(decision: string | undefined): string {
   }
 }
 
+function expertVerdictLabel(verdict: ExpertVerdict | undefined): string {
+  switch (verdict) {
+    case "block": return "🛑 block";
+    case "caution": return "⚠️ caution";
+    case "pass": return "✅ pass";
+    case "strong": return "💎 strong";
+    default: return "N/A";
+  }
+}
+
 function formatBreakdown(result: ScoreResult): string {
   const { breakdown } = result;
   const rows = [
@@ -78,12 +88,14 @@ function notificationBlockers(result: ScoreResult): string[] {
       warning.includes("ボラティリティ") ||
       warning.includes("過熱") ||
       warning.includes("FOMO")
-    ) {
-      blockers.push(warning);
-    }
+    ) blockers.push(warning);
   }
 
   if (result.riskReview?.blockers.length) blockers.push(...result.riskReview.blockers);
+  if (result.expertReview?.finalVerdict === "block") {
+    blockers.push(...result.expertReview.requiredBeforeNotification);
+  }
+
   return [...new Set(blockers)];
 }
 
@@ -119,6 +131,35 @@ function pushResearchReview(lines: string[], result: ScoreResult): void {
     review.strengths.forEach(s => lines.push(`- ${s}`));
     lines.push("");
   }
+}
+
+function pushExpertReview(lines: string[], result: ScoreResult): void {
+  const review = result.expertReview;
+  if (!review) return;
+
+  lines.push("## 専門家レンズ合議");
+  lines.push("");
+  lines.push(`最終判定: **${expertVerdictLabel(review.finalVerdict)}**  `);
+  lines.push(`合意スコア: **${review.consensusScore}/100**  `);
+  lines.push(`strong: ${review.strongCount} / pass: ${review.passCount} / caution: ${review.cautionCount} / block: ${review.blockCount}`);
+  lines.push("");
+
+  if (review.requiredBeforeNotification.length > 0) {
+    lines.push("### 通知前に必要な確認");
+    review.requiredBeforeNotification.forEach(item => lines.push(`- 🛑 ${item}`));
+    lines.push("");
+  }
+
+  lines.push("### レンズ別判定");
+  lines.push("");
+  lines.push("| レンズ | 判定 | 信頼度 | 主な理由 | 反対意見 |");
+  lines.push("|--------|------|--------|----------|----------|");
+  for (const lens of review.lenses) {
+    const reason = lens.reasons[0] ?? "-";
+    const objection = lens.objections[0] ?? "-";
+    lines.push(`| ${lens.name} | ${expertVerdictLabel(lens.verdict)} | ${(lens.confidence * 100).toFixed(0)}% | ${reason} | ${objection} |`);
+  }
+  lines.push("");
 }
 
 function pushHypeRisk(lines: string[], result: ScoreResult): void {
@@ -183,6 +224,7 @@ export function generateReport(result: ScoreResult): string {
   lines.push(`**スコア: ${result.score} / 100**  `);
   lines.push(`通知レベル: ${ALERT_LABELS[result.alertLevel]}  `);
   lines.push(`調査前判定: ${decisionLabel(result.riskReview?.decision)}  `);
+  lines.push(`専門家合議: ${expertVerdictLabel(result.expertReview?.finalVerdict)} (${result.expertReview?.consensusScore ?? "N/A"}/100)  `);
   lines.push(`優先度: ${PRIORITY_LABELS[candidate.priority] ?? candidate.priority}  `);
   lines.push(`ステータス: ${candidate.status}  `);
   lines.push(`作成日: ${result.createdAt}  `);
@@ -198,6 +240,7 @@ export function generateReport(result: ScoreResult): string {
   }
 
   pushResearchReview(lines, result);
+  pushExpertReview(lines, result);
 
   lines.push("## スコア内訳");
   lines.push("");
@@ -260,6 +303,7 @@ export function generateSummaryReport(results: ScoreResult[], date: string): str
   const ignored = results.filter(r => r.alertLevel === "ignore");
   const blocked = results.filter(r => notificationBlockers(r).length > 0);
   const reviewStops = results.filter(r => r.riskReview?.decision === "reject");
+  const expertBlocks = results.filter(r => r.expertReview?.finalVerdict === "block");
 
   lines.push("## サマリー");
   lines.push("");
@@ -269,18 +313,19 @@ export function generateSummaryReport(results: ScoreResult[], date: string): str
   lines.push(`- ➖ 対象外: **${ignored.length}件**`);
   lines.push(`- ⚠️ 通知抑制・弱められた候補: **${blocked.length}件**`);
   lines.push(`- 🛑 調査前レビューで要確認: **${reviewStops.length}件**`);
+  lines.push(`- 🧠 専門家合議でblock: **${expertBlocks.length}件**`);
   lines.push("");
 
   const notifiable = [...urgent, ...daily];
   if (notifiable.length > 0) {
     lines.push("## 通知対象");
     lines.push("");
-    lines.push("| コード | 銘柄名 | スコア | レベル | 調査判定 | 過熱 | ベンチマーク比20日 | 財務品質 | 主な検出理由 |");
-    lines.push("|--------|--------|--------|--------|----------|------|------------------|----------|--------------|");
+    lines.push("| コード | 銘柄名 | スコア | レベル | 専門家合議 | 調査判定 | 過熱 | ベンチマーク比20日 | 財務品質 | 主な検出理由 |");
+    lines.push("|--------|--------|--------|--------|------------|----------|------|------------------|----------|--------------|");
     for (const r of notifiable) {
       const topReason = r.reasons[0] ?? "-";
       const level = r.alertLevel === "urgent" ? "🚨" : "📋";
-      lines.push(`| ${r.candidate.code} | ${r.candidate.name} | ${r.score} | ${level} | ${decisionLabel(r.riskReview?.decision)} | ${r.hypeRisk?.level ?? "N/A"} | ${fmtPt(r.marketContext?.relativeToTopix20d)} | ${r.financialQuality?.qualityScore ?? "N/A"}/10 | ${topReason} |`);
+      lines.push(`| ${r.candidate.code} | ${r.candidate.name} | ${r.score} | ${level} | ${expertVerdictLabel(r.expertReview?.finalVerdict)} ${r.expertReview?.consensusScore ?? "N/A"}/100 | ${decisionLabel(r.riskReview?.decision)} | ${r.hypeRisk?.level ?? "N/A"} | ${fmtPt(r.marketContext?.relativeToTopix20d)} | ${r.financialQuality?.qualityScore ?? "N/A"}/10 | ${topReason} |`);
     }
     lines.push("");
   }
@@ -304,6 +349,7 @@ export function generateSummaryReport(results: ScoreResult[], date: string): str
     const icon = ALERT_LABELS[r.alertLevel].split(" ")[0];
     lines.push(`### ${icon} ${r.candidate.code} ${r.candidate.name} — ${r.score}点`);
     lines.push("");
+    lines.push(`- 専門家合議: ${expertVerdictLabel(r.expertReview?.finalVerdict)} (${r.expertReview?.consensusScore ?? "N/A"}/100)`);
     lines.push(`- 調査前判定: ${decisionLabel(r.riskReview?.decision)}`);
     if (r.hypeRisk) lines.push(`- 流行/過熱リスク: ${r.hypeRisk.level} (${r.hypeRisk.score}/100)`);
     if (r.marketContext) lines.push(`- 市場文脈: ベンチマーク比20日 ${fmtPt(r.marketContext.relativeToTopix20d)} / 20日平均売買代金 ${fmtYen(r.marketContext.liquidityYen20d)}`);
