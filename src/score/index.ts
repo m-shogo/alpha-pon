@@ -9,6 +9,8 @@ import type {
   ScoreResult,
   AlertLevel,
   ThemesConfig,
+  MarketContext,
+  FinancialQuality,
 } from "../types.js";
 import type { MockData } from "../mock.js";
 
@@ -34,6 +36,53 @@ function scoreThemes(tags: string[], themes: ThemesConfig): { score: number; rea
     }
   }
   return { score: Math.min(score, 15), reasons };
+}
+
+function applyMarketContext(
+  context: MarketContext,
+  breakdown: ScoreBreakdown,
+  reasons: string[],
+  negativeReasons: string[],
+  warnings: string[]
+): void {
+  warnings.push(...context.warnings);
+
+  if (context.relativeToTopix20d != null) {
+    if (context.relativeToTopix20d >= 5) {
+      breakdown.supplyDemand = Math.min(25, breakdown.supplyDemand + 3);
+      reasons.push(`TOPIX比20日 +${context.relativeToTopix20d.toFixed(1)}pt と相対的に強い`);
+    } else if (context.relativeToTopix20d <= -5) {
+      negativeReasons.push(`TOPIX比20日 ${context.relativeToTopix20d.toFixed(1)}pt と市場比で弱い`);
+    }
+  } else {
+    warnings.push("TOPIX比20日を計算できませんでした");
+  }
+
+  if (context.liquidityYen20d != null) {
+    if (context.liquidityYen20d >= 1_000_000_000) {
+      breakdown.supplyDemand = Math.min(25, breakdown.supplyDemand + 2);
+      reasons.push("20日平均売買代金が10億円以上で流動性あり");
+    } else if (context.liquidityYen20d < 100_000_000) {
+      negativeReasons.push("20日平均売買代金が1億円未満で流動性リスク");
+    }
+  }
+
+  if (context.volatility20d != null && context.volatility20d > 5) {
+    negativeReasons.push(`20日ボラティリティ ${context.volatility20d.toFixed(1)}% と値動きが荒い`);
+  }
+}
+
+function applyFinancialQuality(
+  quality: FinancialQuality,
+  breakdown: ScoreBreakdown,
+  reasons: string[],
+  negativeReasons: string[],
+  warnings: string[]
+): void {
+  breakdown.businessSafety = Math.min(10, breakdown.businessSafety + quality.qualityScore);
+  reasons.push(...quality.reasons.slice(0, 4));
+  negativeReasons.push(...quality.negativeReasons.slice(0, 4));
+  warnings.push(...quality.warnings);
 }
 
 export function scoreCandidate(
@@ -88,11 +137,19 @@ export function scoreCandidate(
     nextSteps.push(...r.nextSteps);
   }
 
+  if (mock.marketContext) {
+    applyMarketContext(mock.marketContext, breakdown, reasons, negativeReasons, warnings);
+  }
+
+  if (mock.financialQuality) {
+    applyFinancialQuality(mock.financialQuality, breakdown, reasons, negativeReasons, warnings);
+  }
+
   const themeResult = scoreThemes(candidate.tags, themes);
   breakdown.theme = themeResult.score;
   reasons.push(...themeResult.reasons);
 
-  const dataQuality = mock.ipo || mock.earningsDrop || mock.pullback || mock.structural
+  const dataQuality = mock.ipo || mock.earningsDrop || mock.pullback || mock.structural || mock.marketContext || mock.financialQuality
     ? "ok"
     : "missing";
 
@@ -117,6 +174,8 @@ export function scoreCandidate(
     dataQuality,
     warnings,
     createdAt: todayJst(),
+    marketContext: mock.marketContext,
+    financialQuality: mock.financialQuality,
   };
 }
 
