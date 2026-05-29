@@ -31,6 +31,33 @@ export type ScoreBreakdown = {
   aiReview: number;
 };
 
+export type MarketContext = {
+  code: string;
+  date: string;
+  return5d: number | null;
+  return20d: number | null;
+  return60d: number | null;
+  topixReturn20d: number | null;
+  relativeToTopix20d: number | null;
+  liquidityYen20d: number | null;
+  volatility20d: number | null;
+  warnings: string[];
+};
+
+export type FinancialQuality = {
+  revenueYoY: number | null;
+  operatingProfitYoY: number | null;
+  operatingMargin: number | null;
+  operatingMarginYoY: number | null;
+  forecastRevenueProgressRate: number | null;
+  forecastOperatingProfitProgressRate: number | null;
+  hasDownwardRevision: boolean | null;
+  qualityScore: number;
+  reasons: string[];
+  negativeReasons: string[];
+  warnings: string[];
+};
+
 export type ScoreResult = {
   candidate: Candidate;
   breakdown: ScoreBreakdown;
@@ -42,6 +69,8 @@ export type ScoreResult = {
   dataQuality: DataQuality;
   warnings: string[];
   createdAt: string;
+  marketContext?: MarketContext;
+  financialQuality?: FinancialQuality;
 };
 
 export type AlertHistory = {
