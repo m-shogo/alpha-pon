@@ -19,6 +19,7 @@ export type Candidate = {
   priority: Priority;
   tags: string[];
   rules: string[];
+  listedAt?: string;
 };
 
 export type ScoreBreakdown = {
@@ -61,18 +62,18 @@ export type IpoPressureInput = {
 };
 
 export type EarningsDropInput = {
-  nextDayChangePct: number;
-  hasDownwardRevision: boolean;
-  revenueYoY: number;
-  operatingProfitYoY: number;
+  nextDayChangePct: number | null;
+  hasDownwardRevision: boolean | null;
+  revenueYoY: number | null;
+  operatingProfitYoY: number | null;
   hasStrategicTheme: boolean;
 };
 
 export type PullbackInput = {
   drawdownPct: number;
-  revenueYoY: number;
-  operatingProfitYoY: number;
-  hasDownwardRevision: boolean;
+  revenueYoY: number | null;
+  operatingProfitYoY: number | null;
+  hasDownwardRevision: boolean | null;
   hasStrategicTheme: boolean;
 };
 
