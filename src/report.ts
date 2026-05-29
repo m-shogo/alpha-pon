@@ -1,4 +1,5 @@
 import type { ScoreResult, AlertLevel, ExpertVerdict } from "./types.js";
+import { findRelatedMarketLessonsForScore } from "./analysis/market-lesson-links.js";
 
 const ALERT_LABELS: Record<AlertLevel, string> = {
   urgent: "🚨 即通知 (URGENT)",
@@ -162,6 +163,27 @@ function pushExpertReview(lines: string[], result: ScoreResult): void {
   lines.push("");
 }
 
+function pushRelatedLessons(lines: string[], result: ScoreResult): void {
+  const lessons = findRelatedMarketLessonsForScore(result, 3);
+  if (lessons.length === 0) return;
+
+  lines.push("## 関連する過去事例（参考・スコア加点なし）");
+  lines.push("");
+  lines.push("> 過去事例は“今回も同じになる”という意味ではありません。似た型を思い出し、反証条件と一次情報チェックを増やすための参考です。");
+  lines.push("");
+  for (const match of lessons) {
+    const lesson = match.lesson;
+    lines.push(`### ${lesson.title}`);
+    lines.push("");
+    lines.push(`- 型: ${lesson.category} / ${lesson.direction}`);
+    lines.push(`- 一言: ${lesson.shortSummary}`);
+    lines.push(`- 使える学び: ${lesson.usefulTakeaways[0] ?? "-"}`);
+    lines.push(`- 今回の確認: ${lesson.modernAnalogyQuestions[0] ?? "-"}`);
+    lines.push(`- 一次情報: ${lesson.primaryChecks.slice(0, 4).join(", ")}`);
+    lines.push("");
+  }
+}
+
 function pushHypeRisk(lines: string[], result: ScoreResult): void {
   const hype = result.hypeRisk;
   if (!hype) return;
@@ -241,6 +263,7 @@ export function generateReport(result: ScoreResult): string {
 
   pushResearchReview(lines, result);
   pushExpertReview(lines, result);
+  pushRelatedLessons(lines, result);
 
   lines.push("## スコア内訳");
   lines.push("");
@@ -347,6 +370,7 @@ export function generateSummaryReport(results: ScoreResult[], date: string): str
   lines.push("");
   for (const r of results) {
     const icon = ALERT_LABELS[r.alertLevel].split(" ")[0];
+    const lesson = findRelatedMarketLessonsForScore(r, 1)[0];
     lines.push(`### ${icon} ${r.candidate.code} ${r.candidate.name} — ${r.score}点`);
     lines.push("");
     lines.push(`- 専門家合議: ${expertVerdictLabel(r.expertReview?.finalVerdict)} (${r.expertReview?.consensusScore ?? "N/A"}/100)`);
@@ -354,6 +378,7 @@ export function generateSummaryReport(results: ScoreResult[], date: string): str
     if (r.hypeRisk) lines.push(`- 流行/過熱リスク: ${r.hypeRisk.level} (${r.hypeRisk.score}/100)`);
     if (r.marketContext) lines.push(`- 市場文脈: ベンチマーク比20日 ${fmtPt(r.marketContext.relativeToTopix20d)} / 20日平均売買代金 ${fmtYen(r.marketContext.liquidityYen20d)}`);
     if (r.financialQuality) lines.push(`- 財務品質: ${r.financialQuality.qualityScore}/10`);
+    if (lesson) lines.push(`- 参考事例: ${lesson.lesson.title}（スコア加点なし）`);
     r.reasons.slice(0, 3).forEach(reason => lines.push(`- ${reason}`));
     if (r.negativeReasons.length > 0) lines.push(`- ⚠️ ${r.negativeReasons[0]}`);
     const blockers = notificationBlockers(r);
