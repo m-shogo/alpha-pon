@@ -6,6 +6,7 @@
   "scripts": {
     "daily": "node --env-file=.env --import tsx/esm src/daily.ts",
     "daily:mock": "node --env-file=.env --import tsx/esm src/daily.ts --mock",
+    "scan:world": "node --env-file=.env --import tsx/esm src/scan-world-events.ts",
     "scan:edinet": "node --env-file=.env --import tsx/esm src/scan-edinet.ts",
     "scan:edinet:annual": "node --env-file=.env --import tsx/esm src/scan-edinet-annual.ts",
     "setup:line": "node --env-file=.env --import tsx/esm src/setup-line.ts",
@@ -16,7 +17,7 @@
     "sync:tdnet": "node --env-file=.env --import tsx/esm src/sync-tdnet.ts",
     "sync:tdnet:dry": "node --env-file=.env --import tsx/esm src/sync-tdnet.ts --dry-run",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx/esm tests/score.test.ts && node --import tsx/esm tests/validation.test.ts && node --import tsx/esm tests/analysis.test.ts",
+    "test": "node --import tsx/esm tests/score.test.ts && node --import tsx/esm tests/validation.test.ts && node --import tsx/esm tests/analysis.test.ts && node --import tsx/esm tests/expert-ensemble.test.ts",
     "check": "pnpm typecheck && pnpm test",
     "launchd:install": "mkdir -p logs && cp launchd/com.alpha-pon.daily.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.alpha-pon.daily.plist && echo 'launchd登録完了'",
     "launchd:uninstall": "launchctl unload ~/Library/LaunchAgents/com.alpha-pon.daily.plist && rm ~/Library/LaunchAgents/com.alpha-pon.daily.plist && echo 'launchd登録解除完了'",
