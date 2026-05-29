@@ -10,6 +10,7 @@
     "scan:edinet:annual": "node --env-file=.env --import tsx/esm src/scan-edinet-annual.ts",
     "setup:line": "node --env-file=.env --import tsx/esm src/setup-line.ts",
     "backtest": "node --env-file=.env --import tsx/esm src/backtest.ts",
+    "learn": "node --import tsx/esm src/learn.ts",
     "sync:ipo": "node --env-file=.env --import tsx/esm src/sync-ipo.ts",
     "sync:ipo:dry": "node --env-file=.env --import tsx/esm src/sync-ipo.ts --dry-run",
     "sync:tdnet": "node --env-file=.env --import tsx/esm src/sync-tdnet.ts",
