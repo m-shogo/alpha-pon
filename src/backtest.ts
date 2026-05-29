@@ -4,6 +4,7 @@
 import { readdirSync, readFileSync, writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { fetchDailyQuotes } from "./fetcher/jquants.js";
+import { addDaysJst, todayJst, toCompactDate } from "./date.js";
 
 type ScoreEntry = {
   code: string;
@@ -31,21 +32,11 @@ type BacktestRow = {
   "180d": ReturnData;
 };
 
-function addDays(dateStr: string, days: number): string {
-  const d = new Date(dateStr);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split("T")[0];
-}
-
-function toYYYYMMDD(dateStr: string): string {
-  return dateStr.replace(/-/g, "");
-}
-
 function findPriceOnOrAfter(
   quotes: { Date: string; AdjustmentClose: number }[],
   targetDate: string
 ): number | null {
-  const target = toYYYYMMDD(targetDate);
+  const target = toCompactDate(targetDate);
   const match = quotes.find(q => q.Date >= target);
   return match?.AdjustmentClose ?? null;
 }
@@ -62,7 +53,7 @@ function fmtReturn(d: ReturnData): string {
 }
 
 async function main() {
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayJst();
   const hasJquants = !!process.env.JQUANTS_EMAIL && !!process.env.JQUANTS_PASSWORD;
 
   console.log(`\nalpha-pon バックテスト: ${today}\n`);
@@ -126,15 +117,15 @@ async function main() {
 
     if (hasJquants) {
       try {
-        const from = toYYYYMMDD(entry.createdAt);
-        const to = toYYYYMMDD(addDays(entry.createdAt, 200));
+        const from = toCompactDate(entry.createdAt);
+        const to = toCompactDate(addDaysJst(entry.createdAt, 200));
         const quotes = await fetchDailyQuotes(entry.code, from, to);
         const sorted = [...quotes].sort((a, b) => a.Date.localeCompare(b.Date));
 
         row.basePrice = findPriceOnOrAfter(sorted, entry.createdAt);
 
         for (const days of [30, 90, 180] as const) {
-          const targetDate = addDays(entry.createdAt, days);
+          const targetDate = addDaysJst(entry.createdAt, days);
           // 未来日付はスキップ
           if (targetDate > today) continue;
           const price = findPriceOnOrAfter(sorted, targetDate);
