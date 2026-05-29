@@ -28,11 +28,5 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Run lightweight tests
-        run: |
-          node --import tsx/esm tests/score.test.ts
-          node --import tsx/esm tests/validation.test.ts
-          node --import tsx/esm tests/analysis.test.ts
+      - name: Check
+        run: pnpm check
