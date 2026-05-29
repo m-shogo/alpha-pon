@@ -8,6 +8,7 @@ import { sendUrgentNotifications, sendDailySummary } from "./notify.js";
 import { filterSuppressed, recordNotification } from "./history.js";
 import { todayJst } from "./date.js";
 import { validateWatchlist } from "./validation.js";
+import { saveAnalogyPredictionDb, saveAnalogyUsageDb } from "./analysis/analogy-db.js";
 import type { AlertLevel, ScoreResult } from "./types.js";
 
 const ALERT_ICONS: Record<AlertLevel, string> = {
@@ -97,6 +98,8 @@ async function main() {
 
   const summary = generateSummaryReport(results, today);
   writeFileSync(join("reports", "latest.md"), summary, "utf-8");
+  saveAnalogyUsageDb(results, today);
+  saveAnalogyPredictionDb(results, today);
 
   const jsonLog = results.map(r => ({
     code: r.candidate.code,
@@ -117,6 +120,7 @@ async function main() {
     hypeRisk: r.hypeRisk,
     riskReview: r.riskReview,
     expertReview: r.expertReview,
+    hypothesisMap: r.hypothesisMap,
     createdAt: r.createdAt,
   }));
   writeFileSync(
@@ -131,7 +135,8 @@ async function main() {
     const level = r.alertLevel.toUpperCase().padEnd(6);
     const review = r.riskReview?.decision ? ` / review:${r.riskReview.decision}` : "";
     const expert = r.expertReview?.finalVerdict ? ` / expert:${r.expertReview.finalVerdict}` : "";
-    console.log(`${icon} [${level}] ${r.candidate.code} ${r.candidate.name}: ${r.score}点${review}${expert}`);
+    const hypothesis = r.hypothesisMap ? ` / hypotheses:${r.hypothesisMap.clusters.length}` : "";
+    console.log(`${icon} [${level}] ${r.candidate.code} ${r.candidate.name}: ${r.score}点${review}${expert}${hypothesis}`);
     if (r.reasons.length > 0) {
       console.log(`        └ ${r.reasons[0]}`);
     }
@@ -145,6 +150,8 @@ async function main() {
 
   console.log(`\n即通知: ${urgentCount}件 / 朝まとめ: ${dailyCount}件`);
   console.log(`レポート: reports/latest.md`);
+  console.log(`類推DB: data/analogy_usage/${today}.jsonl`);
+  console.log(`予想DB: data/analogy_predictions/${today}.jsonl`);
 
   const { notifiable, suppressed } = filterSuppressed(
     results.filter(r => r.alertLevel !== "ignore" && r.alertLevel !== "log" && isReviewSafeForNotification(r)),
