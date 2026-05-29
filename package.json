@@ -7,6 +7,7 @@
     "daily": "node --env-file=.env --import tsx/esm src/daily.ts",
     "daily:mock": "node --env-file=.env --import tsx/esm src/daily.ts --mock",
     "scan:world": "node --env-file=.env --import tsx/esm src/scan-world-events.ts",
+    "lessons": "node --import tsx/esm src/lessons.ts",
     "scan:edinet": "node --env-file=.env --import tsx/esm src/scan-edinet.ts",
     "scan:edinet:annual": "node --env-file=.env --import tsx/esm src/scan-edinet-annual.ts",
     "setup:line": "node --env-file=.env --import tsx/esm src/setup-line.ts",
