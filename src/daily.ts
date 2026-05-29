@@ -6,6 +6,7 @@ import { fetchCandidateData } from "./fetcher/index.js";
 import { generateReport, generateSummaryReport } from "./report.js";
 import { sendUrgentNotifications, sendDailySummary } from "./notify.js";
 import { filterSuppressed, recordNotification } from "./history.js";
+import { todayJst } from "./date.js";
 import type { AlertLevel, ScoreResult } from "./types.js";
 
 const ALERT_ICONS: Record<AlertLevel, string> = {
@@ -17,8 +18,20 @@ const ALERT_ICONS: Record<AlertLevel, string> = {
 
 const useMock = process.argv.includes("--mock") || process.env.USE_MOCK === "true";
 
+function downgradeUnsafeAlert(result: ScoreResult): void {
+  if (result.dataQuality !== "ok" && (result.alertLevel === "urgent" || result.alertLevel === "daily")) {
+    result.warnings.push(`データ品質が${result.dataQuality}のため通知対象からログ扱いに変更`);
+    result.alertLevel = "log";
+  }
+
+  if (result.candidate.rules.includes("earnings_drop") && result.alertLevel === "urgent") {
+    result.warnings.push("earnings_dropは決算日特定が未実装のため即通知から朝まとめに変更");
+    result.alertLevel = "daily";
+  }
+}
+
 async function main() {
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayJst();
   console.log(`\nalpha-pon 実行: ${today}${useMock ? " [モックデータ]" : ""}\n`);
 
   const watchlist = loadWatchlist();
@@ -43,6 +56,7 @@ async function main() {
       // フェッチャーの品質情報で上書き
       result.dataQuality = dataQuality;
       result.warnings.push(...warnings);
+      downgradeUnsafeAlert(result);
       results.push(result);
       console.log(`${result.score}点`);
     } catch (err) {
@@ -121,9 +135,10 @@ async function main() {
   if (urgentNotifiable.length > 0) {
     console.log("\n通知送信中...");
     await sendUrgentNotifications(urgentNotifiable);
-    urgentNotifiable.forEach(r => recordNotification(r));
   }
+
   await sendDailySummary(notifiable, today);
+  notifiable.forEach(r => recordNotification(r));
 }
 
 main().catch(err => {
