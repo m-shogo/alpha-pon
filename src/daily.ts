@@ -7,6 +7,7 @@ import { generateReport, generateSummaryReport } from "./report.js";
 import { sendUrgentNotifications, sendDailySummary } from "./notify.js";
 import { filterSuppressed, recordNotification } from "./history.js";
 import { todayJst } from "./date.js";
+import { validateWatchlist } from "./validation.js";
 import type { AlertLevel, ScoreResult } from "./types.js";
 
 const ALERT_ICONS: Record<AlertLevel, string> = {
@@ -35,6 +36,13 @@ async function main() {
   console.log(`\nalpha-pon 実行: ${today}${useMock ? " [モックデータ]" : ""}\n`);
 
   const watchlist = loadWatchlist();
+  const validationErrors = validateWatchlist(watchlist);
+  if (validationErrors.length > 0) {
+    console.error("watchlist.yml に問題があります:");
+    validationErrors.forEach(error => console.error(`- ${error}`));
+    process.exit(1);
+  }
+
   const rules = loadRules();
   const themes = loadThemes();
   const { alertThresholds } = rules.scoring;
