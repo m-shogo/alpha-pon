@@ -5,6 +5,7 @@ import { scoreHealthyPullback } from "./pullback.js";
 import { todayJst } from "../date.js";
 import { buildHypeRisk } from "../analysis/hype-risk.js";
 import { buildResearchReview } from "../analysis/research-review.js";
+import { buildExpertEnsembleReview } from "../analysis/expert-ensemble.js";
 import type {
   Candidate,
   ScoreBreakdown,
@@ -187,6 +188,18 @@ export function scoreCandidate(
     warnings,
     negativeReasons,
   });
+  const expertReview = buildExpertEnsembleReview({
+    candidate,
+    score,
+    dataQuality,
+    reasons,
+    negativeReasons,
+    warnings,
+    marketContext: mock.marketContext,
+    financialQuality: mock.financialQuality,
+    hypeRisk,
+    riskReview,
+  });
 
   return {
     candidate,
@@ -203,6 +216,7 @@ export function scoreCandidate(
     financialQuality: mock.financialQuality,
     hypeRisk,
     riskReview,
+    expertReview,
   };
 }
 
