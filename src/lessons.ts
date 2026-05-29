@@ -6,7 +6,33 @@
 import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
-import { MARKET_LESSONS, matchMarketLessons, renderMarketLessonMarkdown } from "./analysis/market-lessons.js";
+import { MARKET_LESSONS, renderMarketLessonMarkdown, type LessonMatch, type MarketLesson } from "./analysis/market-lessons.js";
+import { EXTRA_MARKET_LESSONS } from "./analysis/market-lessons-extra.js";
+
+const ALL_MARKET_LESSONS: MarketLesson[] = [
+  ...MARKET_LESSONS,
+  ...EXTRA_MARKET_LESSONS,
+];
+
+function matchAllMarketLessons(input: { tags: string[]; text?: string }): LessonMatch[] {
+  const tags = new Set(input.tags.map(tag => tag.toLowerCase()));
+  const text = (input.text ?? "").toLowerCase();
+
+  return ALL_MARKET_LESSONS
+    .map(lesson => {
+      const matchedTags = lesson.affectedTags.filter(tag => tags.has(tag.toLowerCase()) || text.includes(tag.toLowerCase()));
+      const textHits = [lesson.category, lesson.title, lesson.shortSummary]
+        .filter(value => text.includes(value.toLowerCase())).length;
+      const score = matchedTags.length * 12 + textHits * 10;
+      const why = [
+        ...matchedTags.map(tag => `tag:${tag}`),
+        ...(textHits > 0 ? ["text similarity"] : []),
+      ];
+      return { lesson, matchedTags, score, why } satisfies LessonMatch;
+    })
+    .filter(match => match.score > 0)
+    .sort((a, b) => b.score - a.score);
+}
 
 function renderAllLessons(): string {
   const lines: string[] = [];
@@ -14,10 +40,13 @@ function renderAllLessons(): string {
   lines.push("");
   lines.push(`生成日: ${todayJst()}`);
   lines.push("");
+  lines.push(`収録件数: ${ALL_MARKET_LESSONS.length}件`);
+  lines.push("");
   lines.push("> 過去の暴落・急騰・スキャンダル・需給イベントから、今のニュースを読むための型を蓄積するレポートです。買い推奨ではありません。");
+  lines.push("> 重要: このレッスンはスコア加点には使わず、仮説・反証・確認項目としてだけ使います。");
   lines.push("");
 
-  for (const lesson of MARKET_LESSONS) {
+  for (const lesson of ALL_MARKET_LESSONS) {
     lines.push(`## ${lesson.title}`);
     lines.push("");
     lines.push(`- Period: ${lesson.period}`);
@@ -61,18 +90,19 @@ function main() {
     const md = renderAllLessons();
     writeFileSync(join("reports", `market_lessons_${date}.md`), md, "utf-8");
     writeFileSync(join("reports", "market_lessons_latest.md"), md, "utf-8");
-    writeFileSync(join("reports", "market_lessons_latest.json"), JSON.stringify(MARKET_LESSONS, null, 2), "utf-8");
+    writeFileSync(join("reports", "market_lessons_latest.json"), JSON.stringify(ALL_MARKET_LESSONS, null, 2), "utf-8");
     console.log(`レポート: reports/market_lessons_${date}.md`);
     return;
   }
 
   const query = args.join(" ");
-  const matches = matchMarketLessons({ tags: args, text: query });
+  const matches = matchAllMarketLessons({ tags: args, text: query });
   const lines = [
     "# alpha-pon 市場レッスン検索",
     "",
     `生成日: ${date}`,
     `Query: ${query}`,
+    `検索対象: ${ALL_MARKET_LESSONS.length}件`,
     "",
     matches.length > 0 ? renderMarketLessonMarkdown(matches) : "該当する市場レッスンはありませんでした。タグやキーワードを増やしてください。",
   ];
