@@ -4,16 +4,68 @@ import {
   calcPriceStats,
   calcFinancialStats,
 } from "./jquants.js";
+import type { DailyQuote, FinancialStatement } from "./jquants.js";
 import { getMockData } from "../mock.js";
 import type { MockData } from "../mock.js";
 import type { Candidate, DataQuality } from "../types.js";
-import { dateNDaysAgoJst, daysSinceJst, todayJstCompact } from "../date.js";
+import { dateNDaysAgoJst, daysSinceJst, todayJstCompact, toCompactDate } from "../date.js";
 
 export type FetchResult = {
   data: MockData;
   dataQuality: DataQuality;
   warnings: string[];
 };
+
+function normalizeDate(date: string): string {
+  if (/^\d{8}$/.test(date)) {
+    return `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}`;
+  }
+  return date;
+}
+
+function compactQuoteDate(date: string): string {
+  return toCompactDate(normalizeDate(date));
+}
+
+function findLatestEarningsStatement(statements: FinancialStatement[]): FinancialStatement | null {
+  const earnings = statements
+    .filter(s =>
+      s.TypeOfDocument.includes("FinancialStatements") ||
+      s.TypeOfDocument.includes("Earnings") ||
+      s.TypeOfDocument.includes("Q") ||
+      s.TypeOfDocument.includes("Annual")
+    )
+    .sort((a, b) => b.DisclosedDate.localeCompare(a.DisclosedDate));
+
+  return earnings[0] ?? null;
+}
+
+function calcEarningsNextDayChange(
+  quotes: DailyQuote[],
+  statements: FinancialStatement[]
+): { changePct: number | null; warning?: string } {
+  const latestStatement = findLatestEarningsStatement(statements);
+  if (!latestStatement?.DisclosedDate) {
+    return { changePct: null, warning: "決算開示日を特定できませんでした" };
+  }
+
+  const disclosed = toCompactDate(normalizeDate(latestStatement.DisclosedDate));
+  const sorted = [...quotes].sort((a, b) => compactQuoteDate(a.Date).localeCompare(compactQuoteDate(b.Date)));
+  const prev = [...sorted].reverse().find(q => compactQuoteDate(q.Date) < disclosed);
+  const next = sorted.find(q => compactQuoteDate(q.Date) > disclosed);
+
+  if (!prev || !next) {
+    return { changePct: null, warning: "決算前後の株価データが不足しています" };
+  }
+
+  if (prev.AdjustmentClose <= 0) {
+    return { changePct: null, warning: "決算前営業日の終値が不正です" };
+  }
+
+  return {
+    changePct: ((next.AdjustmentClose - prev.AdjustmentClose) / prev.AdjustmentClose) * 100,
+  };
+}
 
 async function fetchRealData(candidate: Candidate): Promise<FetchResult> {
   const warnings: string[] = [];
@@ -44,18 +96,14 @@ async function fetchRealData(candidate: Candidate): Promise<FetchResult> {
       if (candidate.rules.includes("earnings_drop")) {
         const statements = await fetchFinancialStatements(candidate.code);
         const fin = calcFinancialStats(statements);
+        const earningsMove = calcEarningsNextDayChange(quotes, statements);
 
-        // TODO: 決算発表日を特定して翌営業日の騰落を計算する。
-        // 現状は直近2営業日の終値差分なので、daily側で過剰通知を抑制する。
-        const latestClose = quotes[quotes.length - 1]?.AdjustmentClose ?? null;
-        const prevClose = quotes[quotes.length - 2]?.AdjustmentClose ?? null;
-        const changePct =
-          latestClose != null && prevClose != null && prevClose > 0
-            ? ((latestClose - prevClose) / prevClose) * 100
-            : null;
+        if (earningsMove.warning) {
+          warnings.push(earningsMove.warning);
+        }
 
         data.earningsDrop = {
-          nextDayChangePct: changePct,
+          nextDayChangePct: earningsMove.changePct,
           hasDownwardRevision: fin.hasDownwardRevision,
           revenueYoY: fin.revenueYoY,
           operatingProfitYoY: fin.operatingProfitYoY,
@@ -79,7 +127,8 @@ async function fetchRealData(candidate: Candidate): Promise<FetchResult> {
         const baseLow = last11[0]?.Low ?? recentLow + 1;
         const noNewLow = recentLow >= baseLow;
 
-        const listedAt = candidate.listedAt ?? quotes[0]?.Date.replace(/(\d{4})(\d{2})(\d{2})/, "$1-$2-$3");
+        const oldestQuoteDate = quotes[0]?.Date ? normalizeDate(quotes[0].Date) : undefined;
+        const listedAt = candidate.listedAt ?? oldestQuoteDate;
         const daysSinceListing = listedAt ? daysSinceJst(listedAt) ?? 0 : 0;
 
         if (!candidate.listedAt) {
