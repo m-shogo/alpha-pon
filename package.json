@@ -4,11 +4,14 @@
   "description": "長期投資向け調査候補・買い場候補自動発見アプリ",
   "type": "module",
   "scripts": {
-    "daily": "tsx src/daily.ts",
-    "daily:mock": "tsx src/daily.ts --mock",
-    "scan:edinet": "tsx src/scan-edinet.ts",
-    "setup:line": "tsx src/setup-line.ts",
-    "typecheck": "tsc --noEmit"
+    "daily": "node --env-file=.env --import tsx/esm src/daily.ts",
+    "daily:mock": "node --env-file=.env --import tsx/esm src/daily.ts --mock",
+    "scan:edinet": "node --env-file=.env --import tsx/esm src/scan-edinet.ts",
+    "setup:line": "node --env-file=.env --import tsx/esm src/setup-line.ts",
+    "typecheck": "tsc --noEmit",
+    "launchd:install": "mkdir -p logs && cp launchd/com.alpha-pon.daily.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.alpha-pon.daily.plist && echo 'launchd登録完了'",
+    "launchd:uninstall": "launchctl unload ~/Library/LaunchAgents/com.alpha-pon.daily.plist && rm ~/Library/LaunchAgents/com.alpha-pon.daily.plist && echo 'launchd登録解除完了'",
+    "launchd:status": "launchctl list | grep alpha-pon || echo '未登録'"
   },
   "dependencies": {
     "js-yaml": "^4.1.0"
