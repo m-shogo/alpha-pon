@@ -12,11 +12,12 @@ import {
   toSecCode,
 } from "./fetcher/edinet.js";
 import { loadWatchlist } from "./config.js";
+import { addDaysJst, todayJst } from "./date.js";
 
 const SCAN_DAYS = parseInt(process.env.EDINET_ANNUAL_DAYS ?? "60", 10);
 
 async function main() {
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayJst();
   console.log(`\nEDINET 有報スキャン: 直近${SCAN_DAYS}日 (${today})\n`);
 
   const watchlist = loadWatchlist();
@@ -41,11 +42,10 @@ async function main() {
   const found: FoundReport[] = [];
 
   for (let i = 0; i < SCAN_DAYS; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    if (d.getDay() === 0 || d.getDay() === 6) continue;
+    const dateStr = addDaysJst(today, -i);
+    const weekday = new Date(`${dateStr}T00:00:00+09:00`).getDay();
+    if (weekday === 0 || weekday === 6) continue;
 
-    const dateStr = d.toISOString().split("T")[0];
     process.stdout.write(`  ${dateStr} ... `);
 
     try {
