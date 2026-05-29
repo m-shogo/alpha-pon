@@ -8,10 +8,12 @@ import { join } from "path";
 import { todayJst } from "./date.js";
 import { MARKET_LESSONS, renderMarketLessonMarkdown, type LessonMatch, type MarketLesson } from "./analysis/market-lessons.js";
 import { EXTRA_MARKET_LESSONS } from "./analysis/market-lessons-extra.js";
+import { CRISIS_MARKET_LESSONS } from "./analysis/market-lessons-crisis.js";
 
 const ALL_MARKET_LESSONS: MarketLesson[] = [
   ...MARKET_LESSONS,
   ...EXTRA_MARKET_LESSONS,
+  ...CRISIS_MARKET_LESSONS,
 ];
 
 function matchAllMarketLessons(input: { tags: string[]; text?: string }): LessonMatch[] {
