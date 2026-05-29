@@ -33,6 +33,16 @@ function fmtYen(value: number | null | undefined): string {
   return `${Math.round(value).toLocaleString()}円`;
 }
 
+function decisionLabel(decision: string | undefined): string {
+  switch (decision) {
+    case "reject": return "🛑 要確認";
+    case "research_only": return "🔎 調査のみ";
+    case "watch": return "👀 監視候補";
+    case "high_quality_candidate": return "✅ 高品質候補";
+    default: return "N/A";
+  }
+}
+
 function formatBreakdown(result: ScoreResult): string {
   const { breakdown } = result;
   const rows = [
@@ -53,17 +63,9 @@ function formatBreakdown(result: ScoreResult): string {
 function notificationBlockers(result: ScoreResult): string[] {
   const blockers: string[] = [];
 
-  if (result.dataQuality !== "ok") {
-    blockers.push(`データ品質が ${result.dataQuality}`);
-  }
-
-  if (result.alertLevel === "log") {
-    blockers.push("通知レベルがログ記録");
-  }
-
-  if (result.alertLevel === "ignore") {
-    blockers.push("通知対象外スコア");
-  }
+  if (result.dataQuality !== "ok") blockers.push(`データ品質が ${result.dataQuality}`);
+  if (result.alertLevel === "log") blockers.push("通知レベルがログ記録");
+  if (result.alertLevel === "ignore") blockers.push("通知対象外スコア");
 
   for (const warning of result.warnings) {
     if (
@@ -73,13 +75,63 @@ function notificationBlockers(result: ScoreResult): string[] {
       warning.includes("特定できません") ||
       warning.includes("暫定利用") ||
       warning.includes("流動性") ||
-      warning.includes("ボラティリティ")
+      warning.includes("ボラティリティ") ||
+      warning.includes("過熱") ||
+      warning.includes("FOMO")
     ) {
       blockers.push(warning);
     }
   }
 
+  if (result.riskReview?.blockers.length) blockers.push(...result.riskReview.blockers);
   return [...new Set(blockers)];
+}
+
+function pushResearchReview(lines: string[], result: ScoreResult): void {
+  const review = result.riskReview;
+  if (!review) return;
+
+  lines.push("## 調査前レビュー");
+  lines.push("");
+  lines.push(`判定: **${decisionLabel(review.decision)}**`);
+  lines.push("");
+  lines.push("| チェック | 結果 |");
+  lines.push("|----------|------|");
+  for (const [key, value] of Object.entries(review.checklist)) {
+    lines.push(`| ${key} | ${value ? "OK" : "要確認"} |`);
+  }
+  lines.push("");
+
+  if (review.blockers.length > 0) {
+    lines.push("### 先に確認する懸念");
+    review.blockers.forEach(b => lines.push(`- 🛑 ${b}`));
+    lines.push("");
+  }
+
+  if (review.warnings.length > 0) {
+    lines.push("### 追加確認");
+    review.warnings.slice(0, 6).forEach(w => lines.push(`- ⚠️ ${w}`));
+    lines.push("");
+  }
+
+  if (review.strengths.length > 0) {
+    lines.push("### 強み候補");
+    review.strengths.forEach(s => lines.push(`- ${s}`));
+    lines.push("");
+  }
+}
+
+function pushHypeRisk(lines: string[], result: ScoreResult): void {
+  const hype = result.hypeRisk;
+  if (!hype) return;
+
+  lines.push("## 流行・過熱リスク");
+  lines.push("");
+  lines.push(`過熱リスク: **${hype.level} (${hype.score}/100)**`);
+  lines.push("");
+  hype.reasons.forEach(r => lines.push(`- ${r}`));
+  hype.warnings.forEach(w => lines.push(`- ⚠️ ${w}`));
+  lines.push("");
 }
 
 function pushMarketContext(lines: string[], result: ScoreResult): void {
@@ -93,8 +145,8 @@ function pushMarketContext(lines: string[], result: ScoreResult): void {
   lines.push(`| 5日リターン | ${fmtPct(m.return5d)} |`);
   lines.push(`| 20日リターン | ${fmtPct(m.return20d)} |`);
   lines.push(`| 60日リターン | ${fmtPct(m.return60d)} |`);
-  lines.push(`| TOPIX 20日リターン | ${fmtPct(m.topixReturn20d)} |`);
-  lines.push(`| TOPIX比20日 | ${fmtPt(m.relativeToTopix20d)} |`);
+  lines.push(`| ベンチマーク20日リターン | ${fmtPct(m.topixReturn20d)} |`);
+  lines.push(`| ベンチマーク比20日 | ${fmtPt(m.relativeToTopix20d)} |`);
   lines.push(`| 20日平均売買代金 | ${fmtYen(m.liquidityYen20d)} |`);
   lines.push(`| 20日ボラティリティ | ${fmtPct(m.volatility20d)} |`);
   lines.push("");
@@ -126,10 +178,11 @@ export function generateReport(result: ScoreResult): string {
 
   lines.push(`# 【調査候補】${candidate.code} ${candidate.name}`);
   lines.push("");
-  lines.push(`> ※これは買い推奨ではありません。調査候補です。`);
+  lines.push("> ※これは買い推奨ではありません。調査候補です。");
   lines.push("");
   lines.push(`**スコア: ${result.score} / 100**  `);
   lines.push(`通知レベル: ${ALERT_LABELS[result.alertLevel]}  `);
+  lines.push(`調査前判定: ${decisionLabel(result.riskReview?.decision)}  `);
   lines.push(`優先度: ${PRIORITY_LABELS[candidate.priority] ?? candidate.priority}  `);
   lines.push(`ステータス: ${candidate.status}  `);
   lines.push(`作成日: ${result.createdAt}  `);
@@ -144,13 +197,16 @@ export function generateReport(result: ScoreResult): string {
     lines.push("");
   }
 
+  pushResearchReview(lines, result);
+
   lines.push("## スコア内訳");
   lines.push("");
-  lines.push("| カテゴリ     | スコア | バー       |");
-  lines.push("|------------|--------|------------|");
+  lines.push("| カテゴリ | スコア | バー |");
+  lines.push("|----------|--------|------|");
   lines.push(formatBreakdown(result));
   lines.push("");
 
+  pushHypeRisk(lines, result);
   pushMarketContext(lines, result);
   pushFinancialQuality(lines, result);
 
@@ -191,7 +247,7 @@ export function generateReport(result: ScoreResult): string {
 export function generateSummaryReport(results: ScoreResult[], date: string): string {
   const lines: string[] = [];
 
-  lines.push(`# alpha-pon 調査候補レポート`);
+  lines.push("# alpha-pon 調査候補レポート");
   lines.push("");
   lines.push(`作成日: ${date}`);
   lines.push("");
@@ -203,26 +259,28 @@ export function generateSummaryReport(results: ScoreResult[], date: string): str
   const log = results.filter(r => r.alertLevel === "log");
   const ignored = results.filter(r => r.alertLevel === "ignore");
   const blocked = results.filter(r => notificationBlockers(r).length > 0);
+  const reviewStops = results.filter(r => r.riskReview?.decision === "reject");
 
-  lines.push(`## サマリー`);
+  lines.push("## サマリー");
   lines.push("");
   lines.push(`- 🚨 即通知: **${urgent.length}件**`);
   lines.push(`- 📋 朝まとめ: **${daily.length}件**`);
   lines.push(`- 📝 ログ: **${log.length}件**`);
   lines.push(`- ➖ 対象外: **${ignored.length}件**`);
   lines.push(`- ⚠️ 通知抑制・弱められた候補: **${blocked.length}件**`);
+  lines.push(`- 🛑 調査前レビューで要確認: **${reviewStops.length}件**`);
   lines.push("");
 
   const notifiable = [...urgent, ...daily];
   if (notifiable.length > 0) {
     lines.push("## 通知対象");
     lines.push("");
-    lines.push("| コード | 銘柄名 | スコア | レベル | TOPIX比20日 | 財務品質 | 主な検出理由 |");
-    lines.push("|--------|--------|--------|--------|-------------|----------|------------|");
+    lines.push("| コード | 銘柄名 | スコア | レベル | 調査判定 | 過熱 | ベンチマーク比20日 | 財務品質 | 主な検出理由 |");
+    lines.push("|--------|--------|--------|--------|----------|------|------------------|----------|--------------|");
     for (const r of notifiable) {
       const topReason = r.reasons[0] ?? "-";
       const level = r.alertLevel === "urgent" ? "🚨" : "📋";
-      lines.push(`| ${r.candidate.code} | ${r.candidate.name} | ${r.score} | ${level} | ${fmtPt(r.marketContext?.relativeToTopix20d)} | ${r.financialQuality?.qualityScore ?? "N/A"}/10 | ${topReason} |`);
+      lines.push(`| ${r.candidate.code} | ${r.candidate.name} | ${r.score} | ${level} | ${decisionLabel(r.riskReview?.decision)} | ${r.hypeRisk?.level ?? "N/A"} | ${fmtPt(r.marketContext?.relativeToTopix20d)} | ${r.financialQuality?.qualityScore ?? "N/A"}/10 | ${topReason} |`);
     }
     lines.push("");
   }
@@ -246,22 +304,14 @@ export function generateSummaryReport(results: ScoreResult[], date: string): str
     const icon = ALERT_LABELS[r.alertLevel].split(" ")[0];
     lines.push(`### ${icon} ${r.candidate.code} ${r.candidate.name} — ${r.score}点`);
     lines.push("");
-    if (r.marketContext) {
-      lines.push(`- 市場文脈: TOPIX比20日 ${fmtPt(r.marketContext.relativeToTopix20d)} / 20日平均売買代金 ${fmtYen(r.marketContext.liquidityYen20d)}`);
-    }
-    if (r.financialQuality) {
-      lines.push(`- 財務品質: ${r.financialQuality.qualityScore}/10`);
-    }
-    if (r.reasons.length > 0) {
-      r.reasons.slice(0, 3).forEach(reason => lines.push(`- ${reason}`));
-    }
-    if (r.negativeReasons.length > 0) {
-      lines.push(`- ⚠️ ${r.negativeReasons[0]}`);
-    }
+    lines.push(`- 調査前判定: ${decisionLabel(r.riskReview?.decision)}`);
+    if (r.hypeRisk) lines.push(`- 流行/過熱リスク: ${r.hypeRisk.level} (${r.hypeRisk.score}/100)`);
+    if (r.marketContext) lines.push(`- 市場文脈: ベンチマーク比20日 ${fmtPt(r.marketContext.relativeToTopix20d)} / 20日平均売買代金 ${fmtYen(r.marketContext.liquidityYen20d)}`);
+    if (r.financialQuality) lines.push(`- 財務品質: ${r.financialQuality.qualityScore}/10`);
+    r.reasons.slice(0, 3).forEach(reason => lines.push(`- ${reason}`));
+    if (r.negativeReasons.length > 0) lines.push(`- ⚠️ ${r.negativeReasons[0]}`);
     const blockers = notificationBlockers(r);
-    if (blockers.length > 0) {
-      lines.push(`- 🛑 ${blockers[0]}`);
-    }
+    if (blockers.length > 0) lines.push(`- 🛑 ${blockers[0]}`);
     lines.push("");
   }
 
