@@ -10,6 +10,7 @@ export type Priority = "S" | "A" | "B" | "C";
 export type Market = "TSE" | "NYSE" | "NASDAQ";
 export type AlertLevel = "urgent" | "daily" | "log" | "ignore";
 export type DataQuality = "ok" | "partial" | "missing";
+export type RiskDecision = "reject" | "research_only" | "watch" | "high_quality_candidate";
 
 export type Candidate = {
   code: string;
@@ -58,6 +59,31 @@ export type FinancialQuality = {
   warnings: string[];
 };
 
+export type HypeRisk = {
+  score: number;
+  level: "low" | "medium" | "high";
+  reasons: string[];
+  warnings: string[];
+};
+
+export type RiskReview = {
+  decision: RiskDecision;
+  blockers: string[];
+  warnings: string[];
+  strengths: string[];
+  checklist: {
+    circleOfCompetence: boolean;
+    businessQuality: boolean;
+    financialSafety: boolean;
+    marketRelativeStrength: boolean;
+    liquidityOk: boolean;
+    volatilityOk: boolean;
+    noDownwardRevision: boolean;
+    noFomo: boolean;
+    enoughData: boolean;
+  };
+};
+
 export type ScoreResult = {
   candidate: Candidate;
   breakdown: ScoreBreakdown;
@@ -71,6 +97,8 @@ export type ScoreResult = {
   createdAt: string;
   marketContext?: MarketContext;
   financialQuality?: FinancialQuality;
+  hypeRisk?: HypeRisk;
+  riskReview?: RiskReview;
 };
 
 export type AlertHistory = {
