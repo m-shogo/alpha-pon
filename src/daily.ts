@@ -93,12 +93,19 @@ async function main() {
   const jsonLog = results.map(r => ({
     code: r.candidate.code,
     name: r.candidate.name,
+    priority: r.candidate.priority,
+    status: r.candidate.status,
+    tags: r.candidate.tags,
+    rules: r.candidate.rules,
     score: r.score,
     alertLevel: r.alertLevel,
     reasons: r.reasons,
     negativeReasons: r.negativeReasons,
+    warnings: r.warnings,
     breakdown: r.breakdown,
     dataQuality: r.dataQuality,
+    marketContext: r.marketContext,
+    financialQuality: r.financialQuality,
     createdAt: r.createdAt,
   }));
   writeFileSync(
