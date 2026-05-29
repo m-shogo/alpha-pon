@@ -31,6 +31,36 @@ function formatBreakdown(result: ScoreResult): string {
   }).join("\n");
 }
 
+function notificationBlockers(result: ScoreResult): string[] {
+  const blockers: string[] = [];
+
+  if (result.dataQuality !== "ok") {
+    blockers.push(`データ品質が ${result.dataQuality}`);
+  }
+
+  if (result.alertLevel === "log") {
+    blockers.push("通知レベルがログ記録");
+  }
+
+  if (result.alertLevel === "ignore") {
+    blockers.push("通知対象外スコア");
+  }
+
+  for (const warning of result.warnings) {
+    if (
+      warning.includes("通知対象") ||
+      warning.includes("未設定") ||
+      warning.includes("不足") ||
+      warning.includes("特定できません") ||
+      warning.includes("暫定利用")
+    ) {
+      blockers.push(warning);
+    }
+  }
+
+  return [...new Set(blockers)];
+}
+
 export function generateReport(result: ScoreResult): string {
   const { candidate } = result;
   const lines: string[] = [];
@@ -46,6 +76,14 @@ export function generateReport(result: ScoreResult): string {
   lines.push(`作成日: ${result.createdAt}  `);
   lines.push(`データ品質: ${result.dataQuality}`);
   lines.push("");
+
+  const blockers = notificationBlockers(result);
+  if (blockers.length > 0) {
+    lines.push("## 通知されなかった・弱められた理由");
+    lines.push("");
+    blockers.forEach(reason => lines.push(`- ${reason}`));
+    lines.push("");
+  }
 
   lines.push("## スコア内訳");
   lines.push("");
@@ -102,6 +140,7 @@ export function generateSummaryReport(results: ScoreResult[], date: string): str
   const daily = results.filter(r => r.alertLevel === "daily");
   const log = results.filter(r => r.alertLevel === "log");
   const ignored = results.filter(r => r.alertLevel === "ignore");
+  const blocked = results.filter(r => notificationBlockers(r).length > 0);
 
   lines.push(`## サマリー`);
   lines.push("");
@@ -109,6 +148,7 @@ export function generateSummaryReport(results: ScoreResult[], date: string): str
   lines.push(`- 📋 朝まとめ: **${daily.length}件**`);
   lines.push(`- 📝 ログ: **${log.length}件**`);
   lines.push(`- ➖ 対象外: **${ignored.length}件**`);
+  lines.push(`- ⚠️ 通知抑制・弱められた候補: **${blocked.length}件**`);
   lines.push("");
 
   const notifiable = [...urgent, ...daily];
@@ -125,6 +165,19 @@ export function generateSummaryReport(results: ScoreResult[], date: string): str
     lines.push("");
   }
 
+  if (blocked.length > 0) {
+    lines.push("## 通知されなかった・弱められた候補");
+    lines.push("");
+    lines.push("| コード | 銘柄名 | Lv | 主な理由 |");
+    lines.push("|--------|--------|----|----------|");
+    for (const r of blocked) {
+      const reason = notificationBlockers(r)[0] ?? "-";
+      const icon = ALERT_LABELS[r.alertLevel].split(" ")[0];
+      lines.push(`| ${r.candidate.code} | ${r.candidate.name} | ${icon} | ${reason} |`);
+    }
+    lines.push("");
+  }
+
   lines.push("## 全銘柄スコア");
   lines.push("");
   for (const r of results) {
@@ -136,6 +189,10 @@ export function generateSummaryReport(results: ScoreResult[], date: string): str
     }
     if (r.negativeReasons.length > 0) {
       lines.push(`- ⚠️ ${r.negativeReasons[0]}`);
+    }
+    const blockers = notificationBlockers(r);
+    if (blockers.length > 0) {
+      lines.push(`- 🛑 ${blockers[0]}`);
     }
     lines.push("");
   }
