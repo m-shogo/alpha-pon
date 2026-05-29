@@ -40,6 +40,16 @@
 
 ```bash
 pnpm install
+cp .env.example .env
+```
+
+`.env` に必要な値を入れる。
+
+```env
+JQUANTS_EMAIL=
+JQUANTS_PASSWORD=
+LINE_CHANNEL_TOKEN=
+LINE_USER_ID=
 ```
 
 ## 使い方
@@ -48,12 +58,44 @@ pnpm install
 # 毎朝実行
 pnpm daily
 
+# モックで動作確認
+pnpm daily:mock
+
 # 型チェック
 pnpm typecheck
+
+# 軽量テスト
+node --import tsx/esm tests/score.test.ts
+node --import tsx/esm tests/validation.test.ts
 ```
 
 `reports/latest.md` にサマリーが出力される。  
 `reports/<コード>_<日付>.md` に個別レポートが出力される。
+
+## 品質チェック
+
+GitHub Actions で以下を自動実行する。
+
+- `pnpm typecheck`
+- `tests/score.test.ts`
+- `tests/validation.test.ts`
+
+手元でまとめて確認する場合:
+
+```bash
+pnpm typecheck
+node --import tsx/esm tests/score.test.ts
+node --import tsx/esm tests/validation.test.ts
+```
+
+## 安全運用ルール
+
+- 本番実行では J-Quants 未設定時にモックへ自動フォールバックしない。
+- `--mock` または `USE_MOCK=true` のときだけモックデータを使う。
+- `dataQuality` が `ok` ではない候補は、即通知/朝まとめからログ扱いへ落とす。
+- 欠損した財務データは `0` として加点しない。
+- 日付は `Asia/Tokyo` 基準で処理する。
+- `earnings_drop` は決算開示日の前後営業日ベースで判定する。
 
 ## 銘柄の登録
 
@@ -71,16 +113,21 @@ symbols:
     rules:
       - ipo_selling_pressure_done
       - healthy_pullback
+    listedAt: "2026-01-15" # IPO銘柄の場合は上場日を入れる
 ```
 
-## データ取得（v0.1は仮データ）
+`watchlist.yml` は `pnpm daily` 実行時に検証される。  
+重複コード、空の `rules` / `tags`、不正な `listedAt` 形式はエラーになる。
+
+## データ取得
 
 | データ | 取得元 | 状態 |
 |-------|--------|------|
-| 株価・出来高 | J-Quants Free | 未実装（仮データ） |
-| 有価証券報告書 | EDINET | 未実装 |
-| IPO情報 | JPX | 未実装 |
-| 開示情報 | TDnet（手動） | 手動 |
+| 株価・出来高 | J-Quants Free | 実装済み |
+| 財務情報 | J-Quants Free | 実装済み |
+| 有価証券報告書 | EDINET | 実装済み |
+| IPO情報 | JPX新規上場ページ | 実装済み |
+| 開示情報 | JPX適時開示ページ / EDINET | 実装済み |
 
 ## ディレクトリ構成
 
@@ -92,11 +139,13 @@ alpha-pon/
 │   └── themes.yml      # テーマ定義
 ├── data/               # 取得データ（gitignore）
 ├── reports/            # 生成レポート（gitignore）
+├── tests/              # 軽量テスト
 └── src/
     ├── daily.ts        # メインスクリプト
     ├── score/          # スコアリング関数
     ├── report.ts       # Markdown生成
-    ├── mock.ts         # 仮データ（v0.1）
+    ├── validation.ts   # watchlist検証
+    ├── date.ts         # JST日付ヘルパー
     ├── config.ts       # 設定読み込み
     └── types.ts        # 型定義
 ```
