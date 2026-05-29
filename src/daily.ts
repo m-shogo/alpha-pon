@@ -17,7 +17,10 @@ const ALERT_ICONS: Record<AlertLevel, string> = {
   ignore: "➖",
 };
 
+type NotifyMode = "urgent_only" | "summary" | "off";
+
 const useMock = process.argv.includes("--mock") || process.env.USE_MOCK === "true";
+const notifyMode = (process.env.NOTIFY_MODE ?? "urgent_only") as NotifyMode;
 
 function downgradeUnsafeAlert(result: ScoreResult): void {
   if (result.dataQuality !== "ok" && (result.alertLevel === "urgent" || result.alertLevel === "daily")) {
@@ -31,9 +34,14 @@ function downgradeUnsafeAlert(result: ScoreResult): void {
   }
 }
 
+function isReviewSafeForNotification(result: ScoreResult): boolean {
+  return result.riskReview?.decision !== "reject" && result.hypeRisk?.level !== "high";
+}
+
 async function main() {
   const today = todayJst();
   console.log(`\nalpha-pon 実行: ${today}${useMock ? " [モックデータ]" : ""}\n`);
+  console.log(`通知モード: ${notifyMode}\n`);
 
   const watchlist = loadWatchlist();
   const validationErrors = validateWatchlist(watchlist);
@@ -133,7 +141,7 @@ async function main() {
   console.log(`レポート: reports/latest.md`);
 
   const { notifiable, suppressed } = filterSuppressed(
-    results.filter(r => r.alertLevel !== "ignore" && r.alertLevel !== "log"),
+    results.filter(r => r.alertLevel !== "ignore" && r.alertLevel !== "log" && isReviewSafeForNotification(r)),
     sameCandidateDays,
     scoreImprovementThreshold
   );
@@ -142,13 +150,21 @@ async function main() {
     console.log(`\n重複抑制: ${suppressed.map(r => r.candidate.code).join(", ")}`);
   }
 
+  if (notifyMode === "off") {
+    console.log("\n通知OFF: レポート生成のみ");
+    return;
+  }
+
   const urgentNotifiable = notifiable.filter(r => r.alertLevel === "urgent");
   if (urgentNotifiable.length > 0) {
-    console.log("\n通知送信中...");
+    console.log("\n重要通知送信中...");
     await sendUrgentNotifications(urgentNotifiable);
   }
 
-  await sendDailySummary(notifiable, today);
+  if (notifyMode === "summary") {
+    await sendDailySummary(notifiable, today);
+  }
+
   notifiable.forEach(r => recordNotification(r));
 }
 
