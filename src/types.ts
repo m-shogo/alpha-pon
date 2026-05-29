@@ -11,6 +11,16 @@ export type Market = "TSE" | "NYSE" | "NASDAQ";
 export type AlertLevel = "urgent" | "daily" | "log" | "ignore";
 export type DataQuality = "ok" | "partial" | "missing";
 export type RiskDecision = "reject" | "research_only" | "watch" | "high_quality_candidate";
+export type ExpertVerdict = "block" | "caution" | "pass" | "strong";
+export type ExpertLensKey =
+  | "quality_value"
+  | "growth_compounder"
+  | "quant_evidence"
+  | "risk_manager"
+  | "event_specialist"
+  | "ipo_supply"
+  | "trend_contrarian"
+  | "data_engineer";
 
 export type Candidate = {
   code: string;
@@ -84,6 +94,28 @@ export type RiskReview = {
   };
 };
 
+export type ExpertLensResult = {
+  key: ExpertLensKey;
+  name: string;
+  verdict: ExpertVerdict;
+  confidence: number;
+  reasons: string[];
+  objections: string[];
+  nextChecks: string[];
+};
+
+export type ExpertEnsembleReview = {
+  finalVerdict: ExpertVerdict;
+  consensusScore: number;
+  passCount: number;
+  cautionCount: number;
+  blockCount: number;
+  strongCount: number;
+  lenses: ExpertLensResult[];
+  disagreements: string[];
+  requiredBeforeNotification: string[];
+};
+
 export type ScoreResult = {
   candidate: Candidate;
   breakdown: ScoreBreakdown;
@@ -99,6 +131,7 @@ export type ScoreResult = {
   financialQuality?: FinancialQuality;
   hypeRisk?: HypeRisk;
   riskReview?: RiskReview;
+  expertReview?: ExpertEnsembleReview;
 };
 
 export type AlertHistory = {
