@@ -61,7 +61,6 @@ async function main() {
     try {
       const { data, dataQuality, warnings } = await fetchCandidateData(candidate, useMock);
       const result = scoreCandidate(candidate, data, themes, alertThresholds);
-      // フェッチャーの品質情報で上書き
       result.dataQuality = dataQuality;
       result.warnings.push(...warnings);
       downgradeUnsafeAlert(result);
@@ -77,7 +76,6 @@ async function main() {
 
   mkdirSync("reports", { recursive: true });
 
-  // 個別レポート（通知対象のみ）
   for (const result of results) {
     if (result.alertLevel === "ignore") continue;
     const content = generateReport(result);
@@ -85,11 +83,9 @@ async function main() {
     writeFileSync(join("reports", filename), content, "utf-8");
   }
 
-  // サマリーレポート
   const summary = generateSummaryReport(results, today);
   writeFileSync(join("reports", "latest.md"), summary, "utf-8");
 
-  // JSON記録（バックテスト用）
   const jsonLog = results.map(r => ({
     code: r.candidate.code,
     name: r.candidate.name,
@@ -106,6 +102,8 @@ async function main() {
     dataQuality: r.dataQuality,
     marketContext: r.marketContext,
     financialQuality: r.financialQuality,
+    hypeRisk: r.hypeRisk,
+    riskReview: r.riskReview,
     createdAt: r.createdAt,
   }));
   writeFileSync(
@@ -114,12 +112,12 @@ async function main() {
     "utf-8"
   );
 
-  // コンソール出力
   console.log("\n=== スコア結果 ===\n");
   for (const r of results) {
     const icon = ALERT_ICONS[r.alertLevel];
     const level = r.alertLevel.toUpperCase().padEnd(6);
-    console.log(`${icon} [${level}] ${r.candidate.code} ${r.candidate.name}: ${r.score}点`);
+    const review = r.riskReview?.decision ? ` / review:${r.riskReview.decision}` : "";
+    console.log(`${icon} [${level}] ${r.candidate.code} ${r.candidate.name}: ${r.score}点${review}`);
     if (r.reasons.length > 0) {
       console.log(`        └ ${r.reasons[0]}`);
     }
@@ -134,7 +132,6 @@ async function main() {
   console.log(`\n即通知: ${urgentCount}件 / 朝まとめ: ${dailyCount}件`);
   console.log(`レポート: reports/latest.md`);
 
-  // 重複通知抑制
   const { notifiable, suppressed } = filterSuppressed(
     results.filter(r => r.alertLevel !== "ignore" && r.alertLevel !== "log"),
     sameCandidateDays,
@@ -145,7 +142,6 @@ async function main() {
     console.log(`\n重複抑制: ${suppressed.map(r => r.candidate.code).join(", ")}`);
   }
 
-  // 通知送信
   const urgentNotifiable = notifiable.filter(r => r.alertLevel === "urgent");
   if (urgentNotifiable.length > 0) {
     console.log("\n通知送信中...");
