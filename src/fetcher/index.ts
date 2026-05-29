@@ -9,12 +9,16 @@ import { getMockData } from "../mock.js";
 import type { MockData } from "../mock.js";
 import type { Candidate, DataQuality } from "../types.js";
 import { dateNDaysAgoJst, daysSinceJst, todayJstCompact, toCompactDate } from "../date.js";
+import { buildMarketContext } from "../analysis/market-context.js";
+import { buildFinancialQuality } from "../analysis/financial-quality.js";
 
 export type FetchResult = {
   data: MockData;
   dataQuality: DataQuality;
   warnings: string[];
 };
+
+const TOPIX_CODE = "0000";
 
 function normalizeDate(date: string): string {
   if (/^\d{8}$/.test(date)) {
@@ -67,6 +71,14 @@ function calcEarningsNextDayChange(
   };
 }
 
+async function tryFetchTopixQuotes(from: string, to: string): Promise<DailyQuote[]> {
+  try {
+    return await fetchDailyQuotes(TOPIX_CODE, from, to);
+  } catch {
+    return [];
+  }
+}
+
 async function fetchRealData(candidate: Candidate): Promise<FetchResult> {
   const warnings: string[] = [];
   const data: MockData = {};
@@ -76,14 +88,20 @@ async function fetchRealData(candidate: Candidate): Promise<FetchResult> {
     const to = todayJstCompact();
     const quotes = await fetchDailyQuotes(candidate.code, from, to);
     const priceStats = calcPriceStats(quotes);
+    const topixQuotes = await tryFetchTopixQuotes(from, to);
+    const statements = await fetchFinancialStatements(candidate.code);
+    const fin = calcFinancialStats(statements);
 
     if (!priceStats) {
       warnings.push("株価データ不足（5件未満）");
     } else {
-      if (candidate.rules.includes("healthy_pullback")) {
-        const statements = await fetchFinancialStatements(candidate.code);
-        const fin = calcFinancialStats(statements);
+      data.marketContext = buildMarketContext(candidate.code, quotes, topixQuotes);
+      warnings.push(...data.marketContext.warnings);
 
+      data.financialQuality = buildFinancialQuality(statements);
+      warnings.push(...data.financialQuality.warnings);
+
+      if (candidate.rules.includes("healthy_pullback")) {
         data.pullback = {
           drawdownPct: priceStats.drawdownPct,
           revenueYoY: fin.revenueYoY,
@@ -94,8 +112,6 @@ async function fetchRealData(candidate: Candidate): Promise<FetchResult> {
       }
 
       if (candidate.rules.includes("earnings_drop")) {
-        const statements = await fetchFinancialStatements(candidate.code);
-        const fin = calcFinancialStats(statements);
         const earningsMove = calcEarningsNextDayChange(quotes, statements);
 
         if (earningsMove.warning) {
