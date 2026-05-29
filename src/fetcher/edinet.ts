@@ -94,6 +94,29 @@ export function findImportantDocs(docs: EdinetDoc[]): EdinetDoc[] {
   return docs.filter(d => IMPORTANT_FORM_CODES.has(d.formCode));
 }
 
+// 有価証券報告書（formCode "030000"）に絞り込む
+export function findAnnualReports(docs: EdinetDoc[]): EdinetDoc[] {
+  return docs.filter(d => d.formCode === "030000" && d.pdfFlag === "1");
+}
+
+// secCode（5桁）でフィルタ、複数コード対応
+export function filterBySecCodes(docs: EdinetDoc[], secCodes: string[]): EdinetDoc[] {
+  const normalized = new Set(
+    secCodes.map(c => c.replace(/[A-Z]/g, "0").padEnd(5, "0"))
+  );
+  return docs.filter(d => normalized.has(d.secCode));
+}
+
+// EDINETドキュメントのPDF URLを生成
+export function buildPdfUrl(docID: string): string {
+  return `https://disclosure.edinet-fsa.go.jp/api/v2/documents/${docID}?type=1`;
+}
+
+// 企業コード（4桁）→ EDINETのsecCode（5桁）に変換
+export function toSecCode(code: string): string {
+  return code.replace(/[A-Z]/g, "0").padEnd(5, "0");
+}
+
 // 過去N日分のEDINET開示を取得してスクリーニング
 export async function scanEdinetDays(
   days: number
