@@ -18,7 +18,9 @@ export type FetchResult = {
   warnings: string[];
 };
 
-const TOPIX_CODE = "0000";
+// J-Quantsの指数コードが環境で取れない場合に備え、TOPIX連動ETF等へ差し替え可能にする。
+// 例: MARKET_BENCHMARK_CODE=1306
+const MARKET_BENCHMARK_CODE = process.env.MARKET_BENCHMARK_CODE ?? "1306";
 
 function normalizeDate(date: string): string {
   if (/^\d{8}$/.test(date)) {
@@ -71,10 +73,20 @@ function calcEarningsNextDayChange(
   };
 }
 
-async function tryFetchTopixQuotes(from: string, to: string): Promise<DailyQuote[]> {
+async function tryFetchBenchmarkQuotes(
+  from: string,
+  to: string,
+  warnings: string[]
+): Promise<DailyQuote[]> {
   try {
-    return await fetchDailyQuotes(TOPIX_CODE, from, to);
-  } catch {
+    const quotes = await fetchDailyQuotes(MARKET_BENCHMARK_CODE, from, to);
+    if (quotes.length === 0) {
+      warnings.push(`市場ベンチマーク(${MARKET_BENCHMARK_CODE})の日足が空でした`);
+    }
+    return quotes;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    warnings.push(`市場ベンチマーク(${MARKET_BENCHMARK_CODE})取得失敗: ${message}`);
     return [];
   }
 }
@@ -88,14 +100,14 @@ async function fetchRealData(candidate: Candidate): Promise<FetchResult> {
     const to = todayJstCompact();
     const quotes = await fetchDailyQuotes(candidate.code, from, to);
     const priceStats = calcPriceStats(quotes);
-    const topixQuotes = await tryFetchTopixQuotes(from, to);
+    const benchmarkQuotes = await tryFetchBenchmarkQuotes(from, to, warnings);
     const statements = await fetchFinancialStatements(candidate.code);
     const fin = calcFinancialStats(statements);
 
     if (!priceStats) {
       warnings.push("株価データ不足（5件未満）");
     } else {
-      data.marketContext = buildMarketContext(candidate.code, quotes, topixQuotes);
+      data.marketContext = buildMarketContext(candidate.code, quotes, benchmarkQuotes);
       warnings.push(...data.marketContext.warnings);
 
       data.financialQuality = buildFinancialQuality(statements);
