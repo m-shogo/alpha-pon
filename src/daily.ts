@@ -2,9 +2,10 @@ import { writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { loadWatchlist, loadRules, loadThemes } from "./config.js";
 import { scoreCandidate } from "./score/index.js";
-import { getMockData } from "./mock.js";
+import { fetchCandidateData } from "./fetcher/index.js";
 import { generateReport, generateSummaryReport } from "./report.js";
-import type { AlertLevel } from "./types.js";
+import { sendUrgentNotifications, sendDailySummary } from "./notify.js";
+import type { AlertLevel, ScoreResult } from "./types.js";
 
 const ALERT_ICONS: Record<AlertLevel, string> = {
   urgent: "🚨",
@@ -13,9 +14,11 @@ const ALERT_ICONS: Record<AlertLevel, string> = {
   ignore: "➖",
 };
 
+const useMock = process.argv.includes("--mock") || process.env.USE_MOCK === "true";
+
 async function main() {
   const today = new Date().toISOString().split("T")[0];
-  console.log(`\nalpha-pon 実行: ${today}\n`);
+  console.log(`\nalpha-pon 実行: ${today}${useMock ? " [モックデータ]" : ""}\n`);
 
   const watchlist = loadWatchlist();
   const rules = loadRules();
@@ -28,10 +31,23 @@ async function main() {
 
   console.log(`対象銘柄: ${activeSymbols.length}件\n`);
 
-  const results = activeSymbols.map(candidate => {
-    const mockData = getMockData(candidate.code);
-    return scoreCandidate(candidate, mockData, themes, alertThresholds);
-  });
+  const results: ScoreResult[] = [];
+
+  for (const candidate of activeSymbols) {
+    process.stdout.write(`  ${candidate.code} ${candidate.name} ... `);
+    try {
+      const { data, dataQuality, warnings } = await fetchCandidateData(candidate, useMock);
+      const result = scoreCandidate(candidate, data, themes, alertThresholds);
+      // フェッチャーの品質情報で上書き
+      result.dataQuality = dataQuality;
+      result.warnings.push(...warnings);
+      results.push(result);
+      console.log(`${result.score}点`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.log(`失敗 (${message})`);
+    }
+  }
 
   results.sort((a, b) => b.score - a.score);
 
@@ -49,7 +65,7 @@ async function main() {
   const summary = generateSummaryReport(results, today);
   writeFileSync(join("reports", "latest.md"), summary, "utf-8");
 
-  // JSON記録（後のバックテスト用）
+  // JSON記録（バックテスト用）
   const jsonLog = results.map(r => ({
     code: r.candidate.code,
     name: r.candidate.name,
@@ -58,6 +74,7 @@ async function main() {
     reasons: r.reasons,
     negativeReasons: r.negativeReasons,
     breakdown: r.breakdown,
+    dataQuality: r.dataQuality,
     createdAt: r.createdAt,
   }));
   writeFileSync(
@@ -67,13 +84,16 @@ async function main() {
   );
 
   // コンソール出力
-  console.log("=== スコア結果 ===\n");
+  console.log("\n=== スコア結果 ===\n");
   for (const r of results) {
     const icon = ALERT_ICONS[r.alertLevel];
     const level = r.alertLevel.toUpperCase().padEnd(6);
     console.log(`${icon} [${level}] ${r.candidate.code} ${r.candidate.name}: ${r.score}点`);
     if (r.reasons.length > 0) {
       console.log(`        └ ${r.reasons[0]}`);
+    }
+    if (r.warnings.length > 0) {
+      console.log(`        ⚠️  ${r.warnings[0]}`);
     }
   }
 
@@ -82,6 +102,13 @@ async function main() {
 
   console.log(`\n即通知: ${urgentCount}件 / 朝まとめ: ${dailyCount}件`);
   console.log(`レポート: reports/latest.md`);
+
+  // 通知送信
+  if (urgentCount > 0) {
+    console.log("\n通知送信中...");
+    await sendUrgentNotifications(results);
+  }
+  await sendDailySummary(results, today);
 }
 
 main().catch(err => {
