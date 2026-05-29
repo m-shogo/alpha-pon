@@ -6,6 +6,7 @@ import { todayJst } from "../date.js";
 import { buildHypeRisk } from "../analysis/hype-risk.js";
 import { buildResearchReview } from "../analysis/research-review.js";
 import { buildExpertEnsembleReview } from "../analysis/expert-ensemble.js";
+import { buildHypothesisMap } from "../analysis/hypothesis-map.js";
 import type {
   Candidate,
   ScoreBreakdown,
@@ -200,6 +201,12 @@ export function scoreCandidate(
     hypeRisk,
     riskReview,
   });
+  const hypothesisMap = buildHypothesisMap({
+    candidate,
+    marketContext: mock.marketContext,
+    financialQuality: mock.financialQuality,
+    hypeRisk,
+  });
 
   return {
     candidate,
@@ -217,6 +224,7 @@ export function scoreCandidate(
     hypeRisk,
     riskReview,
     expertReview,
+    hypothesisMap,
   };
 }
 
