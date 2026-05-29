@@ -2,6 +2,7 @@ import { scoreIpoSellingPressure } from "./ipo.js";
 import { scoreStructuralEvent } from "./structural.js";
 import { scoreEarningsDrop } from "./earnings.js";
 import { scoreHealthyPullback } from "./pullback.js";
+import { todayJst } from "../date.js";
 import type {
   Candidate,
   ScoreBreakdown,
@@ -115,7 +116,7 @@ export function scoreCandidate(
     nextSteps: uniqueNextSteps,
     dataQuality,
     warnings,
-    createdAt: new Date().toISOString().split("T")[0],
+    createdAt: todayJst(),
   };
 }
 
