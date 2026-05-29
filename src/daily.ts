@@ -35,7 +35,11 @@ function downgradeUnsafeAlert(result: ScoreResult): void {
 }
 
 function isReviewSafeForNotification(result: ScoreResult): boolean {
-  return result.riskReview?.decision !== "reject" && result.hypeRisk?.level !== "high";
+  return (
+    result.riskReview?.decision !== "reject" &&
+    result.hypeRisk?.level !== "high" &&
+    result.expertReview?.finalVerdict !== "block"
+  );
 }
 
 async function main() {
@@ -112,6 +116,7 @@ async function main() {
     financialQuality: r.financialQuality,
     hypeRisk: r.hypeRisk,
     riskReview: r.riskReview,
+    expertReview: r.expertReview,
     createdAt: r.createdAt,
   }));
   writeFileSync(
@@ -125,7 +130,8 @@ async function main() {
     const icon = ALERT_ICONS[r.alertLevel];
     const level = r.alertLevel.toUpperCase().padEnd(6);
     const review = r.riskReview?.decision ? ` / review:${r.riskReview.decision}` : "";
-    console.log(`${icon} [${level}] ${r.candidate.code} ${r.candidate.name}: ${r.score}点${review}`);
+    const expert = r.expertReview?.finalVerdict ? ` / expert:${r.expertReview.finalVerdict}` : "";
+    console.log(`${icon} [${level}] ${r.candidate.code} ${r.candidate.name}: ${r.score}点${review}${expert}`);
     if (r.reasons.length > 0) {
       console.log(`        └ ${r.reasons[0]}`);
     }
