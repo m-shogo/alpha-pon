@@ -20,7 +20,14 @@ export type ExpertLensKey =
   | "event_specialist"
   | "ipo_supply"
   | "trend_contrarian"
-  | "data_engineer";
+  | "data_engineer"
+  | "macro_cycle"
+  | "global_risk"
+  | "regulation"
+  | "technology_cycle"
+  | "supply_chain"
+  | "behavioral_sentiment"
+  | "cross_domain_synthesizer";
 
 export type Candidate = {
   code: string;
@@ -141,8 +148,6 @@ export type AlertHistory = {
   lastReasons: string[];
 };
 
-// --- スコアリング入力型 ---
-
 export type IpoPressureInput = {
   daysSinceListing: number;
   volumeRatioToFirstDay: number;
@@ -166,8 +171,6 @@ export type PullbackInput = {
   hasDownwardRevision: boolean | null;
   hasStrategicTheme: boolean;
 };
-
-// --- 設定ファイル型 ---
 
 export type WatchlistConfig = {
   symbols: Candidate[];
