@@ -7,6 +7,7 @@
     "daily": "tsx src/daily.ts",
     "daily:mock": "tsx src/daily.ts --mock",
     "scan:edinet": "tsx src/scan-edinet.ts",
+    "setup:line": "tsx src/setup-line.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
