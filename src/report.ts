@@ -1,5 +1,6 @@
 import type { ScoreResult, AlertLevel, ExpertVerdict } from "./types.js";
 import { findRelatedMarketLessonsForScore } from "./analysis/market-lesson-links.js";
+import { renderModernAnalogiesMarkdown } from "./analysis/modern-analogy.js";
 
 const ALERT_LABELS: Record<AlertLevel, string> = {
   urgent: "🚨 即通知 (URGENT)",
@@ -184,6 +185,10 @@ function pushRelatedLessons(lines: string[], result: ScoreResult): void {
   }
 }
 
+function pushModernAnalogies(lines: string[], result: ScoreResult): void {
+  lines.push(...renderModernAnalogiesMarkdown(result));
+}
+
 function pushHypeRisk(lines: string[], result: ScoreResult): void {
   const hype = result.hypeRisk;
   if (!hype) return;
@@ -264,6 +269,7 @@ export function generateReport(result: ScoreResult): string {
   pushResearchReview(lines, result);
   pushExpertReview(lines, result);
   pushRelatedLessons(lines, result);
+  pushModernAnalogies(lines, result);
 
   lines.push("## スコア内訳");
   lines.push("");
