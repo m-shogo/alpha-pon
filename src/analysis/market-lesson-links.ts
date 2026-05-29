@@ -1,10 +1,12 @@
 import { MARKET_LESSONS, type LessonMatch, type MarketLesson } from "./market-lessons.js";
 import { EXTRA_MARKET_LESSONS } from "./market-lessons-extra.js";
+import { CRISIS_MARKET_LESSONS } from "./market-lessons-crisis.js";
 import type { Candidate, ScoreResult } from "../types.js";
 
 const ALL_MARKET_LESSONS: MarketLesson[] = [
   ...MARKET_LESSONS,
   ...EXTRA_MARKET_LESSONS,
+  ...CRISIS_MARKET_LESSONS,
 ];
 
 type LessonInput = {
