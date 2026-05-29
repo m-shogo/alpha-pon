@@ -6,6 +6,7 @@ import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
 import { classifyWorldEvent, summarizeWorldEvents, type ClassifiedWorldEvent, type WorldEventArticle } from "./analysis/world-event-map.js";
+import { buildWorldEventReflections, saveWorldEventReflections } from "./analysis/world-event-reflection.js";
 
 const DEFAULT_FEEDS = [
   "https://news.google.com/rss/search?q=WHO+public+health+emergency+OR+outbreak&hl=en-US&gl=US&ceid=US:en",
@@ -77,6 +78,7 @@ function dedupeArticles(articles: WorldEventArticle[]): WorldEventArticle[] {
 function renderMarkdown(date: string, events: ClassifiedWorldEvent[], errors: string[]): string {
   const lines: string[] = [];
   const important = events.filter(event => event.totalImpactScore > 0).sort((a, b) => b.totalImpactScore - a.totalImpactScore);
+  const reflections = buildWorldEventReflections(important, date, 8);
 
   lines.push("# alpha-pon 世界イベントレポート");
   lines.push("");
@@ -89,6 +91,7 @@ function renderMarkdown(date: string, events: ClassifiedWorldEvent[], errors: st
   lines.push("");
   lines.push(`- 取得記事: ${events.length}件`);
   lines.push(`- 投資テーマ接続あり: ${important.length}件`);
+  lines.push(`- 自動考察DB保存候補: ${reflections.length}件`);
   if (errors.length > 0) lines.push(`- 取得エラー: ${errors.length}件`);
   lines.push("");
 
@@ -98,6 +101,20 @@ function renderMarkdown(date: string, events: ClassifiedWorldEvent[], errors: st
     lines.push("");
     lines.push(...summary);
     lines.push("");
+  }
+
+  if (reflections.length > 0) {
+    lines.push("## 自動考察・仮説化された重要トピック");
+    lines.push("");
+    for (const reflection of reflections) {
+      lines.push(`### ${reflection.title}`);
+      lines.push(`- 仮説: ${reflection.thesis}`);
+      lines.push(`- 影響タグ: ${reflection.impactedTags.slice(0, 8).join(", ")}`);
+      lines.push(`- 類似過去事例: ${reflection.similarLessonTitles.slice(0, 3).join(" / ") || "-"}`);
+      lines.push(`- 確認: ${reflection.evidenceNeeded.slice(0, 4).join(", ")}`);
+      lines.push(`- 反証: ${reflection.invalidationSignals[0] ?? "一次情報で前提確認"}`);
+      lines.push("");
+    }
   }
 
   lines.push("## 記事別分類");
@@ -171,8 +188,10 @@ async function main() {
   writeFileSync(join("reports", "world_events_latest.json"), JSON.stringify(classified, null, 2), "utf-8");
   writeFileSync(join("reports", `world_events_${date}.md`), renderMarkdown(date, classified, errors), "utf-8");
   writeFileSync(join("reports", "world_events_latest.md"), renderMarkdown(date, classified, errors), "utf-8");
+  saveWorldEventReflections(classified, date);
 
   console.log(`report: reports/world_events_${date}.md`);
+  console.log(`reflection db: data/world_event_reflections/${date}.jsonl`);
 }
 
 main().catch(err => {
