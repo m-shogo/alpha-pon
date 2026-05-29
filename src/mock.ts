@@ -1,10 +1,18 @@
-import type { IpoPressureInput, EarningsDropInput, PullbackInput } from "./types.js";
+import type {
+  IpoPressureInput,
+  EarningsDropInput,
+  PullbackInput,
+  MarketContext,
+  FinancialQuality,
+} from "./types.js";
 
 export type MockData = {
   ipo?: IpoPressureInput;
   structural?: { text: string };
   earningsDrop?: EarningsDropInput;
   pullback?: PullbackInput;
+  marketContext?: MarketContext;
+  financialQuality?: FinancialQuality;
 };
 
 // v0.1 仮データ
