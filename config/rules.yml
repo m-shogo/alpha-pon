@@ -1,0 +1,17 @@
+scoring:
+  alertThresholds:
+    urgent: 85
+    daily: 70
+    log: 50
+
+  maxScores:
+    structuralEvent: 30
+    supplyDemand: 25
+    valuation: 15
+    theme: 15
+    businessSafety: 10
+    aiReview: 5
+
+alertSuppression:
+  sameCandidateDays: 3
+  scoreImprovementThreshold: 10

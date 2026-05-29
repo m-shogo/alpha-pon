@@ -1,0 +1,31 @@
+themes:
+  semiconductor:
+    label: "半導体"
+    score: 5
+  national_policy:
+    label: "国策"
+    score: 4
+  ai:
+    label: "AI"
+    score: 5
+  global_ip:
+    label: "グローバルIP"
+    score: 4
+  consumer:
+    label: "消費財"
+    score: 3
+  ipo:
+    label: "IPO"
+    score: 3
+  character:
+    label: "キャラクター"
+    score: 3
+  ev:
+    label: "EV"
+    score: 4
+  space:
+    label: "宇宙"
+    score: 4
+  defense:
+    label: "防衛"
+    score: 3

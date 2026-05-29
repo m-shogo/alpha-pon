@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.env
+*.local
+
+# データはgit管理しない（大きくなるため）
+data/prices/*.json
+data/disclosures/*.json
+data/edinet/*.json
+data/ipo/*.json
+
+# レポートはgit管理しない
+reports/*.md
+reports/*.json
+!reports/.gitkeep

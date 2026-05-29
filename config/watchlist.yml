@@ -1,0 +1,27 @@
+symbols:
+  - code: "285A"
+    name: "キオクシア"
+    market: "TSE"
+    status: "research"
+    priority: "S"
+    tags:
+      - semiconductor
+      - ipo
+      - national_policy
+    rules:
+      - ipo_selling_pressure_done
+      - volume_cooling
+      - no_new_low
+
+  - code: "8136"
+    name: "サンリオ"
+    market: "TSE"
+    status: "watch"
+    priority: "A"
+    tags:
+      - character
+      - global_ip
+      - consumer
+    rules:
+      - healthy_pullback
+      - earnings_drop
