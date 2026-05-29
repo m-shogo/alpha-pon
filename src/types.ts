@@ -123,6 +123,28 @@ export type ExpertEnsembleReview = {
   requiredBeforeNotification: string[];
 };
 
+export type HypothesisCluster = {
+  id: string;
+  label: string;
+  matchedTags: string[];
+  thesis: string;
+  mechanisms: string[];
+  possibleBeneficiaries: string[];
+  risks: string[];
+  counterSignals: string[];
+  primaryChecks: string[];
+};
+
+export type HypothesisMap = {
+  summary: string;
+  clusters: HypothesisCluster[];
+  crossLinks: string[];
+  falsificationTriggers: string[];
+  watchQuestions: string[];
+  sourceNeeds: string[];
+  confidence: number;
+};
+
 export type ScoreResult = {
   candidate: Candidate;
   breakdown: ScoreBreakdown;
@@ -139,6 +161,7 @@ export type ScoreResult = {
   hypeRisk?: HypeRisk;
   riskReview?: RiskReview;
   expertReview?: ExpertEnsembleReview;
+  hypothesisMap?: HypothesisMap;
 };
 
 export type AlertHistory = {
