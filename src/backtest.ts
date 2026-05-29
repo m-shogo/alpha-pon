@@ -13,6 +13,9 @@ type ScoreEntry = {
   alertLevel: string;
   reasons: string[];
   createdAt: string;
+  rules?: string[];
+  priority?: string;
+  dataQuality?: string;
 };
 
 type ReturnData = {
@@ -26,11 +29,16 @@ type BacktestRow = {
   notifiedDate: string;
   score: number;
   alertLevel: string;
+  rules: string[];
+  priority: string;
+  dataQuality: string;
   basePrice: number | null;
   "30d": ReturnData;
   "90d": ReturnData;
   "180d": ReturnData;
 };
+
+type PeriodKey = "30d" | "90d" | "180d";
 
 function findPriceOnOrAfter(
   quotes: { Date: string; AdjustmentClose: number }[],
@@ -50,6 +58,66 @@ function fmtReturn(d: ReturnData): string {
   if (d.returnPct == null) return "N/A";
   const sign = d.returnPct >= 0 ? "+" : "";
   return `${sign}${d.returnPct.toFixed(1)}%`;
+}
+
+function scoreBand(score: number): string {
+  if (score >= 85) return "score >= 85";
+  if (score >= 70) return "70 <= score < 85";
+  if (score >= 50) return "50 <= score < 70";
+  return "score < 50";
+}
+
+function median(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 1) return sorted[mid];
+  return (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+function fmtPct(value: number | null): string {
+  if (value == null) return "N/A";
+  const sign = value >= 0 ? "+" : "";
+  return `${sign}${value.toFixed(1)}%`;
+}
+
+function groupRows(rows: BacktestRow[], groupName: string, pick: (row: BacktestRow) => string[]): string[] {
+  const lines: string[] = [];
+  const groups = new Map<string, BacktestRow[]>();
+
+  for (const row of rows) {
+    for (const key of pick(row)) {
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(row);
+    }
+  }
+
+  if (groups.size === 0) return lines;
+
+  lines.push(`## ${groupName}`);
+  lines.push("");
+  lines.push("| グループ | 件数 | 30日平均 | 30日中央値 | 30日勝率 | 90日平均 | 90日中央値 | 90日勝率 | 180日平均 | 180日中央値 | 180日勝率 |");
+  lines.push("|----------|------|----------|------------|----------|----------|------------|----------|-----------|-------------|-----------|");
+
+  for (const [key, group] of [...groups].sort((a, b) => b[1].length - a[1].length)) {
+    const stats = (["30d", "90d", "180d"] as PeriodKey[]).map(period => {
+      const returns = group
+        .map(r => r[period].returnPct)
+        .filter((v): v is number => v != null);
+      const avg = returns.length > 0 ? returns.reduce((sum, v) => sum + v, 0) / returns.length : null;
+      const med = median(returns);
+      const wins = returns.filter(v => v > 0).length;
+      const winRate = returns.length > 0 ? (wins / returns.length) * 100 : null;
+      return { avg, med, winRate, count: returns.length };
+    });
+
+    lines.push(
+      `| ${key} | ${group.length} | ${fmtPct(stats[0].avg)} | ${fmtPct(stats[0].med)} | ${fmtPct(stats[0].winRate)} (${stats[0].count}) | ${fmtPct(stats[1].avg)} | ${fmtPct(stats[1].med)} | ${fmtPct(stats[1].winRate)} (${stats[1].count}) | ${fmtPct(stats[2].avg)} | ${fmtPct(stats[2].med)} | ${fmtPct(stats[2].winRate)} (${stats[2].count}) |`
+    );
+  }
+
+  lines.push("");
+  return lines;
 }
 
 async function main() {
@@ -109,6 +177,9 @@ async function main() {
       notifiedDate: entry.createdAt,
       score: entry.score,
       alertLevel: entry.alertLevel,
+      rules: entry.rules ?? [],
+      priority: entry.priority ?? "unknown",
+      dataQuality: entry.dataQuality ?? "unknown",
       basePrice: null,
       "30d": { price: null, returnPct: null },
       "90d": { price: null, returnPct: null },
@@ -178,22 +249,28 @@ async function main() {
 
   lines.push(``);
 
+  lines.push(...groupRows(rows, "スコア帯別成績", row => [scoreBand(row.score)]));
+  lines.push(...groupRows(rows, "ルール別成績", row => row.rules.length > 0 ? row.rules : ["unknown"]));
+  lines.push(...groupRows(rows, "優先度別成績", row => [row.priority]));
+
   // 統計サマリー
   const withData = rows.filter(r => r.basePrice != null);
   if (withData.length > 0) {
-    lines.push(`## 統計 (価格データあり: ${withData.length}件)`);
+    lines.push(`## 全体統計 (価格データあり: ${withData.length}件)`);
     lines.push(``);
-    lines.push(`| 期間 | 平均リターン | 勝率 |`);
-    lines.push(`|------|------------|------|`);
+    lines.push(`| 期間 | 平均リターン | 中央値 | 勝率 |`);
+    lines.push(`|------|------------|--------|------|`);
 
     for (const [key, label] of [["30d", "30日"], ["90d", "90日"], ["180d", "180日"]] as const) {
-      const valid = rows.filter(r => r[key].returnPct != null);
-      if (valid.length === 0) continue;
-      const avg = valid.reduce((s, r) => s + (r[key].returnPct ?? 0), 0) / valid.length;
-      const wins = valid.filter(r => (r[key].returnPct ?? 0) > 0).length;
-      const winRate = ((wins / valid.length) * 100).toFixed(0);
-      const sign = avg >= 0 ? "+" : "";
-      lines.push(`| ${label} | ${sign}${avg.toFixed(1)}% | ${winRate}% (${wins}/${valid.length}) |`);
+      const returns = rows
+        .map(r => r[key].returnPct)
+        .filter((v): v is number => v != null);
+      if (returns.length === 0) continue;
+      const avg = returns.reduce((s, v) => s + v, 0) / returns.length;
+      const med = median(returns);
+      const wins = returns.filter(v => v > 0).length;
+      const winRate = (wins / returns.length) * 100;
+      lines.push(`| ${label} | ${fmtPct(avg)} | ${fmtPct(med)} | ${fmtPct(winRate)} (${wins}/${returns.length}) |`);
     }
 
     lines.push(``);
