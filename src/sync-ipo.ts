@@ -51,6 +51,7 @@ async function main() {
     priority: "B" as const,
     tags: ["ipo"],
     rules: ["ipo_selling_pressure_done", "volume_cooling", "no_new_low"],
+    listedAt: ipo.listingDate,
   }));
 
   const { added, skipped } = addCandidates(newEntries, dryRun);
