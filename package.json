@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "daily": "tsx src/daily.ts",
-    "typecheck": "tsc --noEmit",
-    "report": "tsx src/daily.ts --report-only"
+    "daily:mock": "tsx src/daily.ts --mock",
+    "scan:edinet": "tsx src/scan-edinet.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "js-yaml": "^4.1.0"
