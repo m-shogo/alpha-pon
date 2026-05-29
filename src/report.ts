@@ -14,6 +14,25 @@ const PRIORITY_LABELS: Record<string, string> = {
   C: "C（低優先）",
 };
 
+function fmtPct(value: number | null | undefined, digits = 1): string {
+  if (value == null) return "N/A";
+  const sign = value >= 0 ? "+" : "";
+  return `${sign}${value.toFixed(digits)}%`;
+}
+
+function fmtPt(value: number | null | undefined, digits = 1): string {
+  if (value == null) return "N/A";
+  const sign = value >= 0 ? "+" : "";
+  return `${sign}${value.toFixed(digits)}pt`;
+}
+
+function fmtYen(value: number | null | undefined): string {
+  if (value == null) return "N/A";
+  if (value >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(1)}億円`;
+  if (value >= 10_000) return `${(value / 10_000).toFixed(0)}万円`;
+  return `${Math.round(value).toLocaleString()}円`;
+}
+
 function formatBreakdown(result: ScoreResult): string {
   const { breakdown } = result;
   const rows = [
@@ -52,13 +71,53 @@ function notificationBlockers(result: ScoreResult): string[] {
       warning.includes("未設定") ||
       warning.includes("不足") ||
       warning.includes("特定できません") ||
-      warning.includes("暫定利用")
+      warning.includes("暫定利用") ||
+      warning.includes("流動性") ||
+      warning.includes("ボラティリティ")
     ) {
       blockers.push(warning);
     }
   }
 
   return [...new Set(blockers)];
+}
+
+function pushMarketContext(lines: string[], result: ScoreResult): void {
+  const m = result.marketContext;
+  if (!m) return;
+
+  lines.push("## 市場文脈");
+  lines.push("");
+  lines.push("| 項目 | 値 |");
+  lines.push("|------|----|");
+  lines.push(`| 5日リターン | ${fmtPct(m.return5d)} |`);
+  lines.push(`| 20日リターン | ${fmtPct(m.return20d)} |`);
+  lines.push(`| 60日リターン | ${fmtPct(m.return60d)} |`);
+  lines.push(`| TOPIX 20日リターン | ${fmtPct(m.topixReturn20d)} |`);
+  lines.push(`| TOPIX比20日 | ${fmtPt(m.relativeToTopix20d)} |`);
+  lines.push(`| 20日平均売買代金 | ${fmtYen(m.liquidityYen20d)} |`);
+  lines.push(`| 20日ボラティリティ | ${fmtPct(m.volatility20d)} |`);
+  lines.push("");
+}
+
+function pushFinancialQuality(lines: string[], result: ScoreResult): void {
+  const f = result.financialQuality;
+  if (!f) return;
+
+  lines.push("## 財務品質");
+  lines.push("");
+  lines.push(`財務品質スコア: **${f.qualityScore} / 10**`);
+  lines.push("");
+  lines.push("| 項目 | 値 |");
+  lines.push("|------|----|");
+  lines.push(`| 売上前年比 | ${fmtPct(f.revenueYoY)} |`);
+  lines.push(`| 営業利益前年比 | ${fmtPct(f.operatingProfitYoY)} |`);
+  lines.push(`| 営業利益率 | ${fmtPct(f.operatingMargin)} |`);
+  lines.push(`| 営業利益率前年差 | ${fmtPt(f.operatingMarginYoY)} |`);
+  lines.push(`| 売上予想進捗率 | ${fmtPct(f.forecastRevenueProgressRate)} |`);
+  lines.push(`| 営業利益予想進捗率 | ${fmtPct(f.forecastOperatingProfitProgressRate)} |`);
+  lines.push(`| 下方修正検出 | ${f.hasDownwardRevision == null ? "N/A" : f.hasDownwardRevision ? "あり" : "なし"} |`);
+  lines.push("");
 }
 
 export function generateReport(result: ScoreResult): string {
@@ -91,6 +150,9 @@ export function generateReport(result: ScoreResult): string {
   lines.push("|------------|--------|------------|");
   lines.push(formatBreakdown(result));
   lines.push("");
+
+  pushMarketContext(lines, result);
+  pushFinancialQuality(lines, result);
 
   if (result.reasons.length > 0) {
     lines.push("## 検出理由");
@@ -155,12 +217,12 @@ export function generateSummaryReport(results: ScoreResult[], date: string): str
   if (notifiable.length > 0) {
     lines.push("## 通知対象");
     lines.push("");
-    lines.push("| コード | 銘柄名 | スコア | レベル | 主な検出理由 |");
-    lines.push("|--------|--------|--------|--------|------------|");
+    lines.push("| コード | 銘柄名 | スコア | レベル | TOPIX比20日 | 財務品質 | 主な検出理由 |");
+    lines.push("|--------|--------|--------|--------|-------------|----------|------------|");
     for (const r of notifiable) {
       const topReason = r.reasons[0] ?? "-";
       const level = r.alertLevel === "urgent" ? "🚨" : "📋";
-      lines.push(`| ${r.candidate.code} | ${r.candidate.name} | ${r.score} | ${level} | ${topReason} |`);
+      lines.push(`| ${r.candidate.code} | ${r.candidate.name} | ${r.score} | ${level} | ${fmtPt(r.marketContext?.relativeToTopix20d)} | ${r.financialQuality?.qualityScore ?? "N/A"}/10 | ${topReason} |`);
     }
     lines.push("");
   }
@@ -184,6 +246,12 @@ export function generateSummaryReport(results: ScoreResult[], date: string): str
     const icon = ALERT_LABELS[r.alertLevel].split(" ")[0];
     lines.push(`### ${icon} ${r.candidate.code} ${r.candidate.name} — ${r.score}点`);
     lines.push("");
+    if (r.marketContext) {
+      lines.push(`- 市場文脈: TOPIX比20日 ${fmtPt(r.marketContext.relativeToTopix20d)} / 20日平均売買代金 ${fmtYen(r.marketContext.liquidityYen20d)}`);
+    }
+    if (r.financialQuality) {
+      lines.push(`- 財務品質: ${r.financialQuality.qualityScore}/10`);
+    }
     if (r.reasons.length > 0) {
       r.reasons.slice(0, 3).forEach(reason => lines.push(`- ${reason}`));
     }
