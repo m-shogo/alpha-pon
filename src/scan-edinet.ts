@@ -5,9 +5,10 @@
 import { writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { scanEdinetDays, STRUCTURAL_KEYWORDS } from "./fetcher/edinet.js";
+import { todayJst } from "./date.js";
 
 async function main() {
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayJst();
   const scanDays = parseInt(process.env.EDINET_SCAN_DAYS ?? "5", 10);
 
   console.log(`\nEDINET構造イベントスキャン: 直近${scanDays}営業日\n`);
