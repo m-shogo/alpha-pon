@@ -1,6 +1,8 @@
 // EDINET API v2（無料・APIキー不要）
 // https://disclosure2.edinet-fsa.go.jp/weee0010.aspx
 
+import { addDaysJst, todayJst } from "../date.js";
+
 const BASE_URL = "https://disclosure.edinet-fsa.go.jp/api/v2";
 
 type EdinetDocListResponse = {
@@ -122,14 +124,14 @@ export async function scanEdinetDays(
   days: number
 ): Promise<Map<string, EdinetDoc[]>> {
   const result = new Map<string, EdinetDoc[]>();
+  const base = todayJst();
 
   for (let i = 0; i < days; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
+    const dateStr = addDaysJst(base, -i);
+    const weekday = new Date(`${dateStr}T00:00:00+09:00`).getDay();
     // 土日スキップ
-    if (d.getDay() === 0 || d.getDay() === 6) continue;
+    if (weekday === 0 || weekday === 6) continue;
 
-    const dateStr = d.toISOString().split("T")[0];
     try {
       const docs = await fetchEdinetDocList(dateStr);
       const structural = findStructuralEvents(docs);
