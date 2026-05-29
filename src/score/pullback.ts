@@ -20,21 +20,27 @@ export function scoreHealthyPullback(input: PullbackInput): PullbackScoreDetail 
     reasons.push(`高値から${Math.abs(input.drawdownPct).toFixed(1)}%下落`);
   }
 
-  if (input.revenueYoY >= 0) {
+  if (input.revenueYoY == null) {
+    negativeReasons.push("売上前年比データなし");
+  } else if (input.revenueYoY >= 0) {
     score += 4;
     reasons.push(`売上前年比 +${input.revenueYoY.toFixed(1)}%（成長継続）`);
   } else {
     negativeReasons.push(`売上前年比 ${input.revenueYoY.toFixed(1)}%`);
   }
 
-  if (input.operatingProfitYoY >= -10) {
+  if (input.operatingProfitYoY == null) {
+    negativeReasons.push("営業利益前年比データなし");
+  } else if (input.operatingProfitYoY >= -10) {
     score += 4;
     reasons.push(`営業利益前年比 ${input.operatingProfitYoY >= 0 ? "+" : ""}${input.operatingProfitYoY.toFixed(1)}%（大崩れなし）`);
   } else {
     negativeReasons.push(`営業利益前年比 ${input.operatingProfitYoY.toFixed(1)}%（業績悪化懸念）`);
   }
 
-  if (!input.hasDownwardRevision) {
+  if (input.hasDownwardRevision == null) {
+    negativeReasons.push("下方修正有無のデータなし");
+  } else if (!input.hasDownwardRevision) {
     score += 5;
     reasons.push("下方修正なし");
   } else {
