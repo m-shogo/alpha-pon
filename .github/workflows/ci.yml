@@ -35,3 +35,4 @@ jobs:
         run: |
           node --import tsx/esm tests/score.test.ts
           node --import tsx/esm tests/validation.test.ts
+          node --import tsx/esm tests/analysis.test.ts
