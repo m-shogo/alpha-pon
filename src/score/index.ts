@@ -3,6 +3,8 @@ import { scoreStructuralEvent } from "./structural.js";
 import { scoreEarningsDrop } from "./earnings.js";
 import { scoreHealthyPullback } from "./pullback.js";
 import { todayJst } from "../date.js";
+import { buildHypeRisk } from "../analysis/hype-risk.js";
+import { buildResearchReview } from "../analysis/research-review.js";
 import type {
   Candidate,
   ScoreBreakdown,
@@ -85,6 +87,18 @@ function applyFinancialQuality(
   warnings.push(...quality.warnings);
 }
 
+function applyHypeRisk(
+  score: number,
+  warnings: string[],
+  negativeReasons: string[]
+): void {
+  if (score >= 60) {
+    negativeReasons.push("流行・短期急騰による過熱リスクが高い");
+  } else if (score >= 30) {
+    warnings.push("流行テーマまたは短期上昇の過熱確認が必要");
+  }
+}
+
 export function scoreCandidate(
   candidate: Candidate,
   mock: MockData,
@@ -120,7 +134,6 @@ export function scoreCandidate(
 
   if (candidate.rules.includes("earnings_drop") && mock.earningsDrop) {
     const r = scoreEarningsDrop(mock.earningsDrop);
-    // 決算急落は需給と業績安全性に振り分け
     breakdown.supplyDemand = Math.min(25, breakdown.supplyDemand + Math.floor(r.score * 0.6));
     breakdown.businessSafety = Math.min(10, breakdown.businessSafety + Math.floor(r.score * 0.4));
     reasons.push(...r.reasons);
@@ -145,6 +158,10 @@ export function scoreCandidate(
     applyFinancialQuality(mock.financialQuality, breakdown, reasons, negativeReasons, warnings);
   }
 
+  const hypeRisk = buildHypeRisk(candidate, mock.marketContext);
+  applyHypeRisk(hypeRisk.score, warnings, negativeReasons);
+  warnings.push(...hypeRisk.warnings);
+
   const themeResult = scoreThemes(candidate.tags, themes);
   breakdown.theme = themeResult.score;
   reasons.push(...themeResult.reasons);
@@ -159,9 +176,17 @@ export function scoreCandidate(
 
   const score = Math.min(100, sumBreakdown(breakdown));
   const alertLevel = getAlertLevel(score, thresholds);
-
-  // 重複除去
   const uniqueNextSteps = [...new Set(nextSteps)].slice(0, 5);
+  const riskReview = buildResearchReview({
+    candidate,
+    dataQuality,
+    score,
+    marketContext: mock.marketContext,
+    financialQuality: mock.financialQuality,
+    hypeRisk,
+    warnings,
+    negativeReasons,
+  });
 
   return {
     candidate,
@@ -176,6 +201,8 @@ export function scoreCandidate(
     createdAt: todayJst(),
     marketContext: mock.marketContext,
     financialQuality: mock.financialQuality,
+    hypeRisk,
+    riskReview,
   };
 }
 
