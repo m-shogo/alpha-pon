@@ -1,4 +1,4 @@
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 import type { ScoreResult, AlertLevel } from "./types.js";
 
 // -------------------------------------------------------
@@ -14,22 +14,25 @@ const SOUND_BY_LEVEL: Record<AlertLevel, string> = {
   ignore: "",
 };
 
-function sanitize(s: string): string {
-  // AppleScript文字列エスケープ: " と \ だけ
-  return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+function appleScriptString(value: string): string {
+  return JSON.stringify(value);
 }
 
 function notifyMacOS(result: ScoreResult): void {
   const sound = SOUND_BY_LEVEL[result.alertLevel];
-  const title = sanitize(`【調査候補】${result.candidate.code} ${result.candidate.name}`);
-  const subtitle = sanitize(`スコア ${result.score}/100`);
-  const body = sanitize(result.reasons.slice(0, 2).join(" | ") + "\n※買い推奨ではありません");
+  const title = `【調査候補】${result.candidate.code} ${result.candidate.name}`;
+  const subtitle = `スコア ${result.score}/100`;
+  const body = result.reasons.slice(0, 2).join(" | ") + "\n※買い推奨ではありません";
 
-  const soundClause = sound ? ` sound name "${sound}"` : "";
-  const script = `display notification "${body}" with title "${title}" subtitle "${subtitle}"${soundClause}`;
+  const soundClause = sound ? ` sound name ${appleScriptString(sound)}` : "";
+  const script =
+    `display notification ${appleScriptString(body)} ` +
+    `with title ${appleScriptString(title)} ` +
+    `subtitle ${appleScriptString(subtitle)}` +
+    soundClause;
 
   try {
-    execSync(`osascript -e '${script}'`, { stdio: "ignore", timeout: 5000 });
+    execFileSync("osascript", ["-e", script], { stdio: "ignore", timeout: 5000 });
   } catch {
     // SSH経由など通知が使えない環境では無視
   }
