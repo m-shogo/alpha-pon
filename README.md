@@ -36,6 +36,40 @@
 - 📝 50〜69点: ログ保存のみ
 - ➖ 49点以下: 対象外
 
+## Pro運用向けに見る情報
+
+`daily` レポートでは、単なるスコアだけでなく以下も確認する。
+
+### 市場文脈
+
+| 項目 | 意味 |
+|------|------|
+| 5日/20日/60日リターン | 短期・中期の値動き |
+| TOPIX比20日 | 市場全体より強いか |
+| 20日平均売買代金 | 流動性リスク |
+| 20日ボラティリティ | 値動きの荒さ |
+
+### 財務品質
+
+| 項目 | 意味 |
+|------|------|
+| 売上前年比 | 成長しているか |
+| 営業利益前年比 | 利益が伸びているか |
+| 営業利益率 | 収益性 |
+| 営業利益率前年差 | 収益性の改善/悪化 |
+| 会社予想進捗率 | 予想に対する進み具合 |
+| 下方修正検出 | 業績リスク |
+
+### バックテスト
+
+`pnpm backtest` では以下を出力する。
+
+- 全体成績
+- スコア帯別成績
+- ルール別成績
+- 優先度別成績
+- 30日/90日/180日の平均・中央値・勝率
+
 ## セットアップ
 
 ```bash
@@ -61,16 +95,21 @@ pnpm daily
 # モックで動作確認
 pnpm daily:mock
 
+# バックテスト
+pnpm backtest
+
 # 型チェック
 pnpm typecheck
 
 # 軽量テスト
 node --import tsx/esm tests/score.test.ts
 node --import tsx/esm tests/validation.test.ts
+node --import tsx/esm tests/analysis.test.ts
 ```
 
 `reports/latest.md` にサマリーが出力される。  
-`reports/<コード>_<日付>.md` に個別レポートが出力される。
+`reports/<コード>_<日付>.md` に個別レポートが出力される。  
+`reports/backtest_<日付>.md` にバックテスト結果が出力される。
 
 ## 品質チェック
 
@@ -79,6 +118,7 @@ GitHub Actions で以下を自動実行する。
 - `pnpm typecheck`
 - `tests/score.test.ts`
 - `tests/validation.test.ts`
+- `tests/analysis.test.ts`
 
 手元でまとめて確認する場合:
 
@@ -86,6 +126,7 @@ GitHub Actions で以下を自動実行する。
 pnpm typecheck
 node --import tsx/esm tests/score.test.ts
 node --import tsx/esm tests/validation.test.ts
+node --import tsx/esm tests/analysis.test.ts
 ```
 
 ## 安全運用ルール
@@ -96,6 +137,7 @@ node --import tsx/esm tests/validation.test.ts
 - 欠損した財務データは `0` として加点しない。
 - 日付は `Asia/Tokyo` 基準で処理する。
 - `earnings_drop` は決算開示日の前後営業日ベースで判定する。
+- TOPIX比・流動性・ボラティリティ・財務品質を確認してから調査判断する。
 
 ## 銘柄の登録
 
@@ -125,6 +167,8 @@ symbols:
 |-------|--------|------|
 | 株価・出来高 | J-Quants Free | 実装済み |
 | 財務情報 | J-Quants Free | 実装済み |
+| 市場文脈 | J-Quants日足から計算 | 実装済み |
+| 財務品質 | J-Quants財務から計算 | 実装済み |
 | 有価証券報告書 | EDINET | 実装済み |
 | IPO情報 | JPX新規上場ページ | 実装済み |
 | 開示情報 | JPX適時開示ページ / EDINET | 実装済み |
@@ -141,6 +185,7 @@ alpha-pon/
 ├── reports/            # 生成レポート（gitignore）
 ├── tests/              # 軽量テスト
 └── src/
+    ├── analysis/       # 市場文脈・財務品質分析
     ├── daily.ts        # メインスクリプト
     ├── score/          # スコアリング関数
     ├── report.ts       # Markdown生成
