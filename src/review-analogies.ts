@@ -72,6 +72,17 @@ function outcomeFromPriceReview(prediction: AnalogyPredictionRecord, priceReview
     direction: priceReview.direction,
     quality: priceReview.quality,
     actualOutcome: priceReview.actualOutcome,
+    startDate: priceReview.startDate,
+    endDate: priceReview.endDate,
+    startClose: priceReview.startClose,
+    endClose: priceReview.endClose,
+    returnPct: priceReview.returnPct,
+    benchmarkCode: priceReview.benchmarkCode,
+    benchmarkReturnPct: priceReview.benchmarkReturnPct,
+    relativeReturnPct: priceReview.relativeReturnPct,
+    maxDrawdownPct: priceReview.maxDrawdownPct,
+    benchmarkMaxDrawdownPct: priceReview.benchmarkMaxDrawdownPct,
+    dataAvailability: priceReview.dataAvailability,
     whatMatched: priceReview.whatMatched,
     whatDiffered: priceReview.whatDiffered,
     missedSignals: priceReview.missedSignals,
@@ -133,9 +144,10 @@ function renderReviewReport(reviews: GeneratedReview[], date: string): string {
     lines.push(`- 判定: **${outcome.direction} / ${outcome.quality}**`);
     lines.push(`- 確定保存: ${shouldPersistOutcome(review) ? "yes" : "no（次回以降に再確認）"}`);
     lines.push(`- 信頼度: ${(prediction.confidence * 100).toFixed(0)}%`);
-    if (price.available) {
+    if (price.returnPct != null) {
       lines.push(`- 価格: ${price.startDate ?? "?"} ${price.startClose ?? "?"} → ${price.endDate ?? "?"} ${price.endClose ?? "?"}`);
-      lines.push(`- リターン: ${fmt(price.returnPct)} / ベンチマーク: ${fmt(price.benchmarkReturnPct)} / 相対: ${fmt(price.relativeReturnPct)}`);
+      lines.push(`- リターン: ${fmt(price.returnPct)} / ベンチマーク: ${fmt(price.benchmarkReturnPct)} / 相対: ${fmt(price.relativeReturnPct)} / 最大下落: ${fmt(price.maxDrawdownPct)}`);
+      lines.push(`- 価格データ状態: ${price.dataAvailability}`);
     }
     lines.push(`- 仮説: ${prediction.thesis}`);
     lines.push(`- 実際: ${outcome.actualOutcome}`);
