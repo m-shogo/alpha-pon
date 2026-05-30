@@ -1,0 +1,112 @@
+# 上がらなかった理由DB taxonomy
+# 目的: 上がる仮説が外れた時、何を見落としたかを分類して蓄積する。
+# 買い推奨ではなく、調査・反省・学習のために使う。
+
+reasons:
+  - id: "theme_right_company_wrong"
+    label: "テーマは正しいが銘柄が違った"
+    description: "テーマ自体は市場で評価されたが、選んだ会社より親会社・部品会社・競合・大型株の方が恩恵を受けた。"
+    examples:
+      - "AIデータセンター需要は正しかったが、実際に上がったのは電線・冷却・電力設備だった"
+      - "宇宙テーマは正しかったが、小型宇宙株ではなく防衛大手が買われた"
+    next_action: "関連会社・競合・親会社マップを拡張する"
+
+  - id: "theme_right_timing_wrong"
+    label: "テーマは正しいがタイミングが早すぎた/遅すぎた"
+    description: "テーマは正しいが、株価が動く時期と調査タイミングがズレた。"
+    examples:
+      - "材料発表から既に数日経っていて織り込み済みだった"
+      - "業績寄与が次の決算以降で、短期では動かなかった"
+    next_action: "イベント日・決算日・材料発生日との距離を記録する"
+
+  - id: "already_priced_in"
+    label: "織り込み済み"
+    description: "材料は良いが、既に株価・バリュエーション・出来高に反映されていた。"
+    examples:
+      - "決算前に既に大きく上昇していた"
+      - "SNSやテーマ人気で先に買われていた"
+    next_action: "60日上昇率・TOPIX比・出来高急増を強めに見る"
+
+  - id: "profit_not_connected"
+    label: "売上・利益に届かなかった"
+    description: "テーマやニュースはあるが、会社の売上・利益・利益率への寄与が小さかった。"
+    examples:
+      - "受注ニュースは出たが規模が小さかった"
+      - "売上は増えたが利益率が悪化した"
+    next_action: "売上比率・セグメント利益・受注残を確認する"
+
+  - id: "bad_financial_quality"
+    label: "財務品質が悪かった"
+    description: "テーマはあるが、ROIC/FCF/自己資本/利益率が弱く、長期投資候補として評価されなかった。"
+    examples:
+      - "赤字企業で資金繰り懸念が強かった"
+      - "FCFが出ておらず成長投資が重かった"
+    next_action: "財務品質スコアを通知条件により強く反映する"
+
+  - id: "dilution_or_supply_pressure"
+    label: "希薄化・需給悪化"
+    description: "増資・新株予約権・MSワラント・売出し・IPO売り圧で材料が相殺された。"
+    examples:
+      - "良い材料が出たが同時に増資があった"
+      - "IPO後の売り圧が強かった"
+    next_action: "一次情報サブタイプと需給警告を優先する"
+
+  - id: "primary_source_missing"
+    label: "一次情報が弱かった"
+    description: "ニュースやSNS材料はあったが、TDnet/EDINET/会社IRで裏取りできなかった。"
+    examples:
+      - "報道はあったが会社発表がなかった"
+      - "タイトルだけでは判断できず本文確認が必要だった"
+    next_action: "missingは仮説扱いにして通知強度を下げる"
+
+  - id: "macro_headwind"
+    label: "地合い・マクロ逆風"
+    description: "テーマや銘柄は悪くないが、金利・為替・指数下落・セクター売りに押された。"
+    examples:
+      - "TOPIXやグロース指数が大きく下落した"
+      - "円高/円安が逆風だった"
+    next_action: "ベンチマーク比と業種指数を強化する"
+
+  - id: "liquidity_problem"
+    label: "流動性不足"
+    description: "出来高・売買代金が少なく、材料があっても継続的に買われなかった。"
+    examples:
+      - "20日平均売買代金が小さい"
+      - "一時的に急騰したが買いが続かなかった"
+    next_action: "売買代金フィルタを強める"
+
+  - id: "event_was_negative"
+    label: "イベントの中身が実は悪かった"
+    description: "決算・開示・ニュースの表面は良く見えたが、中身に悪材料があった。"
+    examples:
+      - "増収だが利益率悪化"
+      - "上方修正だが来期見通しが弱い"
+      - "自社株買いだが規模が小さい/期間が長すぎる"
+    next_action: "本文・決算説明資料・サブタイプ分類を確認する"
+
+  - id: "better_peer_exists"
+    label: "より良い競合・関連銘柄があった"
+    description: "選んだ銘柄より、同テーマ内で財務・流動性・業績感応度が高い会社が買われた。"
+    examples:
+      - "小型テーマ株より大型本命が買われた"
+      - "親会社の方が恩恵が明確だった"
+    next_action: "テーマ内横比較と関連会社ネットワークを強化する"
+
+  - id: "unknown_or_insufficient_data"
+    label: "不明・データ不足"
+    description: "価格データ・一次情報・財務情報が不足し、外れた理由を確定できない。"
+    examples:
+      - "J-Quants欠損"
+      - "一次情報取得エラー"
+    next_action: "source healthを確認し、欠損を先に直す"
+
+labels:
+  severity:
+    - "learning_only"
+    - "watch_rule"
+    - "reduce_score_candidate"
+    - "block_candidate"
+  review_windows:
+    - "1d"
+    - "1w"
+    - "1m"
