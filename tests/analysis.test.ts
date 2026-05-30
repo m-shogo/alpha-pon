@@ -3,6 +3,7 @@ import { buildMarketContext } from "../src/analysis/market-context.js";
 import { buildFinancialQuality } from "../src/analysis/financial-quality.js";
 import { classifyWorldEvent, type ClassifiedWorldEvent } from "../src/analysis/world-event-map.js";
 import { buildWorldEventReflections } from "../src/analysis/world-event-reflection.js";
+import { buildWorldEventClusters, reflectionCandidateEventsFromClusters } from "../src/analysis/world-event-cluster.js";
 import type { DailyQuote, FinancialStatement } from "../src/fetcher/jquants.js";
 
 function quote(day: number, close: number, volume = 100_000): DailyQuote {
@@ -107,11 +108,56 @@ function testWorldEventReflectionRejectsUnknownSources() {
   assertNoUnsafeReflection([unknownSource]);
 }
 
+function testWorldEventClustersSuppressSocialOnlyRumors() {
+  const rumor = classifyWorldEvent({
+    title: "Rumor: AI datacenter power grid emergency allegedly spreading",
+    url: "https://x.com/example/status/1",
+    source: "X",
+    publishedAt: "2026-01-01T00:00:00Z",
+    snippet: "unconfirmed claims about AI datacenter power grid emergency semiconductor supply",
+  });
+
+  const clusters = buildWorldEventClusters([rumor]);
+  const candidates = reflectionCandidateEventsFromClusters(clusters);
+
+  assert.equal(clusters.length, 1);
+  assert.equal(clusters[0]?.confirmationLevel, "unverified");
+  assert.equal(clusters[0]?.misinformationRisk, "high");
+  assert.equal(candidates.length, 0);
+}
+
+function testWorldEventClustersAllowTier1ConfirmedCluster() {
+  const reuters = classifyWorldEvent({
+    title: "Reuters: AI datacenter power grid investment announced for semiconductor supply",
+    url: "https://reuters.example/ai-grid-investment",
+    source: "Reuters",
+    publishedAt: "2026-01-01T00:00:00Z",
+    snippet: "confirmed announced AI datacenter power grid investment for semiconductor supply",
+  });
+  const bloomberg = classifyWorldEvent({
+    title: "Bloomberg: AI datacenter power grid investment announced for chip supply",
+    url: "https://bloomberg.example/ai-grid-investment",
+    source: "Bloomberg",
+    publishedAt: "2026-01-01T01:00:00Z",
+    snippet: "confirmed announced AI datacenter power grid investment for semiconductor supply",
+  });
+
+  const clusters = buildWorldEventClusters([reuters, bloomberg]);
+  const candidates = reflectionCandidateEventsFromClusters(clusters);
+
+  assert.equal(clusters.length, 1);
+  assert.equal(clusters[0]?.confirmationLevel, "confirmed");
+  assert.notEqual(clusters[0]?.misinformationRisk, "high");
+  assert.equal(candidates.length, 1);
+}
+
 function main() {
   testMarketContext();
   testFinancialQuality();
   testWorldEventReflectionReliabilityGate();
   testWorldEventReflectionRejectsUnknownSources();
+  testWorldEventClustersSuppressSocialOnlyRumors();
+  testWorldEventClustersAllowTier1ConfirmedCluster();
   console.log("analysis.test.ts passed");
 }
 
