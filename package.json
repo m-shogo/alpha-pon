@@ -25,8 +25,9 @@
     "sync:tdnet": "node --env-file=.env --import tsx/esm src/sync-tdnet.ts",
     "sync:tdnet:dry": "node --env-file=.env --import tsx/esm src/sync-tdnet.ts --dry-run",
     "typecheck": "tsc --noEmit",
+    "typecheck:tests": "tsc --noEmit -p tsconfig.test.json",
     "test": "node --import tsx/esm tests/score.test.ts && node --import tsx/esm tests/validation.test.ts && node --import tsx/esm tests/analysis.test.ts && node --import tsx/esm tests/expert-ensemble.test.ts",
-    "check": "pnpm typecheck && pnpm test",
+    "check": "pnpm typecheck && pnpm typecheck:tests && pnpm test",
     "launchd:install": "mkdir -p logs && cp launchd/com.alpha-pon.daily.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.alpha-pon.daily.plist && echo 'launchd登録完了'",
     "launchd:uninstall": "launchctl unload ~/Library/LaunchAgents/com.alpha-pon.daily.plist && rm ~/Library/LaunchAgents/com.alpha-pon.daily.plist && echo 'launchd登録解除完了'",
     "launchd:status": "launchctl list | grep alpha-pon || echo '未登録'"
