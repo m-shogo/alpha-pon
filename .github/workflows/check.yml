@@ -39,6 +39,8 @@ jobs:
             reports/primary_disclosure_learning_latest.md
             reports/primary_disclosure_category_learning_latest.md
             reports/source_health_latest.md
+            reports/proposals_latest.md
+            reports/proposals_latest.json
             reports/pipeline_status_latest.json
             reports/scores_*.json
           if-no-files-found: ignore
