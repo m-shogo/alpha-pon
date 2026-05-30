@@ -9,7 +9,7 @@
   <key>ProgramArguments</key>
   <array>
     <string>/bin/bash</string>
-    <string>/Users/m-shogo/Developer/personal/alpha-pon/scripts/run-daily.sh</string>
+    <string>/Users/m-shogo/Developer/personal/alpha-pon/scripts/run-daily-complete.sh</string>
   </array>
 
   <key>WorkingDirectory</key>
