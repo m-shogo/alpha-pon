@@ -1,6 +1,6 @@
 #!/bin/bash
 # launchd から呼ばれるラッパースクリプト
-# 毎朝: 世界ニュース取得 → 銘柄daily → 類推レビュー → 学習集計 → ルール診断 → 週次/月次レビュー → DBメンテ まで実行する
+# 毎朝: 世界ニュース取得 → 銘柄daily → 類推レビュー → 学習集計 → ルール診断 → company memory → 週次/月次レビュー → DBメンテ まで実行する
 
 set -u
 
@@ -111,19 +111,22 @@ run_step "learn" "noncritical" node --import "tsx/esm" "$DIR/src/learn.ts" || tr
 # 5. ルール診断。自動でrules.ymlは変更せず、改善候補だけ出す。
 run_step "diagnose:rules" "noncritical" node --import "tsx/esm" "$DIR/src/rule-diagnostics.ts" || true
 
-# 6. 週次レビュー。月曜だけ実行。
+# 6. 銘柄ごとの反省ノート。スコア加点には使わず、company memory として保存する。
+run_step "memory:companies" "noncritical" node --import "tsx/esm" "$DIR/src/update-company-memory.ts" || true
+
+# 7. 週次レビュー。月曜だけ実行。
 run_if_monday "review:weekly" node --import "tsx/esm" "$DIR/src/periodic-review.ts" --weekly
 
-# 7. 月次レビュー。毎月1日だけ実行。
+# 8. 月次レビュー。毎月1日だけ実行。
 run_if_month_start "review:monthly" node --import "tsx/esm" "$DIR/src/periodic-review.ts" --monthly
 
-# 8. DB肥大化チェック。実アーカイブは安全側で毎日実行。失敗しても止めない。
+# 9. DB肥大化チェック。実アーカイブは安全側で毎日実行。失敗しても止めない。
 run_step "maintain:data:write" "noncritical" node --import "tsx/esm" "$DIR/src/maintain-data.ts" --write || true
 
 if [ -n "$FAILED_STEPS" ]; then
-  notify_pipeline "summary" "alpha-pon pipeline completed with warnings" "date=$TODAY failed_steps=$FAILED_STEPS reports=reports/latest.md reports/learning_latest.md reports/rule_diagnostics_latest.md"
+  notify_pipeline "summary" "alpha-pon pipeline completed with warnings" "date=$TODAY failed_steps=$FAILED_STEPS reports=reports/latest.md reports/learning_latest.md reports/rule_diagnostics_latest.md reports/company_memory_latest.md"
 else
-  notify_pipeline "summary" "alpha-pon pipeline completed" "date=$TODAY all steps ok reports=reports/latest.md reports/learning_latest.md reports/rule_diagnostics_latest.md"
+  notify_pipeline "summary" "alpha-pon pipeline completed" "date=$TODAY all steps ok reports=reports/latest.md reports/learning_latest.md reports/rule_diagnostics_latest.md reports/company_memory_latest.md"
 fi
 
 echo ""
