@@ -24,11 +24,12 @@ jobs:
           cache: pnpm
       - name: Install shellcheck
         run: sudo apt-get update && sudo apt-get install -y shellcheck
-      - run: shellcheck scripts/run-daily.sh scripts/ci-pipeline-smoke.sh
+      - run: shellcheck scripts/run-daily.sh scripts/ci-pipeline-smoke.sh scripts/run-proposal-history.sh
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
       - run: pnpm ci:smoke
       - run: bash scripts/ci-pipeline-smoke.sh
+      - run: bash scripts/run-proposal-history.sh
       - name: Upload smoke reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -41,6 +42,8 @@ jobs:
             reports/source_health_latest.md
             reports/proposals_latest.md
             reports/proposals_latest.json
+            reports/proposal_streaks_latest.json
             reports/pipeline_status_latest.json
             reports/scores_*.json
+            data/proposals_history.jsonl
           if-no-files-found: ignore
