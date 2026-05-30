@@ -1,6 +1,7 @@
 import type { ScoreResult, AlertLevel, ExpertVerdict } from "./types.js";
 import { findRelatedMarketLessonsForScore } from "./analysis/market-lesson-links.js";
 import { renderModernAnalogiesMarkdown } from "./analysis/modern-analogy.js";
+import { loadCompanyMemory } from "./company-memory.js";
 
 const ALERT_LABELS: Record<AlertLevel, string> = {
   urgent: "🚨 即通知 (URGENT)",
@@ -240,6 +241,30 @@ function pushFinancialQuality(lines: string[], result: ScoreResult): void {
   lines.push("");
 }
 
+function pushCompanyMemory(lines: string[], result: ScoreResult): void {
+  const memory = loadCompanyMemory(result.candidate.code);
+  if (!memory) return;
+
+  lines.push("## 銘柄メモ（company memory）");
+  lines.push("");
+  lines.push("> このメモはスコア加点には使いません。過去の反省・確認漏れ防止用です。");
+  lines.push("");
+  lines.push(`- 初回記録: ${memory.firstSeenAt}`);
+  lines.push(`- 最終更新: ${memory.lastReviewedAt}`);
+  lines.push(`- 監視理由: ${memory.watchReason.slice(0, 5).join(" / ") || "-"}`);
+  lines.push(`- 既知リスク: ${memory.knownRisks.slice(0, 5).join(" / ") || "-"}`);
+  lines.push(`- 相性が良さそうなルール: ${memory.strongRules.join(" / ") || "-"}`);
+  lines.push(`- 注意したいルール: ${memory.weakRules.join(" / ") || "-"}`);
+  if (memory.recurringWarnings.length > 0) {
+    lines.push(`- 繰り返し警告: ${memory.recurringWarnings.slice(0, 3).join(" / ")}`);
+  }
+  if (memory.recentOutcomes.length > 0) {
+    const latest = memory.recentOutcomes[0]!;
+    lines.push(`- 直近答え合わせ: ${latest.timeframe ?? "?"} ${latest.direction}/${latest.quality} relative=${fmtPct(latest.relativeReturnPct)} / ${latest.lessonTitle}`);
+  }
+  lines.push("");
+}
+
 export function generateReport(result: ScoreResult): string {
   const { candidate } = result;
   const lines: string[] = [];
@@ -257,6 +282,8 @@ export function generateReport(result: ScoreResult): string {
   lines.push(`作成日: ${result.createdAt}  `);
   lines.push(`データ品質: ${result.dataQuality}`);
   lines.push("");
+
+  pushCompanyMemory(lines, result);
 
   const blockers = notificationBlockers(result);
   if (blockers.length > 0) {
@@ -349,12 +376,14 @@ export function generateSummaryReport(results: ScoreResult[], date: string): str
   if (notifiable.length > 0) {
     lines.push("## 通知対象");
     lines.push("");
-    lines.push("| コード | 銘柄名 | スコア | レベル | 専門家合議 | 調査判定 | 過熱 | ベンチマーク比20日 | 財務品質 | 主な検出理由 |");
-    lines.push("|--------|--------|--------|--------|------------|----------|------|------------------|----------|--------------|");
+    lines.push("| コード | 銘柄名 | スコア | レベル | 専門家合議 | 調査判定 | 過熱 | ベンチマーク比20日 | 財務品質 | 主な検出理由 | memory注意 | ");
+    lines.push("|--------|--------|--------|--------|------------|----------|------|------------------|----------|--------------|------------|");
     for (const r of notifiable) {
       const topReason = r.reasons[0] ?? "-";
       const level = r.alertLevel === "urgent" ? "🚨" : "📋";
-      lines.push(`| ${r.candidate.code} | ${r.candidate.name} | ${r.score} | ${level} | ${expertVerdictLabel(r.expertReview?.finalVerdict)} ${r.expertReview?.consensusScore ?? "N/A"}/100 | ${decisionLabel(r.riskReview?.decision)} | ${r.hypeRisk?.level ?? "N/A"} | ${fmtPt(r.marketContext?.relativeToTopix20d)} | ${r.financialQuality?.qualityScore ?? "N/A"}/10 | ${topReason} |`);
+      const memory = loadCompanyMemory(r.candidate.code);
+      const memoryNote = memory?.weakRules.length ? `weak:${memory.weakRules.slice(0, 2).join("/")}` : memory?.knownRisks.length ? memory.knownRisks[0] : "-";
+      lines.push(`| ${r.candidate.code} | ${r.candidate.name} | ${r.score} | ${level} | ${expertVerdictLabel(r.expertReview?.finalVerdict)} ${r.expertReview?.consensusScore ?? "N/A"}/100 | ${decisionLabel(r.riskReview?.decision)} | ${r.hypeRisk?.level ?? "N/A"} | ${fmtPt(r.marketContext?.relativeToTopix20d)} | ${r.financialQuality?.qualityScore ?? "N/A"}/10 | ${topReason} | ${memoryNote} |`);
     }
     lines.push("");
   }
@@ -362,12 +391,14 @@ export function generateSummaryReport(results: ScoreResult[], date: string): str
   if (blocked.length > 0) {
     lines.push("## 通知されなかった・弱められた候補");
     lines.push("");
-    lines.push("| コード | 銘柄名 | Lv | 主な理由 |");
-    lines.push("|--------|--------|----|----------|");
+    lines.push("| コード | 銘柄名 | Lv | 主な理由 | memory注意 |");
+    lines.push("|--------|--------|----|----------|------------|");
     for (const r of blocked) {
       const reason = notificationBlockers(r)[0] ?? "-";
       const icon = ALERT_LABELS[r.alertLevel].split(" ")[0];
-      lines.push(`| ${r.candidate.code} | ${r.candidate.name} | ${icon} | ${reason} |`);
+      const memory = loadCompanyMemory(r.candidate.code);
+      const memoryNote = memory?.weakRules.length ? `weak:${memory.weakRules.slice(0, 2).join("/")}` : memory?.knownRisks[0] ?? "-";
+      lines.push(`| ${r.candidate.code} | ${r.candidate.name} | ${icon} | ${reason} | ${memoryNote} |`);
     }
     lines.push("");
   }
@@ -377,10 +408,18 @@ export function generateSummaryReport(results: ScoreResult[], date: string): str
   for (const r of results) {
     const icon = ALERT_LABELS[r.alertLevel].split(" ")[0];
     const lesson = findRelatedMarketLessonsForScore(r, 1)[0];
+    const memory = loadCompanyMemory(r.candidate.code);
     lines.push(`### ${icon} ${r.candidate.code} ${r.candidate.name} — ${r.score}点`);
     lines.push("");
     lines.push(`- 専門家合議: ${expertVerdictLabel(r.expertReview?.finalVerdict)} (${r.expertReview?.consensusScore ?? "N/A"}/100)`);
     lines.push(`- 調査前判定: ${decisionLabel(r.riskReview?.decision)}`);
+    if (memory) {
+      lines.push(`- company memory: weakRules=${memory.weakRules.join("/") || "-"} / knownRisks=${memory.knownRisks.slice(0, 2).join(" / ") || "-"}`);
+      if (memory.recentOutcomes.length > 0) {
+        const latest = memory.recentOutcomes[0]!;
+        lines.push(`- 直近答え合わせ: ${latest.timeframe ?? "?"} ${latest.direction}/${latest.quality} relative=${fmtPct(latest.relativeReturnPct)}`);
+      }
+    }
     if (r.hypeRisk) lines.push(`- 流行/過熱リスク: ${r.hypeRisk.level} (${r.hypeRisk.score}/100)`);
     if (r.marketContext) lines.push(`- 市場文脈: ベンチマーク比20日 ${fmtPt(r.marketContext.relativeToTopix20d)} / 20日平均売買代金 ${fmtYen(r.marketContext.liquidityYen20d)}`);
     if (r.financialQuality) lines.push(`- 財務品質: ${r.financialQuality.qualityScore}/10`);
