@@ -16,6 +16,13 @@ const DEFAULT_FEEDS = [
   "https://news.google.com/rss/search?q=oil+energy+LNG+nuclear+power+grid&hl=en-US&gl=US&ceid=US:en",
   "https://news.google.com/rss/search?q=Japan+labor+shortage+immigration+aging+robotics&hl=en-US&gl=US&ceid=US:en",
   "https://news.google.com/rss/search?q=supply+chain+export+control+tariff+rare+earth&hl=en-US&gl=US&ceid=US:en",
+  "https://news.google.com/rss/search?q=drought+water+shortage+semiconductor+agriculture+datacenter&hl=en-US&gl=US&ceid=US:en",
+  "https://news.google.com/rss/search?q=cyberattack+ransomware+hospital+power+grid+bank+logistics&hl=en-US&gl=US&ceid=US:en",
+  "https://news.google.com/rss/search?q=home+insurance+crisis+reinsurance+wildfire+hurricane+climate&hl=en-US&gl=US&ceid=US:en",
+  "https://news.google.com/rss/search?q=sovereign+debt+bond+yields+fiscal+crisis+bank+currency&hl=en-US&gl=US&ceid=US:en",
+  "https://news.google.com/rss/search?q=food+crisis+grain+fertilizer+export+ban+social+unrest&hl=en-US&gl=US&ceid=US:en",
+  "https://news.google.com/rss/search?q=submarine+cable+internet+outage+military+finance+satellite&hl=en-US&gl=US&ceid=US:en",
+  "https://news.google.com/rss/search?q=rare+earth+critical+minerals+lithium+battery+export+control&hl=en-US&gl=US&ceid=US:en",
 ];
 
 function decodeXml(text: string): string {
