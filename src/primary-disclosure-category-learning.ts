@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
-import { join } from "path";
+import { join, resolve } from "path";
 import { todayJst } from "./date.js";
 import { loadAnalogyOutcomeRecords, type AnalogyOutcomeRecord } from "./analysis/analogy-db.js";
 
@@ -108,8 +108,7 @@ function top(map: Map<string, number>, limit = 15): [string, number][] {
   return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit);
 }
 
-function main() {
-  const date = todayJst();
+export function generatePrimaryDisclosureCategoryLearningReport(date = todayJst()): string {
   const scores = loadScoreLogs();
   const outcomes = loadAnalogyOutcomeRecords();
   const scoreMap = scoreByCodeDate(scores);
@@ -135,11 +134,13 @@ function main() {
   lines.push("## 開示カテゴリ出現数");
   lines.push("");
   top(categoryCounts).forEach(([key, count]) => lines.push(`- ${count}件: ${key}`));
+  if (categoryCounts.size === 0) lines.push("- まだ一次情報カテゴリのログがありません。");
   lines.push("");
 
   lines.push("## 開示カテゴリ x severity 出現数");
   lines.push("");
   top(severityCounts).forEach(([key, count]) => lines.push(`- ${count}件: ${key}`));
+  if (severityCounts.size === 0) lines.push("- まだ一次情報カテゴリ x severity のログがありません。");
   lines.push("");
 
   lines.push("## 開示カテゴリ別 類推レビュー成績");
@@ -150,6 +151,7 @@ function main() {
     const stats = calcStats(group);
     lines.push(`| ${key} | ${stats.count} | ${stats.same} | ${stats.opposite} | ${stats.mixed} | ${stats.unknown} | ${expectation(stats).toFixed(2)} | ${fmtPct(stats.avgRelativeReturnPct)} | ${fmtPct(stats.avgLossRelativeReturnPct)} | ${fmtPct(stats.avgMaxDrawdownPct)} |`);
   }
+  if (groups.size === 0) lines.push("| no_data | 0 | 0 | 0 | 0 | 0 | 0.00 | N/A | N/A | N/A |");
   lines.push("");
 
   lines.push("## 改善案");
@@ -165,7 +167,14 @@ function main() {
   mkdirSync("reports", { recursive: true });
   writeFileSync(join("reports", `primary_disclosure_category_learning_${date}.md`), lines.join("\n"), "utf-8");
   writeFileSync(join("reports", "primary_disclosure_category_learning_latest.md"), lines.join("\n"), "utf-8");
-  console.log(`レポート: reports/primary_disclosure_category_learning_${date}.md`);
+  return `reports/primary_disclosure_category_learning_${date}.md`;
 }
 
-main();
+function isCliEntrypoint(): boolean {
+  return process.argv[1] ? resolve(process.argv[1]) === resolve("src/primary-disclosure-category-learning.ts") : false;
+}
+
+if (isCliEntrypoint()) {
+  const output = generatePrimaryDisclosureCategoryLearningReport();
+  console.log(`レポート: ${output}`);
+}
