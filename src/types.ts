@@ -90,6 +90,46 @@ export type HypeRisk = {
   warnings: string[];
 };
 
+export type PrimaryDisclosureCategory =
+  | "earnings"
+  | "upward_revision"
+  | "downward_revision"
+  | "midterm_plan"
+  | "large_order"
+  | "buyback"
+  | "share_issuance"
+  | "scandal"
+  | "ma"
+  | "restructuring"
+  | "dividend"
+  | "other";
+
+export type PrimaryDisclosureItem = {
+  source: "TDnet" | "EDINET";
+  code: string;
+  companyName: string;
+  title: string;
+  publishedAt: string;
+  url: string;
+  category: PrimaryDisclosureCategory;
+  severity: "positive" | "neutral" | "caution" | "blocker";
+  reasons: string[];
+};
+
+export type PrimaryDisclosureReview = {
+  sourceCoverage: {
+    tdnetCount: number;
+    edinetCount: number;
+    hasPrimarySource: boolean;
+  };
+  decision: "confirmed" | "caution" | "block" | "missing";
+  items: PrimaryDisclosureItem[];
+  positives: string[];
+  warnings: string[];
+  blockers: string[];
+  evidenceNeeded: string[];
+};
+
 export type RiskReview = {
   decision: RiskDecision;
   blockers: string[];
@@ -166,6 +206,7 @@ export type ScoreResult = {
   marketContext?: MarketContext;
   financialQuality?: FinancialQuality;
   hypeRisk?: HypeRisk;
+  primaryDisclosureReview?: PrimaryDisclosureReview;
   riskReview?: RiskReview;
   expertReview?: ExpertEnsembleReview;
   hypothesisMap?: HypothesisMap;
