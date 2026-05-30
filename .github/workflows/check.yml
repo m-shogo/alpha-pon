@@ -17,6 +17,9 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - run: shellcheck scripts/run-daily.sh
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
       - run: pnpm ci:smoke
