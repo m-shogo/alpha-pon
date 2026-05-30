@@ -15,6 +15,7 @@ import type {
   ThemesConfig,
   MarketContext,
   FinancialQuality,
+  PrimaryDisclosureReview,
 } from "../types.js";
 import type { MockData } from "../mock.js";
 
@@ -101,6 +102,40 @@ function applyHypeRisk(
   }
 }
 
+function applyPrimaryDisclosureReview(
+  review: PrimaryDisclosureReview | undefined,
+  warnings: string[],
+  negativeReasons: string[],
+  nextSteps: string[]
+): void {
+  if (!review) {
+    warnings.push("一次情報レビュー未実行");
+    nextSteps.push("TDnet/EDINETで当日開示を確認する");
+    return;
+  }
+
+  if (review.decision === "block") {
+    negativeReasons.push("一次情報で強いブロッカーを検出");
+    review.blockers.slice(0, 4).forEach(blocker => negativeReasons.push(blocker));
+    nextSteps.push("一次情報ブロッカーの本文PDFを確認し、調査候補から外すか判断する");
+  }
+
+  if (review.decision === "caution") {
+    warnings.push("一次情報で注意開示を検出");
+    review.warnings.slice(0, 4).forEach(warning => warnings.push(warning));
+    nextSteps.push("注意開示の本文PDFを確認する");
+  }
+
+  if (review.decision === "missing") {
+    warnings.push("当日TDnet/EDINETで該当開示なし。ニュース材料は一次情報で裏取り前提");
+    nextSteps.push("ニュース材料に対応する会社開示・公式IRの有無を確認する");
+  }
+
+  if (review.decision === "confirmed") {
+    review.positives.slice(0, 2).forEach(item => nextSteps.push(`一次情報確認: ${item}`));
+  }
+}
+
 export function scoreCandidate(
   candidate: Candidate,
   mock: MockData,
@@ -163,12 +198,13 @@ export function scoreCandidate(
   const hypeRisk = buildHypeRisk(candidate, mock.marketContext);
   applyHypeRisk(hypeRisk.score, warnings, negativeReasons);
   warnings.push(...hypeRisk.warnings);
+  applyPrimaryDisclosureReview(mock.primaryDisclosureReview, warnings, negativeReasons, nextSteps);
 
   const themeResult = scoreThemes(candidate.tags, themes);
   breakdown.theme = themeResult.score;
   reasons.push(...themeResult.reasons);
 
-  const dataQuality = mock.ipo || mock.earningsDrop || mock.pullback || mock.structural || mock.marketContext || mock.financialQuality
+  const dataQuality = mock.ipo || mock.earningsDrop || mock.pullback || mock.structural || mock.marketContext || mock.financialQuality || mock.primaryDisclosureReview
     ? "ok"
     : "missing";
 
@@ -178,7 +214,7 @@ export function scoreCandidate(
 
   const score = Math.min(100, sumBreakdown(breakdown));
   const alertLevel = getAlertLevel(score, thresholds);
-  const uniqueNextSteps = [...new Set(nextSteps)].slice(0, 5);
+  const uniqueNextSteps = [...new Set(nextSteps)].slice(0, 8);
   const riskReview = buildResearchReview({
     candidate,
     dataQuality,
@@ -222,6 +258,7 @@ export function scoreCandidate(
     marketContext: mock.marketContext,
     financialQuality: mock.financialQuality,
     hypeRisk,
+    primaryDisclosureReview: mock.primaryDisclosureReview,
     riskReview,
     expertReview,
     hypothesisMap,
