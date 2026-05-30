@@ -45,6 +45,7 @@ write_status() {
     "daily": "reports/latest.md",
     "learning": "reports/learning_latest.md",
     "primaryDisclosureLearning": "reports/primary_disclosure_learning_latest.md",
+    "primaryDisclosureCategoryLearning": "reports/primary_disclosure_category_learning_latest.md",
     "ruleDiagnostics": "reports/rule_diagnostics_latest.md",
     "companyMemory": "reports/company_memory_latest.md",
     "maintenance": "reports/maintenance_latest.md"
@@ -190,7 +191,7 @@ run_step "review:analogies:write" "noncritical" node --import "tsx/esm" "$DIR/sr
 # 4. 学習集計。失敗してもdaily自体は成功扱いにする。
 run_step "learn" "noncritical" node --import "tsx/esm" "$DIR/src/learn.ts" || true
 
-# 5. 一次情報学習。TDnet/EDINET判定ごとの成績を見る。失敗しても止めない。
+# 5. 一次情報学習。TDnet/EDINET判定ごとの成績とカテゴリ別成績を見る。失敗しても止めない。
 run_step "learn:primary" "noncritical" node --import "tsx/esm" "$DIR/src/primary-disclosure-learning.ts" || true
 
 # 6. ルール診断。自動でrules.ymlは変更せず、改善候補だけ出す。
@@ -209,10 +210,10 @@ run_if_month_start "review:monthly" node --import "tsx/esm" "$DIR/src/periodic-r
 run_step "maintain:data:write" "noncritical" node --import "tsx/esm" "$DIR/src/maintain-data.ts" --write || true
 
 if [ -n "$FAILED_STEPS" ]; then
-  notify_pipeline "summary" "alpha-pon pipeline completed with warnings" "date=$TODAY failed_steps=$FAILED_STEPS reports=reports/latest.md reports/learning_latest.md reports/primary_disclosure_learning_latest.md reports/rule_diagnostics_latest.md reports/company_memory_latest.md reports/pipeline_status_latest.json"
+  notify_pipeline "summary" "alpha-pon pipeline completed with warnings" "date=$TODAY failed_steps=$FAILED_STEPS reports=reports/latest.md reports/learning_latest.md reports/primary_disclosure_learning_latest.md reports/primary_disclosure_category_learning_latest.md reports/rule_diagnostics_latest.md reports/company_memory_latest.md reports/pipeline_status_latest.json"
   write_status "completed_with_warnings"
 else
-  notify_pipeline "summary" "alpha-pon pipeline completed" "date=$TODAY all steps ok reports=reports/latest.md reports/learning_latest.md reports/primary_disclosure_learning_latest.md reports/rule_diagnostics_latest.md reports/company_memory_latest.md reports/pipeline_status_latest.json"
+  notify_pipeline "summary" "alpha-pon pipeline completed" "date=$TODAY all steps ok reports=reports/latest.md reports/learning_latest.md reports/primary_disclosure_learning_latest.md reports/primary_disclosure_category_learning_latest.md reports/rule_diagnostics_latest.md reports/company_memory_latest.md reports/pipeline_status_latest.json"
   write_status "completed"
 fi
 
