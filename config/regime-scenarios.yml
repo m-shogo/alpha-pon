@@ -1,0 +1,166 @@
+# alpha-pon 時代変化・危機シナリオDB
+# 目的: コロナ、震災、温暖化、戦争、移民、食糧など、時代変化に合わせて見るテーマと避ける条件を切り替える。
+# 買い推奨ではなく、調査・検証・反省用。
+
+scenarios:
+  pandemic:
+    label: "感染症・パンデミック"
+    description: "人流制限、医療逼迫、在宅需要、サプライチェーン混乱が起きる局面。"
+    watch_themes:
+      - "医療・検査・ワクチン"
+      - "在宅・クラウド・EC"
+      - "物流・宅配"
+      - "生活必需品"
+    avoid_or_caution:
+      - "旅行・外食・イベントは初動で逆風になりやすい"
+      - "特需銘柄はピークアウトに注意"
+      - "一過性需要を恒久成長と誤認しない"
+    non_move_reasons:
+      - "already_priced_in"
+      - "profit_not_connected"
+      - "theme_right_timing_wrong"
+    evidence_checks:
+      - "政府方針"
+      - "人流データ"
+      - "決算で特需の継続性"
+      - "在庫・粗利率"
+
+  earthquake_disaster:
+    label: "震災・災害・復旧"
+    description: "インフラ破損、復旧需要、防災、建設資材、保険、電力網に影響する局面。"
+    watch_themes:
+      - "建設・土木"
+      - "電力網・送配電"
+      - "防災・復旧資材"
+      - "保険・再保険"
+      - "通信インフラ"
+    avoid_or_caution:
+      - "被災企業の一時下落を安易に押し目扱いしない"
+      - "復旧需要が利益に届くまで時間差がある"
+      - "保険金支払い・操業停止リスクに注意"
+    non_move_reasons:
+      - "profit_not_connected"
+      - "event_was_negative"
+      - "macro_headwind"
+    evidence_checks:
+      - "会社の被害開示"
+      - "操業停止の有無"
+      - "復旧需要の受注化"
+      - "保険損失"
+
+  climate_heat_water:
+    label: "温暖化・猛暑・水不足"
+    description: "猛暑、水不足、農業影響、電力需要、空調、インフラ更新が強まる局面。"
+    watch_themes:
+      - "空調・冷却"
+      - "水処理・ポンプ"
+      - "電力・蓄電"
+      - "農業・食品防衛"
+      - "保険・災害対策"
+    avoid_or_caution:
+      - "猛暑特需は季節性が強い"
+      - "電力コスト上昇が利益を圧迫する会社に注意"
+      - "水不足で原材料・農産物コストが悪化する会社に注意"
+    non_move_reasons:
+      - "theme_right_timing_wrong"
+      - "profit_not_connected"
+      - "better_peer_exists"
+    evidence_checks:
+      - "気象要因が決算に出たか"
+      - "電力コスト影響"
+      - "水処理・空調の受注"
+      - "食品原価率"
+
+  war_geopolitics:
+    label: "戦争・地政学・安全保障"
+    description: "防衛費、エネルギー、海運、サイバー、食糧、重要鉱物、為替に影響する局面。"
+    watch_themes:
+      - "防衛"
+      - "サイバーセキュリティ"
+      - "エネルギー"
+      - "海運・物流"
+      - "重要鉱物・資源"
+      - "食糧安全保障"
+    avoid_or_caution:
+      - "防衛テーマの急騰は織り込み済みに注意"
+      - "原材料高で利益が削られる会社に注意"
+      - "制裁・輸出規制・調達制約を確認"
+    non_move_reasons:
+      - "already_priced_in"
+      - "macro_headwind"
+      - "better_peer_exists"
+    evidence_checks:
+      - "政府予算"
+      - "受注残"
+      - "輸出規制"
+      - "原材料価格"
+      - "為替感応度"
+
+  migration_labor_shortage:
+    label: "移民・人手不足・労働制約"
+    description: "人件費上昇、省人化、外国人労働力、教育、住宅、介護、物流に影響する局面。"
+    watch_themes:
+      - "省人化・ロボット"
+      - "人材・派遣"
+      - "介護・医療"
+      - "住宅・生活インフラ"
+      - "教育・日本語支援"
+    avoid_or_caution:
+      - "人材企業は景気敏感"
+      - "賃金上昇が利益を圧迫する業種に注意"
+      - "制度変更リスクを確認"
+    non_move_reasons:
+      - "profit_not_connected"
+      - "theme_right_company_wrong"
+      - "macro_headwind"
+    evidence_checks:
+      - "人件費率"
+      - "省人化投資"
+      - "採用難コメント"
+      - "制度変更"
+
+  food_security:
+    label: "食糧・農業・資源価格"
+    description: "食糧価格、肥料、飼料、天候不順、輸入制約、物流コストに影響する局面。"
+    watch_themes:
+      - "食品ディフェンシブ"
+      - "農業資材"
+      - "肥料・化学"
+      - "商社"
+      - "物流"
+    avoid_or_caution:
+      - "原材料高が価格転嫁できない企業に注意"
+      - "値上げ後の数量減に注意"
+      - "短期の市況だけで判断しない"
+    non_move_reasons:
+      - "profit_not_connected"
+      - "event_was_negative"
+      - "macro_headwind"
+    evidence_checks:
+      - "原価率"
+      - "価格転嫁"
+      - "数量減"
+      - "為替・輸入コスト"
+
+  financial_crisis_rate_shock:
+    label: "金融不安・金利ショック"
+    description: "信用収縮、銀行不安、金利上昇/低下、為替急変でリスク資産が売られる局面。"
+    watch_themes:
+      - "高財務品質"
+      - "ネットキャッシュ"
+      - "ディフェンシブ"
+      - "金利感応株"
+    avoid_or_caution:
+      - "赤字グロース"
+      - "借入依存"
+      - "不動産・金融レバレッジ"
+      - "低流動性"
+    non_move_reasons:
+      - "macro_headwind"
+      - "bad_financial_quality"
+      - "liquidity_problem"
+    evidence_checks:
+      - "自己資本比率"
+      - "有利子負債"
+      - "金利感応度"
+      - "信用不安ニュース"
