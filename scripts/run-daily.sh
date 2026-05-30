@@ -14,13 +14,77 @@ if [ -f "$DIR/.env" ]; then
   set +a
 fi
 
-mkdir -p "$DIR/logs" "$DIR/tmp"
+mkdir -p "$DIR/logs" "$DIR/tmp" "$DIR/reports"
 
 TODAY="$(date '+%Y-%m-%d')"
+STARTED_AT="$(date '+%Y-%m-%d %H:%M:%S')"
 DOW="$(date '+%u')"   # 1=Mon ... 7=Sun
 DOM="$(date '+%d')"   # 01..31
 FAILED_STEPS=""
+PIPELINE_STEPS_JSON="[]"
 LOCK_DIR="$DIR/tmp/run-daily.lock"
+
+json_escape() {
+  python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().strip()))'
+}
+
+write_status() {
+  local status="$1"
+  local ended_at="$(date '+%Y-%m-%d %H:%M:%S')"
+  local failed_json
+  failed_json="$(printf '%s' "$FAILED_STEPS" | json_escape)"
+  cat > "$DIR/reports/pipeline_status_latest.json" <<EOF
+{
+  "date": "$TODAY",
+  "status": "$status",
+  "startedAt": "$STARTED_AT",
+  "endedAt": "$ended_at",
+  "failedSteps": $failed_json,
+  "steps": $PIPELINE_STEPS_JSON,
+  "reports": {
+    "daily": "reports/latest.md",
+    "learning": "reports/learning_latest.md",
+    "ruleDiagnostics": "reports/rule_diagnostics_latest.md",
+    "companyMemory": "reports/company_memory_latest.md",
+    "maintenance": "reports/maintenance_latest.md"
+  }
+}
+EOF
+}
+
+append_step_status() {
+  local name="$1"
+  local critical="$2"
+  local status="$3"
+  local code="$4"
+  local started_at="$5"
+  local ended_at="$6"
+  local duration_sec="$7"
+
+  local name_json critical_json status_json started_json ended_json
+  name_json="$(printf '%s' "$name" | json_escape)"
+  critical_json="$(printf '%s' "$critical" | json_escape)"
+  status_json="$(printf '%s' "$status" | json_escape)"
+  started_json="$(printf '%s' "$started_at" | json_escape)"
+  ended_json="$(printf '%s' "$ended_at" | json_escape)"
+
+  PIPELINE_STEPS_JSON="$(python3 - <<PY
+import json
+steps = json.loads('''$PIPELINE_STEPS_JSON''')
+steps.append({
+  "name": json.loads('''$name_json'''),
+  "criticality": json.loads('''$critical_json'''),
+  "status": json.loads('''$status_json'''),
+  "code": int("$code"),
+  "startedAt": json.loads('''$started_json'''),
+  "endedAt": json.loads('''$ended_json'''),
+  "durationSec": int("$duration_sec"),
+})
+print(json.dumps(steps, ensure_ascii=False))
+PY
+)"
+  write_status "running"
+}
 
 notify_pipeline() {
   local kind="$1"
@@ -37,9 +101,11 @@ if mkdir "$LOCK_DIR" 2>/dev/null; then
   trap cleanup EXIT INT TERM
   echo $$ > "$LOCK_DIR/pid"
   date '+%Y-%m-%d %H:%M:%S' > "$LOCK_DIR/started_at"
+  write_status "running"
 else
   echo "another alpha-pon daily pipeline is already running: $LOCK_DIR"
   notify_pipeline "alert" "alpha-pon pipeline skipped" "another run-daily.sh is already running. date=$TODAY lock=$LOCK_DIR"
+  write_status "skipped_locked"
   exit 0
 fi
 
@@ -48,14 +114,26 @@ run_step() {
   local critical="$2"
   shift 2
 
+  local step_started_at step_started_epoch step_ended_at step_ended_epoch duration
+  step_started_at="$(date '+%Y-%m-%d %H:%M:%S')"
+  step_started_epoch="$(date '+%s')"
+
   echo ""
-  echo "---- [$name] start: $(date '+%Y-%m-%d %H:%M:%S') ----"
+  echo "---- [$name] start: $step_started_at ----"
   if "$@"; then
-    echo "---- [$name] ok: $(date '+%Y-%m-%d %H:%M:%S') ----"
+    step_ended_at="$(date '+%Y-%m-%d %H:%M:%S')"
+    step_ended_epoch="$(date '+%s')"
+    duration=$((step_ended_epoch - step_started_epoch))
+    append_step_status "$name" "$critical" "ok" "0" "$step_started_at" "$step_ended_at" "$duration"
+    echo "---- [$name] ok: $step_ended_at ----"
   else
     local code=$?
+    step_ended_at="$(date '+%Y-%m-%d %H:%M:%S')"
+    step_ended_epoch="$(date '+%s')"
+    duration=$((step_ended_epoch - step_started_epoch))
+    append_step_status "$name" "$critical" "failed" "$code" "$step_started_at" "$step_ended_at" "$duration"
     local message="step=$name code=$code date=$TODAY"
-    echo "---- [$name] failed($code): $(date '+%Y-%m-%d %H:%M:%S') ----"
+    echo "---- [$name] failed($code): $step_ended_at ----"
     FAILED_STEPS="$FAILED_STEPS $name($code)"
     notify_pipeline "alert" "alpha-pon pipeline failed" "$message"
 
@@ -75,6 +153,7 @@ run_if_monday() {
     run_step "$name" "noncritical" "$@" || true
   else
     echo "skip [$name]: weekly job runs on Monday"
+    append_step_status "$name" "noncritical" "skipped" "0" "$(date '+%Y-%m-%d %H:%M:%S')" "$(date '+%Y-%m-%d %H:%M:%S')" "0"
   fi
 }
 
@@ -85,11 +164,12 @@ run_if_month_start() {
     run_step "$name" "noncritical" "$@" || true
   else
     echo "skip [$name]: monthly job runs on day 01"
+    append_step_status "$name" "noncritical" "skipped" "0" "$(date '+%Y-%m-%d %H:%M:%S')" "$(date '+%Y-%m-%d %H:%M:%S')" "0"
   fi
 }
 
 echo "========================================"
-echo "alpha-pon daily pipeline start: $(date '+%Y-%m-%d %H:%M:%S')"
+echo "alpha-pon daily pipeline start: $STARTED_AT"
 echo "DIR=$DIR"
 echo "========================================"
 
@@ -99,6 +179,7 @@ run_step "scan:world" "noncritical" node --import "tsx/esm" "$DIR/src/scan-world
 # 2. 銘柄スコア・詳細レポート・類推使用DB・予想DBを保存。ここだけは最重要。
 if ! run_step "daily" "critical" node --import "tsx/esm" "$DIR/src/daily.ts"; then
   notify_pipeline "alert" "alpha-pon daily failed" "daily failed. pipeline stopped. date=$TODAY failed_steps=$FAILED_STEPS"
+  write_status "failed"
   exit 1
 fi
 
@@ -124,13 +205,16 @@ run_if_month_start "review:monthly" node --import "tsx/esm" "$DIR/src/periodic-r
 run_step "maintain:data:write" "noncritical" node --import "tsx/esm" "$DIR/src/maintain-data.ts" --write || true
 
 if [ -n "$FAILED_STEPS" ]; then
-  notify_pipeline "summary" "alpha-pon pipeline completed with warnings" "date=$TODAY failed_steps=$FAILED_STEPS reports=reports/latest.md reports/learning_latest.md reports/rule_diagnostics_latest.md reports/company_memory_latest.md"
+  notify_pipeline "summary" "alpha-pon pipeline completed with warnings" "date=$TODAY failed_steps=$FAILED_STEPS reports=reports/latest.md reports/learning_latest.md reports/rule_diagnostics_latest.md reports/company_memory_latest.md reports/pipeline_status_latest.json"
+  write_status "completed_with_warnings"
 else
-  notify_pipeline "summary" "alpha-pon pipeline completed" "date=$TODAY all steps ok reports=reports/latest.md reports/learning_latest.md reports/rule_diagnostics_latest.md reports/company_memory_latest.md"
+  notify_pipeline "summary" "alpha-pon pipeline completed" "date=$TODAY all steps ok reports=reports/latest.md reports/learning_latest.md reports/rule_diagnostics_latest.md reports/company_memory_latest.md reports/pipeline_status_latest.json"
+  write_status "completed"
 fi
 
 echo ""
 echo "========================================"
 echo "alpha-pon daily pipeline end: $(date '+%Y-%m-%d %H:%M:%S')"
 echo "failed_steps:${FAILED_STEPS:- none}"
+echo "status: reports/pipeline_status_latest.json"
 echo "========================================"
