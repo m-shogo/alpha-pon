@@ -1,0 +1,257 @@
+# alpha-pon 親会社/子会社/主要株主/関連会社ネットワークDB
+# 目的: 1社だけに拘らず、親会社・子会社・主要株主・競合・顧客・部品会社まで広げて考察する。
+# 注意: 買い推奨ではなく、調査・検証・反省用。
+
+companies:
+  "8136":
+    name: "サンリオ"
+    categoryHints:
+      - "global_ip_character"
+    parents: []
+    subsidiaries: []
+    majorShareholders: []
+    peers:
+      - code: "7974"
+        name: "任天堂"
+        relation: "日本発IP・海外展開"
+      - code: "7832"
+        name: "バンダイナムコHD"
+        relation: "キャラクター/ゲーム/玩具IP"
+      - code: "4661"
+        name: "オリエンタルランド"
+        relation: "体験型IP/テーマパーク"
+    suppliersOrPartners: []
+    customerOrDemandDrivers:
+      - "海外ライセンス需要"
+      - "キャラクターグッズ需要"
+      - "中国・アジア・北米のIP消費"
+    betterPeerRisk:
+      - "大型IP銘柄の方が資金流入しやすい可能性"
+      - "テーマは正しいが、任天堂/バンナムなど別IP銘柄の方が選ばれる可能性"
+    evidenceChecks:
+      - "海外ライセンス売上"
+      - "営業利益率"
+      - "地域別成長率"
+
+  "7974":
+    name: "任天堂"
+    categoryHints:
+      - "global_ip_character"
+    parents: []
+    subsidiaries: []
+    majorShareholders: []
+    peers:
+      - code: "7832"
+        name: "バンダイナムコHD"
+        relation: "ゲーム/IP"
+      - code: "9766"
+        name: "コナミG"
+        relation: "ゲーム/IP"
+      - code: "8136"
+        name: "サンリオ"
+        relation: "キャラクターIP"
+    suppliersOrPartners:
+      - "半導体/部品サプライヤー"
+      - "映画・テーマパーク提携先"
+    customerOrDemandDrivers:
+      - "次世代ハード"
+      - "ソフト販売"
+      - "映画/テーマパーク/IP展開"
+    betterPeerRisk:
+      - "ハードサイクル待ちで、短期では他IP銘柄が選ばれる可能性"
+    evidenceChecks:
+      - "ハード販売台数"
+      - "ソフト販売"
+      - "IP関連収益"
+
+  "5803":
+    name: "フジクラ"
+    categoryHints:
+      - "ai_datacenter_power"
+    parents: []
+    subsidiaries: []
+    majorShareholders: []
+    peers:
+      - code: "5801"
+        name: "古河電工"
+        relation: "光ファイバー/電線"
+      - code: "5802"
+        name: "住友電工"
+        relation: "電線/光通信/電力インフラ"
+      - code: "5805"
+        name: "SWCC"
+        relation: "電線/電力インフラ"
+    suppliersOrPartners:
+      - "データセンター事業者"
+      - "通信キャリア"
+      - "電力インフラ関連"
+    customerOrDemandDrivers:
+      - "AIデータセンター投資"
+      - "光通信需要"
+      - "電力網更新"
+    betterPeerRisk:
+      - "同じ電線テーマでも、住友電工/古河電工/SWCCの方が選ばれる可能性"
+      - "既に急騰済みなら関連銘柄へ資金が移る可能性"
+    evidenceChecks:
+      - "データセンター向け受注"
+      - "光ファイバー利益率"
+      - "在庫調整コメント"
+
+  "5802":
+    name: "住友電工"
+    categoryHints:
+      - "ai_datacenter_power"
+    parents: []
+    subsidiaries: []
+    majorShareholders: []
+    peers:
+      - code: "5803"
+        name: "フジクラ"
+        relation: "光通信/データセンター"
+      - code: "5801"
+        name: "古河電工"
+        relation: "電線/光ファイバー"
+      - code: "5805"
+        name: "SWCC"
+        relation: "電力ケーブル"
+    suppliersOrPartners:
+      - "自動車/通信/電力インフラ顧客"
+    customerOrDemandDrivers:
+      - "電力網更新"
+      - "データセンター"
+      - "自動車電装"
+    betterPeerRisk:
+      - "テーマ寄与が分散し、よりピュアな銘柄が選ばれる可能性"
+    evidenceChecks:
+      - "セグメント別利益"
+      - "情報通信/電力関連の受注"
+
+  "285A":
+    name: "キオクシア"
+    categoryHints:
+      - "semiconductor_memory"
+    parents: []
+    subsidiaries: []
+    majorShareholders:
+      - "主要株主・スポンサーは最新有価証券報告書/目論見書で確認"
+    peers:
+      - code: "8035"
+        name: "東京エレクトロン"
+        relation: "半導体装置"
+      - code: "6857"
+        name: "アドバンテスト"
+        relation: "半導体テスター"
+      - code: "6146"
+        name: "ディスコ"
+        relation: "半導体製造装置"
+    suppliersOrPartners:
+      - "半導体製造装置メーカー"
+      - "データセンター/ストレージ需要"
+    customerOrDemandDrivers:
+      - "NAND市況"
+      - "AIストレージ需要"
+      - "スマホ/PC需要"
+    betterPeerRisk:
+      - "メモリメーカーより装置・検査銘柄の方が先に買われる可能性"
+      - "IPO後需給が重く、テーマが正しくても上がらない可能性"
+    evidenceChecks:
+      - "NAND価格"
+      - "設備投資"
+      - "FCF"
+      - "IPO後の需給"
+
+  "8035":
+    name: "東京エレクトロン"
+    categoryHints:
+      - "semiconductor_memory"
+    parents: []
+    subsidiaries: []
+    majorShareholders: []
+    peers:
+      - code: "6857"
+        name: "アドバンテスト"
+        relation: "半導体テスター"
+      - code: "6146"
+        name: "ディスコ"
+        relation: "半導体製造装置"
+      - code: "6920"
+        name: "レーザーテック"
+        relation: "半導体検査装置"
+    suppliersOrPartners:
+      - "半導体メーカー"
+      - "AI向け先端投資"
+    customerOrDemandDrivers:
+      - "半導体設備投資"
+      - "AI/先端ロジック投資"
+      - "メモリ投資サイクル"
+    betterPeerRisk:
+      - "装置内でも検査・後工程の方が相場で選ばれる局面がある"
+      - "大型株で織り込みが早い"
+    evidenceChecks:
+      - "受注動向"
+      - "地域別売上"
+      - "中国規制影響"
+
+  "7011":
+    name: "三菱重工"
+    categoryHints:
+      - "defense_space"
+    parents: []
+    subsidiaries: []
+    majorShareholders: []
+    peers:
+      - code: "7012"
+        name: "川崎重工"
+        relation: "防衛/重工"
+      - code: "7013"
+        name: "IHI"
+        relation: "航空/宇宙/防衛"
+      - code: "6701"
+        name: "NEC"
+        relation: "防衛IT/通信/宇宙"
+    suppliersOrPartners:
+      - "政府/防衛省"
+      - "宇宙関連プロジェクト"
+      - "原子力/エネルギー関連"
+    customerOrDemandDrivers:
+      - "防衛費"
+      - "地政学リスク"
+      - "宇宙開発"
+      - "エネルギー安全保障"
+    betterPeerRisk:
+      - "防衛テーマが大型株で織り込み済みの場合、周辺IT/電子/部品へ資金が移る可能性"
+    evidenceChecks:
+      - "防衛受注"
+      - "セグメント利益率"
+      - "大型案件の採算"
+
+  "9348":
+    name: "ispace"
+    categoryHints:
+      - "defense_space"
+    parents: []
+    subsidiaries: []
+    majorShareholders: []
+    peers:
+      - code: "7011"
+        name: "三菱重工"
+        relation: "宇宙/ロケット/防衛大型株"
+      - code: "7013"
+        name: "IHI"
+        relation: "宇宙/航空"
+      - code: "6701"
+        name: "NEC"
+        relation: "衛星/通信/宇宙IT"
+    suppliersOrPartners:
+      - "宇宙機器/通信/打ち上げ関連"
+    customerOrDemandDrivers:
+      - "月面開発期待"
+      - "宇宙テーマ"
+      - "提携/ミッション進捗"
+    betterPeerRisk:
+      - "宇宙テーマは正しくても、収益化が遠く大型防衛/通信株の方が選ばれる可能性"
+      - "資金調達・希薄化でテーマが相殺される可能性"
+    evidenceChecks:
+      - "資金繰り"
+      - "ミッション成功/失敗"
+      - "契約の売上化"
