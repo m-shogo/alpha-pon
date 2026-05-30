@@ -3,13 +3,11 @@ import type { ScoreResult, AlertLevel } from "./types.js";
 
 // -------------------------------------------------------
 // macOS ネイティブ通知
-// osascript は追加インストール不要、macOS全バージョン対応
-// sound name: "Glass" | "Ping" | "Funk" | "Basso" | "Pop" など
 // -------------------------------------------------------
 
 const SOUND_BY_LEVEL: Record<AlertLevel, string> = {
-  urgent: "Funk",   // 警告音
-  daily:  "Glass",  // 軽い通知音
+  urgent: "Funk",
+  daily:  "Glass",
   log:    "",
   ignore: "",
 };
@@ -38,20 +36,21 @@ function notifyMacOS(result: ScoreResult): void {
   }
 }
 
+function notifyMacOSText(title: string, body: string, sound = "Basso"): void {
+  const script =
+    `display notification ${appleScriptString(body)} ` +
+    `with title ${appleScriptString(title)} ` +
+    `sound name ${appleScriptString(sound)}`;
+
+  try {
+    execFileSync("osascript", ["-e", script], { stdio: "ignore", timeout: 5000 });
+  } catch {
+    // SSH経由など通知が使えない環境では無視
+  }
+}
+
 // -------------------------------------------------------
 // LINE Messaging API
-//
-// LINE Notifyは2025年4月廃止。Messaging APIが現在の正解。
-//
-// セットアップ:
-//   1. https://developers.line.biz/ でProviderとチャネル作成
-//   2. チャネル設定 → Messaging API → チャネルアクセストークン発行
-//   3. LINEアプリでそのボットを友達追加
-//   4. https://api.line.me/v2/profile を呼んでuserId取得
-//      or ボットにメッセージを送ってWebhookで取得
-//   5. .envに LINE_CHANNEL_TOKEN と LINE_USER_ID を設定
-//
-// 無料枠: 200件/月（個人利用は余裕）
 // -------------------------------------------------------
 
 type LineFlexMessage = {
@@ -221,11 +220,8 @@ async function pushLine(messages: object[]): Promise<void> {
 
 export async function sendUrgentNotifications(results: ScoreResult[]): Promise<void> {
   for (const result of results) {
-    // macOS: 個別に即通知
     notifyMacOS(result);
     console.log(`  macOS通知: ${result.candidate.code} ${result.candidate.name} ${result.score}点`);
-
-    // LINE: Flexカードで個別送信
     await pushLine([buildLineFlexCard(result)]);
   }
 }
@@ -239,12 +235,21 @@ export async function sendDailySummary(
   );
   if (notifiable.length === 0) return;
 
-  // LINE: テキストサマリーをまとめて1通
   const text = buildLineSummaryText(results, date);
   await pushLine([{ type: "text", text }]);
 }
 
-// LINE User ID取得ヘルパー（初回セットアップ用）
+export async function sendPipelineFailureNotification(step: string, message: string): Promise<void> {
+  const title = "🚨 alpha-pon 自動実行失敗";
+  const body = `${step}\n${message.slice(0, 500)}`;
+  notifyMacOSText(title, body, "Basso");
+  await pushLine([{ type: "text", text: `${title}\n\nstep: ${step}\n${message.slice(0, 1000)}` }]);
+}
+
+export async function sendPipelineSummaryNotification(text: string): Promise<void> {
+  await pushLine([{ type: "text", text }]);
+}
+
 export async function fetchLineUserId(): Promise<string | null> {
   const token = process.env.LINE_CHANNEL_TOKEN;
   if (!token) {
