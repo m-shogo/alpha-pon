@@ -23,3 +23,14 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
       - run: pnpm ci:smoke
+      - name: Upload smoke reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: alpha-pon-reports
+          path: |
+            reports/latest.md
+            reports/primary_disclosure_learning_latest.md
+            reports/primary_disclosure_category_learning_latest.md
+            reports/scores_*.json
+          if-no-files-found: ignore
