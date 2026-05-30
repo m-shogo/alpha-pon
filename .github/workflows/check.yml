@@ -33,6 +33,14 @@ jobs:
       - run: node --import tsx/esm src/persona-audit.ts
       - run: node --import tsx/esm src/valuation-range.ts
       - run: node --import tsx/esm src/primary-disclosure-subtypes.ts
+      - run: node --import tsx/esm src/regime-scenario-report.ts
+      - run: node --import tsx/esm src/stock-pro-agent-report.ts
+      - run: node --import tsx/esm src/company-hypothesis-report.ts
+      - run: node --import tsx/esm src/company-network-report.ts
+      - run: node --import tsx/esm src/stale-hypothesis-report.ts
+      - run: node --import tsx/esm src/regime-history.ts
+      - run: node --import tsx/esm src/source-health-history.ts
+      - run: node --import tsx/esm src/company-non-move-sync.ts
       - name: Upload smoke reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -50,7 +58,20 @@ jobs:
             reports/valuation_range_latest.md
             reports/primary_disclosure_subtypes_latest.md
             reports/primary_disclosure_subtypes_latest.json
+            reports/regime_scenarios_latest.md
+            reports/regime_scenarios_latest.json
+            reports/stock_pro_agent_latest.md
+            reports/company_hypotheses_latest.md
+            reports/company_network_latest.md
+            reports/stale_hypotheses_latest.md
+            reports/knowledge_review_weekly_latest.md
+            reports/knowledge_review_monthly_latest.md
+            reports/knowledge_review_yearly_latest.md
             reports/pipeline_status_latest.json
             reports/scores_*.json
             data/proposals_history.jsonl
+            data/regime_history.jsonl
+            data/source_health_history.jsonl
+            data/company_non_move_history.jsonl
+            data/analogy_outcomes.jsonl
           if-no-files-found: ignore
