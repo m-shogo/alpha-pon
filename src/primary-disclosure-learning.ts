@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join } from "path";
 import { todayJst } from "./date.js";
 import { loadAnalogyOutcomeRecords, type AnalogyOutcomeRecord } from "./analysis/analogy-db.js";
-import "./primary-disclosure-category-learning.js";
+import { generatePrimaryDisclosureCategoryLearningReport } from "./primary-disclosure-category-learning.js";
 
 type PrimaryDecision = "confirmed" | "caution" | "block" | "missing" | "unknown_or_legacy";
 
@@ -122,6 +122,8 @@ function main() {
   const cautionTitles = new Map<string, number>();
   const positiveTitles = new Map<string, number>();
 
+  const categoryReport = generatePrimaryDisclosureCategoryLearningReport(date);
+
   for (const score of scores) {
     for (const item of score.primaryDisclosureReview?.blockers ?? []) increment(blockerTitles, item);
     for (const item of score.primaryDisclosureReview?.warnings ?? []) increment(cautionTitles, item);
@@ -146,7 +148,7 @@ function main() {
   lines.push(`- missing/legacy: ${scores.filter(s => !s.primaryDisclosureReview || s.primaryDisclosureReview.decision === "missing").length}件`);
   const scannedDates = [...new Set(scores.flatMap(s => s.primaryDisclosureReview?.sourceCoverage?.scannedEdinetDates ?? []))];
   if (scannedDates.length > 0) lines.push(`- EDINET確認日: ${scannedDates.join(" / ")}`);
-  lines.push("- カテゴリ別レポート: reports/primary_disclosure_category_learning_latest.md");
+  lines.push(`- カテゴリ別レポート: ${categoryReport}`);
   lines.push("");
 
   lines.push("## 一次情報判定別 類推レビュー成績");
@@ -197,6 +199,7 @@ function main() {
   writeFileSync(join("reports", `primary_disclosure_learning_${date}.md`), lines.join("\n"), "utf-8");
   writeFileSync(join("reports", "primary_disclosure_learning_latest.md"), lines.join("\n"), "utf-8");
   console.log(`レポート: reports/primary_disclosure_learning_${date}.md`);
+  console.log(`カテゴリ別レポート: ${categoryReport}`);
 }
 
 main();
