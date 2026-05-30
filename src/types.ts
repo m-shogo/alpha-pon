@@ -121,6 +121,8 @@ export type PrimaryDisclosureReview = {
     tdnetCount: number;
     edinetCount: number;
     hasPrimarySource: boolean;
+    scannedEdinetDates?: string[];
+    fetchErrorCount?: number;
   };
   decision: "confirmed" | "caution" | "block" | "missing";
   items: PrimaryDisclosureItem[];
