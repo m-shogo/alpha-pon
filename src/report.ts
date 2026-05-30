@@ -46,6 +46,16 @@ function decisionLabel(decision: string | undefined): string {
   }
 }
 
+function primaryDisclosureLabel(decision: string | undefined): string {
+  switch (decision) {
+    case "block": return "🛑 blocker";
+    case "caution": return "⚠️ caution";
+    case "confirmed": return "✅ confirmed";
+    case "missing": return "🔎 missing";
+    default: return "N/A";
+  }
+}
+
 function expertVerdictLabel(verdict: ExpertVerdict | undefined): string {
   switch (verdict) {
     case "block": return "🛑 block";
@@ -90,10 +100,12 @@ function notificationBlockers(result: ScoreResult): string[] {
       warning.includes("流動性") ||
       warning.includes("ボラティリティ") ||
       warning.includes("過熱") ||
-      warning.includes("FOMO")
+      warning.includes("FOMO") ||
+      warning.includes("一次情報")
     ) blockers.push(warning);
   }
 
+  if (result.primaryDisclosureReview?.blockers.length) blockers.push(...result.primaryDisclosureReview.blockers);
   if (result.riskReview?.blockers.length) blockers.push(...result.riskReview.blockers);
   if (result.expertReview?.finalVerdict === "block") {
     blockers.push(...result.expertReview.requiredBeforeNotification);
@@ -241,6 +253,52 @@ function pushFinancialQuality(lines: string[], result: ScoreResult): void {
   lines.push("");
 }
 
+function pushPrimaryDisclosureReview(lines: string[], result: ScoreResult): void {
+  const review = result.primaryDisclosureReview;
+  if (!review) return;
+
+  lines.push("## 一次情報レビュー（TDnet / EDINET）");
+  lines.push("");
+  lines.push("> ニュースやテーマよりも、会社開示・公式開示を優先して確認します。これは買い推奨ではなく、事故防止の確認です。");
+  lines.push("");
+  lines.push(`判定: **${primaryDisclosureLabel(review.decision)}**  `);
+  lines.push(`TDnet: ${review.sourceCoverage.tdnetCount}件 / EDINET: ${review.sourceCoverage.edinetCount}件`);
+  lines.push("");
+
+  if (review.blockers.length > 0) {
+    lines.push("### ブロッカー");
+    review.blockers.forEach(item => lines.push(`- 🛑 ${item}`));
+    lines.push("");
+  }
+
+  if (review.warnings.length > 0) {
+    lines.push("### 注意開示・取得注意");
+    review.warnings.slice(0, 8).forEach(item => lines.push(`- ⚠️ ${item}`));
+    lines.push("");
+  }
+
+  if (review.positives.length > 0) {
+    lines.push("### 確認できた一次情報");
+    review.positives.slice(0, 6).forEach(item => lines.push(`- ${item}`));
+    lines.push("");
+  }
+
+  if (review.items.length > 0) {
+    lines.push("### 開示一覧");
+    lines.push("");
+    lines.push("| source | severity | category | title | publishedAt |");
+    lines.push("|--------|----------|----------|-------|-------------|");
+    for (const item of review.items.slice(0, 12)) {
+      lines.push(`| ${item.source} | ${item.severity} | ${item.category} | ${item.title} | ${item.publishedAt} |`);
+    }
+    lines.push("");
+  }
+
+  lines.push("### 次に確認すること");
+  review.evidenceNeeded.slice(0, 5).forEach(item => lines.push(`- [ ] ${item}`));
+  lines.push("");
+}
+
 function pushCompanyMemory(lines: string[], result: ScoreResult): void {
   const memory = loadCompanyMemory(result.candidate.code);
   if (!memory) return;
@@ -276,6 +334,7 @@ export function generateReport(result: ScoreResult): string {
   lines.push(`**スコア: ${result.score} / 100**  `);
   lines.push(`通知レベル: ${ALERT_LABELS[result.alertLevel]}  `);
   lines.push(`調査前判定: ${decisionLabel(result.riskReview?.decision)}  `);
+  lines.push(`一次情報: ${primaryDisclosureLabel(result.primaryDisclosureReview?.decision)}  `);
   lines.push(`専門家合議: ${expertVerdictLabel(result.expertReview?.finalVerdict)} (${result.expertReview?.consensusScore ?? "N/A"}/100)  `);
   lines.push(`優先度: ${PRIORITY_LABELS[candidate.priority] ?? candidate.priority}  `);
   lines.push(`ステータス: ${candidate.status}  `);
@@ -283,6 +342,7 @@ export function generateReport(result: ScoreResult): string {
   lines.push(`データ品質: ${result.dataQuality}`);
   lines.push("");
 
+  pushPrimaryDisclosureReview(lines, result);
   pushCompanyMemory(lines, result);
 
   const blockers = notificationBlockers(result);
@@ -359,6 +419,7 @@ export function generateSummaryReport(results: ScoreResult[], date: string): str
   const ignored = results.filter(r => r.alertLevel === "ignore");
   const blocked = results.filter(r => notificationBlockers(r).length > 0);
   const reviewStops = results.filter(r => r.riskReview?.decision === "reject");
+  const primaryBlocks = results.filter(r => r.primaryDisclosureReview?.decision === "block");
   const expertBlocks = results.filter(r => r.expertReview?.finalVerdict === "block");
 
   lines.push("## サマリー");
@@ -368,6 +429,7 @@ export function generateSummaryReport(results: ScoreResult[], date: string): str
   lines.push(`- 📝 ログ: **${log.length}件**`);
   lines.push(`- ➖ 対象外: **${ignored.length}件**`);
   lines.push(`- ⚠️ 通知抑制・弱められた候補: **${blocked.length}件**`);
+  lines.push(`- 🧾 一次情報block: **${primaryBlocks.length}件**`);
   lines.push(`- 🛑 調査前レビューで要確認: **${reviewStops.length}件**`);
   lines.push(`- 🧠 専門家合議でblock: **${expertBlocks.length}件**`);
   lines.push("");
@@ -376,14 +438,14 @@ export function generateSummaryReport(results: ScoreResult[], date: string): str
   if (notifiable.length > 0) {
     lines.push("## 通知対象");
     lines.push("");
-    lines.push("| コード | 銘柄名 | スコア | レベル | 専門家合議 | 調査判定 | 過熱 | ベンチマーク比20日 | 財務品質 | 主な検出理由 | memory注意 | ");
-    lines.push("|--------|--------|--------|--------|------------|----------|------|------------------|----------|--------------|------------|");
+    lines.push("| コード | 銘柄名 | スコア | レベル | 一次情報 | 専門家合議 | 調査判定 | 過熱 | ベンチマーク比20日 | 財務品質 | 主な検出理由 | memory注意 |");
+    lines.push("|--------|--------|--------|--------|----------|------------|----------|------|------------------|----------|--------------|------------|");
     for (const r of notifiable) {
       const topReason = r.reasons[0] ?? "-";
       const level = r.alertLevel === "urgent" ? "🚨" : "📋";
       const memory = loadCompanyMemory(r.candidate.code);
       const memoryNote = memory?.weakRules.length ? `weak:${memory.weakRules.slice(0, 2).join("/")}` : memory?.knownRisks.length ? memory.knownRisks[0] : "-";
-      lines.push(`| ${r.candidate.code} | ${r.candidate.name} | ${r.score} | ${level} | ${expertVerdictLabel(r.expertReview?.finalVerdict)} ${r.expertReview?.consensusScore ?? "N/A"}/100 | ${decisionLabel(r.riskReview?.decision)} | ${r.hypeRisk?.level ?? "N/A"} | ${fmtPt(r.marketContext?.relativeToTopix20d)} | ${r.financialQuality?.qualityScore ?? "N/A"}/10 | ${topReason} | ${memoryNote} |`);
+      lines.push(`| ${r.candidate.code} | ${r.candidate.name} | ${r.score} | ${level} | ${primaryDisclosureLabel(r.primaryDisclosureReview?.decision)} | ${expertVerdictLabel(r.expertReview?.finalVerdict)} ${r.expertReview?.consensusScore ?? "N/A"}/100 | ${decisionLabel(r.riskReview?.decision)} | ${r.hypeRisk?.level ?? "N/A"} | ${fmtPt(r.marketContext?.relativeToTopix20d)} | ${r.financialQuality?.qualityScore ?? "N/A"}/10 | ${topReason} | ${memoryNote} |`);
     }
     lines.push("");
   }
@@ -391,14 +453,14 @@ export function generateSummaryReport(results: ScoreResult[], date: string): str
   if (blocked.length > 0) {
     lines.push("## 通知されなかった・弱められた候補");
     lines.push("");
-    lines.push("| コード | 銘柄名 | Lv | 主な理由 | memory注意 |");
-    lines.push("|--------|--------|----|----------|------------|");
+    lines.push("| コード | 銘柄名 | Lv | 一次情報 | 主な理由 | memory注意 |");
+    lines.push("|--------|--------|----|----------|----------|------------|");
     for (const r of blocked) {
       const reason = notificationBlockers(r)[0] ?? "-";
       const icon = ALERT_LABELS[r.alertLevel].split(" ")[0];
       const memory = loadCompanyMemory(r.candidate.code);
       const memoryNote = memory?.weakRules.length ? `weak:${memory.weakRules.slice(0, 2).join("/")}` : memory?.knownRisks[0] ?? "-";
-      lines.push(`| ${r.candidate.code} | ${r.candidate.name} | ${icon} | ${reason} | ${memoryNote} |`);
+      lines.push(`| ${r.candidate.code} | ${r.candidate.name} | ${icon} | ${primaryDisclosureLabel(r.primaryDisclosureReview?.decision)} | ${reason} | ${memoryNote} |`);
     }
     lines.push("");
   }
@@ -411,6 +473,7 @@ export function generateSummaryReport(results: ScoreResult[], date: string): str
     const memory = loadCompanyMemory(r.candidate.code);
     lines.push(`### ${icon} ${r.candidate.code} ${r.candidate.name} — ${r.score}点`);
     lines.push("");
+    lines.push(`- 一次情報: ${primaryDisclosureLabel(r.primaryDisclosureReview?.decision)}`);
     lines.push(`- 専門家合議: ${expertVerdictLabel(r.expertReview?.finalVerdict)} (${r.expertReview?.consensusScore ?? "N/A"}/100)`);
     lines.push(`- 調査前判定: ${decisionLabel(r.riskReview?.decision)}`);
     if (memory) {
@@ -420,6 +483,8 @@ export function generateSummaryReport(results: ScoreResult[], date: string): str
         lines.push(`- 直近答え合わせ: ${latest.timeframe ?? "?"} ${latest.direction}/${latest.quality} relative=${fmtPct(latest.relativeReturnPct)}`);
       }
     }
+    if (r.primaryDisclosureReview?.blockers.length) lines.push(`- 🧾 一次情報block: ${r.primaryDisclosureReview.blockers[0]}`);
+    if (r.primaryDisclosureReview?.warnings.length) lines.push(`- ⚠️ 一次情報注意: ${r.primaryDisclosureReview.warnings[0]}`);
     if (r.hypeRisk) lines.push(`- 流行/過熱リスク: ${r.hypeRisk.level} (${r.hypeRisk.score}/100)`);
     if (r.marketContext) lines.push(`- 市場文脈: ベンチマーク比20日 ${fmtPt(r.marketContext.relativeToTopix20d)} / 20日平均売買代金 ${fmtYen(r.marketContext.liquidityYen20d)}`);
     if (r.financialQuality) lines.push(`- 財務品質: ${r.financialQuality.qualityScore}/10`);
