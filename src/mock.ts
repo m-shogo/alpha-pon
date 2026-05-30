@@ -4,6 +4,7 @@ import type {
   PullbackInput,
   MarketContext,
   FinancialQuality,
+  PrimaryDisclosureReview,
 } from "./types.js";
 
 export type MockData = {
@@ -13,6 +14,7 @@ export type MockData = {
   pullback?: PullbackInput;
   marketContext?: MarketContext;
   financialQuality?: FinancialQuality;
+  primaryDisclosureReview?: PrimaryDisclosureReview;
 };
 
 // v0.1 仮データ
