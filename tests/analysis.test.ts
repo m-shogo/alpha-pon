@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { buildMarketContext } from "../src/analysis/market-context.js";
 import { buildFinancialQuality } from "../src/analysis/financial-quality.js";
+import { classifyWorldEvent, type ClassifiedWorldEvent } from "../src/analysis/world-event-map.js";
+import { buildWorldEventReflections } from "../src/analysis/world-event-reflection.js";
 import type { DailyQuote, FinancialStatement } from "../src/fetcher/jquants.js";
 
 function quote(day: number, close: number, volume = 100_000): DailyQuote {
@@ -64,9 +66,52 @@ function testFinancialQuality() {
   assert.ok(quality.qualityScore > 0);
 }
 
+function testWorldEventReflectionReliabilityGate() {
+  const official = classifyWorldEvent({
+    title: "Official statement: AI datacenter power grid investment announced",
+    url: "https://www.gov.example/statement",
+    source: "Government",
+    publishedAt: "2026-01-01T00:00:00Z",
+    snippet: "confirmed official statement about AI datacenter power grid investment",
+  });
+
+  const unverifiedSocial = classifyWorldEvent({
+    title: "Rumor: AI datacenter power grid emergency allegedly spreading",
+    url: "https://x.com/example/status/1",
+    source: "X",
+    publishedAt: "2026-01-01T00:00:00Z",
+    snippet: "unconfirmed claims about AI datacenter power grid emergency",
+  });
+
+  const reflections = buildWorldEventReflections([official, unverifiedSocial], "2026-01-02", 10);
+
+  assert.equal(reflections.length, 1);
+  assert.equal(reflections[0]?.sourceReliability, "official");
+  assert.equal(reflections[0]?.misinformationRisk, "low");
+}
+
+function assertNoUnsafeReflection(events: ClassifiedWorldEvent[]) {
+  const reflections = buildWorldEventReflections(events, "2026-01-02", 10);
+  assert.equal(reflections.length, 0);
+}
+
+function testWorldEventReflectionRejectsUnknownSources() {
+  const unknownSource = classifyWorldEvent({
+    title: "AI datacenter power grid emergency might affect semiconductor supply",
+    url: "https://unknown.example/news",
+    source: "Unknown Blog",
+    publishedAt: "2026-01-01T00:00:00Z",
+    snippet: "might affect semiconductor supply",
+  });
+
+  assertNoUnsafeReflection([unknownSource]);
+}
+
 function main() {
   testMarketContext();
   testFinancialQuality();
+  testWorldEventReflectionReliabilityGate();
+  testWorldEventReflectionRejectsUnknownSources();
   console.log("analysis.test.ts passed");
 }
 
