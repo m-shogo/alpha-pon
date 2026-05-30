@@ -7,6 +7,7 @@ import { join } from "path";
 import { todayJst } from "./date.js";
 import { classifyWorldEvent, summarizeWorldEvents, type ClassifiedWorldEvent, type WorldEventArticle } from "./analysis/world-event-map.js";
 import { buildWorldEventReflections, saveWorldEventReflections } from "./analysis/world-event-reflection.js";
+import { buildWorldEventClusters, reflectionCandidateEventsFromClusters, renderWorldEventClusterMarkdown, type WorldEventCluster } from "./analysis/world-event-cluster.js";
 
 const DEFAULT_FEEDS = [
   "https://news.google.com/rss/search?q=WHO+public+health+emergency+OR+outbreak&hl=en-US&gl=US&ceid=US:en",
@@ -82,22 +83,26 @@ function dedupeArticles(articles: WorldEventArticle[]): WorldEventArticle[] {
   return result;
 }
 
-function renderMarkdown(date: string, events: ClassifiedWorldEvent[], errors: string[]): string {
+function renderMarkdown(date: string, events: ClassifiedWorldEvent[], clusters: WorldEventCluster[], errors: string[]): string {
   const lines: string[] = [];
   const important = events.filter(event => event.totalImpactScore > 0).sort((a, b) => b.totalImpactScore - a.totalImpactScore);
-  const reflections = buildWorldEventReflections(important, date, 8);
+  const reflectionCandidates = reflectionCandidateEventsFromClusters(clusters);
+  const reflections = buildWorldEventReflections(reflectionCandidates, date, 8);
 
   lines.push("# alpha-pon 世界イベントレポート");
   lines.push("");
   lines.push(`生成日: ${date}`);
   lines.push("");
   lines.push("> 世界イベントを、銘柄テーマや仮説マップに接続するための材料整理です。買い推奨ではありません。");
+  lines.push("> SNS/未確認記事は記事別分類には残しますが、考察DB保存はクラスタ確認済みイベントを優先します。");
   lines.push("");
 
   lines.push("## サマリー");
   lines.push("");
   lines.push(`- 取得記事: ${events.length}件`);
   lines.push(`- 投資テーマ接続あり: ${important.length}件`);
+  lines.push(`- ニュースクラスタ: ${clusters.length}件`);
+  lines.push(`- confirmed/developing/unverified: ${clusters.filter(c => c.confirmationLevel === "confirmed").length}/${clusters.filter(c => c.confirmationLevel === "developing").length}/${clusters.filter(c => c.confirmationLevel === "unverified").length}`);
   lines.push(`- 自動考察DB保存候補: ${reflections.length}件`);
   if (errors.length > 0) lines.push(`- 取得エラー: ${errors.length}件`);
   lines.push("");
@@ -108,6 +113,19 @@ function renderMarkdown(date: string, events: ClassifiedWorldEvent[], errors: st
     lines.push("");
     lines.push(...summary);
     lines.push("");
+  }
+
+  if (clusters.length > 0) {
+    lines.push("## クラスタ確認済みトピック");
+    lines.push("");
+    for (const cluster of clusters.filter(c => c.confirmationLevel !== "unverified").slice(0, 12)) {
+      lines.push(`### ${cluster.title}`);
+      lines.push(`- 記事件数: ${cluster.articleCount}`);
+      lines.push(`- 確認状態: ${cluster.confirmationLevel} / 誤報リスク: ${cluster.misinformationRisk}`);
+      lines.push(`- sources: ${cluster.sources.slice(0, 5).join(" / ") || "-"}`);
+      lines.push(`- tags: ${cluster.impactedTags.slice(0, 8).join(", ") || "-"}`);
+      lines.push("");
+    }
   }
 
   if (reflections.length > 0) {
@@ -133,6 +151,7 @@ function renderMarkdown(date: string, events: ClassifiedWorldEvent[], errors: st
     if (event.publishedAt) lines.push(`- Published: ${event.publishedAt}`);
     if (event.url) lines.push(`- URL: ${event.url}`);
     lines.push(`- Impact score: ${event.totalImpactScore}`);
+    lines.push(`- 信頼度: ${event.sourceReliability} / 検証: ${event.verificationStatus} / 誤報リスク: ${event.misinformationRisk}`);
     lines.push("");
 
     for (const impact of event.impacts) {
@@ -189,15 +208,22 @@ async function main() {
 
   const deduped = dedupeArticles(articles);
   const classified = deduped.map(classifyWorldEvent).sort((a, b) => b.totalImpactScore - a.totalImpactScore);
+  const clusters = buildWorldEventClusters(classified);
+  const reflectionCandidates = reflectionCandidateEventsFromClusters(clusters);
 
   mkdirSync("reports", { recursive: true });
   writeFileSync(join("reports", `world_events_${date}.json`), JSON.stringify(classified, null, 2), "utf-8");
   writeFileSync(join("reports", "world_events_latest.json"), JSON.stringify(classified, null, 2), "utf-8");
-  writeFileSync(join("reports", `world_events_${date}.md`), renderMarkdown(date, classified, errors), "utf-8");
-  writeFileSync(join("reports", "world_events_latest.md"), renderMarkdown(date, classified, errors), "utf-8");
-  saveWorldEventReflections(classified, date);
+  writeFileSync(join("reports", `world_event_clusters_${date}.json`), JSON.stringify(clusters, null, 2), "utf-8");
+  writeFileSync(join("reports", "world_event_clusters_latest.json"), JSON.stringify(clusters, null, 2), "utf-8");
+  writeFileSync(join("reports", `world_event_clusters_${date}.md`), renderWorldEventClusterMarkdown(date, clusters), "utf-8");
+  writeFileSync(join("reports", "world_event_clusters_latest.md"), renderWorldEventClusterMarkdown(date, clusters), "utf-8");
+  writeFileSync(join("reports", `world_events_${date}.md`), renderMarkdown(date, classified, clusters, errors), "utf-8");
+  writeFileSync(join("reports", "world_events_latest.md"), renderMarkdown(date, classified, clusters, errors), "utf-8");
+  saveWorldEventReflections(reflectionCandidates, date);
 
   console.log(`report: reports/world_events_${date}.md`);
+  console.log(`clusters: reports/world_event_clusters_${date}.md`);
   console.log(`reflection db: data/world_event_reflections/${date}.jsonl`);
 }
 
