@@ -25,7 +25,7 @@ PIPELINE_STEPS_JSON="[]"
 LOCK_DIR="$DIR/tmp/run-daily.lock"
 
 json_escape() {
-  python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().strip()))'
+  node -e 'let s=""; process.stdin.on("data", c => s += c); process.stdin.on("end", () => console.log(JSON.stringify(s.trim())));'
 }
 
 write_status() {
@@ -70,21 +70,20 @@ append_step_status() {
   started_json="$(printf '%s' "$started_at" | json_escape)"
   ended_json="$(printf '%s' "$ended_at" | json_escape)"
 
-  PIPELINE_STEPS_JSON="$(python3 - <<PY
-import json
-steps = json.loads('''$PIPELINE_STEPS_JSON''')
-steps.append({
-  "name": json.loads('''$name_json'''),
-  "criticality": json.loads('''$critical_json'''),
-  "status": json.loads('''$status_json'''),
-  "code": int("$code"),
-  "startedAt": json.loads('''$started_json'''),
-  "endedAt": json.loads('''$ended_json'''),
-  "durationSec": int("$duration_sec"),
-})
-print(json.dumps(steps, ensure_ascii=False))
-PY
-)"
+  PIPELINE_STEPS_JSON="$(node - <<NODE
+const steps = JSON.parse(process.env.PIPELINE_STEPS_JSON ?? '[]');
+steps.push({
+  name: JSON.parse(process.env.NAME_JSON),
+  criticality: JSON.parse(process.env.CRITICAL_JSON),
+  status: JSON.parse(process.env.STATUS_JSON),
+  code: Number(process.env.STEP_CODE),
+  startedAt: JSON.parse(process.env.STARTED_JSON),
+  endedAt: JSON.parse(process.env.ENDED_JSON),
+  durationSec: Number(process.env.DURATION_SEC),
+});
+console.log(JSON.stringify(steps));
+NODE
+  )"
   write_status "running"
 }
 
@@ -126,14 +125,14 @@ run_step() {
     step_ended_at="$(date '+%Y-%m-%d %H:%M:%S')"
     step_ended_epoch="$(date '+%s')"
     duration=$((step_ended_epoch - step_started_epoch))
-    append_step_status "$name" "$critical" "ok" "0" "$step_started_at" "$step_ended_at" "$duration"
+    NAME_JSON="$name_json" CRITICAL_JSON="$critical_json" STATUS_JSON="$status_json" STARTED_JSON="$started_json" ENDED_JSON="$ended_json" STEP_CODE="0" DURATION_SEC="$duration" PIPELINE_STEPS_JSON="$PIPELINE_STEPS_JSON" append_step_status "$name" "$critical" "ok" "0" "$step_started_at" "$step_ended_at" "$duration"
     echo "---- [$name] ok: $step_ended_at ----"
   else
     local code=$?
     step_ended_at="$(date '+%Y-%m-%d %H:%M:%S')"
     step_ended_epoch="$(date '+%s')"
     duration=$((step_ended_epoch - step_started_epoch))
-    append_step_status "$name" "$critical" "failed" "$code" "$step_started_at" "$step_ended_at" "$duration"
+    NAME_JSON="$name_json" CRITICAL_JSON="$critical_json" STATUS_JSON="$status_json" STARTED_JSON="$started_json" ENDED_JSON="$ended_json" STEP_CODE="$code" DURATION_SEC="$duration" PIPELINE_STEPS_JSON="$PIPELINE_STEPS_JSON" append_step_status "$name" "$critical" "failed" "$code" "$step_started_at" "$step_ended_at" "$duration"
     local message="step=$name code=$code date=$TODAY"
     echo "---- [$name] failed($code): $step_ended_at ----"
     FAILED_STEPS="$FAILED_STEPS $name($code)"
