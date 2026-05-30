@@ -15,6 +15,8 @@ test -f "$DIR/reports/pipeline_status_latest.json"
 test -f "$DIR/reports/latest.md"
 test -f "$DIR/reports/primary_disclosure_learning_latest.md"
 test -f "$DIR/reports/primary_disclosure_category_learning_latest.md"
+test -f "$DIR/reports/source_health_latest.md"
+test -f "$DIR/reports/proposals_latest.md"
 
 node <<'NODE'
 const fs = require("fs");
@@ -23,6 +25,8 @@ const requiredReports = [
   "reports/latest.md",
   "reports/primary_disclosure_learning_latest.md",
   "reports/primary_disclosure_category_learning_latest.md",
+  "reports/source_health_latest.md",
+  "reports/proposals_latest.md",
   "reports/pipeline_status_latest.json",
 ];
 
@@ -63,13 +67,19 @@ if (criticalFailures.length > 0) {
   process.exit(1);
 }
 
-const expectedSteps = ["scan:world", "daily", "review:analogies:write", "learn", "learn:primary", "diagnose:rules", "memory:companies", "maintain:data:write"];
+const expectedSteps = ["scan:world", "daily", "review:analogies:write", "learn", "learn:primary", "health:sources", "diagnose:rules", "proposals", "memory:companies", "maintain:data:write"];
 const names = new Set(status.steps.map((step) => step.name));
 for (const name of expectedSteps) {
   if (!names.has(name)) {
     console.error(`expected step missing: ${name}`);
     process.exit(1);
   }
+}
+
+const proposals = fs.readFileSync("reports/proposals_latest.md", "utf8");
+if (!proposals.includes("# alpha-pon 改善提案レポート")) {
+  console.error("proposals report title is missing");
+  process.exit(1);
 }
 
 console.log(`pipeline smoke status=${status.status} steps=${status.steps.length} daily=${daily.status}`);
