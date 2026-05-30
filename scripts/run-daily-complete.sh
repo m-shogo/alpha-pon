@@ -6,6 +6,9 @@ set -u
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$DIR" || exit 1
 
+DOW="$(date '+%u')"   # 1=Mon ... 7=Sun
+DOM="$(date '+%d')"   # 01..31
+
 bash "$DIR/scripts/run-daily.sh"
 
 # run-daily.sh が完了した後だけ、補助レポートを作る。
@@ -17,5 +20,14 @@ node --import "tsx/esm" "$DIR/src/primary-disclosure-subtypes.ts" || true
 node --import "tsx/esm" "$DIR/src/regime-scenario-report.ts" || true
 node --import "tsx/esm" "$DIR/src/stock-pro-agent-report.ts" || true
 node --import "tsx/esm" "$DIR/src/company-hypothesis-report.ts" || true
+
+# 知識蓄積レビュー。週次/月次で、メモ止まりになっていないか確認する。
+if [ "$DOW" = "1" ]; then
+  node --import "tsx/esm" "$DIR/src/knowledge-review.ts" --weekly || true
+fi
+
+if [ "$DOM" = "01" ]; then
+  node --import "tsx/esm" "$DIR/src/knowledge-review.ts" --monthly || true
+fi
 
 echo "complete daily wrapper finished"
