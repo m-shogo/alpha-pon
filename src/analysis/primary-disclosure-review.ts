@@ -153,6 +153,7 @@ export function buildPrimaryDisclosureReview(input: {
   tdnetDisclosures: TdnetDisclosure[];
   edinetDocs: EdinetDoc[];
   fetchErrors?: string[];
+  scannedEdinetDates?: string[];
 }): PrimaryDisclosureReview {
   const code = normalizeCode(input.candidate.code);
   const tdnet = input.tdnetDisclosures
@@ -194,6 +195,8 @@ export function buildPrimaryDisclosureReview(input: {
       tdnetCount: tdnet.length,
       edinetCount: edinet.length,
       hasPrimarySource,
+      scannedEdinetDates: input.scannedEdinetDates ?? [],
+      fetchErrorCount: input.fetchErrors?.length ?? 0,
     },
     decision,
     items: items.slice(0, 20),
