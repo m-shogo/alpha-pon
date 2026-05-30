@@ -1,7 +1,7 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
 import { searchMarketLessons } from "./market-lessons-db.js";
-import type { ClassifiedWorldEvent, WorldEventImpact } from "./world-event-map.js";
+import type { ClassifiedWorldEvent, SourceReliability, VerificationStatus, WorldEventImpact } from "./world-event-map.js";
 
 export type WorldEventReflection = {
   schemaVersion: 1;
@@ -12,6 +12,11 @@ export type WorldEventReflection = {
   url: string;
   publishedAt?: string;
   totalImpactScore: number;
+  sourceReliability: SourceReliability;
+  verificationStatus: VerificationStatus;
+  misinformationRisk: "low" | "medium" | "high";
+  urgencyScore: number;
+  verificationChecks: string[];
   categories: string[];
   impactedTags: string[];
   hypothesisClusters: string[];
@@ -49,10 +54,17 @@ function eventId(date: string, event: ClassifiedWorldEvent): string {
   return `${date}_${safeTitle || "world-event"}`;
 }
 
+function isReflectionSafe(event: ClassifiedWorldEvent): boolean {
+  if (event.totalImpactScore <= 0) return false;
+  if (event.misinformationRisk === "high") return false;
+  if (event.verificationStatus === "unverified") return false;
+  return ["official", "tier1", "tier2"].includes(event.sourceReliability);
+}
+
 export function buildWorldEventReflections(events: ClassifiedWorldEvent[], date: string, limit = 8): WorldEventReflection[] {
   return events
-    .filter(event => event.totalImpactScore > 0)
-    .sort((a, b) => b.totalImpactScore - a.totalImpactScore)
+    .filter(isReflectionSafe)
+    .sort((a, b) => b.urgencyScore - a.urgencyScore)
     .slice(0, limit)
     .map(event => {
       const impactedTags = unique(event.impacts.flatMap(impact => impact.impactedTags));
@@ -60,8 +72,15 @@ export function buildWorldEventReflections(events: ClassifiedWorldEvent[], date:
       const hypothesisClusters = unique(event.impacts.flatMap(impact => impact.hypothesisClusters));
       const possibleBeneficiaries = unique(event.impacts.flatMap(impact => impact.possibleBeneficiaries));
       const possibleRisks = unique(event.impacts.flatMap(impact => impact.possibleRisks));
-      const evidenceNeeded = unique(event.impacts.flatMap(impact => impact.primaryChecks)).slice(0, 12);
-      const invalidationSignals = unique(event.impacts.flatMap(impact => impact.watchQuestions)).slice(0, 8);
+      const evidenceNeeded = unique([
+        ...event.verificationChecks,
+        ...event.impacts.flatMap(impact => impact.primaryChecks),
+      ]).slice(0, 12);
+      const invalidationSignals = unique([
+        "一次情報またはTier1報道で裏取りできない",
+        "SNS/速報だけで、公式発表が確認できない",
+        ...event.impacts.flatMap(impact => impact.watchQuestions),
+      ]).slice(0, 8);
       const lessonMatches = searchMarketLessons({
         tags: impactedTags,
         text: `${event.title} ${event.snippet ?? ""} ${categories.join(" ")} ${hypothesisClusters.join(" ")}`,
@@ -81,6 +100,11 @@ export function buildWorldEventReflections(events: ClassifiedWorldEvent[], date:
         url: event.url,
         publishedAt: event.publishedAt,
         totalImpactScore: event.totalImpactScore,
+        sourceReliability: event.sourceReliability,
+        verificationStatus: event.verificationStatus,
+        misinformationRisk: event.misinformationRisk,
+        urgencyScore: event.urgencyScore,
+        verificationChecks: event.verificationChecks,
         categories,
         impactedTags,
         hypothesisClusters,
