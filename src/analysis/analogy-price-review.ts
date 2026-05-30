@@ -6,6 +6,7 @@ const MARKET_BENCHMARK_CODE = process.env.MARKET_BENCHMARK_CODE ?? "1306";
 
 export type PriceReviewResult = {
   available: boolean;
+  benchmarkCode?: string;
   startDate?: string;
   endDate?: string;
   startClose?: number;
@@ -13,6 +14,9 @@ export type PriceReviewResult = {
   returnPct?: number;
   benchmarkReturnPct?: number;
   relativeReturnPct?: number;
+  maxDrawdownPct?: number;
+  benchmarkMaxDrawdownPct?: number;
+  dataAvailability: "price_and_benchmark" | "price_only" | "missing";
   direction: AnalogyOutcomeDirection;
   quality: AnalogyOutcomeQuality;
   actualOutcome: string;
@@ -45,9 +49,34 @@ function findOnOrBefore(quotes: DailyQuote[], date: string): DailyQuote | undefi
   return [...sortedQuotes(quotes)].reverse().find(q => compact(q.Date) <= target);
 }
 
+function quoteRange(quotes: DailyQuote[], start?: DailyQuote, end?: DailyQuote): DailyQuote[] {
+  if (!start || !end) return [];
+  const startKey = compact(start.Date);
+  const endKey = compact(end.Date);
+  return sortedQuotes(quotes).filter(q => {
+    const key = compact(q.Date);
+    return key >= startKey && key <= endKey;
+  });
+}
+
 function calcReturn(start?: DailyQuote, end?: DailyQuote): number | null {
   if (!start || !end || start.AdjustmentClose <= 0) return null;
   return ((end.AdjustmentClose - start.AdjustmentClose) / start.AdjustmentClose) * 100;
+}
+
+function calcMaxDrawdownPct(quotes: DailyQuote[]): number | null {
+  if (quotes.length === 0) return null;
+  let peak = quotes[0]?.AdjustmentClose ?? 0;
+  let maxDrawdown = 0;
+
+  for (const quote of quotes) {
+    if (quote.AdjustmentClose > peak) peak = quote.AdjustmentClose;
+    if (peak <= 0) continue;
+    const drawdown = ((quote.AdjustmentClose - peak) / peak) * 100;
+    if (drawdown < maxDrawdown) maxDrawdown = drawdown;
+  }
+
+  return maxDrawdown;
 }
 
 function classifyDirection(expected: AnalogyExpectedDirection, relativeReturnPct: number | null): AnalogyOutcomeDirection {
@@ -90,6 +119,7 @@ export async function reviewPredictionWithPrice(prediction: AnalogyPredictionRec
   if (!prediction.candidateCode) {
     return {
       available: false,
+      dataAvailability: "missing",
       direction: "unknown",
       quality: "too_early",
       actualOutcome: "銘柄コードがない世界イベント予想のため、価格ベースの自動判定は未実施。追加ニュースで人間確認する。",
@@ -116,12 +146,21 @@ export async function reviewPredictionWithPrice(prediction: AnalogyPredictionRec
     const returnPct = calcReturn(start, end);
     const benchmarkReturnPct = calcReturn(bStart, bEnd);
     const relativeReturnPct = returnPct != null && benchmarkReturnPct != null ? returnPct - benchmarkReturnPct : null;
+    const maxDrawdownPct = calcMaxDrawdownPct(quoteRange(quotes, start, end));
+    const benchmarkMaxDrawdownPct = calcMaxDrawdownPct(quoteRange(benchmarkQuotes, bStart, bEnd));
+    const dataAvailability = returnPct != null && benchmarkReturnPct != null
+      ? "price_and_benchmark"
+      : returnPct != null
+        ? "price_only"
+        : "missing";
     const direction = classifyDirection(prediction.expectedDirection, relativeReturnPct);
     const quality = qualityFromDirection(direction);
 
     if (returnPct == null) {
       return {
         available: false,
+        benchmarkCode: MARKET_BENCHMARK_CODE,
+        dataAvailability,
         direction: "unknown",
         quality: "too_early",
         actualOutcome: "価格データが不足しているため、まだ自動判定しない。",
@@ -133,7 +172,8 @@ export async function reviewPredictionWithPrice(prediction: AnalogyPredictionRec
     }
 
     return {
-      available: true,
+      available: dataAvailability === "price_and_benchmark",
+      benchmarkCode: MARKET_BENCHMARK_CODE,
       startDate: start?.Date,
       endDate: end?.Date,
       startClose: start?.AdjustmentClose,
@@ -141,9 +181,12 @@ export async function reviewPredictionWithPrice(prediction: AnalogyPredictionRec
       returnPct,
       benchmarkReturnPct: benchmarkReturnPct ?? undefined,
       relativeReturnPct: relativeReturnPct ?? undefined,
+      maxDrawdownPct: maxDrawdownPct ?? undefined,
+      benchmarkMaxDrawdownPct: benchmarkMaxDrawdownPct ?? undefined,
+      dataAvailability,
       direction,
       quality,
-      actualOutcome: `価格レビュー: ${prediction.candidateCode} ${prediction.timeframe} return=${fmt(returnPct)}, benchmark=${fmt(benchmarkReturnPct)}, relative=${fmt(relativeReturnPct)}。expected=${prediction.expectedDirection} に対して ${direction} 判定。`,
+      actualOutcome: `価格レビュー: ${prediction.candidateCode} ${prediction.timeframe} return=${fmt(returnPct)}, benchmark=${fmt(benchmarkReturnPct)}, relative=${fmt(relativeReturnPct)}, maxDD=${fmt(maxDrawdownPct)}。expected=${prediction.expectedDirection} に対して ${direction} 判定。`,
       whatMatched: direction === "same" ? [`予想方向(${prediction.expectedDirection})と相対リターンの方向が概ね一致`] : [],
       whatDiffered: direction === "opposite" ? [`予想方向(${prediction.expectedDirection})と相対リターンが逆方向`] : direction === "mixed" ? ["相対リターンが閾値内または曖昧"] : [],
       missedSignals: direction === "opposite" ? ["市場が織り込み済みだった可能性", "個別材料より地合い/別材料が強かった可能性", "反証条件の確認不足"] : [],
@@ -157,6 +200,8 @@ export async function reviewPredictionWithPrice(prediction: AnalogyPredictionRec
     const message = err instanceof Error ? err.message : String(err);
     return {
       available: false,
+      benchmarkCode: MARKET_BENCHMARK_CODE,
+      dataAvailability: "missing",
       direction: "unknown",
       quality: "too_early",
       actualOutcome: `価格レビュー取得失敗: ${message}`,
