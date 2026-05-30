@@ -1,0 +1,251 @@
+# alpha-pon 具体銘柄 仮説DB
+# 買い推奨ではなく、テーマ別に調査候補・反証条件・関連会社を蓄積するための知識DB。
+# status: active / watch / stale / retired
+
+categories:
+  ai_datacenter_power:
+    label: "AIデータセンター・電力制約"
+    thesis: "AIデータセンター増加により、電力・送電・冷却・光通信・建設周辺に構造需要が出る可能性。"
+    companies:
+      - code: "5803"
+        name: "フジクラ"
+        role: "光ファイバー・データセンター配線"
+        status: "watch"
+        upsideHypothesis: "AIデータセンター向け光配線・通信需要が伸びる可能性。"
+        noMoveHypothesis: "期待が先行し、すでに織り込み済みなら上がりにくい。"
+        downsideHypothesis: "受注鈍化、利益率悪化、短期過熱で調整。"
+        notGoodWhen:
+          - "60日で急騰しすぎ"
+          - "TOPIX比で過熱"
+          - "データセンター需要の利益寄与が確認できない"
+        relatedCompanies:
+          - "5801 古河電工"
+          - "5802 住友電工"
+          - "5805 SWCC"
+        evidenceToCheck:
+          - "決算説明資料のデータセンター需要"
+          - "光ファイバー/ケーブル受注"
+          - "営業利益率"
+        nonMoveReasonCandidates:
+          - "already_priced_in"
+          - "profit_not_connected"
+          - "better_peer_exists"
+        lastReviewedAt: "2026-05-30"
+
+      - code: "5802"
+        name: "住友電工"
+        role: "電線・光通信・電力インフラ"
+        status: "watch"
+        upsideHypothesis: "AIデータセンター・電力網・光通信の複合需要を受ける可能性。"
+        noMoveHypothesis: "事業が大きく分散しており、テーマ寄与が薄く見える可能性。"
+        downsideHypothesis: "素材コスト、景気敏感、利益率悪化。"
+        notGoodWhen:
+          - "テーマ事業の売上比率が小さい"
+          - "全社利益率が伸びない"
+        relatedCompanies:
+          - "5801 古河電工"
+          - "5803 フジクラ"
+          - "5805 SWCC"
+        evidenceToCheck:
+          - "セグメント別利益"
+          - "電力・情報通信関連の受注"
+        nonMoveReasonCandidates:
+          - "profit_not_connected"
+          - "better_peer_exists"
+        lastReviewedAt: "2026-05-30"
+
+  semiconductor_memory:
+    label: "半導体・メモリ・装置"
+    thesis: "AI需要・メモリ市況・国策支援により、メモリメーカーや装置・材料企業に影響。"
+    companies:
+      - code: "285A"
+        name: "キオクシア"
+        role: "NANDメモリ"
+        status: "active"
+        upsideHypothesis: "メモリ市況改善、AIストレージ需要、国策支援で業績改善する可能性。"
+        noMoveHypothesis: "市況回復が遅い、IPO後の売り圧、競合の方が評価される。"
+        downsideHypothesis: "NAND価格下落、設備投資負担、需給悪化、ロックアップ/売り圧。"
+        notGoodWhen:
+          - "市況が悪化"
+          - "営業赤字/FCF悪化"
+          - "IPO後の需給が悪い"
+        relatedCompanies:
+          - "6501 日立製作所"
+          - "8035 東京エレクトロン"
+          - "6857 アドバンテスト"
+          - "6723 ルネサス"
+        evidenceToCheck:
+          - "NAND市況"
+          - "決算資料"
+          - "IPO後需給"
+          - "設備投資計画"
+        nonMoveReasonCandidates:
+          - "theme_right_timing_wrong"
+          - "dilution_or_supply_pressure"
+          - "profit_not_connected"
+        lastReviewedAt: "2026-05-30"
+
+      - code: "8035"
+        name: "東京エレクトロン"
+        role: "半導体製造装置"
+        status: "watch"
+        upsideHypothesis: "半導体投資回復・AI向け先端投資で受注増。"
+        noMoveHypothesis: "大型株で織り込みが早く、短期材料では動きにくい。"
+        downsideHypothesis: "設備投資サイクル悪化、米中規制、過熱。"
+        notGoodWhen:
+          - "受注鈍化"
+          - "米中規制悪化"
+          - "PER/PBR過熱"
+        relatedCompanies:
+          - "6857 アドバンテスト"
+          - "6146 ディスコ"
+          - "7735 SCREEN"
+        evidenceToCheck:
+          - "受注動向"
+          - "地域別売上"
+          - "規制影響"
+        nonMoveReasonCandidates:
+          - "already_priced_in"
+          - "macro_headwind"
+        lastReviewedAt: "2026-05-30"
+
+  global_ip_character:
+    label: "グローバルIP・キャラクター"
+    thesis: "日本発IPの海外展開・ライセンス収益・体験消費により高利益率成長の可能性。"
+    companies:
+      - code: "8136"
+        name: "サンリオ"
+        role: "キャラクターIP・ライセンス"
+        status: "active"
+        upsideHypothesis: "海外ライセンス成長、IP人気継続、利益率改善が続く可能性。"
+        noMoveHypothesis: "良い会社だが市場期待が高く、決算でサプライズがないと上がりにくい。"
+        downsideHypothesis: "海外成長鈍化、人気ピークアウト、バリュエーション調整。"
+        notGoodWhen:
+          - "海外ライセンス鈍化"
+          - "営業利益率悪化"
+          - "短期で急騰しすぎ"
+          - "決算期待が高すぎる"
+        relatedCompanies:
+          - "7974 任天堂"
+          - "7832 バンダイナムコHD"
+          - "4661 オリエンタルランド"
+          - "7867 タカラトミー"
+        evidenceToCheck:
+          - "海外売上"
+          - "ライセンス収入"
+          - "営業利益率"
+          - "IP別トレンド"
+        nonMoveReasonCandidates:
+          - "already_priced_in"
+          - "profit_not_connected"
+          - "better_peer_exists"
+        lastReviewedAt: "2026-05-30"
+
+      - code: "7974"
+        name: "任天堂"
+        role: "ゲーム・キャラクターIP"
+        status: "watch"
+        upsideHypothesis: "ハード更新、ソフトIP、映画/テーマパークなどIP展開。"
+        noMoveHypothesis: "大型株で期待が織り込まれやすく、材料出尽くしになりやすい。"
+        downsideHypothesis: "ハード移行期の販売鈍化、期待未達、為替逆風。"
+        notGoodWhen:
+          - "新ハード期待が織り込み済み"
+          - "ソフト販売鈍化"
+          - "円高逆風"
+        relatedCompanies:
+          - "7832 バンダイナムコHD"
+          - "8136 サンリオ"
+          - "4661 オリエンタルランド"
+        evidenceToCheck:
+          - "ハード販売"
+          - "ソフト販売"
+          - "IP収益"
+          - "為替感応度"
+        nonMoveReasonCandidates:
+          - "already_priced_in"
+          - "theme_right_timing_wrong"
+        lastReviewedAt: "2026-05-30"
+
+  defense_space:
+    label: "防衛・宇宙・安全保障"
+    thesis: "防衛費増加、宇宙・衛星・ミサイル・サイバー領域の構造需要。"
+    companies:
+      - code: "7011"
+        name: "三菱重工"
+        role: "防衛・宇宙・重工"
+        status: "watch"
+        upsideHypothesis: "防衛費増加、宇宙・ミサイル・原発・重工需要が複合的に効く可能性。"
+        noMoveHypothesis: "大型株で既に防衛テーマが織り込まれている可能性。"
+        downsideHypothesis: "採算悪化、受注の利益化遅れ、過熱調整。"
+        notGoodWhen:
+          - "受注は増えても利益率が悪い"
+          - "防衛テーマで急騰済み"
+          - "大型案件の採算不透明"
+        relatedCompanies:
+          - "7012 川崎重工"
+          - "7013 IHI"
+          - "6701 NEC"
+          - "6702 富士通"
+        evidenceToCheck:
+          - "防衛セグメント受注"
+          - "営業利益率"
+          - "宇宙関連案件"
+        nonMoveReasonCandidates:
+          - "already_priced_in"
+          - "profit_not_connected"
+          - "better_peer_exists"
+        lastReviewedAt: "2026-05-30"
+
+      - code: "9348"
+        name: "ispace"
+        role: "宇宙スタートアップ"
+        status: "watch"
+        upsideHypothesis: "月面開発・宇宙テーマで注目される可能性。"
+        noMoveHypothesis: "収益化が遠く、テーマは正しくても利益に届きにくい。"
+        downsideHypothesis: "赤字継続、資金調達リスク、ミッション失敗リスク。"
+        notGoodWhen:
+          - "資金調達/希薄化リスク"
+          - "収益化時期が遠い"
+          - "ミッション失敗"
+        relatedCompanies:
+          - "7011 三菱重工"
+          - "7013 IHI"
+          - "6701 NEC"
+        evidenceToCheck:
+          - "資金繰り"
+          - "ミッション進捗"
+          - "契約/売上化"
+        nonMoveReasonCandidates:
+          - "profit_not_connected"
+          - "bad_financial_quality"
+          - "theme_right_company_wrong"
+        lastReviewedAt: "2026-05-30"
+
+  rate_financials:
+    label: "金利・金融"
+    thesis: "金利上昇/正常化局面では銀行・保険に追い風。ただし景気悪化や信用コストに注意。"
+    companies:
+      - code: "8306"
+        name: "三菱UFJ FG"
+        role: "メガバンク"
+        status: "watch"
+        upsideHypothesis: "金利上昇で利ざや改善、株主還元強化。"
+        noMoveHypothesis: "大型株で金利テーマが織り込み済み。"
+        downsideHypothesis: "景気悪化、信用コスト増、海外金利低下。"
+        notGoodWhen:
+          - "信用コスト増加"
+          - "金利低下"
+          - "株主還元期待の剥落"
+        relatedCompanies:
+          - "8316 三井住友FG"
+          - "8411 みずほFG"
+          - "8750 第一生命HD"
+          - "8766 東京海上HD"
+        evidenceToCheck:
+          - "国内金利"
+          - "与信費用"
+          - "自社株買い/配当"
+        nonMoveReasonCandidates:
+          - "already_priced_in"
+          - "macro_headwind"
+        lastReviewedAt: "2026-05-30"
