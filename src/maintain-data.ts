@@ -44,8 +44,20 @@ function inspectPath(path: string): MaintenanceItem[] {
   return [{ path, action: "ok", sizeBytes: stat.size, note: "OK" }];
 }
 
+function buildArchivePath(path: string, date: string): string {
+  const base = `${path}.${date}.archive`;
+  if (!existsSync(base)) return base;
+
+  for (let i = 2; i <= 999; i += 1) {
+    const candidate = `${base}.${String(i).padStart(3, "0")}`;
+    if (!existsSync(candidate)) return candidate;
+  }
+
+  throw new Error(`アーカイブ先の連番が上限に達しました: ${base}`);
+}
+
 function archiveFile(path: string, date: string): string {
-  const archivePath = `${path}.${date}.archive`;
+  const archivePath = buildArchivePath(path, date);
   ensureDir(archivePath);
   renameSync(path, archivePath);
   writeFileSync(path, "", "utf-8");
