@@ -22,6 +22,11 @@ node --import "tsx/esm" "$DIR/src/regime-scenario-report.ts" || true
 node --import "tsx/esm" "$DIR/src/stock-pro-agent-report.ts" || true
 node --import "tsx/esm" "$DIR/src/company-hypothesis-report.ts" || true
 
+# 履歴化。後から「いつから壊れたか」「いつ情勢判断を変えたか」を追えるようにする。
+node --import "tsx/esm" "$DIR/src/regime-history.ts" || true
+node --import "tsx/esm" "$DIR/src/source-health-history.ts" || true
+node --import "tsx/esm" "$DIR/src/company-non-move-sync.ts" || true
+
 # 知識蓄積レビュー。週次/月次/年次で、メモ止まりになっていないか確認する。
 if [ "$DOW" = "1" ]; then
   node --import "tsx/esm" "$DIR/src/knowledge-review.ts" --weekly || true
