@@ -5,12 +5,15 @@ import {
   calcFinancialStats,
 } from "./jquants.js";
 import type { DailyQuote, FinancialStatement } from "./jquants.js";
+import { fetchTdnetDisclosures, type TdnetDisclosure } from "./jpx.js";
+import { fetchEdinetDocList, type EdinetDoc } from "./edinet.js";
 import { getMockData } from "../mock.js";
 import type { MockData } from "../mock.js";
 import type { Candidate, DataQuality } from "../types.js";
-import { dateNDaysAgoJst, daysSinceJst, todayJstCompact, toCompactDate } from "../date.js";
+import { dateNDaysAgoJst, daysSinceJst, todayJst, todayJstCompact, toCompactDate } from "../date.js";
 import { buildMarketContext } from "../analysis/market-context.js";
 import { buildFinancialQuality } from "../analysis/financial-quality.js";
+import { buildPrimaryDisclosureReview } from "../analysis/primary-disclosure-review.js";
 
 export type FetchResult = {
   data: MockData;
@@ -18,9 +21,22 @@ export type FetchResult = {
   warnings: string[];
 };
 
+type PrimaryDisclosureCache = {
+  loaded: boolean;
+  tdnetDisclosures: TdnetDisclosure[];
+  edinetDocs: EdinetDoc[];
+  errors: string[];
+};
+
 // J-Quantsの指数コードが環境で取れない場合に備え、TOPIX連動ETF等へ差し替え可能にする。
 // 例: MARKET_BENCHMARK_CODE=1306
 const MARKET_BENCHMARK_CODE = process.env.MARKET_BENCHMARK_CODE ?? "1306";
+const primaryDisclosureCache: PrimaryDisclosureCache = {
+  loaded: false,
+  tdnetDisclosures: [],
+  edinetDocs: [],
+  errors: [],
+};
 
 function normalizeDate(date: string): string {
   if (/^\d{8}$/.test(date)) {
@@ -88,6 +104,49 @@ async function tryFetchBenchmarkQuotes(
     const message = err instanceof Error ? err.message : String(err);
     warnings.push(`市場ベンチマーク(${MARKET_BENCHMARK_CODE})取得失敗: ${message}`);
     return [];
+  }
+}
+
+async function loadPrimaryDisclosureCache(): Promise<PrimaryDisclosureCache> {
+  if (primaryDisclosureCache.loaded) return primaryDisclosureCache;
+  primaryDisclosureCache.loaded = true;
+
+  try {
+    primaryDisclosureCache.tdnetDisclosures = await fetchTdnetDisclosures();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    primaryDisclosureCache.errors.push(`TDnet取得失敗: ${message}`);
+  }
+
+  try {
+    primaryDisclosureCache.edinetDocs = await fetchEdinetDocList(todayJst());
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    primaryDisclosureCache.errors.push(`EDINET取得失敗: ${message}`);
+  }
+
+  return primaryDisclosureCache;
+}
+
+async function attachPrimaryDisclosureReview(candidate: Candidate, data: MockData, warnings: string[]): Promise<void> {
+  const cache = await loadPrimaryDisclosureCache();
+  const review = buildPrimaryDisclosureReview({
+    candidate,
+    tdnetDisclosures: cache.tdnetDisclosures,
+    edinetDocs: cache.edinetDocs,
+    fetchErrors: cache.errors,
+  });
+
+  data.primaryDisclosureReview = review;
+
+  if (review.decision === "missing") {
+    warnings.push("一次情報レビュー: 当日TDnet/EDINETで該当開示なし。ニュース材料は裏取り前提で扱う");
+  }
+  if (review.decision === "caution") {
+    warnings.push(...review.warnings.map(warning => `一次情報注意: ${warning}`));
+  }
+  if (review.decision === "block") {
+    warnings.push(...review.blockers.map(blocker => `一次情報ブロッカー: ${blocker}`));
   }
 }
 
@@ -172,6 +231,8 @@ async function fetchRealData(candidate: Candidate): Promise<FetchResult> {
         };
       }
     }
+
+    await attachPrimaryDisclosureReview(candidate, data, warnings);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     warnings.push(`データ取得失敗: ${message}`);
