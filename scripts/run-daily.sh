@@ -14,19 +14,34 @@ if [ -f "$DIR/.env" ]; then
   set +a
 fi
 
-mkdir -p "$DIR/logs"
+mkdir -p "$DIR/logs" "$DIR/tmp"
 
 TODAY="$(date '+%Y-%m-%d')"
 DOW="$(date '+%u')"   # 1=Mon ... 7=Sun
 DOM="$(date '+%d')"   # 01..31
 FAILED_STEPS=""
+LOCK_DIR="$DIR/tmp/run-daily.lock"
 
 notify_pipeline() {
   local kind="$1"
   local title="$2"
   local detail="$3"
-  node --env-file=.env --import "tsx/esm" "$DIR/src/pipeline-message.ts" "$kind" "$title" "$detail" >/dev/null 2>&1 || true
+  node --import "tsx/esm" "$DIR/src/pipeline-message.ts" "$kind" "$title" "$detail" >/dev/null 2>&1 || true
 }
+
+cleanup() {
+  rm -rf "$LOCK_DIR"
+}
+
+if mkdir "$LOCK_DIR" 2>/dev/null; then
+  trap cleanup EXIT INT TERM
+  echo $$ > "$LOCK_DIR/pid"
+  date '+%Y-%m-%d %H:%M:%S' > "$LOCK_DIR/started_at"
+else
+  echo "another alpha-pon daily pipeline is already running: $LOCK_DIR"
+  notify_pipeline "alert" "alpha-pon pipeline skipped" "another run-daily.sh is already running. date=$TODAY lock=$LOCK_DIR"
+  exit 0
+fi
 
 run_step() {
   local name="$1"
