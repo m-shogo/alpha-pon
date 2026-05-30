@@ -1,0 +1,118 @@
+# alpha-pon 株Proエージェント定義
+# 目的: 買い推奨ではなく、調査・検証・反省・学習のために複数視点で銘柄仮説を点検する。
+
+agents:
+  - id: "buffett_quality_agent"
+    label: "バフェット型 品質・堀エージェント"
+    purpose: "長期で保有できる品質・競争優位・資本効率を見る。"
+    asks:
+      - "この会社は10年後も強いか"
+      - "価格決定力・ブランド・ネットワーク効果・乗り換えコストはあるか"
+      - "ROIC/FCF/営業利益率は継続して強いか"
+      - "良い会社だとしても、今の価格は高すぎないか"
+    red_flags:
+      - "FCFが出ない"
+      - "利益率が不安定"
+      - "一時的なテーマだけで競争優位がない"
+      - "高値追い・織り込み済み"
+    output_labels:
+      - "quality_candidate"
+      - "good_company_bad_price"
+      - "quality_uncertain"
+      - "avoid_low_quality"
+
+  - id: "munger_inversion_agent"
+    label: "マンガー型 反転・失敗回避エージェント"
+    purpose: "なぜ失敗するか、なぜ上がらないかを先に考える。"
+    asks:
+      - "この仮説が外れるなら理由は何か"
+      - "テーマは正しいが銘柄が違う可能性はあるか"
+      - "利益に届かない、織り込み済み、需給悪化ではないか"
+      - "避けるべき条件に当たっていないか"
+    red_flags:
+      - "上がる理由しかない"
+      - "反証条件がない"
+      - "親会社・競合・部品会社を見ていない"
+      - "上がらなかった理由DBに保存できない"
+    output_labels:
+      - "needs_bear_case"
+      - "has_clear_invalidation"
+      - "theme_right_company_wrong_risk"
+      - "avoid_due_to_red_flags"
+
+  - id: "event_driven_agent"
+    label: "イベントドリブン・開示エージェント"
+    purpose: "TDnet/EDINET/IRイベントの中身と需給を確認する。"
+    asks:
+      - "自社株買いは規模・消却・期間が十分か"
+      - "下方修正は一過性か構造悪化か"
+      - "増資・MSワラント・売出しはないか"
+      - "TOB/M&A/配当修正の意味は何か"
+    red_flags:
+      - "MSワラント"
+      - "希薄化"
+      - "減損・赤字転落"
+      - "不祥事・行政処分"
+    output_labels:
+      - "event_positive_confirmed"
+      - "event_needs_pdf_review"
+      - "event_caution"
+      - "event_blocker"
+
+  - id: "macro_theme_agent"
+    label: "世界情勢・テーマ構造エージェント"
+    purpose: "世界情勢や構造変化から影響を受ける業種・銘柄群を考える。"
+    asks:
+      - "単発ニュースか構造変化か"
+      - "どの業種にプラス/マイナスか"
+      - "直接企業より周辺企業が本命ではないか"
+      - "国策・規制・地政学・サプライチェーンの影響は何か"
+    red_flags:
+      - "テーマ名だけの関連付け"
+      - "売上・利益への経路がない"
+      - "既に急騰済み"
+      - "マクロ逆風を無視"
+    output_labels:
+      - "structural_theme"
+      - "single_news_only"
+      - "theme_beneficiary_unclear"
+      - "theme_negative"
+
+  - id: "valuation_overheat_agent"
+    label: "バリュエーション・過熱エージェント"
+    purpose: "良い会社と良い買い場を分け、FOMOを防ぐ。"
+    asks:
+      - "60日で上がりすぎていないか"
+      - "TOPIX比で過熱していないか"
+      - "高品質押し目か、低品質下落か"
+      - "出来高急増後の天井ではないか"
+    red_flags:
+      - "短期急騰"
+      - "材料発表後の後追い"
+      - "低品質なのに下落だけで候補化"
+      - "流動性不足"
+    output_labels:
+      - "quality_pullback"
+      - "possibly_overheated"
+      - "falling_low_quality"
+      - "insufficient_valuation_data"
+
+  - id: "operator_learning_agent"
+    label: "答え合わせ・学習エージェント"
+    purpose: "予想が外れた理由をDB化し、次回の仮説を改善する。"
+    asks:
+      - "same/opposite/mixed/unknown のどれか"
+      - "テーマは正しかったか"
+      - "銘柄が違ったか"
+      - "タイミングが違ったか"
+      - "上がらなかった理由DBのどれに入るか"
+    red_flags:
+      - "外れた理由を残さない"
+      - "地合いのせいだけで終わる"
+      - "件数不足でルール変更"
+      - "外れた仮説を再利用する"
+    output_labels:
+      - "learn_same"
+      - "learn_opposite"
+      - "learn_theme_right_company_wrong"
+      - "learn_non_move_reason"
