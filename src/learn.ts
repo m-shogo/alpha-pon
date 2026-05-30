@@ -72,6 +72,13 @@ type OutcomeStats = {
   unknown: number;
   useful: number;
   misleading: number;
+  pricedCount: number;
+  avgReturnPct: number | null;
+  avgBenchmarkReturnPct: number | null;
+  avgRelativeReturnPct: number | null;
+  avgWinRelativeReturnPct: number | null;
+  avgLossRelativeReturnPct: number | null;
+  avgMaxDrawdownPct: number | null;
 };
 
 function increment(map: Map<string, number>, key: string): void {
@@ -80,6 +87,18 @@ function increment(map: Map<string, number>, key: string): void {
 
 function topEntries(map: Map<string, number>, limit = 10): [string, number][] {
   return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit);
+}
+
+function average(values: Array<number | null | undefined>): number | null {
+  const valid = values.filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  if (valid.length === 0) return null;
+  return valid.reduce((sum, value) => sum + value, 0) / valid.length;
+}
+
+function fmtPct(value: number | null | undefined): string {
+  if (value == null) return "N/A";
+  const sign = value >= 0 ? "+" : "";
+  return `${sign}${value.toFixed(2)}%`;
 }
 
 function groupBy(entries: ScoreLogEntry[], getKeys: (entry: ScoreLogEntry) => string[]): Map<string, ScoreLogEntry[]> {
@@ -164,6 +183,7 @@ function scoreByCodeDate(entries: ScoreLogEntry[]): Map<string, ScoreLogEntry> {
 }
 
 function calcOutcomeStats(outcomes: AnalogyOutcomeRecord[]): OutcomeStats {
+  const relativeReturns = outcomes.map(o => o.relativeReturnPct);
   return {
     count: outcomes.length,
     same: outcomes.filter(o => o.direction === "same").length,
@@ -172,12 +192,18 @@ function calcOutcomeStats(outcomes: AnalogyOutcomeRecord[]): OutcomeStats {
     unknown: outcomes.filter(o => o.direction === "unknown").length,
     useful: outcomes.filter(o => o.quality === "useful").length,
     misleading: outcomes.filter(o => o.quality === "misleading").length,
+    pricedCount: outcomes.filter(o => o.relativeReturnPct != null || o.returnPct != null).length,
+    avgReturnPct: average(outcomes.map(o => o.returnPct)),
+    avgBenchmarkReturnPct: average(outcomes.map(o => o.benchmarkReturnPct)),
+    avgRelativeReturnPct: average(relativeReturns),
+    avgWinRelativeReturnPct: average(relativeReturns.filter((value): value is number => typeof value === "number" && value > 0)),
+    avgLossRelativeReturnPct: average(relativeReturns.filter((value): value is number => typeof value === "number" && value < 0)),
+    avgMaxDrawdownPct: average(outcomes.map(o => o.maxDrawdownPct)),
   };
 }
 
 function expectationScore(stats: OutcomeStats): number {
   if (stats.count === 0) return 0;
-  // same=+1, mixed=0, opposite=-1, unknown=0 とした仮の期待値。実リターン金額ではなく方向性の品質指標。
   return (stats.same - stats.opposite) / stats.count;
 }
 
@@ -186,12 +212,12 @@ function pushOutcomeTable(lines: string[], title: string, groups: Map<string, An
 
   lines.push(`## ${title}`);
   lines.push("");
-  lines.push("| グループ | 件数 | same | opposite | mixed | unknown | useful | misleading | 方向性期待値 |");
-  lines.push("|----------|------|------|----------|-------|---------|--------|------------|--------------|");
+  lines.push("| グループ | 件数 | 価格件数 | same | opposite | mixed | unknown | 方向性期待値 | 平均相対 | 平均勝ち幅 | 平均負け幅 | 平均最大下落 |");
+  lines.push("|----------|------|----------|------|----------|-------|---------|--------------|----------|------------|------------|--------------|");
 
   for (const [key, outcomes] of [...groups.entries()].sort((a, b) => b[1].length - a[1].length)) {
     const s = calcOutcomeStats(outcomes);
-    lines.push(`| ${key} | ${s.count} | ${s.same} | ${s.opposite} | ${s.mixed} | ${s.unknown} | ${s.useful} | ${s.misleading} | ${expectationScore(s).toFixed(2)} |`);
+    lines.push(`| ${key} | ${s.count} | ${s.pricedCount} | ${s.same} | ${s.opposite} | ${s.mixed} | ${s.unknown} | ${expectationScore(s).toFixed(2)} | ${fmtPct(s.avgRelativeReturnPct)} | ${fmtPct(s.avgWinRelativeReturnPct)} | ${fmtPct(s.avgLossRelativeReturnPct)} | ${fmtPct(s.avgMaxDrawdownPct)} |`);
   }
   lines.push("");
 }
@@ -301,8 +327,12 @@ function main() {
   lines.push(`- 専門家合議 block: ${expertBlocked}`);
   lines.push(`- 専門家合議 strong: ${expertStrong}`);
   lines.push(`- 類推レビュー件数: ${outcomeStats.count}`);
+  lines.push(`- 価格レビュー件数: ${outcomeStats.pricedCount}`);
   lines.push(`- same/opposite/mixed/unknown: ${outcomeStats.same}/${outcomeStats.opposite}/${outcomeStats.mixed}/${outcomeStats.unknown}`);
   lines.push(`- 方向性期待値: ${expectationScore(outcomeStats).toFixed(2)}`);
+  lines.push(`- 平均相対リターン: ${fmtPct(outcomeStats.avgRelativeReturnPct)}`);
+  lines.push(`- 平均勝ち幅/負け幅: ${fmtPct(outcomeStats.avgWinRelativeReturnPct)} / ${fmtPct(outcomeStats.avgLossRelativeReturnPct)}`);
+  lines.push(`- 平均最大下落: ${fmtPct(outcomeStats.avgMaxDrawdownPct)}`);
   lines.push("");
 
   pushGroupTable(lines, "ルール別の傾向", groupBy(entries, e => e.rules?.length ? e.rules : ["unknown"]));
@@ -312,6 +342,7 @@ function main() {
   pushGroupTable(lines, "専門家合議判定別の傾向", groupBy(entries, e => [e.expertReview?.finalVerdict ?? "unknown"]));
 
   if (outcomes.length > 0) {
+    pushOutcomeTable(lines, "時間軸別 類推レビュー成績", groupOutcomesByLesson(outcomes.map(o => ({ ...o, lessonTitle: o.timeframe ?? "unknown" }))));
     pushOutcomeTable(lines, "スコア帯別 類推レビュー成績", groupOutcomesByScoreBand(outcomes, scoreMap));
     pushOutcomeTable(lines, "ルール別 類推レビュー成績", groupOutcomesByRules(outcomes, scoreMap));
     pushOutcomeTable(lines, "過去事例別 類推レビュー成績", groupOutcomesByLesson(outcomes));
@@ -349,12 +380,12 @@ function main() {
   const ruleGroups = groupOutcomesByRules(outcomes, scoreMap);
   const weakRules = [...ruleGroups.entries()]
     .map(([rule, group]) => ({ rule, stats: calcOutcomeStats(group), exp: expectationScore(calcOutcomeStats(group)) }))
-    .filter(item => item.stats.count >= 5 && item.exp < 0)
-    .sort((a, b) => a.exp - b.exp);
+    .filter(item => item.stats.count >= 5 && (item.exp < 0 || (item.stats.avgRelativeReturnPct ?? 0) < 0))
+    .sort((a, b) => (a.stats.avgRelativeReturnPct ?? 0) - (b.stats.avgRelativeReturnPct ?? 0));
   if (weakRules.length === 0) {
     lines.push("- 現時点では、十分な件数で明確に弱いルールは未検出です。まだログを貯める段階です。");
   } else {
-    weakRules.forEach(item => lines.push(`- ${item.rule}: 件数${item.stats.count}, 方向性期待値${item.exp.toFixed(2)}。弱体化/削除/条件追加を検討。`));
+    weakRules.forEach(item => lines.push(`- ${item.rule}: 件数${item.stats.count}, 方向性期待値${item.exp.toFixed(2)}, 平均相対${fmtPct(item.stats.avgRelativeReturnPct)}。弱体化/削除/条件追加を検討。`));
   }
   lines.push("");
 
@@ -367,7 +398,8 @@ function main() {
   if (topEntries(blockers).some(([key]) => key.includes("下方修正"))) lines.push("- 下方修正の検出精度を上げる。開示タイトルだけでなく決算短信・会社予想の比較を強化する。");
   if (topEntries(warnings).some(([key]) => key.includes("TOPIX") || key.includes("ベンチマーク"))) lines.push("- 市場ベンチマークコードを見直す。MARKET_BENCHMARK_CODE を実データで取れるコードに変更する。");
   if (topEntries(hypeReasons).length > 0) lines.push("- 流行テーマは買い材料ではなく過熱リスクとして扱い、一次情報・業績・バリュエーション確認を必須化する。");
-  lines.push("- スコア帯別・ルール別の方向性期待値を見て、成績が弱いルールは弱体化または削除する。");
+  lines.push("- スコア帯別・ルール別の方向性期待値と平均相対リターンを見て、成績が弱いルールは弱体化または条件追加する。");
+  lines.push("- 平均勝ち幅より平均負け幅が大きいルールは、通知条件より先に反証条件を強化する。");
   lines.push("- 専門家合議で頻出する反対意見を、次のルール改善・データ追加の優先順位にする。");
   lines.push("");
 
