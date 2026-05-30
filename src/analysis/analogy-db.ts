@@ -64,6 +64,17 @@ export type AnalogyOutcomeRecord = {
   direction: AnalogyOutcomeDirection;
   quality: AnalogyOutcomeQuality;
   actualOutcome: string;
+  startDate?: string;
+  endDate?: string;
+  startClose?: number;
+  endClose?: number;
+  returnPct?: number;
+  benchmarkCode?: string;
+  benchmarkReturnPct?: number;
+  relativeReturnPct?: number;
+  maxDrawdownPct?: number;
+  benchmarkMaxDrawdownPct?: number;
+  dataAvailability?: "price_and_benchmark" | "price_only" | "missing";
   whatMatched: string[];
   whatDiffered: string[];
   missedSignals: string[];
