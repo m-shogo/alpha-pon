@@ -53,8 +53,6 @@ async function ensureToken(): Promise<string> {
 
   const refreshToken = await getRefreshToken();
   const idToken = await getIdToken(refreshToken);
-
-  // IDトークンは約24時間有効
   tokenCache = { idToken, expiresAt: now + 23 * 60 * 60 * 1000 };
   return idToken;
 }
@@ -74,8 +72,6 @@ async function get<T>(path: string, params: Record<string, string> = {}): Promis
 
   return res.json() as Promise<T>;
 }
-
-// --- 型定義 ---
 
 export type DailyQuote = {
   Code: string;
@@ -101,9 +97,18 @@ export type FinancialStatement = {
   ForecastNetSales: number | null;
   ForecastOperatingProfit: number | null;
   TypeOfDocument: string;
+  // J-Quantsのプラン/銘柄/書類により欠損する可能性があるため任意扱い。
+  TotalAssets?: number | null;
+  Equity?: number | null;
+  NetAssets?: number | null;
+  InterestBearingDebt?: number | null;
+  CashAndEquivalents?: number | null;
+  CashFlowsFromOperatingActivities?: number | null;
+  CashFlowsFromInvestingActivities?: number | null;
+  CashFlowsFromFinancingActivities?: number | null;
+  Depreciation?: number | null;
+  CapitalExpenditure?: number | null;
 };
-
-// --- API呼び出し関数 ---
 
 export async function fetchDailyQuotes(
   code: string,
@@ -127,8 +132,6 @@ export async function fetchFinancialStatements(
   return data.statements ?? [];
 }
 
-// --- 計算ヘルパー ---
-
 export type PriceStats = {
   current: number;
   high52w: number;
@@ -146,18 +149,12 @@ export function calcPriceStats(quotes: DailyQuote[]): PriceStats | null {
   const sorted = [...quotes].sort((a, b) => a.Date.localeCompare(b.Date));
   const latest = sorted[sorted.length - 1];
   const current = latest.AdjustmentClose;
-
-  // 52週高値
   const year252 = sorted.slice(-252);
   const high52w = Math.max(...year252.map(q => q.AdjustmentClose));
   const drawdownPct = ((current - high52w) / high52w) * 100;
-
-  // 20日移動平均
   const last20 = sorted.slice(-20).map(q => q.AdjustmentClose);
   const ma20 = last20.reduce((a, b) => a + b, 0) / last20.length;
   const recoveredMa20 = current > ma20;
-
-  // 出来高
   const last20vol = sorted.slice(-20).map(q => q.AdjustmentVolume);
   const volumeAvg20 = last20vol.reduce((a, b) => a + b, 0) / last20vol.length;
   const latestVolume = latest.AdjustmentVolume;
@@ -206,7 +203,6 @@ export function calcFinancialStats(statements: FinancialStatement[]): FinancialS
       ? ((latest.OperatingProfit - prev.OperatingProfit) / Math.abs(prev.OperatingProfit)) * 100
       : null;
 
-  // 予想の下方修正チェック（前回予想より今回予想が低い）
   const hasDownwardRevision =
     latest.ForecastNetSales != null &&
     prev.ForecastNetSales != null &&
