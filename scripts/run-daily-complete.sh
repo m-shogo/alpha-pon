@@ -23,6 +23,7 @@ node --import "tsx/esm" "$DIR/src/stock-pro-agent-report.ts" || true
 node --import "tsx/esm" "$DIR/src/company-hypothesis-report.ts" || true
 node --import "tsx/esm" "$DIR/src/company-network-report.ts" || true
 node --import "tsx/esm" "$DIR/src/stale-hypothesis-report.ts" || true
+node --import "tsx/esm" "$DIR/src/strategic-advice-report.ts" || true
 
 # 履歴化。後から「いつから壊れたか」「いつ情勢判断を変えたか」を追えるようにする。
 node --import "tsx/esm" "$DIR/src/regime-history.ts" || true
