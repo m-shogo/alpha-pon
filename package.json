@@ -15,6 +15,7 @@
     "memory:companies": "node --import tsx/esm src/update-company-memory.ts",
     "learn:primary": "node --import tsx/esm src/primary-disclosure-learning.ts",
     "learn:primary:category": "node --import tsx/esm src/primary-disclosure-category-learning.ts",
+    "health:sources": "node --import tsx/esm src/source-health.ts",
     "maintain:data": "node --import tsx/esm src/maintain-data.ts",
     "maintain:data:write": "node --import tsx/esm src/maintain-data.ts --write",
     "pipeline:message": "node --env-file=.env --import tsx/esm src/pipeline-message.ts",
@@ -32,7 +33,7 @@
     "typecheck:tests": "tsc --noEmit -p tsconfig.test.json",
     "test": "node --import tsx/esm tests/score.test.ts && node --import tsx/esm tests/validation.test.ts && node --import tsx/esm tests/analysis.test.ts && node --import tsx/esm tests/expert-ensemble.test.ts",
     "check": "pnpm typecheck && pnpm typecheck:tests && pnpm test",
-    "ci:smoke": "NOTIFY_MODE=off pnpm daily:mock && pnpm learn:primary && test -f reports/latest.md && test -f reports/primary_disclosure_learning_latest.md && test -f reports/primary_disclosure_category_learning_latest.md",
+    "ci:smoke": "NOTIFY_MODE=off pnpm daily:mock && pnpm learn:primary && pnpm health:sources && test -f reports/latest.md && test -f reports/primary_disclosure_learning_latest.md && test -f reports/primary_disclosure_category_learning_latest.md && test -f reports/source_health_latest.md",
     "launchd:install": "mkdir -p logs && cp launchd/com.alpha-pon.daily.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.alpha-pon.daily.plist && echo 'launchd登録完了'",
     "launchd:uninstall": "launchctl unload ~/Library/LaunchAgents/com.alpha-pon.daily.plist && rm ~/Library/LaunchAgents/com.alpha-pon.daily.plist && echo 'launchd登録解除完了'",
     "launchd:status": "launchctl list | grep alpha-pon || echo '未登録'"
