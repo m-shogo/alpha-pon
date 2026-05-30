@@ -26,6 +26,13 @@ type OutcomeStats = {
   opposite: number;
   mixed: number;
   unknown: number;
+  pricedCount: number;
+  avgReturnPct: number | null;
+  avgBenchmarkReturnPct: number | null;
+  avgRelativeReturnPct: number | null;
+  avgWinRelativeReturnPct: number | null;
+  avgLossRelativeReturnPct: number | null;
+  avgMaxDrawdownPct: number | null;
 };
 
 const period = (process.argv.includes("--monthly") ? "monthly" : "weekly") as Period;
@@ -48,6 +55,18 @@ function top(map: Map<string, number>, limit = 10): [string, number][] {
   return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit);
 }
 
+function average(values: Array<number | null | undefined>): number | null {
+  const valid = values.filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  if (valid.length === 0) return null;
+  return valid.reduce((sum, value) => sum + value, 0) / valid.length;
+}
+
+function fmtPct(value: number | null | undefined): string {
+  if (value == null) return "N/A";
+  const sign = value >= 0 ? "+" : "";
+  return `${sign}${value.toFixed(2)}%`;
+}
+
 function loadScoreLogs(): ScoreLogEntry[] {
   if (!existsSync("reports")) return [];
   return readdirSync("reports")
@@ -63,12 +82,20 @@ function loadScoreLogs(): ScoreLogEntry[] {
 }
 
 function outcomeStats(outcomes: AnalogyOutcomeRecord[]): OutcomeStats {
+  const relativeReturns = outcomes.map(o => o.relativeReturnPct);
   return {
     count: outcomes.length,
     same: outcomes.filter(o => o.direction === "same").length,
     opposite: outcomes.filter(o => o.direction === "opposite").length,
     mixed: outcomes.filter(o => o.direction === "mixed").length,
     unknown: outcomes.filter(o => o.direction === "unknown").length,
+    pricedCount: outcomes.filter(o => o.relativeReturnPct != null || o.returnPct != null).length,
+    avgReturnPct: average(outcomes.map(o => o.returnPct)),
+    avgBenchmarkReturnPct: average(outcomes.map(o => o.benchmarkReturnPct)),
+    avgRelativeReturnPct: average(relativeReturns),
+    avgWinRelativeReturnPct: average(relativeReturns.filter((value): value is number => typeof value === "number" && value > 0)),
+    avgLossRelativeReturnPct: average(relativeReturns.filter((value): value is number => typeof value === "number" && value < 0)),
+    avgMaxDrawdownPct: average(outcomes.map(o => o.maxDrawdownPct)),
   };
 }
 
@@ -90,11 +117,11 @@ function groupOutcomes(outcomes: AnalogyOutcomeRecord[], keyFn: (o: AnalogyOutco
 function pushOutcomeTable(lines: string[], title: string, groups: Map<string, AnalogyOutcomeRecord[]>): void {
   lines.push(`## ${title}`);
   lines.push("");
-  lines.push("| グループ | 件数 | same | opposite | mixed | unknown | 方向性期待値 |");
-  lines.push("|----------|------|------|----------|-------|---------|--------------|");
+  lines.push("| グループ | 件数 | 価格件数 | same | opposite | mixed | unknown | 方向性期待値 | 平均相対 | 平均勝ち幅 | 平均負け幅 | 平均最大下落 |");
+  lines.push("|----------|------|----------|------|----------|-------|---------|--------------|----------|------------|------------|--------------|");
   for (const [key, group] of [...groups.entries()].sort((a, b) => b[1].length - a[1].length)) {
     const s = outcomeStats(group);
-    lines.push(`| ${key} | ${s.count} | ${s.same} | ${s.opposite} | ${s.mixed} | ${s.unknown} | ${expectation(s).toFixed(2)} |`);
+    lines.push(`| ${key} | ${s.count} | ${s.pricedCount} | ${s.same} | ${s.opposite} | ${s.mixed} | ${s.unknown} | ${expectation(s).toFixed(2)} | ${fmtPct(s.avgRelativeReturnPct)} | ${fmtPct(s.avgWinRelativeReturnPct)} | ${fmtPct(s.avgLossRelativeReturnPct)} | ${fmtPct(s.avgMaxDrawdownPct)} |`);
   }
   lines.push("");
 }
@@ -117,7 +144,9 @@ function main() {
     for (const tag of entry.tags ?? []) increment(tags, tag);
   }
   for (const outcome of outcomes) {
-    if (outcome.direction === "opposite" || outcome.quality === "misleading") increment(weakLessons, outcome.lessonTitle);
+    if (outcome.direction === "opposite" || outcome.quality === "misleading" || (outcome.relativeReturnPct ?? 0) < 0) {
+      increment(weakLessons, outcome.lessonTitle);
+    }
   }
 
   const s = outcomeStats(outcomes);
@@ -132,8 +161,12 @@ function main() {
   lines.push("");
   lines.push(`- スコアログ: ${scores.length}件`);
   lines.push(`- 類推レビュー: ${s.count}件`);
+  lines.push(`- 価格レビュー: ${s.pricedCount}件`);
   lines.push(`- same/opposite/mixed/unknown: ${s.same}/${s.opposite}/${s.mixed}/${s.unknown}`);
   lines.push(`- 方向性期待値: ${expectation(s).toFixed(2)}`);
+  lines.push(`- 平均相対リターン: ${fmtPct(s.avgRelativeReturnPct)}`);
+  lines.push(`- 平均勝ち幅/負け幅: ${fmtPct(s.avgWinRelativeReturnPct)} / ${fmtPct(s.avgLossRelativeReturnPct)}`);
+  lines.push(`- 平均最大下落: ${fmtPct(s.avgMaxDrawdownPct)}`);
   lines.push(`- 即通知: ${scores.filter(x => x.alertLevel === "urgent").length}件`);
   lines.push(`- 朝まとめ: ${scores.filter(x => x.alertLevel === "daily").length}件`);
   lines.push(`- expert strong: ${scores.filter(x => x.expertReview?.finalVerdict === "strong").length}件`);
@@ -158,8 +191,12 @@ function main() {
   lines.push("");
   if (s.count === 0) lines.push("- まだ答え合わせ件数が少ない。まずは1週間以上ログを貯める。");
   if (s.count > 0 && expectation(s) < 0) lines.push("- 期間全体の方向性期待値がマイナス。通知条件を厳しくし、反証条件の重みを上げる。");
+  if (s.pricedCount > 0 && (s.avgRelativeReturnPct ?? 0) < 0) lines.push("- 期間全体の平均相対リターンがマイナス。same率だけでなく値幅の悪さを確認する。");
+  if (s.avgLossRelativeReturnPct != null && s.avgWinRelativeReturnPct != null && Math.abs(s.avgLossRelativeReturnPct) > Math.abs(s.avgWinRelativeReturnPct)) {
+    lines.push("- 平均負け幅が平均勝ち幅より大きい。通知条件を増やすより、反証条件・損失側の検出を優先する。");
+  }
   if (top(weakLessons).length > 0) {
-    lines.push("- 逆方向/ミスリードが多い過去事例を確認する。");
+    lines.push("- 逆方向/ミスリード/相対リターン悪化が多い過去事例を確認する。");
     top(weakLessons, 5).forEach(([key, count]) => lines.push(`  - ${count}件: ${key}`));
   }
   if (top(blockers).length > 0) {
@@ -175,7 +212,7 @@ function main() {
   lines.push("## 次の自動改善アクション案");
   lines.push("");
   lines.push("- oppositeが多い事例はスコアに使わず、反証質問の表示優先度を上げる。");
-  lines.push("- sameが多いタグ/ルールは通知候補ではなく、まず検証候補として重点監視する。");
+  lines.push("- sameが多くても平均相対リターンが弱い場合は、通知候補ではなく検証候補に留める。");
   lines.push("- unknownが多い場合は、価格データ・ベンチマーク・銘柄コードの欠損確認を優先する。");
   lines.push("- 週次/月次レビューを見て、しきい値変更は手動確認後に行う。自動でルール削除はしない。");
   lines.push("");
