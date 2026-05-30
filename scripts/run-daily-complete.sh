@@ -21,6 +21,7 @@ node --import "tsx/esm" "$DIR/src/primary-disclosure-subtypes.ts" || true
 node --import "tsx/esm" "$DIR/src/regime-scenario-report.ts" || true
 node --import "tsx/esm" "$DIR/src/stock-pro-agent-report.ts" || true
 node --import "tsx/esm" "$DIR/src/company-hypothesis-report.ts" || true
+node --import "tsx/esm" "$DIR/src/company-network-report.ts" || true
 node --import "tsx/esm" "$DIR/src/stale-hypothesis-report.ts" || true
 
 # 履歴化。後から「いつから壊れたか」「いつ情勢判断を変えたか」を追えるようにする。
