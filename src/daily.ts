@@ -24,6 +24,16 @@ const useMock = process.argv.includes("--mock") || process.env.USE_MOCK === "tru
 const notifyMode = (process.env.NOTIFY_MODE ?? "urgent_only") as NotifyMode;
 
 function downgradeUnsafeAlert(result: ScoreResult): void {
+  if (result.primaryDisclosureReview?.decision === "block" && result.alertLevel !== "ignore") {
+    result.warnings.push("一次情報ブロッカー検出のため通知対象からログ扱いに変更");
+    result.alertLevel = "log";
+  }
+
+  if (result.primaryDisclosureReview?.decision === "caution" && result.alertLevel === "urgent") {
+    result.warnings.push("一次情報注意開示があるため即通知から朝まとめに変更");
+    result.alertLevel = "daily";
+  }
+
   if (result.dataQuality !== "ok" && (result.alertLevel === "urgent" || result.alertLevel === "daily")) {
     result.warnings.push(`データ品質が${result.dataQuality}のため通知対象からログ扱いに変更`);
     result.alertLevel = "log";
@@ -37,6 +47,7 @@ function downgradeUnsafeAlert(result: ScoreResult): void {
 
 function isReviewSafeForNotification(result: ScoreResult): boolean {
   return (
+    result.primaryDisclosureReview?.decision !== "block" &&
     result.riskReview?.decision !== "reject" &&
     result.hypeRisk?.level !== "high" &&
     result.expertReview?.finalVerdict !== "block"
@@ -118,6 +129,7 @@ async function main() {
     marketContext: r.marketContext,
     financialQuality: r.financialQuality,
     hypeRisk: r.hypeRisk,
+    primaryDisclosureReview: r.primaryDisclosureReview,
     riskReview: r.riskReview,
     expertReview: r.expertReview,
     hypothesisMap: r.hypothesisMap,
@@ -135,8 +147,9 @@ async function main() {
     const level = r.alertLevel.toUpperCase().padEnd(6);
     const review = r.riskReview?.decision ? ` / review:${r.riskReview.decision}` : "";
     const expert = r.expertReview?.finalVerdict ? ` / expert:${r.expertReview.finalVerdict}` : "";
+    const primary = r.primaryDisclosureReview ? ` / primary:${r.primaryDisclosureReview.decision}` : "";
     const hypothesis = r.hypothesisMap ? ` / hypotheses:${r.hypothesisMap.clusters.length}` : "";
-    console.log(`${icon} [${level}] ${r.candidate.code} ${r.candidate.name}: ${r.score}点${review}${expert}${hypothesis}`);
+    console.log(`${icon} [${level}] ${r.candidate.code} ${r.candidate.name}: ${r.score}点${review}${expert}${primary}${hypothesis}`);
     if (r.reasons.length > 0) {
       console.log(`        └ ${r.reasons[0]}`);
     }
