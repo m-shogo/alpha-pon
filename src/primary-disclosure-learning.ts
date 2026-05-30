@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join } from "path";
 import { todayJst } from "./date.js";
 import { loadAnalogyOutcomeRecords, type AnalogyOutcomeRecord } from "./analysis/analogy-db.js";
+import "./primary-disclosure-category-learning.js";
 
 type PrimaryDecision = "confirmed" | "caution" | "block" | "missing" | "unknown_or_legacy";
 
@@ -145,6 +146,7 @@ function main() {
   lines.push(`- missing/legacy: ${scores.filter(s => !s.primaryDisclosureReview || s.primaryDisclosureReview.decision === "missing").length}件`);
   const scannedDates = [...new Set(scores.flatMap(s => s.primaryDisclosureReview?.sourceCoverage?.scannedEdinetDates ?? []))];
   if (scannedDates.length > 0) lines.push(`- EDINET確認日: ${scannedDates.join(" / ")}`);
+  lines.push("- カテゴリ別レポート: reports/primary_disclosure_category_learning_latest.md");
   lines.push("");
 
   lines.push("## 一次情報判定別 類推レビュー成績");
