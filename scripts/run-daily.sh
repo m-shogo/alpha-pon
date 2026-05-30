@@ -1,6 +1,6 @@
 #!/bin/bash
 # launchd から呼ばれるラッパースクリプト
-# 毎朝: 世界ニュース取得 → 銘柄daily → 類推レビュー → 学習集計 → 一次情報学習 → ルール診断 → company memory → 週次/月次レビュー → DBメンテ まで実行する
+# 毎朝: 世界ニュース取得 → 銘柄daily → 類推レビュー → 学習集計 → 一次情報学習 → 情報源ヘルス → ルール診断 → company memory → 週次/月次レビュー → DBメンテ まで実行する
 
 set -u
 
@@ -46,6 +46,7 @@ write_status() {
     "learning": "reports/learning_latest.md",
     "primaryDisclosureLearning": "reports/primary_disclosure_learning_latest.md",
     "primaryDisclosureCategoryLearning": "reports/primary_disclosure_category_learning_latest.md",
+    "sourceHealth": "reports/source_health_latest.md",
     "ruleDiagnostics": "reports/rule_diagnostics_latest.md",
     "companyMemory": "reports/company_memory_latest.md",
     "maintenance": "reports/maintenance_latest.md"
@@ -193,26 +194,29 @@ run_step "learn" "noncritical" node --import "tsx/esm" "$DIR/src/learn.ts" || tr
 # 5. 一次情報学習。TDnet/EDINET判定ごとの成績とカテゴリ別成績を見る。失敗しても止めない。
 run_step "learn:primary" "noncritical" node --import "tsx/esm" "$DIR/src/primary-disclosure-learning.ts" || true
 
-# 6. ルール診断。自動でrules.ymlは変更せず、改善候補だけ出す。
+# 6. 情報源ヘルス。J-Quants/TDnet/EDINET/レポート生成の抜け漏れを見える化する。
+run_step "health:sources" "noncritical" node --import "tsx/esm" "$DIR/src/source-health.ts" || true
+
+# 7. ルール診断。自動でrules.ymlは変更せず、改善候補だけ出す。
 run_step "diagnose:rules" "noncritical" node --import "tsx/esm" "$DIR/src/rule-diagnostics.ts" || true
 
-# 7. 銘柄ごとの反省ノート。スコア加点には使わず、company memory として保存する。
+# 8. 銘柄ごとの反省ノート。スコア加点には使わず、company memory として保存する。
 run_step "memory:companies" "noncritical" node --import "tsx/esm" "$DIR/src/update-company-memory.ts" || true
 
-# 8. 週次レビュー。月曜だけ実行。
+# 9. 週次レビュー。月曜だけ実行。
 run_if_monday "review:weekly" node --import "tsx/esm" "$DIR/src/periodic-review.ts" --weekly
 
-# 9. 月次レビュー。毎月1日だけ実行。
+# 10. 月次レビュー。毎月1日だけ実行。
 run_if_month_start "review:monthly" node --import "tsx/esm" "$DIR/src/periodic-review.ts" --monthly
 
-# 10. DB肥大化チェック。実アーカイブは安全側で毎日実行。失敗しても止めない。
+# 11. DB肥大化チェック。実アーカイブは安全側で毎日実行。失敗しても止めない。
 run_step "maintain:data:write" "noncritical" node --import "tsx/esm" "$DIR/src/maintain-data.ts" --write || true
 
 if [ -n "$FAILED_STEPS" ]; then
-  notify_pipeline "summary" "alpha-pon pipeline completed with warnings" "date=$TODAY failed_steps=$FAILED_STEPS reports=reports/latest.md reports/learning_latest.md reports/primary_disclosure_learning_latest.md reports/primary_disclosure_category_learning_latest.md reports/rule_diagnostics_latest.md reports/company_memory_latest.md reports/pipeline_status_latest.json"
+  notify_pipeline "summary" "alpha-pon pipeline completed with warnings" "date=$TODAY failed_steps=$FAILED_STEPS reports=reports/latest.md reports/learning_latest.md reports/primary_disclosure_learning_latest.md reports/primary_disclosure_category_learning_latest.md reports/source_health_latest.md reports/rule_diagnostics_latest.md reports/company_memory_latest.md reports/pipeline_status_latest.json"
   write_status "completed_with_warnings"
 else
-  notify_pipeline "summary" "alpha-pon pipeline completed" "date=$TODAY all steps ok reports=reports/latest.md reports/learning_latest.md reports/primary_disclosure_learning_latest.md reports/primary_disclosure_category_learning_latest.md reports/rule_diagnostics_latest.md reports/company_memory_latest.md reports/pipeline_status_latest.json"
+  notify_pipeline "summary" "alpha-pon pipeline completed" "date=$TODAY all steps ok reports=reports/latest.md reports/learning_latest.md reports/primary_disclosure_learning_latest.md reports/primary_disclosure_category_learning_latest.md reports/source_health_latest.md reports/rule_diagnostics_latest.md reports/company_memory_latest.md reports/pipeline_status_latest.json"
   write_status "completed"
 fi
 
