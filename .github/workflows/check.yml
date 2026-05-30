@@ -3,6 +3,11 @@ name: Check
 on:
   push:
   pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
