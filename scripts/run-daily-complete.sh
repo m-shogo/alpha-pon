@@ -14,5 +14,6 @@ node --import "tsx/esm" "$DIR/src/proposal-history-run.ts" || true
 node --import "tsx/esm" "$DIR/src/persona-audit.ts" || true
 node --import "tsx/esm" "$DIR/src/valuation-range.ts" || true
 node --import "tsx/esm" "$DIR/src/primary-disclosure-subtypes.ts" || true
+node --import "tsx/esm" "$DIR/src/company-hypothesis-report.ts" || true
 
 echo "complete daily wrapper finished"
