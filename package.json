@@ -13,6 +13,7 @@
     "review:monthly": "node --import tsx/esm src/periodic-review.ts --monthly",
     "diagnose:rules": "node --import tsx/esm src/rule-diagnostics.ts",
     "memory:companies": "node --import tsx/esm src/update-company-memory.ts",
+    "learn:primary": "node --import tsx/esm src/primary-disclosure-learning.ts",
     "maintain:data": "node --import tsx/esm src/maintain-data.ts",
     "maintain:data:write": "node --import tsx/esm src/maintain-data.ts --write",
     "pipeline:message": "node --env-file=.env --import tsx/esm src/pipeline-message.ts",
