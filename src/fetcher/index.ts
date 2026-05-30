@@ -10,7 +10,7 @@ import { fetchEdinetDocList, type EdinetDoc } from "./edinet.js";
 import { getMockData } from "../mock.js";
 import type { MockData } from "../mock.js";
 import type { Candidate, DataQuality } from "../types.js";
-import { dateNDaysAgoJst, daysSinceJst, todayJst, todayJstCompact, toCompactDate } from "../date.js";
+import { addDaysJst, dateNDaysAgoJst, daysSinceJst, todayJst, todayJstCompact, toCompactDate } from "../date.js";
 import { buildMarketContext } from "../analysis/market-context.js";
 import { buildFinancialQuality } from "../analysis/financial-quality.js";
 import { buildPrimaryDisclosureReview } from "../analysis/primary-disclosure-review.js";
@@ -26,16 +26,19 @@ type PrimaryDisclosureCache = {
   tdnetDisclosures: TdnetDisclosure[];
   edinetDocs: EdinetDoc[];
   errors: string[];
+  scannedEdinetDates: string[];
 };
 
 // J-Quantsの指数コードが環境で取れない場合に備え、TOPIX連動ETF等へ差し替え可能にする。
 // 例: MARKET_BENCHMARK_CODE=1306
 const MARKET_BENCHMARK_CODE = process.env.MARKET_BENCHMARK_CODE ?? "1306";
+const PRIMARY_DISCLOSURE_EDINET_DAYS = Math.max(1, Number(process.env.PRIMARY_DISCLOSURE_EDINET_DAYS ?? "5"));
 const primaryDisclosureCache: PrimaryDisclosureCache = {
   loaded: false,
   tdnetDisclosures: [],
   edinetDocs: [],
   errors: [],
+  scannedEdinetDates: [],
 };
 
 function normalizeDate(date: string): string {
@@ -47,6 +50,21 @@ function normalizeDate(date: string): string {
 
 function compactQuoteDate(date: string): string {
   return toCompactDate(normalizeDate(date));
+}
+
+function recentBusinessDates(days: number): string[] {
+  const dates: string[] = [];
+  let offset = 0;
+  const base = todayJst();
+
+  while (dates.length < days && offset < days * 3 + 7) {
+    const date = addDaysJst(base, -offset);
+    const weekday = new Date(`${date}T00:00:00+09:00`).getDay();
+    if (weekday !== 0 && weekday !== 6) dates.push(date);
+    offset += 1;
+  }
+
+  return dates;
 }
 
 function findLatestEarningsStatement(statements: FinancialStatement[]): FinancialStatement | null {
@@ -107,6 +125,23 @@ async function tryFetchBenchmarkQuotes(
   }
 }
 
+async function fetchRecentEdinetDocs(errors: string[]): Promise<{ docs: EdinetDoc[]; dates: string[] }> {
+  const docs: EdinetDoc[] = [];
+  const dates = recentBusinessDates(PRIMARY_DISCLOSURE_EDINET_DAYS);
+
+  for (const date of dates) {
+    try {
+      docs.push(...await fetchEdinetDocList(date));
+      await new Promise(resolve => setTimeout(resolve, 250));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      errors.push(`EDINET取得失敗(${date}): ${message}`);
+    }
+  }
+
+  return { docs, dates };
+}
+
 async function loadPrimaryDisclosureCache(): Promise<PrimaryDisclosureCache> {
   if (primaryDisclosureCache.loaded) return primaryDisclosureCache;
   primaryDisclosureCache.loaded = true;
@@ -118,12 +153,9 @@ async function loadPrimaryDisclosureCache(): Promise<PrimaryDisclosureCache> {
     primaryDisclosureCache.errors.push(`TDnet取得失敗: ${message}`);
   }
 
-  try {
-    primaryDisclosureCache.edinetDocs = await fetchEdinetDocList(todayJst());
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    primaryDisclosureCache.errors.push(`EDINET取得失敗: ${message}`);
-  }
+  const edinet = await fetchRecentEdinetDocs(primaryDisclosureCache.errors);
+  primaryDisclosureCache.edinetDocs = edinet.docs;
+  primaryDisclosureCache.scannedEdinetDates = edinet.dates;
 
   return primaryDisclosureCache;
 }
@@ -135,12 +167,13 @@ async function attachPrimaryDisclosureReview(candidate: Candidate, data: MockDat
     tdnetDisclosures: cache.tdnetDisclosures,
     edinetDocs: cache.edinetDocs,
     fetchErrors: cache.errors,
+    scannedEdinetDates: cache.scannedEdinetDates,
   });
 
   data.primaryDisclosureReview = review;
 
   if (review.decision === "missing") {
-    warnings.push("一次情報レビュー: 当日TDnet/EDINETで該当開示なし。ニュース材料は裏取り前提で扱う");
+    warnings.push(`一次情報レビュー: TDnet/EDINET直近${cache.scannedEdinetDates.length}営業日で該当開示なし。ニュース材料は裏取り前提で扱う`);
   }
   if (review.decision === "caution") {
     warnings.push(...review.warnings.map(warning => `一次情報注意: ${warning}`));
