@@ -75,7 +75,7 @@ function memoryPath(code: string): string {
   return join("data", "company_memory", `${code}.json`);
 }
 
-function loadMemory(code: string): CompanyMemoryRecord | null {
+export function loadCompanyMemory(code: string): CompanyMemoryRecord | null {
   const path = memoryPath(code);
   if (!existsSync(path)) return null;
   try {
@@ -83,6 +83,21 @@ function loadMemory(code: string): CompanyMemoryRecord | null {
   } catch {
     return null;
   }
+}
+
+export function loadAllCompanyMemory(): CompanyMemoryRecord[] {
+  const dir = join("data", "company_memory");
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter(file => file.endsWith(".json"))
+    .sort()
+    .flatMap(file => {
+      try {
+        return [JSON.parse(readFileSync(join(dir, file), "utf-8")) as CompanyMemoryRecord];
+      } catch {
+        return [];
+      }
+    });
 }
 
 function loadScoreLogs(): ScoreLogEntry[] {
@@ -210,7 +225,7 @@ function recurringWarningsFromScores(entries: ScoreLogEntry[]): string[] {
 }
 
 function buildMemory(entry: ScoreLogEntry, allScores: ScoreLogEntry[], outcomes: AnalogyOutcomeRecord[], scoreMap: Map<string, ScoreLogEntry>): CompanyMemoryRecord {
-  const current = loadMemory(entry.code);
+  const current = loadCompanyMemory(entry.code);
   const codeScores = allScores.filter(score => score.code === entry.code);
   const performance = rulePerformanceForCode(outcomes, scoreMap, entry.code);
   const recentOutcomes = recentOutcomesForCode(outcomes, entry.code);
