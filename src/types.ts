@@ -70,6 +70,13 @@ export type FinancialQuality = {
   forecastRevenueProgressRate: number | null;
   forecastOperatingProfitProgressRate: number | null;
   hasDownwardRevision: boolean | null;
+  roic: number | null;
+  roe: number | null;
+  fcf: number | null;
+  fcfMargin: number | null;
+  netCash: number | null;
+  equityRatio: number | null;
+  moatScore: number;
   qualityScore: number;
   reasons: string[];
   negativeReasons: string[];
