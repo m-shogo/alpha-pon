@@ -1,0 +1,138 @@
+# alpha-pon Pro知識ブラッシュアップ方針
+# 目的: 株Proエージェントの前提知識を固定化せず、社会情勢・技術・政治・戦争・宇宙・AIの変化に合わせて見直す。
+# 買い推奨ではなく、調査精度・反証精度を上げるための更新ポリシー。
+
+refreshDomains:
+  - id: "politics_policy"
+    label: "政治・政策・規制"
+    reviewCadence: "weekly"
+    why: "補助金、規制、税制、外交、選挙でテーマの勝ち筋が変わる"
+    affectedAgents:
+      - "event_driven_agent"
+      - "theme_network_agent"
+      - "risk_manager_agent"
+    watchExamples:
+      - "防衛費・宇宙政策"
+      - "半導体規制/輸出管理"
+      - "エネルギー政策"
+      - "医療/薬価/少子化政策"
+      - "移民/労働政策"
+    mustUpdateWhen:
+      - "大型法案・補助金・規制変更"
+      - "選挙/政権交代/外交方針変更"
+      - "制裁・輸出規制・関税変更"
+
+  - id: "war_geopolitics"
+    label: "戦争・地政学・安全保障"
+    reviewCadence: "weekly"
+    why: "防衛、資源、物流、サプライチェーン、為替、リスクプレミアムが変わる"
+    affectedAgents:
+      - "theme_network_agent"
+      - "valuation_agent"
+      - "bear_case_agent"
+      - "risk_manager_agent"
+    watchExamples:
+      - "台湾海峡"
+      - "中東"
+      - "ウクライナ/欧州安全保障"
+      - "海上輸送・保険料"
+      - "レアアース/資源ナショナリズム"
+    mustUpdateWhen:
+      - "紛争拡大/停戦/制裁変更"
+      - "物流寸断・資源価格急変"
+      - "防衛関連の大型発注"
+
+  - id: "ai_compute"
+    label: "AI・データセンター・半導体・電力"
+    reviewCadence: "weekly"
+    why: "AI需要は半導体、電力、光通信、空調、土地、データセンター、ソフトウェアに波及する"
+    affectedAgents:
+      - "growth_agent"
+      - "valuation_agent"
+      - "theme_network_agent"
+      - "bear_case_agent"
+    watchExamples:
+      - "GPU/ASIC"
+      - "HBM/メモリ"
+      - "電力/原発/送電網"
+      - "データセンター空調"
+      - "光通信/電線/銅"
+      - "AIソフトウェア収益化"
+    mustUpdateWhen:
+      - "大型設備投資変更"
+      - "供給制約/価格急変"
+      - "AI収益化の鈍化/加速"
+      - "規制/著作権/安全基準の変化"
+
+  - id: "space_satellite_starlink"
+    label: "宇宙・衛星通信・Starlink周辺"
+    reviewCadence: "monthly"
+    why: "衛星通信、打上げ、地上局、防衛通信、災害通信、通信キャリアに影響する"
+    affectedAgents:
+      - "theme_network_agent"
+      - "event_driven_agent"
+      - "bear_case_agent"
+    watchExamples:
+      - "Starlink/衛星通信"
+      - "ロケット打上げ"
+      - "地上局/アンテナ"
+      - "防衛通信"
+      - "災害時通信"
+      - "宇宙保険/宇宙デブリ"
+    mustUpdateWhen:
+      - "大型契約/政策支援"
+      - "打上げ失敗/規制変更"
+      - "通信キャリアとの提携/競合変化"
+
+  - id: "climate_food_disaster"
+    label: "気候・食糧・災害"
+    reviewCadence: "monthly"
+    why: "農業、食品、保険、建設、電力、水、物流、観光に波及する"
+    affectedAgents:
+      - "theme_network_agent"
+      - "bear_case_agent"
+      - "risk_manager_agent"
+    watchExamples:
+      - "猛暑/水不足"
+      - "米・小麦・飼料価格"
+      - "台風/地震/洪水"
+      - "保険金支払い"
+      - "防災/インフラ更新"
+    mustUpdateWhen:
+      - "大規模災害"
+      - "食糧価格急騰"
+      - "保険/電力/水インフラの制度変更"
+
+  - id: "macro_rates_fx"
+    label: "金利・為替・インフレ・景気"
+    reviewCadence: "weekly"
+    why: "高PER株、輸出入、金融、不動産、消費、設備投資の前提が変わる"
+    affectedAgents:
+      - "valuation_agent"
+      - "buffett_quality_agent"
+      - "risk_manager_agent"
+    watchExamples:
+      - "日銀政策"
+      - "米金利"
+      - "円安/円高"
+      - "実質賃金/消費"
+      - "信用スプレッド"
+    mustUpdateWhen:
+      - "政策金利変更"
+      - "急激な円安/円高"
+      - "インフレ/景気指標のトレンド変化"
+
+refreshRules:
+  - "Proエージェントの知識は固定しない"
+  - "weekly/monthlyで、前提が古くなっていないか確認する"
+  - "情勢変化が起きたら、銘柄仮説より先にregimeを更新する"
+  - "新しいテーマは、関連銘柄を出す前に本命/周辺/恩恵なしを分ける"
+  - "古いテーマは、外れ理由が増えたら退役候補にする"
+  - "StarlinkやAIのような急変テーマは、一次情報・契約・収益接続を優先し、雰囲気だけで銘柄化しない"
+
+outputRequirements:
+  - "どのPro視点を更新すべきか"
+  - "どの社会情勢が銘柄仮説に影響するか"
+  - "更新しないと危ない古い前提"
+  - "次に集める一次情報"
+  - "関連銘柄を増やすべきか、テーマ監視に留めるべきか"
