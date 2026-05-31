@@ -50,6 +50,10 @@ function topCounts(rows: JsonlRow[], key: string): Array<[string, number]> {
   return [...counts.entries()].sort((a, b) => b[1] - a[1]);
 }
 
+function containsWarning(text: string, patterns: string[]): boolean {
+  return patterns.some(pattern => text.includes(pattern));
+}
+
 function main() {
   const date = todayJst();
   const regime = readYaml<CurrentRegime>("config/current-regime.yml");
@@ -59,6 +63,8 @@ function main() {
   const staleReport = readText("reports/stale_hypotheses_latest.md");
   const networkReport = readText("reports/company_network_latest.md");
   const stockProReport = readText("reports/stock_pro_agent_latest.md");
+  const coverageReport = readText("reports/company_coverage_audit_latest.md");
+  const alignmentReport = readText("reports/regime_hypothesis_alignment_latest.md");
 
   const activeRegimeIds = regime?.activeRegimes?.map(item => item.id) ?? [];
   const nonMoveReasonCounts = topCounts(nonMove, "nonMoveReasons").slice(0, 8);
@@ -75,6 +81,16 @@ function main() {
     }
   }
   const regimeTop = [...regimeCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const auditWarnings: string[] = [];
+  if (containsWarning(coverageReport, ["hypothesis missing network: 0\n", "- none"]) === false && coverageReport) {
+    auditWarnings.push("company coverage に未接続があります。仮説DBとネットワークDBの片手落ちを確認してください。");
+  }
+  if (containsWarning(alignmentReport, ["current regime 外", "監視対象外", "active but thin"])) {
+    auditWarnings.push("current regime と銘柄仮説にズレがあります。無理に追わず、保留/追わない判断を優先してください。");
+  }
+  if (containsWarning(staleReport, ["review_repeated_miss", "retire_or_rewrite", "missing_review_date", "review_needed"])) {
+    auditWarnings.push("stale / retired 候補があります。古い仮説や繰り返し外れた仮説を放置しないでください。");
+  }
 
   const lines: string[] = [];
   lines.push("# alpha-pon strategic advice report");
@@ -91,6 +107,12 @@ function main() {
   lines.push(`- non-move history rows: ${nonMove.length}`);
   lines.push(`- regime history rows: ${regimeHistory.length}`);
   lines.push(`- source health history rows: ${sourceHealth.length}`);
+  lines.push("");
+
+  lines.push("## 今日まず見る穴");
+  lines.push("");
+  if (auditWarnings.length === 0) lines.push("- 大きな未接続/ズレ/退役候補の警告は目立ちません。");
+  for (const warning of auditWarnings) lines.push(`- ${warning}`);
   lines.push("");
 
   lines.push("## AIからの先回り指摘");
@@ -124,15 +146,17 @@ function main() {
   lines.push("");
   lines.push(`- stock_pro_agent_latest.md: ${stockProReport ? "ok" : "missing"}`);
   lines.push(`- company_network_latest.md: ${networkReport ? "ok" : "missing"}`);
+  lines.push(`- company_coverage_audit_latest.md: ${coverageReport ? "ok" : "missing"}`);
+  lines.push(`- regime_hypothesis_alignment_latest.md: ${alignmentReport ? "ok" : "missing"}`);
   lines.push(`- stale_hypotheses_latest.md: ${staleReport ? "ok" : "missing"}`);
   lines.push("");
 
   lines.push("## 次に人間が見るべきこと");
   lines.push("");
   lines.push("- stock pro report と company network report が同じ銘柄で矛盾していないか");
-  lines.push("- better peer risk が強い銘柄を、単独で追いすぎていないか");
+  lines.push("- company coverage audit で未接続銘柄が残っていないか");
+  lines.push("- regime alignment で current regime 外の銘柄を追いすぎていないか");
   lines.push("- stale_hypotheses_latest.md の review_needed を放置していないか");
-  lines.push("- current-regime.yml が、実際のニュースとズレていないか");
   lines.push("- 追う銘柄より、追わない銘柄を明確にできているか");
   lines.push("");
 
