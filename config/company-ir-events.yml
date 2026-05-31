@@ -8,27 +8,38 @@ companies:
     events:
       - type: "annual_general_meeting"
         label: "定時株主総会"
-        status: "scheduled_needs_official_detail"
+        status: "scheduled_month_known_detail_required"
+        expectedMonth: "2026-06"
         date: null
-        sourceUrl: null
-        sourceStatus: "official_check_required"
+        dateConfidence: "month_known_exact_date_required"
+        sourceUrl: "https://corporate.sanrio.co.jp/ir/stock/meeting/"
+        sourceStatus: "official_page_known_detail_check_required"
+        severity: "critical_before_label_up"
         whyImportant:
+          - "サンリオIR公式サイトに株主総会ページがあり、株主総会の日時や関連資料を掲載する導線がある"
+          - "6月総会シーズンの直近イベントとして、招集通知・議案・配当・役員・資本政策を確認しない考察は弱い"
           - "招集通知で議案・役員・配当・資本政策・株主還元の確認ができる"
           - "総会前後は期待・材料出尽くし・需給変化が起きやすい"
           - "高期待銘柄では、良い内容でも市場期待未満なら上がらない可能性がある"
         agendaToCheck:
+          - "株主総会の正確な日時・場所・基準日"
+          - "招集通知PDF"
           - "剰余金処分/配当"
           - "取締役選任/役員体制"
+          - "監査等委員/監査役/会計監査人関連"
           - "報酬制度/株式報酬"
           - "資本政策/自己株式取得の有無"
+          - "株主還元方針"
           - "中期経営計画や成長戦略への言及"
           - "海外ライセンス/地域別成長の説明"
         tradingCaution:
+          - "6月総会の詳細が未確認なら、銘柄評価を調査候補へ上げない"
           - "総会決定済みでも、招集通知・議案・基準日・配当を確認するまで調査候補に上げない"
           - "総会前の期待上げと総会後の材料出尽くしを分ける"
           - "良い会社と良いタイミングを混同しない"
         nextAction:
           - "公式IRの株主総会ページを確認"
           - "招集通知PDFを確認"
+          - "正確な総会日をdateに反映"
           - "議案と配当/資本政策をcompany_context_registryに追記"
           - "総会前後の株価反応をnon-move reasonとして記録"
