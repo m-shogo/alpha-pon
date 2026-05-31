@@ -1,0 +1,34 @@
+# alpha-pon 会社IRイベントDB
+# 目的: 株主総会・決算・配当・中計・株主還元・議案など、直近イベントを銘柄考察に必ず接続する。
+# 注意: 買い推奨ではなく、調査・検証・反証用。日付・URL・議案は必ず公式IRで確認する。
+
+companies:
+  "8136":
+    name: "サンリオ"
+    events:
+      - type: "annual_general_meeting"
+        label: "定時株主総会"
+        status: "scheduled_needs_official_detail"
+        date: null
+        sourceUrl: null
+        sourceStatus: "official_check_required"
+        whyImportant:
+          - "招集通知で議案・役員・配当・資本政策・株主還元の確認ができる"
+          - "総会前後は期待・材料出尽くし・需給変化が起きやすい"
+          - "高期待銘柄では、良い内容でも市場期待未満なら上がらない可能性がある"
+        agendaToCheck:
+          - "剰余金処分/配当"
+          - "取締役選任/役員体制"
+          - "報酬制度/株式報酬"
+          - "資本政策/自己株式取得の有無"
+          - "中期経営計画や成長戦略への言及"
+          - "海外ライセンス/地域別成長の説明"
+        tradingCaution:
+          - "総会決定済みでも、招集通知・議案・基準日・配当を確認するまで調査候補に上げない"
+          - "総会前の期待上げと総会後の材料出尽くしを分ける"
+          - "良い会社と良いタイミングを混同しない"
+        nextAction:
+          - "公式IRの株主総会ページを確認"
+          - "招集通知PDFを確認"
+          - "議案と配当/資本政策をcompany_context_registryに追記"
+          - "総会前後の株価反応をnon-move reasonとして記録"
