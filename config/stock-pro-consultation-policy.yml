@@ -1,0 +1,93 @@
+# alpha-pon 株Pro相談ポリシー
+# 目的: 大事な判断では必ず複数の株Pro視点を通し、精度を上げる。
+# 買い推奨ではなく、調査・反証・保留・改善のための意思決定ポリシー。
+
+mustConsultWhen:
+  - id: "new_company_added"
+    label: "新規銘柄を追加するとき"
+    requiredReports:
+      - "company_onboarding_audit_latest.md"
+      - "stock_pro_quality_audit_latest.md"
+      - "stock_pro_committee_latest.md"
+    requiredViews:
+      - "event_driven_agent"
+      - "valuation_agent"
+      - "bear_case_agent"
+      - "theme_network_agent"
+      - "risk_manager_agent"
+    rule: "unknown/provisional扱いから開始し、IR・決算・総会・競合・上がらない理由が埋まるまで強い結論を出さない"
+
+  - id: "label_upgrade"
+    label: "証拠不足/保留から調査候補へ上げるとき"
+    requiredReports:
+      - "stock_pro_quality_audit_latest.md"
+      - "stock_pro_committee_latest.md"
+      - "stock_pro_summary_latest.md"
+    requiredViews:
+      - "buffett_quality_agent"
+      - "growth_agent"
+      - "valuation_agent"
+      - "bear_case_agent"
+      - "risk_manager_agent"
+    rule: "1人でも証拠不足が強い場合は格上げしない"
+
+  - id: "event_near"
+    label: "決算・株主総会・配当・中計・自社株買いなど重要IRイベント前後"
+    requiredReports:
+      - "stock_pro_committee_latest.md"
+      - "stock_pro_agent_latest.md"
+      - "strategic_advice_latest.md"
+    requiredViews:
+      - "event_driven_agent"
+      - "valuation_agent"
+      - "bear_case_agent"
+      - "risk_manager_agent"
+    rule: "イベント前は期待先行、イベント後は材料出尽くしを必ず見る"
+
+  - id: "notification_candidate"
+    label: "通知候補にする/重要度を上げるとき"
+    requiredReports:
+      - "pipeline_health_summary_latest.md"
+      - "stock_pro_summary_latest.md"
+      - "stock_pro_committee_latest.md"
+      - "strategic_advice_latest.md"
+    requiredViews:
+      - "risk_manager_agent"
+      - "bear_case_agent"
+      - "valuation_agent"
+    rule: "pipeline confidenceがlow/cautionなら通知強度を上げない。一次情報不足なら通知候補にしない"
+
+  - id: "regime_change"
+    label: "社会情勢・テーマ認識を変更するとき"
+    requiredReports:
+      - "regime_scenarios_latest.md"
+      - "regime_hypothesis_alignment_latest.md"
+      - "stock_pro_committee_latest.md"
+    requiredViews:
+      - "theme_network_agent"
+      - "bear_case_agent"
+      - "risk_manager_agent"
+    rule: "テーマが正しくても、銘柄・タイミング・バリュエーションを分ける"
+
+consultationOutput:
+  requiredSections:
+    - "合意点"
+    - "対立点"
+    - "足りない情報"
+    - "上がらない理由"
+    - "下がる理由"
+    - "次に集める情報"
+    - "最終ラベル"
+  finalLabels:
+    - "調査候補"
+    - "保留"
+    - "証拠不足"
+    - "避ける"
+    - "追わない/保留"
+
+operatingPrinciples:
+  - "時間をかけるべき判断は、早く答えずにcommitteeを通す"
+  - "Pro相談は強気判断のためではなく、見落としを減らすために使う"
+  - "銘柄を増やすより、1銘柄あたりのIR・決算・総会・競合・反証の厚みを優先する"
+  - "良い会社、良い株価、良いタイミングを分ける"
+  - "外れたら責めずに、non-move reasonとして蓄積する"
