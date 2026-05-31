@@ -19,6 +19,10 @@ node --import "tsx/esm" "$DIR/src/persona-audit.ts" || true
 node --import "tsx/esm" "$DIR/src/valuation-range.ts" || true
 node --import "tsx/esm" "$DIR/src/primary-disclosure-subtypes.ts" || true
 node --import "tsx/esm" "$DIR/src/regime-scenario-report.ts" || true
+node --import "tsx/esm" "$DIR/src/company-onboarding-audit.ts" || true
+node --import "tsx/esm" "$DIR/src/stock-pro-quality-audit.ts" || true
+node --import "tsx/esm" "$DIR/src/stock-pro-improvement-roadmap.ts" || true
+node --import "tsx/esm" "$DIR/src/stock-pro-committee-report.ts" || true
 node --import "tsx/esm" "$DIR/src/stock-pro-agent-report.ts" || true
 node --import "tsx/esm" "$DIR/src/stock-pro-summary.ts" || true
 node --import "tsx/esm" "$DIR/src/company-hypothesis-report.ts" || true
