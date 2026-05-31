@@ -1,0 +1,106 @@
+# alpha-pon 株Pro品質ゲート
+# 目的: 株Proに見せても恥ずかしくない最低限の確認項目を固定する。
+# 買い推奨ではなく、調査品質・反証・保留判断のための基準。
+
+qualityGates:
+  - id: "official_ir_events"
+    label: "公式IRイベント"
+    severity: "critical"
+    mustHave:
+      - "決算日/直近決算"
+      - "株主総会/招集通知/議案"
+      - "配当/株主還元/資本政策"
+    proQuestion: "直近イベントを見ずに、なぜ今その銘柄を語れるのか？"
+    failAction: "証拠不足/保留"
+
+  - id: "primary_source"
+    label: "一次情報"
+    severity: "critical"
+    mustHave:
+      - "公式IRページ"
+      - "決算説明資料"
+      - "適時開示/TDnet相当"
+    proQuestion: "ニュースやSNSではなく、一次情報で裏取りしたか？"
+    failAction: "証拠不足"
+
+  - id: "financial_quality"
+    label: "財務品質"
+    severity: "high"
+    mustHave:
+      - "ROIC/ROE"
+      - "FCF"
+      - "営業利益率"
+      - "自己資本比率"
+    proQuestion: "テーマは良くても、利益と現金がついてきているか？"
+    failAction: "保留"
+
+  - id: "valuation_context"
+    label: "バリュエーション文脈"
+    severity: "high"
+    mustHave:
+      - "PER/PBR過去レンジ"
+      - "期待先行/織り込み済み判定"
+      - "同業比較"
+    proQuestion: "良い会社でも、すでに高すぎないか？"
+    failAction: "追わない/保留"
+
+  - id: "company_network"
+    label: "会社ネットワーク"
+    severity: "high"
+    mustHave:
+      - "競合"
+      - "親会社/子会社/関連会社"
+      - "better peer risk"
+    proQuestion: "テーマが正しくても、本命銘柄は別ではないか？"
+    failAction: "保留"
+
+  - id: "regime_alignment"
+    label: "社会情勢との接続"
+    severity: "medium"
+    mustHave:
+      - "現在情勢との一致"
+      - "逆風シナリオ"
+      - "一時テーマ/構造テーマの区別"
+    proQuestion: "今の時代に合っているか、それとも過去テーマを追っているだけか？"
+    failAction: "保留"
+
+  - id: "non_move_reason"
+    label: "上がらない理由"
+    severity: "critical"
+    mustHave:
+      - "already_priced_in"
+      - "expectation_too_high"
+      - "profit_not_connected"
+      - "better_peer_exists"
+    proQuestion: "良い会社なのに上がらない理由を先に出したか？"
+    failAction: "保留/追わない"
+
+  - id: "downside_case"
+    label: "下がる理由"
+    severity: "critical"
+    mustHave:
+      - "決算期待未達"
+      - "利益率悪化"
+      - "需給悪化"
+      - "高バリュエーション調整"
+    proQuestion: "間違った時に何で下がるかを説明できるか？"
+    failAction: "保留/避ける"
+
+minimumLabels:
+  covered:
+    requiredCriticalPass: true
+    requiredHighPass: true
+    description: "Pro品質の考察が可能"
+  provisional:
+    requiredCriticalPass: false
+    requiredHighPass: false
+    description: "仮説は出せるが、結論は保留"
+  blocked:
+    description: "一次情報・IRイベント・上がらない理由が欠ける。考察を急がない"
+
+languageRules:
+  - "買い推奨にしない"
+  - "断言より、条件と反証を先に出す"
+  - "知らないことを隠さない"
+  - "良い会社と良いタイミングを分ける"
+  - "強気材料より、上がらない理由と下がる理由を必ず先に確認する"
