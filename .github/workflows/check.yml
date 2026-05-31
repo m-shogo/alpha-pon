@@ -37,6 +37,7 @@ jobs:
       - run: node --import tsx/esm src/stock-pro-agent-report.ts
       - run: node --import tsx/esm src/company-hypothesis-report.ts
       - run: node --import tsx/esm src/company-network-report.ts
+      - run: node --import tsx/esm src/company-coverage-audit.ts
       - run: node --import tsx/esm src/regime-hypothesis-alignment.ts
       - run: node --import tsx/esm src/stale-hypothesis-report.ts
       - run: node --import tsx/esm src/strategic-advice-report.ts
@@ -65,6 +66,7 @@ jobs:
             reports/stock_pro_agent_latest.md
             reports/company_hypotheses_latest.md
             reports/company_network_latest.md
+            reports/company_coverage_audit_latest.md
             reports/regime_hypothesis_alignment_latest.md
             reports/stale_hypotheses_latest.md
             reports/strategic_advice_latest.md
