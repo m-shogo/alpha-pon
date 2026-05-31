@@ -34,6 +34,7 @@ jobs:
       - run: node --import tsx/esm src/valuation-range.ts
       - run: node --import tsx/esm src/primary-disclosure-subtypes.ts
       - run: node --import tsx/esm src/regime-scenario-report.ts
+      - run: node --import tsx/esm src/pro-knowledge-refresh-report.ts
       - run: node --import tsx/esm src/company-onboarding-audit.ts
       - run: node --import tsx/esm src/stock-pro-quality-audit.ts
       - run: node --import tsx/esm src/stock-pro-improvement-roadmap.ts
@@ -72,6 +73,7 @@ jobs:
             reports/primary_disclosure_subtypes_latest.json
             reports/regime_scenarios_latest.md
             reports/regime_scenarios_latest.json
+            reports/pro_knowledge_refresh_latest.md
             reports/company_onboarding_audit_latest.md
             reports/stock_pro_quality_audit_latest.md
             reports/stock_pro_improvement_roadmap_latest.md
