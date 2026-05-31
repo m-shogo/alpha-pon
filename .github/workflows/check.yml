@@ -37,6 +37,7 @@ jobs:
       - run: node --import tsx/esm src/company-onboarding-audit.ts
       - run: node --import tsx/esm src/stock-pro-quality-audit.ts
       - run: node --import tsx/esm src/stock-pro-improvement-roadmap.ts
+      - run: node --import tsx/esm src/stock-pro-committee-report.ts
       - run: node --import tsx/esm src/stock-pro-agent-report.ts
       - run: node --import tsx/esm src/stock-pro-summary.ts
       - run: node --import tsx/esm src/company-hypothesis-report.ts
@@ -74,6 +75,7 @@ jobs:
             reports/company_onboarding_audit_latest.md
             reports/stock_pro_quality_audit_latest.md
             reports/stock_pro_improvement_roadmap_latest.md
+            reports/stock_pro_committee_latest.md
             reports/stock_pro_agent_latest.md
             reports/stock_pro_summary_latest.md
             reports/company_hypotheses_latest.md
