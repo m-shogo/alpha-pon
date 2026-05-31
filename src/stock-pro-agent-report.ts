@@ -37,6 +37,23 @@ type NetworkCompany = {
 
 type CompanyNetworkConfig = { companies: Record<string, NetworkCompany> };
 
+type IrEvent = {
+  type: string;
+  label: string;
+  status?: string;
+  date?: string | null;
+  sourceUrl?: string | null;
+  sourceStatus?: string;
+  whyImportant?: string[];
+  agendaToCheck?: string[];
+  tradingCaution?: string[];
+  nextAction?: string[];
+};
+
+type CompanyIrEventsConfig = {
+  companies?: Record<string, { name: string; events?: IrEvent[] }>;
+};
+
 type AgentConfig = {
   agents: Array<{
     id: string;
@@ -91,6 +108,11 @@ function readYaml<T>(path: string): T {
   return load(readFileSync(path, "utf-8")) as T;
 }
 
+function readYamlOr<T>(path: string, fallback: T): T {
+  if (!existsSync(path)) return fallback;
+  return readYaml<T>(path);
+}
+
 function latestScoreFile(): string | null {
   if (!existsSync("reports")) return null;
   const files = require("fs").readdirSync("reports")
@@ -116,7 +138,15 @@ function fmtPct(value: number | null | undefined): string {
   return `${sign}${value.toFixed(1)}%`;
 }
 
-function evaluateCompany(company: CompanyHypothesis, score: ScoreEntry | undefined, network?: NetworkCompany): {
+function hasUnconfirmedCriticalIr(events: IrEvent[]): boolean {
+  return events.some(event => {
+    const importantType = ["annual_general_meeting", "earnings", "dividend", "capital_policy", "medium_term_plan"].includes(event.type);
+    const unconfirmed = event.sourceStatus === "official_check_required" || !event.sourceUrl || !event.date;
+    return importantType && unconfirmed;
+  });
+}
+
+function evaluateCompany(company: CompanyHypothesis, score: ScoreEntry | undefined, network?: NetworkCompany, irEvents: IrEvent[] = []): {
   good: string[];
   bad: string[];
   noMove: string[];
@@ -133,6 +163,22 @@ function evaluateCompany(company: CompanyHypothesis, score: ScoreEntry | undefin
   if (company.upsideHypothesis) good.push(company.upsideHypothesis);
   if (company.noMoveHypothesis) noMove.push(company.noMoveHypothesis);
   if (company.downsideHypothesis) bad.push(company.downsideHypothesis);
+
+  if (irEvents.length > 0) {
+    for (const event of irEvents) {
+      blindSpots.push(`IRイベント確認: ${event.label} (${event.status ?? "unknown"})`);
+      for (const item of event.agendaToCheck ?? []) blindSpots.push(`IR議案/論点確認: ${item}`);
+      for (const caution of event.tradingCaution ?? []) doNotChase.push(`IRイベント注意: ${caution}`);
+      if (event.sourceStatus === "official_check_required" || !event.sourceUrl || !event.date) {
+        noMove.push(`${event.label} の公式日付/招集通知/議案未確認。材料期待だけでは上がらない可能性`);
+        doNotChase.push(`${event.label} の公式IR確認が終わるまで追わない/保留`);
+      }
+    }
+  } else {
+    blindSpots.push("IRイベントDB未接続。総会・決算・配当・中計・資本政策の確認が弱い");
+    noMove.push("直近IRイベント未確認のため、材料期待と実際の議案/日程がズレる可能性");
+    doNotChase.push("IRイベント未確認。総会/決算/配当/資本政策を確認するまでラベルを上げない");
+  }
 
   if (network) {
     for (const risk of network.betterPeerRisk ?? []) {
@@ -195,6 +241,7 @@ function evaluateCompany(company: CompanyHypothesis, score: ScoreEntry | undefin
 
   let finalLabel = "保留";
   if (bad.some(item => item.includes("block") || item.includes("希薄化") || item.includes("赤字") || item.includes("不祥事"))) finalLabel = "避ける";
+  else if (hasUnconfirmedCriticalIr(irEvents)) finalLabel = "証拠不足";
   else if (doNotChase.length >= 2 || !network || (network.betterPeerRisk ?? []).length >= 2) finalLabel = "追わない/保留";
   else if (blindSpots.length >= 3) finalLabel = "証拠不足";
   else if (good.length >= 3 && bad.length <= 3) finalLabel = "調査候補";
@@ -206,6 +253,7 @@ function main() {
   const date = todayJst();
   const hypotheses = readYaml<CompanyHypothesesConfig>("config/company-hypotheses.yml");
   const network = readYaml<CompanyNetworkConfig>("config/company-network.yml");
+  const irEvents = readYamlOr<CompanyIrEventsConfig>("config/company-ir-events.yml", { companies: {} });
   const agents = readYaml<AgentConfig>("config/stock-pro-agents.yml");
   const regime = readYaml<CurrentRegime>("config/current-regime.yml");
   const scores = readScores();
@@ -217,7 +265,7 @@ function main() {
   lines.push("");
   lines.push(`生成日: ${date}`);
   lines.push("");
-  lines.push("> バフェット型・成長株型・イベント型・バリュエーション型・反証型・テーマネットワーク型・リスク管理型の視点で、具体銘柄仮説を毎朝考察します。買い推奨ではありません。");
+  lines.push("> バフェット型・成長株型・イベント型・バリュエーション型・反証型・テーマネットワーク型・IRイベント型・リスク管理型の視点で、具体銘柄仮説を毎朝考察します。買い推奨ではありません。");
   lines.push("");
   lines.push(`- current regime asOf: ${regime.asOf}`);
   lines.push(`- regime summary: ${regime.summary}`);
@@ -236,7 +284,8 @@ function main() {
     for (const company of category.companies ?? []) {
       const score = scoreByCode.get(company.code);
       const networkCompany = network.companies?.[company.code];
-      const result = evaluateCompany(company, score, networkCompany);
+      const companyIrEvents = irEvents.companies?.[company.code]?.events ?? [];
+      const result = evaluateCompany(company, score, networkCompany, companyIrEvents);
       lines.push(`### ${company.code} ${company.name}`);
       lines.push(`- role: ${company.role}`);
       lines.push(`- status: ${company.status ?? "watch"}`);
@@ -256,8 +305,18 @@ function main() {
       result.doNotChase.slice(0, 8).forEach(item => lines.push(`  - ${item}`));
       if (result.doNotChase.length === 0) lines.push("  - N/A");
       lines.push("- 見落とし・次に確認:");
-      result.blindSpots.slice(0, 10).forEach(item => lines.push(`  - ${item}`));
+      result.blindSpots.slice(0, 12).forEach(item => lines.push(`  - ${item}`));
       if (result.blindSpots.length === 0) lines.push("  - N/A");
+      lines.push("- IRイベント:");
+      if (companyIrEvents.length === 0) {
+        lines.push("  - missing: 総会・決算・配当・中計・資本政策のイベントDB未登録。ラベルを上げない");
+      } else {
+        for (const event of companyIrEvents) {
+          lines.push(`  - ${event.type} / ${event.label}: status=${event.status ?? "unknown"} date=${event.date ?? "official_check_required"} source=${event.sourceStatus ?? "unknown"}`);
+          for (const agenda of event.agendaToCheck ?? []) lines.push(`    - agenda: ${agenda}`);
+          for (const caution of event.tradingCaution ?? []) lines.push(`    - caution: ${caution}`);
+        }
+      }
       if (networkCompany) {
         lines.push("- company network:");
         for (const peer of networkCompany.peers ?? []) lines.push(`  - peer ${peer.code} ${peer.name}: ${peer.relation}`);
@@ -285,6 +344,8 @@ function main() {
   lines.push("- 現在情勢DBと合わないテーマは、無理に追わず保留する");
   lines.push("- better peer risk が強い銘柄は、単独で追わない/保留を優先する");
   lines.push("- company network が missing の銘柄は、関連会社・競合確認が終わるまで証拠不足または追わない/保留に寄せる");
+  lines.push("- 総会・決算・配当・中計・資本政策などのIRイベントが未確認なら、良い会社でもラベルを上げない");
+  lines.push("- 招集通知・議案・配当・役員/報酬・資本政策は、公式IRで確認するまで証拠不足扱いにする");
   lines.push("");
   lines.push("---");
   lines.push(`*alpha-pon stock pro agent report | ${date} | ※買い推奨ではありません*`);
