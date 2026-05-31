@@ -54,6 +54,21 @@ function containsWarning(text: string, patterns: string[]): boolean {
   return patterns.some(pattern => text.includes(pattern));
 }
 
+function extractSection(text: string, title: string, maxLines = 12): string[] {
+  if (!text) return [];
+  const lines = text.split("\n");
+  const start = lines.findIndex(line => line.trim() === `## ${title}`);
+  if (start < 0) return [];
+  const picked: string[] = [];
+  for (const line of lines.slice(start + 1)) {
+    if (line.startsWith("## ")) break;
+    const trimmed = line.trim();
+    if (trimmed) picked.push(trimmed);
+    if (picked.length >= maxLines) break;
+  }
+  return picked;
+}
+
 function main() {
   const date = todayJst();
   const regime = readYaml<CurrentRegime>("config/current-regime.yml");
@@ -63,6 +78,7 @@ function main() {
   const staleReport = readText("reports/stale_hypotheses_latest.md");
   const networkReport = readText("reports/company_network_latest.md");
   const stockProReport = readText("reports/stock_pro_agent_latest.md");
+  const stockProSummary = readText("reports/stock_pro_summary_latest.md");
   const coverageReport = readText("reports/company_coverage_audit_latest.md");
   const alignmentReport = readText("reports/regime_hypothesis_alignment_latest.md");
 
@@ -82,8 +98,11 @@ function main() {
   }
   const regimeTop = [...regimeCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
   const auditWarnings: string[] = [];
+  if (containsWarning(stockProSummary, ["安全側ラベルが多い", "company-network未登録", "better peer risk", "一次情報不足", "過熱/織り込み済み"])) {
+    auditWarnings.push("stock pro summary に安全側警告があります。今日は調査候補を増やすより、追わない/保留理由の確認を優先してください。");
+  }
   if (containsWarning(coverageReport, ["hypothesis missing network: 0\n", "- none"]) === false && coverageReport) {
-    auditWarnings.push("company coverage に未接続があります。仮説DBとネットワークDBの片手落ちを確認してください。");
+    auditWarnings.push("company coverage に未接続があります。仮説DBとネットワークDBの片手落ちを確認してください。 注意: 自動判定が粗い場合があります。");
   }
   if (containsWarning(alignmentReport, ["current regime 外", "監視対象外", "active but thin"])) {
     auditWarnings.push("current regime と銘柄仮説にズレがあります。無理に追わず、保留/追わない判断を優先してください。");
@@ -91,6 +110,9 @@ function main() {
   if (containsWarning(staleReport, ["review_repeated_miss", "retire_or_rewrite", "missing_review_date", "review_needed"])) {
     auditWarnings.push("stale / retired 候補があります。古い仮説や繰り返し外れた仮説を放置しないでください。");
   }
+
+  const stockSummaryJudgment = extractSection(stockProSummary, "summary judgment", 8);
+  const stockRiskCounters = extractSection(stockProSummary, "risk counters", 8);
 
   const lines: string[] = [];
   lines.push("# alpha-pon strategic advice report");
@@ -113,6 +135,20 @@ function main() {
   lines.push("");
   if (auditWarnings.length === 0) lines.push("- 大きな未接続/ズレ/退役候補の警告は目立ちません。");
   for (const warning of auditWarnings) lines.push(`- ${warning}`);
+  lines.push("");
+
+  lines.push("## stock pro summary からの朝一判断");
+  lines.push("");
+  if (stockSummaryJudgment.length === 0 && stockRiskCounters.length === 0) {
+    lines.push("- stock_pro_summary_latest.md が未生成または空です。stock-pro-summary を確認してください。");
+  } else {
+    for (const item of stockSummaryJudgment) lines.push(item);
+    if (stockRiskCounters.length > 0) {
+      lines.push("");
+      lines.push("### risk counters");
+      for (const item of stockRiskCounters) lines.push(item);
+    }
+  }
   lines.push("");
 
   lines.push("## AIからの先回り指摘");
@@ -145,6 +181,7 @@ function main() {
   lines.push("## レポート接続チェック");
   lines.push("");
   lines.push(`- stock_pro_agent_latest.md: ${stockProReport ? "ok" : "missing"}`);
+  lines.push(`- stock_pro_summary_latest.md: ${stockProSummary ? "ok" : "missing"}`);
   lines.push(`- company_network_latest.md: ${networkReport ? "ok" : "missing"}`);
   lines.push(`- company_coverage_audit_latest.md: ${coverageReport ? "ok" : "missing"}`);
   lines.push(`- regime_hypothesis_alignment_latest.md: ${alignmentReport ? "ok" : "missing"}`);
@@ -153,6 +190,7 @@ function main() {
 
   lines.push("## 次に人間が見るべきこと");
   lines.push("");
+  lines.push("- stock pro summary で、追わない/保留・証拠不足・避けるが多すぎないか");
   lines.push("- stock pro report と company network report が同じ銘柄で矛盾していないか");
   lines.push("- company coverage audit で未接続銘柄が残っていないか");
   lines.push("- regime alignment で current regime 外の銘柄を追いすぎていないか");
