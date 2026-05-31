@@ -42,6 +42,7 @@ jobs:
       - run: node --import tsx/esm src/regime-hypothesis-alignment.ts
       - run: node --import tsx/esm src/stale-hypothesis-report.ts
       - run: node --import tsx/esm src/pipeline-health-summary.ts
+      - run: node --import tsx/esm src/pipeline-health-alert.ts --dry-run
       - run: node --import tsx/esm src/strategic-advice-report.ts
       - run: node --import tsx/esm src/regime-history.ts
       - run: node --import tsx/esm src/source-health-history.ts
