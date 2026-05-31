@@ -90,6 +90,7 @@ function main() {
   const qualityReport = readText("reports/stock_pro_quality_audit_latest.md");
   const committeeReport = readText("reports/stock_pro_committee_latest.md");
   const improvementRoadmap = readText("reports/stock_pro_improvement_roadmap_latest.md");
+  const proKnowledgeRefresh = readText("reports/pro_knowledge_refresh_latest.md");
 
   const activeRegimeIds = regime?.activeRegimes?.map(item => item.id) ?? [];
   const nonMoveReasonCounts = topCounts(nonMove, "nonMoveReasons").slice(0, 8);
@@ -111,10 +112,15 @@ function main() {
   const committeeEvidenceShortage = countMatches(committeeReport, /committee decision: \*\*証拠不足\*\*/g);
   const committeeHold = countMatches(committeeReport, /committee decision: \*\*保留\*\*/g);
   const onboardingThin = countMatches(onboardingReport, /unknown_or_thin/g);
+  const knowledgeS = countMatches(proKnowledgeRefresh, /\| S \|/g);
+  const knowledgeA = countMatches(proKnowledgeRefresh, /\| A \|/g);
 
   const auditWarnings: string[] = [];
   if (containsWarning(pipelineHealthSummary, ["report confidence: low", "report confidence: caution", "missing_or_invalid", "missing_or_empty"])) {
     auditWarnings.push("pipeline health に注意があります。データ取得や生成が弱い日は、銘柄考察よりsource/pipeline修復を優先してください。");
+  }
+  if (knowledgeS > 0) {
+    auditWarnings.push("Pro知識ブラッシュアップでS優先の更新領域があります。政治・戦争・AI・宇宙/Starlink・金利などの前提が古くないか確認してください。");
   }
   if (qualityBlocked > 0 || committeeEvidenceShortage > 0 || onboardingThin > 0) {
     auditWarnings.push("Pro品質/Pro会議で証拠不足があります。IR・決算・総会・財務・バリュエーション・競合を補完するまで強い判断を避けてください。");
@@ -138,13 +144,14 @@ function main() {
   const pipelineCriticalSignals = extractSection(pipelineHealthSummary, "critical signals", 8);
   const improvementPriority = extractSection(improvementRoadmap, "priority improvements", 18);
   const improvementNextData = extractSection(improvementRoadmap, "next data to collect", 8);
+  const knowledgeRefreshQueue = extractSection(proKnowledgeRefresh, "refresh queue", 18);
 
   const lines: string[] = [];
   lines.push("# alpha-pon strategic advice report");
   lines.push("");
   lines.push(`date: ${date}`);
   lines.push("");
-  lines.push("> 目的: 世界情勢・歴史・外れ方・DBの古さ・Pro会議を踏まえ、AI側から先回りして穴と改善順を指摘する。買い推奨ではありません。");
+  lines.push("> 目的: 世界情勢・歴史・外れ方・DBの古さ・Pro会議・Pro知識更新を踏まえ、AI側から先回りして穴と改善順を指摘する。買い推奨ではありません。");
   lines.push("");
 
   lines.push("## 今日の前提");
@@ -159,12 +166,28 @@ function main() {
   lines.push(`- committee 証拠不足: ${committeeEvidenceShortage}`);
   lines.push(`- committee 保留: ${committeeHold}`);
   lines.push(`- onboarding unknown_or_thin: ${onboardingThin}`);
+  lines.push(`- pro knowledge S priority: ${knowledgeS}`);
+  lines.push(`- pro knowledge A priority: ${knowledgeA}`);
   lines.push("");
 
   lines.push("## 今日まず見る穴");
   lines.push("");
-  if (auditWarnings.length === 0) lines.push("- 大きな未接続/ズレ/退役候補/Pro会議上の証拠不足は目立ちません。");
+  if (auditWarnings.length === 0) lines.push("- 大きな未接続/ズレ/退役候補/Pro会議上の証拠不足/知識更新警告は目立ちません。");
   for (const warning of auditWarnings) lines.push(`- ${warning}`);
+  lines.push("");
+
+  lines.push("## Pro知識ブラッシュアップからの更新キュー");
+  lines.push("");
+  if (!proKnowledgeRefresh) {
+    lines.push("- pro_knowledge_refresh_latest.md が未生成です。Pro知識ブラッシュアップを確認してください。");
+  } else {
+    lines.push(`- S priority domains: ${knowledgeS}`);
+    lines.push(`- A priority domains: ${knowledgeA}`);
+    lines.push("");
+    lines.push("### refresh queue");
+    if (knowledgeRefreshQueue.length === 0) lines.push("- N/A");
+    for (const item of knowledgeRefreshQueue) lines.push(item);
+  }
   lines.push("");
 
   lines.push("## pipeline health からの信頼度判断");
@@ -219,9 +242,9 @@ function main() {
   lines.push("## AIからの先回り指摘");
   lines.push("");
   lines.push("1. 大事な判断では必ずPro会議を通す。新規銘柄・格上げ・通知候補・重要IR前後は単独判断しない。");
-  lines.push("2. テーマが強い時ほど、銘柄化を急がない。歴史的に、強いテーマは過熱と織り込み済みを生みやすい。");
-  lines.push("3. 決算・総会・配当・資本政策は、社会情勢やテーマより先に見る。直近イベントを落とすと考察精度が崩れる。");
-  lines.push("4. 具体銘柄を出すより先に、追わない理由・上がらない理由・下がる理由を出す。");
+  lines.push("2. Pro達の知識も固定しない。政治・戦争・AI・宇宙/Starlink・金利・気候・食糧の変化で前提を更新する。");
+  lines.push("3. テーマが強い時ほど、銘柄化を急がない。歴史的に、強いテーマは過熱と織り込み済みを生みやすい。");
+  lines.push("4. 決算・総会・配当・資本政策は、社会情勢やテーマより先に見る。直近イベントを落とすと考察精度が崩れる。");
   lines.push("5. DBが増えたら精度が上がるとは限らない。古い仮説・使われないDB・重複DBは退役候補にする。");
   lines.push("");
 
@@ -245,6 +268,7 @@ function main() {
 
   lines.push("## レポート接続チェック");
   lines.push("");
+  lines.push(`- pro_knowledge_refresh_latest.md: ${proKnowledgeRefresh ? "ok" : "missing"}`);
   lines.push(`- pipeline_health_summary_latest.md: ${pipelineHealthSummary ? "ok" : "missing"}`);
   lines.push(`- company_onboarding_audit_latest.md: ${onboardingReport ? "ok" : "missing"}`);
   lines.push(`- stock_pro_quality_audit_latest.md: ${qualityReport ? "ok" : "missing"}`);
@@ -260,6 +284,7 @@ function main() {
 
   lines.push("## 次に人間が見るべきこと");
   lines.push("");
+  lines.push("- Pro知識ブラッシュアップでS/A優先の領域がある場合、regime/agent/銘柄仮説の前提を見直す");
   lines.push("- Pro会議で証拠不足/保留が多い銘柄は、結論ではなく不足情報の収集を優先する");
   lines.push("- pipeline confidence が low/caution なら、銘柄考察よりデータ取得・source healthの修復を優先する");
   lines.push("- 決算・総会・配当・資本政策など重要IRイベントが近い銘柄を先に確認する");
