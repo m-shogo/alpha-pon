@@ -22,6 +22,7 @@ node --import "tsx/esm" "$DIR/src/regime-scenario-report.ts" || true
 node --import "tsx/esm" "$DIR/src/stock-pro-agent-report.ts" || true
 node --import "tsx/esm" "$DIR/src/company-hypothesis-report.ts" || true
 node --import "tsx/esm" "$DIR/src/company-network-report.ts" || true
+node --import "tsx/esm" "$DIR/src/company-coverage-audit.ts" || true
 node --import "tsx/esm" "$DIR/src/regime-hypothesis-alignment.ts" || true
 node --import "tsx/esm" "$DIR/src/stale-hypothesis-report.ts" || true
 node --import "tsx/esm" "$DIR/src/strategic-advice-report.ts" || true
