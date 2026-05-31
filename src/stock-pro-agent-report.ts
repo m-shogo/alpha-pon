@@ -26,6 +26,17 @@ type CompanyHypothesesConfig = {
   }>;
 };
 
+type NetworkCompany = {
+  name: string;
+  categoryHints?: string[];
+  peers?: Array<{ code: string; name: string; relation: string }>;
+  customerOrDemandDrivers?: string[];
+  betterPeerRisk?: string[];
+  evidenceChecks?: string[];
+};
+
+type CompanyNetworkConfig = { companies: Record<string, NetworkCompany> };
+
 type AgentConfig = {
   agents: Array<{
     id: string;
@@ -105,7 +116,7 @@ function fmtPct(value: number | null | undefined): string {
   return `${sign}${value.toFixed(1)}%`;
 }
 
-function evaluateCompany(company: CompanyHypothesis, score: ScoreEntry | undefined): {
+function evaluateCompany(company: CompanyHypothesis, score: ScoreEntry | undefined, network?: NetworkCompany): {
   good: string[];
   bad: string[];
   noMove: string[];
@@ -120,6 +131,21 @@ function evaluateCompany(company: CompanyHypothesis, score: ScoreEntry | undefin
   if (company.upsideHypothesis) good.push(company.upsideHypothesis);
   if (company.noMoveHypothesis) noMove.push(company.noMoveHypothesis);
   if (company.downsideHypothesis) bad.push(company.downsideHypothesis);
+
+  if (network) {
+    for (const risk of network.betterPeerRisk ?? []) {
+      noMove.push(`関連会社/競合の方が本命かもしれない: ${risk}`);
+    }
+    for (const driver of network.customerOrDemandDrivers ?? []) {
+      blindSpots.push(`需要ドライバー確認: ${driver}`);
+    }
+    for (const evidence of network.evidenceChecks ?? []) {
+      blindSpots.push(`ネットワークDB確認: ${evidence}`);
+    }
+  } else {
+    blindSpots.push("company-network.yml 未接続。関連会社・競合・better peer risk の確認が弱い");
+    noMove.push("テーマは正しいが、銘柄選定の横比較が不足している可能性");
+  }
 
   const fq = score?.financialQuality;
   const mc = score?.marketContext;
@@ -157,6 +183,7 @@ function evaluateCompany(company: CompanyHypothesis, score: ScoreEntry | undefin
 
   let finalLabel = "保留";
   if (bad.some(item => item.includes("block") || item.includes("希薄化") || item.includes("赤字") || item.includes("不祥事"))) finalLabel = "避ける";
+  else if (!network || (network.betterPeerRisk ?? []).length >= 2) finalLabel = "追わない/保留";
   else if (blindSpots.length >= 3) finalLabel = "証拠不足";
   else if (good.length >= 3 && bad.length <= 3) finalLabel = "調査候補";
 
@@ -166,6 +193,7 @@ function evaluateCompany(company: CompanyHypothesis, score: ScoreEntry | undefin
 function main() {
   const date = todayJst();
   const hypotheses = readYaml<CompanyHypothesesConfig>("config/company-hypotheses.yml");
+  const network = readYaml<CompanyNetworkConfig>("config/company-network.yml");
   const agents = readYaml<AgentConfig>("config/stock-pro-agents.yml");
   const regime = readYaml<CurrentRegime>("config/current-regime.yml");
   const scores = readScores();
@@ -190,11 +218,13 @@ function main() {
     lines.push("");
     lines.push(`- thesis: ${category.thesis}`);
     if (activeCategories.has(categoryId)) lines.push("- 現在情勢DBで監視対象になっています。");
+    else lines.push("- 現在情勢DBでは監視対象外です。強い一次情報がない限り、保留/追わないを優先します。");
     lines.push("");
 
     for (const company of category.companies ?? []) {
       const score = scoreByCode.get(company.code);
-      const result = evaluateCompany(company, score);
+      const networkCompany = network.companies?.[company.code];
+      const result = evaluateCompany(company, score, networkCompany);
       lines.push(`### ${company.code} ${company.name}`);
       lines.push(`- role: ${company.role}`);
       lines.push(`- status: ${company.status ?? "watch"}`);
@@ -212,6 +242,11 @@ function main() {
       if (result.noMove.length === 0) lines.push("  - N/A");
       lines.push("- 見落とし・次に確認:");
       result.blindSpots.slice(0, 10).forEach(item => lines.push(`  - ${item}`));
+      if (networkCompany) {
+        lines.push("- company network:");
+        for (const peer of networkCompany.peers ?? []) lines.push(`  - peer ${peer.code} ${peer.name}: ${peer.relation}`);
+        for (const risk of networkCompany.betterPeerRisk ?? []) lines.push(`  - better peer risk: ${risk}`);
+      }
       if ((company.relatedCompanies ?? []).length > 0) {
         lines.push("- 親会社・関連会社・競合候補:");
         company.relatedCompanies!.forEach(item => lines.push(`  - ${item}`));
@@ -226,6 +261,7 @@ function main() {
   lines.push("- 具体銘柄が不要な局面では、無理に銘柄化せずテーマ監視へ切り替える");
   lines.push("- 上がらなかったら non-move reason を必ず1つ以上候補に残す");
   lines.push("- 現在情勢DBと合わないテーマは、無理に追わず保留する");
+  lines.push("- better peer risk が強い銘柄は、単独で追わない/保留を優先する");
   lines.push("");
   lines.push("---");
   lines.push(`*alpha-pon stock pro agent report | ${date} | ※買い推奨ではありません*`);
