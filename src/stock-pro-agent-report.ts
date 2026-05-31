@@ -121,12 +121,14 @@ function evaluateCompany(company: CompanyHypothesis, score: ScoreEntry | undefin
   bad: string[];
   noMove: string[];
   blindSpots: string[];
+  doNotChase: string[];
   finalLabel: string;
 } {
   const good: string[] = [];
   const bad: string[] = [];
   const noMove: string[] = [];
   const blindSpots: string[] = [];
+  const doNotChase: string[] = [];
 
   if (company.upsideHypothesis) good.push(company.upsideHypothesis);
   if (company.noMoveHypothesis) noMove.push(company.noMoveHypothesis);
@@ -135,6 +137,7 @@ function evaluateCompany(company: CompanyHypothesis, score: ScoreEntry | undefin
   if (network) {
     for (const risk of network.betterPeerRisk ?? []) {
       noMove.push(`関連会社/競合の方が本命かもしれない: ${risk}`);
+      doNotChase.push(`better peer risk: ${risk}`);
     }
     for (const driver of network.customerOrDemandDrivers ?? []) {
       blindSpots.push(`需要ドライバー確認: ${driver}`);
@@ -145,6 +148,7 @@ function evaluateCompany(company: CompanyHypothesis, score: ScoreEntry | undefin
   } else {
     blindSpots.push("company-network.yml 未接続。関連会社・競合・better peer risk の確認が弱い");
     noMove.push("テーマは正しいが、銘柄選定の横比較が不足している可能性");
+    doNotChase.push("company-network.yml 未接続。横比較がない銘柄を単独で追わない");
   }
 
   const fq = score?.financialQuality;
@@ -161,8 +165,14 @@ function evaluateCompany(company: CompanyHypothesis, score: ScoreEntry | undefin
   }
 
   if (mc) {
-    if ((mc.return60d ?? 0) >= 30) bad.push(`60日上昇率 ${fmtPct(mc.return60d)} で過熱・織り込み済みに注意`);
-    if ((mc.relativeToTopix20d ?? 0) >= 15) bad.push(`TOPIX比20日 ${fmtPct(mc.relativeToTopix20d)} で期待先行の可能性`);
+    if ((mc.return60d ?? 0) >= 30) {
+      bad.push(`60日上昇率 ${fmtPct(mc.return60d)} で過熱・織り込み済みに注意`);
+      doNotChase.push("短期で大きく上昇済み。テーマが正しくても追わない/保留を優先");
+    }
+    if ((mc.relativeToTopix20d ?? 0) >= 15) {
+      bad.push(`TOPIX比20日 ${fmtPct(mc.relativeToTopix20d)} で期待先行の可能性`);
+      doNotChase.push("TOPIX比で期待先行。織り込み済みを疑う");
+    }
     if ((mc.return60d ?? 0) <= -15 && ((fq?.qualityScore ?? 0) >= 10 || (fq?.moatScore ?? 0) >= 7)) good.push("品質がある銘柄の押し目候補かもしれない。ただし悪材料確認が必要");
   } else {
     blindSpots.push("marketContext が未取得。過熱/押し目/地合い比較が弱い");
@@ -171,8 +181,10 @@ function evaluateCompany(company: CompanyHypothesis, score: ScoreEntry | undefin
   if (!primary || primary.decision === "missing") {
     blindSpots.push("一次情報確認が不足。ニュースやテーマだけで判断しない");
     noMove.push("一次情報が弱く、投資家が本気で評価しない可能性");
+    doNotChase.push("一次情報不足。ニュースやテーマだけで追わない");
   } else if (primary.decision === "block") {
     bad.push("一次情報レビューがblock。好材料より悪材料を優先確認");
+    doNotChase.push("一次情報レビューがblock。避ける/保留を優先");
   } else if (primary.decision === "confirmed") {
     good.push("一次情報で一定の裏取りがある可能性");
   }
@@ -183,11 +195,11 @@ function evaluateCompany(company: CompanyHypothesis, score: ScoreEntry | undefin
 
   let finalLabel = "保留";
   if (bad.some(item => item.includes("block") || item.includes("希薄化") || item.includes("赤字") || item.includes("不祥事"))) finalLabel = "避ける";
-  else if (!network || (network.betterPeerRisk ?? []).length >= 2) finalLabel = "追わない/保留";
+  else if (doNotChase.length >= 2 || !network || (network.betterPeerRisk ?? []).length >= 2) finalLabel = "追わない/保留";
   else if (blindSpots.length >= 3) finalLabel = "証拠不足";
   else if (good.length >= 3 && bad.length <= 3) finalLabel = "調査候補";
 
-  return { good, bad, noMove, blindSpots, finalLabel };
+  return { good, bad, noMove, blindSpots, doNotChase, finalLabel };
 }
 
 function main() {
@@ -240,12 +252,22 @@ function main() {
       lines.push("- 上がらない理由候補:");
       result.noMove.slice(0, 10).forEach(item => lines.push(`  - ${item}`));
       if (result.noMove.length === 0) lines.push("  - N/A");
+      lines.push("- 追わない/保留理由:");
+      result.doNotChase.slice(0, 8).forEach(item => lines.push(`  - ${item}`));
+      if (result.doNotChase.length === 0) lines.push("  - N/A");
       lines.push("- 見落とし・次に確認:");
       result.blindSpots.slice(0, 10).forEach(item => lines.push(`  - ${item}`));
+      if (result.blindSpots.length === 0) lines.push("  - N/A");
       if (networkCompany) {
         lines.push("- company network:");
         for (const peer of networkCompany.peers ?? []) lines.push(`  - peer ${peer.code} ${peer.name}: ${peer.relation}`);
+        for (const driver of networkCompany.customerOrDemandDrivers ?? []) lines.push(`  - demand driver: ${driver}`);
         for (const risk of networkCompany.betterPeerRisk ?? []) lines.push(`  - better peer risk: ${risk}`);
+        for (const evidence of networkCompany.evidenceChecks ?? []) lines.push(`  - evidence check: ${evidence}`);
+        if ((networkCompany.peers ?? []).length === 0 && (networkCompany.customerOrDemandDrivers ?? []).length === 0 && (networkCompany.betterPeerRisk ?? []).length === 0 && (networkCompany.evidenceChecks ?? []).length === 0) lines.push("  - N/A");
+      } else {
+        lines.push("- company network:");
+        lines.push("  - missing: company-network.yml に未登録。単独考察は弱いので保留/追わないを優先");
       }
       if ((company.relatedCompanies ?? []).length > 0) {
         lines.push("- 親会社・関連会社・競合候補:");
@@ -262,6 +284,7 @@ function main() {
   lines.push("- 上がらなかったら non-move reason を必ず1つ以上候補に残す");
   lines.push("- 現在情勢DBと合わないテーマは、無理に追わず保留する");
   lines.push("- better peer risk が強い銘柄は、単独で追わない/保留を優先する");
+  lines.push("- company network が missing の銘柄は、関連会社・競合確認が終わるまで証拠不足または追わない/保留に寄せる");
   lines.push("");
   lines.push("---");
   lines.push(`*alpha-pon stock pro agent report | ${date} | ※買い推奨ではありません*`);
