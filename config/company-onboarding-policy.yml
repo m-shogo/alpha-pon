@@ -1,0 +1,106 @@
+# alpha-pon 銘柄オンボーディング方針
+# 目的: 知らない銘柄を聞かれた時に、薄い知識で賢そうに断言しないための安全設計。
+# 買い推奨ではなく、調査・検証・反証のための入力ゲート。
+
+coverageLevels:
+  unknown:
+    label: "未調査"
+    allowedAdvice:
+      - "一般論"
+      - "調査手順"
+      - "確認すべき一次情報"
+    prohibitedAdvice:
+      - "調査候補への格上げ"
+      - "強い上昇/下落シナリオの断言"
+      - "他銘柄より優位という断言"
+    requiredToPromote:
+      - "ticker/name confirmation"
+      - "market/listing confirmation"
+      - "latest IR page / TDnet / official source"
+      - "next earnings date or recent earnings date"
+      - "annual general meeting / shareholder meeting calendar"
+      - "dividend / shareholder return policy"
+      - "basic business segments"
+      - "peer candidates"
+
+  provisional:
+    label: "仮登録"
+    allowedAdvice:
+      - "仮説"
+      - "上がらない理由"
+      - "下がる理由"
+      - "見るべき証拠"
+      - "追わない/保留理由"
+    prohibitedAdvice:
+      - "調査候補への強い格上げ"
+      - "バリュエーション妥当性の断言"
+    requiredToPromote:
+      - "official IR event calendar checked"
+      - "earnings/materials checked"
+      - "AGM / proxy / agenda checked or marked not applicable"
+      - "financial quality checked"
+      - "valuation range checked"
+      - "company network checked"
+      - "current regime alignment checked"
+
+  covered:
+    label: "考察可能"
+    allowedAdvice:
+      - "調査候補/保留/証拠不足/避ける/追わない の分類"
+      - "良いところ/悪いところ/上がらない理由/下がる理由"
+      - "競合比較"
+      - "次アクション"
+    requiredMaintenance:
+      - "IRイベントが近づいたら更新"
+      - "決算後に仮説を更新"
+      - "外れたらnon-move reasonに記録"
+      - "120日レビューなしならstale候補"
+
+mandatoryChecks:
+  - id: "ticker_identity"
+    label: "銘柄コード・社名・上場市場確認"
+    why: "別会社/旧社名/上場廃止/親子上場の取り違えを防ぐ"
+  - id: "official_ir"
+    label: "公式IRページ"
+    why: "ニュースではなく一次情報に戻るため"
+  - id: "earnings_calendar"
+    label: "決算日・直近決算資料"
+    why: "決算前後は期待/失望/材料出尽くしが起きやすい"
+  - id: "shareholder_meeting"
+    label: "株主総会・招集通知・議案"
+    why: "総会/議案/配当/役員/資本政策を落とすと個別株考察が弱くなる"
+  - id: "dividend_capital_policy"
+    label: "配当・自社株買い・株主還元"
+    why: "株価反応に直結しやすい"
+  - id: "segments"
+    label: "事業セグメント"
+    why: "テーマが全社利益に効くか判断するため"
+  - id: "financial_quality"
+    label: "ROIC/FCF/利益率/自己資本比率"
+    why: "良いテーマでも財務が弱いと危険"
+  - id: "valuation_range"
+    label: "PER/PBR/EV等の過去レンジ"
+    why: "良い会社でも高すぎると上がらない"
+  - id: "company_network"
+    label: "競合・親会社・子会社・関連会社"
+    why: "テーマは正しいが本命銘柄が別、を防ぐ"
+  - id: "regime_alignment"
+    label: "社会情勢との接続"
+    why: "今見るべきテーマか判断するため"
+  - id: "no_move_reasons"
+    label: "上がらない理由"
+    why: "良い会社なのに上がらない、を最初から考えるため"
+
+responseRules:
+  unknownCompany:
+    - "まず coverage=unknown として扱う"
+    - "知らないことを隠さない"
+    - "一般論より、確認すべき一次情報を具体的に出す"
+    - "総会/決算/IRイベントが未確認なら、結論は保留"
+  existingCompany:
+    - "DBのcoverageと不足項目を先に確認する"
+    - "IRイベントが近い/未確認なら最優先にする"
+    - "過去仮説と外れ理由を参照する"
+  sampleCompany:
+    - "サンプルでも本番と同じ必須チェックを通す"
+    - "ヒントが少ない場合は、足りない項目を明示して補完する"
