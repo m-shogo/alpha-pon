@@ -69,6 +69,10 @@ function extractSection(text: string, title: string, maxLines = 12): string[] {
   return picked;
 }
 
+function countMatches(text: string, pattern: RegExp): number {
+  return [...text.matchAll(pattern)].length;
+}
+
 function main() {
   const date = todayJst();
   const regime = readYaml<CurrentRegime>("config/current-regime.yml");
@@ -82,6 +86,10 @@ function main() {
   const pipelineHealthSummary = readText("reports/pipeline_health_summary_latest.md");
   const coverageReport = readText("reports/company_coverage_audit_latest.md");
   const alignmentReport = readText("reports/regime_hypothesis_alignment_latest.md");
+  const onboardingReport = readText("reports/company_onboarding_audit_latest.md");
+  const qualityReport = readText("reports/stock_pro_quality_audit_latest.md");
+  const committeeReport = readText("reports/stock_pro_committee_latest.md");
+  const improvementRoadmap = readText("reports/stock_pro_improvement_roadmap_latest.md");
 
   const activeRegimeIds = regime?.activeRegimes?.map(item => item.id) ?? [];
   const nonMoveReasonCounts = topCounts(nonMove, "nonMoveReasons").slice(0, 8);
@@ -98,9 +106,18 @@ function main() {
     }
   }
   const regimeTop = [...regimeCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const qualityBlocked = countMatches(qualityReport, /\| blocked \|/g);
+  const qualityProvisional = countMatches(qualityReport, /\| provisional \|/g);
+  const committeeEvidenceShortage = countMatches(committeeReport, /committee decision: \*\*証拠不足\*\*/g);
+  const committeeHold = countMatches(committeeReport, /committee decision: \*\*保留\*\*/g);
+  const onboardingThin = countMatches(onboardingReport, /unknown_or_thin/g);
+
   const auditWarnings: string[] = [];
   if (containsWarning(pipelineHealthSummary, ["report confidence: low", "report confidence: caution", "missing_or_invalid", "missing_or_empty"])) {
     auditWarnings.push("pipeline health に注意があります。データ取得や生成が弱い日は、銘柄考察よりsource/pipeline修復を優先してください。");
+  }
+  if (qualityBlocked > 0 || committeeEvidenceShortage > 0 || onboardingThin > 0) {
+    auditWarnings.push("Pro品質/Pro会議で証拠不足があります。IR・決算・総会・財務・バリュエーション・競合を補完するまで強い判断を避けてください。");
   }
   if (containsWarning(stockProSummary, ["安全側ラベルが多い", "company-network未登録", "better peer risk", "一次情報不足", "過熱/織り込み済み"])) {
     auditWarnings.push("stock pro summary に安全側警告があります。今日は調査候補を増やすより、追わない/保留理由の確認を優先してください。");
@@ -119,13 +136,15 @@ function main() {
   const stockRiskCounters = extractSection(stockProSummary, "risk counters", 8);
   const pipelineConfidence = extractSection(pipelineHealthSummary, "confidence", 8);
   const pipelineCriticalSignals = extractSection(pipelineHealthSummary, "critical signals", 8);
+  const improvementPriority = extractSection(improvementRoadmap, "priority improvements", 18);
+  const improvementNextData = extractSection(improvementRoadmap, "next data to collect", 8);
 
   const lines: string[] = [];
   lines.push("# alpha-pon strategic advice report");
   lines.push("");
   lines.push(`date: ${date}`);
   lines.push("");
-  lines.push("> 目的: 世界情勢・歴史・外れ方・DBの古さを踏まえ、AI側から先回りして穴を指摘する。買い推奨ではありません。");
+  lines.push("> 目的: 世界情勢・歴史・外れ方・DBの古さ・Pro会議を踏まえ、AI側から先回りして穴と改善順を指摘する。買い推奨ではありません。");
   lines.push("");
 
   lines.push("## 今日の前提");
@@ -135,11 +154,16 @@ function main() {
   lines.push(`- non-move history rows: ${nonMove.length}`);
   lines.push(`- regime history rows: ${regimeHistory.length}`);
   lines.push(`- source health history rows: ${sourceHealth.length}`);
+  lines.push(`- quality blocked: ${qualityBlocked}`);
+  lines.push(`- quality provisional: ${qualityProvisional}`);
+  lines.push(`- committee 証拠不足: ${committeeEvidenceShortage}`);
+  lines.push(`- committee 保留: ${committeeHold}`);
+  lines.push(`- onboarding unknown_or_thin: ${onboardingThin}`);
   lines.push("");
 
   lines.push("## 今日まず見る穴");
   lines.push("");
-  if (auditWarnings.length === 0) lines.push("- 大きな未接続/ズレ/退役候補の警告は目立ちません。");
+  if (auditWarnings.length === 0) lines.push("- 大きな未接続/ズレ/退役候補/Pro会議上の証拠不足は目立ちません。");
   for (const warning of auditWarnings) lines.push(`- ${warning}`);
   lines.push("");
 
@@ -154,6 +178,27 @@ function main() {
       lines.push("### critical signals");
       for (const item of pipelineCriticalSignals) lines.push(item);
     }
+  }
+  lines.push("");
+
+  lines.push("## Pro会議・品質監査からの判断");
+  lines.push("");
+  if (!qualityReport && !committeeReport && !improvementRoadmap) {
+    lines.push("- Pro会議/品質監査/改善ロードマップが未生成です。stock-pro系レポートを確認してください。");
+  } else {
+    lines.push(`- quality blocked: ${qualityBlocked}`);
+    lines.push(`- quality provisional: ${qualityProvisional}`);
+    lines.push(`- committee 証拠不足: ${committeeEvidenceShortage}`);
+    lines.push(`- committee 保留: ${committeeHold}`);
+    lines.push(`- onboarding unknown_or_thin: ${onboardingThin}`);
+    lines.push("");
+    lines.push("### improvement priority");
+    if (improvementPriority.length === 0) lines.push("- N/A");
+    for (const item of improvementPriority) lines.push(item);
+    lines.push("");
+    lines.push("### next data to collect");
+    if (improvementNextData.length === 0) lines.push("- N/A");
+    for (const item of improvementNextData) lines.push(item);
   }
   lines.push("");
 
@@ -173,10 +218,10 @@ function main() {
 
   lines.push("## AIからの先回り指摘");
   lines.push("");
-  lines.push("1. テーマが強い時ほど、銘柄化を急がない。歴史的に、強いテーマは過熱と織り込み済みを生みやすい。");
-  lines.push("2. 今年うまくいったテーマは、来年の弱点になる可能性がある。年次レビューでは必ず反転リスクを見る。");
-  lines.push("3. 災害・戦争・食糧・移民・気候は、直接銘柄よりも周辺コスト・供給制約・規制変更として効く場合が多い。");
-  lines.push("4. 具体銘柄を出すより先に、追わない理由を出す。追わない判断は失敗ではなくリスク管理。");
+  lines.push("1. 大事な判断では必ずPro会議を通す。新規銘柄・格上げ・通知候補・重要IR前後は単独判断しない。");
+  lines.push("2. テーマが強い時ほど、銘柄化を急がない。歴史的に、強いテーマは過熱と織り込み済みを生みやすい。");
+  lines.push("3. 決算・総会・配当・資本政策は、社会情勢やテーマより先に見る。直近イベントを落とすと考察精度が崩れる。");
+  lines.push("4. 具体銘柄を出すより先に、追わない理由・上がらない理由・下がる理由を出す。");
   lines.push("5. DBが増えたら精度が上がるとは限らない。古い仮説・使われないDB・重複DBは退役候補にする。");
   lines.push("");
 
@@ -201,6 +246,10 @@ function main() {
   lines.push("## レポート接続チェック");
   lines.push("");
   lines.push(`- pipeline_health_summary_latest.md: ${pipelineHealthSummary ? "ok" : "missing"}`);
+  lines.push(`- company_onboarding_audit_latest.md: ${onboardingReport ? "ok" : "missing"}`);
+  lines.push(`- stock_pro_quality_audit_latest.md: ${qualityReport ? "ok" : "missing"}`);
+  lines.push(`- stock_pro_committee_latest.md: ${committeeReport ? "ok" : "missing"}`);
+  lines.push(`- stock_pro_improvement_roadmap_latest.md: ${improvementRoadmap ? "ok" : "missing"}`);
   lines.push(`- stock_pro_agent_latest.md: ${stockProReport ? "ok" : "missing"}`);
   lines.push(`- stock_pro_summary_latest.md: ${stockProSummary ? "ok" : "missing"}`);
   lines.push(`- company_network_latest.md: ${networkReport ? "ok" : "missing"}`);
@@ -211,7 +260,9 @@ function main() {
 
   lines.push("## 次に人間が見るべきこと");
   lines.push("");
+  lines.push("- Pro会議で証拠不足/保留が多い銘柄は、結論ではなく不足情報の収集を優先する");
   lines.push("- pipeline confidence が low/caution なら、銘柄考察よりデータ取得・source healthの修復を優先する");
+  lines.push("- 決算・総会・配当・資本政策など重要IRイベントが近い銘柄を先に確認する");
   lines.push("- stock pro summary で、追わない/保留・証拠不足・避けるが多すぎないか");
   lines.push("- stock pro report と company network report が同じ銘柄で矛盾していないか");
   lines.push("- company coverage audit で未接続銘柄が残っていないか");
