@@ -43,6 +43,7 @@ jobs:
       - run: node --import tsx/esm src/stale-hypothesis-report.ts
       - run: node --import tsx/esm src/pipeline-health-summary.ts
       - run: node --import tsx/esm src/pipeline-health-alert.ts --dry-run
+      - run: node --import tsx/esm src/register-company-context.ts --sample=sanrio
       - run: node --import tsx/esm src/strategic-advice-report.ts
       - run: node --import tsx/esm src/regime-history.ts
       - run: node --import tsx/esm src/source-health-history.ts
@@ -75,6 +76,7 @@ jobs:
             reports/regime_hypothesis_alignment_latest.md
             reports/stale_hypotheses_latest.md
             reports/pipeline_health_summary_latest.md
+            reports/company_context_registration_preview_latest.md
             reports/strategic_advice_latest.md
             reports/ci_health_latest.md
             reports/ci_health_latest.json
@@ -83,6 +85,7 @@ jobs:
             reports/knowledge_review_yearly_latest.md
             reports/pipeline_status_latest.json
             reports/scores_*.json
+            data/company_context_registry.jsonl
             data/proposals_history.jsonl
             data/regime_history.jsonl
             data/source_health_history.jsonl
