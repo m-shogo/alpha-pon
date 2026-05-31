@@ -29,6 +29,7 @@ function extractSection(text: string, title: string, maxLines = 8): string[] {
 }
 
 async function main() {
+  const dryRun = process.argv.includes("--dry-run") || process.env.ALPHA_PON_NOTIFY_DRY_RUN === "1";
   const report = readText("reports/pipeline_health_summary_latest.md");
   const confidence = extractConfidence(report);
 
@@ -50,6 +51,12 @@ async function main() {
     "critical signals:",
     ...(criticalSignals.length > 0 ? criticalSignals : ["- N/A"]),
   ].join("\n");
+
+  if (dryRun) {
+    console.log(`pipeline health alert dry-run: ${confidence}`);
+    console.log(body);
+    return;
+  }
 
   await sendPipelineSummaryNotification(body);
   console.log(`pipeline health alert sent: ${confidence}`);
