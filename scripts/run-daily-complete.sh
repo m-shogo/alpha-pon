@@ -26,6 +26,7 @@ node --import "tsx/esm" "$DIR/src/company-network-report.ts" || true
 node --import "tsx/esm" "$DIR/src/company-coverage-audit.ts" || true
 node --import "tsx/esm" "$DIR/src/regime-hypothesis-alignment.ts" || true
 node --import "tsx/esm" "$DIR/src/stale-hypothesis-report.ts" || true
+node --import "tsx/esm" "$DIR/src/pipeline-health-summary.ts" || true
 node --import "tsx/esm" "$DIR/src/strategic-advice-report.ts" || true
 
 # 履歴化。後から「いつから壊れたか」「いつ情勢判断を変えたか」を追えるようにする。
