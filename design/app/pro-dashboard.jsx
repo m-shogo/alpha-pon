@@ -185,3 +185,59 @@ function SafeDetailScreen({ code, onBack, scoreVariant, onReport }) {
 }
 
 DetailScreen = SafeDetailScreen;
+
+const AlphaPonBaseReportScreen = ReportScreen;
+ReportScreen = function GeneratedReportScreen({ code, onOpen }) {
+  const [raw, setRaw] = React.useState(false);
+  const [copied, setCopied] = React.useState(false);
+  const md = window.AP.report285A;
+  const g = window.AP && window.AP.generated;
+  const reports = (g && g.reports) || [];
+  const copy = () => {
+    try { navigator.clipboard.writeText(md); } catch (e) {}
+    setCopied(true); setTimeout(() => setCopied(false), 1600);
+  };
+  return (
+    <>
+      <AppHeader sub="reports / generated" title="レポート"
+        right={<div style={{ display: "flex", gap: 6, background: "var(--surface-2)", borderRadius: 11, padding: 3 }}>
+          {["preview", "raw"].map((m) => {
+            const on = (m === "raw") === raw;
+            return <button key={m} onClick={() => setRaw(m === "raw")} style={{ padding: "6px 11px", borderRadius: 8, border: "none", background: on ? "var(--surface)" : "transparent", color: on ? "var(--ink)" : "var(--ink-3)", fontSize: 12, fontWeight: 700, fontFamily: "var(--ui)", cursor: "pointer", boxShadow: on ? "var(--shadow)" : "none" }}>{m === "raw" ? "Raw" : "プレビュー"}</button>;
+          })}
+        </div>} />
+      <div style={{ padding: "16px 16px 0" }}>
+        {reports.length > 0 && (
+          <>
+            <SectionLabel icon={<Icon name="doc" size={15} />}>生成レポート一覧</SectionLabel>
+            <Card pad={6}>
+              {reports.map((r, i) => (
+                <div key={r.key || i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderBottom: i < reports.length - 1 ? "1px solid var(--line)" : "none" }}>
+                  <span style={{ width: 22, height: 22, borderRadius: 8, background: r.available ? "var(--mint-soft)" : "var(--surface-2)", color: r.available ? "var(--mint-deep)" : "var(--ink-3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon name={r.available ? "check" : "alert"} size={13} strokeWidth={2.6} /></span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 800, color: "var(--ink)" }}>{r.label}</div>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--ink-3)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.path}</div>
+                  </div>
+                  <Tag>{r.available ? "ok" : "missing"}</Tag>
+                </div>
+              ))}
+            </Card>
+          </>
+        )}
+
+        <SectionLabel icon={<Icon name="spark" size={15} />}>司令塔Markdown</SectionLabel>
+        <Card pad={raw ? 0 : 18}>
+          {raw
+            ? <pre style={{ margin: 0, padding: 16, fontFamily: "ui-monospace, Menlo, monospace", fontSize: 11.5, lineHeight: 1.7, color: "var(--ink-2)", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{md}</pre>
+            : <div>{renderMarkdown(md)}</div>}
+        </Card>
+        <button onClick={copy} style={{ width: "100%", height: 52, marginTop: 14, borderRadius: 15, border: "none", background: copied ? "var(--mint-deep)" : "var(--accent)", color: "#fff", fontSize: 14.5, fontWeight: 700, fontFamily: "var(--ui)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer", boxShadow: "0 6px 16px var(--accent-shadow)", transition: "background .2s" }}>
+          <Icon name={copied ? "check" : "copy"} size={18} />{copied ? "コピーしました" : "Markdownをコピー（AIに貼る）"}
+        </button>
+        <p style={{ textAlign: "center", fontSize: 11.5, color: "var(--ink-3)", fontWeight: 600, margin: "12px 0 4px", lineHeight: 1.6 }}>
+          Pro会議・改善ロードマップ・データ信頼度を見てから深掘りします。
+        </p>
+      </div>
+    </>
+  );
+};
