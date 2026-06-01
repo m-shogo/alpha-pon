@@ -1,0 +1,184 @@
+# alpha-pon 企業深掘りDB
+# 目的: 1社ごとに「今買う/待つ/買わない」を判断するための材料を、Pro会議に渡せる形で蓄積する。
+# 注意: 買い推奨ではなく、調査・検証・反証・保留判断のためのDB。
+
+companies:
+  "8136":
+    name: "サンリオ"
+    coverage: "provisional_deep_dive"
+    archetype: "global_ip_license_character"
+    decisionQuestion: "今見るなら、決算後/総会後/押し目待ち/買わないのどれが妥当か"
+    officialSources:
+      - label: "公式IR 株主総会ページ"
+        url: "https://corporate.sanrio.co.jp/ir/stock/meeting/"
+        status: "known"
+      - label: "公式IR IRライブラリー"
+        url: "https://corporate.sanrio.co.jp/ir/library/"
+        status: "known"
+      - label: "公式IR IRカレンダー"
+        url: "https://corporate.sanrio.co.jp/ir/calendar/"
+        status: "known"
+    currentThesis:
+      - "日本発キャラクターIPの海外ライセンス成長が続くなら、利益率の高い成長銘柄として評価されやすい"
+      - "複数IP展開、コラボ、物販、体験消費、SNS拡散が追い風になりうる"
+      - "ただし期待が高い銘柄は、良い決算でも市場期待未満なら上がらない"
+    keyEventsToResolve:
+      - "2026年6月想定の定時株主総会: 正確な日程、招集通知、議案、配当、役員、資本政策"
+      - "直近決算: 海外ライセンス、地域別成長、営業利益率、会社計画進捗"
+      - "次回決算: 期待値が高すぎるか、サプライズ余地があるか"
+    buyTimingFramework:
+      now:
+        label: "今すぐ強く行く条件"
+        conditions:
+          - "直近IRイベントの未確認が解消されている"
+          - "決算/総会/配当/資本政策が市場期待を超える根拠がある"
+          - "PER/PBR過去レンジで過熱しすぎていない"
+          - "TOPIX比で短期過熱していない"
+          - "任天堂/バンナム/OLC等と比べても、サンリオ固有の優位がある"
+        defaultJudgment: "現状は未確認が多いので、今すぐ強く行くより保留/押し目待ち寄り"
+      afterEarnings:
+        label: "決算後に見る条件"
+        conditions:
+          - "海外ライセンス成長が継続"
+          - "営業利益率が維持/改善"
+          - "会社計画進捗が強い"
+          - "決算後に材料出尽くしで下げても、長期仮説が崩れていない"
+        defaultJudgment: "決算後に期待と実績の差を見て判断するのが安全"
+      afterAgm:
+        label: "総会後に見る条件"
+        conditions:
+          - "招集通知/議案/配当/資本政策を確認済み"
+          - "株主還元や成長戦略が市場期待以上"
+          - "総会後の材料出尽くし売りが出ても、仮説が崩れていない"
+        defaultJudgment: "総会詳細未確認なら、総会後まで待つ判断も合理的"
+      doNotBuy:
+        label: "買わない/追わない条件"
+        conditions:
+          - "海外成長鈍化"
+          - "営業利益率悪化"
+          - "高PER/PBRのまま期待先行"
+          - "総会/決算/配当/資本政策が期待未満"
+          - "同じIPテーマで任天堂/バンナム/OLCの方が本命になっている"
+          - "上がらない理由が解消されない"
+    noMoveReasons:
+      - "already_priced_in"
+      - "expectation_too_high"
+      - "good_company_bad_timing"
+      - "agm_material_already_expected"
+      - "earnings_good_but_not_enough"
+      - "better_peer_exists"
+    downsideCases:
+      - "海外ライセンス成長鈍化"
+      - "IP人気ピークアウト"
+      - "利益率悪化"
+      - "高バリュエーション調整"
+      - "総会/配当/資本政策が期待未満"
+    nextDataNeeded:
+      - "正確な2026年定時株主総会日"
+      - "招集通知PDFと議案"
+      - "直近決算説明資料"
+      - "PER/PBR過去レンジ"
+      - "任天堂/バンナム/OLCとの同業比較"
+      - "総会前後/決算後の株価反応履歴"
+    currentProvisionalAnswer: "現時点のアプリ判断は『証拠不足〜保留』。買うなら、決算/総会/バリュエーション確認後の方が納得度が高い。短期で上がりすぎなら追わない。"
+
+  "7974":
+    name: "任天堂"
+    coverage: "template"
+    archetype: "global_game_ip_platform"
+    decisionQuestion: "IP・ゲーム機サイクル・映画/テーマパーク展開を、価格と決算期待込みでどう見るか"
+    keyEventsToResolve:
+      - "次回決算"
+      - "株主総会/招集通知/配当/資本政策"
+      - "ハードサイクル/ソフト販売/為替影響"
+    noMoveReasons:
+      - "hardware_cycle_already_priced_in"
+      - "expectation_too_high"
+      - "yen_fx_reversal"
+      - "software_pipeline_uncertainty"
+    nextDataNeeded:
+      - "決算日/決算資料"
+      - "総会日/招集通知"
+      - "ソフト販売・ハード販売・為替感応度"
+      - "PER/PBR過去レンジ"
+
+  "4661":
+    name: "オリエンタルランド"
+    coverage: "template"
+    archetype: "theme_park_experience_consumption"
+    decisionQuestion: "入園者数・単価・投資負担・インバウンド/消費環境をどう見るか"
+    keyEventsToResolve:
+      - "次回決算"
+      - "株主総会/配当/資本政策"
+      - "新エリア/設備投資/客単価"
+    noMoveReasons:
+      - "capex_burden"
+      - "consumer_slowdown"
+      - "expectation_too_high"
+      - "inbound_peak_out"
+    nextDataNeeded:
+      - "入園者数/客単価"
+      - "設備投資計画"
+      - "決算資料"
+      - "総会/配当情報"
+
+  "7011":
+    name: "三菱重工業"
+    coverage: "template"
+    archetype: "defense_energy_space_industrial"
+    decisionQuestion: "防衛・宇宙・エネルギー政策の追い風が、どこまで株価に織り込まれているか"
+    keyEventsToResolve:
+      - "次回決算"
+      - "防衛/エネルギー受注"
+      - "株主総会/資本政策"
+    noMoveReasons:
+      - "defense_theme_already_priced_in"
+      - "margin_not_enough"
+      - "project_execution_risk"
+      - "policy_delay"
+    nextDataNeeded:
+      - "受注残/セグメント利益"
+      - "防衛/宇宙/エネルギー別の利益貢献"
+      - "PER/PBR過去レンジ"
+      - "政策イベント"
+
+  "5803":
+    name: "フジクラ"
+    coverage: "template"
+    archetype: "ai_datacenter_optical_power_cable"
+    decisionQuestion: "AIデータセンター/光通信需要が続くか、すでに織り込み済みか"
+    keyEventsToResolve:
+      - "次回決算"
+      - "AIデータセンター向け需要"
+      - "総会/配当/資本政策"
+    noMoveReasons:
+      - "ai_datacenter_already_priced_in"
+      - "capacity_cycle_peak"
+      - "margin_normalization"
+      - "customer_inventory_adjustment"
+    nextDataNeeded:
+      - "セグメント別売上/利益"
+      - "AI/DC向け需要コメント"
+      - "受注/在庫/設備投資"
+      - "PER/PBR過去レンジ"
+
+  "8306":
+    name: "三菱UFJフィナンシャル・グループ"
+    coverage: "template"
+    archetype: "megabank_rates_capital_return"
+    decisionQuestion: "金利上昇・株主還元・信用コスト・海外リスクをどう見るか"
+    keyEventsToResolve:
+      - "次回決算"
+      - "配当/自社株買い"
+      - "日銀政策/金利環境"
+      - "株主総会/資本政策"
+    noMoveReasons:
+      - "rate_hike_already_priced_in"
+      - "credit_cost_rise"
+      - "global_macro_risk"
+      - "capital_return_expectation_too_high"
+    nextDataNeeded:
+      - "NIM/与信費用"
+      - "自己株式取得/配当方針"
+      - "金利感応度"
+      - "PER/PBR/配当利回りレンジ"
