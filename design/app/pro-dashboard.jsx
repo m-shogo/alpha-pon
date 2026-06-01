@@ -87,3 +87,101 @@ HomeScreen = function HomeScreenWithProDashboard({ onOpen, density }) {
     </>
   );
 };
+
+function safeNumber(value) {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function SafeDetailScreen({ code, onBack, scoreVariant, onReport }) {
+  const cand = window.AP.candidates.find((c) => c.code === code);
+  const [checked, setChecked] = React.useState({});
+  if (!cand) return null;
+  const priceText = safeNumber(cand.price) ? `¥${cand.price.toLocaleString()}` : "未取得";
+  const changeText = safeNumber(cand.changePct) ? `${cand.changePct >= 0 ? "+" : ""}${cand.changePct}%` : "--";
+  const drawdownText = safeNumber(cand.drawdownPct) ? `高値から ${cand.drawdownPct}%` : "価格データ未取得";
+  const total = window.AP.total(cand.score);
+  return (
+    <>
+      <div style={{ position: "sticky", top: 0, zIndex: 8, padding: "50px 14px 12px", background: "var(--header-bg)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "center", gap: 10 }}>
+        <button onClick={onBack} style={{ width: 38, height: 38, borderRadius: 12, border: "1px solid var(--card-line)", background: "var(--surface)", color: "var(--ink)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}><Icon name="back" size={20} /></button>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontFamily: "var(--display)", fontWeight: 700, fontSize: 19, color: "var(--ink)", lineHeight: 1 }}>{cand.name}</div>
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--ink-3)", marginTop: 2 }}>{cand.code} ・ {cand.market}</div>
+        </div>
+        <Prio p={cand.priority} />
+        <StatusPill status={cand.status} />
+      </div>
+
+      <div style={{ padding: "16px 16px 0" }}>
+        <Card pad={18}>
+          <div style={{ display: "flex", justifyContent: "center", padding: scoreVariant === "bars" ? 0 : "6px 0 10px" }}>
+            <ScoreViz variant={scoreVariant} cand={cand} />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 12px", marginTop: 8, background: "var(--accent-soft)", borderRadius: 14 }}>
+            <span style={{ color: "var(--accent)", display: "flex", flexShrink: 0 }}><Icon name="spark" size={16} /></span>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-3)" }}>発火ルール</div>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--ink)" }}>{cand.triggeredRule}</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14 }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-3)" }}>株価</div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                <span style={{ fontFamily: "var(--display)", fontWeight: 700, fontSize: 22, color: "var(--ink)" }}>{priceText}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: safeNumber(cand.changePct) && cand.changePct >= 0 ? "var(--mint-deep)" : "var(--ink-3)" }}>{changeText}</span>
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-2)", marginTop: 2 }}>{drawdownText}</div>
+            </div>
+            <div style={{ marginLeft: "auto" }}><Sparkline data={cand.sparkline || [100, 100]} color="auto" w={120} h={40} /></div>
+          </div>
+        </Card>
+
+        <SectionLabel icon={<Icon name="check" size={15} />}>検出理由</SectionLabel>
+        <Card pad={6}>{(cand.reasons || []).map((r, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "9px 12px", borderBottom: i < (cand.reasons || []).length - 1 ? "1px solid var(--line)" : "none" }}>
+            <span style={{ width: 20, height: 20, borderRadius: 7, background: "var(--mint-soft)", color: "var(--mint-deep)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}><Icon name="check" size={13} strokeWidth={2.8} /></span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", lineHeight: 1.45 }}>{r}</span>
+          </div>
+        ))}</Card>
+
+        <SectionLabel icon={<Icon name="alert" size={15} />}>注意点</SectionLabel>
+        <Card pad={6}>{(cand.negativeReasons || []).map((r, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "9px 12px", borderBottom: i < (cand.negativeReasons || []).length - 1 ? "1px solid var(--line)" : "none" }}>
+            <span style={{ width: 20, height: 20, borderRadius: 7, background: "var(--amber-soft)", color: "var(--amber)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}><Icon name="alert" size={13} strokeWidth={2.4} /></span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)", lineHeight: 1.45 }}>{r}</span>
+          </div>
+        ))}</Card>
+
+        <SectionLabel icon={<Icon name="doc" size={15} />}>次に見るもの</SectionLabel>
+        <Card pad={6}>{(cand.nextToSee || []).map((r, i) => {
+          const on = checked[i];
+          return (
+            <div key={i} onClick={() => setChecked((s) => ({ ...s, [i]: !s[i] }))} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderBottom: i < (cand.nextToSee || []).length - 1 ? "1px solid var(--line)" : "none", cursor: "pointer" }}>
+              <span style={{ width: 20, height: 20, borderRadius: 99, border: on ? "none" : "2px solid var(--line-strong)", background: on ? "var(--accent)" : "transparent", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all .15s" }}>{on && <Icon name="check" size={12} strokeWidth={3} />}</span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: on ? "var(--ink-3)" : "var(--ink)", textDecoration: on ? "line-through" : "none" }}>{r}</span>
+            </div>
+          );
+        })}</Card>
+
+        <SectionLabel>銘柄メモ</SectionLabel>
+        <Card>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>{(cand.tags || []).map((t) => <Tag key={t}>#{t}</Tag>)}</div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: "var(--ink-2)", fontWeight: 600 }}>
+            <span>最終通知</span><span style={{ color: "var(--ink)" }}>{cand.lastNotifiedAt || "未通知"}</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: "var(--ink-2)", fontWeight: 600, marginTop: 8 }}>
+            <span>暫定スコア</span><span style={{ color: "var(--ink)" }}>{total}/100</span>
+          </div>
+        </Card>
+
+        <div style={{ display: "flex", gap: 10, margin: "18px 0 6px" }}>
+          <button onClick={() => onReport(cand.code)} style={{ flex: 1, height: 50, borderRadius: 15, border: "1px solid var(--card-line)", background: "var(--surface)", color: "var(--ink)", fontSize: 14, fontWeight: 700, fontFamily: "var(--ui)", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, cursor: "pointer" }}><Icon name="doc" size={18} />レポート</button>
+          <button style={{ flex: 1, height: 50, borderRadius: 15, border: "none", background: "var(--accent)", color: "#fff", fontSize: 14, fontWeight: 700, fontFamily: "var(--ui)", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, cursor: "pointer", boxShadow: "0 6px 16px var(--accent-shadow)" }}><Icon name="spark" size={18} />Codexで調査</button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+DetailScreen = SafeDetailScreen;
