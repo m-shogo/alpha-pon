@@ -44,10 +44,17 @@ function section(text: string, title: string, maxLines = 6): string[] {
   for (const line of lines.slice(start + 1)) {
     if (line.startsWith("## ")) break;
     const trimmed = line.trim();
-    if (trimmed) picked.push(strip(trimmed, 120));
+    if (trimmed) picked.push(strip(trimmed, 160));
     if (picked.length >= maxLines) break;
   }
   return picked;
+}
+
+function excerpt(text: string, preferredSection: string, fallback = "未生成", maxLines = 8): string[] {
+  const fromSection = section(text, preferredSection, maxLines);
+  if (fromSection.length > 0) return fromSection;
+  const lines = text.split("\n").map(line => strip(line, 160)).filter(Boolean);
+  return lines.length > 0 ? lines.slice(0, maxLines) : [fallback];
 }
 
 function baseScore(coverage?: string): number {
@@ -117,11 +124,11 @@ function main() {
       refresh: section(refresh, "refresh queue", 6)
     },
     reports: [
-      { key: "strategic", label: "司令塔", path: "reports/strategic_advice_latest.md", available: Boolean(strategic) },
-      { key: "pipeline", label: "データ信頼度", path: "reports/pipeline_health_summary_latest.md", available: Boolean(pipeline) },
-      { key: "committee", label: "Pro会議", path: "reports/stock_pro_committee_latest.md", available: Boolean(committee) },
-      { key: "roadmap", label: "改善ロードマップ", path: "reports/stock_pro_improvement_roadmap_latest.md", available: Boolean(roadmap) },
-      { key: "refresh", label: "Pro知識更新", path: "reports/pro_knowledge_refresh_latest.md", available: Boolean(refresh) }
+      { key: "strategic", label: "司令塔", path: "reports/strategic_advice_latest.md", available: Boolean(strategic), excerpt: excerpt(strategic, "今日まず見る穴", "strategic advice未生成") },
+      { key: "pipeline", label: "データ信頼度", path: "reports/pipeline_health_summary_latest.md", available: Boolean(pipeline), excerpt: excerpt(pipeline, "confidence", "pipeline health未生成") },
+      { key: "committee", label: "Pro会議", path: "reports/stock_pro_committee_latest.md", available: Boolean(committee), excerpt: excerpt(committee, "rule", "Pro会議未生成") },
+      { key: "roadmap", label: "改善ロードマップ", path: "reports/stock_pro_improvement_roadmap_latest.md", available: Boolean(roadmap), excerpt: excerpt(roadmap, "priority improvements", "改善ロードマップ未生成") },
+      { key: "refresh", label: "Pro知識更新", path: "reports/pro_knowledge_refresh_latest.md", available: Boolean(refresh), excerpt: excerpt(refresh, "refresh queue", "Pro知識更新未生成") }
     ],
     candidates
   };
