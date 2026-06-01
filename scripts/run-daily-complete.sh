@@ -19,6 +19,7 @@ node --import "tsx/esm" "$DIR/src/persona-audit.ts" || true
 node --import "tsx/esm" "$DIR/src/valuation-range.ts" || true
 node --import "tsx/esm" "$DIR/src/primary-disclosure-subtypes.ts" || true
 node --import "tsx/esm" "$DIR/src/regime-scenario-report.ts" || true
+node --import "tsx/esm" "$DIR/src/pro-knowledge-refresh-report.ts" || true
 node --import "tsx/esm" "$DIR/src/company-onboarding-audit.ts" || true
 node --import "tsx/esm" "$DIR/src/stock-pro-quality-audit.ts" || true
 node --import "tsx/esm" "$DIR/src/stock-pro-improvement-roadmap.ts" || true
@@ -33,6 +34,7 @@ node --import "tsx/esm" "$DIR/src/stale-hypothesis-report.ts" || true
 node --import "tsx/esm" "$DIR/src/pipeline-health-summary.ts" || true
 node --import "tsx/esm" "$DIR/src/pipeline-health-alert.ts" || true
 node --import "tsx/esm" "$DIR/src/strategic-advice-report.ts" || true
+node --import "tsx/esm" "$DIR/src/report-ui-data.ts" || true
 
 # 履歴化。後から「いつから壊れたか」「いつ情勢判断を変えたか」を追えるようにする。
 node --import "tsx/esm" "$DIR/src/regime-history.ts" || true
