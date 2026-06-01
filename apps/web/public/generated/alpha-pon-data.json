@@ -1,0 +1,462 @@
+{
+  "generatedAt": "2026-06-01",
+  "headline": "alpha-pon Pro Dashboard",
+  "summary": {
+    "strategic": "strategic advice未生成",
+    "pipeline": "pipeline health未生成",
+    "committee": "Pro会議未生成",
+    "roadmap": [],
+    "refresh": []
+  },
+  "reports": [
+    {
+      "key": "strategic",
+      "label": "司令塔",
+      "path": "reports/strategic_advice_latest.md",
+      "available": false,
+      "excerpt": [
+        "strategic advice未生成"
+      ],
+      "fullContent": null
+    },
+    {
+      "key": "pipeline",
+      "label": "データ信頼度",
+      "path": "reports/pipeline_health_summary_latest.md",
+      "available": false,
+      "excerpt": [
+        "pipeline health未生成"
+      ],
+      "fullContent": null
+    },
+    {
+      "key": "committee",
+      "label": "Pro会議",
+      "path": "reports/stock_pro_committee_latest.md",
+      "available": false,
+      "excerpt": [
+        "Pro会議未生成"
+      ],
+      "fullContent": null
+    },
+    {
+      "key": "roadmap",
+      "label": "改善ロードマップ",
+      "path": "reports/stock_pro_improvement_roadmap_latest.md",
+      "available": false,
+      "excerpt": [
+        "改善ロードマップ未生成"
+      ],
+      "fullContent": null
+    },
+    {
+      "key": "refresh",
+      "label": "Pro知識更新",
+      "path": "reports/pro_knowledge_refresh_latest.md",
+      "available": false,
+      "excerpt": [
+        "Pro知識更新未生成"
+      ],
+      "fullContent": null
+    }
+  ],
+  "candidates": [
+    {
+      "code": "4661",
+      "name": "オリエンタルランド",
+      "market": "TSE",
+      "status": "watch",
+      "priority": "B",
+      "tags": [
+        "theme_park_experience_consumption",
+        "template"
+      ],
+      "rules": [
+        "pro_committee",
+        "deep_dive",
+        "ir_event_check"
+      ],
+      "price": null,
+      "changePct": null,
+      "drawdownPct": null,
+      "score": {
+        "structuralEvent": 13,
+        "supplyDemand": 10,
+        "valuation": 5,
+        "theme": 12,
+        "businessSafety": 7,
+        "aiReview": 3
+      },
+      "reasons": [
+        "入園者数・単価・投資負担・インバウンド/消費環境をどう見るか"
+      ],
+      "negativeReasons": [
+        "capex_burden",
+        "consumer_slowdown",
+        "expectation_too_high"
+      ],
+      "nextToSee": [
+        "入園者数/客単価",
+        "設備投資計画",
+        "決算資料",
+        "総会/配当情報"
+      ],
+      "triggeredRule": "Pro深掘りDB / 重要イベント確認",
+      "lastNotifiedAt": "2026-06-01",
+      "sparkline": [
+        100,
+        99,
+        101,
+        98,
+        97,
+        99,
+        100,
+        98,
+        99,
+        97,
+        98,
+        99,
+        100,
+        99,
+        98,
+        99,
+        100,
+        101,
+        100,
+        99
+      ]
+    },
+    {
+      "code": "5803",
+      "name": "フジクラ",
+      "market": "TSE",
+      "status": "watch",
+      "priority": "B",
+      "tags": [
+        "ai_datacenter_optical_power_cable",
+        "template"
+      ],
+      "rules": [
+        "pro_committee",
+        "deep_dive",
+        "ir_event_check"
+      ],
+      "price": null,
+      "changePct": null,
+      "drawdownPct": null,
+      "score": {
+        "structuralEvent": 13,
+        "supplyDemand": 10,
+        "valuation": 8,
+        "theme": 12,
+        "businessSafety": 7,
+        "aiReview": 3
+      },
+      "reasons": [
+        "AIデータセンター/光通信需要が続くか、すでに織り込み済みか"
+      ],
+      "negativeReasons": [
+        "ai_datacenter_already_priced_in",
+        "capacity_cycle_peak",
+        "margin_normalization"
+      ],
+      "nextToSee": [
+        "セグメント別売上/利益",
+        "AI/DC向け需要コメント",
+        "受注/在庫/設備投資",
+        "PER/PBR過去レンジ"
+      ],
+      "triggeredRule": "Pro深掘りDB / 重要イベント確認",
+      "lastNotifiedAt": "2026-06-01",
+      "sparkline": [
+        100,
+        99,
+        101,
+        98,
+        97,
+        99,
+        100,
+        98,
+        99,
+        97,
+        98,
+        99,
+        100,
+        99,
+        98,
+        99,
+        100,
+        101,
+        100,
+        99
+      ]
+    },
+    {
+      "code": "7011",
+      "name": "三菱重工業",
+      "market": "TSE",
+      "status": "watch",
+      "priority": "B",
+      "tags": [
+        "defense_energy_space_industrial",
+        "template"
+      ],
+      "rules": [
+        "pro_committee",
+        "deep_dive",
+        "ir_event_check"
+      ],
+      "price": null,
+      "changePct": null,
+      "drawdownPct": null,
+      "score": {
+        "structuralEvent": 13,
+        "supplyDemand": 10,
+        "valuation": 8,
+        "theme": 12,
+        "businessSafety": 7,
+        "aiReview": 3
+      },
+      "reasons": [
+        "防衛・宇宙・エネルギー政策の追い風が、どこまで株価に織り込まれているか"
+      ],
+      "negativeReasons": [
+        "defense_theme_already_priced_in",
+        "margin_not_enough",
+        "project_execution_risk"
+      ],
+      "nextToSee": [
+        "受注残/セグメント利益",
+        "防衛/宇宙/エネルギー別の利益貢献",
+        "PER/PBR過去レンジ",
+        "政策イベント"
+      ],
+      "triggeredRule": "Pro深掘りDB / 重要イベント確認",
+      "lastNotifiedAt": "2026-06-01",
+      "sparkline": [
+        100,
+        99,
+        101,
+        98,
+        97,
+        99,
+        100,
+        98,
+        99,
+        97,
+        98,
+        99,
+        100,
+        99,
+        98,
+        99,
+        100,
+        101,
+        100,
+        99
+      ]
+    },
+    {
+      "code": "7974",
+      "name": "任天堂",
+      "market": "TSE",
+      "status": "watch",
+      "priority": "B",
+      "tags": [
+        "global_game_ip_platform",
+        "template"
+      ],
+      "rules": [
+        "pro_committee",
+        "deep_dive",
+        "ir_event_check"
+      ],
+      "price": null,
+      "changePct": null,
+      "drawdownPct": null,
+      "score": {
+        "structuralEvent": 13,
+        "supplyDemand": 10,
+        "valuation": 8,
+        "theme": 12,
+        "businessSafety": 7,
+        "aiReview": 3
+      },
+      "reasons": [
+        "IP・ゲーム機サイクル・映画/テーマパーク展開を、価格と決算期待込みでどう見るか"
+      ],
+      "negativeReasons": [
+        "hardware_cycle_already_priced_in",
+        "expectation_too_high",
+        "yen_fx_reversal"
+      ],
+      "nextToSee": [
+        "決算日/決算資料",
+        "総会日/招集通知",
+        "ソフト販売・ハード販売・為替感応度",
+        "PER/PBR過去レンジ"
+      ],
+      "triggeredRule": "Pro深掘りDB / 重要イベント確認",
+      "lastNotifiedAt": "2026-06-01",
+      "sparkline": [
+        100,
+        99,
+        101,
+        98,
+        97,
+        99,
+        100,
+        98,
+        99,
+        97,
+        98,
+        99,
+        100,
+        99,
+        98,
+        99,
+        100,
+        101,
+        100,
+        99
+      ]
+    },
+    {
+      "code": "8136",
+      "name": "サンリオ",
+      "market": "TSE",
+      "status": "research",
+      "priority": "A",
+      "tags": [
+        "global_ip_license_character",
+        "provisional_deep_dive"
+      ],
+      "rules": [
+        "pro_committee",
+        "deep_dive",
+        "ir_event_check"
+      ],
+      "price": null,
+      "changePct": null,
+      "drawdownPct": null,
+      "score": {
+        "structuralEvent": 15,
+        "supplyDemand": 12,
+        "valuation": 8,
+        "theme": 12,
+        "businessSafety": 7,
+        "aiReview": 3
+      },
+      "reasons": [
+        "今見るなら、決算後/総会後/押し目待ち/買わないのどれが妥当か",
+        "海外ライセンス成長が継続",
+        "営業利益率が維持/改善",
+        "現時点のアプリ判断は『証拠不足〜保留』。買うなら、決算/総会/バリュエーション確認後の方が納得度が高い。短期で上がりすぎなら追わない。"
+      ],
+      "negativeReasons": [
+        "already_priced_in",
+        "expectation_too_high",
+        "good_company_bad_timing",
+        "海外ライセンス成長鈍化",
+        "IP人気ピークアウト"
+      ],
+      "nextToSee": [
+        "正確な2026年定時株主総会日",
+        "招集通知PDFと議案",
+        "直近決算説明資料",
+        "PER/PBR過去レンジ",
+        "任天堂/バンナム/OLCとの同業比較",
+        "総会前後/決算後の株価反応履歴"
+      ],
+      "triggeredRule": "Pro深掘りDB / 重要イベント確認",
+      "lastNotifiedAt": "2026-06-01",
+      "sparkline": [
+        100,
+        99,
+        101,
+        98,
+        97,
+        99,
+        100,
+        98,
+        99,
+        97,
+        98,
+        99,
+        100,
+        99,
+        98,
+        99,
+        100,
+        101,
+        100,
+        99
+      ]
+    },
+    {
+      "code": "8306",
+      "name": "三菱UFJフィナンシャル・グループ",
+      "market": "TSE",
+      "status": "watch",
+      "priority": "B",
+      "tags": [
+        "megabank_rates_capital_return",
+        "template"
+      ],
+      "rules": [
+        "pro_committee",
+        "deep_dive",
+        "ir_event_check"
+      ],
+      "price": null,
+      "changePct": null,
+      "drawdownPct": null,
+      "score": {
+        "structuralEvent": 13,
+        "supplyDemand": 10,
+        "valuation": 8,
+        "theme": 12,
+        "businessSafety": 7,
+        "aiReview": 3
+      },
+      "reasons": [
+        "金利上昇・株主還元・信用コスト・海外リスクをどう見るか"
+      ],
+      "negativeReasons": [
+        "rate_hike_already_priced_in",
+        "credit_cost_rise",
+        "global_macro_risk"
+      ],
+      "nextToSee": [
+        "NIM/与信費用",
+        "自己株式取得/配当方針",
+        "金利感応度",
+        "PER/PBR/配当利回りレンジ"
+      ],
+      "triggeredRule": "Pro深掘りDB / 重要イベント確認",
+      "lastNotifiedAt": "2026-06-01",
+      "sparkline": [
+        100,
+        99,
+        101,
+        98,
+        97,
+        99,
+        100,
+        98,
+        99,
+        97,
+        98,
+        99,
+        100,
+        99,
+        98,
+        99,
+        100,
+        101,
+        100,
+        99
+      ]
+    }
+  ]
+}

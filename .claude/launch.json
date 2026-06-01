@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "alpha-pon-web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["web:dev"],
+      "port": 3000
+    }
+  ]
+}

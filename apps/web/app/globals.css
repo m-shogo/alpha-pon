@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* backgrounds */
+  --bg: #FFF7F2;
+  --surface: #FFFFFF;
+  --surface-2: #FBEFF2;
+
+  /* text */
+  --ink: #43303B;
+  --ink-2: #8A7681;
+  --ink-3: #BCABB3;
+
+  /* lines */
+  --line: rgba(67, 48, 59, 0.07);
+  --line-strong: rgba(67, 48, 59, 0.11);
+  --card-line: rgba(67, 48, 59, 0.05);
+
+  /* header/shadow */
+  --header-bg: rgba(255, 247, 242, 0.82);
+  --shadow: 0 6px 20px rgba(255, 126, 166, 0.1), 0 1px 4px rgba(67, 48, 59, 0.04);
+
+  /* disclaimer */
+  --disc-bg: #FFFFFF;
+  --disc-line: rgba(67, 48, 59, 0.08);
+  --disc-ink: #8A7681;
+
+  /* semantic colors */
+  --mint: #6FD3AC;
+  --mint-deep: #2FA579;
+  --mint-soft: rgba(79, 201, 154, 0.14);
+
+  --amber: #E0902F;
+  --amber-soft: rgba(224, 144, 47, 0.15);
+
+  --sky: #7EC8E3;
+  --sky-deep: #2E9AC9;
+  --sky-soft: rgba(126, 200, 227, 0.16);
+
+  --lavender: #B6A4E6;
+  --lavender-deep: #7A63C9;
+  --lavender-soft: rgba(182, 164, 230, 0.18);
+
+  --butter: #F2B945;
+
+  --urgent: #FF4D86;
+  --urgent-soft: rgba(255, 77, 134, 0.13);
+
+  /* accent (pink) */
+  --accent: #FF7EA6;
+  --accent-soft: rgba(255, 126, 166, 0.13);
+  --accent-shadow: rgba(255, 126, 166, 0.32);
+
+  /* fonts */
+  --ui: -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+  --display: "SF Pro Display", "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--ui);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font-family: var(--ui);
+}
