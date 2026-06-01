@@ -145,7 +145,10 @@ write_complete_wrapper_status
 # report-ui-data.ts が meta.warnings に失敗情報を反映できる。
 run_optional_step "ui:data"                   node --import "tsx/esm" "$DIR/src/report-ui-data.ts"
 
-# ── 失敗ステップのサマリー（echo のみ。pipeline_status への追記は上で済み）─────
+# ui:data 自体が失敗した場合も pipeline_status に残す
+write_complete_wrapper_status
+
+# ── 失敗ステップのサマリー（echo のみ） ──────────────────────────────────────
 echo ""
 if [ -n "$FAILED_COMPLETE_STEPS" ]; then
   echo "[complete-wrapper] WARNING: 以下のステップが失敗しました: $FAILED_COMPLETE_STEPS"
