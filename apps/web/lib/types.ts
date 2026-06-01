@@ -48,6 +48,14 @@ export type GeneratedReport = {
   fullContent?: string
 }
 
+import type {
+  UniverseCandidate,
+  StockCandidateHypothesis,
+  HypothesisOutcome,
+  AccuracySummary,
+  WorldContext,
+} from '@/types/universe'
+
 export type AlphaPonGeneratedData = {
   generatedAt: string | null
   headline: string
@@ -60,6 +68,12 @@ export type AlphaPonGeneratedData = {
   }
   reports: GeneratedReport[]
   candidates: Candidate[]
+  // ユニバース・仮説・検証フィールド（省略可 = データ生成前は空）
+  universeCandidates?: UniverseCandidate[]
+  hypothesisPredictions?: StockCandidateHypothesis[]
+  hypothesisOutcomes?: HypothesisOutcome[]
+  accuracySummary?: AccuracySummary | null
+  worldContext?: WorldContext | null
 }
 
 export type FeedItem = {

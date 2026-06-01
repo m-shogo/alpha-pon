@@ -42,6 +42,7 @@ export type AnalogyPredictionRecord = {
   lessonTitle: string;
   thesis: string;
   expectedDirection: AnalogyExpectedDirection;
+  expectedTimeframe?: string;
   confidence: number;
   conditions: string[];
   invalidationSignals: string[];

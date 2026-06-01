@@ -1,0 +1,180 @@
+# alpha-pon 監視対象ユニバース
+# 目的: watchlist.yml に未登録の銘柄を自動スクリーニングして「監視候補」を発掘する。
+# 注意: このリスト自体は買い推奨ではない。調査・検証・反省用。
+# 更新: 世界情勢や投資テーマの変化に合わせて適宜見直す。
+
+version: "1"
+description: "世界情勢テーマ（防衛・半導体・AI・エネルギー・気候・自動化）に関連した監視候補ユニバース"
+
+# 対象セクターと世界情勢テーマの対応
+sectorThemeMap:
+  defense_space: ["war_geopolitics", "security_resilience"]
+  semiconductor: ["war_geopolitics", "ai_compute", "trade_supply_chain"]
+  ai_datacenter: ["ai_compute", "energy_security"]
+  energy_power: ["energy_security", "climate_heat_water"]
+  automation_robotics: ["migration_labor_shortage"]
+  global_ip: ["financial_crisis_rate_shock"]
+  materials: ["war_geopolitics", "trade_supply_chain"]
+  healthcare: ["global_health", "migration_demographics"]
+  finance: ["financial_crisis_rate_shock", "macro_policy"]
+
+stocks:
+  # ── 防衛・宇宙 (war_geopolitics) ──────────────────────────
+  - code: "7011"
+    name: "三菱重工業"
+    sector: "defense_space"
+    tags: ["defense", "space", "national_policy"]
+
+  - code: "7013"
+    name: "IHI"
+    sector: "defense_space"
+    tags: ["defense", "aerospace", "national_policy"]
+
+  - code: "7751"
+    name: "キヤノン"
+    sector: "defense_space"
+    tags: ["defense", "precision_optics", "global"]
+
+  - code: "7762"
+    name: "シチズン時計"
+    sector: "precision_manufacturing"
+    tags: ["defense", "precision"]
+
+  # ── 半導体・製造装置 (war_geopolitics / ai_compute) ────────
+  - code: "8035"
+    name: "東京エレクトロン"
+    sector: "semiconductor"
+    tags: ["semiconductor", "manufacturing_equipment", "ai"]
+
+  - code: "6146"
+    name: "ディスコ"
+    sector: "semiconductor"
+    tags: ["semiconductor", "precision_tools"]
+
+  - code: "6857"
+    name: "アドバンテスト"
+    sector: "semiconductor"
+    tags: ["semiconductor", "testing_equipment"]
+
+  - code: "6254"
+    name: "野村マイクロ・サイエンス"
+    sector: "semiconductor"
+    tags: ["semiconductor", "ultrapure_water"]
+
+  # ── AIデータセンター・電力インフラ (ai_compute / energy_security) ──
+  - code: "6501"
+    name: "日立製作所"
+    sector: "ai_datacenter"
+    tags: ["ai", "infrastructure", "global"]
+
+  - code: "6701"
+    name: "NEC"
+    sector: "ai_datacenter"
+    tags: ["ai", "security", "national_policy"]
+
+  - code: "6502"
+    name: "東芝"
+    sector: "ai_datacenter"
+    tags: ["infrastructure", "energy", "semiconductor"]
+
+  # ── エネルギー・電力 (energy_security / climate_heat_water) ─
+  - code: "9501"
+    name: "東京電力HD"
+    sector: "energy_power"
+    tags: ["power", "nuclear", "energy"]
+
+  - code: "9503"
+    name: "関西電力"
+    sector: "energy_power"
+    tags: ["power", "nuclear", "energy"]
+
+  - code: "6504"
+    name: "富士電機"
+    sector: "energy_power"
+    tags: ["power_systems", "semiconductor", "energy"]
+
+  - code: "6367"
+    name: "ダイキン工業"
+    sector: "energy_power"
+    tags: ["hvac", "climate", "global"]
+
+  # ── 自動化・ロボティクス (migration_labor_shortage) ────────
+  - code: "6954"
+    name: "ファナック"
+    sector: "automation_robotics"
+    tags: ["robotics", "automation", "ai"]
+
+  - code: "6861"
+    name: "キーエンス"
+    sector: "automation_robotics"
+    tags: ["automation", "sensing", "ai"]
+
+  - code: "6645"
+    name: "オムロン"
+    sector: "automation_robotics"
+    tags: ["automation", "healthcare", "sensing"]
+
+  # ── 素材・資源 (war_geopolitics / trade_supply_chain) ───────
+  - code: "4185"
+    name: "JSR"
+    sector: "materials"
+    tags: ["semiconductor_materials", "photoresist"]
+
+  - code: "5801"
+    name: "古河電気工業"
+    sector: "materials"
+    tags: ["power_cable", "defense", "global"]
+
+  - code: "5803"
+    name: "フジクラ"
+    sector: "materials"
+    tags: ["power_cable", "ai_datacenter", "defense"]
+
+  # ── ヘルスケア (global_health / demographics) ───────────────
+  - code: "4568"
+    name: "第一三共"
+    sector: "healthcare"
+    tags: ["pharma", "cancer", "global"]
+
+  - code: "4523"
+    name: "エーザイ"
+    sector: "healthcare"
+    tags: ["pharma", "alzheimer", "global"]
+
+  # ── 金融・保険 (financial_crisis / macro_policy) ────────────
+  - code: "8316"
+    name: "三井住友フィナンシャルグループ"
+    sector: "finance"
+    tags: ["finance", "global", "dividend"]
+
+  - code: "8058"
+    name: "三菱商事"
+    sector: "materials"
+    tags: ["trading", "energy", "global", "dividend"]
+
+  - code: "8031"
+    name: "三井物産"
+    sector: "materials"
+    tags: ["trading", "energy", "food", "dividend"]
+
+  # ── 通信・インフラ (security_resilience) ────────────────────
+  - code: "9432"
+    name: "NTT"
+    sector: "ai_datacenter"
+    tags: ["telecom", "security", "national_policy"]
+
+  - code: "9433"
+    name: "KDDI"
+    sector: "ai_datacenter"
+    tags: ["telecom", "satellite", "dividend"]
+
+  # ── グローバルIP (financial_crisis) ──────────────────────────
+  - code: "7974"
+    name: "任天堂"
+    sector: "global_ip"
+    tags: ["game", "global_ip", "consumer"]
+
+  - code: "6758"
+    name: "ソニーグループ"
+    sector: "global_ip"
+    tags: ["global_ip", "semiconductor", "entertainment"]

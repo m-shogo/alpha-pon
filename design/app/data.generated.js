@@ -454,7 +454,311 @@ window.AP_GENERATED = {
         99
       ]
     }
-  ]
+  ],
+  "universeCandidates": [
+    {
+      "code": "7011",
+      "name": "三菱重工業",
+      "sector": "defense_space",
+      "detectedAt": "2026-06-01",
+      "currentPrice": 8910,
+      "high52w": 10800,
+      "drawdownPct": -17.5,
+      "operatingProfitYoY": 18.2,
+      "hasDownwardRevision": false,
+      "hasNegativeFlag": false,
+      "hasRecentDisclosure": true,
+      "matchedWorldEventTags": [
+        "war_geopolitics",
+        "security_resilience"
+      ],
+      "screeningScore": 72,
+      "warnings": [
+        "[MOCK] 実データではありません",
+        "[MOCK] J-Quants未設定。実データではありません。"
+      ],
+      "status": "monitoring",
+      "dataSource": "mock"
+    },
+    {
+      "code": "8035",
+      "name": "東京エレクトロン",
+      "sector": "semiconductor",
+      "detectedAt": "2026-06-01",
+      "currentPrice": 19800,
+      "high52w": 26500,
+      "drawdownPct": -25.3,
+      "operatingProfitYoY": 12.4,
+      "hasDownwardRevision": false,
+      "hasNegativeFlag": false,
+      "hasRecentDisclosure": true,
+      "matchedWorldEventTags": [
+        "war_geopolitics",
+        "ai_compute",
+        "trade_supply_chain"
+      ],
+      "screeningScore": 68,
+      "warnings": [
+        "[MOCK] 実データではありません",
+        "半導体市況サイクルリスク",
+        "[MOCK] J-Quants未設定。実データではありません。"
+      ],
+      "status": "monitoring",
+      "dataSource": "mock"
+    },
+    {
+      "code": "6367",
+      "name": "ダイキン工業",
+      "sector": "energy_power",
+      "detectedAt": "2026-06-01",
+      "currentPrice": 16200,
+      "high52w": 20100,
+      "drawdownPct": -19.4,
+      "operatingProfitYoY": 8.7,
+      "hasDownwardRevision": false,
+      "hasNegativeFlag": false,
+      "hasRecentDisclosure": false,
+      "matchedWorldEventTags": [
+        "climate_heat_water",
+        "energy_security"
+      ],
+      "screeningScore": 61,
+      "warnings": [
+        "[MOCK] 実データではありません",
+        "為替リスク（グローバル売上比率高）",
+        "[MOCK] J-Quants未設定。実データではありません。"
+      ],
+      "status": "monitoring",
+      "dataSource": "mock"
+    },
+    {
+      "code": "6954",
+      "name": "ファナック",
+      "sector": "automation_robotics",
+      "detectedAt": "2026-06-01",
+      "currentPrice": 3820,
+      "high52w": 4900,
+      "drawdownPct": -22,
+      "operatingProfitYoY": 5.1,
+      "hasDownwardRevision": false,
+      "hasNegativeFlag": false,
+      "hasRecentDisclosure": true,
+      "matchedWorldEventTags": [
+        "migration_labor_shortage"
+      ],
+      "screeningScore": 58,
+      "warnings": [
+        "[MOCK] 実データではありません",
+        "中国向け売上比率が高い",
+        "[MOCK] J-Quants未設定。実データではありません。"
+      ],
+      "status": "monitoring",
+      "dataSource": "mock"
+    }
+  ],
+  "hypothesisPredictions": [
+    {
+      "schemaVersion": 1,
+      "code": "7011",
+      "name": "三菱重工業",
+      "detectedAt": "2026-06-01",
+      "reviewDueAt": "2026-07-01",
+      "reason": "未登録銘柄の自動検出: 高値比17.5%下落、営業利益前年比+18.2%。世界情勢テーマ: war_geopolitics・security_resilience。",
+      "expectedTimeframe": "1m",
+      "expectedDirection": "unknown",
+      "confidence": 0.72,
+      "invalidationSignals": [
+        "下方修正の開示",
+        "監査意見の変更・限定付き意見",
+        "不正・コンプライアンス問題の開示",
+        "主力事業の契約解除・大口顧客離れ",
+        "防衛予算の大幅削減・安保政策の転換"
+      ],
+      "evidenceNeeded": [
+        "直近の決算短信・業績進捗確認",
+        "有価証券報告書のリスクファクター確認",
+        "大株主構成と保有比率の変化",
+        "アナリストコンセンサスと乖離の確認",
+        "防衛省・政府調達の受注動向"
+      ],
+      "relatedWorldEventIds": [
+        "war_geopolitics",
+        "security_resilience"
+      ],
+      "relatedDisclosureIds": [],
+      "status": "open",
+      "label": "検証候補"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "8035",
+      "name": "東京エレクトロン",
+      "detectedAt": "2026-06-01",
+      "reviewDueAt": "2026-08-30",
+      "reason": "未登録銘柄の自動検出: 高値比25.3%下落、営業利益前年比+12.4%。世界情勢テーマ: war_geopolitics・ai_compute・trade_supply_chain。",
+      "expectedTimeframe": "3m",
+      "expectedDirection": "unknown",
+      "confidence": 0.68,
+      "invalidationSignals": [
+        "下方修正の開示",
+        "監査意見の変更・限定付き意見",
+        "不正・コンプライアンス問題の開示",
+        "主力事業の契約解除・大口顧客離れ",
+        "防衛予算の大幅削減・安保政策の転換",
+        "AIサイクルの急速な冷え込み"
+      ],
+      "evidenceNeeded": [
+        "直近の決算短信・業績進捗確認",
+        "有価証券報告書のリスクファクター確認",
+        "大株主構成と保有比率の変化",
+        "アナリストコンセンサスと乖離の確認",
+        "半導体市況サイクルの現在地",
+        "受注残・在庫水準の確認"
+      ],
+      "relatedWorldEventIds": [
+        "war_geopolitics",
+        "ai_compute",
+        "trade_supply_chain"
+      ],
+      "relatedDisclosureIds": [],
+      "status": "open",
+      "label": "監視候補"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6367",
+      "name": "ダイキン工業",
+      "detectedAt": "2026-06-01",
+      "reviewDueAt": "2026-07-01",
+      "reason": "未登録銘柄の自動検出: 高値比19.4%下落、営業利益前年比+8.7%。世界情勢テーマ: climate_heat_water・energy_security。",
+      "expectedTimeframe": "1m",
+      "expectedDirection": "unknown",
+      "confidence": 0.61,
+      "invalidationSignals": [
+        "下方修正の開示",
+        "監査意見の変更・限定付き意見",
+        "不正・コンプライアンス問題の開示",
+        "主力事業の契約解除・大口顧客離れ",
+        "気候対策政策の後退・補助金削減"
+      ],
+      "evidenceNeeded": [
+        "直近の決算短信・業績進捗確認",
+        "有価証券報告書のリスクファクター確認",
+        "大株主構成と保有比率の変化",
+        "アナリストコンセンサスと乖離の確認"
+      ],
+      "relatedWorldEventIds": [
+        "climate_heat_water",
+        "energy_security"
+      ],
+      "relatedDisclosureIds": [],
+      "status": "open",
+      "label": "監視候補"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6954",
+      "name": "ファナック",
+      "detectedAt": "2026-06-01",
+      "reviewDueAt": "2026-07-01",
+      "reason": "未登録銘柄の自動検出: 高値比22.0%下落、営業利益前年比+5.1%。世界情勢テーマ: migration_labor_shortage。",
+      "expectedTimeframe": "1m",
+      "expectedDirection": "unknown",
+      "confidence": 0.58,
+      "invalidationSignals": [
+        "下方修正の開示",
+        "監査意見の変更・限定付き意見",
+        "不正・コンプライアンス問題の開示",
+        "主力事業の契約解除・大口顧客離れ"
+      ],
+      "evidenceNeeded": [
+        "直近の決算短信・業績進捗確認",
+        "有価証券報告書のリスクファクター確認",
+        "大株主構成と保有比率の変化",
+        "アナリストコンセンサスと乖離の確認",
+        "中国・アジア向け受注の動向"
+      ],
+      "relatedWorldEventIds": [
+        "migration_labor_shortage"
+      ],
+      "relatedDisclosureIds": [],
+      "status": "open",
+      "label": "監視候補"
+    }
+  ],
+  "hypothesisOutcomes": [],
+  "accuracySummary": null,
+  "worldContext": {
+    "asOf": "2026-05-30",
+    "mode": "adaptive_watch",
+    "summary": "世界情勢・気候・戦争・食糧・人手不足・金融不安などの複合リスクがある前提で、単一テーマに固定せず、複数シナリオを監視する。",
+    "activeRegimes": [
+      {
+        "id": "war_geopolitics",
+        "level": "high_watch",
+        "why": "戦争・地政学・安全保障・サイバー・重要鉱物・食糧に波及する可能性がある。",
+        "watchCategories": [
+          "defense_space",
+          "semiconductor_memory"
+        ],
+        "caution": [
+          "防衛テーマの急騰は織り込み済みに注意",
+          "原材料高・制裁・輸出規制で利益が削られる会社に注意"
+        ]
+      },
+      {
+        "id": "climate_heat_water",
+        "level": "watch",
+        "why": "温暖化・猛暑・水不足・電力制約は、空調・水処理・電力網・食品原価に影響する。",
+        "watchCategories": [
+          "ai_datacenter_power"
+        ],
+        "caution": [
+          "猛暑特需を恒久成長と誤認しない",
+          "電力コスト上昇が逆風になる会社を分ける"
+        ]
+      },
+      {
+        "id": "food_security",
+        "level": "watch",
+        "why": "食糧価格、肥料、輸入コスト、天候不順が食品・商社・農業資材に影響する。",
+        "watchCategories": [],
+        "caution": [
+          "価格転嫁できない食品企業は利益率悪化に注意",
+          "短期市況だけで判断しない"
+        ]
+      },
+      {
+        "id": "migration_labor_shortage",
+        "level": "watch",
+        "why": "人手不足・賃上げ・省人化・外国人労働力の制度変更が長期テーマになり得る。",
+        "watchCategories": [],
+        "caution": [
+          "人件費上昇で利益が圧迫される業種に注意",
+          "人材会社は景気敏感"
+        ]
+      },
+      {
+        "id": "financial_crisis_rate_shock",
+        "level": "watch",
+        "why": "金利・為替・信用収縮は、グロース株・借入依存企業・不動産に逆風になりやすい。",
+        "watchCategories": [
+          "global_ip_character"
+        ],
+        "caution": [
+          "高バリュエーション銘柄は金利上昇に弱い",
+          "低流動性・赤字グロースは避ける"
+        ]
+      }
+    ],
+    "operatingRules": [
+      "具体銘柄に飛びつく前に、現在情勢と一致するテーマか確認する",
+      "情勢が強くても、一次情報・財務品質・過熱・需給が弱ければ保留",
+      "具体銘柄が不要な局面では、無理に銘柄化せず、テーマ監視に切り替える",
+      "外れた場合は non-move-reasons.yml の分類へ保存する",
+      "情勢DBは月1回、または大きなイベント発生時に見直す"
+    ]
+  }
 };
 if (window.AP) {
   window.AP.generated = window.AP_GENERATED;

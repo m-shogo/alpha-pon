@@ -1,0 +1,104 @@
+// ユニバース候補・仮説・検証の型定義
+// 注意: 買い推奨ではない。監視・検証・反省用。
+
+export type UniverseScreeningStatus = "monitoring" | "escalated" | "dismissed";
+
+export type UniverseCandidate = {
+  code: string;
+  name: string;
+  sector: string | null;
+  detectedAt: string;           // YYYY-MM-DD
+  currentPrice: number | null;
+  high52w: number | null;
+  drawdownPct: number | null;   // 負の値（例: -22.5 = 22.5%下落）
+  operatingProfitYoY: number | null;
+  hasDownwardRevision: boolean;
+  hasNegativeFlag: boolean;     // 監査・不正・決算延期など
+  hasRecentDisclosure: boolean;
+  matchedWorldEventTags: string[];
+  screeningScore: number;       // 0-100
+  warnings: string[];
+  status: UniverseScreeningStatus;
+  dataSource: "jquants" | "mock";
+};
+
+export type HypothesisTimeframe = "1w" | "1m" | "3m";
+export type HypothesisDirection = "up" | "down" | "sideways" | "unknown";
+export type HypothesisStatus = "open" | "closed";
+export type HypothesisResult = "hit" | "miss" | "too_early" | "invalidated" | "unknown";
+export type HypothesisLabel = "監視候補" | "検証候補" | "反証待ち";
+
+export type StockCandidateHypothesis = {
+  schemaVersion: 1;
+  code: string;
+  name: string;
+  detectedAt: string;
+  reviewDueAt: string;
+  reason: string;
+  expectedTimeframe: HypothesisTimeframe;
+  expectedDirection: HypothesisDirection;
+  confidence: number;            // 0-1
+  invalidationSignals: string[];
+  evidenceNeeded: string[];
+  relatedWorldEventIds: string[];
+  relatedDisclosureIds: string[];
+  status: HypothesisStatus;
+  label: HypothesisLabel;
+};
+
+export type HypothesisOutcome = {
+  schemaVersion: 1;
+  code: string;
+  name: string;
+  hypothesis: StockCandidateHypothesis;
+  evaluatedAt: string;
+  return1w: number | null;
+  return1m: number | null;
+  return3m: number | null;
+  topixReturn1m: number | null;
+  relativeToTopix1m: number | null;
+  result: HypothesisResult;
+  notes: string;
+  dataSource: "jquants" | "mock";
+};
+
+export type AccuracySummary = {
+  total: number;
+  hit: number;
+  miss: number;
+  tooEarly: number;
+  unknown: number;
+  hitRate: number | null;
+  avgReturn1m: number | null;
+  avgTopixReturn1m: number | null;
+};
+
+export type WorldContextRegime = {
+  id: string;
+  level: string;
+  why: string;
+  watchCategories: string[];
+  caution: string[];
+};
+
+export type WorldContext = {
+  asOf: string;
+  mode: string;
+  summary: string;
+  activeRegimes: WorldContextRegime[];
+  operatingRules: string[];
+};
+
+// スクリーニング通過基準
+export const SCREENING_CRITERIA = {
+  drawdownMin: -35,   // 35%以上下落は除外（過度に下落）
+  drawdownMax: -15,   // 15%未満下落は対象外（まだ高値圏）
+  operatingProfitYoYMin: 0,  // 営業利益成長がマイナスは除外
+} as const;
+
+// 仮説ラベルの定義（表示用）
+export const HYPOTHESIS_LABEL_DESCRIPTIONS: Record<HypothesisLabel, string> = {
+  "監視候補": "条件が一部揃っている。引き続き観察する段階。",
+  "検証候補": "複数の条件が揃い、仮説を立てて追跡する段階。",
+  "反証待ち": "仮説は立てた。反証シグナルが出るまで保留。",
+};

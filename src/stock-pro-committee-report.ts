@@ -18,15 +18,17 @@ type Company = {
   relatedCompanies?: string[];
 };
 type Hypotheses = { categories?: Record<string, { label: string; thesis?: string; companies?: Company[] }> };
-type Network = { companies?: Record<string, { peers?: Array<{ code: string; name: string; relation: string }>; betterPeerRisk?: string[]; evidenceChecks?: string[]; customerOrDemandDrivers?: string[] }> };
-type IrEvents = { companies?: Record<string, { events?: Array<{ type: string; label: string; date?: string | null; sourceUrl?: string | null; sourceStatus?: string }> }> };
+type NetworkEntry = { peers?: Array<{ code: string; name: string; relation: string }>; betterPeerRisk?: string[]; evidenceChecks?: string[]; customerOrDemandDrivers?: string[] };
+type Network = { companies?: Record<string, NetworkEntry> };
+type IrEventEntry = { type: string; label: string; date?: string | null; sourceUrl?: string | null; sourceStatus?: string };
+type IrEvents = { companies?: Record<string, { events?: IrEventEntry[] }> };
 
 function readYaml<T>(path: string, fallback: T): T {
   if (!existsSync(path)) return fallback;
   return load(readFileSync(path, "utf-8")) as T;
 }
 
-function agentView(agentId: string, company: Company, network?: Network["companies"][string], irEvents: IrEvents["companies"][string]["events"] = []): { stance: string; points: string[] } {
+function agentView(agentId: string, company: Company, network?: NetworkEntry, irEvents: IrEventEntry[] = []): { stance: string; points: string[] } {
   const points: string[] = [];
   let stance = "保留";
 

@@ -19,3 +19,10 @@ logs/
 # Next.js ビルド成果物
 apps/web/.next/
 apps/web/tsconfig.tsbuildinfo
+
+# 自動生成データ（runtime / daily生成）
+data/universe_candidates/
+data/universe_candidates_latest.json
+data/hypothesis_predictions.jsonl
+data/hypothesis_outcomes.jsonl
+data/hypothesis_accuracy_summary.json

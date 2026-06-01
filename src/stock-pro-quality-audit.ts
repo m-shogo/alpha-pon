@@ -14,7 +14,8 @@ type Company = {
 };
 type Hypotheses = { categories?: Record<string, { label: string; companies?: Company[] }> };
 type Network = { companies?: Record<string, { betterPeerRisk?: string[]; peers?: unknown[] }> };
-type IrEvents = { companies?: Record<string, { events?: Array<{ type: string; date?: string | null; sourceUrl?: string | null; sourceStatus?: string }> }> };
+type IrEventEntry = { type: string; date?: string | null; sourceUrl?: string | null; sourceStatus?: string };
+type IrEvents = { companies?: Record<string, { events?: IrEventEntry[] }> };
 type Gate = { id: string; label: string; severity: "critical" | "high" | "medium"; failAction: string; proQuestion: string };
 type GateConfig = { qualityGates?: Gate[] };
 
@@ -23,7 +24,7 @@ function readYaml<T>(path: string, fallback: T): T {
   return load(readFileSync(path, "utf-8")) as T;
 }
 
-function hasConfirmedIr(events: IrEvents["companies"][string]["events"] = []): boolean {
+function hasConfirmedIr(events: IrEventEntry[] = []): boolean {
   return events.some(event => event.date && event.sourceUrl && event.sourceStatus !== "official_check_required");
 }
 
