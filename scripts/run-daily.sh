@@ -30,7 +30,8 @@ json_escape() {
 
 write_status() {
   local status="$1"
-  local ended_at="$(date '+%Y-%m-%d %H:%M:%S')"
+  local ended_at
+  ended_at="$(date '+%Y-%m-%d %H:%M:%S')"
   local failed_json
   failed_json="$(printf '%s' "$FAILED_STEPS" | json_escape)"
   cat > "$DIR/reports/pipeline_status_latest.json" <<EOF
