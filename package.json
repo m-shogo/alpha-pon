@@ -27,6 +27,7 @@
     "learn": "node --import tsx/esm src/learn.ts",
     "register:company:preview": "node --import tsx/esm src/register-company-context.ts --sample=sanrio",
     "register:company:sanrio": "node --import tsx/esm src/register-company-context.ts --sample=sanrio --write",
+    "ui:data": "node --import tsx/esm src/report-ui-data.ts",
     "sync:ipo": "node --env-file=.env --import tsx/esm src/sync-ipo.ts --dry-run",
     "sync:ipo:dry": "node --env-file=.env --import tsx/esm src/sync-ipo.ts --dry-run",
     "sync:tdnet": "node --env-file=.env --import tsx/esm src/sync-tdnet.ts --dry-run",
