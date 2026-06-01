@@ -116,29 +116,39 @@ fi
 #   仮に古いファイルでも hypothesis 側でエラー終了する）
 run_optional_step "review:hypotheses"         node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/review-hypothesis-outcomes.ts"
 
+# ── pipeline_status に失敗情報を書く（ui:data の前に実行） ──────────────────
+# ui:data / report-ui-data.ts が pipeline_status_latest.json を読んで
+# meta.warnings に反映するため、必ず ui:data より先に書く。
+write_complete_wrapper_status() {
+  local pipeline_status="$DIR/reports/pipeline_status_latest.json"
+  if [ ! -f "$pipeline_status" ]; then
+    return 0
+  fi
+
+  node -e "
+    const fs = require('fs');
+    try {
+      const path = '$pipeline_status';
+      const data = JSON.parse(fs.readFileSync(path, 'utf8'));
+      data.completeWrapperFailedSteps = '$FAILED_COMPLETE_STEPS'.trim().split(' ').filter(Boolean);
+      data.completeWrapperRunAt = new Date().toISOString();
+      fs.writeFileSync(path, JSON.stringify(data, null, 2));
+    } catch(e) { process.exit(0); }
+  " 2>/dev/null || true
+}
+
+write_complete_wrapper_status
+
 # ── Next.js JSON 更新（最終ステップ） ───────────────────────────────────────
 # 出力先: apps/web/public/generated/alpha-pon-data.json のみ（design/ には出力しない）
+# この時点で pipeline_status_latest.json に completeWrapperFailedSteps が書かれているため、
+# report-ui-data.ts が meta.warnings に失敗情報を反映できる。
 run_optional_step "ui:data"                   node --import "tsx/esm" "$DIR/src/report-ui-data.ts"
 
-# ── 失敗ステップのサマリー ────────────────────────────────────────────────────
+# ── 失敗ステップのサマリー（echo のみ。pipeline_status への追記は上で済み）─────
 echo ""
 if [ -n "$FAILED_COMPLETE_STEPS" ]; then
   echo "[complete-wrapper] WARNING: 以下のステップが失敗しました: $FAILED_COMPLETE_STEPS"
-
-  # pipeline_status_latest.json に completeWrapperFailedSteps を追記する（存在する場合）
-  PIPELINE_STATUS="$DIR/reports/pipeline_status_latest.json"
-  if [ -f "$PIPELINE_STATUS" ]; then
-    # Node.js で JSON にフィールドを追加
-    node -e "
-      const fs = require('fs');
-      try {
-        const data = JSON.parse(fs.readFileSync('$PIPELINE_STATUS', 'utf8'));
-        data.completeWrapperFailedSteps = '$FAILED_COMPLETE_STEPS'.trim().split(' ').filter(Boolean);
-        data.completeWrapperRunAt = new Date().toISOString();
-        fs.writeFileSync('$PIPELINE_STATUS', JSON.stringify(data, null, 2));
-      } catch(e) { process.exit(0); }  // pipeline_status が壊れていても続行
-    " 2>/dev/null || true
-  fi
 else
   echo "[complete-wrapper] All optional steps succeeded."
 fi
