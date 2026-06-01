@@ -202,7 +202,7 @@ function main() {
       { key: "refresh", label: "Pro知識更新", path: "reports/pro_knowledge_refresh_latest.md", available: Boolean(refresh), excerpt: excerpt(refresh, "refresh queue", "Pro知識更新未生成") }
     ],
     candidates,
-    // 新フィールド（JSON出力のみ。JS出力は従来通り）
+    // 新フィールド（apps/web/public/generated/alpha-pon-data.json にのみ含まれる）
     universeCandidates,
     hypothesisPredictions,
     hypothesisOutcomes,

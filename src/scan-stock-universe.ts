@@ -3,7 +3,11 @@
 // pnpm scan:universe
 //
 // 注意: 買い推奨ではない。条件一致の通知・調査用。
-// J-Quants未設定時は data/mock/universe_candidates_mock.json を使用する。
+//
+// 動作モード:
+//   JQUANTS_EMAIL + JQUANTS_PASSWORD が設定済み → J-Quants API（本番）
+//   --mock または USE_MOCK=true が指定されている → モックデータ使用
+//   どちらもない → エラー終了（自動フォールバック禁止）
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
@@ -60,6 +64,10 @@ function sleep(ms: number): Promise<void> {
 
 function isJQuantsConfigured(): boolean {
   return Boolean(process.env.JQUANTS_EMAIL && process.env.JQUANTS_PASSWORD);
+}
+
+function isMockEnabled(): boolean {
+  return process.argv.includes("--mock") || process.env.USE_MOCK === "true";
 }
 
 /** セクターに対して関連する世界情勢タグを返す */
@@ -273,9 +281,16 @@ async function main(): Promise<void> {
         console.warn(`  [error] ${stock.code}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
-  } else {
-    console.log("[mode] モック (J-Quants未設定)");
+  } else if (isMockEnabled()) {
+    console.log("[mode] モック (--mock / USE_MOCK=true が指定されています)");
     candidates = scanWithMock();
+  } else {
+    console.error(
+      "[fatal] J-Quants が未設定です。\n" +
+      "  本番: JQUANTS_EMAIL と JQUANTS_PASSWORD を .env に設定してください。\n" +
+      "  モック: --mock または USE_MOCK=true を指定してください（開発・CI専用）。"
+    );
+    process.exit(1);
   }
 
   console.log(`\n通過: ${candidates.length}銘柄`);

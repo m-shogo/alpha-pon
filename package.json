@@ -41,6 +41,7 @@
     "launchd:uninstall": "launchctl unload ~/Library/LaunchAgents/com.alpha-pon.daily.plist && rm ~/Library/LaunchAgents/com.alpha-pon.daily.plist && echo 'launchd登録解除完了'",
     "launchd:status": "launchctl list | grep alpha-pon || echo '未登録'",
     "scan:universe": "node --env-file=.env --import tsx/esm src/scan-stock-universe.ts",
+    "scan:universe:mock": "USE_MOCK=true node --import tsx/esm src/scan-stock-universe.ts --mock",
     "candidate:hypothesis": "node --import tsx/esm src/stock-candidate-hypothesis.ts",
     "review:hypotheses": "node --env-file=.env --import tsx/esm src/review-hypothesis-outcomes.ts",
     "daily:full": "pnpm scan:world && pnpm daily && pnpm scan:universe && pnpm candidate:hypothesis && pnpm review:hypotheses && pnpm ui:data",
