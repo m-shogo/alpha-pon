@@ -54,6 +54,7 @@ jobs:
       - run: node --import tsx/esm src/source-health-history.ts
       - run: node --import tsx/esm src/company-non-move-sync.ts
       - run: node --import tsx/esm src/ci-health-report.ts
+      - run: node --import tsx/esm src/report-ui-data.ts
       - name: Upload smoke reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -95,6 +96,7 @@ jobs:
             reports/knowledge_review_yearly_latest.md
             reports/pipeline_status_latest.json
             reports/scores_*.json
+            design/app/data.generated.js
             data/company_context_registry.jsonl
             data/proposals_history.jsonl
             data/regime_history.jsonl
