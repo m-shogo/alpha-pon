@@ -25,7 +25,6 @@ export function Badge({ children, colorVar, softVar, solid }: Props) {
 
 import { ALERT_META, STATUS_META, PRIO_META } from '@/lib/labels'
 import type { AlertLevel, CandidateStatus, Priority } from '@/lib/types'
-import { Icon } from './Icon'
 
 export function AlertBadge({ level, dot }: { level: AlertLevel; dot?: boolean }) {
   const a = ALERT_META[level]

@@ -458,5 +458,130 @@
         99
       ]
     }
+  ],
+  "stocks": [
+    {
+      "code": "4661",
+      "name": "オリエンタルランド",
+      "market": "TSE",
+      "sector": "theme_park_experience_consumption",
+      "price": null,
+      "previousClose": null,
+      "change": null,
+      "changeRate": null,
+      "per": null,
+      "pbr": null,
+      "dividendYield": null,
+      "marketCap": null,
+      "score": 50,
+      "rank": "B",
+      "reasons": [
+        "入園者数・単価・投資負担・インバウンド/消費環境をどう見るか"
+      ],
+      "updatedAt": "2026-06-01"
+    },
+    {
+      "code": "5803",
+      "name": "フジクラ",
+      "market": "TSE",
+      "sector": "ai_datacenter_optical_power_cable",
+      "price": null,
+      "previousClose": null,
+      "change": null,
+      "changeRate": null,
+      "per": null,
+      "pbr": null,
+      "dividendYield": null,
+      "marketCap": null,
+      "score": 53,
+      "rank": "B",
+      "reasons": [
+        "AIデータセンター/光通信需要が続くか、すでに織り込み済みか"
+      ],
+      "updatedAt": "2026-06-01"
+    },
+    {
+      "code": "7011",
+      "name": "三菱重工業",
+      "market": "TSE",
+      "sector": "defense_energy_space_industrial",
+      "price": null,
+      "previousClose": null,
+      "change": null,
+      "changeRate": null,
+      "per": null,
+      "pbr": null,
+      "dividendYield": null,
+      "marketCap": null,
+      "score": 53,
+      "rank": "B",
+      "reasons": [
+        "防衛・宇宙・エネルギー政策の追い風が、どこまで株価に織り込まれているか"
+      ],
+      "updatedAt": "2026-06-01"
+    },
+    {
+      "code": "7974",
+      "name": "任天堂",
+      "market": "TSE",
+      "sector": "global_game_ip_platform",
+      "price": null,
+      "previousClose": null,
+      "change": null,
+      "changeRate": null,
+      "per": null,
+      "pbr": null,
+      "dividendYield": null,
+      "marketCap": null,
+      "score": 53,
+      "rank": "B",
+      "reasons": [
+        "IP・ゲーム機サイクル・映画/テーマパーク展開を、価格と決算期待込みでどう見るか"
+      ],
+      "updatedAt": "2026-06-01"
+    },
+    {
+      "code": "8136",
+      "name": "サンリオ",
+      "market": "TSE",
+      "sector": "global_ip_license_character",
+      "price": null,
+      "previousClose": null,
+      "change": null,
+      "changeRate": null,
+      "per": null,
+      "pbr": null,
+      "dividendYield": null,
+      "marketCap": null,
+      "score": 57,
+      "rank": "A",
+      "reasons": [
+        "今見るなら、決算後/総会後/押し目待ち/買わないのどれが妥当か",
+        "海外ライセンス成長が継続",
+        "営業利益率が維持/改善",
+        "現時点のアプリ判断は『証拠不足〜保留』。買うなら、決算/総会/バリュエーション確認後の方が納得度が高い。短期で上がりすぎなら追わない。"
+      ],
+      "updatedAt": "2026-06-01"
+    },
+    {
+      "code": "8306",
+      "name": "三菱UFJフィナンシャル・グループ",
+      "market": "TSE",
+      "sector": "megabank_rates_capital_return",
+      "price": null,
+      "previousClose": null,
+      "change": null,
+      "changeRate": null,
+      "per": null,
+      "pbr": null,
+      "dividendYield": null,
+      "marketCap": null,
+      "score": 53,
+      "rank": "B",
+      "reasons": [
+        "金利上昇・株主還元・信用コスト・海外リスクをどう見るか"
+      ],
+      "updatedAt": "2026-06-01"
+    }
   ]
 }

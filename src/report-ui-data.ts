@@ -154,9 +154,35 @@ function main() {
   const webPublicDir = join("apps", "web", "public", "generated");
   mkdirSync(webPublicDir, { recursive: true });
 
+  // candidates から AlphaPonStock[] を生成（Next.js 銘柄一覧ページ向け）
+  const stocks = candidates.map((c) => {
+    const scoreTotal = c.score && typeof c.score === "object"
+      ? Object.values(c.score as Record<string, number>).reduce((a, b) => a + b, 0)
+      : null;
+    return {
+      code: c.code,
+      name: c.name,
+      market: c.market ?? null,
+      sector: Array.isArray(c.tags) && c.tags.length > 0 ? String(c.tags[0]) : null,
+      price: c.price ?? null,
+      previousClose: null,
+      change: null,
+      changeRate: c.changePct ?? null,
+      per: null,
+      pbr: null,
+      dividendYield: null,
+      marketCap: null,
+      score: scoreTotal,
+      rank: c.priority ?? null,
+      reasons: Array.isArray(c.reasons) ? c.reasons : [],
+      updatedAt: c.lastNotifiedAt ?? null,
+    };
+  });
+
   // レポートにfullContentを追加
   const dataWithContent = {
     ...data,
+    stocks,
     reports: [
       { key: "strategic", label: "司令塔",          path: "reports/strategic_advice_latest.md",             available: Boolean(strategic), excerpt: excerpt(strategic, "今日まず見る穴", "strategic advice未生成"),         fullContent: strategic || null },
       { key: "pipeline",  label: "データ信頼度",    path: "reports/pipeline_health_summary_latest.md",      available: Boolean(pipeline),  excerpt: excerpt(pipeline,  "confidence",   "pipeline health未生成"),            fullContent: pipeline  || null },

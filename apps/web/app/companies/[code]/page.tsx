@@ -5,17 +5,15 @@ import { calcTotal, calcLevel } from '@/lib/score'
 import { ALERT_META } from '@/lib/labels'
 import { Card, SectionLabel } from '@/components/Card'
 import { Icon } from '@/components/Icon'
-import { AlertBadge, PrioBadge, StatusPill, TagChip } from '@/components/Badge'
+import { PrioBadge, StatusPill, TagChip } from '@/components/Badge'
 import { ScoreViz } from '@/components/ScoreViz'
 import { Sparkline } from '@/components/Sparkline'
 import { ChecklistCard } from '@/components/ChecklistCard'
+import { Disclaimer } from '@/components/Disclaimer'
+import { formatPrice, formatPercent } from '@/lib/format'
 
 type Props = {
   params: Promise<{ code: string }>
-}
-
-function safeNum(v: number | null | undefined): v is number {
-  return typeof v === 'number' && Number.isFinite(v)
 }
 
 export async function generateStaticParams() {
@@ -37,14 +35,12 @@ export default async function CompanyPage({ params }: Props) {
   const level = calcLevel(total)
   const a = ALERT_META[level]
 
-  const priceText = safeNum(cand.price) ? `¥${cand.price!.toLocaleString()}` : '未取得'
-  const changeText = safeNum(cand.changePct)
-    ? `${cand.changePct! >= 0 ? '+' : ''}${cand.changePct}%`
-    : '--'
-  const drawdownText = safeNum(cand.drawdownPct)
+  const priceText = formatPrice(cand.price)
+  const changeText = formatPercent(cand.changePct, true)
+  const drawdownText = typeof cand.drawdownPct === 'number' && Number.isFinite(cand.drawdownPct)
     ? `高値から ${cand.drawdownPct}%`
     : '価格データ未取得'
-  const changeColor = safeNum(cand.changePct) && cand.changePct! >= 0
+  const changeColor = typeof cand.changePct === 'number' && cand.changePct >= 0
     ? 'var(--mint-deep)'
     : 'var(--ink-3)'
 
@@ -232,6 +228,9 @@ export default async function CompanyPage({ params }: Props) {
             <Icon name="back" size={18} color="#fff" />戻る
           </Link>
         </div>
+
+        {/* 免責表示 */}
+        <Disclaimer />
 
         <div style={{ height: 24 }} />
       </div>

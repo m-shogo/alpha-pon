@@ -4,8 +4,12 @@ import { NavBar } from '@/components/NavBar'
 import { DisclaimerBar } from '@/components/DisclaimerBar'
 
 export const metadata: Metadata = {
-  title: 'alpha-pon',
-  description: '長期投資向け調査候補・買い場候補自動発見アプリ',
+  title: {
+    default: 'alpha-pon',
+    template: '%s | alpha-pon',
+  },
+  description:
+    '長期投資向け調査候補・確認ポイント自動発見アプリ。特定銘柄の売買を推奨するものではありません。',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

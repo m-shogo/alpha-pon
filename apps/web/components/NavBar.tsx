@@ -5,10 +5,10 @@ import { usePathname } from 'next/navigation'
 import { Icon } from './Icon'
 
 const TABS = [
-  { key: '/',          label: 'ホーム',   icon: 'home' },
-  { key: '/watchlist', label: 'ウォッチ', icon: 'watch' },
-  { key: '/feed',      label: '通知',     icon: 'bell' },
-  { key: '/reports',   label: 'レポート', icon: 'doc' },
+  { key: '/',        label: 'ホーム',   icon: 'home' },
+  { key: '/stocks',  label: '銘柄',     icon: 'watch' },
+  { key: '/feed',    label: '通知',     icon: 'bell' },
+  { key: '/reports', label: 'レポート', icon: 'doc' },
 ]
 
 export function NavBar() {
