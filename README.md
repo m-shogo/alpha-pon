@@ -3,12 +3,89 @@
 長期投資向けの調査候補・買い場候補自動発見アプリ。
 
 > 自動売買しない。株価予想しない。買い推奨しない。  
-> **調査候補を見逃さないためのツール。**
+> **調査候補を見逃さず、見落とし・上がらない理由・下がる理由を減らすためのツール。**
 
 ## 目的
 
 毎日株価や開示を見に行かなくても、条件を満たした銘柄だけ通知してくれる。  
 ただし、**買うかどうかは必ず自分で判断する。**
+
+alpha-pon は、単に「良さそうな銘柄」を出すのではなく、以下を重視する。
+
+- 公式IR・決算・株主総会・配当・資本政策を確認する
+- 良い会社と良い投資タイミングを分ける
+- 上がらない理由・下がる理由を先に考える
+- 複数の株Pro視点で相談する
+- 外れた理由を蓄積して、次の精度を上げる
+- 政治・戦争・AI・宇宙/Starlink・気候・食糧・金利などの変化でPro知識を更新する
+
+## Pro運用プレイブック
+
+運用の入口は以下。
+
+- [docs/operation-playbook.md](docs/operation-playbook.md)
+
+毎朝・重要判断時・新規銘柄追加時は、このプレイブックの順番で確認する。
+
+## 推奨実行コマンド
+
+通常のdaily:
+
+```bash
+pnpm daily
+```
+
+Pro運用の完全版:
+
+```bash
+bash scripts/run-daily-complete.sh
+```
+
+政治・戦争・AI・宇宙/Starlink・気候・食糧・金利など、前提が変わりやすい時期の完全版:
+
+```bash
+bash scripts/run-daily-complete-with-refresh.sh
+```
+
+## 朝一で見る順番
+
+まず司令塔を見る。
+
+1. `reports/strategic_advice_latest.md`
+2. `reports/pipeline_health_summary_latest.md`
+3. `reports/pro_knowledge_refresh_latest.md`
+4. `reports/stock_pro_committee_latest.md`
+5. `reports/stock_pro_summary_latest.md`
+
+必要に応じて詳細を見る。
+
+- `reports/company_onboarding_audit_latest.md`
+- `reports/stock_pro_quality_audit_latest.md`
+- `reports/stock_pro_improvement_roadmap_latest.md`
+- `reports/company_network_latest.md`
+- `reports/company_coverage_audit_latest.md`
+- `reports/regime_hypothesis_alignment_latest.md`
+- `reports/stale_hypotheses_latest.md`
+
+## 大事な判断で必ずPro会議を通す
+
+以下の時は、必ず `reports/stock_pro_committee_latest.md` を見る。
+
+- 新規銘柄を追加するとき
+- 保留/証拠不足から調査候補へ上げるとき
+- 決算・株主総会・配当・中計・自社株買いなど重要IRイベント前後
+- 通知候補にする/重要度を上げるとき
+- 社会情勢・テーマ認識を変えるとき
+
+見るべきもの:
+
+- 合意点
+- 対立点
+- 足りない情報
+- 上がらない理由
+- 下がる理由
+- 次に集める情報
+- 最終ラベル
 
 ## 検出ルール（Sランク）
 
@@ -92,6 +169,12 @@ LINE_USER_ID=
 # 毎朝実行
 pnpm daily
 
+# Pro運用完全版
+bash scripts/run-daily-complete.sh
+
+# Pro知識ブラッシュアップ込み完全版
+bash scripts/run-daily-complete-with-refresh.sh
+
 # モックで動作確認
 pnpm daily:mock
 
@@ -119,6 +202,9 @@ GitHub Actions で以下を自動実行する。
 - `tests/score.test.ts`
 - `tests/validation.test.ts`
 - `tests/analysis.test.ts`
+- Pro運用補助レポート群
+- Pro知識ブラッシュアップレポート
+- Pro会議レポート
 
 手元でまとめて確認する場合:
 
@@ -138,6 +224,8 @@ node --import tsx/esm tests/analysis.test.ts
 - 日付は `Asia/Tokyo` 基準で処理する。
 - `earnings_drop` は決算開示日の前後営業日ベースで判定する。
 - TOPIX比・流動性・ボラティリティ・財務品質を確認してから調査判断する。
+- 総会・決算・配当・資本政策を見ずに個別銘柄を強く判断しない。
+- Pro会議で証拠不足が出た銘柄は、ラベルを上げない。
 
 ## 銘柄の登録
 
@@ -161,6 +249,30 @@ symbols:
 `watchlist.yml` は `pnpm daily` 実行時に検証される。  
 重複コード、空の `rules` / `tags`、不正な `listedAt` 形式はエラーになる。
 
+### 銘柄仮説・社会情勢・Pro考察の登録
+
+銘柄を深く考察する場合は、watchlist だけでなく以下も確認する。
+
+- `config/company-hypotheses.yml`
+- `config/company-network.yml`
+- `config/company-ir-events.yml`
+- `config/company-onboarding-policy.yml`
+- `config/stock-pro-quality-gate.yml`
+- `config/stock-pro-consultation-policy.yml`
+- `config/pro-knowledge-refresh.yml`
+
+サンプル登録プレビュー:
+
+```bash
+pnpm register:company:preview
+```
+
+サンリオサンプルを登録ログへ書き込み:
+
+```bash
+pnpm register:company:sanrio
+```
+
 ## データ取得
 
 | データ | 取得元 | 状態 |
@@ -172,27 +284,37 @@ symbols:
 | 有価証券報告書 | EDINET | 実装済み |
 | IPO情報 | JPX新規上場ページ | 実装済み |
 | 開示情報 | JPX適時開示ページ / EDINET | 実装済み |
+| Pro知識更新キュー | config/pro-knowledge-refresh.yml | 実装済み |
+| Pro会議レポート | config/stock-pro-agents.yml + 各種DB | 実装済み |
 
 ## ディレクトリ構成
 
 ```
 alpha-pon/
 ├── config/
-│   ├── watchlist.yml   # 監視銘柄
-│   ├── rules.yml       # スコアリング設定
-│   └── themes.yml      # テーマ定義
-├── data/               # 取得データ（gitignore）
-├── reports/            # 生成レポート（gitignore）
-├── tests/              # 軽量テスト
+│   ├── watchlist.yml                   # 監視銘柄
+│   ├── rules.yml                       # スコアリング設定
+│   ├── themes.yml                      # テーマ定義
+│   ├── company-hypotheses.yml          # 銘柄仮説
+│   ├── company-network.yml             # 競合・関連会社・better peer risk
+│   ├── company-ir-events.yml           # 総会・決算・配当・資本政策
+│   ├── stock-pro-agents.yml            # Proエージェント定義
+│   ├── stock-pro-quality-gate.yml      # Pro品質ゲート
+│   └── pro-knowledge-refresh.yml       # Pro知識ブラッシュアップ
+├── data/                               # 取得データ（gitignore）
+├── docs/
+│   └── operation-playbook.md           # 運用プレイブック
+├── reports/                            # 生成レポート（gitignore）
+├── tests/                              # 軽量テスト
 └── src/
-    ├── analysis/       # 市場文脈・財務品質分析
-    ├── daily.ts        # メインスクリプト
-    ├── score/          # スコアリング関数
-    ├── report.ts       # Markdown生成
-    ├── validation.ts   # watchlist検証
-    ├── date.ts         # JST日付ヘルパー
-    ├── config.ts       # 設定読み込み
-    └── types.ts        # 型定義
+    ├── analysis/                       # 市場文脈・財務品質分析
+    ├── daily.ts                        # メインスクリプト
+    ├── score/                          # スコアリング関数
+    ├── report.ts                       # Markdown生成
+    ├── validation.ts                   # watchlist検証
+    ├── date.ts                         # JST日付ヘルパー
+    ├── config.ts                       # 設定読み込み
+    └── types.ts                        # 型定義
 ```
 
 ## 注意
