@@ -79,6 +79,22 @@ export type AlphaPonGeneratedData = {
     warnings?: string[]
   } | null
   worldContext?: WorldContext | null
+  pipelineStatus?: {
+    date?: string
+    status?: string
+    startedAt?: string
+    endedAt?: string
+    failedSteps?: string
+    completeWrapperFailedSteps?: string[]
+    completeWrapperRunAt?: string
+    steps?: Array<{
+      name: string
+      criticality: string
+      status: string
+      code: number
+      durationSec: number
+    }>
+  } | null
 }
 
 export type FeedItem = {

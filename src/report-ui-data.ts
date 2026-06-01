@@ -187,12 +187,14 @@ function main() {
   // pipeline_status から completeWrapperFailedSteps を読み、meta.warnings に含める
   const metaWarnings: string[] = [];
   const pipelineStatusPath = "reports/pipeline_status_latest.json";
+  let pipelineStatusData: Record<string, unknown> | null = null;
   if (existsSync(pipelineStatusPath)) {
     try {
       const pipelineStatus = JSON.parse(readFileSync(pipelineStatusPath, "utf-8")) as {
         completeWrapperFailedSteps?: string[];
         completeWrapperRunAt?: string;
       };
+      pipelineStatusData = pipelineStatus as Record<string, unknown>;
       if (Array.isArray(pipelineStatus.completeWrapperFailedSteps) && pipelineStatus.completeWrapperFailedSteps.length > 0) {
         const failed = pipelineStatus.completeWrapperFailedSteps;
         metaWarnings.push(`以下のステップが失敗しました（${pipelineStatus.completeWrapperRunAt ?? "日時不明"}）: ${failed.join(", ")}`);
@@ -231,6 +233,7 @@ function main() {
     hypothesisOutcomes,
     accuracySummary,
     worldContext,
+    pipelineStatus: pipelineStatusData,
     meta: {
       source: "report-ui-data",
       version: "2",

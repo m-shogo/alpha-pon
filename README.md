@@ -200,17 +200,23 @@ LINE_USER_ID=
 ## 使い方
 
 ```bash
-# 毎朝実行
-pnpm daily
-
-# Pro運用完全版
+# 毎朝実行（正式入口）
 bash scripts/run-daily-complete.sh
 
 # Pro知識ブラッシュアップ込み完全版
 bash scripts/run-daily-complete-with-refresh.sh
 
-# モックで動作確認
+# daily のみ（J-Quants不要の軽量版）
+pnpm daily
+
+# pnpm コマンドで完全版を手動実行したい場合（run-daily-complete.sh と同等）
+pnpm daily:full
+
+# モックで動作確認（J-Quants 未設定の開発環境）
 pnpm daily:mock
+
+# ユニバーススキャンのみモックで確認
+pnpm scan:universe:mock
 
 # バックテスト
 pnpm backtest
@@ -223,6 +229,10 @@ node --import tsx/esm tests/score.test.ts
 node --import tsx/esm tests/validation.test.ts
 node --import tsx/esm tests/analysis.test.ts
 ```
+
+> **入口の整理**: 毎朝の自動実行は `run-daily-complete.sh`（launchd から起動）が正式。
+> `daily:full` は同等処理を pnpm スクリプトで呼ぶ手動版。
+> J-Quants が未設定の場合は `scan:universe` が `exit 1` になり、mock へ自動フォールバックしない。
 
 `reports/latest.md` にサマリーが出力される。  
 `reports/<コード>_<日付>.md` に個別レポートが出力される。  

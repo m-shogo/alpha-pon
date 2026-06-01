@@ -46,6 +46,83 @@ export default function ReportsPage() {
         ) : (
           <ReportViewer reports={data.reports} />
         )}
+
+        {/* pipeline status */}
+        {data.pipelineStatus && (
+          <div style={{ marginTop: 16, padding: '12px 14px', background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--card-line)', boxShadow: 'var(--shadow)' }}>
+            <div style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--ink-3)', marginBottom: 8, letterSpacing: 0.3 }}>
+              PIPELINE STATUS
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', fontSize: 12 }}>
+              {data.pipelineStatus.date && (
+                <>
+                  <span style={{ color: 'var(--ink-3)', fontWeight: 600 }}>日付</span>
+                  <span style={{ color: 'var(--ink)', fontWeight: 700 }}>{data.pipelineStatus.date}</span>
+                </>
+              )}
+              {data.pipelineStatus.status && (
+                <>
+                  <span style={{ color: 'var(--ink-3)', fontWeight: 600 }}>ステータス</span>
+                  <span style={{
+                    color: data.pipelineStatus.status === 'success' ? 'var(--mint-deep)' : 'var(--amber)',
+                    fontWeight: 800,
+                  }}>
+                    {data.pipelineStatus.status}
+                  </span>
+                </>
+              )}
+              {data.pipelineStatus.startedAt && (
+                <>
+                  <span style={{ color: 'var(--ink-3)', fontWeight: 600 }}>開始</span>
+                  <span style={{ color: 'var(--ink-2)', fontWeight: 600 }}>{data.pipelineStatus.startedAt}</span>
+                </>
+              )}
+              {data.pipelineStatus.endedAt && (
+                <>
+                  <span style={{ color: 'var(--ink-3)', fontWeight: 600 }}>終了</span>
+                  <span style={{ color: 'var(--ink-2)', fontWeight: 600 }}>{data.pipelineStatus.endedAt}</span>
+                </>
+              )}
+            </div>
+            {(data.pipelineStatus.completeWrapperFailedSteps ?? []).length > 0 && (
+              <div style={{ marginTop: 8, padding: '7px 10px', background: 'var(--amber-soft)', borderRadius: 8, fontSize: 11.5 }}>
+                <div style={{ fontWeight: 800, color: 'var(--amber)', marginBottom: 3 }}>失敗したステップ</div>
+                {(data.pipelineStatus.completeWrapperFailedSteps ?? []).map((s: string, i: number) => (
+                  <div key={i} style={{ color: 'var(--ink-2)', fontWeight: 600 }}>• {s}</div>
+                ))}
+              </div>
+            )}
+            {(data.pipelineStatus.completeWrapperFailedSteps ?? []).length === 0 && (
+              <div style={{ marginTop: 8, fontSize: 11.5, color: 'var(--mint-deep)', fontWeight: 700 }}>✓ 全ステップ正常完了</div>
+            )}
+            {(data.pipelineStatus.steps ?? []).length > 0 && (
+              <div style={{ marginTop: 10 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-3)', marginBottom: 5 }}>ステップ詳細</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  {(data.pipelineStatus.steps ?? []).map((s, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5 }}>
+                      <span style={{
+                        width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+                        background: s.status === 'ok' ? 'var(--mint-deep)' : s.status === 'skipped' ? 'var(--ink-3)' : 'var(--amber)',
+                      }} />
+                      <span style={{ color: 'var(--ink)', fontWeight: 600, flex: 1 }}>{s.name}</span>
+                      <span style={{
+                        fontSize: 10.5, fontWeight: 700,
+                        color: s.status === 'ok' ? 'var(--mint-deep)' : s.status === 'skipped' ? 'var(--ink-3)' : 'var(--amber)',
+                      }}>
+                        {s.status}
+                      </span>
+                      {s.durationSec > 0 && (
+                        <span style={{ fontSize: 10.5, color: 'var(--ink-3)' }}>{s.durationSec}s</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         <div style={{ height: 24 }} />
       </div>
     </>
