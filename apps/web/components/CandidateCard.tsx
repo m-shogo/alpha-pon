@@ -20,7 +20,7 @@ export function CandidateCard({ cand }: Props) {
 
   return (
     <Link
-      href={`/companies/${cand.code}`}
+      href={`/stocks/${cand.code}`}
       style={{ textDecoration: 'none', display: 'block', marginBottom: 11 }}
     >
       <div

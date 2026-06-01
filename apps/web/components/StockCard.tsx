@@ -19,7 +19,7 @@ export function StockCard({ stock, rank }: Props) {
   const scoreNum = typeof stock.score === 'number' && Number.isFinite(stock.score) ? stock.score : null
 
   return (
-    <Link href={`/companies/${stock.code}`} style={{ textDecoration: 'none', display: 'block', color: 'inherit' }}>
+    <Link href={`/stocks/${stock.code}`} style={{ textDecoration: 'none', display: 'block', color: 'inherit' }}>
       <article
         style={{
           background: 'var(--surface)',

@@ -96,7 +96,7 @@ jobs:
             reports/knowledge_review_yearly_latest.md
             reports/pipeline_status_latest.json
             reports/scores_*.json
-            design/app/data.generated.js
+            apps/web/public/generated/alpha-pon-data.json
             data/company_context_registry.jsonl
             data/proposals_history.jsonl
             data/regime_history.jsonl

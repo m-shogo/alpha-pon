@@ -48,7 +48,8 @@
     "web:build": "pnpm --filter @alpha-pon/web build",
     "web:start": "pnpm --filter @alpha-pon/web start",
     "web:typecheck": "pnpm --filter @alpha-pon/web typecheck",
-    "web:prepare": "pnpm ui:data && pnpm web:build"
+    "web:prepare": "pnpm ui:data && pnpm web:build",
+    "check:all": "pnpm check && pnpm ui:data && pnpm web:typecheck && pnpm --filter @alpha-pon/web lint && pnpm web:build"
   },
   "dependencies": {
     "js-yaml": "^4.1.0"

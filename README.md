@@ -27,6 +27,40 @@ alpha-pon は、単に「良さそうな銘柄」を出すのではなく、以�
 
 毎朝・重要判断時・新規銘柄追加時は、このプレイブックの順番で確認する。
 
+## Next.js Web UI
+
+`design/` は HTML プロトタイプ（サンプル）です。実アプリの UI は `apps/web/` です。
+
+```bash
+# データ生成（Next.js 用 JSON のみ出力）
+pnpm ui:data
+
+# 開発サーバー起動
+pnpm web:dev          # → http://localhost:3000
+
+# 本番ビルド
+pnpm web:prepare      # ui:data + web:build
+
+# 全チェック（CLI + Web）
+pnpm check:all
+```
+
+画面構成:
+
+| パス | 内容 |
+|---|---|
+| `/` | ホーム（注目候補・Pro司令塔） |
+| `/stocks` | 銘柄一覧（スコア順） |
+| `/stocks/[code]` | 銘柄詳細（仮説・スクリーニング・検証） |
+| `/alerts` | 監視候補（未登録銘柄の自動スクリーニング） |
+| `/world` | 世界情勢と監視テーマ |
+| `/hypotheses` | 仮説一覧 |
+| `/outcomes` | 当たり外れ検証 |
+| `/reports` | Pro レポート |
+
+> このWeb UIは買い推奨ではありません。
+> 調査候補・監視候補・仮説検証を見やすくするための画面です。
+
 ## 推奨実行コマンド
 
 通常のdaily:
@@ -35,7 +69,7 @@ alpha-pon は、単に「良さそうな銘柄」を出すのではなく、以�
 pnpm daily
 ```
 
-Pro運用の完全版:
+Pro運用の完全版（ユニバーススキャン・仮説・Next.js JSON 更新を含む）:
 
 ```bash
 bash scripts/run-daily-complete.sh

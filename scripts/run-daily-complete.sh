@@ -1,5 +1,7 @@
 #!/bin/bash
 # 既存 run-daily.sh の後に、Pro運用向けの補助監査を追加実行する完全版ラッパー
+# 最後に Next.js 用 JSON (apps/web/public/generated/alpha-pon-data.json) を必ず更新する。
+# design/ には出力しない。
 
 set -u
 
@@ -34,7 +36,6 @@ node --import "tsx/esm" "$DIR/src/stale-hypothesis-report.ts" || true
 node --import "tsx/esm" "$DIR/src/pipeline-health-summary.ts" || true
 node --import "tsx/esm" "$DIR/src/pipeline-health-alert.ts" || true
 node --import "tsx/esm" "$DIR/src/strategic-advice-report.ts" || true
-node --import "tsx/esm" "$DIR/src/report-ui-data.ts" || true
 
 # 履歴化。後から「いつから壊れたか」「いつ情勢判断を変えたか」を追えるようにする。
 node --import "tsx/esm" "$DIR/src/regime-history.ts" || true
@@ -53,5 +54,16 @@ fi
 if [ "$MONTH" = "01" ] && [ "$DOM" = "01" ]; then
   node --import "tsx/esm" "$DIR/src/yearly-knowledge-review.ts" || true
 fi
+
+# ── ユニバーススキャン・仮説生成・検証（noncritical） ───────────────────────────
+# J-Quants未設定時はモックで動く。失敗しても全体は止まらない。
+node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/scan-stock-universe.ts" || true
+node --import "tsx/esm" "$DIR/src/stock-candidate-hypothesis.ts" || true
+node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/review-hypothesis-outcomes.ts" || true
+
+# ── Next.js 用 JSON 更新（最後に必ず実行） ──────────────────────────────────────
+# 出力先: apps/web/public/generated/alpha-pon-data.json
+# design/ には出力しない（--legacy-design は付けない）。
+node --import "tsx/esm" "$DIR/src/report-ui-data.ts" || true
 
 echo "complete daily wrapper finished"

@@ -28,5 +28,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Check
+      - name: Check (core CLI)
         run: pnpm check
+
+      - name: Generate web data
+        run: pnpm ui:data
+
+      - name: Typecheck web
+        run: pnpm web:typecheck
+
+      - name: Lint web
+        run: pnpm --filter @alpha-pon/web lint
+
+      - name: Build web
+        run: pnpm web:build
