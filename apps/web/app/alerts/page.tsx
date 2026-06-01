@@ -83,6 +83,8 @@ export default function AlertsPage() {
   const data = loadGeneratedData()
   const candidates = data.universeCandidates ?? []
   const isMock = candidates.length > 0 && candidates.every(c => c.dataSource === 'mock')
+  const scanDate = data.generatedAt ?? null
+  const dataMode = candidates.length === 0 ? null : isMock ? 'MOCK' : '本番'
 
   return (
     <>
@@ -103,10 +105,26 @@ export default function AlertsPage() {
               監視候補
             </h1>
           </div>
-          <div style={{ width: 38, height: 38, borderRadius: 12, background: 'var(--sky-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--sky-deep)' }}>
-            <Icon name="bell" size={19} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            {dataMode && (
+              <span style={{
+                fontSize: 10.5, fontWeight: 800, padding: '2px 7px', borderRadius: 6,
+                background: isMock ? 'var(--amber-soft)' : 'var(--mint-soft)',
+                color: isMock ? 'var(--amber)' : 'var(--mint-deep)',
+              }}>
+                {dataMode}
+              </span>
+            )}
+            <div style={{ width: 38, height: 38, borderRadius: 12, background: 'var(--sky-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--sky-deep)' }}>
+              <Icon name="bell" size={19} />
+            </div>
           </div>
         </div>
+        {scanDate && (
+          <div style={{ marginTop: 4, fontSize: 11, color: 'var(--ink-3)', fontWeight: 600 }}>
+            最終スキャン: {scanDate}
+          </div>
+        )}
       </div>
 
       <div style={{ padding: '16px 16px 0' }}>

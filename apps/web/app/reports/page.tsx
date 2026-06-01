@@ -28,6 +28,14 @@ export default function ReportsPage() {
       </div>
 
       <div style={{ padding: '16px 16px 0' }}>
+        {(data.meta?.warnings ?? []).length > 0 && (
+          <div style={{ padding: '10px 14px', marginBottom: 12, background: 'var(--amber-soft)', borderRadius: 10, fontSize: 12, fontWeight: 600, color: 'var(--ink-2)' }}>
+            <div style={{ fontWeight: 800, color: 'var(--amber)', marginBottom: 4 }}>⚠ データ更新に問題が発生しました</div>
+            {(data.meta?.warnings ?? []).map((w: string, i: number) => (
+              <div key={i} style={{ marginTop: 2 }}>• {w}</div>
+            ))}
+          </div>
+        )}
         {data.reports.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--ink-3)', fontSize: 13, fontWeight: 600 }}>
             <p>レポートがありません</p>
