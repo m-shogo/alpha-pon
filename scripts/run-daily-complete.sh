@@ -45,10 +45,12 @@ run_optional_step() {
   echo "---- [$name] start ----"
   if "$@"; then
     echo "---- [$name] ok ----"
+    return 0
   else
     local code=$?
     echo "---- [$name] failed($code) ----"
     FAILED_COMPLETE_STEPS="$FAILED_COMPLETE_STEPS $name($code)"
+    return "$code"
   fi
 }
 
@@ -92,8 +94,26 @@ fi
 
 # ── ユニバーススキャン・仮説生成・検証 ──────────────────────────────────────
 # J-Quants設定済み: 本番API / 未設定: エラー（mockを使うなら --mock を明示）
-run_optional_step "scan:universe"             node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/scan-stock-universe.ts"
-run_optional_step "candidate:hypothesis"      node --import "tsx/esm" "$DIR/src/stock-candidate-hypothesis.ts"
+#
+# scan:universe が失敗した場合、古い universe_candidates_latest.json を元に
+# 新規仮説を作らないよう candidate:hypothesis をスキップする。
+SCAN_UNIVERSE_OK=0
+
+if run_optional_step "scan:universe" node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/scan-stock-universe.ts"; then
+  SCAN_UNIVERSE_OK=1
+fi
+
+if [ "$SCAN_UNIVERSE_OK" = "1" ]; then
+  run_optional_step "candidate:hypothesis" node --import "tsx/esm" "$DIR/src/stock-candidate-hypothesis.ts"
+else
+  echo ""
+  echo "---- [candidate:hypothesis] skipped: scan:universe failed ----"
+  FAILED_COMPLETE_STEPS="$FAILED_COMPLETE_STEPS candidate:hypothesis(skipped_scan_failed)"
+fi
+
+# review:hypotheses は既存仮説の期限レビューなので scan失敗時も実行する
+# （stock-candidate-hypothesis.ts の generatedAt チェックにより、
+#   仮に古いファイルでも hypothesis 側でエラー終了する）
 run_optional_step "review:hypotheses"         node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/review-hypothesis-outcomes.ts"
 
 # ── Next.js JSON 更新（最終ステップ） ───────────────────────────────────────

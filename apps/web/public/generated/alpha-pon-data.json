@@ -763,6 +763,11 @@
       "情勢DBは月1回、または大きなイベント発生時に見直す"
     ]
   },
+  "meta": {
+    "source": "report-ui-data",
+    "version": "2",
+    "warnings": []
+  },
   "stocks": [
     {
       "code": "4661",

@@ -73,6 +73,11 @@ export type AlphaPonGeneratedData = {
   hypothesisPredictions?: StockCandidateHypothesis[]
   hypothesisOutcomes?: HypothesisOutcome[]
   accuracySummary?: AccuracySummary | null
+  meta?: {
+    source?: string
+    version?: string
+    warnings?: string[]
+  } | null
   worldContext?: WorldContext | null
 }
 

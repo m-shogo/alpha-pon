@@ -183,10 +183,23 @@ function main(): void {
   }
 
   const rawData = JSON.parse(readFileSync(latestPath, "utf-8")) as {
+    generatedAt?: string;
     candidates: UniverseCandidate[];
   };
+
+  // stale data チェック: generatedAt が今日でなければ古いデータなのでエラー終了
+  const today = todayJst();
+  if (rawData.generatedAt !== today) {
+    console.error(
+      `[error] universe_candidates_latest.json が古いです。` +
+      `generatedAt=${rawData.generatedAt ?? "unknown"}, today=${today}\n` +
+      `  scan:universe が正常終了した後に candidate:hypothesis を実行してください。`
+    );
+    process.exit(1);
+  }
+
   const candidates = rawData.candidates ?? [];
-  console.log(`候補数: ${candidates.length}`);
+  console.log(`候補数: ${candidates.length} (generatedAt: ${rawData.generatedAt})`);
 
   const existing = readExistingHypotheses();
   const watchlistCodes = loadWatchlistCodes();

@@ -184,6 +184,29 @@ function main() {
   const accuracySummary = loadAccuracySummary();
   const worldContext = loadWorldContext();
 
+  // pipeline_status から completeWrapperFailedSteps を読み、meta.warnings に含める
+  const metaWarnings: string[] = [];
+  const pipelineStatusPath = "reports/pipeline_status_latest.json";
+  if (existsSync(pipelineStatusPath)) {
+    try {
+      const pipelineStatus = JSON.parse(readFileSync(pipelineStatusPath, "utf-8")) as {
+        completeWrapperFailedSteps?: string[];
+        completeWrapperRunAt?: string;
+      };
+      if (Array.isArray(pipelineStatus.completeWrapperFailedSteps) && pipelineStatus.completeWrapperFailedSteps.length > 0) {
+        const failed = pipelineStatus.completeWrapperFailedSteps;
+        metaWarnings.push(`以下のステップが失敗しました（${pipelineStatus.completeWrapperRunAt ?? "日時不明"}）: ${failed.join(", ")}`);
+        if (failed.some(s => s.startsWith("scan:universe"))) {
+          metaWarnings.push("scan:universe が失敗しました。universeCandidates が最新でない可能性があります。");
+        }
+        if (failed.some(s => s.includes("candidate:hypothesis"))) {
+          metaWarnings.push("candidate:hypothesis はスキップされました。hypothesisPredictions が更新されていない可能性があります。");
+        }
+        metaWarnings.push("一部データが最新でない可能性があります。次の daily 実行まで古いデータが表示されます。");
+      }
+    } catch { /* pipeline_status が壊れていても続行 */ }
+  }
+
   const data = {
     generatedAt: date,
     headline: "alpha-pon Pro Dashboard",
@@ -208,6 +231,11 @@ function main() {
     hypothesisOutcomes,
     accuracySummary,
     worldContext,
+    meta: {
+      source: "report-ui-data",
+      version: "2",
+      warnings: metaWarnings,
+    },
   };
 
   // --legacy-design オプション指定時のみ design/ へ出力（通常運用では不要）

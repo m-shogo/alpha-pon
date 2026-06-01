@@ -59,6 +59,15 @@ export default function HomePage() {
       </div>
 
       <div style={{ padding: '16px 16px 0' }}>
+        {/* pipeline warnings */}
+        {(data.meta?.warnings ?? []).length > 0 && (
+          <div style={{ padding: '10px 14px', marginBottom: 12, background: 'var(--amber-soft)', borderRadius: 10, fontSize: 12, fontWeight: 600, color: 'var(--ink-2)' }}>
+            <div style={{ fontWeight: 800, color: 'var(--amber)', marginBottom: 4 }}>⚠ データ更新に問題が発生しました</div>
+            {(data.meta?.warnings ?? []).map((w, i) => (
+              <div key={i} style={{ marginTop: 2 }}>• {w}</div>
+            ))}
+          </div>
+        )}
         {/* data meta row */}
         <div
           style={{
