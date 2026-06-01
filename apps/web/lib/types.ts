@@ -79,6 +79,8 @@ export type AlphaPonGeneratedData = {
     warnings?: string[]
   } | null
   worldContext?: WorldContext | null
+  generatedCompanyRules?: import('@/lib/stock/rules/types').GeneratedStockRule[]
+  positions?: import('@/lib/stock/types').Position[]
   pipelineStatus?: {
     date?: string
     status?: string

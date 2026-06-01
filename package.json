@@ -34,7 +34,7 @@
     "sync:tdnet:dry": "node --env-file=.env --import tsx/esm src/sync-tdnet.ts --dry-run",
     "typecheck": "tsc --noEmit",
     "typecheck:tests": "tsc --noEmit -p tsconfig.test.json",
-    "test": "node --import tsx/esm tests/score.test.ts && node --import tsx/esm tests/validation.test.ts && node --import tsx/esm tests/analysis.test.ts && node --import tsx/esm tests/expert-ensemble.test.ts",
+    "test": "node --import tsx/esm tests/score.test.ts && node --import tsx/esm tests/validation.test.ts && node --import tsx/esm tests/analysis.test.ts && node --import tsx/esm tests/expert-ensemble.test.ts && node --import tsx/esm tests/stock-decision.test.ts",
     "check": "pnpm typecheck && pnpm typecheck:tests && pnpm test",
     "ci:smoke": "NOTIFY_MODE=off pnpm daily:mock && pnpm learn:primary && pnpm health:sources && test -f reports/latest.md && test -f reports/primary_disclosure_learning_latest.md && test -f reports/primary_disclosure_category_learning_latest.md && test -f reports/source_health_latest.md",
     "launchd:install": "mkdir -p logs && cp launchd/com.alpha-pon.daily.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.alpha-pon.daily.plist && echo 'launchd登録完了'",
@@ -50,7 +50,9 @@
     "web:start": "pnpm --filter @alpha-pon/web start",
     "web:typecheck": "pnpm --filter @alpha-pon/web typecheck",
     "web:prepare": "pnpm ui:data && pnpm web:build",
-    "check:all": "pnpm check && pnpm ui:data && pnpm web:typecheck && pnpm --filter @alpha-pon/web lint && pnpm web:build"
+    "check:all": "pnpm check && pnpm ui:data && pnpm web:typecheck && pnpm --filter @alpha-pon/web lint && pnpm web:build",
+    "generate:company-rules": "node --env-file=.env --import tsx/esm src/generate-company-rules.ts",
+    "ui:scan:stocks": "pnpm scan:universe && pnpm generate:company-rules && pnpm review:hypotheses && pnpm ui:data"
   },
   "dependencies": {
     "js-yaml": "^4.1.0"

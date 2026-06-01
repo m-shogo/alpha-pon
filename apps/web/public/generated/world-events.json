@@ -1,0 +1,71 @@
+{
+  "asOf": "2026-05-30",
+  "mode": "adaptive_watch",
+  "summary": "世界情勢・気候・戦争・食糧・人手不足・金融不安などの複合リスクがある前提で、単一テーマに固定せず、複数シナリオを監視する。",
+  "activeRegimes": [
+    {
+      "id": "war_geopolitics",
+      "level": "high_watch",
+      "why": "戦争・地政学・安全保障・サイバー・重要鉱物・食糧に波及する可能性がある。",
+      "watchCategories": [
+        "defense_space",
+        "semiconductor_memory"
+      ],
+      "caution": [
+        "防衛テーマの急騰は織り込み済みに注意",
+        "原材料高・制裁・輸出規制で利益が削られる会社に注意"
+      ]
+    },
+    {
+      "id": "climate_heat_water",
+      "level": "watch",
+      "why": "温暖化・猛暑・水不足・電力制約は、空調・水処理・電力網・食品原価に影響する。",
+      "watchCategories": [
+        "ai_datacenter_power"
+      ],
+      "caution": [
+        "猛暑特需を恒久成長と誤認しない",
+        "電力コスト上昇が逆風になる会社を分ける"
+      ]
+    },
+    {
+      "id": "food_security",
+      "level": "watch",
+      "why": "食糧価格、肥料、輸入コスト、天候不順が食品・商社・農業資材に影響する。",
+      "watchCategories": [],
+      "caution": [
+        "価格転嫁できない食品企業は利益率悪化に注意",
+        "短期市況だけで判断しない"
+      ]
+    },
+    {
+      "id": "migration_labor_shortage",
+      "level": "watch",
+      "why": "人手不足・賃上げ・省人化・外国人労働力の制度変更が長期テーマになり得る。",
+      "watchCategories": [],
+      "caution": [
+        "人件費上昇で利益が圧迫される業種に注意",
+        "人材会社は景気敏感"
+      ]
+    },
+    {
+      "id": "financial_crisis_rate_shock",
+      "level": "watch",
+      "why": "金利・為替・信用収縮は、グロース株・借入依存企業・不動産に逆風になりやすい。",
+      "watchCategories": [
+        "global_ip_character"
+      ],
+      "caution": [
+        "高バリュエーション銘柄は金利上昇に弱い",
+        "低流動性・赤字グロースは避ける"
+      ]
+    }
+  ],
+  "operatingRules": [
+    "具体銘柄に飛びつく前に、現在情勢と一致するテーマか確認する",
+    "情勢が強くても、一次情報・財務品質・過熱・需給が弱ければ保留",
+    "具体銘柄が不要な局面では、無理に銘柄化せず、テーマ監視に切り替える",
+    "外れた場合は non-move-reasons.yml の分類へ保存する",
+    "情勢DBは月1回、または大きなイベント発生時に見直す"
+  ]
+}

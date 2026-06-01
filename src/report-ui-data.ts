@@ -290,10 +290,17 @@ function main() {
     };
   });
 
+  // generated_company_rules_latest.json を読み込んで JSON に含める
+  const companyRulesPath2 = join(process.cwd(), "data", "generated_company_rules_latest.json");
+  const generatedCompanyRules = existsSync(companyRulesPath2)
+    ? (() => { try { const r = JSON.parse(readFileSync(companyRulesPath2, "utf-8")); return Array.isArray(r.rules) ? r.rules : []; } catch { return []; } })()
+    : [];
+
   // レポートにfullContentを追加
   const dataWithContent = {
     ...data,
     stocks,
+    generatedCompanyRules,
     reports: [
       { key: "strategic", label: "司令塔",          path: "reports/strategic_advice_latest.md",             available: Boolean(strategic), excerpt: excerpt(strategic, "今日まず見る穴", "strategic advice未生成"),         fullContent: strategic || null },
       { key: "pipeline",  label: "データ信頼度",    path: "reports/pipeline_health_summary_latest.md",      available: Boolean(pipeline),  excerpt: excerpt(pipeline,  "confidence",   "pipeline health未生成"),            fullContent: pipeline  || null },
@@ -305,6 +312,27 @@ function main() {
 
   writeFileSync(join(webPublicDir, "alpha-pon-data.json"), JSON.stringify(dataWithContent, null, 2), "utf-8");
   console.log(`generated apps/web/public/generated/alpha-pon-data.json`);
+
+  // 個別 JSON ファイル出力（Route Handler / 直接参照用）
+  const companyRulesPath = join(process.cwd(), "data", "generated_company_rules_latest.json");
+  const companyRulesData = existsSync(companyRulesPath)
+    ? (() => { try { return JSON.parse(readFileSync(companyRulesPath, "utf-8")); } catch { return { rules: [] }; } })()
+    : { rules: [] };
+  writeFileSync(join(webPublicDir, "company-rules.json"), JSON.stringify(companyRulesData, null, 2), "utf-8");
+
+  const hypothesesOut = { hypotheses: hypothesisPredictions ?? [], generatedAt: date };
+  writeFileSync(join(webPublicDir, "hypotheses.json"), JSON.stringify(hypothesesOut, null, 2), "utf-8");
+
+  const outcomesOut = { outcomes: hypothesisOutcomes ?? [], generatedAt: date };
+  writeFileSync(join(webPublicDir, "outcomes.json"), JSON.stringify(outcomesOut, null, 2), "utf-8");
+
+  const worldOut = worldContext ?? {};
+  writeFileSync(join(webPublicDir, "world-events.json"), JSON.stringify(worldOut, null, 2), "utf-8");
+
+  const candidatesOut = { candidates: universeCandidates ?? [], generatedAt: date };
+  writeFileSync(join(webPublicDir, "stock-candidates.json"), JSON.stringify(candidatesOut, null, 2), "utf-8");
+
+  console.log(`generated apps/web/public/generated/company-rules.json, hypotheses.json, outcomes.json, world-events.json, stock-candidates.json`);
 }
 
 main();

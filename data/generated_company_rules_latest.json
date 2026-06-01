@@ -1,0 +1,237 @@
+{
+  "generatedAt": "2026-06-02",
+  "count": 6,
+  "rules": [
+    {
+      "generatedRuleId": "8136-missing-price-1780326845112",
+      "code": "8136",
+      "name": "サンリオ",
+      "generatedAt": "2026-06-01T15:14:05.112Z",
+      "thesis": [
+        "グローバルIPライセンス拡大",
+        "インバウンド消費回復"
+      ],
+      "actionSignal": "NO_ACTION",
+      "confidence": 0.1,
+      "watchPriceZones": [],
+      "addWatchZones": [],
+      "trimWatchZones": [],
+      "dangerLines": [],
+      "invalidationSignals": [
+        "株価データ未取得"
+      ],
+      "evidenceNeeded": [
+        "現在株価",
+        "52週高値/安値",
+        "直近決算"
+      ],
+      "reasons": [],
+      "risks": [
+        "株価データ未取得"
+      ],
+      "privateMemo": "[MOCK] 株価未取得のため判断しない",
+      "publicMemo": "[MOCK] データ不足のため様子見",
+      "reviewDueAt": "2026-07-01T15:14:05.112Z"
+    },
+    {
+      "generatedRuleId": "4661-missing-price-1780326845112",
+      "code": "4661",
+      "name": "オリエンタルランド",
+      "generatedAt": "2026-06-01T15:14:05.112Z",
+      "thesis": [
+        "継続的な設備投資によるリピート誘引",
+        "インバウンド需要拡大"
+      ],
+      "actionSignal": "NO_ACTION",
+      "confidence": 0.1,
+      "watchPriceZones": [],
+      "addWatchZones": [],
+      "trimWatchZones": [],
+      "dangerLines": [],
+      "invalidationSignals": [
+        "株価データ未取得"
+      ],
+      "evidenceNeeded": [
+        "現在株価",
+        "52週高値/安値",
+        "直近決算"
+      ],
+      "reasons": [],
+      "risks": [
+        "株価データ未取得"
+      ],
+      "privateMemo": "[MOCK] 株価未取得のため判断しない",
+      "publicMemo": "[MOCK] データ不足のため様子見",
+      "reviewDueAt": "2026-07-01T15:14:05.112Z"
+    },
+    {
+      "generatedRuleId": "7974-missing-price-1780326845112",
+      "code": "7974",
+      "name": "任天堂",
+      "generatedAt": "2026-06-01T15:14:05.112Z",
+      "thesis": [
+        "次世代ハード移行期",
+        "IP展開の多様化"
+      ],
+      "actionSignal": "NO_ACTION",
+      "confidence": 0.1,
+      "watchPriceZones": [],
+      "addWatchZones": [],
+      "trimWatchZones": [],
+      "dangerLines": [],
+      "invalidationSignals": [
+        "株価データ未取得"
+      ],
+      "evidenceNeeded": [
+        "現在株価",
+        "52週高値/安値",
+        "直近決算"
+      ],
+      "reasons": [],
+      "risks": [
+        "株価データ未取得"
+      ],
+      "privateMemo": "[MOCK] 株価未取得のため判断しない",
+      "publicMemo": "[MOCK] データ不足のため様子見",
+      "reviewDueAt": "2026-07-01T15:14:05.112Z"
+    },
+    {
+      "generatedRuleId": "7011-1780326845112",
+      "code": "7011",
+      "name": "三菱重工業",
+      "generatedAt": "2026-06-01T15:14:05.112Z",
+      "thesis": [
+        "防衛費増額による受注拡大",
+        "原発・エネルギー転換"
+      ],
+      "actionSignal": "ENTRY_WATCH",
+      "confidence": 0.9,
+      "watchPriceZones": [
+        {
+          "label": "浅い押し目監視",
+          "priceFrom": 8465,
+          "priceTo": 8732,
+          "reason": "短期の過熱が冷めた場合に確認する価格帯"
+        },
+        {
+          "label": "中期押し目監視",
+          "priceFrom": 7841,
+          "priceTo": 8375,
+          "reason": "高値からの調整が進んだ場合に、仮説維持を確認する価格帯"
+        }
+      ],
+      "addWatchZones": [
+        {
+          "label": "浅い押し目監視",
+          "priceFrom": 8465,
+          "priceTo": 8732,
+          "reason": "短期の過熱が冷めた場合に確認する価格帯"
+        },
+        {
+          "label": "中期押し目監視",
+          "priceFrom": 7841,
+          "priceTo": 8375,
+          "reason": "高値からの調整が進んだ場合に、仮説維持を確認する価格帯"
+        }
+      ],
+      "trimWatchZones": [
+        {
+          "label": "過熱時の一部整理検討",
+          "priceFrom": 10692,
+          "priceTo": null,
+          "reason": "短期で大きく上昇し、バリュエーション過熱がある場合に確認"
+        }
+      ],
+      "dangerLines": [
+        {
+          "label": "仮説再確認ライン",
+          "price": null,
+          "reason": "52週安値付近を割る場合、需給または事業仮説の再確認が必要"
+        }
+      ],
+      "invalidationSignals": [
+        "営業利益成長の鈍化",
+        "利益率悪化",
+        "主要テーマの失速",
+        "競合優位性の低下"
+      ],
+      "evidenceNeeded": [
+        "直近決算",
+        "会社予想",
+        "PER/PBR過去レンジ",
+        "同業比較",
+        "直近開示"
+      ],
+      "reasons": [
+        "営業利益が成長している",
+        "52週高値から15〜35%下落しており、過熱感が落ちている",
+        "世界情勢（war_geopolitics・security_resilience）と関連がある"
+      ],
+      "risks": [],
+      "privateMemo": "[MOCK] スコア95。ENTRY_WATCHシグナル。銘柄ごとの考察から自動生成。",
+      "publicMemo": "[MOCK] 銘柄ごとのデータから生成された監視・検証用メモ。投資助言ではありません。",
+      "reviewDueAt": "2026-07-01T15:14:05.112Z"
+    },
+    {
+      "generatedRuleId": "5803-missing-price-1780326845112",
+      "code": "5803",
+      "name": "フジクラ",
+      "generatedAt": "2026-06-01T15:14:05.112Z",
+      "thesis": [
+        "AI/データセンター向け光ファイバー需要急拡大"
+      ],
+      "actionSignal": "NO_ACTION",
+      "confidence": 0.1,
+      "watchPriceZones": [],
+      "addWatchZones": [],
+      "trimWatchZones": [],
+      "dangerLines": [],
+      "invalidationSignals": [
+        "株価データ未取得"
+      ],
+      "evidenceNeeded": [
+        "現在株価",
+        "52週高値/安値",
+        "直近決算"
+      ],
+      "reasons": [],
+      "risks": [
+        "株価データ未取得"
+      ],
+      "privateMemo": "[MOCK] 株価未取得のため判断しない",
+      "publicMemo": "[MOCK] データ不足のため様子見",
+      "reviewDueAt": "2026-07-01T15:14:05.112Z"
+    },
+    {
+      "generatedRuleId": "8306-missing-price-1780326845112",
+      "code": "8306",
+      "name": "三菱UFJフィナンシャル・グループ",
+      "generatedAt": "2026-06-01T15:14:05.112Z",
+      "thesis": [
+        "金利上昇局面での利ザヤ改善",
+        "海外収益拡大"
+      ],
+      "actionSignal": "NO_ACTION",
+      "confidence": 0.1,
+      "watchPriceZones": [],
+      "addWatchZones": [],
+      "trimWatchZones": [],
+      "dangerLines": [],
+      "invalidationSignals": [
+        "株価データ未取得"
+      ],
+      "evidenceNeeded": [
+        "現在株価",
+        "52週高値/安値",
+        "直近決算"
+      ],
+      "reasons": [],
+      "risks": [
+        "株価データ未取得"
+      ],
+      "privateMemo": "[MOCK] 株価未取得のため判断しない",
+      "publicMemo": "[MOCK] データ不足のため様子見",
+      "reviewDueAt": "2026-07-01T15:14:05.112Z"
+    }
+  ]
+}

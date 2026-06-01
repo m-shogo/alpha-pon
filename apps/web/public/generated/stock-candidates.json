@@ -1,0 +1,104 @@
+{
+  "candidates": [
+    {
+      "code": "7011",
+      "name": "三菱重工業",
+      "sector": "defense_space",
+      "detectedAt": "2026-06-01",
+      "currentPrice": 8910,
+      "high52w": 10800,
+      "drawdownPct": -17.5,
+      "operatingProfitYoY": 18.2,
+      "hasDownwardRevision": false,
+      "hasNegativeFlag": false,
+      "hasRecentDisclosure": true,
+      "matchedWorldEventTags": [
+        "war_geopolitics",
+        "security_resilience"
+      ],
+      "screeningScore": 72,
+      "warnings": [
+        "[MOCK] 実データではありません",
+        "[MOCK] J-Quants未設定。実データではありません。"
+      ],
+      "status": "monitoring",
+      "dataSource": "mock"
+    },
+    {
+      "code": "8035",
+      "name": "東京エレクトロン",
+      "sector": "semiconductor",
+      "detectedAt": "2026-06-01",
+      "currentPrice": 19800,
+      "high52w": 26500,
+      "drawdownPct": -25.3,
+      "operatingProfitYoY": 12.4,
+      "hasDownwardRevision": false,
+      "hasNegativeFlag": false,
+      "hasRecentDisclosure": true,
+      "matchedWorldEventTags": [
+        "war_geopolitics",
+        "ai_compute",
+        "trade_supply_chain"
+      ],
+      "screeningScore": 68,
+      "warnings": [
+        "[MOCK] 実データではありません",
+        "半導体市況サイクルリスク",
+        "[MOCK] J-Quants未設定。実データではありません。"
+      ],
+      "status": "monitoring",
+      "dataSource": "mock"
+    },
+    {
+      "code": "6367",
+      "name": "ダイキン工業",
+      "sector": "energy_power",
+      "detectedAt": "2026-06-01",
+      "currentPrice": 16200,
+      "high52w": 20100,
+      "drawdownPct": -19.4,
+      "operatingProfitYoY": 8.7,
+      "hasDownwardRevision": false,
+      "hasNegativeFlag": false,
+      "hasRecentDisclosure": false,
+      "matchedWorldEventTags": [
+        "climate_heat_water",
+        "energy_security"
+      ],
+      "screeningScore": 61,
+      "warnings": [
+        "[MOCK] 実データではありません",
+        "為替リスク（グローバル売上比率高）",
+        "[MOCK] J-Quants未設定。実データではありません。"
+      ],
+      "status": "monitoring",
+      "dataSource": "mock"
+    },
+    {
+      "code": "6954",
+      "name": "ファナック",
+      "sector": "automation_robotics",
+      "detectedAt": "2026-06-01",
+      "currentPrice": 3820,
+      "high52w": 4900,
+      "drawdownPct": -22,
+      "operatingProfitYoY": 5.1,
+      "hasDownwardRevision": false,
+      "hasNegativeFlag": false,
+      "hasRecentDisclosure": true,
+      "matchedWorldEventTags": [
+        "migration_labor_shortage"
+      ],
+      "screeningScore": 58,
+      "warnings": [
+        "[MOCK] 実データではありません",
+        "中国向け売上比率が高い",
+        "[MOCK] J-Quants未設定。実データではありません。"
+      ],
+      "status": "monitoring",
+      "dataSource": "mock"
+    }
+  ],
+  "generatedAt": "2026-06-02"
+}

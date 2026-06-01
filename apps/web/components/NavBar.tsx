@@ -8,7 +8,7 @@ const TABS = [
   { key: '/',        label: 'ホーム', icon: 'home' },
   { key: '/stocks',  label: '銘柄',   icon: 'watch' },
   { key: '/alerts',  label: '候補',   icon: 'bell' },
-  { key: '/world',   label: '情勢',   icon: 'spark' },
+  { key: '/actions', label: '行動',   icon: 'spark' },
   { key: '/reports', label: 'レポート', icon: 'doc' },
 ]
 
