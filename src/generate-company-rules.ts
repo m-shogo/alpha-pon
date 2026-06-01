@@ -292,7 +292,7 @@ function loadWatchlist(): WatchlistEntry[] {
   return defaultList;
 }
 
-function loadUniverseCandidates(): { code: string; name: string; currentPrice: number | null; drawdownPct: number | null; operatingProfitYoY: number | null; matchedWorldEventTags: string[]; dataSource: string }[] {
+function loadUniverseCandidates(): { code: string; name: string; currentPrice: number | null; drawdownPct: number | null; operatingProfitYoY: number | null; matchedWorldEventTags: string[]; dataSource: string; hasNegativeFlag?: boolean; hasRecentDisclosure?: boolean }[] {
   const paths = [
     join(process.cwd(), "data", "universe_candidates_latest.json"),
   ];
@@ -314,13 +314,18 @@ async function main() {
   const today = todayJst();
   const watchlist = loadWatchlist();
   const universeCandidates = loadUniverseCandidates();
+  const watchlistCodes = new Set(watchlist.map(w => w.code));
 
-  console.log(`[generate-company-rules] ${today} — ${watchlist.length} 銘柄のルール生成開始`);
+  // universe candidates のうち watchlist に未登録のものも処理対象にする
+  const universeOnly = universeCandidates.filter(c => !watchlistCodes.has(c.code));
+  const totalCount = watchlist.length + universeOnly.length;
+
+  console.log(`[generate-company-rules] ${today} — watchlist:${watchlist.length} + universe:${universeOnly.length} = ${totalCount} 銘柄`);
 
   const rules: GeneratedStockRule[] = [];
 
+  // 1. watchlist 銘柄
   for (const stock of watchlist) {
-    // universe_candidates から価格データを補完
     const candidate = universeCandidates.find(c => c.code === stock.code);
     const isMock = candidate?.dataSource === "mock" || !candidate;
 
@@ -336,7 +341,7 @@ async function main() {
       roe: null,
       operatingProfitGrowthPct: candidate?.operatingProfitYoY ?? null,
       hasDangerDisclosure: false,
-      hasPositiveDisclosure: false,
+      hasPositiveDisclosure: candidate?.hasRecentDisclosure ?? false,
       isBeforeEarnings: false,
       worldEventTags: candidate?.matchedWorldEventTags ?? [],
       companyTheme: stock.theme,
@@ -351,7 +356,42 @@ async function main() {
       rule.publicMemo = `[MOCK] ${rule.publicMemo}`;
     }
     rules.push(rule);
-    console.log(`  ${stock.code} ${stock.name}: ${rule.actionSignal} (confidence: ${rule.confidence.toFixed(2)})`);
+    const src = isMock ? "[MOCK]" : "[実データ]";
+    console.log(`  [watchlist] ${src} ${stock.code} ${stock.name}: ${rule.actionSignal} (${rule.confidence.toFixed(2)})`);
+  }
+
+  // 2. universe only 銘柄（watchlist 未登録）
+  for (const c of universeOnly) {
+    const isMock = c.dataSource === "mock";
+    const input: GenerateStockRuleInput = {
+      code: c.code,
+      name: c.name,
+      currentPrice: c.currentPrice ?? null,
+      high52w: null,
+      low52w: null,
+      drawdownFromHigh52wPct: c.drawdownPct ?? null,
+      per: null,
+      pbr: null,
+      roe: null,
+      operatingProfitGrowthPct: c.operatingProfitYoY ?? null,
+      hasDangerDisclosure: c.hasNegativeFlag ?? false,
+      hasPositiveDisclosure: c.hasRecentDisclosure ?? false,
+      isBeforeEarnings: false,
+      worldEventTags: c.matchedWorldEventTags ?? [],
+      companyTheme: [],
+      currentThesis: [],
+      knownRisks: [],
+      positionStatus: "not_owned",
+    };
+
+    const rule = generateStockRule(input);
+    if (isMock) {
+      rule.privateMemo = `[MOCK] ${rule.privateMemo}`;
+      rule.publicMemo = `[MOCK] ${rule.publicMemo}`;
+    }
+    rules.push(rule);
+    const src = isMock ? "[MOCK]" : "[実データ]";
+    console.log(`  [universe] ${src} ${c.code} ${c.name}: ${rule.actionSignal} (${rule.confidence.toFixed(2)})`);
   }
 
   // ── 保存 ──────────────────────────────────────────────────────────────────
