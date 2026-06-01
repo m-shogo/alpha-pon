@@ -361,6 +361,64 @@ alpha-pon/
     └── types.ts                        # 型定義
 ```
 
+## J-Quants セットアップ（実データ有効化）
+
+J-Quants Free プランを使うと、`scan:universe` で 30 銘柄の実株価・財務データをスクリーニングできます。
+
+1. [J-Quants](https://www.jpx.co.jp/markets/paid-info-equities/jquants/index.html) に登録（無料プランあり）
+2. `.env` に認証情報を設定:
+   ```
+   JQUANTS_EMAIL=your@email.com
+   JQUANTS_PASSWORD=your_password
+   ```
+3. 動作確認:
+   ```bash
+   pnpm scan:universe          # 実データでスクリーニング
+   pnpm generate:company-rules # ルール生成
+   pnpm ui:data                # Web JSON 更新
+   ```
+
+> J-Quants 未設定の場合は `pnpm scan:universe:mock` でモックデータ確認可。
+
+## Vercel デプロイ
+
+### 初回設定
+
+1. [vercel.com](https://vercel.com) で alpha-pon リポジトリをインポート
+2. **Root Directory**: リポジトリルート（`/`）のまま
+3. **Build Command**: `pnpm web:build`（vercel.json で自動設定済み）
+4. **Output Directory**: `apps/web/.next`（vercel.json で自動設定済み）
+5. **環境変数** を Vercel ダッシュボードで設定:
+   | 変数名 | 用途 | 必須 |
+   |---|---|---|
+   | `APP_MODE` | `portfolio`（公開用）または `private` | 推奨 |
+   | `JQUANTS_EMAIL` | J-Quants 認証 | 実データ時のみ |
+   | `JQUANTS_PASSWORD` | J-Quants 認証 | 実データ時のみ |
+   | `LINE_CHANNEL_TOKEN` | LINE 通知 | 任意 |
+   | `LINE_USER_ID` | LINE 通知 | 任意 |
+
+### 本番 JSON 更新方針
+
+Vercel はビルド時に `apps/web/public/generated/*.json` を静的ファイルとして配信します。  
+データを最新にするには以下のいずれかを選択してください。
+
+**方針 A: commit & push で更新（現状の推奨）**
+```bash
+pnpm ui:scan:stocks    # scan + rules生成 + ui:data
+git add apps/web/public/generated/
+git commit -m "chore: update generated data"
+git push               # Vercel が自動再デプロイ
+```
+
+**方針 B: Vercel Build Hook（毎朝自動）**
+1. Vercel ダッシュボードで Build Hook URL を発行
+2. `launchd` の daily スクリプト末尾に `curl -X POST <hook_url>` を追加
+3. `run-daily-complete.sh` 完了後に Vercel が再ビルド・再デプロイ
+
+**方針 C: 将来 API 化（DB/外部API）**
+- `apps/web/lib/generated-data.ts` の `loadGeneratedData()` を DB/API に差し替え
+- `apps/web/app/api/generated/` の Route Handler を本番 API に接続
+
 ## 注意
 
 **このツールは買い推奨ツールではありません。**  

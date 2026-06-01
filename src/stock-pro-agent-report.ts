@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
@@ -115,10 +115,11 @@ function readYamlOr<T>(path: string, fallback: T): T {
 
 function latestScoreFile(): string | null {
   if (!existsSync("reports")) return null;
-  const files = require("fs").readdirSync("reports")
+  const files = readdirSync("reports")
     .filter((file: string) => /^scores_\d{4}-\d{2}-\d{2}\.json$/.test(file))
     .sort();
-  return files.at(-1) ? join("reports", files.at(-1)) : null;
+  const last = files.at(-1);
+  return last ? join("reports", last) : null;
 }
 
 function readScores(): ScoreEntry[] {
