@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "daily": "node --env-file=.env --import tsx/esm src/daily.ts",
-    "daily:mock": "node --env-file=.env --import tsx/esm src/daily.ts --mock",
+    "daily:mock": "node --import tsx/esm src/daily.ts --mock",
     "scan:world": "node --env-file=.env --import tsx/esm src/scan-world-events.ts",
     "review:analogies": "node --env-file=.env --import tsx/esm src/review-analogies.ts",
     "review:analogies:write": "node --env-file=.env --import tsx/esm src/review-analogies.ts --write",
