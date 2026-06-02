@@ -56,34 +56,39 @@ categories:
 
   semiconductor_memory:
     label: "半導体・メモリ・装置"
-    thesis: "AI需要・メモリ市況・国策支援により、メモリメーカーや装置・材料企業に影響。"
+    thesis: "AI需要・AI大型IPO・メモリ市況・国策支援により、メモリメーカーや装置・材料企業に影響。Anthropic/SpaceX/OpenAI級の上場レースはAIインフラ資金循環の材料だが、出口流動性イベントか実需加速かを分けて見る。"
     companies:
       - code: "285A"
-        name: "キオクシア"
+        name: "キオクシアホールディングス"
         role: "NANDメモリ"
         status: "active"
-        upsideHypothesis: "メモリ市況改善、AIストレージ需要、国策支援で業績改善する可能性。"
-        noMoveHypothesis: "市況回復が遅い、IPO後の売り圧、競合の方が評価される。"
-        downsideHypothesis: "NAND価格下落、設備投資負担、需給悪化、ロックアップ/売り圧。"
+        upsideHypothesis: "Anthropic/SpaceX/OpenAIなどAI大型上場がAIインフラ投資を再評価させ、推論・学習・データ蓄積向けNAND/SSD需要、メモリ市況改善、国策支援で業績改善する可能性。"
+        noMoveHypothesis: "AI IPOテーマは強くても、NAND市況回復が遅い、AI需要がHBM/GPU側に偏る、IPO後の売り圧、競合の方が評価される場合は動きにくい。"
+        downsideHypothesis: "NAND価格下落、設備投資負担、需給悪化、ロックアップ/売り圧、AI IPOの過熱剥落。"
         notGoodWhen:
           - "市況が悪化"
           - "営業赤字/FCF悪化"
           - "IPO後の需給が悪い"
+          - "AI IPO報道だけでNAND実需・価格改善が確認できない"
         relatedCompanies:
           - "6501 日立製作所"
           - "8035 東京エレクトロン"
           - "6857 アドバンテスト"
           - "6723 ルネサス"
+          - "OpenAI / Anthropic / SpaceX は直接対象ではなく、AIインフラ需要の参照イベント"
         evidenceToCheck:
+          - "Anthropic/SpaceX/OpenAIのS-1・設備投資・compute契約"
           - "NAND市況"
+          - "SSD/eSSD需要"
           - "決算資料"
           - "IPO後需給"
           - "設備投資計画"
         nonMoveReasonCandidates:
           - "theme_right_timing_wrong"
+          - "theme_right_company_wrong"
           - "dilution_or_supply_pressure"
           - "profit_not_connected"
-        lastReviewedAt: "2026-05-30"
+        lastReviewedAt: "2026-06-03"
 
       - code: "8035"
         name: "東京エレクトロン"

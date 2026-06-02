@@ -310,6 +310,19 @@ Web UI では `/roadmap` で確認できます。
 
 現時点で 100% に近づける最大の残タスクは、J-Quants 資格情報を設定して `pnpm daily:full` を実データで継続実行し、mock / missing / stale を消すことです。
 
+## 最新テーマの固定監視
+
+`config/pinned-world-events.yml` に、必ず拾いたいニュースURLを固定できます。`pnpm scan:world` は通常のRSSに加えて、この固定記事も世界イベントとして分類します。
+
+2026-06-03 時点では、FNN の Anthropic IPO申請・SpaceX上場予定・OpenAI上場準備報道を、AI大型IPOレースとして固定監視しています。これは買い推奨ではなく、キオクシアホールディングス(285A)など日本株への波及仮説を作るための材料です。
+
+見るポイント:
+
+- AI IPOが実需拡大なのか、既存投資家の出口流動性イベントなのか
+- AIストレージ需要がNAND/SSD/eSSDに届くか
+- GPU/HBM/電力/光通信の方が先に選ばれるリスク
+- S-1、公式発表、設備投資、compute契約、IPO後需給
+
 ## バックアップと復元
 
 DB と主要データは `pnpm backup` で `backups/YYYY-MM-DDTHH-mm-ss/` に保存します。毎朝 pipeline 用の `scripts/backup-data.sh` は `backups/YYYY-MM-DD/data.tar.gz` に JSON / JSONL / `run-cursors.json` を保存します。

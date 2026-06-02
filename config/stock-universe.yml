@@ -10,6 +10,7 @@ description: "世界情勢テーマ（防衛・半導体・AI・エネルギー�
 sectorThemeMap:
   defense_space: ["war_geopolitics", "security_resilience"]
   semiconductor: ["war_geopolitics", "ai_compute", "trade_supply_chain"]
+  memory_storage: ["ai_compute", "trade_supply_chain"]
   ai_datacenter: ["ai_compute", "energy_security"]
   energy_power: ["energy_security", "climate_heat_water"]
   automation_robotics: ["migration_labor_shortage"]
@@ -60,6 +61,11 @@ stocks:
     name: "野村マイクロ・サイエンス"
     sector: "semiconductor"
     tags: ["semiconductor", "ultrapure_water"]
+
+  - code: "285A"
+    name: "キオクシアホールディングス"
+    sector: "memory_storage"
+    tags: ["semiconductor", "memory", "ai", "ai_ipo", "ipo", "national_policy"]
 
   # ── AIデータセンター・電力インフラ (ai_compute / energy_security) ──
   - code: "6501"

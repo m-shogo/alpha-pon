@@ -1,11 +1,14 @@
 symbols:
   - code: "285A"
-    name: "キオクシア"
+    name: "キオクシアホールディングス"
     market: "TSE"
     status: "research"
     priority: "S"
     tags:
       - semiconductor
+      - ai
+      - ai_ipo
+      - memory
       - ipo
       - national_policy
     rules:

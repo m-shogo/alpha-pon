@@ -1,45 +1,4 @@
 {
-  "candidates": [
-    {
-      "code": "6857",
-      "name": "アドバンテスト",
-      "sector": "semiconductor",
-      "detectedAt": "2026-06-02",
-      "currentPrice": 24075,
-      "high52w": 28615,
-      "drawdownPct": -15.865804647911935,
-      "operatingProfitYoY": 179.51315724996323,
-      "hasDownwardRevision": false,
-      "hasNegativeFlag": false,
-      "hasRecentDisclosure": true,
-      "matchedWorldEventTags": [
-        "war_geopolitics"
-      ],
-      "screeningScore": 90,
-      "warnings": [],
-      "status": "monitoring",
-      "dataSource": "jquants"
-    },
-    {
-      "code": "6254",
-      "name": "野村マイクロ・サイエンス",
-      "sector": "semiconductor",
-      "detectedAt": "2026-06-02",
-      "currentPrice": 3085,
-      "high52w": 4100,
-      "drawdownPct": -24.75609756097561,
-      "operatingProfitYoY": 0,
-      "hasDownwardRevision": false,
-      "hasNegativeFlag": false,
-      "hasRecentDisclosure": true,
-      "matchedWorldEventTags": [
-        "war_geopolitics"
-      ],
-      "screeningScore": 70,
-      "warnings": [],
-      "status": "monitoring",
-      "dataSource": "jquants"
-    }
-  ],
-  "generatedAt": "2026-06-02"
+  "candidates": [],
+  "generatedAt": "2026-06-03"
 }

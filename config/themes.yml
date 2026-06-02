@@ -8,6 +8,12 @@ themes:
   ai:
     label: "AI"
     score: 5
+  ai_ipo:
+    label: "AI IPO"
+    score: 4
+  memory:
+    label: "メモリ"
+    score: 4
   global_ip:
     label: "グローバルIP"
     score: 4

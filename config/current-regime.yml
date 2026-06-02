@@ -2,9 +2,9 @@
 # 目的: その時代に合わせて、見るテーマ・銘柄仮説・反証条件を切り替える。
 # 注意: 買い推奨ではなく、調査・検証・反省用。
 
-asOf: "2026-05-30"
+asOf: "2026-06-03"
 mode: "adaptive_watch"
-summary: "世界情勢・気候・戦争・食糧・人手不足・金融不安などの複合リスクがある前提で、単一テーマに固定せず、複数シナリオを監視する。"
+summary: "世界情勢・気候・戦争・食糧・人手不足・金融不安に加え、Anthropic/SpaceX/OpenAI級のAI大型IPOレースを監視する。AIインフラ需要の実需と、IPO過熱・出口流動性イベントを分けて見る。"
 
 activeRegimes:
   - id: "war_geopolitics"
@@ -25,6 +25,18 @@ activeRegimes:
     caution:
       - "猛暑特需を恒久成長と誤認しない"
       - "電力コスト上昇が逆風になる会社を分ける"
+
+  - id: "ai_ipo_compute_cycle"
+    level: "high_watch"
+    why: "Anthropicのconfidential S-1提出、SpaceX上場予定、OpenAI上場準備報道により、AIインフラ投資・メモリ・電力・宇宙通信・クラウドの資金循環が再評価される可能性がある。"
+    watchCategories:
+      - "semiconductor_memory"
+      - "ai_datacenter_power"
+      - "defense_space"
+    caution:
+      - "大型IPOは実需加速だけでなく、既存投資家の出口流動性イベントでもある"
+      - "AIテーマでもNAND・電力・光通信・GPU/HBMのどこに利益が出るかを分ける"
+      - "上場報道だけで買い判断にせず、S-1/公式発表/設備投資/顧客契約を確認する"
 
   - id: "food_security"
     level: "watch"
@@ -57,3 +69,5 @@ operatingRules:
   - "具体銘柄が不要な局面では、無理に銘柄化せず、テーマ監視に切り替える"
   - "外れた場合は non-move-reasons.yml の分類へ保存する"
   - "情勢DBは月1回、または大きなイベント発生時に見直す"
+  - "Anthropic/SpaceX/OpenAIのようなAI大型IPOは、直接投資対象ではなく、関連日本株への波及仮説として扱う"
+  - "キオクシアホールディングスはAIストレージ需要・NAND市況・IPO後需給・国策支援を同時に確認する"

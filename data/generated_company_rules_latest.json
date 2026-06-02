@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-06-02",
+  "generatedAt": "2026-06-03",
   "count": 7,
   "rules": [
     {
-      "generatedRuleId": "8136-2026-06-02-missing-price",
+      "generatedRuleId": "8136-2026-06-03-missing-price",
       "code": "8136",
       "name": "サンリオ",
-      "generatedAt": "2026-06-02T00:00:00+09:00",
+      "generatedAt": "2026-06-03T00:00:00+09:00",
       "thesis": [
         "監視テーマ: character / global_ip / consumer",
         "発火ルール: healthy_pullback / earnings_drop"
@@ -31,13 +31,13 @@
       ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
-      "reviewDueAt": "2026-07-02T00:00:00+09:00"
+      "reviewDueAt": "2026-07-03T00:00:00+09:00"
     },
     {
-      "generatedRuleId": "4661-2026-06-02-missing-price",
+      "generatedRuleId": "4661-2026-06-03-missing-price",
       "code": "4661",
       "name": "オリエンタルランド",
-      "generatedAt": "2026-06-02T00:00:00+09:00",
+      "generatedAt": "2026-06-03T00:00:00+09:00",
       "thesis": [
         "継続的な設備投資によるリピート誘引",
         "インバウンド需要拡大"
@@ -62,13 +62,13 @@
       ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
-      "reviewDueAt": "2026-07-02T00:00:00+09:00"
+      "reviewDueAt": "2026-07-03T00:00:00+09:00"
     },
     {
-      "generatedRuleId": "7974-2026-06-02-missing-price",
+      "generatedRuleId": "7974-2026-06-03-missing-price",
       "code": "7974",
       "name": "任天堂",
-      "generatedAt": "2026-06-02T00:00:00+09:00",
+      "generatedAt": "2026-06-03T00:00:00+09:00",
       "thesis": [
         "次世代ハード移行期",
         "IP展開の多様化"
@@ -93,13 +93,13 @@
       ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
-      "reviewDueAt": "2026-07-02T00:00:00+09:00"
+      "reviewDueAt": "2026-07-03T00:00:00+09:00"
     },
     {
-      "generatedRuleId": "7011-2026-06-02-missing-price",
+      "generatedRuleId": "7011-2026-06-03-missing-price",
       "code": "7011",
       "name": "三菱重工業",
-      "generatedAt": "2026-06-02T00:00:00+09:00",
+      "generatedAt": "2026-06-03T00:00:00+09:00",
       "thesis": [
         "防衛費増額による受注拡大",
         "原発・エネルギー転換"
@@ -124,13 +124,13 @@
       ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
-      "reviewDueAt": "2026-07-02T00:00:00+09:00"
+      "reviewDueAt": "2026-07-03T00:00:00+09:00"
     },
     {
-      "generatedRuleId": "5803-2026-06-02-missing-price",
+      "generatedRuleId": "5803-2026-06-03-missing-price",
       "code": "5803",
       "name": "フジクラ",
-      "generatedAt": "2026-06-02T00:00:00+09:00",
+      "generatedAt": "2026-06-03T00:00:00+09:00",
       "thesis": [
         "AI/データセンター向け光ファイバー需要急拡大"
       ],
@@ -154,13 +154,13 @@
       ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
-      "reviewDueAt": "2026-07-02T00:00:00+09:00"
+      "reviewDueAt": "2026-07-03T00:00:00+09:00"
     },
     {
-      "generatedRuleId": "8306-2026-06-02-missing-price",
+      "generatedRuleId": "8306-2026-06-03-missing-price",
       "code": "8306",
       "name": "三菱UFJフィナンシャル・グループ",
-      "generatedAt": "2026-06-02T00:00:00+09:00",
+      "generatedAt": "2026-06-03T00:00:00+09:00",
       "thesis": [
         "金利上昇局面での利ザヤ改善",
         "海外収益拡大"
@@ -185,15 +185,15 @@
       ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
-      "reviewDueAt": "2026-07-02T00:00:00+09:00"
+      "reviewDueAt": "2026-07-03T00:00:00+09:00"
     },
     {
-      "generatedRuleId": "285A-2026-06-02-missing-price",
+      "generatedRuleId": "285A-2026-06-03-missing-price",
       "code": "285A",
-      "name": "キオクシア",
-      "generatedAt": "2026-06-02T00:00:00+09:00",
+      "name": "キオクシアホールディングス",
+      "generatedAt": "2026-06-03T00:00:00+09:00",
       "thesis": [
-        "監視テーマ: semiconductor / ipo / national_policy",
+        "監視テーマ: semiconductor / ai / ai_ipo / memory / ipo / national_policy",
         "発火ルール: ipo_selling_pressure_done / volume_cooling / no_new_low"
       ],
       "actionSignal": "NO_ACTION",
@@ -216,7 +216,7 @@
       ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
-      "reviewDueAt": "2026-07-02T00:00:00+09:00"
+      "reviewDueAt": "2026-07-03T00:00:00+09:00"
     }
   ]
 }

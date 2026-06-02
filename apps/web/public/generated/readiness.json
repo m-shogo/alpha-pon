@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-06-02",
-  "overallScore": 83,
-  "overallStatus": "partial",
+  "generatedAt": "2026-06-03",
+  "overallScore": 85,
+  "overallStatus": "done",
   "blockers": [],
   "items": [
     {
@@ -34,12 +34,12 @@
     {
       "id": "hypothesis-outcomes",
       "label": "仮説検証の厚み",
-      "score": 78,
+      "score": 92,
       "evidence": [
         "hypotheses: 16",
-        "outcomes: 4",
+        "outcomes: 16",
         "priced outcomes: 4",
-        "real outcomes: 4",
+        "real outcomes: 16",
         "SQLite outcome DB: present",
         "score bands: present"
       ],
@@ -47,7 +47,7 @@
         "reviewDueAt を過ぎた仮説を J-Quants 実データで review:hypotheses する",
         "1w/1m/3m と TOPIX比が入った outcome を蓄積する"
       ],
-      "status": "partial"
+      "status": "done"
     },
     {
       "id": "primary-disclosures",
@@ -55,7 +55,7 @@
       "score": 65,
       "evidence": [
         "primaryDisclosureReviews: 2",
-        "dataQuality warnings: 15",
+        "dataQuality warnings: 10",
         "daily:full primary scans: included"
       ],
       "nextActions": [
@@ -87,8 +87,8 @@
         "script:backup present",
         "outcome DB: present",
         "jobs DB: present",
-        "backup count: 4",
-        "latest backup: 2026-06-02T17-05-13 (0d)",
+        "backup count: 5",
+        "latest backup: 2026-06-02T23-50-09 (0d)",
         "run cursors: universe-scan, analogy-review"
       ],
       "nextActions": [

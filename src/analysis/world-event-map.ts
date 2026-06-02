@@ -58,11 +58,11 @@ type CategoryRule = {
 
 const OFFICIAL_SOURCES = ["who", "cdc", "nasa", "faa", "sec", "edinet", "tdnet", "jpx", "boj", "ministry", "government", "gov", "fda", "ecdc"];
 const TIER1_SOURCES = ["reuters", "associated press", "ap news", "bbc", "bloomberg", "financial times", "nikkei", "wsj", "the wall street journal"];
-const TIER2_SOURCES = ["the verge", "guardian", "cnbc", "techcrunch", "barron's", "barrons", "forbes", "yahoo", "marketwatch"];
+const TIER2_SOURCES = ["the verge", "guardian", "cnbc", "techcrunch", "barron's", "barrons", "forbes", "yahoo", "marketwatch", "fnn", "fujitv"];
 const SOCIAL_HINTS = ["x.com", "twitter", "reddit", "tiktok", "youtube", "telegram", "weibo", "facebook"];
 
 const RUMOR_HINTS = ["rumor", "unconfirmed", "reportedly", "allegedly", "claims", "may", "might", "噂", "未確認", "可能性", "とされる", "報道によると"];
-const CONFIRMED_HINTS = ["confirmed", "official", "announced", "statement", "filing", "press release", "declared", "確認", "公式", "発表", "声明", "開示"];
+const CONFIRMED_HINTS = ["confirmed", "official", "announced", "statement", "filing", "press release", "declared", "submitted", "確認", "公式", "発表", "声明", "開示", "提出", "申請"];
 const DEVELOPING_HINTS = ["breaking", "developing", "速報", "詳報", "update"];
 
 const RULES: CategoryRule[] = [
@@ -88,13 +88,13 @@ const RULES: CategoryRule[] = [
   },
   {
     category: "ai_compute",
-    keywords: ["ai", "artificial intelligence", "gpu", "nvidia", "datacenter", "data center", "semiconductor", "chip", "compute", "生成ai", "半導体", "データセンター", "gpu", "計算資源"],
-    impactedTags: ["ai", "software", "semiconductor", "datacenter", "power", "cloud", "cooling", "security"],
+    keywords: ["ai", "artificial intelligence", "gpu", "nvidia", "datacenter", "data center", "semiconductor", "chip", "compute", "ipo", "s-1", "anthropic", "openai", "claude", "chatgpt", "生成ai", "半導体", "データセンター", "gpu", "計算資源", "上場", "新規株式公開", "アンソロピック", "オープンai"],
+    impactedTags: ["ai", "ai_ipo", "software", "semiconductor", "memory", "datacenter", "power", "cloud", "cooling", "security"],
     hypothesisClusters: ["ai-sovereignty", "energy-transition", "security-resilience"],
-    possibleBeneficiaries: ["半導体", "データセンター", "電力設備", "冷却", "クラウド", "セキュリティ", "業務ソフト"],
-    possibleRisks: ["設備投資サイクル天井", "電力制約", "輸出規制", "期待先行", "価格競争"],
-    watchQuestions: ["AI需要は売上/利益に変換されているか？", "電力・冷却がボトルネックか？", "輸出規制や国産化が追い風/逆風か？", "短期急騰で織り込み済みではないか？"],
-    primaryChecks: ["設備投資計画", "データセンター建設", "電力契約", "主要顧客決算", "規制/輸出管理"],
+    possibleBeneficiaries: ["半導体", "メモリ/NAND/HBM", "データセンター", "電力設備", "冷却", "クラウド", "セキュリティ", "業務ソフト"],
+    possibleRisks: ["IPO大型化による換金売り", "設備投資サイクル天井", "電力制約", "輸出規制", "期待先行", "価格競争"],
+    watchQuestions: ["AI需要は売上/利益に変換されているか？", "AI IPOは実需拡大か、出口流動性イベントか？", "電力・冷却・メモリがボトルネックか？", "輸出規制や国産化が追い風/逆風か？", "短期急騰で織り込み済みではないか？"],
+    primaryChecks: ["SEC S-1/公式発表", "設備投資計画", "データセンター建設", "電力契約", "主要顧客決算", "規制/輸出管理"],
   },
   {
     category: "energy_security",

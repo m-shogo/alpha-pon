@@ -127,7 +127,7 @@ companies:
       - "情報通信/電力関連の受注"
 
   "285A":
-    name: "キオクシア"
+    name: "キオクシアホールディングス"
     categoryHints:
       - "semiconductor_memory"
     parents: []
@@ -150,12 +150,17 @@ companies:
     customerOrDemandDrivers:
       - "NAND市況"
       - "AIストレージ需要"
+      - "Anthropic/SpaceX/OpenAIなどAI大型IPO後のAIインフラ投資"
+      - "データセンター向けSSD/eSSD需要"
       - "スマホ/PC需要"
     betterPeerRisk:
       - "メモリメーカーより装置・検査銘柄の方が先に買われる可能性"
+      - "AI IPOテーマではGPU/HBM/電力/光通信銘柄が先に選ばれる可能性"
       - "IPO後需給が重く、テーマが正しくても上がらない可能性"
     evidenceChecks:
+      - "AI企業S-1/公式発表のcompute・設備投資・リスク開示"
       - "NAND価格"
+      - "SSD/eSSD需要"
       - "設備投資"
       - "FCF"
       - "IPO後の需給"

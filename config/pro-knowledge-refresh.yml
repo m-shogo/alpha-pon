@@ -58,10 +58,14 @@ refreshDomains:
       - "データセンター空調"
       - "光通信/電線/銅"
       - "AIソフトウェア収益化"
+      - "AI大型IPO（Anthropic / SpaceX / OpenAI）"
+      - "NAND/SSD/eSSD"
     mustUpdateWhen:
       - "大型設備投資変更"
       - "供給制約/価格急変"
       - "AI収益化の鈍化/加速"
+      - "Anthropic/SpaceX/OpenAIのS-1・公式発表・上場条件"
+      - "AI IPO後の資金吸収/換金売り/関連株過熱"
       - "規制/著作権/安全基準の変化"
 
   - id: "space_satellite_starlink"

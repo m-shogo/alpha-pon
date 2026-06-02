@@ -2,8 +2,9 @@
 // ニュース/RSSから、AI・宇宙・WHO緊急事態・大統領選・エネルギー・人手不足などを分類する
 // pnpm scan:world
 
-import { mkdirSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
+import { load } from "js-yaml";
 import { todayJst } from "./date.js";
 import { classifyWorldEvent, summarizeWorldEvents, type ClassifiedWorldEvent, type WorldEventArticle } from "./analysis/world-event-map.js";
 import { buildWorldEventReflections, saveWorldEventReflections } from "./analysis/world-event-reflection.js";
@@ -13,6 +14,7 @@ const DEFAULT_FEEDS = [
   "https://news.google.com/rss/search?q=WHO+public+health+emergency+OR+outbreak&hl=en-US&gl=US&ceid=US:en",
   "https://news.google.com/rss/search?q=space+satellite+Starlink+rocket+launch&hl=en-US&gl=US&ceid=US:en",
   "https://news.google.com/rss/search?q=AI+semiconductor+datacenter+power+grid&hl=en-US&gl=US&ceid=US:en",
+  "https://news.google.com/rss/search?q=Anthropic+OpenAI+SpaceX+IPO+AI+compute&hl=en-US&gl=US&ceid=US:en",
   "https://news.google.com/rss/search?q=presidential+election+tariff+sanction+subsidy&hl=en-US&gl=US&ceid=US:en",
   "https://news.google.com/rss/search?q=oil+energy+LNG+nuclear+power+grid&hl=en-US&gl=US&ceid=US:en",
   "https://news.google.com/rss/search?q=Japan+labor+shortage+immigration+aging+robotics&hl=en-US&gl=US&ceid=US:en",
@@ -25,6 +27,22 @@ const DEFAULT_FEEDS = [
   "https://news.google.com/rss/search?q=submarine+cable+internet+outage+military+finance+satellite&hl=en-US&gl=US&ceid=US:en",
   "https://news.google.com/rss/search?q=rare+earth+critical+minerals+lithium+battery+export+control&hl=en-US&gl=US&ceid=US:en",
 ];
+
+type PinnedWorldEventsConfig = {
+  articles?: WorldEventArticle[];
+};
+
+function loadPinnedArticles(): WorldEventArticle[] {
+  const path = join(process.cwd(), "config", "pinned-world-events.yml");
+  if (!existsSync(path)) return [];
+  try {
+    const parsed = load(readFileSync(path, "utf-8")) as PinnedWorldEventsConfig;
+    return (parsed.articles ?? []).filter(article => article.title && article.url);
+  } catch (error) {
+    console.warn(`pinned world events 読み込み失敗: ${error instanceof Error ? error.message : error}`);
+    return [];
+  }
+}
 
 function decodeXml(text: string): string {
   return text
@@ -191,8 +209,10 @@ async function main() {
   console.log(`alpha-pon 世界イベントスキャン: ${date}`);
   console.log(`feeds: ${feeds.length}`);
 
-  const articles: WorldEventArticle[] = [];
+  const pinnedArticles = loadPinnedArticles();
+  const articles: WorldEventArticle[] = [...pinnedArticles];
   const errors: string[] = [];
+  if (pinnedArticles.length > 0) console.log(`pinned: ${pinnedArticles.length}`);
 
   for (const feed of feeds) {
     try {
