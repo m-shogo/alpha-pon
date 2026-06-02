@@ -3,7 +3,7 @@
 
 import { readdirSync, readFileSync, writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
-import { fetchDailyQuotes } from "./fetcher/jquants.js";
+import { fetchDailyQuotes, isJQuantsConfigured } from "./fetcher/jquants.js";
 import { addDaysJst, todayJst, toCompactDate } from "./date.js";
 
 type ScoreEntry = {
@@ -122,12 +122,12 @@ function groupRows(rows: BacktestRow[], groupName: string, pick: (row: BacktestR
 
 async function main() {
   const today = todayJst();
-  const hasJquants = !!process.env.JQUANTS_EMAIL && !!process.env.JQUANTS_PASSWORD;
+  const hasJquants = isJQuantsConfigured();
 
   console.log(`\nalpha-pon バックテスト: ${today}\n`);
 
   if (!hasJquants) {
-    console.log("⚠️  JQUANTS_EMAIL/JQUANTS_PASSWORD 未設定: 価格データなしで履歴のみ出力します\n");
+    console.log("⚠️  JQUANTS_API_KEY または JQUANTS_EMAIL/PASSWORD 未設定: 価格データなしで履歴のみ出力します\n");
   }
 
   const reportsDir = "reports";

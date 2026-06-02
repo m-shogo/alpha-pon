@@ -1,7 +1,8 @@
-// J-Quants API Free プランクライアント
+// J-Quants API クライアント
 // Docs: https://jpx-jquants.com/
 
-const BASE_URL = "https://api.jquants.com/v1";
+const V1_BASE_URL = "https://api.jquants.com/v1";
+const V2_BASE_URL = "https://api.jquants.com/v2";
 
 type TokenCache = {
   idToken: string;
@@ -10,6 +11,23 @@ type TokenCache = {
 
 let tokenCache: TokenCache | null = null;
 
+export function isJQuantsConfigured(): boolean {
+  return Boolean(
+    process.env.JQUANTS_API_KEY ||
+    (process.env.JQUANTS_EMAIL && process.env.JQUANTS_PASSWORD)
+  );
+}
+
+function toCompactDate(date: string): string {
+  return date.replace(/-/g, "");
+}
+
+function numberOrNull(value: unknown): number | null {
+  if (value == null || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
 async function getRefreshToken(): Promise<string> {
   const email = process.env.JQUANTS_EMAIL;
   const password = process.env.JQUANTS_PASSWORD;
@@ -17,7 +35,7 @@ async function getRefreshToken(): Promise<string> {
     throw new Error("JQUANTS_EMAIL / JQUANTS_PASSWORD が未設定");
   }
 
-  const res = await fetch(`${BASE_URL}/token/auth_user`, {
+  const res = await fetch(`${V1_BASE_URL}/token/auth_user`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ mailaddress: email, password }),
@@ -33,7 +51,7 @@ async function getRefreshToken(): Promise<string> {
 
 async function getIdToken(refreshToken: string): Promise<string> {
   const res = await fetch(
-    `${BASE_URL}/token/auth_refresh?refreshtoken=${encodeURIComponent(refreshToken)}`,
+    `${V1_BASE_URL}/token/auth_refresh?refreshtoken=${encodeURIComponent(refreshToken)}`,
     { method: "POST" }
   );
 
@@ -57,20 +75,57 @@ async function ensureToken(): Promise<string> {
   return idToken;
 }
 
-async function get<T>(path: string, params: Record<string, string> = {}): Promise<T> {
+async function getV1<T>(path: string, params: Record<string, string> = {}): Promise<T> {
   const token = await ensureToken();
   const query = new URLSearchParams(params).toString();
-  const url = `${BASE_URL}${path}${query ? "?" + query : ""}`;
+  const url = `${V1_BASE_URL}${path}${query ? "?" + query : ""}`;
 
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
   if (!res.ok) {
-    throw new Error(`J-Quants APIエラー ${path}: ${res.status}`);
+    throw new Error(`J-Quants V1 APIエラー ${path}: ${res.status}`);
   }
 
   return res.json() as Promise<T>;
+}
+
+async function getV2Paginated<T>(path: string, params: Record<string, string> = {}): Promise<T[]> {
+  const apiKey = process.env.JQUANTS_API_KEY;
+  if (!apiKey) throw new Error("JQUANTS_API_KEY が未設定");
+
+  const rows: T[] = [];
+  const queryParams = { ...params };
+
+  while (true) {
+    const query = new URLSearchParams(queryParams).toString();
+    const url = `${V2_BASE_URL}${path}${query ? "?" + query : ""}`;
+    const res = await fetch(url, {
+      headers: {
+        "x-api-key": apiKey,
+        "User-Agent": "alpha-pon/0.1",
+      },
+    });
+
+    if (!res.ok) {
+      let detail = "";
+      try {
+        const body = await res.json() as { message?: string };
+        detail = body.message ? `: ${body.message}` : "";
+      } catch {
+        detail = "";
+      }
+      throw new Error(`J-Quants V2 APIエラー ${path}: ${res.status}${detail}`);
+    }
+
+    const payload = await res.json() as { data?: T[]; pagination_key?: string };
+    rows.push(...(payload.data ?? []));
+    if (!payload.pagination_key) break;
+    queryParams.pagination_key = payload.pagination_key;
+  }
+
+  return rows;
 }
 
 export type DailyQuote = {
@@ -84,6 +139,19 @@ export type DailyQuote = {
   AdjustmentFactor: number;
   AdjustmentClose: number;
   AdjustmentVolume: number;
+};
+
+type V2DailyQuote = {
+  Code: string;
+  Date: string;
+  O: number | null;
+  H: number | null;
+  L: number | null;
+  C: number | null;
+  Vo: number | null;
+  AdjFactor: number | null;
+  AdjC: number | null;
+  AdjVo: number | null;
 };
 
 export type FinancialStatement = {
@@ -110,23 +178,100 @@ export type FinancialStatement = {
   CapitalExpenditure?: number | null;
 };
 
+type V2FinancialSummary = {
+  DiscDate: string;
+  DiscTime: string;
+  Code: string;
+  DocType?: string;
+  CurPerType?: string;
+  Sales?: number | string | null;
+  OP?: number | string | null;
+  OdP?: number | string | null;
+  NP?: number | string | null;
+  FSales?: number | string | null;
+  FOP?: number | string | null;
+  TA?: number | string | null;
+  Eq?: number | string | null;
+  CashEq?: number | string | null;
+  CFO?: number | string | null;
+  CFI?: number | string | null;
+  CFF?: number | string | null;
+};
+
+function normalizeV2Quote(row: V2DailyQuote): DailyQuote {
+  return {
+    Code: row.Code,
+    Date: toCompactDate(row.Date),
+    Open: row.O ?? 0,
+    High: row.H ?? 0,
+    Low: row.L ?? 0,
+    Close: row.C ?? 0,
+    Volume: row.Vo ?? 0,
+    AdjustmentFactor: row.AdjFactor ?? 1,
+    AdjustmentClose: row.AdjC ?? row.C ?? 0,
+    AdjustmentVolume: row.AdjVo ?? row.Vo ?? 0,
+  };
+}
+
+function normalizeV1Quote(row: DailyQuote): DailyQuote {
+  return { ...row, Date: toCompactDate(row.Date) };
+}
+
+function normalizeV2Financial(row: V2FinancialSummary): FinancialStatement {
+  const docType = [row.DocType, row.CurPerType].filter(Boolean).join(" ");
+  return {
+    DisclosedDate: row.DiscDate,
+    DisclosedTime: row.DiscTime,
+    LocalCode: row.Code,
+    NetSales: numberOrNull(row.Sales),
+    OperatingProfit: numberOrNull(row.OP),
+    OrdinaryProfit: numberOrNull(row.OdP),
+    Profit: numberOrNull(row.NP),
+    ForecastNetSales: numberOrNull(row.FSales),
+    ForecastOperatingProfit: numberOrNull(row.FOP),
+    TypeOfDocument: docType,
+    TotalAssets: numberOrNull(row.TA),
+    Equity: numberOrNull(row.Eq),
+    CashAndEquivalents: numberOrNull(row.CashEq),
+    CashFlowsFromOperatingActivities: numberOrNull(row.CFO),
+    CashFlowsFromInvestingActivities: numberOrNull(row.CFI),
+    CashFlowsFromFinancingActivities: numberOrNull(row.CFF),
+  };
+}
+
 export async function fetchDailyQuotes(
   code: string,
   from: string,
   to: string
 ): Promise<DailyQuote[]> {
-  const data = await get<{ daily_quotes: DailyQuote[] }>("/prices/daily_quotes", {
+  if (process.env.JQUANTS_API_KEY) {
+    const rows = await getV2Paginated<V2DailyQuote>("/equities/bars/daily", {
+      code,
+      from,
+      to,
+    });
+    return rows.map(normalizeV2Quote);
+  }
+
+  const data = await getV1<{ daily_quotes: DailyQuote[] }>("/prices/daily_quotes", {
     code,
     from,
     to,
   });
-  return data.daily_quotes ?? [];
+  return (data.daily_quotes ?? []).map(normalizeV1Quote);
 }
 
 export async function fetchFinancialStatements(
   code: string
 ): Promise<FinancialStatement[]> {
-  const data = await get<{ statements: FinancialStatement[] }>("/fins/statements", {
+  if (process.env.JQUANTS_API_KEY) {
+    const rows = await getV2Paginated<V2FinancialSummary>("/fins/summary", {
+      code,
+    });
+    return rows.map(normalizeV2Financial);
+  }
+
+  const data = await getV1<{ statements: FinancialStatement[] }>("/fins/statements", {
     code,
   });
   return data.statements ?? [];
@@ -182,7 +327,8 @@ export function calcFinancialStats(statements: FinancialStatement[]): FinancialS
   const annual = statements
     .filter(s =>
       s.TypeOfDocument.includes("Annual") ||
-      s.TypeOfDocument.includes("Q4")
+      s.TypeOfDocument.includes("Q4") ||
+      s.TypeOfDocument.includes("FY")
     )
     .sort((a, b) => b.DisclosedDate.localeCompare(a.DisclosedDate));
 

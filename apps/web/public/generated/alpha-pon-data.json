@@ -1126,7 +1126,7 @@
       "warnings": [
         "一次情報で注意開示を検出",
         "一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404",
-        "JQUANTS_EMAIL/PASSWORDが未設定のため、価格・財務の本番データは取得していません",
+        "JQUANTS_API_KEY または JQUANTS_EMAIL/PASSWORD が未設定のため、価格・財務の本番データは取得していません",
         "一次情報注意: 一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404"
       ]
     },
@@ -1137,7 +1137,7 @@
         "流行テーマまたは短期上昇があり、過熱していないか確認してください",
         "一次情報で注意開示を検出",
         "一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404",
-        "JQUANTS_EMAIL/PASSWORDが未設定のため、価格・財務の本番データは取得していません",
+        "JQUANTS_API_KEY または JQUANTS_EMAIL/PASSWORD が未設定のため、価格・財務の本番データは取得していません",
         "一次情報注意: 一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404"
       ]
     }
@@ -1147,7 +1147,7 @@
     "overallScore": 56,
     "overallStatus": "partial",
     "blockers": [
-      "J-Quants実データ運用: .env に JQUANTS_EMAIL / JQUANTS_PASSWORD を設定する"
+      "J-Quants実データ運用: .env に JQUANTS_API_KEY を設定する"
     ],
     "items": [
       {
@@ -1160,7 +1160,7 @@
           "dataQuality missing/unknown: 0"
         ],
         "nextActions": [
-          ".env に JQUANTS_EMAIL / JQUANTS_PASSWORD を設定する",
+          ".env に JQUANTS_API_KEY を設定する",
           "pnpm daily:full を実データで再実行する"
         ],
         "status": "blocked"

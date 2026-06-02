@@ -5,7 +5,7 @@
 // 注意: 買い推奨ではない。条件一致の通知・調査用。
 //
 // 動作モード:
-//   JQUANTS_EMAIL + JQUANTS_PASSWORD が設定済み → J-Quants API（本番）
+//   JQUANTS_API_KEY または JQUANTS_EMAIL + JQUANTS_PASSWORD が設定済み → J-Quants API（本番）
 //   --mock または USE_MOCK=true が指定されている → モックデータ使用
 //   J-Quants未設定 → モックデータ使用（本番データではないことを出力に明示）
 
@@ -17,6 +17,7 @@ import {
   fetchFinancialStatements,
   calcPriceStats,
   calcFinancialStats,
+  isJQuantsConfigured,
 } from "./fetcher/jquants.js";
 import { todayJst, addDaysJst } from "./date.js";
 import type { UniverseCandidate, WorldContextRegime } from "./universe.js";
@@ -60,10 +61,6 @@ function loadCurrentRegime(): CurrentRegime {
 
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function isJQuantsConfigured(): boolean {
-  return Boolean(process.env.JQUANTS_EMAIL && process.env.JQUANTS_PASSWORD);
 }
 
 function isMockEnabled(): boolean {

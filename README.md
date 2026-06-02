@@ -203,6 +203,7 @@ cp .env.example .env
 `.env` に必要な値を入れる。
 
 ```env
+JQUANTS_API_KEY=
 JQUANTS_EMAIL=
 JQUANTS_PASSWORD=
 LINE_CHANNEL_TOKEN=
@@ -249,7 +250,7 @@ node --import tsx/esm tests/analysis.test.ts
 > `daily:full` は、世界情勢スキャン、TDnet dry-run、有報スキャン、daily、ユニバーススキャン、会社ルール生成、仮説生成、outcomeレビュー、company memory、readiness、Web JSON生成までをまとめて呼ぶ手動版。
 > J-Quants が未設定の場合、`scan:universe` は local mock JSON を使います。画面では MOCK と明示され、実データとして扱いません。
 > J-Quants が未設定でも、`pnpm daily` は TDnet/EDINET の一次情報レビューだけは score JSON に残します。
-> `pnpm daily` / `pnpm daily:full` を価格・財務まで実データ運用にするには `.env` の `JQUANTS_EMAIL` / `JQUANTS_PASSWORD` が必要です。
+> `pnpm daily` / `pnpm daily:full` を価格・財務まで実データ運用にするには `.env` の `JQUANTS_API_KEY` が必要です。旧V1互換として `JQUANTS_EMAIL` / `JQUANTS_PASSWORD` も残しています。
 
 `reports/latest.md` にサマリーが出力される。  
 `reports/<コード>_<日付>.md` に個別レポートが出力される。  
@@ -408,10 +409,9 @@ alpha-pon/
 J-Quants Free プランを使うと、`scan:universe` で 30 銘柄の実株価・財務データをスクリーニングできます。
 
 1. [J-Quants](https://www.jpx.co.jp/markets/paid-info-equities/jquants/index.html) に登録（無料プランあり）
-2. `.env` に認証情報を設定:
+2. `.env` に API キーを設定:
    ```
-   JQUANTS_EMAIL=your@email.com
-   JQUANTS_PASSWORD=your_password
+   JQUANTS_API_KEY=your_api_key
    ```
 3. 動作確認:
    ```bash
@@ -434,8 +434,9 @@ J-Quants Free プランを使うと、`scan:universe` で 30 銘柄の実株価�
    | 変数名 | 用途 | 必須 |
    |---|---|---|
    | `APP_MODE` | `portfolio`（公開用）または `private` | 推奨 |
-   | `JQUANTS_EMAIL` | J-Quants 認証 | 実データ時のみ |
-   | `JQUANTS_PASSWORD` | J-Quants 認証 | 実データ時のみ |
+   | `JQUANTS_API_KEY` | J-Quants V2 認証 | 実データ時のみ |
+   | `JQUANTS_EMAIL` | J-Quants V1 互換認証 | 任意 |
+   | `JQUANTS_PASSWORD` | J-Quants V1 互換認証 | 任意 |
    | `LINE_CHANNEL_TOKEN` | LINE 通知 | 任意 |
    | `LINE_USER_ID` | LINE 通知 | 任意 |
 

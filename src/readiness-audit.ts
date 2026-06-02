@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
+import { isJQuantsConfigured } from "./fetcher/jquants.js";
 
 type ReadinessStatus = "done" | "partial" | "blocked" | "not_started";
 
@@ -112,7 +113,7 @@ function buildReport(): ReadinessReport {
   const hasPrimaryPipeline = dailyFull.includes("sync:tdnet") && dailyFull.includes("scan:edinet:annual");
   const hasCompanyMemoryPipeline = dailyFull.includes("memory:companies");
 
-  const jquantsConfigured = Boolean(process.env.JQUANTS_EMAIL && process.env.JQUANTS_PASSWORD);
+  const jquantsConfigured = isJQuantsConfigured();
   const mockUniverse = universe.filter(candidate => candidate.dataSource === "mock").length;
   const missingQuality = dataQuality.filter(row => row.dataQuality === "missing" || row.dataQuality === "unknown").length;
   const qualityWarnings = dataQuality.reduce((sum, row) => sum + (row.warnings?.length ?? 0), 0);
@@ -132,7 +133,7 @@ function buildReport(): ReadinessReport {
       ],
       nextActions: jquantsConfigured
         ? ["pnpm daily:full を数日連続で実行し、mock と missing が消えるか確認する"]
-        : [".env に JQUANTS_EMAIL / JQUANTS_PASSWORD を設定する", "pnpm daily:full を実データで再実行する"],
+        : [".env に JQUANTS_API_KEY を設定する", "pnpm daily:full を実データで再実行する"],
     }),
     item({
       id: "pipeline",

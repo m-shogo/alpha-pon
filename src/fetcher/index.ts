@@ -3,6 +3,7 @@ import {
   fetchFinancialStatements,
   calcPriceStats,
   calcFinancialStats,
+  isJQuantsConfigured,
 } from "./jquants.js";
 import type { DailyQuote, FinancialStatement } from "./jquants.js";
 import { fetchTdnetDisclosures, type TdnetDisclosure } from "./jpx.js";
@@ -291,9 +292,8 @@ export async function fetchCandidateData(
     return { data, dataQuality, warnings: ["明示的にモックデータを使用中"] };
   }
 
-  const hasJquants = !!process.env.JQUANTS_EMAIL && !!process.env.JQUANTS_PASSWORD;
-  if (!hasJquants) {
-    const warnings = ["JQUANTS_EMAIL/PASSWORDが未設定のため、価格・財務の本番データは取得していません"];
+  if (!isJQuantsConfigured()) {
+    const warnings = ["JQUANTS_API_KEY または JQUANTS_EMAIL/PASSWORD が未設定のため、価格・財務の本番データは取得していません"];
     const data: MockData = {};
     await attachPrimaryDisclosureReview(candidate, data, warnings);
 

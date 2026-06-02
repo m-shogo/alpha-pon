@@ -7,7 +7,7 @@
 
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from "fs";
 import { addDaysJst, toCompactDate, todayJst } from "./date.js";
-import { fetchDailyQuotes } from "./fetcher/jquants.js";
+import { fetchDailyQuotes, isJQuantsConfigured } from "./fetcher/jquants.js";
 import type {
   StockCandidateHypothesis,
   HypothesisOutcome,
@@ -44,10 +44,6 @@ function appendOutcome(o: HypothesisOutcome): void {
 }
 
 // ── J-Quants チェック ─────────────────────────────────────────
-
-function isJQuantsConfigured(): boolean {
-  return Boolean(process.env.JQUANTS_EMAIL && process.env.JQUANTS_PASSWORD);
-}
 
 // ── リターン計算 ──────────────────────────────────────────────
 

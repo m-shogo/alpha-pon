@@ -172,7 +172,7 @@ function buildProposals(input: {
       title: "J-Quants / 株価 / ベンチマーク取得率を改善する",
       reason: "価格・ベンチマーク比が弱いと、same/oppositeや相対リターンの答え合わせが歪みます。",
       evidence: [`dataQuality missing=${dataMissing}/${total} (${pct(dataMissing, total)})`, `J-Quants系warning=${jquantsWarnings}`],
-      action: "JQUANTS_EMAIL/PASSWORD、MARKET_BENCHMARK_CODE、欠損時のfallbackを確認する。",
+      action: "JQUANTS_API_KEY、MARKET_BENCHMARK_CODE、欠損時のfallbackを確認する。",
       safety: "価格データ欠損時は通知ではなくログ扱いを維持する。",
     });
   }

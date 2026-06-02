@@ -3,7 +3,7 @@
   "overallScore": 56,
   "overallStatus": "partial",
   "blockers": [
-    "J-Quants実データ運用: .env に JQUANTS_EMAIL / JQUANTS_PASSWORD を設定する"
+    "J-Quants実データ運用: .env に JQUANTS_API_KEY を設定する"
   ],
   "items": [
     {
@@ -16,7 +16,7 @@
         "dataQuality missing/unknown: 0"
       ],
       "nextActions": [
-        ".env に JQUANTS_EMAIL / JQUANTS_PASSWORD を設定する",
+        ".env に JQUANTS_API_KEY を設定する",
         "pnpm daily:full を実データで再実行する"
       ],
       "status": "blocked"
