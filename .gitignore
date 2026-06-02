@@ -41,3 +41,7 @@ data/world_event_reflections_latest.json
 # デザイン確認用の一時出力
 design/alpha-pon-standalone.html
 design/screenshots/*.png
+
+# 実行時生成ファイル
+backups/
+data/run-cursors.json
