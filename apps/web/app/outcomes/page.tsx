@@ -69,6 +69,41 @@ export default function OutcomesPage() {
                 </div>
               ))}
             </div>
+
+            {/* watch/log/ignore 別成績 */}
+            {summary.byActionLabel && (
+              <>
+                <SectionLabel icon={<Icon name="filter" size={15} />}>分類別 TOPIX超過リターン</SectionLabel>
+                <div style={{ marginBottom: 16, background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--card-line)', boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+                    <thead>
+                      <tr style={{ background: 'var(--surface-2)' }}>
+                        <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>分類</th>
+                        <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>件数</th>
+                        <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>平均超過1W</th>
+                        <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>平均超過1M</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(['watch', 'log', 'ignore'] as const).map((label, i) => {
+                        const stats = summary.byActionLabel?.[label]
+                        const fmtPct = (v: number | null | undefined) =>
+                          v == null ? <span style={{ color: 'var(--ink-3)' }}>N/A</span>
+                            : <span style={{ color: v >= 0 ? 'var(--mint-deep)' : 'var(--urgent)', fontWeight: 700 }}>{v >= 0 ? '+' : ''}{v.toFixed(1)}%</span>
+                        return (
+                          <tr key={label} style={{ borderTop: i > 0 ? '1px solid var(--line)' : undefined }}>
+                            <td style={{ padding: '8px 12px', fontWeight: 700, color: 'var(--ink)' }}>{label}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right', color: 'var(--ink-3)', fontWeight: 600 }}>{stats?.total ?? 0}件</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right' }}>{fmtPct(stats?.avgExcessReturn1w)}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right' }}>{fmtPct(stats?.avgExcessReturn1m)}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
           </>
         )}
 
@@ -103,8 +138,16 @@ export default function OutcomesPage() {
                     </div>
                     <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 600, color: 'var(--ink-3)' }}>
                       検証日: {o.evaluatedAt} ・ 仮説日: {o.hypothesis.detectedAt} ({o.hypothesis.label})
+                      {' '}・ 分類: <span style={{ fontWeight: 800, color: 'var(--ink)' }}>{o.actionLabel}</span>
+                      {o.scoreAtPrediction != null && (
+                        <span> ・ 予測時スコア: <span style={{ fontWeight: 800, color: 'var(--ink)' }}>{o.scoreAtPrediction}</span></span>
+                      )}
                     </p>
                     <div style={{ display: 'flex', gap: 14, fontSize: 12.5, flexWrap: 'wrap' }}>
+                      <div>
+                        <span style={{ color: 'var(--ink-3)', marginRight: 4 }}>1D</span>
+                        <ReturnCell value={o.return1d} />
+                      </div>
                       <div>
                         <span style={{ color: 'var(--ink-3)', marginRight: 4 }}>1W</span>
                         <ReturnCell value={o.return1w} />
@@ -114,7 +157,7 @@ export default function OutcomesPage() {
                         <ReturnCell value={o.return1m} />
                       </div>
                       <div>
-                        <span style={{ color: 'var(--ink-3)', marginRight: 4 }}>TOPIX比</span>
+                        <span style={{ color: 'var(--ink-3)', marginRight: 4 }}>TOPIX比1M</span>
                         <ReturnCell value={o.relativeToTopix1m} />
                       </div>
                       <div>

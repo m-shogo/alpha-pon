@@ -46,22 +46,30 @@ export type StockCandidateHypothesis = {
   label: HypothesisLabel;
 };
 
+export type HypothesisActionLabel = "watch" | "log" | "ignore";
+
 export type HypothesisOutcome = {
   schemaVersion: 1;
   code: string;
   name: string;
   hypothesis: StockCandidateHypothesis;
   evaluatedAt: string;
+  actionLabel: HypothesisActionLabel;
+  scoreAtPrediction: number | null;
   startPrice: number | null;
+  endPrice1d: number | null;
   endPrice1w: number | null;
   endPrice1m: number | null;
   endPrice3m: number | null;
+  return1d: number | null;
   return1w: number | null;
   return1m: number | null;
   return3m: number | null;
+  topixReturn1d: number | null;
   benchmarkReturn1w: number | null;
   benchmarkReturn3m: number | null;
   topixReturn1m: number | null;
+  relativeToTopix1d: number | null;
   relativeToTopix1w: number | null;
   relativeToTopix1m: number | null;
   relativeToTopix3m: number | null;
@@ -77,6 +85,12 @@ export type HypothesisOutcome = {
   dataSource: "jquants" | "mock";
 };
 
+export type ActionLabelStats = {
+  total: number;
+  avgExcessReturn1w: number | null;
+  avgExcessReturn1m: number | null;
+};
+
 export type AccuracySummary = {
   total: number;
   hit: number;
@@ -88,6 +102,7 @@ export type AccuracySummary = {
   avgTopixReturn1m: number | null;
   avgRelativeToTopix1m: number | null;
   avgMaxDrawdownPct: number | null;
+  byActionLabel: Record<HypothesisActionLabel, ActionLabelStats>;
 };
 
 export type WorldContextRegime = {

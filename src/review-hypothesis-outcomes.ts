@@ -12,6 +12,9 @@ import type {
   StockCandidateHypothesis,
   HypothesisOutcome,
   HypothesisResult,
+  HypothesisLabel,
+  HypothesisActionLabel,
+  ActionLabelStats,
   AccuracySummary,
 } from "./universe.js";
 
@@ -68,9 +71,11 @@ function calcReturnPct(base: number | null, target: number | null): number | nul
 
 type ReturnData = {
   base: number | null;
+  p1d: number | null;
   p1w: number | null;
   p1m: number | null;
   p3m: number | null;
+  ret1d: number | null;
   ret1w: number | null;
   ret1m: number | null;
   ret3m: number | null;
@@ -89,9 +94,11 @@ function calcMaxDrawdownPct(base: number | null, prices: Array<number | null>): 
 function buildReturnData(quotes: { Date: string; AdjustmentClose: number }[], detectedAt: string): ReturnData {
   const sorted = quotes.sort((a, b) => a.Date.localeCompare(b.Date));
   const base = sorted[0]?.AdjustmentClose ?? null;
+  const p1d = findPriceOnOrAfter(sorted, toCompactDate(addDaysJst(detectedAt, 1)));
   const p1w = findPriceOnOrAfter(sorted, toCompactDate(addDaysJst(detectedAt, 7)));
   const p1m = findPriceOnOrAfter(sorted, toCompactDate(addDaysJst(detectedAt, 30)));
   const p3m = findPriceOnOrAfter(sorted, toCompactDate(addDaysJst(detectedAt, 90)));
+  const ret1d = calcReturnPct(base, p1d);
   const ret1w = calcReturnPct(base, p1w);
   const ret1m = calcReturnPct(base, p1m);
   const ret3m = calcReturnPct(base, p3m);
@@ -99,15 +106,23 @@ function buildReturnData(quotes: { Date: string; AdjustmentClose: number }[], de
   const available = [base, p1w, p1m, p3m, ret1w, ret1m, ret3m, maxDrawdownPct].filter(v => v != null).length;
   return {
     base,
+    p1d,
     p1w,
     p1m,
     p3m,
+    ret1d,
     ret1w,
     ret1m,
     ret3m,
     maxDrawdownPct,
     dataAvailability: available >= 8 ? "ok" : available >= 2 ? "partial" : "missing",
   };
+}
+
+function mapActionLabel(label: HypothesisLabel): HypothesisActionLabel {
+  if (label === "監視候補") return "watch";
+  if (label === "検証候補") return "log";
+  return "ignore";
 }
 
 async function fetchReturnData(
@@ -203,6 +218,21 @@ function buildOutcomeNotes(input: {
 
 // ── 精度サマリー ──────────────────────────────────────────────
 
+function avgOrNull(values: number[]): number | null {
+  return values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : null;
+}
+
+function calcActionLabelStats(outcomes: HypothesisOutcome[], label: HypothesisActionLabel): ActionLabelStats {
+  const group = outcomes.filter(o => o.actionLabel === label);
+  const excess1w = group.map(o => o.relativeToTopix1w).filter((v): v is number => v != null);
+  const excess1m = group.map(o => o.relativeToTopix1m).filter((v): v is number => v != null);
+  return {
+    total: group.length,
+    avgExcessReturn1w: avgOrNull(excess1w),
+    avgExcessReturn1m: avgOrNull(excess1m),
+  };
+}
+
 function calcAccuracySummary(outcomes: HypothesisOutcome[]): AccuracySummary {
   const total = outcomes.length;
   const hit = outcomes.filter(o => o.result === "hit").length;
@@ -212,26 +242,18 @@ function calcAccuracySummary(outcomes: HypothesisOutcome[]): AccuracySummary {
 
   const hitRate = total > 0 && (hit + miss) > 0 ? hit / (hit + miss) : null;
 
-  const returns1m = outcomes.map(o => o.return1m).filter((v): v is number => v != null);
-  const avgReturn1m = returns1m.length > 0
-    ? returns1m.reduce((a, b) => a + b, 0) / returns1m.length
-    : null;
+  const avgReturn1m = avgOrNull(outcomes.map(o => o.return1m).filter((v): v is number => v != null));
+  const avgTopixReturn1m = avgOrNull(outcomes.map(o => o.topixReturn1m).filter((v): v is number => v != null));
+  const avgRelativeToTopix1m = avgOrNull(outcomes.map(o => o.relativeToTopix1m).filter((v): v is number => v != null));
+  const avgMaxDrawdownPct = avgOrNull(outcomes.map(o => o.maxDrawdownPct).filter((v): v is number => v != null));
 
-  const topixRets = outcomes.map(o => o.topixReturn1m).filter((v): v is number => v != null);
-  const avgTopixReturn1m = topixRets.length > 0
-    ? topixRets.reduce((a, b) => a + b, 0) / topixRets.length
-    : null;
+  const byActionLabel = {
+    watch: calcActionLabelStats(outcomes, "watch"),
+    log:   calcActionLabelStats(outcomes, "log"),
+    ignore: calcActionLabelStats(outcomes, "ignore"),
+  };
 
-  const relativeRets = outcomes.map(o => o.relativeToTopix1m).filter((v): v is number => v != null);
-  const avgRelativeToTopix1m = relativeRets.length > 0
-    ? relativeRets.reduce((a, b) => a + b, 0) / relativeRets.length
-    : null;
-  const drawdowns = outcomes.map(o => o.maxDrawdownPct).filter((v): v is number => v != null);
-  const avgMaxDrawdownPct = drawdowns.length > 0
-    ? drawdowns.reduce((a, b) => a + b, 0) / drawdowns.length
-    : null;
-
-  return { total, hit, miss, tooEarly, unknown, hitRate, avgReturn1m, avgTopixReturn1m, avgRelativeToTopix1m, avgMaxDrawdownPct };
+  return { total, hit, miss, tooEarly, unknown, hitRate, avgReturn1m, avgTopixReturn1m, avgRelativeToTopix1m, avgMaxDrawdownPct, byActionLabel };
 }
 
 // ── メイン ────────────────────────────────────────────────────
@@ -282,9 +304,11 @@ async function main(): Promise<void> {
     }
   }
 
+  const emptyReturnData: ReturnData = { base: null, p1d: null, p1w: null, p1m: null, p3m: null, ret1d: null, ret1w: null, ret1m: null, ret3m: null, maxDrawdownPct: null, dataAvailability: "missing" };
+
   for (const h of due) {
-    let returns: ReturnData = { base: null, p1w: null, p1m: null, p3m: null, ret1w: null, ret1m: null, ret3m: null, maxDrawdownPct: null, dataAvailability: "missing" };
-    let topixReturns: ReturnData = { base: null, p1w: null, p1m: null, p3m: null, ret1w: null, ret1m: null, ret3m: null, maxDrawdownPct: null, dataAvailability: "missing" };
+    let returns: ReturnData = { ...emptyReturnData };
+    let topixReturns: ReturnData = { ...emptyReturnData };
     let dataSource: "jquants" | "mock" = "mock";
 
     if (useJQuants) {
@@ -301,6 +325,7 @@ async function main(): Promise<void> {
     }
 
     const result = resolveResult(returns.ret1m, h.expectedDirection);
+    const relativeToTopix1d = returns.ret1d != null && topixReturns.ret1d != null ? returns.ret1d - topixReturns.ret1d : null;
     const relativeToTopix1w = returns.ret1w != null && topixReturns.ret1w != null ? returns.ret1w - topixReturns.ret1w : null;
     const relativeToTopix1m = returns.ret1m != null && topixReturns.ret1m != null ? returns.ret1m - topixReturns.ret1m : null;
     const relativeToTopix3m = returns.ret3m != null && topixReturns.ret3m != null ? returns.ret3m - topixReturns.ret3m : null;
@@ -312,16 +337,22 @@ async function main(): Promise<void> {
       name: h.name,
       hypothesis: h,
       evaluatedAt: today,
+      actionLabel: mapActionLabel(h.label),
+      scoreAtPrediction: Math.round(h.confidence * 100),
       startPrice: returns.base,
+      endPrice1d: returns.p1d,
       endPrice1w: returns.p1w,
       endPrice1m: returns.p1m,
       endPrice3m: returns.p3m,
+      return1d: returns.ret1d,
       return1w: returns.ret1w,
       return1m: returns.ret1m,
       return3m: returns.ret3m,
+      topixReturn1d: topixReturns.ret1d,
       benchmarkReturn1w: topixReturns.ret1w,
       benchmarkReturn3m: topixReturns.ret3m,
       topixReturn1m: topixReturns.ret1m,
+      relativeToTopix1d,
       relativeToTopix1w,
       relativeToTopix1m,
       relativeToTopix3m,
