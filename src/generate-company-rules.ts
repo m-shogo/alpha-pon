@@ -10,6 +10,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { addDaysJst, todayJst } from "./date.js";
+import { searchMarketLessons } from "./analysis/market-lessons-db.js";
 
 // ── 型定義（apps/web/lib/stock/rules/types.ts と同形状） ────────────────
 
@@ -93,6 +94,7 @@ function generateStockRule(input: GenerateStockRuleInput): GeneratedStockRule {
   const generatedAt = `${generatedDate}T00:00:00+09:00`;
   const reviewDueAt = `${addDaysJst(generatedDate, 30)}T00:00:00+09:00`;
   const fastCatalysts = detectFastCatalysts(input);
+  const recentLessons = findRecentLessons(input);
 
   if (input.currentPrice == null) {
     if (fastCatalysts.length > 0) {
@@ -112,11 +114,19 @@ function generateStockRule(input: GenerateStockRuleInput): GeneratedStockRule {
           "公式IR・Investor Dayの内容が決算/受注/市況に接続しない",
           "AIテーマ内でメモリ/SSDではなくGPU/HBM/電力/光通信へ資金が偏る",
           "IPO後需給・ロックアップ・換金売りが強い",
+          ...recentLessons.flatMap(lesson => lesson.invalidationSignals).slice(0, 4),
         ],
-        evidenceNeeded: ["現在株価", "出来高/需給", "公式IR本文", "NAND/SSD市況", "次回決算日"],
-        reasons: fastCatalysts,
-        risks: ["株価データ未取得のため価格帯は未計算", "早耳材料は期待先行になりやすい"],
-        privateMemo: "価格データ未取得でも先行カタリストを検出。人間より遅れないためENTRY_WATCHにする。",
+        evidenceNeeded: [
+          "現在株価",
+          "出来高/需給",
+          "公式IR本文",
+          "NAND/SSD市況",
+          "次回決算日",
+          ...recentLessons.flatMap(lesson => lesson.evidenceNeeded),
+        ].slice(0, 10),
+        reasons: [...fastCatalysts, ...recentLessons.map(lesson => `過去5年学習: ${lesson.title}`)],
+        risks: ["株価データ未取得のため価格帯は未計算", "早耳材料は期待先行になりやすい", ...recentLessons.map(lesson => lesson.risk)],
+        privateMemo: `価格データ未取得でも先行カタリストを検出。人間より遅れないためENTRY_WATCHにする。過去5年類推: ${recentLessons.map(lesson => lesson.title).join(" / ") || "なし"}`,
         publicMemo: "先行材料を検出。投資助言ではなく、一次情報と需給を急ぎ確認する監視シグナルです。",
         reviewDueAt,
       };
@@ -205,6 +215,13 @@ function generateStockRule(input: GenerateStockRuleInput): GeneratedStockRule {
     reasons.push(...fastCatalysts);
     evidenceNeeded.push("公式IR本文", "NAND/SSD市況", "出来高/需給", "次回決算日");
     risks.push("早耳材料は期待先行・寄り天・テーマ剥落に注意");
+  }
+
+  if (recentLessons.length > 0) {
+    reasons.push(...recentLessons.map(lesson => `過去5年学習: ${lesson.title}`));
+    risks.push(...recentLessons.map(lesson => lesson.risk));
+    evidenceNeeded.push(...recentLessons.flatMap(lesson => lesson.evidenceNeeded));
+    invalidationSignals.push(...recentLessons.flatMap(lesson => lesson.invalidationSignals));
   }
 
   const base = input.currentPrice;
@@ -309,6 +326,24 @@ function detectFastCatalysts(input: GenerateStockRuleInput): string[] {
   }
 
   return [...new Set(catalysts)];
+}
+
+function findRecentLessons(input: GenerateStockRuleInput): Array<{
+  title: string;
+  risk: string;
+  evidenceNeeded: string[];
+  invalidationSignals: string[];
+}> {
+  const tags = [...input.companyTheme, ...input.worldEventTags];
+  const text = [...input.currentThesis, ...input.knownRisks, input.name].join(" ");
+  return searchMarketLessons({ tags, text, limit: 4 })
+    .filter(match => /202[0-6]/.test(match.lesson.period))
+    .map(match => ({
+      title: match.lesson.title,
+      risk: `過去5年の罠: ${match.lesson.wrongTakeaways[0] ?? match.lesson.shortSummary}`,
+      evidenceNeeded: match.lesson.primaryChecks.slice(0, 3),
+      invalidationSignals: match.lesson.earlySignals.slice(0, 2).map(signal => `過去5年類推で未確認なら弱い: ${signal}`),
+    }));
 }
 
 // ── watchlist から入力データを構築 ────────────────────────────────────────
