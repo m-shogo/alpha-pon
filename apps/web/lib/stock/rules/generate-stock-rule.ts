@@ -10,8 +10,35 @@ export function generateStockRule(input: GenerateStockRuleInput): GeneratedStock
   const now = new Date()
   const generatedAt = now.toISOString()
   const reviewDueAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
+  const fastCatalysts = detectFastCatalysts(input)
 
   if (input.currentPrice == null) {
+    if (fastCatalysts.length > 0) {
+      return {
+        generatedRuleId: `${input.code}-fast-catalyst-${Date.now()}`,
+        code: input.code,
+        name: input.name,
+        generatedAt,
+        thesis: input.currentThesis,
+        actionSignal: 'ENTRY_WATCH',
+        confidence: 0.65,
+        watchPriceZones: [],
+        addWatchZones: [],
+        trimWatchZones: [],
+        dangerLines: [],
+        invalidationSignals: [
+          '公式IR・Investor Dayの内容が決算/受注/市況に接続しない',
+          'AIテーマ内でメモリ/SSDではなくGPU/HBM/電力/光通信へ資金が偏る',
+          'IPO後需給・ロックアップ・換金売りが強い',
+        ],
+        evidenceNeeded: ['現在株価', '出来高/需給', '公式IR本文', 'NAND/SSD市況', '次回決算日'],
+        reasons: fastCatalysts,
+        risks: ['株価データ未取得のため価格帯は未計算', '早耳材料は期待先行になりやすい'],
+        privateMemo: '価格データ未取得でも先行カタリストを検出。人間より遅れないためENTRY_WATCHにする。',
+        publicMemo: '先行材料を検出。投資助言ではなく、一次情報と需給を急ぎ確認する監視シグナルです。',
+        reviewDueAt,
+      }
+    }
     return {
       generatedRuleId: `${input.code}-missing-price-${Date.now()}`,
       code: input.code,
@@ -89,6 +116,13 @@ export function generateStockRule(input: GenerateStockRuleInput): GeneratedStock
   if (input.worldEventTags.length > 0) {
     score += 5
     reasons.push(`世界情勢（${input.worldEventTags.slice(0, 2).join('・')}）と関連がある`)
+  }
+
+  if (fastCatalysts.length > 0) {
+    score += 20
+    reasons.push(...fastCatalysts)
+    evidenceNeeded.push('公式IR本文', 'NAND/SSD市況', '出来高/需給', '次回決算日')
+    risks.push('早耳材料は期待先行・寄り天・テーマ剥落に注意')
   }
 
   const base = input.currentPrice
@@ -176,4 +210,24 @@ export function generateStockRule(input: GenerateStockRuleInput): GeneratedStock
     publicMemo: '銘柄ごとのデータから生成された監視・検証用メモ。投資助言ではありません。',
     reviewDueAt,
   }
+}
+
+function detectFastCatalysts(input: GenerateStockRuleInput): string[] {
+  const text = [...input.companyTheme, ...input.currentThesis].join(' ').toLowerCase()
+  const catalysts: string[] = []
+
+  if (text.includes('official_ir_catalyst') || text.includes('ai_inference_investor_day')) {
+    catalysts.push('公式IR/Investor Day 系の先行カタリストあり')
+  }
+  if (input.companyTheme.includes('ai_ipo')) {
+    catalysts.push('Anthropic/SpaceX/OpenAI級のAI大型IPOレースと関連するテーマ')
+  }
+  if (input.companyTheme.includes('memory') && input.companyTheme.includes('ai')) {
+    catalysts.push('AI推論・データ蓄積がNAND/SSD需要へ波及する仮説')
+  }
+  if (input.worldEventTags.includes('ai_ipo') || input.worldEventTags.includes('memory')) {
+    catalysts.push(`世界イベントタグ: ${input.worldEventTags.filter(tag => tag === 'ai_ipo' || tag === 'memory').join(' / ')}`)
+  }
+
+  return [...new Set(catalysts)]
 }

@@ -12,6 +12,8 @@ symbols:
       - ipo
       - national_policy
     rules:
+      - official_ir_catalyst
+      - ai_inference_investor_day
       - ipo_selling_pressure_done
       - volume_cooling
       - no_new_low

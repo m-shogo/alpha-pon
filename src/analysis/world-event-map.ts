@@ -88,7 +88,7 @@ const RULES: CategoryRule[] = [
   },
   {
     category: "ai_compute",
-    keywords: ["ai", "artificial intelligence", "gpu", "nvidia", "datacenter", "data center", "semiconductor", "chip", "compute", "ipo", "s-1", "anthropic", "openai", "claude", "chatgpt", "生成ai", "半導体", "データセンター", "gpu", "計算資源", "上場", "新規株式公開", "アンソロピック", "オープンai"],
+    keywords: ["ai", "artificial intelligence", "gpu", "nvidia", "datacenter", "data center", "semiconductor", "chip", "compute", "ipo", "s-1", "anthropic", "openai", "claude", "chatgpt", "kioxia", "ssd", "nand", "inference", "investor day", "生成ai", "半導体", "データセンター", "gpu", "計算資源", "上場", "新規株式公開", "アンソロピック", "オープンai", "キオクシア", "ssd", "nand", "推論", "インベスターデー"],
     impactedTags: ["ai", "ai_ipo", "software", "semiconductor", "memory", "datacenter", "power", "cloud", "cooling", "security"],
     hypothesisClusters: ["ai-sovereignty", "energy-transition", "security-resilience"],
     possibleBeneficiaries: ["半導体", "メモリ/NAND/HBM", "データセンター", "電力設備", "冷却", "クラウド", "セキュリティ", "業務ソフト"],
