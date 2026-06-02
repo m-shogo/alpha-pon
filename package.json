@@ -1,7 +1,7 @@
 {
   "name": "alpha-pon",
   "version": "0.1.0",
-  "description": "長期投資向け調査候補・買い場候補自動発見アプリ",
+  "description": "長期投資向け調査候補・仮説検証アプリ",
   "type": "module",
   "scripts": {
     "catchup": "node --env-file=.env --import tsx/esm scripts/run-catchup.ts",

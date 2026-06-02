@@ -2,6 +2,7 @@
 // 最大 CATCHUP_DAYS 日分（デフォルト 7 日）を遡って処理する
 // 再現できないものは missing_jobs に記録する
 
+import { acquireLock, releaseLock } from "../src/jobs/job-lock.js";
 import {
   runPnpmJob,
   hasSucceeded,
@@ -14,6 +15,7 @@ import { getTodayInTokyo, getDatesBetween, subtractDays } from "../src/jobs/date
 
 const TODAY = getTodayInTokyo();
 const CATCHUP_DAYS = Math.min(parseInt(process.env.CATCHUP_DAYS ?? "7", 10), 90);
+const LOCK_KEY = "alpha-pon:catchup";
 
 // catchup 対象ジョブ定義
 // canBackfill: true → 過去日でも実行を試みる
@@ -90,6 +92,11 @@ const CATCHUP_JOBS = [
 async function main() {
   console.log(`=== alpha-pon catchup start (today=${TODAY}, max=${CATCHUP_DAYS}d) ===`);
 
+  if (!acquireLock(LOCK_KEY)) {
+    console.log(`[skip] 既に catchup 実行中 (${LOCK_KEY})`);
+    process.exit(0);
+  }
+
   const summary = { ran: 0, skipped: 0, missing: 0, failed: 0 };
 
   for (const job of CATCHUP_JOBS) {
@@ -134,9 +141,11 @@ async function main() {
   console.log(`  missing 記録: ${summary.missing}件`);
   console.log(`  失敗: ${summary.failed}件`);
   console.log(`=== alpha-pon catchup end ===`);
+  releaseLock(LOCK_KEY);
 }
 
 main().catch(err => {
   console.error("[fatal]", err);
+  releaseLock(LOCK_KEY);
   process.exit(1);
 });
