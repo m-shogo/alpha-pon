@@ -10,12 +10,49 @@ export const metadata = { title: '行動候補 | alpha-pon' }
 
 const SIGNAL_ORDER: InternalSignal[] = ['DANGER', 'EXIT_WATCH', 'TRIM_WATCH', 'ENTRY_WATCH', 'ADD_WATCH', 'HOLD', 'NO_ACTION']
 
+function confidenceLabel(confidence: number) {
+  if (confidence >= 0.8) return '強め'
+  if (confidence >= 0.6) return '条件付き'
+  if (confidence >= 0.35) return '弱め'
+  return '材料不足'
+}
+
+function nextMoveLabel(signal: InternalSignal, mode: AppMode) {
+  if (mode === 'portfolio') return null
+  const map: Record<InternalSignal, string> = {
+    ENTRY_WATCH: '買うかを今日確認',
+    ADD_WATCH: '買い足す条件を確認',
+    HOLD: '持ったまま監視',
+    TRIM_WATCH: '一部売り条件を確認',
+    EXIT_WATCH: '撤退条件を確認',
+    NO_ACTION: '触らない',
+    DANGER: '避ける',
+  }
+  return map[signal]
+}
+
+function DetailList({ title, items, color, mark }: { title: string; items: string[]; color: string; mark: string }) {
+  if (items.length === 0) return null
+  return (
+    <div style={{ marginTop: 8 }}>
+      <div style={{ fontSize: 10.5, fontWeight: 850, color, marginBottom: 3 }}>{title}</div>
+      {items.slice(0, 4).map((item, i) => (
+        <div key={`${title}-${i}`} style={{ display: 'flex', gap: 5, fontSize: 11.5, color: 'var(--ink-2)', lineHeight: 1.45, marginTop: 2 }}>
+          <span style={{ color, fontWeight: 850, flexShrink: 0 }}>{mark}</span>
+          <span>{item}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function ActionCard({ rule, mode }: { rule: GeneratedStockRule; mode: AppMode }) {
   const signal = rule.actionSignal as InternalSignal
   const color = getSignalColor(signal)
   const bg = getSignalBg(signal)
   const label = toDisplaySignal(signal, mode)
   const decisionPrefix = mode === 'private' ? '個人判断' : '表示'
+  const nextMove = nextMoveLabel(signal, mode)
 
   return (
     <div style={{
@@ -27,30 +64,20 @@ function ActionCard({ rule, mode }: { rule: GeneratedStockRule; mode: AppMode })
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 3 }}>
             <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-3)' }}>{rule.code}</span>
             <span style={{ fontSize: 10.5, fontWeight: 800, padding: '2px 7px', borderRadius: 6, background: bg, color }}>{label}</span>
-            <span style={{ fontSize: 10.5, color: 'var(--ink-3)' }}>信頼度 {Math.round(rule.confidence * 100)}%</span>
+            <span style={{ fontSize: 10.5, color: 'var(--ink-3)' }}>信頼度 {Math.round(rule.confidence * 100)}% / {confidenceLabel(rule.confidence)}</span>
           </div>
           <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{rule.name}</h3>
           <div style={{ marginTop: 4, fontSize: 12, fontWeight: 800, color }}>
             {decisionPrefix}: {label}
+            {nextMove ? ` · ${nextMove}` : ''}
           </div>
         </div>
       </div>
 
-      {rule.reasons.length > 0 && (
-        <div style={{ marginTop: 8 }}>
-          {rule.reasons.slice(0, 2).map((r, i) => (
-            <div key={i} style={{ fontSize: 11.5, color: 'var(--ink-2)', marginTop: 2 }}>✓ {r}</div>
-          ))}
-        </div>
-      )}
-
-      {rule.risks.length > 0 && (
-        <div style={{ marginTop: 6 }}>
-          {rule.risks.slice(0, 1).map((r, i) => (
-            <div key={i} style={{ fontSize: 11.5, color: 'var(--amber)', marginTop: 2 }}>⚠ {r}</div>
-          ))}
-        </div>
-      )}
+      <DetailList title="買い候補にする理由" items={rule.reasons} color="var(--mint-deep)" mark="✓" />
+      <DetailList title="過去5年から見た罠" items={rule.risks} color="var(--amber)" mark="!" />
+      <DetailList title="先に確認すること" items={rule.evidenceNeeded} color="var(--sky-deep)" mark="□" />
+      <DetailList title="崩れたら見送り" items={rule.invalidationSignals} color="var(--urgent)" mark="×" />
 
       {rule.watchPriceZones.length > 0 && (
         <div style={{ marginTop: 8, padding: '6px 10px', background: 'var(--surface-2)', borderRadius: 8, fontSize: 11 }}>
