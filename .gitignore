@@ -47,3 +47,4 @@ backups/
 data/run-cursors.json
 
 data/hypothesis_outcomes.db
+data/alpha-pon-jobs.db
