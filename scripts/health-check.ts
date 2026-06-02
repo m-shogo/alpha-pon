@@ -1,7 +1,7 @@
 // pnpm health — alpha-pon の自動運用可否を確認する
 // OK / WARN / ERROR を出力し、致命的エラーのみ exit(1)
 
-import { existsSync } from "fs";
+import { existsSync, readdirSync, readFileSync } from "fs";
 import { spawnSync } from "child_process";
 import { openJobsDb } from "../src/jobs/db.js";
 import { getTodayInTokyo } from "../src/jobs/date-utils.js";
@@ -162,6 +162,40 @@ for (const f of generatedFiles) {
 existsSync("data/hypothesis_outcomes.db")
   ? ok("hypothesis_outcomes.db")
   : warn("hypothesis_outcomes.db", "未生成（review:hypotheses 実行前）");
+
+// ── backup script & 状態確認 ─────────────────────────────────
+{
+  let pkg: Record<string, unknown> = {};
+  try { pkg = JSON.parse(readFileSync("package.json", "utf-8")) as Record<string, unknown>; } catch { /* ignore */ }
+  const pkgScripts = (pkg.scripts ?? {}) as Record<string, string>;
+
+  pkgScripts["backup"]
+    ? ok("script:backup")
+    : warn("script:backup", "package.json に backup script がない");
+
+  const BACKUP_ROOT = "backups";
+  if (!existsSync(BACKUP_ROOT)) {
+    warn("backup:dir", "backups/ 未作成（pnpm backup を実行してください）");
+  } else {
+    const dirs = readdirSync(BACKUP_ROOT)
+      .filter(n => /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}$/.test(n))
+      .sort();
+    const count = dirs.length;
+    const latest = dirs[count - 1] ?? null;
+    if (count === 0) {
+      warn("backup:latest", "バックアップ 0 件（pnpm backup を実行してください）");
+    } else {
+      const ageMs = Date.now() - new Date(latest.replace(/T(\d{2})-(\d{2})-(\d{2})$/, "T$1:$2:$3")).getTime();
+      const ageDays = Math.floor(ageMs / 86400000);
+      ageDays > 3
+        ? warn("backup:latest", `${latest}（${ageDays}日前 — 古い可能性あり）`)
+        : ok("backup:latest", `${latest}（${ageDays}日前）`);
+    }
+    count > 30
+      ? warn("backup:count", `${count} 件（30件超過）`)
+      : ok("backup:count", `${count} 件`);
+  }
+}
 
 // ── 出力 ──────────────────────────────────────────────────────
 console.log(`\n=== alpha-pon health check (${TODAY}) ===\n`);
