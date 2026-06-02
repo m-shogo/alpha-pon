@@ -110,40 +110,54 @@ export default function OutcomesPage() {
               </>
             )}
 
-            {summary.byScoreBand && (
-              <>
-                <SectionLabel icon={<Icon name="arc" size={15} />}>スコア帯別 outcome</SectionLabel>
-                <div style={{ marginBottom: 16, background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--card-line)', boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
-                    <thead>
-                      <tr style={{ background: 'var(--surface-2)' }}>
-                        <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>score</th>
-                        <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>件数</th>
-                        <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>hit率</th>
-                        <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>TOPIX比1W</th>
-                        <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>TOPIX比1M</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(['0-49', '50-69', '70-84', '85-100', 'unknown'] as const).map((band, i) => {
-                        const stats = summary.byScoreBand?.[band]
-                        return (
-                          <tr key={band} style={{ borderTop: i > 0 ? '1px solid var(--line)' : undefined }}>
-                            <td style={{ padding: '8px 12px', fontWeight: 800, color: 'var(--ink)' }}>{band}</td>
-                            <td style={{ padding: '8px 12px', textAlign: 'right', color: 'var(--ink-3)', fontWeight: 700 }}>{stats?.total ?? 0}件</td>
-                            <td style={{ padding: '8px 12px', textAlign: 'right' }}><PercentCell value={stats?.hitRate} /></td>
-                            <td style={{ padding: '8px 12px', textAlign: 'right' }}><ReturnCell value={stats?.avgExcessReturn1w ?? null} /></td>
-                            <td style={{ padding: '8px 12px', textAlign: 'right' }}><ReturnCell value={stats?.avgExcessReturn1m ?? null} /></td>
+            {summary.byScoreBand && (() => {
+              const allZero = Object.values(summary.byScoreBand).every(s => (s?.total ?? 0) === 0)
+              return (
+                <>
+                  <SectionLabel icon={<Icon name="arc" size={15} />}>スコア帯別 outcome</SectionLabel>
+                  {allZero ? (
+                    <div style={{ marginBottom: 16, background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--card-line)', padding: '14px 16px', fontSize: 12.5, color: 'var(--ink-3)', fontWeight: 600 }}>
+                      データ蓄積中 — outcome が蓄積されるとスコア帯別のヒット率が表示されます
+                    </div>
+                  ) : (
+                    <div style={{ marginBottom: 16, background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--card-line)', boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+                        <thead>
+                          <tr style={{ background: 'var(--surface-2)' }}>
+                            <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>score</th>
+                            <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>件数</th>
+                            <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>hit率</th>
+                            <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>TOPIX比1W</th>
+                            <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>TOPIX比1M</th>
                           </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            )}
+                        </thead>
+                        <tbody>
+                          {(['0-49', '50-69', '70-84', '85-100', 'unknown'] as const).map((band, i) => {
+                            const stats = summary.byScoreBand?.[band]
+                            return (
+                              <tr key={band} style={{ borderTop: i > 0 ? '1px solid var(--line)' : undefined }}>
+                                <td style={{ padding: '8px 12px', fontWeight: 800, color: 'var(--ink)' }}>{band}</td>
+                                <td style={{ padding: '8px 12px', textAlign: 'right', color: 'var(--ink-3)', fontWeight: 700 }}>{stats?.total ?? 0}件</td>
+                                <td style={{ padding: '8px 12px', textAlign: 'right' }}><PercentCell value={stats?.hitRate} /></td>
+                                <td style={{ padding: '8px 12px', textAlign: 'right' }}><ReturnCell value={stats?.avgExcessReturn1w ?? null} /></td>
+                                <td style={{ padding: '8px 12px', textAlign: 'right' }}><ReturnCell value={stats?.avgExcessReturn1m ?? null} /></td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </>
+              )
+            })()}
           </>
         )}
+
+        {/* J-Quants Free プランの遅延説明 */}
+        <div style={{ marginBottom: 12, padding: '10px 14px', background: 'var(--surface-2)', borderRadius: 10, fontSize: 12, color: 'var(--ink-3)', fontWeight: 600, lineHeight: 1.6 }}>
+          ※ J-Quants Free プランのため株価リターンは約 84 日後から計算されます。それまでは <code style={{ background: 'var(--surface)', padding: '1px 4px', borderRadius: 3 }}>result=unknown</code> が続きますが正常動作です。
+        </div>
 
         {/* 検証リスト */}
         <SectionLabel icon={<Icon name="check" size={15} />}>

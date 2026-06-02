@@ -23,6 +23,17 @@ const DAILY_JOBS = [
   { name: "ui_data_generate",       pnpmScript: "ui:data" },
 ] as const;
 
+// SIGTERM / SIGINT（Mac スリープ・強制終了）でもロックを解除する
+function setupSignalHandlers() {
+  const cleanup = (sig: string) => {
+    console.log(`[signal] ${sig} received — ロックを解除して終了`);
+    releaseLock(LOCK_KEY);
+    process.exit(0);
+  };
+  process.on("SIGTERM", () => cleanup("SIGTERM"));
+  process.on("SIGINT",  () => cleanup("SIGINT"));
+}
+
 async function main() {
   console.log(`=== alpha-pon daily start (${TODAY}) ===`);
 
@@ -30,6 +41,7 @@ async function main() {
     console.log(`[skip] 既にロック中 (${LOCK_KEY}) — 別プロセスが実行中か確認してください`);
     process.exit(0);
   }
+  setupSignalHandlers();
 
   const results: { name: string; status: string }[] = [];
 

@@ -89,6 +89,17 @@ const CATCHUP_JOBS = [
   },
 ] as const;
 
+// SIGTERM / SIGINT でもロックを解除する
+function setupSignalHandlers() {
+  const cleanup = (sig: string) => {
+    console.log(`[signal] ${sig} received — ロックを解除して終了`);
+    releaseLock(LOCK_KEY);
+    process.exit(0);
+  };
+  process.on("SIGTERM", () => cleanup("SIGTERM"));
+  process.on("SIGINT",  () => cleanup("SIGINT"));
+}
+
 async function main() {
   console.log(`=== alpha-pon catchup start (today=${TODAY}, max=${CATCHUP_DAYS}d) ===`);
 
@@ -96,6 +107,7 @@ async function main() {
     console.log(`[skip] 既に catchup 実行中 (${LOCK_KEY})`);
     process.exit(0);
   }
+  setupSignalHandlers();
 
   const summary = { ran: 0, skipped: 0, missing: 0, failed: 0 };
 
