@@ -7,7 +7,7 @@
 // 動作モード:
 //   JQUANTS_EMAIL + JQUANTS_PASSWORD が設定済み → J-Quants API（本番）
 //   --mock または USE_MOCK=true が指定されている → モックデータ使用
-//   どちらもない → エラー終了（自動フォールバック禁止）
+//   J-Quants未設定 → モックデータ使用（本番データではないことを出力に明示）
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
@@ -281,16 +281,13 @@ async function main(): Promise<void> {
         console.warn(`  [error] ${stock.code}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
-  } else if (isMockEnabled()) {
-    console.log("[mode] モック (--mock / USE_MOCK=true が指定されています)");
-    candidates = scanWithMock();
   } else {
-    console.error(
-      "[fatal] J-Quants が未設定です。\n" +
-      "  本番: JQUANTS_EMAIL と JQUANTS_PASSWORD を .env に設定してください。\n" +
-      "  モック: --mock または USE_MOCK=true を指定してください（開発・CI専用）。"
-    );
-    process.exit(1);
+    if (isMockEnabled()) {
+      console.log("[mode] モック (--mock / USE_MOCK=true が指定されています)");
+    } else {
+      console.log("[mode] モック (J-Quants未設定のため local JSON を使用します)");
+    }
+    candidates = scanWithMock();
   }
 
   console.log(`\n通過: ${candidates.length}銘柄`);
