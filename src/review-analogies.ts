@@ -13,6 +13,8 @@ type GeneratedReview = {
 };
 
 const mode: ReviewMode = process.argv.includes("--write") ? "write" : "dry-run";
+process.env.JQUANTS_V2_RETRY_ATTEMPTS ??= "1";
+const maxReviewsPerRun = Math.max(1, Number(process.env.ANALOGY_REVIEW_MAX_PER_RUN ?? "12"));
 
 function compareDate(a: string, b: string): number {
   return a.localeCompare(b);
@@ -191,9 +193,10 @@ async function main() {
   const due = predictions
     .filter(prediction => compareDate(prediction.reviewDueAt, date) <= 0)
     .filter(prediction => !isAlreadyReviewed(prediction, outcomes));
+  const reviewTargets = due.slice(0, maxReviewsPerRun);
 
   const reviews: GeneratedReview[] = [];
-  for (const prediction of due) {
+  for (const prediction of reviewTargets) {
     const priceReview = await reviewPredictionWithPrice(prediction);
     reviews.push({
       prediction,
@@ -208,14 +211,14 @@ async function main() {
   mkdirSync("reports", { recursive: true });
   writeFileSync(join("reports", `analogy_review_${date}.md`), renderReviewReport(reviews, date), "utf-8");
   writeFileSync(join("reports", "analogy_review_latest.md"), renderReviewReport(reviews, date), "utf-8");
-  writeFileSync(join("reports", `analogy_review_${date}.json`), JSON.stringify({ due, generated, saved: writable, retryLater, reviews }, null, 2), "utf-8");
-  writeFileSync(join("reports", "analogy_review_latest.json"), JSON.stringify({ due, generated, saved: writable, retryLater, reviews }, null, 2), "utf-8");
+  writeFileSync(join("reports", `analogy_review_${date}.json`), JSON.stringify({ due, reviewTargets, generated, saved: writable, retryLater, reviews, maxReviewsPerRun }, null, 2), "utf-8");
+  writeFileSync(join("reports", "analogy_review_latest.json"), JSON.stringify({ due, reviewTargets, generated, saved: writable, retryLater, reviews, maxReviewsPerRun }, null, 2), "utf-8");
 
   if (mode === "write") {
     saveAnalogyOutcomes(writable);
   }
 
-  console.log(`レビュー候補: ${due.length}件`);
+  console.log(`レビュー候補: ${due.length}件 / 今回処理: ${reviewTargets.length}件 (max=${maxReviewsPerRun})`);
   console.log(`outcome保存対象: ${writable.length}件 / 次回再確認: ${retryLater.length}件`);
   console.log(`レポート: reports/analogy_review_${date}.md`);
   console.log(mode === "write" ? "outcome保存: data/analogy_outcomes.jsonl" : "dry-run: 保存なし（保存するなら --write）");

@@ -67,6 +67,12 @@ function isMockEnabled(): boolean {
   return process.argv.includes("--mock") || process.env.USE_MOCK === "true";
 }
 
+function selectStocksForRun(stocks: UniverseStockEntry[]): UniverseStockEntry[] {
+  const max = Math.max(1, Number(process.env.UNIVERSE_SCAN_MAX_PER_RUN ?? "8"));
+  const offset = Math.max(0, Number(process.env.UNIVERSE_SCAN_OFFSET ?? "0"));
+  return stocks.slice(offset, offset + max);
+}
+
 /** セクターに対して関連する世界情勢タグを返す */
 function matchWorldEventTags(
   sector: string,
@@ -263,10 +269,11 @@ async function main(): Promise<void> {
   let candidates: UniverseCandidate[];
 
   if (isJQuantsConfigured()) {
-    console.log(`[mode] J-Quants API (${config.stocks.length}銘柄をスクリーニング)`);
+    const scanStocks = selectStocksForRun(config.stocks);
+    console.log(`[mode] J-Quants API (${scanStocks.length}/${config.stocks.length}銘柄をスクリーニング)`);
     candidates = [];
 
-    for (const stock of config.stocks) {
+    for (const stock of scanStocks) {
       console.log(`  チェック: ${stock.code} ${stock.name}`);
       try {
         const result = await screenWithJQuants(stock, regime, config);

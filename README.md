@@ -204,6 +204,12 @@ cp .env.example .env
 
 ```env
 JQUANTS_API_KEY=
+JQUANTS_V2_DATA_DELAY_DAYS=84
+JQUANTS_V2_REQUEST_INTERVAL_MS=3000
+JQUANTS_V2_RETRY_ATTEMPTS=5
+ANALOGY_REVIEW_MAX_PER_RUN=12
+UNIVERSE_SCAN_MAX_PER_RUN=8
+UNIVERSE_SCAN_OFFSET=0
 JQUANTS_EMAIL=
 JQUANTS_PASSWORD=
 LINE_CHANNEL_TOKEN=
@@ -251,6 +257,9 @@ node --import tsx/esm tests/analysis.test.ts
 > J-Quants が未設定の場合、`scan:universe` は local mock JSON を使います。画面では MOCK と明示され、実データとして扱いません。
 > J-Quants が未設定でも、`pnpm daily` は TDnet/EDINET の一次情報レビューだけは score JSON に残します。
 > `pnpm daily` / `pnpm daily:full` を価格・財務まで実データ運用にするには `.env` の `JQUANTS_API_KEY` が必要です。旧V1互換として `JQUANTS_EMAIL` / `JQUANTS_PASSWORD` も残しています。
+> J-Quants V2 Freeプランは遅延データのため、標準では `JQUANTS_V2_DATA_DELAY_DAYS=84` で取得終了日を丸めます。429が出る場合は `JQUANTS_V2_REQUEST_INTERVAL_MS` を大きくします。
+> 類推レビューはV2のレート制限を避けるため、標準では `ANALOGY_REVIEW_MAX_PER_RUN=12` 件ずつ処理します。
+> ユニバーススキャンもV2のレート制限を避けるため、標準では `UNIVERSE_SCAN_MAX_PER_RUN=8` 銘柄ずつ処理します。残りは `UNIVERSE_SCAN_OFFSET` をずらして確認します。
 
 `reports/latest.md` にサマリーが出力される。  
 `reports/<コード>_<日付>.md` に個別レポートが出力される。  
@@ -412,6 +421,12 @@ J-Quants Free プランを使うと、`scan:universe` で 30 銘柄の実株価�
 2. `.env` に API キーを設定:
    ```
    JQUANTS_API_KEY=your_api_key
+   JQUANTS_V2_DATA_DELAY_DAYS=84
+   JQUANTS_V2_REQUEST_INTERVAL_MS=3000
+   JQUANTS_V2_RETRY_ATTEMPTS=5
+   ANALOGY_REVIEW_MAX_PER_RUN=12
+   UNIVERSE_SCAN_MAX_PER_RUN=8
+   UNIVERSE_SCAN_OFFSET=0
    ```
 3. 動作確認:
    ```bash
@@ -435,6 +450,12 @@ J-Quants Free プランを使うと、`scan:universe` で 30 銘柄の実株価�
    |---|---|---|
    | `APP_MODE` | `portfolio`（公開用）または `private` | 推奨 |
    | `JQUANTS_API_KEY` | J-Quants V2 認証 | 実データ時のみ |
+   | `JQUANTS_V2_DATA_DELAY_DAYS` | V2 Freeプラン遅延データの取得終了日丸め | 推奨 |
+   | `JQUANTS_V2_REQUEST_INTERVAL_MS` | V2 APIリクエスト間隔 | 推奨 |
+   | `JQUANTS_V2_RETRY_ATTEMPTS` | 429時の再試行回数 | 推奨 |
+   | `ANALOGY_REVIEW_MAX_PER_RUN` | 類推レビューの1回あたり上限 | 推奨 |
+   | `UNIVERSE_SCAN_MAX_PER_RUN` | ユニバーススキャンの1回あたり上限 | 推奨 |
+   | `UNIVERSE_SCAN_OFFSET` | ユニバーススキャン開始位置 | 任意 |
    | `JQUANTS_EMAIL` | J-Quants V1 互換認証 | 任意 |
    | `JQUANTS_PASSWORD` | J-Quants V1 互換認証 | 任意 |
    | `LINE_CHANNEL_TOKEN` | LINE 通知 | 任意 |

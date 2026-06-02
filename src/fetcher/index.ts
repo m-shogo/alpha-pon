@@ -265,11 +265,13 @@ async function fetchRealData(candidate: Candidate): Promise<FetchResult> {
         };
       }
     }
-
-    await attachPrimaryDisclosureReview(candidate, data, warnings);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     warnings.push(`データ取得失敗: ${message}`);
+  }
+
+  if (!data.primaryDisclosureReview) {
+    await attachPrimaryDisclosureReview(candidate, data, warnings);
   }
 
   const hasAnyData = Object.keys(data).length > 0;

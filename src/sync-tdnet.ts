@@ -19,6 +19,10 @@ async function main() {
   } catch (err) {
     console.error(`JPX適時開示取得失敗: ${err instanceof Error ? err.message : err}`);
     console.log("JPXページの構造が変わった可能性があります。手動で確認してください。");
+    if (dryRun) {
+      console.log("dry-run のため、TDnet候補追加はスキップして後続pipelineへ進みます。");
+      return;
+    }
     process.exit(1);
   }
 

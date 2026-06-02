@@ -10,6 +10,7 @@ type TokenCache = {
 };
 
 let tokenCache: TokenCache | null = null;
+let lastV2RequestAt = 0;
 
 export function isJQuantsConfigured(): boolean {
   return Boolean(
@@ -20,6 +21,33 @@ export function isJQuantsConfigured(): boolean {
 
 function toCompactDate(date: string): string {
   return date.replace(/-/g, "");
+}
+
+function compactFromDate(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}${m}${d}`;
+}
+
+function addDays(date: Date, days: number): Date {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+function v2DateCapCompact(): string {
+  const delayDays = Number(process.env.JQUANTS_V2_DATA_DELAY_DAYS ?? "84");
+  return compactFromDate(addDays(new Date(), -delayDays));
+}
+
+function normalizeV2QuoteRange(from: string, to: string): { from: string; to: string } {
+  const compactFrom = toCompactDate(from);
+  const compactTo = toCompactDate(to);
+  const cap = v2DateCapCompact();
+  const cappedTo = compactTo > cap ? cap : compactTo;
+  const cappedFrom = compactFrom > cappedTo ? cappedTo : compactFrom;
+  return { from: cappedFrom, to: cappedTo };
 }
 
 function numberOrNull(value: unknown): number | null {
@@ -99,14 +127,10 @@ async function getV2Paginated<T>(path: string, params: Record<string, string> = 
   const queryParams = { ...params };
 
   while (true) {
+    await waitForV2RateLimit();
     const query = new URLSearchParams(queryParams).toString();
     const url = `${V2_BASE_URL}${path}${query ? "?" + query : ""}`;
-    const res = await fetch(url, {
-      headers: {
-        "x-api-key": apiKey,
-        "User-Agent": "alpha-pon/0.1",
-      },
-    });
+    const res = await fetchV2(url, apiKey);
 
     if (!res.ok) {
       let detail = "";
@@ -126,6 +150,30 @@ async function getV2Paginated<T>(path: string, params: Record<string, string> = 
   }
 
   return rows;
+}
+
+async function waitForV2RateLimit(): Promise<void> {
+  const intervalMs = Number(process.env.JQUANTS_V2_REQUEST_INTERVAL_MS ?? "3000");
+  const waitMs = Math.max(0, lastV2RequestAt + intervalMs - Date.now());
+  if (waitMs > 0) {
+    await new Promise(resolve => setTimeout(resolve, waitMs));
+  }
+  lastV2RequestAt = Date.now();
+}
+
+async function fetchV2(url: string, apiKey: string): Promise<Response> {
+  const maxAttempts = Number(process.env.JQUANTS_V2_RETRY_ATTEMPTS ?? "5");
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const res = await fetch(url, {
+      headers: {
+        "x-api-key": apiKey,
+        "User-Agent": "alpha-pon/0.1",
+      },
+    });
+    if (res.status !== 429 || attempt === maxAttempts) return res;
+    await new Promise(resolve => setTimeout(resolve, attempt * 10000));
+  }
+  throw new Error("J-Quants V2 retry failed");
 }
 
 export type DailyQuote = {
@@ -245,10 +293,11 @@ export async function fetchDailyQuotes(
   to: string
 ): Promise<DailyQuote[]> {
   if (process.env.JQUANTS_API_KEY) {
+    const range = normalizeV2QuoteRange(from, to);
     const rows = await getV2Paginated<V2DailyQuote>("/equities/bars/daily", {
       code,
-      from,
-      to,
+      from: range.from,
+      to: range.to,
     });
     return rows.map(normalizeV2Quote);
   }

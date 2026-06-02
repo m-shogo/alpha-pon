@@ -208,7 +208,7 @@ export async function reviewPredictionWithPrice(prediction: AnalogyPredictionRec
       whatMatched: [],
       whatDiffered: [],
       missedSignals: ["J-Quants取得失敗", message],
-      improvedRuleIdeas: ["JQUANTS_EMAIL/PASSWORDとMARKET_BENCHMARK_CODEを確認する", "取得失敗時は手動レビューへ回す"],
+      improvedRuleIdeas: ["JQUANTS_API_KEYとMARKET_BENCHMARK_CODEを確認する", "取得失敗時は手動レビューへ回す"],
     };
   }
 }

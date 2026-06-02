@@ -1,39 +1,35 @@
 {
   "generatedAt": "2026-06-02",
-  "overallScore": 56,
+  "overallScore": 76,
   "overallStatus": "partial",
-  "blockers": [
-    "J-Quants実データ運用: .env に JQUANTS_API_KEY を設定する"
-  ],
+  "blockers": [],
   "items": [
     {
       "id": "real-data",
       "label": "J-Quants実データ運用",
-      "score": 20,
+      "score": 100,
       "evidence": [
-        "J-Quants設定: missing",
-        "mock universe: 4",
+        "J-Quants設定: set",
+        "mock universe: 0",
         "dataQuality missing/unknown: 0"
       ],
       "nextActions": [
-        ".env に JQUANTS_API_KEY を設定する",
-        "pnpm daily:full を実データで再実行する"
+        "pnpm daily:full を数日連続で実行し、mock と missing が消えるか確認する"
       ],
-      "status": "blocked"
+      "status": "done"
     },
     {
       "id": "pipeline",
       "label": "毎朝pipeline監視",
-      "score": 55,
+      "score": 95,
       "evidence": [
         "pipeline status: completed",
-        "failed/skipped: scan:universe(1), candidate:hypothesis(skipped_scan_failed)"
+        "failed/skipped: none"
       ],
       "nextActions": [
-        "ホームとreportsで失敗ステップを確認する",
-        "J-Quants未設定由来の失敗を実データ設定で解消する"
+        "run-daily-complete.sh と launchd の継続実行を確認する"
       ],
-      "status": "partial"
+      "status": "done"
     },
     {
       "id": "hypothesis-outcomes",
@@ -57,7 +53,7 @@
       "score": 65,
       "evidence": [
         "primaryDisclosureReviews: 2",
-        "dataQuality warnings: 10",
+        "dataQuality warnings: 15",
         "daily:full primary scans: included"
       ],
       "nextActions": [
