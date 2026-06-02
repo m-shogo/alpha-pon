@@ -1,4 +1,26 @@
 {
-  "candidates": [],
+  "candidates": [
+    {
+      "code": "6758",
+      "name": "ソニーグループ",
+      "sector": "global_ip",
+      "detectedAt": "2026-06-02",
+      "currentPrice": 3403,
+      "high52w": 4700,
+      "drawdownPct": -27.595744680851062,
+      "operatingProfitYoY": 16.4069253683931,
+      "hasDownwardRevision": false,
+      "hasNegativeFlag": false,
+      "hasRecentDisclosure": true,
+      "matchedWorldEventTags": [
+        "war_geopolitics",
+        "financial_crisis_rate_shock"
+      ],
+      "screeningScore": 85,
+      "warnings": [],
+      "status": "monitoring",
+      "dataSource": "jquants"
+    }
+  ],
   "generatedAt": "2026-06-02"
 }

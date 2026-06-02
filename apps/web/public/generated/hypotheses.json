@@ -255,6 +255,258 @@
       "relatedDisclosureIds": [],
       "status": "open",
       "label": "監視候補"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6857",
+      "name": "アドバンテスト",
+      "detectedAt": "2026-06-02",
+      "reviewDueAt": "2026-07-02",
+      "reason": "未登録銘柄の自動検出: 高値比15.9%下落、営業利益前年比+179.5%。世界情勢テーマ: war_geopolitics。",
+      "expectedTimeframe": "1m",
+      "expectedDirection": "unknown",
+      "confidence": 0.9,
+      "invalidationSignals": [
+        "下方修正の開示",
+        "監査意見の変更・限定付き意見",
+        "不正・コンプライアンス問題の開示",
+        "主力事業の契約解除・大口顧客離れ",
+        "防衛予算の大幅削減・安保政策の転換"
+      ],
+      "evidenceNeeded": [
+        "直近の決算短信・業績進捗確認",
+        "有価証券報告書のリスクファクター確認",
+        "大株主構成と保有比率の変化",
+        "アナリストコンセンサスと乖離の確認",
+        "半導体市況サイクルの現在地",
+        "受注残・在庫水準の確認"
+      ],
+      "relatedWorldEventIds": [
+        "war_geopolitics"
+      ],
+      "relatedDisclosureIds": [],
+      "status": "open",
+      "label": "監視候補"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6254",
+      "name": "野村マイクロ・サイエンス",
+      "detectedAt": "2026-06-02",
+      "reviewDueAt": "2026-07-02",
+      "reason": "未登録銘柄の自動検出: 高値比24.8%下落、営業利益前年比+0.0%。世界情勢テーマ: war_geopolitics。",
+      "expectedTimeframe": "1m",
+      "expectedDirection": "unknown",
+      "confidence": 0.7,
+      "invalidationSignals": [
+        "下方修正の開示",
+        "監査意見の変更・限定付き意見",
+        "不正・コンプライアンス問題の開示",
+        "主力事業の契約解除・大口顧客離れ",
+        "防衛予算の大幅削減・安保政策の転換"
+      ],
+      "evidenceNeeded": [
+        "直近の決算短信・業績進捗確認",
+        "有価証券報告書のリスクファクター確認",
+        "大株主構成と保有比率の変化",
+        "アナリストコンセンサスと乖離の確認",
+        "半導体市況サイクルの現在地",
+        "受注残・在庫水準の確認"
+      ],
+      "relatedWorldEventIds": [
+        "war_geopolitics"
+      ],
+      "relatedDisclosureIds": [],
+      "status": "open",
+      "label": "監視候補"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6501",
+      "name": "日立製作所",
+      "detectedAt": "2026-06-02",
+      "reviewDueAt": "2026-07-02",
+      "reason": "未登録銘柄の自動検出: 高値比15.2%下落、営業利益前年比+28.6%。世界情勢テーマ: climate_heat_water・financial_crisis_rate_shock。",
+      "expectedTimeframe": "1m",
+      "expectedDirection": "unknown",
+      "confidence": 0.9,
+      "invalidationSignals": [
+        "下方修正の開示",
+        "監査意見の変更・限定付き意見",
+        "不正・コンプライアンス問題の開示",
+        "主力事業の契約解除・大口顧客離れ",
+        "気候対策政策の後退・補助金削減"
+      ],
+      "evidenceNeeded": [
+        "直近の決算短信・業績進捗確認",
+        "有価証券報告書のリスクファクター確認",
+        "大株主構成と保有比率の変化",
+        "アナリストコンセンサスと乖離の確認"
+      ],
+      "relatedWorldEventIds": [
+        "climate_heat_water",
+        "financial_crisis_rate_shock"
+      ],
+      "relatedDisclosureIds": [],
+      "status": "open",
+      "label": "検証候補"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6701",
+      "name": "NEC",
+      "detectedAt": "2026-06-02",
+      "reviewDueAt": "2026-07-02",
+      "reason": "未登録銘柄の自動検出: 高値比25.9%下落、営業利益前年比+36.4%。世界情勢テーマ: climate_heat_water・food_security。",
+      "expectedTimeframe": "1m",
+      "expectedDirection": "unknown",
+      "confidence": 0.85,
+      "invalidationSignals": [
+        "下方修正の開示",
+        "監査意見の変更・限定付き意見",
+        "不正・コンプライアンス問題の開示",
+        "主力事業の契約解除・大口顧客離れ",
+        "気候対策政策の後退・補助金削減"
+      ],
+      "evidenceNeeded": [
+        "直近の決算短信・業績進捗確認",
+        "有価証券報告書のリスクファクター確認",
+        "大株主構成と保有比率の変化",
+        "アナリストコンセンサスと乖離の確認"
+      ],
+      "relatedWorldEventIds": [
+        "climate_heat_water",
+        "food_security"
+      ],
+      "relatedDisclosureIds": [],
+      "status": "open",
+      "label": "検証候補"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6504",
+      "name": "富士電機",
+      "detectedAt": "2026-06-02",
+      "reviewDueAt": "2026-07-02",
+      "reason": "未登録銘柄の自動検出: 高値比21.0%下落、営業利益前年比+10.9%。世界情勢テーマ: war_geopolitics・climate_heat_water。",
+      "expectedTimeframe": "1m",
+      "expectedDirection": "unknown",
+      "confidence": 0.9,
+      "invalidationSignals": [
+        "下方修正の開示",
+        "監査意見の変更・限定付き意見",
+        "不正・コンプライアンス問題の開示",
+        "主力事業の契約解除・大口顧客離れ",
+        "防衛予算の大幅削減・安保政策の転換",
+        "気候対策政策の後退・補助金削減"
+      ],
+      "evidenceNeeded": [
+        "直近の決算短信・業績進捗確認",
+        "有価証券報告書のリスクファクター確認",
+        "大株主構成と保有比率の変化",
+        "アナリストコンセンサスと乖離の確認"
+      ],
+      "relatedWorldEventIds": [
+        "war_geopolitics",
+        "climate_heat_water"
+      ],
+      "relatedDisclosureIds": [],
+      "status": "open",
+      "label": "検証候補"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "5803",
+      "name": "フジクラ",
+      "detectedAt": "2026-06-02",
+      "reviewDueAt": "2026-07-02",
+      "reason": "未登録銘柄の自動検出: 高値比15.3%下落、営業利益前年比+95.0%。世界情勢テーマ: war_geopolitics・climate_heat_water。",
+      "expectedTimeframe": "1m",
+      "expectedDirection": "unknown",
+      "confidence": 0.9,
+      "invalidationSignals": [
+        "下方修正の開示",
+        "監査意見の変更・限定付き意見",
+        "不正・コンプライアンス問題の開示",
+        "主力事業の契約解除・大口顧客離れ",
+        "防衛予算の大幅削減・安保政策の転換",
+        "気候対策政策の後退・補助金削減"
+      ],
+      "evidenceNeeded": [
+        "直近の決算短信・業績進捗確認",
+        "有価証券報告書のリスクファクター確認",
+        "大株主構成と保有比率の変化",
+        "アナリストコンセンサスと乖離の確認"
+      ],
+      "relatedWorldEventIds": [
+        "war_geopolitics",
+        "climate_heat_water"
+      ],
+      "relatedDisclosureIds": [],
+      "status": "open",
+      "label": "検証候補"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "4568",
+      "name": "第一三共",
+      "detectedAt": "2026-06-02",
+      "reviewDueAt": "2026-07-02",
+      "reason": "未登録銘柄の自動検出: 高値比31.8%下落、営業利益前年比+56.9%。世界情勢テーマ: migration_labor_shortage・financial_crisis_rate_shock。",
+      "expectedTimeframe": "1m",
+      "expectedDirection": "unknown",
+      "confidence": 0.85,
+      "invalidationSignals": [
+        "下方修正の開示",
+        "監査意見の変更・限定付き意見",
+        "不正・コンプライアンス問題の開示",
+        "主力事業の契約解除・大口顧客離れ"
+      ],
+      "evidenceNeeded": [
+        "直近の決算短信・業績進捗確認",
+        "有価証券報告書のリスクファクター確認",
+        "大株主構成と保有比率の変化",
+        "アナリストコンセンサスと乖離の確認",
+        "開発パイプラインのフェーズ確認"
+      ],
+      "relatedWorldEventIds": [
+        "migration_labor_shortage",
+        "financial_crisis_rate_shock"
+      ],
+      "relatedDisclosureIds": [],
+      "status": "open",
+      "label": "検証候補"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6758",
+      "name": "ソニーグループ",
+      "detectedAt": "2026-06-02",
+      "reviewDueAt": "2026-07-02",
+      "reason": "未登録銘柄の自動検出: 高値比27.6%下落、営業利益前年比+16.4%。世界情勢テーマ: war_geopolitics・financial_crisis_rate_shock。",
+      "expectedTimeframe": "1m",
+      "expectedDirection": "unknown",
+      "confidence": 0.85,
+      "invalidationSignals": [
+        "下方修正の開示",
+        "監査意見の変更・限定付き意見",
+        "不正・コンプライアンス問題の開示",
+        "主力事業の契約解除・大口顧客離れ",
+        "防衛予算の大幅削減・安保政策の転換"
+      ],
+      "evidenceNeeded": [
+        "直近の決算短信・業績進捗確認",
+        "有価証券報告書のリスクファクター確認",
+        "大株主構成と保有比率の変化",
+        "アナリストコンセンサスと乖離の確認"
+      ],
+      "relatedWorldEventIds": [
+        "war_geopolitics",
+        "financial_crisis_rate_shock"
+      ],
+      "relatedDisclosureIds": [],
+      "status": "open",
+      "label": "検証候補"
     }
   ],
   "generatedAt": "2026-06-02"
