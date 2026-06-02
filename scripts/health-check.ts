@@ -121,6 +121,29 @@ if (dbOk) {
       ? ok("missing_jobs", "0件")
       : warn("missing_jobs", `${count}件（catchup で補完できなかった処理）`);
   } catch { /* ignore */ }
+
+  // job_locks チェック（残留ロックの検知）
+  try {
+    const db = openJobsDb();
+    const locks = db.prepare(
+      "SELECT job_key, locked_at FROM job_locks"
+    ).all() as { job_key: string; locked_at: string }[];
+    db.close();
+
+    if (locks.length === 0) {
+      ok("job_locks", "残留ロックなし");
+    } else {
+      const STALE_MS = 6 * 60 * 60 * 1000;
+      for (const lock of locks) {
+        const age = Date.now() - new Date(lock.locked_at).getTime();
+        if (age >= STALE_MS) {
+          warn("job_locks", `stale ロック（${Math.round(age / 3600000)}h前）: ${lock.job_key} — pnpm daily / catchup を再実行すると自動解除されます`);
+        } else {
+          warn("job_locks", `active ロック（${Math.round(age / 60000)}分前）: ${lock.job_key} — 別プロセスが実行中の可能性があります`);
+        }
+      }
+    }
+  } catch { /* ignore */ }
 }
 
 // ── 生成データファイル ────────────────────────────────────────
