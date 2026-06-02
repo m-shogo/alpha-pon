@@ -501,22 +501,41 @@
   ],
   "universeCandidates": [
     {
-      "code": "6758",
-      "name": "ソニーグループ",
-      "sector": "global_ip",
+      "code": "6857",
+      "name": "アドバンテスト",
+      "sector": "semiconductor",
       "detectedAt": "2026-06-02",
-      "currentPrice": 3403,
-      "high52w": 4700,
-      "drawdownPct": -27.595744680851062,
-      "operatingProfitYoY": 16.4069253683931,
+      "currentPrice": 24075,
+      "high52w": 28615,
+      "drawdownPct": -15.865804647911935,
+      "operatingProfitYoY": 179.51315724996323,
       "hasDownwardRevision": false,
       "hasNegativeFlag": false,
       "hasRecentDisclosure": true,
       "matchedWorldEventTags": [
-        "war_geopolitics",
-        "financial_crisis_rate_shock"
+        "war_geopolitics"
       ],
-      "screeningScore": 85,
+      "screeningScore": 90,
+      "warnings": [],
+      "status": "monitoring",
+      "dataSource": "jquants"
+    },
+    {
+      "code": "6254",
+      "name": "野村マイクロ・サイエンス",
+      "sector": "semiconductor",
+      "detectedAt": "2026-06-02",
+      "currentPrice": 3085,
+      "high52w": 4100,
+      "drawdownPct": -24.75609756097561,
+      "operatingProfitYoY": 0,
+      "hasDownwardRevision": false,
+      "hasNegativeFlag": false,
+      "hasRecentDisclosure": true,
+      "matchedWorldEventTags": [
+        "war_geopolitics"
+      ],
+      "screeningScore": 70,
       "warnings": [],
       "status": "monitoring",
       "dataSource": "jquants"
@@ -1734,7 +1753,7 @@
   "runCursors": {
     "universe-scan": {
       "jobName": "universe-scan",
-      "offset": 0,
+      "offset": 8,
       "maxPerRun": 8,
       "total": 30,
       "updatedAt": "2026-06-02"
@@ -1749,7 +1768,7 @@
   },
   "readiness": {
     "generatedAt": "2026-06-02",
-    "overallScore": 76,
+    "overallScore": 79,
     "overallStatus": "partial",
     "blockers": [],
     "items": [
@@ -1783,12 +1802,12 @@
       {
         "id": "hypothesis-outcomes",
         "label": "仮説検証の厚み",
-        "score": 45,
+        "score": 65,
         "evidence": [
           "hypotheses: 16",
-          "outcomes: 0",
-          "priced outcomes: 0",
-          "real outcomes: 0"
+          "outcomes: 4",
+          "priced outcomes: 4",
+          "real outcomes: 4"
         ],
         "nextActions": [
           "reviewDueAt を過ぎた仮説を J-Quants 実データで review:hypotheses する",

@@ -1,6 +1,6 @@
 {
   "generatedAt": "2026-06-02",
-  "overallScore": 76,
+  "overallScore": 79,
   "overallStatus": "partial",
   "blockers": [],
   "items": [
@@ -34,12 +34,12 @@
     {
       "id": "hypothesis-outcomes",
       "label": "仮説検証の厚み",
-      "score": 45,
+      "score": 65,
       "evidence": [
         "hypotheses: 16",
-        "outcomes: 0",
-        "priced outcomes: 0",
-        "real outcomes: 0"
+        "outcomes: 4",
+        "priced outcomes: 4",
+        "real outcomes: 4"
       ],
       "nextActions": [
         "reviewDueAt を過ぎた仮説を J-Quants 実データで review:hypotheses する",
