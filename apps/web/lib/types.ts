@@ -110,6 +110,30 @@ export type ReadinessReport = {
   }>
 }
 
+export type DataQualityReason =
+  | 'jquants_delayed'
+  | 'tdnet_unavailable'
+  | 'financial_partial'
+  | 'outcome_insufficient'
+  | 'price_missing'
+  | 'news_partial'
+
+export type DataQualityDetail = {
+  level: 'full' | 'partial' | 'low'
+  reasons: DataQualityReason[]
+  updatedAt: string
+}
+
+export type ScoreBreakdownDetail = {
+  companyCode: string
+  totalScore: number
+  label: string
+  positives: string[]
+  negatives: string[]
+  missingData: string[]
+  confidence: 'low' | 'medium' | 'high'
+}
+
 import type {
   UniverseCandidate,
   StockCandidateHypothesis,
@@ -146,7 +170,13 @@ export type AlphaPonGeneratedData = {
   companyMemory?: CompanyMemoryRecord[]
   companyMemoryByCode?: Record<string, CompanyMemoryRecord>
   primaryDisclosureReviews?: Record<string, PrimaryDisclosureReview>
-  dataQualityByCode?: Record<string, { dataQuality: string; warnings: string[] }>
+  dataQualityByCode?: Record<string, {
+    dataQuality: string
+    warnings: string[]
+    quality?: DataQualityDetail
+    scoreBreakdown?: ScoreBreakdownDetail
+  }>
+  runCursors?: Record<string, unknown>
   readiness?: ReadinessReport | null
   pipelineStatus?: {
     date?: string

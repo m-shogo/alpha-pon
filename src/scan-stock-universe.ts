@@ -22,6 +22,7 @@ import {
 import { todayJst, addDaysJst } from "./date.js";
 import type { UniverseCandidate, WorldContextRegime } from "./universe.js";
 import { SCREENING_CRITERIA } from "./universe.js";
+import { loadRunCursor, saveRunCursor } from "./run-cursor.js";
 
 // ── 設定読み込み ────────────────────────────────────────────
 
@@ -67,10 +68,14 @@ function isMockEnabled(): boolean {
   return process.argv.includes("--mock") || process.env.USE_MOCK === "true";
 }
 
-function selectStocksForRun(stocks: UniverseStockEntry[]): UniverseStockEntry[] {
+function selectStocksForRun(stocks: UniverseStockEntry[]): { stocks: UniverseStockEntry[]; offset: number; maxPerRun: number; autoCursor: boolean } {
   const max = Math.max(1, Number(process.env.UNIVERSE_SCAN_MAX_PER_RUN ?? "8"));
-  const offset = Math.max(0, Number(process.env.UNIVERSE_SCAN_OFFSET ?? "0"));
-  return stocks.slice(offset, offset + max);
+  const explicitOffset = process.env.UNIVERSE_SCAN_OFFSET;
+  const autoCursor = explicitOffset == null || explicitOffset === "";
+  const offset = autoCursor
+    ? loadRunCursor("universe-scan", max, stocks.length).offset
+    : Math.max(0, Number(explicitOffset));
+  return { stocks: stocks.slice(offset, offset + max), offset, maxPerRun: max, autoCursor };
 }
 
 /** セクターに対して関連する世界情勢タグを返す */
@@ -269,8 +274,10 @@ async function main(): Promise<void> {
   let candidates: UniverseCandidate[];
 
   if (isJQuantsConfigured()) {
-    const scanStocks = selectStocksForRun(config.stocks);
+    const scan = selectStocksForRun(config.stocks);
+    const scanStocks = scan.stocks;
     console.log(`[mode] J-Quants API (${scanStocks.length}/${config.stocks.length}銘柄をスクリーニング)`);
+    console.log(`[cursor] offset=${scan.offset} max=${scan.maxPerRun}${scan.autoCursor ? " auto" : " env"}`);
     candidates = [];
 
     for (const stock of scanStocks) {
@@ -284,6 +291,16 @@ async function main(): Promise<void> {
       } catch (err) {
         console.warn(`  [error] ${stock.code}: ${err instanceof Error ? err.message : String(err)}`);
       }
+    }
+    if (scan.autoCursor) {
+      const next = saveRunCursor({
+        jobName: "universe-scan",
+        offset: scan.offset,
+        maxPerRun: scan.maxPerRun,
+        total: config.stocks.length,
+        updatedAt: date,
+      });
+      console.log(`[cursor] next universe-scan offset=${next.offset}`);
     }
   } else {
     if (isMockEnabled()) {

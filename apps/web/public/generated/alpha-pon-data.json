@@ -1063,7 +1063,39 @@
         "一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404",
         "FCFを計算できませんでした（営業CF/投資CF/設備投資データ不足）",
         "一次情報注意: 一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404"
-      ]
+      ],
+      "quality": {
+        "level": "partial",
+        "reasons": [
+          "tdnet_unavailable",
+          "financial_partial",
+          "outcome_insufficient"
+        ],
+        "updatedAt": "2026-06-02"
+      },
+      "scoreBreakdown": {
+        "companyCode": "8136",
+        "totalScore": 52,
+        "label": "log",
+        "positives": [
+          "下方修正なし",
+          "売上前年比 +44.9%",
+          "営業利益前年比 +92.2%",
+          "長期テーマ・戦略的優位性あり",
+          "高値から35.4%下落（深い押し目）",
+          "売上前年比 +44.9%（成長継続）",
+          "営業利益前年比 +92.2%（大崩れなし）",
+          "下方修正なし"
+        ],
+        "negatives": [],
+        "missingData": [
+          "FCFを計算できませんでした（営業CF/投資CF/設備投資データ不足）",
+          "一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404",
+          "FCFを計算できませんでした（営業CF/投資CF/設備投資データ不足）",
+          "一次情報注意: 一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404"
+        ],
+        "confidence": "medium"
+      }
     },
     "285A": {
       "dataQuality": "partial",
@@ -1078,9 +1110,41 @@
         "下方修正有無を判定できませんでした",
         "listedAt未設定のため、取得できた最古株価日を上場日として暫定利用",
         "一次情報注意: 一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404"
-      ]
+      ],
+      "quality": {
+        "level": "partial",
+        "reasons": [
+          "tdnet_unavailable",
+          "outcome_insufficient"
+        ],
+        "updatedAt": "2026-06-02"
+      },
+      "scoreBreakdown": {
+        "companyCode": "285A",
+        "totalScore": 35,
+        "label": "ignore",
+        "positives": [
+          "上場から365日経過",
+          "ロックアップ解除済み",
+          "20日平均売買代金が10億円以上で流動性あり",
+          "売上前年比 +68.7% と強い成長",
+          "営業利益前年比 +109.1% と利益成長が強い",
+          "営業利益率 20.5% と高収益",
+          "営業利益率が前年差 +4.0pt 改善",
+          "テーマ: 半導体"
+        ],
+        "negatives": [
+          "20日ボラティリティ 5.6% と値動きが荒い"
+        ],
+        "missingData": [
+          "一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404",
+          "一次情報注意: 一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404"
+        ],
+        "confidence": "medium"
+      }
     }
   },
+  "runCursors": {},
   "readiness": {
     "generatedAt": "2026-06-02",
     "overallScore": 76,

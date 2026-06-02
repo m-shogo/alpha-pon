@@ -23,10 +23,23 @@ type DeepDives = { companies?: Record<string, DeepDiveCompany> };
 type LatestScoreEntry = {
   code: string;
   name: string;
+  score?: number;
+  alertLevel?: string;
   dataQuality?: string;
+  reasons?: string[];
+  negativeReasons?: string[];
   warnings?: string[];
+  nextSteps?: string[];
   primaryDisclosureReview?: PrimaryDisclosureReview;
 };
+
+type DataQualityReason =
+  | "jquants_delayed"
+  | "tdnet_unavailable"
+  | "financial_partial"
+  | "outcome_insufficient"
+  | "price_missing"
+  | "news_partial";
 
 type ReadinessReport = {
   generatedAt: string;
@@ -198,6 +211,34 @@ function loadReadiness(): ReadinessReport | null {
   return readJson<ReadinessReport>("reports/readiness_latest.json");
 }
 
+function inferDataQualityReasons(score: LatestScoreEntry, outcomes: HypothesisOutcome[]): DataQualityReason[] {
+  const text = [...(score.warnings ?? []), ...(score.negativeReasons ?? [])].join(" ");
+  const reasons = new Set<DataQualityReason>();
+  if (/J-Quants V2|遅延|Freeプラン/.test(text)) reasons.add("jquants_delayed");
+  if (/TDnet.*404|TDnet取得失敗|JPX IR News/.test(text)) reasons.add("tdnet_unavailable");
+  if (/FCF|財務|営業CF|投資CF|設備投資|データ不足/.test(text)) reasons.add("financial_partial");
+  if (/株価データ不足|価格データ不足|prices|daily_quotes|price_missing/.test(text)) reasons.add("price_missing");
+  if (/ニュース|RSS|世界イベント|一次情報.*未確認/.test(text)) reasons.add("news_partial");
+  if (outcomes.filter(outcome => outcome.code === score.code).length < 3) reasons.add("outcome_insufficient");
+  if (score.dataQuality === "missing") reasons.add("price_missing");
+  if (score.primaryDisclosureReview?.sourceCoverage.fetchErrorCount && score.primaryDisclosureReview.sourceCoverage.fetchErrorCount > 0) {
+    reasons.add("tdnet_unavailable");
+  }
+  return [...reasons];
+}
+
+function qualityLevel(score: LatestScoreEntry, reasons: DataQualityReason[]): "full" | "partial" | "low" {
+  if (score.dataQuality === "missing" || reasons.includes("price_missing")) return "low";
+  if (score.dataQuality === "ok" && reasons.length === 0) return "full";
+  return "partial";
+}
+
+function confidenceFromQuality(score: LatestScoreEntry, reasons: DataQualityReason[]): "low" | "medium" | "high" {
+  if (score.dataQuality === "missing" || reasons.includes("price_missing")) return "low";
+  if (score.dataQuality === "ok" && reasons.length <= 1) return "high";
+  return "medium";
+}
+
 function toRecordByCode<T extends { code: string }>(items: T[]): Record<string, T> {
   return Object.fromEntries(items.map(item => [item.code, item]));
 }
@@ -249,6 +290,7 @@ function main() {
   const worldContext = loadWorldContext();
   const companyMemory = loadCompanyMemory();
   const readiness = loadReadiness();
+  const runCursors = readJson<Record<string, unknown>>("data/run-cursors.json") ?? {};
   const latestScores = loadLatestScores();
   const primaryDisclosureReviews = Object.fromEntries(
     latestScores
@@ -256,10 +298,27 @@ function main() {
       .map(score => [score.code, score.primaryDisclosureReview])
   );
   const dataQualityByCode = Object.fromEntries(
-    latestScores.map(score => [score.code, {
-      dataQuality: score.dataQuality ?? "unknown",
-      warnings: score.warnings ?? [],
-    }])
+    latestScores.map(score => {
+      const reasons = inferDataQualityReasons(score, hypothesisOutcomes);
+      return [score.code, {
+        dataQuality: score.dataQuality ?? "unknown",
+        warnings: score.warnings ?? [],
+        quality: {
+          level: qualityLevel(score, reasons),
+          reasons,
+          updatedAt: date,
+        },
+        scoreBreakdown: {
+          companyCode: score.code,
+          totalScore: score.score ?? 0,
+          label: score.alertLevel ?? "ignore",
+          positives: (score.reasons ?? []).slice(0, 8),
+          negatives: (score.negativeReasons ?? []).slice(0, 8),
+          missingData: (score.warnings ?? []).filter(warning => /未取得|不足|失敗|404|partial|遅延|FCF|J-Quants/.test(warning)).slice(0, 8),
+          confidence: confidenceFromQuality(score, reasons),
+        },
+      }];
+    })
   );
 
   // pipeline_status から completeWrapperFailedSteps を読み、meta.warnings に含める
@@ -315,6 +374,7 @@ function main() {
     companyMemoryByCode: toRecordByCode(companyMemory),
     primaryDisclosureReviews,
     dataQualityByCode,
+    runCursors,
     readiness,
     pipelineStatus: pipelineStatusData,
     meta: {

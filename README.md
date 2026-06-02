@@ -259,7 +259,8 @@ node --import tsx/esm tests/analysis.test.ts
 > `pnpm daily` / `pnpm daily:full` を価格・財務まで実データ運用にするには `.env` の `JQUANTS_API_KEY` が必要です。旧V1互換として `JQUANTS_EMAIL` / `JQUANTS_PASSWORD` も残しています。
 > J-Quants V2 Freeプランは遅延データのため、標準では `JQUANTS_V2_DATA_DELAY_DAYS=84` で取得終了日を丸めます。429が出る場合は `JQUANTS_V2_REQUEST_INTERVAL_MS` を大きくします。
 > 類推レビューはV2のレート制限を避けるため、標準では `ANALOGY_REVIEW_MAX_PER_RUN=12` 件ずつ処理します。
-> ユニバーススキャンもV2のレート制限を避けるため、標準では `UNIVERSE_SCAN_MAX_PER_RUN=8` 銘柄ずつ処理します。残りは `UNIVERSE_SCAN_OFFSET` をずらして確認します。
+> ユニバーススキャンもV2のレート制限を避けるため、標準では `UNIVERSE_SCAN_MAX_PER_RUN=8` 銘柄ずつ処理します。`UNIVERSE_SCAN_OFFSET` 未指定時は `data/run-cursors.json` の cursor が自動で進みます。
+> 類推レビューも `ANALOGY_REVIEW_OFFSET` 未指定時は `data/run-cursors.json` の cursor が自動で進みます。
 
 `reports/latest.md` にサマリーが出力される。  
 `reports/<コード>_<日付>.md` に個別レポートが出力される。  
@@ -426,7 +427,6 @@ J-Quants Free プランを使うと、`scan:universe` で 30 銘柄の実株価�
    JQUANTS_V2_RETRY_ATTEMPTS=5
    ANALOGY_REVIEW_MAX_PER_RUN=12
    UNIVERSE_SCAN_MAX_PER_RUN=8
-   UNIVERSE_SCAN_OFFSET=0
    ```
 3. 動作確認:
    ```bash
@@ -455,7 +455,8 @@ J-Quants Free プランを使うと、`scan:universe` で 30 銘柄の実株価�
    | `JQUANTS_V2_RETRY_ATTEMPTS` | 429時の再試行回数 | 推奨 |
    | `ANALOGY_REVIEW_MAX_PER_RUN` | 類推レビューの1回あたり上限 | 推奨 |
    | `UNIVERSE_SCAN_MAX_PER_RUN` | ユニバーススキャンの1回あたり上限 | 推奨 |
-   | `UNIVERSE_SCAN_OFFSET` | ユニバーススキャン開始位置 | 任意 |
+   | `ANALOGY_REVIEW_OFFSET` | 類推レビュー開始位置。未指定ならcursor自動管理 | 任意 |
+   | `UNIVERSE_SCAN_OFFSET` | ユニバーススキャン開始位置。未指定ならcursor自動管理 | 任意 |
    | `JQUANTS_EMAIL` | J-Quants V1 互換認証 | 任意 |
    | `JQUANTS_PASSWORD` | J-Quants V1 互換認証 | 任意 |
    | `LINE_CHANNEL_TOKEN` | LINE 通知 | 任意 |

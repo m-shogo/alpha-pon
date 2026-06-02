@@ -12,7 +12,7 @@ import { ChecklistCard } from '@/components/ChecklistCard'
 import { Disclaimer } from '@/components/Disclaimer'
 import { formatPrice, formatPercent } from '@/lib/format'
 import type { UniverseCandidate, StockCandidateHypothesis } from '@/types/universe'
-import type { CompanyMemoryRecord, PrimaryDisclosureReview } from '@/lib/types'
+import type { CompanyMemoryRecord, DataQualityDetail, PrimaryDisclosureReview, ScoreBreakdownDetail } from '@/lib/types'
 
 type Props = {
   params: Promise<{ code: string }>
@@ -123,6 +123,96 @@ function HypothesisSection({ hypothesis }: { hypothesis: StockCandidateHypothesi
               <div key={i} style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)', display: 'flex', gap: 7, marginBottom: 3 }}>
                 <span style={{ color: 'var(--sky-deep)' }}>→</span>{e}
               </div>
+            ))}
+          </div>
+        )}
+      </Card>
+    </>
+  )
+}
+
+const QUALITY_REASON_LABEL: Record<string, string> = {
+  jquants_delayed: 'J-Quants V2 Freeプランの遅延データ',
+  tdnet_unavailable: 'TDnet dry-run / JPX適時開示の取得不可',
+  financial_partial: '財務指標の一部が未取得',
+  outcome_insufficient: 'この銘柄のoutcome検証がまだ少ない',
+  price_missing: '株価データ不足',
+  news_partial: 'ニュース・一次情報の確認が一部不足',
+}
+
+function DataQualitySection({ quality, warnings }: { quality: DataQualityDetail | undefined; warnings: string[] }) {
+  const level = quality?.level ?? 'low'
+  const label = level === 'full' ? '十分' : level === 'partial' ? '一部不足' : '不足'
+  const color = level === 'full' ? 'var(--mint-deep)' : level === 'partial' ? 'var(--amber)' : 'var(--urgent)'
+  const bg = level === 'full' ? 'var(--mint-soft)' : level === 'partial' ? 'var(--amber-soft)' : 'var(--urgent-soft)'
+  const reasons = quality?.reasons ?? []
+
+  return (
+    <>
+      <SectionLabel icon={<Icon name="check" size={15} />}>データ品質</SectionLabel>
+      <Card pad={14}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12, fontWeight: 800, color, background: bg, borderRadius: 6, padding: '2px 8px' }}>
+            {label}
+          </span>
+          {quality?.updatedAt && (
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-3)' }}>更新: {quality.updatedAt}</span>
+          )}
+        </div>
+        {reasons.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {reasons.map(reason => (
+              <div key={reason} style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)' }}>
+                • {QUALITY_REASON_LABEL[reason] ?? reason}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p style={{ margin: 0, fontSize: 12.5, fontWeight: 600, color: 'var(--ink-3)' }}>大きな不足理由は検出されていません。</p>
+        )}
+        {warnings.length > 0 && (
+          <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 600, color: 'var(--ink-3)', lineHeight: 1.5 }}>
+            {warnings.slice(0, 3).map((warning, i) => <div key={i}>補足: {warning}</div>)}
+          </div>
+        )}
+      </Card>
+    </>
+  )
+}
+
+function ScoreBreakdownSection({ item }: { item: ScoreBreakdownDetail | undefined }) {
+  if (!item) return null
+  return (
+    <>
+      <SectionLabel icon={<Icon name="arc" size={15} />}>スコア根拠</SectionLabel>
+      <Card pad={14}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>{item.totalScore}点 / {item.label}</div>
+          <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--sky-deep)', background: 'var(--sky-soft)', borderRadius: 6, padding: '2px 8px' }}>
+            信頼度 {item.confidence}
+          </span>
+        </div>
+        {item.positives.length > 0 && (
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--mint-deep)', marginBottom: 4 }}>加点・観察理由</div>
+            {item.positives.slice(0, 5).map((reason, i) => (
+              <div key={i} style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 3 }}>+ {reason}</div>
+            ))}
+          </div>
+        )}
+        {item.negatives.length > 0 && (
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--amber)', marginBottom: 4 }}>減点・注意理由</div>
+            {item.negatives.slice(0, 5).map((reason, i) => (
+              <div key={i} style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 3 }}>- {reason}</div>
+            ))}
+          </div>
+        )}
+        {item.missingData.length > 0 && (
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--urgent)', marginBottom: 4 }}>未取得・要確認データ</div>
+            {item.missingData.slice(0, 5).map((reason, i) => (
+              <div key={i} style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 3 }}>• {reason}</div>
             ))}
           </div>
         )}
@@ -265,6 +355,7 @@ export default async function StockDetailPage({ params }: Props) {
     .sort((a, b) => b.detectedAt.localeCompare(a.detectedAt))[0]
   const primaryDisclosureReview = data.primaryDisclosureReviews?.[code]
   const companyMemory = data.companyMemoryByCode?.[code]
+  const dataQuality = data.dataQualityByCode?.[code]
 
   if (!candidate && !universeCandidate) notFound()
 
@@ -335,6 +426,8 @@ export default async function StockDetailPage({ params }: Props) {
 
           {universeCandidate && <UniverseSection candidate={universeCandidate} />}
           {hypothesis && <HypothesisSection hypothesis={hypothesis} />}
+          <DataQualitySection quality={dataQuality?.quality} warnings={dataQuality?.warnings ?? []} />
+          <ScoreBreakdownSection item={dataQuality?.scoreBreakdown} />
           <PrimaryDisclosureSection review={primaryDisclosureReview} />
           <CompanyMemorySection memory={companyMemory} />
 
@@ -418,6 +511,8 @@ export default async function StockDetailPage({ params }: Props) {
 
         <UniverseSection candidate={uc} />
         {hypothesis && <HypothesisSection hypothesis={hypothesis} />}
+        <DataQualitySection quality={dataQuality?.quality} warnings={dataQuality?.warnings ?? []} />
+        <ScoreBreakdownSection item={dataQuality?.scoreBreakdown} />
         <PrimaryDisclosureSection review={primaryDisclosureReview} />
         <CompanyMemorySection memory={companyMemory} />
 
