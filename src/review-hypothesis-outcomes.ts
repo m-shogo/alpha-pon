@@ -5,7 +5,8 @@
 // 注意: 買い推奨ではない。仮説の精度向上・反省用。
 // J-Quants未設定時はリターン計算をスキップし、"unknown" として記録する。
 
-import { appendFileSync, existsSync, readFileSync, writeFileSync } from "fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { DatabaseSync } from "node:sqlite";
 import { addDaysJst, toCompactDate, todayJst } from "./date.js";
 import { fetchDailyQuotes, isJQuantsConfigured } from "./fetcher/jquants.js";
 import type {
@@ -21,6 +22,7 @@ import type {
 
 const HYPOTHESIS_PATH = "data/hypothesis_predictions.jsonl";
 const OUTCOME_PATH = "data/hypothesis_outcomes.jsonl";
+const OUTCOME_DB_PATH = "data/hypothesis_outcomes.db";
 const SUMMARY_PATH = "data/hypothesis_accuracy_summary.json";
 const TOPIX_ETF_CODE = "1306"; // 野村TOPIX連動型上場投信
 
@@ -39,12 +41,89 @@ function readHypotheses(): StockCandidateHypothesis[] {
   return readJsonl<StockCandidateHypothesis>(HYPOTHESIS_PATH);
 }
 
+// ── SQLite DB ─────────────────────────────────────────────────
+// hypothesis_outcomes を SQLite で管理し、DB 側に UNIQUE 制約を持たせる。
+// JSONL は後方互換のため併用する（同一データを両方に書く）。
+
+function openDb(): DatabaseSync {
+  mkdirSync("data", { recursive: true });
+  const db = new DatabaseSync(OUTCOME_DB_PATH);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS hypothesis_outcomes (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      code          TEXT    NOT NULL,
+      detected_at   TEXT    NOT NULL,
+      review_horizon TEXT   NOT NULL,
+      payload       TEXT    NOT NULL,
+      created_at    TEXT    NOT NULL DEFAULT (datetime('now','localtime'))
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_hypothesis_outcomes_unique
+      ON hypothesis_outcomes (code, detected_at, review_horizon);
+  `);
+  return db;
+}
+
 function readExistingOutcomes(): HypothesisOutcome[] {
+  // SQLite が存在すればそちらを優先、なければ JSONL にフォールバック
+  if (existsSync(OUTCOME_DB_PATH)) {
+    const db = openDb();
+    const rows = db.prepare("SELECT payload FROM hypothesis_outcomes ORDER BY id").all() as { payload: string }[];
+    db.close();
+    return rows.map(r => JSON.parse(r.payload) as HypothesisOutcome);
+  }
   return readJsonl<HypothesisOutcome>(OUTCOME_PATH);
 }
 
 function appendOutcome(o: HypothesisOutcome): void {
+  const db = openDb();
+  try {
+    db.prepare(`
+      INSERT INTO hypothesis_outcomes (code, detected_at, review_horizon, payload)
+      VALUES (?, ?, ?, ?)
+    `).run(o.code, o.hypothesis.detectedAt, o.reviewHorizon, JSON.stringify(o));
+  } catch (err: unknown) {
+    // UNIQUE 制約違反: 同一 code/detectedAt/horizon が既に存在する
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("UNIQUE constraint failed")) {
+      console.warn(`  [skip] 重複: ${o.code} ${o.hypothesis.detectedAt} [${o.reviewHorizon}] は保存済み`);
+      db.close();
+      return;
+    }
+    db.close();
+    throw err;
+  }
+  db.close();
+  // JSONL にも書いて後方互換を保つ
   appendFileSync(OUTCOME_PATH, JSON.stringify(o) + "\n", "utf-8");
+}
+
+// ── JSONL → SQLite マイグレーション（初回のみ）────────────────
+// DB が新規作成された直後（テーブルが空）かつ JSONL が存在する場合に一括移行する。
+
+function migrateJsonlToDb(): void {
+  if (!existsSync(OUTCOME_PATH)) return;
+  const db = openDb();
+  const count = (db.prepare("SELECT COUNT(*) as n FROM hypothesis_outcomes").get() as { n: number }).n;
+  if (count > 0) {
+    db.close();
+    return; // 既にデータあり → スキップ
+  }
+  const existing = readJsonl<HypothesisOutcome>(OUTCOME_PATH);
+  if (existing.length === 0) {
+    db.close();
+    return;
+  }
+  const insert = db.prepare(`
+    INSERT OR IGNORE INTO hypothesis_outcomes (code, detected_at, review_horizon, payload)
+    VALUES (?, ?, ?, ?)
+  `);
+  db.exec("BEGIN");
+  for (const o of existing) {
+    insert.run(o.code, o.hypothesis.detectedAt, o.reviewHorizon ?? "1m", JSON.stringify(o));
+  }
+  db.exec("COMMIT");
+  db.close();
+  console.log(`[migrate] JSONL → SQLite: ${existing.length}件を移行しました`);
 }
 
 // ── J-Quants チェック ─────────────────────────────────────────
@@ -293,6 +372,8 @@ const REVIEW_HORIZONS: { horizon: ReviewHorizon; days: number }[] = [
 
 async function main(): Promise<void> {
   console.log("=== 仮説検証開始 ===");
+
+  migrateJsonlToDb(); // JSONL が存在し DB が空の場合のみ移行
 
   const today = todayJst();
   const hypotheses = readHypotheses();

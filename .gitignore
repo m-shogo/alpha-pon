@@ -45,3 +45,5 @@ design/screenshots/*.png
 # 実行時生成ファイル
 backups/
 data/run-cursors.json
+
+data/hypothesis_outcomes.db
