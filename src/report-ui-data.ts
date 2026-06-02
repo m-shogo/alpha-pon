@@ -312,9 +312,9 @@ function main() {
           companyCode: score.code,
           totalScore: score.score ?? 0,
           label: score.alertLevel ?? "ignore",
-          positives: (score.reasons ?? []).slice(0, 8),
-          negatives: (score.negativeReasons ?? []).slice(0, 8),
-          missingData: (score.warnings ?? []).filter(warning => /未取得|不足|失敗|404|partial|遅延|FCF|J-Quants/.test(warning)).slice(0, 8),
+          positives: [...new Set(score.reasons ?? [])].slice(0, 8),
+          negatives: [...new Set(score.negativeReasons ?? [])].slice(0, 8),
+          missingData: [...new Set((score.warnings ?? []).filter(warning => /未取得|不足|失敗|404|partial|遅延|FCF|J-Quants/.test(warning)))].slice(0, 8),
           confidence: confidenceFromQuality(score, reasons),
         },
       }];

@@ -5,6 +5,7 @@
 # - design/ には出力しない（pnpm ui:data は --legacy-design なし）
 #
 # 利用ステップ:
+#   0. backup-data.sh      ... noncritical / data/ を backups/YYYY-MM-DD/ に圧縮保存
 #   1. run-daily.sh        ... critical / 失敗で停止
 #   2. Pro補助レポート群   ... noncritical / 失敗を FAILED_COMPLETE_STEPS に記録
 #   3. scan:universe       ... noncritical
@@ -21,6 +22,30 @@ cd "$DIR" || exit 1
 DOW="$(date '+%u')"   # 1=Mon ... 7=Sun
 DOM="$(date '+%d')"   # 01..31
 MONTH="$(date '+%m')" # 01..12
+
+# ── ログローテーション（7日分を保持） ───────────────────────────────────────
+# launchd は StandardOutPath に追記するため、1週間分だけ残して truncate する。
+rotate_log() {
+  local log="$1"
+  if [ -f "$log" ]; then
+    local lines
+    lines="$(wc -l < "$log")"
+    if [ "$lines" -gt 5000 ]; then
+      tail -n 5000 "$log" > "$log.tmp" && mv "$log.tmp" "$log"
+    fi
+  fi
+}
+rotate_log "$DIR/logs/daily.log"
+rotate_log "$DIR/logs/daily-error.log"
+
+# ── バックアップ（critical より前に実行） ────────────────────────────────────
+# 前日データを保全してから pipeline を開始する。失敗しても続行。
+echo "---- [backup-data.sh] start ----"
+if bash "$DIR/scripts/backup-data.sh"; then
+  echo "---- [backup-data.sh] ok ----"
+else
+  echo "---- [backup-data.sh] failed (non-critical, continuing) ----"
+fi
 
 # ── critical ──────────────────────────────────────────────────────────────────
 # run-daily.sh が失敗したら complete pipeline を停止する。
