@@ -214,3 +214,18 @@ Proエージェントの知識は固定しない。
 - 間違ったら何で下がる？
 
 これを見てから、調査するか、保留するか、追わないかを決める。
+
+## 12. 将来の技術 todo
+
+### hypothesis_outcomes の DB 側 UNIQUE 制約
+
+現在はアプリ側で `code:detectedAt:reviewHorizon` をキーにした Set で二重保存を防止している。
+単一プロセス・単一マシンの運用では十分。
+
+将来 GitHub Actions と Mac の同時実行・クラウド DB 化になった場合は、
+DB 側にも UNIQUE INDEX を追加するとさらに安全。
+
+```sql
+CREATE UNIQUE INDEX IF NOT EXISTS idx_hypothesis_outcomes_unique
+ON hypothesis_outcomes (code, detected_at, review_horizon);
+```
