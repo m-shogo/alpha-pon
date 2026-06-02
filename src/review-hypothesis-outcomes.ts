@@ -18,6 +18,8 @@ import type {
   ReviewHorizon,
   ActionLabelStats,
   AccuracySummary,
+  ScoreBand,
+  ScoreBandStats,
 } from "./universe.js";
 
 const HYPOTHESIS_PATH = "data/hypothesis_predictions.jsonl";
@@ -336,6 +338,28 @@ function calcActionLabelStats(outcomes: HypothesisOutcome[], label: HypothesisAc
   };
 }
 
+function scoreBand(score: number | null | undefined): ScoreBand {
+  if (score == null) return "unknown";
+  if (score < 50) return "0-49";
+  if (score < 70) return "50-69";
+  if (score < 85) return "70-84";
+  return "85-100";
+}
+
+function calcScoreBandStats(outcomes: HypothesisOutcome[], band: ScoreBand): ScoreBandStats {
+  const group = outcomes.filter(o => scoreBand(o.scoreAtPrediction) === band);
+  const resolved = group.filter(o => o.result === "hit" || o.result === "miss");
+  const hits = resolved.filter(o => o.result === "hit").length;
+  const excess1w = group.map(o => o.relativeToTopix1w).filter((v): v is number => v != null);
+  const excess1m = group.map(o => o.relativeToTopix1m).filter((v): v is number => v != null);
+  return {
+    total: group.length,
+    hitRate: resolved.length > 0 ? hits / resolved.length : null,
+    avgExcessReturn1w: avgOrNull(excess1w),
+    avgExcessReturn1m: avgOrNull(excess1m),
+  };
+}
+
 function calcAccuracySummary(outcomes: HypothesisOutcome[]): AccuracySummary {
   const total = outcomes.length;
   const hit = outcomes.filter(o => o.result === "hit").length;
@@ -356,7 +380,15 @@ function calcAccuracySummary(outcomes: HypothesisOutcome[]): AccuracySummary {
     ignore: calcActionLabelStats(outcomes, "ignore"),
   };
 
-  return { total, hit, miss, tooEarly, unknown, hitRate, avgReturn1m, avgTopixReturn1m, avgRelativeToTopix1m, avgMaxDrawdownPct, byActionLabel };
+  const byScoreBand = {
+    "0-49": calcScoreBandStats(outcomes, "0-49"),
+    "50-69": calcScoreBandStats(outcomes, "50-69"),
+    "70-84": calcScoreBandStats(outcomes, "70-84"),
+    "85-100": calcScoreBandStats(outcomes, "85-100"),
+    unknown: calcScoreBandStats(outcomes, "unknown"),
+  };
+
+  return { total, hit, miss, tooEarly, unknown, hitRate, avgReturn1m, avgTopixReturn1m, avgRelativeToTopix1m, avgMaxDrawdownPct, byActionLabel, byScoreBand };
 }
 
 // ── horizon 定義 ─────────────────────────────────────────────

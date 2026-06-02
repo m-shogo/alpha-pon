@@ -310,6 +310,32 @@ Web UI では `/roadmap` で確認できます。
 
 現時点で 100% に近づける最大の残タスクは、J-Quants 資格情報を設定して `pnpm daily:full` を実データで継続実行し、mock / missing / stale を消すことです。
 
+## バックアップと復元
+
+DB と主要データは `pnpm backup` で `backups/YYYY-MM-DDTHH-mm-ss/` に保存します。毎朝 pipeline 用の `scripts/backup-data.sh` は `backups/YYYY-MM-DD/data.tar.gz` に JSON / JSONL / `run-cursors.json` を保存します。
+
+復元前に daily pipeline を止め、現在の `data/` を退避してから必要なファイルだけ戻します。
+
+```bash
+# DBバックアップから復元する例
+cp backups/<timestamp>/data__hypothesis_outcomes.db data/hypothesis_outcomes.db
+cp backups/<timestamp>/data__alpha-pon-jobs.db data/alpha-pon-jobs.db
+cp backups/<timestamp>/data__hypothesis_predictions.jsonl data/hypothesis_predictions.jsonl
+cp backups/<timestamp>/data__hypothesis_outcomes.jsonl data/hypothesis_outcomes.jsonl
+cp backups/<timestamp>/data__hypothesis_accuracy_summary.json data/hypothesis_accuracy_summary.json
+cp backups/<timestamp>/data__run-cursors.json data/run-cursors.json
+
+# 日次tarから復元する例
+tar -xzf backups/<date>/data.tar.gz -C .
+
+# 復元後の確認
+pnpm health
+pnpm readiness:audit
+pnpm ui:data
+```
+
+復元後は `/roadmap` と `/reports` の run cursor、`/outcomes` の件数・TOPIX比・score帯別成績が期待通りに戻っているか確認します。
+
 ## 安全運用ルール
 
 - J-Quants 未設定時の universe scan は mock と明示し、実データのように見せない。

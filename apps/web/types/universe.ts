@@ -93,6 +93,15 @@ export type ActionLabelStats = {
   avgExcessReturn1m: number | null
 }
 
+export type ScoreBand = '0-49' | '50-69' | '70-84' | '85-100' | 'unknown'
+
+export type ScoreBandStats = {
+  total: number
+  hitRate: number | null
+  avgExcessReturn1w: number | null
+  avgExcessReturn1m: number | null
+}
+
 export type AccuracySummary = {
   total: number
   hit: number
@@ -105,6 +114,7 @@ export type AccuracySummary = {
   avgRelativeToTopix1m: number | null
   avgMaxDrawdownPct: number | null
   byActionLabel: Record<HypothesisActionLabel, ActionLabelStats>
+  byScoreBand: Record<ScoreBand, ScoreBandStats>
 }
 
 export type WorldContextRegime = {

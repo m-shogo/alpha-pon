@@ -22,12 +22,10 @@ tar -czf "$DEST/data.tar.gz" -C "$DIR" \
   data/universe_candidates_latest.json \
   data/generated_company_rules_latest.json \
   data/world_event_reflections_latest.json \
+  data/run-cursors.json \
   data/company_context_registry.jsonl \
   data/company_non_move_history.jsonl \
   2>/dev/null || true
-
-# run-cursor.json がある場合も含める
-[ -f "$DIR/data/run-cursor.json" ] && tar -rf "$DEST/data.tar.gz" -C "$DIR" data/run-cursor.json 2>/dev/null || true
 
 # 30日より古いバックアップを削除（最新30件を残す）
 mapfile -t all_backups < <(find "$BACKUP_ROOT" -maxdepth 1 -type d -name '????-??-??' | sort)

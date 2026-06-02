@@ -2,8 +2,17 @@ import { loadGeneratedData } from '@/lib/generated-data'
 import { ReportViewer } from '@/components/ReportViewer'
 import Link from 'next/link'
 
+function cursorRange(cursor: { offset?: number; maxPerRun?: number; total?: number }) {
+  const offset = cursor.offset ?? 0
+  const max = cursor.maxPerRun ?? 0
+  const total = cursor.total ?? 0
+  if (total <= 0) return '範囲未確定'
+  return `${offset + 1}-${Math.min(total, offset + Math.max(1, max))} / ${total}`
+}
+
 export default function ReportsPage() {
   const data = loadGeneratedData()
+  const runCursors = Object.entries(data.runCursors ?? {})
 
   return (
     <>
@@ -43,6 +52,23 @@ export default function ReportsPage() {
               </div>
             </div>
           </Link>
+        )}
+        {runCursors.length > 0 && (
+          <div style={{ marginBottom: 12, padding: '12px 14px', background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--card-line)', boxShadow: 'var(--shadow)' }}>
+            <div style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--ink-3)', marginBottom: 8, letterSpacing: 0.3 }}>
+              RUN CURSORS
+            </div>
+            <div style={{ display: 'grid', gap: 7 }}>
+              {runCursors.map(([key, cursor]) => (
+                <div key={key} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 12 }}>
+                  <span style={{ color: 'var(--ink)', fontWeight: 800, minWidth: 0 }}>{cursor.jobName ?? key}</span>
+                  <span style={{ color: 'var(--sky-deep)', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                    次 {cursorRange(cursor)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
         {(data.meta?.warnings ?? []).length > 0 && (
           <div style={{ padding: '10px 14px', marginBottom: 12, background: 'var(--amber-soft)', borderRadius: 10, fontSize: 12, fontWeight: 600, color: 'var(--ink-2)' }}>

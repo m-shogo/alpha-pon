@@ -142,6 +142,14 @@ import type {
   WorldContext,
 } from '@/types/universe'
 
+export type RunCursorState = {
+  jobName?: string
+  offset?: number
+  maxPerRun?: number
+  total?: number
+  updatedAt?: string
+}
+
 export type AlphaPonGeneratedData = {
   generatedAt: string | null
   headline: string
@@ -176,7 +184,7 @@ export type AlphaPonGeneratedData = {
     quality?: DataQualityDetail
     scoreBreakdown?: ScoreBreakdownDetail
   }>
-  runCursors?: Record<string, unknown>
+  runCursors?: Record<string, RunCursorState>
   readiness?: ReadinessReport | null
   pipelineStatus?: {
     date?: string

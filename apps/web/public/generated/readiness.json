@@ -1,6 +1,6 @@
 {
   "generatedAt": "2026-06-02",
-  "overallScore": 79,
+  "overallScore": 83,
   "overallStatus": "partial",
   "blockers": [],
   "items": [
@@ -34,12 +34,14 @@
     {
       "id": "hypothesis-outcomes",
       "label": "仮説検証の厚み",
-      "score": 65,
+      "score": 78,
       "evidence": [
         "hypotheses: 16",
         "outcomes: 4",
         "priced outcomes: 4",
-        "real outcomes: 4"
+        "real outcomes: 4",
+        "SQLite outcome DB: present",
+        "score bands: present"
       ],
       "nextActions": [
         "reviewDueAt を過ぎた仮説を J-Quants 実データで review:hypotheses する",
@@ -75,6 +77,25 @@
         "外れ理由が出た銘柄を watchlist のルール調整へ反映する"
       ],
       "status": "partial"
+    },
+    {
+      "id": "ops-health-backup",
+      "label": "SQLite / backup / health 運用",
+      "score": 92,
+      "evidence": [
+        "script:health present",
+        "script:backup present",
+        "outcome DB: present",
+        "jobs DB: present",
+        "backup count: 4",
+        "latest backup: 2026-06-02T17-05-13 (0d)",
+        "run cursors: universe-scan, analogy-review"
+      ],
+      "nextActions": [
+        "pnpm health と pnpm backup を daily 運用後に確認する",
+        "README の復元手順に沿って復旧リハーサルを行う"
+      ],
+      "status": "done"
     },
     {
       "id": "portfolio-mode",

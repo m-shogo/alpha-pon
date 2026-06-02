@@ -24,6 +24,19 @@ export default function HomePage() {
   const qualityValues = Object.values(data.dataQualityByCode ?? {})
   const missingQualityCount = qualityValues.filter((q) => q.dataQuality === 'missing' || q.dataQuality === 'unknown').length
   const warningCount = qualityValues.reduce((sum, q) => sum + q.warnings.length, 0)
+  const outcomeCount = data.hypothesisOutcomes?.length ?? 0
+  const cursorEntries = Object.entries(data.runCursors ?? {})
+  const activeCursors = cursorEntries.filter(([, cursor]) => {
+    const offset = cursor.offset ?? 0
+    const total = cursor.total ?? 0
+    return total > 0 && offset < total
+  })
+  const hypothesisReadiness = data.readiness?.items.find((item) => item.id === 'hypothesis-outcomes')
+  const waitReasons = [
+    outcomeCount < 10 ? `outcome蓄積待ち: ${outcomeCount}/10件。1w/1m/3m の実績が増えるまで強い判定は保留。` : null,
+    activeCursors.length > 0 ? `J-Quants cursor進行中: ${activeCursors.map(([name, cursor]) => `${cursor.jobName ?? name} ${cursor.offset ?? 0}/${cursor.total ?? '?'}`).join(' / ')}。無理な連打より次回範囲を進める。` : null,
+    hypothesisReadiness && hypothesisReadiness.status !== 'done' ? `次回レビュー待ち: ${hypothesisReadiness.nextActions[0] ?? 'review:hypotheses の継続実行待ち'}` : null,
+  ].filter((reason): reason is string => Boolean(reason))
   const dataWarnings = [
     ...((data.meta?.warnings ?? []).map((w) => `生成データ: ${w}`)),
     ...(pipelineFailed ? [`pipeline に失敗/スキップがあります: ${failedSteps.join(', ') || data.pipelineStatus?.status}`] : []),
@@ -107,6 +120,15 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+
+        {waitReasons.length > 0 && (
+          <div style={{ padding: '10px 14px', marginBottom: 12, background: 'var(--sky-soft)', borderRadius: 10, fontSize: 12, fontWeight: 650, color: 'var(--ink-2)' }}>
+            <div style={{ fontWeight: 850, color: 'var(--sky-deep)', marginBottom: 4 }}>今は待ちの理由</div>
+            {waitReasons.map((reason, i) => (
+              <div key={i} style={{ marginTop: 2 }}>• {reason}</div>
+            ))}
+          </div>
+        )}
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 9, marginBottom: 12 }}>
           {[

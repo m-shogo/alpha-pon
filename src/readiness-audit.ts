@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
 import { isJQuantsConfigured } from "./fetcher/jquants.js";
@@ -27,6 +27,20 @@ type LatestScoreRow = {
   dataQuality?: string;
   warnings?: string[];
   primaryDisclosureReview?: unknown;
+};
+
+type AccuracySummarySnapshot = {
+  total?: number;
+  byActionLabel?: Record<string, { total?: number }>;
+  byScoreBand?: Record<string, { total?: number }>;
+};
+
+type RunCursorSnapshot = {
+  jobName?: string;
+  offset?: number;
+  maxPerRun?: number;
+  total?: number;
+  updatedAt?: string;
 };
 
 function readJson<T>(path: string): T | null {
@@ -70,6 +84,19 @@ function readDirSafe(path: string): string[] {
   }
 }
 
+function latestBackupEvidence(): { count: number; latest: string | null; latestAgeDays: number | null } {
+  const dirs = readDirSafe("backups").filter(name => /^\d{4}-\d{2}-\d{2}(T.*)?$/.test(name)).sort();
+  const latest = dirs.at(-1) ?? null;
+  if (!latest) return { count: 0, latest: null, latestAgeDays: null };
+  try {
+    const mtime = statSync(join("backups", latest)).mtimeMs;
+    const latestAgeDays = Math.floor((Date.now() - mtime) / (24 * 60 * 60 * 1000));
+    return { count: dirs.length, latest, latestAgeDays };
+  } catch {
+    return { count: dirs.length, latest, latestAgeDays: null };
+  }
+}
+
 function scoreToStatus(score: number): ReadinessStatus {
   if (score >= 85) return "done";
   if (score >= 45) return "partial";
@@ -109,6 +136,13 @@ function buildReport(): ReadinessReport {
     : Object.values(generated?.dataQualityByCode ?? {});
   const universe = generated?.universeCandidates ?? [];
   const packageJson = readJson<{ scripts?: Record<string, string> }>("package.json");
+  const accuracySummary = readJson<AccuracySummarySnapshot>("data/hypothesis_accuracy_summary.json");
+  const runCursors = readJson<Record<string, RunCursorSnapshot>>("data/run-cursors.json") ?? {};
+  const backup = latestBackupEvidence();
+  const hasOutcomeDb = existsSync("data/hypothesis_outcomes.db");
+  const hasJobsDb = existsSync("data/alpha-pon-jobs.db");
+  const hasBackupScript = Boolean(packageJson?.scripts?.backup);
+  const hasHealthScript = Boolean(packageJson?.scripts?.health);
   const dailyFull = packageJson?.scripts?.["daily:full"] ?? "";
   const hasPrimaryPipeline = dailyFull.includes("sync:tdnet") && dailyFull.includes("scan:edinet:annual");
   const hasCompanyMemoryPipeline = dailyFull.includes("memory:companies");
@@ -120,6 +154,24 @@ function buildReport(): ReadinessReport {
   const failedSteps = pipeline?.completeWrapperFailedSteps ?? [];
   const realOutcomes = outcomes.filter(outcome => outcome.dataSource === "jquants").length;
   const pricedOutcomes = outcomes.filter(outcome => outcome.dataAvailability === "ok" || outcome.dataAvailability === "partial").length;
+  const outcomeScore = realOutcomes >= 10
+    ? 92
+    : hasOutcomeDb && pricedOutcomes > 0 && accuracySummary?.byActionLabel && accuracySummary.byScoreBand
+      ? 78
+      : hasOutcomeDb && pricedOutcomes > 0
+        ? 72
+        : pricedOutcomes > 0
+          ? 65
+          : hypotheses.length > 0
+            ? 45
+            : 15;
+  const opsScore = hasBackupScript && hasHealthScript && backup.count > 0 && backup.latestAgeDays != null && backup.latestAgeDays <= 7 && hasOutcomeDb && hasJobsDb
+    ? 92
+    : hasBackupScript && hasHealthScript && backup.count > 0 && hasOutcomeDb
+      ? 78
+      : hasBackupScript || hasHealthScript
+        ? 55
+        : 20;
 
   const items: ReadinessItem[] = [
     item({
@@ -147,8 +199,15 @@ function buildReport(): ReadinessReport {
     item({
       id: "hypothesis-outcomes",
       label: "仮説検証の厚み",
-      score: realOutcomes >= 10 ? 90 : pricedOutcomes > 0 ? 65 : hypotheses.length > 0 ? 45 : 15,
-      evidence: [`hypotheses: ${hypotheses.length}`, `outcomes: ${outcomes.length}`, `priced outcomes: ${pricedOutcomes}`, `real outcomes: ${realOutcomes}`],
+      score: outcomeScore,
+      evidence: [
+        `hypotheses: ${hypotheses.length}`,
+        `outcomes: ${outcomes.length}`,
+        `priced outcomes: ${pricedOutcomes}`,
+        `real outcomes: ${realOutcomes}`,
+        `SQLite outcome DB: ${hasOutcomeDb ? "present" : "missing"}`,
+        `score bands: ${accuracySummary?.byScoreBand ? "present" : "missing"}`,
+      ],
       nextActions: ["reviewDueAt を過ぎた仮説を J-Quants 実データで review:hypotheses する", "1w/1m/3m と TOPIX比が入った outcome を蓄積する"],
     }),
     item({
@@ -172,6 +231,23 @@ function buildReport(): ReadinessReport {
       nextActions: hasCompanyMemoryPipeline
         ? ["weakRules と recentOutcomes を個別銘柄判断に使う", "外れ理由が出た銘柄を watchlist のルール調整へ反映する"]
         : ["pnpm memory:companies を daily pipeline に含める", "weakRules と recentOutcomes を個別銘柄判断に使う"],
+    }),
+    item({
+      id: "ops-health-backup",
+      label: "SQLite / backup / health 運用",
+      score: opsScore,
+      evidence: [
+        `script:health ${hasHealthScript ? "present" : "missing"}`,
+        `script:backup ${hasBackupScript ? "present" : "missing"}`,
+        `outcome DB: ${hasOutcomeDb ? "present" : "missing"}`,
+        `jobs DB: ${hasJobsDb ? "present" : "missing"}`,
+        `backup count: ${backup.count}`,
+        `latest backup: ${backup.latest ?? "none"}${backup.latestAgeDays == null ? "" : ` (${backup.latestAgeDays}d)`}`,
+        `run cursors: ${Object.keys(runCursors).join(", ") || "none"}`,
+      ],
+      nextActions: backup.count > 0
+        ? ["pnpm health と pnpm backup を daily 運用後に確認する", "README の復元手順に沿って復旧リハーサルを行う"]
+        : ["pnpm backup を実行し、data DB と run-cursors の復元対象を作る"],
     }),
     item({
       id: "portfolio-mode",

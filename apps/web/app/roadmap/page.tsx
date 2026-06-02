@@ -41,10 +41,20 @@ function ScoreBar({ score }: { score: number }) {
   )
 }
 
+function cursorRange(cursor: { offset?: number; maxPerRun?: number; total?: number }) {
+  const offset = cursor.offset ?? 0
+  const max = cursor.maxPerRun ?? 0
+  const total = cursor.total ?? 0
+  if (total <= 0) return '範囲未確定'
+  const nextEnd = Math.min(total, offset + Math.max(1, max))
+  return `${offset + 1}-${nextEnd} / ${total}`
+}
+
 export default function RoadmapPage() {
   const data = loadGeneratedData()
   const readiness = data.readiness
   const readinessById = new Map((readiness?.items ?? []).map(item => [item.id, item]))
+  const runCursors = Object.entries(data.runCursors ?? {})
 
   return (
     <>
@@ -114,6 +124,27 @@ export default function RoadmapPage() {
                     次: {item.nextActions[0]}
                   </div>
                 )}
+              </Card>
+            ))}
+          </>
+        )}
+
+        {runCursors.length > 0 && (
+          <>
+            <SectionLabel icon={<Icon name="filter" size={15} />}>Run cursors / 次回処理範囲</SectionLabel>
+            {runCursors.map(([key, cursor]) => (
+              <Card key={key} pad={13} style={{ marginBottom: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 850, color: 'var(--ink)' }}>{cursor.jobName ?? key}</div>
+                    <div style={{ marginTop: 3, fontSize: 11.5, fontWeight: 700, color: 'var(--ink-3)' }}>
+                      offset {cursor.offset ?? 0} / max {cursor.maxPerRun ?? '-'} / updated {cursor.updatedAt ?? '-'}
+                    </div>
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 850, color: 'var(--sky-deep)', background: 'var(--sky-soft)', borderRadius: 8, padding: '4px 8px', whiteSpace: 'nowrap' }}>
+                    次 {cursorRange(cursor)}
+                  </span>
+                </div>
               </Card>
             ))}
           </>
