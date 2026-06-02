@@ -1,8 +1,12 @@
+import { getAppMode, getDisclaimer } from '@/lib/stock/display-mode'
+
 type Props = {
   compact?: boolean
 }
 
 export function Disclaimer({ compact }: Props) {
+  const text = getDisclaimer(getAppMode())
+
   if (compact) {
     return (
       <div
@@ -17,8 +21,7 @@ export function Disclaimer({ compact }: Props) {
           textAlign: 'center',
         }}
       >
-        本サービスは投資判断の補助情報を提供するものであり、特定銘柄の売買を推奨するものではありません。
-        掲載情報の正確性・完全性を保証するものではなく、最終的な投資判断はご自身の責任で行ってください。
+        {text}
       </div>
     )
   }
@@ -41,10 +44,7 @@ export function Disclaimer({ compact }: Props) {
         ⚠ 免責事項
       </div>
       <p style={{ margin: 0 }}>
-        本サービスは投資判断の補助情報を提供するものであり、特定銘柄の売買を推奨するものではありません。
-        掲載されている情報の正確性・完全性・最新性を保証するものではなく、
-        情報の利用によって生じたいかなる損害についても責任を負いません。
-        最終的な投資判断はご自身の責任において行ってください。
+        {text}
       </p>
     </section>
   )

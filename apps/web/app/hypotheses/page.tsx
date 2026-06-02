@@ -4,6 +4,7 @@ import { Icon } from '@/components/Icon'
 import { Disclaimer } from '@/components/Disclaimer'
 import type { StockCandidateHypothesis } from '@/types/universe'
 import Link from 'next/link'
+import { formatDueLabel, todayJstDate } from '@/lib/format'
 
 export const metadata = { title: '仮説一覧 | alpha-pon' }
 
@@ -15,15 +16,7 @@ const LABEL_STYLE: Record<string, { color: string; bg: string }> = {
 
 function HypothesisCard({ h }: { h: StockCandidateHypothesis }) {
   const ls = LABEL_STYLE[h.label] ?? { color: 'var(--ink-3)', bg: 'var(--surface-2)' }
-  const dueIn = (() => {
-    const now = new Date().toISOString().slice(0, 10)
-    const due = h.reviewDueAt
-    const diff = Math.ceil((new Date(due).getTime() - new Date(now).getTime()) / 86400000)
-    if (diff < 0) return `${Math.abs(diff)}日超過`
-    if (diff === 0) return '今日'
-    return `残${diff}日`
-  })()
-  const isOverdue = h.reviewDueAt <= new Date().toISOString().slice(0, 10)
+  const due = formatDueLabel(h.reviewDueAt, todayJstDate())
 
   return (
     <Link href={`/stocks/${h.code}`} style={{ textDecoration: 'none', display: 'block', marginBottom: 10, color: 'inherit' }}>
@@ -47,8 +40,8 @@ function HypothesisCard({ h }: { h: StockCandidateHypothesis }) {
               <span style={{ color: 'var(--ink-3)' }}>検証: {h.expectedTimeframe}</span>
               <span style={{ color: 'var(--ink-3)' }}>方向: {h.expectedDirection}</span>
               <span style={{ color: 'var(--ink-3)' }}>確信: {Math.round(h.confidence * 100)}%</span>
-              <span style={{ color: isOverdue ? 'var(--urgent)' : 'var(--ink-3)' }}>
-                {dueIn} ({h.reviewDueAt})
+              <span style={{ color: due.overdue ? 'var(--urgent)' : 'var(--ink-3)' }}>
+                {due.label} ({h.reviewDueAt})
               </span>
             </div>
           </div>

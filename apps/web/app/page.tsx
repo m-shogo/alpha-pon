@@ -7,6 +7,7 @@ import { SectionLabel } from '@/components/Card'
 import { Icon } from '@/components/Icon'
 import { Disclaimer } from '@/components/Disclaimer'
 import Link from 'next/link'
+import { dateOnly, daysBetweenJst, todayJstDate } from '@/lib/format'
 
 export const metadata = {
   title: 'alpha-pon — ホーム',
@@ -14,6 +15,14 @@ export const metadata = {
 
 export default function HomePage() {
   const data = loadGeneratedData()
+  const generatedDate = dateOnly(data.generatedAt)
+  const generatedAgeDays = generatedDate ? daysBetweenJst(generatedDate, todayJstDate()) : null
+  const hasMockUniverse = (data.universeCandidates ?? []).some((c) => c.dataSource === 'mock')
+  const dataWarnings = [
+    ...((data.meta?.warnings ?? []).map((w) => `生成データ: ${w}`)),
+    ...(generatedAgeDays != null && generatedAgeDays > 0 ? [`生成日が${generatedAgeDays}日前です。pnpm ui:data で最新化してください。`] : []),
+    ...(hasMockUniverse ? ['未登録銘柄スクリーニングにモックデータが含まれています。実データ確認前の仮説として扱ってください。'] : []),
+  ]
 
   const list = data.candidates
     .map((c) => ({ c, total: calcTotal(c.score) }))
@@ -60,10 +69,10 @@ export default function HomePage() {
 
       <div style={{ padding: '16px 16px 0' }}>
         {/* pipeline warnings */}
-        {(data.meta?.warnings ?? []).length > 0 && (
+        {dataWarnings.length > 0 && (
           <div style={{ padding: '10px 14px', marginBottom: 12, background: 'var(--amber-soft)', borderRadius: 10, fontSize: 12, fontWeight: 600, color: 'var(--ink-2)' }}>
-            <div style={{ fontWeight: 800, color: 'var(--amber)', marginBottom: 4 }}>⚠ データ更新に問題が発生しました</div>
-            {(data.meta?.warnings ?? []).map((w, i) => (
+            <div style={{ fontWeight: 800, color: 'var(--amber)', marginBottom: 4 }}>⚠ データ確認メモ</div>
+            {dataWarnings.map((w, i) => (
               <div key={i} style={{ marginTop: 2 }}>• {w}</div>
             ))}
           </div>

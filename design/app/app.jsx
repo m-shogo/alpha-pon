@@ -1,6 +1,7 @@
 /* alpha-pon — app shell, navigation, theming, tweaks */
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "platform": "mobile",
   "dark": false,
   "accent": "#FF7EA6",
   "scoreVariant": "ring",
@@ -79,41 +80,70 @@ function TabBar({ tab, onTab }) {
 function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [tab, setTab] = React.useState("home");
-  const [detail, setDetail] = React.useState(null);
+  const [sub, setSub] = React.useState(null);      // null | 'ipo' | 'backtest'
+  const [detail, setDetail] = React.useState(null); // code
   const [reportCode, setReportCode] = React.useState("285A");
+  const [candidates, setCandidates] = React.useState(() => window.AP.candidates.map((c) => ({ ...c })));
+  const [addedCodes, setAddedCodes] = React.useState([]);
+  const [sheetCode, setSheetCode] = React.useState(null);
   const scrollRef = React.useRef(null);
 
   const resetScroll = () => { if (scrollRef.current) scrollRef.current.scrollTop = 0; };
-  React.useEffect(resetScroll, [tab, detail]);
+  React.useEffect(resetScroll, [tab, detail, sub]);
+
+  const ipoPool = window.AP.ipo.filter((c) => !addedCodes.includes(c.code));
+  const lookup = [...candidates, ...ipoPool];
 
   const openDetail = (code) => setDetail(code);
-  const goTab = (k) => { setDetail(null); setTab(k); };
-  const openReport = (code) => { setReportCode(code); setDetail(null); setTab("report"); };
+  const goTab = (k) => { setDetail(null); setSub(null); setTab(k); };
+  const openReport = (code) => { setReportCode(code); setDetail(null); setSub(null); setTab("report"); };
+  const backFromDetail = () => setDetail(null);
+
+  const setStatus = (code, status) => {
+    setCandidates((cs) => cs.map((c) => (c.code === code ? { ...c, status } : c)));
+    setSheetCode(null);
+  };
+  const addIpo = (code) => {
+    if (addedCodes.includes(code)) return;
+    const src = window.AP.ipo.find((c) => c.code === code);
+    if (src) setCandidates((cs) => [...cs, { ...src, status: "candidate" }]);
+    setAddedCodes((a) => [...a, code]);
+  };
 
   const theme = buildTheme(t.dark, t.accent);
+  const sheetCand = lookup.find((c) => c.code === sheetCode) || null;
 
+  // ── desktop ──
+  if (t.platform === "desktop") {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, boxSizing: "border-box", ...theme }}>
+        <DesktopApp candidates={candidates} onOpen={openDetail} onStatus={setStatus}
+          addedCodes={addedCodes} onAdd={addIpo} scoreVariant={t.scoreVariant}
+          detail={detail} onBack={backFromDetail} />
+        {renderTweaks()}
+      </div>
+    );
+  }
+
+  // ── mobile ──
   let screen;
-  if (detail) screen = <DetailScreen code={detail} onBack={() => setDetail(null)} scoreVariant={t.scoreVariant} onReport={openReport} />;
-  else if (tab === "home") screen = <HomeScreen onOpen={openDetail} density={t.density} />;
-  else if (tab === "watch") screen = <WatchlistScreen onOpen={openDetail} />;
+  if (detail) screen = <DetailScreen code={detail} onBack={backFromDetail} scoreVariant={t.scoreVariant} onReport={openReport} candidates={lookup} onStatus={(code) => setSheetCode(code)} />;
+  else if (sub === "ipo") screen = <IpoScreen onBack={() => setSub(null)} onOpen={openDetail} addedCodes={addedCodes} onAdd={addIpo} />;
+  else if (sub === "backtest") screen = <BacktestScreen onBack={() => setSub(null)} />;
+  else if (tab === "home") screen = <HomeScreen onOpen={openDetail} density={t.density} candidates={candidates} onStatus={(code) => setSheetCode(code)} onIpo={() => setSub("ipo")} onBacktest={() => setSub("backtest")} ipoCount={ipoPool.length} />;
+  else if (tab === "watch") screen = <WatchlistScreen onOpen={openDetail} candidates={candidates} onStatus={(code) => setSheetCode(code)} />;
   else if (tab === "feed") screen = <FeedScreen onOpen={openDetail} />;
   else screen = <ReportScreen code={reportCode} onOpen={openDetail} />;
 
-  return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, boxSizing: "border-box", background: "var(--page-bg)" }}>
-      <IOSDevice dark={t.dark}>
-        <div style={{ ...theme, height: "100%", display: "flex", flexDirection: "column", background: "var(--bg)", fontFamily: "var(--ui)", color: "var(--ink)" }}>
-          <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
-            {screen}
-            <div style={{ height: 24 }} />
-          </div>
-          <DisclaimerBar />
-          {!detail && <TabBar tab={tab} onTab={goTab} />}
-          {detail && <div style={{ height: 0 }} />}
-        </div>
-      </IOSDevice>
+  const showTabs = !detail && !sub;
 
+  function renderTweaks() {
+    return (
       <TweaksPanel>
+        <TweakSection label="プラットフォーム" />
+        <TweakRadio label="表示" value={t.platform}
+          options={[{ value: "mobile", label: "モバイル" }, { value: "desktop", label: "デスクトップ" }]}
+          onChange={(v) => setTweak("platform", v)} />
         <TweakSection label="スコアの見せ方" />
         <TweakSelect label="詳細スコア" value={t.scoreVariant}
           options={[
@@ -133,6 +163,23 @@ function App() {
           options={["#FF7EA6", "#2E9AC9", "#8A6FE0", "#2FA579", "#F2954A"]}
           onChange={(v) => setTweak("accent", v)} />
       </TweaksPanel>
+    );
+  }
+
+  return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, boxSizing: "border-box" }}>
+      <IOSDevice dark={t.dark}>
+        <div style={{ ...theme, height: "100%", display: "flex", flexDirection: "column", background: "var(--bg)", fontFamily: "var(--ui)", color: "var(--ink)", position: "relative" }}>
+          <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
+            {screen}
+            <div style={{ height: 24 }} />
+          </div>
+          <DisclaimerBar />
+          {showTabs && <TabBar tab={tab} onTab={goTab} />}
+          <StatusSheet cand={sheetCand} onPick={(s) => setStatus(sheetCode, s)} onClose={() => setSheetCode(null)} />
+        </div>
+      </IOSDevice>
+      {renderTweaks()}
     </div>
   );
 }

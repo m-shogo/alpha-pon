@@ -1,15 +1,15 @@
 {
   "generatedAt": "2026-06-02",
-  "count": 9,
+  "count": 10,
   "rules": [
     {
-      "generatedRuleId": "8136-missing-price-1780327312165",
+      "generatedRuleId": "8136-2026-06-02-missing-price",
       "code": "8136",
       "name": "サンリオ",
-      "generatedAt": "2026-06-01T15:21:52.165Z",
+      "generatedAt": "2026-06-02T00:00:00+09:00",
       "thesis": [
-        "グローバルIPライセンス拡大",
-        "インバウンド消費回復"
+        "監視テーマ: character / global_ip / consumer",
+        "発火ルール: healthy_pullback / earnings_drop"
       ],
       "actionSignal": "NO_ACTION",
       "confidence": 0.1,
@@ -31,13 +31,13 @@
       ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
-      "reviewDueAt": "2026-07-01T15:21:52.165Z"
+      "reviewDueAt": "2026-07-02T00:00:00+09:00"
     },
     {
-      "generatedRuleId": "4661-missing-price-1780327312165",
+      "generatedRuleId": "4661-2026-06-02-missing-price",
       "code": "4661",
       "name": "オリエンタルランド",
-      "generatedAt": "2026-06-01T15:21:52.165Z",
+      "generatedAt": "2026-06-02T00:00:00+09:00",
       "thesis": [
         "継続的な設備投資によるリピート誘引",
         "インバウンド需要拡大"
@@ -62,13 +62,13 @@
       ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
-      "reviewDueAt": "2026-07-01T15:21:52.165Z"
+      "reviewDueAt": "2026-07-02T00:00:00+09:00"
     },
     {
-      "generatedRuleId": "7974-missing-price-1780327312165",
+      "generatedRuleId": "7974-2026-06-02-missing-price",
       "code": "7974",
       "name": "任天堂",
-      "generatedAt": "2026-06-01T15:21:52.165Z",
+      "generatedAt": "2026-06-02T00:00:00+09:00",
       "thesis": [
         "次世代ハード移行期",
         "IP展開の多様化"
@@ -93,13 +93,13 @@
       ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
-      "reviewDueAt": "2026-07-01T15:21:52.165Z"
+      "reviewDueAt": "2026-07-02T00:00:00+09:00"
     },
     {
-      "generatedRuleId": "7011-1780327312165",
+      "generatedRuleId": "7011-2026-06-02",
       "code": "7011",
       "name": "三菱重工業",
-      "generatedAt": "2026-06-01T15:21:52.165Z",
+      "generatedAt": "2026-06-02T00:00:00+09:00",
       "thesis": [
         "防衛費増額による受注拡大",
         "原発・エネルギー転換"
@@ -171,13 +171,13 @@
       "risks": [],
       "privateMemo": "[MOCK] スコア103。ENTRY_WATCHシグナル。銘柄ごとの考察から自動生成。",
       "publicMemo": "[MOCK] 銘柄ごとのデータから生成された監視・検証用メモ。投資助言ではありません。",
-      "reviewDueAt": "2026-07-01T15:21:52.165Z"
+      "reviewDueAt": "2026-07-02T00:00:00+09:00"
     },
     {
-      "generatedRuleId": "5803-missing-price-1780327312165",
+      "generatedRuleId": "5803-2026-06-02-missing-price",
       "code": "5803",
       "name": "フジクラ",
-      "generatedAt": "2026-06-01T15:21:52.165Z",
+      "generatedAt": "2026-06-02T00:00:00+09:00",
       "thesis": [
         "AI/データセンター向け光ファイバー需要急拡大"
       ],
@@ -201,13 +201,13 @@
       ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
-      "reviewDueAt": "2026-07-01T15:21:52.165Z"
+      "reviewDueAt": "2026-07-02T00:00:00+09:00"
     },
     {
-      "generatedRuleId": "8306-missing-price-1780327312165",
+      "generatedRuleId": "8306-2026-06-02-missing-price",
       "code": "8306",
       "name": "三菱UFJフィナンシャル・グループ",
-      "generatedAt": "2026-06-01T15:21:52.165Z",
+      "generatedAt": "2026-06-02T00:00:00+09:00",
       "thesis": [
         "金利上昇局面での利ザヤ改善",
         "海外収益拡大"
@@ -232,13 +232,44 @@
       ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
-      "reviewDueAt": "2026-07-01T15:21:52.165Z"
+      "reviewDueAt": "2026-07-02T00:00:00+09:00"
     },
     {
-      "generatedRuleId": "8035-1780327312165",
+      "generatedRuleId": "285A-2026-06-02-missing-price",
+      "code": "285A",
+      "name": "キオクシア",
+      "generatedAt": "2026-06-02T00:00:00+09:00",
+      "thesis": [
+        "監視テーマ: semiconductor / ipo / national_policy",
+        "発火ルール: ipo_selling_pressure_done / volume_cooling / no_new_low"
+      ],
+      "actionSignal": "NO_ACTION",
+      "confidence": 0.1,
+      "watchPriceZones": [],
+      "addWatchZones": [],
+      "trimWatchZones": [],
+      "dangerLines": [],
+      "invalidationSignals": [
+        "株価データ未取得"
+      ],
+      "evidenceNeeded": [
+        "現在株価",
+        "52週高値/安値",
+        "直近決算"
+      ],
+      "reasons": [],
+      "risks": [
+        "株価データ未取得"
+      ],
+      "privateMemo": "[MOCK] 株価未取得のため判断しない",
+      "publicMemo": "[MOCK] データ不足のため様子見",
+      "reviewDueAt": "2026-07-02T00:00:00+09:00"
+    },
+    {
+      "generatedRuleId": "8035-2026-06-02",
       "code": "8035",
       "name": "東京エレクトロン",
-      "generatedAt": "2026-06-01T15:21:52.165Z",
+      "generatedAt": "2026-06-02T00:00:00+09:00",
       "thesis": [],
       "actionSignal": "ENTRY_WATCH",
       "confidence": 0.9,
@@ -307,13 +338,13 @@
       "risks": [],
       "privateMemo": "[MOCK] スコア103。ENTRY_WATCHシグナル。銘柄ごとの考察から自動生成。",
       "publicMemo": "[MOCK] 銘柄ごとのデータから生成された監視・検証用メモ。投資助言ではありません。",
-      "reviewDueAt": "2026-07-01T15:21:52.165Z"
+      "reviewDueAt": "2026-07-02T00:00:00+09:00"
     },
     {
-      "generatedRuleId": "6367-1780327312165",
+      "generatedRuleId": "6367-2026-06-02",
       "code": "6367",
       "name": "ダイキン工業",
-      "generatedAt": "2026-06-01T15:21:52.165Z",
+      "generatedAt": "2026-06-02T00:00:00+09:00",
       "thesis": [],
       "actionSignal": "ENTRY_WATCH",
       "confidence": 0.75,
@@ -380,13 +411,13 @@
       "risks": [],
       "privateMemo": "[MOCK] スコア75。ENTRY_WATCHシグナル。銘柄ごとの考察から自動生成。",
       "publicMemo": "[MOCK] 銘柄ごとのデータから生成された監視・検証用メモ。投資助言ではありません。",
-      "reviewDueAt": "2026-07-01T15:21:52.165Z"
+      "reviewDueAt": "2026-07-02T00:00:00+09:00"
     },
     {
-      "generatedRuleId": "6954-1780327312165",
+      "generatedRuleId": "6954-2026-06-02",
       "code": "6954",
       "name": "ファナック",
-      "generatedAt": "2026-06-01T15:21:52.165Z",
+      "generatedAt": "2026-06-02T00:00:00+09:00",
       "thesis": [],
       "actionSignal": "ENTRY_WATCH",
       "confidence": 0.83,
@@ -454,7 +485,7 @@
       "risks": [],
       "privateMemo": "[MOCK] スコア83。ENTRY_WATCHシグナル。銘柄ごとの考察から自動生成。",
       "publicMemo": "[MOCK] 銘柄ごとのデータから生成された監視・検証用メモ。投資助言ではありません。",
-      "reviewDueAt": "2026-07-01T15:21:52.165Z"
+      "reviewDueAt": "2026-07-02T00:00:00+09:00"
     }
   ]
 }

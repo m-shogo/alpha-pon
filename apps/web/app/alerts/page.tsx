@@ -131,8 +131,9 @@ export default function AlertsPage() {
         {isMock && (
           <div style={{ padding: '10px 14px', marginBottom: 12, background: 'var(--amber-soft)', borderRadius: 10, fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)', display: 'flex', gap: 8 }}>
             <span style={{ color: 'var(--amber)', flexShrink: 0 }}>⚠</span>
-            モックデータを表示しています。
-            実データ取得には <code style={{ background: 'var(--surface-2)', padding: '1px 5px', borderRadius: 4 }}>pnpm scan:universe</code> を実行してください。
+            モックデータを表示しています。実データで見るには J-Quants を設定してから
+            <code style={{ background: 'var(--surface-2)', padding: '1px 5px', borderRadius: 4 }}>pnpm scan:universe</code>
+            を実行してください。
           </div>
         )}
 

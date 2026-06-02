@@ -23,12 +23,46 @@ const FALLBACK_PRO: ProData = {
   summary: { strategic: '', pipeline: '', committee: '', roadmap: [], refresh: [] },
   reports: [],
   candidates: [],
+  universeCandidates: [],
+  hypothesisPredictions: [],
+  hypothesisOutcomes: [],
+  generatedCompanyRules: [],
+  positions: [],
+  accuracySummary: null,
+  worldContext: null,
+  meta: { warnings: ['データファイルが見つからないか、読み込みに失敗しました。pnpm ui:data を実行してください。'] },
+}
+
+function normalizeGeneratedData(value: unknown): ProData {
+  const data = value && typeof value === 'object' ? value as Partial<ProData> : {}
+  return {
+    ...FALLBACK_PRO,
+    ...data,
+    generatedAt: typeof data.generatedAt === 'string' ? data.generatedAt : null,
+    headline: typeof data.headline === 'string' ? data.headline : FALLBACK_PRO.headline,
+    summary: {
+      ...FALLBACK_PRO.summary,
+      ...(data.summary && typeof data.summary === 'object' ? data.summary : {}),
+      roadmap: Array.isArray(data.summary?.roadmap) ? data.summary.roadmap : [],
+      refresh: Array.isArray(data.summary?.refresh) ? data.summary.refresh : [],
+    },
+    reports: Array.isArray(data.reports) ? data.reports : [],
+    candidates: Array.isArray(data.candidates) ? data.candidates : [],
+    universeCandidates: Array.isArray(data.universeCandidates) ? data.universeCandidates : [],
+    hypothesisPredictions: Array.isArray(data.hypothesisPredictions) ? data.hypothesisPredictions : [],
+    hypothesisOutcomes: Array.isArray(data.hypothesisOutcomes) ? data.hypothesisOutcomes : [],
+    generatedCompanyRules: Array.isArray(data.generatedCompanyRules) ? data.generatedCompanyRules : [],
+    positions: Array.isArray(data.positions) ? data.positions : [],
+    accuracySummary: data.accuracySummary ?? null,
+    worldContext: data.worldContext ?? null,
+    meta: data.meta ?? null,
+  }
 }
 
 export function loadGeneratedData(): ProData {
   if (!existsSync(DATA_PATH)) return FALLBACK_PRO
   try {
-    return JSON.parse(readFileSync(DATA_PATH, 'utf-8')) as ProData
+    return normalizeGeneratedData(JSON.parse(readFileSync(DATA_PATH, 'utf-8')))
   } catch {
     return FALLBACK_PRO
   }

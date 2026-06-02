@@ -8,7 +8,8 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
-import { todayJst } from "./date.js";
+import { load } from "js-yaml";
+import { addDaysJst, todayJst } from "./date.js";
 
 // ── 型定義（apps/web/lib/stock/rules/types.ts と同形状） ────────────────
 
@@ -88,15 +89,13 @@ function generateStockRule(input: GenerateStockRuleInput): GeneratedStockRule {
   const invalidationSignals: string[] = [];
   let score = 50;
 
-  const now = new Date();
-  const generatedAt = now.toISOString();
-  const reviewDueAt = new Date(
-    now.getTime() + 30 * 24 * 60 * 60 * 1000
-  ).toISOString();
+  const generatedDate = todayJst();
+  const generatedAt = `${generatedDate}T00:00:00+09:00`;
+  const reviewDueAt = `${addDaysJst(generatedDate, 30)}T00:00:00+09:00`;
 
   if (input.currentPrice == null) {
     return {
-      generatedRuleId: `${input.code}-missing-price-${Date.now()}`,
+      generatedRuleId: `${input.code}-${generatedDate}-missing-price`,
       code: input.code,
       name: input.name,
       generatedAt,
@@ -217,7 +216,7 @@ function generateStockRule(input: GenerateStockRuleInput): GeneratedStockRule {
   }
 
   return {
-    generatedRuleId: `${input.code}-${Date.now()}`,
+    generatedRuleId: `${input.code}-${generatedDate}`,
     code: input.code,
     name: input.name,
     generatedAt,
@@ -268,6 +267,33 @@ type WatchlistEntry = {
   risks: string[];
 };
 
+type WatchlistConfigEntry = {
+  code?: string;
+  name?: string;
+  tags?: string[];
+  rules?: string[];
+};
+
+type WatchlistConfigFile = {
+  symbols?: WatchlistConfigEntry[];
+};
+
+function toWatchlistEntry(entry: WatchlistConfigEntry): WatchlistEntry | null {
+  if (!entry.code || !entry.name) return null;
+  const tags = entry.tags ?? [];
+  const rules = entry.rules ?? [];
+  return {
+    code: entry.code,
+    name: entry.name,
+    theme: tags,
+    thesis: [
+      ...(tags.length > 0 ? [`監視テーマ: ${tags.join(" / ")}`] : []),
+      ...(rules.length > 0 ? [`発火ルール: ${rules.join(" / ")}`] : []),
+    ],
+    risks: ["一次情報・決算・価格データの確認が必要"],
+  };
+}
+
 function loadWatchlist(): WatchlistEntry[] {
   const defaultList: WatchlistEntry[] = [
     { code: "8136", name: "サンリオ", theme: ["entertainment", "ip_licensing", "inbound"], thesis: ["グローバルIPライセンス拡大", "インバウンド消費回復"], risks: ["IP人気の陳腐化", "為替リスク"] },
@@ -281,10 +307,16 @@ function loadWatchlist(): WatchlistEntry[] {
   const customPath = join(process.cwd(), "config", "watchlist.yml");
   if (existsSync(customPath)) {
     try {
-      const yaml = readFileSync(customPath, "utf-8");
-      const parsed = yaml.match(/code:\s*["']?(\d+)/g)?.map(m => m.replace(/code:\s*["']?/, "").trim()) ?? [];
-      if (parsed.length > 0) {
-        console.log(`[generate-company-rules] config/watchlist.yml から ${parsed.length} 銘柄を読み込みました`);
+      const parsed = load(readFileSync(customPath, "utf-8")) as WatchlistConfigFile;
+      const customList = (parsed.symbols ?? [])
+        .map(toWatchlistEntry)
+        .filter((entry): entry is WatchlistEntry => entry !== null);
+
+      if (customList.length > 0) {
+        const merged = new Map(defaultList.map(entry => [entry.code, entry]));
+        for (const entry of customList) merged.set(entry.code, entry);
+        console.log(`[generate-company-rules] config/watchlist.yml から ${customList.length} 銘柄を読み込みました`);
+        return [...merged.values()];
       }
     } catch { /* YAML parse失敗時はデフォルトを使う */ }
   }

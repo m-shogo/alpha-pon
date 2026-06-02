@@ -46,7 +46,18 @@ function SectionLabel({ children, icon }) {
 }
 
 // ── candidate card ──────────────────────────────────────────
-function CandidateCard({ cand, onOpen, density = "regular" }) {
+function StatusPillBtn({ cand, onStatus }) {
+  if (!onStatus) return <StatusPill status={cand.status} />;
+  return (
+    <button onClick={(e) => { e.stopPropagation(); onStatus(cand.code); }}
+      style={{ border: "none", background: "transparent", padding: 0, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 3 }}>
+      <StatusPill status={cand.status} />
+      <Icon name="down" size={13} color="var(--ink-3)" />
+    </button>
+  );
+}
+
+function CandidateCard({ cand, onOpen, density = "regular", onStatus }) {
   const total = window.AP.total(cand.score);
   const level = apLevel(total);
   const a = AP_alert[level];
@@ -62,7 +73,7 @@ function CandidateCard({ cand, onOpen, density = "regular" }) {
             <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--ink-3)" }}>{cand.code}</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
-            <StatusPill status={cand.status} />
+            <StatusPillBtn cand={cand} onStatus={onStatus} />
             <span style={{ fontSize: 11.5, color: "var(--ink-2)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cand.triggeredRule}</span>
           </div>
         </div>
@@ -101,8 +112,8 @@ function CandidateCard({ cand, onOpen, density = "regular" }) {
 }
 
 // ── HOME ────────────────────────────────────────────────────
-function HomeScreen({ onOpen, density }) {
-  const list = window.AP.candidates
+function HomeScreen({ onOpen, density, candidates, onStatus, onIpo, onBacktest, ipoCount }) {
+  const list = candidates
     .map((c) => ({ c, total: window.AP.total(c.score) }))
     .filter((x) => x.total >= 50)
     .sort((a, b) => b.total - a.total);
@@ -128,8 +139,24 @@ function HomeScreen({ onOpen, density }) {
         <div style={{ display: "flex", gap: 9 }}>
           {stat("urgent", counts.urgent)}{stat("daily", counts.daily)}{stat("log", counts.log)}
         </div>
+        <div style={{ display: "flex", gap: 9, marginTop: 9 }}>
+          <button onClick={onIpo} style={{ flex: 1, display: "flex", alignItems: "center", gap: 9, padding: "12px 13px", borderRadius: 16, border: "1px solid var(--card-line)", background: "var(--surface)", boxShadow: "var(--shadow)", cursor: "pointer", textAlign: "left" }}>
+            <span style={{ width: 32, height: 32, borderRadius: 10, background: "var(--sky-soft)", color: "var(--sky-deep)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon name="spark" size={17} /></span>
+            <span style={{ minWidth: 0 }}>
+              <span style={{ display: "block", fontSize: 13, fontWeight: 800, color: "var(--ink)" }}>IPO候補</span>
+              <span style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--sky-deep)" }}>自動検出 {ipoCount}件</span>
+            </span>
+          </button>
+          <button onClick={onBacktest} style={{ flex: 1, display: "flex", alignItems: "center", gap: 9, padding: "12px 13px", borderRadius: 16, border: "1px solid var(--card-line)", background: "var(--surface)", boxShadow: "var(--shadow)", cursor: "pointer", textAlign: "left" }}>
+            <span style={{ width: 32, height: 32, borderRadius: 10, background: "var(--lavender-soft)", color: "var(--lavender-deep)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon name="arc" size={17} /></span>
+            <span style={{ minWidth: 0 }}>
+              <span style={{ display: "block", fontSize: 13, fontWeight: 800, color: "var(--ink)" }}>バックテスト</span>
+              <span style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--lavender-deep)" }}>ルール検証</span>
+            </span>
+          </button>
+        </div>
         <SectionLabel icon={<Icon name="spark" size={15} />}>本日の調査候補（スコア順）</SectionLabel>
-        {list.map((x) => <CandidateCard key={x.c.code} cand={x.c} onOpen={onOpen} density={density} />)}
+        {list.map((x) => <CandidateCard key={x.c.code} cand={x.c} onOpen={onOpen} density={density} onStatus={onStatus} />)}
         <p style={{ textAlign: "center", fontSize: 11.5, color: "var(--ink-3)", fontWeight: 600, margin: "14px 0 4px", lineHeight: 1.6 }}>
           スコア49点以下は通知されません。<br />同一銘柄・同一理由は3日以内は再通知を抑制します。
         </p>
@@ -139,8 +166,8 @@ function HomeScreen({ onOpen, density }) {
 }
 
 // ── DETAIL ──────────────────────────────────────────────────
-function DetailScreen({ code, onBack, scoreVariant, onReport }) {
-  const cand = window.AP.candidates.find((c) => c.code === code);
+function DetailScreen({ code, onBack, scoreVariant, onReport, candidates, onStatus }) {
+  const cand = (candidates || window.AP.candidates).find((c) => c.code === code);
   const [checked, setChecked] = React.useState({});
   if (!cand) return null;
   const total = window.AP.total(cand.score);
@@ -154,7 +181,7 @@ function DetailScreen({ code, onBack, scoreVariant, onReport }) {
           <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--ink-3)", marginTop: 2 }}>{cand.code} ・ {cand.market}</div>
         </div>
         <Prio p={cand.priority} />
-        <StatusPill status={cand.status} />
+        <StatusPillBtn cand={cand} onStatus={onStatus} />
       </div>
 
       <div style={{ padding: "16px 16px 0" }}>
@@ -245,9 +272,9 @@ function DetailScreen({ code, onBack, scoreVariant, onReport }) {
 
 // ── WATCHLIST ───────────────────────────────────────────────
 const WL_ORDER = ["research", "watch", "candidate", "active", "ignore", "expired"];
-function WatchlistScreen({ onOpen }) {
+function WatchlistScreen({ onOpen, candidates, onStatus }) {
   const [filter, setFilter] = React.useState("all");
-  const all = window.AP.candidates;
+  const all = candidates;
   const counts = {};
   all.forEach((c) => counts[c.status] = (counts[c.status] || 0) + 1);
   const shown = filter === "all" ? all : all.filter((c) => c.status === filter);
@@ -274,7 +301,7 @@ function WatchlistScreen({ onOpen }) {
         {groups.map((s) => (
           <div key={s}>
             <SectionLabel><span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}><span style={{ width: 8, height: 8, borderRadius: 99, background: AP_status[s].color }} />{AP_status[s].jp}</span></SectionLabel>
-            {shown.filter((c) => c.status === s).map((c) => <CandidateCard key={c.code} cand={c} onOpen={onOpen} density="regular" />)}
+            {shown.filter((c) => c.status === s).map((c) => <CandidateCard key={c.code} cand={c} onOpen={onOpen} density="regular" onStatus={onStatus} />)}
           </div>
         ))}
         <p style={{ textAlign: "center", fontSize: 11.5, color: "var(--ink-3)", fontWeight: 600, margin: "10px 0 4px" }}>削除ではなく status を変える設計です。</p>
@@ -408,6 +435,6 @@ function ReportScreen({ code, onOpen }) {
 }
 
 Object.assign(window, {
-  AppHeader, Card, SectionLabel, CandidateCard,
+  AppHeader, Card, SectionLabel, CandidateCard, renderMarkdown,
   HomeScreen, DetailScreen, WatchlistScreen, FeedScreen, ReportScreen,
 });

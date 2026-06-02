@@ -2,19 +2,19 @@ import { loadGeneratedData } from '@/lib/generated-data'
 import { SectionLabel } from '@/components/Card'
 import { Icon } from '@/components/Icon'
 import { Disclaimer } from '@/components/Disclaimer'
-import { toDisplaySignal, getSignalColor, getSignalBg } from '@/lib/stock/display-mode'
-import type { InternalSignal } from '@/lib/stock/display-mode'
+import { toDisplaySignal, getSignalColor, getSignalBg, getAppMode } from '@/lib/stock/display-mode'
+import type { AppMode, InternalSignal } from '@/lib/stock/display-mode'
 import type { GeneratedStockRule } from '@/lib/stock/rules/types'
 
 export const metadata = { title: '行動候補 | alpha-pon' }
 
 const SIGNAL_ORDER: InternalSignal[] = ['DANGER', 'EXIT_WATCH', 'TRIM_WATCH', 'ENTRY_WATCH', 'ADD_WATCH', 'HOLD', 'NO_ACTION']
 
-function ActionCard({ rule }: { rule: GeneratedStockRule }) {
+function ActionCard({ rule, mode }: { rule: GeneratedStockRule; mode: AppMode }) {
   const signal = rule.actionSignal as InternalSignal
   const color = getSignalColor(signal)
   const bg = getSignalBg(signal)
-  const label = toDisplaySignal(signal, 'portfolio')
+  const label = toDisplaySignal(signal, mode)
 
   return (
     <div style={{
@@ -62,6 +62,7 @@ function ActionCard({ rule }: { rule: GeneratedStockRule }) {
 
 export default function ActionsPage() {
   const data = loadGeneratedData()
+  const mode = getAppMode()
   const rules: GeneratedStockRule[] = (data as Record<string, unknown>).generatedCompanyRules as GeneratedStockRule[] ?? []
 
   const bySignal = SIGNAL_ORDER.reduce<Record<string, GeneratedStockRule[]>>((acc, sig) => {
@@ -111,7 +112,7 @@ export default function ActionsPage() {
             {SIGNAL_ORDER.map(sig => {
               const items = bySignal[sig]
               if (!items || items.length === 0) return null
-              const label = toDisplaySignal(sig, 'portfolio')
+              const label = toDisplaySignal(sig, mode)
               const color = getSignalColor(sig)
               return (
                 <div key={sig} style={{ marginBottom: 16 }}>
@@ -119,7 +120,7 @@ export default function ActionsPage() {
                     <span style={{ color }}>{label}</span>
                     <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--ink-3)' }}>{items.length} 件</span>
                   </SectionLabel>
-                  {items.map(r => <ActionCard key={r.generatedRuleId} rule={r} />)}
+                  {items.map(r => <ActionCard key={r.generatedRuleId} rule={r} mode={mode} />)}
                 </div>
               )
             })}

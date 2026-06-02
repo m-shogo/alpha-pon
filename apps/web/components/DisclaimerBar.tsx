@@ -1,6 +1,9 @@
 import { Icon } from './Icon'
+import { getAppMode, getDisclaimer } from '@/lib/stock/display-mode'
 
 export function DisclaimerBar() {
+  const text = getDisclaimer(getAppMode())
+
   return (
     <div
       style={{
@@ -18,7 +21,7 @@ export function DisclaimerBar() {
         <Icon name="alert" size={14} strokeWidth={2.2} />
       </span>
       <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--disc-ink)', letterSpacing: 0.2 }}>
-        買い推奨ではありません ・ これは調査候補です
+        {text}
       </span>
     </div>
   )

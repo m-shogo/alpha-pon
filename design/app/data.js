@@ -210,6 +210,85 @@ window.AP = (function () {
 ---
 _生成: alpha-pon ・ 2026-05-29 07:32 ・ データ品質: ok_`;
 
-  return { CATS, candidates, feed, report285A,
+  // IPO自動検出プール（ウォッチリスト未登録・候補として提案）
+  const ipo = [
+    {
+      code: "298A", name: "ネオバンク・ジャパン", market: "TSE",
+      listingDate: "2026-02-24", daysSinceListing: 95,
+      volumeRatioToFirstDay: 0.12, noNewLowDays: 18, recoveredMa20: true, lockupPassed: true,
+      status: "candidate", priority: "B", tags: ["フィンテック", "IPO"],
+      rules: ["ipo_selling_pressure_done"],
+      price: 1960, changePct: 0.6, drawdownPct: -9,
+      score: { structuralEvent: 14, supplyDemand: 25, valuation: 8, theme: 11, businessSafety: 6, aiReview: 2 },
+      reasons: ["上場から95日が経過", "出来高が初日比12%まで沈静", "直近18日で安値更新なし", "20日移動平均を回復", "ロックアップ解除後"],
+      negativeReasons: ["黒字化の確度を要確認", "競合が多い"],
+      nextToSee: ["四半期の進捗", "貸借対照表", "ロックアップ明けの需給"],
+      triggeredRule: "IPO後の売り圧力終了",
+      lastNotifiedAt: "2026-05-29 07:32",
+      sparkline: [100, 92, 87, 83, 80, 78, 77, 78, 80, 79, 81, 82, 84, 83, 85, 86, 88, 89, 91, 92],
+    },
+    {
+      code: "312A", name: "サイバー量子", market: "TSE",
+      listingDate: "2026-03-10", daysSinceListing: 80,
+      volumeRatioToFirstDay: 0.18, noNewLowDays: 14, recoveredMa20: true, lockupPassed: true,
+      status: "candidate", priority: "B", tags: ["量子", "AI", "IPO"],
+      rules: ["ipo_selling_pressure_done"],
+      price: 3420, changePct: 1.9, drawdownPct: -14,
+      score: { structuralEvent: 12, supplyDemand: 25, valuation: 5, theme: 14, businessSafety: 4, aiReview: 3 },
+      reasons: ["上場から80日が経過", "出来高が初日比18%まで沈静", "直近14日で安値更新なし", "20日移動平均を回復", "量子 / AIテーマ"],
+      negativeReasons: ["赤字段階", "テーマ先行で割高の可能性"],
+      nextToSee: ["研究開発の進捗", "資金調達計画", "提携先の開示"],
+      triggeredRule: "IPO後の売り圧力終了",
+      lastNotifiedAt: "2026-05-29 07:32",
+      sparkline: [100, 95, 88, 82, 78, 75, 73, 74, 72, 73, 75, 74, 76, 75, 78, 80, 82, 81, 84, 86],
+    },
+    {
+      code: "401A", name: "グリーン水素HD", market: "TSE",
+      listingDate: "2026-03-25", daysSinceListing: 64,
+      volumeRatioToFirstDay: 0.31, noNewLowDays: 6, recoveredMa20: false, lockupPassed: false,
+      status: "candidate", priority: "C", tags: ["水素", "脱炭素", "IPO"],
+      rules: ["ipo_selling_pressure_done"],
+      price: 1180, changePct: -1.4, drawdownPct: -27,
+      score: { structuralEvent: 8, supplyDemand: 8, valuation: 6, theme: 12, businessSafety: 4, aiReview: 1 },
+      reasons: ["上場から64日が経過"],
+      negativeReasons: ["出来高がまだ高い（初日比31%）", "安値更新が続く", "20日移動平均を未回復", "ロックアップ未解除"],
+      nextToSee: ["ロックアップ解除日", "需給の落ち着きを待つ"],
+      triggeredRule: "IPO後の売り圧力終了（条件未達）",
+      lastNotifiedAt: "—",
+      sparkline: [100, 96, 91, 86, 82, 79, 76, 74, 72, 70, 71, 69, 70, 68, 69, 71, 70, 72, 71, 73],
+    },
+  ];
+
+  // IPOスコアの内訳（25点満点）
+  const ipoFactors = [
+    { key: "daysSinceListing", label: "上場から60日以上", pts: 8, test: (x) => x.daysSinceListing >= 60 },
+    { key: "volumeRatioToFirstDay", label: "出来高が初日比25%以下", pts: 8, test: (x) => x.volumeRatioToFirstDay <= 0.25 },
+    { key: "noNewLowDays", label: "直近10日で安値更新なし", pts: 6, test: (x) => x.noNewLowDays >= 10 },
+    { key: "recoveredMa20", label: "20日移動平均を回復", pts: 3, test: (x) => x.recoveredMa20 },
+    { key: "lockupPassed", label: "ロックアップ解除後", pts: 3, test: (x) => x.lockupPassed },
+  ];
+  const ipoScore = (x) => Math.min(25, ipoFactors.reduce((s, f) => s + (f.test(x) ? f.pts : 0), 0));
+
+  // バックテスト：ルール別の実績
+  const backtest = {
+    period: "2023-01 〜 2026-04",
+    rules: [
+      { key: "structural_event", label: "スピンオフ / 構造イベント", n: 9,  win: 72, m1: 5.5, m3: 13.0, m6: 22.5, maxDD: -7.0, maxUp: 41 },
+      { key: "ipo_selling_pressure_done", label: "IPO後の売り圧力終了", n: 18, win: 67, m1: 4.2, m3: 11.8, m6: 19.4, maxDD: -9.1, maxUp: 34 },
+      { key: "earnings_drop", label: "決算翌日の急落 + 長期テーマ", n: 15, win: 60, m1: 3.8, m3: 9.2, m6: 14.1, maxDD: -8.0, maxUp: 28 },
+      { key: "healthy_pullback", label: "高値から-15〜30%の健全な調整", n: 24, win: 58, m1: 2.1, m3: 6.4, m6: 9.8, maxDD: -12.0, maxUp: 22 },
+    ],
+    outcomes: [
+      { code: "285A", name: "キオクシア", rule: "IPO売り圧力終了", at: "2026-05-29", m1: 6, m3: 14, m6: 21, ok: true },
+      { code: "7012", name: "川崎重工業", rule: "構造イベント", at: "2026-05-29", m1: 3, m3: 8, m6: 12, ok: true },
+      { code: "8136", name: "サンリオ", rule: "健全な調整", at: "2026-05-29", m1: -2, m3: 4, m6: 9, ok: true },
+      { code: "6857", name: "アドバンテスト", rule: "決算翌日の急落", at: "2026-05-26", m1: 5, m3: 11, m6: 17, ok: true },
+      { code: "6525", name: "コクサイエレク", rule: "健全な調整", at: "2026-05-27", m1: -4, m3: -1, m6: 3, ok: false },
+      { code: "377A", name: "テンプス・スペース", rule: "IPO売り圧力終了", at: "2026-05-29", m1: 1, m3: 5, m6: -2, ok: false },
+    ],
+    summary: { total: 66, win: 63, avgM6: 16.4, falseAlert: 18 },
+  };
+
+  return { CATS, candidates, feed, report285A, ipo, ipoFactors, ipoScore, backtest,
     total: (s) => Object.values(s).reduce((a, b) => a + b, 0) };
 })();

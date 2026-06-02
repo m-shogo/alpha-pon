@@ -26,3 +26,18 @@ data/universe_candidates_latest.json
 data/hypothesis_predictions.jsonl
 data/hypothesis_outcomes.jsonl
 data/hypothesis_accuracy_summary.json
+data/analogy_predictions/
+data/analogy_predictions_latest.json
+data/analogy_usage/
+data/analogy_usage_latest.json
+data/company_memory/
+data/generated_company_rules/
+data/proposals_history.jsonl
+data/regime_history.jsonl
+data/source_health_history.jsonl
+data/world_event_reflections/
+data/world_event_reflections_latest.json
+
+# デザイン確認用の一時出力
+design/alpha-pon-standalone.html
+design/screenshots/*.png
