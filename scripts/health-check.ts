@@ -1,7 +1,8 @@
 // pnpm health — alpha-pon の自動運用可否を確認する
 // OK / WARN / ERROR を出力し、致命的エラーのみ exit(1)
 
-import { existsSync, readdirSync, readFileSync } from "fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "fs";
+import { join } from "path";
 import { spawnSync } from "child_process";
 import { openJobsDb } from "../src/jobs/db.js";
 import { getTodayInTokyo } from "../src/jobs/date-utils.js";
@@ -185,7 +186,8 @@ existsSync("data/hypothesis_outcomes.db")
     if (count === 0) {
       warn("backup:latest", "バックアップ 0 件（pnpm backup を実行してください）");
     } else {
-      const ageMs = Date.now() - new Date(latest.replace(/T(\d{2})-(\d{2})-(\d{2})$/, "T$1:$2:$3")).getTime();
+      const latestPath = join(BACKUP_ROOT, latest);
+      const ageMs = Date.now() - statSync(latestPath).mtime.getTime();
       const ageDays = Math.floor(ageMs / 86400000);
       ageDays > 3
         ? warn("backup:latest", `${latest}（${ageDays}日前 — 古い可能性あり）`)
