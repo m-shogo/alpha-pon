@@ -1,8 +1,10 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
 import type { UniverseCandidate, StockCandidateHypothesis, HypothesisOutcome, AccuracySummary, WorldContext } from "./universe.js";
+import type { CompanyMemoryRecord } from "./company-memory.js";
+import type { PrimaryDisclosureReview } from "./types.js";
 
 type DeepDiveCompany = {
   name: string;
@@ -18,6 +20,29 @@ type DeepDiveCompany = {
 
 type DeepDives = { companies?: Record<string, DeepDiveCompany> };
 
+type LatestScoreEntry = {
+  code: string;
+  name: string;
+  dataQuality?: string;
+  warnings?: string[];
+  primaryDisclosureReview?: PrimaryDisclosureReview;
+};
+
+type ReadinessReport = {
+  generatedAt: string;
+  overallScore: number;
+  overallStatus: string;
+  blockers: string[];
+  items: Array<{
+    id: string;
+    label: string;
+    status: string;
+    score: number;
+    evidence: string[];
+    nextActions: string[];
+  }>;
+};
+
 function readText(path: string): string {
   return existsSync(path) ? readFileSync(path, "utf-8") : "";
 }
@@ -25,6 +50,15 @@ function readText(path: string): string {
 function readYaml<T>(path: string, fallback: T): T {
   if (!existsSync(path)) return fallback;
   return load(readFileSync(path, "utf-8")) as T;
+}
+
+function readJson<T>(path: string): T | null {
+  if (!existsSync(path)) return null;
+  try {
+    return JSON.parse(readFileSync(path, "utf-8")) as T;
+  } catch {
+    return null;
+  }
 }
 
 function strip(text: string, max = 220): string {
@@ -138,6 +172,36 @@ function loadAccuracySummary(): AccuracySummary | null {
   try { return JSON.parse(readFileSync(path, "utf-8")) as AccuracySummary; } catch { return null; }
 }
 
+function loadCompanyMemory(): CompanyMemoryRecord[] {
+  const path = "reports/company_memory_latest.json";
+  if (!existsSync(path)) return [];
+  try {
+    const parsed = JSON.parse(readFileSync(path, "utf-8"));
+    return Array.isArray(parsed) ? parsed as CompanyMemoryRecord[] : [];
+  } catch { return []; }
+}
+
+function loadLatestScores(): LatestScoreEntry[] {
+  if (!existsSync("reports")) return [];
+  try {
+    const scoreFiles = readdirSync("reports")
+      .filter((file: string) => /^scores_\d{4}-\d{2}-\d{2}\.json$/.test(file))
+      .sort();
+    const latest = scoreFiles.at(-1);
+    if (!latest) return [];
+    const parsed = JSON.parse(readFileSync(join("reports", latest), "utf-8"));
+    return Array.isArray(parsed) ? parsed as LatestScoreEntry[] : [];
+  } catch { return []; }
+}
+
+function loadReadiness(): ReadinessReport | null {
+  return readJson<ReadinessReport>("reports/readiness_latest.json");
+}
+
+function toRecordByCode<T extends { code: string }>(items: T[]): Record<string, T> {
+  return Object.fromEntries(items.map(item => [item.code, item]));
+}
+
 type RegimeConfig = {
   asOf?: string;
   mode?: string;
@@ -183,6 +247,20 @@ function main() {
   const hypothesisOutcomes = loadOutcomes();
   const accuracySummary = loadAccuracySummary();
   const worldContext = loadWorldContext();
+  const companyMemory = loadCompanyMemory();
+  const readiness = loadReadiness();
+  const latestScores = loadLatestScores();
+  const primaryDisclosureReviews = Object.fromEntries(
+    latestScores
+      .filter(score => score.primaryDisclosureReview)
+      .map(score => [score.code, score.primaryDisclosureReview])
+  );
+  const dataQualityByCode = Object.fromEntries(
+    latestScores.map(score => [score.code, {
+      dataQuality: score.dataQuality ?? "unknown",
+      warnings: score.warnings ?? [],
+    }])
+  );
 
   // pipeline_status から completeWrapperFailedSteps を読み、meta.warnings に含める
   const metaWarnings: string[] = [];
@@ -233,6 +311,11 @@ function main() {
     hypothesisOutcomes,
     accuracySummary,
     worldContext,
+    companyMemory,
+    companyMemoryByCode: toRecordByCode(companyMemory),
+    primaryDisclosureReviews,
+    dataQualityByCode,
+    readiness,
     pipelineStatus: pipelineStatusData,
     meta: {
       source: "report-ui-data",

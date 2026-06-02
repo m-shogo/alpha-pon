@@ -18,10 +18,18 @@ export default function HomePage() {
   const generatedDate = dateOnly(data.generatedAt)
   const generatedAgeDays = generatedDate ? daysBetweenJst(generatedDate, todayJstDate()) : null
   const hasMockUniverse = (data.universeCandidates ?? []).some((c) => c.dataSource === 'mock')
+  const failedSteps = data.pipelineStatus?.completeWrapperFailedSteps ?? []
+  const pipelineFailed = failedSteps.length > 0 || data.pipelineStatus?.status === 'failed'
+  const mockUniverseCount = (data.universeCandidates ?? []).filter((c) => c.dataSource === 'mock').length
+  const qualityValues = Object.values(data.dataQualityByCode ?? {})
+  const missingQualityCount = qualityValues.filter((q) => q.dataQuality === 'missing' || q.dataQuality === 'unknown').length
+  const warningCount = qualityValues.reduce((sum, q) => sum + q.warnings.length, 0)
   const dataWarnings = [
     ...((data.meta?.warnings ?? []).map((w) => `生成データ: ${w}`)),
+    ...(pipelineFailed ? [`pipeline に失敗/スキップがあります: ${failedSteps.join(', ') || data.pipelineStatus?.status}`] : []),
     ...(generatedAgeDays != null && generatedAgeDays > 0 ? [`生成日が${generatedAgeDays}日前です。pnpm ui:data で最新化してください。`] : []),
     ...(hasMockUniverse ? ['未登録銘柄スクリーニングにモックデータが含まれています。実データ確認前の仮説として扱ってください。'] : []),
+    ...(missingQualityCount > 0 ? [`データ品質 missing/unknown が ${missingQualityCount} 件あります。強い判断を避けてください。`] : []),
   ]
 
   const list = data.candidates
@@ -98,6 +106,39 @@ export default function HomePage() {
               <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink)' }}>{data.candidates.length}</span>
             </div>
           </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 9, marginBottom: 12 }}>
+          {[
+            {
+              label: 'Pipeline',
+              value: pipelineFailed ? '要確認' : (data.pipelineStatus?.status ?? '不明'),
+              sub: failedSteps.length > 0 ? failedSteps.slice(0, 2).join(' / ') : (data.pipelineStatus?.endedAt ?? 'status未生成'),
+              color: pipelineFailed ? 'var(--urgent)' : 'var(--mint-deep)',
+              bg: pipelineFailed ? 'var(--urgent-soft)' : 'var(--mint-soft)',
+            },
+            {
+              label: 'Mock / Missing',
+              value: `${mockUniverseCount} / ${missingQualityCount}`,
+              sub: `warnings ${warningCount}件`,
+              color: mockUniverseCount > 0 || missingQualityCount > 0 ? 'var(--amber)' : 'var(--mint-deep)',
+              bg: mockUniverseCount > 0 || missingQualityCount > 0 ? 'var(--amber-soft)' : 'var(--mint-soft)',
+            },
+          ].map((item) => (
+            <div key={item.label} style={{
+              background: 'var(--surface)', borderRadius: 14, padding: '10px 12px',
+              border: '1px solid var(--card-line)', boxShadow: 'var(--shadow)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                <span style={{ width: 7, height: 7, borderRadius: 99, background: item.color }} />
+                <span style={{ fontSize: 10.5, fontWeight: 800, color: 'var(--ink-3)' }}>{item.label}</span>
+              </div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: item.color }}>{item.value}</div>
+              <div style={{ marginTop: 2, fontSize: 10.5, fontWeight: 700, color: 'var(--ink-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {item.sub}
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* alert counts */}

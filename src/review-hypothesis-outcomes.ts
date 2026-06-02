@@ -6,7 +6,7 @@
 // J-Quants未設定時はリターン計算をスキップし、"unknown" として記録する。
 
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from "fs";
-import { toCompactDate, todayJst } from "./date.js";
+import { addDaysJst, toCompactDate, todayJst } from "./date.js";
 import { fetchDailyQuotes } from "./fetcher/jquants.js";
 import type {
   StockCandidateHypothesis,
@@ -70,34 +70,60 @@ function calcReturnPct(base: number | null, target: number | null): number | nul
   return ((target - base) / base) * 100;
 }
 
+type ReturnData = {
+  base: number | null;
+  p1w: number | null;
+  p1m: number | null;
+  p3m: number | null;
+  ret1w: number | null;
+  ret1m: number | null;
+  ret3m: number | null;
+  maxDrawdownPct: number | null;
+  dataAvailability: "ok" | "partial" | "missing";
+};
+
+function calcMaxDrawdownPct(base: number | null, prices: Array<number | null>): number | null {
+  if (!base) return null;
+  const valid = prices.filter((price): price is number => typeof price === "number" && Number.isFinite(price));
+  if (valid.length === 0) return null;
+  const min = Math.min(...valid);
+  return ((min - base) / base) * 100;
+}
+
+function buildReturnData(quotes: { Date: string; AdjustmentClose: number }[], detectedAt: string): ReturnData {
+  const sorted = quotes.sort((a, b) => a.Date.localeCompare(b.Date));
+  const base = sorted[0]?.AdjustmentClose ?? null;
+  const p1w = findPriceOnOrAfter(sorted, toCompactDate(addDaysJst(detectedAt, 7)));
+  const p1m = findPriceOnOrAfter(sorted, toCompactDate(addDaysJst(detectedAt, 30)));
+  const p3m = findPriceOnOrAfter(sorted, toCompactDate(addDaysJst(detectedAt, 90)));
+  const ret1w = calcReturnPct(base, p1w);
+  const ret1m = calcReturnPct(base, p1m);
+  const ret3m = calcReturnPct(base, p3m);
+  const maxDrawdownPct = calcMaxDrawdownPct(base, sorted.map(q => q.AdjustmentClose));
+  const available = [base, p1w, p1m, p3m, ret1w, ret1m, ret3m, maxDrawdownPct].filter(v => v != null).length;
+  return {
+    base,
+    p1w,
+    p1m,
+    p3m,
+    ret1w,
+    ret1m,
+    ret3m,
+    maxDrawdownPct,
+    dataAvailability: available >= 8 ? "ok" : available >= 2 ? "partial" : "missing",
+  };
+}
+
 async function fetchReturnData(
   code: string,
   detectedAt: string
-): Promise<{ base: number | null; ret1w: number | null; ret1m: number | null; ret3m: number | null }> {
+): Promise<ReturnData> {
   const today = todayJst();
   const from = toCompactDate(detectedAt);
   const to = toCompactDate(today);
 
   const quotes = await fetchDailyQuotes(code, from, to);
-  const sorted = quotes.sort((a, b) => a.Date.localeCompare(b.Date));
-
-  const base = sorted[0]?.AdjustmentClose ?? null;
-  const p1w  = findPriceOnOrAfter(sorted, toCompactDate(addDays(detectedAt, 7)));
-  const p1m  = findPriceOnOrAfter(sorted, toCompactDate(addDays(detectedAt, 30)));
-  const p3m  = findPriceOnOrAfter(sorted, toCompactDate(addDays(detectedAt, 90)));
-
-  return {
-    base,
-    ret1w: calcReturnPct(base, p1w),
-    ret1m: calcReturnPct(base, p1m),
-    ret3m: calcReturnPct(base, p3m),
-  };
-}
-
-function addDays(dateStr: string, days: number): string {
-  const d = new Date(`${dateStr}T00:00:00+09:00`);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  return buildReturnData(quotes, detectedAt);
 }
 
 function resolveResult(
@@ -113,6 +139,70 @@ function resolveResult(
   }
   // unknown direction: 絶対値で判定
   return Math.abs(ret1m) >= 5 ? "hit" : "too_early";
+}
+
+function resolveActualDirection(ret1m: number | null): "up" | "down" | "sideways" | "unknown" {
+  if (ret1m == null) return "unknown";
+  if (ret1m >= 3) return "up";
+  if (ret1m <= -3) return "down";
+  return "sideways";
+}
+
+function buildOutcomeNotes(input: {
+  hypothesis: StockCandidateHypothesis;
+  returns: ReturnData;
+  topixRet1m: number | null;
+  relativeToTopix1m: number | null;
+  result: HypothesisResult;
+  dataSource: "jquants" | "mock";
+}): Pick<HypothesisOutcome, "whatMatched" | "whatDiffered" | "missedSignals" | "improvedRuleIdeas" | "notes"> {
+  if (input.dataSource === "mock") {
+    return {
+      whatMatched: [],
+      whatDiffered: [],
+      missedSignals: ["J-Quants未設定のため価格・TOPIX比を未検証"],
+      improvedRuleIdeas: ["実データ取得後に同じ仮説を再レビューする"],
+      notes: "J-Quants未設定のためリターン未計算",
+    };
+  }
+
+  const whatMatched: string[] = [];
+  const whatDiffered: string[] = [];
+  const missedSignals: string[] = [];
+  const improvedRuleIdeas: string[] = [];
+  const direction = resolveActualDirection(input.returns.ret1m);
+
+  if (input.hypothesis.expectedDirection === direction) {
+    whatMatched.push(`期待方向 ${input.hypothesis.expectedDirection} と1か月方向が一致`);
+  } else if (direction !== "unknown") {
+    whatDiffered.push(`期待方向 ${input.hypothesis.expectedDirection} に対して実績は ${direction}`);
+  }
+
+  if (input.relativeToTopix1m != null) {
+    if (input.relativeToTopix1m >= 0) whatMatched.push(`TOPIX比で+${input.relativeToTopix1m.toFixed(1)}%`);
+    else whatDiffered.push(`TOPIX比で${input.relativeToTopix1m.toFixed(1)}%`);
+  }
+
+  if (input.returns.maxDrawdownPct != null && input.returns.maxDrawdownPct <= -10) {
+    missedSignals.push(`検証期間中の最大下落が${input.returns.maxDrawdownPct.toFixed(1)}%`);
+    improvedRuleIdeas.push("仮説保存時に最大許容下落と撤退確認ラインを明示する");
+  }
+
+  if (input.result === "miss") {
+    improvedRuleIdeas.push("反証条件・一次情報・決算前後イベントを追加確認する");
+  }
+  if (input.returns.dataAvailability !== "ok") {
+    missedSignals.push(`価格データ品質が${input.returns.dataAvailability}`);
+    improvedRuleIdeas.push("データ取得期間または市場コードの妥当性を確認する");
+  }
+
+  return {
+    whatMatched,
+    whatDiffered,
+    missedSignals,
+    improvedRuleIdeas: [...new Set(improvedRuleIdeas)],
+    notes: `${todayJst()}時点で評価。1m=${input.returns.ret1m?.toFixed(1) ?? "N/A"}%, TOPIX比=${input.relativeToTopix1m?.toFixed(1) ?? "N/A"}%`,
+  };
 }
 
 // ── 精度サマリー ──────────────────────────────────────────────
@@ -136,7 +226,16 @@ function calcAccuracySummary(outcomes: HypothesisOutcome[]): AccuracySummary {
     ? topixRets.reduce((a, b) => a + b, 0) / topixRets.length
     : null;
 
-  return { total, hit, miss, tooEarly, unknown, hitRate, avgReturn1m, avgTopixReturn1m };
+  const relativeRets = outcomes.map(o => o.relativeToTopix1m).filter((v): v is number => v != null);
+  const avgRelativeToTopix1m = relativeRets.length > 0
+    ? relativeRets.reduce((a, b) => a + b, 0) / relativeRets.length
+    : null;
+  const drawdowns = outcomes.map(o => o.maxDrawdownPct).filter((v): v is number => v != null);
+  const avgMaxDrawdownPct = drawdowns.length > 0
+    ? drawdowns.reduce((a, b) => a + b, 0) / drawdowns.length
+    : null;
+
+  return { total, hit, miss, tooEarly, unknown, hitRate, avgReturn1m, avgTopixReturn1m, avgRelativeToTopix1m, avgMaxDrawdownPct };
 }
 
 // ── メイン ────────────────────────────────────────────────────
@@ -188,8 +287,8 @@ async function main(): Promise<void> {
   }
 
   for (const h of due) {
-    let returns = { base: null as number | null, ret1w: null as number | null, ret1m: null as number | null, ret3m: null as number | null };
-    let topixRet1m: number | null = null;
+    let returns: ReturnData = { base: null, p1w: null, p1m: null, p3m: null, ret1w: null, ret1m: null, ret3m: null, maxDrawdownPct: null, dataAvailability: "missing" };
+    let topixReturns: ReturnData = { base: null, p1w: null, p1m: null, p3m: null, ret1w: null, ret1m: null, ret3m: null, maxDrawdownPct: null, dataAvailability: "missing" };
     let dataSource: "jquants" | "mock" = "mock";
 
     if (useJQuants) {
@@ -198,9 +297,7 @@ async function main(): Promise<void> {
         await sleep(300);
 
         // TOPIX比較
-        const topixBase = topixQuotes.find(q => q.Date >= toCompactDate(h.detectedAt))?.AdjustmentClose ?? null;
-        const topixP1m  = findPriceOnOrAfter(topixQuotes, toCompactDate(addDays(h.detectedAt, 30)));
-        topixRet1m = calcReturnPct(topixBase, topixP1m);
+        topixReturns = buildReturnData(topixQuotes, h.detectedAt);
         dataSource = "jquants";
       } catch (err) {
         console.warn(`  [warn] ${h.code} リターン取得失敗:`, err instanceof Error ? err.message : String(err));
@@ -208,9 +305,10 @@ async function main(): Promise<void> {
     }
 
     const result = resolveResult(returns.ret1m, h.expectedDirection);
-    const relativeToTopix = returns.ret1m != null && topixRet1m != null
-      ? returns.ret1m - topixRet1m
-      : null;
+    const relativeToTopix1w = returns.ret1w != null && topixReturns.ret1w != null ? returns.ret1w - topixReturns.ret1w : null;
+    const relativeToTopix1m = returns.ret1m != null && topixReturns.ret1m != null ? returns.ret1m - topixReturns.ret1m : null;
+    const relativeToTopix3m = returns.ret3m != null && topixReturns.ret3m != null ? returns.ret3m - topixReturns.ret3m : null;
+    const narrative = buildOutcomeNotes({ hypothesis: h, returns, topixRet1m: topixReturns.ret1m, relativeToTopix1m, result, dataSource });
 
     const outcome: HypothesisOutcome = {
       schemaVersion: 1,
@@ -218,15 +316,28 @@ async function main(): Promise<void> {
       name: h.name,
       hypothesis: h,
       evaluatedAt: today,
+      startPrice: returns.base,
+      endPrice1w: returns.p1w,
+      endPrice1m: returns.p1m,
+      endPrice3m: returns.p3m,
       return1w: returns.ret1w,
       return1m: returns.ret1m,
       return3m: returns.ret3m,
-      topixReturn1m: topixRet1m,
-      relativeToTopix1m: relativeToTopix,
+      benchmarkReturn1w: topixReturns.ret1w,
+      benchmarkReturn3m: topixReturns.ret3m,
+      topixReturn1m: topixReturns.ret1m,
+      relativeToTopix1w,
+      relativeToTopix1m,
+      relativeToTopix3m,
+      maxDrawdownPct: returns.maxDrawdownPct,
+      actualDirection: resolveActualDirection(returns.ret1m),
       result,
-      notes: dataSource === "mock"
-        ? "J-Quants未設定のためリターン未計算"
-        : `${today}時点で評価`,
+      dataAvailability: returns.dataAvailability,
+      whatMatched: narrative.whatMatched,
+      whatDiffered: narrative.whatDiffered,
+      missedSignals: narrative.missedSignals,
+      improvedRuleIdeas: narrative.improvedRuleIdeas,
+      notes: narrative.notes,
       dataSource,
     };
 

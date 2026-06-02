@@ -293,10 +293,14 @@ export async function fetchCandidateData(
 
   const hasJquants = !!process.env.JQUANTS_EMAIL && !!process.env.JQUANTS_PASSWORD;
   if (!hasJquants) {
+    const warnings = ["JQUANTS_EMAIL/PASSWORDが未設定のため、価格・財務の本番データは取得していません"];
+    const data: MockData = {};
+    await attachPrimaryDisclosureReview(candidate, data, warnings);
+
     return {
-      data: {},
-      dataQuality: "missing",
-      warnings: ["JQUANTS_EMAIL/PASSWORDが未設定のため、本番ではモックデータを使用しません"],
+      data,
+      dataQuality: "partial",
+      warnings,
     };
   }
 

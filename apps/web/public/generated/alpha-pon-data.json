@@ -728,6 +728,134 @@
       "relatedDisclosureIds": [],
       "status": "open",
       "label": "監視候補"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "7011",
+      "name": "三菱重工業",
+      "detectedAt": "2026-06-02",
+      "reviewDueAt": "2026-07-02",
+      "reason": "未登録銘柄の自動検出: 高値比17.5%下落、営業利益前年比+18.2%。世界情勢テーマ: war_geopolitics・security_resilience。",
+      "expectedTimeframe": "1m",
+      "expectedDirection": "unknown",
+      "confidence": 0.72,
+      "invalidationSignals": [
+        "下方修正の開示",
+        "監査意見の変更・限定付き意見",
+        "不正・コンプライアンス問題の開示",
+        "主力事業の契約解除・大口顧客離れ",
+        "防衛予算の大幅削減・安保政策の転換"
+      ],
+      "evidenceNeeded": [
+        "直近の決算短信・業績進捗確認",
+        "有価証券報告書のリスクファクター確認",
+        "大株主構成と保有比率の変化",
+        "アナリストコンセンサスと乖離の確認",
+        "防衛省・政府調達の受注動向"
+      ],
+      "relatedWorldEventIds": [
+        "war_geopolitics",
+        "security_resilience"
+      ],
+      "relatedDisclosureIds": [],
+      "status": "open",
+      "label": "検証候補"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "8035",
+      "name": "東京エレクトロン",
+      "detectedAt": "2026-06-02",
+      "reviewDueAt": "2026-08-31",
+      "reason": "未登録銘柄の自動検出: 高値比25.3%下落、営業利益前年比+12.4%。世界情勢テーマ: war_geopolitics・ai_compute・trade_supply_chain。",
+      "expectedTimeframe": "3m",
+      "expectedDirection": "unknown",
+      "confidence": 0.68,
+      "invalidationSignals": [
+        "下方修正の開示",
+        "監査意見の変更・限定付き意見",
+        "不正・コンプライアンス問題の開示",
+        "主力事業の契約解除・大口顧客離れ",
+        "防衛予算の大幅削減・安保政策の転換",
+        "AIサイクルの急速な冷え込み"
+      ],
+      "evidenceNeeded": [
+        "直近の決算短信・業績進捗確認",
+        "有価証券報告書のリスクファクター確認",
+        "大株主構成と保有比率の変化",
+        "アナリストコンセンサスと乖離の確認",
+        "半導体市況サイクルの現在地",
+        "受注残・在庫水準の確認"
+      ],
+      "relatedWorldEventIds": [
+        "war_geopolitics",
+        "ai_compute",
+        "trade_supply_chain"
+      ],
+      "relatedDisclosureIds": [],
+      "status": "open",
+      "label": "監視候補"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6367",
+      "name": "ダイキン工業",
+      "detectedAt": "2026-06-02",
+      "reviewDueAt": "2026-07-02",
+      "reason": "未登録銘柄の自動検出: 高値比19.4%下落、営業利益前年比+8.7%。世界情勢テーマ: climate_heat_water・energy_security。",
+      "expectedTimeframe": "1m",
+      "expectedDirection": "unknown",
+      "confidence": 0.61,
+      "invalidationSignals": [
+        "下方修正の開示",
+        "監査意見の変更・限定付き意見",
+        "不正・コンプライアンス問題の開示",
+        "主力事業の契約解除・大口顧客離れ",
+        "気候対策政策の後退・補助金削減"
+      ],
+      "evidenceNeeded": [
+        "直近の決算短信・業績進捗確認",
+        "有価証券報告書のリスクファクター確認",
+        "大株主構成と保有比率の変化",
+        "アナリストコンセンサスと乖離の確認"
+      ],
+      "relatedWorldEventIds": [
+        "climate_heat_water",
+        "energy_security"
+      ],
+      "relatedDisclosureIds": [],
+      "status": "open",
+      "label": "監視候補"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6954",
+      "name": "ファナック",
+      "detectedAt": "2026-06-02",
+      "reviewDueAt": "2026-07-02",
+      "reason": "未登録銘柄の自動検出: 高値比22.0%下落、営業利益前年比+5.1%。世界情勢テーマ: migration_labor_shortage。",
+      "expectedTimeframe": "1m",
+      "expectedDirection": "unknown",
+      "confidence": 0.58,
+      "invalidationSignals": [
+        "下方修正の開示",
+        "監査意見の変更・限定付き意見",
+        "不正・コンプライアンス問題の開示",
+        "主力事業の契約解除・大口顧客離れ"
+      ],
+      "evidenceNeeded": [
+        "直近の決算短信・業績進捗確認",
+        "有価証券報告書のリスクファクター確認",
+        "大株主構成と保有比率の変化",
+        "アナリストコンセンサスと乖離の確認",
+        "中国・アジア向け受注の動向"
+      ],
+      "relatedWorldEventIds": [
+        "migration_labor_shortage"
+      ],
+      "relatedDisclosureIds": [],
+      "status": "open",
+      "label": "監視候補"
     }
   ],
   "hypothesisOutcomes": [],
@@ -739,7 +867,9 @@
     "unknown": 0,
     "hitRate": null,
     "avgReturn1m": null,
-    "avgTopixReturn1m": null
+    "avgTopixReturn1m": null,
+    "avgRelativeToTopix1m": null,
+    "avgMaxDrawdownPct": null
   },
   "worldContext": {
     "asOf": "2026-05-30",
@@ -810,6 +940,304 @@
       "具体銘柄が不要な局面では、無理に銘柄化せず、テーマ監視に切り替える",
       "外れた場合は non-move-reasons.yml の分類へ保存する",
       "情勢DBは月1回、または大きなイベント発生時に見直す"
+    ]
+  },
+  "companyMemory": [
+    {
+      "schemaVersion": 1,
+      "code": "285A",
+      "name": "キオクシア",
+      "firstSeenAt": "2026-05-29",
+      "lastReviewedAt": "2026-06-02",
+      "watchReason": [
+        "tag:semiconductor",
+        "tag:ipo",
+        "tag:national_policy",
+        "rule:ipo_selling_pressure_done",
+        "rule:volume_cooling",
+        "rule:no_new_low",
+        "テーマ: 半導体",
+        "テーマ: IPO",
+        "テーマ: 国策",
+        "上場から75日経過",
+        "出来高が上場初日の18%以下（需給冷却）",
+        "直近12日で安値更新なし",
+        "ロックアップ解除済み"
+      ],
+      "knownRisks": [
+        "流行テーマまたは短期上昇の過熱確認が必要",
+        "流行テーマまたは短期上昇があり、過熱していないか確認してください"
+      ],
+      "strongRules": [],
+      "weakRules": [],
+      "recurringWarnings": [],
+      "recentOutcomes": [],
+      "notes": []
+    },
+    {
+      "schemaVersion": 1,
+      "code": "8136",
+      "name": "サンリオ",
+      "firstSeenAt": "2026-05-29",
+      "lastReviewedAt": "2026-06-02",
+      "watchReason": [
+        "tag:character",
+        "tag:global_ip",
+        "tag:consumer",
+        "rule:healthy_pullback",
+        "rule:earnings_drop",
+        "テーマ: キャラクター",
+        "テーマ: グローバルIP",
+        "テーマ: 消費財",
+        "決算翌日に-7.5%下落",
+        "下方修正なし",
+        "売上前年比 +5.2%",
+        "営業利益前年比 -3.1%",
+        "長期テーマ・戦略的優位性あり"
+      ],
+      "knownRisks": [],
+      "strongRules": [],
+      "weakRules": [],
+      "recurringWarnings": [],
+      "recentOutcomes": [],
+      "notes": []
+    }
+  ],
+  "companyMemoryByCode": {
+    "8136": {
+      "schemaVersion": 1,
+      "code": "8136",
+      "name": "サンリオ",
+      "firstSeenAt": "2026-05-29",
+      "lastReviewedAt": "2026-06-02",
+      "watchReason": [
+        "tag:character",
+        "tag:global_ip",
+        "tag:consumer",
+        "rule:healthy_pullback",
+        "rule:earnings_drop",
+        "テーマ: キャラクター",
+        "テーマ: グローバルIP",
+        "テーマ: 消費財",
+        "決算翌日に-7.5%下落",
+        "下方修正なし",
+        "売上前年比 +5.2%",
+        "営業利益前年比 -3.1%",
+        "長期テーマ・戦略的優位性あり"
+      ],
+      "knownRisks": [],
+      "strongRules": [],
+      "weakRules": [],
+      "recurringWarnings": [],
+      "recentOutcomes": [],
+      "notes": []
+    },
+    "285A": {
+      "schemaVersion": 1,
+      "code": "285A",
+      "name": "キオクシア",
+      "firstSeenAt": "2026-05-29",
+      "lastReviewedAt": "2026-06-02",
+      "watchReason": [
+        "tag:semiconductor",
+        "tag:ipo",
+        "tag:national_policy",
+        "rule:ipo_selling_pressure_done",
+        "rule:volume_cooling",
+        "rule:no_new_low",
+        "テーマ: 半導体",
+        "テーマ: IPO",
+        "テーマ: 国策",
+        "上場から75日経過",
+        "出来高が上場初日の18%以下（需給冷却）",
+        "直近12日で安値更新なし",
+        "ロックアップ解除済み"
+      ],
+      "knownRisks": [
+        "流行テーマまたは短期上昇の過熱確認が必要",
+        "流行テーマまたは短期上昇があり、過熱していないか確認してください"
+      ],
+      "strongRules": [],
+      "weakRules": [],
+      "recurringWarnings": [],
+      "recentOutcomes": [],
+      "notes": []
+    }
+  },
+  "primaryDisclosureReviews": {
+    "8136": {
+      "sourceCoverage": {
+        "tdnetCount": 0,
+        "edinetCount": 0,
+        "hasPrimarySource": false,
+        "scannedEdinetDates": [
+          "2026-06-02",
+          "2026-06-01",
+          "2026-05-29",
+          "2026-05-28",
+          "2026-05-27"
+        ],
+        "fetchErrorCount": 1
+      },
+      "decision": "caution",
+      "items": [],
+      "positives": [],
+      "warnings": [
+        "一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404"
+      ],
+      "blockers": [],
+      "evidenceNeeded": [
+        "TDnet/EDINETの本文PDFでタイトル分類が正しいか確認する",
+        "下方修正・増資・不祥事・継続企業注記がないか確認する",
+        "ニュース材料は一次情報で裏取りできるまで仮説扱いにする"
+      ]
+    },
+    "285A": {
+      "sourceCoverage": {
+        "tdnetCount": 0,
+        "edinetCount": 0,
+        "hasPrimarySource": false,
+        "scannedEdinetDates": [
+          "2026-06-02",
+          "2026-06-01",
+          "2026-05-29",
+          "2026-05-28",
+          "2026-05-27"
+        ],
+        "fetchErrorCount": 1
+      },
+      "decision": "caution",
+      "items": [],
+      "positives": [],
+      "warnings": [
+        "一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404"
+      ],
+      "blockers": [],
+      "evidenceNeeded": [
+        "TDnet/EDINETの本文PDFでタイトル分類が正しいか確認する",
+        "下方修正・増資・不祥事・継続企業注記がないか確認する",
+        "ニュース材料は一次情報で裏取りできるまで仮説扱いにする"
+      ]
+    }
+  },
+  "dataQualityByCode": {
+    "8136": {
+      "dataQuality": "partial",
+      "warnings": [
+        "一次情報で注意開示を検出",
+        "一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404",
+        "JQUANTS_EMAIL/PASSWORDが未設定のため、価格・財務の本番データは取得していません",
+        "一次情報注意: 一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404"
+      ]
+    },
+    "285A": {
+      "dataQuality": "partial",
+      "warnings": [
+        "流行テーマまたは短期上昇の過熱確認が必要",
+        "流行テーマまたは短期上昇があり、過熱していないか確認してください",
+        "一次情報で注意開示を検出",
+        "一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404",
+        "JQUANTS_EMAIL/PASSWORDが未設定のため、価格・財務の本番データは取得していません",
+        "一次情報注意: 一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404"
+      ]
+    }
+  },
+  "readiness": {
+    "generatedAt": "2026-06-02",
+    "overallScore": 56,
+    "overallStatus": "partial",
+    "blockers": [
+      "J-Quants実データ運用: .env に JQUANTS_EMAIL / JQUANTS_PASSWORD を設定する"
+    ],
+    "items": [
+      {
+        "id": "real-data",
+        "label": "J-Quants実データ運用",
+        "score": 20,
+        "evidence": [
+          "J-Quants設定: missing",
+          "mock universe: 4",
+          "dataQuality missing/unknown: 0"
+        ],
+        "nextActions": [
+          ".env に JQUANTS_EMAIL / JQUANTS_PASSWORD を設定する",
+          "pnpm daily:full を実データで再実行する"
+        ],
+        "status": "blocked"
+      },
+      {
+        "id": "pipeline",
+        "label": "毎朝pipeline監視",
+        "score": 55,
+        "evidence": [
+          "pipeline status: completed",
+          "failed/skipped: scan:universe(1), candidate:hypothesis(skipped_scan_failed)"
+        ],
+        "nextActions": [
+          "ホームとreportsで失敗ステップを確認する",
+          "J-Quants未設定由来の失敗を実データ設定で解消する"
+        ],
+        "status": "partial"
+      },
+      {
+        "id": "hypothesis-outcomes",
+        "label": "仮説検証の厚み",
+        "score": 45,
+        "evidence": [
+          "hypotheses: 8",
+          "outcomes: 0",
+          "priced outcomes: 0",
+          "real outcomes: 0"
+        ],
+        "nextActions": [
+          "reviewDueAt を過ぎた仮説を J-Quants 実データで review:hypotheses する",
+          "1w/1m/3m と TOPIX比が入った outcome を蓄積する"
+        ],
+        "status": "partial"
+      },
+      {
+        "id": "primary-disclosures",
+        "label": "一次情報・危険開示連携",
+        "score": 65,
+        "evidence": [
+          "primaryDisclosureReviews: 2",
+          "dataQuality warnings: 10",
+          "daily:full primary scans: included"
+        ],
+        "nextActions": [
+          "個別銘柄ページで block/caution 開示を確認する",
+          "一次情報の本文PDF確認結果を company memory に反映する"
+        ],
+        "status": "partial"
+      },
+      {
+        "id": "company-memory",
+        "label": "銘柄ごとの反省ノート",
+        "score": 75,
+        "evidence": [
+          "companyMemory records: 2",
+          "daily:full memory: included"
+        ],
+        "nextActions": [
+          "weakRules と recentOutcomes を個別銘柄判断に使う",
+          "外れ理由が出た銘柄を watchlist のルール調整へ反映する"
+        ],
+        "status": "partial"
+      },
+      {
+        "id": "portfolio-mode",
+        "label": "ポートフォリオ表示・README",
+        "score": 75,
+        "evidence": [
+          "APP_MODE private/portfolio 表示あり",
+          "README に表示モード・安全運用を記載"
+        ],
+        "nextActions": [
+          "スクリーンショットと公開用デモデータを整える",
+          "README 冒頭にポートフォリオ向けの使い方を追加する"
+        ],
+        "status": "partial"
+      }
     ]
   },
   "pipelineStatus": {

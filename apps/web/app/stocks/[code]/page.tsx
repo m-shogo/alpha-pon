@@ -12,6 +12,7 @@ import { ChecklistCard } from '@/components/ChecklistCard'
 import { Disclaimer } from '@/components/Disclaimer'
 import { formatPrice, formatPercent } from '@/lib/format'
 import type { UniverseCandidate, StockCandidateHypothesis } from '@/types/universe'
+import type { CompanyMemoryRecord, PrimaryDisclosureReview } from '@/lib/types'
 
 type Props = {
   params: Promise<{ code: string }>
@@ -130,6 +131,126 @@ function HypothesisSection({ hypothesis }: { hypothesis: StockCandidateHypothesi
   )
 }
 
+const DISCLOSURE_DECISION_META = {
+  confirmed: { label: '一次情報あり', color: 'var(--mint-deep)', bg: 'var(--mint-soft)' },
+  caution: { label: '注意開示あり', color: 'var(--amber)', bg: 'var(--amber-soft)' },
+  block: { label: '危険開示あり', color: 'var(--urgent)', bg: 'var(--urgent-soft)' },
+  missing: { label: '一次情報未確認', color: 'var(--ink-3)', bg: 'var(--surface-2)' },
+} as const
+
+function PrimaryDisclosureSection({ review }: { review: PrimaryDisclosureReview | undefined }) {
+  const decision = review?.decision ?? 'missing'
+  const meta = DISCLOSURE_DECISION_META[decision]
+  const blockers = review?.blockers ?? []
+  const warnings = review?.warnings ?? []
+  const positives = review?.positives ?? []
+  const items = review?.items ?? []
+
+  return (
+    <>
+      <SectionLabel icon={<Icon name="alert" size={15} />}>一次情報・危険開示</SectionLabel>
+      <Card pad={14}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12, fontWeight: 800, color: meta.color, background: meta.bg, borderRadius: 6, padding: '2px 8px' }}>
+            {meta.label}
+          </span>
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-3)' }}>
+            TDnet {review?.sourceCoverage.tdnetCount ?? 0} / EDINET {review?.sourceCoverage.edinetCount ?? 0}
+          </span>
+        </div>
+
+        {blockers.length > 0 && (
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--urgent)', marginBottom: 4 }}>危険開示</div>
+            {blockers.slice(0, 4).map((item, i) => (
+              <div key={i} style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 3 }}>⚠ {item}</div>
+            ))}
+          </div>
+        )}
+
+        {warnings.length > 0 && (
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--amber)', marginBottom: 4 }}>注意開示・取得エラー</div>
+            {warnings.slice(0, 4).map((item, i) => (
+              <div key={i} style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 3 }}>• {item}</div>
+            ))}
+          </div>
+        )}
+
+        {positives.length > 0 && (
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--mint-deep)', marginBottom: 4 }}>確認済み材料</div>
+            {positives.slice(0, 3).map((item, i) => (
+              <div key={i} style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 3 }}>✓ {item}</div>
+            ))}
+          </div>
+        )}
+
+        {items.length === 0 && (
+          <p style={{ margin: 0, fontSize: 12.5, fontWeight: 600, color: 'var(--ink-3)', lineHeight: 1.6 }}>
+            この銘柄の一次情報レビューはまだ表示できません。ニュース材料は仮説扱いにしてください。
+          </p>
+        )}
+      </Card>
+    </>
+  )
+}
+
+function CompanyMemorySection({ memory }: { memory: CompanyMemoryRecord | undefined }) {
+  if (!memory) {
+    return (
+      <>
+        <SectionLabel icon={<Icon name="doc" size={15} />}>過去の外れ理由・銘柄メモ</SectionLabel>
+        <Card pad={14}>
+          <p style={{ margin: 0, fontSize: 12.5, fontWeight: 600, color: 'var(--ink-3)', lineHeight: 1.6 }}>
+            company memory はまだありません。`pnpm memory:companies` 実行後に、監視理由・弱いルール・過去の検証結果が表示されます。
+          </p>
+        </Card>
+      </>
+    )
+  }
+
+  return (
+    <>
+      <SectionLabel icon={<Icon name="doc" size={15} />}>過去の外れ理由・銘柄メモ</SectionLabel>
+      <Card pad={14}>
+        <div style={{ fontSize: 11.5, color: 'var(--ink-3)', fontWeight: 700, marginBottom: 8 }}>
+          最終レビュー: {memory.lastReviewedAt}
+        </div>
+        {memory.weakRules.length > 0 && (
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--amber)', marginBottom: 4 }}>弱い/注意ルール</div>
+            {memory.weakRules.slice(0, 4).map(rule => (
+              <span key={rule} style={{ display: 'inline-block', margin: '0 5px 5px 0', fontSize: 11.5, fontWeight: 700, color: 'var(--amber)', background: 'var(--amber-soft)', borderRadius: 6, padding: '2px 7px' }}>
+                {rule}
+              </span>
+            ))}
+          </div>
+        )}
+        {memory.knownRisks.length > 0 && (
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--urgent)', marginBottom: 4 }}>既知リスク</div>
+            {memory.knownRisks.slice(0, 4).map((risk, i) => (
+              <div key={i} style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 3 }}>• {risk}</div>
+            ))}
+          </div>
+        )}
+        {memory.recentOutcomes.length > 0 && (
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--sky-deep)', marginBottom: 4 }}>直近の答え合わせ</div>
+            {memory.recentOutcomes.slice(0, 3).map((outcome, i) => (
+              <div key={i} style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 3 }}>
+                {outcome.evaluatedAt}: {outcome.direction}/{outcome.quality}
+                {typeof outcome.relativeReturnPct === 'number' ? ` TOPIX比 ${outcome.relativeReturnPct.toFixed(1)}%` : ''}
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+    </>
+  )
+}
+
 export default async function StockDetailPage({ params }: Props) {
   const { code } = await params
   const data = loadGeneratedData()
@@ -142,6 +263,8 @@ export default async function StockDetailPage({ params }: Props) {
   const hypothesis = (data.hypothesisPredictions ?? [])
     .filter(h => h.code === code && h.status === 'open')
     .sort((a, b) => b.detectedAt.localeCompare(a.detectedAt))[0]
+  const primaryDisclosureReview = data.primaryDisclosureReviews?.[code]
+  const companyMemory = data.companyMemoryByCode?.[code]
 
   if (!candidate && !universeCandidate) notFound()
 
@@ -212,6 +335,8 @@ export default async function StockDetailPage({ params }: Props) {
 
           {universeCandidate && <UniverseSection candidate={universeCandidate} />}
           {hypothesis && <HypothesisSection hypothesis={hypothesis} />}
+          <PrimaryDisclosureSection review={primaryDisclosureReview} />
+          <CompanyMemorySection memory={companyMemory} />
 
           <SectionLabel icon={<Icon name="arc" size={15} />}>スコア内訳</SectionLabel>
           <Card pad={18}><ScoreViz score={candidate.score} variant="bars" /></Card>
@@ -293,6 +418,8 @@ export default async function StockDetailPage({ params }: Props) {
 
         <UniverseSection candidate={uc} />
         {hypothesis && <HypothesisSection hypothesis={hypothesis} />}
+        <PrimaryDisclosureSection review={primaryDisclosureReview} />
+        <CompanyMemorySection memory={companyMemory} />
 
         <Disclaimer />
         <div style={{ height: 24 }} />

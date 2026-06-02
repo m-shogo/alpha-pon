@@ -30,6 +30,11 @@ const FALLBACK_PRO: ProData = {
   positions: [],
   accuracySummary: null,
   worldContext: null,
+  companyMemory: [],
+  companyMemoryByCode: {},
+  primaryDisclosureReviews: {},
+  dataQualityByCode: {},
+  readiness: null,
   meta: { warnings: ['データファイルが見つからないか、読み込みに失敗しました。pnpm ui:data を実行してください。'] },
 }
 
@@ -55,6 +60,11 @@ function normalizeGeneratedData(value: unknown): ProData {
     positions: Array.isArray(data.positions) ? data.positions : [],
     accuracySummary: data.accuracySummary ?? null,
     worldContext: data.worldContext ?? null,
+    companyMemory: Array.isArray(data.companyMemory) ? data.companyMemory : [],
+    companyMemoryByCode: data.companyMemoryByCode ?? {},
+    primaryDisclosureReviews: data.primaryDisclosureReviews ?? {},
+    dataQualityByCode: data.dataQualityByCode ?? {},
+    readiness: data.readiness ?? null,
     meta: data.meta ?? null,
   }
 }

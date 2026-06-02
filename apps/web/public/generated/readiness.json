@@ -1,0 +1,98 @@
+{
+  "generatedAt": "2026-06-02",
+  "overallScore": 56,
+  "overallStatus": "partial",
+  "blockers": [
+    "J-Quants実データ運用: .env に JQUANTS_EMAIL / JQUANTS_PASSWORD を設定する"
+  ],
+  "items": [
+    {
+      "id": "real-data",
+      "label": "J-Quants実データ運用",
+      "score": 20,
+      "evidence": [
+        "J-Quants設定: missing",
+        "mock universe: 4",
+        "dataQuality missing/unknown: 0"
+      ],
+      "nextActions": [
+        ".env に JQUANTS_EMAIL / JQUANTS_PASSWORD を設定する",
+        "pnpm daily:full を実データで再実行する"
+      ],
+      "status": "blocked"
+    },
+    {
+      "id": "pipeline",
+      "label": "毎朝pipeline監視",
+      "score": 55,
+      "evidence": [
+        "pipeline status: completed",
+        "failed/skipped: scan:universe(1), candidate:hypothesis(skipped_scan_failed)"
+      ],
+      "nextActions": [
+        "ホームとreportsで失敗ステップを確認する",
+        "J-Quants未設定由来の失敗を実データ設定で解消する"
+      ],
+      "status": "partial"
+    },
+    {
+      "id": "hypothesis-outcomes",
+      "label": "仮説検証の厚み",
+      "score": 45,
+      "evidence": [
+        "hypotheses: 8",
+        "outcomes: 0",
+        "priced outcomes: 0",
+        "real outcomes: 0"
+      ],
+      "nextActions": [
+        "reviewDueAt を過ぎた仮説を J-Quants 実データで review:hypotheses する",
+        "1w/1m/3m と TOPIX比が入った outcome を蓄積する"
+      ],
+      "status": "partial"
+    },
+    {
+      "id": "primary-disclosures",
+      "label": "一次情報・危険開示連携",
+      "score": 65,
+      "evidence": [
+        "primaryDisclosureReviews: 2",
+        "dataQuality warnings: 10",
+        "daily:full primary scans: included"
+      ],
+      "nextActions": [
+        "個別銘柄ページで block/caution 開示を確認する",
+        "一次情報の本文PDF確認結果を company memory に反映する"
+      ],
+      "status": "partial"
+    },
+    {
+      "id": "company-memory",
+      "label": "銘柄ごとの反省ノート",
+      "score": 75,
+      "evidence": [
+        "companyMemory records: 2",
+        "daily:full memory: included"
+      ],
+      "nextActions": [
+        "weakRules と recentOutcomes を個別銘柄判断に使う",
+        "外れ理由が出た銘柄を watchlist のルール調整へ反映する"
+      ],
+      "status": "partial"
+    },
+    {
+      "id": "portfolio-mode",
+      "label": "ポートフォリオ表示・README",
+      "score": 75,
+      "evidence": [
+        "APP_MODE private/portfolio 表示あり",
+        "README に表示モード・安全運用を記載"
+      ],
+      "nextActions": [
+        "スクリーンショットと公開用デモデータを整える",
+        "README 冒頭にポートフォリオ向けの使い方を追加する"
+      ],
+      "status": "partial"
+    }
+  ]
+}

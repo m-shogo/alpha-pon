@@ -48,6 +48,68 @@ export type GeneratedReport = {
   fullContent?: string
 }
 
+export type PrimaryDisclosureReview = {
+  sourceCoverage: {
+    tdnetCount: number
+    edinetCount: number
+    hasPrimarySource: boolean
+    scannedEdinetDates?: string[]
+    fetchErrorCount?: number
+  }
+  decision: 'confirmed' | 'caution' | 'block' | 'missing'
+  positives: string[]
+  warnings: string[]
+  blockers: string[]
+  evidenceNeeded: string[]
+  items: Array<{
+    source: string
+    title: string
+    publishedAt: string
+    severity: 'positive' | 'neutral' | 'caution' | 'blocker'
+    category: string
+    url: string
+  }>
+}
+
+export type CompanyMemoryRecord = {
+  schemaVersion: 1
+  code: string
+  name: string
+  firstSeenAt: string
+  lastReviewedAt: string
+  watchReason: string[]
+  knownRisks: string[]
+  strongRules: string[]
+  weakRules: string[]
+  recurringWarnings: string[]
+  recentOutcomes: Array<{
+    createdAt: string
+    evaluatedAt: string
+    timeframe?: string
+    lessonTitle: string
+    direction: string
+    quality: string
+    relativeReturnPct?: number
+    maxDrawdownPct?: number
+  }>
+  notes: string[]
+}
+
+export type ReadinessReport = {
+  generatedAt: string
+  overallScore: number
+  overallStatus: 'done' | 'partial' | 'blocked' | 'not_started' | string
+  blockers: string[]
+  items: Array<{
+    id: string
+    label: string
+    status: 'done' | 'partial' | 'blocked' | 'not_started' | string
+    score: number
+    evidence: string[]
+    nextActions: string[]
+  }>
+}
+
 import type {
   UniverseCandidate,
   StockCandidateHypothesis,
@@ -81,6 +143,11 @@ export type AlphaPonGeneratedData = {
   worldContext?: WorldContext | null
   generatedCompanyRules?: import('@/lib/stock/rules/types').GeneratedStockRule[]
   positions?: import('@/lib/stock/types').Position[]
+  companyMemory?: CompanyMemoryRecord[]
+  companyMemoryByCode?: Record<string, CompanyMemoryRecord>
+  primaryDisclosureReviews?: Record<string, PrimaryDisclosureReview>
+  dataQualityByCode?: Record<string, { dataQuality: string; warnings: string[] }>
+  readiness?: ReadinessReport | null
   pipelineStatus?: {
     date?: string
     status?: string

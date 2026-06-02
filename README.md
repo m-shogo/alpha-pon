@@ -57,9 +57,21 @@ pnpm check:all
 | `/hypotheses` | 仮説一覧 |
 | `/outcomes` | 当たり外れ検証 |
 | `/reports` | Pro レポート |
+| `/roadmap` | 100%完成までの readiness / 残ロードマップ |
 
 > このWeb UIは買い推奨ではありません。
 > 調査候補・監視候補・仮説検証を見やすくするための画面です。
+
+### 表示モード
+
+`APP_MODE` で文言を切り替えます。
+
+| mode | 用途 | 表示方針 |
+|---|---|---|
+| `portfolio` | 外部公開・転職ポートフォリオ | 監視候補・仮説検証・反証待ちなど、投資助言に見えない表現 |
+| `private` | 個人利用 | 買い候補・買い足し候補など、自分用の実用表現 |
+
+未設定時は `portfolio` です。
 
 ## 推奨実行コマンド
 
@@ -209,11 +221,14 @@ bash scripts/run-daily-complete-with-refresh.sh
 # daily のみ（J-Quants不要の軽量版）
 pnpm daily
 
-# pnpm コマンドで完全版を手動実行したい場合（run-daily-complete.sh と同等）
+# pnpm コマンドで完全版を手動実行したい場合
 pnpm daily:full
 
 # モックで動作確認（J-Quants 未設定の開発環境）
 pnpm daily:mock
+
+# 100%完成へ向けた残タスク監査
+pnpm readiness:audit
 
 # ユニバーススキャンのみモックで確認
 pnpm scan:universe:mock
@@ -231,8 +246,10 @@ node --import tsx/esm tests/analysis.test.ts
 ```
 
 > **入口の整理**: 毎朝の自動実行は `run-daily-complete.sh`（launchd から起動）が正式。
-> `daily:full` は同等処理を pnpm スクリプトで呼ぶ手動版。
-> J-Quants が未設定の場合は `scan:universe` が `exit 1` になり、mock へ自動フォールバックしない。
+> `daily:full` は、世界情勢スキャン、TDnet dry-run、有報スキャン、daily、ユニバーススキャン、会社ルール生成、仮説生成、outcomeレビュー、company memory、readiness、Web JSON生成までをまとめて呼ぶ手動版。
+> J-Quants が未設定の場合、`scan:universe` は local mock JSON を使います。画面では MOCK と明示され、実データとして扱いません。
+> J-Quants が未設定でも、`pnpm daily` は TDnet/EDINET の一次情報レビューだけは score JSON に残します。
+> `pnpm daily` / `pnpm daily:full` を価格・財務まで実データ運用にするには `.env` の `JQUANTS_EMAIL` / `JQUANTS_PASSWORD` が必要です。
 
 `reports/latest.md` にサマリーが出力される。  
 `reports/<コード>_<日付>.md` に個別レポートが出力される。  
@@ -259,10 +276,33 @@ node --import tsx/esm tests/validation.test.ts
 node --import tsx/esm tests/analysis.test.ts
 ```
 
+## 完成ロードマップの見方
+
+`pnpm readiness:audit` は、100%完成に近づけるための残タスクを自動監査します。
+
+出力:
+
+- `reports/readiness_latest.md`
+- `reports/readiness_latest.json`
+- `apps/web/public/generated/readiness.json`
+
+Web UI では `/roadmap` で確認できます。
+
+主な監査項目:
+
+- J-Quants 実データ運用
+- 毎朝 pipeline 監視
+- 仮説 outcome の厚み
+- 一次情報・危険開示連携
+- company memory
+- portfolio mode / README
+
+現時点で 100% に近づける最大の残タスクは、J-Quants 資格情報を設定して `pnpm daily:full` を実データで継続実行し、mock / missing / stale を消すことです。
+
 ## 安全運用ルール
 
-- 本番実行では J-Quants 未設定時にモックへ自動フォールバックしない。
-- `--mock` または `USE_MOCK=true` のときだけモックデータを使う。
+- J-Quants 未設定時の universe scan は mock と明示し、実データのように見せない。
+- `--mock` または `USE_MOCK=true` のときは開発・検証用のモックデータを使う。
 - `dataQuality` が `ok` ではない候補は、即通知/朝まとめからログ扱いへ落とす。
 - 欠損した財務データは `0` として加点しない。
 - 日付は `Asia/Tokyo` 基準で処理する。
@@ -270,6 +310,8 @@ node --import tsx/esm tests/analysis.test.ts
 - TOPIX比・流動性・ボラティリティ・財務品質を確認してから調査判断する。
 - 総会・決算・配当・資本政策を見ずに個別銘柄を強く判断しない。
 - Pro会議で証拠不足が出た銘柄は、ラベルを上げない。
+- ホーム画面の Pipeline / Mock / Missing 警告が出ている日は、調査候補を増やすよりデータ確認を優先する。
+- 個別銘柄ページでは、一次情報・危険開示・company memory の弱いルールを確認してから仮説を更新する。
 
 ## 銘柄の登録
 

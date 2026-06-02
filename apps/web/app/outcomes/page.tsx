@@ -60,7 +60,8 @@ export default function OutcomesPage() {
                 { label: '総検証数', value: `${summary.total}件` },
                 { label: '一致率', value: summary.hitRate != null ? `${(summary.hitRate * 100).toFixed(0)}%` : 'N/A' },
                 { label: '平均1Mリターン', value: summary.avgReturn1m != null ? `${summary.avgReturn1m >= 0 ? '+' : ''}${summary.avgReturn1m.toFixed(1)}%` : 'N/A' },
-                { label: 'vs TOPIX', value: summary.avgTopixReturn1m != null ? `${summary.avgTopixReturn1m >= 0 ? '+' : ''}${summary.avgTopixReturn1m.toFixed(1)}%` : 'N/A' },
+                { label: '平均TOPIX比', value: summary.avgRelativeToTopix1m != null ? `${summary.avgRelativeToTopix1m >= 0 ? '+' : ''}${summary.avgRelativeToTopix1m.toFixed(1)}%` : 'N/A' },
+                { label: '平均最大下落', value: summary.avgMaxDrawdownPct != null ? `${summary.avgMaxDrawdownPct.toFixed(1)}%` : 'N/A' },
               ].map(({ label, value }) => (
                 <div key={label} style={{ background: 'var(--surface)', borderRadius: 14, padding: '10px 12px', border: '1px solid var(--card-line)', boxShadow: 'var(--shadow)' }}>
                   <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink-3)', marginBottom: 3 }}>{label}</div>
@@ -116,6 +117,14 @@ export default function OutcomesPage() {
                         <span style={{ color: 'var(--ink-3)', marginRight: 4 }}>TOPIX比</span>
                         <ReturnCell value={o.relativeToTopix1m} />
                       </div>
+                      <div>
+                        <span style={{ color: 'var(--ink-3)', marginRight: 4 }}>最大下落</span>
+                        <ReturnCell value={o.maxDrawdownPct} />
+                      </div>
+                      <div>
+                        <span style={{ color: 'var(--ink-3)', marginRight: 4 }}>品質</span>
+                        <span style={{ color: o.dataAvailability === 'ok' ? 'var(--mint-deep)' : 'var(--amber)', fontWeight: 700 }}>{o.dataAvailability}</span>
+                      </div>
                     </div>
                   </div>
                   {o.dataSource === 'mock' && (
@@ -128,6 +137,19 @@ export default function OutcomesPage() {
                   <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--ink-3)', fontWeight: 600 }}>
                     {o.notes}
                   </p>
+                )}
+                {(o.whatDiffered?.length > 0 || o.missedSignals?.length > 0 || o.improvedRuleIdeas?.length > 0) && (
+                  <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--line)' }}>
+                    {o.whatDiffered?.slice(0, 2).map((item, j) => (
+                      <div key={`d-${j}`} style={{ fontSize: 11.5, color: 'var(--amber)', fontWeight: 700, marginTop: 2 }}>差分: {item}</div>
+                    ))}
+                    {o.missedSignals?.slice(0, 2).map((item, j) => (
+                      <div key={`m-${j}`} style={{ fontSize: 11.5, color: 'var(--urgent)', fontWeight: 700, marginTop: 2 }}>見落とし: {item}</div>
+                    ))}
+                    {o.improvedRuleIdeas?.slice(0, 2).map((item, j) => (
+                      <div key={`i-${j}`} style={{ fontSize: 11.5, color: 'var(--sky-deep)', fontWeight: 700, marginTop: 2 }}>改善案: {item}</div>
+                    ))}
+                  </div>
                 )}
               </Card>
             )

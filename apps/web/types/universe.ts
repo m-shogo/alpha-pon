@@ -52,12 +52,27 @@ export type HypothesisOutcome = {
   name: string
   hypothesis: StockCandidateHypothesis
   evaluatedAt: string
+  startPrice: number | null
+  endPrice1w: number | null
+  endPrice1m: number | null
+  endPrice3m: number | null
   return1w: number | null
   return1m: number | null
   return3m: number | null
+  benchmarkReturn1w: number | null
+  benchmarkReturn3m: number | null
   topixReturn1m: number | null
+  relativeToTopix1w: number | null
   relativeToTopix1m: number | null
+  relativeToTopix3m: number | null
+  maxDrawdownPct: number | null
+  actualDirection: 'up' | 'down' | 'sideways' | 'unknown'
   result: HypothesisResult
+  dataAvailability: 'ok' | 'partial' | 'missing'
+  whatMatched: string[]
+  whatDiffered: string[]
+  missedSignals: string[]
+  improvedRuleIdeas: string[]
   notes: string
   dataSource: 'jquants' | 'mock'
 }
@@ -71,6 +86,8 @@ export type AccuracySummary = {
   hitRate: number | null
   avgReturn1m: number | null
   avgTopixReturn1m: number | null
+  avgRelativeToTopix1m: number | null
+  avgMaxDrawdownPct: number | null
 }
 
 export type WorldContextRegime = {

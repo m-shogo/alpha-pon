@@ -1,5 +1,6 @@
 import { loadGeneratedData } from '@/lib/generated-data'
 import { ReportViewer } from '@/components/ReportViewer'
+import Link from 'next/link'
 
 export default function ReportsPage() {
   const data = loadGeneratedData()
@@ -28,6 +29,21 @@ export default function ReportsPage() {
       </div>
 
       <div style={{ padding: '16px 16px 0' }}>
+        {data.readiness && (
+          <Link href="/roadmap" style={{ display: 'block', textDecoration: 'none', marginBottom: 12 }}>
+            <div style={{ padding: '12px 14px', background: 'var(--lavender-soft)', borderRadius: 14, border: '1px solid var(--card-line)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                <div>
+                  <div style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--lavender-deep)', marginBottom: 2 }}>完成ロードマップ</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink)' }}>
+                    総合完成度 {Math.round(data.readiness.overallScore)}%
+                  </div>
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--lavender-deep)' }}>見る →</span>
+              </div>
+            </div>
+          </Link>
+        )}
         {(data.meta?.warnings ?? []).length > 0 && (
           <div style={{ padding: '10px 14px', marginBottom: 12, background: 'var(--amber-soft)', borderRadius: 10, fontSize: 12, fontWeight: 600, color: 'var(--ink-2)' }}>
             <div style={{ fontWeight: 800, color: 'var(--amber)', marginBottom: 4 }}>⚠ データ更新に問題が発生しました</div>
