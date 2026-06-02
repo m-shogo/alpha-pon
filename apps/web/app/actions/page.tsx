@@ -15,6 +15,7 @@ function ActionCard({ rule, mode }: { rule: GeneratedStockRule; mode: AppMode })
   const color = getSignalColor(signal)
   const bg = getSignalBg(signal)
   const label = toDisplaySignal(signal, mode)
+  const decisionPrefix = mode === 'private' ? '個人判断' : '表示'
 
   return (
     <div style={{
@@ -29,6 +30,9 @@ function ActionCard({ rule, mode }: { rule: GeneratedStockRule; mode: AppMode })
             <span style={{ fontSize: 10.5, color: 'var(--ink-3)' }}>信頼度 {Math.round(rule.confidence * 100)}%</span>
           </div>
           <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{rule.name}</h3>
+          <div style={{ marginTop: 4, fontSize: 12, fontWeight: 800, color }}>
+            {decisionPrefix}: {label}
+          </div>
         </div>
       </div>
 

@@ -20,7 +20,7 @@ export type PublicSignal =
   | '危険'
 
 export function getAppMode(): AppMode {
-  return process.env.APP_MODE === 'private' ? 'private' : 'portfolio'
+  return process.env.APP_MODE === 'portfolio' ? 'portfolio' : 'private'
 }
 
 export function toDisplaySignal(signal: InternalSignal, mode: AppMode): string {
