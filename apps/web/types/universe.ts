@@ -47,6 +47,7 @@ export type StockCandidateHypothesis = {
 }
 
 export type HypothesisActionLabel = 'watch' | 'log' | 'ignore'
+export type ReviewHorizon = '1d' | '1w' | '1m' | '3m'
 
 export type HypothesisOutcome = {
   schemaVersion: 1
@@ -54,6 +55,7 @@ export type HypothesisOutcome = {
   name: string
   hypothesis: StockCandidateHypothesis
   evaluatedAt: string
+  reviewHorizon: ReviewHorizon
   actionLabel: HypothesisActionLabel
   scoreAtPrediction: number | null
   startPrice: number | null

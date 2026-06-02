@@ -139,6 +139,7 @@ export default function OutcomesPage() {
                     <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 600, color: 'var(--ink-3)' }}>
                       検証日: {o.evaluatedAt} ・ 仮説日: {o.hypothesis.detectedAt} ({o.hypothesis.label})
                       {' '}・ 分類: <span style={{ fontWeight: 800, color: 'var(--ink)' }}>{o.actionLabel}</span>
+                      {' '}・ <span style={{ fontWeight: 800, color: 'var(--sky-deep)' }}>{o.reviewHorizon} review</span>
                       {o.scoreAtPrediction != null && (
                         <span> ・ 予測時スコア: <span style={{ fontWeight: 800, color: 'var(--ink)' }}>{o.scoreAtPrediction}</span></span>
                       )}

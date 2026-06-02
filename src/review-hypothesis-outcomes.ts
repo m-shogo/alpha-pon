@@ -14,6 +14,7 @@ import type {
   HypothesisResult,
   HypothesisLabel,
   HypothesisActionLabel,
+  ReviewHorizon,
   ActionLabelStats,
   AccuracySummary,
 } from "./universe.js";
@@ -137,19 +138,42 @@ async function fetchReturnData(
   return buildReturnData(quotes, detectedAt);
 }
 
+// horizon ごとの閾値（短期ほど小さく）
+const HORIZON_THRESHOLD: Record<ReviewHorizon, number> = {
+  "1d": 1,
+  "1w": 2,
+  "1m": 3,
+  "3m": 5,
+};
+
 function resolveResult(
-  ret1m: number | null,
-  expectedDirection: string
+  ret: number | null,
+  expectedDirection: string,
+  horizon: ReviewHorizon = "1m"
 ): HypothesisResult {
-  if (ret1m == null) return "unknown";
+  if (ret == null) return "unknown";
+  const th = HORIZON_THRESHOLD[horizon];
   if (expectedDirection === "up") {
-    return ret1m >= 3 ? "hit" : ret1m >= -3 ? "too_early" : "miss";
+    return ret >= th ? "hit" : ret >= -th ? "too_early" : "miss";
   }
   if (expectedDirection === "down") {
-    return ret1m <= -3 ? "hit" : ret1m <= 3 ? "too_early" : "miss";
+    return ret <= -th ? "hit" : ret <= th ? "too_early" : "miss";
   }
-  // unknown direction: 絶対値で判定
-  return Math.abs(ret1m) >= 5 ? "hit" : "too_early";
+  return Math.abs(ret) >= th * 1.5 ? "hit" : "too_early";
+}
+
+function pickRetForHorizon(returns: ReturnData, horizon: ReviewHorizon): number | null {
+  if (horizon === "1d") return returns.ret1d;
+  if (horizon === "1w") return returns.ret1w;
+  if (horizon === "3m") return returns.ret3m;
+  return returns.ret1m;
+}
+
+function pickTopixRetForHorizon(topixReturns: ReturnData, horizon: ReviewHorizon): number | null {
+  if (horizon === "1d") return topixReturns.ret1d;
+  if (horizon === "1w") return topixReturns.ret1w;
+  if (horizon === "3m") return topixReturns.ret3m;
+  return topixReturns.ret1m;
 }
 
 function resolveActualDirection(ret1m: number | null): "up" | "down" | "sideways" | "unknown" {
@@ -256,6 +280,15 @@ function calcAccuracySummary(outcomes: HypothesisOutcome[]): AccuracySummary {
   return { total, hit, miss, tooEarly, unknown, hitRate, avgReturn1m, avgTopixReturn1m, avgRelativeToTopix1m, avgMaxDrawdownPct, byActionLabel };
 }
 
+// ── horizon 定義 ─────────────────────────────────────────────
+
+const REVIEW_HORIZONS: { horizon: ReviewHorizon; days: number }[] = [
+  { horizon: "1d", days: 1 },
+  { horizon: "1w", days: 7 },
+  { horizon: "1m", days: 30 },
+  { horizon: "3m", days: 90 },
+];
+
 // ── メイン ────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -264,20 +297,29 @@ async function main(): Promise<void> {
   const today = todayJst();
   const hypotheses = readHypotheses();
   const existingOutcomes = readExistingOutcomes();
+
+  // horizon 別にキー管理: code:detectedAt:horizon
   const reviewedKeys = new Set(
-    existingOutcomes.map(o => `${o.code}:${o.hypothesis.detectedAt}`)
+    existingOutcomes.map(o => `${o.code}:${o.hypothesis.detectedAt}:${o.reviewHorizon}`)
   );
 
-  // reviewDueAt が今日以前のオープン仮説を対象にする
-  const due = hypotheses.filter(h =>
-    h.status === "open" &&
-    h.reviewDueAt <= today &&
-    !reviewedKeys.has(`${h.code}:${h.detectedAt}`)
-  );
+  // horizon ごとの due 判定: detectedAt + N日 <= today
+  type DueItem = { hypothesis: StockCandidateHypothesis; horizon: ReviewHorizon };
+  const dueItems: DueItem[] = [];
 
-  console.log(`対象仮説: ${due.length}件 (reviewDueAt <= ${today})`);
+  for (const h of hypotheses) {
+    if (h.status !== "open") continue;
+    for (const { horizon, days } of REVIEW_HORIZONS) {
+      const dueAt = addDaysJst(h.detectedAt, days); // YYYY-MM-DD 形式
+      const key = `${h.code}:${h.detectedAt}:${horizon}`;
+      if (dueAt <= today && !reviewedKeys.has(key)) {
+        dueItems.push({ hypothesis: h, horizon });
+      }
+    }
+  }
 
-  if (due.length === 0) {
+  console.log(`対象: ${dueItems.length}件 (horizon別, today=${today})`);
+  if (dueItems.length === 0) {
     console.log("検証対象なし");
   }
 
@@ -286,12 +328,13 @@ async function main(): Promise<void> {
     console.log("[warn] J-Quants未設定。リターン計算をスキップします。");
   }
 
+  // 対象仮説の最古 detectedAt から TOPIX を一括取得
   let topixQuotes: { Date: string; AdjustmentClose: number }[] = [];
-  if (useJQuants && due.length > 0) {
+  if (useJQuants && dueItems.length > 0) {
     try {
-      const earliest = due.reduce(
-        (min, h) => (h.detectedAt < min ? h.detectedAt : min),
-        due[0].detectedAt
+      const earliest = dueItems.reduce(
+        (min, d) => (d.hypothesis.detectedAt < min ? d.hypothesis.detectedAt : min),
+        dueItems[0].hypothesis.detectedAt
       );
       topixQuotes = await fetchDailyQuotes(
         TOPIX_ETF_CODE,
@@ -304,32 +347,48 @@ async function main(): Promise<void> {
     }
   }
 
-  const emptyReturnData: ReturnData = { base: null, p1d: null, p1w: null, p1m: null, p3m: null, ret1d: null, ret1w: null, ret1m: null, ret3m: null, maxDrawdownPct: null, dataAvailability: "missing" };
+  const emptyReturnData: ReturnData = {
+    base: null, p1d: null, p1w: null, p1m: null, p3m: null,
+    ret1d: null, ret1w: null, ret1m: null, ret3m: null,
+    maxDrawdownPct: null, dataAvailability: "missing",
+  };
 
-  for (const h of due) {
+  // 銘柄ごとに価格データをキャッシュ（同一銘柄の複数 horizon で再取得しない）
+  const priceCache = new Map<string, ReturnData>();
+
+  for (const { hypothesis: h, horizon } of dueItems) {
     let returns: ReturnData = { ...emptyReturnData };
     let topixReturns: ReturnData = { ...emptyReturnData };
     let dataSource: "jquants" | "mock" = "mock";
 
     if (useJQuants) {
-      try {
-        returns = await fetchReturnData(h.code, h.detectedAt);
-        await sleep(300);
-
-        // TOPIX比較
-        topixReturns = buildReturnData(topixQuotes, h.detectedAt);
-        dataSource = "jquants";
-      } catch (err) {
-        console.warn(`  [warn] ${h.code} リターン取得失敗:`, err instanceof Error ? err.message : String(err));
+      const cacheKey = h.code + ":" + h.detectedAt;
+      if (priceCache.has(cacheKey)) {
+        returns = priceCache.get(cacheKey)!;
+      } else {
+        try {
+          returns = await fetchReturnData(h.code, h.detectedAt);
+          priceCache.set(cacheKey, returns);
+          await sleep(300);
+        } catch (err) {
+          console.warn(`  [warn] ${h.code} 価格取得失敗:`, err instanceof Error ? err.message : String(err));
+        }
       }
+      topixReturns = buildReturnData(topixQuotes, h.detectedAt);
+      dataSource = "jquants";
     }
 
-    const result = resolveResult(returns.ret1m, h.expectedDirection);
+    const horizonRet = pickRetForHorizon(returns, horizon);
+    const horizonTopixRet = pickTopixRetForHorizon(topixReturns, horizon);
+    const result = resolveResult(horizonRet, h.expectedDirection, horizon);
+
     const relativeToTopix1d = returns.ret1d != null && topixReturns.ret1d != null ? returns.ret1d - topixReturns.ret1d : null;
     const relativeToTopix1w = returns.ret1w != null && topixReturns.ret1w != null ? returns.ret1w - topixReturns.ret1w : null;
     const relativeToTopix1m = returns.ret1m != null && topixReturns.ret1m != null ? returns.ret1m - topixReturns.ret1m : null;
     const relativeToTopix3m = returns.ret3m != null && topixReturns.ret3m != null ? returns.ret3m - topixReturns.ret3m : null;
-    const narrative = buildOutcomeNotes({ hypothesis: h, returns, topixRet1m: topixReturns.ret1m, relativeToTopix1m, result, dataSource });
+    const excessRet = horizonRet != null && horizonTopixRet != null ? horizonRet - horizonTopixRet : relativeToTopix1m;
+
+    const narrative = buildOutcomeNotes({ hypothesis: h, returns, topixRet1m: horizonTopixRet, relativeToTopix1m: excessRet, result, dataSource });
 
     const outcome: HypothesisOutcome = {
       schemaVersion: 1,
@@ -337,6 +396,7 @@ async function main(): Promise<void> {
       name: h.name,
       hypothesis: h,
       evaluatedAt: today,
+      reviewHorizon: horizon,
       actionLabel: mapActionLabel(h.label),
       scoreAtPrediction: Math.round(h.confidence * 100),
       startPrice: returns.base,
@@ -357,7 +417,7 @@ async function main(): Promise<void> {
       relativeToTopix1m,
       relativeToTopix3m,
       maxDrawdownPct: returns.maxDrawdownPct,
-      actualDirection: resolveActualDirection(returns.ret1m),
+      actualDirection: resolveActualDirection(horizonRet),
       result,
       dataAvailability: returns.dataAvailability,
       whatMatched: narrative.whatMatched,
@@ -369,7 +429,7 @@ async function main(): Promise<void> {
     };
 
     appendOutcome(outcome);
-    console.log(`  [reviewed] ${h.code} ${h.name}: ${result} (1m: ${returns.ret1m?.toFixed(1) ?? "N/A"}%)`);
+    console.log(`  [reviewed] ${h.code} ${h.name} [${horizon}]: ${result} (ret=${horizonRet?.toFixed(1) ?? "N/A"}%)`);
   }
 
   // 全アウトカムを再集計してサマリー更新

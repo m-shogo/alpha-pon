@@ -1,4 +1,301 @@
 {
-  "outcomes": [],
+  "outcomes": [
+    {
+      "schemaVersion": 1,
+      "code": "7011",
+      "name": "三菱重工業",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "7011",
+        "name": "三菱重工業",
+        "detectedAt": "2026-06-01",
+        "reviewDueAt": "2026-07-01",
+        "reason": "未登録銘柄の自動検出: 高値比17.5%下落、営業利益前年比+18.2%。世界情勢テーマ: war_geopolitics・security_resilience。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.72,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ",
+          "防衛予算の大幅削減・安保政策の転換"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認",
+          "防衛省・政府調達の受注動向"
+        ],
+        "relatedWorldEventIds": [
+          "war_geopolitics",
+          "security_resilience"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "検証候補"
+      },
+      "evaluatedAt": "2026-06-02",
+      "reviewHorizon": "1d",
+      "actionLabel": "log",
+      "scoreAtPrediction": 72,
+      "startPrice": 4648,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": 0,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "partial",
+      "whatMatched": [
+        "期待方向 unknown と1か月方向が一致"
+      ],
+      "whatDiffered": [],
+      "missedSignals": [
+        "価格データ品質がpartial"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "notes": "2026-06-02時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "8035",
+      "name": "東京エレクトロン",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "8035",
+        "name": "東京エレクトロン",
+        "detectedAt": "2026-06-01",
+        "reviewDueAt": "2026-08-30",
+        "reason": "未登録銘柄の自動検出: 高値比25.3%下落、営業利益前年比+12.4%。世界情勢テーマ: war_geopolitics・ai_compute・trade_supply_chain。",
+        "expectedTimeframe": "3m",
+        "expectedDirection": "unknown",
+        "confidence": 0.68,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ",
+          "防衛予算の大幅削減・安保政策の転換",
+          "AIサイクルの急速な冷え込み"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認",
+          "半導体市況サイクルの現在地",
+          "受注残・在庫水準の確認"
+        ],
+        "relatedWorldEventIds": [
+          "war_geopolitics",
+          "ai_compute",
+          "trade_supply_chain"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "監視候補"
+      },
+      "evaluatedAt": "2026-06-02",
+      "reviewHorizon": "1d",
+      "actionLabel": "watch",
+      "scoreAtPrediction": 68,
+      "startPrice": 40030,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": 0,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "partial",
+      "whatMatched": [
+        "期待方向 unknown と1か月方向が一致"
+      ],
+      "whatDiffered": [],
+      "missedSignals": [
+        "価格データ品質がpartial"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "notes": "2026-06-02時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6367",
+      "name": "ダイキン工業",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "6367",
+        "name": "ダイキン工業",
+        "detectedAt": "2026-06-01",
+        "reviewDueAt": "2026-07-01",
+        "reason": "未登録銘柄の自動検出: 高値比19.4%下落、営業利益前年比+8.7%。世界情勢テーマ: climate_heat_water・energy_security。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.61,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ",
+          "気候対策政策の後退・補助金削減"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認"
+        ],
+        "relatedWorldEventIds": [
+          "climate_heat_water",
+          "energy_security"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "監視候補"
+      },
+      "evaluatedAt": "2026-06-02",
+      "reviewHorizon": "1d",
+      "actionLabel": "watch",
+      "scoreAtPrediction": 61,
+      "startPrice": 19225,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": 0,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "partial",
+      "whatMatched": [
+        "期待方向 unknown と1か月方向が一致"
+      ],
+      "whatDiffered": [],
+      "missedSignals": [
+        "価格データ品質がpartial"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "notes": "2026-06-02時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6954",
+      "name": "ファナック",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "6954",
+        "name": "ファナック",
+        "detectedAt": "2026-06-01",
+        "reviewDueAt": "2026-07-01",
+        "reason": "未登録銘柄の自動検出: 高値比22.0%下落、営業利益前年比+5.1%。世界情勢テーマ: migration_labor_shortage。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.58,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認",
+          "中国・アジア向け受注の動向"
+        ],
+        "relatedWorldEventIds": [
+          "migration_labor_shortage"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "監視候補"
+      },
+      "evaluatedAt": "2026-06-02",
+      "reviewHorizon": "1d",
+      "actionLabel": "watch",
+      "scoreAtPrediction": 58,
+      "startPrice": 6153,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": 0,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "partial",
+      "whatMatched": [
+        "期待方向 unknown と1か月方向が一致"
+      ],
+      "whatDiffered": [],
+      "missedSignals": [
+        "価格データ品質がpartial"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "notes": "2026-06-02時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "dataSource": "jquants"
+    }
+  ],
   "generatedAt": "2026-06-02"
 }
