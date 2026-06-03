@@ -1,0 +1,164 @@
+# alpha-pon 上場イベント監視DB
+# 決算日と同じくらい、上場予定日・上場日・初回決算・ロックアップ解除日は重要。
+# 買い推奨ではなく、見逃し防止・情勢/需給/タイミング学習のための通知対象として管理する。
+
+watchPolicy:
+  defaultNotificationLevel: "morning_summary"
+  neverTreatAs: "buy_signal"
+  importantReason: "上場日は価格形成・需給・ロックアップ・初回決算・テーマ波及を観察する起点。決算日と同様に、後から答え合わせするための日付として重要。"
+  safetyRules:
+    - "上場予定は買い指示ではない"
+    - "上場週は原則観察フェーズ"
+    - "初回決算前は数字未確認"
+    - "ロックアップ解除は売り圧力確認を優先"
+    - "テーマ性だけで調査候補を上げない"
+    - "同じパターンを学ぶため、見逃した上場イベントも retrospect で登録する"
+
+requiredMilestones:
+  ipo_approved:
+    label: "上場承認"
+    notificationLevel: "morning_summary"
+    whyImportant: "上場日・公開価格レンジ・事業概要・売出比率を確認する起点。"
+    evidenceNeeded:
+      - "取引所の新規上場会社情報"
+      - "目論見書"
+      - "想定価格/仮条件"
+      - "売出比率/既存株主"
+
+  bookbuilding:
+    label: "仮条件・ブックビルディング"
+    notificationLevel: "morning_summary"
+    whyImportant: "需要の強さ・価格レンジ・過熱感を見る。"
+    evidenceNeeded:
+      - "仮条件"
+      - "公開価格"
+      - "想定時価総額"
+      - "需給/吸収金額"
+
+  listing_day:
+    label: "上場日"
+    notificationLevel: "priority"
+    whyImportant: "初値・出来高・公開価格比・初値後の需給を記録する最重要日。"
+    evidenceNeeded:
+      - "公開価格"
+      - "初値"
+      - "初日出来高"
+      - "売買代金"
+      - "初値後の高値/安値"
+    doNotTouchReasons:
+      - "初値形成は企業価値より需給/話題性が強い"
+      - "短期熱狂で期待が価格に入りやすい"
+      - "初日だけでは事業仮説の正しさは分からない"
+
+  first_earnings:
+    label: "上場後初回決算"
+    notificationLevel: "priority"
+    whyImportant: "上場時ストーリーが実績・ガイダンスに接続しているか確認する日。"
+    evidenceNeeded:
+      - "売上成長率"
+      - "営業利益率"
+      - "FCF"
+      - "ガイダンス"
+      - "会社説明資料"
+    doNotTouchReasons:
+      - "上場時ストーリーが数字に接続していない可能性"
+      - "好決算でも期待が高すぎると下がる可能性"
+
+  lockup_expiry:
+    label: "ロックアップ解除"
+    notificationLevel: "priority"
+    whyImportant: "既存株主・VC・社員の売り圧力が出る可能性がある。需給の大きな節目。"
+    evidenceNeeded:
+      - "解除日"
+      - "解除対象株数"
+      - "解除条件"
+      - "主要株主"
+      - "解除前後の出来高/株価"
+    doNotTouchReasons:
+      - "解除前後は需給悪化リスクが高い"
+      - "ファンダメンタルが良くても売り圧に押される可能性"
+
+  post_ipo_30d:
+    label: "上場後30日"
+    notificationLevel: "log"
+    whyImportant: "初値熱狂が落ち着いたか、出来高価格帯が見えるか確認する。"
+    evidenceNeeded:
+      - "公開価格比"
+      - "初値比"
+      - "TOPIX比"
+      - "出来高推移"
+
+  post_ipo_90d:
+    label: "上場後90日"
+    notificationLevel: "morning_summary"
+    whyImportant: "短期需給からファンダメンタル確認へ移る節目。"
+    evidenceNeeded:
+      - "初回決算の有無"
+      - "出来高の安定"
+      - "高値からの下落率"
+      - "事業仮説の維持/崩れ"
+
+patternsToLearn:
+  kioxia_like:
+    label: "キオクシア型: 大型IPO + メモリ市況 + AIインフラ波及"
+    whyImportant: "上場日だけでなく、IPO後需給・NAND市況・AIインフラ需要・決算/市況の答え合わせが重要。"
+    requiredQuestions:
+      - "IPO後の売り圧は残っているか"
+      - "NAND/SSD/eSSD需要にAI投資が接続しているか"
+      - "GPU/HBM側だけで終わっていないか"
+      - "メモリ市況は改善しているか"
+      - "公開価格/初値/現在値のどこにいるか"
+    relatedThemes:
+      - "AI大型IPO"
+      - "メモリ市況"
+      - "データセンター投資"
+      - "半導体サイクル"
+
+  ai_space_private_giant_like:
+    label: "AI/宇宙 非上場巨人型: SpaceX / Anthropic / OpenAI"
+    whyImportant: "上場観測・S-1・初回決算・ロックアップ・関連日本株波及をフェーズで追う必要がある。"
+    requiredQuestions:
+      - "これは実需拡大か、既存株主の出口イベントか"
+      - "関連銘柄は既に織り込み済みか"
+      - "上場日/初回決算/ロックアップ解除のどのフェーズか"
+      - "本命が高すぎる場合、周辺受益に合理性があるか"
+    relatedThemes:
+      - "AIインフラ"
+      - "宇宙/衛星"
+      - "データセンター"
+      - "光通信/電力/冷却"
+      - "メモリ/ストレージ"
+
+manualSeedEvents:
+  - id: "kioxia_listing_pattern"
+    name: "キオクシアホールディングス"
+    code: "285A"
+    market: "TSE"
+    eventType: "listing_day"
+    status: "retrospective_learning"
+    notificationLevel: "morning_summary"
+    whyWatch: "上場日・IPO後需給・AI/NAND市況波及を同じパターン学習の基準点にする。"
+    relatedPattern: "kioxia_like"
+    evidenceToBackfill:
+      - "上場日"
+      - "公開価格"
+      - "初値"
+      - "初回決算日"
+      - "ロックアップ解除条件"
+      - "NAND市況"
+      - "AIインフラ需要との接続"
+
+  - id: "spacex_anthropic_private_giant_watch"
+    name: "SpaceX / Anthropic / OpenAI 上場観測"
+    eventType: "pre_ipo"
+    status: "active_watch"
+    notificationLevel: "morning_summary"
+    whyWatch: "AI/宇宙の非上場巨人上場は、直接投資対象だけでなく日本株のAIインフラ/半導体/宇宙波及を読む重要イベント。"
+    relatedPattern: "ai_space_private_giant_like"
+    evidenceToBackfill:
+      - "公式上場申請/S-1相当"
+      - "上場予定日"
+      - "想定時価総額"
+      - "売出比率"
+      - "初回決算"
+      - "ロックアップ解除"
