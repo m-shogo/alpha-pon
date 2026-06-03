@@ -49,6 +49,24 @@ bash scripts/listing-event-watch.sh
 bash scripts/listing-event-alerts.sh
 ```
 
+manualSeedEvents の同期preview:
+
+```bash
+node --import tsx/esm src/sync-listing-events.ts
+```
+
+manualSeedEvents を `data/listing_events.jsonl` に追記する場合:
+
+```bash
+node --import tsx/esm src/sync-listing-events.ts --write
+```
+
+上場後レビューだけ:
+
+```bash
+node --import tsx/esm src/listing-event-review.ts
+```
+
 IPO/上場/必須監視テーマをまとめて確認:
 
 ```bash
@@ -60,8 +78,12 @@ bash scripts/ipo-listing-watch-all.sh
 ```text
 reports/listing_event_watch_latest.md
 reports/listing_event_watch_latest.json
+reports/listing_event_sync_preview_latest.md
+reports/listing_event_sync_preview_latest.json
 reports/listing_event_alerts_latest.md
 reports/listing_event_alerts_latest.json
+reports/listing_event_review_latest.md
+reports/listing_event_review_latest.json
 reports/ipo_theme_watch_latest.md
 reports/ipo_theme_watch_latest.json
 reports/must_watch_audit_latest.md
@@ -96,6 +118,51 @@ SpaceX / Anthropic / OpenAI の上場予定日/S-1/想定時価総額/ロック�
 ```
 
 これは、過去イベントでも後から埋めて学習対象にするため。
+
+## sync-listing-events の見方
+
+`src/sync-listing-events.ts` は、`config/listing-event-watch.yml` の `manualSeedEvents` を `data/listing_events.jsonl` へ同期するためのCLI。
+
+デフォルトは preview のみ。
+
+```bash
+node --import tsx/esm src/sync-listing-events.ts
+```
+
+実際に追記する場合だけ `--write` を付ける。
+
+```bash
+node --import tsx/esm src/sync-listing-events.ts --write
+```
+
+重複判定:
+
+```text
+id + eventType + eventDate
+```
+
+既存データは削除しない。
+
+## listing-event-review の見方
+
+`src/listing-event-review.ts` は、`data/listing_events.jsonl` のイベントに対して、公開価格比・初値比・TOPIX比を答え合わせする入口。
+
+価格データがない場合は `missing` / `null`。
+
+0埋めは禁止。
+
+見る項目:
+
+```text
+publicPrice
+initialPrice
+reviewPrice
+publicPriceReturn
+initialPriceReturn
+topixRelativeReturn
+dataQuality
+missingFields
+```
 
 ## キオクシア型で見ること
 
@@ -148,6 +215,12 @@ S-1/公式上場申請
 {"id":"example-listing","code":"0000","name":"サンプルIPO","eventType":"listing_day","eventDate":"2026-07-01","source":"manual","notificationLevel":"priority","status":"watch","whyWatch":"上場日・初値・出来高を記録するため","evidenceToBackfill":["公開価格","初値","初日出来高","初回決算日","ロックアップ解除条件"]}
 ```
 
+レビュー用の価格を入れる場合:
+
+```json
+{"id":"example-listing-30d","code":"0000","name":"サンプルIPO","eventType":"post_ipo_30d","eventDate":"2026-08-01","source":"manual","notificationLevel":"log","publicPrice":1000,"initialPrice":1300,"reviewPrice":1150,"topixRelativeReturn":0.03}
+```
+
 日付形式は `YYYY-MM-DD`。
 
 ## 安全ルール
@@ -158,6 +231,7 @@ S-1/公式上場申請
 - ロックアップ解除は売り圧力確認を優先
 - テーマ性だけで調査候補を上げない
 - 同じパターンを学ぶため、見逃した上場イベントも retrospect で登録する
+- 価格やTOPIX比がない場合は `0` ではなく `null/missing` として扱う
 
 ## 次の改善候補
 
@@ -165,4 +239,4 @@ S-1/公式上場申請
 - 初回決算予定日の自動推定
 - ロックアップ解除日の自動抽出
 - listing_event_alerts を LINE/Slack 通知へ接続
-- 上場後30日/90日のTOPIX比レビュー
+- 上場後30日/90日のTOPIX比レビューをJ-Quants/TOPIXデータに接続
