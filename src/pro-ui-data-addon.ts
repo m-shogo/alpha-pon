@@ -16,7 +16,18 @@ function main() {
   const buffettQuality = readJson("data/buffett_quality_latest.json", { generatedAt: null, snapshots: [] });
   const valuationSnapshots = readJson("data/valuation_snapshot_latest.json", { generatedAt: null, snapshots: [] });
   const irEventEvidence = readJson("data/ir_event_evidence_latest.json", { generatedAt: null, events: [] });
-  const stockProCommitteeJson = readJson("reports/stock_pro_committee_latest.json", { generatedAt: null, decisions: [] });
+  const stockProCommitteeJson = readJson<{ generatedAt: string | null; decisions: Array<Record<string, unknown>> }>("reports/stock_pro_committee_latest.json", { generatedAt: null, decisions: [] });
+  const legendProCommittee = {
+    generatedAt: stockProCommitteeJson.generatedAt,
+    decisions: stockProCommitteeJson.decisions.map(decision => ({
+      code: decision.code,
+      name: decision.name,
+      finalLabel: decision.finalLabel,
+      finalScore: decision.finalScore,
+      legendVerdicts: decision.legendVerdicts ?? [],
+      legendWarnings: decision.legendWarnings ?? [],
+    })),
+  };
 
   const merged = {
     ...data,
@@ -24,6 +35,7 @@ function main() {
     valuationSnapshots,
     irEventEvidence,
     stockProCommitteeJson,
+    legendProCommittee,
     proDataMeta: {
       source: "pro-ui-data-addon",
       generatedAt: new Date().toISOString(),
