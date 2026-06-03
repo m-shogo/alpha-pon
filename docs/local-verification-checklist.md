@@ -74,6 +74,23 @@ stockProCommitteeJson
 
 ## ラベル判定の見方
 
+### agreementLevel の意味に注意
+
+`agreementLevel: high` は **「良い判断」という意味ではない。**
+
+`agreementLevel` と `finalLabel` は **必ずセットで読む。**
+
+| agreementLevel | finalLabel | 意味 |
+|---|---|---|
+| `high` | `証拠不足` | 全員が情報不足で一致 → 情報収集が先 |
+| `high` | `調査候補` | 全員が良いと見ている → 前向きな一致 |
+| `high` | `保留` | 全員が様子見で一致 → 理由を確認 |
+| `mixed` | 何でも | 賛成と慎重が混在 → finalScore だけで判断しない |
+| `conflict` | 何でも | 強い対立 → 先に disagreements を読む |
+
+**証拠不足 ≠ 悪い銘柄。情報が足りないだけ。**
+`missingEvidence` を埋めてから再実行すれば `finalLabel` が変わる可能性がある。
+
 ### OKに近い
 
 ```text
@@ -88,6 +105,7 @@ consensus.agreementLevel: mixed
 
 ```text
 finalLabel: 証拠不足
+consensus.agreementLevel: high  ← 全員が情報不足で一致しているだけ (良い意味ではない)
 ```
 
 見ること:
