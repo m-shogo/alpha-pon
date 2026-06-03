@@ -22,8 +22,11 @@ function main() {
     decisions: stockProCommitteeJson.decisions.map(decision => ({
       code: decision.code,
       name: decision.name,
+      originalFinalLabel: decision.originalFinalLabel ?? null,
       finalLabel: decision.finalLabel,
       finalScore: decision.finalScore,
+      consensus: decision.consensus ?? null,
+      disagreements: decision.disagreements ?? [],
       legendVerdicts: decision.legendVerdicts ?? [],
       legendWarnings: decision.legendWarnings ?? [],
     })),
