@@ -3,6 +3,7 @@ import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
 import { buildLegendAgentVerdicts, summarizeLegendWarnings } from "./legend-pro-agents.js";
+import { applyDisagreementSafetyLabel, buildProConsensus, buildProDisagreements } from "./pro-disagreement.js";
 import type { AgentVerdict, BuffettQualitySnapshot, CommitteeDecision, IrEventEvidence, ProFinalLabel, StockProScore, ValuationSnapshot } from "./pro-types.js";
 import type { AccuracySummary, HypothesisOutcome, WorldContext } from "./universe.js";
 
@@ -124,23 +125,35 @@ function main() {
       const companyNetwork = network.companies?.[company.code];
       const companyIrEvents = irEvents.companies?.[company.code]?.events ?? [];
       const views = order.map(agentId => ({ agentId, agent: agentById.get(agentId), ...agentView(agentId, company, companyNetwork, companyIrEvents) }));
-      const decision = finalDecision(views);
+      const baseDecision = finalDecision(views);
       const disagreement = new Set(views.map(view => view.stance)).size > 1;
       const verdicts = views.map(view => toVerdict(view.agentId, view.agent?.label ?? view.agentId, { stance: view.stance, points: view.points }));
       const legendVerdicts = buildLegendAgentVerdicts({ company, network: companyNetwork, irEvents: irEvidenceByCode.get(company.code), buffettQuality: qualityByCode.get(company.code), valuation: valuationByCode.get(company.code), outcomes, accuracySummary, worldContext });
       const legendWarnings = summarizeLegendWarnings(legendVerdicts);
-      const proScore = buildProScore(company, decision, verdicts);
-      const nextActions = decision === "証拠不足" ? ["公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認", "財務品質・バリュエーション・競合比較を埋める"] : decision === "保留" ? ["上がらない理由と下がる理由を補強", "better peer risk とバリュエーション過熱を確認"] : ["調査候補。ただし取引判断ではなく、一次情報と価格確認を継続"];
-      decisions.push({ code: company.code, name: company.name, finalLabel: decision, finalScore: proScore.finalScore, proScore, verdicts, legendVerdicts, legendWarnings, nextActions, blockers: proScore.blockers, missingEvidence: proScore.missingEvidence });
+      const consensus = buildProConsensus([...verdicts, ...legendVerdicts]);
+      const disagreements = buildProDisagreements([...verdicts, ...legendVerdicts]);
+      const safeFinalLabel = applyDisagreementSafetyLabel(baseDecision, consensus, disagreements);
+      const proScore = buildProScore(company, safeFinalLabel, verdicts);
+      const nextActions = safeFinalLabel === "証拠不足" ? ["公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認", "財務品質・バリュエーション・競合比較を埋める"] : safeFinalLabel === "保留" ? ["上がらない理由と下がる理由を補強", "better peer risk とバリュエーション過熱を確認"] : ["調査候補。ただし取引判断ではなく、一次情報と価格確認を継続"];
+      decisions.push({ code: company.code, name: company.name, originalFinalLabel: baseDecision, finalLabel: safeFinalLabel, finalScore: proScore.finalScore, proScore, verdicts, legendVerdicts, legendWarnings, consensus, disagreements, nextActions, blockers: proScore.blockers, missingEvidence: proScore.missingEvidence });
       lines.push(`### ${company.code} ${company.name}`);
-      lines.push(`- committee decision: **${decision}**`);
+      lines.push(`- committee decision: **${safeFinalLabel}**`);
+      lines.push(`- original decision: ${baseDecision}`);
       lines.push(`- final score: ${proScore.finalScore}`);
-      lines.push(`- disagreement: ${disagreement ? "あり" : "なし"}`);
+      lines.push(`- disagreement: ${disagreement || disagreements.length > 0 ? "あり" : "なし"}`);
+      lines.push(`- agreement: ${consensus.agreementLevel}`);
       lines.push("- agent views:");
       for (const view of views) { lines.push(`  - ${view.agent?.label ?? view.agentId}: ${view.stance}`); for (const point of view.points.slice(0, 4)) lines.push(`    - ${point}`); }
       lines.push("- legend pro views:");
       for (const view of legendVerdicts.slice(0, 10)) lines.push(`  - ${view.label}: ${view.stance} (${view.confidence.toFixed(2)})`);
       if (legendWarnings.length > 0) { lines.push("- legend warnings:"); legendWarnings.slice(0, 6).forEach(warning => lines.push(`  - ${warning}`)); }
+      if (disagreements.length > 0) {
+        lines.push("- disagreements:");
+        for (const item of disagreements) {
+          lines.push(`  - ${item.topic}: ${item.summary}`);
+          lines.push(`    - resolution: ${item.resolutionRule}`);
+        }
+      }
       lines.push("- next actions:");
       nextActions.forEach(action => lines.push(`  - ${action}`));
       lines.push("");
