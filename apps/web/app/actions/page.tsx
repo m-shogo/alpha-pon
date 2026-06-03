@@ -62,7 +62,7 @@ function PriceSignalStrip({ rule }: { rule: GeneratedStockRule }) {
   return (
     <div style={{ marginTop: 8, padding: '7px 10px', background: 'var(--surface-2)', borderRadius: 8, fontSize: 11.5, color: 'var(--ink-2)' }}>
       <span style={{ fontWeight: 850, color }}>価格シグナル: </span>
-      <span>5D {fmtPct(signal.change5dPct)} / 20D {fmtPct(signal.change20dPct)} / TOPIX比20D {fmtPct(signal.relativeTopix20dPct)} / 出来高 {signal.volumeSpikeRatio != null ? `${signal.volumeSpikeRatio.toFixed(1)}倍` : 'N/A'}</span>
+      <span>5D {fmtPct(signal.change5dPct)} / 20D {fmtPct(signal.change20dPct)} / 市場比20D {fmtPct(signal.relativeTopix20dPct)} / 出来高 {signal.volumeSpikeRatio != null ? `${signal.volumeSpikeRatio.toFixed(1)}倍` : 'N/A'}</span>
       <span style={{ marginLeft: 6, color: 'var(--ink-3)' }}>({signal.source}/{signal.quality})</span>
     </div>
   )
@@ -96,7 +96,7 @@ function ActionCard({ rule, mode }: { rule: GeneratedStockRule; mode: AppMode })
         </div>
       </div>
 
-      <DetailList title={signal === 'WAIT_PULLBACK' ? '良い材料として見る理由' : '買い候補にする理由'} items={rule.reasons} color="var(--mint-deep)" mark="✓" />
+      <DetailList title={signal === 'WAIT_PULLBACK' ? '良い材料として見る理由' : '調査候補として見る理由'} items={rule.reasons} color="var(--mint-deep)" mark="✓" />
       <DetailList title="過去5年から見た罠" items={rule.risks} color="var(--amber)" mark="!" />
       <DetailList title="先に確認すること" items={rule.evidenceNeeded} color="var(--sky-deep)" mark="□" />
       <DetailList title="崩れたら見送り" items={rule.invalidationSignals} color="var(--urgent)" mark="×" />
