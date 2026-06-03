@@ -2,12 +2,17 @@
 // 既存 CLI を job_runs で管理しながら順次実行する
 // 注意: 買い推奨なし。調査候補・検証・反省用。
 
+import { mkdirSync, writeFileSync } from "fs";
+import { join } from "path";
 import { acquireLock, releaseLock } from "../src/jobs/job-lock.js";
 import { runPnpmJob } from "../src/jobs/job-runner.js";
 import { getTodayInTokyo } from "../src/jobs/date-utils.js";
 
 const TODAY = getTodayInTokyo();
 const LOCK_KEY = `alpha-pon:daily:${TODAY}`;
+
+type DailyStatus = "ok" | "skip" | "fail";
+type DailyResult = { name: string; status: DailyStatus };
 
 // daily で実行するジョブ一覧
 // pnpmScript: package.json の scripts キー名（既存 CLI をそのまま呼ぶ）
@@ -22,6 +27,21 @@ const DAILY_JOBS = [
   { name: "readiness_audit",        pnpmScript: "readiness:audit" },
   { name: "ui_data_generate",       pnpmScript: "ui:data" },
 ] as const;
+
+function writePipelineStatus(results: DailyResult[]): void {
+  mkdirSync("reports", { recursive: true });
+  const failedSteps = results.filter(r => r.status === "fail").map(r => r.name);
+  const payload = {
+    app: "alpha-pon",
+    date: TODAY,
+    runType: "daily",
+    status: failedSteps.length > 0 ? "partial_failed" : "ok",
+    results,
+    failedSteps,
+    generatedAt: new Date().toISOString(),
+  };
+  writeFileSync(join("reports", "pipeline_status_latest.json"), JSON.stringify(payload, null, 2), "utf-8");
+}
 
 // SIGTERM / SIGINT（Mac スリープ・強制終了）でもロックを解除する
 function setupSignalHandlers() {
@@ -43,7 +63,7 @@ async function main() {
   }
   setupSignalHandlers();
 
-  const results: { name: string; status: string }[] = [];
+  const results: DailyResult[] = [];
 
   try {
     for (const job of DAILY_JOBS) {
@@ -60,9 +80,12 @@ async function main() {
     console.log(`  ${icon} ${r.name} [${r.status}]`);
   }
 
+  writePipelineStatus(results);
+
   const failed = results.filter(r => r.status === "fail");
   if (failed.length > 0) {
     console.log(`\n[warn] 失敗 ${failed.length}件: ${failed.map(r => r.name).join(", ")}`);
+    process.exitCode = 1;
   }
 
   console.log(`=== alpha-pon daily end (${TODAY}) ===`);
