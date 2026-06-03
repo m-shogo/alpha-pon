@@ -18,7 +18,7 @@
 
 ## 現在完了済み
 
-### 1. 食い違い判定ヘルパー追加済み
+### 1. 食い違い判定ヘルパー
 
 追加済みファイル:
 
@@ -52,192 +52,89 @@ applyDisagreementSafetyLabel:
 - 意見が割れていて調査候補なら「保留」
 ```
 
----
+### 2. Pro委員会への接続
 
-## 未完了
-
-### 1. stock-pro-committee-report.ts への接続
-
-対象:
+接続済みファイル:
 
 ```text
 src/stock-pro-committee-report.ts
 ```
 
-やること:
+実装済み内容:
 
 ```ts
-import {
-  buildProConsensus,
-  buildProDisagreements,
-  applyDisagreementSafetyLabel,
-} from "./pro-disagreement.js";
+const consensus = buildProConsensus([...verdicts, ...legendVerdicts]);
+const disagreements = buildProDisagreements([...verdicts, ...legendVerdicts]);
+const safeFinalLabel = applyDisagreementSafetyLabel(baseDecision, consensus, disagreements);
 ```
 
-既存の以下の付近に追加する。
+出力に追加済み:
 
-```ts
-const legendVerdicts = buildLegendAgentVerdicts(...)
-const legendWarnings = summarizeLegendWarnings(legendVerdicts)
-const proScore = buildProScore(company, decision, verdicts)
+```text
+originalFinalLabel
+finalLabel
+consensus
+disagreements
 ```
 
-追加するコード:
+### 3. 型接続
 
-```ts
-const allVerdicts = [...verdicts, ...legendVerdicts];
-
-const consensus = buildProConsensus(allVerdicts);
-const disagreements = buildProDisagreements(allVerdicts);
-
-const safeFinalLabel = applyDisagreementSafetyLabel(
-  decision,
-  consensus,
-  disagreements
-);
-```
-
----
-
-### 2. decisions.push の修正
-
-現在:
-
-```ts
-decisions.push({
-  code: company.code,
-  name: company.name,
-  finalLabel: decision,
-  finalScore: proScore.finalScore,
-  proScore,
-  verdicts,
-  legendVerdicts,
-  legendWarnings,
-  nextActions,
-  blockers: proScore.blockers,
-  missingEvidence: proScore.missingEvidence,
-});
-```
-
-修正後:
-
-```ts
-decisions.push({
-  code: company.code,
-  name: company.name,
-
-  originalFinalLabel: decision,
-  finalLabel: safeFinalLabel,
-
-  finalScore: proScore.finalScore,
-  proScore,
-
-  verdicts,
-  legendVerdicts,
-  legendWarnings,
-
-  consensus,
-  disagreements,
-
-  nextActions,
-  blockers: proScore.blockers,
-  missingEvidence: proScore.missingEvidence,
-});
-```
-
----
-
-### 3. Markdown出力にも食い違いを表示
-
-`stock_pro_committee_latest.md` に以下を追加する。
-
-```ts
-lines.push(`- agreement: ${consensus.agreementLevel}`);
-
-if (disagreements.length > 0) {
-  lines.push("- disagreements:");
-  for (const item of disagreements) {
-    lines.push(`  - ${item.topic}: ${item.summary}`);
-    lines.push(`    - resolution: ${item.resolutionRule}`);
-  }
-}
-```
-
----
-
-### 4. pro-types.ts の型拡張
-
-対象:
+接続済みファイル:
 
 ```text
 src/pro-types.ts
 ```
 
-追加 import:
+`CommitteeDecision` に以下を追加済み:
 
-```ts
-import type {
-  ProConsensus,
-  ProDisagreement,
-} from "./pro-disagreement.js";
+```text
+originalFinalLabel
+consensus
+disagreements
 ```
 
-`CommitteeDecision` に追加:
+### 4. UIデータ連携
 
-```ts
-export type CommitteeDecision = {
-  code: string;
-  name: string;
-
-  originalFinalLabel?: ProFinalLabel;
-  finalLabel: ProFinalLabel;
-
-  finalScore: number;
-  proScore: StockProScore;
-
-  verdicts: AgentVerdict[];
-  legendVerdicts?: LegendAgentVerdict[];
-  legendWarnings?: string[];
-
-  consensus?: ProConsensus;
-  disagreements?: ProDisagreement[];
-
-  nextActions: string[];
-  blockers: string[];
-  missingEvidence: string[];
-};
-```
-
----
-
-### 5. UIデータにも追加
-
-対象:
+接続済みファイル:
 
 ```text
 src/pro-ui-data-addon.ts
 ```
 
-`legendProCommittee` の mapping に以下も含める。
+`legendProCommittee` に以下を追加済み:
 
-```ts
-const legendProCommittee = {
-  generatedAt: stockProCommitteeJson.generatedAt,
-  decisions: stockProCommitteeJson.decisions.map(decision => ({
-    code: decision.code,
-    name: decision.name,
+```text
+originalFinalLabel
+consensus
+disagreements
+```
 
-    originalFinalLabel: decision.originalFinalLabel,
-    finalLabel: decision.finalLabel,
-    finalScore: decision.finalScore,
+### 5. テスト
 
-    consensus: decision.consensus ?? null,
-    disagreements: decision.disagreements ?? [],
+追加済み:
 
-    legendVerdicts: decision.legendVerdicts ?? [],
-    legendWarnings: decision.legendWarnings ?? [],
-  })),
-};
+```text
+tests/pro-disagreement.test.ts
+tests/pro-generated-data-shape.test.ts
+```
+
+`pnpm test` に組み込み済み。
+
+### 6. 一発検証コマンド
+
+追加済み:
+
+```bash
+pnpm verify:pro
+```
+
+内容:
+
+```bash
+pnpm pro:all
+pnpm ui:data
+node --import tsx/esm tests/pro-disagreement.test.ts
+node --import tsx/esm tests/pro-generated-data-shape.test.ts
 ```
 
 ---
@@ -258,11 +155,11 @@ const legendProCommittee = {
   },
   "disagreements": [
     {
-      "topic": "story_vs_statistics",
+      "topic": "unknown",
       "supportiveAgents": ["リンチ型"],
       "cautiousAgents": ["シモンズ型"],
-      "summary": "ストーリーの魅力と、統計・検証面の慎重意見が割れています。",
-      "whyItMatters": "少数サンプルの成功体験を過信しないため、検証件数不足は安全側に扱います。",
+      "summary": "賛成意見と慎重意見が混在しています。",
+      "whyItMatters": "平均点にせず、慎重意見の理由を次の確認項目に残します。",
       "resolutionRule": "証拠不足"
     }
   ]
@@ -273,10 +170,16 @@ const legendProCommittee = {
 
 ## 検証コマンド
 
+まずはこれ:
+
 ```bash
-pnpm typecheck
-pnpm typecheck:scripts
-pnpm test
+pnpm verify:pro
+```
+
+全体確認:
+
+```bash
+pnpm check
 pnpm pro:all
 pnpm ui:data
 pnpm health
@@ -287,7 +190,7 @@ pnpm backup
 
 ## 完了条件
 
-以下が満たされたら完了。
+以下が満たされたら、このフェーズは完了。
 
 ```text
 reports/stock_pro_committee_latest.json に consensus が入る
@@ -295,9 +198,8 @@ reports/stock_pro_committee_latest.json に disagreements が入る
 originalFinalLabel と finalLabel が両方入る
 意見が割れた時に調査候補が保留/証拠不足へ安全側に倒れる
 apps/web/public/generated/alpha-pon-data.json に legendProCommittee.consensus が入る
-pnpm test が通る
-pnpm pro:all が通る
-pnpm ui:data が通る
+pnpm verify:pro が通る
+pnpm check が通る
 ```
 
 ---
@@ -313,4 +215,25 @@ pnpm ui:data が通る
 喧嘩を記録する
 少数派の強い反対を無視しない
 最終判断は安全側に倒す
+```
+
+## 残り
+
+ローカル実行結果のレビュー。
+
+見るファイル:
+
+```text
+reports/stock_pro_committee_latest.json
+apps/web/public/generated/alpha-pon-data.json
+```
+
+確認ポイント:
+
+```text
+finalLabel が厳しすぎないか
+証拠不足に倒れすぎていないか
+consensus が自然か
+disagreements が見やすいか
+UIで見せる情報として十分か
 ```
