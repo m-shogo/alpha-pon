@@ -20,8 +20,9 @@ export type ProDisagreement = {
 type AnyVerdict = Pick<AgentVerdict | LegendAgentVerdict, "agentId" | "label" | "stance" | "missingEvidence" | "blockerReasons">;
 const nameOf = (v: AnyVerdict) => v.label || v.agentId;
 const isSupport = (v: AnyVerdict) => v.stance === "調査候補";
-const isBlock = (v: AnyVerdict) => v.stance === "避ける" || v.blockerReasons.length > 0;
-const isCaution = (v: AnyVerdict) => v.stance === "保留" || v.stance === "証拠不足" || isBlock(v);
+const isBlock = (v: AnyVerdict) => v.stance === "避ける";
+const isEvidenceGap = (v: AnyVerdict) => v.stance === "証拠不足" || v.missingEvidence.length > 0 || v.blockerReasons.length > 0;
+const isCaution = (v: AnyVerdict) => v.stance === "保留" || isEvidenceGap(v) || isBlock(v);
 
 export function buildProConsensus(verdicts: AnyVerdict[]): ProConsensus {
   const supportiveAgents = verdicts.filter(isSupport).map(nameOf);
@@ -35,7 +36,8 @@ export function buildProConsensus(verdicts: AnyVerdict[]): ProConsensus {
 export function buildProDisagreements(verdicts: AnyVerdict[]): ProDisagreement[] {
   const consensus = buildProConsensus(verdicts);
   if (consensus.agreementLevel === "high") return [];
-  const resolutionRule = consensus.blockingAgents.length > 0 ? "避ける" : consensus.agreementLevel === "conflict" ? "証拠不足" : "保留";
+  const hasEvidenceGap = verdicts.some(isEvidenceGap);
+  const resolutionRule = consensus.blockingAgents.length > 0 ? "避ける" : hasEvidenceGap ? "証拠不足" : "保留";
   return [{
     topic: "unknown",
     supportiveAgents: consensus.supportiveAgents,
