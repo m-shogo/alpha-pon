@@ -1,106 +1,171 @@
-# ローカル検証チェックリスト
+# alpha-pon ローカル検証チェックリスト
 
-> 買い推奨ではありません。調査・検証・反証・学習用。
+帰宅後に迷わず確認するためのチェックリスト。
 
-Pro委員会・食い違い検出・UI連携のローカル検証手順です。
-
----
-
-## 一発実行
+## まず実行
 
 ```bash
+cd /Users/m-shogo/Developer/personal/alpha-pon
 bash scripts/verify-pro-local.sh
-# または
-pnpm verify:pro:local
 ```
 
----
+このスクリプトは以下を実行する。
 
-## ステップ別チェックリスト
+1. `pnpm pro:all`
+2. `pnpm ui:data`
+3. `tests/pro-disagreement.test.ts`
+4. `tests/pro-generated-data-shape.test.ts`
+5. `scripts/inspect-pro-output.mjs`
+6. 主要生成ファイルの存在確認
 
-### 1. Pro委員会レポート生成
+## 次に全体確認
 
 ```bash
-pnpm pro:committee
+pnpm check
+pnpm health
+pnpm backup
 ```
 
-確認ポイント:
-- [ ] `reports/stock_pro_committee_latest.md` が生成されている
-- [ ] `reports/stock_pro_committee_latest.json` が生成されている
-- [ ] `decisions` 配列に銘柄が入っている
-- [ ] 各 decision に `originalFinalLabel` / `finalLabel` がある
-- [ ] 各 decision に `consensus` / `disagreements` がある
-- [ ] `legendVerdicts` / `legendWarnings` がある
-
-### 2. UIデータ生成
+余裕があれば:
 
 ```bash
+pnpm check:all
+```
+
+## 必ず見るファイル
+
+```text
+reports/stock_pro_committee_latest.md
+reports/stock_pro_committee_latest.json
+apps/web/public/generated/alpha-pon-data.json
+```
+
+## stock_pro_committee_latest.json で見る項目
+
+各 decision に以下が入っているか。
+
+```text
+code
+name
+originalFinalLabel
+finalLabel
+finalScore
+verdicts
+legendVerdicts
+consensus
+disagreements
+nextActions
+blockers
+missingEvidence
+```
+
+## alpha-pon-data.json で見る項目
+
+```text
+legendProCommittee
+legendProCommittee.decisions
+legendProCommittee.decisions[].consensus
+legendProCommittee.decisions[].disagreements
+buffettQuality
+valuationSnapshots
+irEventEvidence
+stockProCommitteeJson
+```
+
+## ラベル判定の見方
+
+### OKに近い
+
+```text
+originalFinalLabel: 調査候補
+finalLabel: 保留
+consensus.agreementLevel: mixed
+```
+
+意味: もともとは良さそうだが、先生の意見が割れているので慎重にした。
+
+### 証拠集め優先
+
+```text
+finalLabel: 証拠不足
+```
+
+見ること:
+
+- missingEvidence
+- disagreements
+- cautiousAgents
+- IRイベントURL
+- バリュエーション未取得
+- 検証件数不足
+
+### 本当に注意
+
+```text
+finalLabel: 避ける
+```
+
+見ること:
+
+- consensus.blockingAgents
+- blockers
+- どの先生が避ける判定を出したか
+
+## inspect-pro-output の見方
+
+`bash scripts/verify-pro-local.sh` の中で以下が表示される。
+
+```text
+finalLabel 分布
+originalFinalLabel 分布
+agreementLevel 分布
+decisions with disagreements
+label adjusted by safety rule
+cautiousAgents
+blockingAgents
+disagreement topics
+legendProCommittee.decisions 件数
+```
+
+### 変だと感じるパターン
+
+```text
+避ける が多すぎる
+証拠不足 がほぼ全件
+agreementLevel が conflict ばかり
+committee decisions と UI decisions の件数が違う
+legendProCommittee が空
+```
+
+この場合は、まず以下を確認する。
+
+```bash
+pnpm pro:all
 pnpm ui:data
-```
-
-確認ポイント:
-- [ ] `apps/web/public/generated/alpha-pon-data.json` が更新されている
-- [ ] `legendProCommittee` フィールドが存在する (null でない)
-- [ ] `legendProCommittee.decisions` に銘柄が入っている
-- [ ] `legendProCommittee.decisions[].consensus` がある
-- [ ] `legendProCommittee.decisions[].disagreements` がある
-- [ ] `buffettQuality` フィールドが存在する
-- [ ] `valuationSnapshots` フィールドが存在する
-- [ ] `irEventEvidence` フィールドが存在する
-- [ ] `stockProCommitteeJson` フィールドが存在する
-
-### 3. テスト実行
-
-```bash
-node --import tsx/esm tests/pro-disagreement.test.ts
-node --import tsx/esm tests/pro-generated-data-shape.test.ts
-```
-
-確認ポイント:
-- [ ] `pro-disagreement.test.ts passed`
-- [ ] `pro-generated-data-shape.test.ts passed`
-
-### 4. インスペクト確認
-
-```bash
-pnpm inspect:pro
-# または
 node scripts/inspect-pro-output.mjs
 ```
 
-確認ポイント:
-- [ ] `finalLabel 分布` が表示される
-- [ ] `originalFinalLabel 分布` が表示される
-- [ ] `agreementLevel 分布` が表示される
-- [ ] `disagreements あり` の件数が確認できる
-- [ ] `安全ルールでラベル変更された銘柄` の件数が確認できる
-- [ ] `committee と UI decisions 件数が一致` と表示される
-- [ ] 判定バランスで `避ける 50%超` の警告が出ていない
-- [ ] 判定バランスで `証拠不足 90%超` の警告が出ていない
+## 大事な安全ルール
 
----
+- 先生の意見を平均点に潰さない。
+- `consensus.agreementLevel` が `mixed` / `conflict` の時は、finalScore だけで見ない。
+- `originalFinalLabel` と `finalLabel` が違う時は、なぜ安全側に倒されたかを見る。
+- `証拠不足` は悪い銘柄という意味ではなく、まだ情報が足りないという意味。
+- `避ける` は強い反対理由がある時だけにしたい。
 
-## 全体チェック
+## 最後にコミットする場合
+
+生成JSONをcommit対象にするかは運用方針次第。
+
+手元確認だけなら commit 不要。
+
+Web UIを最新化して公開・デプロイしたい場合:
 
 ```bash
-pnpm check          # typecheck + tests
-pnpm verify:pro     # pro:all + ui:data + pro tests
-pnpm health         # ヘルスチェック
-pnpm backup         # バックアップ
+git status
+git add apps/web/public/generated/
+git commit -m "chore: update generated alpha-pon data"
+git push
 ```
 
----
-
-## 注意点
-
-- `避ける` が多すぎる場合: `src/pro-disagreement.ts` の `isBlock` 関数が `stance === "避ける"` のみを判定しているか確認
-- `証拠不足` を `避ける` と同扱いにしない: `isEvidenceGap` と `isBlock` は別関数
-- `mixed / conflict` のとき: `finalScore` だけで判断せず `disagreements` の内容を確認する
-- `originalFinalLabel !== finalLabel` の銘柄: 安全ルールが適用されているため理由を確認する
-
----
-
-## 関連ドキュメント
-
-- [docs/roadmap-pro-disagreement.md](roadmap-pro-disagreement.md) — アーキテクチャ詳細
-- [docs/operation-playbook.md](operation-playbook.md) — 運用プレイブック
+DBや `data/` の生データは基本的に慎重に扱う。

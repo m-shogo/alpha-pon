@@ -1,9 +1,10 @@
-// pnpm backup — DB・データファイルのスナップショットを保存する
+// pnpm backup — DB・知識DB・生成データのスナップショットを保存する
 // backups/YYYY-MM-DDTHH-mm-ss/ に存在するファイルだけコピー
 // 最新 30 件を保持し古いバックアップを自動削除
 
-import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, statSync } from "fs";
-import { join } from "path";
+import { createHash } from "crypto";
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "fs";
+import { dirname, join } from "path";
 
 const BACKUP_ROOT = "backups";
 const MAX_BACKUPS = 30;
@@ -15,7 +16,28 @@ const TARGETS = [
   "data/hypothesis_outcomes.jsonl",
   "data/hypothesis_accuracy_summary.json",
   "data/run-cursors.json",
+  "data/generated_company_rules_latest.json",
+  "data/universe_candidates_latest.json",
+  "config",
+  "reports",
+  "apps/web/public/generated",
 ];
+
+const EXCLUDED_DIRS = new Set(["node_modules", ".next", "dist", "backups", ".git"]);
+
+type CopiedFile = {
+  source: string;
+  destination: string;
+  sizeBytes: number;
+  sha256: string;
+};
+
+type BackupManifest = {
+  createdAt: string;
+  copiedFiles: CopiedFile[];
+  skippedTargets: string[];
+  totalBytes: number;
+};
 
 function timestampDir(): string {
   const now = new Date();
@@ -27,6 +49,44 @@ function timestampDir(): string {
   const mi  = pad(now.getMinutes());
   const s   = pad(now.getSeconds());
   return `${y}-${mo}-${d}T${h}-${mi}-${s}`;
+}
+
+function sha256(path: string): string {
+  return createHash("sha256").update(readFileSync(path)).digest("hex");
+}
+
+function safeDestPath(src: string): string {
+  return src.split("/").join("__");
+}
+
+function copyFile(src: string, destRoot: string, manifest: BackupManifest): void {
+  const destFile = join(destRoot, safeDestPath(src));
+  mkdirSync(dirname(destFile), { recursive: true });
+  cpSync(src, destFile);
+  const size = statSync(destFile).size;
+  const item = {
+    source: src,
+    destination: destFile,
+    sizeBytes: size,
+    sha256: sha256(destFile),
+  };
+  manifest.copiedFiles.push(item);
+  manifest.totalBytes += size;
+  console.log(`[backup] ${src} → ${destFile} (${(size / 1024).toFixed(1)}KB)`);
+}
+
+function copyDirectory(srcDir: string, destRoot: string, manifest: BackupManifest): void {
+  const entries = readdirSync(srcDir);
+  for (const entry of entries) {
+    if (EXCLUDED_DIRS.has(entry)) continue;
+    const src = join(srcDir, entry);
+    const stat = statSync(src);
+    if (stat.isDirectory()) {
+      copyDirectory(src, destRoot, manifest);
+    } else if (stat.isFile()) {
+      copyFile(src, destRoot, manifest);
+    }
+  }
 }
 
 function pruneOldBackups(): void {
@@ -45,18 +105,24 @@ function pruneOldBackups(): void {
 const dest = join(BACKUP_ROOT, timestampDir());
 mkdirSync(dest, { recursive: true });
 
-let copied = 0;
+const manifest: BackupManifest = {
+  createdAt: new Date().toISOString(),
+  copiedFiles: [],
+  skippedTargets: [],
+  totalBytes: 0,
+};
+
 for (const src of TARGETS) {
   if (!existsSync(src)) {
     console.log(`[backup] スキップ（存在しない）: ${src}`);
+    manifest.skippedTargets.push(src);
     continue;
   }
-  const destFile = join(dest, src.replace(/\//g, "__"));
-  cpSync(src, destFile);
-  const size = statSync(destFile).size;
-  console.log(`[backup] ${src} → ${destFile} (${(size / 1024).toFixed(1)}KB)`);
-  copied++;
+  const stat = statSync(src);
+  if (stat.isDirectory()) copyDirectory(src, dest, manifest);
+  else if (stat.isFile()) copyFile(src, dest, manifest);
 }
 
+writeFileSync(join(dest, "manifest.json"), JSON.stringify(manifest, null, 2), "utf-8");
 pruneOldBackups();
-console.log(`[backup] 完了: ${dest} (${copied}件)`);
+console.log(`[backup] 完了: ${dest} (${manifest.copiedFiles.length}件, ${(manifest.totalBytes / 1024).toFixed(1)}KB)`);

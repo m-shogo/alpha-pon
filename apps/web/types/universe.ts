@@ -2,6 +2,16 @@
 // src/universe.ts と同じ形状。JSON で連携する。
 
 export type UniverseScreeningStatus = 'monitoring' | 'escalated' | 'dismissed'
+export type DisclosureStatus = 'confirmed_positive' | 'confirmed_negative' | 'confirmed_neutral' | 'official_check_required' | 'missing'
+export type DisclosureSourceType = 'tdnet' | 'company_ir' | 'edinet' | 'manual' | 'missing'
+export type DisclosureEvidence = {
+  status: DisclosureStatus
+  sourceType: DisclosureSourceType
+  sourceUrl: string | null
+  publishedAt: string | null
+  title: string | null
+  summary: string | null
+}
 
 export type UniverseCandidate = {
   code: string
@@ -29,6 +39,7 @@ export type UniverseCandidate = {
   hasDownwardRevision: boolean
   hasNegativeFlag: boolean
   hasRecentDisclosure: boolean
+  disclosureEvidence?: DisclosureEvidence
   matchedWorldEventTags: string[]
   screeningScore: number
   warnings: string[]

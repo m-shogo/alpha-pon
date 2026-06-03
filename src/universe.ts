@@ -1,16 +1,36 @@
 // ユニバース候補・仮説・検証の型定義
 // 注意: 買い推奨ではない。監視・検証・反省用。
 
+import type { MissReason } from "./pro-types.js";
+
 export type UniverseScreeningStatus = "monitoring" | "escalated" | "dismissed";
+
+export type DisclosureStatus =
+  | "confirmed_positive"
+  | "confirmed_negative"
+  | "confirmed_neutral"
+  | "official_check_required"
+  | "missing";
+
+export type DisclosureSourceType = "tdnet" | "company_ir" | "edinet" | "manual" | "missing";
+
+export type DisclosureEvidence = {
+  status: DisclosureStatus;
+  sourceType: DisclosureSourceType;
+  sourceUrl: string | null;
+  publishedAt: string | null;
+  title: string | null;
+  summary: string | null;
+};
 
 export type UniverseCandidate = {
   code: string;
   name: string;
   sector: string | null;
-  detectedAt: string;           // YYYY-MM-DD
+  detectedAt: string;
   currentPrice: number | null;
   high52w: number | null;
-  drawdownPct: number | null;   // 負の値（例: -22.5 = 22.5%下落）
+  drawdownPct: number | null;
   change5dPct?: number | null;
   change20dPct?: number | null;
   topixChange5dPct?: number | null;
@@ -20,17 +40,14 @@ export type UniverseCandidate = {
   volumeSpikeRatio?: number | null;
   priceSignalSource?: "jquants" | "external" | "company_memory" | "missing";
   priceSignalQuality?: "exact" | "fallback" | "stale" | "missing";
-  priceRiskWarnings?: Array<{
-    level: "info" | "warning" | "block";
-    reason: string;
-    evidence: string[];
-  }>;
+  priceRiskWarnings?: Array<{ level: "info" | "warning" | "block"; reason: string; evidence: string[] }>;
   operatingProfitYoY: number | null;
   hasDownwardRevision: boolean;
-  hasNegativeFlag: boolean;     // 監査・不正・決算延期など
+  hasNegativeFlag: boolean;
   hasRecentDisclosure: boolean;
+  disclosureEvidence?: DisclosureEvidence;
   matchedWorldEventTags: string[];
-  screeningScore: number;       // 0-100
+  screeningScore: number;
   warnings: string[];
   status: UniverseScreeningStatus;
   dataSource: "jquants" | "mock";
@@ -51,7 +68,7 @@ export type StockCandidateHypothesis = {
   reason: string;
   expectedTimeframe: HypothesisTimeframe;
   expectedDirection: HypothesisDirection;
-  confidence: number;            // 0-1
+  confidence: number;
   invalidationSignals: string[];
   evidenceNeeded: string[];
   relatedWorldEventIds: string[];
@@ -97,24 +114,14 @@ export type HypothesisOutcome = {
   whatDiffered: string[];
   missedSignals: string[];
   improvedRuleIdeas: string[];
+  missReasonCandidates?: MissReason[];
   notes: string;
   dataSource: "jquants" | "mock";
 };
 
-export type ActionLabelStats = {
-  total: number;
-  avgExcessReturn1w: number | null;
-  avgExcessReturn1m: number | null;
-};
-
+export type ActionLabelStats = { total: number; avgExcessReturn1w: number | null; avgExcessReturn1m: number | null };
 export type ScoreBand = "0-49" | "50-69" | "70-84" | "85-100" | "unknown";
-
-export type ScoreBandStats = {
-  total: number;
-  hitRate: number | null;
-  avgExcessReturn1w: number | null;
-  avgExcessReturn1m: number | null;
-};
+export type ScoreBandStats = { total: number; hitRate: number | null; avgExcessReturn1w: number | null; avgExcessReturn1m: number | null };
 
 export type AccuracySummary = {
   total: number;
@@ -131,30 +138,15 @@ export type AccuracySummary = {
   byScoreBand: Record<ScoreBand, ScoreBandStats>;
 };
 
-export type WorldContextRegime = {
-  id: string;
-  level: string;
-  why: string;
-  watchCategories: string[];
-  caution: string[];
-};
+export type WorldContextRegime = { id: string; level: string; why: string; watchCategories: string[]; caution: string[] };
+export type WorldContext = { asOf: string; mode: string; summary: string; activeRegimes: WorldContextRegime[]; operatingRules: string[] };
 
-export type WorldContext = {
-  asOf: string;
-  mode: string;
-  summary: string;
-  activeRegimes: WorldContextRegime[];
-  operatingRules: string[];
-};
-
-// スクリーニング通過基準
 export const SCREENING_CRITERIA = {
-  drawdownMin: -35,   // 35%以上下落は除外（過度に下落）
-  drawdownMax: -15,   // 15%未満下落は対象外（まだ高値圏）
-  operatingProfitYoYMin: 0,  // 営業利益成長がマイナスは除外
+  drawdownMin: -35,
+  drawdownMax: -15,
+  operatingProfitYoYMin: 0,
 } as const;
 
-// 仮説ラベルの定義（表示用）
 export const HYPOTHESIS_LABEL_DESCRIPTIONS: Record<HypothesisLabel, string> = {
   "監視候補": "条件が一部揃っている。引き続き観察する段階。",
   "検証候補": "複数の条件が揃い、仮説を立てて追跡する段階。",

@@ -1,131 +1,58 @@
-// Pro委員会データ → alpha-pon-data.json アドオン
-// report-ui-data.ts から呼び出し、legendProCommittee 等を alpha-pon-data.json に追加する。
-// 買い推奨ではありません。調査・検証・反証・学習用。
+import { existsSync, readFileSync, writeFileSync } from "fs";
 
-import { existsSync, readFileSync } from "fs";
-import type { ProCommitteeReport, ProDecision } from "./pro-types.js";
+const UI_DATA_PATH = "apps/web/public/generated/alpha-pon-data.json";
 
-type BuffettQualityEntry = {
-  code: string;
-  name: string;
-  agentLabel: string;
-  stance: string;
-  points: string[];
-};
-
-type ValuationSnapshotEntry = {
-  code: string;
-  name: string;
-  agentLabel: string;
-  stance: string;
-  points: string[];
-};
-
-type IrEventEvidenceEntry = {
-  code: string;
-  name: string;
-  agentLabel: string;
-  stance: string;
-  points: string[];
-};
-
-export type ProUiDataAddon = {
-  legendProCommittee: {
-    generatedAt: string;
-    decisions: Array<{
-      code: string;
-      name: string;
-      finalLabel: string;
-      originalFinalLabel: string;
-      finalScore: number;
-      proScore: number;
-      consensus: string;
-      disagreements: ProDecision["disagreements"];
-      legendWarnings: string[];
-      nextActions: string[];
-      blockers: string[];
-      missingEvidence: string[];
-    }>;
-  } | null;
-  buffettQuality: BuffettQualityEntry[];
-  valuationSnapshots: ValuationSnapshotEntry[];
-  irEventEvidence: IrEventEvidenceEntry[];
-  stockProCommitteeJson: ProCommitteeReport | null;
-};
-
-function readProCommitteeJson(): ProCommitteeReport | null {
-  const path = "reports/stock_pro_committee_latest.json";
-  if (!existsSync(path)) return null;
+function readJson<T>(path: string, fallback: T): T {
+  if (!existsSync(path)) return fallback;
   try {
-    return JSON.parse(readFileSync(path, "utf-8")) as ProCommitteeReport;
+    return JSON.parse(readFileSync(path, "utf-8")) as T;
   } catch {
-    return null;
+    return fallback;
   }
 }
 
-/**
- * Pro委員会 JSON から UI 向けデータを生成する
- */
-export function buildProUiDataAddon(): ProUiDataAddon {
-  const report = readProCommitteeJson();
-
-  if (!report) {
-    return {
-      legendProCommittee: null,
-      buffettQuality: [],
-      valuationSnapshots: [],
-      irEventEvidence: [],
-      stockProCommitteeJson: null,
-    };
-  }
-
-  const { decisions, generatedAt } = report;
-
-  // legendProCommittee: consensus / disagreements を含む軽量版
+function main() {
+  const data = readJson<Record<string, unknown>>(UI_DATA_PATH, {});
+  const buffettQuality = readJson("data/buffett_quality_latest.json", { generatedAt: null, snapshots: [] });
+  const valuationSnapshots = readJson("data/valuation_snapshot_latest.json", { generatedAt: null, snapshots: [] });
+  const irEventEvidence = readJson("data/ir_event_evidence_latest.json", { generatedAt: null, events: [] });
+  const stockProCommitteeJson = readJson<{ generatedAt: string | null; decisions: Array<Record<string, unknown>> }>("reports/stock_pro_committee_latest.json", { generatedAt: null, decisions: [] });
   const legendProCommittee = {
-    generatedAt,
-    decisions: decisions.map(d => ({
-      code: d.code,
-      name: d.name,
-      finalLabel: d.finalLabel,
-      originalFinalLabel: d.originalFinalLabel,
-      finalScore: d.finalScore,
-      proScore: d.proScore,
-      consensus: d.consensus,
-      disagreements: d.disagreements,
-      legendWarnings: d.legendWarnings,
-      nextActions: d.nextActions,
-      blockers: d.blockers,
-      missingEvidence: d.missingEvidence,
+    generatedAt: stockProCommitteeJson.generatedAt,
+    decisions: stockProCommitteeJson.decisions.map(decision => ({
+      code: decision.code,
+      name: decision.name,
+      originalFinalLabel: decision.originalFinalLabel ?? null,
+      finalLabel: decision.finalLabel,
+      finalScore: decision.finalScore,
+      consensus: decision.consensus ?? null,
+      disagreements: decision.disagreements ?? [],
+      legendVerdicts: decision.legendVerdicts ?? [],
+      legendWarnings: decision.legendWarnings ?? [],
     })),
   };
 
-  // buffettQuality: buffett_quality_agent のみ抽出
-  const buffettQuality: BuffettQualityEntry[] = decisions.flatMap(d => {
-    const v = d.verdicts.find(v => v.agentId === "buffett_quality_agent");
-    if (!v) return [];
-    return [{ code: d.code, name: d.name, agentLabel: v.agentLabel, stance: v.stance, points: v.points }];
-  });
-
-  // valuationSnapshots: valuation_agent のみ抽出
-  const valuationSnapshots: ValuationSnapshotEntry[] = decisions.flatMap(d => {
-    const v = d.verdicts.find(v => v.agentId === "valuation_agent");
-    if (!v) return [];
-    return [{ code: d.code, name: d.name, agentLabel: v.agentLabel, stance: v.stance, points: v.points }];
-  });
-
-  // irEventEvidence: event_driven_agent のみ抽出
-  const irEventEvidence: IrEventEvidenceEntry[] = decisions.flatMap(d => {
-    const v = d.verdicts.find(v => v.agentId === "event_driven_agent");
-    if (!v) return [];
-    return [{ code: d.code, name: d.name, agentLabel: v.agentLabel, stance: v.stance, points: v.points }];
-  });
-
-  return {
-    legendProCommittee,
+  const merged = {
+    ...data,
     buffettQuality,
     valuationSnapshots,
     irEventEvidence,
-    stockProCommitteeJson: report,
+    stockProCommitteeJson,
+    legendProCommittee,
+    proDataMeta: {
+      source: "pro-ui-data-addon",
+      generatedAt: new Date().toISOString(),
+      missing: [
+        existsSync("data/buffett_quality_latest.json") ? null : "data/buffett_quality_latest.json",
+        existsSync("data/valuation_snapshot_latest.json") ? null : "data/valuation_snapshot_latest.json",
+        existsSync("data/ir_event_evidence_latest.json") ? null : "data/ir_event_evidence_latest.json",
+        existsSync("reports/stock_pro_committee_latest.json") ? null : "reports/stock_pro_committee_latest.json",
+      ].filter(Boolean),
+    },
   };
+
+  writeFileSync(UI_DATA_PATH, JSON.stringify(merged, null, 2), "utf-8");
+  console.log("merged stock pro data into apps/web/public/generated/alpha-pon-data.json");
 }
+
+main();
