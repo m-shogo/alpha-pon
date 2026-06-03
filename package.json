@@ -57,6 +57,7 @@
     "pro:quality": "node --import tsx/esm src/generate-buffett-quality.ts",
     "pro:valuation": "node --import tsx/esm src/generate-valuation-snapshot.ts",
     "pro:ir-events": "node --import tsx/esm src/generate-ir-event-evidence.ts",
+    "pro:legend": "node --import tsx/esm src/stock-pro-committee-report.ts",
     "pro:committee": "node --import tsx/esm src/stock-pro-committee-report.ts",
     "pro:all": "pnpm pro:quality && pnpm pro:valuation && pnpm pro:ir-events && pnpm pro:committee",
     "daily:full": "pnpm scan:world && pnpm sync:tdnet:dry && pnpm scan:edinet:annual && pnpm daily:core && pnpm scan:universe && pnpm generate:company-rules && pnpm pro:all && pnpm candidate:hypothesis && pnpm review:hypotheses && pnpm memory:companies && pnpm readiness:audit && pnpm ui:data",
@@ -69,13 +70,6 @@
     "generate:company-rules": "node --env-file=.env --import tsx/esm src/generate-company-rules.ts",
     "ui:scan:stocks": "pnpm scan:universe && pnpm generate:company-rules && pnpm pro:all && pnpm review:hypotheses && pnpm ui:data"
   },
-  "dependencies": {
-    "js-yaml": "^4.1.0"
-  },
-  "devDependencies": {
-    "@types/js-yaml": "^4.0.9",
-    "@types/node": "^22.0.0",
-    "tsx": "^4.19.0",
-    "typescript": "^5.7.0"
-  }
+  "dependencies": { "js-yaml": "^4.1.0" },
+  "devDependencies": { "@types/js-yaml": "^4.0.9", "@types/node": "^22.0.0", "tsx": "^4.19.0", "typescript": "^5.7.0" }
 }
