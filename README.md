@@ -1,13 +1,13 @@
 # alpha-pon
 
-長期投資向けの調査候補・買い場候補自動発見アプリ。
+長期投資向けの調査候補・監視候補を見つけ、仮説検証するアプリ。
 
 > 自動売買しない。株価予想しない。買い推奨しない。  
 > **調査候補を見逃さず、見落とし・上がらない理由・下がる理由を減らすためのツール。**
 
 ## 目的
 
-毎日株価や開示を見に行かなくても、条件を満たした銘柄だけ通知してくれる。  
+毎日株価や開示を見に行かなくても、条件を満たした銘柄を調査候補として記録・通知してくれる。  
 ただし、**買うかどうかは必ず自分で判断する。**
 
 alpha-pon は、単に「良さそうな銘柄」を出すのではなく、以下を重視する。
@@ -16,6 +16,7 @@ alpha-pon は、単に「良さそうな銘柄」を出すのではなく、以�
 - 良い会社と良い投資タイミングを分ける
 - 上がらない理由・下がる理由を先に考える
 - 複数の株Pro視点で相談する
+- 先生同士の意見の食い違いを平均点に潰さず、慎重意見を残す
 - 外れた理由を蓄積して、次の精度を上げる
 - 政治・戦争・AI・宇宙/Starlink・気候・食糧・金利などの変化でPro知識を更新する
 
@@ -81,6 +82,18 @@ pnpm check:all
 pnpm daily
 ```
 
+Pro委員会・UIデータだけ検証したい時:
+
+```bash
+pnpm verify:pro
+```
+
+`verify:pro` は以下をまとめて実行する。
+
+```text
+pro:all → ui:data → pro-disagreement test → generated data shape test
+```
+
 Pro運用の完全版（ユニバーススキャン・仮説・Next.js JSON 更新を含む）:
 
 ```bash
@@ -115,7 +128,7 @@ bash scripts/run-daily-complete-with-refresh.sh
 
 ## 大事な判断で必ずPro会議を通す
 
-以下の時は、必ず `reports/stock_pro_committee_latest.md` を見る。
+以下の時は、必ず `reports/stock_pro_committee_latest.md` と `reports/stock_pro_committee_latest.json` を見る。
 
 - 新規銘柄を追加するとき
 - 保留/証拠不足から調査候補へ上げるとき
@@ -130,6 +143,8 @@ bash scripts/run-daily-complete-with-refresh.sh
 - 足りない情報
 - 上がらない理由
 - 下がる理由
+- 先生同士の食い違い `consensus / disagreements`
+- 元ラベルと安全側に倒した後のラベル `originalFinalLabel / finalLabel`
 - 次に集める情報
 - 最終ラベル
 
@@ -154,7 +169,7 @@ bash scripts/run-daily-complete-with-refresh.sh
 
 **通知レベル**
 
-- 🚨 85点以上: 即通知
+- 🚨 85点以上: 優先通知
 - 📋 70〜84点: 朝まとめ
 - 📝 50〜69点: ログ保存のみ
 - ➖ 49点以下: 対象外
@@ -217,313 +232,3 @@ LINE_USER_ID=
 ```
 
 ## 使い方
-
-```bash
-# 毎朝実行（正式入口）
-bash scripts/run-daily-complete.sh
-
-# Pro知識ブラッシュアップ込み完全版
-bash scripts/run-daily-complete-with-refresh.sh
-
-# daily のみ（J-Quants不要の軽量版）
-pnpm daily
-
-# pnpm コマンドで完全版を手動実行したい場合
-pnpm daily:full
-
-# モックで動作確認（J-Quants 未設定の開発環境）
-pnpm daily:mock
-
-# 100%完成へ向けた残タスク監査
-pnpm readiness:audit
-
-# ユニバーススキャンのみモックで確認
-pnpm scan:universe:mock
-
-# バックテスト
-pnpm backtest
-
-# 型チェック
-pnpm typecheck
-
-# 軽量テスト
-node --import tsx/esm tests/score.test.ts
-node --import tsx/esm tests/validation.test.ts
-node --import tsx/esm tests/analysis.test.ts
-```
-
-> **入口の整理**: 毎朝の自動実行は `run-daily-complete.sh`（launchd から起動）が正式。
-> `daily:full` は、世界情勢スキャン、TDnet dry-run、有報スキャン、daily、ユニバーススキャン、会社ルール生成、仮説生成、outcomeレビュー、company memory、readiness、Web JSON生成までをまとめて呼ぶ手動版。
-> J-Quants が未設定の場合、`scan:universe` は local mock JSON を使います。画面では MOCK と明示され、実データとして扱いません。
-> J-Quants が未設定でも、`pnpm daily` は TDnet/EDINET の一次情報レビューだけは score JSON に残します。
-> `pnpm daily` / `pnpm daily:full` を価格・財務まで実データ運用にするには `.env` の `JQUANTS_API_KEY` が必要です。旧V1互換として `JQUANTS_EMAIL` / `JQUANTS_PASSWORD` も残しています。
-> J-Quants V2 Freeプランは遅延データのため、標準では `JQUANTS_V2_DATA_DELAY_DAYS=84` で取得終了日を丸めます。429が出る場合は `JQUANTS_V2_REQUEST_INTERVAL_MS` を大きくします。
-> 類推レビューはV2のレート制限を避けるため、標準では `ANALOGY_REVIEW_MAX_PER_RUN=12` 件ずつ処理します。
-> ユニバーススキャンもV2のレート制限を避けるため、標準では `UNIVERSE_SCAN_MAX_PER_RUN=8` 銘柄ずつ処理します。`UNIVERSE_SCAN_OFFSET` 未指定時は `data/run-cursors.json` の cursor が自動で進みます。
-> 類推レビューも `ANALOGY_REVIEW_OFFSET` 未指定時は `data/run-cursors.json` の cursor が自動で進みます。
-
-`reports/latest.md` にサマリーが出力される。  
-`reports/<コード>_<日付>.md` に個別レポートが出力される。  
-`reports/backtest_<日付>.md` にバックテスト結果が出力される。
-
-## 品質チェック
-
-GitHub Actions で以下を自動実行する。
-
-- `pnpm typecheck`
-- `tests/score.test.ts`
-- `tests/validation.test.ts`
-- `tests/analysis.test.ts`
-- Pro運用補助レポート群
-- Pro知識ブラッシュアップレポート
-- Pro会議レポート
-
-手元でまとめて確認する場合:
-
-```bash
-pnpm typecheck
-node --import tsx/esm tests/score.test.ts
-node --import tsx/esm tests/validation.test.ts
-node --import tsx/esm tests/analysis.test.ts
-```
-
-## 完成ロードマップの見方
-
-`pnpm readiness:audit` は、100%完成に近づけるための残タスクを自動監査します。
-
-出力:
-
-- `reports/readiness_latest.md`
-- `reports/readiness_latest.json`
-- `apps/web/public/generated/readiness.json`
-
-Web UI では `/roadmap` で確認できます。
-
-主な監査項目:
-
-- J-Quants 実データ運用
-- 毎朝 pipeline 監視
-- 仮説 outcome の厚み
-- 一次情報・危険開示連携
-- company memory
-- portfolio mode / README
-
-現時点で 100% に近づける最大の残タスクは、J-Quants 資格情報を設定して `pnpm daily:full` を実データで継続実行し、mock / missing / stale を消すことです。
-
-## 最新テーマの固定監視
-
-`config/pinned-world-events.yml` に、必ず拾いたいニュースURLを固定できます。`pnpm scan:world` は通常のRSSに加えて、この固定記事も世界イベントとして分類します。
-
-2026-06-03 時点では、FNN の Anthropic IPO申請・SpaceX上場予定・OpenAI上場準備報道を、AI大型IPOレースとして固定監視しています。これは買い推奨ではなく、キオクシアホールディングス(285A)など日本株への波及仮説を作るための材料です。
-
-見るポイント:
-
-- AI IPOが実需拡大なのか、既存投資家の出口流動性イベントなのか
-- AIストレージ需要がNAND/SSD/eSSDに届くか
-- GPU/HBM/電力/光通信の方が先に選ばれるリスク
-- S-1、公式発表、設備投資、compute契約、IPO後需給
-
-## バックアップと復元
-
-DB と主要データは `pnpm backup` で `backups/YYYY-MM-DDTHH-mm-ss/` に保存します。毎朝 pipeline 用の `scripts/backup-data.sh` は `backups/YYYY-MM-DD/data.tar.gz` に JSON / JSONL / `run-cursors.json` を保存します。
-
-復元前に daily pipeline を止め、現在の `data/` を退避してから必要なファイルだけ戻します。
-
-```bash
-# DBバックアップから復元する例
-cp backups/<timestamp>/data__hypothesis_outcomes.db data/hypothesis_outcomes.db
-cp backups/<timestamp>/data__alpha-pon-jobs.db data/alpha-pon-jobs.db
-cp backups/<timestamp>/data__hypothesis_predictions.jsonl data/hypothesis_predictions.jsonl
-cp backups/<timestamp>/data__hypothesis_outcomes.jsonl data/hypothesis_outcomes.jsonl
-cp backups/<timestamp>/data__hypothesis_accuracy_summary.json data/hypothesis_accuracy_summary.json
-cp backups/<timestamp>/data__run-cursors.json data/run-cursors.json
-
-# 日次tarから復元する例
-tar -xzf backups/<date>/data.tar.gz -C .
-
-# 復元後の確認
-pnpm health
-pnpm readiness:audit
-pnpm ui:data
-```
-
-復元後は `/roadmap` と `/reports` の run cursor、`/outcomes` の件数・TOPIX比・score帯別成績が期待通りに戻っているか確認します。
-
-## 安全運用ルール
-
-- J-Quants 未設定時の universe scan は mock と明示し、実データのように見せない。
-- `--mock` または `USE_MOCK=true` のときは開発・検証用のモックデータを使う。
-- `dataQuality` が `ok` ではない候補は、即通知/朝まとめからログ扱いへ落とす。
-- 欠損した財務データは `0` として加点しない。
-- 日付は `Asia/Tokyo` 基準で処理する。
-- `earnings_drop` は決算開示日の前後営業日ベースで判定する。
-- TOPIX比・流動性・ボラティリティ・財務品質を確認してから調査判断する。
-- 総会・決算・配当・資本政策を見ずに個別銘柄を強く判断しない。
-- Pro会議で証拠不足が出た銘柄は、ラベルを上げない。
-- ホーム画面の Pipeline / Mock / Missing 警告が出ている日は、調査候補を増やすよりデータ確認を優先する。
-- 個別銘柄ページでは、一次情報・危険開示・company memory の弱いルールを確認してから仮説を更新する。
-
-## 銘柄の登録
-
-`config/watchlist.yml` を編集する。
-
-```yaml
-symbols:
-  - code: "9999"
-    name: "銘柄名"
-    market: "TSE"
-    status: "research"   # candidate / research / watch / active / ignore / expired
-    priority: "A"        # S / A / B / C
-    tags:
-      - semiconductor
-    rules:
-      - ipo_selling_pressure_done
-      - healthy_pullback
-    listedAt: "2026-01-15" # IPO銘柄の場合は上場日を入れる
-```
-
-`watchlist.yml` は `pnpm daily` 実行時に検証される。  
-重複コード、空の `rules` / `tags`、不正な `listedAt` 形式はエラーになる。
-
-### 銘柄仮説・社会情勢・Pro考察の登録
-
-銘柄を深く考察する場合は、watchlist だけでなく以下も確認する。
-
-- `config/company-hypotheses.yml`
-- `config/company-network.yml`
-- `config/company-ir-events.yml`
-- `config/company-onboarding-policy.yml`
-- `config/stock-pro-quality-gate.yml`
-- `config/stock-pro-consultation-policy.yml`
-- `config/pro-knowledge-refresh.yml`
-
-サンプル登録プレビュー:
-
-```bash
-pnpm register:company:preview
-```
-
-サンリオサンプルを登録ログへ書き込み:
-
-```bash
-pnpm register:company:sanrio
-```
-
-## データ取得
-
-| データ | 取得元 | 状態 |
-|-------|--------|------|
-| 株価・出来高 | J-Quants Free | 実装済み |
-| 財務情報 | J-Quants Free | 実装済み |
-| 市場文脈 | J-Quants日足から計算 | 実装済み |
-| 財務品質 | J-Quants財務から計算 | 実装済み |
-| 有価証券報告書 | EDINET | 実装済み |
-| IPO情報 | JPX新規上場ページ | 実装済み |
-| 開示情報 | JPX適時開示ページ / EDINET | 実装済み |
-| Pro知識更新キュー | config/pro-knowledge-refresh.yml | 実装済み |
-| Pro会議レポート | config/stock-pro-agents.yml + 各種DB | 実装済み |
-
-## ディレクトリ構成
-
-```
-alpha-pon/
-├── config/
-│   ├── watchlist.yml                   # 監視銘柄
-│   ├── rules.yml                       # スコアリング設定
-│   ├── themes.yml                      # テーマ定義
-│   ├── company-hypotheses.yml          # 銘柄仮説
-│   ├── company-network.yml             # 競合・関連会社・better peer risk
-│   ├── company-ir-events.yml           # 総会・決算・配当・資本政策
-│   ├── stock-pro-agents.yml            # Proエージェント定義
-│   ├── stock-pro-quality-gate.yml      # Pro品質ゲート
-│   └── pro-knowledge-refresh.yml       # Pro知識ブラッシュアップ
-├── data/                               # 取得データ（gitignore）
-├── docs/
-│   └── operation-playbook.md           # 運用プレイブック
-├── reports/                            # 生成レポート（gitignore）
-├── tests/                              # 軽量テスト
-└── src/
-    ├── analysis/                       # 市場文脈・財務品質分析
-    ├── daily.ts                        # メインスクリプト
-    ├── score/                          # スコアリング関数
-    ├── report.ts                       # Markdown生成
-    ├── validation.ts                   # watchlist検証
-    ├── date.ts                         # JST日付ヘルパー
-    ├── config.ts                       # 設定読み込み
-    └── types.ts                        # 型定義
-```
-
-## J-Quants セットアップ（実データ有効化）
-
-J-Quants Free プランを使うと、`scan:universe` で 30 銘柄の実株価・財務データをスクリーニングできます。
-
-1. [J-Quants](https://www.jpx.co.jp/markets/paid-info-equities/jquants/index.html) に登録（無料プランあり）
-2. `.env` に API キーを設定:
-   ```
-   JQUANTS_API_KEY=your_api_key
-   JQUANTS_V2_DATA_DELAY_DAYS=84
-   JQUANTS_V2_REQUEST_INTERVAL_MS=3000
-   JQUANTS_V2_RETRY_ATTEMPTS=5
-   ANALOGY_REVIEW_MAX_PER_RUN=12
-   UNIVERSE_SCAN_MAX_PER_RUN=8
-   ```
-3. 動作確認:
-   ```bash
-   pnpm scan:universe          # 実データでスクリーニング
-   pnpm generate:company-rules # ルール生成
-   pnpm ui:data                # Web JSON 更新
-   ```
-
-> J-Quants 未設定の場合は `pnpm scan:universe:mock` でモックデータ確認可。
-
-## Vercel デプロイ
-
-### 初回設定
-
-1. [vercel.com](https://vercel.com) で alpha-pon リポジトリをインポート
-2. **Root Directory**: リポジトリルート（`/`）のまま
-3. **Build Command**: `pnpm web:build`（vercel.json で自動設定済み）
-4. **Output Directory**: `apps/web/.next`（vercel.json で自動設定済み）
-5. **環境変数** を Vercel ダッシュボードで設定:
-   | 変数名 | 用途 | 必須 |
-   |---|---|---|
-   | `APP_MODE` | `portfolio`（公開用）または `private` | 推奨 |
-   | `JQUANTS_API_KEY` | J-Quants V2 認証 | 実データ時のみ |
-   | `JQUANTS_V2_DATA_DELAY_DAYS` | V2 Freeプラン遅延データの取得終了日丸め | 推奨 |
-   | `JQUANTS_V2_REQUEST_INTERVAL_MS` | V2 APIリクエスト間隔 | 推奨 |
-   | `JQUANTS_V2_RETRY_ATTEMPTS` | 429時の再試行回数 | 推奨 |
-   | `ANALOGY_REVIEW_MAX_PER_RUN` | 類推レビューの1回あたり上限 | 推奨 |
-   | `UNIVERSE_SCAN_MAX_PER_RUN` | ユニバーススキャンの1回あたり上限 | 推奨 |
-   | `ANALOGY_REVIEW_OFFSET` | 類推レビュー開始位置。未指定ならcursor自動管理 | 任意 |
-   | `UNIVERSE_SCAN_OFFSET` | ユニバーススキャン開始位置。未指定ならcursor自動管理 | 任意 |
-   | `JQUANTS_EMAIL` | J-Quants V1 互換認証 | 任意 |
-   | `JQUANTS_PASSWORD` | J-Quants V1 互換認証 | 任意 |
-   | `LINE_CHANNEL_TOKEN` | LINE 通知 | 任意 |
-   | `LINE_USER_ID` | LINE 通知 | 任意 |
-
-### 本番 JSON 更新方針
-
-Vercel はビルド時に `apps/web/public/generated/*.json` を静的ファイルとして配信します。  
-データを最新にするには以下のいずれかを選択してください。
-
-**方針 A: commit & push で更新（現状の推奨）**
-```bash
-pnpm ui:scan:stocks    # scan + rules生成 + ui:data
-git add apps/web/public/generated/
-git commit -m "chore: update generated data"
-git push               # Vercel が自動再デプロイ
-```
-
-**方針 B: Vercel Build Hook（毎朝自動）**
-1. Vercel ダッシュボードで Build Hook URL を発行
-2. `launchd` の daily スクリプト末尾に `curl -X POST <hook_url>` を追加
-3. `run-daily-complete.sh` 完了後に Vercel が再ビルド・再デプロイ
-
-**方針 C: 将来 API 化（DB/外部API）**
-- `apps/web/lib/generated-data.ts` の `loadGeneratedData()` を DB/API に差し替え
-- `apps/web/app/api/generated/` の Route Handler を本番 API に接続
-
-## 注意
-
-**このツールは買い推奨ツールではありません。**  
-投資判断は必ず自己責任で行ってください。
