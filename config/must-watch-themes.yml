@@ -1,0 +1,55 @@
+# alpha-pon 必須監視テーマDB
+# ユーザーに言われてから追加するのではなく、世界情勢・先見テーマとして抜けていたら監査で警告する。
+# 買い推奨ではなく、調査テーマ・監視テーマ・反証質問を管理するための設定。
+
+mustWatchThemes:
+  ai_mega_ipo_private_giants:
+    label: "AI大型IPO・非上場巨人"
+    whyRequired: "AIインフラ資金循環、非上場巨大企業の上場観測、関連日本株への波及を見落とすと、世界情勢・先見テーマの監視として弱くなるため。"
+    requiredEntities:
+      - "SpaceX"
+      - "Starlink"
+      - "OpenAI"
+      - "Anthropic"
+      - "xAI"
+      - "Databricks"
+      - "CoreWeave"
+    requiredJapanLinks:
+      - code: "285A"
+        name: "キオクシアホールディングス"
+        reason: "AIデータ蓄積・推論サーバー・SSD/eSSD需要がNANDに届くか確認する。"
+      - code: "8035"
+        name: "東京エレクトロン"
+        reason: "AIインフラ投資が半導体装置受注に接続するか確認する。"
+      - code: "6857"
+        name: "アドバンテスト"
+        reason: "AI半導体検査需要と期待過熱の両方を見る。"
+      - code: "5803"
+        name: "フジクラ"
+        reason: "AIデータセンター向け光ファイバー/配線需要の実需確認。"
+      - code: "7011"
+        name: "三菱重工"
+        reason: "宇宙・防衛・衛星テーマの日本側比較対象。"
+      - code: "9348"
+        name: "ispace"
+        reason: "宇宙テーマの個人熱狂・赤字・資金調達リスクを観察する対象。"
+    requiredQuestions:
+      - "これは実需拡大か、既存株主の出口イベントか"
+      - "AI需要はNAND/SSDに届くか、GPU/HBMだけか"
+      - "日本株側は織り込み済みか"
+      - "上場前/上場週/初回決算/ロックアップ解除のどのフェーズか"
+      - "関連銘柄の上昇は業績接続かテーマ先行か"
+      - "本命企業が高すぎる場合、周辺受益の方が合理的か"
+    evidenceFiles:
+      - "config/company-hypotheses.yml"
+      - "config/ipo-theme-watch-rules.yml"
+      - "config/pinned-world-events.yml"
+      - "README.md"
+      - "docs/local-verification-checklist.md"
+    safetyRules:
+      - "必須監視テーマに入っていても買い指示ではない"
+      - "requiredEntities が抜けていたら監査で warning"
+      - "requiredJapanLinks が抜けていたら監査で warning"
+      - "requiredQuestions が抜けていたら監査で warning"
+      - "報道だけで調査候補を上げない"
+      - "フェーズ・需給・一次情報・TOPIX比をセットで見る"
