@@ -4,7 +4,7 @@
   "summary": {
     "strategic": "- Pro知識ブラッシュアップでS優先の更新領域があります。政治・戦争・AI・宇宙/Starlink・金利などの前提が古くないか確認してください。 - Pro品質/Pro会議で証拠不足があります。IR・決算・総会・財務・バリュエーション・競合を補完するまで強い判断を避けてください。 - stock pro summary に安全側警告があります。今日は調査候補を増やすより、追わない/保留理由の確認を優先してください。 - current…",
     "pipeline": "- report confidence: normal - sourcehealthlatest.md: ok - pipelinestatuslatest.json: ok - source health history rows: 8",
-    "committee": "alpha-pon stock pro committee report date: 2026-06-03 複数の株Pro視点で同じ銘柄を見て、合意点・対立点・不足情報・次アクションを出します。買い推奨ではありません。 AIデータセンター・電力制約 (aidatacenterpower) 5803 フジクラ - committee decision: 証拠不足 - disagreement: あり - agent views: - テーマ・関連会社ネットワークエージェント: 保留 - better peer ris…",
+    "committee": "alpha-pon stock pro committee report date: 2026-06-03 複数の株Pro視点で同じ銘柄を見て、合意点・対立点・不足情報・次アクションを出します。買い推奨ではありません。 AIデータセンター・電力制約 (aidatacenterpower) 5803 フジクラ - committee decision: 保留 - originalFinalLabel: 保留 - consensus: mostlyagree - proScore: 0.46 - legend warn…",
     "roadmap": [
       "S: 初回銘柄調査の不足を潰す",
       "- 公式IRページ、決算日、株主総会/招集通知/議案、配当/資本政策を最優先で埋める",
@@ -59,11 +59,12 @@
       "available": true,
       "excerpt": [
         "- 委員会decisionは買い推奨ではない",
-        "- 1人でも証拠不足が強い場合、原則ラベルを上げない",
-        "- agent viewsが割れた銘柄は、意見対立そのものを価値ある情報として残す",
-        "- 調査候補より、保留/証拠不足の理由の質を上げる"
+        "- 1人でも\"避ける\"が出たら finalLabel を\"避ける\"に倒す",
+        "- 証拠不足は\"避ける\"扱いにしない。情報が足りないだけ",
+        "- disagreements があれば finalScore だけで判断しない",
+        "- mixed/conflict の時は consensus の内訳を先に確認する"
       ],
-      "fullContent": "# alpha-pon stock pro committee report\n\ndate: 2026-06-03\n\n複数の株Pro視点で同じ銘柄を見て、合意点・対立点・不足情報・次アクションを出します。買い推奨ではありません。\n\n## AIデータセンター・電力制約 (ai_datacenter_power)\n\n### 5803 フジクラ\n- committee decision: **証拠不足**\n- disagreement: あり\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: 同じ電線テーマでも、住友電工/古河電工/SWCCの方が選ばれる可能性\n    - better peer risk: 既に急騰済みなら関連銘柄へ資金が移る可能性\n    - peer: 5801 古河電工 / 光ファイバー/電線\n    - peer: 5802 住友電工 / 電線/光通信/電力インフラ\n  - バフェット型・品質/競争優位エージェント: 保留\n    - 財務品質確認対象あり\n  - 成長株エージェント: 証拠不足\n    - 売上/利益成長の確認が不足\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 期待が先行し、すでに織り込み済みなら上がりにくい。\n    - 下がる理由: 受注鈍化、利益率悪化、短期過熱で調整。\n    - 外れ理由候補: already_priced_in\n    - 外れ理由候補: profit_not_connected\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n\n### 5802 住友電工\n- committee decision: **証拠不足**\n- disagreement: あり\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: テーマ寄与が分散し、よりピュアな銘柄が選ばれる可能性\n    - peer: 5803 フジクラ / 光通信/データセンター\n    - peer: 5801 古河電工 / 電線/光ファイバー\n    - peer: 5805 SWCC / 電力ケーブル\n  - バフェット型・品質/競争優位エージェント: 保留\n    - 財務品質確認対象あり\n  - 成長株エージェント: 証拠不足\n    - 売上/利益成長の確認が不足\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 事業が大きく分散しており、テーマ寄与が薄く見える可能性。\n    - 下がる理由: 素材コスト、景気敏感、利益率悪化。\n    - 外れ理由候補: profit_not_connected\n    - 外れ理由候補: better_peer_exists\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n\n## 半導体・メモリ・装置 (semiconductor_memory)\n\n### 285A キオクシアホールディングス\n- committee decision: **証拠不足**\n- disagreement: あり\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: メモリメーカーより装置・検査銘柄の方が先に買われる可能性\n    - better peer risk: AI IPOテーマではGPU/HBM/電力/光通信銘柄が先に選ばれる可能性\n    - better peer risk: IPO後需給が重く、テーマが正しくても上がらない可能性\n    - peer: 8035 東京エレクトロン / 半導体装置\n  - バフェット型・品質/競争優位エージェント: 証拠不足\n    - ROIC/FCF/利益率の確認が不足\n  - 成長株エージェント: 証拠不足\n    - 売上/利益成長の確認が不足\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: AI IPOテーマは強くても、NAND市況回復が遅い、AI需要がHBM/GPU側に偏る、IPO後の売り圧、競合の方が評価される場合は動きにくい。\n    - 下がる理由: NAND価格下落、設備投資負担、需給悪化、ロックアップ/売り圧、AI IPOの過熱剥落。\n    - 外れ理由候補: theme_right_timing_wrong\n    - 外れ理由候補: theme_right_company_wrong\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n\n### 8035 東京エレクトロン\n- committee decision: **証拠不足**\n- disagreement: あり\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: 装置内でも検査・後工程の方が相場で選ばれる局面がある\n    - better peer risk: 大型株で織り込みが早い\n    - peer: 6857 アドバンテスト / 半導体テスター\n    - peer: 6146 ディスコ / 半導体製造装置\n  - バフェット型・品質/競争優位エージェント: 証拠不足\n    - ROIC/FCF/利益率の確認が不足\n  - 成長株エージェント: 保留\n    - 成長ドライバー確認対象あり\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 大型株で織り込みが早く、短期材料では動きにくい。\n    - 下がる理由: 設備投資サイクル悪化、米中規制、過熱。\n    - 外れ理由候補: already_priced_in\n    - 外れ理由候補: macro_headwind\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n\n## グローバルIP・キャラクター (global_ip_character)\n\n### 8136 サンリオ\n- committee decision: **証拠不足**\n- disagreement: あり\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: 大型IP銘柄の方が資金流入しやすい可能性\n    - better peer risk: テーマは正しいが、任天堂/バンナムなど別IP銘柄の方が選ばれる可能性\n    - peer: 7974 任天堂 / 日本発IP・海外展開\n    - peer: 7832 バンダイナムコHD / キャラクター/ゲーム/玩具IP\n  - バフェット型・品質/競争優位エージェント: 保留\n    - 財務品質確認対象あり\n  - 成長株エージェント: 保留\n    - 成長ドライバー確認対象あり\n  - イベント・開示エージェント: 証拠不足\n    - 定時株主総会: date=要確認 source=official_page_known_detail_check_required\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 良い会社だが市場期待が高く、決算でサプライズがないと上がりにくい。\n    - 下がる理由: 海外成長鈍化、人気ピークアウト、バリュエーション調整。\n    - 外れ理由候補: already_priced_in\n    - 外れ理由候補: profit_not_connected\n  - リスク管理エージェント: 注意\n    - 追加確認なし\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n\n### 7974 任天堂\n- committee decision: **証拠不足**\n- disagreement: あり\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: ハードサイクル待ちで、短期では他IP銘柄が選ばれる可能性\n    - peer: 7832 バンダイナムコHD / ゲーム/IP\n    - peer: 9766 コナミG / ゲーム/IP\n    - peer: 8136 サンリオ / キャラクターIP\n  - バフェット型・品質/競争優位エージェント: 証拠不足\n    - ROIC/FCF/利益率の確認が不足\n  - 成長株エージェント: 証拠不足\n    - 売上/利益成長の確認が不足\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 大型株で期待が織り込まれやすく、材料出尽くしになりやすい。\n    - 下がる理由: ハード移行期の販売鈍化、期待未達、為替逆風。\n    - 外れ理由候補: already_priced_in\n    - 外れ理由候補: theme_right_timing_wrong\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n\n## 防衛・宇宙・安全保障 (defense_space)\n\n### 7011 三菱重工\n- committee decision: **証拠不足**\n- disagreement: あり\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: 防衛テーマが大型株で織り込み済みの場合、周辺IT/電子/部品へ資金が移る可能性\n    - peer: 7012 川崎重工 / 防衛/重工\n    - peer: 7013 IHI / 航空/宇宙/防衛\n    - peer: 6701 NEC / 防衛IT/通信/宇宙\n  - バフェット型・品質/競争優位エージェント: 保留\n    - 財務品質確認対象あり\n  - 成長株エージェント: 証拠不足\n    - 売上/利益成長の確認が不足\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 大型株で既に防衛テーマが織り込まれている可能性。\n    - 下がる理由: 採算悪化、受注の利益化遅れ、過熱調整。\n    - 外れ理由候補: already_priced_in\n    - 外れ理由候補: profit_not_connected\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n\n### 9348 ispace\n- committee decision: **証拠不足**\n- disagreement: あり\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: 宇宙テーマは正しくても、収益化が遠く大型防衛/通信株の方が選ばれる可能性\n    - better peer risk: 資金調達・希薄化でテーマが相殺される可能性\n    - peer: 7011 三菱重工 / 宇宙/ロケット/防衛大型株\n    - peer: 7013 IHI / 宇宙/航空\n  - バフェット型・品質/競争優位エージェント: 証拠不足\n    - ROIC/FCF/利益率の確認が不足\n  - 成長株エージェント: 保留\n    - 成長ドライバー確認対象あり\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 収益化が遠く、テーマは正しくても利益に届きにくい。\n    - 下がる理由: 赤字継続、資金調達リスク、ミッション失敗リスク。\n    - 外れ理由候補: profit_not_connected\n    - 外れ理由候補: bad_financial_quality\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n\n## 金利・金融 (rate_financials)\n\n### 8306 三菱UFJ FG\n- committee decision: **証拠不足**\n- disagreement: あり\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 証拠不足\n    - company-network未登録。テーマの本命/周辺/競合が未確認\n  - バフェット型・品質/競争優位エージェント: 証拠不足\n    - ROIC/FCF/利益率の確認が不足\n  - 成長株エージェント: 証拠不足\n    - 売上/利益成長の確認が不足\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 大型株で金利テーマが織り込み済み。\n    - 下がる理由: 景気悪化、信用コスト増、海外金利低下。\n    - 外れ理由候補: already_priced_in\n    - 外れ理由候補: macro_headwind\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n    - network未確認では単独銘柄に寄せない\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n\n## rule\n- 委員会decisionは買い推奨ではない\n- 1人でも証拠不足が強い場合、原則ラベルを上げない\n- agent viewsが割れた銘柄は、意見対立そのものを価値ある情報として残す\n- 調査候補より、保留/証拠不足の理由の質を上げる"
+      "fullContent": "# alpha-pon stock pro committee report\n\ndate: 2026-06-03\n\n複数の株Pro視点で同じ銘柄を見て、合意点・対立点・不足情報・次アクションを出します。買い推奨ではありません。\n\n## AIデータセンター・電力制約 (ai_datacenter_power)\n\n### 5803 フジクラ\n- committee decision: **保留**\n- originalFinalLabel: 保留\n- consensus: mostly_agree\n- proScore: 0.46\n- legend warnings:\n  - [バリュエーション・過熱エージェント] バリュエーション確認が不足\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: 同じ電線テーマでも、住友電工/古河電工/SWCCの方が選ばれる可能性\n    - better peer risk: 既に急騰済みなら関連銘柄へ資金が移る可能性\n    - peer: 5801 古河電工 / 光ファイバー/電線\n    - peer: 5802 住友電工 / 電線/光通信/電力インフラ\n  - バフェット型・品質/競争優位エージェント: 保留\n    - 財務品質確認対象あり\n  - 成長株エージェント: 証拠不足\n    - 売上/利益成長の確認が不足\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 期待が先行し、すでに織り込み済みなら上がりにくい。\n    - 下がる理由: 受注鈍化、利益率悪化、短期過熱で調整。\n    - 外れ理由候補: already_priced_in\n    - 外れ理由候補: profit_not_connected\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n- next actions:\n  - 上がらない理由と下がる理由を補強\n  - better peer risk とバリュエーション過熱を確認\n  - 証拠不足フィールドを埋めてから委員会を再実行する\n- missingEvidence:\n  - [成長株エージェント] 売上/利益成長の確認が不足\n  - [イベント・開示エージェント] 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - [バリュエーション・過熱エージェント] バリュエーション確認が不足\n\n### 5802 住友電工\n- committee decision: **保留**\n- originalFinalLabel: 保留\n- consensus: mostly_agree\n- proScore: 0.46\n- legend warnings:\n  - [バリュエーション・過熱エージェント] バリュエーション確認が不足\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: テーマ寄与が分散し、よりピュアな銘柄が選ばれる可能性\n    - peer: 5803 フジクラ / 光通信/データセンター\n    - peer: 5801 古河電工 / 電線/光ファイバー\n    - peer: 5805 SWCC / 電力ケーブル\n  - バフェット型・品質/競争優位エージェント: 保留\n    - 財務品質確認対象あり\n  - 成長株エージェント: 証拠不足\n    - 売上/利益成長の確認が不足\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 事業が大きく分散しており、テーマ寄与が薄く見える可能性。\n    - 下がる理由: 素材コスト、景気敏感、利益率悪化。\n    - 外れ理由候補: profit_not_connected\n    - 外れ理由候補: better_peer_exists\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n- next actions:\n  - 上がらない理由と下がる理由を補強\n  - better peer risk とバリュエーション過熱を確認\n  - 証拠不足フィールドを埋めてから委員会を再実行する\n- missingEvidence:\n  - [成長株エージェント] 売上/利益成長の確認が不足\n  - [イベント・開示エージェント] 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - [バリュエーション・過熱エージェント] バリュエーション確認が不足\n\n## 半導体・メモリ・装置 (semiconductor_memory)\n\n### 285A キオクシアホールディングス\n- committee decision: **証拠不足**\n- originalFinalLabel: 証拠不足\n- consensus: mostly_agree\n- proScore: 0.44\n- legend warnings:\n  - [バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足\n  - [バリュエーション・過熱エージェント] バリュエーション確認が不足\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: メモリメーカーより装置・検査銘柄の方が先に買われる可能性\n    - better peer risk: AI IPOテーマではGPU/HBM/電力/光通信銘柄が先に選ばれる可能性\n    - better peer risk: IPO後需給が重く、テーマが正しくても上がらない可能性\n    - peer: 8035 東京エレクトロン / 半導体装置\n  - バフェット型・品質/競争優位エージェント: 証拠不足\n    - ROIC/FCF/利益率の確認が不足\n  - 成長株エージェント: 証拠不足\n    - 売上/利益成長の確認が不足\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: AI IPOテーマは強くても、NAND市況回復が遅い、AI需要がHBM/GPU側に偏る、IPO後の売り圧、競合の方が評価される場合は動きにくい。\n    - 下がる理由: NAND価格下落、設備投資負担、需給悪化、ロックアップ/売り圧、AI IPOの過熱剥落。\n    - 外れ理由候補: theme_right_timing_wrong\n    - 外れ理由候補: theme_right_company_wrong\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n  - 証拠不足フィールドを埋めてから委員会を再実行する\n- missingEvidence:\n  - [バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足\n  - [成長株エージェント] 売上/利益成長の確認が不足\n  - [イベント・開示エージェント] 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - [バリュエーション・過熱エージェント] バリュエーション確認が不足\n\n### 8035 東京エレクトロン\n- committee decision: **保留**\n- originalFinalLabel: 保留\n- consensus: mostly_agree\n- proScore: 0.46\n- legend warnings:\n  - [バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足\n  - [バリュエーション・過熱エージェント] バリュエーション確認が不足\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: 装置内でも検査・後工程の方が相場で選ばれる局面がある\n    - better peer risk: 大型株で織り込みが早い\n    - peer: 6857 アドバンテスト / 半導体テスター\n    - peer: 6146 ディスコ / 半導体製造装置\n  - バフェット型・品質/競争優位エージェント: 証拠不足\n    - ROIC/FCF/利益率の確認が不足\n  - 成長株エージェント: 保留\n    - 成長ドライバー確認対象あり\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 大型株で織り込みが早く、短期材料では動きにくい。\n    - 下がる理由: 設備投資サイクル悪化、米中規制、過熱。\n    - 外れ理由候補: already_priced_in\n    - 外れ理由候補: macro_headwind\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n- next actions:\n  - 上がらない理由と下がる理由を補強\n  - better peer risk とバリュエーション過熱を確認\n  - 証拠不足フィールドを埋めてから委員会を再実行する\n- missingEvidence:\n  - [バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足\n  - [イベント・開示エージェント] 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - [バリュエーション・過熱エージェント] バリュエーション確認が不足\n\n## グローバルIP・キャラクター (global_ip_character)\n\n### 8136 サンリオ\n- committee decision: **保留**\n- originalFinalLabel: 保留\n- consensus: mixed\n- proScore: 0.45\n- legend warnings:\n  - [バリュエーション・過熱エージェント] バリュエーション確認が不足\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: 大型IP銘柄の方が資金流入しやすい可能性\n    - better peer risk: テーマは正しいが、任天堂/バンナムなど別IP銘柄の方が選ばれる可能性\n    - peer: 7974 任天堂 / 日本発IP・海外展開\n    - peer: 7832 バンダイナムコHD / キャラクター/ゲーム/玩具IP\n  - バフェット型・品質/競争優位エージェント: 保留\n    - 財務品質確認対象あり\n  - 成長株エージェント: 保留\n    - 成長ドライバー確認対象あり\n  - イベント・開示エージェント: 証拠不足\n    - 定時株主総会: date=要確認 source=official_page_known_detail_check_required\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 良い会社だが市場期待が高く、決算でサプライズがないと上がりにくい。\n    - 下がる理由: 海外成長鈍化、人気ピークアウト、バリュエーション調整。\n    - 外れ理由候補: already_priced_in\n    - 外れ理由候補: profit_not_connected\n  - リスク管理エージェント: 注意\n    - 追加確認なし\n- next actions:\n  - 上がらない理由と下がる理由を補強\n  - better peer risk とバリュエーション過熱を確認\n  - 証拠不足フィールドを埋めてから委員会を再実行する\n- missingEvidence:\n  - [イベント・開示エージェント] 定時株主総会: date=要確認 source=official_page_known_detail_check_required\n  - [バリュエーション・過熱エージェント] バリュエーション確認が不足\n\n### 7974 任天堂\n- committee decision: **証拠不足**\n- originalFinalLabel: 証拠不足\n- consensus: mostly_agree\n- proScore: 0.44\n- legend warnings:\n  - [バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足\n  - [バリュエーション・過熱エージェント] バリュエーション確認が不足\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: ハードサイクル待ちで、短期では他IP銘柄が選ばれる可能性\n    - peer: 7832 バンダイナムコHD / ゲーム/IP\n    - peer: 9766 コナミG / ゲーム/IP\n    - peer: 8136 サンリオ / キャラクターIP\n  - バフェット型・品質/競争優位エージェント: 証拠不足\n    - ROIC/FCF/利益率の確認が不足\n  - 成長株エージェント: 証拠不足\n    - 売上/利益成長の確認が不足\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 大型株で期待が織り込まれやすく、材料出尽くしになりやすい。\n    - 下がる理由: ハード移行期の販売鈍化、期待未達、為替逆風。\n    - 外れ理由候補: already_priced_in\n    - 外れ理由候補: theme_right_timing_wrong\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n  - 証拠不足フィールドを埋めてから委員会を再実行する\n- missingEvidence:\n  - [バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足\n  - [成長株エージェント] 売上/利益成長の確認が不足\n  - [イベント・開示エージェント] 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - [バリュエーション・過熱エージェント] バリュエーション確認が不足\n\n## 防衛・宇宙・安全保障 (defense_space)\n\n### 7011 三菱重工\n- committee decision: **保留**\n- originalFinalLabel: 保留\n- consensus: mostly_agree\n- proScore: 0.46\n- legend warnings:\n  - [バリュエーション・過熱エージェント] バリュエーション確認が不足\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: 防衛テーマが大型株で織り込み済みの場合、周辺IT/電子/部品へ資金が移る可能性\n    - peer: 7012 川崎重工 / 防衛/重工\n    - peer: 7013 IHI / 航空/宇宙/防衛\n    - peer: 6701 NEC / 防衛IT/通信/宇宙\n  - バフェット型・品質/競争優位エージェント: 保留\n    - 財務品質確認対象あり\n  - 成長株エージェント: 証拠不足\n    - 売上/利益成長の確認が不足\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 大型株で既に防衛テーマが織り込まれている可能性。\n    - 下がる理由: 採算悪化、受注の利益化遅れ、過熱調整。\n    - 外れ理由候補: already_priced_in\n    - 外れ理由候補: profit_not_connected\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n- next actions:\n  - 上がらない理由と下がる理由を補強\n  - better peer risk とバリュエーション過熱を確認\n  - 証拠不足フィールドを埋めてから委員会を再実行する\n- missingEvidence:\n  - [成長株エージェント] 売上/利益成長の確認が不足\n  - [イベント・開示エージェント] 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - [バリュエーション・過熱エージェント] バリュエーション確認が不足\n\n### 9348 ispace\n- committee decision: **保留**\n- originalFinalLabel: 保留\n- consensus: mostly_agree\n- proScore: 0.46\n- legend warnings:\n  - [バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足\n  - [バリュエーション・過熱エージェント] バリュエーション確認が不足\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: 宇宙テーマは正しくても、収益化が遠く大型防衛/通信株の方が選ばれる可能性\n    - better peer risk: 資金調達・希薄化でテーマが相殺される可能性\n    - peer: 7011 三菱重工 / 宇宙/ロケット/防衛大型株\n    - peer: 7013 IHI / 宇宙/航空\n  - バフェット型・品質/競争優位エージェント: 証拠不足\n    - ROIC/FCF/利益率の確認が不足\n  - 成長株エージェント: 保留\n    - 成長ドライバー確認対象あり\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 収益化が遠く、テーマは正しくても利益に届きにくい。\n    - 下がる理由: 赤字継続、資金調達リスク、ミッション失敗リスク。\n    - 外れ理由候補: profit_not_connected\n    - 外れ理由候補: bad_financial_quality\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n- next actions:\n  - 上がらない理由と下がる理由を補強\n  - better peer risk とバリュエーション過熱を確認\n  - 証拠不足フィールドを埋めてから委員会を再実行する\n- missingEvidence:\n  - [バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足\n  - [イベント・開示エージェント] 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - [バリュエーション・過熱エージェント] バリュエーション確認が不足\n\n## 金利・金融 (rate_financials)\n\n### 8306 三菱UFJ FG\n- committee decision: **証拠不足**\n- originalFinalLabel: 証拠不足\n- consensus: mostly_agree\n- proScore: 0.43\n- legend warnings:\n  - [バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足\n  - [バリュエーション・過熱エージェント] バリュエーション確認が不足\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 証拠不足\n    - company-network未登録。テーマの本命/周辺/競合が未確認\n  - バフェット型・品質/競争優位エージェント: 証拠不足\n    - ROIC/FCF/利益率の確認が不足\n  - 成長株エージェント: 証拠不足\n    - 売上/利益成長の確認が不足\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 大型株で金利テーマが織り込み済み。\n    - 下がる理由: 景気悪化、信用コスト増、海外金利低下。\n    - 外れ理由候補: already_priced_in\n    - 外れ理由候補: macro_headwind\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n    - network未確認では単独銘柄に寄せない\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n  - 証拠不足フィールドを埋めてから委員会を再実行する\n- missingEvidence:\n  - [テーマ・関連会社ネットワークエージェント] company-network未登録。テーマの本命/周辺/競合が未確認\n  - [バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足\n  - [成長株エージェント] 売上/利益成長の確認が不足\n  - [イベント・開示エージェント] 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - [バリュエーション・過熱エージェント] バリュエーション確認が不足\n\n## rule\n- 委員会decisionは買い推奨ではない\n- 1人でも\"避ける\"が出たら finalLabel を\"避ける\"に倒す\n- 証拠不足は\"避ける\"扱いにしない。情報が足りないだけ\n- disagreements があれば finalScore だけで判断しない\n- mixed/conflict の時は consensus の内訳を先に確認する"
     },
     {
       "key": "roadmap",
@@ -3642,5 +3643,1803 @@
       "publicMemo": "銘柄ごとのデータから生成された監視・検証用メモ。投資助言ではありません。",
       "reviewDueAt": "2026-07-03T00:00:00+09:00"
     }
-  ]
+  ],
+  "legendProCommittee": {
+    "generatedAt": "2026-06-03",
+    "decisions": [
+      {
+        "code": "5803",
+        "name": "フジクラ",
+        "finalLabel": "保留",
+        "originalFinalLabel": "保留",
+        "finalScore": 0.46,
+        "proScore": 0.46,
+        "consensus": "mostly_agree",
+        "disagreements": [],
+        "legendWarnings": [
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ],
+        "nextActions": [
+          "上がらない理由と下がる理由を補強",
+          "better peer risk とバリュエーション過熱を確認",
+          "証拠不足フィールドを埋めてから委員会を再実行する"
+        ],
+        "blockers": [],
+        "missingEvidence": [
+          "[成長株エージェント] 売上/利益成長の確認が不足",
+          "[イベント・開示エージェント] 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要",
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ]
+      },
+      {
+        "code": "5802",
+        "name": "住友電工",
+        "finalLabel": "保留",
+        "originalFinalLabel": "保留",
+        "finalScore": 0.46,
+        "proScore": 0.46,
+        "consensus": "mostly_agree",
+        "disagreements": [],
+        "legendWarnings": [
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ],
+        "nextActions": [
+          "上がらない理由と下がる理由を補強",
+          "better peer risk とバリュエーション過熱を確認",
+          "証拠不足フィールドを埋めてから委員会を再実行する"
+        ],
+        "blockers": [],
+        "missingEvidence": [
+          "[成長株エージェント] 売上/利益成長の確認が不足",
+          "[イベント・開示エージェント] 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要",
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ]
+      },
+      {
+        "code": "285A",
+        "name": "キオクシアホールディングス",
+        "finalLabel": "証拠不足",
+        "originalFinalLabel": "証拠不足",
+        "finalScore": 0.44,
+        "proScore": 0.44,
+        "consensus": "mostly_agree",
+        "disagreements": [],
+        "legendWarnings": [
+          "[バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足",
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ],
+        "nextActions": [
+          "公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認",
+          "財務品質・バリュエーション・競合比較を埋める",
+          "証拠不足フィールドを埋めてから委員会を再実行する"
+        ],
+        "blockers": [],
+        "missingEvidence": [
+          "[バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足",
+          "[成長株エージェント] 売上/利益成長の確認が不足",
+          "[イベント・開示エージェント] 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要",
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ]
+      },
+      {
+        "code": "8035",
+        "name": "東京エレクトロン",
+        "finalLabel": "保留",
+        "originalFinalLabel": "保留",
+        "finalScore": 0.46,
+        "proScore": 0.46,
+        "consensus": "mostly_agree",
+        "disagreements": [],
+        "legendWarnings": [
+          "[バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足",
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ],
+        "nextActions": [
+          "上がらない理由と下がる理由を補強",
+          "better peer risk とバリュエーション過熱を確認",
+          "証拠不足フィールドを埋めてから委員会を再実行する"
+        ],
+        "blockers": [],
+        "missingEvidence": [
+          "[バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足",
+          "[イベント・開示エージェント] 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要",
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ]
+      },
+      {
+        "code": "8136",
+        "name": "サンリオ",
+        "finalLabel": "保留",
+        "originalFinalLabel": "保留",
+        "finalScore": 0.45,
+        "proScore": 0.45,
+        "consensus": "mixed",
+        "disagreements": [],
+        "legendWarnings": [
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ],
+        "nextActions": [
+          "上がらない理由と下がる理由を補強",
+          "better peer risk とバリュエーション過熱を確認",
+          "証拠不足フィールドを埋めてから委員会を再実行する"
+        ],
+        "blockers": [],
+        "missingEvidence": [
+          "[イベント・開示エージェント] 定時株主総会: date=要確認 source=official_page_known_detail_check_required",
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ]
+      },
+      {
+        "code": "7974",
+        "name": "任天堂",
+        "finalLabel": "証拠不足",
+        "originalFinalLabel": "証拠不足",
+        "finalScore": 0.44,
+        "proScore": 0.44,
+        "consensus": "mostly_agree",
+        "disagreements": [],
+        "legendWarnings": [
+          "[バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足",
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ],
+        "nextActions": [
+          "公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認",
+          "財務品質・バリュエーション・競合比較を埋める",
+          "証拠不足フィールドを埋めてから委員会を再実行する"
+        ],
+        "blockers": [],
+        "missingEvidence": [
+          "[バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足",
+          "[成長株エージェント] 売上/利益成長の確認が不足",
+          "[イベント・開示エージェント] 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要",
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ]
+      },
+      {
+        "code": "7011",
+        "name": "三菱重工",
+        "finalLabel": "保留",
+        "originalFinalLabel": "保留",
+        "finalScore": 0.46,
+        "proScore": 0.46,
+        "consensus": "mostly_agree",
+        "disagreements": [],
+        "legendWarnings": [
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ],
+        "nextActions": [
+          "上がらない理由と下がる理由を補強",
+          "better peer risk とバリュエーション過熱を確認",
+          "証拠不足フィールドを埋めてから委員会を再実行する"
+        ],
+        "blockers": [],
+        "missingEvidence": [
+          "[成長株エージェント] 売上/利益成長の確認が不足",
+          "[イベント・開示エージェント] 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要",
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ]
+      },
+      {
+        "code": "9348",
+        "name": "ispace",
+        "finalLabel": "保留",
+        "originalFinalLabel": "保留",
+        "finalScore": 0.46,
+        "proScore": 0.46,
+        "consensus": "mostly_agree",
+        "disagreements": [],
+        "legendWarnings": [
+          "[バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足",
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ],
+        "nextActions": [
+          "上がらない理由と下がる理由を補強",
+          "better peer risk とバリュエーション過熱を確認",
+          "証拠不足フィールドを埋めてから委員会を再実行する"
+        ],
+        "blockers": [],
+        "missingEvidence": [
+          "[バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足",
+          "[イベント・開示エージェント] 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要",
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ]
+      },
+      {
+        "code": "8306",
+        "name": "三菱UFJ FG",
+        "finalLabel": "証拠不足",
+        "originalFinalLabel": "証拠不足",
+        "finalScore": 0.43,
+        "proScore": 0.43,
+        "consensus": "mostly_agree",
+        "disagreements": [],
+        "legendWarnings": [
+          "[バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足",
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ],
+        "nextActions": [
+          "公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認",
+          "財務品質・バリュエーション・競合比較を埋める",
+          "証拠不足フィールドを埋めてから委員会を再実行する"
+        ],
+        "blockers": [],
+        "missingEvidence": [
+          "[テーマ・関連会社ネットワークエージェント] company-network未登録。テーマの本命/周辺/競合が未確認",
+          "[バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足",
+          "[成長株エージェント] 売上/利益成長の確認が不足",
+          "[イベント・開示エージェント] 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要",
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ]
+      }
+    ]
+  },
+  "buffettQuality": [
+    {
+      "code": "5803",
+      "name": "フジクラ",
+      "agentLabel": "バフェット型・品質/競争優位エージェント",
+      "stance": "保留",
+      "points": [
+        "財務品質確認対象あり"
+      ]
+    },
+    {
+      "code": "5802",
+      "name": "住友電工",
+      "agentLabel": "バフェット型・品質/競争優位エージェント",
+      "stance": "保留",
+      "points": [
+        "財務品質確認対象あり"
+      ]
+    },
+    {
+      "code": "285A",
+      "name": "キオクシアホールディングス",
+      "agentLabel": "バフェット型・品質/競争優位エージェント",
+      "stance": "証拠不足",
+      "points": [
+        "ROIC/FCF/利益率の確認が不足"
+      ]
+    },
+    {
+      "code": "8035",
+      "name": "東京エレクトロン",
+      "agentLabel": "バフェット型・品質/競争優位エージェント",
+      "stance": "証拠不足",
+      "points": [
+        "ROIC/FCF/利益率の確認が不足"
+      ]
+    },
+    {
+      "code": "8136",
+      "name": "サンリオ",
+      "agentLabel": "バフェット型・品質/競争優位エージェント",
+      "stance": "保留",
+      "points": [
+        "財務品質確認対象あり"
+      ]
+    },
+    {
+      "code": "7974",
+      "name": "任天堂",
+      "agentLabel": "バフェット型・品質/競争優位エージェント",
+      "stance": "証拠不足",
+      "points": [
+        "ROIC/FCF/利益率の確認が不足"
+      ]
+    },
+    {
+      "code": "7011",
+      "name": "三菱重工",
+      "agentLabel": "バフェット型・品質/競争優位エージェント",
+      "stance": "保留",
+      "points": [
+        "財務品質確認対象あり"
+      ]
+    },
+    {
+      "code": "9348",
+      "name": "ispace",
+      "agentLabel": "バフェット型・品質/競争優位エージェント",
+      "stance": "証拠不足",
+      "points": [
+        "ROIC/FCF/利益率の確認が不足"
+      ]
+    },
+    {
+      "code": "8306",
+      "name": "三菱UFJ FG",
+      "agentLabel": "バフェット型・品質/競争優位エージェント",
+      "stance": "証拠不足",
+      "points": [
+        "ROIC/FCF/利益率の確認が不足"
+      ]
+    }
+  ],
+  "valuationSnapshots": [
+    {
+      "code": "5803",
+      "name": "フジクラ",
+      "agentLabel": "バリュエーション・過熱エージェント",
+      "stance": "証拠不足",
+      "points": [
+        "バリュエーション確認が不足"
+      ]
+    },
+    {
+      "code": "5802",
+      "name": "住友電工",
+      "agentLabel": "バリュエーション・過熱エージェント",
+      "stance": "証拠不足",
+      "points": [
+        "バリュエーション確認が不足"
+      ]
+    },
+    {
+      "code": "285A",
+      "name": "キオクシアホールディングス",
+      "agentLabel": "バリュエーション・過熱エージェント",
+      "stance": "証拠不足",
+      "points": [
+        "バリュエーション確認が不足"
+      ]
+    },
+    {
+      "code": "8035",
+      "name": "東京エレクトロン",
+      "agentLabel": "バリュエーション・過熱エージェント",
+      "stance": "証拠不足",
+      "points": [
+        "バリュエーション確認が不足"
+      ]
+    },
+    {
+      "code": "8136",
+      "name": "サンリオ",
+      "agentLabel": "バリュエーション・過熱エージェント",
+      "stance": "証拠不足",
+      "points": [
+        "バリュエーション確認が不足"
+      ]
+    },
+    {
+      "code": "7974",
+      "name": "任天堂",
+      "agentLabel": "バリュエーション・過熱エージェント",
+      "stance": "証拠不足",
+      "points": [
+        "バリュエーション確認が不足"
+      ]
+    },
+    {
+      "code": "7011",
+      "name": "三菱重工",
+      "agentLabel": "バリュエーション・過熱エージェント",
+      "stance": "証拠不足",
+      "points": [
+        "バリュエーション確認が不足"
+      ]
+    },
+    {
+      "code": "9348",
+      "name": "ispace",
+      "agentLabel": "バリュエーション・過熱エージェント",
+      "stance": "証拠不足",
+      "points": [
+        "バリュエーション確認が不足"
+      ]
+    },
+    {
+      "code": "8306",
+      "name": "三菱UFJ FG",
+      "agentLabel": "バリュエーション・過熱エージェント",
+      "stance": "証拠不足",
+      "points": [
+        "バリュエーション確認が不足"
+      ]
+    }
+  ],
+  "irEventEvidence": [
+    {
+      "code": "5803",
+      "name": "フジクラ",
+      "agentLabel": "イベント・開示エージェント",
+      "stance": "証拠不足",
+      "points": [
+        "直近IRイベント未登録。決算・総会・配当・資本政策確認が必要"
+      ]
+    },
+    {
+      "code": "5802",
+      "name": "住友電工",
+      "agentLabel": "イベント・開示エージェント",
+      "stance": "証拠不足",
+      "points": [
+        "直近IRイベント未登録。決算・総会・配当・資本政策確認が必要"
+      ]
+    },
+    {
+      "code": "285A",
+      "name": "キオクシアホールディングス",
+      "agentLabel": "イベント・開示エージェント",
+      "stance": "証拠不足",
+      "points": [
+        "直近IRイベント未登録。決算・総会・配当・資本政策確認が必要"
+      ]
+    },
+    {
+      "code": "8035",
+      "name": "東京エレクトロン",
+      "agentLabel": "イベント・開示エージェント",
+      "stance": "証拠不足",
+      "points": [
+        "直近IRイベント未登録。決算・総会・配当・資本政策確認が必要"
+      ]
+    },
+    {
+      "code": "8136",
+      "name": "サンリオ",
+      "agentLabel": "イベント・開示エージェント",
+      "stance": "証拠不足",
+      "points": [
+        "定時株主総会: date=要確認 source=official_page_known_detail_check_required"
+      ]
+    },
+    {
+      "code": "7974",
+      "name": "任天堂",
+      "agentLabel": "イベント・開示エージェント",
+      "stance": "証拠不足",
+      "points": [
+        "直近IRイベント未登録。決算・総会・配当・資本政策確認が必要"
+      ]
+    },
+    {
+      "code": "7011",
+      "name": "三菱重工",
+      "agentLabel": "イベント・開示エージェント",
+      "stance": "証拠不足",
+      "points": [
+        "直近IRイベント未登録。決算・総会・配当・資本政策確認が必要"
+      ]
+    },
+    {
+      "code": "9348",
+      "name": "ispace",
+      "agentLabel": "イベント・開示エージェント",
+      "stance": "証拠不足",
+      "points": [
+        "直近IRイベント未登録。決算・総会・配当・資本政策確認が必要"
+      ]
+    },
+    {
+      "code": "8306",
+      "name": "三菱UFJ FG",
+      "agentLabel": "イベント・開示エージェント",
+      "stance": "証拠不足",
+      "points": [
+        "直近IRイベント未登録。決算・総会・配当・資本政策確認が必要"
+      ]
+    }
+  ],
+  "stockProCommitteeJson": {
+    "generatedAt": "2026-06-03",
+    "decisions": [
+      {
+        "code": "5803",
+        "name": "フジクラ",
+        "originalFinalLabel": "保留",
+        "finalLabel": "保留",
+        "finalScore": 0.46,
+        "proScore": 0.46,
+        "verdicts": [
+          {
+            "agentId": "theme_network_agent",
+            "agentLabel": "テーマ・関連会社ネットワークエージェント",
+            "stance": "保留",
+            "points": [
+              "better peer risk: 同じ電線テーマでも、住友電工/古河電工/SWCCの方が選ばれる可能性",
+              "better peer risk: 既に急騰済みなら関連銘柄へ資金が移る可能性",
+              "peer: 5801 古河電工 / 光ファイバー/電線",
+              "peer: 5802 住友電工 / 電線/光通信/電力インフラ",
+              "peer: 5805 SWCC / 電線/電力インフラ"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          },
+          {
+            "agentId": "buffett_quality_agent",
+            "agentLabel": "バフェット型・品質/競争優位エージェント",
+            "stance": "保留",
+            "points": [
+              "財務品質確認対象あり"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          },
+          {
+            "agentId": "growth_agent",
+            "agentLabel": "成長株エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "売上/利益成長の確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "event_driven_agent",
+            "agentLabel": "イベント・開示エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "直近IRイベント未登録。決算・総会・配当・資本政策確認が必要"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "valuation_agent",
+            "agentLabel": "バリュエーション・過熱エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "バリュエーション確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "bear_case_agent",
+            "agentLabel": "反証・弱気シナリオエージェント",
+            "stance": "保留",
+            "points": [
+              "上がらない理由: 期待が先行し、すでに織り込み済みなら上がりにくい。",
+              "下がる理由: 受注鈍化、利益率悪化、短期過熱で調整。",
+              "外れ理由候補: already_priced_in",
+              "外れ理由候補: profit_not_connected",
+              "外れ理由候補: better_peer_exists"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          },
+          {
+            "agentId": "risk_manager_agent",
+            "agentLabel": "リスク管理エージェント",
+            "stance": "保留",
+            "points": [
+              "IRイベント未確認では強い判断をしない"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          }
+        ],
+        "legendVerdicts": [
+          {
+            "agentId": "buffett_quality_agent",
+            "agentLabel": "バフェット型・品質/競争優位エージェント",
+            "stance": "保留",
+            "points": [
+              "財務品質確認対象あり"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          },
+          {
+            "agentId": "valuation_agent",
+            "agentLabel": "バリュエーション・過熱エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "バリュエーション確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "risk_manager_agent",
+            "agentLabel": "リスク管理エージェント",
+            "stance": "保留",
+            "points": [
+              "IRイベント未確認では強い判断をしない"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          }
+        ],
+        "legendWarnings": [
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ],
+        "consensus": "mostly_agree",
+        "disagreements": [],
+        "nextActions": [
+          "上がらない理由と下がる理由を補強",
+          "better peer risk とバリュエーション過熱を確認",
+          "証拠不足フィールドを埋めてから委員会を再実行する"
+        ],
+        "blockers": [],
+        "missingEvidence": [
+          "[成長株エージェント] 売上/利益成長の確認が不足",
+          "[イベント・開示エージェント] 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要",
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ]
+      },
+      {
+        "code": "5802",
+        "name": "住友電工",
+        "originalFinalLabel": "保留",
+        "finalLabel": "保留",
+        "finalScore": 0.46,
+        "proScore": 0.46,
+        "verdicts": [
+          {
+            "agentId": "theme_network_agent",
+            "agentLabel": "テーマ・関連会社ネットワークエージェント",
+            "stance": "保留",
+            "points": [
+              "better peer risk: テーマ寄与が分散し、よりピュアな銘柄が選ばれる可能性",
+              "peer: 5803 フジクラ / 光通信/データセンター",
+              "peer: 5801 古河電工 / 電線/光ファイバー",
+              "peer: 5805 SWCC / 電力ケーブル"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          },
+          {
+            "agentId": "buffett_quality_agent",
+            "agentLabel": "バフェット型・品質/競争優位エージェント",
+            "stance": "保留",
+            "points": [
+              "財務品質確認対象あり"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          },
+          {
+            "agentId": "growth_agent",
+            "agentLabel": "成長株エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "売上/利益成長の確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "event_driven_agent",
+            "agentLabel": "イベント・開示エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "直近IRイベント未登録。決算・総会・配当・資本政策確認が必要"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "valuation_agent",
+            "agentLabel": "バリュエーション・過熱エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "バリュエーション確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "bear_case_agent",
+            "agentLabel": "反証・弱気シナリオエージェント",
+            "stance": "保留",
+            "points": [
+              "上がらない理由: 事業が大きく分散しており、テーマ寄与が薄く見える可能性。",
+              "下がる理由: 素材コスト、景気敏感、利益率悪化。",
+              "外れ理由候補: profit_not_connected",
+              "外れ理由候補: better_peer_exists"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          },
+          {
+            "agentId": "risk_manager_agent",
+            "agentLabel": "リスク管理エージェント",
+            "stance": "保留",
+            "points": [
+              "IRイベント未確認では強い判断をしない"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          }
+        ],
+        "legendVerdicts": [
+          {
+            "agentId": "buffett_quality_agent",
+            "agentLabel": "バフェット型・品質/競争優位エージェント",
+            "stance": "保留",
+            "points": [
+              "財務品質確認対象あり"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          },
+          {
+            "agentId": "valuation_agent",
+            "agentLabel": "バリュエーション・過熱エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "バリュエーション確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "risk_manager_agent",
+            "agentLabel": "リスク管理エージェント",
+            "stance": "保留",
+            "points": [
+              "IRイベント未確認では強い判断をしない"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          }
+        ],
+        "legendWarnings": [
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ],
+        "consensus": "mostly_agree",
+        "disagreements": [],
+        "nextActions": [
+          "上がらない理由と下がる理由を補強",
+          "better peer risk とバリュエーション過熱を確認",
+          "証拠不足フィールドを埋めてから委員会を再実行する"
+        ],
+        "blockers": [],
+        "missingEvidence": [
+          "[成長株エージェント] 売上/利益成長の確認が不足",
+          "[イベント・開示エージェント] 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要",
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ]
+      },
+      {
+        "code": "285A",
+        "name": "キオクシアホールディングス",
+        "originalFinalLabel": "証拠不足",
+        "finalLabel": "証拠不足",
+        "finalScore": 0.44,
+        "proScore": 0.44,
+        "verdicts": [
+          {
+            "agentId": "theme_network_agent",
+            "agentLabel": "テーマ・関連会社ネットワークエージェント",
+            "stance": "保留",
+            "points": [
+              "better peer risk: メモリメーカーより装置・検査銘柄の方が先に買われる可能性",
+              "better peer risk: AI IPOテーマではGPU/HBM/電力/光通信銘柄が先に選ばれる可能性",
+              "better peer risk: IPO後需給が重く、テーマが正しくても上がらない可能性",
+              "peer: 8035 東京エレクトロン / 半導体装置",
+              "peer: 6857 アドバンテスト / 半導体テスター",
+              "peer: 6146 ディスコ / 半導体製造装置"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          },
+          {
+            "agentId": "buffett_quality_agent",
+            "agentLabel": "バフェット型・品質/競争優位エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "ROIC/FCF/利益率の確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "growth_agent",
+            "agentLabel": "成長株エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "売上/利益成長の確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "event_driven_agent",
+            "agentLabel": "イベント・開示エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "直近IRイベント未登録。決算・総会・配当・資本政策確認が必要"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "valuation_agent",
+            "agentLabel": "バリュエーション・過熱エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "バリュエーション確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "bear_case_agent",
+            "agentLabel": "反証・弱気シナリオエージェント",
+            "stance": "保留",
+            "points": [
+              "上がらない理由: AI IPOテーマは強くても、NAND市況回復が遅い、AI需要がHBM/GPU側に偏る、IPO後の売り圧、競合の方が評価される場合は動きにくい。",
+              "下がる理由: NAND価格下落、設備投資負担、需給悪化、ロックアップ/売り圧、AI IPOの過熱剥落。",
+              "外れ理由候補: theme_right_timing_wrong",
+              "外れ理由候補: theme_right_company_wrong",
+              "外れ理由候補: dilution_or_supply_pressure",
+              "外れ理由候補: profit_not_connected"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          },
+          {
+            "agentId": "risk_manager_agent",
+            "agentLabel": "リスク管理エージェント",
+            "stance": "保留",
+            "points": [
+              "IRイベント未確認では強い判断をしない"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          }
+        ],
+        "legendVerdicts": [
+          {
+            "agentId": "buffett_quality_agent",
+            "agentLabel": "バフェット型・品質/競争優位エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "ROIC/FCF/利益率の確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "valuation_agent",
+            "agentLabel": "バリュエーション・過熱エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "バリュエーション確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "risk_manager_agent",
+            "agentLabel": "リスク管理エージェント",
+            "stance": "保留",
+            "points": [
+              "IRイベント未確認では強い判断をしない"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          }
+        ],
+        "legendWarnings": [
+          "[バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足",
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ],
+        "consensus": "mostly_agree",
+        "disagreements": [],
+        "nextActions": [
+          "公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認",
+          "財務品質・バリュエーション・競合比較を埋める",
+          "証拠不足フィールドを埋めてから委員会を再実行する"
+        ],
+        "blockers": [],
+        "missingEvidence": [
+          "[バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足",
+          "[成長株エージェント] 売上/利益成長の確認が不足",
+          "[イベント・開示エージェント] 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要",
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ]
+      },
+      {
+        "code": "8035",
+        "name": "東京エレクトロン",
+        "originalFinalLabel": "保留",
+        "finalLabel": "保留",
+        "finalScore": 0.46,
+        "proScore": 0.46,
+        "verdicts": [
+          {
+            "agentId": "theme_network_agent",
+            "agentLabel": "テーマ・関連会社ネットワークエージェント",
+            "stance": "保留",
+            "points": [
+              "better peer risk: 装置内でも検査・後工程の方が相場で選ばれる局面がある",
+              "better peer risk: 大型株で織り込みが早い",
+              "peer: 6857 アドバンテスト / 半導体テスター",
+              "peer: 6146 ディスコ / 半導体製造装置",
+              "peer: 6920 レーザーテック / 半導体検査装置"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          },
+          {
+            "agentId": "buffett_quality_agent",
+            "agentLabel": "バフェット型・品質/競争優位エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "ROIC/FCF/利益率の確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "growth_agent",
+            "agentLabel": "成長株エージェント",
+            "stance": "保留",
+            "points": [
+              "成長ドライバー確認対象あり"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          },
+          {
+            "agentId": "event_driven_agent",
+            "agentLabel": "イベント・開示エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "直近IRイベント未登録。決算・総会・配当・資本政策確認が必要"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "valuation_agent",
+            "agentLabel": "バリュエーション・過熱エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "バリュエーション確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "bear_case_agent",
+            "agentLabel": "反証・弱気シナリオエージェント",
+            "stance": "保留",
+            "points": [
+              "上がらない理由: 大型株で織り込みが早く、短期材料では動きにくい。",
+              "下がる理由: 設備投資サイクル悪化、米中規制、過熱。",
+              "外れ理由候補: already_priced_in",
+              "外れ理由候補: macro_headwind"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          },
+          {
+            "agentId": "risk_manager_agent",
+            "agentLabel": "リスク管理エージェント",
+            "stance": "保留",
+            "points": [
+              "IRイベント未確認では強い判断をしない"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          }
+        ],
+        "legendVerdicts": [
+          {
+            "agentId": "buffett_quality_agent",
+            "agentLabel": "バフェット型・品質/競争優位エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "ROIC/FCF/利益率の確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "valuation_agent",
+            "agentLabel": "バリュエーション・過熱エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "バリュエーション確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "risk_manager_agent",
+            "agentLabel": "リスク管理エージェント",
+            "stance": "保留",
+            "points": [
+              "IRイベント未確認では強い判断をしない"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          }
+        ],
+        "legendWarnings": [
+          "[バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足",
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ],
+        "consensus": "mostly_agree",
+        "disagreements": [],
+        "nextActions": [
+          "上がらない理由と下がる理由を補強",
+          "better peer risk とバリュエーション過熱を確認",
+          "証拠不足フィールドを埋めてから委員会を再実行する"
+        ],
+        "blockers": [],
+        "missingEvidence": [
+          "[バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足",
+          "[イベント・開示エージェント] 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要",
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ]
+      },
+      {
+        "code": "8136",
+        "name": "サンリオ",
+        "originalFinalLabel": "保留",
+        "finalLabel": "保留",
+        "finalScore": 0.45,
+        "proScore": 0.45,
+        "verdicts": [
+          {
+            "agentId": "theme_network_agent",
+            "agentLabel": "テーマ・関連会社ネットワークエージェント",
+            "stance": "保留",
+            "points": [
+              "better peer risk: 大型IP銘柄の方が資金流入しやすい可能性",
+              "better peer risk: テーマは正しいが、任天堂/バンナムなど別IP銘柄の方が選ばれる可能性",
+              "peer: 7974 任天堂 / 日本発IP・海外展開",
+              "peer: 7832 バンダイナムコHD / キャラクター/ゲーム/玩具IP",
+              "peer: 4661 オリエンタルランド / 体験型IP/テーマパーク"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          },
+          {
+            "agentId": "buffett_quality_agent",
+            "agentLabel": "バフェット型・品質/競争優位エージェント",
+            "stance": "保留",
+            "points": [
+              "財務品質確認対象あり"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          },
+          {
+            "agentId": "growth_agent",
+            "agentLabel": "成長株エージェント",
+            "stance": "保留",
+            "points": [
+              "成長ドライバー確認対象あり"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          },
+          {
+            "agentId": "event_driven_agent",
+            "agentLabel": "イベント・開示エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "定時株主総会: date=要確認 source=official_page_known_detail_check_required"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "valuation_agent",
+            "agentLabel": "バリュエーション・過熱エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "バリュエーション確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "bear_case_agent",
+            "agentLabel": "反証・弱気シナリオエージェント",
+            "stance": "保留",
+            "points": [
+              "上がらない理由: 良い会社だが市場期待が高く、決算でサプライズがないと上がりにくい。",
+              "下がる理由: 海外成長鈍化、人気ピークアウト、バリュエーション調整。",
+              "外れ理由候補: already_priced_in",
+              "外れ理由候補: profit_not_connected",
+              "外れ理由候補: better_peer_exists"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          },
+          {
+            "agentId": "risk_manager_agent",
+            "agentLabel": "リスク管理エージェント",
+            "stance": "注意",
+            "points": [
+              "追加確認なし"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          }
+        ],
+        "legendVerdicts": [
+          {
+            "agentId": "buffett_quality_agent",
+            "agentLabel": "バフェット型・品質/競争優位エージェント",
+            "stance": "保留",
+            "points": [
+              "財務品質確認対象あり"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          },
+          {
+            "agentId": "valuation_agent",
+            "agentLabel": "バリュエーション・過熱エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "バリュエーション確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "risk_manager_agent",
+            "agentLabel": "リスク管理エージェント",
+            "stance": "注意",
+            "points": [
+              "追加確認なし"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          }
+        ],
+        "legendWarnings": [
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ],
+        "consensus": "mixed",
+        "disagreements": [],
+        "nextActions": [
+          "上がらない理由と下がる理由を補強",
+          "better peer risk とバリュエーション過熱を確認",
+          "証拠不足フィールドを埋めてから委員会を再実行する"
+        ],
+        "blockers": [],
+        "missingEvidence": [
+          "[イベント・開示エージェント] 定時株主総会: date=要確認 source=official_page_known_detail_check_required",
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ]
+      },
+      {
+        "code": "7974",
+        "name": "任天堂",
+        "originalFinalLabel": "証拠不足",
+        "finalLabel": "証拠不足",
+        "finalScore": 0.44,
+        "proScore": 0.44,
+        "verdicts": [
+          {
+            "agentId": "theme_network_agent",
+            "agentLabel": "テーマ・関連会社ネットワークエージェント",
+            "stance": "保留",
+            "points": [
+              "better peer risk: ハードサイクル待ちで、短期では他IP銘柄が選ばれる可能性",
+              "peer: 7832 バンダイナムコHD / ゲーム/IP",
+              "peer: 9766 コナミG / ゲーム/IP",
+              "peer: 8136 サンリオ / キャラクターIP"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          },
+          {
+            "agentId": "buffett_quality_agent",
+            "agentLabel": "バフェット型・品質/競争優位エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "ROIC/FCF/利益率の確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "growth_agent",
+            "agentLabel": "成長株エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "売上/利益成長の確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "event_driven_agent",
+            "agentLabel": "イベント・開示エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "直近IRイベント未登録。決算・総会・配当・資本政策確認が必要"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "valuation_agent",
+            "agentLabel": "バリュエーション・過熱エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "バリュエーション確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "bear_case_agent",
+            "agentLabel": "反証・弱気シナリオエージェント",
+            "stance": "保留",
+            "points": [
+              "上がらない理由: 大型株で期待が織り込まれやすく、材料出尽くしになりやすい。",
+              "下がる理由: ハード移行期の販売鈍化、期待未達、為替逆風。",
+              "外れ理由候補: already_priced_in",
+              "外れ理由候補: theme_right_timing_wrong"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          },
+          {
+            "agentId": "risk_manager_agent",
+            "agentLabel": "リスク管理エージェント",
+            "stance": "保留",
+            "points": [
+              "IRイベント未確認では強い判断をしない"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          }
+        ],
+        "legendVerdicts": [
+          {
+            "agentId": "buffett_quality_agent",
+            "agentLabel": "バフェット型・品質/競争優位エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "ROIC/FCF/利益率の確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "valuation_agent",
+            "agentLabel": "バリュエーション・過熱エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "バリュエーション確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "risk_manager_agent",
+            "agentLabel": "リスク管理エージェント",
+            "stance": "保留",
+            "points": [
+              "IRイベント未確認では強い判断をしない"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          }
+        ],
+        "legendWarnings": [
+          "[バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足",
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ],
+        "consensus": "mostly_agree",
+        "disagreements": [],
+        "nextActions": [
+          "公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認",
+          "財務品質・バリュエーション・競合比較を埋める",
+          "証拠不足フィールドを埋めてから委員会を再実行する"
+        ],
+        "blockers": [],
+        "missingEvidence": [
+          "[バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足",
+          "[成長株エージェント] 売上/利益成長の確認が不足",
+          "[イベント・開示エージェント] 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要",
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ]
+      },
+      {
+        "code": "7011",
+        "name": "三菱重工",
+        "originalFinalLabel": "保留",
+        "finalLabel": "保留",
+        "finalScore": 0.46,
+        "proScore": 0.46,
+        "verdicts": [
+          {
+            "agentId": "theme_network_agent",
+            "agentLabel": "テーマ・関連会社ネットワークエージェント",
+            "stance": "保留",
+            "points": [
+              "better peer risk: 防衛テーマが大型株で織り込み済みの場合、周辺IT/電子/部品へ資金が移る可能性",
+              "peer: 7012 川崎重工 / 防衛/重工",
+              "peer: 7013 IHI / 航空/宇宙/防衛",
+              "peer: 6701 NEC / 防衛IT/通信/宇宙"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          },
+          {
+            "agentId": "buffett_quality_agent",
+            "agentLabel": "バフェット型・品質/競争優位エージェント",
+            "stance": "保留",
+            "points": [
+              "財務品質確認対象あり"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          },
+          {
+            "agentId": "growth_agent",
+            "agentLabel": "成長株エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "売上/利益成長の確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "event_driven_agent",
+            "agentLabel": "イベント・開示エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "直近IRイベント未登録。決算・総会・配当・資本政策確認が必要"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "valuation_agent",
+            "agentLabel": "バリュエーション・過熱エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "バリュエーション確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "bear_case_agent",
+            "agentLabel": "反証・弱気シナリオエージェント",
+            "stance": "保留",
+            "points": [
+              "上がらない理由: 大型株で既に防衛テーマが織り込まれている可能性。",
+              "下がる理由: 採算悪化、受注の利益化遅れ、過熱調整。",
+              "外れ理由候補: already_priced_in",
+              "外れ理由候補: profit_not_connected",
+              "外れ理由候補: better_peer_exists"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          },
+          {
+            "agentId": "risk_manager_agent",
+            "agentLabel": "リスク管理エージェント",
+            "stance": "保留",
+            "points": [
+              "IRイベント未確認では強い判断をしない"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          }
+        ],
+        "legendVerdicts": [
+          {
+            "agentId": "buffett_quality_agent",
+            "agentLabel": "バフェット型・品質/競争優位エージェント",
+            "stance": "保留",
+            "points": [
+              "財務品質確認対象あり"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          },
+          {
+            "agentId": "valuation_agent",
+            "agentLabel": "バリュエーション・過熱エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "バリュエーション確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "risk_manager_agent",
+            "agentLabel": "リスク管理エージェント",
+            "stance": "保留",
+            "points": [
+              "IRイベント未確認では強い判断をしない"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          }
+        ],
+        "legendWarnings": [
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ],
+        "consensus": "mostly_agree",
+        "disagreements": [],
+        "nextActions": [
+          "上がらない理由と下がる理由を補強",
+          "better peer risk とバリュエーション過熱を確認",
+          "証拠不足フィールドを埋めてから委員会を再実行する"
+        ],
+        "blockers": [],
+        "missingEvidence": [
+          "[成長株エージェント] 売上/利益成長の確認が不足",
+          "[イベント・開示エージェント] 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要",
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ]
+      },
+      {
+        "code": "9348",
+        "name": "ispace",
+        "originalFinalLabel": "保留",
+        "finalLabel": "保留",
+        "finalScore": 0.46,
+        "proScore": 0.46,
+        "verdicts": [
+          {
+            "agentId": "theme_network_agent",
+            "agentLabel": "テーマ・関連会社ネットワークエージェント",
+            "stance": "保留",
+            "points": [
+              "better peer risk: 宇宙テーマは正しくても、収益化が遠く大型防衛/通信株の方が選ばれる可能性",
+              "better peer risk: 資金調達・希薄化でテーマが相殺される可能性",
+              "peer: 7011 三菱重工 / 宇宙/ロケット/防衛大型株",
+              "peer: 7013 IHI / 宇宙/航空",
+              "peer: 6701 NEC / 衛星/通信/宇宙IT"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          },
+          {
+            "agentId": "buffett_quality_agent",
+            "agentLabel": "バフェット型・品質/競争優位エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "ROIC/FCF/利益率の確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "growth_agent",
+            "agentLabel": "成長株エージェント",
+            "stance": "保留",
+            "points": [
+              "成長ドライバー確認対象あり"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          },
+          {
+            "agentId": "event_driven_agent",
+            "agentLabel": "イベント・開示エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "直近IRイベント未登録。決算・総会・配当・資本政策確認が必要"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "valuation_agent",
+            "agentLabel": "バリュエーション・過熱エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "バリュエーション確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "bear_case_agent",
+            "agentLabel": "反証・弱気シナリオエージェント",
+            "stance": "保留",
+            "points": [
+              "上がらない理由: 収益化が遠く、テーマは正しくても利益に届きにくい。",
+              "下がる理由: 赤字継続、資金調達リスク、ミッション失敗リスク。",
+              "外れ理由候補: profit_not_connected",
+              "外れ理由候補: bad_financial_quality",
+              "外れ理由候補: theme_right_company_wrong"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          },
+          {
+            "agentId": "risk_manager_agent",
+            "agentLabel": "リスク管理エージェント",
+            "stance": "保留",
+            "points": [
+              "IRイベント未確認では強い判断をしない"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          }
+        ],
+        "legendVerdicts": [
+          {
+            "agentId": "buffett_quality_agent",
+            "agentLabel": "バフェット型・品質/競争優位エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "ROIC/FCF/利益率の確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "valuation_agent",
+            "agentLabel": "バリュエーション・過熱エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "バリュエーション確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "risk_manager_agent",
+            "agentLabel": "リスク管理エージェント",
+            "stance": "保留",
+            "points": [
+              "IRイベント未確認では強い判断をしない"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          }
+        ],
+        "legendWarnings": [
+          "[バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足",
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ],
+        "consensus": "mostly_agree",
+        "disagreements": [],
+        "nextActions": [
+          "上がらない理由と下がる理由を補強",
+          "better peer risk とバリュエーション過熱を確認",
+          "証拠不足フィールドを埋めてから委員会を再実行する"
+        ],
+        "blockers": [],
+        "missingEvidence": [
+          "[バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足",
+          "[イベント・開示エージェント] 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要",
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ]
+      },
+      {
+        "code": "8306",
+        "name": "三菱UFJ FG",
+        "originalFinalLabel": "証拠不足",
+        "finalLabel": "証拠不足",
+        "finalScore": 0.43,
+        "proScore": 0.43,
+        "verdicts": [
+          {
+            "agentId": "theme_network_agent",
+            "agentLabel": "テーマ・関連会社ネットワークエージェント",
+            "stance": "証拠不足",
+            "points": [
+              "company-network未登録。テーマの本命/周辺/競合が未確認"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "buffett_quality_agent",
+            "agentLabel": "バフェット型・品質/競争優位エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "ROIC/FCF/利益率の確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "growth_agent",
+            "agentLabel": "成長株エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "売上/利益成長の確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "event_driven_agent",
+            "agentLabel": "イベント・開示エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "直近IRイベント未登録。決算・総会・配当・資本政策確認が必要"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "valuation_agent",
+            "agentLabel": "バリュエーション・過熱エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "バリュエーション確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "bear_case_agent",
+            "agentLabel": "反証・弱気シナリオエージェント",
+            "stance": "保留",
+            "points": [
+              "上がらない理由: 大型株で金利テーマが織り込み済み。",
+              "下がる理由: 景気悪化、信用コスト増、海外金利低下。",
+              "外れ理由候補: already_priced_in",
+              "外れ理由候補: macro_headwind"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          },
+          {
+            "agentId": "risk_manager_agent",
+            "agentLabel": "リスク管理エージェント",
+            "stance": "保留",
+            "points": [
+              "IRイベント未確認では強い判断をしない",
+              "network未確認では単独銘柄に寄せない"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          }
+        ],
+        "legendVerdicts": [
+          {
+            "agentId": "buffett_quality_agent",
+            "agentLabel": "バフェット型・品質/競争優位エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "ROIC/FCF/利益率の確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "valuation_agent",
+            "agentLabel": "バリュエーション・過熱エージェント",
+            "stance": "証拠不足",
+            "points": [
+              "バリュエーション確認が不足"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": true,
+            "isCautious": false
+          },
+          {
+            "agentId": "risk_manager_agent",
+            "agentLabel": "リスク管理エージェント",
+            "stance": "保留",
+            "points": [
+              "IRイベント未確認では強い判断をしない",
+              "network未確認では単独銘柄に寄せない"
+            ],
+            "isBlock": false,
+            "isEvidenceGap": false,
+            "isCautious": true
+          }
+        ],
+        "legendWarnings": [
+          "[バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足",
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ],
+        "consensus": "mostly_agree",
+        "disagreements": [],
+        "nextActions": [
+          "公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認",
+          "財務品質・バリュエーション・競合比較を埋める",
+          "証拠不足フィールドを埋めてから委員会を再実行する"
+        ],
+        "blockers": [],
+        "missingEvidence": [
+          "[テーマ・関連会社ネットワークエージェント] company-network未登録。テーマの本命/周辺/競合が未確認",
+          "[バフェット型・品質/競争優位エージェント] ROIC/FCF/利益率の確認が不足",
+          "[成長株エージェント] 売上/利益成長の確認が不足",
+          "[イベント・開示エージェント] 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要",
+          "[バリュエーション・過熱エージェント] バリュエーション確認が不足"
+        ]
+      }
+    ]
+  }
 }

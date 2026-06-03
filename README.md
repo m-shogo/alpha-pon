@@ -24,8 +24,24 @@ alpha-pon は、単に「良さそうな銘柄」を出すのではなく、以�
 運用の入口は以下。
 
 - [docs/operation-playbook.md](docs/operation-playbook.md)
+- [docs/roadmap-pro-disagreement.md](docs/roadmap-pro-disagreement.md)
+- [docs/local-verification-checklist.md](docs/local-verification-checklist.md)
 
 毎朝・重要判断時・新規銘柄追加時は、このプレイブックの順番で確認する。
+
+### 先生同士の食い違い確認
+
+委員会レポートの `consensus / disagreements` を見る:
+
+```bash
+pnpm pro:committee && pnpm ui:data
+pnpm inspect:pro   # finalLabel分布 / agreementLevel分布 / ラベル変更件数
+```
+
+- `originalFinalLabel` — 安全ルール適用前のラベル（先生の生の意見）
+- `finalLabel` — 安全ルール適用後のラベル（blockがあれば"避ける"に倒す）
+- `mixed / conflict` のとき `finalScore` だけで判断しない。`disagreements` を先に確認する
+- 先生の意見は平均点に潰さない — 食い違いそのものを価値ある情報として残す
 
 ## Next.js Web UI
 

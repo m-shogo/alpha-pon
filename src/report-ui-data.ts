@@ -5,6 +5,7 @@ import { todayJst } from "./date.js";
 import type { UniverseCandidate, StockCandidateHypothesis, HypothesisOutcome, AccuracySummary, WorldContext } from "./universe.js";
 import type { CompanyMemoryRecord } from "./company-memory.js";
 import type { PrimaryDisclosureReview } from "./types.js";
+import { buildProUiDataAddon } from "./pro-ui-data-addon.js";
 
 type DeepDiveCompany = {
   name: string;
@@ -346,6 +347,9 @@ function main() {
     } catch { /* pipeline_status が壊れていても続行 */ }
   }
 
+  // Pro委員会アドオン (legendProCommittee / buffettQuality / valuationSnapshots / irEventEvidence)
+  const proAddon = buildProUiDataAddon();
+
   const data = {
     generatedAt: date,
     headline: "alpha-pon Pro Dashboard",
@@ -444,6 +448,12 @@ function main() {
     ...data,
     stocks,
     generatedCompanyRules,
+    // Pro委員会フィールド (legendProCommittee / buffettQuality / valuationSnapshots / irEventEvidence)
+    legendProCommittee: proAddon.legendProCommittee,
+    buffettQuality: proAddon.buffettQuality,
+    valuationSnapshots: proAddon.valuationSnapshots,
+    irEventEvidence: proAddon.irEventEvidence,
+    stockProCommitteeJson: proAddon.stockProCommitteeJson,
     reports: [
       { key: "strategic", label: "司令塔",          path: "reports/strategic_advice_latest.md",             available: Boolean(strategic), excerpt: excerpt(strategic, "今日まず見る穴", "strategic advice未生成"),         fullContent: strategic || null },
       { key: "pipeline",  label: "データ信頼度",    path: "reports/pipeline_health_summary_latest.md",      available: Boolean(pipeline),  excerpt: excerpt(pipeline,  "confidence",   "pipeline health未生成"),            fullContent: pipeline  || null },

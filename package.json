@@ -60,7 +60,15 @@
     "web:prepare": "pnpm ui:data && pnpm web:build",
     "check:all": "pnpm check && pnpm ui:data && pnpm web:typecheck && pnpm --filter @alpha-pon/web lint && pnpm web:build",
     "generate:company-rules": "node --env-file=.env --import tsx/esm src/generate-company-rules.ts",
-    "ui:scan:stocks": "pnpm scan:universe && pnpm generate:company-rules && pnpm review:hypotheses && pnpm ui:data"
+    "ui:scan:stocks": "pnpm scan:universe && pnpm generate:company-rules && pnpm review:hypotheses && pnpm ui:data",
+    "pro:committee": "node --import tsx/esm src/stock-pro-committee-report.ts",
+    "pro:quality": "node --import tsx/esm src/stock-pro-quality-audit.ts",
+    "pro:valuation": "node --import tsx/esm src/valuation-range.ts",
+    "pro:ir-events": "node --import tsx/esm src/stock-pro-agent-report.ts",
+    "pro:all": "pnpm pro:committee",
+    "inspect:pro": "node scripts/inspect-pro-output.mjs",
+    "verify:pro:local": "bash scripts/verify-pro-local.sh",
+    "verify:pro": "pnpm pro:all && pnpm ui:data && node --import tsx/esm tests/pro-disagreement.test.ts && node --import tsx/esm tests/pro-generated-data-shape.test.ts"
   },
   "dependencies": {
     "js-yaml": "^4.1.0"
