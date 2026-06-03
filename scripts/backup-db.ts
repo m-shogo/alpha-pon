@@ -4,7 +4,7 @@
 
 import { createHash } from "crypto";
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "fs";
-import { dirname, join, relative } from "path";
+import { dirname, join } from "path";
 
 const BACKUP_ROOT = "backups";
 const MAX_BACKUPS = 30;
