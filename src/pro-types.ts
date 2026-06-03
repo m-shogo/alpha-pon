@@ -2,6 +2,7 @@
 // 注意: 買い推奨ではなく、調査品質・保留判断・反証管理のための型。
 
 import type { LegendAgentVerdict } from "./legend-pro-types.js";
+import type { ProConsensus, ProDisagreement } from "./pro-disagreement.js";
 
 export type ProFinalLabel = "調査候補" | "保留" | "証拠不足" | "避ける";
 
@@ -115,12 +116,15 @@ export type StockProScore = {
 export type CommitteeDecision = {
   code: string;
   name: string;
+  originalFinalLabel?: ProFinalLabel;
   finalLabel: ProFinalLabel;
   finalScore: number;
   proScore: StockProScore;
   verdicts: AgentVerdict[];
   legendVerdicts?: LegendAgentVerdict[];
   legendWarnings?: string[];
+  consensus?: ProConsensus;
+  disagreements?: ProDisagreement[];
   nextActions: string[];
   blockers: string[];
   missingEvidence: string[];
