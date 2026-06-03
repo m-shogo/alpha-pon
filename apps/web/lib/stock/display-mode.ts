@@ -17,7 +17,7 @@ export type PublicSignal =
   | '一部整理検討'
   | '押し目待ち'
   | '過熱待ち'
-  | '撤退検討'
+  | '撤退条件確認'
   | '様子見'
   | '要注意'
   | '危険'
@@ -29,12 +29,12 @@ export function getAppMode(): AppMode {
 export function toDisplaySignal(signal: InternalSignal, mode: AppMode): string {
   if (mode === 'private') {
     const map: Record<InternalSignal, string> = {
-      ENTRY_WATCH: '新規買い候補',
-      ADD_WATCH: '買い足し候補',
-      HOLD: '保有継続',
-      TRIM_WATCH: '一部売り検討',
+      ENTRY_WATCH: '新規調査候補',
+      ADD_WATCH: '追加調査候補',
+      HOLD: '継続監視',
+      TRIM_WATCH: '一部整理検討',
       WAIT_PULLBACK: '押し目待ち',
-      EXIT_WATCH: '撤退検討',
+      EXIT_WATCH: '撤退条件確認',
       NO_ACTION: '何もしない',
       DANGER: '危険',
     }
@@ -46,7 +46,7 @@ export function toDisplaySignal(signal: InternalSignal, mode: AppMode): string {
     HOLD: '保有観察',
     TRIM_WATCH: '一部整理検討',
     WAIT_PULLBACK: '過熱待ち',
-    EXIT_WATCH: '撤退検討',
+    EXIT_WATCH: '撤退条件確認',
     NO_ACTION: '様子見',
     DANGER: '危険',
   }
@@ -55,9 +55,9 @@ export function toDisplaySignal(signal: InternalSignal, mode: AppMode): string {
 
 export function getDisclaimer(mode: AppMode): string {
   if (mode === 'private') {
-    return '自分用メモです。最終判断は自分で行います。自動売買は行いません。'
+    return '自分用メモです。最終判断は自分で行います。自動注文は行いません。'
   }
-  return 'このアプリは投資判断を支援するための個人用リサーチツールです。特定銘柄の売買を推奨するものではありません。最終判断はご自身で行ってください。'
+  return 'このアプリは個人用リサーチツールです。特定銘柄の取引を推奨するものではありません。最終判断はご自身で行ってください。'
 }
 
 export function getSignalColor(signal: InternalSignal): string {
