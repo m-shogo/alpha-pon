@@ -48,6 +48,7 @@
     "verify:pro": "pnpm pro:all && pnpm ui:data && node --import tsx/esm tests/pro-disagreement.test.ts && node --import tsx/esm tests/pro-generated-data-shape.test.ts",
     "inspect:pro": "node scripts/inspect-pro-output.mjs",
     "verify:pro:local": "bash scripts/verify-pro-local.sh",
+    "theme:ipo": "node --import tsx/esm src/ipo-theme-watch-report.ts",
     "ci:smoke": "NOTIFY_MODE=off pnpm daily:mock && pnpm learn:primary && pnpm health:sources && test -f reports/latest.md && test -f reports/primary_disclosure_learning_latest.md && test -f reports/primary_disclosure_category_learning_latest.md && test -f reports/source_health_latest.md",
     "launchd:install": "mkdir -p logs && cp launchd/com.alpha-pon.daily.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.alpha-pon.daily.plist && echo 'launchd登録完了'",
     "launchd:uninstall": "launchctl unload ~/Library/LaunchAgents/com.alpha-pon.daily.plist && rm ~/Library/LaunchAgents/com.alpha-pon.daily.plist && echo 'launchd登録解除完了'",
