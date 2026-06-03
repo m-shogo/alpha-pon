@@ -43,7 +43,7 @@
     "typecheck": "tsc --noEmit",
     "typecheck:tests": "tsc --noEmit -p tsconfig.test.json",
     "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json",
-    "test": "node --import tsx/esm tests/score.test.ts && node --import tsx/esm tests/validation.test.ts && node --import tsx/esm tests/analysis.test.ts && node --import tsx/esm tests/expert-ensemble.test.ts && node --import tsx/esm tests/stock-decision.test.ts && node --import tsx/esm tests/price-signal.test.ts && node --import tsx/esm tests/safe-wording.test.ts && node --import tsx/esm tests/pro-disagreement.test.ts",
+    "test": "node --import tsx/esm tests/score.test.ts && node --import tsx/esm tests/validation.test.ts && node --import tsx/esm tests/analysis.test.ts && node --import tsx/esm tests/expert-ensemble.test.ts && node --import tsx/esm tests/stock-decision.test.ts && node --import tsx/esm tests/price-signal.test.ts && node --import tsx/esm tests/safe-wording.test.ts && node --import tsx/esm tests/pro-disagreement.test.ts && node --import tsx/esm tests/pro-generated-data-shape.test.ts",
     "check": "pnpm typecheck && pnpm typecheck:tests && pnpm typecheck:scripts && pnpm test",
     "ci:smoke": "NOTIFY_MODE=off pnpm daily:mock && pnpm learn:primary && pnpm health:sources && test -f reports/latest.md && test -f reports/primary_disclosure_learning_latest.md && test -f reports/primary_disclosure_category_learning_latest.md && test -f reports/source_health_latest.md",
     "launchd:install": "mkdir -p logs && cp launchd/com.alpha-pon.daily.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.alpha-pon.daily.plist && echo 'launchd登録完了'",
