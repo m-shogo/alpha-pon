@@ -44,8 +44,8 @@ export function generateStockRule(input: GenerateStockRuleInput): GeneratedStock
         priceSignal: input.priceSignal,
         priceRiskWarnings,
         privateMemo: chaseGuardSignals.length > 0
-          ? '先行カタリストはあるが高値追い/FOMO警告を検出。買い候補ではなく押し目待ちに落とす。'
-          : '価格データ未取得でも先行カタリストを検出。人間より遅れないためENTRY_WATCHにする。',
+          ? '先行カタリストはあるが高値追い/FOMO警告を検出。調査候補ではなく押し目待ちに落とす。'
+          : '価格データ未取得でも先行カタリストを検出。見落とし防止のため監視対象にする。',
         publicMemo: chaseGuardSignals.length > 0
           ? '先行材料はあるが、過熱・織り込み済み確認を優先する監視シグナルです。'
           : '先行材料を検出。投資助言ではなく、一次情報と需給を急ぎ確認する監視シグナルです。',

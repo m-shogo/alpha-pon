@@ -156,7 +156,7 @@ function testNoHardcodedStockCode() {
 // ── private/portfolio 表示変換テスト ────────────────────────────────
 
 function testDisplaySignal() {
-  const privateMap: Record<InternalSignal, string> = { ENTRY_WATCH: '新規買い候補', ADD_WATCH: '買い足し候補', HOLD: '保有継続', TRIM_WATCH: '一部売り検討', EXIT_WATCH: '撤退検討', NO_ACTION: '何もしない', DANGER: '危険' };
+  const privateMap: Record<InternalSignal, string> = { ENTRY_WATCH: '新規調査候補', ADD_WATCH: '追加調査候補', HOLD: '継続監視', TRIM_WATCH: '一部整理検討', EXIT_WATCH: '撤退条件確認', NO_ACTION: '何もしない', DANGER: '危険' };
   const portfolioMap: Record<InternalSignal, string> = { ENTRY_WATCH: '監視候補', ADD_WATCH: '優先監視', HOLD: '保有観察', TRIM_WATCH: '一部整理検討', EXIT_WATCH: '撤退検討', NO_ACTION: '様子見', DANGER: '危険' };
   const signals: InternalSignal[] = ['ENTRY_WATCH', 'ADD_WATCH', 'HOLD', 'TRIM_WATCH', 'EXIT_WATCH', 'NO_ACTION', 'DANGER'];
   for (const sig of signals) {

@@ -89,7 +89,7 @@ export function judgeStockAction(input: StockDecisionInput): StockDecision {
     return {
       signal: 'NO_ACTION',
       score,
-      message: '保有比率が高いため、買い足しよりリスク管理優先',
+      message: '保有比率が高いため、追加よりリスク管理優先',
       reasons,
       risks: [...risks, 'ポジション比率が高い'],
     }
@@ -118,7 +118,7 @@ export function judgeStockAction(input: StockDecisionInput): StockDecision {
     score >= 75 &&
     (input.unrealizedGainPct ?? 0) <= 5
   ) {
-    return { signal: 'ADD_WATCH', score, message: '買い足し監視候補', reasons, risks }
+    return { signal: 'ADD_WATCH', score, message: '追加調査監視候補', reasons, risks }
   }
 
   if (
@@ -129,7 +129,7 @@ export function judgeStockAction(input: StockDecisionInput): StockDecision {
     return {
       signal: 'TRIM_WATCH',
       score,
-      message: '一部売り検討候補',
+      message: '一部整理検討候補',
       reasons,
       risks: [...risks, '含み益拡大後の過熱に注意'],
     }

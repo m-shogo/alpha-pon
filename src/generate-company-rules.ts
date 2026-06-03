@@ -150,8 +150,8 @@ function generateStockRule(input: GenerateStockRuleInput): GeneratedStockRule {
         priceSignal: input.priceSignal,
         priceRiskWarnings: input.priceRiskWarnings,
         privateMemo: chaseGuardSignals.length > 0
-          ? `先行カタリストはあるが高値追い/FOMO警告を検出。買い候補ではなく押し目待ち。過去5年類推: ${recentLessons.map(lesson => lesson.title).join(" / ") || "なし"}`
-          : `価格データ未取得でも先行カタリストを検出。人間より遅れないためENTRY_WATCHにする。過去5年類推: ${recentLessons.map(lesson => lesson.title).join(" / ") || "なし"}`,
+          ? `先行カタリストはあるが高値追い/FOMO警告を検出。調査候補ではなく押し目待ち。過去5年類推: ${recentLessons.map(lesson => lesson.title).join(" / ") || "なし"}`
+          : `価格データ未取得でも先行カタリストを検出。見落とし防止のため監視対象にする。過去5年類推: ${recentLessons.map(lesson => lesson.title).join(" / ") || "なし"}`,
         publicMemo: chaseGuardSignals.length > 0
           ? "先行材料はあるが、過熱・織り込み済み確認を優先する監視シグナルです。"
           : "先行材料を検出。投資助言ではなく、一次情報と需給を急ぎ確認する監視シグナルです。",
