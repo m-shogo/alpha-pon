@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
+import type { AgentVerdict, CommitteeDecision, ProFinalLabel, StockProScore } from "./pro-types.js";
 
 type AgentConfig = {
   agents?: Array<{ id: string; label: string; mission: string; must_check?: string[]; reject_when?: string[]; output: string }>;
@@ -23,14 +24,21 @@ type Network = { companies?: Record<string, NetworkEntry> };
 type IrEventEntry = { type: string; label: string; date?: string | null; sourceUrl?: string | null; sourceStatus?: string };
 type IrEvents = { companies?: Record<string, { events?: IrEventEntry[] }> };
 
+type AgentView = { stance: ProFinalLabel | "注意"; points: string[] };
+
 function readYaml<T>(path: string, fallback: T): T {
   if (!existsSync(path)) return fallback;
   return load(readFileSync(path, "utf-8")) as T;
 }
 
-function agentView(agentId: string, company: Company, network?: NetworkEntry, irEvents: IrEventEntry[] = []): { stance: string; points: string[] } {
+function toFinalLabel(stance: AgentView["stance"]): ProFinalLabel {
+  if (stance === "注意") return "保留";
+  return stance;
+}
+
+function agentView(agentId: string, company: Company, network?: NetworkEntry, irEvents: IrEventEntry[] = []): AgentView {
   const points: string[] = [];
-  let stance = "保留";
+  let stance: AgentView["stance"] = "保留";
 
   if (agentId === "event_driven_agent") {
     if (irEvents.length === 0) {
@@ -85,12 +93,48 @@ function agentView(agentId: string, company: Company, network?: NetworkEntry, ir
   return { stance, points };
 }
 
-function finalDecision(views: Array<{ stance: string }>): string {
+function finalDecision(views: Array<{ stance: string }>): ProFinalLabel {
   const stances = views.map(v => v.stance);
   if (stances.includes("証拠不足")) return "証拠不足";
   if (stances.filter(v => v === "保留").length >= 2) return "保留";
   if (stances.includes("注意")) return "保留";
   return "調査候補";
+}
+
+function toVerdict(agentId: string, label: string, view: AgentView): AgentVerdict {
+  const stance = toFinalLabel(view.stance);
+  const missingEvidence = view.points.filter(point => /不足|未登録|未確認|要確認/.test(point));
+  const blockerReasons = stance === "証拠不足" || stance === "避ける" ? missingEvidence : [];
+  return {
+    agentId,
+    label,
+    stance,
+    confidence: stance === "証拠不足" ? 0.35 : stance === "保留" ? 0.55 : 0.7,
+    positiveEvidence: stance === "調査候補" ? view.points : [],
+    negativeEvidence: stance !== "調査候補" ? view.points : [],
+    missingEvidence,
+    blockerReasons,
+    scoreContribution: {
+      businessQuality: agentId === "buffett_quality_agent" ? (stance === "証拠不足" ? 20 : 50) : undefined,
+      valuation: agentId === "valuation_agent" ? (stance === "証拠不足" ? 20 : 50) : undefined,
+      timing: agentId === "event_driven_agent" ? (stance === "証拠不足" ? 20 : 55) : undefined,
+      evidenceQuality: missingEvidence.length > 0 ? 30 : 65,
+      riskPenalty: blockerReasons.length * 10,
+    },
+  };
+}
+
+function buildProScore(company: Company, finalLabel: ProFinalLabel, verdicts: AgentVerdict[]): StockProScore {
+  const missingEvidence = [...new Set(verdicts.flatMap(v => v.missingEvidence))];
+  const blockers = [...new Set(verdicts.flatMap(v => v.blockerReasons))];
+  const avg = (values: number[]) => values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 50;
+  const businessQualityScore = Math.round(avg(verdicts.map(v => v.scoreContribution.businessQuality).filter((v): v is number => v != null)));
+  const valuationScore = Math.round(avg(verdicts.map(v => v.scoreContribution.valuation).filter((v): v is number => v != null)));
+  const timingScore = Math.round(avg(verdicts.map(v => v.scoreContribution.timing).filter((v): v is number => v != null)));
+  const evidenceQualityScore = Math.round(avg(verdicts.map(v => v.scoreContribution.evidenceQuality).filter((v): v is number => v != null)));
+  const riskPenalty = Math.min(100, blockers.length * 10 + verdicts.filter(v => v.stance === "証拠不足").length * 8);
+  const finalScore = Math.max(0, Math.round((businessQualityScore + valuationScore + timingScore + evidenceQualityScore) / 4 - riskPenalty));
+  return { code: company.code, name: company.name, businessQualityScore, valuationScore, timingScore, evidenceQualityScore, riskPenalty, finalScore, finalLabel, blockers, missingEvidence };
 }
 
 function main() {
@@ -103,25 +147,30 @@ function main() {
   const order = agents.agent_order ?? (agents.agents ?? []).map(agent => agent.id);
 
   const lines: string[] = [];
-  lines.push("# alpha-pon stock pro committee report");
-  lines.push("");
-  lines.push(`date: ${date}`);
-  lines.push("");
-  lines.push("複数の株Pro視点で同じ銘柄を見て、合意点・対立点・不足情報・次アクションを出します。買い推奨ではありません。");
-  lines.push("");
+  const decisions: CommitteeDecision[] = [];
+  lines.push("# alpha-pon stock pro committee report", "", `date: ${date}`, "", "複数の株Pro視点で同じ銘柄を見て、合意点・対立点・不足情報・次アクションを出します。買い推奨ではありません。", "");
 
   for (const [categoryId, category] of Object.entries(hypotheses.categories ?? {})) {
-    lines.push(`## ${category.label} (${categoryId})`);
-    lines.push("");
+    lines.push(`## ${category.label} (${categoryId})`, "");
     for (const company of category.companies ?? []) {
       const companyNetwork = network.companies?.[company.code];
       const companyIrEvents = irEvents.companies?.[company.code]?.events ?? [];
       const views = order.map(agentId => ({ agentId, agent: agentById.get(agentId), ...agentView(agentId, company, companyNetwork, companyIrEvents) }));
       const decision = finalDecision(views);
       const disagreement = new Set(views.map(view => view.stance)).size > 1;
+      const verdicts = views.map(view => toVerdict(view.agentId, view.agent?.label ?? view.agentId, { stance: view.stance, points: view.points }));
+      const proScore = buildProScore(company, decision, verdicts);
+      const nextActions = decision === "証拠不足"
+        ? ["公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認", "財務品質・バリュエーション・競合比較を埋める"]
+        : decision === "保留"
+          ? ["上がらない理由と下がる理由を補強", "better peer risk とバリュエーション過熱を確認"]
+          : ["調査候補。ただし取引判断ではなく、一次情報と価格確認を継続"];
+
+      decisions.push({ code: company.code, name: company.name, finalLabel: decision, finalScore: proScore.finalScore, proScore, verdicts, nextActions, blockers: proScore.blockers, missingEvidence: proScore.missingEvidence });
 
       lines.push(`### ${company.code} ${company.name}`);
       lines.push(`- committee decision: **${decision}**`);
+      lines.push(`- final score: ${proScore.finalScore}`);
       lines.push(`- disagreement: ${disagreement ? "あり" : "なし"}`);
       lines.push("- agent views:");
       for (const view of views) {
@@ -129,28 +178,17 @@ function main() {
         for (const point of view.points.slice(0, 4)) lines.push(`    - ${point}`);
       }
       lines.push("- next actions:");
-      if (decision === "証拠不足") {
-        lines.push("  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認");
-        lines.push("  - 財務品質・バリュエーション・競合比較を埋める");
-      } else if (decision === "保留") {
-        lines.push("  - 上がらない理由と下がる理由を補強");
-        lines.push("  - better peer risk とバリュエーション過熱を確認");
-      } else {
-        lines.push("  - 調査候補。ただし買い判断ではなく、一次情報と価格確認を継続");
-      }
+      nextActions.forEach(action => lines.push(`  - ${action}`));
       lines.push("");
     }
   }
 
-  lines.push("## rule");
-  lines.push("- 委員会decisionは買い推奨ではない");
-  lines.push("- 1人でも証拠不足が強い場合、原則ラベルを上げない");
-  lines.push("- agent viewsが割れた銘柄は、意見対立そのものを価値ある情報として残す");
-  lines.push("- 調査候補より、保留/証拠不足の理由の質を上げる");
+  lines.push("## rule", "- 委員会decisionは買い推奨ではない", "- 1人でも証拠不足が強い場合、原則ラベルを上げない", "- agent viewsが割れた銘柄は、意見対立そのものを価値ある情報として残す", "- 調査候補より、保留/証拠不足の理由の質を上げる");
 
   mkdirSync("reports", { recursive: true });
   writeFileSync(join("reports", "stock_pro_committee_latest.md"), lines.join("\n"), "utf-8");
-  console.log("stock pro committee report generated");
+  writeFileSync(join("reports", "stock_pro_committee_latest.json"), JSON.stringify({ generatedAt: date, decisions }, null, 2), "utf-8");
+  console.log(`stock pro committee report generated: ${decisions.length}`);
 }
 
 main();
