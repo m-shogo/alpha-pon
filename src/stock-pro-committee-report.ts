@@ -2,67 +2,43 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
-import type { AgentVerdict, CommitteeDecision, ProFinalLabel, StockProScore } from "./pro-types.js";
+import { buildLegendAgentVerdicts, summarizeLegendWarnings } from "./legend-pro-agents.js";
+import type { AgentVerdict, BuffettQualitySnapshot, CommitteeDecision, IrEventEvidence, ProFinalLabel, StockProScore, ValuationSnapshot } from "./pro-types.js";
+import type { AccuracySummary, HypothesisOutcome, WorldContext } from "./universe.js";
 
-type AgentConfig = {
-  agents?: Array<{ id: string; label: string; mission: string; must_check?: string[]; reject_when?: string[]; output: string }>;
-  agent_order?: string[];
-};
-
-type Company = {
-  code: string;
-  name: string;
-  noMoveHypothesis?: string;
-  downsideHypothesis?: string;
-  evidenceToCheck?: string[];
-  nonMoveReasonCandidates?: string[];
-  relatedCompanies?: string[];
-};
+type AgentConfig = { agents?: Array<{ id: string; label: string; mission: string; must_check?: string[]; reject_when?: string[]; output: string }>; agent_order?: string[] };
+type Company = { code: string; name: string; role?: string; noMoveHypothesis?: string; downsideHypothesis?: string; evidenceToCheck?: string[]; nonMoveReasonCandidates?: string[]; relatedCompanies?: string[] };
 type Hypotheses = { categories?: Record<string, { label: string; thesis?: string; companies?: Company[] }> };
 type NetworkEntry = { peers?: Array<{ code: string; name: string; relation: string }>; betterPeerRisk?: string[]; evidenceChecks?: string[]; customerOrDemandDrivers?: string[] };
 type Network = { companies?: Record<string, NetworkEntry> };
 type IrEventEntry = { type: string; label: string; date?: string | null; sourceUrl?: string | null; sourceStatus?: string };
 type IrEvents = { companies?: Record<string, { events?: IrEventEntry[] }> };
-
 type AgentView = { stance: ProFinalLabel | "注意"; points: string[] };
 
-function readYaml<T>(path: string, fallback: T): T {
-  if (!existsSync(path)) return fallback;
-  return load(readFileSync(path, "utf-8")) as T;
-}
-
-function toFinalLabel(stance: AgentView["stance"]): ProFinalLabel {
-  if (stance === "注意") return "保留";
-  return stance;
-}
+function readYaml<T>(path: string, fallback: T): T { if (!existsSync(path)) return fallback; return load(readFileSync(path, "utf-8")) as T; }
+function readJson<T>(path: string, fallback: T): T { if (!existsSync(path)) return fallback; try { return JSON.parse(readFileSync(path, "utf-8")) as T; } catch { return fallback; } }
+function toFinalLabel(stance: AgentView["stance"]): ProFinalLabel { return stance === "注意" ? "保留" : stance; }
 
 function agentView(agentId: string, company: Company, network?: NetworkEntry, irEvents: IrEventEntry[] = []): AgentView {
   const points: string[] = [];
   let stance: AgentView["stance"] = "保留";
-
   if (agentId === "event_driven_agent") {
-    if (irEvents.length === 0) {
-      stance = "証拠不足";
-      points.push("直近IRイベント未登録。決算・総会・配当・資本政策確認が必要");
-    } else {
+    if (irEvents.length === 0) { stance = "証拠不足"; points.push("直近IRイベント未登録。決算・総会・配当・資本政策確認が必要"); }
+    else {
       const unconfirmed = irEvents.filter(event => !event.date || !event.sourceUrl || event.sourceStatus?.includes("required"));
       stance = unconfirmed.length > 0 ? "証拠不足" : "注意";
       for (const event of irEvents) points.push(`${event.label}: date=${event.date ?? "要確認"} source=${event.sourceStatus ?? "unknown"}`);
     }
   } else if (agentId === "theme_network_agent") {
-    if (!network) {
-      stance = "証拠不足";
-      points.push("company-network未登録。テーマの本命/周辺/競合が未確認");
-    } else {
+    if (!network) { stance = "証拠不足"; points.push("company-network未登録。テーマの本命/周辺/競合が未確認"); }
+    else {
       stance = (network.betterPeerRisk ?? []).length > 0 ? "保留" : "調査候補";
       for (const risk of network.betterPeerRisk ?? []) points.push(`better peer risk: ${risk}`);
       for (const peer of network.peers ?? []) points.push(`peer: ${peer.code} ${peer.name} / ${peer.relation}`);
     }
   } else if (agentId === "bear_case_agent") {
-    if (!company.noMoveHypothesis && !company.downsideHypothesis) {
-      stance = "証拠不足";
-      points.push("上がらない理由/下がる理由が不足");
-    } else {
+    if (!company.noMoveHypothesis && !company.downsideHypothesis) { stance = "証拠不足"; points.push("上がらない理由/下がる理由が不足"); }
+    else {
       stance = "保留";
       if (company.noMoveHypothesis) points.push(`上がらない理由: ${company.noMoveHypothesis}`);
       if (company.downsideHypothesis) points.push(`下がる理由: ${company.downsideHypothesis}`);
@@ -88,7 +64,6 @@ function agentView(agentId: string, company: Company, network?: NetworkEntry, ir
     if (!company.noMoveHypothesis) points.push("上がらない理由が不足");
     if (!company.downsideHypothesis) points.push("下がる理由が不足");
   }
-
   if (points.length === 0) points.push("追加確認なし");
   return { stance, points };
 }
@@ -105,23 +80,7 @@ function toVerdict(agentId: string, label: string, view: AgentView): AgentVerdic
   const stance = toFinalLabel(view.stance);
   const missingEvidence = view.points.filter(point => /不足|未登録|未確認|要確認/.test(point));
   const blockerReasons = stance === "証拠不足" || stance === "避ける" ? missingEvidence : [];
-  return {
-    agentId,
-    label,
-    stance,
-    confidence: stance === "証拠不足" ? 0.35 : stance === "保留" ? 0.55 : 0.7,
-    positiveEvidence: stance === "調査候補" ? view.points : [],
-    negativeEvidence: stance !== "調査候補" ? view.points : [],
-    missingEvidence,
-    blockerReasons,
-    scoreContribution: {
-      businessQuality: agentId === "buffett_quality_agent" ? (stance === "証拠不足" ? 20 : 50) : undefined,
-      valuation: agentId === "valuation_agent" ? (stance === "証拠不足" ? 20 : 50) : undefined,
-      timing: agentId === "event_driven_agent" ? (stance === "証拠不足" ? 20 : 55) : undefined,
-      evidenceQuality: missingEvidence.length > 0 ? 30 : 65,
-      riskPenalty: blockerReasons.length * 10,
-    },
-  };
+  return { agentId, label, stance, confidence: stance === "証拠不足" ? 0.35 : stance === "保留" ? 0.55 : 0.7, positiveEvidence: stance === "調査候補" ? view.points : [], negativeEvidence: stance !== "調査候補" ? view.points : [], missingEvidence, blockerReasons, scoreContribution: { businessQuality: agentId === "buffett_quality_agent" ? (stance === "証拠不足" ? 20 : 50) : undefined, valuation: agentId === "valuation_agent" ? (stance === "証拠不足" ? 20 : 50) : undefined, timing: agentId === "event_driven_agent" ? (stance === "証拠不足" ? 20 : 55) : undefined, evidenceQuality: missingEvidence.length > 0 ? 30 : 65, riskPenalty: blockerReasons.length * 10 } };
 }
 
 function buildProScore(company: Company, finalLabel: ProFinalLabel, verdicts: AgentVerdict[]): StockProScore {
@@ -143,9 +102,18 @@ function main() {
   const hypotheses = readYaml<Hypotheses>("config/company-hypotheses.yml", {});
   const network = readYaml<Network>("config/company-network.yml", {});
   const irEvents = readYaml<IrEvents>("config/company-ir-events.yml", {});
+  const buffettQuality = readJson<{ snapshots?: BuffettQualitySnapshot[] }>("data/buffett_quality_latest.json", { snapshots: [] });
+  const valuationSnapshots = readJson<{ snapshots?: ValuationSnapshot[] }>("data/valuation_snapshot_latest.json", { snapshots: [] });
+  const irEventEvidence = readJson<{ events?: IrEventEvidence[] }>("data/ir_event_evidence_latest.json", { events: [] });
+  const outcomes = readJson<{ outcomes?: HypothesisOutcome[] }>("apps/web/public/generated/outcomes.json", { outcomes: [] }).outcomes ?? [];
+  const accuracySummary = readJson<AccuracySummary | null>("data/hypothesis_accuracy_summary.json", null);
+  const worldContext = readJson<WorldContext | null>("data/world_context_latest.json", null);
+  const qualityByCode = new Map((buffettQuality.snapshots ?? []).map(item => [item.code, item]));
+  const valuationByCode = new Map((valuationSnapshots.snapshots ?? []).map(item => [item.code, item]));
+  const irEvidenceByCode = new Map<string, IrEventEvidence[]>();
+  for (const event of irEventEvidence.events ?? []) irEvidenceByCode.set(event.code, [...(irEvidenceByCode.get(event.code) ?? []), event]);
   const agentById = new Map((agents.agents ?? []).map(agent => [agent.id, agent]));
   const order = agents.agent_order ?? (agents.agents ?? []).map(agent => agent.id);
-
   const lines: string[] = [];
   const decisions: CommitteeDecision[] = [];
   lines.push("# alpha-pon stock pro committee report", "", `date: ${date}`, "", "複数の株Pro視点で同じ銘柄を見て、合意点・対立点・不足情報・次アクションを出します。買い推奨ではありません。", "");
@@ -159,24 +127,20 @@ function main() {
       const decision = finalDecision(views);
       const disagreement = new Set(views.map(view => view.stance)).size > 1;
       const verdicts = views.map(view => toVerdict(view.agentId, view.agent?.label ?? view.agentId, { stance: view.stance, points: view.points }));
+      const legendVerdicts = buildLegendAgentVerdicts({ company, network: companyNetwork, irEvents: irEvidenceByCode.get(company.code), buffettQuality: qualityByCode.get(company.code), valuation: valuationByCode.get(company.code), outcomes, accuracySummary, worldContext });
+      const legendWarnings = summarizeLegendWarnings(legendVerdicts);
       const proScore = buildProScore(company, decision, verdicts);
-      const nextActions = decision === "証拠不足"
-        ? ["公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認", "財務品質・バリュエーション・競合比較を埋める"]
-        : decision === "保留"
-          ? ["上がらない理由と下がる理由を補強", "better peer risk とバリュエーション過熱を確認"]
-          : ["調査候補。ただし取引判断ではなく、一次情報と価格確認を継続"];
-
-      decisions.push({ code: company.code, name: company.name, finalLabel: decision, finalScore: proScore.finalScore, proScore, verdicts, nextActions, blockers: proScore.blockers, missingEvidence: proScore.missingEvidence });
-
+      const nextActions = decision === "証拠不足" ? ["公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認", "財務品質・バリュエーション・競合比較を埋める"] : decision === "保留" ? ["上がらない理由と下がる理由を補強", "better peer risk とバリュエーション過熱を確認"] : ["調査候補。ただし取引判断ではなく、一次情報と価格確認を継続"];
+      decisions.push({ code: company.code, name: company.name, finalLabel: decision, finalScore: proScore.finalScore, proScore, verdicts, legendVerdicts, legendWarnings, nextActions, blockers: proScore.blockers, missingEvidence: proScore.missingEvidence });
       lines.push(`### ${company.code} ${company.name}`);
       lines.push(`- committee decision: **${decision}**`);
       lines.push(`- final score: ${proScore.finalScore}`);
       lines.push(`- disagreement: ${disagreement ? "あり" : "なし"}`);
       lines.push("- agent views:");
-      for (const view of views) {
-        lines.push(`  - ${view.agent?.label ?? view.agentId}: ${view.stance}`);
-        for (const point of view.points.slice(0, 4)) lines.push(`    - ${point}`);
-      }
+      for (const view of views) { lines.push(`  - ${view.agent?.label ?? view.agentId}: ${view.stance}`); for (const point of view.points.slice(0, 4)) lines.push(`    - ${point}`); }
+      lines.push("- legend pro views:");
+      for (const view of legendVerdicts.slice(0, 10)) lines.push(`  - ${view.label}: ${view.stance} (${view.confidence.toFixed(2)})`);
+      if (legendWarnings.length > 0) { lines.push("- legend warnings:"); legendWarnings.slice(0, 6).forEach(warning => lines.push(`  - ${warning}`)); }
       lines.push("- next actions:");
       nextActions.forEach(action => lines.push(`  - ${action}`));
       lines.push("");
@@ -184,7 +148,6 @@ function main() {
   }
 
   lines.push("## rule", "- 委員会decisionは買い推奨ではない", "- 1人でも証拠不足が強い場合、原則ラベルを上げない", "- agent viewsが割れた銘柄は、意見対立そのものを価値ある情報として残す", "- 調査候補より、保留/証拠不足の理由の質を上げる");
-
   mkdirSync("reports", { recursive: true });
   writeFileSync(join("reports", "stock_pro_committee_latest.md"), lines.join("\n"), "utf-8");
   writeFileSync(join("reports", "stock_pro_committee_latest.json"), JSON.stringify({ generatedAt: date, decisions }, null, 2), "utf-8");
