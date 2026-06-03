@@ -11,6 +11,13 @@ import { join } from "path";
 import { load } from "js-yaml";
 import { addDaysJst, todayJst } from "./date.js";
 import { searchMarketLessons } from "./analysis/market-lessons-db.js";
+import {
+  buildPriceSignalFromCandidate,
+  emptyPriceSignal,
+  evaluatePriceRisk,
+  type PriceRiskWarning,
+  type PriceSignal,
+} from "./analysis/price-signal.js";
 
 // ── 型定義（apps/web/lib/stock/rules/types.ts と同形状） ────────────────
 
@@ -55,6 +62,8 @@ type GenerateStockRuleInput = {
   companyTheme: string[];
   currentThesis: string[];
   knownRisks: string[];
+  priceSignal: PriceSignal;
+  priceRiskWarnings: PriceRiskWarning[];
   positionStatus: "not_owned" | "owned";
   unrealizedGainPct?: number | null;
   positionWeightPct?: number | null;
@@ -76,6 +85,8 @@ type GeneratedStockRule = {
   evidenceNeeded: string[];
   reasons: string[];
   risks: string[];
+  priceSignal: PriceSignal;
+  priceRiskWarnings: PriceRiskWarning[];
   privateMemo: string;
   publicMemo: string;
   reviewDueAt: string;
@@ -136,6 +147,8 @@ function generateStockRule(input: GenerateStockRuleInput): GeneratedStockRule {
           ...chaseGuardSignals,
           ...recentLessons.map(lesson => lesson.risk),
         ],
+        priceSignal: input.priceSignal,
+        priceRiskWarnings: input.priceRiskWarnings,
         privateMemo: chaseGuardSignals.length > 0
           ? `先行カタリストはあるが高値追い/FOMO警告を検出。買い候補ではなく押し目待ち。過去5年類推: ${recentLessons.map(lesson => lesson.title).join(" / ") || "なし"}`
           : `価格データ未取得でも先行カタリストを検出。人間より遅れないためENTRY_WATCHにする。過去5年類推: ${recentLessons.map(lesson => lesson.title).join(" / ") || "なし"}`,
@@ -161,6 +174,8 @@ function generateStockRule(input: GenerateStockRuleInput): GeneratedStockRule {
       evidenceNeeded: ["現在株価", "52週高値/安値", "直近決算"],
       reasons: [],
       risks: ["株価データ未取得"],
+      priceSignal: input.priceSignal,
+      priceRiskWarnings: input.priceRiskWarnings,
       privateMemo: "株価未取得のため判断しない",
       publicMemo: "データ不足のため様子見",
       reviewDueAt,
@@ -238,6 +253,12 @@ function generateStockRule(input: GenerateStockRuleInput): GeneratedStockRule {
     invalidationSignals.push("出来高急増後に上値が重い", "材料発表後の寄り天・陰線・相対弱含み");
   }
 
+  if (input.priceRiskWarnings.length > 0) {
+    for (const warning of input.priceRiskWarnings) {
+      risks.push(`${warning.reason}: ${warning.evidence.join(" / ")}`);
+    }
+  }
+
   if (recentLessons.length > 0) {
     reasons.push(...recentLessons.map(lesson => `過去5年学習: ${lesson.title}`));
     risks.push(...recentLessons.map(lesson => lesson.risk));
@@ -272,6 +293,8 @@ function generateStockRule(input: GenerateStockRuleInput): GeneratedStockRule {
   let actionSignal: InternalSignal = "NO_ACTION";
   if (input.hasDangerDisclosure) {
     actionSignal = "DANGER";
+  } else if (input.priceRiskWarnings.some(w => w.level === "block") && input.positionStatus === "not_owned") {
+    actionSignal = "WAIT_PULLBACK";
   } else if (chaseGuardSignals.length > 0 && input.positionStatus === "not_owned" && fastCatalysts.length > 0) {
     actionSignal = "WAIT_PULLBACK";
   } else if (score >= 75 && input.positionStatus === "not_owned") {
@@ -325,6 +348,8 @@ function generateStockRule(input: GenerateStockRuleInput): GeneratedStockRule {
     ],
     reasons,
     risks,
+    priceSignal: input.priceSignal,
+    priceRiskWarnings: input.priceRiskWarnings,
     privateMemo: actionSignal === "WAIT_PULLBACK"
       ? `スコア${score}。良い材料はあるが、高値追い/FOMO警告を優先して押し目待ち。`
       : `スコア${score}。${actionSignal}シグナル。銘柄ごとの考察から自動生成。`,
@@ -366,6 +391,13 @@ function detectChaseGuardSignals(input: GenerateStockRuleInput): string[] {
   }
   if (input.drawdownFromHigh52wPct !== null && input.drawdownFromHigh52wPct > -10) {
     signals.push("52週高値近辺で押し目が浅い");
+  }
+  for (const warning of input.priceRiskWarnings) {
+    if (warning.level === "block") {
+      signals.push(`価格シグナルblock: ${warning.reason}`);
+    } else if (/高値|急騰|TOPIX|出来高|押し目/.test(warning.reason)) {
+      signals.push(`価格シグナル警告: ${warning.reason}`);
+    }
   }
 
   return [...new Set(signals)];
@@ -473,7 +505,52 @@ function loadCompanyMemory(code: string): CompanyMemoryRecord | null {
   }
 }
 
-function loadUniverseCandidates(): { code: string; name: string; currentPrice: number | null; drawdownPct: number | null; operatingProfitYoY: number | null; matchedWorldEventTags: string[]; dataSource: string; hasNegativeFlag?: boolean; hasRecentDisclosure?: boolean; warnings?: string[] }[] {
+function resolvePriceSignal(
+  code: string,
+  candidate: ReturnType<typeof loadUniverseCandidates>[number] | undefined,
+  memory: CompanyMemoryRecord | null,
+  asOf: string
+): PriceSignal {
+  if (candidate?.currentPrice != null) {
+    return buildPriceSignalFromCandidate(candidate, asOf);
+  }
+  const memoryText = [
+    ...(memory?.watchReason ?? []),
+    ...(memory?.knownRisks ?? []),
+    ...(memory?.recurringWarnings ?? []),
+  ].join(" ");
+  if (/過熱|短期急騰|FOMO|TOPIX比|相対的に強い|高値追い/.test(memoryText)) {
+    return {
+      ...emptyPriceSignal(code, asOf),
+      source: "company_memory",
+      quality: "stale",
+    };
+  }
+  return emptyPriceSignal(code, asOf);
+}
+
+function loadUniverseCandidates(): {
+  code: string;
+  name: string;
+  currentPrice: number | null;
+  drawdownPct: number | null;
+  change5dPct?: number | null;
+  change20dPct?: number | null;
+  topixChange5dPct?: number | null;
+  topixChange20dPct?: number | null;
+  relativeTopix5dPct?: number | null;
+  relativeTopix20dPct?: number | null;
+  volumeSpikeRatio?: number | null;
+  priceSignalSource?: string;
+  priceSignalQuality?: string;
+  priceRiskWarnings?: PriceRiskWarning[];
+  operatingProfitYoY: number | null;
+  matchedWorldEventTags: string[];
+  dataSource: string;
+  hasNegativeFlag?: boolean;
+  hasRecentDisclosure?: boolean;
+  warnings?: string[];
+}[] {
   const paths = [
     join(process.cwd(), "data", "universe_candidates_latest.json"),
   ];
@@ -510,6 +587,11 @@ async function main() {
     const candidate = universeCandidates.find(c => c.code === stock.code);
     const isMock = candidate?.dataSource === "mock" || !candidate;
     const memory = loadCompanyMemory(stock.code);
+    const priceSignal = resolvePriceSignal(stock.code, candidate, memory, today);
+    const priceRiskWarnings = [
+      ...(candidate?.priceRiskWarnings ?? []),
+      ...evaluatePriceRisk(priceSignal),
+    ];
 
     const input: GenerateStockRuleInput = {
       code: stock.code,
@@ -534,9 +616,12 @@ async function main() {
       knownRisks: [
         ...stock.risks,
         ...(candidate?.warnings ?? []),
+        ...priceRiskWarnings.map(warning => `${warning.level}: ${warning.reason} (${warning.evidence.join(", ")})`),
         ...(memory?.knownRisks ?? []),
         ...(memory?.recurringWarnings ?? []),
       ],
+      priceSignal,
+      priceRiskWarnings,
       positionStatus: "not_owned",
     };
 
@@ -554,6 +639,11 @@ async function main() {
   for (const c of universeOnly) {
     const isMock = c.dataSource === "mock";
     const memory = loadCompanyMemory(c.code);
+    const priceSignal = resolvePriceSignal(c.code, c, memory, today);
+    const priceRiskWarnings = [
+      ...(c.priceRiskWarnings ?? []),
+      ...evaluatePriceRisk(priceSignal),
+    ];
     const input: GenerateStockRuleInput = {
       code: c.code,
       name: c.name,
@@ -575,9 +665,12 @@ async function main() {
       ],
       knownRisks: [
         ...(c.warnings ?? []),
+        ...priceRiskWarnings.map(warning => `${warning.level}: ${warning.reason} (${warning.evidence.join(", ")})`),
         ...(memory?.knownRisks ?? []),
         ...(memory?.recurringWarnings ?? []),
       ],
+      priceSignal,
+      priceRiskWarnings,
       positionStatus: "not_owned",
     };
 

@@ -517,7 +517,9 @@
         "financial_crisis_rate_shock"
       ],
       "screeningScore": 85,
-      "warnings": [],
+      "warnings": [
+        "[STALE] J-Quants取得が全滅したため前回候補を暫定保持"
+      ],
       "status": "monitoring",
       "dataSource": "jquants"
     }
@@ -3164,6 +3166,29 @@
       "risks": [
         "株価データ未取得"
       ],
+      "priceSignal": {
+        "code": "8136",
+        "asOf": "2026-06-03",
+        "close": null,
+        "change5dPct": null,
+        "change20dPct": null,
+        "topixChange5dPct": null,
+        "topixChange20dPct": null,
+        "relativeTopix5dPct": null,
+        "relativeTopix20dPct": null,
+        "volumeSpikeRatio": null,
+        "source": "missing",
+        "quality": "missing"
+      },
+      "priceRiskWarnings": [
+        {
+          "level": "warning",
+          "reason": "価格データが取得できないため、高値判定の信頼度が低い",
+          "evidence": [
+            "price_signal: missing"
+          ]
+        }
+      ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
       "reviewDueAt": "2026-07-03T00:00:00+09:00"
@@ -3194,6 +3219,29 @@
       "reasons": [],
       "risks": [
         "株価データ未取得"
+      ],
+      "priceSignal": {
+        "code": "4661",
+        "asOf": "2026-06-03",
+        "close": null,
+        "change5dPct": null,
+        "change20dPct": null,
+        "topixChange5dPct": null,
+        "topixChange20dPct": null,
+        "relativeTopix5dPct": null,
+        "relativeTopix20dPct": null,
+        "volumeSpikeRatio": null,
+        "source": "missing",
+        "quality": "missing"
+      },
+      "priceRiskWarnings": [
+        {
+          "level": "warning",
+          "reason": "価格データが取得できないため、高値判定の信頼度が低い",
+          "evidence": [
+            "price_signal: missing"
+          ]
+        }
       ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
@@ -3226,6 +3274,29 @@
       "risks": [
         "株価データ未取得"
       ],
+      "priceSignal": {
+        "code": "7974",
+        "asOf": "2026-06-03",
+        "close": null,
+        "change5dPct": null,
+        "change20dPct": null,
+        "topixChange5dPct": null,
+        "topixChange20dPct": null,
+        "relativeTopix5dPct": null,
+        "relativeTopix20dPct": null,
+        "volumeSpikeRatio": null,
+        "source": "missing",
+        "quality": "missing"
+      },
+      "priceRiskWarnings": [
+        {
+          "level": "warning",
+          "reason": "価格データが取得できないため、高値判定の信頼度が低い",
+          "evidence": [
+            "price_signal: missing"
+          ]
+        }
+      ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
       "reviewDueAt": "2026-07-03T00:00:00+09:00"
@@ -3257,6 +3328,29 @@
       "risks": [
         "株価データ未取得"
       ],
+      "priceSignal": {
+        "code": "7011",
+        "asOf": "2026-06-03",
+        "close": null,
+        "change5dPct": null,
+        "change20dPct": null,
+        "topixChange5dPct": null,
+        "topixChange20dPct": null,
+        "relativeTopix5dPct": null,
+        "relativeTopix20dPct": null,
+        "volumeSpikeRatio": null,
+        "source": "missing",
+        "quality": "missing"
+      },
+      "priceRiskWarnings": [
+        {
+          "level": "warning",
+          "reason": "価格データが取得できないため、高値判定の信頼度が低い",
+          "evidence": [
+            "price_signal: missing"
+          ]
+        }
+      ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
       "reviewDueAt": "2026-07-03T00:00:00+09:00"
@@ -3286,6 +3380,29 @@
       "reasons": [],
       "risks": [
         "株価データ未取得"
+      ],
+      "priceSignal": {
+        "code": "5803",
+        "asOf": "2026-06-03",
+        "close": null,
+        "change5dPct": null,
+        "change20dPct": null,
+        "topixChange5dPct": null,
+        "topixChange20dPct": null,
+        "relativeTopix5dPct": null,
+        "relativeTopix20dPct": null,
+        "volumeSpikeRatio": null,
+        "source": "missing",
+        "quality": "missing"
+      },
+      "priceRiskWarnings": [
+        {
+          "level": "warning",
+          "reason": "価格データが取得できないため、高値判定の信頼度が低い",
+          "evidence": [
+            "price_signal: missing"
+          ]
+        }
       ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
@@ -3317,6 +3434,29 @@
       "reasons": [],
       "risks": [
         "株価データ未取得"
+      ],
+      "priceSignal": {
+        "code": "8306",
+        "asOf": "2026-06-03",
+        "close": null,
+        "change5dPct": null,
+        "change20dPct": null,
+        "topixChange5dPct": null,
+        "topixChange20dPct": null,
+        "relativeTopix5dPct": null,
+        "relativeTopix20dPct": null,
+        "volumeSpikeRatio": null,
+        "source": "missing",
+        "quality": "missing"
+      },
+      "priceRiskWarnings": [
+        {
+          "level": "warning",
+          "reason": "価格データが取得できないため、高値判定の信頼度が低い",
+          "evidence": [
+            "price_signal: missing"
+          ]
+        }
       ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
@@ -3379,10 +3519,34 @@
         "株価データ未取得のため価格帯は未計算",
         "早耳材料は期待先行になりやすい",
         "過熱・高値追い・FOMO警告あり",
+        "価格シグナル警告: 直近価格は未取得だが、銘柄メモリに高値追い警告が残っている",
         "過去5年の罠: AI関連なら全部買い",
         "過去5年の罠: 大型IPOは必ず関連株にプラス",
         "過去5年の罠: AIと名がつけば全部上がる",
         "過去5年の罠: AIはソフトウェアだけの話"
+      ],
+      "priceSignal": {
+        "code": "285A",
+        "asOf": "2026-06-03",
+        "close": null,
+        "change5dPct": null,
+        "change20dPct": null,
+        "topixChange5dPct": null,
+        "topixChange20dPct": null,
+        "relativeTopix5dPct": null,
+        "relativeTopix20dPct": null,
+        "volumeSpikeRatio": null,
+        "source": "company_memory",
+        "quality": "stale"
+      },
+      "priceRiskWarnings": [
+        {
+          "level": "warning",
+          "reason": "直近価格は未取得だが、銘柄メモリに高値追い警告が残っている",
+          "evidence": [
+            "price_signal: company_memory stale"
+          ]
+        }
       ],
       "privateMemo": "[MOCK] 先行カタリストはあるが高値追い/FOMO警告を検出。買い候補ではなく押し目待ち。過去5年類推: 2023-2026 AI設備投資相場：勝つのはAIっぽい会社ではなく不足資源を握る会社 / Arm上場後の半導体再評価：IPOは関連テーマの再値付けにもなる / AIインフラブーム：物語が売上に変わる企業だけが残る / AIデータセンター制約：電力・水・送電網がAI成長の上限になる",
       "publicMemo": "[MOCK] 先行材料はあるが、過熱・織り込み済み確認を優先する監視シグナルです。",
@@ -3459,6 +3623,21 @@
         "世界情勢（migration_labor_shortage・financial_crisis_rate_shock）と関連がある"
       ],
       "risks": [],
+      "priceSignal": {
+        "code": "4568",
+        "asOf": "2026-06-03",
+        "close": 2854.5,
+        "change5dPct": null,
+        "change20dPct": null,
+        "topixChange5dPct": null,
+        "topixChange20dPct": null,
+        "relativeTopix5dPct": null,
+        "relativeTopix20dPct": null,
+        "volumeSpikeRatio": null,
+        "source": "jquants",
+        "quality": "exact"
+      },
+      "priceRiskWarnings": [],
       "privateMemo": "スコア103。ENTRY_WATCHシグナル。銘柄ごとの考察から自動生成。",
       "publicMemo": "銘柄ごとのデータから生成された監視・検証用メモ。投資助言ではありません。",
       "reviewDueAt": "2026-07-03T00:00:00+09:00"

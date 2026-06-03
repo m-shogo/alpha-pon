@@ -47,6 +47,27 @@ function DetailList({ title, items, color, mark }: { title: string; items: strin
   )
 }
 
+function fmtPct(value: number | null | undefined) {
+  if (typeof value !== 'number') return 'N/A'
+  return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`
+}
+
+function PriceSignalStrip({ rule }: { rule: GeneratedStockRule }) {
+  const signal = rule.priceSignal
+  if (!signal) return null
+  const warnings = rule.priceRiskWarnings ?? []
+  const strongest = warnings.some(w => w.level === 'block') ? 'block' : warnings.some(w => w.level === 'warning') ? 'warning' : 'info'
+  const color = strongest === 'block' ? 'var(--urgent)' : strongest === 'warning' ? 'var(--amber)' : 'var(--ink-3)'
+
+  return (
+    <div style={{ marginTop: 8, padding: '7px 10px', background: 'var(--surface-2)', borderRadius: 8, fontSize: 11.5, color: 'var(--ink-2)' }}>
+      <span style={{ fontWeight: 850, color }}>価格シグナル: </span>
+      <span>5D {fmtPct(signal.change5dPct)} / 20D {fmtPct(signal.change20dPct)} / TOPIX比20D {fmtPct(signal.relativeTopix20dPct)} / 出来高 {signal.volumeSpikeRatio != null ? `${signal.volumeSpikeRatio.toFixed(1)}倍` : 'N/A'}</span>
+      <span style={{ marginLeft: 6, color: 'var(--ink-3)' }}>({signal.source}/{signal.quality})</span>
+    </div>
+  )
+}
+
 function ActionCard({ rule, mode }: { rule: GeneratedStockRule; mode: AppMode }) {
   const signal = rule.actionSignal as InternalSignal
   const color = getSignalColor(signal)
@@ -79,6 +100,7 @@ function ActionCard({ rule, mode }: { rule: GeneratedStockRule; mode: AppMode })
       <DetailList title="過去5年から見た罠" items={rule.risks} color="var(--amber)" mark="!" />
       <DetailList title="先に確認すること" items={rule.evidenceNeeded} color="var(--sky-deep)" mark="□" />
       <DetailList title="崩れたら見送り" items={rule.invalidationSignals} color="var(--urgent)" mark="×" />
+      <PriceSignalStrip rule={rule} />
 
       {rule.watchPriceZones.length > 0 && (
         <div style={{ marginTop: 8, padding: '6px 10px', background: 'var(--surface-2)', borderRadius: 8, fontSize: 11 }}>

@@ -12,6 +12,7 @@ export function generateStockRule(input: GenerateStockRuleInput): GeneratedStock
   const reviewDueAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
   const fastCatalysts = detectFastCatalysts(input)
   const chaseGuardSignals = detectChaseGuardSignals(input)
+  const priceRiskWarnings = input.priceRiskWarnings ?? []
 
   if (input.currentPrice == null) {
     if (fastCatalysts.length > 0) {
@@ -40,6 +41,8 @@ export function generateStockRule(input: GenerateStockRuleInput): GeneratedStock
           '早耳材料は期待先行になりやすい',
           ...chaseGuardSignals,
         ],
+        priceSignal: input.priceSignal,
+        priceRiskWarnings,
         privateMemo: chaseGuardSignals.length > 0
           ? '先行カタリストはあるが高値追い/FOMO警告を検出。買い候補ではなく押し目待ちに落とす。'
           : '価格データ未取得でも先行カタリストを検出。人間より遅れないためENTRY_WATCHにする。',
@@ -65,6 +68,8 @@ export function generateStockRule(input: GenerateStockRuleInput): GeneratedStock
       evidenceNeeded: ['現在株価', '52週高値/安値', '直近決算'],
       reasons: [],
       risks: ['株価データ未取得'],
+      priceSignal: input.priceSignal,
+      priceRiskWarnings,
       privateMemo: '株価未取得のため判断しない',
       publicMemo: 'データ不足のため様子見',
       reviewDueAt,
@@ -142,6 +147,12 @@ export function generateStockRule(input: GenerateStockRuleInput): GeneratedStock
     invalidationSignals.push('出来高急増後に上値が重い', '材料発表後の寄り天・陰線・相対弱含み')
   }
 
+  if (priceRiskWarnings.length > 0) {
+    for (const warning of priceRiskWarnings) {
+      risks.push(`${warning.reason}: ${warning.evidence.join(' / ')}`)
+    }
+  }
+
   const base = input.currentPrice
   const watchPriceZones: PriceZone[] = [
     {
@@ -170,6 +181,8 @@ export function generateStockRule(input: GenerateStockRuleInput): GeneratedStock
 
   if (input.hasDangerDisclosure) {
     actionSignal = 'DANGER'
+  } else if (priceRiskWarnings.some(w => w.level === 'block') && input.positionStatus === 'not_owned') {
+    actionSignal = 'WAIT_PULLBACK'
   } else if (chaseGuardSignals.length > 0 && input.positionStatus === 'not_owned' && fastCatalysts.length > 0) {
     actionSignal = 'WAIT_PULLBACK'
   } else if (score >= 75 && input.positionStatus === 'not_owned') {
@@ -225,6 +238,8 @@ export function generateStockRule(input: GenerateStockRuleInput): GeneratedStock
     ],
     reasons,
     risks,
+    priceSignal: input.priceSignal,
+    priceRiskWarnings,
     privateMemo: actionSignal === 'WAIT_PULLBACK'
       ? `スコア${score}。良い材料はあるが、高値追い/FOMO警告を優先して押し目待ち。`
       : `スコア${score}。${actionSignal}シグナル。銘柄ごとの考察から自動生成。`,
@@ -272,6 +287,13 @@ function detectChaseGuardSignals(input: GenerateStockRuleInput): string[] {
   }
   if ((input.recentReturn20dPct ?? 0) >= 15) {
     signals.push(`20日騰落率 +${input.recentReturn20dPct?.toFixed(1)}% で追いかけ注意`)
+  }
+  for (const warning of input.priceRiskWarnings ?? []) {
+    if (warning.level === 'block') {
+      signals.push(`価格シグナルblock: ${warning.reason}`)
+    } else if (/高値|急騰|TOPIX|出来高|押し目/.test(warning.reason)) {
+      signals.push(`価格シグナル警告: ${warning.reason}`)
+    }
   }
 
   return [...new Set(signals)]

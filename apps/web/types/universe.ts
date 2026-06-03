@@ -11,6 +11,20 @@ export type UniverseCandidate = {
   currentPrice: number | null
   high52w: number | null
   drawdownPct: number | null
+  change5dPct?: number | null
+  change20dPct?: number | null
+  topixChange5dPct?: number | null
+  topixChange20dPct?: number | null
+  relativeTopix5dPct?: number | null
+  relativeTopix20dPct?: number | null
+  volumeSpikeRatio?: number | null
+  priceSignalSource?: 'jquants' | 'external' | 'company_memory' | 'missing'
+  priceSignalQuality?: 'exact' | 'fallback' | 'stale' | 'missing'
+  priceRiskWarnings?: Array<{
+    level: 'info' | 'warning' | 'block'
+    reason: string
+    evidence: string[]
+  }>
   operatingProfitYoY: number | null
   hasDownwardRevision: boolean
   hasNegativeFlag: boolean

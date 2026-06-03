@@ -17,7 +17,9 @@
         "financial_crisis_rate_shock"
       ],
       "screeningScore": 85,
-      "warnings": [],
+      "warnings": [
+        "[STALE] J-Quants取得が全滅したため前回候補を暫定保持"
+      ],
       "status": "monitoring",
       "dataSource": "jquants"
     }

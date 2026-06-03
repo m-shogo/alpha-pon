@@ -18,11 +18,15 @@ import {
   calcPriceStats,
   calcFinancialStats,
   isJQuantsConfigured,
+  type DailyQuote,
 } from "./fetcher/jquants.js";
 import { todayJst, addDaysJst } from "./date.js";
 import type { UniverseCandidate, WorldContextRegime } from "./universe.js";
 import { SCREENING_CRITERIA } from "./universe.js";
 import { loadRunCursor, saveRunCursor } from "./run-cursor.js";
+import { buildPriceSignalFromQuotes, evaluatePriceRisk } from "./analysis/price-signal.js";
+
+const MARKET_BENCHMARK_CODE = process.env.MARKET_BENCHMARK_CODE ?? "1306";
 
 // ── 設定読み込み ────────────────────────────────────────────
 
@@ -62,6 +66,22 @@ function loadCurrentRegime(): CurrentRegime {
 
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label} timeout ${ms}ms`)), ms);
+    promise.then(
+      value => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      error => {
+        clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
 }
 
 function isMockEnabled(): boolean {
@@ -139,18 +159,24 @@ function calcScreeningScore(candidate: Partial<UniverseCandidate>): number {
 async function screenWithJQuants(
   stock: UniverseStockEntry,
   regime: CurrentRegime,
-  config: UniverseConfig
+  config: UniverseConfig,
+  benchmarkQuotes: DailyQuote[]
 ): Promise<UniverseCandidate | null> {
   const date = todayJst();
   const dateFrom = addDaysJst(date, -365);
 
   // 日次株価データ取得
   let priceStats = null;
+  let quotes: DailyQuote[] = [];
   try {
-    const quotes = await fetchDailyQuotes(
-      stock.code,
-      dateFrom.replace(/-/g, ""),
-      date.replace(/-/g, "")
+    quotes = await withTimeout(
+      fetchDailyQuotes(
+        stock.code,
+        dateFrom.replace(/-/g, ""),
+        date.replace(/-/g, "")
+      ),
+      15_000,
+      `${stock.code} daily_quotes`
     );
     priceStats = calcPriceStats(quotes);
   } catch (err) {
@@ -162,6 +188,9 @@ async function screenWithJQuants(
     console.log(`  [skip] ${stock.code} 価格データ不足`);
     return null;
   }
+
+  const priceSignal = buildPriceSignalFromQuotes(stock.code, quotes, benchmarkQuotes);
+  const priceRiskWarnings = evaluatePriceRisk(priceSignal);
 
   // ドローダウンフィルタ
   const dd = priceStats.drawdownPct;
@@ -175,7 +204,7 @@ async function screenWithJQuants(
   // 財務データ取得
   let financialStats = { revenueYoY: null as number | null, operatingProfitYoY: null as number | null, hasDownwardRevision: false };
   try {
-    const statements = await fetchFinancialStatements(stock.code);
+    const statements = await withTimeout(fetchFinancialStatements(stock.code), 15_000, `${stock.code} financial_summary`);
     financialStats = calcFinancialStats(statements);
   } catch (err) {
     console.warn(`  [warn] ${stock.code} 財務取得失敗: ${err instanceof Error ? err.message : String(err)}`);
@@ -185,6 +214,7 @@ async function screenWithJQuants(
 
   // 営業利益成長フィルタ（null は通過させ、warningsに記録）
   const warnings: string[] = [];
+  warnings.push(...priceRiskWarnings.map(w => `${w.level}: ${w.reason} (${w.evidence.join(", ")})`));
   if (financialStats.operatingProfitYoY != null) {
     if (financialStats.operatingProfitYoY < SCREENING_CRITERIA.operatingProfitYoYMin) {
       console.log(`  [skip] ${stock.code} 営業利益YoY=${financialStats.operatingProfitYoY.toFixed(1)}% (マイナス)`);
@@ -224,6 +254,16 @@ async function screenWithJQuants(
     currentPrice: priceStats.current,
     high52w: priceStats.high52w,
     drawdownPct: dd,
+    change5dPct: priceSignal.change5dPct,
+    change20dPct: priceSignal.change20dPct,
+    topixChange5dPct: priceSignal.topixChange5dPct,
+    topixChange20dPct: priceSignal.topixChange20dPct,
+    relativeTopix5dPct: priceSignal.relativeTopix5dPct,
+    relativeTopix20dPct: priceSignal.relativeTopix20dPct,
+    volumeSpikeRatio: priceSignal.volumeSpikeRatio,
+    priceSignalSource: priceSignal.source,
+    priceSignalQuality: priceSignal.quality,
+    priceRiskWarnings,
     operatingProfitYoY: financialStats.operatingProfitYoY,
     hasDownwardRevision: financialStats.hasDownwardRevision,
     hasNegativeFlag: false,
@@ -262,6 +302,24 @@ function scanWithMock(): UniverseCandidate[] {
   }));
 }
 
+function loadPreviousCandidates(date: string): UniverseCandidate[] {
+  const latestPath = "data/universe_candidates_latest.json";
+  if (!existsSync(latestPath)) return [];
+  try {
+    const raw = JSON.parse(readFileSync(latestPath, "utf-8")) as { candidates?: UniverseCandidate[] };
+    return (raw.candidates ?? []).map(candidate => ({
+      ...candidate,
+      detectedAt: date,
+      warnings: [
+        ...(candidate.warnings ?? []),
+        "[STALE] J-Quants取得が全滅したため前回候補を暫定保持",
+      ],
+    }));
+  } catch {
+    return [];
+  }
+}
+
 // ── メイン ───────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -279,11 +337,27 @@ async function main(): Promise<void> {
     console.log(`[mode] J-Quants API (${scanStocks.length}/${config.stocks.length}銘柄をスクリーニング)`);
     console.log(`[cursor] offset=${scan.offset} max=${scan.maxPerRun}${scan.autoCursor ? " auto" : " env"}`);
     candidates = [];
+    const dateFrom = addDaysJst(date, -365);
+    let benchmarkQuotes: DailyQuote[] = [];
+    try {
+      benchmarkQuotes = await withTimeout(
+        fetchDailyQuotes(
+          MARKET_BENCHMARK_CODE,
+          dateFrom.replace(/-/g, ""),
+          date.replace(/-/g, "")
+        ),
+        15_000,
+        `${MARKET_BENCHMARK_CODE} benchmark_quotes`
+      );
+      console.log(`[benchmark] ${MARKET_BENCHMARK_CODE} quotes=${benchmarkQuotes.length}`);
+    } catch (err) {
+      console.warn(`[warn] ベンチマーク(${MARKET_BENCHMARK_CODE})取得失敗: ${err instanceof Error ? err.message : String(err)}`);
+    }
 
     for (const stock of scanStocks) {
       console.log(`  チェック: ${stock.code} ${stock.name}`);
       try {
-        const result = await screenWithJQuants(stock, regime, config);
+        const result = await screenWithJQuants(stock, regime, config, benchmarkQuotes);
         if (result) {
           candidates.push(result);
           console.log(`  [pass] ${stock.code} score=${result.screeningScore}`);
@@ -312,6 +386,13 @@ async function main(): Promise<void> {
   }
 
   console.log(`\n通過: ${candidates.length}銘柄`);
+  if (isJQuantsConfigured() && candidates.length === 0) {
+    const fallback = loadPreviousCandidates(date);
+    if (fallback.length > 0) {
+      console.warn(`[warn] J-Quants候補が0件のため、前回候補 ${fallback.length} 件をstale fallbackとして保持します`);
+      candidates = fallback;
+    }
+  }
 
   // 出力
   const dir = "data/universe_candidates";

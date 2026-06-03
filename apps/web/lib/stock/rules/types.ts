@@ -13,6 +13,27 @@ export type DangerLine = {
   reason: string
 }
 
+export type PriceSignal = {
+  code: string
+  asOf: string
+  close: number | null
+  change5dPct: number | null
+  change20dPct: number | null
+  topixChange5dPct: number | null
+  topixChange20dPct: number | null
+  relativeTopix5dPct: number | null
+  relativeTopix20dPct: number | null
+  volumeSpikeRatio: number | null
+  source: 'jquants' | 'external' | 'company_memory' | 'missing'
+  quality: 'exact' | 'fallback' | 'stale' | 'missing'
+}
+
+export type PriceRiskWarning = {
+  level: 'info' | 'warning' | 'block'
+  reason: string
+  evidence: string[]
+}
+
 export type GenerateStockRuleInput = {
   code: string
   name: string
@@ -39,6 +60,8 @@ export type GenerateStockRuleInput = {
   companyTheme: string[]
   currentThesis: string[]
   knownRisks: string[]
+  priceSignal?: PriceSignal
+  priceRiskWarnings?: PriceRiskWarning[]
   positionStatus: 'not_owned' | 'owned'
   averageCost?: number | null
   unrealizedGainPct?: number | null
@@ -61,6 +84,8 @@ export type GeneratedStockRule = {
   evidenceNeeded: string[]
   reasons: string[]
   risks: string[]
+  priceSignal?: PriceSignal
+  priceRiskWarnings?: PriceRiskWarning[]
   privateMemo: string
   publicMemo: string
   reviewDueAt: string
