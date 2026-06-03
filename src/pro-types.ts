@@ -1,6 +1,8 @@
 // alpha-pon Pro視点の構造化型
 // 注意: 買い推奨ではなく、調査品質・保留判断・反証管理のための型。
 
+import type { LegendAgentVerdict } from "./legend-pro-types.js";
+
 export type ProFinalLabel = "調査候補" | "保留" | "証拠不足" | "避ける";
 
 export type BuffettQualitySnapshot = {
@@ -117,6 +119,8 @@ export type CommitteeDecision = {
   finalScore: number;
   proScore: StockProScore;
   verdicts: AgentVerdict[];
+  legendVerdicts?: LegendAgentVerdict[];
+  legendWarnings?: string[];
   nextActions: string[];
   blockers: string[];
   missingEvidence: string[];
