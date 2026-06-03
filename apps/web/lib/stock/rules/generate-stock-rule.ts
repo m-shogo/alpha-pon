@@ -11,17 +11,19 @@ export function generateStockRule(input: GenerateStockRuleInput): GeneratedStock
   const generatedAt = now.toISOString()
   const reviewDueAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
   const fastCatalysts = detectFastCatalysts(input)
+  const chaseGuardSignals = detectChaseGuardSignals(input)
 
   if (input.currentPrice == null) {
     if (fastCatalysts.length > 0) {
+      const actionSignal = chaseGuardSignals.length > 0 ? 'WAIT_PULLBACK' : 'ENTRY_WATCH'
       return {
         generatedRuleId: `${input.code}-fast-catalyst-${Date.now()}`,
         code: input.code,
         name: input.name,
         generatedAt,
         thesis: input.currentThesis,
-        actionSignal: 'ENTRY_WATCH',
-        confidence: 0.65,
+        actionSignal,
+        confidence: chaseGuardSignals.length > 0 ? 0.62 : 0.65,
         watchPriceZones: [],
         addWatchZones: [],
         trimWatchZones: [],
@@ -31,11 +33,19 @@ export function generateStockRule(input: GenerateStockRuleInput): GeneratedStock
           'AIテーマ内でメモリ/SSDではなくGPU/HBM/電力/光通信へ資金が偏る',
           'IPO後需給・ロックアップ・換金売りが強い',
         ],
-        evidenceNeeded: ['現在株価', '出来高/需給', '公式IR本文', 'NAND/SSD市況', '次回決算日'],
+        evidenceNeeded: ['現在株価', '5日/20日騰落率', 'TOPIX比', '出来高/需給', '公式IR本文', 'NAND/SSD市況', '次回決算日'],
         reasons: fastCatalysts,
-        risks: ['株価データ未取得のため価格帯は未計算', '早耳材料は期待先行になりやすい'],
-        privateMemo: '価格データ未取得でも先行カタリストを検出。人間より遅れないためENTRY_WATCHにする。',
-        publicMemo: '先行材料を検出。投資助言ではなく、一次情報と需給を急ぎ確認する監視シグナルです。',
+        risks: [
+          '株価データ未取得のため価格帯は未計算',
+          '早耳材料は期待先行になりやすい',
+          ...chaseGuardSignals,
+        ],
+        privateMemo: chaseGuardSignals.length > 0
+          ? '先行カタリストはあるが高値追い/FOMO警告を検出。買い候補ではなく押し目待ちに落とす。'
+          : '価格データ未取得でも先行カタリストを検出。人間より遅れないためENTRY_WATCHにする。',
+        publicMemo: chaseGuardSignals.length > 0
+          ? '先行材料はあるが、過熱・織り込み済み確認を優先する監視シグナルです。'
+          : '先行材料を検出。投資助言ではなく、一次情報と需給を急ぎ確認する監視シグナルです。',
         reviewDueAt,
       }
     }
@@ -125,6 +135,13 @@ export function generateStockRule(input: GenerateStockRuleInput): GeneratedStock
     risks.push('早耳材料は期待先行・寄り天・テーマ剥落に注意')
   }
 
+  if (chaseGuardSignals.length > 0) {
+    score -= 18
+    risks.push(...chaseGuardSignals)
+    evidenceNeeded.push('5日/20日騰落率', 'TOPIX比', '出来高沈静化', '直近高値からの距離')
+    invalidationSignals.push('出来高急増後に上値が重い', '材料発表後の寄り天・陰線・相対弱含み')
+  }
+
   const base = input.currentPrice
   const watchPriceZones: PriceZone[] = [
     {
@@ -153,6 +170,8 @@ export function generateStockRule(input: GenerateStockRuleInput): GeneratedStock
 
   if (input.hasDangerDisclosure) {
     actionSignal = 'DANGER'
+  } else if (chaseGuardSignals.length > 0 && input.positionStatus === 'not_owned' && fastCatalysts.length > 0) {
+    actionSignal = 'WAIT_PULLBACK'
   } else if (score >= 75 && input.positionStatus === 'not_owned') {
     actionSignal = 'ENTRY_WATCH'
   } else if (score >= 75 && input.positionStatus === 'owned') {
@@ -206,7 +225,9 @@ export function generateStockRule(input: GenerateStockRuleInput): GeneratedStock
     ],
     reasons,
     risks,
-    privateMemo: `スコア${score}。${actionSignal}シグナル。銘柄ごとの考察から自動生成。`,
+    privateMemo: actionSignal === 'WAIT_PULLBACK'
+      ? `スコア${score}。良い材料はあるが、高値追い/FOMO警告を優先して押し目待ち。`
+      : `スコア${score}。${actionSignal}シグナル。銘柄ごとの考察から自動生成。`,
     publicMemo: '銘柄ごとのデータから生成された監視・検証用メモ。投資助言ではありません。',
     reviewDueAt,
   }
@@ -230,4 +251,28 @@ function detectFastCatalysts(input: GenerateStockRuleInput): string[] {
   }
 
   return [...new Set(catalysts)]
+}
+
+function detectChaseGuardSignals(input: GenerateStockRuleInput): string[] {
+  const text = [
+    ...input.companyTheme,
+    ...input.currentThesis,
+    ...input.knownRisks,
+  ].join(' ').toLowerCase()
+  const signals: string[] = []
+
+  if (/過熱|短期急騰|fomo|高値追い|織り込み済み|寄り天|topix比|相対的に強い/.test(text)) {
+    signals.push('過熱・高値追い・FOMO警告あり')
+  }
+  if (input.drawdownFromHigh52wPct !== null && input.drawdownFromHigh52wPct > -10) {
+    signals.push('52週高値近辺で押し目が浅い')
+  }
+  if ((input.recentReturn5dPct ?? 0) >= 8) {
+    signals.push(`5日騰落率 +${input.recentReturn5dPct?.toFixed(1)}% で短期急騰`)
+  }
+  if ((input.recentReturn20dPct ?? 0) >= 15) {
+    signals.push(`20日騰落率 +${input.recentReturn20dPct?.toFixed(1)}% で追いかけ注意`)
+  }
+
+  return [...new Set(signals)]
 }

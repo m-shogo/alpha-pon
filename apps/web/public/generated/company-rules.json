@@ -1,6 +1,6 @@
 {
   "generatedAt": "2026-06-03",
-  "count": 7,
+  "count": 8,
   "rules": [
     {
       "generatedRuleId": "8136-2026-06-03-missing-price",
@@ -9,7 +9,15 @@
       "generatedAt": "2026-06-03T00:00:00+09:00",
       "thesis": [
         "監視テーマ: character / global_ip / consumer",
-        "発火ルール: healthy_pullback / earnings_drop"
+        "発火ルール: healthy_pullback / earnings_drop",
+        "tag:character",
+        "tag:global_ip",
+        "tag:consumer",
+        "rule:healthy_pullback",
+        "rule:earnings_drop",
+        "テーマ: キャラクター",
+        "テーマ: グローバルIP",
+        "テーマ: 消費財"
       ],
       "actionSignal": "NO_ACTION",
       "confidence": 0.1,
@@ -194,10 +202,18 @@
       "generatedAt": "2026-06-03T00:00:00+09:00",
       "thesis": [
         "監視テーマ: semiconductor / ai / ai_ipo / memory / ipo / national_policy",
-        "発火ルール: official_ir_catalyst / ai_inference_investor_day / ipo_selling_pressure_done / volume_cooling / no_new_low"
+        "発火ルール: official_ir_catalyst / ai_inference_investor_day / ipo_selling_pressure_done / volume_cooling / no_new_low",
+        "tag:semiconductor",
+        "tag:ipo",
+        "tag:national_policy",
+        "rule:ipo_selling_pressure_done",
+        "rule:volume_cooling",
+        "rule:no_new_low",
+        "テーマ: 半導体",
+        "テーマ: IPO"
       ],
-      "actionSignal": "ENTRY_WATCH",
-      "confidence": 0.65,
+      "actionSignal": "WAIT_PULLBACK",
+      "confidence": 0.62,
       "watchPriceZones": [],
       "addWatchZones": [],
       "trimWatchZones": [],
@@ -213,15 +229,15 @@
       ],
       "evidenceNeeded": [
         "現在株価",
+        "5日/20日騰落率",
+        "TOPIX比",
         "出来高/需給",
         "公式IR本文",
         "NAND/SSD市況",
         "次回決算日",
         "設備投資計画",
         "受注残",
-        "ASP",
-        "S-1/目論見書",
-        "公開価格レンジ"
+        "ASP"
       ],
       "reasons": [
         "公式IR/Investor Day 系の先行カタリストあり",
@@ -235,13 +251,89 @@
       "risks": [
         "株価データ未取得のため価格帯は未計算",
         "早耳材料は期待先行になりやすい",
+        "過熱・高値追い・FOMO警告あり",
         "過去5年の罠: AI関連なら全部買い",
         "過去5年の罠: 大型IPOは必ず関連株にプラス",
         "過去5年の罠: AIと名がつけば全部上がる",
         "過去5年の罠: AIはソフトウェアだけの話"
       ],
-      "privateMemo": "[MOCK] 価格データ未取得でも先行カタリストを検出。人間より遅れないためENTRY_WATCHにする。過去5年類推: 2023-2026 AI設備投資相場：勝つのはAIっぽい会社ではなく不足資源を握る会社 / Arm上場後の半導体再評価：IPOは関連テーマの再値付けにもなる / AIインフラブーム：物語が売上に変わる企業だけが残る / AIデータセンター制約：電力・水・送電網がAI成長の上限になる",
-      "publicMemo": "[MOCK] 先行材料を検出。投資助言ではなく、一次情報と需給を急ぎ確認する監視シグナルです。",
+      "privateMemo": "[MOCK] 先行カタリストはあるが高値追い/FOMO警告を検出。買い候補ではなく押し目待ち。過去5年類推: 2023-2026 AI設備投資相場：勝つのはAIっぽい会社ではなく不足資源を握る会社 / Arm上場後の半導体再評価：IPOは関連テーマの再値付けにもなる / AIインフラブーム：物語が売上に変わる企業だけが残る / AIデータセンター制約：電力・水・送電網がAI成長の上限になる",
+      "publicMemo": "[MOCK] 先行材料はあるが、過熱・織り込み済み確認を優先する監視シグナルです。",
+      "reviewDueAt": "2026-07-03T00:00:00+09:00"
+    },
+    {
+      "generatedRuleId": "4568-2026-06-03",
+      "code": "4568",
+      "name": "第一三共",
+      "generatedAt": "2026-06-03T00:00:00+09:00",
+      "thesis": [],
+      "actionSignal": "ENTRY_WATCH",
+      "confidence": 0.9,
+      "watchPriceZones": [
+        {
+          "label": "浅い押し目監視",
+          "priceFrom": 2712,
+          "priceTo": 2797,
+          "reason": "短期の過熱が冷めた場合に確認する価格帯"
+        },
+        {
+          "label": "中期押し目監視",
+          "priceFrom": 2512,
+          "priceTo": 2683,
+          "reason": "高値からの調整が進んだ場合に、仮説維持を確認する価格帯"
+        }
+      ],
+      "addWatchZones": [
+        {
+          "label": "浅い押し目監視",
+          "priceFrom": 2712,
+          "priceTo": 2797,
+          "reason": "短期の過熱が冷めた場合に確認する価格帯"
+        },
+        {
+          "label": "中期押し目監視",
+          "priceFrom": 2512,
+          "priceTo": 2683,
+          "reason": "高値からの調整が進んだ場合に、仮説維持を確認する価格帯"
+        }
+      ],
+      "trimWatchZones": [
+        {
+          "label": "過熱時の一部整理検討",
+          "priceFrom": 3425,
+          "priceTo": null,
+          "reason": "短期で大きく上昇し、バリュエーション過熱がある場合に確認"
+        }
+      ],
+      "dangerLines": [
+        {
+          "label": "仮説再確認ライン",
+          "price": null,
+          "reason": "52週安値付近を割る場合、需給または事業仮説の再確認が必要"
+        }
+      ],
+      "invalidationSignals": [
+        "営業利益成長の鈍化",
+        "利益率悪化",
+        "主要テーマの失速",
+        "競合優位性の低下"
+      ],
+      "evidenceNeeded": [
+        "直近決算",
+        "会社予想",
+        "PER/PBR過去レンジ",
+        "同業比較",
+        "直近開示"
+      ],
+      "reasons": [
+        "営業利益が成長している",
+        "52週高値から15〜35%下落しており、過熱感が落ちている",
+        "ポジティブな開示がある",
+        "世界情勢（migration_labor_shortage・financial_crisis_rate_shock）と関連がある"
+      ],
+      "risks": [],
+      "privateMemo": "スコア103。ENTRY_WATCHシグナル。銘柄ごとの考察から自動生成。",
+      "publicMemo": "銘柄ごとのデータから生成された監視・検証用メモ。投資助言ではありません。",
       "reviewDueAt": "2026-07-03T00:00:00+09:00"
     }
   ]

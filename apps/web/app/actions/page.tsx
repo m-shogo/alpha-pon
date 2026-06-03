@@ -8,7 +8,7 @@ import type { GeneratedStockRule } from '@/lib/stock/rules/types'
 
 export const metadata = { title: '行動候補 | alpha-pon' }
 
-const SIGNAL_ORDER: InternalSignal[] = ['DANGER', 'EXIT_WATCH', 'TRIM_WATCH', 'ENTRY_WATCH', 'ADD_WATCH', 'HOLD', 'NO_ACTION']
+const SIGNAL_ORDER: InternalSignal[] = ['DANGER', 'EXIT_WATCH', 'TRIM_WATCH', 'WAIT_PULLBACK', 'ENTRY_WATCH', 'ADD_WATCH', 'HOLD', 'NO_ACTION']
 
 function confidenceLabel(confidence: number) {
   if (confidence >= 0.8) return '強め'
@@ -24,6 +24,7 @@ function nextMoveLabel(signal: InternalSignal, mode: AppMode) {
     ADD_WATCH: '買い足す条件を確認',
     HOLD: '持ったまま監視',
     TRIM_WATCH: '一部売り条件を確認',
+    WAIT_PULLBACK: '追いかけず押し目待ち',
     EXIT_WATCH: '撤退条件を確認',
     NO_ACTION: '触らない',
     DANGER: '避ける',
@@ -74,7 +75,7 @@ function ActionCard({ rule, mode }: { rule: GeneratedStockRule; mode: AppMode })
         </div>
       </div>
 
-      <DetailList title="買い候補にする理由" items={rule.reasons} color="var(--mint-deep)" mark="✓" />
+      <DetailList title={signal === 'WAIT_PULLBACK' ? '良い材料として見る理由' : '買い候補にする理由'} items={rule.reasons} color="var(--mint-deep)" mark="✓" />
       <DetailList title="過去5年から見た罠" items={rule.risks} color="var(--amber)" mark="!" />
       <DetailList title="先に確認すること" items={rule.evidenceNeeded} color="var(--sky-deep)" mark="□" />
       <DetailList title="崩れたら見送り" items={rule.invalidationSignals} color="var(--urgent)" mark="×" />

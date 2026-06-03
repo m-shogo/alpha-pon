@@ -5,6 +5,7 @@ export type InternalSignal =
   | 'ADD_WATCH'
   | 'HOLD'
   | 'TRIM_WATCH'
+  | 'WAIT_PULLBACK'
   | 'EXIT_WATCH'
   | 'NO_ACTION'
   | 'DANGER'
@@ -14,6 +15,8 @@ export type PublicSignal =
   | '優先監視'
   | '保有観察'
   | '一部整理検討'
+  | '押し目待ち'
+  | '過熱待ち'
   | '撤退検討'
   | '様子見'
   | '要注意'
@@ -30,6 +33,7 @@ export function toDisplaySignal(signal: InternalSignal, mode: AppMode): string {
       ADD_WATCH: '買い足し候補',
       HOLD: '保有継続',
       TRIM_WATCH: '一部売り検討',
+      WAIT_PULLBACK: '押し目待ち',
       EXIT_WATCH: '撤退検討',
       NO_ACTION: '何もしない',
       DANGER: '危険',
@@ -41,6 +45,7 @@ export function toDisplaySignal(signal: InternalSignal, mode: AppMode): string {
     ADD_WATCH: '優先監視',
     HOLD: '保有観察',
     TRIM_WATCH: '一部整理検討',
+    WAIT_PULLBACK: '過熱待ち',
     EXIT_WATCH: '撤退検討',
     NO_ACTION: '様子見',
     DANGER: '危険',
@@ -61,6 +66,7 @@ export function getSignalColor(signal: InternalSignal): string {
     case 'ADD_WATCH': return 'var(--mint-deep)'
     case 'HOLD': return 'var(--ink-2)'
     case 'TRIM_WATCH': return 'var(--amber)'
+    case 'WAIT_PULLBACK': return 'var(--amber)'
     case 'EXIT_WATCH': return 'var(--urgent)'
     case 'NO_ACTION': return 'var(--ink-3)'
     case 'DANGER': return 'var(--urgent)'
@@ -73,6 +79,7 @@ export function getSignalBg(signal: InternalSignal): string {
     case 'ADD_WATCH': return 'var(--mint-soft)'
     case 'HOLD': return 'var(--surface-2)'
     case 'TRIM_WATCH': return 'var(--amber-soft)'
+    case 'WAIT_PULLBACK': return 'var(--amber-soft)'
     case 'EXIT_WATCH': return 'rgba(var(--urgent-rgb, 220,50,50),0.1)'
     case 'NO_ACTION': return 'var(--surface-2)'
     case 'DANGER': return 'rgba(var(--urgent-rgb, 220,50,50),0.12)'

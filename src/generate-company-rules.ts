@@ -19,6 +19,7 @@ type InternalSignal =
   | "ADD_WATCH"
   | "HOLD"
   | "TRIM_WATCH"
+  | "WAIT_PULLBACK"
   | "EXIT_WATCH"
   | "NO_ACTION"
   | "DANGER";
@@ -95,17 +96,19 @@ function generateStockRule(input: GenerateStockRuleInput): GeneratedStockRule {
   const reviewDueAt = `${addDaysJst(generatedDate, 30)}T00:00:00+09:00`;
   const fastCatalysts = detectFastCatalysts(input);
   const recentLessons = findRecentLessons(input);
+  const chaseGuardSignals = detectChaseGuardSignals(input);
 
   if (input.currentPrice == null) {
     if (fastCatalysts.length > 0) {
+      const actionSignal: InternalSignal = chaseGuardSignals.length > 0 ? "WAIT_PULLBACK" : "ENTRY_WATCH";
       return {
         generatedRuleId: `${input.code}-${generatedDate}-fast-catalyst`,
         code: input.code,
         name: input.name,
         generatedAt,
         thesis: input.currentThesis,
-        actionSignal: "ENTRY_WATCH",
-        confidence: 0.65,
+        actionSignal,
+        confidence: chaseGuardSignals.length > 0 ? 0.62 : 0.65,
         watchPriceZones: [],
         addWatchZones: [],
         trimWatchZones: [],
@@ -118,6 +121,8 @@ function generateStockRule(input: GenerateStockRuleInput): GeneratedStockRule {
         ],
         evidenceNeeded: [
           "現在株価",
+          "5日/20日騰落率",
+          "TOPIX比",
           "出来高/需給",
           "公式IR本文",
           "NAND/SSD市況",
@@ -125,9 +130,18 @@ function generateStockRule(input: GenerateStockRuleInput): GeneratedStockRule {
           ...recentLessons.flatMap(lesson => lesson.evidenceNeeded),
         ].slice(0, 10),
         reasons: [...fastCatalysts, ...recentLessons.map(lesson => `過去5年学習: ${lesson.title}`)],
-        risks: ["株価データ未取得のため価格帯は未計算", "早耳材料は期待先行になりやすい", ...recentLessons.map(lesson => lesson.risk)],
-        privateMemo: `価格データ未取得でも先行カタリストを検出。人間より遅れないためENTRY_WATCHにする。過去5年類推: ${recentLessons.map(lesson => lesson.title).join(" / ") || "なし"}`,
-        publicMemo: "先行材料を検出。投資助言ではなく、一次情報と需給を急ぎ確認する監視シグナルです。",
+        risks: [
+          "株価データ未取得のため価格帯は未計算",
+          "早耳材料は期待先行になりやすい",
+          ...chaseGuardSignals,
+          ...recentLessons.map(lesson => lesson.risk),
+        ],
+        privateMemo: chaseGuardSignals.length > 0
+          ? `先行カタリストはあるが高値追い/FOMO警告を検出。買い候補ではなく押し目待ち。過去5年類推: ${recentLessons.map(lesson => lesson.title).join(" / ") || "なし"}`
+          : `価格データ未取得でも先行カタリストを検出。人間より遅れないためENTRY_WATCHにする。過去5年類推: ${recentLessons.map(lesson => lesson.title).join(" / ") || "なし"}`,
+        publicMemo: chaseGuardSignals.length > 0
+          ? "先行材料はあるが、過熱・織り込み済み確認を優先する監視シグナルです。"
+          : "先行材料を検出。投資助言ではなく、一次情報と需給を急ぎ確認する監視シグナルです。",
         reviewDueAt,
       };
     }
@@ -217,6 +231,13 @@ function generateStockRule(input: GenerateStockRuleInput): GeneratedStockRule {
     risks.push("早耳材料は期待先行・寄り天・テーマ剥落に注意");
   }
 
+  if (chaseGuardSignals.length > 0) {
+    score -= 18;
+    risks.push(...chaseGuardSignals);
+    evidenceNeeded.push("5日/20日騰落率", "TOPIX比", "出来高沈静化", "直近高値からの距離");
+    invalidationSignals.push("出来高急増後に上値が重い", "材料発表後の寄り天・陰線・相対弱含み");
+  }
+
   if (recentLessons.length > 0) {
     reasons.push(...recentLessons.map(lesson => `過去5年学習: ${lesson.title}`));
     risks.push(...recentLessons.map(lesson => lesson.risk));
@@ -251,6 +272,8 @@ function generateStockRule(input: GenerateStockRuleInput): GeneratedStockRule {
   let actionSignal: InternalSignal = "NO_ACTION";
   if (input.hasDangerDisclosure) {
     actionSignal = "DANGER";
+  } else if (chaseGuardSignals.length > 0 && input.positionStatus === "not_owned" && fastCatalysts.length > 0) {
+    actionSignal = "WAIT_PULLBACK";
   } else if (score >= 75 && input.positionStatus === "not_owned") {
     actionSignal = "ENTRY_WATCH";
   } else if (score >= 75 && input.positionStatus === "owned") {
@@ -302,7 +325,9 @@ function generateStockRule(input: GenerateStockRuleInput): GeneratedStockRule {
     ],
     reasons,
     risks,
-    privateMemo: `スコア${score}。${actionSignal}シグナル。銘柄ごとの考察から自動生成。`,
+    privateMemo: actionSignal === "WAIT_PULLBACK"
+      ? `スコア${score}。良い材料はあるが、高値追い/FOMO警告を優先して押し目待ち。`
+      : `スコア${score}。${actionSignal}シグナル。銘柄ごとの考察から自動生成。`,
     publicMemo: "銘柄ごとのデータから生成された監視・検証用メモ。投資助言ではありません。",
     reviewDueAt,
   };
@@ -326,6 +351,24 @@ function detectFastCatalysts(input: GenerateStockRuleInput): string[] {
   }
 
   return [...new Set(catalysts)];
+}
+
+function detectChaseGuardSignals(input: GenerateStockRuleInput): string[] {
+  const text = [
+    ...input.companyTheme,
+    ...input.currentThesis,
+    ...input.knownRisks,
+  ].join(" ").toLowerCase();
+  const signals: string[] = [];
+
+  if (/過熱|短期急騰|fomo|高値追い|織り込み済み|寄り天|topix比|相対的に強い/.test(text)) {
+    signals.push("過熱・高値追い・FOMO警告あり");
+  }
+  if (input.drawdownFromHigh52wPct !== null && input.drawdownFromHigh52wPct > -10) {
+    signals.push("52週高値近辺で押し目が浅い");
+  }
+
+  return [...new Set(signals)];
 }
 
 function findRecentLessons(input: GenerateStockRuleInput): Array<{
@@ -354,6 +397,13 @@ type WatchlistEntry = {
   theme: string[];
   thesis: string[];
   risks: string[];
+};
+
+type CompanyMemoryRecord = {
+  code?: string;
+  watchReason?: string[];
+  knownRisks?: string[];
+  recurringWarnings?: string[];
 };
 
 type WatchlistConfigEntry = {
@@ -413,7 +463,17 @@ function loadWatchlist(): WatchlistEntry[] {
   return defaultList;
 }
 
-function loadUniverseCandidates(): { code: string; name: string; currentPrice: number | null; drawdownPct: number | null; operatingProfitYoY: number | null; matchedWorldEventTags: string[]; dataSource: string; hasNegativeFlag?: boolean; hasRecentDisclosure?: boolean }[] {
+function loadCompanyMemory(code: string): CompanyMemoryRecord | null {
+  const memoryPath = join(process.cwd(), "data", "company_memory", `${code}.json`);
+  if (!existsSync(memoryPath)) return null;
+  try {
+    return JSON.parse(readFileSync(memoryPath, "utf-8")) as CompanyMemoryRecord;
+  } catch {
+    return null;
+  }
+}
+
+function loadUniverseCandidates(): { code: string; name: string; currentPrice: number | null; drawdownPct: number | null; operatingProfitYoY: number | null; matchedWorldEventTags: string[]; dataSource: string; hasNegativeFlag?: boolean; hasRecentDisclosure?: boolean; warnings?: string[] }[] {
   const paths = [
     join(process.cwd(), "data", "universe_candidates_latest.json"),
   ];
@@ -449,6 +509,7 @@ async function main() {
   for (const stock of watchlist) {
     const candidate = universeCandidates.find(c => c.code === stock.code);
     const isMock = candidate?.dataSource === "mock" || !candidate;
+    const memory = loadCompanyMemory(stock.code);
 
     const input: GenerateStockRuleInput = {
       code: stock.code,
@@ -466,8 +527,16 @@ async function main() {
       isBeforeEarnings: false,
       worldEventTags: candidate?.matchedWorldEventTags ?? [],
       companyTheme: stock.theme,
-      currentThesis: stock.thesis,
-      knownRisks: stock.risks,
+      currentThesis: [
+        ...stock.thesis,
+        ...(memory?.watchReason ?? []).slice(0, 8),
+      ],
+      knownRisks: [
+        ...stock.risks,
+        ...(candidate?.warnings ?? []),
+        ...(memory?.knownRisks ?? []),
+        ...(memory?.recurringWarnings ?? []),
+      ],
       positionStatus: "not_owned",
     };
 
@@ -484,6 +553,7 @@ async function main() {
   // 2. universe only 銘柄（watchlist 未登録）
   for (const c of universeOnly) {
     const isMock = c.dataSource === "mock";
+    const memory = loadCompanyMemory(c.code);
     const input: GenerateStockRuleInput = {
       code: c.code,
       name: c.name,
@@ -500,8 +570,14 @@ async function main() {
       isBeforeEarnings: false,
       worldEventTags: c.matchedWorldEventTags ?? [],
       companyTheme: [],
-      currentThesis: [],
-      knownRisks: [],
+      currentThesis: [
+        ...(memory?.watchReason ?? []).slice(0, 8),
+      ],
+      knownRisks: [
+        ...(c.warnings ?? []),
+        ...(memory?.knownRisks ?? []),
+        ...(memory?.recurringWarnings ?? []),
+      ],
       positionStatus: "not_owned",
     };
 

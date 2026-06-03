@@ -95,6 +95,20 @@ export function judgeStockAction(input: StockDecisionInput): StockDecision {
     }
   }
 
+  if (
+    input.positionStatus === 'not_owned' &&
+    score >= 70 &&
+    (input.valuationRisk === 'high' || (input.drawdownFromHigh52wPct !== null && input.drawdownFromHigh52wPct > -10))
+  ) {
+    return {
+      signal: 'WAIT_PULLBACK',
+      score,
+      message: '材料は良いが高値追いを避ける',
+      reasons,
+      risks: [...risks, '押し目・出来高沈静化・決算確認まで待つ'],
+    }
+  }
+
   if (input.positionStatus === 'not_owned' && score >= 75) {
     return { signal: 'ENTRY_WATCH', score, message: '新規監視候補', reasons, risks }
   }
@@ -140,10 +154,11 @@ export function signalPriority(signal: InternalSignal): number {
     DANGER: 0,
     EXIT_WATCH: 1,
     TRIM_WATCH: 2,
-    ENTRY_WATCH: 3,
-    ADD_WATCH: 4,
-    HOLD: 5,
-    NO_ACTION: 6,
+    WAIT_PULLBACK: 3,
+    ENTRY_WATCH: 4,
+    ADD_WATCH: 5,
+    HOLD: 6,
+    NO_ACTION: 7,
   }
   return order[signal]
 }
