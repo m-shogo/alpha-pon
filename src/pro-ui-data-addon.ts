@@ -17,6 +17,7 @@ function main() {
   const valuationSnapshots = readJson("data/valuation_snapshot_latest.json", { generatedAt: null, snapshots: [] });
   const irEventEvidence = readJson("data/ir_event_evidence_latest.json", { generatedAt: null, events: [] });
   const stockProCommitteeJson = readJson<{ generatedAt: string | null; decisions: Array<Record<string, unknown>> }>("reports/stock_pro_committee_latest.json", { generatedAt: null, decisions: [] });
+  const ipoThemeWatch = readJson("reports/ipo_theme_watch_latest.json", { generatedAt: null, rules: {} });
   const legendProCommittee = {
     generatedAt: stockProCommitteeJson.generatedAt,
     decisions: stockProCommitteeJson.decisions.map(decision => ({
@@ -39,6 +40,7 @@ function main() {
     irEventEvidence,
     stockProCommitteeJson,
     legendProCommittee,
+    ipoThemeWatch,
     proDataMeta: {
       source: "pro-ui-data-addon",
       generatedAt: new Date().toISOString(),
@@ -47,6 +49,7 @@ function main() {
         existsSync("data/valuation_snapshot_latest.json") ? null : "data/valuation_snapshot_latest.json",
         existsSync("data/ir_event_evidence_latest.json") ? null : "data/ir_event_evidence_latest.json",
         existsSync("reports/stock_pro_committee_latest.json") ? null : "reports/stock_pro_committee_latest.json",
+        existsSync("reports/ipo_theme_watch_latest.json") ? null : "reports/ipo_theme_watch_latest.json",
       ].filter(Boolean),
     },
   };
