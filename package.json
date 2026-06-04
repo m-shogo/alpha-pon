@@ -64,7 +64,7 @@
     "pro:legend": "node --import tsx/esm src/stock-pro-committee-report.ts",
     "pro:committee": "node --import tsx/esm src/stock-pro-committee-report.ts",
     "pro:all": "pnpm pro:quality && pnpm pro:valuation && pnpm pro:ir-events && pnpm pro:committee",
-    "daily:full": "pnpm scan:world && pnpm sync:tdnet:dry && pnpm scan:edinet:annual && pnpm daily:core && pnpm scan:universe && pnpm generate:company-rules && pnpm pro:all && pnpm candidate:hypothesis && pnpm review:hypotheses && pnpm memory:companies && pnpm readiness:audit && pnpm ui:data",
+    "daily:full": "pnpm scan:world && pnpm sync:tdnet:dry && pnpm scan:edinet:annual && pnpm theme:ipo && pnpm daily:core && pnpm scan:universe && pnpm generate:company-rules && pnpm pro:all && pnpm candidate:hypothesis && pnpm review:hypotheses && pnpm memory:companies && pnpm readiness:audit && pnpm ui:data",
     "web:dev": "pnpm --filter @alpha-pon/web dev",
     "web:build": "pnpm --filter @alpha-pon/web build",
     "web:start": "pnpm --filter @alpha-pon/web start",
