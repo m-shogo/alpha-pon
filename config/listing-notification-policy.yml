@@ -1,0 +1,14 @@
+# 上場イベント通知ポリシー
+# 買い推奨ではなく、見逃し防止・記録・パターン学習用の通知量を調整する。
+
+policy:
+  maxPriorityItems: 10
+  maxBackfillItems: 5
+  includeMorningSummary: false
+  includeBackfillNeeded: true
+  includeLogLevel: false
+  suppressWhenNoPriority: false
+  quietReasons:
+    - "priority が0件の場合は、原則として詳細通知を抑制してよい"
+    - "backfill needed が多すぎる場合は上位5件のみ通知し、詳細はreportsを見る"
+  safetyFooter: "※調査・記録用。買い指示ではありません。"
