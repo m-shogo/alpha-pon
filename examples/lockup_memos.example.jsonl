@@ -1,0 +1,2 @@
+{"id":"example-lockup","code":"0000","name":"サンプルIPO","listingDate":"2026-07-01","lockupDays":180,"source":"manual","memo":"主要株主180日ロックアップ。解除条件は目論見書で手動確認済み。"}
+{"id":"kioxia-lockup-backfill","code":"285A","name":"キオクシアホールディングス","listingDate":null,"lockupDays":null,"source":"backfill_required","memo":"上場日・ロックアップ解除条件を目論見書から確認する。"}
