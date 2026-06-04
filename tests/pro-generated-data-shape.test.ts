@@ -32,6 +32,15 @@ function isObject(value: unknown): value is Record<string, unknown> {
 }
 
 {
+  const data = readJson("reports/ipo_theme_watch_latest.json");
+  if (data !== null) {
+    assert(isObject(data), "ipo_theme_watch_latest.json は object である必要があります");
+    assert("rules" in data, "ipo_theme_watch_latest.json は rules を持つ必要があります");
+    assert(isObject(data.rules), "ipo_theme_watch_latest.json.rules は object である必要があります");
+  }
+}
+
+{
   const data = readJson("apps/web/public/generated/alpha-pon-data.json");
   if (data !== null) {
     assert(isObject(data), "alpha-pon-data.json は object である必要があります");
@@ -45,6 +54,12 @@ function isObject(value: unknown): value is Record<string, unknown> {
         assert("legendVerdicts" in decision, "legendProCommittee decision は legendVerdicts を持つ必要があります");
         if ("disagreements" in decision) assert(Array.isArray(decision.disagreements), "legendProCommittee.disagreements は配列である必要があります");
       }
+    }
+    if ("ipoThemeWatch" in data) {
+      const ipoThemeWatch = data.ipoThemeWatch;
+      assert(isObject(ipoThemeWatch), "ipoThemeWatch は object である必要があります");
+      assert("rules" in ipoThemeWatch, "ipoThemeWatch は rules を持つ必要があります");
+      assert(isObject(ipoThemeWatch.rules), "ipoThemeWatch.rules は object である必要があります");
     }
   }
 }
