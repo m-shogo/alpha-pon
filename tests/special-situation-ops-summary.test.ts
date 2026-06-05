@@ -44,15 +44,19 @@ assert(isObject(reportData.reviewDue), "reviewDue は object");
 {
   const rd = reportData.reviewDue as Record<string, unknown>;
   assert(typeof rd.overdue === "number", "reviewDue.overdue は number");
+  assert(typeof rd.historicalSeedOverdue === "number", "reviewDue.historicalSeedOverdue は number");
   assert(typeof rd.dueToday === "number", "reviewDue.dueToday は number");
   assert(typeof rd.dueThisWeek === "number", "reviewDue.dueThisWeek は number");
   assert(typeof rd.notDueYet === "number", "reviewDue.notDueYet は number");
   assert(Array.isArray(rd.overdueItems), "reviewDue.overdueItems は配列");
+  assert(Array.isArray(rd.historicalSeedOverdueItems), "reviewDue.historicalSeedOverdueItems は配列");
   assert(Array.isArray(rd.dueTodayItems), "reviewDue.dueTodayItems は配列");
   assert(rd.overdue === (rd.overdueItems as unknown[]).length,
-    `reviewDue.overdue (${rd.overdue}) と overdueItems.length (${(rd.overdueItems as unknown[]).length}) が一致しない`);
+    `reviewDue.overdue (${rd.overdue}) と overdueItems.length が一致しない`);
+  assert(rd.historicalSeedOverdue === (rd.historicalSeedOverdueItems as unknown[]).length,
+    `reviewDue.historicalSeedOverdue (${rd.historicalSeedOverdue}) と historicalSeedOverdueItems.length が一致しない`);
   assert(rd.dueToday === (rd.dueTodayItems as unknown[]).length,
-    `reviewDue.dueToday (${rd.dueToday}) と dueTodayItems.length (${(rd.dueTodayItems as unknown[]).length}) が一致しない`);
+    `reviewDue.dueToday (${rd.dueToday}) と dueTodayItems.length が一致しない`);
 }
 
 // 5) reviewDue 明細の構造検証
@@ -60,6 +64,7 @@ const ALLOWED_HORIZONS = new Set(["1d", "1w", "1m", "3m"]);
 const ALLOWED_MISSING_FIELDS = new Set(["result", "return1w", "return1m", "topixRelative1m"]);
 const allDueItems = [
   ...(reportData.reviewDue as Record<string, unknown>).overdueItems as Array<Record<string, unknown>>,
+  ...(reportData.reviewDue as Record<string, unknown>).historicalSeedOverdueItems as Array<Record<string, unknown>>,
   ...(reportData.reviewDue as Record<string, unknown>).dueTodayItems as Array<Record<string, unknown>>,
 ];
 for (const item of allDueItems) {
@@ -78,10 +83,14 @@ assert(isObject(reportData.backfill), "backfill は object");
 {
   const b = reportData.backfill as Record<string, unknown>;
   assert(typeof b.structurallyUpdatable === "number", "backfill.structurallyUpdatable は number");
+  assert(typeof b.historicalUpdatable === "number", "backfill.historicalUpdatable は number");
+  assert(typeof b.recentUpdatable === "number", "backfill.recentUpdatable は number");
   assert(typeof b.notDueYet === "number", "backfill.notDueYet は number");
   assert(Array.isArray(b.updatableItems), "backfill.updatableItems は配列");
   assert(b.structurallyUpdatable === (b.updatableItems as unknown[]).length,
     `backfill.structurallyUpdatable (${b.structurallyUpdatable}) と updatableItems.length が一致しない`);
+  assert((b.recentUpdatable as number) + (b.historicalUpdatable as number) === b.structurallyUpdatable,
+    `recentUpdatable(${b.recentUpdatable}) + historicalUpdatable(${b.historicalUpdatable}) が structurallyUpdatable(${b.structurallyUpdatable}) と一致しない`);
 }
 
 // 7) outcomeStats
@@ -141,6 +150,14 @@ for (const item of reportData.actionItems as Array<Record<string, unknown>>) {
   } else if (priorities.includes("attention")) {
     assert(reportData.healthStatus === "needs_attention" || reportData.healthStatus === "action_required",
       "attention な actionItem があれば healthStatus は needs_attention 以上");
+  }
+  // historical_seed_overdue のみ（info 扱い）の場合、action_required にならないことを確認
+  const rd = reportData.reviewDue as Record<string, unknown>;
+  const recentOverdue = rd.overdue as number;
+  const historicalOverdue = rd.historicalSeedOverdue as number;
+  if (recentOverdue === 0 && historicalOverdue > 0 && (rd.dueToday as number) === 0) {
+    assert(reportData.healthStatus !== "action_required",
+      "recent overdue が0 かつ historical_seed_overdue のみの場合は action_required にならない");
   }
 }
 

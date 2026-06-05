@@ -76,6 +76,30 @@ export function selectOutcomesForStats(
 }
 
 /**
+ * 過去上場日由来の seed は detectedAt が上場日そのものになるため、
+ * seed 作成直後から overdue 扱いになる。
+ * この「過去日付 seed」を recent な overdue と区別するための閾値。
+ * dueAt が today より THRESHOLD 日以上前 → historical_seed_overdue 扱い。
+ */
+export const HISTORICAL_SEED_OVERDUE_THRESHOLD_DAYS = 90;
+
+/**
+ * dueAt (YYYY-MM-DD) が today (YYYY-MM-DD) より THRESHOLD 日以上前かどうかを判定する。
+ * true = historical_seed_overdue（過去日付 seed 由来のデータ補完候補）
+ * false = recent overdue（genuinely 新しい採点遅れ）
+ */
+export function isHistoricalSeedOverdue(
+  dueAt: string,
+  today: string,
+  thresholdDays = HISTORICAL_SEED_OVERDUE_THRESHOLD_DAYS
+): boolean {
+  const d = new Date(today);
+  d.setDate(d.getDate() - thresholdDays);
+  const threshold = d.toISOString().slice(0, 10);
+  return dueAt < threshold;
+}
+
+/**
  * 通常 outcome と special outcome が同じコードに混在しているかを検出する。
  * レポートの警告表示に使う。
  */

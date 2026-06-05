@@ -19,6 +19,7 @@ import {
   isSpecialSituationOutcome,
   detectMixedOutcomes,
   selectOutcomesForStats,
+  isHistoricalSeedOverdue,
 } from "./special-situation-outcome-filter.js";
 
 const REPORT_DIR = "reports";
@@ -81,14 +82,18 @@ type SpecialSituationOpsSummary = {
   };
   reviewDue: {
     overdue: number;
+    historicalSeedOverdue: number;
     dueToday: number;
     dueThisWeek: number;
     notDueYet: number;
     overdueItems: OverdueDetail[];
+    historicalSeedOverdueItems: OverdueDetail[];
     dueTodayItems: OverdueDetail[];
   };
   backfill: {
     structurallyUpdatable: number;
+    historicalUpdatable: number;
+    recentUpdatable: number;
     notDueYet: number;
     updatableItems: BackfillNeedDetail[];
   };
@@ -176,15 +181,19 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
   const withSpecialOutcome = candidates.filter(c => specialCodes.has(c.code)).length;
 
   // review due 分類
-  const overdueDue: OverdueDetail[] = [];
+  // overdue を recent（90日以内）と historical（90日超・過去日付 seed 由来）に分離する
+  const recentOverdueItems: OverdueDetail[] = [];
+  const historicalSeedOverdueItems: OverdueDetail[] = [];
   const dueTodayItems: OverdueDetail[] = [];
   let dueThisWeekCount = 0;
   let notDueYetCount = 0;
-  const structurallyUpdatable: BackfillNeedDetail[] = [];
+  const recentUpdatableItems: BackfillNeedDetail[] = [];
+  const historicalUpdatableItems: BackfillNeedDetail[] = [];
   let notDueYetBackfill = 0;
 
   for (const outcome of matchedOutcomes) {
-    const { detectedAt, reviewHorizon: horizon } = { detectedAt: outcome.hypothesis.detectedAt, reviewHorizon: outcome.reviewHorizon };
+    const detectedAt = outcome.hypothesis.detectedAt;
+    const horizon = outcome.reviewHorizon;
     const due = dueAt(detectedAt, horizon);
     const weekLater = addDaysJst(today, 7);
     const name = codeToName.get(outcome.code) ?? outcome.code;
@@ -192,14 +201,21 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
 
     if (due < today) {
       const item: OverdueDetail = { code: outcome.code, name, horizon, dueAt: due, missingFields };
-      overdueDue.push(item);
-      if (missingFields.length > 0) {
-        structurallyUpdatable.push({ code: outcome.code, name, horizon, dueAt: due, missingFields: missingFields as string[] });
+      if (isHistoricalSeedOverdue(due, today)) {
+        historicalSeedOverdueItems.push(item);
+        if (missingFields.length > 0) {
+          historicalUpdatableItems.push({ code: outcome.code, name, horizon, dueAt: due, missingFields: missingFields as string[] });
+        }
+      } else {
+        recentOverdueItems.push(item);
+        if (missingFields.length > 0) {
+          recentUpdatableItems.push({ code: outcome.code, name, horizon, dueAt: due, missingFields: missingFields as string[] });
+        }
       }
     } else if (due === today) {
       dueTodayItems.push({ code: outcome.code, name, horizon, dueAt: due, missingFields });
       if (missingFields.length > 0) {
-        structurallyUpdatable.push({ code: outcome.code, name, horizon, dueAt: due, missingFields: missingFields as string[] });
+        recentUpdatableItems.push({ code: outcome.code, name, horizon, dueAt: due, missingFields: missingFields as string[] });
       }
     } else if (due <= weekLater) {
       dueThisWeekCount++;
@@ -208,6 +224,7 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
       notDueYetBackfill++;
     }
   }
+  const allStructurallyUpdatable = [...recentUpdatableItems, ...historicalUpdatableItems];
 
   // outcomeStats サンプル不足チェック
   const sampleSmallItems: SampleSmallDetail[] = [];
@@ -234,15 +251,29 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
     });
   }
 
-  const overdueWithMissing = overdueDue.filter(o => o.missingFields.length > 0);
-  if (overdueWithMissing.length > 0) {
-    const codes = [...new Set(overdueWithMissing.map(o => o.code))];
+  // recent overdue（90日以内）: 急ぎの採点待ち → urgent
+  const recentOverdueWithMissing = recentOverdueItems.filter(o => o.missingFields.length > 0);
+  if (recentOverdueWithMissing.length > 0) {
+    const codes = [...new Set(recentOverdueWithMissing.map(o => o.code))];
     actionItems.push({
       priority: "urgent",
       category: "backfill",
-      title: `要確認: ${overdueWithMissing.length}件 期限切れ・フィールド不足`,
+      title: `採点待ち: ${recentOverdueWithMissing.length}件 期限切れ・フィールド不足`,
       detail: `${codes.join(", ")} で期限超過かつ result/return 不足。backfill で補完を検討。`,
       command: "pnpm backup && pnpm backfill:special-outcomes --write",
+    });
+  }
+
+  // historical seed overdue（90日超・過去日付 seed）: データ補完候補 → info
+  const historicalWithMissing = historicalSeedOverdueItems.filter(o => o.missingFields.length > 0);
+  if (historicalWithMissing.length > 0) {
+    const codes = [...new Set(historicalWithMissing.map(o => o.code))];
+    actionItems.push({
+      priority: "info",
+      category: "backfill",
+      title: `過去日付seed: ${historicalWithMissing.length}件 データ補完候補（上場日由来）`,
+      detail: `${codes.join(", ")} の detectedAt は上場日の過去日付です。急ぎの投資判断ではなく検証用データの補完候補。`,
+      command: "pnpm backfill:special-outcomes",
     });
   }
 
@@ -257,11 +288,12 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
     });
   }
 
-  if (structurallyUpdatable.length > 0 && overdueWithMissing.length === 0 && dueTodayItems.length === 0) {
+  // recent な updatable があれば attention で通知（historical は別途 info で通知済み）
+  if (recentUpdatableItems.length > 0 && recentOverdueWithMissing.length === 0 && dueTodayItems.length === 0) {
     actionItems.push({
       priority: "attention",
       category: "backfill",
-      title: `検証: ${structurallyUpdatable.length}件 補完可能（期限到来済み）`,
+      title: `検証: ${recentUpdatableItems.length}件 補完可能（採点期限到来済み）`,
       detail: "horizon 期限が到来しており backfill が可能です。J-Quants 価格データを取得して補完を検討。",
       command: "pnpm backfill:special-outcomes",
     });
@@ -324,6 +356,7 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
 
   const notes: string[] = [
     "このレポートは運用確認のためのもの。売買推奨ではありません。",
+    "historical_seed_overdue は上場日を detectedAt に使った過去日付 seed。急ぎの投資判断ではなく検証用データの補完候補。",
     "backfill の structurallyUpdatable は構造チェックのみ。実際の価格補完には J-Quants が必要です。",
     "sampleTooSmall は参考値のみ。統計的判断の根拠にしないでください。",
     "期限未到達 (notDueYet) は正常状態です。",
@@ -345,17 +378,21 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
       needSeed: noOutcomeRecordCodes.length > 0,
     },
     reviewDue: {
-      overdue: overdueDue.length,
+      overdue: recentOverdueItems.length,
+      historicalSeedOverdue: historicalSeedOverdueItems.length,
       dueToday: dueTodayItems.length,
       dueThisWeek: dueThisWeekCount,
       notDueYet: notDueYetCount,
-      overdueItems: overdueDue,
+      overdueItems: recentOverdueItems,
+      historicalSeedOverdueItems,
       dueTodayItems,
     },
     backfill: {
-      structurallyUpdatable: structurallyUpdatable.length,
+      structurallyUpdatable: allStructurallyUpdatable.length,
+      historicalUpdatable: historicalUpdatableItems.length,
+      recentUpdatable: recentUpdatableItems.length,
       notDueYet: notDueYetBackfill,
-      updatableItems: structurallyUpdatable,
+      updatableItems: allStructurallyUpdatable,
     },
     outcomeStats: {
       sampleTooSmall: sampleSmallItems.length,
@@ -416,17 +453,30 @@ function renderMarkdown(report: SpecialSituationOpsSummary): string {
   lines.push("## review due 状況", "");
   lines.push("| status | count |");
   lines.push("|---|---:|");
-  lines.push(`| overdue (期限切れ) | ${report.reviewDue.overdue} |`);
+  lines.push(`| overdue 採点待ち（90日以内）| ${report.reviewDue.overdue} |`);
+  lines.push(`| historical seed overdue 過去日付seed（90日超）| ${report.reviewDue.historicalSeedOverdue} |`);
   lines.push(`| due today (本日採点) | ${report.reviewDue.dueToday} |`);
   lines.push(`| due this week (今週採点) | ${report.reviewDue.dueThisWeek} |`);
   lines.push(`| not due yet (未到達) | ${report.reviewDue.notDueYet} |`);
   lines.push("");
 
   if (report.reviewDue.overdueItems.length > 0) {
-    lines.push("### 期限切れ明細", "");
+    lines.push("### 採点待ち明細（recent overdue）", "");
     lines.push("| code | name | horizon | dueAt | 不足フィールド |");
     lines.push("|---|---|---|---|---|");
     for (const item of report.reviewDue.overdueItems) {
+      const missing = item.missingFields.length > 0 ? item.missingFields.join(", ") : "なし（補完済み）";
+      lines.push(`| ${item.code} | ${item.name} | ${item.horizon} | ${item.dueAt} | ${missing} |`);
+    }
+    lines.push("");
+  }
+
+  if (report.reviewDue.historicalSeedOverdueItems.length > 0) {
+    lines.push("### 過去日付seed明細（historical seed overdue）", "");
+    lines.push("> ※上場日を detectedAt に使った seed のため overdue 扱い。急ぎの投資判断ではなく検証用データの補完候補。", "");
+    lines.push("| code | name | horizon | dueAt | 不足フィールド |");
+    lines.push("|---|---|---|---|---|");
+    for (const item of report.reviewDue.historicalSeedOverdueItems) {
       const missing = item.missingFields.length > 0 ? item.missingFields.join(", ") : "なし（補完済み）";
       lines.push(`| ${item.code} | ${item.name} | ${item.horizon} | ${item.dueAt} | ${missing} |`);
     }
@@ -447,7 +497,9 @@ function renderMarkdown(report: SpecialSituationOpsSummary): string {
   lines.push("## backfill 構造チェック", "");
   lines.push("| item | count |");
   lines.push("|---|---:|");
-  lines.push(`| 構造的に補完可能 (期限到来済み) | ${report.backfill.structurallyUpdatable} |`);
+  lines.push(`| 構造的に補完可能 合計 | ${report.backfill.structurallyUpdatable} |`);
+  lines.push(`|   うち recent overdue（採点待ち） | ${report.backfill.recentUpdatable} |`);
+  lines.push(`|   うち historical seed（過去日付seed） | ${report.backfill.historicalUpdatable} |`);
   lines.push(`| 期限未到達 (未到達・正常) | ${report.backfill.notDueYet} |`);
   lines.push("");
   lines.push("> ※実際の価格補完には J-Quants API が必要です。`pnpm backfill:special-outcomes` (dry-run) で確認してください。", "");
@@ -548,11 +600,12 @@ function main(): void {
   console.log(`healthStatus: ${report.healthStatus}`);
   console.log(`candidates: ${report.coverage.totalCandidates}`);
   console.log(`noOutcomeRecord: ${report.coverage.noOutcomeRecord}`);
-  console.log(`overdue: ${report.reviewDue.overdue}`);
+  console.log(`overdue (recent): ${report.reviewDue.overdue}`);
+  console.log(`historicalSeedOverdue: ${report.reviewDue.historicalSeedOverdue}`);
   console.log(`dueToday: ${report.reviewDue.dueToday}`);
   console.log(`dueThisWeek: ${report.reviewDue.dueThisWeek}`);
   console.log(`notDueYet: ${report.reviewDue.notDueYet}`);
-  console.log(`structurallyUpdatable: ${report.backfill.structurallyUpdatable}`);
+  console.log(`structurallyUpdatable: ${report.backfill.structurallyUpdatable} (recent=${report.backfill.recentUpdatable}, historical=${report.backfill.historicalUpdatable})`);
   console.log(`sampleTooSmall: ${report.outcomeStats.sampleTooSmall}`);
   console.log(`mixedOutcomes: ${report.mixedOutcomes.count}`);
   console.log("");

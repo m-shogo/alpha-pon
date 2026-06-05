@@ -9,7 +9,7 @@ import { join } from "path";
 import { load } from "js-yaml";
 import { addDaysJst, todayJst } from "./date.js";
 import type { HypothesisOutcome, ReviewHorizon } from "./universe.js";
-import { isSpecialSituationOutcome, detectMixedOutcomes } from "./special-situation-outcome-filter.js";
+import { isSpecialSituationOutcome, detectMixedOutcomes, isHistoricalSeedOverdue } from "./special-situation-outcome-filter.js";
 
 const REPORT_DIR = "reports";
 
@@ -19,6 +19,7 @@ type DueStatus =
   | "due_today"
   | "due_this_week"
   | "overdue"
+  | "historical_seed_overdue"
   | "not_due_yet"
   | "no_outcome_record";
 
@@ -50,12 +51,14 @@ type SpecialSituationReviewDueReport = {
     dueToday: number;
     dueThisWeek: number;
     overdue: number;
+    historicalSeedOverdue: number;
     notDueYet: number;
     noOutcomeRecord: number;
   };
   dueToday: ReviewDueItem[];
   dueThisWeek: ReviewDueItem[];
   overdue: ReviewDueItem[];
+  historicalSeedOverdue: ReviewDueItem[];
   notDueYet: ReviewDueItem[];
   noOutcomeRecord: NoOutcomeRecord[];
   notes: string[];
@@ -82,7 +85,11 @@ function calcDueAt(detectedAt: string, horizon: ReviewHorizon): string {
 
 function calcStatus(dueAt: string, today: string): DueStatus {
   const weekLater = addDaysJst(today, 7);
-  if (dueAt < today) return "overdue";
+  if (dueAt < today) {
+    return isHistoricalSeedOverdue(dueAt, today)
+      ? "historical_seed_overdue"
+      : "overdue";
+  }
   if (dueAt === today) return "due_today";
   if (dueAt <= weekLater) return "due_this_week";
   return "not_due_yet";
@@ -112,9 +119,14 @@ function nextActionFor(status: DueStatus, dueAt: string | null, missingFields: s
       return `${dueAt} までに pnpm backfill:special-outcomes で補完を確認`;
     case "overdue":
       if (missingFields.length === 0) {
-        return "期限切れだが全フィールド埋まり済み。outcomeStats の利用可能";
+        return "採点待ち: 期限切れだが全フィールド埋まり済み。outcomeStats の利用可能";
       }
-      return `レビュー期限切れ [${missingFields.join("/")} 不足]。価格データを確認し pnpm backfill:special-outcomes --write を検討`;
+      return `採点待ち: 期限切れ [${missingFields.join("/")} 不足]。pnpm backfill:special-outcomes --write を検討`;
+    case "historical_seed_overdue":
+      if (missingFields.length === 0) {
+        return "過去日付seed: 全フィールド埋まり済み。outcomeStats の参考利用可能";
+      }
+      return `過去日付seed: 上場日由来のデータ補完候補 [${missingFields.join("/")} 不足]。pnpm backfill:special-outcomes で補完を検討`;
     case "not_due_yet":
       return `期限未到達 (dueAt: ${dueAt})。期限後に再確認`;
     case "no_outcome_record":
@@ -162,6 +174,7 @@ function main(): void {
   const dueToday: ReviewDueItem[] = [];
   const dueThisWeek: ReviewDueItem[] = [];
   const overdue: ReviewDueItem[] = [];
+  const historicalSeedOverdue: ReviewDueItem[] = [];
   const notDueYet: ReviewDueItem[] = [];
   const noOutcomeRecord: NoOutcomeRecord[] = [];
 
@@ -192,6 +205,7 @@ function main(): void {
         case "due_today": dueToday.push(item); break;
         case "due_this_week": dueThisWeek.push(item); break;
         case "overdue": overdue.push(item); break;
+        case "historical_seed_overdue": historicalSeedOverdue.push(item); break;
         case "not_due_yet": notDueYet.push(item); break;
         default: notDueYet.push(item); break;
       }
@@ -221,6 +235,7 @@ function main(): void {
   const notes: string[] = [
     "このレポートはデータ管理のためのもの。売買推奨ではありません。",
     "overdue は期限が過ぎているが、価格データ未取得の場合は pnpm backfill:special-outcomes で確認する。",
+    "historical_seed_overdue は上場日を detectedAt に使った過去日付 seed。急ぎの投資判断ではなく検証用データの補完候補。",
     "not_due_yet は正常。期限後に再確認する。",
     "no_outcome_record は hypothesis_outcomes.jsonl に記録がない候補。pnpm seed:special-outcomes を実行して seed を作成する。",
   ];
@@ -237,12 +252,14 @@ function main(): void {
       dueToday: dueToday.length,
       dueThisWeek: dueThisWeek.length,
       overdue: overdue.length,
+      historicalSeedOverdue: historicalSeedOverdue.length,
       notDueYet: notDueYet.length,
       noOutcomeRecord: noOutcomeRecord.length,
     },
     dueToday,
     dueThisWeek,
     overdue,
+    historicalSeedOverdue,
     notDueYet,
     noOutcomeRecord,
     notes,
@@ -259,6 +276,7 @@ function main(): void {
   console.log(`dueToday: ${report.summary.dueToday}`);
   console.log(`dueThisWeek: ${report.summary.dueThisWeek}`);
   console.log(`overdue: ${report.summary.overdue}`);
+  console.log(`historicalSeedOverdue: ${report.summary.historicalSeedOverdue}`);
   console.log(`notDueYet: ${report.summary.notDueYet}`);
   console.log(`noOutcomeRecord: ${report.summary.noOutcomeRecord}`);
 }
@@ -278,7 +296,8 @@ function renderMarkdown(report: SpecialSituationReviewDueReport): string {
   lines.push(`| matched outcomes | ${report.summary.matchedOutcomes} |`);
   lines.push(`| due today | ${report.summary.dueToday} |`);
   lines.push(`| due this week | ${report.summary.dueThisWeek} |`);
-  lines.push(`| overdue | ${report.summary.overdue} |`);
+  lines.push(`| overdue (採点待ち) | ${report.summary.overdue} |`);
+  lines.push(`| historical seed overdue (過去日付seed) | ${report.summary.historicalSeedOverdue} |`);
   lines.push(`| not due yet | ${report.summary.notDueYet} |`);
   lines.push(`| no outcome record | ${report.summary.noOutcomeRecord} |`);
   lines.push("");
@@ -300,7 +319,8 @@ function renderMarkdown(report: SpecialSituationReviewDueReport): string {
 
   renderItems(report.dueToday, "due today ⚠ 今日採点");
   renderItems(report.dueThisWeek, "due this week 今週採点");
-  renderItems(report.overdue, "overdue ❌ 期限切れ");
+  renderItems(report.overdue, "overdue 採点待ち");
+  renderItems(report.historicalSeedOverdue, "historical seed overdue 過去日付seed（データ補完候補）");
   renderItems(report.notDueYet, "not due yet ✅ 期限未到達");
 
   lines.push("## no outcome record", "");

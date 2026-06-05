@@ -17,6 +17,7 @@ const ALLOWED_DUE_STATUS = new Set([
   "due_today",
   "due_this_week",
   "overdue",
+  "historical_seed_overdue",
   "not_due_yet",
   "no_outcome_record",
 ]);
@@ -41,6 +42,7 @@ assert(isObject(reportData.summary), "summary は object");
   assert(typeof s.dueToday === "number", "summary.dueToday は number");
   assert(typeof s.dueThisWeek === "number", "summary.dueThisWeek は number");
   assert(typeof s.overdue === "number", "summary.overdue は number");
+  assert(typeof s.historicalSeedOverdue === "number", "summary.historicalSeedOverdue は number");
   assert(typeof s.notDueYet === "number", "summary.notDueYet は number");
   assert(typeof s.noOutcomeRecord === "number", "summary.noOutcomeRecord は number");
 }
@@ -49,6 +51,7 @@ assert(isObject(reportData.summary), "summary は object");
 assert(Array.isArray(reportData.dueToday), "dueToday は配列");
 assert(Array.isArray(reportData.dueThisWeek), "dueThisWeek は配列");
 assert(Array.isArray(reportData.overdue), "overdue は配列");
+assert(Array.isArray(reportData.historicalSeedOverdue), "historicalSeedOverdue は配列");
 assert(Array.isArray(reportData.notDueYet), "notDueYet は配列");
 assert(Array.isArray(reportData.noOutcomeRecord), "noOutcomeRecord は配列");
 assert(Array.isArray(reportData.notes), "notes は配列");
@@ -58,6 +61,7 @@ const allItems = [
   ...reportData.dueToday as Array<Record<string, unknown>>,
   ...reportData.dueThisWeek as Array<Record<string, unknown>>,
   ...reportData.overdue as Array<Record<string, unknown>>,
+  ...reportData.historicalSeedOverdue as Array<Record<string, unknown>>,
   ...reportData.notDueYet as Array<Record<string, unknown>>,
 ];
 for (const item of allItems) {
@@ -83,11 +87,13 @@ for (const item of reportData.noOutcomeRecord as Array<Record<string, unknown>>)
 {
   const s = reportData.summary as Record<string, unknown>;
   assert(s.dueToday === (reportData.dueToday as unknown[]).length,
-    `summary.dueToday (${s.dueToday}) と dueToday 配列長 (${(reportData.dueToday as unknown[]).length}) が一致しない`);
+    `summary.dueToday (${s.dueToday}) と dueToday 配列長が一致しない`);
   assert(s.overdue === (reportData.overdue as unknown[]).length,
-    `summary.overdue (${s.overdue}) と overdue 配列長 (${(reportData.overdue as unknown[]).length}) が一致しない`);
+    `summary.overdue (${s.overdue}) と overdue 配列長が一致しない`);
+  assert(s.historicalSeedOverdue === (reportData.historicalSeedOverdue as unknown[]).length,
+    `summary.historicalSeedOverdue (${s.historicalSeedOverdue}) と historicalSeedOverdue 配列長が一致しない`);
   assert(s.notDueYet === (reportData.notDueYet as unknown[]).length,
-    `summary.notDueYet (${s.notDueYet}) と notDueYet 配列長 (${(reportData.notDueYet as unknown[]).length}) が一致しない`);
+    `summary.notDueYet (${s.notDueYet}) と notDueYet 配列長が一致しない`);
   assert(s.noOutcomeRecord === (reportData.noOutcomeRecord as unknown[]).length,
     `summary.noOutcomeRecord と noOutcomeRecord 配列長が一致しない`);
 }
