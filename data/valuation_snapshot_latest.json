@@ -1,0 +1,235 @@
+{
+  "generatedAt": "2026-06-05",
+  "snapshots": [
+    {
+      "code": "5803",
+      "name": "フジクラ",
+      "asOf": "2026-06-05",
+      "per": null,
+      "pbr": null,
+      "psr": null,
+      "evEbitda": null,
+      "dividendYield": null,
+      "perPercentile5y": null,
+      "pbrPercentile5y": null,
+      "peerPerMedian": null,
+      "peerPbrMedian": null,
+      "growthAdjustedValuation": "unknown",
+      "valuationRisks": [
+        "期待先行・織り込み済みの可能性"
+      ],
+      "missingData": [
+        "PER",
+        "PBR",
+        "PER/PBR過去レンジ",
+        "同業比較",
+        "EV/EBITDA",
+        "PSR"
+      ]
+    },
+    {
+      "code": "5802",
+      "name": "住友電工",
+      "asOf": "2026-06-05",
+      "per": null,
+      "pbr": null,
+      "psr": null,
+      "evEbitda": null,
+      "dividendYield": null,
+      "perPercentile5y": null,
+      "pbrPercentile5y": null,
+      "peerPerMedian": null,
+      "peerPbrMedian": null,
+      "growthAdjustedValuation": "unknown",
+      "valuationRisks": [],
+      "missingData": [
+        "PER",
+        "PBR",
+        "PER/PBR過去レンジ",
+        "同業比較",
+        "EV/EBITDA",
+        "PSR"
+      ]
+    },
+    {
+      "code": "285A",
+      "name": "キオクシアホールディングス",
+      "asOf": "2026-06-05",
+      "per": null,
+      "pbr": null,
+      "psr": null,
+      "evEbitda": null,
+      "dividendYield": null,
+      "perPercentile5y": null,
+      "pbrPercentile5y": null,
+      "peerPerMedian": null,
+      "peerPbrMedian": null,
+      "growthAdjustedValuation": "unknown",
+      "valuationRisks": [
+        "期待先行・織り込み済みの可能性"
+      ],
+      "missingData": [
+        "PER",
+        "PBR",
+        "PER/PBR過去レンジ",
+        "同業比較",
+        "EV/EBITDA",
+        "PSR"
+      ]
+    },
+    {
+      "code": "8035",
+      "name": "東京エレクトロン",
+      "asOf": "2026-06-05",
+      "per": null,
+      "pbr": null,
+      "psr": null,
+      "evEbitda": null,
+      "dividendYield": null,
+      "perPercentile5y": null,
+      "pbrPercentile5y": null,
+      "peerPerMedian": null,
+      "peerPbrMedian": null,
+      "growthAdjustedValuation": "unknown",
+      "valuationRisks": [
+        "期待先行・織り込み済みの可能性"
+      ],
+      "missingData": [
+        "PER",
+        "PBR",
+        "PER/PBR過去レンジ",
+        "同業比較",
+        "EV/EBITDA",
+        "PSR"
+      ]
+    },
+    {
+      "code": "8136",
+      "name": "サンリオ",
+      "asOf": "2026-06-05",
+      "per": null,
+      "pbr": null,
+      "psr": null,
+      "evEbitda": null,
+      "dividendYield": null,
+      "perPercentile5y": null,
+      "pbrPercentile5y": null,
+      "peerPerMedian": null,
+      "peerPbrMedian": null,
+      "growthAdjustedValuation": "unknown",
+      "valuationRisks": [
+        "期待先行・織り込み済みの可能性"
+      ],
+      "missingData": [
+        "PER",
+        "PBR",
+        "PER/PBR過去レンジ",
+        "同業比較",
+        "EV/EBITDA",
+        "PSR"
+      ]
+    },
+    {
+      "code": "7974",
+      "name": "任天堂",
+      "asOf": "2026-06-05",
+      "per": null,
+      "pbr": null,
+      "psr": null,
+      "evEbitda": null,
+      "dividendYield": null,
+      "perPercentile5y": null,
+      "pbrPercentile5y": null,
+      "peerPerMedian": null,
+      "peerPbrMedian": null,
+      "growthAdjustedValuation": "unknown",
+      "valuationRisks": [
+        "期待先行・織り込み済みの可能性"
+      ],
+      "missingData": [
+        "PER",
+        "PBR",
+        "PER/PBR過去レンジ",
+        "同業比較",
+        "EV/EBITDA",
+        "PSR"
+      ]
+    },
+    {
+      "code": "7011",
+      "name": "三菱重工",
+      "asOf": "2026-06-05",
+      "per": null,
+      "pbr": null,
+      "psr": null,
+      "evEbitda": null,
+      "dividendYield": null,
+      "perPercentile5y": null,
+      "pbrPercentile5y": null,
+      "peerPerMedian": null,
+      "peerPbrMedian": null,
+      "growthAdjustedValuation": "unknown",
+      "valuationRisks": [
+        "期待先行・織り込み済みの可能性"
+      ],
+      "missingData": [
+        "PER",
+        "PBR",
+        "PER/PBR過去レンジ",
+        "同業比較",
+        "EV/EBITDA",
+        "PSR"
+      ]
+    },
+    {
+      "code": "9348",
+      "name": "ispace",
+      "asOf": "2026-06-05",
+      "per": null,
+      "pbr": null,
+      "psr": null,
+      "evEbitda": null,
+      "dividendYield": null,
+      "perPercentile5y": null,
+      "pbrPercentile5y": null,
+      "peerPerMedian": null,
+      "peerPbrMedian": null,
+      "growthAdjustedValuation": "unknown",
+      "valuationRisks": [],
+      "missingData": [
+        "PER",
+        "PBR",
+        "PER/PBR過去レンジ",
+        "同業比較",
+        "EV/EBITDA",
+        "PSR"
+      ]
+    },
+    {
+      "code": "8306",
+      "name": "三菱UFJ FG",
+      "asOf": "2026-06-05",
+      "per": null,
+      "pbr": null,
+      "psr": null,
+      "evEbitda": null,
+      "dividendYield": null,
+      "perPercentile5y": null,
+      "pbrPercentile5y": null,
+      "peerPerMedian": null,
+      "peerPbrMedian": null,
+      "growthAdjustedValuation": "unknown",
+      "valuationRisks": [
+        "期待先行・織り込み済みの可能性"
+      ],
+      "missingData": [
+        "PER",
+        "PBR",
+        "PER/PBR過去レンジ",
+        "同業比較",
+        "EV/EBITDA",
+        "PSR"
+      ]
+    }
+  ]
+}

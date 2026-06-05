@@ -1,217 +1,70 @@
-# IPO / AI / 宇宙テーマ監視プレイブック
+# IPOテーマ監視プレイブック
 
-SpaceX / Starlink / OpenAI / Anthropic 級の大型上場観測や、キオクシアのようなAIインフラ波及候補を、買い推奨ではなく「待つ理由」「確認する証拠」「関連銘柄への波及仮説」として扱うための手順。
+大型IPO、AI、宇宙/衛星通信、メモリ/ストレージ関連の報道を、調査テーマとして扱うための運用メモです。売買推奨ではありません。
 
 ## 目的
 
-巨大テーマに興味を持つこと自体は価値がある。
+- OpenAI / Anthropic / SpaceX / Starlink 級の上場報道を、公式情報・価格シグナル・決算確認に分解する
+- 関連日本株を、テーマ名だけで評価しない
+- 上場前、上場週、初回決算、ロックアップ解除、過熱後の調整、実需確認を分ける
+- キオクシアホールディングスのような AIストレージ/NAND/SSD/eSSD 文脈も、価格過熱と実需を分けて見る
 
-ただし、テーマが大きいほど以下が起きやすい。
-
-```text
-期待が先に価格へ入る
-本命企業は上場時点で高すぎる
-周辺銘柄も連想で買われすぎる
-初回決算やロックアップで需給が崩れる
-テーマは正しくても、選んだ銘柄が違う
-```
-
-そのため、alpha-pon では以下を分ける。
-
-```text
-興味がある
-調査する
-監視する
-待つ
-証拠を確認する
-ようやく本格調査候補にする
-```
-
-## 実行コマンド
+## 実行
 
 ```bash
 pnpm theme:ipo
+pnpm ui:data
 ```
 
-生成物:
+出力:
 
-```text
-reports/ipo_theme_watch_latest.md
-reports/ipo_theme_watch_latest.json
-```
+- `reports/ipo_theme_watch_latest.md`
+- `reports/ipo_theme_watch_latest.json`
+- `apps/web/public/generated/alpha-pon-data.json` の `ipoThemeWatch`
 
-`daily:full` と GitHub Actions にも接続済み。
+## 見る順番
 
-## 見るべきフェーズ
+1. `defaultAction`
+2. `neverTreatAs`
+3. `phases`
+4. `rules[].evidenceNeeded`
+5. `rules[].touchAvoidReasons`
+6. `outcomeStats`
 
-### 1. pre_ipo
+## フェーズ
 
-上場前・観測報道。
+- `pre_ipo`: 上場前報道。公式届出と報道の差を見る
+- `ipo_week`: 上場週。価格発見と出来高集中を見る
+- `first_earnings`: 上場後初回決算。物語と実績の差を見る
+- `lockup_expiry`: ロックアップ解除。需給イベントとして見る
+- `post_hype_drawdown`: 過熱後の調整。押し目か仮説崩れかを分ける
+- `fundamental_confirmation`: 実需確認。受注、粗利率、市況、設備投資を確認する
 
-やること:
+## 関連テーマ
 
-```text
-情報収集のみ
-S-1/公式開示/売上/利益/CF/設備投資/ロックアップ条件を待つ
-```
+- AI大型上場監視: OpenAI / Anthropic
+- 宇宙・衛星通信上場監視: SpaceX / Starlink
+- AIストレージ・メモリ市況: NAND / SSD / eSSD
 
-やらないこと:
+## 日本株への波及確認
 
-```text
-報道だけで関連銘柄のラベルを上げない
-上場観測だけで買い材料扱いしない
-```
+- キオクシアホールディングス: NAND / SSD / eSSD / AI推論ストレージ
+- 東京エレクトロン: 半導体製造装置
+- アドバンテスト: 半導体検査
+- フジクラ: 光通信・データセンター配線
+- 住友電気工業: 光通信・電力網
+- 三菱重工業: 宇宙・防衛・打上げ関連
+- ispace: 宇宙テーマ上場企業
 
-### 2. ipo_week
+## 答え合わせ
 
-上場週・初値形成。
+`ipoThemeWatch.outcomeStats` で、テーマ・フェーズ・関連企業ごとの結果を後日確認します。
 
-やること:
+- `sampleSize`
+- `sampleTooSmall`
+- `hitRate`
+- `avgReturn1w`
+- `avgReturn1m`
+- `avgTopixRelative1m`
 
-```text
-初値、出来高、売買代金、公開価格との乖離を見る
-```
-
-やらないこと:
-
-```text
-初値の熱狂を企業価値と混同しない
-```
-
-### 3. first_earnings
-
-上場後初回決算。
-
-やること:
-
-```text
-売上成長率
-粗利率/営業利益率/FCF
-ガイダンス
-市場期待との差
-```
-
-### 4. lockup_expiry
-
-ロックアップ解除。
-
-やること:
-
-```text
-解除日
-解除対象株数
-既存株主・社員・VCの売却圧力
-解除前後の出来高
-```
-
-### 5. post_hype_drawdown
-
-熱狂後の調整。
-
-やること:
-
-```text
-高値から20〜40%下落しても、事業仮説が壊れていないか確認
-TOPIX/NASDAQ/SOX比で下げ止まりを見る
-```
-
-### 6. fundamental_confirmation
-
-ファンダメンタル確認。
-
-やること:
-
-```text
-複数四半期の売上/利益/FCF
-バリュエーション
-競争優位
-関連銘柄への実需波及
-```
-
-## キオクシアを見る時の考え方
-
-キオクシアは、AI大型IPOやAIデータセンター投資の連想で見る価値がある。
-
-ただし、必ず以下を分ける。
-
-```text
-AI全体が強い
-AI半導体が強い
-GPU/HBMが強い
-NAND/SSD/eSSDまで需要が届く
-キオクシアの業績・FCFに接続する
-株価にまだ織り込まれていない
-```
-
-この全部は同じではない。
-
-見るべき証拠:
-
-```text
-NAND市況
-SSD/eSSD需要
-決算資料
-設備投資計画
-営業利益率
-FCF
-IPO後需給
-ロックアップ/売り圧
-AI報道だけでなく実需データ
-```
-
-## 周辺銘柄を見る時の考え方
-
-### 本命と周辺を分ける
-
-```text
-本命: SpaceX / Starlink / OpenAI / Anthropic など
-直接波及: GPU/HBM/半導体装置/データセンター
-周辺波及: NAND/SSD/光通信/電力/冷却/建設/防衛宇宙
-日本株候補: キオクシア、東京エレクトロン、アドバンテスト、フジクラ、住友電工、三菱重工、ispace など
-```
-
-### 見る順番
-
-```text
-1. テーマそのものが本当に強いか
-2. そのテーマがどの部品・サービスに効くか
-3. 日本株のどこに利益として届くか
-4. 既に織り込み済みではないか
-5. 数字に出るまでどれくらい遅れるか
-6. その間に需給が悪化しないか
-```
-
-## 安全ルール
-
-```text
-報道だけでは調査候補を上げない
-上場週は原則観察のみ
-初回決算前は数字未確認として扱う
-ロックアップ解除前後は需給確認を優先する
-関連日本株は本命/周辺/織り込み済みに分ける
-調査候補は買い指示ではない
-```
-
-## alpha-ponでの位置づけ
-
-このプレイブックは、以下とセットで使う。
-
-```text
-config/ipo-theme-watch-rules.yml
-config/company-hypotheses.yml
-reports/ipo_theme_watch_latest.md
-reports/stock_pro_committee_latest.md
-reports/stock_pro_committee_latest.json
-```
-
-目的は、買う理由を作ることではなく、
-
-```text
-待つ理由
-避ける理由
-まだ足りない証拠
-本命と周辺の違い
-織り込み済みリスク
-```
-
-を先に出すこと。
+`sampleTooSmall` が true の行は、判断材料ではなく、今後の蓄積待ちとして扱います。

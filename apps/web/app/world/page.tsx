@@ -19,6 +19,7 @@ const LEVEL_LABEL: Record<string, string> = {
 export default function WorldPage() {
   const data = loadGeneratedData()
   const world = data.worldContext
+  const ipoThemeWatch = data.ipoThemeWatch
 
   if (!world) {
     return (
@@ -143,6 +144,92 @@ export default function WorldPage() {
                 </div>
               ))}
             </Card>
+          </>
+        )}
+
+        {ipoThemeWatch && (ipoThemeWatch.rules ?? []).length > 0 && (
+          <>
+            <SectionLabel icon={<Icon name="spark" size={15} />}>IPO / AI / 宇宙テーマ監視</SectionLabel>
+            <Card pad={14} style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--lavender-deep)', marginBottom: 6 }}>
+                default action
+              </div>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.55 }}>
+                {ipoThemeWatch.defaultAction ?? '監視・証拠確認・待つ理由の記録'}
+              </p>
+              {(ipoThemeWatch.neverTreatAs ?? []).length > 0 && (
+                <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {(ipoThemeWatch.neverTreatAs ?? []).map(item => (
+                    <span key={item} style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--amber)', background: 'var(--amber-soft)', borderRadius: 7, padding: '3px 8px' }}>
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </Card>
+
+            {(ipoThemeWatch.rules ?? []).map(rule => (
+              <Card key={rule.id} pad={14} style={{ marginBottom: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start', marginBottom: 8 }}>
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 900, color: 'var(--ink)' }}>{rule.label}</div>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-3)', marginTop: 2 }}>{rule.id}</div>
+                  </div>
+                  <span style={{ fontSize: 10.5, fontWeight: 850, color: 'var(--sky-deep)', background: 'var(--sky-soft)', borderRadius: 7, padding: '3px 8px', whiteSpace: 'nowrap' }}>
+                    監視
+                  </span>
+                </div>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-2)', lineHeight: 1.5, marginBottom: 8 }}>
+                  {rule.defaultAction}
+                </div>
+                {(rule.names ?? []).length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
+                    {(rule.names ?? []).map(name => (
+                      <span key={name} style={{ fontSize: 11.5, fontWeight: 750, color: 'var(--lavender-deep)', background: 'var(--lavender-soft)', borderRadius: 6, padding: '2px 7px' }}>{name}</span>
+                    ))}
+                  </div>
+                )}
+                {(rule.evidenceNeeded ?? []).length > 0 && (
+                  <div style={{ marginTop: 8 }}>
+                    <div style={{ fontSize: 11, fontWeight: 850, color: 'var(--ink-3)', marginBottom: 4 }}>確認する証拠</div>
+                    {(rule.evidenceNeeded ?? []).slice(0, 5).map(item => (
+                      <div key={item} style={{ display: 'flex', gap: 7, fontSize: 12, fontWeight: 650, color: 'var(--ink-2)', lineHeight: 1.45, marginTop: 2 }}>
+                        <span style={{ color: 'var(--sky-deep)' }}>□</span>
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {(rule.touchAvoidReasons ?? []).length > 0 && (
+                  <div style={{ marginTop: 8 }}>
+                    <div style={{ fontSize: 11, fontWeight: 850, color: 'var(--amber)', marginBottom: 4 }}>待つ理由</div>
+                    {(rule.touchAvoidReasons ?? []).slice(0, 4).map(item => (
+                      <div key={item} style={{ display: 'flex', gap: 7, fontSize: 12, fontWeight: 650, color: 'var(--ink-2)', lineHeight: 1.45, marginTop: 2 }}>
+                        <span style={{ color: 'var(--amber)' }}>!</span>
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {(rule.japaneseSpilloverThemes ?? []).length > 0 && (
+                  <div style={{ marginTop: 9, display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                    {(rule.japaneseSpilloverThemes ?? []).map(theme => (
+                      <span key={theme} style={{ fontSize: 11, fontWeight: 750, color: 'var(--mint-deep)', background: 'var(--mint-soft)', borderRadius: 6, padding: '2px 7px' }}>{theme}</span>
+                    ))}
+                  </div>
+                )}
+                {(rule.relatedCompanies ?? []).length > 0 && (
+                  <div style={{ marginTop: 10, borderTop: '1px solid var(--line)', paddingTop: 8 }}>
+                    {(rule.relatedCompanies ?? []).map(company => (
+                      <div key={`${rule.id}-${company.code}`} style={{ display: 'grid', gridTemplateColumns: '56px 1fr', gap: 8, fontSize: 11.5, marginTop: 4 }}>
+                        <span style={{ color: 'var(--ink-3)', fontWeight: 850 }}>{company.code}</span>
+                        <span style={{ color: 'var(--ink-2)', fontWeight: 650 }}>{company.name} / {company.relation}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            ))}
           </>
         )}
 

@@ -17,6 +17,45 @@ function ok(item: string, detail = "") { results.push({ level: "OK", item, detai
 function warn(item: string, detail = "") { results.push({ level: "WARN", item, detail }); }
 function error(item: string, detail = "") { results.push({ level: "ERROR", item, detail }); }
 
+function tokyoDateFromMtime(path: string): string | null {
+  if (!existsSync(path)) return null;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(statSync(path).mtime);
+  const byType = new Map(parts.map(part => [part.type, part.value]));
+  const year = byType.get("year");
+  const month = byType.get("month");
+  const day = byType.get("day");
+  return year && month && day ? `${year}-${month}-${day}` : null;
+}
+
+const successArtifactByJob: Record<string, string[]> = {
+  world_scan: [
+    `reports/world_events_${TODAY}.md`,
+    "reports/world_events_latest.json",
+  ],
+  daily_company_score: [
+    "reports/latest.md",
+    "data/stock_scores_latest.json",
+  ],
+  review_due_predictions: [
+    "data/hypothesis_outcomes.jsonl",
+    "data/hypothesis_outcomes.db",
+  ],
+  ui_data_generate: [
+    "apps/web/public/generated/alpha-pon-data.json",
+    "apps/web/public/generated/hypotheses.json",
+    "apps/web/public/generated/outcomes.json",
+  ],
+};
+
+function todayFreshArtifacts(jobName: string): string[] {
+  return (successArtifactByJob[jobName] ?? []).filter(path => tokyoDateFromMtime(path) === TODAY);
+}
+
 // ── Node / pnpm ──────────────────────────────────────────────
 const nodeVer = spawnSync("node", ["--version"], { encoding: "utf-8" });
 nodeVer.status === 0
@@ -91,9 +130,15 @@ if (dbOk) {
   for (const jobName of monitoredJobs) {
     const last = getLastSuccessDate(jobName);
     if (!last) {
-      warn(`最終成功: ${jobName}`, "未実行");
+      const freshArtifacts = todayFreshArtifacts(jobName);
+      freshArtifacts.length > 0
+        ? ok(`最終成功: ${jobName}`, `job_runs 未記録 / artifact fresh: ${freshArtifacts.map(f => f.split("/").pop()).join(", ")}`)
+        : warn(`最終成功: ${jobName}`, "未実行");
     } else if (last < TODAY) {
-      warn(`最終成功: ${jobName}`, `${last}（今日まだ未実行）`);
+      const freshArtifacts = todayFreshArtifacts(jobName);
+      freshArtifacts.length > 0
+        ? ok(`最終成功: ${jobName}`, `${last} / artifact fresh: ${freshArtifacts.map(f => f.split("/").pop()).join(", ")}`)
+        : warn(`最終成功: ${jobName}`, `${last}（今日まだ未実行）`);
     } else {
       ok(`最終成功: ${jobName}`, last);
     }

@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-06-03",
+  "generatedAt": "2026-06-05",
   "headline": "alpha-pon Pro Dashboard",
   "summary": {
     "strategic": "- Pro知識ブラッシュアップでS優先の更新領域があります。政治・戦争・AI・宇宙/Starlink・金利などの前提が古くないか確認してください。 - Pro品質/Pro会議で証拠不足があります。IR・決算・総会・財務・バリュエーション・競合を補完するまで強い判断を避けてください。 - stock pro summary に安全側警告があります。今日は調査候補を増やすより、追わない/保留理由の確認を優先してください。 - current…",
-    "pipeline": "- report confidence: normal - sourcehealthlatest.md: ok - pipelinestatuslatest.json: ok - source health history rows: 8",
-    "committee": "alpha-pon stock pro committee report date: 2026-06-03 複数の株Pro視点で同じ銘柄を見て、合意点・対立点・不足情報・次アクションを出します。買い推奨ではありません。 AIデータセンター・電力制約 (aidatacenterpower) 5803 フジクラ - committee decision: 証拠不足 - original decision: 証拠不足 - final score: 0 - disagreement: あり - agreement: mix…",
+    "pipeline": "- report confidence: normal - sourcehealthlatest.md: ok - pipelinestatuslatest.json: ok - source health history rows: 10",
+    "committee": "alpha-pon stock pro committee report date: 2026-06-05 複数の株Pro視点で同じ銘柄を見て、合意点・対立点・不足情報・次アクションを出します。買い推奨ではありません。 AIデータセンター・電力制約 (aidatacenterpower) 5803 フジクラ - committee decision: 証拠不足 - original decision: 証拠不足 - final score: 0 - disagreement: あり - agreement: mix…",
     "roadmap": [
       "S: 初回銘柄調査の不足を潰す",
       "- 公式IRページ、決算日、株主総会/招集通知/議案、配当/資本政策を最優先で埋める",
@@ -37,7 +37,7 @@
         "- current regime と銘柄仮説にズレがあります。無理に追わず、保留/追わない判断を優先してください。",
         "- stale / retired 候補があります。古い仮説や繰り返し外れた仮説を放置しないでください。"
       ],
-      "fullContent": "# alpha-pon strategic advice report\n\ndate: 2026-06-03\n\n> 目的: 世界情勢・歴史・外れ方・DBの古さ・Pro会議・Pro知識更新を踏まえ、AI側から先回りして穴と改善順を指摘する。買い推奨ではありません。\n\n## 今日の前提\n\n- current regime: war_geopolitics / climate_heat_water / ai_ipo_compute_cycle / food_security / migration_labor_shortage / financial_crisis_rate_shock\n- regime summary: 世界情勢・気候・戦争・食糧・人手不足・金融不安に加え、Anthropic/SpaceX/OpenAI級のAI大型IPOレースを監視する。AIインフラ需要の実需と、IPO過熱・出口流動性イベントを分けて見る。\n- non-move history rows: 1\n- regime history rows: 8\n- source health history rows: 8\n- quality blocked: 18\n- quality provisional: 0\n- committee 証拠不足: 9\n- committee 保留: 0\n- onboarding unknown_or_thin: 9\n- pro knowledge S priority: 3\n- pro knowledge A priority: 1\n\n## 今日まず見る穴\n\n- Pro知識ブラッシュアップでS優先の更新領域があります。政治・戦争・AI・宇宙/Starlink・金利などの前提が古くないか確認してください。\n- Pro品質/Pro会議で証拠不足があります。IR・決算・総会・財務・バリュエーション・競合を補完するまで強い判断を避けてください。\n- stock pro summary に安全側警告があります。今日は調査候補を増やすより、追わない/保留理由の確認を優先してください。\n- current regime と銘柄仮説にズレがあります。無理に追わず、保留/追わない判断を優先してください。\n- stale / retired 候補があります。古い仮説や繰り返し外れた仮説を放置しないでください。\n\n## Pro知識ブラッシュアップからの更新キュー\n\n- S priority domains: 3\n- A priority domains: 1\n\n### refresh queue\n| priority | domain | cadence | affectedAgents | why |\n|---|---|---|---|---|\n| A | politics_policy / 政治・政策・規制 | weekly | event_driven_agent, theme_network_agent, risk_manager_agent | 補助金、規制、税制、外交、選挙でテーマの勝ち筋が変わる |\n| S | war_geopolitics / 戦争・地政学・安全保障 | weekly | theme_network_agent, valuation_agent, bear_case_agent, risk_manager_agent | 防衛、資源、物流、サプライチェーン、為替、リスクプレミアムが変わる |\n| S | ai_compute / AI・データセンター・半導体・電力 | weekly | growth_agent, valuation_agent, theme_network_agent, bear_case_agent | AI需要は半導体、電力、光通信、空調、土地、データセンター、ソフトウェアに波及する |\n| B | space_satellite_starlink / 宇宙・衛星通信・Starlink周辺 | monthly | theme_network_agent, event_driven_agent, bear_case_agent | 衛星通信、打上げ、地上局、防衛通信、災害通信、通信キャリアに影響する |\n| B | climate_food_disaster / 気候・食糧・災害 | monthly | theme_network_agent, bear_case_agent, risk_manager_agent | 農業、食品、保険、建設、電力、水、物流、観光に波及する |\n| S | macro_rates_fx / 金利・為替・インフレ・景気 | weekly | valuation_agent, buffett_quality_agent, risk_manager_agent | 高PER株、輸出入、金融、不動産、消費、設備投資の前提が変わる |\n\n## pipeline health からの信頼度判断\n\n- report confidence: normal\n- source_health_latest.md: ok\n- pipeline_status_latest.json: ok\n- source health history rows: 8\n\n### critical signals\n- N/A\n\n## Pro会議・品質監査からの判断\n\n- quality blocked: 18\n- quality provisional: 0\n- committee 証拠不足: 9\n- committee 保留: 0\n- onboarding unknown_or_thin: 9\n\n### improvement priority\n### S: 初回銘柄調査の不足を潰す\n- 公式IRページ、決算日、株主総会/招集通知/議案、配当/資本政策を最優先で埋める\n- 知らない銘柄は、まずunknown/provisional扱いにして、強い結論を出さない\n- 総会/決算/配当が近い銘柄は、テーマよりイベント確認を優先する\n### A: 会社ネットワークを補完する\n- 競合、親会社、子会社、関連会社、better peer riskを埋める\n- テーマが正しくても本命銘柄が別、というミスを減らす\n### A: 社会情勢とのズレを直す\n- current-regime外の銘柄を追いすぎていないか確認する\n- active regimeなのに銘柄仮説が薄いカテゴリは、無理に銘柄化せずテーマ監視へ置く\n### B: 古い仮説を整理する\n- review_needed / repeated_miss の銘柄は、仮説を書き換えるか退役候補にする\n- 外れ理由が繰り返される銘柄は、銘柄が悪いのか、テーマが悪いのか、タイミングが悪いのか分ける\n\n### next data to collect\n1. 直近IRイベント: 決算日、総会日、招集通知、議案、配当、資本政策\n2. バリュエーション: PER/PBR過去レンジ、同業比較、期待先行判定\n3. 財務品質: ROIC、FCF、営業利益率、自己資本比率、セグメント利益\n4. 会社ネットワーク: 競合、親会社/子会社、better peer risk\n5. 外れ理由: 上がらなかった理由、決算後反応、材料出尽くし\n\n## stock pro summary からの朝一判断\n\n- 今日は安全側ラベルが多いです。調査候補を増やすより、追わない/保留の理由確認を優先します。\n- company-network未登録が残っています。単独考察を避け、ネットワークDB補完を優先してください。\n- better peer risk が出ています。テーマは正しくても本命銘柄が別にある可能性を確認してください。\n- 一次情報不足が目立ちます。ニュースやSNSだけで評価しないでください。\n- 過熱/織り込み済み警告があります。飛びつきより反証確認を優先してください。\n\n### risk counters\n- company network missing: 4\n- better peer risk: 30\n- primary source missing: 14\n- overheat / priced-in: 28\n\n## AIからの先回り指摘\n\n1. 大事な判断では必ずPro会議を通す。新規銘柄・格上げ・通知候補・重要IR前後は単独判断しない。\n2. Pro達の知識も固定しない。政治・戦争・AI・宇宙/Starlink・金利・気候・食糧の変化で前提を更新する。\n3. テーマが強い時ほど、銘柄化を急がない。歴史的に、強いテーマは過熱と織り込み済みを生みやすい。\n4. 決算・総会・配当・資本政策は、社会情勢やテーマより先に見る。直近イベントを落とすと考察精度が崩れる。\n5. DBが増えたら精度が上がるとは限らない。古い仮説・使われないDB・重複DBは退役候補にする。\n\n## 外れ理由から見た警告\n\n- 1件: already_priced_in\n\n## 情勢履歴から見た偏り\n\n- 8回: war_geopolitics\n- 8回: climate_heat_water\n- 8回: food_security\n- 8回: migration_labor_shortage\n- 8回: financial_crisis_rate_shock\n\n## レポート接続チェック\n\n- pro_knowledge_refresh_latest.md: ok\n- pipeline_health_summary_latest.md: ok\n- company_onboarding_audit_latest.md: ok\n- stock_pro_quality_audit_latest.md: ok\n- stock_pro_committee_latest.md: ok\n- stock_pro_improvement_roadmap_latest.md: ok\n- stock_pro_agent_latest.md: ok\n- stock_pro_summary_latest.md: ok\n- company_network_latest.md: ok\n- company_coverage_audit_latest.md: ok\n- regime_hypothesis_alignment_latest.md: ok\n- stale_hypotheses_latest.md: ok\n\n## 次に人間が見るべきこと\n\n- Pro知識ブラッシュアップでS/A優先の領域がある場合、regime/agent/銘柄仮説の前提を見直す\n- Pro会議で証拠不足/保留が多い銘柄は、結論ではなく不足情報の収集を優先する\n- pipeline confidence が low/caution なら、銘柄考察よりデータ取得・source healthの修復を優先する\n- 決算・総会・配当・資本政策など重要IRイベントが近い銘柄を先に確認する\n- stock pro summary で、追わない/保留・証拠不足・避けるが多すぎないか\n- stock pro report と company network report が同じ銘柄で矛盾していないか\n- company coverage audit で未接続銘柄が残っていないか\n- regime alignment で current regime 外の銘柄を追いすぎていないか\n- stale_hypotheses_latest.md の review_needed を放置していないか\n- 追う銘柄より、追わない銘柄を明確にできているか\n\n## 判断ラベルの原則\n\n- 調査候補: 証拠はあるが、買い判断ではない\n- 保留: テーマはあるが、価格・証拠・財務・需給のどれかが足りない\n- 証拠不足: 一次情報や価格データが足りない\n- 避ける: 低品質・希薄化・不祥事・過熱・流動性不足が強い\n- 追わない: テーマはあるが、今は人間の注意資源を使う価値が低い\n\n---\n*alpha-pon strategic advice | 2026-06-03 | ※買い推奨ではありません*"
+      "fullContent": "# alpha-pon strategic advice report\n\ndate: 2026-06-05\n\n> 目的: 世界情勢・歴史・外れ方・DBの古さ・Pro会議・Pro知識更新を踏まえ、AI側から先回りして穴と改善順を指摘する。買い推奨ではありません。\n\n## 今日の前提\n\n- current regime: war_geopolitics / climate_heat_water / ai_ipo_compute_cycle / food_security / migration_labor_shortage / financial_crisis_rate_shock\n- regime summary: 世界情勢・気候・戦争・食糧・人手不足・金融不安に加え、Anthropic/SpaceX/OpenAI級のAI大型IPOレースを監視する。AIインフラ需要の実需と、IPO過熱・出口流動性イベントを分けて見る。\n- non-move history rows: 1\n- regime history rows: 10\n- source health history rows: 10\n- quality blocked: 18\n- quality provisional: 0\n- committee 証拠不足: 9\n- committee 保留: 0\n- onboarding unknown_or_thin: 9\n- pro knowledge S priority: 3\n- pro knowledge A priority: 1\n\n## 今日まず見る穴\n\n- Pro知識ブラッシュアップでS優先の更新領域があります。政治・戦争・AI・宇宙/Starlink・金利などの前提が古くないか確認してください。\n- Pro品質/Pro会議で証拠不足があります。IR・決算・総会・財務・バリュエーション・競合を補完するまで強い判断を避けてください。\n- stock pro summary に安全側警告があります。今日は調査候補を増やすより、追わない/保留理由の確認を優先してください。\n- current regime と銘柄仮説にズレがあります。無理に追わず、保留/追わない判断を優先してください。\n- stale / retired 候補があります。古い仮説や繰り返し外れた仮説を放置しないでください。\n\n## Pro知識ブラッシュアップからの更新キュー\n\n- S priority domains: 3\n- A priority domains: 1\n\n### refresh queue\n| priority | domain | cadence | affectedAgents | why |\n|---|---|---|---|---|\n| A | politics_policy / 政治・政策・規制 | weekly | event_driven_agent, theme_network_agent, risk_manager_agent | 補助金、規制、税制、外交、選挙でテーマの勝ち筋が変わる |\n| S | war_geopolitics / 戦争・地政学・安全保障 | weekly | theme_network_agent, valuation_agent, bear_case_agent, risk_manager_agent | 防衛、資源、物流、サプライチェーン、為替、リスクプレミアムが変わる |\n| S | ai_compute / AI・データセンター・半導体・電力 | weekly | growth_agent, valuation_agent, theme_network_agent, bear_case_agent | AI需要は半導体、電力、光通信、空調、土地、データセンター、ソフトウェアに波及する |\n| B | space_satellite_starlink / 宇宙・衛星通信・Starlink周辺 | monthly | theme_network_agent, event_driven_agent, bear_case_agent | 衛星通信、打上げ、地上局、防衛通信、災害通信、通信キャリアに影響する |\n| B | climate_food_disaster / 気候・食糧・災害 | monthly | theme_network_agent, bear_case_agent, risk_manager_agent | 農業、食品、保険、建設、電力、水、物流、観光に波及する |\n| S | macro_rates_fx / 金利・為替・インフレ・景気 | weekly | valuation_agent, buffett_quality_agent, risk_manager_agent | 高PER株、輸出入、金融、不動産、消費、設備投資の前提が変わる |\n\n## pipeline health からの信頼度判断\n\n- report confidence: normal\n- source_health_latest.md: ok\n- pipeline_status_latest.json: ok\n- source health history rows: 10\n\n### critical signals\n- N/A\n\n## Pro会議・品質監査からの判断\n\n- quality blocked: 18\n- quality provisional: 0\n- committee 証拠不足: 9\n- committee 保留: 0\n- onboarding unknown_or_thin: 9\n\n### improvement priority\n### S: 初回銘柄調査の不足を潰す\n- 公式IRページ、決算日、株主総会/招集通知/議案、配当/資本政策を最優先で埋める\n- 知らない銘柄は、まずunknown/provisional扱いにして、強い結論を出さない\n- 総会/決算/配当が近い銘柄は、テーマよりイベント確認を優先する\n### A: 会社ネットワークを補完する\n- 競合、親会社、子会社、関連会社、better peer riskを埋める\n- テーマが正しくても本命銘柄が別、というミスを減らす\n### A: 社会情勢とのズレを直す\n- current-regime外の銘柄を追いすぎていないか確認する\n- active regimeなのに銘柄仮説が薄いカテゴリは、無理に銘柄化せずテーマ監視へ置く\n### B: 古い仮説を整理する\n- review_needed / repeated_miss の銘柄は、仮説を書き換えるか退役候補にする\n- 外れ理由が繰り返される銘柄は、銘柄が悪いのか、テーマが悪いのか、タイミングが悪いのか分ける\n\n### next data to collect\n1. 直近IRイベント: 決算日、総会日、招集通知、議案、配当、資本政策\n2. バリュエーション: PER/PBR過去レンジ、同業比較、期待先行判定\n3. 財務品質: ROIC、FCF、営業利益率、自己資本比率、セグメント利益\n4. 会社ネットワーク: 競合、親会社/子会社、better peer risk\n5. 外れ理由: 上がらなかった理由、決算後反応、材料出尽くし\n\n## stock pro summary からの朝一判断\n\n- 今日は安全側ラベルが多いです。調査候補を増やすより、追わない/保留の理由確認を優先します。\n- company-network未登録が残っています。単独考察を避け、ネットワークDB補完を優先してください。\n- better peer risk が出ています。テーマは正しくても本命銘柄が別にある可能性を確認してください。\n- 一次情報不足が目立ちます。ニュースやSNSだけで評価しないでください。\n- 過熱/織り込み済み警告があります。飛びつきより反証確認を優先してください。\n\n### risk counters\n- company network missing: 4\n- better peer risk: 30\n- primary source missing: 14\n- overheat / priced-in: 25\n\n## AIからの先回り指摘\n\n1. 大事な判断では必ずPro会議を通す。新規銘柄・格上げ・通知候補・重要IR前後は単独判断しない。\n2. Pro達の知識も固定しない。政治・戦争・AI・宇宙/Starlink・金利・気候・食糧の変化で前提を更新する。\n3. テーマが強い時ほど、銘柄化を急がない。歴史的に、強いテーマは過熱と織り込み済みを生みやすい。\n4. 決算・総会・配当・資本政策は、社会情勢やテーマより先に見る。直近イベントを落とすと考察精度が崩れる。\n5. DBが増えたら精度が上がるとは限らない。古い仮説・使われないDB・重複DBは退役候補にする。\n\n## 外れ理由から見た警告\n\n- 1件: already_priced_in\n\n## 情勢履歴から見た偏り\n\n- 10回: war_geopolitics\n- 10回: climate_heat_water\n- 10回: food_security\n- 10回: migration_labor_shortage\n- 10回: financial_crisis_rate_shock\n- 2回: ai_ipo_compute_cycle\n\n## レポート接続チェック\n\n- pro_knowledge_refresh_latest.md: ok\n- pipeline_health_summary_latest.md: ok\n- company_onboarding_audit_latest.md: ok\n- stock_pro_quality_audit_latest.md: ok\n- stock_pro_committee_latest.md: ok\n- stock_pro_improvement_roadmap_latest.md: ok\n- stock_pro_agent_latest.md: ok\n- stock_pro_summary_latest.md: ok\n- company_network_latest.md: ok\n- company_coverage_audit_latest.md: ok\n- regime_hypothesis_alignment_latest.md: ok\n- stale_hypotheses_latest.md: ok\n\n## 次に人間が見るべきこと\n\n- Pro知識ブラッシュアップでS/A優先の領域がある場合、regime/agent/銘柄仮説の前提を見直す\n- Pro会議で証拠不足/保留が多い銘柄は、結論ではなく不足情報の収集を優先する\n- pipeline confidence が low/caution なら、銘柄考察よりデータ取得・source healthの修復を優先する\n- 決算・総会・配当・資本政策など重要IRイベントが近い銘柄を先に確認する\n- stock pro summary で、追わない/保留・証拠不足・避けるが多すぎないか\n- stock pro report と company network report が同じ銘柄で矛盾していないか\n- company coverage audit で未接続銘柄が残っていないか\n- regime alignment で current regime 外の銘柄を追いすぎていないか\n- stale_hypotheses_latest.md の review_needed を放置していないか\n- 追う銘柄より、追わない銘柄を明確にできているか\n\n## 判断ラベルの原則\n\n- 調査候補: 証拠はあるが、買い判断ではない\n- 保留: テーマはあるが、価格・証拠・財務・需給のどれかが足りない\n- 証拠不足: 一次情報や価格データが足りない\n- 避ける: 低品質・希薄化・不祥事・過熱・流動性不足が強い\n- 追わない: テーマはあるが、今は人間の注意資源を使う価値が低い\n\n---\n*alpha-pon strategic advice | 2026-06-05 | ※買い推奨ではありません*"
     },
     {
       "key": "pipeline",
@@ -48,9 +48,9 @@
         "- report confidence: normal",
         "- sourcehealthlatest.md: ok",
         "- pipelinestatuslatest.json: ok",
-        "- source health history rows: 8"
+        "- source health history rows: 10"
       ],
-      "fullContent": "# alpha-pon pipeline health summary\n\ndate: 2026-06-03\n\ndailyの取得・生成状態を見て、その日のレポートをどの程度信用してよいか判断します。買い推奨ではありません。\n\n## confidence\n\n- report confidence: normal\n- source_health_latest.md: ok\n- pipeline_status_latest.json: ok\n- source health history rows: 8\n\n## critical signals\n\n- N/A\n\n## recent missing reports\n\n- stockPro: 1/14\n\n## rule\n- confidence=low の日は、銘柄考察よりデータ取得・source healthの修復を優先する\n- confidence=caution の日は、調査候補を増やさず、証拠不足/保留を優先する\n- daily本体が失敗した場合はcritical、それ以外の補助レポートはnoncriticalで継続する\n\n---\n*alpha-pon pipeline health summary | 2026-06-03 | ※買い推奨ではありません*"
+      "fullContent": "# alpha-pon pipeline health summary\n\ndate: 2026-06-05\n\ndailyの取得・生成状態を見て、その日のレポートをどの程度信用してよいか判断します。買い推奨ではありません。\n\n## confidence\n\n- report confidence: normal\n- source_health_latest.md: ok\n- pipeline_status_latest.json: ok\n- source health history rows: 10\n\n## critical signals\n\n- N/A\n\n## recent missing reports\n\n- stockPro: 1/14\n\n## rule\n- confidence=low の日は、銘柄考察よりデータ取得・source healthの修復を優先する\n- confidence=caution の日は、調査候補を増やさず、証拠不足/保留を優先する\n- daily本体が失敗した場合はcritical、それ以外の補助レポートはnoncriticalで継続する\n\n---\n*alpha-pon pipeline health summary | 2026-06-05 | ※買い推奨ではありません*"
     },
     {
       "key": "committee",
@@ -63,7 +63,24 @@
         "- agent viewsが割れた銘柄は、意見対立そのものを価値ある情報として残す",
         "- 調査候補より、保留/証拠不足の理由の質を上げる"
       ],
-      "fullContent": "# alpha-pon stock pro committee report\n\ndate: 2026-06-03\n\n複数の株Pro視点で同じ銘柄を見て、合意点・対立点・不足情報・次アクションを出します。買い推奨ではありません。\n\n## AIデータセンター・電力制約 (ai_datacenter_power)\n\n### 5803 フジクラ\n- committee decision: **証拠不足**\n- original decision: 証拠不足\n- final score: 0\n- disagreement: あり\n- agreement: mixed\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: 同じ電線テーマでも、住友電工/古河電工/SWCCの方が選ばれる可能性\n    - better peer risk: 既に急騰済みなら関連銘柄へ資金が移る可能性\n    - peer: 5801 古河電工 / 光ファイバー/電線\n    - peer: 5802 住友電工 / 電線/光通信/電力インフラ\n  - バフェット型・品質/競争優位エージェント: 保留\n    - 財務品質確認対象あり\n  - 成長株エージェント: 証拠不足\n    - 売上/利益成長の確認が不足\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 期待が先行し、すでに織り込み済みなら上がりにくい。\n    - 下がる理由: 受注鈍化、利益率悪化、短期過熱で調整。\n    - 外れ理由候補: already_priced_in\n    - 外れ理由候補: profit_not_connected\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n- legend pro views:\n  - マンガー型: 反転思考・心理バイアス: 保留 (0.65)\n  - ハワード・マークス型: サイクルと市場心理: 証拠不足 (0.30)\n  - ソロス型: 反射性・自己強化: 保留 (0.58)\n  - ドラッケンミラー型: マクロ×非対称: 証拠不足 (0.35)\n  - ピーター・リンチ型: 成長ストーリー検証: 調査候補 (0.68)\n  - セス・クラーマン型: 安全域: 証拠不足 (0.35)\n  - グリーンブラット型: 品質×割安: 証拠不足 (0.55)\n  - シモンズ型: 統計的再現性: 証拠不足 (0.25)\n  - ダリオ型: レジーム・相関: 証拠不足 (0.30)\n  - ソープ型: 期待値と破滅回避: 証拠不足 (0.25)\n- legend warnings:\n  - FOMO・高値追い・期待先行の可能性\n  - 市場心理・テーマ過熱を優先確認\n  - current-regime / worldContext が未取得\n  - 期待先行・織り込み済みの可能性\n  - マクロ整合性が未確認\n  - カタリスト候補となるIRイベントが不足\n- disagreements:\n  - unknown: 賛成意見と慎重意見が混在しています。\n    - resolution: 証拠不足\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n\n### 5802 住友電工\n- committee decision: **証拠不足**\n- original decision: 証拠不足\n- final score: 0\n- disagreement: あり\n- agreement: mixed\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: テーマ寄与が分散し、よりピュアな銘柄が選ばれる可能性\n    - peer: 5803 フジクラ / 光通信/データセンター\n    - peer: 5801 古河電工 / 電線/光ファイバー\n    - peer: 5805 SWCC / 電力ケーブル\n  - バフェット型・品質/競争優位エージェント: 保留\n    - 財務品質確認対象あり\n  - 成長株エージェント: 証拠不足\n    - 売上/利益成長の確認が不足\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 事業が大きく分散しており、テーマ寄与が薄く見える可能性。\n    - 下がる理由: 素材コスト、景気敏感、利益率悪化。\n    - 外れ理由候補: profit_not_connected\n    - 外れ理由候補: better_peer_exists\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n- legend pro views:\n  - マンガー型: 反転思考・心理バイアス: 調査候補 (0.65)\n  - ハワード・マークス型: サイクルと市場心理: 証拠不足 (0.30)\n  - ソロス型: 反射性・自己強化: 調査候補 (0.58)\n  - ドラッケンミラー型: マクロ×非対称: 証拠不足 (0.35)\n  - ピーター・リンチ型: 成長ストーリー検証: 調査候補 (0.68)\n  - セス・クラーマン型: 安全域: 証拠不足 (0.35)\n  - グリーンブラット型: 品質×割安: 証拠不足 (0.55)\n  - シモンズ型: 統計的再現性: 証拠不足 (0.25)\n  - ダリオ型: レジーム・相関: 証拠不足 (0.30)\n  - ソープ型: 期待値と破滅回避: 証拠不足 (0.25)\n- legend warnings:\n  - 市場心理・テーマ過熱を優先確認\n  - current-regime / worldContext が未取得\n  - マクロ整合性が未確認\n  - カタリスト候補となるIRイベントが不足\n  - 割安性が未判定\n  - PER/PBR過去レンジ・同業比較が未取得\n- disagreements:\n  - unknown: 賛成意見と慎重意見が混在しています。\n    - resolution: 証拠不足\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n\n## 半導体・メモリ・装置 (semiconductor_memory)\n\n### 285A キオクシアホールディングス\n- committee decision: **証拠不足**\n- original decision: 証拠不足\n- final score: 0\n- disagreement: あり\n- agreement: mixed\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: メモリメーカーより装置・検査銘柄の方が先に買われる可能性\n    - better peer risk: AI IPOテーマではGPU/HBM/電力/光通信銘柄が先に選ばれる可能性\n    - better peer risk: IPO後需給が重く、テーマが正しくても上がらない可能性\n    - peer: 8035 東京エレクトロン / 半導体装置\n  - バフェット型・品質/競争優位エージェント: 証拠不足\n    - ROIC/FCF/利益率の確認が不足\n  - 成長株エージェント: 証拠不足\n    - 売上/利益成長の確認が不足\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: AI IPOテーマは強くても、NAND市況回復が遅い、AI需要がHBM/GPU側に偏る、IPO後の売り圧、競合の方が評価される場合は動きにくい。\n    - 下がる理由: NAND価格下落、設備投資負担、需給悪化、ロックアップ/売り圧、AI IPOの過熱剥落。\n    - 外れ理由候補: theme_right_timing_wrong\n    - 外れ理由候補: theme_right_company_wrong\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n- legend pro views:\n  - マンガー型: 反転思考・心理バイアス: 保留 (0.65)\n  - ハワード・マークス型: サイクルと市場心理: 証拠不足 (0.30)\n  - ソロス型: 反射性・自己強化: 保留 (0.58)\n  - ドラッケンミラー型: マクロ×非対称: 証拠不足 (0.35)\n  - ピーター・リンチ型: 成長ストーリー検証: 調査候補 (0.68)\n  - セス・クラーマン型: 安全域: 証拠不足 (0.35)\n  - グリーンブラット型: 品質×割安: 証拠不足 (0.55)\n  - シモンズ型: 統計的再現性: 証拠不足 (0.25)\n  - ダリオ型: レジーム・相関: 証拠不足 (0.30)\n  - ソープ型: 期待値と破滅回避: 証拠不足 (0.25)\n- legend warnings:\n  - FOMO・高値追い・期待先行の可能性\n  - 市場心理・テーマ過熱を優先確認\n  - current-regime / worldContext が未取得\n  - 期待先行・織り込み済みの可能性\n  - マクロ整合性が未確認\n  - カタリスト候補となるIRイベントが不足\n- disagreements:\n  - unknown: 賛成意見と慎重意見が混在しています。\n    - resolution: 証拠不足\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n\n### 8035 東京エレクトロン\n- committee decision: **証拠不足**\n- original decision: 証拠不足\n- final score: 0\n- disagreement: あり\n- agreement: mixed\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: 装置内でも検査・後工程の方が相場で選ばれる局面がある\n    - better peer risk: 大型株で織り込みが早い\n    - peer: 6857 アドバンテスト / 半導体テスター\n    - peer: 6146 ディスコ / 半導体製造装置\n  - バフェット型・品質/競争優位エージェント: 証拠不足\n    - ROIC/FCF/利益率の確認が不足\n  - 成長株エージェント: 保留\n    - 成長ドライバー確認対象あり\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 大型株で織り込みが早く、短期材料では動きにくい。\n    - 下がる理由: 設備投資サイクル悪化、米中規制、過熱。\n    - 外れ理由候補: already_priced_in\n    - 外れ理由候補: macro_headwind\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n- legend pro views:\n  - マンガー型: 反転思考・心理バイアス: 保留 (0.65)\n  - ハワード・マークス型: サイクルと市場心理: 証拠不足 (0.30)\n  - ソロス型: 反射性・自己強化: 保留 (0.58)\n  - ドラッケンミラー型: マクロ×非対称: 証拠不足 (0.35)\n  - ピーター・リンチ型: 成長ストーリー検証: 調査候補 (0.68)\n  - セス・クラーマン型: 安全域: 証拠不足 (0.35)\n  - グリーンブラット型: 品質×割安: 証拠不足 (0.55)\n  - シモンズ型: 統計的再現性: 証拠不足 (0.25)\n  - ダリオ型: レジーム・相関: 証拠不足 (0.30)\n  - ソープ型: 期待値と破滅回避: 証拠不足 (0.25)\n- legend warnings:\n  - FOMO・高値追い・期待先行の可能性\n  - 市場心理・テーマ過熱を優先確認\n  - current-regime / worldContext が未取得\n  - 期待先行・織り込み済みの可能性\n  - マクロ整合性が未確認\n  - カタリスト候補となるIRイベントが不足\n- disagreements:\n  - unknown: 賛成意見と慎重意見が混在しています。\n    - resolution: 証拠不足\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n\n## グローバルIP・キャラクター (global_ip_character)\n\n### 8136 サンリオ\n- committee decision: **証拠不足**\n- original decision: 証拠不足\n- final score: 0\n- disagreement: あり\n- agreement: mixed\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: 大型IP銘柄の方が資金流入しやすい可能性\n    - better peer risk: テーマは正しいが、任天堂/バンナムなど別IP銘柄の方が選ばれる可能性\n    - peer: 7974 任天堂 / 日本発IP・海外展開\n    - peer: 7832 バンダイナムコHD / キャラクター/ゲーム/玩具IP\n  - バフェット型・品質/競争優位エージェント: 保留\n    - 財務品質確認対象あり\n  - 成長株エージェント: 保留\n    - 成長ドライバー確認対象あり\n  - イベント・開示エージェント: 証拠不足\n    - 定時株主総会: date=要確認 source=official_page_known_detail_check_required\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 良い会社だが市場期待が高く、決算でサプライズがないと上がりにくい。\n    - 下がる理由: 海外成長鈍化、人気ピークアウト、バリュエーション調整。\n    - 外れ理由候補: already_priced_in\n    - 外れ理由候補: profit_not_connected\n  - リスク管理エージェント: 注意\n    - 追加確認なし\n- legend pro views:\n  - マンガー型: 反転思考・心理バイアス: 保留 (0.65)\n  - ハワード・マークス型: サイクルと市場心理: 証拠不足 (0.30)\n  - ソロス型: 反射性・自己強化: 保留 (0.58)\n  - ドラッケンミラー型: マクロ×非対称: 証拠不足 (0.35)\n  - ピーター・リンチ型: 成長ストーリー検証: 調査候補 (0.68)\n  - セス・クラーマン型: 安全域: 保留 (0.62)\n  - グリーンブラット型: 品質×割安: 証拠不足 (0.55)\n  - シモンズ型: 統計的再現性: 証拠不足 (0.25)\n  - ダリオ型: レジーム・相関: 証拠不足 (0.30)\n  - ソープ型: 期待値と破滅回避: 証拠不足 (0.25)\n- legend warnings:\n  - FOMO・高値追い・期待先行の可能性\n  - current-regime / worldContext が未取得\n  - 期待先行・織り込み済みの可能性\n  - マクロ整合性が未確認\n  - 割安性が未判定\n  - PER/PBR過去レンジ・同業比較が未取得\n- disagreements:\n  - unknown: 賛成意見と慎重意見が混在しています。\n    - resolution: 証拠不足\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n\n### 7974 任天堂\n- committee decision: **証拠不足**\n- original decision: 証拠不足\n- final score: 0\n- disagreement: あり\n- agreement: high\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: ハードサイクル待ちで、短期では他IP銘柄が選ばれる可能性\n    - peer: 7832 バンダイナムコHD / ゲーム/IP\n    - peer: 9766 コナミG / ゲーム/IP\n    - peer: 8136 サンリオ / キャラクターIP\n  - バフェット型・品質/競争優位エージェント: 証拠不足\n    - ROIC/FCF/利益率の確認が不足\n  - 成長株エージェント: 証拠不足\n    - 売上/利益成長の確認が不足\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 大型株で期待が織り込まれやすく、材料出尽くしになりやすい。\n    - 下がる理由: ハード移行期の販売鈍化、期待未達、為替逆風。\n    - 外れ理由候補: already_priced_in\n    - 外れ理由候補: theme_right_timing_wrong\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n- legend pro views:\n  - マンガー型: 反転思考・心理バイアス: 保留 (0.65)\n  - ハワード・マークス型: サイクルと市場心理: 証拠不足 (0.30)\n  - ソロス型: 反射性・自己強化: 保留 (0.58)\n  - ドラッケンミラー型: マクロ×非対称: 証拠不足 (0.35)\n  - ピーター・リンチ型: 成長ストーリー検証: 保留 (0.42)\n  - セス・クラーマン型: 安全域: 証拠不足 (0.35)\n  - グリーンブラット型: 品質×割安: 証拠不足 (0.55)\n  - シモンズ型: 統計的再現性: 証拠不足 (0.25)\n  - ダリオ型: レジーム・相関: 証拠不足 (0.30)\n  - ソープ型: 期待値と破滅回避: 証拠不足 (0.25)\n- legend warnings:\n  - FOMO・高値追い・期待先行の可能性\n  - current-regime / worldContext が未取得\n  - 期待先行・織り込み済みの可能性\n  - マクロ整合性が未確認\n  - 成長ストーリーが未整理\n  - カタリスト候補となるIRイベントが不足\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n\n## 防衛・宇宙・安全保障 (defense_space)\n\n### 7011 三菱重工\n- committee decision: **証拠不足**\n- original decision: 証拠不足\n- final score: 0\n- disagreement: あり\n- agreement: mixed\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: 防衛テーマが大型株で織り込み済みの場合、周辺IT/電子/部品へ資金が移る可能性\n    - peer: 7012 川崎重工 / 防衛/重工\n    - peer: 7013 IHI / 航空/宇宙/防衛\n    - peer: 6701 NEC / 防衛IT/通信/宇宙\n  - バフェット型・品質/競争優位エージェント: 保留\n    - 財務品質確認対象あり\n  - 成長株エージェント: 証拠不足\n    - 売上/利益成長の確認が不足\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 大型株で既に防衛テーマが織り込まれている可能性。\n    - 下がる理由: 採算悪化、受注の利益化遅れ、過熱調整。\n    - 外れ理由候補: already_priced_in\n    - 外れ理由候補: profit_not_connected\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n- legend pro views:\n  - マンガー型: 反転思考・心理バイアス: 保留 (0.65)\n  - ハワード・マークス型: サイクルと市場心理: 証拠不足 (0.30)\n  - ソロス型: 反射性・自己強化: 保留 (0.58)\n  - ドラッケンミラー型: マクロ×非対称: 証拠不足 (0.35)\n  - ピーター・リンチ型: 成長ストーリー検証: 調査候補 (0.68)\n  - セス・クラーマン型: 安全域: 証拠不足 (0.35)\n  - グリーンブラット型: 品質×割安: 証拠不足 (0.55)\n  - シモンズ型: 統計的再現性: 証拠不足 (0.25)\n  - ダリオ型: レジーム・相関: 証拠不足 (0.30)\n  - ソープ型: 期待値と破滅回避: 証拠不足 (0.25)\n- legend warnings:\n  - FOMO・高値追い・期待先行の可能性\n  - 市場心理・テーマ過熱を優先確認\n  - current-regime / worldContext が未取得\n  - 期待先行・織り込み済みの可能性\n  - マクロ整合性が未確認\n  - カタリスト候補となるIRイベントが不足\n- disagreements:\n  - unknown: 賛成意見と慎重意見が混在しています。\n    - resolution: 証拠不足\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n\n### 9348 ispace\n- committee decision: **証拠不足**\n- original decision: 証拠不足\n- final score: 0\n- disagreement: あり\n- agreement: mixed\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: 宇宙テーマは正しくても、収益化が遠く大型防衛/通信株の方が選ばれる可能性\n    - better peer risk: 資金調達・希薄化でテーマが相殺される可能性\n    - peer: 7011 三菱重工 / 宇宙/ロケット/防衛大型株\n    - peer: 7013 IHI / 宇宙/航空\n  - バフェット型・品質/競争優位エージェント: 証拠不足\n    - ROIC/FCF/利益率の確認が不足\n  - 成長株エージェント: 保留\n    - 成長ドライバー確認対象あり\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 収益化が遠く、テーマは正しくても利益に届きにくい。\n    - 下がる理由: 赤字継続、資金調達リスク、ミッション失敗リスク。\n    - 外れ理由候補: profit_not_connected\n    - 外れ理由候補: bad_financial_quality\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n- legend pro views:\n  - マンガー型: 反転思考・心理バイアス: 調査候補 (0.65)\n  - ハワード・マークス型: サイクルと市場心理: 証拠不足 (0.30)\n  - ソロス型: 反射性・自己強化: 調査候補 (0.58)\n  - ドラッケンミラー型: マクロ×非対称: 証拠不足 (0.35)\n  - ピーター・リンチ型: 成長ストーリー検証: 調査候補 (0.68)\n  - セス・クラーマン型: 安全域: 証拠不足 (0.35)\n  - グリーンブラット型: 品質×割安: 証拠不足 (0.55)\n  - シモンズ型: 統計的再現性: 証拠不足 (0.25)\n  - ダリオ型: レジーム・相関: 証拠不足 (0.30)\n  - ソープ型: 期待値と破滅回避: 証拠不足 (0.25)\n- legend warnings:\n  - 市場心理・テーマ過熱を優先確認\n  - current-regime / worldContext が未取得\n  - マクロ整合性が未確認\n  - カタリスト候補となるIRイベントが不足\n  - 割安性が未判定\n  - PER/PBR過去レンジ・同業比較が未取得\n- disagreements:\n  - unknown: 賛成意見と慎重意見が混在しています。\n    - resolution: 証拠不足\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n\n## 金利・金融 (rate_financials)\n\n### 8306 三菱UFJ FG\n- committee decision: **証拠不足**\n- original decision: 証拠不足\n- final score: 0\n- disagreement: あり\n- agreement: mixed\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 証拠不足\n    - company-network未登録。テーマの本命/周辺/競合が未確認\n  - バフェット型・品質/競争優位エージェント: 証拠不足\n    - ROIC/FCF/利益率の確認が不足\n  - 成長株エージェント: 証拠不足\n    - 売上/利益成長の確認が不足\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 大型株で金利テーマが織り込み済み。\n    - 下がる理由: 景気悪化、信用コスト増、海外金利低下。\n    - 外れ理由候補: already_priced_in\n    - 外れ理由候補: macro_headwind\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n    - network未確認では単独銘柄に寄せない\n- legend pro views:\n  - マンガー型: 反転思考・心理バイアス: 保留 (0.65)\n  - ハワード・マークス型: サイクルと市場心理: 証拠不足 (0.30)\n  - ソロス型: 反射性・自己強化: 保留 (0.58)\n  - ドラッケンミラー型: マクロ×非対称: 証拠不足 (0.35)\n  - ピーター・リンチ型: 成長ストーリー検証: 調査候補 (0.68)\n  - セス・クラーマン型: 安全域: 証拠不足 (0.35)\n  - グリーンブラット型: 品質×割安: 証拠不足 (0.55)\n  - シモンズ型: 統計的再現性: 証拠不足 (0.25)\n  - ダリオ型: レジーム・相関: 証拠不足 (0.30)\n  - ソープ型: 期待値と破滅回避: 証拠不足 (0.25)\n- legend warnings:\n  - FOMO・高値追い・期待先行の可能性\n  - 市場心理・テーマ過熱を優先確認\n  - current-regime / worldContext が未取得\n  - 期待先行・織り込み済みの可能性\n  - マクロ整合性が未確認\n  - カタリスト候補となるIRイベントが不足\n- disagreements:\n  - unknown: 賛成意見と慎重意見が混在しています。\n    - resolution: 証拠不足\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n\n## rule\n- 委員会decisionは買い推奨ではない\n- 1人でも証拠不足が強い場合、原則ラベルを上げない\n- agent viewsが割れた銘柄は、意見対立そのものを価値ある情報として残す\n- 調査候補より、保留/証拠不足の理由の質を上げる"
+      "fullContent": "# alpha-pon stock pro committee report\n\ndate: 2026-06-05\n\n複数の株Pro視点で同じ銘柄を見て、合意点・対立点・不足情報・次アクションを出します。買い推奨ではありません。\n\n## AIデータセンター・電力制約 (ai_datacenter_power)\n\n### 5803 フジクラ\n- committee decision: **証拠不足**\n- original decision: 証拠不足\n- final score: 0\n- disagreement: あり\n- agreement: mixed\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: 同じ電線テーマでも、住友電工/古河電工/SWCCの方が選ばれる可能性\n    - better peer risk: 既に急騰済みなら関連銘柄へ資金が移る可能性\n    - peer: 5801 古河電工 / 光ファイバー/電線\n    - peer: 5802 住友電工 / 電線/光通信/電力インフラ\n  - バフェット型・品質/競争優位エージェント: 保留\n    - 財務品質確認対象あり\n  - 成長株エージェント: 証拠不足\n    - 売上/利益成長の確認が不足\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 期待が先行し、すでに織り込み済みなら上がりにくい。\n    - 下がる理由: 受注鈍化、利益率悪化、短期過熱で調整。\n    - 外れ理由候補: already_priced_in\n    - 外れ理由候補: profit_not_connected\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n- legend pro views:\n  - マンガー型: 反転思考・心理バイアス: 保留 (0.65)\n  - ハワード・マークス型: サイクルと市場心理: 証拠不足 (0.30)\n  - ソロス型: 反射性・自己強化: 保留 (0.58)\n  - ドラッケンミラー型: マクロ×非対称: 証拠不足 (0.35)\n  - ピーター・リンチ型: 成長ストーリー検証: 調査候補 (0.68)\n  - セス・クラーマン型: 安全域: 証拠不足 (0.35)\n  - グリーンブラット型: 品質×割安: 証拠不足 (0.55)\n  - シモンズ型: 統計的再現性: 証拠不足 (0.25)\n  - ダリオ型: レジーム・相関: 証拠不足 (0.30)\n  - ソープ型: 期待値と破滅回避: 証拠不足 (0.25)\n- legend warnings:\n  - FOMO・高値追い・期待先行の可能性\n  - 市場心理・テーマ過熱を優先確認\n  - current-regime / worldContext が未取得\n  - 期待先行・織り込み済みの可能性\n  - マクロ整合性が未確認\n  - カタリスト候補となるIRイベントが不足\n- disagreements:\n  - unknown: 賛成意見と慎重意見が混在しています。\n    - resolution: 証拠不足\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n\n### 5802 住友電工\n- committee decision: **証拠不足**\n- original decision: 証拠不足\n- final score: 0\n- disagreement: あり\n- agreement: mixed\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: テーマ寄与が分散し、よりピュアな銘柄が選ばれる可能性\n    - peer: 5803 フジクラ / 光通信/データセンター\n    - peer: 5801 古河電工 / 電線/光ファイバー\n    - peer: 5805 SWCC / 電力ケーブル\n  - バフェット型・品質/競争優位エージェント: 保留\n    - 財務品質確認対象あり\n  - 成長株エージェント: 証拠不足\n    - 売上/利益成長の確認が不足\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 事業が大きく分散しており、テーマ寄与が薄く見える可能性。\n    - 下がる理由: 素材コスト、景気敏感、利益率悪化。\n    - 外れ理由候補: profit_not_connected\n    - 外れ理由候補: better_peer_exists\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n- legend pro views:\n  - マンガー型: 反転思考・心理バイアス: 調査候補 (0.65)\n  - ハワード・マークス型: サイクルと市場心理: 証拠不足 (0.30)\n  - ソロス型: 反射性・自己強化: 調査候補 (0.58)\n  - ドラッケンミラー型: マクロ×非対称: 証拠不足 (0.35)\n  - ピーター・リンチ型: 成長ストーリー検証: 調査候補 (0.68)\n  - セス・クラーマン型: 安全域: 証拠不足 (0.35)\n  - グリーンブラット型: 品質×割安: 証拠不足 (0.55)\n  - シモンズ型: 統計的再現性: 証拠不足 (0.25)\n  - ダリオ型: レジーム・相関: 証拠不足 (0.30)\n  - ソープ型: 期待値と破滅回避: 証拠不足 (0.25)\n- legend warnings:\n  - 市場心理・テーマ過熱を優先確認\n  - current-regime / worldContext が未取得\n  - マクロ整合性が未確認\n  - カタリスト候補となるIRイベントが不足\n  - 割安性が未判定\n  - PER/PBR過去レンジ・同業比較が未取得\n- disagreements:\n  - unknown: 賛成意見と慎重意見が混在しています。\n    - resolution: 証拠不足\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n\n## 半導体・メモリ・装置 (semiconductor_memory)\n\n### 285A キオクシアホールディングス\n- committee decision: **証拠不足**\n- original decision: 証拠不足\n- final score: 0\n- disagreement: あり\n- agreement: mixed\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: メモリメーカーより装置・検査銘柄の方が先に買われる可能性\n    - better peer risk: AI IPOテーマではGPU/HBM/電力/光通信銘柄が先に選ばれる可能性\n    - better peer risk: IPO後需給が重く、テーマが正しくても上がらない可能性\n    - peer: 8035 東京エレクトロン / 半導体装置\n  - バフェット型・品質/競争優位エージェント: 証拠不足\n    - ROIC/FCF/利益率の確認が不足\n  - 成長株エージェント: 証拠不足\n    - 売上/利益成長の確認が不足\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: AI IPOテーマは強くても、NAND市況回復が遅い、AI需要がHBM/GPU側に偏る、IPO後の売り圧、競合の方が評価される場合は動きにくい。\n    - 下がる理由: NAND価格下落、設備投資負担、需給悪化、ロックアップ/売り圧、AI IPOの過熱剥落。\n    - 外れ理由候補: theme_right_timing_wrong\n    - 外れ理由候補: theme_right_company_wrong\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n- legend pro views:\n  - マンガー型: 反転思考・心理バイアス: 保留 (0.65)\n  - ハワード・マークス型: サイクルと市場心理: 証拠不足 (0.30)\n  - ソロス型: 反射性・自己強化: 保留 (0.58)\n  - ドラッケンミラー型: マクロ×非対称: 証拠不足 (0.35)\n  - ピーター・リンチ型: 成長ストーリー検証: 調査候補 (0.68)\n  - セス・クラーマン型: 安全域: 証拠不足 (0.35)\n  - グリーンブラット型: 品質×割安: 証拠不足 (0.55)\n  - シモンズ型: 統計的再現性: 証拠不足 (0.25)\n  - ダリオ型: レジーム・相関: 証拠不足 (0.30)\n  - ソープ型: 期待値と破滅回避: 証拠不足 (0.25)\n- legend warnings:\n  - FOMO・高値追い・期待先行の可能性\n  - 市場心理・テーマ過熱を優先確認\n  - current-regime / worldContext が未取得\n  - 期待先行・織り込み済みの可能性\n  - マクロ整合性が未確認\n  - カタリスト候補となるIRイベントが不足\n- disagreements:\n  - unknown: 賛成意見と慎重意見が混在しています。\n    - resolution: 証拠不足\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n\n### 8035 東京エレクトロン\n- committee decision: **証拠不足**\n- original decision: 証拠不足\n- final score: 0\n- disagreement: あり\n- agreement: mixed\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: 装置内でも検査・後工程の方が相場で選ばれる局面がある\n    - better peer risk: 大型株で織り込みが早い\n    - peer: 6857 アドバンテスト / 半導体テスター\n    - peer: 6146 ディスコ / 半導体製造装置\n  - バフェット型・品質/競争優位エージェント: 証拠不足\n    - ROIC/FCF/利益率の確認が不足\n  - 成長株エージェント: 保留\n    - 成長ドライバー確認対象あり\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 大型株で織り込みが早く、短期材料では動きにくい。\n    - 下がる理由: 設備投資サイクル悪化、米中規制、過熱。\n    - 外れ理由候補: already_priced_in\n    - 外れ理由候補: macro_headwind\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n- legend pro views:\n  - マンガー型: 反転思考・心理バイアス: 保留 (0.65)\n  - ハワード・マークス型: サイクルと市場心理: 証拠不足 (0.30)\n  - ソロス型: 反射性・自己強化: 保留 (0.58)\n  - ドラッケンミラー型: マクロ×非対称: 証拠不足 (0.35)\n  - ピーター・リンチ型: 成長ストーリー検証: 調査候補 (0.68)\n  - セス・クラーマン型: 安全域: 証拠不足 (0.35)\n  - グリーンブラット型: 品質×割安: 証拠不足 (0.55)\n  - シモンズ型: 統計的再現性: 証拠不足 (0.25)\n  - ダリオ型: レジーム・相関: 証拠不足 (0.30)\n  - ソープ型: 期待値と破滅回避: 証拠不足 (0.25)\n- legend warnings:\n  - FOMO・高値追い・期待先行の可能性\n  - 市場心理・テーマ過熱を優先確認\n  - current-regime / worldContext が未取得\n  - 期待先行・織り込み済みの可能性\n  - マクロ整合性が未確認\n  - カタリスト候補となるIRイベントが不足\n- disagreements:\n  - unknown: 賛成意見と慎重意見が混在しています。\n    - resolution: 証拠不足\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n\n## グローバルIP・キャラクター (global_ip_character)\n\n### 8136 サンリオ\n- committee decision: **証拠不足**\n- original decision: 証拠不足\n- final score: 0\n- disagreement: あり\n- agreement: mixed\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: 大型IP銘柄の方が資金流入しやすい可能性\n    - better peer risk: テーマは正しいが、任天堂/バンナムなど別IP銘柄の方が選ばれる可能性\n    - peer: 7974 任天堂 / 日本発IP・海外展開\n    - peer: 7832 バンダイナムコHD / キャラクター/ゲーム/玩具IP\n  - バフェット型・品質/競争優位エージェント: 保留\n    - 財務品質確認対象あり\n  - 成長株エージェント: 保留\n    - 成長ドライバー確認対象あり\n  - イベント・開示エージェント: 証拠不足\n    - 定時株主総会: date=要確認 source=official_page_known_detail_check_required\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 良い会社だが市場期待が高く、決算でサプライズがないと上がりにくい。\n    - 下がる理由: 海外成長鈍化、人気ピークアウト、バリュエーション調整。\n    - 外れ理由候補: already_priced_in\n    - 外れ理由候補: profit_not_connected\n  - リスク管理エージェント: 注意\n    - 追加確認なし\n- legend pro views:\n  - マンガー型: 反転思考・心理バイアス: 保留 (0.65)\n  - ハワード・マークス型: サイクルと市場心理: 証拠不足 (0.30)\n  - ソロス型: 反射性・自己強化: 保留 (0.58)\n  - ドラッケンミラー型: マクロ×非対称: 証拠不足 (0.35)\n  - ピーター・リンチ型: 成長ストーリー検証: 調査候補 (0.68)\n  - セス・クラーマン型: 安全域: 保留 (0.62)\n  - グリーンブラット型: 品質×割安: 証拠不足 (0.55)\n  - シモンズ型: 統計的再現性: 証拠不足 (0.25)\n  - ダリオ型: レジーム・相関: 証拠不足 (0.30)\n  - ソープ型: 期待値と破滅回避: 証拠不足 (0.25)\n- legend warnings:\n  - FOMO・高値追い・期待先行の可能性\n  - current-regime / worldContext が未取得\n  - 期待先行・織り込み済みの可能性\n  - マクロ整合性が未確認\n  - 割安性が未判定\n  - PER/PBR過去レンジ・同業比較が未取得\n- disagreements:\n  - unknown: 賛成意見と慎重意見が混在しています。\n    - resolution: 証拠不足\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n\n### 7974 任天堂\n- committee decision: **証拠不足**\n- original decision: 証拠不足\n- final score: 0\n- disagreement: あり\n- agreement: high\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: ハードサイクル待ちで、短期では他IP銘柄が選ばれる可能性\n    - peer: 7832 バンダイナムコHD / ゲーム/IP\n    - peer: 9766 コナミG / ゲーム/IP\n    - peer: 8136 サンリオ / キャラクターIP\n  - バフェット型・品質/競争優位エージェント: 証拠不足\n    - ROIC/FCF/利益率の確認が不足\n  - 成長株エージェント: 証拠不足\n    - 売上/利益成長の確認が不足\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 大型株で期待が織り込まれやすく、材料出尽くしになりやすい。\n    - 下がる理由: ハード移行期の販売鈍化、期待未達、為替逆風。\n    - 外れ理由候補: already_priced_in\n    - 外れ理由候補: theme_right_timing_wrong\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n- legend pro views:\n  - マンガー型: 反転思考・心理バイアス: 保留 (0.65)\n  - ハワード・マークス型: サイクルと市場心理: 証拠不足 (0.30)\n  - ソロス型: 反射性・自己強化: 保留 (0.58)\n  - ドラッケンミラー型: マクロ×非対称: 証拠不足 (0.35)\n  - ピーター・リンチ型: 成長ストーリー検証: 保留 (0.42)\n  - セス・クラーマン型: 安全域: 証拠不足 (0.35)\n  - グリーンブラット型: 品質×割安: 証拠不足 (0.55)\n  - シモンズ型: 統計的再現性: 証拠不足 (0.25)\n  - ダリオ型: レジーム・相関: 証拠不足 (0.30)\n  - ソープ型: 期待値と破滅回避: 証拠不足 (0.25)\n- legend warnings:\n  - FOMO・高値追い・期待先行の可能性\n  - current-regime / worldContext が未取得\n  - 期待先行・織り込み済みの可能性\n  - マクロ整合性が未確認\n  - 成長ストーリーが未整理\n  - カタリスト候補となるIRイベントが不足\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n\n## 防衛・宇宙・安全保障 (defense_space)\n\n### 7011 三菱重工\n- committee decision: **証拠不足**\n- original decision: 証拠不足\n- final score: 0\n- disagreement: あり\n- agreement: mixed\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: 防衛テーマが大型株で織り込み済みの場合、周辺IT/電子/部品へ資金が移る可能性\n    - peer: 7012 川崎重工 / 防衛/重工\n    - peer: 7013 IHI / 航空/宇宙/防衛\n    - peer: 6701 NEC / 防衛IT/通信/宇宙\n  - バフェット型・品質/競争優位エージェント: 保留\n    - 財務品質確認対象あり\n  - 成長株エージェント: 証拠不足\n    - 売上/利益成長の確認が不足\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 大型株で既に防衛テーマが織り込まれている可能性。\n    - 下がる理由: 採算悪化、受注の利益化遅れ、過熱調整。\n    - 外れ理由候補: already_priced_in\n    - 外れ理由候補: profit_not_connected\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n- legend pro views:\n  - マンガー型: 反転思考・心理バイアス: 保留 (0.65)\n  - ハワード・マークス型: サイクルと市場心理: 証拠不足 (0.30)\n  - ソロス型: 反射性・自己強化: 保留 (0.58)\n  - ドラッケンミラー型: マクロ×非対称: 証拠不足 (0.35)\n  - ピーター・リンチ型: 成長ストーリー検証: 調査候補 (0.68)\n  - セス・クラーマン型: 安全域: 証拠不足 (0.35)\n  - グリーンブラット型: 品質×割安: 証拠不足 (0.55)\n  - シモンズ型: 統計的再現性: 証拠不足 (0.25)\n  - ダリオ型: レジーム・相関: 証拠不足 (0.30)\n  - ソープ型: 期待値と破滅回避: 証拠不足 (0.25)\n- legend warnings:\n  - FOMO・高値追い・期待先行の可能性\n  - 市場心理・テーマ過熱を優先確認\n  - current-regime / worldContext が未取得\n  - 期待先行・織り込み済みの可能性\n  - マクロ整合性が未確認\n  - カタリスト候補となるIRイベントが不足\n- disagreements:\n  - unknown: 賛成意見と慎重意見が混在しています。\n    - resolution: 証拠不足\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n\n### 9348 ispace\n- committee decision: **証拠不足**\n- original decision: 証拠不足\n- final score: 0\n- disagreement: あり\n- agreement: mixed\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 保留\n    - better peer risk: 宇宙テーマは正しくても、収益化が遠く大型防衛/通信株の方が選ばれる可能性\n    - better peer risk: 資金調達・希薄化でテーマが相殺される可能性\n    - peer: 7011 三菱重工 / 宇宙/ロケット/防衛大型株\n    - peer: 7013 IHI / 宇宙/航空\n  - バフェット型・品質/競争優位エージェント: 証拠不足\n    - ROIC/FCF/利益率の確認が不足\n  - 成長株エージェント: 保留\n    - 成長ドライバー確認対象あり\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 収益化が遠く、テーマは正しくても利益に届きにくい。\n    - 下がる理由: 赤字継続、資金調達リスク、ミッション失敗リスク。\n    - 外れ理由候補: profit_not_connected\n    - 外れ理由候補: bad_financial_quality\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n- legend pro views:\n  - マンガー型: 反転思考・心理バイアス: 調査候補 (0.65)\n  - ハワード・マークス型: サイクルと市場心理: 証拠不足 (0.30)\n  - ソロス型: 反射性・自己強化: 調査候補 (0.58)\n  - ドラッケンミラー型: マクロ×非対称: 証拠不足 (0.35)\n  - ピーター・リンチ型: 成長ストーリー検証: 調査候補 (0.68)\n  - セス・クラーマン型: 安全域: 証拠不足 (0.35)\n  - グリーンブラット型: 品質×割安: 証拠不足 (0.55)\n  - シモンズ型: 統計的再現性: 証拠不足 (0.25)\n  - ダリオ型: レジーム・相関: 証拠不足 (0.30)\n  - ソープ型: 期待値と破滅回避: 証拠不足 (0.25)\n- legend warnings:\n  - 市場心理・テーマ過熱を優先確認\n  - current-regime / worldContext が未取得\n  - マクロ整合性が未確認\n  - カタリスト候補となるIRイベントが不足\n  - 割安性が未判定\n  - PER/PBR過去レンジ・同業比較が未取得\n- disagreements:\n  - unknown: 賛成意見と慎重意見が混在しています。\n    - resolution: 証拠不足\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n\n## 金利・金融 (rate_financials)\n\n### 8306 三菱UFJ FG\n- committee decision: **証拠不足**\n- original decision: 証拠不足\n- final score: 0\n- disagreement: あり\n- agreement: mixed\n- agent views:\n  - テーマ・関連会社ネットワークエージェント: 証拠不足\n    - company-network未登録。テーマの本命/周辺/競合が未確認\n  - バフェット型・品質/競争優位エージェント: 証拠不足\n    - ROIC/FCF/利益率の確認が不足\n  - 成長株エージェント: 証拠不足\n    - 売上/利益成長の確認が不足\n  - イベント・開示エージェント: 証拠不足\n    - 直近IRイベント未登録。決算・総会・配当・資本政策確認が必要\n  - バリュエーション・過熱エージェント: 証拠不足\n    - バリュエーション確認が不足\n  - 反証・弱気シナリオエージェント: 保留\n    - 上がらない理由: 大型株で金利テーマが織り込み済み。\n    - 下がる理由: 景気悪化、信用コスト増、海外金利低下。\n    - 外れ理由候補: already_priced_in\n    - 外れ理由候補: macro_headwind\n  - リスク管理エージェント: 保留\n    - IRイベント未確認では強い判断をしない\n    - network未確認では単独銘柄に寄せない\n- legend pro views:\n  - マンガー型: 反転思考・心理バイアス: 保留 (0.65)\n  - ハワード・マークス型: サイクルと市場心理: 証拠不足 (0.30)\n  - ソロス型: 反射性・自己強化: 保留 (0.58)\n  - ドラッケンミラー型: マクロ×非対称: 証拠不足 (0.35)\n  - ピーター・リンチ型: 成長ストーリー検証: 調査候補 (0.68)\n  - セス・クラーマン型: 安全域: 証拠不足 (0.35)\n  - グリーンブラット型: 品質×割安: 証拠不足 (0.55)\n  - シモンズ型: 統計的再現性: 証拠不足 (0.25)\n  - ダリオ型: レジーム・相関: 証拠不足 (0.30)\n  - ソープ型: 期待値と破滅回避: 証拠不足 (0.25)\n- legend warnings:\n  - FOMO・高値追い・期待先行の可能性\n  - 市場心理・テーマ過熱を優先確認\n  - current-regime / worldContext が未取得\n  - 期待先行・織り込み済みの可能性\n  - マクロ整合性が未確認\n  - カタリスト候補となるIRイベントが不足\n- disagreements:\n  - unknown: 賛成意見と慎重意見が混在しています。\n    - resolution: 証拠不足\n- next actions:\n  - 公式IRイベント、決算、総会/招集通知/議案、配当/資本政策を先に確認\n  - 財務品質・バリュエーション・競合比較を埋める\n\n## rule\n- 委員会decisionは買い推奨ではない\n- 1人でも証拠不足が強い場合、原則ラベルを上げない\n- agent viewsが割れた銘柄は、意見対立そのものを価値ある情報として残す\n- 調査候補より、保留/証拠不足の理由の質を上げる"
+    },
+    {
+      "key": "ipoThemeWatch",
+      "label": "IPOテーマ監視",
+      "path": "reports/ipo_theme_watch_latest.md",
+      "available": true,
+      "excerpt": [
+        "AI大型上場監視 (aifrontieripo)",
+        "- defaultAction: 公式届出・資金吸収・関連株過熱を監視",
+        "- watch names: OpenAI / Anthropic",
+        "- evidence needed:",
+        "- S-1 / 公式IR / 主要投資家情報",
+        "- AIインフラ設備投資",
+        "- GPU/ASIC/HBM/NAND/SSD需要への接続",
+        "- 赤字幅・粗利率・顧客集中"
+      ],
+      "fullContent": "# alpha-pon IPO theme watch report\n\ndate: 2026-06-05\n\n> 大型IPO/AI/宇宙テーマを、監視・証拠確認・待つ理由として扱います。売買推奨ではありません。\n\n## default action\n\n- 監視・証拠確認・待つ理由の記録\n\n## never treat as\n\n- 売買推奨\n- 上場直後の即断\n- テーマ名だけの評価\n- SNSや報道見出しだけの判断\n\n## global reference events\n\n- SpaceX / Starlink 上場観測\n- OpenAI 上場準備観測\n- Anthropic 上場観測\n- AIデータセンター投資\n- NAND / SSD / eSSD需要\n- GPU / HBM偏重によるNAND波及不足\n\n## safety rules\n\n- 報道だけでは調査候補を上げない\n- 上場週は原則観察のみ\n- 初回決算前は数字未確認として扱う\n- ロックアップ解除前後は需給確認を優先する\n- 関連日本株は本命/周辺/織り込み済みに分ける\n- 調査候補は買い指示ではない\n\n## phases\n\n### 上場前報道 (pre_ipo)\n- defaultAction: 一次情報待ち\n- evidence:\n  - S-1 / 届出書 / 公式発表の有無\n  - 報道元と会社公式情報の差\n  - 既存上場関連銘柄への過熱波及\n- wait reasons:\n  - 未上場企業の条件が未確定\n  - 関連株は期待先行になりやすい\n\n### 上場週 (ipo_week)\n- defaultAction: 初値・出来高・ロックアップ条件の観察\n- evidence:\n  - 公開価格と初値の乖離\n  - 出来高急増と短期資金集中\n  - ベンチマーク比の過熱\n- wait reasons:\n  - 価格発見が終わっていない\n  - 短期資金で振れやすい\n\n### 上場後初回決算 (first_earnings)\n- defaultAction: 売上化と利益率を確認\n- evidence:\n  - 売上成長と営業利益率\n  - 顧客集中・設備投資・在庫\n  - 会社予想と市場期待の差\n- wait reasons:\n  - 物語と実績の差が出やすい\n\n### ロックアップ解除 (lockup_expiry)\n- defaultAction: 需給イベントとして監視\n- evidence:\n  - 解除日\n  - 既存株主の保有比率\n  - 売り圧力と出来高\n- wait reasons:\n  - 事業価値と需給イベントを混同しやすい\n\n### 過熱後の調整 (post_hype_drawdown)\n- defaultAction: 押し目か仮説崩れかを分ける\n- evidence:\n  - 20日/60日騰落率\n  - TOPIX比\n  - 出来高沈静化\n  - 材料出尽くしの有無\n- wait reasons:\n  - 下落が押し目ではなく仮説崩れの可能性\n\n### 実需確認 (fundamental_confirmation)\n- defaultAction: 収益・受注・市況への接続を確認\n- evidence:\n  - 受注残\n  - 粗利率\n  - 設備投資計画\n  - 顧客CAPEX\n  - 市況価格\n- wait reasons:\n  - テーマだけで売上・利益に接続していない可能性\n\n## rules\n\n### AI大型上場監視 (ai_frontier_ipo)\n- defaultAction: 公式届出・資金吸収・関連株過熱を監視\n- watch names: OpenAI / Anthropic\n- evidence needed:\n  - S-1 / 公式IR / 主要投資家情報\n  - AIインフラ設備投資\n  - GPU/ASIC/HBM/NAND/SSD需要への接続\n  - 赤字幅・粗利率・顧客集中\n  - S-1 / 届出書 / 公式発表の有無\n  - 報道元と会社公式情報の差\n  - 既存上場関連銘柄への過熱波及\n  - 公開価格と初値の乖離\n  - 出来高急増と短期資金集中\n  - ベンチマーク比の過熱\n  - 売上成長と営業利益率\n  - 顧客集中・設備投資・在庫\n- spillover themes:\n  - memory_storage\n  - semiconductor_equipment\n  - power_grid\n  - optical_network\n  - datacenter\n- related companies:\n  - 285A キオクシアホールディングス: NAND / SSD / eSSD / AI推論ストレージ\n  - 8035 東京エレクトロン: 半導体製造装置\n  - 6857 アドバンテスト: 半導体検査\n  - 5803 フジクラ: 光通信・データセンター配線\n  - 5802 住友電気工業: 光通信・電線・電力網\n  - 6501 日立製作所: AIインフラ・社会インフラ周辺\n\n### 宇宙・衛星通信上場監視 (space_connectivity_ipo)\n- defaultAction: 上場条件・衛星通信契約・防衛/通信波及を監視\n- watch names: SpaceX / Starlink\n- evidence needed:\n  - 公式上場手続き\n  - 打上げ/衛星数/通信契約\n  - 防衛・災害通信・海上/航空通信の契約\n  - 競合衛星通信と規制\n  - S-1 / 届出書 / 公式発表の有無\n  - 報道元と会社公式情報の差\n  - 既存上場関連銘柄への過熱波及\n  - 公開価格と初値の乖離\n  - 出来高急増と短期資金集中\n  - ベンチマーク比の過熱\n  - 売上成長と営業利益率\n  - 顧客集中・設備投資・在庫\n- spillover themes:\n  - space_defense\n  - satellite_connectivity\n  - disaster_resilience\n  - communication_infrastructure\n- related companies:\n  - 7011 三菱重工業: 宇宙・防衛・打上げ関連\n  - 9348 ispace: 宇宙テーマ上場企業\n  - 5803 フジクラ: 通信インフラ\n  - 5802 住友電気工業: 通信・電力インフラ\n\n### AIストレージ・メモリ市況 (memory_storage_cycle)\n- defaultAction: 市況・受注・価格転嫁を確認\n- watch names: NAND / SSD / eSSD / AI inference storage\n- evidence needed:\n  - NAND価格\n  - eSSD需要\n  - AI推論向けストレージ投資\n  - 在庫水準\n  - 設備投資負担\n  - S-1 / 届出書 / 公式発表の有無\n  - 報道元と会社公式情報の差\n  - 既存上場関連銘柄への過熱波及\n  - 公開価格と初値の乖離\n  - 出来高急増と短期資金集中\n  - ベンチマーク比の過熱\n  - 売上成長と営業利益率\n- spillover themes:\n  - memory_storage\n  - semiconductor_materials\n  - datacenter\n- related companies:\n  - 285A キオクシアホールディングス: NAND / SSD / eSSD\n  - 8035 東京エレクトロン: 半導体製造装置\n  - 6857 アドバンテスト: 検査装置\n\n## outcome stats\n\n| themeId | phase | code | sample | hitRate | avgReturn1w | avgReturn1m | avgTopixRelative1m |\n|---|---|---:|---:|---:|---:|---:|---:|\n| ai_frontier_ipo | pre_ipo | 285A | 0 small | N/A | N/A | N/A | N/A |\n| ai_frontier_ipo | first_earnings | 8035 | 2 small | N/A | N/A | N/A | N/A |\n| ai_frontier_ipo | first_earnings | 6857 | 1 small | N/A | N/A | N/A | N/A |\n| ai_frontier_ipo | first_earnings | 5803 | 1 small | N/A | N/A | N/A | N/A |\n| ai_frontier_ipo | pre_ipo | 5802 | 0 small | N/A | N/A | N/A | N/A |\n| ai_frontier_ipo | first_earnings | 6501 | 1 small | N/A | N/A | N/A | N/A |\n| space_connectivity_ipo | first_earnings | 7011 | 2 small | N/A | N/A | N/A | N/A |\n| space_connectivity_ipo | pre_ipo | 9348 | 0 small | N/A | N/A | N/A | N/A |\n| space_connectivity_ipo | first_earnings | 5803 | 1 small | N/A | N/A | N/A | N/A |\n| space_connectivity_ipo | pre_ipo | 5802 | 0 small | N/A | N/A | N/A | N/A |\n| memory_storage_cycle | pre_ipo | 285A | 0 small | N/A | N/A | N/A | N/A |\n| memory_storage_cycle | first_earnings | 8035 | 2 small | N/A | N/A | N/A | N/A |\n| memory_storage_cycle | first_earnings | 6857 | 1 small | N/A | N/A | N/A | N/A |\n\n## rule\n- テーマ名だけで判断しない\n- 公式情報・決算・価格シグナル・出来高を確認する\n- sampleTooSmall の統計は方向感として扱わない\n- 関連銘柄は本命/周辺/恩恵なしを分ける\n\n*alpha-pon IPO theme watch | 2026-06-05 | ※売買推奨ではありません*"
     },
     {
       "key": "roadmap",
@@ -80,7 +97,7 @@
         "- テーマが正しくても本命銘柄が別、というミスを減らす",
         "A: 社会情勢とのズレを直す"
       ],
-      "fullContent": "# alpha-pon stock pro improvement roadmap\n\ndate: 2026-06-03\n\n目的: 株Proアプリとして精度を上げるために、次に埋める情報を優先順位化します。買い推奨ではありません。\n\n## current quality snapshot\n\n- covered: 0\n- provisional: 0\n- blocked: 18\n- onboarding unknown_or_thin: 9\n- network coverage warnings: 4\n- regime mismatch warnings: 3\n- stale/review warnings: 4\n\n## priority improvements\n\n### S: 初回銘柄調査の不足を潰す\n- 公式IRページ、決算日、株主総会/招集通知/議案、配当/資本政策を最優先で埋める\n- 知らない銘柄は、まずunknown/provisional扱いにして、強い結論を出さない\n- 総会/決算/配当が近い銘柄は、テーマよりイベント確認を優先する\n\n### A: 会社ネットワークを補完する\n- 競合、親会社、子会社、関連会社、better peer riskを埋める\n- テーマが正しくても本命銘柄が別、というミスを減らす\n\n### A: 社会情勢とのズレを直す\n- current-regime外の銘柄を追いすぎていないか確認する\n- active regimeなのに銘柄仮説が薄いカテゴリは、無理に銘柄化せずテーマ監視へ置く\n\n### B: 古い仮説を整理する\n- review_needed / repeated_miss の銘柄は、仮説を書き換えるか退役候補にする\n- 外れ理由が繰り返される銘柄は、銘柄が悪いのか、テーマが悪いのか、タイミングが悪いのか分ける\n\n## next data to collect\n\n1. 直近IRイベント: 決算日、総会日、招集通知、議案、配当、資本政策\n2. バリュエーション: PER/PBR過去レンジ、同業比較、期待先行判定\n3. 財務品質: ROIC、FCF、営業利益率、自己資本比率、セグメント利益\n4. 会社ネットワーク: 競合、親会社/子会社、better peer risk\n5. 外れ理由: 上がらなかった理由、決算後反応、材料出尽くし\n\n## blocked/provisional sample targets\n\n- 5803 フジクラ\n- 5802 住友電工\n- 285A キオクシアホールディングス\n- 8035 東京エレクトロン\n- 8136 サンリオ\n- 7974 任天堂\n- 7011 三菱重工\n- 9348 ispace\n- 8306 三菱UFJ FG\n\n## operating stance\n\n- 良いものを作るため、足りない項目は責めずに改善キューへ入れる\n- 断言より、反証と不足を先に出す\n- 銘柄を増やすより、1銘柄あたりの一次情報・イベント・競合・外れ理由の厚みを優先する\n- 精度は予測の派手さではなく、見落としを減らすことで上げる"
+      "fullContent": "# alpha-pon stock pro improvement roadmap\n\ndate: 2026-06-05\n\n目的: 株Proアプリとして精度を上げるために、次に埋める情報を優先順位化します。買い推奨ではありません。\n\n## current quality snapshot\n\n- covered: 0\n- provisional: 0\n- blocked: 18\n- onboarding unknown_or_thin: 9\n- network coverage warnings: 4\n- regime mismatch warnings: 3\n- stale/review warnings: 4\n\n## priority improvements\n\n### S: 初回銘柄調査の不足を潰す\n- 公式IRページ、決算日、株主総会/招集通知/議案、配当/資本政策を最優先で埋める\n- 知らない銘柄は、まずunknown/provisional扱いにして、強い結論を出さない\n- 総会/決算/配当が近い銘柄は、テーマよりイベント確認を優先する\n\n### A: 会社ネットワークを補完する\n- 競合、親会社、子会社、関連会社、better peer riskを埋める\n- テーマが正しくても本命銘柄が別、というミスを減らす\n\n### A: 社会情勢とのズレを直す\n- current-regime外の銘柄を追いすぎていないか確認する\n- active regimeなのに銘柄仮説が薄いカテゴリは、無理に銘柄化せずテーマ監視へ置く\n\n### B: 古い仮説を整理する\n- review_needed / repeated_miss の銘柄は、仮説を書き換えるか退役候補にする\n- 外れ理由が繰り返される銘柄は、銘柄が悪いのか、テーマが悪いのか、タイミングが悪いのか分ける\n\n## next data to collect\n\n1. 直近IRイベント: 決算日、総会日、招集通知、議案、配当、資本政策\n2. バリュエーション: PER/PBR過去レンジ、同業比較、期待先行判定\n3. 財務品質: ROIC、FCF、営業利益率、自己資本比率、セグメント利益\n4. 会社ネットワーク: 競合、親会社/子会社、better peer risk\n5. 外れ理由: 上がらなかった理由、決算後反応、材料出尽くし\n\n## blocked/provisional sample targets\n\n- 5803 フジクラ\n- 5802 住友電工\n- 285A キオクシアホールディングス\n- 8035 東京エレクトロン\n- 8136 サンリオ\n- 7974 任天堂\n- 7011 三菱重工\n- 9348 ispace\n- 8306 三菱UFJ FG\n\n## operating stance\n\n- 良いものを作るため、足りない項目は責めずに改善キューへ入れる\n- 断言より、反証と不足を先に出す\n- 銘柄を増やすより、1銘柄あたりの一次情報・イベント・競合・外れ理由の厚みを優先する\n- 精度は予測の派手さではなく、見落としを減らすことで上げる"
     },
     {
       "key": "refresh",
@@ -97,7 +114,7 @@
         "B climatefooddisaster / 気候・食糧・災害 monthly themenetworkagent, bearcaseagent, riskmanageragent 農業、食品、保険、建設、電力、水、物流、観光に波及する",
         "S macroratesfx / 金利・為替・インフレ・景気 weekly valuationagent, buffettqualityagent, riskmanageragent 高PER株、輸出入、金融、不動産、消費、設備投資の前提が変わる"
       ],
-      "fullContent": "# alpha-pon Pro知識ブラッシュアップレポート\n\ndate: 2026-06-03\n\n政治・戦争・AI・宇宙/Starlink・気候・食糧・金利などで、Proエージェントの前提を更新すべき領域を出します。買い推奨ではありません。\n\n## current regime context\n\n- asOf: 2026-06-03\n- summary: 世界情勢・気候・戦争・食糧・人手不足・金融不安に加え、Anthropic/SpaceX/OpenAI級のAI大型IPOレースを監視する。AIインフラ需要の実需と、IPO過熱・出口流動性イベントを分けて見る。\n- active: war_geopolitics / level=high_watch\n- active: climate_heat_water / level=watch\n- active: ai_ipo_compute_cycle / level=high_watch\n- active: food_security / level=watch\n- active: migration_labor_shortage / level=watch\n- active: financial_crisis_rate_shock / level=watch\n\n## refresh queue\n\n| priority | domain | cadence | affectedAgents | why |\n|---|---|---|---|---|\n| A | politics_policy / 政治・政策・規制 | weekly | event_driven_agent, theme_network_agent, risk_manager_agent | 補助金、規制、税制、外交、選挙でテーマの勝ち筋が変わる |\n| S | war_geopolitics / 戦争・地政学・安全保障 | weekly | theme_network_agent, valuation_agent, bear_case_agent, risk_manager_agent | 防衛、資源、物流、サプライチェーン、為替、リスクプレミアムが変わる |\n| S | ai_compute / AI・データセンター・半導体・電力 | weekly | growth_agent, valuation_agent, theme_network_agent, bear_case_agent | AI需要は半導体、電力、光通信、空調、土地、データセンター、ソフトウェアに波及する |\n| B | space_satellite_starlink / 宇宙・衛星通信・Starlink周辺 | monthly | theme_network_agent, event_driven_agent, bear_case_agent | 衛星通信、打上げ、地上局、防衛通信、災害通信、通信キャリアに影響する |\n| B | climate_food_disaster / 気候・食糧・災害 | monthly | theme_network_agent, bear_case_agent, risk_manager_agent | 農業、食品、保険、建設、電力、水、物流、観光に波及する |\n| S | macro_rates_fx / 金利・為替・インフレ・景気 | weekly | valuation_agent, buffett_quality_agent, risk_manager_agent | 高PER株、輸出入、金融、不動産、消費、設備投資の前提が変わる |\n\n## A 政治・政策・規制 (politics_policy)\n\n- cadence: weekly\n- why: 補助金、規制、税制、外交、選挙でテーマの勝ち筋が変わる\n- affected agents: event_driven_agent, theme_network_agent, risk_manager_agent\n- watch examples:\n  - 防衛費・宇宙政策\n  - 半導体規制/輸出管理\n  - エネルギー政策\n  - 医療/薬価/少子化政策\n  - 移民/労働政策\n- must update when:\n  - 大型法案・補助金・規制変更\n  - 選挙/政権交代/外交方針変更\n  - 制裁・輸出規制・関税変更\n- action:\n  - current-regime.yml の前提に反映するべき変化がないか確認\n  - company-hypotheses.yml の対象カテゴリ/銘柄が古くなっていないか確認\n  - stock-pro-agents.yml の must_check / reject_when に追加すべき観点がないか確認\n  - テーマだけで銘柄化せず、収益・契約・一次情報への接続を確認\n\n## S 戦争・地政学・安全保障 (war_geopolitics)\n\n- cadence: weekly\n- why: 防衛、資源、物流、サプライチェーン、為替、リスクプレミアムが変わる\n- affected agents: theme_network_agent, valuation_agent, bear_case_agent, risk_manager_agent\n- watch examples:\n  - 台湾海峡\n  - 中東\n  - ウクライナ/欧州安全保障\n  - 海上輸送・保険料\n  - レアアース/資源ナショナリズム\n- must update when:\n  - 紛争拡大/停戦/制裁変更\n  - 物流寸断・資源価格急変\n  - 防衛関連の大型発注\n- action:\n  - current-regime.yml の前提に反映するべき変化がないか確認\n  - company-hypotheses.yml の対象カテゴリ/銘柄が古くなっていないか確認\n  - stock-pro-agents.yml の must_check / reject_when に追加すべき観点がないか確認\n  - テーマだけで銘柄化せず、収益・契約・一次情報への接続を確認\n\n## S AI・データセンター・半導体・電力 (ai_compute)\n\n- cadence: weekly\n- why: AI需要は半導体、電力、光通信、空調、土地、データセンター、ソフトウェアに波及する\n- affected agents: growth_agent, valuation_agent, theme_network_agent, bear_case_agent\n- watch examples:\n  - GPU/ASIC\n  - HBM/メモリ\n  - 電力/原発/送電網\n  - データセンター空調\n  - 光通信/電線/銅\n  - AIソフトウェア収益化\n  - AI大型IPO（Anthropic / SpaceX / OpenAI）\n  - NAND/SSD/eSSD\n- must update when:\n  - 大型設備投資変更\n  - 供給制約/価格急変\n  - AI収益化の鈍化/加速\n  - Anthropic/SpaceX/OpenAIのS-1・公式発表・上場条件\n  - AI IPO後の資金吸収/換金売り/関連株過熱\n  - 規制/著作権/安全基準の変化\n- action:\n  - current-regime.yml の前提に反映するべき変化がないか確認\n  - company-hypotheses.yml の対象カテゴリ/銘柄が古くなっていないか確認\n  - stock-pro-agents.yml の must_check / reject_when に追加すべき観点がないか確認\n  - テーマだけで銘柄化せず、収益・契約・一次情報への接続を確認\n\n## B 宇宙・衛星通信・Starlink周辺 (space_satellite_starlink)\n\n- cadence: monthly\n- why: 衛星通信、打上げ、地上局、防衛通信、災害通信、通信キャリアに影響する\n- affected agents: theme_network_agent, event_driven_agent, bear_case_agent\n- watch examples:\n  - Starlink/衛星通信\n  - ロケット打上げ\n  - 地上局/アンテナ\n  - 防衛通信\n  - 災害時通信\n  - 宇宙保険/宇宙デブリ\n- must update when:\n  - 大型契約/政策支援\n  - 打上げ失敗/規制変更\n  - 通信キャリアとの提携/競合変化\n- action:\n  - current-regime.yml の前提に反映するべき変化がないか確認\n  - company-hypotheses.yml の対象カテゴリ/銘柄が古くなっていないか確認\n  - stock-pro-agents.yml の must_check / reject_when に追加すべき観点がないか確認\n  - テーマだけで銘柄化せず、収益・契約・一次情報への接続を確認\n\n## B 気候・食糧・災害 (climate_food_disaster)\n\n- cadence: monthly\n- why: 農業、食品、保険、建設、電力、水、物流、観光に波及する\n- affected agents: theme_network_agent, bear_case_agent, risk_manager_agent\n- watch examples:\n  - 猛暑/水不足\n  - 米・小麦・飼料価格\n  - 台風/地震/洪水\n  - 保険金支払い\n  - 防災/インフラ更新\n- must update when:\n  - 大規模災害\n  - 食糧価格急騰\n  - 保険/電力/水インフラの制度変更\n- action:\n  - current-regime.yml の前提に反映するべき変化がないか確認\n  - company-hypotheses.yml の対象カテゴリ/銘柄が古くなっていないか確認\n  - stock-pro-agents.yml の must_check / reject_when に追加すべき観点がないか確認\n  - テーマだけで銘柄化せず、収益・契約・一次情報への接続を確認\n\n## S 金利・為替・インフレ・景気 (macro_rates_fx)\n\n- cadence: weekly\n- why: 高PER株、輸出入、金融、不動産、消費、設備投資の前提が変わる\n- affected agents: valuation_agent, buffett_quality_agent, risk_manager_agent\n- watch examples:\n  - 日銀政策\n  - 米金利\n  - 円安/円高\n  - 実質賃金/消費\n  - 信用スプレッド\n- must update when:\n  - 政策金利変更\n  - 急激な円安/円高\n  - インフレ/景気指標のトレンド変化\n- action:\n  - current-regime.yml の前提に反映するべき変化がないか確認\n  - company-hypotheses.yml の対象カテゴリ/銘柄が古くなっていないか確認\n  - stock-pro-agents.yml の must_check / reject_when に追加すべき観点がないか確認\n  - テーマだけで銘柄化せず、収益・契約・一次情報への接続を確認\n\n## refresh rules\n\n- Proエージェントの知識は固定しない\n- weekly/monthlyで、前提が古くなっていないか確認する\n- 情勢変化が起きたら、銘柄仮説より先にregimeを更新する\n- 新しいテーマは、関連銘柄を出す前に本命/周辺/恩恵なしを分ける\n- 古いテーマは、外れ理由が増えたら退役候補にする\n- StarlinkやAIのような急変テーマは、一次情報・契約・収益接続を優先し、雰囲気だけで銘柄化しない\n\n## output requirements\n\n- どのPro視点を更新すべきか\n- どの社会情勢が銘柄仮説に影響するか\n- 更新しないと危ない古い前提\n- 次に集める一次情報\n- 関連銘柄を増やすべきか、テーマ監視に留めるべきか\n\n---\n*alpha-pon pro knowledge refresh | 2026-06-03 | ※買い推奨ではありません*"
+      "fullContent": "# alpha-pon Pro知識ブラッシュアップレポート\n\ndate: 2026-06-05\n\n政治・戦争・AI・宇宙/Starlink・気候・食糧・金利などで、Proエージェントの前提を更新すべき領域を出します。買い推奨ではありません。\n\n## current regime context\n\n- asOf: 2026-06-03\n- summary: 世界情勢・気候・戦争・食糧・人手不足・金融不安に加え、Anthropic/SpaceX/OpenAI級のAI大型IPOレースを監視する。AIインフラ需要の実需と、IPO過熱・出口流動性イベントを分けて見る。\n- active: war_geopolitics / level=high_watch\n- active: climate_heat_water / level=watch\n- active: ai_ipo_compute_cycle / level=high_watch\n- active: food_security / level=watch\n- active: migration_labor_shortage / level=watch\n- active: financial_crisis_rate_shock / level=watch\n\n## refresh queue\n\n| priority | domain | cadence | affectedAgents | why |\n|---|---|---|---|---|\n| A | politics_policy / 政治・政策・規制 | weekly | event_driven_agent, theme_network_agent, risk_manager_agent | 補助金、規制、税制、外交、選挙でテーマの勝ち筋が変わる |\n| S | war_geopolitics / 戦争・地政学・安全保障 | weekly | theme_network_agent, valuation_agent, bear_case_agent, risk_manager_agent | 防衛、資源、物流、サプライチェーン、為替、リスクプレミアムが変わる |\n| S | ai_compute / AI・データセンター・半導体・電力 | weekly | growth_agent, valuation_agent, theme_network_agent, bear_case_agent | AI需要は半導体、電力、光通信、空調、土地、データセンター、ソフトウェアに波及する |\n| B | space_satellite_starlink / 宇宙・衛星通信・Starlink周辺 | monthly | theme_network_agent, event_driven_agent, bear_case_agent | 衛星通信、打上げ、地上局、防衛通信、災害通信、通信キャリアに影響する |\n| B | climate_food_disaster / 気候・食糧・災害 | monthly | theme_network_agent, bear_case_agent, risk_manager_agent | 農業、食品、保険、建設、電力、水、物流、観光に波及する |\n| S | macro_rates_fx / 金利・為替・インフレ・景気 | weekly | valuation_agent, buffett_quality_agent, risk_manager_agent | 高PER株、輸出入、金融、不動産、消費、設備投資の前提が変わる |\n\n## A 政治・政策・規制 (politics_policy)\n\n- cadence: weekly\n- why: 補助金、規制、税制、外交、選挙でテーマの勝ち筋が変わる\n- affected agents: event_driven_agent, theme_network_agent, risk_manager_agent\n- watch examples:\n  - 防衛費・宇宙政策\n  - 半導体規制/輸出管理\n  - エネルギー政策\n  - 医療/薬価/少子化政策\n  - 移民/労働政策\n- must update when:\n  - 大型法案・補助金・規制変更\n  - 選挙/政権交代/外交方針変更\n  - 制裁・輸出規制・関税変更\n- action:\n  - current-regime.yml の前提に反映するべき変化がないか確認\n  - company-hypotheses.yml の対象カテゴリ/銘柄が古くなっていないか確認\n  - stock-pro-agents.yml の must_check / reject_when に追加すべき観点がないか確認\n  - テーマだけで銘柄化せず、収益・契約・一次情報への接続を確認\n\n## S 戦争・地政学・安全保障 (war_geopolitics)\n\n- cadence: weekly\n- why: 防衛、資源、物流、サプライチェーン、為替、リスクプレミアムが変わる\n- affected agents: theme_network_agent, valuation_agent, bear_case_agent, risk_manager_agent\n- watch examples:\n  - 台湾海峡\n  - 中東\n  - ウクライナ/欧州安全保障\n  - 海上輸送・保険料\n  - レアアース/資源ナショナリズム\n- must update when:\n  - 紛争拡大/停戦/制裁変更\n  - 物流寸断・資源価格急変\n  - 防衛関連の大型発注\n- action:\n  - current-regime.yml の前提に反映するべき変化がないか確認\n  - company-hypotheses.yml の対象カテゴリ/銘柄が古くなっていないか確認\n  - stock-pro-agents.yml の must_check / reject_when に追加すべき観点がないか確認\n  - テーマだけで銘柄化せず、収益・契約・一次情報への接続を確認\n\n## S AI・データセンター・半導体・電力 (ai_compute)\n\n- cadence: weekly\n- why: AI需要は半導体、電力、光通信、空調、土地、データセンター、ソフトウェアに波及する\n- affected agents: growth_agent, valuation_agent, theme_network_agent, bear_case_agent\n- watch examples:\n  - GPU/ASIC\n  - HBM/メモリ\n  - 電力/原発/送電網\n  - データセンター空調\n  - 光通信/電線/銅\n  - AIソフトウェア収益化\n  - AI大型IPO（Anthropic / SpaceX / OpenAI）\n  - NAND/SSD/eSSD\n- must update when:\n  - 大型設備投資変更\n  - 供給制約/価格急変\n  - AI収益化の鈍化/加速\n  - Anthropic/SpaceX/OpenAIのS-1・公式発表・上場条件\n  - AI IPO後の資金吸収/換金売り/関連株過熱\n  - 規制/著作権/安全基準の変化\n- action:\n  - current-regime.yml の前提に反映するべき変化がないか確認\n  - company-hypotheses.yml の対象カテゴリ/銘柄が古くなっていないか確認\n  - stock-pro-agents.yml の must_check / reject_when に追加すべき観点がないか確認\n  - テーマだけで銘柄化せず、収益・契約・一次情報への接続を確認\n\n## B 宇宙・衛星通信・Starlink周辺 (space_satellite_starlink)\n\n- cadence: monthly\n- why: 衛星通信、打上げ、地上局、防衛通信、災害通信、通信キャリアに影響する\n- affected agents: theme_network_agent, event_driven_agent, bear_case_agent\n- watch examples:\n  - Starlink/衛星通信\n  - ロケット打上げ\n  - 地上局/アンテナ\n  - 防衛通信\n  - 災害時通信\n  - 宇宙保険/宇宙デブリ\n- must update when:\n  - 大型契約/政策支援\n  - 打上げ失敗/規制変更\n  - 通信キャリアとの提携/競合変化\n- action:\n  - current-regime.yml の前提に反映するべき変化がないか確認\n  - company-hypotheses.yml の対象カテゴリ/銘柄が古くなっていないか確認\n  - stock-pro-agents.yml の must_check / reject_when に追加すべき観点がないか確認\n  - テーマだけで銘柄化せず、収益・契約・一次情報への接続を確認\n\n## B 気候・食糧・災害 (climate_food_disaster)\n\n- cadence: monthly\n- why: 農業、食品、保険、建設、電力、水、物流、観光に波及する\n- affected agents: theme_network_agent, bear_case_agent, risk_manager_agent\n- watch examples:\n  - 猛暑/水不足\n  - 米・小麦・飼料価格\n  - 台風/地震/洪水\n  - 保険金支払い\n  - 防災/インフラ更新\n- must update when:\n  - 大規模災害\n  - 食糧価格急騰\n  - 保険/電力/水インフラの制度変更\n- action:\n  - current-regime.yml の前提に反映するべき変化がないか確認\n  - company-hypotheses.yml の対象カテゴリ/銘柄が古くなっていないか確認\n  - stock-pro-agents.yml の must_check / reject_when に追加すべき観点がないか確認\n  - テーマだけで銘柄化せず、収益・契約・一次情報への接続を確認\n\n## S 金利・為替・インフレ・景気 (macro_rates_fx)\n\n- cadence: weekly\n- why: 高PER株、輸出入、金融、不動産、消費、設備投資の前提が変わる\n- affected agents: valuation_agent, buffett_quality_agent, risk_manager_agent\n- watch examples:\n  - 日銀政策\n  - 米金利\n  - 円安/円高\n  - 実質賃金/消費\n  - 信用スプレッド\n- must update when:\n  - 政策金利変更\n  - 急激な円安/円高\n  - インフレ/景気指標のトレンド変化\n- action:\n  - current-regime.yml の前提に反映するべき変化がないか確認\n  - company-hypotheses.yml の対象カテゴリ/銘柄が古くなっていないか確認\n  - stock-pro-agents.yml の must_check / reject_when に追加すべき観点がないか確認\n  - テーマだけで銘柄化せず、収益・契約・一次情報への接続を確認\n\n## refresh rules\n\n- Proエージェントの知識は固定しない\n- weekly/monthlyで、前提が古くなっていないか確認する\n- 情勢変化が起きたら、銘柄仮説より先にregimeを更新する\n- 新しいテーマは、関連銘柄を出す前に本命/周辺/恩恵なしを分ける\n- 古いテーマは、外れ理由が増えたら退役候補にする\n- StarlinkやAIのような急変テーマは、一次情報・契約・収益接続を優先し、雰囲気だけで銘柄化しない\n\n## output requirements\n\n- どのPro視点を更新すべきか\n- どの社会情勢が銘柄仮説に影響するか\n- 更新しないと危ない古い前提\n- 次に集める一次情報\n- 関連銘柄を増やすべきか、テーマ監視に留めるべきか\n\n---\n*alpha-pon pro knowledge refresh | 2026-06-05 | ※買い推奨ではありません*"
     }
   ],
   "candidates": [
@@ -142,7 +159,7 @@
         "総会/配当情報"
       ],
       "triggeredRule": "Pro深掘りDB / 重要イベント確認",
-      "lastNotifiedAt": "2026-06-03",
+      "lastNotifiedAt": "2026-06-05",
       "sparkline": [
         100,
         99,
@@ -207,7 +224,7 @@
         "PER/PBR過去レンジ"
       ],
       "triggeredRule": "Pro深掘りDB / 重要イベント確認",
-      "lastNotifiedAt": "2026-06-03",
+      "lastNotifiedAt": "2026-06-05",
       "sparkline": [
         100,
         99,
@@ -272,7 +289,7 @@
         "政策イベント"
       ],
       "triggeredRule": "Pro深掘りDB / 重要イベント確認",
-      "lastNotifiedAt": "2026-06-03",
+      "lastNotifiedAt": "2026-06-05",
       "sparkline": [
         100,
         99,
@@ -337,7 +354,7 @@
         "PER/PBR過去レンジ"
       ],
       "triggeredRule": "Pro深掘りDB / 重要イベント確認",
-      "lastNotifiedAt": "2026-06-03",
+      "lastNotifiedAt": "2026-06-05",
       "sparkline": [
         100,
         99,
@@ -409,7 +426,7 @@
         "総会前後/決算後の株価反応履歴"
       ],
       "triggeredRule": "Pro深掘りDB / 重要イベント確認",
-      "lastNotifiedAt": "2026-06-03",
+      "lastNotifiedAt": "2026-06-05",
       "sparkline": [
         100,
         99,
@@ -474,7 +491,7 @@
         "PER/PBR/配当利回りレンジ"
       ],
       "triggeredRule": "Pro深掘りDB / 重要イベント確認",
-      "lastNotifiedAt": "2026-06-03",
+      "lastNotifiedAt": "2026-06-05",
       "sparkline": [
         100,
         99,
@@ -504,7 +521,7 @@
       "code": "4568",
       "name": "第一三共",
       "sector": "healthcare",
-      "detectedAt": "2026-06-03",
+      "detectedAt": "2026-06-05",
       "currentPrice": 2854.5,
       "high52w": 4174,
       "drawdownPct": -31.612362242453283,
@@ -518,6 +535,9 @@
       ],
       "screeningScore": 85,
       "warnings": [
+        "[STALE] J-Quants取得が全滅したため前回候補を暫定保持",
+        "[STALE] J-Quants取得が全滅したため前回候補を暫定保持",
+        "[STALE] J-Quants取得が全滅したため前回候補を暫定保持",
         "[STALE] J-Quants取得が全滅したため前回候補を暫定保持"
       ],
       "status": "monitoring",
@@ -1039,6 +1059,68 @@
       "name": "第一三共",
       "detectedAt": "2026-06-03",
       "reviewDueAt": "2026-07-03",
+      "reason": "未登録銘柄の自動検出: 高値比31.6%下落、営業利益前年比+56.9%。世界情勢テーマ: migration_labor_shortage・financial_crisis_rate_shock。",
+      "expectedTimeframe": "1m",
+      "expectedDirection": "unknown",
+      "confidence": 0.85,
+      "invalidationSignals": [
+        "下方修正の開示",
+        "監査意見の変更・限定付き意見",
+        "不正・コンプライアンス問題の開示",
+        "主力事業の契約解除・大口顧客離れ"
+      ],
+      "evidenceNeeded": [
+        "直近の決算短信・業績進捗確認",
+        "有価証券報告書のリスクファクター確認",
+        "大株主構成と保有比率の変化",
+        "アナリストコンセンサスと乖離の確認",
+        "開発パイプラインのフェーズ確認"
+      ],
+      "relatedWorldEventIds": [
+        "migration_labor_shortage",
+        "financial_crisis_rate_shock"
+      ],
+      "relatedDisclosureIds": [],
+      "status": "open",
+      "label": "検証候補"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "4568",
+      "name": "第一三共",
+      "detectedAt": "2026-06-04",
+      "reviewDueAt": "2026-07-04",
+      "reason": "未登録銘柄の自動検出: 高値比31.6%下落、営業利益前年比+56.9%。世界情勢テーマ: migration_labor_shortage・financial_crisis_rate_shock。",
+      "expectedTimeframe": "1m",
+      "expectedDirection": "unknown",
+      "confidence": 0.85,
+      "invalidationSignals": [
+        "下方修正の開示",
+        "監査意見の変更・限定付き意見",
+        "不正・コンプライアンス問題の開示",
+        "主力事業の契約解除・大口顧客離れ"
+      ],
+      "evidenceNeeded": [
+        "直近の決算短信・業績進捗確認",
+        "有価証券報告書のリスクファクター確認",
+        "大株主構成と保有比率の変化",
+        "アナリストコンセンサスと乖離の確認",
+        "開発パイプラインのフェーズ確認"
+      ],
+      "relatedWorldEventIds": [
+        "migration_labor_shortage",
+        "financial_crisis_rate_shock"
+      ],
+      "relatedDisclosureIds": [],
+      "status": "open",
+      "label": "検証候補"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "4568",
+      "name": "第一三共",
+      "detectedAt": "2026-06-05",
+      "reviewDueAt": "2026-07-05",
       "reason": "未登録銘柄の自動検出: 高値比31.6%下落、営業利益前年比+56.9%。世界情勢テーマ: migration_labor_shortage・financial_crisis_rate_shock。",
       "expectedTimeframe": "1m",
       "expectedDirection": "unknown",
@@ -2245,14 +2327,166 @@
       ],
       "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A%",
       "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "4568",
+      "name": "第一三共",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "4568",
+        "name": "第一三共",
+        "detectedAt": "2026-06-03",
+        "reviewDueAt": "2026-07-03",
+        "reason": "未登録銘柄の自動検出: 高値比31.6%下落、営業利益前年比+56.9%。世界情勢テーマ: migration_labor_shortage・financial_crisis_rate_shock。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.85,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認",
+          "開発パイプラインのフェーズ確認"
+        ],
+        "relatedWorldEventIds": [
+          "migration_labor_shortage",
+          "financial_crisis_rate_shock"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "検証候補"
+      },
+      "evaluatedAt": "2026-06-04",
+      "reviewHorizon": "1d",
+      "actionLabel": "log",
+      "scoreAtPrediction": 85,
+      "startPrice": 2900,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": 0,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "partial",
+      "whatMatched": [
+        "期待方向 unknown と1か月方向が一致"
+      ],
+      "whatDiffered": [],
+      "missedSignals": [
+        "価格データ品質がpartial"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "missReasonCandidates": [
+        "data_quality_bad"
+      ],
+      "notes": "2026-06-04時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "4568",
+      "name": "第一三共",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "4568",
+        "name": "第一三共",
+        "detectedAt": "2026-06-04",
+        "reviewDueAt": "2026-07-04",
+        "reason": "未登録銘柄の自動検出: 高値比31.6%下落、営業利益前年比+56.9%。世界情勢テーマ: migration_labor_shortage・financial_crisis_rate_shock。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.85,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認",
+          "開発パイプラインのフェーズ確認"
+        ],
+        "relatedWorldEventIds": [
+          "migration_labor_shortage",
+          "financial_crisis_rate_shock"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "検証候補"
+      },
+      "evaluatedAt": "2026-06-05",
+      "reviewHorizon": "1d",
+      "actionLabel": "log",
+      "scoreAtPrediction": 85,
+      "startPrice": 2818.5,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": 0,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "partial",
+      "whatMatched": [
+        "期待方向 unknown と1か月方向が一致"
+      ],
+      "whatDiffered": [],
+      "missedSignals": [
+        "価格データ品質がpartial"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "missReasonCandidates": [
+        "data_quality_bad"
+      ],
+      "notes": "2026-06-05時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "dataSource": "jquants"
     }
   ],
   "accuracySummary": {
-    "total": 16,
+    "total": 18,
     "hit": 0,
     "miss": 0,
     "tooEarly": 0,
-    "unknown": 16,
+    "unknown": 18,
     "hitRate": null,
     "avgReturn1m": null,
     "avgTopixReturn1m": null,
@@ -2265,7 +2499,7 @@
         "avgExcessReturn1m": null
       },
       "log": {
-        "total": 8,
+        "total": 10,
         "avgExcessReturn1w": null,
         "avgExcessReturn1m": null
       },
@@ -2295,7 +2529,7 @@
         "avgExcessReturn1m": null
       },
       "85-100": {
-        "total": 7,
+        "total": 9,
         "hitRate": null,
         "avgExcessReturn1w": null,
         "avgExcessReturn1m": null
@@ -2402,7 +2636,7 @@
       "code": "285A",
       "name": "キオクシアホールディングス",
       "firstSeenAt": "2026-05-29",
-      "lastReviewedAt": "2026-06-03",
+      "lastReviewedAt": "2026-06-05",
       "watchReason": [
         "tag:semiconductor",
         "tag:ipo",
@@ -2437,7 +2671,8 @@
         "下方修正有無を判定できませんでした",
         "20日ボラティリティ 5.9% と値動きが荒い",
         "流行・短期急騰による過熱リスクが高い",
-        "SNS・流行・短期急騰によるFOMOリスクが高いです。即断せず一次情報とバリュエーションを確認してください"
+        "SNS・流行・短期急騰によるFOMOリスクが高いです。即断せず一次情報とバリュエーションを確認してください",
+        "20日ボラティリティ 5.3% と値動きが荒い"
       ],
       "strongRules": [],
       "weakRules": [],
@@ -2449,7 +2684,15 @@
         "一次情報で注意開示を検出 (2回)",
         "一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404 (2回)",
         "listedAt未設定のため、取得できた最古株価日を上場日として暫定利用 (2回)",
-        "一次情報注意: 一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404 (2回)"
+        "一次情報注意: 一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404 (2回)",
+        "20日ボラティリティが高く値動きが荒いです (6回)",
+        "下方修正有無を判定できませんでした (6回)",
+        "一次情報で注意開示を検出 (3回)",
+        "一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404 (3回)",
+        "listedAt未設定のため、取得できた最古株価日を上場日として暫定利用 (3回)",
+        "一次情報注意: 一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404 (3回)",
+        "流行テーマまたは短期上昇の過熱確認が必要 (2回)",
+        "流行テーマまたは短期上昇があり、過熱していないか確認してください (2回)"
       ],
       "recentOutcomes": [],
       "notes": []
@@ -2459,7 +2702,7 @@
       "code": "8136",
       "name": "サンリオ",
       "firstSeenAt": "2026-05-29",
-      "lastReviewedAt": "2026-06-03",
+      "lastReviewedAt": "2026-06-05",
       "watchReason": [
         "tag:character",
         "tag:global_ip",
@@ -2477,7 +2720,9 @@
         "売上前年比 +44.9%",
         "営業利益前年比 +92.2%",
         "高値から35.4%下落（深い押し目）",
-        "高値から34.8%下落（深い押し目）"
+        "高値から34.8%下落（深い押し目）",
+        "高値から37.4%下落（深い押し目）",
+        "高値から36.5%下落（深い押し目）"
       ],
       "knownRisks": [
         "FCFを計算できませんでした（営業CF/投資CF/設備投資データ不足）"
@@ -2489,7 +2734,15 @@
         "FCFを計算できませんでした（営業CF/投資CF/設備投資データ不足） (4回)",
         "一次情報で注意開示を検出 (2回)",
         "一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404 (2回)",
-        "一次情報注意: 一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404 (2回)"
+        "一次情報注意: 一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404 (2回)",
+        "FCFを計算できませんでした（営業CF/投資CF/設備投資データ不足） (6回)",
+        "一次情報で注意開示を検出 (3回)",
+        "一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404 (3回)",
+        "一次情報注意: 一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404 (3回)",
+        "FCFを計算できませんでした（営業CF/投資CF/設備投資データ不足） (8回)",
+        "一次情報で注意開示を検出 (4回)",
+        "一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404 (4回)",
+        "一次情報注意: 一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404 (4回)"
       ],
       "recentOutcomes": [],
       "notes": []
@@ -2501,7 +2754,7 @@
       "code": "8136",
       "name": "サンリオ",
       "firstSeenAt": "2026-05-29",
-      "lastReviewedAt": "2026-06-03",
+      "lastReviewedAt": "2026-06-05",
       "watchReason": [
         "tag:character",
         "tag:global_ip",
@@ -2519,7 +2772,9 @@
         "売上前年比 +44.9%",
         "営業利益前年比 +92.2%",
         "高値から35.4%下落（深い押し目）",
-        "高値から34.8%下落（深い押し目）"
+        "高値から34.8%下落（深い押し目）",
+        "高値から37.4%下落（深い押し目）",
+        "高値から36.5%下落（深い押し目）"
       ],
       "knownRisks": [
         "FCFを計算できませんでした（営業CF/投資CF/設備投資データ不足）"
@@ -2531,7 +2786,15 @@
         "FCFを計算できませんでした（営業CF/投資CF/設備投資データ不足） (4回)",
         "一次情報で注意開示を検出 (2回)",
         "一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404 (2回)",
-        "一次情報注意: 一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404 (2回)"
+        "一次情報注意: 一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404 (2回)",
+        "FCFを計算できませんでした（営業CF/投資CF/設備投資データ不足） (6回)",
+        "一次情報で注意開示を検出 (3回)",
+        "一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404 (3回)",
+        "一次情報注意: 一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404 (3回)",
+        "FCFを計算できませんでした（営業CF/投資CF/設備投資データ不足） (8回)",
+        "一次情報で注意開示を検出 (4回)",
+        "一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404 (4回)",
+        "一次情報注意: 一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404 (4回)"
       ],
       "recentOutcomes": [],
       "notes": []
@@ -2541,7 +2804,7 @@
       "code": "285A",
       "name": "キオクシアホールディングス",
       "firstSeenAt": "2026-05-29",
-      "lastReviewedAt": "2026-06-03",
+      "lastReviewedAt": "2026-06-05",
       "watchReason": [
         "tag:semiconductor",
         "tag:ipo",
@@ -2576,7 +2839,8 @@
         "下方修正有無を判定できませんでした",
         "20日ボラティリティ 5.9% と値動きが荒い",
         "流行・短期急騰による過熱リスクが高い",
-        "SNS・流行・短期急騰によるFOMOリスクが高いです。即断せず一次情報とバリュエーションを確認してください"
+        "SNS・流行・短期急騰によるFOMOリスクが高いです。即断せず一次情報とバリュエーションを確認してください",
+        "20日ボラティリティ 5.3% と値動きが荒い"
       ],
       "strongRules": [],
       "weakRules": [],
@@ -2588,7 +2852,15 @@
         "一次情報で注意開示を検出 (2回)",
         "一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404 (2回)",
         "listedAt未設定のため、取得できた最古株価日を上場日として暫定利用 (2回)",
-        "一次情報注意: 一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404 (2回)"
+        "一次情報注意: 一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404 (2回)",
+        "20日ボラティリティが高く値動きが荒いです (6回)",
+        "下方修正有無を判定できませんでした (6回)",
+        "一次情報で注意開示を検出 (3回)",
+        "一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404 (3回)",
+        "listedAt未設定のため、取得できた最古株価日を上場日として暫定利用 (3回)",
+        "一次情報注意: 一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404 (3回)",
+        "流行テーマまたは短期上昇の過熱確認が必要 (2回)",
+        "流行テーマまたは短期上昇があり、過熱していないか確認してください (2回)"
       ],
       "recentOutcomes": [],
       "notes": []
@@ -2601,11 +2873,11 @@
         "edinetCount": 0,
         "hasPrimarySource": false,
         "scannedEdinetDates": [
+          "2026-06-05",
+          "2026-06-04",
           "2026-06-03",
           "2026-06-02",
-          "2026-06-01",
-          "2026-05-29",
-          "2026-05-28"
+          "2026-06-01"
         ],
         "fetchErrorCount": 1
       },
@@ -2628,11 +2900,11 @@
         "edinetCount": 0,
         "hasPrimarySource": false,
         "scannedEdinetDates": [
+          "2026-06-05",
+          "2026-06-04",
           "2026-06-03",
           "2026-06-02",
-          "2026-06-01",
-          "2026-05-29",
-          "2026-05-28"
+          "2026-06-01"
         ],
         "fetchErrorCount": 1
       },
@@ -2667,7 +2939,7 @@
           "financial_partial",
           "outcome_insufficient"
         ],
-        "updatedAt": "2026-06-03"
+        "updatedAt": "2026-06-05"
       },
       "scoreBreakdown": {
         "companyCode": "8136",
@@ -2678,7 +2950,7 @@
           "売上前年比 +44.9%",
           "営業利益前年比 +92.2%",
           "長期テーマ・戦略的優位性あり",
-          "高値から34.8%下落（深い押し目）",
+          "高値から36.5%下落（深い押し目）",
           "売上前年比 +44.9%（成長継続）",
           "営業利益前年比 +92.2%（大崩れなし）",
           "長期テーマ・業界ポジション維持"
@@ -2697,7 +2969,8 @@
       "warnings": [
         "20日ボラティリティが高く値動きが荒いです",
         "下方修正有無を判定できませんでした",
-        "SNS・流行・短期急騰によるFOMOリスクが高いです。即断せず一次情報とバリュエーションを確認してください",
+        "流行テーマまたは短期上昇の過熱確認が必要",
+        "流行テーマまたは短期上昇があり、過熱していないか確認してください",
         "一次情報で注意開示を検出",
         "一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404",
         "20日ボラティリティが高く値動きが荒いです",
@@ -2711,7 +2984,7 @@
           "tdnet_unavailable",
           "outcome_insufficient"
         ],
-        "updatedAt": "2026-06-03"
+        "updatedAt": "2026-06-05"
       },
       "scoreBreakdown": {
         "companyCode": "285A",
@@ -2721,15 +2994,14 @@
           "上場から365日経過",
           "20日移動平均を回復",
           "ロックアップ解除済み",
-          "TOPIX比20日 +15.4pt と相対的に強い",
+          "TOPIX比20日 +6.1pt と相対的に強い",
           "20日平均売買代金が10億円以上で流動性あり",
           "売上前年比 +68.7% と強い成長",
           "営業利益前年比 +109.1% と利益成長が強い",
           "営業利益率 20.5% と高収益"
         ],
         "negatives": [
-          "20日ボラティリティ 5.9% と値動きが荒い",
-          "流行・短期急騰による過熱リスクが高い"
+          "20日ボラティリティ 5.3% と値動きが荒い"
         ],
         "missingData": [
           "一次情報取得エラー: TDnet取得失敗: TDnet開示取得失敗: JPX IR Newsアクセス失敗: 404",
@@ -2742,21 +3014,21 @@
   "runCursors": {
     "universe-scan": {
       "jobName": "universe-scan",
-      "offset": 24,
+      "offset": 16,
       "maxPerRun": 8,
       "total": 31,
-      "updatedAt": "2026-06-03"
+      "updatedAt": "2026-06-05"
     },
     "analogy-review": {
       "jobName": "analogy-review",
-      "offset": 0,
+      "offset": 24,
       "maxPerRun": 12,
-      "total": 16,
-      "updatedAt": "2026-06-03"
+      "total": 28,
+      "updatedAt": "2026-06-05"
     }
   },
   "readiness": {
-    "generatedAt": "2026-06-03",
+    "generatedAt": "2026-06-05",
     "overallScore": 85,
     "overallStatus": "done",
     "blockers": [],
@@ -2793,10 +3065,10 @@
         "label": "仮説検証の厚み",
         "score": 92,
         "evidence": [
-          "hypotheses: 16",
-          "outcomes: 16",
-          "priced outcomes: 4",
-          "real outcomes: 16",
+          "hypotheses: 19",
+          "outcomes: 18",
+          "priced outcomes: 6",
+          "real outcomes: 18",
           "SQLite outcome DB: present",
           "score bands: present"
         ],
@@ -2812,7 +3084,7 @@
         "score": 65,
         "evidence": [
           "primaryDisclosureReviews: 2",
-          "dataQuality warnings: 10",
+          "dataQuality warnings: 15",
           "daily:full primary scans: included"
         ],
         "nextActions": [
@@ -2844,8 +3116,8 @@
           "script:backup present",
           "outcome DB: present",
           "jobs DB: present",
-          "backup count: 5",
-          "latest backup: 2026-06-02T23-50-09 (0d)",
+          "backup count: 13",
+          "latest backup: 2026-06-05T13-40-43 (0d)",
           "run cursors: universe-scan, analogy-review"
         ],
         "nextActions": [
@@ -2871,10 +3143,10 @@
     ]
   },
   "pipelineStatus": {
-    "date": "2026-06-03",
+    "date": "2026-06-05",
     "status": "completed",
-    "startedAt": "2026-06-03 07:30:06",
-    "endedAt": "2026-06-03 07:32:24",
+    "startedAt": "2026-06-05 07:30:00",
+    "endedAt": "2026-06-05 07:32:42",
     "failedSteps": "",
     "steps": [
       {
@@ -2882,8 +3154,8 @@
         "criticality": "noncritical",
         "status": "ok",
         "code": 0,
-        "startedAt": "2026-06-03 07:30:06",
-        "endedAt": "2026-06-03 07:30:14",
+        "startedAt": "2026-06-05 07:30:00",
+        "endedAt": "2026-06-05 07:30:08",
         "durationSec": 8
       },
       {
@@ -2891,26 +3163,26 @@
         "criticality": "critical",
         "status": "ok",
         "code": 0,
-        "startedAt": "2026-06-03 07:30:14",
-        "endedAt": "2026-06-03 07:32:09",
-        "durationSec": 115
+        "startedAt": "2026-06-05 07:30:08",
+        "endedAt": "2026-06-05 07:32:04",
+        "durationSec": 116
       },
       {
         "name": "review:analogies:write",
         "criticality": "noncritical",
         "status": "ok",
         "code": 0,
-        "startedAt": "2026-06-03 07:32:10",
-        "endedAt": "2026-06-03 07:32:22",
-        "durationSec": 12
+        "startedAt": "2026-06-05 07:32:04",
+        "endedAt": "2026-06-05 07:32:40",
+        "durationSec": 36
       },
       {
         "name": "learn",
         "criticality": "noncritical",
         "status": "ok",
         "code": 0,
-        "startedAt": "2026-06-03 07:32:22",
-        "endedAt": "2026-06-03 07:32:22",
+        "startedAt": "2026-06-05 07:32:40",
+        "endedAt": "2026-06-05 07:32:40",
         "durationSec": 0
       },
       {
@@ -2918,8 +3190,8 @@
         "criticality": "noncritical",
         "status": "ok",
         "code": 0,
-        "startedAt": "2026-06-03 07:32:22",
-        "endedAt": "2026-06-03 07:32:22",
+        "startedAt": "2026-06-05 07:32:41",
+        "endedAt": "2026-06-05 07:32:41",
         "durationSec": 0
       },
       {
@@ -2927,8 +3199,8 @@
         "criticality": "noncritical",
         "status": "ok",
         "code": 0,
-        "startedAt": "2026-06-03 07:32:22",
-        "endedAt": "2026-06-03 07:32:22",
+        "startedAt": "2026-06-05 07:32:41",
+        "endedAt": "2026-06-05 07:32:41",
         "durationSec": 0
       },
       {
@@ -2936,8 +3208,8 @@
         "criticality": "noncritical",
         "status": "ok",
         "code": 0,
-        "startedAt": "2026-06-03 07:32:23",
-        "endedAt": "2026-06-03 07:32:23",
+        "startedAt": "2026-06-05 07:32:41",
+        "endedAt": "2026-06-05 07:32:41",
         "durationSec": 0
       },
       {
@@ -2945,8 +3217,8 @@
         "criticality": "noncritical",
         "status": "ok",
         "code": 0,
-        "startedAt": "2026-06-03 07:32:23",
-        "endedAt": "2026-06-03 07:32:23",
+        "startedAt": "2026-06-05 07:32:41",
+        "endedAt": "2026-06-05 07:32:41",
         "durationSec": 0
       },
       {
@@ -2954,8 +3226,8 @@
         "criticality": "noncritical",
         "status": "ok",
         "code": 0,
-        "startedAt": "2026-06-03 07:32:23",
-        "endedAt": "2026-06-03 07:32:23",
+        "startedAt": "2026-06-05 07:32:41",
+        "endedAt": "2026-06-05 07:32:41",
         "durationSec": 0
       },
       {
@@ -2963,8 +3235,8 @@
         "criticality": "noncritical",
         "status": "skipped",
         "code": 0,
-        "startedAt": "2026-06-03 07:32:23",
-        "endedAt": "2026-06-03 07:32:23",
+        "startedAt": "2026-06-05 07:32:42",
+        "endedAt": "2026-06-05 07:32:42",
         "durationSec": 0
       },
       {
@@ -2972,8 +3244,8 @@
         "criticality": "noncritical",
         "status": "skipped",
         "code": 0,
-        "startedAt": "2026-06-03 07:32:23",
-        "endedAt": "2026-06-03 07:32:23",
+        "startedAt": "2026-06-05 07:32:42",
+        "endedAt": "2026-06-05 07:32:42",
         "durationSec": 0
       },
       {
@@ -2981,8 +3253,8 @@
         "criticality": "noncritical",
         "status": "ok",
         "code": 0,
-        "startedAt": "2026-06-03 07:32:24",
-        "endedAt": "2026-06-03 07:32:24",
+        "startedAt": "2026-06-05 07:32:42",
+        "endedAt": "2026-06-05 07:32:42",
         "durationSec": 0
       }
     ],
@@ -2998,7 +3270,7 @@
       "maintenance": "reports/maintenance_latest.md"
     },
     "completeWrapperFailedSteps": [],
-    "completeWrapperRunAt": "2026-06-02T22:37:05.273Z"
+    "completeWrapperRunAt": "2026-06-04T22:37:25.638Z"
   },
   "meta": {
     "source": "report-ui-data",
@@ -3024,7 +3296,7 @@
       "reasons": [
         "入園者数・単価・投資負担・インバウンド/消費環境をどう見るか"
       ],
-      "updatedAt": "2026-06-03"
+      "updatedAt": "2026-06-05"
     },
     {
       "code": "5803",
@@ -3044,7 +3316,7 @@
       "reasons": [
         "AIデータセンター/光通信需要が続くか、すでに織り込み済みか"
       ],
-      "updatedAt": "2026-06-03"
+      "updatedAt": "2026-06-05"
     },
     {
       "code": "7011",
@@ -3064,7 +3336,7 @@
       "reasons": [
         "防衛・宇宙・エネルギー政策の追い風が、どこまで株価に織り込まれているか"
       ],
-      "updatedAt": "2026-06-03"
+      "updatedAt": "2026-06-05"
     },
     {
       "code": "7974",
@@ -3084,7 +3356,7 @@
       "reasons": [
         "IP・ゲーム機サイクル・映画/テーマパーク展開を、価格と決算期待込みでどう見るか"
       ],
-      "updatedAt": "2026-06-03"
+      "updatedAt": "2026-06-05"
     },
     {
       "code": "8136",
@@ -3107,7 +3379,7 @@
         "営業利益率が維持/改善",
         "現時点のアプリ判断は『証拠不足〜保留』。買うなら、決算/総会/バリュエーション確認後の方が納得度が高い。短期で上がりすぎなら追わない。"
       ],
-      "updatedAt": "2026-06-03"
+      "updatedAt": "2026-06-05"
     },
     {
       "code": "8306",
@@ -3127,15 +3399,15 @@
       "reasons": [
         "金利上昇・株主還元・信用コスト・海外リスクをどう見るか"
       ],
-      "updatedAt": "2026-06-03"
+      "updatedAt": "2026-06-05"
     }
   ],
   "generatedCompanyRules": [
     {
-      "generatedRuleId": "8136-2026-06-03-missing-price",
+      "generatedRuleId": "8136-2026-06-05-missing-price",
       "code": "8136",
       "name": "サンリオ",
-      "generatedAt": "2026-06-03T00:00:00+09:00",
+      "generatedAt": "2026-06-05T00:00:00+09:00",
       "thesis": [
         "監視テーマ: character / global_ip / consumer",
         "発火ルール: healthy_pullback / earnings_drop",
@@ -3168,7 +3440,7 @@
       ],
       "priceSignal": {
         "code": "8136",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "close": null,
         "change5dPct": null,
         "change20dPct": null,
@@ -3191,13 +3463,13 @@
       ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
-      "reviewDueAt": "2026-07-03T00:00:00+09:00"
+      "reviewDueAt": "2026-07-05T00:00:00+09:00"
     },
     {
-      "generatedRuleId": "4661-2026-06-03-missing-price",
+      "generatedRuleId": "4661-2026-06-05-missing-price",
       "code": "4661",
       "name": "オリエンタルランド",
-      "generatedAt": "2026-06-03T00:00:00+09:00",
+      "generatedAt": "2026-06-05T00:00:00+09:00",
       "thesis": [
         "継続的な設備投資によるリピート誘引",
         "インバウンド需要拡大"
@@ -3222,7 +3494,7 @@
       ],
       "priceSignal": {
         "code": "4661",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "close": null,
         "change5dPct": null,
         "change20dPct": null,
@@ -3245,13 +3517,13 @@
       ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
-      "reviewDueAt": "2026-07-03T00:00:00+09:00"
+      "reviewDueAt": "2026-07-05T00:00:00+09:00"
     },
     {
-      "generatedRuleId": "7974-2026-06-03-missing-price",
+      "generatedRuleId": "7974-2026-06-05-missing-price",
       "code": "7974",
       "name": "任天堂",
-      "generatedAt": "2026-06-03T00:00:00+09:00",
+      "generatedAt": "2026-06-05T00:00:00+09:00",
       "thesis": [
         "次世代ハード移行期",
         "IP展開の多様化"
@@ -3276,7 +3548,7 @@
       ],
       "priceSignal": {
         "code": "7974",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "close": null,
         "change5dPct": null,
         "change20dPct": null,
@@ -3299,13 +3571,13 @@
       ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
-      "reviewDueAt": "2026-07-03T00:00:00+09:00"
+      "reviewDueAt": "2026-07-05T00:00:00+09:00"
     },
     {
-      "generatedRuleId": "7011-2026-06-03-missing-price",
+      "generatedRuleId": "7011-2026-06-05-missing-price",
       "code": "7011",
       "name": "三菱重工業",
-      "generatedAt": "2026-06-03T00:00:00+09:00",
+      "generatedAt": "2026-06-05T00:00:00+09:00",
       "thesis": [
         "防衛費増額による受注拡大",
         "原発・エネルギー転換"
@@ -3330,7 +3602,7 @@
       ],
       "priceSignal": {
         "code": "7011",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "close": null,
         "change5dPct": null,
         "change20dPct": null,
@@ -3353,13 +3625,13 @@
       ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
-      "reviewDueAt": "2026-07-03T00:00:00+09:00"
+      "reviewDueAt": "2026-07-05T00:00:00+09:00"
     },
     {
-      "generatedRuleId": "5803-2026-06-03-missing-price",
+      "generatedRuleId": "5803-2026-06-05-missing-price",
       "code": "5803",
       "name": "フジクラ",
-      "generatedAt": "2026-06-03T00:00:00+09:00",
+      "generatedAt": "2026-06-05T00:00:00+09:00",
       "thesis": [
         "AI/データセンター向け光ファイバー需要急拡大"
       ],
@@ -3383,7 +3655,7 @@
       ],
       "priceSignal": {
         "code": "5803",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "close": null,
         "change5dPct": null,
         "change20dPct": null,
@@ -3406,13 +3678,13 @@
       ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
-      "reviewDueAt": "2026-07-03T00:00:00+09:00"
+      "reviewDueAt": "2026-07-05T00:00:00+09:00"
     },
     {
-      "generatedRuleId": "8306-2026-06-03-missing-price",
+      "generatedRuleId": "8306-2026-06-05-missing-price",
       "code": "8306",
       "name": "三菱UFJフィナンシャル・グループ",
-      "generatedAt": "2026-06-03T00:00:00+09:00",
+      "generatedAt": "2026-06-05T00:00:00+09:00",
       "thesis": [
         "金利上昇局面での利ザヤ改善",
         "海外収益拡大"
@@ -3437,7 +3709,7 @@
       ],
       "priceSignal": {
         "code": "8306",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "close": null,
         "change5dPct": null,
         "change20dPct": null,
@@ -3460,13 +3732,13 @@
       ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
-      "reviewDueAt": "2026-07-03T00:00:00+09:00"
+      "reviewDueAt": "2026-07-05T00:00:00+09:00"
     },
     {
-      "generatedRuleId": "285A-2026-06-03-fast-catalyst",
+      "generatedRuleId": "285A-2026-06-05-fast-catalyst",
       "code": "285A",
       "name": "キオクシアホールディングス",
-      "generatedAt": "2026-06-03T00:00:00+09:00",
+      "generatedAt": "2026-06-05T00:00:00+09:00",
       "thesis": [
         "監視テーマ: semiconductor / ai / ai_ipo / memory / ipo / national_policy",
         "発火ルール: official_ir_catalyst / ai_inference_investor_day / ipo_selling_pressure_done / volume_cooling / no_new_low",
@@ -3527,7 +3799,7 @@
       ],
       "priceSignal": {
         "code": "285A",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "close": null,
         "change5dPct": null,
         "change20dPct": null,
@@ -3550,13 +3822,13 @@
       ],
       "privateMemo": "[MOCK] 先行カタリストはあるが高値追い/FOMO警告を検出。調査候補ではなく押し目待ち。過去5年類推: 2023-2026 AI設備投資相場：勝つのはAIっぽい会社ではなく不足資源を握る会社 / Arm上場後の半導体再評価：IPOは関連テーマの再値付けにもなる / AIインフラブーム：物語が売上に変わる企業だけが残る / AIデータセンター制約：電力・水・送電網がAI成長の上限になる",
       "publicMemo": "[MOCK] 先行材料はあるが、過熱・織り込み済み確認を優先する監視シグナルです。",
-      "reviewDueAt": "2026-07-03T00:00:00+09:00"
+      "reviewDueAt": "2026-07-05T00:00:00+09:00"
     },
     {
-      "generatedRuleId": "4568-2026-06-03",
+      "generatedRuleId": "4568-2026-06-05",
       "code": "4568",
       "name": "第一三共",
-      "generatedAt": "2026-06-03T00:00:00+09:00",
+      "generatedAt": "2026-06-05T00:00:00+09:00",
       "thesis": [],
       "actionSignal": "ENTRY_WATCH",
       "confidence": 0.9,
@@ -3625,7 +3897,7 @@
       "risks": [],
       "priceSignal": {
         "code": "4568",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "close": 2854.5,
         "change5dPct": null,
         "change20dPct": null,
@@ -3640,16 +3912,16 @@
       "priceRiskWarnings": [],
       "privateMemo": "スコア103。ENTRY_WATCHシグナル。銘柄ごとの考察から自動生成。",
       "publicMemo": "銘柄ごとのデータから生成された監視・検証用メモ。投資助言ではありません。",
-      "reviewDueAt": "2026-07-03T00:00:00+09:00"
+      "reviewDueAt": "2026-07-05T00:00:00+09:00"
     }
   ],
   "buffettQuality": {
-    "generatedAt": "2026-06-03",
+    "generatedAt": "2026-06-05",
     "snapshots": [
       {
         "code": "5803",
         "name": "フジクラ",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "roe5yAvg": null,
         "roic5yAvg": null,
         "operatingMargin5yAvg": null,
@@ -3676,7 +3948,7 @@
       {
         "code": "5802",
         "name": "住友電工",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "roe5yAvg": null,
         "roic5yAvg": null,
         "operatingMargin5yAvg": null,
@@ -3704,7 +3976,7 @@
       {
         "code": "285A",
         "name": "キオクシアホールディングス",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "roe5yAvg": null,
         "roic5yAvg": null,
         "operatingMargin5yAvg": null,
@@ -3735,7 +4007,7 @@
       {
         "code": "8035",
         "name": "東京エレクトロン",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "roe5yAvg": null,
         "roic5yAvg": null,
         "operatingMargin5yAvg": null,
@@ -3762,7 +4034,7 @@
       {
         "code": "8136",
         "name": "サンリオ",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "roe5yAvg": null,
         "roic5yAvg": null,
         "operatingMargin5yAvg": null,
@@ -3791,7 +4063,7 @@
       {
         "code": "7974",
         "name": "任天堂",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "roe5yAvg": null,
         "roic5yAvg": null,
         "operatingMargin5yAvg": null,
@@ -3820,7 +4092,7 @@
       {
         "code": "7011",
         "name": "三菱重工",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "roe5yAvg": null,
         "roic5yAvg": null,
         "operatingMargin5yAvg": null,
@@ -3847,7 +4119,7 @@
       {
         "code": "9348",
         "name": "ispace",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "roe5yAvg": null,
         "roic5yAvg": null,
         "operatingMargin5yAvg": null,
@@ -3872,7 +4144,7 @@
       {
         "code": "8306",
         "name": "三菱UFJ FG",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "roe5yAvg": null,
         "roic5yAvg": null,
         "operatingMargin5yAvg": null,
@@ -3897,12 +4169,12 @@
     ]
   },
   "valuationSnapshots": {
-    "generatedAt": "2026-06-03",
+    "generatedAt": "2026-06-05",
     "snapshots": [
       {
         "code": "5803",
         "name": "フジクラ",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "per": null,
         "pbr": null,
         "psr": null,
@@ -3928,7 +4200,7 @@
       {
         "code": "5802",
         "name": "住友電工",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "per": null,
         "pbr": null,
         "psr": null,
@@ -3952,7 +4224,7 @@
       {
         "code": "285A",
         "name": "キオクシアホールディングス",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "per": null,
         "pbr": null,
         "psr": null,
@@ -3978,7 +4250,7 @@
       {
         "code": "8035",
         "name": "東京エレクトロン",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "per": null,
         "pbr": null,
         "psr": null,
@@ -4004,7 +4276,7 @@
       {
         "code": "8136",
         "name": "サンリオ",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "per": null,
         "pbr": null,
         "psr": null,
@@ -4030,7 +4302,7 @@
       {
         "code": "7974",
         "name": "任天堂",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "per": null,
         "pbr": null,
         "psr": null,
@@ -4056,7 +4328,7 @@
       {
         "code": "7011",
         "name": "三菱重工",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "per": null,
         "pbr": null,
         "psr": null,
@@ -4082,7 +4354,7 @@
       {
         "code": "9348",
         "name": "ispace",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "per": null,
         "pbr": null,
         "psr": null,
@@ -4106,7 +4378,7 @@
       {
         "code": "8306",
         "name": "三菱UFJ FG",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "per": null,
         "pbr": null,
         "psr": null,
@@ -4132,7 +4404,7 @@
     ]
   },
   "irEventEvidence": {
-    "generatedAt": "2026-06-03",
+    "generatedAt": "2026-06-05",
     "events": [
       {
         "code": "8136",
@@ -4151,8 +4423,539 @@
       }
     ]
   },
+  "ipoThemeWatch": {
+    "generatedAt": "2026-06-05",
+    "defaultAction": "監視・証拠確認・待つ理由の記録",
+    "neverTreatAs": [
+      "売買推奨",
+      "上場直後の即断",
+      "テーマ名だけの評価",
+      "SNSや報道見出しだけの判断"
+    ],
+    "globalReferenceEvents": [
+      "SpaceX / Starlink 上場観測",
+      "OpenAI 上場準備観測",
+      "Anthropic 上場観測",
+      "AIデータセンター投資",
+      "NAND / SSD / eSSD需要",
+      "GPU / HBM偏重によるNAND波及不足"
+    ],
+    "safetyRules": [
+      "報道だけでは調査候補を上げない",
+      "上場週は原則観察のみ",
+      "初回決算前は数字未確認として扱う",
+      "ロックアップ解除前後は需給確認を優先する",
+      "関連日本株は本命/周辺/織り込み済みに分ける",
+      "調査候補は買い指示ではない"
+    ],
+    "phases": [
+      {
+        "id": "pre_ipo",
+        "label": "上場前報道",
+        "defaultAction": "一次情報待ち",
+        "focus": [
+          "S-1 / 届出書 / 公式発表の有無",
+          "報道元と会社公式情報の差",
+          "既存上場関連銘柄への過熱波及"
+        ],
+        "touchAvoidReasons": [
+          "未上場企業の条件が未確定",
+          "関連株は期待先行になりやすい"
+        ]
+      },
+      {
+        "id": "ipo_week",
+        "label": "上場週",
+        "defaultAction": "初値・出来高・ロックアップ条件の観察",
+        "focus": [
+          "公開価格と初値の乖離",
+          "出来高急増と短期資金集中",
+          "ベンチマーク比の過熱"
+        ],
+        "touchAvoidReasons": [
+          "価格発見が終わっていない",
+          "短期資金で振れやすい"
+        ]
+      },
+      {
+        "id": "first_earnings",
+        "label": "上場後初回決算",
+        "defaultAction": "売上化と利益率を確認",
+        "focus": [
+          "売上成長と営業利益率",
+          "顧客集中・設備投資・在庫",
+          "会社予想と市場期待の差"
+        ],
+        "touchAvoidReasons": [
+          "物語と実績の差が出やすい"
+        ]
+      },
+      {
+        "id": "lockup_expiry",
+        "label": "ロックアップ解除",
+        "defaultAction": "需給イベントとして監視",
+        "focus": [
+          "解除日",
+          "既存株主の保有比率",
+          "売り圧力と出来高"
+        ],
+        "touchAvoidReasons": [
+          "事業価値と需給イベントを混同しやすい"
+        ]
+      },
+      {
+        "id": "post_hype_drawdown",
+        "label": "過熱後の調整",
+        "defaultAction": "押し目か仮説崩れかを分ける",
+        "focus": [
+          "20日/60日騰落率",
+          "TOPIX比",
+          "出来高沈静化",
+          "材料出尽くしの有無"
+        ],
+        "touchAvoidReasons": [
+          "下落が押し目ではなく仮説崩れの可能性"
+        ]
+      },
+      {
+        "id": "fundamental_confirmation",
+        "label": "実需確認",
+        "defaultAction": "収益・受注・市況への接続を確認",
+        "focus": [
+          "受注残",
+          "粗利率",
+          "設備投資計画",
+          "顧客CAPEX",
+          "市況価格"
+        ],
+        "touchAvoidReasons": [
+          "テーマだけで売上・利益に接続していない可能性"
+        ]
+      }
+    ],
+    "rules": [
+      {
+        "id": "ai_frontier_ipo",
+        "label": "AI大型上場監視",
+        "names": [
+          "OpenAI",
+          "Anthropic"
+        ],
+        "defaultAction": "公式届出・資金吸収・関連株過熱を監視",
+        "watchEvidence": [
+          "S-1 / 公式IR / 主要投資家情報",
+          "AIインフラ設備投資",
+          "GPU/ASIC/HBM/NAND/SSD需要への接続",
+          "赤字幅・粗利率・顧客集中"
+        ],
+        "japaneseSpilloverThemes": [
+          "memory_storage",
+          "semiconductor_equipment",
+          "power_grid",
+          "optical_network",
+          "datacenter"
+        ],
+        "relatedCompanies": [
+          {
+            "code": "285A",
+            "name": "キオクシアホールディングス",
+            "relation": "NAND / SSD / eSSD / AI推論ストレージ"
+          },
+          {
+            "code": "8035",
+            "name": "東京エレクトロン",
+            "relation": "半導体製造装置"
+          },
+          {
+            "code": "6857",
+            "name": "アドバンテスト",
+            "relation": "半導体検査"
+          },
+          {
+            "code": "5803",
+            "name": "フジクラ",
+            "relation": "光通信・データセンター配線"
+          },
+          {
+            "code": "5802",
+            "name": "住友電気工業",
+            "relation": "光通信・電線・電力網"
+          },
+          {
+            "code": "6501",
+            "name": "日立製作所",
+            "relation": "AIインフラ・社会インフラ周辺"
+          }
+        ],
+        "phaseIds": [
+          "pre_ipo",
+          "ipo_week",
+          "first_earnings",
+          "lockup_expiry",
+          "post_hype_drawdown",
+          "fundamental_confirmation"
+        ],
+        "touchAvoidReasons": [
+          "未上場企業の条件が未確定",
+          "関連株は期待先行になりやすい",
+          "価格発見が終わっていない",
+          "短期資金で振れやすい",
+          "物語と実績の差が出やすい",
+          "事業価値と需給イベントを混同しやすい",
+          "下落が押し目ではなく仮説崩れの可能性",
+          "テーマだけで売上・利益に接続していない可能性"
+        ],
+        "evidenceNeeded": [
+          "S-1 / 公式IR / 主要投資家情報",
+          "AIインフラ設備投資",
+          "GPU/ASIC/HBM/NAND/SSD需要への接続",
+          "赤字幅・粗利率・顧客集中",
+          "S-1 / 届出書 / 公式発表の有無",
+          "報道元と会社公式情報の差",
+          "既存上場関連銘柄への過熱波及",
+          "公開価格と初値の乖離",
+          "出来高急増と短期資金集中",
+          "ベンチマーク比の過熱",
+          "売上成長と営業利益率",
+          "顧客集中・設備投資・在庫",
+          "会社予想と市場期待の差",
+          "解除日",
+          "既存株主の保有比率",
+          "売り圧力と出来高",
+          "20日/60日騰落率",
+          "TOPIX比",
+          "出来高沈静化",
+          "材料出尽くしの有無",
+          "受注残",
+          "粗利率",
+          "設備投資計画",
+          "顧客CAPEX",
+          "市況価格"
+        ]
+      },
+      {
+        "id": "space_connectivity_ipo",
+        "label": "宇宙・衛星通信上場監視",
+        "names": [
+          "SpaceX",
+          "Starlink"
+        ],
+        "defaultAction": "上場条件・衛星通信契約・防衛/通信波及を監視",
+        "watchEvidence": [
+          "公式上場手続き",
+          "打上げ/衛星数/通信契約",
+          "防衛・災害通信・海上/航空通信の契約",
+          "競合衛星通信と規制"
+        ],
+        "japaneseSpilloverThemes": [
+          "space_defense",
+          "satellite_connectivity",
+          "disaster_resilience",
+          "communication_infrastructure"
+        ],
+        "relatedCompanies": [
+          {
+            "code": "7011",
+            "name": "三菱重工業",
+            "relation": "宇宙・防衛・打上げ関連"
+          },
+          {
+            "code": "9348",
+            "name": "ispace",
+            "relation": "宇宙テーマ上場企業"
+          },
+          {
+            "code": "5803",
+            "name": "フジクラ",
+            "relation": "通信インフラ"
+          },
+          {
+            "code": "5802",
+            "name": "住友電気工業",
+            "relation": "通信・電力インフラ"
+          }
+        ],
+        "phaseIds": [
+          "pre_ipo",
+          "ipo_week",
+          "first_earnings",
+          "lockup_expiry",
+          "post_hype_drawdown",
+          "fundamental_confirmation"
+        ],
+        "touchAvoidReasons": [
+          "未上場企業の条件が未確定",
+          "関連株は期待先行になりやすい",
+          "価格発見が終わっていない",
+          "短期資金で振れやすい",
+          "物語と実績の差が出やすい",
+          "事業価値と需給イベントを混同しやすい",
+          "下落が押し目ではなく仮説崩れの可能性",
+          "テーマだけで売上・利益に接続していない可能性"
+        ],
+        "evidenceNeeded": [
+          "公式上場手続き",
+          "打上げ/衛星数/通信契約",
+          "防衛・災害通信・海上/航空通信の契約",
+          "競合衛星通信と規制",
+          "S-1 / 届出書 / 公式発表の有無",
+          "報道元と会社公式情報の差",
+          "既存上場関連銘柄への過熱波及",
+          "公開価格と初値の乖離",
+          "出来高急増と短期資金集中",
+          "ベンチマーク比の過熱",
+          "売上成長と営業利益率",
+          "顧客集中・設備投資・在庫",
+          "会社予想と市場期待の差",
+          "解除日",
+          "既存株主の保有比率",
+          "売り圧力と出来高",
+          "20日/60日騰落率",
+          "TOPIX比",
+          "出来高沈静化",
+          "材料出尽くしの有無",
+          "受注残",
+          "粗利率",
+          "設備投資計画",
+          "顧客CAPEX",
+          "市況価格"
+        ]
+      },
+      {
+        "id": "memory_storage_cycle",
+        "label": "AIストレージ・メモリ市況",
+        "names": [
+          "NAND",
+          "SSD",
+          "eSSD",
+          "AI inference storage"
+        ],
+        "defaultAction": "市況・受注・価格転嫁を確認",
+        "watchEvidence": [
+          "NAND価格",
+          "eSSD需要",
+          "AI推論向けストレージ投資",
+          "在庫水準",
+          "設備投資負担"
+        ],
+        "japaneseSpilloverThemes": [
+          "memory_storage",
+          "semiconductor_materials",
+          "datacenter"
+        ],
+        "relatedCompanies": [
+          {
+            "code": "285A",
+            "name": "キオクシアホールディングス",
+            "relation": "NAND / SSD / eSSD"
+          },
+          {
+            "code": "8035",
+            "name": "東京エレクトロン",
+            "relation": "半導体製造装置"
+          },
+          {
+            "code": "6857",
+            "name": "アドバンテスト",
+            "relation": "検査装置"
+          }
+        ],
+        "phaseIds": [
+          "pre_ipo",
+          "ipo_week",
+          "first_earnings",
+          "lockup_expiry",
+          "post_hype_drawdown",
+          "fundamental_confirmation"
+        ],
+        "touchAvoidReasons": [
+          "未上場企業の条件が未確定",
+          "関連株は期待先行になりやすい",
+          "価格発見が終わっていない",
+          "短期資金で振れやすい",
+          "物語と実績の差が出やすい",
+          "事業価値と需給イベントを混同しやすい",
+          "下落が押し目ではなく仮説崩れの可能性",
+          "テーマだけで売上・利益に接続していない可能性"
+        ],
+        "evidenceNeeded": [
+          "NAND価格",
+          "eSSD需要",
+          "AI推論向けストレージ投資",
+          "在庫水準",
+          "設備投資負担",
+          "S-1 / 届出書 / 公式発表の有無",
+          "報道元と会社公式情報の差",
+          "既存上場関連銘柄への過熱波及",
+          "公開価格と初値の乖離",
+          "出来高急増と短期資金集中",
+          "ベンチマーク比の過熱",
+          "売上成長と営業利益率",
+          "顧客集中・設備投資・在庫",
+          "会社予想と市場期待の差",
+          "解除日",
+          "既存株主の保有比率",
+          "売り圧力と出来高",
+          "20日/60日騰落率",
+          "TOPIX比",
+          "出来高沈静化",
+          "材料出尽くしの有無",
+          "受注残",
+          "粗利率",
+          "設備投資計画",
+          "顧客CAPEX",
+          "市況価格"
+        ]
+      }
+    ],
+    "outcomeStats": [
+      {
+        "themeId": "ai_frontier_ipo",
+        "phase": "pre_ipo",
+        "relatedCompanyCode": "285A",
+        "sampleSize": 0,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null
+      },
+      {
+        "themeId": "ai_frontier_ipo",
+        "phase": "first_earnings",
+        "relatedCompanyCode": "8035",
+        "sampleSize": 2,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null
+      },
+      {
+        "themeId": "ai_frontier_ipo",
+        "phase": "first_earnings",
+        "relatedCompanyCode": "6857",
+        "sampleSize": 1,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null
+      },
+      {
+        "themeId": "ai_frontier_ipo",
+        "phase": "first_earnings",
+        "relatedCompanyCode": "5803",
+        "sampleSize": 1,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null
+      },
+      {
+        "themeId": "ai_frontier_ipo",
+        "phase": "pre_ipo",
+        "relatedCompanyCode": "5802",
+        "sampleSize": 0,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null
+      },
+      {
+        "themeId": "ai_frontier_ipo",
+        "phase": "first_earnings",
+        "relatedCompanyCode": "6501",
+        "sampleSize": 1,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null
+      },
+      {
+        "themeId": "space_connectivity_ipo",
+        "phase": "first_earnings",
+        "relatedCompanyCode": "7011",
+        "sampleSize": 2,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null
+      },
+      {
+        "themeId": "space_connectivity_ipo",
+        "phase": "pre_ipo",
+        "relatedCompanyCode": "9348",
+        "sampleSize": 0,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null
+      },
+      {
+        "themeId": "space_connectivity_ipo",
+        "phase": "first_earnings",
+        "relatedCompanyCode": "5803",
+        "sampleSize": 1,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null
+      },
+      {
+        "themeId": "space_connectivity_ipo",
+        "phase": "pre_ipo",
+        "relatedCompanyCode": "5802",
+        "sampleSize": 0,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null
+      },
+      {
+        "themeId": "memory_storage_cycle",
+        "phase": "pre_ipo",
+        "relatedCompanyCode": "285A",
+        "sampleSize": 0,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null
+      },
+      {
+        "themeId": "memory_storage_cycle",
+        "phase": "first_earnings",
+        "relatedCompanyCode": "8035",
+        "sampleSize": 2,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null
+      },
+      {
+        "themeId": "memory_storage_cycle",
+        "phase": "first_earnings",
+        "relatedCompanyCode": "6857",
+        "sampleSize": 1,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null
+      }
+    ]
+  },
   "stockProCommitteeJson": {
-    "generatedAt": "2026-06-03",
+    "generatedAt": "2026-06-05",
     "decisions": [
       {
         "code": "5803",
@@ -4422,10 +5225,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ],
             "blockerReasons": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ]
           },
           {
@@ -4448,10 +5251,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ],
             "blockerReasons": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ]
           }
         ],
@@ -4464,9 +5267,9 @@
           "カタリスト候補となるIRイベントが不足",
           "割安性が未判定",
           "PER/PBR過去レンジ・同業比較が未取得",
-          "検証サンプルが少ない: n=16",
+          "検証サンプルが少ない: n=18",
           "worldContext が未取得",
-          "検証件数が不足: n=16"
+          "検証件数が不足: n=18"
         ],
         "consensus": {
           "agreementLevel": "mixed",
@@ -4802,10 +5605,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ],
             "blockerReasons": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ]
           },
           {
@@ -4830,10 +5633,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ],
             "blockerReasons": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ]
           }
         ],
@@ -4844,10 +5647,10 @@
           "カタリスト候補となるIRイベントが不足",
           "割安性が未判定",
           "PER/PBR過去レンジ・同業比較が未取得",
-          "検証サンプルが少ない: n=16",
+          "検証サンプルが少ない: n=18",
           "マクロ感応度が高く、金利・為替・景気レジーム確認が必要",
           "worldContext が未取得",
-          "検証件数が不足: n=16"
+          "検証件数が不足: n=18"
         ],
         "consensus": {
           "agreementLevel": "mixed",
@@ -5197,10 +6000,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ],
             "blockerReasons": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ]
           },
           {
@@ -5225,10 +6028,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ],
             "blockerReasons": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ]
           }
         ],
@@ -5241,10 +6044,10 @@
           "カタリスト候補となるIRイベントが不足",
           "割安性が未判定",
           "PER/PBR過去レンジ・同業比較が未取得",
-          "検証サンプルが少ない: n=16",
+          "検証サンプルが少ない: n=18",
           "マクロ感応度が高く、金利・為替・景気レジーム確認が必要",
           "worldContext が未取得",
-          "検証件数が不足: n=16"
+          "検証件数が不足: n=18"
         ],
         "consensus": {
           "agreementLevel": "mixed",
@@ -5585,10 +6388,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ],
             "blockerReasons": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ]
           },
           {
@@ -5613,10 +6416,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ],
             "blockerReasons": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ]
           }
         ],
@@ -5629,10 +6432,10 @@
           "カタリスト候補となるIRイベントが不足",
           "割安性が未判定",
           "PER/PBR過去レンジ・同業比較が未取得",
-          "検証サンプルが少ない: n=16",
+          "検証サンプルが少ない: n=18",
           "マクロ感応度が高く、金利・為替・景気レジーム確認が必要",
           "worldContext が未取得",
-          "検証件数が不足: n=16"
+          "検証件数が不足: n=18"
         ],
         "consensus": {
           "agreementLevel": "mixed",
@@ -5963,10 +6766,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ],
             "blockerReasons": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ]
           },
           {
@@ -5989,10 +6792,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ],
             "blockerReasons": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ]
           }
         ],
@@ -6003,9 +6806,9 @@
           "マクロ整合性が未確認",
           "割安性が未判定",
           "PER/PBR過去レンジ・同業比較が未取得",
-          "検証サンプルが少ない: n=16",
+          "検証サンプルが少ない: n=18",
           "worldContext が未取得",
-          "検証件数が不足: n=16"
+          "検証件数が不足: n=18"
         ],
         "consensus": {
           "agreementLevel": "mixed",
@@ -6348,10 +7151,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ],
             "blockerReasons": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ]
           },
           {
@@ -6376,10 +7179,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ],
             "blockerReasons": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ]
           }
         ],
@@ -6392,10 +7195,10 @@
           "カタリスト候補となるIRイベントが不足",
           "割安性が未判定",
           "PER/PBR過去レンジ・同業比較が未取得",
-          "検証サンプルが少ない: n=16",
+          "検証サンプルが少ない: n=18",
           "マクロ感応度が高く、金利・為替・景気レジーム確認が必要",
           "worldContext が未取得",
-          "検証件数が不足: n=16"
+          "検証件数が不足: n=18"
         ],
         "consensus": {
           "agreementLevel": "high",
@@ -6707,10 +7510,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ],
             "blockerReasons": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ]
           },
           {
@@ -6735,10 +7538,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ],
             "blockerReasons": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ]
           }
         ],
@@ -6751,10 +7554,10 @@
           "カタリスト候補となるIRイベントが不足",
           "割安性が未判定",
           "PER/PBR過去レンジ・同業比較が未取得",
-          "検証サンプルが少ない: n=16",
+          "検証サンプルが少ない: n=18",
           "マクロ感応度が高く、金利・為替・景気レジーム確認が必要",
           "worldContext が未取得",
-          "検証件数が不足: n=16"
+          "検証件数が不足: n=18"
         ],
         "consensus": {
           "agreementLevel": "mixed",
@@ -7092,10 +7895,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ],
             "blockerReasons": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ]
           },
           {
@@ -7118,10 +7921,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ],
             "blockerReasons": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ]
           }
         ],
@@ -7132,9 +7935,9 @@
           "カタリスト候補となるIRイベントが不足",
           "割安性が未判定",
           "PER/PBR過去レンジ・同業比較が未取得",
-          "検証サンプルが少ない: n=16",
+          "検証サンプルが少ない: n=18",
           "worldContext が未取得",
-          "検証件数が不足: n=16"
+          "検証件数が不足: n=18"
         ],
         "consensus": {
           "agreementLevel": "mixed",
@@ -7484,10 +8287,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ],
             "blockerReasons": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ]
           },
           {
@@ -7512,10 +8315,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ],
             "blockerReasons": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ]
           }
         ],
@@ -7528,10 +8331,10 @@
           "カタリスト候補となるIRイベントが不足",
           "割安性が未判定",
           "PER/PBR過去レンジ・同業比較が未取得",
-          "検証サンプルが少ない: n=16",
+          "検証サンプルが少ない: n=18",
           "マクロ感応度が高く、金利・為替・景気レジーム確認が必要",
           "worldContext が未取得",
-          "検証件数が不足: n=16"
+          "検証件数が不足: n=18"
         ],
         "consensus": {
           "agreementLevel": "mixed",
@@ -7611,7 +8414,7 @@
     ]
   },
   "legendProCommittee": {
-    "generatedAt": "2026-06-03",
+    "generatedAt": "2026-06-05",
     "decisions": [
       {
         "code": "5803",
@@ -7774,10 +8577,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ],
             "blockerReasons": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ]
           },
           {
@@ -7800,10 +8603,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ],
             "blockerReasons": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ]
           }
         ],
@@ -7816,9 +8619,9 @@
           "カタリスト候補となるIRイベントが不足",
           "割安性が未判定",
           "PER/PBR過去レンジ・同業比較が未取得",
-          "検証サンプルが少ない: n=16",
+          "検証サンプルが少ない: n=18",
           "worldContext が未取得",
-          "検証件数が不足: n=16"
+          "検証件数が不足: n=18"
         ]
       },
       {
@@ -7980,10 +8783,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ],
             "blockerReasons": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ]
           },
           {
@@ -8008,10 +8811,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ],
             "blockerReasons": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ]
           }
         ],
@@ -8022,10 +8825,10 @@
           "カタリスト候補となるIRイベントが不足",
           "割安性が未判定",
           "PER/PBR過去レンジ・同業比較が未取得",
-          "検証サンプルが少ない: n=16",
+          "検証サンプルが少ない: n=18",
           "マクロ感応度が高く、金利・為替・景気レジーム確認が必要",
           "worldContext が未取得",
-          "検証件数が不足: n=16"
+          "検証件数が不足: n=18"
         ]
       },
       {
@@ -8191,10 +8994,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ],
             "blockerReasons": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ]
           },
           {
@@ -8219,10 +9022,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ],
             "blockerReasons": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ]
           }
         ],
@@ -8235,10 +9038,10 @@
           "カタリスト候補となるIRイベントが不足",
           "割安性が未判定",
           "PER/PBR過去レンジ・同業比較が未取得",
-          "検証サンプルが少ない: n=16",
+          "検証サンプルが少ない: n=18",
           "マクロ感応度が高く、金利・為替・景気レジーム確認が必要",
           "worldContext が未取得",
-          "検証件数が不足: n=16"
+          "検証件数が不足: n=18"
         ]
       },
       {
@@ -8402,10 +9205,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ],
             "blockerReasons": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ]
           },
           {
@@ -8430,10 +9233,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ],
             "blockerReasons": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ]
           }
         ],
@@ -8446,10 +9249,10 @@
           "カタリスト候補となるIRイベントが不足",
           "割安性が未判定",
           "PER/PBR過去レンジ・同業比較が未取得",
-          "検証サンプルが少ない: n=16",
+          "検証サンプルが少ない: n=18",
           "マクロ感応度が高く、金利・為替・景気レジーム確認が必要",
           "worldContext が未取得",
-          "検証件数が不足: n=16"
+          "検証件数が不足: n=18"
         ]
       },
       {
@@ -8613,10 +9416,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ],
             "blockerReasons": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ]
           },
           {
@@ -8639,10 +9442,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ],
             "blockerReasons": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ]
           }
         ],
@@ -8653,9 +9456,9 @@
           "マクロ整合性が未確認",
           "割安性が未判定",
           "PER/PBR過去レンジ・同業比較が未取得",
-          "検証サンプルが少ない: n=16",
+          "検証サンプルが少ない: n=18",
           "worldContext が未取得",
-          "検証件数が不足: n=16"
+          "検証件数が不足: n=18"
         ]
       },
       {
@@ -8792,10 +9595,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ],
             "blockerReasons": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ]
           },
           {
@@ -8820,10 +9623,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ],
             "blockerReasons": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ]
           }
         ],
@@ -8836,10 +9639,10 @@
           "カタリスト候補となるIRイベントが不足",
           "割安性が未判定",
           "PER/PBR過去レンジ・同業比較が未取得",
-          "検証サンプルが少ない: n=16",
+          "検証サンプルが少ない: n=18",
           "マクロ感応度が高く、金利・為替・景気レジーム確認が必要",
           "worldContext が未取得",
-          "検証件数が不足: n=16"
+          "検証件数が不足: n=18"
         ]
       },
       {
@@ -9003,10 +9806,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ],
             "blockerReasons": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ]
           },
           {
@@ -9031,10 +9834,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ],
             "blockerReasons": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ]
           }
         ],
@@ -9047,10 +9850,10 @@
           "カタリスト候補となるIRイベントが不足",
           "割安性が未判定",
           "PER/PBR過去レンジ・同業比較が未取得",
-          "検証サンプルが少ない: n=16",
+          "検証サンプルが少ない: n=18",
           "マクロ感応度が高く、金利・為替・景気レジーム確認が必要",
           "worldContext が未取得",
-          "検証件数が不足: n=16"
+          "検証件数が不足: n=18"
         ]
       },
       {
@@ -9212,10 +10015,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ],
             "blockerReasons": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ]
           },
           {
@@ -9238,10 +10041,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ],
             "blockerReasons": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ]
           }
         ],
@@ -9252,9 +10055,9 @@
           "カタリスト候補となるIRイベントが不足",
           "割安性が未判定",
           "PER/PBR過去レンジ・同業比較が未取得",
-          "検証サンプルが少ない: n=16",
+          "検証サンプルが少ない: n=18",
           "worldContext が未取得",
-          "検証件数が不足: n=16"
+          "検証件数が不足: n=18"
         ]
       },
       {
@@ -9418,10 +10221,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ],
             "blockerReasons": [
-              "検証サンプルが少ない: n=16"
+              "検証サンプルが少ない: n=18"
             ]
           },
           {
@@ -9446,10 +10249,10 @@
             "positiveEvidence": [],
             "negativeEvidence": [],
             "missingEvidence": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ],
             "blockerReasons": [
-              "検証件数が不足: n=16"
+              "検証件数が不足: n=18"
             ]
           }
         ],
@@ -9462,17 +10265,17 @@
           "カタリスト候補となるIRイベントが不足",
           "割安性が未判定",
           "PER/PBR過去レンジ・同業比較が未取得",
-          "検証サンプルが少ない: n=16",
+          "検証サンプルが少ない: n=18",
           "マクロ感応度が高く、金利・為替・景気レジーム確認が必要",
           "worldContext が未取得",
-          "検証件数が不足: n=16"
+          "検証件数が不足: n=18"
         ]
       }
     ]
   },
   "proDataMeta": {
     "source": "pro-ui-data-addon",
-    "generatedAt": "2026-06-03T12:26:47.048Z",
+    "generatedAt": "2026-06-05T04:51:52.476Z",
     "missing": []
   }
 }

@@ -150,6 +150,42 @@ export type RunCursorState = {
   updatedAt?: string
 }
 
+export type IpoThemeWatch = {
+  generatedAt: string | null
+  defaultAction?: string
+  neverTreatAs?: string[]
+  phases?: Array<{
+    id: string
+    label: string
+    defaultAction: string
+    focus?: string[]
+    touchAvoidReasons?: string[]
+  }>
+  rules?: Array<{
+    id: string
+    label: string
+    names?: string[]
+    defaultAction: string
+    phaseIds?: string[]
+    touchAvoidReasons?: string[]
+    evidenceNeeded?: string[]
+    watchEvidence?: string[]
+    japaneseSpilloverThemes?: string[]
+    relatedCompanies?: Array<{ code: string; name: string; relation: string }>
+  }>
+  outcomeStats?: Array<{
+    themeId: string
+    phase: string
+    relatedCompanyCode: string
+    sampleSize: number
+    sampleTooSmall: boolean
+    hitRate: number | null
+    avgReturn1w: number | null
+    avgReturn1m: number | null
+    avgTopixRelative1m: number | null
+  }>
+}
+
 export type AlphaPonGeneratedData = {
   generatedAt: string | null
   headline: string
@@ -186,6 +222,7 @@ export type AlphaPonGeneratedData = {
   }>
   runCursors?: Record<string, RunCursorState>
   readiness?: ReadinessReport | null
+  ipoThemeWatch?: IpoThemeWatch | null
   pipelineStatus?: {
     date?: string
     status?: string

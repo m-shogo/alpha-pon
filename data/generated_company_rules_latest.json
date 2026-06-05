@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-06-03",
+  "generatedAt": "2026-06-05",
   "count": 8,
   "rules": [
     {
-      "generatedRuleId": "8136-2026-06-03-missing-price",
+      "generatedRuleId": "8136-2026-06-05-missing-price",
       "code": "8136",
       "name": "サンリオ",
-      "generatedAt": "2026-06-03T00:00:00+09:00",
+      "generatedAt": "2026-06-05T00:00:00+09:00",
       "thesis": [
         "監視テーマ: character / global_ip / consumer",
         "発火ルール: healthy_pullback / earnings_drop",
@@ -39,7 +39,7 @@
       ],
       "priceSignal": {
         "code": "8136",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "close": null,
         "change5dPct": null,
         "change20dPct": null,
@@ -62,13 +62,13 @@
       ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
-      "reviewDueAt": "2026-07-03T00:00:00+09:00"
+      "reviewDueAt": "2026-07-05T00:00:00+09:00"
     },
     {
-      "generatedRuleId": "4661-2026-06-03-missing-price",
+      "generatedRuleId": "4661-2026-06-05-missing-price",
       "code": "4661",
       "name": "オリエンタルランド",
-      "generatedAt": "2026-06-03T00:00:00+09:00",
+      "generatedAt": "2026-06-05T00:00:00+09:00",
       "thesis": [
         "継続的な設備投資によるリピート誘引",
         "インバウンド需要拡大"
@@ -93,7 +93,7 @@
       ],
       "priceSignal": {
         "code": "4661",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "close": null,
         "change5dPct": null,
         "change20dPct": null,
@@ -116,13 +116,13 @@
       ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
-      "reviewDueAt": "2026-07-03T00:00:00+09:00"
+      "reviewDueAt": "2026-07-05T00:00:00+09:00"
     },
     {
-      "generatedRuleId": "7974-2026-06-03-missing-price",
+      "generatedRuleId": "7974-2026-06-05-missing-price",
       "code": "7974",
       "name": "任天堂",
-      "generatedAt": "2026-06-03T00:00:00+09:00",
+      "generatedAt": "2026-06-05T00:00:00+09:00",
       "thesis": [
         "次世代ハード移行期",
         "IP展開の多様化"
@@ -147,7 +147,7 @@
       ],
       "priceSignal": {
         "code": "7974",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "close": null,
         "change5dPct": null,
         "change20dPct": null,
@@ -170,13 +170,13 @@
       ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
-      "reviewDueAt": "2026-07-03T00:00:00+09:00"
+      "reviewDueAt": "2026-07-05T00:00:00+09:00"
     },
     {
-      "generatedRuleId": "7011-2026-06-03-missing-price",
+      "generatedRuleId": "7011-2026-06-05-missing-price",
       "code": "7011",
       "name": "三菱重工業",
-      "generatedAt": "2026-06-03T00:00:00+09:00",
+      "generatedAt": "2026-06-05T00:00:00+09:00",
       "thesis": [
         "防衛費増額による受注拡大",
         "原発・エネルギー転換"
@@ -201,7 +201,7 @@
       ],
       "priceSignal": {
         "code": "7011",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "close": null,
         "change5dPct": null,
         "change20dPct": null,
@@ -224,13 +224,13 @@
       ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
-      "reviewDueAt": "2026-07-03T00:00:00+09:00"
+      "reviewDueAt": "2026-07-05T00:00:00+09:00"
     },
     {
-      "generatedRuleId": "5803-2026-06-03-missing-price",
+      "generatedRuleId": "5803-2026-06-05-missing-price",
       "code": "5803",
       "name": "フジクラ",
-      "generatedAt": "2026-06-03T00:00:00+09:00",
+      "generatedAt": "2026-06-05T00:00:00+09:00",
       "thesis": [
         "AI/データセンター向け光ファイバー需要急拡大"
       ],
@@ -254,7 +254,7 @@
       ],
       "priceSignal": {
         "code": "5803",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "close": null,
         "change5dPct": null,
         "change20dPct": null,
@@ -277,13 +277,13 @@
       ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
-      "reviewDueAt": "2026-07-03T00:00:00+09:00"
+      "reviewDueAt": "2026-07-05T00:00:00+09:00"
     },
     {
-      "generatedRuleId": "8306-2026-06-03-missing-price",
+      "generatedRuleId": "8306-2026-06-05-missing-price",
       "code": "8306",
       "name": "三菱UFJフィナンシャル・グループ",
-      "generatedAt": "2026-06-03T00:00:00+09:00",
+      "generatedAt": "2026-06-05T00:00:00+09:00",
       "thesis": [
         "金利上昇局面での利ザヤ改善",
         "海外収益拡大"
@@ -308,7 +308,7 @@
       ],
       "priceSignal": {
         "code": "8306",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "close": null,
         "change5dPct": null,
         "change20dPct": null,
@@ -331,13 +331,13 @@
       ],
       "privateMemo": "[MOCK] 株価未取得のため判断しない",
       "publicMemo": "[MOCK] データ不足のため様子見",
-      "reviewDueAt": "2026-07-03T00:00:00+09:00"
+      "reviewDueAt": "2026-07-05T00:00:00+09:00"
     },
     {
-      "generatedRuleId": "285A-2026-06-03-fast-catalyst",
+      "generatedRuleId": "285A-2026-06-05-fast-catalyst",
       "code": "285A",
       "name": "キオクシアホールディングス",
-      "generatedAt": "2026-06-03T00:00:00+09:00",
+      "generatedAt": "2026-06-05T00:00:00+09:00",
       "thesis": [
         "監視テーマ: semiconductor / ai / ai_ipo / memory / ipo / national_policy",
         "発火ルール: official_ir_catalyst / ai_inference_investor_day / ipo_selling_pressure_done / volume_cooling / no_new_low",
@@ -398,7 +398,7 @@
       ],
       "priceSignal": {
         "code": "285A",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "close": null,
         "change5dPct": null,
         "change20dPct": null,
@@ -421,13 +421,13 @@
       ],
       "privateMemo": "[MOCK] 先行カタリストはあるが高値追い/FOMO警告を検出。調査候補ではなく押し目待ち。過去5年類推: 2023-2026 AI設備投資相場：勝つのはAIっぽい会社ではなく不足資源を握る会社 / Arm上場後の半導体再評価：IPOは関連テーマの再値付けにもなる / AIインフラブーム：物語が売上に変わる企業だけが残る / AIデータセンター制約：電力・水・送電網がAI成長の上限になる",
       "publicMemo": "[MOCK] 先行材料はあるが、過熱・織り込み済み確認を優先する監視シグナルです。",
-      "reviewDueAt": "2026-07-03T00:00:00+09:00"
+      "reviewDueAt": "2026-07-05T00:00:00+09:00"
     },
     {
-      "generatedRuleId": "4568-2026-06-03",
+      "generatedRuleId": "4568-2026-06-05",
       "code": "4568",
       "name": "第一三共",
-      "generatedAt": "2026-06-03T00:00:00+09:00",
+      "generatedAt": "2026-06-05T00:00:00+09:00",
       "thesis": [],
       "actionSignal": "ENTRY_WATCH",
       "confidence": 0.9,
@@ -496,7 +496,7 @@
       "risks": [],
       "priceSignal": {
         "code": "4568",
-        "asOf": "2026-06-03",
+        "asOf": "2026-06-05",
         "close": 2854.5,
         "change5dPct": null,
         "change20dPct": null,
@@ -511,7 +511,7 @@
       "priceRiskWarnings": [],
       "privateMemo": "スコア103。ENTRY_WATCHシグナル。銘柄ごとの考察から自動生成。",
       "publicMemo": "銘柄ごとのデータから生成された監視・検証用メモ。投資助言ではありません。",
-      "reviewDueAt": "2026-07-03T00:00:00+09:00"
+      "reviewDueAt": "2026-07-05T00:00:00+09:00"
     }
   ]
 }

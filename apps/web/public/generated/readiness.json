@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-03",
+  "generatedAt": "2026-06-05",
   "overallScore": 85,
   "overallStatus": "done",
   "blockers": [],
@@ -36,10 +36,10 @@
       "label": "仮説検証の厚み",
       "score": 92,
       "evidence": [
-        "hypotheses: 16",
-        "outcomes: 16",
-        "priced outcomes: 4",
-        "real outcomes: 16",
+        "hypotheses: 19",
+        "outcomes: 18",
+        "priced outcomes: 6",
+        "real outcomes: 18",
         "SQLite outcome DB: present",
         "score bands: present"
       ],
@@ -55,7 +55,7 @@
       "score": 65,
       "evidence": [
         "primaryDisclosureReviews: 2",
-        "dataQuality warnings: 10",
+        "dataQuality warnings: 15",
         "daily:full primary scans: included"
       ],
       "nextActions": [
@@ -87,8 +87,8 @@
         "script:backup present",
         "outcome DB: present",
         "jobs DB: present",
-        "backup count: 5",
-        "latest backup: 2026-06-02T23-50-09 (0d)",
+        "backup count: 13",
+        "latest backup: 2026-06-05T13-40-43 (0d)",
         "run cursors: universe-scan, analogy-review"
       ],
       "nextActions": [

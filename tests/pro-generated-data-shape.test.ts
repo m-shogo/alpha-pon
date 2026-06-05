@@ -32,15 +32,6 @@ function isObject(value: unknown): value is Record<string, unknown> {
 }
 
 {
-  const data = readJson("reports/ipo_theme_watch_latest.json");
-  if (data !== null) {
-    assert(isObject(data), "ipo_theme_watch_latest.json は object である必要があります");
-    assert("rules" in data, "ipo_theme_watch_latest.json は rules を持つ必要があります");
-    assert(isObject(data.rules), "ipo_theme_watch_latest.json.rules は object である必要があります");
-  }
-}
-
-{
   const data = readJson("apps/web/public/generated/alpha-pon-data.json");
   if (data !== null) {
     assert(isObject(data), "alpha-pon-data.json は object である必要があります");
@@ -56,10 +47,17 @@ function isObject(value: unknown): value is Record<string, unknown> {
       }
     }
     if ("ipoThemeWatch" in data) {
-      const ipoThemeWatch = data.ipoThemeWatch;
-      assert(isObject(ipoThemeWatch), "ipoThemeWatch は object である必要があります");
-      assert("rules" in ipoThemeWatch, "ipoThemeWatch は rules を持つ必要があります");
-      assert(isObject(ipoThemeWatch.rules), "ipoThemeWatch.rules は object である必要があります");
+      const watch = data.ipoThemeWatch;
+      assert(isObject(watch), "ipoThemeWatch は object である必要があります");
+      assert(Array.isArray(watch.rules), "ipoThemeWatch.rules は配列である必要があります");
+      assert(Array.isArray(watch.phases), "ipoThemeWatch.phases は配列である必要があります");
+      assert(Array.isArray(watch.outcomeStats), "ipoThemeWatch.outcomeStats は配列である必要があります");
+      for (const rule of watch.rules) {
+        assert(isObject(rule), "ipoThemeWatch rule は object である必要があります");
+        assert(typeof rule.id === "string", "ipoThemeWatch.rules[].id は string である必要があります");
+        assert(typeof rule.defaultAction === "string", "ipoThemeWatch.rules[].defaultAction は string である必要があります");
+        assert(Array.isArray(rule.relatedCompanies), "ipoThemeWatch.rules[].relatedCompanies は配列である必要があります");
+      }
     }
   }
 }

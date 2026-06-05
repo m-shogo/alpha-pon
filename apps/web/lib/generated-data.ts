@@ -36,6 +36,7 @@ const FALLBACK_PRO: ProData = {
   dataQualityByCode: {},
   runCursors: {},
   readiness: null,
+  ipoThemeWatch: null,
   meta: { warnings: ['データファイルが見つからないか、読み込みに失敗しました。pnpm ui:data を実行してください。'] },
 }
 
@@ -67,6 +68,7 @@ function normalizeGeneratedData(value: unknown): ProData {
     dataQualityByCode: data.dataQualityByCode ?? {},
     runCursors: data.runCursors ?? {},
     readiness: data.readiness ?? null,
+    ipoThemeWatch: data.ipoThemeWatch ?? null,
     meta: data.meta ?? null,
   }
 }

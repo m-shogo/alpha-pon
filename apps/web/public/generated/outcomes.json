@@ -1179,7 +1179,159 @@
       ],
       "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A%",
       "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "4568",
+      "name": "第一三共",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "4568",
+        "name": "第一三共",
+        "detectedAt": "2026-06-03",
+        "reviewDueAt": "2026-07-03",
+        "reason": "未登録銘柄の自動検出: 高値比31.6%下落、営業利益前年比+56.9%。世界情勢テーマ: migration_labor_shortage・financial_crisis_rate_shock。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.85,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認",
+          "開発パイプラインのフェーズ確認"
+        ],
+        "relatedWorldEventIds": [
+          "migration_labor_shortage",
+          "financial_crisis_rate_shock"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "検証候補"
+      },
+      "evaluatedAt": "2026-06-04",
+      "reviewHorizon": "1d",
+      "actionLabel": "log",
+      "scoreAtPrediction": 85,
+      "startPrice": 2900,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": 0,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "partial",
+      "whatMatched": [
+        "期待方向 unknown と1か月方向が一致"
+      ],
+      "whatDiffered": [],
+      "missedSignals": [
+        "価格データ品質がpartial"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "missReasonCandidates": [
+        "data_quality_bad"
+      ],
+      "notes": "2026-06-04時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "4568",
+      "name": "第一三共",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "4568",
+        "name": "第一三共",
+        "detectedAt": "2026-06-04",
+        "reviewDueAt": "2026-07-04",
+        "reason": "未登録銘柄の自動検出: 高値比31.6%下落、営業利益前年比+56.9%。世界情勢テーマ: migration_labor_shortage・financial_crisis_rate_shock。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.85,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認",
+          "開発パイプラインのフェーズ確認"
+        ],
+        "relatedWorldEventIds": [
+          "migration_labor_shortage",
+          "financial_crisis_rate_shock"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "検証候補"
+      },
+      "evaluatedAt": "2026-06-05",
+      "reviewHorizon": "1d",
+      "actionLabel": "log",
+      "scoreAtPrediction": 85,
+      "startPrice": 2818.5,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": 0,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "partial",
+      "whatMatched": [
+        "期待方向 unknown と1か月方向が一致"
+      ],
+      "whatDiffered": [],
+      "missedSignals": [
+        "価格データ品質がpartial"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "missReasonCandidates": [
+        "data_quality_bad"
+      ],
+      "notes": "2026-06-05時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "dataSource": "jquants"
     }
   ],
-  "generatedAt": "2026-06-03"
+  "generatedAt": "2026-06-05"
 }

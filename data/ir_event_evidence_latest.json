@@ -1,0 +1,20 @@
+{
+  "generatedAt": "2026-06-05",
+  "events": [
+    {
+      "code": "8136",
+      "name": "サンリオ",
+      "eventType": "shareholder_meeting",
+      "title": "定時株主総会",
+      "publishedAt": null,
+      "eventDate": null,
+      "sourceUrl": "https://corporate.sanrio.co.jp/ir/stock/meeting/",
+      "sourceStatus": "official_check_required",
+      "impact": "unknown",
+      "confidence": 0.35,
+      "notes": [
+        "公式URLまたは本文確認が未完了"
+      ]
+    }
+  ]
+}

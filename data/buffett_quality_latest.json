@@ -1,0 +1,253 @@
+{
+  "generatedAt": "2026-06-05",
+  "snapshots": [
+    {
+      "code": "5803",
+      "name": "フジクラ",
+      "asOf": "2026-06-05",
+      "roe5yAvg": null,
+      "roic5yAvg": null,
+      "operatingMargin5yAvg": null,
+      "operatingMarginStability": "unknown",
+      "fcfPositiveYears5y": null,
+      "fcfMargin5yAvg": null,
+      "equityRatio": null,
+      "netDebtToEbitda": null,
+      "dilutionRisk": "unknown",
+      "pricingPowerEvidence": [],
+      "moatEvidence": [
+        "ネットワーク/インフラ型の参入障壁候補"
+      ],
+      "qualityLabel": "unknown",
+      "missingData": [
+        "ROIC 5年平均",
+        "ROE 5年平均",
+        "FCF 5年推移",
+        "営業利益率 5年推移",
+        "自己資本比率",
+        "希薄化/増資履歴"
+      ]
+    },
+    {
+      "code": "5802",
+      "name": "住友電工",
+      "asOf": "2026-06-05",
+      "roe5yAvg": null,
+      "roic5yAvg": null,
+      "operatingMargin5yAvg": null,
+      "operatingMarginStability": "unknown",
+      "fcfPositiveYears5y": null,
+      "fcfMargin5yAvg": null,
+      "equityRatio": null,
+      "netDebtToEbitda": null,
+      "dilutionRisk": "unknown",
+      "pricingPowerEvidence": [],
+      "moatEvidence": [
+        "ネットワーク/インフラ型の参入障壁候補",
+        "景気循環・政策需要の影響が大きく、品質判定は保留"
+      ],
+      "qualityLabel": "cyclical_quality",
+      "missingData": [
+        "ROIC 5年平均",
+        "ROE 5年平均",
+        "FCF 5年推移",
+        "営業利益率 5年推移",
+        "自己資本比率",
+        "希薄化/増資履歴"
+      ]
+    },
+    {
+      "code": "285A",
+      "name": "キオクシアホールディングス",
+      "asOf": "2026-06-05",
+      "roe5yAvg": null,
+      "roic5yAvg": null,
+      "operatingMargin5yAvg": null,
+      "operatingMarginStability": "unknown",
+      "fcfPositiveYears5y": null,
+      "fcfMargin5yAvg": null,
+      "equityRatio": null,
+      "netDebtToEbitda": null,
+      "dilutionRisk": "unknown",
+      "pricingPowerEvidence": [
+        "ライセンス/ブランド価値による価格決定力を要確認"
+      ],
+      "moatEvidence": [
+        "ブランド/IPによる競争優位の可能性",
+        "ネットワーク/インフラ型の参入障壁候補",
+        "景気循環・政策需要の影響が大きく、品質判定は保留"
+      ],
+      "qualityLabel": "good_business",
+      "missingData": [
+        "ROIC 5年平均",
+        "ROE 5年平均",
+        "FCF 5年推移",
+        "営業利益率 5年推移",
+        "自己資本比率",
+        "希薄化/増資履歴"
+      ]
+    },
+    {
+      "code": "8035",
+      "name": "東京エレクトロン",
+      "asOf": "2026-06-05",
+      "roe5yAvg": null,
+      "roic5yAvg": null,
+      "operatingMargin5yAvg": null,
+      "operatingMarginStability": "unknown",
+      "fcfPositiveYears5y": null,
+      "fcfMargin5yAvg": null,
+      "equityRatio": null,
+      "netDebtToEbitda": null,
+      "dilutionRisk": "unknown",
+      "pricingPowerEvidence": [],
+      "moatEvidence": [
+        "景気循環・政策需要の影響が大きく、品質判定は保留"
+      ],
+      "qualityLabel": "cyclical_quality",
+      "missingData": [
+        "ROIC 5年平均",
+        "ROE 5年平均",
+        "FCF 5年推移",
+        "営業利益率 5年推移",
+        "自己資本比率",
+        "希薄化/増資履歴"
+      ]
+    },
+    {
+      "code": "8136",
+      "name": "サンリオ",
+      "asOf": "2026-06-05",
+      "roe5yAvg": null,
+      "roic5yAvg": null,
+      "operatingMargin5yAvg": null,
+      "operatingMarginStability": "unknown",
+      "fcfPositiveYears5y": null,
+      "fcfMargin5yAvg": null,
+      "equityRatio": null,
+      "netDebtToEbitda": null,
+      "dilutionRisk": "unknown",
+      "pricingPowerEvidence": [
+        "ライセンス/ブランド価値による価格決定力を要確認"
+      ],
+      "moatEvidence": [
+        "ブランド/IPによる競争優位の可能性"
+      ],
+      "qualityLabel": "good_business",
+      "missingData": [
+        "ROIC 5年平均",
+        "ROE 5年平均",
+        "FCF 5年推移",
+        "営業利益率 5年推移",
+        "自己資本比率",
+        "希薄化/増資履歴"
+      ]
+    },
+    {
+      "code": "7974",
+      "name": "任天堂",
+      "asOf": "2026-06-05",
+      "roe5yAvg": null,
+      "roic5yAvg": null,
+      "operatingMargin5yAvg": null,
+      "operatingMarginStability": "unknown",
+      "fcfPositiveYears5y": null,
+      "fcfMargin5yAvg": null,
+      "equityRatio": null,
+      "netDebtToEbitda": null,
+      "dilutionRisk": "unknown",
+      "pricingPowerEvidence": [
+        "ライセンス/ブランド価値による価格決定力を要確認"
+      ],
+      "moatEvidence": [
+        "ブランド/IPによる競争優位の可能性"
+      ],
+      "qualityLabel": "good_business",
+      "missingData": [
+        "ROIC 5年平均",
+        "ROE 5年平均",
+        "FCF 5年推移",
+        "営業利益率 5年推移",
+        "自己資本比率",
+        "希薄化/増資履歴"
+      ]
+    },
+    {
+      "code": "7011",
+      "name": "三菱重工",
+      "asOf": "2026-06-05",
+      "roe5yAvg": null,
+      "roic5yAvg": null,
+      "operatingMargin5yAvg": null,
+      "operatingMarginStability": "unknown",
+      "fcfPositiveYears5y": null,
+      "fcfMargin5yAvg": null,
+      "equityRatio": null,
+      "netDebtToEbitda": null,
+      "dilutionRisk": "unknown",
+      "pricingPowerEvidence": [],
+      "moatEvidence": [
+        "景気循環・政策需要の影響が大きく、品質判定は保留"
+      ],
+      "qualityLabel": "cyclical_quality",
+      "missingData": [
+        "ROIC 5年平均",
+        "ROE 5年平均",
+        "FCF 5年推移",
+        "営業利益率 5年推移",
+        "自己資本比率",
+        "希薄化/増資履歴"
+      ]
+    },
+    {
+      "code": "9348",
+      "name": "ispace",
+      "asOf": "2026-06-05",
+      "roe5yAvg": null,
+      "roic5yAvg": null,
+      "operatingMargin5yAvg": null,
+      "operatingMarginStability": "unknown",
+      "fcfPositiveYears5y": null,
+      "fcfMargin5yAvg": null,
+      "equityRatio": null,
+      "netDebtToEbitda": null,
+      "dilutionRisk": "unknown",
+      "pricingPowerEvidence": [],
+      "moatEvidence": [],
+      "qualityLabel": "unknown",
+      "missingData": [
+        "ROIC 5年平均",
+        "ROE 5年平均",
+        "FCF 5年推移",
+        "営業利益率 5年推移",
+        "自己資本比率",
+        "希薄化/増資履歴"
+      ]
+    },
+    {
+      "code": "8306",
+      "name": "三菱UFJ FG",
+      "asOf": "2026-06-05",
+      "roe5yAvg": null,
+      "roic5yAvg": null,
+      "operatingMargin5yAvg": null,
+      "operatingMarginStability": "unknown",
+      "fcfPositiveYears5y": null,
+      "fcfMargin5yAvg": null,
+      "equityRatio": null,
+      "netDebtToEbitda": null,
+      "dilutionRisk": "unknown",
+      "pricingPowerEvidence": [],
+      "moatEvidence": [],
+      "qualityLabel": "unknown",
+      "missingData": [
+        "ROIC 5年平均",
+        "ROE 5年平均",
+        "FCF 5年推移",
+        "営業利益率 5年推移",
+        "自己資本比率",
+        "希薄化/増資履歴"
+      ]
+    }
+  ]
+}

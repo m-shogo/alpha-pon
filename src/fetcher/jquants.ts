@@ -12,6 +12,14 @@ type TokenCache = {
 let tokenCache: TokenCache | null = null;
 let lastV2RequestAt = 0;
 
+function requestTimeoutMs(): number {
+  return Math.max(1000, Number(process.env.JQUANTS_REQUEST_TIMEOUT_MS ?? "15000"));
+}
+
+function timeoutSignal(): AbortSignal {
+  return AbortSignal.timeout(requestTimeoutMs());
+}
+
 export function isJQuantsConfigured(): boolean {
   return Boolean(
     process.env.JQUANTS_API_KEY ||
@@ -67,6 +75,7 @@ async function getRefreshToken(): Promise<string> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ mailaddress: email, password }),
+    signal: timeoutSignal(),
   });
 
   if (!res.ok) {
@@ -80,7 +89,7 @@ async function getRefreshToken(): Promise<string> {
 async function getIdToken(refreshToken: string): Promise<string> {
   const res = await fetch(
     `${V1_BASE_URL}/token/auth_refresh?refreshtoken=${encodeURIComponent(refreshToken)}`,
-    { method: "POST" }
+    { method: "POST", signal: timeoutSignal() }
   );
 
   if (!res.ok) {
@@ -110,6 +119,7 @@ async function getV1<T>(path: string, params: Record<string, string> = {}): Prom
 
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
+    signal: timeoutSignal(),
   });
 
   if (!res.ok) {
@@ -169,6 +179,7 @@ async function fetchV2(url: string, apiKey: string): Promise<Response> {
         "x-api-key": apiKey,
         "User-Agent": "alpha-pon/0.1",
       },
+      signal: timeoutSignal(),
     });
     if (res.status !== 429 || attempt === maxAttempts) return res;
     await new Promise(resolve => setTimeout(resolve, attempt * 10000));

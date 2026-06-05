@@ -279,6 +279,7 @@ function main() {
   const committee = readText("reports/stock_pro_committee_latest.md");
   const roadmap = readText("reports/stock_pro_improvement_roadmap_latest.md");
   const refresh = readText("reports/pro_knowledge_refresh_latest.md");
+  const ipoThemeWatch = readText("reports/ipo_theme_watch_latest.md");
   const deepDives = readYaml<DeepDives>("config/company-deep-dives.yml", {});
   const candidates = Object.entries(deepDives.companies ?? {}).map(([code, company]) => toCandidate(code, company, date));
 
@@ -360,6 +361,7 @@ function main() {
       { key: "strategic", label: "司令塔", path: "reports/strategic_advice_latest.md", available: Boolean(strategic), excerpt: excerpt(strategic, "今日まず見る穴", "strategic advice未生成") },
       { key: "pipeline", label: "データ信頼度", path: "reports/pipeline_health_summary_latest.md", available: Boolean(pipeline), excerpt: excerpt(pipeline, "confidence", "pipeline health未生成") },
       { key: "committee", label: "Pro会議", path: "reports/stock_pro_committee_latest.md", available: Boolean(committee), excerpt: excerpt(committee, "rule", "Pro会議未生成") },
+      { key: "ipoThemeWatch", label: "IPOテーマ監視", path: "reports/ipo_theme_watch_latest.md", available: Boolean(ipoThemeWatch), excerpt: excerpt(ipoThemeWatch, "rules", "IPOテーマ監視未生成") },
       { key: "roadmap", label: "改善ロードマップ", path: "reports/stock_pro_improvement_roadmap_latest.md", available: Boolean(roadmap), excerpt: excerpt(roadmap, "priority improvements", "改善ロードマップ未生成") },
       { key: "refresh", label: "Pro知識更新", path: "reports/pro_knowledge_refresh_latest.md", available: Boolean(refresh), excerpt: excerpt(refresh, "refresh queue", "Pro知識更新未生成") }
     ],
@@ -448,6 +450,7 @@ function main() {
       { key: "strategic", label: "司令塔",          path: "reports/strategic_advice_latest.md",             available: Boolean(strategic), excerpt: excerpt(strategic, "今日まず見る穴", "strategic advice未生成"),         fullContent: strategic || null },
       { key: "pipeline",  label: "データ信頼度",    path: "reports/pipeline_health_summary_latest.md",      available: Boolean(pipeline),  excerpt: excerpt(pipeline,  "confidence",   "pipeline health未生成"),            fullContent: pipeline  || null },
       { key: "committee", label: "Pro会議",          path: "reports/stock_pro_committee_latest.md",          available: Boolean(committee), excerpt: excerpt(committee,  "rule",          "Pro会議未生成"),                    fullContent: committee || null },
+      { key: "ipoThemeWatch", label: "IPOテーマ監視", path: "reports/ipo_theme_watch_latest.md",              available: Boolean(ipoThemeWatch), excerpt: excerpt(ipoThemeWatch, "rules", "IPOテーマ監視未生成"), fullContent: ipoThemeWatch || null },
       { key: "roadmap",   label: "改善ロードマップ", path: "reports/stock_pro_improvement_roadmap_latest.md", available: Boolean(roadmap),   excerpt: excerpt(roadmap,   "priority improvements", "改善ロードマップ未生成"), fullContent: roadmap   || null },
       { key: "refresh",   label: "Pro知識更新",      path: "reports/pro_knowledge_refresh_latest.md",        available: Boolean(refresh),   excerpt: excerpt(refresh,   "refresh queue", "Pro知識更新未生成"),               fullContent: refresh   || null },
     ],

@@ -90,6 +90,7 @@ run_optional_step "company-onboarding"        node --import "tsx/esm" "$DIR/src/
 run_optional_step "stock-pro-quality"         node --import "tsx/esm" "$DIR/src/stock-pro-quality-audit.ts"
 run_optional_step "stock-pro-roadmap"         node --import "tsx/esm" "$DIR/src/stock-pro-improvement-roadmap.ts"
 run_optional_step "stock-pro-committee"       node --import "tsx/esm" "$DIR/src/stock-pro-committee-report.ts"
+run_optional_step "ipo-theme-watch"          node --import "tsx/esm" "$DIR/src/ipo-theme-watch-report.ts"
 run_optional_step "stock-pro-agent"           node --import "tsx/esm" "$DIR/src/stock-pro-agent-report.ts"
 run_optional_step "stock-pro-summary"         node --import "tsx/esm" "$DIR/src/stock-pro-summary.ts"
 run_optional_step "company-hypothesis"        node --import "tsx/esm" "$DIR/src/company-hypothesis-report.ts"

@@ -1,161 +1,185 @@
-# alpha-pon IPO/大型テーマ監視ルール
-# 買い推奨ではなく、巨大テーマを「いつ触らないか」「何を確認するか」「どの周辺銘柄へ波及するか」で管理する。
-
-rules:
-  ai_space_mega_ipo:
-    label: "AI・宇宙 大型IPO監視"
-    description: "SpaceX / Starlink / OpenAI / Anthropic 級の大型上場・上場観測を、直接売買材料ではなくAIインフラ資金循環・関連銘柄波及・過熱確認の材料として扱う。"
-    defaultAction: "watch_only"
-    neverTreatAs: "buy_signal"
-    phases:
-      pre_ipo:
-        label: "上場前・観測報道"
-        action: "情報収集のみ"
-        doNotTouchReasons:
-          - "評価額・売出条件・既存株主売却比率が未確定"
-          - "報道だけでは実需拡大か出口流動性イベントか判別できない"
-          - "関連日本株は先回りで織り込み済みになりやすい"
-        evidenceNeeded:
-          - "S-1/上場申請書または公式開示"
-          - "売上・利益・キャッシュフロー・設備投資"
-          - "主要顧客・compute契約・capex計画"
-          - "既存株主の売却/ロックアップ条件"
-        timingSignals:
-          - "関連銘柄が報道だけで急騰していないか"
-          - "AIインフラ実需に接続する一次情報があるか"
-
-      ipo_week:
-        label: "上場週・初値形成"
-        action: "原則観察のみ"
-        doNotTouchReasons:
-          - "初値形成は企業価値より需給・話題性・配分で動きやすい"
-          - "短期熱狂で期待が一気に価格へ入る"
-          - "出来高価格帯がまだ見えない"
-        evidenceNeeded:
-          - "初値・出来高・売買代金"
-          - "公開価格との乖離"
-          - "主要保有者・ロックアップ"
-        timingSignals:
-          - "初値からの出来高密集価格帯"
-          - "初値天井/初値割れ後の需給"
-
-      first_earnings:
-        label: "上場後初回決算"
-        action: "期待と実績の差を確認"
-        doNotTouchReasons:
-          - "上場時の成長ストーリーが数字に接続していない可能性"
-          - "売上成長より投資負担・赤字・FCF悪化が大きい可能性"
-        evidenceNeeded:
-          - "売上成長率"
-          - "粗利率/営業利益率/FCF"
-          - "ガイダンス"
-          - "AI/宇宙インフラ投資の継続性"
-        timingSignals:
-          - "好決算でも下がる場合は期待過剰を疑う"
-          - "悪材料でも下げ渋る場合は需給改善を観察"
-
-      lockup_expiry:
-        label: "ロックアップ解除"
-        action: "売り圧力確認"
-        doNotTouchReasons:
-          - "既存株主・社員・VCの売却圧力が出る可能性"
-          - "解除前の先回り売り/解除後の需給悪化がある"
-        evidenceNeeded:
-          - "解除日"
-          - "解除対象株数"
-          - "主要株主の売却方針"
-        timingSignals:
-          - "解除前後の出来高増加"
-          - "解除後に下げ止まるか"
-
-      post_hype_drawdown:
-        label: "熱狂後の調整"
-        action: "事業仮説が壊れていないか確認"
-        doNotTouchReasons:
-          - "下落が割安化ではなく期待剥落の可能性"
-          - "テーマの本命が別銘柄に移っている可能性"
-        evidenceNeeded:
-          - "高値からの下落率"
-          - "下落理由の分類"
-          - "売上/利益/受注/市況の変化"
-          - "同業・周辺銘柄との相対比較"
-        timingSignals:
-          - "高値から20〜40%下落"
-          - "TOPIX/NASDAQ/SOX比で下げ止まり"
-          - "一次情報で事業仮説が維持されている"
-
-      fundamental_confirmation:
-        label: "ファンダメンタル確認"
-        action: "ようやく本格調査候補"
-        doNotTouchReasons:
-          - "数字確認前にテーマだけで判断しない"
-        evidenceNeeded:
-          - "複数四半期の売上/利益/FCF"
-          - "バリュエーション"
-          - "競争優位"
-          - "関連銘柄への実需波及"
-        timingSignals:
-          - "期待ではなく数字で確認できる"
-          - "過熱が落ち着き、出来高価格帯が見える"
-
-    relatedJapanThemes:
-      memory_storage:
-        label: "メモリ・ストレージ"
-        watchCompanies:
-          - code: "285A"
-            name: "キオクシアホールディングス"
-            role: "NAND/SSD/eSSD"
-            whyWatch: "AIデータ蓄積・推論・サーバーSSD需要への波及を確認する。ただしHBM/GPU中心でNANDに届かないリスクを見る。"
-          - code: "6501"
-            name: "日立製作所"
-            role: "旧関係・インフラ/データセンター周辺"
-            whyWatch: "直接メモリではなく、AIインフラ・社会インフラ側の波及候補として見る。"
-      semiconductor_equipment:
-        label: "半導体装置・検査"
-        watchCompanies:
-          - code: "8035"
-            name: "東京エレクトロン"
-            role: "半導体製造装置"
-            whyWatch: "AI投資が装置受注へ接続するか。大型株で織り込みが早い点に注意。"
-          - code: "6857"
-            name: "アドバンテスト"
-            role: "半導体検査装置"
-            whyWatch: "AI半導体需要との接続は強いが、期待先行・高バリュエーションに注意。"
-      optical_power_cooling:
-        label: "光通信・電力・冷却"
-        watchCompanies:
-          - code: "5803"
-            name: "フジクラ"
-            role: "光ファイバー・DC配線"
-            whyWatch: "AIデータセンター配線需要の実需確認。過熱と利益接続を確認する。"
-          - code: "5802"
-            name: "住友電工"
-            role: "電線・光通信・電力インフラ"
-            whyWatch: "AIデータセンター/電力網需要の複合波及を見る。"
-      defense_space:
-        label: "宇宙・防衛・衛星周辺"
-        watchCompanies:
-          - code: "7011"
-            name: "三菱重工"
-            role: "宇宙・防衛・重工"
-            whyWatch: "SpaceX/衛星/宇宙テーマの日本側比較対象。ただし防衛テーマ織り込みに注意。"
-          - code: "9348"
-            name: "ispace"
-            role: "宇宙スタートアップ"
-            whyWatch: "宇宙テーマの個人熱狂を観察する対象。赤字・資金調達・ミッションリスクを先に見る。"
-
-    globalReferenceEvents:
-      - "SpaceX / Starlink 上場観測"
-      - "OpenAI 上場準備観測"
-      - "Anthropic 上場観測"
-      - "AIデータセンター投資"
-      - "NAND/SSD/eSSD需要"
-      - "GPU/HBM偏重によるNAND波及不足"
-
-    safetyRules:
-      - "報道だけでは調査候補を上げない"
-      - "上場週は原則観察のみ"
-      - "初回決算前は数字未確認として扱う"
-      - "ロックアップ解除前後は需給確認を優先する"
-      - "関連日本株は本命/周辺/織り込み済みに分ける"
-      - "調査候補は買い指示ではない"
+version: 1
+description: "大型IPO/AI/宇宙テーマを、監視・証拠確認・待つ理由として扱うためのルール。売買推奨ではない。"
+defaultAction: "監視・証拠確認・待つ理由の記録"
+neverTreatAs:
+  - "売買推奨"
+  - "上場直後の即断"
+  - "テーマ名だけの評価"
+  - "SNSや報道見出しだけの判断"
+globalReferenceEvents:
+  - "SpaceX / Starlink 上場観測"
+  - "OpenAI 上場準備観測"
+  - "Anthropic 上場観測"
+  - "AIデータセンター投資"
+  - "NAND / SSD / eSSD需要"
+  - "GPU / HBM偏重によるNAND波及不足"
+safetyRules:
+  - "報道だけでは調査候補を上げない"
+  - "上場週は原則観察のみ"
+  - "初回決算前は数字未確認として扱う"
+  - "ロックアップ解除前後は需給確認を優先する"
+  - "関連日本株は本命/周辺/織り込み済みに分ける"
+  - "調査候補は買い指示ではない"
+phases:
+  - id: "pre_ipo"
+    label: "上場前報道"
+    defaultAction: "一次情報待ち"
+    focus:
+      - "S-1 / 届出書 / 公式発表の有無"
+      - "報道元と会社公式情報の差"
+      - "既存上場関連銘柄への過熱波及"
+    touchAvoidReasons:
+      - "未上場企業の条件が未確定"
+      - "関連株は期待先行になりやすい"
+  - id: "ipo_week"
+    label: "上場週"
+    defaultAction: "初値・出来高・ロックアップ条件の観察"
+    focus:
+      - "公開価格と初値の乖離"
+      - "出来高急増と短期資金集中"
+      - "ベンチマーク比の過熱"
+    touchAvoidReasons:
+      - "価格発見が終わっていない"
+      - "短期資金で振れやすい"
+  - id: "first_earnings"
+    label: "上場後初回決算"
+    defaultAction: "売上化と利益率を確認"
+    focus:
+      - "売上成長と営業利益率"
+      - "顧客集中・設備投資・在庫"
+      - "会社予想と市場期待の差"
+    touchAvoidReasons:
+      - "物語と実績の差が出やすい"
+  - id: "lockup_expiry"
+    label: "ロックアップ解除"
+    defaultAction: "需給イベントとして監視"
+    focus:
+      - "解除日"
+      - "既存株主の保有比率"
+      - "売り圧力と出来高"
+    touchAvoidReasons:
+      - "事業価値と需給イベントを混同しやすい"
+  - id: "post_hype_drawdown"
+    label: "過熱後の調整"
+    defaultAction: "押し目か仮説崩れかを分ける"
+    focus:
+      - "20日/60日騰落率"
+      - "TOPIX比"
+      - "出来高沈静化"
+      - "材料出尽くしの有無"
+    touchAvoidReasons:
+      - "下落が押し目ではなく仮説崩れの可能性"
+  - id: "fundamental_confirmation"
+    label: "実需確認"
+    defaultAction: "収益・受注・市況への接続を確認"
+    focus:
+      - "受注残"
+      - "粗利率"
+      - "設備投資計画"
+      - "顧客CAPEX"
+      - "市況価格"
+    touchAvoidReasons:
+      - "テーマだけで売上・利益に接続していない可能性"
+themes:
+  - id: "ai_frontier_ipo"
+    label: "AI大型上場監視"
+    names:
+      - "OpenAI"
+      - "Anthropic"
+    defaultAction: "公式届出・資金吸収・関連株過熱を監視"
+    watchEvidence:
+      - "S-1 / 公式IR / 主要投資家情報"
+      - "AIインフラ設備投資"
+      - "GPU/ASIC/HBM/NAND/SSD需要への接続"
+      - "赤字幅・粗利率・顧客集中"
+    japaneseSpilloverThemes:
+      - "memory_storage"
+      - "semiconductor_equipment"
+      - "power_grid"
+      - "optical_network"
+      - "datacenter"
+    relatedCompanies:
+      - code: "285A"
+        name: "キオクシアホールディングス"
+        relation: "NAND / SSD / eSSD / AI推論ストレージ"
+      - code: "8035"
+        name: "東京エレクトロン"
+        relation: "半導体製造装置"
+      - code: "6857"
+        name: "アドバンテスト"
+        relation: "半導体検査"
+      - code: "5803"
+        name: "フジクラ"
+        relation: "光通信・データセンター配線"
+      - code: "5802"
+        name: "住友電気工業"
+        relation: "光通信・電線・電力網"
+      - code: "6501"
+        name: "日立製作所"
+        relation: "AIインフラ・社会インフラ周辺"
+  - id: "space_connectivity_ipo"
+    label: "宇宙・衛星通信上場監視"
+    names:
+      - "SpaceX"
+      - "Starlink"
+    defaultAction: "上場条件・衛星通信契約・防衛/通信波及を監視"
+    watchEvidence:
+      - "公式上場手続き"
+      - "打上げ/衛星数/通信契約"
+      - "防衛・災害通信・海上/航空通信の契約"
+      - "競合衛星通信と規制"
+    japaneseSpilloverThemes:
+      - "space_defense"
+      - "satellite_connectivity"
+      - "disaster_resilience"
+      - "communication_infrastructure"
+    relatedCompanies:
+      - code: "7011"
+        name: "三菱重工業"
+        relation: "宇宙・防衛・打上げ関連"
+      - code: "9348"
+        name: "ispace"
+        relation: "宇宙テーマ上場企業"
+      - code: "5803"
+        name: "フジクラ"
+        relation: "通信インフラ"
+      - code: "5802"
+        name: "住友電気工業"
+        relation: "通信・電力インフラ"
+  - id: "memory_storage_cycle"
+    label: "AIストレージ・メモリ市況"
+    names:
+      - "NAND"
+      - "SSD"
+      - "eSSD"
+      - "AI inference storage"
+    defaultAction: "市況・受注・価格転嫁を確認"
+    watchEvidence:
+      - "NAND価格"
+      - "eSSD需要"
+      - "AI推論向けストレージ投資"
+      - "在庫水準"
+      - "設備投資負担"
+    japaneseSpilloverThemes:
+      - "memory_storage"
+      - "semiconductor_materials"
+      - "datacenter"
+    relatedCompanies:
+      - code: "285A"
+        name: "キオクシアホールディングス"
+        relation: "NAND / SSD / eSSD"
+      - code: "8035"
+        name: "東京エレクトロン"
+        relation: "半導体製造装置"
+      - code: "6857"
+        name: "アドバンテスト"
+        relation: "検査装置"
+outcomeStats:
+  minSampleSize: 5
+  horizons:
+    - "1w"
+    - "1m"
+  groupBy:
+    - "themeId"
+    - "phase"
+    - "relatedCompanyCode"

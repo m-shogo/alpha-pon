@@ -25,6 +25,7 @@ alpha-pon は、単に「良さそうな銘柄」を出すのではなく、以�
 運用の入口は以下。
 
 - [docs/operation-playbook.md](docs/operation-playbook.md)
+- [docs/ipo-theme-watch-playbook.md](docs/ipo-theme-watch-playbook.md)
 - [docs/roadmap-pro-disagreement.md](docs/roadmap-pro-disagreement.md)
 - [docs/local-verification-checklist.md](docs/local-verification-checklist.md)
 
@@ -109,6 +110,15 @@ pnpm verify:pro
 ```text
 pro:all → ui:data → pro-disagreement test → generated data shape test
 ```
+
+IPO / AI / 宇宙テーマ監視だけ確認したい時:
+
+```bash
+pnpm theme:ipo
+pnpm ui:data
+```
+
+`reports/ipo_theme_watch_latest.md` と `/world` で、OpenAI / Anthropic / SpaceX / Starlink 級の大型上場報道、キオクシアホールディングスの NAND / SSD / eSSD 文脈、関連日本株への波及を「監視・証拠確認・待つ理由」として見る。
 
 Pro運用の完全版（ユニバーススキャン・仮説・Next.js JSON 更新を含む）:
 

@@ -31,6 +31,9 @@ jobs:
       - name: Check (core CLI)
         run: pnpm check
 
+      - name: Generate IPO theme watch
+        run: pnpm theme:ipo
+
       - name: Generate web data
         run: pnpm ui:data
 
