@@ -233,7 +233,7 @@ export default function HomePage() {
         {(data.specialSituationWatch?.topChanceList ?? []).length > 0 && (
           <section style={{ marginBottom: 12 }}>
             <SectionLabel icon={<Icon name="spark" size={15} />}>
-              特殊状況・チャンス候補
+              特殊状況・調査優先候補
             </SectionLabel>
             <div
               style={{
@@ -248,7 +248,7 @@ export default function HomePage() {
             >
               ※買い推奨ではありません。調査候補です。証拠確認が必要です。
             </div>
-            {(data.specialSituationWatch?.topChanceList ?? []).map((item) => {
+            {(data.specialSituationWatch?.topChanceList ?? []).slice(0, 5).map((item) => {
               const chanceBg =
                 item.chanceLevel === 'high'
                   ? 'var(--rose-soft, #fff0f0)'
