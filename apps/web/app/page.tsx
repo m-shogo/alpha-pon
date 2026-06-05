@@ -229,6 +229,130 @@ export default function HomePage() {
           </Link>
         </div>
 
+        {/* 特殊状況・チャンス候補 */}
+        {(data.specialSituationWatch?.topChanceList ?? []).length > 0 && (
+          <section style={{ marginBottom: 12 }}>
+            <SectionLabel icon={<Icon name="spark" size={15} />}>
+              特殊状況・チャンス候補
+            </SectionLabel>
+            <div
+              style={{
+                padding: '8px 12px 6px',
+                background: 'var(--amber-soft)',
+                borderRadius: 10,
+                fontSize: 11.5,
+                fontWeight: 700,
+                color: 'var(--amber)',
+                marginBottom: 8,
+              }}
+            >
+              ※買い推奨ではありません。調査候補です。証拠確認が必要です。
+            </div>
+            {(data.specialSituationWatch?.topChanceList ?? []).map((item) => {
+              const chanceBg =
+                item.chanceLevel === 'high'
+                  ? 'var(--rose-soft, #fff0f0)'
+                  : item.chanceLevel === 'attention'
+                    ? 'var(--amber-soft)'
+                    : 'var(--surface-2)'
+              const chanceFg =
+                item.chanceLevel === 'high'
+                  ? 'var(--rose, #e53e3e)'
+                  : item.chanceLevel === 'attention'
+                    ? 'var(--amber)'
+                    : 'var(--ink-3)'
+              const conf = item.listingInfo?.confidence
+              return (
+                <div
+                  key={item.code}
+                  style={{
+                    padding: '12px 14px',
+                    marginBottom: 8,
+                    background: 'var(--surface)',
+                    border: '1px solid var(--card-line)',
+                    borderRadius: 14,
+                    boxShadow: 'var(--shadow)',
+                  }}
+                >
+                  {/* header */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 800,
+                        padding: '2px 7px',
+                        borderRadius: 6,
+                        background: chanceBg,
+                        color: chanceFg,
+                      }}
+                    >
+                      {item.finalLabel}
+                    </span>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>
+                      {item.code} {item.name}
+                    </span>
+                    {item.chanceLevel !== 'none' && (
+                      <span
+                        style={{
+                          marginLeft: 'auto',
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          color: chanceFg,
+                          background: chanceBg,
+                          padding: '1px 6px',
+                          borderRadius: 5,
+                        }}
+                      >
+                        {item.chanceLevel}
+                      </span>
+                    )}
+                  </div>
+                  {/* 理由 */}
+                  <p style={{ fontSize: 12, color: 'var(--ink-2)', margin: '0 0 6px', lineHeight: 1.55 }}>
+                    {item.reasonSummary}
+                  </p>
+                  {/* リスク */}
+                  {item.mainRisks.length > 0 && (
+                    <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginBottom: 5 }}>
+                      <span style={{ fontWeight: 700 }}>⚠ 注意: </span>
+                      {item.mainRisks.slice(0, 3).join(' / ')}
+                    </div>
+                  )}
+                  {/* 次に確認 */}
+                  {item.nextCheck.length > 0 && (
+                    <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginBottom: 5 }}>
+                      <span style={{ fontWeight: 700 }}>次に確認: </span>
+                      {item.nextCheck.slice(0, 4).join(' / ')}
+                    </div>
+                  )}
+                  {/* 日程情報 */}
+                  {item.listingInfo && (
+                    <div style={{ fontSize: 10.5, color: 'var(--ink-3)', marginTop: 5, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {item.listingInfo.listedAt && (
+                        <span>上場日: {item.listingInfo.listedAt}</span>
+                      )}
+                      {item.listingInfo.plannedListingAt && (
+                        <span>上場予定: {item.listingInfo.plannedListingAt}</span>
+                      )}
+                      {item.listingInfo.lockupExpiryAt && (
+                        <span>ロックアップ解除: {item.listingInfo.lockupExpiryAt}</span>
+                      )}
+                      {item.listingInfo.firstEarningsAt && (
+                        <span>初回決算: {item.listingInfo.firstEarningsAt}</span>
+                      )}
+                      {conf && conf !== 'official' && (
+                        <span style={{ color: 'var(--amber)', fontWeight: 700 }}>
+                          [{conf}]
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </section>
+        )}
+
         {/* Pro dashboard card */}
         <ProCommandCard data={data} />
 

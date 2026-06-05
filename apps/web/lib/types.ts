@@ -177,12 +177,110 @@ export type IpoThemeWatch = {
     themeId: string
     phase: string
     relatedCompanyCode: string
+    /** actionLabel (watch/log/ignore) */
+    finalLabel: string
+    /** result (hit/miss/too_early/etc) — sampleTooSmall=true の場合は強い判断に使わない */
+    originalFinalLabel: string
     sampleSize: number
     sampleTooSmall: boolean
     hitRate: number | null
     avgReturn1w: number | null
     avgReturn1m: number | null
     avgTopixRelative1m: number | null
+    phaseFromPriceSignal?: boolean
+  }>
+  worldEventHighlights?: Array<{
+    title: string
+    source: string
+    publishedAt: string
+    snippet: string
+    relatedThemeIds: string[]
+  }>
+}
+
+type SpecialSituationListingInfo = {
+  listedAt?: string | null
+  plannedListingAt?: string | null
+  ipoPrice?: number | null
+  firstPrice?: number | null
+  lockupExpiryAt?: string | null
+  firstEarningsAt?: string | null
+  source?: string | null
+  sourceCheckedAt?: string | null
+  confidence: 'official' | 'reported' | 'rumor' | 'unknown'
+}
+
+export type SpecialSituationWatch = {
+  generatedAt: string | null
+  defaultAction?: string
+  neverTreatAs?: string[]
+  safetyRules?: string[]
+  patterns?: Array<{
+    id: string
+    label: string
+    description: string
+    whyInteresting: string[]
+    whyDangerous: string[]
+    evidenceNeeded: string[]
+  }>
+  candidates?: Array<{
+    code: string
+    name: string
+    patterns: string[]
+    watchPhase: string
+    finalLabel: string
+    chanceLevel: 'none' | 'watch' | 'attention' | 'high'
+    notificationEligible: boolean
+    reasonSummary: string
+    whyInteresting: string[]
+    whyDangerous: string[]
+    evidenceNeeded: string[]
+    waitFor: string[]
+    parentOrSponsor: string | null
+    sellerPressure: string
+    lockupRisk: string
+    debtRisk: string
+    capexRisk: string
+    cycleRisk: string
+    dilutionRisk: string
+    listingInfo?: SpecialSituationListingInfo
+    smallTicket?: {
+      price: number | null
+      minimumAmount: number | null
+      isSmallTicket: boolean
+      caution: string[]
+    }
+    outcomeStats?: {
+      sampleSize: number
+      sampleTooSmall: boolean
+      hitRate: number | null
+      avgReturn1w: number | null
+      avgReturn1m: number | null
+      avgTopixRelative1m: number | null
+    }
+  }>
+  topChanceList?: Array<{
+    code: string
+    name: string
+    finalLabel: string
+    chanceLevel: string
+    reasonSummary: string
+    topReasons: string[]
+    mainRisks: string[]
+    nextCheck: string[]
+    listingInfo?: Omit<SpecialSituationListingInfo, 'ipoPrice' | 'firstPrice' | 'source' | 'sourceCheckedAt'>
+  }>
+  referenceEvents?: Array<{
+    eventName: string
+    companyName: string
+    eventType: string
+    plannedDate: string | null
+    actualDate: string | null
+    confidence: 'official' | 'reported' | 'rumor' | 'unknown'
+    source: string | null
+    sourceCheckedAt: string | null
+    relatedThemes: string[]
+    relatedJapaneseCompanies: string[]
   }>
 }
 
@@ -223,6 +321,7 @@ export type AlphaPonGeneratedData = {
   runCursors?: Record<string, RunCursorState>
   readiness?: ReadinessReport | null
   ipoThemeWatch?: IpoThemeWatch | null
+  specialSituationWatch?: SpecialSituationWatch | null
   pipelineStatus?: {
     date?: string
     status?: string

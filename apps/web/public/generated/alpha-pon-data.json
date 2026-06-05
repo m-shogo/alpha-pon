@@ -80,7 +80,7 @@
         "- GPU/ASIC/HBM/NAND/SSD需要への接続",
         "- 赤字幅・粗利率・顧客集中"
       ],
-      "fullContent": "# alpha-pon IPO theme watch report\n\ndate: 2026-06-05\n\n> 大型IPO/AI/宇宙テーマを、監視・証拠確認・待つ理由として扱います。売買推奨ではありません。\n\n## default action\n\n- 監視・証拠確認・待つ理由の記録\n\n## never treat as\n\n- 売買推奨\n- 上場直後の即断\n- テーマ名だけの評価\n- SNSや報道見出しだけの判断\n\n## global reference events\n\n- SpaceX / Starlink 上場観測\n- OpenAI 上場準備観測\n- Anthropic 上場観測\n- AIデータセンター投資\n- NAND / SSD / eSSD需要\n- GPU / HBM偏重によるNAND波及不足\n\n## safety rules\n\n- 報道だけでは調査候補を上げない\n- 上場週は原則観察のみ\n- 初回決算前は数字未確認として扱う\n- ロックアップ解除前後は需給確認を優先する\n- 関連日本株は本命/周辺/織り込み済みに分ける\n- 調査候補は買い指示ではない\n\n## phases\n\n### 上場前報道 (pre_ipo)\n- defaultAction: 一次情報待ち\n- evidence:\n  - S-1 / 届出書 / 公式発表の有無\n  - 報道元と会社公式情報の差\n  - 既存上場関連銘柄への過熱波及\n- wait reasons:\n  - 未上場企業の条件が未確定\n  - 関連株は期待先行になりやすい\n\n### 上場週 (ipo_week)\n- defaultAction: 初値・出来高・ロックアップ条件の観察\n- evidence:\n  - 公開価格と初値の乖離\n  - 出来高急増と短期資金集中\n  - ベンチマーク比の過熱\n- wait reasons:\n  - 価格発見が終わっていない\n  - 短期資金で振れやすい\n\n### 上場後初回決算 (first_earnings)\n- defaultAction: 売上化と利益率を確認\n- evidence:\n  - 売上成長と営業利益率\n  - 顧客集中・設備投資・在庫\n  - 会社予想と市場期待の差\n- wait reasons:\n  - 物語と実績の差が出やすい\n\n### ロックアップ解除 (lockup_expiry)\n- defaultAction: 需給イベントとして監視\n- evidence:\n  - 解除日\n  - 既存株主の保有比率\n  - 売り圧力と出来高\n- wait reasons:\n  - 事業価値と需給イベントを混同しやすい\n\n### 過熱後の調整 (post_hype_drawdown)\n- defaultAction: 押し目か仮説崩れかを分ける\n- evidence:\n  - 20日/60日騰落率\n  - TOPIX比\n  - 出来高沈静化\n  - 材料出尽くしの有無\n- wait reasons:\n  - 下落が押し目ではなく仮説崩れの可能性\n\n### 実需確認 (fundamental_confirmation)\n- defaultAction: 収益・受注・市況への接続を確認\n- evidence:\n  - 受注残\n  - 粗利率\n  - 設備投資計画\n  - 顧客CAPEX\n  - 市況価格\n- wait reasons:\n  - テーマだけで売上・利益に接続していない可能性\n\n## rules\n\n### AI大型上場監視 (ai_frontier_ipo)\n- defaultAction: 公式届出・資金吸収・関連株過熱を監視\n- watch names: OpenAI / Anthropic\n- evidence needed:\n  - S-1 / 公式IR / 主要投資家情報\n  - AIインフラ設備投資\n  - GPU/ASIC/HBM/NAND/SSD需要への接続\n  - 赤字幅・粗利率・顧客集中\n  - S-1 / 届出書 / 公式発表の有無\n  - 報道元と会社公式情報の差\n  - 既存上場関連銘柄への過熱波及\n  - 公開価格と初値の乖離\n  - 出来高急増と短期資金集中\n  - ベンチマーク比の過熱\n  - 売上成長と営業利益率\n  - 顧客集中・設備投資・在庫\n- spillover themes:\n  - memory_storage\n  - semiconductor_equipment\n  - power_grid\n  - optical_network\n  - datacenter\n- related companies:\n  - 285A キオクシアホールディングス: NAND / SSD / eSSD / AI推論ストレージ\n  - 8035 東京エレクトロン: 半導体製造装置\n  - 6857 アドバンテスト: 半導体検査\n  - 5803 フジクラ: 光通信・データセンター配線\n  - 5802 住友電気工業: 光通信・電線・電力網\n  - 6501 日立製作所: AIインフラ・社会インフラ周辺\n\n### 宇宙・衛星通信上場監視 (space_connectivity_ipo)\n- defaultAction: 上場条件・衛星通信契約・防衛/通信波及を監視\n- watch names: SpaceX / Starlink\n- evidence needed:\n  - 公式上場手続き\n  - 打上げ/衛星数/通信契約\n  - 防衛・災害通信・海上/航空通信の契約\n  - 競合衛星通信と規制\n  - S-1 / 届出書 / 公式発表の有無\n  - 報道元と会社公式情報の差\n  - 既存上場関連銘柄への過熱波及\n  - 公開価格と初値の乖離\n  - 出来高急増と短期資金集中\n  - ベンチマーク比の過熱\n  - 売上成長と営業利益率\n  - 顧客集中・設備投資・在庫\n- spillover themes:\n  - space_defense\n  - satellite_connectivity\n  - disaster_resilience\n  - communication_infrastructure\n- related companies:\n  - 7011 三菱重工業: 宇宙・防衛・打上げ関連\n  - 9348 ispace: 宇宙テーマ上場企業\n  - 5803 フジクラ: 通信インフラ\n  - 5802 住友電気工業: 通信・電力インフラ\n\n### AIストレージ・メモリ市況 (memory_storage_cycle)\n- defaultAction: 市況・受注・価格転嫁を確認\n- watch names: NAND / SSD / eSSD / AI inference storage\n- evidence needed:\n  - NAND価格\n  - eSSD需要\n  - AI推論向けストレージ投資\n  - 在庫水準\n  - 設備投資負担\n  - S-1 / 届出書 / 公式発表の有無\n  - 報道元と会社公式情報の差\n  - 既存上場関連銘柄への過熱波及\n  - 公開価格と初値の乖離\n  - 出来高急増と短期資金集中\n  - ベンチマーク比の過熱\n  - 売上成長と営業利益率\n- spillover themes:\n  - memory_storage\n  - semiconductor_materials\n  - datacenter\n- related companies:\n  - 285A キオクシアホールディングス: NAND / SSD / eSSD\n  - 8035 東京エレクトロン: 半導体製造装置\n  - 6857 アドバンテスト: 検査装置\n\n## outcome stats\n\n| themeId | phase | code | sample | hitRate | avgReturn1w | avgReturn1m | avgTopixRelative1m |\n|---|---|---:|---:|---:|---:|---:|---:|\n| ai_frontier_ipo | pre_ipo | 285A | 0 small | N/A | N/A | N/A | N/A |\n| ai_frontier_ipo | first_earnings | 8035 | 2 small | N/A | N/A | N/A | N/A |\n| ai_frontier_ipo | first_earnings | 6857 | 1 small | N/A | N/A | N/A | N/A |\n| ai_frontier_ipo | first_earnings | 5803 | 1 small | N/A | N/A | N/A | N/A |\n| ai_frontier_ipo | pre_ipo | 5802 | 0 small | N/A | N/A | N/A | N/A |\n| ai_frontier_ipo | first_earnings | 6501 | 1 small | N/A | N/A | N/A | N/A |\n| space_connectivity_ipo | first_earnings | 7011 | 2 small | N/A | N/A | N/A | N/A |\n| space_connectivity_ipo | pre_ipo | 9348 | 0 small | N/A | N/A | N/A | N/A |\n| space_connectivity_ipo | first_earnings | 5803 | 1 small | N/A | N/A | N/A | N/A |\n| space_connectivity_ipo | pre_ipo | 5802 | 0 small | N/A | N/A | N/A | N/A |\n| memory_storage_cycle | pre_ipo | 285A | 0 small | N/A | N/A | N/A | N/A |\n| memory_storage_cycle | first_earnings | 8035 | 2 small | N/A | N/A | N/A | N/A |\n| memory_storage_cycle | first_earnings | 6857 | 1 small | N/A | N/A | N/A | N/A |\n\n## rule\n- テーマ名だけで判断しない\n- 公式情報・決算・価格シグナル・出来高を確認する\n- sampleTooSmall の統計は方向感として扱わない\n- 関連銘柄は本命/周辺/恩恵なしを分ける\n\n*alpha-pon IPO theme watch | 2026-06-05 | ※売買推奨ではありません*"
+      "fullContent": "# alpha-pon IPO theme watch report\n\ndate: 2026-06-05\n\n> 大型IPO/AI/宇宙テーマを、監視・証拠確認・待つ理由として扱います。売買推奨ではありません。\n\n## default action\n\n- 監視・証拠確認・待つ理由の記録\n\n## never treat as\n\n- 売買推奨\n- 上場直後の即断\n- テーマ名だけの評価\n- SNSや報道見出しだけの判断\n\n## global reference events\n\n- SpaceX / Starlink 上場観測\n- OpenAI 上場準備観測\n- Anthropic 上場観測\n- AIデータセンター投資\n- NAND / SSD / eSSD需要\n- GPU / HBM偏重によるNAND波及不足\n\n## safety rules\n\n- 報道だけでは調査候補を上げない\n- 上場週は原則観察のみ\n- 初回決算前は数字未確認として扱う\n- ロックアップ解除前後は需給確認を優先する\n- 関連日本株は本命/周辺/織り込み済みに分ける\n- 調査候補は買い指示ではない\n\n## phases\n\n### 上場前報道 (pre_ipo)\n- defaultAction: 一次情報待ち\n- evidence:\n  - S-1 / 届出書 / 公式発表の有無\n  - 報道元と会社公式情報の差\n  - 既存上場関連銘柄への過熱波及\n- wait reasons:\n  - 未上場企業の条件が未確定\n  - 関連株は期待先行になりやすい\n\n### 上場週 (ipo_week)\n- defaultAction: 初値・出来高・ロックアップ条件の観察\n- evidence:\n  - 公開価格と初値の乖離\n  - 出来高急増と短期資金集中\n  - ベンチマーク比の過熱\n- wait reasons:\n  - 価格発見が終わっていない\n  - 短期資金で振れやすい\n\n### 上場後初回決算 (first_earnings)\n- defaultAction: 売上化と利益率を確認\n- evidence:\n  - 売上成長と営業利益率\n  - 顧客集中・設備投資・在庫\n  - 会社予想と市場期待の差\n- wait reasons:\n  - 物語と実績の差が出やすい\n\n### ロックアップ解除 (lockup_expiry)\n- defaultAction: 需給イベントとして監視\n- evidence:\n  - 解除日\n  - 既存株主の保有比率\n  - 売り圧力と出来高\n- wait reasons:\n  - 事業価値と需給イベントを混同しやすい\n\n### 過熱後の調整 (post_hype_drawdown)\n- defaultAction: 押し目か仮説崩れかを分ける\n- evidence:\n  - 20日/60日騰落率\n  - TOPIX比\n  - 出来高沈静化\n  - 材料出尽くしの有無\n- wait reasons:\n  - 下落が押し目ではなく仮説崩れの可能性\n\n### 実需確認 (fundamental_confirmation)\n- defaultAction: 収益・受注・市況への接続を確認\n- evidence:\n  - 受注残\n  - 粗利率\n  - 設備投資計画\n  - 顧客CAPEX\n  - 市況価格\n- wait reasons:\n  - テーマだけで売上・利益に接続していない可能性\n\n## rules\n\n### AI大型上場監視 (ai_frontier_ipo)\n- defaultAction: 公式届出・資金吸収・関連株過熱を監視\n- watch names: OpenAI / Anthropic\n- evidence needed:\n  - S-1 / 公式IR / 主要投資家情報\n  - AIインフラ設備投資\n  - GPU/ASIC/HBM/NAND/SSD需要への接続\n  - 赤字幅・粗利率・顧客集中\n  - S-1 / 届出書 / 公式発表の有無\n  - 報道元と会社公式情報の差\n  - 既存上場関連銘柄への過熱波及\n  - 公開価格と初値の乖離\n  - 出来高急増と短期資金集中\n  - ベンチマーク比の過熱\n  - 売上成長と営業利益率\n  - 顧客集中・設備投資・在庫\n- spillover themes:\n  - memory_storage\n  - semiconductor_equipment\n  - power_grid\n  - optical_network\n  - datacenter\n- related companies:\n  - 285A キオクシアホールディングス: NAND / SSD / eSSD / AI推論ストレージ\n  - 8035 東京エレクトロン: 半導体製造装置\n  - 6857 アドバンテスト: 半導体検査\n  - 5803 フジクラ: 光通信・データセンター配線\n  - 5802 住友電気工業: 光通信・電線・電力網\n  - 6501 日立製作所: AIインフラ・社会インフラ周辺\n\n### 宇宙・衛星通信上場監視 (space_connectivity_ipo)\n- defaultAction: 上場条件・衛星通信契約・防衛/通信波及を監視\n- watch names: SpaceX / Starlink\n- evidence needed:\n  - 公式上場手続き\n  - 打上げ/衛星数/通信契約\n  - 防衛・災害通信・海上/航空通信の契約\n  - 競合衛星通信と規制\n  - S-1 / 届出書 / 公式発表の有無\n  - 報道元と会社公式情報の差\n  - 既存上場関連銘柄への過熱波及\n  - 公開価格と初値の乖離\n  - 出来高急増と短期資金集中\n  - ベンチマーク比の過熱\n  - 売上成長と営業利益率\n  - 顧客集中・設備投資・在庫\n- spillover themes:\n  - space_defense\n  - satellite_connectivity\n  - disaster_resilience\n  - communication_infrastructure\n- related companies:\n  - 7011 三菱重工業: 宇宙・防衛・打上げ関連\n  - 9348 ispace: 宇宙テーマ上場企業\n  - 5803 フジクラ: 通信インフラ\n  - 5802 住友電気工業: 通信・電力インフラ\n\n### AIストレージ・メモリ市況 (memory_storage_cycle)\n- defaultAction: 市況・受注・価格転嫁を確認\n- watch names: NAND / SSD / eSSD / AI inference storage\n- evidence needed:\n  - NAND価格\n  - eSSD需要\n  - AI推論向けストレージ投資\n  - 在庫水準\n  - 設備投資負担\n  - S-1 / 届出書 / 公式発表の有無\n  - 報道元と会社公式情報の差\n  - 既存上場関連銘柄への過熱波及\n  - 公開価格と初値の乖離\n  - 出来高急増と短期資金集中\n  - ベンチマーク比の過熱\n  - 売上成長と営業利益率\n- spillover themes:\n  - memory_storage\n  - semiconductor_materials\n  - datacenter\n- related companies:\n  - 285A キオクシアホールディングス: NAND / SSD / eSSD\n  - 8035 東京エレクトロン: 半導体製造装置\n  - 6857 アドバンテスト: 検査装置\n\n## world event highlights (scan:world より)\n\n> ※ 個別イベントは売買の根拠ではなく、テーマ監視の参照情報として扱う\n\n### [2026-06-04] SpaceX launch LIVE: Falcon 9 rocket launches Starlink satellites - Daily Gate City\n- source: Daily Gate City\n- themes: space_connectivity_ipo\n- snippet: SpaceX launch LIVE: Falcon 9 rocket launches Starlink satellites Daily Gate City\n\n### [2026-06-04] SpaceX launches more Starlink satellites from Florida coast - FOX 35 Orlando\n- source: FOX 35 Orlando\n- themes: space_connectivity_ipo\n- snippet: SpaceX launches more Starlink satellites from Florida coast FOX 35 Orlando\n\n### [2026-06-04] $960 Billion: Anthropic Beats OpenAI to the IPO Filing in a Race That Could Reshape AI Investing - 24/7 Wall St.\n- source: 24/7 Wall St.\n- themes: ai_frontier_ipo\n- snippet: $960 Billion: Anthropic Beats OpenAI to the IPO Filing in a Race That Could Reshape AI Investing 24/7 Wall St.\n\n### [2026-06-04] Elon Musk’s New Role: Why SpaceX Just Became a ‘Neo Cloud’ for Anthropic - 24/7 Wall St.\n- source: 24/7 Wall St.\n- themes: ai_frontier_ipo, space_connectivity_ipo\n- snippet: Elon Musk’s New Role: Why SpaceX Just Became a ‘Neo Cloud’ for Anthropic 24/7 Wall St.\n\n### [2026-06-04] SpaceX launches back-to-back Starlink missions from both coasts 19 hours apart (photos) - Space\n- source: Space\n- themes: space_connectivity_ipo\n- snippet: SpaceX launches back-to-back Starlink missions from both coasts 19 hours apart (photos) Space\n\n### [2026-06-04] SpaceX launches another Starlink mission from Cape Canaveral - WFTV\n- source: WFTV\n- themes: space_connectivity_ipo\n- snippet: SpaceX launches another Starlink mission from Cape Canaveral WFTV\n\n### [2026-06-04] SpaceX launches Starlink 10-43 mission from Cape Canaveral, Florida - Florida Today\n- source: Florida Today\n- themes: space_connectivity_ipo\n- snippet: SpaceX launches Starlink 10-43 mission from Cape Canaveral, Florida Florida Today\n\n### [2026-06-04] Goldman Sachs Predicts SpaceX Revenue Will Surge 100X By 2030 - 24/7 Wall St.\n- source: 24/7 Wall St.\n- themes: space_connectivity_ipo\n- snippet: Goldman Sachs Predicts SpaceX Revenue Will Surge 100X By 2030 24/7 Wall St.\n\n### [2026-06-03] IPO AI Market: Anthropic, OpenAI, SpaceX/xAI [Analysis] [2026] - Klover.ai\n- source: Klover.ai\n- themes: ai_frontier_ipo, space_connectivity_ipo\n- snippet: IPO AI Market: Anthropic, OpenAI, SpaceX/xAI [Analysis] [2026] Klover.ai\n\n### [2026-06-03] WATCH AGAIN: SpaceX’s sunrise Starlink mission launches from Florida - WKMG\n- source: WKMG\n- themes: space_connectivity_ipo\n- snippet: WATCH AGAIN: SpaceX’s sunrise Starlink mission launches from Florida WKMG\n\n### [2026-06-03] Musk’s SpaceX seeks $105b in record IPO plan - AFR\n- source: AFR\n- themes: space_connectivity_ipo\n- snippet: Musk’s SpaceX seeks $105b in record IPO plan AFR\n\n### [2026-06-03] SpaceX's Starlink launch scrubbed; next attempt on Thursday - Spectrum News 13\n- source: Spectrum News 13\n- themes: space_connectivity_ipo\n- snippet: SpaceX's Starlink launch scrubbed; next attempt on Thursday Spectrum News 13\n\n### [2026-06-03] SpaceX rocket launch from Florida scrubbed. When is liftoff? - Daytona Beach News-Journal\n- source: Daytona Beach News-Journal\n- themes: space_connectivity_ipo\n- snippet: SpaceX rocket launch from Florida scrubbed. When is liftoff? Daytona Beach News-Journal\n\n### [2026-06-03] SpaceX launches sunrise Starlink mission following weather scrub - Spaceflight Now\n- source: Spaceflight Now\n- themes: space_connectivity_ipo\n- snippet: SpaceX launches sunrise Starlink mission following weather scrub Spaceflight Now\n\n### [2026-06-02] AnthropicがIPO申請、SpaceX・OpenAIも上場準備と報道\n- source: FNN\n- themes: ai_frontier_ipo, space_connectivity_ipo\n- snippet: Anthropicのconfidential S-1提出、SpaceXの上場予定、OpenAIの上場準備報道を、AI IPOレースとAIインフラ需要の監視材料として扱う。\n\n### [2026-06-02] GNS Stock Gains On First Investments Into SpaceX, OpenAI, Anthropic For $100M AI Treasury - Stocktwits\n- source: Stocktwits\n- themes: ai_frontier_ipo, space_connectivity_ipo\n- snippet: GNS Stock Gains On First Investments Into SpaceX, OpenAI, Anthropic For $100M AI Treasury Stocktwits\n\n### [2026-06-02] As Anthropic, SpaceX, OpenAI IPO hype builds, markets face liquidity questions - Invezz\n- source: Invezz\n- themes: ai_frontier_ipo, space_connectivity_ipo\n- snippet: As Anthropic, SpaceX, OpenAI IPO hype builds, markets face liquidity questions Invezz\n\n### [2026-06-02] Anthropic pulls ahead of OpenAI in high-stakes race for IPO riches - The Edge Malaysia\n- source: The Edge Malaysia\n- themes: ai_frontier_ipo\n- snippet: Anthropic pulls ahead of OpenAI in high-stakes race for IPO riches The Edge Malaysia\n\n### [2026-06-02] IPO AI Market: Anthropic vs. OpenAI [Analysis] [2026] - Klover.ai\n- source: Klover.ai\n- themes: ai_frontier_ipo\n- snippet: IPO AI Market: Anthropic vs. OpenAI [Analysis] [2026] Klover.ai\n\n### [2026-06-02] SpaceX early morning rocket launch from Florida. When is liftoff? - Florida Today\n- source: Florida Today\n- themes: space_connectivity_ipo\n- snippet: SpaceX early morning rocket launch from Florida. When is liftoff? Florida Today\n\n## outcome stats\n\n> sampleTooSmall=true の行は参考値です。強い判断の根拠にしないでください。\n\n| themeId | phase | code | finalLabel | origLabel | sample | hitRate | avgReturn1w | avgReturn1m | avgTopixRel1m | notes |\n|---|---|---:|---|---|---:|---:|---:|---:|---:|---|\n| ai_frontier_ipo | pre_ipo | 285A | unknown | unknown | 0 ⚠小 | N/A | N/A | N/A | N/A | [参考値・強い判断に使わない] |\n| ai_frontier_ipo | first_earnings | 8035 | watch | unknown | 2 ⚠小 | N/A | N/A | N/A | N/A | [参考値・強い判断に使わない] |\n| ai_frontier_ipo | first_earnings | 6857 | watch | unknown | 1 ⚠小 | N/A | N/A | N/A | N/A | [参考値・強い判断に使わない] |\n| ai_frontier_ipo | first_earnings | 5803 | log | unknown | 1 ⚠小 | N/A | N/A | N/A | N/A | [参考値・強い判断に使わない] |\n| ai_frontier_ipo | pre_ipo | 5802 | unknown | unknown | 0 ⚠小 | N/A | N/A | N/A | N/A | [参考値・強い判断に使わない] |\n| ai_frontier_ipo | first_earnings | 6501 | log | unknown | 1 ⚠小 | N/A | N/A | N/A | N/A | [参考値・強い判断に使わない] |\n| space_connectivity_ipo | first_earnings | 7011 | log | unknown | 2 ⚠小 | N/A | N/A | N/A | N/A | [参考値・強い判断に使わない] |\n| space_connectivity_ipo | pre_ipo | 9348 | unknown | unknown | 0 ⚠小 | N/A | N/A | N/A | N/A | [参考値・強い判断に使わない] |\n| space_connectivity_ipo | first_earnings | 5803 | log | unknown | 1 ⚠小 | N/A | N/A | N/A | N/A | [参考値・強い判断に使わない] |\n| space_connectivity_ipo | pre_ipo | 5802 | unknown | unknown | 0 ⚠小 | N/A | N/A | N/A | N/A | [参考値・強い判断に使わない] |\n| memory_storage_cycle | pre_ipo | 285A | unknown | unknown | 0 ⚠小 | N/A | N/A | N/A | N/A | [参考値・強い判断に使わない] |\n| memory_storage_cycle | first_earnings | 8035 | watch | unknown | 2 ⚠小 | N/A | N/A | N/A | N/A | [参考値・強い判断に使わない] |\n| memory_storage_cycle | first_earnings | 6857 | watch | unknown | 1 ⚠小 | N/A | N/A | N/A | N/A | [参考値・強い判断に使わない] |\n\n## rule\n- テーマ名だけで判断しない\n- 公式情報・決算・価格シグナル・出来高を確認する\n- sampleTooSmall の統計は方向感として扱わない・強い判断の根拠にしない\n- 関連銘柄は本命/周辺/恩恵なしを分ける\n- 調査候補は売買推奨ではない\n\n*alpha-pon IPO theme watch | 2026-06-05 | ※売買推奨ではありません*"
     },
     {
       "key": "roadmap",
@@ -4813,144 +4813,1424 @@
         "themeId": "ai_frontier_ipo",
         "phase": "pre_ipo",
         "relatedCompanyCode": "285A",
+        "finalLabel": "unknown",
+        "originalFinalLabel": "unknown",
         "sampleSize": 0,
         "sampleTooSmall": true,
         "hitRate": null,
         "avgReturn1w": null,
         "avgReturn1m": null,
-        "avgTopixRelative1m": null
+        "avgTopixRelative1m": null,
+        "phaseFromPriceSignal": false
       },
       {
         "themeId": "ai_frontier_ipo",
         "phase": "first_earnings",
         "relatedCompanyCode": "8035",
+        "finalLabel": "watch",
+        "originalFinalLabel": "unknown",
         "sampleSize": 2,
         "sampleTooSmall": true,
         "hitRate": null,
         "avgReturn1w": null,
         "avgReturn1m": null,
-        "avgTopixRelative1m": null
+        "avgTopixRelative1m": null,
+        "phaseFromPriceSignal": false
       },
       {
         "themeId": "ai_frontier_ipo",
         "phase": "first_earnings",
         "relatedCompanyCode": "6857",
+        "finalLabel": "watch",
+        "originalFinalLabel": "unknown",
         "sampleSize": 1,
         "sampleTooSmall": true,
         "hitRate": null,
         "avgReturn1w": null,
         "avgReturn1m": null,
-        "avgTopixRelative1m": null
+        "avgTopixRelative1m": null,
+        "phaseFromPriceSignal": false
       },
       {
         "themeId": "ai_frontier_ipo",
         "phase": "first_earnings",
         "relatedCompanyCode": "5803",
+        "finalLabel": "log",
+        "originalFinalLabel": "unknown",
         "sampleSize": 1,
         "sampleTooSmall": true,
         "hitRate": null,
         "avgReturn1w": null,
         "avgReturn1m": null,
-        "avgTopixRelative1m": null
+        "avgTopixRelative1m": null,
+        "phaseFromPriceSignal": false
       },
       {
         "themeId": "ai_frontier_ipo",
         "phase": "pre_ipo",
         "relatedCompanyCode": "5802",
+        "finalLabel": "unknown",
+        "originalFinalLabel": "unknown",
         "sampleSize": 0,
         "sampleTooSmall": true,
         "hitRate": null,
         "avgReturn1w": null,
         "avgReturn1m": null,
-        "avgTopixRelative1m": null
+        "avgTopixRelative1m": null,
+        "phaseFromPriceSignal": false
       },
       {
         "themeId": "ai_frontier_ipo",
         "phase": "first_earnings",
         "relatedCompanyCode": "6501",
+        "finalLabel": "log",
+        "originalFinalLabel": "unknown",
         "sampleSize": 1,
         "sampleTooSmall": true,
         "hitRate": null,
         "avgReturn1w": null,
         "avgReturn1m": null,
-        "avgTopixRelative1m": null
+        "avgTopixRelative1m": null,
+        "phaseFromPriceSignal": false
       },
       {
         "themeId": "space_connectivity_ipo",
         "phase": "first_earnings",
         "relatedCompanyCode": "7011",
+        "finalLabel": "log",
+        "originalFinalLabel": "unknown",
         "sampleSize": 2,
         "sampleTooSmall": true,
         "hitRate": null,
         "avgReturn1w": null,
         "avgReturn1m": null,
-        "avgTopixRelative1m": null
+        "avgTopixRelative1m": null,
+        "phaseFromPriceSignal": false
       },
       {
         "themeId": "space_connectivity_ipo",
         "phase": "pre_ipo",
         "relatedCompanyCode": "9348",
+        "finalLabel": "unknown",
+        "originalFinalLabel": "unknown",
         "sampleSize": 0,
         "sampleTooSmall": true,
         "hitRate": null,
         "avgReturn1w": null,
         "avgReturn1m": null,
-        "avgTopixRelative1m": null
+        "avgTopixRelative1m": null,
+        "phaseFromPriceSignal": false
       },
       {
         "themeId": "space_connectivity_ipo",
         "phase": "first_earnings",
         "relatedCompanyCode": "5803",
+        "finalLabel": "log",
+        "originalFinalLabel": "unknown",
         "sampleSize": 1,
         "sampleTooSmall": true,
         "hitRate": null,
         "avgReturn1w": null,
         "avgReturn1m": null,
-        "avgTopixRelative1m": null
+        "avgTopixRelative1m": null,
+        "phaseFromPriceSignal": false
       },
       {
         "themeId": "space_connectivity_ipo",
         "phase": "pre_ipo",
         "relatedCompanyCode": "5802",
+        "finalLabel": "unknown",
+        "originalFinalLabel": "unknown",
         "sampleSize": 0,
         "sampleTooSmall": true,
         "hitRate": null,
         "avgReturn1w": null,
         "avgReturn1m": null,
-        "avgTopixRelative1m": null
+        "avgTopixRelative1m": null,
+        "phaseFromPriceSignal": false
       },
       {
         "themeId": "memory_storage_cycle",
         "phase": "pre_ipo",
         "relatedCompanyCode": "285A",
+        "finalLabel": "unknown",
+        "originalFinalLabel": "unknown",
         "sampleSize": 0,
         "sampleTooSmall": true,
         "hitRate": null,
         "avgReturn1w": null,
         "avgReturn1m": null,
-        "avgTopixRelative1m": null
+        "avgTopixRelative1m": null,
+        "phaseFromPriceSignal": false
       },
       {
         "themeId": "memory_storage_cycle",
         "phase": "first_earnings",
         "relatedCompanyCode": "8035",
+        "finalLabel": "watch",
+        "originalFinalLabel": "unknown",
         "sampleSize": 2,
         "sampleTooSmall": true,
         "hitRate": null,
         "avgReturn1w": null,
         "avgReturn1m": null,
-        "avgTopixRelative1m": null
+        "avgTopixRelative1m": null,
+        "phaseFromPriceSignal": false
       },
       {
         "themeId": "memory_storage_cycle",
         "phase": "first_earnings",
         "relatedCompanyCode": "6857",
+        "finalLabel": "watch",
+        "originalFinalLabel": "unknown",
         "sampleSize": 1,
         "sampleTooSmall": true,
         "hitRate": null,
         "avgReturn1w": null,
         "avgReturn1m": null,
-        "avgTopixRelative1m": null
+        "avgTopixRelative1m": null,
+        "phaseFromPriceSignal": false
+      }
+    ],
+    "worldEventHighlights": [
+      {
+        "title": "SpaceX launch LIVE: Falcon 9 rocket launches Starlink satellites - Daily Gate City",
+        "source": "Daily Gate City",
+        "publishedAt": "2026-06-04",
+        "snippet": "SpaceX launch LIVE: Falcon 9 rocket launches Starlink satellites Daily Gate City",
+        "relatedThemeIds": [
+          "space_connectivity_ipo"
+        ]
+      },
+      {
+        "title": "SpaceX launches more Starlink satellites from Florida coast - FOX 35 Orlando",
+        "source": "FOX 35 Orlando",
+        "publishedAt": "2026-06-04",
+        "snippet": "SpaceX launches more Starlink satellites from Florida coast FOX 35 Orlando",
+        "relatedThemeIds": [
+          "space_connectivity_ipo"
+        ]
+      },
+      {
+        "title": "$960 Billion: Anthropic Beats OpenAI to the IPO Filing in a Race That Could Reshape AI Investing - 24/7 Wall St.",
+        "source": "24/7 Wall St.",
+        "publishedAt": "2026-06-04",
+        "snippet": "$960 Billion: Anthropic Beats OpenAI to the IPO Filing in a Race That Could Reshape AI Investing 24/7 Wall St.",
+        "relatedThemeIds": [
+          "ai_frontier_ipo"
+        ]
+      },
+      {
+        "title": "Elon Musk’s New Role: Why SpaceX Just Became a ‘Neo Cloud’ for Anthropic - 24/7 Wall St.",
+        "source": "24/7 Wall St.",
+        "publishedAt": "2026-06-04",
+        "snippet": "Elon Musk’s New Role: Why SpaceX Just Became a ‘Neo Cloud’ for Anthropic 24/7 Wall St.",
+        "relatedThemeIds": [
+          "ai_frontier_ipo",
+          "space_connectivity_ipo"
+        ]
+      },
+      {
+        "title": "SpaceX launches back-to-back Starlink missions from both coasts 19 hours apart (photos) - Space",
+        "source": "Space",
+        "publishedAt": "2026-06-04",
+        "snippet": "SpaceX launches back-to-back Starlink missions from both coasts 19 hours apart (photos) Space",
+        "relatedThemeIds": [
+          "space_connectivity_ipo"
+        ]
+      },
+      {
+        "title": "SpaceX launches another Starlink mission from Cape Canaveral - WFTV",
+        "source": "WFTV",
+        "publishedAt": "2026-06-04",
+        "snippet": "SpaceX launches another Starlink mission from Cape Canaveral WFTV",
+        "relatedThemeIds": [
+          "space_connectivity_ipo"
+        ]
+      },
+      {
+        "title": "SpaceX launches Starlink 10-43 mission from Cape Canaveral, Florida - Florida Today",
+        "source": "Florida Today",
+        "publishedAt": "2026-06-04",
+        "snippet": "SpaceX launches Starlink 10-43 mission from Cape Canaveral, Florida Florida Today",
+        "relatedThemeIds": [
+          "space_connectivity_ipo"
+        ]
+      },
+      {
+        "title": "Goldman Sachs Predicts SpaceX Revenue Will Surge 100X By 2030 - 24/7 Wall St.",
+        "source": "24/7 Wall St.",
+        "publishedAt": "2026-06-04",
+        "snippet": "Goldman Sachs Predicts SpaceX Revenue Will Surge 100X By 2030 24/7 Wall St.",
+        "relatedThemeIds": [
+          "space_connectivity_ipo"
+        ]
+      },
+      {
+        "title": "IPO AI Market: Anthropic, OpenAI, SpaceX/xAI [Analysis] [2026] - Klover.ai",
+        "source": "Klover.ai",
+        "publishedAt": "2026-06-03",
+        "snippet": "IPO AI Market: Anthropic, OpenAI, SpaceX/xAI [Analysis] [2026] Klover.ai",
+        "relatedThemeIds": [
+          "ai_frontier_ipo",
+          "space_connectivity_ipo"
+        ]
+      },
+      {
+        "title": "WATCH AGAIN: SpaceX’s sunrise Starlink mission launches from Florida - WKMG",
+        "source": "WKMG",
+        "publishedAt": "2026-06-03",
+        "snippet": "WATCH AGAIN: SpaceX’s sunrise Starlink mission launches from Florida WKMG",
+        "relatedThemeIds": [
+          "space_connectivity_ipo"
+        ]
+      },
+      {
+        "title": "Musk’s SpaceX seeks $105b in record IPO plan - AFR",
+        "source": "AFR",
+        "publishedAt": "2026-06-03",
+        "snippet": "Musk’s SpaceX seeks $105b in record IPO plan AFR",
+        "relatedThemeIds": [
+          "space_connectivity_ipo"
+        ]
+      },
+      {
+        "title": "SpaceX's Starlink launch scrubbed; next attempt on Thursday - Spectrum News 13",
+        "source": "Spectrum News 13",
+        "publishedAt": "2026-06-03",
+        "snippet": "SpaceX's Starlink launch scrubbed; next attempt on Thursday Spectrum News 13",
+        "relatedThemeIds": [
+          "space_connectivity_ipo"
+        ]
+      },
+      {
+        "title": "SpaceX rocket launch from Florida scrubbed. When is liftoff? - Daytona Beach News-Journal",
+        "source": "Daytona Beach News-Journal",
+        "publishedAt": "2026-06-03",
+        "snippet": "SpaceX rocket launch from Florida scrubbed. When is liftoff? Daytona Beach News-Journal",
+        "relatedThemeIds": [
+          "space_connectivity_ipo"
+        ]
+      },
+      {
+        "title": "SpaceX launches sunrise Starlink mission following weather scrub - Spaceflight Now",
+        "source": "Spaceflight Now",
+        "publishedAt": "2026-06-03",
+        "snippet": "SpaceX launches sunrise Starlink mission following weather scrub Spaceflight Now",
+        "relatedThemeIds": [
+          "space_connectivity_ipo"
+        ]
+      },
+      {
+        "title": "AnthropicがIPO申請、SpaceX・OpenAIも上場準備と報道",
+        "source": "FNN",
+        "publishedAt": "2026-06-02",
+        "snippet": "Anthropicのconfidential S-1提出、SpaceXの上場予定、OpenAIの上場準備報道を、AI IPOレースとAIインフラ需要の監視材料として扱う。",
+        "relatedThemeIds": [
+          "ai_frontier_ipo",
+          "space_connectivity_ipo"
+        ]
+      },
+      {
+        "title": "GNS Stock Gains On First Investments Into SpaceX, OpenAI, Anthropic For $100M AI Treasury - Stocktwits",
+        "source": "Stocktwits",
+        "publishedAt": "2026-06-02",
+        "snippet": "GNS Stock Gains On First Investments Into SpaceX, OpenAI, Anthropic For $100M AI Treasury Stocktwits",
+        "relatedThemeIds": [
+          "ai_frontier_ipo",
+          "space_connectivity_ipo"
+        ]
+      },
+      {
+        "title": "As Anthropic, SpaceX, OpenAI IPO hype builds, markets face liquidity questions - Invezz",
+        "source": "Invezz",
+        "publishedAt": "2026-06-02",
+        "snippet": "As Anthropic, SpaceX, OpenAI IPO hype builds, markets face liquidity questions Invezz",
+        "relatedThemeIds": [
+          "ai_frontier_ipo",
+          "space_connectivity_ipo"
+        ]
+      },
+      {
+        "title": "Anthropic pulls ahead of OpenAI in high-stakes race for IPO riches - The Edge Malaysia",
+        "source": "The Edge Malaysia",
+        "publishedAt": "2026-06-02",
+        "snippet": "Anthropic pulls ahead of OpenAI in high-stakes race for IPO riches The Edge Malaysia",
+        "relatedThemeIds": [
+          "ai_frontier_ipo"
+        ]
+      },
+      {
+        "title": "IPO AI Market: Anthropic vs. OpenAI [Analysis] [2026] - Klover.ai",
+        "source": "Klover.ai",
+        "publishedAt": "2026-06-02",
+        "snippet": "IPO AI Market: Anthropic vs. OpenAI [Analysis] [2026] Klover.ai",
+        "relatedThemeIds": [
+          "ai_frontier_ipo"
+        ]
+      },
+      {
+        "title": "SpaceX early morning rocket launch from Florida. When is liftoff? - Florida Today",
+        "source": "Florida Today",
+        "publishedAt": "2026-06-02",
+        "snippet": "SpaceX early morning rocket launch from Florida. When is liftoff? Florida Today",
+        "relatedThemeIds": [
+          "space_connectivity_ipo"
+        ]
+      }
+    ]
+  },
+  "specialSituationWatch": {
+    "generatedAt": "2026-06-05",
+    "defaultAction": "特殊状況の有無と段階を分けて、証拠が揃うまで待つ理由を明確にする",
+    "neverTreatAs": [
+      "売買推奨",
+      "安いから買う判断",
+      "テーマ名だけの評価",
+      "上場直後の即断",
+      "SNS/見出しだけの判断"
+    ],
+    "safetyRules": [
+      "単価が安い = 割安ではない",
+      "報道だけでは強い通知に上げない",
+      "上場週・ロックアップ前後は需給イベントとして観察",
+      "公式情報か報道か噂かを必ず分ける",
+      "sampleTooSmall は強い判断の根拠にしない"
+    ],
+    "patterns": [
+      {
+        "id": "carve_out_ipo",
+        "label": "カーブアウトIPO",
+        "description": "大企業や親会社から重要事業が切り出されて上場する型。例: キオクシアのような大企業由来の重要事業。",
+        "whyInteresting": [
+          "親会社時代より自由度が高くなる可能性",
+          "重要事業のため資本市場の注目を集めやすい",
+          "PMI後の単独評価で再評価余地"
+        ],
+        "whyDangerous": [
+          "親会社依存・販売チャネル依存が残る場合",
+          "上場時に既存株主の出口売りが重なる",
+          "切り出し直後はガバナンス整備が未完"
+        ],
+        "evidenceNeeded": [
+          "親会社/旧親会社の持分推移",
+          "切り出された理由(戦略的・財務的)",
+          "事業の重要性(売上構成・顧客)",
+          "親会社との取引依存度",
+          "単独上場後の経営自由度"
+        ]
+      },
+      {
+        "id": "pe_exit_ipo",
+        "label": "PE出口IPO",
+        "description": "PEファンド保有後のIPO。出口売りとロックアップが最大の論点。",
+        "whyInteresting": [
+          "PE保有中に経営改善が進んでいる可能性",
+          "ロックアップ通過後の需給改善余地"
+        ],
+        "whyDangerous": [
+          "PEによる追加売出しリスク",
+          "高い借入負担(LBO残債)",
+          "短期的なPL最適化で投資不足の可能性"
+        ],
+        "evidenceNeeded": [
+          "PE/スポンサーの残保有比率",
+          "ロックアップ期間と解除日",
+          "純有利子負債/EBITDA",
+          "追加売出しの公表有無",
+          "経営陣の継続性"
+        ]
+      },
+      {
+        "id": "spin_off",
+        "label": "スピンオフ",
+        "description": "親会社から独立する型。親会社株主の機械的売りと、独立後の単独評価が論点。",
+        "whyInteresting": [
+          "分離後の経営自由度・意思決定速度",
+          "セグメント単独でのバリュエーション再評価"
+        ],
+        "whyDangerous": [
+          "親会社株主による機械的な売却",
+          "負債を背負わされている可能性",
+          "親会社のリソース喪失"
+        ],
+        "evidenceNeeded": [
+          "分離後の経営陣構成",
+          "負債/資本構成の引継ぎ",
+          "親会社株主の保有方針",
+          "単独セグメントとしての収益性"
+        ]
+      },
+      {
+        "id": "post_ipo_lockup_overhang",
+        "label": "上場後ロックアップ需給待ち",
+        "description": "上場後のロックアップ解除・売り圧通過を待つ型。需給イベントとして観察。",
+        "whyInteresting": [
+          "売り圧通過後に需給が改善する局面",
+          "初回決算で実需が確認できれば再評価余地"
+        ],
+        "whyDangerous": [
+          "ロックアップ解除日前後の出来高急増",
+          "大株主による分散売却",
+          "解除と決算が重なる場合の二重ダウンサイド"
+        ],
+        "evidenceNeeded": [
+          "上場日",
+          "ロックアップ解除日と対象株数",
+          "大株主の売却計画",
+          "出来高推移",
+          "初回決算日"
+        ]
+      },
+      {
+        "id": "major_holder_exit_overhang",
+        "label": "大株主出口需給待ち",
+        "description": "親会社・政府・PE・創業家などの大量売却による売り圧通過型。",
+        "whyInteresting": [
+          "売り圧通過後の浮動株増加で需給改善",
+          "完全独立化による意思決定の自由度向上"
+        ],
+        "whyDangerous": [
+          "売却ペース不透明",
+          "売却理由が会社のネガティブ情報を反映する可能性"
+        ],
+        "evidenceNeeded": [
+          "誰が売っているか",
+          "売却理由(資金調達/戦略変更/出口)",
+          "売却後の浮動株比率",
+          "売り圧通過の需給シグナル"
+        ]
+      },
+      {
+        "id": "cycle_recovery",
+        "label": "市況サイクル回復",
+        "description": "メモリ・半導体・素材・海運・化学等の市況サイクル回復型。",
+        "whyInteresting": [
+          "市況底打ち・反転の兆候",
+          "在庫調整完了後の出荷増",
+          "価格転嫁による利益率改善"
+        ],
+        "whyDangerous": [
+          "市況の二番底",
+          "在庫水準の高止まり",
+          "設備投資負担による FCF 悪化"
+        ],
+        "evidenceNeeded": [
+          "市況価格(NAND/DRAM/運賃 等)",
+          "在庫水準",
+          "受注残",
+          "粗利率・営業利益率",
+          "FCF と設備投資計画"
+        ]
+      },
+      {
+        "id": "parent_subsidiary_reorg",
+        "label": "親子上場再編・TOB候補",
+        "description": "親子上場解消・完全子会社化候補。TOB期待だけで過熱していないかが論点。",
+        "whyInteresting": [
+          "親子上場解消トレンド",
+          "PBR改善・ガバナンス改革の流れ"
+        ],
+        "whyDangerous": [
+          "TOB期待だけの過熱",
+          "完全子会社化が見送られた場合の反落",
+          "親会社の方針転換"
+        ],
+        "evidenceNeeded": [
+          "親会社の持分比率",
+          "親会社の中期経営計画・親子上場方針",
+          "PBR/ROE と東証要請の進捗",
+          "ガバナンス改革の具体策"
+        ]
+      },
+      {
+        "id": "government_privatization_ipo",
+        "label": "政府・自治体保有の民営化IPO",
+        "description": "政府・自治体保有株の民営化IPO。例: 東京メトロ。",
+        "whyInteresting": [
+          "安定した事業基盤",
+          "配当性向の明示化",
+          "民営化後の経営自由度"
+        ],
+        "whyDangerous": [
+          "規制リスク",
+          "残持分の段階的売却による需給圧迫",
+          "成長性に限定",
+          "初値が過熱しやすい"
+        ],
+        "evidenceNeeded": [
+          "政府/自治体の残持分",
+          "配当方針",
+          "規制環境",
+          "成長余地と安定性のバランス",
+          "初値と公開価格の乖離"
+        ]
+      },
+      {
+        "id": "small_ticket_overlay",
+        "label": "少額投資オーバーレイ(補助条件)",
+        "description": "少額で監視しやすい補助条件。単独パターンではなく、上記特殊状況に当てはまる銘柄が少額で見やすい場合だけ付ける。安いから買うは禁止。",
+        "whyInteresting": [
+          "監視・分散・段階的な確認がしやすい"
+        ],
+        "whyDangerous": [
+          "単価の低さを割安と誤認するリスク",
+          "流動性が低い場合のスリッページ"
+        ],
+        "evidenceNeeded": [
+          "最低売買金額",
+          "1日平均出来高",
+          "上記特殊状況パターンとの組合せ"
+        ]
+      }
+    ],
+    "candidates": [
+      {
+        "code": "285A",
+        "name": "キオクシアホールディングス",
+        "patterns": [
+          "carve_out_ipo",
+          "pe_exit_ipo",
+          "post_ipo_lockup_overhang",
+          "cycle_recovery",
+          "small_ticket_overlay"
+        ],
+        "watchPhase": "cycle_confirmation",
+        "finalLabel": "調査優先候補",
+        "chanceLevel": "attention",
+        "notificationEligible": false,
+        "reasonSummary": "AIストレージ/NAND市況の確認対象。上場後需給と市況回復の両方を見る局面。",
+        "whyInteresting": [
+          "親会社時代より自由度が高くなる可能性",
+          "重要事業のため資本市場の注目を集めやすい",
+          "PMI後の単独評価で再評価余地",
+          "PE保有中に経営改善が進んでいる可能性",
+          "ロックアップ通過後の需給改善余地",
+          "売り圧通過後に需給が改善する局面",
+          "初回決算で実需が確認できれば再評価余地",
+          "市況底打ち・反転の兆候",
+          "在庫調整完了後の出荷増",
+          "価格転嫁による利益率改善",
+          "監視・分散・段階的な確認がしやすい"
+        ],
+        "whyDangerous": [
+          "親会社依存・販売チャネル依存が残る場合",
+          "上場時に既存株主の出口売りが重なる",
+          "切り出し直後はガバナンス整備が未完",
+          "PEによる追加売出しリスク",
+          "高い借入負担(LBO残債)",
+          "短期的なPL最適化で投資不足の可能性",
+          "ロックアップ解除日前後の出来高急増",
+          "大株主による分散売却",
+          "解除と決算が重なる場合の二重ダウンサイド",
+          "市況の二番底",
+          "在庫水準の高止まり",
+          "設備投資負担による FCF 悪化",
+          "単価の低さを割安と誤認するリスク",
+          "流動性が低い場合のスリッページ"
+        ],
+        "evidenceNeeded": [
+          "親会社/旧親会社の持分推移",
+          "切り出された理由(戦略的・財務的)",
+          "事業の重要性(売上構成・顧客)",
+          "親会社との取引依存度",
+          "単独上場後の経営自由度",
+          "PE/スポンサーの残保有比率",
+          "ロックアップ期間と解除日",
+          "純有利子負債/EBITDA",
+          "追加売出しの公表有無",
+          "経営陣の継続性",
+          "上場日",
+          "ロックアップ解除日と対象株数",
+          "大株主の売却計画",
+          "出来高推移",
+          "初回決算日",
+          "市況価格(NAND/DRAM/運賃 等)",
+          "在庫水準",
+          "受注残",
+          "粗利率・営業利益率",
+          "FCF と設備投資計画",
+          "最低売買金額",
+          "1日平均出来高",
+          "上記特殊状況パターンとの組合せ"
+        ],
+        "waitFor": [
+          "NAND価格の底打ち確認",
+          "eSSD需要の継続確認",
+          "決算での粗利率改善",
+          "ロックアップ解除後の需給"
+        ],
+        "parentOrSponsor": "東芝(旧親) / Bain Capital(PE)",
+        "sellerPressure": "high",
+        "lockupRisk": "high",
+        "debtRisk": "medium",
+        "capexRisk": "high",
+        "cycleRisk": "high",
+        "dilutionRisk": "medium",
+        "listingInfo": {
+          "listedAt": "2024-12-18",
+          "plannedListingAt": null,
+          "ipoPrice": 1455,
+          "firstPrice": 1440,
+          "lockupExpiryAt": null,
+          "firstEarningsAt": null,
+          "source": "reports/ipo_theme_watch_latest.md / 公式IR",
+          "sourceCheckedAt": null,
+          "confidence": "official"
+        },
+        "outcomeStats": {
+          "sampleSize": 0,
+          "sampleTooSmall": true,
+          "hitRate": null,
+          "avgReturn1w": null,
+          "avgReturn1m": null,
+          "avgTopixRelative1m": null
+        }
+      },
+      {
+        "code": "6526",
+        "name": "ソシオネクスト",
+        "patterns": [
+          "carve_out_ipo",
+          "major_holder_exit_overhang"
+        ],
+        "watchPhase": "sell_pressure_clearing",
+        "finalLabel": "構造監視候補",
+        "chanceLevel": "watch",
+        "notificationEligible": false,
+        "reasonSummary": "富士通/パナソニックからのカーブアウト。大株主売却の通過と受注確認を待つ局面。",
+        "whyInteresting": [
+          "親会社時代より自由度が高くなる可能性",
+          "重要事業のため資本市場の注目を集めやすい",
+          "PMI後の単独評価で再評価余地",
+          "売り圧通過後の浮動株増加で需給改善",
+          "完全独立化による意思決定の自由度向上"
+        ],
+        "whyDangerous": [
+          "親会社依存・販売チャネル依存が残る場合",
+          "上場時に既存株主の出口売りが重なる",
+          "切り出し直後はガバナンス整備が未完",
+          "売却ペース不透明",
+          "売却理由が会社のネガティブ情報を反映する可能性"
+        ],
+        "evidenceNeeded": [
+          "親会社/旧親会社の持分推移",
+          "切り出された理由(戦略的・財務的)",
+          "事業の重要性(売上構成・顧客)",
+          "親会社との取引依存度",
+          "単独上場後の経営自由度",
+          "誰が売っているか",
+          "売却理由(資金調達/戦略変更/出口)",
+          "売却後の浮動株比率",
+          "売り圧通過の需給シグナル"
+        ],
+        "waitFor": [
+          "大株主売却の進捗",
+          "AI/車載カスタムSoCの受注",
+          "粗利率推移"
+        ],
+        "parentOrSponsor": "富士通 / パナソニック(旧)",
+        "sellerPressure": "high",
+        "lockupRisk": "medium",
+        "debtRisk": "low",
+        "capexRisk": "medium",
+        "cycleRisk": "medium",
+        "dilutionRisk": "medium",
+        "listingInfo": {
+          "listedAt": "2022-10-12",
+          "plannedListingAt": null,
+          "ipoPrice": null,
+          "firstPrice": null,
+          "lockupExpiryAt": null,
+          "firstEarningsAt": null,
+          "source": null,
+          "sourceCheckedAt": null,
+          "confidence": "official"
+        },
+        "outcomeStats": {
+          "sampleSize": 0,
+          "sampleTooSmall": true,
+          "hitRate": null,
+          "avgReturn1w": null,
+          "avgReturn1m": null,
+          "avgTopixRelative1m": null
+        }
+      },
+      {
+        "code": "6525",
+        "name": "KOKUSAI ELECTRIC",
+        "patterns": [
+          "pe_exit_ipo",
+          "post_ipo_lockup_overhang",
+          "cycle_recovery"
+        ],
+        "watchPhase": "cycle_confirmation",
+        "finalLabel": "構造監視候補",
+        "chanceLevel": "watch",
+        "notificationEligible": false,
+        "reasonSummary": "KKR出口IPO。半導体製造装置市況の回復確認と追加売出し有無が論点。",
+        "whyInteresting": [
+          "PE保有中に経営改善が進んでいる可能性",
+          "ロックアップ通過後の需給改善余地",
+          "売り圧通過後に需給が改善する局面",
+          "初回決算で実需が確認できれば再評価余地",
+          "市況底打ち・反転の兆候",
+          "在庫調整完了後の出荷増",
+          "価格転嫁による利益率改善"
+        ],
+        "whyDangerous": [
+          "PEによる追加売出しリスク",
+          "高い借入負担(LBO残債)",
+          "短期的なPL最適化で投資不足の可能性",
+          "ロックアップ解除日前後の出来高急増",
+          "大株主による分散売却",
+          "解除と決算が重なる場合の二重ダウンサイド",
+          "市況の二番底",
+          "在庫水準の高止まり",
+          "設備投資負担による FCF 悪化"
+        ],
+        "evidenceNeeded": [
+          "PE/スポンサーの残保有比率",
+          "ロックアップ期間と解除日",
+          "純有利子負債/EBITDA",
+          "追加売出しの公表有無",
+          "経営陣の継続性",
+          "上場日",
+          "ロックアップ解除日と対象株数",
+          "大株主の売却計画",
+          "出来高推移",
+          "初回決算日",
+          "市況価格(NAND/DRAM/運賃 等)",
+          "在庫水準",
+          "受注残",
+          "粗利率・営業利益率",
+          "FCF と設備投資計画"
+        ],
+        "waitFor": [
+          "KKR残持分の動向",
+          "WFE市況の回復",
+          "受注残推移"
+        ],
+        "parentOrSponsor": "KKR(PE)",
+        "sellerPressure": "high",
+        "lockupRisk": "medium",
+        "debtRisk": "low",
+        "capexRisk": "low",
+        "cycleRisk": "high",
+        "dilutionRisk": "high",
+        "listingInfo": {
+          "listedAt": "2023-10-25",
+          "plannedListingAt": null,
+          "ipoPrice": null,
+          "firstPrice": null,
+          "lockupExpiryAt": null,
+          "firstEarningsAt": null,
+          "source": null,
+          "sourceCheckedAt": null,
+          "confidence": "official"
+        },
+        "outcomeStats": {
+          "sampleSize": 0,
+          "sampleTooSmall": true,
+          "hitRate": null,
+          "avgReturn1w": null,
+          "avgReturn1m": null,
+          "avgTopixRelative1m": null
+        }
+      },
+      {
+        "code": "9023",
+        "name": "東京メトロ",
+        "patterns": [
+          "government_privatization_ipo",
+          "post_ipo_lockup_overhang"
+        ],
+        "watchPhase": "first_earnings_wait",
+        "finalLabel": "構造監視候補",
+        "chanceLevel": "watch",
+        "notificationEligible": false,
+        "reasonSummary": "政府・自治体保有の民営化IPO。配当・需給・規制を見る安定型監視。",
+        "whyInteresting": [
+          "売り圧通過後に需給が改善する局面",
+          "初回決算で実需が確認できれば再評価余地",
+          "安定した事業基盤",
+          "配当性向の明示化",
+          "民営化後の経営自由度"
+        ],
+        "whyDangerous": [
+          "ロックアップ解除日前後の出来高急増",
+          "大株主による分散売却",
+          "解除と決算が重なる場合の二重ダウンサイド",
+          "規制リスク",
+          "残持分の段階的売却による需給圧迫",
+          "成長性に限定",
+          "初値が過熱しやすい"
+        ],
+        "evidenceNeeded": [
+          "上場日",
+          "ロックアップ解除日と対象株数",
+          "大株主の売却計画",
+          "出来高推移",
+          "初回決算日",
+          "政府/自治体の残持分",
+          "配当方針",
+          "規制環境",
+          "成長余地と安定性のバランス",
+          "初値と公開価格の乖離"
+        ],
+        "waitFor": [
+          "残持分の段階売却計画",
+          "配当性向",
+          "初値過熱の沈静化"
+        ],
+        "parentOrSponsor": "国(財務省) / 東京都",
+        "sellerPressure": "medium",
+        "lockupRisk": "medium",
+        "debtRisk": "low",
+        "capexRisk": "medium",
+        "cycleRisk": "low",
+        "dilutionRisk": "high",
+        "listingInfo": {
+          "listedAt": "2024-10-23",
+          "plannedListingAt": null,
+          "ipoPrice": null,
+          "firstPrice": null,
+          "lockupExpiryAt": null,
+          "firstEarningsAt": null,
+          "source": null,
+          "sourceCheckedAt": null,
+          "confidence": "official"
+        },
+        "outcomeStats": {
+          "sampleSize": 0,
+          "sampleTooSmall": true,
+          "hitRate": null,
+          "avgReturn1w": null,
+          "avgReturn1m": null,
+          "avgTopixRelative1m": null
+        }
+      },
+      {
+        "code": "9348",
+        "name": "ispace",
+        "patterns": [
+          "small_ticket_overlay"
+        ],
+        "watchPhase": "watch_only",
+        "finalLabel": "罠注意",
+        "chanceLevel": "none",
+        "notificationEligible": false,
+        "reasonSummary": "宇宙テーマ上場企業。資金調達・希薄化・打上げ成否のリスクが大きい。事業確証前は監視のみ。",
+        "whyInteresting": [
+          "監視・分散・段階的な確認がしやすい"
+        ],
+        "whyDangerous": [
+          "単価の低さを割安と誤認するリスク",
+          "流動性が低い場合のスリッページ"
+        ],
+        "evidenceNeeded": [
+          "最低売買金額",
+          "1日平均出来高",
+          "上記特殊状況パターンとの組合せ"
+        ],
+        "waitFor": [
+          "ミッション結果",
+          "新規資金調達の有無",
+          "売上化の進捗"
+        ],
+        "parentOrSponsor": null,
+        "sellerPressure": "unknown",
+        "lockupRisk": "unknown",
+        "debtRisk": "medium",
+        "capexRisk": "high",
+        "cycleRisk": "unknown",
+        "dilutionRisk": "high",
+        "listingInfo": {
+          "listedAt": "2023-04-12",
+          "plannedListingAt": null,
+          "ipoPrice": null,
+          "firstPrice": null,
+          "lockupExpiryAt": null,
+          "firstEarningsAt": null,
+          "source": null,
+          "sourceCheckedAt": null,
+          "confidence": "official"
+        },
+        "outcomeStats": {
+          "sampleSize": 0,
+          "sampleTooSmall": true,
+          "hitRate": null,
+          "avgReturn1w": null,
+          "avgReturn1m": null,
+          "avgTopixRelative1m": null
+        }
+      },
+      {
+        "code": "7011",
+        "name": "三菱重工業",
+        "patterns": [
+          "cycle_recovery"
+        ],
+        "watchPhase": "watch_only",
+        "finalLabel": "証拠不足",
+        "chanceLevel": "watch",
+        "notificationEligible": false,
+        "reasonSummary": "宇宙・防衛・打上げの波及銘柄。既に織り込みが進んでいる可能性に注意。",
+        "whyInteresting": [
+          "市況底打ち・反転の兆候",
+          "在庫調整完了後の出荷増",
+          "価格転嫁による利益率改善"
+        ],
+        "whyDangerous": [
+          "市況の二番底",
+          "在庫水準の高止まり",
+          "設備投資負担による FCF 悪化"
+        ],
+        "evidenceNeeded": [
+          "市況価格(NAND/DRAM/運賃 等)",
+          "在庫水準",
+          "受注残",
+          "粗利率・営業利益率",
+          "FCF と設備投資計画"
+        ],
+        "waitFor": [
+          "受注残推移",
+          "防衛・宇宙セグメント利益率",
+          "バリュエーション過熱の沈静化"
+        ],
+        "parentOrSponsor": null,
+        "sellerPressure": "low",
+        "lockupRisk": "low",
+        "debtRisk": "medium",
+        "capexRisk": "medium",
+        "cycleRisk": "medium",
+        "dilutionRisk": "low",
+        "outcomeStats": {
+          "sampleSize": 2,
+          "sampleTooSmall": true,
+          "hitRate": null,
+          "avgReturn1w": null,
+          "avgReturn1m": null,
+          "avgTopixRelative1m": null
+        }
+      },
+      {
+        "code": "8035",
+        "name": "東京エレクトロン",
+        "patterns": [
+          "cycle_recovery"
+        ],
+        "watchPhase": "cycle_confirmation",
+        "finalLabel": "証拠不足",
+        "chanceLevel": "watch",
+        "notificationEligible": false,
+        "reasonSummary": "WFE市況の代表銘柄。既に織り込みが進んでいる可能性とAI設備投資の継続性が論点。",
+        "whyInteresting": [
+          "市況底打ち・反転の兆候",
+          "在庫調整完了後の出荷増",
+          "価格転嫁による利益率改善"
+        ],
+        "whyDangerous": [
+          "市況の二番底",
+          "在庫水準の高止まり",
+          "設備投資負担による FCF 悪化"
+        ],
+        "evidenceNeeded": [
+          "市況価格(NAND/DRAM/運賃 等)",
+          "在庫水準",
+          "受注残",
+          "粗利率・営業利益率",
+          "FCF と設備投資計画"
+        ],
+        "waitFor": [
+          "WFE市況回復",
+          "AI設備投資の継続",
+          "バリュエーションの正常化"
+        ],
+        "parentOrSponsor": null,
+        "sellerPressure": "low",
+        "lockupRisk": "low",
+        "debtRisk": "low",
+        "capexRisk": "low",
+        "cycleRisk": "medium",
+        "dilutionRisk": "low",
+        "outcomeStats": {
+          "sampleSize": 2,
+          "sampleTooSmall": true,
+          "hitRate": null,
+          "avgReturn1w": null,
+          "avgReturn1m": null,
+          "avgTopixRelative1m": null
+        }
+      },
+      {
+        "code": "6857",
+        "name": "アドバンテスト",
+        "patterns": [
+          "cycle_recovery"
+        ],
+        "watchPhase": "watch_only",
+        "finalLabel": "証拠不足",
+        "chanceLevel": "watch",
+        "notificationEligible": false,
+        "reasonSummary": "半導体検査装置。AIチップサイクル恩恵だがバリュエーションリスクあり。",
+        "whyInteresting": [
+          "市況底打ち・反転の兆候",
+          "在庫調整完了後の出荷増",
+          "価格転嫁による利益率改善"
+        ],
+        "whyDangerous": [
+          "市況の二番底",
+          "在庫水準の高止まり",
+          "設備投資負担による FCF 悪化"
+        ],
+        "evidenceNeeded": [
+          "市況価格(NAND/DRAM/運賃 等)",
+          "在庫水準",
+          "受注残",
+          "粗利率・営業利益率",
+          "FCF と設備投資計画"
+        ],
+        "waitFor": [
+          "HBM/AIアクセラレータの検査需要",
+          "受注残",
+          "バリュエーション正常化"
+        ],
+        "parentOrSponsor": null,
+        "sellerPressure": "low",
+        "lockupRisk": "low",
+        "debtRisk": "low",
+        "capexRisk": "low",
+        "cycleRisk": "medium",
+        "dilutionRisk": "low",
+        "outcomeStats": {
+          "sampleSize": 1,
+          "sampleTooSmall": true,
+          "hitRate": null,
+          "avgReturn1w": null,
+          "avgReturn1m": null,
+          "avgTopixRelative1m": null
+        }
+      },
+      {
+        "code": "5803",
+        "name": "フジクラ",
+        "patterns": [
+          "cycle_recovery"
+        ],
+        "watchPhase": "watch_only",
+        "finalLabel": "証拠不足",
+        "chanceLevel": "watch",
+        "notificationEligible": false,
+        "reasonSummary": "光通信・データセンター配線。既に織り込みが進んでいる可能性に注意。",
+        "whyInteresting": [
+          "市況底打ち・反転の兆候",
+          "在庫調整完了後の出荷増",
+          "価格転嫁による利益率改善"
+        ],
+        "whyDangerous": [
+          "市況の二番底",
+          "在庫水準の高止まり",
+          "設備投資負担による FCF 悪化"
+        ],
+        "evidenceNeeded": [
+          "市況価格(NAND/DRAM/運賃 等)",
+          "在庫水準",
+          "受注残",
+          "粗利率・営業利益率",
+          "FCF と設備投資計画"
+        ],
+        "waitFor": [
+          "光ファイバ受注継続",
+          "データセンター案件比率",
+          "バリュエーション沈静化"
+        ],
+        "parentOrSponsor": null,
+        "sellerPressure": "low",
+        "lockupRisk": "low",
+        "debtRisk": "medium",
+        "capexRisk": "medium",
+        "cycleRisk": "medium",
+        "dilutionRisk": "low",
+        "outcomeStats": {
+          "sampleSize": 1,
+          "sampleTooSmall": true,
+          "hitRate": null,
+          "avgReturn1w": null,
+          "avgReturn1m": null,
+          "avgTopixRelative1m": null
+        }
+      },
+      {
+        "code": "5802",
+        "name": "住友電気工業",
+        "patterns": [
+          "cycle_recovery"
+        ],
+        "watchPhase": "watch_only",
+        "finalLabel": "構造監視候補",
+        "chanceLevel": "watch",
+        "notificationEligible": false,
+        "reasonSummary": "光通信・電線・電力網の多角化銘柄。事業ポートフォリオ全体の収益性を確認。",
+        "whyInteresting": [
+          "市況底打ち・反転の兆候",
+          "在庫調整完了後の出荷増",
+          "価格転嫁による利益率改善"
+        ],
+        "whyDangerous": [
+          "市況の二番底",
+          "在庫水準の高止まり",
+          "設備投資負担による FCF 悪化"
+        ],
+        "evidenceNeeded": [
+          "市況価格(NAND/DRAM/運賃 等)",
+          "在庫水準",
+          "受注残",
+          "粗利率・営業利益率",
+          "FCF と設備投資計画"
+        ],
+        "waitFor": [
+          "電力網セグメント受注",
+          "自動車部品市況",
+          "光通信案件"
+        ],
+        "parentOrSponsor": null,
+        "sellerPressure": "low",
+        "lockupRisk": "low",
+        "debtRisk": "medium",
+        "capexRisk": "medium",
+        "cycleRisk": "medium",
+        "dilutionRisk": "low",
+        "outcomeStats": {
+          "sampleSize": 0,
+          "sampleTooSmall": true,
+          "hitRate": null,
+          "avgReturn1w": null,
+          "avgReturn1m": null,
+          "avgTopixRelative1m": null
+        }
+      }
+    ],
+    "topChanceList": [
+      {
+        "code": "285A",
+        "name": "キオクシアホールディングス",
+        "finalLabel": "調査優先候補",
+        "chanceLevel": "attention",
+        "reasonSummary": "AIストレージ/NAND市況の確認対象。上場後需給と市況回復の両方を見る局面。",
+        "topReasons": [
+          "親会社時代より自由度が高くなる可能性",
+          "重要事業のため資本市場の注目を集めやすい",
+          "PMI後の単独評価で再評価余地"
+        ],
+        "mainRisks": [
+          "親会社依存・販売チャネル依存が残る場合",
+          "上場時に既存株主の出口売りが重なる",
+          "切り出し直後はガバナンス整備が未完"
+        ],
+        "nextCheck": [
+          "NAND価格の底打ち確認",
+          "eSSD需要の継続確認",
+          "決算での粗利率改善",
+          "ロックアップ解除後の需給"
+        ],
+        "listingInfo": {
+          "listedAt": "2024-12-18",
+          "plannedListingAt": null,
+          "lockupExpiryAt": null,
+          "firstEarningsAt": null,
+          "confidence": "official"
+        }
+      },
+      {
+        "code": "6526",
+        "name": "ソシオネクスト",
+        "finalLabel": "構造監視候補",
+        "chanceLevel": "watch",
+        "reasonSummary": "富士通/パナソニックからのカーブアウト。大株主売却の通過と受注確認を待つ局面。",
+        "topReasons": [
+          "親会社時代より自由度が高くなる可能性",
+          "重要事業のため資本市場の注目を集めやすい",
+          "PMI後の単独評価で再評価余地"
+        ],
+        "mainRisks": [
+          "親会社依存・販売チャネル依存が残る場合",
+          "上場時に既存株主の出口売りが重なる",
+          "切り出し直後はガバナンス整備が未完"
+        ],
+        "nextCheck": [
+          "大株主売却の進捗",
+          "AI/車載カスタムSoCの受注",
+          "粗利率推移"
+        ],
+        "listingInfo": {
+          "listedAt": "2022-10-12",
+          "plannedListingAt": null,
+          "lockupExpiryAt": null,
+          "firstEarningsAt": null,
+          "confidence": "official"
+        }
+      },
+      {
+        "code": "6525",
+        "name": "KOKUSAI ELECTRIC",
+        "finalLabel": "構造監視候補",
+        "chanceLevel": "watch",
+        "reasonSummary": "KKR出口IPO。半導体製造装置市況の回復確認と追加売出し有無が論点。",
+        "topReasons": [
+          "PE保有中に経営改善が進んでいる可能性",
+          "ロックアップ通過後の需給改善余地",
+          "売り圧通過後に需給が改善する局面"
+        ],
+        "mainRisks": [
+          "PEによる追加売出しリスク",
+          "高い借入負担(LBO残債)",
+          "短期的なPL最適化で投資不足の可能性"
+        ],
+        "nextCheck": [
+          "KKR残持分の動向",
+          "WFE市況の回復",
+          "受注残推移"
+        ],
+        "listingInfo": {
+          "listedAt": "2023-10-25",
+          "plannedListingAt": null,
+          "lockupExpiryAt": null,
+          "firstEarningsAt": null,
+          "confidence": "official"
+        }
+      },
+      {
+        "code": "9023",
+        "name": "東京メトロ",
+        "finalLabel": "構造監視候補",
+        "chanceLevel": "watch",
+        "reasonSummary": "政府・自治体保有の民営化IPO。配当・需給・規制を見る安定型監視。",
+        "topReasons": [
+          "売り圧通過後に需給が改善する局面",
+          "初回決算で実需が確認できれば再評価余地",
+          "安定した事業基盤"
+        ],
+        "mainRisks": [
+          "ロックアップ解除日前後の出来高急増",
+          "大株主による分散売却",
+          "解除と決算が重なる場合の二重ダウンサイド"
+        ],
+        "nextCheck": [
+          "残持分の段階売却計画",
+          "配当性向",
+          "初値過熱の沈静化"
+        ],
+        "listingInfo": {
+          "listedAt": "2024-10-23",
+          "plannedListingAt": null,
+          "lockupExpiryAt": null,
+          "firstEarningsAt": null,
+          "confidence": "official"
+        }
+      },
+      {
+        "code": "5802",
+        "name": "住友電気工業",
+        "finalLabel": "構造監視候補",
+        "chanceLevel": "watch",
+        "reasonSummary": "光通信・電線・電力網の多角化銘柄。事業ポートフォリオ全体の収益性を確認。",
+        "topReasons": [
+          "市況底打ち・反転の兆候",
+          "在庫調整完了後の出荷増",
+          "価格転嫁による利益率改善"
+        ],
+        "mainRisks": [
+          "市況の二番底",
+          "在庫水準の高止まり",
+          "設備投資負担による FCF 悪化"
+        ],
+        "nextCheck": [
+          "電力網セグメント受注",
+          "自動車部品市況",
+          "光通信案件"
+        ]
+      }
+    ],
+    "referenceEvents": [
+      {
+        "eventName": "SpaceX 上場観測",
+        "companyName": "SpaceX",
+        "eventType": "ipo_watch",
+        "plannedDate": null,
+        "actualDate": null,
+        "confidence": "reported",
+        "source": "FNN / 各種報道",
+        "sourceCheckedAt": "2026-06-02",
+        "relatedThemes": [
+          "space_connectivity",
+          "satellite",
+          "defense"
+        ],
+        "relatedJapaneseCompanies": [
+          "7011",
+          "9348",
+          "5803",
+          "5802"
+        ]
+      },
+      {
+        "eventName": "Starlink 関連イベント",
+        "companyName": "Starlink (SpaceX)",
+        "eventType": "funding",
+        "plannedDate": null,
+        "actualDate": null,
+        "confidence": "reported",
+        "source": "scan:world feed",
+        "sourceCheckedAt": "2026-06-05",
+        "relatedThemes": [
+          "satellite_connectivity",
+          "telecom"
+        ],
+        "relatedJapaneseCompanies": [
+          "5803",
+          "5802"
+        ]
+      },
+      {
+        "eventName": "OpenAI 上場準備観測",
+        "companyName": "OpenAI",
+        "eventType": "ipo_watch",
+        "plannedDate": null,
+        "actualDate": null,
+        "confidence": "rumor",
+        "source": "scan:world feed / 各種報道",
+        "sourceCheckedAt": "2026-06-04",
+        "relatedThemes": [
+          "ai_compute",
+          "memory_storage",
+          "datacenter"
+        ],
+        "relatedJapaneseCompanies": [
+          "285A",
+          "8035",
+          "6857"
+        ]
+      },
+      {
+        "eventName": "Anthropic IPO申請報道",
+        "companyName": "Anthropic",
+        "eventType": "listing_plan",
+        "plannedDate": null,
+        "actualDate": null,
+        "confidence": "reported",
+        "source": "FNN / Tom's Hardware / 24/7 Wall St.",
+        "sourceCheckedAt": "2026-06-04",
+        "relatedThemes": [
+          "ai_compute",
+          "memory_storage",
+          "datacenter"
+        ],
+        "relatedJapaneseCompanies": [
+          "285A",
+          "8035",
+          "6857"
+        ]
       }
     ]
   },
@@ -10275,7 +11555,7 @@
   },
   "proDataMeta": {
     "source": "pro-ui-data-addon",
-    "generatedAt": "2026-06-05T05:17:53.314Z",
+    "generatedAt": "2026-06-05T06:23:29.591Z",
     "missing": []
   }
 }

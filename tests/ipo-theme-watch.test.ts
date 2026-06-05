@@ -19,6 +19,21 @@ assert(data.rules.length > 0, "rules は1件以上必要です");
 assert(Array.isArray(data.phases), "phases は配列である必要があります");
 assert(data.phases.length > 0, "phases は1件以上必要です");
 assert(Array.isArray(data.outcomeStats), "outcomeStats は配列である必要があります");
+assert(Array.isArray(data.worldEventHighlights), "worldEventHighlights は配列である必要があります");
+
+// outcomeStats の各行に必須フィールドが揃っているか確認
+for (const row of data.outcomeStats as Array<Record<string, unknown>>) {
+  assert("finalLabel" in row, "outcomeStats 各行に finalLabel が必要です");
+  assert("originalFinalLabel" in row, "outcomeStats 各行に originalFinalLabel が必要です");
+  assert("phaseFromPriceSignal" in row, "outcomeStats 各行に phaseFromPriceSignal が必要です");
+  assert(typeof row["sampleTooSmall"] === "boolean", "sampleTooSmall は boolean である必要があります");
+}
+
+// worldEventHighlights の各行に必須フィールドが揃っているか確認
+for (const ev of data.worldEventHighlights as Array<Record<string, unknown>>) {
+  assert(typeof ev["title"] === "string", "worldEventHighlights.title は string である必要があります");
+  assert(Array.isArray(ev["relatedThemeIds"]), "worldEventHighlights.relatedThemeIds は配列である必要があります");
+}
 
 const text = JSON.stringify(data);
 for (const keyword of ["SpaceX", "Starlink", "OpenAI", "Anthropic", "キオクシア", "NAND", "SSD", "eSSD"]) {

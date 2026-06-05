@@ -26,6 +26,7 @@ alpha-pon は、単に「良さそうな銘柄」を出すのではなく、以�
 
 - [docs/operation-playbook.md](docs/operation-playbook.md)
 - [docs/ipo-theme-watch-playbook.md](docs/ipo-theme-watch-playbook.md)
+- [docs/special-situation-watch-playbook.md](docs/special-situation-watch-playbook.md)
 - [docs/roadmap-pro-disagreement.md](docs/roadmap-pro-disagreement.md)
 - [docs/local-verification-checklist.md](docs/local-verification-checklist.md)
 
@@ -119,6 +120,22 @@ pnpm ui:data
 ```
 
 `reports/ipo_theme_watch_latest.md` と `/world` で、OpenAI / Anthropic / SpaceX / Starlink 級の大型上場報道、キオクシアホールディングスの NAND / SSD / eSSD 文脈、関連日本株への波及を「監視・証拠確認・待つ理由」として見る。
+
+### 特殊状況・時間差再評価ウォッチ
+
+carve-out / PE出口 / spin-off / lockup / cycle recovery などの王道パターンを、調査優先候補・監視候補として蓄積する。**買い推奨ではありません。**
+
+```bash
+pnpm watch:special
+pnpm ui:data
+```
+
+`reports/special_situation_watch_latest.md` で確認できる。TOP画面に「特殊状況・チャンス候補」セクションとして表示される。
+
+- 安い株探しではない / 単価安 ≠ 割安
+- キオクシアは参考例の1つ（carve-out + PE exit + lockup + cycle recovery の重なり）
+- チャンス候補 = 調査優先の合図（売買推奨ではない）
+- `docs/special-situation-watch-playbook.md` 参照
 
 Pro運用の完全版（ユニバーススキャン・仮説・Next.js JSON 更新を含む）:
 
