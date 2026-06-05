@@ -46,18 +46,19 @@ function isObject(value: unknown): value is Record<string, unknown> {
         if ("disagreements" in decision) assert(Array.isArray(decision.disagreements), "legendProCommittee.disagreements は配列である必要があります");
       }
     }
-    if ("ipoThemeWatch" in data) {
-      const watch = data.ipoThemeWatch;
-      assert(isObject(watch), "ipoThemeWatch は object である必要があります");
-      assert(Array.isArray(watch.rules), "ipoThemeWatch.rules は配列である必要があります");
-      assert(Array.isArray(watch.phases), "ipoThemeWatch.phases は配列である必要があります");
-      assert(Array.isArray(watch.outcomeStats), "ipoThemeWatch.outcomeStats は配列である必要があります");
-      for (const rule of watch.rules) {
-        assert(isObject(rule), "ipoThemeWatch rule は object である必要があります");
-        assert(typeof rule.id === "string", "ipoThemeWatch.rules[].id は string である必要があります");
-        assert(typeof rule.defaultAction === "string", "ipoThemeWatch.rules[].defaultAction は string である必要があります");
-        assert(Array.isArray(rule.relatedCompanies), "ipoThemeWatch.rules[].relatedCompanies は配列である必要があります");
-      }
+    assert("ipoThemeWatch" in data, "alpha-pon-data.json は ipoThemeWatch を必ず持つ必要があります");
+    const watch = data.ipoThemeWatch;
+    assert(isObject(watch), "ipoThemeWatch は object である必要があります");
+    assert(Array.isArray(watch.rules), "ipoThemeWatch.rules は配列である必要があります");
+    assert(watch.rules.length > 0, "ipoThemeWatch.rules は1件以上必要です");
+    assert(Array.isArray(watch.phases), "ipoThemeWatch.phases は配列である必要があります");
+    assert(watch.phases.length > 0, "ipoThemeWatch.phases は1件以上必要です");
+    assert(Array.isArray(watch.outcomeStats), "ipoThemeWatch.outcomeStats は配列である必要があります");
+    for (const rule of watch.rules) {
+      assert(isObject(rule), "ipoThemeWatch rule は object である必要があります");
+      assert(typeof rule.id === "string", "ipoThemeWatch.rules[].id は string である必要があります");
+      assert(typeof rule.defaultAction === "string", "ipoThemeWatch.rules[].defaultAction は string である必要があります");
+      assert(Array.isArray(rule.relatedCompanies), "ipoThemeWatch.rules[].relatedCompanies は配列である必要があります");
     }
   }
 }

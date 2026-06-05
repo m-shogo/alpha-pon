@@ -44,7 +44,7 @@
     "typecheck:tests": "tsc --noEmit -p tsconfig.test.json",
     "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json",
     "test": "node --import tsx/esm tests/score.test.ts && node --import tsx/esm tests/validation.test.ts && node --import tsx/esm tests/analysis.test.ts && node --import tsx/esm tests/expert-ensemble.test.ts && node --import tsx/esm tests/stock-decision.test.ts && node --import tsx/esm tests/price-signal.test.ts && node --import tsx/esm tests/safe-wording.test.ts && node --import tsx/esm tests/pro-disagreement.test.ts && node --import tsx/esm tests/pro-generated-data-shape.test.ts && node --import tsx/esm tests/ipo-theme-watch.test.ts",
-    "check": "pnpm typecheck && pnpm typecheck:tests && pnpm typecheck:scripts && pnpm test",
+    "check": "pnpm theme:ipo && pnpm ui:data && pnpm typecheck && pnpm typecheck:tests && pnpm typecheck:scripts && pnpm test",
     "verify:pro": "pnpm pro:all && pnpm theme:ipo && pnpm ui:data && node --import tsx/esm tests/pro-disagreement.test.ts && node --import tsx/esm tests/pro-generated-data-shape.test.ts && node --import tsx/esm tests/ipo-theme-watch.test.ts",
     "inspect:pro": "node scripts/inspect-pro-output.mjs",
     "verify:pro:local": "bash scripts/verify-pro-local.sh",
