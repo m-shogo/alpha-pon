@@ -326,6 +326,36 @@ pnpm check
 
 ---
 
+## outcomeSeed — noOutcomeRecord を解消する
+
+`pnpm review:special-due` で `noOutcomeRecord` が出た場合、以下のフローで outcome を安全に作成できます。
+
+```
+1. pnpm review:special-due              # noOutcomeRecord を確認
+2. pnpm seed:special-outcomes           # dry-run で安全確認
+3. pnpm backup                          # バックアップ（--write 前に必須）
+4. pnpm seed:special-outcomes --write   # outcome seed を作成
+5. pnpm review:special-due             # due queue に乗るか確認
+6. 期限後に:
+   pnpm backfill:special-outcomes --write  # 価格データを補完
+7. pnpm watch:special                   # outcomeStats を再確認
+```
+
+### seed の仕組み
+
+- `hypothesis.reason` に `[special_situation]` マーカーを付与して識別
+- `detectedAt` は `listingInfo.listedAt`（2年以内）または今日
+- 初期値は `result=unknown`・価格 null（検証用 seed）
+- 重複判定: code + detectedAt + reviewHorizon の一致 + special marker
+
+### 注意
+
+- seed 作成 ≠ 投資判断。あくまで採点データの整備
+- `ambiguous_duplicate` は同じキーの通常 outcome が存在する場合。手動確認が必要
+- `--write` は `pnpm backup` が成功した場合のみ実行される
+
+---
+
 ## reviewDueQueue の見方
 
 `outcomeStats` は成績表。
