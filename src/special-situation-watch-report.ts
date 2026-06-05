@@ -330,6 +330,35 @@ type SpecialSituationOutcomeStats = {
   note: string;
 };
 
+type SpecialSituationOutcomeCoverageAudit = {
+  generatedAt: string;
+  totalMatchedOutcomes: number;
+  coverage: {
+    withResult: number;
+    withReturn1w: number;
+    withReturn1m: number;
+    withTopixRelative1m: number;
+    withAnyReturn: number;
+  };
+  missing: {
+    result: number;
+    return1w: number;
+    return1m: number;
+    topixRelative1m: number;
+  };
+  byCode: Array<{
+    code: string;
+    name: string;
+    matchedOutcomes: number;
+    missingResult: number;
+    missingReturn1w: number;
+    missingReturn1m: number;
+    missingTopixRelative1m: number;
+    nextAction: string;
+  }>;
+  notes: string[];
+};
+
 type SpecialSituationWatchReport = {
   generatedAt: string;
   defaultAction: string;
@@ -347,6 +376,7 @@ type SpecialSituationWatchReport = {
   topChanceList: TopChanceItem[];
   referenceEvents: ReferenceEvent[];
   outcomeStats: SpecialSituationOutcomeStats[];
+  outcomeCoverageAudit: SpecialSituationOutcomeCoverageAudit;
 };
 
 // ─────────── ヘルパ ───────────
@@ -639,6 +669,96 @@ function buildTopChanceList(candidates: SpecialSituationCandidate[]): TopChanceI
 
 // ─────────── レポート生成 ───────────
 
+function buildOutcomeCoverageAudit(
+  candidates: SpecialSituationCandidate[],
+  outcomes: HypothesisOutcome[],
+  generatedAt: string
+): SpecialSituationOutcomeCoverageAudit {
+  const candidateCodes = new Set(candidates.map(c => c.code));
+  const matched = outcomes.filter(o => candidateCodes.has(o.code));
+
+  const withResult = matched.filter(o => o.result !== "unknown").length;
+  const withReturn1w = matched.filter(o => o.return1w != null && Number.isFinite(o.return1w)).length;
+  const withReturn1m = matched.filter(o => o.return1m != null && Number.isFinite(o.return1m)).length;
+  const withTopix1m = matched.filter(o => o.relativeToTopix1m != null && Number.isFinite(o.relativeToTopix1m)).length;
+  const withAny = matched.filter(o =>
+    (o.return1w != null && Number.isFinite(o.return1w)) ||
+    (o.return1m != null && Number.isFinite(o.return1m)) ||
+    (o.relativeToTopix1m != null && Number.isFinite(o.relativeToTopix1m))
+  ).length;
+
+  const byCode: SpecialSituationOutcomeCoverageAudit["byCode"] = [];
+  for (const c of candidates) {
+    const rows = matched.filter(o => o.code === c.code);
+    const n = rows.length;
+    const mResult = rows.filter(o => o.result === "unknown").length;
+    const m1w = rows.filter(o => o.return1w == null || !Number.isFinite(o.return1w)).length;
+    const m1m = rows.filter(o => o.return1m == null || !Number.isFinite(o.return1m)).length;
+    const mTopix = rows.filter(o => o.relativeToTopix1m == null || !Number.isFinite(o.relativeToTopix1m)).length;
+
+    let nextAction: string;
+    if (n === 0) {
+      nextAction = "アウトカム記録なし。候補として仮説を記録してからレビューを走らせる";
+    } else if (mResult === n) {
+      nextAction = "hit/miss/too_early のレビューが必要";
+    } else if (m1w > 0) {
+      nextAction = "1wリターン計算に必要な価格データを確認";
+    } else if (m1m > 0) {
+      nextAction = "1mリターン計算に必要な価格データを確認";
+    } else if (mTopix > 0) {
+      nextAction = "TOPIX比計算に必要なベンチマーク価格を確認";
+    } else {
+      nextAction = "成績集計に利用可能";
+    }
+
+    byCode.push({
+      code: c.code,
+      name: c.name,
+      matchedOutcomes: n,
+      missingResult: mResult,
+      missingReturn1w: m1w,
+      missingReturn1m: m1m,
+      missingTopixRelative1m: mTopix,
+      nextAction,
+    });
+  }
+
+  const notes: string[] = [];
+  if (withResult === 0 && matched.length > 0) {
+    notes.push("全アウトカムが result=unknown のまま。pnpm review:hypotheses でレビューを進めると result が更新される。");
+  }
+  if (withReturn1w === 0 && matched.length > 0) {
+    notes.push("return1w が全て null。J-Quants の価格取得 (pnpm review:hypotheses) が完了していない可能性。");
+  }
+  if (withTopix1m === 0 && matched.length > 0) {
+    notes.push("relativeToTopix1m が全て null。TOPIX比を計算するには endPrice1m とベンチマーク価格が両方必要。");
+  }
+  if (matched.length === 0) {
+    notes.push("特殊状況候補のアウトカムが1件も記録されていない。pnpm candidate:hypothesis → pnpm review:hypotheses を実行してデータを蓄積する。");
+  }
+  notes.push("outcomeStats が null の場合、データ不足であり仕組みの問題ではない。まず不足データを埋めてから成績を読む。");
+
+  return {
+    generatedAt,
+    totalMatchedOutcomes: matched.length,
+    coverage: {
+      withResult,
+      withReturn1w,
+      withReturn1m,
+      withTopixRelative1m: withTopix1m,
+      withAnyReturn: withAny,
+    },
+    missing: {
+      result: matched.length - withResult,
+      return1w: matched.length - withReturn1w,
+      return1m: matched.length - withReturn1m,
+      topixRelative1m: matched.length - withTopix1m,
+    },
+    byCode,
+    notes,
+  };
+}
+
 /** 候補のコード集合から outcomes を絞り込み、集計行を1件作る */
 function buildOneOutcomeStat(
   groupType: OutcomeGroupType,
@@ -787,6 +907,7 @@ function buildReport(config: SpecialSituationConfig): SpecialSituationWatchRepor
     topChanceList,
     referenceEvents,
     outcomeStats: buildSpecialSituationOutcomeStats(candidates, outcomes, minSampleSize),
+    outcomeCoverageAudit: buildOutcomeCoverageAudit(candidates, outcomes, todayJst()),
   };
 }
 
@@ -1023,6 +1144,33 @@ function renderMarkdown(report: SpecialSituationWatchReport): string {
     lines.push(`| ${row.groupType} | ${row.groupKey} | ${sampleStr} | ${hitStr} | ${fmtPct(row.avgReturn1w)} | ${fmtPct(row.avgReturn1m)} | ${fmtPct(row.avgTopixRelative1m)} | ${row.note} |`);
   }
   lines.push("");
+  // outcome coverage audit
+  {
+    const audit = report.outcomeCoverageAudit;
+    lines.push("## outcome coverage audit", "");
+    lines.push("> 成績表に実数が入らない原因を可視化します。数字がないのは仕組みの問題ではなく、データ不足です。", "");
+    lines.push("| item | count |");
+    lines.push("|---|---:|");
+    lines.push(`| matched outcomes | ${audit.totalMatchedOutcomes} |`);
+    lines.push(`| with result (hit/miss/etc) | ${audit.coverage.withResult} |`);
+    lines.push(`| with return1w | ${audit.coverage.withReturn1w} |`);
+    lines.push(`| with return1m | ${audit.coverage.withReturn1m} |`);
+    lines.push(`| with TOPIX relative 1m | ${audit.coverage.withTopixRelative1m} |`);
+    lines.push(`| with any return | ${audit.coverage.withAnyReturn} |`);
+    lines.push("");
+    lines.push("### 銘柄別不足", "");
+    lines.push("| code | name | matched | miss result | miss 1w | miss 1m | miss TOPIX | next action |");
+    lines.push("|---|---|---:|---:|---:|---:|---:|---|");
+    for (const row of audit.byCode) {
+      lines.push(`| ${row.code} | ${row.name} | ${row.matchedOutcomes} | ${row.missingResult} | ${row.missingReturn1w} | ${row.missingReturn1m} | ${row.missingTopixRelative1m} | ${row.nextAction} |`);
+    }
+    lines.push("");
+    if (audit.notes.length > 0) {
+      lines.push("### notes", "");
+      for (const note of audit.notes) lines.push(`- ${note}`);
+      lines.push("");
+    }
+  }
   lines.push("## rule", "- 安い株探しではない", "- 単価が安い = 割安ではない", "- 調査候補は売買推奨ではない", "- sampleTooSmall は強い判断の根拠にしない", "- 公式・報道・噂を必ず分ける");
   lines.push("", `*alpha-pon special situation watch | ${report.generatedAt} | ※売買推奨ではありません*`);
   return lines.join("\n");

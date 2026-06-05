@@ -313,6 +313,34 @@ export type SpecialSituationWatch = {
     }
     listingInfo?: Omit<SpecialSituationListingInfo, 'ipoPrice' | 'firstPrice' | 'source' | 'sourceCheckedAt'>
   }>
+  outcomeCoverageAudit?: {
+    generatedAt: string
+    totalMatchedOutcomes: number
+    coverage: {
+      withResult: number
+      withReturn1w: number
+      withReturn1m: number
+      withTopixRelative1m: number
+      withAnyReturn: number
+    }
+    missing: {
+      result: number
+      return1w: number
+      return1m: number
+      topixRelative1m: number
+    }
+    byCode: Array<{
+      code: string
+      name: string
+      matchedOutcomes: number
+      missingResult: number
+      missingReturn1w: number
+      missingReturn1m: number
+      missingTopixRelative1m: number
+      nextAction: string
+    }>
+    notes: string[]
+  }
   outcomeStats?: Array<{
     groupType: string
     groupKey: string

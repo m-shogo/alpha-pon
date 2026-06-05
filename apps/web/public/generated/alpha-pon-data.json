@@ -7104,7 +7104,132 @@
         "avgTopixRelative1m": null,
         "note": "サンプル不足(0件)。参考値のみ・強い判断に使わない。"
       }
-    ]
+    ],
+    "outcomeCoverageAudit": {
+      "generatedAt": "2026-06-05",
+      "totalMatchedOutcomes": 6,
+      "coverage": {
+        "withResult": 0,
+        "withReturn1w": 0,
+        "withReturn1m": 0,
+        "withTopixRelative1m": 0,
+        "withAnyReturn": 0
+      },
+      "missing": {
+        "result": 6,
+        "return1w": 6,
+        "return1m": 6,
+        "topixRelative1m": 6
+      },
+      "byCode": [
+        {
+          "code": "285A",
+          "name": "キオクシアホールディングス",
+          "matchedOutcomes": 0,
+          "missingResult": 0,
+          "missingReturn1w": 0,
+          "missingReturn1m": 0,
+          "missingTopixRelative1m": 0,
+          "nextAction": "アウトカム記録なし。候補として仮説を記録してからレビューを走らせる"
+        },
+        {
+          "code": "6526",
+          "name": "ソシオネクスト",
+          "matchedOutcomes": 0,
+          "missingResult": 0,
+          "missingReturn1w": 0,
+          "missingReturn1m": 0,
+          "missingTopixRelative1m": 0,
+          "nextAction": "アウトカム記録なし。候補として仮説を記録してからレビューを走らせる"
+        },
+        {
+          "code": "6525",
+          "name": "KOKUSAI ELECTRIC",
+          "matchedOutcomes": 0,
+          "missingResult": 0,
+          "missingReturn1w": 0,
+          "missingReturn1m": 0,
+          "missingTopixRelative1m": 0,
+          "nextAction": "アウトカム記録なし。候補として仮説を記録してからレビューを走らせる"
+        },
+        {
+          "code": "9023",
+          "name": "東京メトロ",
+          "matchedOutcomes": 0,
+          "missingResult": 0,
+          "missingReturn1w": 0,
+          "missingReturn1m": 0,
+          "missingTopixRelative1m": 0,
+          "nextAction": "アウトカム記録なし。候補として仮説を記録してからレビューを走らせる"
+        },
+        {
+          "code": "9348",
+          "name": "ispace",
+          "matchedOutcomes": 0,
+          "missingResult": 0,
+          "missingReturn1w": 0,
+          "missingReturn1m": 0,
+          "missingTopixRelative1m": 0,
+          "nextAction": "アウトカム記録なし。候補として仮説を記録してからレビューを走らせる"
+        },
+        {
+          "code": "7011",
+          "name": "三菱重工業",
+          "matchedOutcomes": 2,
+          "missingResult": 2,
+          "missingReturn1w": 2,
+          "missingReturn1m": 2,
+          "missingTopixRelative1m": 2,
+          "nextAction": "hit/miss/too_early のレビューが必要"
+        },
+        {
+          "code": "8035",
+          "name": "東京エレクトロン",
+          "matchedOutcomes": 2,
+          "missingResult": 2,
+          "missingReturn1w": 2,
+          "missingReturn1m": 2,
+          "missingTopixRelative1m": 2,
+          "nextAction": "hit/miss/too_early のレビューが必要"
+        },
+        {
+          "code": "6857",
+          "name": "アドバンテスト",
+          "matchedOutcomes": 1,
+          "missingResult": 1,
+          "missingReturn1w": 1,
+          "missingReturn1m": 1,
+          "missingTopixRelative1m": 1,
+          "nextAction": "hit/miss/too_early のレビューが必要"
+        },
+        {
+          "code": "5803",
+          "name": "フジクラ",
+          "matchedOutcomes": 1,
+          "missingResult": 1,
+          "missingReturn1w": 1,
+          "missingReturn1m": 1,
+          "missingTopixRelative1m": 1,
+          "nextAction": "hit/miss/too_early のレビューが必要"
+        },
+        {
+          "code": "5802",
+          "name": "住友電気工業",
+          "matchedOutcomes": 0,
+          "missingResult": 0,
+          "missingReturn1w": 0,
+          "missingReturn1m": 0,
+          "missingTopixRelative1m": 0,
+          "nextAction": "アウトカム記録なし。候補として仮説を記録してからレビューを走らせる"
+        }
+      ],
+      "notes": [
+        "全アウトカムが result=unknown のまま。pnpm review:hypotheses でレビューを進めると result が更新される。",
+        "return1w が全て null。J-Quants の価格取得 (pnpm review:hypotheses) が完了していない可能性。",
+        "relativeToTopix1m が全て null。TOPIX比を計算するには endPrice1m とベンチマーク価格が両方必要。",
+        "outcomeStats が null の場合、データ不足であり仕組みの問題ではない。まず不足データを埋めてから成績を読む。"
+      ]
+    }
   },
   "stockProCommitteeJson": {
     "generatedAt": "2026-06-05",
@@ -12427,7 +12552,7 @@
   },
   "proDataMeta": {
     "source": "pro-ui-data-addon",
-    "generatedAt": "2026-06-05T07:51:11.365Z",
+    "generatedAt": "2026-06-05T07:58:36.030Z",
     "missing": []
   }
 }

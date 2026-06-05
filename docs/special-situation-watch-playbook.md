@@ -326,6 +326,37 @@ pnpm check
 
 ---
 
+## outcomeCoverageAudit の見方
+
+`outcomeStats` は成績表。
+`outcomeCoverageAudit` は、その成績表に数字を入れるためのデータ充足チェック。
+
+### 見るもの
+
+- `totalMatchedOutcomes`: 特殊状況候補に紐づくアウトカム件数
+- `coverage.withResult`: hit/miss/too_early が入っている件数
+- `coverage.withReturn1w`: 1wリターンが入っている件数
+- `coverage.withTopixRelative1m`: TOPIX比が入っている件数
+- `byCode[].nextAction`: 各銘柄で次に埋めるべきデータ
+
+### null が多い原因
+
+| 原因 | 解決 |
+|---|---|
+| `result=unknown` | `pnpm review:hypotheses` で hit/miss を評価する |
+| `return1w=null` | J-Quants の価格データが取得できていない |
+| `relativeToTopix1m=null` | ベンチマーク価格（TOPIX終値）が足りない |
+| アウトカム0件 | `pnpm candidate:hypothesis` で仮説を先に記録する |
+
+### 注意
+
+- `outcomeStats` が null だらけでも、仕組みが壊れているとは限らない
+- return や TOPIX比が未計算なら null になる
+- まず不足データを埋めてから、pattern別・sellerOverhang別の良し悪しを判断する
+- データ不足を理由に強い通知・判断をしない
+
+---
+
 ## outcomeStats の見方
 
 特殊状況ウォッチは、候補を出すだけでなく、後から**型ごとの成績を検証する**。

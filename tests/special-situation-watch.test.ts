@@ -18,6 +18,22 @@ const reportData = readJson("reports/special_situation_watch_latest.json");
 assert(reportData !== null, "reports/special_situation_watch_latest.json は必ず生成される必要があります");
 assert(isObject(reportData), "special_situation_watch_latest.json は object である必要があります");
 
+// outcomeCoverageAudit の検証
+assert(isObject(reportData.outcomeCoverageAudit), "outcomeCoverageAudit は object である必要があります");
+{
+  const audit = reportData.outcomeCoverageAudit as Record<string, unknown>;
+  assert(typeof audit.totalMatchedOutcomes === "number", "totalMatchedOutcomes は number");
+  assert(isObject(audit.coverage), "coverage は object");
+  assert(isObject(audit.missing), "missing は object");
+  assert(Array.isArray(audit.byCode), "byCode は配列");
+  assert(Array.isArray(audit.notes), "notes は配列");
+  for (const row of audit.byCode as Array<Record<string, unknown>>) {
+    assert(typeof row.code === "string", "byCode.code は string");
+    assert(typeof row.matchedOutcomes === "number", "byCode.matchedOutcomes は number");
+    assert(typeof row.nextAction === "string" && row.nextAction.length > 0, "byCode.nextAction は非空 string");
+  }
+}
+
 // 2) patterns / candidates / topChanceList / referenceEvents / outcomeStats が配列
 assert(Array.isArray(reportData.patterns), "patterns は配列である必要があります");
 assert(reportData.patterns.length > 0, "patterns は1件以上必要です");
@@ -225,6 +241,9 @@ if (uiData !== null) {
     assert(Array.isArray((sw as Record<string, unknown>).candidates), "specialSituationWatch.candidates は配列");
     assert(Array.isArray((sw as Record<string, unknown>).topChanceList), "specialSituationWatch.topChanceList は配列");
     assert(Array.isArray((sw as Record<string, unknown>).patterns), "specialSituationWatch.patterns は配列");
+    // outcomeCoverageAudit が入ることを検証
+    assert(isObject((sw as Record<string, unknown>).outcomeCoverageAudit),
+      "specialSituationWatch.outcomeCoverageAudit は object である必要があります");
   }
 }
 
