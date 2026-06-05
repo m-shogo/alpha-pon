@@ -325,6 +325,16 @@ export default function HomePage() {
                       {(item.whyNotNow ?? []).slice(0, 2).join(' / ')}
                     </div>
                   )}
+                  {/* 売り圧要約 */}
+                  {item.sellerPressureSummary && item.sellerPressureSummary.remainingOverhang !== 'low' && (
+                    <div style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 4 }}>
+                      <span style={{ fontWeight: 700 }}>売り圧: </span>
+                      {[
+                        item.sellerPressureSummary.sellerName ?? item.sellerPressureSummary.sellerType,
+                        item.sellerPressureSummary.remainingOverhang,
+                      ].filter(Boolean).join(' / ')}
+                    </div>
+                  )}
                   {/* リスク */}
                   {item.mainRisks.length > 0 && (
                     <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginBottom: 5 }}>

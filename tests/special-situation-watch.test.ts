@@ -51,6 +51,16 @@ const ALLOWED_WATCH_PHASES = new Set([
   "watch_only",
 ]);
 const ALLOWED_CONFIDENCE = new Set(["official", "reported", "rumor", "unknown"]);
+const ALLOWED_SELLER_TYPES = new Set([
+  "parent_company", "pe_fund", "government", "founder",
+  "strategic_holder", "multiple", "none", "unknown",
+]);
+const ALLOWED_SELLER_MOTIVATIONS = new Set([
+  "fund_exit", "debt_reduction", "policy_sale", "portfolio_rebalance",
+  "business_reorganization", "business_deterioration", "liquidity_event",
+  "none", "unknown",
+]);
+const ALLOWED_REMAINING_OVERHANG = new Set(["cleared", "low", "medium", "high", "unknown"]);
 
 for (const c of reportData.candidates as Array<Record<string, unknown>>) {
   assert(typeof c.code === "string" && c.code.length > 0, "candidate.code が必要");
@@ -73,6 +83,21 @@ for (const c of reportData.candidates as Array<Record<string, unknown>>) {
       `候補 ${c.code}: notificationEligible=true の場合 whyNotNow が空は禁止`
     );
   }
+  // sellerPressureProfile の検証
+  const spp = c.sellerPressureProfile as Record<string, unknown> | undefined;
+  assert(spp !== undefined && typeof spp === "object", `候補 ${c.code}: sellerPressureProfile が必要`);
+  assert(ALLOWED_SELLER_TYPES.has(spp.sellerType as string), `候補 ${c.code}: 不正な sellerType: ${spp.sellerType}`);
+  assert(ALLOWED_SELLER_MOTIVATIONS.has(spp.sellerMotivation as string), `候補 ${c.code}: 不正な sellerMotivation: ${spp.sellerMotivation}`);
+  assert(ALLOWED_REMAINING_OVERHANG.has(spp.remainingOverhang as string), `候補 ${c.code}: 不正な remainingOverhang: ${spp.remainingOverhang}`);
+  assert(Array.isArray(spp.whyItMatters), `候補 ${c.code}: sellerPressureProfile.whyItMatters は配列`);
+  assert(Array.isArray(spp.evidenceNeeded), `候補 ${c.code}: sellerPressureProfile.evidenceNeeded は配列`);
+  // remainingOverhang high かつ notificationEligible true は禁止
+  if (spp.remainingOverhang === "high") {
+    assert(
+      c.notificationEligible !== true,
+      `候補 ${c.code}: remainingOverhang=high の場合 notificationEligible=true は禁止`
+    );
+  }
 }
 
 // listingInfo に上場日/予定日/ロックアップ/初回決算 を持てる構造があるか
@@ -89,10 +114,15 @@ assert(candidateWithListing, "listingInfo を持つ candidate が1件以上必�
   assert(ALLOWED_CONFIDENCE.has(li.confidence as string), `listingInfo.confidence の値: ${li.confidence}`);
 }
 
-// topChanceList の whyNow / whyNotNow
+// topChanceList の whyNow / whyNotNow / sellerPressureSummary
 for (const item of reportData.topChanceList as Array<Record<string, unknown>>) {
   assert(Array.isArray(item.whyNow), `topChanceList ${item.code}: whyNow は配列`);
   assert(Array.isArray(item.whyNotNow), `topChanceList ${item.code}: whyNotNow は配列`);
+  if (item.sellerPressureSummary !== undefined && item.sellerPressureSummary !== null) {
+    const sps = item.sellerPressureSummary as Record<string, unknown>;
+    assert(typeof sps.sellerType === "string", `topChanceList ${item.code}: sellerPressureSummary.sellerType は string`);
+    assert(ALLOWED_REMAINING_OVERHANG.has(sps.remainingOverhang as string), `topChanceList ${item.code}: 不正な remainingOverhang: ${sps.remainingOverhang}`);
+  }
 }
 
 // 4) reference events に SpaceX / OpenAI / Anthropic / Starlink を持てる構造

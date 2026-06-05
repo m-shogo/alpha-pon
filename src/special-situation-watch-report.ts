@@ -48,6 +48,44 @@ type RiskLevel = typeof ALLOWED_RISK_LEVELS[number];
 const ALLOWED_CONFIDENCE = ["official", "reported", "rumor", "unknown"] as const;
 type Confidence = typeof ALLOWED_CONFIDENCE[number];
 
+const ALLOWED_SELLER_TYPES = [
+  "parent_company",
+  "pe_fund",
+  "government",
+  "founder",
+  "strategic_holder",
+  "multiple",
+  "none",
+  "unknown",
+] as const;
+type SellerType = typeof ALLOWED_SELLER_TYPES[number];
+
+const ALLOWED_SELLER_MOTIVATIONS = [
+  "fund_exit",
+  "debt_reduction",
+  "policy_sale",
+  "portfolio_rebalance",
+  "business_reorganization",
+  "business_deterioration",
+  "liquidity_event",
+  "none",
+  "unknown",
+] as const;
+type SellerMotivation = typeof ALLOWED_SELLER_MOTIVATIONS[number];
+
+const ALLOWED_REMAINING_OVERHANG = ["cleared", "low", "medium", "high", "unknown"] as const;
+type RemainingOverhang = typeof ALLOWED_REMAINING_OVERHANG[number];
+
+type SellerPressureProfile = {
+  sellerType: SellerType;
+  sellerName: string | null;
+  sellerMotivation: SellerMotivation;
+  remainingOverhang: RemainingOverhang;
+  estimatedClearedAt: string | null;
+  whyItMatters: string[];
+  evidenceNeeded: string[];
+};
+
 type PatternRule = {
   id: string;
   label: string;
@@ -89,6 +127,7 @@ type CandidateConfig = {
   whyNow?: string[];
   /** なぜ今はまだ待つのか */
   whyNotNow?: string[];
+  sellerPressureProfile?: Partial<SellerPressureProfile>;
   listingInfo?: ListingInfoConfig;
   smallTicket?: {
     price?: number | null;
@@ -160,6 +199,7 @@ type SpecialSituationCandidate = {
 
   parentOrSponsor: string | null;
   sellerPressure: RiskLevel;
+  sellerPressureProfile: SellerPressureProfile;
   lockupRisk: RiskLevel;
   debtRisk: RiskLevel;
   capexRisk: RiskLevel;
@@ -201,6 +241,12 @@ type TopChanceItem = {
   whyNow: string[];
   /** なぜ今はまだ待つのか（最大2件） */
   whyNotNow: string[];
+  sellerPressureSummary?: {
+    sellerType: string;
+    sellerName: string | null;
+    remainingOverhang: string;
+    topRisk: string | null;
+  };
   listingInfo?: {
     listedAt?: string | null;
     plannedListingAt?: string | null;
@@ -324,6 +370,35 @@ function buildCandidate(
   // - evidenceNeeded が空でない
   // - whyNotNow が空でない（今待つ理由なしで通知しない）
   // - sampleTooSmall=true は強い通知にしない
+  // sellerPressureProfile 組み立て
+  const rawSpp = config.sellerPressureProfile ?? {};
+  const sellerType = (ALLOWED_SELLER_TYPES as readonly string[]).includes(rawSpp.sellerType ?? "")
+    ? rawSpp.sellerType as SellerType
+    : "unknown";
+  const sellerMotivation = (ALLOWED_SELLER_MOTIVATIONS as readonly string[]).includes(rawSpp.sellerMotivation ?? "")
+    ? rawSpp.sellerMotivation as SellerMotivation
+    : "unknown";
+  const remainingOverhang = (ALLOWED_REMAINING_OVERHANG as readonly string[]).includes(rawSpp.remainingOverhang ?? "")
+    ? rawSpp.remainingOverhang as RemainingOverhang
+    : "unknown";
+  const sellerPressureProfile: SellerPressureProfile = {
+    sellerType,
+    sellerName: rawSpp.sellerName ?? null,
+    sellerMotivation,
+    remainingOverhang,
+    estimatedClearedAt: rawSpp.estimatedClearedAt ?? null,
+    whyItMatters: rawSpp.whyItMatters ?? [],
+    evidenceNeeded: rawSpp.evidenceNeeded ?? [],
+  };
+
+  // 通知資格判定
+  // - finalLabel が チャンス候補/調査優先候補
+  // - chanceLevel が attention/high
+  // - whyDangerous(リスク) が空でない
+  // - evidenceNeeded が空でない
+  // - whyNotNow が空でない（今待つ理由なしで通知しない）
+  // - sampleTooSmall=true は強い通知にしない
+  // - remainingOverhang high は通知しない（TOP監視のみ）
   const eligibleLabels: readonly FinalLabel[] = ["チャンス候補", "調査優先候補"];
   const eligibleLevels: readonly ChanceLevel[] = ["attention", "high"];
   const whyNow = config.whyNow ?? [];
@@ -334,6 +409,7 @@ function buildCandidate(
     whyDangerous.length > 0 &&
     evidenceNeeded.length > 0 &&
     whyNotNow.length > 0 &&
+    remainingOverhang !== "high" &&
     !stats.sampleTooSmall;
 
   const listingInfo = config.listingInfo
@@ -379,6 +455,7 @@ function buildCandidate(
     whyNotNow: config.whyNotNow ?? [],
     parentOrSponsor: config.parentOrSponsor ?? null,
     sellerPressure: fallbackRisk(config.sellerPressure),
+    sellerPressureProfile,
     lockupRisk: fallbackRisk(config.lockupRisk),
     debtRisk: fallbackRisk(config.debtRisk),
     capexRisk: fallbackRisk(config.capexRisk),
@@ -422,6 +499,14 @@ function buildTopChanceList(candidates: SpecialSituationCandidate[]): TopChanceI
       nextCheck: c.waitFor.length > 0 ? c.waitFor.slice(0, 4) : c.evidenceNeeded.slice(0, 4),
       whyNow: c.whyNow.slice(0, 2),
       whyNotNow: c.whyNotNow.slice(0, 2),
+      sellerPressureSummary: c.sellerPressureProfile.sellerType !== "none"
+        ? {
+            sellerType: c.sellerPressureProfile.sellerType,
+            sellerName: c.sellerPressureProfile.sellerName,
+            remainingOverhang: c.sellerPressureProfile.remainingOverhang,
+            topRisk: c.sellerPressureProfile.whyItMatters[0] ?? null,
+          }
+        : undefined,
       listingInfo: c.listingInfo
         ? {
             listedAt: c.listingInfo.listedAt ?? null,
@@ -524,6 +609,16 @@ function renderMarkdown(report: SpecialSituationWatchReport): string {
         lines.push("- なぜまだ待つのか:");
         for (const r of item.whyNotNow) lines.push(`  - ${r}`);
       }
+      if (item.whyNow.length > 0) {
+        lines.push(`- なぜ今見るのか: ${item.whyNow.slice(0, 2).join(" / ")}`);
+      }
+      if (item.whyNotNow.length > 0) {
+        lines.push(`- なぜまだ待つのか: ${item.whyNotNow.slice(0, 2).join(" / ")}`);
+      }
+      if (item.sellerPressureSummary) {
+        const sps = item.sellerPressureSummary;
+        lines.push(`- 売り圧: ${sps.sellerName ?? sps.sellerType} / ${sps.remainingOverhang}`);
+      }
       if (item.nextCheck.length > 0) {
         lines.push("- 次に確認すること:");
         for (const r of item.nextCheck) lines.push(`  - ${r}`);
@@ -577,6 +672,28 @@ function renderMarkdown(report: SpecialSituationWatchReport): string {
   }
   lines.push("");
 
+  // sellerPressureProfile 詳細
+  lines.push("## 売り手プロファイル (sellerPressureProfile)", "");
+  for (const c of report.candidates) {
+    const spp = c.sellerPressureProfile;
+    if (spp.sellerType === "none") continue;
+    lines.push(`### ${c.code} ${c.name}`);
+    lines.push(`- 種類: ${spp.sellerType}`);
+    lines.push(`- 名前: ${spp.sellerName ?? "不明"}`);
+    lines.push(`- 目的: ${spp.sellerMotivation}`);
+    lines.push(`- 残売り圧: ${spp.remainingOverhang}`);
+    if (spp.estimatedClearedAt) lines.push(`- 通過目安: ${spp.estimatedClearedAt}`);
+    if (spp.whyItMatters.length > 0) {
+      lines.push("- 重要な理由:");
+      for (const r of spp.whyItMatters) lines.push(`  - ${r}`);
+    }
+    if (spp.evidenceNeeded.length > 0) {
+      lines.push("- 確認する証拠:");
+      for (const r of spp.evidenceNeeded) lines.push(`  - ${r}`);
+    }
+    lines.push("");
+  }
+
   // outcomeStats 詳細
   lines.push("## outcome stats (per candidate)", "");
   lines.push("> sampleTooSmall=true の行は参考値です。強い判断の根拠にしないでください。", "");
@@ -618,6 +735,10 @@ function renderMarkdown(report: SpecialSituationWatchReport): string {
       lines.push(`理由: ${c.reasonSummary}`);
       if (c.whyNow.length > 0) lines.push(`今見る理由: ${c.whyNow.slice(0, 2).join(" / ")}`);
       if (c.whyNotNow.length > 0) lines.push(`まだ待つ理由: ${c.whyNotNow.slice(0, 2).join(" / ")}`);
+      const spp = c.sellerPressureProfile;
+      if (spp.sellerType !== "none" && spp.remainingOverhang !== "unknown") {
+        lines.push(`売り圧: ${spp.sellerName ?? spp.sellerType} / ${spp.remainingOverhang}`);
+      }
       if (c.whyDangerous.length > 0) lines.push(`注意: ${c.whyDangerous.slice(0, 3).join(" / ")}`);
       if (c.waitFor.length > 0) lines.push(`次に確認: ${c.waitFor.slice(0, 4).join(" / ")}`);
       lines.push("※売買推奨ではありません。");

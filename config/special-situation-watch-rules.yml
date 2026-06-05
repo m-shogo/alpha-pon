@@ -197,6 +197,20 @@ candidates:
       - "PE/既存株主の売り圧がまだ残る可能性"
       - "FCF改善が未確認・設備投資負担が重い"
       - "AI需要がNAND単価改善まで届く証拠がまだ必要"
+    sellerPressureProfile:
+      sellerType: "multiple"
+      sellerName: "Bain Capital / 旧東芝系"
+      sellerMotivation: "fund_exit"
+      remainingOverhang: "high"
+      estimatedClearedAt: null
+      whyItMatters:
+        - "PE出口売りと旧親会社由来の売り圧が株価評価を重くする可能性"
+        - "事業価値ではなく需給で売られている局面なら、通過後に再評価余地が出る可能性"
+      evidenceNeeded:
+        - "大株主持分推移"
+        - "追加売出し有無"
+        - "ロックアップ解除日"
+        - "出来高を伴う売り圧通過"
     listingInfo:
       listedAt: "2024-12-18"
       ipoPrice: 1455
@@ -232,6 +246,19 @@ candidates:
     whyNotNow:
       - "富士通・旧パナソニック系の売り圧が通過したか未確認"
       - "AIカスタムSoC需要の業績への接続が証拠不足"
+    sellerPressureProfile:
+      sellerType: "multiple"
+      sellerName: "富士通 / 旧パナソニック系 / DBJ等"
+      sellerMotivation: "portfolio_rebalance"
+      remainingOverhang: "medium"
+      estimatedClearedAt: null
+      whyItMatters:
+        - "大株主売却後の需給改善が評価に影響しやすい"
+        - "売り圧通過後にAI/車載SoCの実需評価へ移れるかを見る"
+      evidenceNeeded:
+        - "大株主残保有比率"
+        - "追加売却有無"
+        - "売出し後の出来高価格帯"
     listingInfo:
       listedAt: "2022-10-12"
       confidence: "official"
@@ -263,6 +290,19 @@ candidates:
     whyNotNow:
       - "KKRによる追加売出しリスクが残る"
       - "WFE回復のペースがまだ不透明"
+    sellerPressureProfile:
+      sellerType: "pe_fund"
+      sellerName: "KKR"
+      sellerMotivation: "fund_exit"
+      remainingOverhang: "medium"
+      estimatedClearedAt: null
+      whyItMatters:
+        - "PE残保有と追加売出しが株価需給に影響する可能性"
+        - "WFE市況回復と売り圧通過が重なるかを見る"
+      evidenceNeeded:
+        - "KKR保有比率"
+        - "追加売出し有無"
+        - "ロックアップ解除後の出来高"
     listingInfo:
       listedAt: "2023-10-25"
       confidence: "official"
@@ -293,6 +333,19 @@ candidates:
     whyNotNow:
       - "残持分の段階売却が続く間は需給圧迫が続く"
       - "成長性に限界があり期待先行になりやすい"
+    sellerPressureProfile:
+      sellerType: "government"
+      sellerName: "国 / 東京都"
+      sellerMotivation: "policy_sale"
+      remainingOverhang: "medium"
+      estimatedClearedAt: null
+      whyItMatters:
+        - "政府・東京都の残持分売却が需給に影響する可能性"
+        - "安定配当評価と残売却圧力を分けて見る必要がある"
+      evidenceNeeded:
+        - "国・東京都の残持分"
+        - "追加売却計画"
+        - "配当方針"
     listingInfo:
       listedAt: "2024-10-23"
       confidence: "official"
@@ -320,6 +373,19 @@ candidates:
     whyNotNow:
       - "事業モデルの証拠がない。ミッション成功・売上化を先に確認"
       - "希薄化リスクが高く、特殊状況パターンの本体がない"
+    sellerPressureProfile:
+      sellerType: "unknown"
+      sellerName: null
+      sellerMotivation: "unknown"
+      remainingOverhang: "unknown"
+      estimatedClearedAt: null
+      whyItMatters:
+        - "特殊状況というより宇宙テーマ・資金調達リスクが中心"
+        - "売り手より希薄化リスクと事業証拠を優先して見る"
+      evidenceNeeded:
+        - "新株発行・資金調達"
+        - "主要株主の異動"
+        - "ミッション成功と売上化"
     listingInfo:
       listedAt: "2023-04-12"
       confidence: "official"
@@ -348,6 +414,16 @@ candidates:
     whyNotNow:
       - "宇宙・防衛テーマの織り込みが既に進んでいる可能性"
       - "バリュエーションが過熱していないか確認が必要"
+    sellerPressureProfile:
+      sellerType: "none"
+      sellerName: null
+      sellerMotivation: "none"
+      remainingOverhang: "low"
+      estimatedClearedAt: null
+      whyItMatters: []
+      evidenceNeeded:
+        - "バリュエーション水準"
+        - "受注残推移"
 
   - code: "8035"
     name: "東京エレクトロン"
@@ -373,6 +449,16 @@ candidates:
     whyNotNow:
       - "AI設備投資の恩恵が既にバリュエーションに織り込まれている可能性"
       - "WFE市況の次の減速リスクを確認してから判断すべき"
+    sellerPressureProfile:
+      sellerType: "none"
+      sellerName: null
+      sellerMotivation: "none"
+      remainingOverhang: "low"
+      estimatedClearedAt: null
+      whyItMatters: []
+      evidenceNeeded:
+        - "WFE受注残"
+        - "バリュエーション水準"
 
   - code: "6857"
     name: "アドバンテスト"
@@ -398,6 +484,16 @@ candidates:
     whyNotNow:
       - "AIチップサイクルの恩恵がバリュエーションに先行している可能性"
       - "受注残の減速が確認されるまでは強い判断を避けるべき"
+    sellerPressureProfile:
+      sellerType: "none"
+      sellerName: null
+      sellerMotivation: "none"
+      remainingOverhang: "low"
+      estimatedClearedAt: null
+      whyItMatters: []
+      evidenceNeeded:
+        - "HBM検査需要の受注残"
+        - "バリュエーション水準"
 
   - code: "5803"
     name: "フジクラ"
@@ -423,6 +519,16 @@ candidates:
     whyNotNow:
       - "データセンター需要の織り込みが先行している可能性"
       - "設備投資の過熱と需給の反転タイミングを確認してから"
+    sellerPressureProfile:
+      sellerType: "none"
+      sellerName: null
+      sellerMotivation: "none"
+      remainingOverhang: "low"
+      estimatedClearedAt: null
+      whyItMatters: []
+      evidenceNeeded:
+        - "光ファイバ受注継続"
+        - "バリュエーション沈静化"
 
   - code: "5802"
     name: "住友電気工業"
@@ -448,6 +554,16 @@ candidates:
     whyNotNow:
       - "多角化事業の収益性バラつきが大きく全体評価が難しい"
       - "自動車部品市況の不透明感が残る"
+    sellerPressureProfile:
+      sellerType: "none"
+      sellerName: null
+      sellerMotivation: "none"
+      remainingOverhang: "low"
+      estimatedClearedAt: null
+      whyItMatters: []
+      evidenceNeeded:
+        - "電力網・光通信セグメント受注"
+        - "自動車部品市況"
 
 referenceEvents:
   - eventName: "SpaceX 上場観測"

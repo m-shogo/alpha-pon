@@ -240,6 +240,15 @@ export type SpecialSituationWatch = {
     whyNow: string[]
     /** なぜ今はまだ待つのか */
     whyNotNow: string[]
+    sellerPressureProfile?: {
+      sellerType: string
+      sellerName: string | null
+      sellerMotivation: string
+      remainingOverhang: string
+      estimatedClearedAt: string | null
+      whyItMatters: string[]
+      evidenceNeeded: string[]
+    }
     parentOrSponsor: string | null
     sellerPressure: string
     lockupRisk: string
@@ -274,6 +283,12 @@ export type SpecialSituationWatch = {
     nextCheck: string[]
     whyNow: string[]
     whyNotNow: string[]
+    sellerPressureSummary?: {
+      sellerType: string
+      sellerName: string | null
+      remainingOverhang: string
+      topRisk: string | null
+    }
     listingInfo?: Omit<SpecialSituationListingInfo, 'ipoPrice' | 'firstPrice' | 'source' | 'sourceCheckedAt'>
   }>
   referenceEvents?: Array<{

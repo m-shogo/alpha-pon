@@ -88,6 +88,68 @@ carve-out / PE出口 / spin-off / lockup / cycle recovery などの**王道パ�
 
 ---
 
+## 売り手を見る理由 (`sellerPressureProfile`)
+
+特殊状況投資では、**買い手より先に売り手を見る**。
+
+良い会社が売られているのか、売り手の事情で売られているのか、事業悪化で売られているのかを分ける。
+
+### 見るべきこと
+
+- 誰が売っているか（`sellerType`）
+- なぜ売っているか（`sellerMotivation`）
+- まだ売り圧が残るか（`remainingOverhang`）
+- 売り圧がいつ通過しそうか（`estimatedClearedAt`）
+- 売り圧通過後に事業価値の評価へ移れるか
+
+### `sellerType` の意味
+
+| 値 | 意味 |
+|---|---|
+| `parent_company` | 親会社・旧親会社 |
+| `pe_fund` | PEファンド |
+| `government` | 政府・自治体 |
+| `founder` | 創業家 |
+| `strategic_holder` | 戦略的保有者 |
+| `multiple` | 複数の売り手 |
+| `none` | 特定の売り手なし（大型株等） |
+| `unknown` | 不明 |
+
+### `sellerMotivation` の意味
+
+| 値 | 意味 |
+|---|---|
+| `fund_exit` | ファンドの出口 |
+| `debt_reduction` | 借入返済 |
+| `policy_sale` | 政策的売却 |
+| `portfolio_rebalance` | ポートフォリオ組み替え |
+| `business_reorganization` | 事業再編 |
+| `business_deterioration` | 事業悪化（要注意） |
+| `liquidity_event` | 流動性イベント |
+| `none` | 売り手なし |
+| `unknown` | 不明 |
+
+### `remainingOverhang` と通知ルール
+
+| 値 | 通知 |
+|---|---|
+| `cleared` | 通知候補になり得る |
+| `low` | 通知候補になり得る |
+| `medium` | 慎重。TOP表示のみ推奨 |
+| `high` | **通知禁止。TOP監視のみ** |
+| `unknown` | 不明。証拠確認を優先 |
+
+`remainingOverhang: high` の候補は自動的に `notificationEligible: false` になる。
+
+### 注意
+
+- PE出口は悪ではないが、売り圧と負債を必ず見る
+- 政府売却は安定性と残売却圧力を分ける
+- 親会社売却は資本政策なのか事業悪化なのかを分ける
+- `business_deterioration` は最も危険。買い視点から外すべき
+
+---
+
 ## `whyNow` / `whyNotNow` — 今見る理由・今待つ理由
 
 ### なぜこの2項目が必要か
