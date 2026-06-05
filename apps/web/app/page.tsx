@@ -325,6 +325,18 @@ export default function HomePage() {
                       {(item.whyNotNow ?? []).slice(0, 2).join(' / ')}
                     </div>
                   )}
+                  {/* テーマ適合要約 */}
+                  {item.themeCompanyFitSummary && (
+                    <div style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 4 }}>
+                      <span style={{ fontWeight: 700 }}>テーマ適合: </span>
+                      {item.themeCompanyFitSummary.themeLabel} / {item.themeCompanyFitSummary.selectedCompanyFit}
+                      {(item.themeCompanyFitSummary.betterCompanyCodes ?? []).length > 0 && (
+                        <span style={{ marginLeft: 6 }}>
+                          比較候補: {item.themeCompanyFitSummary.betterCompanyCodes.slice(0, 2).join(' / ')}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   {/* 売り圧要約 */}
                   {item.sellerPressureSummary && item.sellerPressureSummary.remainingOverhang !== 'low' && (
                     <div style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 4 }}>

@@ -249,6 +249,22 @@ export type SpecialSituationWatch = {
       whyItMatters: string[]
       evidenceNeeded: string[]
     }
+    themeCompanyFitReview?: {
+      themeId: string
+      themeLabel: string
+      themeWasRight: string
+      selectedCompanyFit: string
+      fitSummary: string
+      whyThemeMayBeRight: string[]
+      whyCompanyMayBeWrong: string[]
+      betterCompanyCandidates: Array<{
+        code: string
+        name: string
+        reason: string
+        relation: string
+      }>
+      evidenceNeeded: string[]
+    }
     parentOrSponsor: string | null
     sellerPressure: string
     lockupRisk: string
@@ -288,6 +304,12 @@ export type SpecialSituationWatch = {
       sellerName: string | null
       remainingOverhang: string
       topRisk: string | null
+    }
+    themeCompanyFitSummary?: {
+      themeLabel: string
+      selectedCompanyFit: string
+      fitSummary: string
+      betterCompanyCodes: string[]
     }
     listingInfo?: Omit<SpecialSituationListingInfo, 'ipoPrice' | 'firstPrice' | 'source' | 'sourceCheckedAt'>
   }>

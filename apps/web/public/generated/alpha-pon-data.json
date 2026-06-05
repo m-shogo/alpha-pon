@@ -5489,6 +5489,41 @@
             "出来高を伴う売り圧通過"
           ]
         },
+        "themeCompanyFitReview": {
+          "themeId": "ai_storage",
+          "themeLabel": "AIストレージ / NAND / eSSD",
+          "themeWasRight": "too_early",
+          "selectedCompanyFit": "medium",
+          "fitSummary": "AIデータセンター投資がNAND/eSSD需要まで届くなら候補。ただしAI半導体テーマの本命がGPU/HBM/検査装置側に寄る可能性がある。",
+          "whyThemeMayBeRight": [
+            "AI推論・データ蓄積でストレージ需要が増える可能性",
+            "eSSD需要がNAND市況改善に接続する可能性"
+          ],
+          "whyCompanyMayBeWrong": [
+            "AI投資の直接恩恵はGPU/HBM/検査装置側に出やすい",
+            "NAND市況が改善しても設備投資負担とFCF改善が遅れる可能性",
+            "PE出口売りがテーマ評価を打ち消す可能性"
+          ],
+          "betterCompanyCandidates": [
+            {
+              "code": "6857",
+              "name": "アドバンテスト",
+              "reason": "AI半導体検査需要への接続がより直接的",
+              "relation": "more_direct_beneficiary"
+            },
+            {
+              "code": "8035",
+              "name": "東京エレクトロン",
+              "reason": "半導体製造装置サイクルへの接続が明確",
+              "relation": "better_liquidity"
+            }
+          ],
+          "evidenceNeeded": [
+            "NAND価格とeSSD需要",
+            "AI向けSSD需要が決算に出ているか",
+            "他の半導体関連銘柄とのTOPIX比較"
+          ]
+        },
         "lockupRisk": "high",
         "debtRisk": "medium",
         "capexRisk": "high",
@@ -5580,6 +5615,33 @@
             "大株主残保有比率",
             "追加売却有無",
             "売出し後の出来高価格帯"
+          ]
+        },
+        "themeCompanyFitReview": {
+          "themeId": "ai_custom_soc",
+          "themeLabel": "AIカスタムSoC / 車載半導体",
+          "themeWasRight": "too_early",
+          "selectedCompanyFit": "medium",
+          "fitSummary": "富士通/パナソニックからのカーブアウトで、AI/車載SoCの実需接続が確認できれば候補。ただし大株主売却と市況依存が障害。",
+          "whyThemeMayBeRight": [
+            "AIエッジ・車載向けカスタムSoCの需要が拡大する可能性"
+          ],
+          "whyCompanyMayBeWrong": [
+            "AI/車載テーマの直接恩恵はTSMC/NVIDIA側が先行しやすい",
+            "大株主売却中は需給がテーマ評価を上回る可能性"
+          ],
+          "betterCompanyCandidates": [
+            {
+              "code": "8035",
+              "name": "東京エレクトロン",
+              "reason": "半導体製造装置サイクルへの接続が明確で流動性が高い",
+              "relation": "better_liquidity"
+            }
+          ],
+          "evidenceNeeded": [
+            "AI/車載SoC受注の決算実績",
+            "大株主残保有比率",
+            "粗利率の改善"
           ]
         },
         "lockupRisk": "medium",
@@ -5688,6 +5750,33 @@
             "ロックアップ解除後の出来高"
           ]
         },
+        "themeCompanyFitReview": {
+          "themeId": "semiconductor_equipment",
+          "themeLabel": "半導体製造装置 / WFEサイクル",
+          "themeWasRight": "too_early",
+          "selectedCompanyFit": "medium",
+          "fitSummary": "WFE市況回復テーマへの接続は明確だが、PE出口売りとサイクルタイミングの不透明感がある。",
+          "whyThemeMayBeRight": [
+            "AI半導体の設備投資継続によりWFE需要が回復する可能性"
+          ],
+          "whyCompanyMayBeWrong": [
+            "KKR追加売出しが市況回復の評価を打ち消す可能性",
+            "TEL等の大型装置メーカーと比べると流動性が低い"
+          ],
+          "betterCompanyCandidates": [
+            {
+              "code": "8035",
+              "name": "東京エレクトロン",
+              "reason": "WFE市況への接続が直接的で流動性が高い",
+              "relation": "better_liquidity"
+            }
+          ],
+          "evidenceNeeded": [
+            "WFE受注残",
+            "KKR残保有比率",
+            "装置サイクルのタイミング"
+          ]
+        },
         "lockupRisk": "medium",
         "debtRisk": "low",
         "capexRisk": "low",
@@ -5784,6 +5873,26 @@
             "配当方針"
           ]
         },
+        "themeCompanyFitReview": {
+          "themeId": "privatization",
+          "themeLabel": "民営化 / インフラ配当",
+          "themeWasRight": "mixed",
+          "selectedCompanyFit": "strong",
+          "fitSummary": "民営化テーマと配当安定性への接続は強い。ただし成長期待ではなく安定性の評価で、残持分売却圧力が続く。",
+          "whyThemeMayBeRight": [
+            "民営化後の配当性向明示化と安定収益"
+          ],
+          "whyCompanyMayBeWrong": [
+            "成長テーマではなく、高値評価は期待先行になりやすい",
+            "残持分売却需給が評価の上値を抑える可能性"
+          ],
+          "betterCompanyCandidates": [],
+          "evidenceNeeded": [
+            "配当性向",
+            "残持分売却スケジュール",
+            "初値プレミアムの沈静化"
+          ]
+        },
         "lockupRisk": "medium",
         "debtRisk": "low",
         "capexRisk": "medium",
@@ -5858,6 +5967,40 @@
             "新株発行・資金調達",
             "主要株主の異動",
             "ミッション成功と売上化"
+          ]
+        },
+        "themeCompanyFitReview": {
+          "themeId": "space_connectivity",
+          "themeLabel": "宇宙 / 衛星 / SpaceX波及",
+          "themeWasRight": "too_early",
+          "selectedCompanyFit": "weak",
+          "fitSummary": "宇宙テーマへの関心はあるが、SpaceX/Starlink波及の直接恩恵銘柄とは言いにくい。ミッション成功・売上化・資金調達リスクを先に確認。",
+          "whyThemeMayBeRight": [
+            "宇宙・衛星通信・防衛通信テーマは長期的に拡大余地がある"
+          ],
+          "whyCompanyMayBeWrong": [
+            "SpaceX/Starlinkの成長がispaceの売上に直接届くとは限らない",
+            "希薄化リスクとミッションリスクが大きい"
+          ],
+          "betterCompanyCandidates": [
+            {
+              "code": "7011",
+              "name": "三菱重工業",
+              "reason": "防衛・宇宙・打上げ関連で実需との接続が比較的明確",
+              "relation": "more_direct_beneficiary"
+            },
+            {
+              "code": "5803",
+              "name": "フジクラ",
+              "reason": "衛星通信よりデータセンター/光通信インフラの実需接続が強い",
+              "relation": "better_margin_exposure"
+            }
+          ],
+          "evidenceNeeded": [
+            "ispaceの売上化",
+            "ミッション成功率",
+            "資金調達と希薄化",
+            "宇宙テーマ内の実需比較"
           ]
         },
         "lockupRisk": "unknown",
@@ -5939,6 +6082,26 @@
             "受注残推移"
           ]
         },
+        "themeCompanyFitReview": {
+          "themeId": "space_defense",
+          "themeLabel": "宇宙・防衛",
+          "themeWasRight": "mixed",
+          "selectedCompanyFit": "strong",
+          "fitSummary": "宇宙・防衛テーマへの接続は強い。ただし既に織り込みが進んでいる可能性があり、今からの期待値は別問題。",
+          "whyThemeMayBeRight": [
+            "防衛・宇宙・重工インフラの実需がある"
+          ],
+          "whyCompanyMayBeWrong": [
+            "大型株でテーマが既に価格に反映されている可能性",
+            "SpaceX上場そのものの直接恩恵とは違う"
+          ],
+          "betterCompanyCandidates": [],
+          "evidenceNeeded": [
+            "防衛・宇宙セグメント利益率",
+            "受注残",
+            "TOPIX比"
+          ]
+        },
         "lockupRisk": "low",
         "debtRisk": "medium",
         "capexRisk": "medium",
@@ -6004,6 +6167,26 @@
           "whyItMatters": [],
           "evidenceNeeded": [
             "WFE受注残",
+            "バリュエーション水準"
+          ]
+        },
+        "themeCompanyFitReview": {
+          "themeId": "semiconductor_equipment",
+          "themeLabel": "半導体製造装置 / WFEサイクル",
+          "themeWasRight": "too_early",
+          "selectedCompanyFit": "strong",
+          "fitSummary": "WFE市況回復テーマへの接続は最も直接的。ただし大型株で既に価格に反映されている可能性が高い。",
+          "whyThemeMayBeRight": [
+            "AI半導体の設備投資継続によりWFE受注が増える可能性"
+          ],
+          "whyCompanyMayBeWrong": [
+            "テーマが既に株価に折り込まれている可能性",
+            "WFE市況の次の減速サイクルを見込む必要がある"
+          ],
+          "betterCompanyCandidates": [],
+          "evidenceNeeded": [
+            "WFE受注残",
+            "AI向け装置比率",
             "バリュエーション水準"
           ]
         },
@@ -6075,6 +6258,25 @@
             "バリュエーション水準"
           ]
         },
+        "themeCompanyFitReview": {
+          "themeId": "ai_chip_testing",
+          "themeLabel": "AIチップ検査 / HBM / 加速器",
+          "themeWasRight": "too_early",
+          "selectedCompanyFit": "strong",
+          "fitSummary": "AI半導体検査需要への接続は直接的。ただし大型株でバリュエーションに既に折り込まれている可能性がある。",
+          "whyThemeMayBeRight": [
+            "HBM・AI加速器の出荷増が検査装置需要を押し上げる可能性"
+          ],
+          "whyCompanyMayBeWrong": [
+            "AI半導体テーマが既に株価に先行している可能性"
+          ],
+          "betterCompanyCandidates": [],
+          "evidenceNeeded": [
+            "HBM検査受注残",
+            "受注単価・粗利率",
+            "バリュエーション水準"
+          ]
+        },
         "lockupRisk": "low",
         "debtRisk": "low",
         "capexRisk": "low",
@@ -6140,6 +6342,33 @@
           "whyItMatters": [],
           "evidenceNeeded": [
             "光ファイバ受注継続",
+            "バリュエーション沈静化"
+          ]
+        },
+        "themeCompanyFitReview": {
+          "themeId": "datacenter_optics",
+          "themeLabel": "データセンター光通信 / 光ファイバ",
+          "themeWasRight": "too_early",
+          "selectedCompanyFit": "medium",
+          "fitSummary": "データセンター光通信テーマへの接続はある。ただし既に価格に反映されている可能性が高く、受注継続の証拠確認が先。",
+          "whyThemeMayBeRight": [
+            "AIデータセンターの光ファイバ需要が継続・拡大する可能性"
+          ],
+          "whyCompanyMayBeWrong": [
+            "テーマが既に株価に反映されている可能性",
+            "設備投資増による収益圧迫リスク"
+          ],
+          "betterCompanyCandidates": [
+            {
+              "code": "5802",
+              "name": "住友電気工業",
+              "reason": "光通信・電力網・多角化の総合的な受注確認が同時にできる",
+              "relation": "less_overhang"
+            }
+          ],
+          "evidenceNeeded": [
+            "光ファイバ受注継続",
+            "データセンター案件比率",
             "バリュエーション沈静化"
           ]
         },
@@ -6211,6 +6440,33 @@
             "自動車部品市況"
           ]
         },
+        "themeCompanyFitReview": {
+          "themeId": "power_grid_optics",
+          "themeLabel": "電力網 / 光通信 / 多角化インフラ",
+          "themeWasRight": "too_early",
+          "selectedCompanyFit": "medium",
+          "fitSummary": "電力網・光通信の両テーマへの接続はあるが、多角化事業の収益性バラつきで全体評価が難しい状況。",
+          "whyThemeMayBeRight": [
+            "電力網・光通信インフラの両方に実需がある"
+          ],
+          "whyCompanyMayBeWrong": [
+            "多角化による事業評価の難しさ",
+            "自動車部品市況の不透明感が収益の足を引く可能性"
+          ],
+          "betterCompanyCandidates": [
+            {
+              "code": "5803",
+              "name": "フジクラ",
+              "reason": "光通信・データセンター特化でテーマへの接続がより集中",
+              "relation": "more_direct_beneficiary"
+            }
+          ],
+          "evidenceNeeded": [
+            "電力網セグメント受注",
+            "光通信案件比率",
+            "自動車部品市況"
+          ]
+        },
         "lockupRisk": "low",
         "debtRisk": "medium",
         "capexRisk": "medium",
@@ -6263,6 +6519,15 @@
           "remainingOverhang": "high",
           "topRisk": "PE出口売りと旧親会社由来の売り圧が株価評価を重くする可能性"
         },
+        "themeCompanyFitSummary": {
+          "themeLabel": "AIストレージ / NAND / eSSD",
+          "selectedCompanyFit": "medium",
+          "fitSummary": "AIデータセンター投資がNAND/eSSD需要まで届くなら候補。ただしAI半導体テーマの本命がGPU/HBM/検査装置側に寄る可能性がある。",
+          "betterCompanyCodes": [
+            "6857",
+            "8035"
+          ]
+        },
         "listingInfo": {
           "listedAt": "2024-12-18",
           "plannedListingAt": null,
@@ -6305,6 +6570,14 @@
           "sellerName": "富士通 / 旧パナソニック系 / DBJ等",
           "remainingOverhang": "medium",
           "topRisk": "大株主売却後の需給改善が評価に影響しやすい"
+        },
+        "themeCompanyFitSummary": {
+          "themeLabel": "AIカスタムSoC / 車載半導体",
+          "selectedCompanyFit": "medium",
+          "fitSummary": "富士通/パナソニックからのカーブアウトで、AI/車載SoCの実需接続が確認できれば候補。ただし大株主売却と市況依存が障害。",
+          "betterCompanyCodes": [
+            "8035"
+          ]
         },
         "listingInfo": {
           "listedAt": "2022-10-12",
@@ -6349,6 +6622,14 @@
           "remainingOverhang": "medium",
           "topRisk": "PE残保有と追加売出しが株価需給に影響する可能性"
         },
+        "themeCompanyFitSummary": {
+          "themeLabel": "半導体製造装置 / WFEサイクル",
+          "selectedCompanyFit": "medium",
+          "fitSummary": "WFE市況回復テーマへの接続は明確だが、PE出口売りとサイクルタイミングの不透明感がある。",
+          "betterCompanyCodes": [
+            "8035"
+          ]
+        },
         "listingInfo": {
           "listedAt": "2023-10-25",
           "plannedListingAt": null,
@@ -6392,6 +6673,12 @@
           "remainingOverhang": "medium",
           "topRisk": "政府・東京都の残持分売却が需給に影響する可能性"
         },
+        "themeCompanyFitSummary": {
+          "themeLabel": "民営化 / インフラ配当",
+          "selectedCompanyFit": "strong",
+          "fitSummary": "民営化テーマと配当安定性への接続は強い。ただし成長期待ではなく安定性の評価で、残持分売却圧力が続く。",
+          "betterCompanyCodes": []
+        },
         "listingInfo": {
           "listedAt": "2024-10-23",
           "plannedListingAt": null,
@@ -6427,7 +6714,15 @@
         "whyNotNow": [
           "多角化事業の収益性バラつきが大きく全体評価が難しい",
           "自動車部品市況の不透明感が残る"
-        ]
+        ],
+        "themeCompanyFitSummary": {
+          "themeLabel": "電力網 / 光通信 / 多角化インフラ",
+          "selectedCompanyFit": "medium",
+          "fitSummary": "電力網・光通信の両テーマへの接続はあるが、多角化事業の収益性バラつきで全体評価が難しい状況。",
+          "betterCompanyCodes": [
+            "5803"
+          ]
+        }
       }
     ],
     "referenceEvents": [
@@ -11833,7 +12128,7 @@
   },
   "proDataMeta": {
     "source": "pro-ui-data-addon",
-    "generatedAt": "2026-06-05T07:11:14.698Z",
+    "generatedAt": "2026-06-05T07:30:54.452Z",
     "missing": []
   }
 }

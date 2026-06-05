@@ -61,6 +61,12 @@ const ALLOWED_SELLER_MOTIVATIONS = new Set([
   "none", "unknown",
 ]);
 const ALLOWED_REMAINING_OVERHANG = new Set(["cleared", "low", "medium", "high", "unknown"]);
+const ALLOWED_THEME_WAS_RIGHT = new Set(["unknown", "too_early", "right", "wrong", "mixed"]);
+const ALLOWED_SELECTED_COMPANY_FIT = new Set(["unknown", "too_early", "strong", "medium", "weak", "wrong_company"]);
+const ALLOWED_BETTER_COMPANY_RELATION = new Set([
+  "more_direct_beneficiary", "better_margin_exposure", "less_overhang",
+  "better_liquidity", "already_priced_in", "unknown",
+]);
 
 for (const c of reportData.candidates as Array<Record<string, unknown>>) {
   assert(typeof c.code === "string" && c.code.length > 0, "candidate.code が必要");
@@ -98,6 +104,32 @@ for (const c of reportData.candidates as Array<Record<string, unknown>>) {
       `候補 ${c.code}: remainingOverhang=high の場合 notificationEligible=true は禁止`
     );
   }
+  // themeCompanyFitReview の検証
+  const fit = c.themeCompanyFitReview as Record<string, unknown> | undefined;
+  assert(fit !== undefined && typeof fit === "object", `候補 ${c.code}: themeCompanyFitReview が必要`);
+  assert(ALLOWED_THEME_WAS_RIGHT.has(fit.themeWasRight as string), `候補 ${c.code}: 不正な themeWasRight: ${fit.themeWasRight}`);
+  assert(ALLOWED_SELECTED_COMPANY_FIT.has(fit.selectedCompanyFit as string), `候補 ${c.code}: 不正な selectedCompanyFit: ${fit.selectedCompanyFit}`);
+  assert(Array.isArray(fit.whyThemeMayBeRight), `候補 ${c.code}: whyThemeMayBeRight は配列`);
+  assert(Array.isArray(fit.whyCompanyMayBeWrong), `候補 ${c.code}: whyCompanyMayBeWrong は配列`);
+  assert(Array.isArray(fit.betterCompanyCandidates), `候補 ${c.code}: betterCompanyCandidates は配列`);
+  for (const b of fit.betterCompanyCandidates as Array<Record<string, unknown>>) {
+    assert(ALLOWED_BETTER_COMPANY_RELATION.has(b.relation as string), `候補 ${c.code}: 不正な betterCompany.relation: ${b.relation}`);
+  }
+  // selectedCompanyFit weak/wrong_company かつ notificationEligible true は禁止
+  if (fit.selectedCompanyFit === "weak" || fit.selectedCompanyFit === "wrong_company") {
+    assert(c.notificationEligible !== true,
+      `候補 ${c.code}: selectedCompanyFit=${fit.selectedCompanyFit} の場合 notificationEligible=true は禁止`);
+  }
+  // themeWasRight wrong かつ notificationEligible true は禁止
+  if (fit.themeWasRight === "wrong") {
+    assert(c.notificationEligible !== true,
+      `候補 ${c.code}: themeWasRight=wrong の場合 notificationEligible=true は禁止`);
+  }
+  // themeWasRight too_early かつ chanceLevel high は notificationEligible false
+  if (fit.themeWasRight === "too_early" && c.chanceLevel === "high") {
+    assert(c.notificationEligible !== true,
+      `候補 ${c.code}: themeWasRight=too_early かつ chanceLevel=high は notificationEligible=false が必要`);
+  }
 }
 
 // listingInfo に上場日/予定日/ロックアップ/初回決算 を持てる構造があるか
@@ -122,6 +154,12 @@ for (const item of reportData.topChanceList as Array<Record<string, unknown>>) {
     const sps = item.sellerPressureSummary as Record<string, unknown>;
     assert(typeof sps.sellerType === "string", `topChanceList ${item.code}: sellerPressureSummary.sellerType は string`);
     assert(ALLOWED_REMAINING_OVERHANG.has(sps.remainingOverhang as string), `topChanceList ${item.code}: 不正な remainingOverhang: ${sps.remainingOverhang}`);
+  }
+  if (item.themeCompanyFitSummary !== undefined && item.themeCompanyFitSummary !== null) {
+    const tfs = item.themeCompanyFitSummary as Record<string, unknown>;
+    assert(typeof tfs.themeLabel === "string", `topChanceList ${item.code}: themeCompanyFitSummary.themeLabel は string`);
+    assert(ALLOWED_SELECTED_COMPANY_FIT.has(tfs.selectedCompanyFit as string), `topChanceList ${item.code}: 不正な selectedCompanyFit: ${tfs.selectedCompanyFit}`);
+    assert(Array.isArray(tfs.betterCompanyCodes), `topChanceList ${item.code}: betterCompanyCodes は配列`);
   }
 }
 

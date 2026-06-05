@@ -76,6 +76,39 @@ type SellerMotivation = typeof ALLOWED_SELLER_MOTIVATIONS[number];
 const ALLOWED_REMAINING_OVERHANG = ["cleared", "low", "medium", "high", "unknown"] as const;
 type RemainingOverhang = typeof ALLOWED_REMAINING_OVERHANG[number];
 
+const ALLOWED_THEME_WAS_RIGHT = ["unknown", "too_early", "right", "wrong", "mixed"] as const;
+type ThemeWasRight = typeof ALLOWED_THEME_WAS_RIGHT[number];
+
+const ALLOWED_SELECTED_COMPANY_FIT = ["unknown", "too_early", "strong", "medium", "weak", "wrong_company"] as const;
+type SelectedCompanyFit = typeof ALLOWED_SELECTED_COMPANY_FIT[number];
+
+const ALLOWED_BETTER_COMPANY_RELATION = [
+  "more_direct_beneficiary",
+  "better_margin_exposure",
+  "less_overhang",
+  "better_liquidity",
+  "already_priced_in",
+  "unknown",
+] as const;
+type BetterCompanyRelation = typeof ALLOWED_BETTER_COMPANY_RELATION[number];
+
+type ThemeCompanyFitReview = {
+  themeId: string;
+  themeLabel: string;
+  themeWasRight: ThemeWasRight;
+  selectedCompanyFit: SelectedCompanyFit;
+  fitSummary: string;
+  whyThemeMayBeRight: string[];
+  whyCompanyMayBeWrong: string[];
+  betterCompanyCandidates: Array<{
+    code: string;
+    name: string;
+    reason: string;
+    relation: BetterCompanyRelation;
+  }>;
+  evidenceNeeded: string[];
+};
+
 type SellerPressureProfile = {
   sellerType: SellerType;
   sellerName: string | null;
@@ -128,6 +161,14 @@ type CandidateConfig = {
   /** なぜ今はまだ待つのか */
   whyNotNow?: string[];
   sellerPressureProfile?: Partial<SellerPressureProfile>;
+  themeCompanyFitReview?: Partial<ThemeCompanyFitReview> & {
+    betterCompanyCandidates?: Array<{
+      code: string;
+      name: string;
+      reason: string;
+      relation?: string;
+    }>;
+  };
   listingInfo?: ListingInfoConfig;
   smallTicket?: {
     price?: number | null;
@@ -225,6 +266,7 @@ type SpecialSituationCandidate = {
     caution: string[];
   };
 
+  themeCompanyFitReview: ThemeCompanyFitReview;
   outcomeStats?: OutcomeStats;
 };
 
@@ -246,6 +288,12 @@ type TopChanceItem = {
     sellerName: string | null;
     remainingOverhang: string;
     topRisk: string | null;
+  };
+  themeCompanyFitSummary?: {
+    themeLabel: string;
+    selectedCompanyFit: string;
+    fitSummary: string;
+    betterCompanyCodes: string[];
   };
   listingInfo?: {
     listedAt?: string | null;
@@ -391,6 +439,33 @@ function buildCandidate(
     evidenceNeeded: rawSpp.evidenceNeeded ?? [],
   };
 
+  // themeCompanyFitReview 組み立て
+  const rawFit = config.themeCompanyFitReview ?? {};
+  const themeWasRight = (ALLOWED_THEME_WAS_RIGHT as readonly string[]).includes(rawFit.themeWasRight ?? "")
+    ? rawFit.themeWasRight as ThemeWasRight
+    : "unknown";
+  const selectedCompanyFit = (ALLOWED_SELECTED_COMPANY_FIT as readonly string[]).includes(rawFit.selectedCompanyFit ?? "")
+    ? rawFit.selectedCompanyFit as SelectedCompanyFit
+    : "unknown";
+  const themeCompanyFitReview: ThemeCompanyFitReview = {
+    themeId: rawFit.themeId ?? "",
+    themeLabel: rawFit.themeLabel ?? "",
+    themeWasRight,
+    selectedCompanyFit,
+    fitSummary: rawFit.fitSummary ?? "",
+    whyThemeMayBeRight: rawFit.whyThemeMayBeRight ?? [],
+    whyCompanyMayBeWrong: rawFit.whyCompanyMayBeWrong ?? [],
+    betterCompanyCandidates: (rawFit.betterCompanyCandidates ?? []).map(c => ({
+      code: c.code,
+      name: c.name,
+      reason: c.reason,
+      relation: (ALLOWED_BETTER_COMPANY_RELATION as readonly string[]).includes(c.relation ?? "")
+        ? c.relation as BetterCompanyRelation
+        : "unknown",
+    })),
+    evidenceNeeded: rawFit.evidenceNeeded ?? [],
+  };
+
   // 通知資格判定
   // - finalLabel が チャンス候補/調査優先候補
   // - chanceLevel が attention/high
@@ -399,10 +474,18 @@ function buildCandidate(
   // - whyNotNow が空でない（今待つ理由なしで通知しない）
   // - sampleTooSmall=true は強い通知にしない
   // - remainingOverhang high は通知しない（TOP監視のみ）
+  // - selectedCompanyFit が weak/wrong_company は通知しない
+  // - themeWasRight が wrong は通知しない
+  // - themeWasRight が too_early は high 通知しない
   const eligibleLabels: readonly FinalLabel[] = ["チャンス候補", "調査優先候補"];
   const eligibleLevels: readonly ChanceLevel[] = ["attention", "high"];
   const whyNow = config.whyNow ?? [];
   const whyNotNow = config.whyNotNow ?? [];
+  const fitBlocksNotification =
+    selectedCompanyFit === "weak" ||
+    selectedCompanyFit === "wrong_company" ||
+    themeWasRight === "wrong" ||
+    (themeWasRight === "too_early" && config.chanceLevel === "high");
   const notificationEligible =
     eligibleLabels.includes(config.finalLabel) &&
     eligibleLevels.includes(config.chanceLevel) &&
@@ -410,7 +493,8 @@ function buildCandidate(
     evidenceNeeded.length > 0 &&
     whyNotNow.length > 0 &&
     remainingOverhang !== "high" &&
-    !stats.sampleTooSmall;
+    !stats.sampleTooSmall &&
+    !fitBlocksNotification;
 
   const listingInfo = config.listingInfo
     ? {
@@ -456,6 +540,7 @@ function buildCandidate(
     parentOrSponsor: config.parentOrSponsor ?? null,
     sellerPressure: fallbackRisk(config.sellerPressure),
     sellerPressureProfile,
+    themeCompanyFitReview,
     lockupRisk: fallbackRisk(config.lockupRisk),
     debtRisk: fallbackRisk(config.debtRisk),
     capexRisk: fallbackRisk(config.capexRisk),
@@ -505,6 +590,14 @@ function buildTopChanceList(candidates: SpecialSituationCandidate[]): TopChanceI
             sellerName: c.sellerPressureProfile.sellerName,
             remainingOverhang: c.sellerPressureProfile.remainingOverhang,
             topRisk: c.sellerPressureProfile.whyItMatters[0] ?? null,
+          }
+        : undefined,
+      themeCompanyFitSummary: c.themeCompanyFitReview.themeLabel
+        ? {
+            themeLabel: c.themeCompanyFitReview.themeLabel,
+            selectedCompanyFit: c.themeCompanyFitReview.selectedCompanyFit,
+            fitSummary: c.themeCompanyFitReview.fitSummary,
+            betterCompanyCodes: c.themeCompanyFitReview.betterCompanyCandidates.slice(0, 2).map(b => b.code),
           }
         : undefined,
       listingInfo: c.listingInfo
@@ -619,6 +712,13 @@ function renderMarkdown(report: SpecialSituationWatchReport): string {
         const sps = item.sellerPressureSummary;
         lines.push(`- 売り圧: ${sps.sellerName ?? sps.sellerType} / ${sps.remainingOverhang}`);
       }
+      if (item.themeCompanyFitSummary) {
+        const fit = item.themeCompanyFitSummary;
+        lines.push(`- テーマ適合: ${fit.themeLabel} / ${fit.selectedCompanyFit}`);
+        if (fit.betterCompanyCodes.length > 0) {
+          lines.push(`- 比較候補: ${fit.betterCompanyCodes.join(" / ")}`);
+        }
+      }
       if (item.nextCheck.length > 0) {
         lines.push("- 次に確認すること:");
         for (const r of item.nextCheck) lines.push(`  - ${r}`);
@@ -671,6 +771,37 @@ function renderMarkdown(report: SpecialSituationWatchReport): string {
     lines.push(`| ${c.code} | ${c.name} | ${c.finalLabel} | ${c.chanceLevel} | ${c.watchPhase} | ${c.parentOrSponsor ?? "-"} | ${c.sellerPressure} | ${c.lockupRisk} | ${c.debtRisk} | ${c.capexRisk} | ${c.cycleRisk} | ${c.dilutionRisk} | ${sample} | ${notice} |`);
   }
   lines.push("");
+
+  // themeCompanyFitReview 詳細
+  lines.push("## テーマと銘柄の適合レビュー (themeCompanyFitReview)", "");
+  for (const c of report.candidates) {
+    const fit = c.themeCompanyFitReview;
+    if (!fit.themeLabel) continue;
+    lines.push(`### ${c.code} ${c.name}`);
+    lines.push(`- テーマ: ${fit.themeLabel}`);
+    lines.push(`- テーマ判定: ${fit.themeWasRight}`);
+    lines.push(`- 銘柄適合: ${fit.selectedCompanyFit}`);
+    if (fit.fitSummary) lines.push(`- 要約: ${fit.fitSummary}`);
+    if (fit.whyThemeMayBeRight.length > 0) {
+      lines.push("- テーマが当たりそうな理由:");
+      for (const r of fit.whyThemeMayBeRight) lines.push(`  - ${r}`);
+    }
+    if (fit.whyCompanyMayBeWrong.length > 0) {
+      lines.push("- 銘柄が違うかもしれない理由:");
+      for (const r of fit.whyCompanyMayBeWrong) lines.push(`  - ${r}`);
+    }
+    if (fit.betterCompanyCandidates.length > 0) {
+      lines.push("- 比較候補:");
+      for (const b of fit.betterCompanyCandidates) {
+        lines.push(`  - ${b.code} ${b.name}: ${b.reason} [${b.relation}]`);
+      }
+    }
+    if (fit.evidenceNeeded.length > 0) {
+      lines.push("- 確認する証拠:");
+      for (const r of fit.evidenceNeeded) lines.push(`  - ${r}`);
+    }
+    lines.push("");
+  }
 
   // sellerPressureProfile 詳細
   lines.push("## 売り手プロファイル (sellerPressureProfile)", "");

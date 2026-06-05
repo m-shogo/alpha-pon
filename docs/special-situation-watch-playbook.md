@@ -88,6 +88,48 @@ carve-out / PE出口 / spin-off / lockup / cycle recovery などの**王道パ�
 
 ---
 
+## テーマは当たり、銘柄は外れる問題 (`themeCompanyFitReview`)
+
+AI・宇宙・半導体・データセンターなどのテーマが正しくても、選んだ銘柄が一番恩恵を受けるとは限らない。
+
+### 見るべきこと
+
+- テーマ自体は正しいか（`themeWasRight`）
+- その銘柄にテーマの利益が届くか（`selectedCompanyFit`）
+- より直接恩恵を受ける比較候補はないか（`betterCompanyCandidates`）
+- 選んだ銘柄は売り圧・財務・希薄化でテーマ恩恵を打ち消されないか
+- テーマは当たったが銘柄は外れた、を後で記録する
+
+### `selectedCompanyFit` の意味と通知ルール
+
+| 値 | 意味 | 通知 |
+|---|---|---|
+| `strong` | テーマへの接続が最も直接的 | 通知候補になり得る |
+| `medium` | テーマへの接続はあるが間接的 | TOP表示のみ |
+| `weak` | テーマへの接続が薄い | **通知禁止** |
+| `wrong_company` | テーマと無関係に選んでいる | **通知禁止** |
+| `too_early` | 接続はあるが時期が早い | TOP表示のみ |
+| `unknown` | 判断できない | TOP表示のみ |
+
+### `themeWasRight` の意味と通知ルール
+
+| 値 | 意味 | 通知 |
+|---|---|---|
+| `right` | テーマが当たっている | 通知候補になり得る |
+| `mixed` | 一部当たり、一部外れ | TOP表示のみ |
+| `too_early` | テーマは正しいが時期が早い | `high` 通知は禁止 |
+| `wrong` | テーマ自体が外れた | **通知禁止** |
+| `unknown` | 判断できない | TOP表示のみ |
+
+### 注意
+
+- テーマが正しい = その銘柄が正しい、ではない
+- 比較候補を必ず出す（`betterCompanyCandidates`）
+- `selectedCompanyFit: weak/wrong_company` の候補は通知しない
+- 後から「テーマは当たったが銘柄は外れた」を記録することで学習できる
+
+---
+
 ## 売り手を見る理由 (`sellerPressureProfile`)
 
 特殊状況投資では、**買い手より先に売り手を見る**。
