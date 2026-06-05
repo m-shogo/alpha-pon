@@ -306,6 +306,30 @@ type TopChanceItem = {
 
 type ReferenceEvent = ReferenceEventConfig;
 
+const ALLOWED_OUTCOME_GROUP_TYPES = [
+  "pattern",
+  "watchPhase",
+  "finalLabel",
+  "chanceLevel",
+  "sellerOverhang",
+  "themeWasRight",
+  "selectedCompanyFit",
+  "themeCompanyFit",
+] as const;
+type OutcomeGroupType = typeof ALLOWED_OUTCOME_GROUP_TYPES[number];
+
+type SpecialSituationOutcomeStats = {
+  groupType: OutcomeGroupType;
+  groupKey: string;
+  sampleSize: number;
+  sampleTooSmall: boolean;
+  hitRate: number | null;
+  avgReturn1w: number | null;
+  avgReturn1m: number | null;
+  avgTopixRelative1m: number | null;
+  note: string;
+};
+
 type SpecialSituationWatchReport = {
   generatedAt: string;
   defaultAction: string;
@@ -322,6 +346,7 @@ type SpecialSituationWatchReport = {
   candidates: SpecialSituationCandidate[];
   topChanceList: TopChanceItem[];
   referenceEvents: ReferenceEvent[];
+  outcomeStats: SpecialSituationOutcomeStats[];
 };
 
 // ─────────── ヘルパ ───────────
@@ -614,6 +639,114 @@ function buildTopChanceList(candidates: SpecialSituationCandidate[]): TopChanceI
 
 // ─────────── レポート生成 ───────────
 
+/** 候補のコード集合から outcomes を絞り込み、集計行を1件作る */
+function buildOneOutcomeStat(
+  groupType: OutcomeGroupType,
+  groupKey: string,
+  codes: string[],
+  outcomes: HypothesisOutcome[],
+  minSampleSize: number
+): SpecialSituationOutcomeStats {
+  const codeSet = new Set(codes);
+  const rows = outcomes.filter(o => codeSet.has(o.code));
+  const size = rows.length;
+  const tooSmall = size < minSampleSize;
+  const judged = rows.filter(r => r.result === "hit" || r.result === "miss");
+  const hitRateVal = judged.length === 0 ? null : judged.filter(r => r.result === "hit").length / judged.length;
+  const avgRet1w = avg(rows.map(r => r.return1w));
+  const avgRet1m = avg(rows.map(r => r.return1m));
+  const avgTopix = avg(rows.map(r => r.relativeToTopix1m));
+  const note = tooSmall
+    ? `サンプル不足(${size}件)。参考値のみ・強い判断に使わない。`
+    : `${size}件のアウトカムから集計。`;
+  return { groupType, groupKey, sampleSize: size, sampleTooSmall: tooSmall, hitRate: hitRateVal, avgReturn1w: avgRet1w, avgReturn1m: avgRet1m, avgTopixRelative1m: avgTopix, note };
+}
+
+function buildSpecialSituationOutcomeStats(
+  candidates: SpecialSituationCandidate[],
+  outcomes: HypothesisOutcome[],
+  minSampleSize: number
+): SpecialSituationOutcomeStats[] {
+  const stats: SpecialSituationOutcomeStats[] = [];
+
+  // pattern別
+  const patternMap = new Map<string, string[]>();
+  for (const c of candidates) {
+    for (const p of c.patterns) {
+      if (!patternMap.has(p)) patternMap.set(p, []);
+      patternMap.get(p)!.push(c.code);
+    }
+  }
+  for (const [key, codes] of patternMap) {
+    stats.push(buildOneOutcomeStat("pattern", key, codes, outcomes, minSampleSize));
+  }
+
+  // watchPhase別
+  const phaseMap = new Map<string, string[]>();
+  for (const c of candidates) {
+    if (!phaseMap.has(c.watchPhase)) phaseMap.set(c.watchPhase, []);
+    phaseMap.get(c.watchPhase)!.push(c.code);
+  }
+  for (const [key, codes] of phaseMap) {
+    stats.push(buildOneOutcomeStat("watchPhase", key, codes, outcomes, minSampleSize));
+  }
+
+  // finalLabel別
+  const labelMap = new Map<string, string[]>();
+  for (const c of candidates) {
+    if (!labelMap.has(c.finalLabel)) labelMap.set(c.finalLabel, []);
+    labelMap.get(c.finalLabel)!.push(c.code);
+  }
+  for (const [key, codes] of labelMap) {
+    stats.push(buildOneOutcomeStat("finalLabel", key, codes, outcomes, minSampleSize));
+  }
+
+  // chanceLevel別
+  const chanceMap = new Map<string, string[]>();
+  for (const c of candidates) {
+    if (!chanceMap.has(c.chanceLevel)) chanceMap.set(c.chanceLevel, []);
+    chanceMap.get(c.chanceLevel)!.push(c.code);
+  }
+  for (const [key, codes] of chanceMap) {
+    stats.push(buildOneOutcomeStat("chanceLevel", key, codes, outcomes, minSampleSize));
+  }
+
+  // sellerOverhang別
+  const overhangMap = new Map<string, string[]>();
+  for (const c of candidates) {
+    const key = c.sellerPressureProfile.remainingOverhang;
+    if (!overhangMap.has(key)) overhangMap.set(key, []);
+    overhangMap.get(key)!.push(c.code);
+  }
+  for (const [key, codes] of overhangMap) {
+    stats.push(buildOneOutcomeStat("sellerOverhang", key, codes, outcomes, minSampleSize));
+  }
+
+  // themeWasRight別
+  const themeRightMap = new Map<string, string[]>();
+  for (const c of candidates) {
+    const key = c.themeCompanyFitReview.themeWasRight;
+    if (!themeRightMap.has(key)) themeRightMap.set(key, []);
+    themeRightMap.get(key)!.push(c.code);
+  }
+  for (const [key, codes] of themeRightMap) {
+    stats.push(buildOneOutcomeStat("themeWasRight", key, codes, outcomes, minSampleSize));
+  }
+
+  // selectedCompanyFit別
+  const fitMap = new Map<string, string[]>();
+  for (const c of candidates) {
+    const key = c.themeCompanyFitReview.selectedCompanyFit;
+    if (!fitMap.has(key)) fitMap.set(key, []);
+    fitMap.get(key)!.push(c.code);
+  }
+  for (const [key, codes] of fitMap) {
+    stats.push(buildOneOutcomeStat("selectedCompanyFit", key, codes, outcomes, minSampleSize));
+  }
+
+  return stats;
+}
+
 function buildReport(config: SpecialSituationConfig): SpecialSituationWatchReport {
   const minSampleSize = config.outcomeStats?.minSampleSize ?? 5;
   const outcomes = readJsonl<HypothesisOutcome>("data/hypothesis_outcomes.jsonl");
@@ -653,6 +786,7 @@ function buildReport(config: SpecialSituationConfig): SpecialSituationWatchRepor
     candidates,
     topChanceList,
     referenceEvents,
+    outcomeStats: buildSpecialSituationOutcomeStats(candidates, outcomes, minSampleSize),
   };
 }
 
@@ -878,6 +1012,17 @@ function renderMarkdown(report: SpecialSituationWatchReport): string {
     }
   }
 
+  // 特殊状況ウォッチ 成績表
+  lines.push("## 特殊状況ウォッチ 成績表 (outcomeStats)", "");
+  lines.push("> sampleTooSmall=true はサンプル不足。参考値のみ・強い判断に使わない。", "");
+  lines.push("| groupType | groupKey | sample | hitRate | avgReturn1w | avgReturn1m | avgTopixRel1m | note |");
+  lines.push("|---|---|---:|---:|---:|---:|---:|---|");
+  for (const row of report.outcomeStats) {
+    const sampleStr = `${row.sampleSize}${row.sampleTooSmall ? " ⚠小" : ""}`;
+    const hitStr = row.hitRate == null ? "N/A" : `${Math.round(row.hitRate * 100)}%`;
+    lines.push(`| ${row.groupType} | ${row.groupKey} | ${sampleStr} | ${hitStr} | ${fmtPct(row.avgReturn1w)} | ${fmtPct(row.avgReturn1m)} | ${fmtPct(row.avgTopixRelative1m)} | ${row.note} |`);
+  }
+  lines.push("");
   lines.push("## rule", "- 安い株探しではない", "- 単価が安い = 割安ではない", "- 調査候補は売買推奨ではない", "- sampleTooSmall は強い判断の根拠にしない", "- 公式・報道・噂を必ず分ける");
   lines.push("", `*alpha-pon special situation watch | ${report.generatedAt} | ※売買推奨ではありません*`);
   return lines.join("\n");

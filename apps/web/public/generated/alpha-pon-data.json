@@ -6805,6 +6805,305 @@
           "6857"
         ]
       }
+    ],
+    "outcomeStats": [
+      {
+        "groupType": "pattern",
+        "groupKey": "carve_out_ipo",
+        "sampleSize": 0,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null,
+        "note": "サンプル不足(0件)。参考値のみ・強い判断に使わない。"
+      },
+      {
+        "groupType": "pattern",
+        "groupKey": "pe_exit_ipo",
+        "sampleSize": 0,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null,
+        "note": "サンプル不足(0件)。参考値のみ・強い判断に使わない。"
+      },
+      {
+        "groupType": "pattern",
+        "groupKey": "post_ipo_lockup_overhang",
+        "sampleSize": 0,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null,
+        "note": "サンプル不足(0件)。参考値のみ・強い判断に使わない。"
+      },
+      {
+        "groupType": "pattern",
+        "groupKey": "cycle_recovery",
+        "sampleSize": 6,
+        "sampleTooSmall": false,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null,
+        "note": "6件のアウトカムから集計。"
+      },
+      {
+        "groupType": "pattern",
+        "groupKey": "small_ticket_overlay",
+        "sampleSize": 0,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null,
+        "note": "サンプル不足(0件)。参考値のみ・強い判断に使わない。"
+      },
+      {
+        "groupType": "pattern",
+        "groupKey": "major_holder_exit_overhang",
+        "sampleSize": 0,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null,
+        "note": "サンプル不足(0件)。参考値のみ・強い判断に使わない。"
+      },
+      {
+        "groupType": "pattern",
+        "groupKey": "government_privatization_ipo",
+        "sampleSize": 0,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null,
+        "note": "サンプル不足(0件)。参考値のみ・強い判断に使わない。"
+      },
+      {
+        "groupType": "watchPhase",
+        "groupKey": "cycle_confirmation",
+        "sampleSize": 2,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null,
+        "note": "サンプル不足(2件)。参考値のみ・強い判断に使わない。"
+      },
+      {
+        "groupType": "watchPhase",
+        "groupKey": "sell_pressure_clearing",
+        "sampleSize": 0,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null,
+        "note": "サンプル不足(0件)。参考値のみ・強い判断に使わない。"
+      },
+      {
+        "groupType": "watchPhase",
+        "groupKey": "first_earnings_wait",
+        "sampleSize": 0,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null,
+        "note": "サンプル不足(0件)。参考値のみ・強い判断に使わない。"
+      },
+      {
+        "groupType": "watchPhase",
+        "groupKey": "watch_only",
+        "sampleSize": 4,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null,
+        "note": "サンプル不足(4件)。参考値のみ・強い判断に使わない。"
+      },
+      {
+        "groupType": "finalLabel",
+        "groupKey": "調査優先候補",
+        "sampleSize": 0,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null,
+        "note": "サンプル不足(0件)。参考値のみ・強い判断に使わない。"
+      },
+      {
+        "groupType": "finalLabel",
+        "groupKey": "構造監視候補",
+        "sampleSize": 0,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null,
+        "note": "サンプル不足(0件)。参考値のみ・強い判断に使わない。"
+      },
+      {
+        "groupType": "finalLabel",
+        "groupKey": "罠注意",
+        "sampleSize": 0,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null,
+        "note": "サンプル不足(0件)。参考値のみ・強い判断に使わない。"
+      },
+      {
+        "groupType": "finalLabel",
+        "groupKey": "証拠不足",
+        "sampleSize": 6,
+        "sampleTooSmall": false,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null,
+        "note": "6件のアウトカムから集計。"
+      },
+      {
+        "groupType": "chanceLevel",
+        "groupKey": "attention",
+        "sampleSize": 0,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null,
+        "note": "サンプル不足(0件)。参考値のみ・強い判断に使わない。"
+      },
+      {
+        "groupType": "chanceLevel",
+        "groupKey": "watch",
+        "sampleSize": 6,
+        "sampleTooSmall": false,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null,
+        "note": "6件のアウトカムから集計。"
+      },
+      {
+        "groupType": "chanceLevel",
+        "groupKey": "none",
+        "sampleSize": 0,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null,
+        "note": "サンプル不足(0件)。参考値のみ・強い判断に使わない。"
+      },
+      {
+        "groupType": "sellerOverhang",
+        "groupKey": "high",
+        "sampleSize": 0,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null,
+        "note": "サンプル不足(0件)。参考値のみ・強い判断に使わない。"
+      },
+      {
+        "groupType": "sellerOverhang",
+        "groupKey": "medium",
+        "sampleSize": 0,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null,
+        "note": "サンプル不足(0件)。参考値のみ・強い判断に使わない。"
+      },
+      {
+        "groupType": "sellerOverhang",
+        "groupKey": "unknown",
+        "sampleSize": 0,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null,
+        "note": "サンプル不足(0件)。参考値のみ・強い判断に使わない。"
+      },
+      {
+        "groupType": "sellerOverhang",
+        "groupKey": "low",
+        "sampleSize": 6,
+        "sampleTooSmall": false,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null,
+        "note": "6件のアウトカムから集計。"
+      },
+      {
+        "groupType": "themeWasRight",
+        "groupKey": "too_early",
+        "sampleSize": 4,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null,
+        "note": "サンプル不足(4件)。参考値のみ・強い判断に使わない。"
+      },
+      {
+        "groupType": "themeWasRight",
+        "groupKey": "mixed",
+        "sampleSize": 2,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null,
+        "note": "サンプル不足(2件)。参考値のみ・強い判断に使わない。"
+      },
+      {
+        "groupType": "selectedCompanyFit",
+        "groupKey": "medium",
+        "sampleSize": 1,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null,
+        "note": "サンプル不足(1件)。参考値のみ・強い判断に使わない。"
+      },
+      {
+        "groupType": "selectedCompanyFit",
+        "groupKey": "strong",
+        "sampleSize": 5,
+        "sampleTooSmall": false,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null,
+        "note": "5件のアウトカムから集計。"
+      },
+      {
+        "groupType": "selectedCompanyFit",
+        "groupKey": "weak",
+        "sampleSize": 0,
+        "sampleTooSmall": true,
+        "hitRate": null,
+        "avgReturn1w": null,
+        "avgReturn1m": null,
+        "avgTopixRelative1m": null,
+        "note": "サンプル不足(0件)。参考値のみ・強い判断に使わない。"
+      }
     ]
   },
   "stockProCommitteeJson": {
@@ -12128,7 +12427,7 @@
   },
   "proDataMeta": {
     "source": "pro-ui-data-addon",
-    "generatedAt": "2026-06-05T07:30:54.452Z",
+    "generatedAt": "2026-06-05T07:51:11.365Z",
     "missing": []
   }
 }

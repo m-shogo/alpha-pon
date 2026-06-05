@@ -18,13 +18,42 @@ const reportData = readJson("reports/special_situation_watch_latest.json");
 assert(reportData !== null, "reports/special_situation_watch_latest.json は必ず生成される必要があります");
 assert(isObject(reportData), "special_situation_watch_latest.json は object である必要があります");
 
-// 2) patterns / candidates / topChanceList / referenceEvents が配列
+// 2) patterns / candidates / topChanceList / referenceEvents / outcomeStats が配列
 assert(Array.isArray(reportData.patterns), "patterns は配列である必要があります");
 assert(reportData.patterns.length > 0, "patterns は1件以上必要です");
 assert(Array.isArray(reportData.candidates), "candidates は配列である必要があります");
 assert(reportData.candidates.length > 0, "candidates は1件以上必要です");
 assert(Array.isArray(reportData.topChanceList), "topChanceList は配列である必要があります");
 assert(Array.isArray(reportData.referenceEvents), "referenceEvents は配列である必要があります");
+assert(Array.isArray(reportData.outcomeStats), "outcomeStats は配列である必要があります");
+
+// outcomeStats の検証
+const ALLOWED_OUTCOME_GROUP_TYPES = new Set([
+  "pattern", "watchPhase", "finalLabel", "chanceLevel",
+  "sellerOverhang", "themeWasRight", "selectedCompanyFit", "themeCompanyFit",
+]);
+const presentGroupTypes = new Set<string>();
+for (const row of reportData.outcomeStats as Array<Record<string, unknown>>) {
+  assert(ALLOWED_OUTCOME_GROUP_TYPES.has(row.groupType as string), `不正な groupType: ${row.groupType}`);
+  assert(typeof row.groupKey === "string", "groupKey は string");
+  assert(typeof row.sampleSize === "number", "sampleSize は number");
+  assert(typeof row.sampleTooSmall === "boolean", "sampleTooSmall は boolean");
+  assert(row.avgReturn1w === null || typeof row.avgReturn1w === "number", "avgReturn1w は number|null");
+  assert(row.avgReturn1m === null || typeof row.avgReturn1m === "number", "avgReturn1m は number|null");
+  assert(row.avgTopixRelative1m === null || typeof row.avgTopixRelative1m === "number", "avgTopixRelative1m は number|null");
+  assert(typeof row.note === "string", "note は string");
+  if (row.sampleTooSmall === true) {
+    assert(
+      (row.note as string).includes("参考値") || (row.note as string).includes("強い判断に使わない"),
+      `sampleTooSmall=true の note は参考値/強い判断に使わないを含む必要があります: ${row.note}`
+    );
+  }
+  presentGroupTypes.add(row.groupType as string);
+}
+// 最低限のgroupTypeが存在することを確認
+for (const required of ["pattern", "finalLabel", "sellerOverhang", "selectedCompanyFit"]) {
+  assert(presentGroupTypes.has(required), `groupType=${required} が outcomeStats に含まれる必要があります`);
+}
 
 // 3) ラベルが許可リストのみ
 const ALLOWED_FINAL_LABELS = new Set([

@@ -326,6 +326,39 @@ pnpm check
 
 ---
 
+## outcomeStats の見方
+
+特殊状況ウォッチは、候補を出すだけでなく、後から**型ごとの成績を検証する**。
+
+### 集計グループ
+
+| groupType | 意味 |
+|---|---|
+| `pattern` | carve_out_ipo / pe_exit_ipo 等のパターン別 |
+| `watchPhase` | cycle_confirmation / sell_pressure_clearing 等のフェーズ別 |
+| `finalLabel` | 調査優先候補 / 構造監視候補 等のラベル別 |
+| `chanceLevel` | none / watch / attention / high 別 |
+| `sellerOverhang` | 売り圧残量（high/medium/low/cleared）別 |
+| `themeWasRight` | テーマ判定（right/mixed/too_early/wrong）別 |
+| `selectedCompanyFit` | 銘柄適合（strong/medium/weak/wrong_company）別 |
+
+### 見るべき問い
+
+- `carve_out_ipo` パターンは TOPIX比でプラスか？
+- `sellerOverhang: high` を避けたのは正しかったか？
+- `selectedCompanyFit: strong` は成績が良いか？
+- `chanceLevel: attention` と `watch` で差があるか？
+
+### 注意
+
+- `sampleTooSmall` は強い判断に使わない
+- 1件2件の成功でルールを強化しない
+- パターンが面白くても、TOPIX比で負けるなら見直す
+- テーマが当たっても銘柄が外れることがある
+- サンプルが蓄積してから傾向を読む
+
+---
+
 ## 次フェーズ候補（設計メモ）
 
 現在は未実装。将来の拡張として検討中。

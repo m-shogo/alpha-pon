@@ -313,6 +313,17 @@ export type SpecialSituationWatch = {
     }
     listingInfo?: Omit<SpecialSituationListingInfo, 'ipoPrice' | 'firstPrice' | 'source' | 'sourceCheckedAt'>
   }>
+  outcomeStats?: Array<{
+    groupType: string
+    groupKey: string
+    sampleSize: number
+    sampleTooSmall: boolean
+    hitRate: number | null
+    avgReturn1w: number | null
+    avgReturn1m: number | null
+    avgTopixRelative1m: number | null
+    note: string
+  }>
   referenceEvents?: Array<{
     eventName: string
     companyName: string
