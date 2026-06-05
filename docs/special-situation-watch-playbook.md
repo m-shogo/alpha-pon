@@ -326,6 +326,39 @@ pnpm check
 
 ---
 
+## outcomeCoverageAudit → backfill のフロー
+
+成績表に数字を入れるためのフロー:
+
+```
+1. pnpm watch:special                     # outcomeCoverageAudit で不足を確認
+2. pnpm backfill:special-outcomes         # dry-run で安全確認
+3. pnpm backup                            # バックアップを取る
+4. pnpm backfill:special-outcomes --write # 価格取得・補完実行
+5. pnpm watch:special                     # outcomeStats を再確認
+```
+
+### `pnpm backfill:special-outcomes` の挙動
+
+| モード | 挙動 |
+|---|---|
+| デフォルト（dry-run）| ファイル変更なし。何が補完できるかを reports に出す |
+| `--write` | J-Quants 価格取得 → null のみ埋める。既存値は上書きしない |
+
+### missing と not_due_yet の違い
+
+| 状態 | 意味 |
+|---|---|
+| `missing` | 期限は過ぎているが価格データが足りない |
+| `not_due_yet` | reviewHorizon の期限がまだ来ていない（正常） |
+
+例: `reviewHorizon=1d`、`detectedAt=2026-06-02` の場合:
+- `return1d`: 2026-06-03 以降に計算可能
+- `return1w`: 2026-06-09 以降に計算可能（not_due_yet）
+- `return1m`: 2026-07-02 以降に計算可能（not_due_yet）
+
+---
+
 ## outcomeCoverageAudit の見方
 
 `outcomeStats` は成績表。
