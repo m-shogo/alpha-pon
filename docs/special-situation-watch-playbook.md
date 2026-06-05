@@ -326,6 +326,37 @@ pnpm check
 
 ---
 
+## reviewDueQueue の見方
+
+`outcomeStats` は成績表。
+`outcomeCoverageAudit` は不足データ確認。
+`outcomeBackfill` は不足値の安全補完。
+`reviewDueQueue` は「いつ採点するか」の管理。
+
+### status の意味
+
+| status | 意味 |
+|---|---|
+| `due_today` | 今日が採点期限。backfill dry-run を確認 |
+| `due_this_week` | 今週中に採点期限が来る |
+| `overdue` | 期限切れ。価格データがあれば backfill --write を検討 |
+| `not_due_yet` | 正常。期限後に再確認 |
+| `no_outcome_record` | outcome 記録なし。candidate:hypothesis が必要 |
+
+### 全体フロー
+
+```
+1. pnpm watch:special                     # outcomeCoverageAudit で不足を確認
+2. pnpm backfill:special-outcomes         # dry-run で補完可能性を確認
+3. pnpm review:special-due                # due キューを確認
+4. overdue / due_today があれば:
+   pnpm backup
+   pnpm backfill:special-outcomes --write # 価格取得・補完実行
+5. pnpm watch:special                     # outcomeStats を再確認
+```
+
+---
+
 ## outcomeCoverageAudit → backfill のフロー
 
 成績表に数字を入れるためのフロー:
