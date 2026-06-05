@@ -236,6 +236,10 @@ export type SpecialSituationWatch = {
     whyDangerous: string[]
     evidenceNeeded: string[]
     waitFor: string[]
+    /** なぜ今見るのか */
+    whyNow: string[]
+    /** なぜ今はまだ待つのか */
+    whyNotNow: string[]
     parentOrSponsor: string | null
     sellerPressure: string
     lockupRisk: string
@@ -268,6 +272,8 @@ export type SpecialSituationWatch = {
     topReasons: string[]
     mainRisks: string[]
     nextCheck: string[]
+    whyNow: string[]
+    whyNotNow: string[]
     listingInfo?: Omit<SpecialSituationListingInfo, 'ipoPrice' | 'firstPrice' | 'source' | 'sourceCheckedAt'>
   }>
   referenceEvents?: Array<{

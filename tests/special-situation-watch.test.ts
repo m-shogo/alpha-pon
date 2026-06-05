@@ -63,6 +63,16 @@ for (const c of reportData.candidates as Array<Record<string, unknown>>) {
   assert(Array.isArray(c.whyDangerous), "whyDangerous は配列");
   assert(Array.isArray(c.evidenceNeeded), "evidenceNeeded は配列");
   assert(Array.isArray(c.waitFor), "waitFor は配列");
+  // whyNow / whyNotNow 検証
+  assert(Array.isArray(c.whyNow), `候補 ${c.code}: whyNow は配列である必要があります`);
+  assert(Array.isArray(c.whyNotNow), `候補 ${c.code}: whyNotNow は配列である必要があります`);
+  // notificationEligible=true の場合は whyNotNow が空でないこと
+  if (c.notificationEligible === true) {
+    assert(
+      Array.isArray(c.whyNotNow) && (c.whyNotNow as string[]).length > 0,
+      `候補 ${c.code}: notificationEligible=true の場合 whyNotNow が空は禁止`
+    );
+  }
 }
 
 // listingInfo に上場日/予定日/ロックアップ/初回決算 を持てる構造があるか
@@ -77,6 +87,12 @@ assert(candidateWithListing, "listingInfo を持つ candidate が1件以上必�
   assert("lockupExpiryAt" in li, "listingInfo.lockupExpiryAt を持てること");
   assert("firstEarningsAt" in li, "listingInfo.firstEarningsAt を持てること");
   assert(ALLOWED_CONFIDENCE.has(li.confidence as string), `listingInfo.confidence の値: ${li.confidence}`);
+}
+
+// topChanceList の whyNow / whyNotNow
+for (const item of reportData.topChanceList as Array<Record<string, unknown>>) {
+  assert(Array.isArray(item.whyNow), `topChanceList ${item.code}: whyNow は配列`);
+  assert(Array.isArray(item.whyNotNow), `topChanceList ${item.code}: whyNotNow は配列`);
 }
 
 // 4) reference events に SpaceX / OpenAI / Anthropic / Starlink を持てる構造

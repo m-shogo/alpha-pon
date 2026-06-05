@@ -311,6 +311,20 @@ export default function HomePage() {
                   <p style={{ fontSize: 12, color: 'var(--ink-2)', margin: '0 0 6px', lineHeight: 1.55 }}>
                     {item.reasonSummary}
                   </p>
+                  {/* なぜ今見るのか */}
+                  {item.whyNow.length > 0 && (
+                    <div style={{ fontSize: 11.5, color: 'var(--ink-2)', marginBottom: 4 }}>
+                      <span style={{ fontWeight: 700, color: 'var(--accent)' }}>なぜ今見る: </span>
+                      {item.whyNow.slice(0, 2).join(' / ')}
+                    </div>
+                  )}
+                  {/* なぜまだ待つのか */}
+                  {item.whyNotNow.length > 0 && (
+                    <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginBottom: 4 }}>
+                      <span style={{ fontWeight: 700, color: 'var(--amber)' }}>まだ待つ理由: </span>
+                      {item.whyNotNow.slice(0, 2).join(' / ')}
+                    </div>
+                  )}
                   {/* リスク */}
                   {item.mainRisks.length > 0 && (
                     <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginBottom: 5 }}>

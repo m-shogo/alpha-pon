@@ -85,6 +85,10 @@ type CandidateConfig = {
   cycleRisk?: RiskLevel;
   dilutionRisk?: RiskLevel;
   waitFor?: string[];
+  /** なぜ今見るのか */
+  whyNow?: string[];
+  /** なぜ今はまだ待つのか */
+  whyNotNow?: string[];
   listingInfo?: ListingInfoConfig;
   smallTicket?: {
     price?: number | null;
@@ -149,6 +153,10 @@ type SpecialSituationCandidate = {
   whyDangerous: string[];
   evidenceNeeded: string[];
   waitFor: string[];
+  /** なぜ今見るのか */
+  whyNow: string[];
+  /** なぜ今はまだ待つのか */
+  whyNotNow: string[];
 
   parentOrSponsor: string | null;
   sellerPressure: RiskLevel;
@@ -189,6 +197,10 @@ type TopChanceItem = {
   topReasons: string[];
   mainRisks: string[];
   nextCheck: string[];
+  /** なぜ今見るのか（最大2件） */
+  whyNow: string[];
+  /** なぜ今はまだ待つのか（最大2件） */
+  whyNotNow: string[];
   listingInfo?: {
     listedAt?: string | null;
     plannedListingAt?: string | null;
@@ -310,14 +322,18 @@ function buildCandidate(
   // - chanceLevel が attention/high
   // - whyDangerous(リスク) が空でない
   // - evidenceNeeded が空でない
+  // - whyNotNow が空でない（今待つ理由なしで通知しない）
   // - sampleTooSmall=true は強い通知にしない
   const eligibleLabels: readonly FinalLabel[] = ["チャンス候補", "調査優先候補"];
   const eligibleLevels: readonly ChanceLevel[] = ["attention", "high"];
+  const whyNow = config.whyNow ?? [];
+  const whyNotNow = config.whyNotNow ?? [];
   const notificationEligible =
     eligibleLabels.includes(config.finalLabel) &&
     eligibleLevels.includes(config.chanceLevel) &&
     whyDangerous.length > 0 &&
     evidenceNeeded.length > 0 &&
+    whyNotNow.length > 0 &&
     !stats.sampleTooSmall;
 
   const listingInfo = config.listingInfo
@@ -359,6 +375,8 @@ function buildCandidate(
     whyDangerous,
     evidenceNeeded,
     waitFor: config.waitFor ?? [],
+    whyNow: config.whyNow ?? [],
+    whyNotNow: config.whyNotNow ?? [],
     parentOrSponsor: config.parentOrSponsor ?? null,
     sellerPressure: fallbackRisk(config.sellerPressure),
     lockupRisk: fallbackRisk(config.lockupRisk),
@@ -402,6 +420,8 @@ function buildTopChanceList(candidates: SpecialSituationCandidate[]): TopChanceI
       topReasons: c.whyInteresting.slice(0, 3),
       mainRisks: c.whyDangerous.slice(0, 3),
       nextCheck: c.waitFor.length > 0 ? c.waitFor.slice(0, 4) : c.evidenceNeeded.slice(0, 4),
+      whyNow: c.whyNow.slice(0, 2),
+      whyNotNow: c.whyNotNow.slice(0, 2),
       listingInfo: c.listingInfo
         ? {
             listedAt: c.listingInfo.listedAt ?? null,
@@ -496,6 +516,14 @@ function renderMarkdown(report: SpecialSituationWatchReport): string {
         lines.push("- 主なリスク:");
         for (const r of item.mainRisks) lines.push(`  - ${r}`);
       }
+      if (item.whyNow.length > 0) {
+        lines.push("- なぜ今見るのか:");
+        for (const r of item.whyNow) lines.push(`  - ${r}`);
+      }
+      if (item.whyNotNow.length > 0) {
+        lines.push("- なぜまだ待つのか:");
+        for (const r of item.whyNotNow) lines.push(`  - ${r}`);
+      }
       if (item.nextCheck.length > 0) {
         lines.push("- 次に確認すること:");
         for (const r of item.nextCheck) lines.push(`  - ${r}`);
@@ -588,6 +616,8 @@ function renderMarkdown(report: SpecialSituationWatchReport): string {
       lines.push("```");
       lines.push(`【${c.finalLabel}】${c.code} ${c.name}`);
       lines.push(`理由: ${c.reasonSummary}`);
+      if (c.whyNow.length > 0) lines.push(`今見る理由: ${c.whyNow.slice(0, 2).join(" / ")}`);
+      if (c.whyNotNow.length > 0) lines.push(`まだ待つ理由: ${c.whyNotNow.slice(0, 2).join(" / ")}`);
       if (c.whyDangerous.length > 0) lines.push(`注意: ${c.whyDangerous.slice(0, 3).join(" / ")}`);
       if (c.waitFor.length > 0) lines.push(`次に確認: ${c.waitFor.slice(0, 4).join(" / ")}`);
       lines.push("※売買推奨ではありません。");
