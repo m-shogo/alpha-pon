@@ -9,6 +9,7 @@ import { join } from "path";
 import { load } from "js-yaml";
 import { addDaysJst, todayJst } from "./date.js";
 import type { HypothesisOutcome, ReviewHorizon } from "./universe.js";
+import { isSpecialSituationOutcome, detectMixedOutcomes } from "./special-situation-outcome-filter.js";
 
 const REPORT_DIR = "reports";
 
@@ -136,9 +137,22 @@ function main(): void {
 
   // outcome 読み込み
   const allOutcomes = readJsonl<HypothesisOutcome>("data/hypothesis_outcomes.jsonl");
-  const matchedOutcomes = allOutcomes.filter(o => candidateCodes.has(o.code));
+  const allMatched = allOutcomes.filter(o => candidateCodes.has(o.code));
 
-  // コード → outcome マップ（複数ある場合は全部追跡）
+  // special_prefer: special_situation マーカーがある code はそちらを優先
+  const specialCodes = new Set(allMatched.filter(isSpecialSituationOutcome).map(o => o.code));
+  const matchedOutcomes = allMatched.filter(o =>
+    isSpecialSituationOutcome(o) || !specialCodes.has(o.code)
+  );
+
+  // 混在検出と警告
+  const mixed = detectMixedOutcomes(allOutcomes, candidateCodes);
+  if (mixed.length > 0) {
+    console.log(`[review:special-due] 注意: ${mixed.length}銘柄で special/normal outcome が混在。special を優先:`);
+    for (const m of mixed) console.log(`  ${m.code}: special=${m.specialCount}, normal=${m.normalCount}`);
+  }
+
+  // コード → outcome マップ（special_prefer 適用済み）
   const outcomesByCode = new Map<string, HypothesisOutcome[]>();
   for (const o of matchedOutcomes) {
     if (!outcomesByCode.has(o.code)) outcomesByCode.set(o.code, []);
@@ -208,8 +222,11 @@ function main(): void {
     "このレポートはデータ管理のためのもの。売買推奨ではありません。",
     "overdue は期限が過ぎているが、価格データ未取得の場合は pnpm backfill:special-outcomes で確認する。",
     "not_due_yet は正常。期限後に再確認する。",
-    "no_outcome_record は hypothesis_outcomes.jsonl に記録がない候補。pnpm candidate:hypothesis を実行して仮説を記録する。",
+    "no_outcome_record は hypothesis_outcomes.jsonl に記録がない候補。pnpm seed:special-outcomes を実行して seed を作成する。",
   ];
+  if (mixed.length > 0) {
+    notes.push(`[special_prefer] ${mixed.map(m => m.code).join("/")} で special/normal 混在を検出。special outcome を優先しました。`);
+  }
 
   const report: SpecialSituationReviewDueReport = {
     generatedAt: today,

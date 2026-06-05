@@ -18,6 +18,7 @@ import { load } from "js-yaml";
 import { addDaysJst, toCompactDate, todayJst } from "./date.js";
 import { fetchDailyQuotes, isJQuantsConfigured } from "./fetcher/jquants.js";
 import type { HypothesisOutcome, ReviewHorizon } from "./universe.js";
+import { isSpecialSituationOutcome, detectMixedOutcomes } from "./special-situation-outcome-filter.js";
 
 const OUTCOME_PATH = "data/hypothesis_outcomes.jsonl";
 const TOPIX_ETF_CODE = "1306";
@@ -168,7 +169,20 @@ async function main(): Promise<void> {
 
   // 既存 outcomes 読み込み
   const allOutcomes = readJsonl<HypothesisOutcome>(OUTCOME_PATH);
-  const matchedOutcomes = allOutcomes.filter(o => candidateCodes.has(o.code));
+
+  // special_prefer: special_situation マーカーがある code はそちらを優先
+  const allMatched = allOutcomes.filter(o => candidateCodes.has(o.code));
+  const specialCodes = new Set(allMatched.filter(isSpecialSituationOutcome).map(o => o.code));
+  const matchedOutcomes = allMatched.filter(o =>
+    isSpecialSituationOutcome(o) || !specialCodes.has(o.code)
+  );
+
+  // 混在検出と警告
+  const mixed = detectMixedOutcomes(allOutcomes, candidateCodes);
+  if (mixed.length > 0) {
+    console.log(`[backfill] 注意: ${mixed.length}銘柄で special/normal outcome が混在。special を優先して使用:`);
+    for (const m of mixed) console.log(`  ${m.code}: special=${m.specialCount}, normal=${m.normalCount} → special のみを使用`);
+  }
 
   // TOPIX 価格キャッシュ
   let topixQuotes: DailyQuote[] = [];
@@ -383,6 +397,9 @@ async function main(): Promise<void> {
 
   if (!jquantsOk) {
     notes.push("J-Quants が設定されていません。.env に JQUANTS_REFRESH_TOKEN を設定すると価格データを取得できます。");
+  }
+  if (mixed.length > 0) {
+    notes.push(`[special_prefer] ${mixed.map(m => m.code).join("/")} で special/normal 混在を検出。special outcome を優先しました。`);
   }
   if (notDueYet1w > 0) {
     notes.push(`return1w は ${notDueYet1w}件が期限未到来 (detectedAt+7日後以降に再実行)。`);

@@ -10,6 +10,7 @@ import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
 import type { HypothesisOutcome } from "./universe.js";
+import { selectOutcomesForStats, detectMixedOutcomes } from "./special-situation-outcome-filter.js";
 
 // ─────────── 型定義 ───────────
 
@@ -426,7 +427,9 @@ function buildOutcomeStatsForCode(
   outcomes: HypothesisOutcome[],
   minSampleSize: number
 ): OutcomeStats {
-  const rows = outcomes.filter(o => o.code === code);
+  // special_prefer: special_situation outcome があればそれを優先
+  const { selected } = selectOutcomesForStats(outcomes, code);
+  const rows = selected;
   return {
     sampleSize: rows.length,
     sampleTooSmall: rows.length < minSampleSize,
@@ -675,7 +678,16 @@ function buildOutcomeCoverageAudit(
   generatedAt: string
 ): SpecialSituationOutcomeCoverageAudit {
   const candidateCodes = new Set(candidates.map(c => c.code));
-  const matched = outcomes.filter(o => candidateCodes.has(o.code));
+
+  // special_prefer: special_situation outcome があればそれを優先して集計
+  const allMatched = outcomes.filter(o => candidateCodes.has(o.code));
+  const specialCodes = new Set(allMatched.filter(o => (o.hypothesis.reason ?? "").includes("[special_situation]")).map(o => o.code));
+  const matched = allMatched.filter(o =>
+    (o.hypothesis.reason ?? "").includes("[special_situation]") || !specialCodes.has(o.code)
+  );
+
+  // 混在検出と注記
+  const mixedDetected = detectMixedOutcomes(outcomes, candidateCodes);
 
   const withResult = matched.filter(o => o.result !== "unknown").length;
   const withReturn1w = matched.filter(o => o.return1w != null && Number.isFinite(o.return1w)).length;
@@ -689,7 +701,7 @@ function buildOutcomeCoverageAudit(
 
   const byCode: SpecialSituationOutcomeCoverageAudit["byCode"] = [];
   for (const c of candidates) {
-    const rows = matched.filter(o => o.code === c.code);
+    const { selected: rows } = selectOutcomesForStats(outcomes, c.code);
     const n = rows.length;
     const mResult = rows.filter(o => o.result === "unknown").length;
     const m1w = rows.filter(o => o.return1w == null || !Number.isFinite(o.return1w)).length;
@@ -737,6 +749,9 @@ function buildOutcomeCoverageAudit(
     notes.push("特殊状況候補のアウトカムが1件も記録されていない。pnpm candidate:hypothesis → pnpm review:hypotheses を実行してデータを蓄積する。");
   }
   notes.push("outcomeStats が null の場合、データ不足であり仕組みの問題ではない。まず不足データを埋めてから成績を読む。");
+  if (mixedDetected.length > 0) {
+    notes.push(`[special_prefer] ${mixedDetected.map(m => m.code).join("/")} で special/normal 混在を検出。special outcome を優先して集計しました。`);
+  }
 
   return {
     generatedAt,
@@ -767,8 +782,13 @@ function buildOneOutcomeStat(
   outcomes: HypothesisOutcome[],
   minSampleSize: number
 ): SpecialSituationOutcomeStats {
+  // special_prefer: special_situation outcome があればそれを優先
   const codeSet = new Set(codes);
-  const rows = outcomes.filter(o => codeSet.has(o.code));
+  const allForCodes = outcomes.filter(o => codeSet.has(o.code));
+  const specialCodesInGroup = new Set(allForCodes.filter(o => (o.hypothesis.reason ?? "").includes("[special_situation]")).map(o => o.code));
+  const rows = allForCodes.filter(o =>
+    (o.hypothesis.reason ?? "").includes("[special_situation]") || !specialCodesInGroup.has(o.code)
+  );
   const size = rows.length;
   const tooSmall = size < minSampleSize;
   const judged = rows.filter(r => r.result === "hit" || r.result === "miss");

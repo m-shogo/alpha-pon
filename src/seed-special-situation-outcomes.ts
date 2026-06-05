@@ -18,12 +18,10 @@ import { join } from "path";
 import { load } from "js-yaml";
 import { addDaysJst, todayJst } from "./date.js";
 import type { HypothesisOutcome, ReviewHorizon, StockCandidateHypothesis } from "./universe.js";
+import { SPECIAL_SITUATION_MARKER, isSpecialSituationOutcome } from "./special-situation-outcome-filter.js";
 
 const OUTCOME_PATH = "data/hypothesis_outcomes.jsonl";
 const REPORT_DIR = "reports";
-
-// special situation 識別マーカー（hypothesis.reason の先頭に付与）
-const SPECIAL_SITUATION_MARKER = "[special_situation]";
 
 // ─────────── 型定義 ───────────
 
@@ -76,11 +74,6 @@ function readJsonl<T>(path: string): T[] {
 
 function readYaml<T>(path: string): T {
   return load(readFileSync(path, "utf-8")) as T;
-}
-
-/** outcome が special_situation 由来かどうか判定 */
-function isSpecialSituationOutcome(outcome: HypothesisOutcome): boolean {
-  return outcome.hypothesis.reason?.includes(SPECIAL_SITUATION_MARKER) ?? false;
 }
 
 /** outcome の重複キー */
