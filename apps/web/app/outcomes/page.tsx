@@ -45,6 +45,17 @@ function avg(values: Array<number | null | undefined>) {
   return valid.length > 0 ? valid.reduce((sum, value) => sum + value, 0) / valid.length : null
 }
 
+function relativeTopixForHorizon(outcome: Outcome, horizon: Outcome['reviewHorizon']) {
+  if (horizon === '1d') return outcome.relativeToTopix1d
+  if (horizon === '1w') return outcome.relativeToTopix1w
+  if (horizon === '3m') return outcome.relativeToTopix3m
+  return outcome.relativeToTopix1m
+}
+
+function relativeTopixForOwnHorizon(outcome: Outcome) {
+  return relativeTopixForHorizon(outcome, outcome.reviewHorizon)
+}
+
 function isSpecialOutcome(outcome: Outcome) {
   return /\[special_situation\]|特殊状況|lockup|carve-out|spin-off|PE exit/i.test(outcome.hypothesis?.reason ?? '')
 }
@@ -64,7 +75,15 @@ const ACTION_LABEL_DISPLAY = {
   ignore: 'actionLabel: 対象外系 (ignore)',
 } as const
 
-function OutcomeStatRow({ label, items }: { label: string; items: Outcome[] }) {
+function OutcomeStatRow({
+  label,
+  items,
+  topixAxis = 'ownHorizon',
+}: {
+  label: string
+  items: Outcome[]
+  topixAxis?: Outcome['reviewHorizon'] | 'ownHorizon'
+}) {
   const counts = {
     hit: items.filter(item => item.result === 'hit').length,
     miss: items.filter(item => item.result === 'miss').length,
@@ -80,7 +99,9 @@ function OutcomeStatRow({ label, items }: { label: string; items: Outcome[] }) {
       <td style={{ padding: '8px 12px', textAlign: 'right', color: 'var(--urgent)', fontWeight: 800 }}>{counts.miss}</td>
       <td style={{ padding: '8px 12px', textAlign: 'right', color: 'var(--amber)', fontWeight: 800 }}>{counts.tooEarly}</td>
       <td style={{ padding: '8px 12px', textAlign: 'right', color: 'var(--ink-3)', fontWeight: 800 }}>{counts.unknown}</td>
-      <td style={{ padding: '8px 12px', textAlign: 'right' }}><ReturnCell value={avg(items.map(item => item.relativeToTopix1m))} /></td>
+      <td style={{ padding: '8px 12px', textAlign: 'right' }}>
+        <ReturnCell value={avg(items.map(item => topixAxis === 'ownHorizon' ? relativeTopixForOwnHorizon(item) : relativeTopixForHorizon(item, topixAxis)))} />
+      </td>
     </tr>
   )
 }
@@ -237,12 +258,12 @@ export default function OutcomesPage() {
                   <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>不一致</th>
                   <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>時期尚早</th>
                   <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>未評価</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>TOPIX比1M</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>平均TOPIX比</th>
                 </tr>
               </thead>
               <tbody>
                 {(['1d', '1w', '1m', '3m'] as const).map(horizon => (
-                  <OutcomeStatRow key={horizon} label={`${horizon} review`} items={byHorizon.get(horizon) ?? []} />
+                  <OutcomeStatRow key={horizon} label={`${horizon} review`} items={byHorizon.get(horizon) ?? []} topixAxis={horizon} />
                 ))}
                 {(['watch', 'log', 'ignore'] as const).map(label => (
                   <OutcomeStatRow key={label} label={ACTION_LABEL_DISPLAY[label]} items={byLabel.get(label) ?? []} />

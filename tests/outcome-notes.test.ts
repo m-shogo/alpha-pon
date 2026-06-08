@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { buildOutcomeNotes } from "../src/outcome-notes.js";
+import { buildOutcomeNotes, resolveActualDirection } from "../src/outcome-notes.js";
 import type { StockCandidateHypothesis } from "../src/universe.js";
 
 function hypothesis(expectedDirection: StockCandidateHypothesis["expectedDirection"]): StockCandidateHypothesis {
@@ -20,6 +20,13 @@ function hypothesis(expectedDirection: StockCandidateHypothesis["expectedDirecti
     status: "open",
     label: "検証候補",
   };
+}
+
+{
+  assert.equal(resolveActualDirection(null), "unknown");
+  assert.equal(resolveActualDirection(3), "up");
+  assert.equal(resolveActualDirection(-3), "down");
+  assert.equal(resolveActualDirection(2.9), "sideways");
 }
 
 {

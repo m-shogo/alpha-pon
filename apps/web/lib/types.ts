@@ -152,12 +152,17 @@ export type SpecialSituationOpsSummary = {
 
 export type HypothesisOutcomeIntegrity = {
   generatedAt: string
-  status: 'ok' | 'duplicate_found' | 'db_unavailable'
+  status: 'ok' | 'duplicate_found' | 'db_unavailable' | 'parse_error' | 'action_required'
   jsonl: {
+    path?: string
+    exists?: boolean
     totalRows: number
     duplicateGroups: Array<{ key: string; count: number }>
+    parseErrors?: Array<{ lineNumber: number; preview: string; message: string }>
   }
   sqlite: {
+    path?: string
+    exists?: boolean
     totalRows: number | null
     uniqueIndexExists: boolean
     duplicateGroups: Array<{ key: string; count: number }>
@@ -208,6 +213,7 @@ export type ScoreBreakdownDetail = {
 
 import type {
   UniverseCandidate,
+  UniverseScanMetadata,
   StockCandidateHypothesis,
   HypothesisOutcome,
   AccuracySummary,
@@ -452,6 +458,7 @@ export type AlphaPonGeneratedData = {
   candidates: Candidate[]
   // ユニバース・仮説・検証フィールド（省略可 = データ生成前は空）
   universeCandidates?: UniverseCandidate[]
+  universeScan?: UniverseScanMetadata | null
   hypothesisPredictions?: StockCandidateHypothesis[]
   hypothesisOutcomes?: HypothesisOutcome[]
   accuracySummary?: AccuracySummary | null

@@ -7,7 +7,7 @@ export type OutcomeReturnDataForNotes = {
   dataAvailability: "ok" | "partial" | "missing";
 };
 
-function resolveActualDirection(ret1m: number | null): "up" | "down" | "sideways" | "unknown" {
+export function resolveActualDirection(ret1m: number | null): "up" | "down" | "sideways" | "unknown" {
   if (ret1m == null) return "unknown";
   if (ret1m >= 3) return "up";
   if (ret1m <= -3) return "down";

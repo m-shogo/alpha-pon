@@ -10,7 +10,7 @@ import { DatabaseSync } from "node:sqlite";
 import { addDaysJst, toCompactDate, todayJst } from "./date.js";
 import { fetchDailyQuotes, isJQuantsConfigured } from "./fetcher/jquants.js";
 import { inferMissReasons } from "./miss-reason.js";
-import { buildOutcomeNotes } from "./outcome-notes.js";
+import { buildOutcomeNotes, resolveActualDirection } from "./outcome-notes.js";
 import type {
   StockCandidateHypothesis,
   HypothesisOutcome,
@@ -164,12 +164,6 @@ function pickTopixRetForHorizon(topixReturns: ReturnData, horizon: ReviewHorizon
   if (horizon === "1w") return topixReturns.ret1w;
   if (horizon === "3m") return topixReturns.ret3m;
   return topixReturns.ret1m;
-}
-function resolveActualDirection(ret1m: number | null): "up" | "down" | "sideways" | "unknown" {
-  if (ret1m == null) return "unknown";
-  if (ret1m >= 3) return "up";
-  if (ret1m <= -3) return "down";
-  return "sideways";
 }
 function avgOrNull(values: number[]): number | null { return values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : null; }
 function calcActionLabelStats(outcomes: HypothesisOutcome[], label: HypothesisActionLabel): ActionLabelStats {

@@ -1,24 +1,24 @@
 {
   "candidates": [
     {
-      "code": "6501",
-      "name": "日立製作所",
-      "sector": "ai_datacenter",
+      "code": "6954",
+      "name": "ファナック",
+      "sector": "automation_robotics",
       "detectedAt": "2026-06-08",
-      "currentPrice": 4800,
-      "high52w": 5818,
-      "drawdownPct": -17.497421794431077,
-      "change5dPct": 1.7380245866892752,
-      "change20dPct": -7.851794970243809,
+      "currentPrice": 5957,
+      "high52w": 7113,
+      "drawdownPct": -16.251933080275553,
+      "change5dPct": 0.3537735849056604,
+      "change20dPct": -7.571761055081458,
       "topixChange5dPct": 0.9589770911028297,
       "topixChange20dPct": -5.533399800598203,
-      "relativeTopix5dPct": 0.7790474955864455,
-      "relativeTopix20dPct": -2.3183951696456058,
-      "volumeSpikeRatio": 0.5879392671280648,
+      "relativeTopix5dPct": -0.6052035061971692,
+      "relativeTopix20dPct": -2.038361254483255,
+      "volumeSpikeRatio": 0.7129110944950418,
       "priceSignalSource": "jquants",
       "priceSignalQuality": "exact",
       "priceRiskWarnings": [],
-      "operatingProfitYoY": 28.550599616837964,
+      "operatingProfitYoY": 11.927226093757707,
       "hasDownwardRevision": false,
       "hasNegativeFlag": false,
       "hasRecentDisclosure": false,
@@ -33,7 +33,7 @@
       "matchedWorldEventTags": [
         "climate_heat_water",
         "ai_ipo_compute_cycle",
-        "financial_crisis_rate_shock"
+        "migration_labor_shortage"
       ],
       "screeningScore": 90,
       "warnings": [
@@ -43,24 +43,24 @@
       "dataSource": "jquants"
     },
     {
-      "code": "6701",
-      "name": "NEC",
-      "sector": "ai_datacenter",
+      "code": "6645",
+      "name": "オムロン",
+      "sector": "automation_robotics",
       "detectedAt": "2026-06-08",
-      "currentPrice": 4267,
-      "high52w": 6074,
-      "drawdownPct": -29.749753045768852,
-      "change5dPct": -3.4396922380629102,
-      "change20dPct": 4.098560624542571,
+      "currentPrice": 4518,
+      "high52w": 5552,
+      "drawdownPct": -18.623919308357348,
+      "change5dPct": -1.2674825174825175,
+      "change20dPct": -4.743833017077799,
       "topixChange5dPct": 0.9589770911028297,
       "topixChange20dPct": -5.533399800598203,
-      "relativeTopix5dPct": -4.39866932916574,
-      "relativeTopix20dPct": 9.631960425140775,
-      "volumeSpikeRatio": 0.3554494317272179,
+      "relativeTopix5dPct": -2.226459608585347,
+      "relativeTopix20dPct": 0.7895667835204039,
+      "volumeSpikeRatio": 0.7403632071675742,
       "priceSignalSource": "jquants",
       "priceSignalQuality": "exact",
       "priceRiskWarnings": [],
-      "operatingProfitYoY": 36.425866434057404,
+      "operatingProfitYoY": 57.35251295789412,
       "hasDownwardRevision": false,
       "hasNegativeFlag": false,
       "hasRecentDisclosure": false,
@@ -73,9 +73,7 @@
         "summary": "J-Quantsスクリーニング時点では公式IR/TDnet本文を未確認。候補化後に一次情報確認が必要。"
       },
       "matchedWorldEventTags": [
-        "climate_heat_water",
-        "ai_ipo_compute_cycle",
-        "food_security"
+        "migration_labor_shortage"
       ],
       "screeningScore": 80,
       "warnings": [
@@ -85,5 +83,10 @@
       "dataSource": "jquants"
     }
   ],
-  "generatedAt": "2026-06-08"
+  "generatedAt": "2026-06-08",
+  "sourceGeneratedAt": "2026-06-08",
+  "dataSource": "jquants",
+  "scanStatus": "fresh",
+  "fallbackReason": null,
+  "count": 2
 }

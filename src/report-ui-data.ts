@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
-import type { UniverseCandidate, StockCandidateHypothesis, HypothesisOutcome, AccuracySummary, WorldContext } from "./universe.js";
+import type { UniverseCandidate, UniverseScanMetadata, UniverseScanOutput, StockCandidateHypothesis, HypothesisOutcome, AccuracySummary, WorldContext } from "./universe.js";
 import type { CompanyMemoryRecord } from "./company-memory.js";
 import type { PrimaryDisclosureReview } from "./types.js";
 
@@ -162,13 +162,32 @@ function readJsonl<T>(path: string): T[] {
     .map(line => JSON.parse(line) as T);
 }
 
-function loadUniverseCandidates(): UniverseCandidate[] {
+function loadUniverseScanOutput(): UniverseScanOutput | null {
   const path = "data/universe_candidates_latest.json";
-  if (!existsSync(path)) return [];
+  if (!existsSync(path)) return null;
   try {
-    const raw = JSON.parse(readFileSync(path, "utf-8")) as { candidates: UniverseCandidate[] };
-    return raw.candidates ?? [];
-  } catch { return []; }
+    const raw = JSON.parse(readFileSync(path, "utf-8")) as Partial<UniverseScanOutput> & { candidates?: UniverseCandidate[] };
+    const candidates = raw.candidates ?? [];
+    return {
+      generatedAt: raw.generatedAt ?? "",
+      dataSource: raw.dataSource ?? "mock",
+      scanStatus: raw.scanStatus ?? (raw.dataSource === "mock" ? "mock" : "fresh"),
+      fallbackReason: raw.fallbackReason ?? null,
+      count: raw.count ?? candidates.length,
+      candidates,
+    };
+  } catch { return null; }
+}
+
+function toUniverseScanMetadata(output: UniverseScanOutput | null): UniverseScanMetadata | null {
+  if (!output) return null;
+  return {
+    generatedAt: output.generatedAt,
+    dataSource: output.dataSource,
+    scanStatus: output.scanStatus,
+    fallbackReason: output.fallbackReason,
+    count: output.count,
+  };
 }
 
 function loadHypotheses(): StockCandidateHypothesis[] {
@@ -285,7 +304,9 @@ function main() {
   const candidates = Object.entries(deepDives.companies ?? {}).map(([code, company]) => toCandidate(code, company, date));
 
   // 新フィールド
-  const universeCandidates = loadUniverseCandidates();
+  const universeScanOutput = loadUniverseScanOutput();
+  const universeScan = toUniverseScanMetadata(universeScanOutput);
+  const universeCandidates = universeScanOutput?.candidates ?? [];
   const hypothesisPredictions = loadHypotheses();
   const hypothesisOutcomes = loadOutcomes();
   const accuracySummary = loadAccuracySummary();
@@ -370,6 +391,7 @@ function main() {
     candidates,
     // 新フィールド（apps/web/public/generated/alpha-pon-data.json にのみ含まれる）
     universeCandidates,
+    universeScan,
     hypothesisPredictions,
     hypothesisOutcomes,
     accuracySummary,
@@ -478,7 +500,15 @@ function main() {
   const worldOut = worldContext ?? {};
   writeFileSync(join(webPublicDir, "world-events.json"), JSON.stringify(worldOut, null, 2), "utf-8");
 
-  const candidatesOut = { candidates: universeCandidates ?? [], generatedAt: date };
+  const candidatesOut = {
+    candidates: universeCandidates ?? [],
+    generatedAt: date,
+    sourceGeneratedAt: universeScanOutput?.generatedAt ?? null,
+    dataSource: universeScanOutput?.dataSource ?? null,
+    scanStatus: universeScanOutput?.scanStatus ?? null,
+    fallbackReason: universeScanOutput?.fallbackReason ?? null,
+    count: universeCandidates.length,
+  };
   writeFileSync(join(webPublicDir, "stock-candidates.json"), JSON.stringify(candidatesOut, null, 2), "utf-8");
 
   console.log(`generated apps/web/public/generated/company-rules.json, hypotheses.json, outcomes.json, world-events.json, stock-candidates.json`);

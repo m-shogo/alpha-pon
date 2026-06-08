@@ -2,6 +2,8 @@
 // src/universe.ts と同じ形状。JSON で連携する。
 
 export type UniverseScreeningStatus = 'monitoring' | 'escalated' | 'dismissed'
+export type UniverseScanStatus = 'fresh' | 'stale_fallback' | 'mock'
+export type UniverseFallbackReason = 'jquants_zero_candidates'
 export type DisclosureStatus = 'confirmed_positive' | 'confirmed_negative' | 'confirmed_neutral' | 'official_check_required' | 'missing'
 export type DisclosureSourceType = 'tdnet' | 'company_ir' | 'edinet' | 'manual' | 'missing'
 export type DisclosureEvidence = {
@@ -49,6 +51,17 @@ export type UniverseCandidate = {
   status: UniverseScreeningStatus
   dataSource: 'jquants' | 'mock'
 }
+
+export type UniverseScanOutput = {
+  generatedAt: string
+  dataSource: 'jquants' | 'mock'
+  scanStatus: UniverseScanStatus
+  fallbackReason: UniverseFallbackReason | null
+  count: number
+  candidates: UniverseCandidate[]
+}
+
+export type UniverseScanMetadata = Omit<UniverseScanOutput, 'candidates'>
 
 export type HypothesisTimeframe = '1w' | '1m' | '3m'
 export type HypothesisDirection = 'up' | 'down' | 'sideways' | 'unknown'

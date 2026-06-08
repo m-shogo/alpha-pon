@@ -21,11 +21,12 @@ import {
   type DailyQuote,
 } from "./fetcher/jquants.js";
 import { todayJst, addDaysJst } from "./date.js";
-import type { DisclosureEvidence, UniverseCandidate, WorldContextRegime } from "./universe.js";
+import type { DisclosureEvidence, UniverseCandidate, UniverseFallbackReason, UniverseScanStatus, WorldContextRegime } from "./universe.js";
 import { SCREENING_CRITERIA } from "./universe.js";
 import { loadRunCursor, saveRunCursor } from "./run-cursor.js";
 import { buildPriceSignalFromQuotes, evaluatePriceRisk } from "./analysis/price-signal.js";
 import { carryForwardStaleCandidate } from "./universe-stale-fallback.js";
+import { buildUniverseScanOutput } from "./universe-scan-output.js";
 
 const MARKET_BENCHMARK_CODE = process.env.MARKET_BENCHMARK_CODE ?? "1306";
 
@@ -214,6 +215,8 @@ async function main(): Promise<void> {
   const config = loadUniverseConfig();
   const regime = loadCurrentRegime();
   let candidates: UniverseCandidate[];
+  let scanStatus: UniverseScanStatus = isJQuantsConfigured() ? "fresh" : "mock";
+  let fallbackReason: UniverseFallbackReason | null = null;
 
   if (isJQuantsConfigured()) {
     const scan = selectStocksForRun(config.stocks);
@@ -245,6 +248,7 @@ async function main(): Promise<void> {
   } else {
     console.log(isMockEnabled() ? "[mode] モック (--mock / USE_MOCK=true が指定されています)" : "[mode] モック (J-Quants未設定のため local JSON を使用します)");
     candidates = scanWithMock();
+    scanStatus = "mock";
   }
 
   console.log(`\n通過: ${candidates.length}銘柄`);
@@ -253,6 +257,8 @@ async function main(): Promise<void> {
     if (fallback.length > 0) {
       console.warn(`[warn] J-Quants候補が0件のため、前回候補 ${fallback.length} 件をstale fallbackとして保持します`);
       candidates = fallback;
+      scanStatus = "stale_fallback";
+      fallbackReason = "jquants_zero_candidates";
     }
   }
 
@@ -260,7 +266,13 @@ async function main(): Promise<void> {
   mkdirSync(dir, { recursive: true });
   const dailyPath = join(dir, `${date}.json`);
   const latestPath = "data/universe_candidates_latest.json";
-  const output = { generatedAt: date, dataSource: isJQuantsConfigured() ? "jquants" : "mock", count: candidates.length, candidates };
+  const output = buildUniverseScanOutput({
+    generatedAt: date,
+    dataSource: isJQuantsConfigured() ? "jquants" : "mock",
+    scanStatus,
+    fallbackReason,
+    candidates,
+  });
   writeFileSync(dailyPath, JSON.stringify(output, null, 2), "utf-8");
   writeFileSync(latestPath, JSON.stringify(output, null, 2), "utf-8");
   console.log(`\n出力:`);
