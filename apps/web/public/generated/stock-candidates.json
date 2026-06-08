@@ -4,7 +4,7 @@
       "code": "4568",
       "name": "第一三共",
       "sector": "healthcare",
-      "detectedAt": "2026-06-05",
+      "detectedAt": "2026-06-08",
       "currentPrice": 2854.5,
       "high52w": 4174,
       "drawdownPct": -31.612362242453283,
@@ -21,11 +21,14 @@
         "[STALE] J-Quants取得が全滅したため前回候補を暫定保持",
         "[STALE] J-Quants取得が全滅したため前回候補を暫定保持",
         "[STALE] J-Quants取得が全滅したため前回候補を暫定保持",
+        "[STALE] J-Quants取得が全滅したため前回候補を暫定保持",
+        "[STALE] J-Quants取得が全滅したため前回候補を暫定保持",
+        "[STALE] J-Quants取得が全滅したため前回候補を暫定保持",
         "[STALE] J-Quants取得が全滅したため前回候補を暫定保持"
       ],
       "status": "monitoring",
       "dataSource": "jquants"
     }
   ],
-  "generatedAt": "2026-06-05"
+  "generatedAt": "2026-06-08"
 }

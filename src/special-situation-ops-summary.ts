@@ -253,14 +253,31 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
 
   // recent overdue（90日以内）: 急ぎの採点待ち → urgent
   const recentOverdueWithMissing = recentOverdueItems.filter(o => o.missingFields.length > 0);
-  if (recentOverdueWithMissing.length > 0) {
-    const codes = [...new Set(recentOverdueWithMissing.map(o => o.code))];
+  const recentOverdueActionable = recentOverdueWithMissing.filter(o =>
+    o.missingFields.some(field => field !== "result")
+  );
+  const recentOverdueResultOnly = recentOverdueWithMissing.filter(o =>
+    o.missingFields.length === 1 && o.missingFields[0] === "result"
+  );
+  if (recentOverdueActionable.length > 0) {
+    const codes = [...new Set(recentOverdueActionable.map(o => o.code))];
     actionItems.push({
       priority: "urgent",
       category: "backfill",
-      title: `採点待ち: ${recentOverdueWithMissing.length}件 期限切れ・フィールド不足`,
+      title: `採点待ち: ${recentOverdueActionable.length}件 期限切れ・フィールド不足`,
       detail: `${codes.join(", ")} で期限超過かつ result/return 不足。backfill で補完を検討。`,
       command: "pnpm backup && pnpm backfill:special-outcomes --write",
+    });
+  }
+
+  if (recentOverdueResultOnly.length > 0) {
+    const codes = [...new Set(recentOverdueResultOnly.map(o => o.code))];
+    actionItems.push({
+      priority: "attention",
+      category: "review",
+      title: `価格反映待ち: ${recentOverdueResultOnly.length}件 1d result 未評価`,
+      detail: `${codes.join(", ")} は return/topix 系の補完ではなく、1d result 判定用の翌営業日価格待ち。データ反映後に dry-run で確認。`,
+      command: "pnpm backfill:special-outcomes",
     });
   }
 
@@ -289,7 +306,7 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
   }
 
   // recent な updatable があれば attention で通知（historical は別途 info で通知済み）
-  if (recentUpdatableItems.length > 0 && recentOverdueWithMissing.length === 0 && dueTodayItems.length === 0) {
+  if (recentUpdatableItems.length > 0 && recentOverdueActionable.length === 0 && recentOverdueResultOnly.length === 0 && dueTodayItems.length === 0) {
     actionItems.push({
       priority: "attention",
       category: "backfill",

@@ -110,6 +110,78 @@ export type ReadinessReport = {
   }>
 }
 
+export type SpecialSituationOpsSummary = {
+  generatedAt: string
+  today: string
+  healthStatus: 'ok' | 'needs_attention' | 'action_required'
+  actionItems: Array<{
+    priority: 'urgent' | 'attention' | 'info' | 'ok'
+    category: string
+    title: string
+    detail: string
+    command?: string
+  }>
+  coverage: {
+    totalCandidates: number
+    withSpecialOutcome: number
+    noOutcomeRecord: number
+    noOutcomeRecordCodes: string[]
+    needSeed: boolean
+  }
+  reviewDue: {
+    overdue: number
+    historicalSeedOverdue: number
+    dueToday: number
+    dueThisWeek: number
+    notDueYet: number
+  }
+  backfill: {
+    structurallyUpdatable: number
+    historicalUpdatable: number
+    recentUpdatable: number
+    notDueYet: number
+  }
+  outcomeStats: {
+    sampleTooSmall: number
+    hasStats: number
+  }
+  mixedOutcomes: {
+    count: number
+  }
+}
+
+export type HypothesisOutcomeIntegrity = {
+  generatedAt: string
+  status: 'ok' | 'duplicate_found' | 'db_unavailable'
+  jsonl: {
+    totalRows: number
+    duplicateGroups: Array<{ key: string; count: number }>
+  }
+  sqlite: {
+    totalRows: number | null
+    uniqueIndexExists: boolean
+    duplicateGroups: Array<{ key: string; count: number }>
+    error: string | null
+  }
+  nextAction: string
+}
+
+export type LegendProCommittee = {
+  generatedAt: string | null
+  decisions: Array<{
+    code?: string
+    name?: string
+    originalFinalLabel?: string | null
+    finalLabel?: string
+    finalScore?: number
+    consensus?: {
+      agreementLevel?: string
+    } | null
+    disagreements?: unknown[]
+    missingEvidence?: string[]
+  }>
+}
+
 export type DataQualityReason =
   | 'jquants_delayed'
   | 'tdnet_unavailable'
@@ -404,6 +476,10 @@ export type AlphaPonGeneratedData = {
   readiness?: ReadinessReport | null
   ipoThemeWatch?: IpoThemeWatch | null
   specialSituationWatch?: SpecialSituationWatch | null
+  specialSituationOps?: SpecialSituationOpsSummary | null
+  hypothesisOutcomeIntegrity?: HypothesisOutcomeIntegrity | null
+  legendProCommittee?: LegendProCommittee | null
+  stockProCommitteeJson?: LegendProCommittee | null
   pipelineStatus?: {
     date?: string
     status?: string

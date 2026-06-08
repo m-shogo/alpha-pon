@@ -23,10 +23,15 @@ function isObject(value: unknown): value is Record<string, unknown> {
       assert(typeof decision.code === "string", "decision.code は string である必要があります");
       assert(typeof decision.name === "string", "decision.name は string である必要があります");
       assert(typeof decision.finalLabel === "string", "decision.finalLabel は string である必要があります");
+      assert(typeof decision.originalFinalLabel === "string", "decision.originalFinalLabel は string である必要があります");
+      assert(typeof decision.finalScore === "number", "decision.finalScore は number である必要があります");
       assert(Array.isArray(decision.verdicts), "decision.verdicts は配列である必要があります");
-      if ("legendVerdicts" in decision) assert(Array.isArray(decision.legendVerdicts), "decision.legendVerdicts は配列である必要があります");
-      if ("disagreements" in decision) assert(Array.isArray(decision.disagreements), "decision.disagreements は配列である必要があります");
-      if ("consensus" in decision && decision.consensus !== null) assert(isObject(decision.consensus), "decision.consensus は object である必要があります");
+      assert(Array.isArray(decision.legendVerdicts), "decision.legendVerdicts は配列である必要があります");
+      assert(Array.isArray(decision.disagreements), "decision.disagreements は配列である必要があります");
+      assert(Array.isArray(decision.nextActions), "decision.nextActions は配列である必要があります");
+      assert(Array.isArray(decision.blockers), "decision.blockers は配列である必要があります");
+      assert(Array.isArray(decision.missingEvidence), "decision.missingEvidence は配列である必要があります");
+      assert("consensus" in decision && isObject(decision.consensus), "decision.consensus は object である必要があります");
     }
   }
 }
@@ -35,16 +40,35 @@ function isObject(value: unknown): value is Record<string, unknown> {
   const data = readJson("apps/web/public/generated/alpha-pon-data.json");
   if (data !== null) {
     assert(isObject(data), "alpha-pon-data.json は object である必要があります");
-    if ("legendProCommittee" in data) {
-      const committee = data.legendProCommittee;
-      assert(isObject(committee), "legendProCommittee は object である必要があります");
-      assert(Array.isArray(committee.decisions), "legendProCommittee.decisions は配列である必要があります");
-      for (const decision of committee.decisions) {
-        assert(isObject(decision), "legendProCommittee decision は object である必要があります");
-        assert("finalLabel" in decision, "legendProCommittee decision は finalLabel を持つ必要があります");
-        assert("legendVerdicts" in decision, "legendProCommittee decision は legendVerdicts を持つ必要があります");
-        if ("disagreements" in decision) assert(Array.isArray(decision.disagreements), "legendProCommittee.disagreements は配列である必要があります");
-      }
+    const committeeJson = readJson("reports/stock_pro_committee_latest.json");
+    assert("legendProCommittee" in data, "alpha-pon-data.json は legendProCommittee を必ず持つ必要があります");
+    assert("buffettQuality" in data, "alpha-pon-data.json は buffettQuality を必ず持つ必要があります");
+    assert("valuationSnapshots" in data, "alpha-pon-data.json は valuationSnapshots を必ず持つ必要があります");
+    assert("irEventEvidence" in data, "alpha-pon-data.json は irEventEvidence を必ず持つ必要があります");
+    assert("stockProCommitteeJson" in data, "alpha-pon-data.json は stockProCommitteeJson を必ず持つ必要があります");
+    assert("specialSituationOps" in data, "alpha-pon-data.json は specialSituationOps を必ず持つ必要があります");
+    assert("hypothesisOutcomeIntegrity" in data, "alpha-pon-data.json は hypothesisOutcomeIntegrity を必ず持つ必要があります");
+
+    const committee = data.legendProCommittee;
+    assert(isObject(committee), "legendProCommittee は object である必要があります");
+    assert(Array.isArray(committee.decisions), "legendProCommittee.decisions は配列である必要があります");
+    if (isObject(committeeJson) && Array.isArray(committeeJson.decisions)) {
+      assert(
+        committee.decisions.length === committeeJson.decisions.length,
+        `legendProCommittee.decisions 件数が stock_pro_committee_latest.json と一致しません (${committee.decisions.length} !== ${committeeJson.decisions.length})`
+      );
+    }
+    for (const decision of committee.decisions) {
+      assert(isObject(decision), "legendProCommittee decision は object である必要があります");
+      assert("originalFinalLabel" in decision, "legendProCommittee decision は originalFinalLabel を持つ必要があります");
+      assert("finalLabel" in decision, "legendProCommittee decision は finalLabel を持つ必要があります");
+      assert("finalScore" in decision, "legendProCommittee decision は finalScore を持つ必要があります");
+      assert("consensus" in decision, "legendProCommittee decision は consensus を持つ必要があります");
+      assert(Array.isArray(decision.disagreements), "legendProCommittee.disagreements は配列である必要があります");
+      assert(Array.isArray(decision.nextActions), "legendProCommittee.nextActions は配列である必要があります");
+      assert(Array.isArray(decision.blockers), "legendProCommittee.blockers は配列である必要があります");
+      assert(Array.isArray(decision.missingEvidence), "legendProCommittee.missingEvidence は配列である必要があります");
+      assert("legendVerdicts" in decision, "legendProCommittee decision は legendVerdicts を持つ必要があります");
     }
     assert("ipoThemeWatch" in data, "alpha-pon-data.json は ipoThemeWatch を必ず持つ必要があります");
     const watch = data.ipoThemeWatch;

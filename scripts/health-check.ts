@@ -7,6 +7,7 @@ import { spawnSync } from "child_process";
 import { openJobsDb } from "../src/jobs/db.js";
 import { getTodayInTokyo } from "../src/jobs/date-utils.js";
 import { getLastSuccessDate, APP_NAME } from "../src/jobs/job-runner.js";
+import { buildOutcomeIntegrityReport } from "../src/hypothesis-outcome-integrity.js";
 
 const TODAY = getTodayInTokyo();
 
@@ -30,6 +31,15 @@ function tokyoDateFromMtime(path: string): string | null {
   const month = byType.get("month");
   const day = byType.get("day");
   return year && month && day ? `${year}-${month}-${day}` : null;
+}
+
+function readJson<T>(path: string): T | null {
+  if (!existsSync(path)) return null;
+  try {
+    return JSON.parse(readFileSync(path, "utf-8")) as T;
+  } catch {
+    return null;
+  }
 }
 
 const successArtifactByJob: Record<string, string[]> = {
@@ -202,6 +212,88 @@ for (const f of generatedFiles) {
   existsSync(f)
     ? ok(`生成データ: ${f.split("/").pop()}`)
     : warn(`生成データ: ${f.split("/").pop()}`, "ファイルが存在しない（pnpm ui:data を実行してください）");
+}
+
+// ── special situation ops ────────────────────────────────────
+type SpecialOpsSummary = {
+  healthStatus?: "ok" | "needs_attention" | "action_required";
+  actionItems?: Array<{ priority?: string; title?: string; command?: string; detail?: string }>;
+  reviewDue?: { overdue?: number; historicalSeedOverdue?: number; dueToday?: number; dueThisWeek?: number };
+  backfill?: { recentUpdatable?: number; historicalUpdatable?: number };
+  outcomeStats?: { sampleTooSmall?: number };
+};
+const specialOps = readJson<SpecialOpsSummary>("reports/special_situation_ops_summary_latest.json");
+if (!specialOps) {
+  warn("special situation ops", "未生成（pnpm ops:special を実行してください）");
+} else if (specialOps.healthStatus === "action_required") {
+  const urgent = (specialOps.actionItems ?? []).filter(item => item.priority === "urgent");
+  const command = urgent.find(item => item.command)?.command ?? "pnpm ops:special";
+  warn(
+    "special situation ops",
+    `action_required: ${urgent.map(item => item.title).join(" / ") || "要対応あり"} / nextAction: ${command}`
+  );
+} else if (specialOps.healthStatus === "needs_attention") {
+  const attention = (specialOps.actionItems ?? []).filter(item => item.priority === "attention");
+  warn(
+    "special situation ops",
+    `needs_attention: ${attention.map(item => item.title).join(" / ") || "確認事項あり"} / nextAction: pnpm ops:special`
+  );
+} else {
+  ok("special situation ops", "ok");
+}
+
+// ── hypothesis outcome duplicate / DB unique index ───────────
+{
+  const integrity = buildOutcomeIntegrityReport({ generatedAt: TODAY });
+  if (integrity.status === "duplicate_found") {
+    warn(
+      "hypothesis_outcomes duplicate",
+      `action_required: jsonl=${integrity.jsonl.duplicateGroups.length}, sqlite=${integrity.sqlite.duplicateGroups.length} / nextAction: pnpm outcomes:integrity`
+    );
+  } else if (integrity.status === "db_unavailable") {
+    warn("hypothesis_outcomes db", `DB確認不可: ${integrity.sqlite.error ?? "unknown"} / nextAction: pnpm review:hypotheses`);
+  } else {
+    ok("hypothesis_outcomes duplicate", "重複なし");
+  }
+  integrity.sqlite.uniqueIndexExists
+    ? ok("hypothesis_outcomes unique index", "idx_hypothesis_outcomes_unique")
+    : warn("hypothesis_outcomes unique index", "未確認（pnpm review:hypotheses で schema 初期化）");
+}
+
+// ── Pro committee / UI generated data consistency ────────────
+type CommitteeJson = { decisions?: Array<Record<string, unknown>> };
+type AlphaPonData = {
+  legendProCommittee?: { decisions?: Array<Record<string, unknown>> };
+  stockProCommitteeJson?: { decisions?: Array<Record<string, unknown>> };
+  buffettQuality?: unknown;
+  valuationSnapshots?: unknown;
+  irEventEvidence?: unknown;
+};
+const committeeJson = readJson<CommitteeJson>("reports/stock_pro_committee_latest.json");
+const alphaData = readJson<AlphaPonData>("apps/web/public/generated/alpha-pon-data.json");
+const committeeDecisionCount = committeeJson?.decisions?.length ?? 0;
+const legendDecisionCount = alphaData?.legendProCommittee?.decisions?.length ?? 0;
+if (!committeeJson) {
+  warn("Pro委員会 JSON", "未生成（pnpm pro:committee を実行してください）");
+} else if (committeeDecisionCount === 0) {
+  warn("Pro委員会 decisions", "0件（pnpm pro:committee を確認）");
+} else {
+  ok("Pro委員会 decisions", `${committeeDecisionCount}件`);
+}
+if (!alphaData) {
+  warn("UI generated alpha data", "読み込み不可（pnpm ui:data を実行してください）");
+} else if (committeeDecisionCount !== legendDecisionCount) {
+  warn(
+    "legendProCommittee decisions",
+    `件数ズレ: committee=${committeeDecisionCount}, ui=${legendDecisionCount} / nextAction: pnpm ui:data`
+  );
+} else {
+  ok("legendProCommittee decisions", `${legendDecisionCount}件`);
+}
+for (const key of ["buffettQuality", "valuationSnapshots", "irEventEvidence", "stockProCommitteeJson"] as const) {
+  alphaData && key in alphaData
+    ? ok(`UI generated: ${key}`)
+    : warn(`UI generated: ${key}`, "不足（pnpm ui:data を実行してください）");
 }
 
 // ── hypothesis DB ─────────────────────────────────────────────

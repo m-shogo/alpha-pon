@@ -28,12 +28,67 @@ function PercentCell({ value }: { value: number | null | undefined }) {
   return <span style={{ color: 'var(--ink)', fontWeight: 800 }}>{(value * 100).toFixed(0)}%</span>
 }
 
+type Outcome = NonNullable<ReturnType<typeof loadGeneratedData>['hypothesisOutcomes']>[number]
+
+function resultLabel(result: Outcome['result']) {
+  return RESULT_META[result]?.label ?? '未評価'
+}
+
+function hitRate(items: Outcome[]) {
+  const resolved = items.filter(item => item.result === 'hit' || item.result === 'miss')
+  if (resolved.length === 0) return null
+  return resolved.filter(item => item.result === 'hit').length / resolved.length
+}
+
+function avg(values: Array<number | null | undefined>) {
+  const valid = values.filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+  return valid.length > 0 ? valid.reduce((sum, value) => sum + value, 0) / valid.length : null
+}
+
+function isSpecialOutcome(outcome: Outcome) {
+  return /\[special_situation\]|特殊状況|lockup|carve-out|spin-off|PE exit/i.test(outcome.hypothesis?.reason ?? '')
+}
+
+function groupBy<T extends string>(outcomes: Outcome[], getKey: (outcome: Outcome) => T) {
+  const grouped = new Map<T, Outcome[]>()
+  for (const outcome of outcomes) {
+    const key = getKey(outcome)
+    grouped.set(key, [...(grouped.get(key) ?? []), outcome])
+  }
+  return grouped
+}
+
+function OutcomeStatRow({ label, items }: { label: string; items: Outcome[] }) {
+  const counts = {
+    hit: items.filter(item => item.result === 'hit').length,
+    miss: items.filter(item => item.result === 'miss').length,
+    tooEarly: items.filter(item => item.result === 'too_early').length,
+    unknown: items.filter(item => item.result === 'unknown').length,
+  }
+  return (
+    <tr style={{ borderTop: '1px solid var(--line)' }}>
+      <td style={{ padding: '8px 12px', fontWeight: 800, color: 'var(--ink)' }}>{label}</td>
+      <td style={{ padding: '8px 12px', textAlign: 'right', color: 'var(--ink-3)', fontWeight: 700 }}>{items.length}件</td>
+      <td style={{ padding: '8px 12px', textAlign: 'right' }}><PercentCell value={hitRate(items)} /></td>
+      <td style={{ padding: '8px 12px', textAlign: 'right', color: 'var(--mint-deep)', fontWeight: 800 }}>{counts.hit}</td>
+      <td style={{ padding: '8px 12px', textAlign: 'right', color: 'var(--urgent)', fontWeight: 800 }}>{counts.miss}</td>
+      <td style={{ padding: '8px 12px', textAlign: 'right', color: 'var(--amber)', fontWeight: 800 }}>{counts.tooEarly}</td>
+      <td style={{ padding: '8px 12px', textAlign: 'right', color: 'var(--ink-3)', fontWeight: 800 }}>{counts.unknown}</td>
+      <td style={{ padding: '8px 12px', textAlign: 'right' }}><ReturnCell value={avg(items.map(item => item.relativeToTopix1m))} /></td>
+    </tr>
+  )
+}
+
 export default function OutcomesPage() {
   const data = loadGeneratedData()
   const outcomes = data.hypothesisOutcomes ?? []
   const summary = data.accuracySummary ?? null
 
   const sorted = [...outcomes].sort((a, b) => b.evaluatedAt.localeCompare(a.evaluatedAt))
+  const byHorizon = groupBy(outcomes, outcome => outcome.reviewHorizon)
+  const byLabel = groupBy(outcomes, outcome => outcome.actionLabel)
+  const specialOutcomes = outcomes.filter(isSpecialOutcome)
+  const missingEvidenceOutcomes = outcomes.filter(outcome => (outcome.hypothesis?.evidenceNeeded ?? []).length >= 3)
 
   return (
     <>
@@ -156,8 +211,42 @@ export default function OutcomesPage() {
 
         {/* J-Quants Free プランの遅延説明 */}
         <div style={{ marginBottom: 12, padding: '10px 14px', background: 'var(--surface-2)', borderRadius: 10, fontSize: 12, color: 'var(--ink-3)', fontWeight: 600, lineHeight: 1.6 }}>
-          ※ J-Quants Free プランのため株価リターンは約 84 日後から計算されます。それまでは <code style={{ background: 'var(--surface)', padding: '1px 4px', borderRadius: 3 }}>result=unknown</code> が続きますが正常動作です。
+          ※ この画面は買い推奨ではなく、仮説検証結果の整理です。価格データ未反映やレビュー母数不足の間は「未評価」として扱います。
         </div>
+
+        <SectionLabel icon={<Icon name="filter" size={15} />}>レビュー軸別の答え合わせ</SectionLabel>
+        {outcomes.length === 0 ? (
+          <div style={{ marginBottom: 16, background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--card-line)', padding: '14px 16px', fontSize: 12.5, color: 'var(--ink-3)', fontWeight: 600 }}>
+            まだレビュー母数が不足しています。次回レビュー予定に到達後、`pnpm review:hypotheses` と `pnpm ui:data` で反映されます。
+          </div>
+        ) : (
+          <div style={{ marginBottom: 16, background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--card-line)', boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+              <thead>
+                <tr style={{ background: 'var(--surface-2)' }}>
+                  <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>軸</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>件数</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>一致率</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>一致</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>不一致</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>時期尚早</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>未評価</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>TOPIX比1M</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(['1d', '1w', '1m', '3m'] as const).map(horizon => (
+                  <OutcomeStatRow key={horizon} label={`${horizon} review`} items={byHorizon.get(horizon) ?? []} />
+                ))}
+                {(['watch', 'log', 'ignore'] as const).map(label => (
+                  <OutcomeStatRow key={label} label={`finalLabel: ${label}`} items={byLabel.get(label) ?? []} />
+                ))}
+                <OutcomeStatRow label="special situation" items={specialOutcomes} />
+                <OutcomeStatRow label="missingEvidence 多め" items={missingEvidenceOutcomes} />
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* 検証リスト */}
         <SectionLabel icon={<Icon name="check" size={15} />}>
@@ -173,7 +262,7 @@ export default function OutcomesPage() {
           </div>
         ) : (
           sorted.map((o, i) => {
-            const rm = RESULT_META[o.result]
+            const rm = RESULT_META[o.result] ?? RESULT_META.unknown
             return (
               <Card key={i} pad={13} style={{ marginBottom: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
@@ -183,7 +272,7 @@ export default function OutcomesPage() {
                         fontSize: 11.5, fontWeight: 800, color: rm.color,
                         background: rm.bg, borderRadius: 6, padding: '2px 8px',
                       }}>
-                        {rm.label}
+                        {resultLabel(o.result)}
                       </span>
                       <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{o.name}</span>
                       <span style={{ fontSize: 11.5, color: 'var(--ink-3)', fontWeight: 700 }}>{o.code}</span>

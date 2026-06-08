@@ -50,11 +50,39 @@ function cursorRange(cursor: { offset?: number; maxPerRun?: number; total?: numb
   return `${offset + 1}-${nextEnd} / ${total}`
 }
 
+function MetricCard({ label, value, tone = 'default' }: { label: string; value: string; tone?: 'default' | 'ok' | 'warn' | 'alert' }) {
+  const color = tone === 'ok' ? 'var(--mint-deep)' : tone === 'alert' ? 'var(--urgent)' : tone === 'warn' ? 'var(--amber)' : 'var(--ink)'
+  return (
+    <div style={{ background: 'var(--surface)', borderRadius: 14, padding: '10px 12px', border: '1px solid var(--card-line)', boxShadow: 'var(--shadow)', minWidth: 0 }}>
+      <div style={{ fontSize: 10.5, fontWeight: 800, color: 'var(--ink-3)', marginBottom: 3 }}>{label}</div>
+      <div style={{ fontSize: 16, fontWeight: 850, color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
+    </div>
+  )
+}
+
 export default function RoadmapPage() {
   const data = loadGeneratedData()
   const readiness = data.readiness
   const readinessById = new Map((readiness?.items ?? []).map(item => [item.id, item]))
   const runCursors = Object.entries(data.runCursors ?? {})
+  const specialOps = data.specialSituationOps
+  const integrity = data.hypothesisOutcomeIntegrity
+  const proDecisions = data.legendProCommittee?.decisions ?? []
+  const outcomes = data.hypothesisOutcomes ?? []
+  const disagreementsCount = proDecisions.filter(decision => (decision.disagreements ?? []).length > 0).length
+  const missingEvidenceCount = proDecisions.reduce((sum, decision) => sum + (decision.missingEvidence ?? []).length, 0)
+  const finalLabelCounts = proDecisions.reduce<Record<string, number>>((acc, decision) => {
+    const label = decision.finalLabel ?? '未分類'
+    acc[label] = (acc[label] ?? 0) + 1
+    return acc
+  }, {})
+  const duplicateWarnings = (integrity?.jsonl.duplicateGroups.length ?? 0) + (integrity?.sqlite.duplicateGroups.length ?? 0)
+  const actionRequiredCount = specialOps?.actionItems.filter(item => item.priority === 'urgent').length ?? 0
+  const nextCommands = [
+    specialOps?.actionItems.find(item => item.priority === 'urgent' && item.command)?.command,
+    duplicateWarnings > 0 ? 'pnpm outcomes:integrity' : null,
+    !data.legendProCommittee ? 'pnpm ui:data' : null,
+  ].filter((command): command is string => Boolean(command))
 
   return (
     <>
@@ -77,6 +105,46 @@ export default function RoadmapPage() {
       </div>
 
       <div style={{ padding: '16px 16px 0' }}>
+        <SectionLabel icon={<Icon name="filter" size={15} />}>毎朝の運用状態</SectionLabel>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 9, marginBottom: 12 }}>
+          <MetricCard
+            label="health status"
+            value={specialOps?.healthStatus ?? readiness?.overallStatus ?? '未生成'}
+            tone={specialOps?.healthStatus === 'action_required' ? 'alert' : specialOps?.healthStatus === 'needs_attention' ? 'warn' : 'ok'}
+          />
+          <MetricCard label="action_required" value={`${actionRequiredCount}件`} tone={actionRequiredCount > 0 ? 'alert' : 'ok'} />
+          <MetricCard label="special overdue" value={`${specialOps?.reviewDue.overdue ?? 0}件`} tone={(specialOps?.reviewDue.overdue ?? 0) > 0 ? 'warn' : 'ok'} />
+          <MetricCard label="missingEvidence" value={`${missingEvidenceCount}件`} tone={missingEvidenceCount > 0 ? 'warn' : 'ok'} />
+          <MetricCard label="generated data" value={data.generatedAt ?? '未生成'} tone={data.generatedAt ? 'ok' : 'alert'} />
+          <MetricCard label="UNIQUE index" value={integrity?.sqlite.uniqueIndexExists ? '有効' : '未確認'} tone={integrity?.sqlite.uniqueIndexExists ? 'ok' : 'warn'} />
+          <MetricCard label="Pro decisions" value={`${proDecisions.length}件`} tone={proDecisions.length > 0 ? 'ok' : 'alert'} />
+          <MetricCard label="disagreements" value={`${disagreementsCount}件`} tone={disagreementsCount > 0 ? 'warn' : 'ok'} />
+          <MetricCard label="outcomes" value={`${outcomes.length}件`} tone={outcomes.length > 0 ? 'ok' : 'warn'} />
+          <MetricCard label="duplicate warning" value={`${duplicateWarnings}件`} tone={duplicateWarnings > 0 ? 'alert' : 'ok'} />
+        </div>
+
+        <Card pad={13} style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 850, color: 'var(--ink)', marginBottom: 6 }}>次に実行すべきコマンド</div>
+          {nextCommands.length > 0 ? (
+            <div style={{ display: 'grid', gap: 6 }}>
+              {nextCommands.slice(0, 3).map(command => (
+                <code key={command} style={{ display: 'block', background: 'var(--surface-2)', borderRadius: 6, padding: '7px 8px', color: 'var(--ink)', fontSize: 12, fontWeight: 750, overflowX: 'auto' }}>
+                  {command}
+                </code>
+              ))}
+            </div>
+          ) : (
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--mint-deep)' }}>
+              追加対応なし。通常の `pnpm health` と `pnpm ui:data` で継続確認。
+            </div>
+          )}
+          {Object.keys(finalLabelCounts).length > 0 && (
+            <div style={{ marginTop: 10, fontSize: 11.5, fontWeight: 700, color: 'var(--ink-3)', lineHeight: 1.5 }}>
+              finalLabel分布: {Object.entries(finalLabelCounts).map(([label, count]) => `${label} ${count}`).join(' / ')}
+            </div>
+          )}
+        </Card>
+
         <SectionLabel icon={<Icon name="arc" size={15} />}>Readiness</SectionLabel>
         <Card pad={15}>
           {readiness ? (

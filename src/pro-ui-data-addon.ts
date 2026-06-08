@@ -20,6 +20,8 @@ function main() {
   const specialSituationWatch = readJson("reports/special_situation_watch_latest.json", {
     generatedAt: null, patterns: [], candidates: [], topChanceList: [], referenceEvents: []
   });
+  const specialSituationOps = readJson("reports/special_situation_ops_summary_latest.json", null);
+  const hypothesisOutcomeIntegrity = readJson("reports/hypothesis_outcome_integrity_latest.json", null);
   const stockProCommitteeJson = readJson<{ generatedAt: string | null; decisions: Array<Record<string, unknown>> }>("reports/stock_pro_committee_latest.json", { generatedAt: null, decisions: [] });
   const legendProCommittee = {
     generatedAt: stockProCommitteeJson.generatedAt,
@@ -31,6 +33,9 @@ function main() {
       finalScore: decision.finalScore,
       consensus: decision.consensus ?? null,
       disagreements: decision.disagreements ?? [],
+      nextActions: decision.nextActions ?? [],
+      blockers: decision.blockers ?? [],
+      missingEvidence: decision.missingEvidence ?? [],
       legendVerdicts: decision.legendVerdicts ?? [],
       legendWarnings: decision.legendWarnings ?? [],
     })),
@@ -43,6 +48,8 @@ function main() {
     irEventEvidence,
     ipoThemeWatch,
     specialSituationWatch,
+    specialSituationOps,
+    hypothesisOutcomeIntegrity,
     stockProCommitteeJson,
     legendProCommittee,
     proDataMeta: {
@@ -54,6 +61,8 @@ function main() {
         existsSync("data/ir_event_evidence_latest.json") ? null : "data/ir_event_evidence_latest.json",
         existsSync("reports/ipo_theme_watch_latest.json") ? null : "reports/ipo_theme_watch_latest.json",
         existsSync("reports/special_situation_watch_latest.json") ? null : "reports/special_situation_watch_latest.json",
+        existsSync("reports/special_situation_ops_summary_latest.json") ? null : "reports/special_situation_ops_summary_latest.json",
+        existsSync("reports/hypothesis_outcome_integrity_latest.json") ? null : "reports/hypothesis_outcome_integrity_latest.json",
         existsSync("reports/stock_pro_committee_latest.json") ? null : "reports/stock_pro_committee_latest.json",
       ].filter(Boolean),
     },
