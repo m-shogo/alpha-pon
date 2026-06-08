@@ -95,6 +95,23 @@ try {
   assert.equal(duplicate.jsonl.duplicateGroups.length, 1);
   assert.equal(duplicate.jsonl.duplicateGroups[0].key, "1111:2026-06-01:1d");
   assert.equal(duplicate.jsonl.duplicateGroups[0].count, 2);
+
+  writeFileSync(
+    jsonlPath,
+    [
+      JSON.stringify(outcome("2222", "2026-06-01", "1d")),
+      "{ broken json",
+      JSON.stringify(outcome("2222", "2026-06-01", "1w")),
+    ].join("\n") + "\n",
+    "utf-8"
+  );
+
+  const parseError = buildOutcomeIntegrityReport({ generatedAt: "2026-06-08", jsonlPath, dbPath });
+  assert.equal(parseError.status, "parse_error");
+  assert.equal(parseError.jsonl.totalRows, 2, "壊れていない行は読み続ける");
+  assert.equal(parseError.jsonl.parseErrors.length, 1);
+  assert.equal(parseError.jsonl.parseErrors[0].lineNumber, 2);
+  assert(parseError.jsonl.parseErrors[0].preview.includes("broken json"));
 } finally {
   if (existsSync(dir)) rmSync(dir, { recursive: true, force: true });
 }

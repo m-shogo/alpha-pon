@@ -535,30 +535,85 @@
   ],
   "universeCandidates": [
     {
-      "code": "4568",
-      "name": "第一三共",
-      "sector": "healthcare",
+      "code": "6501",
+      "name": "日立製作所",
+      "sector": "ai_datacenter",
       "detectedAt": "2026-06-08",
-      "currentPrice": 2854.5,
-      "high52w": 4174,
-      "drawdownPct": -31.612362242453283,
-      "operatingProfitYoY": 56.87326313401516,
+      "currentPrice": 4800,
+      "high52w": 5818,
+      "drawdownPct": -17.497421794431077,
+      "change5dPct": 1.7380245866892752,
+      "change20dPct": -7.851794970243809,
+      "topixChange5dPct": 0.9589770911028297,
+      "topixChange20dPct": -5.533399800598203,
+      "relativeTopix5dPct": 0.7790474955864455,
+      "relativeTopix20dPct": -2.3183951696456058,
+      "volumeSpikeRatio": 0.5879392671280648,
+      "priceSignalSource": "jquants",
+      "priceSignalQuality": "exact",
+      "priceRiskWarnings": [],
+      "operatingProfitYoY": 28.550599616837964,
       "hasDownwardRevision": false,
       "hasNegativeFlag": false,
-      "hasRecentDisclosure": true,
+      "hasRecentDisclosure": false,
+      "disclosureEvidence": {
+        "status": "official_check_required",
+        "sourceType": "missing",
+        "sourceUrl": null,
+        "publishedAt": null,
+        "title": null,
+        "summary": "J-Quantsスクリーニング時点では公式IR/TDnet本文を未確認。候補化後に一次情報確認が必要。"
+      },
       "matchedWorldEventTags": [
-        "migration_labor_shortage",
+        "climate_heat_water",
+        "ai_ipo_compute_cycle",
         "financial_crisis_rate_shock"
       ],
-      "screeningScore": 85,
+      "screeningScore": 90,
       "warnings": [
-        "[STALE] J-Quants取得が全滅したため前回候補を暫定保持",
-        "[STALE] J-Quants取得が全滅したため前回候補を暫定保持",
-        "[STALE] J-Quants取得が全滅したため前回候補を暫定保持",
-        "[STALE] J-Quants取得が全滅したため前回候補を暫定保持",
-        "[STALE] J-Quants取得が全滅したため前回候補を暫定保持",
-        "[STALE] J-Quants取得が全滅したため前回候補を暫定保持",
-        "[STALE] J-Quants取得が全滅したため前回候補を暫定保持"
+        "公式IR/TDnet本文未確認: disclosureEvidence.status=official_check_required"
+      ],
+      "status": "monitoring",
+      "dataSource": "jquants"
+    },
+    {
+      "code": "6701",
+      "name": "NEC",
+      "sector": "ai_datacenter",
+      "detectedAt": "2026-06-08",
+      "currentPrice": 4267,
+      "high52w": 6074,
+      "drawdownPct": -29.749753045768852,
+      "change5dPct": -3.4396922380629102,
+      "change20dPct": 4.098560624542571,
+      "topixChange5dPct": 0.9589770911028297,
+      "topixChange20dPct": -5.533399800598203,
+      "relativeTopix5dPct": -4.39866932916574,
+      "relativeTopix20dPct": 9.631960425140775,
+      "volumeSpikeRatio": 0.3554494317272179,
+      "priceSignalSource": "jquants",
+      "priceSignalQuality": "exact",
+      "priceRiskWarnings": [],
+      "operatingProfitYoY": 36.425866434057404,
+      "hasDownwardRevision": false,
+      "hasNegativeFlag": false,
+      "hasRecentDisclosure": false,
+      "disclosureEvidence": {
+        "status": "official_check_required",
+        "sourceType": "missing",
+        "sourceUrl": null,
+        "publishedAt": null,
+        "title": null,
+        "summary": "J-Quantsスクリーニング時点では公式IR/TDnet本文を未確認。候補化後に一次情報確認が必要。"
+      },
+      "matchedWorldEventTags": [
+        "climate_heat_water",
+        "ai_ipo_compute_cycle",
+        "food_security"
+      ],
+      "screeningScore": 80,
+      "warnings": [
+        "公式IR/TDnet本文未確認: disclosureEvidence.status=official_check_required"
       ],
       "status": "monitoring",
       "dataSource": "jquants"
@@ -1322,17 +1377,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "partial",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がpartial"
+        "価格データ品質がpartial",
+        "未評価: 価格データ不足 (partial)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-02時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-02時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
       "dataSource": "jquants"
     },
     {
@@ -1399,17 +1453,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "partial",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がpartial"
+        "価格データ品質がpartial",
+        "未評価: 価格データ不足 (partial)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-02時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-02時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
       "dataSource": "jquants"
     },
     {
@@ -1472,17 +1525,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "partial",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がpartial"
+        "価格データ品質がpartial",
+        "未評価: 価格データ不足 (partial)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-02時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-02時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
       "dataSource": "jquants"
     },
     {
@@ -1544,17 +1596,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "partial",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がpartial"
+        "価格データ品質がpartial",
+        "未評価: 価格データ不足 (partial)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-02時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-02時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
       "dataSource": "jquants"
     },
     {
@@ -1618,17 +1669,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "missing",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がmissing"
+        "価格データ品質がmissing",
+        "未評価: 価格データ不足 (missing)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
     },
     {
@@ -1695,17 +1745,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "missing",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がmissing"
+        "価格データ品質がmissing",
+        "未評価: 価格データ不足 (missing)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
     },
     {
@@ -1768,17 +1817,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "missing",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がmissing"
+        "価格データ品質がmissing",
+        "未評価: 価格データ不足 (missing)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
     },
     {
@@ -1840,17 +1888,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "missing",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がmissing"
+        "価格データ品質がmissing",
+        "未評価: 価格データ不足 (missing)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
     },
     {
@@ -1914,17 +1961,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "missing",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がmissing"
+        "価格データ品質がmissing",
+        "未評価: 価格データ不足 (missing)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
     },
     {
@@ -1988,17 +2034,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "missing",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がmissing"
+        "価格データ品質がmissing",
+        "未評価: 価格データ不足 (missing)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
     },
     {
@@ -2061,17 +2106,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "missing",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がmissing"
+        "価格データ品質がmissing",
+        "未評価: 価格データ不足 (missing)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
     },
     {
@@ -2134,17 +2178,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "missing",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がmissing"
+        "価格データ品質がmissing",
+        "未評価: 価格データ不足 (missing)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
     },
     {
@@ -2208,17 +2251,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "missing",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がmissing"
+        "価格データ品質がmissing",
+        "未評価: 価格データ不足 (missing)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
     },
     {
@@ -2282,17 +2324,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "missing",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がmissing"
+        "価格データ品質がmissing",
+        "未評価: 価格データ不足 (missing)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
     },
     {
@@ -2355,17 +2396,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "missing",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がmissing"
+        "価格データ品質がmissing",
+        "未評価: 価格データ不足 (missing)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
     },
     {
@@ -2428,17 +2468,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "missing",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がmissing"
+        "価格データ品質がmissing",
+        "未評価: 価格データ不足 (missing)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
     },
     {
@@ -2501,12 +2540,11 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "partial",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がpartial"
+        "価格データ品質がpartial",
+        "未評価: 価格データ不足 (partial)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
@@ -2514,7 +2552,7 @@
       "missReasonCandidates": [
         "data_quality_bad"
       ],
-      "notes": "2026-06-04時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-04時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
       "dataSource": "jquants"
     },
     {
@@ -2577,12 +2615,11 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "partial",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がpartial"
+        "価格データ品質がpartial",
+        "未評価: 価格データ不足 (partial)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
@@ -2590,7 +2627,7 @@
       "missReasonCandidates": [
         "data_quality_bad"
       ],
-      "notes": "2026-06-05時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-05時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
       "dataSource": "jquants"
     },
     {
@@ -2653,9 +2690,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -2718,9 +2757,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -2783,9 +2824,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -2849,9 +2892,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -2915,9 +2960,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -2981,9 +3028,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -3043,9 +3092,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -3105,9 +3156,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -3167,9 +3220,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -3231,9 +3286,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -3295,9 +3352,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -3359,9 +3418,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -3423,9 +3484,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -3487,9 +3550,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -3551,9 +3616,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -3615,9 +3682,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -3679,9 +3748,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -3743,9 +3814,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -3807,9 +3880,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -3871,9 +3946,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -3935,9 +4012,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -3999,9 +4078,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -4063,9 +4144,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -4127,9 +4210,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -4192,12 +4277,11 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "missing",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がmissing"
+        "価格データ品質がmissing",
+        "未評価: 価格データ不足 (missing)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
@@ -4205,7 +4289,7 @@
       "missReasonCandidates": [
         "data_quality_bad"
       ],
-      "notes": "2026-06-06時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-06時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
     },
     {
@@ -4268,12 +4352,11 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "missing",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がmissing"
+        "価格データ品質がmissing",
+        "未評価: 価格データ不足 (missing)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
@@ -4281,7 +4364,7 @@
       "missReasonCandidates": [
         "data_quality_bad"
       ],
-      "notes": "2026-06-07時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-07時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
     },
     {
@@ -4345,12 +4428,11 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "partial",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がpartial"
+        "価格データ品質がpartial",
+        "未評価: 価格データ不足 (partial)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
@@ -4358,7 +4440,7 @@
       "missReasonCandidates": [
         "data_quality_bad"
       ],
-      "notes": "2026-06-08時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-08時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
       "dataSource": "jquants"
     },
     {
@@ -4425,12 +4507,11 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "partial",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がpartial"
+        "価格データ品質がpartial",
+        "未評価: 価格データ不足 (partial)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
@@ -4438,7 +4519,7 @@
       "missReasonCandidates": [
         "data_quality_bad"
       ],
-      "notes": "2026-06-08時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-08時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
       "dataSource": "jquants"
     },
     {
@@ -4501,12 +4582,11 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "partial",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がpartial"
+        "価格データ品質がpartial",
+        "未評価: 価格データ不足 (partial)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
@@ -4514,7 +4594,7 @@
       "missReasonCandidates": [
         "data_quality_bad"
       ],
-      "notes": "2026-06-08時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-08時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
       "dataSource": "jquants"
     },
     {
@@ -4576,12 +4656,11 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "partial",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がpartial"
+        "価格データ品質がpartial",
+        "未評価: 価格データ不足 (partial)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
@@ -4589,7 +4668,7 @@
       "missReasonCandidates": [
         "data_quality_bad"
       ],
-      "notes": "2026-06-08時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-08時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
       "dataSource": "jquants"
     },
     {
@@ -4652,12 +4731,11 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "partial",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がpartial"
+        "価格データ品質がpartial",
+        "未評価: 価格データ不足 (partial)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
@@ -4665,7 +4743,7 @@
       "missReasonCandidates": [
         "data_quality_bad"
       ],
-      "notes": "2026-06-08時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-08時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
       "dataSource": "jquants"
     },
     {
@@ -4731,9 +4809,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -4799,9 +4879,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -4867,9 +4949,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -4932,9 +5016,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -4997,9 +5083,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -5062,9 +5150,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     }
   ],
@@ -5610,7 +5700,7 @@
   "runCursors": {
     "universe-scan": {
       "jobName": "universe-scan",
-      "offset": 8,
+      "offset": 16,
       "maxPerRun": 8,
       "total": 31,
       "updatedAt": "2026-06-08"
@@ -6512,12 +6602,12 @@
     }
   ],
   "buffettQuality": {
-    "generatedAt": "2026-06-05",
+    "generatedAt": "2026-06-08",
     "snapshots": [
       {
         "code": "5803",
         "name": "フジクラ",
-        "asOf": "2026-06-05",
+        "asOf": "2026-06-08",
         "roe5yAvg": null,
         "roic5yAvg": null,
         "operatingMargin5yAvg": null,
@@ -6544,7 +6634,7 @@
       {
         "code": "5802",
         "name": "住友電工",
-        "asOf": "2026-06-05",
+        "asOf": "2026-06-08",
         "roe5yAvg": null,
         "roic5yAvg": null,
         "operatingMargin5yAvg": null,
@@ -6572,7 +6662,7 @@
       {
         "code": "285A",
         "name": "キオクシアホールディングス",
-        "asOf": "2026-06-05",
+        "asOf": "2026-06-08",
         "roe5yAvg": null,
         "roic5yAvg": null,
         "operatingMargin5yAvg": null,
@@ -6603,7 +6693,7 @@
       {
         "code": "8035",
         "name": "東京エレクトロン",
-        "asOf": "2026-06-05",
+        "asOf": "2026-06-08",
         "roe5yAvg": null,
         "roic5yAvg": null,
         "operatingMargin5yAvg": null,
@@ -6630,7 +6720,7 @@
       {
         "code": "8136",
         "name": "サンリオ",
-        "asOf": "2026-06-05",
+        "asOf": "2026-06-08",
         "roe5yAvg": null,
         "roic5yAvg": null,
         "operatingMargin5yAvg": null,
@@ -6659,7 +6749,7 @@
       {
         "code": "7974",
         "name": "任天堂",
-        "asOf": "2026-06-05",
+        "asOf": "2026-06-08",
         "roe5yAvg": null,
         "roic5yAvg": null,
         "operatingMargin5yAvg": null,
@@ -6688,7 +6778,7 @@
       {
         "code": "7011",
         "name": "三菱重工",
-        "asOf": "2026-06-05",
+        "asOf": "2026-06-08",
         "roe5yAvg": null,
         "roic5yAvg": null,
         "operatingMargin5yAvg": null,
@@ -6715,7 +6805,7 @@
       {
         "code": "9348",
         "name": "ispace",
-        "asOf": "2026-06-05",
+        "asOf": "2026-06-08",
         "roe5yAvg": null,
         "roic5yAvg": null,
         "operatingMargin5yAvg": null,
@@ -6740,7 +6830,7 @@
       {
         "code": "8306",
         "name": "三菱UFJ FG",
-        "asOf": "2026-06-05",
+        "asOf": "2026-06-08",
         "roe5yAvg": null,
         "roic5yAvg": null,
         "operatingMargin5yAvg": null,
@@ -6765,12 +6855,12 @@
     ]
   },
   "valuationSnapshots": {
-    "generatedAt": "2026-06-05",
+    "generatedAt": "2026-06-08",
     "snapshots": [
       {
         "code": "5803",
         "name": "フジクラ",
-        "asOf": "2026-06-05",
+        "asOf": "2026-06-08",
         "per": null,
         "pbr": null,
         "psr": null,
@@ -6796,7 +6886,7 @@
       {
         "code": "5802",
         "name": "住友電工",
-        "asOf": "2026-06-05",
+        "asOf": "2026-06-08",
         "per": null,
         "pbr": null,
         "psr": null,
@@ -6820,7 +6910,7 @@
       {
         "code": "285A",
         "name": "キオクシアホールディングス",
-        "asOf": "2026-06-05",
+        "asOf": "2026-06-08",
         "per": null,
         "pbr": null,
         "psr": null,
@@ -6846,7 +6936,7 @@
       {
         "code": "8035",
         "name": "東京エレクトロン",
-        "asOf": "2026-06-05",
+        "asOf": "2026-06-08",
         "per": null,
         "pbr": null,
         "psr": null,
@@ -6872,7 +6962,7 @@
       {
         "code": "8136",
         "name": "サンリオ",
-        "asOf": "2026-06-05",
+        "asOf": "2026-06-08",
         "per": null,
         "pbr": null,
         "psr": null,
@@ -6898,7 +6988,7 @@
       {
         "code": "7974",
         "name": "任天堂",
-        "asOf": "2026-06-05",
+        "asOf": "2026-06-08",
         "per": null,
         "pbr": null,
         "psr": null,
@@ -6924,7 +7014,7 @@
       {
         "code": "7011",
         "name": "三菱重工",
-        "asOf": "2026-06-05",
+        "asOf": "2026-06-08",
         "per": null,
         "pbr": null,
         "psr": null,
@@ -6950,7 +7040,7 @@
       {
         "code": "9348",
         "name": "ispace",
-        "asOf": "2026-06-05",
+        "asOf": "2026-06-08",
         "per": null,
         "pbr": null,
         "psr": null,
@@ -6974,7 +7064,7 @@
       {
         "code": "8306",
         "name": "三菱UFJ FG",
-        "asOf": "2026-06-05",
+        "asOf": "2026-06-08",
         "per": null,
         "pbr": null,
         "psr": null,
@@ -7000,7 +7090,7 @@
     ]
   },
   "irEventEvidence": {
-    "generatedAt": "2026-06-05",
+    "generatedAt": "2026-06-08",
     "events": [
       {
         "code": "8136",
@@ -10270,7 +10360,8 @@
       "path": "data/hypothesis_outcomes.jsonl",
       "exists": true,
       "totalRows": 55,
-      "duplicateGroups": []
+      "duplicateGroups": [],
+      "parseErrors": []
     },
     "sqlite": {
       "path": "data/hypothesis_outcomes.db",
@@ -10557,8 +10648,8 @@
             "stance": "調査候補",
             "confidence": 0.55,
             "positiveEvidence": [
-              "検証サンプル n=20",
-              "outcomes=50"
+              "検証サンプル n=25",
+              "outcomes=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -10582,7 +10673,7 @@
             "stance": "調査候補",
             "confidence": 0.68,
             "positiveEvidence": [
-              "検証件数 n=50"
+              "検証件数 n=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -10932,8 +11023,8 @@
             "stance": "調査候補",
             "confidence": 0.55,
             "positiveEvidence": [
-              "検証サンプル n=20",
-              "outcomes=50"
+              "検証サンプル n=25",
+              "outcomes=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -10959,7 +11050,7 @@
             "stance": "調査候補",
             "confidence": 0.68,
             "positiveEvidence": [
-              "検証件数 n=50"
+              "検証件数 n=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -11322,8 +11413,8 @@
             "stance": "調査候補",
             "confidence": 0.55,
             "positiveEvidence": [
-              "検証サンプル n=20",
-              "outcomes=50"
+              "検証サンプル n=25",
+              "outcomes=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -11349,7 +11440,7 @@
             "stance": "調査候補",
             "confidence": 0.68,
             "positiveEvidence": [
-              "検証件数 n=50"
+              "検証件数 n=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -11705,8 +11796,8 @@
             "stance": "調査候補",
             "confidence": 0.55,
             "positiveEvidence": [
-              "検証サンプル n=20",
-              "outcomes=50"
+              "検証サンプル n=25",
+              "outcomes=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -11732,7 +11823,7 @@
             "stance": "調査候補",
             "confidence": 0.68,
             "positiveEvidence": [
-              "検証件数 n=50"
+              "検証件数 n=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -12078,8 +12169,8 @@
             "stance": "調査候補",
             "confidence": 0.55,
             "positiveEvidence": [
-              "検証サンプル n=20",
-              "outcomes=50"
+              "検証サンプル n=25",
+              "outcomes=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -12103,7 +12194,7 @@
             "stance": "調査候補",
             "confidence": 0.68,
             "positiveEvidence": [
-              "検証件数 n=50"
+              "検証件数 n=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -12458,8 +12549,8 @@
             "stance": "調査候補",
             "confidence": 0.55,
             "positiveEvidence": [
-              "検証サンプル n=20",
-              "outcomes=50"
+              "検証サンプル n=25",
+              "outcomes=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -12485,7 +12576,7 @@
             "stance": "調査候補",
             "confidence": 0.68,
             "positiveEvidence": [
-              "検証件数 n=50"
+              "検証件数 n=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -12841,8 +12932,8 @@
             "stance": "調査候補",
             "confidence": 0.55,
             "positiveEvidence": [
-              "検証サンプル n=20",
-              "outcomes=50"
+              "検証サンプル n=25",
+              "outcomes=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -12868,7 +12959,7 @@
             "stance": "調査候補",
             "confidence": 0.68,
             "positiveEvidence": [
-              "検証件数 n=50"
+              "検証件数 n=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -13221,8 +13312,8 @@
             "stance": "調査候補",
             "confidence": 0.55,
             "positiveEvidence": [
-              "検証サンプル n=20",
-              "outcomes=50"
+              "検証サンプル n=25",
+              "outcomes=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -13246,7 +13337,7 @@
             "stance": "調査候補",
             "confidence": 0.68,
             "positiveEvidence": [
-              "検証件数 n=50"
+              "検証件数 n=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -13608,8 +13699,8 @@
             "stance": "調査候補",
             "confidence": 0.55,
             "positiveEvidence": [
-              "検証サンプル n=20",
-              "outcomes=50"
+              "検証サンプル n=25",
+              "outcomes=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -13635,7 +13726,7 @@
             "stance": "調査候補",
             "confidence": 0.68,
             "positiveEvidence": [
-              "検証件数 n=50"
+              "検証件数 n=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -13908,8 +13999,8 @@
             "stance": "調査候補",
             "confidence": 0.55,
             "positiveEvidence": [
-              "検証サンプル n=20",
-              "outcomes=50"
+              "検証サンプル n=25",
+              "outcomes=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -13933,7 +14024,7 @@
             "stance": "調査候補",
             "confidence": 0.68,
             "positiveEvidence": [
-              "検証件数 n=50"
+              "検証件数 n=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -14124,8 +14215,8 @@
             "stance": "調査候補",
             "confidence": 0.55,
             "positiveEvidence": [
-              "検証サンプル n=20",
-              "outcomes=50"
+              "検証サンプル n=25",
+              "outcomes=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -14151,7 +14242,7 @@
             "stance": "調査候補",
             "confidence": 0.68,
             "positiveEvidence": [
-              "検証件数 n=50"
+              "検証件数 n=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -14347,8 +14438,8 @@
             "stance": "調査候補",
             "confidence": 0.55,
             "positiveEvidence": [
-              "検証サンプル n=20",
-              "outcomes=50"
+              "検証サンプル n=25",
+              "outcomes=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -14374,7 +14465,7 @@
             "stance": "調査候補",
             "confidence": 0.68,
             "positiveEvidence": [
-              "検証件数 n=50"
+              "検証件数 n=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -14568,8 +14659,8 @@
             "stance": "調査候補",
             "confidence": 0.55,
             "positiveEvidence": [
-              "検証サンプル n=20",
-              "outcomes=50"
+              "検証サンプル n=25",
+              "outcomes=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -14595,7 +14686,7 @@
             "stance": "調査候補",
             "confidence": 0.68,
             "positiveEvidence": [
-              "検証件数 n=50"
+              "検証件数 n=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -14786,8 +14877,8 @@
             "stance": "調査候補",
             "confidence": 0.55,
             "positiveEvidence": [
-              "検証サンプル n=20",
-              "outcomes=50"
+              "検証サンプル n=25",
+              "outcomes=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -14811,7 +14902,7 @@
             "stance": "調査候補",
             "confidence": 0.68,
             "positiveEvidence": [
-              "検証件数 n=50"
+              "検証件数 n=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -15006,8 +15097,8 @@
             "stance": "調査候補",
             "confidence": 0.55,
             "positiveEvidence": [
-              "検証サンプル n=20",
-              "outcomes=50"
+              "検証サンプル n=25",
+              "outcomes=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -15033,7 +15124,7 @@
             "stance": "調査候補",
             "confidence": 0.68,
             "positiveEvidence": [
-              "検証件数 n=50"
+              "検証件数 n=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -15227,8 +15318,8 @@
             "stance": "調査候補",
             "confidence": 0.55,
             "positiveEvidence": [
-              "検証サンプル n=20",
-              "outcomes=50"
+              "検証サンプル n=25",
+              "outcomes=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -15254,7 +15345,7 @@
             "stance": "調査候補",
             "confidence": 0.68,
             "positiveEvidence": [
-              "検証件数 n=50"
+              "検証件数 n=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -15446,8 +15537,8 @@
             "stance": "調査候補",
             "confidence": 0.55,
             "positiveEvidence": [
-              "検証サンプル n=20",
-              "outcomes=50"
+              "検証サンプル n=25",
+              "outcomes=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -15471,7 +15562,7 @@
             "stance": "調査候補",
             "confidence": 0.68,
             "positiveEvidence": [
-              "検証件数 n=50"
+              "検証件数 n=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -15667,8 +15758,8 @@
             "stance": "調査候補",
             "confidence": 0.55,
             "positiveEvidence": [
-              "検証サンプル n=20",
-              "outcomes=50"
+              "検証サンプル n=25",
+              "outcomes=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -15694,7 +15785,7 @@
             "stance": "調査候補",
             "confidence": 0.68,
             "positiveEvidence": [
-              "検証件数 n=50"
+              "検証件数 n=55"
             ],
             "negativeEvidence": [],
             "missingEvidence": [],
@@ -15718,7 +15809,7 @@
   },
   "proDataMeta": {
     "source": "pro-ui-data-addon",
-    "generatedAt": "2026-06-08T06:47:31.890Z",
+    "generatedAt": "2026-06-08T08:07:57.010Z",
     "missing": []
   }
 }

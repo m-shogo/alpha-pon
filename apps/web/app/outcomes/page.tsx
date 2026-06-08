@@ -58,6 +58,12 @@ function groupBy<T extends string>(outcomes: Outcome[], getKey: (outcome: Outcom
   return grouped
 }
 
+const ACTION_LABEL_DISPLAY = {
+  watch: 'actionLabel: 監視候補系 (watch)',
+  log: 'actionLabel: ログ保存系 (log)',
+  ignore: 'actionLabel: 対象外系 (ignore)',
+} as const
+
 function OutcomeStatRow({ label, items }: { label: string; items: Outcome[] }) {
   const counts = {
     hit: items.filter(item => item.result === 'hit').length,
@@ -239,7 +245,7 @@ export default function OutcomesPage() {
                   <OutcomeStatRow key={horizon} label={`${horizon} review`} items={byHorizon.get(horizon) ?? []} />
                 ))}
                 {(['watch', 'log', 'ignore'] as const).map(label => (
-                  <OutcomeStatRow key={label} label={`finalLabel: ${label}`} items={byLabel.get(label) ?? []} />
+                  <OutcomeStatRow key={label} label={ACTION_LABEL_DISPLAY[label]} items={byLabel.get(label) ?? []} />
                 ))}
                 <OutcomeStatRow label="special situation" items={specialOutcomes} />
                 <OutcomeStatRow label="missingEvidence 多め" items={missingEvidenceOutcomes} />

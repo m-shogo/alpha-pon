@@ -28,6 +28,9 @@ export type UniverseCandidate = {
   name: string;
   sector: string | null;
   detectedAt: string;
+  staleAsOf?: string;
+  carriedForwardAt?: string;
+  fallbackAsOf?: string;
   currentPrice: number | null;
   high52w: number | null;
   drawdownPct: number | null;

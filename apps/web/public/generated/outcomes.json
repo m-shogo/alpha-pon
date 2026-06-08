@@ -61,17 +61,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "partial",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がpartial"
+        "価格データ品質がpartial",
+        "未評価: 価格データ不足 (partial)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-02時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-02時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
       "dataSource": "jquants"
     },
     {
@@ -138,17 +137,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "partial",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がpartial"
+        "価格データ品質がpartial",
+        "未評価: 価格データ不足 (partial)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-02時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-02時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
       "dataSource": "jquants"
     },
     {
@@ -211,17 +209,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "partial",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がpartial"
+        "価格データ品質がpartial",
+        "未評価: 価格データ不足 (partial)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-02時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-02時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
       "dataSource": "jquants"
     },
     {
@@ -283,17 +280,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "partial",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がpartial"
+        "価格データ品質がpartial",
+        "未評価: 価格データ不足 (partial)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-02時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-02時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
       "dataSource": "jquants"
     },
     {
@@ -357,17 +353,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "missing",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がmissing"
+        "価格データ品質がmissing",
+        "未評価: 価格データ不足 (missing)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
     },
     {
@@ -434,17 +429,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "missing",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がmissing"
+        "価格データ品質がmissing",
+        "未評価: 価格データ不足 (missing)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
     },
     {
@@ -507,17 +501,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "missing",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がmissing"
+        "価格データ品質がmissing",
+        "未評価: 価格データ不足 (missing)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
     },
     {
@@ -579,17 +572,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "missing",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がmissing"
+        "価格データ品質がmissing",
+        "未評価: 価格データ不足 (missing)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
     },
     {
@@ -653,17 +645,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "missing",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がmissing"
+        "価格データ品質がmissing",
+        "未評価: 価格データ不足 (missing)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
     },
     {
@@ -727,17 +718,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "missing",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がmissing"
+        "価格データ品質がmissing",
+        "未評価: 価格データ不足 (missing)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
     },
     {
@@ -800,17 +790,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "missing",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がmissing"
+        "価格データ品質がmissing",
+        "未評価: 価格データ不足 (missing)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
     },
     {
@@ -873,17 +862,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "missing",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がmissing"
+        "価格データ品質がmissing",
+        "未評価: 価格データ不足 (missing)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
     },
     {
@@ -947,17 +935,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "missing",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がmissing"
+        "価格データ品質がmissing",
+        "未評価: 価格データ不足 (missing)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
     },
     {
@@ -1021,17 +1008,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "missing",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がmissing"
+        "価格データ品質がmissing",
+        "未評価: 価格データ不足 (missing)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
     },
     {
@@ -1094,17 +1080,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "missing",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がmissing"
+        "価格データ品質がmissing",
+        "未評価: 価格データ不足 (missing)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
     },
     {
@@ -1167,17 +1152,16 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "missing",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がmissing"
+        "価格データ品質がmissing",
+        "未評価: 価格データ不足 (missing)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
       ],
-      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-03時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
     },
     {
@@ -1240,12 +1224,11 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "partial",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がpartial"
+        "価格データ品質がpartial",
+        "未評価: 価格データ不足 (partial)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
@@ -1253,7 +1236,7 @@
       "missReasonCandidates": [
         "data_quality_bad"
       ],
-      "notes": "2026-06-04時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-04時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
       "dataSource": "jquants"
     },
     {
@@ -1316,12 +1299,11 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "partial",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がpartial"
+        "価格データ品質がpartial",
+        "未評価: 価格データ不足 (partial)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
@@ -1329,7 +1311,7 @@
       "missReasonCandidates": [
         "data_quality_bad"
       ],
-      "notes": "2026-06-05時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-05時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
       "dataSource": "jquants"
     },
     {
@@ -1392,9 +1374,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -1457,9 +1441,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -1522,9 +1508,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -1588,9 +1576,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -1654,9 +1644,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -1720,9 +1712,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -1782,9 +1776,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -1844,9 +1840,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -1906,9 +1904,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -1970,9 +1970,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -2034,9 +2036,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -2098,9 +2102,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -2162,9 +2168,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -2226,9 +2234,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -2290,9 +2300,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -2354,9 +2366,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -2418,9 +2432,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -2482,9 +2498,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -2546,9 +2564,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -2610,9 +2630,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -2674,9 +2696,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -2738,9 +2762,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -2802,9 +2828,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -2866,9 +2894,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -2931,12 +2961,11 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "missing",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がmissing"
+        "価格データ品質がmissing",
+        "未評価: 価格データ不足 (missing)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
@@ -2944,7 +2973,7 @@
       "missReasonCandidates": [
         "data_quality_bad"
       ],
-      "notes": "2026-06-06時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-06時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
     },
     {
@@ -3007,12 +3036,11 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "missing",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がmissing"
+        "価格データ品質がmissing",
+        "未評価: 価格データ不足 (missing)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
@@ -3020,7 +3048,7 @@
       "missReasonCandidates": [
         "data_quality_bad"
       ],
-      "notes": "2026-06-07時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-07時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
     },
     {
@@ -3084,12 +3112,11 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "partial",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がpartial"
+        "価格データ品質がpartial",
+        "未評価: 価格データ不足 (partial)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
@@ -3097,7 +3124,7 @@
       "missReasonCandidates": [
         "data_quality_bad"
       ],
-      "notes": "2026-06-08時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-08時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
       "dataSource": "jquants"
     },
     {
@@ -3164,12 +3191,11 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "partial",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がpartial"
+        "価格データ品質がpartial",
+        "未評価: 価格データ不足 (partial)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
@@ -3177,7 +3203,7 @@
       "missReasonCandidates": [
         "data_quality_bad"
       ],
-      "notes": "2026-06-08時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-08時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
       "dataSource": "jquants"
     },
     {
@@ -3240,12 +3266,11 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "partial",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がpartial"
+        "価格データ品質がpartial",
+        "未評価: 価格データ不足 (partial)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
@@ -3253,7 +3278,7 @@
       "missReasonCandidates": [
         "data_quality_bad"
       ],
-      "notes": "2026-06-08時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-08時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
       "dataSource": "jquants"
     },
     {
@@ -3315,12 +3340,11 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "partial",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がpartial"
+        "価格データ品質がpartial",
+        "未評価: 価格データ不足 (partial)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
@@ -3328,7 +3352,7 @@
       "missReasonCandidates": [
         "data_quality_bad"
       ],
-      "notes": "2026-06-08時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-08時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
       "dataSource": "jquants"
     },
     {
@@ -3391,12 +3415,11 @@
       "actualDirection": "unknown",
       "result": "unknown",
       "dataAvailability": "partial",
-      "whatMatched": [
-        "期待方向 unknown と1か月方向が一致"
-      ],
+      "whatMatched": [],
       "whatDiffered": [],
       "missedSignals": [
-        "価格データ品質がpartial"
+        "価格データ品質がpartial",
+        "未評価: 価格データ不足 (partial)"
       ],
       "improvedRuleIdeas": [
         "データ取得期間または市場コードの妥当性を確認する"
@@ -3404,7 +3427,7 @@
       "missReasonCandidates": [
         "data_quality_bad"
       ],
-      "notes": "2026-06-08時点で評価。1m=N/A%, TOPIX比=N/A%",
+      "notes": "2026-06-08時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
       "dataSource": "jquants"
     },
     {
@@ -3470,9 +3493,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -3538,9 +3563,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -3606,9 +3633,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -3671,9 +3700,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -3736,9 +3767,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     },
     {
@@ -3801,9 +3834,11 @@
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
-      "missedSignals": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
       "improvedRuleIdeas": [],
-      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。",
+      "notes": "特殊状況ウォッチ seed。pnpm backfill:special-outcomes で価格データを補完予定。 / 未評価: 価格データ不足 (missing)",
       "dataSource": "mock"
     }
   ],

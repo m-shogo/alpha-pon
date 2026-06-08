@@ -25,6 +25,7 @@ import type { DisclosureEvidence, UniverseCandidate, WorldContextRegime } from "
 import { SCREENING_CRITERIA } from "./universe.js";
 import { loadRunCursor, saveRunCursor } from "./run-cursor.js";
 import { buildPriceSignalFromQuotes, evaluatePriceRisk } from "./analysis/price-signal.js";
+import { carryForwardStaleCandidate } from "./universe-stale-fallback.js";
 
 const MARKET_BENCHMARK_CODE = process.env.MARKET_BENCHMARK_CODE ?? "1306";
 
@@ -203,7 +204,7 @@ function loadPreviousCandidates(date: string): UniverseCandidate[] {
   if (!existsSync(latestPath)) return [];
   try {
     const raw = JSON.parse(readFileSync(latestPath, "utf-8")) as { candidates?: UniverseCandidate[] };
-    return (raw.candidates ?? []).map(candidate => ({ ...candidate, detectedAt: date, warnings: [...(candidate.warnings ?? []), "[STALE] J-Quants取得が全滅したため前回候補を暫定保持"] }));
+    return (raw.candidates ?? []).map(candidate => carryForwardStaleCandidate(candidate, date));
   } catch { return []; }
 }
 

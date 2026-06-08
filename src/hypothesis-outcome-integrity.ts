@@ -10,6 +10,12 @@ export type OutcomeDuplicate = {
   count: number;
 };
 
+export type JsonlParseError = {
+  lineNumber: number;
+  preview: string;
+  message: string;
+};
+
 export type OutcomeIntegrityReport = {
   generatedAt: string;
   jsonl: {
@@ -17,6 +23,7 @@ export type OutcomeIntegrityReport = {
     exists: boolean;
     totalRows: number;
     duplicateGroups: OutcomeDuplicate[];
+    parseErrors: JsonlParseError[];
   };
   sqlite: {
     path: string;
@@ -26,18 +33,30 @@ export type OutcomeIntegrityReport = {
     duplicateGroups: OutcomeDuplicate[];
     error: string | null;
   };
-  status: "ok" | "duplicate_found" | "db_unavailable";
+  status: "ok" | "duplicate_found" | "db_unavailable" | "parse_error";
   nextAction: string;
   notes: string[];
 };
 
-function readJsonl<T>(path: string): T[] {
-  if (!existsSync(path)) return [];
-  return readFileSync(path, "utf-8")
-    .split("\n")
-    .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => JSON.parse(line) as T);
+function readJsonlSafely<T>(path: string): { rows: T[]; parseErrors: JsonlParseError[] } {
+  if (!existsSync(path)) return { rows: [], parseErrors: [] };
+  const rows: T[] = [];
+  const parseErrors: JsonlParseError[] = [];
+  const lines = readFileSync(path, "utf-8").split("\n");
+  lines.forEach((line, index) => {
+    const trimmed = line.trim();
+    if (!trimmed) return;
+    try {
+      rows.push(JSON.parse(trimmed) as T);
+    } catch (error) {
+      parseErrors.push({
+        lineNumber: index + 1,
+        preview: trimmed.slice(0, 160),
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+  return { rows, parseErrors };
 }
 
 function duplicateGroupsFromOutcomes(outcomes: HypothesisOutcome[]): OutcomeDuplicate[] {
@@ -94,7 +113,7 @@ export function buildOutcomeIntegrityReport(params: {
   const jsonlPath = params.jsonlPath ?? "data/hypothesis_outcomes.jsonl";
   const dbPath = params.dbPath ?? "data/hypothesis_outcomes.db";
   const jsonlExists = existsSync(jsonlPath);
-  const jsonlOutcomes = readJsonl<HypothesisOutcome>(jsonlPath);
+  const { rows: jsonlOutcomes, parseErrors } = readJsonlSafely<HypothesisOutcome>(jsonlPath);
   const jsonlDuplicates = duplicateGroupsFromOutcomes(jsonlOutcomes);
 
   let sqlite: OutcomeIntegrityReport["sqlite"] = {
@@ -127,9 +146,12 @@ export function buildOutcomeIntegrityReport(params: {
   }
 
   const hasDuplicates = jsonlDuplicates.length > 0 || sqlite.duplicateGroups.length > 0;
+  const hasParseErrors = parseErrors.length > 0;
   const dbUnavailable = sqlite.exists && sqlite.error != null;
   const status: OutcomeIntegrityReport["status"] = hasDuplicates
     ? "duplicate_found"
+    : hasParseErrors
+    ? "parse_error"
     : dbUnavailable
     ? "db_unavailable"
     : "ok";
@@ -141,11 +163,14 @@ export function buildOutcomeIntegrityReport(params: {
       exists: jsonlExists,
       totalRows: jsonlOutcomes.length,
       duplicateGroups: jsonlDuplicates,
+      parseErrors,
     },
     sqlite,
     status,
     nextAction: hasDuplicates
       ? "重複行を自動削除せず、対象 key を確認して手動整理後に pnpm review:hypotheses を再実行"
+      : hasParseErrors
+      ? "JSONL の破損行を自動削除せず、reports/hypothesis_outcome_integrity_latest.json の lineNumber を確認して手動修正"
       : sqlite.exists && !sqlite.uniqueIndexExists
       ? "pnpm review:hypotheses で DB schema を初期化し UNIQUE INDEX を確認"
       : "追加対応なし。code + detectedAt + reviewHorizon の単位で重複なし",

@@ -250,6 +250,11 @@ if (!specialOps) {
       "hypothesis_outcomes duplicate",
       `action_required: jsonl=${integrity.jsonl.duplicateGroups.length}, sqlite=${integrity.sqlite.duplicateGroups.length} / nextAction: pnpm outcomes:integrity`
     );
+  } else if (integrity.status === "parse_error") {
+    warn(
+      "hypothesis_outcomes jsonl",
+      `action_required: parse_error=${integrity.jsonl.parseErrors.length}件 / nextAction: pnpm outcomes:integrity で lineNumber を確認`
+    );
   } else if (integrity.status === "db_unavailable") {
     warn("hypothesis_outcomes db", `DB確認不可: ${integrity.sqlite.error ?? "unknown"} / nextAction: pnpm review:hypotheses`);
   } else {

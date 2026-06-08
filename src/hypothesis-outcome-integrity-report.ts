@@ -16,6 +16,16 @@ function renderMarkdown(report: OutcomeIntegrityReport): string {
   lines.push(`| sqlite | ${report.sqlite.totalRows ?? "-"} | ${report.sqlite.duplicateGroups.length} | ${report.sqlite.uniqueIndexExists ? "yes" : "no"} |`);
   lines.push("");
 
+  if (report.jsonl.parseErrors.length > 0) {
+    lines.push("## parse errors", "");
+    lines.push("| line | preview | message |");
+    lines.push("|---:|---|---|");
+    for (const error of report.jsonl.parseErrors.slice(0, 30)) {
+      lines.push(`| ${error.lineNumber} | ${error.preview.replaceAll("|", "\\|")} | ${error.message.replaceAll("|", "\\|")} |`);
+    }
+    lines.push("");
+  }
+
   const allDuplicates = [...report.jsonl.duplicateGroups, ...report.sqlite.duplicateGroups];
   if (allDuplicates.length > 0) {
     lines.push("## duplicates", "");
@@ -49,12 +59,13 @@ function main(): void {
   console.log("=== hypothesis outcome integrity ===");
   console.log(`status: ${report.status}`);
   console.log(`jsonl rows: ${report.jsonl.totalRows}`);
+  console.log(`jsonl parse errors: ${report.jsonl.parseErrors.length}`);
   console.log(`jsonl duplicate groups: ${report.jsonl.duplicateGroups.length}`);
   console.log(`sqlite rows: ${report.sqlite.totalRows ?? "-"}`);
   console.log(`sqlite unique index: ${report.sqlite.uniqueIndexExists ? "yes" : "no"}`);
   console.log(`sqlite duplicate groups: ${report.sqlite.duplicateGroups.length}`);
   console.log(`nextAction: ${report.nextAction}`);
-  if (report.status === "duplicate_found") process.exitCode = 1;
+  if (report.status === "duplicate_found" || report.status === "parse_error") process.exitCode = 1;
 }
 
 main();
