@@ -20,20 +20,12 @@
       "rank": 2
     },
     {
-      "severity": "attention",
+      "severity": "info",
       "category": "outcome",
-      "title": "outcome 採点期限超過: 8件",
-      "detail": "horizon 期限を過ぎて未評価の outcome があります。価格データ反映後に dry-run で確認してください。",
+      "title": "価格データ提供待ち: 8件",
+      "detail": "期限超過ですが、J-Quants のデータ提供遅延により価格データ自体が未提供のため待機中です。提供後に dry-run で確認してください。",
       "command": "pnpm backfill:special-outcomes",
       "rank": 3
-    },
-    {
-      "severity": "attention",
-      "category": "special_situation",
-      "title": "特殊状況ウォッチ: needs_attention（価格反映待ち: 8件 1d result 未評価）",
-      "detail": "特殊状況ウォッチに確認対象があります。",
-      "command": "pnpm ops:special",
-      "rank": 4
     },
     {
       "severity": "info",
@@ -41,6 +33,14 @@
       "title": "未評価 outcome: 67件",
       "detail": "result が未確定の outcome です。期限到来後に自動評価されるものを含みます。",
       "command": "pnpm review:special-due",
+      "rank": 4
+    },
+    {
+      "severity": "info",
+      "category": "data_availability",
+      "title": "データ品質 ok 以外: 2銘柄",
+      "detail": "8136, 285A はデータ不足または部分データです。",
+      "command": "pnpm maintain:data",
       "rank": 5
     }
   ],
@@ -60,18 +60,11 @@
       "command": "pnpm ui:data"
     },
     {
-      "severity": "attention",
+      "severity": "info",
       "category": "outcome",
-      "title": "outcome 採点期限超過: 8件",
-      "detail": "horizon 期限を過ぎて未評価の outcome があります。価格データ反映後に dry-run で確認してください。",
+      "title": "価格データ提供待ち: 8件",
+      "detail": "期限超過ですが、J-Quants のデータ提供遅延により価格データ自体が未提供のため待機中です。提供後に dry-run で確認してください。",
       "command": "pnpm backfill:special-outcomes"
-    },
-    {
-      "severity": "attention",
-      "category": "special_situation",
-      "title": "特殊状況ウォッチ: needs_attention（価格反映待ち: 8件 1d result 未評価）",
-      "detail": "特殊状況ウォッチに確認対象があります。",
-      "command": "pnpm ops:special"
     },
     {
       "severity": "info",
@@ -101,6 +94,7 @@
     "reviewDue": {
       "overdue": 8,
       "historicalSeedOverdue": 6,
+      "priceDataPending": 8,
       "dueToday": 0,
       "dueThisWeek": 8
     },
@@ -162,11 +156,9 @@
   },
   "specialSituationAudit": {
     "available": true,
-    "healthStatus": "needs_attention",
+    "healthStatus": "ok",
     "urgentTitles": [],
-    "attentionTitles": [
-      "価格反映待ち: 8件 1d result 未評価"
-    ]
+    "attentionTitles": []
   },
   "outcomeQualityAudit": {
     "available": true,
@@ -192,11 +184,7 @@
     },
     {
       "command": "pnpm backfill:special-outcomes",
-      "reason": "outcome 採点期限超過: 8件"
-    },
-    {
-      "command": "pnpm ops:special",
-      "reason": "特殊状況ウォッチ: needs_attention（価格反映待ち: 8件 1d result 未評価）"
+      "reason": "価格データ提供待ち: 8件"
     },
     {
       "command": "pnpm review:special-due",

@@ -27,6 +27,9 @@ const OUTCOME_PATH = "data/hypothesis_outcomes.jsonl";
 const CONFIG_PATH = "config/special-situation-watch-rules.yml";
 const MIN_SAMPLE_SIZE_DEFAULT = 5;
 const HORIZON_DAYS: Record<ReviewHorizon, number> = { "1d": 1, "1w": 7, "1m": 30, "3m": 90 };
+// J-Quants 無料プランのデータ提供遅延（日数）。src/fetcher/jquants.ts の v2DateCapCompact と同じ既定値。
+// 期日がこの遅延期間内にある overdue は、価格データ自体が未提供のため backfill 不可（待機が正常）。
+const JQUANTS_DATA_DELAY_DAYS = Number(process.env.JQUANTS_V2_DATA_DELAY_DAYS ?? "84");
 
 // ─────────── 型定義 ───────────
 
@@ -83,6 +86,7 @@ type SpecialSituationOpsSummary = {
   reviewDue: {
     overdue: number;
     historicalSeedOverdue: number;
+    priceDataPending: number;
     dueToday: number;
     dueThisWeek: number;
     notDueYet: number;
@@ -270,13 +274,32 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
     });
   }
 
-  if (recentOverdueResultOnly.length > 0) {
-    const codes = [...new Set(recentOverdueResultOnly.map(o => o.code))];
+  // 価格データ提供キャップ: J-Quants 無料プランの遅延により、
+  // この日付より新しい期日の価格はまだ提供されていない（待機が正常状態）
+  const priceDataCap = addDaysJst(today, -JQUANTS_DATA_DELAY_DAYS);
+  const priceDataPendingItems = recentOverdueResultOnly.filter(o => o.dueAt > priceDataCap);
+  const priceDataReadyItems = recentOverdueResultOnly.filter(o => o.dueAt <= priceDataCap);
+
+  if (priceDataReadyItems.length > 0) {
+    const codes = [...new Set(priceDataReadyItems.map(o => o.code))];
     actionItems.push({
       priority: "attention",
       category: "review",
-      title: `価格反映待ち: ${recentOverdueResultOnly.length}件 1d result 未評価`,
-      detail: `${codes.join(", ")} は return/topix 系の補完ではなく、1d result 判定用の翌営業日価格待ち。データ反映後に dry-run で確認。`,
+      title: `価格反映待ち: ${priceDataReadyItems.length}件 1d result 未評価`,
+      detail: `${codes.join(", ")} は return/topix 系の補完ではなく、1d result 判定用の翌営業日価格待ち。データ提供期間内なのに未取得のため dry-run で確認。`,
+      command: "pnpm backfill:special-outcomes",
+    });
+  }
+
+  if (priceDataPendingItems.length > 0) {
+    const codes = [...new Set(priceDataPendingItems.map(o => o.code))];
+    const earliestDue = [...priceDataPendingItems.map(o => o.dueAt)].sort()[0];
+    const availableFrom = addDaysJst(earliestDue, JQUANTS_DATA_DELAY_DAYS);
+    actionItems.push({
+      priority: "info",
+      category: "review",
+      title: `価格データ提供待ち: ${priceDataPendingItems.length}件 1d result 未評価`,
+      detail: `${codes.join(", ")} は J-Quants のデータ提供遅延（${JQUANTS_DATA_DELAY_DAYS}日）の範囲内で、価格データ自体がまだ提供されていません。${availableFrom} 以降に pnpm backfill:special-outcomes を再実行。`,
       command: "pnpm backfill:special-outcomes",
     });
   }
@@ -378,6 +401,9 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
     "sampleTooSmall は参考値のみ。統計的判断の根拠にしないでください。",
     "期限未到達 (notDueYet) は正常状態です。",
   ];
+  if (priceDataPendingItems.length > 0) {
+    notes.push(`価格データ提供待ち (priceDataPending) は J-Quants 無料プランの提供遅延（${JQUANTS_DATA_DELAY_DAYS}日）によるもので、異常ではありません。`);
+  }
   if (mixedItems.length > 0) {
     notes.push(`[special_prefer] ${mixedItems.map(m => m.code).join("/")} で混在を検出。全CLIで special outcome を優先して使用中。`);
   }
@@ -397,6 +423,7 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
     reviewDue: {
       overdue: recentOverdueItems.length,
       historicalSeedOverdue: historicalSeedOverdueItems.length,
+      priceDataPending: priceDataPendingItems.length,
       dueToday: dueTodayItems.length,
       dueThisWeek: dueThisWeekCount,
       notDueYet: notDueYetCount,
@@ -471,6 +498,7 @@ function renderMarkdown(report: SpecialSituationOpsSummary): string {
   lines.push("| status | count |");
   lines.push("|---|---:|");
   lines.push(`| overdue 採点待ち（90日以内）| ${report.reviewDue.overdue} |`);
+  lines.push(`|   うち価格データ提供待ち（J-Quants 遅延・待機が正常）| ${report.reviewDue.priceDataPending} |`);
   lines.push(`| historical seed overdue 過去日付seed（90日超）| ${report.reviewDue.historicalSeedOverdue} |`);
   lines.push(`| due today (本日採点) | ${report.reviewDue.dueToday} |`);
   lines.push(`| due this week (今週採点) | ${report.reviewDue.dueThisWeek} |`);
@@ -618,6 +646,7 @@ function main(): void {
   console.log(`candidates: ${report.coverage.totalCandidates}`);
   console.log(`noOutcomeRecord: ${report.coverage.noOutcomeRecord}`);
   console.log(`overdue (recent): ${report.reviewDue.overdue}`);
+  console.log(`priceDataPending: ${report.reviewDue.priceDataPending}`);
   console.log(`historicalSeedOverdue: ${report.reviewDue.historicalSeedOverdue}`);
   console.log(`dueToday: ${report.reviewDue.dueToday}`);
   console.log(`dueThisWeek: ${report.reviewDue.dueThisWeek}`);

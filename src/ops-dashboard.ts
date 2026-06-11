@@ -51,6 +51,7 @@ export interface OpsDashboard {
     reviewDue: {
       overdue: number;
       historicalSeedOverdue: number;
+      priceDataPending: number;
       dueToday: number;
       dueThisWeek: number;
     } | null;
@@ -168,6 +169,7 @@ export interface OpsSpecialOpsLike {
   reviewDue?: {
     overdue?: number;
     historicalSeedOverdue?: number;
+    priceDataPending?: number;
     dueToday?: number;
     dueThisWeek?: number;
   };
@@ -377,18 +379,31 @@ export function buildOpsDashboard(inputs: OpsDashboardInputs): OpsDashboard {
     ? {
         overdue: specialOps.reviewDue.overdue ?? 0,
         historicalSeedOverdue: specialOps.reviewDue.historicalSeedOverdue ?? 0,
+        priceDataPending: specialOps.reviewDue.priceDataPending ?? 0,
         dueToday: specialOps.reviewDue.dueToday ?? 0,
         dueThisWeek: specialOps.reviewDue.dueThisWeek ?? 0,
       }
     : null;
   if (reviewDue && reviewDue.overdue > 0) {
-    issues.push({
-      severity: "attention",
-      category: "outcome",
-      title: `outcome 採点期限超過: ${reviewDue.overdue}件`,
-      detail: "horizon 期限を過ぎて未評価の outcome があります。価格データ反映後に dry-run で確認してください。",
-      command: "pnpm backfill:special-outcomes",
-    });
+    const actionableOverdue = Math.max(0, reviewDue.overdue - reviewDue.priceDataPending);
+    if (actionableOverdue > 0) {
+      issues.push({
+        severity: "attention",
+        category: "outcome",
+        title: `outcome 採点期限超過: ${actionableOverdue}件`,
+        detail: "horizon 期限を過ぎて未評価の outcome があります。価格データ反映後に dry-run で確認してください。",
+        command: "pnpm backfill:special-outcomes",
+      });
+    }
+    if (reviewDue.priceDataPending > 0) {
+      issues.push({
+        severity: "info",
+        category: "outcome",
+        title: `価格データ提供待ち: ${reviewDue.priceDataPending}件`,
+        detail: "期限超過ですが、J-Quants のデータ提供遅延により価格データ自体が未提供のため待機中です。提供後に dry-run で確認してください。",
+        command: "pnpm backfill:special-outcomes",
+      });
+    }
   }
   if (reviewDue && reviewDue.dueToday > 0) {
     issues.push({
@@ -644,7 +659,7 @@ export function renderOpsDashboardMarkdown(dashboard: OpsDashboard): string {
     lines.push(`  - ${result}: ${count}件`);
   }
   if (oa.reviewDue) {
-    lines.push(`- 採点期限超過: ${oa.reviewDue.overdue}件（うち historical seed: ${oa.reviewDue.historicalSeedOverdue}件） / 本日期限: ${oa.reviewDue.dueToday}件 / 今週期限: ${oa.reviewDue.dueThisWeek}件`);
+    lines.push(`- 採点期限超過: ${oa.reviewDue.overdue}件（うち historical seed: ${oa.reviewDue.historicalSeedOverdue}件 / 価格データ提供待ち: ${oa.reviewDue.priceDataPending}件） / 本日期限: ${oa.reviewDue.dueToday}件 / 今週期限: ${oa.reviewDue.dueThisWeek}件`);
   }
   if (oa.judgedWithLimitedData.length > 0) {
     lines.push(`- データ不足のまま判定済み（確認対象）: ${oa.judgedWithLimitedData.map(item => item.code).join(", ")}`);

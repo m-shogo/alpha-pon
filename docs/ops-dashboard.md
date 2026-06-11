@@ -37,6 +37,8 @@
    - `needs_attention` — 優先対応 TOP5 の「確認」項目を見て、表示されている安全コマンドを dry-run で実行する。
    - `action_required` — 下記「action_required 時の対応」へ。
 4. 仮説レビュー状況で「採点期限超過」「データ不足のまま判定済み」が増えていないか確認する。
+   採点期限超過のうち「価格データ提供待ち」は J-Quants 無料プランの提供遅延（84日）によるもので、
+   info 扱い（待機が正常）。提供予定日以降に `pnpm backfill:special-outcomes` を再実行する。
 
 ## action_required 時の対応
 

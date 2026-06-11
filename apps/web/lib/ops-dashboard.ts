@@ -32,6 +32,7 @@ export interface OpsDashboardData {
     reviewDue: {
       overdue: number
       historicalSeedOverdue: number
+      priceDataPending: number
       dueToday: number
       dueThisWeek: number
     } | null

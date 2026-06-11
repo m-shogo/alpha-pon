@@ -89,15 +89,15 @@
       "available": true,
       "excerpt": [
         "特殊状況ウォッチ 運用サマリー",
-        "date: 2026-06-08",
-        "healthStatus: needsattention",
+        "date: 2026-06-11",
+        "healthStatus: ok",
         "※売買推奨ではありません。運用確認・期限管理のためのレポートです。",
         "今日やること（アクション一覧）",
-        "🟡 価格反映待ち: 8件 1d result 未評価",
-        "- 6526, 6525, 9348, 7011, 8035, 6857, 5803, 5802 は return/topix 系の補完ではなく、1d result 判定用の翌営業日価格待ち。データ反映後に dry-run で確認。",
+        "🔵 価格データ提供待ち: 8件 1d result 未評価",
+        "- 6526, 6525, 9348, 7011, 8035, 6857, 5803, 5802 は J-Quants のデータ提供遅延（84日）の範囲内で、価格データ自体がまだ提供されていません。2026-08-29 以降に pnpm backfill:special-outcomes を再実行。",
         "- コマンド: pnpm backfill:special-outcomes"
       ],
-      "fullContent": "# 特殊状況ウォッチ 運用サマリー\n\ndate: 2026-06-08\n\nhealthStatus: **needs_attention**\n\n> ※売買推奨ではありません。運用確認・期限管理のためのレポートです。\n\n## 今日やること（アクション一覧）\n\n### 🟡 価格反映待ち: 8件 1d result 未評価\n- 6526, 6525, 9348, 7011, 8035, 6857, 5803, 5802 は return/topix 系の補完ではなく、1d result 判定用の翌営業日価格待ち。データ反映後に dry-run で確認。\n- コマンド: `pnpm backfill:special-outcomes`\n\n### 🔵 サンプル不足: 10件 (minSample=5)\n- 285A(n=3), 6526(n=3), 6525(n=3), 9023(n=3), 9348(n=3), 7011(n=3), 8035(n=3), 6857(n=3), 5803(n=3), 5802(n=3) は統計的にサンプル不足。期限後に自動解消予定。\n\n### 🔵 期限管理: 今週中に採点 8件\n- 今週中に horizon 期限が到来する outcome があります。週内に review:special-due で再確認。\n- コマンド: `pnpm review:special-due`\n\n### ✅ 未到達: 8件 正常待機中\n- horizon 期限未到達の outcome は正常状態です。期限後に再確認してください。\n\n### 🔵 検証: 4件 special/normal 混在（自動で special 優先適用済み）\n- 7011(special=3/normal=3), 8035(special=3/normal=3), 6857(special=3/normal=1), 5803(special=3/normal=1) で混在を検出。v10 special_prefer ロジックにより special を優先中。\n\n## カバレッジ\n\n| item | count |\n|---|---:|\n| 候補銘柄数 | 10 |\n| special outcome 保有 | 10 |\n| outcome 未作成 (noOutcomeRecord) | 0 |\n\n## review due 状況\n\n| status | count |\n|---|---:|\n| overdue 採点待ち（90日以内）| 8 |\n| historical seed overdue 過去日付seed（90日超）| 6 |\n| due today (本日採点) | 0 |\n| due this week (今週採点) | 8 |\n| not due yet (未到達) | 8 |\n\n### 採点待ち明細（recent overdue）\n\n| code | name | horizon | dueAt | 不足フィールド |\n|---|---|---|---|---|\n| 6526 | ソシオネクスト | 1d | 2026-06-06 | result |\n| 6525 | KOKUSAI ELECTRIC | 1d | 2026-06-06 | result |\n| 9348 | ispace | 1d | 2026-06-06 | result |\n| 7011 | 三菱重工業 | 1d | 2026-06-06 | result |\n| 8035 | 東京エレクトロン | 1d | 2026-06-06 | result |\n| 6857 | アドバンテスト | 1d | 2026-06-06 | result |\n| 5803 | フジクラ | 1d | 2026-06-06 | result |\n| 5802 | 住友電気工業 | 1d | 2026-06-06 | result |\n\n### 過去日付seed明細（historical seed overdue）\n\n> ※上場日を detectedAt に使った seed のため overdue 扱い。急ぎの投資判断ではなく検証用データの補完候補。\n\n| code | name | horizon | dueAt | 不足フィールド |\n|---|---|---|---|---|\n| 285A | キオクシアホールディングス | 1d | 2024-12-19 | なし（補完済み） |\n| 285A | キオクシアホールディングス | 1w | 2024-12-25 | なし（補完済み） |\n| 285A | キオクシアホールディングス | 1m | 2025-01-17 | なし（補完済み） |\n| 9023 | 東京メトロ | 1d | 2024-10-24 | なし（補完済み） |\n| 9023 | 東京メトロ | 1w | 2024-10-30 | なし（補完済み） |\n| 9023 | 東京メトロ | 1m | 2024-11-22 | なし（補完済み） |\n\n## backfill 構造チェック\n\n| item | count |\n|---|---:|\n| 構造的に補完可能 合計 | 8 |\n|   うち recent overdue（採点待ち） | 8 |\n|   うち historical seed（過去日付seed） | 0 |\n| 期限未到達 (未到達・正常) | 8 |\n\n> ※実際の価格補完には J-Quants API が必要です。`pnpm backfill:special-outcomes` (dry-run) で確認してください。\n\n\n### 補完可能明細\n\n| code | horizon | dueAt | 不足フィールド |\n|---|---|---|---|\n| 6526 | 1d | 2026-06-06 | result |\n| 6525 | 1d | 2026-06-06 | result |\n| 9348 | 1d | 2026-06-06 | result |\n| 7011 | 1d | 2026-06-06 | result |\n| 8035 | 1d | 2026-06-06 | result |\n| 6857 | 1d | 2026-06-06 | result |\n| 5803 | 1d | 2026-06-06 | result |\n| 5802 | 1d | 2026-06-06 | result |\n\n## outcomeStats 状況\n\n| item | count |\n|---|---:|\n| stats あり | 10 |\n| サンプル不足 (minSample=5) | 10 |\n\n> ⚠ サンプル不足は参考値のみ。統計的判断の根拠にしないでください。\n\n| code | name | sampleSize |\n|---|---|---:|\n| 285A | キオクシアホールディングス | 3 |\n| 6526 | ソシオネクスト | 3 |\n| 6525 | KOKUSAI ELECTRIC | 3 |\n| 9023 | 東京メトロ | 3 |\n| 9348 | ispace | 3 |\n| 7011 | 三菱重工業 | 3 |\n| 8035 | 東京エレクトロン | 3 |\n| 6857 | アドバンテスト | 3 |\n| 5803 | フジクラ | 3 |\n| 5802 | 住友電気工業 | 3 |\n\n## special/normal 混在チェック\n\n- 混在検出: 4件\n- v10 special_prefer により全 CLI で special outcome を優先使用中\n\n| code | special | normal | 対応 |\n|---|---:|---:|---|\n| 7011 | 3 | 3 | special_prefer 適用済み |\n| 8035 | 3 | 3 | special_prefer 適用済み |\n| 6857 | 3 | 1 | special_prefer 適用済み |\n| 5803 | 3 | 1 | special_prefer 適用済み |\n\n## notes\n\n- このレポートは運用確認のためのもの。売買推奨ではありません。\n- historical_seed_overdue は上場日を detectedAt に使った過去日付 seed。急ぎの投資判断ではなく検証用データの補完候補。\n- backfill の structurallyUpdatable は構造チェックのみ。実際の価格補完には J-Quants が必要です。\n- sampleTooSmall は参考値のみ。統計的判断の根拠にしないでください。\n- 期限未到達 (notDueYet) は正常状態です。\n- [special_prefer] 7011/8035/6857/5803 で混在を検出。全CLIで special outcome を優先して使用中。\n\n## 次のステップ\n\n```\n# 1. 運用サマリーで全体把握\npnpm ops:special\n\n# 2. backfill 可能性を確認 (dry-run)\npnpm backfill:special-outcomes\n\n# 3. overdue / due_today があれば補完\npnpm backup\npnpm backfill:special-outcomes --write\n\n# 4. outcomeStats / outcomeCoverageAudit を詳細確認\npnpm watch:special\n```\n\n*special situation ops summary | 2026-06-08 | ※売買推奨ではありません*"
+      "fullContent": "# 特殊状況ウォッチ 運用サマリー\n\ndate: 2026-06-11\n\nhealthStatus: **ok**\n\n> ※売買推奨ではありません。運用確認・期限管理のためのレポートです。\n\n## 今日やること（アクション一覧）\n\n### 🔵 価格データ提供待ち: 8件 1d result 未評価\n- 6526, 6525, 9348, 7011, 8035, 6857, 5803, 5802 は J-Quants のデータ提供遅延（84日）の範囲内で、価格データ自体がまだ提供されていません。2026-08-29 以降に pnpm backfill:special-outcomes を再実行。\n- コマンド: `pnpm backfill:special-outcomes`\n\n### 🔵 サンプル不足: 10件 (minSample=5)\n- 285A(n=3), 6526(n=3), 6525(n=3), 9023(n=3), 9348(n=3), 7011(n=3), 8035(n=3), 6857(n=3), 5803(n=3), 5802(n=3) は統計的にサンプル不足。期限後に自動解消予定。\n\n### 🔵 期限管理: 今週中に採点 8件\n- 今週中に horizon 期限が到来する outcome があります。週内に review:special-due で再確認。\n- コマンド: `pnpm review:special-due`\n\n### ✅ 未到達: 8件 正常待機中\n- horizon 期限未到達の outcome は正常状態です。期限後に再確認してください。\n\n### 🔵 検証: 4件 special/normal 混在（自動で special 優先適用済み）\n- 7011(special=3/normal=4), 8035(special=3/normal=4), 6857(special=3/normal=2), 5803(special=3/normal=2) で混在を検出。v10 special_prefer ロジックにより special を優先中。\n\n## カバレッジ\n\n| item | count |\n|---|---:|\n| 候補銘柄数 | 10 |\n| special outcome 保有 | 10 |\n| outcome 未作成 (noOutcomeRecord) | 0 |\n\n## review due 状況\n\n| status | count |\n|---|---:|\n| overdue 採点待ち（90日以内）| 8 |\n|   うち価格データ提供待ち（J-Quants 遅延・待機が正常）| 8 |\n| historical seed overdue 過去日付seed（90日超）| 6 |\n| due today (本日採点) | 0 |\n| due this week (今週採点) | 8 |\n| not due yet (未到達) | 8 |\n\n### 採点待ち明細（recent overdue）\n\n| code | name | horizon | dueAt | 不足フィールド |\n|---|---|---|---|---|\n| 6526 | ソシオネクスト | 1d | 2026-06-06 | result |\n| 6525 | KOKUSAI ELECTRIC | 1d | 2026-06-06 | result |\n| 9348 | ispace | 1d | 2026-06-06 | result |\n| 7011 | 三菱重工業 | 1d | 2026-06-06 | result |\n| 8035 | 東京エレクトロン | 1d | 2026-06-06 | result |\n| 6857 | アドバンテスト | 1d | 2026-06-06 | result |\n| 5803 | フジクラ | 1d | 2026-06-06 | result |\n| 5802 | 住友電気工業 | 1d | 2026-06-06 | result |\n\n### 過去日付seed明細（historical seed overdue）\n\n> ※上場日を detectedAt に使った seed のため overdue 扱い。急ぎの投資判断ではなく検証用データの補完候補。\n\n| code | name | horizon | dueAt | 不足フィールド |\n|---|---|---|---|---|\n| 285A | キオクシアホールディングス | 1d | 2024-12-19 | なし（補完済み） |\n| 285A | キオクシアホールディングス | 1w | 2024-12-25 | なし（補完済み） |\n| 285A | キオクシアホールディングス | 1m | 2025-01-17 | なし（補完済み） |\n| 9023 | 東京メトロ | 1d | 2024-10-24 | なし（補完済み） |\n| 9023 | 東京メトロ | 1w | 2024-10-30 | なし（補完済み） |\n| 9023 | 東京メトロ | 1m | 2024-11-22 | なし（補完済み） |\n\n## backfill 構造チェック\n\n| item | count |\n|---|---:|\n| 構造的に補完可能 合計 | 8 |\n|   うち recent overdue（採点待ち） | 8 |\n|   うち historical seed（過去日付seed） | 0 |\n| 期限未到達 (未到達・正常) | 8 |\n\n> ※実際の価格補完には J-Quants API が必要です。`pnpm backfill:special-outcomes` (dry-run) で確認してください。\n\n\n### 補完可能明細\n\n| code | horizon | dueAt | 不足フィールド |\n|---|---|---|---|\n| 6526 | 1d | 2026-06-06 | result |\n| 6525 | 1d | 2026-06-06 | result |\n| 9348 | 1d | 2026-06-06 | result |\n| 7011 | 1d | 2026-06-06 | result |\n| 8035 | 1d | 2026-06-06 | result |\n| 6857 | 1d | 2026-06-06 | result |\n| 5803 | 1d | 2026-06-06 | result |\n| 5802 | 1d | 2026-06-06 | result |\n\n## outcomeStats 状況\n\n| item | count |\n|---|---:|\n| stats あり | 10 |\n| サンプル不足 (minSample=5) | 10 |\n\n> ⚠ サンプル不足は参考値のみ。統計的判断の根拠にしないでください。\n\n| code | name | sampleSize |\n|---|---|---:|\n| 285A | キオクシアホールディングス | 3 |\n| 6526 | ソシオネクスト | 3 |\n| 6525 | KOKUSAI ELECTRIC | 3 |\n| 9023 | 東京メトロ | 3 |\n| 9348 | ispace | 3 |\n| 7011 | 三菱重工業 | 3 |\n| 8035 | 東京エレクトロン | 3 |\n| 6857 | アドバンテスト | 3 |\n| 5803 | フジクラ | 3 |\n| 5802 | 住友電気工業 | 3 |\n\n## special/normal 混在チェック\n\n- 混在検出: 4件\n- v10 special_prefer により全 CLI で special outcome を優先使用中\n\n| code | special | normal | 対応 |\n|---|---:|---:|---|\n| 7011 | 3 | 4 | special_prefer 適用済み |\n| 8035 | 3 | 4 | special_prefer 適用済み |\n| 6857 | 3 | 2 | special_prefer 適用済み |\n| 5803 | 3 | 2 | special_prefer 適用済み |\n\n## notes\n\n- このレポートは運用確認のためのもの。売買推奨ではありません。\n- historical_seed_overdue は上場日を detectedAt に使った過去日付 seed。急ぎの投資判断ではなく検証用データの補完候補。\n- backfill の structurallyUpdatable は構造チェックのみ。実際の価格補完には J-Quants が必要です。\n- sampleTooSmall は参考値のみ。統計的判断の根拠にしないでください。\n- 期限未到達 (notDueYet) は正常状態です。\n- 価格データ提供待ち (priceDataPending) は J-Quants 無料プランの提供遅延（84日）によるもので、異常ではありません。\n- [special_prefer] 7011/8035/6857/5803 で混在を検出。全CLIで special outcome を優先して使用中。\n\n## 次のステップ\n\n```\n# 1. 運用サマリーで全体把握\npnpm ops:special\n\n# 2. backfill 可能性を確認 (dry-run)\npnpm backfill:special-outcomes\n\n# 3. overdue / due_today があれば補完\npnpm backup\npnpm backfill:special-outcomes --write\n\n# 4. outcomeStats / outcomeCoverageAudit を詳細確認\npnpm watch:special\n```\n\n*special situation ops summary | 2026-06-11 | ※売買推奨ではありません*"
     },
     {
       "key": "roadmap",
@@ -11317,15 +11317,15 @@
     }
   },
   "specialSituationOps": {
-    "generatedAt": "2026-06-08",
-    "today": "2026-06-08",
-    "healthStatus": "needs_attention",
+    "generatedAt": "2026-06-11",
+    "today": "2026-06-11",
+    "healthStatus": "ok",
     "actionItems": [
       {
-        "priority": "attention",
+        "priority": "info",
         "category": "review",
-        "title": "価格反映待ち: 8件 1d result 未評価",
-        "detail": "6526, 6525, 9348, 7011, 8035, 6857, 5803, 5802 は return/topix 系の補完ではなく、1d result 判定用の翌営業日価格待ち。データ反映後に dry-run で確認。",
+        "title": "価格データ提供待ち: 8件 1d result 未評価",
+        "detail": "6526, 6525, 9348, 7011, 8035, 6857, 5803, 5802 は J-Quants のデータ提供遅延（84日）の範囲内で、価格データ自体がまだ提供されていません。2026-08-29 以降に pnpm backfill:special-outcomes を再実行。",
         "command": "pnpm backfill:special-outcomes"
       },
       {
@@ -11351,7 +11351,7 @@
         "priority": "info",
         "category": "health",
         "title": "検証: 4件 special/normal 混在（自動で special 優先適用済み）",
-        "detail": "7011(special=3/normal=3), 8035(special=3/normal=3), 6857(special=3/normal=1), 5803(special=3/normal=1) で混在を検出。v10 special_prefer ロジックにより special を優先中。"
+        "detail": "7011(special=3/normal=4), 8035(special=3/normal=4), 6857(special=3/normal=2), 5803(special=3/normal=2) で混在を検出。v10 special_prefer ロジックにより special を優先中。"
       }
     ],
     "coverage": {
@@ -11364,6 +11364,7 @@
     "reviewDue": {
       "overdue": 8,
       "historicalSeedOverdue": 6,
+      "priceDataPending": 8,
       "dueToday": 0,
       "dueThisWeek": 8,
       "notDueYet": 8,
@@ -11629,22 +11630,22 @@
         {
           "code": "7011",
           "specialCount": 3,
-          "normalCount": 3
+          "normalCount": 4
         },
         {
           "code": "8035",
           "specialCount": 3,
-          "normalCount": 3
+          "normalCount": 4
         },
         {
           "code": "6857",
           "specialCount": 3,
-          "normalCount": 1
+          "normalCount": 2
         },
         {
           "code": "5803",
           "specialCount": 3,
-          "normalCount": 1
+          "normalCount": 2
         }
       ],
       "note": "v10 special_prefer により全 CLI で special outcome を優先使用中"
@@ -11655,6 +11656,7 @@
       "backfill の structurallyUpdatable は構造チェックのみ。実際の価格補完には J-Quants が必要です。",
       "sampleTooSmall は参考値のみ。統計的判断の根拠にしないでください。",
       "期限未到達 (notDueYet) は正常状態です。",
+      "価格データ提供待ち (priceDataPending) は J-Quants 無料プランの提供遅延（84日）によるもので、異常ではありません。",
       "[special_prefer] 7011/8035/6857/5803 で混在を検出。全CLIで special outcome を優先して使用中。"
     ]
   },
@@ -17113,7 +17115,7 @@
   },
   "proDataMeta": {
     "source": "pro-ui-data-addon",
-    "generatedAt": "2026-06-11T06:46:25.175Z",
+    "generatedAt": "2026-06-11T07:02:44.166Z",
     "missing": []
   }
 }

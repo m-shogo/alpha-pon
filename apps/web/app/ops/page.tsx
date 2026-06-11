@@ -157,6 +157,7 @@ export default function OpsPage() {
           <>
             <CountRow label="採点期限超過" value={`${oa.reviewDue.overdue}件`} />
             <CountRow label="うち historical seed" value={`${oa.reviewDue.historicalSeedOverdue}件`} />
+            <CountRow label="うち価格データ提供待ち" value={`${oa.reviewDue.priceDataPending ?? 0}件`} />
             <CountRow label="本日期限" value={`${oa.reviewDue.dueToday}件`} />
             <CountRow label="今週期限" value={`${oa.reviewDue.dueThisWeek}件`} />
           </>

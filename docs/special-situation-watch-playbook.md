@@ -373,6 +373,15 @@ pnpm check
 | `not_due_yet` | 正常。期限後に再確認 |
 | `no_outcome_record` | outcome 記録なし。candidate:hypothesis が必要 |
 
+### 価格データ提供待ち（priceDataPending）
+
+J-Quants 無料プランは価格データの提供が **84日遅延**する（`JQUANTS_V2_DATA_DELAY_DAYS` で変更可）。
+期日がこの遅延期間内にある overdue は、価格データ自体がまだ提供されていないため backfill では補完できない。
+
+- `pnpm ops:special` はこれを `priceDataPending` として分離し、**info**（待機が正常）で表示する
+- アクション項目に「○○ 以降に再実行」と提供予定日が出るので、その日まで待機でよい
+- 遅延期間を過ぎても result が欠けている場合のみ **attention**（価格反映待ち）に昇格する
+
 ### 全体フロー
 
 ```

@@ -35,7 +35,7 @@ function cleanInputs(): OpsDashboardInputs {
     specialOps: {
       healthStatus: "ok",
       actionItems: [],
-      reviewDue: { overdue: 0, historicalSeedOverdue: 0, dueToday: 0, dueThisWeek: 0 },
+      reviewDue: { overdue: 0, historicalSeedOverdue: 0, priceDataPending: 0, dueToday: 0, dueThisWeek: 0 },
     },
     integrity: { status: "ok", jsonl: { duplicateGroups: [], parseErrors: [] }, sqlite: { duplicateGroups: [] } },
     outcomeQuality: { healthStatus: "ok", checks: {} },
@@ -162,6 +162,46 @@ function cleanInputs(): OpsDashboardInputs {
   assert.equal(dashboard.healthStatus, "action_required");
   assert.ok(dashboard.priorityIssues.some(issue => issue.category === "safe_wording" && issue.severity === "urgent"));
   console.log("ops-dashboard: 安全表現違反を検出（マスク済み）");
+}
+
+// ── 価格データ提供待ち（J-Quants 遅延）は info に降格 ─────────
+
+{
+  const inputs = cleanInputs();
+  inputs.specialOps = {
+    healthStatus: "ok",
+    actionItems: [],
+    reviewDue: { overdue: 8, historicalSeedOverdue: 0, priceDataPending: 8, dueToday: 0, dueThisWeek: 0 },
+  };
+  const dashboard = buildOpsDashboard(inputs);
+  assert.ok(
+    !dashboard.allIssues.some(issue => issue.title.includes("採点期限超過")),
+    "全件が価格データ提供待ちなら採点期限超過 issue を出さない"
+  );
+  const pending = dashboard.allIssues.find(issue => issue.title.includes("価格データ提供待ち"));
+  assert.ok(pending, "価格データ提供待ち issue がある");
+  assert.equal(pending.severity, "info");
+  assert.equal(dashboard.healthStatus, "ok", "提供待ちのみなら healthStatus は ok");
+  assert.equal(dashboard.outcomeAudit.reviewDue?.priceDataPending, 8);
+  console.log("ops-dashboard: 価格データ提供待ちを info に降格");
+}
+
+// ── 提供待ちと実 actionable の混在は attention を維持 ────────
+
+{
+  const inputs = cleanInputs();
+  inputs.specialOps = {
+    healthStatus: "ok",
+    actionItems: [],
+    reviewDue: { overdue: 8, historicalSeedOverdue: 0, priceDataPending: 5, dueToday: 0, dueThisWeek: 0 },
+  };
+  const dashboard = buildOpsDashboard(inputs);
+  const overdueIssue = dashboard.allIssues.find(issue => issue.title.includes("採点期限超過"));
+  assert.ok(overdueIssue, "actionable な期限超過は issue になる");
+  assert.ok(overdueIssue.title.includes("3件"), "actionable 件数は overdue - priceDataPending");
+  assert.equal(overdueIssue.severity, "attention");
+  assert.equal(dashboard.healthStatus, "needs_attention");
+  console.log("ops-dashboard: 提供待ちと実超過の混在で attention 維持");
 }
 
 // ── 優先順位: urgent → attention → info、TOP5 まで ───────────
