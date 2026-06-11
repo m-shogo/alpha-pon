@@ -3763,7 +3763,7 @@
       "relativeToTopix3m": null,
       "maxDrawdownPct": null,
       "actualDirection": "unknown",
-      "result": "hit",
+      "result": null,
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],

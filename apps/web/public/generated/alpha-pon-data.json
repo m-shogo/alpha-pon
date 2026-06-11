@@ -5112,7 +5112,7 @@
       "relativeToTopix3m": null,
       "maxDrawdownPct": null,
       "actualDirection": "unknown",
-      "result": "hit",
+      "result": null,
       "dataAvailability": "missing",
       "whatMatched": [],
       "whatDiffered": [],
@@ -17113,7 +17113,7 @@
   },
   "proDataMeta": {
     "source": "pro-ui-data-addon",
-    "generatedAt": "2026-06-11T02:30:57.139Z",
+    "generatedAt": "2026-06-11T06:46:25.175Z",
     "missing": []
   }
 }
