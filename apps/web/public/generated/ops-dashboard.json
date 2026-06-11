@@ -1,0 +1,227 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-06-11",
+  "healthStatus": "needs_attention",
+  "priorityIssues": [
+    {
+      "severity": "attention",
+      "category": "stale_fallback",
+      "title": "universe scan が fallback 動作（stale_fallback）",
+      "detail": "理由: jquants_zero_candidates",
+      "command": "pnpm scan:universe",
+      "rank": 1
+    },
+    {
+      "severity": "attention",
+      "category": "stale_fallback",
+      "title": "warning 重複: 2銘柄",
+      "detail": "8136, 285A で同一 warning が重複記録されています。生成処理の重複を確認対象としてください。",
+      "command": "pnpm ui:data",
+      "rank": 2
+    },
+    {
+      "severity": "attention",
+      "category": "outcome",
+      "title": "outcome 採点期限超過: 8件",
+      "detail": "horizon 期限を過ぎて未評価の outcome があります。価格データ反映後に dry-run で確認してください。",
+      "command": "pnpm backfill:special-outcomes",
+      "rank": 3
+    },
+    {
+      "severity": "attention",
+      "category": "data_availability",
+      "title": "データ不足のまま判定済み: 1件",
+      "detail": "9023(1w/missing) は dataAvailability が ok でないのに hit/miss 判定が入っています。誤判定の可能性があるため確認対象です。",
+      "command": "pnpm outcomes:integrity",
+      "rank": 4
+    },
+    {
+      "severity": "attention",
+      "category": "special_situation",
+      "title": "特殊状況ウォッチ: needs_attention（価格反映待ち: 8件 1d result 未評価）",
+      "detail": "特殊状況ウォッチに確認対象があります。",
+      "command": "pnpm ops:special",
+      "rank": 5
+    }
+  ],
+  "allIssues": [
+    {
+      "severity": "attention",
+      "category": "stale_fallback",
+      "title": "universe scan が fallback 動作（stale_fallback）",
+      "detail": "理由: jquants_zero_candidates",
+      "command": "pnpm scan:universe"
+    },
+    {
+      "severity": "attention",
+      "category": "stale_fallback",
+      "title": "warning 重複: 2銘柄",
+      "detail": "8136, 285A で同一 warning が重複記録されています。生成処理の重複を確認対象としてください。",
+      "command": "pnpm ui:data"
+    },
+    {
+      "severity": "attention",
+      "category": "outcome",
+      "title": "outcome 採点期限超過: 8件",
+      "detail": "horizon 期限を過ぎて未評価の outcome があります。価格データ反映後に dry-run で確認してください。",
+      "command": "pnpm backfill:special-outcomes"
+    },
+    {
+      "severity": "attention",
+      "category": "data_availability",
+      "title": "データ不足のまま判定済み: 1件",
+      "detail": "9023(1w/missing) は dataAvailability が ok でないのに hit/miss 判定が入っています。誤判定の可能性があるため確認対象です。",
+      "command": "pnpm outcomes:integrity"
+    },
+    {
+      "severity": "attention",
+      "category": "special_situation",
+      "title": "特殊状況ウォッチ: needs_attention（価格反映待ち: 8件 1d result 未評価）",
+      "detail": "特殊状況ウォッチに確認対象があります。",
+      "command": "pnpm ops:special"
+    },
+    {
+      "severity": "info",
+      "category": "outcome",
+      "title": "未評価 outcome: 66件",
+      "detail": "result が未確定の outcome です。期限到来後に自動評価されるものを含みます。",
+      "command": "pnpm review:special-due"
+    },
+    {
+      "severity": "info",
+      "category": "data_availability",
+      "title": "データ品質 ok 以外: 2銘柄",
+      "detail": "8136, 285A はデータ不足または部分データです。",
+      "command": "pnpm maintain:data"
+    }
+  ],
+  "outcomeAudit": {
+    "available": true,
+    "total": 72,
+    "resultCounts": {
+      "unknown": 66,
+      "too_early": 5,
+      "hit": 1
+    },
+    "unevaluated": 66,
+    "judgedWithLimitedData": [
+      {
+        "code": "9023",
+        "horizon": "1w",
+        "dataAvailability": "missing"
+      }
+    ],
+    "reviewDue": {
+      "overdue": 8,
+      "historicalSeedOverdue": 6,
+      "dueToday": 0,
+      "dueThisWeek": 8
+    },
+    "integrity": {
+      "status": "ok",
+      "jsonlDuplicateGroups": 0,
+      "sqliteDuplicateGroups": 0,
+      "parseErrors": 0
+    }
+  },
+  "staleFallbackAudit": {
+    "universeScanStatus": "stale_fallback",
+    "universeFallbackReason": "jquants_zero_candidates",
+    "duplicatedWarningCodes": [
+      {
+        "code": "8136",
+        "duplicatedWarnings": [
+          "FCFを計算できませんでした（営業CF/投資CF/設備投資データ不足）"
+        ]
+      },
+      {
+        "code": "285A",
+        "duplicatedWarnings": [
+          "20日ボラティリティが高く値動きが荒いです",
+          "下方修正有無を判定できませんでした"
+        ]
+      }
+    ]
+  },
+  "dataAvailabilityAudit": {
+    "outcomeCounts": {
+      "partial": 28,
+      "missing": 44
+    },
+    "qualityLevelCounts": {
+      "partial": 2
+    },
+    "nonOkCodes": [
+      "8136",
+      "285A"
+    ]
+  },
+  "safeWordingAudit": {
+    "scannedFiles": 48,
+    "violations": []
+  },
+  "pipelineAudit": {
+    "available": true,
+    "date": "2026-06-11",
+    "status": "completed",
+    "isToday": true,
+    "failedSteps": []
+  },
+  "uiDataAudit": {
+    "available": true,
+    "generatedAt": "2026-06-11",
+    "isToday": true,
+    "metaWarnings": []
+  },
+  "specialSituationAudit": {
+    "available": true,
+    "healthStatus": "needs_attention",
+    "urgentTitles": [],
+    "attentionTitles": [
+      "価格反映待ち: 8件 1d result 未評価"
+    ]
+  },
+  "nextSafeCommands": [
+    {
+      "command": "pnpm scan:universe",
+      "reason": "universe scan が fallback 動作（stale_fallback）"
+    },
+    {
+      "command": "pnpm ui:data",
+      "reason": "warning 重複: 2銘柄"
+    },
+    {
+      "command": "pnpm backfill:special-outcomes",
+      "reason": "outcome 採点期限超過: 8件"
+    },
+    {
+      "command": "pnpm outcomes:integrity",
+      "reason": "データ不足のまま判定済み: 1件"
+    },
+    {
+      "command": "pnpm ops:special",
+      "reason": "特殊状況ウォッチ: needs_attention（価格反映待ち: 8件 1d result 未評価）"
+    },
+    {
+      "command": "pnpm review:special-due",
+      "reason": "未評価 outcome: 66件"
+    },
+    {
+      "command": "pnpm maintain:data",
+      "reason": "データ品質 ok 以外: 2銘柄"
+    },
+    {
+      "command": "pnpm health",
+      "reason": "全体ヘルスチェック"
+    },
+    {
+      "command": "pnpm report:ops",
+      "reason": "このダッシュボードの再生成"
+    }
+  ],
+  "notes": [
+    "この画面は調査・検証の運用状況を示すものであり、売買を推奨しない。",
+    "判定は「未評価」「データ不足」「確認対象」を優先し、断定を避ける。",
+    "情報源: pipeline_status / alpha-pon-data.json / outcomes.json / special_situation_ops_summary / hypothesis_outcome_integrity"
+  ]
+}

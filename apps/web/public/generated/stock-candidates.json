@@ -1,24 +1,24 @@
 {
   "candidates": [
     {
-      "code": "6954",
-      "name": "ファナック",
-      "sector": "automation_robotics",
-      "detectedAt": "2026-06-08",
-      "currentPrice": 5957,
-      "high52w": 7113,
-      "drawdownPct": -16.251933080275553,
-      "change5dPct": 0.3537735849056604,
-      "change20dPct": -7.571761055081458,
-      "topixChange5dPct": 0.9589770911028297,
-      "topixChange20dPct": -5.533399800598203,
-      "relativeTopix5dPct": -0.6052035061971692,
-      "relativeTopix20dPct": -2.038361254483255,
-      "volumeSpikeRatio": 0.7129110944950418,
+      "code": "6254",
+      "name": "野村マイクロ・サイエンス",
+      "sector": "semiconductor",
+      "detectedAt": "2026-06-10",
+      "currentPrice": 3050,
+      "high52w": 4100,
+      "drawdownPct": -25.609756097560975,
+      "change5dPct": 0.4942339373970346,
+      "change20dPct": -2.8662420382165608,
+      "topixChange5dPct": null,
+      "topixChange20dPct": null,
+      "relativeTopix5dPct": null,
+      "relativeTopix20dPct": null,
+      "volumeSpikeRatio": 0.6530917198358672,
       "priceSignalSource": "jquants",
       "priceSignalQuality": "exact",
       "priceRiskWarnings": [],
-      "operatingProfitYoY": 11.927226093757707,
+      "operatingProfitYoY": 0,
       "hasDownwardRevision": false,
       "hasNegativeFlag": false,
       "hasRecentDisclosure": false,
@@ -31,62 +31,25 @@
         "summary": "J-Quantsスクリーニング時点では公式IR/TDnet本文を未確認。候補化後に一次情報確認が必要。"
       },
       "matchedWorldEventTags": [
-        "climate_heat_water",
-        "ai_ipo_compute_cycle",
-        "migration_labor_shortage"
+        "war_geopolitics",
+        "ai_ipo_compute_cycle"
       ],
-      "screeningScore": 90,
+      "screeningScore": 55,
       "warnings": [
-        "公式IR/TDnet本文未確認: disclosureEvidence.status=official_check_required"
+        "公式IR/TDnet本文未確認: disclosureEvidence.status=official_check_required",
+        "[STALE] J-Quants取得が全滅したため前回候補を暫定保持"
       ],
       "status": "monitoring",
-      "dataSource": "jquants"
-    },
-    {
-      "code": "6645",
-      "name": "オムロン",
-      "sector": "automation_robotics",
-      "detectedAt": "2026-06-08",
-      "currentPrice": 4518,
-      "high52w": 5552,
-      "drawdownPct": -18.623919308357348,
-      "change5dPct": -1.2674825174825175,
-      "change20dPct": -4.743833017077799,
-      "topixChange5dPct": 0.9589770911028297,
-      "topixChange20dPct": -5.533399800598203,
-      "relativeTopix5dPct": -2.226459608585347,
-      "relativeTopix20dPct": 0.7895667835204039,
-      "volumeSpikeRatio": 0.7403632071675742,
-      "priceSignalSource": "jquants",
-      "priceSignalQuality": "exact",
-      "priceRiskWarnings": [],
-      "operatingProfitYoY": 57.35251295789412,
-      "hasDownwardRevision": false,
-      "hasNegativeFlag": false,
-      "hasRecentDisclosure": false,
-      "disclosureEvidence": {
-        "status": "official_check_required",
-        "sourceType": "missing",
-        "sourceUrl": null,
-        "publishedAt": null,
-        "title": null,
-        "summary": "J-Quantsスクリーニング時点では公式IR/TDnet本文を未確認。候補化後に一次情報確認が必要。"
-      },
-      "matchedWorldEventTags": [
-        "migration_labor_shortage"
-      ],
-      "screeningScore": 80,
-      "warnings": [
-        "公式IR/TDnet本文未確認: disclosureEvidence.status=official_check_required"
-      ],
-      "status": "monitoring",
-      "dataSource": "jquants"
+      "dataSource": "jquants",
+      "staleAsOf": "2026-06-11",
+      "carriedForwardAt": "2026-06-11",
+      "fallbackAsOf": "2026-06-11"
     }
   ],
-  "generatedAt": "2026-06-08",
-  "sourceGeneratedAt": "2026-06-08",
+  "generatedAt": "2026-06-11",
+  "sourceGeneratedAt": "2026-06-11",
   "dataSource": "jquants",
-  "scanStatus": "fresh",
-  "fallbackReason": null,
-  "count": 2
+  "scanStatus": "stale_fallback",
+  "fallbackReason": "jquants_zero_candidates",
+  "count": 1
 }

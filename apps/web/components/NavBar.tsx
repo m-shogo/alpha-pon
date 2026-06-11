@@ -10,6 +10,7 @@ const TABS = [
   { key: '/alerts',  label: '候補',   icon: 'bell' },
   { key: '/actions', label: '行動',   icon: 'spark' },
   { key: '/reports', label: 'レポート', icon: 'doc' },
+  { key: '/ops',     label: '運用',   icon: 'check' },
 ]
 
 export function NavBar() {
