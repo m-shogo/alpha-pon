@@ -27,6 +27,7 @@ alpha-pon は、単に「良さそうな銘柄」を出すのではなく、以�
 - [docs/operation-playbook.md](docs/operation-playbook.md)
 - [docs/ipo-theme-watch-playbook.md](docs/ipo-theme-watch-playbook.md)
 - [docs/special-situation-watch-playbook.md](docs/special-situation-watch-playbook.md)
+- [docs/stock-detail-v2.md](docs/stock-detail-v2.md)
 - [docs/roadmap-pro-disagreement.md](docs/roadmap-pro-disagreement.md)
 - [docs/local-verification-checklist.md](docs/local-verification-checklist.md)
 
@@ -70,7 +71,7 @@ pnpm check:all
 |---|---|
 | `/` | ホーム（注目候補・Pro司令塔） |
 | `/stocks` | 銘柄一覧（スコア順） |
-| `/stocks/[code]` | 銘柄詳細（仮説・スクリーニング・検証） |
+| `/stocks/[code]` | 銘柄詳細（考察履歴・仮説・答え合わせ） |
 | `/alerts` | 監視候補（未登録銘柄の自動スクリーニング） |
 | `/world` | 世界情勢と監視テーマ |
 | `/hypotheses` | 仮説一覧 |

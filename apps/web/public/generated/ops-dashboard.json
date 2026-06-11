@@ -1,15 +1,23 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-11",
+  "generatedAt": "2026-06-12",
   "healthStatus": "needs_attention",
   "priorityIssues": [
+    {
+      "severity": "attention",
+      "category": "pipeline",
+      "title": "pipeline が本日未実行（最終: 2026-06-11）",
+      "detail": "本日分の daily パイプラインがまだ完了していません。",
+      "command": "pnpm daily",
+      "rank": 1
+    },
     {
       "severity": "attention",
       "category": "stale_fallback",
       "title": "universe scan が fallback 動作（stale_fallback）",
       "detail": "理由: jquants_zero_candidates",
       "command": "pnpm scan:universe",
-      "rank": 1
+      "rank": 2
     },
     {
       "severity": "attention",
@@ -17,7 +25,7 @@
       "title": "warning 重複: 2銘柄",
       "detail": "8136, 285A で同一 warning が重複記録されています。生成処理の重複を確認対象としてください。",
       "command": "pnpm ui:data",
-      "rank": 2
+      "rank": 3
     },
     {
       "severity": "info",
@@ -25,7 +33,7 @@
       "title": "価格データ提供待ち: 8件",
       "detail": "期限超過ですが、J-Quants のデータ提供遅延により価格データ自体が未提供のため待機中です。提供後に dry-run で確認してください。",
       "command": "pnpm backfill:special-outcomes",
-      "rank": 3
+      "rank": 4
     },
     {
       "severity": "info",
@@ -33,18 +41,17 @@
       "title": "未評価 outcome: 67件",
       "detail": "result が未確定の outcome です。期限到来後に自動評価されるものを含みます。",
       "command": "pnpm review:special-due",
-      "rank": 4
-    },
-    {
-      "severity": "info",
-      "category": "data_availability",
-      "title": "データ品質 ok 以外: 2銘柄",
-      "detail": "8136, 285A はデータ不足または部分データです。",
-      "command": "pnpm maintain:data",
       "rank": 5
     }
   ],
   "allIssues": [
+    {
+      "severity": "attention",
+      "category": "pipeline",
+      "title": "pipeline が本日未実行（最終: 2026-06-11）",
+      "detail": "本日分の daily パイプラインがまだ完了していません。",
+      "command": "pnpm daily"
+    },
     {
       "severity": "attention",
       "category": "stale_fallback",
@@ -145,12 +152,12 @@
     "available": true,
     "date": "2026-06-11",
     "status": "completed",
-    "isToday": true,
+    "isToday": false,
     "failedSteps": []
   },
   "uiDataAudit": {
     "available": true,
-    "generatedAt": "2026-06-11",
+    "generatedAt": "2026-06-12",
     "isToday": true,
     "metaWarnings": []
   },
@@ -174,6 +181,10 @@
     }
   },
   "nextSafeCommands": [
+    {
+      "command": "pnpm daily",
+      "reason": "pipeline が本日未実行（最終: 2026-06-11）"
+    },
     {
       "command": "pnpm scan:universe",
       "reason": "universe scan が fallback 動作（stale_fallback）"

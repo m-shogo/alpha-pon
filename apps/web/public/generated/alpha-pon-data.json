@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-11",
+  "generatedAt": "2026-06-12",
   "headline": "alpha-pon Pro Dashboard",
   "summary": {
     "strategic": "- Pro知識ブラッシュアップでS優先の更新領域があります。政治・戦争・AI・宇宙/Starlink・金利などの前提が古くないか確認してください。 - Pro品質/Pro会議で証拠不足があります。IR・決算・総会・財務・バリュエーション・競合を補完するまで強い判断を避けてください。 - stock pro summary に安全側警告があります。今日は調査候補を増やすより、追わない/保留理由の確認を優先してください。 - current…",
@@ -176,7 +176,7 @@
         "総会/配当情報"
       ],
       "triggeredRule": "Pro深掘りDB / 重要イベント確認",
-      "lastNotifiedAt": "2026-06-11",
+      "lastNotifiedAt": "2026-06-12",
       "sparkline": [
         100,
         99,
@@ -241,7 +241,7 @@
         "PER/PBR過去レンジ"
       ],
       "triggeredRule": "Pro深掘りDB / 重要イベント確認",
-      "lastNotifiedAt": "2026-06-11",
+      "lastNotifiedAt": "2026-06-12",
       "sparkline": [
         100,
         99,
@@ -306,7 +306,7 @@
         "政策イベント"
       ],
       "triggeredRule": "Pro深掘りDB / 重要イベント確認",
-      "lastNotifiedAt": "2026-06-11",
+      "lastNotifiedAt": "2026-06-12",
       "sparkline": [
         100,
         99,
@@ -371,7 +371,7 @@
         "PER/PBR過去レンジ"
       ],
       "triggeredRule": "Pro深掘りDB / 重要イベント確認",
-      "lastNotifiedAt": "2026-06-11",
+      "lastNotifiedAt": "2026-06-12",
       "sparkline": [
         100,
         99,
@@ -443,7 +443,7 @@
         "総会前後/決算後の株価反応履歴"
       ],
       "triggeredRule": "Pro深掘りDB / 重要イベント確認",
-      "lastNotifiedAt": "2026-06-11",
+      "lastNotifiedAt": "2026-06-12",
       "sparkline": [
         100,
         99,
@@ -508,7 +508,7 @@
         "PER/PBR/配当利回りレンジ"
       ],
       "triggeredRule": "Pro深掘りDB / 重要イベント確認",
-      "lastNotifiedAt": "2026-06-11",
+      "lastNotifiedAt": "2026-06-12",
       "sparkline": [
         100,
         99,
@@ -6932,7 +6932,7 @@
           "financial_partial",
           "outcome_insufficient"
         ],
-        "updatedAt": "2026-06-11"
+        "updatedAt": "2026-06-12"
       },
       "scoreBreakdown": {
         "companyCode": "8136",
@@ -6976,7 +6976,7 @@
         "reasons": [
           "tdnet_unavailable"
         ],
-        "updatedAt": "2026-06-11"
+        "updatedAt": "2026-06-12"
       },
       "scoreBreakdown": {
         "companyCode": "285A",
@@ -7288,7 +7288,7 @@
       "reasons": [
         "入園者数・単価・投資負担・インバウンド/消費環境をどう見るか"
       ],
-      "updatedAt": "2026-06-11"
+      "updatedAt": "2026-06-12"
     },
     {
       "code": "5803",
@@ -7308,7 +7308,7 @@
       "reasons": [
         "AIデータセンター/光通信需要が続くか、すでに織り込み済みか"
       ],
-      "updatedAt": "2026-06-11"
+      "updatedAt": "2026-06-12"
     },
     {
       "code": "7011",
@@ -7328,7 +7328,7 @@
       "reasons": [
         "防衛・宇宙・エネルギー政策の追い風が、どこまで株価に織り込まれているか"
       ],
-      "updatedAt": "2026-06-11"
+      "updatedAt": "2026-06-12"
     },
     {
       "code": "7974",
@@ -7348,7 +7348,7 @@
       "reasons": [
         "IP・ゲーム機サイクル・映画/テーマパーク展開を、価格と決算期待込みでどう見るか"
       ],
-      "updatedAt": "2026-06-11"
+      "updatedAt": "2026-06-12"
     },
     {
       "code": "8136",
@@ -7371,7 +7371,7 @@
         "営業利益率が維持/改善",
         "現時点のアプリ判断は『証拠不足〜保留』。買うなら、決算/総会/バリュエーション確認後の方が納得度が高い。短期で上がりすぎなら追わない。"
       ],
-      "updatedAt": "2026-06-11"
+      "updatedAt": "2026-06-12"
     },
     {
       "code": "8306",
@@ -7391,7 +7391,7 @@
       "reasons": [
         "金利上昇・株主還元・信用コスト・海外リスクをどう見るか"
       ],
-      "updatedAt": "2026-06-11"
+      "updatedAt": "2026-06-12"
     }
   ],
   "generatedCompanyRules": [
@@ -17115,7 +17115,7 @@
   },
   "proDataMeta": {
     "source": "pro-ui-data-addon",
-    "generatedAt": "2026-06-11T07:02:44.166Z",
+    "generatedAt": "2026-06-11T15:30:55.029Z",
     "missing": []
   }
 }
