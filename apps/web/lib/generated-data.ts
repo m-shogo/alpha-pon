@@ -41,6 +41,8 @@ const FALLBACK_PRO: ProData = {
   specialSituationWatch: null,
   specialSituationOps: null,
   hypothesisOutcomeIntegrity: null,
+  worldImpactReviews: [],
+  worldImpactAudit: null,
   meta: { warnings: ['データファイルが見つからないか、読み込みに失敗しました。pnpm ui:data を実行してください。'] },
 }
 
@@ -77,6 +79,10 @@ function normalizeGeneratedData(value: unknown): ProData {
     specialSituationWatch: data.specialSituationWatch ?? null,
     specialSituationOps: data.specialSituationOps ?? null,
     hypothesisOutcomeIntegrity: data.hypothesisOutcomeIntegrity ?? null,
+    worldImpactReviews: Array.isArray((data as { worldImpactReviews?: unknown[] }).worldImpactReviews)
+      ? (data as { worldImpactReviews?: ProData['worldImpactReviews'] }).worldImpactReviews
+      : [],
+    worldImpactAudit: (data as { worldImpactAudit?: ProData['worldImpactAudit'] }).worldImpactAudit ?? null,
     meta: data.meta ?? null,
   }
 }

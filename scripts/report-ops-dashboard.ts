@@ -19,6 +19,7 @@ import {
   type OpsOutcomeQualityLike,
   type OpsPipelineStatusLike,
   type OpsSpecialOpsLike,
+  type OpsWorldImpactAuditLike,
   type SafeWordingFinding,
 } from "../src/ops-dashboard.js";
 
@@ -54,6 +55,9 @@ function collectSafeWordingTargets(): string[] {
       }
     }
   }
+  for (const rel of ["reports/world-impact-review.md", "reports/world-impact-audit.md"]) {
+    if (existsSync(join(ROOT, rel))) targets.push(rel);
+  }
   return targets;
 }
 
@@ -86,6 +90,7 @@ const dashboard = buildOpsDashboard({
   specialOps: readJson<OpsSpecialOpsLike>("reports/special_situation_ops_summary_latest.json"),
   integrity: readJson<OpsIntegrityLike>("reports/hypothesis_outcome_integrity_latest.json"),
   outcomeQuality: readJson<OpsOutcomeQualityLike>("reports/outcome-quality-audit.json"),
+  worldImpact: readJson<OpsWorldImpactAuditLike>("reports/world-impact-audit.json"),
   safeWordingScannedFiles: safeWording.scannedFiles,
   safeWordingFindings: safeWording.findings,
 });

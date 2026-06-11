@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'fs'
 import { basename, join } from 'path'
 import { loadGeneratedData } from './generated-data'
-import type { Candidate } from './types'
+import type { Candidate, WorldImpactReview } from './types'
 import type { HypothesisOutcome, StockCandidateHypothesis, UniverseCandidate } from '../types/universe'
 
 export type StockDetailStatus = 'ok' | 'info' | 'attention' | 'missing'
@@ -86,6 +86,7 @@ export type StockDetail = {
   staleFallback: boolean
   sourceVerification: StockDetailStatus
   priceDataPending: boolean
+  worldImpactReviews: WorldImpactReview[]
 }
 
 type OpsDashboardLike = {
@@ -314,6 +315,7 @@ export function normalizeStockDetail(raw: {
   const companyMemory = data.companyMemoryByCode?.[code]
   const dataQuality = data.dataQualityByCode?.[code]
   const primaryDisclosure = data.primaryDisclosureReviews?.[code]
+  const worldImpactReviews = (data.worldImpactReviews ?? []).filter(review => review.affectedCompanyCodes?.includes(code))
 
   if (!candidate && !universeCandidate && hypotheses.length === 0 && outcomes.length === 0 && !special && !companyMemory) {
     return null
@@ -418,6 +420,7 @@ export function normalizeStockDetail(raw: {
     staleFallback,
     sourceVerification,
     priceDataPending,
+    worldImpactReviews,
   }
 }
 

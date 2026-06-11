@@ -19,7 +19,8 @@ export interface OpsIssue {
     | "safe_wording"
     | "special_situation"
     | "integrity"
-    | "outcome_quality";
+    | "outcome_quality"
+    | "world_impact";
   title: string;
   detail: string;
   command?: string;
@@ -99,6 +100,20 @@ export interface OpsDashboard {
     available: boolean;
     healthStatus: string | null;
     checkCounts: Record<string, number>;
+  };
+  worldImpactAudit: {
+    available: boolean;
+    healthStatus: string | null;
+    totalReviews: number;
+    pendingReviews: number;
+    overdueReviews: number;
+    missingCounterArguments: number;
+    missingMechanisms: number;
+    dataUnavailable: number;
+    priceDataPending: number;
+    sourceQualityUnknown: number;
+    unknownMatchedAsHit: number;
+    priorityIssues: Array<{ severity?: string; title?: string; detail?: string }>;
   };
   nextSafeCommands: OpsNextCommand[];
   notes: string[];
@@ -193,6 +208,20 @@ export interface OpsOutcomeQualityLike {
   checks?: Record<string, { count?: number }>;
 }
 
+export interface OpsWorldImpactAuditLike {
+  healthStatus?: string;
+  totalReviews?: number;
+  pendingReviews?: number;
+  overdueReviews?: number;
+  missingCounterArguments?: number;
+  missingMechanisms?: number;
+  dataUnavailable?: number;
+  priceDataPending?: number;
+  sourceQualityUnknown?: number;
+  unknownMatchedAsHit?: number;
+  priorityIssues?: Array<{ severity?: string; title?: string; detail?: string }>;
+}
+
 export interface OpsDashboardInputs {
   today: string;
   pipelineStatus: OpsPipelineStatusLike | null;
@@ -201,6 +230,7 @@ export interface OpsDashboardInputs {
   specialOps: OpsSpecialOpsLike | null;
   integrity: OpsIntegrityLike | null;
   outcomeQuality?: OpsOutcomeQualityLike | null;
+  worldImpact?: OpsWorldImpactAuditLike | null;
   safeWordingScannedFiles: number;
   safeWordingFindings: SafeWordingFinding[];
 }
@@ -539,6 +569,61 @@ export function buildOpsDashboard(inputs: OpsDashboardInputs): OpsDashboard {
     }
   }
 
+  // 世界ニュース影響仮説監査
+  const worldImpact = inputs.worldImpact ?? null;
+  const worldImpactAudit: OpsDashboard["worldImpactAudit"] = {
+    available: worldImpact != null,
+    healthStatus: worldImpact?.healthStatus ?? null,
+    totalReviews: worldImpact?.totalReviews ?? 0,
+    pendingReviews: worldImpact?.pendingReviews ?? 0,
+    overdueReviews: worldImpact?.overdueReviews ?? 0,
+    missingCounterArguments: worldImpact?.missingCounterArguments ?? 0,
+    missingMechanisms: worldImpact?.missingMechanisms ?? 0,
+    dataUnavailable: worldImpact?.dataUnavailable ?? 0,
+    priceDataPending: worldImpact?.priceDataPending ?? 0,
+    sourceQualityUnknown: worldImpact?.sourceQualityUnknown ?? 0,
+    unknownMatchedAsHit: worldImpact?.unknownMatchedAsHit ?? 0,
+    priorityIssues: worldImpact?.priorityIssues ?? [],
+  };
+  if (!worldImpact) {
+    issues.push({
+      severity: "info",
+      category: "world_impact",
+      title: "世界ニュース影響仮説監査が未生成",
+      detail: "reports/world-impact-audit.json がありません。",
+      command: "pnpm audit:world-impact",
+    });
+  } else {
+    if ((worldImpact.unknownMatchedAsHit ?? 0) > 0) {
+      issues.push({
+        severity: "urgent",
+        category: "world_impact",
+        title: `world impact unknown 同士の hit: ${worldImpact.unknownMatchedAsHit}件`,
+        detail: "世界ニュース影響仮説で方向未確定のまま仮説と整合した扱いがあります。",
+        command: "pnpm audit:world-impact",
+      });
+    }
+    const attentionTotal = (worldImpact.overdueReviews ?? 0) + (worldImpact.missingCounterArguments ?? 0) + (worldImpact.missingMechanisms ?? 0);
+    if (attentionTotal > 0) {
+      issues.push({
+        severity: "attention",
+        category: "world_impact",
+        title: `world impact 確認対象: ${attentionTotal}件`,
+        detail: `overdue=${worldImpact.overdueReviews ?? 0}, counterArgument=${worldImpact.missingCounterArguments ?? 0}, mechanism=${worldImpact.missingMechanisms ?? 0}`,
+        command: "pnpm audit:world-impact",
+      });
+    }
+    if ((worldImpact.priceDataPending ?? 0) > 0) {
+      issues.push({
+        severity: "info",
+        category: "world_impact",
+        title: `world impact 価格データ提供待ち: ${worldImpact.priceDataPending}件`,
+        detail: "価格データ不足のため未評価として扱います。",
+        command: "pnpm review:world-impact",
+      });
+    }
+  }
+
   // safe wording
   if (inputs.safeWordingFindings.length > 0) {
     issues.push({
@@ -608,11 +693,12 @@ export function buildOpsDashboard(inputs: OpsDashboardInputs): OpsDashboard {
     uiDataAudit,
     specialSituationAudit,
     outcomeQualityAudit,
+    worldImpactAudit,
     nextSafeCommands,
     notes: [
       "この画面は調査・検証の運用状況を示すものであり、売買を推奨しない。",
       "判定は「未評価」「データ不足」「確認対象」を優先し、断定を避ける。",
-      "情報源: pipeline_status / alpha-pon-data.json / outcomes.json / special_situation_ops_summary / hypothesis_outcome_integrity",
+      "情報源: pipeline_status / alpha-pon-data.json / outcomes.json / special_situation_ops_summary / hypothesis_outcome_integrity / world-impact-audit",
     ],
   };
 }
@@ -675,6 +761,25 @@ export function renderOpsDashboardMarkdown(dashboard: OpsDashboard): string {
     lines.push(`- 品質監査: ${dashboard.outcomeQualityAudit.healthStatus ?? "不明"}${counts ? `（${counts}）` : "（指摘なし）"}`);
   } else {
     lines.push("- 品質監査: 未生成（pnpm audit:outcomes）");
+  }
+  lines.push("");
+
+  lines.push("## 世界ニュース影響仮説");
+  lines.push("");
+  const wi = dashboard.worldImpactAudit;
+  if (!wi.available) {
+    lines.push("- 未生成（pnpm review:world-impact / pnpm audit:world-impact）");
+  } else {
+    lines.push(`- 監査結果: ${wi.healthStatus ?? "不明"}`);
+    lines.push(`- 影響仮説レビュー: ${wi.totalReviews}件`);
+    lines.push(`- 未評価 outcome: ${wi.pendingReviews}件`);
+    lines.push(`- 期限超過の未評価: ${wi.overdueReviews}件`);
+    lines.push(`- 価格データ提供待ち: ${wi.priceDataPending}件`);
+    lines.push(`- 価格データ不足: ${wi.dataUnavailable}件`);
+    lines.push(`- 反証条件未記録: ${wi.missingCounterArguments}件`);
+    lines.push(`- 影響メカニズム未記録: ${wi.missingMechanisms}件`);
+    lines.push(`- sourceQuality 不明: ${wi.sourceQualityUnknown}件`);
+    lines.push(`- unknown 同士の hit: ${wi.unknownMatchedAsHit}件`);
   }
   lines.push("");
 

@@ -86,6 +86,13 @@
       "title": "データ品質 ok 以外: 2銘柄",
       "detail": "8136, 285A はデータ不足または部分データです。",
       "command": "pnpm maintain:data"
+    },
+    {
+      "severity": "info",
+      "category": "world_impact",
+      "title": "world impact 価格データ提供待ち: 2件",
+      "detail": "価格データ不足のため未評価として扱います。",
+      "command": "pnpm review:world-impact"
     }
   ],
   "outcomeAudit": {
@@ -145,7 +152,7 @@
     ]
   },
   "safeWordingAudit": {
-    "scannedFiles": 48,
+    "scannedFiles": 50,
     "violations": []
   },
   "pipelineAudit": {
@@ -180,6 +187,27 @@
       "dueAtMismatch": 0
     }
   },
+  "worldImpactAudit": {
+    "available": true,
+    "healthStatus": "ok",
+    "totalReviews": 2,
+    "pendingReviews": 2,
+    "overdueReviews": 0,
+    "missingCounterArguments": 0,
+    "missingMechanisms": 0,
+    "dataUnavailable": 2,
+    "priceDataPending": 2,
+    "sourceQualityUnknown": 0,
+    "unknownMatchedAsHit": 0,
+    "priorityIssues": [
+      {
+        "severity": "info",
+        "category": "price_data",
+        "title": "価格データ提供待ち: 2件",
+        "detail": "J-Quants 遅延範囲のため、提供後に再確認してください。"
+      }
+    ]
+  },
   "nextSafeCommands": [
     {
       "command": "pnpm daily",
@@ -206,6 +234,10 @@
       "reason": "データ品質 ok 以外: 2銘柄"
     },
     {
+      "command": "pnpm review:world-impact",
+      "reason": "world impact 価格データ提供待ち: 2件"
+    },
+    {
       "command": "pnpm health",
       "reason": "全体ヘルスチェック"
     },
@@ -217,6 +249,6 @@
   "notes": [
     "この画面は調査・検証の運用状況を示すものであり、売買を推奨しない。",
     "判定は「未評価」「データ不足」「確認対象」を優先し、断定を避ける。",
-    "情報源: pipeline_status / alpha-pon-data.json / outcomes.json / special_situation_ops_summary / hypothesis_outcome_integrity"
+    "情報源: pipeline_status / alpha-pon-data.json / outcomes.json / special_situation_ops_summary / hypothesis_outcome_integrity / world-impact-audit"
   ]
 }

@@ -314,6 +314,8 @@ function main() {
   const companyMemory = loadCompanyMemory();
   const readiness = loadReadiness();
   const runCursors = readJson<Record<string, unknown>>("data/run-cursors.json") ?? {};
+  const worldImpactReviews = readJson<unknown[]>("data/world_event_impacts_latest.json") ?? [];
+  const worldImpactAudit = readJson<Record<string, unknown>>("reports/world-impact-audit.json");
   const latestScores = loadLatestScores();
   const primaryDisclosureReviews = Object.fromEntries(
     latestScores
@@ -402,6 +404,8 @@ function main() {
     dataQualityByCode,
     runCursors,
     readiness,
+    worldImpactReviews,
+    worldImpactAudit,
     pipelineStatus: pipelineStatusData,
     meta: {
       source: "report-ui-data",

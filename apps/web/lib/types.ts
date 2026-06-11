@@ -211,6 +211,65 @@ export type ScoreBreakdownDetail = {
   confidence: 'low' | 'medium' | 'high'
 }
 
+export type WorldImpactDataAvailability = 'ok' | 'partial' | 'missing' | 'priceDataPending'
+
+export type WorldImpactReview = {
+  schemaVersion: 1
+  reviewKey: string
+  eventId: string
+  eventDate: string
+  topic: string
+  source: string | null
+  sourceQuality: 'official' | 'tier1' | 'tier2' | 'unknown'
+  namedEntities: string[]
+  affectedSectors: string[]
+  affectedCompanyCodes: string[]
+  expectedMechanism: string
+  secondOrderEffect: string
+  counterArgument: string
+  timeLag: string
+  expectedHorizon: '1d' | '1w' | '1m' | string
+  dataAvailability: WorldImpactDataAvailability
+  outcomes: Array<{
+    horizon: '1d' | '1w' | '1m' | string
+    dueAt: string
+    result: 'hit' | 'miss' | 'too_early' | 'unknown' | null
+    expectedDirection: 'up' | 'down' | 'sideways' | 'mixed' | 'unknown'
+    actualDirection: 'up' | 'down' | 'sideways' | 'mixed' | 'unknown'
+    dataAvailability: WorldImpactDataAvailability
+    returnPct: number | null
+    topixReturnPct: number | null
+    relativeToTopixPct: number | null
+    missedSignals: string[]
+    lesson: string | null
+  }>
+  missedSignals: string[]
+  lesson: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type WorldImpactAudit = {
+  schemaVersion: 1
+  generatedAt: string
+  healthStatus: 'ok' | 'needs_attention' | 'action_required'
+  totalReviews: number
+  pendingReviews: number
+  overdueReviews: number
+  missingCounterArguments: number
+  missingMechanisms: number
+  dataUnavailable: number
+  priceDataPending: number
+  sourceQualityUnknown: number
+  unknownMatchedAsHit: number
+  priorityIssues: Array<{
+    severity: 'urgent' | 'attention' | 'info'
+    category: string
+    title: string
+    detail: string
+  }>
+}
+
 import type {
   UniverseCandidate,
   UniverseScanMetadata,
@@ -485,6 +544,8 @@ export type AlphaPonGeneratedData = {
   specialSituationWatch?: SpecialSituationWatch | null
   specialSituationOps?: SpecialSituationOpsSummary | null
   hypothesisOutcomeIntegrity?: HypothesisOutcomeIntegrity | null
+  worldImpactReviews?: WorldImpactReview[]
+  worldImpactAudit?: WorldImpactAudit | null
   legendProCommittee?: LegendProCommittee | null
   stockProCommitteeJson?: LegendProCommittee | null
   pipelineStatus?: {

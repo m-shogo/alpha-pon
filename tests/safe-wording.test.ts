@@ -59,6 +59,9 @@ const SCAN_FILES = [
   join(ROOT, "data/generated_company_rules_latest.json"),
   join(ROOT, "apps/web/public/generated/company-rules.json"),
   join(ROOT, "apps/web/public/generated/alpha-pon-data.json"),
+  join(ROOT, "docs/world-event-impact-review.md"),
+  join(ROOT, "reports/world-impact-review.md"),
+  join(ROOT, "reports/world-impact-audit.md"),
 ];
 
 function checkFile(filePath: string, label: string) {

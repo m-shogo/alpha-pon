@@ -28,6 +28,7 @@ alpha-pon は、単に「良さそうな銘柄」を出すのではなく、以�
 - [docs/ipo-theme-watch-playbook.md](docs/ipo-theme-watch-playbook.md)
 - [docs/special-situation-watch-playbook.md](docs/special-situation-watch-playbook.md)
 - [docs/stock-detail-v2.md](docs/stock-detail-v2.md)
+- [docs/world-event-impact-review.md](docs/world-event-impact-review.md)
 - [docs/roadmap-pro-disagreement.md](docs/roadmap-pro-disagreement.md)
 - [docs/local-verification-checklist.md](docs/local-verification-checklist.md)
 

@@ -81,6 +81,20 @@ export interface OpsDashboardData {
     healthStatus: string | null
     checkCounts: Record<string, number>
   }
+  worldImpactAudit: {
+    available: boolean
+    healthStatus: string | null
+    totalReviews: number
+    pendingReviews: number
+    overdueReviews: number
+    missingCounterArguments: number
+    missingMechanisms: number
+    dataUnavailable: number
+    priceDataPending: number
+    sourceQualityUnknown: number
+    unknownMatchedAsHit: number
+    priorityIssues: Array<{ severity?: string; title?: string; detail?: string }>
+  }
   nextSafeCommands: Array<{ command: string; reason: string }>
   notes: string[]
 }
@@ -159,6 +173,22 @@ export function loadOpsDashboard(): OpsDashboardData | null {
         available: raw.outcomeQualityAudit?.available ?? false,
         healthStatus: raw.outcomeQualityAudit?.healthStatus ?? null,
         checkCounts: raw.outcomeQualityAudit?.checkCounts ?? {},
+      },
+      worldImpactAudit: {
+        available: raw.worldImpactAudit?.available ?? false,
+        healthStatus: raw.worldImpactAudit?.healthStatus ?? null,
+        totalReviews: raw.worldImpactAudit?.totalReviews ?? 0,
+        pendingReviews: raw.worldImpactAudit?.pendingReviews ?? 0,
+        overdueReviews: raw.worldImpactAudit?.overdueReviews ?? 0,
+        missingCounterArguments: raw.worldImpactAudit?.missingCounterArguments ?? 0,
+        missingMechanisms: raw.worldImpactAudit?.missingMechanisms ?? 0,
+        dataUnavailable: raw.worldImpactAudit?.dataUnavailable ?? 0,
+        priceDataPending: raw.worldImpactAudit?.priceDataPending ?? 0,
+        sourceQualityUnknown: raw.worldImpactAudit?.sourceQualityUnknown ?? 0,
+        unknownMatchedAsHit: raw.worldImpactAudit?.unknownMatchedAsHit ?? 0,
+        priorityIssues: Array.isArray(raw.worldImpactAudit?.priorityIssues)
+          ? raw.worldImpactAudit.priorityIssues
+          : [],
       },
       nextSafeCommands: Array.isArray(raw.nextSafeCommands) ? raw.nextSafeCommands : [],
       notes: Array.isArray(raw.notes) ? raw.notes : [],

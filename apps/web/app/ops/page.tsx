@@ -65,7 +65,7 @@ export default function OpsPage() {
         運用ダッシュボード
       </h1>
       <p style={{ margin: '0 0 14px', fontSize: 12, color: 'var(--ink-3)', fontWeight: 600 }}>
-        生成日: {data.generatedAt} ／ 売買の推奨は行いません
+        生成日: {data.generatedAt} ／ 投資助言は行いません
       </p>
 
       {/* healthStatus */}
@@ -195,6 +195,38 @@ export default function OpsPage() {
                 </div>
               )
             })}
+          </>
+        )}
+      </Card>
+
+      {/* 世界ニュース影響仮説 */}
+      <SectionLabel icon={<Icon name="arc" size={15} color="currentColor" />}>世界ニュース影響仮説</SectionLabel>
+      <Card>
+        {!data.worldImpactAudit.available ? (
+          <p style={{ margin: 0, fontSize: 12.5, color: 'var(--ink-3)', fontWeight: 600 }}>
+            未生成です。<code>pnpm review:world-impact</code> と <code>pnpm audit:world-impact</code> を実行してください。
+          </p>
+        ) : (
+          <>
+            <CountRow label="監査結果" value={data.worldImpactAudit.healthStatus ?? '不明'} />
+            <CountRow label="影響仮説レビュー" value={`${data.worldImpactAudit.totalReviews}件`} />
+            <CountRow label="未評価 outcome" value={`${data.worldImpactAudit.pendingReviews}件`} />
+            <CountRow label="期限超過の未評価" value={`${data.worldImpactAudit.overdueReviews}件`} />
+            <CountRow label="価格データ提供待ち" value={`${data.worldImpactAudit.priceDataPending}件`} />
+            <CountRow label="価格データ不足" value={`${data.worldImpactAudit.dataUnavailable}件`} />
+            <CountRow label="反証条件未記録" value={`${data.worldImpactAudit.missingCounterArguments}件`} />
+            <CountRow label="影響メカニズム未記録" value={`${data.worldImpactAudit.missingMechanisms}件`} />
+            <CountRow label="sourceQuality 不明" value={`${data.worldImpactAudit.sourceQualityUnknown}件`} />
+            <CountRow label="unknown 同士の hit" value={`${data.worldImpactAudit.unknownMatchedAsHit}件`} />
+            {data.worldImpactAudit.priorityIssues.length > 0 && (
+              <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.6 }}>
+                確認ポイント:{' '}
+                {data.worldImpactAudit.priorityIssues
+                  .slice(0, 3)
+                  .map(issue => issue.title ?? issue.detail ?? '確認対象')
+                  .join(' / ')}
+              </p>
+            )}
           </>
         )}
       </Card>

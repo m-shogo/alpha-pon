@@ -39,6 +39,19 @@ function cleanInputs(): OpsDashboardInputs {
     },
     integrity: { status: "ok", jsonl: { duplicateGroups: [], parseErrors: [] }, sqlite: { duplicateGroups: [] } },
     outcomeQuality: { healthStatus: "ok", checks: {} },
+    worldImpact: {
+      healthStatus: "ok",
+      totalReviews: 1,
+      pendingReviews: 0,
+      overdueReviews: 0,
+      missingCounterArguments: 0,
+      missingMechanisms: 0,
+      dataUnavailable: 0,
+      priceDataPending: 0,
+      sourceQualityUnknown: 0,
+      unknownMatchedAsHit: 0,
+      priorityIssues: [],
+    },
     safeWordingScannedFiles: 10,
     safeWordingFindings: [],
   };
@@ -60,6 +73,7 @@ function cleanInputs(): OpsDashboardInputs {
     "pipelineAudit",
     "uiDataAudit",
     "specialSituationAudit",
+    "worldImpactAudit",
     "nextSafeCommands",
     "notes",
   ] as const) {
@@ -184,6 +198,56 @@ function cleanInputs(): OpsDashboardInputs {
   assert.equal(dashboard.healthStatus, "ok", "提供待ちのみなら healthStatus は ok");
   assert.equal(dashboard.outcomeAudit.reviewDue?.priceDataPending, 8);
   console.log("ops-dashboard: 価格データ提供待ちを info に降格");
+}
+
+// ── 世界ニュース影響仮説: 提供待ちは info ──────────────────
+
+{
+  const inputs = cleanInputs();
+  inputs.worldImpact = {
+    healthStatus: "ok",
+    totalReviews: 2,
+    pendingReviews: 3,
+    overdueReviews: 0,
+    missingCounterArguments: 0,
+    missingMechanisms: 0,
+    dataUnavailable: 3,
+    priceDataPending: 3,
+    sourceQualityUnknown: 0,
+    unknownMatchedAsHit: 0,
+    priorityIssues: [],
+  };
+  const dashboard = buildOpsDashboard(inputs);
+  const pending = dashboard.allIssues.find(issue => issue.category === "world_impact" && issue.title.includes("価格データ提供待ち"));
+  assert.ok(pending, "world impact の価格データ提供待ち issue がある");
+  assert.equal(pending.severity, "info");
+  assert.equal(dashboard.healthStatus, "ok");
+  assert.equal(dashboard.worldImpactAudit.priceDataPending, 3);
+  console.log("ops-dashboard: world impact 価格データ提供待ちは info");
+}
+
+// ── 世界ニュース影響仮説: unknown 同士の hit は urgent ───────
+
+{
+  const inputs = cleanInputs();
+  inputs.worldImpact = {
+    healthStatus: "action_required",
+    totalReviews: 1,
+    pendingReviews: 0,
+    overdueReviews: 0,
+    missingCounterArguments: 0,
+    missingMechanisms: 0,
+    dataUnavailable: 0,
+    priceDataPending: 0,
+    sourceQualityUnknown: 0,
+    unknownMatchedAsHit: 1,
+    priorityIssues: [],
+  };
+  const dashboard = buildOpsDashboard(inputs);
+  assert.equal(dashboard.healthStatus, "action_required");
+  assert.equal(dashboard.priorityIssues[0].category, "world_impact");
+  assert.equal(dashboard.priorityIssues[0].severity, "urgent");
+  console.log("ops-dashboard: world impact unknown 同士の hit を urgent にする");
 }
 
 // ── 提供待ちと実 actionable の混在は attention を維持 ────────

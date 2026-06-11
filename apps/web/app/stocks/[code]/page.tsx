@@ -76,6 +76,15 @@ function pct(value: number | null): string {
   return value == null ? '比較不能' : formatPercent(value, true)
 }
 
+function worldOutcomeLabel(outcome: { result: string | null; dataAvailability: string; expectedDirection: string; actualDirection: string }): { label: string; status: StockDetailStatus } {
+  if (outcome.dataAvailability !== 'ok') return { label: '未評価: 価格データ不足', status: 'info' }
+  if (outcome.result == null || outcome.result === 'unknown') return { label: '未評価', status: 'missing' }
+  if (outcome.result === 'hit' && outcome.expectedDirection === 'unknown' && outcome.actualDirection === 'unknown') return { label: '未評価: 方向未確定', status: 'missing' }
+  if (outcome.result === 'too_early') return { label: '時期尚早', status: 'info' }
+  if (outcome.result === 'miss') return { label: '想定差分あり', status: 'attention' }
+  return { label: '仮説と整合', status: 'ok' }
+}
+
 export default async function StockDetailPage({ params }: Props) {
   const { code } = await params
   const detail = getStockDetail(code)
@@ -196,6 +205,44 @@ export default async function StockDetailPage({ params }: Props) {
             </Card>
           ))}
         </div>
+
+        <SectionLabel icon={<Icon name="spark" size={15} />}>世界ニュース影響仮説</SectionLabel>
+        <Card pad={0}>
+          {detail.worldImpactReviews.length === 0 ? (
+            <div style={{ padding: 14 }}><EmptyText /></div>
+          ) : detail.worldImpactReviews.slice(0, 5).map((review, index) => (
+            <div key={review.reviewKey} style={{ padding: 14, borderBottom: index < Math.min(detail.worldImpactReviews.length, 5) - 1 ? '1px solid var(--line)' : 'none' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginBottom: 8 }}>
+                <StatusBadge status={review.dataAvailability === 'priceDataPending' ? 'info' : review.dataAvailability === 'ok' ? 'ok' : 'missing'} label={review.dataAvailability === 'priceDataPending' ? '価格データ提供待ち' : review.dataAvailability} />
+                <span style={{ fontSize: 12, fontWeight: 750, color: 'var(--ink-3)' }}>{review.eventDate} / source {review.sourceQuality}</span>
+              </div>
+              <div style={{ fontSize: 13.5, fontWeight: 850, color: 'var(--ink)', lineHeight: 1.45, marginBottom: 8 }}>{review.topic}</div>
+              <div style={{ display: 'grid', gap: 8 }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 850, color: 'var(--ink-3)', marginBottom: 3 }}>影響メカニズム</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 650, color: 'var(--ink-2)', lineHeight: 1.55 }}>{review.expectedMechanism || '未記録'}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 850, color: 'var(--ink-3)', marginBottom: 3 }}>二次影響 / timeLag</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 650, color: 'var(--ink-2)', lineHeight: 1.55 }}>{review.secondOrderEffect || '未記録'} / {review.timeLag || '未記録'}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 850, color: 'var(--ink-3)', marginBottom: 3 }}>反証条件</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 650, color: 'var(--ink-2)', lineHeight: 1.55 }}>{review.counterArgument || '未記録'}</div>
+                </div>
+              </div>
+              <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(112px, 1fr))', gap: 8 }}>
+                {review.outcomes.map(outcome => {
+                  const meta = worldOutcomeLabel(outcome)
+                  return <Metric key={outcome.horizon} label={outcome.horizon} value={meta.label} status={meta.status} />
+                })}
+              </div>
+              <div style={{ marginTop: 10 }}>
+                <ListBlock items={[...(review.missedSignals ?? []), ...(review.lesson ? [review.lesson] : [])]} />
+              </div>
+            </div>
+          ))}
+        </Card>
 
         <SectionLabel icon={<Icon name="check" size={15} />}>Outcome / 答え合わせ</SectionLabel>
         <Card pad={0}>
