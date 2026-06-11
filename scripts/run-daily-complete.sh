@@ -11,7 +11,7 @@
 #   3. scan:universe       ... noncritical
 #   4. candidate:hypothesis ... noncritical
 #   5. review:hypotheses   ... noncritical
-#   6. pnpm ui:data        ... noncritical（Next.js JSON のみ生成）
+#   6. ui:data:base + ui:data:pro ... noncritical（Next.js JSON 生成 + Pro addon キー追記）
 #   7. 履歴化・知識レビュー ... noncritical
 
 set -u
@@ -169,7 +169,10 @@ write_complete_wrapper_status
 # 出力先: apps/web/public/generated/alpha-pon-data.json のみ（design/ には出力しない）
 # この時点で pipeline_status_latest.json に completeWrapperFailedSteps が書かれているため、
 # report-ui-data.ts が meta.warnings に失敗情報を反映できる。
-run_optional_step "ui:data"                   node --import "tsx/esm" "$DIR/src/report-ui-data.ts"
+# pnpm ui:data と同じく base → pro の順で実行する（pro は base の出力に
+# legendProCommittee / buffettQuality などの addon キーを追記する）。
+run_optional_step "ui:data:base"              node --import "tsx/esm" "$DIR/src/report-ui-data.ts"
+run_optional_step "ui:data:pro"               node --import "tsx/esm" "$DIR/src/pro-ui-data-addon.ts"
 
 # ui:data 自体が失敗した場合も pipeline_status に残す
 write_complete_wrapper_status
