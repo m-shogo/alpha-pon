@@ -17,6 +17,16 @@ const SEVERITY_META: Record<OpsSeverity, { label: string; color: string }> = {
   info: { label: '情報', color: 'var(--ink-3)' },
 }
 
+const QUALITY_CHECK_LABELS: Array<[string, string]> = [
+  ['reviewMissing', '未レビュー仮説'],
+  ['horizonGaps', 'horizon 記録欠け'],
+  ['judgedWithLimitedData', 'データ不足のまま判定'],
+  ['unknownMatchedAsHit', 'unknown 同士の hit'],
+  ['pendingWithSignals', 'whatMatched ありで未評価'],
+  ['emptyReviewNotes', '反省メモ未記入'],
+  ['dueAtMismatch', 'reviewDueAt ズレ'],
+]
+
 function CountRow({ label, value }: { label: string; value: string | number }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 13 }}>
@@ -162,6 +172,29 @@ export default function OpsPage() {
             整合性: {oa.integrity.status}（jsonl重複 {oa.integrity.jsonlDuplicateGroups} / sqlite重複{' '}
             {oa.integrity.sqliteDuplicateGroups} / parse_error {oa.integrity.parseErrors}）
           </p>
+        )}
+      </Card>
+
+      {/* 仮説レビュー品質監査 */}
+      <SectionLabel icon={<Icon name="filter" size={15} color="currentColor" />}>仮説レビュー品質監査</SectionLabel>
+      <Card>
+        {!data.outcomeQualityAudit.available ? (
+          <p style={{ margin: 0, fontSize: 12.5, color: 'var(--ink-3)', fontWeight: 600 }}>
+            未生成です。<code>pnpm audit:outcomes</code> を実行してください。
+          </p>
+        ) : (
+          <>
+            <CountRow label="監査結果" value={data.outcomeQualityAudit.healthStatus ?? '不明'} />
+            {QUALITY_CHECK_LABELS.map(([key, label]) => {
+              const count = data.outcomeQualityAudit.checkCounts[key] ?? 0
+              return (
+                <div key={key} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 13 }}>
+                  <span style={{ color: 'var(--ink-2)', fontWeight: 600 }}>{label}</span>
+                  <span style={{ color: count > 0 ? 'var(--amber)' : 'var(--ink)', fontWeight: 800 }}>{count}件</span>
+                </div>
+              )
+            })}
+          </>
         )}
       </Card>
 

@@ -1,15 +1,23 @@
 {
   "schemaVersion": 1,
   "generatedAt": "2026-06-11",
-  "healthStatus": "needs_attention",
+  "healthStatus": "action_required",
   "priorityIssues": [
+    {
+      "severity": "urgent",
+      "category": "outcome_quality",
+      "title": "unknown 同士の hit 判定: 1件",
+      "detail": "expected/actual とも unknown のまま hit 扱いになっており、精度集計を歪めます。未評価に戻す確認対象。",
+      "command": "pnpm audit:outcomes",
+      "rank": 1
+    },
     {
       "severity": "attention",
       "category": "stale_fallback",
       "title": "universe scan が fallback 動作（stale_fallback）",
       "detail": "理由: jquants_zero_candidates",
       "command": "pnpm scan:universe",
-      "rank": 1
+      "rank": 2
     },
     {
       "severity": "attention",
@@ -17,7 +25,7 @@
       "title": "warning 重複: 2銘柄",
       "detail": "8136, 285A で同一 warning が重複記録されています。生成処理の重複を確認対象としてください。",
       "command": "pnpm ui:data",
-      "rank": 2
+      "rank": 3
     },
     {
       "severity": "attention",
@@ -25,7 +33,7 @@
       "title": "outcome 採点期限超過: 8件",
       "detail": "horizon 期限を過ぎて未評価の outcome があります。価格データ反映後に dry-run で確認してください。",
       "command": "pnpm backfill:special-outcomes",
-      "rank": 3
+      "rank": 4
     },
     {
       "severity": "attention",
@@ -33,18 +41,17 @@
       "title": "データ不足のまま判定済み: 1件",
       "detail": "9023(1w/missing) は dataAvailability が ok でないのに hit/miss 判定が入っています。誤判定の可能性があるため確認対象です。",
       "command": "pnpm outcomes:integrity",
-      "rank": 4
-    },
-    {
-      "severity": "attention",
-      "category": "special_situation",
-      "title": "特殊状況ウォッチ: needs_attention（価格反映待ち: 8件 1d result 未評価）",
-      "detail": "特殊状況ウォッチに確認対象があります。",
-      "command": "pnpm ops:special",
       "rank": 5
     }
   ],
   "allIssues": [
+    {
+      "severity": "urgent",
+      "category": "outcome_quality",
+      "title": "unknown 同士の hit 判定: 1件",
+      "detail": "expected/actual とも unknown のまま hit 扱いになっており、精度集計を歪めます。未評価に戻す確認対象。",
+      "command": "pnpm audit:outcomes"
+    },
     {
       "severity": "attention",
       "category": "stale_fallback",
@@ -79,6 +86,13 @@
       "title": "特殊状況ウォッチ: needs_attention（価格反映待ち: 8件 1d result 未評価）",
       "detail": "特殊状況ウォッチに確認対象があります。",
       "command": "pnpm ops:special"
+    },
+    {
+      "severity": "attention",
+      "category": "outcome_quality",
+      "title": "仮説レビュー品質: 改善対象 1件",
+      "detail": "内訳: judgedWithLimitedData=1。詳細は reports/outcome-quality-audit.md を確認。",
+      "command": "pnpm audit:outcomes"
     },
     {
       "severity": "info",
@@ -181,7 +195,24 @@
       "価格反映待ち: 8件 1d result 未評価"
     ]
   },
+  "outcomeQualityAudit": {
+    "available": true,
+    "healthStatus": "action_required",
+    "checkCounts": {
+      "reviewMissing": 0,
+      "horizonGaps": 0,
+      "judgedWithLimitedData": 1,
+      "unknownMatchedAsHit": 1,
+      "pendingWithSignals": 0,
+      "emptyReviewNotes": 0,
+      "dueAtMismatch": 0
+    }
+  },
   "nextSafeCommands": [
+    {
+      "command": "pnpm audit:outcomes",
+      "reason": "unknown 同士の hit 判定: 1件"
+    },
     {
       "command": "pnpm scan:universe",
       "reason": "universe scan が fallback 動作（stale_fallback）"

@@ -18,7 +18,8 @@ export interface OpsIssue {
     | "stale_fallback"
     | "safe_wording"
     | "special_situation"
-    | "integrity";
+    | "integrity"
+    | "outcome_quality";
   title: string;
   detail: string;
   command?: string;
@@ -92,6 +93,11 @@ export interface OpsDashboard {
     healthStatus: string | null;
     urgentTitles: string[];
     attentionTitles: string[];
+  };
+  outcomeQualityAudit: {
+    available: boolean;
+    healthStatus: string | null;
+    checkCounts: Record<string, number>;
   };
   nextSafeCommands: OpsNextCommand[];
   notes: string[];
@@ -180,6 +186,11 @@ export interface OpsAlphaDataLike {
   dataQualityByCode?: Record<string, { quality?: { level?: string } ; warnings?: string[] }>;
 }
 
+export interface OpsOutcomeQualityLike {
+  healthStatus?: string;
+  checks?: Record<string, { count?: number }>;
+}
+
 export interface OpsDashboardInputs {
   today: string;
   pipelineStatus: OpsPipelineStatusLike | null;
@@ -187,6 +198,7 @@ export interface OpsDashboardInputs {
   outcomes: OpsOutcomeLike[] | null;
   specialOps: OpsSpecialOpsLike | null;
   integrity: OpsIntegrityLike | null;
+  outcomeQuality?: OpsOutcomeQualityLike | null;
   safeWordingScannedFiles: number;
   safeWordingFindings: SafeWordingFinding[];
 }
@@ -464,6 +476,54 @@ export function buildOpsDashboard(inputs: OpsDashboardInputs): OpsDashboard {
     });
   }
 
+  // 仮説レビュー品質監査（pnpm audit:outcomes の結果）
+  const outcomeQuality = inputs.outcomeQuality ?? null;
+  const checkCounts: Record<string, number> = {};
+  for (const [key, check] of Object.entries(outcomeQuality?.checks ?? {})) {
+    checkCounts[key] = check?.count ?? 0;
+  }
+  const outcomeQualityAudit: OpsDashboard["outcomeQualityAudit"] = {
+    available: outcomeQuality != null,
+    healthStatus: outcomeQuality?.healthStatus ?? null,
+    checkCounts,
+  };
+  if (!outcomeQuality) {
+    issues.push({
+      severity: "info",
+      category: "outcome_quality",
+      title: "仮説レビュー品質監査が未生成",
+      detail: "reports/outcome-quality-audit.json がありません。",
+      command: "pnpm audit:outcomes",
+    });
+  } else {
+    const unknownHits = checkCounts["unknownMatchedAsHit"] ?? 0;
+    if (unknownHits > 0) {
+      issues.push({
+        severity: "urgent",
+        category: "outcome_quality",
+        title: `unknown 同士の hit 判定: ${unknownHits}件`,
+        detail: "expected/actual とも unknown のまま hit 扱いになっており、精度集計を歪めます。未評価に戻す確認対象。",
+        command: "pnpm audit:outcomes",
+      });
+    }
+    const attentionTotal = Object.entries(checkCounts)
+      .filter(([key]) => key !== "unknownMatchedAsHit")
+      .reduce((sum, [, count]) => sum + count, 0);
+    if (attentionTotal > 0) {
+      const breakdown = Object.entries(checkCounts)
+        .filter(([key, count]) => key !== "unknownMatchedAsHit" && count > 0)
+        .map(([key, count]) => `${key}=${count}`)
+        .join(", ");
+      issues.push({
+        severity: "attention",
+        category: "outcome_quality",
+        title: `仮説レビュー品質: 改善対象 ${attentionTotal}件`,
+        detail: `内訳: ${breakdown}。詳細は reports/outcome-quality-audit.md を確認。`,
+        command: "pnpm audit:outcomes",
+      });
+    }
+  }
+
   // safe wording
   if (inputs.safeWordingFindings.length > 0) {
     issues.push({
@@ -532,6 +592,7 @@ export function buildOpsDashboard(inputs: OpsDashboardInputs): OpsDashboard {
     pipelineAudit,
     uiDataAudit,
     specialSituationAudit,
+    outcomeQualityAudit,
     nextSafeCommands,
     notes: [
       "この画面は調査・検証の運用状況を示すものであり、売買を推奨しない。",
@@ -590,6 +651,15 @@ export function renderOpsDashboardMarkdown(dashboard: OpsDashboard): string {
   }
   if (oa.integrity) {
     lines.push(`- 整合性: ${oa.integrity.status}（jsonl重複=${oa.integrity.jsonlDuplicateGroups}, sqlite重複=${oa.integrity.sqliteDuplicateGroups}, parse_error=${oa.integrity.parseErrors}）`);
+  }
+  if (dashboard.outcomeQualityAudit.available) {
+    const counts = Object.entries(dashboard.outcomeQualityAudit.checkCounts)
+      .filter(([, count]) => count > 0)
+      .map(([key, count]) => `${key}=${count}`)
+      .join(", ");
+    lines.push(`- 品質監査: ${dashboard.outcomeQualityAudit.healthStatus ?? "不明"}${counts ? `（${counts}）` : "（指摘なし）"}`);
+  } else {
+    lines.push("- 品質監査: 未生成（pnpm audit:outcomes）");
   }
   lines.push("");
 

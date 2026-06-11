@@ -16,6 +16,7 @@ import {
   type OpsAlphaDataLike,
   type OpsIntegrityLike,
   type OpsOutcomeLike,
+  type OpsOutcomeQualityLike,
   type OpsPipelineStatusLike,
   type OpsSpecialOpsLike,
   type SafeWordingFinding,
@@ -84,6 +85,7 @@ const dashboard = buildOpsDashboard({
   outcomes: outcomesFile?.outcomes ?? null,
   specialOps: readJson<OpsSpecialOpsLike>("reports/special_situation_ops_summary_latest.json"),
   integrity: readJson<OpsIntegrityLike>("reports/hypothesis_outcome_integrity_latest.json"),
+  outcomeQuality: readJson<OpsOutcomeQualityLike>("reports/outcome-quality-audit.json"),
   safeWordingScannedFiles: safeWording.scannedFiles,
   safeWordingFindings: safeWording.findings,
 });

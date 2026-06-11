@@ -75,6 +75,11 @@ export interface OpsDashboardData {
     urgentTitles: string[]
     attentionTitles: string[]
   }
+  outcomeQualityAudit: {
+    available: boolean
+    healthStatus: string | null
+    checkCounts: Record<string, number>
+  }
   nextSafeCommands: Array<{ command: string; reason: string }>
   notes: string[]
 }
@@ -148,6 +153,11 @@ export function loadOpsDashboard(): OpsDashboardData | null {
         attentionTitles: Array.isArray(raw.specialSituationAudit?.attentionTitles)
           ? raw.specialSituationAudit.attentionTitles
           : [],
+      },
+      outcomeQualityAudit: {
+        available: raw.outcomeQualityAudit?.available ?? false,
+        healthStatus: raw.outcomeQualityAudit?.healthStatus ?? null,
+        checkCounts: raw.outcomeQualityAudit?.checkCounts ?? {},
       },
       nextSafeCommands: Array.isArray(raw.nextSafeCommands) ? raw.nextSafeCommands : [],
       notes: Array.isArray(raw.notes) ? raw.notes : [],

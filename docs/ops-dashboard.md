@@ -12,6 +12,7 @@
 | healthStatus | ok / needs_attention / action_required | 下記すべての監査結果から算出 |
 | 優先対応 TOP5 | severity（緊急/確認/情報）順の課題 | 同上 |
 | 仮説レビュー状況 | outcome の result 内訳、採点期限超過、データ不足のまま判定済み、整合性 | `outcomes.json` / `special_situation_ops_summary_latest.json` / `hypothesis_outcome_integrity_latest.json` |
+| 仮説レビュー品質監査 | 未レビュー・horizon 欠け・unknown 同士の hit・反省メモ未記入など（詳細: `docs/outcome-quality-audit.md`） | `reports/outcome-quality-audit.json`（`pnpm audit:outcomes` が生成） |
 | データ品質 | 銘柄ごとの品質レベル、universe scan fallback、warning 重複 | `alpha-pon-data.json` の `dataQualityByCode` / `universeScan` |
 | パイプライン / UIデータ | daily の成否・本日分か、生成 JSON の鮮度・meta warnings | `pipeline_status_latest.json` / `alpha-pon-data.json` |
 | 安全表現チェック | 生成物（generated JSON・latest レポート）の禁止文言スキャン | `apps/web/public/generated/*.json` / `reports/*_latest.md` |
@@ -55,6 +56,7 @@ action_required になる条件と対応:
 
 ```bash
 pnpm report:ops      # ダッシュボード生成
+pnpm audit:outcomes  # 仮説レビュー品質監査（report:ops の前に実行）
 pnpm health          # 全体ヘルスチェック
 pnpm ui:data         # UI 生成データの再生成
 pnpm ops:special     # 特殊状況ウォッチの ops summary

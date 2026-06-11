@@ -357,6 +357,8 @@ pnpm backup
 
 Web UI では `/ops` で確認できます。`pnpm daily:full` / `pnpm check` に組み込み済みです。詳細は `docs/ops-dashboard.md` を参照してください。
 
+`pnpm audit:outcomes` は仮説レビュー品質監査（未レビュー・horizon 欠け・unknown 同士の hit 判定・反省メモ未記入など）を実行し、結果を `/ops` に統合します。詳細は `docs/outcome-quality-audit.md` を参照してください。
+
 ## 完成ロードマップの見方
 
 `pnpm readiness:audit` は、100%完成に近づけるための残タスクを自動監査します。

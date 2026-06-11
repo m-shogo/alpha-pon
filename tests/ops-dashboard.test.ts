@@ -38,6 +38,7 @@ function cleanInputs(): OpsDashboardInputs {
       reviewDue: { overdue: 0, historicalSeedOverdue: 0, dueToday: 0, dueThisWeek: 0 },
     },
     integrity: { status: "ok", jsonl: { duplicateGroups: [], parseErrors: [] }, sqlite: { duplicateGroups: [] } },
+    outcomeQuality: { healthStatus: "ok", checks: {} },
     safeWordingScannedFiles: 10,
     safeWordingFindings: [],
   };
