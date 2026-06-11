@@ -28,7 +28,11 @@ tar -czf "$DEST/data.tar.gz" -C "$DIR" \
   2>/dev/null || true
 
 # 30日より古いバックアップを削除（最新30件を残す）
-mapfile -t all_backups < <(find "$BACKUP_ROOT" -maxdepth 1 -type d -name '????-??-??' | sort)
+# mapfile は macOS 標準の bash 3.2 に存在しないため while read で代替する
+all_backups=()
+while IFS= read -r backup_dir; do
+  all_backups+=("$backup_dir")
+done < <(find "$BACKUP_ROOT" -maxdepth 1 -type d -name '????-??-??' | sort)
 count=${#all_backups[@]}
 if [ "$count" -gt 30 ]; then
   for old in "${all_backups[@]:0:$((count - 30))}"; do
