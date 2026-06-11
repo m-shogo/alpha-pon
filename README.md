@@ -345,6 +345,18 @@ pnpm health
 pnpm backup
 ```
 
+## 運用ダッシュボード（運用司令塔）
+
+`pnpm report:ops` は、pipeline・仮説レビュー・データ品質・安全表現チェックを統合監査し、今日の優先対応と次に実行する安全コマンドを一画面にまとめます。
+
+出力:
+
+- `reports/ops-dashboard.md`
+- `reports/ops-dashboard.json`
+- `apps/web/public/generated/ops-dashboard.json`
+
+Web UI では `/ops` で確認できます。`pnpm daily:full` / `pnpm check` に組み込み済みです。詳細は `docs/ops-dashboard.md` を参照してください。
+
 ## 完成ロードマップの見方
 
 `pnpm readiness:audit` は、100%完成に近づけるための残タスクを自動監査します。
