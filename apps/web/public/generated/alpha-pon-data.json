@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-12",
+  "generatedAt": "2026-06-13",
   "headline": "alpha-pon Pro Dashboard",
   "summary": {
     "strategic": "- Pro知識ブラッシュアップでS優先の更新領域があります。政治・戦争・AI・宇宙/Starlink・金利などの前提が古くないか確認してください。 - Pro品質/Pro会議で証拠不足があります。IR・決算・総会・財務・バリュエーション・競合を補完するまで強い判断を避けてください。 - stock pro summary に安全側警告があります。今日は調査候補を増やすより、追わない/保留理由の確認を優先してください。 - current…",
@@ -176,7 +176,7 @@
         "総会/配当情報"
       ],
       "triggeredRule": "Pro深掘りDB / 重要イベント確認",
-      "lastNotifiedAt": "2026-06-12",
+      "lastNotifiedAt": "2026-06-13",
       "sparkline": [
         100,
         99,
@@ -241,7 +241,7 @@
         "PER/PBR過去レンジ"
       ],
       "triggeredRule": "Pro深掘りDB / 重要イベント確認",
-      "lastNotifiedAt": "2026-06-12",
+      "lastNotifiedAt": "2026-06-13",
       "sparkline": [
         100,
         99,
@@ -306,7 +306,7 @@
         "政策イベント"
       ],
       "triggeredRule": "Pro深掘りDB / 重要イベント確認",
-      "lastNotifiedAt": "2026-06-12",
+      "lastNotifiedAt": "2026-06-13",
       "sparkline": [
         100,
         99,
@@ -371,7 +371,7 @@
         "PER/PBR過去レンジ"
       ],
       "triggeredRule": "Pro深掘りDB / 重要イベント確認",
-      "lastNotifiedAt": "2026-06-12",
+      "lastNotifiedAt": "2026-06-13",
       "sparkline": [
         100,
         99,
@@ -443,7 +443,7 @@
         "総会前後/決算後の株価反応履歴"
       ],
       "triggeredRule": "Pro深掘りDB / 重要イベント確認",
-      "lastNotifiedAt": "2026-06-12",
+      "lastNotifiedAt": "2026-06-13",
       "sparkline": [
         100,
         99,
@@ -508,7 +508,7 @@
         "PER/PBR/配当利回りレンジ"
       ],
       "triggeredRule": "Pro深掘りDB / 重要イベント確認",
-      "lastNotifiedAt": "2026-06-12",
+      "lastNotifiedAt": "2026-06-13",
       "sparkline": [
         100,
         99,
@@ -7106,7 +7106,7 @@
           "financial_partial",
           "outcome_insufficient"
         ],
-        "updatedAt": "2026-06-12"
+        "updatedAt": "2026-06-13"
       },
       "scoreBreakdown": {
         "companyCode": "8136",
@@ -7150,7 +7150,7 @@
         "reasons": [
           "tdnet_unavailable"
         ],
-        "updatedAt": "2026-06-12"
+        "updatedAt": "2026-06-13"
       },
       "scoreBreakdown": {
         "companyCode": "285A",
@@ -7310,7 +7310,7 @@
   },
   "worldImpactReviews": [
     {
-      "schemaVersion": 1,
+      "schemaVersion": 2,
       "reviewKey": "2026-06-11_managing-undersea-cable-disruption-in-africa-ntu-sbf-centre-for-african-studies-__4661",
       "eventId": "2026-06-11_managing-undersea-cable-disruption-in-africa-ntu-sbf-centre-for-african-studies-",
       "eventDate": "2026-06-11",
@@ -7375,6 +7375,7 @@
           "returnPct": null,
           "topixReturnPct": null,
           "relativeToTopixPct": null,
+          "missReason": null,
           "missedSignals": [],
           "lesson": null
         },
@@ -7388,6 +7389,7 @@
           "returnPct": null,
           "topixReturnPct": null,
           "relativeToTopixPct": null,
+          "missReason": null,
           "missedSignals": [],
           "lesson": null
         },
@@ -7401,6 +7403,7 @@
           "returnPct": null,
           "topixReturnPct": null,
           "relativeToTopixPct": null,
+          "missReason": null,
           "missedSignals": [],
           "lesson": null
         }
@@ -7408,10 +7411,52 @@
       "missedSignals": [],
       "lesson": null,
       "createdAt": "2026-06-12",
-      "updatedAt": "2026-06-12"
+      "updatedAt": "2026-06-12",
+      "mechanisms": [
+        "travel",
+        "logistics",
+        "cost",
+        "supply"
+      ],
+      "impactPath": {
+        "event": "Managing undersea cable disruption in Africa | NTU-SBF Centre for African Studies (CAS) | NTU Singapore - Nanyang Technological University - NTU Singapore",
+        "mechanisms": [
+          "travel",
+          "logistics",
+          "cost",
+          "supply"
+        ],
+        "themes": [
+          "healthcare",
+          "pharma",
+          "logistics",
+          "travel",
+          "testing",
+          "vaccine",
+          "risk_off",
+          "labor",
+          "immigration",
+          "automation",
+          "robotics",
+          "staffing"
+        ],
+        "companies": [
+          "4661"
+        ],
+        "note": "世界イベントの影響タグと銘柄タグ/仮説が重なるため、影響仮説として確認する。"
+      },
+      "direction": "unclear",
+      "confidence": 0.6,
+      "expectedLagDays": 30,
+      "thesis": "Managing undersea cable disruption in Africa | NTU-SBF Centre for African Studies (CAS) | NTU Singapore - Nanyang Technological University - NTU Singapore は global_health のイベントとして、healthcare / pharma / logistics / travel / testing に波及する可能性がある。直接の答えではなく、一次情報で検証する仮説として保存する。",
+      "falsification": "一次情報またはTier1報道で裏取りできない",
+      "watchSignals": [],
+      "riskFactors": [],
+      "reviewDueAt": "2026-07-11",
+      "reviewStatus": "pending"
     },
     {
-      "schemaVersion": 1,
+      "schemaVersion": 2,
       "reviewKey": "2026-06-11_managing-undersea-cable-disruption-in-africa-ntu-sbf-centre-for-african-studies-__8136",
       "eventId": "2026-06-11_managing-undersea-cable-disruption-in-africa-ntu-sbf-centre-for-african-studies-",
       "eventDate": "2026-06-11",
@@ -7476,6 +7521,7 @@
           "returnPct": null,
           "topixReturnPct": null,
           "relativeToTopixPct": null,
+          "missReason": null,
           "missedSignals": [],
           "lesson": null
         },
@@ -7489,6 +7535,7 @@
           "returnPct": null,
           "topixReturnPct": null,
           "relativeToTopixPct": null,
+          "missReason": null,
           "missedSignals": [],
           "lesson": null
         },
@@ -7502,6 +7549,7 @@
           "returnPct": null,
           "topixReturnPct": null,
           "relativeToTopixPct": null,
+          "missReason": null,
           "missedSignals": [],
           "lesson": null
         }
@@ -7509,28 +7557,1189 @@
       "missedSignals": [],
       "lesson": null,
       "createdAt": "2026-06-12",
-      "updatedAt": "2026-06-12"
+      "updatedAt": "2026-06-12",
+      "mechanisms": [
+        "travel",
+        "logistics",
+        "cost",
+        "supply"
+      ],
+      "impactPath": {
+        "event": "Managing undersea cable disruption in Africa | NTU-SBF Centre for African Studies (CAS) | NTU Singapore - Nanyang Technological University - NTU Singapore",
+        "mechanisms": [
+          "travel",
+          "logistics",
+          "cost",
+          "supply"
+        ],
+        "themes": [
+          "healthcare",
+          "pharma",
+          "logistics",
+          "travel",
+          "testing",
+          "vaccine",
+          "risk_off",
+          "labor",
+          "immigration",
+          "automation",
+          "robotics",
+          "staffing"
+        ],
+        "companies": [
+          "8136"
+        ],
+        "note": "世界イベントの影響タグと銘柄タグ/仮説が重なるため、影響仮説として確認する。"
+      },
+      "direction": "unclear",
+      "confidence": 0.6,
+      "expectedLagDays": 30,
+      "thesis": "Managing undersea cable disruption in Africa | NTU-SBF Centre for African Studies (CAS) | NTU Singapore - Nanyang Technological University - NTU Singapore は global_health のイベントとして、healthcare / pharma / logistics / travel / testing に波及する可能性がある。直接の答えではなく、一次情報で検証する仮説として保存する。",
+      "falsification": "一次情報またはTier1報道で裏取りできない",
+      "watchSignals": [],
+      "riskFactors": [],
+      "reviewDueAt": "2026-07-11",
+      "reviewStatus": "pending"
+    },
+    {
+      "schemaVersion": 2,
+      "reviewKey": "2026-06-12_managing-undersea-cable-disruption-in-africa-ntu-sbf-centre-for-african-studies-__6954",
+      "eventId": "2026-06-12_managing-undersea-cable-disruption-in-africa-ntu-sbf-centre-for-african-studies-",
+      "eventDate": "2026-06-12",
+      "topic": "Managing undersea cable disruption in Africa | NTU-SBF Centre for African Studies (CAS) | NTU Singapore - Nanyang Technological University - NTU Singapore",
+      "source": "Nanyang Technological University - NTU Singapore",
+      "sourceQuality": "official",
+      "namedEntities": [
+        "Nanyang Technological University - NTU Singapore",
+        "検査",
+        "ワクチン",
+        "医療機器",
+        "防疫用品",
+        "遠隔医療",
+        "物流管理",
+        "人材",
+        "教育",
+        "介護",
+        "物流",
+        "ロボット"
+      ],
+      "affectedSectors": [
+        "healthcare",
+        "pharma",
+        "logistics",
+        "travel",
+        "testing",
+        "vaccine",
+        "risk_off",
+        "labor",
+        "immigration",
+        "automation",
+        "robotics",
+        "staffing"
+      ],
+      "affectedCompanyCodes": [
+        "6954"
+      ],
+      "companyLinks": [
+        {
+          "companyCode": "6954",
+          "companyName": "ファナック",
+          "matchedTags": [
+            "labor",
+            "automation",
+            "robotics",
+            "automation_robotics"
+          ],
+          "linkReason": "世界イベントの影響タグと銘柄タグ/仮説が重なるため、影響仮説として確認する。"
+        }
+      ],
+      "expectedMechanism": "Managing undersea cable disruption in Africa | NTU-SBF Centre for African Studies (CAS) | NTU Singapore - Nanyang Technological University - NTU Singapore は global_health のイベントとして、healthcare / pharma / logistics / travel / testing に波及する可能性がある。直接の答えではなく、一次情報で検証する仮説として保存する。",
+      "secondOrderEffect": "global_health: healthcare, pharma, logistics, travel, testing / 感染拡大が国境を越えているか？ / migration_demographics: labor, immigration, automation, robotics, staffing / 人手不足は省人化需要につながるか？",
+      "counterArgument": "一次情報またはTier1報道で裏取りできない",
+      "timeLag": "1d/1w/1m で価格反応と一次情報の接続を分けて確認する。",
+      "expectedHorizon": "1m",
+      "dataAvailability": "priceDataPending",
+      "outcomes": [
+        {
+          "horizon": "1d",
+          "dueAt": "2026-06-13",
+          "result": null,
+          "expectedDirection": "unknown",
+          "actualDirection": "unknown",
+          "dataAvailability": "priceDataPending",
+          "returnPct": null,
+          "topixReturnPct": null,
+          "relativeToTopixPct": null,
+          "missReason": null,
+          "missedSignals": [],
+          "lesson": null
+        },
+        {
+          "horizon": "1w",
+          "dueAt": "2026-06-19",
+          "result": "too_early",
+          "expectedDirection": "unknown",
+          "actualDirection": "unknown",
+          "dataAvailability": "ok",
+          "returnPct": null,
+          "topixReturnPct": null,
+          "relativeToTopixPct": null,
+          "missReason": null,
+          "missedSignals": [],
+          "lesson": null
+        },
+        {
+          "horizon": "1m",
+          "dueAt": "2026-07-12",
+          "result": "too_early",
+          "expectedDirection": "unknown",
+          "actualDirection": "unknown",
+          "dataAvailability": "ok",
+          "returnPct": null,
+          "topixReturnPct": null,
+          "relativeToTopixPct": null,
+          "missReason": null,
+          "missedSignals": [],
+          "lesson": null
+        }
+      ],
+      "missedSignals": [],
+      "lesson": null,
+      "createdAt": "2026-06-13",
+      "updatedAt": "2026-06-13",
+      "mechanisms": [
+        "travel",
+        "logistics",
+        "consumer",
+        "cost",
+        "supply"
+      ],
+      "impactPath": {
+        "event": "Managing undersea cable disruption in Africa | NTU-SBF Centre for African Studies (CAS) | NTU Singapore - Nanyang Technological University - NTU Singapore",
+        "mechanisms": [
+          "travel",
+          "logistics",
+          "consumer",
+          "cost",
+          "supply"
+        ],
+        "themes": [
+          "healthcare",
+          "pharma",
+          "logistics",
+          "travel",
+          "testing",
+          "vaccine",
+          "risk_off",
+          "labor",
+          "immigration",
+          "automation",
+          "robotics",
+          "staffing"
+        ],
+        "companies": [
+          "6954"
+        ],
+        "note": "世界イベントの影響タグと銘柄タグ/仮説が重なるため、影響仮説として確認する。"
+      },
+      "direction": "unclear",
+      "confidence": 0.6,
+      "expectedLagDays": 30,
+      "thesis": "Managing undersea cable disruption in Africa | NTU-SBF Centre for African Studies (CAS) | NTU Singapore - Nanyang Technological University - NTU Singapore は global_health のイベントとして、healthcare / pharma / logistics / travel / testing に波及する可能性がある。直接の答えではなく、一次情報で検証する仮説として保存する。",
+      "falsification": "一次情報またはTier1報道で裏取りできない / SNS/速報だけで、公式発表が確認できない / 感染拡大が国境を越えているか？ / WHO/各国政府の対応予算は増えるか？ / 関連企業の売上に実需として届くか？ / 市場心理だけで過熱していないか？ / 人手不足は省人化需要につながるか？ / 外国人材増加でどの生活インフラが伸びるか？",
+      "watchSignals": [
+        "同一内容を一次情報またはTier1報道で確認する",
+        "会社開示・政府発表・規制当局発表を確認する",
+        "市場がすでに織り込み済みか価格/出来高を見る",
+        "Google News RSSの元記事ソース名とURLを確認する",
+        "WHO statement",
+        "CDC/ECDC updates",
+        "Reuters/AP/BBC",
+        "企業の受注/製品開示"
+      ],
+      "riskFactors": [
+        "渡航制限",
+        "サプライチェーン遅延",
+        "リスクオフ",
+        "医療資源不足",
+        "援助資金不足",
+        "制度変更",
+        "社会的摩擦",
+        "人件費上昇"
+      ],
+      "reviewDueAt": "2026-07-12",
+      "reviewStatus": "pending"
+    },
+    {
+      "schemaVersion": 2,
+      "reviewKey": "2026-06-12_managing-undersea-cable-disruption-in-africa-ntu-sbf-centre-for-african-studies-__6645",
+      "eventId": "2026-06-12_managing-undersea-cable-disruption-in-africa-ntu-sbf-centre-for-african-studies-",
+      "eventDate": "2026-06-12",
+      "topic": "Managing undersea cable disruption in Africa | NTU-SBF Centre for African Studies (CAS) | NTU Singapore - Nanyang Technological University - NTU Singapore",
+      "source": "Nanyang Technological University - NTU Singapore",
+      "sourceQuality": "official",
+      "namedEntities": [
+        "Nanyang Technological University - NTU Singapore",
+        "検査",
+        "ワクチン",
+        "医療機器",
+        "防疫用品",
+        "遠隔医療",
+        "物流管理",
+        "人材",
+        "教育",
+        "介護",
+        "物流",
+        "ロボット"
+      ],
+      "affectedSectors": [
+        "healthcare",
+        "pharma",
+        "logistics",
+        "travel",
+        "testing",
+        "vaccine",
+        "risk_off",
+        "labor",
+        "immigration",
+        "automation",
+        "robotics",
+        "staffing"
+      ],
+      "affectedCompanyCodes": [
+        "6645"
+      ],
+      "companyLinks": [
+        {
+          "companyCode": "6645",
+          "companyName": "オムロン",
+          "matchedTags": [
+            "labor",
+            "automation",
+            "robotics",
+            "automation_robotics"
+          ],
+          "linkReason": "世界イベントの影響タグと銘柄タグ/仮説が重なるため、影響仮説として確認する。"
+        }
+      ],
+      "expectedMechanism": "Managing undersea cable disruption in Africa | NTU-SBF Centre for African Studies (CAS) | NTU Singapore - Nanyang Technological University - NTU Singapore は global_health のイベントとして、healthcare / pharma / logistics / travel / testing に波及する可能性がある。直接の答えではなく、一次情報で検証する仮説として保存する。",
+      "secondOrderEffect": "global_health: healthcare, pharma, logistics, travel, testing / 感染拡大が国境を越えているか？ / migration_demographics: labor, immigration, automation, robotics, staffing / 人手不足は省人化需要につながるか？",
+      "counterArgument": "一次情報またはTier1報道で裏取りできない",
+      "timeLag": "1d/1w/1m で価格反応と一次情報の接続を分けて確認する。",
+      "expectedHorizon": "1m",
+      "dataAvailability": "priceDataPending",
+      "outcomes": [
+        {
+          "horizon": "1d",
+          "dueAt": "2026-06-13",
+          "result": null,
+          "expectedDirection": "unknown",
+          "actualDirection": "unknown",
+          "dataAvailability": "priceDataPending",
+          "returnPct": null,
+          "topixReturnPct": null,
+          "relativeToTopixPct": null,
+          "missReason": null,
+          "missedSignals": [],
+          "lesson": null
+        },
+        {
+          "horizon": "1w",
+          "dueAt": "2026-06-19",
+          "result": "too_early",
+          "expectedDirection": "unknown",
+          "actualDirection": "unknown",
+          "dataAvailability": "ok",
+          "returnPct": null,
+          "topixReturnPct": null,
+          "relativeToTopixPct": null,
+          "missReason": null,
+          "missedSignals": [],
+          "lesson": null
+        },
+        {
+          "horizon": "1m",
+          "dueAt": "2026-07-12",
+          "result": "too_early",
+          "expectedDirection": "unknown",
+          "actualDirection": "unknown",
+          "dataAvailability": "ok",
+          "returnPct": null,
+          "topixReturnPct": null,
+          "relativeToTopixPct": null,
+          "missReason": null,
+          "missedSignals": [],
+          "lesson": null
+        }
+      ],
+      "missedSignals": [],
+      "lesson": null,
+      "createdAt": "2026-06-13",
+      "updatedAt": "2026-06-13",
+      "mechanisms": [
+        "travel",
+        "logistics",
+        "consumer",
+        "cost",
+        "supply"
+      ],
+      "impactPath": {
+        "event": "Managing undersea cable disruption in Africa | NTU-SBF Centre for African Studies (CAS) | NTU Singapore - Nanyang Technological University - NTU Singapore",
+        "mechanisms": [
+          "travel",
+          "logistics",
+          "consumer",
+          "cost",
+          "supply"
+        ],
+        "themes": [
+          "healthcare",
+          "pharma",
+          "logistics",
+          "travel",
+          "testing",
+          "vaccine",
+          "risk_off",
+          "labor",
+          "immigration",
+          "automation",
+          "robotics",
+          "staffing"
+        ],
+        "companies": [
+          "6645"
+        ],
+        "note": "世界イベントの影響タグと銘柄タグ/仮説が重なるため、影響仮説として確認する。"
+      },
+      "direction": "unclear",
+      "confidence": 0.6,
+      "expectedLagDays": 30,
+      "thesis": "Managing undersea cable disruption in Africa | NTU-SBF Centre for African Studies (CAS) | NTU Singapore - Nanyang Technological University - NTU Singapore は global_health のイベントとして、healthcare / pharma / logistics / travel / testing に波及する可能性がある。直接の答えではなく、一次情報で検証する仮説として保存する。",
+      "falsification": "一次情報またはTier1報道で裏取りできない / SNS/速報だけで、公式発表が確認できない / 感染拡大が国境を越えているか？ / WHO/各国政府の対応予算は増えるか？ / 関連企業の売上に実需として届くか？ / 市場心理だけで過熱していないか？ / 人手不足は省人化需要につながるか？ / 外国人材増加でどの生活インフラが伸びるか？",
+      "watchSignals": [
+        "同一内容を一次情報またはTier1報道で確認する",
+        "会社開示・政府発表・規制当局発表を確認する",
+        "市場がすでに織り込み済みか価格/出来高を見る",
+        "Google News RSSの元記事ソース名とURLを確認する",
+        "WHO statement",
+        "CDC/ECDC updates",
+        "Reuters/AP/BBC",
+        "企業の受注/製品開示"
+      ],
+      "riskFactors": [
+        "渡航制限",
+        "サプライチェーン遅延",
+        "リスクオフ",
+        "医療資源不足",
+        "援助資金不足",
+        "制度変更",
+        "社会的摩擦",
+        "人件費上昇"
+      ],
+      "reviewDueAt": "2026-07-12",
+      "reviewStatus": "pending"
+    },
+    {
+      "schemaVersion": 2,
+      "reviewKey": "2026-06-12_managing-undersea-cable-disruption-in-africa-ntu-sbf-centre-for-african-studies-__4661",
+      "eventId": "2026-06-12_managing-undersea-cable-disruption-in-africa-ntu-sbf-centre-for-african-studies-",
+      "eventDate": "2026-06-12",
+      "topic": "Managing undersea cable disruption in Africa | NTU-SBF Centre for African Studies (CAS) | NTU Singapore - Nanyang Technological University - NTU Singapore",
+      "source": "Nanyang Technological University - NTU Singapore",
+      "sourceQuality": "official",
+      "namedEntities": [
+        "Nanyang Technological University - NTU Singapore",
+        "検査",
+        "ワクチン",
+        "医療機器",
+        "防疫用品",
+        "遠隔医療",
+        "物流管理",
+        "人材",
+        "教育",
+        "介護",
+        "物流",
+        "ロボット"
+      ],
+      "affectedSectors": [
+        "healthcare",
+        "pharma",
+        "logistics",
+        "travel",
+        "testing",
+        "vaccine",
+        "risk_off",
+        "labor",
+        "immigration",
+        "automation",
+        "robotics",
+        "staffing"
+      ],
+      "affectedCompanyCodes": [
+        "4661"
+      ],
+      "companyLinks": [
+        {
+          "companyCode": "4661",
+          "companyName": "オリエンタルランド",
+          "matchedTags": [
+            "consumer"
+          ],
+          "linkReason": "世界イベントの影響タグと銘柄タグ/仮説が重なるため、影響仮説として確認する。"
+        }
+      ],
+      "expectedMechanism": "Managing undersea cable disruption in Africa | NTU-SBF Centre for African Studies (CAS) | NTU Singapore - Nanyang Technological University - NTU Singapore は global_health のイベントとして、healthcare / pharma / logistics / travel / testing に波及する可能性がある。直接の答えではなく、一次情報で検証する仮説として保存する。",
+      "secondOrderEffect": "global_health: healthcare, pharma, logistics, travel, testing / 感染拡大が国境を越えているか？ / migration_demographics: labor, immigration, automation, robotics, staffing / 人手不足は省人化需要につながるか？",
+      "counterArgument": "一次情報またはTier1報道で裏取りできない",
+      "timeLag": "1d/1w/1m で価格反応と一次情報の接続を分けて確認する。",
+      "expectedHorizon": "1m",
+      "dataAvailability": "priceDataPending",
+      "outcomes": [
+        {
+          "horizon": "1d",
+          "dueAt": "2026-06-13",
+          "result": null,
+          "expectedDirection": "unknown",
+          "actualDirection": "unknown",
+          "dataAvailability": "priceDataPending",
+          "returnPct": null,
+          "topixReturnPct": null,
+          "relativeToTopixPct": null,
+          "missReason": null,
+          "missedSignals": [],
+          "lesson": null
+        },
+        {
+          "horizon": "1w",
+          "dueAt": "2026-06-19",
+          "result": "too_early",
+          "expectedDirection": "unknown",
+          "actualDirection": "unknown",
+          "dataAvailability": "ok",
+          "returnPct": null,
+          "topixReturnPct": null,
+          "relativeToTopixPct": null,
+          "missReason": null,
+          "missedSignals": [],
+          "lesson": null
+        },
+        {
+          "horizon": "1m",
+          "dueAt": "2026-07-12",
+          "result": "too_early",
+          "expectedDirection": "unknown",
+          "actualDirection": "unknown",
+          "dataAvailability": "ok",
+          "returnPct": null,
+          "topixReturnPct": null,
+          "relativeToTopixPct": null,
+          "missReason": null,
+          "missedSignals": [],
+          "lesson": null
+        }
+      ],
+      "missedSignals": [],
+      "lesson": null,
+      "createdAt": "2026-06-13",
+      "updatedAt": "2026-06-13",
+      "mechanisms": [
+        "travel",
+        "logistics",
+        "consumer",
+        "cost",
+        "supply"
+      ],
+      "impactPath": {
+        "event": "Managing undersea cable disruption in Africa | NTU-SBF Centre for African Studies (CAS) | NTU Singapore - Nanyang Technological University - NTU Singapore",
+        "mechanisms": [
+          "travel",
+          "logistics",
+          "consumer",
+          "cost",
+          "supply"
+        ],
+        "themes": [
+          "healthcare",
+          "pharma",
+          "logistics",
+          "travel",
+          "testing",
+          "vaccine",
+          "risk_off",
+          "labor",
+          "immigration",
+          "automation",
+          "robotics",
+          "staffing"
+        ],
+        "companies": [
+          "4661"
+        ],
+        "note": "世界イベントの影響タグと銘柄タグ/仮説が重なるため、影響仮説として確認する。"
+      },
+      "direction": "unclear",
+      "confidence": 0.6,
+      "expectedLagDays": 30,
+      "thesis": "Managing undersea cable disruption in Africa | NTU-SBF Centre for African Studies (CAS) | NTU Singapore - Nanyang Technological University - NTU Singapore は global_health のイベントとして、healthcare / pharma / logistics / travel / testing に波及する可能性がある。直接の答えではなく、一次情報で検証する仮説として保存する。",
+      "falsification": "一次情報またはTier1報道で裏取りできない / SNS/速報だけで、公式発表が確認できない / 感染拡大が国境を越えているか？ / WHO/各国政府の対応予算は増えるか？ / 関連企業の売上に実需として届くか？ / 市場心理だけで過熱していないか？ / 人手不足は省人化需要につながるか？ / 外国人材増加でどの生活インフラが伸びるか？",
+      "watchSignals": [
+        "同一内容を一次情報またはTier1報道で確認する",
+        "会社開示・政府発表・規制当局発表を確認する",
+        "市場がすでに織り込み済みか価格/出来高を見る",
+        "Google News RSSの元記事ソース名とURLを確認する",
+        "WHO statement",
+        "CDC/ECDC updates",
+        "Reuters/AP/BBC",
+        "企業の受注/製品開示"
+      ],
+      "riskFactors": [
+        "渡航制限",
+        "サプライチェーン遅延",
+        "リスクオフ",
+        "医療資源不足",
+        "援助資金不足",
+        "制度変更",
+        "社会的摩擦",
+        "人件費上昇"
+      ],
+      "reviewDueAt": "2026-07-12",
+      "reviewStatus": "pending"
+    },
+    {
+      "schemaVersion": 2,
+      "reviewKey": "2026-06-12_managing-undersea-cable-disruption-in-africa-ntu-sbf-centre-for-african-studies-__8136",
+      "eventId": "2026-06-12_managing-undersea-cable-disruption-in-africa-ntu-sbf-centre-for-african-studies-",
+      "eventDate": "2026-06-12",
+      "topic": "Managing undersea cable disruption in Africa | NTU-SBF Centre for African Studies (CAS) | NTU Singapore - Nanyang Technological University - NTU Singapore",
+      "source": "Nanyang Technological University - NTU Singapore",
+      "sourceQuality": "official",
+      "namedEntities": [
+        "Nanyang Technological University - NTU Singapore",
+        "検査",
+        "ワクチン",
+        "医療機器",
+        "防疫用品",
+        "遠隔医療",
+        "物流管理",
+        "人材",
+        "教育",
+        "介護",
+        "物流",
+        "ロボット"
+      ],
+      "affectedSectors": [
+        "healthcare",
+        "pharma",
+        "logistics",
+        "travel",
+        "testing",
+        "vaccine",
+        "risk_off",
+        "labor",
+        "immigration",
+        "automation",
+        "robotics",
+        "staffing"
+      ],
+      "affectedCompanyCodes": [
+        "8136"
+      ],
+      "companyLinks": [
+        {
+          "companyCode": "8136",
+          "companyName": "サンリオ",
+          "matchedTags": [
+            "consumer"
+          ],
+          "linkReason": "世界イベントの影響タグと銘柄タグ/仮説が重なるため、影響仮説として確認する。"
+        }
+      ],
+      "expectedMechanism": "Managing undersea cable disruption in Africa | NTU-SBF Centre for African Studies (CAS) | NTU Singapore - Nanyang Technological University - NTU Singapore は global_health のイベントとして、healthcare / pharma / logistics / travel / testing に波及する可能性がある。直接の答えではなく、一次情報で検証する仮説として保存する。",
+      "secondOrderEffect": "global_health: healthcare, pharma, logistics, travel, testing / 感染拡大が国境を越えているか？ / migration_demographics: labor, immigration, automation, robotics, staffing / 人手不足は省人化需要につながるか？",
+      "counterArgument": "一次情報またはTier1報道で裏取りできない",
+      "timeLag": "1d/1w/1m で価格反応と一次情報の接続を分けて確認する。",
+      "expectedHorizon": "1m",
+      "dataAvailability": "priceDataPending",
+      "outcomes": [
+        {
+          "horizon": "1d",
+          "dueAt": "2026-06-13",
+          "result": null,
+          "expectedDirection": "unknown",
+          "actualDirection": "unknown",
+          "dataAvailability": "priceDataPending",
+          "returnPct": null,
+          "topixReturnPct": null,
+          "relativeToTopixPct": null,
+          "missReason": null,
+          "missedSignals": [],
+          "lesson": null
+        },
+        {
+          "horizon": "1w",
+          "dueAt": "2026-06-19",
+          "result": "too_early",
+          "expectedDirection": "unknown",
+          "actualDirection": "unknown",
+          "dataAvailability": "ok",
+          "returnPct": null,
+          "topixReturnPct": null,
+          "relativeToTopixPct": null,
+          "missReason": null,
+          "missedSignals": [],
+          "lesson": null
+        },
+        {
+          "horizon": "1m",
+          "dueAt": "2026-07-12",
+          "result": "too_early",
+          "expectedDirection": "unknown",
+          "actualDirection": "unknown",
+          "dataAvailability": "ok",
+          "returnPct": null,
+          "topixReturnPct": null,
+          "relativeToTopixPct": null,
+          "missReason": null,
+          "missedSignals": [],
+          "lesson": null
+        }
+      ],
+      "missedSignals": [],
+      "lesson": null,
+      "createdAt": "2026-06-13",
+      "updatedAt": "2026-06-13",
+      "mechanisms": [
+        "travel",
+        "logistics",
+        "consumer",
+        "cost",
+        "supply"
+      ],
+      "impactPath": {
+        "event": "Managing undersea cable disruption in Africa | NTU-SBF Centre for African Studies (CAS) | NTU Singapore - Nanyang Technological University - NTU Singapore",
+        "mechanisms": [
+          "travel",
+          "logistics",
+          "consumer",
+          "cost",
+          "supply"
+        ],
+        "themes": [
+          "healthcare",
+          "pharma",
+          "logistics",
+          "travel",
+          "testing",
+          "vaccine",
+          "risk_off",
+          "labor",
+          "immigration",
+          "automation",
+          "robotics",
+          "staffing"
+        ],
+        "companies": [
+          "8136"
+        ],
+        "note": "世界イベントの影響タグと銘柄タグ/仮説が重なるため、影響仮説として確認する。"
+      },
+      "direction": "unclear",
+      "confidence": 0.6,
+      "expectedLagDays": 30,
+      "thesis": "Managing undersea cable disruption in Africa | NTU-SBF Centre for African Studies (CAS) | NTU Singapore - Nanyang Technological University - NTU Singapore は global_health のイベントとして、healthcare / pharma / logistics / travel / testing に波及する可能性がある。直接の答えではなく、一次情報で検証する仮説として保存する。",
+      "falsification": "一次情報またはTier1報道で裏取りできない / SNS/速報だけで、公式発表が確認できない / 感染拡大が国境を越えているか？ / WHO/各国政府の対応予算は増えるか？ / 関連企業の売上に実需として届くか？ / 市場心理だけで過熱していないか？ / 人手不足は省人化需要につながるか？ / 外国人材増加でどの生活インフラが伸びるか？",
+      "watchSignals": [
+        "同一内容を一次情報またはTier1報道で確認する",
+        "会社開示・政府発表・規制当局発表を確認する",
+        "市場がすでに織り込み済みか価格/出来高を見る",
+        "Google News RSSの元記事ソース名とURLを確認する",
+        "WHO statement",
+        "CDC/ECDC updates",
+        "Reuters/AP/BBC",
+        "企業の受注/製品開示"
+      ],
+      "riskFactors": [
+        "渡航制限",
+        "サプライチェーン遅延",
+        "リスクオフ",
+        "医療資源不足",
+        "援助資金不足",
+        "制度変更",
+        "社会的摩擦",
+        "人件費上昇"
+      ],
+      "reviewDueAt": "2026-07-12",
+      "reviewStatus": "pending"
+    },
+    {
+      "schemaVersion": 2,
+      "reviewKey": "2026-06-12_epidemic-of-ebola-disease-caused-by-bundibugyo-virus-in-the-democratic-republic-__4661",
+      "eventId": "2026-06-12_epidemic-of-ebola-disease-caused-by-bundibugyo-virus-in-the-democratic-republic-",
+      "eventDate": "2026-06-12",
+      "topic": "Epidemic of Ebola Disease caused by Bundibugyo virus in the Democratic Republic of the Congo and Uganda determined a public health emergency of international concern - World Health Organization (WHO)",
+      "source": "World Health Organization (WHO)",
+      "sourceQuality": "official",
+      "namedEntities": [
+        "World Health Organization (WHO)",
+        "検査",
+        "ワクチン",
+        "医療機器",
+        "防疫用品",
+        "遠隔医療",
+        "物流管理",
+        "渡航制限",
+        "サプライチェーン遅延",
+        "リスクオフ",
+        "医療資源不足",
+        "援助資金不足"
+      ],
+      "affectedSectors": [
+        "healthcare",
+        "pharma",
+        "logistics",
+        "travel",
+        "testing",
+        "vaccine",
+        "risk_off"
+      ],
+      "affectedCompanyCodes": [
+        "4661"
+      ],
+      "companyLinks": [
+        {
+          "companyCode": "4661",
+          "companyName": "オリエンタルランド",
+          "matchedTags": [],
+          "linkReason": "直接タグ一致は弱いが、既存の調査候補として影響有無を確認する。"
+        }
+      ],
+      "expectedMechanism": "Epidemic of Ebola Disease caused by Bundibugyo virus in the Democratic Republic of the Congo and Uganda determined a public health emergency of international concern - World Health Organization (WHO) は global_health のイベントとして、healthcare / pharma / logistics / travel / testing に波及する可能性がある。直接の答えではなく、一次情報で検証する仮説として保存する。",
+      "secondOrderEffect": "global_health: healthcare, pharma, logistics, travel, testing / 感染拡大が国境を越えているか？",
+      "counterArgument": "一次情報またはTier1報道で裏取りできない",
+      "timeLag": "1d/1w/1m で価格反応と一次情報の接続を分けて確認する。",
+      "expectedHorizon": "1m",
+      "dataAvailability": "priceDataPending",
+      "outcomes": [
+        {
+          "horizon": "1d",
+          "dueAt": "2026-06-13",
+          "result": null,
+          "expectedDirection": "unknown",
+          "actualDirection": "unknown",
+          "dataAvailability": "priceDataPending",
+          "returnPct": null,
+          "topixReturnPct": null,
+          "relativeToTopixPct": null,
+          "missReason": null,
+          "missedSignals": [],
+          "lesson": null
+        },
+        {
+          "horizon": "1w",
+          "dueAt": "2026-06-19",
+          "result": "too_early",
+          "expectedDirection": "unknown",
+          "actualDirection": "unknown",
+          "dataAvailability": "ok",
+          "returnPct": null,
+          "topixReturnPct": null,
+          "relativeToTopixPct": null,
+          "missReason": null,
+          "missedSignals": [],
+          "lesson": null
+        },
+        {
+          "horizon": "1m",
+          "dueAt": "2026-07-12",
+          "result": "too_early",
+          "expectedDirection": "unknown",
+          "actualDirection": "unknown",
+          "dataAvailability": "ok",
+          "returnPct": null,
+          "topixReturnPct": null,
+          "relativeToTopixPct": null,
+          "missReason": null,
+          "missedSignals": [],
+          "lesson": null
+        }
+      ],
+      "missedSignals": [],
+      "lesson": null,
+      "createdAt": "2026-06-13",
+      "updatedAt": "2026-06-13",
+      "mechanisms": [
+        "travel",
+        "logistics"
+      ],
+      "impactPath": {
+        "event": "Epidemic of Ebola Disease caused by Bundibugyo virus in the Democratic Republic of the Congo and Uganda determined a public health emergency of international concern - World Health Organization (WHO)",
+        "mechanisms": [
+          "travel",
+          "logistics"
+        ],
+        "themes": [
+          "healthcare",
+          "pharma",
+          "logistics",
+          "travel",
+          "testing",
+          "vaccine",
+          "risk_off"
+        ],
+        "companies": [
+          "4661"
+        ],
+        "note": "直接タグ一致は弱いが、既存の調査候補として影響有無を確認する。"
+      },
+      "direction": "unclear",
+      "confidence": 0.6,
+      "expectedLagDays": 30,
+      "thesis": "Epidemic of Ebola Disease caused by Bundibugyo virus in the Democratic Republic of the Congo and Uganda determined a public health emergency of international concern - World Health Organization (WHO) は global_health のイベントとして、healthcare / pharma / logistics / travel / testing に波及する可能性がある。直接の答えではなく、一次情報で検証する仮説として保存する。",
+      "falsification": "一次情報またはTier1報道で裏取りできない / SNS/速報だけで、公式発表が確認できない / 感染拡大が国境を越えているか？ / WHO/各国政府の対応予算は増えるか？ / 関連企業の売上に実需として届くか？ / 市場心理だけで過熱していないか？",
+      "watchSignals": [
+        "同一内容を一次情報またはTier1報道で確認する",
+        "会社開示・政府発表・規制当局発表を確認する",
+        "市場がすでに織り込み済みか価格/出来高を見る",
+        "Google News RSSの元記事ソース名とURLを確認する",
+        "WHO statement",
+        "CDC/ECDC updates",
+        "Reuters/AP/BBC",
+        "企業の受注/製品開示"
+      ],
+      "riskFactors": [
+        "渡航制限",
+        "サプライチェーン遅延",
+        "リスクオフ",
+        "医療資源不足",
+        "援助資金不足"
+      ],
+      "reviewDueAt": "2026-07-12",
+      "reviewStatus": "pending"
+    },
+    {
+      "schemaVersion": 2,
+      "reviewKey": "2026-06-12_epidemic-of-ebola-disease-caused-by-bundibugyo-virus-in-the-democratic-republic-__5803",
+      "eventId": "2026-06-12_epidemic-of-ebola-disease-caused-by-bundibugyo-virus-in-the-democratic-republic-",
+      "eventDate": "2026-06-12",
+      "topic": "Epidemic of Ebola Disease caused by Bundibugyo virus in the Democratic Republic of the Congo and Uganda determined a public health emergency of international concern - World Health Organization (WHO)",
+      "source": "World Health Organization (WHO)",
+      "sourceQuality": "official",
+      "namedEntities": [
+        "World Health Organization (WHO)",
+        "検査",
+        "ワクチン",
+        "医療機器",
+        "防疫用品",
+        "遠隔医療",
+        "物流管理",
+        "渡航制限",
+        "サプライチェーン遅延",
+        "リスクオフ",
+        "医療資源不足",
+        "援助資金不足"
+      ],
+      "affectedSectors": [
+        "healthcare",
+        "pharma",
+        "logistics",
+        "travel",
+        "testing",
+        "vaccine",
+        "risk_off"
+      ],
+      "affectedCompanyCodes": [
+        "5803"
+      ],
+      "companyLinks": [
+        {
+          "companyCode": "5803",
+          "companyName": "フジクラ",
+          "matchedTags": [],
+          "linkReason": "直接タグ一致は弱いが、既存の調査候補として影響有無を確認する。"
+        }
+      ],
+      "expectedMechanism": "Epidemic of Ebola Disease caused by Bundibugyo virus in the Democratic Republic of the Congo and Uganda determined a public health emergency of international concern - World Health Organization (WHO) は global_health のイベントとして、healthcare / pharma / logistics / travel / testing に波及する可能性がある。直接の答えではなく、一次情報で検証する仮説として保存する。",
+      "secondOrderEffect": "global_health: healthcare, pharma, logistics, travel, testing / 感染拡大が国境を越えているか？",
+      "counterArgument": "一次情報またはTier1報道で裏取りできない",
+      "timeLag": "1d/1w/1m で価格反応と一次情報の接続を分けて確認する。",
+      "expectedHorizon": "1m",
+      "dataAvailability": "priceDataPending",
+      "outcomes": [
+        {
+          "horizon": "1d",
+          "dueAt": "2026-06-13",
+          "result": null,
+          "expectedDirection": "unknown",
+          "actualDirection": "unknown",
+          "dataAvailability": "priceDataPending",
+          "returnPct": null,
+          "topixReturnPct": null,
+          "relativeToTopixPct": null,
+          "missReason": null,
+          "missedSignals": [],
+          "lesson": null
+        },
+        {
+          "horizon": "1w",
+          "dueAt": "2026-06-19",
+          "result": "too_early",
+          "expectedDirection": "unknown",
+          "actualDirection": "unknown",
+          "dataAvailability": "ok",
+          "returnPct": null,
+          "topixReturnPct": null,
+          "relativeToTopixPct": null,
+          "missReason": null,
+          "missedSignals": [],
+          "lesson": null
+        },
+        {
+          "horizon": "1m",
+          "dueAt": "2026-07-12",
+          "result": "too_early",
+          "expectedDirection": "unknown",
+          "actualDirection": "unknown",
+          "dataAvailability": "ok",
+          "returnPct": null,
+          "topixReturnPct": null,
+          "relativeToTopixPct": null,
+          "missReason": null,
+          "missedSignals": [],
+          "lesson": null
+        }
+      ],
+      "missedSignals": [],
+      "lesson": null,
+      "createdAt": "2026-06-13",
+      "updatedAt": "2026-06-13",
+      "mechanisms": [
+        "travel",
+        "logistics"
+      ],
+      "impactPath": {
+        "event": "Epidemic of Ebola Disease caused by Bundibugyo virus in the Democratic Republic of the Congo and Uganda determined a public health emergency of international concern - World Health Organization (WHO)",
+        "mechanisms": [
+          "travel",
+          "logistics"
+        ],
+        "themes": [
+          "healthcare",
+          "pharma",
+          "logistics",
+          "travel",
+          "testing",
+          "vaccine",
+          "risk_off"
+        ],
+        "companies": [
+          "5803"
+        ],
+        "note": "直接タグ一致は弱いが、既存の調査候補として影響有無を確認する。"
+      },
+      "direction": "unclear",
+      "confidence": 0.6,
+      "expectedLagDays": 30,
+      "thesis": "Epidemic of Ebola Disease caused by Bundibugyo virus in the Democratic Republic of the Congo and Uganda determined a public health emergency of international concern - World Health Organization (WHO) は global_health のイベントとして、healthcare / pharma / logistics / travel / testing に波及する可能性がある。直接の答えではなく、一次情報で検証する仮説として保存する。",
+      "falsification": "一次情報またはTier1報道で裏取りできない / SNS/速報だけで、公式発表が確認できない / 感染拡大が国境を越えているか？ / WHO/各国政府の対応予算は増えるか？ / 関連企業の売上に実需として届くか？ / 市場心理だけで過熱していないか？",
+      "watchSignals": [
+        "同一内容を一次情報またはTier1報道で確認する",
+        "会社開示・政府発表・規制当局発表を確認する",
+        "市場がすでに織り込み済みか価格/出来高を見る",
+        "Google News RSSの元記事ソース名とURLを確認する",
+        "WHO statement",
+        "CDC/ECDC updates",
+        "Reuters/AP/BBC",
+        "企業の受注/製品開示"
+      ],
+      "riskFactors": [
+        "渡航制限",
+        "サプライチェーン遅延",
+        "リスクオフ",
+        "医療資源不足",
+        "援助資金不足"
+      ],
+      "reviewDueAt": "2026-07-12",
+      "reviewStatus": "pending"
+    },
+    {
+      "schemaVersion": 2,
+      "reviewKey": "2026-06-12_epidemic-of-ebola-disease-caused-by-bundibugyo-virus-in-the-democratic-republic-__7011",
+      "eventId": "2026-06-12_epidemic-of-ebola-disease-caused-by-bundibugyo-virus-in-the-democratic-republic-",
+      "eventDate": "2026-06-12",
+      "topic": "Epidemic of Ebola Disease caused by Bundibugyo virus in the Democratic Republic of the Congo and Uganda determined a public health emergency of international concern - World Health Organization (WHO)",
+      "source": "World Health Organization (WHO)",
+      "sourceQuality": "official",
+      "namedEntities": [
+        "World Health Organization (WHO)",
+        "検査",
+        "ワクチン",
+        "医療機器",
+        "防疫用品",
+        "遠隔医療",
+        "物流管理",
+        "渡航制限",
+        "サプライチェーン遅延",
+        "リスクオフ",
+        "医療資源不足",
+        "援助資金不足"
+      ],
+      "affectedSectors": [
+        "healthcare",
+        "pharma",
+        "logistics",
+        "travel",
+        "testing",
+        "vaccine",
+        "risk_off"
+      ],
+      "affectedCompanyCodes": [
+        "7011"
+      ],
+      "companyLinks": [
+        {
+          "companyCode": "7011",
+          "companyName": "三菱重工業",
+          "matchedTags": [],
+          "linkReason": "直接タグ一致は弱いが、既存の調査候補として影響有無を確認する。"
+        }
+      ],
+      "expectedMechanism": "Epidemic of Ebola Disease caused by Bundibugyo virus in the Democratic Republic of the Congo and Uganda determined a public health emergency of international concern - World Health Organization (WHO) は global_health のイベントとして、healthcare / pharma / logistics / travel / testing に波及する可能性がある。直接の答えではなく、一次情報で検証する仮説として保存する。",
+      "secondOrderEffect": "global_health: healthcare, pharma, logistics, travel, testing / 感染拡大が国境を越えているか？",
+      "counterArgument": "一次情報またはTier1報道で裏取りできない",
+      "timeLag": "1d/1w/1m で価格反応と一次情報の接続を分けて確認する。",
+      "expectedHorizon": "1m",
+      "dataAvailability": "priceDataPending",
+      "outcomes": [
+        {
+          "horizon": "1d",
+          "dueAt": "2026-06-13",
+          "result": null,
+          "expectedDirection": "unknown",
+          "actualDirection": "unknown",
+          "dataAvailability": "priceDataPending",
+          "returnPct": null,
+          "topixReturnPct": null,
+          "relativeToTopixPct": null,
+          "missReason": null,
+          "missedSignals": [],
+          "lesson": null
+        },
+        {
+          "horizon": "1w",
+          "dueAt": "2026-06-19",
+          "result": "too_early",
+          "expectedDirection": "unknown",
+          "actualDirection": "unknown",
+          "dataAvailability": "ok",
+          "returnPct": null,
+          "topixReturnPct": null,
+          "relativeToTopixPct": null,
+          "missReason": null,
+          "missedSignals": [],
+          "lesson": null
+        },
+        {
+          "horizon": "1m",
+          "dueAt": "2026-07-12",
+          "result": "too_early",
+          "expectedDirection": "unknown",
+          "actualDirection": "unknown",
+          "dataAvailability": "ok",
+          "returnPct": null,
+          "topixReturnPct": null,
+          "relativeToTopixPct": null,
+          "missReason": null,
+          "missedSignals": [],
+          "lesson": null
+        }
+      ],
+      "missedSignals": [],
+      "lesson": null,
+      "createdAt": "2026-06-13",
+      "updatedAt": "2026-06-13",
+      "mechanisms": [
+        "travel",
+        "logistics"
+      ],
+      "impactPath": {
+        "event": "Epidemic of Ebola Disease caused by Bundibugyo virus in the Democratic Republic of the Congo and Uganda determined a public health emergency of international concern - World Health Organization (WHO)",
+        "mechanisms": [
+          "travel",
+          "logistics"
+        ],
+        "themes": [
+          "healthcare",
+          "pharma",
+          "logistics",
+          "travel",
+          "testing",
+          "vaccine",
+          "risk_off"
+        ],
+        "companies": [
+          "7011"
+        ],
+        "note": "直接タグ一致は弱いが、既存の調査候補として影響有無を確認する。"
+      },
+      "direction": "unclear",
+      "confidence": 0.6,
+      "expectedLagDays": 30,
+      "thesis": "Epidemic of Ebola Disease caused by Bundibugyo virus in the Democratic Republic of the Congo and Uganda determined a public health emergency of international concern - World Health Organization (WHO) は global_health のイベントとして、healthcare / pharma / logistics / travel / testing に波及する可能性がある。直接の答えではなく、一次情報で検証する仮説として保存する。",
+      "falsification": "一次情報またはTier1報道で裏取りできない / SNS/速報だけで、公式発表が確認できない / 感染拡大が国境を越えているか？ / WHO/各国政府の対応予算は増えるか？ / 関連企業の売上に実需として届くか？ / 市場心理だけで過熱していないか？",
+      "watchSignals": [
+        "同一内容を一次情報またはTier1報道で確認する",
+        "会社開示・政府発表・規制当局発表を確認する",
+        "市場がすでに織り込み済みか価格/出来高を見る",
+        "Google News RSSの元記事ソース名とURLを確認する",
+        "WHO statement",
+        "CDC/ECDC updates",
+        "Reuters/AP/BBC",
+        "企業の受注/製品開示"
+      ],
+      "riskFactors": [
+        "渡航制限",
+        "サプライチェーン遅延",
+        "リスクオフ",
+        "医療資源不足",
+        "援助資金不足"
+      ],
+      "reviewDueAt": "2026-07-12",
+      "reviewStatus": "pending"
     }
   ],
   "worldImpactAudit": {
     "schemaVersion": 1,
-    "generatedAt": "2026-06-12",
+    "generatedAt": "2026-06-13",
     "healthStatus": "ok",
-    "totalReviews": 2,
-    "pendingReviews": 2,
+    "totalReviews": 9,
+    "pendingReviews": 9,
     "overdueReviews": 0,
     "missingCounterArguments": 0,
     "missingMechanisms": 0,
-    "dataUnavailable": 2,
-    "priceDataPending": 2,
+    "dataUnavailable": 9,
+    "priceDataPending": 9,
     "sourceQualityUnknown": 0,
     "unknownMatchedAsHit": 0,
     "duplicateKeys": [],
+    "insufficientData": 0,
+    "confidenceMissing": 0,
+    "mechanismUnknown": 0,
+    "falsificationMissing": 0,
+    "jsonlParseErrors": 0,
+    "latestMismatch": 0,
+    "reviewStatusCounts": {
+      "pending": 9
+    },
+    "outcomeResultCounts": {
+      "unevaluated": 9,
+      "too_early": 18
+    },
+    "missReasonCounts": {},
     "priorityIssues": [
       {
         "severity": "info",
         "category": "price_data",
-        "title": "価格データ提供待ち: 2件",
+        "title": "価格データ提供待ち: 9件",
         "detail": "J-Quants 遅延範囲のため、提供後に再確認してください。"
       }
     ]
@@ -7663,7 +8872,7 @@
       "maintenance": "reports/maintenance_latest.md"
     },
     "completeWrapperFailedSteps": [],
-    "completeWrapperRunAt": "2026-06-11T22:52:55.427Z"
+    "completeWrapperRunAt": "2026-06-11T22:52:55.636Z"
   },
   "meta": {
     "source": "report-ui-data",
@@ -7689,7 +8898,7 @@
       "reasons": [
         "入園者数・単価・投資負担・インバウンド/消費環境をどう見るか"
       ],
-      "updatedAt": "2026-06-12"
+      "updatedAt": "2026-06-13"
     },
     {
       "code": "5803",
@@ -7709,7 +8918,7 @@
       "reasons": [
         "AIデータセンター/光通信需要が続くか、すでに織り込み済みか"
       ],
-      "updatedAt": "2026-06-12"
+      "updatedAt": "2026-06-13"
     },
     {
       "code": "7011",
@@ -7729,7 +8938,7 @@
       "reasons": [
         "防衛・宇宙・エネルギー政策の追い風が、どこまで株価に織り込まれているか"
       ],
-      "updatedAt": "2026-06-12"
+      "updatedAt": "2026-06-13"
     },
     {
       "code": "7974",
@@ -7749,7 +8958,7 @@
       "reasons": [
         "IP・ゲーム機サイクル・映画/テーマパーク展開を、価格と決算期待込みでどう見るか"
       ],
-      "updatedAt": "2026-06-12"
+      "updatedAt": "2026-06-13"
     },
     {
       "code": "8136",
@@ -7772,7 +8981,7 @@
         "営業利益率が維持/改善",
         "現時点のアプリ判断は『証拠不足〜保留』。買うなら、決算/総会/バリュエーション確認後の方が納得度が高い。短期で上がりすぎなら追わない。"
       ],
-      "updatedAt": "2026-06-12"
+      "updatedAt": "2026-06-13"
     },
     {
       "code": "8306",
@@ -7792,7 +9001,7 @@
       "reasons": [
         "金利上昇・株主還元・信用コスト・海外リスクをどう見るか"
       ],
-      "updatedAt": "2026-06-12"
+      "updatedAt": "2026-06-13"
     }
   ],
   "generatedCompanyRules": [
@@ -17524,7 +18733,7 @@
   },
   "proDataMeta": {
     "source": "pro-ui-data-addon",
-    "generatedAt": "2026-06-11T22:52:55.603Z",
+    "generatedAt": "2026-06-12T16:25:59.758Z",
     "missing": []
   }
 }

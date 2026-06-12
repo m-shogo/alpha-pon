@@ -218,6 +218,13 @@ export default function OpsPage() {
             <CountRow label="影響メカニズム未記録" value={`${data.worldImpactAudit.missingMechanisms}件`} />
             <CountRow label="sourceQuality 不明" value={`${data.worldImpactAudit.sourceQualityUnknown}件`} />
             <CountRow label="unknown 同士の hit" value={`${data.worldImpactAudit.unknownMatchedAsHit}件`} />
+            <CountRow label="insufficient_data" value={`${data.worldImpactAudit.insufficientData}件`} />
+            <CountRow label="confidence 未設定" value={`${data.worldImpactAudit.confidenceMissing}件`} />
+            <CountRow label="mechanism 分類 unknown" value={`${data.worldImpactAudit.mechanismUnknown}件`} />
+            <CountRow label="反証条件（falsification）未設定" value={`${data.worldImpactAudit.falsificationMissing}件`} />
+            <CountRow label="重複 event/銘柄/horizon" value={`${data.worldImpactAudit.duplicateKeys}件`} />
+            <CountRow label="JSONL 破損行" value={`${data.worldImpactAudit.jsonlParseErrors}件`} />
+            <CountRow label="latest との不一致" value={`${data.worldImpactAudit.latestMismatch}件`} />
             {data.worldImpactAudit.priorityIssues.length > 0 && (
               <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.6 }}>
                 確認ポイント:{' '}
@@ -227,6 +234,9 @@ export default function OpsPage() {
                   .join(' / ')}
               </p>
             )}
+            <p style={{ margin: '8px 0 0', fontSize: 12, fontWeight: 800 }}>
+              <a href="/world-impact" style={{ color: 'var(--mint-deep)' }}>影響仮説の一覧・検証結果を見る →</a>
+            </p>
           </>
         )}
       </Card>

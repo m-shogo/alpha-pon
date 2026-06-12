@@ -113,6 +113,13 @@ export interface OpsDashboard {
     priceDataPending: number;
     sourceQualityUnknown: number;
     unknownMatchedAsHit: number;
+    insufficientData: number;
+    confidenceMissing: number;
+    mechanismUnknown: number;
+    falsificationMissing: number;
+    jsonlParseErrors: number;
+    latestMismatch: number;
+    duplicateKeys: number;
     priorityIssues: Array<{ severity?: string; title?: string; detail?: string }>;
   };
   nextSafeCommands: OpsNextCommand[];
@@ -219,6 +226,13 @@ export interface OpsWorldImpactAuditLike {
   priceDataPending?: number;
   sourceQualityUnknown?: number;
   unknownMatchedAsHit?: number;
+  insufficientData?: number;
+  confidenceMissing?: number;
+  mechanismUnknown?: number;
+  falsificationMissing?: number;
+  jsonlParseErrors?: number;
+  latestMismatch?: number;
+  duplicateKeys?: Array<{ key: string; count: number }>;
   priorityIssues?: Array<{ severity?: string; title?: string; detail?: string }>;
 }
 
@@ -583,6 +597,13 @@ export function buildOpsDashboard(inputs: OpsDashboardInputs): OpsDashboard {
     priceDataPending: worldImpact?.priceDataPending ?? 0,
     sourceQualityUnknown: worldImpact?.sourceQualityUnknown ?? 0,
     unknownMatchedAsHit: worldImpact?.unknownMatchedAsHit ?? 0,
+    insufficientData: worldImpact?.insufficientData ?? 0,
+    confidenceMissing: worldImpact?.confidenceMissing ?? 0,
+    mechanismUnknown: worldImpact?.mechanismUnknown ?? 0,
+    falsificationMissing: worldImpact?.falsificationMissing ?? 0,
+    jsonlParseErrors: worldImpact?.jsonlParseErrors ?? 0,
+    latestMismatch: worldImpact?.latestMismatch ?? 0,
+    duplicateKeys: worldImpact?.duplicateKeys?.length ?? 0,
     priorityIssues: worldImpact?.priorityIssues ?? [],
   };
   if (!worldImpact) {
@@ -603,13 +624,27 @@ export function buildOpsDashboard(inputs: OpsDashboardInputs): OpsDashboard {
         command: "pnpm audit:world-impact",
       });
     }
-    const attentionTotal = (worldImpact.overdueReviews ?? 0) + (worldImpact.missingCounterArguments ?? 0) + (worldImpact.missingMechanisms ?? 0);
+    if ((worldImpact.jsonlParseErrors ?? 0) > 0) {
+      issues.push({
+        severity: "urgent",
+        category: "world_impact",
+        title: `world impact JSONL 破損行: ${worldImpact.jsonlParseErrors}件`,
+        detail: "data/world_event_impacts.jsonl に parse できない行があります。",
+        command: "pnpm audit:world-impact",
+      });
+    }
+    const attentionTotal = (worldImpact.overdueReviews ?? 0)
+      + (worldImpact.missingCounterArguments ?? 0)
+      + (worldImpact.missingMechanisms ?? 0)
+      + (worldImpact.mechanismUnknown ?? 0)
+      + (worldImpact.falsificationMissing ?? 0)
+      + (worldImpact.latestMismatch ?? 0);
     if (attentionTotal > 0) {
       issues.push({
         severity: "attention",
         category: "world_impact",
         title: `world impact 確認対象: ${attentionTotal}件`,
-        detail: `overdue=${worldImpact.overdueReviews ?? 0}, counterArgument=${worldImpact.missingCounterArguments ?? 0}, mechanism=${worldImpact.missingMechanisms ?? 0}`,
+        detail: `overdue=${worldImpact.overdueReviews ?? 0}, counterArgument=${worldImpact.missingCounterArguments ?? 0}, mechanism=${worldImpact.missingMechanisms ?? 0}, mechanismUnknown=${worldImpact.mechanismUnknown ?? 0}, falsification=${worldImpact.falsificationMissing ?? 0}, latestMismatch=${worldImpact.latestMismatch ?? 0}`,
         command: "pnpm audit:world-impact",
       });
     }

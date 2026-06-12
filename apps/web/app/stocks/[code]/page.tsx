@@ -77,12 +77,33 @@ function pct(value: number | null): string {
 }
 
 function worldOutcomeLabel(outcome: { result: string | null; dataAvailability: string; expectedDirection: string; actualDirection: string }): { label: string; status: StockDetailStatus } {
+  if (outcome.result === 'insufficient_data') return { label: '未評価: データ不足', status: 'info' }
   if (outcome.dataAvailability !== 'ok') return { label: '未評価: 価格データ不足', status: 'info' }
   if (outcome.result == null || outcome.result === 'unknown') return { label: '未評価', status: 'missing' }
   if (outcome.result === 'hit' && outcome.expectedDirection === 'unknown' && outcome.actualDirection === 'unknown') return { label: '未評価: 方向未確定', status: 'missing' }
   if (outcome.result === 'too_early') return { label: '時期尚早', status: 'info' }
   if (outcome.result === 'miss') return { label: '想定差分あり', status: 'attention' }
+  if (outcome.result === 'inverse') return { label: '想定と逆行', status: 'attention' }
+  if (outcome.result === 'unclear') return { label: '判定不能', status: 'missing' }
   return { label: '仮説と整合', status: 'ok' }
+}
+
+const WORLD_MECHANISM_LABELS: Record<string, string> = {
+  demand: '需要', supply: '供給', cost: 'コスト', fx: '為替', rates: '金利',
+  regulation: '規制・政策', energy: 'エネルギー', defense: '防衛', semiconductor: '半導体・AI',
+  consumer: '消費', travel: '旅行・インバウンド', logistics: '物流・海運',
+  ip_brand: 'IP・ブランド', geopolitical: '地政学', climate_disaster: '災害・気候', unknown: '分類未確定',
+}
+
+const WORLD_REVIEW_STATUS_LABELS: Record<string, { label: string; status: StockDetailStatus }> = {
+  pending: { label: '未検証', status: 'info' },
+  reviewed: { label: '検証済み', status: 'ok' },
+  skipped: { label: 'スキップ', status: 'missing' },
+  insufficient_data: { label: 'データ不足', status: 'attention' },
+}
+
+const WORLD_DIRECTION_LABELS: Record<string, string> = {
+  positive: 'プラス影響仮説', negative: 'マイナス影響仮説', mixed: '影響混在', unclear: '方向未確定',
 }
 
 export default async function StockDetailPage({ params }: Props) {
@@ -213,23 +234,54 @@ export default async function StockDetailPage({ params }: Props) {
           ) : detail.worldImpactReviews.slice(0, 5).map((review, index) => (
             <div key={review.reviewKey} style={{ padding: 14, borderBottom: index < Math.min(detail.worldImpactReviews.length, 5) - 1 ? '1px solid var(--line)' : 'none' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginBottom: 8 }}>
+                <StatusBadge {...(WORLD_REVIEW_STATUS_LABELS[review.reviewStatus ?? 'pending'] ?? WORLD_REVIEW_STATUS_LABELS.pending)} />
                 <StatusBadge status={review.dataAvailability === 'priceDataPending' ? 'info' : review.dataAvailability === 'ok' ? 'ok' : 'missing'} label={review.dataAvailability === 'priceDataPending' ? '価格データ提供待ち' : review.dataAvailability} />
                 <span style={{ fontSize: 12, fontWeight: 750, color: 'var(--ink-3)' }}>{review.eventDate} / source {review.sourceQuality}</span>
               </div>
               <div style={{ fontSize: 13.5, fontWeight: 850, color: 'var(--ink)', lineHeight: 1.45, marginBottom: 8 }}>{review.topic}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
+                {(review.mechanisms ?? []).map(mechanism => (
+                  <span key={mechanism} style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink-2)', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 999, padding: '2px 9px' }}>
+                    {WORLD_MECHANISM_LABELS[mechanism] ?? mechanism}
+                  </span>
+                ))}
+                <span style={{ fontSize: 11.5, fontWeight: 750, color: 'var(--ink-3)' }}>
+                  {WORLD_DIRECTION_LABELS[review.direction ?? 'unclear']} / confidence {review.confidence ?? '未設定'} / 想定ラグ {review.expectedLagDays ?? '-'}日
+                </span>
+              </div>
               <div style={{ display: 'grid', gap: 8 }}>
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 850, color: 'var(--ink-3)', marginBottom: 3 }}>影響メカニズム</div>
-                  <div style={{ fontSize: 12.5, fontWeight: 650, color: 'var(--ink-2)', lineHeight: 1.55 }}>{review.expectedMechanism || '未記録'}</div>
+                  <div style={{ fontSize: 11, fontWeight: 850, color: 'var(--ink-3)', marginBottom: 3 }}>影響仮説（thesis）</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 650, color: 'var(--ink-2)', lineHeight: 1.55 }}>{review.thesis || review.expectedMechanism || '未記録'}</div>
                 </div>
+                {review.impactPath && (
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 850, color: 'var(--ink-3)', marginBottom: 3 }}>影響経路</div>
+                    <div style={{ fontSize: 12.5, fontWeight: 650, color: 'var(--ink-2)', lineHeight: 1.55 }}>
+                      ニュース → {(review.impactPath.mechanisms ?? []).map(m => WORLD_MECHANISM_LABELS[m] ?? m).join('・') || '分類未確定'} → {(review.impactPath.themes ?? []).slice(0, 5).join('・') || 'テーマ未整理'} → 当銘柄
+                    </div>
+                  </div>
+                )}
                 <div>
                   <div style={{ fontSize: 11, fontWeight: 850, color: 'var(--ink-3)', marginBottom: 3 }}>二次影響 / timeLag</div>
                   <div style={{ fontSize: 12.5, fontWeight: 650, color: 'var(--ink-2)', lineHeight: 1.55 }}>{review.secondOrderEffect || '未記録'} / {review.timeLag || '未記録'}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 850, color: 'var(--ink-3)', marginBottom: 3 }}>反証条件</div>
-                  <div style={{ fontSize: 12.5, fontWeight: 650, color: 'var(--ink-2)', lineHeight: 1.55 }}>{review.counterArgument || '未記録'}</div>
+                  <div style={{ fontSize: 11, fontWeight: 850, color: 'var(--ink-3)', marginBottom: 3 }}>反証条件（これが起きたら外れ）</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 650, color: 'var(--ink-2)', lineHeight: 1.55 }}>{review.falsification || review.counterArgument || '未設定'}</div>
                 </div>
+                {(review.watchSignals ?? []).length > 0 && (
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 850, color: 'var(--ink-3)', marginBottom: 3 }}>確認シグナル</div>
+                    <ListBlock items={review.watchSignals ?? []} />
+                  </div>
+                )}
+                {(review.riskFactors ?? []).length > 0 && (
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 850, color: 'var(--ink-3)', marginBottom: 3 }}>外れる要因</div>
+                    <ListBlock items={review.riskFactors ?? []} />
+                  </div>
+                )}
               </div>
               <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(112px, 1fr))', gap: 8 }}>
                 {review.outcomes.map(outcome => {
@@ -238,7 +290,11 @@ export default async function StockDetailPage({ params }: Props) {
                 })}
               </div>
               <div style={{ marginTop: 10 }}>
-                <ListBlock items={[...(review.missedSignals ?? []), ...(review.lesson ? [review.lesson] : [])]} />
+                <ListBlock items={[
+                  ...(review.missedSignals ?? []),
+                  ...review.outcomes.filter(outcome => outcome.missReason).map(outcome => `外れ理由(${outcome.horizon}): ${outcome.missReason}`),
+                  ...(review.lesson ? [`学習メモ: ${review.lesson}`] : []),
+                ]} />
               </div>
             </div>
           ))}

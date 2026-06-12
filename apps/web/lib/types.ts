@@ -213,8 +213,17 @@ export type ScoreBreakdownDetail = {
 
 export type WorldImpactDataAvailability = 'ok' | 'partial' | 'missing' | 'priceDataPending'
 
+export type WorldImpactMechanism =
+  | 'demand' | 'supply' | 'cost' | 'fx' | 'rates' | 'regulation' | 'energy' | 'defense'
+  | 'semiconductor' | 'consumer' | 'travel' | 'logistics' | 'ip_brand' | 'geopolitical'
+  | 'climate_disaster' | 'unknown'
+
+export type WorldImpactMissReason =
+  | 'already_priced_in' | 'weak_linkage' | 'macro_overpowered' | 'wrong_lag'
+  | 'wrong_direction' | 'company_specific_offset' | 'data_insufficient' | 'unclear'
+
 export type WorldImpactReview = {
-  schemaVersion: 1
+  schemaVersion: 1 | 2
   reviewKey: string
   eventId: string
   eventDate: string
@@ -233,13 +242,14 @@ export type WorldImpactReview = {
   outcomes: Array<{
     horizon: '1d' | '1w' | '1m' | string
     dueAt: string
-    result: 'hit' | 'miss' | 'too_early' | 'unknown' | null
+    result: 'hit' | 'miss' | 'inverse' | 'too_early' | 'unclear' | 'insufficient_data' | 'unknown' | null
     expectedDirection: 'up' | 'down' | 'sideways' | 'mixed' | 'unknown'
     actualDirection: 'up' | 'down' | 'sideways' | 'mixed' | 'unknown'
     dataAvailability: WorldImpactDataAvailability
     returnPct: number | null
     topixReturnPct: number | null
     relativeToTopixPct: number | null
+    missReason?: WorldImpactMissReason | null
     missedSignals: string[]
     lesson: string | null
   }>
@@ -247,6 +257,24 @@ export type WorldImpactReview = {
   lesson: string | null
   createdAt: string
   updatedAt: string
+  // v2 検証可能仮説フィールド（v1 レコードでは省略されうる）
+  mechanisms?: WorldImpactMechanism[]
+  impactPath?: {
+    event: string
+    mechanisms: WorldImpactMechanism[]
+    themes: string[]
+    companies: string[]
+    note: string
+  } | null
+  direction?: 'positive' | 'negative' | 'mixed' | 'unclear'
+  confidence?: number | null
+  expectedLagDays?: number | null
+  thesis?: string
+  falsification?: string
+  watchSignals?: string[]
+  riskFactors?: string[]
+  reviewDueAt?: string | null
+  reviewStatus?: 'pending' | 'reviewed' | 'skipped' | 'insufficient_data'
 }
 
 export type WorldImpactAudit = {
@@ -262,6 +290,17 @@ export type WorldImpactAudit = {
   priceDataPending: number
   sourceQualityUnknown: number
   unknownMatchedAsHit: number
+  // v2 監査項目（旧 audit JSON では省略されうる）
+  insufficientData?: number
+  confidenceMissing?: number
+  mechanismUnknown?: number
+  falsificationMissing?: number
+  jsonlParseErrors?: number
+  latestMismatch?: number
+  reviewStatusCounts?: Record<string, number>
+  outcomeResultCounts?: Record<string, number>
+  missReasonCounts?: Record<string, number>
+  duplicateKeys?: Array<{ key: string; count: number }>
   priorityIssues: Array<{
     severity: 'urgent' | 'attention' | 'info'
     category: string

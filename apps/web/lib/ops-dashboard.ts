@@ -93,6 +93,13 @@ export interface OpsDashboardData {
     priceDataPending: number
     sourceQualityUnknown: number
     unknownMatchedAsHit: number
+    insufficientData: number
+    confidenceMissing: number
+    mechanismUnknown: number
+    falsificationMissing: number
+    jsonlParseErrors: number
+    latestMismatch: number
+    duplicateKeys: number
     priorityIssues: Array<{ severity?: string; title?: string; detail?: string }>
   }
   nextSafeCommands: Array<{ command: string; reason: string }>
@@ -186,6 +193,13 @@ export function loadOpsDashboard(): OpsDashboardData | null {
         priceDataPending: raw.worldImpactAudit?.priceDataPending ?? 0,
         sourceQualityUnknown: raw.worldImpactAudit?.sourceQualityUnknown ?? 0,
         unknownMatchedAsHit: raw.worldImpactAudit?.unknownMatchedAsHit ?? 0,
+        insufficientData: raw.worldImpactAudit?.insufficientData ?? 0,
+        confidenceMissing: raw.worldImpactAudit?.confidenceMissing ?? 0,
+        mechanismUnknown: raw.worldImpactAudit?.mechanismUnknown ?? 0,
+        falsificationMissing: raw.worldImpactAudit?.falsificationMissing ?? 0,
+        jsonlParseErrors: raw.worldImpactAudit?.jsonlParseErrors ?? 0,
+        latestMismatch: raw.worldImpactAudit?.latestMismatch ?? 0,
+        duplicateKeys: raw.worldImpactAudit?.duplicateKeys ?? 0,
         priorityIssues: Array.isArray(raw.worldImpactAudit?.priorityIssues)
           ? raw.worldImpactAudit.priorityIssues
           : [],
