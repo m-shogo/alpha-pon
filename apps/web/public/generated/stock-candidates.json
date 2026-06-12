@@ -1,24 +1,24 @@
 {
   "candidates": [
     {
-      "code": "6254",
-      "name": "野村マイクロ・サイエンス",
-      "sector": "semiconductor",
-      "detectedAt": "2026-06-10",
-      "currentPrice": 3050,
-      "high52w": 4100,
-      "drawdownPct": -25.609756097560975,
-      "change5dPct": 0.4942339373970346,
-      "change20dPct": -2.8662420382165608,
+      "code": "6954",
+      "name": "ファナック",
+      "sector": "automation_robotics",
+      "detectedAt": "2026-06-12",
+      "currentPrice": 5936,
+      "high52w": 7113,
+      "drawdownPct": -16.547167158723465,
+      "change5dPct": -4.642570281124498,
+      "change20dPct": -6.754633993088281,
       "topixChange5dPct": null,
       "topixChange20dPct": null,
       "relativeTopix5dPct": null,
       "relativeTopix20dPct": null,
-      "volumeSpikeRatio": 0.6530917198358672,
+      "volumeSpikeRatio": 1.059867701089456,
       "priceSignalSource": "jquants",
       "priceSignalQuality": "exact",
       "priceRiskWarnings": [],
-      "operatingProfitYoY": 0,
+      "operatingProfitYoY": 11.927226093757707,
       "hasDownwardRevision": false,
       "hasNegativeFlag": false,
       "hasRecentDisclosure": false,
@@ -31,25 +31,62 @@
         "summary": "J-Quantsスクリーニング時点では公式IR/TDnet本文を未確認。候補化後に一次情報確認が必要。"
       },
       "matchedWorldEventTags": [
-        "war_geopolitics",
-        "ai_ipo_compute_cycle"
+        "climate_heat_water",
+        "ai_ipo_compute_cycle",
+        "migration_labor_shortage"
       ],
-      "screeningScore": 55,
+      "screeningScore": 90,
       "warnings": [
-        "公式IR/TDnet本文未確認: disclosureEvidence.status=official_check_required",
-        "[STALE] J-Quants取得が全滅したため前回候補を暫定保持"
+        "公式IR/TDnet本文未確認: disclosureEvidence.status=official_check_required"
       ],
       "status": "monitoring",
-      "dataSource": "jquants",
-      "staleAsOf": "2026-06-11",
-      "carriedForwardAt": "2026-06-11",
-      "fallbackAsOf": "2026-06-11"
+      "dataSource": "jquants"
+    },
+    {
+      "code": "6645",
+      "name": "オムロン",
+      "sector": "automation_robotics",
+      "detectedAt": "2026-06-12",
+      "currentPrice": 4566,
+      "high52w": 5552,
+      "drawdownPct": -17.759365994236312,
+      "change5dPct": -2.080205876045464,
+      "change20dPct": -4.835348061692372,
+      "topixChange5dPct": null,
+      "topixChange20dPct": null,
+      "relativeTopix5dPct": null,
+      "relativeTopix20dPct": null,
+      "volumeSpikeRatio": 0.8864889944354059,
+      "priceSignalSource": "jquants",
+      "priceSignalQuality": "exact",
+      "priceRiskWarnings": [],
+      "operatingProfitYoY": 57.35251295789412,
+      "hasDownwardRevision": false,
+      "hasNegativeFlag": false,
+      "hasRecentDisclosure": false,
+      "disclosureEvidence": {
+        "status": "official_check_required",
+        "sourceType": "missing",
+        "sourceUrl": null,
+        "publishedAt": null,
+        "title": null,
+        "summary": "J-Quantsスクリーニング時点では公式IR/TDnet本文を未確認。候補化後に一次情報確認が必要。"
+      },
+      "matchedWorldEventTags": [
+        "migration_labor_shortage"
+      ],
+      "screeningScore": 80,
+      "warnings": [
+        "公式IR/TDnet本文未確認: disclosureEvidence.status=official_check_required"
+      ],
+      "status": "monitoring",
+      "dataSource": "jquants"
     }
   ],
   "generatedAt": "2026-06-12",
-  "sourceGeneratedAt": "2026-06-11",
+  "sourceGeneratedAt": "2026-06-12",
   "dataSource": "jquants",
-  "scanStatus": "stale_fallback",
-  "fallbackReason": "jquants_zero_candidates",
-  "count": 1
+  "scanStatus": "fresh",
+  "fallbackReason": null,
+  "count": 2
 }
