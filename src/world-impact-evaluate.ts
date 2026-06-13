@@ -92,6 +92,17 @@ type LineEntry =
   | { kind: "review"; raw: string; review: WorldEventImpactReview }
   | { kind: "broken"; raw: string };
 
+function readLatestReviewsSafe(path = LATEST_PATH): WorldEventImpactReview[] {
+  if (!existsSync(path)) return [];
+  try {
+    const parsed = JSON.parse(readFileSync(path, "utf-8"));
+    return Array.isArray(parsed) ? parsed as WorldEventImpactReview[] : [];
+  } catch (error) {
+    console.warn(`[WARN] latest JSON を読めませんでした。JSONL更新は継続します: ${error instanceof Error ? error.message : error}`);
+    return [];
+  }
+}
+
 async function main(): Promise<void> {
   const args = parseArgs();
   const { asOf } = args;
@@ -209,9 +220,7 @@ async function main(): Promise<void> {
     writeFileSync(JSONL_PATH, output.join("\n") + "\n", "utf-8");
 
     // latest はマージ更新（dry-run 由来の候補レビューを消さない）
-    const latest: WorldEventImpactReview[] = existsSync(LATEST_PATH)
-      ? (JSON.parse(readFileSync(LATEST_PATH, "utf-8")) as WorldEventImpactReview[])
-      : [];
+    const latest = readLatestReviewsSafe();
     const updatedByKey = new Map(reviews.filter(e => updatedKeys.has(e.review.reviewKey)).map(e => [e.review.reviewKey, e.review]));
     const mergedLatest = latest.map(item => updatedByKey.get(item.reviewKey) ?? item);
     for (const [key, review] of updatedByKey) {
