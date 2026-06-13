@@ -72,6 +72,11 @@ function main() {
       filledCounts.set("outcomes.missReason", (filledCounts.get("outcomes.missReason") ?? 0) + 1);
       changed = true;
     }
+    // v3 評価フィールド（evaluatedAt を代表キーとして欠損検出）
+    if (outcomes.some(outcome => !("evaluatedAt" in outcome))) {
+      filledCounts.set("outcomes.v3評価フィールド", (filledCounts.get("outcomes.v3評価フィールド") ?? 0) + 1);
+      changed = true;
+    }
     if (changed) changedRecords++;
   }
 
@@ -80,7 +85,20 @@ function main() {
       entry.kind === "broken" ? entry.raw : JSON.stringify(entry.after)
     );
     writeFileSync(JSONL_PATH, output.join("\n") + "\n", "utf-8");
-    writeWorldImpactLatest(reviews.map(entry => entry.after));
+    // latest はマージ更新（review:world-impact の dry-run 候補を消さない）
+    const LATEST_PATH = join("data", "world_event_impacts_latest.json");
+    let latest: WorldEventImpactReview[] = [];
+    try {
+      latest = existsSync(LATEST_PATH) ? JSON.parse(readFileSync(LATEST_PATH, "utf-8")) as WorldEventImpactReview[] : [];
+    } catch {
+      latest = [];
+    }
+    const updatedByKey = new Map(reviews.map(entry => [entry.after.reviewKey, entry.after]));
+    const merged = latest.map(item => updatedByKey.get(item.reviewKey) ?? item);
+    for (const [key, review] of updatedByKey) {
+      if (!merged.some(item => item.reviewKey === key)) merged.push(review);
+    }
+    writeWorldImpactLatest(merged);
   }
 
   mkdirSync("reports", { recursive: true });

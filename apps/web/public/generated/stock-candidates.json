@@ -37,10 +37,14 @@
       ],
       "screeningScore": 90,
       "warnings": [
-        "公式IR/TDnet本文未確認: disclosureEvidence.status=official_check_required"
+        "公式IR/TDnet本文未確認: disclosureEvidence.status=official_check_required",
+        "[STALE] J-Quants取得が全滅したため前回候補を暫定保持"
       ],
       "status": "monitoring",
-      "dataSource": "jquants"
+      "dataSource": "jquants",
+      "staleAsOf": "2026-06-13",
+      "carriedForwardAt": "2026-06-13",
+      "fallbackAsOf": "2026-06-13"
     },
     {
       "code": "6645",
@@ -77,16 +81,20 @@
       ],
       "screeningScore": 80,
       "warnings": [
-        "公式IR/TDnet本文未確認: disclosureEvidence.status=official_check_required"
+        "公式IR/TDnet本文未確認: disclosureEvidence.status=official_check_required",
+        "[STALE] J-Quants取得が全滅したため前回候補を暫定保持"
       ],
       "status": "monitoring",
-      "dataSource": "jquants"
+      "dataSource": "jquants",
+      "staleAsOf": "2026-06-13",
+      "carriedForwardAt": "2026-06-13",
+      "fallbackAsOf": "2026-06-13"
     }
   ],
   "generatedAt": "2026-06-13",
-  "sourceGeneratedAt": "2026-06-12",
+  "sourceGeneratedAt": "2026-06-13",
   "dataSource": "jquants",
-  "scanStatus": "fresh",
-  "fallbackReason": null,
+  "scanStatus": "stale_fallback",
+  "fallbackReason": "jquants_zero_candidates",
   "count": 2
 }

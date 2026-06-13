@@ -24,6 +24,22 @@ function readLatest(today: string): WorldEventImpactReview[] | null {
   }
 }
 
+function readRawRecords(): unknown[] {
+  const path = join("data", "world_event_impacts.jsonl");
+  if (!existsSync(path)) return [];
+  return readFileSync(path, "utf-8")
+    .split("\n")
+    .map(line => line.trim())
+    .filter(Boolean)
+    .flatMap(line => {
+      try {
+        return [JSON.parse(line) as unknown];
+      } catch {
+        return [];
+      }
+    });
+}
+
 function main() {
   const today = todayJst();
   const { reviews: jsonlReviews, parseErrors } = loadWorldImpactJsonl(undefined, today);
@@ -32,6 +48,7 @@ function main() {
   const audit = buildWorldImpactAudit(reviews, today, {
     jsonlParseErrors: parseErrors,
     jsonlKeys: jsonlReviews.map(review => review.reviewKey),
+    rawRecords: readRawRecords(),
   });
 
   mkdirSync("reports", { recursive: true });
@@ -50,6 +67,9 @@ function main() {
   console.log(`confidenceMissing: ${audit.confidenceMissing}`);
   console.log(`jsonlParseErrors: ${audit.jsonlParseErrors}`);
   console.log(`latestMismatch: ${audit.latestMismatch}`);
+  console.log(`dueWithoutOutcome: ${audit.dueWithoutOutcome}`);
+  console.log(`enum違反: result=${audit.resultEnumViolations} direction=${audit.directionEnumViolations} autoMissReason=${audit.autoMissReasonViolations} confidence範囲外=${audit.confidenceOutOfRange}`);
+  console.log(`不整合: insufficientDataWithReturn=${audit.insufficientDataWithReturn} judgedWithoutReturn=${audit.judgedWithoutReturn} missReasonConflicts=${audit.missReasonConflicts}`);
   console.log("出力: reports/world-impact-audit.md / reports/world-impact-audit.json");
 }
 

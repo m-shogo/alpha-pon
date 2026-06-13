@@ -46,6 +46,38 @@ export const WORLD_IMPACT_MISS_REASONS = [
 ] as const;
 export type WorldImpactMissReason = (typeof WORLD_IMPACT_MISS_REASONS)[number];
 
+// v3: 自動推定用の外れ理由分類。manualMissReason（v2 の WORLD_IMPACT_MISS_REASONS）とは別管理。
+export const WORLD_IMPACT_AUTO_MISS_REASONS = [
+  "too_early",
+  "too_late",
+  "already_priced_in",
+  "wrong_mechanism",
+  "wrong_direction",
+  "weak_stock_linkage",
+  "macro_overpowered",
+  "company_specific_overpowered",
+  "theme_not_traded",
+  "low_magnitude",
+  "insufficient_data",
+  "unclear",
+] as const;
+export type WorldImpactAutoMissReason = (typeof WORLD_IMPACT_AUTO_MISS_REASONS)[number];
+
+export const WORLD_IMPACT_AUTO_MISS_REASON_LABELS: Record<WorldImpactAutoMissReason, string> = {
+  too_early: "時期が早すぎた",
+  too_late: "反応が想定より遅い",
+  already_priced_in: "織り込み済み",
+  wrong_mechanism: "メカニズムが違った",
+  wrong_direction: "方向が逆だった",
+  weak_stock_linkage: "銘柄との関連が弱かった",
+  macro_overpowered: "地合いに連動しただけ",
+  company_specific_overpowered: "個別要因に打ち消された",
+  theme_not_traded: "テーマが取引されなかった",
+  low_magnitude: "値動きが小さすぎる",
+  insufficient_data: "データ不足",
+  unclear: "不明",
+};
+
 export const WORLD_IMPACT_MISS_REASON_LABELS: Record<WorldImpactMissReason, string> = {
   already_priced_in: "織り込み済み",
   weak_linkage: "関連が弱かった",
@@ -78,6 +110,29 @@ export type WorldEventImpactOutcome = {
   missReason: WorldImpactMissReason | null;
   missedSignals: string[];
   lesson: string | null;
+  // v3: 自動評価フィールド（v1/v2 レコードは normalize で null/[] 補完される）
+  evaluatedAt: string | null;
+  evaluationAsOf: string | null;
+  priceStartDate: string | null;
+  priceEndDate: string | null;
+  priceStart: number | null;
+  priceEnd: number | null;
+  priceReturnPct: number | null;
+  benchmarkCode: string | null;
+  benchmarkReturnPct: number | null;
+  relativeReturnPct: number | null;
+  directionMatched: boolean | null;
+  expectedLagDays: number | null;
+  actualLagDays: number | null;
+  lagMatched: boolean | null;
+  movementMagnitude: number | null;
+  evidence: string[];
+  evaluationNotes: string | null;
+  autoMissReason: WorldImpactAutoMissReason | null;
+  manualMissReason: WorldImpactMissReason | null;
+  confidenceAtPrediction: number | null;
+  mechanismAtPrediction: WorldImpactMechanism[];
+  sourceReliabilityAtPrediction: string | null;
 };
 
 export type WorldEventImpactCompanyLink = {
@@ -148,6 +203,19 @@ export type WorldImpactAudit = {
   reviewStatusCounts: Record<string, number>;
   outcomeResultCounts: Record<string, number>;
   missReasonCounts: Record<string, number>;
+  // v3 監査項目（旧 audit JSON では省略されうる）
+  dueWithoutOutcome: number;
+  evaluatedAtMissing: number;
+  evaluationAsOfMissing: number;
+  resultEnumViolations: number;
+  directionEnumViolations: number;
+  confidenceOutOfRange: number;
+  autoMissReasonViolations: number;
+  missReasonConflicts: number;
+  insufficientDataWithReturn: number;
+  judgedWithoutReturn: number;
+  latestOnlyReviews: number;
+  jsonlOnlyReviews: number;
   priorityIssues: Array<{
     severity: "urgent" | "attention" | "info";
     category: string;
@@ -157,16 +225,29 @@ export type WorldImpactAudit = {
 };
 
 export type WorldImpactCalibrationRow = {
-  groupType: "confidence" | "mechanism" | "lag";
+  groupType: "confidence" | "mechanism" | "lag" | "direction" | "source" | "code" | "theme";
   groupKey: string;
   total: number;
   evaluated: number;
   hit: number;
   miss: number;
   inverse: number;
+  unclear: number;
+  insufficientData: number;
   hitRate: number | null;
   sampleTooSmall: boolean;
   note: string;
+};
+
+export type WorldImpactCalibrationCase = {
+  reviewKey: string;
+  topic: string;
+  code: string;
+  horizon: string;
+  confidence: number | null;
+  result: string | null;
+  autoMissReason: string | null;
+  manualMissReason: string | null;
 };
 
 export type WorldImpactCalibration = {
@@ -175,6 +256,12 @@ export type WorldImpactCalibration = {
   totalReviews: number;
   evaluatedOutcomes: number;
   rows: WorldImpactCalibrationRow[];
+  // v3 追加（旧 JSON では省略されうる）
+  highConfidenceMisses: WorldImpactCalibrationCase[];
+  lowConfidenceHits: WorldImpactCalibrationCase[];
+  autoMissReasonCounts: Record<string, number>;
+  manualMissReasonCounts: Record<string, number>;
+  suggestions: { weaken: string[]; strengthen: string[] };
   notes: string[];
 };
 
@@ -313,8 +400,36 @@ function buildOutcome(createdAt: string, horizon: WorldImpactHorizon, today: str
     missReason: null,
     missedSignals: [],
     lesson: null,
+    ...EMPTY_OUTCOME_V3_FIELDS,
+    expectedLagDays: HORIZON_DAYS[horizon],
   };
 }
+
+// v3 評価フィールドの空既定値（normalize / builder 共通）
+const EMPTY_OUTCOME_V3_FIELDS = {
+  evaluatedAt: null,
+  evaluationAsOf: null,
+  priceStartDate: null,
+  priceEndDate: null,
+  priceStart: null,
+  priceEnd: null,
+  priceReturnPct: null,
+  benchmarkCode: null,
+  benchmarkReturnPct: null,
+  relativeReturnPct: null,
+  directionMatched: null,
+  expectedLagDays: null,
+  actualLagDays: null,
+  lagMatched: null,
+  movementMagnitude: null,
+  evidence: [] as string[],
+  evaluationNotes: null,
+  autoMissReason: null,
+  manualMissReason: null,
+  confidenceAtPrediction: null,
+  mechanismAtPrediction: [] as WorldImpactMechanism[],
+  sourceReliabilityAtPrediction: null,
+} satisfies Partial<WorldEventImpactOutcome>;
 
 // ── v2: normalize（v1 レコードや欠損フィールドの安全補完） ───
 // 既存値は一切上書きしない。欠損のみ安全な既定値で埋めるため冪等。
@@ -322,6 +437,18 @@ function buildOutcome(createdAt: string, horizon: WorldImpactHorizon, today: str
 function numberInRange(value: unknown, min: number, max: number): number | null {
   if (typeof value !== "number" || !Number.isFinite(value)) return null;
   return value >= min && value <= max ? value : null;
+}
+
+function finiteOrNull(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function stringOrNull(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
+function boolOrNull(value: unknown): boolean | null {
+  return typeof value === "boolean" ? value : null;
 }
 
 function normalizeOutcome(raw: Record<string, unknown>): WorldEventImpactOutcome {
@@ -332,6 +459,13 @@ function normalizeOutcome(raw: Record<string, unknown>): WorldEventImpactOutcome
   const missReason = typeof raw.missReason === "string" && (WORLD_IMPACT_MISS_REASONS as readonly string[]).includes(raw.missReason)
     ? (raw.missReason as WorldImpactMissReason)
     : null;
+  const autoMissReason = typeof raw.autoMissReason === "string" && (WORLD_IMPACT_AUTO_MISS_REASONS as readonly string[]).includes(raw.autoMissReason)
+    ? (raw.autoMissReason as WorldImpactAutoMissReason)
+    : null;
+  // 互換: v2 までの missReason は手動記録として manualMissReason に引き継ぐ（既存値優先）
+  const manualMissReason = typeof raw.manualMissReason === "string" && (WORLD_IMPACT_MISS_REASONS as readonly string[]).includes(raw.manualMissReason)
+    ? (raw.manualMissReason as WorldImpactMissReason)
+    : missReason;
   return {
     horizon,
     dueAt: typeof raw.dueAt === "string" ? raw.dueAt : "",
@@ -339,20 +473,44 @@ function normalizeOutcome(raw: Record<string, unknown>): WorldEventImpactOutcome
     expectedDirection: typeof raw.expectedDirection === "string" && VALID_DIRECTIONS.has(raw.expectedDirection) ? (raw.expectedDirection as WorldImpactDirection) : "unknown",
     actualDirection: typeof raw.actualDirection === "string" && VALID_DIRECTIONS.has(raw.actualDirection) ? (raw.actualDirection as WorldImpactDirection) : "unknown",
     dataAvailability: raw.dataAvailability === "ok" || raw.dataAvailability === "partial" || raw.dataAvailability === "priceDataPending" ? raw.dataAvailability : "missing",
-    returnPct: typeof raw.returnPct === "number" && Number.isFinite(raw.returnPct) ? raw.returnPct : null,
-    topixReturnPct: typeof raw.topixReturnPct === "number" && Number.isFinite(raw.topixReturnPct) ? raw.topixReturnPct : null,
-    relativeToTopixPct: typeof raw.relativeToTopixPct === "number" && Number.isFinite(raw.relativeToTopixPct) ? raw.relativeToTopixPct : null,
+    returnPct: finiteOrNull(raw.returnPct),
+    topixReturnPct: finiteOrNull(raw.topixReturnPct),
+    relativeToTopixPct: finiteOrNull(raw.relativeToTopixPct),
     missReason,
     missedSignals: Array.isArray(raw.missedSignals) ? raw.missedSignals.filter((s): s is string => typeof s === "string") : [],
     lesson: typeof raw.lesson === "string" && raw.lesson.trim() ? raw.lesson : null,
+    evaluatedAt: stringOrNull(raw.evaluatedAt),
+    evaluationAsOf: stringOrNull(raw.evaluationAsOf),
+    priceStartDate: stringOrNull(raw.priceStartDate),
+    priceEndDate: stringOrNull(raw.priceEndDate),
+    priceStart: finiteOrNull(raw.priceStart),
+    priceEnd: finiteOrNull(raw.priceEnd),
+    priceReturnPct: finiteOrNull(raw.priceReturnPct),
+    benchmarkCode: stringOrNull(raw.benchmarkCode),
+    benchmarkReturnPct: finiteOrNull(raw.benchmarkReturnPct),
+    relativeReturnPct: finiteOrNull(raw.relativeReturnPct),
+    directionMatched: boolOrNull(raw.directionMatched),
+    expectedLagDays: finiteOrNull(raw.expectedLagDays) ?? HORIZON_DAYS[horizon],
+    actualLagDays: finiteOrNull(raw.actualLagDays),
+    lagMatched: boolOrNull(raw.lagMatched),
+    movementMagnitude: finiteOrNull(raw.movementMagnitude),
+    evidence: Array.isArray(raw.evidence) ? raw.evidence.filter((s): s is string => typeof s === "string") : [],
+    evaluationNotes: stringOrNull(raw.evaluationNotes),
+    autoMissReason,
+    manualMissReason,
+    confidenceAtPrediction: numberInRange(raw.confidenceAtPrediction, 0, 1),
+    mechanismAtPrediction: Array.isArray(raw.mechanismAtPrediction) ? raw.mechanismAtPrediction.filter(isMechanism) : [],
+    sourceReliabilityAtPrediction: stringOrNull(raw.sourceReliabilityAtPrediction),
   };
 }
 
-function deriveReviewStatus(outcomes: WorldEventImpactOutcome[], today: string): WorldImpactReviewStatus {
+export function deriveReviewStatus(outcomes: WorldEventImpactOutcome[], today: string): WorldImpactReviewStatus {
   if (outcomes.length === 0) return "pending";
   const evaluated = (o: WorldEventImpactOutcome) =>
     o.result != null && o.result !== "unknown" && o.result !== "too_early";
-  if (outcomes.every(evaluated)) return "reviewed";
+  if (outcomes.every(evaluated)) {
+    return outcomes.every(o => o.result === "insufficient_data") ? "insufficient_data" : "reviewed";
+  }
   const dueMissing = outcomes.some(o =>
     isDue(o.dueAt, today) && !evaluated(o) && o.dataAvailability === "missing"
   );
@@ -629,7 +787,42 @@ export type WorldImpactAuditOptions = {
   jsonlParseErrors?: number;
   /** JSONL 側のキー集合。latest との不一致検出に使う */
   jsonlKeys?: string[];
+  /** normalize 前の生レコード。enum 外・範囲外の検出に使う */
+  rawRecords?: unknown[];
 };
+
+// v3: 生レコードの enum / 範囲チェック（normalize は不正値を握りつぶすため raw で検査する）
+export function countRawViolations(rawRecords: unknown[]): {
+  resultEnumViolations: number;
+  directionEnumViolations: number;
+  confidenceOutOfRange: number;
+  autoMissReasonViolations: number;
+} {
+  let resultEnumViolations = 0;
+  let directionEnumViolations = 0;
+  let confidenceOutOfRange = 0;
+  let autoMissReasonViolations = 0;
+  for (const rawValue of rawRecords) {
+    if (typeof rawValue !== "object" || rawValue === null) continue;
+    const raw = rawValue as Record<string, unknown>;
+    const confidence = raw.confidence;
+    if (typeof confidence === "number" && Number.isFinite(confidence) && (confidence < 0 || confidence > 1)) {
+      confidenceOutOfRange++;
+    }
+    if (typeof raw.direction === "string" && !VALID_DIRECTION_CALLS.has(raw.direction)) directionEnumViolations++;
+    for (const outcomeValue of (Array.isArray(raw.outcomes) ? raw.outcomes : [])) {
+      if (typeof outcomeValue !== "object" || outcomeValue === null) continue;
+      const outcome = outcomeValue as Record<string, unknown>;
+      if (typeof outcome.result === "string" && !VALID_RESULTS.has(outcome.result)) resultEnumViolations++;
+      if (typeof outcome.expectedDirection === "string" && !VALID_DIRECTIONS.has(outcome.expectedDirection)) directionEnumViolations++;
+      if (typeof outcome.actualDirection === "string" && !VALID_DIRECTIONS.has(outcome.actualDirection)) directionEnumViolations++;
+      if (typeof outcome.autoMissReason === "string" && !(WORLD_IMPACT_AUTO_MISS_REASONS as readonly string[]).includes(outcome.autoMissReason)) {
+        autoMissReasonViolations++;
+      }
+    }
+  }
+  return { resultEnumViolations, directionEnumViolations, confidenceOutOfRange, autoMissReasonViolations };
+}
 
 export function buildWorldImpactAudit(reviews: WorldEventImpactReview[], today = todayJst(), options: WorldImpactAuditOptions = {}): WorldImpactAudit {
   const counts = new Map<string, number>();
@@ -691,7 +884,42 @@ export function buildWorldImpactAudit(reviews: WorldEventImpactReview[], today =
     if (outcome.missReason) missReasonCounts[outcome.missReason] = (missReasonCounts[outcome.missReason] ?? 0) + 1;
   }
 
+  // v3 監査項目
+  const dueWithoutOutcome = reviews.filter(review =>
+    review.reviewDueAt != null && review.reviewDueAt < today && review.outcomes.length === 0
+  ).length;
+  const judged = (o: WorldEventImpactOutcome) => o.result === "hit" || o.result === "miss" || o.result === "inverse";
+  const evaluatedAtMissing = allOutcomes.filter(o => judged(o) && o.evaluatedAt == null).length;
+  const evaluationAsOfMissing = allOutcomes.filter(o => judged(o) && o.evaluationAsOf == null).length;
+  const insufficientDataWithReturn = allOutcomes.filter(o =>
+    o.result === "insufficient_data" && (o.priceReturnPct != null || o.returnPct != null)
+  ).length;
+  const judgedWithoutReturn = allOutcomes.filter(o =>
+    judged(o) && o.priceReturnPct == null && o.returnPct == null
+  ).length;
+  // manual と auto が両方あり分類が明確に矛盾（manual=データ系 vs auto=方向系など）するもの
+  const missReasonConflicts = allOutcomes.filter(o =>
+    o.manualMissReason != null && o.autoMissReason != null &&
+    ((o.manualMissReason === "data_insufficient") !== (o.autoMissReason === "insufficient_data"))
+  ).length;
+  const rawViolations = options.rawRecords
+    ? countRawViolations(options.rawRecords)
+    : { resultEnumViolations: 0, directionEnumViolations: 0, confidenceOutOfRange: 0, autoMissReasonViolations: 0 };
+  const latestKeySet = new Set(reviews.map(review => review.reviewKey));
+  const jsonlKeySet = new Set(options.jsonlKeys ?? []);
+  const jsonlOnlyReviews = options.jsonlKeys ? [...jsonlKeySet].filter(key => !latestKeySet.has(key)).length : 0;
+  const latestOnlyReviews = options.jsonlKeys ? [...latestKeySet].filter(key => !jsonlKeySet.has(key)).length : 0;
+
   const priorityIssues: WorldImpactAudit["priorityIssues"] = [];
+  if (dueWithoutOutcome > 0) priorityIssues.push({ severity: "attention", category: "due_without_outcome", title: `期限超過なのに outcome 記録なし: ${dueWithoutOutcome}件`, detail: "pnpm evaluate:world-impact で評価するか、outcome 生成を確認してください。" });
+  if (rawViolations.resultEnumViolations + rawViolations.directionEnumViolations + rawViolations.autoMissReasonViolations > 0) {
+    priorityIssues.push({ severity: "attention", category: "enum_violation", title: `enum 外の値: result=${rawViolations.resultEnumViolations} / direction=${rawViolations.directionEnumViolations} / autoMissReason=${rawViolations.autoMissReasonViolations}`, detail: "normalize では null に落ちますが、生成元のロジックを確認してください。" });
+  }
+  if (rawViolations.confidenceOutOfRange > 0) priorityIssues.push({ severity: "attention", category: "confidence_range", title: `confidence が 0〜1 範囲外: ${rawViolations.confidenceOutOfRange}件`, detail: "生成元のロジックを確認してください。" });
+  if (insufficientDataWithReturn > 0) priorityIssues.push({ severity: "attention", category: "inconsistent_outcome", title: `insufficient_data なのに return が記録済み: ${insufficientDataWithReturn}件`, detail: "判定とデータの整合を確認してください。" });
+  if (judgedWithoutReturn > 0) priorityIssues.push({ severity: "attention", category: "inconsistent_outcome", title: `hit/miss/inverse なのに priceReturnPct が欠損: ${judgedWithoutReturn}件`, detail: "評価根拠の価格データを確認してください。" });
+  if (evaluatedAtMissing > 0) priorityIssues.push({ severity: "info", category: "evaluation_meta", title: `評価済みなのに evaluatedAt 欠損: ${evaluatedAtMissing}件`, detail: "pnpm backfill:world-impact で補完を検討してください。" });
+  if (missReasonConflicts > 0) priorityIssues.push({ severity: "info", category: "miss_reason_conflict", title: `manual と auto の外れ理由が不整合: ${missReasonConflicts}件`, detail: "手動分類を優先しつつ、自動推定ロジックの見直し対象として記録します。" });
   if (jsonlParseErrors > 0) priorityIssues.push({ severity: "urgent", category: "jsonl", title: `JSONL parse error: ${jsonlParseErrors}件`, detail: "data/world_event_impacts.jsonl に破損行があります。" });
   if (latestMismatch > 0) priorityIssues.push({ severity: "attention", category: "latest_mismatch", title: `latest と JSONL の不一致: ${latestMismatch}件`, detail: "pnpm review:world-impact を再実行して latest を更新してください。" });
   if (mechanismUnknown > 0) priorityIssues.push({ severity: "attention", category: "mechanism_unknown", title: `mechanism 分類 unknown: ${mechanismUnknown}件`, detail: "影響メカニズムの分類が未確定です。pnpm backfill:world-impact で推定補完するか手動で分類してください。" });
@@ -734,11 +962,217 @@ export function buildWorldImpactAudit(reviews: WorldEventImpactReview[], today =
     reviewStatusCounts,
     outcomeResultCounts,
     missReasonCounts,
+    dueWithoutOutcome,
+    evaluatedAtMissing,
+    evaluationAsOfMissing,
+    resultEnumViolations: rawViolations.resultEnumViolations,
+    directionEnumViolations: rawViolations.directionEnumViolations,
+    confidenceOutOfRange: rawViolations.confidenceOutOfRange,
+    autoMissReasonViolations: rawViolations.autoMissReasonViolations,
+    missReasonConflicts,
+    insufficientDataWithReturn,
+    judgedWithoutReturn,
+    latestOnlyReviews,
+    jsonlOnlyReviews,
     priorityIssues,
   };
 }
 
-// ── v2: キャリブレーション（confidence帯 / mechanism / lag 別精度） ──
+// ── v3: outcome 自動評価エンジン（純粋ロジック） ─────────────
+// 価格・ベンチマークと照合して outcome を評価する。
+// 安全ルール:
+//   - 既存の評価済み result（hit/miss/inverse/unclear/insufficient_data）は再評価しない
+//   - 欠損フィールドのみ補完し、既存値は上書きしない
+//   - manualMissReason は絶対に触らない
+//   - データ不足は miss にせず insufficient_data に逃がす
+//   - 根拠が弱い判定は unclear に逃がす
+
+export type WorldImpactQuote = { date: string; close: number };
+
+export type EvaluateOutcomeInputs = {
+  review: WorldEventImpactReview;
+  outcome: WorldEventImpactOutcome;
+  /** 対象銘柄の日次終値（日付昇順でなくてもよい。date は YYYY-MM-DD） */
+  quotes: WorldImpactQuote[];
+  /** ベンチマーク（TOPIX 連動 ETF 等）の日次終値 */
+  benchmarkQuotes: WorldImpactQuote[];
+  benchmarkCode?: string;
+  asOf: string;
+};
+
+// 「動いた」と見なす最小変化率（%）。これ未満は low_magnitude として unclear に逃がす。
+const MOVEMENT_THRESHOLD_PCT = 1.5;
+
+function sortQuotes(quotes: WorldImpactQuote[]): WorldImpactQuote[] {
+  return [...quotes]
+    .filter(q => typeof q.date === "string" && Number.isFinite(q.close) && q.close > 0)
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function quoteOnOrAfter(sorted: WorldImpactQuote[], date: string, notAfter: string): WorldImpactQuote | null {
+  return sorted.find(q => q.date >= date && q.date <= notAfter) ?? null;
+}
+
+function pctChange(start: number, end: number): number {
+  return ((end - start) / start) * 100;
+}
+
+function directionOf(returnPct: number): WorldImpactDirection {
+  if (returnPct >= MOVEMENT_THRESHOLD_PCT) return "up";
+  if (returnPct <= -MOVEMENT_THRESHOLD_PCT) return "down";
+  return "sideways";
+}
+
+function expectedDirectionFor(review: WorldEventImpactReview, outcome: WorldEventImpactOutcome): WorldImpactDirection {
+  if (outcome.expectedDirection !== "unknown") return outcome.expectedDirection;
+  if (review.direction === "positive") return "up";
+  if (review.direction === "negative") return "down";
+  return "unknown";
+}
+
+function daysBetween(from: string, to: string): number | null {
+  const a = new Date(`${from}T00:00:00+09:00`).getTime();
+  const b = new Date(`${to}T00:00:00+09:00`).getTime();
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+  return Math.round((b - a) / 86400000);
+}
+
+/** 評価対象か（result が未確定で、期日が評価基準日を過ぎている） */
+export function isEvaluableOutcome(outcome: WorldEventImpactOutcome, asOf: string): boolean {
+  const unevaluated = outcome.result == null || outcome.result === "unknown" || outcome.result === "too_early";
+  return unevaluated && outcome.dueAt !== "" && outcome.dueAt <= asOf;
+}
+
+/**
+ * outcome を価格データと照合して評価した新しい outcome を返す。
+ * 評価不能・評価済みの場合は入力をそのまま返す（参照は新オブジェクト）。
+ */
+export function evaluateWorldImpactOutcome(inputs: EvaluateOutcomeInputs): WorldEventImpactOutcome {
+  const { review, outcome, asOf } = inputs;
+  if (!isEvaluableOutcome(outcome, asOf)) return { ...outcome };
+
+  const next: WorldEventImpactOutcome = { ...outcome };
+  const fill = <K extends keyof WorldEventImpactOutcome>(key: K, value: WorldEventImpactOutcome[K]) => {
+    const current = next[key];
+    const empty = current == null || (Array.isArray(current) && current.length === 0) || current === "unknown";
+    if (empty) next[key] = value;
+  };
+
+  const today = asOf;
+  next.evaluatedAt = next.evaluatedAt ?? today;
+  next.evaluationAsOf = next.evaluationAsOf ?? asOf;
+  fill("confidenceAtPrediction", review.confidence);
+  fill("mechanismAtPrediction", review.mechanisms ?? []);
+  fill("sourceReliabilityAtPrediction", review.sourceQuality);
+  fill("expectedLagDays", HORIZON_DAYS[outcome.horizon]);
+
+  const baseDate = review.eventDate || review.createdAt;
+  const quotes = sortQuotes(inputs.quotes);
+  const benchQuotes = sortQuotes(inputs.benchmarkQuotes);
+  const startQuote = quoteOnOrAfter(quotes, baseDate, asOf);
+  const endQuote = quoteOnOrAfter(quotes, outcome.dueAt, asOf);
+
+  if (!startQuote || !endQuote || endQuote.date <= startQuote.date) {
+    // 価格データ不足は miss にしない
+    next.result = "insufficient_data";
+    fill("autoMissReason", "insufficient_data");
+    next.evaluationNotes = next.evaluationNotes
+      ?? `未評価: ${baseDate}〜${outcome.dueAt} の価格データが不足しているため判定不能。`;
+    if (next.dataAvailability === "ok" || next.dataAvailability === "priceDataPending") {
+      next.dataAvailability = "missing";
+    }
+    return next;
+  }
+
+  const priceReturn = pctChange(startQuote.close, endQuote.close);
+  fill("priceStartDate", startQuote.date);
+  fill("priceEndDate", endQuote.date);
+  fill("priceStart", startQuote.close);
+  fill("priceEnd", endQuote.close);
+  fill("priceReturnPct", priceReturn);
+  fill("returnPct", priceReturn);
+  next.dataAvailability = "ok";
+
+  // ベンチマーク比較（欠損なら絶対リターンのみで判定し、相対系は null のまま）
+  const benchStart = quoteOnOrAfter(benchQuotes, baseDate, asOf);
+  const benchEnd = quoteOnOrAfter(benchQuotes, outcome.dueAt, asOf);
+  let benchReturn: number | null = null;
+  if (benchStart && benchEnd && benchEnd.date > benchStart.date) {
+    benchReturn = pctChange(benchStart.close, benchEnd.close);
+    fill("benchmarkCode", inputs.benchmarkCode ?? null);
+    fill("benchmarkReturnPct", benchReturn);
+    fill("topixReturnPct", benchReturn);
+    fill("relativeReturnPct", priceReturn - benchReturn);
+    fill("relativeToTopixPct", priceReturn - benchReturn);
+  }
+
+  const actual = directionOf(priceReturn);
+  if (next.actualDirection === "unknown") next.actualDirection = actual;
+  const expected = expectedDirectionFor(review, outcome);
+  if (next.expectedDirection === "unknown" && expected !== "unknown") next.expectedDirection = expected;
+
+  next.movementMagnitude = next.movementMagnitude ?? Math.abs(priceReturn);
+
+  // 反応タイミング: 基準日からの累積変化が閾値を初めて超えた営業日
+  let actualLagDays: number | null = null;
+  for (const quote of quotes) {
+    if (quote.date <= startQuote.date || quote.date > endQuote.date) continue;
+    if (Math.abs(pctChange(startQuote.close, quote.close)) >= MOVEMENT_THRESHOLD_PCT) {
+      actualLagDays = daysBetween(baseDate, quote.date);
+      break;
+    }
+  }
+  next.actualLagDays = next.actualLagDays ?? actualLagDays;
+  if (next.lagMatched == null && next.actualLagDays != null && next.expectedLagDays != null) {
+    next.lagMatched = next.actualLagDays <= next.expectedLagDays;
+  }
+
+  const evidence: string[] = [
+    `銘柄 ${startQuote.date}→${endQuote.date}: ${priceReturn.toFixed(2)}%`,
+    ...(benchReturn != null ? [`ベンチマーク(${inputs.benchmarkCode ?? "-"}): ${benchReturn.toFixed(2)}% / 相対: ${(priceReturn - benchReturn).toFixed(2)}%`] : ["ベンチマーク: データなし（絶対リターンで判定）"]),
+  ];
+  if (next.evidence.length === 0) next.evidence = evidence;
+
+  // ── 判定（不確実なものは unclear に逃がす） ──
+  if (expected === "unknown") {
+    next.result = "unclear";
+    if (next.directionMatched == null) next.directionMatched = null;
+    fill("autoMissReason", "unclear");
+    next.evaluationNotes = next.evaluationNotes
+      ?? `想定方向が未設定のため、変化率 ${priceReturn.toFixed(2)}% を観察記録として残す。判定は不能。`;
+    return next;
+  }
+
+  if (actual === "sideways") {
+    next.result = "unclear";
+    next.directionMatched = next.directionMatched ?? false;
+    fill("autoMissReason", "low_magnitude");
+    next.evaluationNotes = next.evaluationNotes
+      ?? `変化率 ${priceReturn.toFixed(2)}% は閾値 ${MOVEMENT_THRESHOLD_PCT}% 未満。値動きが小さく検証不能として扱う。`;
+    return next;
+  }
+
+  const matched = actual === expected;
+  next.directionMatched = next.directionMatched ?? matched;
+
+  if (matched) {
+    next.result = "hit";
+    next.evaluationNotes = next.evaluationNotes
+      ?? `想定方向 ${expected} と実際 ${actual} が一致（${priceReturn.toFixed(2)}%）。仮説と整合する観察結果。`;
+    return next;
+  }
+
+  // 逆方向: 地合いに連動しただけかを相対リターンで切り分ける
+  next.result = "inverse";
+  const benchDirection = benchReturn != null ? directionOf(benchReturn) : "unknown";
+  const followedMarket = benchDirection !== "unknown" && benchDirection !== "sideways" && benchDirection === actual;
+  fill("autoMissReason", followedMarket ? "macro_overpowered" : "wrong_direction");
+  next.evaluationNotes = next.evaluationNotes
+    ?? (followedMarket
+      ? `想定方向 ${expected} に対し実際は ${actual}。ベンチマークも同方向のため、地合いに連動した可能性を要確認。`
+      : `想定方向 ${expected} に対し実際は ${actual}（${priceReturn.toFixed(2)}%）。仮説と逆の観察結果。`);
+  return next;
+}
 
 const CALIBRATION_MIN_SAMPLE = 5;
 
@@ -754,6 +1188,8 @@ function calibrationRow(groupType: WorldImpactCalibrationRow["groupType"], group
   const hit = evaluatedOutcomes.filter(o => o.result === "hit").length;
   const miss = evaluatedOutcomes.filter(o => o.result === "miss").length;
   const inverse = evaluatedOutcomes.filter(o => o.result === "inverse").length;
+  const unclear = outcomes.filter(o => o.result === "unclear").length;
+  const insufficientData = outcomes.filter(o => o.result === "insufficient_data").length;
   const sampleTooSmall = evaluatedOutcomes.length < CALIBRATION_MIN_SAMPLE;
   return {
     groupType,
@@ -763,31 +1199,92 @@ function calibrationRow(groupType: WorldImpactCalibrationRow["groupType"], group
     hit,
     miss,
     inverse,
+    unclear,
+    insufficientData,
     hitRate: evaluatedOutcomes.length > 0 ? hit / evaluatedOutcomes.length : null,
     sampleTooSmall,
     note: sampleTooSmall ? "サンプル不足。統計的判断の根拠にしない。" : "参考値。投資助言ではない。",
   };
 }
 
+const HIGH_CONFIDENCE = 0.5;
+const LOW_CONFIDENCE = 0.4;
+
 export function buildWorldImpactCalibration(reviews: WorldEventImpactReview[], today = todayJst()): WorldImpactCalibration {
   const byConfidence = new Map<string, WorldEventImpactOutcome[]>();
   const byMechanism = new Map<string, WorldEventImpactOutcome[]>();
   const byLag = new Map<string, WorldEventImpactOutcome[]>();
+  const byDirection = new Map<string, WorldEventImpactOutcome[]>();
+  const bySource = new Map<string, WorldEventImpactOutcome[]>();
+  const byCode = new Map<string, WorldEventImpactOutcome[]>();
+  const byTheme = new Map<string, WorldEventImpactOutcome[]>();
+  const push = (map: Map<string, WorldEventImpactOutcome[]>, key: string, outcome: WorldEventImpactOutcome) => {
+    map.set(key, [...(map.get(key) ?? []), outcome]);
+  };
+
+  const highConfidenceMisses: WorldImpactCalibrationCase[] = [];
+  const lowConfidenceHits: WorldImpactCalibrationCase[] = [];
+  const autoMissReasonCounts: Record<string, number> = {};
+  const manualMissReasonCounts: Record<string, number> = {};
+
   for (const review of reviews) {
     const confKey = confidenceBand(review.confidence ?? null);
+    const code = review.affectedCompanyCodes[0] ?? "unknown";
     for (const outcome of review.outcomes) {
-      byConfidence.set(confKey, [...(byConfidence.get(confKey) ?? []), outcome]);
-      for (const mechanism of (review.mechanisms ?? ["unknown"])) {
-        byMechanism.set(mechanism, [...(byMechanism.get(mechanism) ?? []), outcome]);
+      push(byConfidence, confKey, outcome);
+      for (const mechanism of (review.mechanisms ?? ["unknown"])) push(byMechanism, mechanism, outcome);
+      push(byLag, outcome.horizon, outcome);
+      push(byDirection, review.direction ?? "unclear", outcome);
+      push(bySource, review.sourceQuality ?? "unknown", outcome);
+      push(byCode, code, outcome);
+      for (const theme of (review.affectedSectors ?? []).slice(0, 4)) push(byTheme, theme, outcome);
+
+      if (outcome.autoMissReason) autoMissReasonCounts[outcome.autoMissReason] = (autoMissReasonCounts[outcome.autoMissReason] ?? 0) + 1;
+      const manual = outcome.manualMissReason ?? outcome.missReason;
+      if (manual) manualMissReasonCounts[manual] = (manualMissReasonCounts[manual] ?? 0) + 1;
+
+      const confidence = review.confidence ?? null;
+      const calibrationCase: WorldImpactCalibrationCase = {
+        reviewKey: review.reviewKey,
+        topic: review.topic,
+        code,
+        horizon: outcome.horizon,
+        confidence,
+        result: outcome.result,
+        autoMissReason: outcome.autoMissReason,
+        manualMissReason: manual,
+      };
+      if (confidence != null && confidence >= HIGH_CONFIDENCE && (outcome.result === "miss" || outcome.result === "inverse")) {
+        highConfidenceMisses.push(calibrationCase);
       }
-      byLag.set(outcome.horizon, [...(byLag.get(outcome.horizon) ?? []), outcome]);
+      if (confidence != null && confidence <= LOW_CONFIDENCE && outcome.result === "hit") {
+        lowConfidenceHits.push(calibrationCase);
+      }
     }
   }
+
   const rows: WorldImpactCalibrationRow[] = [
     ...[...byConfidence.entries()].map(([key, outcomes]) => calibrationRow("confidence", key, outcomes)),
     ...[...byMechanism.entries()].map(([key, outcomes]) => calibrationRow("mechanism", key, outcomes)),
     ...[...byLag.entries()].map(([key, outcomes]) => calibrationRow("lag", key, outcomes)),
+    ...[...byDirection.entries()].map(([key, outcomes]) => calibrationRow("direction", key, outcomes)),
+    ...[...bySource.entries()].map(([key, outcomes]) => calibrationRow("source", key, outcomes)),
+    ...[...byCode.entries()].map(([key, outcomes]) => calibrationRow("code", key, outcomes)),
+    ...[...byTheme.entries()].map(([key, outcomes]) => calibrationRow("theme", key, outcomes)),
   ];
+
+  // 次回の confidence 調整候補（ルールベース・サンプル十分なグループのみ）
+  const weaken: string[] = [];
+  const strengthen: string[] = [];
+  for (const row of rows) {
+    if (row.sampleTooSmall || row.hitRate == null) continue;
+    if (row.hitRate < 0.4) weaken.push(`${row.groupType}=${row.groupKey}: 整合率 ${(row.hitRate * 100).toFixed(0)}%（${row.evaluated}件）。この条件の confidence 初期値を下げる候補。`);
+    if (row.hitRate > 0.7) strengthen.push(`${row.groupType}=${row.groupKey}: 整合率 ${(row.hitRate * 100).toFixed(0)}%（${row.evaluated}件）。この条件は confidence をやや上げてよい候補。`);
+    if (row.inverse > row.hit) weaken.push(`${row.groupType}=${row.groupKey}: 逆行 ${row.inverse}件 > 整合 ${row.hit}件。方向推定ロジックの見直し候補。`);
+  }
+  if (weaken.length === 0) weaken.push("評価サンプル不足のため調整候補なし。検証を継続する。");
+  if (strengthen.length === 0) strengthen.push("評価サンプル不足のため調整候補なし。検証を継続する。");
+
   const evaluatedOutcomes = reviews.flatMap(r => r.outcomes).filter(o => o.result === "hit" || o.result === "miss" || o.result === "inverse").length;
   return {
     schemaVersion: 1,
@@ -795,9 +1292,15 @@ export function buildWorldImpactCalibration(reviews: WorldEventImpactReview[], t
     totalReviews: reviews.length,
     evaluatedOutcomes,
     rows,
+    highConfidenceMisses,
+    lowConfidenceHits,
+    autoMissReasonCounts,
+    manualMissReasonCounts,
+    suggestions: { weaken, strengthen },
     notes: [
-      "confidence帯・mechanism・lag 別の検証結果集計です。投資助言ではありません。",
+      "confidence帯・mechanism・lag・direction・source・銘柄・テーマ別の検証結果集計です。投資助言ではありません。",
       `評価済み outcome が ${CALIBRATION_MIN_SAMPLE} 件未満のグループは sampleTooSmall=true として参考値扱いです。`,
+      "調整候補はルールベースの観察結果であり、断定ではありません。",
     ],
   };
 }
@@ -861,6 +1364,10 @@ export function renderWorldImpactAuditMarkdown(audit: WorldImpactAudit): string 
   lines.push(`- latestMismatch: ${audit.latestMismatch}`);
   lines.push(`- reviewStatus: ${Object.entries(audit.reviewStatusCounts).map(([k, v]) => `${k}=${v}`).join(", ") || "なし"}`);
   lines.push(`- outcomeResult: ${Object.entries(audit.outcomeResultCounts).map(([k, v]) => `${k}=${v}`).join(", ") || "なし"}`);
+  lines.push(`- dueWithoutOutcome: ${audit.dueWithoutOutcome} / evaluatedAtMissing: ${audit.evaluatedAtMissing} / evaluationAsOfMissing: ${audit.evaluationAsOfMissing}`);
+  lines.push(`- enum違反: result=${audit.resultEnumViolations}, direction=${audit.directionEnumViolations}, autoMissReason=${audit.autoMissReasonViolations} / confidence範囲外=${audit.confidenceOutOfRange}`);
+  lines.push(`- 不整合: insufficient_dataなのにreturn有=${audit.insufficientDataWithReturn}, 判定済みなのにreturn欠損=${audit.judgedWithoutReturn}, missReason不整合=${audit.missReasonConflicts}`);
+  lines.push(`- JSONL/latest: jsonlOnly=${audit.jsonlOnlyReviews}, latestOnly=${audit.latestOnlyReviews}（latestOnly は dry-run 候補を含むため正常な場合あり）`);
   lines.push("");
   lines.push("## priorityIssues");
   lines.push("");
@@ -876,7 +1383,24 @@ export function renderWorldImpactAuditMarkdown(audit: WorldImpactAudit): string 
   return lines.join("\n");
 }
 
-// ── v2: World Impact Intelligence レポート ───────────────────
+// ── v3: World Impact Intelligence レポート ───────────────────
+
+function caseLine(item: WorldImpactCalibrationCase): string {
+  return `- ${item.code} ${item.horizon} (${item.topic.slice(0, 50)}): result=${item.result ?? "未評価"} / confidence=${item.confidence ?? "未設定"}${item.autoMissReason ? ` / auto=${item.autoMissReason}` : ""}${item.manualMissReason ? ` / manual=${item.manualMissReason}` : ""}`;
+}
+
+function rateTable(lines: string[], rows: WorldImpactCalibrationRow[]): void {
+  if (rows.length === 0) {
+    lines.push("- データなし");
+    return;
+  }
+  lines.push("| グループ | outcome数 | 評価済み | 整合 | 差分 | 逆行 | 判定不能 | データ不足 | 整合率 |");
+  lines.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|");
+  for (const row of [...rows].sort((a, b) => b.total - a.total)) {
+    const rate = row.hitRate != null ? `${(row.hitRate * 100).toFixed(0)}%${row.sampleTooSmall ? "（参考値）" : ""}` : "-";
+    lines.push(`| ${row.groupKey} | ${row.total} | ${row.evaluated} | ${row.hit} | ${row.miss} | ${row.inverse} | ${row.unclear} | ${row.insufficientData} | ${rate} |`);
+  }
+}
 
 export function renderWorldImpactIntelligenceMarkdown(
   reviews: WorldEventImpactReview[],
@@ -885,14 +1409,22 @@ export function renderWorldImpactIntelligenceMarkdown(
   generatedAt: string
 ): string {
   const lines: string[] = [];
+  const allOutcomes = reviews.flatMap(review =>
+    review.outcomes.map(outcome => ({ review, outcome }))
+  );
+  const byResult = (result: string) =>
+    allOutcomes.filter(({ outcome }) => outcome.result === result)
+      .sort((a, b) => (b.outcome.evaluatedAt ?? "").localeCompare(a.outcome.evaluatedAt ?? ""));
+
   lines.push("# World Impact Intelligence");
   lines.push("");
   lines.push(`生成日: ${generatedAt}`);
   lines.push("");
-  lines.push("> 世界ニュース → 影響メカニズム → 銘柄 → 検証可能仮説 → レビュー → 学習メモ の一気通貫ログです。投資助言ではありません。");
+  lines.push("> 世界ニュース影響仮説の検証・学習レポートです。投資助言ではなく、仮説の観察・検証・反省のための記録です。");
   lines.push("");
 
-  lines.push("## サマリー");
+  // Summary
+  lines.push("## Summary");
   lines.push("");
   lines.push("| 項目 | 件数 |");
   lines.push("|---|---:|");
@@ -900,45 +1432,28 @@ export function renderWorldImpactIntelligenceMarkdown(
   lines.push(`| pending（未検証） | ${audit.reviewStatusCounts["pending"] ?? 0} |`);
   lines.push(`| reviewed（検証済み） | ${audit.reviewStatusCounts["reviewed"] ?? 0} |`);
   lines.push(`| insufficient_data（データ不足） | ${audit.reviewStatusCounts["insufficient_data"] ?? 0} |`);
-  lines.push(`| skipped | ${audit.reviewStatusCounts["skipped"] ?? 0} |`);
+  lines.push(`| 評価済み outcome（hit/miss/inverse） | ${calibration.evaluatedOutcomes} |`);
   lines.push(`| 期限超過の未評価 outcome | ${audit.overdueReviews} |`);
   lines.push(`| 価格データ提供待ち outcome | ${audit.priceDataPending} |`);
   lines.push("");
 
-  lines.push("## mechanism 別件数");
+  // Pending Reviews
+  lines.push("## Pending Reviews（未検証・期限つき）");
   lines.push("");
-  const mechanismCounts = new Map<string, number>();
-  for (const review of reviews) {
-    for (const mechanism of (review.mechanisms ?? ["unknown"])) {
-      mechanismCounts.set(mechanism, (mechanismCounts.get(mechanism) ?? 0) + 1);
-    }
-  }
-  if (mechanismCounts.size === 0) {
-    lines.push("- データなし");
+  const pending = reviews
+    .filter(review => (review.reviewStatus ?? "pending") === "pending")
+    .sort((a, b) => (a.reviewDueAt ?? "9999").localeCompare(b.reviewDueAt ?? "9999"));
+  if (pending.length === 0) {
+    lines.push("- なし");
   } else {
-    lines.push("| mechanism | 件数 |");
-    lines.push("|---|---:|");
-    for (const [mechanism, count] of [...mechanismCounts.entries()].sort((a, b) => b[1] - a[1])) {
-      lines.push(`| ${mechanism} | ${count} |`);
+    for (const review of pending.slice(0, 15)) {
+      lines.push(`- ${review.affectedCompanyCodes.join(",")} 期限 ${review.reviewDueAt ?? "未設定"}: ${review.topic.slice(0, 60)}`);
     }
   }
   lines.push("");
 
-  lines.push("## confidence 帯別件数");
-  lines.push("");
-  const confRows = calibration.rows.filter(row => row.groupType === "confidence");
-  if (confRows.length === 0) {
-    lines.push("- データなし");
-  } else {
-    lines.push("| 帯 | outcome数 | 評価済み | 整合 | 差分 | 逆行 |");
-    lines.push("|---|---:|---:|---:|---:|---:|");
-    for (const row of confRows) {
-      lines.push(`| ${row.groupKey} | ${row.total} | ${row.evaluated} | ${row.hit} | ${row.miss} | ${row.inverse} |`);
-    }
-  }
-  lines.push("");
-
-  lines.push("## outcome 別件数");
+  // Evaluated Outcomes
+  lines.push("## Evaluated Outcomes（検証結果の内訳）");
   lines.push("");
   const outcomeEntries = Object.entries(audit.outcomeResultCounts);
   if (outcomeEntries.length === 0) {
@@ -952,38 +1467,113 @@ export function renderWorldImpactIntelligenceMarkdown(
   }
   lines.push("");
 
-  lines.push("## 外れ理由ランキング");
+  // Recent Hits / Misses / Inverse
+  for (const [title, result, empty] of [
+    ["Recent Hits（仮説と整合した観察）", "hit", "まだなし。検証はこれから。"],
+    ["Recent Misses（想定と差分があった観察）", "miss", "まだなし。"],
+    ["Inverse Cases（想定と逆行した観察）", "inverse", "まだなし。"],
+  ] as const) {
+    lines.push(`## ${title}`);
+    lines.push("");
+    const items = byResult(result).slice(0, 10);
+    if (items.length === 0) {
+      lines.push(`- ${empty}`);
+    } else {
+      for (const { review, outcome } of items) {
+        lines.push(`- ${review.affectedCompanyCodes.join(",")} ${outcome.horizon}: ${review.topic.slice(0, 50)} / return=${outcome.priceReturnPct?.toFixed(2) ?? outcome.returnPct?.toFixed(2) ?? "-"}% / 相対=${outcome.relativeReturnPct?.toFixed(2) ?? "-"}%${outcome.autoMissReason ? ` / auto=${outcome.autoMissReason}` : ""}`);
+      }
+    }
+    lines.push("");
+  }
+
+  // High Confidence Misses / Low Confidence Hits
+  lines.push("## High Confidence Misses（confidence が高かったのに外れた仮説）");
   lines.push("");
-  const missEntries = Object.entries(audit.missReasonCounts).sort((a, b) => b[1] - a[1]);
-  if (missEntries.length === 0) {
+  if (calibration.highConfidenceMisses.length === 0) {
+    lines.push("- なし（confidence 推定の過大評価はまだ観測されていない）");
+  } else {
+    for (const item of calibration.highConfidenceMisses.slice(0, 10)) lines.push(caseLine(item));
+  }
+  lines.push("");
+  lines.push("## Low Confidence Hits（confidence が低かったのに整合した仮説）");
+  lines.push("");
+  if (calibration.lowConfidenceHits.length === 0) {
+    lines.push("- なし（confidence 推定の過小評価はまだ観測されていない）");
+  } else {
+    for (const item of calibration.lowConfidenceHits.slice(0, 10)) lines.push(caseLine(item));
+  }
+  lines.push("");
+
+  // Mechanism Performance
+  lines.push("## Mechanism Performance");
+  lines.push("");
+  rateTable(lines, calibration.rows.filter(row => row.groupType === "mechanism"));
+  lines.push("");
+
+  // Confidence Calibration
+  lines.push("## Confidence Calibration");
+  lines.push("");
+  rateTable(lines, calibration.rows.filter(row => row.groupType === "confidence"));
+  lines.push("");
+
+  // Lag Calibration
+  lines.push("## Lag Calibration（horizon 別）");
+  lines.push("");
+  rateTable(lines, calibration.rows.filter(row => row.groupType === "lag"));
+  lines.push("");
+
+  // Miss Reason Ranking
+  lines.push("## Miss Reason Ranking");
+  lines.push("");
+  const autoEntries = Object.entries(calibration.autoMissReasonCounts).sort((a, b) => b[1] - a[1]);
+  const manualEntries = Object.entries(calibration.manualMissReasonCounts).sort((a, b) => b[1] - a[1]);
+  if (autoEntries.length === 0 && manualEntries.length === 0) {
     lines.push("- まだ外れ理由の記録なし（検証済み仮説が増えると蓄積されます）");
   } else {
-    lines.push("| 外れ理由 | 件数 |");
-    lines.push("|---|---:|");
-    for (const [reason, count] of missEntries) {
-      const label = WORLD_IMPACT_MISS_REASON_LABELS[reason as WorldImpactMissReason] ?? reason;
-      lines.push(`| ${label} (${reason}) | ${count} |`);
+    if (autoEntries.length > 0) {
+      lines.push("自動推定（autoMissReason）:");
+      for (const [reason, count] of autoEntries) {
+        const label = WORLD_IMPACT_AUTO_MISS_REASON_LABELS[reason as WorldImpactAutoMissReason] ?? reason;
+        lines.push(`- ${label} (${reason}): ${count}件`);
+      }
+    }
+    if (manualEntries.length > 0) {
+      lines.push("手動分類（manualMissReason）:");
+      for (const [reason, count] of manualEntries) {
+        const label = WORLD_IMPACT_MISS_REASON_LABELS[reason as WorldImpactMissReason] ?? reason;
+        lines.push(`- ${label} (${reason}): ${count}件`);
+      }
     }
   }
   lines.push("");
 
-  lines.push("## 次に改善すべき仮説生成ルール");
+  // Watch Signals Review
+  lines.push("## Watch Signals Review（確認シグナルの振り返り）");
   lines.push("");
-  const improvements: string[] = [];
-  if (audit.mechanismUnknown > 0) improvements.push(`mechanism unknown が ${audit.mechanismUnknown}件。タグ→メカニズム対応表（MECHANISM_KEYWORDS）の拡充を検討。`);
-  if (audit.falsificationMissing > 0) improvements.push(`falsification 未設定が ${audit.falsificationMissing}件。仮説作成時に反証条件を必須にする。`);
-  if (audit.confidenceMissing > 0) improvements.push(`confidence 未設定が ${audit.confidenceMissing}件。backfill で初期値を補完する。`);
-  const topMiss = missEntries[0];
-  if (topMiss) {
-    const label = WORLD_IMPACT_MISS_REASON_LABELS[topMiss[0] as WorldImpactMissReason] ?? topMiss[0];
-    improvements.push(`外れ理由の最多は「${label}」(${topMiss[1]}件)。この理由を潰す事前チェックを仮説生成に追加する。`);
+  const withSignals = reviews.filter(review => (review.watchSignals ?? []).length > 0);
+  if (withSignals.length === 0) {
+    lines.push("- watchSignals の記録なし");
+  } else {
+    for (const review of withSignals.slice(0, 8)) {
+      lines.push(`- ${review.affectedCompanyCodes.join(",")} (${review.reviewStatus}): ${review.watchSignals.slice(0, 4).join(" / ")}`);
+    }
+    lines.push("");
+    lines.push("> 検証済みになった仮説は、watchSignals が実際に役立ったかを lesson に記録する。");
   }
-  if (calibration.evaluatedOutcomes === 0) improvements.push("評価済み outcome がまだ0件。レビュー期限到来後に pnpm review:world-impact で答え合わせを進める。");
-  if (improvements.length === 0) improvements.push("現時点で目立つ改善対象なし。検証サンプルを増やす。");
-  for (const item of improvements) lines.push(`- ${item}`);
   lines.push("");
 
-  lines.push("## データ品質上の問題");
+  // Next Rules To Weaken / Strengthen
+  lines.push("## Next Rules To Weaken（confidence を下げる候補条件）");
+  lines.push("");
+  for (const item of calibration.suggestions.weaken) lines.push(`- ${item}`);
+  lines.push("");
+  lines.push("## Next Rules To Strengthen（confidence を上げてよい候補条件）");
+  lines.push("");
+  for (const item of calibration.suggestions.strengthen) lines.push(`- ${item}`);
+  lines.push("");
+
+  // Data Quality Warnings
+  lines.push("## Data Quality Warnings");
   lines.push("");
   if (audit.priorityIssues.length === 0) {
     lines.push("- 指摘なし");
@@ -992,14 +1582,6 @@ export function renderWorldImpactIntelligenceMarkdown(
       lines.push(`- [${issue.severity}] ${issue.title}: ${issue.detail}`);
     }
   }
-  lines.push("");
-
-  lines.push("## まだ未実装・未検証のこと");
-  lines.push("");
-  lines.push("- actualReturn / relativeReturnToTopix の自動補完（J-Quants 提供遅延84日のため当面は提供待ち）");
-  lines.push("- 評価済みサンプルが少なく、calibration はまだ参考値にならない");
-  lines.push("- direction（positive/negative）の自動推定は未実装。現状は unclear 起点で手動更新");
-  lines.push("- 外れ理由の自動分類は未実装。レビュー時に手動で missReason を記録する");
   lines.push("");
   lines.push("> このレポートは検証・学習のための研究ログです。売買の推奨は行いません。");
   return lines.join("\n");

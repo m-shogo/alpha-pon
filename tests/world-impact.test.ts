@@ -10,6 +10,32 @@ import type { WorldEventReflection } from "../src/analysis/world-event-reflectio
 
 const TODAY = "2026-06-12";
 
+// v3 で outcome に追加された評価フィールドの既定値（v1 テスト fixture 用）
+const V3_OUTCOME_DEFAULTS = {
+  evaluatedAt: null,
+  evaluationAsOf: null,
+  priceStartDate: null,
+  priceEndDate: null,
+  priceStart: null,
+  priceEnd: null,
+  priceReturnPct: null,
+  benchmarkCode: null,
+  benchmarkReturnPct: null,
+  relativeReturnPct: null,
+  directionMatched: null,
+  expectedLagDays: null,
+  actualLagDays: null,
+  lagMatched: null,
+  movementMagnitude: null,
+  evidence: [] as string[],
+  evaluationNotes: null,
+  autoMissReason: null,
+  manualMissReason: null,
+  confidenceAtPrediction: null,
+  mechanismAtPrediction: [] as import("../src/world-impact.js").WorldImpactMechanism[],
+  sourceReliabilityAtPrediction: null,
+};
+
 function reflection(overrides: Partial<WorldEventReflection> = {}): WorldEventReflection {
   return {
     schemaVersion: 1,
@@ -93,6 +119,7 @@ function makeReview(overrides: Partial<WorldEventImpactReview> = {}): WorldEvent
         missReason: null,
         missedSignals: [],
         lesson: null,
+        ...V3_OUTCOME_DEFAULTS,
       },
       {
         horizon: "1d",
@@ -107,6 +134,7 @@ function makeReview(overrides: Partial<WorldEventImpactReview> = {}): WorldEvent
         missReason: null,
         missedSignals: [],
         lesson: null,
+        ...V3_OUTCOME_DEFAULTS,
       },
     ],
   });
@@ -142,6 +170,7 @@ function makeReview(overrides: Partial<WorldEventImpactReview> = {}): WorldEvent
         missReason: null,
         missedSignals: [],
         lesson: null,
+        ...V3_OUTCOME_DEFAULTS,
       },
     ],
   });
@@ -169,6 +198,7 @@ function makeReview(overrides: Partial<WorldEventImpactReview> = {}): WorldEvent
         missReason: null,
         missedSignals: [],
         lesson: null,
+        ...V3_OUTCOME_DEFAULTS,
       },
     ],
   });

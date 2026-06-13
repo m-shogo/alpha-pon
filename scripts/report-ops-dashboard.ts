@@ -20,6 +20,7 @@ import {
   type OpsPipelineStatusLike,
   type OpsSpecialOpsLike,
   type OpsWorldImpactAuditLike,
+  type OpsSafeOutputLike,
   type SafeWordingFinding,
 } from "../src/ops-dashboard.js";
 
@@ -91,6 +92,7 @@ const dashboard = buildOpsDashboard({
   integrity: readJson<OpsIntegrityLike>("reports/hypothesis_outcome_integrity_latest.json"),
   outcomeQuality: readJson<OpsOutcomeQualityLike>("reports/outcome-quality-audit.json"),
   worldImpact: readJson<OpsWorldImpactAuditLike>("reports/world-impact-audit.json"),
+  safeOutput: readJson<OpsSafeOutputLike>("reports/safe-output-audit.json"),
   safeWordingScannedFiles: safeWording.scannedFiles,
   safeWordingFindings: safeWording.findings,
 });

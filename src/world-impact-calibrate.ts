@@ -24,6 +24,16 @@ function readLatest(today: string): WorldEventImpactReview[] {
   }
 }
 
+const GROUP_LABELS: Record<string, string> = {
+  confidence: "confidence帯",
+  mechanism: "mechanism",
+  lag: "lag（horizon）",
+  direction: "direction",
+  source: "source reliability",
+  code: "銘柄",
+  theme: "テーマ",
+};
+
 function renderMarkdown(calibration: WorldImpactCalibration): string {
   const lines: string[] = [];
   lines.push("# 世界ニュース影響仮説 キャリブレーション");
@@ -33,22 +43,65 @@ function renderMarkdown(calibration: WorldImpactCalibration): string {
   lines.push("");
   for (const note of calibration.notes) lines.push(`> ${note}`);
   lines.push("");
-  for (const groupType of ["confidence", "mechanism", "lag"] as const) {
+  for (const groupType of ["confidence", "mechanism", "lag", "direction", "source", "code", "theme"] as const) {
     const rows = calibration.rows.filter(row => row.groupType === groupType);
-    lines.push(`## ${groupType} 別`);
+    lines.push(`## ${GROUP_LABELS[groupType]} 別`);
     lines.push("");
     if (rows.length === 0) {
       lines.push("- データなし");
     } else {
-      lines.push("| グループ | outcome数 | 評価済み | 整合 | 差分 | 逆行 | 整合率 | 備考 |");
-      lines.push("|---|---:|---:|---:|---:|---:|---:|---|");
-      for (const row of rows.sort((a, b) => b.total - a.total)) {
+      lines.push("| グループ | outcome数 | 評価済み | 整合 | 差分 | 逆行 | 判定不能 | データ不足 | 整合率 | 備考 |");
+      lines.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|---|");
+      for (const row of rows.sort((a, b) => b.total - a.total).slice(0, 20)) {
         const rate = row.hitRate != null ? `${(row.hitRate * 100).toFixed(0)}%` : "-";
-        lines.push(`| ${row.groupKey} | ${row.total} | ${row.evaluated} | ${row.hit} | ${row.miss} | ${row.inverse} | ${rate} | ${row.sampleTooSmall ? "サンプル不足" : "参考値"} |`);
+        lines.push(`| ${row.groupKey} | ${row.total} | ${row.evaluated} | ${row.hit} | ${row.miss} | ${row.inverse} | ${row.unclear} | ${row.insufficientData} | ${rate} | ${row.sampleTooSmall ? "サンプル不足" : "参考値"} |`);
       }
     }
     lines.push("");
   }
+
+  lines.push("## High Confidence Misses（confidence 過大の候補）");
+  lines.push("");
+  if (calibration.highConfidenceMisses.length === 0) {
+    lines.push("- なし");
+  } else {
+    for (const item of calibration.highConfidenceMisses.slice(0, 15)) {
+      lines.push(`- ${item.code} ${item.horizon}: ${item.topic.slice(0, 50)} / confidence=${item.confidence} / result=${item.result}${item.autoMissReason ? ` / auto=${item.autoMissReason}` : ""}`);
+    }
+  }
+  lines.push("");
+  lines.push("## Low Confidence Hits（confidence 過小の候補）");
+  lines.push("");
+  if (calibration.lowConfidenceHits.length === 0) {
+    lines.push("- なし");
+  } else {
+    for (const item of calibration.lowConfidenceHits.slice(0, 15)) {
+      lines.push(`- ${item.code} ${item.horizon}: ${item.topic.slice(0, 50)} / confidence=${item.confidence}`);
+    }
+  }
+  lines.push("");
+
+  lines.push("## 外れ理由ランキング");
+  lines.push("");
+  const autoEntries = Object.entries(calibration.autoMissReasonCounts).sort((a, b) => b[1] - a[1]);
+  const manualEntries = Object.entries(calibration.manualMissReasonCounts).sort((a, b) => b[1] - a[1]);
+  if (autoEntries.length === 0 && manualEntries.length === 0) {
+    lines.push("- 記録なし");
+  } else {
+    for (const [reason, count] of autoEntries) lines.push(`- auto: ${reason} = ${count}件`);
+    for (const [reason, count] of manualEntries) lines.push(`- manual: ${reason} = ${count}件`);
+  }
+  lines.push("");
+
+  lines.push("## 次回から confidence を下げるべき条件（候補）");
+  lines.push("");
+  for (const item of calibration.suggestions.weaken) lines.push(`- ${item}`);
+  lines.push("");
+  lines.push("## 次回から confidence を上げてもよい条件（候補）");
+  lines.push("");
+  for (const item of calibration.suggestions.strengthen) lines.push(`- ${item}`);
+  lines.push("");
+  lines.push("> 候補はルールベースの観察結果です。断定や売買の推奨ではありません。");
   return lines.join("\n");
 }
 

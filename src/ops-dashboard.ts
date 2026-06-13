@@ -77,6 +77,12 @@ export interface OpsDashboard {
     scannedFiles: number;
     violations: SafeWordingFinding[];
   };
+  safeOutputAudit: {
+    available: boolean;
+    healthStatus: string | null;
+    scannedFiles: number;
+    findingsCount: number;
+  };
   pipelineAudit: {
     available: boolean;
     date: string | null;
@@ -120,6 +126,8 @@ export interface OpsDashboard {
     jsonlParseErrors: number;
     latestMismatch: number;
     duplicateKeys: number;
+    dueWithoutOutcome: number;
+    inconsistencies: number;
     priorityIssues: Array<{ severity?: string; title?: string; detail?: string }>;
   };
   nextSafeCommands: OpsNextCommand[];
@@ -233,7 +241,22 @@ export interface OpsWorldImpactAuditLike {
   jsonlParseErrors?: number;
   latestMismatch?: number;
   duplicateKeys?: Array<{ key: string; count: number }>;
+  dueWithoutOutcome?: number;
+  resultEnumViolations?: number;
+  directionEnumViolations?: number;
+  confidenceOutOfRange?: number;
+  autoMissReasonViolations?: number;
+  missReasonConflicts?: number;
+  insufficientDataWithReturn?: number;
+  judgedWithoutReturn?: number;
   priorityIssues?: Array<{ severity?: string; title?: string; detail?: string }>;
+}
+
+export interface OpsSafeOutputLike {
+  healthStatus?: string;
+  scannedFiles?: number;
+  findingsCount?: number;
+  findings?: Array<{ file?: string; line?: number; maskedPattern?: string }>;
 }
 
 export interface OpsDashboardInputs {
@@ -245,6 +268,7 @@ export interface OpsDashboardInputs {
   integrity: OpsIntegrityLike | null;
   outcomeQuality?: OpsOutcomeQualityLike | null;
   worldImpact?: OpsWorldImpactAuditLike | null;
+  safeOutput?: OpsSafeOutputLike | null;
   safeWordingScannedFiles: number;
   safeWordingFindings: SafeWordingFinding[];
 }
@@ -604,6 +628,14 @@ export function buildOpsDashboard(inputs: OpsDashboardInputs): OpsDashboard {
     jsonlParseErrors: worldImpact?.jsonlParseErrors ?? 0,
     latestMismatch: worldImpact?.latestMismatch ?? 0,
     duplicateKeys: worldImpact?.duplicateKeys?.length ?? 0,
+    dueWithoutOutcome: worldImpact?.dueWithoutOutcome ?? 0,
+    inconsistencies:
+      (worldImpact?.resultEnumViolations ?? 0)
+      + (worldImpact?.directionEnumViolations ?? 0)
+      + (worldImpact?.confidenceOutOfRange ?? 0)
+      + (worldImpact?.autoMissReasonViolations ?? 0)
+      + (worldImpact?.insufficientDataWithReturn ?? 0)
+      + (worldImpact?.judgedWithoutReturn ?? 0),
     priorityIssues: worldImpact?.priorityIssues ?? [],
   };
   if (!worldImpact) {
@@ -657,6 +689,24 @@ export function buildOpsDashboard(inputs: OpsDashboardInputs): OpsDashboard {
         command: "pnpm review:world-impact",
       });
     }
+  }
+
+  // safe output（ソース・docs の危険表現監査）
+  const safeOutput = inputs.safeOutput ?? null;
+  const safeOutputAudit: OpsDashboard["safeOutputAudit"] = {
+    available: safeOutput != null,
+    healthStatus: safeOutput?.healthStatus ?? null,
+    scannedFiles: safeOutput?.scannedFiles ?? 0,
+    findingsCount: safeOutput?.findingsCount ?? safeOutput?.findings?.length ?? 0,
+  };
+  if (safeOutputAudit.available && safeOutputAudit.findingsCount > 0) {
+    issues.push({
+      severity: "attention",
+      category: "safe_wording",
+      title: `公開出力の危険表現: ${safeOutputAudit.findingsCount}件`,
+      detail: "src / apps/web / docs に確認対象の表現があります。reports/safe-output-audit.md を確認してください。",
+      command: "pnpm audit:safe-output",
+    });
   }
 
   // safe wording
@@ -724,6 +774,7 @@ export function buildOpsDashboard(inputs: OpsDashboardInputs): OpsDashboard {
       scannedFiles: inputs.safeWordingScannedFiles,
       violations: inputs.safeWordingFindings,
     },
+    safeOutputAudit,
     pipelineAudit,
     uiDataAudit,
     specialSituationAudit,

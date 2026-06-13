@@ -289,6 +289,35 @@ export default async function StockDetailPage({ params }: Props) {
                   return <Metric key={outcome.horizon} label={outcome.horizon} value={meta.label} status={meta.status} />
                 })}
               </div>
+              {review.outcomes.some(outcome => outcome.evaluatedAt != null) && (
+                <div style={{ marginTop: 10, display: 'grid', gap: 6 }}>
+                  {review.outcomes.filter(outcome => outcome.evaluatedAt != null).map(outcome => {
+                    const confidence = review.confidence ?? null
+                    const judged = outcome.result === 'hit' || outcome.result === 'miss' || outcome.result === 'inverse'
+                    const confNote = !judged || confidence == null
+                      ? null
+                      : confidence >= 0.5 && outcome.result !== 'hit'
+                        ? 'confidence 過大の可能性（要確認）'
+                        : confidence <= 0.4 && outcome.result === 'hit'
+                          ? 'confidence 過小の可能性（要確認）'
+                          : null
+                    return (
+                      <div key={`eval-${outcome.horizon}`} style={{ fontSize: 11.5, fontWeight: 650, color: 'var(--ink-3)', lineHeight: 1.6, borderLeft: '2px solid var(--line)', paddingLeft: 8 }}>
+                        <span style={{ fontWeight: 850, color: 'var(--ink-2)' }}>{outcome.horizon} 検証詳細: </span>
+                        return {outcome.priceReturnPct?.toFixed(2) ?? outcome.returnPct?.toFixed(2) ?? '-'}%
+                        {' / '}ベンチマーク {outcome.benchmarkReturnPct?.toFixed(2) ?? '-'}%
+                        {' / '}相対 {outcome.relativeReturnPct?.toFixed(2) ?? '-'}%
+                        {' / '}方向一致 {outcome.directionMatched == null ? '判定不能' : outcome.directionMatched ? '一致' : '不一致'}
+                        {' / '}ラグ一致 {outcome.lagMatched == null ? '判定不能' : outcome.lagMatched ? '一致' : '不一致'}
+                        {outcome.autoMissReason ? ` / 自動推定: ${outcome.autoMissReason}` : ''}
+                        {outcome.manualMissReason ? ` / 手動分類: ${outcome.manualMissReason}` : ''}
+                        {outcome.evaluationNotes ? <><br />{outcome.evaluationNotes}</> : null}
+                        {confNote ? <><br /><span style={{ color: 'var(--amber)', fontWeight: 800 }}>{confNote}</span></> : null}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
               <div style={{ marginTop: 10 }}>
                 <ListBlock items={[
                   ...(review.missedSignals ?? []),

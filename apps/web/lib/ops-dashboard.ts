@@ -100,7 +100,15 @@ export interface OpsDashboardData {
     jsonlParseErrors: number
     latestMismatch: number
     duplicateKeys: number
+    dueWithoutOutcome: number
+    inconsistencies: number
     priorityIssues: Array<{ severity?: string; title?: string; detail?: string }>
+  }
+  safeOutputAudit: {
+    available: boolean
+    healthStatus: string | null
+    scannedFiles: number
+    findingsCount: number
   }
   nextSafeCommands: Array<{ command: string; reason: string }>
   notes: string[]
@@ -200,9 +208,17 @@ export function loadOpsDashboard(): OpsDashboardData | null {
         jsonlParseErrors: raw.worldImpactAudit?.jsonlParseErrors ?? 0,
         latestMismatch: raw.worldImpactAudit?.latestMismatch ?? 0,
         duplicateKeys: raw.worldImpactAudit?.duplicateKeys ?? 0,
+        dueWithoutOutcome: raw.worldImpactAudit?.dueWithoutOutcome ?? 0,
+        inconsistencies: raw.worldImpactAudit?.inconsistencies ?? 0,
         priorityIssues: Array.isArray(raw.worldImpactAudit?.priorityIssues)
           ? raw.worldImpactAudit.priorityIssues
           : [],
+      },
+      safeOutputAudit: {
+        available: raw.safeOutputAudit?.available ?? false,
+        healthStatus: raw.safeOutputAudit?.healthStatus ?? null,
+        scannedFiles: raw.safeOutputAudit?.scannedFiles ?? 0,
+        findingsCount: raw.safeOutputAudit?.findingsCount ?? 0,
       },
       nextSafeCommands: Array.isArray(raw.nextSafeCommands) ? raw.nextSafeCommands : [],
       notes: Array.isArray(raw.notes) ? raw.notes : [],

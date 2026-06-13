@@ -252,6 +252,29 @@ export type WorldImpactReview = {
     missReason?: WorldImpactMissReason | null
     missedSignals: string[]
     lesson: string | null
+    // v3 自動評価フィールド（v1/v2 レコードでは省略されうる・全て null 安全に扱う）
+    evaluatedAt?: string | null
+    evaluationAsOf?: string | null
+    priceStartDate?: string | null
+    priceEndDate?: string | null
+    priceStart?: number | null
+    priceEnd?: number | null
+    priceReturnPct?: number | null
+    benchmarkCode?: string | null
+    benchmarkReturnPct?: number | null
+    relativeReturnPct?: number | null
+    directionMatched?: boolean | null
+    expectedLagDays?: number | null
+    actualLagDays?: number | null
+    lagMatched?: boolean | null
+    movementMagnitude?: number | null
+    evidence?: string[]
+    evaluationNotes?: string | null
+    autoMissReason?: string | null
+    manualMissReason?: WorldImpactMissReason | null
+    confidenceAtPrediction?: number | null
+    mechanismAtPrediction?: WorldImpactMechanism[]
+    sourceReliabilityAtPrediction?: string | null
   }>
   missedSignals: string[]
   lesson: string | null
@@ -301,6 +324,17 @@ export type WorldImpactAudit = {
   outcomeResultCounts?: Record<string, number>
   missReasonCounts?: Record<string, number>
   duplicateKeys?: Array<{ key: string; count: number }>
+  // v3 監査項目（省略されうる）
+  dueWithoutOutcome?: number
+  evaluatedAtMissing?: number
+  evaluationAsOfMissing?: number
+  resultEnumViolations?: number
+  directionEnumViolations?: number
+  confidenceOutOfRange?: number
+  autoMissReasonViolations?: number
+  missReasonConflicts?: number
+  insufficientDataWithReturn?: number
+  judgedWithoutReturn?: number
   priorityIssues: Array<{
     severity: 'urgent' | 'attention' | 'info'
     category: string

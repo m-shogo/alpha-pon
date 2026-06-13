@@ -225,6 +225,8 @@ export default function OpsPage() {
             <CountRow label="重複 event/銘柄/horizon" value={`${data.worldImpactAudit.duplicateKeys}件`} />
             <CountRow label="JSONL 破損行" value={`${data.worldImpactAudit.jsonlParseErrors}件`} />
             <CountRow label="latest との不一致" value={`${data.worldImpactAudit.latestMismatch}件`} />
+            <CountRow label="期限超過なのに outcome なし" value={`${data.worldImpactAudit.dueWithoutOutcome ?? 0}件`} />
+            <CountRow label="評価データ不整合（enum外・return矛盾）" value={`${data.worldImpactAudit.inconsistencies ?? 0}件`} />
             {data.worldImpactAudit.priorityIssues.length > 0 && (
               <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.6 }}>
                 確認ポイント:{' '}
@@ -295,6 +297,16 @@ export default function OpsPage() {
             data.safeWordingAudit.violations.length === 0
               ? `違反なし（${data.safeWordingAudit.scannedFiles}ファイル）`
               : `違反 ${data.safeWordingAudit.violations.length}件`
+          }
+        />
+        <CountRow
+          label="公開出力 危険表現監査"
+          value={
+            !data.safeOutputAudit?.available
+              ? '未生成（pnpm audit:safe-output）'
+              : data.safeOutputAudit.findingsCount === 0
+                ? `検出なし（${data.safeOutputAudit.scannedFiles}ファイル）`
+                : `確認対象 ${data.safeOutputAudit.findingsCount}件`
           }
         />
       </Card>

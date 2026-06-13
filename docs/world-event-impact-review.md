@@ -24,6 +24,10 @@
 
 v1 レコードは `pnpm backfill:world-impact` が破壊的変更なしに補完する（既存値は上書きしない・冪等）。
 
+**v3**: outcome は `pnpm evaluate:world-impact` が価格・ベンチマークと照合して自動評価する
+（result: hit / miss / inverse / unclear / insufficient_data、autoMissReason、relativeReturnPct、
+directionMatched / lagMatched 等）。詳細は `docs/world-impact-intelligence-v3.md`。
+
 ## 生成物
 
 - `data/world_event_impacts.jsonl`: `--write` 実行時に追記される蓄積ログ
@@ -40,10 +44,12 @@ v1 レコードは `pnpm backfill:world-impact` が破壊的変更なしに補�
 
 ```bash
 pnpm review:world-impact      # 仮説レビュー作成（既定 dry-run）
-pnpm audit:world-impact       # 品質監査（v2: JSONL破損・latest不一致・mechanism unknown 等も検出）
-pnpm backfill:world-impact    # v1 レコードへの v2 フィールド補完（既定 dry-run、--write で実行）
-pnpm report:world-impact      # World Impact Intelligence レポート生成
-pnpm calibrate:world-impact   # confidence帯 / mechanism / lag 別の精度集計
+pnpm evaluate:world-impact    # outcome 自動評価（既定 dry-run、--write で保存）★v3
+pnpm audit:world-impact       # 品質監査（v3: 期限切れ未評価・enum外・return不整合も検出）
+pnpm backfill:world-impact    # v1 レコードへのフィールド補完（既定 dry-run、--write で実行）
+pnpm report:world-impact      # World Impact Intelligence レポート生成（v3 章立て）
+pnpm calibrate:world-impact   # confidence帯 / mechanism / lag / direction / source / 銘柄 / テーマ別の精度集計
+pnpm audit:safe-output        # 公開出力の危険表現監査（docs/safe-output-audit.md）
 pnpm ui:data
 pnpm report:ops
 ```
