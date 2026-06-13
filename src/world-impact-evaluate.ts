@@ -13,6 +13,7 @@
 //   - 同じ reviewKey + horizon の outcome は更新のみで二重作成しない
 //   - 既存値（manualMissReason 含む）は上書きしない。欠損補完のみ
 //   - J-Quants 提供遅延（84日）範囲内の期日は priceDataPending としてスキップ
+//   - J-Quants 未設定時は評価を延期し、insufficient_data を書き込まない
 //   - 遅延期間を過ぎても価格が無いものだけ insufficient_data にする（miss にしない）
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
@@ -136,6 +137,10 @@ async function main(): Promise<void> {
     if (horizons.length > 0) targets.push({ entry, horizons });
   }
 
+  const skippedMissingCredentials = !jquantsOk
+    ? targets.reduce((sum, target) => sum + target.horizons.length, 0)
+    : 0;
+
   console.log(`評価対象: ${targets.length}レビュー / 提供遅延待ちスキップ: ${skippedPendingData} outcome`);
 
   // 価格取得（銘柄ごとにキャッシュ・ベンチマークは1回）
@@ -154,14 +159,14 @@ async function main(): Promise<void> {
       await new Promise(resolve => setTimeout(resolve, 300));
     }
   } else if (!jquantsOk && targets.length > 0) {
-    console.log("[INFO] J-Quants 未設定のため価格照合不可。期日超過分は insufficient_data として評価されます。");
+    console.log("[INFO] J-Quants 未設定のため価格照合を延期します。設定不足を insufficient_data として保存しません。");
   }
 
   // 評価実行（既存 outcome の置き換えのみ。配列に追加しないため二重作成は構造的に起きない）
   type EvalSummary = { reviewKey: string; code: string; horizon: string; result: string | null; autoMissReason: string | null; note: string | null };
   const evaluations: EvalSummary[] = [];
   const updatedKeys = new Set<string>();
-  for (const target of targets) {
+  for (const target of (jquantsOk ? targets : [])) {
     const review = target.entry.review;
     const code = review.affectedCompanyCodes[0];
     const quotes = quoteCache.get(code) ?? [];
@@ -227,11 +232,13 @@ async function main(): Promise<void> {
     jquantsConfigured: jquantsOk,
     targetReviews: targets.length,
     skippedPendingData,
+    skippedMissingCredentials,
     evaluatedOutcomes: evaluations.length,
     updatedReviews: updatedKeys.size,
     evaluations,
     notes: [
       "価格データ不足は miss にせず insufficient_data として記録します。",
+      "J-Quants 未設定時は価格照合を延期し、insufficient_data を保存しません。",
       "J-Quants 提供遅延の範囲内の期日は priceDataPending として待機します（正常）。",
       "manualMissReason は自動評価で上書きしません。",
       "売買の推奨は行いません。仮説検証のための観察記録です。",
@@ -244,6 +251,7 @@ async function main(): Promise<void> {
   console.log(`targetReviews: ${report.targetReviews}`);
   console.log(`evaluatedOutcomes: ${report.evaluatedOutcomes}`);
   console.log(`skippedPendingData: ${report.skippedPendingData}（価格データ提供待ち）`);
+  console.log(`skippedMissingCredentials: ${report.skippedMissingCredentials}（J-Quants未設定）`);
   for (const item of evaluations.slice(0, 20)) {
     console.log(`  ${item.code} ${item.horizon}: ${item.result}${item.autoMissReason ? ` (autoMissReason=${item.autoMissReason})` : ""}`);
   }
@@ -254,9 +262,12 @@ async function main(): Promise<void> {
     console.log(`\n${updatedKeys.size}レビューを更新しました。`);
   }
   if (evaluations.length === 0) {
-    console.log("評価対象なし（期日未到来、または価格データ提供待ち）。");
+    console.log("評価対象なし（期日未到来、価格データ提供待ち、または J-Quants 未設定）。");
   }
   console.log("出力: reports/world-impact-evaluation.json");
 }
 
-main();
+main().catch(error => {
+  console.error(error);
+  process.exit(1);
+});
