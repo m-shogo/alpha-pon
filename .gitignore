@@ -38,6 +38,8 @@ data/source_health_history.jsonl
 data/world_event_reflections/
 data/world_event_reflections_latest.json
 data/notification-dedupe/
+data/world_theme_candidate_hypotheses_latest.json
+data/world_theme_candidate_hypotheses.jsonl
 
 # デザイン確認用の一時出力
 design/alpha-pon-standalone.html
