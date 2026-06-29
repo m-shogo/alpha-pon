@@ -5,6 +5,7 @@ import { todayJst } from "./date.js";
 import type { UniverseCandidate, UniverseScanMetadata, UniverseScanOutput, StockCandidateHypothesis, HypothesisOutcome, AccuracySummary, WorldContext } from "./universe.js";
 import type { CompanyMemoryRecord } from "./company-memory.js";
 import type { PrimaryDisclosureReview } from "./types.js";
+import { buildWorldThemeCandidateHypotheses, type WorldEventForHypothesis } from "./world-theme-candidate-hypotheses.js";
 
 type DeepDiveCompany = {
   name: string;
@@ -335,6 +336,8 @@ function main() {
     excludeCodes: personalWatchlist.excludeCodes ?? [],
     priorityWatches: personalWatchlist.priorityWatches ?? [],
   };
+  const worldEventsForHypotheses = readJson<WorldEventForHypothesis[]>("reports/world_events_latest.json") ?? [];
+  const worldThemeCandidateHypotheses = buildWorldThemeCandidateHypotheses(worldEventsForHypotheses, personalWatchlist);
   const companyMemory = loadCompanyMemory();
   const readiness = loadReadiness();
   const runCursors = readJson<Record<string, unknown>>("data/run-cursors.json") ?? {};
@@ -424,6 +427,7 @@ function main() {
     worldContext,
     personalWatchlist,
     specialSituationUi,
+    worldThemeCandidateHypotheses,
     companyMemory,
     companyMemoryByCode: toRecordByCode(companyMemory),
     primaryDisclosureReviews,
