@@ -158,6 +158,7 @@ run_optional_step "morning-lite-improvement" node --import "tsx/esm" "$DIR/src/m
 run_optional_step "notification-feedback-report" node --import "tsx/esm" "$DIR/src/notification-feedback.ts" report
 run_optional_step "world-theme-candidate-hypotheses" node --import "tsx/esm" "$DIR/src/world-theme-candidate-hypothesis-run.ts"
 run_optional_step "world-theme-candidate-review" node --import "tsx/esm" "$DIR/src/world-theme-candidate-review-report.ts"
+run_optional_step "world-theme-candidate-stats" node --import "tsx/esm" "$DIR/src/world-theme-candidate-stats.ts"
 
 # ── Pro補助レポート ────────────────────────────────────────────────────────────
 run_optional_step "proposal-history"          node --import "tsx/esm" "$DIR/src/proposal-history-run.ts"
