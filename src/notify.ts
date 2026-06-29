@@ -202,8 +202,8 @@ function buildLineSummaryText(results: ScoreResult[], date: string): string {
     return [
       `🌅 Alpha Pon Morning Lite ${date}`,
       "5分朝刊 / 重要な変化だけ",
-      "",
-      "通知対象なし",
+      "━━━━━━━━━━━━",
+      "✅ 通知対象なし",
       "",
       "※売買推奨ではありません。事実・報道・噂は混ぜず、未確認は一次情報不足として扱います。",
     ].join("\n");
@@ -212,12 +212,15 @@ function buildLineSummaryText(results: ScoreResult[], date: string): string {
   const lines = [
     `🌅 Alpha Pon Morning Lite ${date}`,
     "5分朝刊 / 重要な変化だけ",
-    `🚨 即通知候補: ${urgent.length}件 / 📌 朝確認: ${daily.length}件`,
+    "━━━━━━━━━━━━",
+    `🚨 即通知候補: ${urgent.length}件`,
+    `📌 朝確認: ${daily.length}件`,
     "",
     "🔥 今日見るもの",
     ...visibleItems.flatMap((r, index) => {
       const icon = r.alertLevel === "urgent" ? "🚨" : "📌";
       return [
+        "",
         `${index + 1}. ${icon} ${r.candidate.code} ${r.candidate.name} ${r.score}点`,
         `   区分: ${evidenceLabel(r)}`,
         `   なぜ重要: ${r.reasons[0] ?? "重要変化の兆候を検出"}`,
@@ -233,6 +236,7 @@ function buildLineSummaryText(results: ScoreResult[], date: string): string {
 
   lines.push(
     "",
+    "━━━━━━━━━━━━",
     "※売買推奨ではありません。事実・報道・噂は混ぜず、未確認は一次情報不足として扱います。"
   );
   return lines.join("\n");
