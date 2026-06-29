@@ -1,5 +1,6 @@
 import { execFileSync } from "child_process";
 import type { ScoreResult, AlertLevel } from "./types.js";
+import { recordTextNotification, shouldSendTextNotification } from "./notification-dedupe.js";
 
 // -------------------------------------------------------
 // macOS ネイティブ通知
@@ -257,6 +258,15 @@ async function pushLine(messages: object[]): Promise<void> {
   }
 }
 
+async function pushDedupedText(text: string): Promise<void> {
+  if (!shouldSendTextNotification(text)) {
+    console.log("重複通知スキップ");
+    return;
+  }
+  await pushLine([{ type: "text", text }]);
+  recordTextNotification(text);
+}
+
 // -------------------------------------------------------
 // 公開API
 // -------------------------------------------------------
@@ -274,7 +284,7 @@ export async function sendDailySummary(
   date: string
 ): Promise<void> {
   const text = buildLineSummaryText(results, date);
-  await pushLine([{ type: "text", text }]);
+  await pushDedupedText(text);
 }
 
 export async function sendPipelineFailureNotification(step: string, message: string): Promise<void> {
@@ -285,7 +295,7 @@ export async function sendPipelineFailureNotification(step: string, message: str
 }
 
 export async function sendPipelineSummaryNotification(text: string): Promise<void> {
-  await pushLine([{ type: "text", text }]);
+  await pushDedupedText(text);
 }
 
 export async function fetchLineUserId(): Promise<string | null> {
