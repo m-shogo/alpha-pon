@@ -5406,7 +5406,1807 @@
       ],
       "notes": "2026-06-13時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
       "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "4568",
+      "name": "第一三共",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "4568",
+        "name": "第一三共",
+        "detectedAt": "2026-06-07",
+        "reviewDueAt": "2026-07-07",
+        "reason": "未登録銘柄の自動検出: 高値比31.6%下落、営業利益前年比+56.9%。世界情勢テーマ: migration_labor_shortage・financial_crisis_rate_shock。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.85,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認",
+          "開発パイプラインのフェーズ確認"
+        ],
+        "relatedWorldEventIds": [
+          "migration_labor_shortage",
+          "financial_crisis_rate_shock"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "検証候補"
+      },
+      "evaluatedAt": "2026-06-14",
+      "reviewHorizon": "1w",
+      "actionLabel": "log",
+      "scoreAtPrediction": 85,
+      "startPrice": null,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": null,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "missing",
+      "whatMatched": [],
+      "whatDiffered": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "missReasonCandidates": [
+        "data_quality_bad"
+      ],
+      "notes": "2026-06-14時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
+      "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "4568",
+      "name": "第一三共",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "4568",
+        "name": "第一三共",
+        "detectedAt": "2026-06-08",
+        "reviewDueAt": "2026-07-08",
+        "reason": "未登録銘柄の自動検出: 高値比31.6%下落、営業利益前年比+56.9%。世界情勢テーマ: migration_labor_shortage・financial_crisis_rate_shock。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.85,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認",
+          "開発パイプラインのフェーズ確認"
+        ],
+        "relatedWorldEventIds": [
+          "migration_labor_shortage",
+          "financial_crisis_rate_shock"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "検証候補"
+      },
+      "evaluatedAt": "2026-06-15",
+      "reviewHorizon": "1w",
+      "actionLabel": "log",
+      "scoreAtPrediction": 85,
+      "startPrice": 2961,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": 0,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "partial",
+      "whatMatched": [],
+      "whatDiffered": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (partial)"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "missReasonCandidates": [
+        "data_quality_bad"
+      ],
+      "notes": "2026-06-15時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
+      "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "7013",
+      "name": "IHI",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "7013",
+        "name": "IHI",
+        "detectedAt": "2026-06-14",
+        "reviewDueAt": "2026-07-14",
+        "reason": "未登録銘柄の自動検出: 高値比16.2%下落、営業利益前年比+304.6%。世界情勢テーマ: war_geopolitics・ai_ipo_compute_cycle・food_security。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.9,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ",
+          "防衛予算の大幅削減・安保政策の転換"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認",
+          "防衛省・政府調達の受注動向"
+        ],
+        "relatedWorldEventIds": [
+          "war_geopolitics",
+          "ai_ipo_compute_cycle",
+          "food_security"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "検証候補"
+      },
+      "evaluatedAt": "2026-06-15",
+      "reviewHorizon": "1d",
+      "actionLabel": "log",
+      "scoreAtPrediction": 90,
+      "startPrice": 3470,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": 0,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "partial",
+      "whatMatched": [],
+      "whatDiffered": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (partial)"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "missReasonCandidates": [
+        "data_quality_bad"
+      ],
+      "notes": "2026-06-15時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
+      "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6758",
+      "name": "ソニーグループ",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "6758",
+        "name": "ソニーグループ",
+        "detectedAt": "2026-06-09",
+        "reviewDueAt": "2026-07-09",
+        "reason": "未登録銘柄の自動検出: 高値比29.2%下落、営業利益前年比+16.4%。世界情勢テーマ: war_geopolitics・ai_ipo_compute_cycle・financial_crisis_rate_shock。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.8,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ",
+          "防衛予算の大幅削減・安保政策の転換"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認"
+        ],
+        "relatedWorldEventIds": [
+          "war_geopolitics",
+          "ai_ipo_compute_cycle",
+          "financial_crisis_rate_shock"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "検証候補"
+      },
+      "evaluatedAt": "2026-06-16",
+      "reviewHorizon": "1w",
+      "actionLabel": "log",
+      "scoreAtPrediction": 80,
+      "startPrice": 3232,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": 0,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "partial",
+      "whatMatched": [],
+      "whatDiffered": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (partial)"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "missReasonCandidates": [
+        "data_quality_bad"
+      ],
+      "notes": "2026-06-16時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
+      "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6254",
+      "name": "野村マイクロ・サイエンス",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "6254",
+        "name": "野村マイクロ・サイエンス",
+        "detectedAt": "2026-06-10",
+        "reviewDueAt": "2026-09-08",
+        "reason": "未登録銘柄の自動検出: 高値比25.6%下落、営業利益前年比+0.0%。世界情勢テーマ: war_geopolitics・ai_ipo_compute_cycle。",
+        "expectedTimeframe": "3m",
+        "expectedDirection": "unknown",
+        "confidence": 0.55,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ",
+          "防衛予算の大幅削減・安保政策の転換"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認",
+          "半導体市況サイクルの現在地",
+          "受注残・在庫水準の確認"
+        ],
+        "relatedWorldEventIds": [
+          "war_geopolitics",
+          "ai_ipo_compute_cycle"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "監視候補"
+      },
+      "evaluatedAt": "2026-06-17",
+      "reviewHorizon": "1w",
+      "actionLabel": "watch",
+      "scoreAtPrediction": 55,
+      "startPrice": 2908,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": 0,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "partial",
+      "whatMatched": [],
+      "whatDiffered": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (partial)"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "missReasonCandidates": [
+        "data_quality_bad"
+      ],
+      "notes": "2026-06-17時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
+      "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6954",
+      "name": "ファナック",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "6954",
+        "name": "ファナック",
+        "detectedAt": "2026-06-12",
+        "reviewDueAt": "2026-07-12",
+        "reason": "未登録銘柄の自動検出: 高値比16.5%下落、営業利益前年比+11.9%。世界情勢テーマ: climate_heat_water・ai_ipo_compute_cycle・migration_labor_shortage。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.9,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ",
+          "気候対策政策の後退・補助金削減"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認",
+          "中国・アジア向け受注の動向"
+        ],
+        "relatedWorldEventIds": [
+          "climate_heat_water",
+          "ai_ipo_compute_cycle",
+          "migration_labor_shortage"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "検証候補"
+      },
+      "evaluatedAt": "2026-06-19",
+      "reviewHorizon": "1w",
+      "actionLabel": "log",
+      "scoreAtPrediction": 90,
+      "startPrice": 5728,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": 0,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "partial",
+      "whatMatched": [],
+      "whatDiffered": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (partial)"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "missReasonCandidates": [
+        "data_quality_bad"
+      ],
+      "notes": "2026-06-19時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
+      "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6645",
+      "name": "オムロン",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "6645",
+        "name": "オムロン",
+        "detectedAt": "2026-06-12",
+        "reviewDueAt": "2026-07-12",
+        "reason": "未登録銘柄の自動検出: 高値比17.8%下落、営業利益前年比+57.4%。世界情勢テーマ: migration_labor_shortage。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.8,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認",
+          "中国・アジア向け受注の動向"
+        ],
+        "relatedWorldEventIds": [
+          "migration_labor_shortage"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "監視候補"
+      },
+      "evaluatedAt": "2026-06-19",
+      "reviewHorizon": "1w",
+      "actionLabel": "watch",
+      "scoreAtPrediction": 80,
+      "startPrice": 4469,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": 0,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "partial",
+      "whatMatched": [],
+      "whatDiffered": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (partial)"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "missReasonCandidates": [
+        "data_quality_bad"
+      ],
+      "notes": "2026-06-19時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
+      "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6501",
+      "name": "日立製作所",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "6501",
+        "name": "日立製作所",
+        "detectedAt": "2026-06-19",
+        "reviewDueAt": "2026-07-19",
+        "reason": "未登録銘柄の自動検出: 高値比18.9%下落、営業利益前年比+28.6%。世界情勢テーマ: climate_heat_water・ai_ipo_compute_cycle・financial_crisis_rate_shock。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.9,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ",
+          "気候対策政策の後退・補助金削減"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認"
+        ],
+        "relatedWorldEventIds": [
+          "climate_heat_water",
+          "ai_ipo_compute_cycle",
+          "financial_crisis_rate_shock"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "検証候補"
+      },
+      "evaluatedAt": "2026-06-20",
+      "reviewHorizon": "1d",
+      "actionLabel": "log",
+      "scoreAtPrediction": 90,
+      "startPrice": null,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": null,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "missing",
+      "whatMatched": [],
+      "whatDiffered": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "missReasonCandidates": [
+        "data_quality_bad"
+      ],
+      "notes": "2026-06-20時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
+      "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6701",
+      "name": "NEC",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "6701",
+        "name": "NEC",
+        "detectedAt": "2026-06-19",
+        "reviewDueAt": "2026-07-19",
+        "reason": "未登録銘柄の自動検出: 高値比34.3%下落、営業利益前年比+36.4%。世界情勢テーマ: climate_heat_water・ai_ipo_compute_cycle・food_security。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.8,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ",
+          "気候対策政策の後退・補助金削減"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認"
+        ],
+        "relatedWorldEventIds": [
+          "climate_heat_water",
+          "ai_ipo_compute_cycle",
+          "food_security"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "検証候補"
+      },
+      "evaluatedAt": "2026-06-20",
+      "reviewHorizon": "1d",
+      "actionLabel": "log",
+      "scoreAtPrediction": 80,
+      "startPrice": null,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": null,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "missing",
+      "whatMatched": [],
+      "whatDiffered": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "missReasonCandidates": [
+        "data_quality_bad"
+      ],
+      "notes": "2026-06-20時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
+      "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6504",
+      "name": "富士電機",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "6504",
+        "name": "富士電機",
+        "detectedAt": "2026-06-19",
+        "reviewDueAt": "2026-07-19",
+        "reason": "未登録銘柄の自動検出: 高値比17.9%下落、営業利益前年比+10.9%。世界情勢テーマ: war_geopolitics・climate_heat_water・ai_ipo_compute_cycle。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.9,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ",
+          "防衛予算の大幅削減・安保政策の転換",
+          "気候対策政策の後退・補助金削減"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認"
+        ],
+        "relatedWorldEventIds": [
+          "war_geopolitics",
+          "climate_heat_water",
+          "ai_ipo_compute_cycle"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "検証候補"
+      },
+      "evaluatedAt": "2026-06-20",
+      "reviewHorizon": "1d",
+      "actionLabel": "log",
+      "scoreAtPrediction": 90,
+      "startPrice": null,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": null,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "missing",
+      "whatMatched": [],
+      "whatDiffered": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "missReasonCandidates": [
+        "data_quality_bad"
+      ],
+      "notes": "2026-06-20時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
+      "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "7013",
+      "name": "IHI",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "7013",
+        "name": "IHI",
+        "detectedAt": "2026-06-14",
+        "reviewDueAt": "2026-07-14",
+        "reason": "未登録銘柄の自動検出: 高値比16.2%下落、営業利益前年比+304.6%。世界情勢テーマ: war_geopolitics・ai_ipo_compute_cycle・food_security。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.9,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ",
+          "防衛予算の大幅削減・安保政策の転換"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認",
+          "防衛省・政府調達の受注動向"
+        ],
+        "relatedWorldEventIds": [
+          "war_geopolitics",
+          "ai_ipo_compute_cycle",
+          "food_security"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "検証候補"
+      },
+      "evaluatedAt": "2026-06-21",
+      "reviewHorizon": "1w",
+      "actionLabel": "log",
+      "scoreAtPrediction": 90,
+      "startPrice": null,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": null,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "missing",
+      "whatMatched": [],
+      "whatDiffered": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "missReasonCandidates": [
+        "data_quality_bad"
+      ],
+      "notes": "2026-06-21時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
+      "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6954",
+      "name": "ファナック",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "6954",
+        "name": "ファナック",
+        "detectedAt": "2026-06-20",
+        "reviewDueAt": "2026-07-20",
+        "reason": "未登録銘柄の自動検出: 高値比19.5%下落、営業利益前年比+11.9%。世界情勢テーマ: climate_heat_water・ai_ipo_compute_cycle・migration_labor_shortage。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.9,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ",
+          "気候対策政策の後退・補助金削減"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認",
+          "中国・アジア向け受注の動向"
+        ],
+        "relatedWorldEventIds": [
+          "climate_heat_water",
+          "ai_ipo_compute_cycle",
+          "migration_labor_shortage"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "検証候補"
+      },
+      "evaluatedAt": "2026-06-21",
+      "reviewHorizon": "1d",
+      "actionLabel": "log",
+      "scoreAtPrediction": 90,
+      "startPrice": null,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": null,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "missing",
+      "whatMatched": [],
+      "whatDiffered": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "missReasonCandidates": [
+        "data_quality_bad"
+      ],
+      "notes": "2026-06-21時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
+      "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6645",
+      "name": "オムロン",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "6645",
+        "name": "オムロン",
+        "detectedAt": "2026-06-20",
+        "reviewDueAt": "2026-07-20",
+        "reason": "未登録銘柄の自動検出: 高値比19.5%下落、営業利益前年比+57.4%。世界情勢テーマ: migration_labor_shortage。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.8,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認",
+          "中国・アジア向け受注の動向"
+        ],
+        "relatedWorldEventIds": [
+          "migration_labor_shortage"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "監視候補"
+      },
+      "evaluatedAt": "2026-06-21",
+      "reviewHorizon": "1d",
+      "actionLabel": "watch",
+      "scoreAtPrediction": 80,
+      "startPrice": null,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": null,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "missing",
+      "whatMatched": [],
+      "whatDiffered": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "missReasonCandidates": [
+        "data_quality_bad"
+      ],
+      "notes": "2026-06-21時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
+      "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "7013",
+      "name": "IHI",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "7013",
+        "name": "IHI",
+        "detectedAt": "2026-06-22",
+        "reviewDueAt": "2026-07-22",
+        "reason": "未登録銘柄の自動検出: 高値比26.5%下落、営業利益前年比+304.6%。世界情勢テーマ: war_geopolitics・ai_ipo_compute_cycle・food_security。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.8,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ",
+          "防衛予算の大幅削減・安保政策の転換"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認",
+          "防衛省・政府調達の受注動向"
+        ],
+        "relatedWorldEventIds": [
+          "war_geopolitics",
+          "ai_ipo_compute_cycle",
+          "food_security"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "検証候補"
+      },
+      "evaluatedAt": "2026-06-23",
+      "reviewHorizon": "1d",
+      "actionLabel": "log",
+      "scoreAtPrediction": 80,
+      "startPrice": 3138,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": 0,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "partial",
+      "whatMatched": [],
+      "whatDiffered": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (partial)"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "missReasonCandidates": [
+        "data_quality_bad"
+      ],
+      "notes": "2026-06-23時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
+      "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6645",
+      "name": "オムロン",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "6645",
+        "name": "オムロン",
+        "detectedAt": "2026-06-24",
+        "reviewDueAt": "2026-07-24",
+        "reason": "未登録銘柄の自動検出: 高値比17.2%下落、営業利益前年比+57.4%。世界情勢テーマ: migration_labor_shortage。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.8,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認",
+          "中国・アジア向け受注の動向"
+        ],
+        "relatedWorldEventIds": [
+          "migration_labor_shortage"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "監視候補"
+      },
+      "evaluatedAt": "2026-06-25",
+      "reviewHorizon": "1d",
+      "actionLabel": "watch",
+      "scoreAtPrediction": 80,
+      "startPrice": 4408,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": 0,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "partial",
+      "whatMatched": [],
+      "whatDiffered": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (partial)"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "missReasonCandidates": [
+        "data_quality_bad"
+      ],
+      "notes": "2026-06-25時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
+      "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6501",
+      "name": "日立製作所",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "6501",
+        "name": "日立製作所",
+        "detectedAt": "2026-06-19",
+        "reviewDueAt": "2026-07-19",
+        "reason": "未登録銘柄の自動検出: 高値比18.9%下落、営業利益前年比+28.6%。世界情勢テーマ: climate_heat_water・ai_ipo_compute_cycle・financial_crisis_rate_shock。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.9,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ",
+          "気候対策政策の後退・補助金削減"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認"
+        ],
+        "relatedWorldEventIds": [
+          "climate_heat_water",
+          "ai_ipo_compute_cycle",
+          "financial_crisis_rate_shock"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "検証候補"
+      },
+      "evaluatedAt": "2026-06-26",
+      "reviewHorizon": "1w",
+      "actionLabel": "log",
+      "scoreAtPrediction": 90,
+      "startPrice": 4811,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": 0,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "partial",
+      "whatMatched": [],
+      "whatDiffered": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (partial)"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "missReasonCandidates": [
+        "data_quality_bad"
+      ],
+      "notes": "2026-06-26時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
+      "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6701",
+      "name": "NEC",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "6701",
+        "name": "NEC",
+        "detectedAt": "2026-06-19",
+        "reviewDueAt": "2026-07-19",
+        "reason": "未登録銘柄の自動検出: 高値比34.3%下落、営業利益前年比+36.4%。世界情勢テーマ: climate_heat_water・ai_ipo_compute_cycle・food_security。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.8,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ",
+          "気候対策政策の後退・補助金削減"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認"
+        ],
+        "relatedWorldEventIds": [
+          "climate_heat_water",
+          "ai_ipo_compute_cycle",
+          "food_security"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "検証候補"
+      },
+      "evaluatedAt": "2026-06-26",
+      "reviewHorizon": "1w",
+      "actionLabel": "log",
+      "scoreAtPrediction": 80,
+      "startPrice": 4046,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": 0,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "partial",
+      "whatMatched": [],
+      "whatDiffered": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (partial)"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "missReasonCandidates": [
+        "data_quality_bad"
+      ],
+      "notes": "2026-06-26時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
+      "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6504",
+      "name": "富士電機",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "6504",
+        "name": "富士電機",
+        "detectedAt": "2026-06-19",
+        "reviewDueAt": "2026-07-19",
+        "reason": "未登録銘柄の自動検出: 高値比17.9%下落、営業利益前年比+10.9%。世界情勢テーマ: war_geopolitics・climate_heat_water・ai_ipo_compute_cycle。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.9,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ",
+          "防衛予算の大幅削減・安保政策の転換",
+          "気候対策政策の後退・補助金削減"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認"
+        ],
+        "relatedWorldEventIds": [
+          "war_geopolitics",
+          "climate_heat_water",
+          "ai_ipo_compute_cycle"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "検証候補"
+      },
+      "evaluatedAt": "2026-06-26",
+      "reviewHorizon": "1w",
+      "actionLabel": "log",
+      "scoreAtPrediction": 90,
+      "startPrice": 10790,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": 0,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "partial",
+      "whatMatched": [],
+      "whatDiffered": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (partial)"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "missReasonCandidates": [
+        "data_quality_bad"
+      ],
+      "notes": "2026-06-26時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
+      "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6954",
+      "name": "ファナック",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "6954",
+        "name": "ファナック",
+        "detectedAt": "2026-06-20",
+        "reviewDueAt": "2026-07-20",
+        "reason": "未登録銘柄の自動検出: 高値比19.5%下落、営業利益前年比+11.9%。世界情勢テーマ: climate_heat_water・ai_ipo_compute_cycle・migration_labor_shortage。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.9,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ",
+          "気候対策政策の後退・補助金削減"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認",
+          "中国・アジア向け受注の動向"
+        ],
+        "relatedWorldEventIds": [
+          "climate_heat_water",
+          "ai_ipo_compute_cycle",
+          "migration_labor_shortage"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "検証候補"
+      },
+      "evaluatedAt": "2026-06-27",
+      "reviewHorizon": "1w",
+      "actionLabel": "log",
+      "scoreAtPrediction": 90,
+      "startPrice": null,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": null,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "missing",
+      "whatMatched": [],
+      "whatDiffered": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "missReasonCandidates": [
+        "data_quality_bad"
+      ],
+      "notes": "2026-06-27時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
+      "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6645",
+      "name": "オムロン",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "6645",
+        "name": "オムロン",
+        "detectedAt": "2026-06-20",
+        "reviewDueAt": "2026-07-20",
+        "reason": "未登録銘柄の自動検出: 高値比19.5%下落、営業利益前年比+57.4%。世界情勢テーマ: migration_labor_shortage。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.8,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認",
+          "中国・アジア向け受注の動向"
+        ],
+        "relatedWorldEventIds": [
+          "migration_labor_shortage"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "監視候補"
+      },
+      "evaluatedAt": "2026-06-27",
+      "reviewHorizon": "1w",
+      "actionLabel": "watch",
+      "scoreAtPrediction": 80,
+      "startPrice": null,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": null,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "missing",
+      "whatMatched": [],
+      "whatDiffered": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "missReasonCandidates": [
+        "data_quality_bad"
+      ],
+      "notes": "2026-06-27時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
+      "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "7013",
+      "name": "IHI",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "7013",
+        "name": "IHI",
+        "detectedAt": "2026-06-26",
+        "reviewDueAt": "2026-07-26",
+        "reason": "未登録銘柄の自動検出: 高値比24.4%下落、営業利益前年比+304.6%。世界情勢テーマ: war_geopolitics・ai_ipo_compute_cycle・food_security。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.9,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ",
+          "防衛予算の大幅削減・安保政策の転換"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認",
+          "防衛省・政府調達の受注動向"
+        ],
+        "relatedWorldEventIds": [
+          "war_geopolitics",
+          "ai_ipo_compute_cycle",
+          "food_security"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "検証候補"
+      },
+      "evaluatedAt": "2026-06-27",
+      "reviewHorizon": "1d",
+      "actionLabel": "log",
+      "scoreAtPrediction": 90,
+      "startPrice": null,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": null,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "missing",
+      "whatMatched": [],
+      "whatDiffered": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "missReasonCandidates": [
+        "data_quality_bad"
+      ],
+      "notes": "2026-06-27時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
+      "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6254",
+      "name": "野村マイクロ・サイエンス",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "6254",
+        "name": "野村マイクロ・サイエンス",
+        "detectedAt": "2026-06-26",
+        "reviewDueAt": "2026-07-26",
+        "reason": "未登録銘柄の自動検出: 高値比23.5%下落、営業利益前年比+0.0%。世界情勢テーマ: war_geopolitics・ai_ipo_compute_cycle。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.65,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ",
+          "防衛予算の大幅削減・安保政策の転換"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認",
+          "半導体市況サイクルの現在地",
+          "受注残・在庫水準の確認"
+        ],
+        "relatedWorldEventIds": [
+          "war_geopolitics",
+          "ai_ipo_compute_cycle"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "監視候補"
+      },
+      "evaluatedAt": "2026-06-27",
+      "reviewHorizon": "1d",
+      "actionLabel": "watch",
+      "scoreAtPrediction": 65,
+      "startPrice": null,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": null,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "missing",
+      "whatMatched": [],
+      "whatDiffered": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (missing)"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "missReasonCandidates": [
+        "data_quality_bad"
+      ],
+      "notes": "2026-06-27時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (missing)",
+      "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "7013",
+      "name": "IHI",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "7013",
+        "name": "IHI",
+        "detectedAt": "2026-06-22",
+        "reviewDueAt": "2026-07-22",
+        "reason": "未登録銘柄の自動検出: 高値比26.5%下落、営業利益前年比+304.6%。世界情勢テーマ: war_geopolitics・ai_ipo_compute_cycle・food_security。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.8,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ",
+          "防衛予算の大幅削減・安保政策の転換"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認",
+          "防衛省・政府調達の受注動向"
+        ],
+        "relatedWorldEventIds": [
+          "war_geopolitics",
+          "ai_ipo_compute_cycle",
+          "food_security"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "検証候補"
+      },
+      "evaluatedAt": "2026-06-29",
+      "reviewHorizon": "1w",
+      "actionLabel": "log",
+      "scoreAtPrediction": 80,
+      "startPrice": 3301,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": 0,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "partial",
+      "whatMatched": [],
+      "whatDiffered": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (partial)"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "missReasonCandidates": [
+        "data_quality_bad"
+      ],
+      "notes": "2026-06-29時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
+      "dataSource": "jquants"
+    },
+    {
+      "schemaVersion": 1,
+      "code": "6645",
+      "name": "オムロン",
+      "hypothesis": {
+        "schemaVersion": 1,
+        "code": "6645",
+        "name": "オムロン",
+        "detectedAt": "2026-06-28",
+        "reviewDueAt": "2026-07-28",
+        "reason": "未登録銘柄の自動検出: 高値比20.2%下落、営業利益前年比+57.4%。世界情勢テーマ: migration_labor_shortage。",
+        "expectedTimeframe": "1m",
+        "expectedDirection": "unknown",
+        "confidence": 0.8,
+        "invalidationSignals": [
+          "下方修正の開示",
+          "監査意見の変更・限定付き意見",
+          "不正・コンプライアンス問題の開示",
+          "主力事業の契約解除・大口顧客離れ"
+        ],
+        "evidenceNeeded": [
+          "直近の決算短信・業績進捗確認",
+          "有価証券報告書のリスクファクター確認",
+          "大株主構成と保有比率の変化",
+          "アナリストコンセンサスと乖離の確認",
+          "中国・アジア向け受注の動向"
+        ],
+        "relatedWorldEventIds": [
+          "migration_labor_shortage"
+        ],
+        "relatedDisclosureIds": [],
+        "status": "open",
+        "label": "監視候補"
+      },
+      "evaluatedAt": "2026-06-29",
+      "reviewHorizon": "1d",
+      "actionLabel": "watch",
+      "scoreAtPrediction": 80,
+      "startPrice": 4507,
+      "endPrice1d": null,
+      "endPrice1w": null,
+      "endPrice1m": null,
+      "endPrice3m": null,
+      "return1d": null,
+      "return1w": null,
+      "return1m": null,
+      "return3m": null,
+      "topixReturn1d": null,
+      "benchmarkReturn1w": null,
+      "benchmarkReturn3m": null,
+      "topixReturn1m": null,
+      "relativeToTopix1d": null,
+      "relativeToTopix1w": null,
+      "relativeToTopix1m": null,
+      "relativeToTopix3m": null,
+      "maxDrawdownPct": 0,
+      "actualDirection": "unknown",
+      "result": "unknown",
+      "dataAvailability": "partial",
+      "whatMatched": [],
+      "whatDiffered": [],
+      "missedSignals": [
+        "未評価: 価格データ不足 (partial)"
+      ],
+      "improvedRuleIdeas": [
+        "データ取得期間または市場コードの妥当性を確認する"
+      ],
+      "missReasonCandidates": [
+        "data_quality_bad"
+      ],
+      "notes": "2026-06-29時点で評価。1m=N/A%, TOPIX比=N/A% / 未評価: 価格データ不足 (partial)",
+      "dataSource": "jquants"
     }
   ],
-  "generatedAt": "2026-06-13"
+  "generatedAt": "2026-06-29"
 }

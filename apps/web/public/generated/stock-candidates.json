@@ -1,66 +1,20 @@
 {
   "candidates": [
     {
-      "code": "6954",
-      "name": "ファナック",
-      "sector": "automation_robotics",
-      "detectedAt": "2026-06-12",
-      "currentPrice": 5936,
-      "high52w": 7113,
-      "drawdownPct": -16.547167158723465,
-      "change5dPct": -4.642570281124498,
-      "change20dPct": -6.754633993088281,
-      "topixChange5dPct": null,
-      "topixChange20dPct": null,
-      "relativeTopix5dPct": null,
-      "relativeTopix20dPct": null,
-      "volumeSpikeRatio": 1.059867701089456,
-      "priceSignalSource": "jquants",
-      "priceSignalQuality": "exact",
-      "priceRiskWarnings": [],
-      "operatingProfitYoY": 11.927226093757707,
-      "hasDownwardRevision": false,
-      "hasNegativeFlag": false,
-      "hasRecentDisclosure": false,
-      "disclosureEvidence": {
-        "status": "official_check_required",
-        "sourceType": "missing",
-        "sourceUrl": null,
-        "publishedAt": null,
-        "title": null,
-        "summary": "J-Quantsスクリーニング時点では公式IR/TDnet本文を未確認。候補化後に一次情報確認が必要。"
-      },
-      "matchedWorldEventTags": [
-        "climate_heat_water",
-        "ai_ipo_compute_cycle",
-        "migration_labor_shortage"
-      ],
-      "screeningScore": 90,
-      "warnings": [
-        "公式IR/TDnet本文未確認: disclosureEvidence.status=official_check_required",
-        "[STALE] J-Quants取得が全滅したため前回候補を暫定保持"
-      ],
-      "status": "monitoring",
-      "dataSource": "jquants",
-      "staleAsOf": "2026-06-13",
-      "carriedForwardAt": "2026-06-13",
-      "fallbackAsOf": "2026-06-13"
-    },
-    {
       "code": "6645",
       "name": "オムロン",
       "sector": "automation_robotics",
-      "detectedAt": "2026-06-12",
-      "currentPrice": 4566,
+      "detectedAt": "2026-06-28",
+      "currentPrice": 4428,
       "high52w": 5552,
-      "drawdownPct": -17.759365994236312,
-      "change5dPct": -2.080205876045464,
-      "change20dPct": -4.835348061692372,
+      "drawdownPct": -20.244956772334294,
+      "change5dPct": -0.9174311926605505,
+      "change20dPct": -9.057301293900185,
       "topixChange5dPct": null,
       "topixChange20dPct": null,
       "relativeTopix5dPct": null,
       "relativeTopix20dPct": null,
-      "volumeSpikeRatio": 0.8864889944354059,
+      "volumeSpikeRatio": 1.164532202567068,
       "priceSignalSource": "jquants",
       "priceSignalQuality": "exact",
       "priceRiskWarnings": [],
@@ -86,15 +40,15 @@
       ],
       "status": "monitoring",
       "dataSource": "jquants",
-      "staleAsOf": "2026-06-13",
-      "carriedForwardAt": "2026-06-13",
-      "fallbackAsOf": "2026-06-13"
+      "staleAsOf": "2026-06-29",
+      "carriedForwardAt": "2026-06-29",
+      "fallbackAsOf": "2026-06-29"
     }
   ],
-  "generatedAt": "2026-06-13",
-  "sourceGeneratedAt": "2026-06-13",
+  "generatedAt": "2026-06-29",
+  "sourceGeneratedAt": "2026-06-29",
   "dataSource": "jquants",
   "scanStatus": "stale_fallback",
   "fallbackReason": "jquants_zero_candidates",
-  "count": 2
+  "count": 1
 }
