@@ -25,7 +25,7 @@ type Theme = "ai" | "semiconductor" | "space";
 
 const THEME: Record<Theme, { title: string; keywords: string[]; tags: string[]; category?: string }> = {
   ai: { title: "🤖 AIニュース", category: "ai_compute", keywords: ["AI", "OpenAI", "Anthropic", "NVIDIA", "compute", "GPU", "生成AI"], tags: ["ai", "ai_ipo", "software", "cloud"] },
-  semiconductor: { title: "🔧 半導体ニュース", category: "ai_compute", keywords: ["semiconductor", "chip", "GPU", "NAND", "HBM", "半導体", "メモリ"], tags: ["semiconductor", "memory", "datacenter"] },
+  semiconductor: { title: "🔧 半導体ニュース", keywords: ["semiconductor", "chip", "GPU", "NAND", "HBM", "半導体", "メモリ"], tags: ["semiconductor", "memory", "datacenter"] },
   space: { title: "🚀 宇宙ニュース", category: "space_connectivity", keywords: ["space", "satellite", "SpaceX", "Starlink", "rocket", "宇宙", "衛星"], tags: ["space", "satellite", "telecom", "defense"] },
 };
 
@@ -37,7 +37,7 @@ function matches(event: WorldEvent, theme: Theme): boolean {
   const rule = THEME[theme];
   const text = textOf(event).toLowerCase();
   return (event.impacts ?? []).some(i =>
-    i.category === rule.category ||
+    (rule.category != null && i.category === rule.category) ||
     (i.impactedTags ?? []).some(tag => rule.tags.includes(tag)) ||
     (i.matchedKeywords ?? []).some(keyword => rule.keywords.some(k => keyword.toLowerCase().includes(k.toLowerCase())))
   ) || rule.keywords.some(keyword => text.includes(keyword.toLowerCase()));
