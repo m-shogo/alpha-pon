@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from 'fs'
+import { join } from 'path'
 import { loadGeneratedData } from '@/lib/generated-data'
 import { Card, SectionLabel } from '@/components/Card'
 import { Icon } from '@/components/Icon'
@@ -16,10 +18,57 @@ const LEVEL_LABEL: Record<string, string> = {
   low: '低',
 }
 
+type WorldThemeCandidateHypothesis = {
+  sourceEventTitle: string
+  sourceEventPublishedAt: string | null
+  theme: string
+  candidateCode: string
+  candidateCompany: string
+  whyThisCompany: string
+  upsideHypothesis: string
+  downsideRisk: string
+  nextPrimaryCheck: string
+  reviewAfterDays: [30, 90, 180]
+}
+
+type WorldThemeReview = {
+  generatedAt?: string
+  totalHypotheses?: number
+  reviewedResults?: number
+  dueReviews?: Array<{
+    hypothesisId: string
+    dueAt: string
+    afterDays: 30 | 90 | 180
+    sourceEventTitle: string
+    theme: string
+    candidateCode: string
+    candidateCompany: string
+    nextPrimaryCheck: string
+  }>
+}
+
+function loadWorldThemeReview(): WorldThemeReview | null {
+  const candidates = [
+    join(process.cwd(), '..', '..', 'reports', 'world_theme_candidate_review_latest.json'),
+    join(process.cwd(), 'reports', 'world_theme_candidate_review_latest.json'),
+  ]
+  const path = candidates.find(p => existsSync(p))
+  if (!path) return null
+  try {
+    return JSON.parse(readFileSync(path, 'utf-8')) as WorldThemeReview
+  } catch {
+    return null
+  }
+}
+
 export default function WorldPage() {
   const data = loadGeneratedData()
   const world = data.worldContext
   const ipoThemeWatch = data.ipoThemeWatch
+  const generated = data as unknown as { worldThemeCandidateHypotheses?: WorldThemeCandidateHypothesis[] }
+  const worldThemeCandidateHypotheses = generated.worldThemeCandidateHypotheses ?? []
+  const worldThemeReview = loadWorldThemeReview()
+  const dueReviews = worldThemeReview?.dueReviews ?? []
 
   if (!world) {
     return (
@@ -66,6 +115,69 @@ export default function WorldPage() {
             {world.summary}
           </p>
         </Card>
+
+        {/* 世界情勢候補仮説 */}
+        <SectionLabel icon={<Icon name="spark" size={15} />}>世界情勢からの調査候補仮説</SectionLabel>
+        <Card pad={12} style={{ marginBottom: 10, background: 'var(--sky-soft)' }}>
+          <div style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--sky-deep)', lineHeight: 1.55 }}>
+            買い推奨ではありません。世界情勢・テーマ変化から作った仮説を、一次情報で確認し、30/90/180日後に答え合わせします。
+          </div>
+        </Card>
+
+        {dueReviews.length > 0 && (
+          <>
+            <SectionLabel icon={<Icon name="alert" size={15} />}>レビュー期限到来</SectionLabel>
+            {dueReviews.slice(0, 5).map(item => (
+              <Card key={`${item.hypothesisId}-${item.afterDays}`} pad={14} style={{ marginBottom: 10, border: '1px solid var(--amber)' }}>
+                <div style={{ fontSize: 13.5, fontWeight: 900, color: 'var(--ink)', marginBottom: 4 }}>
+                  {item.candidateCode} {item.candidateCompany} / {item.theme}
+                </div>
+                <div style={{ fontSize: 11.5, fontWeight: 750, color: 'var(--amber)', marginBottom: 6 }}>
+                  {item.dueAt}（{item.afterDays}日後レビュー）
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 650, color: 'var(--ink-2)', lineHeight: 1.5 }}>
+                  情勢: {item.sourceEventTitle}<br />
+                  次に確認: {item.nextPrimaryCheck}<br />
+                  hypothesisId: {item.hypothesisId}
+                </div>
+              </Card>
+            ))}
+          </>
+        )}
+
+        {worldThemeCandidateHypotheses.slice(0, 8).map((item, index) => (
+          <Card key={`${item.sourceEventTitle}-${item.candidateCode}-${index}`} pad={14} style={{ marginBottom: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
+              <span style={{ fontSize: 10.5, fontWeight: 850, color: 'var(--sky-deep)', background: 'var(--sky-soft)', borderRadius: 6, padding: '2px 7px' }}>
+                {item.theme}
+              </span>
+              <span style={{ fontSize: 13.5, fontWeight: 900, color: 'var(--ink)' }}>
+                {item.candidateCode} {item.candidateCompany}
+              </span>
+            </div>
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-3)', lineHeight: 1.45, marginBottom: 6 }}>
+              情勢イベント: {item.sourceEventTitle}
+            </div>
+            <p style={{ margin: '0 0 7px', fontSize: 12.5, fontWeight: 650, color: 'var(--ink-2)', lineHeight: 1.5 }}>
+              {item.whyThisCompany}
+            </p>
+            <div style={{ fontSize: 11.5, fontWeight: 650, color: 'var(--ink-2)', lineHeight: 1.45, marginBottom: 4 }}>
+              <span style={{ fontWeight: 850, color: 'var(--accent)' }}>評価される可能性: </span>
+              {item.upsideHypothesis}
+            </div>
+            <div style={{ fontSize: 11.5, fontWeight: 650, color: 'var(--ink-3)', lineHeight: 1.45, marginBottom: 4 }}>
+              <span style={{ fontWeight: 850, color: 'var(--amber)' }}>外れる理由: </span>
+              {item.downsideRisk}
+            </div>
+            <div style={{ fontSize: 11.5, fontWeight: 650, color: 'var(--ink-3)', lineHeight: 1.45 }}>
+              <span style={{ fontWeight: 850 }}>次に確認する一次情報: </span>
+              {item.nextPrimaryCheck}
+            </div>
+            <div style={{ marginTop: 7, fontSize: 10.5, fontWeight: 800, color: 'var(--ink-3)' }}>
+              答え合わせ予定: {item.reviewAfterDays.join(' / ')}日後
+            </div>
+          </Card>
+        ))}
 
         {/* アクティブ情勢 */}
         <SectionLabel icon={<Icon name="alert" size={15} />}>監視中の情勢</SectionLabel>
