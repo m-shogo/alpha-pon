@@ -1,4 +1,4 @@
-// 特殊状況 Morning Lite。子会社上場・スピンオフ・PE出口・ロックアップ解除などを短く通知する。
+// 特殊状況 Morning Lite。個人ウォッチを優先し、除外コードは通知しない。
 
 import { existsSync, readFileSync } from "fs";
 import { load } from "js-yaml";
@@ -15,7 +15,18 @@ type Candidate = {
   listingInfo?: { confidence?: string; lockupExpiryAt?: string | null; firstEarningsAt?: string | null };
 };
 
+type PriorityWatch = {
+  code: string;
+  name: string;
+  chanceLevel?: "none" | "watch" | "attention" | "high";
+  category?: string;
+  reasonSummary?: string;
+  evidenceLabel?: string;
+  nextCheck?: string;
+};
+
 type Config = { candidates?: Candidate[] };
+type PersonalWatchlist = { excludeCodes?: string[]; priorityWatches?: PriorityWatch[] };
 
 const PATTERN_LABELS: Record<string, string> = {
   carve_out_ipo: "子会社上場/カーブアウト",
@@ -32,6 +43,12 @@ function labels(patterns: string[] = []): string[] {
   return patterns.map(pattern => PATTERN_LABELS[pattern]).filter(Boolean);
 }
 
+function loadPersonalWatchlist(): PersonalWatchlist {
+  const path = "config/personal-watchlist.yml";
+  if (!existsSync(path)) return {};
+  return load(readFileSync(path, "utf-8")) as PersonalWatchlist;
+}
+
 function nextCheck(c: Candidate): string {
   if (c.listingInfo?.lockupExpiryAt) return `ロックアップ解除日 ${c.listingInfo.lockupExpiryAt} の需給`;
   if (c.listingInfo?.firstEarningsAt) return `決算日 ${c.listingInfo.firstEarningsAt} の粗利率/需給`;
@@ -45,12 +62,27 @@ async function main(): Promise<void> {
     return;
   }
 
+  const personal = loadPersonalWatchlist();
+  const excluded = new Set(personal.excludeCodes ?? []);
   const config = load(readFileSync(path, "utf-8")) as Config;
-  const items = (config.candidates ?? [])
+  const normalItems = (config.candidates ?? [])
+    .filter(c => !excluded.has(c.code))
     .map(c => ({ candidate: c, labels: labels(c.patterns) }))
     .filter(item => item.labels.length > 0)
     .sort((a, b) => LEVEL_ORDER[a.candidate.chanceLevel ?? "none"] - LEVEL_ORDER[b.candidate.chanceLevel ?? "none"])
-    .slice(0, 5);
+    .slice(0, 3);
+  const priorityItems = (personal.priorityWatches ?? []).map(watch => ({
+    candidate: {
+      code: watch.code,
+      name: watch.name,
+      chanceLevel: watch.chanceLevel ?? "attention",
+      reasonSummary: watch.reasonSummary,
+      waitFor: watch.nextCheck ? [watch.nextCheck] : undefined,
+      listingInfo: { confidence: watch.evidenceLabel ?? "personal" },
+    } satisfies Candidate,
+    labels: [watch.category ?? "個人重点"],
+  }));
+  const items = [...priorityItems, ...normalItems].slice(0, 5);
 
   if (items.length === 0) {
     console.log("特殊状況通知対象なし");
@@ -60,7 +92,7 @@ async function main(): Promise<void> {
   const today = todayJst();
   const text = [
     `💎 Alpha Pon 特殊状況 Lite ${today}`,
-    "子会社上場・スピンオフ・PE出口・ロックアップを優先確認",
+    "個人重点・特殊状況だけ優先確認",
     "",
     ...items.flatMap(({ candidate, labels }) => [
       `・${candidate.code} ${candidate.name} [${candidate.chanceLevel ?? "watch"}]`,
