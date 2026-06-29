@@ -146,6 +146,13 @@ const res = await fetch("https://api.line.me/v2/bot/message/push", {
 if (!res.ok) throw new Error(`LINE event reminder failed: ${res.status} ${await res.text()}`);
 NODE
 
+# ── 情報秘書 Lite 通知 ───────────────────────────────────────────────────────
+run_optional_step "emergency-disclosure-watch" node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/emergency-disclosure-watch.ts"
+run_optional_step "special-situation-morning" node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/special-situation-morning-lite.ts"
+run_optional_step "theme-news-ai" node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/theme-news-morning-lite.ts" ai
+run_optional_step "theme-news-semiconductor" node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/theme-news-morning-lite.ts" semiconductor
+run_optional_step "theme-news-space" node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/theme-news-morning-lite.ts" space
+
 # ── Pro補助レポート ────────────────────────────────────────────────────────────
 run_optional_step "proposal-history"          node --import "tsx/esm" "$DIR/src/proposal-history-run.ts"
 run_optional_step "persona-audit"             node --import "tsx/esm" "$DIR/src/persona-audit.ts"
