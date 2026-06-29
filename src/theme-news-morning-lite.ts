@@ -3,6 +3,7 @@
 import { readFileSync } from "fs";
 import { todayJst } from "./date.js";
 import { freshnessOf } from "./data-freshness.js";
+import { recordEventNotification, shouldSendEventNotification } from "./notification-dedupe.js";
 import { sendPipelineSummaryNotification } from "./notify.js";
 
 type WorldEvent = {
@@ -64,10 +65,11 @@ async function main(): Promise<void> {
   const items = events
     .filter(event => matches(event, theme))
     .sort((a, b) => (b.totalImpactScore ?? 0) - (a.totalImpactScore ?? 0))
+    .filter(event => shouldSendEventNotification({ scope: theme, title: event.title, source: event.source }))
     .slice(0, 2);
 
   if (items.length === 0) {
-    console.log(`${rule.title} 通知対象なし`);
+    console.log(`${rule.title} 重複除外後の通知対象なし`);
     return;
   }
 
@@ -90,6 +92,7 @@ async function main(): Promise<void> {
 
   console.log(text);
   await sendPipelineSummaryNotification(text);
+  items.forEach(event => recordEventNotification({ scope: theme, title: event.title, source: event.source, preview: event.title }));
 }
 
 main().catch(err => {
