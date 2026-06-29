@@ -1,4 +1,4 @@
-// AI・半導体・宇宙ニュースのMorning Lite。scan:world後の world_events_latest.json を短く通知する。
+// AI・半導体・宇宙・ゲーム業界ニュースのMorning Lite。scan:world後の world_events_latest.json を短く通知する。
 
 import { existsSync, readFileSync } from "fs";
 import { todayJst } from "./date.js";
@@ -21,12 +21,13 @@ type WorldEvent = {
   }>;
 };
 
-type Theme = "ai" | "semiconductor" | "space";
+type Theme = "ai" | "semiconductor" | "space" | "game";
 
 const THEME: Record<Theme, { title: string; keywords: string[]; tags: string[]; category?: string }> = {
   ai: { title: "🤖 AIニュース", category: "ai_compute", keywords: ["AI", "OpenAI", "Anthropic", "NVIDIA", "compute", "GPU", "生成AI"], tags: ["ai", "ai_ipo", "software", "cloud"] },
   semiconductor: { title: "🔧 半導体ニュース", keywords: ["semiconductor", "chip", "GPU", "NAND", "HBM", "半導体", "メモリ"], tags: ["semiconductor", "memory", "datacenter"] },
   space: { title: "🚀 宇宙ニュース", category: "space_connectivity", keywords: ["space", "satellite", "SpaceX", "Starlink", "rocket", "宇宙", "衛星"], tags: ["space", "satellite", "telecom", "defense"] },
+  game: { title: "🎮 ゲーム業界ニュース", keywords: ["Nintendo", "Sony", "PlayStation", "Xbox", "Steam", "Roblox", "Unity", "Unreal", "game", "gaming", "任天堂", "ソニー", "ゲーム"], tags: ["game", "gaming", "consumer", "software", "ip"] },
 };
 
 function textOf(event: WorldEvent): string {
