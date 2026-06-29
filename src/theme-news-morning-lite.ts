@@ -1,7 +1,8 @@
 // AI・半導体・宇宙・ゲーム業界ニュースのMorning Lite。scan:world後の world_events_latest.json を短く通知する。
 
-import { existsSync, readFileSync } from "fs";
+import { readFileSync } from "fs";
 import { todayJst } from "./date.js";
+import { freshnessOf } from "./data-freshness.js";
 import { sendPipelineSummaryNotification } from "./notify.js";
 
 type WorldEvent = {
@@ -53,8 +54,9 @@ async function main(): Promise<void> {
   const rule = THEME[theme];
   if (!rule) throw new Error(`unknown theme: ${theme}`);
   const path = "reports/world_events_latest.json";
-  if (!existsSync(path)) {
-    console.log("world_events_latest.json がないためスキップ");
+  const freshness = freshnessOf(path, "world_events_latest.json");
+  if (!freshness.isFreshToday) {
+    console.log(`鮮度不足のため${rule.title}をスキップ: ${freshness.reason}`);
     return;
   }
 
