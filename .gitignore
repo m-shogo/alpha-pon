@@ -37,6 +37,7 @@ data/regime_history.jsonl
 data/source_health_history.jsonl
 data/world_event_reflections/
 data/world_event_reflections_latest.json
+data/notification-dedupe/
 
 # デザイン確認用の一時出力
 design/alpha-pon-standalone.html
