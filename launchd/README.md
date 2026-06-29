@@ -5,7 +5,8 @@
 1. `.env` ファイルを作成して認証情報を設定:
    ```bash
    cp .env.example .env
-   # JQUANTS_EMAIL / JQUANTS_PASSWORD / LINE_CHANNEL_TOKEN / LINE_USER_ID を設定
+   # JQUANTS_API_KEY / LINE_CHANNEL_TOKEN / LINE_USER_ID を設定
+   # V1互換が必要な場合のみ JQUANTS_EMAIL / JQUANTS_PASSWORD を設定
    ```
 
    `launchd` 自体は `.env` を直接読みません。  
@@ -47,4 +48,4 @@ launchctl load ~/Library/LaunchAgents/com.alpha-pon.daily.plist
 ## 実行時刻の変更
 
 `launchd/com.alpha-pon.daily.plist` の `StartCalendarInterval` を編集します。  
-初期設定では毎朝 7:30 に実行します。
+初期設定では毎朝 9:00 に実行します。
