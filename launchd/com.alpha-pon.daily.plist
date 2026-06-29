@@ -15,13 +15,13 @@
   <key>WorkingDirectory</key>
   <string>/Users/m-shogo/Developer/personal/alpha-pon</string>
 
-  <!-- 毎朝7:30に実行 -->
+  <!-- 毎朝9:00に実行 -->
   <key>StartCalendarInterval</key>
   <dict>
     <key>Hour</key>
-    <integer>7</integer>
+    <integer>9</integer>
     <key>Minute</key>
-    <integer>30</integer>
+    <integer>0</integer>
   </dict>
 
   <key>StandardOutPath</key>
