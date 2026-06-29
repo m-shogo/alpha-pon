@@ -56,6 +56,21 @@ type ReadinessReport = {
   }>;
 };
 
+type PersonalPriorityWatch = {
+  code: string;
+  name: string;
+  category?: string;
+  chanceLevel?: string;
+  reasonSummary?: string;
+  evidenceLabel?: string;
+  nextCheck?: string;
+};
+
+type PersonalWatchlist = {
+  excludeCodes?: string[];
+  priorityWatches?: PersonalPriorityWatch[];
+};
+
 function readText(path: string): string {
   return existsSync(path) ? readFileSync(path, "utf-8") : "";
 }
@@ -291,6 +306,10 @@ function loadWorldContext(): WorldContext | null {
   } catch { return null; }
 }
 
+function loadPersonalWatchlist(): PersonalWatchlist {
+  return readYaml<PersonalWatchlist>("config/personal-watchlist.yml", { excludeCodes: [], priorityWatches: [] });
+}
+
 function main() {
   const date = todayJst();
   const strategic = readText("reports/strategic_advice_latest.md");
@@ -311,6 +330,11 @@ function main() {
   const hypothesisOutcomes = loadOutcomes();
   const accuracySummary = loadAccuracySummary();
   const worldContext = loadWorldContext();
+  const personalWatchlist = loadPersonalWatchlist();
+  const specialSituationUi = {
+    excludeCodes: personalWatchlist.excludeCodes ?? [],
+    priorityWatches: personalWatchlist.priorityWatches ?? [],
+  };
   const companyMemory = loadCompanyMemory();
   const readiness = loadReadiness();
   const runCursors = readJson<Record<string, unknown>>("data/run-cursors.json") ?? {};
@@ -398,6 +422,8 @@ function main() {
     hypothesisOutcomes,
     accuracySummary,
     worldContext,
+    personalWatchlist,
+    specialSituationUi,
     companyMemory,
     companyMemoryByCode: toRecordByCode(companyMemory),
     primaryDisclosureReviews,
