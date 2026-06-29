@@ -1,6 +1,6 @@
 import { execFileSync } from "child_process";
 import type { ScoreResult, AlertLevel } from "./types.js";
-import { recordTextNotification, shouldSendTextNotification } from "./notification-dedupe.js";
+import { recordTextNotification, shouldSendTextNotification, textNotificationCountToday } from "./notification-dedupe.js";
 
 // -------------------------------------------------------
 // macOS ネイティブ通知
@@ -14,6 +14,7 @@ const SOUND_BY_LEVEL: Record<AlertLevel, string> = {
 };
 
 const MORNING_LITE_ITEM_LIMIT = 5;
+const DEFAULT_LITE_DAILY_LIMIT = 8;
 
 function appleScriptString(value: string): string {
   return JSON.stringify(value);
@@ -92,50 +93,22 @@ function buildLineFlexCard(result: ScoreResult): LineFlexMessage {
       type: "box",
       layout: "horizontal",
       contents: [
-        {
-          type: "text",
-          text: "スコア",
-          size: "sm",
-          color: "#888888",
-          flex: 1,
-        },
-        {
-          type: "text",
-          text: `${result.score} / 100`,
-          size: "xl",
-          weight: "bold",
-          color: headerColor,
-          align: "end",
-        },
+        { type: "text", text: "スコア", size: "sm", color: "#888888", flex: 1 },
+        { type: "text", text: `${result.score} / 100`, size: "xl", weight: "bold", color: headerColor, align: "end" },
       ],
     },
     { type: "separator", margin: "md" },
-    {
-      type: "text",
-      text: "検出理由",
-      size: "xs",
-      color: "#888888",
-      margin: "md",
-    },
+    { type: "text", text: "検出理由", size: "xs", color: "#888888", margin: "md" },
     ...reasonItems,
   ];
 
   if (negItems.length > 0) {
-    body.push(
-      { type: "text", text: "注意点", size: "xs", color: "#888888", margin: "md" },
-      ...negItems
-    );
+    body.push({ type: "text", text: "注意点", size: "xs", color: "#888888", margin: "md" }, ...negItems);
   }
 
   body.push(
     { type: "separator", margin: "md" },
-    {
-      type: "text",
-      text: "※買い推奨ではありません",
-      size: "xxs",
-      color: "#AAAAAA",
-      margin: "sm",
-    }
+    { type: "text", text: "※買い推奨ではありません", size: "xxs", color: "#AAAAAA", margin: "sm" }
   );
 
   return {
@@ -148,28 +121,11 @@ function buildLineFlexCard(result: ScoreResult): LineFlexMessage {
         layout: "vertical",
         backgroundColor: headerColor,
         contents: [
-          {
-            type: "text",
-            text: levelLabel,
-            color: "#FFFFFF",
-            size: "xs",
-            weight: "bold",
-          },
-          {
-            type: "text",
-            text: `${result.candidate.code} ${result.candidate.name}`,
-            color: "#FFFFFF",
-            size: "lg",
-            weight: "bold",
-            wrap: true,
-          },
+          { type: "text", text: levelLabel, color: "#FFFFFF", size: "xs", weight: "bold" },
+          { type: "text", text: `${result.candidate.code} ${result.candidate.name}`, color: "#FFFFFF", size: "lg", weight: "bold", wrap: true },
         ],
       },
-      body: {
-        type: "box",
-        layout: "vertical",
-        contents: body,
-      },
+      body: { type: "box", layout: "vertical", contents: body },
     },
   };
 }
@@ -230,15 +186,9 @@ function buildLineSummaryText(results: ScoreResult[], date: string): string {
   ];
 
   const hiddenCount = allItems.length - visibleItems.length;
-  if (hiddenCount > 0) {
-    lines.push("", `ほか${hiddenCount}件はノイズ削減のため省略`);
-  }
+  if (hiddenCount > 0) lines.push("", `ほか${hiddenCount}件はノイズ削減のため省略`);
 
-  lines.push(
-    "",
-    "━━━━━━━━━━━━",
-    "※売買推奨ではありません。事実・報道・噂は混ぜず、未確認は一次情報不足として扱います。"
-  );
+  lines.push("", "━━━━━━━━━━━━", "※売買推奨ではありません。事実・報道・噂は混ぜず、未確認は一次情報不足として扱います。");
   return lines.join("\n");
 }
 
@@ -249,20 +199,29 @@ async function pushLine(messages: object[]): Promise<void> {
 
   const res = await fetch("https://api.line.me/v2/bot/message/push", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify({ to: userId, messages }),
   });
 
-  if (!res.ok) {
-    const body = await res.text();
-    console.warn(`LINE通知失敗: ${res.status} ${body}`);
-  }
+  if (!res.ok) console.warn(`LINE通知失敗: ${res.status} ${await res.text()}`);
+}
+
+function liteDailyLimit(): number {
+  const raw = Number(process.env.MORNING_LITE_DAILY_LIMIT ?? DEFAULT_LITE_DAILY_LIMIT);
+  return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_LITE_DAILY_LIMIT;
+}
+
+function shouldSuppressByLiteLimit(text: string): boolean {
+  const isLite = text.includes("Lite");
+  const isEmergency = text.startsWith("🚨") || text.startsWith("⏰");
+  return isLite && !isEmergency && textNotificationCountToday() >= liteDailyLimit();
 }
 
 async function pushDedupedText(text: string): Promise<void> {
+  if (shouldSuppressByLiteLimit(text)) {
+    console.log(`Lite通知上限スキップ: ${textNotificationCountToday()}/${liteDailyLimit()}件`);
+    return;
+  }
   if (!shouldSendTextNotification(text)) {
     console.log("重複通知スキップ");
     return;
@@ -283,10 +242,7 @@ export async function sendUrgentNotifications(results: ScoreResult[]): Promise<v
   }
 }
 
-export async function sendDailySummary(
-  results: ScoreResult[],
-  date: string
-): Promise<void> {
+export async function sendDailySummary(results: ScoreResult[], date: string): Promise<void> {
   const text = buildLineSummaryText(results, date);
   await pushDedupedText(text);
 }
@@ -308,9 +264,7 @@ export async function fetchLineUserId(): Promise<string | null> {
     console.error("LINE_CHANNEL_TOKEN が未設定");
     return null;
   }
-  const res = await fetch("https://api.line.me/v2/profile", {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const res = await fetch("https://api.line.me/v2/profile", { headers: { Authorization: `Bearer ${token}` } });
   if (!res.ok) {
     console.error(`LINE profile取得失敗: ${res.status}`);
     return null;
