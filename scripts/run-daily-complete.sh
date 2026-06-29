@@ -152,6 +152,7 @@ run_optional_step "special-situation-morning" node --env-file="$DIR/.env" --impo
 run_optional_step "theme-news-ai" node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/theme-news-morning-lite.ts" ai
 run_optional_step "theme-news-semiconductor" node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/theme-news-morning-lite.ts" semiconductor
 run_optional_step "theme-news-space" node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/theme-news-morning-lite.ts" space
+run_optional_step "theme-news-game" node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/theme-news-morning-lite.ts" game
 
 # ── Pro補助レポート ────────────────────────────────────────────────────────────
 run_optional_step "proposal-history"          node --import "tsx/esm" "$DIR/src/proposal-history-run.ts"
