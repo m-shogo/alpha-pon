@@ -155,6 +155,7 @@ run_optional_step "theme-news-semiconductor" node --env-file="$DIR/.env" --impor
 run_optional_step "theme-news-space" node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/theme-news-morning-lite.ts" space
 run_optional_step "theme-news-game" node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/theme-news-morning-lite.ts" game
 run_optional_step "morning-lite-improvement" node --import "tsx/esm" "$DIR/src/morning-lite-improvement.ts"
+run_optional_step "notification-feedback-report" node --import "tsx/esm" "$DIR/src/notification-feedback.ts" report
 
 # ── Pro補助レポート ────────────────────────────────────────────────────────────
 run_optional_step "proposal-history"          node --import "tsx/esm" "$DIR/src/proposal-history-run.ts"
