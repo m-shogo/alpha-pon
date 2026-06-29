@@ -12,6 +12,8 @@ const SOUND_BY_LEVEL: Record<AlertLevel, string> = {
   ignore: "",
 };
 
+const MORNING_LITE_ITEM_LIMIT = 5;
+
 function appleScriptString(value: string): string {
   return JSON.stringify(value);
 }
@@ -171,26 +173,67 @@ function buildLineFlexCard(result: ScoreResult): LineFlexMessage {
   };
 }
 
+function evidenceLabel(result: ScoreResult): string {
+  const decision = result.primaryDisclosureReview?.decision;
+  if (decision === "confirmed") return "事実/一次情報";
+  if (decision === "caution") return "事実/注意情報";
+  if (decision === "block") return "ブロック情報";
+  return "一次情報不足";
+}
+
+function nextCheck(result: ScoreResult): string {
+  return (
+    result.nextSteps[0] ??
+    result.expertReview?.requiredBeforeNotification[0] ??
+    result.primaryDisclosureReview?.evidenceNeeded[0] ??
+    result.negativeReasons[0] ??
+    "一次情報と次イベント日程を確認"
+  );
+}
+
 function buildLineSummaryText(results: ScoreResult[], date: string): string {
   const urgent = results.filter(r => r.alertLevel === "urgent");
   const daily  = results.filter(r => r.alertLevel === "daily");
-  const notifiable = [...urgent, ...daily];
+  const allItems = [...urgent, ...daily];
+  const visibleItems = allItems.slice(0, MORNING_LITE_ITEM_LIMIT);
 
-  if (notifiable.length === 0) {
-    return `📋 alpha-pon ${date}\n通知対象なし（全${results.length}件スコア不足）`;
+  if (allItems.length === 0) {
+    return [
+      `🌅 Alpha Pon Morning Lite ${date}`,
+      "5分朝刊 / 重要な変化だけ",
+      "",
+      "通知対象なし",
+      "",
+      "※売買推奨ではありません。事実・報道・噂は混ぜず、未確認は一次情報不足として扱います。",
+    ].join("\n");
   }
 
   const lines = [
-    `📋 alpha-pon 朝まとめ ${date}`,
-    `🚨 即通知: ${urgent.length}件 / 📋 朝まとめ: ${daily.length}件`,
+    `🌅 Alpha Pon Morning Lite ${date}`,
+    "5分朝刊 / 重要な変化だけ",
+    `🚨 即通知候補: ${urgent.length}件 / 📌 朝確認: ${daily.length}件`,
     "",
-    ...notifiable.map(r => {
-      const icon = r.alertLevel === "urgent" ? "🚨" : "📋";
-      return `${icon} ${r.candidate.code} ${r.candidate.name}  ${r.score}点\n  ${r.reasons[0] ?? ""}`;
+    "🔥 今日見るもの",
+    ...visibleItems.flatMap((r, index) => {
+      const icon = r.alertLevel === "urgent" ? "🚨" : "📌";
+      return [
+        `${index + 1}. ${icon} ${r.candidate.code} ${r.candidate.name} ${r.score}点`,
+        `   区分: ${evidenceLabel(r)}`,
+        `   なぜ重要: ${r.reasons[0] ?? "重要変化の兆候を検出"}`,
+        `   次に確認: ${nextCheck(r)}`,
+      ];
     }),
-    "",
-    "※買い推奨ではありません",
   ];
+
+  const hiddenCount = allItems.length - visibleItems.length;
+  if (hiddenCount > 0) {
+    lines.push("", `ほか${hiddenCount}件はノイズ削減のため省略`);
+  }
+
+  lines.push(
+    "",
+    "※売買推奨ではありません。事実・報道・噂は混ぜず、未確認は一次情報不足として扱います。"
+  );
   return lines.join("\n");
 }
 
@@ -230,11 +273,6 @@ export async function sendDailySummary(
   results: ScoreResult[],
   date: string
 ): Promise<void> {
-  const notifiable = results.filter(
-    r => r.alertLevel === "urgent" || r.alertLevel === "daily"
-  );
-  if (notifiable.length === 0) return;
-
   const text = buildLineSummaryText(results, date);
   await pushLine([{ type: "text", text }]);
 }
