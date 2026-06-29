@@ -147,6 +147,7 @@ if (!res.ok) throw new Error(`LINE event reminder failed: ${res.status} ${await 
 NODE
 
 # ── 情報秘書 Lite 通知 ───────────────────────────────────────────────────────
+run_optional_step "data-freshness-report" node --import "tsx/esm" "$DIR/src/data-freshness-report.ts"
 run_optional_step "emergency-disclosure-watch" node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/emergency-disclosure-watch.ts"
 run_optional_step "special-situation-morning" node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/special-situation-morning-lite.ts"
 run_optional_step "theme-news-ai" node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/theme-news-morning-lite.ts" ai
