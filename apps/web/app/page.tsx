@@ -13,6 +13,20 @@ export const metadata = {
   title: 'alpha-pon — ホーム',
 }
 
+type WorldThemeCandidateHypothesis = {
+  sourceEventTitle: string
+  sourceEventPublishedAt: string | null
+  theme: string
+  candidateCode: string
+  candidateCompany: string
+  whyThisCompany: string
+  upsideHypothesis: string
+  downsideRisk: string
+  nextPrimaryCheck: string
+  reviewAfterDays: [30, 90, 180]
+  disclaimer: string
+}
+
 export default function HomePage() {
   const data = loadGeneratedData()
   const generatedDate = dateOnly(data.generatedAt)
@@ -25,6 +39,7 @@ export default function HomePage() {
   const missingQualityCount = qualityValues.filter((q) => q.dataQuality === 'missing' || q.dataQuality === 'unknown').length
   const warningCount = qualityValues.reduce((sum, q) => sum + q.warnings.length, 0)
   const outcomeCount = data.hypothesisOutcomes?.length ?? 0
+  const worldThemeCandidateHypotheses = ((data as unknown as { worldThemeCandidateHypotheses?: WorldThemeCandidateHypothesis[] }).worldThemeCandidateHypotheses ?? []).slice(0, 4)
   const cursorEntries = Object.entries(data.runCursors ?? {})
   const activeCursors = cursorEntries.filter(([, cursor]) => {
     const offset = cursor.offset ?? 0
@@ -228,6 +243,51 @@ export default function HomePage() {
             </span>
           </Link>
         </div>
+
+        {/* 世界情勢からの候補仮説 */}
+        {worldThemeCandidateHypotheses.length > 0 && (
+          <section style={{ marginTop: 12, marginBottom: 12 }}>
+            <SectionLabel icon={<Icon name="spark" size={15} />}>
+              世界情勢からの調査候補仮説
+            </SectionLabel>
+            <div style={{ padding: '8px 12px 6px', background: 'var(--sky-soft)', borderRadius: 10, fontSize: 11.5, fontWeight: 700, color: 'var(--sky-deep)', marginBottom: 8 }}>
+              ※買い推奨ではありません。世界情勢・テーマ変化から作った仮説を、30/90/180日後に答え合わせします。
+            </div>
+            {worldThemeCandidateHypotheses.map((item, index) => (
+              <div key={`${item.sourceEventTitle}-${item.candidateCode}-${index}`} style={{ padding: '12px 14px', marginBottom: 8, background: 'var(--surface)', border: '1px solid var(--card-line)', borderRadius: 14, boxShadow: 'var(--shadow)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
+                  <span style={{ fontSize: 10.5, fontWeight: 850, color: 'var(--sky-deep)', background: 'var(--sky-soft)', padding: '2px 7px', borderRadius: 6 }}>
+                    {item.theme}
+                  </span>
+                  <span style={{ fontSize: 13, fontWeight: 850, color: 'var(--ink)' }}>
+                    {item.candidateCode} {item.candidateCompany}
+                  </span>
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 5, lineHeight: 1.45 }}>
+                  情勢イベント: {item.sourceEventTitle}
+                </div>
+                <p style={{ fontSize: 12, color: 'var(--ink-2)', margin: '0 0 6px', lineHeight: 1.55 }}>
+                  {item.whyThisCompany}
+                </p>
+                <div style={{ fontSize: 11.5, color: 'var(--ink-2)', marginBottom: 4 }}>
+                  <span style={{ fontWeight: 800, color: 'var(--accent)' }}>評価される可能性: </span>
+                  {item.upsideHypothesis}
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginBottom: 4 }}>
+                  <span style={{ fontWeight: 800, color: 'var(--amber)' }}>上がらない/下がる理由: </span>
+                  {item.downsideRisk}
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginBottom: 4 }}>
+                  <span style={{ fontWeight: 800 }}>次に確認する一次情報: </span>
+                  {item.nextPrimaryCheck}
+                </div>
+                <div style={{ fontSize: 10.5, color: 'var(--ink-3)', fontWeight: 700 }}>
+                  答え合わせ予定: {item.reviewAfterDays.join(' / ')}日後
+                </div>
+              </div>
+            ))}
+          </section>
+        )}
 
         {/* 特殊状況・チャンス候補 */}
         {(data.specialSituationWatch?.topChanceList ?? []).length > 0 && (
