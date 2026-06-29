@@ -1,0 +1,21 @@
+version: 1
+description: "個人用の優先ウォッチ。売買推奨ではなく、重要な変化を見逃さないための上書き設定。"
+excludeCodes:
+  - "285A" # キオクシアホールディングス
+
+priorityWatches:
+  - code: "PRIVATE-SPACEX"
+    name: "SpaceX / Starlink"
+    category: "space"
+    chanceLevel: "attention"
+    reasonSummary: "非上場だが宇宙・衛星通信・防衛通信・Starlink波及の起点。日本の宇宙/通信/防衛関連を見るための重要テーマ。"
+    evidenceLabel: "非上場/テーマ監視"
+    nextCheck: "SpaceX/Starlink公式発表、打上げ、通信契約、政府調達、日本企業への波及"
+
+  - code: "7974"
+    name: "任天堂"
+    category: "game"
+    chanceLevel: "attention"
+    reasonSummary: "ゲーム業界の最重要銘柄。新ハード、決算、IP展開、映画/テーマパーク、為替影響を継続確認。"
+    evidenceLabel: "上場企業/個人重点"
+    nextCheck: "決算日程、Switch後継機販売、主要ソフト/IP展開、為替前提"
