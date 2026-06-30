@@ -3,18 +3,26 @@ import { join } from "path";
 import { todayJst } from "./date.js";
 
 type PipelineStep = {
-  name: string;
-  criticality: string;
-  status: string;
-  code: number;
+  name?: string;
+  criticality?: string;
+  status?: string;
+  code?: number;
   durationSec?: number;
+};
+
+type PipelineResult = {
+  name?: string;
+  status?: string;
 };
 
 type PipelineStatus = {
   date?: string;
+  generatedAt?: string;
+  runType?: string;
   status?: string;
-  failedSteps?: string;
+  failedSteps?: string | string[];
   steps?: PipelineStep[];
+  results?: PipelineResult[];
 };
 
 type ScoreLogEntry = {
@@ -54,6 +62,11 @@ function latestScoreFile(): string | null {
   return files.at(-1) ? join("reports", files.at(-1)!) : null;
 }
 
+function extractScoreDate(path: string | null): string | null {
+  if (!path) return null;
+  return path.match(/scores_(\d{4}-\d{2}-\d{2})\.json$/)?.[1] ?? null;
+}
+
 function countIncludes(entries: ScoreLogEntry[], keyword: string): number {
   return entries.filter(entry => (entry.warnings ?? []).some(warning => warning.includes(keyword))).length;
 }
@@ -63,16 +76,43 @@ function pct(numerator: number, denominator: number): string {
   return `${((numerator / denominator) * 100).toFixed(1)}%`;
 }
 
-function stepStatus(status: PipelineStatus | null, name: string): string {
-  const step = status?.steps?.find(item => item.name === name);
+function failedStepNames(status: PipelineStatus | null): string[] {
+  if (!status) return [];
+
+  const fromFailedSteps = Array.isArray(status.failedSteps)
+    ? status.failedSteps
+    : typeof status.failedSteps === "string"
+      ? status.failedSteps.split(",").map(step => step.trim()).filter(Boolean)
+      : [];
+
+  const fromSteps = (status.steps ?? [])
+    .filter(step => step.status && !["ok", "skipped"].includes(step.status))
+    .map(step => step.name ?? "unknown");
+
+  const fromResults = (status.results ?? [])
+    .filter(result => result.status && !["ok", "skip", "skipped"].includes(result.status))
+    .map(result => result.name ?? "unknown");
+
+  return [...new Set([...fromFailedSteps, ...fromSteps, ...fromResults])];
+}
+
+function formatStep(step: PipelineStep | PipelineResult): string {
+  const duration = "durationSec" in step && typeof step.durationSec === "number" ? ` (${step.durationSec}s)` : "";
+  return `${step.status ?? "unknown"}${duration}`;
+}
+
+function stepStatus(status: PipelineStatus | null, aliases: string[]): string {
+  const step = status?.steps?.find(item => item.name && aliases.includes(item.name))
+    ?? status?.results?.find(item => item.name && aliases.includes(item.name));
   if (!step) return "missing";
-  return `${step.status}${typeof step.durationSec === "number" ? ` (${step.durationSec}s)` : ""}`;
+  return formatStep(step);
 }
 
 function main() {
   const date = todayJst();
   const pipeline = readJson<PipelineStatus>("reports/pipeline_status_latest.json");
   const scorePath = latestScoreFile();
+  const scoreDate = extractScoreDate(scorePath);
   const scores = scorePath ? readJson<ScoreLogEntry[]>(scorePath) ?? [] : [];
   const total = scores.length;
 
@@ -91,6 +131,7 @@ function main() {
   const fetchErrors = scores.reduce((sum, score) => sum + (score.primaryDisclosureReview?.sourceCoverage?.fetchErrorCount ?? 0), 0);
   const jquantsWarnings = countIncludes(scores, "JQUANTS") + countIncludes(scores, "株価データ") + countIncludes(scores, "ベンチマーク");
   const primaryWarnings = countIncludes(scores, "一次情報");
+  const failedSteps = failedStepNames(pipeline);
 
   const lines: string[] = [];
   lines.push("# alpha-pon 情報源ヘルスレポート");
@@ -104,11 +145,23 @@ function main() {
   lines.push("");
   lines.push(`- status: ${pipeline?.status ?? "missing"}`);
   lines.push(`- date: ${pipeline?.date ?? "N/A"}`);
-  lines.push(`- failedSteps: ${pipeline?.failedSteps?.trim() || "none"}`);
-  lines.push(`- scan:world: ${stepStatus(pipeline, "scan:world")}`);
-  lines.push(`- daily: ${stepStatus(pipeline, "daily")}`);
-  lines.push(`- learn:primary: ${stepStatus(pipeline, "learn:primary")}`);
-  lines.push(`- maintain:data:write: ${stepStatus(pipeline, "maintain:data:write")}`);
+  lines.push(`- generatedAt: ${pipeline?.generatedAt ?? "N/A"}`);
+  lines.push(`- runType: ${pipeline?.runType ?? "N/A"}`);
+  lines.push(`- failedSteps: ${failedSteps.length > 0 ? failedSteps.join(", ") : "none"}`);
+  lines.push(`- world_scan / scan:world: ${stepStatus(pipeline, ["world_scan", "scan:world"])}`);
+  lines.push(`- source_health_check / health:sources: ${stepStatus(pipeline, ["source_health_check", "health:sources"])}`);
+  lines.push(`- daily_company_score / daily:core: ${stepStatus(pipeline, ["daily_company_score", "daily", "daily:core"])}`);
+  lines.push(`- scan_universe / scan:universe: ${stepStatus(pipeline, ["scan_universe", "scan:universe"])}`);
+  lines.push(`- candidate_hypothesis / candidate:hypothesis: ${stepStatus(pipeline, ["candidate_hypothesis", "candidate:hypothesis"])}`);
+  lines.push(`- review_due_predictions / review:hypotheses: ${stepStatus(pipeline, ["review_due_predictions", "review:hypotheses"])}`);
+  lines.push(`- ui_data_generate / ui:data: ${stepStatus(pipeline, ["ui_data_generate", "ui:data", "ui:data:base", "ui:data:pro"])}`);
+  lines.push("");
+
+  lines.push("## score log freshness");
+  lines.push("");
+  lines.push(`- score file: ${scorePath ?? "missing"}`);
+  lines.push(`- score date: ${scoreDate ?? "N/A"}`);
+  lines.push(`- isToday: ${scoreDate === date ? "yes" : "no"}`);
   lines.push("");
 
   lines.push("## 情報源カバレッジ");
@@ -140,17 +193,26 @@ function main() {
   lines.push(`- 一次情報 warning: ${primaryWarnings}`);
   lines.push("");
 
+  const decisions: string[] = [];
+  const healthyStatuses = ["ok", "completed", "completed_with_warnings"];
+  if (!pipeline) decisions.push("- 🛑 pipeline_status_latest.json がありません。pnpm daily / pnpm health の実行状態を確認してください。");
+  if (pipeline?.date && pipeline.date !== date) decisions.push(`- ⚠️ pipeline status が本日分ではありません（最終: ${pipeline.date}）。今日の自動実行を確認してください。`);
+  if (pipeline?.status && pipeline.status === "partial_failed") decisions.push("- ⚠️ pipeline は一部失敗です。failedSteps と job_runs を確認してください。");
+  if (pipeline?.status && !healthyStatuses.includes(pipeline.status) && pipeline.status !== "partial_failed") decisions.push(`- 🛑 pipeline status が ${pipeline.status} です。daily の成否を確認してください。`);
+  if (failedSteps.length > 0) decisions.push(`- 🛑 pipeline failedSteps: ${failedSteps.join(", ")}`);
+  if (!scorePath) decisions.push("- 🛑 scores JSON がありません。daily がレポートを生成できていない可能性があります。");
+  if (scoreDate && scoreDate !== date) decisions.push(`- ⚠️ score log が本日分ではありません（最新: ${scoreDate}）。古いスコアを今日の判断材料として扱わないでください。`);
+  if (total === 0) decisions.push("- 🛑 scores JSON が空です。daily がスコアを生成できていない可能性があります。");
+  if (total > 0 && dataMissing / total > 0.5) decisions.push("- ⚠️ dataQuality missing が多いです。J-Quants設定やmock運用状態を確認してください。");
+  if (total > 0 && marketContextCount / total < 0.5) decisions.push("- ⚠️ marketContext が少ないです。株価・ベンチマーク取得を確認してください。");
+  if (total > 0 && primaryReviewCount / total < 0.8) decisions.push("- ⚠️ primaryDisclosureReview が少ないです。一次情報レビューの接続を確認してください。");
+  if (fetchErrors > 0) decisions.push("- ⚠️ TDnet/EDINET取得エラーがあります。外部サイト・API状態を確認してください。");
+  if (primaryMissing > primaryConfirmed + primaryCaution + primaryBlock && total > 0) decisions.push("- 🔎 一次情報missingが多いです。ニュース材料は公式IR/TDnet/EDINETの裏取り前提で扱ってください。");
+  if (decisions.length === 0) decisions.push("- ✅ 大きな情報源異常は検出していません。継続してログを貯めてください。");
+
   lines.push("## 運用判断");
   lines.push("");
-  if (!pipeline) lines.push("- 🛑 pipeline_status_latest.json がありません。run-daily.sh の実行状態を確認してください。");
-  if (pipeline?.status && !["completed", "completed_with_warnings"].includes(pipeline.status)) lines.push(`- 🛑 pipeline status が ${pipeline.status} です。daily の成否を確認してください。`);
-  if (total === 0) lines.push("- 🛑 scores JSON がありません。daily がレポートを生成できていない可能性があります。");
-  if (total > 0 && dataMissing / total > 0.5) lines.push("- ⚠️ dataQuality missing が多いです。J-Quants設定やmock運用状態を確認してください。");
-  if (total > 0 && marketContextCount / total < 0.5) lines.push("- ⚠️ marketContext が少ないです。株価・ベンチマーク取得を確認してください。");
-  if (total > 0 && primaryReviewCount / total < 0.8) lines.push("- ⚠️ primaryDisclosureReview が少ないです。一次情報レビューの接続を確認してください。");
-  if (fetchErrors > 0) lines.push("- ⚠️ TDnet/EDINET取得エラーがあります。外部サイト・API状態を確認してください。");
-  if (primaryMissing > primaryConfirmed + primaryCaution + primaryBlock && total > 0) lines.push("- 🔎 一次情報missingが多いです。ニュース材料は公式IR/TDnet/EDINETの裏取り前提で扱ってください。");
-  if (lines.at(-1) === "## 運用判断") lines.push("- ✅ 大きな情報源異常は検出していません。継続してログを貯めてください。");
+  lines.push(...decisions);
   lines.push("");
 
   lines.push("---");
