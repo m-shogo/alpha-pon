@@ -14,11 +14,10 @@ const LOCK_KEY = `alpha-pon:daily:${TODAY}`;
 type DailyStatus = "ok" | "skip" | "fail";
 type DailyResult = { name: string; status: DailyStatus };
 
-// daily で実行するジョブ一覧
-// pnpmScript: package.json の scripts キー名（既存 CLI をそのまま呼ぶ）
+// daily の主処理。pipeline_status_latest.json に依存する監査系はここに入れない。
+// 監査系を途中で実行すると、前回の pipeline_status / score log を見て stale 判定しやすい。
 const DAILY_JOBS = [
   { name: "world_scan",             pnpmScript: "scan:world" },
-  { name: "source_health_check",    pnpmScript: "health:sources" },
   { name: "daily_company_score",    pnpmScript: "daily:core" },
   { name: "review_analogies",       pnpmScript: "review:analogies:write" },
   { name: "scan_universe",          pnpmScript: "scan:universe" },
@@ -26,6 +25,13 @@ const DAILY_JOBS = [
   { name: "review_due_predictions", pnpmScript: "review:hypotheses" },
   { name: "readiness_audit",        pnpmScript: "readiness:audit" },
   { name: "ui_data_generate",       pnpmScript: "ui:data" },
+] as const;
+
+// pipeline_status_latest.json と生成済み UI/report に依存する後段監査。
+// 先に pipeline_status を書き、監査後にもう一度 status を更新する。
+const POST_PIPELINE_JOBS = [
+  { name: "source_health_check", pnpmScript: "health:sources" },
+  { name: "ops_dashboard_report", pnpmScript: "report:ops" },
 ] as const;
 
 function writePipelineStatus(results: DailyResult[]): void {
@@ -70,6 +76,15 @@ async function main() {
       const res = runPnpmJob(job.name, TODAY, job.pnpmScript);
       results.push({ name: job.name, status: res.skipped ? "skip" : res.success ? "ok" : "fail" });
     }
+
+    // 後段監査が今日の pipeline status を読めるよう、いったん主処理結果を書き出す。
+    writePipelineStatus(results);
+
+    for (const job of POST_PIPELINE_JOBS) {
+      const res = runPnpmJob(job.name, TODAY, job.pnpmScript);
+      results.push({ name: job.name, status: res.skipped ? "skip" : res.success ? "ok" : "fail" });
+      writePipelineStatus(results);
+    }
   } finally {
     releaseLock(LOCK_KEY);
   }
@@ -79,8 +94,6 @@ async function main() {
     const icon = r.status === "ok" ? "✓" : r.status === "skip" ? "–" : "✗";
     console.log(`  ${icon} ${r.name} [${r.status}]`);
   }
-
-  writePipelineStatus(results);
 
   const failed = results.filter(r => r.status === "fail");
   if (failed.length > 0) {
