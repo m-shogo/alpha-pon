@@ -95,6 +95,13 @@ function isNotificationAlert(alertLevel: string): boolean {
   return alertLevel === "urgent" || alertLevel === "daily";
 }
 
+function alertRank(alertLevel: string): number {
+  if (alertLevel === "urgent") return 3;
+  if (alertLevel === "daily") return 2;
+  if (alertLevel === "watch") return 1;
+  return 0;
+}
+
 function emptyReturn(): ReturnData {
   return { price: null, returnPct: null };
 }
@@ -115,6 +122,15 @@ function buildRow(entry: ScoreEntry, observedDate: string): BacktestRow {
     "90d": emptyReturn(),
     "180d": emptyReturn(),
   };
+}
+
+function preferRow(current: BacktestRow, candidate: BacktestRow): BacktestRow {
+  if (alertRank(candidate.alertLevel) !== alertRank(current.alertLevel)) {
+    return alertRank(candidate.alertLevel) > alertRank(current.alertLevel) ? candidate : current;
+  }
+  if (candidate.score !== current.score) return candidate.score > current.score ? candidate : current;
+  if (candidate.rules.length !== current.rules.length) return candidate.rules.length > current.rules.length ? candidate : current;
+  return current;
 }
 
 function groupRows(rows: BacktestRow[], groupName: string, pick: (row: BacktestRow) => string[]): string[] {
@@ -157,8 +173,10 @@ function groupRows(rows: BacktestRow[], groupName: string, pick: (row: BacktestR
   return lines;
 }
 
-function readScoreEntries(reportsDir: string, files: string[]): BacktestRow[] {
-  const rows: BacktestRow[] = [];
+function readScoreEntries(reportsDir: string, files: string[], today: string): { rows: BacktestRow[]; duplicateGroups: number; futureEntries: number } {
+  const byObservation = new Map<string, BacktestRow>();
+  let duplicateGroups = 0;
+  let futureEntries = 0;
 
   for (const file of files) {
     const fileDate = extractScoreFileDate(file);
@@ -175,11 +193,24 @@ function readScoreEntries(reportsDir: string, files: string[]): BacktestRow[] {
       if (!entry.code || !entry.name || typeof entry.score !== "number") continue;
       const observedDate = entry.createdAt ?? fileDate;
       if (!observedDate) continue;
-      rows.push(buildRow(entry, observedDate));
+      if (observedDate > today) {
+        futureEntries++;
+        continue;
+      }
+
+      const row = buildRow(entry, observedDate);
+      const key = `${row.code}:${row.observedDate}`;
+      const existing = byObservation.get(key);
+      if (existing) {
+        duplicateGroups++;
+        byObservation.set(key, preferRow(existing, row));
+      } else {
+        byObservation.set(key, row);
+      }
     }
   }
 
-  return rows;
+  return { rows: [...byObservation.values()], duplicateGroups, futureEntries };
 }
 
 async function fillReturnData(rows: BacktestRow[], today: string): Promise<void> {
@@ -192,7 +223,8 @@ async function fillReturnData(rows: BacktestRow[], today: string): Promise<void>
   for (const [code, codeRows] of [...byCode.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
     const dates = codeRows.map(row => row.observedDate).sort();
     const fromDate = dates[0];
-    const toDate = addDaysJst(dates.at(-1)!, 200);
+    const requestedToDate = addDaysJst(dates.at(-1)!, 200);
+    const toDate = requestedToDate > today ? today : requestedToDate;
     process.stdout.write(`  ${code} (${codeRows.length} entries) ... `);
 
     try {
@@ -249,7 +281,7 @@ async function main() {
 
   console.log(`スコアログ: ${files.length}件\n`);
 
-  const rows = readScoreEntries(reportsDir, files);
+  const { rows, duplicateGroups, futureEntries } = readScoreEntries(reportsDir, files, today);
   if (rows.length === 0) {
     console.log("score entries なし");
     return;
@@ -258,7 +290,8 @@ async function main() {
   const notifiedRows = rows.filter(row => row.isNotified);
   const notNotifiedRows = rows.filter(row => !row.isNotified);
   console.log(`全score entries: ${rows.length}件`);
-  console.log(`通知対象: ${notifiedRows.length}件 / 非通知: ${notNotifiedRows.length}件\n`);
+  console.log(`通知対象: ${notifiedRows.length}件 / 非通知: ${notNotifiedRows.length}件`);
+  console.log(`重複観測の統合: ${duplicateGroups}件 / 未来日付除外: ${futureEntries}件\n`);
 
   if (hasJquants) {
     await fillReturnData(rows, today);
@@ -288,6 +321,8 @@ async function main() {
   lines.push(`- all score entries: ${rows.length}`);
   lines.push(`- notified urgent/daily: ${notifiedRows.length}`);
   lines.push(`- not notified: ${notNotifiedRows.length}`);
+  lines.push(`- duplicate observations merged: ${duplicateGroups}`);
+  lines.push(`- future-dated entries skipped: ${futureEntries}`);
   lines.push(``);
 
   lines.push(`## 通知履歴 × リターン`);
@@ -341,6 +376,7 @@ async function main() {
   lines.push(`## 読み方`);
   lines.push(``);
   lines.push(`- 「通知対象 vs 非通知対象」で、通知した候補が非通知候補より良かったかを確認します。`);
+  lines.push(`- 同一銘柄・同一観測日の重複は1件に統合しています。urgent > daily > watch > other、同順位なら高スコアを優先します。`);
   lines.push(`- 件数が少ないグループは参考値です。平均だけでなく中央値と勝率も見てください。`);
   lines.push(`- J-Quants未設定または提供遅延中は価格データが N/A になります。`);
   lines.push(``);
