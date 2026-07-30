@@ -1,0 +1,24 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "provider-independent eligibility research batch 2。checkpoint同日confounderを一次情報で確認したケース。base/他expansionとID重複禁止。"
+cases:
+  kohls-2025-buchanan:
+    incidentCountry: US
+    sector: retail
+    stakeholder: supplier
+    incidentScope: individual
+    confounderStatus: major
+    strategyEligibilityAtCheckpoint: confirmed_block
+    strategyInvestigationStatusAtCheckpoint: closed
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityNotes: "2025-05-01のKohl's一次情報で、Audit Committee監督・outside counsel調査によりCEOの未開示利益相反を伴うvendor transactionsを確認しfor cause解任。調査自体は完了し、会社はperformance/financial reporting/resultsとは無関係と明示した。一方、同一リリースでQ1 2025の暫定業績（comparable sales -4.3%〜-4.0%、operating income $40m〜$45m、diluted EPS -$0.24〜-$0.20）を同時開示しており、当日の株価反応を不祥事だけへ帰属できないためconfounder=majorでBLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "Kohl's Announces CEO Transition Process"
+        url: "https://investors.kohls.com/news/news-details/2025/Kohls-Announces-CEO-Transition-Process/default.aspx"
+        sourceType: company
+        publishedAt: "2025-05-01"
+      - title: "Kohl's Corporation Form 8-K (2025-05-01)"
+        url: "https://www.sec.gov/Archives/edgar/data/885639/000119312525109074/d925446d8k.htm"
+        sourceType: regulator
+        publishedAt: "2025-05-01"
+    notes: "『事件は切離可能』と『その日の株価下落を事件へ帰属できる』は別。same-day earnings/guidance confounderをBLOCKする代表例。"
