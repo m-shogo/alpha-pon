@@ -17,19 +17,23 @@ function rows(input: {
   startYear?: number;
 }): ShockCalibrationObservation[] {
   const startYear = input.startYear ?? 1990;
-  return Array.from({ length: input.count }, (_, index) => ({
-    caseId: `${input.country}-${index}`,
-    company: `Company ${index}`,
-    checkpoint: `${startYear + Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, "0")}-15`,
-    market: input.market,
-    country: input.country,
-    jurisdictionGroup: inferShockJurisdictionGroup({ country: input.country, market: input.market }),
-    category: typeof input.category === "function" ? input.category(index) : input.category,
-    score: 12 + (index % 5),
-    benchmarkRelative1m: index % 2 === 0 ? 3 : -1,
-    benchmarkRelative3m: index % 3 === 0 ? 7 : 1,
-    benchmarkRelative1y: index % 4 === 0 ? 12 : 2,
-  }));
+  return Array.from({ length: input.count }, (_, index) => {
+    const date = `${startYear + Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, "0")}-15`;
+    return {
+      caseId: `${input.country}-${index}`,
+      company: `Company ${index}`,
+      checkpoint: date,
+      signalDate: date,
+      market: input.market,
+      country: input.country,
+      jurisdictionGroup: inferShockJurisdictionGroup({ country: input.country, market: input.market }),
+      category: typeof input.category === "function" ? input.category(index) : input.category,
+      score: 12 + (index % 5),
+      benchmarkRelative1m: index % 2 === 0 ? 3 : -1,
+      benchmarkRelative3m: index % 3 === 0 ? 7 : 1,
+      benchmarkRelative1y: index % 4 === 0 ? 12 : 2,
+    };
+  });
 }
 
 const sparseJp = buildShockCalibrationReadiness({
@@ -123,7 +127,18 @@ const unusable = buildShockCalibrationReadiness({
   category: "quality_falsification",
   observations: missing3m,
 });
-assert.equal(unusable.globalCases, 0, "3か月benchmark相対が無い事例はcalibration母数へ入れない");
+assert.equal(unusable.globalCases, 0, "signal後3か月benchmark相対が無い事例はcalibration母数へ入れない");
 assert.equal(unusable.modelLevel, "global");
+
+const noSignal = rows({ count: 40, country: "US", market: "US", category: "personal_behavior" })
+  .map(row => ({ ...row, signalDate: null }));
+const noTradeIgnored = buildShockCalibrationReadiness({
+  country: "US",
+  market: "US",
+  category: "personal_behavior",
+  observations: noSignal,
+});
+assert.equal(noTradeIgnored.globalCases, 0, "no-tradeケースを0%リターンとしてcalibrationへ混ぜない");
+assert.equal(noTradeIgnored.modelLevel, "global");
 
 console.log("idiosyncratic-shock calibration tests: OK");
