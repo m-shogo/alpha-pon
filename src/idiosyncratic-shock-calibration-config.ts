@@ -3,6 +3,7 @@ import { load } from "js-yaml";
 import {
   GLOBAL_DEFAULT_SHOCK_THRESHOLD,
   buildShockCalibrationReadiness,
+  buildShockCalibrationReadinessAtLevel,
   type ShockCalibrationLevel,
   type ShockCalibrationObservation,
   type ShockCalibrationReadiness,
@@ -112,6 +113,13 @@ export function findValidatedLocalThreshold(
   return [...candidates].sort((a, b) => b.validationThrough.localeCompare(a.validationThrough) || b.id.localeCompare(a.id))[0];
 }
 
+function parentLevels(level: ShockCalibrationLevel): Array<Exclude<ShockCalibrationLevel, "global">> {
+  if (level === "country_category") return ["country_category", "country", "jurisdiction_group"];
+  if (level === "country") return ["country", "jurisdiction_group"];
+  if (level === "jurisdiction_group") return ["jurisdiction_group"];
+  return [];
+}
+
 export function resolveShockCalibration(
   config: ShockCalibrationConfig,
   input: {
@@ -122,22 +130,33 @@ export function resolveShockCalibration(
   },
 ): ResolvedShockCalibration {
   const preliminary = buildShockCalibrationReadiness(input);
-  const registryEntry = findValidatedLocalThreshold(config, {
-    modelLevel: preliminary.modelLevel,
-    country: preliminary.country,
-    market: preliminary.market,
-    category: preliminary.category,
-    jurisdictionGroup: preliminary.jurisdictionGroup,
-  });
-  if (!registryEntry) return { readiness: preliminary, registryEntry: null };
 
-  const readiness = buildShockCalibrationReadiness({
-    ...input,
-    validatedThreshold: registryEntry.threshold,
-  });
-  // データ減少や再分類で階層が変わった場合、古いregistry entryを誤適用しない。
-  if (readiness.modelLevel !== registryEntry.modelLevel || readiness.status !== "validated") {
-    return { readiness: preliminary, registryEntry: null };
+  // 最深のvalidated childを優先。ただしchildが未登録/古い場合はvalidated parentを使い続ける。
+  for (const modelLevel of parentLevels(preliminary.modelLevel)) {
+    const registryEntry = findValidatedLocalThreshold(config, {
+      modelLevel,
+      country: preliminary.country,
+      market: preliminary.market,
+      category: preliminary.category,
+      jurisdictionGroup: preliminary.jurisdictionGroup,
+    });
+    if (!registryEntry) continue;
+
+    const readiness = buildShockCalibrationReadinessAtLevel({
+      modelLevel,
+      country: preliminary.country,
+      market: preliminary.market,
+      category: preliminary.category,
+      observations: input.observations,
+      validatedThreshold: registryEntry.threshold,
+    });
+    if (readiness.status === "validated") {
+      if (modelLevel !== preliminary.modelLevel) {
+        readiness.notes.push(`deeper level=${preliminary.modelLevel} is not validated; using validated parent=${modelLevel}`);
+      }
+      return { readiness, registryEntry };
+    }
   }
-  return { readiness, registryEntry };
+
+  return { readiness: preliminary, registryEntry: null };
 }
