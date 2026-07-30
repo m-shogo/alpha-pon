@@ -44,11 +44,16 @@ function loadState(): NotifyState {
 }
 
 function notificationKey(row: WatchRow): string {
+  const drawdownBucket = row.candidate.shockDrawdownPct == null
+    ? "unknown"
+    : Math.round(row.candidate.shockDrawdownPct).toString();
   return [
     row.candidate.id,
     row.candidate.detectedAt,
     row.decision.score,
+    row.candidate.investigationStatus ?? "unknown",
     row.candidate.priceState,
+    drawdownBucket,
   ].join(":");
 }
 
@@ -61,17 +66,22 @@ function render(row: WatchRow): string {
     .slice(0, 4)
     .map(([key]) => key)
     .join(", ");
+  const shockText = row.candidate.shockDrawdownPct == null
+    ? "不明"
+    : `${row.candidate.shockDrawdownPct.toFixed(1)}%`;
 
   return [
     "🔎 企業固有ショック 調査候補",
     `${row.candidate.code ?? "-"} ${row.candidate.company}  ${row.decision.score}/20`,
     `分類: ${row.candidate.category} / ${row.candidate.actorType}`,
+    `調査: ${row.candidate.investigationStatus ?? "unknown"} / 証拠: ${row.candidate.evidenceStatus}`,
+    `ショック下落: ${shockText}`,
     `株価: ${row.candidate.priceState} (${row.priceSource}, ${row.priceAsOf ?? "asOf不明"})`,
     `強い項目: ${topReasons || "-"}`,
     `類似過去: ${analogues || "なし"}`,
     `事件: ${row.candidate.eventSummary}`,
     "",
-    "✅ 一次情報確認・12点以上・下落一巡ゲートを通過",
+    "✅ 一次情報・調査範囲・12点以上・実下落・下落一巡の全ゲートを通過",
     "※買い推奨ではありません。候補発見後に決算・IR・価格を再確認してください。",
   ].join("\n");
 }
