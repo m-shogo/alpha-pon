@@ -1,7 +1,7 @@
 // 企業固有ショックの現在監視 + 過去類似比較レポート。
 // pnpm report:shocks
 
-import { mkdirSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { addDaysJst, daysSinceJst, todayJst } from "./date.js";
 import { fetchDailyQuotes, isJQuantsConfigured } from "./fetcher/jquants.js";
 import { fetchTwelveDataDailyQuotes, isTwelveDataConfigured } from "./fetcher/twelve-data.js";
@@ -36,9 +36,21 @@ import {
   type ShockContextReview,
   type ShockContextInput,
 } from "./idiosyncratic-shock-context.js";
+import {
+  enrichShockCalibrationObservations,
+  type ShockCalibrationObservation,
+} from "./idiosyncratic-shock-calibration.js";
+import {
+  loadShockCalibrationConfig,
+  resolveShockCalibration,
+  type ResolvedShockCalibration,
+  type ShockCalibrationConfig,
+} from "./idiosyncratic-shock-calibration-config.js";
+import type { ShockHistoricalOutcomeRecord } from "./idiosyncratic-shock-outcomes.js";
 
 const MARKET_BENCHMARK_CODE = process.env.MARKET_BENCHMARK_CODE ?? "1306";
 const US_MARKET_BENCHMARK_SYMBOL = process.env.US_MARKET_BENCHMARK_SYMBOL ?? "SPY";
+const SHOCK_OUTCOME_PATH = "data/idiosyncratic_shock_outcomes.json";
 
 type ActiveConfigCandidate = ReturnType<typeof loadActiveShockConfig>["candidates"][number];
 type HistoricalContextMap = ReturnType<typeof loadHistoricalShockCaseContext>;
@@ -52,6 +64,7 @@ type EvaluatedCandidate = {
   priceAsOf: string | null;
   jurisdictionReview: ShockJurisdictionReview;
   contextReview: ShockContextReview;
+  calibration: ResolvedShockCalibration;
   decision: ReturnType<typeof buildNotificationDecision>;
   analogues: Array<{
     id: string;
@@ -69,6 +82,16 @@ type EvaluatedCandidate = {
     lesson: string;
   }>;
 };
+
+function loadOutcomeRecords(): ShockHistoricalOutcomeRecord[] {
+  if (!existsSync(SHOCK_OUTCOME_PATH)) return [];
+  try {
+    const payload = JSON.parse(readFileSync(SHOCK_OUTCOME_PATH, "utf-8")) as { records?: ShockHistoricalOutcomeRecord[] };
+    return Array.isArray(payload.records) ? payload.records : [];
+  } catch {
+    return [];
+  }
+}
 
 function normalizeDate(date: string): string {
   if (/^\d{8}$/.test(date)) return `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}`;
@@ -265,6 +288,8 @@ async function evaluate(
   raw: ActiveConfigCandidate,
   historical: HistoricalShockCase[],
   historicalContext: HistoricalContextMap,
+  calibrationObservations: ShockCalibrationObservation[],
+  calibrationConfig: ShockCalibrationConfig,
 ): Promise<EvaluatedCandidate> {
   const market = inferShockMarket({ market: raw.market, code: raw.code, ticker: raw.symbol });
   const benchmarkLabel = shockBenchmarkLabel(market);
@@ -290,7 +315,13 @@ async function evaluate(
     sources: raw.sources,
   };
 
-  const baseDecision = buildNotificationDecision(candidate);
+  const calibration = resolveShockCalibration(calibrationConfig, {
+    country: candidate.country,
+    market,
+    category: candidate.category,
+    observations: calibrationObservations,
+  });
+  const baseDecision = buildNotificationDecision(candidate, calibration.readiness.effectiveThreshold);
   const jurisdictionReview = buildShockJurisdictionReview(candidate, historical);
   const contextReview = buildShockContextReview(candidateContext(raw));
   const blockers = [...baseDecision.blockers, ...jurisdictionReview.blockers, ...contextReview.blockers];
@@ -330,6 +361,7 @@ async function evaluate(
     priceAsOf: resolved.asOf,
     jurisdictionReview,
     contextReview,
+    calibration,
     decision,
     analogues,
   };
@@ -373,9 +405,9 @@ function renderMarkdown(
     "",
     `生成日: ${date}`,
     "",
-    "> 20点は企業ダメージの世界共通score。国差はjurisdiction evidence pool、事件帰属はcontext reviewで別管理します。",
+    "> 20点は企業ダメージの世界共通score。国差はjurisdiction evidence pool、事件帰属はcontext review、閾値差はvalidated local calibrationで別管理します。",
+    "> local thresholdはoutcome母数 + chronological holdout + registry証跡を全て満たした場合だけ使い、それ以外は12点へ戻します。",
     "> 本社国・事件国・上場市場・業種・被害者・支配構造・流動性・事件連鎖・開示観測性・再発・是正・同時材料を分離し、分からない重要軸はunknownのままWAITにします。",
-    "> 類似事例は国差・時代差に加え、確認済みsidecarがある事例は事件国/業種/被害者/scope/支配・上場構造/事件連鎖でも再順位付けします。",
     "",
     "## 現在の監視候補",
     "",
@@ -383,9 +415,11 @@ function renderMarkdown(
 
   if (evaluated.length === 0) lines.push("- なし", "");
   for (const row of evaluated) {
+    const calibration = row.calibration.readiness;
     lines.push(`### ${row.candidate.code ?? "-"} ${row.candidate.company}`);
     lines.push(`- market: ${row.market} / issuer country: ${row.jurisdictionReview.country ?? "unknown"} / incident country: ${row.contextReview.incidentCountry ?? "unknown"} / benchmark: ${row.benchmarkLabel}`);
-    lines.push(`- score: **${row.decision.score}/20** (${row.decision.label})`);
+    lines.push(`- score: **${row.decision.score}/20** (${row.decision.label}) / effective threshold=${calibration.effectiveThreshold} (${calibration.effectiveThresholdSource})`);
+    lines.push(`- calibration: level=${calibration.modelLevel} / status=${calibration.status} / country n=${calibration.countryCases} / country-category n=${calibration.countryCategoryCases} / registry=${row.calibration.registryEntry?.id ?? "none"}`);
     lines.push(`- category: ${row.candidate.category} / actor: ${row.candidate.actorType}`);
     lines.push(`- jurisdiction: ${row.jurisdictionReview.group} / sensitivity=${row.jurisdictionReview.sensitivity} / local confidence=${row.jurisdictionReview.confidence} / evidence tier=${row.jurisdictionReview.evidenceTier}`);
     lines.push(`- evidence weights: local=${row.jurisdictionReview.evidenceWeights.sameCountry}, group=${row.jurisdictionReview.evidenceWeights.sameGroup}, global=${row.jurisdictionReview.evidenceWeights.global}`);
@@ -430,6 +464,7 @@ function renderMarkdown(
   }
   lines.push("", "## 読み方", "");
   lines.push("- 20点scoreへ国別の道徳点を足しません。企業価値への実害は世界共通軸、jurisdiction/contextは別レイヤーです。");
+  lines.push("- local thresholdはcountry-category → country → jurisdiction-group → globalの順で、holdoutとregistryを満たす最深階層だけを使います。");
   lines.push("- evidence poolは同国→同制度圏→世界の順で借り、母数が薄いと自動通知を止めます。");
   lines.push("- context sidecarは確認できた事例だけ付与し、未確認項目を推測で埋めません。");
   lines.push("- 本社国と事件国を分離します。海外子会社の事件は現地規制と本社ガバナンスを両方確認します。");
@@ -451,9 +486,11 @@ async function main(): Promise<void> {
   const historical = loadHistoricalShockCases();
   const historicalContext = loadHistoricalShockCaseContext();
   const active = loadActiveShockConfig();
+  const calibrationConfig = loadShockCalibrationConfig();
+  const calibrationObservations = enrichShockCalibrationObservations(loadOutcomeRecords(), historical);
   const evaluated: EvaluatedCandidate[] = [];
   for (const candidate of active.candidates) {
-    evaluated.push(await evaluate(candidate, historical, historicalContext));
+    evaluated.push(await evaluate(candidate, historical, historicalContext, calibrationObservations, calibrationConfig));
   }
 
   mkdirSync("reports", { recursive: true });
@@ -464,10 +501,14 @@ async function main(): Promise<void> {
     marketAware: true,
     jurisdictionAware: true,
     contextAware: true,
+    calibrationAware: true,
+    validatedLocalThresholds: calibrationConfig.validatedLocalThresholds.length,
     jurisdictionPolicy: "global damage score + hierarchical local-to-global evidence + temporal decay",
     contextPolicy: "issuer/incident/market separation + verified sidecar reranking + sector/stakeholder/scope + listing/ownership/liquidity/cluster/observability + causal attribution + recurrence/remediation",
+    calibrationPolicy: "global structural score + hierarchical outcome readiness + chronological holdout + explicit validated registry; otherwise threshold=12",
     relativeShockMethod: "benchmark return on stock shock-low trading date",
     shockWindowDays: DEFAULT_SHOCK_WINDOW_DAYS,
+    calibrationOutcomeObservations: calibrationObservations.filter(row => row.benchmarkRelative3m != null).length,
     historicalCaseCount: historical.length,
     historicalContextCount: historicalContext.size,
     historicalCountryStats: countryStats(historical),
@@ -477,9 +518,10 @@ async function main(): Promise<void> {
   writeFileSync("reports/idiosyncratic_shock_watch_latest.json", JSON.stringify(payload, null, 2), "utf-8");
   writeFileSync(`reports/idiosyncratic_shock_watch_${date}.json`, JSON.stringify(payload, null, 2), "utf-8");
   writeFileSync("reports/idiosyncratic_shock_watch_latest.md", renderMarkdown(date, evaluated, historical, historicalContext.size), "utf-8");
-  console.log(`企業固有ショック watch: active=${evaluated.length} historical=${historical.length} context=${historicalContext.size}`);
+  console.log(`企業固有ショック watch: active=${evaluated.length} historical=${historical.length} context=${historicalContext.size} calibration3m=${payload.calibrationOutcomeObservations} registry=${payload.validatedLocalThresholds}`);
   for (const row of evaluated) {
-    console.log(`  ${row.market}/${row.jurisdictionReview.country ?? "?"}/${row.contextReview.incidentCountry ?? "?"} ${row.candidate.code ?? "-"} ${row.candidate.company}: ${totalShockScore(row.candidate.scores)}/20 jurisdiction=${row.jurisdictionReview.evidenceTier}/${row.jurisdictionReview.confidence} contextBlockers=${row.contextReview.blockers.length} shock=${row.candidate.shockDrawdownPct ?? "?"}% rel=${row.candidate.relativeShockDrawdownPct ?? "?"}% ${row.candidate.priceState} notify=${row.decision.eligible}`);
+    const c = row.calibration.readiness;
+    console.log(`  ${row.market}/${row.jurisdictionReview.country ?? "?"}/${row.contextReview.incidentCountry ?? "?"} ${row.candidate.code ?? "-"} ${row.candidate.company}: ${totalShockScore(row.candidate.scores)}/20 threshold=${c.effectiveThreshold}/${c.effectiveThresholdSource} calibration=${c.modelLevel}/${c.status} jurisdiction=${row.jurisdictionReview.evidenceTier}/${row.jurisdictionReview.confidence} contextBlockers=${row.contextReview.blockers.length} shock=${row.candidate.shockDrawdownPct ?? "?"}% rel=${row.candidate.relativeShockDrawdownPct ?? "?"}% ${row.candidate.priceState} notify=${row.decision.eligible}`);
   }
 }
 
