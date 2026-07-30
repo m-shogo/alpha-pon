@@ -1,0 +1,123 @@
+// 企業固有ショック通知。
+// report:shocks が出した eligible=true の候補だけを、イベント状態ごとに1回通知する。
+// pnpm notify:shocks
+
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { sendPipelineSummaryNotification } from "./notify.js";
+import type { ShockCandidate, ShockNotificationDecision } from "./idiosyncratic-shock.js";
+
+type WatchRow = {
+  candidate: ShockCandidate;
+  priceSource: string;
+  priceAsOf: string | null;
+  decision: ShockNotificationDecision;
+  analogues: Array<{
+    company: string;
+    eventDate: string;
+    score: number;
+    outcomePattern: string;
+    distance: number;
+    lesson: string;
+  }>;
+};
+
+type WatchReport = {
+  generatedAt: string;
+  candidates: WatchRow[];
+};
+
+type NotifyState = {
+  notifiedKeys: string[];
+  updatedAt: string;
+};
+
+const REPORT_PATH = "reports/idiosyncratic_shock_watch_latest.json";
+const STATE_PATH = "data/idiosyncratic_shock_notification_state.json";
+
+function loadState(): NotifyState {
+  if (!existsSync(STATE_PATH)) return { notifiedKeys: [], updatedAt: "" };
+  try {
+    return JSON.parse(readFileSync(STATE_PATH, "utf-8")) as NotifyState;
+  } catch {
+    return { notifiedKeys: [], updatedAt: "" };
+  }
+}
+
+function notificationKey(row: WatchRow): string {
+  return [
+    row.candidate.id,
+    row.candidate.detectedAt,
+    row.decision.score,
+    row.candidate.priceState,
+  ].join(":");
+}
+
+function render(row: WatchRow): string {
+  const analogues = row.analogues.slice(0, 3)
+    .map(item => `${item.company}(${item.score}/20, ${item.outcomePattern}, 距離${item.distance})`)
+    .join(" / ");
+  const topReasons = Object.entries(row.candidate.scores)
+    .filter(([, value]) => value === 2)
+    .slice(0, 4)
+    .map(([key]) => key)
+    .join(", ");
+
+  return [
+    "🔎 企業固有ショック 調査候補",
+    `${row.candidate.code ?? "-"} ${row.candidate.company}  ${row.decision.score}/20`,
+    `分類: ${row.candidate.category} / ${row.candidate.actorType}`,
+    `株価: ${row.candidate.priceState} (${row.priceSource}, ${row.priceAsOf ?? "asOf不明"})`,
+    `強い項目: ${topReasons || "-"}`,
+    `類似過去: ${analogues || "なし"}`,
+    `事件: ${row.candidate.eventSummary}`,
+    "",
+    "✅ 一次情報確認・12点以上・下落一巡ゲートを通過",
+    "※買い推奨ではありません。候補発見後に決算・IR・価格を再確認してください。",
+  ].join("\n");
+}
+
+async function main(): Promise<void> {
+  if (!existsSync(REPORT_PATH)) {
+    console.log(`${REPORT_PATH} がありません。先に pnpm report:shocks を実行してください。`);
+    return;
+  }
+
+  const report = JSON.parse(readFileSync(REPORT_PATH, "utf-8")) as WatchReport;
+  const eligible = report.candidates.filter(row => row.decision.eligible);
+  if (eligible.length === 0) {
+    console.log("企業固有ショック通知: 対象なし");
+    return;
+  }
+
+  const state = loadState();
+  const known = new Set(state.notifiedKeys);
+  const newRows = eligible.filter(row => !known.has(notificationKey(row)));
+  if (newRows.length === 0) {
+    console.log("企業固有ショック通知: 新規対象なし（既通知）");
+    return;
+  }
+
+  const notifyOff = process.env.NOTIFY_MODE === "off";
+  const lineConfigured = Boolean(process.env.LINE_CHANNEL_TOKEN && process.env.LINE_USER_ID);
+  if (notifyOff || !lineConfigured) {
+    console.log(`企業固有ショック通知: ${newRows.length}件 eligible だが送信しない (${notifyOff ? "NOTIFY_MODE=off" : "LINE未設定"})`);
+    return;
+  }
+
+  for (const row of newRows) {
+    await sendPipelineSummaryNotification(render(row));
+    known.add(notificationKey(row));
+    console.log(`LINE通知: ${row.candidate.code ?? "-"} ${row.candidate.company} ${row.decision.score}/20`);
+  }
+
+  mkdirSync("data", { recursive: true });
+  writeFileSync(STATE_PATH, JSON.stringify({
+    notifiedKeys: [...known].slice(-500),
+    updatedAt: new Date().toISOString(),
+  }, null, 2), "utf-8");
+}
+
+main().catch(error => {
+  console.error(error);
+  process.exitCode = 1;
+});
