@@ -8,6 +8,8 @@ export type ShockIncidentScope = "individual" | "site" | "subsidiary" | "multi_u
 export type ShockStakeholder = "employee" | "customer" | "investor" | "supplier" | "regulator" | "public" | "mixed" | "unknown";
 export type ShockConfounderStatus = "clear" | "possible" | "major" | "unknown";
 export type ShockInformationLeakStatus = "clear" | "possible" | "likely" | "unknown";
+export type ShockRecurrenceStatus = "first_known" | "repeat" | "systemic" | "unknown";
+export type ShockRemediationStatus = "credible" | "partial" | "weak" | "unknown";
 export type ShockSectorRiskClass = "general" | "trust_critical" | "safety_critical" | "license_critical";
 
 export type ShockContextInput = {
@@ -19,6 +21,8 @@ export type ShockContextInput = {
   incidentScope?: ShockIncidentScope | null;
   confounderStatus?: ShockConfounderStatus | null;
   informationLeakStatus?: ShockInformationLeakStatus | null;
+  recurrenceStatus?: ShockRecurrenceStatus | null;
+  remediationStatus?: ShockRemediationStatus | null;
   incidentRevenueExposurePct?: number | null;
   estimatedDirectCostPctMarketCap?: number | null;
   industryRelativeShockDrawdownPct?: number | null;
@@ -35,6 +39,8 @@ export type ShockContextReview = {
   incidentScope: ShockIncidentScope;
   confounderStatus: ShockConfounderStatus;
   informationLeakStatus: ShockInformationLeakStatus;
+  recurrenceStatus: ShockRecurrenceStatus;
+  remediationStatus: ShockRemediationStatus;
   incidentRevenueExposurePct: number | null;
   estimatedDirectCostPctMarketCap: number | null;
   industryRelativeShockDrawdownPct: number | null;
@@ -86,6 +92,9 @@ export function contextAnalogyPenalty(
   if (candidate.incidentScope && historical.incidentScope && candidate.incidentScope !== "unknown" && historical.incidentScope !== "unknown" && candidate.incidentScope !== historical.incidentScope) {
     penalty += 1;
   }
+  if (candidate.recurrenceStatus && historical.recurrenceStatus && candidate.recurrenceStatus !== "unknown" && historical.recurrenceStatus !== "unknown" && candidate.recurrenceStatus !== historical.recurrenceStatus) {
+    penalty += 1;
+  }
   return penalty;
 }
 
@@ -98,6 +107,8 @@ export function buildShockContextReview(input: ShockContextInput): ShockContextR
   const incidentScope = input.incidentScope ?? "unknown";
   const confounderStatus = input.confounderStatus ?? "unknown";
   const informationLeakStatus = input.informationLeakStatus ?? "unknown";
+  const recurrenceStatus = input.recurrenceStatus ?? "unknown";
+  const remediationStatus = input.remediationStatus ?? "unknown";
   const incidentRevenueExposurePct = input.incidentRevenueExposurePct ?? null;
   const estimatedDirectCostPctMarketCap = input.estimatedDirectCostPctMarketCap ?? null;
   const industryRelativeShockDrawdownPct = input.industryRelativeShockDrawdownPct ?? null;
@@ -115,6 +126,22 @@ export function buildShockContextReview(input: ShockContextInput): ShockContextR
     blockers.push("informationLeakStatus=likely; re-anchor event window before attribution");
   } else if (informationLeakStatus === "possible" || informationLeakStatus === "unknown") {
     reviewNotes.push("発表前数営業日の異常リターンを確認し、情報漏れ/観測遅延がないか確認する");
+  }
+
+  if (recurrenceStatus === "systemic") {
+    blockers.push("recurrenceStatus=systemic; isolated-dip thesis invalid until organizational scope is resolved");
+  } else if (recurrenceStatus === "repeat") {
+    reviewNotes.push("類似不祥事の再発。単発の個人切除型よりガバナンス再発確率を高く見る");
+  } else if (recurrenceStatus === "unknown") {
+    reviewNotes.push("過去5〜10年の類似不祥事・行政処分・内部統制問題の再発履歴を確認する");
+  }
+
+  if (remediationStatus === "weak") {
+    blockers.push("remediationStatus=weak; recurrence-risk remains high");
+  } else if (remediationStatus === "partial") {
+    reviewNotes.push("再発防止策は部分的。責任者交代だけでなく統制・報酬・監督プロセスの変更を確認する");
+  } else if (remediationStatus === "unknown") {
+    reviewNotes.push("再発防止策の実装内容・責任者・期限・監査方法を確認する");
   }
 
   if (incidentGeography === "foreign") {
@@ -164,6 +191,8 @@ export function buildShockContextReview(input: ShockContextInput): ShockContextR
     incidentScope,
     confounderStatus,
     informationLeakStatus,
+    recurrenceStatus,
+    remediationStatus,
     incidentRevenueExposurePct,
     estimatedDirectCostPctMarketCap,
     industryRelativeShockDrawdownPct,
