@@ -67,6 +67,9 @@ function notificationKey(row: NotifyRow): string {
   const relativeBucket = row.candidate.relativeShockDrawdownPct == null
     ? "unknown"
     : Math.round(row.candidate.relativeShockDrawdownPct).toString();
+  const industryBucket = row.contextReview.industryRelativeShockDrawdownPct == null
+    ? "unknown"
+    : Math.round(row.contextReview.industryRelativeShockDrawdownPct).toString();
   return [
     row.candidate.id,
     row.candidate.detectedAt,
@@ -77,9 +80,15 @@ function notificationKey(row: NotifyRow): string {
     row.jurisdictionReview.confidence,
     row.contextReview.incidentGeography,
     row.contextReview.confounderStatus,
+    row.contextReview.informationLeakStatus,
     drawdownBucket,
     relativeBucket,
+    industryBucket,
   ].join(":");
+}
+
+function valueOrUnknown(value: number | null, suffix: string): string {
+  return value == null || !Number.isFinite(value) ? "不明" : `${value.toFixed(1)}${suffix}`;
 }
 
 function render(row: NotifyRow): string {
@@ -104,12 +113,14 @@ function render(row: NotifyRow): string {
     `市場/本社国: ${row.market} / ${row.jurisdictionReview.country ?? "unknown"} (${row.jurisdictionReview.group})`,
     `事件国: ${row.contextReview.incidentCountry ?? "unknown"} / geography=${row.contextReview.incidentGeography}`,
     `業種リスク: ${row.contextReview.sectorRiskClass} / stakeholder=${row.contextReview.stakeholder} / scope=${row.contextReview.incidentScope}`,
-    `原因帰属: ${row.contextReview.confounderStatus}`,
+    `原因帰属: ${row.contextReview.confounderStatus} / leak=${row.contextReview.informationLeakStatus}`,
+    `事件地域売上露出: ${valueOrUnknown(row.contextReview.incidentRevenueExposurePct, "%")}`,
+    `推定直接損失/時価総額: ${valueOrUnknown(row.contextReview.estimatedDirectCostPctMarketCap, "%")}`,
     `分類: ${row.candidate.category} / ${row.candidate.actorType}`,
     `国差感度: ${row.jurisdictionReview.sensitivity} / local confidence=${row.jurisdictionReview.confidence}`,
     `同国同型: ${row.jurisdictionReview.sameCountryCategoryCases}件 / 同制度群: ${row.jurisdictionReview.sameGroupCategoryCases}件 / 世界: ${row.jurisdictionReview.globalCategoryCases}件`,
     `調査: ${row.candidate.investigationStatus ?? "unknown"} / 証拠: ${row.candidate.evidenceStatus}`,
-    `ショック下落: ${shockText} / ${row.benchmarkLabel}比: ${relativeText}`,
+    `ショック下落: ${shockText} / ${row.benchmarkLabel}比: ${relativeText} / 同業比: ${valueOrUnknown(row.contextReview.industryRelativeShockDrawdownPct, "%")}`,
     `株価: ${row.candidate.priceState} (${row.priceSource}, ${row.priceAsOf ?? "asOf不明"})`,
     `強い項目: ${topReasons || "-"}`,
     `類似過去: ${analogues || "なし"}`,
@@ -146,6 +157,10 @@ async function main(): Promise<void> {
       stakeholder: raw.stakeholder,
       incidentScope: raw.incidentScope,
       confounderStatus: raw.confounderStatus,
+      informationLeakStatus: raw.informationLeakStatus,
+      incidentRevenueExposurePct: raw.incidentRevenueExposurePct,
+      estimatedDirectCostPctMarketCap: raw.estimatedDirectCostPctMarketCap,
+      industryRelativeShockDrawdownPct: raw.industryRelativeShockDrawdownPct,
     });
     if (contextReview.blockers.length > 0) {
       console.log(`企業固有ショック通知: ${row.candidate.id} context BLOCK (${contextReview.blockers.join("; ")})`);
