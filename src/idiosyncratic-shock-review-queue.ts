@@ -5,12 +5,16 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
 import { loadActiveShockConfig } from "./idiosyncratic-shock-data.js";
+import type { ShockMarket } from "./idiosyncratic-shock-market.js";
+
+type MarketHint = ShockMarket | "UNKNOWN";
 
 type NewsItem = {
   title: string;
   url: string;
   source: string;
   publishedAt: string;
+  marketHint?: MarketHint;
   categoryHint: string;
   categoryLabel: string;
   actorTypeHint: string;
@@ -34,6 +38,7 @@ type ScanFile<T> = { generatedAt: string; items: T[]; error?: string | null; err
 type QueueItem = {
   key: string;
   sourceLevel: "primary" | "news";
+  marketHint: MarketHint;
   code: string | null;
   companyName: string | null;
   title: string;
@@ -62,14 +67,16 @@ function titleKey(title: string): string {
   return normalize(title).slice(0, 100);
 }
 
-function primaryReviewChecklist(): string[] {
+function primaryReviewChecklist(marketHint: MarketHint): string[] {
   return [
+    `market: ${marketHint} が正しいか。JP以外ならsymbolと現地primary sourceを確定`,
     "investigationStatus: 調査中(open)か、範囲が概ね確定(substantially_complete/closed)か",
     "事件の範囲: 個人/少人数/複数部署/組織",
     "accountingIntegrity: 財務訂正・架空取引・監査影響の有無",
     "businessImpact: 本業・顧客・規制・営業停止への実害",
     "actorSeparability: 問題人物/少人数を切離せるか",
-    "shockDrawdownPct: 事件前比で実際に-5%以上下落したか",
+    "shockDrawdownPct: event後20日以内に事件前比-5%以上か",
+    "relativeShockDrawdownPct: 現地benchmarkより-3%以上余計に下げたか",
     "priceState: falling/volatileではなくstabilized_after_dropか",
     "一次情報の追加開示予定・次回確認日",
   ];
@@ -79,7 +86,7 @@ function buildQueue(): QueueItem[] {
   const news = readJson<ScanFile<NewsItem>>(NEWS_PATH)?.items ?? [];
   const disclosures = readJson<ScanFile<DisclosureItem>>(DISCLOSURE_PATH)?.items ?? [];
   const active = loadActiveShockConfig();
-  const activeCodes = new Set(active.candidates.map(row => row.code).filter((row): row is string => Boolean(row)));
+  const activeCodes = new Set(active.candidates.map(row => row.code ?? row.symbol).filter((row): row is string => Boolean(row)));
   const activeCompanies = active.candidates.map(row => normalize(row.company));
   const rows: QueueItem[] = [];
 
@@ -88,6 +95,7 @@ function buildQueue(): QueueItem[] {
     rows.push({
       key: `tdnet:${item.code}:${item.publishedAt}:${titleKey(item.title)}`,
       sourceLevel: "primary",
+      marketHint: "JP",
       code: item.code,
       companyName: item.companyName,
       title: item.title,
@@ -97,16 +105,18 @@ function buildQueue(): QueueItem[] {
       actorTypeHint: item.actorTypeHint,
       matchedKeywords: item.matchedKeywords,
       scoringStatus: "needs_scoring",
-      requiredReview: primaryReviewChecklist(),
+      requiredReview: primaryReviewChecklist("JP"),
     });
   }
 
   for (const item of news) {
     const normalizedTitle = normalize(item.title);
     if (activeCompanies.some(name => name && normalizedTitle.includes(name))) continue;
+    const marketHint = item.marketHint ?? "UNKNOWN";
     rows.push({
-      key: `news:${item.publishedAt}:${titleKey(item.title)}`,
+      key: `news:${marketHint}:${item.publishedAt}:${titleKey(item.title)}`,
       sourceLevel: "news",
+      marketHint,
       code: null,
       companyName: null,
       title: item.title,
@@ -117,20 +127,20 @@ function buildQueue(): QueueItem[] {
       matchedKeywords: item.matchedKeywords,
       scoringStatus: "needs_scoring",
       requiredReview: [
-        "上場企業/証券コードの特定",
-        "会社・取引所・当局の一次情報探索",
+        `上場企業・市場・symbolの特定（marketHint=${marketHint} は仮説）`,
+        marketHint === "US" ? "company IR + SEC EDGAR（8-K/6-K等）の一次情報探索" : "会社・取引所・当局の一次情報探索",
         "噂/誤報/別会社の排除",
         "investigationStatusの確認",
         "10項目scoreは一次情報確認後のみ",
-        "実際のshockDrawdownPctとpriceStateは銘柄特定後に確認",
+        "event20日窓のshockDrawdownPct / 現地benchmark相対 / priceStateを銘柄特定後に確認",
       ],
     });
   }
 
   const deduped = new Map<string, QueueItem>();
-  // 一次情報を先に残す。ニュース同士はタイトルで重複排除。
+  // 一次情報を先に残す。newsはmarket hintもdedupe keyへ含め、JP/US候補を誤って統合しない。
   for (const row of rows.sort((a, b) => (a.sourceLevel === "primary" ? -1 : 1) - (b.sourceLevel === "primary" ? -1 : 1))) {
-    const key = row.code ? `code:${row.code}:${row.categoryHint}` : `title:${titleKey(row.title)}`;
+    const key = row.code ? `code:${row.code}:${row.categoryHint}` : `title:${row.marketHint}:${titleKey(row.title)}`;
     if (!deduped.has(key)) deduped.set(key, row);
   }
   return [...deduped.values()];
@@ -139,16 +149,21 @@ function buildQueue(): QueueItem[] {
 function render(date: string, rows: QueueItem[]): string {
   const primary = rows.filter(row => row.sourceLevel === "primary");
   const news = rows.filter(row => row.sourceLevel === "news");
+  const jpNews = news.filter(row => row.marketHint === "JP");
+  const usNews = news.filter(row => row.marketHint === "US");
+  const unknownNews = news.filter(row => row.marketHint === "UNKNOWN");
   const lines = [
     "# 企業固有ショック 採点待ちキュー",
     "",
     `生成日: ${date}`,
     "",
     "> このキューは情報収集段階です。12点通知へ直接つながりません。",
-    "> 一次情報で investigation / accounting / organization / separability を解決し、実下落と沈静化を確認してから active candidate に昇格します。",
+    "> 一次情報で market / investigation / accounting / organization / separability を解決し、event窓の実下落・現地benchmark相対・沈静化を確認してから active candidate に昇格します。",
     "",
-    `- TDnet一次情報: ${primary.length}`,
-    `- news-only: ${news.length}`,
+    `- TDnet一次情報(JP): ${primary.length}`,
+    `- news JP hint: ${jpNews.length}`,
+    `- news US hint: ${usNews.length}`,
+    `- news UNKNOWN hint: ${unknownNews.length}`,
     "",
     "## 1. TDnet/JPX 一次情報 — 優先採点",
     "",
@@ -156,7 +171,7 @@ function render(date: string, rows: QueueItem[]): string {
 
   if (primary.length === 0) lines.push("- なし", "");
   for (const row of primary.slice(0, 100)) {
-    lines.push(`### ${row.code} ${row.companyName ?? ""}`);
+    lines.push(`### JP ${row.code} ${row.companyName ?? ""}`);
     lines.push(`- ${row.title}`);
     lines.push(`- categoryHint: ${row.categoryHint} / actor=${row.actorTypeHint}`);
     lines.push(`- matched: ${row.matchedKeywords.join(", ") || "-"}`);
@@ -167,8 +182,8 @@ function render(date: string, rows: QueueItem[]): string {
 
   lines.push("## 2. ニュース発見のみ — 一次情報待ち", "");
   if (news.length === 0) lines.push("- なし", "");
-  for (const row of news.slice(0, 100)) {
-    lines.push(`- ${row.title}`);
+  for (const row of news.slice(0, 150)) {
+    lines.push(`- [${row.marketHint}] ${row.title}`);
     lines.push(`  - categoryHint: ${row.categoryHint} / source=${row.sourceLevel}`);
     lines.push(`  - unresolved: ${row.requiredReview.join(" / ")}`);
     lines.push(`  - url: ${row.url}`);
@@ -185,11 +200,16 @@ function main(): void {
     count: rows.length,
     primaryCount: rows.filter(row => row.sourceLevel === "primary").length,
     newsCount: rows.filter(row => row.sourceLevel === "news").length,
+    newsByMarketHint: {
+      JP: rows.filter(row => row.sourceLevel === "news" && row.marketHint === "JP").length,
+      US: rows.filter(row => row.sourceLevel === "news" && row.marketHint === "US").length,
+      UNKNOWN: rows.filter(row => row.sourceLevel === "news" && row.marketHint === "UNKNOWN").length,
+    },
     rows,
   };
   writeFileSync("reports/idiosyncratic_shock_review_queue_latest.json", JSON.stringify(payload, null, 2), "utf-8");
   writeFileSync("reports/idiosyncratic_shock_review_queue_latest.md", render(date, rows), "utf-8");
-  console.log(`shock review queue: ${rows.length}件 (primary=${payload.primaryCount}, news=${payload.newsCount})`);
+  console.log(`shock review queue: ${rows.length}件 (primary=${payload.primaryCount}, news=${payload.newsCount}, US=${payload.newsByMarketHint.US})`);
 }
 
 main();
