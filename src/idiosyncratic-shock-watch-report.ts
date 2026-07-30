@@ -5,7 +5,9 @@ import { mkdirSync, writeFileSync } from "fs";
 import { addDaysJst, daysSinceJst, todayJst } from "./date.js";
 import { fetchDailyQuotes, isJQuantsConfigured } from "./fetcher/jquants.js";
 import {
+  DEFAULT_SHOCK_WINDOW_DAYS,
   buildNotificationDecision,
+  calculateRelativeShockDrawdownPct,
   calculateShockDrawdownPct,
   findClosestHistoricalCases,
   inferPriceState,
@@ -17,6 +19,7 @@ import {
 } from "./idiosyncratic-shock.js";
 import { loadActiveShockConfig, loadHistoricalShockCases } from "./idiosyncratic-shock-data.js";
 
+const MARKET_BENCHMARK_CODE = process.env.MARKET_BENCHMARK_CODE ?? "1306";
 type ActiveConfigCandidate = ReturnType<typeof loadActiveShockConfig>["candidates"][number];
 
 type EvaluatedCandidate = {
@@ -50,23 +53,40 @@ function priceScore(state: ShockPriceState): 0 | 1 | 2 {
 async function resolvePriceState(raw: ActiveConfigCandidate): Promise<{
   state: ShockPriceState;
   shockDrawdownPct: number | null;
+  relativeShockDrawdownPct: number | null;
   source: "jquants" | "manual_override" | "missing";
   asOf: string | null;
 }> {
   const today = todayJst();
   if (raw.code && isJQuantsConfigured()) {
     try {
-      // 「落ち着いた」だけでなく、事件前から実際に下落したかも確認するためevent前から取得する。
-      const from = addDaysJst(raw.detectedAt, -10).replaceAll("-", "");
-      const to = today.replaceAll("-", "");
-      const quotes = await fetchDailyQuotes(raw.code, from, to);
+      // event直後だけをショック窓とし、数か月後の別理由の安値を事件下落へ混ぜない。
+      const fromDate = addDaysJst(raw.detectedAt, -10);
+      const shockWindowEnd = addDaysJst(raw.detectedAt, DEFAULT_SHOCK_WINDOW_DAYS);
+      const quotes = await fetchDailyQuotes(raw.code, fromDate.replaceAll("-", ""), today.replaceAll("-", ""));
+      const benchmarkQuotes = await fetchDailyQuotes(
+        MARKET_BENCHMARK_CODE,
+        fromDate.replaceAll("-", ""),
+        shockWindowEnd.replaceAll("-", ""),
+      );
       const sortedQuotes = [...quotes].sort((a, b) => normalizeDate(a.Date).localeCompare(normalizeDate(b.Date)));
       const observations = sortedQuotes.map(row => ({
         date: normalizeDate(row.Date),
         close: row.AdjustmentClose,
         volume: row.AdjustmentVolume,
       }));
-      const shockDrawdownPct = calculateShockDrawdownPct(observations, raw.detectedAt);
+      const benchmarkObservations = benchmarkQuotes.map(row => ({
+        date: normalizeDate(row.Date),
+        close: row.AdjustmentClose,
+        volume: row.AdjustmentVolume,
+      }));
+      const shockDrawdownPct = calculateShockDrawdownPct(observations, raw.detectedAt, shockWindowEnd);
+      const relativeShockDrawdownPct = calculateRelativeShockDrawdownPct(
+        observations,
+        benchmarkObservations,
+        raw.detectedAt,
+        shockWindowEnd,
+      );
       const latest = sortedQuotes.at(-1);
       if (latest) {
         const latestDate = normalizeDate(latest.Date);
@@ -74,7 +94,7 @@ async function resolvePriceState(raw: ActiveConfigCandidate): Promise<{
         // J-Quantsの契約プラン等でデータが遅延している場合は底打ち判定に使わない。
         if (age !== null && age >= 0 && age <= 5) {
           const state = inferPriceState(observations);
-          return { state, shockDrawdownPct, source: "jquants", asOf: latestDate };
+          return { state, shockDrawdownPct, relativeShockDrawdownPct, source: "jquants", asOf: latestDate };
         }
       }
     } catch (error) {
@@ -82,6 +102,8 @@ async function resolvePriceState(raw: ActiveConfigCandidate): Promise<{
     }
   }
 
+  // 手動overrideはprice state / absolute drawdownだけでは相対ショックを証明できないため、
+  // relativeShockDrawdownPctはnullのままにし通知をfail-closedする。
   if (raw.priceStateOverride && raw.priceStateCheckedAt) {
     const age = daysSinceJst(raw.priceStateCheckedAt);
     const maxAgeDays = Number(process.env.SHOCK_PRICE_OVERRIDE_MAX_AGE_DAYS ?? "3");
@@ -89,12 +111,19 @@ async function resolvePriceState(raw: ActiveConfigCandidate): Promise<{
       return {
         state: raw.priceStateOverride,
         shockDrawdownPct: raw.shockDrawdownPctOverride ?? null,
+        relativeShockDrawdownPct: null,
         source: "manual_override",
         asOf: raw.priceStateCheckedAt,
       };
     }
   }
-  return { state: "unknown", shockDrawdownPct: null, source: "missing", asOf: null };
+  return {
+    state: "unknown",
+    shockDrawdownPct: null,
+    relativeShockDrawdownPct: null,
+    source: "missing",
+    asOf: null,
+  };
 }
 
 function withDynamicPriceScore(scores: ShockDimensionScores, state: ShockPriceState): ShockDimensionScores {
@@ -116,6 +145,7 @@ async function evaluate(raw: ActiveConfigCandidate, historical: HistoricalShockC
     investigationStatus: raw.investigationStatus,
     priceState: resolved.state,
     shockDrawdownPct: resolved.shockDrawdownPct,
+    relativeShockDrawdownPct: resolved.relativeShockDrawdownPct,
     scores: withDynamicPriceScore(raw.scores, resolved.state),
     criticalLicenseOrDelistingRisk: raw.criticalLicenseOrDelistingRisk,
     sources: raw.sources,
@@ -159,8 +189,8 @@ function renderMarkdown(date: string, evaluated: EvaluatedCandidate[], historica
     "",
     `生成日: ${date}`,
     "",
-    "> 12点以上は通知の必要条件であり、十分条件ではありません。一次情報確認 + 調査範囲の確定 + 実際のショック下落 + 下落一巡を必須にします。",
-    "> 売買推奨ではありません。急落中・急反発中・調査継続中・そもそも下落していない案件は待ちます。",
+    "> 12点以上は必要条件であり十分条件ではありません。一次情報 + 調査範囲確定 + event窓の実下落 + TOPIX超過下落 + 下落一巡を必須にします。",
+    "> 売買推奨ではありません。地合いだけの下落、急落中、急反発中、調査継続中は待ちます。",
     "",
     "## 現在の監視候補",
     "",
@@ -173,6 +203,7 @@ function renderMarkdown(date: string, evaluated: EvaluatedCandidate[], historica
     lines.push(`- category: ${row.candidate.category} / actor: ${row.candidate.actorType}`);
     lines.push(`- evidence: ${row.candidate.evidenceStatus} / investigation: ${row.candidate.investigationStatus ?? "unknown"}`);
     lines.push(`- shock drawdown: ${row.candidate.shockDrawdownPct == null ? "-" : `${row.candidate.shockDrawdownPct.toFixed(1)}%`}`);
+    lines.push(`- TOPIX relative shock: ${row.candidate.relativeShockDrawdownPct == null ? "-" : `${row.candidate.relativeShockDrawdownPct.toFixed(1)}%`}`);
     lines.push(`- price: ${row.candidate.priceState} / source=${row.priceSource} / asOf=${row.priceAsOf ?? "-"}`);
     lines.push(`- notification: ${row.decision.eligible ? "PASS（調査候補通知）" : "WAIT"}`);
     if (row.decision.blockers.length > 0) lines.push(`- blockers: ${row.decision.blockers.join(" / ")}`);
@@ -198,7 +229,8 @@ function renderMarkdown(date: string, evaluated: EvaluatedCandidate[], historica
     lines.push(`| ${stat.category} | ${stat.count} | ${stat.avgScore} | ${stat.researchPriority} | ${stat.watchOrHigher} | ${stat.failedOutcomes} |`);
   }
   lines.push("", "## 読み方", "");
-  lines.push("- 事件前から最低限の実下落が確認できなければ、5日横ばいでも通知しません。");
+  lines.push(`- event後${DEFAULT_SHOCK_WINDOW_DAYS}日以内の下落だけをshockとして測り、数か月後の別材料下落を混ぜません。`);
+  lines.push("- 絶対下落に加えてTOPIX比の超過下落も必要なので、地合いだけの下げを除外します。");
   lines.push("- 高得点でも priceState が falling / volatile / rebounded_too_fast なら通知しません。");
   lines.push("- investigationStatus が open / unknown の間は通知しません。範囲拡大を待ちます。");
   lines.push("- accountingIntegrity=0 は12点以上でも強制ブロックです。");
@@ -217,6 +249,8 @@ async function main(): Promise<void> {
   mkdirSync("reports", { recursive: true });
   const payload = {
     generatedAt: date,
+    marketBenchmarkCode: MARKET_BENCHMARK_CODE,
+    shockWindowDays: DEFAULT_SHOCK_WINDOW_DAYS,
     historicalCaseCount: historical.length,
     historicalStats: historicalStats(historical),
     candidates: evaluated,
@@ -226,7 +260,7 @@ async function main(): Promise<void> {
   writeFileSync("reports/idiosyncratic_shock_watch_latest.md", renderMarkdown(date, evaluated, historical), "utf-8");
   console.log(`企業固有ショック watch: active=${evaluated.length} historical=${historical.length}`);
   for (const row of evaluated) {
-    console.log(`  ${row.candidate.code ?? "-"} ${row.candidate.company}: ${totalShockScore(row.candidate.scores)}/20 shock=${row.candidate.shockDrawdownPct ?? "?"}% ${row.candidate.priceState} investigation=${row.candidate.investigationStatus ?? "unknown"} notify=${row.decision.eligible}`);
+    console.log(`  ${row.candidate.code ?? "-"} ${row.candidate.company}: ${totalShockScore(row.candidate.scores)}/20 shock=${row.candidate.shockDrawdownPct ?? "?"}% rel=${row.candidate.relativeShockDrawdownPct ?? "?"}% ${row.candidate.priceState} investigation=${row.candidate.investigationStatus ?? "unknown"} notify=${row.decision.eligible}`);
   }
 }
 
