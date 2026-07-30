@@ -103,6 +103,7 @@ async function evaluate(raw: ActiveConfigCandidate, historical: HistoricalShockC
     eventSummary: raw.eventSummary,
     macroPrimaryCause: raw.macroPrimaryCause,
     evidenceStatus: raw.evidenceStatus,
+    investigationStatus: raw.investigationStatus,
     priceState: resolved.state,
     scores: withDynamicPriceScore(raw.scores, resolved.state),
     criticalLicenseOrDelistingRisk: raw.criticalLicenseOrDelistingRisk,
@@ -147,8 +148,8 @@ function renderMarkdown(date: string, evaluated: EvaluatedCandidate[], historica
     "",
     `生成日: ${date}`,
     "",
-    "> 12点以上は通知の必要条件であり、十分条件ではありません。一次情報確認 + マクロ非起因 + 下落一巡を必須にします。",
-    "> 売買推奨ではありません。急落中・急反発中は待ちます。",
+    "> 12点以上は通知の必要条件であり、十分条件ではありません。一次情報確認 + 調査範囲の確定 + マクロ非起因 + 下落一巡を必須にします。",
+    "> 売買推奨ではありません。急落中・急反発中・調査継続中は待ちます。",
     "",
     "## 現在の監視候補",
     "",
@@ -159,7 +160,7 @@ function renderMarkdown(date: string, evaluated: EvaluatedCandidate[], historica
     lines.push(`### ${row.candidate.code ?? "-"} ${row.candidate.company}`);
     lines.push(`- score: **${row.decision.score}/20** (${row.decision.label})`);
     lines.push(`- category: ${row.candidate.category} / actor: ${row.candidate.actorType}`);
-    lines.push(`- evidence: ${row.candidate.evidenceStatus}`);
+    lines.push(`- evidence: ${row.candidate.evidenceStatus} / investigation: ${row.candidate.investigationStatus ?? "unknown"}`);
     lines.push(`- price: ${row.candidate.priceState} / source=${row.priceSource} / asOf=${row.priceAsOf ?? "-"}`);
     lines.push(`- notification: ${row.decision.eligible ? "PASS（調査候補通知）" : "WAIT"}`);
     if (row.decision.blockers.length > 0) lines.push(`- blockers: ${row.decision.blockers.join(" / ")}`);
@@ -186,6 +187,7 @@ function renderMarkdown(date: string, evaluated: EvaluatedCandidate[], historica
   }
   lines.push("", "## 読み方", "");
   lines.push("- 高得点でも priceState が falling / volatile / rebounded_too_fast なら通知しません。");
+  lines.push("- investigationStatus が open / unknown の間は通知しません。範囲拡大を待ちます。");
   lines.push("- accountingIntegrity=0 は12点以上でも強制ブロックです。");
   lines.push("- 過去outcomeは類似事例の教訓用で、当時scoreへ逆流させません。");
   lines.push("- low confidence のseedは一次情報を追加して更新します。");
@@ -211,7 +213,7 @@ async function main(): Promise<void> {
   writeFileSync("reports/idiosyncratic_shock_watch_latest.md", renderMarkdown(date, evaluated, historical), "utf-8");
   console.log(`企業固有ショック watch: active=${evaluated.length} historical=${historical.length}`);
   for (const row of evaluated) {
-    console.log(`  ${row.candidate.code ?? "-"} ${row.candidate.company}: ${totalShockScore(row.candidate.scores)}/20 ${row.candidate.priceState} notify=${row.decision.eligible}`);
+    console.log(`  ${row.candidate.code ?? "-"} ${row.candidate.company}: ${totalShockScore(row.candidate.scores)}/20 ${row.candidate.priceState} investigation=${row.candidate.investigationStatus ?? "unknown"} notify=${row.decision.eligible}`);
   }
 }
 
