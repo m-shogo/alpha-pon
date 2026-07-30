@@ -12,6 +12,8 @@ export const SHOCK_SCORE_KEYS = [
 ] as const;
 
 export const DEFAULT_MIN_SHOCK_DRAWDOWN_PCT = -5;
+export const DEFAULT_MIN_RELATIVE_SHOCK_DRAWDOWN_PCT = -3;
+export const DEFAULT_SHOCK_WINDOW_DAYS = 20;
 
 export type ShockScoreKey = typeof SHOCK_SCORE_KEYS[number];
 export type ShockDimensionScores = Record<ShockScoreKey, 0 | 1 | 2>;
@@ -86,6 +88,7 @@ export type ShockCandidate = {
   investigationStatus?: ShockInvestigationStatus;
   priceState: ShockPriceState;
   shockDrawdownPct?: number | null;
+  relativeShockDrawdownPct?: number | null;
   scores: ShockDimensionScores;
   criticalLicenseOrDelistingRisk?: boolean;
   sources?: ShockSource[];
@@ -123,6 +126,7 @@ export function buildNotificationDecision(
   candidate: ShockCandidate,
   threshold = 12,
   minShockDrawdownPct = DEFAULT_MIN_SHOCK_DRAWDOWN_PCT,
+  minRelativeShockDrawdownPct = DEFAULT_MIN_RELATIVE_SHOCK_DRAWDOWN_PCT,
 ): ShockNotificationDecision {
   const score = totalShockScore(candidate.scores);
   const blockers: string[] = [];
@@ -138,6 +142,11 @@ export function buildNotificationDecision(
     blockers.push("shockDrawdownPct is missing");
   } else if (candidate.shockDrawdownPct > minShockDrawdownPct) {
     blockers.push(`shockDrawdownPct=${candidate.shockDrawdownPct.toFixed(1)}% > ${minShockDrawdownPct}%`);
+  }
+  if (candidate.relativeShockDrawdownPct == null || !Number.isFinite(candidate.relativeShockDrawdownPct)) {
+    blockers.push("relativeShockDrawdownPct is missing");
+  } else if (candidate.relativeShockDrawdownPct > minRelativeShockDrawdownPct) {
+    blockers.push(`relativeShockDrawdownPct=${candidate.relativeShockDrawdownPct.toFixed(1)}% > ${minRelativeShockDrawdownPct}%`);
   }
   if (candidate.priceState !== "stabilized_after_drop") blockers.push(`priceState=${candidate.priceState}`);
   if (candidate.scores.accountingIntegrity === 0) blockers.push("accountingIntegrity=0");
@@ -222,15 +231,31 @@ function pct(from: number, to: number): number {
   return from > 0 ? ((to - from) / from) * 100 : 0;
 }
 
-export function calculateShockDrawdownPct(observations: PriceObservation[], eventDate: string): number | null {
+export function calculateShockDrawdownPct(
+  observations: PriceObservation[],
+  eventDate: string,
+  windowEndDate?: string,
+): number | null {
   const rows = [...observations]
     .filter(row => Number.isFinite(row.close) && row.close > 0)
     .sort((a, b) => a.date.localeCompare(b.date));
   const preEvent = [...rows].reverse().find(row => row.date < eventDate);
-  const afterEvent = rows.filter(row => row.date >= eventDate);
+  const afterEvent = rows.filter(row => row.date >= eventDate && (!windowEndDate || row.date <= windowEndDate));
   if (!preEvent || afterEvent.length === 0) return null;
   const low = Math.min(...afterEvent.map(row => row.close));
   return Number(pct(preEvent.close, low).toFixed(4));
+}
+
+export function calculateRelativeShockDrawdownPct(
+  stockObservations: PriceObservation[],
+  benchmarkObservations: PriceObservation[],
+  eventDate: string,
+  windowEndDate?: string,
+): number | null {
+  const stock = calculateShockDrawdownPct(stockObservations, eventDate, windowEndDate);
+  const benchmark = calculateShockDrawdownPct(benchmarkObservations, eventDate, windowEndDate);
+  if (stock == null || benchmark == null) return null;
+  return Number((stock - benchmark).toFixed(4));
 }
 
 /**
@@ -277,7 +302,7 @@ export function formatShockCandidateSummary(
   return [
     `${candidate.company} ${decision.score}/20 [${decision.label}]`,
     `分類: ${candidate.category} / actor=${candidate.actorType}`,
-    `株価状態: ${candidate.priceState} / shock=${candidate.shockDrawdownPct?.toFixed(1) ?? "?"}% / evidence=${candidate.evidenceStatus} / investigation=${candidate.investigationStatus ?? "unknown"}`,
+    `株価状態: ${candidate.priceState} / shock=${candidate.shockDrawdownPct?.toFixed(1) ?? "?"}% / TOPIX相対shock=${candidate.relativeShockDrawdownPct?.toFixed(1) ?? "?"}% / evidence=${candidate.evidenceStatus} / investigation=${candidate.investigationStatus ?? "unknown"}`,
     `類似: ${analogyText || "なし"}`,
     decision.eligible ? "通知ゲート: PASS（調査候補）" : `通知ゲート: WAIT (${decision.blockers.join("; ")})`,
     "※売買推奨ではありません",
