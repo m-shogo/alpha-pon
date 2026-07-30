@@ -1,4 +1,4 @@
-export type ShockMarket = "JP" | "US" | "UK" | "EUROPE" | "AU" | "CA" | "OTHER";
+export type ShockMarket = "JP" | "US" | "UK" | "EUROPE" | "AU" | "CA" | "HK" | "KR" | "SG" | "CN" | "TW" | "OTHER";
 
 export type ShockAutomaticPriceProvider = "jquants" | "twelve_data" | "unconfigured";
 
@@ -53,6 +53,41 @@ export const SHOCK_MARKET_PROFILES: Record<ShockMarket, ShockMarketProfile> = {
     automaticPriceProvider: "unconfigured",
     autoPriceEnabled: false,
   },
+  HK: {
+    market: "HK",
+    label: "Hong Kong",
+    benchmarkLabel: "Hang Seng Index",
+    automaticPriceProvider: "unconfigured",
+    autoPriceEnabled: false,
+  },
+  KR: {
+    market: "KR",
+    label: "South Korea",
+    benchmarkLabel: "KOSPI",
+    automaticPriceProvider: "unconfigured",
+    autoPriceEnabled: false,
+  },
+  SG: {
+    market: "SG",
+    label: "Singapore",
+    benchmarkLabel: "Straits Times Index",
+    automaticPriceProvider: "unconfigured",
+    autoPriceEnabled: false,
+  },
+  CN: {
+    market: "CN",
+    label: "Mainland China",
+    benchmarkLabel: "CSI 300",
+    automaticPriceProvider: "unconfigured",
+    autoPriceEnabled: false,
+  },
+  TW: {
+    market: "TW",
+    label: "Taiwan",
+    benchmarkLabel: "TAIEX",
+    automaticPriceProvider: "unconfigured",
+    autoPriceEnabled: false,
+  },
   OTHER: {
     market: "OTHER",
     label: "Other",
@@ -80,6 +115,11 @@ export function inferShockMarket(input: {
   if (country === "GB" || country === "UK" || country === "UNITED KINGDOM") return "UK";
   if (country === "AU" || country === "AUSTRALIA") return "AU";
   if (country === "CA" || country === "CANADA") return "CA";
+  if (country === "HK" || country === "HONG KONG") return "HK";
+  if (country === "KR" || country === "KOREA" || country === "SOUTH KOREA") return "KR";
+  if (country === "SG" || country === "SINGAPORE") return "SG";
+  if (country === "CN" || country === "CHINA" || country === "MAINLAND CHINA") return "CN";
+  if (country === "TW" || country === "TAIWAN") return "TW";
   if (EUROPE_COUNTRIES.has(country)) return "EUROPE";
 
   if (input.code && /^\d{4}$/.test(input.code)) return "JP";
