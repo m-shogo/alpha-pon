@@ -23,6 +23,18 @@ type WatchRow = {
     sameGroupCategoryCases: number;
     globalCategoryCases: number;
   };
+  calibration: {
+    readiness: {
+      modelLevel: string;
+      status: string;
+      effectiveThreshold: number;
+      effectiveThresholdSource: string;
+      countryCases: number;
+      countryCategoryCases: number;
+      validationCases: number;
+    };
+    registryEntry: { id: string } | null;
+  };
   decision: ShockNotificationDecision;
   analogues: Array<{
     company: string;
@@ -74,6 +86,8 @@ function notificationKey(row: NotifyRow): string {
     row.candidate.id,
     row.candidate.detectedAt,
     row.decision.score,
+    `threshold-${row.calibration.readiness.effectiveThreshold}`,
+    row.calibration.registryEntry?.id ?? "global-default",
     row.candidate.investigationStatus ?? "unknown",
     row.candidate.priceState,
     row.jurisdictionReview.country ?? "unknown",
@@ -83,6 +97,10 @@ function notificationKey(row: NotifyRow): string {
     row.contextReview.informationLeakStatus,
     row.contextReview.recurrenceStatus,
     row.contextReview.remediationStatus,
+    row.contextReview.listingStructure,
+    row.contextReview.ownershipControl,
+    row.contextReview.liquidityStatus,
+    row.contextReview.incidentClusterStatus,
     drawdownBucket,
     relativeBucket,
     industryBucket,
@@ -108,13 +126,17 @@ function render(row: NotifyRow): string {
   const relativeText = row.candidate.relativeShockDrawdownPct == null
     ? "不明"
     : `${row.candidate.relativeShockDrawdownPct.toFixed(1)}%`;
+  const calibration = row.calibration.readiness;
 
   return [
     "🔎 企業固有ショック 調査候補",
-    `${row.candidate.code ?? "-"} ${row.candidate.company}  ${row.decision.score}/20`,
+    `${row.candidate.code ?? "-"} ${row.candidate.company}  Global ${row.decision.score}/20`,
+    `実効閾値: ${calibration.effectiveThreshold}/20 (${calibration.effectiveThresholdSource}, ${calibration.modelLevel}/${calibration.status}, registry=${row.calibration.registryEntry?.id ?? "none"})`,
     `市場/本社国: ${row.market} / ${row.jurisdictionReview.country ?? "unknown"} (${row.jurisdictionReview.group})`,
     `事件国: ${row.contextReview.incidentCountry ?? "unknown"} / geography=${row.contextReview.incidentGeography}`,
     `業種リスク: ${row.contextReview.sectorRiskClass} / stakeholder=${row.contextReview.stakeholder} / scope=${row.contextReview.incidentScope}`,
+    `構造: listing=${row.contextReview.listingStructure} / ownership=${row.contextReview.ownershipControl} / liquidity=${row.contextReview.liquidityStatus}`,
+    `事件連鎖/観測性: ${row.contextReview.incidentClusterStatus} / ${row.contextReview.disclosureObservability}`,
     `原因帰属: ${row.contextReview.confounderStatus} / leak=${row.contextReview.informationLeakStatus}`,
     `再発/是正: ${row.contextReview.recurrenceStatus} / ${row.contextReview.remediationStatus}`,
     `事件地域売上露出: ${valueOrUnknown(row.contextReview.incidentRevenueExposurePct, "%")}`,
@@ -129,7 +151,7 @@ function render(row: NotifyRow): string {
     `類似過去: ${analogues || "なし"}`,
     `事件: ${row.candidate.eventSummary}`,
     "",
-    `✅ 一次情報・調査範囲・12点以上・事件窓の実下落・${row.benchmarkLabel}超過下落・下落一巡・jurisdiction・原因帰属・再発/是正の全ゲートを通過`,
+    `✅ 一次情報・調査範囲・Global score>=${calibration.effectiveThreshold}・事件窓の実下落・${row.benchmarkLabel}超過下落・下落一巡・jurisdiction・原因帰属・流動性/事件連鎖・再発/是正の全ゲートを通過`,
     "※買い推奨ではありません。候補発見後に決算・IR・現地制度・同時材料・価格を再確認してください。",
   ].join("\n");
 }
@@ -163,6 +185,11 @@ async function main(): Promise<void> {
       informationLeakStatus: raw.informationLeakStatus,
       recurrenceStatus: raw.recurrenceStatus,
       remediationStatus: raw.remediationStatus,
+      listingStructure: raw.listingStructure,
+      ownershipControl: raw.ownershipControl,
+      liquidityStatus: raw.liquidityStatus,
+      incidentClusterStatus: raw.incidentClusterStatus,
+      disclosureObservability: raw.disclosureObservability,
       incidentRevenueExposurePct: raw.incidentRevenueExposurePct,
       estimatedDirectCostPctMarketCap: raw.estimatedDirectCostPctMarketCap,
       industryRelativeShockDrawdownPct: raw.industryRelativeShockDrawdownPct,
@@ -197,7 +224,7 @@ async function main(): Promise<void> {
   for (const row of newRows) {
     await sendPipelineSummaryNotification(render(row));
     known.add(notificationKey(row));
-    console.log(`LINE通知: ${row.market}/${row.jurisdictionReview.country ?? "?"} ${row.candidate.code ?? "-"} ${row.candidate.company} ${row.decision.score}/20`);
+    console.log(`LINE通知: ${row.market}/${row.jurisdictionReview.country ?? "?"} ${row.candidate.code ?? "-"} ${row.candidate.company} ${row.decision.score}/20 threshold=${row.calibration.readiness.effectiveThreshold}`);
   }
 
   mkdirSync("data", { recursive: true });
