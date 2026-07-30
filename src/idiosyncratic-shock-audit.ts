@@ -4,7 +4,10 @@
 import { mkdirSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
 import { loadHistoricalShockCases } from "./idiosyncratic-shock-data.js";
-import { loadHistoricalShockCaseContext, resolveHistoricalStrategyEligibility } from "./idiosyncratic-shock-case-context.js";
+import {
+  loadHistoricalShockCaseContext,
+  resolveHistoricalStrategyEligibilityDetailed,
+} from "./idiosyncratic-shock-case-context.js";
 import { shockCategoryJurisdictionSensitivity } from "./idiosyncratic-shock-jurisdiction.js";
 
 const MIN_HISTORICAL_CASES = 59;
@@ -47,9 +50,7 @@ function main(): void {
   let derivedEligibilityBlocks = 0;
   const sourceHosts = new Map<string, number>();
 
-  if (cases.length < MIN_HISTORICAL_CASES) {
-    issues.push(`historical cases ${cases.length} < minimum ${MIN_HISTORICAL_CASES}`);
-  }
+  if (cases.length < MIN_HISTORICAL_CASES) issues.push(`historical cases ${cases.length} < minimum ${MIN_HISTORICAL_CASES}`);
 
   for (const item of cases) {
     if (ids.has(item.id)) issues.push(`duplicate id: ${item.id}`);
@@ -81,38 +82,32 @@ function main(): void {
     }
     if (item.sources.length === 0) issues.push(`${item.id}: source missing`);
     if (item.researchConfidence === "low" && item.score >= 16) warnings.push(`${item.id}: high score but low research confidence`);
-    if (item.category === "accounting_fraud" && item.scores.accountingIntegrity !== 0) {
-      issues.push(`${item.id}: accounting_fraud requires accountingIntegrity=0`);
-    }
+    if (item.category === "accounting_fraud" && item.scores.accountingIntegrity !== 0) issues.push(`${item.id}: accounting_fraud requires accountingIntegrity=0`);
     if (item.category === "accounting_fraud" && item.score >= 12) issues.push(`${item.id}: accounting fraud must not score >=12`);
     if (item.scores.accountingIntegrity === 0 && item.score >= 12) issues.push(`${item.id}: accountingIntegrity=0 must not score >=12`);
     if (item.outcome?.recoveryPattern === "failed" && item.score >= 16) warnings.push(`${item.id}: failed outcome despite historical score ${item.score}; calibration candidate`);
 
     const context = historicalContext.get(item.id);
     const explicitStatus = context?.strategyEligibilityAtCheckpoint ?? "unknown";
-    const status = resolveHistoricalStrategyEligibility(item, explicitStatus);
-    eligibility[status] += 1;
-    if (status === "confirmed_block" && explicitStatus === "unknown") derivedEligibilityBlocks += 1;
+    const resolution = resolveHistoricalStrategyEligibilityDetailed(item, context);
+    eligibility[resolution.status] += 1;
+    if (resolution.status === "confirmed_block" && explicitStatus === "unknown") derivedEligibilityBlocks += 1;
 
-    const eligibilityEvidence = context?.strategyEligibilityEvidenceSources ?? [];
-    for (const source of eligibilityEvidence) {
+    for (const source of context?.strategyEligibilityEvidenceSources ?? []) {
       const name = host(source.url);
       increment(sourceHosts, name);
       if (name === "invalid") issues.push(`${item.id}: invalid eligibility evidence URL ${source.url}`);
     }
 
-    if (status === "confirmed_pass") {
-      const allEligibilitySources = [...item.sources, ...eligibilityEvidence];
-      const hasPrimary = allEligibilitySources.some(source => source.sourceType === "company" || source.sourceType === "regulator" || source.sourceType === "exchange");
-      const majorMediaCount = allEligibilitySources.filter(source => source.sourceType === "major_media").length;
-      if (item.score < 12) issues.push(`${item.id}: strategyEligibility=confirmed_pass but score=${item.score} < 12`);
-      if (item.evidenceStatus !== "confirmed") issues.push(`${item.id}: strategyEligibility=confirmed_pass but evidence=${item.evidenceStatus}`);
-      if (item.macroPrimaryCause) issues.push(`${item.id}: strategyEligibility=confirmed_pass but macroPrimaryCause=true`);
-      if (item.scores.accountingIntegrity === 0) issues.push(`${item.id}: strategyEligibility=confirmed_pass but accountingIntegrity=0`);
-      if (!hasPrimary && majorMediaCount < 2) issues.push(`${item.id}: strategyEligibility=confirmed_pass but source hard gate is not reproducible`);
-      if (!context?.strategyEligibilityNotes?.trim()) issues.push(`${item.id}: confirmed_pass requires strategyEligibilityNotes`);
-    } else if (explicitStatus === "confirmed_block") {
-      if (!context?.strategyEligibilityNotes?.trim()) issues.push(`${item.id}: confirmed_block requires strategyEligibilityNotes`);
+    if (explicitStatus === "confirmed_pass" && resolution.status !== "confirmed_pass") {
+      const details = [...resolution.blockers, ...resolution.missingEvidence].join(", ") || "unresolved";
+      issues.push(`${item.id}: explicit confirmed_pass resolves ${resolution.status}: ${details}`);
+    }
+    if (resolution.status === "confirmed_pass" && !context?.strategyEligibilityNotes?.trim()) {
+      issues.push(`${item.id}: confirmed_pass requires strategyEligibilityNotes`);
+    }
+    if (explicitStatus === "confirmed_block" && !context?.strategyEligibilityNotes?.trim()) {
+      issues.push(`${item.id}: confirmed_block requires strategyEligibilityNotes`);
     }
   }
 
@@ -138,48 +133,28 @@ function main(): void {
   }
 
   const topCountry = [...countries.entries()].sort((a, b) => b[1] - a[1])[0];
-  if (topCountry && topCountry[1] / cases.length > 0.6) {
-    warnings.push(`country concentration: ${topCountry[0]} is ${Math.round((topCountry[1] / cases.length) * 100)}% of cases`);
-  }
+  if (topCountry && topCountry[1] / cases.length > 0.6) warnings.push(`country concentration: ${topCountry[0]} is ${Math.round((topCountry[1] / cases.length) * 100)}% of cases`);
   const recentCases = (eras.get("last_0_2y") ?? 0) + (eras.get("last_3_5y") ?? 0);
-  if (recentCases / cases.length < 0.4) {
-    warnings.push(`era staleness: only ${recentCases}/${cases.length} cases are within 5 years`);
-  }
+  if (recentCases / cases.length < 0.4) warnings.push(`era staleness: only ${recentCases}/${cases.length} cases are within 5 years`);
   const knownOutcomes = cases.length - (outcomes.get("unknown") ?? 0);
-  if (knownOutcomes < cases.length * 0.7) {
-    warnings.push(`outcome coverage low: known ${knownOutcomes}/${cases.length}`);
-  }
+  if (knownOutcomes < cases.length * 0.7) warnings.push(`outcome coverage low: known ${knownOutcomes}/${cases.length}`);
   const successLike = (outcomes.get("fast") ?? 0) + (outcomes.get("gradual") ?? 0);
   const failed = outcomes.get("failed") ?? 0;
-  if (failed > 0 && successLike / failed >= 4) {
-    warnings.push(`outcome imbalance: success-like ${successLike} vs failed ${failed}; avoid survivorship bias`);
-  }
-  for (const [company, count] of companies) {
-    if (count >= 3) warnings.push(`company concentration: ${company} appears ${count} times`);
-  }
+  if (failed > 0 && successLike / failed >= 4) warnings.push(`outcome imbalance: success-like ${successLike} vs failed ${failed}; avoid survivorship bias`);
+  for (const [company, count] of companies) if (count >= 3) warnings.push(`company concentration: ${company} appears ${count} times`);
   for (const category of requiredCategories) {
-    const countriesForCategory = new Set(
-      cases.filter(item => item.category === category).map(item => item.country),
-    );
-    if (countriesForCategory.size < 2 && (categories.get(category) ?? 0) >= 2) {
-      warnings.push(`country-category concentration: ${category} has ${categories.get(category)} cases but only ${countriesForCategory.size} country`);
-    }
+    const countriesForCategory = new Set(cases.filter(item => item.category === category).map(item => item.country));
+    if (countriesForCategory.size < 2 && (categories.get(category) ?? 0) >= 2) warnings.push(`country-category concentration: ${category} has ${categories.get(category)} cases but only ${countriesForCategory.size} country`);
   }
 
   const contextCoveragePct = cases.length === 0 ? 0 : (historicalContext.size / cases.length) * 100;
-  if (contextCoveragePct < 50) {
-    warnings.push(`historical context coverage low: ${historicalContext.size}/${cases.length} (${contextCoveragePct.toFixed(1)}%); enrich verified sidecar gradually`);
-  }
+  if (contextCoveragePct < 50) warnings.push(`historical context coverage low: ${historicalContext.size}/${cases.length} (${contextCoveragePct.toFixed(1)}%); enrich verified sidecar gradually`);
   const eligibilityCoveragePct = cases.length === 0 ? 0 : ((eligibility.confirmed_pass + eligibility.confirmed_block) / cases.length) * 100;
-  if (eligibilityCoveragePct < 50) {
-    warnings.push(`historical strategy eligibility coverage low: pass/block=${eligibility.confirmed_pass + eligibility.confirmed_block}/${cases.length} (${eligibilityCoveragePct.toFixed(1)}%); unknown must not enter calibration`);
-  }
+  if (eligibilityCoveragePct < 50) warnings.push(`historical strategy eligibility coverage low: pass/block=${eligibility.confirmed_pass + eligibility.confirmed_block}/${cases.length} (${eligibilityCoveragePct.toFixed(1)}%); unknown must not enter calibration`);
   for (const [category, count] of categories) {
     if (shockCategoryJurisdictionSensitivity(category) !== "high" || count < 2) continue;
     const covered = contextByCategory.get(category) ?? 0;
-    if (covered / count < 0.5) {
-      warnings.push(`context coverage low for jurisdiction-sensitive category ${category}: ${covered}/${count}`);
-    }
+    if (covered / count < 0.5) warnings.push(`context coverage low for jurisdiction-sensitive category ${category}: ${covered}/${count}`);
   }
 
   const summary = {
