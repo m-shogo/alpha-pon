@@ -4,6 +4,7 @@ import {
   buildShockHistoricalOutcome,
   calibrateShockThresholds,
   outcomeFetchRange,
+  type ShockHistoricalOutcomeRecord,
   type ShockOutcomeQuote,
 } from "../src/idiosyncratic-shock-outcomes.js";
 
@@ -70,7 +71,7 @@ assert.equal(record?.topixRelative3m, 15.5652);
 const overseas = buildShockHistoricalOutcome({ ...strongCase, ticker: "MCD", country: "US" }, stock, topix, "2027-02-01");
 assert.equal(overseas, null, "J-Quants backfill対象外tickerはnull");
 
-const weakRecord = {
+const weakRecord: ShockHistoricalOutcomeRecord = {
   ...record!,
   caseId: "fixture-weak",
   score: 5,
