@@ -16,6 +16,7 @@ export type ShockOwnershipControl = "dispersed" | "founder_family" | "state_cont
 export type ShockLiquidityStatus = "normal" | "thin" | "halted" | "limit_locked" | "unknown";
 export type ShockIncidentClusterStatus = "single" | "related_multiple" | "cascade" | "unknown";
 export type ShockDisclosureObservability = "high" | "medium" | "low" | "unknown";
+export type ShockAnnouncementTiming = "before_open" | "during_session" | "after_close" | "non_trading_day" | "unknown";
 
 export type ShockContextInput = {
   issuerCountry?: string | null;
@@ -33,6 +34,8 @@ export type ShockContextInput = {
   liquidityStatus?: ShockLiquidityStatus | null;
   incidentClusterStatus?: ShockIncidentClusterStatus | null;
   disclosureObservability?: ShockDisclosureObservability | null;
+  announcementTiming?: ShockAnnouncementTiming | null;
+  priceReactionStartDate?: string | null;
   incidentRevenueExposurePct?: number | null;
   estimatedDirectCostPctMarketCap?: number | null;
   industryRelativeShockDrawdownPct?: number | null;
@@ -56,6 +59,8 @@ export type ShockContextReview = {
   liquidityStatus: ShockLiquidityStatus;
   incidentClusterStatus: ShockIncidentClusterStatus;
   disclosureObservability: ShockDisclosureObservability;
+  announcementTiming: ShockAnnouncementTiming;
+  priceReactionStartDate: string | null;
   incidentRevenueExposurePct: number | null;
   estimatedDirectCostPctMarketCap: number | null;
   industryRelativeShockDrawdownPct: number | null;
@@ -130,11 +135,23 @@ export function buildShockContextReview(input: ShockContextInput): ShockContextR
   const liquidityStatus = input.liquidityStatus ?? "unknown";
   const incidentClusterStatus = input.incidentClusterStatus ?? "unknown";
   const disclosureObservability = input.disclosureObservability ?? "unknown";
+  const announcementTiming = input.announcementTiming ?? "unknown";
+  const priceReactionStartDate = input.priceReactionStartDate ?? null;
   const incidentRevenueExposurePct = input.incidentRevenueExposurePct ?? null;
   const estimatedDirectCostPctMarketCap = input.estimatedDirectCostPctMarketCap ?? null;
   const industryRelativeShockDrawdownPct = input.industryRelativeShockDrawdownPct ?? null;
   const blockers: string[] = [];
   const reviewNotes: string[] = [];
+
+  // 発表日時と市場が反応できる最初の取引日を分離する。
+  if (priceReactionStartDate != null && !/^\d{4}-\d{2}-\d{2}$/.test(priceReactionStartDate)) {
+    blockers.push(`priceReactionStartDate=${priceReactionStartDate}; expected YYYY-MM-DD`);
+  }
+  if ((announcementTiming === "after_close" || announcementTiming === "non_trading_day") && !priceReactionStartDate) {
+    blockers.push(`announcementTiming=${announcementTiming}; priceReactionStartDate is required`);
+  } else if (announcementTiming === "unknown") {
+    reviewNotes.push("発表が寄り前/場中/引け後/休場日のどれか確認し、価格反応開始取引日を必要に応じて分離する");
+  }
 
   // 不祥事と同時に決算悪化・guidance・M&A・資本政策等が出ている場合、株価下落を不祥事へ帰属できない。
   if (confounderStatus === "major" || confounderStatus === "unknown") {
@@ -264,6 +281,8 @@ export function buildShockContextReview(input: ShockContextInput): ShockContextR
     liquidityStatus,
     incidentClusterStatus,
     disclosureObservability,
+    announcementTiming,
+    priceReactionStartDate,
     incidentRevenueExposurePct,
     estimatedDirectCostPctMarketCap,
     industryRelativeShockDrawdownPct,
