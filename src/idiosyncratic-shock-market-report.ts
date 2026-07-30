@@ -3,6 +3,8 @@
 
 import { mkdirSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
+import { isJQuantsConfigured } from "./fetcher/jquants.js";
+import { isTwelveDataConfigured } from "./fetcher/twelve-data.js";
 import { loadActiveShockConfig, loadHistoricalShockCases } from "./idiosyncratic-shock-data.js";
 import {
   SHOCK_MARKET_PROFILES,
@@ -15,16 +17,29 @@ type ActiveWithMarket = ReturnType<typeof loadActiveShockConfig>["candidates"][n
   symbol?: string | null;
 };
 
+type NotificationReadiness =
+  | "enabled"
+  | "blocked_provider_config"
+  | "blocked_provider_unimplemented"
+  | "no_active_candidates";
+
 type MarketRow = {
   market: ShockMarket;
   label: string;
   benchmark: string;
   automaticPriceProvider: string;
-  autoPriceEnabled: boolean;
+  providerImplemented: boolean;
+  providerConfigured: boolean;
   historicalCases: number;
   activeCandidates: number;
-  notificationReadiness: "enabled" | "blocked_price_provider" | "no_active_candidates";
+  notificationReadiness: NotificationReadiness;
 };
+
+function providerConfigured(market: ShockMarket): boolean {
+  if (market === "JP") return isJQuantsConfigured();
+  if (market === "US") return isTwelveDataConfigured();
+  return false;
+}
 
 function buildRows(): MarketRow[] {
   const historical = loadHistoricalShockCases();
@@ -34,18 +49,22 @@ function buildRows(): MarketRow[] {
     const profile = SHOCK_MARKET_PROFILES[market];
     const historicalCases = historical.filter(item => inferShockMarket({ country: item.country, ticker: item.ticker }) === market).length;
     const activeCandidates = active.filter(item => inferShockMarket({ market: item.market, code: item.code, ticker: item.symbol }) === market).length;
-    const notificationReadiness = activeCandidates === 0
+    const configured = providerConfigured(market);
+    const notificationReadiness: NotificationReadiness = activeCandidates === 0
       ? "no_active_candidates"
-      : profile.autoPriceEnabled
-        ? "enabled"
-        : "blocked_price_provider";
+      : !profile.autoPriceEnabled
+        ? "blocked_provider_unimplemented"
+        : !configured
+          ? "blocked_provider_config"
+          : "enabled";
 
     return {
       market,
       label: profile.label,
       benchmark: profile.benchmarkLabel,
       automaticPriceProvider: profile.automaticPriceProvider,
-      autoPriceEnabled: profile.autoPriceEnabled,
+      providerImplemented: profile.autoPriceEnabled,
+      providerConfigured: configured,
       historicalCases,
       activeCandidates,
       notificationReadiness,
@@ -62,26 +81,26 @@ function render(date: string, rows: MarketRow[]): string {
     `生成日: ${date}`,
     "",
     "> 事件構造のスコアと過去類似は世界共通。価格ショックと地合い比較だけ市場別に判定します。",
-    "> 海外市場は信頼できる価格providerが未設定の間、発見・調査は行ってもLINE通知はfail-closedです。",
+    "> providerが未実装/未設定なら、発見・調査は行ってもLINE通知はfail-closedです。",
     "",
     `- historical total: ${totalHistorical}`,
     `- overseas historical: ${overseasHistorical}`,
     "",
-    "| market | historical | active | benchmark | price provider | notification |",
-    "|---|---:|---:|---|---|---|",
+    "| market | historical | active | benchmark | price provider | implemented | configured | notification |",
+    "|---|---:|---:|---|---|---|---|---|",
   ];
 
   for (const row of rows) {
-    lines.push(`| ${row.market} | ${row.historicalCases} | ${row.activeCandidates} | ${row.benchmark} | ${row.automaticPriceProvider} | ${row.notificationReadiness} |`);
+    lines.push(`| ${row.market} | ${row.historicalCases} | ${row.activeCandidates} | ${row.benchmark} | ${row.automaticPriceProvider} | ${row.providerImplemented ? "yes" : "no"} | ${row.providerConfigured ? "yes" : "no"} | ${row.notificationReadiness} |`);
   }
 
   lines.push(
     "",
     "## 方針",
     "",
-    "- JP: J-Quants + TOPIXで自動価格判定を継続。",
-    "- US: 次の優先市場。S&P 500相対で判定し、価格provider導入後に自動通知を解禁。",
-    "- UK / EUROPE / AU / CA: 過去類似には利用するが、価格provider未設定中は通知しない。",
+    "- JP: J-Quants + TOPIX。J-Quants設定済みの場合だけ自動価格判定。",
+    "- US: Twelve Data + S&P 500 proxy。`TWELVE_DATA_API_KEY` 設定済みの場合だけ自動価格判定。",
+    "- UK / EUROPE / AU / CA: 過去類似には利用するが、price provider未実装中は通知しない。",
     "- 海外の見出しだけで10項目scoreへ自動昇格しない。会社IR・規制当局・取引所等の一次情報を確認する。",
     "- 為替変動は企業固有ショック判定には混ぜない。株価は現地通貨ベース、市場benchmarkも同一市場・同一通貨で比較する。",
   );
@@ -93,7 +112,7 @@ function main(): void {
   const rows = buildRows();
   const payload = {
     generatedAt: date,
-    methodology: "common event scoring; market-specific price/benchmark gate; unsupported markets fail closed",
+    methodology: "common event scoring; market-specific price/benchmark gate; unsupported or unconfigured markets fail closed",
     rows,
   };
   mkdirSync("reports", { recursive: true });
