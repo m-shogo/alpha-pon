@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   buildNotificationDecision,
+  calculateShockDrawdownPct,
   findClosestHistoricalCases,
   inferPriceState,
   labelShockScore,
@@ -44,12 +45,21 @@ const base: ShockCandidate = {
   evidenceStatus: "confirmed",
   investigationStatus: "not_applicable",
   priceState: "stabilized_after_drop",
+  shockDrawdownPct: -10,
   scores: scores(),
   criticalLicenseOrDelistingRisk: false,
   sources: [{ title: "company", url: "https://example.com", sourceType: "company" }],
 };
 
-assert.equal(buildNotificationDecision(base).eligible, true, "高得点 + 一次情報 + 調査範囲確定 + 下落一巡なら通知候補");
+assert.equal(buildNotificationDecision(base).eligible, true, "高得点 + 一次情報 + 調査範囲確定 + 実下落 + 下落一巡なら通知候補");
+
+const noShock = buildNotificationDecision({ ...base, shockDrawdownPct: -1 });
+assert.equal(noShock.eligible, false, "下落していない横ばい案件は通知禁止");
+assert(noShock.blockers.some(value => value.startsWith("shockDrawdownPct=")));
+
+const shockUnknown = buildNotificationDecision({ ...base, shockDrawdownPct: null });
+assert.equal(shockUnknown.eligible, false, "ショック下落率不明はfail-closed");
+assert(shockUnknown.blockers.includes("shockDrawdownPct is missing"));
 
 const investigationOpen = buildNotificationDecision({ ...base, investigationStatus: "open" });
 assert.equal(investigationOpen.eligible, false, "調査継続中は12点以上でも通知禁止");
@@ -93,6 +103,17 @@ const mediaTwo = buildNotificationDecision({
   ],
 });
 assert.equal(mediaTwo.eligible, true, "独立major media 2件なら証拠ゲートを満たせる");
+
+assert.equal(calculateShockDrawdownPct([
+  { date: "2026-06-30", close: 100 },
+  { date: "2026-07-01", close: 95 },
+  { date: "2026-07-02", close: 90 },
+  { date: "2026-07-03", close: 93 },
+], "2026-07-01"), -10, "事件前価格からevent後安値までをショック下落率にする");
+assert.equal(calculateShockDrawdownPct([
+  { date: "2026-07-01", close: 95 },
+  { date: "2026-07-02", close: 90 },
+], "2026-07-01"), null, "事件前価格がなければ下落率は不明");
 
 assert.equal(inferPriceState([
   { date: "2026-07-01", close: 94 },
