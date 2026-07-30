@@ -1,6 +1,7 @@
 // 企業固有ショック過去事例の定量 outcome backfill。
 // JPはJ-Quants + TOPIX、USはTwelve Data + S&P 500 proxy。
-// checkpoint outcomeは研究比較用、First Eligible Signal outcomeを戦略calibrationの正本にする。
+// checkpoint outcomeは研究比較用。戦略calibrationは、非価格hard gateがconfirmed_passで
+// First Eligible Signalが実際に出たケースだけを正本にする。
 //
 // pnpm backfill:shock-outcomes          # dry-run
 // pnpm backfill:shock-outcomes --write  # data/idiosyncratic_shock_outcomes.json を更新
@@ -74,19 +75,26 @@ function renderMarkdown(
   providerStatus: ProviderStatus[],
   failures: string[],
 ): string {
-  const signaled = records.filter(row => Boolean(row.firstEligibleSignalDate));
-  const noTrade = records.length - signaled.length;
+  const confirmedPass = records.filter(row => row.strategyEligibilityAtCheckpoint === "confirmed_pass");
+  const confirmedBlock = records.filter(row => row.strategyEligibilityAtCheckpoint === "confirmed_block");
+  const eligibilityUnknown = records.filter(row => row.strategyEligibilityAtCheckpoint === "unknown");
+  const signaled = confirmedPass.filter(row => Boolean(row.firstEligibleSignalDate));
+  const noTrade = confirmedPass.length - signaled.length;
   const lines = [
     "# 企業固有ショック 定量outcome / 閾値検証",
     "",
     `生成日: ${date}`,
     "",
-    "> scoreはdecision checkpoint時点の評価。checkpoint returnは診断用に残し、戦略calibrationはFirst Eligible Signal起点だけを使います。",
-    "> signalが出なかったケースは0%リターンにせずno-tradeとして分離します。未来情報をsignalへ遡及させません。",
+    "> scoreはdecision checkpoint時点の評価。checkpoint returnは診断用に残します。",
+    "> 戦略calibrationは、checkpoint時点の非価格hard gateがconfirmed_passで、かつFirst Eligible Signalが出たケースだけを使います。",
+    "> unknownはno-tradeではありません。confirmed_passだが価格signalが出なかったケースだけをno-tradeとして分離します。",
     "",
     `- price outcome records: ${records.length}`,
+    `- non-price confirmed pass: ${confirmedPass.length}`,
+    `- non-price confirmed block: ${confirmedBlock.length}`,
+    `- non-price eligibility unknown: ${eligibilityUnknown.length}`,
     `- first eligible signals: ${signaled.length}`,
-    `- no-trade: ${noTrade}`,
+    `- true no-trade after confirmed non-price pass: ${noTrade}`,
     `- failures/skips: ${failures.length}`,
     "",
     "## provider readiness",
@@ -109,6 +117,7 @@ function renderMarkdown(
     lines.push(`### ${row.market} ${row.code} ${row.company} (${row.score}/20)`);
     lines.push(`- benchmark: ${row.benchmark}`);
     lines.push(`- event/reaction/checkpoint: ${row.eventDate} / ${row.reactionStartDate} / ${row.checkpoint}`);
+    lines.push(`- non-price strategy eligibility: ${row.strategyEligibilityAtCheckpoint}`);
     lines.push(`- event shock drawdown: ${fp(row.shockDrawdownPct)} (${row.preEventDate ?? "-"} → low ${row.shockLowDate ?? "-"})`);
     lines.push(`- checkpoint return: 1w ${fp(row.return1w)} / 1m ${fp(row.return1m)} / 3m ${fp(row.return3m)} / 1y ${fp(row.return1y)}`);
     lines.push(`- checkpoint benchmark relative: 1m ${fp(row.benchmarkRelative1m)} / 3m ${fp(row.benchmarkRelative3m)} / 1y ${fp(row.benchmarkRelative1y)}`);
@@ -116,15 +125,19 @@ function renderMarkdown(
       lines.push(`- first eligible signal: ${row.firstEligibleSignalDate} @ ${row.firstEligibleSignalPrice ?? "-"} / shock ${fp(row.signalShockDrawdownPct)} / relative ${fp(row.signalRelativeShockDrawdownPct)}`);
       lines.push(`- signal return: 1w ${fp(row.signalReturn1w)} / 1m ${fp(row.signalReturn1m)} / 3m ${fp(row.signalReturn3m)} / 1y ${fp(row.signalReturn1y)}`);
       lines.push(`- signal benchmark relative: 1m ${fp(row.signalBenchmarkRelative1m)} / 3m ${fp(row.signalBenchmarkRelative3m)} / 1y ${fp(row.signalBenchmarkRelative1y)}`);
+    } else if (row.strategyEligibilityAtCheckpoint === "confirmed_pass") {
+      lines.push("- first eligible signal: none (true no-trade: non-price gates passed, price gates never completed)");
     } else {
-      lines.push("- first eligible signal: none (no-trade)");
+      lines.push(`- first eligible signal: not evaluated (${row.strategyEligibilityAtCheckpoint})`);
     }
     lines.push("");
   }
 
   lines.push("## 解釈ルール", "");
-  lines.push("- Local Opportunityの閾値・重み検証はFirst Eligible Signalが出たケースだけで行う。");
-  lines.push("- signalなしケースはno-trade。後日の上昇/下落を戦略損益へ混ぜない。");
+  lines.push("- Local Opportunityの閾値・重み検証はnon-price confirmed_pass + First Eligible Signalのケースだけで行う。");
+  lines.push("- eligibility unknownはno-tradeとして扱わず、調査不足としてresearch queueへ戻す。");
+  lines.push("- confirmed_blockは当時のhard gateで対象外。後日の株価を戦略成績へ混ぜない。");
+  lines.push("- confirmed_passだがsignalなしだけがtrue no-trade。");
   lines.push("- `score_ge_12` が `score_lt_12` を市場ごとにsignal後3m benchmark-relativeで継続的に上回るかを見る。");
   lines.push("- 平均だけでなく中央値・プラス率・現地benchmark相対を併用する。");
   lines.push("- JPとUSは市場構造が違うため、全市場混合値だけで閾値を変えない。");
@@ -168,11 +181,13 @@ async function main(): Promise<void> {
       console.log(`  [JP] fetch ${code} ${item.company}: ${range.from}-${range.to}`);
       const quotes = await fetchDailyQuotes(code, range.from, range.to);
       const benchmarkQuotes = await fetchDailyQuotes(TOPIX_ETF_CODE, range.from, range.to);
-      const reactionStartDate = contextById.get(item.id)?.priceReactionStartDate ?? item.eventDate;
+      const context = contextById.get(item.id);
+      const reactionStartDate = context?.priceReactionStartDate ?? item.eventDate;
       const record = buildShockHistoricalOutcome(item, quotes, benchmarkQuotes, date, {
         market: "JP",
         benchmarkLabel: "TOPIX",
         reactionStartDate,
+        strategyEligibilityAtCheckpoint: context?.strategyEligibilityAtCheckpoint ?? "unknown",
       });
       if (record) records.push(record);
       else failures.push(`${item.id}: checkpoint price missing`);
@@ -193,13 +208,19 @@ async function main(): Promise<void> {
       console.log(`  [US] fetch ${symbol} ${item.company}: ${range.from}-${range.to}`);
       const stock = await fetchTwelveDataDailyQuotes(symbol, range.from, range.to);
       const benchmark = await fetchTwelveDataDailyQuotes(US_BENCHMARK_SYMBOL, range.from, range.to);
-      const reactionStartDate = contextById.get(item.id)?.priceReactionStartDate ?? item.eventDate;
+      const context = contextById.get(item.id);
+      const reactionStartDate = context?.priceReactionStartDate ?? item.eventDate;
       const record = buildShockHistoricalOutcome(
         item,
         stock as ShockOutcomeQuote[],
         benchmark as ShockOutcomeQuote[],
         date,
-        { market: "US", benchmarkLabel: "S&P 500", reactionStartDate },
+        {
+          market: "US",
+          benchmarkLabel: "S&P 500",
+          reactionStartDate,
+          strategyEligibilityAtCheckpoint: context?.strategyEligibilityAtCheckpoint ?? "unknown",
+        },
       );
       if (record) records.push(record);
       else failures.push(`${item.id}: checkpoint price missing`);
@@ -210,8 +231,12 @@ async function main(): Promise<void> {
 
   const calibration = calibrateShockThresholds(records);
   const calibrationByMarket = marketCalibration(records);
-  const signalCount = records.filter(row => Boolean(row.firstEligibleSignalDate)).length;
-  console.log(`records=${records.length} signals=${signalCount} noTrade=${records.length - signalCount} failures/skips=${failures.length}`);
+  const confirmedPass = records.filter(row => row.strategyEligibilityAtCheckpoint === "confirmed_pass");
+  const confirmedBlock = records.filter(row => row.strategyEligibilityAtCheckpoint === "confirmed_block");
+  const eligibilityUnknown = records.filter(row => row.strategyEligibilityAtCheckpoint === "unknown");
+  const signalCount = confirmedPass.filter(row => Boolean(row.firstEligibleSignalDate)).length;
+  const noTradeCount = confirmedPass.length - signalCount;
+  console.log(`records=${records.length} eligibilityPass=${confirmedPass.length} eligibilityBlock=${confirmedBlock.length} eligibilityUnknown=${eligibilityUnknown.length} signals=${signalCount} trueNoTrade=${noTradeCount} failures/skips=${failures.length}`);
   for (const market of Object.keys(calibrationByMarket) as ShockMarket[]) {
     const marketRows = calibrationByMarket[market] ?? [];
     const ge12 = marketRows.find(row => row.bucket === "score_ge_12");
@@ -234,7 +259,7 @@ async function main(): Promise<void> {
   const payload = {
     generatedAt: date,
     providers: providerStatus,
-    methodology: "checkpoint outcomes retained for diagnosis; strategy calibration uses first eligible signal only; reaction-start anchored; no-trade is not imputed as zero return",
+    methodology: "checkpoint outcomes retained for diagnosis; strategy calibration requires confirmed non-price eligibility + first eligible signal; unknown eligibility is separate from no-trade; reaction-start anchored",
     records,
     calibration,
     calibrationByMarket,
