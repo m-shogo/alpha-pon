@@ -1,0 +1,575 @@
+version: 1
+generatedAt: "2026-07-30"
+description: "企業固有ショック/不祥事ディップの過去事例研究seed。scoreVectorは playbook の10項目順。checkpoint時点の評価と、後から分かったoutcomeを分離する。売買推奨ではない。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: mcdonalds-2019-easterbrook
+    company: "McDonald's"
+    ticker: MCD
+    country: US
+    eventDate: "2019-11-03"
+    checkpoint: "2019-11-04"
+    category: executive_relationship
+    actorType: ceo
+    scoreVector: [2,2,2,2,2,2,2,2,1,1]
+    priceState: stabilizing
+    summary: "CEO Steve Easterbrookが従業員との合意に基づく関係で社内規定違反として退任。後継CEOは即日決定。"
+    source: "https://corporate.mcdonalds.com/corpmcd/our-stories/article/leadership-change.html"
+    sourceType: company
+    outcomePattern: gradual
+    lesson: "個人切除型。ブランド・店舗運営がCEO個人から分離されている。"
+    confidence: high
+
+  - id: intel-2018-krzanich
+    company: Intel
+    ticker: INTC
+    country: US
+    eventDate: "2018-06-21"
+    checkpoint: "2018-06-21"
+    category: executive_relationship
+    actorType: ceo
+    scoreVector: [2,2,2,2,2,2,1,2,1,1]
+    priceState: stabilizing
+    summary: "CEO Brian Krzanichが過去の従業員との関係によるnon-fraternization policy違反で辞任。"
+    source: "https://www.intc.com/news-events/press-releases/detail/146/intel-ceo-brian-krzanich-resigns-board-appoints-bob-swan"
+    sourceType: company
+    outcomePattern: mixed
+    lesson: "本業・財務と切り離されていても、CEO交代の戦略リスクは残る。"
+    confidence: high
+
+  - id: ti-2018-crutcher
+    company: "Texas Instruments"
+    ticker: TXN
+    country: US
+    eventDate: "2018-07-17"
+    checkpoint: "2018-07-17"
+    category: personal_behavior
+    actorType: ceo
+    scoreVector: [2,2,2,2,2,2,2,2,1,1]
+    priceState: stabilizing
+    summary: "CEO Brian Crutcherが個人的行動に関する行動規範違反で辞任。会社は戦略・業務・財務報告とは無関係と明示。"
+    source: "https://www.ti.com/about-ti/newsroom/news-releases/2018/2018-07-17-rich-templeton-to-reassume-president-and-ceo-roles-in-addition-to-his-current-role-as-chairman--brian-crutcher-resigned-as-ceo.html"
+    sourceType: company
+    outcomePattern: fast
+    lesson: "会社自身が事業・財務との非関連を明示し、前CEOが復帰した強い個人切除型。"
+    confidence: high
+
+  - id: lockheed-2012-kubasik
+    company: "Lockheed Martin"
+    ticker: LMT
+    country: US
+    eventDate: "2012-11-09"
+    checkpoint: "2012-11-09"
+    category: executive_relationship
+    actorType: executive
+    scoreVector: [2,2,2,2,2,2,2,2,1,1]
+    priceState: stabilizing
+    summary: "次期CEO予定のChristopher Kubasikが部下との個人的関係で倫理規定違反。会社は運用・財務への影響なしと明示。"
+    source: "https://news.lockheedmartin.com/2012-11-09-Lockheed-Martin-Board-Elects-Marillyn-Hewson-CEO-President-and-Member-of-the-Board"
+    sourceType: company
+    outcomePattern: fast
+    lesson: "後継者を即時切替できる巨大企業では、個人問題の事業波及が小さいことがある。"
+    confidence: high
+
+  - id: bestbuy-2012-dunn
+    company: "Best Buy"
+    ticker: BBY
+    country: US
+    eventDate: "2012-04-10"
+    checkpoint: "2012-05-14"
+    category: executive_relationship
+    actorType: ceo
+    scoreVector: [2,2,2,1,2,1,1,1,1,1]
+    priceState: stabilizing
+    summary: "CEO Brian Dunnと女性従業員の関係を独立調査。会社は事業運営・財務統制とは無関係と説明。"
+    source: "https://investors.bestbuy.com/News--Events/news/news-details/2012/Best-Buy-Releases-Results-of-Independent-Investigation-New-Chairman-of-the-Board-Elected-05-14-2012/default.aspx"
+    sourceType: company
+    outcomePattern: mixed
+    lesson: "個人問題でも会長の対応不備や本業悪化が同時にあると純粋な反発仮説にならない。"
+    confidence: high
+
+  - id: priceline-2016-huston
+    company: "Priceline / Booking Holdings"
+    ticker: PCLN
+    country: US
+    eventDate: "2016-04-28"
+    checkpoint: "2016-04-28"
+    category: executive_relationship
+    actorType: ceo
+    scoreVector: [2,2,2,2,2,2,2,2,1,1]
+    priceState: stabilizing
+    summary: "CEO Darren Hustonが従業員との関係で行動規範違反として辞任。前CEOが暫定CEOに復帰。"
+    source: "https://www.bloomberg.com/news/articles/2016-04-28/priceline-ceo-huston-resigns-after-relationship-with-employee"
+    sourceType: major_media
+    outcomePattern: fast
+    lesson: "プラットフォーム事業とCEO個人を切り離しやすい例。"
+    confidence: medium
+
+  - id: hp-2010-hurd
+    company: HP
+    ticker: HPQ
+    country: US
+    eventDate: "2010-08-06"
+    checkpoint: "2010-08-06"
+    category: expense_misuse
+    actorType: ceo
+    scoreVector: [2,1,2,2,2,2,0,2,2,0]
+    priceState: falling
+    summary: "Mark Hurd CEOが元契約社員をめぐる調査後に辞任。セクハラ規定違反は認定されなかったがBusiness Conduct違反。"
+    source: "https://investor.hp.com/news-events/news/news-details/2010/HP-CEO-Mark-Hurd-Resigns-CFO-Cathie-Lesjak-Appointed-Interim-CEO-HP--Announces-Preliminary-Results-and-Raises-Full-year-Outlook/default.aspx"
+    sourceType: company
+    outcomePattern: failed
+    lesson: "本業が無傷でも、評価の高いCEO喪失が競争力・経営継続へ波及するキーパーソン型。"
+    confidence: high
+
+  - id: norfolk-2024-shaw
+    company: "Norfolk Southern"
+    ticker: NSC
+    country: US
+    eventDate: "2024-09-11"
+    checkpoint: "2024-09-11"
+    category: executive_relationship
+    actorType: ceo
+    scoreVector: [2,2,2,2,2,2,2,1,1,1]
+    priceState: stabilizing
+    summary: "CEO Alan Shawが直属部下との関係による倫理規定違反で解任。会社は業績・財務報告と無関係と明示。"
+    source: "https://www.reuters.com/business/autos-transportation/norfolk-southern-negotiating-ceos-exit-looks-interim-chief-sources-say-2024-09-11/"
+    sourceType: major_media
+    outcomePattern: mixed
+    lesson: "個人切除可能でも、既存事故やアクティビスト要因が混ざる場合は要因分解する。"
+    confidence: high
+
+  - id: bp-2023-looney
+    company: BP
+    ticker: BP.L
+    country: UK
+    eventDate: "2023-09-12"
+    checkpoint: "2023-12-13"
+    category: executive_relationship
+    actorType: ceo
+    scoreVector: [2,2,2,1,2,2,1,1,1,1]
+    priceState: stabilizing
+    summary: "CEO Bernard Looneyが社内関係の開示不備・取締役会への説明問題を経て解任・報酬返還。"
+    source: "https://www.reuters.com/business/energy/bp-tightens-workplace-relationships-policy-after-looney-dismissal-2024-06-10/"
+    sourceType: major_media
+    outcomePattern: mixed
+    lesson: "個人問題と同時に戦略への市場不満があると、株価低迷を不祥事だけで説明できない。"
+    confidence: high
+
+  - id: kohls-2025-buchanan
+    company: "Kohl's"
+    ticker: KSS
+    country: US
+    eventDate: "2025-05-01"
+    checkpoint: "2025-05-01"
+    category: conflict_of_interest
+    actorType: ceo
+    scoreVector: [2,2,2,2,2,1,1,0,0,1]
+    priceState: stabilizing
+    summary: "CEO Ashley Buchananが未開示の利益相反を伴うvendor transactionsを取締役会調査後に解任。"
+    source: "https://www.reuters.com/business/retail-consumer/kohls-removes-ashley-buchanan-ceo-2025-05-01/"
+    sourceType: major_media
+    outcomePattern: mixed
+    lesson: "事件自体が切離可能でも、本業悪化が主因なら『不祥事ディップ』としては弱い。"
+    confidence: high
+
+  - id: wynn-2018-founder
+    company: "Wynn Resorts"
+    ticker: WYNN
+    country: US
+    eventDate: "2018-01-26"
+    checkpoint: "2018-02-06"
+    category: sexual_misconduct
+    actorType: founder
+    scoreVector: [1,2,1,1,0,1,0,1,2,0]
+    priceState: volatile
+    summary: "創業者・CEO Steve Wynnへの性的 misconduct allegations後に辞任。カジノ免許・規制適格性まで波及し得る。"
+    source: "https://investors.wynnresorts.com/news-releases/news-release-details/wynn-resorts-ceo-steps-down"
+    sourceType: company
+    outcomePattern: mixed
+    lesson: "創業者=ブランドかつ規制産業では、私生活問題でも企業価値へ直結する。"
+    confidence: high
+
+  - id: yoshinoya-2022-remark
+    company: "Yoshinoya Holdings"
+    ticker: "9861"
+    country: JP
+    eventDate: "2022-04-18"
+    checkpoint: "2022-04-19"
+    category: offensive_remark
+    actorType: executive
+    scoreVector: [2,2,2,2,2,1,2,2,1,1]
+    priceState: stabilizing
+    summary: "執行役員の人権・ジェンダー上不適切な発言が炎上し即日解任。"
+    source: "https://president.jp/articles/-/57039?page=1"
+    sourceType: major_media
+    outcomePattern: gradual
+    lesson: "迅速な切離しができた発言炎上型。ただしブランド毀損は短期的に残る。"
+    confidence: medium
+
+  - id: kadokawa-2022-bribery
+    company: KADOKAWA
+    ticker: "9468"
+    country: JP
+    eventDate: "2022-09-14"
+    checkpoint: "2022-10-04"
+    category: personal_crime
+    actorType: founder
+    scoreVector: [1,2,1,1,0,1,0,1,2,0]
+    priceState: volatile
+    summary: "取締役会長が東京五輪スポンサー選定をめぐる贈賄容疑で逮捕・起訴。"
+    source: "https://group.kadokawa.co.jp/information/media-download/906/220e88fa7b36e663/"
+    sourceType: company
+    outcomePattern: gradual
+    lesson: "コンテンツIPは残っても創業家キーパーソン・刑事事件・ガバナンスの重さを割り引く。"
+    confidence: high
+
+  - id: sanrio-2026-compensation
+    company: Sanrio
+    ticker: "8136"
+    country: JP
+    eventDate: "2026-04-16"
+    checkpoint: "2026-05-29"
+    category: personal_compensation
+    actorType: executive
+    scoreVector: [2,2,2,1,2,2,2,2,2,0]
+    priceState: rebounded_too_fast
+    summary: "元常務による米国子会社からの不適切な報酬受給。特別調査委員会報告後に辞任・再発防止策。"
+    source: "https://minkabu.jp/stock/8136/news/4532062"
+    sourceType: exchange
+    outcomePattern: mixed
+    lesson: "IP・本業が強くても、急反発後は高得点だけで追いかけず価格沈静化を別ゲートにする。"
+    confidence: high
+
+  - id: sushiro-2023-customer
+    company: "FOOD & LIFE COMPANIES"
+    ticker: "3563"
+    country: JP
+    eventDate: "2023-01-29"
+    checkpoint: "2023-02-10"
+    category: customer_sabotage
+    actorType: customer
+    scoreVector: [1,2,2,2,2,1,2,1,2,0]
+    priceState: volatile
+    summary: "顧客による迷惑動画が拡散。会社は食の安全・安心を脅かす行為として刑事・民事対応を表明。"
+    source: "https://www.food-and-life.co.jp/wp-content/uploads/2023/01/20230210.pdf"
+    sourceType: company
+    outcomePattern: gradual
+    lesson: "会社の直接不正ではないが、来店心理・店舗オペレーションには直接影響がある。"
+    confidence: high
+
+  - id: skylark-2019-bamiyan
+    company: "Skylark Holdings"
+    ticker: "3197"
+    country: JP
+    eventDate: "2019-02-10"
+    checkpoint: "2019-02-10"
+    category: employee_sabotage
+    actorType: employee
+    scoreVector: [2,2,2,2,2,1,2,2,1,1]
+    priceState: stabilizing
+    summary: "バーミヤンのアルバイト従業員による不適切動画。会社調査で料理は客に提供されていないことを確認。"
+    source: "https://corp.skylark.co.jp/Portals/0/images/news/press_release/2019/pk637h000001i6wm-att/190210.pdf?TabModule721=0"
+    sourceType: company
+    outcomePattern: fast
+    lesson: "典型的バイトテロ個人切除型。客への提供なし確認はbusiness impact判定に重要。"
+    confidence: high
+
+  - id: tokyu-rec-2025-employee
+    company: "Tokyu Recreation"
+    ticker: "9631"
+    country: JP
+    eventDate: "2025-06-26"
+    checkpoint: "2025-07-03"
+    category: employee_sabotage
+    actorType: employee
+    scoreVector: [2,2,2,2,2,1,2,2,1,1]
+    priceState: stabilizing
+    summary: "109シネマズ港北の従業員による不適切行為動画。会社が調査・再発防止を公表。"
+    source: "https://www.tokyu-rec.co.jp/news/5192/"
+    sourceType: company
+    outcomePattern: fast
+    lesson: "店舗局所・従業員起因のSNSショックは影響範囲確認後に高得点化し得る。"
+    confidence: high
+
+  - id: sukiya-2025-rat
+    company: "Zensho Holdings"
+    ticker: "7550"
+    country: JP
+    eventDate: "2025-03-22"
+    checkpoint: "2025-03-29"
+    category: localized_food_safety
+    actorType: organization
+    scoreVector: [0,2,1,1,1,0,2,0,1,0]
+    priceState: volatile
+    summary: "すき家で異物混入が確認され、衛生対策・店舗運営そのものへの懸念が発生。"
+    source: "https://www.sukiya.jp/"
+    sourceType: company
+    outcomePattern: mixed
+    lesson: "食品安全そのものに直撃する事件は、バイトテロのような切離型とは分ける。"
+    confidence: medium
+
+  - id: fuji-2025-governance
+    company: "Fuji Media Holdings"
+    ticker: "4676"
+    country: JP
+    eventDate: "2025-01-17"
+    checkpoint: "2025-03-31"
+    category: organizational_governance
+    actorType: organization
+    scoreVector: [0,2,0,0,1,0,1,0,1,0]
+    priceState: volatile
+    summary: "人権侵害問題への対応が第三者委員会で検証され、組織的ガバナンス・対応不備が論点化。"
+    source: "https://www.fujitv.co.jp/company/news/250331.html"
+    sourceType: company
+    outcomePattern: mixed
+    lesson: "スポンサー/広告売上へ波及。資産価値・アクティビスト期待で株価が逆方向に動く交絡にも注意。"
+    confidence: medium
+
+  - id: nissan-2018-ghosn
+    company: "Nissan Motor"
+    ticker: "7201"
+    country: JP
+    eventDate: "2018-11-19"
+    checkpoint: "2018-11-22"
+    category: personal_compensation
+    actorType: ceo
+    scoreVector: [1,0,1,0,0,1,0,1,2,0]
+    priceState: falling
+    summary: "Carlos Ghosn会長が報酬過少記載等の疑いで逮捕。アライアンス・経営体制への依存も大きかった。"
+    source: "https://global.nissannews.com/"
+    sourceType: company
+    outcomePattern: failed
+    lesson: "個人の金銭問題に見えても、経営構造・会計・アライアンスに広がれば個人切除型ではない。"
+    confidence: medium
+
+  - id: wellsfargo-2016-fakeaccounts
+    company: "Wells Fargo"
+    ticker: WFC
+    country: US
+    eventDate: "2016-09-08"
+    checkpoint: "2016-09-30"
+    category: systemic_misconduct
+    actorType: organization
+    scoreVector: [0,2,0,0,0,0,1,0,2,0]
+    priceState: falling
+    summary: "営業目標を背景に多数の無断口座作成が発覚。組織文化・内部統制・規制対応へ長期化。"
+    source: "https://www.investing.com/news/stock-market-news/wells-fargo-faces-scrutiny-over-lack-of-sales-scandal-disclosure-426596"
+    sourceType: major_media
+    outcomePattern: failed
+    lesson: "長期規制に発展した組織不正。『大きく下げたから反発』を禁止する負例。"
+    confidence: high
+
+  - id: olympus-2011-accounting
+    company: Olympus
+    ticker: "7733"
+    country: JP
+    eventDate: "2011-10-14"
+    checkpoint: "2011-11-08"
+    category: accounting_fraud
+    actorType: organization
+    scoreVector: [0,0,0,0,0,1,0,0,2,0]
+    priceState: falling
+    summary: "M&A費用等をめぐる損失隠し・会計不正が発覚し、経営陣・監査・上場維持まで問題化。"
+    source: "https://www.reuters.com/graphics/JAPAN-OLYMPUS/010060GB3DR/index.html"
+    sourceType: major_media
+    outcomePattern: failed
+    lesson: "価格下落が大きくてもaccountingIntegrity=0なら通知をブロックする。"
+    confidence: high
+
+  - id: toshiba-2015-accounting
+    company: Toshiba
+    ticker: "6502"
+    country: JP
+    eventDate: "2015-04-03"
+    checkpoint: "2015-07-20"
+    category: accounting_fraud
+    actorType: organization
+    scoreVector: [0,0,0,0,0,1,0,0,2,0]
+    priceState: falling
+    summary: "利益目標プレッシャーを背景に複数事業で不適切会計が判明しトップマネジメントまで波及。"
+    source: "https://www.global.toshiba/ww/news/corporate.html"
+    sourceType: company
+    outcomePattern: failed
+    lesson: "組織的会計問題ではdiscountMagnitudeを理由に高得点化しない。"
+    confidence: medium
+
+  - id: suruga-2018-loans
+    company: "Suruga Bank"
+    ticker: "8358"
+    country: JP
+    eventDate: "2018-05-15"
+    checkpoint: "2018-09-07"
+    category: systemic_misconduct
+    actorType: organization
+    scoreVector: [0,1,0,0,0,0,0,0,2,0]
+    priceState: falling
+    summary: "投資用不動産融資で書類改ざん・不適切審査が広範に判明し、経営陣辞任・行政処分へ。"
+    source: "https://www.surugabank.co.jp/surugabank/kojin/topics/180907.html"
+    sourceType: company
+    outcomePattern: failed
+    lesson: "本業の融資プロセス自体が壊れた組織不正は個人スキャンダル型と正反対。"
+    confidence: medium
+
+  - id: luckin-2020-fabrication
+    company: "Luckin Coffee"
+    ticker: LK
+    country: CN
+    eventDate: "2020-04-02"
+    checkpoint: "2020-04-02"
+    category: accounting_fraud
+    actorType: organization
+    scoreVector: [0,0,0,0,0,0,0,0,2,0]
+    priceState: falling
+    summary: "売上の大規模な架空計上が発覚し、財務信頼性・上場継続に直結。"
+    source: "https://www.sec.gov/newsroom/press-releases/2020-319"
+    sourceType: regulator
+    outcomePattern: failed
+    lesson: "粉飾・上場廃止リスクは大幅下落でも通知対象外。"
+    confidence: high
+
+  - id: activision-2021-culture
+    company: "Activision Blizzard"
+    ticker: ATVI
+    country: US
+    eventDate: "2021-07-20"
+    checkpoint: "2021-11-16"
+    category: organizational_governance
+    actorType: organization
+    scoreVector: [1,2,0,0,0,1,0,2,2,0]
+    priceState: falling
+    summary: "セクハラ・差別をめぐる問題が経営陣と企業文化へ拡大。一方で強いゲームIPは維持。"
+    source: "https://investor.activision.com/"
+    sourceType: company
+    outcomePattern: mixed
+    lesson: "強力IPがあっても組織文化問題なら個人切除型ではない。後の買収結果を当時scoreへ混ぜない。"
+    confidence: medium
+
+  - id: boeing-2005-stonecipher
+    company: Boeing
+    ticker: BA
+    country: US
+    eventDate: "2005-03-07"
+    checkpoint: "2005-03-07"
+    category: executive_relationship
+    actorType: ceo
+    scoreVector: [2,2,2,2,2,2,1,2,1,1]
+    priceState: stabilizing
+    summary: "CEO Harry Stonecipherが女性幹部との関係をめぐる行動規範問題で辞任。"
+    source: "https://boeing.mediaroom.com/"
+    sourceType: company
+    outcomePattern: gradual
+    lesson: "CEO個人の関係問題を大企業の事業から切り離せるかを見る古典例。"
+    confidence: low
+
+  - id: papa-johns-2018-schnatter
+    company: "Papa John's"
+    ticker: PZZA
+    country: US
+    eventDate: "2018-07-11"
+    checkpoint: "2018-07-13"
+    category: offensive_remark
+    actorType: founder
+    scoreVector: [1,2,1,1,2,0,1,1,2,0]
+    priceState: volatile
+    summary: "創業者John Schnatterの差別的発言を受け会長辞任。創業者本人がブランドと強く結び付いていた。"
+    source: "https://www.reuters.com/business/finance/apollo-irth-capital-made-an-offer-buy-papa-johns-sources-say-2025-06-11/"
+    sourceType: major_media
+    outcomePattern: gradual
+    lesson: "人物を切れてもfounder-brand依存が大きいとbrandResilienceを下げる。"
+    confidence: medium
+
+  - id: volkswagen-2015-diesel
+    company: Volkswagen
+    ticker: VOW3.DE
+    country: DE
+    eventDate: "2015-09-18"
+    checkpoint: "2015-09-22"
+    category: systemic_misconduct
+    actorType: organization
+    scoreVector: [0,2,0,0,0,0,1,0,2,0]
+    priceState: falling
+    summary: "排ガス試験を欺くdefeat device問題が発覚し、規制・罰金・ブランド・製品へ波及。"
+    source: "https://www.epa.gov/vw"
+    sourceType: regulator
+    outcomePattern: failed
+    lesson: "製品そのものと規制適合性が問題なら、人物スキャンダル型ではない。"
+    confidence: high
+
+  - id: uber-2017-culture
+    company: Uber
+    ticker: null
+    country: US
+    eventDate: "2017-02-19"
+    checkpoint: "2017-06-21"
+    category: organizational_governance
+    actorType: ceo
+    scoreVector: [1,2,0,0,1,1,0,2,0,0]
+    priceState: unknown
+    summary: "職場文化・ハラスメント・経営ガバナンス問題が拡大しTravis Kalanick CEOが辞任。"
+    source: "https://www.uber.com/newsroom/"
+    sourceType: company
+    outcomePattern: mixed
+    lesson: "未上場時のため価格バックテスト外だが、個人問題が組織文化へ広がる構造比較に使う。"
+    confidence: low
+
+  - id: dominos-2009-employee-video
+    company: "Domino's Pizza"
+    ticker: DPZ
+    country: US
+    eventDate: "2009-04-13"
+    checkpoint: "2009-04-16"
+    category: employee_sabotage
+    actorType: employee
+    scoreVector: [1,2,2,2,2,0,2,2,1,1]
+    priceState: stabilizing
+    summary: "従業員が食品を不衛生に扱う動画を投稿しSNSで拡散。会社は従業員処分・信頼回復対応。"
+    source: "https://www.dominos.com/"
+    sourceType: company
+    outcomePattern: gradual
+    lesson: "海外版バイトテロ。食品企業ではブランド毀損を重く見る。"
+    confidence: low
+
+  - id: kura-2023-customer-prank
+    company: "Kura Sushi"
+    ticker: "2695"
+    country: JP
+    eventDate: "2023-02-03"
+    checkpoint: "2023-03-08"
+    category: customer_sabotage
+    actorType: customer
+    scoreVector: [1,2,2,2,2,1,2,1,1,1]
+    priceState: stabilizing
+    summary: "店舗で顧客の迷惑行為動画がSNS発信され、会社が被害届・捜査協力を実施。"
+    source: "https://www.kurasushi.co.jp/upload/230308release.pdf"
+    sourceType: company
+    outcomePattern: gradual
+    lesson: "顧客起因なら会社責任は相対的に小さいが、回転寿司の信頼モデルへの影響は残る。"
+    confidence: high
+
+  - id: seven-eleven-2019-employee-video
+    company: "Seven & i Holdings / 7-Eleven Japan"
+    ticker: "3382"
+    country: JP
+    eventDate: "2019-02-09"
+    checkpoint: "2019-02-12"
+    category: employee_sabotage
+    actorType: employee
+    scoreVector: [2,2,2,2,2,1,2,2,1,1]
+    priceState: stabilizing
+    summary: "加盟店従業員の不適切動画がSNSで拡散したバイトテロ型。親会社/FC本部へのブランド波及を観察する比較例。"
+    source: "https://www.7andi.com/"
+    sourceType: company
+    outcomePattern: gradual
+    lesson: "FC従業員の局所行為は切離可能だが、加盟店教育・ブランド管理コストを確認する。"
+    confidence: low
