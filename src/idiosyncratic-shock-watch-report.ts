@@ -18,6 +18,7 @@ import {
   type ShockPriceState,
 } from "./idiosyncratic-shock.js";
 import { loadActiveShockConfig, loadHistoricalShockCases } from "./idiosyncratic-shock-data.js";
+import { loadHistoricalShockCaseContext } from "./idiosyncratic-shock-case-context.js";
 import {
   inferShockMarket,
   shockBenchmarkLabel,
@@ -31,13 +32,16 @@ import {
 } from "./idiosyncratic-shock-jurisdiction.js";
 import {
   buildShockContextReview,
+  contextAnalogyPenalty,
   type ShockContextReview,
+  type ShockContextInput,
 } from "./idiosyncratic-shock-context.js";
 
 const MARKET_BENCHMARK_CODE = process.env.MARKET_BENCHMARK_CODE ?? "1306";
 const US_MARKET_BENCHMARK_SYMBOL = process.env.US_MARKET_BENCHMARK_SYMBOL ?? "SPY";
 
 type ActiveConfigCandidate = ReturnType<typeof loadActiveShockConfig>["candidates"][number];
+type HistoricalContextMap = ReturnType<typeof loadHistoricalShockCaseContext>;
 type PriceSource = "jquants" | "twelve_data" | "manual_override" | "missing";
 
 type EvaluatedCandidate = {
@@ -60,6 +64,8 @@ type EvaluatedCandidate = {
     distance: number;
     jurisdictionPenalty: number;
     temporalPenalty: number;
+    contextPenalty: number;
+    contextVerified: boolean;
     lesson: string;
   }>;
 };
@@ -193,7 +199,57 @@ function withDynamicPriceScore(scores: ShockDimensionScores, state: ShockPriceSt
   return { ...scores, priceStabilization: priceScore(state) };
 }
 
-async function evaluate(raw: ActiveConfigCandidate, historical: HistoricalShockCase[]): Promise<EvaluatedCandidate> {
+function candidateContext(raw: ActiveConfigCandidate): ShockContextInput {
+  return {
+    issuerCountry: raw.country,
+    incidentCountry: raw.incidentCountry,
+    market: raw.market,
+    sector: raw.sector,
+    stakeholder: raw.stakeholder,
+    incidentScope: raw.incidentScope,
+    recurrenceStatus: raw.recurrenceStatus,
+  };
+}
+
+function rerankAnalogues(
+  candidate: ShockCandidate,
+  raw: ActiveConfigCandidate,
+  historical: HistoricalShockCase[],
+  historicalContext: HistoricalContextMap,
+) {
+  const broad = findClosestHistoricalCases(candidate, historical, Math.min(20, historical.length));
+  const currentContext = candidateContext(raw);
+  return broad
+    .map(({ item, distance, jurisdictionPenalty, temporalPenalty }) => {
+      const context = historicalContext.get(item.id);
+      const contextPenalty = context
+        ? contextAnalogyPenalty(currentContext, {
+          issuerCountry: item.country,
+          incidentCountry: context.incidentCountry,
+          sector: context.sector,
+          stakeholder: context.stakeholder,
+          incidentScope: context.incidentScope,
+          recurrenceStatus: context.recurrenceStatus,
+        })
+        : 0;
+      return {
+        item,
+        distance: distance + contextPenalty,
+        jurisdictionPenalty,
+        temporalPenalty,
+        contextPenalty,
+        contextVerified: Boolean(context),
+      };
+    })
+    .sort((a, b) => a.distance - b.distance || b.item.score - a.item.score)
+    .slice(0, 5);
+}
+
+async function evaluate(
+  raw: ActiveConfigCandidate,
+  historical: HistoricalShockCase[],
+  historicalContext: HistoricalContextMap,
+): Promise<EvaluatedCandidate> {
   const market = inferShockMarket({ market: raw.market, code: raw.code, ticker: raw.symbol });
   const benchmarkLabel = shockBenchmarkLabel(market);
   const resolved = await resolvePriceState(raw);
@@ -221,15 +277,9 @@ async function evaluate(raw: ActiveConfigCandidate, historical: HistoricalShockC
   const baseDecision = buildNotificationDecision(candidate);
   const jurisdictionReview = buildShockJurisdictionReview(candidate, historical);
   const contextReview = buildShockContextReview({
-    issuerCountry: raw.country,
-    incidentCountry: raw.incidentCountry,
-    market: raw.market,
-    sector: raw.sector,
-    stakeholder: raw.stakeholder,
-    incidentScope: raw.incidentScope,
+    ...candidateContext(raw),
     confounderStatus: raw.confounderStatus,
     informationLeakStatus: raw.informationLeakStatus,
-    recurrenceStatus: raw.recurrenceStatus,
     remediationStatus: raw.remediationStatus,
     incidentRevenueExposurePct: raw.incidentRevenueExposurePct,
     estimatedDirectCostPctMarketCap: raw.estimatedDirectCostPctMarketCap,
@@ -242,11 +292,13 @@ async function evaluate(raw: ActiveConfigCandidate, historical: HistoricalShockC
     blockers,
   };
 
-  const analogues = findClosestHistoricalCases(candidate, historical, 5).map(({
+  const analogues = rerankAnalogues(candidate, raw, historical, historicalContext).map(({
     item,
     distance,
     jurisdictionPenalty,
     temporalPenalty,
+    contextPenalty,
+    contextVerified,
   }) => ({
     id: item.id,
     company: item.company,
@@ -258,6 +310,8 @@ async function evaluate(raw: ActiveConfigCandidate, historical: HistoricalShockC
     distance,
     jurisdictionPenalty,
     temporalPenalty,
+    contextPenalty,
+    contextVerified,
     lesson: item.outcome?.summary ?? "",
   }));
   return {
@@ -300,7 +354,12 @@ function countryStats(cases: HistoricalShockCase[]) {
     .sort((a, b) => b.count - a.count || a.country.localeCompare(b.country));
 }
 
-function renderMarkdown(date: string, evaluated: EvaluatedCandidate[], historical: HistoricalShockCase[]): string {
+function renderMarkdown(
+  date: string,
+  evaluated: EvaluatedCandidate[],
+  historical: HistoricalShockCase[],
+  historicalContextCount: number,
+): string {
   const lines = [
     "# 企業固有ショック / 不祥事ディップ監視",
     "",
@@ -308,7 +367,7 @@ function renderMarkdown(date: string, evaluated: EvaluatedCandidate[], historica
     "",
     "> 20点は企業ダメージの世界共通score。国差はjurisdiction evidence pool、事件帰属はcontext reviewで別管理します。",
     "> 本社国・事件国・上場市場・業種・被害者・再発・是正・同時材料を分離し、分からない重要軸はunknownのままWAITにします。",
-    "> 類似事例は国差だけでなく時代差も減衰させます。恋愛/炎上等は古い例を強く割り引き、会計/品質は構造比較を長く残します。",
+    "> 類似事例は国差・時代差に加え、確認済みsidecarがある事例は事件国/業種/被害者/scopeでも再順位付けします。",
     "",
     "## 現在の監視候補",
     "",
@@ -337,7 +396,7 @@ function renderMarkdown(date: string, evaluated: EvaluatedCandidate[], historica
     lines.push(`- event: ${row.candidate.eventSummary}`);
     lines.push("- closest analogues:");
     for (const analogy of row.analogues.slice(0, 3)) {
-      lines.push(`  - [${analogy.country}] ${analogy.company} ${analogy.eventDate}: distance=${analogy.distance} (jurisdiction +${analogy.jurisdictionPenalty}, time +${analogy.temporalPenalty}), score=${analogy.score}/20, outcome=${analogy.outcomePattern}`);
+      lines.push(`  - [${analogy.country}] ${analogy.company} ${analogy.eventDate}: distance=${analogy.distance} (jurisdiction +${analogy.jurisdictionPenalty}, time +${analogy.temporalPenalty}, context +${analogy.contextPenalty}${analogy.contextVerified ? " verified" : " unverified"}), score=${analogy.score}/20, outcome=${analogy.outcomePattern}`);
       if (analogy.lesson) lines.push(`    - ${analogy.lesson}`);
     }
     lines.push("");
@@ -345,6 +404,7 @@ function renderMarkdown(date: string, evaluated: EvaluatedCandidate[], historica
 
   lines.push("## 過去事例DB", "");
   lines.push(`- cases: ${historical.length}`);
+  lines.push(`- context sidecar coverage: ${historicalContextCount}/${historical.length}`);
   lines.push(`- 16-20点: ${historical.filter(row => row.score >= 16).length}`);
   lines.push(`- 12-15点: ${historical.filter(row => row.score >= 12 && row.score < 16).length}`);
   lines.push(`- 8-11点: ${historical.filter(row => row.score >= 8 && row.score < 12).length}`);
@@ -362,6 +422,7 @@ function renderMarkdown(date: string, evaluated: EvaluatedCandidate[], historica
   lines.push("", "## 読み方", "");
   lines.push("- 20点scoreへ国別の道徳点を足しません。企業価値への実害は世界共通軸、jurisdiction/contextは別レイヤーです。");
   lines.push("- evidence poolは同国→同制度圏→世界の順で借り、母数が薄いと自動通知を止めます。");
+  lines.push("- context sidecarは確認できた事例だけ付与し、未確認項目を推測で埋めません。");
   lines.push("- 本社国と事件国を分離します。海外子会社の事件は現地規制と本社ガバナンスを両方確認します。");
   lines.push("- 決算・増資・M&A・訴訟等の同時材料がmajor/unknownなら、不祥事下げへ帰属せずWAITです。");
   lines.push("- systemic recurrence / weak remediation / likely information leakは通知をBLOCKします。");
@@ -377,9 +438,12 @@ function renderMarkdown(date: string, evaluated: EvaluatedCandidate[], historica
 async function main(): Promise<void> {
   const date = todayJst();
   const historical = loadHistoricalShockCases();
+  const historicalContext = loadHistoricalShockCaseContext();
   const active = loadActiveShockConfig();
   const evaluated: EvaluatedCandidate[] = [];
-  for (const candidate of active.candidates) evaluated.push(await evaluate(candidate, historical));
+  for (const candidate of active.candidates) {
+    evaluated.push(await evaluate(candidate, historical, historicalContext));
+  }
 
   mkdirSync("reports", { recursive: true });
   const payload = {
@@ -390,18 +454,19 @@ async function main(): Promise<void> {
     jurisdictionAware: true,
     contextAware: true,
     jurisdictionPolicy: "global damage score + hierarchical local-to-global evidence + temporal decay",
-    contextPolicy: "issuer/incident/market separation + sector/stakeholder/scope + causal attribution + recurrence/remediation",
+    contextPolicy: "issuer/incident/market separation + verified sidecar reranking + sector/stakeholder/scope + causal attribution + recurrence/remediation",
     relativeShockMethod: "benchmark return on stock shock-low trading date",
     shockWindowDays: DEFAULT_SHOCK_WINDOW_DAYS,
     historicalCaseCount: historical.length,
+    historicalContextCount: historicalContext.size,
     historicalCountryStats: countryStats(historical),
     historicalStats: historicalStats(historical),
     candidates: evaluated,
   };
   writeFileSync("reports/idiosyncratic_shock_watch_latest.json", JSON.stringify(payload, null, 2), "utf-8");
   writeFileSync(`reports/idiosyncratic_shock_watch_${date}.json`, JSON.stringify(payload, null, 2), "utf-8");
-  writeFileSync("reports/idiosyncratic_shock_watch_latest.md", renderMarkdown(date, evaluated, historical), "utf-8");
-  console.log(`企業固有ショック watch: active=${evaluated.length} historical=${historical.length}`);
+  writeFileSync("reports/idiosyncratic_shock_watch_latest.md", renderMarkdown(date, evaluated, historical, historicalContext.size), "utf-8");
+  console.log(`企業固有ショック watch: active=${evaluated.length} historical=${historical.length} context=${historicalContext.size}`);
   for (const row of evaluated) {
     console.log(`  ${row.market}/${row.jurisdictionReview.country ?? "?"}/${row.contextReview.incidentCountry ?? "?"} ${row.candidate.code ?? "-"} ${row.candidate.company}: ${totalShockScore(row.candidate.scores)}/20 jurisdiction=${row.jurisdictionReview.evidenceTier}/${row.jurisdictionReview.confidence} contextBlockers=${row.contextReview.blockers.length} shock=${row.candidate.shockDrawdownPct ?? "?"}% rel=${row.candidate.relativeShockDrawdownPct ?? "?"}% ${row.candidate.priceState} notify=${row.decision.eligible}`);
   }
