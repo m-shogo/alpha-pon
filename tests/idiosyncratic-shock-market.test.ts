@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   inferShockMarket,
   shockBenchmarkLabel,
+  shockMarketProfile,
   supportsAutomaticShockPrice,
 } from "../src/idiosyncratic-shock-market.js";
 
@@ -20,8 +21,9 @@ assert.equal(shockBenchmarkLabel("US"), "S&P 500");
 assert.equal(shockBenchmarkLabel("UK"), "FTSE 100");
 assert.equal(shockBenchmarkLabel("EUROPE"), "STOXX Europe 600");
 
-assert.equal(supportsAutomaticShockPrice("JP"), true, "現在の自動価格providerはJ-Quants/JPのみ");
-assert.equal(supportsAutomaticShockPrice("US"), false, "USは価格provider導入までfail-closed");
-assert.equal(supportsAutomaticShockPrice("EUROPE"), false);
+assert.equal(supportsAutomaticShockPrice("JP"), true, "JPはJ-Quants providerを実装済み");
+assert.equal(supportsAutomaticShockPrice("US"), true, "USはTwelve Data providerを実装済み");
+assert.equal(shockMarketProfile("US").automaticPriceProvider, "twelve_data");
+assert.equal(supportsAutomaticShockPrice("EUROPE"), false, "欧州はprice provider導入までfail-closed");
 
 console.log("idiosyncratic-shock-market tests: OK");
