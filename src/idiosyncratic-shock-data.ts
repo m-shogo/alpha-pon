@@ -14,6 +14,7 @@ import {
   type ShockPriceState,
   type ShockSource,
 } from "./idiosyncratic-shock.js";
+import type { ShockMarket } from "./idiosyncratic-shock-market.js";
 
 type CompactHistoricalCase = {
   id: string;
@@ -47,7 +48,9 @@ export type ActiveShockConfig = {
   description?: string;
   candidates: Array<{
     id: string;
+    market?: ShockMarket;
     code?: string | null;
+    symbol?: string | null;
     company: string;
     detectedAt: string;
     category: string;
@@ -59,6 +62,7 @@ export type ActiveShockConfig = {
     priceStateOverride?: ShockPriceState;
     priceStateCheckedAt?: string | null;
     shockDrawdownPctOverride?: number | null;
+    relativeShockDrawdownPctOverride?: number | null;
     scores: ShockDimensionScores;
     criticalLicenseOrDelistingRisk?: boolean;
     sources?: ShockSource[];
