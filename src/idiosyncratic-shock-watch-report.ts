@@ -57,13 +57,14 @@ async function resolvePriceState(raw: ActiveConfigCandidate): Promise<{
       const from = addDaysJst(today, -35).replaceAll("-", "");
       const to = today.replaceAll("-", "");
       const quotes = await fetchDailyQuotes(raw.code, from, to);
-      const latest = quotes.at(-1);
+      const sortedQuotes = [...quotes].sort((a, b) => normalizeDate(a.Date).localeCompare(normalizeDate(b.Date)));
+      const latest = sortedQuotes.at(-1);
       if (latest) {
         const latestDate = normalizeDate(latest.Date);
         const age = daysSinceJst(latestDate);
         // J-Quantsの契約プラン等でデータが遅延している場合は底打ち判定に使わない。
         if (age !== null && age >= 0 && age <= 5) {
-          const state = inferPriceState(quotes.map(row => ({
+          const state = inferPriceState(sortedQuotes.map(row => ({
             date: normalizeDate(row.Date),
             close: row.AdjustmentClose,
             volume: row.AdjustmentVolume,
