@@ -14,13 +14,17 @@
 - 一次情報URL:
 - 主要報道URL:
 - マクロ主因ではない: YES / NO
+- `investigationStatus`: open / substantially_complete / closed / not_applicable / unknown
+- 調査範囲を確定できる根拠:
+
+`open / unknown` の間は、事件自体が確定していても通知へ進めない。
 
 ## 1. 10項目採点
 
 | key | 0 | 1 | 2 | 今回 | 根拠 |
 |---|---|---|---|---:|---|
 | businessImpactContainment | 営業停止/顧客離れ等が大きい | 影響不明/限定 | 本業に直接影響しない |  |  |
-| accountingIntegrity | 粉飾/重大虚偽 | 訂正・監査影響が限定/未確定 | 財務報告への影響なし |  |  |
+| accountingIntegrity | 粉飾/重大虚偽/架空取引 | 訂正・監査影響が限定/未確定 | 財務報告への影響なし |  |  |
 | actorSeparability | 組織/経営と不可分 | キーパーソン性あり | 個人/少人数を切離せる |  |  |
 | organizationalContainment | 組織ぐるみ/統制問題 | 範囲調査中 | 局所的 |  |  |
 | regulatoryContainment | 免許/長期事業制限リスク | 捜査/訴訟はあるが限定 | 規制影響小 |  |  |
@@ -32,10 +36,15 @@
 
 **合計: /20**
 
+### 会計の特例
+
+行為者が1〜2人でも、架空循環取引・粉飾・過年度訂正などへ到達した場合は `actorSeparability` だけを見て高得点化しない。KDDI/BIGLOBE 2026のように**少人数起因でも `accountingIntegrity=0` なら通知block**。
+
 ## 2. ハードゲート
 
 - [ ] score >= 12
 - [ ] `evidenceStatus=confirmed`
+- [ ] `investigationStatus=substantially_complete / closed / not_applicable`
 - [ ] マクロが主因ではない
 - [ ] `priceState=stabilized_after_drop`
 - [ ] `accountingIntegrity > 0`
@@ -52,6 +61,9 @@
 - 類似2:
 - 類似3:
 - 成功例だけでなく失敗例は含まれているか:
+- 類似例の `researchConfidence` は十分か:
+
+medium / low confidence seed は距離計算上ペナルティを受ける。古い低品質資料を主根拠にしない。
 
 ## 4. バイトテロ追加確認
 
@@ -71,6 +83,7 @@
 以下が出たら過去scoreを固定せず再採点する。
 
 - 第三者/特別調査委員会報告
+- 調査範囲の拡大/終了
 - 決算訂正・有報訂正
 - 役員追加辞任
 - 当局調査・行政処分
@@ -80,11 +93,28 @@
 - 株価が再び安値更新
 - 逆に急反発し `rebounded_too_fast` になった
 
-## 6. 最終記録
+## 6. 12点閾値の検証
+
+12点は仮説。日本株の過去事例は以下で定量検証する。
+
+```text
+pnpm backfill:shock-outcomes
+pnpm backfill:shock-outcomes:write
+```
+
+- decision checkpoint → 1w / 1m / 3m / 1y
+- TOPIX相対
+- event前 → shock low 下落率
+- score >=12 と score <12 の平均・中央値・プラス率比較
+
+底値を後から選ばず、**当時判断可能だったcheckpointを基準**にする。
+
+## 7. 最終記録
 
 - 判定: research_priority / watch / caution / avoid
 - 通知: PASS / WAIT
 - WAIT blocker:
+- investigationStatus:
 - 次回確認日:
 - 次に見る一次情報:
 - 仮説を否定する条件:
