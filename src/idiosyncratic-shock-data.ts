@@ -1,4 +1,5 @@
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, readdirSync } from "fs";
+import { join } from "path";
 import { load } from "js-yaml";
 import {
   SHOCK_SCORE_KEYS,
@@ -61,10 +62,17 @@ export type ActiveShockConfig = {
   }>;
 };
 
-const DEFAULT_HISTORICAL_PATHS = [
-  "data/idiosyncratic_shock_cases.yml",
-  "data/idiosyncratic_shock_cases_expansion_01.yml",
-];
+function defaultHistoricalPaths(): string[] {
+  const base = "data/idiosyncratic_shock_cases.yml";
+  const dataDir = "data";
+  const expansions = existsSync(dataDir)
+    ? readdirSync(dataDir)
+      .filter(name => /^idiosyncratic_shock_cases_expansion_\d+\.yml$/.test(name))
+      .sort()
+      .map(name => join(dataDir, name))
+    : [];
+  return [base, ...expansions].filter(existsSync);
+}
 
 function vectorToScores(vector: number[]): ShockDimensionScores {
   if (vector.length !== SHOCK_SCORE_KEYS.length) {
@@ -121,7 +129,7 @@ function loadHistoricalFile(path: string): HistoricalShockCase[] {
 }
 
 export function loadHistoricalShockCases(path?: string): HistoricalShockCase[] {
-  const paths = path ? [path] : DEFAULT_HISTORICAL_PATHS.filter(existsSync);
+  const paths = path ? [path] : defaultHistoricalPaths();
   const rows = paths.flatMap(loadHistoricalFile);
   const ids = new Set<string>();
   for (const row of rows) {
