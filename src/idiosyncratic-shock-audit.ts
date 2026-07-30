@@ -5,6 +5,14 @@ import { mkdirSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
 import { loadHistoricalShockCases } from "./idiosyncratic-shock-data.js";
 
+const MIN_HISTORICAL_CASES = 52;
+const KNOWN_THIRD_PARTY_HOSTS = new Set([
+  "minkabu.jp",
+  "disclosure.catr.jp",
+  "finance.yahoo.co.jp",
+  "investing.com",
+]);
+
 function host(url: string): string {
   try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return "invalid"; }
 }
@@ -19,6 +27,10 @@ function main(): void {
   const confidence = { high: 0, medium: 0, low: 0 };
   const sourceHosts = new Map<string, number>();
 
+  if (cases.length < MIN_HISTORICAL_CASES) {
+    issues.push(`historical cases ${cases.length} < minimum ${MIN_HISTORICAL_CASES}`);
+  }
+
   for (const item of cases) {
     if (ids.has(item.id)) issues.push(`duplicate id: ${item.id}`);
     ids.add(item.id);
@@ -28,9 +40,15 @@ function main(): void {
       const name = host(source.url);
       sourceHosts.set(name, (sourceHosts.get(name) ?? 0) + 1);
       if (name === "invalid") issues.push(`${item.id}: invalid source URL ${source.url}`);
+      if (source.sourceType === "exchange" && KNOWN_THIRD_PARTY_HOSTS.has(name)) {
+        warnings.push(`${item.id}: sourceType=exchange but host=${name}; reclassify or replace with official exchange URL`);
+      }
     }
     if (item.sources.length === 0) issues.push(`${item.id}: source missing`);
     if (item.researchConfidence === "low" && item.score >= 16) warnings.push(`${item.id}: high score but low research confidence`);
+    if (item.category === "accounting_fraud" && item.scores.accountingIntegrity !== 0) {
+      issues.push(`${item.id}: accounting_fraud requires accountingIntegrity=0`);
+    }
     if (item.category === "accounting_fraud" && item.score >= 12) issues.push(`${item.id}: accounting fraud must not score >=12`);
     if (item.scores.accountingIntegrity === 0 && item.score >= 12) issues.push(`${item.id}: accountingIntegrity=0 must not score >=12`);
     if (item.outcome?.recoveryPattern === "failed" && item.score >= 16) warnings.push(`${item.id}: failed outcome despite historical score ${item.score}; calibration candidate`);
@@ -54,6 +72,7 @@ function main(): void {
 
   const summary = {
     generatedAt: date,
+    minimumHistoricalCases: MIN_HISTORICAL_CASES,
     totalCases: cases.length,
     scoreBuckets: {
       researchPriority16to20: cases.filter(item => item.score >= 16).length,
@@ -75,7 +94,7 @@ function main(): void {
     "# 企業固有ショック 過去事例DB監査",
     "",
     `生成日: ${date}`,
-    `- total: ${cases.length}`,
+    `- total: ${cases.length} / minimum ${MIN_HISTORICAL_CASES}`,
     `- high confidence: ${confidence.high}`,
     `- medium confidence: ${confidence.medium}`,
     `- low confidence: ${confidence.low}`,
