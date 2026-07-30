@@ -17,6 +17,16 @@ assert.equal(inferShockJurisdictionGroup({ country: "US" }), "US");
 assert.equal(inferShockJurisdictionGroup({ country: "DE" }), "EUROPE");
 assert.equal(inferShockJurisdictionGroup({ country: "AU" }), "COMMONWEALTH");
 assert.equal(inferShockJurisdictionGroup({ market: "US" }), "US");
+assert.equal(inferShockJurisdictionGroup({ country: "KR" }), "KR", "韓国をOTHER/東アジア一括にしない");
+assert.equal(inferShockJurisdictionGroup({ country: "CN" }), "CN", "中国本土を独立jurisdictionとして扱う");
+assert.equal(inferShockJurisdictionGroup({ country: "HK" }), "HK", "香港を中国本土と自動統合しない");
+assert.equal(inferShockJurisdictionGroup({ country: "SG" }), "SG", "シンガポールを独立jurisdictionとして扱う");
+assert.equal(inferShockJurisdictionGroup({ country: "TW" }), "TW", "台湾を独立jurisdictionとして扱う");
+assert.equal(inferShockJurisdictionGroup({ market: "KR" }), "KR");
+assert.equal(inferShockJurisdictionGroup({ market: "CN" }), "CN");
+assert.equal(inferShockJurisdictionGroup({ market: "HK" }), "HK");
+assert.equal(inferShockJurisdictionGroup({ market: "SG" }), "SG");
+assert.equal(inferShockJurisdictionGroup({ market: "TW" }), "TW");
 
 assert.equal(shockCategoryJurisdictionSensitivity("executive_relationship"), "high");
 assert.equal(shockCategoryJurisdictionSensitivity("employee_sabotage"), "high");
@@ -34,6 +44,11 @@ assert.equal(jurisdictionAnalogyPenalty({
   candidateCountry: "US",
   historicalCountry: "JP",
 }), 4, "恋愛/行動問題は遠いjurisdictionを強く割り引く");
+assert.equal(jurisdictionAnalogyPenalty({
+  category: "executive_relationship",
+  candidateCountry: "KR",
+  historicalCountry: "CN",
+}), 4, "東アジアという理由だけで文化依存事件を近似しすぎない");
 assert.equal(jurisdictionAnalogyPenalty({
   category: "accounting_fraud",
   candidateCountry: "US",
