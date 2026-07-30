@@ -9,6 +9,9 @@ candidates:
     stakeholder: investor
     incidentScope: subsidiary
     confounderStatus: clear
+    informationLeakStatus: unknown
+    recurrenceStatus: first_known
+    remediationStatus: credible
     code: "8136"
     company: "サンリオ"
     detectedAt: "2026-04-16"
