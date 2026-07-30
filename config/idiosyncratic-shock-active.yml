@@ -4,6 +4,11 @@ candidates:
   - id: sanrio-2026-compensation
     market: JP
     country: JP
+    incidentCountry: US
+    sector: consumer_ip
+    stakeholder: investor
+    incidentScope: subsidiary
+    confounderStatus: clear
     code: "8136"
     company: "サンリオ"
     detectedAt: "2026-04-16"
