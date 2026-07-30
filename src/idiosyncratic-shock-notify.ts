@@ -8,6 +8,19 @@ import type { ShockCandidate, ShockNotificationDecision } from "./idiosyncratic-
 import { loadActiveShockConfig } from "./idiosyncratic-shock-data.js";
 import { buildShockContextReview, type ShockContextReview } from "./idiosyncratic-shock-context.js";
 
+type CalibrationInfo = {
+  readiness: {
+    modelLevel: string;
+    status: string;
+    effectiveThreshold: number;
+    effectiveThresholdSource: string;
+    countryCases: number;
+    countryCategoryCases: number;
+    validationCases: number;
+  };
+  registryEntry: { id: string } | null;
+};
+
 type WatchRow = {
   candidate: ShockCandidate;
   market: string;
@@ -23,18 +36,7 @@ type WatchRow = {
     sameGroupCategoryCases: number;
     globalCategoryCases: number;
   };
-  calibration: {
-    readiness: {
-      modelLevel: string;
-      status: string;
-      effectiveThreshold: number;
-      effectiveThresholdSource: string;
-      countryCases: number;
-      countryCategoryCases: number;
-      validationCases: number;
-    };
-    registryEntry: { id: string } | null;
-  };
+  calibration?: CalibrationInfo;
   decision: ShockNotificationDecision;
   analogues: Array<{
     company: string;
@@ -48,7 +50,7 @@ type WatchRow = {
   }>;
 };
 
-type NotifyRow = WatchRow & { contextReview: ShockContextReview };
+type NotifyRow = Omit<WatchRow, "calibration"> & { calibration: CalibrationInfo; contextReview: ShockContextReview };
 
 type WatchReport = {
   generatedAt: string;
@@ -168,6 +170,10 @@ async function main(): Promise<void> {
 
   const eligible: NotifyRow[] = [];
   for (const row of report.candidates) {
+    if (!row.calibration?.readiness || !Number.isFinite(row.calibration.readiness.effectiveThreshold)) {
+      console.log(`企業固有ショック通知: ${row.candidate.id} stale report without calibration -> BLOCK; rerun pnpm report:shocks`);
+      continue;
+    }
     if (!row.decision.eligible) continue;
     const raw = activeById.get(row.candidate.id);
     if (!raw) {
@@ -198,7 +204,7 @@ async function main(): Promise<void> {
       console.log(`企業固有ショック通知: ${row.candidate.id} context BLOCK (${contextReview.blockers.join("; ")})`);
       continue;
     }
-    eligible.push({ ...row, contextReview });
+    eligible.push({ ...row, calibration: row.calibration, contextReview });
   }
 
   if (eligible.length === 0) {
