@@ -16,6 +16,7 @@ import {
 } from "./idiosyncratic-shock.js";
 import type { ShockMarket } from "./idiosyncratic-shock-market.js";
 import type {
+  ShockAnnouncementTiming,
   ShockConfounderStatus,
   ShockDisclosureObservability,
   ShockIncidentClusterStatus,
@@ -80,6 +81,8 @@ export type ActiveShockConfig = {
     liquidityStatus?: ShockLiquidityStatus | null;
     incidentClusterStatus?: ShockIncidentClusterStatus | null;
     disclosureObservability?: ShockDisclosureObservability | null;
+    announcementTiming?: ShockAnnouncementTiming | null;
+    priceReactionStartDate?: string | null;
     incidentRevenueExposurePct?: number | null;
     estimatedDirectCostPctMarketCap?: number | null;
     industryRelativeShockDrawdownPct?: number | null;
