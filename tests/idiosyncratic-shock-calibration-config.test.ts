@@ -71,7 +71,7 @@ assert.equal(findValidatedLocalThreshold(registry, {
   category: "executive_relationship",
 }), null, "country thresholdをcountry-categoryへ誤適用しない");
 
-function observations(count: number): ShockCalibrationObservation[] {
+function observations(count: number, relationshipCount = 15): ShockCalibrationObservation[] {
   const group: ShockJurisdictionGroup = inferShockJurisdictionGroup({ country: "US", market: "US" });
   return Array.from({ length: count }, (_, index) => ({
     caseId: `us-${index}`,
@@ -80,7 +80,7 @@ function observations(count: number): ShockCalibrationObservation[] {
     market: "US",
     country: "US",
     jurisdictionGroup: group,
-    category: index < 15 ? "executive_relationship" : "personal_behavior",
+    category: index < relationshipCount ? "executive_relationship" : "personal_behavior",
     score: 12 + (index % 4),
     benchmarkRelative1m: 1,
     benchmarkRelative3m: 2,
@@ -98,6 +98,18 @@ assert.equal(resolved.readiness.modelLevel, "country", "カテゴリが薄けれ
 assert.equal(resolved.readiness.status, "validated");
 assert.equal(resolved.readiness.effectiveThreshold, 14);
 assert.equal(resolved.registryEntry?.id, "us-country-v1");
+
+const childReadyButUnapproved = resolveShockCalibration(registry, {
+  country: "US",
+  market: "US",
+  category: "executive_relationship",
+  observations: observations(40, 32),
+});
+assert.equal(childReadyButUnapproved.readiness.modelLevel, "country", "子カテゴリがholdout-readyでも未承認なら検証済み親を継続利用");
+assert.equal(childReadyButUnapproved.readiness.status, "validated");
+assert.equal(childReadyButUnapproved.readiness.effectiveThreshold, 14);
+assert.equal(childReadyButUnapproved.registryEntry?.id, "us-country-v1");
+assert.ok(childReadyButUnapproved.readiness.notes.some(note => note.includes("validated parent")));
 
 const sparse = resolveShockCalibration(registry, {
   country: "US",
