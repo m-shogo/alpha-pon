@@ -1,3 +1,5 @@
+import { jurisdictionAnalogyPenalty } from "./idiosyncratic-shock-jurisdiction.js";
+
 export const SHOCK_SCORE_KEYS = [
   "businessImpactContainment",
   "accountingIntegrity",
@@ -78,6 +80,8 @@ export type HistoricalShockCase = {
 export type ShockCandidate = {
   id: string;
   code?: string | null;
+  country?: string | null;
+  market?: string | null;
   company: string;
   detectedAt: string;
   category: string;
@@ -208,7 +212,7 @@ export function findClosestHistoricalCases(
   candidate: ShockCandidate,
   historicalCases: HistoricalShockCase[],
   limit = 3
-): Array<{ item: HistoricalShockCase; distance: number }> {
+): Array<{ item: HistoricalShockCase; distance: number; jurisdictionPenalty: number }> {
   const confidencePenalty = (item: HistoricalShockCase): number => {
     if (item.researchConfidence === "high") return 0;
     if (item.researchConfidence === "medium") return 1;
@@ -216,7 +220,19 @@ export function findClosestHistoricalCases(
   };
   return historicalCases
     .filter(item => !item.macroPrimaryCause && item.id !== candidate.id)
-    .map(item => ({ item, distance: analogyDistance(candidate, item) + confidencePenalty(item) }))
+    .map(item => {
+      const localPenalty = jurisdictionAnalogyPenalty({
+        category: candidate.category,
+        candidateCountry: candidate.country,
+        candidateMarket: candidate.market,
+        historicalCountry: item.country,
+      });
+      return {
+        item,
+        jurisdictionPenalty: localPenalty,
+        distance: analogyDistance(candidate, item) + confidencePenalty(item) + localPenalty,
+      };
+    })
     .sort((a, b) => a.distance - b.distance || b.item.score - a.item.score)
     .slice(0, Math.max(0, limit));
 }
@@ -293,16 +309,16 @@ export function inferPriceState(observations: PriceObservation[]): ShockPriceSta
 
 export function formatShockCandidateSummary(
   candidate: ShockCandidate,
-  analogues: Array<{ item: HistoricalShockCase; distance: number }>
+  analogues: Array<{ item: HistoricalShockCase; distance: number; jurisdictionPenalty?: number }>
 ): string {
   const decision = buildNotificationDecision(candidate);
   const analogyText = analogues
-    .map(({ item, distance }) => `${item.company}(${item.eventDate}, 距離${distance}, ${item.score}/20)`)
+    .map(({ item, distance, jurisdictionPenalty }) => `${item.company}(${item.country}, ${item.eventDate}, 距離${distance}, 国差+${jurisdictionPenalty ?? 0}, ${item.score}/20)`)
     .join(" / ");
   return [
     `${candidate.company} ${decision.score}/20 [${decision.label}]`,
-    `分類: ${candidate.category} / actor=${candidate.actorType}`,
-    `株価状態: ${candidate.priceState} / shock=${candidate.shockDrawdownPct?.toFixed(1) ?? "?"}% / TOPIX相対shock=${candidate.relativeShockDrawdownPct?.toFixed(1) ?? "?"}% / evidence=${candidate.evidenceStatus} / investigation=${candidate.investigationStatus ?? "unknown"}`,
+    `分類: ${candidate.category} / actor=${candidate.actorType} / country=${candidate.country ?? "?"}`,
+    `株価状態: ${candidate.priceState} / shock=${candidate.shockDrawdownPct?.toFixed(1) ?? "?"}% / 現地benchmark相対shock=${candidate.relativeShockDrawdownPct?.toFixed(1) ?? "?"}% / evidence=${candidate.evidenceStatus} / investigation=${candidate.investigationStatus ?? "unknown"}`,
     `類似: ${analogyText || "なし"}`,
     decision.eligible ? "通知ゲート: PASS（調査候補）" : `通知ゲート: WAIT (${decision.blockers.join("; ")})`,
     "※売買推奨ではありません",
