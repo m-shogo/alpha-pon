@@ -1,5 +1,5 @@
 // RSS発見キュー + TDnet一次情報キューを一画面にまとめる。
-// ここでは点数を推測しない。重要3軸が未解決のまま通知へ進めないための人間/agent review queue。
+// ここでは点数を推測しない。重要軸が未解決のまま通知へ進めないための人間/agent review queue。
 // pnpm queue:shocks
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
@@ -62,6 +62,19 @@ function titleKey(title: string): string {
   return normalize(title).slice(0, 100);
 }
 
+function primaryReviewChecklist(): string[] {
+  return [
+    "investigationStatus: 調査中(open)か、範囲が概ね確定(substantially_complete/closed)か",
+    "事件の範囲: 個人/少人数/複数部署/組織",
+    "accountingIntegrity: 財務訂正・架空取引・監査影響の有無",
+    "businessImpact: 本業・顧客・規制・営業停止への実害",
+    "actorSeparability: 問題人物/少人数を切離せるか",
+    "shockDrawdownPct: 事件前比で実際に-5%以上下落したか",
+    "priceState: falling/volatileではなくstabilized_after_dropか",
+    "一次情報の追加開示予定・次回確認日",
+  ];
+}
+
 function buildQueue(): QueueItem[] {
   const news = readJson<ScanFile<NewsItem>>(NEWS_PATH)?.items ?? [];
   const disclosures = readJson<ScanFile<DisclosureItem>>(DISCLOSURE_PATH)?.items ?? [];
@@ -84,13 +97,7 @@ function buildQueue(): QueueItem[] {
       actorTypeHint: item.actorTypeHint,
       matchedKeywords: item.matchedKeywords,
       scoringStatus: "needs_scoring",
-      requiredReview: [
-        "事件の範囲（個人/複数/組織）",
-        "会計影響の有無",
-        "本業・顧客・規制への実害",
-        "問題人物の切離し可能性",
-        "J-Quants株価下落率と沈静化",
-      ],
+      requiredReview: primaryReviewChecklist(),
     });
   }
 
@@ -113,7 +120,9 @@ function buildQueue(): QueueItem[] {
         "上場企業/証券コードの特定",
         "会社・取引所・当局の一次情報探索",
         "噂/誤報/別会社の排除",
+        "investigationStatusの確認",
         "10項目scoreは一次情報確認後のみ",
+        "実際のshockDrawdownPctとpriceStateは銘柄特定後に確認",
       ],
     });
   }
@@ -136,7 +145,7 @@ function render(date: string, rows: QueueItem[]): string {
     `生成日: ${date}`,
     "",
     "> このキューは情報収集段階です。12点通知へ直接つながりません。",
-    "> 一次情報で accounting / organization / separability を解決してから active candidate に昇格します。",
+    "> 一次情報で investigation / accounting / organization / separability を解決し、実下落と沈静化を確認してから active candidate に昇格します。",
     "",
     `- TDnet一次情報: ${primary.length}`,
     `- news-only: ${news.length}`,
@@ -152,6 +161,7 @@ function render(date: string, rows: QueueItem[]): string {
     lines.push(`- categoryHint: ${row.categoryHint} / actor=${row.actorTypeHint}`);
     lines.push(`- matched: ${row.matchedKeywords.join(", ") || "-"}`);
     lines.push(`- url: ${row.url}`);
+    lines.push(`- unresolved: ${row.requiredReview.join(" / ")}`);
     lines.push("");
   }
 
@@ -160,6 +170,7 @@ function render(date: string, rows: QueueItem[]): string {
   for (const row of news.slice(0, 100)) {
     lines.push(`- ${row.title}`);
     lines.push(`  - categoryHint: ${row.categoryHint} / source=${row.sourceLevel}`);
+    lines.push(`  - unresolved: ${row.requiredReview.join(" / ")}`);
     lines.push(`  - url: ${row.url}`);
   }
   return lines.join("\n");
