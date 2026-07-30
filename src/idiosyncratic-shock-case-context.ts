@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "fs";
 import { load } from "js-yaml";
 import type {
+  ShockAnnouncementTiming,
   ShockDisclosureObservability,
   ShockIncidentClusterStatus,
   ShockIncidentScope,
@@ -22,6 +23,8 @@ export type HistoricalShockCaseContext = {
   liquidityStatus?: ShockLiquidityStatus | null;
   incidentClusterStatus?: ShockIncidentClusterStatus | null;
   disclosureObservability?: ShockDisclosureObservability | null;
+  announcementTiming?: ShockAnnouncementTiming | null;
+  priceReactionStartDate?: string | null;
   notes?: string | null;
 };
 
