@@ -19,6 +19,8 @@ import type {
   ShockConfounderStatus,
   ShockIncidentScope,
   ShockInformationLeakStatus,
+  ShockRecurrenceStatus,
+  ShockRemediationStatus,
   ShockStakeholder,
 } from "./idiosyncratic-shock-context.js";
 
@@ -66,6 +68,8 @@ export type ActiveShockConfig = {
     incidentScope?: ShockIncidentScope | null;
     confounderStatus?: ShockConfounderStatus | null;
     informationLeakStatus?: ShockInformationLeakStatus | null;
+    recurrenceStatus?: ShockRecurrenceStatus | null;
+    remediationStatus?: ShockRemediationStatus | null;
     incidentRevenueExposurePct?: number | null;
     estimatedDirectCostPctMarketCap?: number | null;
     industryRelativeShockDrawdownPct?: number | null;
