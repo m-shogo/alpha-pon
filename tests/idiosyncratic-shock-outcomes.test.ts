@@ -66,8 +66,11 @@ const benchmark: ShockOutcomeQuote[] = [
   { Date: "20270119", AdjustmentClose: 108 },
 ];
 
-const record = buildShockHistoricalOutcome(strongCase, stock, benchmark, "2027-02-01");
+const record = buildShockHistoricalOutcome(strongCase, stock, benchmark, "2027-02-01", {
+  strategyEligibilityAtCheckpoint: "confirmed_pass",
+});
 assert(record, "JP4桁tickerはoutcomeを生成できる");
+assert.equal(record?.strategyEligibilityAtCheckpoint, "confirmed_pass");
 assert.equal(record?.market, "JP");
 assert.equal(record?.benchmark, "TOPIX");
 assert.equal(record?.reactionStartDate, "2026-01-10");
@@ -86,15 +89,30 @@ assert.equal(record?.signalBenchmarkRelative3m, 13.9371);
 assert.notEqual(record?.return1m, record?.signalReturn1m, "checkpoint returnとsignal returnを混同しない");
 assert.equal(record?.topixRelative1m, record?.benchmarkRelative1m, "JP互換fieldを維持");
 
+const unknownEligibility = buildShockHistoricalOutcome(strongCase, stock, benchmark, "2027-02-01");
+assert(unknownEligibility);
+assert.equal(unknownEligibility?.strategyEligibilityAtCheckpoint, "unknown");
+assert.equal(unknownEligibility?.firstEligibleSignalDate, null, "非価格hard gate未確認なら価格条件が良くてもsignalを生成しない");
+assert.equal(unknownEligibility?.signalBenchmarkRelative3m, null);
+
+const blockedEligibility = buildShockHistoricalOutcome(strongCase, stock, benchmark, "2027-02-01", {
+  strategyEligibilityAtCheckpoint: "confirmed_block",
+});
+assert(blockedEligibility);
+assert.equal(blockedEligibility?.firstEligibleSignalDate, null, "非価格hard gate BLOCKを価格反発で上書きしない");
+
 const shiftedReaction = buildShockHistoricalOutcome(strongCase, stock, benchmark, "2027-02-01", {
   reactionStartDate: "2026-01-13",
+  strategyEligibilityAtCheckpoint: "confirmed_pass",
 });
 assert(shiftedReaction);
 assert.equal(shiftedReaction?.reactionStartDate, "2026-01-13");
 assert.equal(shiftedReaction?.preEventDate, "2026-01-12", "reaction anchor変更時はpre-event基準も追随");
 
 const usCase: HistoricalShockCase = { ...strongCase, id: "fixture-us", ticker: "MCD", country: "US" };
-const overseas = buildShockHistoricalOutcome(usCase, stock, benchmark, "2027-02-01");
+const overseas = buildShockHistoricalOutcome(usCase, stock, benchmark, "2027-02-01", {
+  strategyEligibilityAtCheckpoint: "confirmed_pass",
+});
 assert(overseas, "US英字tickerもmarket-aware outcomeを生成できる");
 assert.equal(overseas?.market, "US");
 assert.equal(overseas?.benchmark, "S&P 500");
@@ -112,10 +130,10 @@ const weakRecord: ShockHistoricalOutcomeRecord = {
   signalBenchmarkRelative3m: -18,
   signalBenchmarkRelative1y: -25,
 };
-const calibration = calibrateShockThresholds([record!, weakRecord]);
+const calibration = calibrateShockThresholds([record!, weakRecord, unknownEligibility!]);
 const ge12 = calibration.find(row => row.bucket === "score_ge_12");
 const lt12 = calibration.find(row => row.bucket === "score_lt_12");
-assert.equal(ge12?.cases, 1);
+assert.equal(ge12?.cases, 1, "unknown eligibilityをcalibration分母へ入れない");
 assert.equal(ge12?.positiveRate1m, 100);
 assert.equal(lt12?.cases, 1);
 assert.equal(lt12?.positiveRate1m, 0);
@@ -139,7 +157,7 @@ const noTrade: ShockHistoricalOutcomeRecord = {
   signalBenchmarkRelative1y: null,
 };
 const withNoTrade = calibrateShockThresholds([record!, noTrade]);
-assert.equal(withNoTrade.find(row => row.bucket === "score_ge_12")?.cases, 1, "no-tradeを0%として分母へ入れない");
+assert.equal(withNoTrade.find(row => row.bucket === "score_ge_12")?.cases, 1, "confirmed-pass no-tradeを0%として分母へ入れない");
 
 assert.deepEqual(outcomeFetchRange(strongCase, "2026-06-01"), { from: "20251231", to: "20260601" });
 assert.deepEqual(outcomeFetchRange(strongCase, "2028-01-01"), { from: "20251231", to: "20270428" });
