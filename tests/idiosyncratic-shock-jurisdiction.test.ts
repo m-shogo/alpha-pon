@@ -29,13 +29,11 @@ assert.equal(jurisdictionAnalogyPenalty({
   candidateCountry: "US",
   historicalCountry: "US",
 }), 0, "同国の文化依存事例はpenaltyなし");
-
 assert.equal(jurisdictionAnalogyPenalty({
   category: "executive_relationship",
   candidateCountry: "US",
   historicalCountry: "JP",
 }), 4, "恋愛/行動問題は遠いjurisdictionを強く割り引く");
-
 assert.equal(jurisdictionAnalogyPenalty({
   category: "accounting_fraud",
   candidateCountry: "US",
@@ -107,6 +105,9 @@ const crossBorderClear = buildShockContextReview({
   stakeholder: "investor",
   incidentScope: "subsidiary",
   confounderStatus: "clear",
+  informationLeakStatus: "clear",
+  recurrenceStatus: "first_known",
+  remediationStatus: "credible",
 });
 assert.equal(crossBorderClear.incidentGeography, "foreign");
 assert.equal(crossBorderClear.blockers.length, 0);
@@ -117,6 +118,8 @@ const unknownAttribution = buildShockContextReview({
   incidentCountry: "US",
   market: "US",
   confounderStatus: "unknown",
+  recurrenceStatus: "first_known",
+  remediationStatus: "credible",
 });
 assert.equal(unknownAttribution.blockers.length, 1, "同時材料未確認なら通知を止める");
 
@@ -125,7 +128,68 @@ const majorConfounder = buildShockContextReview({
   incidentCountry: "US",
   market: "US",
   confounderStatus: "major",
+  recurrenceStatus: "first_known",
+  remediationStatus: "credible",
 });
 assert.equal(majorConfounder.blockers.length, 1, "決算等の重大同時材料があれば不祥事下げへ帰属しない");
+
+const leakedEvent = buildShockContextReview({
+  issuerCountry: "US",
+  incidentCountry: "US",
+  market: "US",
+  confounderStatus: "clear",
+  informationLeakStatus: "likely",
+  recurrenceStatus: "first_known",
+  remediationStatus: "credible",
+});
+assert.ok(leakedEvent.blockers.some(value => value.includes("re-anchor")), "情報漏れ濃厚ならevent dateを再設定するまでBLOCK");
+
+const systemicRepeat = buildShockContextReview({
+  issuerCountry: "US",
+  incidentCountry: "US",
+  market: "US",
+  confounderStatus: "clear",
+  informationLeakStatus: "clear",
+  recurrenceStatus: "systemic",
+  remediationStatus: "credible",
+});
+assert.ok(systemicRepeat.blockers.some(value => value.includes("systemic")), "再発が組織的ならisolated dip仮説を止める");
+
+const weakRemediation = buildShockContextReview({
+  issuerCountry: "US",
+  incidentCountry: "US",
+  market: "US",
+  confounderStatus: "clear",
+  informationLeakStatus: "clear",
+  recurrenceStatus: "first_known",
+  remediationStatus: "weak",
+});
+assert.ok(weakRemediation.blockers.some(value => value.includes("remediation")), "是正が弱いなら通知BLOCK");
+
+const sectorMove = buildShockContextReview({
+  issuerCountry: "US",
+  incidentCountry: "US",
+  market: "US",
+  confounderStatus: "clear",
+  informationLeakStatus: "clear",
+  recurrenceStatus: "first_known",
+  remediationStatus: "credible",
+  industryRelativeShockDrawdownPct: -0.5,
+});
+assert.ok(sectorMove.blockers.some(value => value.includes("peer-adjusted")), "同業比で固有下落が弱いなら通知BLOCK");
+
+const materialForeignExposure = buildShockContextReview({
+  issuerCountry: "JP",
+  incidentCountry: "US",
+  market: "JP",
+  confounderStatus: "clear",
+  informationLeakStatus: "clear",
+  recurrenceStatus: "first_known",
+  remediationStatus: "credible",
+  incidentRevenueExposurePct: 30,
+  estimatedDirectCostPctMarketCap: 6,
+});
+assert.ok(materialForeignExposure.reviewNotes.some(value => value.includes("売上露出が大きい")));
+assert.ok(materialForeignExposure.reviewNotes.some(value => value.includes("material")));
 
 console.log("idiosyncratic-shock jurisdiction/context tests: OK");
