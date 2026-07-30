@@ -1,4 +1,4 @@
-version: 3
+version: 4
 description: "マクロ要因ではなく、個社固有の不祥事・炎上・ガバナンスショックを分類する。売買推奨ではない。"
 notificationThreshold: 12
 researchPriorityThreshold: 16
@@ -7,6 +7,10 @@ hardGates:
   requireInvestigationScopeResolved: true
   requireActualShockDrawdown: true
   minimumShockDrawdownPct: -5
+  shockWindowDays: 20
+  requireMarketRelativeShock: true
+  minimumRelativeShockDrawdownPct: -3
+  benchmarkCode: "1306"
   requirePriceStabilized: true
   rejectAccountingFraud: true
   rejectMacroPrimaryCause: true
@@ -152,4 +156,4 @@ scoring:
   managementContinuity: "後継体制で事業継続できるほど高得点"
   fundamentalResilience: "売上・利益・CFが維持されるほど高得点"
   discountMagnitude: "実害に比べ下落が大きいほど高得点"
-  priceStabilization: "急落が一巡し値動きが落ち着くほど高得点。実下落の有無はshockDrawdownPctで別確認"
+  priceStabilization: "急落が一巡し値動きが落ち着くほど高得点。実下落とTOPIX超過下落は別hard gateで確認"
