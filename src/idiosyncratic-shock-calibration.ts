@@ -90,6 +90,12 @@ function chronologicalSplit(rows: ShockCalibrationObservation[]): {
   return { train: sorted.slice(0, splitAt), validation: sorted.slice(splitAt) };
 }
 
+function holdoutReady(rows: ShockCalibrationObservation[], minimumCases: number): boolean {
+  if (rows.length < minimumCases) return false;
+  const split = chronologicalSplit(rows);
+  return split.train.length >= MIN_TRAIN_CASES && split.validation.length >= MIN_VALIDATION_CASES;
+}
+
 export function buildShockCalibrationReadiness(input: {
   country?: string | null;
   market?: ShockMarket | null;
@@ -107,48 +113,46 @@ export function buildShockCalibrationReadiness(input: {
   const blockers: string[] = [];
   const notes: string[] = [];
 
+  const countryCategoryReady = holdoutReady(countryCategoryRows, MIN_COUNTRY_CATEGORY_CASES);
+  const countryReady = holdoutReady(countryRows, MIN_COUNTRY_CASES);
+  const groupReady = holdoutReady(groupRows, MIN_GROUP_CASES);
+
   let modelLevel: ShockCalibrationLevel = "global";
   let candidateRows = usable;
-  let requiredCases = 0;
 
-  if (countryCategoryRows.length >= MIN_COUNTRY_CATEGORY_CASES) {
+  if (countryCategoryReady) {
     modelLevel = "country_category";
     candidateRows = countryCategoryRows;
-    requiredCases = MIN_COUNTRY_CATEGORY_CASES;
-  } else if (countryRows.length >= MIN_COUNTRY_CASES) {
+  } else if (countryReady) {
     modelLevel = "country";
     candidateRows = countryRows;
-    requiredCases = MIN_COUNTRY_CASES;
-  } else if (groupRows.length >= MIN_GROUP_CASES) {
+    if (category && countryCategoryRows.length >= MIN_COUNTRY_CATEGORY_CASES) {
+      notes.push("country-categoryは母数到達済みだがholdout不足のためcountryモデルへ縮退");
+    }
+  } else if (groupReady) {
     modelLevel = "jurisdiction_group";
     candidateRows = groupRows;
-    requiredCases = MIN_GROUP_CASES;
+    if (country && countryRows.length >= MIN_COUNTRY_CASES) {
+      notes.push("countryは母数到達済みだがholdout不足のためjurisdiction-groupへ縮退");
+    }
   } else {
-    if (country && countryRows.length < MIN_COUNTRY_CASES) {
-      blockers.push(`country sample ${countryRows.length} < ${MIN_COUNTRY_CASES}`);
-    }
-    if (category && countryCategoryRows.length < MIN_COUNTRY_CATEGORY_CASES) {
-      blockers.push(`country-category sample ${countryCategoryRows.length} < ${MIN_COUNTRY_CATEGORY_CASES}`);
-    }
-    notes.push("local sample不足のためGlobal Structural Score + global default thresholdへ縮退");
+    if (country && countryRows.length < MIN_COUNTRY_CASES) blockers.push(`country sample ${countryRows.length} < ${MIN_COUNTRY_CASES}`);
+    if (category && countryCategoryRows.length < MIN_COUNTRY_CATEGORY_CASES) blockers.push(`country-category sample ${countryCategoryRows.length} < ${MIN_COUNTRY_CATEGORY_CASES}`);
+    if (groupRows.length < MIN_GROUP_CASES) blockers.push(`jurisdiction-group sample ${groupRows.length} < ${MIN_GROUP_CASES}`);
+    notes.push("十分な時系列holdoutを持つlocal/region階層がないためGlobal Structural Score + global default thresholdへ縮退");
   }
 
   const split = chronologicalSplit(candidateRows);
-  const hasValidation = split.train.length >= MIN_TRAIN_CASES && split.validation.length >= MIN_VALIDATION_CASES;
   const validatedThreshold = input.validatedThreshold;
-
-  let status: ShockCalibrationStatus = modelLevel === "global" ? "global_default" : "insufficient_data";
+  let status: ShockCalibrationStatus = modelLevel === "global"
+    ? (country || category ? "insufficient_data" : "global_default")
+    : "ready_for_validation";
   let effectiveThreshold = GLOBAL_DEFAULT_SHOCK_THRESHOLD;
   let effectiveThresholdSource: ShockCalibrationReadiness["effectiveThresholdSource"] = "global_default";
 
   if (modelLevel !== "global") {
-    if (!hasValidation) {
-      blockers.push(`time holdout insufficient train=${split.train.length}/${MIN_TRAIN_CASES} validation=${split.validation.length}/${MIN_VALIDATION_CASES}`);
-      notes.push(`階層${modelLevel}は母数${candidateRows.length}（最低${requiredCases}）を満たしても、out-of-sample検証が不足している間は昇格しない`);
-      status = "insufficient_data";
-    } else if (validatedThreshold == null || !Number.isFinite(validatedThreshold)) {
-      status = "ready_for_validation";
-      notes.push("時系列holdoutを確保できた。trainで候補閾値を作り、validationで確認するまで12点を維持する");
+    if (validatedThreshold == null || !Number.isFinite(validatedThreshold)) {
+      notes.push("時系列holdoutを確保済み。trainで候補閾値を作り、validationで確認するまで12点を維持する");
     } else {
       status = "validated";
       effectiveThreshold = validatedThreshold;
@@ -182,8 +186,5 @@ export function calibrationReadinessForCountries(
   observations: ShockCalibrationObservation[],
   countries: Array<{ country: string; market?: ShockMarket | null }>,
 ): ShockCalibrationReadiness[] {
-  return countries.map(input => buildShockCalibrationReadiness({
-    ...input,
-    observations,
-  }));
+  return countries.map(input => buildShockCalibrationReadiness({ ...input, observations }));
 }
