@@ -2,71 +2,235 @@
 
 ## 結論
 
-海外株も対象にする。ただし、日本株の価格判定をそのまま流用しない。
+海外株も積極的に対象にする。
 
-共通化するもの:
-- 事件カテゴリ
-- actor type
-- 10項目score
+ただし「日本 vs 海外」の2分割にはしない。
+
+Alpha Ponでは次を分離する。
+
+- `market`: どの市場で値付けされるか
+- `country`: issuer / headquarters の主要jurisdiction
+- `incidentCountry`: 実際に事件が起きた国
+- categoryごとのjurisdiction sensitivity
+- sector / stakeholder / incident scope
+- event confounder / information leak
+- recurrence / remediation
+- incident-region revenue exposure
+- direct cost / market cap
+- local market / industry peer relative shock
+
+詳細設計:
+
+- `docs/idiosyncratic-shock-context-model.md`
+
+## 世界共通にするもの
+
+- 20点の企業ダメージscore
 - evidenceStatus / investigationStatus
-- accounting / organization / separability のhard gate
-- 過去類似事例距離
+- accounting / organization / separability hard gate
+- outcomeの分離
+- 「急落中は買い候補通知しない」方針
 
-市場別に分離するもの:
-- 株価データprovider
-- benchmark
+20点へ国別の道徳点を足さない。
+
+## 市場別に分離するもの
+
+- 株価provider
+- broad-market benchmark
+- industry / peer benchmark
 - 取引日カレンダー
-- ticker / symbol表記
-- 規制当局・取引所の一次情報源
+- symbol表記
+- regulator / exchange primary sources
 
-## 優先順位
+## Jurisdiction別に分離するもの
 
-1. JP — J-Quants + TOPIX。
-2. US — Twelve Data + S&P 500 proxy + SEC EDGAR。海外の最優先。
-3. UK / EUROPE — BP等の過去事例を比較に利用。price provider導入後にlive通知。
-4. AU / CA — 過去類似には使うがlive価格判定は後段。
-5. OTHER — benchmarkと一次情報経路が確定するまで通知しない。
+- disclosure / securities-law exposure
+- employment / harassment exposure
+- board / fiduciary / governance exposure
+- litigation exposure
+- sector-specific licensing
+- consumer / stakeholder reaction
 
-## benchmark
+`market=US` だからUS企業文化と決めつけない。外国企業ADR等ではissuer countryを別に持つ。
 
-- JP: TOPIX（既定コード `1306`）
-- US: S&P 500。実装では同一価格providerで取得できる `SPY` を既定proxyにする
-- UK: FTSE 100
-- EUROPE: STOXX Europe 600
-- AU: S&P/ASX 200
-- CA: S&P/TSX Composite
+## Incident geography
 
-企業固有ショックは、現地通貨建て株価と同じ市場のbenchmarkで比較する。
+多国籍企業では本社国と事件国を分ける。
 
-例: 米国株のドル建て株価が-8%でもSPYが-7%なら、企業固有ショックとしては弱い。逆にSPYが-1%の中で対象株だけ-10%なら、relative shockは強い。
+例:
 
-為替はこのレイヤーのshock判定には入れない。JPY換算損益は投資家側の別レイヤーで扱う。
+```yaml
+market: JP
+country: JP
+incidentCountry: US
+```
+
+海外子会社事件は、
+
+- issuer国のboard / disclosure責任
+- incident国の現地規制 / litigation
+- listing marketの価格反応
+
+を別々に確認する。
+
+## Jurisdiction-sensitive category
+
+国・制度・時代差を強く見る:
+
+- executive relationship
+- sexual / harassment
+- personal statements
+- employee sabotage / viral misconduct
+
+同国・同カテゴリ事例が薄い場合は自動通知を止め、local reviewへ回す。
+
+## Structural category
+
+世界事例を比較しやすい:
+
+- accounting fraud / restatement
+- organized fraud
+- quality falsification
+- product safety
+
+ただし世界で1件しかない場合など、母数不足なら自動化しない。
+
+## 階層型evidence pool
+
+国別モデルを完全分離するとサンプル不足になる。
+
+そのため、
+
+1. same country + same category
+2. same jurisdiction group + same category
+3. global + same category
+4. global structural analogy
+
+の順で使う。
+
+実装は `buildShockJurisdictionReview()` が、
+
+- `local_strong`
+- `local_plus_group`
+- `group_plus_global`
+- `global_only`
+- `insufficient`
+
+を返す。
+
+サンプルが増えるほどlocal weightが増える。
+
+## 古い事例
+
+文化・SNS・雇用慣行に左右されるカテゴリは古い事例を早く減衰させる。
+
+`temporalAnalogyPenalty` を類似距離へ加える。
+
+会計・品質不正は比較寿命を長くする。
+
+## Sector context
+
+同じ事件でも業種でリスクが変わる。
+
+- financial / insurance -> trust critical
+- food / healthcare / transport -> safety critical
+- casino / utility / telecom / defense等 -> license critical
+
+個人事件だから軽い、という判断をしない。
+
+## 原因帰属
+
+株価下落を不祥事へ誤帰属しない。
+
+`confounderStatus`:
+
+- clear
+- possible
+- major
+- unknown
+
+`major / unknown` は通知BLOCK。
+
+同日に earnings miss / guidance cut / financing / M&A / litigation 等があれば分離する。
+
+## Information leak
+
+公式発表前から株価が落ちている場合、event dateが誤っている可能性がある。
+
+`informationLeakStatus=likely` はevent window再設定までBLOCK。
+
+## Recurrence / remediation
+
+`recurrenceStatus`:
+
+- first_known
+- repeat
+- systemic
+- unknown
+
+`systemic` は isolated dip thesis をBLOCK。
+
+`remediationStatus`:
+
+- credible
+- partial
+- weak
+- unknown
+
+`weak` は通知BLOCK。
+
+## 海外子会社の経済的重要度
+
+`incidentRevenueExposurePct` を任意で記録する。
+
+事件国売上2%と35%ではheadlineが同じでも企業価値影響は違う。
+
+罰金・返金・営業停止費用等は、可能なら
+
+`estimatedDirectCostPctMarketCap`
+
+で規模調整する。
+
+## Market + industry relative
+
+broad marketだけではsector-wide shockを除けない。
+
+US例:
+
+- company -8%
+- SPY -1%
+- sector ETF -7%
+
+ならSPY比では大きく見えるが、sector比ではほぼ企業固有ではない。
+
+`industryRelativeShockDrawdownPct > -2%` が確認された場合、現行context gateでは通知BLOCK。
+
+## 優先市場
+
+1. JP — J-Quants + TOPIX
+2. US — Twelve Data + SPY + SEC EDGAR
+3. UK / EUROPE — research-only。price provider導入後live通知
+4. AU / CA — research-only
+5. OTHER — primary source / benchmark / price provider解決までfail-closed
 
 ## US price provider
 
-`src/fetcher/twelve-data.ts` を使用する。
-
-環境変数:
+`src/fetcher/twelve-data.ts`
 
 ```text
 TWELVE_DATA_API_KEY=...
 US_MARKET_BENCHMARK_SYMBOL=SPY
 ```
 
-日足 `time_series` を使い、split-adjusted価格で対象株とSPYを同じevent windowで比較する。
-
-API keyが未設定なら `isTwelveDataConfigured() = false` となり、自動価格判定を行わない。価格を推測して通知しない。
+API key未設定ならUS価格を推測せず通知しない。
 
 ## SEC一次情報
 
-US候補では会社IRに加え、SEC EDGARを一次情報経路に使う。
+`src/fetcher/sec-edgar.ts`
 
-`src/fetcher/sec-edgar.ts`:
-- `company_tickers.json` でsymbol → CIKを解決
-- `data.sec.gov/submissions/CIK##########.json` から提出履歴を取得
-- 8-K / 8-K/A / 6-K / 6-K/A / 10-Q / 10-K / 20-F / 40-F等をreview対象にする
-
-環境変数:
+- company_tickers.json: symbol -> CIK
+- submissions API
+- 8-K / 6-K / 10-Q / 10-K / 20-F / 40-F等
 
 ```text
 SEC_USER_AGENT=alpha-pon contact@example.com
@@ -74,86 +238,77 @@ SHOCK_SEC_SYMBOLS=MCD,INTC
 SHOCK_SEC_LOOKBACK_DAYS=120
 ```
 
-SECの公開データAPI自体にAPI keyは不要だが、fair-access policyに従いUser-Agentを宣言する。実装はSECの上限より低いrequest intervalを既定値にする。
+SEC提出があるだけではscoreを上げない。
 
-実行:
+## 通知hard gate
+
+海外も少なくとも次を要求する。
+
+- score >= 12
+- confirmed evidence
+- investigation substantially complete / closed / not applicable
+- accountingIntegrity > 0
+- event後20日以内 absolute shock <= -5%
+- local broad-market relative shock <= -3%
+- priceState = stabilized_after_drop
+- jurisdiction evidence poolが十分、またはlocal review済み
+- major/unknown confounderなし
+- likely information leakなし
+- systemic recurrenceなし
+- weak remediationなし
+- industry-relative evidenceがある場合、企業固有shockが残る
+
+provider未設定なら discovery / research は続けるがLINE通知しない。
+
+## US discovery -> evidence
 
 ```text
-pnpm review:shock-sec
+scan:shocks
+  -> queue:shocks
+  -> review:shock-sec
+  -> primary evidence / score / context review
+  -> report:shocks
+  -> notify:shocks
 ```
 
-active US候補のsymbolと `SHOCK_SEC_SYMBOLS` を対象に、最近の主要提出書類を `reports/idiosyncratic_shock_sec_review_latest.*` へ出す。
+US tickerは社名から推測しない。見出しにNYSE/NASDAQ/$TICKER等が明記された場合だけhintとして保持し、SEC ticker mapで確認する。
 
-提出書類が存在するだけではscoreを上げない。内容を確認し、以下を解決してからactive昇格/再採点する。
+## Outcome calibration
 
-- 辞任・解任理由は個人行動か、本業/財務問題か
-- restatement / internal control / unrecorded payment等の会計論点
-- DOJ / SEC / FTC等の規制・捜査への波及
-- investigation scopeが確定したか
-- guidance / operations / financial reportingへの影響
+`pnpm backfill:shock-outcomes`
 
-## live通知の条件
+- decision checkpoint起点
+- 1w / 1m / 3m / 1y
+- market-relative
+- JP / USを別calibration
 
-海外も日本と同じscore / evidence / investigation hard gateを使う。
+将来はcountry/categoryサンプルが十分になれば、hierarchical outcome calibrationへ拡張する。
 
-さらに、
+少数例で国別thresholdを固定しない。
 
-1. event後20日以内の絶対下落が `<= -5%`
-2. 現地benchmark比のrelative shockが `<= -3%`
-3. `priceState=stabilized_after_drop`
+## Dataset bias
 
-を要求する。
+`pnpm audit:shock-history` で、
 
-provider未実装またはAPI設定なしなら、
+- country concentration
+- era staleness
+- success/failure imbalance
+- company concentration
+- category x country coverage
 
-- news discovery: 可
-- 一次情報調査: 可
-- score: 可
-- 過去類似比較: 可
-- LINE通知: 不可
+を監査する。
 
-とする。
-
-手動overrideも可能だが、`priceStateOverride`、`shockDrawdownPctOverride`、`relativeShockDrawdownPctOverride` をすべて確認する。相対下落が欠ければfail-closed。
-
-## US候補の形式
-
-```yaml
-- id: example-us-shock
-  market: US
-  symbol: MCD
-  company: McDonald's
-  detectedAt: "2026-07-30"
-  category: personal_behavior
-  actorType: ceo
-  evidenceStatus: confirmed
-  investigationStatus: substantially_complete
-  # ...10項目score / sources
-```
-
-`market: US` を明示する。英字tickerだけを見てUSと自動決め打ちしない。
-
-## USを優先する理由
-
-既存DBにはMcDonald's、Intel、Texas Instruments、Lockheed Martin、Best Buy、Booking、HP、Norfolk Southern、Kohl's、Wynn Resorts、Wells Fargo、Activision Blizzard、Papa John's、Keurig Dr Pepper、WWE、eBay等、米国の成功寄り/失敗寄りの比較例がすでにある。
-
-したがってUSではscore体系を作り直さず、同じ構造評価を使って価格・一次情報だけ市場対応する。
-
-## データ漏洩防止
-
-海外株を追加しても、未来情報を過去scoreへ逆流させない。
-
-- score = decision checkpoint時点
-- outcome = その後の1w/1m/3m/1y
-- benchmark relative = 同じ市場・同じ期間
-- 後から判明した会計不正等はoutcome/reviewへ記録
-- 過去scoreを再評価する場合はre-score理由を明記
+モデルの自信より、教材の偏りを先に疑う。
 
 ## 現在の安全状態
 
-- JP: J-Quants provider実装済み。設定済みのときだけ価格評価
-- US: Twelve Data provider実装済み。`TWELVE_DATA_API_KEY` 設定済みのときだけ価格評価
-- US primary evidence: SEC EDGAR client / review report実装済み。`SEC_USER_AGENT` 未設定なら取得しない
-- UK / EUROPE / AU / CA: 過去類似のみ。price provider未実装なのでlive通知しない
+- JP: price provider実装済み
+- US: Twelve Data / SEC EDGAR実装済み
+- UK / EUROPE / AU / CA: 過去類似のみ、live notification fail-closed
+- marketとissuer countryを分離
+- incident countryを別管理可能
+- jurisdiction evidence pool実装済み
+- temporal decay実装済み
+- confounder / recurrence / remediation / leak gate実装済み
 
-`pnpm report:shock-markets` で市場別の過去事例数・active件数・provider実装/設定・通知readinessを確認する。
+**海外だから除外しない。海外だから日本感覚で採点もしない。分からない軸はunknownのまま保持し、必要なunknownは通知を止める。**
