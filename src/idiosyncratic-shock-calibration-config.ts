@@ -1,6 +1,12 @@
 import { readFileSync } from "fs";
 import { load } from "js-yaml";
-import { GLOBAL_DEFAULT_SHOCK_THRESHOLD, type ShockCalibrationLevel } from "./idiosyncratic-shock-calibration.js";
+import {
+  GLOBAL_DEFAULT_SHOCK_THRESHOLD,
+  buildShockCalibrationReadiness,
+  type ShockCalibrationLevel,
+  type ShockCalibrationObservation,
+  type ShockCalibrationReadiness,
+} from "./idiosyncratic-shock-calibration.js";
 import { inferShockJurisdictionGroup, normalizeShockCountry, type ShockJurisdictionGroup } from "./idiosyncratic-shock-jurisdiction.js";
 import type { ShockMarket } from "./idiosyncratic-shock-market.js";
 
@@ -27,6 +33,11 @@ export type ShockCalibrationConfig = {
   description?: string;
   globalDefaultThreshold: number;
   validatedLocalThresholds: ValidatedLocalShockThreshold[];
+};
+
+export type ResolvedShockCalibration = {
+  readiness: ShockCalibrationReadiness;
+  registryEntry: ValidatedLocalShockThreshold | null;
 };
 
 const DEFAULT_PATH = "config/idiosyncratic-shock-calibration.yml";
@@ -99,4 +110,34 @@ export function findValidatedLocalThreshold(
   });
   if (candidates.length === 0) return null;
   return [...candidates].sort((a, b) => b.validationThrough.localeCompare(a.validationThrough) || b.id.localeCompare(a.id))[0];
+}
+
+export function resolveShockCalibration(
+  config: ShockCalibrationConfig,
+  input: {
+    country?: string | null;
+    market?: ShockMarket | null;
+    category?: string | null;
+    observations: ShockCalibrationObservation[];
+  },
+): ResolvedShockCalibration {
+  const preliminary = buildShockCalibrationReadiness(input);
+  const registryEntry = findValidatedLocalThreshold(config, {
+    modelLevel: preliminary.modelLevel,
+    country: preliminary.country,
+    market: preliminary.market,
+    category: preliminary.category,
+    jurisdictionGroup: preliminary.jurisdictionGroup,
+  });
+  if (!registryEntry) return { readiness: preliminary, registryEntry: null };
+
+  const readiness = buildShockCalibrationReadiness({
+    ...input,
+    validatedThreshold: registryEntry.threshold,
+  });
+  // データ減少や再分類で階層が変わった場合、古いregistry entryを誤適用しない。
+  if (readiness.modelLevel !== registryEntry.modelLevel || readiness.status !== "validated") {
+    return { readiness: preliminary, registryEntry: null };
+  }
+  return { readiness, registryEntry };
 }
