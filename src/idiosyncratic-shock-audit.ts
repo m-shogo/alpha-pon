@@ -5,7 +5,7 @@ import { mkdirSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
 import { loadHistoricalShockCases } from "./idiosyncratic-shock-data.js";
 
-const MIN_HISTORICAL_CASES = 52;
+const MIN_HISTORICAL_CASES = 55;
 const KNOWN_THIRD_PARTY_HOSTS = new Set([
   "minkabu.jp",
   "disclosure.catr.jp",
