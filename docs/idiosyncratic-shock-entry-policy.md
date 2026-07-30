@@ -39,6 +39,24 @@ Historical replayでは `strategyEligibilityAtCheckpoint` をsidecarへ記録す
 
 **unknown ≠ no-trade**。true no-tradeは `confirmed_pass` なのに価格hard gateが90日探索内で一度も成立しなかったケースだけ。
 
+### deterministic checkpoint block
+
+PASSは一次情報を確認するまで絶対に自動推定しない。一方、checkpoint正本だけで現行hard gate違反が確定する場合はsidecar未記載でも `confirmed_block` を自動導出する。
+
+現在の自動BLOCK:
+
+- historical score < 12
+- `accountingIntegrity = 0`
+- `macroPrimaryCause = true`
+
+これらは追加調査でPASSへ反転しない構造条件なので、unknown研究キューを水増ししない。
+
+### eligibility専用 evidence
+
+case本体のsourceは事件研究の正本として保持する。非価格eligibilityを後から追加検証した場合は、sidecarの `strategyEligibilityEvidenceSources` にSEC/会社IR/規制当局等を保存する。
+
+`audit:shock-history` は case source と eligibility evidence を合算してsource hard gateを再現する。これにより、元のhistorical sourceを書き換えて研究履歴を失わない。
+
 ## First Eligible Signal の価格条件
 
 候補日ごとに、その日までに観測できた情報だけで判定する。
@@ -71,7 +89,8 @@ Historical replayでは `strategyEligibilityAtCheckpoint` をsidecarへ記録す
 
 Historical non-price eligibility:
 
-`data/idiosyncratic_shock_case_context.yml`
+- `src/idiosyncratic-shock-case-context.ts`
+- `data/idiosyncratic_shock_case_context.yml`
 
 Historical outcome / replay:
 
@@ -88,6 +107,10 @@ Calibration:
 Research gap:
 
 `src/idiosyncratic-shock-research-gaps.ts`
+
+Audit:
+
+`src/idiosyncratic-shock-audit.ts`
 
 回帰テスト:
 
@@ -126,9 +149,9 @@ threshold/weightsはsignal-based chronological train/validationを通したも�
 
 ### Stage 4 — 本番とのparity
 
-本番watchは既存の全hard gateを使用し、historical replayは非価格gateをsidecarで明示確認した後、同じ価格thresholdとstabilization定義でsignalを再現する。
+本番watchは既存の全hard gateを使用し、historical replayは非価格gateをsidecar + deterministic checkpoint blockerで確認した後、同じ価格thresholdとstabilization定義でsignalを再現する。
 
-完全な単一resolver化は将来の整理候補だが、少なくとも **未確認非価格gateを価格だけでpassさせない** fail-closed invariant は実装済み。
+PASSは一次情報で明示確認し、未確認非価格gateを価格だけでpassさせない fail-closed invariant を維持する。
 
 ## 取得期間
 
@@ -138,7 +161,7 @@ signalはcheckpoint/reaction start後最大90日まで遅れる可能性があ�
 
 - `checkpoint outcome`: 情報を確認したcheckpointからの企業価値変化。診断用。
 - `signal outcome`: confirmed non-price eligibility後、実際の「下落一巡待ち」戦略を再現した成績。
-- `confirmed_block`: 当時の戦略対象外。
+- `confirmed_block`: 当時の戦略対象外。明白なscore/accounting/macro blockerは自動導出可能。
 - `unknown`: 証拠不足。研究キューへ戻す。
 - `true no-trade`: 非価格gateは通ったが価格signalが出なかったケース。
 
