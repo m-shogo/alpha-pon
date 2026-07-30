@@ -43,6 +43,7 @@ function main(): void {
   const outcomes = new Map<string, number>();
   const contextByCategory = new Map<string, number>();
   const confidence = { high: 0, medium: 0, low: 0 };
+  const eligibility = { confirmed_pass: 0, confirmed_block: 0, unknown: 0 };
   const sourceHosts = new Map<string, number>();
 
   if (cases.length < MIN_HISTORICAL_CASES) {
@@ -85,6 +86,22 @@ function main(): void {
     if (item.category === "accounting_fraud" && item.score >= 12) issues.push(`${item.id}: accounting fraud must not score >=12`);
     if (item.scores.accountingIntegrity === 0 && item.score >= 12) issues.push(`${item.id}: accountingIntegrity=0 must not score >=12`);
     if (item.outcome?.recoveryPattern === "failed" && item.score >= 16) warnings.push(`${item.id}: failed outcome despite historical score ${item.score}; calibration candidate`);
+
+    const context = historicalContext.get(item.id);
+    const status = context?.strategyEligibilityAtCheckpoint ?? "unknown";
+    eligibility[status] += 1;
+    if (status === "confirmed_pass") {
+      const hasPrimary = item.sources.some(source => source.sourceType === "company" || source.sourceType === "regulator" || source.sourceType === "exchange");
+      const majorMediaCount = item.sources.filter(source => source.sourceType === "major_media").length;
+      if (item.score < 12) issues.push(`${item.id}: strategyEligibility=confirmed_pass but score=${item.score} < 12`);
+      if (item.evidenceStatus !== "confirmed") issues.push(`${item.id}: strategyEligibility=confirmed_pass but evidence=${item.evidenceStatus}`);
+      if (item.macroPrimaryCause) issues.push(`${item.id}: strategyEligibility=confirmed_pass but macroPrimaryCause=true`);
+      if (item.scores.accountingIntegrity === 0) issues.push(`${item.id}: strategyEligibility=confirmed_pass but accountingIntegrity=0`);
+      if (!hasPrimary && majorMediaCount < 2) issues.push(`${item.id}: strategyEligibility=confirmed_pass but source hard gate is not reproducible`);
+      if (!context?.strategyEligibilityNotes?.trim()) issues.push(`${item.id}: confirmed_pass requires strategyEligibilityNotes`);
+    } else if (status === "confirmed_block") {
+      if (!context?.strategyEligibilityNotes?.trim()) issues.push(`${item.id}: confirmed_block requires strategyEligibilityNotes`);
+    }
   }
 
   for (const contextId of historicalContext.keys()) {
@@ -141,6 +158,10 @@ function main(): void {
   if (contextCoveragePct < 50) {
     warnings.push(`historical context coverage low: ${historicalContext.size}/${cases.length} (${contextCoveragePct.toFixed(1)}%); enrich verified sidecar gradually`);
   }
+  const eligibilityCoveragePct = cases.length === 0 ? 0 : ((eligibility.confirmed_pass + eligibility.confirmed_block) / cases.length) * 100;
+  if (eligibilityCoveragePct < 50) {
+    warnings.push(`historical strategy eligibility coverage low: pass/block=${eligibility.confirmed_pass + eligibility.confirmed_block}/${cases.length} (${eligibilityCoveragePct.toFixed(1)}%); unknown must not enter calibration`);
+  }
   for (const [category, count] of categories) {
     if (shockCategoryJurisdictionSensitivity(category) !== "high" || count < 2) continue;
     const covered = contextByCategory.get(category) ?? 0;
@@ -155,6 +176,8 @@ function main(): void {
     totalCases: cases.length,
     historicalContextCases: historicalContext.size,
     historicalContextCoveragePct: Number(contextCoveragePct.toFixed(1)),
+    strategyEligibility: eligibility,
+    strategyEligibilityCoveragePct: Number(eligibilityCoveragePct.toFixed(1)),
     contextByCategory: sortedObject(contextByCategory),
     scoreBuckets: {
       researchPriority16to20: cases.filter(item => item.score >= 16).length,
@@ -183,6 +206,8 @@ function main(): void {
     `生成日: ${date}`,
     `- total: ${cases.length} / minimum ${MIN_HISTORICAL_CASES}`,
     `- context sidecar: ${historicalContext.size}/${cases.length} (${contextCoveragePct.toFixed(1)}%)`,
+    `- strategy eligibility pass/block/unknown: ${eligibility.confirmed_pass}/${eligibility.confirmed_block}/${eligibility.unknown}`,
+    `- strategy eligibility coverage: ${eligibilityCoveragePct.toFixed(1)}%`,
     `- high confidence: ${confidence.high}`,
     `- medium confidence: ${confidence.medium}`,
     `- low confidence: ${confidence.low}`,
@@ -212,7 +237,7 @@ function main(): void {
   ].join("\n");
   writeFileSync("reports/idiosyncratic_shock_history_audit_latest.md", md, "utf-8");
 
-  console.log(`shock history audit: cases=${cases.length} context=${historicalContext.size} issues=${issues.length} warnings=${warnings.length}`);
+  console.log(`shock history audit: cases=${cases.length} context=${historicalContext.size} eligibility=${eligibility.confirmed_pass}/${eligibility.confirmed_block}/${eligibility.unknown} issues=${issues.length} warnings=${warnings.length}`);
   if (issues.length > 0) process.exitCode = 1;
 }
 
