@@ -1,4 +1,7 @@
-import { jurisdictionAnalogyPenalty } from "./idiosyncratic-shock-jurisdiction.js";
+import {
+  jurisdictionAnalogyPenalty,
+  temporalAnalogyPenalty,
+} from "./idiosyncratic-shock-jurisdiction.js";
 
 export const SHOCK_SCORE_KEYS = [
   "businessImpactContainment",
@@ -212,7 +215,7 @@ export function findClosestHistoricalCases(
   candidate: ShockCandidate,
   historicalCases: HistoricalShockCase[],
   limit = 3
-): Array<{ item: HistoricalShockCase; distance: number; jurisdictionPenalty: number }> {
+): Array<{ item: HistoricalShockCase; distance: number; jurisdictionPenalty: number; temporalPenalty: number }> {
   const confidencePenalty = (item: HistoricalShockCase): number => {
     if (item.researchConfidence === "high") return 0;
     if (item.researchConfidence === "medium") return 1;
@@ -227,10 +230,16 @@ export function findClosestHistoricalCases(
         candidateMarket: candidate.market,
         historicalCountry: item.country,
       });
+      const agePenalty = temporalAnalogyPenalty({
+        category: candidate.category,
+        candidateDate: candidate.detectedAt,
+        historicalDate: item.eventDate,
+      });
       return {
         item,
         jurisdictionPenalty: localPenalty,
-        distance: analogyDistance(candidate, item) + confidencePenalty(item) + localPenalty,
+        temporalPenalty: agePenalty,
+        distance: analogyDistance(candidate, item) + confidencePenalty(item) + localPenalty + agePenalty,
       };
     })
     .sort((a, b) => a.distance - b.distance || b.item.score - a.item.score)
@@ -309,11 +318,11 @@ export function inferPriceState(observations: PriceObservation[]): ShockPriceSta
 
 export function formatShockCandidateSummary(
   candidate: ShockCandidate,
-  analogues: Array<{ item: HistoricalShockCase; distance: number; jurisdictionPenalty?: number }>
+  analogues: Array<{ item: HistoricalShockCase; distance: number; jurisdictionPenalty?: number; temporalPenalty?: number }>
 ): string {
   const decision = buildNotificationDecision(candidate);
   const analogyText = analogues
-    .map(({ item, distance, jurisdictionPenalty }) => `${item.company}(${item.country}, ${item.eventDate}, 距離${distance}, 国差+${jurisdictionPenalty ?? 0}, ${item.score}/20)`)
+    .map(({ item, distance, jurisdictionPenalty, temporalPenalty }) => `${item.company}(${item.country}, ${item.eventDate}, 距離${distance}, 国差+${jurisdictionPenalty ?? 0}, 時間+${temporalPenalty ?? 0}, ${item.score}/20)`)
     .join(" / ");
   return [
     `${candidate.company} ${decision.score}/20 [${decision.label}]`,
