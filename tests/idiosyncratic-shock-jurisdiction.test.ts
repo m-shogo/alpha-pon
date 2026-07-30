@@ -70,6 +70,7 @@ const thinUsRelationship = buildShockJurisdictionReview({
 }, historical);
 assert.equal(thinUsRelationship.sensitivity, "high");
 assert.equal(thinUsRelationship.sameCountryCategoryCases, 1);
+assert.equal(thinUsRelationship.evidenceTier, "insufficient");
 assert.equal(thinUsRelationship.manualReviewRequired, true);
 assert.equal(thinUsRelationship.blockers.length, 1);
 
@@ -80,16 +81,34 @@ const enoughUsRelationship = buildShockJurisdictionReview({
 }, [...historical, { category: "executive_relationship", country: "US" }]);
 assert.equal(enoughUsRelationship.sameCountryCategoryCases, 2);
 assert.equal(enoughUsRelationship.confidence, "adequate");
+assert.equal(enoughUsRelationship.evidenceTier, "local_plus_group");
+assert.equal(enoughUsRelationship.evidenceWeights.sameCountry, 0.5);
 assert.equal(enoughUsRelationship.manualReviewRequired, false);
 
-const crossCountryAccounting = buildShockJurisdictionReview({
+const insufficientAccounting = buildShockJurisdictionReview({
   category: "accounting_fraud",
   country: "US",
   market: "US",
 }, [{ category: "accounting_fraud", country: "JP" }]);
-assert.equal(crossCountryAccounting.sensitivity, "low");
-assert.equal(crossCountryAccounting.sameCountryCategoryCases, 0);
-assert.equal(crossCountryAccounting.manualReviewRequired, false, "会計不正は同国不足だけでblockしない");
+assert.equal(insufficientAccounting.sensitivity, "low");
+assert.equal(insufficientAccounting.evidenceTier, "insufficient");
+assert.equal(insufficientAccounting.manualReviewRequired, true, "構造共通性が高くても母数1件なら自動化しない");
+
+const globalAccountingPool = buildShockJurisdictionReview({
+  category: "accounting_fraud",
+  country: "US",
+  market: "US",
+}, [
+  { category: "accounting_fraud", country: "JP" },
+  { category: "accounting_fraud", country: "DE" },
+  { category: "accounting_fraud", country: "FR" },
+  { category: "accounting_fraud", country: "GB" },
+  { category: "accounting_fraud", country: "CA" },
+]);
+assert.equal(globalAccountingPool.sameCountryCategoryCases, 0);
+assert.equal(globalAccountingPool.globalCategoryCases, 5);
+assert.equal(globalAccountingPool.evidenceTier, "global_only");
+assert.equal(globalAccountingPool.manualReviewRequired, false, "会計不正は十分な世界母数があれば同国0件でも構造比較を使える");
 
 assert.equal(inferIncidentGeography("JP", "US", "JP"), "foreign");
 assert.equal(inferIncidentGeography("US", "US", "US"), "domestic");
