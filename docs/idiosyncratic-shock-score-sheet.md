@@ -7,7 +7,8 @@
 ## 0. 事件特定
 
 - 会社名:
-- 証券コード:
+- 市場: JP / US / UK / EUROPE / AU / CA / OTHER
+- 証券コード / symbol:
 - 発生日/初報日:
 - category:
 - actorType:
@@ -19,7 +20,8 @@
 - 事件前終値:
 - 発覚後20日以内の安値:
 - `shockDrawdownPct`:
-- 同期間のTOPIX/1306下落率:
+- 現地benchmark: JP=TOPIX / US=S&P 500 proxy(SPY) / その他は市場profile参照
+- 同期間のbenchmark下落率:
 - `relativeShockDrawdownPct`:
 
 `open / unknown` の間は、事件自体が確定していても通知へ進めない。
@@ -52,15 +54,23 @@
 - [ ] `investigationStatus=substantially_complete / closed / not_applicable`
 - [ ] マクロが主因ではない
 - [ ] **発覚後20日以内に事件前比5%以上下落した (`shockDrawdownPct <= -5`)**
-- [ ] **同じ20日窓でTOPIX/1306より3%以上余計に下落した (`relativeShockDrawdownPct <= -3`)**
+- [ ] **同じ20日窓で現地benchmarkより3%以上余計に下落した (`relativeShockDrawdownPct <= -3`)**
 - [ ] `priceState=stabilized_after_drop`
 - [ ] `accountingIntegrity > 0`
 - [ ] 重大な上場廃止/免許取消リスクなし
 - [ ] 会社/当局/取引所の一次情報あり、または独立した主要報道2件以上
+- [ ] 市場別price providerが設定済み、または絶対下落/benchmark相対を含む手動確認済み
 
 **1つでも未チェックならLINE通知しない。**
 
-`priceStabilization`、絶対下落率、TOPIX相対下落率は別ゲート。横ばい株や全面安だけで下げた株、数か月後の別材料下落を「不祥事ディップ」と誤認しない。
+`priceStabilization`、絶対下落率、benchmark相対下落率は別ゲート。横ばい株や全面安だけで下げた株、数か月後の別材料下落を「不祥事ディップ」と誤認しない。
+
+### 市場別価格確認
+
+- JP: J-Quants + TOPIX proxy `1306`
+- US: Twelve Data + S&P 500 proxy `SPY`
+- UK / EUROPE / AU / CA: provider未実装中は自動通知しない
+- 為替はshock判定に混ぜず、現地株価と現地benchmarkを同じ通貨で比較する
 
 ## 3. 類似事例
 
@@ -95,7 +105,7 @@ medium / low confidence seed は距離計算上ペナルティを受ける。古
 
 - 第三者/特別調査委員会報告
 - 調査範囲の拡大/終了
-- 決算訂正・有報訂正
+- 決算訂正・有報/10-K/10-Q等の訂正
 - 役員追加辞任
 - 当局調査・行政処分
 - 顧客補償/営業停止拡大
@@ -104,9 +114,11 @@ medium / low confidence seed は距離計算上ペナルティを受ける。古
 - 株価が再び安値更新
 - 逆に急反発し `rebounded_too_fast` になった
 
+USでは `pnpm review:shock-sec` で8-K/6-K等の提出も確認する。
+
 ## 6. 12点閾値の検証
 
-12点は仮説。日本株の過去事例は以下で定量検証する。
+12点は仮説。JPとUSを市場別に定量検証する。
 
 ```text
 pnpm backfill:shock-outcomes
@@ -114,17 +126,20 @@ pnpm backfill:shock-outcomes:write
 ```
 
 - decision checkpoint → 1w / 1m / 3m / 1y
-- TOPIX相対
+- 現地benchmark相対
 - event前 → shock low 下落率
 - score >=12 と score <12 の平均・中央値・プラス率比較
+- JP / USを別bucketで比較
 
-底値を後から選ばず、**当時判断可能だったcheckpointを基準**にする。
+底値を後から選ばず、**当時判断可能だったcheckpointを基準**にする。JPとUSの結果を雑に混ぜて閾値を変更しない。
 
 ## 7. 最終記録
 
 - 判定: research_priority / watch / caution / avoid
 - 通知: PASS / WAIT
 - WAIT blocker:
+- market:
+- benchmark:
 - investigationStatus:
 - shockDrawdownPct:
 - relativeShockDrawdownPct:
