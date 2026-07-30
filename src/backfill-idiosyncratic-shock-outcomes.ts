@@ -1,5 +1,6 @@
 // 企業固有ショック過去事例の定量 outcome backfill。
-// JPはJ-Quants + TOPIX、USはTwelve Data + S&P 500 proxyで、decision checkpoint起点の将来returnを測る。
+// JPはJ-Quants + TOPIX、USはTwelve Data + S&P 500 proxy。
+// checkpoint outcomeは研究比較用、First Eligible Signal outcomeを戦略calibrationの正本にする。
 //
 // pnpm backfill:shock-outcomes          # dry-run
 // pnpm backfill:shock-outcomes --write  # data/idiosyncratic_shock_outcomes.json を更新
@@ -10,6 +11,7 @@ import { mkdirSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
 import { fetchDailyQuotes, isJQuantsConfigured } from "./fetcher/jquants.js";
 import { fetchTwelveDataDailyQuotes, isTwelveDataConfigured } from "./fetcher/twelve-data.js";
+import { loadHistoricalShockCaseContext } from "./idiosyncratic-shock-case-context.js";
 import { loadHistoricalShockCases } from "./idiosyncratic-shock-data.js";
 import { inferShockMarket, type ShockMarket } from "./idiosyncratic-shock-market.js";
 import {
@@ -44,6 +46,10 @@ function f(value: number | null): string {
   return value == null ? "-" : value.toFixed(2);
 }
 
+function fp(value: number | null): string {
+  return value == null ? "-" : `${value.toFixed(2)}%`;
+}
+
 function marketCalibration(records: ShockHistoricalOutcomeRecord[]): CalibrationByMarket {
   const result: CalibrationByMarket = {};
   const markets = [...new Set(records.map(row => row.market))].sort();
@@ -55,7 +61,7 @@ function marketCalibration(records: ShockHistoricalOutcomeRecord[]): Calibration
 
 function renderCalibration(lines: string[], title: string, records: ShockHistoricalOutcomeRecord[]): void {
   lines.push(`## ${title}`, "");
-  lines.push("| bucket | cases | n1m | avg1m | median1m | +rate1m | benchmark相対1m | n3m | avg3m | +rate3m | benchmark相対3m | n1y | avg1y | +rate1y | benchmark相対1y |", "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
+  lines.push("| bucket | signaled cases | n1m | avg1m | median1m | +rate1m | benchmark相対1m | n3m | avg3m | +rate3m | benchmark相対3m | n1y | avg1y | +rate1y | benchmark相対1y |", "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
   for (const row of calibrateShockThresholds(records)) {
     lines.push(`| ${row.bucket} | ${row.cases} | ${row.n1m} | ${f(row.avgReturn1m)} | ${f(row.medianReturn1m)} | ${f(row.positiveRate1m)}% | ${f(row.avgBenchmarkRelative1m)} | ${row.n3m} | ${f(row.avgReturn3m)} | ${f(row.positiveRate3m)}% | ${f(row.avgBenchmarkRelative3m)} | ${row.n1y} | ${f(row.avgReturn1y)} | ${f(row.positiveRate1y)}% | ${f(row.avgBenchmarkRelative1y)} |`);
   }
@@ -68,15 +74,19 @@ function renderMarkdown(
   providerStatus: ProviderStatus[],
   failures: string[],
 ): string {
+  const signaled = records.filter(row => Boolean(row.firstEligibleSignalDate));
+  const noTrade = records.length - signaled.length;
   const lines = [
     "# 企業固有ショック 定量outcome / 閾値検証",
     "",
     `生成日: ${date}`,
     "",
-    "> scoreはdecision checkpoint時点の評価。リターンはその後の結果で、scoreには逆流させません。",
-    "> 12点は暫定運用閾値です。市場ごとにサンプルが増えるまで自動で『有効』と断定しません。",
+    "> scoreはdecision checkpoint時点の評価。checkpoint returnは診断用に残し、戦略calibrationはFirst Eligible Signal起点だけを使います。",
+    "> signalが出なかったケースは0%リターンにせずno-tradeとして分離します。未来情報をsignalへ遡及させません。",
     "",
     `- price outcome records: ${records.length}`,
+    `- first eligible signals: ${signaled.length}`,
+    `- no-trade: ${noTrade}`,
     `- failures/skips: ${failures.length}`,
     "",
     "## provider readiness",
@@ -89,25 +99,33 @@ function renderMarkdown(
   }
   lines.push("");
 
-  renderCalibration(lines, "全市場（参考）", records);
+  renderCalibration(lines, "全市場（signal-based / 参考）", records);
   for (const market of [...new Set(records.map(row => row.market))].sort()) {
-    renderCalibration(lines, `${market} 市場`, records.filter(row => row.market === market));
+    renderCalibration(lines, `${market} 市場（signal-based）`, records.filter(row => row.market === market));
   }
 
   lines.push("## ケース", "");
   for (const row of [...records].sort((a, b) => b.checkpoint.localeCompare(a.checkpoint))) {
-    const fp = (value: number | null) => value == null ? "-" : `${value.toFixed(2)}%`;
     lines.push(`### ${row.market} ${row.code} ${row.company} (${row.score}/20)`);
     lines.push(`- benchmark: ${row.benchmark}`);
-    lines.push(`- event/checkpoint: ${row.eventDate} / ${row.checkpoint}`);
-    lines.push(`- shock drawdown: ${fp(row.shockDrawdownPct)} (${row.preEventDate ?? "-"} → low ${row.shockLowDate ?? "-"})`);
-    lines.push(`- return: 1w ${fp(row.return1w)} / 1m ${fp(row.return1m)} / 3m ${fp(row.return3m)} / 1y ${fp(row.return1y)}`);
-    lines.push(`- benchmark relative: 1m ${fp(row.benchmarkRelative1m)} / 3m ${fp(row.benchmarkRelative3m)} / 1y ${fp(row.benchmarkRelative1y)}`);
+    lines.push(`- event/reaction/checkpoint: ${row.eventDate} / ${row.reactionStartDate} / ${row.checkpoint}`);
+    lines.push(`- event shock drawdown: ${fp(row.shockDrawdownPct)} (${row.preEventDate ?? "-"} → low ${row.shockLowDate ?? "-"})`);
+    lines.push(`- checkpoint return: 1w ${fp(row.return1w)} / 1m ${fp(row.return1m)} / 3m ${fp(row.return3m)} / 1y ${fp(row.return1y)}`);
+    lines.push(`- checkpoint benchmark relative: 1m ${fp(row.benchmarkRelative1m)} / 3m ${fp(row.benchmarkRelative3m)} / 1y ${fp(row.benchmarkRelative1y)}`);
+    if (row.firstEligibleSignalDate) {
+      lines.push(`- first eligible signal: ${row.firstEligibleSignalDate} @ ${row.firstEligibleSignalPrice ?? "-"} / shock ${fp(row.signalShockDrawdownPct)} / relative ${fp(row.signalRelativeShockDrawdownPct)}`);
+      lines.push(`- signal return: 1w ${fp(row.signalReturn1w)} / 1m ${fp(row.signalReturn1m)} / 3m ${fp(row.signalReturn3m)} / 1y ${fp(row.signalReturn1y)}`);
+      lines.push(`- signal benchmark relative: 1m ${fp(row.signalBenchmarkRelative1m)} / 3m ${fp(row.signalBenchmarkRelative3m)} / 1y ${fp(row.signalBenchmarkRelative1y)}`);
+    } else {
+      lines.push("- first eligible signal: none (no-trade)");
+    }
     lines.push("");
   }
 
   lines.push("## 解釈ルール", "");
-  lines.push("- `score_ge_12` が `score_lt_12` を市場ごとに継続的に上回るかを見る。");
+  lines.push("- Local Opportunityの閾値・重み検証はFirst Eligible Signalが出たケースだけで行う。");
+  lines.push("- signalなしケースはno-trade。後日の上昇/下落を戦略損益へ混ぜない。");
+  lines.push("- `score_ge_12` が `score_lt_12` を市場ごとにsignal後3m benchmark-relativeで継続的に上回るかを見る。");
   lines.push("- 平均だけでなく中央値・プラス率・現地benchmark相対を併用する。");
   lines.push("- JPとUSは市場構造が違うため、全市場混合値だけで閾値を変えない。");
   lines.push("- nが小さいうちは閾値を自動変更しない。");
@@ -122,6 +140,7 @@ async function main(): Promise<void> {
   const doWrite = process.argv.includes("--write");
   const date = todayJst();
   const allCases = loadHistoricalShockCases().filter(item => Boolean(item.ticker));
+  const contextById = loadHistoricalShockCaseContext();
   const jpCases = allCases.filter(item => inferShockMarket({ country: item.country, ticker: item.ticker }) === "JP" && /^\d{4}$/.test(item.ticker ?? ""));
   const usCases = allCases.filter(item => inferShockMarket({ country: item.country, ticker: item.ticker }) === "US" && Boolean(item.ticker));
   const jqConfigured = isJQuantsConfigured();
@@ -147,10 +166,14 @@ async function main(): Promise<void> {
     const range = outcomeFetchRange(item, date);
     try {
       console.log(`  [JP] fetch ${code} ${item.company}: ${range.from}-${range.to}`);
-      // J-Quants内部にもrate limiterがあるため、同一caseのstock/benchmarkを並列化しない。
       const quotes = await fetchDailyQuotes(code, range.from, range.to);
       const benchmarkQuotes = await fetchDailyQuotes(TOPIX_ETF_CODE, range.from, range.to);
-      const record = buildShockHistoricalOutcome(item, quotes, benchmarkQuotes, date, { market: "JP", benchmarkLabel: "TOPIX" });
+      const reactionStartDate = contextById.get(item.id)?.priceReactionStartDate ?? item.eventDate;
+      const record = buildShockHistoricalOutcome(item, quotes, benchmarkQuotes, date, {
+        market: "JP",
+        benchmarkLabel: "TOPIX",
+        reactionStartDate,
+      });
       if (record) records.push(record);
       else failures.push(`${item.id}: checkpoint price missing`);
     } catch (error) {
@@ -168,15 +191,15 @@ async function main(): Promise<void> {
     const range = outcomeFetchRangeIso(item, date);
     try {
       console.log(`  [US] fetch ${symbol} ${item.company}: ${range.from}-${range.to}`);
-      // Twelve Data client側のrequest intervalを尊重するため逐次取得する。
       const stock = await fetchTwelveDataDailyQuotes(symbol, range.from, range.to);
       const benchmark = await fetchTwelveDataDailyQuotes(US_BENCHMARK_SYMBOL, range.from, range.to);
+      const reactionStartDate = contextById.get(item.id)?.priceReactionStartDate ?? item.eventDate;
       const record = buildShockHistoricalOutcome(
         item,
         stock as ShockOutcomeQuote[],
         benchmark as ShockOutcomeQuote[],
         date,
-        { market: "US", benchmarkLabel: "S&P 500" },
+        { market: "US", benchmarkLabel: "S&P 500", reactionStartDate },
       );
       if (record) records.push(record);
       else failures.push(`${item.id}: checkpoint price missing`);
@@ -187,11 +210,12 @@ async function main(): Promise<void> {
 
   const calibration = calibrateShockThresholds(records);
   const calibrationByMarket = marketCalibration(records);
-  console.log(`records=${records.length} failures/skips=${failures.length}`);
+  const signalCount = records.filter(row => Boolean(row.firstEligibleSignalDate)).length;
+  console.log(`records=${records.length} signals=${signalCount} noTrade=${records.length - signalCount} failures/skips=${failures.length}`);
   for (const market of Object.keys(calibrationByMarket) as ShockMarket[]) {
     const marketRows = calibrationByMarket[market] ?? [];
     const ge12 = marketRows.find(row => row.bucket === "score_ge_12");
-    console.log(`  ${market}: cases=${ge12?.cases ?? 0} avg1m=${ge12?.avgReturn1m ?? "-"} benchmarkRel1m=${ge12?.avgBenchmarkRelative1m ?? "-"}`);
+    console.log(`  ${market}: signals=${ge12?.cases ?? 0} avg1m=${ge12?.avgReturn1m ?? "-"} signalBenchmarkRel1m=${ge12?.avgBenchmarkRelative1m ?? "-"}`);
   }
   if (failures.length) failures.forEach(value => console.log(`  [warn] ${value}`));
 
@@ -210,7 +234,7 @@ async function main(): Promise<void> {
   const payload = {
     generatedAt: date,
     providers: providerStatus,
-    methodology: "decision checkpoint base; market-specific benchmark; later returns are outcome-only and never feed historical score",
+    methodology: "checkpoint outcomes retained for diagnosis; strategy calibration uses first eligible signal only; reaction-start anchored; no-trade is not imputed as zero return",
     records,
     calibration,
     calibrationByMarket,
