@@ -6,12 +6,7 @@ import { mkdirSync, writeFileSync } from "fs";
 import { addDaysJst, todayJst } from "./date.js";
 import { fetchSecRecentFilings, isSecEdgarConfigured } from "./fetcher/sec-edgar.js";
 import { loadActiveShockConfig } from "./idiosyncratic-shock-data.js";
-import { inferShockMarket, type ShockMarket } from "./idiosyncratic-shock-market.js";
-
-type ActiveWithMarket = ReturnType<typeof loadActiveShockConfig>["candidates"][number] & {
-  market?: ShockMarket;
-  symbol?: string | null;
-};
+import { inferShockMarket } from "./idiosyncratic-shock-market.js";
 
 type SymbolReport = {
   symbol: string;
@@ -22,7 +17,7 @@ type SymbolReport = {
 
 function configuredSymbols(): Map<string, SymbolReport["source"]> {
   const result = new Map<string, SymbolReport["source"]>();
-  const active = loadActiveShockConfig().candidates as ActiveWithMarket[];
+  const active = loadActiveShockConfig().candidates;
   for (const item of active) {
     const market = inferShockMarket({ market: item.market, code: item.code, ticker: item.symbol });
     if (market !== "US" || !item.symbol) continue;
@@ -95,7 +90,7 @@ function render(date: string, configured: boolean, since: string, rows: SymbolRe
 
 async function main(): Promise<void> {
   const date = todayJst();
-  const lookbackDays = Math.max(7, Number(process.env.SHock_SEC_LOOKBACK_DAYS ?? process.env.SHOCK_SEC_LOOKBACK_DAYS ?? "120"));
+  const lookbackDays = Math.max(7, Number(process.env.SHOCK_SEC_LOOKBACK_DAYS ?? "120"));
   const since = addDaysJst(date, -lookbackDays);
   const symbols = configuredSymbols();
   const configured = isSecEdgarConfigured();
