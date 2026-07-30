@@ -6,6 +6,7 @@ import { addDaysJst, daysSinceJst, todayJst } from "./date.js";
 import { fetchDailyQuotes, isJQuantsConfigured } from "./fetcher/jquants.js";
 import {
   buildNotificationDecision,
+  calculateShockDrawdownPct,
   findClosestHistoricalCases,
   inferPriceState,
   totalShockScore,
@@ -48,28 +49,32 @@ function priceScore(state: ShockPriceState): 0 | 1 | 2 {
 
 async function resolvePriceState(raw: ActiveConfigCandidate): Promise<{
   state: ShockPriceState;
+  shockDrawdownPct: number | null;
   source: "jquants" | "manual_override" | "missing";
   asOf: string | null;
 }> {
   const today = todayJst();
   if (raw.code && isJQuantsConfigured()) {
     try {
-      const from = addDaysJst(today, -35).replaceAll("-", "");
+      // 「落ち着いた」だけでなく、事件前から実際に下落したかも確認するためevent前から取得する。
+      const from = addDaysJst(raw.detectedAt, -10).replaceAll("-", "");
       const to = today.replaceAll("-", "");
       const quotes = await fetchDailyQuotes(raw.code, from, to);
       const sortedQuotes = [...quotes].sort((a, b) => normalizeDate(a.Date).localeCompare(normalizeDate(b.Date)));
+      const observations = sortedQuotes.map(row => ({
+        date: normalizeDate(row.Date),
+        close: row.AdjustmentClose,
+        volume: row.AdjustmentVolume,
+      }));
+      const shockDrawdownPct = calculateShockDrawdownPct(observations, raw.detectedAt);
       const latest = sortedQuotes.at(-1);
       if (latest) {
         const latestDate = normalizeDate(latest.Date);
         const age = daysSinceJst(latestDate);
         // J-Quantsの契約プラン等でデータが遅延している場合は底打ち判定に使わない。
         if (age !== null && age >= 0 && age <= 5) {
-          const state = inferPriceState(sortedQuotes.map(row => ({
-            date: normalizeDate(row.Date),
-            close: row.AdjustmentClose,
-            volume: row.AdjustmentVolume,
-          })));
-          return { state, source: "jquants", asOf: latestDate };
+          const state = inferPriceState(observations);
+          return { state, shockDrawdownPct, source: "jquants", asOf: latestDate };
         }
       }
     } catch (error) {
@@ -81,10 +86,15 @@ async function resolvePriceState(raw: ActiveConfigCandidate): Promise<{
     const age = daysSinceJst(raw.priceStateCheckedAt);
     const maxAgeDays = Number(process.env.SHOCK_PRICE_OVERRIDE_MAX_AGE_DAYS ?? "3");
     if (age !== null && age >= 0 && age <= maxAgeDays) {
-      return { state: raw.priceStateOverride, source: "manual_override", asOf: raw.priceStateCheckedAt };
+      return {
+        state: raw.priceStateOverride,
+        shockDrawdownPct: raw.shockDrawdownPctOverride ?? null,
+        source: "manual_override",
+        asOf: raw.priceStateCheckedAt,
+      };
     }
   }
-  return { state: "unknown", source: "missing", asOf: null };
+  return { state: "unknown", shockDrawdownPct: null, source: "missing", asOf: null };
 }
 
 function withDynamicPriceScore(scores: ShockDimensionScores, state: ShockPriceState): ShockDimensionScores {
@@ -105,6 +115,7 @@ async function evaluate(raw: ActiveConfigCandidate, historical: HistoricalShockC
     evidenceStatus: raw.evidenceStatus,
     investigationStatus: raw.investigationStatus,
     priceState: resolved.state,
+    shockDrawdownPct: resolved.shockDrawdownPct,
     scores: withDynamicPriceScore(raw.scores, resolved.state),
     criticalLicenseOrDelistingRisk: raw.criticalLicenseOrDelistingRisk,
     sources: raw.sources,
@@ -148,8 +159,8 @@ function renderMarkdown(date: string, evaluated: EvaluatedCandidate[], historica
     "",
     `生成日: ${date}`,
     "",
-    "> 12点以上は通知の必要条件であり、十分条件ではありません。一次情報確認 + 調査範囲の確定 + マクロ非起因 + 下落一巡を必須にします。",
-    "> 売買推奨ではありません。急落中・急反発中・調査継続中は待ちます。",
+    "> 12点以上は通知の必要条件であり、十分条件ではありません。一次情報確認 + 調査範囲の確定 + 実際のショック下落 + 下落一巡を必須にします。",
+    "> 売買推奨ではありません。急落中・急反発中・調査継続中・そもそも下落していない案件は待ちます。",
     "",
     "## 現在の監視候補",
     "",
@@ -161,6 +172,7 @@ function renderMarkdown(date: string, evaluated: EvaluatedCandidate[], historica
     lines.push(`- score: **${row.decision.score}/20** (${row.decision.label})`);
     lines.push(`- category: ${row.candidate.category} / actor: ${row.candidate.actorType}`);
     lines.push(`- evidence: ${row.candidate.evidenceStatus} / investigation: ${row.candidate.investigationStatus ?? "unknown"}`);
+    lines.push(`- shock drawdown: ${row.candidate.shockDrawdownPct == null ? "-" : `${row.candidate.shockDrawdownPct.toFixed(1)}%`}`);
     lines.push(`- price: ${row.candidate.priceState} / source=${row.priceSource} / asOf=${row.priceAsOf ?? "-"}`);
     lines.push(`- notification: ${row.decision.eligible ? "PASS（調査候補通知）" : "WAIT"}`);
     if (row.decision.blockers.length > 0) lines.push(`- blockers: ${row.decision.blockers.join(" / ")}`);
@@ -186,6 +198,7 @@ function renderMarkdown(date: string, evaluated: EvaluatedCandidate[], historica
     lines.push(`| ${stat.category} | ${stat.count} | ${stat.avgScore} | ${stat.researchPriority} | ${stat.watchOrHigher} | ${stat.failedOutcomes} |`);
   }
   lines.push("", "## 読み方", "");
+  lines.push("- 事件前から最低限の実下落が確認できなければ、5日横ばいでも通知しません。");
   lines.push("- 高得点でも priceState が falling / volatile / rebounded_too_fast なら通知しません。");
   lines.push("- investigationStatus が open / unknown の間は通知しません。範囲拡大を待ちます。");
   lines.push("- accountingIntegrity=0 は12点以上でも強制ブロックです。");
@@ -213,7 +226,7 @@ async function main(): Promise<void> {
   writeFileSync("reports/idiosyncratic_shock_watch_latest.md", renderMarkdown(date, evaluated, historical), "utf-8");
   console.log(`企業固有ショック watch: active=${evaluated.length} historical=${historical.length}`);
   for (const row of evaluated) {
-    console.log(`  ${row.candidate.code ?? "-"} ${row.candidate.company}: ${totalShockScore(row.candidate.scores)}/20 ${row.candidate.priceState} investigation=${row.candidate.investigationStatus ?? "unknown"} notify=${row.decision.eligible}`);
+    console.log(`  ${row.candidate.code ?? "-"} ${row.candidate.company}: ${totalShockScore(row.candidate.scores)}/20 shock=${row.candidate.shockDrawdownPct ?? "?"}% ${row.candidate.priceState} investigation=${row.candidate.investigationStatus ?? "unknown"} notify=${row.decision.eligible}`);
   }
 }
 
