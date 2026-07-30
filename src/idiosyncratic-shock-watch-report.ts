@@ -25,6 +25,10 @@ import {
   type ShockMarket,
 } from "./idiosyncratic-shock-market.js";
 import { calculateSameDayRelativeShockDrawdownPct } from "./idiosyncratic-shock-relative.js";
+import {
+  buildShockJurisdictionReview,
+  type ShockJurisdictionReview,
+} from "./idiosyncratic-shock-jurisdiction.js";
 
 const MARKET_BENCHMARK_CODE = process.env.MARKET_BENCHMARK_CODE ?? "1306";
 const US_MARKET_BENCHMARK_SYMBOL = process.env.US_MARKET_BENCHMARK_SYMBOL ?? "SPY";
@@ -38,15 +42,18 @@ type EvaluatedCandidate = {
   benchmarkLabel: string;
   priceSource: PriceSource;
   priceAsOf: string | null;
+  jurisdictionReview: ShockJurisdictionReview;
   decision: ReturnType<typeof buildNotificationDecision>;
   analogues: Array<{
     id: string;
     company: string;
+    country: string;
     eventDate: string;
     category: string;
     score: number;
     outcomePattern: string;
     distance: number;
+    jurisdictionPenalty: number;
     lesson: string;
   }>;
 };
@@ -185,6 +192,8 @@ async function evaluate(raw: ActiveConfigCandidate, historical: HistoricalShockC
   const candidate: ShockCandidate = {
     id: raw.id,
     code: raw.code ?? raw.symbol ?? null,
+    country: raw.country ?? null,
+    market,
     company: raw.company,
     detectedAt: raw.detectedAt,
     category: raw.category,
@@ -200,18 +209,38 @@ async function evaluate(raw: ActiveConfigCandidate, historical: HistoricalShockC
     criticalLicenseOrDelistingRisk: raw.criticalLicenseOrDelistingRisk,
     sources: raw.sources,
   };
-  const decision = buildNotificationDecision(candidate);
-  const analogues = findClosestHistoricalCases(candidate, historical, 5).map(({ item, distance }) => ({
+
+  const baseDecision = buildNotificationDecision(candidate);
+  const jurisdictionReview = buildShockJurisdictionReview(candidate, historical);
+  const blockers = [...baseDecision.blockers, ...jurisdictionReview.blockers];
+  const decision = {
+    ...baseDecision,
+    eligible: blockers.length === 0,
+    blockers,
+  };
+
+  const analogues = findClosestHistoricalCases(candidate, historical, 5).map(({ item, distance, jurisdictionPenalty }) => ({
     id: item.id,
     company: item.company,
+    country: item.country,
     eventDate: item.eventDate,
     category: item.category,
     score: item.score,
     outcomePattern: item.outcome?.recoveryPattern ?? "unknown",
     distance,
+    jurisdictionPenalty,
     lesson: item.outcome?.summary ?? "",
   }));
-  return { candidate, market, benchmarkLabel, priceSource: resolved.source, priceAsOf: resolved.asOf, decision, analogues };
+  return {
+    candidate,
+    market,
+    benchmarkLabel,
+    priceSource: resolved.source,
+    priceAsOf: resolved.asOf,
+    jurisdictionReview,
+    decision,
+    analogues,
+  };
 }
 
 function historicalStats(cases: HistoricalShockCase[]) {
@@ -233,14 +262,23 @@ function historicalStats(cases: HistoricalShockCase[]) {
     .sort((a, b) => b.count - a.count || b.avgScore - a.avgScore);
 }
 
+function countryStats(cases: HistoricalShockCase[]) {
+  const counts = new Map<string, number>();
+  for (const item of cases) counts.set(item.country, (counts.get(item.country) ?? 0) + 1);
+  return [...counts.entries()]
+    .map(([country, count]) => ({ country, count }))
+    .sort((a, b) => b.count - a.count || a.country.localeCompare(b.country));
+}
+
 function renderMarkdown(date: string, evaluated: EvaluatedCandidate[], historical: HistoricalShockCase[]): string {
   const lines = [
     "# 企業固有ショック / 不祥事ディップ監視",
     "",
     `生成日: ${date}`,
     "",
+    "> 20点は企業ダメージの世界共通score。国・文化差はscoreへ直接混ぜず、jurisdiction reviewと類似事例の重みで別管理します。",
+    "> 恋愛・ハラスメント・炎上・バイトテロ等のjurisdiction-sensitiveカテゴリは、同国の同カテゴリ事例が不足すると自動通知を止めます。会計・品質不正は世界共通の構造比較をより強く使います。",
     "> 12点以上は必要条件であり十分条件ではありません。一次情報 + 調査範囲確定 + event窓の実下落 + 現地市場benchmark超過下落 + 下落一巡を必須にします。",
-    "> 市場相対ショックは対象株がevent窓で安値を付けた同じ取引日のbenchmarkで比較します。市場別providerが未設定ならfail-closedです。",
     "",
     "## 現在の監視候補",
     "",
@@ -249,9 +287,12 @@ function renderMarkdown(date: string, evaluated: EvaluatedCandidate[], historica
   if (evaluated.length === 0) lines.push("- なし", "");
   for (const row of evaluated) {
     lines.push(`### ${row.candidate.code ?? "-"} ${row.candidate.company}`);
-    lines.push(`- market: ${row.market} / benchmark: ${row.benchmarkLabel}`);
+    lines.push(`- market: ${row.market} / country: ${row.jurisdictionReview.country ?? "unknown"} / jurisdiction: ${row.jurisdictionReview.group} / benchmark: ${row.benchmarkLabel}`);
     lines.push(`- score: **${row.decision.score}/20** (${row.decision.label})`);
     lines.push(`- category: ${row.candidate.category} / actor: ${row.candidate.actorType}`);
+    lines.push(`- jurisdiction sensitivity: ${row.jurisdictionReview.sensitivity} / local confidence: ${row.jurisdictionReview.confidence}`);
+    lines.push(`- analogue coverage: same-country/category=${row.jurisdictionReview.sameCountryCategoryCases}, same-group/category=${row.jurisdictionReview.sameGroupCategoryCases}, global/category=${row.jurisdictionReview.globalCategoryCases}`);
+    lines.push(`- local review axes: ${row.jurisdictionReview.reviewAxes.join(" / ")}`);
     lines.push(`- evidence: ${row.candidate.evidenceStatus} / investigation: ${row.candidate.investigationStatus ?? "unknown"}`);
     lines.push(`- shock drawdown: ${row.candidate.shockDrawdownPct == null ? "-" : `${row.candidate.shockDrawdownPct.toFixed(1)}%`}`);
     lines.push(`- ${row.benchmarkLabel} same-day relative shock: ${row.candidate.relativeShockDrawdownPct == null ? "-" : `${row.candidate.relativeShockDrawdownPct.toFixed(1)}%`}`);
@@ -261,7 +302,7 @@ function renderMarkdown(date: string, evaluated: EvaluatedCandidate[], historica
     lines.push(`- event: ${row.candidate.eventSummary}`);
     lines.push("- closest analogues:");
     for (const analogy of row.analogues.slice(0, 3)) {
-      lines.push(`  - ${analogy.company} ${analogy.eventDate}: distance=${analogy.distance}, score=${analogy.score}/20, outcome=${analogy.outcomePattern}`);
+      lines.push(`  - [${analogy.country}] ${analogy.company} ${analogy.eventDate}: distance=${analogy.distance} (jurisdiction +${analogy.jurisdictionPenalty}), score=${analogy.score}/20, outcome=${analogy.outcomePattern}`);
       if (analogy.lesson) lines.push(`    - ${analogy.lesson}`);
     }
     lines.push("");
@@ -274,12 +315,19 @@ function renderMarkdown(date: string, evaluated: EvaluatedCandidate[], historica
   lines.push(`- 8-11点: ${historical.filter(row => row.score >= 8 && row.score < 12).length}`);
   lines.push(`- 0-7点: ${historical.filter(row => row.score < 8).length}`);
   lines.push("");
+  lines.push("### country coverage", "");
+  lines.push("| country | n |", "|---|---:|");
+  for (const stat of countryStats(historical)) lines.push(`| ${stat.country} | ${stat.count} |`);
+  lines.push("");
   lines.push("### category stats", "");
   lines.push("| category | n | avg score | >=16 | >=12 | failed outcome |", "|---|---:|---:|---:|---:|---:|");
   for (const stat of historicalStats(historical)) {
     lines.push(`| ${stat.category} | ${stat.count} | ${stat.avgScore} | ${stat.researchPriority} | ${stat.watchOrHigher} | ${stat.failedOutcomes} |`);
   }
   lines.push("", "## 読み方", "");
+  lines.push("- 20点scoreは国別の道徳観を採点しません。企業価値への実害だけを世界共通軸で測ります。");
+  lines.push("- jurisdiction-sensitiveカテゴリは同国類似を優先し、同国事例が2件未満なら自動通知せずローカル制度/慣行レビューを要求します。");
+  lines.push("- accounting / quality / organized fraud等は国差感度を低くし、世界の構造的負例を強く参照します。");
   lines.push(`- event後${DEFAULT_SHOCK_WINDOW_DAYS}日以内の下落だけをshockとして測り、数か月後の別材料下落を混ぜません。`);
   lines.push("- benchmark相対は対象株のshock lowと同じ取引日を使い、benchmark自身の別日の安値を差し引きません。");
   lines.push(`- JPはJ-Quants + TOPIX (${MARKET_BENCHMARK_CODE})。USはTwelve Data + S&P 500 proxy (${US_MARKET_BENCHMARK_SYMBOL})。`);
@@ -305,9 +353,12 @@ async function main(): Promise<void> {
     marketBenchmarkCode: MARKET_BENCHMARK_CODE,
     usMarketBenchmarkSymbol: US_MARKET_BENCHMARK_SYMBOL,
     marketAware: true,
+    jurisdictionAware: true,
+    jurisdictionPolicy: "global damage score + local-context review + jurisdiction-weighted analogues",
     relativeShockMethod: "benchmark return on stock shock-low trading date",
     shockWindowDays: DEFAULT_SHOCK_WINDOW_DAYS,
     historicalCaseCount: historical.length,
+    historicalCountryStats: countryStats(historical),
     historicalStats: historicalStats(historical),
     candidates: evaluated,
   };
@@ -316,7 +367,7 @@ async function main(): Promise<void> {
   writeFileSync("reports/idiosyncratic_shock_watch_latest.md", renderMarkdown(date, evaluated, historical), "utf-8");
   console.log(`企業固有ショック watch: active=${evaluated.length} historical=${historical.length}`);
   for (const row of evaluated) {
-    console.log(`  ${row.market} ${row.candidate.code ?? "-"} ${row.candidate.company}: ${totalShockScore(row.candidate.scores)}/20 shock=${row.candidate.shockDrawdownPct ?? "?"}% rel=${row.candidate.relativeShockDrawdownPct ?? "?"}% ${row.candidate.priceState} source=${row.priceSource} investigation=${row.candidate.investigationStatus ?? "unknown"} notify=${row.decision.eligible}`);
+    console.log(`  ${row.market}/${row.jurisdictionReview.country ?? "?"} ${row.candidate.code ?? "-"} ${row.candidate.company}: ${totalShockScore(row.candidate.scores)}/20 jurisdiction=${row.jurisdictionReview.sensitivity}/${row.jurisdictionReview.confidence} shock=${row.candidate.shockDrawdownPct ?? "?"}% rel=${row.candidate.relativeShockDrawdownPct ?? "?"}% ${row.candidate.priceState} source=${row.priceSource} investigation=${row.candidate.investigationStatus ?? "unknown"} notify=${row.decision.eligible}`);
   }
 }
 
