@@ -1,7 +1,12 @@
 import { existsSync, readFileSync } from "fs";
 import { load } from "js-yaml";
 import type {
+  ShockDisclosureObservability,
+  ShockIncidentClusterStatus,
   ShockIncidentScope,
+  ShockLiquidityStatus,
+  ShockListingStructure,
+  ShockOwnershipControl,
   ShockRecurrenceStatus,
   ShockStakeholder,
 } from "./idiosyncratic-shock-context.js";
@@ -12,6 +17,11 @@ export type HistoricalShockCaseContext = {
   stakeholder?: ShockStakeholder | null;
   incidentScope?: ShockIncidentScope | null;
   recurrenceStatus?: ShockRecurrenceStatus | null;
+  listingStructure?: ShockListingStructure | null;
+  ownershipControl?: ShockOwnershipControl | null;
+  liquidityStatus?: ShockLiquidityStatus | null;
+  incidentClusterStatus?: ShockIncidentClusterStatus | null;
+  disclosureObservability?: ShockDisclosureObservability | null;
   notes?: string | null;
 };
 
