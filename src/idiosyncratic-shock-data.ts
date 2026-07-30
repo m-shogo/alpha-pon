@@ -58,6 +58,7 @@ export type ActiveShockConfig = {
     investigationStatus?: ShockInvestigationStatus;
     priceStateOverride?: ShockPriceState;
     priceStateCheckedAt?: string | null;
+    shockDrawdownPctOverride?: number | null;
     scores: ShockDimensionScores;
     criticalLicenseOrDelistingRisk?: boolean;
     sources?: ShockSource[];
