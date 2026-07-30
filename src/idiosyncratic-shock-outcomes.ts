@@ -1,5 +1,6 @@
 import { addDaysJst, toCompactDate } from "./date.js";
-import type { HistoricalShockCase } from "./idiosyncratic-shock.js";
+import { DEFAULT_SHOCK_WINDOW_DAYS, type HistoricalShockCase } from "./idiosyncratic-shock.js";
+import { inferShockMarket, shockBenchmarkLabel, type ShockMarket } from "./idiosyncratic-shock-market.js";
 
 export type ShockOutcomeQuote = {
   Date: string;
@@ -10,6 +11,8 @@ export type ShockHistoricalOutcomeRecord = {
   caseId: string;
   company: string;
   code: string;
+  market: ShockMarket;
+  benchmark: string;
   eventDate: string;
   checkpoint: string;
   score: number;
@@ -25,9 +28,17 @@ export type ShockHistoricalOutcomeRecord = {
   return1m: number | null;
   return3m: number | null;
   return1y: number | null;
+  benchmarkRelative1w: number | null;
+  benchmarkRelative1m: number | null;
+  benchmarkRelative3m: number | null;
+  benchmarkRelative1y: number | null;
+  /** @deprecated JP互換。海外ではnull。新規コードはbenchmarkRelative*を使う。 */
   topixRelative1w: number | null;
+  /** @deprecated JP互換。海外ではnull。新規コードはbenchmarkRelative*を使う。 */
   topixRelative1m: number | null;
+  /** @deprecated JP互換。海外ではnull。新規コードはbenchmarkRelative*を使う。 */
   topixRelative3m: number | null;
+  /** @deprecated JP互換。海外ではnull。新規コードはbenchmarkRelative*を使う。 */
   topixRelative1y: number | null;
   generatedAt: string;
 };
@@ -39,15 +50,21 @@ export type ShockCalibrationBucket = {
   avgReturn1m: number | null;
   medianReturn1m: number | null;
   positiveRate1m: number | null;
+  avgBenchmarkRelative1m: number | null;
+  /** @deprecated compatibility alias */
   avgTopixRelative1m: number | null;
   n3m: number;
   avgReturn3m: number | null;
   medianReturn3m: number | null;
   positiveRate3m: number | null;
+  avgBenchmarkRelative3m: number | null;
+  /** @deprecated compatibility alias */
   avgTopixRelative3m: number | null;
   n1y: number;
   avgReturn1y: number | null;
   positiveRate1y: number | null;
+  avgBenchmarkRelative1y: number | null;
+  /** @deprecated compatibility alias */
   avgTopixRelative1y: number | null;
 };
 
@@ -110,9 +127,12 @@ export function buildShockHistoricalOutcome(
   stockQuotesInput: ShockOutcomeQuote[],
   benchmarkQuotesInput: ShockOutcomeQuote[],
   generatedAt: string,
+  options: { market?: ShockMarket; benchmarkLabel?: string } = {},
 ): ShockHistoricalOutcomeRecord | null {
-  if (!item.ticker || !/^\d{4}$/.test(item.ticker)) return null;
+  if (!item.ticker) return null;
 
+  const market = options.market ?? inferShockMarket({ country: item.country, ticker: item.ticker });
+  const benchmark = options.benchmarkLabel ?? shockBenchmarkLabel(market);
   const stockQuotes = sortedQuotes(stockQuotesInput);
   const benchmarkQuotes = sortedQuotes(benchmarkQuotesInput);
   const checkpoint = item.decisionCheckpoint;
@@ -121,16 +141,24 @@ export function buildShockHistoricalOutcome(
 
   const preEventTarget = addDaysJst(item.eventDate, -1);
   const preEvent = onOrBefore(stockQuotes, preEventTarget);
-  const shockWindowEnd = minDate(item.decisionCheckpoint, addDaysJst(item.eventDate, 30));
+  const shockWindowEnd = minDate(item.decisionCheckpoint, addDaysJst(item.eventDate, DEFAULT_SHOCK_WINDOW_DAYS));
   const shockWindow = stockQuotes.filter(row => row.normalizedDate >= item.eventDate && row.normalizedDate <= shockWindowEnd);
   const shockLow = shockWindow.length
     ? shockWindow.reduce((min, row) => row.AdjustmentClose < min.AdjustmentClose ? row : min)
     : null;
 
+  const benchmarkRelative1w = relativeReturn(stockQuotes, benchmarkQuotes, checkpoint, 7);
+  const benchmarkRelative1m = relativeReturn(stockQuotes, benchmarkQuotes, checkpoint, 30);
+  const benchmarkRelative3m = relativeReturn(stockQuotes, benchmarkQuotes, checkpoint, 90);
+  const benchmarkRelative1y = relativeReturn(stockQuotes, benchmarkQuotes, checkpoint, 365);
+  const isJp = market === "JP";
+
   return {
     caseId: item.id,
     company: item.company,
     code: item.ticker,
+    market,
+    benchmark,
     eventDate: item.eventDate,
     checkpoint,
     score: item.score,
@@ -146,10 +174,14 @@ export function buildShockHistoricalOutcome(
     return1m: priceReturnFrom(stockQuotes, checkpoint, 30),
     return3m: priceReturnFrom(stockQuotes, checkpoint, 90),
     return1y: priceReturnFrom(stockQuotes, checkpoint, 365),
-    topixRelative1w: relativeReturn(stockQuotes, benchmarkQuotes, checkpoint, 7),
-    topixRelative1m: relativeReturn(stockQuotes, benchmarkQuotes, checkpoint, 30),
-    topixRelative3m: relativeReturn(stockQuotes, benchmarkQuotes, checkpoint, 90),
-    topixRelative1y: relativeReturn(stockQuotes, benchmarkQuotes, checkpoint, 365),
+    benchmarkRelative1w,
+    benchmarkRelative1m,
+    benchmarkRelative3m,
+    benchmarkRelative1y,
+    topixRelative1w: isJp ? benchmarkRelative1w : null,
+    topixRelative1m: isJp ? benchmarkRelative1m : null,
+    topixRelative3m: isJp ? benchmarkRelative3m : null,
+    topixRelative1y: isJp ? benchmarkRelative1y : null,
     generatedAt,
   };
 }
@@ -180,11 +212,14 @@ function values(records: ShockHistoricalOutcomeRecord[], key: keyof ShockHistori
 
 function calibrationBucket(bucket: string, records: ShockHistoricalOutcomeRecord[]): ShockCalibrationBucket {
   const r1m = values(records, "return1m");
-  const rel1m = values(records, "topixRelative1m");
+  const rel1m = values(records, "benchmarkRelative1m");
   const r3m = values(records, "return3m");
-  const rel3m = values(records, "topixRelative3m");
+  const rel3m = values(records, "benchmarkRelative3m");
   const r1y = values(records, "return1y");
-  const rel1y = values(records, "topixRelative1y");
+  const rel1y = values(records, "benchmarkRelative1y");
+  const avgBenchmarkRelative1m = average(rel1m);
+  const avgBenchmarkRelative3m = average(rel3m);
+  const avgBenchmarkRelative1y = average(rel1y);
   return {
     bucket,
     cases: records.length,
@@ -192,16 +227,19 @@ function calibrationBucket(bucket: string, records: ShockHistoricalOutcomeRecord
     avgReturn1m: average(r1m),
     medianReturn1m: median(r1m),
     positiveRate1m: positiveRate(r1m),
-    avgTopixRelative1m: average(rel1m),
+    avgBenchmarkRelative1m,
+    avgTopixRelative1m: avgBenchmarkRelative1m,
     n3m: r3m.length,
     avgReturn3m: average(r3m),
     medianReturn3m: median(r3m),
     positiveRate3m: positiveRate(r3m),
-    avgTopixRelative3m: average(rel3m),
+    avgBenchmarkRelative3m,
+    avgTopixRelative3m: avgBenchmarkRelative3m,
     n1y: r1y.length,
     avgReturn1y: average(r1y),
     positiveRate1y: positiveRate(r1y),
-    avgTopixRelative1y: average(rel1y),
+    avgBenchmarkRelative1y,
+    avgTopixRelative1y: avgBenchmarkRelative1y,
   };
 }
 
@@ -218,9 +256,14 @@ export function calibrateShockThresholds(records: ShockHistoricalOutcomeRecord[]
   return buckets.map(([name, predicate]) => calibrationBucket(name, records.filter(predicate)));
 }
 
-export function outcomeFetchRange(item: HistoricalShockCase, generatedAt: string): { from: string; to: string } {
+export function outcomeFetchRangeIso(item: HistoricalShockCase, generatedAt: string): { from: string; to: string } {
   const from = addDaysJst(item.eventDate, -10);
   const desiredTo = addDaysJst(item.decisionCheckpoint, 380);
   const to = desiredTo < generatedAt ? desiredTo : generatedAt;
-  return { from: toCompactDate(from), to: toCompactDate(to) };
+  return { from, to };
+}
+
+export function outcomeFetchRange(item: HistoricalShockCase, generatedAt: string): { from: string; to: string } {
+  const range = outcomeFetchRangeIso(item, generatedAt);
+  return { from: toCompactDate(range.from), to: toCompactDate(range.to) };
 }
