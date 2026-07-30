@@ -69,14 +69,29 @@ function titleKey(title: string): string {
   return normalize(title).slice(0, 100);
 }
 
+function contextReviewChecklist(marketHint: MarketHint): string[] {
+  return [
+    `market: ${marketHint} が正しいか。listing marketとissuer countryを分離`,
+    "country / incidentCountry: 本社国と事件発生国を別々に確定。海外子会社事件を本社国だけで評価しない",
+    "sector / stakeholder / incidentScope: 信用・安全・免許依存業種か、誰が被害者か、個人/店舗/子会社/全社のどこまでか",
+    "confounderStatus: 同時期の決算悪化・guidance・増資・M&A・訴訟判決・sector-wide材料を確認",
+    "informationLeakStatus: 公式発表前数営業日の異常下落・噂・訴訟/現地報道先行を確認",
+    "recurrenceStatus: 過去5〜10年の類似不祥事・行政処分・内部統制問題の再発歴を確認",
+    "remediationStatus: 辞任/謝罪だけでなく、権限・報酬・監査・reporting line・board oversightの実装を確認",
+    "incidentRevenueExposurePct: 海外事件なら事件国/地域が売上・利益の何%かを可能な範囲で確認",
+    "estimatedDirectCostPctMarketCap: 罰金・返金・休業等の直接損失を時価総額比で規模調整できるか",
+    "industryRelativeShockDrawdownPct: broad marketだけでなく同業/sector benchmarkに対して企業固有下落が残るか",
+  ];
+}
+
 function primaryReviewChecklist(marketHint: MarketHint): string[] {
   return [
-    `market: ${marketHint} が正しいか。JP以外ならsymbolと現地primary sourceを確定`,
+    ...contextReviewChecklist(marketHint),
     "investigationStatus: 調査中(open)か、範囲が概ね確定(substantially_complete/closed)か",
-    "事件の範囲: 個人/少人数/複数部署/組織",
     "accountingIntegrity: 財務訂正・架空取引・監査影響の有無",
     "businessImpact: 本業・顧客・規制・営業停止への実害",
     "actorSeparability: 問題人物/少人数を切離せるか",
+    "10項目score: 一次情報確認後のみ。国別の道徳点を足さない",
     "shockDrawdownPct: event後20日以内に事件前比-5%以上か",
     "relativeShockDrawdownPct: 現地benchmarkより-3%以上余計に下げたか",
     "priceState: falling/volatileではなくstabilized_after_dropか",
@@ -136,15 +151,15 @@ function buildQueue(): QueueItem[] {
         marketHint === "US" ? "company IR + SEC EDGAR（8-K/6-K等）の一次情報探索" : "会社・取引所・当局の一次情報探索",
         "symbolHintは見出しに明示された場合だけ。SEC/company IRで実在・会社一致を確認するまで確定しない",
         "噂/誤報/別会社の排除",
+        ...contextReviewChecklist(marketHint),
         "investigationStatusの確認",
-        "10項目scoreは一次情報確認後のみ",
+        "10項目scoreは一次情報確認後のみ。国別の道徳点を足さない",
         "event20日窓のshockDrawdownPct / 現地benchmark相対 / priceStateを銘柄特定後に確認",
       ],
     });
   }
 
   const deduped = new Map<string, QueueItem>();
-  // 一次情報を先に残す。newsはmarket hintもdedupe keyへ含め、JP/US候補を誤って統合しない。
   for (const row of rows.sort((a, b) => (a.sourceLevel === "primary" ? -1 : 1) - (b.sourceLevel === "primary" ? -1 : 1))) {
     const key = row.code ? `code:${row.code}:${row.categoryHint}` : `title:${row.marketHint}:${titleKey(row.title)}`;
     if (!deduped.has(key)) deduped.set(key, row);
@@ -165,7 +180,7 @@ function render(date: string, rows: QueueItem[]): string {
     `生成日: ${date}`,
     "",
     "> このキューは情報収集段階です。12点通知へ直接つながりません。",
-    "> 一次情報で market / investigation / accounting / organization / separability を解決し、event窓の実下落・現地benchmark相対・沈静化を確認してから active candidate に昇格します。",
+    "> market / issuer country / incident country / jurisdiction / sector / confounder / recurrence / remediation を解決し、一次情報・10項目score・event窓の実下落・現地benchmark/同業相対・沈静化を確認してから active candidate に昇格します。",
     "",
     `- TDnet一次情報(JP): ${primary.length}`,
     `- news JP hint: ${jpNews.length}`,
@@ -208,6 +223,7 @@ function main(): void {
     count: rows.length,
     primaryCount: rows.filter(row => row.sourceLevel === "primary").length,
     newsCount: rows.filter(row => row.sourceLevel === "news").length,
+    contextAware: true,
     newsByMarketHint: {
       JP: rows.filter(row => row.sourceLevel === "news" && row.marketHint === "JP").length,
       US: rows.filter(row => row.sourceLevel === "news" && row.marketHint === "US").length,
