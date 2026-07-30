@@ -77,7 +77,7 @@ global default
 config/idiosyncratic-shock-calibration.yml
 ```
 
-初期状態は `validatedLocalThresholds: []`。つまり現在は全市場でGlobal scoreとdefault threshold 12を使用する。
+**現在のregistryは空 (`validatedLocalThresholds: []`)。** したがって現時点では、JP/USを含む全市場で `Global Structural Score = Local Opportunity Score`、実効thresholdは12。国別重みや国別thresholdを「仮説だけ」で有効化していない。
 
 local modelを有効化するには、最低でも次を登録する。
 
