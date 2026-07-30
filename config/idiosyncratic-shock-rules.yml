@@ -1,9 +1,12 @@
-version: 2
+version: 3
 description: "マクロ要因ではなく、個社固有の不祥事・炎上・ガバナンスショックを分類する。売買推奨ではない。"
 notificationThreshold: 12
 researchPriorityThreshold: 16
 hardGates:
   requireConfirmedEvidence: true
+  requireInvestigationScopeResolved: true
+  requireActualShockDrawdown: true
+  minimumShockDrawdownPct: -5
   requirePriceStabilized: true
   rejectAccountingFraud: true
   rejectMacroPrimaryCause: true
@@ -65,9 +68,9 @@ categories:
     keywords: ["不適切発言", "差別発言", "暴言", "slur", "offensive remark", "racial"]
     defaultActorType: executive
   - id: personal_crime
-    label: "役員個人の犯罪・贈収賄"
-    keywords: ["逮捕", "贈賄", "収賄", "bribery", "arrested", "indicted"]
-    defaultActorType: executive
+    label: "役員・従業員個人の犯罪・贈収賄"
+    keywords: ["逮捕", "起訴", "強盗", "放火", "贈賄", "収賄", "bribery", "arrested", "indicted", "robbery"]
+    defaultActorType: unknown
   - id: employee_sabotage
     label: "従業員・バイトテロ/SNS不適切動画"
     keywords: ["バイトテロ", "従業員 不適切", "店員 不適切", "不適切動画", "employee video", "employee misconduct", "part-timer"]
@@ -86,7 +89,7 @@ categories:
     defaultActorType: organization
   - id: quality_falsification
     label: "品質・検査・認証データ改ざん"
-    keywords: ["品質データ", "検査不正", "認証不正", "性能試験", "品質偽装", "data falsification", "emissions falsification", "test data"]
+    keywords: ["品質データ", "検査不正", "認証不正", "性能試験", "品質偽装", "不適切検査", "data falsification", "emissions falsification", "test data"]
     defaultActorType: organization
   - id: improper_sales
     label: "顧客への組織的不適切販売"
@@ -106,7 +109,7 @@ categories:
     defaultActorType: organization
   - id: accounting_fraud
     label: "粉飾・重大な会計不正"
-    keywords: ["粉飾", "架空売上", "不正会計", "accounting fraud", "fabricated sales", "overstated profit", "unrecorded expenses"]
+    keywords: ["粉飾", "架空売上", "架空取引", "循環取引", "不正会計", "accounting fraud", "fabricated sales", "overstated profit", "unrecorded expenses", "circular transaction"]
     defaultActorType: organization
 
 actorTypes:
@@ -126,6 +129,13 @@ priceStates:
   - rebounded_too_fast
   - unknown
 
+investigationStatuses:
+  - open
+  - substantially_complete
+  - closed
+  - not_applicable
+  - unknown
+
 evidenceStatuses:
   - confirmed
   - reported
@@ -134,12 +144,12 @@ evidenceStatuses:
 
 scoring:
   businessImpactContainment: "本業への直接影響が小さいほど高得点"
-  accountingIntegrity: "財務報告が無傷なほど高得点。粉飾は0点かつ通知ブロック"
-  actorSeparability: "問題人物/少人数を切り離せるほど高得点"
+  accountingIntegrity: "財務報告が無傷なほど高得点。粉飾・架空取引は0点かつ通知ブロック"
+  actorSeparability: "問題人物/少人数を切り離せるほど高得点。ただし会計訂正発生時は別ゲートを優先"
   organizationalContainment: "組織全体へ広がっていないほど高得点"
   regulatoryContainment: "免許・規制・長期訴訟リスクが小さいほど高得点"
   brandResilience: "商品/IP/ブランド需要が維持されるほど高得点"
   managementContinuity: "後継体制で事業継続できるほど高得点"
   fundamentalResilience: "売上・利益・CFが維持されるほど高得点"
   discountMagnitude: "実害に比べ下落が大きいほど高得点"
-  priceStabilization: "急落が一巡し値動きが落ち着くほど高得点"
+  priceStabilization: "急落が一巡し値動きが落ち着くほど高得点。実下落の有無はshockDrawdownPctで別確認"
