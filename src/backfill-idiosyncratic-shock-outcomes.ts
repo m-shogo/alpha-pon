@@ -183,7 +183,7 @@ async function main(): Promise<void> {
       const benchmarkQuotes = await fetchDailyQuotes(TOPIX_ETF_CODE, range.from, range.to);
       const context = contextById.get(item.id);
       const reactionStartDate = context?.priceReactionStartDate ?? item.eventDate;
-      const strategyEligibilityAtCheckpoint = resolveHistoricalStrategyEligibility(item, context?.strategyEligibilityAtCheckpoint);
+      const strategyEligibilityAtCheckpoint = resolveHistoricalStrategyEligibility(item, context);
       const record = buildShockHistoricalOutcome(item, quotes, benchmarkQuotes, date, {
         market: "JP",
         benchmarkLabel: "TOPIX",
@@ -211,7 +211,7 @@ async function main(): Promise<void> {
       const benchmark = await fetchTwelveDataDailyQuotes(US_BENCHMARK_SYMBOL, range.from, range.to);
       const context = contextById.get(item.id);
       const reactionStartDate = context?.priceReactionStartDate ?? item.eventDate;
-      const strategyEligibilityAtCheckpoint = resolveHistoricalStrategyEligibility(item, context?.strategyEligibilityAtCheckpoint);
+      const strategyEligibilityAtCheckpoint = resolveHistoricalStrategyEligibility(item, context);
       const record = buildShockHistoricalOutcome(
         item,
         stock as ShockOutcomeQuote[],
@@ -261,7 +261,7 @@ async function main(): Promise<void> {
   const payload = {
     generatedAt: date,
     providers: providerStatus,
-    methodology: "checkpoint outcomes retained for diagnosis; strategy calibration requires confirmed non-price eligibility + first eligible signal; deterministic checkpoint blockers are auto-derived; unknown eligibility is separate from no-trade; reaction-start anchored",
+    methodology: "checkpoint outcomes retained for diagnosis; strategy calibration requires fail-closed structured non-price eligibility + first eligible signal; deterministic checkpoint blockers are auto-derived; unknown eligibility is separate from no-trade; reaction-start anchored",
     records,
     calibration,
     calibrationByMarket,
