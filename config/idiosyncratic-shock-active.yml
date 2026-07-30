@@ -25,11 +25,11 @@ candidates:
       priceStabilization: 0
     criticalLicenseOrDelistingRisk: false
     sources:
-      - title: "特別調査委員会の調査報告書受領・今後の対応"
-        url: "https://minkabu.jp/stock/8136/news/4532062"
+      - title: "2026年3月期 決算短信（JPX、5月29日調査報告の内容・会計影響を再確認）"
+        url: "https://www2.jpx.co.jp/disc/81360/140120260623576716.pdf"
         sourceType: exchange
-        publishedAt: "2026-05-29"
-      - title: "サンリオ適時開示一覧"
-        url: "https://disclosure.catr.jp/companies/a87a8/49657/disclosures"
-        sourceType: exchange
+        publishedAt: "2026-06-23"
+      - title: "2026年5月29日 特別調査委員会の調査報告書受領・今後の対応（TDnet配信PDFミラー）"
+        url: "https://assets.minkabu.jp/news/article_media_content/urn%3Anewsml%3Atdnet.info%3A20260529553963/140120260529553963.pdf"
+        sourceType: other
         publishedAt: "2026-05-29"
