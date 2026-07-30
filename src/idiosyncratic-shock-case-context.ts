@@ -1,15 +1,22 @@
 import { existsSync, readFileSync } from "fs";
 import { load } from "js-yaml";
-import type { HistoricalShockCase, ShockSource } from "./idiosyncratic-shock.js";
+import type {
+  HistoricalShockCase,
+  ShockInvestigationStatus,
+  ShockSource,
+} from "./idiosyncratic-shock.js";
 import type {
   ShockAnnouncementTiming,
+  ShockConfounderStatus,
   ShockDisclosureObservability,
   ShockIncidentClusterStatus,
   ShockIncidentScope,
+  ShockInformationLeakStatus,
   ShockLiquidityStatus,
   ShockListingStructure,
   ShockOwnershipControl,
   ShockRecurrenceStatus,
+  ShockRemediationStatus,
   ShockStakeholder,
 } from "./idiosyncratic-shock-context.js";
 
@@ -20,7 +27,10 @@ export type HistoricalShockCaseContext = {
   sector?: string | null;
   stakeholder?: ShockStakeholder | null;
   incidentScope?: ShockIncidentScope | null;
+  confounderStatus?: ShockConfounderStatus | null;
+  informationLeakStatus?: ShockInformationLeakStatus | null;
   recurrenceStatus?: ShockRecurrenceStatus | null;
+  remediationStatus?: ShockRemediationStatus | null;
   listingStructure?: ShockListingStructure | null;
   ownershipControl?: ShockOwnershipControl | null;
   liquidityStatus?: ShockLiquidityStatus | null;
@@ -30,29 +40,85 @@ export type HistoricalShockCaseContext = {
   priceReactionStartDate?: string | null;
   /**
    * decisionCheckpoint時点で、価格以外の実運用hard gateがすべて検証できていたか。
-   * confirmed_pass の場合だけFirst Eligible Signalの価格探索へ進める。
-   * 未記載/unknownをno-tradeとして扱わない。
+   * confirmed_pass と書くだけではPASSにならず、下記structured evidenceもresolverが検証する。
    */
   strategyEligibilityAtCheckpoint?: HistoricalStrategyEligibilityStatus | null;
+  strategyInvestigationStatusAtCheckpoint?: ShockInvestigationStatus | null;
+  strategyCriticalLicenseOrDelistingRiskAtCheckpoint?: boolean | null;
   strategyEligibilityNotes?: string | null;
   /** eligibility判定専用に追加確認した一次情報/major media。case本体のsource正本は変更しない。 */
   strategyEligibilityEvidenceSources?: ShockSource[] | null;
   notes?: string | null;
 };
 
+export type HistoricalStrategyEligibilityResolution = {
+  status: HistoricalStrategyEligibilityStatus;
+  blockers: string[];
+  missingEvidence: string[];
+};
+
+function sourceGateSatisfied(item: HistoricalShockCase, context?: HistoricalShockCaseContext | null): boolean {
+  const sources = [...item.sources, ...(context?.strategyEligibilityEvidenceSources ?? [])];
+  const hasPrimary = sources.some(source => source.sourceType === "company" || source.sourceType === "regulator" || source.sourceType === "exchange");
+  const majorMediaCount = sources.filter(source => source.sourceType === "major_media").length;
+  return hasPrimary || majorMediaCount >= 2;
+}
+
 /**
- * sidecarが未調査でも、checkpoint score自体が現行hard gateを確実に破る場合は
- * confirmed_blockを機械的に導出する。PASSは決して推測せず、明示的なsidecar証拠を要求する。
+ * Historical strategy eligibilityをfail-closedで解決する。
+ * - 明白なhard blockerはsidecar未記載でもconfirmed_block。
+ * - confirmed_passは明示statusだけでは足りず、調査完了度・critical risk・confounder・sourceを構造化確認する。
+ * - 証拠不足はconfirmed_blockではなくunknown。no-tradeにもcalibrationにも混ぜない。
  */
+export function resolveHistoricalStrategyEligibilityDetailed(
+  item: HistoricalShockCase,
+  context?: HistoricalShockCaseContext | null,
+): HistoricalStrategyEligibilityResolution {
+  const explicitStatus = context?.strategyEligibilityAtCheckpoint ?? "unknown";
+  const blockers: string[] = [];
+  const missingEvidence: string[] = [];
+
+  // checkpoint正本だけで確定できるhard blockers。手動PASSでも上書き不可。
+  if (item.score < 12) blockers.push(`score=${item.score}<12`);
+  if (item.scores.accountingIntegrity === 0) blockers.push("accountingIntegrity=0");
+  if (item.macroPrimaryCause) blockers.push("macroPrimaryCause=true");
+
+  // sidecarで明示されたknown blockers。
+  const investigation = context?.strategyInvestigationStatusAtCheckpoint ?? "unknown";
+  if (investigation === "open") blockers.push("investigationStatus=open");
+  if (context?.strategyCriticalLicenseOrDelistingRiskAtCheckpoint === true) blockers.push("criticalLicenseOrDelistingRisk=true");
+  if (context?.confounderStatus === "major") blockers.push("confounderStatus=major");
+  if (context?.informationLeakStatus === "likely") blockers.push("informationLeakStatus=likely");
+  if (context?.recurrenceStatus === "systemic") blockers.push("recurrenceStatus=systemic");
+  if (context?.remediationStatus === "weak") blockers.push("remediationStatus=weak");
+  if (context?.liquidityStatus === "halted" || context?.liquidityStatus === "limit_locked") blockers.push(`liquidityStatus=${context.liquidityStatus}`);
+  if (context?.incidentClusterStatus === "cascade") blockers.push("incidentClusterStatus=cascade");
+  if (context?.industryRelativeShockDrawdownPct != null && Number.isFinite(context.industryRelativeShockDrawdownPct) && context.industryRelativeShockDrawdownPct > -2) {
+    blockers.push(`industryRelativeShockDrawdownPct=${context.industryRelativeShockDrawdownPct}`);
+  }
+
+  if (blockers.length > 0) return { status: "confirmed_block", blockers, missingEvidence };
+  if (explicitStatus === "confirmed_block") return { status: "confirmed_block", blockers: ["explicit confirmed_block"], missingEvidence };
+  if (explicitStatus !== "confirmed_pass") return { status: "unknown", blockers, missingEvidence: ["explicit pass/block not verified"] };
+
+  // PASSだけは追加のstructured evidenceを必須にする。
+  if (investigation === "unknown") missingEvidence.push("strategyInvestigationStatusAtCheckpoint");
+  if (context?.strategyCriticalLicenseOrDelistingRiskAtCheckpoint == null) missingEvidence.push("strategyCriticalLicenseOrDelistingRiskAtCheckpoint");
+  if (context?.confounderStatus == null || context.confounderStatus === "unknown") missingEvidence.push("confounderStatus");
+  if (!sourceGateSatisfied(item, context)) missingEvidence.push("primary source or >=2 major media");
+  if ((context?.announcementTiming === "after_close" || context?.announcementTiming === "non_trading_day") && !context.priceReactionStartDate) {
+    missingEvidence.push("priceReactionStartDate for announcement timing");
+  }
+
+  if (missingEvidence.length > 0) return { status: "unknown", blockers, missingEvidence };
+  return { status: "confirmed_pass", blockers, missingEvidence };
+}
+
 export function resolveHistoricalStrategyEligibility(
   item: HistoricalShockCase,
-  explicitStatus?: HistoricalStrategyEligibilityStatus | null,
+  context?: HistoricalShockCaseContext | null,
 ): HistoricalStrategyEligibilityStatus {
-  if (explicitStatus === "confirmed_pass" || explicitStatus === "confirmed_block") return explicitStatus;
-  if (item.score < 12) return "confirmed_block";
-  if (item.scores.accountingIntegrity === 0) return "confirmed_block";
-  if (item.macroPrimaryCause) return "confirmed_block";
-  return "unknown";
+  return resolveHistoricalStrategyEligibilityDetailed(item, context).status;
 }
 
 type ContextFile = {
