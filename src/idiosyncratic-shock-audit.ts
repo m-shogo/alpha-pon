@@ -4,6 +4,8 @@
 import { mkdirSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
 import { loadHistoricalShockCases } from "./idiosyncratic-shock-data.js";
+import { loadHistoricalShockCaseContext } from "./idiosyncratic-shock-case-context.js";
+import { shockCategoryJurisdictionSensitivity } from "./idiosyncratic-shock-jurisdiction.js";
 
 const MIN_HISTORICAL_CASES = 59;
 const KNOWN_THIRD_PARTY_HOSTS = new Set([
@@ -29,6 +31,7 @@ function main(): void {
   const date = todayJst();
   const currentYear = Number(date.slice(0, 4));
   const cases = loadHistoricalShockCases();
+  const historicalContext = loadHistoricalShockCaseContext();
   const issues: string[] = [];
   const warnings: string[] = [];
   const ids = new Set<string>();
@@ -38,6 +41,7 @@ function main(): void {
   const companies = new Map<string, number>();
   const categoryCountry = new Map<string, number>();
   const outcomes = new Map<string, number>();
+  const contextByCategory = new Map<string, number>();
   const confidence = { high: 0, medium: 0, low: 0 };
   const sourceHosts = new Map<string, number>();
 
@@ -53,6 +57,7 @@ function main(): void {
     increment(companies, item.company);
     increment(categoryCountry, `${item.country}:${item.category}`);
     increment(outcomes, item.outcome?.recoveryPattern ?? "unknown");
+    if (historicalContext.has(item.id)) increment(contextByCategory, item.category);
 
     const year = Number(item.eventDate.slice(0, 4));
     const era = Number.isFinite(year)
@@ -80,6 +85,10 @@ function main(): void {
     if (item.category === "accounting_fraud" && item.score >= 12) issues.push(`${item.id}: accounting fraud must not score >=12`);
     if (item.scores.accountingIntegrity === 0 && item.score >= 12) issues.push(`${item.id}: accountingIntegrity=0 must not score >=12`);
     if (item.outcome?.recoveryPattern === "failed" && item.score >= 16) warnings.push(`${item.id}: failed outcome despite historical score ${item.score}; calibration candidate`);
+  }
+
+  for (const contextId of historicalContext.keys()) {
+    if (!ids.has(contextId)) issues.push(`historical context orphan id: ${contextId}`);
   }
 
   const requiredCategories = [
@@ -128,10 +137,25 @@ function main(): void {
     }
   }
 
+  const contextCoveragePct = cases.length === 0 ? 0 : (historicalContext.size / cases.length) * 100;
+  if (contextCoveragePct < 50) {
+    warnings.push(`historical context coverage low: ${historicalContext.size}/${cases.length} (${contextCoveragePct.toFixed(1)}%); enrich verified sidecar gradually`);
+  }
+  for (const [category, count] of categories) {
+    if (shockCategoryJurisdictionSensitivity(category) !== "high" || count < 2) continue;
+    const covered = contextByCategory.get(category) ?? 0;
+    if (covered / count < 0.5) {
+      warnings.push(`context coverage low for jurisdiction-sensitive category ${category}: ${covered}/${count}`);
+    }
+  }
+
   const summary = {
     generatedAt: date,
     minimumHistoricalCases: MIN_HISTORICAL_CASES,
     totalCases: cases.length,
+    historicalContextCases: historicalContext.size,
+    historicalContextCoveragePct: Number(contextCoveragePct.toFixed(1)),
+    contextByCategory: sortedObject(contextByCategory),
     scoreBuckets: {
       researchPriority16to20: cases.filter(item => item.score >= 16).length,
       watch12to15: cases.filter(item => item.score >= 12 && item.score < 16).length,
@@ -158,6 +182,7 @@ function main(): void {
     "",
     `生成日: ${date}`,
     `- total: ${cases.length} / minimum ${MIN_HISTORICAL_CASES}`,
+    `- context sidecar: ${historicalContext.size}/${cases.length} (${contextCoveragePct.toFixed(1)}%)`,
     `- high confidence: ${confidence.high}`,
     `- medium confidence: ${confidence.medium}`,
     `- low confidence: ${confidence.low}`,
@@ -170,11 +195,12 @@ function main(): void {
     `- 8-11: ${summary.scoreBuckets.caution8to11}`,
     `- 0-7: ${summary.scoreBuckets.avoid0to7}`,
     "",
-    "## dataset bias checks",
+    "## dataset bias / context checks",
     "",
     `- countries: ${JSON.stringify(summary.countries)}`,
     `- eras: ${JSON.stringify(summary.eras)}`,
     `- outcomes: ${JSON.stringify(summary.outcomes)}`,
+    `- context by category: ${JSON.stringify(summary.contextByCategory)}`,
     "",
     "## issues",
     "",
@@ -186,7 +212,7 @@ function main(): void {
   ].join("\n");
   writeFileSync("reports/idiosyncratic_shock_history_audit_latest.md", md, "utf-8");
 
-  console.log(`shock history audit: cases=${cases.length} issues=${issues.length} warnings=${warnings.length}`);
+  console.log(`shock history audit: cases=${cases.length} context=${historicalContext.size} issues=${issues.length} warnings=${warnings.length}`);
   if (issues.length > 0) process.exitCode = 1;
 }
 
