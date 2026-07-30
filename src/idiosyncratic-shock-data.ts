@@ -49,6 +49,7 @@ export type ActiveShockConfig = {
   candidates: Array<{
     id: string;
     market?: ShockMarket;
+    country?: string | null;
     code?: string | null;
     symbol?: string | null;
     company: string;
