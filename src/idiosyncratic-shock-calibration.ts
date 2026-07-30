@@ -96,13 +96,12 @@ function holdoutReady(rows: ShockCalibrationObservation[], minimumCases: number)
   return split.train.length >= MIN_TRAIN_CASES && split.validation.length >= MIN_VALIDATION_CASES;
 }
 
-export function buildShockCalibrationReadiness(input: {
+function calibrationPools(input: {
   country?: string | null;
   market?: ShockMarket | null;
   category?: string | null;
   observations: ShockCalibrationObservation[];
-  validatedThreshold?: number | null;
-}): ShockCalibrationReadiness {
+}) {
   const country = normalizeShockCountry(input.country, input.market ?? null);
   const group = inferShockJurisdictionGroup({ country, market: input.market ?? null });
   const category = input.category ?? null;
@@ -110,42 +109,118 @@ export function buildShockCalibrationReadiness(input: {
   const groupRows = usable.filter(row => row.jurisdictionGroup === group);
   const countryRows = country == null ? [] : usable.filter(row => row.country === country);
   const countryCategoryRows = category == null ? [] : countryRows.filter(row => row.category === category);
+  return { country, group, category, usable, groupRows, countryRows, countryCategoryRows };
+}
+
+export function buildShockCalibrationReadinessAtLevel(input: {
+  modelLevel: Exclude<ShockCalibrationLevel, "global">;
+  country?: string | null;
+  market?: ShockMarket | null;
+  category?: string | null;
+  observations: ShockCalibrationObservation[];
+  validatedThreshold?: number | null;
+}): ShockCalibrationReadiness {
+  const pools = calibrationPools(input);
+  const blockers: string[] = [];
+  const notes: string[] = [];
+  let rows: ShockCalibrationObservation[] = [];
+  let minimum = 0;
+
+  if (input.modelLevel === "country_category") {
+    rows = pools.countryCategoryRows;
+    minimum = MIN_COUNTRY_CATEGORY_CASES;
+    if (!pools.country || !pools.category) blockers.push("country_category requires country and category");
+  } else if (input.modelLevel === "country") {
+    rows = pools.countryRows;
+    minimum = MIN_COUNTRY_CASES;
+    if (!pools.country) blockers.push("country model requires country");
+  } else {
+    rows = pools.groupRows;
+    minimum = MIN_GROUP_CASES;
+  }
+
+  const split = chronologicalSplit(rows);
+  const ready = blockers.length === 0 && holdoutReady(rows, minimum);
+  let status: ShockCalibrationStatus = ready ? "ready_for_validation" : "insufficient_data";
+  let effectiveThreshold = GLOBAL_DEFAULT_SHOCK_THRESHOLD;
+  let effectiveThresholdSource: ShockCalibrationReadiness["effectiveThresholdSource"] = "global_default";
+
+  if (!ready) {
+    blockers.push(`${input.modelLevel} sample/holdout insufficient n=${rows.length} train=${split.train.length} validation=${split.validation.length}`);
+  } else if (input.validatedThreshold != null && Number.isFinite(input.validatedThreshold)) {
+    status = "validated";
+    effectiveThreshold = input.validatedThreshold;
+    effectiveThresholdSource = "validated_local";
+    notes.push("検証済みlocal thresholdを使用。Global Structural Scoreそのものは変更しない");
+  } else {
+    notes.push("holdout条件は満たすがvalidated registry未登録のためthreshold=12を維持");
+  }
+
+  return {
+    country: pools.country,
+    market: input.market ?? null,
+    category: pools.category,
+    jurisdictionGroup: pools.group,
+    modelLevel: input.modelLevel,
+    status,
+    effectiveThreshold,
+    effectiveThresholdSource,
+    globalCases: pools.usable.length,
+    groupCases: pools.groupRows.length,
+    countryCases: pools.countryRows.length,
+    countryCategoryCases: pools.countryCategoryRows.length,
+    trainCases: split.train.length,
+    validationCases: split.validation.length,
+    usableOutcomeCases: rows.length,
+    blockers,
+    notes,
+  };
+}
+
+export function buildShockCalibrationReadiness(input: {
+  country?: string | null;
+  market?: ShockMarket | null;
+  category?: string | null;
+  observations: ShockCalibrationObservation[];
+  validatedThreshold?: number | null;
+}): ShockCalibrationReadiness {
+  const pools = calibrationPools(input);
   const blockers: string[] = [];
   const notes: string[] = [];
 
-  const countryCategoryReady = holdoutReady(countryCategoryRows, MIN_COUNTRY_CATEGORY_CASES);
-  const countryReady = holdoutReady(countryRows, MIN_COUNTRY_CASES);
-  const groupReady = holdoutReady(groupRows, MIN_GROUP_CASES);
+  const countryCategoryReady = holdoutReady(pools.countryCategoryRows, MIN_COUNTRY_CATEGORY_CASES);
+  const countryReady = holdoutReady(pools.countryRows, MIN_COUNTRY_CASES);
+  const groupReady = holdoutReady(pools.groupRows, MIN_GROUP_CASES);
 
   let modelLevel: ShockCalibrationLevel = "global";
-  let candidateRows = usable;
+  let candidateRows = pools.usable;
 
   if (countryCategoryReady) {
     modelLevel = "country_category";
-    candidateRows = countryCategoryRows;
+    candidateRows = pools.countryCategoryRows;
   } else if (countryReady) {
     modelLevel = "country";
-    candidateRows = countryRows;
-    if (category && countryCategoryRows.length >= MIN_COUNTRY_CATEGORY_CASES) {
+    candidateRows = pools.countryRows;
+    if (pools.category && pools.countryCategoryRows.length >= MIN_COUNTRY_CATEGORY_CASES) {
       notes.push("country-categoryは母数到達済みだがholdout不足のためcountryモデルへ縮退");
     }
   } else if (groupReady) {
     modelLevel = "jurisdiction_group";
-    candidateRows = groupRows;
-    if (country && countryRows.length >= MIN_COUNTRY_CASES) {
+    candidateRows = pools.groupRows;
+    if (pools.country && pools.countryRows.length >= MIN_COUNTRY_CASES) {
       notes.push("countryは母数到達済みだがholdout不足のためjurisdiction-groupへ縮退");
     }
   } else {
-    if (country && countryRows.length < MIN_COUNTRY_CASES) blockers.push(`country sample ${countryRows.length} < ${MIN_COUNTRY_CASES}`);
-    if (category && countryCategoryRows.length < MIN_COUNTRY_CATEGORY_CASES) blockers.push(`country-category sample ${countryCategoryRows.length} < ${MIN_COUNTRY_CATEGORY_CASES}`);
-    if (groupRows.length < MIN_GROUP_CASES) blockers.push(`jurisdiction-group sample ${groupRows.length} < ${MIN_GROUP_CASES}`);
+    if (pools.country && pools.countryRows.length < MIN_COUNTRY_CASES) blockers.push(`country sample ${pools.countryRows.length} < ${MIN_COUNTRY_CASES}`);
+    if (pools.category && pools.countryCategoryRows.length < MIN_COUNTRY_CATEGORY_CASES) blockers.push(`country-category sample ${pools.countryCategoryRows.length} < ${MIN_COUNTRY_CATEGORY_CASES}`);
+    if (pools.groupRows.length < MIN_GROUP_CASES) blockers.push(`jurisdiction-group sample ${pools.groupRows.length} < ${MIN_GROUP_CASES}`);
     notes.push("十分な時系列holdoutを持つlocal/region階層がないためGlobal Structural Score + global default thresholdへ縮退");
   }
 
   const split = chronologicalSplit(candidateRows);
   const validatedThreshold = input.validatedThreshold;
   let status: ShockCalibrationStatus = modelLevel === "global"
-    ? (country || category ? "insufficient_data" : "global_default")
+    ? (pools.country || pools.category ? "insufficient_data" : "global_default")
     : "ready_for_validation";
   let effectiveThreshold = GLOBAL_DEFAULT_SHOCK_THRESHOLD;
   let effectiveThresholdSource: ShockCalibrationReadiness["effectiveThresholdSource"] = "global_default";
@@ -162,18 +237,18 @@ export function buildShockCalibrationReadiness(input: {
   }
 
   return {
-    country,
+    country: pools.country,
     market: input.market ?? null,
-    category,
-    jurisdictionGroup: group,
+    category: pools.category,
+    jurisdictionGroup: pools.group,
     modelLevel,
     status,
     effectiveThreshold,
     effectiveThresholdSource,
-    globalCases: usable.length,
-    groupCases: groupRows.length,
-    countryCases: countryRows.length,
-    countryCategoryCases: countryCategoryRows.length,
+    globalCases: pools.usable.length,
+    groupCases: pools.groupRows.length,
+    countryCases: pools.countryRows.length,
+    countryCategoryCases: pools.countryCategoryRows.length,
     trainCases: split.train.length,
     validationCases: split.validation.length,
     usableOutcomeCases: candidateRows.length,
