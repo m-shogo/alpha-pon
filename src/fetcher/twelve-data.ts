@@ -18,7 +18,7 @@ export type TwelveDataDailyQuote = {
   AdjustmentVolume: number;
 };
 
-type TimeSeriesValue = {
+export type TwelveDataTimeSeriesValue = {
   datetime: string;
   open?: string | number | null;
   high?: string | number | null;
@@ -37,7 +37,7 @@ type TimeSeriesPayload = {
     exchange?: string;
     exchange_timezone?: string;
   };
-  values?: TimeSeriesValue[];
+  values?: TwelveDataTimeSeriesValue[];
 };
 
 export function isTwelveDataConfigured(): boolean {
@@ -66,6 +66,31 @@ function numberOrZero(value: unknown): number {
 
 function normalizeDate(value: string): string {
   return value.slice(0, 10);
+}
+
+export function normalizeTwelveDataValues(
+  symbol: string,
+  values: TwelveDataTimeSeriesValue[],
+): TwelveDataDailyQuote[] {
+  return values
+    .map(value => {
+      const close = numberOrZero(value.close);
+      const volume = numberOrZero(value.volume);
+      return {
+        Symbol: symbol,
+        Date: normalizeDate(value.datetime),
+        Open: numberOrZero(value.open),
+        High: numberOrZero(value.high),
+        Low: numberOrZero(value.low),
+        Close: close,
+        Volume: volume,
+        // Twelve Dataの日/週/月価格はsplit-adjusted。shock用途ではsplit adjustmentを使用する。
+        AdjustmentClose: close,
+        AdjustmentVolume: volume,
+      } satisfies TwelveDataDailyQuote;
+    })
+    .filter(row => row.AdjustmentClose > 0)
+    .sort((a, b) => a.Date.localeCompare(b.Date));
 }
 
 async function requestTimeSeries(symbol: string, from: string, to: string): Promise<TimeSeriesPayload> {
@@ -123,25 +148,7 @@ export async function fetchTwelveDataDailyQuotes(
 
   const payload = await requestTimeSeries(symbol, from, to);
   const canonicalSymbol = payload.meta?.symbol ?? symbol;
-  const rows = (payload.values ?? [])
-    .map(value => {
-      const close = numberOrZero(value.close);
-      const volume = numberOrZero(value.volume);
-      return {
-        Symbol: canonicalSymbol,
-        Date: normalizeDate(value.datetime),
-        Open: numberOrZero(value.open),
-        High: numberOrZero(value.high),
-        Low: numberOrZero(value.low),
-        Close: close,
-        Volume: volume,
-        // Twelve Dataの日/週/月価格はsplit-adjusted。shock用途ではsplit adjustmentを使用する。
-        AdjustmentClose: close,
-        AdjustmentVolume: volume,
-      } satisfies TwelveDataDailyQuote;
-    })
-    .filter(row => row.AdjustmentClose > 0)
-    .sort((a, b) => a.Date.localeCompare(b.Date));
+  const rows = normalizeTwelveDataValues(canonicalSymbol, payload.values ?? []);
 
   responseCache.set(cacheKey, rows);
   return rows.map(row => ({ ...row }));
