@@ -207,7 +207,18 @@ function candidateContext(raw: ActiveConfigCandidate): ShockContextInput {
     sector: raw.sector,
     stakeholder: raw.stakeholder,
     incidentScope: raw.incidentScope,
+    confounderStatus: raw.confounderStatus,
+    informationLeakStatus: raw.informationLeakStatus,
     recurrenceStatus: raw.recurrenceStatus,
+    remediationStatus: raw.remediationStatus,
+    listingStructure: raw.listingStructure,
+    ownershipControl: raw.ownershipControl,
+    liquidityStatus: raw.liquidityStatus,
+    incidentClusterStatus: raw.incidentClusterStatus,
+    disclosureObservability: raw.disclosureObservability,
+    incidentRevenueExposurePct: raw.incidentRevenueExposurePct,
+    estimatedDirectCostPctMarketCap: raw.estimatedDirectCostPctMarketCap,
+    industryRelativeShockDrawdownPct: raw.industryRelativeShockDrawdownPct,
   };
 }
 
@@ -230,6 +241,11 @@ function rerankAnalogues(
           stakeholder: context.stakeholder,
           incidentScope: context.incidentScope,
           recurrenceStatus: context.recurrenceStatus,
+          listingStructure: context.listingStructure,
+          ownershipControl: context.ownershipControl,
+          liquidityStatus: context.liquidityStatus,
+          incidentClusterStatus: context.incidentClusterStatus,
+          disclosureObservability: context.disclosureObservability,
         })
         : 0;
       return {
@@ -276,15 +292,7 @@ async function evaluate(
 
   const baseDecision = buildNotificationDecision(candidate);
   const jurisdictionReview = buildShockJurisdictionReview(candidate, historical);
-  const contextReview = buildShockContextReview({
-    ...candidateContext(raw),
-    confounderStatus: raw.confounderStatus,
-    informationLeakStatus: raw.informationLeakStatus,
-    remediationStatus: raw.remediationStatus,
-    incidentRevenueExposurePct: raw.incidentRevenueExposurePct,
-    estimatedDirectCostPctMarketCap: raw.estimatedDirectCostPctMarketCap,
-    industryRelativeShockDrawdownPct: raw.industryRelativeShockDrawdownPct,
-  });
+  const contextReview = buildShockContextReview(candidateContext(raw));
   const blockers = [...baseDecision.blockers, ...jurisdictionReview.blockers, ...contextReview.blockers];
   const decision = {
     ...baseDecision,
@@ -366,8 +374,8 @@ function renderMarkdown(
     `生成日: ${date}`,
     "",
     "> 20点は企業ダメージの世界共通score。国差はjurisdiction evidence pool、事件帰属はcontext reviewで別管理します。",
-    "> 本社国・事件国・上場市場・業種・被害者・再発・是正・同時材料を分離し、分からない重要軸はunknownのままWAITにします。",
-    "> 類似事例は国差・時代差に加え、確認済みsidecarがある事例は事件国/業種/被害者/scopeでも再順位付けします。",
+    "> 本社国・事件国・上場市場・業種・被害者・支配構造・流動性・事件連鎖・開示観測性・再発・是正・同時材料を分離し、分からない重要軸はunknownのままWAITにします。",
+    "> 類似事例は国差・時代差に加え、確認済みsidecarがある事例は事件国/業種/被害者/scope/支配・上場構造/事件連鎖でも再順位付けします。",
     "",
     "## 現在の監視候補",
     "",
@@ -383,6 +391,7 @@ function renderMarkdown(
     lines.push(`- evidence weights: local=${row.jurisdictionReview.evidenceWeights.sameCountry}, group=${row.jurisdictionReview.evidenceWeights.sameGroup}, global=${row.jurisdictionReview.evidenceWeights.global}`);
     lines.push(`- analogue coverage: same-country/category=${row.jurisdictionReview.sameCountryCategoryCases}, same-group/category=${row.jurisdictionReview.sameGroupCategoryCases}, global/category=${row.jurisdictionReview.globalCategoryCases}`);
     lines.push(`- incident context: geography=${row.contextReview.incidentGeography} / sectorRisk=${row.contextReview.sectorRiskClass} / stakeholder=${row.contextReview.stakeholder} / scope=${row.contextReview.incidentScope}`);
+    lines.push(`- structure: listing=${row.contextReview.listingStructure} / ownership=${row.contextReview.ownershipControl} / liquidity=${row.contextReview.liquidityStatus} / cluster=${row.contextReview.incidentClusterStatus} / observability=${row.contextReview.disclosureObservability}`);
     lines.push(`- attribution: confounder=${row.contextReview.confounderStatus} / leak=${row.contextReview.informationLeakStatus} / recurrence=${row.contextReview.recurrenceStatus} / remediation=${row.contextReview.remediationStatus}`);
     lines.push(`- exposure: incident-region revenue=${pctText(row.contextReview.incidentRevenueExposurePct)} / direct-cost-to-market-cap=${pctText(row.contextReview.estimatedDirectCostPctMarketCap)} / industry-relative=${pctText(row.contextReview.industryRelativeShockDrawdownPct)}`);
     if (row.contextReview.reviewNotes.length > 0) lines.push(`- context notes: ${row.contextReview.reviewNotes.join(" / ")}`);
@@ -424,6 +433,8 @@ function renderMarkdown(
   lines.push("- evidence poolは同国→同制度圏→世界の順で借り、母数が薄いと自動通知を止めます。");
   lines.push("- context sidecarは確認できた事例だけ付与し、未確認項目を推測で埋めません。");
   lines.push("- 本社国と事件国を分離します。海外子会社の事件は現地規制と本社ガバナンスを両方確認します。");
+  lines.push("- ADR/二重上場はprimary listing、売買停止/値幅制限は価格発見、支配株主はactor separabilityを追加確認します。");
+  lines.push("- 関連不祥事がcascadeしている間は単発ディップ扱いせず、開示観測性が低い市場ではニュースの少なさを安全材料にしません。");
   lines.push("- 決算・増資・M&A・訴訟等の同時材料がmajor/unknownなら、不祥事下げへ帰属せずWAITです。");
   lines.push("- systemic recurrence / weak remediation / likely information leakは通知をBLOCKします。");
   lines.push("- broad-market比較だけでなく、同業比較が取れる場合は企業固有shockが残ることを要求します。");
@@ -454,7 +465,7 @@ async function main(): Promise<void> {
     jurisdictionAware: true,
     contextAware: true,
     jurisdictionPolicy: "global damage score + hierarchical local-to-global evidence + temporal decay",
-    contextPolicy: "issuer/incident/market separation + verified sidecar reranking + sector/stakeholder/scope + causal attribution + recurrence/remediation",
+    contextPolicy: "issuer/incident/market separation + verified sidecar reranking + sector/stakeholder/scope + listing/ownership/liquidity/cluster/observability + causal attribution + recurrence/remediation",
     relativeShockMethod: "benchmark return on stock shock-low trading date",
     shockWindowDays: DEFAULT_SHOCK_WINDOW_DAYS,
     historicalCaseCount: historical.length,
