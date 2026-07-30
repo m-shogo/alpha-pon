@@ -1,6 +1,6 @@
 version: 1
 generatedAt: "2026-07-31"
-description: "過去事例score正本を変更せず、確認できた文脈だけを追加するsidecar。strategy eligibilityはrepo内の既存一次情報/調査checkpointで確認できたものだけpass/blockにし、unknownを推測で埋めない。"
+description: "過去事例score正本を変更せず、確認できた文脈だけを追加するsidecar。strategy eligibilityは一次情報/規制開示とcheckpoint情報で確認できたものだけpass/blockにし、unknownを推測で埋めない。"
 cases:
   mcdonalds-2019-easterbrook:
     incidentCountry: US
@@ -47,8 +47,13 @@ cases:
     sector: online_travel_platform
     stakeholder: employee
     incidentScope: individual
-    strategyEligibilityAtCheckpoint: unknown
-    strategyEligibilityNotes: "repo登録sourceがmajor media 1件のみ。現行hard gateの一次情報または複数major media要件をcheckpoint時点で再現する追加証拠が必要。"
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyEligibilityNotes: "2016-04-28提出のSEC Form 8-Kで、独立取締役監督の調査がpersonal relationshipを確認し、Code of Conduct違反を認定、Huston辞任と暫定CEO就任まで確認。checkpoint時点の非価格gateを通過扱い。"
+    strategyEligibilityEvidenceSources:
+      - title: "The Priceline Group Form 8-K (2016-04-28)"
+        url: "https://www.sec.gov/Archives/edgar/data/1075531/000107553116000093/a8-kapril2016.htm"
+        sourceType: regulator
+        publishedAt: "2016-04-28"
     notes: "従業員との関係による行動規範違反。"
   hp-2010-hurd:
     incidentCountry: US
@@ -63,16 +68,30 @@ cases:
     sector: rail_transport
     stakeholder: employee
     incidentScope: individual
-    strategyEligibilityAtCheckpoint: unknown
-    strategyEligibilityNotes: "repo登録sourceがmajor media 1件で、既存事故・アクティビスト要因のconfounderもある。checkpointの全非価格gate再現には追加一次情報が必要。"
+    strategyEligibilityAtCheckpoint: confirmed_block
+    strategyEligibilityNotes: "2024-09-11のSEC Form 8-K/Exhibit 99.1はShawのpolicy violationと即時解任を確認する一方、判断根拠をongoing investigationのpreliminary findingsと明記。現行hard gateはopen/ongoing investigationを許容しないためcheckpoint時点でBLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "Norfolk Southern Form 8-K (2024-09-11)"
+        url: "https://www.sec.gov/Archives/edgar/data/702165/000119312524217556/d846772d8k.htm"
+        sourceType: regulator
+        publishedAt: "2024-09-11"
+      - title: "Norfolk Southern Leadership Transition Press Release"
+        url: "https://www.sec.gov/Archives/edgar/data/702165/000119312524217556/d846772dex991.htm"
+        sourceType: regulator
+        publishedAt: "2024-09-11"
     notes: "直属部下との関係。鉄道業の既存事故・アクティビスト要因とのconfounderに注意。"
   bp-2023-looney:
     incidentCountry: GB
     sector: energy
     stakeholder: employee
     incidentScope: individual
-    strategyEligibilityAtCheckpoint: unknown
-    strategyEligibilityNotes: "repo登録sourceがmajor media 1件。checkpointの調査完了度・一次情報hard gateを追加確認するまでunknown。"
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyEligibilityNotes: "2023-12-13のBP一次情報で、取締役会が過去のassurancesをinaccurate/incompleteと結論付け、serious misconductとして即時解任・報酬失権/ clawbackを決定。checkpoint時点で調査論点が取締役会判断まで到達しており非価格gateを通過扱い。"
+    strategyEligibilityEvidenceSources:
+      - title: "BP Remuneration for former CEO"
+        url: "https://www.bp.com/content/dam/bp/business-sites/en/global/corporate/pdfs/news-and-insights/press-releases/remuneration-for-former-ceo.pdf"
+        sourceType: company
+        publishedAt: "2023-12-13"
     notes: "過去の社内関係の開示完全性・取締役会説明まで論点化。"
   wynn-2018-founder:
     incidentCountry: US
@@ -87,6 +106,11 @@ cases:
     sector: restaurant_food_service
     stakeholder: public
     incidentScope: individual
-    strategyEligibilityAtCheckpoint: unknown
-    strategyEligibilityNotes: "repo登録sourceがmajor media 1件。現行source hard gateをcheckpoint時点で満たす一次情報または追加major mediaを確認するまでunknown。"
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyEligibilityNotes: "2022-04-19の吉野家HD一次情報で4/18臨時取締役会による執行役員/子会社取締役解任、契約関係終了、5月のコンプライアンス研修を確認。score>=12、accountingIntegrity>0でcheckpoint時点の非価格gateを通過扱い。"
+    strategyEligibilityEvidenceSources:
+      - title: "当社役員の解任に関するお知らせ"
+        url: "https://www.yoshinoya.com/wp-content/uploads/2022/04/19113244/news20220419.pdf"
+        sourceType: company
+        publishedAt: "2022-04-19"
     notes: "執行役員の不適切発言による消費者/ブランド反応。"
