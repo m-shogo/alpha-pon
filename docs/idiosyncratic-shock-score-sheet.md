@@ -16,6 +16,9 @@
 - マクロ主因ではない: YES / NO
 - `investigationStatus`: open / substantially_complete / closed / not_applicable / unknown
 - 調査範囲を確定できる根拠:
+- 事件前終値:
+- 事件後安値:
+- `shockDrawdownPct`:
 
 `open / unknown` の間は、事件自体が確定していても通知へ進めない。
 
@@ -46,12 +49,15 @@
 - [ ] `evidenceStatus=confirmed`
 - [ ] `investigationStatus=substantially_complete / closed / not_applicable`
 - [ ] マクロが主因ではない
+- [ ] **事件前比で実際に5%以上下落した (`shockDrawdownPct <= -5`)**
 - [ ] `priceState=stabilized_after_drop`
 - [ ] `accountingIntegrity > 0`
 - [ ] 重大な上場廃止/免許取消リスクなし
 - [ ] 会社/当局/取引所の一次情報あり、または独立した主要報道2件以上
 
 **1つでも未チェックならLINE通知しない。**
+
+横ばいの株が5日間静かなだけでは「下落一巡」と扱わない。`priceStabilization` と `shockDrawdownPct` は別ゲート。
 
 ## 3. 類似事例
 
@@ -115,6 +121,7 @@ pnpm backfill:shock-outcomes:write
 - 通知: PASS / WAIT
 - WAIT blocker:
 - investigationStatus:
+- shockDrawdownPct:
 - 次回確認日:
 - 次に見る一次情報:
 - 仮説を否定する条件:
