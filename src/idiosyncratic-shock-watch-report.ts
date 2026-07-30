@@ -63,6 +63,7 @@ type EvaluatedCandidate = {
   benchmarkLabel: string;
   priceSource: PriceSource;
   priceAsOf: string | null;
+  priceReactionStartDate: string;
   jurisdictionReview: ShockJurisdictionReview;
   contextReview: ShockContextReview;
   calibration: ResolvedShockCalibration;
@@ -116,11 +117,13 @@ async function resolvePriceState(raw: ActiveConfigCandidate): Promise<{
   relativeShockDrawdownPct: number | null;
   source: PriceSource;
   asOf: string | null;
+  reactionStartDate: string;
 }> {
   const today = todayJst();
   const market = inferShockMarket({ market: raw.market, code: raw.code, ticker: raw.symbol });
-  const fromDate = addDaysJst(raw.detectedAt, -10);
-  const shockWindowEnd = addDaysJst(raw.detectedAt, DEFAULT_SHOCK_WINDOW_DAYS);
+  const reactionStartDate = raw.priceReactionStartDate ?? raw.detectedAt;
+  const fromDate = addDaysJst(reactionStartDate, -10);
+  const shockWindowEnd = addDaysJst(reactionStartDate, DEFAULT_SHOCK_WINDOW_DAYS);
 
   if (market === "JP" && supportsAutomaticShockPrice(market) && raw.code && isJQuantsConfigured()) {
     try {
@@ -141,11 +144,11 @@ async function resolvePriceState(raw: ActiveConfigCandidate): Promise<{
         close: row.AdjustmentClose,
         volume: row.AdjustmentVolume,
       }));
-      const shockDrawdownPct = calculateShockDrawdownPct(observations, raw.detectedAt, shockWindowEnd);
+      const shockDrawdownPct = calculateShockDrawdownPct(observations, reactionStartDate, shockWindowEnd);
       const relativeShockDrawdownPct = calculateSameDayRelativeShockDrawdownPct(
         observations,
         benchmarkObservations,
-        raw.detectedAt,
+        reactionStartDate,
         shockWindowEnd,
       );
       const latest = sortedQuotes.at(-1);
@@ -154,7 +157,7 @@ async function resolvePriceState(raw: ActiveConfigCandidate): Promise<{
         const age = daysSinceJst(latestDate);
         if (age !== null && age >= 0 && age <= 5) {
           const state = inferPriceState(observations);
-          return { state, shockDrawdownPct, relativeShockDrawdownPct, source: "jquants", asOf: latestDate };
+          return { state, shockDrawdownPct, relativeShockDrawdownPct, source: "jquants", asOf: latestDate, reactionStartDate };
         }
       }
     } catch (error) {
@@ -176,11 +179,11 @@ async function resolvePriceState(raw: ActiveConfigCandidate): Promise<{
         close: row.AdjustmentClose,
         volume: row.AdjustmentVolume,
       }));
-      const shockDrawdownPct = calculateShockDrawdownPct(observations, raw.detectedAt, shockWindowEnd);
+      const shockDrawdownPct = calculateShockDrawdownPct(observations, reactionStartDate, shockWindowEnd);
       const relativeShockDrawdownPct = calculateSameDayRelativeShockDrawdownPct(
         observations,
         benchmarkObservations,
-        raw.detectedAt,
+        reactionStartDate,
         shockWindowEnd,
       );
       const latest = quotes.at(-1);
@@ -189,7 +192,7 @@ async function resolvePriceState(raw: ActiveConfigCandidate): Promise<{
         const age = daysSinceJst(latestDate);
         if (age !== null && age >= 0 && age <= 5) {
           const state = inferPriceState(observations);
-          return { state, shockDrawdownPct, relativeShockDrawdownPct, source: "twelve_data", asOf: latestDate };
+          return { state, shockDrawdownPct, relativeShockDrawdownPct, source: "twelve_data", asOf: latestDate, reactionStartDate };
         }
       }
     } catch (error) {
@@ -207,6 +210,7 @@ async function resolvePriceState(raw: ActiveConfigCandidate): Promise<{
         relativeShockDrawdownPct: raw.relativeShockDrawdownPctOverride ?? null,
         source: "manual_override",
         asOf: raw.priceStateCheckedAt,
+        reactionStartDate,
       };
     }
   }
@@ -217,6 +221,7 @@ async function resolvePriceState(raw: ActiveConfigCandidate): Promise<{
     relativeShockDrawdownPct: null,
     source: "missing",
     asOf: null,
+    reactionStartDate,
   };
 }
 
@@ -241,6 +246,8 @@ function candidateContext(raw: ActiveConfigCandidate): ShockContextInput {
     liquidityStatus: raw.liquidityStatus,
     incidentClusterStatus: raw.incidentClusterStatus,
     disclosureObservability: raw.disclosureObservability,
+    announcementTiming: raw.announcementTiming,
+    priceReactionStartDate: raw.priceReactionStartDate,
     incidentRevenueExposurePct: raw.incidentRevenueExposurePct,
     estimatedDirectCostPctMarketCap: raw.estimatedDirectCostPctMarketCap,
     industryRelativeShockDrawdownPct: raw.industryRelativeShockDrawdownPct,
@@ -324,7 +331,6 @@ async function evaluate(
     observations: calibrationObservations,
   });
   const localOpportunityScore = computeLocalOpportunityScore(candidate.scores, calibration.registryEntry);
-  // 共通hard gateはそのまま使うが、score thresholdだけLocal Opportunityへ置き換える。
   const structuralDecision = buildNotificationDecision(candidate, 0);
   const localScoreBlockers = localOpportunityScore < calibration.readiness.effectiveThreshold
     ? [`localOpportunityScore ${localOpportunityScore.toFixed(2)} < threshold ${calibration.readiness.effectiveThreshold}`]
@@ -366,6 +372,7 @@ async function evaluate(
     benchmarkLabel,
     priceSource: resolved.source,
     priceAsOf: resolved.asOf,
+    priceReactionStartDate: resolved.reactionStartDate,
     jurisdictionReview,
     contextReview,
     calibration,
@@ -415,7 +422,7 @@ function renderMarkdown(
     "",
     "> Global Structural Scoreは企業ダメージの世界共通20点。国差はjurisdiction evidence、事件帰属はcontext、検証済み差分だけLocal Opportunity Scoreで別管理します。",
     "> local weights/thresholdはoutcome母数 + chronological holdout + registry証跡を全て満たした場合だけ使い、それ以外はGlobal scoreと12点へ戻します。",
-    "> 本社国・事件国・上場市場・業種・被害者・支配構造・流動性・事件連鎖・開示観測性・再発・是正・同時材料を分離し、分からない重要軸はunknownのままWAITにします。",
+    "> 事件日と市場が最初に反応できた取引日を分離し、価格shock窓はpriceReactionStartDateを正本にします。",
     "",
     "## 現在の監視候補",
     "",
@@ -426,6 +433,7 @@ function renderMarkdown(
     const calibration = row.calibration.readiness;
     lines.push(`### ${row.candidate.code ?? "-"} ${row.candidate.company}`);
     lines.push(`- market: ${row.market} / issuer country: ${row.jurisdictionReview.country ?? "unknown"} / incident country: ${row.contextReview.incidentCountry ?? "unknown"} / benchmark: ${row.benchmarkLabel}`);
+    lines.push(`- timing: announcement=${row.contextReview.announcementTiming} / detectedAt=${row.candidate.detectedAt} / priceReactionStart=${row.priceReactionStartDate}`);
     lines.push(`- Global Structural Score: **${row.decision.score}/20** / Local Opportunity Score: **${row.localOpportunityScore.toFixed(2)}/20** / effective threshold=${calibration.effectiveThreshold}`);
     lines.push(`- calibration: level=${calibration.modelLevel} / status=${calibration.status} / method=${row.calibration.registryEntry?.scoreMethod ?? "global_structural"} / country n=${calibration.countryCases} / country-category n=${calibration.countryCategoryCases} / registry=${row.calibration.registryEntry?.id ?? "none"}`);
     lines.push(`- category: ${row.candidate.category} / actor: ${row.candidate.actorType}`);
@@ -474,6 +482,7 @@ function renderMarkdown(
   lines.push("- Global Structural Scoreへ国別の道徳点を足しません。企業価値への実害は世界共通軸です。");
   lines.push("- Local Opportunity Scoreのdimension weightsとthresholdは検証済みregistryにある場合だけ適用します。registryなしではGlobal score=Local scoreです。");
   lines.push("- local modelはcountry-category → country → jurisdiction-group → globalの順で、holdoutとregistryを満たす最深の検証済み階層を使います。");
+  lines.push("- priceReactionStartDateを価格event-studyの起点とし、引け後/休場日発表を同日反応として扱いません。");
   lines.push("- evidence poolは同国→同制度圏→世界の順で借り、母数が薄いと自動通知を止めます。");
   lines.push("- context sidecarは確認できた事例だけ付与し、未確認項目を推測で埋めません。");
   lines.push("- 本社国と事件国を分離します。海外子会社の事件は現地規制と本社ガバナンスを両方確認します。");
@@ -483,7 +492,7 @@ function renderMarkdown(
   lines.push("- systemic recurrence / weak remediation / likely information leakは通知をBLOCKします。");
   lines.push("- broad-market比較だけでなく、同業比較が取れる場合は企業固有shockが残ることを要求します。");
   lines.push("- 古い文化依存事例はtemporal penaltyで順位を下げます。会計/品質等はより長く構造比較に残します。");
-  lines.push(`- event後${DEFAULT_SHOCK_WINDOW_DAYS}日以内の下落だけを初期shockとして測ります。`);
+  lines.push(`- reaction start後${DEFAULT_SHOCK_WINDOW_DAYS}日以内の下落だけを初期shockとして測ります。`);
   lines.push(`- JPはJ-Quants + TOPIX (${MARKET_BENCHMARK_CODE})。USはTwelve Data + S&P 500 proxy (${US_MARKET_BENCHMARK_SYMBOL})。`);
   lines.push("- provider/API keyが未設定なら価格はunknownとなり、自動通知しません。");
   lines.push("- outcomeは当時Global scoreへ逆流させません。dataset bias自体もaudit対象です。");
@@ -510,12 +519,13 @@ async function main(): Promise<void> {
     marketAware: true,
     jurisdictionAware: true,
     contextAware: true,
+    eventTimingAware: true,
     calibrationAware: true,
     validatedLocalThresholds: calibrationConfig.validatedLocalThresholds.length,
     jurisdictionPolicy: "global damage score + hierarchical local-to-global evidence + temporal decay",
-    contextPolicy: "issuer/incident/market separation + verified sidecar reranking + sector/stakeholder/scope + listing/ownership/liquidity/cluster/observability + causal attribution + recurrence/remediation",
+    contextPolicy: "issuer/incident/market separation + announcement timing/reaction anchor + verified sidecar reranking + sector/stakeholder/scope + listing/ownership/liquidity/cluster/observability + causal attribution + recurrence/remediation",
     calibrationPolicy: "global structural score + validated local opportunity weights/threshold + hierarchical outcome readiness + chronological holdout + explicit registry; otherwise Global score/threshold=12",
-    relativeShockMethod: "benchmark return on stock shock-low trading date",
+    relativeShockMethod: "benchmark return on stock shock-low trading date, anchored at first tradeable reaction session",
     shockWindowDays: DEFAULT_SHOCK_WINDOW_DAYS,
     calibrationOutcomeObservations: calibrationObservations.filter(row => row.benchmarkRelative3m != null).length,
     historicalCaseCount: historical.length,
@@ -530,7 +540,7 @@ async function main(): Promise<void> {
   console.log(`企業固有ショック watch: active=${evaluated.length} historical=${historical.length} context=${historicalContext.size} calibration3m=${payload.calibrationOutcomeObservations} registry=${payload.validatedLocalThresholds}`);
   for (const row of evaluated) {
     const c = row.calibration.readiness;
-    console.log(`  ${row.market}/${row.jurisdictionReview.country ?? "?"}/${row.contextReview.incidentCountry ?? "?"} ${row.candidate.code ?? "-"} ${row.candidate.company}: global=${totalShockScore(row.candidate.scores)}/20 local=${row.localOpportunityScore.toFixed(2)}/20 threshold=${c.effectiveThreshold}/${c.effectiveThresholdSource} calibration=${c.modelLevel}/${c.status} jurisdiction=${row.jurisdictionReview.evidenceTier}/${row.jurisdictionReview.confidence} contextBlockers=${row.contextReview.blockers.length} shock=${row.candidate.shockDrawdownPct ?? "?"}% rel=${row.candidate.relativeShockDrawdownPct ?? "?"}% ${row.candidate.priceState} notify=${row.decision.eligible}`);
+    console.log(`  ${row.market}/${row.jurisdictionReview.country ?? "?"}/${row.contextReview.incidentCountry ?? "?"} ${row.candidate.code ?? "-"} ${row.candidate.company}: global=${totalShockScore(row.candidate.scores)}/20 local=${row.localOpportunityScore.toFixed(2)}/20 threshold=${c.effectiveThreshold}/${c.effectiveThresholdSource} calibration=${c.modelLevel}/${c.status} reactionStart=${row.priceReactionStartDate} jurisdiction=${row.jurisdictionReview.evidenceTier}/${row.jurisdictionReview.confidence} contextBlockers=${row.contextReview.blockers.length} shock=${row.candidate.shockDrawdownPct ?? "?"}% rel=${row.candidate.relativeShockDrawdownPct ?? "?"}% ${row.candidate.priceState} notify=${row.decision.eligible}`);
   }
 }
 
