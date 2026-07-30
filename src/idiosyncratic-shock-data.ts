@@ -17,8 +17,13 @@ import {
 import type { ShockMarket } from "./idiosyncratic-shock-market.js";
 import type {
   ShockConfounderStatus,
+  ShockDisclosureObservability,
+  ShockIncidentClusterStatus,
   ShockIncidentScope,
   ShockInformationLeakStatus,
+  ShockLiquidityStatus,
+  ShockListingStructure,
+  ShockOwnershipControl,
   ShockRecurrenceStatus,
   ShockRemediationStatus,
   ShockStakeholder,
@@ -70,6 +75,11 @@ export type ActiveShockConfig = {
     informationLeakStatus?: ShockInformationLeakStatus | null;
     recurrenceStatus?: ShockRecurrenceStatus | null;
     remediationStatus?: ShockRemediationStatus | null;
+    listingStructure?: ShockListingStructure | null;
+    ownershipControl?: ShockOwnershipControl | null;
+    liquidityStatus?: ShockLiquidityStatus | null;
+    incidentClusterStatus?: ShockIncidentClusterStatus | null;
+    disclosureObservability?: ShockDisclosureObservability | null;
     incidentRevenueExposurePct?: number | null;
     estimatedDirectCostPctMarketCap?: number | null;
     industryRelativeShockDrawdownPct?: number | null;
