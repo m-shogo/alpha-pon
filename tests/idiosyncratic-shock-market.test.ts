@@ -5,6 +5,7 @@ import {
   shockMarketProfile,
   supportsAutomaticShockPrice,
 } from "../src/idiosyncratic-shock-market.js";
+import { extractExplicitUsTickerHint } from "../src/idiosyncratic-shock-us-symbol.js";
 
 assert.equal(inferShockMarket({ country: "JP", ticker: "8136" }), "JP");
 assert.equal(inferShockMarket({ country: "US", ticker: "MCD" }), "US");
@@ -25,5 +26,11 @@ assert.equal(supportsAutomaticShockPrice("JP"), true, "JPはJ-Quants providerを
 assert.equal(supportsAutomaticShockPrice("US"), true, "USはTwelve Data providerを実装済み");
 assert.equal(shockMarketProfile("US").automaticPriceProvider, "twelve_data");
 assert.equal(supportsAutomaticShockPrice("EUROPE"), false, "欧州はprice provider導入までfail-closed");
+
+assert.equal(extractExplicitUsTickerHint("McDonald's (NYSE: MCD) CEO resigns"), "MCD");
+assert.equal(extractExplicitUsTickerHint("Company update NASDAQ: INTC after investigation"), "INTC");
+assert.equal(extractExplicitUsTickerHint("Why $EBAY moved after executive news"), "EBAY");
+assert.equal(extractExplicitUsTickerHint("SEC investigates CEO conduct"), null, "SECをtickerとして誤抽出しない");
+assert.equal(extractExplicitUsTickerHint("McDonald's CEO resigns"), null, "社名だけからtickerを推測しない");
 
 console.log("idiosyncratic-shock-market tests: OK");
