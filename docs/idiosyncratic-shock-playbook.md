@@ -94,19 +94,24 @@ KDDI/BIGLOBE 2026のように行為者が少人数でも、架空取引が財務
 2. `evidenceStatus = confirmed`
 3. `investigationStatus` が `substantially_complete` / `closed` / `not_applicable` のいずれか
 4. マクロ要因が主因ではない
-5. `priceState = stabilized_after_drop`
-6. `accountingIntegrity > 0`
-7. 重大な未解決の上場廃止/免許取消リスクがない
-8. 一次情報または複数の信頼できる報道で事件の範囲を確認済み
+5. **事件前終値から事件後安値まで最低5%以上下落している (`shockDrawdownPct <= -5`)**
+6. `priceState = stabilized_after_drop`
+7. `accountingIntegrity > 0`
+8. 重大な未解決の上場廃止/免許取消リスクがない
+9. 一次情報または複数の信頼できる報道で事件の範囲を確認済み
 
 `investigationStatus = open / unknown` は fail-closed。事件自体が事実でも、第三者委員会・当局・会社調査が継続中なら、後から組織問題・会計問題へ広がる可能性があるため通知しない。
+
+`shockDrawdownPct` が不明、または -5%より浅い場合もfail-closed。単なる横ばい株が5営業日静かだっただけで「下落一巡」と誤認しない。
 
 通知文には必ず「調査候補 / 売買推奨ではない」を入れる。
 
 ## 「落ち着いた」の定義
 
-単純に反発しただけでは買い場とみなさない。J-Quantsが利用可能な日本株では次を観察する。
+単純に反発しただけでは買い場とみなさない。**実際のショック下落**と**その後の沈静化**を別々に確認する。
 
+- event前営業日の終値を基準にevent後安値までの下落率を計測
+- 最低5%以上の下落が実際にあったことを確認
 - イベント後の安値から数営業日、新安値を更新していない
 - 5日リターンが極端なマイナスではない
 - 日次の値幅がまだ極端に大きくない
@@ -114,6 +119,8 @@ KDDI/BIGLOBE 2026のように行為者が少人数でも、架空取引が財務
 - 急反発しすぎた場合は `rebounded_too_fast` として通知を抑制
 
 サンリオのように「問題確認後に既に大きく戻った」ケースは、スコアが高くても追いかけない。
+
+価格データが契約プラン等で遅延している場合は、非公式価格ソースを勝手に混ぜず `unknown` として通知しない。必要なら短期の手動overrideを使うが、`priceStateOverride` と `shockDrawdownPctOverride` の両方を確認する。
 
 ## 過去事例DBの使い方
 
@@ -180,6 +187,11 @@ CEO/役員の個人的問題。後継がいて財務/顧客需要が無傷。
 
 例: Olympus、東芝、Wells Fargo、Suruga Bank、Luckin Coffee、KDDI/BIGLOBE 2026、エア・ウォーター 2026。
 
+### F. 顧客接点の個人犯罪型
+行為者は一人でも、金融・介護・医療など信頼を売る事業ではオペレーション変更や顧客不安へ波及する。
+
+例: 野村證券 2024。会計が無傷でも `businessImpactContainment` / `brandResilience` を満点にしない。
+
 ## 12点閾値の定量検証
 
 12点は**運用開始時の仮説**であり、固定の真理ではない。
@@ -221,11 +233,12 @@ pnpm backfill:shock-outcomes:write
 5. review queueへ入れる
 6. 一次情報を確認し、調査範囲を `investigationStatus` で記録
 7. 10項目を 0/1/2 で採点
-8. 過去事例上位を類似表示
-9. 株価急落中・調査継続中は待つ
-10. `stabilized_after_drop` になった時点で再採点
-11. 12点以上 + 全ハードゲート通過なら LINE 通知
-12. 過去ケースの将来リターンをbackfillし、閾値自体を継続検証
+8. 事件前→事件後安値の `shockDrawdownPct` を確認
+9. 過去事例上位を類似表示
+10. 株価急落中・調査継続中は待つ
+11. `stabilized_after_drop` になった時点で再採点
+12. 12点以上 + 全ハードゲート通過なら LINE 通知
+13. 過去ケースの将来リターンをbackfillし、閾値自体を継続検証
 
 ### daily系コマンド
 
@@ -243,6 +256,7 @@ pnpm backfill:shock-outcomes:write
 - 「不祥事だから反発する」と決めつけない
 - 会社発表前のSNSだけで12点通知しない
 - 調査継続中に範囲を決め打ちしない
+- そもそも下落していない株を「下落一巡」と判定しない
 - 粉飾を個人スキャンダルと同列に扱わない
 - 少人数起因という理由だけで会計訂正を軽視しない
 - 急落初日に底値と断定しない
