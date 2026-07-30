@@ -1,10 +1,12 @@
 // 企業固有ショック通知。
-// report:shocks が出した eligible=true の候補だけを、イベント状態ごとに1回通知する。
+// report:shocks が出した eligible=true の候補でも、事件帰属contextが未解決なら通知しない。
 // pnpm notify:shocks
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { sendPipelineSummaryNotification } from "./notify.js";
 import type { ShockCandidate, ShockNotificationDecision } from "./idiosyncratic-shock.js";
+import { loadActiveShockConfig } from "./idiosyncratic-shock-data.js";
+import { buildShockContextReview, type ShockContextReview } from "./idiosyncratic-shock-context.js";
 
 type WatchRow = {
   candidate: ShockCandidate;
@@ -34,6 +36,8 @@ type WatchRow = {
   }>;
 };
 
+type NotifyRow = WatchRow & { contextReview: ShockContextReview };
+
 type WatchReport = {
   generatedAt: string;
   candidates: WatchRow[];
@@ -56,7 +60,7 @@ function loadState(): NotifyState {
   }
 }
 
-function notificationKey(row: WatchRow): string {
+function notificationKey(row: NotifyRow): string {
   const drawdownBucket = row.candidate.shockDrawdownPct == null
     ? "unknown"
     : Math.round(row.candidate.shockDrawdownPct).toString();
@@ -71,12 +75,14 @@ function notificationKey(row: WatchRow): string {
     row.candidate.priceState,
     row.jurisdictionReview.country ?? "unknown",
     row.jurisdictionReview.confidence,
+    row.contextReview.incidentGeography,
+    row.contextReview.confounderStatus,
     drawdownBucket,
     relativeBucket,
   ].join(":");
 }
 
-function render(row: WatchRow): string {
+function render(row: NotifyRow): string {
   const analogues = row.analogues.slice(0, 3)
     .map(item => `[${item.country}] ${item.company}(${item.score}/20, ${item.outcomePattern}, 距離${item.distance}, 国差+${item.jurisdictionPenalty})`)
     .join(" / ");
@@ -95,7 +101,10 @@ function render(row: WatchRow): string {
   return [
     "🔎 企業固有ショック 調査候補",
     `${row.candidate.code ?? "-"} ${row.candidate.company}  ${row.decision.score}/20`,
-    `市場/国: ${row.market} / ${row.jurisdictionReview.country ?? "unknown"} (${row.jurisdictionReview.group})`,
+    `市場/本社国: ${row.market} / ${row.jurisdictionReview.country ?? "unknown"} (${row.jurisdictionReview.group})`,
+    `事件国: ${row.contextReview.incidentCountry ?? "unknown"} / geography=${row.contextReview.incidentGeography}`,
+    `業種リスク: ${row.contextReview.sectorRiskClass} / stakeholder=${row.contextReview.stakeholder} / scope=${row.contextReview.incidentScope}`,
+    `原因帰属: ${row.contextReview.confounderStatus}`,
     `分類: ${row.candidate.category} / ${row.candidate.actorType}`,
     `国差感度: ${row.jurisdictionReview.sensitivity} / local confidence=${row.jurisdictionReview.confidence}`,
     `同国同型: ${row.jurisdictionReview.sameCountryCategoryCases}件 / 同制度群: ${row.jurisdictionReview.sameGroupCategoryCases}件 / 世界: ${row.jurisdictionReview.globalCategoryCases}件`,
@@ -106,8 +115,8 @@ function render(row: WatchRow): string {
     `類似過去: ${analogues || "なし"}`,
     `事件: ${row.candidate.eventSummary}`,
     "",
-    `✅ 一次情報・調査範囲・12点以上・事件窓の実下落・${row.benchmarkLabel}超過下落・下落一巡・jurisdiction reviewの全ゲートを通過`,
-    "※買い推奨ではありません。候補発見後に決算・IR・現地制度・価格を再確認してください。",
+    `✅ 一次情報・調査範囲・12点以上・事件窓の実下落・${row.benchmarkLabel}超過下落・下落一巡・jurisdiction・原因帰属の全ゲートを通過`,
+    "※買い推奨ではありません。候補発見後に決算・IR・現地制度・同時材料・価格を再確認してください。",
   ].join("\n");
 }
 
@@ -118,7 +127,33 @@ async function main(): Promise<void> {
   }
 
   const report = JSON.parse(readFileSync(REPORT_PATH, "utf-8")) as WatchReport;
-  const eligible = report.candidates.filter(row => row.decision.eligible);
+  const active = loadActiveShockConfig();
+  const activeById = new Map(active.candidates.map(item => [item.id, item]));
+
+  const eligible: NotifyRow[] = [];
+  for (const row of report.candidates) {
+    if (!row.decision.eligible) continue;
+    const raw = activeById.get(row.candidate.id);
+    if (!raw) {
+      console.log(`企業固有ショック通知: ${row.candidate.id} active config missing -> BLOCK`);
+      continue;
+    }
+    const contextReview = buildShockContextReview({
+      issuerCountry: raw.country,
+      incidentCountry: raw.incidentCountry,
+      market: raw.market,
+      sector: raw.sector,
+      stakeholder: raw.stakeholder,
+      incidentScope: raw.incidentScope,
+      confounderStatus: raw.confounderStatus,
+    });
+    if (contextReview.blockers.length > 0) {
+      console.log(`企業固有ショック通知: ${row.candidate.id} context BLOCK (${contextReview.blockers.join("; ")})`);
+      continue;
+    }
+    eligible.push({ ...row, contextReview });
+  }
+
   if (eligible.length === 0) {
     console.log("企業固有ショック通知: 対象なし");
     return;
