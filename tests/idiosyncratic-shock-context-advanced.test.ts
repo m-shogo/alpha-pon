@@ -1,6 +1,63 @@
 import assert from "node:assert/strict";
 import { buildShockContextReview, contextAnalogyPenalty } from "../src/idiosyncratic-shock-context.js";
 
+const afterCloseMissingAnchor = buildShockContextReview({
+  issuerCountry: "JP",
+  incidentCountry: "JP",
+  market: "JP",
+  announcementTiming: "after_close",
+  confounderStatus: "clear",
+  informationLeakStatus: "clear",
+  recurrenceStatus: "first_known",
+  remediationStatus: "credible",
+});
+assert.ok(
+  afterCloseMissingAnchor.blockers.some(value => value.includes("priceReactionStartDate is required")),
+  "引け後発表は次の取引日anchorを明示するまでBLOCK",
+);
+
+const afterCloseAnchored = buildShockContextReview({
+  issuerCountry: "JP",
+  incidentCountry: "JP",
+  market: "JP",
+  announcementTiming: "after_close",
+  priceReactionStartDate: "2026-08-03",
+  confounderStatus: "clear",
+  informationLeakStatus: "clear",
+  recurrenceStatus: "first_known",
+  remediationStatus: "credible",
+});
+assert.equal(
+  afterCloseAnchored.blockers.some(value => value.includes("priceReactionStartDate")),
+  false,
+  "有効な次セッションanchorがあればtiming理由ではBLOCKしない",
+);
+assert.equal(afterCloseAnchored.priceReactionStartDate, "2026-08-03");
+
+const invalidAnchor = buildShockContextReview({
+  issuerCountry: "US",
+  incidentCountry: "US",
+  market: "US",
+  announcementTiming: "after_close",
+  priceReactionStartDate: "08/03/2026",
+  confounderStatus: "clear",
+  informationLeakStatus: "clear",
+  recurrenceStatus: "first_known",
+  remediationStatus: "credible",
+});
+assert.ok(invalidAnchor.blockers.some(value => value.includes("expected YYYY-MM-DD")), "reaction anchor形式を固定");
+
+const unknownTiming = buildShockContextReview({
+  issuerCountry: "US",
+  incidentCountry: "US",
+  market: "US",
+  confounderStatus: "clear",
+  informationLeakStatus: "clear",
+  recurrenceStatus: "first_known",
+  remediationStatus: "credible",
+});
+assert.ok(unknownTiming.reviewNotes.some(value => value.includes("寄り前/場中/引け後/休場日")), "timing不明はreviewへ残す");
+
 const halted = buildShockContextReview({
   issuerCountry: "US",
   incidentCountry: "US",
