@@ -4,6 +4,7 @@
 import { mkdirSync, writeFileSync } from "fs";
 import { addDaysJst, daysSinceJst, todayJst } from "./date.js";
 import { fetchDailyQuotes, isJQuantsConfigured } from "./fetcher/jquants.js";
+import { fetchTwelveDataDailyQuotes, isTwelveDataConfigured } from "./fetcher/twelve-data.js";
 import {
   DEFAULT_SHOCK_WINDOW_DAYS,
   buildNotificationDecision,
@@ -26,17 +27,21 @@ import {
 } from "./idiosyncratic-shock-market.js";
 
 const MARKET_BENCHMARK_CODE = process.env.MARKET_BENCHMARK_CODE ?? "1306";
+const US_MARKET_BENCHMARK_SYMBOL = process.env.US_MARKET_BENCHMARK_SYMBOL ?? "SPY";
+
 type ActiveConfigCandidate = ReturnType<typeof loadActiveShockConfig>["candidates"][number] & {
   market?: ShockMarket;
   symbol?: string | null;
   relativeShockDrawdownPctOverride?: number | null;
 };
 
+type PriceSource = "jquants" | "twelve_data" | "manual_override" | "missing";
+
 type EvaluatedCandidate = {
   candidate: ShockCandidate;
   market: ShockMarket;
   benchmarkLabel: string;
-  priceSource: "jquants" | "manual_override" | "missing";
+  priceSource: PriceSource;
   priceAsOf: string | null;
   decision: ReturnType<typeof buildNotificationDecision>;
   analogues: Array<{
@@ -66,18 +71,16 @@ async function resolvePriceState(raw: ActiveConfigCandidate): Promise<{
   state: ShockPriceState;
   shockDrawdownPct: number | null;
   relativeShockDrawdownPct: number | null;
-  source: "jquants" | "manual_override" | "missing";
+  source: PriceSource;
   asOf: string | null;
 }> {
   const today = todayJst();
   const market = inferShockMarket({ market: raw.market, code: raw.code, ticker: raw.symbol });
+  const fromDate = addDaysJst(raw.detectedAt, -10);
+  const shockWindowEnd = addDaysJst(raw.detectedAt, DEFAULT_SHOCK_WINDOW_DAYS);
 
-  // 自動価格providerは市場ごとに明示的に許可する。現在はJP/J-Quantsのみ。
   if (market === "JP" && supportsAutomaticShockPrice(market) && raw.code && isJQuantsConfigured()) {
     try {
-      // event直後だけをショック窓とし、数か月後の別理由の安値を事件下落へ混ぜない。
-      const fromDate = addDaysJst(raw.detectedAt, -10);
-      const shockWindowEnd = addDaysJst(raw.detectedAt, DEFAULT_SHOCK_WINDOW_DAYS);
       const quotes = await fetchDailyQuotes(raw.code, fromDate.replaceAll("-", ""), today.replaceAll("-", ""));
       const benchmarkQuotes = await fetchDailyQuotes(
         MARKET_BENCHMARK_CODE,
@@ -106,14 +109,48 @@ async function resolvePriceState(raw: ActiveConfigCandidate): Promise<{
       if (latest) {
         const latestDate = normalizeDate(latest.Date);
         const age = daysSinceJst(latestDate);
-        // J-Quantsの契約プラン等でデータが遅延している場合は底打ち判定に使わない。
         if (age !== null && age >= 0 && age <= 5) {
           const state = inferPriceState(observations);
           return { state, shockDrawdownPct, relativeShockDrawdownPct, source: "jquants", asOf: latestDate };
         }
       }
     } catch (error) {
-      console.warn(`shock price fetch failed ${raw.code}: ${error instanceof Error ? error.message : String(error)}`);
+      console.warn(`shock JP price fetch failed ${raw.code}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  if (market === "US" && supportsAutomaticShockPrice(market) && raw.symbol && isTwelveDataConfigured()) {
+    try {
+      const quotes = await fetchTwelveDataDailyQuotes(raw.symbol, fromDate, today);
+      const benchmarkQuotes = await fetchTwelveDataDailyQuotes(US_MARKET_BENCHMARK_SYMBOL, fromDate, shockWindowEnd);
+      const observations = quotes.map(row => ({
+        date: normalizeDate(row.Date),
+        close: row.AdjustmentClose,
+        volume: row.AdjustmentVolume,
+      }));
+      const benchmarkObservations = benchmarkQuotes.map(row => ({
+        date: normalizeDate(row.Date),
+        close: row.AdjustmentClose,
+        volume: row.AdjustmentVolume,
+      }));
+      const shockDrawdownPct = calculateShockDrawdownPct(observations, raw.detectedAt, shockWindowEnd);
+      const relativeShockDrawdownPct = calculateRelativeShockDrawdownPct(
+        observations,
+        benchmarkObservations,
+        raw.detectedAt,
+        shockWindowEnd,
+      );
+      const latest = quotes.at(-1);
+      if (latest) {
+        const latestDate = normalizeDate(latest.Date);
+        const age = daysSinceJst(latestDate);
+        if (age !== null && age >= 0 && age <= 5) {
+          const state = inferPriceState(observations);
+          return { state, shockDrawdownPct, relativeShockDrawdownPct, source: "twelve_data", asOf: latestDate };
+        }
+      }
+    } catch (error) {
+      console.warn(`shock US price fetch failed ${raw.symbol}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -132,6 +169,7 @@ async function resolvePriceState(raw: ActiveConfigCandidate): Promise<{
       };
     }
   }
+
   return {
     state: "unknown",
     shockDrawdownPct: null,
@@ -207,7 +245,7 @@ function renderMarkdown(date: string, evaluated: EvaluatedCandidate[], historica
     `生成日: ${date}`,
     "",
     "> 12点以上は必要条件であり十分条件ではありません。一次情報 + 調査範囲確定 + event窓の実下落 + 現地市場benchmark超過下落 + 下落一巡を必須にします。",
-    "> 売買推奨ではありません。地合いだけの下落、急落中、急反発中、調査継続中は待ちます。海外市場は価格provider未設定ならfail-closedです。",
+    "> 売買推奨ではありません。地合いだけの下落、急落中、急反発中、調査継続中は待ちます。市場別providerが未設定ならfail-closedです。",
     "",
     "## 現在の監視候補",
     "",
@@ -249,7 +287,8 @@ function renderMarkdown(date: string, evaluated: EvaluatedCandidate[], historica
   lines.push("", "## 読み方", "");
   lines.push(`- event後${DEFAULT_SHOCK_WINDOW_DAYS}日以内の下落だけをshockとして測り、数か月後の別材料下落を混ぜません。`);
   lines.push("- 絶対下落に加えて現地市場benchmark比の超過下落も必要なので、地合いだけの下げを除外します。");
-  lines.push("- JPはJ-Quants + TOPIX。海外は市場別価格providerが未設定なら自動通知しません。");
+  lines.push(`- JPはJ-Quants + TOPIX (${MARKET_BENCHMARK_CODE})。USはTwelve Data + S&P 500 proxy (${US_MARKET_BENCHMARK_SYMBOL})。`);
+  lines.push("- provider/API keyが未設定なら価格はunknownとなり、自動通知しません。");
   lines.push("- 高得点でも priceState が falling / volatile / rebounded_too_fast なら通知しません。");
   lines.push("- investigationStatus が open / unknown の間は通知しません。範囲拡大を待ちます。");
   lines.push("- accountingIntegrity=0 は12点以上でも強制ブロックです。");
@@ -269,6 +308,7 @@ async function main(): Promise<void> {
   const payload = {
     generatedAt: date,
     marketBenchmarkCode: MARKET_BENCHMARK_CODE,
+    usMarketBenchmarkSymbol: US_MARKET_BENCHMARK_SYMBOL,
     marketAware: true,
     shockWindowDays: DEFAULT_SHOCK_WINDOW_DAYS,
     historicalCaseCount: historical.length,
@@ -280,7 +320,7 @@ async function main(): Promise<void> {
   writeFileSync("reports/idiosyncratic_shock_watch_latest.md", renderMarkdown(date, evaluated, historical), "utf-8");
   console.log(`企業固有ショック watch: active=${evaluated.length} historical=${historical.length}`);
   for (const row of evaluated) {
-    console.log(`  ${row.market} ${row.candidate.code ?? "-"} ${row.candidate.company}: ${totalShockScore(row.candidate.scores)}/20 shock=${row.candidate.shockDrawdownPct ?? "?"}% rel=${row.candidate.relativeShockDrawdownPct ?? "?"}% ${row.candidate.priceState} investigation=${row.candidate.investigationStatus ?? "unknown"} notify=${row.decision.eligible}`);
+    console.log(`  ${row.market} ${row.candidate.code ?? "-"} ${row.candidate.company}: ${totalShockScore(row.candidate.scores)}/20 shock=${row.candidate.shockDrawdownPct ?? "?"}% rel=${row.candidate.relativeShockDrawdownPct ?? "?"}% ${row.candidate.priceState} source=${row.priceSource} investigation=${row.candidate.investigationStatus ?? "unknown"} notify=${row.decision.eligible}`);
   }
 }
 
