@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   buildNotificationDecision,
+  calculateRelativeShockDrawdownPct,
   calculateShockDrawdownPct,
   findClosestHistoricalCases,
   inferPriceState,
@@ -46,12 +47,13 @@ const base: ShockCandidate = {
   investigationStatus: "not_applicable",
   priceState: "stabilized_after_drop",
   shockDrawdownPct: -10,
+  relativeShockDrawdownPct: -7,
   scores: scores(),
   criticalLicenseOrDelistingRisk: false,
   sources: [{ title: "company", url: "https://example.com", sourceType: "company" }],
 };
 
-assert.equal(buildNotificationDecision(base).eligible, true, "高得点 + 一次情報 + 調査範囲確定 + 実下落 + 下落一巡なら通知候補");
+assert.equal(buildNotificationDecision(base).eligible, true, "高得点 + 一次情報 + 調査範囲確定 + 実下落 + TOPIX超過下落 + 下落一巡なら通知候補");
 
 const noShock = buildNotificationDecision({ ...base, shockDrawdownPct: -1 });
 assert.equal(noShock.eligible, false, "下落していない横ばい案件は通知禁止");
@@ -60,6 +62,14 @@ assert(noShock.blockers.some(value => value.startsWith("shockDrawdownPct=")));
 const shockUnknown = buildNotificationDecision({ ...base, shockDrawdownPct: null });
 assert.equal(shockUnknown.eligible, false, "ショック下落率不明はfail-closed");
 assert(shockUnknown.blockers.includes("shockDrawdownPct is missing"));
+
+const marketOnlyDrop = buildNotificationDecision({ ...base, shockDrawdownPct: -8, relativeShockDrawdownPct: -1 });
+assert.equal(marketOnlyDrop.eligible, false, "市場全体と同程度の下落は企業固有ショック通知にしない");
+assert(marketOnlyDrop.blockers.some(value => value.startsWith("relativeShockDrawdownPct=")));
+
+const relativeUnknown = buildNotificationDecision({ ...base, relativeShockDrawdownPct: null });
+assert.equal(relativeUnknown.eligible, false, "TOPIX相対ショック不明はfail-closed");
+assert(relativeUnknown.blockers.includes("relativeShockDrawdownPct is missing"));
 
 const investigationOpen = buildNotificationDecision({ ...base, investigationStatus: "open" });
 assert.equal(investigationOpen.eligible, false, "調査継続中は12点以上でも通知禁止");
@@ -104,12 +114,22 @@ const mediaTwo = buildNotificationDecision({
 });
 assert.equal(mediaTwo.eligible, true, "独立major media 2件なら証拠ゲートを満たせる");
 
-assert.equal(calculateShockDrawdownPct([
+const stockShock = [
   { date: "2026-06-30", close: 100 },
   { date: "2026-07-01", close: 95 },
   { date: "2026-07-02", close: 90 },
   { date: "2026-07-03", close: 93 },
-], "2026-07-01"), -10, "事件前価格からevent後安値までをショック下落率にする");
+  { date: "2026-08-15", close: 60 },
+];
+const marketShock = [
+  { date: "2026-06-30", close: 100 },
+  { date: "2026-07-01", close: 98 },
+  { date: "2026-07-02", close: 97 },
+  { date: "2026-07-03", close: 99 },
+];
+assert.equal(calculateShockDrawdownPct(stockShock, "2026-07-01", "2026-07-20"), -10, "event窓内の安値だけをショック下落率にする");
+assert.equal(calculateShockDrawdownPct(stockShock, "2026-07-01"), -40, "窓なしなら後日の安値も含むことを明示");
+assert.equal(calculateRelativeShockDrawdownPct(stockShock, marketShock, "2026-07-01", "2026-07-20"), -7, "TOPIX下落を差し引いた企業固有ショックを計測");
 assert.equal(calculateShockDrawdownPct([
   { date: "2026-07-01", close: 95 },
   { date: "2026-07-02", close: 90 },
@@ -140,7 +160,7 @@ assert.equal(inferPriceState([
 ]), "rebounded_too_fast", "急反発は追いかけない");
 
 const historical = loadHistoricalShockCases();
-assert(historical.length >= 55, `過去事例は55件以上必要: ${historical.length}`);
+assert(historical.length >= 59, `過去事例は59件以上必要: ${historical.length}`);
 assert.equal(new Set(historical.map(item => item.id)).size, historical.length, "historical idは重複禁止");
 assert(historical.some(item => item.category === "employee_sabotage"), "バイトテロ事例が必要");
 assert(historical.some(item => item.category === "customer_sabotage"), "顧客迷惑動画事例が必要");
@@ -194,6 +214,15 @@ const mitsubishi = historical.find(item => item.id === "mitsubishi-electric-2021
 assert((mitsubishi?.score ?? 99) < 8, "全社品質不正へ拡大した三菱電機はavoid帯");
 const toyo = historical.find(item => item.id === "toyo-tire-2015-seismic-rubber");
 assert((toyo?.score ?? 99) < 8, "認定・製品交換へ直結するTOYO TIREはavoid帯");
+
+const mufg = historical.find(item => item.id === "mufg-2024-safe-deposit-theft");
+assert((mufg?.score ?? 0) >= 12 && (mufg?.score ?? 99) < 16, "MUFG貸金庫は個人犯罪でも銀行信頼へ波及するwatch帯");
+const daiichi = historical.find(item => item.id === "daiichi-life-2020-former-employee-fraud");
+assert((daiichi?.score ?? 99) < 8, "第一生命は企業風土まで広がったためavoid帯");
+const kepco = historical.find(item => item.id === "kansai-electric-2019-gifts");
+assert((kepco?.score ?? 99) < 8, "関西電力の多数金品受領は組織ガバナンス型");
+const smfg = historical.find(item => item.id === "smfg-2022-nikko-market-manipulation");
+assert((smfg?.score ?? 99) < 8, "SMBC日興の法人起訴・行政処分は組織型");
 
 const sanrio = historical.find(item => item.id === "sanrio-2026-compensation");
 assert(sanrio, "サンリオ現行ケースを過去/進行事例DBに保持");
