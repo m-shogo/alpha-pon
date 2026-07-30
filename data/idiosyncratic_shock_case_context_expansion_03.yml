@@ -1,0 +1,24 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "provider-independent eligibility research batch 3。checkpoint時点で明確なopen investigation blockerを確認したケース。base/他expansionとID重複禁止。"
+cases:
+  daiichikosho-2018-big-echo-video:
+    incidentCountry: JP
+    sector: karaoke_food_service
+    stakeholder: employee
+    incidentScope: site
+    confounderStatus: possible
+    strategyEligibilityAtCheckpoint: confirmed_block
+    strategyInvestigationStatusAtCheckpoint: open
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityNotes: "historical checkpoint=2019-02-08時点でも、第一興商は警察へ被害届提出後の捜査に協力中で、事件は依然として警察捜査中と複数報道が会社説明を引用している。現行hard gateはopen investigationを許容しないため、score=15でも価格signal探索へ進めずBLOCK。2月の再拡散自体も新たな風評要因となるためconfounder=possible。"
+    strategyEligibilityEvidenceSources:
+      - title: "唐揚げを床に……ビッグエコー店員の不適切動画“再炎上” 第一興商、改めて謝罪"
+        url: "https://www.itmedia.co.jp/news/spv/1902/08/news071.html"
+        sourceType: major_media
+        publishedAt: "2019-02-08"
+      - title: "カラオケ店員？不適切動画が炎上→でも実は... 運営会社も困惑"
+        url: "https://www.j-cast.com/2019/02/07349837.html"
+        sourceType: major_media
+        publishedAt: "2019-02-07"
+    notes: "元の2018年12月事案が2019年2月に再拡散。『局所従業員型だからPASS』ではなく、checkpoint時点の捜査継続を優先してfail-closedにする例。"
