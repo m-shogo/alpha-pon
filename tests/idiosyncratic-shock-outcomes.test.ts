@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { labelShockScore, type HistoricalShockCase } from "../src/idiosyncratic-shock.js";
-import { resolveHistoricalStrategyEligibility } from "../src/idiosyncratic-shock-case-context.js";
+import {
+  isTrustedHistoricalPrimarySource,
+  resolveHistoricalStrategyEligibility,
+} from "../src/idiosyncratic-shock-case-context.js";
 import {
   buildShockHistoricalOutcome,
   calibrateShockThresholds,
@@ -52,6 +55,21 @@ assert.equal(resolveHistoricalStrategyEligibility(strongCase), "unknown", "高sc
 assert.equal(resolveHistoricalStrategyEligibility(strongCase, { strategyEligibilityAtCheckpoint: "confirmed_pass" }), "unknown", "文字だけconfirmed_passでもstructured evidence不足ならPASSしない");
 assert.equal(resolveHistoricalStrategyEligibility(strongCase, verifiedPassContext), "confirmed_pass");
 assert.equal(resolveHistoricalStrategyEligibility(strongCase, { strategyEligibilityAtCheckpoint: "confirmed_block" }), "confirmed_block");
+
+assert.equal(isTrustedHistoricalPrimarySource({ title: "JPX", url: "https://www2.jpx.co.jp/disc/81360/example.pdf", sourceType: "exchange" }), true);
+assert.equal(isTrustedHistoricalPrimarySource({ title: "SEC", url: "https://www.sec.gov/Archives/example.htm", sourceType: "regulator" }), true);
+assert.equal(isTrustedHistoricalPrimarySource({ title: "bad metadata", url: "https://minkabu.jp/stock/8136/news/example", sourceType: "exchange" }), false, "aggregatorをexchangeと誤記してもprimary扱いしない");
+const mislabeledAggregatorCase: HistoricalShockCase = {
+  ...strongCase,
+  id: "fixture-mislabeled-source",
+  sources: [{ title: "aggregator", url: "https://minkabu.jp/stock/9999/news/example", sourceType: "exchange" }],
+};
+assert.equal(resolveHistoricalStrategyEligibility(mislabeledAggregatorCase, verifiedPassContext), "unknown", "mislabeled aggregatorだけではconfirmed_passにしない");
+assert.equal(resolveHistoricalStrategyEligibility(mislabeledAggregatorCase, {
+  ...verifiedPassContext,
+  strategyEligibilityEvidenceSources: [{ title: "JPX", url: "https://www2.jpx.co.jp/disc/99990/example.pdf", sourceType: "exchange" }],
+}), "confirmed_pass", "trusted primary evidenceをsidecarで補えばPASS可能");
+
 const lowScoreCase: HistoricalShockCase = { ...strongCase, id: "fixture-low-score", score: 11, label: labelShockScore(11) };
 assert.equal(resolveHistoricalStrategyEligibility(lowScoreCase, verifiedPassContext), "confirmed_block", "score<12は手動PASSでも確定BLOCK");
 const accountingBlockCase: HistoricalShockCase = {
