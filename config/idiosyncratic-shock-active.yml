@@ -2,6 +2,7 @@ version: 1
 description: "現在監視する企業固有ショック。手動確認したscoreと一次情報のみを置く。scannerの未確認記事はここへ自動昇格しない。"
 candidates:
   - id: sanrio-2026-compensation
+    market: JP
     code: "8136"
     company: "サンリオ"
     detectedAt: "2026-04-16"
