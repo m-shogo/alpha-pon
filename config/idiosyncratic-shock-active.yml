@@ -3,6 +3,7 @@ description: "現在監視する企業固有ショック。手動確認したsco
 candidates:
   - id: sanrio-2026-compensation
     market: JP
+    country: JP
     code: "8136"
     company: "サンリオ"
     detectedAt: "2026-04-16"
