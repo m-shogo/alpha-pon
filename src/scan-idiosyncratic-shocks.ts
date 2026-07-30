@@ -88,24 +88,20 @@ function specs(queries: string[], marketHint: ScanMarketHint): QuerySpec[] {
   }));
 }
 
-const DEFAULT_QUERY_SPECS: QuerySpec[] = [
-  ...specs(JP_QUERIES, "JP"),
-  ...specs(US_QUERIES, "US"),
-];
-
 function configuredSpecs(): QuerySpec[] {
-  const jp = (process.env.IDIOSYNCRATIC_SHOCK_QUERIES ?? "")
+  const jpOverride = (process.env.IDIOSYNCRATIC_SHOCK_QUERIES ?? "")
     .split("|")
     .map(value => value.trim())
     .filter(Boolean);
-  const us = (process.env.IDIOSYNCRATIC_SHOCK_US_QUERIES ?? "")
+  const usOverride = (process.env.IDIOSYNCRATIC_SHOCK_US_QUERIES ?? "")
     .split("|")
     .map(value => value.trim())
     .filter(Boolean);
-  if (jp.length === 0 && us.length === 0) return DEFAULT_QUERY_SPECS;
+  const jpQueries = jpOverride.length > 0 ? jpOverride : JP_QUERIES;
+  const usQueries = usOverride.length > 0 ? usOverride : US_QUERIES;
   return [
-    ...specs(jp, "JP"),
-    ...specs(us, "US"),
+    ...specs(jpQueries, "JP"),
+    ...specs(usQueries, "US"),
   ];
 }
 
