@@ -29,6 +29,10 @@ import {
   buildShockJurisdictionReview,
   type ShockJurisdictionReview,
 } from "./idiosyncratic-shock-jurisdiction.js";
+import {
+  buildShockContextReview,
+  type ShockContextReview,
+} from "./idiosyncratic-shock-context.js";
 
 const MARKET_BENCHMARK_CODE = process.env.MARKET_BENCHMARK_CODE ?? "1306";
 const US_MARKET_BENCHMARK_SYMBOL = process.env.US_MARKET_BENCHMARK_SYMBOL ?? "SPY";
@@ -43,6 +47,7 @@ type EvaluatedCandidate = {
   priceSource: PriceSource;
   priceAsOf: string | null;
   jurisdictionReview: ShockJurisdictionReview;
+  contextReview: ShockContextReview;
   decision: ReturnType<typeof buildNotificationDecision>;
   analogues: Array<{
     id: string;
@@ -54,6 +59,7 @@ type EvaluatedCandidate = {
     outcomePattern: string;
     distance: number;
     jurisdictionPenalty: number;
+    temporalPenalty: number;
     lesson: string;
   }>;
 };
@@ -67,6 +73,10 @@ function priceScore(state: ShockPriceState): 0 | 1 | 2 {
   if (state === "stabilized_after_drop") return 2;
   if (state === "stabilizing") return 1;
   return 0;
+}
+
+function pctText(value: number | null | undefined): string {
+  return value == null || !Number.isFinite(value) ? "-" : `${value.toFixed(1)}%`;
 }
 
 async function resolvePriceState(raw: ActiveConfigCandidate): Promise<{
@@ -156,8 +166,6 @@ async function resolvePriceState(raw: ActiveConfigCandidate): Promise<{
     }
   }
 
-  // 海外を含む手動overrideは、絶対下落と現地benchmark相対の両方を明示したときだけ使う。
-  // relativeが無ければbuildNotificationDecision側でfail-closedする。
   if (raw.priceStateOverride && raw.priceStateCheckedAt) {
     const age = daysSinceJst(raw.priceStateCheckedAt);
     const maxAgeDays = Number(process.env.SHOCK_PRICE_OVERRIDE_MAX_AGE_DAYS ?? "3");
@@ -212,14 +220,34 @@ async function evaluate(raw: ActiveConfigCandidate, historical: HistoricalShockC
 
   const baseDecision = buildNotificationDecision(candidate);
   const jurisdictionReview = buildShockJurisdictionReview(candidate, historical);
-  const blockers = [...baseDecision.blockers, ...jurisdictionReview.blockers];
+  const contextReview = buildShockContextReview({
+    issuerCountry: raw.country,
+    incidentCountry: raw.incidentCountry,
+    market: raw.market,
+    sector: raw.sector,
+    stakeholder: raw.stakeholder,
+    incidentScope: raw.incidentScope,
+    confounderStatus: raw.confounderStatus,
+    informationLeakStatus: raw.informationLeakStatus,
+    recurrenceStatus: raw.recurrenceStatus,
+    remediationStatus: raw.remediationStatus,
+    incidentRevenueExposurePct: raw.incidentRevenueExposurePct,
+    estimatedDirectCostPctMarketCap: raw.estimatedDirectCostPctMarketCap,
+    industryRelativeShockDrawdownPct: raw.industryRelativeShockDrawdownPct,
+  });
+  const blockers = [...baseDecision.blockers, ...jurisdictionReview.blockers, ...contextReview.blockers];
   const decision = {
     ...baseDecision,
     eligible: blockers.length === 0,
     blockers,
   };
 
-  const analogues = findClosestHistoricalCases(candidate, historical, 5).map(({ item, distance, jurisdictionPenalty }) => ({
+  const analogues = findClosestHistoricalCases(candidate, historical, 5).map(({
+    item,
+    distance,
+    jurisdictionPenalty,
+    temporalPenalty,
+  }) => ({
     id: item.id,
     company: item.company,
     country: item.country,
@@ -229,6 +257,7 @@ async function evaluate(raw: ActiveConfigCandidate, historical: HistoricalShockC
     outcomePattern: item.outcome?.recoveryPattern ?? "unknown",
     distance,
     jurisdictionPenalty,
+    temporalPenalty,
     lesson: item.outcome?.summary ?? "",
   }));
   return {
@@ -238,6 +267,7 @@ async function evaluate(raw: ActiveConfigCandidate, historical: HistoricalShockC
     priceSource: resolved.source,
     priceAsOf: resolved.asOf,
     jurisdictionReview,
+    contextReview,
     decision,
     analogues,
   };
@@ -276,9 +306,9 @@ function renderMarkdown(date: string, evaluated: EvaluatedCandidate[], historica
     "",
     `生成日: ${date}`,
     "",
-    "> 20点は企業ダメージの世界共通score。国・文化差はscoreへ直接混ぜず、jurisdiction reviewと類似事例の重みで別管理します。",
-    "> 恋愛・ハラスメント・炎上・バイトテロ等のjurisdiction-sensitiveカテゴリは、同国の同カテゴリ事例が不足すると自動通知を止めます。会計・品質不正は世界共通の構造比較をより強く使います。",
-    "> 12点以上は必要条件であり十分条件ではありません。一次情報 + 調査範囲確定 + event窓の実下落 + 現地市場benchmark超過下落 + 下落一巡を必須にします。",
+    "> 20点は企業ダメージの世界共通score。国差はjurisdiction evidence pool、事件帰属はcontext reviewで別管理します。",
+    "> 本社国・事件国・上場市場・業種・被害者・再発・是正・同時材料を分離し、分からない重要軸はunknownのままWAITにします。",
+    "> 類似事例は国差だけでなく時代差も減衰させます。恋愛/炎上等は古い例を強く割り引き、会計/品質は構造比較を長く残します。",
     "",
     "## 現在の監視候補",
     "",
@@ -287,22 +317,27 @@ function renderMarkdown(date: string, evaluated: EvaluatedCandidate[], historica
   if (evaluated.length === 0) lines.push("- なし", "");
   for (const row of evaluated) {
     lines.push(`### ${row.candidate.code ?? "-"} ${row.candidate.company}`);
-    lines.push(`- market: ${row.market} / country: ${row.jurisdictionReview.country ?? "unknown"} / jurisdiction: ${row.jurisdictionReview.group} / benchmark: ${row.benchmarkLabel}`);
+    lines.push(`- market: ${row.market} / issuer country: ${row.jurisdictionReview.country ?? "unknown"} / incident country: ${row.contextReview.incidentCountry ?? "unknown"} / benchmark: ${row.benchmarkLabel}`);
     lines.push(`- score: **${row.decision.score}/20** (${row.decision.label})`);
     lines.push(`- category: ${row.candidate.category} / actor: ${row.candidate.actorType}`);
-    lines.push(`- jurisdiction sensitivity: ${row.jurisdictionReview.sensitivity} / local confidence: ${row.jurisdictionReview.confidence}`);
+    lines.push(`- jurisdiction: ${row.jurisdictionReview.group} / sensitivity=${row.jurisdictionReview.sensitivity} / local confidence=${row.jurisdictionReview.confidence} / evidence tier=${row.jurisdictionReview.evidenceTier}`);
+    lines.push(`- evidence weights: local=${row.jurisdictionReview.evidenceWeights.sameCountry}, group=${row.jurisdictionReview.evidenceWeights.sameGroup}, global=${row.jurisdictionReview.evidenceWeights.global}`);
     lines.push(`- analogue coverage: same-country/category=${row.jurisdictionReview.sameCountryCategoryCases}, same-group/category=${row.jurisdictionReview.sameGroupCategoryCases}, global/category=${row.jurisdictionReview.globalCategoryCases}`);
+    lines.push(`- incident context: geography=${row.contextReview.incidentGeography} / sectorRisk=${row.contextReview.sectorRiskClass} / stakeholder=${row.contextReview.stakeholder} / scope=${row.contextReview.incidentScope}`);
+    lines.push(`- attribution: confounder=${row.contextReview.confounderStatus} / leak=${row.contextReview.informationLeakStatus} / recurrence=${row.contextReview.recurrenceStatus} / remediation=${row.contextReview.remediationStatus}`);
+    lines.push(`- exposure: incident-region revenue=${pctText(row.contextReview.incidentRevenueExposurePct)} / direct-cost-to-market-cap=${pctText(row.contextReview.estimatedDirectCostPctMarketCap)} / industry-relative=${pctText(row.contextReview.industryRelativeShockDrawdownPct)}`);
+    if (row.contextReview.reviewNotes.length > 0) lines.push(`- context notes: ${row.contextReview.reviewNotes.join(" / ")}`);
     lines.push(`- local review axes: ${row.jurisdictionReview.reviewAxes.join(" / ")}`);
     lines.push(`- evidence: ${row.candidate.evidenceStatus} / investigation: ${row.candidate.investigationStatus ?? "unknown"}`);
-    lines.push(`- shock drawdown: ${row.candidate.shockDrawdownPct == null ? "-" : `${row.candidate.shockDrawdownPct.toFixed(1)}%`}`);
-    lines.push(`- ${row.benchmarkLabel} same-day relative shock: ${row.candidate.relativeShockDrawdownPct == null ? "-" : `${row.candidate.relativeShockDrawdownPct.toFixed(1)}%`}`);
+    lines.push(`- shock drawdown: ${pctText(row.candidate.shockDrawdownPct)}`);
+    lines.push(`- ${row.benchmarkLabel} same-day relative shock: ${pctText(row.candidate.relativeShockDrawdownPct)}`);
     lines.push(`- price: ${row.candidate.priceState} / source=${row.priceSource} / asOf=${row.priceAsOf ?? "-"}`);
     lines.push(`- notification: ${row.decision.eligible ? "PASS（調査候補通知）" : "WAIT"}`);
     if (row.decision.blockers.length > 0) lines.push(`- blockers: ${row.decision.blockers.join(" / ")}`);
     lines.push(`- event: ${row.candidate.eventSummary}`);
     lines.push("- closest analogues:");
     for (const analogy of row.analogues.slice(0, 3)) {
-      lines.push(`  - [${analogy.country}] ${analogy.company} ${analogy.eventDate}: distance=${analogy.distance} (jurisdiction +${analogy.jurisdictionPenalty}), score=${analogy.score}/20, outcome=${analogy.outcomePattern}`);
+      lines.push(`  - [${analogy.country}] ${analogy.company} ${analogy.eventDate}: distance=${analogy.distance} (jurisdiction +${analogy.jurisdictionPenalty}, time +${analogy.temporalPenalty}), score=${analogy.score}/20, outcome=${analogy.outcomePattern}`);
       if (analogy.lesson) lines.push(`    - ${analogy.lesson}`);
     }
     lines.push("");
@@ -325,18 +360,17 @@ function renderMarkdown(date: string, evaluated: EvaluatedCandidate[], historica
     lines.push(`| ${stat.category} | ${stat.count} | ${stat.avgScore} | ${stat.researchPriority} | ${stat.watchOrHigher} | ${stat.failedOutcomes} |`);
   }
   lines.push("", "## 読み方", "");
-  lines.push("- 20点scoreは国別の道徳観を採点しません。企業価値への実害だけを世界共通軸で測ります。");
-  lines.push("- jurisdiction-sensitiveカテゴリは同国類似を優先し、同国事例が2件未満なら自動通知せずローカル制度/慣行レビューを要求します。");
-  lines.push("- accounting / quality / organized fraud等は国差感度を低くし、世界の構造的負例を強く参照します。");
-  lines.push(`- event後${DEFAULT_SHOCK_WINDOW_DAYS}日以内の下落だけをshockとして測り、数か月後の別材料下落を混ぜません。`);
-  lines.push("- benchmark相対は対象株のshock lowと同じ取引日を使い、benchmark自身の別日の安値を差し引きません。");
+  lines.push("- 20点scoreへ国別の道徳点を足しません。企業価値への実害は世界共通軸、jurisdiction/contextは別レイヤーです。");
+  lines.push("- evidence poolは同国→同制度圏→世界の順で借り、母数が薄いと自動通知を止めます。");
+  lines.push("- 本社国と事件国を分離します。海外子会社の事件は現地規制と本社ガバナンスを両方確認します。");
+  lines.push("- 決算・増資・M&A・訴訟等の同時材料がmajor/unknownなら、不祥事下げへ帰属せずWAITです。");
+  lines.push("- systemic recurrence / weak remediation / likely information leakは通知をBLOCKします。");
+  lines.push("- broad-market比較だけでなく、同業比較が取れる場合は企業固有shockが残ることを要求します。");
+  lines.push("- 古い文化依存事例はtemporal penaltyで順位を下げます。会計/品質等はより長く構造比較に残します。");
+  lines.push(`- event後${DEFAULT_SHOCK_WINDOW_DAYS}日以内の下落だけを初期shockとして測ります。`);
   lines.push(`- JPはJ-Quants + TOPIX (${MARKET_BENCHMARK_CODE})。USはTwelve Data + S&P 500 proxy (${US_MARKET_BENCHMARK_SYMBOL})。`);
   lines.push("- provider/API keyが未設定なら価格はunknownとなり、自動通知しません。");
-  lines.push("- 高得点でも priceState が falling / volatile / rebounded_too_fast なら通知しません。");
-  lines.push("- investigationStatus が open / unknown の間は通知しません。範囲拡大を待ちます。");
-  lines.push("- accountingIntegrity=0 は12点以上でも強制ブロックです。");
-  lines.push("- 過去outcomeは類似事例の教訓用で、当時scoreへ逆流させません。");
-  lines.push("- low confidence のseedは一次情報を追加して更新します。");
+  lines.push("- outcomeは当時scoreへ逆流させません。dataset bias自体もaudit対象です。");
   return lines.join("\n");
 }
 
@@ -354,7 +388,9 @@ async function main(): Promise<void> {
     usMarketBenchmarkSymbol: US_MARKET_BENCHMARK_SYMBOL,
     marketAware: true,
     jurisdictionAware: true,
-    jurisdictionPolicy: "global damage score + local-context review + jurisdiction-weighted analogues",
+    contextAware: true,
+    jurisdictionPolicy: "global damage score + hierarchical local-to-global evidence + temporal decay",
+    contextPolicy: "issuer/incident/market separation + sector/stakeholder/scope + causal attribution + recurrence/remediation",
     relativeShockMethod: "benchmark return on stock shock-low trading date",
     shockWindowDays: DEFAULT_SHOCK_WINDOW_DAYS,
     historicalCaseCount: historical.length,
@@ -367,7 +403,7 @@ async function main(): Promise<void> {
   writeFileSync("reports/idiosyncratic_shock_watch_latest.md", renderMarkdown(date, evaluated, historical), "utf-8");
   console.log(`企業固有ショック watch: active=${evaluated.length} historical=${historical.length}`);
   for (const row of evaluated) {
-    console.log(`  ${row.market}/${row.jurisdictionReview.country ?? "?"} ${row.candidate.code ?? "-"} ${row.candidate.company}: ${totalShockScore(row.candidate.scores)}/20 jurisdiction=${row.jurisdictionReview.sensitivity}/${row.jurisdictionReview.confidence} shock=${row.candidate.shockDrawdownPct ?? "?"}% rel=${row.candidate.relativeShockDrawdownPct ?? "?"}% ${row.candidate.priceState} source=${row.priceSource} investigation=${row.candidate.investigationStatus ?? "unknown"} notify=${row.decision.eligible}`);
+    console.log(`  ${row.market}/${row.jurisdictionReview.country ?? "?"}/${row.contextReview.incidentCountry ?? "?"} ${row.candidate.code ?? "-"} ${row.candidate.company}: ${totalShockScore(row.candidate.scores)}/20 jurisdiction=${row.jurisdictionReview.evidenceTier}/${row.jurisdictionReview.confidence} contextBlockers=${row.contextReview.blockers.length} shock=${row.candidate.shockDrawdownPct ?? "?"}% rel=${row.candidate.relativeShockDrawdownPct ?? "?"}% ${row.candidate.priceState} notify=${row.decision.eligible}`);
   }
 }
 
