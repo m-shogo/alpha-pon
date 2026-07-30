@@ -179,6 +179,33 @@ export function jurisdictionAnalogyPenalty(input: {
   return sameGroup ? 0 : 1;
 }
 
+export function temporalAnalogyPenalty(input: {
+  category: string;
+  candidateDate: string;
+  historicalDate: string;
+}): number {
+  const candidateYear = Number(input.candidateDate.slice(0, 4));
+  const historicalYear = Number(input.historicalDate.slice(0, 4));
+  if (!Number.isFinite(candidateYear) || !Number.isFinite(historicalYear)) return 0;
+  const ageYears = Math.max(0, candidateYear - historicalYear);
+  const sensitivity = shockCategoryJurisdictionSensitivity(input.category);
+
+  // 社会規範・SNS・雇用/ガバナンス慣行が効くカテゴリほど古い事例を早く陳腐化させる。
+  if (sensitivity === "high") {
+    if (ageYears >= 10) return 3;
+    if (ageYears >= 6) return 2;
+    if (ageYears >= 3) return 1;
+    return 0;
+  }
+  if (sensitivity === "medium") {
+    if (ageYears >= 12) return 2;
+    if (ageYears >= 7) return 1;
+    return 0;
+  }
+  // 会計・品質等は構造の寿命が長いが、制度・監査基準の変化はあるので永久に同価値とはしない。
+  return ageYears >= 15 ? 1 : 0;
+}
+
 export function buildShockJurisdictionReview(
   candidate: { category: string; country?: string | null; market?: string | null },
   historicalCases: Array<{ category: string; country: string }>,
