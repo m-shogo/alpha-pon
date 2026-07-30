@@ -15,12 +15,21 @@ import {
   type ShockSource,
 } from "./idiosyncratic-shock.js";
 import type { ShockMarket } from "./idiosyncratic-shock-market.js";
+import type {
+  ShockConfounderStatus,
+  ShockIncidentScope,
+  ShockStakeholder,
+} from "./idiosyncratic-shock-context.js";
 
 type CompactHistoricalCase = {
   id: string;
   company: string;
   ticker?: string | null;
   country: string;
+  incidentCountry?: string | null;
+  sector?: string | null;
+  stakeholder?: ShockStakeholder | null;
+  incidentScope?: ShockIncidentScope | null;
   eventDate: string;
   checkpoint: string;
   category: string;
@@ -50,6 +59,11 @@ export type ActiveShockConfig = {
     id: string;
     market?: ShockMarket;
     country?: string | null;
+    incidentCountry?: string | null;
+    sector?: string | null;
+    stakeholder?: ShockStakeholder | null;
+    incidentScope?: ShockIncidentScope | null;
+    confounderStatus?: ShockConfounderStatus | null;
     code?: string | null;
     symbol?: string | null;
     company: string;
