@@ -1,4 +1,5 @@
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, readdirSync } from "fs";
+import { join } from "path";
 import { load } from "js-yaml";
 import type {
   HistoricalShockCase,
@@ -189,14 +190,37 @@ type ContextFile = {
 };
 
 const DEFAULT_PATH = "data/idiosyncratic_shock_case_context.yml";
+const CONTEXT_EXPANSION_PATTERN = /^idiosyncratic_shock_case_context_expansion_\d+\.yml$/;
 
-export function loadHistoricalShockCaseContext(
-  path = DEFAULT_PATH,
-): Map<string, HistoricalShockCaseContext> {
-  if (!existsSync(path)) return new Map();
+function defaultHistoricalContextPaths(): string[] {
+  const dataDir = "data";
+  const expansions = existsSync(dataDir)
+    ? readdirSync(dataDir)
+      .filter(name => CONTEXT_EXPANSION_PATTERN.test(name))
+      .sort()
+      .map(name => join(dataDir, name))
+    : [];
+  return [DEFAULT_PATH, ...expansions].filter(existsSync);
+}
+
+function loadHistoricalContextFile(path: string): Array<[string, HistoricalShockCaseContext]> {
   const raw = load(readFileSync(path, "utf-8")) as ContextFile;
   if (!raw || typeof raw !== "object" || !raw.cases || typeof raw.cases !== "object") {
     throw new Error(`${path}: cases object is required`);
   }
-  return new Map(Object.entries(raw.cases));
+  return Object.entries(raw.cases);
+}
+
+export function loadHistoricalShockCaseContext(
+  path?: string,
+): Map<string, HistoricalShockCaseContext> {
+  const paths = path ? [path] : defaultHistoricalContextPaths();
+  const result = new Map<string, HistoricalShockCaseContext>();
+  for (const currentPath of paths) {
+    for (const [id, context] of loadHistoricalContextFile(currentPath)) {
+      if (result.has(id)) throw new Error(`duplicate historical shock context id: ${id}`);
+      result.set(id, context);
+    }
+  }
+  return result;
 }
