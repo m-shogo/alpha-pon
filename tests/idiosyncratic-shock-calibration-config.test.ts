@@ -31,7 +31,7 @@ const invalid: ShockCalibrationConfig = {
     validationThrough: "2025-12-31",
     trainCases: 30,
     validationCases: 8,
-    benchmarkMetric: "benchmarkRelative3m",
+    benchmarkMetric: "signalBenchmarkRelative3m",
     evidenceNote: "invalid overlap fixture",
   }],
 };
@@ -53,7 +53,7 @@ const registry: ShockCalibrationConfig = {
     validationThrough: "2025-12-31",
     trainCases: 22,
     validationCases: 8,
-    benchmarkMetric: "benchmarkRelative3m",
+    benchmarkMetric: "signalBenchmarkRelative3m",
     evidenceNote: "fixture validated threshold",
   }],
 };
@@ -77,19 +77,23 @@ assert.equal(findValidatedLocalThreshold(registry, {
 
 function observations(count: number, relationshipCount = 15): ShockCalibrationObservation[] {
   const group: ShockJurisdictionGroup = inferShockJurisdictionGroup({ country: "US", market: "US" });
-  return Array.from({ length: count }, (_, index) => ({
-    caseId: `us-${index}`,
-    company: `US ${index}`,
-    checkpoint: `${2018 + Math.floor(index / 6)}-${String((index % 12) + 1).padStart(2, "0")}-15`,
-    market: "US",
-    country: "US",
-    jurisdictionGroup: group,
-    category: index < relationshipCount ? "executive_relationship" : "personal_behavior",
-    score: 12 + (index % 4),
-    benchmarkRelative1m: 1,
-    benchmarkRelative3m: 2,
-    benchmarkRelative1y: 4,
-  }));
+  return Array.from({ length: count }, (_, index) => {
+    const date = `${2018 + Math.floor(index / 6)}-${String((index % 12) + 1).padStart(2, "0")}-15`;
+    return {
+      caseId: `us-${index}`,
+      company: `US ${index}`,
+      checkpoint: date,
+      signalDate: date,
+      market: "US",
+      country: "US",
+      jurisdictionGroup: group,
+      category: index < relationshipCount ? "executive_relationship" : "personal_behavior",
+      score: 12 + (index % 4),
+      benchmarkRelative1m: 1,
+      benchmarkRelative3m: 2,
+      benchmarkRelative1y: 4,
+    };
+  });
 }
 
 const resolved = resolveShockCalibration(registry, {
