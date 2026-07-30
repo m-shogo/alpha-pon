@@ -1,6 +1,6 @@
 export type ShockMarket = "JP" | "US" | "UK" | "EUROPE" | "AU" | "CA" | "OTHER";
 
-export type ShockAutomaticPriceProvider = "jquants" | "unconfigured";
+export type ShockAutomaticPriceProvider = "jquants" | "twelve_data" | "unconfigured";
 
 export type ShockMarketProfile = {
   market: ShockMarket;
@@ -22,8 +22,8 @@ export const SHOCK_MARKET_PROFILES: Record<ShockMarket, ShockMarketProfile> = {
     market: "US",
     label: "United States",
     benchmarkLabel: "S&P 500",
-    automaticPriceProvider: "unconfigured",
-    autoPriceEnabled: false,
+    automaticPriceProvider: "twelve_data",
+    autoPriceEnabled: true,
   },
   UK: {
     market: "UK",
