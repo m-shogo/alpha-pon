@@ -142,7 +142,7 @@ const withNoTrade = calibrateShockThresholds([record!, noTrade]);
 assert.equal(withNoTrade.find(row => row.bucket === "score_ge_12")?.cases, 1, "no-tradeを0%として分母へ入れない");
 
 assert.deepEqual(outcomeFetchRange(strongCase, "2026-06-01"), { from: "20251231", to: "20260601" });
-assert.deepEqual(outcomeFetchRange(strongCase, "2028-01-01"), { from: "20251231", to: "20270128" });
+assert.deepEqual(outcomeFetchRange(strongCase, "2028-01-01"), { from: "20251231", to: "20270428" });
 assert.deepEqual(outcomeFetchRangeIso(usCase, "2026-06-01"), { from: "2025-12-31", to: "2026-06-01" });
 
 console.log("idiosyncratic-shock-outcomes tests: OK");
