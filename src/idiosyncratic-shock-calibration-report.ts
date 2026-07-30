@@ -1,5 +1,6 @@
 // 国/地域別キャリブレーションの昇格準備レポート。
 // ネットワークは使わず、既存outcome + historical caseから「どの階層まで独立可能か」を可視化する。
+// Local calibrationの正本はFirst Eligible Signal後のbenchmark-relative outcome。
 // pnpm report:shock-calibration
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
@@ -44,22 +45,27 @@ function render(date: string, payload: ReturnType<typeof buildPayload>): string 
     `生成日: ${date}`,
     "",
     "> Global Structural Score（20点）は世界共通の事実評価として固定します。",
-    "> 国・地域差はoutcomeが十分に貯まり、時系列holdoutで検証できた階層だけLocal Opportunityの閾値/重みへ昇格します。",
+    "> Local Opportunityの検証は、実運用hard gateが初めて成立した First Eligible Signal 後のoutcomeだけを使います。checkpoint後リターンは診断用です。",
+    "> signalが出なかったケースはno-tradeとして残し、0%リターンを捏造してcalibration母数へ入れません。",
+    "> 国・地域差はsignal outcomeが十分に貯まり、時系列holdoutで検証できた階層だけLocal Opportunityの閾値/重みへ昇格します。",
     "> 母数不足またはregistry未登録では12点を変更せず、親モデル/globalへ縮退します。",
     "",
     `- global default threshold: ${GLOBAL_DEFAULT_SHOCK_THRESHOLD}`,
     `- validated local registry entries: ${payload.validatedRegistryCount}`,
+    `- registry benchmark metric: signalBenchmarkRelative3m`,
     `- minimum country cases: ${MIN_COUNTRY_CASES}`,
     `- minimum country-category cases: ${MIN_COUNTRY_CATEGORY_CASES}`,
     `- minimum jurisdiction-group cases: ${MIN_GROUP_CASES}`,
     `- minimum train/validation: ${MIN_TRAIN_CASES}/${MIN_VALIDATION_CASES}`,
     `- historical cases: ${payload.historicalCaseCount}`,
     `- quantitative outcome records: ${payload.outcomeRecordCount}`,
-    `- usable 3m benchmark-relative observations: ${payload.usableObservationCount}`,
+    `- records with First Eligible Signal: ${payload.signalObservationCount}`,
+    `- usable signal-based 3m benchmark-relative observations: ${payload.usableObservationCount}`,
+    `- no-trade records: ${payload.noTradeCount}`,
     "",
     "## 国別 readiness",
     "",
-    "| country | market | level | status | usable | country n | group n | train | validation | threshold | source | registry |",
+    "| country | market | level | status | usable signal 3m | country n | group n | train | validation | threshold | source | registry |",
     "|---|---|---|---|---:|---:|---:|---:|---:|---:|---|---|",
   ];
 
@@ -68,8 +74,8 @@ function render(date: string, payload: ReturnType<typeof buildPayload>): string 
     lines.push(`| ${r.country ?? "-"} | ${r.market ?? "-"} | ${r.modelLevel} | ${r.status} | ${r.usableOutcomeCases} | ${r.countryCases} | ${r.groupCases} | ${r.trainCases} | ${r.validationCases} | ${r.effectiveThreshold} | ${r.effectiveThresholdSource} | ${row.registryEntry?.id ?? "-"} |`);
   }
 
-  lines.push("", "## 国×カテゴリ readiness（outcomeが存在する組合せのみ）", "");
-  if (payload.countryCategories.length === 0) lines.push("- quantitative outcome未蓄積", "");
+  lines.push("", "## 国×カテゴリ readiness（signal outcomeが存在する組合せのみ）", "");
+  if (payload.countryCategories.length === 0) lines.push("- usable First Eligible Signal outcome未蓄積", "");
   for (const row of payload.countryCategories) {
     const r = row.readiness;
     lines.push(`### ${r.country ?? "-"} / ${r.category ?? "-"}`);
@@ -85,13 +91,15 @@ function render(date: string, payload: ReturnType<typeof buildPayload>): string 
 
   lines.push("## 昇格ルール", "");
   lines.push("1. まずGlobal Structural Scoreを共通で蓄積する。");
-  lines.push("2. 3か月benchmark相対outcomeが無い事例はlocal calibration母数に入れない。");
-  lines.push("3. country-category → country → jurisdiction-group → global の順で、時系列holdoutまで満たす最も深い階層を使う。");
-  lines.push("4. trainで閾値候補を作っても、そのまま本番へ反映しない。後ろのvalidation期間で確認する。");
-  lines.push("5. validationを通した結果を `config/idiosyncratic-shock-calibration.yml` に証跡付きで登録して初めてlocal thresholdを有効化する。");
-  lines.push("6. registryが空・不一致・古い階層なら必ずglobal default 12点へ戻す。");
-  lines.push("7. outcomeの良し悪しを過去時点の20点scoreへ書き戻さない。");
-  lines.push("8. 国別差分が本当に再現する場合だけ、Local Opportunity threshold/weightを独立させる。");
+  lines.push("2. 実運用hard gateを過去時点で再現し、First Eligible Signalが出たケースだけ戦略outcomeを作る。");
+  lines.push("3. signal後3か月benchmark相対outcome (`signalBenchmarkRelative3m`) が無い事例はlocal calibration母数に入れない。");
+  lines.push("4. signalなしケースはno-tradeとして保存し、0%リターンとして扱わない。");
+  lines.push("5. country-category → country → jurisdiction-group → global の順で、時系列holdoutまで満たす最も深い階層を使う。");
+  lines.push("6. trainで閾値候補を作っても、そのまま本番へ反映しない。後ろのvalidation期間で確認する。");
+  lines.push("7. validationを通した結果を `config/idiosyncratic-shock-calibration.yml` に証跡付きで登録して初めてlocal threshold/weightを有効化する。");
+  lines.push("8. registryが空・不一致・古い階層なら必ずglobal default 12点へ戻す。");
+  lines.push("9. outcomeの良し悪しを過去時点の20点scoreへ書き戻さない。");
+  lines.push("10. 国別差分が本当に再現する場合だけ、Local Opportunity threshold/weightを独立させる。");
   return lines.join("\n");
 }
 
@@ -100,7 +108,9 @@ function buildPayload(date: string) {
   const records = loadOutcomeRecords();
   const observations = enrichShockCalibrationObservations(records, historical);
   const calibrationConfig = loadShockCalibrationConfig();
-  const usableObservationCount = observations.filter(row => row.benchmarkRelative3m != null).length;
+  const signalObservationCount = observations.filter(row => Boolean(row.signalDate)).length;
+  const usableObservationCount = observations.filter(row => Boolean(row.signalDate) && row.benchmarkRelative3m != null && Number.isFinite(row.benchmarkRelative3m)).length;
+  const noTradeCount = Math.max(0, records.length - signalObservationCount);
 
   const countryMarket = new Map<string, ShockMarket>();
   for (const item of historical) {
@@ -116,7 +126,9 @@ function buildPayload(date: string) {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([country, market]) => resolveShockCalibration(calibrationConfig, { country, market, observations }));
 
-  const countryCategories: ResolvedRow[] = [...new Set(observations.map(row => `${row.country ?? "?"}|${row.market}|${row.category}`))]
+  const countryCategories: ResolvedRow[] = [...new Set(observations
+    .filter(row => Boolean(row.signalDate) && row.benchmarkRelative3m != null)
+    .map(row => `${row.country ?? "?"}|${row.market}|${row.category}`))]
     .map(key => {
       const [countryRaw, marketRaw, category] = key.split("|");
       return resolveShockCalibration(calibrationConfig, {
@@ -134,7 +146,9 @@ function buildPayload(date: string) {
     validatedRegistryCount: calibrationConfig.validatedLocalThresholds.length,
     historicalCaseCount: historical.length,
     outcomeRecordCount: records.length,
+    signalObservationCount,
     usableObservationCount,
+    noTradeCount,
     countries,
     countryCategories,
   };
@@ -146,7 +160,7 @@ function main(): void {
   mkdirSync("reports", { recursive: true });
   writeFileSync("reports/idiosyncratic_shock_calibration_latest.json", JSON.stringify(payload, null, 2), "utf-8");
   writeFileSync("reports/idiosyncratic_shock_calibration_latest.md", render(date, payload), "utf-8");
-  console.log(`shock calibration readiness: historical=${payload.historicalCaseCount} outcomes=${payload.outcomeRecordCount} usable3m=${payload.usableObservationCount} registry=${payload.validatedRegistryCount}`);
+  console.log(`shock calibration readiness: historical=${payload.historicalCaseCount} outcomes=${payload.outcomeRecordCount} signals=${payload.signalObservationCount} usableSignal3m=${payload.usableObservationCount} noTrade=${payload.noTradeCount} registry=${payload.validatedRegistryCount}`);
   for (const row of payload.countries.filter(row => row.readiness.country === "JP" || row.readiness.country === "US")) {
     const r = row.readiness;
     console.log(`  ${r.country}: ${r.modelLevel}/${r.status} n=${r.countryCases} threshold=${r.effectiveThreshold} source=${r.effectiveThresholdSource} registry=${row.registryEntry?.id ?? "-"}`);
