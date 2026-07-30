@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "fs";
 import { load } from "js-yaml";
+import type { HistoricalShockCase, ShockSource } from "./idiosyncratic-shock.js";
 import type {
   ShockAnnouncementTiming,
   ShockDisclosureObservability,
@@ -34,8 +35,25 @@ export type HistoricalShockCaseContext = {
    */
   strategyEligibilityAtCheckpoint?: HistoricalStrategyEligibilityStatus | null;
   strategyEligibilityNotes?: string | null;
+  /** eligibility判定専用に追加確認した一次情報/major media。case本体のsource正本は変更しない。 */
+  strategyEligibilityEvidenceSources?: ShockSource[] | null;
   notes?: string | null;
 };
+
+/**
+ * sidecarが未調査でも、checkpoint score自体が現行hard gateを確実に破る場合は
+ * confirmed_blockを機械的に導出する。PASSは決して推測せず、明示的なsidecar証拠を要求する。
+ */
+export function resolveHistoricalStrategyEligibility(
+  item: HistoricalShockCase,
+  explicitStatus?: HistoricalStrategyEligibilityStatus | null,
+): HistoricalStrategyEligibilityStatus {
+  if (explicitStatus === "confirmed_pass" || explicitStatus === "confirmed_block") return explicitStatus;
+  if (item.score < 12) return "confirmed_block";
+  if (item.scores.accountingIntegrity === 0) return "confirmed_block";
+  if (item.macroPrimaryCause) return "confirmed_block";
+  return "unknown";
+}
 
 type ContextFile = {
   version: number;
