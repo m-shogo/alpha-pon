@@ -10,6 +10,7 @@ import {
   type ShockActorType,
   type ShockDimensionScores,
   type ShockEvidenceStatus,
+  type ShockInvestigationStatus,
   type ShockPriceState,
   type ShockSource,
 } from "./idiosyncratic-shock.js";
@@ -54,6 +55,7 @@ export type ActiveShockConfig = {
     eventSummary: string;
     macroPrimaryCause: boolean;
     evidenceStatus: ShockEvidenceStatus;
+    investigationStatus?: ShockInvestigationStatus;
     priceStateOverride?: ShockPriceState;
     priceStateCheckedAt?: string | null;
     scores: ShockDimensionScores;
