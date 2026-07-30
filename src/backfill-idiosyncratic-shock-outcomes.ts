@@ -12,7 +12,7 @@ import { mkdirSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
 import { fetchDailyQuotes, isJQuantsConfigured } from "./fetcher/jquants.js";
 import { fetchTwelveDataDailyQuotes, isTwelveDataConfigured } from "./fetcher/twelve-data.js";
-import { loadHistoricalShockCaseContext } from "./idiosyncratic-shock-case-context.js";
+import { loadHistoricalShockCaseContext, resolveHistoricalStrategyEligibility } from "./idiosyncratic-shock-case-context.js";
 import { loadHistoricalShockCases } from "./idiosyncratic-shock-data.js";
 import { inferShockMarket, type ShockMarket } from "./idiosyncratic-shock-market.js";
 import {
@@ -183,11 +183,12 @@ async function main(): Promise<void> {
       const benchmarkQuotes = await fetchDailyQuotes(TOPIX_ETF_CODE, range.from, range.to);
       const context = contextById.get(item.id);
       const reactionStartDate = context?.priceReactionStartDate ?? item.eventDate;
+      const strategyEligibilityAtCheckpoint = resolveHistoricalStrategyEligibility(item, context?.strategyEligibilityAtCheckpoint);
       const record = buildShockHistoricalOutcome(item, quotes, benchmarkQuotes, date, {
         market: "JP",
         benchmarkLabel: "TOPIX",
         reactionStartDate,
-        strategyEligibilityAtCheckpoint: context?.strategyEligibilityAtCheckpoint ?? "unknown",
+        strategyEligibilityAtCheckpoint,
       });
       if (record) records.push(record);
       else failures.push(`${item.id}: checkpoint price missing`);
@@ -210,6 +211,7 @@ async function main(): Promise<void> {
       const benchmark = await fetchTwelveDataDailyQuotes(US_BENCHMARK_SYMBOL, range.from, range.to);
       const context = contextById.get(item.id);
       const reactionStartDate = context?.priceReactionStartDate ?? item.eventDate;
+      const strategyEligibilityAtCheckpoint = resolveHistoricalStrategyEligibility(item, context?.strategyEligibilityAtCheckpoint);
       const record = buildShockHistoricalOutcome(
         item,
         stock as ShockOutcomeQuote[],
@@ -219,7 +221,7 @@ async function main(): Promise<void> {
           market: "US",
           benchmarkLabel: "S&P 500",
           reactionStartDate,
-          strategyEligibilityAtCheckpoint: context?.strategyEligibilityAtCheckpoint ?? "unknown",
+          strategyEligibilityAtCheckpoint,
         },
       );
       if (record) records.push(record);
@@ -259,7 +261,7 @@ async function main(): Promise<void> {
   const payload = {
     generatedAt: date,
     providers: providerStatus,
-    methodology: "checkpoint outcomes retained for diagnosis; strategy calibration requires confirmed non-price eligibility + first eligible signal; unknown eligibility is separate from no-trade; reaction-start anchored",
+    methodology: "checkpoint outcomes retained for diagnosis; strategy calibration requires confirmed non-price eligibility + first eligible signal; deterministic checkpoint blockers are auto-derived; unknown eligibility is separate from no-trade; reaction-start anchored",
     records,
     calibration,
     calibrationByMarket,
