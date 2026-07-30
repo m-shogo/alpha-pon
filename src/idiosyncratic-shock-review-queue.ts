@@ -73,6 +73,7 @@ function contextReviewChecklist(marketHint: MarketHint): string[] {
   return [
     `market: ${marketHint} が正しいか。listing marketとissuer countryを分離`,
     "country / incidentCountry: 本社国と事件発生国を別々に確定。海外子会社事件を本社国だけで評価しない",
+    "announcementTiming / priceReactionStartDate: 寄り前・場中・引け後・休場日を確認。市場が最初に反応できた取引日をevent-study起点として別記録",
     "sector / stakeholder / incidentScope: 信用・安全・免許依存業種か、誰が被害者か、個人/店舗/子会社/全社のどこまでか",
     "listingStructure: single/ADR/dual/secondary。ADRや二重上場ならprimary listingの同日反応も確認",
     "ownershipControl: 創業家・政府・親会社・集中所有の支配がactor separability/board独立性を変えないか",
@@ -97,7 +98,7 @@ function primaryReviewChecklist(marketHint: MarketHint): string[] {
     "businessImpact: 本業・顧客・規制・営業停止への実害",
     "actorSeparability: 問題人物/少人数を切離せるか",
     "10項目score: 一次情報確認後のみ。国別の道徳点を足さない",
-    "shockDrawdownPct: event後20日以内に事件前比-5%以上か",
+    "shockDrawdownPct: priceReactionStartDate後20日以内にreaction前比-5%以上か",
     "relativeShockDrawdownPct: 現地benchmarkより-3%以上余計に下げたか",
     "priceState: falling/volatileではなくstabilized_after_dropか",
     "一次情報の追加開示予定・次回確認日",
@@ -159,7 +160,7 @@ function buildQueue(): QueueItem[] {
         ...contextReviewChecklist(marketHint),
         "investigationStatusの確認",
         "10項目scoreは一次情報確認後のみ。国別の道徳点を足さない",
-        "event20日窓のshockDrawdownPct / 現地benchmark相対 / priceStateを銘柄特定後に確認",
+        "priceReactionStartDate後20日窓のshockDrawdownPct / 現地benchmark相対 / priceStateを銘柄特定後に確認",
       ],
     });
   }
@@ -185,7 +186,7 @@ function render(date: string, rows: QueueItem[]): string {
     `生成日: ${date}`,
     "",
     "> このキューは情報収集段階です。12点通知へ直接つながりません。",
-    "> market / issuer・incident country / listing・ownership / liquidity / incident cluster / disclosure observability / sector / confounder / recurrence / remediation を解決し、一次情報・10項目score・event窓の実下落・現地benchmark/同業相対・沈静化を確認してから active candidate に昇格します。",
+    "> market / issuer・incident country / announcement timing・reaction start / listing・ownership / liquidity / incident cluster / disclosure observability / sector / confounder / recurrence / remediation を解決し、一次情報・10項目score・reaction窓の実下落・現地benchmark/同業相対・沈静化を確認してから active candidate に昇格します。",
     "",
     `- TDnet一次情報(JP): ${primary.length}`,
     `- news JP hint: ${jpNews.length}`,
@@ -229,6 +230,7 @@ function main(): void {
     primaryCount: rows.filter(row => row.sourceLevel === "primary").length,
     newsCount: rows.filter(row => row.sourceLevel === "news").length,
     contextAware: true,
+    eventTimingAware: true,
     newsByMarketHint: {
       JP: rows.filter(row => row.sourceLevel === "news" && row.marketHint === "JP").length,
       US: rows.filter(row => row.sourceLevel === "news" && row.marketHint === "US").length,
