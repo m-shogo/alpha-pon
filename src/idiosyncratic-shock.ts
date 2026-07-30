@@ -24,6 +24,7 @@ export type ShockActorType =
   | "unknown";
 
 export type ShockEvidenceStatus = "confirmed" | "reported" | "rumor" | "unknown";
+export type ShockInvestigationStatus = "open" | "substantially_complete" | "closed" | "not_applicable" | "unknown";
 export type ShockPriceState =
   | "falling"
   | "volatile"
@@ -80,6 +81,7 @@ export type ShockCandidate = {
   eventSummary: string;
   macroPrimaryCause: boolean;
   evidenceStatus: ShockEvidenceStatus;
+  investigationStatus?: ShockInvestigationStatus;
   priceState: ShockPriceState;
   scores: ShockDimensionScores;
   criticalLicenseOrDelistingRisk?: boolean;
@@ -120,9 +122,13 @@ export function buildNotificationDecision(
 ): ShockNotificationDecision {
   const score = totalShockScore(candidate.scores);
   const blockers: string[] = [];
+  const investigationStatus = candidate.investigationStatus ?? "unknown";
 
   if (score < threshold) blockers.push(`score ${score} < threshold ${threshold}`);
   if (candidate.evidenceStatus !== "confirmed") blockers.push("evidence is not confirmed");
+  if (investigationStatus === "open" || investigationStatus === "unknown") {
+    blockers.push(`investigationStatus=${investigationStatus}`);
+  }
   if (candidate.macroPrimaryCause) blockers.push("macro factor is primary cause");
   if (candidate.priceState !== "stabilized_after_drop") blockers.push(`priceState=${candidate.priceState}`);
   if (candidate.scores.accountingIntegrity === 0) blockers.push("accountingIntegrity=0");
@@ -185,9 +191,14 @@ export function findClosestHistoricalCases(
   historicalCases: HistoricalShockCase[],
   limit = 3
 ): Array<{ item: HistoricalShockCase; distance: number }> {
+  const confidencePenalty = (item: HistoricalShockCase): number => {
+    if (item.researchConfidence === "high") return 0;
+    if (item.researchConfidence === "medium") return 1;
+    return 3;
+  };
   return historicalCases
     .filter(item => !item.macroPrimaryCause && item.id !== candidate.id)
-    .map(item => ({ item, distance: analogyDistance(candidate, item) }))
+    .map(item => ({ item, distance: analogyDistance(candidate, item) + confidencePenalty(item) }))
     .sort((a, b) => a.distance - b.distance || b.item.score - a.item.score)
     .slice(0, Math.max(0, limit));
 }
@@ -248,7 +259,7 @@ export function formatShockCandidateSummary(
   return [
     `${candidate.company} ${decision.score}/20 [${decision.label}]`,
     `分類: ${candidate.category} / actor=${candidate.actorType}`,
-    `株価状態: ${candidate.priceState} / evidence=${candidate.evidenceStatus}`,
+    `株価状態: ${candidate.priceState} / evidence=${candidate.evidenceStatus} / investigation=${candidate.investigationStatus ?? "unknown"}`,
     `類似: ${analogyText || "なし"}`,
     decision.eligible ? "通知ゲート: PASS（調査候補）" : `通知ゲート: WAIT (${decision.blockers.join("; ")})`,
     "※売買推奨ではありません",
