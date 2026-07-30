@@ -1,0 +1,102 @@
+import { readFileSync } from "fs";
+import { load } from "js-yaml";
+import { GLOBAL_DEFAULT_SHOCK_THRESHOLD, type ShockCalibrationLevel } from "./idiosyncratic-shock-calibration.js";
+import { inferShockJurisdictionGroup, normalizeShockCountry, type ShockJurisdictionGroup } from "./idiosyncratic-shock-jurisdiction.js";
+import type { ShockMarket } from "./idiosyncratic-shock-market.js";
+
+export type ValidatedLocalShockThreshold = {
+  id: string;
+  modelLevel: Exclude<ShockCalibrationLevel, "global">;
+  country?: string | null;
+  market?: ShockMarket | null;
+  jurisdictionGroup?: ShockJurisdictionGroup | null;
+  category?: string | null;
+  threshold: number;
+  trainFrom: string;
+  trainThrough: string;
+  validationFrom: string;
+  validationThrough: string;
+  trainCases: number;
+  validationCases: number;
+  benchmarkMetric: "benchmarkRelative3m";
+  evidenceNote: string;
+};
+
+export type ShockCalibrationConfig = {
+  version: number;
+  description?: string;
+  globalDefaultThreshold: number;
+  validatedLocalThresholds: ValidatedLocalShockThreshold[];
+};
+
+const DEFAULT_PATH = "config/idiosyncratic-shock-calibration.yml";
+
+function isoDate(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+export function validateShockCalibrationConfig(config: ShockCalibrationConfig): void {
+  if (config.version !== 1) throw new Error(`unsupported shock calibration config version=${config.version}`);
+  if (config.globalDefaultThreshold !== GLOBAL_DEFAULT_SHOCK_THRESHOLD) {
+    throw new Error(`globalDefaultThreshold=${config.globalDefaultThreshold} must match code default=${GLOBAL_DEFAULT_SHOCK_THRESHOLD}`);
+  }
+  if (!Array.isArray(config.validatedLocalThresholds)) throw new Error("validatedLocalThresholds must be an array");
+
+  const ids = new Set<string>();
+  for (const row of config.validatedLocalThresholds) {
+    if (!row.id?.trim()) throw new Error("validated local threshold id is required");
+    if (ids.has(row.id)) throw new Error(`duplicate validated local threshold id=${row.id}`);
+    ids.add(row.id);
+    if (!Number.isFinite(row.threshold) || row.threshold < 0 || row.threshold > 20) {
+      throw new Error(`${row.id}: threshold must be within 0..20`);
+    }
+    if (!isoDate(row.trainFrom) || !isoDate(row.trainThrough) || !isoDate(row.validationFrom) || !isoDate(row.validationThrough)) {
+      throw new Error(`${row.id}: train/validation dates must be YYYY-MM-DD`);
+    }
+    if (!(row.trainFrom <= row.trainThrough && row.trainThrough < row.validationFrom && row.validationFrom <= row.validationThrough)) {
+      throw new Error(`${row.id}: require trainFrom <= trainThrough < validationFrom <= validationThrough`);
+    }
+    if (!Number.isInteger(row.trainCases) || row.trainCases < 18) throw new Error(`${row.id}: trainCases must be >= 18`);
+    if (!Number.isInteger(row.validationCases) || row.validationCases < 8) throw new Error(`${row.id}: validationCases must be >= 8`);
+    if (row.benchmarkMetric !== "benchmarkRelative3m") throw new Error(`${row.id}: benchmarkMetric must be benchmarkRelative3m`);
+    if (!row.evidenceNote?.trim()) throw new Error(`${row.id}: evidenceNote is required`);
+
+    const country = normalizeShockCountry(row.country ?? null, row.market ?? null);
+    const inferredGroup = inferShockJurisdictionGroup({ country, market: row.market ?? null });
+    if (row.jurisdictionGroup && row.jurisdictionGroup !== inferredGroup && row.modelLevel !== "jurisdiction_group") {
+      throw new Error(`${row.id}: jurisdictionGroup=${row.jurisdictionGroup} conflicts with country/market group=${inferredGroup}`);
+    }
+    if (row.modelLevel === "country" && !country) throw new Error(`${row.id}: country model requires country`);
+    if (row.modelLevel === "country_category" && (!country || !row.category?.trim())) {
+      throw new Error(`${row.id}: country_category model requires country and category`);
+    }
+    if (row.modelLevel === "jurisdiction_group" && !row.jurisdictionGroup) {
+      throw new Error(`${row.id}: jurisdiction_group model requires jurisdictionGroup`);
+    }
+  }
+}
+
+export function loadShockCalibrationConfig(path = DEFAULT_PATH): ShockCalibrationConfig {
+  const config = load(readFileSync(path, "utf-8")) as ShockCalibrationConfig;
+  validateShockCalibrationConfig(config);
+  return config;
+}
+
+export function findValidatedLocalThreshold(
+  config: ShockCalibrationConfig,
+  input: { modelLevel: ShockCalibrationLevel; country?: string | null; market?: ShockMarket | null; category?: string | null; jurisdictionGroup?: ShockJurisdictionGroup | null },
+): ValidatedLocalShockThreshold | null {
+  if (input.modelLevel === "global") return null;
+  const country = normalizeShockCountry(input.country ?? null, input.market ?? null);
+  const group = input.jurisdictionGroup ?? inferShockJurisdictionGroup({ country, market: input.market ?? null });
+  const candidates = config.validatedLocalThresholds.filter(row => {
+    if (row.modelLevel !== input.modelLevel) return false;
+    if (row.modelLevel === "jurisdiction_group") return row.jurisdictionGroup === group;
+    const rowCountry = normalizeShockCountry(row.country ?? null, row.market ?? null);
+    if (rowCountry !== country) return false;
+    if (row.modelLevel === "country_category") return row.category === input.category;
+    return true;
+  });
+  if (candidates.length === 0) return null;
+  return [...candidates].sort((a, b) => b.validationThrough.localeCompare(a.validationThrough) || b.id.localeCompare(a.id))[0];
+}
