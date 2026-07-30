@@ -42,13 +42,22 @@ const base: ShockCandidate = {
   eventSummary: "test event",
   macroPrimaryCause: false,
   evidenceStatus: "confirmed",
+  investigationStatus: "not_applicable",
   priceState: "stabilized_after_drop",
   scores: scores(),
   criticalLicenseOrDelistingRisk: false,
   sources: [{ title: "company", url: "https://example.com", sourceType: "company" }],
 };
 
-assert.equal(buildNotificationDecision(base).eligible, true, "高得点 + 一次情報 + 下落一巡なら通知候補");
+assert.equal(buildNotificationDecision(base).eligible, true, "高得点 + 一次情報 + 調査範囲確定 + 下落一巡なら通知候補");
+
+const investigationOpen = buildNotificationDecision({ ...base, investigationStatus: "open" });
+assert.equal(investigationOpen.eligible, false, "調査継続中は12点以上でも通知禁止");
+assert(investigationOpen.blockers.includes("investigationStatus=open"));
+
+const investigationUnknown = buildNotificationDecision({ ...base, investigationStatus: undefined });
+assert.equal(investigationUnknown.eligible, false, "調査状態不明はfail-closed");
+assert(investigationUnknown.blockers.includes("investigationStatus=unknown"));
 
 const stillFalling = buildNotificationDecision({ ...base, priceState: "falling", scores: scores({ priceStabilization: 0 }) });
 assert.equal(stillFalling.eligible, false, "急落中は12点以上でも通知禁止");
@@ -110,7 +119,7 @@ assert.equal(inferPriceState([
 ]), "rebounded_too_fast", "急反発は追いかけない");
 
 const historical = loadHistoricalShockCases();
-assert(historical.length >= 50, `過去事例は50件以上必要: ${historical.length}`);
+assert(historical.length >= 52, `過去事例は52件以上必要: ${historical.length}`);
 assert.equal(new Set(historical.map(item => item.id)).size, historical.length, "historical idは重複禁止");
 assert(historical.some(item => item.category === "employee_sabotage"), "バイトテロ事例が必要");
 assert(historical.some(item => item.category === "customer_sabotage"), "顧客迷惑動画事例が必要");
@@ -149,6 +158,11 @@ assert.equal(kdp?.score, 18, "事業・財務と無関係が明示されたKDP�
 
 const wwe = historical.find(item => item.id === "wwe-2022-mcmahon");
 assert.equal(wwe?.scores.accountingIntegrity, 0, "女問題でも財務訂正を伴うWWEは会計ゲートで止める");
+
+const kddi = historical.find(item => item.id === "kddi-2026-biglobe-circular-transactions");
+assert.equal(kddi?.scores.accountingIntegrity, 0, "少人数起因でも過年度訂正ならKDDIは会計ゲートで止める");
+const airWater = historical.find(item => item.id === "airwater-2026-improper-accounting");
+assert((airWater?.score ?? 99) < 8, "複数拠点・経営層関与の不適切会計はavoid帯に置く");
 
 const sanrio = historical.find(item => item.id === "sanrio-2026-compensation");
 assert(sanrio, "サンリオ現行ケースを過去/進行事例DBに保持");
