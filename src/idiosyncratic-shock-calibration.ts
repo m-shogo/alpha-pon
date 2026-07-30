@@ -1,6 +1,7 @@
 // 企業固有ショックの国別/地域別キャリブレーション。
 // Global Structural Scoreは変更せず、十分なoutcomeが貯まった階層だけを将来Local Opportunityへ昇格させる。
 // 少数標本で係数や閾値を最適化しない。必ず時系列holdoutを残し、足りなければ親モデルへ縮退する。
+// 戦略成績の正本はdecision checkpointではなくFirst Eligible Signal起点。
 
 import type { HistoricalShockCase } from "./idiosyncratic-shock.js";
 import { inferShockJurisdictionGroup, normalizeShockCountry, type ShockJurisdictionGroup } from "./idiosyncratic-shock-jurisdiction.js";
@@ -21,11 +22,13 @@ export type ShockCalibrationObservation = {
   caseId: string;
   company: string;
   checkpoint: string;
+  signalDate: string | null;
   market: ShockMarket;
   country: string | null;
   jurisdictionGroup: ShockJurisdictionGroup;
   category: string;
   score: number;
+  /** First Eligible Signal起点。名前は既存consumer互換のため維持。 */
   benchmarkRelative1m: number | null;
   benchmarkRelative3m: number | null;
   benchmarkRelative1y: number | null;
@@ -52,7 +55,7 @@ export type ShockCalibrationReadiness = {
 };
 
 function usable3m(row: ShockCalibrationObservation): boolean {
-  return typeof row.benchmarkRelative3m === "number" && Number.isFinite(row.benchmarkRelative3m);
+  return Boolean(row.signalDate) && typeof row.benchmarkRelative3m === "number" && Number.isFinite(row.benchmarkRelative3m);
 }
 
 export function enrichShockCalibrationObservations(
@@ -67,14 +70,15 @@ export function enrichShockCalibrationObservations(
       caseId: record.caseId,
       company: record.company,
       checkpoint: record.checkpoint,
+      signalDate: record.firstEligibleSignalDate ?? null,
       market: record.market,
       country,
       jurisdictionGroup: inferShockJurisdictionGroup({ country, market: record.market }),
       category: historical?.category ?? "unknown",
       score: record.score,
-      benchmarkRelative1m: record.benchmarkRelative1m,
-      benchmarkRelative3m: record.benchmarkRelative3m,
-      benchmarkRelative1y: record.benchmarkRelative1y,
+      benchmarkRelative1m: record.signalBenchmarkRelative1m ?? null,
+      benchmarkRelative3m: record.signalBenchmarkRelative3m ?? null,
+      benchmarkRelative1y: record.signalBenchmarkRelative1y ?? null,
     };
   });
 }
@@ -83,7 +87,11 @@ function chronologicalSplit(rows: ShockCalibrationObservation[]): {
   train: ShockCalibrationObservation[];
   validation: ShockCalibrationObservation[];
 } {
-  const sorted = [...rows].sort((a, b) => a.checkpoint.localeCompare(b.checkpoint) || a.caseId.localeCompare(b.caseId));
+  const sorted = [...rows].sort((a, b) => {
+    const aDate = a.signalDate ?? a.checkpoint;
+    const bDate = b.signalDate ?? b.checkpoint;
+    return aDate.localeCompare(bDate) || a.caseId.localeCompare(b.caseId);
+  });
   if (sorted.length === 0) return { train: [], validation: [] };
   const validationCount = Math.max(MIN_VALIDATION_CASES, Math.ceil(sorted.length * 0.25));
   const splitAt = Math.max(0, sorted.length - validationCount);
@@ -146,14 +154,14 @@ export function buildShockCalibrationReadinessAtLevel(input: {
   let effectiveThresholdSource: ShockCalibrationReadiness["effectiveThresholdSource"] = "global_default";
 
   if (!ready) {
-    blockers.push(`${input.modelLevel} sample/holdout insufficient n=${rows.length} train=${split.train.length} validation=${split.validation.length}`);
+    blockers.push(`${input.modelLevel} signal sample/holdout insufficient n=${rows.length} train=${split.train.length} validation=${split.validation.length}`);
   } else if (input.validatedThreshold != null && Number.isFinite(input.validatedThreshold)) {
     status = "validated";
     effectiveThreshold = input.validatedThreshold;
     effectiveThresholdSource = "validated_local";
     notes.push("検証済みlocal thresholdを使用。Global Structural Scoreそのものは変更しない");
   } else {
-    notes.push("holdout条件は満たすがvalidated registry未登録のためthreshold=12を維持");
+    notes.push("First Eligible Signalのholdout条件は満たすがvalidated registry未登録のためthreshold=12を維持");
   }
 
   return {
@@ -202,19 +210,19 @@ export function buildShockCalibrationReadiness(input: {
     modelLevel = "country";
     candidateRows = pools.countryRows;
     if (pools.category && pools.countryCategoryRows.length >= MIN_COUNTRY_CATEGORY_CASES) {
-      notes.push("country-categoryは母数到達済みだがholdout不足のためcountryモデルへ縮退");
+      notes.push("country-categoryはsignal母数到達済みだがholdout不足のためcountryモデルへ縮退");
     }
   } else if (groupReady) {
     modelLevel = "jurisdiction_group";
     candidateRows = pools.groupRows;
     if (pools.country && pools.countryRows.length >= MIN_COUNTRY_CASES) {
-      notes.push("countryは母数到達済みだがholdout不足のためjurisdiction-groupへ縮退");
+      notes.push("countryはsignal母数到達済みだがholdout不足のためjurisdiction-groupへ縮退");
     }
   } else {
-    if (pools.country && pools.countryRows.length < MIN_COUNTRY_CASES) blockers.push(`country sample ${pools.countryRows.length} < ${MIN_COUNTRY_CASES}`);
-    if (pools.category && pools.countryCategoryRows.length < MIN_COUNTRY_CATEGORY_CASES) blockers.push(`country-category sample ${pools.countryCategoryRows.length} < ${MIN_COUNTRY_CATEGORY_CASES}`);
-    if (pools.groupRows.length < MIN_GROUP_CASES) blockers.push(`jurisdiction-group sample ${pools.groupRows.length} < ${MIN_GROUP_CASES}`);
-    notes.push("十分な時系列holdoutを持つlocal/region階層がないためGlobal Structural Score + global default thresholdへ縮退");
+    if (pools.country && pools.countryRows.length < MIN_COUNTRY_CASES) blockers.push(`country signal sample ${pools.countryRows.length} < ${MIN_COUNTRY_CASES}`);
+    if (pools.category && pools.countryCategoryRows.length < MIN_COUNTRY_CATEGORY_CASES) blockers.push(`country-category signal sample ${pools.countryCategoryRows.length} < ${MIN_COUNTRY_CATEGORY_CASES}`);
+    if (pools.groupRows.length < MIN_GROUP_CASES) blockers.push(`jurisdiction-group signal sample ${pools.groupRows.length} < ${MIN_GROUP_CASES}`);
+    notes.push("十分なFirst Eligible Signal時系列holdoutを持つlocal/region階層がないためGlobal Structural Score + global default thresholdへ縮退");
   }
 
   const split = chronologicalSplit(candidateRows);
@@ -227,7 +235,7 @@ export function buildShockCalibrationReadiness(input: {
 
   if (modelLevel !== "global") {
     if (validatedThreshold == null || !Number.isFinite(validatedThreshold)) {
-      notes.push("時系列holdoutを確保済み。trainで候補閾値を作り、validationで確認するまで12点を維持する");
+      notes.push("signal時系列holdoutを確保済み。trainで候補閾値を作り、validationで確認するまで12点を維持する");
     } else {
       status = "validated";
       effectiveThreshold = validatedThreshold;
