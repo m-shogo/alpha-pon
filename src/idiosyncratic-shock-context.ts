@@ -11,6 +11,11 @@ export type ShockInformationLeakStatus = "clear" | "possible" | "likely" | "unkn
 export type ShockRecurrenceStatus = "first_known" | "repeat" | "systemic" | "unknown";
 export type ShockRemediationStatus = "credible" | "partial" | "weak" | "unknown";
 export type ShockSectorRiskClass = "general" | "trust_critical" | "safety_critical" | "license_critical";
+export type ShockListingStructure = "single" | "adr" | "dual" | "secondary" | "unknown";
+export type ShockOwnershipControl = "dispersed" | "founder_family" | "state_controlled" | "parent_controlled" | "other_concentrated" | "unknown";
+export type ShockLiquidityStatus = "normal" | "thin" | "halted" | "limit_locked" | "unknown";
+export type ShockIncidentClusterStatus = "single" | "related_multiple" | "cascade" | "unknown";
+export type ShockDisclosureObservability = "high" | "medium" | "low" | "unknown";
 
 export type ShockContextInput = {
   issuerCountry?: string | null;
@@ -23,6 +28,11 @@ export type ShockContextInput = {
   informationLeakStatus?: ShockInformationLeakStatus | null;
   recurrenceStatus?: ShockRecurrenceStatus | null;
   remediationStatus?: ShockRemediationStatus | null;
+  listingStructure?: ShockListingStructure | null;
+  ownershipControl?: ShockOwnershipControl | null;
+  liquidityStatus?: ShockLiquidityStatus | null;
+  incidentClusterStatus?: ShockIncidentClusterStatus | null;
+  disclosureObservability?: ShockDisclosureObservability | null;
   incidentRevenueExposurePct?: number | null;
   estimatedDirectCostPctMarketCap?: number | null;
   industryRelativeShockDrawdownPct?: number | null;
@@ -41,6 +51,11 @@ export type ShockContextReview = {
   informationLeakStatus: ShockInformationLeakStatus;
   recurrenceStatus: ShockRecurrenceStatus;
   remediationStatus: ShockRemediationStatus;
+  listingStructure: ShockListingStructure;
+  ownershipControl: ShockOwnershipControl;
+  liquidityStatus: ShockLiquidityStatus;
+  incidentClusterStatus: ShockIncidentClusterStatus;
+  disclosureObservability: ShockDisclosureObservability;
   incidentRevenueExposurePct: number | null;
   estimatedDirectCostPctMarketCap: number | null;
   industryRelativeShockDrawdownPct: number | null;
@@ -70,6 +85,10 @@ export function inferSectorRiskClass(sector?: string | null): ShockSectorRiskCla
   return "general";
 }
 
+function comparableValue(value: string | null | undefined): value is string {
+  return Boolean(value && value !== "unknown");
+}
+
 export function contextAnalogyPenalty(
   candidate: ShockContextInput,
   historical: ShockContextInput,
@@ -86,15 +105,12 @@ export function contextAnalogyPenalty(
   const historicalSector = inferSectorRiskClass(historical.sector);
   if (candidateSector !== "general" && historicalSector !== "general" && candidateSector !== historicalSector) penalty += 2;
 
-  if (candidate.stakeholder && historical.stakeholder && candidate.stakeholder !== "unknown" && historical.stakeholder !== "unknown" && candidate.stakeholder !== historical.stakeholder) {
-    penalty += 1;
-  }
-  if (candidate.incidentScope && historical.incidentScope && candidate.incidentScope !== "unknown" && historical.incidentScope !== "unknown" && candidate.incidentScope !== historical.incidentScope) {
-    penalty += 1;
-  }
-  if (candidate.recurrenceStatus && historical.recurrenceStatus && candidate.recurrenceStatus !== "unknown" && historical.recurrenceStatus !== "unknown" && candidate.recurrenceStatus !== historical.recurrenceStatus) {
-    penalty += 1;
-  }
+  if (comparableValue(candidate.stakeholder) && comparableValue(historical.stakeholder) && candidate.stakeholder !== historical.stakeholder) penalty += 1;
+  if (comparableValue(candidate.incidentScope) && comparableValue(historical.incidentScope) && candidate.incidentScope !== historical.incidentScope) penalty += 1;
+  if (comparableValue(candidate.recurrenceStatus) && comparableValue(historical.recurrenceStatus) && candidate.recurrenceStatus !== historical.recurrenceStatus) penalty += 1;
+  if (comparableValue(candidate.ownershipControl) && comparableValue(historical.ownershipControl) && candidate.ownershipControl !== historical.ownershipControl) penalty += 1;
+  if (comparableValue(candidate.listingStructure) && comparableValue(historical.listingStructure) && candidate.listingStructure !== historical.listingStructure) penalty += 1;
+  if (comparableValue(candidate.incidentClusterStatus) && comparableValue(historical.incidentClusterStatus) && candidate.incidentClusterStatus !== historical.incidentClusterStatus) penalty += 2;
   return penalty;
 }
 
@@ -109,6 +125,11 @@ export function buildShockContextReview(input: ShockContextInput): ShockContextR
   const informationLeakStatus = input.informationLeakStatus ?? "unknown";
   const recurrenceStatus = input.recurrenceStatus ?? "unknown";
   const remediationStatus = input.remediationStatus ?? "unknown";
+  const listingStructure = input.listingStructure ?? "unknown";
+  const ownershipControl = input.ownershipControl ?? "unknown";
+  const liquidityStatus = input.liquidityStatus ?? "unknown";
+  const incidentClusterStatus = input.incidentClusterStatus ?? "unknown";
+  const disclosureObservability = input.disclosureObservability ?? "unknown";
   const incidentRevenueExposurePct = input.incidentRevenueExposurePct ?? null;
   const estimatedDirectCostPctMarketCap = input.estimatedDirectCostPctMarketCap ?? null;
   const industryRelativeShockDrawdownPct = input.industryRelativeShockDrawdownPct ?? null;
@@ -142,6 +163,51 @@ export function buildShockContextReview(input: ShockContextInput): ShockContextR
     reviewNotes.push("再発防止策は部分的。責任者交代だけでなく統制・報酬・監督プロセスの変更を確認する");
   } else if (remediationStatus === "unknown") {
     reviewNotes.push("再発防止策の実装内容・責任者・期限・監査方法を確認する");
+  }
+
+  // 複数不祥事が連鎖している場合、最初の事件だけを孤立shockとして扱わない。
+  if (incidentClusterStatus === "cascade") {
+    blockers.push("incidentClusterStatus=cascade; resolve connected incidents before isolated-dip classification");
+  } else if (incidentClusterStatus === "related_multiple") {
+    reviewNotes.push("関連する複数事件あり。単一人物/単一拠点で切れるか、共通原因がないか確認する");
+  } else if (incidentClusterStatus === "unknown") {
+    reviewNotes.push("同時期の関連不祥事・内部告発・追加調査がないか確認する");
+  }
+
+  // 売買停止・値幅制限中は価格発見が終わっておらず「下落一巡」を判定できない。
+  if (liquidityStatus === "halted" || liquidityStatus === "limit_locked") {
+    blockers.push(`liquidityStatus=${liquidityStatus}; price discovery incomplete`);
+  } else if (liquidityStatus === "thin") {
+    reviewNotes.push("流動性が薄い。見かけの急落/反発を過大評価せず、出来高・スプレッドを確認する");
+  } else if (liquidityStatus === "unknown") {
+    reviewNotes.push("売買停止・値幅制限・極端な流動性低下がなかったか確認する");
+  }
+
+  // ADR/二重上場では、片方の価格だけでevent reactionを測らない。
+  if (listingStructure === "adr" || listingStructure === "dual" || listingStructure === "secondary") {
+    reviewNotes.push("ADR/二重・重複上場。primary listingの同日反応・取引時間差・為替を照合する");
+  } else if (listingStructure === "unknown") {
+    reviewNotes.push("ADR/二重上場/secondary listingの有無を確認し、価格反応の主市場を確定する");
+  }
+
+  // 支配株主の存在はactor separabilityや取締役会の独立性を変えるが、20点を恣意的に直接補正しない。
+  if (ownershipControl === "founder_family") {
+    reviewNotes.push("創業家支配。問題人物を退任させても議決権・ブランド・後継支配が残るか確認する");
+  } else if (ownershipControl === "state_controlled") {
+    reviewNotes.push("国有/政府支配。通常の株主価値最大化だけでなく政策・任命・行政介入を確認する");
+  } else if (ownershipControl === "parent_controlled") {
+    reviewNotes.push("親会社支配。子会社単独の是正より親会社統治・親子上場/取引条件への波及を確認する");
+  } else if (ownershipControl === "other_concentrated") {
+    reviewNotes.push("集中所有。支配株主が取締役交代・是正策を実質支配していないか確認する");
+  } else if (ownershipControl === "unknown") {
+    reviewNotes.push("創業家・政府・親会社などの支配株主有無を確認する");
+  }
+
+  // 国によって開示・報道の観測可能性が違う。情報が少ないこと自体を「事件が軽い」と解釈しない。
+  if (disclosureObservability === "low") {
+    reviewNotes.push("開示/報道観測性が低い市場。ニュース件数の少なさを無傷の証拠にせず、現地一次情報を追加確認する");
+  } else if (disclosureObservability === "unknown") {
+    reviewNotes.push("現地の開示制度・一次情報アクセス・報道カバレッジの十分性を確認する");
   }
 
   if (incidentGeography === "foreign") {
@@ -193,6 +259,11 @@ export function buildShockContextReview(input: ShockContextInput): ShockContextR
     informationLeakStatus,
     recurrenceStatus,
     remediationStatus,
+    listingStructure,
+    ownershipControl,
+    liquidityStatus,
+    incidentClusterStatus,
+    disclosureObservability,
     incidentRevenueExposurePct,
     estimatedDirectCostPctMarketCap,
     industryRelativeShockDrawdownPct,
