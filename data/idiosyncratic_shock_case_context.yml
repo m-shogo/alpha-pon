@@ -1,0 +1,70 @@
+version: 1
+generatedAt: "2026-07-30"
+description: "過去事例score正本を変更せず、確認できた文脈だけを追加するsidecar。unknownを推測で埋めない。"
+cases:
+  mcdonalds-2019-easterbrook:
+    incidentCountry: US
+    sector: restaurant_food_service
+    stakeholder: employee
+    incidentScope: individual
+    notes: "従業員との関係・社内規定違反。会社運営そのものとは分離して比較。"
+  intel-2018-krzanich:
+    incidentCountry: US
+    sector: semiconductor
+    stakeholder: employee
+    incidentScope: individual
+    notes: "従業員との関係に関するnon-fraternization policy違反。"
+  ti-2018-crutcher:
+    incidentCountry: US
+    sector: semiconductor
+    stakeholder: public
+    incidentScope: individual
+    notes: "会社がstrategy/operations/financial reportingとは無関係と説明した個人行動型。"
+  lockheed-2012-kubasik:
+    incidentCountry: US
+    sector: defense_aerospace
+    stakeholder: employee
+    incidentScope: individual
+    notes: "部下との関係による倫理規定違反。規制・政府契約依存業種である点は別途考慮。"
+  bestbuy-2012-dunn:
+    incidentCountry: US
+    sector: retail
+    stakeholder: employee
+    incidentScope: individual
+    notes: "CEOと女性従業員の関係。board oversight問題も併発したため純粋個人型より複雑。"
+  priceline-2016-huston:
+    incidentCountry: US
+    sector: online_travel_platform
+    stakeholder: employee
+    incidentScope: individual
+    notes: "従業員との関係による行動規範違反。"
+  hp-2010-hurd:
+    incidentCountry: US
+    sector: technology_hardware
+    stakeholder: mixed
+    incidentScope: individual
+    notes: "契約社員をめぐる調査と経費/Business Conduct問題。CEO喪失価値が重要。"
+  norfolk-2024-shaw:
+    incidentCountry: US
+    sector: rail_transport
+    stakeholder: employee
+    incidentScope: individual
+    notes: "直属部下との関係。鉄道業の既存事故・アクティビスト要因とのconfounderに注意。"
+  bp-2023-looney:
+    incidentCountry: GB
+    sector: energy
+    stakeholder: employee
+    incidentScope: individual
+    notes: "過去の社内関係の開示完全性・取締役会説明まで論点化。"
+  wynn-2018-founder:
+    incidentCountry: US
+    sector: casino_gaming
+    stakeholder: mixed
+    incidentScope: individual
+    notes: "創業者の性的misconduct allegations。casino license/fit-and-properへ接続する規制依存型。"
+  yoshinoya-2022-remark:
+    incidentCountry: JP
+    sector: restaurant_food_service
+    stakeholder: public
+    incidentScope: individual
+    notes: "執行役員の不適切発言による消費者/ブランド反応。"
