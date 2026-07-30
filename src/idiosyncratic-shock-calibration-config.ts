@@ -35,7 +35,7 @@ export type ValidatedLocalShockThreshold = {
   validationThrough: string;
   trainCases: number;
   validationCases: number;
-  benchmarkMetric: "benchmarkRelative3m";
+  benchmarkMetric: "signalBenchmarkRelative3m";
   evidenceNote: string;
 };
 
@@ -102,7 +102,7 @@ export function validateShockCalibrationConfig(config: ShockCalibrationConfig): 
     }
     if (!Number.isInteger(row.trainCases) || row.trainCases < 18) throw new Error(`${row.id}: trainCases must be >= 18`);
     if (!Number.isInteger(row.validationCases) || row.validationCases < 8) throw new Error(`${row.id}: validationCases must be >= 8`);
-    if (row.benchmarkMetric !== "benchmarkRelative3m") throw new Error(`${row.id}: benchmarkMetric must be benchmarkRelative3m`);
+    if (row.benchmarkMetric !== "signalBenchmarkRelative3m") throw new Error(`${row.id}: benchmarkMetric must be signalBenchmarkRelative3m`);
     if (!row.evidenceNote?.trim()) throw new Error(`${row.id}: evidenceNote is required`);
 
     const country = normalizeShockCountry(row.country ?? null, row.market ?? null);
@@ -207,6 +207,5 @@ export function computeLocalOpportunityScore(
     weightSum += weight;
   }
   if (!(weightSum > 0)) return totalShockScore(scores);
-  // scores are 0..2. Normalize the weighted score back onto the same 0..20 scale.
   return Number(((weighted * 10) / weightSum).toFixed(2));
 }
