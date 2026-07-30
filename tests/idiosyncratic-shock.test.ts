@@ -140,11 +140,12 @@ assert.equal(inferPriceState([
 ]), "rebounded_too_fast", "急反発は追いかけない");
 
 const historical = loadHistoricalShockCases();
-assert(historical.length >= 52, `過去事例は52件以上必要: ${historical.length}`);
+assert(historical.length >= 55, `過去事例は55件以上必要: ${historical.length}`);
 assert.equal(new Set(historical.map(item => item.id)).size, historical.length, "historical idは重複禁止");
 assert(historical.some(item => item.category === "employee_sabotage"), "バイトテロ事例が必要");
 assert(historical.some(item => item.category === "customer_sabotage"), "顧客迷惑動画事例が必要");
 assert(historical.some(item => item.category === "personal_behavior"), "個人行動規範違反が必要");
+assert(historical.some(item => item.category === "personal_crime"), "個人犯罪の境界例が必要");
 assert(historical.some(item => item.category === "accounting_fraud"), "会計不正の負例が必要");
 assert(historical.some(item => item.category === "systemic_misconduct"), "組織不正の負例が必要");
 assert(historical.some(item => item.category === "quality_falsification"), "品質偽装の負例が必要");
@@ -184,6 +185,15 @@ const kddi = historical.find(item => item.id === "kddi-2026-biglobe-circular-tra
 assert.equal(kddi?.scores.accountingIntegrity, 0, "少人数起因でも過年度訂正ならKDDIは会計ゲートで止める");
 const airWater = historical.find(item => item.id === "airwater-2026-improper-accounting");
 assert((airWater?.score ?? 99) < 8, "複数拠点・経営層関与の不適切会計はavoid帯に置く");
+
+const nomura = historical.find(item => item.id === "nomura-2024-former-employee-robbery");
+assert(nomura && nomura.actorType === "employee", "顧客接点の従業員個人犯罪を境界例として保持");
+assert((nomura?.score ?? 99) < 16, "金融の顧客信頼へ波及する個人犯罪はresearch_priorityへ上げない");
+
+const mitsubishi = historical.find(item => item.id === "mitsubishi-electric-2021-quality-misconduct");
+assert((mitsubishi?.score ?? 99) < 8, "全社品質不正へ拡大した三菱電機はavoid帯");
+const toyo = historical.find(item => item.id === "toyo-tire-2015-seismic-rubber");
+assert((toyo?.score ?? 99) < 8, "認定・製品交換へ直結するTOYO TIREはavoid帯");
 
 const sanrio = historical.find(item => item.id === "sanrio-2026-compensation");
 assert(sanrio, "サンリオ現行ケースを過去/進行事例DBに保持");
