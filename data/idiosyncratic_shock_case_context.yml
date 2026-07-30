@@ -1,70 +1,92 @@
 version: 1
-generatedAt: "2026-07-30"
-description: "過去事例score正本を変更せず、確認できた文脈だけを追加するsidecar。unknownを推測で埋めない。"
+generatedAt: "2026-07-31"
+description: "過去事例score正本を変更せず、確認できた文脈だけを追加するsidecar。strategy eligibilityはrepo内の既存一次情報/調査checkpointで確認できたものだけpass/blockにし、unknownを推測で埋めない。"
 cases:
   mcdonalds-2019-easterbrook:
     incidentCountry: US
     sector: restaurant_food_service
     stakeholder: employee
     incidentScope: individual
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyEligibilityNotes: "会社一次情報で規定違反によるCEO退任と後継CEOを確認済み。score>=12、accountingIntegrity>0、macro主因でなく、checkpoint時点の非価格gateを通過扱い。"
     notes: "従業員との関係・社内規定違反。会社運営そのものとは分離して比較。"
   intel-2018-krzanich:
     incidentCountry: US
     sector: semiconductor
     stakeholder: employee
     incidentScope: individual
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyEligibilityNotes: "会社一次情報で調査後のpolicy violationとCEO辞任を確認済み。score>=12、accountingIntegrity>0、macro主因でなく、非価格gateを通過扱い。"
     notes: "従業員との関係に関するnon-fraternization policy違反。"
   ti-2018-crutcher:
     incidentCountry: US
     sector: semiconductor
     stakeholder: public
     incidentScope: individual
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyEligibilityNotes: "会社一次情報で行動規範違反によるCEO辞任、strategy/operations/financial reportingとは無関係との説明を確認。非価格gateを通過扱い。"
     notes: "会社がstrategy/operations/financial reportingとは無関係と説明した個人行動型。"
   lockheed-2012-kubasik:
     incidentCountry: US
     sector: defense_aerospace
     stakeholder: employee
     incidentScope: individual
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyEligibilityNotes: "会社一次情報で倫理規定違反への取締役会対応と後継CEO選任を確認。score>=12、accountingIntegrity>0。規制依存業種だが当該checkpointで重大免許取消riskを示す証拠はrepo資料にないため非価格gate通過。"
     notes: "部下との関係による倫理規定違反。規制・政府契約依存業種である点は別途考慮。"
   bestbuy-2012-dunn:
     incidentCountry: US
     sector: retail
     stakeholder: employee
     incidentScope: individual
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyEligibilityNotes: "checkpointは会社が独立調査結果を公表した日。一次情報で調査範囲・board対応を確認でき、score>=12、accountingIntegrity>0のため非価格gate通過。"
     notes: "CEOと女性従業員の関係。board oversight問題も併発したため純粋個人型より複雑。"
   priceline-2016-huston:
     incidentCountry: US
     sector: online_travel_platform
     stakeholder: employee
     incidentScope: individual
+    strategyEligibilityAtCheckpoint: unknown
+    strategyEligibilityNotes: "repo登録sourceがmajor media 1件のみ。現行hard gateの一次情報または複数major media要件をcheckpoint時点で再現する追加証拠が必要。"
     notes: "従業員との関係による行動規範違反。"
   hp-2010-hurd:
     incidentCountry: US
     sector: technology_hardware
     stakeholder: mixed
     incidentScope: individual
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyEligibilityNotes: "会社一次情報で調査後のBusiness Conduct違反とCEO辞任を確認。score>=12、accountingIntegrity>0で非価格gateは通過。価格stateは別途signalロジックで判定する。"
     notes: "契約社員をめぐる調査と経費/Business Conduct問題。CEO喪失価値が重要。"
   norfolk-2024-shaw:
     incidentCountry: US
     sector: rail_transport
     stakeholder: employee
     incidentScope: individual
+    strategyEligibilityAtCheckpoint: unknown
+    strategyEligibilityNotes: "repo登録sourceがmajor media 1件で、既存事故・アクティビスト要因のconfounderもある。checkpointの全非価格gate再現には追加一次情報が必要。"
     notes: "直属部下との関係。鉄道業の既存事故・アクティビスト要因とのconfounderに注意。"
   bp-2023-looney:
     incidentCountry: GB
     sector: energy
     stakeholder: employee
     incidentScope: individual
+    strategyEligibilityAtCheckpoint: unknown
+    strategyEligibilityNotes: "repo登録sourceがmajor media 1件。checkpointの調査完了度・一次情報hard gateを追加確認するまでunknown。"
     notes: "過去の社内関係の開示完全性・取締役会説明まで論点化。"
   wynn-2018-founder:
     incidentCountry: US
     sector: casino_gaming
     stakeholder: mixed
     incidentScope: individual
+    strategyEligibilityAtCheckpoint: confirmed_block
+    strategyEligibilityNotes: "historical score=9でglobal threshold 12未満。加えてcasino license/fit-and-properへの波及論点があり、価格反発の有無に関係なく当時の戦略hard gateで対象外。"
     notes: "創業者の性的misconduct allegations。casino license/fit-and-properへ接続する規制依存型。"
   yoshinoya-2022-remark:
     incidentCountry: JP
     sector: restaurant_food_service
     stakeholder: public
     incidentScope: individual
+    strategyEligibilityAtCheckpoint: unknown
+    strategyEligibilityNotes: "repo登録sourceがmajor media 1件。現行source hard gateをcheckpoint時点で満たす一次情報または追加major mediaを確認するまでunknown。"
     notes: "執行役員の不適切発言による消費者/ブランド反応。"
