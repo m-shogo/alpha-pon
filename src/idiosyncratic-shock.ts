@@ -186,7 +186,7 @@ export function findClosestHistoricalCases(
   limit = 3
 ): Array<{ item: HistoricalShockCase; distance: number }> {
   return historicalCases
-    .filter(item => !item.macroPrimaryCause)
+    .filter(item => !item.macroPrimaryCause && item.id !== candidate.id)
     .map(item => ({ item, distance: analogyDistance(candidate, item) }))
     .sort((a, b) => a.distance - b.distance || b.item.score - a.item.score)
     .slice(0, Math.max(0, limit));
@@ -204,7 +204,7 @@ function pct(from: number, to: number): number {
 
 /**
  * Conservative stabilization detector. It intentionally prefers "wait" over
- * declaring a bottom. The event date must already be known by the caller.
+ * declaring a bottom. Five sessions are only a minimum signal, not proof of a bottom.
  */
 export function inferPriceState(observations: PriceObservation[]): ShockPriceState {
   const rows = [...observations]
@@ -219,16 +219,21 @@ export function inferPriceState(observations: PriceObservation[]): ShockPriceSta
   const fiveDayChange = pct(recent[0].close, latest.close);
   const recentLow = Math.min(...recent.map(row => row.close));
   const latestVsLow = pct(recentLow, latest.close);
+  const lowIndex = recent.findIndex(row => row.close === recentLow);
 
   if (latest.close < priorLow && fiveDayChange < -3) return "falling";
-  if (fiveDayChange >= 15 || latestVsLow >= 18) return "rebounded_too_fast";
+  if (fiveDayChange >= 12 || latestVsLow >= 15) return "rebounded_too_fast";
 
   const dayChanges = recent.slice(1).map((row, index) => Math.abs(pct(recent[index].close, row.close)));
   const maxDailyMove = Math.max(...dayChanges);
   if (maxDailyMove >= 7) return "volatile";
 
-  const noNewLowForThree = recent.slice(-3).every(row => row.close >= recentLow);
-  if (noNewLowForThree && Math.abs(fiveDayChange) <= 8) return "stabilized_after_drop";
+  // 安値が直近2日ではなく、そこから3営業日程度は新安値を付けず、
+  // かつ急反発でもない場合だけ「下落一巡候補」にする。
+  const lowOccurredEarlyEnough = lowIndex >= 0 && lowIndex <= 1;
+  if (lowOccurredEarlyEnough && fiveDayChange >= -3 && fiveDayChange <= 8 && latestVsLow <= 10) {
+    return "stabilized_after_drop";
+  }
   return "stabilizing";
 }
 
