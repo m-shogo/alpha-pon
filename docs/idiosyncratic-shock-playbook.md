@@ -28,6 +28,9 @@
 - 規制当局から長期間事業制限を受ける事件
 - 製品安全・品質偽装が事業そのものを傷つける事件
 - 創業者・CEOがブランド/競争力そのもので切り離せない事件
+- **少人数起因でも過年度訂正まで発生した会計事件**
+
+KDDI/BIGLOBE 2026のように行為者が少人数でも、架空取引が財務諸表訂正へ到達した場合は個人切除型として扱わない。
 
 ### このレイヤーでは対象外
 
@@ -52,6 +55,8 @@
 - SNS拡散によるブランド毀損が売上に波及したか
 - 再発防止策に実効性があるか
 - 本部/FCの管理不全まで広がっていないか
+- 商品が実際に顧客へ提供されたか
+- 1店舗休業か全店休業か
 
 顧客の迷惑動画は `customer_sabotage` として分ける。会社の責任が相対的に小さいため、従業員起因より高得点になりやすいが、オペレーション変更コストや来店客数への影響は確認する。
 
@@ -77,7 +82,7 @@
 ### 判定
 
 - **16〜20**: `research_priority` — 強い調査候補
-- **12〜15**: `watch` — 通知閾値。落ち着き確認後の調査対象
+- **12〜15**: `watch` — 暫定通知閾値。落ち着き確認後の調査対象
 - **8〜11**: `caution` — 罠の可能性が高い
 - **0〜7**: `avoid` — 原則として不祥事ディップ仮説には使わない
 
@@ -87,11 +92,14 @@
 
 1. score >= 12
 2. `evidenceStatus = confirmed`
-3. マクロ要因が主因ではない
-4. `priceState = stabilized_after_drop`
-5. `accountingIntegrity > 0`
-6. 重大な未解決の上場廃止/免許取消リスクがない
-7. 一次情報または複数の信頼できる報道で事件の範囲を確認済み
+3. `investigationStatus` が `substantially_complete` / `closed` / `not_applicable` のいずれか
+4. マクロ要因が主因ではない
+5. `priceState = stabilized_after_drop`
+6. `accountingIntegrity > 0`
+7. 重大な未解決の上場廃止/免許取消リスクがない
+8. 一次情報または複数の信頼できる報道で事件の範囲を確認済み
+
+`investigationStatus = open / unknown` は fail-closed。事件自体が事実でも、第三者委員会・当局・会社調査が継続中なら、後から組織問題・会計問題へ広がる可能性があるため通知しない。
 
 通知文には必ず「調査候補 / 売買推奨ではない」を入れる。
 
@@ -101,7 +109,7 @@
 
 - イベント後の安値から数営業日、新安値を更新していない
 - 5日リターンが極端なマイナスではない
-- 出来高ピークが沈静化し始めている
+- 日次の値幅がまだ極端に大きくない
 - 20日線回復はプラス材料だが必須ではない
 - 急反発しすぎた場合は `rebounded_too_fast` として通知を抑制
 
@@ -109,9 +117,12 @@
 
 ## 過去事例DBの使い方
 
-過去事例は `data/idiosyncratic_shock_cases.json` に保存する。
+過去事例は以下に保存する。
 
-各ケースに以下を持たせる。
+- `data/idiosyncratic_shock_cases.yml`
+- `data/idiosyncratic_shock_cases_expansion_*.yml`
+
+loader は expansion ファイルを自動検出する。各ケースに以下を持たせる。
 
 - event category / actor type
 - event date
@@ -121,7 +132,7 @@
 - その時点で確認できた情報
 - 後から分かった outcome（別フィールド）
 - 類似事例から得た lesson
-- source URL
+- source URL / confidence
 
 重要: **未来情報を score checkpoint に混ぜない。** outcome は後知恵として別管理する。
 
@@ -136,6 +147,9 @@
 5. regulatoryContainment が近い
 6. managementContinuity が近い
 7. 10項目の Manhattan distance が小さい
+8. 過去事例の `researchConfidence` が高い
+
+`accountingIntegrity` と `organizationalContainment` は距離計算で重くする。さらに medium/low confidence のseedにはペナルティを加え、高品質な一次情報事例を上位に出しやすくする。
 
 「McDonald's型」「Wynn型」「Wells Fargo型」など、人名だけで決めず構造で比較する。
 
@@ -144,7 +158,7 @@
 ### A. 個人切除型
 CEO/役員の個人的問題。後継がいて財務/顧客需要が無傷。
 
-例: McDonald's Easterbrook、Intel Krzanich、Priceline Huston。
+例: McDonald's Easterbrook、Intel Krzanich、TI Crutcher、Keurig Dr Pepper、lululemon。
 
 ### B. ブランド人物依存型
 創業者や看板CEOが問題人物。人物を切るとブランド/戦略も揺れる。
@@ -154,36 +168,83 @@ CEO/役員の個人的問題。後継がいて財務/顧客需要が無傷。
 ### C. SNS局所炎上型
 従業員/顧客の動画が拡散。本業よりも信頼・衛生・オペレーションコストが論点。
 
-例: くら寿司、スシロー。
+例: バーミヤン、すき家2019、大戸屋2019、くら寿司、スシロー。
 
 ### D. 組織ガバナンス型
 複数部署・取締役会・文化まで広がる。個人切除型に見えても危険。
 
-例: CBS、フジテレビ問題。
+例: CBS、フジ、Activision、eBay。
 
 ### E. 会計/組織不正型（負例）
 財務数値・内部統制・規制まで壊れる。原則「不祥事ディップ買い」対象外。
 
-例: Olympus、東芝、Wells Fargo、Suruga Bank、Luckin Coffee。
+例: Olympus、東芝、Wells Fargo、Suruga Bank、Luckin Coffee、KDDI/BIGLOBE 2026、エア・ウォーター 2026。
+
+## 12点閾値の定量検証
+
+12点は**運用開始時の仮説**であり、固定の真理ではない。
+
+日本の4桁上場コードを持つ過去ケースについて、J-Quantsを用いて以下をbackfillする。
+
+```text
+pnpm backfill:shock-outcomes
+pnpm backfill:shock-outcomes:write
+```
+
+`decisionCheckpoint` の最初の取引価格を基準に、
+
+- 1週 / 1か月 / 3か月 / 1年リターン
+- TOPIX ETF 1306 相対リターン
+- event前営業日 → event〜checkpoint付近のショック安値までの下落率
+
+を保存する。
+
+比較bucket:
+
+- `score_16_20`
+- `score_12_15`
+- `score_ge_12`
+- `score_8_11`
+- `score_0_7`
+- `score_lt_12`
+
+平均だけでなく**中央値・プラス率・TOPIX相対**を確認する。サンプルが少ないうちは自動で12点を変更しない。
+
+特に重要なのは、**事件後の底値を買った前提で測らない**こと。実際に十分な情報を確認できた `decisionCheckpoint` から測り、後知恵バイアスを減らす。
 
 ## 運用順序
 
 1. Google News RSS等から企業固有ショックを収集
-2. macro exclusion を通す
-3. category / actor type を分類
-4. 一次情報を探す
-5. 10項目を 0/1/2 で採点
-6. 過去事例上位3件を類似表示
-7. 株価急落中は待つ
-8. `stabilized_after_drop` になった時点で再採点
-9. 12点以上 + ハードゲート通過なら LINE 通知
-10. 1週 / 1月 / 3月 / 6月後に結果検証
+2. TDnet / JPXの一次情報候補も収集
+3. macro exclusion を通す
+4. category / actor type を分類
+5. review queueへ入れる
+6. 一次情報を確認し、調査範囲を `investigationStatus` で記録
+7. 10項目を 0/1/2 で採点
+8. 過去事例上位を類似表示
+9. 株価急落中・調査継続中は待つ
+10. `stabilized_after_drop` になった時点で再採点
+11. 12点以上 + 全ハードゲート通過なら LINE 通知
+12. 過去ケースの将来リターンをbackfillし、閾値自体を継続検証
+
+### daily系コマンド
+
+- `pnpm scan:shocks`
+- `pnpm scan:shock-disclosures`
+- `pnpm queue:shocks`
+- `pnpm report:shocks`
+- `pnpm notify:shocks`
+- `pnpm audit:shock-history`
+
+これらは `daily:full` に接続する。定量過去backfillはAPI負荷と歴史データ取得を伴うため、dailyには入れず明示実行する。
 
 ## 禁止事項
 
 - 「不祥事だから反発する」と決めつけない
 - 会社発表前のSNSだけで12点通知しない
+- 調査継続中に範囲を決め打ちしない
 - 粉飾を個人スキャンダルと同列に扱わない
+- 少人数起因という理由だけで会計訂正を軽視しない
 - 急落初日に底値と断定しない
 - 急反発した銘柄をFOMOで追わない
 - outcome を過去時点の score に混ぜない
