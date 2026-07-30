@@ -4,7 +4,9 @@
 
 世界情勢・金利・為替・関税・食糧不足・戦争・災害などのマクロ要因ではなく、**個別企業だけに発生した不祥事・炎上・ガバナンス事件による株価下落**を収集し、過去の類似事例と比較して「調査候補」を作る。
 
-これは売買推奨ではない。狙うのは「不祥事そのもの」ではなく、**企業価値への実害より市場の短期反応が大きい可能性があるケース**を、後から検証できる形で蓄積すること。
+これは売買推奨ではない。狙うのは不祥事そのものではなく、**企業価値への実害より市場の短期反応が大きい可能性があるケース**を、後から検証できる形で蓄積すること。
+
+事件構造の評価は世界共通とし、価格・benchmark・一次情報経路だけ市場別に扱う。
 
 ## 対象
 
@@ -21,7 +23,7 @@
 
 ### 負例として必ず拾う
 
-成功例だけを学習すると「不祥事 = 買い」と誤学習するため、以下も過去事例DBに入れる。
+成功寄り事例だけを学習すると判定が楽観側へ歪むため、次も過去事例DBへ入れる。
 
 - 粉飾・売上架空計上・循環取引・財務報告の虚偽
 - 組織ぐるみの不正
@@ -45,11 +47,60 @@ KDDI/BIGLOBE 2026のように行為者が少人数でも、架空取引が財務
 
 これらは既存の world-impact / special-situation で扱う。
 
+為替は企業固有shockの価格ゲートには混ぜない。現地通貨建て株価と同じ市場のbenchmarkを比較し、JPY換算損益は別レイヤーで扱う。
+
+## 市場別設計
+
+事件カテゴリ、actor type、10項目score、evidence / investigation、類似距離は共通。
+
+価格providerとbenchmarkは市場ごとに分離する。
+
+| market | benchmark | price provider | live自動価格判定 |
+|---|---|---|---|
+| JP | TOPIX（既定proxy 1306） | J-Quants | 実装済み。設定時のみ |
+| US | S&P 500（既定proxy SPY） | Twelve Data | 実装済み。API key設定時のみ |
+| UK | FTSE 100 | 未実装 | fail-closed |
+| EUROPE | STOXX Europe 600 | 未実装 | fail-closed |
+| AU | S&P/ASX 200 | 未実装 | fail-closed |
+| CA | S&P/TSX Composite | 未実装 | fail-closed |
+| OTHER | 未解決 | 未実装 | fail-closed |
+
+`market` がUS等なら、4桁風の値が入っていてもJ-Quantsへ誤送信しない。英字tickerだけを見てUSとも決め打ちせず、active候補では `market` を明示する。
+
+市場別readiness:
+
+```text
+pnpm report:shock-markets
+```
+
+詳細は `docs/idiosyncratic-shock-overseas.md` を参照する。
+
+## 発見経路
+
+`pnpm scan:shocks` はGoogle News RSSを市場別に収集する。
+
+- JP: `JP/ja`
+- US: `US/en`
+
+US側ではCEO misconduct / relationship、executive conflict、accounting restatement、internal investigation、quality falsification、SEC investigation等を探索する。
+
+RSSの `marketHint` は発見経路のヒントであって上場市場の確定値ではない。一次情報で会社・市場・symbolを確定するまでactiveへ昇格しない。
+
+JPはTDnet / JPX disclosure scannerも使用する。
+
+USはSEC EDGARを一次情報reviewへ使う。
+
+```text
+pnpm review:shock-sec
+```
+
+`SEC_USER_AGENT` を設定した場合のみ、active US候補や `SHOCK_SEC_SYMBOLS` の8-K / 6-K / 10-Q / 10-K等を取得する。提出書類が存在するだけでscoreを上げず、辞任理由、会計訂正、内部統制、規制・捜査、業績影響を確認する。
+
 ## バイトテロは対象か
 
-**対象。** ただし CEO 不倫などと同じ扱いにはしない。
+**対象。** ただしCEO個人問題などと同じ扱いにはしない。
 
-バイトテロは `employee_sabotage` として分類し、主な論点を次に置く。
+`employee_sabotage` として主に次を見る。
 
 - 行為者が1人/少人数で切り離せるか
 - 店舗単位か全社的な教育・衛生問題か
@@ -85,7 +136,7 @@ KDDI/BIGLOBE 2026のように行為者が少人数でも、架空取引が財務
 - **16〜20**: `research_priority` — 強い調査候補
 - **12〜15**: `watch` — 暫定通知閾値。落ち着き確認後の調査対象
 - **8〜11**: `caution` — 罠の可能性が高い
-- **0〜7**: `avoid` — 原則として不祥事ディップ仮説には使わない
+- **0〜7**: `avoid` — 原則としてこの仮説には使わない
 
 ## 12点通知のハードゲート
 
@@ -96,35 +147,45 @@ KDDI/BIGLOBE 2026のように行為者が少人数でも、架空取引が財務
 3. `investigationStatus` が `substantially_complete` / `closed` / `not_applicable`
 4. マクロ要因が主因ではない
 5. **発覚後20日以内に事件前終値から5%以上下落 (`shockDrawdownPct <= -5`)**
-6. **同じ20日窓でTOPIX ETF 1306より3%以上余計に下落 (`relativeShockDrawdownPct <= -3`)**
+6. **対象株がevent窓で安値を付けた同じ取引日に、現地benchmarkより3%以上余計に下落 (`relativeShockDrawdownPct <= -3`)**
 7. `priceState = stabilized_after_drop`
 8. `accountingIntegrity > 0`
 9. 重大な未解決の上場廃止/免許取消リスクがない
 10. 一次情報または複数の信頼できる報道で事件の範囲を確認済み
 
-`investigationStatus = open / unknown` は fail-closed。事件自体が事実でも、第三者委員会・当局・会社調査が継続中なら、後から組織問題・会計問題へ広がる可能性があるため通知しない。
+`investigationStatus = open / unknown` はfail-closed。事件自体が事実でも、第三者委員会・当局・会社調査が継続中なら、後から組織問題・会計問題へ広がる可能性があるため通知しない。
 
-絶対下落だけでなく市場相対下落も要求する。全面安と同程度しか下げていない場合は、このレイヤーでは「企業固有ショック」と判定しない。
+絶対下落だけでなく市場相対下落も要求する。全面安と同程度しか下げていない場合は、このレイヤーでは企業固有shockと判定しない。
 
-発覚後20日を超えた安値は、別材料や地合いが混ざるため初期ショック判定へ混ぜない。
+発覚後20日を超えた安値は、別材料や地合いが混ざるため初期shock判定へ混ぜない。
 
 通知文には必ず「調査候補 / 売買推奨ではない」を入れる。
 
 ## 「落ち着いた」の定義
 
-単純に反発しただけでは買い場とみなさない。**事件による実下落 / 市場超過下落 / その後の沈静化**を別々に確認する。
+単純に反発しただけでは条件通過とみなさない。**事件による実下落 / 市場超過下落 / その後の沈静化**を別々に確認する。
 
-- event前営業日の終値を基準に、event後20日以内の安値までを絶対ショックとして計測
-- 同じ窓のTOPIX/1306下落を差し引き、企業固有ショックを計測
-- 絶対 -5%以上、TOPIX比 -3%以上を最低条件とする
-- イベント後の安値から数営業日、新安値を更新していない
+- event前営業日の終値を基準に、event後20日以内の安値までを絶対shockとして計測
+- 対象株のshock lowと同じ取引日のbenchmark returnを差し引く
+- benchmark自身の別日の安値は差し引かない
+- 絶対 -5%以上、benchmark比 -3%以上を最低条件とする
+- event後の安値から数営業日、新安値を更新していない
 - 5日リターンが極端なマイナスではない
 - 日次の値幅がまだ極端に大きくない
 - 急反発しすぎた場合は `rebounded_too_fast` として通知を抑制
 
-サンリオのように「問題確認後に既に大きく戻った」ケースは、スコアが高くても追いかけない。
+サンリオのように問題確認後に既に大きく戻ったケースは、スコアが高くても追いかけない。
 
-価格データが契約プラン等で遅延している場合は、非公式価格ソースを勝手に混ぜず `unknown` として通知しない。手動overrideだけではTOPIX相対ショックを証明できないため、現状は通知をfail-closedする。
+provider未設定・価格データ遅延・benchmark同日値欠損は `unknown` として通知しない。
+
+手動overrideは、次をすべて同じ確認時点で記録した場合のみ使用できる。
+
+- `priceStateOverride`
+- `priceStateCheckedAt`
+- `shockDrawdownPctOverride`
+- `relativeShockDrawdownPctOverride`
+
+相対下落が欠ければfail-closed。
 
 ## 過去事例DBの使い方
 
@@ -139,18 +200,13 @@ loader は expansion ファイルを自動検出する。現在の全件一覧�
 pnpm report:shock-casebook
 ```
 
-出力:
-
-- `reports/idiosyncratic_shock_casebook_latest.md`
-- `reports/idiosyncratic_shock_casebook_latest.json`
-
 各ケースに event category / actor type / event date / decision checkpoint / 10項目score / source / confidence / outcome を持たせる。
 
 重要: **未来情報を decision checkpoint の score に混ぜない。** outcome は後知恵として別管理する。
 
 ## 類似事例距離
 
-現在案件と過去案件の比較では、次を重視する。
+現在案件と過去案件の比較では次を重視する。
 
 1. category が同じ
 2. actor type が同じ
@@ -163,7 +219,7 @@ pnpm report:shock-casebook
 
 `accountingIntegrity` と `organizationalContainment` は距離計算で重くする。medium/low confidence seedにはペナルティを加え、高品質な一次情報事例を上位に出しやすくする。
 
-「McDonald's型」「Wynn型」「Wells Fargo型」など、人名だけで決めず構造で比較する。
+市場が違っても事件構造の類似比較には使える。ただし価格outcomeの閾値検証は市場別に分離する。
 
 ## 代表的な型
 
@@ -188,7 +244,7 @@ CEO/役員の個人的問題。後継がいて財務/顧客需要が無傷。
 例: CBS、フジ、Activision、eBay、関西電力。
 
 ### E. 会計/組織不正型（負例）
-財務数値・内部統制・規制まで壊れる。原則「不祥事ディップ買い」対象外。
+財務数値・内部統制・規制まで壊れる。原則としてこの調査仮説の対象外。
 
 例: Olympus、東芝、Wells Fargo、Suruga Bank、Luckin Coffee、KDDI/BIGLOBE 2026、エア・ウォーター 2026、SMBC日興。
 
@@ -206,20 +262,22 @@ CEO/役員の個人的問題。後継がいて財務/顧客需要が無傷。
 
 12点は**運用開始時の仮説**であり、固定の真理ではない。
 
-日本の4桁上場コードを持つ過去ケースについて、J-Quantsを用いてbackfillする。
-
 ```text
 pnpm backfill:shock-outcomes
 pnpm backfill:shock-outcomes:write
 ```
 
-`decisionCheckpoint` の最初の取引価格を基準に、
+現在のmarket別provider:
+
+- JP: J-Quants + TOPIX proxy
+- US: Twelve Data + S&P 500 proxy SPY
+
+`decisionCheckpoint` の最初の取引価格を基準に次を保存する。
 
 - 1週 / 1か月 / 3か月 / 1年リターン
-- TOPIX ETF 1306 相対リターン
-- event前営業日 → event付近のショック安値までの下落率
-
-を保存する。
+- 現地benchmark相対リターン
+- event前営業日 → event付近のshock lowまでの下落率
+- market / benchmark
 
 比較bucket:
 
@@ -230,45 +288,53 @@ pnpm backfill:shock-outcomes:write
 - `score_0_7`
 - `score_lt_12`
 
-平均だけでなく**中央値・プラス率・TOPIX相対**を確認する。サンプルが少ないうちは自動で12点を変更しない。
+平均だけでなく**中央値・プラス率・benchmark相対**を確認する。
+
+全市場混合値は参考に留め、`calibrationByMarket` でJPとUSを別々に検証する。サンプルが少ないうちは閾値を自動変更しない。
 
 **事件後の底値を買った前提で測らない。** 実際に十分な情報を確認できた `decisionCheckpoint` から測り、後知恵バイアスを減らす。
 
 ## 運用順序
 
-1. Google News RSS等から企業固有ショックを収集
-2. TDnet / JPXの一次情報候補も収集
+1. JP/US Google News RSSから企業固有shockを収集
+2. JPはTDnet/JPX、USはSEC/会社IRの一次情報候補を確認
 3. macro exclusion を通す
-4. category / actor type を分類
+4. market / symbol / category / actor type を確定
 5. review queueへ入れる
 6. 一次情報を確認し、調査範囲を `investigationStatus` で記録
-7. 10項目を 0/1/2 で採点
-8. 発覚後20日窓の `shockDrawdownPct` と `relativeShockDrawdownPct` を確認
+7. 10項目を0/1/2で採点
+8. 発覚後20日窓の `shockDrawdownPct` と同日benchmark `relativeShockDrawdownPct` を確認
 9. 過去事例上位を類似表示
-10. 株価急落中・調査継続中は待つ
+10. 株価急落中・調査継続中・provider未設定は待つ
 11. `stabilized_after_drop` になった時点で再採点
-12. 12点以上 + 全ハードゲート通過なら LINE 通知
-13. 過去ケースの将来リターンをbackfillし、閾値自体を継続検証
+12. 12点以上 + 全ハードゲート通過ならLINE通知
+13. 過去ケースの将来リターンをmarket別にbackfillし、閾値自体を継続検証
 
 ### daily系コマンド
 
 - `pnpm scan:shocks`
 - `pnpm scan:shock-disclosures`
 - `pnpm queue:shocks`
+- `pnpm review:shock-sec`
 - `pnpm report:shock-casebook`
+- `pnpm report:shock-markets`
 - `pnpm report:shocks`
 - `pnpm notify:shocks`
 - `pnpm audit:shock-history`
 
-これらは `daily:full` に接続する。定量過去backfillはAPI負荷と歴史データ取得を伴うため、dailyには入れず明示実行する。
+これらは `daily:full` に接続する。定量過去backfillはAPI負荷と歴史データ取得を伴うためdailyには入れず、明示実行する。
 
 ## 禁止事項
 
-- 「不祥事だから反発する」と決めつけない
+- 不祥事だけを理由に反発を決めつけない
 - 会社発表前のSNSだけで12点通知しない
 - 調査継続中に範囲を決め打ちしない
-- そもそも下落していない株を「下落一巡」と判定しない
-- 全面安だけの下落を企業固有ショックと誤認しない
+- marketHintだけで上場市場を確定しない
+- 英字tickerだけでUSと決め打ちしない
+- provider未設定なのに価格を推測しない
+- そもそも下落していない株を下落一巡と判定しない
+- 全面安だけの下落を企業固有shockと誤認しない
+- benchmark自身の別日の安値を相対shock計算へ混ぜない
 - 数か月後の別材料による安値を初期不祥事へ帰属しない
 - 粉飾を個人スキャンダルと同列に扱わない
 - 少人数起因という理由だけで会計訂正を軽視しない
