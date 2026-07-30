@@ -18,7 +18,7 @@ type CalibrationInfo = {
     countryCategoryCases: number;
     validationCases: number;
   };
-  registryEntry: { id: string } | null;
+  registryEntry: { id: string; scoreMethod?: string } | null;
 };
 
 type WatchRow = {
@@ -37,6 +37,7 @@ type WatchRow = {
     globalCategoryCases: number;
   };
   calibration?: CalibrationInfo;
+  localOpportunityScore?: number;
   decision: ShockNotificationDecision;
   analogues: Array<{
     company: string;
@@ -50,7 +51,11 @@ type WatchRow = {
   }>;
 };
 
-type NotifyRow = Omit<WatchRow, "calibration"> & { calibration: CalibrationInfo; contextReview: ShockContextReview };
+type NotifyRow = Omit<WatchRow, "calibration" | "localOpportunityScore"> & {
+  calibration: CalibrationInfo;
+  localOpportunityScore: number;
+  contextReview: ShockContextReview;
+};
 
 type WatchReport = {
   generatedAt: string;
@@ -88,6 +93,7 @@ function notificationKey(row: NotifyRow): string {
     row.candidate.id,
     row.candidate.detectedAt,
     row.decision.score,
+    `local-${row.localOpportunityScore.toFixed(2)}`,
     `threshold-${row.calibration.readiness.effectiveThreshold}`,
     row.calibration.registryEntry?.id ?? "global-default",
     row.candidate.investigationStatus ?? "unknown",
@@ -132,8 +138,9 @@ function render(row: NotifyRow): string {
 
   return [
     "🔎 企業固有ショック 調査候補",
-    `${row.candidate.code ?? "-"} ${row.candidate.company}  Global ${row.decision.score}/20`,
-    `実効閾値: ${calibration.effectiveThreshold}/20 (${calibration.effectiveThresholdSource}, ${calibration.modelLevel}/${calibration.status}, registry=${row.calibration.registryEntry?.id ?? "none"})`,
+    `${row.candidate.code ?? "-"} ${row.candidate.company}`,
+    `Global Structural: ${row.decision.score}/20 / Local Opportunity: ${row.localOpportunityScore.toFixed(2)}/20`,
+    `実効閾値: ${calibration.effectiveThreshold}/20 (${calibration.effectiveThresholdSource}, ${calibration.modelLevel}/${calibration.status}, method=${row.calibration.registryEntry?.scoreMethod ?? "global_structural"}, registry=${row.calibration.registryEntry?.id ?? "none"})`,
     `市場/本社国: ${row.market} / ${row.jurisdictionReview.country ?? "unknown"} (${row.jurisdictionReview.group})`,
     `事件国: ${row.contextReview.incidentCountry ?? "unknown"} / geography=${row.contextReview.incidentGeography}`,
     `業種リスク: ${row.contextReview.sectorRiskClass} / stakeholder=${row.contextReview.stakeholder} / scope=${row.contextReview.incidentScope}`,
@@ -153,7 +160,7 @@ function render(row: NotifyRow): string {
     `類似過去: ${analogues || "なし"}`,
     `事件: ${row.candidate.eventSummary}`,
     "",
-    `✅ 一次情報・調査範囲・Global score>=${calibration.effectiveThreshold}・事件窓の実下落・${row.benchmarkLabel}超過下落・下落一巡・jurisdiction・原因帰属・流動性/事件連鎖・再発/是正の全ゲートを通過`,
+    `✅ 一次情報・調査範囲・Local Opportunity>=${calibration.effectiveThreshold}・事件窓の実下落・${row.benchmarkLabel}超過下落・下落一巡・jurisdiction・原因帰属・流動性/事件連鎖・再発/是正の全ゲートを通過`,
     "※買い推奨ではありません。候補発見後に決算・IR・現地制度・同時材料・価格を再確認してください。",
   ].join("\n");
 }
@@ -170,8 +177,8 @@ async function main(): Promise<void> {
 
   const eligible: NotifyRow[] = [];
   for (const row of report.candidates) {
-    if (!row.calibration?.readiness || !Number.isFinite(row.calibration.readiness.effectiveThreshold)) {
-      console.log(`企業固有ショック通知: ${row.candidate.id} stale report without calibration -> BLOCK; rerun pnpm report:shocks`);
+    if (!row.calibration?.readiness || !Number.isFinite(row.calibration.readiness.effectiveThreshold) || !Number.isFinite(row.localOpportunityScore)) {
+      console.log(`企業固有ショック通知: ${row.candidate.id} stale report without calibration/local score -> BLOCK; rerun pnpm report:shocks`);
       continue;
     }
     if (!row.decision.eligible) continue;
@@ -204,7 +211,7 @@ async function main(): Promise<void> {
       console.log(`企業固有ショック通知: ${row.candidate.id} context BLOCK (${contextReview.blockers.join("; ")})`);
       continue;
     }
-    eligible.push({ ...row, calibration: row.calibration, contextReview });
+    eligible.push({ ...row, calibration: row.calibration, localOpportunityScore: row.localOpportunityScore!, contextReview });
   }
 
   if (eligible.length === 0) {
@@ -230,7 +237,7 @@ async function main(): Promise<void> {
   for (const row of newRows) {
     await sendPipelineSummaryNotification(render(row));
     known.add(notificationKey(row));
-    console.log(`LINE通知: ${row.market}/${row.jurisdictionReview.country ?? "?"} ${row.candidate.code ?? "-"} ${row.candidate.company} ${row.decision.score}/20 threshold=${row.calibration.readiness.effectiveThreshold}`);
+    console.log(`LINE通知: ${row.market}/${row.jurisdictionReview.country ?? "?"} ${row.candidate.code ?? "-"} ${row.candidate.company} global=${row.decision.score}/20 local=${row.localOpportunityScore.toFixed(2)}/20 threshold=${row.calibration.readiness.effectiveThreshold}`);
   }
 
   mkdirSync("data", { recursive: true });
