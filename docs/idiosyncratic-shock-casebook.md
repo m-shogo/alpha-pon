@@ -11,9 +11,9 @@
 - **8–11点**: caution。ブランド/規制/キーパーソン問題が重い。
 - **0–7点**: avoid。組織不正・粉飾など。「大きく下げた」を買い理由にしない。
 
-12点以上でも、`confirmed evidence`、`investigationStatus != open/unknown`、`非マクロ主因`、`stabilized_after_drop`、`accountingIntegrity > 0` を満たさなければ通知しません。
+12点以上でも、`confirmed evidence`、`investigationStatus != open/unknown`、`非マクロ主因`、`shockDrawdownPct <= -5`、`stabilized_after_drop`、`accountingIntegrity > 0` を満たさなければ通知しません。
 
-## 52事例
+## 55事例
 
 | # | 企業 / 年 | 類型 | score | checkpoint時の見方 | 後からの主な教訓 |
 |---:|---|---|---:|---|---|
@@ -69,6 +69,9 @@
 | 50 | lululemon 2018 | CEO行動規範 | **18** | research_priority | guidance維持 + 複数幹部の継続体制が確認できた高得点比較例 |
 | 51 | KDDI / BIGLOBE 2026 | 少人数の架空循環取引 + 会計訂正 | **10** | caution / accounting block | 行為者が2人でも過年度訂正まで行けば「個人切除型」にはしない |
 | 52 | エア・ウォーター 2026 | 複数拠点の不適切会計 | **3** | avoid | 経営・管理層まで広がる会計問題は典型的な負例 |
+| 53 | 野村HD 2024 | 元社員の顧客宅関連犯罪 | **14** | watch | 個人犯罪でも金融では顧客信頼・訪問営業ルール変更へ波及する |
+| 54 | 三菱電機 2021–22 | 全社品質不適切行為 | **6** | avoid | 局所に見えた問題が全22製作所・197件へ拡大。調査終了待ちの代表例 |
+| 55 | TOYO TIRE 2015 | 免震ゴム認定不適合・改ざん | **5** | avoid | 製品性能・認定・交換費用に直結する品質偽装は本業と不可分 |
 
 ## 類似型の見取り図
 
@@ -84,7 +87,7 @@ McDonald's / TI / Lockheed / Priceline / Intel / Keurig Dr Pepper / lululemon。
 - 商品・顧客需要・供給網が止まらない
 - 規制免許に直結しない
 
-この型でも**急落初日は買い判定しない**。価格ゲートは独立。
+この型でも**急落初日は買い判定しない**。さらに、事件前比で実際の下落がなければ通知しない。
 
 ### B: キーパーソン型 — 点数を下げる
 
@@ -110,13 +113,13 @@ Wynn / HP / Papa John's / KADOKAWA / 日産 / WWE。
 
 ### D: 組織ガバナンス型 — すぐ買わない
 
-Activision / フジ / Uber / eBay / CBS / Super Retailなど。
+Activision / フジ / Uber / eBay / CBS / Super Retail / 三菱電機など。
 
-当初1人の問題に見えても、第三者委員会・複数証言・当局調査で会社文化や経営陣へ広がる場合がある。**初回scoreを固定せず、範囲拡大時に再採点する。** `investigationStatus=open/unknown` の間は通知しない。
+当初1人・1拠点の問題に見えても、第三者委員会・複数証言・当局調査で会社文化や経営陣へ広がる場合がある。**初回scoreを固定せず、範囲拡大時に再採点する。** `investigationStatus=open/unknown` の間は通知しない。
 
 ### E: 粉飾・組織不正・品質偽装 — 原則ブロック
 
-Olympus / Toshiba / Wells Fargo / Suruga Bank / Luckin / Volkswagen / 神戸製鋼 / 日野 / かんぽ生命 / KDDI 2026 / エア・ウォーター 2026。
+Olympus / Toshiba / Wells Fargo / Suruga Bank / Luckin / Volkswagen / 神戸製鋼 / 日野 / かんぽ生命 / KDDI 2026 / エア・ウォーター 2026 / TOYO TIRE。
 
 下落率が50%でも `accountingIntegrity=0`、免許/認証リスク、顧客への組織的不正がある場合は12点通知のハードゲートを通さない。
 
@@ -125,6 +128,10 @@ Olympus / Toshiba / Wells Fargo / Suruga Bank / Luckin / Volkswagen / 神戸製�
 小林製薬など。
 
 マクロではないので収集対象にはする。ただし**製品そのものが顧客被害を起こしている場合、本業への実害が強い**ためスコアは低くなりやすい。
+
+### G: 顧客接点の個人犯罪型
+
+野村HD 2024のように、行為者は個人でも顧客宅訪問・資産管理など会社の信頼モデルに直接触れる事件は、単純なCEO私生活問題より低く採点する。
 
 ## 12点閾値は固定の真理ではない
 
@@ -146,6 +153,7 @@ DBは固定しない。追加時は以下を優先する。
 - 横領・私的経費・関連当事者取引
 - YouTuber/広告塔/著名創業者の炎上でブランドだけ下がったケース
 - データ改ざん/品質偽装と単純な個人犯罪の境界ケース
+- 金融/介護/医療など顧客接点の個人犯罪
 - 第三者委員会後に「個人だけ」と確定した日本企業
 - 当初個人問題に見えたが、後に組織問題へ拡大した失敗例
 
