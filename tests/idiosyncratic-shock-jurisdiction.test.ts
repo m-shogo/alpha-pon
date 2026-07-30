@@ -4,7 +4,13 @@ import {
   inferShockJurisdictionGroup,
   jurisdictionAnalogyPenalty,
   shockCategoryJurisdictionSensitivity,
+  temporalAnalogyPenalty,
 } from "../src/idiosyncratic-shock-jurisdiction.js";
+import {
+  buildShockContextReview,
+  inferIncidentGeography,
+  inferSectorRiskClass,
+} from "../src/idiosyncratic-shock-context.js";
 
 assert.equal(inferShockJurisdictionGroup({ country: "JP" }), "JP");
 assert.equal(inferShockJurisdictionGroup({ country: "US" }), "US");
@@ -35,6 +41,22 @@ assert.equal(jurisdictionAnalogyPenalty({
   candidateCountry: "US",
   historicalCountry: "JP",
 }), 1, "粉飾は国をまたいでも構造比較を強く残す");
+
+assert.equal(temporalAnalogyPenalty({
+  category: "executive_relationship",
+  candidateDate: "2026-07-30",
+  historicalDate: "2016-01-01",
+}), 3, "文化依存事件の10年前事例は強く減衰");
+assert.equal(temporalAnalogyPenalty({
+  category: "executive_relationship",
+  candidateDate: "2026-07-30",
+  historicalDate: "2025-01-01",
+}), 0, "最近の同型は減衰なし");
+assert.equal(temporalAnalogyPenalty({
+  category: "accounting_fraud",
+  candidateDate: "2026-07-30",
+  historicalDate: "2016-01-01",
+}), 0, "粉飾の構造比較は10年でも保持");
 
 const historical = [
   { category: "executive_relationship", country: "US" },
@@ -71,4 +93,39 @@ assert.equal(crossCountryAccounting.sensitivity, "low");
 assert.equal(crossCountryAccounting.sameCountryCategoryCases, 0);
 assert.equal(crossCountryAccounting.manualReviewRequired, false, "会計不正は同国不足だけでblockしない");
 
-console.log("idiosyncratic-shock jurisdiction tests: OK");
+assert.equal(inferIncidentGeography("JP", "US", "JP"), "foreign");
+assert.equal(inferIncidentGeography("US", "US", "US"), "domestic");
+assert.equal(inferSectorRiskClass("banking and securities"), "trust_critical");
+assert.equal(inferSectorRiskClass("restaurant / food service"), "safety_critical");
+assert.equal(inferSectorRiskClass("casino gaming"), "license_critical");
+
+const crossBorderClear = buildShockContextReview({
+  issuerCountry: "JP",
+  incidentCountry: "US",
+  market: "JP",
+  sector: "consumer_ip",
+  stakeholder: "investor",
+  incidentScope: "subsidiary",
+  confounderStatus: "clear",
+});
+assert.equal(crossBorderClear.incidentGeography, "foreign");
+assert.equal(crossBorderClear.blockers.length, 0);
+assert.ok(crossBorderClear.reviewNotes.some(note => note.includes("本社国外")));
+
+const unknownAttribution = buildShockContextReview({
+  issuerCountry: "US",
+  incidentCountry: "US",
+  market: "US",
+  confounderStatus: "unknown",
+});
+assert.equal(unknownAttribution.blockers.length, 1, "同時材料未確認なら通知を止める");
+
+const majorConfounder = buildShockContextReview({
+  issuerCountry: "US",
+  incidentCountry: "US",
+  market: "US",
+  confounderStatus: "major",
+});
+assert.equal(majorConfounder.blockers.length, 1, "決算等の重大同時材料があれば不祥事下げへ帰属しない");
+
+console.log("idiosyncratic-shock jurisdiction/context tests: OK");
