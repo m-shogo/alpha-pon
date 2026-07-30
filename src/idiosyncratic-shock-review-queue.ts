@@ -6,6 +6,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
 import { loadActiveShockConfig } from "./idiosyncratic-shock-data.js";
 import type { ShockMarket } from "./idiosyncratic-shock-market.js";
+import { extractExplicitUsTickerHint } from "./idiosyncratic-shock-us-symbol.js";
 
 type MarketHint = ShockMarket | "UNKNOWN";
 
@@ -40,6 +41,7 @@ type QueueItem = {
   sourceLevel: "primary" | "news";
   marketHint: MarketHint;
   code: string | null;
+  symbolHint: string | null;
   companyName: string | null;
   title: string;
   url: string;
@@ -97,6 +99,7 @@ function buildQueue(): QueueItem[] {
       sourceLevel: "primary",
       marketHint: "JP",
       code: item.code,
+      symbolHint: null,
       companyName: item.companyName,
       title: item.title,
       url: item.url,
@@ -113,11 +116,13 @@ function buildQueue(): QueueItem[] {
     const normalizedTitle = normalize(item.title);
     if (activeCompanies.some(name => name && normalizedTitle.includes(name))) continue;
     const marketHint = item.marketHint ?? "UNKNOWN";
+    const symbolHint = marketHint === "US" ? extractExplicitUsTickerHint(item.title) : null;
     rows.push({
       key: `news:${marketHint}:${item.publishedAt}:${titleKey(item.title)}`,
       sourceLevel: "news",
       marketHint,
       code: null,
+      symbolHint,
       companyName: null,
       title: item.title,
       url: item.url,
@@ -127,8 +132,9 @@ function buildQueue(): QueueItem[] {
       matchedKeywords: item.matchedKeywords,
       scoringStatus: "needs_scoring",
       requiredReview: [
-        `上場企業・市場・symbolの特定（marketHint=${marketHint} は仮説）`,
+        `上場企業・市場・symbolの特定（marketHint=${marketHint} は仮説${symbolHint ? ` / explicit symbolHint=${symbolHint}` : ""}）`,
         marketHint === "US" ? "company IR + SEC EDGAR（8-K/6-K等）の一次情報探索" : "会社・取引所・当局の一次情報探索",
+        "symbolHintは見出しに明示された場合だけ。SEC/company IRで実在・会社一致を確認するまで確定しない",
         "噂/誤報/別会社の排除",
         "investigationStatusの確認",
         "10項目scoreは一次情報確認後のみ",
@@ -152,6 +158,7 @@ function render(date: string, rows: QueueItem[]): string {
   const jpNews = news.filter(row => row.marketHint === "JP");
   const usNews = news.filter(row => row.marketHint === "US");
   const unknownNews = news.filter(row => row.marketHint === "UNKNOWN");
+  const usSymbolHints = usNews.filter(row => Boolean(row.symbolHint));
   const lines = [
     "# 企業固有ショック 採点待ちキュー",
     "",
@@ -163,6 +170,7 @@ function render(date: string, rows: QueueItem[]): string {
     `- TDnet一次情報(JP): ${primary.length}`,
     `- news JP hint: ${jpNews.length}`,
     `- news US hint: ${usNews.length}`,
+    `- US explicit symbol hint: ${usSymbolHints.length}`,
     `- news UNKNOWN hint: ${unknownNews.length}`,
     "",
     "## 1. TDnet/JPX 一次情報 — 優先採点",
@@ -183,7 +191,7 @@ function render(date: string, rows: QueueItem[]): string {
   lines.push("## 2. ニュース発見のみ — 一次情報待ち", "");
   if (news.length === 0) lines.push("- なし", "");
   for (const row of news.slice(0, 150)) {
-    lines.push(`- [${row.marketHint}] ${row.title}`);
+    lines.push(`- [${row.marketHint}]${row.symbolHint ? ` [symbolHint=${row.symbolHint}]` : ""} ${row.title}`);
     lines.push(`  - categoryHint: ${row.categoryHint} / source=${row.sourceLevel}`);
     lines.push(`  - unresolved: ${row.requiredReview.join(" / ")}`);
     lines.push(`  - url: ${row.url}`);
@@ -205,11 +213,12 @@ function main(): void {
       US: rows.filter(row => row.sourceLevel === "news" && row.marketHint === "US").length,
       UNKNOWN: rows.filter(row => row.sourceLevel === "news" && row.marketHint === "UNKNOWN").length,
     },
+    usExplicitSymbolHints: rows.filter(row => row.sourceLevel === "news" && row.marketHint === "US" && Boolean(row.symbolHint)).length,
     rows,
   };
   writeFileSync("reports/idiosyncratic_shock_review_queue_latest.json", JSON.stringify(payload, null, 2), "utf-8");
   writeFileSync("reports/idiosyncratic_shock_review_queue_latest.md", render(date, rows), "utf-8");
-  console.log(`shock review queue: ${rows.length}件 (primary=${payload.primaryCount}, news=${payload.newsCount}, US=${payload.newsByMarketHint.US})`);
+  console.log(`shock review queue: ${rows.length}件 (primary=${payload.primaryCount}, news=${payload.newsCount}, US=${payload.newsByMarketHint.US}, US-symbol=${payload.usExplicitSymbolHints})`);
 }
 
 main();
