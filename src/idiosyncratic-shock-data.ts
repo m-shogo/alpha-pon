@@ -18,6 +18,7 @@ import type { ShockMarket } from "./idiosyncratic-shock-market.js";
 import type {
   ShockConfounderStatus,
   ShockIncidentScope,
+  ShockInformationLeakStatus,
   ShockStakeholder,
 } from "./idiosyncratic-shock-context.js";
 
@@ -64,6 +65,10 @@ export type ActiveShockConfig = {
     stakeholder?: ShockStakeholder | null;
     incidentScope?: ShockIncidentScope | null;
     confounderStatus?: ShockConfounderStatus | null;
+    informationLeakStatus?: ShockInformationLeakStatus | null;
+    incidentRevenueExposurePct?: number | null;
+    estimatedDirectCostPctMarketCap?: number | null;
+    industryRelativeShockDrawdownPct?: number | null;
     code?: string | null;
     symbol?: string | null;
     company: string;
