@@ -1,5 +1,6 @@
 import { addDaysJst, toCompactDate } from "./date.js";
 import { DEFAULT_SHOCK_WINDOW_DAYS, type HistoricalShockCase, type PriceObservation } from "./idiosyncratic-shock.js";
+import type { HistoricalStrategyEligibilityStatus } from "./idiosyncratic-shock-case-context.js";
 import { DEFAULT_SIGNAL_SEARCH_DAYS, findFirstEligibleShockSignal } from "./idiosyncratic-shock-entry-signal.js";
 import { inferShockMarket, shockBenchmarkLabel, type ShockMarket } from "./idiosyncratic-shock-market.js";
 
@@ -19,6 +20,8 @@ export type ShockHistoricalOutcomeRecord = {
   checkpoint: string;
   score: number;
   label: string;
+  /** checkpoint時点で価格以外の実運用hard gateを再現できたか。 */
+  strategyEligibilityAtCheckpoint: HistoricalStrategyEligibilityStatus;
   /** checkpoint起点の研究比較値。戦略calibrationの正本には使わない。 */
   baseDate: string | null;
   basePrice: number | null;
@@ -35,7 +38,7 @@ export type ShockHistoricalOutcomeRecord = {
   benchmarkRelative1m: number | null;
   benchmarkRelative3m: number | null;
   benchmarkRelative1y: number | null;
-  /** 実運用hard gateを過去時点で再現した最初の取引日。nullはno-trade。 */
+  /** 非価格hard gate confirmed_pass後、価格hard gateが初めて成立した取引日。 */
   firstEligibleSignalDate: string | null;
   firstEligibleSignalPrice: number | null;
   signalShockDrawdownPct: number | null;
@@ -143,7 +146,12 @@ export function buildShockHistoricalOutcome(
   stockQuotesInput: ShockOutcomeQuote[],
   benchmarkQuotesInput: ShockOutcomeQuote[],
   generatedAt: string,
-  options: { market?: ShockMarket; benchmarkLabel?: string; reactionStartDate?: string | null } = {},
+  options: {
+    market?: ShockMarket;
+    benchmarkLabel?: string;
+    reactionStartDate?: string | null;
+    strategyEligibilityAtCheckpoint?: HistoricalStrategyEligibilityStatus | null;
+  } = {},
 ): ShockHistoricalOutcomeRecord | null {
   if (!item.ticker) return null;
 
@@ -152,6 +160,7 @@ export function buildShockHistoricalOutcome(
   const stockQuotes = sortedQuotes(stockQuotesInput);
   const benchmarkQuotes = sortedQuotes(benchmarkQuotesInput);
   const reactionStartDate = options.reactionStartDate ?? item.eventDate;
+  const strategyEligibilityAtCheckpoint = options.strategyEligibilityAtCheckpoint ?? "unknown";
   const checkpoint = item.decisionCheckpoint;
   const base = onOrAfter(stockQuotes, checkpoint);
   if (!base) return null;
@@ -169,12 +178,16 @@ export function buildShockHistoricalOutcome(
   const benchmarkRelative3m = relativeReturn(stockQuotes, benchmarkQuotes, checkpoint, 90);
   const benchmarkRelative1y = relativeReturn(stockQuotes, benchmarkQuotes, checkpoint, 365);
 
-  const signal = findFirstEligibleShockSignal({
-    stock: observations(stockQuotes),
-    benchmark: observations(benchmarkQuotes),
-    reactionStartDate,
-    decisionCheckpoint: checkpoint,
-  });
+  // 非価格hard gateをcheckpoint時点で確認できたケースだけ価格signalを再現する。
+  // unknownをno-trade扱いしない。confirmed_blockも戦略calibration母数へ入れない。
+  const signal = strategyEligibilityAtCheckpoint === "confirmed_pass"
+    ? findFirstEligibleShockSignal({
+      stock: observations(stockQuotes),
+      benchmark: observations(benchmarkQuotes),
+      reactionStartDate,
+      decisionCheckpoint: checkpoint,
+    })
+    : null;
   const signalDate = signal?.signalDate ?? null;
   const signalReturn1w = signalDate ? priceReturnFrom(stockQuotes, signalDate, 7) : null;
   const signalReturn1m = signalDate ? priceReturnFrom(stockQuotes, signalDate, 30) : null;
@@ -197,6 +210,7 @@ export function buildShockHistoricalOutcome(
     checkpoint,
     score: item.score,
     label: item.label,
+    strategyEligibilityAtCheckpoint,
     baseDate: base.normalizedDate,
     basePrice: base.AdjustmentClose,
     preEventDate: preEvent?.normalizedDate ?? null,
@@ -252,13 +266,13 @@ function positiveRate(values: number[]): number | null {
 
 function strategyValues(records: ShockHistoricalOutcomeRecord[], key: keyof ShockHistoricalOutcomeRecord): number[] {
   return records
-    .filter(row => Boolean(row.firstEligibleSignalDate))
+    .filter(row => row.strategyEligibilityAtCheckpoint === "confirmed_pass" && Boolean(row.firstEligibleSignalDate))
     .map(row => row[key])
     .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
 }
 
 function calibrationBucket(bucket: string, records: ShockHistoricalOutcomeRecord[]): ShockCalibrationBucket {
-  const signaled = records.filter(row => Boolean(row.firstEligibleSignalDate));
+  const signaled = records.filter(row => row.strategyEligibilityAtCheckpoint === "confirmed_pass" && Boolean(row.firstEligibleSignalDate));
   const r1m = strategyValues(signaled, "signalReturn1m");
   const rel1m = strategyValues(signaled, "signalBenchmarkRelative1m");
   const r3m = strategyValues(signaled, "signalReturn3m");
