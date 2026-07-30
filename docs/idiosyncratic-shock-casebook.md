@@ -2,7 +2,7 @@
 
 > 研究用。買い推奨ではありません。score は「事件そのものが企業価値を恒久的に壊しにくく、下落後に調査しやすいか」の 20 点評価です。高得点 = 必ず上がる、ではありません。
 >
-> 詳細データ・出典は `data/idiosyncratic_shock_cases.yml` と `data/idiosyncratic_shock_cases_expansion_01.yml`、評価定義は `docs/idiosyncratic-shock-playbook.md` を正本とします。
+> 詳細データ・出典は `data/idiosyncratic_shock_cases.yml` と `data/idiosyncratic_shock_cases_expansion_*.yml`、評価定義は `docs/idiosyncratic-shock-playbook.md` を正本とします。
 
 ## まず見る境界
 
@@ -11,9 +11,9 @@
 - **8–11点**: caution。ブランド/規制/キーパーソン問題が重い。
 - **0–7点**: avoid。組織不正・粉飾など。「大きく下げた」を買い理由にしない。
 
-12点以上でも、`confirmed evidence`、`非マクロ主因`、`stabilized_after_drop`、`accountingIntegrity > 0` を満たさなければ通知しません。
+12点以上でも、`confirmed evidence`、`investigationStatus != open/unknown`、`非マクロ主因`、`stabilized_after_drop`、`accountingIntegrity > 0` を満たさなければ通知しません。
 
-## 50事例
+## 52事例
 
 | # | 企業 / 年 | 類型 | score | checkpoint時の見方 | 後からの主な教訓 |
 |---:|---|---|---:|---|---|
@@ -67,6 +67,8 @@
 | 48 | Super Retail Group 2025 | CEO関係/利益相反 | **10** | caution | 恋愛問題でも内部通報・利益相反・組織論点へ広がると点数を下げる |
 | 49 | CBS 2018 | CEO性的問題 | **11** | caution | 複数証言・企業文化論点があるため単純な個人切除型にしない |
 | 50 | lululemon 2018 | CEO行動規範 | **18** | research_priority | guidance維持 + 複数幹部の継続体制が確認できた高得点比較例 |
+| 51 | KDDI / BIGLOBE 2026 | 少人数の架空循環取引 + 会計訂正 | **10** | caution / accounting block | 行為者が2人でも過年度訂正まで行けば「個人切除型」にはしない |
+| 52 | エア・ウォーター 2026 | 複数拠点の不適切会計 | **3** | avoid | 経営・管理層まで広がる会計問題は典型的な負例 |
 
 ## 類似型の見取り図
 
@@ -110,11 +112,11 @@ Wynn / HP / Papa John's / KADOKAWA / 日産 / WWE。
 
 Activision / フジ / Uber / eBay / CBS / Super Retailなど。
 
-当初1人の問題に見えても、第三者委員会・複数証言・当局調査で会社文化や経営陣へ広がる場合がある。**初回scoreを固定せず、範囲拡大時に再採点する。**
+当初1人の問題に見えても、第三者委員会・複数証言・当局調査で会社文化や経営陣へ広がる場合がある。**初回scoreを固定せず、範囲拡大時に再採点する。** `investigationStatus=open/unknown` の間は通知しない。
 
 ### E: 粉飾・組織不正・品質偽装 — 原則ブロック
 
-Olympus / Toshiba / Wells Fargo / Suruga Bank / Luckin / Volkswagen / 神戸製鋼 / 日野 / かんぽ生命。
+Olympus / Toshiba / Wells Fargo / Suruga Bank / Luckin / Volkswagen / 神戸製鋼 / 日野 / かんぽ生命 / KDDI 2026 / エア・ウォーター 2026。
 
 下落率が50%でも `accountingIntegrity=0`、免許/認証リスク、顧客への組織的不正がある場合は12点通知のハードゲートを通さない。
 
@@ -123,6 +125,17 @@ Olympus / Toshiba / Wells Fargo / Suruga Bank / Luckin / Volkswagen / 神戸製�
 小林製薬など。
 
 マクロではないので収集対象にはする。ただし**製品そのものが顧客被害を起こしている場合、本業への実害が強い**ためスコアは低くなりやすい。
+
+## 12点閾値は固定の真理ではない
+
+現在の12点は運用開始用の仮説。JP上場の過去事例について `pnpm backfill:shock-outcomes:write` で、**decision checkpointから**1週・1か月・3か月・1年のリターンとTOPIX相対を蓄積する。
+
+- `score_ge_12` と `score_lt_12` を比較
+- 平均だけでなく中央値・プラス率・TOPIX相対を見る
+- サンプルが少ないうちは自動で閾値変更しない
+- 事件後の買収・市況・アクティビスト等の交絡は別レビュー
+
+「事件後の底値から測る」のではなく、**当時十分な情報を確認できた checkpoint から測る**ことで後知恵バイアスを減らす。
 
 ## 今後の拡張ルール
 
