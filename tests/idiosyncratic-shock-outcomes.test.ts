@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { labelShockScore, type HistoricalShockCase } from "../src/idiosyncratic-shock.js";
+import { resolveHistoricalStrategyEligibility } from "../src/idiosyncratic-shock-case-context.js";
 import {
   buildShockHistoricalOutcome,
   calibrateShockThresholds,
@@ -40,6 +41,20 @@ const strongCase: HistoricalShockCase = {
   sources: [{ title: "fixture", url: "https://example.com", sourceType: "company" }],
   researchConfidence: "high",
 };
+
+assert.equal(resolveHistoricalStrategyEligibility(strongCase), "unknown", "高scoreでも一次情報によるPASS確認なしでは自動PASSしない");
+assert.equal(resolveHistoricalStrategyEligibility(strongCase, "confirmed_pass"), "confirmed_pass");
+assert.equal(resolveHistoricalStrategyEligibility(strongCase, "confirmed_block"), "confirmed_block");
+const lowScoreCase: HistoricalShockCase = { ...strongCase, id: "fixture-low-score", score: 11, label: labelShockScore(11) };
+assert.equal(resolveHistoricalStrategyEligibility(lowScoreCase), "confirmed_block", "score<12はsidecar未記載でも確定BLOCK");
+const accountingBlockCase: HistoricalShockCase = {
+  ...strongCase,
+  id: "fixture-accounting-block",
+  scores: { ...strongCase.scores, accountingIntegrity: 0 },
+};
+assert.equal(resolveHistoricalStrategyEligibility(accountingBlockCase), "confirmed_block", "accountingIntegrity=0は確定BLOCK");
+const macroBlockCase: HistoricalShockCase = { ...strongCase, id: "fixture-macro-block", macroPrimaryCause: true };
+assert.equal(resolveHistoricalStrategyEligibility(macroBlockCase), "confirmed_block", "macro主因は確定BLOCK");
 
 const stock: ShockOutcomeQuote[] = [
   { Date: "20260109", AdjustmentClose: 100 },
