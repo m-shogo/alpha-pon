@@ -11,6 +11,8 @@ export const SHOCK_SCORE_KEYS = [
   "priceStabilization",
 ] as const;
 
+export const DEFAULT_MIN_SHOCK_DRAWDOWN_PCT = -5;
+
 export type ShockScoreKey = typeof SHOCK_SCORE_KEYS[number];
 export type ShockDimensionScores = Record<ShockScoreKey, 0 | 1 | 2>;
 
@@ -83,6 +85,7 @@ export type ShockCandidate = {
   evidenceStatus: ShockEvidenceStatus;
   investigationStatus?: ShockInvestigationStatus;
   priceState: ShockPriceState;
+  shockDrawdownPct?: number | null;
   scores: ShockDimensionScores;
   criticalLicenseOrDelistingRisk?: boolean;
   sources?: ShockSource[];
@@ -118,7 +121,8 @@ export function labelShockScore(score: number): ShockLabel {
 
 export function buildNotificationDecision(
   candidate: ShockCandidate,
-  threshold = 12
+  threshold = 12,
+  minShockDrawdownPct = DEFAULT_MIN_SHOCK_DRAWDOWN_PCT,
 ): ShockNotificationDecision {
   const score = totalShockScore(candidate.scores);
   const blockers: string[] = [];
@@ -130,6 +134,11 @@ export function buildNotificationDecision(
     blockers.push(`investigationStatus=${investigationStatus}`);
   }
   if (candidate.macroPrimaryCause) blockers.push("macro factor is primary cause");
+  if (candidate.shockDrawdownPct == null || !Number.isFinite(candidate.shockDrawdownPct)) {
+    blockers.push("shockDrawdownPct is missing");
+  } else if (candidate.shockDrawdownPct > minShockDrawdownPct) {
+    blockers.push(`shockDrawdownPct=${candidate.shockDrawdownPct.toFixed(1)}% > ${minShockDrawdownPct}%`);
+  }
   if (candidate.priceState !== "stabilized_after_drop") blockers.push(`priceState=${candidate.priceState}`);
   if (candidate.scores.accountingIntegrity === 0) blockers.push("accountingIntegrity=0");
   if (candidate.criticalLicenseOrDelistingRisk) blockers.push("critical license/delisting risk unresolved");
@@ -213,6 +222,17 @@ function pct(from: number, to: number): number {
   return from > 0 ? ((to - from) / from) * 100 : 0;
 }
 
+export function calculateShockDrawdownPct(observations: PriceObservation[], eventDate: string): number | null {
+  const rows = [...observations]
+    .filter(row => Number.isFinite(row.close) && row.close > 0)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const preEvent = [...rows].reverse().find(row => row.date < eventDate);
+  const afterEvent = rows.filter(row => row.date >= eventDate);
+  if (!preEvent || afterEvent.length === 0) return null;
+  const low = Math.min(...afterEvent.map(row => row.close));
+  return Number(pct(preEvent.close, low).toFixed(4));
+}
+
 /**
  * Conservative stabilization detector. It intentionally prefers "wait" over
  * declaring a bottom. Five sessions are only a minimum signal, not proof of a bottom.
@@ -239,8 +259,6 @@ export function inferPriceState(observations: PriceObservation[]): ShockPriceSta
   const maxDailyMove = Math.max(...dayChanges);
   if (maxDailyMove >= 7) return "volatile";
 
-  // 安値が直近2日ではなく、そこから3営業日程度は新安値を付けず、
-  // かつ急反発でもない場合だけ「下落一巡候補」にする。
   const lowOccurredEarlyEnough = lowIndex >= 0 && lowIndex <= 1;
   if (lowOccurredEarlyEnough && fiveDayChange >= -3 && fiveDayChange <= 8 && latestVsLow <= 10) {
     return "stabilized_after_drop";
@@ -259,7 +277,7 @@ export function formatShockCandidateSummary(
   return [
     `${candidate.company} ${decision.score}/20 [${decision.label}]`,
     `分類: ${candidate.category} / actor=${candidate.actorType}`,
-    `株価状態: ${candidate.priceState} / evidence=${candidate.evidenceStatus} / investigation=${candidate.investigationStatus ?? "unknown"}`,
+    `株価状態: ${candidate.priceState} / shock=${candidate.shockDrawdownPct?.toFixed(1) ?? "?"}% / evidence=${candidate.evidenceStatus} / investigation=${candidate.investigationStatus ?? "unknown"}`,
     `類似: ${analogyText || "なし"}`,
     decision.eligible ? "通知ゲート: PASS（調査候補）" : `通知ゲート: WAIT (${decision.blockers.join("; ")})`,
     "※売買推奨ではありません",
