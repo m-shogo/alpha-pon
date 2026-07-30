@@ -1,6 +1,6 @@
 // 企業固有ショック / 不祥事ニュースの収集。
 // 世界情勢・食糧不足・金利等のマクロ要因は除外し、未確認記事は review queue にのみ残す。
-// JP/ja と US/en のGoogle News RSSを分離して収集する。
+// 価格providerが無い市場もresearch discoveryまでは行い、通知だけfail-closedにする。
 // pnpm scan:shocks
 
 import { mkdirSync, readFileSync, writeFileSync } from "fs";
@@ -28,6 +28,8 @@ type QuerySpec = {
   gl: string;
   ceid: string;
 };
+
+type FeedLocale = { hl: string; gl: string; ceid: string };
 
 type RssArticle = {
   title: string;
@@ -77,32 +79,109 @@ const US_QUERIES = [
   "SEC investigation executive misconduct public company",
 ];
 
-function specs(queries: string[], marketHint: ScanMarketHint): QuerySpec[] {
-  const isUs = marketHint === "US";
-  return queries.map(query => ({
-    query,
-    marketHint,
-    hl: isUs ? "en" : "ja",
-    gl: isUs ? "US" : "JP",
-    ceid: isUs ? "US:en" : "JP:ja",
-  }));
+const REGIONAL_QUERIES: Partial<Record<ShockMarket, string[]>> = {
+  UK: [
+    "UK listed company CEO misconduct resignation",
+    "FTSE company executive misconduct investigation",
+    "UK listed company accounting misconduct restatement",
+  ],
+  EUROPE: [
+    "European listed company CEO misconduct resignation",
+    "European listed company executive misconduct investigation",
+    "European listed company accounting fraud investigation",
+  ],
+  AU: [
+    "ASX listed company CEO misconduct resignation",
+    "ASX listed company executive misconduct investigation",
+    "ASX listed company accounting misconduct investigation",
+  ],
+  CA: [
+    "TSX listed company CEO misconduct resignation",
+    "Canadian listed company executive misconduct investigation",
+    "TSX accounting misconduct investigation company",
+  ],
+  HK: [
+    "Hong Kong listed company CEO misconduct resignation",
+    "HKEX listed company executive misconduct investigation",
+    "Hong Kong listed company accounting misconduct investigation",
+  ],
+  KR: [
+    "KOSPI company CEO misconduct resignation",
+    "South Korea listed company executive misconduct investigation",
+    "South Korea listed company accounting misconduct investigation",
+  ],
+  SG: [
+    "SGX listed company CEO misconduct resignation",
+    "Singapore listed company executive misconduct investigation",
+    "SGX accounting misconduct investigation",
+  ],
+  CN: [
+    "China listed company executive misconduct investigation",
+    "China A-share company accounting misconduct investigation",
+    "China listed company chairman misconduct resignation",
+  ],
+  TW: [
+    "Taiwan listed company executive misconduct investigation",
+    "Taiwan listed company accounting misconduct investigation",
+    "Taiwan listed company CEO resignation misconduct",
+  ],
+};
+
+const FEED_LOCALES: Partial<Record<ShockMarket, FeedLocale>> = {
+  JP: { hl: "ja", gl: "JP", ceid: "JP:ja" },
+  US: { hl: "en", gl: "US", ceid: "US:en" },
+  UK: { hl: "en", gl: "GB", ceid: "GB:en" },
+  EUROPE: { hl: "en", gl: "GB", ceid: "GB:en" },
+  AU: { hl: "en", gl: "AU", ceid: "AU:en" },
+  CA: { hl: "en", gl: "CA", ceid: "CA:en" },
+  HK: { hl: "en", gl: "HK", ceid: "HK:en" },
+  SG: { hl: "en", gl: "SG", ceid: "SG:en" },
+  // KR/CN/TWはまず英語国際報道をdiscovery入口にし、local-language primary sourceはreview段階で必須確認。
+  KR: { hl: "en", gl: "US", ceid: "US:en" },
+  CN: { hl: "en", gl: "US", ceid: "US:en" },
+  TW: { hl: "en", gl: "US", ceid: "US:en" },
+};
+
+const DISCOVERY_MARKETS: ShockMarket[] = ["JP", "US", "UK", "EUROPE", "AU", "CA", "HK", "KR", "SG", "CN", "TW"];
+
+function envQueries(name: string, fallback: string[]): string[] {
+  const values = (process.env[name] ?? "")
+    .split("|")
+    .map(value => value.trim())
+    .filter(Boolean);
+  return values.length > 0 ? values : fallback;
+}
+
+function specs(queries: string[], marketHint: ShockMarket): QuerySpec[] {
+  const locale = FEED_LOCALES[marketHint] ?? FEED_LOCALES.US!;
+  return queries.map(query => ({ query, marketHint, ...locale }));
 }
 
 function configuredSpecs(): QuerySpec[] {
-  const jpOverride = (process.env.IDIOSYNCRATIC_SHOCK_QUERIES ?? "")
-    .split("|")
-    .map(value => value.trim())
-    .filter(Boolean);
-  const usOverride = (process.env.IDIOSYNCRATIC_SHOCK_US_QUERIES ?? "")
-    .split("|")
-    .map(value => value.trim())
-    .filter(Boolean);
-  const jpQueries = jpOverride.length > 0 ? jpOverride : JP_QUERIES;
-  const usQueries = usOverride.length > 0 ? usOverride : US_QUERIES;
-  return [
-    ...specs(jpQueries, "JP"),
-    ...specs(usQueries, "US"),
-  ];
+  const defaults: Partial<Record<ShockMarket, string[]>> = {
+    JP: JP_QUERIES,
+    US: US_QUERIES,
+    ...REGIONAL_QUERIES,
+  };
+  const envNames: Partial<Record<ShockMarket, string>> = {
+    JP: "IDIOSYNCRATIC_SHOCK_QUERIES",
+    US: "IDIOSYNCRATIC_SHOCK_US_QUERIES",
+    UK: "IDIOSYNCRATIC_SHOCK_UK_QUERIES",
+    EUROPE: "IDIOSYNCRATIC_SHOCK_EUROPE_QUERIES",
+    AU: "IDIOSYNCRATIC_SHOCK_AU_QUERIES",
+    CA: "IDIOSYNCRATIC_SHOCK_CA_QUERIES",
+    HK: "IDIOSYNCRATIC_SHOCK_HK_QUERIES",
+    KR: "IDIOSYNCRATIC_SHOCK_KR_QUERIES",
+    SG: "IDIOSYNCRATIC_SHOCK_SG_QUERIES",
+    CN: "IDIOSYNCRATIC_SHOCK_CN_QUERIES",
+    TW: "IDIOSYNCRATIC_SHOCK_TW_QUERIES",
+  };
+  return DISCOVERY_MARKETS.flatMap(market => {
+    const fallback = defaults[market] ?? [];
+    const envName = envNames[market];
+    const queries = envName ? envQueries(envName, fallback) : fallback;
+    return specs(queries, market);
+  });
 }
 
 function decodeXml(text: string): string {
@@ -198,12 +277,11 @@ function renderMarkdown(date: string, items: ShockScanItem[], errors: string[]):
     "",
     `生成日: ${date}`,
     "",
-    "> ここに載るだけでは12点候補ではありません。一次情報確認・調査範囲確認・10項目採点・実下落・株価沈静化を通過するまで通知禁止。",
-    "> JP/ja と US/en を別RSSで収集します。marketHintは発見経路のヒントであり、会社の上場市場を確定するものではありません。",
+    "> ここに載るだけでは12点候補ではありません。一次情報確認・context review・10項目採点・実下落・株価沈静化を通過するまで通知禁止。",
+    "> marketHintは検索入口のヒントであり、issuer country / incident country / listing marketを確定するものではありません。英語国際報道で拾ったKR/CN/TW等はlocal-language primary sourceをreview段階で必ず確認します。",
     "",
     `- review queue: ${items.length}件`,
-    `- JP hint: ${counts.get("JP") ?? 0}`,
-    `- US hint: ${counts.get("US") ?? 0}`,
+    ...DISCOVERY_MARKETS.map(market => `- ${market} hint: ${counts.get(market) ?? 0}`),
     `- UNKNOWN hint: ${counts.get("UNKNOWN") ?? 0}`,
     `- fetch errors: ${errors.length}件`,
     "",
@@ -252,16 +330,24 @@ async function main(): Promise<void> {
     }
   }
 
-  const result = dedupe(items).slice(0, 300);
+  const result = dedupe(items).slice(0, 600);
+  const markets: ScanMarketHint[] = [...DISCOVERY_MARKETS, "UNKNOWN"];
   const byMarket = Object.fromEntries(
-    (["JP", "US", "UNKNOWN"] as ScanMarketHint[]).map(market => [market, result.filter(item => item.marketHint === market).length]),
+    markets.map(market => [market, result.filter(item => item.marketHint === market).length]),
   );
   mkdirSync("reports", { recursive: true });
-  const payload = { generatedAt: date, count: result.length, byMarket, items: result, errors };
+  const payload = {
+    generatedAt: date,
+    count: result.length,
+    discoveryMarkets: DISCOVERY_MARKETS,
+    byMarket,
+    items: result,
+    errors,
+  };
   writeFileSync("reports/idiosyncratic_shock_scan_latest.json", JSON.stringify(payload, null, 2), "utf-8");
   writeFileSync(`reports/idiosyncratic_shock_scan_${date}.json`, JSON.stringify(payload, null, 2), "utf-8");
   writeFileSync("reports/idiosyncratic_shock_scan_latest.md", renderMarkdown(date, result, errors), "utf-8");
-  console.log(`企業固有ショック scan: ${result.length}件 JP=${byMarket.JP ?? 0} US=${byMarket.US ?? 0} UNKNOWN=${byMarket.UNKNOWN ?? 0} errors=${errors.length}`);
+  console.log(`企業固有ショック scan: ${result.length}件 ${DISCOVERY_MARKETS.map(market => `${market}=${byMarket[market] ?? 0}`).join(" ")} UNKNOWN=${byMarket.UNKNOWN ?? 0} errors=${errors.length}`);
 }
 
 main().catch(error => {
