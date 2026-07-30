@@ -1,6 +1,6 @@
 import { addDaysJst, toCompactDate } from "./date.js";
 import { DEFAULT_SHOCK_WINDOW_DAYS, type HistoricalShockCase, type PriceObservation } from "./idiosyncratic-shock.js";
-import { findFirstEligibleShockSignal } from "./idiosyncratic-shock-entry-signal.js";
+import { DEFAULT_SIGNAL_SEARCH_DAYS, findFirstEligibleShockSignal } from "./idiosyncratic-shock-entry-signal.js";
 import { inferShockMarket, shockBenchmarkLabel, type ShockMarket } from "./idiosyncratic-shock-market.js";
 
 export type ShockOutcomeQuote = {
@@ -306,7 +306,8 @@ export function calibrateShockThresholds(records: ShockHistoricalOutcomeRecord[]
 
 export function outcomeFetchRangeIso(item: HistoricalShockCase, generatedAt: string): { from: string; to: string } {
   const from = addDaysJst(item.eventDate, -10);
-  const desiredTo = addDaysJst(item.decisionCheckpoint, 380);
+  // signalはreaction/checkpoint後最大90日まで出得る。signal後1yも欠損させないため余裕を持って取得する。
+  const desiredTo = addDaysJst(item.decisionCheckpoint, DEFAULT_SIGNAL_SEARCH_DAYS + 380);
   const to = desiredTo < generatedAt ? desiredTo : generatedAt;
   return { from, to };
 }
