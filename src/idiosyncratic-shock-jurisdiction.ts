@@ -5,6 +5,7 @@
 export type ShockJurisdictionGroup = "JP" | "US" | "UK" | "EUROPE" | "COMMONWEALTH" | "OTHER";
 export type ShockJurisdictionSensitivity = "high" | "medium" | "low";
 export type ShockJurisdictionConfidence = "strong" | "adequate" | "weak";
+export type ShockEvidenceTier = "local_strong" | "local_plus_group" | "group_plus_global" | "global_only" | "insufficient";
 
 export type ShockJurisdictionProfile = {
   group: ShockJurisdictionGroup;
@@ -21,6 +22,12 @@ export type ShockJurisdictionReview = {
   sameGroupCategoryCases: number;
   globalCategoryCases: number;
   confidence: ShockJurisdictionConfidence;
+  evidenceTier: ShockEvidenceTier;
+  evidenceWeights: {
+    sameCountry: number;
+    sameGroup: number;
+    global: number;
+  };
   manualReviewRequired: boolean;
   blockers: string[];
   reviewAxes: string[];
@@ -133,8 +140,6 @@ export function inferShockJurisdictionGroup(input: {
 
 export function shockCategoryJurisdictionSensitivity(category: string): ShockJurisdictionSensitivity {
   const normalized = category.toLowerCase();
-
-  // 人間関係・言動・SNS炎上は、法制度だけでなく雇用慣行・消費者反応・報道慣行の差が大きい。
   if (
     normalized.includes("relationship") ||
     normalized.includes("sexual") ||
@@ -144,7 +149,6 @@ export function shockCategoryJurisdictionSensitivity(category: string): ShockJur
     normalized.includes("viral")
   ) return "high";
 
-  // 粉飾・架空取引・品質偽装等は国差より「財務/製品そのものが壊れたか」の構造が支配的。
   if (
     normalized.includes("accounting") ||
     normalized.includes("restatement") ||
@@ -190,7 +194,6 @@ export function temporalAnalogyPenalty(input: {
   const ageYears = Math.max(0, candidateYear - historicalYear);
   const sensitivity = shockCategoryJurisdictionSensitivity(input.category);
 
-  // 社会規範・SNS・雇用/ガバナンス慣行が効くカテゴリほど古い事例を早く陳腐化させる。
   if (sensitivity === "high") {
     if (ageYears >= 10) return 3;
     if (ageYears >= 6) return 2;
@@ -202,8 +205,44 @@ export function temporalAnalogyPenalty(input: {
     if (ageYears >= 7) return 1;
     return 0;
   }
-  // 会計・品質等は構造の寿命が長いが、制度・監査基準の変化はあるので永久に同価値とはしない。
   return ageYears >= 15 ? 1 : 0;
+}
+
+function evidencePool(
+  sensitivity: ShockJurisdictionSensitivity,
+  sameCountry: number,
+  sameGroup: number,
+  global: number,
+): {
+  tier: ShockEvidenceTier;
+  weights: { sameCountry: number; sameGroup: number; global: number };
+  manualReviewRequired: boolean;
+} {
+  if (sameCountry >= 5) {
+    return { tier: "local_strong", weights: { sameCountry: 0.7, sameGroup: 0.2, global: 0.1 }, manualReviewRequired: false };
+  }
+  if (sameCountry >= 2) {
+    return { tier: "local_plus_group", weights: { sameCountry: 0.5, sameGroup: 0.3, global: 0.2 }, manualReviewRequired: false };
+  }
+  if (sameGroup >= 5) {
+    return {
+      tier: "group_plus_global",
+      weights: { sameCountry: 0.1, sameGroup: 0.6, global: 0.3 },
+      manualReviewRequired: sensitivity === "high",
+    };
+  }
+  if (global >= 5) {
+    return {
+      tier: "global_only",
+      weights: { sameCountry: 0, sameGroup: 0.15, global: 0.85 },
+      manualReviewRequired: sensitivity !== "low",
+    };
+  }
+  return {
+    tier: "insufficient",
+    weights: { sameCountry: 0, sameGroup: 0, global: 1 },
+    manualReviewRequired: true,
+  };
 }
 
 export function buildShockJurisdictionReview(
@@ -227,12 +266,9 @@ export function buildShockJurisdictionReview(
     : sameCountryCategoryCases >= 2
       ? "adequate"
       : "weak";
-
-  // 文化/雇用/評判依存が強いカテゴリだけ、同国事例が不足すると自動通知を止める。
-  // 会計・品質など構造支配型は世界事例を使えるため、この理由だけではblockしない。
-  const manualReviewRequired = sensitivity === "high" && sameCountryCategoryCases < 2;
-  const blockers = manualReviewRequired
-    ? [`jurisdiction-sensitive category has only ${sameCountryCategoryCases} same-country analogue(s); local review required`]
+  const pool = evidencePool(sensitivity, sameCountryCategoryCases, sameGroupCategoryCases, globalCategoryCases);
+  const blockers = pool.manualReviewRequired
+    ? [`jurisdiction evidence tier=${pool.tier}; local/context review required before auto-notification`]
     : [];
 
   return {
@@ -243,7 +279,9 @@ export function buildShockJurisdictionReview(
     sameGroupCategoryCases,
     globalCategoryCases,
     confidence,
-    manualReviewRequired,
+    evidenceTier: pool.tier,
+    evidenceWeights: pool.weights,
+    manualReviewRequired: pool.manualReviewRequired,
     blockers,
     reviewAxes: SHOCK_JURISDICTION_PROFILES[group].reviewAxes,
   };
