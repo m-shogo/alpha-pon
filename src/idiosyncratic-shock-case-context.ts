@@ -60,9 +60,66 @@ export type HistoricalStrategyEligibilityResolution = {
   missingEvidence: string[];
 };
 
+const KNOWN_NON_PRIMARY_HOSTS = new Set([
+  "minkabu.jp",
+  "disclosure.catr.jp",
+  "finance.yahoo.co.jp",
+  "investing.com",
+  "reuters.com",
+  "kabutan.jp",
+  "kabuyoho.jp",
+  "gyokaidigest.com",
+]);
+
+const TRUSTED_EXCHANGE_HOST_SUFFIXES = [
+  "jpx.co.jp",
+  "tdnet.info",
+  "nyse.com",
+  "nasdaq.com",
+  "londonstockexchange.com",
+  "hkexnews.hk",
+  "asx.com.au",
+];
+
+function normalizedHost(url: string): string | null {
+  try {
+    return new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+}
+
+function hostMatchesSuffix(host: string, suffix: string): boolean {
+  return host === suffix || host.endsWith(`.${suffix}`);
+}
+
+function isGovernmentOrRegulatorHost(host: string): boolean {
+  return host === "sec.gov"
+    || host.endsWith(".gov")
+    || host.endsWith(".gov.uk")
+    || host.endsWith(".go.jp")
+    || host.endsWith(".gov.au")
+    || host.endsWith(".gc.ca");
+}
+
+/**
+ * sourceTypeラベルだけで一次情報扱いしない。
+ * 特にaggregatorをexchange/companyと誤分類してhistorical PASSを作る事故を防ぐ。
+ */
+export function isTrustedHistoricalPrimarySource(source: ShockSource): boolean {
+  if (source.sourceType !== "company" && source.sourceType !== "regulator" && source.sourceType !== "exchange") return false;
+  const host = normalizedHost(source.url);
+  if (!host || KNOWN_NON_PRIMARY_HOSTS.has(host)) return false;
+  if (source.sourceType === "regulator") return isGovernmentOrRegulatorHost(host);
+  if (source.sourceType === "exchange") return TRUSTED_EXCHANGE_HOST_SUFFIXES.some(suffix => hostMatchesSuffix(host, suffix));
+  // company sourceは世界中のissuer domainを固定allowlist化できないため、既知aggregatorをrejectし、
+  // explicit structured eligibility + audit evidenceと組み合わせてfail-closedにする。
+  return true;
+}
+
 function sourceGateSatisfied(item: HistoricalShockCase, context?: HistoricalShockCaseContext | null): boolean {
   const sources = [...item.sources, ...(context?.strategyEligibilityEvidenceSources ?? [])];
-  const hasPrimary = sources.some(source => source.sourceType === "company" || source.sourceType === "regulator" || source.sourceType === "exchange");
+  const hasPrimary = sources.some(isTrustedHistoricalPrimarySource);
   const majorMediaCount = sources.filter(source => source.sourceType === "major_media").length;
   return hasPrimary || majorMediaCount >= 2;
 }
@@ -108,7 +165,7 @@ export function resolveHistoricalStrategyEligibilityDetailed(
   if (investigation === "unknown") missingEvidence.push("strategyInvestigationStatusAtCheckpoint");
   if (context?.strategyCriticalLicenseOrDelistingRiskAtCheckpoint == null) missingEvidence.push("strategyCriticalLicenseOrDelistingRiskAtCheckpoint");
   if (context?.confounderStatus == null || context.confounderStatus === "unknown") missingEvidence.push("confounderStatus");
-  if (!sourceGateSatisfied(item, context)) missingEvidence.push("primary source or >=2 major media");
+  if (!sourceGateSatisfied(item, context)) missingEvidence.push("trusted primary source or >=2 major media");
   if ((context?.announcementTiming === "after_close" || context?.announcementTiming === "non_trading_day") && !context.priceReactionStartDate) {
     missingEvidence.push("priceReactionStartDate for announcement timing");
   }
