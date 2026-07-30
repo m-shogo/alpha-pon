@@ -1,4 +1,4 @@
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { load } from "js-yaml";
 import {
   SHOCK_SCORE_KEYS,
@@ -61,6 +61,11 @@ export type ActiveShockConfig = {
   }>;
 };
 
+const DEFAULT_HISTORICAL_PATHS = [
+  "data/idiosyncratic_shock_cases.yml",
+  "data/idiosyncratic_shock_cases_expansion_01.yml",
+];
+
 function vectorToScores(vector: number[]): ShockDimensionScores {
   if (vector.length !== SHOCK_SCORE_KEYS.length) {
     throw new Error(`scoreVector length=${vector.length}; expected ${SHOCK_SCORE_KEYS.length}`);
@@ -76,7 +81,7 @@ function vectorToScores(vector: number[]): ShockDimensionScores {
   return result;
 }
 
-export function loadHistoricalShockCases(path = "data/idiosyncratic_shock_cases.yml"): HistoricalShockCase[] {
+function loadHistoricalFile(path: string): HistoricalShockCase[] {
   const raw = load(readFileSync(path, "utf-8")) as HistoricalFile;
   if (!Array.isArray(raw.cases)) throw new Error(`${path}: cases is required`);
   if (raw.scoreOrder.join("|") !== SHOCK_SCORE_KEYS.join("|")) {
@@ -113,6 +118,17 @@ export function loadHistoricalShockCases(path = "data/idiosyncratic_shock_cases.
     assertHistoricalCaseIntegrity(result);
     return result;
   });
+}
+
+export function loadHistoricalShockCases(path?: string): HistoricalShockCase[] {
+  const paths = path ? [path] : DEFAULT_HISTORICAL_PATHS.filter(existsSync);
+  const rows = paths.flatMap(loadHistoricalFile);
+  const ids = new Set<string>();
+  for (const row of rows) {
+    if (ids.has(row.id)) throw new Error(`duplicate historical shock id: ${row.id}`);
+    ids.add(row.id);
+  }
+  return rows;
 }
 
 export function loadActiveShockConfig(path = "config/idiosyncratic-shock-active.yml"): ActiveShockConfig {
