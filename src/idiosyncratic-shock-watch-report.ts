@@ -41,6 +41,7 @@ import {
   type ShockCalibrationObservation,
 } from "./idiosyncratic-shock-calibration.js";
 import {
+  computeLocalOpportunityScore,
   loadShockCalibrationConfig,
   resolveShockCalibration,
   type ResolvedShockCalibration,
@@ -65,6 +66,7 @@ type EvaluatedCandidate = {
   jurisdictionReview: ShockJurisdictionReview;
   contextReview: ShockContextReview;
   calibration: ResolvedShockCalibration;
+  localOpportunityScore: number;
   decision: ReturnType<typeof buildNotificationDecision>;
   analogues: Array<{
     id: string;
@@ -321,12 +323,17 @@ async function evaluate(
     category: candidate.category,
     observations: calibrationObservations,
   });
-  const baseDecision = buildNotificationDecision(candidate, calibration.readiness.effectiveThreshold);
+  const localOpportunityScore = computeLocalOpportunityScore(candidate.scores, calibration.registryEntry);
+  // 共通hard gateはそのまま使うが、score thresholdだけLocal Opportunityへ置き換える。
+  const structuralDecision = buildNotificationDecision(candidate, 0);
+  const localScoreBlockers = localOpportunityScore < calibration.readiness.effectiveThreshold
+    ? [`localOpportunityScore ${localOpportunityScore.toFixed(2)} < threshold ${calibration.readiness.effectiveThreshold}`]
+    : [];
   const jurisdictionReview = buildShockJurisdictionReview(candidate, historical);
   const contextReview = buildShockContextReview(candidateContext(raw));
-  const blockers = [...baseDecision.blockers, ...jurisdictionReview.blockers, ...contextReview.blockers];
+  const blockers = [...structuralDecision.blockers, ...localScoreBlockers, ...jurisdictionReview.blockers, ...contextReview.blockers];
   const decision = {
-    ...baseDecision,
+    ...structuralDecision,
     eligible: blockers.length === 0,
     blockers,
   };
@@ -362,6 +369,7 @@ async function evaluate(
     jurisdictionReview,
     contextReview,
     calibration,
+    localOpportunityScore,
     decision,
     analogues,
   };
@@ -405,8 +413,8 @@ function renderMarkdown(
     "",
     `生成日: ${date}`,
     "",
-    "> 20点は企業ダメージの世界共通score。国差はjurisdiction evidence pool、事件帰属はcontext review、閾値差はvalidated local calibrationで別管理します。",
-    "> local thresholdはoutcome母数 + chronological holdout + registry証跡を全て満たした場合だけ使い、それ以外は12点へ戻します。",
+    "> Global Structural Scoreは企業ダメージの世界共通20点。国差はjurisdiction evidence、事件帰属はcontext、検証済み差分だけLocal Opportunity Scoreで別管理します。",
+    "> local weights/thresholdはoutcome母数 + chronological holdout + registry証跡を全て満たした場合だけ使い、それ以外はGlobal scoreと12点へ戻します。",
     "> 本社国・事件国・上場市場・業種・被害者・支配構造・流動性・事件連鎖・開示観測性・再発・是正・同時材料を分離し、分からない重要軸はunknownのままWAITにします。",
     "",
     "## 現在の監視候補",
@@ -418,8 +426,8 @@ function renderMarkdown(
     const calibration = row.calibration.readiness;
     lines.push(`### ${row.candidate.code ?? "-"} ${row.candidate.company}`);
     lines.push(`- market: ${row.market} / issuer country: ${row.jurisdictionReview.country ?? "unknown"} / incident country: ${row.contextReview.incidentCountry ?? "unknown"} / benchmark: ${row.benchmarkLabel}`);
-    lines.push(`- score: **${row.decision.score}/20** (${row.decision.label}) / effective threshold=${calibration.effectiveThreshold} (${calibration.effectiveThresholdSource})`);
-    lines.push(`- calibration: level=${calibration.modelLevel} / status=${calibration.status} / country n=${calibration.countryCases} / country-category n=${calibration.countryCategoryCases} / registry=${row.calibration.registryEntry?.id ?? "none"}`);
+    lines.push(`- Global Structural Score: **${row.decision.score}/20** / Local Opportunity Score: **${row.localOpportunityScore.toFixed(2)}/20** / effective threshold=${calibration.effectiveThreshold}`);
+    lines.push(`- calibration: level=${calibration.modelLevel} / status=${calibration.status} / method=${row.calibration.registryEntry?.scoreMethod ?? "global_structural"} / country n=${calibration.countryCases} / country-category n=${calibration.countryCategoryCases} / registry=${row.calibration.registryEntry?.id ?? "none"}`);
     lines.push(`- category: ${row.candidate.category} / actor: ${row.candidate.actorType}`);
     lines.push(`- jurisdiction: ${row.jurisdictionReview.group} / sensitivity=${row.jurisdictionReview.sensitivity} / local confidence=${row.jurisdictionReview.confidence} / evidence tier=${row.jurisdictionReview.evidenceTier}`);
     lines.push(`- evidence weights: local=${row.jurisdictionReview.evidenceWeights.sameCountry}, group=${row.jurisdictionReview.evidenceWeights.sameGroup}, global=${row.jurisdictionReview.evidenceWeights.global}`);
@@ -463,8 +471,9 @@ function renderMarkdown(
     lines.push(`| ${stat.category} | ${stat.count} | ${stat.avgScore} | ${stat.researchPriority} | ${stat.watchOrHigher} | ${stat.failedOutcomes} |`);
   }
   lines.push("", "## 読み方", "");
-  lines.push("- 20点scoreへ国別の道徳点を足しません。企業価値への実害は世界共通軸、jurisdiction/contextは別レイヤーです。");
-  lines.push("- local thresholdはcountry-category → country → jurisdiction-group → globalの順で、holdoutとregistryを満たす最深階層だけを使います。");
+  lines.push("- Global Structural Scoreへ国別の道徳点を足しません。企業価値への実害は世界共通軸です。");
+  lines.push("- Local Opportunity Scoreのdimension weightsとthresholdは検証済みregistryにある場合だけ適用します。registryなしではGlobal score=Local scoreです。");
+  lines.push("- local modelはcountry-category → country → jurisdiction-group → globalの順で、holdoutとregistryを満たす最深の検証済み階層を使います。");
   lines.push("- evidence poolは同国→同制度圏→世界の順で借り、母数が薄いと自動通知を止めます。");
   lines.push("- context sidecarは確認できた事例だけ付与し、未確認項目を推測で埋めません。");
   lines.push("- 本社国と事件国を分離します。海外子会社の事件は現地規制と本社ガバナンスを両方確認します。");
@@ -477,7 +486,7 @@ function renderMarkdown(
   lines.push(`- event後${DEFAULT_SHOCK_WINDOW_DAYS}日以内の下落だけを初期shockとして測ります。`);
   lines.push(`- JPはJ-Quants + TOPIX (${MARKET_BENCHMARK_CODE})。USはTwelve Data + S&P 500 proxy (${US_MARKET_BENCHMARK_SYMBOL})。`);
   lines.push("- provider/API keyが未設定なら価格はunknownとなり、自動通知しません。");
-  lines.push("- outcomeは当時scoreへ逆流させません。dataset bias自体もaudit対象です。");
+  lines.push("- outcomeは当時Global scoreへ逆流させません。dataset bias自体もaudit対象です。");
   return lines.join("\n");
 }
 
@@ -505,7 +514,7 @@ async function main(): Promise<void> {
     validatedLocalThresholds: calibrationConfig.validatedLocalThresholds.length,
     jurisdictionPolicy: "global damage score + hierarchical local-to-global evidence + temporal decay",
     contextPolicy: "issuer/incident/market separation + verified sidecar reranking + sector/stakeholder/scope + listing/ownership/liquidity/cluster/observability + causal attribution + recurrence/remediation",
-    calibrationPolicy: "global structural score + hierarchical outcome readiness + chronological holdout + explicit validated registry; otherwise threshold=12",
+    calibrationPolicy: "global structural score + validated local opportunity weights/threshold + hierarchical outcome readiness + chronological holdout + explicit registry; otherwise Global score/threshold=12",
     relativeShockMethod: "benchmark return on stock shock-low trading date",
     shockWindowDays: DEFAULT_SHOCK_WINDOW_DAYS,
     calibrationOutcomeObservations: calibrationObservations.filter(row => row.benchmarkRelative3m != null).length,
@@ -521,7 +530,7 @@ async function main(): Promise<void> {
   console.log(`企業固有ショック watch: active=${evaluated.length} historical=${historical.length} context=${historicalContext.size} calibration3m=${payload.calibrationOutcomeObservations} registry=${payload.validatedLocalThresholds}`);
   for (const row of evaluated) {
     const c = row.calibration.readiness;
-    console.log(`  ${row.market}/${row.jurisdictionReview.country ?? "?"}/${row.contextReview.incidentCountry ?? "?"} ${row.candidate.code ?? "-"} ${row.candidate.company}: ${totalShockScore(row.candidate.scores)}/20 threshold=${c.effectiveThreshold}/${c.effectiveThresholdSource} calibration=${c.modelLevel}/${c.status} jurisdiction=${row.jurisdictionReview.evidenceTier}/${row.jurisdictionReview.confidence} contextBlockers=${row.contextReview.blockers.length} shock=${row.candidate.shockDrawdownPct ?? "?"}% rel=${row.candidate.relativeShockDrawdownPct ?? "?"}% ${row.candidate.priceState} notify=${row.decision.eligible}`);
+    console.log(`  ${row.market}/${row.jurisdictionReview.country ?? "?"}/${row.contextReview.incidentCountry ?? "?"} ${row.candidate.code ?? "-"} ${row.candidate.company}: global=${totalShockScore(row.candidate.scores)}/20 local=${row.localOpportunityScore.toFixed(2)}/20 threshold=${c.effectiveThreshold}/${c.effectiveThresholdSource} calibration=${c.modelLevel}/${c.status} jurisdiction=${row.jurisdictionReview.evidenceTier}/${row.jurisdictionReview.confidence} contextBlockers=${row.contextReview.blockers.length} shock=${row.candidate.shockDrawdownPct ?? "?"}% rel=${row.candidate.relativeShockDrawdownPct ?? "?"}% ${row.candidate.priceState} notify=${row.decision.eligible}`);
   }
 }
 
