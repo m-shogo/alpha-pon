@@ -1,7 +1,7 @@
 // 企業固有ショックの国別/地域別キャリブレーション。
 // Global Structural Scoreは変更せず、十分なoutcomeが貯まった階層だけを将来Local Opportunityへ昇格させる。
 // 少数標本で係数や閾値を最適化しない。必ず時系列holdoutを残し、足りなければ親モデルへ縮退する。
-// 戦略成績の正本はdecision checkpointではなくFirst Eligible Signal起点。
+// 戦略成績の正本はdecision checkpointではなく、非価格hard gate confirmed_pass後のFirst Eligible Signal起点。
 
 import type { HistoricalShockCase } from "./idiosyncratic-shock.js";
 import { inferShockJurisdictionGroup, normalizeShockCountry, type ShockJurisdictionGroup } from "./idiosyncratic-shock-jurisdiction.js";
@@ -66,19 +66,20 @@ export function enrichShockCalibrationObservations(
   return records.map(record => {
     const historical = historicalById.get(record.caseId);
     const country = normalizeShockCountry(historical?.country ?? null, record.market);
+    const eligible = record.strategyEligibilityAtCheckpoint === "confirmed_pass";
     return {
       caseId: record.caseId,
       company: record.company,
       checkpoint: record.checkpoint,
-      signalDate: record.firstEligibleSignalDate ?? null,
+      signalDate: eligible ? (record.firstEligibleSignalDate ?? null) : null,
       market: record.market,
       country,
       jurisdictionGroup: inferShockJurisdictionGroup({ country, market: record.market }),
       category: historical?.category ?? "unknown",
       score: record.score,
-      benchmarkRelative1m: record.signalBenchmarkRelative1m ?? null,
-      benchmarkRelative3m: record.signalBenchmarkRelative3m ?? null,
-      benchmarkRelative1y: record.signalBenchmarkRelative1y ?? null,
+      benchmarkRelative1m: eligible ? (record.signalBenchmarkRelative1m ?? null) : null,
+      benchmarkRelative3m: eligible ? (record.signalBenchmarkRelative3m ?? null) : null,
+      benchmarkRelative1y: eligible ? (record.signalBenchmarkRelative1y ?? null) : null,
     };
   });
 }
