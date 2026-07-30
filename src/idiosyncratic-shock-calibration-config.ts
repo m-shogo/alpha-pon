@@ -1,6 +1,12 @@
 import { readFileSync } from "fs";
 import { load } from "js-yaml";
 import {
+  SHOCK_SCORE_KEYS,
+  totalShockScore,
+  type ShockDimensionScores,
+  type ShockScoreKey,
+} from "./idiosyncratic-shock.js";
+import {
   GLOBAL_DEFAULT_SHOCK_THRESHOLD,
   buildShockCalibrationReadiness,
   buildShockCalibrationReadinessAtLevel,
@@ -11,6 +17,8 @@ import {
 import { inferShockJurisdictionGroup, normalizeShockCountry, type ShockJurisdictionGroup } from "./idiosyncratic-shock-jurisdiction.js";
 import type { ShockMarket } from "./idiosyncratic-shock-market.js";
 
+export type LocalShockScoreMethod = "global_structural" | "weighted_dimensions";
+
 export type ValidatedLocalShockThreshold = {
   id: string;
   modelLevel: Exclude<ShockCalibrationLevel, "global">;
@@ -18,6 +26,8 @@ export type ValidatedLocalShockThreshold = {
   market?: ShockMarket | null;
   jurisdictionGroup?: ShockJurisdictionGroup | null;
   category?: string | null;
+  scoreMethod: LocalShockScoreMethod;
+  dimensionWeights?: Record<ShockScoreKey, number> | null;
   threshold: number;
   trainFrom: string;
   trainThrough: string;
@@ -47,6 +57,24 @@ function isoDate(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
+function validateDimensionWeights(row: ValidatedLocalShockThreshold): void {
+  if (row.scoreMethod === "global_structural") {
+    if (row.dimensionWeights != null) throw new Error(`${row.id}: global_structural must not define dimensionWeights`);
+    return;
+  }
+  const weights = row.dimensionWeights;
+  if (!weights || typeof weights !== "object") throw new Error(`${row.id}: weighted_dimensions requires dimensionWeights`);
+  const raw = weights as Partial<Record<ShockScoreKey, number>>;
+  for (const key of SHOCK_SCORE_KEYS) {
+    const value = raw[key];
+    if (typeof value !== "number" || !Number.isFinite(value) || value < 0.25 || value > 4) {
+      throw new Error(`${row.id}: dimensionWeights.${key} must be within 0.25..4`);
+    }
+  }
+  const unexpected = Object.keys(weights).filter(key => !SHOCK_SCORE_KEYS.includes(key as ShockScoreKey));
+  if (unexpected.length > 0) throw new Error(`${row.id}: unexpected dimensionWeights keys=${unexpected.join(",")}`);
+}
+
 export function validateShockCalibrationConfig(config: ShockCalibrationConfig): void {
   if (config.version !== 1) throw new Error(`unsupported shock calibration config version=${config.version}`);
   if (config.globalDefaultThreshold !== GLOBAL_DEFAULT_SHOCK_THRESHOLD) {
@@ -59,6 +87,10 @@ export function validateShockCalibrationConfig(config: ShockCalibrationConfig): 
     if (!row.id?.trim()) throw new Error("validated local threshold id is required");
     if (ids.has(row.id)) throw new Error(`duplicate validated local threshold id=${row.id}`);
     ids.add(row.id);
+    if (row.scoreMethod !== "global_structural" && row.scoreMethod !== "weighted_dimensions") {
+      throw new Error(`${row.id}: invalid scoreMethod=${String(row.scoreMethod)}`);
+    }
+    validateDimensionWeights(row);
     if (!Number.isFinite(row.threshold) || row.threshold < 0 || row.threshold > 20) {
       throw new Error(`${row.id}: threshold must be within 0..20`);
     }
@@ -159,4 +191,22 @@ export function resolveShockCalibration(
   }
 
   return { readiness: preliminary, registryEntry: null };
+}
+
+export function computeLocalOpportunityScore(
+  scores: ShockDimensionScores,
+  registryEntry: ValidatedLocalShockThreshold | null,
+): number {
+  if (!registryEntry || registryEntry.scoreMethod === "global_structural") return totalShockScore(scores);
+  const weights = registryEntry.dimensionWeights!;
+  let weighted = 0;
+  let weightSum = 0;
+  for (const key of SHOCK_SCORE_KEYS) {
+    const weight = weights[key];
+    weighted += scores[key] * weight;
+    weightSum += weight;
+  }
+  if (!(weightSum > 0)) return totalShockScore(scores);
+  // scores are 0..2. Normalize the weighted score back onto the same 0..20 scale.
+  return Number(((weighted * 10) / weightSum).toFixed(2));
 }
