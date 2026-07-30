@@ -38,6 +38,9 @@ export type HistoricalShockCaseContext = {
   disclosureObservability?: ShockDisclosureObservability | null;
   announcementTiming?: ShockAnnouncementTiming | null;
   priceReactionStartDate?: string | null;
+  incidentRevenueExposurePct?: number | null;
+  estimatedDirectCostPctMarketCap?: number | null;
+  industryRelativeShockDrawdownPct?: number | null;
   /**
    * decisionCheckpoint時点で、価格以外の実運用hard gateがすべて検証できていたか。
    * confirmed_pass と書くだけではPASSにならず、下記structured evidenceもresolverが検証する。
