@@ -86,7 +86,7 @@ const mediaTwo = buildNotificationDecision({
 assert.equal(mediaTwo.eligible, true, "独立major media 2件なら証拠ゲートを満たせる");
 
 assert.equal(inferPriceState([
-  { date: "2026-07-01", close: 100 },
+  { date: "2026-07-01", close: 94 },
   { date: "2026-07-02", close: 90 },
   { date: "2026-07-03", close: 91 },
   { date: "2026-07-06", close: 92 },
