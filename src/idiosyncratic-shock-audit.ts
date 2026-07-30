@@ -11,6 +11,7 @@ import {
 import { shockCategoryJurisdictionSensitivity } from "./idiosyncratic-shock-jurisdiction.js";
 
 const MIN_HISTORICAL_CASES = 59;
+const PRIORITY_ELIGIBILITY_COUNTRIES = new Set(["JP", "US"]);
 const KNOWN_THIRD_PARTY_HOSTS = new Set([
   "minkabu.jp",
   "disclosure.catr.jp",
@@ -48,6 +49,15 @@ function main(): void {
   const confidence = { high: 0, medium: 0, low: 0 };
   const eligibility = { confirmed_pass: 0, confirmed_block: 0, unknown: 0 };
   let derivedEligibilityBlocks = 0;
+  const priorityHighScoreEligibilityUnknown: Array<{
+    id: string;
+    company: string;
+    country: string;
+    ticker: string | null;
+    checkpoint: string;
+    score: number;
+    missingEvidence: string[];
+  }> = [];
   const sourceHosts = new Map<string, number>();
 
   if (cases.length < MIN_HISTORICAL_CASES) issues.push(`historical cases ${cases.length} < minimum ${MIN_HISTORICAL_CASES}`);
@@ -92,6 +102,21 @@ function main(): void {
     const resolution = resolveHistoricalStrategyEligibilityDetailed(item, context);
     eligibility[resolution.status] += 1;
     if (resolution.status === "confirmed_block" && explicitStatus === "unknown") derivedEligibilityBlocks += 1;
+    if (
+      resolution.status === "unknown"
+      && item.score >= 12
+      && PRIORITY_ELIGIBILITY_COUNTRIES.has(item.country.toUpperCase())
+    ) {
+      priorityHighScoreEligibilityUnknown.push({
+        id: item.id,
+        company: item.company,
+        country: item.country,
+        ticker: item.ticker ?? null,
+        checkpoint: item.decisionCheckpoint,
+        score: item.score,
+        missingEvidence: resolution.missingEvidence,
+      });
+    }
 
     for (const source of context?.strategyEligibilityEvidenceSources ?? []) {
       const name = host(source.url);
@@ -110,6 +135,8 @@ function main(): void {
       issues.push(`${item.id}: confirmed_block requires strategyEligibilityNotes`);
     }
   }
+
+  priorityHighScoreEligibilityUnknown.sort((a, b) => b.score - a.score || b.checkpoint.localeCompare(a.checkpoint) || a.id.localeCompare(b.id));
 
   for (const contextId of historicalContext.keys()) {
     if (!ids.has(contextId)) issues.push(`historical context orphan id: ${contextId}`);
@@ -151,6 +178,9 @@ function main(): void {
   if (contextCoveragePct < 50) warnings.push(`historical context coverage low: ${historicalContext.size}/${cases.length} (${contextCoveragePct.toFixed(1)}%); enrich verified sidecar gradually`);
   const eligibilityCoveragePct = cases.length === 0 ? 0 : ((eligibility.confirmed_pass + eligibility.confirmed_block) / cases.length) * 100;
   if (eligibilityCoveragePct < 50) warnings.push(`historical strategy eligibility coverage low: pass/block=${eligibility.confirmed_pass + eligibility.confirmed_block}/${cases.length} (${eligibilityCoveragePct.toFixed(1)}%); unknown must not enter calibration`);
+  if (priorityHighScoreEligibilityUnknown.length > 0) {
+    warnings.push(`P0 JP/US score>=12 eligibility unknown=${priorityHighScoreEligibilityUnknown.length}; resolve before expanding lower-priority research`);
+  }
   for (const [category, count] of categories) {
     if (shockCategoryJurisdictionSensitivity(category) !== "high" || count < 2) continue;
     const covered = contextByCategory.get(category) ?? 0;
@@ -166,6 +196,8 @@ function main(): void {
     strategyEligibility: eligibility,
     derivedEligibilityBlocks,
     strategyEligibilityCoveragePct: Number(eligibilityCoveragePct.toFixed(1)),
+    priorityHighScoreEligibilityUnknown,
+    priorityHighScoreEligibilityUnknownCount: priorityHighScoreEligibilityUnknown.length,
     contextByCategory: sortedObject(contextByCategory),
     scoreBuckets: {
       researchPriority16to20: cases.filter(item => item.score >= 16).length,
@@ -197,10 +229,17 @@ function main(): void {
     `- strategy eligibility pass/block/unknown: ${eligibility.confirmed_pass}/${eligibility.confirmed_block}/${eligibility.unknown}`,
     `- deterministic checkpoint blocks: ${derivedEligibilityBlocks}`,
     `- strategy eligibility coverage: ${eligibilityCoveragePct.toFixed(1)}%`,
+    `- P0 JP/US score>=12 eligibility unknown: ${priorityHighScoreEligibilityUnknown.length}`,
     `- high confidence: ${confidence.high}`,
     `- medium confidence: ${confidence.medium}`,
     `- low confidence: ${confidence.low}`,
     `- RESULT: ${summary.ok ? "OK" : "NG"}`,
+    "",
+    "## P0 high-score eligibility unknown",
+    "",
+    ...(priorityHighScoreEligibilityUnknown.length
+      ? priorityHighScoreEligibilityUnknown.map(row => `- ${row.country} ${row.ticker ?? "-"} ${row.company} (${row.score}/20, checkpoint ${row.checkpoint}): ${row.missingEvidence.join(", ") || "unresolved"}`)
+      : ["- none"]),
     "",
     "## score buckets",
     "",
@@ -226,7 +265,7 @@ function main(): void {
   ].join("\n");
   writeFileSync("reports/idiosyncratic_shock_history_audit_latest.md", md, "utf-8");
 
-  console.log(`shock history audit: cases=${cases.length} context=${historicalContext.size} eligibility=${eligibility.confirmed_pass}/${eligibility.confirmed_block}/${eligibility.unknown} derivedBlocks=${derivedEligibilityBlocks} issues=${issues.length} warnings=${warnings.length}`);
+  console.log(`shock history audit: cases=${cases.length} context=${historicalContext.size} eligibility=${eligibility.confirmed_pass}/${eligibility.confirmed_block}/${eligibility.unknown} derivedBlocks=${derivedEligibilityBlocks} p0HighScoreUnknown=${priorityHighScoreEligibilityUnknown.length} issues=${issues.length} warnings=${warnings.length}`);
   if (issues.length > 0) process.exitCode = 1;
 }
 
