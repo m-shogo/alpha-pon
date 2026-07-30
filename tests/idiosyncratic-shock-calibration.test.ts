@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import "./idiosyncratic-shock-context-advanced.test.js";
 import {
   GLOBAL_DEFAULT_SHOCK_THRESHOLD,
   buildShockCalibrationReadiness,
