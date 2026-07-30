@@ -17,8 +17,10 @@
 - `investigationStatus`: open / substantially_complete / closed / not_applicable / unknown
 - 調査範囲を確定できる根拠:
 - 事件前終値:
-- 事件後安値:
+- 発覚後20日以内の安値:
 - `shockDrawdownPct`:
+- 同期間のTOPIX/1306下落率:
+- `relativeShockDrawdownPct`:
 
 `open / unknown` の間は、事件自体が確定していても通知へ進めない。
 
@@ -49,7 +51,8 @@
 - [ ] `evidenceStatus=confirmed`
 - [ ] `investigationStatus=substantially_complete / closed / not_applicable`
 - [ ] マクロが主因ではない
-- [ ] **事件前比で実際に5%以上下落した (`shockDrawdownPct <= -5`)**
+- [ ] **発覚後20日以内に事件前比5%以上下落した (`shockDrawdownPct <= -5`)**
+- [ ] **同じ20日窓でTOPIX/1306より3%以上余計に下落した (`relativeShockDrawdownPct <= -3`)**
 - [ ] `priceState=stabilized_after_drop`
 - [ ] `accountingIntegrity > 0`
 - [ ] 重大な上場廃止/免許取消リスクなし
@@ -57,7 +60,7 @@
 
 **1つでも未チェックならLINE通知しない。**
 
-横ばいの株が5日間静かなだけでは「下落一巡」と扱わない。`priceStabilization` と `shockDrawdownPct` は別ゲート。
+`priceStabilization`、絶対下落率、TOPIX相対下落率は別ゲート。横ばい株や全面安だけで下げた株、数か月後の別材料下落を「不祥事ディップ」と誤認しない。
 
 ## 3. 類似事例
 
@@ -70,6 +73,8 @@
 - 類似例の `researchConfidence` は十分か:
 
 medium / low confidence seed は距離計算上ペナルティを受ける。古い低品質資料を主根拠にしない。
+
+全過去事例の最新一覧は `pnpm report:shock-casebook` でYAML正本から自動生成する。
 
 ## 4. バイトテロ追加確認
 
@@ -122,6 +127,7 @@ pnpm backfill:shock-outcomes:write
 - WAIT blocker:
 - investigationStatus:
 - shockDrawdownPct:
+- relativeShockDrawdownPct:
 - 次回確認日:
 - 次に見る一次情報:
 - 仮説を否定する条件:
