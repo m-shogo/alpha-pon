@@ -1,5 +1,6 @@
 import { addDaysJst, toCompactDate } from "./date.js";
-import { DEFAULT_SHOCK_WINDOW_DAYS, type HistoricalShockCase } from "./idiosyncratic-shock.js";
+import { DEFAULT_SHOCK_WINDOW_DAYS, type HistoricalShockCase, type PriceObservation } from "./idiosyncratic-shock.js";
+import { findFirstEligibleShockSignal } from "./idiosyncratic-shock-entry-signal.js";
 import { inferShockMarket, shockBenchmarkLabel, type ShockMarket } from "./idiosyncratic-shock-market.js";
 
 export type ShockOutcomeQuote = {
@@ -14,9 +15,11 @@ export type ShockHistoricalOutcomeRecord = {
   market: ShockMarket;
   benchmark: string;
   eventDate: string;
+  reactionStartDate: string;
   checkpoint: string;
   score: number;
   label: string;
+  /** checkpoint起点の研究比較値。戦略calibrationの正本には使わない。 */
   baseDate: string | null;
   basePrice: number | null;
   preEventDate: string | null;
@@ -32,6 +35,19 @@ export type ShockHistoricalOutcomeRecord = {
   benchmarkRelative1m: number | null;
   benchmarkRelative3m: number | null;
   benchmarkRelative1y: number | null;
+  /** 実運用hard gateを過去時点で再現した最初の取引日。nullはno-trade。 */
+  firstEligibleSignalDate: string | null;
+  firstEligibleSignalPrice: number | null;
+  signalShockDrawdownPct: number | null;
+  signalRelativeShockDrawdownPct: number | null;
+  signalReturn1w: number | null;
+  signalReturn1m: number | null;
+  signalReturn3m: number | null;
+  signalReturn1y: number | null;
+  signalBenchmarkRelative1w: number | null;
+  signalBenchmarkRelative1m: number | null;
+  signalBenchmarkRelative3m: number | null;
+  signalBenchmarkRelative1y: number | null;
   /** @deprecated JP互換。海外ではnull。新規コードはbenchmarkRelative*を使う。 */
   topixRelative1w: number | null;
   /** @deprecated JP互換。海外ではnull。新規コードはbenchmarkRelative*を使う。 */
@@ -80,6 +96,10 @@ function sortedQuotes(quotes: ShockOutcomeQuote[]): Array<ShockOutcomeQuote & { 
     .sort((a, b) => a.normalizedDate.localeCompare(b.normalizedDate));
 }
 
+function observations(quotes: ReturnType<typeof sortedQuotes>): PriceObservation[] {
+  return quotes.map(row => ({ date: row.normalizedDate, close: row.AdjustmentClose }));
+}
+
 function onOrAfter(quotes: ReturnType<typeof sortedQuotes>, target: string) {
   return quotes.find(row => row.normalizedDate >= target) ?? null;
 }
@@ -95,10 +115,6 @@ function pct(from: number | null, to: number | null): number | null {
 
 function round(value: number | null): number | null {
   return value == null || !Number.isFinite(value) ? null : Number(value.toFixed(4));
-}
-
-function minDate(a: string, b: string): string {
-  return a < b ? a : b;
 }
 
 function priceReturnFrom(
@@ -127,7 +143,7 @@ export function buildShockHistoricalOutcome(
   stockQuotesInput: ShockOutcomeQuote[],
   benchmarkQuotesInput: ShockOutcomeQuote[],
   generatedAt: string,
-  options: { market?: ShockMarket; benchmarkLabel?: string } = {},
+  options: { market?: ShockMarket; benchmarkLabel?: string; reactionStartDate?: string | null } = {},
 ): ShockHistoricalOutcomeRecord | null {
   if (!item.ticker) return null;
 
@@ -135,14 +151,15 @@ export function buildShockHistoricalOutcome(
   const benchmark = options.benchmarkLabel ?? shockBenchmarkLabel(market);
   const stockQuotes = sortedQuotes(stockQuotesInput);
   const benchmarkQuotes = sortedQuotes(benchmarkQuotesInput);
+  const reactionStartDate = options.reactionStartDate ?? item.eventDate;
   const checkpoint = item.decisionCheckpoint;
   const base = onOrAfter(stockQuotes, checkpoint);
   if (!base) return null;
 
-  const preEventTarget = addDaysJst(item.eventDate, -1);
+  const preEventTarget = addDaysJst(reactionStartDate, -1);
   const preEvent = onOrBefore(stockQuotes, preEventTarget);
-  const shockWindowEnd = minDate(item.decisionCheckpoint, addDaysJst(item.eventDate, DEFAULT_SHOCK_WINDOW_DAYS));
-  const shockWindow = stockQuotes.filter(row => row.normalizedDate >= item.eventDate && row.normalizedDate <= shockWindowEnd);
+  const shockWindowEnd = addDaysJst(reactionStartDate, DEFAULT_SHOCK_WINDOW_DAYS);
+  const shockWindow = stockQuotes.filter(row => row.normalizedDate >= reactionStartDate && row.normalizedDate <= shockWindowEnd);
   const shockLow = shockWindow.length
     ? shockWindow.reduce((min, row) => row.AdjustmentClose < min.AdjustmentClose ? row : min)
     : null;
@@ -151,6 +168,22 @@ export function buildShockHistoricalOutcome(
   const benchmarkRelative1m = relativeReturn(stockQuotes, benchmarkQuotes, checkpoint, 30);
   const benchmarkRelative3m = relativeReturn(stockQuotes, benchmarkQuotes, checkpoint, 90);
   const benchmarkRelative1y = relativeReturn(stockQuotes, benchmarkQuotes, checkpoint, 365);
+
+  const signal = findFirstEligibleShockSignal({
+    stock: observations(stockQuotes),
+    benchmark: observations(benchmarkQuotes),
+    reactionStartDate,
+    decisionCheckpoint: checkpoint,
+  });
+  const signalDate = signal?.signalDate ?? null;
+  const signalReturn1w = signalDate ? priceReturnFrom(stockQuotes, signalDate, 7) : null;
+  const signalReturn1m = signalDate ? priceReturnFrom(stockQuotes, signalDate, 30) : null;
+  const signalReturn3m = signalDate ? priceReturnFrom(stockQuotes, signalDate, 90) : null;
+  const signalReturn1y = signalDate ? priceReturnFrom(stockQuotes, signalDate, 365) : null;
+  const signalBenchmarkRelative1w = signalDate ? relativeReturn(stockQuotes, benchmarkQuotes, signalDate, 7) : null;
+  const signalBenchmarkRelative1m = signalDate ? relativeReturn(stockQuotes, benchmarkQuotes, signalDate, 30) : null;
+  const signalBenchmarkRelative3m = signalDate ? relativeReturn(stockQuotes, benchmarkQuotes, signalDate, 90) : null;
+  const signalBenchmarkRelative1y = signalDate ? relativeReturn(stockQuotes, benchmarkQuotes, signalDate, 365) : null;
   const isJp = market === "JP";
 
   return {
@@ -160,6 +193,7 @@ export function buildShockHistoricalOutcome(
     market,
     benchmark,
     eventDate: item.eventDate,
+    reactionStartDate,
     checkpoint,
     score: item.score,
     label: item.label,
@@ -178,6 +212,18 @@ export function buildShockHistoricalOutcome(
     benchmarkRelative1m,
     benchmarkRelative3m,
     benchmarkRelative1y,
+    firstEligibleSignalDate: signalDate,
+    firstEligibleSignalPrice: signal?.signalPrice ?? null,
+    signalShockDrawdownPct: signal?.shockDrawdownPct ?? null,
+    signalRelativeShockDrawdownPct: signal?.relativeShockDrawdownPct ?? null,
+    signalReturn1w,
+    signalReturn1m,
+    signalReturn3m,
+    signalReturn1y,
+    signalBenchmarkRelative1w,
+    signalBenchmarkRelative1m,
+    signalBenchmarkRelative3m,
+    signalBenchmarkRelative1y,
     topixRelative1w: isJp ? benchmarkRelative1w : null,
     topixRelative1m: isJp ? benchmarkRelative1m : null,
     topixRelative3m: isJp ? benchmarkRelative3m : null,
@@ -204,25 +250,27 @@ function positiveRate(values: number[]): number | null {
   return round((values.filter(value => value > 0).length / values.length) * 100);
 }
 
-function values(records: ShockHistoricalOutcomeRecord[], key: keyof ShockHistoricalOutcomeRecord): number[] {
+function strategyValues(records: ShockHistoricalOutcomeRecord[], key: keyof ShockHistoricalOutcomeRecord): number[] {
   return records
+    .filter(row => Boolean(row.firstEligibleSignalDate))
     .map(row => row[key])
     .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
 }
 
 function calibrationBucket(bucket: string, records: ShockHistoricalOutcomeRecord[]): ShockCalibrationBucket {
-  const r1m = values(records, "return1m");
-  const rel1m = values(records, "benchmarkRelative1m");
-  const r3m = values(records, "return3m");
-  const rel3m = values(records, "benchmarkRelative3m");
-  const r1y = values(records, "return1y");
-  const rel1y = values(records, "benchmarkRelative1y");
+  const signaled = records.filter(row => Boolean(row.firstEligibleSignalDate));
+  const r1m = strategyValues(signaled, "signalReturn1m");
+  const rel1m = strategyValues(signaled, "signalBenchmarkRelative1m");
+  const r3m = strategyValues(signaled, "signalReturn3m");
+  const rel3m = strategyValues(signaled, "signalBenchmarkRelative3m");
+  const r1y = strategyValues(signaled, "signalReturn1y");
+  const rel1y = strategyValues(signaled, "signalBenchmarkRelative1y");
   const avgBenchmarkRelative1m = average(rel1m);
   const avgBenchmarkRelative3m = average(rel3m);
   const avgBenchmarkRelative1y = average(rel1y);
   return {
     bucket,
-    cases: records.length,
+    cases: signaled.length,
     n1m: r1m.length,
     avgReturn1m: average(r1m),
     medianReturn1m: median(r1m),
