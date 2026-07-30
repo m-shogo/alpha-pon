@@ -110,13 +110,19 @@ assert.equal(inferPriceState([
 ]), "rebounded_too_fast", "急反発は追いかけない");
 
 const historical = loadHistoricalShockCases();
-assert(historical.length >= 30, `過去事例は30件以上必要: ${historical.length}`);
+assert(historical.length >= 50, `過去事例は50件以上必要: ${historical.length}`);
+assert.equal(new Set(historical.map(item => item.id)).size, historical.length, "historical idは重複禁止");
 assert(historical.some(item => item.category === "employee_sabotage"), "バイトテロ事例が必要");
 assert(historical.some(item => item.category === "customer_sabotage"), "顧客迷惑動画事例が必要");
+assert(historical.some(item => item.category === "personal_behavior"), "個人行動規範違反が必要");
 assert(historical.some(item => item.category === "accounting_fraud"), "会計不正の負例が必要");
 assert(historical.some(item => item.category === "systemic_misconduct"), "組織不正の負例が必要");
+assert(historical.some(item => item.category === "quality_falsification"), "品質偽装の負例が必要");
+assert(historical.some(item => item.category === "product_safety"), "製品安全の負例が必要");
+assert(historical.some(item => item.category === "improper_sales"), "不適切販売の負例が必要");
 assert(historical.some(item => item.score >= 16), "research priority型の過去事例が必要");
 assert(historical.some(item => item.score < 8), "avoid型の過去事例が必要");
+assert(!historical.some(item => item.scores.accountingIntegrity === 0 && item.score >= 12), "会計健全性0で12点以上は禁止");
 
 const baito: ShockCandidate = {
   ...base,
@@ -132,6 +138,17 @@ assert(
   "バイトテロ候補の上位類似に employee_sabotage が入る"
 );
 assert(!analogues.some(row => row.item.id === baito.id), "自己参照しない");
+
+const ootoya = historical.find(item => item.id === "ootoya-2019-employee-video");
+const sukiya = historical.find(item => item.id === "zensho-sukiya-2019-employee-video");
+assert(ootoya && sukiya, "バイトテロの重い例/軽い例を両方保持");
+assert((ootoya?.score ?? 99) < (sukiya?.score ?? 0), "全店休業まで波及した大戸屋は局所切離型すき家より低評価");
+
+const kdp = historical.find(item => item.id === "keurig-dr-pepper-2022-ceo-conduct");
+assert.equal(kdp?.score, 18, "事業・財務と無関係が明示されたKDPを高得点比較例に保持");
+
+const wwe = historical.find(item => item.id === "wwe-2022-mcmahon");
+assert.equal(wwe?.scores.accountingIntegrity, 0, "女問題でも財務訂正を伴うWWEは会計ゲートで止める");
 
 const sanrio = historical.find(item => item.id === "sanrio-2026-compensation");
 assert(sanrio, "サンリオ現行ケースを過去/進行事例DBに保持");
