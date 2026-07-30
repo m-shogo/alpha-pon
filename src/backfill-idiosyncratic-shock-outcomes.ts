@@ -11,12 +11,13 @@ import { todayJst } from "./date.js";
 import { fetchDailyQuotes, isJQuantsConfigured } from "./fetcher/jquants.js";
 import { fetchTwelveDataDailyQuotes, isTwelveDataConfigured } from "./fetcher/twelve-data.js";
 import { loadHistoricalShockCases } from "./idiosyncratic-shock-data.js";
-import { inferShockMarket, shockBenchmarkLabel, type ShockMarket } from "./idiosyncratic-shock-market.js";
+import { inferShockMarket, type ShockMarket } from "./idiosyncratic-shock-market.js";
 import {
   buildShockHistoricalOutcome,
   calibrateShockThresholds,
   outcomeFetchRange,
   outcomeFetchRangeIso,
+  type ShockCalibrationBucket,
   type ShockHistoricalOutcomeRecord,
   type ShockOutcomeQuote,
 } from "./idiosyncratic-shock-outcomes.js";
@@ -33,6 +34,8 @@ type ProviderStatus = {
   eligibleCases: number;
 };
 
+type CalibrationByMarket = Partial<Record<ShockMarket, ShockCalibrationBucket[]>>;
+
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -41,9 +44,13 @@ function f(value: number | null): string {
   return value == null ? "-" : value.toFixed(2);
 }
 
-function marketCalibration(records: ShockHistoricalOutcomeRecord[]) {
+function marketCalibration(records: ShockHistoricalOutcomeRecord[]): CalibrationByMarket {
+  const result: CalibrationByMarket = {};
   const markets = [...new Set(records.map(row => row.market))].sort();
-  return Object.fromEntries(markets.map(market => [market, calibrateShockThresholds(records.filter(row => row.market === market))]));
+  for (const market of markets) {
+    result[market] = calibrateShockThresholds(records.filter(row => row.market === market));
+  }
+  return result;
 }
 
 function renderCalibration(lines: string[], title: string, records: ShockHistoricalOutcomeRecord[]): void {
@@ -140,10 +147,9 @@ async function main(): Promise<void> {
     const range = outcomeFetchRange(item, date);
     try {
       console.log(`  [JP] fetch ${code} ${item.company}: ${range.from}-${range.to}`);
-      const [quotes, benchmarkQuotes] = await Promise.all([
-        fetchDailyQuotes(code, range.from, range.to),
-        fetchDailyQuotes(TOPIX_ETF_CODE, range.from, range.to),
-      ]);
+      // J-Quants内部にもrate limiterがあるため、同一caseのstock/benchmarkを並列化しない。
+      const quotes = await fetchDailyQuotes(code, range.from, range.to);
+      const benchmarkQuotes = await fetchDailyQuotes(TOPIX_ETF_CODE, range.from, range.to);
       const record = buildShockHistoricalOutcome(item, quotes, benchmarkQuotes, date, { market: "JP", benchmarkLabel: "TOPIX" });
       if (record) records.push(record);
       else failures.push(`${item.id}: checkpoint price missing`);
@@ -162,7 +168,7 @@ async function main(): Promise<void> {
     const range = outcomeFetchRangeIso(item, date);
     try {
       console.log(`  [US] fetch ${symbol} ${item.company}: ${range.from}-${range.to}`);
-      // 1ケースごとに同一rangeのSPYを取る。古い事例を含むため、巨大な一括rangeの切落しを避ける。
+      // Twelve Data client側のrequest intervalを尊重するため逐次取得する。
       const stock = await fetchTwelveDataDailyQuotes(symbol, range.from, range.to);
       const benchmark = await fetchTwelveDataDailyQuotes(US_BENCHMARK_SYMBOL, range.from, range.to);
       const record = buildShockHistoricalOutcome(
@@ -182,8 +188,9 @@ async function main(): Promise<void> {
   const calibration = calibrateShockThresholds(records);
   const calibrationByMarket = marketCalibration(records);
   console.log(`records=${records.length} failures/skips=${failures.length}`);
-  for (const market of Object.keys(calibrationByMarket)) {
-    const ge12 = calibrationByMarket[market].find(row => row.bucket === "score_ge_12");
+  for (const market of Object.keys(calibrationByMarket) as ShockMarket[]) {
+    const marketRows = calibrationByMarket[market] ?? [];
+    const ge12 = marketRows.find(row => row.bucket === "score_ge_12");
     console.log(`  ${market}: cases=${ge12?.cases ?? 0} avg1m=${ge12?.avgReturn1m ?? "-"} benchmarkRel1m=${ge12?.avgBenchmarkRelative1m ?? "-"}`);
   }
   if (failures.length) failures.forEach(value => console.log(`  [warn] ${value}`));
