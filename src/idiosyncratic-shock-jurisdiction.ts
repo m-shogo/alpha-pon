@@ -2,7 +2,18 @@
 // 「日本では重い / 米国では軽い」のような文化ステレオタイプを数値化せず、
 // 事件カテゴリごとにローカル事例をどの程度重視すべきかと、追加確認軸だけを定義する。
 
-export type ShockJurisdictionGroup = "JP" | "US" | "UK" | "EUROPE" | "COMMONWEALTH" | "OTHER";
+export type ShockJurisdictionGroup =
+  | "JP"
+  | "US"
+  | "UK"
+  | "EUROPE"
+  | "COMMONWEALTH"
+  | "KR"
+  | "CN"
+  | "HK"
+  | "SG"
+  | "TW"
+  | "OTHER";
 export type ShockJurisdictionSensitivity = "high" | "medium" | "low";
 export type ShockJurisdictionConfidence = "strong" | "adequate" | "weak";
 export type ShockEvidenceTier = "local_strong" | "local_plus_group" | "group_plus_global" | "global_only" | "insufficient";
@@ -89,6 +100,61 @@ export const SHOCK_JURISDICTION_PROFILES: Record<ShockJurisdictionGroup, ShockJu
     ],
     primaryEvidenceHints: ["company IR", "exchange disclosure", "national/sector regulator"],
   },
+  KR: {
+    group: "KR",
+    label: "South Korea",
+    reviewAxes: [
+      "local exchange / securities disclosure and enforcement",
+      "controlling-family / affiliate governance where relevant",
+      "employment / consumer reaction and sponsor impact",
+      "sector-regulator exposure",
+    ],
+    primaryEvidenceHints: ["company IR", "local exchange disclosure", "local securities/sector regulator"],
+  },
+  CN: {
+    group: "CN",
+    label: "Mainland China",
+    reviewAxes: [
+      "local exchange / securities disclosure and regulator action",
+      "state / controlling-shareholder influence where relevant",
+      "licensing / platform / sector-policy exposure",
+      "local consumer and business-partner reaction",
+    ],
+    primaryEvidenceHints: ["company primary disclosure", "local exchange", "local securities/sector regulator"],
+  },
+  HK: {
+    group: "HK",
+    label: "Hong Kong",
+    reviewAxes: [
+      "HK listing / disclosure obligations",
+      "board / controlling-shareholder governance",
+      "SFC / sector-regulator exposure where relevant",
+      "mainland-China exposure versus HK issuer governance",
+    ],
+    primaryEvidenceHints: ["company IR", "HKEX disclosure", "local securities/sector regulator"],
+  },
+  SG: {
+    group: "SG",
+    label: "Singapore",
+    reviewAxes: [
+      "SG listing / continuous disclosure obligations",
+      "board / controlling-shareholder governance",
+      "local regulator / licensing exposure",
+      "regional subsidiary and customer impact",
+    ],
+    primaryEvidenceHints: ["company IR", "SGX disclosure", "local regulator"],
+  },
+  TW: {
+    group: "TW",
+    label: "Taiwan",
+    reviewAxes: [
+      "local exchange / securities disclosure obligations",
+      "board / founder-family governance where relevant",
+      "sector / export-customer exposure",
+      "local regulator and customer impact",
+    ],
+    primaryEvidenceHints: ["company IR", "local exchange disclosure", "local securities/sector regulator"],
+  },
   OTHER: {
     group: "OTHER",
     label: "Unresolved jurisdiction",
@@ -114,6 +180,11 @@ export function normalizeShockCountry(country?: string | null, market?: string |
     if (value === "UNITED KINGDOM") return "GB";
     if (value === "AUSTRALIA") return "AU";
     if (value === "CANADA") return "CA";
+    if (value === "KOREA" || value === "SOUTH KOREA") return "KR";
+    if (value === "CHINA" || value === "MAINLAND CHINA") return "CN";
+    if (value === "HONG KONG") return "HK";
+    if (value === "SINGAPORE") return "SG";
+    if (value === "TAIWAN") return "TW";
     return value;
   }
   if (market === "JP") return "JP";
@@ -121,6 +192,11 @@ export function normalizeShockCountry(country?: string | null, market?: string |
   if (market === "UK") return "GB";
   if (market === "AU") return "AU";
   if (market === "CA") return "CA";
+  if (market === "KR") return "KR";
+  if (market === "CN") return "CN";
+  if (market === "HK") return "HK";
+  if (market === "SG") return "SG";
+  if (market === "TW") return "TW";
   return null;
 }
 
@@ -133,6 +209,11 @@ export function inferShockJurisdictionGroup(input: {
   if (country === "US") return "US";
   if (country === "GB" || country === "UK") return "UK";
   if (country === "AU" || country === "CA") return "COMMONWEALTH";
+  if (country === "KR") return "KR";
+  if (country === "CN") return "CN";
+  if (country === "HK") return "HK";
+  if (country === "SG") return "SG";
+  if (country === "TW") return "TW";
   if (country && EUROPE_COUNTRIES.has(country)) return "EUROPE";
   if (input.market === "EUROPE") return "EUROPE";
   return "OTHER";
