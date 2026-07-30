@@ -42,19 +42,29 @@ const strongCase: HistoricalShockCase = {
   researchConfidence: "high",
 };
 
+const verifiedPassContext = {
+  strategyEligibilityAtCheckpoint: "confirmed_pass" as const,
+  strategyInvestigationStatusAtCheckpoint: "substantially_complete" as const,
+  strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false,
+  confounderStatus: "clear" as const,
+};
 assert.equal(resolveHistoricalStrategyEligibility(strongCase), "unknown", "高scoreでも一次情報によるPASS確認なしでは自動PASSしない");
-assert.equal(resolveHistoricalStrategyEligibility(strongCase, "confirmed_pass"), "confirmed_pass");
-assert.equal(resolveHistoricalStrategyEligibility(strongCase, "confirmed_block"), "confirmed_block");
+assert.equal(resolveHistoricalStrategyEligibility(strongCase, { strategyEligibilityAtCheckpoint: "confirmed_pass" }), "unknown", "文字だけconfirmed_passでもstructured evidence不足ならPASSしない");
+assert.equal(resolveHistoricalStrategyEligibility(strongCase, verifiedPassContext), "confirmed_pass");
+assert.equal(resolveHistoricalStrategyEligibility(strongCase, { strategyEligibilityAtCheckpoint: "confirmed_block" }), "confirmed_block");
 const lowScoreCase: HistoricalShockCase = { ...strongCase, id: "fixture-low-score", score: 11, label: labelShockScore(11) };
-assert.equal(resolveHistoricalStrategyEligibility(lowScoreCase), "confirmed_block", "score<12はsidecar未記載でも確定BLOCK");
+assert.equal(resolveHistoricalStrategyEligibility(lowScoreCase, verifiedPassContext), "confirmed_block", "score<12は手動PASSでも確定BLOCK");
 const accountingBlockCase: HistoricalShockCase = {
   ...strongCase,
   id: "fixture-accounting-block",
   scores: { ...strongCase.scores, accountingIntegrity: 0 },
 };
-assert.equal(resolveHistoricalStrategyEligibility(accountingBlockCase), "confirmed_block", "accountingIntegrity=0は確定BLOCK");
+assert.equal(resolveHistoricalStrategyEligibility(accountingBlockCase, verifiedPassContext), "confirmed_block", "accountingIntegrity=0は確定BLOCK");
 const macroBlockCase: HistoricalShockCase = { ...strongCase, id: "fixture-macro-block", macroPrimaryCause: true };
-assert.equal(resolveHistoricalStrategyEligibility(macroBlockCase), "confirmed_block", "macro主因は確定BLOCK");
+assert.equal(resolveHistoricalStrategyEligibility(macroBlockCase, verifiedPassContext), "confirmed_block", "macro主因は確定BLOCK");
+assert.equal(resolveHistoricalStrategyEligibility(strongCase, { ...verifiedPassContext, strategyInvestigationStatusAtCheckpoint: "open" }), "confirmed_block", "open investigationは確定BLOCK");
+assert.equal(resolveHistoricalStrategyEligibility(strongCase, { ...verifiedPassContext, strategyCriticalLicenseOrDelistingRiskAtCheckpoint: true }), "confirmed_block", "critical license/delisting riskは確定BLOCK");
+assert.equal(resolveHistoricalStrategyEligibility(strongCase, { ...verifiedPassContext, confounderStatus: "major" }), "confirmed_block", "major confounderは確定BLOCK");
 
 const stock: ShockOutcomeQuote[] = [
   { Date: "20260109", AdjustmentClose: 100 },
