@@ -17,13 +17,27 @@ function host(url: string): string {
   try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return "invalid"; }
 }
 
+function increment(map: Map<string, number>, key: string): void {
+  map.set(key, (map.get(key) ?? 0) + 1);
+}
+
+function sortedObject(map: Map<string, number>): Record<string, number> {
+  return Object.fromEntries([...map.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])));
+}
+
 function main(): void {
   const date = todayJst();
+  const currentYear = Number(date.slice(0, 4));
   const cases = loadHistoricalShockCases();
   const issues: string[] = [];
   const warnings: string[] = [];
   const ids = new Set<string>();
   const categories = new Map<string, number>();
+  const countries = new Map<string, number>();
+  const eras = new Map<string, number>();
+  const companies = new Map<string, number>();
+  const categoryCountry = new Map<string, number>();
+  const outcomes = new Map<string, number>();
   const confidence = { high: 0, medium: 0, low: 0 };
   const sourceHosts = new Map<string, number>();
 
@@ -34,11 +48,25 @@ function main(): void {
   for (const item of cases) {
     if (ids.has(item.id)) issues.push(`duplicate id: ${item.id}`);
     ids.add(item.id);
-    categories.set(item.category, (categories.get(item.category) ?? 0) + 1);
+    increment(categories, item.category);
+    increment(countries, item.country);
+    increment(companies, item.company);
+    increment(categoryCountry, `${item.country}:${item.category}`);
+    increment(outcomes, item.outcome?.recoveryPattern ?? "unknown");
+
+    const year = Number(item.eventDate.slice(0, 4));
+    const era = Number.isFinite(year)
+      ? year >= currentYear - 2 ? "last_0_2y"
+        : year >= currentYear - 5 ? "last_3_5y"
+          : year >= currentYear - 10 ? "last_6_10y"
+            : "older_10y_plus"
+      : "unknown";
+    increment(eras, era);
+
     confidence[item.researchConfidence] += 1;
     for (const source of item.sources) {
       const name = host(source.url);
-      sourceHosts.set(name, (sourceHosts.get(name) ?? 0) + 1);
+      increment(sourceHosts, name);
       if (name === "invalid") issues.push(`${item.id}: invalid source URL ${source.url}`);
       if (source.sourceType === "exchange" && KNOWN_THIRD_PARTY_HOSTS.has(name)) {
         warnings.push(`${item.id}: sourceType=exchange but host=${name}; reclassify or replace with official exchange URL`);
@@ -71,6 +99,35 @@ function main(): void {
     if (!categories.has(category)) issues.push(`required category missing: ${category}`);
   }
 
+  const topCountry = [...countries.entries()].sort((a, b) => b[1] - a[1])[0];
+  if (topCountry && topCountry[1] / cases.length > 0.6) {
+    warnings.push(`country concentration: ${topCountry[0]} is ${Math.round((topCountry[1] / cases.length) * 100)}% of cases`);
+  }
+  const recentCases = (eras.get("last_0_2y") ?? 0) + (eras.get("last_3_5y") ?? 0);
+  if (recentCases / cases.length < 0.4) {
+    warnings.push(`era staleness: only ${recentCases}/${cases.length} cases are within 5 years`);
+  }
+  const knownOutcomes = cases.length - (outcomes.get("unknown") ?? 0);
+  if (knownOutcomes < cases.length * 0.7) {
+    warnings.push(`outcome coverage low: known ${knownOutcomes}/${cases.length}`);
+  }
+  const successLike = (outcomes.get("fast") ?? 0) + (outcomes.get("gradual") ?? 0);
+  const failed = outcomes.get("failed") ?? 0;
+  if (failed > 0 && successLike / failed >= 4) {
+    warnings.push(`outcome imbalance: success-like ${successLike} vs failed ${failed}; avoid survivorship bias`);
+  }
+  for (const [company, count] of companies) {
+    if (count >= 3) warnings.push(`company concentration: ${company} appears ${count} times`);
+  }
+  for (const category of requiredCategories) {
+    const countriesForCategory = new Set(
+      cases.filter(item => item.category === category).map(item => item.country),
+    );
+    if (countriesForCategory.size < 2 && (categories.get(category) ?? 0) >= 2) {
+      warnings.push(`country-category concentration: ${category} has ${categories.get(category)} cases but only ${countriesForCategory.size} country`);
+    }
+  }
+
   const summary = {
     generatedAt: date,
     minimumHistoricalCases: MIN_HISTORICAL_CASES,
@@ -82,8 +139,13 @@ function main(): void {
       avoid0to7: cases.filter(item => item.score < 8).length,
     },
     confidence,
-    categories: Object.fromEntries([...categories.entries()].sort((a, b) => b[1] - a[1])),
-    sourceHosts: Object.fromEntries([...sourceHosts.entries()].sort((a, b) => b[1] - a[1])),
+    categories: sortedObject(categories),
+    countries: sortedObject(countries),
+    eras: sortedObject(eras),
+    outcomes: sortedObject(outcomes),
+    categoryCountryCoverage: sortedObject(categoryCountry),
+    companies: sortedObject(companies),
+    sourceHosts: sortedObject(sourceHosts),
     issues,
     warnings,
     ok: issues.length === 0,
@@ -107,6 +169,12 @@ function main(): void {
     `- 12-15: ${summary.scoreBuckets.watch12to15}`,
     `- 8-11: ${summary.scoreBuckets.caution8to11}`,
     `- 0-7: ${summary.scoreBuckets.avoid0to7}`,
+    "",
+    "## dataset bias checks",
+    "",
+    `- countries: ${JSON.stringify(summary.countries)}`,
+    `- eras: ${JSON.stringify(summary.eras)}`,
+    `- outcomes: ${JSON.stringify(summary.outcomes)}`,
     "",
     "## issues",
     "",
