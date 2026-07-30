@@ -114,3 +114,42 @@ cases:
         sourceType: company
         publishedAt: "2022-04-19"
     notes: "執行役員の不適切発言による消費者/ブランド反応。"
+  zensho-sukiya-2019-employee-video:
+    incidentCountry: JP
+    sector: restaurant_food_service
+    stakeholder: employee
+    incidentScope: individual
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyEligibilityNotes: "2019-01-31のすき家一次情報で、不適切行為の発生、関与従業員の特定・退職処分、従業員教育の徹底を確認。会社の会計・本業構造に波及する証拠はなく、checkpoint時点の非価格gateを通過扱い。"
+    strategyEligibilityEvidenceSources:
+      - title: "当社従業員による不適切な行為についてのお詫びとお知らせ"
+        url: "https://www.sukiya.jp/news/2019/01/20190131.html"
+        sourceType: company
+        publishedAt: "2019-01-31"
+    notes: "局所従業員型。価格signalは別途未来を見ずに判定する。"
+  keurig-dr-pepper-2022-ceo-conduct:
+    incidentCountry: US
+    sector: beverage
+    stakeholder: public
+    incidentScope: individual
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyEligibilityNotes: "2022-11-10の会社一次情報でCEO辞任理由をCode of Conduct違反とし、strategy/operations/financial reportingとは無関係と明示。前CEOの復帰も同時発表され、checkpoint時点の非価格gateを通過扱い。"
+    strategyEligibilityEvidenceSources:
+      - title: "KDP Executive Chairman Bob Gamgort to Reassume CEO Role"
+        url: "https://www.keurigdrpepper.com/kdp-executive-chairman-bob-gamgort-to-reassume-ceo-role-following-resignation-of-ozan-dokmecioglu/"
+        sourceType: company
+        publishedAt: "2022-11-10"
+    notes: "会社自身が事業・財務との非関連を明示した強い個人切除型。"
+  ebay-2020-cyberstalking:
+    incidentCountry: US
+    sector: online_marketplace
+    stakeholder: public
+    incidentScope: multiple_individuals
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyEligibilityNotes: "2020-06-15のeBay一次情報で、2019年に外部法律事務所を伴う包括調査を実施し、関与者全員を解雇、特別取締役会委員会が監督し、会社および現職従業員は起訴対象外と説明。checkpoint時点では現行非価格gateを通過。2024年のDPAは未来outcomeとして扱い、このcheckpoint判定へ逆流させない。"
+    strategyEligibilityEvidenceSources:
+      - title: "eBay Inc. Issues Statement Regarding Indictments of Previously Terminated Employees"
+        url: "https://www.ebayinc.com/stories/news/ebay-inc-issues-statement-regarding-indictments-of-previously-terminated-employees/"
+        sourceType: company
+        publishedAt: "2020-06-15"
+    notes: "当時は切離し可能に見えたが後年会社DPAへ発展した、point-in-time replay上重要な負例。"
