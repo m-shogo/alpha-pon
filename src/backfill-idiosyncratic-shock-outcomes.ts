@@ -1,5 +1,5 @@
 // 企業固有ショック過去事例の定量 outcome backfill。
-// JP上場銘柄について、decision checkpoint 起点の1w/1m/3m/1yとTOPIX相対を計算する。
+// JPはJ-Quants + TOPIX、USはTwelve Data + S&P 500 proxyで、decision checkpoint起点の将来returnを測る。
 //
 // pnpm backfill:shock-outcomes          # dry-run
 // pnpm backfill:shock-outcomes --write  # data/idiosyncratic_shock_outcomes.json を更新
@@ -8,94 +8,143 @@
 
 import { mkdirSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
-import { fetchDailyQuotes, isJQuantsConfigured, type DailyQuote } from "./fetcher/jquants.js";
+import { fetchDailyQuotes, isJQuantsConfigured } from "./fetcher/jquants.js";
+import { fetchTwelveDataDailyQuotes, isTwelveDataConfigured } from "./fetcher/twelve-data.js";
 import { loadHistoricalShockCases } from "./idiosyncratic-shock-data.js";
+import { inferShockMarket, shockBenchmarkLabel, type ShockMarket } from "./idiosyncratic-shock-market.js";
 import {
   buildShockHistoricalOutcome,
   calibrateShockThresholds,
   outcomeFetchRange,
+  outcomeFetchRangeIso,
   type ShockHistoricalOutcomeRecord,
+  type ShockOutcomeQuote,
 } from "./idiosyncratic-shock-outcomes.js";
 
-const TOPIX_ETF_CODE = "1306";
+const TOPIX_ETF_CODE = process.env.MARKET_BENCHMARK_CODE ?? "1306";
+const US_BENCHMARK_SYMBOL = process.env.US_MARKET_BENCHMARK_SYMBOL ?? "SPY";
 const OUTPUT_PATH = "data/idiosyncratic_shock_outcomes.json";
+
+type ProviderStatus = {
+  market: ShockMarket;
+  provider: string;
+  configured: boolean;
+  benchmark: string;
+  eligibleCases: number;
+};
 
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function renderMarkdown(date: string, records: ShockHistoricalOutcomeRecord[]): string {
-  const calibration = calibrateShockThresholds(records);
+function f(value: number | null): string {
+  return value == null ? "-" : value.toFixed(2);
+}
+
+function marketCalibration(records: ShockHistoricalOutcomeRecord[]) {
+  const markets = [...new Set(records.map(row => row.market))].sort();
+  return Object.fromEntries(markets.map(market => [market, calibrateShockThresholds(records.filter(row => row.market === market))]));
+}
+
+function renderCalibration(lines: string[], title: string, records: ShockHistoricalOutcomeRecord[]): void {
+  lines.push(`## ${title}`, "");
+  lines.push("| bucket | cases | n1m | avg1m | median1m | +rate1m | benchmark相対1m | n3m | avg3m | +rate3m | benchmark相対3m | n1y | avg1y | +rate1y | benchmark相対1y |", "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
+  for (const row of calibrateShockThresholds(records)) {
+    lines.push(`| ${row.bucket} | ${row.cases} | ${row.n1m} | ${f(row.avgReturn1m)} | ${f(row.medianReturn1m)} | ${f(row.positiveRate1m)}% | ${f(row.avgBenchmarkRelative1m)} | ${row.n3m} | ${f(row.avgReturn3m)} | ${f(row.positiveRate3m)}% | ${f(row.avgBenchmarkRelative3m)} | ${row.n1y} | ${f(row.avgReturn1y)} | ${f(row.positiveRate1y)}% | ${f(row.avgBenchmarkRelative1y)} |`);
+  }
+  lines.push("");
+}
+
+function renderMarkdown(
+  date: string,
+  records: ShockHistoricalOutcomeRecord[],
+  providerStatus: ProviderStatus[],
+  failures: string[],
+): string {
   const lines = [
     "# 企業固有ショック 定量outcome / 閾値検証",
     "",
     `生成日: ${date}`,
     "",
     "> scoreはdecision checkpoint時点の評価。リターンはその後の結果で、scoreには逆流させません。",
-    "> 12点は暫定運用閾値です。サンプルが増えるまで自動で『有効』と断定しません。",
+    "> 12点は暫定運用閾値です。市場ごとにサンプルが増えるまで自動で『有効』と断定しません。",
     "",
-    `- JP価格取得済みケース: ${records.length}`,
+    `- price outcome records: ${records.length}`,
+    `- failures/skips: ${failures.length}`,
     "",
-    "## score bucket別",
+    "## provider readiness",
     "",
-    "| bucket | cases | n1m | avg1m | median1m | +rate1m | TOPIX相対1m | n3m | avg3m | +rate3m | TOPIX相対3m | n1y | avg1y | +rate1y | TOPIX相対1y |",
-    "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+    "| market | provider | configured | benchmark | eligible historical cases |",
+    "|---|---|---|---|---:|",
   ];
-  for (const row of calibration) {
-    const f = (value: number | null) => value == null ? "-" : value.toFixed(2);
-    lines.push(`| ${row.bucket} | ${row.cases} | ${row.n1m} | ${f(row.avgReturn1m)} | ${f(row.medianReturn1m)} | ${f(row.positiveRate1m)}% | ${f(row.avgTopixRelative1m)} | ${row.n3m} | ${f(row.avgReturn3m)} | ${f(row.positiveRate3m)}% | ${f(row.avgTopixRelative3m)} | ${row.n1y} | ${f(row.avgReturn1y)} | ${f(row.positiveRate1y)}% | ${f(row.avgTopixRelative1y)} |`);
+  for (const row of providerStatus) {
+    lines.push(`| ${row.market} | ${row.provider} | ${row.configured ? "yes" : "no"} | ${row.benchmark} | ${row.eligibleCases} |`);
   }
-  lines.push("", "## ケース", "");
-  for (const row of records.sort((a, b) => b.checkpoint.localeCompare(a.checkpoint))) {
-    const f = (value: number | null) => value == null ? "-" : `${value.toFixed(2)}%`;
-    lines.push(`### ${row.code} ${row.company} (${row.score}/20)`);
+  lines.push("");
+
+  renderCalibration(lines, "全市場（参考）", records);
+  for (const market of [...new Set(records.map(row => row.market))].sort()) {
+    renderCalibration(lines, `${market} 市場`, records.filter(row => row.market === market));
+  }
+
+  lines.push("## ケース", "");
+  for (const row of [...records].sort((a, b) => b.checkpoint.localeCompare(a.checkpoint))) {
+    const fp = (value: number | null) => value == null ? "-" : `${value.toFixed(2)}%`;
+    lines.push(`### ${row.market} ${row.code} ${row.company} (${row.score}/20)`);
+    lines.push(`- benchmark: ${row.benchmark}`);
     lines.push(`- event/checkpoint: ${row.eventDate} / ${row.checkpoint}`);
-    lines.push(`- shock drawdown: ${f(row.shockDrawdownPct)} (${row.preEventDate ?? "-"} → low ${row.shockLowDate ?? "-"})`);
-    lines.push(`- return: 1w ${f(row.return1w)} / 1m ${f(row.return1m)} / 3m ${f(row.return3m)} / 1y ${f(row.return1y)}`);
-    lines.push(`- TOPIX relative: 1m ${f(row.topixRelative1m)} / 3m ${f(row.topixRelative3m)} / 1y ${f(row.topixRelative1y)}`);
+    lines.push(`- shock drawdown: ${fp(row.shockDrawdownPct)} (${row.preEventDate ?? "-"} → low ${row.shockLowDate ?? "-"})`);
+    lines.push(`- return: 1w ${fp(row.return1w)} / 1m ${fp(row.return1m)} / 3m ${fp(row.return3m)} / 1y ${fp(row.return1y)}`);
+    lines.push(`- benchmark relative: 1m ${fp(row.benchmarkRelative1m)} / 3m ${fp(row.benchmarkRelative3m)} / 1y ${fp(row.benchmarkRelative1y)}`);
     lines.push("");
   }
+
   lines.push("## 解釈ルール", "");
-  lines.push("- `score_ge_12` が `score_lt_12` を継続的に上回るかを見る。");
-  lines.push("- 平均だけでなく中央値・プラス率・TOPIX相対を併用する。");
+  lines.push("- `score_ge_12` が `score_lt_12` を市場ごとに継続的に上回るかを見る。");
+  lines.push("- 平均だけでなく中央値・プラス率・現地benchmark相対を併用する。");
+  lines.push("- JPとUSは市場構造が違うため、全市場混合値だけで閾値を変えない。");
   lines.push("- nが小さいうちは閾値を自動変更しない。");
   lines.push("- 事件後の買収・アクティビスト・市況変化など交絡は別レビューする。");
+  if (failures.length > 0) {
+    lines.push("", "## failures / skips", "", ...failures.map(value => `- ${value}`));
+  }
   return lines.join("\n");
 }
 
 async function main(): Promise<void> {
   const doWrite = process.argv.includes("--write");
   const date = todayJst();
-  const cases = loadHistoricalShockCases()
-    .filter(item => item.country === "JP" && item.ticker && /^\d{4}$/.test(item.ticker));
+  const allCases = loadHistoricalShockCases().filter(item => Boolean(item.ticker));
+  const jpCases = allCases.filter(item => inferShockMarket({ country: item.country, ticker: item.ticker }) === "JP" && /^\d{4}$/.test(item.ticker ?? ""));
+  const usCases = allCases.filter(item => inferShockMarket({ country: item.country, ticker: item.ticker }) === "US" && Boolean(item.ticker));
+  const jqConfigured = isJQuantsConfigured();
+  const twelveConfigured = isTwelveDataConfigured();
 
-  console.log(`[backfill:shock-outcomes] mode=${doWrite ? "WRITE" : "DRY-RUN"} cases=${cases.length}`);
-  if (!isJQuantsConfigured()) {
-    console.log("J-Quants未設定: 定量backfillは実行できません。コード/対象ケースのpreviewのみ行います。");
-    for (const item of cases) console.log(`  ${item.ticker} ${item.company}: ${item.eventDate} checkpoint=${item.decisionCheckpoint} score=${item.score}`);
-    if (doWrite) process.exitCode = 1;
-    return;
-  }
+  const providerStatus: ProviderStatus[] = [
+    { market: "JP", provider: "jquants", configured: jqConfigured, benchmark: `TOPIX proxy ${TOPIX_ETF_CODE}`, eligibleCases: jpCases.length },
+    { market: "US", provider: "twelve_data", configured: twelveConfigured, benchmark: `S&P 500 proxy ${US_BENCHMARK_SYMBOL}`, eligibleCases: usCases.length },
+  ];
 
-  const earliest = cases.reduce((min, item) => item.eventDate < min ? item.eventDate : min, cases[0]?.eventDate ?? date);
-  let benchmarkQuotes: DailyQuote[] = [];
-  try {
-    benchmarkQuotes = await fetchDailyQuotes(TOPIX_ETF_CODE, earliest.replaceAll("-", ""), date.replaceAll("-", ""));
-  } catch (error) {
-    console.error(`TOPIX取得失敗: ${error instanceof Error ? error.message : String(error)}`);
-    process.exitCode = 1;
-    return;
-  }
+  console.log(`[backfill:shock-outcomes] mode=${doWrite ? "WRITE" : "DRY-RUN"} JP=${jpCases.length} US=${usCases.length}`);
+  console.log(`  providers: JQuants=${jqConfigured} TwelveData=${twelveConfigured}`);
 
   const records: ShockHistoricalOutcomeRecord[] = [];
   const failures: string[] = [];
-  for (const item of cases) {
+
+  for (const item of jpCases) {
+    if (!jqConfigured) {
+      failures.push(`${item.id}: JP provider not configured`);
+      continue;
+    }
     const code = item.ticker!;
     const range = outcomeFetchRange(item, date);
     try {
-      console.log(`  fetch ${code} ${item.company}: ${range.from}-${range.to}`);
-      const quotes = await fetchDailyQuotes(code, range.from, range.to);
-      const record = buildShockHistoricalOutcome(item, quotes, benchmarkQuotes, date);
+      console.log(`  [JP] fetch ${code} ${item.company}: ${range.from}-${range.to}`);
+      const [quotes, benchmarkQuotes] = await Promise.all([
+        fetchDailyQuotes(code, range.from, range.to),
+        fetchDailyQuotes(TOPIX_ETF_CODE, range.from, range.to),
+      ]);
+      const record = buildShockHistoricalOutcome(item, quotes, benchmarkQuotes, date, { market: "JP", benchmarkLabel: "TOPIX" });
       if (record) records.push(record);
       else failures.push(`${item.id}: checkpoint price missing`);
     } catch (error) {
@@ -104,10 +153,38 @@ async function main(): Promise<void> {
     await sleep(350);
   }
 
+  for (const item of usCases) {
+    if (!twelveConfigured) {
+      failures.push(`${item.id}: US provider not configured`);
+      continue;
+    }
+    const symbol = item.ticker!;
+    const range = outcomeFetchRangeIso(item, date);
+    try {
+      console.log(`  [US] fetch ${symbol} ${item.company}: ${range.from}-${range.to}`);
+      // 1ケースごとに同一rangeのSPYを取る。古い事例を含むため、巨大な一括rangeの切落しを避ける。
+      const stock = await fetchTwelveDataDailyQuotes(symbol, range.from, range.to);
+      const benchmark = await fetchTwelveDataDailyQuotes(US_BENCHMARK_SYMBOL, range.from, range.to);
+      const record = buildShockHistoricalOutcome(
+        item,
+        stock as ShockOutcomeQuote[],
+        benchmark as ShockOutcomeQuote[],
+        date,
+        { market: "US", benchmarkLabel: "S&P 500" },
+      );
+      if (record) records.push(record);
+      else failures.push(`${item.id}: checkpoint price missing`);
+    } catch (error) {
+      failures.push(`${item.id}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
   const calibration = calibrateShockThresholds(records);
-  console.log(`records=${records.length} failures=${failures.length}`);
-  for (const row of calibration) {
-    console.log(`  ${row.bucket}: cases=${row.cases} n1m=${row.n1m} avg1m=${row.avgReturn1m ?? "-"} rel1m=${row.avgTopixRelative1m ?? "-"}`);
+  const calibrationByMarket = marketCalibration(records);
+  console.log(`records=${records.length} failures/skips=${failures.length}`);
+  for (const market of Object.keys(calibrationByMarket)) {
+    const ge12 = calibrationByMarket[market].find(row => row.bucket === "score_ge_12");
+    console.log(`  ${market}: cases=${ge12?.cases ?? 0} avg1m=${ge12?.avgReturn1m ?? "-"} benchmarkRel1m=${ge12?.avgBenchmarkRelative1m ?? "-"}`);
   }
   if (failures.length) failures.forEach(value => console.log(`  [warn] ${value}`));
 
@@ -115,21 +192,26 @@ async function main(): Promise<void> {
     console.log("dry-run: ファイルは変更していません。--write で保存します。");
     return;
   }
+  if (records.length === 0) {
+    console.error("write中止: price outcome recordが0件です。provider設定を確認してください。");
+    process.exitCode = 1;
+    return;
+  }
 
   mkdirSync("data", { recursive: true });
   mkdirSync("reports", { recursive: true });
   const payload = {
     generatedAt: date,
-    benchmarkCode: TOPIX_ETF_CODE,
-    source: "jquants",
-    methodology: "decision checkpoint base; later returns are outcome-only and never feed historical score",
+    providers: providerStatus,
+    methodology: "decision checkpoint base; market-specific benchmark; later returns are outcome-only and never feed historical score",
     records,
     calibration,
+    calibrationByMarket,
     failures,
   };
   writeFileSync(OUTPUT_PATH, JSON.stringify(payload, null, 2), "utf-8");
   writeFileSync("reports/idiosyncratic_shock_outcomes_latest.json", JSON.stringify(payload, null, 2), "utf-8");
-  writeFileSync("reports/idiosyncratic_shock_outcomes_latest.md", renderMarkdown(date, records), "utf-8");
+  writeFileSync("reports/idiosyncratic_shock_outcomes_latest.md", renderMarkdown(date, records, providerStatus, failures), "utf-8");
   console.log(`saved: ${OUTPUT_PATH}`);
 }
 
