@@ -40,14 +40,22 @@ jobs:
         run: node --import tsx/esm tests/idiosyncratic-shock-threshold-calibration.test.ts
       - name: Threshold diversity contract
         run: node --import tsx/esm tests/idiosyncratic-shock-threshold-diversity.test.ts
+      - name: Research blocker taxonomy contract
+        run: node --import tsx/esm tests/idiosyncratic-shock-research-status.test.ts
+      - name: Pre-outcome research snapshot contract
+        run: node --import tsx/esm tests/idiosyncratic-shock-research-snapshot.test.ts
       - name: Reaction anchor contract
         run: node --import tsx/esm tests/idiosyncratic-shock-reaction-anchor.test.ts
       - name: Backfill plan contract
         run: node --import tsx/esm tests/idiosyncratic-shock-backfill-plan.test.ts
       - name: Outcome production/shadow contract
         run: node --import tsx/esm tests/idiosyncratic-shock-outcomes.test.ts
+      - name: Outcome dataset methodology contract
+        run: node --import tsx/esm tests/idiosyncratic-shock-outcome-contract.test.ts
       - name: Offline audits
         run: |
           node --import tsx/esm src/idiosyncratic-shock-context-file-audit.ts
+          node --import tsx/esm src/idiosyncratic-shock-threshold-review-queue.ts
+          node --import tsx/esm src/idiosyncratic-shock-pit-source-audit.ts
           node --import tsx/esm src/idiosyncratic-shock-threshold-calibration-audit.ts
           node --import tsx/esm src/idiosyncratic-shock-threshold-diversity-audit.ts
