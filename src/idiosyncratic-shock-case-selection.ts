@@ -19,6 +19,8 @@ export type ShockOutcomeVisibilityAtSelection =
 
 export type ShockCaseSelectionRecord = {
   registeredAt: string;
+  /** prospective caseは登録時に使ったdecision checkpointをfreezeする。 */
+  decisionCheckpointAtRegistration?: string | null;
   selectionMode: ShockCaseSelectionMode;
   outcomeVisibilityAtSelection: ShockOutcomeVisibilityAtSelection;
   selectionReason: string;
@@ -63,6 +65,9 @@ export function validateShockCaseSelectionRecord(value: unknown, path = "selecti
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`${path}: object is required`);
   const row = value as Record<string, unknown>;
   if (!isDate(row.registeredAt)) throw new Error(`${path}.registeredAt must be YYYY-MM-DD`);
+  if (row.decisionCheckpointAtRegistration != null && !isDate(row.decisionCheckpointAtRegistration)) {
+    throw new Error(`${path}.decisionCheckpointAtRegistration must be YYYY-MM-DD|null`);
+  }
   if (typeof row.selectionMode !== "string" || !VALID_MODES.has(row.selectionMode as ShockCaseSelectionMode)) {
     throw new Error(`${path}.selectionMode is invalid`);
   }
@@ -76,14 +81,23 @@ export function validateShockCaseSelectionRecord(value: unknown, path = "selecti
 
   const record: ShockCaseSelectionRecord = {
     registeredAt: row.registeredAt,
+    decisionCheckpointAtRegistration: (row.decisionCheckpointAtRegistration as string | null | undefined) ?? null,
     selectionMode: row.selectionMode as ShockCaseSelectionMode,
     outcomeVisibilityAtSelection: row.outcomeVisibilityAtSelection as ShockOutcomeVisibilityAtSelection,
     selectionReason: row.selectionReason,
     notes: (row.notes as string | null | undefined) ?? null,
   };
 
-  if (record.selectionMode === "prospective_pre_outcome" && record.outcomeVisibilityAtSelection !== "not_observed") {
-    throw new Error(`${path}: prospective_pre_outcome requires outcomeVisibilityAtSelection=not_observed`);
+  if (record.selectionMode === "prospective_pre_outcome") {
+    if (record.outcomeVisibilityAtSelection !== "not_observed") {
+      throw new Error(`${path}: prospective_pre_outcome requires outcomeVisibilityAtSelection=not_observed`);
+    }
+    if (!record.decisionCheckpointAtRegistration) {
+      throw new Error(`${path}: prospective_pre_outcome requires decisionCheckpointAtRegistration`);
+    }
+    if (record.registeredAt > record.decisionCheckpointAtRegistration) {
+      throw new Error(`${path}: prospective registration must be no later than decisionCheckpointAtRegistration`);
+    }
   }
   if (record.selectionMode === "retrospective_research" && record.outcomeVisibilityAtSelection === "not_observed") {
     throw new Error(`${path}: retrospective_research cannot claim not_observed outcome visibility`);
@@ -125,19 +139,29 @@ export function resolveShockCaseSelection(
     };
   }
 
-  const checkpointValid = isDate(decisionCheckpoint);
-  const registrationTimingVerified = checkpointValid && record.registeredAt <= decisionCheckpoint;
   const prospectiveClaim = record.selectionMode === "prospective_pre_outcome"
     && record.outcomeVisibilityAtSelection === "not_observed";
+  const frozenCheckpoint = record.decisionCheckpointAtRegistration ?? null;
+  const currentCheckpointValid = isDate(decisionCheckpoint);
+  const frozenCheckpointValid = isDate(frozenCheckpoint);
+  const checkpointMatches = !currentCheckpointValid || (frozenCheckpointValid && frozenCheckpoint === decisionCheckpoint);
+  const registrationTimingVerified = prospectiveClaim
+    && frozenCheckpointValid
+    && record.registeredAt <= frozenCheckpoint
+    && checkpointMatches;
   const validationHoldoutEligible = prospectiveClaim && registrationTimingVerified;
 
   let reason: string;
   if (validationHoldoutEligible) {
-    reason = "case was registered no later than its decision checkpoint while the evaluated outcome was not observed";
-  } else if (prospectiveClaim && !checkpointValid) {
-    reason = "prospective claim cannot be verified without a valid decision checkpoint; fail closed as research-only";
-  } else if (prospectiveClaim && !registrationTimingVerified) {
-    reason = `prospective registration ${record.registeredAt} is after decision checkpoint ${decisionCheckpoint}; fail closed as research-only`;
+    reason = currentCheckpointValid
+      ? "case was registered no later than its frozen decision checkpoint and the frozen checkpoint matches the current case"
+      : "case was registered no later than its frozen decision checkpoint while the evaluated outcome was not observed";
+  } else if (prospectiveClaim && !frozenCheckpointValid) {
+    reason = "prospective claim has no valid frozen decision checkpoint; fail closed as research-only";
+  } else if (prospectiveClaim && currentCheckpointValid && frozenCheckpoint !== decisionCheckpoint) {
+    reason = `prospective frozen checkpoint ${frozenCheckpoint} does not match current case checkpoint ${decisionCheckpoint}; fail closed as research-only`;
+  } else if (prospectiveClaim && record.registeredAt > (frozenCheckpoint ?? "")) {
+    reason = `prospective registration ${record.registeredAt} is after frozen decision checkpoint ${frozenCheckpoint}; fail closed as research-only`;
   } else {
     reason = "retrospective/control selection may be used for research but is not a prospective validation holdout";
   }
