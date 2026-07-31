@@ -35,7 +35,7 @@ export type ValidatedLocalShockThreshold = {
   validationThrough: string;
   trainCases: number;
   validationCases: number;
-  benchmarkMetric: "signalBenchmarkRelative3m";
+  benchmarkMetric: "calibrationSignalBenchmarkRelative3m";
   evidenceNote: string;
 };
 
@@ -52,6 +52,7 @@ export type ResolvedShockCalibration = {
 };
 
 const DEFAULT_PATH = "config/idiosyncratic-shock-calibration.yml";
+const REQUIRED_BENCHMARK_METRIC = "calibrationSignalBenchmarkRelative3m" as const;
 
 function isoDate(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
@@ -102,7 +103,7 @@ export function validateShockCalibrationConfig(config: ShockCalibrationConfig): 
     }
     if (!Number.isInteger(row.trainCases) || row.trainCases < 18) throw new Error(`${row.id}: trainCases must be >= 18`);
     if (!Number.isInteger(row.validationCases) || row.validationCases < 8) throw new Error(`${row.id}: validationCases must be >= 8`);
-    if (row.benchmarkMetric !== "signalBenchmarkRelative3m") throw new Error(`${row.id}: benchmarkMetric must be signalBenchmarkRelative3m`);
+    if (row.benchmarkMetric !== REQUIRED_BENCHMARK_METRIC) throw new Error(`${row.id}: benchmarkMetric must be ${REQUIRED_BENCHMARK_METRIC}`);
     if (!row.evidenceNote?.trim()) throw new Error(`${row.id}: evidenceNote is required`);
 
     const country = normalizeShockCountry(row.country ?? null, row.market ?? null);
