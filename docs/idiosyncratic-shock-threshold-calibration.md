@@ -42,7 +42,8 @@ score < 12 はproductionでは必ずBLOCK。
 - score < 12を自動PASSにしない
 - production BLOCKを自動でshadow PASSへ読み替えない
 - 低scoreケースは一次情報で別途レビューし、明示的に `confirmed_pass / confirmed_block` を記録する
-- score >= 12の有効なproduction PASSはshadow研究へ再利用できる
+- score >= 12の構造上有効なproduction PASSだけshadow研究へ再利用できる
+- score < 12なのにraw `strategyEligibilityAtCheckpoint: confirmed_pass` と誤記されてもshadow PASSへ継承しない
 - score >= 12でproduction BLOCKならthreshold由来ではないためshadowでもBLOCK
 
 ## 低score raw production PASSの禁止
@@ -149,6 +150,8 @@ CEO解任時点でBoard自身が新情報のimplicationsを今後検討すると
 
 → shadowでも影響範囲未確定としてBLOCK。
 
+これらは `calibrationEligibilityAtCheckpoint: confirmed_block` として正本化し、**unknownと危険を分離**する。
+
 ## Selection-bias gate
 
 `audit:shock-threshold-calibration`
@@ -216,6 +219,16 @@ signalBenchmarkRelative3m
 
 をregistryへ登録するとvalidation errorにする。
 
+## 現在地
+
+- production threshold: **12のまま**
+- replay-ready reaction anchors: **17以上**
+- below-threshold explicit shadow PASS: **Ootoya 2019（11点）**
+- below-threshold explicit shadow BLOCK: **Papa John's 2018 / CBS 2018 / Super Retail 2025**
+- threshold comparison target: **未達**
+- `data/idiosyncratic_shock_outcomes.json`: **まだ正式生成していない**
+- empirical 1m/3m/1y performance: **まだ結論を出さない**
+
 ## 昇格までの流れ
 
 1. historical caseを収集
@@ -224,7 +237,7 @@ signalBenchmarkRelative3m
 4. reaction anchorをreplay-ready化
 5. quantitative backfill
 6. production signalとshadow signalを別保存
-7. score bucketごとにsignal率 + shadow 3m benchmark-relativeを計測
+7. score bucketごとにeligible件数 / signal率 / shadow 3m benchmark-relativeを計測
 8. chronological train / validation
 9. 十分なsample・holdoutがあるlocal modelだけvalidated registryへ登録
 10. validation不成立ならthreshold=12へ縮退
