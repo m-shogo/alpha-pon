@@ -46,6 +46,12 @@ jobs:
         run: node --import tsx/esm tests/idiosyncratic-shock-threshold-research-plan.test.ts
       - name: Low-score researched controls
         run: node --import tsx/esm tests/idiosyncratic-shock-low-score-controls.test.ts
+      - name: Calibration temporal/prospective separation
+        run: node --import tsx/esm tests/idiosyncratic-shock-calibration.test.ts
+      - name: Calibration registry prospective contract
+        run: node --import tsx/esm tests/idiosyncratic-shock-calibration-config.test.ts
+      - name: Prospective outcome isolation
+        run: node --import tsx/esm tests/idiosyncratic-shock-prospective-calibration-isolation.test.ts
       - name: Negative-control matching contract
         run: node --import tsx/esm tests/idiosyncratic-shock-negative-control.test.ts
       - name: Research blocker taxonomy contract
