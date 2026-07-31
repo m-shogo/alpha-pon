@@ -2,6 +2,8 @@ version: 1
 description: >-
   企業固有ショックのLocal Opportunity閾値台帳。Global Structural Scoreは変更しない。
   local閾値・weightsはscore thresholdだけを外したshadow First Eligible Signal起点の
-  calibrationSignalBenchmarkRelative3mを使い、chronological train/validationで再現を確認したものだけ登録する。
+  calibrationSignalBenchmarkRelative3mを使う。retrospective chronological splitは
+  temporal robustness確認に限定し、validated registryへ昇格するにはoutcome観測前に
+  prospective_pre_outcome登録した独立holdoutを最低件数以上通過することを必須とする。
 globalDefaultThreshold: 12
 validatedLocalThresholds: []
