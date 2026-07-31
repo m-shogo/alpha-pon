@@ -1,0 +1,67 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold candidate backlog batch 4。JP/USの市場不足とexecutive/systemicカテゴリを構造情報だけで補充し、score・price path・future outcomeは研究開始後まで記録しない。"
+selectionPolicy:
+  basis: structural_coverage_only
+  knownHistoricalOutcomeMayExist: true
+  forbiddenInputs:
+    - future_return
+    - recovery_pattern
+    - realized_outcome
+    - post_event_price_path
+candidates:
+  - id: eneos-2022-sugimori
+    company: "ENEOS Holdings"
+    ticker: "5020"
+    market: JP
+    eventDate: "2022-09-21"
+    category: executive_personal_conduct
+    researchState: unscored
+    discoveryReason: "JPの取締役会長個人行動・actor separability境界を追加する第4batch候補。事実確認後の辞任と会社ガバナンスへの波及をscoreや株価結果なしで検証する。"
+    primarySource:
+      title: "当社元会長に関する一部報道について"
+      url: "https://www.eneos.co.jp/information/upload_pdf/20220921_01_01_2008355.pdf"
+      sourceType: company
+      publishedAt: "2022-09-21"
+
+  - id: japan-post-insurance-2019-improper-sales
+    company: "Japan Post Insurance"
+    ticker: "7181"
+    market: JP
+    eventDate: "2019-12-27"
+    category: systemic_insurance_sales_misconduct
+    researchState: unscored
+    discoveryReason: "JPの金融・保険販売ガバナンス候補。多数の不適正募集と業務停止・改善命令を、既知の将来returnやthreshold帯を選定材料にせず検証する。"
+    primarySource:
+      title: "日本郵政グループに対する行政処分について"
+      url: "https://www.fsa.go.jp/news/r1/yuusei/20191227.html"
+      sourceType: regulator
+      publishedAt: "2019-12-27"
+
+  - id: intel-2018-krzanich
+    company: "Intel"
+    ticker: INTC
+    market: US
+    eventDate: "2018-06-21"
+    category: executive_personal_conduct
+    researchState: unscored
+    discoveryReason: "US CEO個人行動・succession境界を追加する第4batch候補。internal/external investigationでpolicy violation確認後の即時辞任を、historical returnなしで評価する。"
+    primarySource:
+      title: "Intel Form 8-K - Departure of Brian Krzanich"
+      url: "https://www.sec.gov/Archives/edgar/data/50863/000119312518199045/0001193125-18-199045-index.html"
+      sourceType: regulator
+      publishedAt: "2018-06-21"
+
+  - id: mcdonalds-2019-easterbrook
+    company: "McDonald's"
+    ticker: MCD
+    market: US
+    eventDate: "2019-11-04"
+    category: executive_policy_violation
+    researchState: unscored
+    discoveryReason: "US CEO policy-violation・succession境界を追加する第4batch候補。Board判断と即時後継CEO選任を、後年に判明した追加事実や株価returnを使わずcheckpoint内で検証する。"
+    primarySource:
+      title: "McDonald's Form 8-K - Leadership Transition"
+      url: "https://www.sec.gov/Archives/edgar/data/63908/000089882219000080/mcd8k20191104.htm"
+      sourceType: regulator
+      publishedAt: "2019-11-04"
