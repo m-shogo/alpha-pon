@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 8 context。Recruit 2019はPPCと東京労働局の主要行政判断、サービス廃止、業績影響軽微をcheckpoint内で確認し、score以外のhard gateを通過。"
+cases:
+  recruit-2019-rikunabi-dmp:
+    incidentCountry: JP
+    sector: human_resources_services
+    stakeholder: customer
+    incidentScope: subsidiary
+    confounderStatus: possible
+    recurrenceStatus: first_known
+    remediationStatus: credible
+    incidentClusterStatus: single
+    strategyInvestigationStatusAtCheckpoint: substantially_complete
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    calibrationEligibilityAtCheckpoint: confirmed_pass
+    calibrationEligibilityNotes: "productionはscore=11でBLOCK。threshold研究ではcheckpoint=2019-09-06までにPPCが法違反を認定して勧告・指導、東京労働局も職業安定法等違反として指導を実施。対象サービスは8/4に廃止済みで、会社は業績影響を軽微と開示。継続的な是正状況monitoringは残るが、主要な事実認定と行政対応は出揃っており、critical license/listing riskやmajor confounderも確認されないためscore gate以外はPASS。"
+    strategyEligibilityEvidenceSources:
+      - title: "当社孫会社への個人情報保護委員会からの勧告等について"
+        url: "https://recruit-holdings.com/ja/newsroom/20190826_18581/"
+        sourceType: company
+        publishedAt: "2019-08-26"
+      - title: "当社孫会社への東京労働局からの指導について"
+        url: "https://recruit-holdings.com/ja/newsroom/20190906_18584/"
+        sourceType: company
+        publishedAt: "2019-09-06"
+      - title: "根本大臣会見概要 令和元年9月6日"
+        url: "https://www.mhlw.go.jp/stf/kaiken/daijin/0000194708_00148.html"
+        sourceType: regulator
+        publishedAt: "2019-09-06"
+    notes: "reaction announcement timingは未確定のため、shadow PASSではあるがreplay-ready controlにはまだ数えない。後日のQ2実績・株価returnはeligibilityへ使用しない。"
