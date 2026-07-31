@@ -38,6 +38,8 @@ jobs:
         run: node --import tsx/esm tests/idiosyncratic-shock-pit-evidence.test.ts
       - name: Case selection provenance contract
         run: node --import tsx/esm tests/idiosyncratic-shock-case-selection.test.ts
+      - name: Case selection expansion contract
+        run: node --import tsx/esm tests/idiosyncratic-shock-case-selection-expansions.test.ts
       - name: Threshold eligibility contract
         run: node --import tsx/esm tests/idiosyncratic-shock-threshold-calibration.test.ts
       - name: Threshold diversity contract
