@@ -127,11 +127,14 @@ const benchmark: ShockOutcomeQuote[] = [
 ];
 
 const record = buildShockHistoricalOutcome(strongCase, stock, benchmark, "2027-02-01", {
+  reactionStartDate: "2026-01-12",
   reactionAnchorStatus: "verified",
   strategyEligibilityAtCheckpoint: "confirmed_pass",
   thresholdCalibrationEligibilityAtCheckpoint: "confirmed_pass",
 });
 assert(record);
+assert.equal(record?.reactionAnchorTradingDayObserved, true);
+assert.equal(record?.reactionAnchorStatus, "verified");
 assert.equal(record?.strategyEligibilityAtCheckpoint, "confirmed_pass");
 assert.equal(record?.thresholdCalibrationEligibilityAtCheckpoint, "confirmed_pass");
 assert.equal(record?.firstEligibleSignalDate, "2026-01-19");
@@ -144,6 +147,7 @@ assert.equal(record?.shockDrawdownPct, -14);
 assert.notEqual(record?.return1m, record?.signalReturn1m, "checkpoint returnとsignal returnを混同しない");
 
 const shadowOnly = buildShockHistoricalOutcome(lowScoreCase, stock, benchmark, "2027-02-01", {
+  reactionStartDate: "2026-01-12",
   reactionAnchorStatus: "verified",
   strategyEligibilityAtCheckpoint: "confirmed_block",
   thresholdCalibrationEligibilityAtCheckpoint: "confirmed_pass",
@@ -161,7 +165,26 @@ assert(unverifiedAnchor);
 assert.equal(unverifiedAnchor?.firstEligibleSignalDate, null);
 assert.equal(unverifiedAnchor?.calibrationFirstEligibleSignalDate, null, "shadowもreaction anchor未確認なら生成しない");
 
+const missingBenchmarkAnchor = buildShockHistoricalOutcome(
+  strongCase,
+  stock,
+  benchmark.filter(row => row.Date !== "20260112"),
+  "2027-02-01",
+  {
+    reactionStartDate: "2026-01-12",
+    reactionAnchorStatus: "verified",
+    strategyEligibilityAtCheckpoint: "confirmed_pass",
+    thresholdCalibrationEligibilityAtCheckpoint: "confirmed_pass",
+  },
+);
+assert(missingBenchmarkAnchor);
+assert.equal(missingBenchmarkAnchor?.reactionAnchorTradingDayObserved, false, "stock/benchmarkの片方にreaction日足が欠けたらanchorを降格する");
+assert.equal(missingBenchmarkAnchor?.reactionAnchorStatus, "unverified");
+assert.equal(missingBenchmarkAnchor?.firstEligibleSignalDate, null);
+assert.equal(missingBenchmarkAnchor?.calibrationFirstEligibleSignalDate, null, "provider欠損をtrue no-signalへ混ぜない");
+
 const unknownEligibility = buildShockHistoricalOutcome(strongCase, stock, benchmark, "2027-02-01", {
+  reactionStartDate: "2026-01-12",
   reactionAnchorStatus: "verified",
 });
 assert(unknownEligibility);
@@ -175,10 +198,12 @@ const shiftedReaction = buildShockHistoricalOutcome(strongCase, stock, benchmark
   thresholdCalibrationEligibilityAtCheckpoint: "confirmed_pass",
 });
 assert(shiftedReaction);
+assert.equal(shiftedReaction?.reactionAnchorTradingDayObserved, true);
 assert.equal(shiftedReaction?.preEventDate, "2026-01-12");
 
 const usCase: HistoricalShockCase = { ...strongCase, id: "fixture-us", ticker: "MCD", country: "US" };
 const overseas = buildShockHistoricalOutcome(usCase, stock, benchmark, "2027-02-01", {
+  reactionStartDate: "2026-01-12",
   reactionAnchorStatus: "verified",
   strategyEligibilityAtCheckpoint: "confirmed_pass",
   thresholdCalibrationEligibilityAtCheckpoint: "confirmed_pass",
@@ -260,4 +285,4 @@ assert.deepEqual(outcomeFetchRange(strongCase, "2026-06-01"), { from: "20251231"
 assert.deepEqual(outcomeFetchRange(strongCase, "2028-01-01"), { from: "20251231", to: "20270428" });
 assert.deepEqual(outcomeFetchRangeIso(usCase, "2026-06-01"), { from: "2025-12-31", to: "2026-06-01" });
 
-console.log("idiosyncratic-shock-outcomes tests: production/shadow + signal incidence OK");
+console.log("idiosyncratic-shock-outcomes tests: production/shadow + signal incidence + trading-day anchor OK");
