@@ -8,7 +8,7 @@ cases:
     stakeholder: customer
     incidentScope: multi_unit
     confounderStatus: possible
-    recurrenceStatus: repeat
+    recurrenceStatus: related_multiple
     remediationStatus: credible
     incidentClusterStatus: cascade
     strategyInvestigationStatusAtCheckpoint: closed
