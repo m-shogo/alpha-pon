@@ -53,7 +53,7 @@ function classifyMissingEvidence(raw: string): ShockResearchReasonCode {
   if (raw === "strategyInvestigationStatusAtCheckpoint") return "investigation_status_unknown";
   if (raw === "strategyCriticalLicenseOrDelistingRiskAtCheckpoint") return "critical_risk_unknown";
   if (raw === "confounderStatus") return "confounder_unknown";
-  if (raw === "trusted primary source or >=2 major media") return "source_gate_missing";
+  if (raw === "trusted primary source or >=2 major media" || raw === "trusted primary source or >=2 major media available by checkpoint") return "source_gate_missing";
   if (raw === "priceReactionStartDate for announcement timing") return "reaction_date_missing";
   return "other";
 }
