@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { loadHistoricalShockCases } from "../src/idiosyncratic-shock-data.js";
 import {
   loadThresholdCandidateBacklog,
   rankThresholdCandidateBacklog,
@@ -11,13 +12,14 @@ const backlog = loadThresholdCandidateBacklog();
 assert.equal(backlog.version, 1);
 assert.equal(backlog.selectionPolicy.basis, "structural_coverage_only");
 assert.equal(backlog.selectionPolicy.knownHistoricalOutcomeMayExist, true);
-assert(backlog.candidates.length >= 5, `unscored structural backlog should contain >=5 cases: ${backlog.candidates.length}`);
-assert(new Set(backlog.candidates.map(row => row.id)).size === backlog.candidates.length, "candidate ids must be unique");
+assert(backlog.candidates.length >= 5, `structural backlog should retain >=5 frozen candidates: ${backlog.candidates.length}`);
+assert.equal(new Set(backlog.candidates.map(row => row.id)).size, backlog.candidates.length, "candidate ids must be unique");
 assert(backlog.candidates.filter(row => row.market === "JP").length >= 2, "backlog needs JP structural candidates");
 assert(backlog.candidates.filter(row => row.market === "US").length >= 2, "backlog needs US structural candidates");
 
+const allowedStates = new Set(["unscored", "researching", "promoted", "rejected"]);
 for (const row of backlog.candidates) {
-  assert.equal(row.researchState, "unscored", `${row.id}: initial backlog must remain unscored until PIT research starts`);
+  assert(allowedStates.has(row.researchState), `${row.id}: invalid research state`);
   assert(["company", "regulator", "exchange"].includes(row.primarySource.sourceType), `${row.id}: primary source required`);
   const serialized = JSON.stringify(row);
   for (const forbidden of ["scoreVector", "priceState", "futureReturn", "return3m", "recoveryPattern", "outcomePattern", "realizedOutcome"]) {
@@ -34,6 +36,25 @@ for (const id of [
 ]) {
   assert(backlog.candidates.some(row => row.id === id), `missing frozen structural candidate: ${id}`);
 }
+
+const benesseBacklog = backlog.candidates.find(row => row.id === "benesse-2014-data-leak");
+assert(benesseBacklog);
+assert.equal(benesseBacklog.researchState, "promoted", "completed backlog research must remain in registry as promoted provenance");
+for (const id of [
+  "dentsu-2016-labor-violation",
+  "starbucks-2018-philadelphia",
+  "guess-2018-marciano",
+  "chipotle-2015-ecoli",
+]) {
+  assert.equal(backlog.candidates.find(row => row.id === id)?.researchState, "unscored", `${id}: next backlog cases must remain unscored`);
+}
+
+const historical = new Map(loadHistoricalShockCases().map(row => [row.id, row]));
+const benesseHistorical = historical.get("benesse-2014-data-leak");
+assert(benesseHistorical, "promoted candidate must exist in historical case DB");
+assert.equal(benesseHistorical.score, 9, "backlog promotion must accept PIT score rather than fitting the score to threshold");
+assert.equal(benesseHistorical.priceStateAtCheckpoint, "unknown", "backlog promotion must not backfill later price knowledge into the checkpoint");
+assert.equal(benesseHistorical.outcome?.recoveryPattern, "unknown", "backlog promotion must not carry realized recovery into case selection");
 
 const baseCandidate: ThresholdCandidateBacklogRow = {
   id: "fixture-case",
@@ -112,9 +133,10 @@ const diversityFixture: ThresholdDiversityRow[] = [
 ];
 
 const ranked = rankThresholdCandidateBacklog(backlog.candidates, diversityFixture);
-assert(ranked.length >= 5);
-assert.equal(ranked[0]?.market, "US", "US deficit should prioritize US structural candidates before extra JP cases");
-assert(ranked[0]?.gapReasons.some(reason => reason.includes("US control deficit")));
+assert(ranked.length >= 4, `completed/rejected backlog cases must leave active research candidates: ${ranked.length}`);
+assert(!ranked.some(row => row.id === "benesse-2014-data-leak"), "promoted candidate must leave the active research queue");
+assert.equal(ranked[0]?.market, "US", "larger US deficit should outrank the smaller JP deficit");
+assert(ranked[0]?.gapReasons.some(reason => reason.includes("US control deficit 2")));
 assert(ranked.every(row => row.gapReasons.includes("score band intentionally unknown until PIT-safe scoring")));
 
 const rankingWithoutOutcomes = ranked.map(row => row.id);
@@ -128,4 +150,4 @@ assert.deepEqual(
   "candidate priority must not change when realized 3m usability changes",
 );
 
-console.log(`idiosyncratic-shock threshold candidate backlog tests: ${backlog.candidates.length} unscored candidates, outcome-blind ranking locked`);
+console.log(`idiosyncratic-shock threshold candidate backlog tests: frozen=${backlog.candidates.length} active=${ranked.length}, outcome-blind ranking locked`);
