@@ -12,9 +12,9 @@ import { buildThresholdDiversityRows, type ThresholdDiversityRow } from "../src/
 
 const backlog = loadThresholdCandidateBacklog();
 assert.equal(backlog.version, 1);
-assert.equal(backlog.candidates.length, 19, "four frozen outcome-blind batches should contain 19 candidates");
+assert.equal(backlog.candidates.length, 23, "five frozen outcome-blind batches should contain 23 candidates");
 assert.equal(new Set(backlog.candidates.map(row => row.id)).size, backlog.candidates.length);
-assert(backlog.candidates.every(row => row.researchState === "promoted"), "separate research-state registry must close batch1-4 without mutating expansion freeze files");
+assert(backlog.candidates.every(row => row.researchState === "promoted"), "separate research-state registry must close batch1-5 without mutating expansion freeze files");
 
 for (const row of backlog.candidates) {
   const serialized = JSON.stringify(row);
@@ -43,6 +43,10 @@ const expectedScores = new Map<string, number>([
   ["japan-post-insurance-2019-improper-sales", 4],
   ["intel-2018-krzanich", 14],
   ["mcdonalds-2019-easterbrook", 15],
+  ["nissan-2018-ghosn-misconduct", 5],
+  ["mitsubishi-motors-2016-fuel-economy", 4],
+  ["hp-2010-hurd-resignation", 14],
+  ["facebook-2018-cambridge-analytica", 6],
 ]);
 
 const historical = new Map(loadHistoricalShockCases().map(row => [row.id, row]));
@@ -56,6 +60,7 @@ for (const row of backlog.candidates) {
 }
 assert.equal(historical.get("chipotle-2015-ecoli")?.score, 7, "candidate may land below 8-11 band");
 assert.equal(historical.get("japan-post-insurance-2019-improper-sales")?.score, 4, "candidate may land far below research boundary band");
+assert.equal(historical.get("mitsubishi-motors-2016-fuel-economy")?.score, 4, "another outcome-blind candidate may land far below boundary band");
 assert.equal(historical.get("guess-2018-marciano")?.score, 12, "candidate may land at production threshold");
 assert.equal(historical.get("mcdonalds-2019-easterbrook")?.score, 15, "candidate may land clearly above threshold");
 
@@ -69,6 +74,9 @@ for (const [id, blocker] of [
   ["subaru-2017-final-inspection", "investigationStatus=open"],
   ["japan-post-insurance-2019-improper-sales", "recurrenceStatus=systemic"],
   ["intel-2018-krzanich", "investigationStatus=open"],
+  ["nissan-2018-ghosn-misconduct", "accountingIntegrity=0"],
+  ["mitsubishi-motors-2016-fuel-economy", "investigationStatus=open"],
+  ["facebook-2018-cambridge-analytica", "investigationStatus=open"],
 ] as const) {
   const item = historical.get(id);
   assert(item);
@@ -79,10 +87,10 @@ for (const [id, blocker] of [
 
 const diversityRows = buildThresholdDiversityRows();
 const liveStatus = summarizeThresholdCandidateBacklogStatus(backlog.candidates, diversityRows);
-assert.equal(liveStatus.activeCandidateCount, 0, "batch1-4 are fully researched");
-assert.equal(liveStatus.promotedCount, 19);
+assert.equal(liveStatus.activeCandidateCount, 0, "batch1-5 are fully researched");
+assert.equal(liveStatus.promotedCount, 23);
 assert.equal(liveStatus.thresholdChangeReady, false, "threshold research gate remains unmet");
-assert.equal(liveStatus.replenishmentRequired, true, "batch5 must be frozen before further threshold research");
+assert.equal(liveStatus.replenishmentRequired, true, "batch6 must be frozen before further threshold research");
 
 const baseCandidate: ThresholdCandidateBacklogRow = {
   id: "fixture-us", company: "Fixture US", ticker: "FIX", market: "US", eventDate: "2020-01-01",
@@ -109,4 +117,4 @@ const rankingWithoutOutcomes = ranked.map(row => row.id);
 const rankingWithOnlyUsableFlagChanged = rankThresholdCandidateBacklog(synthetic, diversityFixture.map(row => ({ ...row, usable3m: true }))).map(row => row.id);
 assert.deepEqual(rankingWithOnlyUsableFlagChanged, rankingWithoutOutcomes, "realized 3m usability must not change candidate priority");
 
-console.log("idiosyncratic-shock threshold candidate backlog tests: 19/19 promoted via separate state registry; batch5 replenishment required");
+console.log("idiosyncratic-shock threshold candidate backlog tests: 23/23 promoted via separate state registry; batch6 replenishment required");
