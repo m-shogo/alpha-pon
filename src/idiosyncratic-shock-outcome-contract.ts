@@ -18,6 +18,7 @@ export const SHOCK_OUTCOME_METHODOLOGY = {
   productionThreshold: SHOCK_PRODUCTION_THRESHOLD,
   thresholdCalibrationRule: "remove_score_gate_only_preserve_all_other_fail_closed_gates",
   noSignalRule: "include_in_signal_rate_denominator_exclude_from_return_statistics",
+  prospectiveHoldoutRule: "exclude_from_default_calibration_and_threshold_fitting_evaluate_only_explicit_prospective_scope",
 } as const;
 
 export type ShockOutcomeDatasetEnvelope = {
@@ -121,6 +122,9 @@ export function assertShockOutcomeDatasetContract(payload: ShockOutcomeDatasetEn
   if (!/^[a-f0-9]{64}$/.test(payload.researchSnapshotSha256)) throw new Error("shock outcome researchSnapshotSha256 must be sha256 hex");
   if (payload.methodology.methodVersion !== SHOCK_OUTCOME_METHOD_VERSION) throw new Error("shock outcome methodology version mismatch");
   if (payload.methodology.productionThreshold !== SHOCK_PRODUCTION_THRESHOLD) throw new Error("shock outcome production threshold mismatch");
+  if (payload.methodology.prospectiveHoldoutRule !== "exclude_from_default_calibration_and_threshold_fitting_evaluate_only_explicit_prospective_scope") {
+    throw new Error("shock outcome prospective holdout rule mismatch");
+  }
   const ids = new Set<string>();
   for (const record of payload.records) {
     if (ids.has(record.caseId)) throw new Error(`duplicate shock outcome caseId: ${record.caseId}`);
