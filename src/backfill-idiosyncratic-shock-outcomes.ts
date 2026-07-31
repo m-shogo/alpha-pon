@@ -1,7 +1,7 @@
 // 企業固有ショック過去事例の定量 outcome backfill。
 // JPはJ-Quants + TOPIX、USはTwelve Data + S&P 500 proxy。
 // checkpoint outcomeは研究比較用。戦略calibrationは、非価格hard gateがconfirmed_passかつ
-// reaction anchorがverifiedで、First Eligible Signalが実際に出たケースだけを正本にする。
+// reaction anchorがreplay-readyで、First Eligible Signalが実際に出たケースだけを正本にする。
 //
 // pnpm backfill:shock-outcomes          # dry-run
 // pnpm backfill:shock-outcomes --write  # data/idiosyncratic_shock_outcomes.json を更新
@@ -13,13 +13,13 @@ import { todayJst } from "./date.js";
 import { fetchDailyQuotes, isJQuantsConfigured } from "./fetcher/jquants.js";
 import { fetchTwelveDataDailyQuotes, isTwelveDataConfigured } from "./fetcher/twelve-data.js";
 import {
-  isHistoricalReactionAnchorVerified,
   loadHistoricalShockCaseContext,
   resolveHistoricalStrategyEligibility,
   type HistoricalShockCaseContext,
 } from "./idiosyncratic-shock-case-context.js";
 import { loadHistoricalShockCases } from "./idiosyncratic-shock-data.js";
 import { inferShockMarket, type ShockMarket } from "./idiosyncratic-shock-market.js";
+import { isHistoricalReactionAnchorReplayReady } from "./idiosyncratic-shock-reaction-anchor.js";
 import {
   buildShockHistoricalOutcome,
   calibrateShockThresholds,
@@ -58,7 +58,7 @@ function fp(value: number | null): string {
 }
 
 function resolveReactionAnchorStatus(context?: HistoricalShockCaseContext | null): HistoricalReactionAnchorStatus {
-  return isHistoricalReactionAnchorVerified(context) ? "verified" : "unverified";
+  return isHistoricalReactionAnchorReplayReady(context) ? "verified" : "unverified";
 }
 
 function marketCalibration(records: ShockHistoricalOutcomeRecord[]): CalibrationByMarket {
@@ -98,17 +98,17 @@ function renderMarkdown(
     `生成日: ${date}`,
     "",
     "> scoreはdecision checkpoint時点の評価。checkpoint returnは診断用に残します。",
-    "> 戦略calibrationは、checkpoint時点の非価格hard gateがconfirmed_pass、reaction anchorがverified、かつFirst Eligible Signalが出たケースだけを使います。",
-    "> eligibility unknown / reaction-anchor unverifiedはno-tradeではありません。confirmed_pass + verified anchorだが価格signalが出なかったケースだけをtrue no-tradeとして分離します。",
+    "> 戦略calibrationは、checkpoint時点の非価格hard gateがconfirmed_pass、reaction anchorがreplay-ready、かつFirst Eligible Signalが出たケースだけを使います。",
+    "> eligibility unknown / reaction-anchor unverifiedはno-tradeではありません。confirmed_pass + replay-ready anchorだが価格signalが出なかったケースだけをtrue no-tradeとして分離します。",
     "",
     `- price outcome records: ${records.length}`,
     `- non-price confirmed pass: ${confirmedPass.length}`,
-    `- confirmed-pass reaction anchor verified: ${anchorVerifiedPass.length}`,
-    `- confirmed-pass reaction anchor unverified: ${anchorUnverifiedPass.length}`,
+    `- confirmed-pass reaction anchor replay-ready: ${anchorVerifiedPass.length}`,
+    `- confirmed-pass reaction anchor not replay-ready: ${anchorUnverifiedPass.length}`,
     `- non-price confirmed block: ${confirmedBlock.length}`,
     `- non-price eligibility unknown: ${eligibilityUnknown.length}`,
     `- first eligible signals: ${signaled.length}`,
-    `- true no-trade after confirmed pass + verified anchor: ${noTrade}`,
+    `- true no-trade after confirmed pass + replay-ready anchor: ${noTrade}`,
     `- failures/skips: ${failures.length}`,
     "",
     "## provider readiness",
@@ -141,9 +141,9 @@ function renderMarkdown(
       lines.push(`- signal return: 1w ${fp(row.signalReturn1w)} / 1m ${fp(row.signalReturn1m)} / 3m ${fp(row.signalReturn3m)} / 1y ${fp(row.signalReturn1y)}`);
       lines.push(`- signal benchmark relative: 1m ${fp(row.signalBenchmarkRelative1m)} / 3m ${fp(row.signalBenchmarkRelative3m)} / 1y ${fp(row.signalBenchmarkRelative1y)}`);
     } else if (row.strategyEligibilityAtCheckpoint === "confirmed_pass" && row.reactionAnchorStatus !== "verified") {
-      lines.push("- first eligible signal: not evaluated (reaction anchor unverified)");
+      lines.push("- first eligible signal: not evaluated (reaction anchor not replay-ready)");
     } else if (row.strategyEligibilityAtCheckpoint === "confirmed_pass") {
-      lines.push("- first eligible signal: none (true no-trade: non-price gates passed, reaction anchor verified, price gates never completed)");
+      lines.push("- first eligible signal: none (true no-trade: non-price gates passed, reaction anchor replay-ready, price gates never completed)");
     } else {
       lines.push(`- first eligible signal: not evaluated (${row.strategyEligibilityAtCheckpoint})`);
     }
@@ -151,11 +151,11 @@ function renderMarkdown(
   }
 
   lines.push("## 解釈ルール", "");
-  lines.push("- Local Opportunityの閾値・重み検証はnon-price confirmed_pass + verified reaction anchor + First Eligible Signalのケースだけで行う。");
+  lines.push("- Local Opportunityの閾値・重み検証はnon-price confirmed_pass + replay-ready reaction anchor + First Eligible Signalのケースだけで行う。");
   lines.push("- eligibility unknownはno-tradeとして扱わず、調査不足としてresearch queueへ戻す。");
-  lines.push("- reaction-anchor unverifiedはno-tradeとして扱わず、announcement timing/reaction start研究へ戻す。");
+  lines.push("- reaction-anchor not replay-readyはno-tradeとして扱わず、announcement timing/reaction start/evidence研究へ戻す。");
   lines.push("- confirmed_blockは当時のhard gateで対象外。後日の株価を戦略成績へ混ぜない。");
-  lines.push("- confirmed_pass + verified anchorだがsignalなしだけがtrue no-trade。");
+  lines.push("- confirmed_pass + replay-ready anchorだがsignalなしだけがtrue no-trade。");
   lines.push("- `score_ge_12` が `score_lt_12` を市場ごとにsignal後3m benchmark-relativeで継続的に上回るかを見る。");
   lines.push("- 平均だけでなく中央値・プラス率・現地benchmark相対を併用する。");
   lines.push("- JPとUSは市場構造が違うため、全市場混合値だけで閾値を変えない。");
@@ -262,7 +262,7 @@ async function main(): Promise<void> {
   const anchorUnverifiedPass = confirmedPass.filter(row => row.reactionAnchorStatus !== "verified");
   const signalCount = anchorVerifiedPass.filter(row => Boolean(row.firstEligibleSignalDate)).length;
   const noTradeCount = anchorVerifiedPass.length - signalCount;
-  console.log(`records=${records.length} eligibilityPass=${confirmedPass.length} eligibilityBlock=${confirmedBlock.length} eligibilityUnknown=${eligibilityUnknown.length} anchorVerifiedPass=${anchorVerifiedPass.length} anchorUnverifiedPass=${anchorUnverifiedPass.length} signals=${signalCount} trueNoTrade=${noTradeCount} failures/skips=${failures.length}`);
+  console.log(`records=${records.length} eligibilityPass=${confirmedPass.length} eligibilityBlock=${confirmedBlock.length} eligibilityUnknown=${eligibilityUnknown.length} anchorReplayReadyPass=${anchorVerifiedPass.length} anchorNotReplayReadyPass=${anchorUnverifiedPass.length} signals=${signalCount} trueNoTrade=${noTradeCount} failures/skips=${failures.length}`);
   for (const market of Object.keys(calibrationByMarket) as ShockMarket[]) {
     const marketRows = calibrationByMarket[market] ?? [];
     const ge12 = marketRows.find(row => row.bucket === "score_ge_12");
@@ -285,7 +285,7 @@ async function main(): Promise<void> {
   const payload = {
     generatedAt: date,
     providers: providerStatus,
-    methodology: "checkpoint outcomes retained for diagnosis; strategy calibration requires fail-closed structured non-price eligibility + verified reaction anchor + first eligible signal; deterministic checkpoint blockers are auto-derived; unknown eligibility and unverified anchors are separate from no-trade; reaction-start anchored",
+    methodology: "checkpoint outcomes retained for diagnosis; strategy calibration requires fail-closed structured non-price eligibility + replay-ready reaction anchor + first eligible signal; deterministic checkpoint blockers are auto-derived; unknown eligibility and non-replay-ready anchors are separate from no-trade; reaction-start anchored",
     records,
     calibration,
     calibrationByMarket,
