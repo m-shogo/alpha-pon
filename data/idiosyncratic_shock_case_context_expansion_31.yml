@@ -1,0 +1,27 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog batch 5 context。Nissan 2018 Ghosn/Kelly misconductを虚偽開示・複数関係者・継続調査として固定。"
+cases:
+  nissan-2018-ghosn-misconduct:
+    incidentCountry: JP
+    sector: automotive
+    stakeholder: investor
+    incidentScope: multi_unit
+    confounderStatus: clear
+    recurrenceStatus: related_multiple
+    remediationStatus: partial
+    incidentClusterStatus: related_multiple
+    strategyInvestigationStatusAtCheckpoint: open
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    calibrationEligibilityAtCheckpoint: confirmed_block
+    calibrationEligibilityNotes: "productionはscore=5かつaccountingIntegrity=0でBLOCK。threshold研究でも2018-11-22時点で会社は更なる調査とgovernance強化を継続し、検察当局調査へ協力中。複数年の有価証券報告書上の報酬過少開示を含むためscore gateを外してもhard BLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "Regarding Serious Misconduct by Our Chairman and Representative Director"
+        url: "https://www.nissan-global.com/EN/IR/TSE/ASSETS/2018/PDF/20181119TDnet_E.pdf"
+        sourceType: company
+        publishedAt: "2018-11-19"
+      - title: "Announcement regarding Changes of Representative Directors"
+        url: "https://www.nissan-global.com/EN/DOCUMENT/PDF/FINANCIAL/TSE/2018/20181122_E.pdf"
+        sourceType: company
+        publishedAt: "2018-11-22"
+    notes: "後日の起訴・有報訂正・governance committee結果はcheckpoint判定へ逆流させない。"
