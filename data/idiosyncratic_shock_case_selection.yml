@@ -1,0 +1,45 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Case selection provenance registry。既存historical caseは、明示的にprospective登録されていない限りvalidation holdoutとして扱わない。"
+cases:
+  ootoya-2019-employee-video:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: unknown
+    selectionReason: "score 11のthreshold境界例として、production thresholdを外したshadow eligibility研究へ採用。"
+    notes: "research controlには使えるがprospective validation holdoutではない。"
+  papa-johns-2018-schnatter:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: unknown
+    selectionReason: "score 11のfounder-brand境界例として、低scoreでもhard gateを維持できるか検証するため採用。"
+  cbs-2018-moonves:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: unknown
+    selectionReason: "score 11の経営者misconduct境界例として、open investigationをthreshold研究でもBLOCKできるか確認するため採用。"
+  super-retail-2025-heraghty:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: unknown
+    selectionReason: "score 10の海外retail境界例として、影響範囲未確定時にscoreだけでshadow PASSへ入れないことを確認するため採用。"
+  wynn-2018-founder:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "score 9のUS regulated-industry deep controlとして、創業者切離しとgaming-license riskの衝突を検証するため再監査。"
+  kadokawa-2022-bribery:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "score 9のJP founder/crime deep controlとして、個人事件に見える刑事事件の組織波及を検証するため再監査。"
+  sukiya-2025-rat:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "score 8のJP food-safety deep controlとして、再発と全店休業を単一店舗事件から切り離せるか検証するため再監査。"
+  activision-2021-culture:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "score 8のUS organizational-misconduct deep controlとして、強いIPがopen regulatory/culture issueを上書きしないか検証するため再監査。"
