@@ -10,8 +10,14 @@ const batch2 = [
   "tesla-2018-musk-sec",
   "wells-fargo-2016-unauthorized-accounts",
 ] as const;
+const batch3 = [
+  "snow-peak-2022-yamai",
+  "subaru-2017-final-inspection",
+  "lululemon-2018-potdevin",
+  "barnes-noble-2018-parneros",
+] as const;
 
-for (const id of batch2) {
+for (const id of [...batch2, ...batch3]) {
   const record = registry.get(id);
   assert(record, `${id}: selection expansion must be auto-loaded`);
   assert.equal(record.selectionMode, "retrospective_research");
@@ -21,5 +27,5 @@ for (const id of batch2) {
   assert.equal(resolved.validationHoldoutEligible, false, `${id}: retrospective backlog research must never become prospective holdout`);
 }
 
-assert(registry.size >= batch2.length + 10, `base + expansion provenance should be merged: ${registry.size}`);
-console.log(`idiosyncratic-shock case selection expansion tests: batch2=${batch2.length}, registry=${registry.size}`);
+assert(registry.size >= batch2.length + batch3.length + 10, `base + expansion provenance should be merged: ${registry.size}`);
+console.log(`idiosyncratic-shock case selection expansion tests: batch2=${batch2.length}, batch3=${batch3.length}, registry=${registry.size}`);
