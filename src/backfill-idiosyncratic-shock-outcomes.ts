@@ -72,9 +72,9 @@ function marketCalibration(records: ShockHistoricalOutcomeRecord[]): Calibration
 
 function renderCalibration(lines: string[], title: string, records: ShockHistoricalOutcomeRecord[]): void {
   lines.push(`## ${title}`, "");
-  lines.push("| bucket | shadow signals | n1m | avg1m | median1m | +rate1m | benchmark相対1m | n3m | avg3m | +rate3m | benchmark相対3m | n1y | avg1y | +rate1y | benchmark相対1y |", "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
+  lines.push("| bucket | shadow eligible | shadow signals | signal rate | n1m | avg1m | median1m | +rate1m | benchmark相対1m | n3m | avg3m | +rate3m | benchmark相対3m | n1y | avg1y | +rate1y | benchmark相対1y |", "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
   for (const row of calibrateShockThresholds(records)) {
-    lines.push(`| ${row.bucket} | ${row.cases} | ${row.n1m} | ${f(row.avgReturn1m)} | ${f(row.medianReturn1m)} | ${f(row.positiveRate1m)}% | ${f(row.avgBenchmarkRelative1m)} | ${row.n3m} | ${f(row.avgReturn3m)} | ${f(row.positiveRate3m)}% | ${f(row.avgBenchmarkRelative3m)} | ${row.n1y} | ${f(row.avgReturn1y)} | ${f(row.positiveRate1y)}% | ${f(row.avgBenchmarkRelative1y)} |`);
+    lines.push(`| ${row.bucket} | ${row.eligibleCases} | ${row.cases} | ${fp(row.signalRate)} | ${row.n1m} | ${f(row.avgReturn1m)} | ${f(row.medianReturn1m)} | ${fp(row.positiveRate1m)} | ${f(row.avgBenchmarkRelative1m)} | ${row.n3m} | ${f(row.avgReturn3m)} | ${fp(row.positiveRate3m)} | ${f(row.avgBenchmarkRelative3m)} | ${row.n1y} | ${f(row.avgReturn1y)} | ${fp(row.positiveRate1y)} | ${f(row.avgBenchmarkRelative1y)} |`);
   }
   lines.push("");
 }
@@ -99,6 +99,8 @@ function renderMarkdown(
   const calibrationNoTrade = calibrationAnchored.length - calibrationSignals.length;
   const belowThresholdControls = calibrationAnchored.filter(row => row.score < 12);
   const belowThresholdSignals = belowThresholdControls.filter(row => Boolean(row.calibrationFirstEligibleSignalDate));
+  const calibrationSignalRate = calibrationAnchored.length === 0 ? null : (calibrationSignals.length / calibrationAnchored.length) * 100;
+  const belowThresholdSignalRate = belowThresholdControls.length === 0 ? null : (belowThresholdSignals.length / belowThresholdControls.length) * 100;
 
   const lines = [
     "# 企業固有ショック 定量outcome / 閾値検証",
@@ -106,14 +108,14 @@ function renderMarkdown(
     `生成日: ${date}`,
     "",
     "> productionは現行score>=12を含む本番parity。threshold calibrationはscore gateだけを外したshadow replay。",
-    "> 12点の妥当性はshadow signalで検証し、低score controlを本番通知対象へ混ぜない。",
+    "> return統計の分母はsignal発生ケースだけ。no-signalを0%リターンへ変換せず、eligible全体に対するsignal率を別表示します。",
     "",
     `- price outcome records: ${records.length}`,
     `- production eligibility pass/block/unknown: ${productionPass.length}/${productionBlock.length}/${productionUnknown.length}`,
     `- threshold calibration eligibility pass/block/unknown: ${calibrationPass.length}/${calibrationBlock.length}/${calibrationUnknown.length}`,
     `- production anchored/signals/true-no-trade: ${productionAnchored.length}/${productionSignals.length}/${productionNoTrade}`,
-    `- calibration anchored/signals/no-signal: ${calibrationAnchored.length}/${calibrationSignals.length}/${calibrationNoTrade}`,
-    `- below-threshold shadow controls/signals: ${belowThresholdControls.length}/${belowThresholdSignals.length}`,
+    `- calibration anchored/signals/no-signal/signal-rate: ${calibrationAnchored.length}/${calibrationSignals.length}/${calibrationNoTrade}/${fp(calibrationSignalRate)}`,
+    `- below-threshold shadow eligible/signals/signal-rate: ${belowThresholdControls.length}/${belowThresholdSignals.length}/${fp(belowThresholdSignalRate)}`,
     `- failures/skips: ${failures.length}`,
     "",
     "## provider readiness",
@@ -155,7 +157,7 @@ function renderMarkdown(
       lines.push(`- calibration shadow signal: ${row.calibrationFirstEligibleSignalDate} @ ${row.calibrationFirstEligibleSignalPrice ?? "-"} / shock ${fp(row.calibrationSignalShockDrawdownPct)} / relative ${fp(row.calibrationSignalRelativeShockDrawdownPct)}`);
       lines.push(`- calibration shadow return: 1m ${fp(row.calibrationSignalReturn1m)} / 3m ${fp(row.calibrationSignalReturn3m)} / benchmark relative 3m ${fp(row.calibrationSignalBenchmarkRelative3m)}`);
     } else if (row.thresholdCalibrationEligibilityAtCheckpoint === "confirmed_pass" && row.reactionAnchorStatus === "verified") {
-      lines.push("- calibration shadow signal: none (price gates never completed)");
+      lines.push("- calibration shadow signal: none (price gates never completed; counted in signal-rate denominator only)");
     } else {
       lines.push("- calibration shadow signal: not evaluated");
     }
@@ -166,8 +168,9 @@ function renderMarkdown(
   lines.push("- production signalは現行threshold=12を含む。本番parity確認に使う。");
   lines.push("- threshold/weights学習はcalibration shadow signalを使う。score thresholdだけを外し、その他hard gateは本番と共有する。");
   lines.push("- score<12のproduction BLOCKを自動でshadow PASSへ変換しない。一次情報でcalibrationEligibilityAtCheckpointを明示確認したケースだけ比較群へ入れる。");
-  lines.push("- eligibility unknown / reaction-anchor not replay-readyをno-trade扱いしない。");
-  lines.push("- `score_ge_12` と `score_lt_12` をsignal後3m benchmark-relative、中央値、プラス率、signal発生率で比較する。");
+  lines.push("- eligibility unknown / reaction-anchor not replay-readyをsignal率の分母にも入れない。");
+  lines.push("- shadow PASS + replay-readyだがsignalなしはreturn=0にせず、signal率の分母へだけ残す。");
+  lines.push("- `score_ge_12` と `score_lt_12` をsignal率、signal後3m benchmark-relative、中央値、プラス率で比較する。");
   lines.push("- JPとUSは市場構造が違うため、全市場混合値だけで閾値を変更しない。");
   lines.push("- 標本が小さい間はthreshold=12を変更しない。");
   if (failures.length > 0) lines.push("", "## failures / skips", "", ...failures.map(value => `- ${value}`));
@@ -269,14 +272,16 @@ async function main(): Promise<void> {
   const productionPass = records.filter(row => row.strategyEligibilityAtCheckpoint === "confirmed_pass");
   const productionSignals = productionPass.filter(row => row.reactionAnchorStatus === "verified" && Boolean(row.firstEligibleSignalDate));
   const calibrationPass = records.filter(row => row.thresholdCalibrationEligibilityAtCheckpoint === "confirmed_pass");
-  const calibrationSignals = calibrationPass.filter(row => row.reactionAnchorStatus === "verified" && Boolean(row.calibrationFirstEligibleSignalDate));
-  const belowThresholdSignals = calibrationSignals.filter(row => row.score < 12);
-  console.log(`records=${records.length} productionPass=${productionPass.length} productionSignals=${productionSignals.length} calibrationPass=${calibrationPass.length} calibrationSignals=${calibrationSignals.length} belowThresholdSignals=${belowThresholdSignals.length} failures/skips=${failures.length}`);
+  const calibrationAnchored = calibrationPass.filter(row => row.reactionAnchorStatus === "verified");
+  const calibrationSignals = calibrationAnchored.filter(row => Boolean(row.calibrationFirstEligibleSignalDate));
+  const belowThresholdAnchored = calibrationAnchored.filter(row => row.score < 12);
+  const belowThresholdSignals = belowThresholdAnchored.filter(row => Boolean(row.calibrationFirstEligibleSignalDate));
+  console.log(`records=${records.length} productionPass=${productionPass.length} productionSignals=${productionSignals.length} calibrationPass=${calibrationPass.length} calibrationEligible=${calibrationAnchored.length} calibrationSignals=${calibrationSignals.length} calibrationSignalRate=${calibrationAnchored.length ? ((calibrationSignals.length / calibrationAnchored.length) * 100).toFixed(1) : "-"}% belowThreshold=${belowThresholdAnchored.length}/${belowThresholdSignals.length} failures/skips=${failures.length}`);
   for (const market of Object.keys(calibrationByMarket) as ShockMarket[]) {
     const marketRows = calibrationByMarket[market] ?? [];
     const ge12 = marketRows.find(row => row.bucket === "score_ge_12");
     const lt12 = marketRows.find(row => row.bucket === "score_lt_12");
-    console.log(`  ${market}: shadow>=12 n=${ge12?.cases ?? 0} rel3m=${ge12?.avgBenchmarkRelative3m ?? "-"} | shadow<12 n=${lt12?.cases ?? 0} rel3m=${lt12?.avgBenchmarkRelative3m ?? "-"}`);
+    console.log(`  ${market}: shadow>=12 eligible/signals/rate=${ge12?.eligibleCases ?? 0}/${ge12?.cases ?? 0}/${ge12?.signalRate ?? "-"}% rel3m=${ge12?.avgBenchmarkRelative3m ?? "-"} | shadow<12 eligible/signals/rate=${lt12?.eligibleCases ?? 0}/${lt12?.cases ?? 0}/${lt12?.signalRate ?? "-"}% rel3m=${lt12?.avgBenchmarkRelative3m ?? "-"}`);
   }
   if (failures.length) failures.forEach(value => console.log(`  [warn] ${value}`));
 
@@ -295,7 +300,7 @@ async function main(): Promise<void> {
   const payload = {
     generatedAt: date,
     providers: providerStatus,
-    methodology: "production signal keeps threshold=12; threshold calibration shadow removes only the score gate while preserving all other fail-closed hard gates; both require replay-ready reaction anchors; unknown eligibility is never converted to no-trade",
+    methodology: "production signal keeps threshold=12; threshold calibration shadow removes only the score gate while preserving all other fail-closed hard gates; both require replay-ready reaction anchors; no-signal remains in signal-rate denominator but is never converted to a zero return",
     records,
     calibration,
     calibrationByMarket,
