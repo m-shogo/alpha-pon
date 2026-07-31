@@ -46,6 +46,8 @@ jobs:
         run: node --import tsx/esm tests/idiosyncratic-shock-threshold-research-plan.test.ts
       - name: Threshold review queue contract
         run: node --import tsx/esm tests/idiosyncratic-shock-threshold-review-queue.test.ts
+      - name: Threshold candidate backlog contract
+        run: node --import tsx/esm tests/idiosyncratic-shock-threshold-candidate-backlog.test.ts
       - name: Low-score researched controls
         run: node --import tsx/esm tests/idiosyncratic-shock-low-score-controls.test.ts
       - name: Calibration temporal/prospective separation
@@ -77,3 +79,4 @@ jobs:
           node --import tsx/esm src/idiosyncratic-shock-threshold-calibration-audit.ts
           node --import tsx/esm src/idiosyncratic-shock-threshold-diversity-audit.ts
           node --import tsx/esm src/idiosyncratic-shock-threshold-research-plan-report.ts
+          node --import tsx/esm src/idiosyncratic-shock-threshold-candidate-backlog-report.ts
