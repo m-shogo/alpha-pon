@@ -1,0 +1,59 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Threshold calibration research batch 2。score<12でもscore以外のhard gateでBLOCKとなる境界例を一次情報で明示し、unknownと危険を分離する。"
+cases:
+  papa-johns-2018-schnatter:
+    incidentCountry: US
+    sector: restaurant_food_service
+    stakeholder: public
+    incidentScope: executive
+    confounderStatus: possible
+    strategyInvestigationStatusAtCheckpoint: open
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    calibrationEligibilityAtCheckpoint: confirmed_block
+    calibrationEligibilityNotes: "productionはscore=11でBLOCK。threshold研究でもhistorical checkpoint=2018-07-13時点では影響範囲調査が完了していない。後の会社開示ではSpecial Committee形成が7/15、外部audit/investigationがその後進行したことを確認できるため、score thresholdを外してもopen investigation hard gateでBLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "Papa John's 2018 Form 10-K/A"
+        url: "https://ir.papajohns.com/financials/sec-filings/content/0001558370-19-004247/pzza-20181230x10ka.htm"
+        sourceType: company
+        publishedAt: "2019-05-07"
+    notes: "後日の事実をcheckpoint scoreへ逆流させず、checkpoint時点で調査未完だったことの再現証拠としてのみ使用。founder-brand依存も大きい。"
+
+  cbs-2018-moonves:
+    incidentCountry: US
+    sector: media_entertainment
+    stakeholder: employee
+    incidentScope: multi_unit
+    confounderStatus: possible
+    recurrenceStatus: related_multiple
+    strategyInvestigationStatusAtCheckpoint: open
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    calibrationEligibilityAtCheckpoint: confirmed_block
+    calibrationEligibilityNotes: "productionはscore=11でBLOCK。threshold研究でもcheckpoint=2018-09-10時点は、8/1に開始された独立law-firm調査が継続中。会社8-Kは最終報告後にcause判定すると明記し、調査完了は12/17だったためopen investigationでBLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "CBS Form 8-K - Moonves separation agreement"
+        url: "https://www.sec.gov/Archives/edgar/data/813828/000119312518269601/d622048d8k.htm"
+        sourceType: regulator
+        publishedAt: "2018-09-10"
+      - title: "Statement from CBS Board of Directors - investigation completed"
+        url: "https://www.sec.gov/Archives/edgar/data/813828/000119312518351396/d676873dex99.htm"
+        sourceType: regulator
+        publishedAt: "2018-12-17"
+    notes: "複数allegationsとCBS News/文化を含む調査で、CEO個人だけに閉じた事象ではなかった。12/17情報はcheckpoint未完了を確認するためにのみ使用。"
+
+  super-retail-2025-heraghty:
+    incidentCountry: AU
+    sector: retail
+    stakeholder: employee
+    incidentScope: executive
+    confounderStatus: possible
+    strategyInvestigationStatusAtCheckpoint: open
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    calibrationEligibilityAtCheckpoint: confirmed_block
+    calibrationEligibilityNotes: "productionはscore=10でBLOCK。2025-09-16 ASX一次情報でCEOを即時解任した一方、Board自身が新情報のcompany/related mattersへのimplicationsを今後carefully considerすると明記。checkpoint同日時点では影響範囲未確定のためthresholdを外してもopen investigation扱いでBLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "Termination of Group Managing Director and Chief Executive Officer"
+        url: "https://announcements.asx.com.au/asxpdf/20250916/pdf/06p835741wm3h0.pdf"
+        sourceType: exchange
+        publishedAt: "2025-09-16"
+    notes: "後任interim CEOは即時決定しているが、関係・開示問題のimplicationsが未確定だったため個人切除完了とは扱わない。"
