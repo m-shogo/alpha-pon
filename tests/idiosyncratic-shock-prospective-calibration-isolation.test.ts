@@ -65,6 +65,7 @@ const record: ShockHistoricalOutcomeRecord = {
 
 const selection: ShockCaseSelectionRecord = {
   registeredAt: "2030-01-02",
+  decisionCheckpointAtRegistration: "2030-01-02",
   selectionMode: "prospective_pre_outcome",
   outcomeVisibilityAtSelection: "not_observed",
   selectionReason: "registered before the future three-month outcome was observed",
@@ -83,5 +84,13 @@ assert.equal(prospective.find(row => row.bucket === "score_lt_12")?.avgBenchmark
 
 const all = calibrateShockThresholds([record], { scope: "all", selections });
 assert.equal(all.find(row => row.bucket === "score_lt_12")?.eligibleCases, 1, "all scope is descriptive only and must be explicit");
+
+const lateSelection: ShockCaseSelectionRecord = {
+  ...selection,
+  registeredAt: "2030-01-03",
+  decisionCheckpointAtRegistration: "2030-01-03",
+};
+const lateResearch = calibrateShockThresholds([record], { selections: new Map([[record.caseId, lateSelection]]) });
+assert.equal(lateResearch.find(row => row.bucket === "score_lt_12")?.eligibleCases, 0, "late/frozen-mismatch selection must fail closed into research scope until case-selection audit rejects it");
 
 console.log("idiosyncratic-shock prospective calibration isolation tests: holdout excluded by default");
