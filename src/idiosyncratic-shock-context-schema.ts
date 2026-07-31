@@ -139,15 +139,17 @@ function validateCase(
   }
 
   for (const [key, allowed] of Object.entries(ENUMS)) {
-    if (!(key in value) || value[key] == null) continue;
-    if (typeof value[key] !== "string" || !allowed.has(value[key] as string)) {
+    const fieldValue = value[key];
+    if (fieldValue == null) continue;
+    if (typeof fieldValue !== "string" || !allowed.has(fieldValue)) {
       issues.push({ path: `${path}.${key}`, message: `expected one of ${[...allowed].join("|")} or null` });
     }
   }
 
   for (const key of NULLABLE_STRINGS) {
-    if (!(key in value) || value[key] == null) continue;
-    if (typeof value[key] !== "string") issues.push({ path: `${path}.${key}`, message: "expected string or null" });
+    const fieldValue = value[key];
+    if (fieldValue == null) continue;
+    if (typeof fieldValue !== "string") issues.push({ path: `${path}.${key}`, message: "expected string or null" });
   }
 
   if (typeof value.priceReactionStartDate === "string" && !validIsoDate(value.priceReactionStartDate)) {
@@ -155,29 +157,30 @@ function validateCase(
   }
 
   for (const key of NULLABLE_NUMBERS) {
-    if (!(key in value) || value[key] == null) continue;
-    if (typeof value[key] !== "number" || !Number.isFinite(value[key])) {
+    const fieldValue = value[key];
+    if (fieldValue == null) continue;
+    if (typeof fieldValue !== "number" || !Number.isFinite(fieldValue)) {
       issues.push({ path: `${path}.${key}`, message: "expected finite number or null" });
       continue;
     }
-    if ((key === "incidentRevenueExposurePct" || key === "estimatedDirectCostPctMarketCap") && (value[key] < 0 || value[key] > 100)) {
+    if ((key === "incidentRevenueExposurePct" || key === "estimatedDirectCostPctMarketCap") && (fieldValue < 0 || fieldValue > 100)) {
       issues.push({ path: `${path}.${key}`, message: "expected percentage in range 0..100" });
     }
   }
 
-  if ("strategyCriticalLicenseOrDelistingRiskAtCheckpoint" in value
-    && value.strategyCriticalLicenseOrDelistingRiskAtCheckpoint != null
-    && typeof value.strategyCriticalLicenseOrDelistingRiskAtCheckpoint !== "boolean") {
+  const criticalRisk = value.strategyCriticalLicenseOrDelistingRiskAtCheckpoint;
+  if (criticalRisk != null && typeof criticalRisk !== "boolean") {
     issues.push({ path: `${path}.strategyCriticalLicenseOrDelistingRiskAtCheckpoint`, message: "expected boolean or null" });
   }
 
   for (const key of ["reactionAnchorEvidenceSources", "strategyEligibilityEvidenceSources"] as const) {
-    if (!(key in value) || value[key] == null) continue;
-    if (!Array.isArray(value[key])) {
+    const sources = value[key];
+    if (sources == null) continue;
+    if (!Array.isArray(sources)) {
       issues.push({ path: `${path}.${key}`, message: "expected source array or null" });
       continue;
     }
-    value[key].forEach((source, index) => validateSource(source, `${path}.${key}[${index}]`, issues));
+    sources.forEach((source, index) => validateSource(source, `${path}.${key}[${index}]`, issues));
   }
 }
 
@@ -194,7 +197,8 @@ export function validateHistoricalShockContextDocument(
     if (!allowedTopLevel.has(key)) issues.push({ path: `${filePath}.${key}`, message: "unknown top-level field" });
   }
 
-  if (!Number.isInteger(raw.version) || (raw.version as number) < 1) {
+  const version = raw.version;
+  if (typeof version !== "number" || !Number.isInteger(version) || version < 1) {
     issues.push({ path: `${filePath}.version`, message: "positive integer required" });
   }
   if (typeof raw.generatedAt !== "string" || !validIsoDate(raw.generatedAt)) {
