@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 4。Guess 2018 founder misconductを独立調査終了checkpointで採点し、below-thresholdへ寄せず12点として受け入れる反証例。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: guess-2018-marciano
+    company: "Guess?"
+    ticker: GES
+    country: US
+    eventDate: "2018-02-09"
+    checkpoint: "2018-06-12"
+    category: founder_misconduct
+    actorType: founder
+    scoreVector: [2,2,1,1,2,1,1,1,1,0]
+    priceState: unknown
+    summary: "独立取締役のSpecial Committeeと独立法律事務所がPaul Marcianoに関する調査を完了。複数の主張を調べ、一定のpoor judgmentを認定。MarcianoはExecutive Chairmanを辞任したが取締役に残り、Chief Creative Officer業務は2019年1月まで段階的にCEOへ移管することになった。"
+    source: "https://www.sec.gov/Archives/edgar/data/912463/000091246318000039/form8kjune122018.htm"
+    sourceType: regulator
+    outcomePattern: unknown
+    lesson: "未採点backlog候補が必ず8-11になるとは限らない。独立調査終了・会計無関係でも、創業者/key-person性と段階移管を減点した結果12点なら、そのままproduction threshold側へ分類する。"
+    confidence: high
