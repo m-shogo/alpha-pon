@@ -32,6 +32,7 @@ const invalid: ShockCalibrationConfig = {
     validationThrough: "2025-12-31",
     trainCases: 30,
     validationCases: 8,
+    validationDesign: "prospective_pre_outcome",
     benchmarkMetric: SHADOW_METRIC,
     evidenceNote: "invalid overlap fixture",
   }],
@@ -54,8 +55,9 @@ const registry: ShockCalibrationConfig = {
     validationThrough: "2025-12-31",
     trainCases: 22,
     validationCases: 8,
+    validationDesign: "prospective_pre_outcome",
     benchmarkMetric: SHADOW_METRIC,
-    evidenceNote: "fixture validated threshold",
+    evidenceNote: "fixture prospectively validated threshold",
   }],
 };
 validateShockCalibrationConfig(registry);
@@ -76,16 +78,16 @@ assert.equal(findValidatedLocalThreshold(registry, {
   category: "executive_relationship",
 }), null, "country thresholdをcountry-categoryへ誤適用しない");
 
-function observations(count: number, relationshipCount = 15): ShockCalibrationObservation[] {
+function observations(count: number, relationshipCount = 15, prospectiveCount = 0): ShockCalibrationObservation[] {
   const group: ShockJurisdictionGroup = inferShockJurisdictionGroup({ country: "US", market: "US" });
-  return Array.from({ length: count }, (_, index) => {
+  const research = Array.from({ length: count }, (_, index) => {
     const date = `${2018 + Math.floor(index / 6)}-${String((index % 12) + 1).padStart(2, "0")}-15`;
     return {
       caseId: `us-${index}`,
       company: `US ${index}`,
       checkpoint: date,
       signalDate: date,
-      market: "US",
+      market: "US" as const,
       country: "US",
       jurisdictionGroup: group,
       category: index < relationshipCount ? "executive_relationship" : "personal_behavior",
@@ -93,28 +95,62 @@ function observations(count: number, relationshipCount = 15): ShockCalibrationOb
       benchmarkRelative1m: 1,
       benchmarkRelative3m: 2,
       benchmarkRelative1y: 4,
+      selectionMode: "retrospective_research" as const,
+      validationHoldoutEligible: false,
     };
   });
+  const prospective = Array.from({ length: prospectiveCount }, (_, index) => {
+    const date = `2030-${String(index + 1).padStart(2, "0")}-15`;
+    return {
+      caseId: `us-prospective-${index}`,
+      company: `US Prospective ${index}`,
+      checkpoint: date,
+      signalDate: date,
+      market: "US" as const,
+      country: "US",
+      jurisdictionGroup: group,
+      category: "executive_relationship",
+      score: 10 + (index % 4),
+      benchmarkRelative1m: 1,
+      benchmarkRelative3m: 2,
+      benchmarkRelative1y: 4,
+      selectionMode: "prospective_pre_outcome" as const,
+      validationHoldoutEligible: true,
+    };
+  });
+  return [...research, ...prospective];
 }
 
-const resolved = resolveShockCalibration(registry, {
+const noProspective = resolveShockCalibration(registry, {
   country: "US",
   market: "US",
   category: "executive_relationship",
   observations: observations(30),
 });
+assert.equal(noProspective.readiness.modelLevel, "country");
+assert.equal(noProspective.readiness.status, "ready_for_validation", "registry entry cannot validate retrospective data by itself");
+assert.equal(noProspective.readiness.effectiveThreshold, 12);
+assert.equal(noProspective.registryEntry, null);
+
+const resolved = resolveShockCalibration(registry, {
+  country: "US",
+  market: "US",
+  category: "executive_relationship",
+  observations: observations(30, 15, 8),
+});
 assert.equal(resolved.readiness.modelLevel, "country", "カテゴリが薄ければ検証済みcountry registryを使う");
 assert.equal(resolved.readiness.status, "validated");
 assert.equal(resolved.readiness.effectiveThreshold, 14);
+assert.equal(resolved.readiness.prospectiveHoldoutCases, 8);
 assert.equal(resolved.registryEntry?.id, "us-country-v1");
 
 const childReadyButUnapproved = resolveShockCalibration(registry, {
   country: "US",
   market: "US",
   category: "executive_relationship",
-  observations: observations(40, 32),
+  observations: observations(40, 32, 8),
 });
-assert.equal(childReadyButUnapproved.readiness.modelLevel, "country", "子カテゴリがholdout-readyでも未承認なら検証済み親を継続利用");
+assert.equal(childReadyButUnapproved.readiness.modelLevel, "country", "子カテゴリがretrospective temporal-readyでも未登録ならprospectively validated親を継続利用");
 assert.equal(childReadyButUnapproved.readiness.status, "validated");
 assert.equal(childReadyButUnapproved.readiness.effectiveThreshold, 14);
 assert.equal(childReadyButUnapproved.registryEntry?.id, "us-country-v1");
@@ -124,11 +160,11 @@ const sparse = resolveShockCalibration(registry, {
   country: "US",
   market: "US",
   category: "executive_relationship",
-  observations: observations(10),
+  observations: observations(10, 10, 8),
 });
 assert.equal(sparse.readiness.modelLevel, "global");
 assert.equal(sparse.readiness.effectiveThreshold, 12);
-assert.equal(sparse.registryEntry, null, "古いlocal registryがあっても現在データが不足なら使わない");
+assert.equal(sparse.registryEntry, null, "prospective casesがあってもretrospective fitting sample不足ならlocal registryを使わない");
 
 const equalScores = Object.fromEntries(SHOCK_SCORE_KEYS.map(key => [key, 1])) as ShockDimensionScores;
 assert.equal(computeLocalOpportunityScore(equalScores, null), 10, "registryなしはGlobal Structural Scoreと一致");
@@ -157,10 +193,21 @@ assert.throws(
   "production signal metricをvalidated registryへ戻さない",
 );
 
+const wrongDesign = {
+  ...registry.validatedLocalThresholds[0],
+  id: "bad-design",
+  validationDesign: "retrospective_chronological",
+} as unknown as ShockCalibrationConfig["validatedLocalThresholds"][number];
+assert.throws(
+  () => validateShockCalibrationConfig({ version: 1, globalDefaultThreshold: 12, validatedLocalThresholds: [wrongDesign] }),
+  /validationDesign must be prospective_pre_outcome/,
+  "retrospective chronological splitをprospective validation registryとして登録しない",
+);
+
 const missingWeights = { ...weightedEntry, id: "bad-weights", dimensionWeights: undefined };
 assert.throws(
   () => validateShockCalibrationConfig({ version: 1, globalDefaultThreshold: 12, validatedLocalThresholds: [missingWeights] }),
   /requires dimensionWeights/,
 );
 
-console.log("idiosyncratic-shock calibration config tests: shadow metric OK");
+console.log("idiosyncratic-shock calibration config tests: prospective validation + shadow metric OK");
