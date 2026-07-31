@@ -1,7 +1,7 @@
 version: 1
 description: >-
   企業固有ショックのLocal Opportunity閾値台帳。Global Structural Scoreは変更しない。
-  local閾値・weightsはFirst Eligible Signal起点のsignalBenchmarkRelative3mを使い、
-  chronological train/validationで再現を確認したものだけ登録する。
+  local閾値・weightsはscore thresholdだけを外したshadow First Eligible Signal起点の
+  calibrationSignalBenchmarkRelative3mを使い、chronological train/validationで再現を確認したものだけ登録する。
 globalDefaultThreshold: 12
 validatedLocalThresholds: []
