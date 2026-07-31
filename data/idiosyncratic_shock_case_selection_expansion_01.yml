@@ -19,7 +19,7 @@ cases:
     selectionMode: retrospective_research
     outcomeVisibilityAtSelection: known_or_available
     selectionReason: "outcome-blind threshold candidate backlog batch 2でJP privacy/regulatory候補としてscore記入前にfreezeされ、2019-09-06までのPPC・東京労働局・会社一次情報でPIT採点した。"
-    notes: "score=11。主要行政判断が出揃い対象サービス廃止・業績影響軽微を確認してshadow PASS。ただしreaction timing未確定のためreplay-ready controlにはまだ数えない。将来returnは使用しない。"
+    notes: "score=11。PIT再監査でPPCの2019-08-26公式勧告資料に『引き続き調査を実施』と明記されていたためinvestigationStatus=openでshadow BLOCKへ訂正。12/4追加勧告や将来returnを遡及根拠には使用しない。"
   equifax-2017-cybersecurity-breach:
     registeredAt: "2026-07-31"
     selectionMode: retrospective_research
