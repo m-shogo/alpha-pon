@@ -48,7 +48,7 @@ const ID_RE = /^[a-z0-9][a-z0-9-]*$/;
 const ALLOWED_STATES = new Set<ThresholdCandidateResearchState>(["unscored", "researching", "promoted", "rejected"]);
 const PRIMARY_SOURCE_TYPES = new Set<ShockSource["sourceType"]>(["company", "regulator", "exchange"]);
 const REQUIRED_FORBIDDEN_INPUTS = ["future_return", "recovery_pattern", "realized_outcome", "post_event_price_path"];
-const FORBIDDEN_CANDIDATE_KEY = /(?:^|_)(?:score|scorevector|price_state|pricestate|return|returns|recovery|outcome|realized|future_price|post_event_price)(?:$|_)/i;
+const FORBIDDEN_CANDIDATE_KEY = /score(?:vector)?|price[_-]?state|return|recovery|outcome|realized|future[_-]?price|post[_-]?event[_-]?price/i;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
