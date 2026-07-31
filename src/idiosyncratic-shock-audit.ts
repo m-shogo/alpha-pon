@@ -58,6 +58,17 @@ function main(): void {
     score: number;
     missingEvidence: string[];
   }> = [];
+  const reactionAnchorReviewQueue: Array<{
+    id: string;
+    company: string;
+    country: string;
+    ticker: string | null;
+    eventDate: string;
+    checkpoint: string;
+    score: number;
+    announcementTiming: string;
+    priceReactionStartDate: string | null;
+  }> = [];
   const sourceHosts = new Map<string, number>();
 
   if (cases.length < MIN_HISTORICAL_CASES) issues.push(`historical cases ${cases.length} < minimum ${MIN_HISTORICAL_CASES}`);
@@ -117,6 +128,22 @@ function main(): void {
         missingEvidence: resolution.missingEvidence,
       });
     }
+    if (
+      resolution.status === "confirmed_pass"
+      && (!context?.announcementTiming || context.announcementTiming === "unknown")
+    ) {
+      reactionAnchorReviewQueue.push({
+        id: item.id,
+        company: item.company,
+        country: item.country,
+        ticker: item.ticker ?? null,
+        eventDate: item.eventDate,
+        checkpoint: item.decisionCheckpoint,
+        score: item.score,
+        announcementTiming: context?.announcementTiming ?? "unknown",
+        priceReactionStartDate: context?.priceReactionStartDate ?? null,
+      });
+    }
 
     for (const source of context?.strategyEligibilityEvidenceSources ?? []) {
       const name = host(source.url);
@@ -137,6 +164,7 @@ function main(): void {
   }
 
   priorityHighScoreEligibilityUnknown.sort((a, b) => b.score - a.score || b.checkpoint.localeCompare(a.checkpoint) || a.id.localeCompare(b.id));
+  reactionAnchorReviewQueue.sort((a, b) => b.score - a.score || b.checkpoint.localeCompare(a.checkpoint) || a.id.localeCompare(b.id));
 
   for (const contextId of historicalContext.keys()) {
     if (!ids.has(contextId)) issues.push(`historical context orphan id: ${contextId}`);
@@ -181,6 +209,13 @@ function main(): void {
   if (priorityHighScoreEligibilityUnknown.length > 0) {
     warnings.push(`P0 JP/US score>=12 eligibility unknown=${priorityHighScoreEligibilityUnknown.length}; resolve before expanding lower-priority research`);
   }
+  const reactionAnchorVerifiedPassCount = Math.max(0, eligibility.confirmed_pass - reactionAnchorReviewQueue.length);
+  const reactionAnchorCoveragePct = eligibility.confirmed_pass === 0
+    ? 0
+    : (reactionAnchorVerifiedPassCount / eligibility.confirmed_pass) * 100;
+  if (reactionAnchorReviewQueue.length > 0) {
+    warnings.push(`P1 confirmed-pass reaction anchor unknown=${reactionAnchorReviewQueue.length}; verify announcement timing before quantitative backfill`);
+  }
   for (const [category, count] of categories) {
     if (shockCategoryJurisdictionSensitivity(category) !== "high" || count < 2) continue;
     const covered = contextByCategory.get(category) ?? 0;
@@ -198,6 +233,10 @@ function main(): void {
     strategyEligibilityCoveragePct: Number(eligibilityCoveragePct.toFixed(1)),
     priorityHighScoreEligibilityUnknown,
     priorityHighScoreEligibilityUnknownCount: priorityHighScoreEligibilityUnknown.length,
+    reactionAnchorReviewQueue,
+    reactionAnchorReviewQueueCount: reactionAnchorReviewQueue.length,
+    reactionAnchorVerifiedPassCount,
+    reactionAnchorCoveragePct: Number(reactionAnchorCoveragePct.toFixed(1)),
     contextByCategory: sortedObject(contextByCategory),
     scoreBuckets: {
       researchPriority16to20: cases.filter(item => item.score >= 16).length,
@@ -230,6 +269,8 @@ function main(): void {
     `- deterministic checkpoint blocks: ${derivedEligibilityBlocks}`,
     `- strategy eligibility coverage: ${eligibilityCoveragePct.toFixed(1)}%`,
     `- P0 JP/US score>=12 eligibility unknown: ${priorityHighScoreEligibilityUnknown.length}`,
+    `- P1 confirmed-pass reaction anchor unknown: ${reactionAnchorReviewQueue.length}`,
+    `- reaction-anchor coverage among confirmed-pass: ${reactionAnchorCoveragePct.toFixed(1)}%`,
     `- high confidence: ${confidence.high}`,
     `- medium confidence: ${confidence.medium}`,
     `- low confidence: ${confidence.low}`,
@@ -239,6 +280,12 @@ function main(): void {
     "",
     ...(priorityHighScoreEligibilityUnknown.length
       ? priorityHighScoreEligibilityUnknown.map(row => `- ${row.country} ${row.ticker ?? "-"} ${row.company} (${row.score}/20, checkpoint ${row.checkpoint}): ${row.missingEvidence.join(", ") || "unresolved"}`)
+      : ["- none"]),
+    "",
+    "## P1 confirmed-pass reaction anchor review",
+    "",
+    ...(reactionAnchorReviewQueue.length
+      ? reactionAnchorReviewQueue.map(row => `- ${row.country} ${row.ticker ?? "-"} ${row.company} (${row.score}/20, event ${row.eventDate}, checkpoint ${row.checkpoint}): announcement=${row.announcementTiming}, reactionStart=${row.priceReactionStartDate ?? "-"}`)
       : ["- none"]),
     "",
     "## score buckets",
@@ -265,7 +312,7 @@ function main(): void {
   ].join("\n");
   writeFileSync("reports/idiosyncratic_shock_history_audit_latest.md", md, "utf-8");
 
-  console.log(`shock history audit: cases=${cases.length} context=${historicalContext.size} eligibility=${eligibility.confirmed_pass}/${eligibility.confirmed_block}/${eligibility.unknown} derivedBlocks=${derivedEligibilityBlocks} p0HighScoreUnknown=${priorityHighScoreEligibilityUnknown.length} issues=${issues.length} warnings=${warnings.length}`);
+  console.log(`shock history audit: cases=${cases.length} context=${historicalContext.size} eligibility=${eligibility.confirmed_pass}/${eligibility.confirmed_block}/${eligibility.unknown} derivedBlocks=${derivedEligibilityBlocks} p0HighScoreUnknown=${priorityHighScoreEligibilityUnknown.length} p1ReactionAnchorUnknown=${reactionAnchorReviewQueue.length} reactionAnchorCoverage=${reactionAnchorCoveragePct.toFixed(1)}% issues=${issues.length} warnings=${warnings.length}`);
   if (issues.length > 0) process.exitCode = 1;
 }
 
