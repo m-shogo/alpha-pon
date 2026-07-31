@@ -1,0 +1,23 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog batch 4 context。かんぽ生命2019不適正募集を金融庁行政処分checkpointでsystemic sales misconductとして固定。"
+cases:
+  japan-post-insurance-2019-improper-sales:
+    incidentCountry: JP
+    sector: financial_insurance
+    stakeholder: customer
+    incidentScope: company_wide
+    confounderStatus: clear
+    recurrenceStatus: systemic
+    remediationStatus: partial
+    incidentClusterStatus: related_multiple
+    strategyInvestigationStatusAtCheckpoint: open
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    calibrationEligibilityAtCheckpoint: confirmed_block
+    calibrationEligibilityNotes: "productionはscore=4でBLOCK。threshold研究でもcheckpoint=2019-12-27時点で金融庁が3か月の募集・契約締結業務停止と業務改善命令を発出し、顧客調査・処分・募集管理・コンプライアンス・ガバナンスの継続改善を要求。個人切除不能なsystemic recurrenceとopen remediation/investigationによりscore gateを外してもshadow BLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "日本郵政グループに対する行政処分について"
+        url: "https://www.fsa.go.jp/news/r1/yuusei/20191227.html"
+        sourceType: regulator
+        publishedAt: "2019-12-27"
+    notes: "将来の業務再開・業績回復・株価returnはPIT判定へ使用しない。"
