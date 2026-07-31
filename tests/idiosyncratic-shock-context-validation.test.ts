@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { loadHistoricalShockCaseContext } from "../src/idiosyncratic-shock-case-context.js";
 import {
   validateHistoricalShockCaseContextShape,
   validateHistoricalShockReactionAnchorShape,
@@ -71,6 +72,16 @@ assert.throws(
   () => validateHistoricalShockCaseContextShape({ strategyCriticalLicenseOrDelistingRiskAtCheckpoint: "false" }, "bad-boolean"),
   /expected boolean/,
 );
+assert.throws(
+  () => validateHistoricalShockCaseContextShape({ incidentScope: "subsidiary" }, "legacy-bad-scope"),
+  /incidentScope: invalid enum/,
+  "research overlays must use the runtime incidentScope contract",
+);
+assert.throws(
+  () => validateHistoricalShockCaseContextShape({ recurrenceStatus: "repeat" }, "legacy-bad-recurrence"),
+  /recurrenceStatus: invalid enum/,
+  "research overlays must use the runtime recurrenceStatus contract",
+);
 
 assert.throws(
   () => validateHistoricalShockReactionAnchorShape({ announcementTiming: "weekend" }, "bad-anchor-timing"),
@@ -85,4 +96,15 @@ assert.throws(
   /invalid http\(s\) URL/,
 );
 
-console.log("idiosyncratic-shock context runtime validation tests: OK");
+const loadedContexts = loadHistoricalShockCaseContext();
+for (const [id, context] of loadedContexts) {
+  assert.doesNotThrow(
+    () => validateHistoricalShockCaseContextShape(context, id),
+    `${id}: loaded research context must satisfy runtime enum/type contract`,
+  );
+}
+assert.equal(loadedContexts.get("benesse-2014-data-leak")?.incidentScope, "multi_unit");
+assert.equal(loadedContexts.get("dentsu-2016-labor-violation")?.incidentScope, "company_wide");
+assert.equal(loadedContexts.get("chipotle-2015-ecoli")?.recurrenceStatus, "related_multiple");
+
+console.log(`idiosyncratic-shock context runtime validation tests: OK (${loadedContexts.size} loaded contexts)`);
