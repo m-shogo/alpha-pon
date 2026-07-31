@@ -27,6 +27,7 @@ const expectedReplayReadyAnchors: Record<string, string> = {
   "lockheed-2012-kubasik": "2012-11-09",
   "yoshinoya-2022-remark": "2022-04-18",
   "zensho-sukiya-2019-employee-video": "2019-01-29",
+  "ootoya-2019-employee-video": "2019-02-18",
 };
 
 for (const [id, expectedReactionStart] of Object.entries(expectedReplayReadyAnchors)) {
@@ -48,6 +49,7 @@ assert.equal(contexts.get("lockheed-2012-kubasik")?.announcementTiming, "before_
 assert.equal(contexts.get("lockheed-2012-kubasik")?.strategyEligibilityAtCheckpoint, "confirmed_pass", "anchor overlay must preserve eligibility fields");
 assert.equal(contexts.get("yoshinoya-2022-remark")?.announcementTiming, "during_session");
 assert.equal(contexts.get("zensho-sukiya-2019-employee-video")?.announcementTiming, "during_session");
+assert.equal(contexts.get("ootoya-2019-employee-video")?.announcementTiming, "non_trading_day");
 
 assert.equal(isHistoricalReactionAnchorReplayReady({
   announcementTiming: "before_open",
@@ -64,5 +66,5 @@ for (const [id, context] of contexts) {
   assert(historical, `${id}: replay-ready anchor must not be orphaned`);
 }
 
-assert.equal(Object.keys(expectedReplayReadyAnchors).length, 16, "replay-ready anchor seed count changed; update expected registry deliberately");
+assert.equal(Object.keys(expectedReplayReadyAnchors).length, 17, "replay-ready anchor seed count changed; update expected registry deliberately");
 console.log(`idiosyncratic-shock reaction-anchor tests: replayReady=${Object.keys(expectedReplayReadyAnchors).length} OK`);
