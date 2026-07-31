@@ -153,8 +153,10 @@ export function resolveShockCaseSelection(
   const prospectiveClaim = record.selectionMode === "prospective_pre_outcome"
     && record.outcomeVisibilityAtSelection === "not_observed";
   const frozenCheckpoint = record.decisionCheckpointAtRegistration ?? null;
-  const suppliedCheckpoint = isDate(decisionCheckpoint) ? decisionCheckpoint : null;
-  const repositoryCheckpoint = suppliedCheckpoint ?? knownHistoricalCheckpoint(caseId);
+  const suppliedCheckpoint = prospectiveClaim && isDate(decisionCheckpoint) ? decisionCheckpoint : null;
+  const repositoryCheckpoint = prospectiveClaim
+    ? (suppliedCheckpoint ?? knownHistoricalCheckpoint(caseId))
+    : null;
   const frozenCheckpointValid = isDate(frozenCheckpoint);
   const checkpointMatches = repositoryCheckpoint == null || (frozenCheckpointValid && frozenCheckpoint === repositoryCheckpoint);
   const registrationTimingVerified = prospectiveClaim
