@@ -203,9 +203,13 @@ const weakShadow: ShockHistoricalOutcomeRecord = {
 const calibration = calibrateShockThresholds([record!, weakShadow, unknownEligibility!, unverifiedAnchor!]);
 const ge12 = calibration.find(row => row.bucket === "score_ge_12");
 const lt12 = calibration.find(row => row.bucket === "score_lt_12");
+assert.equal(ge12?.eligibleCases, 1);
 assert.equal(ge12?.cases, 1);
+assert.equal(ge12?.signalRate, 100);
 assert.equal(ge12?.positiveRate1m, 100);
+assert.equal(lt12?.eligibleCases, 1);
 assert.equal(lt12?.cases, 1, "score<12 shadow signalを比較群へ入れる");
+assert.equal(lt12?.signalRate, 100);
 assert.equal(lt12?.positiveRate1m, 0);
 assert((ge12?.avgBenchmarkRelative1m ?? 0) > (lt12?.avgBenchmarkRelative1m ?? 0));
 
@@ -246,10 +250,14 @@ const shadowNoTrade: ShockHistoricalOutcomeRecord = {
   calibrationSignalBenchmarkRelative1y: null,
 };
 const withNoTrade = calibrateShockThresholds([record!, shadowNoTrade, unverifiedAnchor!, legacyProductionSignalOnly]);
-assert.equal(withNoTrade.find(row => row.bucket === "score_ge_12")?.cases, 1, "shadow no-signal / unverified / legacy production-onlyを0%リターンへ変換しない");
+const withNoTradeGe12 = withNoTrade.find(row => row.bucket === "score_ge_12");
+assert.equal(withNoTradeGe12?.eligibleCases, 2, "shadow eligibility+anchorをsignal率の分母に保持する");
+assert.equal(withNoTradeGe12?.cases, 1, "no-signalを0% return observationへ変換しない");
+assert.equal(withNoTradeGe12?.signalRate, 50, "signal発生率は1/2として別評価する");
+assert.equal(withNoTradeGe12?.n1m, 1, "return統計の分母はsignal発生ケースだけ");
 
 assert.deepEqual(outcomeFetchRange(strongCase, "2026-06-01"), { from: "20251231", to: "20260601" });
 assert.deepEqual(outcomeFetchRange(strongCase, "2028-01-01"), { from: "20251231", to: "20270428" });
 assert.deepEqual(outcomeFetchRangeIso(usCase, "2026-06-01"), { from: "2025-12-31", to: "2026-06-01" });
 
-console.log("idiosyncratic-shock-outcomes tests: production/shadow separation OK");
+console.log("idiosyncratic-shock-outcomes tests: production/shadow + signal incidence OK");
