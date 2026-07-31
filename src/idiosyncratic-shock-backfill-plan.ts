@@ -2,6 +2,8 @@
 // 価格APIを呼ばず、どのcaseがsignal replayへ進めるか・何が不足しているか・必要取得期間を固定する。
 
 import { mkdirSync, writeFileSync } from "fs";
+import { resolve } from "path";
+import { pathToFileURL } from "url";
 import { todayJst } from "./date.js";
 import {
   loadHistoricalShockCaseContext,
@@ -236,4 +238,5 @@ function main(): void {
   console.log(`shock backfill plan: historical=${plan.totalHistoricalCases} ticker=${plan.tickerCases} supported=${plan.supportedMarketCases} eligibility=${plan.strategyEligibility.confirmed_pass}/${plan.strategyEligibility.confirmed_block}/${plan.strategyEligibility.unknown} replayReady=${plan.replayReadyAnchors} signalReplayEligible=${plan.signalReplayEligible}`);
 }
 
-if (process.argv[1]?.includes("idiosyncratic-shock-backfill-plan")) main();
+const invokedPath = process.argv[1] ? pathToFileURL(resolve(process.argv[1])).href : null;
+if (invokedPath === import.meta.url) main();
