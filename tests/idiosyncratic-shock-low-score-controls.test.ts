@@ -47,6 +47,9 @@ for (const id of [
   "tesla-2018-musk-sec",
   "recruit-2019-rikunabi-dmp",
   "subaru-2017-final-inspection",
+  "nissan-2018-ghosn-misconduct",
+  "mitsubishi-motors-2016-fuel-economy",
+  "facebook-2018-cambridge-analytica",
 ]) {
   const result = calibration(id);
   assert.equal(result.status, "confirmed_block", `${id} must not become a shadow control merely because its score is below 12`);
@@ -83,6 +86,7 @@ for (const [id, expectedScore] of [
   ["barnes-noble-2018-parneros", 13],
   ["eneos-2022-sugimori", 14],
   ["mcdonalds-2019-easterbrook", 15],
+  ["hp-2010-hurd-resignation", 14],
 ] as const) {
   assert.equal(cases.get(id)?.score, expectedScore, `${id}: outcome-blind candidate must stay on the score actually produced by PIT research`);
   assert(expectedScore >= 12, `${id}: high-score cases are counterexamples to cherry-picking below-threshold candidates`);
@@ -96,10 +100,20 @@ assert.equal(cases.get("intel-2018-krzanich")?.score, 14, "Intel demonstrates th
 assert.equal(calibration("intel-2018-krzanich").status, "confirmed_block");
 assert(calibration("intel-2018-krzanich").blockers.includes("investigationStatus=open"), "Intel same-day release explicitly called investigation ongoing");
 
-for (const id of ["eneos-2022-sugimori", "mcdonalds-2019-easterbrook"] as const) {
+assert.equal(cases.get("nissan-2018-ghosn-misconduct")?.score, 5, "Nissan must remain a deep financial-misconduct control");
+assert(calibration("nissan-2018-ghosn-misconduct").blockers.includes("accountingIntegrity=0"));
+assert(calibration("nissan-2018-ghosn-misconduct").blockers.includes("investigationStatus=open"));
+
+assert.equal(cases.get("mitsubishi-motors-2016-fuel-economy")?.score, 4, "Mitsubishi Motors must remain a deep organizational falsification control");
+assert(calibration("mitsubishi-motors-2016-fuel-economy").blockers.includes("investigationStatus=open"));
+
+assert.equal(cases.get("facebook-2018-cambridge-analytica")?.score, 6, "Facebook privacy case must remain a deep platform-governance control");
+assert(calibration("facebook-2018-cambridge-analytica").blockers.includes("investigationStatus=open"));
+
+for (const id of ["eneos-2022-sugimori", "mcdonalds-2019-easterbrook", "hp-2010-hurd-resignation"] as const) {
   const item = cases.get(id);
   assert(item);
   assert.equal(resolveHistoricalStrategyEligibility(item, contexts.get(id)), "confirmed_pass", `${id}: score>=12 and PIT non-score gates pass; reaction/price gates remain separate`);
 }
 
-console.log("idiosyncratic-shock low-score control tests: Ootoya + United shadow PASS; batch4 adds systemic 4-point BLOCK, high-score Intel BLOCK, and high-score PIT passes");
+console.log("idiosyncratic-shock low-score control tests: Ootoya + United remain sole below-threshold shadow PASS; batch5 adds deep Nissan/Mitsubishi/Facebook BLOCKs and HP high-score PIT pass");
