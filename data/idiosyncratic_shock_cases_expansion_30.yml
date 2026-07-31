@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 25。Toyota 2010 accelerator-pedal recallを改善措置公表checkpointで採点し、複数地域・複数モデルへ広がるproduct-safety controlとして保存。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: toyota-2010-accelerator-recall
+    company: "Toyota Motor"
+    ticker: "7203"
+    country: JP
+    eventDate: "2010-01-21"
+    checkpoint: "2010-02-01"
+    category: automotive_product_safety
+    actorType: organization
+    scoreVector: [0,2,0,1,1,1,2,1,0,0]
+    priceState: unknown
+    summary: "米国8モデルのアクセルペダル不具合についてリコールと改善措置を公表。既販車対応を最優先とし、販売・生産再開を検討中で、欧州・中国など他地域でも当局と調整し同様の改善措置を進める段階だった。"
+    source: "https://global.toyota/en/detail/339106"
+    sourceType: company
+    outcomePattern: unknown
+    lesson: "原因部品とremedyが見えていても複数モデル・複数地域・生産販売影響を伴うproduct safety issue。後日の追加リコール・公聴会・業績・株価を使わず8点とする。"
+    confidence: high
