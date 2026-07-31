@@ -1,0 +1,24 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 1 context。Benesse 2014を2014-07-17 checkpointまでの会社一次情報だけで再監査し、deep score帯を件数合わせでshadow PASSへ寄せない。"
+cases:
+  benesse-2014-data-leak:
+    incidentCountry: JP
+    sector: education_services
+    stakeholder: customer
+    incidentScope: subsidiary
+    confounderStatus: unknown
+    strategyInvestigationStatusAtCheckpoint: open
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    calibrationEligibilityAtCheckpoint: confirmed_block
+    calibrationEligibilityNotes: "productionはscore=9でBLOCK。threshold研究でもcheckpoint=2014-07-17時点で、Benesseは事故調査委員会による原因究明・警察捜査への全面協力を継続し、漏えい規模・経路・影響範囲の全容が確定していなかった。さらに会社は連結業績への影響を精査中としており、score gateを外してもopen investigation hard gateでshadow BLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "お客様情報の漏えいについてお詫びとご説明"
+        url: "https://www.benesse-hd.co.jp/ja/about/release_20140709.pdf"
+        sourceType: company
+        publishedAt: "2014-07-09"
+      - title: "お客様情報の漏えいに関するご報告と対応について"
+        url: "https://www.benesse-hd.co.jp/ja/about/release_20140717.pdf"
+        sourceType: company
+        publishedAt: "2014-07-17"
+    notes: "未採点candidate backlogからstructural coverageだけで先に選択した事例。将来return・recovery pattern・後年の最終結果はscore/eligibility判定へ使用しない。"
