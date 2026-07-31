@@ -7,6 +7,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
 import {
+  isHistoricalReactionAnchorVerified,
   loadHistoricalShockCaseContext,
   resolveHistoricalStrategyEligibility,
   type HistoricalShockCaseContext,
@@ -47,7 +48,7 @@ function gap(target: number, actual: number): number {
 }
 
 function contextAnchorVerified(context?: HistoricalShockCaseContext | null): boolean {
-  return Boolean(context?.announcementTiming && context.announcementTiming !== "unknown");
+  return isHistoricalReactionAnchorVerified(context);
 }
 
 function outcomeAnchorVerified(row: ShockHistoricalOutcomeRecord): boolean {
