@@ -78,3 +78,15 @@ cases:
     outcomeVisibilityAtSelection: known_or_available
     selectionReason: "outcome-blind threshold candidate backlogでUS food-safetyカテゴリとして先にfreezeされ、score帯を知らない状態でPIT研究へ昇格。"
     notes: "CDC/会社の2016-02-02までの一次情報でscore=7と判明したため8-11境界帯へ無理に合わせない。prospective holdoutには使わず、後年の株価returnも判定に使用しない。"
+  guess-2018-marciano:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlogでUS founder/key-person境界例として先にfreezeされ、独立調査終了後のscoreを事後調整せず評価。"
+    notes: "2018-06-12 SEC filingまでの情報でscore=12。below-threshold件数へ合わせずproduction threshold側へ分類し、後日の業績・株価returnは使用しない。"
+  starbucks-2018-philadelphia:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlogでUS customer-treatment/racial-bias shockとして先にfreezeされ、全米remediationと外部reviewをPIT評価。"
+    notes: "2018-05-29までの会社・Philadelphia市一次情報でscore=11、PCHR review継続によりshadow BLOCK。後日のPCHR最終報告・Q3業績・株価returnは使用しない。"
