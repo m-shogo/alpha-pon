@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 20。Nissan 2018 Ghosn/Kelly misconductをboard removal checkpointで採点し、虚偽報酬開示・刑事調査・governance波及をhard blockerとして保存。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: nissan-2018-ghosn-misconduct
+    company: "Nissan Motor"
+    ticker: "7201"
+    country: JP
+    eventDate: "2018-11-19"
+    checkpoint: "2018-11-22"
+    category: executive_financial_misconduct
+    actorType: executive
+    scoreVector: [1,0,0,1,0,1,1,1,0,0]
+    priceState: unknown
+    summary: "internal investigationでGhosn/Kellyによる複数年の役員報酬過少開示、会社資産の私的利用等を確認。11月22日に代表権・会長職を外したが、会社は更なる調査とgovernance強化を継続し、検察当局調査にも協力していた。"
+    source: "https://www.nissan-global.com/EN/DOCUMENT/PDF/FINANCIAL/TSE/2018/20181122_E.pdf"
+    sourceType: company
+    outcomePattern: unknown
+    lesson: "人物を役職から外しても、長年の有価証券報告書虚偽開示・複数関係者・刑事/内部調査が残るためactor separationだけで高得点化しない。価格・後年の刑事結果は使用しない。"
+    confidence: high
