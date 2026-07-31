@@ -1,236 +1,147 @@
 # 企業固有ショック — Threshold Calibration Shadow Policy
 
-## 目的
+> このファイルは詳細policyの正本。現在地の短縮版はPR #1 bodyと専用reportを参照する。
 
-現在のproduction通知thresholdは **12/20**。
+## 現在の結論
 
-ただし、過去検証で `score >= 12` を先にhard gateとして適用し、その通過案件だけで「12点以上は成績が良い」と検証すると循環論法になる。
+- Production thresholdは **12/20のまま**。
+- ProductionとThreshold-calibration shadowは分離する。
+- Shadowはscore gateだけを外し、調査未完・会計・規制・confounder・recurrence・incident cascade等のhard gateは緩めない。
+- `data/idiosyncratic_shock_outcomes.json` はまだ正式生成しない。
+- retrospective historical researchをprospective OOSと呼ばない。
+- historical returnが未生成/未検証の段階で「戦略は勝てる」「12点が最適」と結論しない。
 
-> 12点未満を最初から除外 → 12点以上だけの成績を見る → 12点が正しいと結論する
+## Below-threshold shadow controls
 
-これを禁止するため、productionとthreshold研究を完全に分離する。
+### Explicit PASS
 
-## 2つのeligibility
+| Case | Score | Market | Production | Shadow |
+|---|---:|---|---|---|
+| Ootoya 2019 employee video | 11 | JP | BLOCK | PASS |
+| United Flight 3411 2017 | 10 | US | BLOCK | PASS |
 
-### Production eligibility
+両方ともProductionではscore<12のためBLOCK。Shadow PASSは、checkpoint-safe evidenceで非score hard gateを通過した場合だけ許可する。
 
-`strategyEligibilityAtCheckpoint`
+### Explicit / deterministic BLOCK examples
 
-現行運用をそのまま再現する。
+- Papa John's 2018 — 11: open investigation
+- CBS 2018 — 11: independent investigation継続
+- Super Retail 2025 — 10: implications未確定
+- KDDI 2026 — 10: accountingIntegrity=0 + major confounder
+- Wynn Resorts 2018 — 9: open investigation + gaming license risk
+- KADOKAWA 2022 — 9: criminal process / multiple actors
+- Benesse 2014 — 9: investigation open
+- Dentsu 2016 — 8: investigation open + systemic recurrence
+- Sukiya 2025 — 8: open investigation + major confounder + incident cascade
+- Activision Blizzard 2021 — 8: open investigation + systemic recurrence + weak remediation
+- Kobayashi Pharma 2024 — 8: health-impact investigation open
+- Starbucks Philadelphia 2018 — 11: external civil-rights review open
+- Chipotle 2015 — 7: incident cascade（8–11帯外でもそのまま受け入れる）
 
-- score >= 12
-- accountingIntegrity > 0
-- macroPrimaryCause = false
-- investigation sufficiently complete
-- critical license / delisting riskなし
-- confounderがmajorではない
-- checkpointまでに利用可能なtrusted primary source またはmajor media複数
-- information leak / recurrence / remediation / liquidity / incident cluster等のhard blockerなし
+件数合わせでBLOCKをPASSへ変えない。
 
-score < 12 はproductionでは必ずBLOCK。
+## Outcome-blind threshold candidate backlog
 
-### Threshold-calibration eligibility
+`data/idiosyncratic_shock_threshold_candidate_backlog.yml` では候補を**採点前**にfreezeする。
 
-`calibrationEligibilityAtCheckpoint`
+Candidate selectionに使ってよいもの:
 
-**score thresholdだけを外す**。
+- market / jurisdiction coverage
+- category coverage
+- primary-source availability
+- event structure
 
-それ以外のhard gateはproductionと同じ。
+候補選定・順位付けに使ってはいけないもの:
 
-重要:
+- score / scoreVector
+- future return
+- recovery pattern
+- realized outcome
+- post-event price path
 
-- score < 12を自動PASSにしない
-- production BLOCKを自動でshadow PASSへ読み替えない
-- 低scoreケースは一次情報で別途レビューし、明示的に `confirmed_pass / confirmed_block` を記録する
-- score >= 12の構造上有効なproduction PASSだけshadow研究へ再利用できる
-- score < 12なのにraw `strategyEligibilityAtCheckpoint: confirmed_pass` と誤記されてもshadow PASSへ継承しない
-- score >= 12でproduction BLOCKならthreshold由来ではないためshadowでもBLOCK
+初回freeze batchは5件すべて研究完了:
+
+| Candidate | PIT score | Result |
+|---|---:|---|
+| Benesse 2014 | 9 | shadow BLOCK |
+| Dentsu 2016 | 8 | shadow BLOCK |
+| Chipotle 2015 | 7 | band外 / shadow BLOCK |
+| Guess 2018 | 12 | Production threshold側 |
+| Starbucks 2018 | 11 | shadow BLOCK |
+
+この結果は成功。目的はPASSを作ることではなく、結果を見る前に選んだ候補をPIT evidenceでそのまま分類できることを証明すること。
+
+`src/idiosyncratic-shock-threshold-candidate-backlog.ts` は、active candidateが0なのにthreshold diversityが未達なら `replenishmentRequired=true` を返す。batchを完了しただけで「研究完了」と誤認しない。
 
 ## PIT source gate
 
-後から見つけた一次情報で過去checkpointをPASSへ書き換えない。
+### Case本体source
 
-### case本体のlegacy source
+- `publishedAt` がある場合、`publishedAt <= decisionCheckpoint` だけをeligibilityへ使用。
+- future / malformed dateはPASS根拠から除外。
+- legacy undated sourceは後方互換の技術負債としてPIT Source Auditで可視化する。
 
-- `publishedAt` が無い古いsourceは後方互換の技術負債として暫定許可
-- `publishedAt` がある場合は `publishedAt <= decisionCheckpoint` の資料だけeligibilityへ使用
-- future / malformed dateは除外
+### Sidecar evidence
 
-### 後付けsidecar evidence
+`strategyEligibilityEvidenceSources` はvalid `publishedAt` 必須。
 
-`strategyEligibilityEvidenceSources` はさらに厳格にする。
+- `publishedAt <= decisionCheckpoint` の資料だけ利用。
+- future / undated sidecar evidenceはfail-closed。
+- Production / Shadowのresolver本体で同じruleを使う。
 
-- valid `publishedAt` 必須
-- `publishedAt <= decisionCheckpoint` 必須
-- undated / future evidenceはfail-closed
+## Runtime context contract
 
-Production / Shadowのresolver本体で同じruleを使う。
+Historical context YAMLはruntime enum/type validatorを通す。
 
-## 2つのFirst Eligible Signal
-
-### Production signal
-
-- `firstEligibleSignalDate`
-- `signalReturn*`
-- `signalBenchmarkRelative*`
-
-現行threshold=12を含む本番parity。
-
-### Calibration shadow signal
-
-- `calibrationFirstEligibleSignalDate`
-- `calibrationSignalReturn*`
-- `calibrationSignalBenchmarkRelative*`
-
-score thresholdだけを外した比較研究用。
-
-production通知には絶対に使わない。
-
-どちらも **replay-ready reaction anchor** が必須。
-
-## Reaction anchor
-
-shadow研究でも未来情報・休場日誤差・provider欠損を許可しない。
-
-証拠側replay-ready条件:
-
-1. `announcementTiming` がknown
-2. `priceReactionStartDate` が `YYYY-MM-DD`
-3. `reactionAnchorEvidenceSources` に有効URL
-4. `reactionAnchorNotes` に時刻/session/休場日の根拠
-
-quantitative outcome生成時にさらに:
-
-5. stockに `priceReactionStartDate` の実日足が存在
-6. benchmarkにも同日の実日足が存在
-
-片方でも無ければ `reactionAnchorStatus=unverified` へ降格し、Production / Shadow signalを生成しない。signal率の分母にも入れない。
-
-## below-threshold shadow controls
-
-### PASS
-
-**Ootoya 2019 — 11/20**
-
-production:
-
-- score 11 → BLOCK
-
-threshold calibration:
-
-- checkpoint-safeな会社一次情報で調査・関係者処分・remediationを確認
-- accounting / macro / critical listing risk / major confounder等の非score hard gateを通過
-- score thresholdだけがproductionとの差
-
-このケースは **production signalを生成しない** が、shadow signalは生成可能。
-
-ただしOotoya 1件は研究開始点であり、threshold変更根拠ではない。
-
-### BLOCK
-
-低score controlを増やすためにhard gateを緩めてはいけない。
-
-- **Papa John's 2018 — 11/20**: checkpoint時点で影響範囲調査未完 / open investigation
-- **CBS 2018 — 11/20**: 独立law-firm調査継続中
-- **Super Retail 2025 — 10/20**: Board自身が影響を未確定と開示
-- **Wynn Resorts 2018 — 9/20**: open investigation + gaming license/suitability risk
-- **KADOKAWA 2022 — 9/20**: 会長起訴・複数関係者へ波及、刑事手続継続
-- **Sukiya 2025 — 8/20**: 別の害虫混入、原因調査中、全店規模一時閉店 → open investigation + major confounder + incident cascade
-- **Activision Blizzard 2021 — 8/20**: regulator/workplace issue継続、systemic recurrence、remediation未完
-- **Kobayashi Pharma 2024 — 8/20**: 健康被害原因・影響範囲未確定、全製造番号回収継続 → open investigation
-
-これらはscoreが低いからBLOCKなのではなく、**score gateを外しても残る非score hard blocker**がある。
-
-## Stable blocker taxonomy
-
-resolverの自由文だけを研究集計軸にしない。
+Shock Contractsでは**ロードされた全historical context overlayを総当たりvalidate**する。独自ラベルを静かに追加しない。
 
 例:
 
-- `investigation_open`
-- `critical_listing_or_license_risk`
-- `major_confounder`
-- `systemic_recurrence`
-- `incident_cascade`
-- `source_gate_missing`
-- `eligibility_unverified`
+- `incidentScope`: `individual | site | multi_unit | company_wide | unknown`
+- `recurrenceStatus`: `first_known | related_multiple | systemic | unknown`
 
-これにより「score不足」と「研究未完 / hard blocker」を分離する。
+## Reaction anchor
 
-## Threshold変更最低gate
+Evidenceだけでreplay-readyにしない。
 
-threshold変更を検討する最低条件:
+1. announcement timing known
+2. reaction dateがYYYY-MM-DD
+3. evidence sourceあり
+4. provenance noteあり
+5. stockにreaction dateの実日足
+6. benchmarkにも同日の実日足
 
-- score < 12 のreplay-ready shadow controls: **8件以上**
-- score 10–11: **4件以上**
-- score 8–9: **2件以上**
-- distinct categories: **3以上**
-- JP: **2件以上**
-- US: **2件以上**
-- score < 12 のusable 3m shadow outcomes: **8件以上**
-- score >= 12側にも十分な比較標本
+5/6はformal outcome生成時にprice provider側で二重確認する。片方でも欠ければunverifiedへ降格し、signal率の分母にも入れない。
 
-件数を満たすためBLOCKをPASSへ変えてはいけない。
+## Signal率とreturnを分離
 
-target未達なら:
+no-signalを0% returnへ変換しない。
 
-```text
-thresholdComparisonReady = false
-```
+各bucketで別々に保存する:
 
-**production threshold=12を変更しない。**
-
-## Research queue priority
-
-score 8–11のUNKNOWNを人間の印象で選ばない。
-
-`idiosyncratic-shock-threshold-research-plan` はfuture returnを入力に使わず、以下の構造的不足だけで優先順位を決める。
-
-- score8–9不足
-- score10–11不足
-- JP不足
-- US不足
-- 新カテゴリ候補
-- reaction anchor replay-ready
-
-confirmed BLOCKはqueueへ戻さない。結果が良さそうな銘柄から調べるselection biasを避ける。
-
-## Signal率とリターンを分離する
-
-shadow PASS + replay-readyでも、価格条件が成立しないケースがある。
-
-その場合:
-
-- return = 0% として扱わない
-- calibration return統計の分母には入れない
-- ただし `signalRate` の分母には残す
-
-各score bucketで:
-
-- `eligibleCases`
-- `cases` = signal件数
-- `signalRate`
-- signal後1m / 3m / 1y return
-- benchmark relative
+- eligibleCases
+- signal cases
+- signalRate
+- signal後return
+- benchmark-relative return
 - median
 - positive rate
 
-を別々に比較する。
+## Case selection / research definition freeze
 
-例えばeligible 2件中signal 1件なら:
+Historical caseにはselection provenanceを持たせる。
 
-- signalRate = 50%
-- return統計 n = 1
+- `retrospective_research`
+- `prospective_pre_outcome`
+- `matched_negative_control`
 
-no-signalを0%リターンへ変換しない。
+既存historical caseを後付けでprospective holdoutにしない。
 
-## Research definitionをoutcome前にfreezeする
+`idiosyncratic-shock-research-snapshot-contract` でoutcome前研究入力をSHA256固定する:
 
-`idiosyncratic-shock-research-snapshot-contract` で以下をSHA256固定する。
-
-- case facts
+- facts
 - score
-- decision checkpoint
+- checkpoint
 - sources
 - context / eligibility evidence
 - reaction anchor
@@ -238,144 +149,74 @@ no-signalを0%リターンへ変換しない。
 
 realized future outcomeはhash対象外。
 
-したがって:
+## Outcome contract
 
-- outcomeを後から追加 → research hashは変わらない
-- score / source / context / selection provenanceを変更 → hashが変わる
+Formal datasetは `shock-outcome-v1` methodology contractへ完全一致させる。
 
-正式outcome datasetには `researchSnapshotSha256` を保存する。
-
-## Case selection / prospective validation
-
-既存historical事例をretrospectiveに収集した場合、それを「未見holdout」と呼ばない。
-
-selection provenance:
-
-- `retrospective_research`
-- `prospective_pre_outcome`
-- `matched_negative_control`
-
-prospective holdout eligibleになる条件:
-
-- `selectionMode = prospective_pre_outcome`
-- `outcomeVisibilityAtSelection = not_observed`
-
-provenance不明のlegacy caseはresearch-only。
-
-### Retrospective temporal validation
-
-retrospective research pool内で古い75% / 新しい25%のようにchronological splitし、temporal robustnessを確認する。
-
-これは有効な検査だが、真のprospective holdoutではない。
-
-### Prospective holdout
-
-固定した候補threshold / weightsを、outcome観測前登録caseで独立検証する。
-
-対象model levelでusable prospective outcomeが **8件以上** 必須。
-
-`calibrateShockThresholds()` はdefaultでresearch scopeだけを集計し、prospective holdoutを自動除外する。
-
-- default: research fitting/calibration
-- `scope: prospective`: holdout評価
-- `scope: all`: 明示的descriptive用途のみ
-
-prospective結果をthreshold fittingへ逆流させない。
-
-## Local calibrationの正本metric
-
-validated registryが使用できるmetricは:
-
-```text
-calibrationSignalBenchmarkRelative3m
-```
-
-のみ。
-
-旧production metric `signalBenchmarkRelative3m` をregistryへ登録するとvalidation errorにする。
-
-さらにregistry entryには:
-
-```text
-validationDesign: prospective_pre_outcome
-```
-
-を必須にする。
-
-registry値が存在するだけではlocal thresholdを有効化しない。実outcome observations側でもprospective holdout最低件数を満たす必要がある。
+- adjusted close
+- signal-session close entry
+- horizons 7/30/90/365 calendar days
+- horizon当日以降の最初の取引session
+- benchmark relative = stock return - benchmark return
+- production threshold=12
+- shadowはscore gateだけ除外
+- no-signalはreturn=0にしない
+- prospective holdoutをdefault fittingから除外
+- research snapshot hashをdatasetへbinding
+- aggregateはrecordsから再計算して一致を要求
 
 ## Matched negative control
 
-「Shock Scoreが効いた」のか「単に大幅下落株が反発した」のかを分離する。
+Shock固有効果と「単に暴落株が反発した」を分離する。
 
-future returnを一切matching inputに使わず、reaction時点で分かる情報だけでcontrolを選ぶ。
+future returnをmatcher入力に使わない。
 
 - same market
 - same sector
 - same reaction date
-- raw drawdownが近い
-- benchmark-relative drawdownが近い
-- known shockを除外
-- earnings/guidance等material corporate eventを除外
-- abnormal liquidityを除外
+- similar raw drawdown
+- similar benchmark-relative drawdown
+- known shock除外
+- material corporate event除外
+- abnormal liquidity除外
 
-matchingはdeterministicにする。
+## Threshold変更最低gate
 
-## 現在地
+最低条件:
 
-- production threshold: **12のまま**
-- below-threshold explicit shadow PASS: **Ootoya 2019（11点）**
-- researched below-threshold shadow BLOCK: **Papa John's / CBS / Super Retail / Wynn / KADOKAWA / Sukiya / Activision Blizzard / Kobayashi Pharma**
-- threshold comparison target: **未達**
-- validated local registry: **空**
-- prospective holdout: **まだ未充足**
-- `data/idiosyncratic_shock_outcomes.json`: **まだ正式生成していない**
-- empirical 1m/3m/1y performance: **まだ結論を出さない**
+- below-12 replay-ready controls >= 8
+- score 10–11 >= 4
+- score 8–9 >= 2
+- distinct categories >= 3
+- JP >= 2
+- US >= 2
+- usable shadow 3m outcomes >= 8
+- retrospective chronological robustness
+- validated local modelにはprospective pre-outcome holdout >= 8
 
-## 昇格までの流れ
+これらは「thresholdを下げてよい条件」ではなく、**再評価を始められる最低条件**。
 
-1. historical caseを収集
-2. production eligibilityをcheckpoint-safe evidenceで再現
-3. score < 12 はthreshold-calibration eligibilityを別途調査
-4. reaction anchorをevidence + price sessionでreplay-ready化
-5. research definition / selection provenanceをfreeze
-6. quantitative backfill
-7. production signalとshadow signalを別保存
-8. research scopeでscore bucketごとのeligible件数 / signal率 / shadow 3m benchmark-relativeを計測
-9. matched-drawdown negative controlと比較
-10. retrospective chronological train / temporal-validationで候補を固定
-11. live caseをoutcome前にprospective登録
-12. prospective holdoutで独立検証
-13. 十分なsample・prospective再現があるlocal modelだけvalidated registryへ登録
-14. validation不成立ならthreshold=12へ縮退
+未達ならProduction threshold=12を維持する。
 
-## 禁止事項
+## Validation sequence
 
-- score < 12を自動shadow PASSにする
-- production BLOCKをscoreだけ見てshadow PASSへ変える
-- open investigationを低score control確保のためPASSにする
-- checkpoint後sourceで過去PASSを作る
-- no-signalを0% returnとして混ぜる
-- production signalをthreshold検証metricへ戻す
-- retrospective chronological sliceをprospective OOSと呼ぶ
-- prospective holdoutをthreshold fittingへ戻す
-- registry値だけでvalidatedへ昇格する
-- future outcomeをcheckpoint score/eligibilityへ逆流させる
-- 少数標本でthresholdを変更する
+1. outcome-blind candidate selection
+2. incident DB / checkpoint reconstruction
+3. PIT evidence
+4. Production / Shadow eligibility
+5. reaction anchor
+6. stock + benchmark trading-session validation
+7. signal/no-signal
+8. benchmark-relative forward outcome
+9. matched negative controls
+10. retrospective chronological validation
+11. prospective pre-outcome holdout
+12. threshold / local registry再評価
 
-## 関連ファイル
+## CI status
 
-- `src/idiosyncratic-shock-case-context.ts`
-- `src/idiosyncratic-shock-case-selection.ts`
-- `src/idiosyncratic-shock-research-snapshot-contract.ts`
-- `src/idiosyncratic-shock-outcomes.ts`
-- `src/idiosyncratic-shock-outcome-contract.ts`
-- `src/idiosyncratic-shock-calibration.ts`
-- `src/idiosyncratic-shock-calibration-config.ts`
-- `src/idiosyncratic-shock-negative-control.ts`
-- `src/idiosyncratic-shock-threshold-research-plan.ts`
-- `src/idiosyncratic-shock-threshold-calibration-audit.ts`
-- `tests/idiosyncratic-shock-low-score-controls.test.ts`
-- `tests/idiosyncratic-shock-prospective-calibration-isolation.test.ts`
-- `config/idiosyncratic-shock-calibration.yml`
-- `data/idiosyncratic_shock_case_selection.yml`
+`.github/workflows/shock-contracts.yml` に専用contractを分離している。
+
+ただしGitHub Actionsは現在、job生成直後にfailureし `steps=null / logs_url=null`、job log取得もBlobNotFoundとなることがある。checkout / install / typecheck / testへ到達した証跡が無いため、**greenとは扱わない**。
+
+PR #1はDraft維持・merge禁止。
