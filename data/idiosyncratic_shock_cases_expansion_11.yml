@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 6。JAL 2018 alcohol complianceを2018-12-21 checkpointの国交省一次情報だけで採点し、複数事案・open investigationをdeep controlとして保存。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: jal-2018-alcohol-compliance
+    company: "Japan Airlines"
+    ticker: "9201"
+    country: JP
+    eventDate: "2018-10-28"
+    checkpoint: "2018-12-21"
+    category: safety_compliance
+    actorType: organization
+    scoreVector: [1,2,1,0,0,1,2,2,0,0]
+    priceState: unknown
+    summary: "運航乗務員の飲酒事案が続く中、2018年12月17日には客室乗務員でも機内で基準超過アルコールが検知され、国土交通省は12月20日に詳細調査とより実効性ある再発防止策の報告を指示。12月21日には一連の飲酒事案を受けJALへ事業改善命令等を実施した。"
+    source: "https://www.mlit.go.jp/report/press/kouku10_hh_000140.html"
+    sourceType: regulator
+    outcomePattern: unknown
+    lesson: "個人の飲酒問題に見えても、複数職種・複数事案・会社の検査/安全管理体制・行政処分へ波及しているcheckpointでは個人切除型として扱わない。価格反応や後日の改善結果はscoreへ入れない。"
+    confidence: high
