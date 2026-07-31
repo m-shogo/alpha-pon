@@ -9,6 +9,7 @@ const basePath = "data/idiosyncratic_shock_threshold_candidate_backlog.yml";
 const expansionPaths = [
   "data/idiosyncratic_shock_threshold_candidate_backlog_expansion_01.yml",
   "data/idiosyncratic_shock_threshold_candidate_backlog_expansion_02.yml",
+  "data/idiosyncratic_shock_threshold_candidate_backlog_expansion_03.yml",
 ] as const;
 
 const base = loadThresholdCandidateBacklog(basePath);
@@ -17,9 +18,9 @@ const merged = loadThresholdCandidateBacklog();
 const states = loadThresholdCandidateResearchState();
 
 assert.equal(base.candidates.length, 11, "base backlog keeps batch1+2 intake provenance");
-assert.deepEqual(expansions.map(batch => batch.candidates.length), [4, 4], "batch3+4 expansions each contain four frozen candidates");
-assert.equal(merged.candidates.length, 19, "default loader must merge base + two expansion batches");
-assert.equal(states.size, 19, "every frozen candidate requires an explicit separate research-state record");
+assert.deepEqual(expansions.map(batch => batch.candidates.length), [4, 4, 4], "batch3-5 expansions each contain four frozen candidates");
+assert.equal(merged.candidates.length, 23, "default loader must merge base + three expansion batches");
+assert.equal(states.size, 23, "every frozen candidate requires an explicit separate research-state record");
 assert.equal(new Set(merged.candidates.map(row => row.id)).size, merged.candidates.length, "merged backlog IDs must remain unique");
 
 for (const expansion of expansions) {
