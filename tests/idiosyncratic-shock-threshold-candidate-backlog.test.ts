@@ -27,34 +27,22 @@ for (const row of backlog.candidates) {
   }
 }
 
-for (const id of [
-  "benesse-2014-data-leak",
-  "dentsu-2016-labor-violation",
-  "starbucks-2018-philadelphia",
-  "guess-2018-marciano",
-  "chipotle-2015-ecoli",
-]) {
-  assert(backlog.candidates.some(row => row.id === id), `missing frozen structural candidate: ${id}`);
+const promotedIds = ["benesse-2014-data-leak", "dentsu-2016-labor-violation"];
+for (const id of promotedIds) {
+  assert.equal(backlog.candidates.find(row => row.id === id)?.researchState, "promoted", `${id}: completed research must remain as promoted provenance`);
 }
-
-const benesseBacklog = backlog.candidates.find(row => row.id === "benesse-2014-data-leak");
-assert(benesseBacklog);
-assert.equal(benesseBacklog.researchState, "promoted", "completed backlog research must remain in registry as promoted provenance");
-for (const id of [
-  "dentsu-2016-labor-violation",
-  "starbucks-2018-philadelphia",
-  "guess-2018-marciano",
-  "chipotle-2015-ecoli",
-]) {
-  assert.equal(backlog.candidates.find(row => row.id === id)?.researchState, "unscored", `${id}: next backlog cases must remain unscored`);
+for (const id of ["starbucks-2018-philadelphia", "guess-2018-marciano", "chipotle-2015-ecoli"]) {
+  assert.equal(backlog.candidates.find(row => row.id === id)?.researchState, "unscored", `${id}: next backlog case must remain unscored`);
 }
 
 const historical = new Map(loadHistoricalShockCases().map(row => [row.id, row]));
-const benesseHistorical = historical.get("benesse-2014-data-leak");
-assert(benesseHistorical, "promoted candidate must exist in historical case DB");
-assert.equal(benesseHistorical.score, 9, "backlog promotion must accept PIT score rather than fitting the score to threshold");
-assert.equal(benesseHistorical.priceStateAtCheckpoint, "unknown", "backlog promotion must not backfill later price knowledge into the checkpoint");
-assert.equal(benesseHistorical.outcome?.recoveryPattern, "unknown", "backlog promotion must not carry realized recovery into case selection");
+for (const [id, score] of [["benesse-2014-data-leak", 9], ["dentsu-2016-labor-violation", 8]] as const) {
+  const item = historical.get(id);
+  assert(item, `${id}: promoted candidate must exist in historical case DB`);
+  assert.equal(item.score, score, `${id}: promotion must accept PIT score rather than fitting threshold`);
+  assert.equal(item.priceStateAtCheckpoint, "unknown", `${id}: later price knowledge must not enter checkpoint score`);
+  assert.equal(item.outcome?.recoveryPattern, "unknown", `${id}: realized recovery must not enter candidate selection`);
+}
 
 const baseCandidate: ThresholdCandidateBacklogRow = {
   id: "fixture-case",
@@ -87,21 +75,9 @@ function payload(candidate: Record<string, unknown>) {
   };
 }
 
-assert.throws(
-  () => validateThresholdCandidateBacklogPayload(payload({ ...baseCandidate, score: 10 })),
-  /forbidden pre-score\/pre-outcome field score/,
-  "candidate backlog must not pre-fit score",
-);
-assert.throws(
-  () => validateThresholdCandidateBacklogPayload(payload({ ...baseCandidate, futureReturn3m: 12.3 })),
-  /forbidden pre-score\/pre-outcome field futureReturn3m/,
-  "future return must never influence candidate intake",
-);
-assert.throws(
-  () => validateThresholdCandidateBacklogPayload(payload({ ...baseCandidate, outcomePattern: "fast" })),
-  /forbidden pre-score\/pre-outcome field outcomePattern/,
-  "known recovery outcome must stay outside candidate intake",
-);
+assert.throws(() => validateThresholdCandidateBacklogPayload(payload({ ...baseCandidate, score: 10 })), /forbidden pre-score\/pre-outcome field score/);
+assert.throws(() => validateThresholdCandidateBacklogPayload(payload({ ...baseCandidate, futureReturn3m: 12.3 })), /forbidden pre-score\/pre-outcome field futureReturn3m/);
+assert.throws(() => validateThresholdCandidateBacklogPayload(payload({ ...baseCandidate, outcomePattern: "fast" })), /forbidden pre-score\/pre-outcome field outcomePattern/);
 assert.throws(
   () => validateThresholdCandidateBacklogPayload({
     ...payload(baseCandidate),
@@ -112,30 +88,27 @@ assert.throws(
     },
   }),
   /missing realized_outcome/,
-  "selection policy must keep all anti-leak forbidden inputs explicit",
 );
 
-const diversityFixture: ThresholdDiversityRow[] = [
-  {
-    id: "existing-jp-control",
-    company: "JP Existing",
-    ticker: "0000",
-    country: "JP",
-    market: "JP",
-    score: 11,
-    category: "existing_category",
-    actorType: "employee",
-    calibrationEligibility: "confirmed_pass",
-    replayReady: true,
-    supportedMarket: true,
-    usable3m: false,
-  },
-];
+const diversityFixture: ThresholdDiversityRow[] = [{
+  id: "existing-jp-control",
+  company: "JP Existing",
+  ticker: "0000",
+  country: "JP",
+  market: "JP",
+  score: 11,
+  category: "existing_category",
+  actorType: "employee",
+  calibrationEligibility: "confirmed_pass",
+  replayReady: true,
+  supportedMarket: true,
+  usable3m: false,
+}];
 
 const ranked = rankThresholdCandidateBacklog(backlog.candidates, diversityFixture);
-assert(ranked.length >= 4, `completed/rejected backlog cases must leave active research candidates: ${ranked.length}`);
-assert(!ranked.some(row => row.id === "benesse-2014-data-leak"), "promoted candidate must leave the active research queue");
-assert.equal(ranked[0]?.market, "US", "larger US deficit should outrank the smaller JP deficit");
+assert(ranked.length >= 3, `promoted backlog cases must leave active research candidates: ${ranked.length}`);
+assert(promotedIds.every(id => !ranked.some(row => row.id === id)), "promoted candidates must leave active queue");
+assert.equal(ranked[0]?.market, "US", "larger US deficit should outrank smaller JP deficit");
 assert(ranked[0]?.gapReasons.some(reason => reason.includes("US control deficit 2")));
 assert(ranked.every(row => row.gapReasons.includes("score band intentionally unknown until PIT-safe scoring")));
 
@@ -144,10 +117,6 @@ const rankingWithOnlyUsableFlagChanged = rankThresholdCandidateBacklog(
   backlog.candidates,
   diversityFixture.map(row => ({ ...row, usable3m: true })),
 ).map(row => row.id);
-assert.deepEqual(
-  rankingWithOnlyUsableFlagChanged,
-  rankingWithoutOutcomes,
-  "candidate priority must not change when realized 3m usability changes",
-);
+assert.deepEqual(rankingWithOnlyUsableFlagChanged, rankingWithoutOutcomes, "candidate priority must not change when realized 3m usability changes");
 
 console.log(`idiosyncratic-shock threshold candidate backlog tests: frozen=${backlog.candidates.length} active=${ranked.length}, outcome-blind ranking locked`);
