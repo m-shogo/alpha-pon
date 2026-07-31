@@ -2,9 +2,9 @@
 
 ## 目的
 
-この文書は、企業固有ショック研究で「結果を見てから研究条件を変える」「retrospective事例をprospective OOSと呼ぶ」「古い集計を新しい定義へ使い回す」といった研究上の抜け道を防ぐための正本である。
+企業固有ショック研究で「結果を見てから研究条件を変える」「retrospective事例をprospective OOSと呼ぶ」「古い集計を新しい定義へ使い回す」といった研究上の抜け道を防ぐための正本。
 
-Production thresholdは現在 **12/20**。この文書の契約を満たしても、それだけでthreshold変更や戦略収益性を証明したことにはならない。
+Production thresholdは現在 **12/20**。この契約を満たしても、それだけでthreshold変更や戦略収益性を証明したことにはならない。
 
 ## Integrity chain
 
@@ -13,7 +13,7 @@ outcome-blind candidate freeze
   ↓
 research-state registry
   ↓
-historical case facts
+historical case facts / PIT score
   ↓
 PIT eligibility evidence
   ↓
@@ -36,11 +36,11 @@ prospective pre-outcome holdout
 validated local registry
 ```
 
-各段階は後段だけで補正してはいけない。前段が変わった場合は、その前段に依存する後段を再生成・再検証する。
+後段の結果を前段へ逆流させない。前段が変わった場合は依存する後段を再生成・再検証する。
 
 ## 1. Outcome-blind candidate freeze
 
-threshold境界事例を「結果を知った後で都合よく選ぶ」ことを防ぐため、候補は採点前にfreezeする。
+threshold境界事例を結果を知った後で都合よく選ばないため、候補は採点前にfreezeする。
 
 正本:
 
@@ -64,33 +64,31 @@ data/idiosyncratic_shock_threshold_candidate_backlog_expansion_*.yml
 - realized outcome
 - post-event price path
 
-### Freezeと進捗を分離する
+### Freezeと進捗を分離
 
-batch 3以降のexpansion freezeは `researchState=unscored` のまま変更禁止。
+batch3以降のexpansion freezeは `researchState=unscored` のまま変更禁止。
 
-研究進捗は別正本:
+研究進捗の正本:
 
 ```text
 data/idiosyncratic_shock_threshold_candidate_research_state.yml
 ```
 
-で管理する。
-
-state registryが保持できるのは lifecycle metadata のみ。
+state registryが保持できるのはlifecycle metadataのみ。
 
 - `researchState`
 - `decidedAt`
-- notes
+- `notes`
 
 score / return / outcome等をstate registryへ入れることも禁止する。
 
 runtime default loaderはfreeze recordへstate registryをoverlayする。expansion freeze自体を`promoted`へ直接書き換えた場合はfailする。
 
-batch1–2のbase backlogはこの分離導入前のlegacy stateを含むが、現在のruntime progress正本はstate registry。batch3以降はimmutable freeze方式を必須とする。
+batch1–2のbase backlogは分離導入前のlegacy stateを含むが、現在のruntime progress正本はstate registry。batch3以降はimmutable freeze方式を必須とする。
 
-### Outcome-blind batch実績
+## 2. Outcome-blind batch実績
 
-2026-07-31時点で15候補を採点前freeze後にPIT研究した。
+2026-07-31時点で **19候補を採点前freeze後にPIT研究**した。
 
 | case | PIT score | classification |
 |---|---:|---|
@@ -109,24 +107,30 @@ batch1–2のbase backlogはこの分離導入前のlegacy stateを含むが、�
 | SUBARU 2017 | 8 | shadow BLOCK |
 | lululemon 2018 | 14 | production-threshold side |
 | Barnes & Noble 2018 | 13 | production-threshold side |
+| ENEOS 2022 | 14 | production structural PASS side |
+| Japan Post Insurance 2019 | 4 | systemic BLOCK / band外 |
+| Intel 2018 | 14 | **high-score hard BLOCK: ongoing investigation** |
+| McDonald's 2019 | 15 | production structural PASS side |
 
-この結果は、backlogが「8–11点のPASSを作るリスト」ではないことを示す。7/5点や12–14点になった候補も、そのまま受け入れる。
+この分布はbacklogが「8–11点のPASSを作るリスト」ではないことを示す。4/5/7点や12–15点になった候補もそのまま受け入れる。
 
-Recruit 2019は一度shadow PASS候補になったが、2019-08-26のPPC一次資料自体に調査継続が明記されていたためPIT再監査でBLOCKへ訂正した。将来資料で結論を変えたのではなく、checkpoint時点で既に公開されていたhard blockerを復元した訂正である。
+特にIntel 2018は14点でも同日一次情報が`ongoing investigation`を明示するためBLOCK。scoreとhard gateを混同しない。
+
+Recruit 2019は一度shadow PASS候補になったが、2019-08-26のPPC一次資料自体に調査継続が明記されていたためPIT再監査でBLOCKへ訂正した。未来資料で結論を変えたのではなく、checkpoint時点で既に公開されていたhard blockerを復元した訂正。
+
+McDonald's 2019では2020年に判明した追加事実を2019-11-04 checkpointへ逆流させない。ENEOS 2022でも2023年以降の別事案を2022 recurrence評価へ逆流させない。
 
 active backlogが0かつthreshold readiness未達なら `replenishmentRequired=true`。queue exhaustionをresearch completionと解釈しない。
 
-## 2. PIT evidence
+## 3. PIT evidence
 
-### Historical case source
+Historical case source:
 
-- `publishedAt` があるsourceは `publishedAt <= decisionCheckpoint` の場合だけeligibilityに使用する。
-- checkpoint後sourceを過去PASSの根拠へ逆流させない。
-- legacy undated sourceは後方互換上の技術負債として別auditで可視化する。
+- `publishedAt` があるsourceは `publishedAt <= decisionCheckpoint` の場合だけeligibilityに使用。
+- checkpoint後sourceを過去PASS/BLOCKの根拠へ逆流させない。
+- legacy undated sourceは技術負債として別auditで可視化。
 
-### Sidecar eligibility evidence
-
-後付けの `strategyEligibilityEvidenceSources` はさらに厳格にする。
+Sidecar eligibility evidence:
 
 - valid `publishedAt` 必須
 - `publishedAt <= decisionCheckpoint` 必須
@@ -134,7 +138,7 @@ active backlogが0かつthreshold readiness未達なら `replenishmentRequired=t
 
 Productionとthreshold-calibration shadowは同じPIT source gateを使う。
 
-## 3. Production / threshold-calibration separation
+## 4. Production / threshold-calibration separation
 
 ### Production
 
@@ -150,7 +154,7 @@ Productionとthreshold-calibration shadowは同じPIT source gateを使う。
 - score gateだけを外す
 - accounting / macro / investigation / critical license-listing risk / confounder / source / recurrence / remediation / liquidity / incident cascade等のhard gateは維持
 
-score < 12を自動PASSにしない。
+score < 12を自動PASSにしない。逆にscore >= 12でもIntelのようにhard blockerがあればBLOCK。
 
 現在のbelow-threshold explicit shadow PASSは:
 
@@ -159,7 +163,7 @@ score < 12を自動PASSにしない。
 
 のみ。両方Productionではscore gateによりBLOCK。
 
-## 4. Reaction anchor
+## 5. Reaction anchor
 
 Evidenceだけでreaction dateをverifiedにしない。
 
@@ -177,7 +181,9 @@ Evidenceだけでreaction dateをverifiedにしない。
 - production/shadow signalを生成しない
 - signal率の分母にも入れない
 
-## 5. Case-selection provenance
+ENEOS/McDonald'sの`strategyEligibilityAtCheckpoint=confirmed_pass`も、reaction/価格ゲートを通過したことを意味しない。
+
+## 6. Case-selection provenance
 
 正本:
 
@@ -200,13 +206,11 @@ prospective holdout eligible条件:
 - `registeredAt <= decisionCheckpointAtRegistration`
 - frozen checkpointがcase DBの現在checkpointと一致
 
-historical caseを後からprospectiveへラベル変更しても、checkpoint照合でholdoutにはならない。
+historical caseを後からprospectiveへラベル変更してもholdoutにはならない。provenance欠落は `legacy_untracked` でprospective holdout=false。
 
-provenance欠落は `legacy_untracked` とし、prospective holdout eligibilityはfalse。
+batch2 / batch3 / batch4のoutcome-blind候補はすべて `retrospective_research + known_or_available` として記録し、prospective holdoutへ偽装しない。
 
-batch2 / batch3のoutcome-blind候補はすべて`retrospective_research + known_or_available`として記録し、prospective holdoutへ偽装しない。
-
-## 6. Pre-outcome research snapshot
+## 7. Pre-outcome research snapshot
 
 `src/idiosyncratic-shock-research-snapshot-contract.ts`
 
@@ -222,20 +226,18 @@ SHA256対象:
 
 realized future outcomeはhash対象外。
 
-意味:
-
 - outcome追加だけではresearch definition hashは変わらない
 - score/source/context/selectionを変えるとhashが変わる
 
-正式outcome datasetには `researchSnapshotSha256` を保存する。
+formal outcome datasetには `researchSnapshotSha256` を保存する。
 
-candidate research stateはlifecycle metadataであり、採点内容の正本ではないためsnapshot定義には混ぜない。
+candidate research stateはlifecycle metadataであり採点内容の正本ではないためsnapshot定義には混ぜない。
 
-## 7. Outcome dataset methodology
+## 8. Outcome dataset methodology
 
-`shock-outcome-v1` は名前だけでなくmethodology object全体をruntime完全一致させる。
+`shock-outcome-v1` はmethodology object全体をruntime完全一致させる。
 
-固定項目:
+固定:
 
 - adjusted close
 - signal-session adjusted close entry
@@ -247,34 +249,17 @@ candidate research stateはlifecycle metadataであり、採点内容の正本�
 - no-signal: signalRate denominatorには残し、return統計から除外
 - prospective holdout: default calibration/fittingから除外
 
-同じ `methodVersion` のままhorizonや価格定義だけ変えることは禁止。
+同じmethodVersionのままhorizonや価格定義だけ変えない。dataset内recordはdataset `generatedAt` と同一runを要求。
 
-dataset内の全recordはdataset `generatedAt` と同一runでなければならない。
+## 9. Aggregates are derived data
 
-## 8. Aggregates are derived data
+正式datasetの `calibration` / `calibrationByMarket` は正本ではない。正本はrecord-level outcome。
 
-正式datasetの:
+runtime contractはrecordから `calibrateShockThresholds()` を再計算し、保存aggregateと完全一致させる。
 
-- `calibration`
-- `calibrationByMarket`
+## 10. Outcome snapshot binding
 
-は正本ではない。正本はrecord-level outcome。
-
-runtime contractはrecordから `calibrateShockThresholds()` を再計算し、保存aggregateと完全一致することを要求する。
-
-これにより:
-
-- recordだけ更新してaggregateが古い
-- market aggregateだけ都合の良い値へ変更
-- missing market aggregate
-
-を拒否する。
-
-## 9. Outcome snapshot binding
-
-`src/idiosyncratic-shock-outcome-snapshot-audit.ts`
-
-formal outcome datasetが存在する場合、現在のcase/context/selectionからresearch snapshotを再計算する。
+formal outcome datasetが存在する場合:
 
 ```text
 dataset.researchSnapshotSha256
@@ -282,89 +267,43 @@ dataset.researchSnapshotSha256
 currentResearchSnapshot.aggregateSha256
 ```
 
-でなければfail。
-
-したがってresearch definition変更後に古いoutcome datasetをそのまま使えない。
+を要求。research definition変更後に古いoutcome datasetを使い回さない。
 
 formal outcome datasetがまだ存在しない現在は `not_applicable`。
 
-## 10. Retrospective temporal validation
+## 11. Retrospective temporal validation / prospective holdout
 
-retrospective research pool内でchronological train / later validation sliceを作る。
+retrospective chronological splitはtemporal robustness確認には使えるが **prospective holdoutではない**。
 
-これは:
+local threshold / weights候補をretrospective研究で固定した後、outcome観測前に登録したcaseだけで独立確認する。
 
-- temporal robustness
-- regime driftへの初期耐性
-
-を見るためには有効。
-
-ただし **prospective holdoutではない**。
-
-retrospective chronological validationだけでlocal thresholdを `validated` にしない。
-
-## 11. Prospective holdout
-
-local threshold / weights候補をretrospective researchで固定した後、outcome観測前に登録したcaseだけで独立確認する。
-
-最低条件:
+prospective最低条件:
 
 - `prospective_pre_outcome`
 - usable 3m outcome >= 8 at target model level
 
-prospective outcomeはdefault `calibrateShockThresholds()` から除外する。
-
-- default scope: `research`
-- explicit evaluation: `scope: prospective`
-- `scope: all` はdescriptive用途だけ
-
-prospective結果をthreshold fittingへ戻さない。
+prospective outcomeはdefault fittingから除外する。
 
 ## 12. Local registry evidence binding
 
-正本:
+`config/idiosyncratic-shock-calibration.yml`
 
-```text
-config/idiosyncratic-shock-calibration.yml
-```
+registry entryにはtrain/validation期間・件数・`validationDesign: prospective_pre_outcome`・`benchmarkMetric: calibrationSignalBenchmarkRelative3m`を要求する。
 
-registry entryには:
-
-- `trainFrom / trainThrough`
-- `validationFrom / validationThrough`
-- `trainCases`
-- `validationCases`
-- `validationDesign: prospective_pre_outcome`
-- `benchmarkMetric: calibrationSignalBenchmarkRelative3m`
-
-を要求する。
-
-runtimeではさらに:
-
-- retrospective researchは宣言train期間内だけ使用
-- prospective holdoutは宣言validation期間内だけ使用
-- actual train-window outcomes >= registry `trainCases`
-- actual validation-window prospective outcomes >= registry `validationCases`
-- scoped readinessがvalidated
-
-を要求する。
-
-registry evidence不一致時はlocal thresholdを使わず、検証済み親またはglobal threshold=12へ縮退する。
+実outcome側の期間・件数・scoped readinessと一致しなければlocal thresholdを拒否し、検証済み親またはglobal threshold=12へ縮退する。
 
 ## 13. Matched negative controls
 
-「企業固有shockのルールが効いた」のか「単に大幅下落株が反発した」のかを分離する。
+Shock固有効果と単なる大幅下落後反発を分離する。future returnをmatching inputに使わず:
 
-future returnをmatching inputに使わない。
-
-- same market
-- same sector
-- same reaction date
+- same market / sector / reaction date
 - similar raw drawdown
 - similar benchmark-relative drawdown
-- known shockを除外
-- material corporate eventを除外
-- abnormal liquidityを除外
+- known shock除外
+- material corporate event除外
+- abnormal liquidity除外
+
+でdeterministic matchingする。
 
 ## 14. Threshold変更gate
 
@@ -380,17 +319,16 @@ future returnをmatching inputに使わない。
 - retrospective temporal robustness
 - local model昇格時はprospective holdout >= 8
 
-を要求する。
-
-件数を満たすためconfirmed BLOCKをPASSへ変えない。
+を要求する。件数を満たすためconfirmed BLOCKをPASSへ変えない。
 
 ## Current state — 2026-07-31
 
 - Production threshold: **12維持**
-- outcome-blind frozen/researched candidates: **15/15**
+- outcome-blind frozen/researched candidates: **19/19**
 - active candidate backlog: **0**
-- next candidate replenishment: **REQUIRED**
+- next candidate replenishment: **REQUIRED (batch5)**
 - below-threshold explicit shadow PASS: **Ootoya 2019 (11), United 2017 (10)**
+- high-score hard-BLOCK counterexample: **Intel 2018 (14)**
 - formal `data/idiosyncratic_shock_outcomes.json`: **未生成**
 - validated local registry: **空**
 - prospective holdout: **未充足**
@@ -399,9 +337,7 @@ future returnをmatching inputに使わない。
 
 ## CI
 
-`.github/workflows/shock-contracts.yml` が上記契約の軽量検査を担当する。
-
-追加契約:
+`.github/workflows/shock-contracts.yml` が以下を検査する。
 
 - all loaded historical context enum validation
 - case-selection expansion provenance
@@ -409,8 +345,9 @@ future returnをmatching inputに使わない。
 - immutable expansion freeze (`researchState=unscored`)
 - separate research-state registry completeness
 - state registryへのscore/outcome field混入禁止
-- batch1–3のactual PIT scores
+- batch1–4 actual PIT scores / hard gates
+- retrospective/prospective isolation
+- outcome methodology / aggregate / snapshot binding
+- offline audits
 
-ただしGitHub Actionsの実行証跡がcheckout以前で停止している状態では、code/test greenとは扱わない。
-
-Actionsまたは別の実行可能環境でtypecheck/tests/auditsの実行証跡が取れるまでPRはDraftを維持する。
+GitHub Actionsの実行証跡がcheckout以前で停止している状態ではcode/test greenとは扱わない。Actionsまたは別の実行可能環境でtypecheck/tests/auditsの実行証跡が取れるまでPRはDraftを維持する。
