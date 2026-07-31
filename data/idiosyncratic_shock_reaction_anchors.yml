@@ -71,3 +71,69 @@ cases:
         sourceType: regulator
         publishedAt: "2019-02-11"
     reactionAnchorNotes: "会社公式発表は2019-02-11（建国記念の日）。通常株式市場の次の取引日2019-02-12をreaction startとする。"
+
+  intel-2018-krzanich:
+    announcementTiming: before_open
+    priceReactionStartDate: "2018-06-21"
+    reactionAnchorEvidenceSources:
+      - title: "Intel CEO Brian Krzanich Resigns, Board Appoints Bob Swan as Interim CEO"
+        url: "https://www.intc.com/news-events/press-releases/detail/146/intel-ceo-brian-krzanich-resigns-board-appoints-bob-swan"
+        sourceType: company
+        publishedAt: "2018-06-21"
+    reactionAnchorNotes: "Intel公式IRは2018-06-21 9:00 AM EDTリリース。NASDAQ通常取引開始9:30 AM ETより前なので同日2018-06-21をreaction startとする。"
+
+  priceline-2016-huston:
+    announcementTiming: before_open
+    priceReactionStartDate: "2016-04-28"
+    reactionAnchorEvidenceSources:
+      - title: "Priceline Group CEO Darren Huston Resigns; Chairman Jeffery H. Boyd Appointed Interim CEO"
+        url: "https://www.prnewswire.com/news-releases/priceline-group-ceo-darren-huston-resigns-chairman-jeffery-h-boyd-appointed-interim-ceo-300259053.html"
+        sourceType: other
+        publishedAt: "2016-04-28"
+      - title: "The Priceline Group Form 8-K (2016-04-28)"
+        url: "https://www.sec.gov/Archives/edgar/data/1075531/000107553116000093/a8-kapril2016.htm"
+        sourceType: regulator
+        publishedAt: "2016-04-28"
+    reactionAnchorNotes: "会社配信PRは2016-04-28 8:00 AM ET。NASDAQ通常取引開始前なので同日をreaction startとする。"
+
+  ti-2018-crutcher:
+    announcementTiming: after_close
+    priceReactionStartDate: "2018-07-18"
+    reactionAnchorEvidenceSources:
+      - title: "Rich Templeton to reassume President and CEO roles; Brian Crutcher resigned as CEO"
+        url: "https://www.prnewswire.com/news-releases/rich-templeton-to-reassume-president-and-ceo-roles-in-addition-to-his-current-role-as-chairman-brian-crutcher-resigned-as-ceo-300682515.html"
+        sourceType: other
+        publishedAt: "2018-07-17"
+      - title: "Texas Instruments CEO leadership change"
+        url: "https://www.ti.com/about-ti/newsroom/news-releases/2018/2018-07-17-rich-templeton-to-reassume-president-and-ceo-roles-in-addition-to-his-current-role-as-chairman--brian-crutcher-resigned-as-ceo.html"
+        sourceType: company
+        publishedAt: "2018-07-17"
+    reactionAnchorNotes: "会社配信PRは2018-07-17 4:40 PM ETで通常取引終了後。extended trading反応は日足正本へ混ぜず、次の通常取引日2018-07-18をreaction startとする。"
+
+  keurig-dr-pepper-2022-ceo-conduct:
+    announcementTiming: before_open
+    priceReactionStartDate: "2022-11-10"
+    reactionAnchorEvidenceSources:
+      - title: "KDP Executive Chairman Bob Gamgort to Reassume CEO Role"
+        url: "https://www.prnewswire.com/news-releases/kdp-executive-chairman-bob-gamgort-to-reassume-ceo-role-following-resignation-of-ozan-dokmecioglu-301674255.html"
+        sourceType: other
+        publishedAt: "2022-11-10"
+      - title: "KDP Executive Chairman Bob Gamgort to Reassume CEO Role"
+        url: "https://investors.keurigdrpepper.com/2022-11-10-KDP-EXECUTIVE-CHAIRMAN-BOB-GAMGORT-TO-REASSUME-CEO-ROLE-FOLLOWING-RESIGNATION-OF-OZAN-DOKMECIOGLU"
+        sourceType: company
+        publishedAt: "2022-11-10"
+    reactionAnchorNotes: "会社配信PRは2022-11-10 8:30 AM ET。NASDAQ通常取引開始前なので同日をreaction startとする。"
+
+  boeing-2005-stonecipher:
+    announcementTiming: before_open
+    priceReactionStartDate: "2005-03-07"
+    reactionAnchorEvidenceSources:
+      - title: "Boeing CEO Harry Stonecipher Resigns"
+        url: "https://www.sec.gov/Archives/edgar/data/12927/000119312505046669/dex991.htm"
+        sourceType: regulator
+        publishedAt: "2005-03-07"
+      - title: "Boeing CEO Ousted"
+        url: "https://www.cbsnews.com/news/boeing-ceo-ousted/"
+        sourceType: major_media
+        publishedAt: "2005-03-07"
+    reactionAnchorNotes: "CBS/APは2005-03-07 8:00 AM ESTに報道、Boeing/SECリリースも同日。NYSE通常取引開始前なので2005-03-07をreaction startとする。"
