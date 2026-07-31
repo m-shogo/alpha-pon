@@ -1,0 +1,47 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Threshold calibration research batch 3。score 8-9のdeep controlをcheckpoint以前/同日の一次情報で再監査し、低score比較群を無理にPASSへ寄せない。"
+cases:
+  kadokawa-2022-bribery:
+    incidentCountry: JP
+    sector: media_entertainment
+    stakeholder: public
+    incidentScope: multi_unit
+    confounderStatus: possible
+    strategyInvestigationStatusAtCheckpoint: open
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    calibrationEligibilityAtCheckpoint: confirmed_block
+    calibrationEligibilityNotes: "productionはscore=9でBLOCK。threshold研究でもcheckpoint=2022-10-04時点で、取締役会長が贈賄罪で同日起訴され、事件は刑事裁判へ継続する段階だった。さらに元専務ら複数関係者へ広がる事件であり、score thresholdを外してもopen investigation hard gateでBLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "当社役員の起訴について"
+        url: "https://www2.jpx.co.jp/disc/94680/140120221004540533.pdf"
+        sourceType: exchange
+        publishedAt: "2022-10-04"
+      - title: "当社役員の起訴について - KADOKAWA"
+        url: "https://group.kadokawa.co.jp/information/media-download/906/220e88fa7b36e663/"
+        sourceType: company
+        publishedAt: "2022-10-04"
+    notes: "創業家キーパーソンの個人事件に見えても、複数関係者・刑事手続・企業ガバナンスへ波及しており、score=9を比較群PASSへ変換しない。"
+
+  sukiya-2025-rat:
+    incidentCountry: JP
+    sector: restaurant_food_service
+    stakeholder: customer
+    incidentScope: multi_unit
+    confounderStatus: major
+    recurrenceStatus: related_multiple
+    incidentClusterStatus: cascade
+    strategyInvestigationStatusAtCheckpoint: open
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    calibrationEligibilityAtCheckpoint: confirmed_block
+    calibrationEligibilityNotes: "productionはscore=8でBLOCK。3/22の鳥取南吉方店ネズミ混入について会社は原因調査と対策を公表したが、checkpoint=2025-03-29当日に昭島駅南店で別の害虫混入を公表し、その原因はなお調査中だった。会社は1月事案との再発を重く受け止め、一部を除く全店を3/31-4/4に一時閉店すると決定。単一店舗の事件だけへ株価影響を帰属できず、open investigation + major confounder + incident cascadeでshadowもBLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "すき家に関する一部報道について"
+        url: "https://www.sukiya.jp/news/2025/03/20250322.html"
+        sourceType: company
+        publishedAt: "2025-03-22"
+      - title: "異物混入に関するお詫びと全店一時閉店に関するお知らせ"
+        url: "https://www.sukiya.jp/news/2025/03/20250329.html"
+        sourceType: company
+        publishedAt: "2025-03-29"
+    notes: "score 8-9帯の件数を稼ぐために、再発・全店休業・原因調査中という強い反証を無視しないdeep negative control。"
