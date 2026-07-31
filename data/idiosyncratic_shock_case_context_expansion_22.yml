@@ -1,0 +1,27 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 11 context。Wells Fargo 2016は販売慣行がsystemicで、Board独立調査・複数政府調査がopenのためshadow BLOCK。"
+cases:
+  wells-fargo-2016-unauthorized-accounts:
+    incidentCountry: US
+    sector: banking
+    stakeholder: customer
+    incidentScope: company_wide
+    confounderStatus: possible
+    recurrenceStatus: systemic
+    remediationStatus: partial
+    incidentClusterStatus: cascade
+    strategyInvestigationStatusAtCheckpoint: open
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    calibrationEligibilityAtCheckpoint: confirmed_block
+    calibrationEligibilityNotes: "productionはscore=5でBLOCK。threshold研究でもcheckpoint=2016-09-27時点でBoard独立取締役が包括的investigationを開始し、会社8-KはDOJ・state attorneys general/prosecutors・Congressional committees等のformal/informal inquiriesが継続中と明示。大量のpotentially unauthorized accountsとsales incentivesに関わるsystemic recurrenceでもありshadow BLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "CFPB Fines Wells Fargo $100 Million for Widespread Illegal Practice of Secretly Opening Unauthorized Accounts"
+        url: "https://www.consumerfinance.gov/archive/newsroom/consumer-financial-protection-bureau-fines-wells-fargo-100-million-widespread-illegal-practice-secretly-opening-unauthorized-accounts/"
+        sourceType: regulator
+        publishedAt: "2016-09-08"
+      - title: "Wells Fargo Form 8-K — Board Investigation and Government Inquiries"
+        url: "https://www.sec.gov/Archives/edgar/data/72971/000119312516722259/d266244d8k.htm"
+        sourceType: regulator
+        publishedAt: "2016-09-27"
+    notes: "2017-04-10 Board final investigation reportはcheckpoint後なのでeligibility根拠に使用しない。future returnも使用しない。"
