@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 24。Olympus 2011損失先送り問題を第三者委員会報告受領checkpointで採点し、過年度財務修正を要するaccounting/governance deep controlとして保存。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: olympus-2011-loss-concealment
+    company: "Olympus"
+    ticker: "7733"
+    country: JP
+    eventDate: "2011-11-08"
+    checkpoint: "2011-12-06"
+    category: accounting_loss_concealment
+    actorType: organization
+    scoreVector: [1,0,0,0,0,0,1,1,0,0]
+    priceState: unknown
+    summary: "第三者委員会報告で過去の証券投資損失の先送りと買収取引を用いた損失処理が確認され、2007〜2011年の有価証券報告書等の訂正準備が必要となった。会社は信頼回復と抜本的な再発防止策を検討中だった。"
+    source: "https://www.olympus-global.com/ir/data/announcement/pdf/nr111206e.pdf"
+    sourceType: company
+    outcomePattern: unknown
+    lesson: "過年度財務報告訂正を要する長期的損失隠しはaccountingIntegrity=0。価格や後日の上場維持・経営再建をPIT scoreへ逆流させず3点のdeep controlとして保存する。"
+    confidence: high
