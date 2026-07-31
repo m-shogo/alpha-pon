@@ -19,16 +19,12 @@ export type ShockHistoricalOutcomeRecord = {
   benchmark: string;
   eventDate: string;
   reactionStartDate: string;
-  /** replay-ready reaction anchorだけverifiedとして保存する。 */
   reactionAnchorStatus: HistoricalReactionAnchorStatus;
   checkpoint: string;
   score: number;
   label: string;
-  /** 本番parity。現行score thresholdを含む。 */
   strategyEligibilityAtCheckpoint: HistoricalStrategyEligibilityStatus;
-  /** threshold=12自体を検証するshadow研究用。旧JSON互換のためoptional。 */
   thresholdCalibrationEligibilityAtCheckpoint?: HistoricalStrategyEligibilityStatus;
-  /** checkpoint起点の研究比較値。戦略calibrationの正本には使わない。 */
   baseDate: string | null;
   basePrice: number | null;
   preEventDate: string | null;
@@ -44,7 +40,6 @@ export type ShockHistoricalOutcomeRecord = {
   benchmarkRelative1m: number | null;
   benchmarkRelative3m: number | null;
   benchmarkRelative1y: number | null;
-  /** 本番hard gate confirmed_pass後のFirst Eligible Signal。 */
   firstEligibleSignalDate: string | null;
   firstEligibleSignalPrice: number | null;
   signalShockDrawdownPct: number | null;
@@ -57,7 +52,6 @@ export type ShockHistoricalOutcomeRecord = {
   signalBenchmarkRelative1m: number | null;
   signalBenchmarkRelative3m: number | null;
   signalBenchmarkRelative1y: number | null;
-  /** threshold研究用shadow signal。score thresholdだけを外し、他hard gateは本番と共有する。 */
   calibrationFirstEligibleSignalDate?: string | null;
   calibrationFirstEligibleSignalPrice?: number | null;
   calibrationSignalShockDrawdownPct?: number | null;
@@ -70,39 +64,36 @@ export type ShockHistoricalOutcomeRecord = {
   calibrationSignalBenchmarkRelative1m?: number | null;
   calibrationSignalBenchmarkRelative3m?: number | null;
   calibrationSignalBenchmarkRelative1y?: number | null;
-  /** @deprecated JP互換。海外ではnull。新規コードはbenchmarkRelative*を使う。 */
   topixRelative1w: number | null;
-  /** @deprecated JP互換。海外ではnull。新規コードはbenchmarkRelative*を使う。 */
   topixRelative1m: number | null;
-  /** @deprecated JP互換。海外ではnull。新規コードはbenchmarkRelative*を使う。 */
   topixRelative3m: number | null;
-  /** @deprecated JP互換。海外ではnull。新規コードはbenchmarkRelative*を使う。 */
   topixRelative1y: number | null;
   generatedAt: string;
 };
 
 export type ShockCalibrationBucket = {
   bucket: string;
+  /** shadow eligibility PASS + replay-ready anchor。returnの分母ではなくsignal発生率の分母。 */
+  eligibleCases: number;
+  /** 実際にshadow First Eligible Signalが出た件数。 */
   cases: number;
+  signalRate: number | null;
   n1m: number;
   avgReturn1m: number | null;
   medianReturn1m: number | null;
   positiveRate1m: number | null;
   avgBenchmarkRelative1m: number | null;
-  /** @deprecated compatibility alias */
   avgTopixRelative1m: number | null;
   n3m: number;
   avgReturn3m: number | null;
   medianReturn3m: number | null;
   positiveRate3m: number | null;
   avgBenchmarkRelative3m: number | null;
-  /** @deprecated compatibility alias */
   avgTopixRelative3m: number | null;
   n1y: number;
   avgReturn1y: number | null;
   positiveRate1y: number | null;
   avgBenchmarkRelative1y: number | null;
-  /** @deprecated compatibility alias */
   avgTopixRelative1y: number | null;
 };
 
@@ -139,11 +130,7 @@ function round(value: number | null): number | null {
   return value == null || !Number.isFinite(value) ? null : Number(value.toFixed(4));
 }
 
-function priceReturnFrom(
-  quotes: ReturnType<typeof sortedQuotes>,
-  baseDate: string,
-  days: number,
-): number | null {
+function priceReturnFrom(quotes: ReturnType<typeof sortedQuotes>, baseDate: string, days: number): number | null {
   const base = onOrAfter(quotes, baseDate);
   const target = onOrAfter(quotes, addDaysJst(baseDate, days));
   return round(pct(base?.AdjustmentClose ?? null, target?.AdjustmentClose ?? null));
@@ -239,9 +226,7 @@ export function buildShockHistoricalOutcome(
   const preEvent = onOrBefore(stockQuotes, preEventTarget);
   const shockWindowEnd = addDaysJst(reactionStartDate, DEFAULT_SHOCK_WINDOW_DAYS);
   const shockWindow = stockQuotes.filter(row => row.normalizedDate >= reactionStartDate && row.normalizedDate <= shockWindowEnd);
-  const shockLow = shockWindow.length
-    ? shockWindow.reduce((min, row) => row.AdjustmentClose < min.AdjustmentClose ? row : min)
-    : null;
+  const shockLow = shockWindow.length ? shockWindow.reduce((min, row) => row.AdjustmentClose < min.AdjustmentClose ? row : min) : null;
 
   const benchmarkRelative1w = relativeReturn(stockQuotes, benchmarkQuotes, checkpoint, 7);
   const benchmarkRelative1m = relativeReturn(stockQuotes, benchmarkQuotes, checkpoint, 30);
@@ -346,17 +331,14 @@ function positiveRate(values: number[]): number | null {
 
 function calibrationValues(records: ShockHistoricalOutcomeRecord[], key: keyof ShockHistoricalOutcomeRecord): number[] {
   return records
-    .filter(row => row.thresholdCalibrationEligibilityAtCheckpoint === "confirmed_pass"
-      && row.reactionAnchorStatus === "verified"
-      && Boolean(row.calibrationFirstEligibleSignalDate))
+    .filter(row => row.thresholdCalibrationEligibilityAtCheckpoint === "confirmed_pass" && row.reactionAnchorStatus === "verified" && Boolean(row.calibrationFirstEligibleSignalDate))
     .map(row => row[key])
     .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
 }
 
 function calibrationBucket(bucket: string, records: ShockHistoricalOutcomeRecord[]): ShockCalibrationBucket {
-  const signaled = records.filter(row => row.thresholdCalibrationEligibilityAtCheckpoint === "confirmed_pass"
-    && row.reactionAnchorStatus === "verified"
-    && Boolean(row.calibrationFirstEligibleSignalDate));
+  const eligible = records.filter(row => row.thresholdCalibrationEligibilityAtCheckpoint === "confirmed_pass" && row.reactionAnchorStatus === "verified");
+  const signaled = eligible.filter(row => Boolean(row.calibrationFirstEligibleSignalDate));
   const r1m = calibrationValues(signaled, "calibrationSignalReturn1m");
   const rel1m = calibrationValues(signaled, "calibrationSignalBenchmarkRelative1m");
   const r3m = calibrationValues(signaled, "calibrationSignalReturn3m");
@@ -366,9 +348,12 @@ function calibrationBucket(bucket: string, records: ShockHistoricalOutcomeRecord
   const avgBenchmarkRelative1m = average(rel1m);
   const avgBenchmarkRelative3m = average(rel3m);
   const avgBenchmarkRelative1y = average(rel1y);
+  const signalRate = eligible.length === 0 ? null : round((signaled.length / eligible.length) * 100);
   return {
     bucket,
+    eligibleCases: eligible.length,
     cases: signaled.length,
+    signalRate,
     n1m: r1m.length,
     avgReturn1m: average(r1m),
     medianReturn1m: median(r1m),
@@ -389,10 +374,6 @@ function calibrationBucket(bucket: string, records: ShockHistoricalOutcomeRecord
   };
 }
 
-/**
- * threshold/weights検証用。production signalではなくshadow calibration signalを使う。
- * これによりscore<12を比較群へ含め、threshold=12を前提にthreshold=12を検証する循環を避ける。
- */
 export function calibrateShockThresholds(records: ShockHistoricalOutcomeRecord[]): ShockCalibrationBucket[] {
   const buckets: Array<[string, (row: ShockHistoricalOutcomeRecord) => boolean]> = [
     ["all", () => true],
@@ -408,7 +389,6 @@ export function calibrateShockThresholds(records: ShockHistoricalOutcomeRecord[]
 
 export function outcomeFetchRangeIso(item: HistoricalShockCase, generatedAt: string): { from: string; to: string } {
   const from = addDaysJst(item.eventDate, -10);
-  // signalはreaction/checkpoint後最大90日まで出得る。signal後1yも欠損させないため余裕を持って取得する。
   const desiredTo = addDaysJst(item.decisionCheckpoint, DEFAULT_SIGNAL_SEARCH_DAYS + 380);
   const to = desiredTo < generatedAt ? desiredTo : generatedAt;
   return { from, to };
