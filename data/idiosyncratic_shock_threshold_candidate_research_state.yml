@@ -72,14 +72,18 @@ states:
     researchState: promoted
     decidedAt: "2026-07-31"
   olympus-2011-loss-concealment:
-    researchState: unscored
+    researchState: promoted
     decidedAt: "2026-07-31"
+    notes: "Batch6 PIT research complete; accounting hard block."
   toyota-2010-accelerator-recall:
-    researchState: unscored
+    researchState: promoted
     decidedAt: "2026-07-31"
+    notes: "Batch6 PIT research complete; open product-safety investigation/remediation hard block."
   target-2013-payment-card-breach:
-    researchState: unscored
+    researchState: promoted
     decidedAt: "2026-07-31"
+    notes: "Batch6 PIT research complete; open forensic/criminal investigation hard block."
   boeing-2019-737-max-grounding:
-    researchState: unscored
+    researchState: promoted
     decidedAt: "2026-07-31"
+    notes: "Batch6 PIT research complete; open safety investigation and critical certification risk hard block."
