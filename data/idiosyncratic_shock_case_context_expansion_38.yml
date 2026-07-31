@@ -1,0 +1,23 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog batch 6 context。Boeing 2019 737 MAX groundingを二件の死亡事故と世界規模groundingを伴うopen aviation-safety investigationとして固定。"
+cases:
+  boeing-2019-737-max-grounding:
+    incidentCountry: US
+    sector: aerospace
+    stakeholder: mixed
+    incidentScope: company_wide
+    confounderStatus: clear
+    recurrenceStatus: related_multiple
+    remediationStatus: partial
+    incidentClusterStatus: related_multiple
+    strategyInvestigationStatusAtCheckpoint: open
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: true
+    calibrationEligibilityAtCheckpoint: confirmed_block
+    calibrationEligibilityNotes: "productionはscore=4でBLOCK。threshold研究でも2019-03-13時点で二件の死亡事故後に371機の737 MAX全世界fleetがgroundingされ、原因理解・software enhancement・安全性確認が未完了。運航認証に直結するcritical safety riskとopen investigationのためscore gateを外してもshadow BLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "Boeing Supports Action to Temporarily Ground 737 MAX Operations"
+        url: "https://investors.boeing.com/investors/news/press-release-details/2019/In-Consultation-with-the-FAA-NTSB-and-its-Customers-Boeing-Supports-Action-to-Temporarily-Ground-737-MAX-Operations/default.aspx"
+        sourceType: company
+        publishedAt: "2019-03-13"
+    notes: "後日のcertification、補償費用、政府調査結果、業績、株価returnはcheckpoint判定へ逆流させない。"
