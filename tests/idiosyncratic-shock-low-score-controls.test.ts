@@ -18,7 +18,6 @@ function calibration(id: string) {
 for (const [id, expectedScore] of [
   ["ootoya-2019-employee-video", 11],
   ["united-2017-flight3411", 10],
-  ["recruit-2019-rikunabi-dmp", 11],
 ] as const) {
   const item = cases.get(id);
   assert(item, `missing low-score shadow PASS case: ${id}`);
@@ -46,6 +45,7 @@ for (const id of [
   "jal-2018-alcohol-compliance",
   "kobe-steel-2017-quality-falsification",
   "tesla-2018-musk-sec",
+  "recruit-2019-rikunabi-dmp",
 ]) {
   const result = calibration(id);
   assert.equal(result.status, "confirmed_block", `${id} must not become a shadow control merely because its score is below 12`);
@@ -71,5 +71,7 @@ assert.equal(cases.get("kobe-steel-2017-quality-falsification")?.score, 8);
 assert(calibration("kobe-steel-2017-quality-falsification").blockers.includes("investigationStatus=open"));
 assert.equal(cases.get("tesla-2018-musk-sec")?.score, 9);
 assert(calibration("tesla-2018-musk-sec").blockers.includes("investigationStatus=open"));
+assert.equal(cases.get("recruit-2019-rikunabi-dmp")?.score, 11);
+assert(calibration("recruit-2019-rikunabi-dmp").blockers.includes("investigationStatus=open"), "Recruit Aug26 PPC release explicitly said investigation was continuing");
 
-console.log("idiosyncratic-shock low-score control tests: Ootoya + United + Recruit shadow PASS; unsafe 8-11 controls remain BLOCK");
+console.log("idiosyncratic-shock low-score control tests: Ootoya + United shadow PASS; PIT-open Recruit and unsafe 8-11 controls remain BLOCK");
