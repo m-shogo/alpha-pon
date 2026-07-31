@@ -1,0 +1,13 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Reaction anchor research batch 5。United Flight 3411の最初の通常取引反応日を会社一次情報で固定。"
+cases:
+  united-2017-flight3411:
+    announcementTiming: non_trading_day
+    priceReactionStartDate: "2017-04-10"
+    reactionAnchorEvidenceSources:
+      - title: "Response to United Express Flight 3411"
+        url: "https://united.mediaroom.com/news-releases?item=124753"
+        sourceType: company
+        publishedAt: "2017-04-10"
+    reactionAnchorNotes: "事件は2017-04-09（日）に発生。Unitedの最初の公式responseは翌4/10（月）で、会社は当局との連携と詳細review開始を公表した。日曜はNYSE通常取引がないためprice reaction startを2017-04-10に固定する。stockとbenchmark双方の実日足存在はoutcome backfill側で別途二重確認する。"
