@@ -1,7 +1,6 @@
 // 企業固有ショック過去事例の定量 outcome backfill。
 // JPはJ-Quants + TOPIX、USはTwelve Data + S&P 500 proxy。
-// checkpoint outcomeは研究比較用。戦略calibrationは、非価格hard gateがconfirmed_passかつ
-// reaction anchorがreplay-readyで、First Eligible Signalが実際に出たケースだけを正本にする。
+// production signalと、score threshold自体を検証するshadow calibration signalを分離して保存する。
 //
 // pnpm backfill:shock-outcomes          # dry-run
 // pnpm backfill:shock-outcomes --write  # data/idiosyncratic_shock_outcomes.json を更新
@@ -15,6 +14,7 @@ import { fetchTwelveDataDailyQuotes, isTwelveDataConfigured } from "./fetcher/tw
 import {
   loadHistoricalShockCaseContext,
   resolveHistoricalStrategyEligibility,
+  resolveHistoricalThresholdCalibrationEligibility,
   type HistoricalShockCaseContext,
 } from "./idiosyncratic-shock-case-context.js";
 import { loadHistoricalShockCases } from "./idiosyncratic-shock-data.js";
@@ -53,7 +53,7 @@ function f(value: number | null): string {
   return value == null ? "-" : value.toFixed(2);
 }
 
-function fp(value: number | null): string {
+function fp(value: number | null | undefined): string {
   return value == null ? "-" : `${value.toFixed(2)}%`;
 }
 
@@ -72,7 +72,7 @@ function marketCalibration(records: ShockHistoricalOutcomeRecord[]): Calibration
 
 function renderCalibration(lines: string[], title: string, records: ShockHistoricalOutcomeRecord[]): void {
   lines.push(`## ${title}`, "");
-  lines.push("| bucket | signaled cases | n1m | avg1m | median1m | +rate1m | benchmark相対1m | n3m | avg3m | +rate3m | benchmark相対3m | n1y | avg1y | +rate1y | benchmark相対1y |", "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
+  lines.push("| bucket | shadow signals | n1m | avg1m | median1m | +rate1m | benchmark相対1m | n3m | avg3m | +rate3m | benchmark相対3m | n1y | avg1y | +rate1y | benchmark相対1y |", "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
   for (const row of calibrateShockThresholds(records)) {
     lines.push(`| ${row.bucket} | ${row.cases} | ${row.n1m} | ${f(row.avgReturn1m)} | ${f(row.medianReturn1m)} | ${f(row.positiveRate1m)}% | ${f(row.avgBenchmarkRelative1m)} | ${row.n3m} | ${f(row.avgReturn3m)} | ${f(row.positiveRate3m)}% | ${f(row.avgBenchmarkRelative3m)} | ${row.n1y} | ${f(row.avgReturn1y)} | ${f(row.positiveRate1y)}% | ${f(row.avgBenchmarkRelative1y)} |`);
   }
@@ -85,35 +85,40 @@ function renderMarkdown(
   providerStatus: ProviderStatus[],
   failures: string[],
 ): string {
-  const confirmedPass = records.filter(row => row.strategyEligibilityAtCheckpoint === "confirmed_pass");
-  const confirmedBlock = records.filter(row => row.strategyEligibilityAtCheckpoint === "confirmed_block");
-  const eligibilityUnknown = records.filter(row => row.strategyEligibilityAtCheckpoint === "unknown");
-  const anchorVerifiedPass = confirmedPass.filter(row => row.reactionAnchorStatus === "verified");
-  const anchorUnverifiedPass = confirmedPass.filter(row => row.reactionAnchorStatus !== "verified");
-  const signaled = anchorVerifiedPass.filter(row => Boolean(row.firstEligibleSignalDate));
-  const noTrade = anchorVerifiedPass.length - signaled.length;
+  const productionPass = records.filter(row => row.strategyEligibilityAtCheckpoint === "confirmed_pass");
+  const productionBlock = records.filter(row => row.strategyEligibilityAtCheckpoint === "confirmed_block");
+  const productionUnknown = records.filter(row => row.strategyEligibilityAtCheckpoint === "unknown");
+  const calibrationPass = records.filter(row => row.thresholdCalibrationEligibilityAtCheckpoint === "confirmed_pass");
+  const calibrationBlock = records.filter(row => row.thresholdCalibrationEligibilityAtCheckpoint === "confirmed_block");
+  const calibrationUnknown = records.filter(row => (row.thresholdCalibrationEligibilityAtCheckpoint ?? "unknown") === "unknown");
+  const productionAnchored = productionPass.filter(row => row.reactionAnchorStatus === "verified");
+  const productionSignals = productionAnchored.filter(row => Boolean(row.firstEligibleSignalDate));
+  const productionNoTrade = productionAnchored.length - productionSignals.length;
+  const calibrationAnchored = calibrationPass.filter(row => row.reactionAnchorStatus === "verified");
+  const calibrationSignals = calibrationAnchored.filter(row => Boolean(row.calibrationFirstEligibleSignalDate));
+  const calibrationNoTrade = calibrationAnchored.length - calibrationSignals.length;
+  const belowThresholdControls = calibrationAnchored.filter(row => row.score < 12);
+  const belowThresholdSignals = belowThresholdControls.filter(row => Boolean(row.calibrationFirstEligibleSignalDate));
+
   const lines = [
     "# 企業固有ショック 定量outcome / 閾値検証",
     "",
     `生成日: ${date}`,
     "",
-    "> scoreはdecision checkpoint時点の評価。checkpoint returnは診断用に残します。",
-    "> 戦略calibrationは、checkpoint時点の非価格hard gateがconfirmed_pass、reaction anchorがreplay-ready、かつFirst Eligible Signalが出たケースだけを使います。",
-    "> eligibility unknown / reaction-anchor unverifiedはno-tradeではありません。confirmed_pass + replay-ready anchorだが価格signalが出なかったケースだけをtrue no-tradeとして分離します。",
+    "> productionは現行score>=12を含む本番parity。threshold calibrationはscore gateだけを外したshadow replay。",
+    "> 12点の妥当性はshadow signalで検証し、低score controlを本番通知対象へ混ぜない。",
     "",
     `- price outcome records: ${records.length}`,
-    `- non-price confirmed pass: ${confirmedPass.length}`,
-    `- confirmed-pass reaction anchor replay-ready: ${anchorVerifiedPass.length}`,
-    `- confirmed-pass reaction anchor not replay-ready: ${anchorUnverifiedPass.length}`,
-    `- non-price confirmed block: ${confirmedBlock.length}`,
-    `- non-price eligibility unknown: ${eligibilityUnknown.length}`,
-    `- first eligible signals: ${signaled.length}`,
-    `- true no-trade after confirmed pass + replay-ready anchor: ${noTrade}`,
+    `- production eligibility pass/block/unknown: ${productionPass.length}/${productionBlock.length}/${productionUnknown.length}`,
+    `- threshold calibration eligibility pass/block/unknown: ${calibrationPass.length}/${calibrationBlock.length}/${calibrationUnknown.length}`,
+    `- production anchored/signals/true-no-trade: ${productionAnchored.length}/${productionSignals.length}/${productionNoTrade}`,
+    `- calibration anchored/signals/no-signal: ${calibrationAnchored.length}/${calibrationSignals.length}/${calibrationNoTrade}`,
+    `- below-threshold shadow controls/signals: ${belowThresholdControls.length}/${belowThresholdSignals.length}`,
     `- failures/skips: ${failures.length}`,
     "",
     "## provider readiness",
     "",
-    "| market | provider | configured | benchmark | eligible historical cases |",
+    "| market | provider | configured | benchmark | historical ticker cases |",
     "|---|---|---|---|---:|",
   ];
   for (const row of providerStatus) {
@@ -121,9 +126,9 @@ function renderMarkdown(
   }
   lines.push("");
 
-  renderCalibration(lines, "全市場（signal-based / 参考）", records);
+  renderCalibration(lines, "全市場 threshold calibration（shadow signal）", records);
   for (const market of [...new Set(records.map(row => row.market))].sort()) {
-    renderCalibration(lines, `${market} 市場（signal-based）`, records.filter(row => row.market === market));
+    renderCalibration(lines, `${market} threshold calibration（shadow signal）`, records.filter(row => row.market === market));
   }
 
   lines.push("## ケース", "");
@@ -132,38 +137,40 @@ function renderMarkdown(
     lines.push(`- benchmark: ${row.benchmark}`);
     lines.push(`- event/reaction/checkpoint: ${row.eventDate} / ${row.reactionStartDate} / ${row.checkpoint}`);
     lines.push(`- reaction anchor: ${row.reactionAnchorStatus}`);
-    lines.push(`- non-price strategy eligibility: ${row.strategyEligibilityAtCheckpoint}`);
+    lines.push(`- production eligibility: ${row.strategyEligibilityAtCheckpoint}`);
+    lines.push(`- threshold calibration eligibility: ${row.thresholdCalibrationEligibilityAtCheckpoint ?? "unknown"}`);
     lines.push(`- event shock drawdown: ${fp(row.shockDrawdownPct)} (${row.preEventDate ?? "-"} → low ${row.shockLowDate ?? "-"})`);
     lines.push(`- checkpoint return: 1w ${fp(row.return1w)} / 1m ${fp(row.return1m)} / 3m ${fp(row.return3m)} / 1y ${fp(row.return1y)}`);
-    lines.push(`- checkpoint benchmark relative: 1m ${fp(row.benchmarkRelative1m)} / 3m ${fp(row.benchmarkRelative3m)} / 1y ${fp(row.benchmarkRelative1y)}`);
+
     if (row.firstEligibleSignalDate) {
-      lines.push(`- first eligible signal: ${row.firstEligibleSignalDate} @ ${row.firstEligibleSignalPrice ?? "-"} / shock ${fp(row.signalShockDrawdownPct)} / relative ${fp(row.signalRelativeShockDrawdownPct)}`);
-      lines.push(`- signal return: 1w ${fp(row.signalReturn1w)} / 1m ${fp(row.signalReturn1m)} / 3m ${fp(row.signalReturn3m)} / 1y ${fp(row.signalReturn1y)}`);
-      lines.push(`- signal benchmark relative: 1m ${fp(row.signalBenchmarkRelative1m)} / 3m ${fp(row.signalBenchmarkRelative3m)} / 1y ${fp(row.signalBenchmarkRelative1y)}`);
-    } else if (row.strategyEligibilityAtCheckpoint === "confirmed_pass" && row.reactionAnchorStatus !== "verified") {
-      lines.push("- first eligible signal: not evaluated (reaction anchor not replay-ready)");
-    } else if (row.strategyEligibilityAtCheckpoint === "confirmed_pass") {
-      lines.push("- first eligible signal: none (true no-trade: non-price gates passed, reaction anchor replay-ready, price gates never completed)");
+      lines.push(`- production signal: ${row.firstEligibleSignalDate} @ ${row.firstEligibleSignalPrice ?? "-"} / shock ${fp(row.signalShockDrawdownPct)} / relative ${fp(row.signalRelativeShockDrawdownPct)}`);
+      lines.push(`- production signal return: 1m ${fp(row.signalReturn1m)} / 3m ${fp(row.signalReturn3m)} / benchmark relative 3m ${fp(row.signalBenchmarkRelative3m)}`);
+    } else if (row.strategyEligibilityAtCheckpoint === "confirmed_pass" && row.reactionAnchorStatus === "verified") {
+      lines.push("- production signal: none (true no-trade)");
     } else {
-      lines.push(`- first eligible signal: not evaluated (${row.strategyEligibilityAtCheckpoint})`);
+      lines.push("- production signal: not evaluated");
+    }
+
+    if (row.calibrationFirstEligibleSignalDate) {
+      lines.push(`- calibration shadow signal: ${row.calibrationFirstEligibleSignalDate} @ ${row.calibrationFirstEligibleSignalPrice ?? "-"} / shock ${fp(row.calibrationSignalShockDrawdownPct)} / relative ${fp(row.calibrationSignalRelativeShockDrawdownPct)}`);
+      lines.push(`- calibration shadow return: 1m ${fp(row.calibrationSignalReturn1m)} / 3m ${fp(row.calibrationSignalReturn3m)} / benchmark relative 3m ${fp(row.calibrationSignalBenchmarkRelative3m)}`);
+    } else if (row.thresholdCalibrationEligibilityAtCheckpoint === "confirmed_pass" && row.reactionAnchorStatus === "verified") {
+      lines.push("- calibration shadow signal: none (price gates never completed)");
+    } else {
+      lines.push("- calibration shadow signal: not evaluated");
     }
     lines.push("");
   }
 
   lines.push("## 解釈ルール", "");
-  lines.push("- Local Opportunityの閾値・重み検証はnon-price confirmed_pass + replay-ready reaction anchor + First Eligible Signalのケースだけで行う。");
-  lines.push("- eligibility unknownはno-tradeとして扱わず、調査不足としてresearch queueへ戻す。");
-  lines.push("- reaction-anchor not replay-readyはno-tradeとして扱わず、announcement timing/reaction start/evidence研究へ戻す。");
-  lines.push("- confirmed_blockは当時のhard gateで対象外。後日の株価を戦略成績へ混ぜない。");
-  lines.push("- confirmed_pass + replay-ready anchorだがsignalなしだけがtrue no-trade。");
-  lines.push("- `score_ge_12` が `score_lt_12` を市場ごとにsignal後3m benchmark-relativeで継続的に上回るかを見る。");
-  lines.push("- 平均だけでなく中央値・プラス率・現地benchmark相対を併用する。");
-  lines.push("- JPとUSは市場構造が違うため、全市場混合値だけで閾値を変えない。");
-  lines.push("- nが小さいうちは閾値を自動変更しない。");
-  lines.push("- 事件後の買収・アクティビスト・市況変化など交絡は別レビューする。");
-  if (failures.length > 0) {
-    lines.push("", "## failures / skips", "", ...failures.map(value => `- ${value}`));
-  }
+  lines.push("- production signalは現行threshold=12を含む。本番parity確認に使う。");
+  lines.push("- threshold/weights学習はcalibration shadow signalを使う。score thresholdだけを外し、その他hard gateは本番と共有する。");
+  lines.push("- score<12のproduction BLOCKを自動でshadow PASSへ変換しない。一次情報でcalibrationEligibilityAtCheckpointを明示確認したケースだけ比較群へ入れる。");
+  lines.push("- eligibility unknown / reaction-anchor not replay-readyをno-trade扱いしない。");
+  lines.push("- `score_ge_12` と `score_lt_12` をsignal後3m benchmark-relative、中央値、プラス率、signal発生率で比較する。");
+  lines.push("- JPとUSは市場構造が違うため、全市場混合値だけで閾値を変更しない。");
+  lines.push("- 標本が小さい間はthreshold=12を変更しない。");
+  if (failures.length > 0) lines.push("", "## failures / skips", "", ...failures.map(value => `- ${value}`));
   return lines.join("\n");
 }
 
@@ -203,12 +210,14 @@ async function main(): Promise<void> {
       const reactionStartDate = context?.priceReactionStartDate ?? item.eventDate;
       const reactionAnchorStatus = resolveReactionAnchorStatus(context);
       const strategyEligibilityAtCheckpoint = resolveHistoricalStrategyEligibility(item, context);
+      const thresholdCalibrationEligibilityAtCheckpoint = resolveHistoricalThresholdCalibrationEligibility(item, context);
       const record = buildShockHistoricalOutcome(item, quotes, benchmarkQuotes, date, {
         market: "JP",
         benchmarkLabel: "TOPIX",
         reactionStartDate,
         reactionAnchorStatus,
         strategyEligibilityAtCheckpoint,
+        thresholdCalibrationEligibilityAtCheckpoint,
       });
       if (record) records.push(record);
       else failures.push(`${item.id}: checkpoint price missing`);
@@ -233,6 +242,7 @@ async function main(): Promise<void> {
       const reactionStartDate = context?.priceReactionStartDate ?? item.eventDate;
       const reactionAnchorStatus = resolveReactionAnchorStatus(context);
       const strategyEligibilityAtCheckpoint = resolveHistoricalStrategyEligibility(item, context);
+      const thresholdCalibrationEligibilityAtCheckpoint = resolveHistoricalThresholdCalibrationEligibility(item, context);
       const record = buildShockHistoricalOutcome(
         item,
         stock as ShockOutcomeQuote[],
@@ -244,6 +254,7 @@ async function main(): Promise<void> {
           reactionStartDate,
           reactionAnchorStatus,
           strategyEligibilityAtCheckpoint,
+          thresholdCalibrationEligibilityAtCheckpoint,
         },
       );
       if (record) records.push(record);
@@ -255,18 +266,17 @@ async function main(): Promise<void> {
 
   const calibration = calibrateShockThresholds(records);
   const calibrationByMarket = marketCalibration(records);
-  const confirmedPass = records.filter(row => row.strategyEligibilityAtCheckpoint === "confirmed_pass");
-  const confirmedBlock = records.filter(row => row.strategyEligibilityAtCheckpoint === "confirmed_block");
-  const eligibilityUnknown = records.filter(row => row.strategyEligibilityAtCheckpoint === "unknown");
-  const anchorVerifiedPass = confirmedPass.filter(row => row.reactionAnchorStatus === "verified");
-  const anchorUnverifiedPass = confirmedPass.filter(row => row.reactionAnchorStatus !== "verified");
-  const signalCount = anchorVerifiedPass.filter(row => Boolean(row.firstEligibleSignalDate)).length;
-  const noTradeCount = anchorVerifiedPass.length - signalCount;
-  console.log(`records=${records.length} eligibilityPass=${confirmedPass.length} eligibilityBlock=${confirmedBlock.length} eligibilityUnknown=${eligibilityUnknown.length} anchorReplayReadyPass=${anchorVerifiedPass.length} anchorNotReplayReadyPass=${anchorUnverifiedPass.length} signals=${signalCount} trueNoTrade=${noTradeCount} failures/skips=${failures.length}`);
+  const productionPass = records.filter(row => row.strategyEligibilityAtCheckpoint === "confirmed_pass");
+  const productionSignals = productionPass.filter(row => row.reactionAnchorStatus === "verified" && Boolean(row.firstEligibleSignalDate));
+  const calibrationPass = records.filter(row => row.thresholdCalibrationEligibilityAtCheckpoint === "confirmed_pass");
+  const calibrationSignals = calibrationPass.filter(row => row.reactionAnchorStatus === "verified" && Boolean(row.calibrationFirstEligibleSignalDate));
+  const belowThresholdSignals = calibrationSignals.filter(row => row.score < 12);
+  console.log(`records=${records.length} productionPass=${productionPass.length} productionSignals=${productionSignals.length} calibrationPass=${calibrationPass.length} calibrationSignals=${calibrationSignals.length} belowThresholdSignals=${belowThresholdSignals.length} failures/skips=${failures.length}`);
   for (const market of Object.keys(calibrationByMarket) as ShockMarket[]) {
     const marketRows = calibrationByMarket[market] ?? [];
     const ge12 = marketRows.find(row => row.bucket === "score_ge_12");
-    console.log(`  ${market}: signals=${ge12?.cases ?? 0} avg1m=${ge12?.avgReturn1m ?? "-"} signalBenchmarkRel1m=${ge12?.avgBenchmarkRelative1m ?? "-"}`);
+    const lt12 = marketRows.find(row => row.bucket === "score_lt_12");
+    console.log(`  ${market}: shadow>=12 n=${ge12?.cases ?? 0} rel3m=${ge12?.avgBenchmarkRelative3m ?? "-"} | shadow<12 n=${lt12?.cases ?? 0} rel3m=${lt12?.avgBenchmarkRelative3m ?? "-"}`);
   }
   if (failures.length) failures.forEach(value => console.log(`  [warn] ${value}`));
 
@@ -285,7 +295,7 @@ async function main(): Promise<void> {
   const payload = {
     generatedAt: date,
     providers: providerStatus,
-    methodology: "checkpoint outcomes retained for diagnosis; strategy calibration requires fail-closed structured non-price eligibility + replay-ready reaction anchor + first eligible signal; deterministic checkpoint blockers are auto-derived; unknown eligibility and non-replay-ready anchors are separate from no-trade; reaction-start anchored",
+    methodology: "production signal keeps threshold=12; threshold calibration shadow removes only the score gate while preserving all other fail-closed hard gates; both require replay-ready reaction anchors; unknown eligibility is never converted to no-trade",
     records,
     calibration,
     calibrationByMarket,
