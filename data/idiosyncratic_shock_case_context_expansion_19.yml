@@ -1,6 +1,6 @@
 version: 1
 generatedAt: "2026-07-31"
-description: "Outcome-blind threshold backlog research batch 8 context。Recruit 2019はPPCと東京労働局の主要行政判断、サービス廃止、業績影響軽微をcheckpoint内で確認し、score以外のhard gateを通過。"
+description: "Outcome-blind threshold backlog research batch 8 context。Recruit 2019をPIT再監査し、PPCが2019-08-26時点で『引き続き調査を実施』と明示していたためopen investigationとしてshadow BLOCKへ訂正。"
 cases:
   recruit-2019-rikunabi-dmp:
     incidentCountry: JP
@@ -11,11 +11,15 @@ cases:
     recurrenceStatus: first_known
     remediationStatus: credible
     incidentClusterStatus: single
-    strategyInvestigationStatusAtCheckpoint: substantially_complete
+    strategyInvestigationStatusAtCheckpoint: open
     strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
-    calibrationEligibilityAtCheckpoint: confirmed_pass
-    calibrationEligibilityNotes: "productionはscore=11でBLOCK。threshold研究ではcheckpoint=2019-09-06までにPPCが法違反を認定して勧告・指導、東京労働局も職業安定法等違反として指導を実施。対象サービスは8/4に廃止済みで、会社は業績影響を軽微と開示。継続的な是正状況monitoringは残るが、主要な事実認定と行政対応は出揃っており、critical license/listing riskやmajor confounderも確認されないためscore gate以外はPASS。"
+    calibrationEligibilityAtCheckpoint: confirmed_block
+    calibrationEligibilityNotes: "productionはscore=11でBLOCK。PIT再監査で、PPCの2019-08-26公式勧告資料5『その他』に『引き続き調査を実施しており、今後判明した事実に関して必要となる措置については、適切に対応する』と明記されていることを確認。checkpoint=2019-09-06では東京労働局の指導まで出ていたが、PPC調査終了を示す一次情報はなく、investigationStatus=openでshadow BLOCK。2019-12-04の追加勧告はこの判定の根拠ではなく、open状態が後に実際に追加事実認定へつながったことのpost-checkpoint確認に留める。"
     strategyEligibilityEvidenceSources:
+      - title: "個人情報の保護に関する法律第42条第1項の規定に基づく勧告等について"
+        url: "https://www.ppc.go.jp/files/pdf/190826_houdou.pdf"
+        sourceType: regulator
+        publishedAt: "2019-08-26"
       - title: "当社孫会社への個人情報保護委員会からの勧告等について"
         url: "https://recruit-holdings.com/ja/newsroom/20190826_18581/"
         sourceType: company
@@ -28,4 +32,4 @@ cases:
         url: "https://www.mhlw.go.jp/stf/kaiken/daijin/0000194708_00148.html"
         sourceType: regulator
         publishedAt: "2019-09-06"
-    notes: "reaction announcement timingは未確定のため、shadow PASSではあるがreplay-ready controlにはまだ数えない。後日のQ2実績・株価returnはeligibilityへ使用しない。"
+    notes: "未来情報で過去checkpointをBLOCKへ変えたのではない。8/26のPPC一次情報自体がongoing investigationを明示していたため訂正。score=11とbacklog selectionは維持し、将来returnは使用しない。"
