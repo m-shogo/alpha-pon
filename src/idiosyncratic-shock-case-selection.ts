@@ -3,6 +3,7 @@
 
 import { existsSync, readFileSync } from "fs";
 import { load } from "js-yaml";
+import { loadHistoricalShockCases } from "./idiosyncratic-shock-data.js";
 
 export const SHOCK_CASE_SELECTION_VERSION = 1 as const;
 
@@ -56,9 +57,22 @@ const VALID_VISIBILITY = new Set<ShockOutcomeVisibilityAtSelection>([
   "known_or_available",
   "unknown",
 ]);
+let historicalCheckpointById: Map<string, string> | null = null;
 
 function isDate(value: unknown): value is string {
   return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function knownHistoricalCheckpoint(caseId: string): string | null {
+  if (historicalCheckpointById == null) {
+    try {
+      historicalCheckpointById = new Map(loadHistoricalShockCases().map(item => [item.id, item.decisionCheckpoint]));
+    } catch {
+      // Generic/unit-test contexts may not have the repository dataset mounted.
+      historicalCheckpointById = new Map();
+    }
+  }
+  return historicalCheckpointById.get(caseId) ?? null;
 }
 
 export function validateShockCaseSelectionRecord(value: unknown, path = "selection"): ShockCaseSelectionRecord {
@@ -142,9 +156,10 @@ export function resolveShockCaseSelection(
   const prospectiveClaim = record.selectionMode === "prospective_pre_outcome"
     && record.outcomeVisibilityAtSelection === "not_observed";
   const frozenCheckpoint = record.decisionCheckpointAtRegistration ?? null;
-  const currentCheckpointValid = isDate(decisionCheckpoint);
+  const suppliedCheckpoint = isDate(decisionCheckpoint) ? decisionCheckpoint : null;
+  const repositoryCheckpoint = suppliedCheckpoint ?? knownHistoricalCheckpoint(caseId);
   const frozenCheckpointValid = isDate(frozenCheckpoint);
-  const checkpointMatches = !currentCheckpointValid || (frozenCheckpointValid && frozenCheckpoint === decisionCheckpoint);
+  const checkpointMatches = repositoryCheckpoint == null || (frozenCheckpointValid && frozenCheckpoint === repositoryCheckpoint);
   const registrationTimingVerified = prospectiveClaim
     && frozenCheckpointValid
     && record.registeredAt <= frozenCheckpoint
@@ -153,13 +168,13 @@ export function resolveShockCaseSelection(
 
   let reason: string;
   if (validationHoldoutEligible) {
-    reason = currentCheckpointValid
-      ? "case was registered no later than its frozen decision checkpoint and the frozen checkpoint matches the current case"
+    reason = repositoryCheckpoint
+      ? "case was registered no later than its frozen decision checkpoint and the frozen checkpoint matches the repository case"
       : "case was registered no later than its frozen decision checkpoint while the evaluated outcome was not observed";
   } else if (prospectiveClaim && !frozenCheckpointValid) {
     reason = "prospective claim has no valid frozen decision checkpoint; fail closed as research-only";
-  } else if (prospectiveClaim && currentCheckpointValid && frozenCheckpoint !== decisionCheckpoint) {
-    reason = `prospective frozen checkpoint ${frozenCheckpoint} does not match current case checkpoint ${decisionCheckpoint}; fail closed as research-only`;
+  } else if (prospectiveClaim && repositoryCheckpoint && frozenCheckpoint !== repositoryCheckpoint) {
+    reason = `prospective frozen checkpoint ${frozenCheckpoint} does not match repository case checkpoint ${repositoryCheckpoint}; fail closed as research-only`;
   } else if (prospectiveClaim && record.registeredAt > (frozenCheckpoint ?? "")) {
     reason = `prospective registration ${record.registeredAt} is after frozen decision checkpoint ${frozenCheckpoint}; fail closed as research-only`;
   } else {
