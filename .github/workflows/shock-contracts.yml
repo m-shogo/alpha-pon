@@ -44,6 +44,8 @@ jobs:
         run: node --import tsx/esm tests/idiosyncratic-shock-threshold-diversity.test.ts
       - name: Low-score researched controls
         run: node --import tsx/esm tests/idiosyncratic-shock-low-score-controls.test.ts
+      - name: Negative-control matching contract
+        run: node --import tsx/esm tests/idiosyncratic-shock-negative-control.test.ts
       - name: Research blocker taxonomy contract
         run: node --import tsx/esm tests/idiosyncratic-shock-research-status.test.ts
       - name: Pre-outcome research snapshot contract
