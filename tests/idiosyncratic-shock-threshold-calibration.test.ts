@@ -66,16 +66,40 @@ const unknownShadow = resolveHistoricalThresholdCalibrationEligibilityDetailed(l
 assert.equal(unknownShadow.status, "unknown", "low-score production block must not be guessed as shadow pass/block");
 assert(unknownShadow.missingEvidence.includes("calibration eligibility pass/block not verified"));
 
-const inheritedPassContext: HistoricalShockCaseContext = {
+const invalidLowScoreProductionPass: HistoricalShockCaseContext = {
   strategyEligibilityAtCheckpoint: "confirmed_pass",
   strategyInvestigationStatusAtCheckpoint: "substantially_complete",
   strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false,
   confounderStatus: "clear",
 };
 assert.equal(
-  resolveHistoricalThresholdCalibrationEligibilityDetailed(lowScoreCase, inheritedPassContext).status,
+  resolveHistoricalStrategyEligibilityDetailed(lowScoreCase, invalidLowScoreProductionPass).status,
+  "confirmed_block",
+  "raw low-score production PASS cannot override score hard gate",
+);
+assert.equal(
+  resolveHistoricalThresholdCalibrationEligibilityDetailed(lowScoreCase, invalidLowScoreProductionPass).status,
+  "unknown",
+  "raw invalid production PASS must not leak into threshold calibration without explicit calibration annotation",
+);
+
+const highScorePass: HistoricalShockCase = {
+  ...lowScoreCase,
+  id: "fixture-high-score-pass",
+  score: 16,
+  label: labelShockScore(16),
+};
+const inheritedPassContext: HistoricalShockCaseContext = {
+  strategyEligibilityAtCheckpoint: "confirmed_pass",
+  strategyInvestigationStatusAtCheckpoint: "substantially_complete",
+  strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false,
+  confounderStatus: "clear",
+};
+assert.equal(resolveHistoricalStrategyEligibilityDetailed(highScorePass, inheritedPassContext).status, "confirmed_pass");
+assert.equal(
+  resolveHistoricalThresholdCalibrationEligibilityDetailed(highScorePass, inheritedPassContext).status,
   "confirmed_pass",
-  "an explicitly reviewed production pass may be reused by threshold calibration once score gate is removed",
+  "a structurally valid score>=12 production pass may be reused by threshold calibration",
 );
 
 const accountingCase: HistoricalShockCase = {
@@ -104,10 +128,8 @@ assert.equal(openInvestigation.status, "confirmed_block");
 assert(openInvestigation.blockers.includes("investigationStatus=open"));
 
 const highScoreBlocked: HistoricalShockCase = {
-  ...lowScoreCase,
+  ...highScorePass,
   id: "fixture-high-score-explicit-block",
-  score: 16,
-  label: labelShockScore(16),
 };
 const highScoreBlockedContext: HistoricalShockCaseContext = {
   ...inheritedPassContext,
@@ -119,4 +141,4 @@ assert.equal(
   "score>=12 explicit production block is not threshold-derived and must carry into calibration",
 );
 
-console.log("idiosyncratic-shock threshold-calibration eligibility tests: OK");
+console.log("idiosyncratic-shock threshold-calibration eligibility tests: fail-closed OK");
