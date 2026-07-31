@@ -4,10 +4,11 @@ import { loadHistoricalShockCases } from "../src/idiosyncratic-shock-data.js";
 import {
   loadThresholdCandidateBacklog,
   rankThresholdCandidateBacklog,
+  summarizeThresholdCandidateBacklogStatus,
   validateThresholdCandidateBacklogPayload,
   type ThresholdCandidateBacklogRow,
 } from "../src/idiosyncratic-shock-threshold-candidate-backlog.js";
-import type { ThresholdDiversityRow } from "../src/idiosyncratic-shock-threshold-diversity-audit.js";
+import { buildThresholdDiversityRows, type ThresholdDiversityRow } from "../src/idiosyncratic-shock-threshold-diversity-audit.js";
 
 const backlog = loadThresholdCandidateBacklog();
 assert.equal(backlog.version, 1);
@@ -54,6 +55,13 @@ for (const [id, blocker] of [
   assert.equal(shadow.status, "confirmed_block", `${id}: non-score hard blocker must survive threshold shadow`);
   assert(shadow.blockers.includes(blocker), `${id}: expected blocker ${blocker}`);
 }
+
+const liveStatus = summarizeThresholdCandidateBacklogStatus(backlog.candidates, buildThresholdDiversityRows());
+assert.equal(liveStatus.activeCandidateCount, 0, "initial backlog is exhausted after 5/5 promotion");
+assert.equal(liveStatus.promotedCount, 5);
+assert.equal(liveStatus.thresholdChangeReady, false, "threshold=12 research gate must still be unmet");
+assert.equal(liveStatus.replenishmentRequired, true, "empty backlog cannot masquerade as research completion while threshold gate is unmet");
+assert(liveStatus.blockers.includes("active threshold candidate backlog exhausted while threshold diversity is not ready"));
 
 const baseCandidate: ThresholdCandidateBacklogRow = {
   id: "fixture-us",
@@ -102,8 +110,11 @@ const synthetic = [jpFixture, baseCandidate];
 const ranked = rankThresholdCandidateBacklog(synthetic, diversityFixture);
 assert.equal(ranked[0]?.market, "US", "larger US deficit should outrank smaller JP deficit");
 assert(ranked[0]?.gapReasons.some(reason => reason.includes("US control deficit 2")));
+const syntheticStatus = summarizeThresholdCandidateBacklogStatus(synthetic, diversityFixture);
+assert.equal(syntheticStatus.replenishmentRequired, false, "active structural candidates suppress replenishment warning");
+assert.equal(syntheticStatus.activeCandidateCount, 2);
 const rankingWithoutOutcomes = ranked.map(row => row.id);
 const rankingWithOnlyUsableFlagChanged = rankThresholdCandidateBacklog(synthetic, diversityFixture.map(row => ({ ...row, usable3m: true }))).map(row => row.id);
 assert.deepEqual(rankingWithOnlyUsableFlagChanged, rankingWithoutOutcomes, "candidate priority must not change when realized 3m usability changes");
 
-console.log("idiosyncratic-shock threshold candidate backlog tests: 5/5 promoted, scores=9/8/7/12/11, outcome-blind contract locked");
+console.log("idiosyncratic-shock threshold candidate backlog tests: 5/5 promoted, threshold not ready => replenishment required");
