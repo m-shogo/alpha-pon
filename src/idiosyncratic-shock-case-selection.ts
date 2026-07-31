@@ -65,12 +65,9 @@ function isDate(value: unknown): value is string {
 
 function knownHistoricalCheckpoint(caseId: string): string | null {
   if (historicalCheckpointById == null) {
-    try {
-      historicalCheckpointById = new Map(loadHistoricalShockCases().map(item => [item.id, item.decisionCheckpoint]));
-    } catch {
-      // Generic/unit-test contexts may not have the repository dataset mounted.
-      historicalCheckpointById = new Map();
-    }
+    // Dataset failureを「checkpoint不明」として握りつぶすとprospective照合がfail-openになる。
+    // 読み込みエラーはそのまま上位へ伝播させる。
+    historicalCheckpointById = new Map(loadHistoricalShockCases().map(item => [item.id, item.decisionCheckpoint]));
   }
   return historicalCheckpointById.get(caseId) ?? null;
 }
