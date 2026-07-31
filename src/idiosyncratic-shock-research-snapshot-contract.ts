@@ -4,7 +4,10 @@
 import { createHash } from "node:crypto";
 import type { HistoricalShockCase, ShockSource } from "./idiosyncratic-shock.js";
 import type { HistoricalShockCaseContext } from "./idiosyncratic-shock-case-context.js";
-import type { ShockCaseSelectionRecord } from "./idiosyncratic-shock-case-selection.js";
+import {
+  loadShockCaseSelection,
+  type ShockCaseSelectionRecord,
+} from "./idiosyncratic-shock-case-selection.js";
 
 export const SHOCK_RESEARCH_SNAPSHOT_VERSION = 1 as const;
 
@@ -85,7 +88,7 @@ export function buildShockResearchSnapshot(
   cases: HistoricalShockCase[],
   contexts: Map<string, HistoricalShockCaseContext>,
   generatedAt: string,
-  selections: Map<string, ShockCaseSelectionRecord> = new Map(),
+  selections: Map<string, ShockCaseSelectionRecord> = loadShockCaseSelection(),
 ): ShockResearchSnapshot {
   const rows = [...cases]
     .sort((a, b) => a.id.localeCompare(b.id))
