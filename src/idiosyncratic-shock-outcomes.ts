@@ -19,13 +19,15 @@ export type ShockHistoricalOutcomeRecord = {
   benchmark: string;
   eventDate: string;
   reactionStartDate: string;
-  /** 市場が最初に反応可能なsessionを一次情報/当時報道で再現できたか。 */
+  /** replay-ready reaction anchorだけverifiedとして保存する。 */
   reactionAnchorStatus: HistoricalReactionAnchorStatus;
   checkpoint: string;
   score: number;
   label: string;
-  /** checkpoint時点で価格以外の実運用hard gateを再現できたか。 */
+  /** 本番parity。現行score thresholdを含む。 */
   strategyEligibilityAtCheckpoint: HistoricalStrategyEligibilityStatus;
+  /** threshold=12自体を検証するshadow研究用。旧JSON互換のためoptional。 */
+  thresholdCalibrationEligibilityAtCheckpoint?: HistoricalStrategyEligibilityStatus;
   /** checkpoint起点の研究比較値。戦略calibrationの正本には使わない。 */
   baseDate: string | null;
   basePrice: number | null;
@@ -42,7 +44,7 @@ export type ShockHistoricalOutcomeRecord = {
   benchmarkRelative1m: number | null;
   benchmarkRelative3m: number | null;
   benchmarkRelative1y: number | null;
-  /** 非価格hard gate confirmed_pass + verified reaction anchor後、価格hard gateが初めて成立した取引日。 */
+  /** 本番hard gate confirmed_pass後のFirst Eligible Signal。 */
   firstEligibleSignalDate: string | null;
   firstEligibleSignalPrice: number | null;
   signalShockDrawdownPct: number | null;
@@ -55,6 +57,19 @@ export type ShockHistoricalOutcomeRecord = {
   signalBenchmarkRelative1m: number | null;
   signalBenchmarkRelative3m: number | null;
   signalBenchmarkRelative1y: number | null;
+  /** threshold研究用shadow signal。score thresholdだけを外し、他hard gateは本番と共有する。 */
+  calibrationFirstEligibleSignalDate?: string | null;
+  calibrationFirstEligibleSignalPrice?: number | null;
+  calibrationSignalShockDrawdownPct?: number | null;
+  calibrationSignalRelativeShockDrawdownPct?: number | null;
+  calibrationSignalReturn1w?: number | null;
+  calibrationSignalReturn1m?: number | null;
+  calibrationSignalReturn3m?: number | null;
+  calibrationSignalReturn1y?: number | null;
+  calibrationSignalBenchmarkRelative1w?: number | null;
+  calibrationSignalBenchmarkRelative1m?: number | null;
+  calibrationSignalBenchmarkRelative3m?: number | null;
+  calibrationSignalBenchmarkRelative1y?: number | null;
   /** @deprecated JP互換。海外ではnull。新規コードはbenchmarkRelative*を使う。 */
   topixRelative1w: number | null;
   /** @deprecated JP互換。海外ではnull。新規コードはbenchmarkRelative*を使う。 */
@@ -145,6 +160,53 @@ function relativeReturn(
   return stock == null || benchmark == null ? null : round(stock - benchmark);
 }
 
+type SignalOutcome = {
+  date: string | null;
+  price: number | null;
+  shockDrawdownPct: number | null;
+  relativeShockDrawdownPct: number | null;
+  return1w: number | null;
+  return1m: number | null;
+  return3m: number | null;
+  return1y: number | null;
+  benchmarkRelative1w: number | null;
+  benchmarkRelative1m: number | null;
+  benchmarkRelative3m: number | null;
+  benchmarkRelative1y: number | null;
+};
+
+function buildSignalOutcome(input: {
+  eligible: boolean;
+  stockQuotes: ReturnType<typeof sortedQuotes>;
+  benchmarkQuotes: ReturnType<typeof sortedQuotes>;
+  reactionStartDate: string;
+  checkpoint: string;
+}): SignalOutcome {
+  const signal = input.eligible
+    ? findFirstEligibleShockSignal({
+      stock: observations(input.stockQuotes),
+      benchmark: observations(input.benchmarkQuotes),
+      reactionStartDate: input.reactionStartDate,
+      decisionCheckpoint: input.checkpoint,
+    })
+    : null;
+  const date = signal?.signalDate ?? null;
+  return {
+    date,
+    price: signal?.signalPrice ?? null,
+    shockDrawdownPct: signal?.shockDrawdownPct ?? null,
+    relativeShockDrawdownPct: signal?.relativeShockDrawdownPct ?? null,
+    return1w: date ? priceReturnFrom(input.stockQuotes, date, 7) : null,
+    return1m: date ? priceReturnFrom(input.stockQuotes, date, 30) : null,
+    return3m: date ? priceReturnFrom(input.stockQuotes, date, 90) : null,
+    return1y: date ? priceReturnFrom(input.stockQuotes, date, 365) : null,
+    benchmarkRelative1w: date ? relativeReturn(input.stockQuotes, input.benchmarkQuotes, date, 7) : null,
+    benchmarkRelative1m: date ? relativeReturn(input.stockQuotes, input.benchmarkQuotes, date, 30) : null,
+    benchmarkRelative3m: date ? relativeReturn(input.stockQuotes, input.benchmarkQuotes, date, 90) : null,
+    benchmarkRelative1y: date ? relativeReturn(input.stockQuotes, input.benchmarkQuotes, date, 365) : null,
+  };
+}
+
 export function buildShockHistoricalOutcome(
   item: HistoricalShockCase,
   stockQuotesInput: ShockOutcomeQuote[],
@@ -156,6 +218,7 @@ export function buildShockHistoricalOutcome(
     reactionStartDate?: string | null;
     reactionAnchorStatus?: HistoricalReactionAnchorStatus | null;
     strategyEligibilityAtCheckpoint?: HistoricalStrategyEligibilityStatus | null;
+    thresholdCalibrationEligibilityAtCheckpoint?: HistoricalStrategyEligibilityStatus | null;
   } = {},
 ): ShockHistoricalOutcomeRecord | null {
   if (!item.ticker) return null;
@@ -167,6 +230,7 @@ export function buildShockHistoricalOutcome(
   const reactionStartDate = options.reactionStartDate ?? item.eventDate;
   const reactionAnchorStatus = options.reactionAnchorStatus ?? "unverified";
   const strategyEligibilityAtCheckpoint = options.strategyEligibilityAtCheckpoint ?? "unknown";
+  const thresholdCalibrationEligibilityAtCheckpoint = options.thresholdCalibrationEligibilityAtCheckpoint ?? "unknown";
   const checkpoint = item.decisionCheckpoint;
   const base = onOrAfter(stockQuotes, checkpoint);
   if (!base) return null;
@@ -183,26 +247,22 @@ export function buildShockHistoricalOutcome(
   const benchmarkRelative1m = relativeReturn(stockQuotes, benchmarkQuotes, checkpoint, 30);
   const benchmarkRelative3m = relativeReturn(stockQuotes, benchmarkQuotes, checkpoint, 90);
   const benchmarkRelative1y = relativeReturn(stockQuotes, benchmarkQuotes, checkpoint, 365);
+  const anchorReady = reactionAnchorStatus === "verified";
 
-  // 非価格hard gateとreaction anchorを両方checkpoint研究で確認できたケースだけ価格signalを再現する。
-  // eligibility unknown/blockedやanchor unverifiedをno-trade扱いしない。
-  const signal = strategyEligibilityAtCheckpoint === "confirmed_pass" && reactionAnchorStatus === "verified"
-    ? findFirstEligibleShockSignal({
-      stock: observations(stockQuotes),
-      benchmark: observations(benchmarkQuotes),
-      reactionStartDate,
-      decisionCheckpoint: checkpoint,
-    })
-    : null;
-  const signalDate = signal?.signalDate ?? null;
-  const signalReturn1w = signalDate ? priceReturnFrom(stockQuotes, signalDate, 7) : null;
-  const signalReturn1m = signalDate ? priceReturnFrom(stockQuotes, signalDate, 30) : null;
-  const signalReturn3m = signalDate ? priceReturnFrom(stockQuotes, signalDate, 90) : null;
-  const signalReturn1y = signalDate ? priceReturnFrom(stockQuotes, signalDate, 365) : null;
-  const signalBenchmarkRelative1w = signalDate ? relativeReturn(stockQuotes, benchmarkQuotes, signalDate, 7) : null;
-  const signalBenchmarkRelative1m = signalDate ? relativeReturn(stockQuotes, benchmarkQuotes, signalDate, 30) : null;
-  const signalBenchmarkRelative3m = signalDate ? relativeReturn(stockQuotes, benchmarkQuotes, signalDate, 90) : null;
-  const signalBenchmarkRelative1y = signalDate ? relativeReturn(stockQuotes, benchmarkQuotes, signalDate, 365) : null;
+  const productionSignal = buildSignalOutcome({
+    eligible: anchorReady && strategyEligibilityAtCheckpoint === "confirmed_pass",
+    stockQuotes,
+    benchmarkQuotes,
+    reactionStartDate,
+    checkpoint,
+  });
+  const calibrationSignal = buildSignalOutcome({
+    eligible: anchorReady && thresholdCalibrationEligibilityAtCheckpoint === "confirmed_pass",
+    stockQuotes,
+    benchmarkQuotes,
+    reactionStartDate,
+    checkpoint,
+  });
   const isJp = market === "JP";
 
   return {
@@ -218,6 +278,7 @@ export function buildShockHistoricalOutcome(
     score: item.score,
     label: item.label,
     strategyEligibilityAtCheckpoint,
+    thresholdCalibrationEligibilityAtCheckpoint,
     baseDate: base.normalizedDate,
     basePrice: base.AdjustmentClose,
     preEventDate: preEvent?.normalizedDate ?? null,
@@ -233,18 +294,30 @@ export function buildShockHistoricalOutcome(
     benchmarkRelative1m,
     benchmarkRelative3m,
     benchmarkRelative1y,
-    firstEligibleSignalDate: signalDate,
-    firstEligibleSignalPrice: signal?.signalPrice ?? null,
-    signalShockDrawdownPct: signal?.shockDrawdownPct ?? null,
-    signalRelativeShockDrawdownPct: signal?.relativeShockDrawdownPct ?? null,
-    signalReturn1w,
-    signalReturn1m,
-    signalReturn3m,
-    signalReturn1y,
-    signalBenchmarkRelative1w,
-    signalBenchmarkRelative1m,
-    signalBenchmarkRelative3m,
-    signalBenchmarkRelative1y,
+    firstEligibleSignalDate: productionSignal.date,
+    firstEligibleSignalPrice: productionSignal.price,
+    signalShockDrawdownPct: productionSignal.shockDrawdownPct,
+    signalRelativeShockDrawdownPct: productionSignal.relativeShockDrawdownPct,
+    signalReturn1w: productionSignal.return1w,
+    signalReturn1m: productionSignal.return1m,
+    signalReturn3m: productionSignal.return3m,
+    signalReturn1y: productionSignal.return1y,
+    signalBenchmarkRelative1w: productionSignal.benchmarkRelative1w,
+    signalBenchmarkRelative1m: productionSignal.benchmarkRelative1m,
+    signalBenchmarkRelative3m: productionSignal.benchmarkRelative3m,
+    signalBenchmarkRelative1y: productionSignal.benchmarkRelative1y,
+    calibrationFirstEligibleSignalDate: calibrationSignal.date,
+    calibrationFirstEligibleSignalPrice: calibrationSignal.price,
+    calibrationSignalShockDrawdownPct: calibrationSignal.shockDrawdownPct,
+    calibrationSignalRelativeShockDrawdownPct: calibrationSignal.relativeShockDrawdownPct,
+    calibrationSignalReturn1w: calibrationSignal.return1w,
+    calibrationSignalReturn1m: calibrationSignal.return1m,
+    calibrationSignalReturn3m: calibrationSignal.return3m,
+    calibrationSignalReturn1y: calibrationSignal.return1y,
+    calibrationSignalBenchmarkRelative1w: calibrationSignal.benchmarkRelative1w,
+    calibrationSignalBenchmarkRelative1m: calibrationSignal.benchmarkRelative1m,
+    calibrationSignalBenchmarkRelative3m: calibrationSignal.benchmarkRelative3m,
+    calibrationSignalBenchmarkRelative1y: calibrationSignal.benchmarkRelative1y,
     topixRelative1w: isJp ? benchmarkRelative1w : null,
     topixRelative1m: isJp ? benchmarkRelative1m : null,
     topixRelative3m: isJp ? benchmarkRelative3m : null,
@@ -271,21 +344,25 @@ function positiveRate(values: number[]): number | null {
   return round((values.filter(value => value > 0).length / values.length) * 100);
 }
 
-function strategyValues(records: ShockHistoricalOutcomeRecord[], key: keyof ShockHistoricalOutcomeRecord): number[] {
+function calibrationValues(records: ShockHistoricalOutcomeRecord[], key: keyof ShockHistoricalOutcomeRecord): number[] {
   return records
-    .filter(row => row.strategyEligibilityAtCheckpoint === "confirmed_pass" && row.reactionAnchorStatus === "verified" && Boolean(row.firstEligibleSignalDate))
+    .filter(row => row.thresholdCalibrationEligibilityAtCheckpoint === "confirmed_pass"
+      && row.reactionAnchorStatus === "verified"
+      && Boolean(row.calibrationFirstEligibleSignalDate))
     .map(row => row[key])
     .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
 }
 
 function calibrationBucket(bucket: string, records: ShockHistoricalOutcomeRecord[]): ShockCalibrationBucket {
-  const signaled = records.filter(row => row.strategyEligibilityAtCheckpoint === "confirmed_pass" && row.reactionAnchorStatus === "verified" && Boolean(row.firstEligibleSignalDate));
-  const r1m = strategyValues(signaled, "signalReturn1m");
-  const rel1m = strategyValues(signaled, "signalBenchmarkRelative1m");
-  const r3m = strategyValues(signaled, "signalReturn3m");
-  const rel3m = strategyValues(signaled, "signalBenchmarkRelative3m");
-  const r1y = strategyValues(signaled, "signalReturn1y");
-  const rel1y = strategyValues(signaled, "signalBenchmarkRelative1y");
+  const signaled = records.filter(row => row.thresholdCalibrationEligibilityAtCheckpoint === "confirmed_pass"
+    && row.reactionAnchorStatus === "verified"
+    && Boolean(row.calibrationFirstEligibleSignalDate));
+  const r1m = calibrationValues(signaled, "calibrationSignalReturn1m");
+  const rel1m = calibrationValues(signaled, "calibrationSignalBenchmarkRelative1m");
+  const r3m = calibrationValues(signaled, "calibrationSignalReturn3m");
+  const rel3m = calibrationValues(signaled, "calibrationSignalBenchmarkRelative3m");
+  const r1y = calibrationValues(signaled, "calibrationSignalReturn1y");
+  const rel1y = calibrationValues(signaled, "calibrationSignalBenchmarkRelative1y");
   const avgBenchmarkRelative1m = average(rel1m);
   const avgBenchmarkRelative3m = average(rel3m);
   const avgBenchmarkRelative1y = average(rel1y);
@@ -312,6 +389,10 @@ function calibrationBucket(bucket: string, records: ShockHistoricalOutcomeRecord
   };
 }
 
+/**
+ * threshold/weights検証用。production signalではなくshadow calibration signalを使う。
+ * これによりscore<12を比較群へ含め、threshold=12を前提にthreshold=12を検証する循環を避ける。
+ */
 export function calibrateShockThresholds(records: ShockHistoricalOutcomeRecord[]): ShockCalibrationBucket[] {
   const buckets: Array<[string, (row: ShockHistoricalOutcomeRecord) => boolean]> = [
     ["all", () => true],
