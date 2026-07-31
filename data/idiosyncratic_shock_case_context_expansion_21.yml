@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 10 context。Tesla 2018はSEC settlement/final judgment後もtake-private statementsに関するDOJ investigationが公知のためshadow BLOCK。"
+cases:
+  tesla-2018-musk-sec:
+    incidentCountry: US
+    sector: automotive
+    stakeholder: investor
+    incidentScope: company_wide
+    confounderStatus: possible
+    recurrenceStatus: first_known
+    remediationStatus: partial
+    incidentClusterStatus: related_multiple
+    strategyInvestigationStatusAtCheckpoint: open
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    calibrationEligibilityAtCheckpoint: confirmed_block
+    calibrationEligibilityNotes: "productionはscore=9でBLOCK。SEC matterは9/29 settlement、10/16 final judgmentまで進んだが、同じtake-private statementsについてTesla自身が9/18時点でDOJからdocumentsのvoluntary requestを受け調査へ協力中と公表しており、checkpoint=2018-10-16でも全regulatory investigationがclosedとは言えない。investigationStatus=openでshadow BLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "Elon Musk Charged With Securities Fraud for Misleading Tweets"
+        url: "https://www.sec.gov/newsroom/press-releases/2018-219"
+        sourceType: regulator
+        publishedAt: "2018-09-27"
+      - title: "Elon Musk Settles SEC Fraud Charges; Tesla Charged With and Resolves Securities Law Charge"
+        url: "https://www.sec.gov/newsroom/press-releases/2018-226"
+        sourceType: regulator
+        publishedAt: "2018-09-29"
+      - title: "U.S. Justice Department probes Musk statement on taking Tesla private"
+        url: "https://www.business-standard.com/article/reuters/u-s-justice-department-probes-musk-statement-on-taking-tesla-private-118091900048_1.html"
+        sourceType: major_media
+        publishedAt: "2018-09-19"
+    notes: "SEC settlementだけを解決扱いせず、checkpoint以前に公知だったparallel DOJ investigationをPIT hard blockerとして保持。11月以降の10-Q開示や将来returnは使用しない。"
