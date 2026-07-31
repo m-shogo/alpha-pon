@@ -1,0 +1,13 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Reaction anchor research batch 1。一次情報/配信時刻で通常取引の最初の反応日を再現できた追加ケース。base/他expansionとID重複禁止。"
+cases:
+  lockheed-2012-kubasik:
+    announcementTiming: before_open
+    priceReactionStartDate: "2012-11-09"
+    reactionAnchorEvidenceSources:
+      - title: "Lockheed Martin Board Elects Marillyn Hewson CEO & President and Member of the Board"
+        url: "https://www.prnewswire.com/news-releases/lockheed-martin-board-elects-marillyn-hewson-ceo--president-and-member-of-the-board-178181041.html"
+        sourceType: other
+        publishedAt: "2012-11-09"
+    reactionAnchorNotes: "Lockheed Martin提供の配信記録は2012-11-09 04:34 ET。NYSE通常取引開始前なので同日2012-11-09をreaction startとする。"
