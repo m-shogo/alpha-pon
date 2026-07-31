@@ -6,7 +6,7 @@ cases:
     incidentCountry: JP
     sector: advertising_services
     stakeholder: employee
-    incidentScope: group_wide
+    incidentScope: company_wide
     confounderStatus: unknown
     recurrenceStatus: systemic
     remediationStatus: partial
