@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 17。かんぽ生命2019不適正募集を金融庁行政処分checkpointで採点し、組織的な募集管理・ガバナンス問題としてdeep controlに保存。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: japan-post-insurance-2019-improper-sales
+    company: "Japan Post Insurance"
+    ticker: "7181"
+    country: JP
+    eventDate: "2019-12-27"
+    checkpoint: "2019-12-27"
+    category: systemic_insurance_sales_misconduct
+    actorType: organization
+    scoreVector: [0,2,0,0,0,0,1,1,0,0]
+    priceState: unknown
+    summary: "金融庁は多数の不適正募集を踏まえ、2020年1月1日から3月31日までの保険募集・契約締結業務停止と業務改善命令を発出。顧客調査、処分、営業推進・募集管理、コンプライアンス意識、ガバナンスの抜本改善を要求しており、個人切除できないsystemic sales misconductとして評価した。"
+    source: "https://www.fsa.go.jp/news/r1/yuusei/20191227.html"
+    sourceType: regulator
+    outcomePattern: unknown
+    lesson: "行政処分時点で業務停止・継続顧客調査・ガバナンス再構築まで必要な組織問題。価格未検証2項目は0のまま4点とし、将来の回復や株価を採点へ逆流させない。"
+    confidence: high
