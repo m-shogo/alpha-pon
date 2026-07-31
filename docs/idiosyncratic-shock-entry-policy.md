@@ -263,6 +263,7 @@ Audit:
 
 - `tests/idiosyncratic-shock-entry-signal.test.ts`
 - `tests/idiosyncratic-shock-outcomes.test.ts`
+- `tests/idiosyncratic-shock-reaction-anchor.test.ts`
 - `tests/idiosyncratic-shock-calibration.test.ts`
 - `tests/idiosyncratic-shock-calibration-config.test.ts`
 
