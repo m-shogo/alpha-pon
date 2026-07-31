@@ -6,7 +6,7 @@ cases:
     incidentCountry: US
     sector: restaurant_food_service
     stakeholder: public
-    incidentScope: executive
+    incidentScope: individual
     confounderStatus: possible
     strategyInvestigationStatusAtCheckpoint: open
     strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
@@ -45,7 +45,7 @@ cases:
     incidentCountry: AU
     sector: retail
     stakeholder: employee
-    incidentScope: executive
+    incidentScope: individual
     confounderStatus: possible
     strategyInvestigationStatusAtCheckpoint: open
     strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
