@@ -8,3 +8,15 @@ cases:
     outcomeVisibilityAtSelection: known_or_available
     selectionReason: "outcome-blind threshold candidate backlog batch 2でJP safety/compliance候補としてscore記入前にfreezeされ、その後2018-12-21までの国交省一次情報だけでPIT採点した。"
     notes: "score=9。12/17の新規飲酒事案について12/20時点で詳細調査・追加再発防止策の報告が未完、12/21に事業改善命令等。将来return・後日の改善結果はscore/eligibilityへ使用しない。"
+  kobe-steel-2017-quality-falsification:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlog batch 2でJP manufacturing quality候補としてscore記入前にfreezeされ、2017-10-26までの会社一次情報でPIT採点した。"
+    notes: "score=8。複数事業・グループ会社へ不適切行為が拡大し外部調査委員会が調査継続中。2018年の最終調査報告・将来returnは使用しない。"
+  recruit-2019-rikunabi-dmp:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlog batch 2でJP privacy/regulatory候補としてscore記入前にfreezeされ、2019-09-06までのPPC・東京労働局・会社一次情報でPIT採点した。"
+    notes: "score=11。主要行政判断が出揃い対象サービス廃止・業績影響軽微を確認してshadow PASS。ただしreaction timing未確定のためreplay-ready controlにはまだ数えない。将来returnは使用しない。"
