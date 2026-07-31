@@ -79,3 +79,87 @@ candidates:
       url: "https://archive.cdc.gov/www_cdc_gov/ecoli/2015/o26-11-15/index.html"
       sourceType: regulator
       publishedAt: "2016-02-01"
+
+  - id: recruit-2019-rikunabi-dmp
+    company: "Recruit Holdings"
+    ticker: "6098"
+    market: JP
+    eventDate: "2019-08-26"
+    category: data_privacy_regulatory
+    researchState: unscored
+    discoveryReason: "JPのprivacy/regulatoryカテゴリを追加する第2batch候補。個人データの同意・安全管理・事業ガバナンスの波及を、scoreや後日の株価を見ずに検証する。"
+    primarySource:
+      title: "当社孫会社への個人情報保護委員会からの勧告等について"
+      url: "https://recruit-holdings.com/ja/newsroom/20190826_18581/"
+      sourceType: company
+      publishedAt: "2019-08-26"
+
+  - id: jal-2018-alcohol-compliance
+    company: "Japan Airlines"
+    ticker: "9201"
+    market: JP
+    eventDate: "2018-10-28"
+    category: safety_compliance
+    researchState: unscored
+    discoveryReason: "JPのregulated safety/complianceカテゴリを追加する第2batch候補。個人の飲酒事案と会社の検査・安全管理体制を、将来returnなしで分離評価する。"
+    primarySource:
+      title: "飲酒に起因する不適切な事案等を受けた航空運送事業者及び運航乗務員に対する不利益処分等について"
+      url: "https://www.mlit.go.jp/report/press/kouku10_hh_000140.html"
+      sourceType: regulator
+      publishedAt: "2018-12-21"
+
+  - id: kobe-steel-2017-quality-falsification
+    company: "Kobe Steel"
+    ticker: "5406"
+    market: JP
+    eventDate: "2017-10-08"
+    category: quality_falsification
+    researchState: unscored
+    discoveryReason: "JP manufacturing quality/governanceカテゴリの第2batch候補。複数製品・顧客への品質データ書換えがどのscore帯になるかを事前に決めず調査する。"
+    primarySource:
+      title: "当社が製造したアルミ・銅製品の一部に関する不適切な行為について"
+      url: "https://www.kobelco.co.jp/releases/1197805_15541.html"
+      sourceType: company
+      publishedAt: "2017-10-08"
+
+  - id: tesla-2018-musk-sec
+    company: "Tesla"
+    ticker: TSLA
+    market: US
+    eventDate: "2018-09-27"
+    category: executive_regulatory
+    researchState: unscored
+    discoveryReason: "US founder/key-person regulatoryカテゴリの第2batch候補。CEO発言と企業disclosure controlsへの波及を、株価結果を選定根拠にせず検証する。"
+    primarySource:
+      title: "Elon Musk Charged With Securities Fraud for Misleading Tweets"
+      url: "https://www.sec.gov/newsroom/press-releases/2018-219"
+      sourceType: regulator
+      publishedAt: "2018-09-27"
+
+  - id: equifax-2017-cybersecurity-breach
+    company: "Equifax"
+    ticker: EFX
+    market: US
+    eventDate: "2017-09-07"
+    category: data_security
+    researchState: unscored
+    discoveryReason: "US data-securityカテゴリの第2batch候補。大規模個人情報漏えいとcredit-reporting本業の信頼・事業影響を、future returnを見ずに採点する。"
+    primarySource:
+      title: "Equifax Announces Cybersecurity Incident Involving Consumer Information"
+      url: "https://www.sec.gov/Archives/edgar/data/33185/000003318517000026/exhibit99120170907.htm"
+      sourceType: regulator
+      publishedAt: "2017-09-07"
+
+  - id: wells-fargo-2016-unauthorized-accounts
+    company: "Wells Fargo"
+    ticker: WFC
+    market: US
+    eventDate: "2016-09-08"
+    category: systemic_sales_misconduct
+    researchState: unscored
+    discoveryReason: "US financial systemic-misconductカテゴリの第2batch候補。販売インセンティブ・不正口座・enterprise risk managementの組織波及を結果非依存で検証する。"
+    primarySource:
+      title: "Consumer Financial Protection Bureau Fines Wells Fargo $100 Million for Widespread Illegal Practice of Secretly Opening Unauthorized Accounts"
+      url: "https://www.consumerfinance.gov/archive/newsroom/consumer-financial-protection-bureau-fines-wells-fargo-100-million-widespread-illegal-practice-secretly-opening-unauthorized-accounts/"
+      sourceType: regulator
+      publishedAt: "2016-09-08"
