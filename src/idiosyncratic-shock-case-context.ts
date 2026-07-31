@@ -22,6 +22,7 @@ import type {
 } from "./idiosyncratic-shock-context.js";
 
 export type HistoricalStrategyEligibilityStatus = "confirmed_pass" | "confirmed_block" | "unknown";
+export type HistoricalEligibilityMode = "production" | "threshold_calibration";
 
 export type HistoricalShockCaseContext = {
   incidentCountry?: string | null;
@@ -46,10 +47,16 @@ export type HistoricalShockCaseContext = {
   estimatedDirectCostPctMarketCap?: number | null;
   industryRelativeShockDrawdownPct?: number | null;
   /**
-   * decisionCheckpoint時点で、価格以外の実運用hard gateがすべて検証できていたか。
+   * decisionCheckpoint時点で、本番通知の非価格hard gate（現行score threshold含む）が再現できたか。
    * confirmed_pass と書くだけではPASSにならず、下記structured evidenceもresolverが検証する。
    */
   strategyEligibilityAtCheckpoint?: HistoricalStrategyEligibilityStatus | null;
+  /**
+   * score threshold自体を検証するshadow研究用。score<12だけを理由にBLOCKしない。
+   * 未記載の低scoreケースを自動PASSにはしない。必ず一次情報で明示確認する。
+   */
+  calibrationEligibilityAtCheckpoint?: HistoricalStrategyEligibilityStatus | null;
+  calibrationEligibilityNotes?: string | null;
   strategyInvestigationStatusAtCheckpoint?: ShockInvestigationStatus | null;
   strategyCriticalLicenseOrDelistingRiskAtCheckpoint?: boolean | null;
   strategyEligibilityNotes?: string | null;
@@ -151,26 +158,41 @@ function sourceGateSatisfied(item: HistoricalShockCase, context?: HistoricalShoc
   return hasPrimary || majorMediaCount >= 2;
 }
 
-/**
- * Historical strategy eligibilityをfail-closedで解決する。
- * - 明白なhard blockerはsidecar未記載でもconfirmed_block。
- * - confirmed_passは明示statusだけでは足りず、調査完了度・critical risk・confounder・sourceを構造化確認する。
- * - 証拠不足はconfirmed_blockではなくunknown。no-tradeにもcalibrationにも混ぜない。
- */
-export function resolveHistoricalStrategyEligibilityDetailed(
+function explicitStatusForMode(
   item: HistoricalShockCase,
-  context?: HistoricalShockCaseContext | null,
+  context: HistoricalShockCaseContext | null | undefined,
+  mode: HistoricalEligibilityMode,
+): HistoricalStrategyEligibilityStatus {
+  if (mode === "production") return context?.strategyEligibilityAtCheckpoint ?? "unknown";
+
+  const explicitCalibration = context?.calibrationEligibilityAtCheckpoint;
+  if (explicitCalibration) return explicitCalibration;
+
+  // 本番PASSはscore threshold以外のstructured evidenceも通っているのでshadow研究へ継承可能。
+  if (context?.strategyEligibilityAtCheckpoint === "confirmed_pass") return "confirmed_pass";
+
+  // score>=12の本番BLOCKはthreshold由来ではないためshadow研究でもBLOCKを継承する。
+  if (item.score >= 12 && context?.strategyEligibilityAtCheckpoint === "confirmed_block") return "confirmed_block";
+
+  // score<12の本番BLOCK/未記載は「scoreだけが原因か」を推測しない。別途calibration sidecarで確認する。
+  return "unknown";
+}
+
+function resolveHistoricalEligibilityDetailed(
+  item: HistoricalShockCase,
+  context: HistoricalShockCaseContext | null | undefined,
+  mode: HistoricalEligibilityMode,
 ): HistoricalStrategyEligibilityResolution {
-  const explicitStatus = context?.strategyEligibilityAtCheckpoint ?? "unknown";
+  const explicitStatus = explicitStatusForMode(item, context, mode);
   const blockers: string[] = [];
   const missingEvidence: string[] = [];
 
-  // checkpoint正本だけで確定できるhard blockers。手動PASSでも上書き不可。
-  if (item.score < 12) blockers.push(`score=${item.score}<12`);
+  // productionだけが現行thresholdをhard gateとして使う。threshold_calibrationはこの1条件だけ外す。
+  if (mode === "production" && item.score < 12) blockers.push(`score=${item.score}<12`);
   if (item.scores.accountingIntegrity === 0) blockers.push("accountingIntegrity=0");
   if (item.macroPrimaryCause) blockers.push("macroPrimaryCause=true");
 
-  // sidecarで明示されたknown blockers。
+  // score以外のhard gateはproduction/shadow研究で完全共有する。
   const investigation = context?.strategyInvestigationStatusAtCheckpoint ?? "unknown";
   if (investigation === "open") blockers.push("investigationStatus=open");
   if (context?.strategyCriticalLicenseOrDelistingRiskAtCheckpoint === true) blockers.push("criticalLicenseOrDelistingRisk=true");
@@ -186,7 +208,12 @@ export function resolveHistoricalStrategyEligibilityDetailed(
 
   if (blockers.length > 0) return { status: "confirmed_block", blockers, missingEvidence };
   if (explicitStatus === "confirmed_block") return { status: "confirmed_block", blockers: ["explicit confirmed_block"], missingEvidence };
-  if (explicitStatus !== "confirmed_pass") return { status: "unknown", blockers, missingEvidence: ["explicit pass/block not verified"] };
+  if (explicitStatus !== "confirmed_pass") {
+    const missing = mode === "threshold_calibration"
+      ? "calibration eligibility pass/block not verified"
+      : "explicit pass/block not verified";
+    return { status: "unknown", blockers, missingEvidence: [missing] };
+  }
 
   // PASSだけは追加のstructured evidenceを必須にする。
   if (investigation === "unknown") missingEvidence.push("strategyInvestigationStatusAtCheckpoint");
@@ -194,7 +221,7 @@ export function resolveHistoricalStrategyEligibilityDetailed(
   if (context?.confounderStatus == null || context.confounderStatus === "unknown") missingEvidence.push("confounderStatus");
   if (!sourceGateSatisfied(item, context)) missingEvidence.push("trusted primary source or >=2 major media");
   // eligibilityとreaction-anchor品質は別レイヤー。ただし引け後/休場日発表でreaction dateが無い場合は、
-  // strategy checkpointの再現自体が不完全なので従来どおりPASSにしない。
+  // checkpoint時点の価格windowを正しく再現できないのでPASSにしない。
   if ((context?.announcementTiming === "after_close" || context?.announcementTiming === "non_trading_day") && !context.priceReactionStartDate) {
     missingEvidence.push("priceReactionStartDate for announcement timing");
   }
@@ -203,11 +230,39 @@ export function resolveHistoricalStrategyEligibilityDetailed(
   return { status: "confirmed_pass", blockers, missingEvidence };
 }
 
+/**
+ * 本番通知/本番parity用。現行threshold=12を含む。
+ */
+export function resolveHistoricalStrategyEligibilityDetailed(
+  item: HistoricalShockCase,
+  context?: HistoricalShockCaseContext | null,
+): HistoricalStrategyEligibilityResolution {
+  return resolveHistoricalEligibilityDetailed(item, context, "production");
+}
+
 export function resolveHistoricalStrategyEligibility(
   item: HistoricalShockCase,
   context?: HistoricalShockCaseContext | null,
 ): HistoricalStrategyEligibilityStatus {
   return resolveHistoricalStrategyEligibilityDetailed(item, context).status;
+}
+
+/**
+ * threshold=12そのものを検証するshadow研究用。
+ * score<12だけはblockerから外すが、それ以外のhard gate/一次情報要件は本番と同一。
+ */
+export function resolveHistoricalThresholdCalibrationEligibilityDetailed(
+  item: HistoricalShockCase,
+  context?: HistoricalShockCaseContext | null,
+): HistoricalStrategyEligibilityResolution {
+  return resolveHistoricalEligibilityDetailed(item, context, "threshold_calibration");
+}
+
+export function resolveHistoricalThresholdCalibrationEligibility(
+  item: HistoricalShockCase,
+  context?: HistoricalShockCaseContext | null,
+): HistoricalStrategyEligibilityStatus {
+  return resolveHistoricalThresholdCalibrationEligibilityDetailed(item, context).status;
 }
 
 type ContextFile = {
