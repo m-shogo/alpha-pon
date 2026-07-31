@@ -48,3 +48,9 @@ cases:
     selectionMode: retrospective_research
     outcomeVisibilityAtSelection: known_or_available
     selectionReason: "score 8のJP product-safety deep controlとして、健康被害原因と影響範囲が未確定な段階をshadow PASSへ誤分類しないか検証するため再監査。"
+  kddi-2026-biglobe-circular-transactions:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: unknown
+    selectionReason: "score 10のJP accounting境界例として、少人数起因でも財務訂正・重要な内部統制不備が生じた場合にthreshold shadowへ入れないことを検証するため採用。"
+    notes: "2026-03-31 checkpoint以前/同日の会社一次情報だけでeligibilityを再監査し、将来株価outcomeは判定に使用しない。"
