@@ -1,0 +1,23 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog batch 5 context。Facebook 2018 Cambridge Analytica claimsをplatform-level privacy governanceとopen internal/external investigationとして固定。"
+cases:
+  facebook-2018-cambridge-analytica:
+    incidentCountry: US
+    sector: internet_platform
+    stakeholder: customer
+    incidentScope: company_wide
+    confounderStatus: clear
+    recurrenceStatus: related_multiple
+    remediationStatus: partial
+    incidentClusterStatus: related_multiple
+    strategyInvestigationStatusAtCheckpoint: open
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    calibrationEligibilityAtCheckpoint: confirmed_block
+    calibrationEligibilityNotes: "productionはscore=6でBLOCK。threshold研究でも2018-03-19時点でFacebook自身がcomprehensive internal/external reviewとforensic auditを開始し、UK ICOも独自調査を進めていた。platform data governance・影響範囲・規制リスクが未確定なためopen investigationでshadow BLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "Pursuing Forensic Audits to Investigate Cambridge Analytica Claims"
+        url: "https://about.fb.com/news/2018/03/forensic-audits-cambridge-analytica/"
+        sourceType: company
+        publishedAt: "2018-03-19"
+    notes: "2019年FTC/SEC settlement、後日の罰金・株価・業績は2018-03-19 checkpointへ逆流させない。"
