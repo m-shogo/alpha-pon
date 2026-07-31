@@ -69,6 +69,24 @@ export type HistoricalStrategyEligibilityResolution = {
   missingEvidence: string[];
 };
 
+/**
+ * Historical signal replayで使えるreaction anchorの共通定義。
+ * announcementTimingだけでなく、最初に通常取引で反応できる日を必ず明示する。
+ * 旧sidecar/旧outcomeの暗黙eventDate fallbackをverified扱いしない。
+ */
+export function isHistoricalReactionAnchorVerified(
+  context?: HistoricalShockCaseContext | null,
+): boolean {
+  const timing = context?.announcementTiming;
+  const reactionDate = context?.priceReactionStartDate;
+  return Boolean(
+    timing
+    && timing !== "unknown"
+    && reactionDate
+    && /^\d{4}-\d{2}-\d{2}$/.test(reactionDate),
+  );
+}
+
 const KNOWN_NON_PRIMARY_HOSTS = new Set([
   "minkabu.jp",
   "disclosure.catr.jp",
@@ -175,6 +193,8 @@ export function resolveHistoricalStrategyEligibilityDetailed(
   if (context?.strategyCriticalLicenseOrDelistingRiskAtCheckpoint == null) missingEvidence.push("strategyCriticalLicenseOrDelistingRiskAtCheckpoint");
   if (context?.confounderStatus == null || context.confounderStatus === "unknown") missingEvidence.push("confounderStatus");
   if (!sourceGateSatisfied(item, context)) missingEvidence.push("trusted primary source or >=2 major media");
+  // eligibilityとreaction-anchor品質は別レイヤー。ただし引け後/休場日発表でreaction dateが無い場合は、
+  // strategy checkpointの再現自体が不完全なので従来どおりPASSにしない。
   if ((context?.announcementTiming === "after_close" || context?.announcementTiming === "non_trading_day") && !context.priceReactionStartDate) {
     missingEvidence.push("priceReactionStartDate for announcement timing");
   }
