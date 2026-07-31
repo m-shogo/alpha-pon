@@ -41,7 +41,6 @@ assert.throws(() => validateShockCaseSelectionRecord({
   outcomeVisibilityAtSelection: "known_or_available",
   selectionReason: "invalid prospective case because future outcome is already known",
 }), /requires outcomeVisibilityAtSelection=not_observed/);
-
 assert.throws(() => validateShockCaseSelectionRecord({
   registeredAt: "2026-08-01",
   decisionCheckpointAtRegistration: "2026-07-31",
@@ -49,14 +48,12 @@ assert.throws(() => validateShockCaseSelectionRecord({
   outcomeVisibilityAtSelection: "not_observed",
   selectionReason: "invalid prospective case because it was registered after the frozen checkpoint",
 }), /no later than decisionCheckpointAtRegistration/);
-
 assert.throws(() => validateShockCaseSelectionRecord({
   registeredAt: "2026-07-31",
   selectionMode: "prospective_pre_outcome",
   outcomeVisibilityAtSelection: "not_observed",
   selectionReason: "invalid prospective case because no checkpoint was frozen",
 }), /requires decisionCheckpointAtRegistration/);
-
 assert.throws(() => validateShockCaseSelectionRecord({
   registeredAt: "2026-07-31",
   selectionMode: "retrospective_research",
@@ -69,7 +66,7 @@ assert.equal(legacy.provenance, "legacy_untracked");
 assert.equal(legacy.validationHoldoutEligible, false, "missing selection provenance fails closed for holdout claims");
 
 const registry = loadShockCaseSelection();
-for (const id of [
+const explicitlyTrackedHistorical = [
   "ootoya-2019-employee-video",
   "wynn-2018-founder",
   "kadokawa-2022-bribery",
@@ -79,7 +76,12 @@ for (const id of [
   "kddi-2026-biglobe-circular-transactions",
   "united-2017-flight3411",
   "benesse-2014-data-leak",
-]) {
+  "dentsu-2016-labor-violation",
+  "chipotle-2015-ecoli",
+  "guess-2018-marciano",
+  "starbucks-2018-philadelphia",
+];
+for (const id of explicitlyTrackedHistorical) {
   const resolved = resolveShockCaseSelection(id, registry.get(id));
   assert.equal(resolved.selectionMode, "retrospective_research");
   assert.equal(resolved.validationHoldoutEligible, false);
@@ -89,10 +91,14 @@ for (const id of [
   "kddi-2026-biglobe-circular-transactions",
   "united-2017-flight3411",
   "benesse-2014-data-leak",
+  "dentsu-2016-labor-violation",
+  "chipotle-2015-ecoli",
+  "guess-2018-marciano",
+  "starbucks-2018-philadelphia",
 ]) {
   const record = registry.get(id);
   assert(record, `${id}: explicit selection provenance required`);
   assert.equal(record.outcomeVisibilityAtSelection, "known_or_available", `${id}: historical research must not masquerade as unseen outcome`);
 }
 
-console.log("idiosyncratic-shock case selection tests: prospective registration timing + checkpoint freeze enforced");
+console.log(`idiosyncratic-shock case selection tests: tracked historical=${explicitlyTrackedHistorical.length}, prospective timing/checkpoint freeze enforced`);
