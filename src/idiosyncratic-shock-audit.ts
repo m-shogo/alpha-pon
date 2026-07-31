@@ -5,6 +5,7 @@ import { mkdirSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
 import { loadHistoricalShockCases } from "./idiosyncratic-shock-data.js";
 import {
+  isHistoricalReactionAnchorVerified,
   loadHistoricalShockCaseContext,
   resolveHistoricalStrategyEligibilityDetailed,
 } from "./idiosyncratic-shock-case-context.js";
@@ -12,6 +13,7 @@ import { shockCategoryJurisdictionSensitivity } from "./idiosyncratic-shock-juri
 
 const MIN_HISTORICAL_CASES = 59;
 const PRIORITY_ELIGIBILITY_COUNTRIES = new Set(["JP", "US"]);
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const KNOWN_THIRD_PARTY_HOSTS = new Set([
   "minkabu.jp",
   "disclosure.catr.jp",
@@ -128,10 +130,9 @@ function main(): void {
         missingEvidence: resolution.missingEvidence,
       });
     }
-    if (
-      resolution.status === "confirmed_pass"
-      && (!context?.announcementTiming || context.announcementTiming === "unknown")
-    ) {
+
+    const reactionAnchorVerified = isHistoricalReactionAnchorVerified(context);
+    if (resolution.status === "confirmed_pass" && !reactionAnchorVerified) {
       reactionAnchorReviewQueue.push({
         id: item.id,
         company: item.company,
@@ -145,10 +146,29 @@ function main(): void {
       });
     }
 
+    if (context?.priceReactionStartDate != null) {
+      if (!ISO_DATE_PATTERN.test(context.priceReactionStartDate)) {
+        issues.push(`${item.id}: invalid priceReactionStartDate ${context.priceReactionStartDate}; expected YYYY-MM-DD`);
+      } else if (context.priceReactionStartDate < item.eventDate) {
+        issues.push(`${item.id}: priceReactionStartDate ${context.priceReactionStartDate} is before eventDate ${item.eventDate}`);
+      }
+    }
+    if (context?.announcementTiming && context.announcementTiming !== "unknown" && !context?.priceReactionStartDate) {
+      warnings.push(`${item.id}: announcementTiming=${context.announcementTiming} but priceReactionStartDate missing; anchor remains unverified`);
+    }
+
     for (const source of context?.strategyEligibilityEvidenceSources ?? []) {
       const name = host(source.url);
       increment(sourceHosts, name);
       if (name === "invalid") issues.push(`${item.id}: invalid eligibility evidence URL ${source.url}`);
+    }
+    for (const source of context?.reactionAnchorEvidenceSources ?? []) {
+      const name = host(source.url);
+      increment(sourceHosts, name);
+      if (name === "invalid") issues.push(`${item.id}: invalid reaction anchor evidence URL ${source.url}`);
+    }
+    if (reactionAnchorVerified && !(context?.reactionAnchorNotes?.trim() || context?.strategyEligibilityNotes?.trim())) {
+      warnings.push(`${item.id}: verified reaction anchor has no provenance notes`);
     }
 
     if (explicitStatus === "confirmed_pass" && resolution.status !== "confirmed_pass") {
@@ -214,7 +234,7 @@ function main(): void {
     ? 0
     : (reactionAnchorVerifiedPassCount / eligibility.confirmed_pass) * 100;
   if (reactionAnchorReviewQueue.length > 0) {
-    warnings.push(`P1 confirmed-pass reaction anchor unknown=${reactionAnchorReviewQueue.length}; verify announcement timing before quantitative backfill`);
+    warnings.push(`P1 confirmed-pass reaction anchor unknown=${reactionAnchorReviewQueue.length}; verify announcement timing + reaction date before quantitative backfill`);
   }
   for (const [category, count] of categories) {
     if (shockCategoryJurisdictionSensitivity(category) !== "high" || count < 2) continue;
