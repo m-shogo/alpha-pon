@@ -20,3 +20,21 @@ cases:
     outcomeVisibilityAtSelection: known_or_available
     selectionReason: "outcome-blind threshold candidate backlog batch 2でJP privacy/regulatory候補としてscore記入前にfreezeされ、2019-09-06までのPPC・東京労働局・会社一次情報でPIT採点した。"
     notes: "score=11。主要行政判断が出揃い対象サービス廃止・業績影響軽微を確認してshadow PASS。ただしreaction timing未確定のためreplay-ready controlにはまだ数えない。将来returnは使用しない。"
+  equifax-2017-cybersecurity-breach:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlog batch 2でUS data-security候補としてscore記入前にfreezeされ、2017-09-26までの会社一次情報だけでPIT採点した。"
+    notes: "score=5。約1億4300万人規模、CEO退任・暫定CEO移行、Board Special Committee対応中。後日の調査結果・将来returnは使用しない。"
+  tesla-2018-musk-sec:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlog batch 2でUS founder/regulatory候補としてscore記入前にfreezeされ、2018-10-16までのSEC資料とcheckpoint以前に公知のDOJ investigationでPIT採点した。"
+    notes: "score=9。SEC settlement/final judgmentだけでclosed扱いせず、同一take-private statementsへのDOJ investigationをhard blockerとして維持。将来returnは使用しない。"
+  wells-fargo-2016-unauthorized-accounts:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlog batch 2でUS systemic sales misconduct候補としてscore記入前にfreezeされ、2016-09-27までのCFPB/SEC一次情報でPIT採点した。"
+    notes: "score=5。大量のpotentially unauthorized accounts、Board独立調査、DOJ・州当局・議会等の調査継続。2017年Board最終報告・将来returnは使用しない。"
