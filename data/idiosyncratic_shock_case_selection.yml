@@ -51,6 +51,12 @@ cases:
   kddi-2026-biglobe-circular-transactions:
     registeredAt: "2026-07-31"
     selectionMode: retrospective_research
-    outcomeVisibilityAtSelection: unknown
+    outcomeVisibilityAtSelection: known_or_available
     selectionReason: "score 10のJP accounting境界例として、少人数起因でも財務訂正・重要な内部統制不備が生じた場合にthreshold shadowへ入れないことを検証するため採用。"
-    notes: "2026-03-31 checkpoint以前/同日の会社一次情報だけでeligibilityを再監査し、将来株価outcomeは判定に使用しない。"
+    notes: "historical caseなのでoutcomeは既知になり得ると明示するが、2026-03-31 checkpoint以前/同日の会社一次情報だけでeligibilityを再監査し、将来株価outcomeは判定に使用しない。"
+  united-2017-flight3411:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "score 10のUS customer-service policy境界例として、個人切除できない組織ポリシー起因でも調査・規制・remediationがcheckpointまでに閉じた場合のthreshold shadow eligibilityを検証するため採用。"
+    notes: "historical outcomeは既知になり得るためprospective holdoutには使わない。case選定・score・PASS判定には2017-05-12までの会社/DOT一次情報のみ使用し、将来returnは参照しない。"
