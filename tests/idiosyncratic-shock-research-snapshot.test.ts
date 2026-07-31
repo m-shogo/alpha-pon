@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import type { HistoricalShockCase } from "../src/idiosyncratic-shock.js";
+import type { ShockCaseSelectionRecord } from "../src/idiosyncratic-shock-case-selection.js";
 import {
   assertShockResearchSnapshot,
   buildShockResearchSnapshot,
@@ -61,11 +62,28 @@ const scoreChanged: HistoricalShockCase = {
 };
 assert.notEqual(hash1, shockResearchInputHash(scoreChanged, null), "score definition changes must move the snapshot hash");
 
+const selection: ShockCaseSelectionRecord = {
+  registeredAt: "2026-07-31",
+  selectionMode: "retrospective_research",
+  outcomeVisibilityAtSelection: "unknown",
+  selectionReason: "fixture selected retrospectively for boundary research",
+  notes: null,
+};
+assert.notEqual(hash1, shockResearchInputHash(base, null, selection), "selection provenance changes must move the snapshot hash");
+
 const snapshot1 = buildShockResearchSnapshot([base], contexts, "2026-07-31");
 const snapshot2 = buildShockResearchSnapshot([base], contexts, "2026-08-01");
 assert.equal(snapshot1.aggregateSha256, snapshot2.aggregateSha256, "generation date must not alter the research input hash");
 assertShockResearchSnapshot(snapshot1);
 assert.equal(snapshot1.cases.length, 1);
 assert.equal(snapshot1.cases[0].inputSha256, hash1);
+
+const selectionSnapshot = buildShockResearchSnapshot(
+  [base],
+  contexts,
+  "2026-07-31",
+  new Map([[base.id, selection]]),
+);
+assert.notEqual(snapshot1.aggregateSha256, selectionSnapshot.aggregateSha256, "case-selection provenance is part of the frozen pre-outcome definition");
 
 console.log("idiosyncratic-shock research snapshot tests: OK");
