@@ -1,3 +1,4 @@
+import "./idiosyncratic-shock-context-schema.test.js";
 import assert from "node:assert/strict";
 import { loadHistoricalShockCaseContext, isHistoricalReactionAnchorVerified } from "../src/idiosyncratic-shock-case-context.js";
 import { loadHistoricalShockCases } from "../src/idiosyncratic-shock-data.js";
