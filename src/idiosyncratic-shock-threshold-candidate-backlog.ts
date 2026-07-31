@@ -2,7 +2,8 @@
 // historical returnを見てから都合の良い事例だけ採用するselection biasを減らすため、
 // score/priceState/recovery/returnを持たない構造情報だけを先にfreezeする。
 
-import { readFileSync } from "fs";
+import { existsSync, readFileSync, readdirSync } from "fs";
+import { join } from "path";
 import { load } from "js-yaml";
 import type { ShockMarket } from "./idiosyncratic-shock-market.js";
 import type { ShockSource } from "./idiosyncratic-shock.js";
@@ -54,6 +55,7 @@ export type ThresholdCandidateBacklogStatus = {
 };
 
 const DEFAULT_PATH = "data/idiosyncratic_shock_threshold_candidate_backlog.yml";
+const BACKLOG_EXPANSION_PATTERN = /^idiosyncratic_shock_threshold_candidate_backlog_expansion_\d+\.yml$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const ID_RE = /^[a-z0-9][a-z0-9-]*$/;
 const ALLOWED_STATES = new Set<ThresholdCandidateResearchState>(["unscored", "researching", "promoted", "rejected"]);
@@ -172,8 +174,53 @@ export function validateThresholdCandidateBacklogPayload(value: unknown, label =
   };
 }
 
-export function loadThresholdCandidateBacklog(path = DEFAULT_PATH): ThresholdCandidateBacklog {
-  return validateThresholdCandidateBacklogPayload(load(readFileSync(path, "utf-8")), path);
+function defaultBacklogPaths(): string[] {
+  const dataDir = "data";
+  const expansions = existsSync(dataDir)
+    ? readdirSync(dataDir)
+      .filter(name => BACKLOG_EXPANSION_PATTERN.test(name))
+      .sort()
+      .map(name => join(dataDir, name))
+    : [];
+  return [DEFAULT_PATH, ...expansions].filter(existsSync);
+}
+
+function normalizedForbiddenInputs(backlog: ThresholdCandidateBacklog): string {
+  return [...backlog.selectionPolicy.forbiddenInputs].sort().join("|");
+}
+
+export function loadThresholdCandidateBacklog(path?: string): ThresholdCandidateBacklog {
+  const paths = path ? [path] : defaultBacklogPaths();
+  if (paths.length === 0) throw new Error("threshold candidate backlog: no backlog files found");
+
+  let base: ThresholdCandidateBacklog | null = null;
+  let generatedAt = "0000-00-00";
+  const candidates: ThresholdCandidateBacklogRow[] = [];
+  const ids = new Set<string>();
+
+  for (const currentPath of paths) {
+    const parsed = validateThresholdCandidateBacklogPayload(load(readFileSync(currentPath, "utf-8")), currentPath);
+    if (base == null) {
+      base = parsed;
+    } else if (normalizedForbiddenInputs(parsed) !== normalizedForbiddenInputs(base)) {
+      throw new Error(`${currentPath}: selectionPolicy.forbiddenInputs must match base backlog`);
+    }
+
+    generatedAt = generatedAt > parsed.generatedAt ? generatedAt : parsed.generatedAt;
+    for (const candidate of parsed.candidates) {
+      if (ids.has(candidate.id)) throw new Error(`duplicate threshold candidate backlog id: ${candidate.id}`);
+      ids.add(candidate.id);
+      candidates.push(candidate);
+    }
+  }
+
+  if (base == null) throw new Error("threshold candidate backlog: base backlog missing");
+  return {
+    ...base,
+    generatedAt,
+    description: paths.length === 1 ? base.description : `${base.description} mergedFiles=${paths.length}`,
+    candidates,
+  };
 }
 
 function deficit(target: number, actual: number): number {
