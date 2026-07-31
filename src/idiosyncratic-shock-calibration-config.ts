@@ -8,6 +8,7 @@ import {
 } from "./idiosyncratic-shock.js";
 import {
   GLOBAL_DEFAULT_SHOCK_THRESHOLD,
+  MIN_PROSPECTIVE_HOLDOUT_CASES,
   buildShockCalibrationReadiness,
   buildShockCalibrationReadinessAtLevel,
   type ShockCalibrationLevel,
@@ -35,6 +36,7 @@ export type ValidatedLocalShockThreshold = {
   validationThrough: string;
   trainCases: number;
   validationCases: number;
+  validationDesign: "prospective_pre_outcome";
   benchmarkMetric: "calibrationSignalBenchmarkRelative3m";
   evidenceNote: string;
 };
@@ -102,7 +104,12 @@ export function validateShockCalibrationConfig(config: ShockCalibrationConfig): 
       throw new Error(`${row.id}: require trainFrom <= trainThrough < validationFrom <= validationThrough`);
     }
     if (!Number.isInteger(row.trainCases) || row.trainCases < 18) throw new Error(`${row.id}: trainCases must be >= 18`);
-    if (!Number.isInteger(row.validationCases) || row.validationCases < 8) throw new Error(`${row.id}: validationCases must be >= 8`);
+    if (!Number.isInteger(row.validationCases) || row.validationCases < MIN_PROSPECTIVE_HOLDOUT_CASES) {
+      throw new Error(`${row.id}: prospective validationCases must be >= ${MIN_PROSPECTIVE_HOLDOUT_CASES}`);
+    }
+    if (row.validationDesign !== "prospective_pre_outcome") {
+      throw new Error(`${row.id}: validationDesign must be prospective_pre_outcome`);
+    }
     if (row.benchmarkMetric !== REQUIRED_BENCHMARK_METRIC) throw new Error(`${row.id}: benchmarkMetric must be ${REQUIRED_BENCHMARK_METRIC}`);
     if (!row.evidenceNote?.trim()) throw new Error(`${row.id}: evidenceNote is required`);
 
@@ -164,7 +171,7 @@ export function resolveShockCalibration(
 ): ResolvedShockCalibration {
   const preliminary = buildShockCalibrationReadiness(input);
 
-  // 最深のvalidated childを優先。ただしchildが未登録/古い場合はvalidated parentを使い続ける。
+  // 最深のregistry childを優先。ただし実observationsのprospective holdout gateも満たす必要がある。
   for (const modelLevel of parentLevels(preliminary.modelLevel)) {
     const registryEntry = findValidatedLocalThreshold(config, {
       modelLevel,
