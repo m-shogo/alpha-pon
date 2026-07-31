@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 13。SUBARU 2017完成検査工程問題を初回会社開示checkpointで採点し、組織プロセス型のdeep controlとして保存。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: subaru-2017-final-inspection
+    company: "SUBARU"
+    ticker: "7270"
+    country: JP
+    eventDate: "2017-10-27"
+    checkpoint: "2017-10-27"
+    category: quality_compliance
+    actorType: organization
+    scoreVector: [1,2,0,0,1,1,2,1,0,0]
+    priceState: unknown
+    summary: "群馬製作所の完成検査工程で、正式に完成検査員へ任命される前の従業員が完成検査に従事していたことを会社が公表。完成検査の運用・資格管理という会社プロセスに関わり、詳細調査と国交省対応が必要な段階だった。"
+    source: "https://www.subaru.co.jp/press/file/uploads/news/2017_1027_0001.pdf"
+    sourceType: company
+    outcomePattern: unknown
+    lesson: "資格を持たない個人の逸脱ではなく、完成検査工程の運用統制として評価する。価格未検証を0のまま残し、8点のdeep controlになってもthresholdへ寄せない。"
+    confidence: high
