@@ -60,3 +60,9 @@ cases:
     outcomeVisibilityAtSelection: known_or_available
     selectionReason: "score 10のUS customer-service policy境界例として、個人切除できない組織ポリシー起因でも調査・規制・remediationがcheckpointまでに閉じた場合のthreshold shadow eligibilityを検証するため採用。"
     notes: "historical outcomeは既知になり得るためprospective holdoutには使わない。case選定・score・PASS判定には2017-05-12までの会社/DOT一次情報のみ使用し、将来returnは参照しない。"
+  benesse-2014-data-leak:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlogでJP data-securityの未カバーカテゴリとして先にfreezeされ、scoreや将来returnを見ずにPIT研究へ昇格。"
+    notes: "historical outcomeは既知になり得るためprospective holdoutには使わない。2014-07-17までの会社一次情報だけでscore=9/open investigation BLOCKを確定し、将来株価やrecovery patternは判定へ使用しない。"
