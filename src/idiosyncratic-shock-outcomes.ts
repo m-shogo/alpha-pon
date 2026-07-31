@@ -1,6 +1,11 @@
 import { addDaysJst, toCompactDate } from "./date.js";
 import { DEFAULT_SHOCK_WINDOW_DAYS, type HistoricalShockCase, type PriceObservation } from "./idiosyncratic-shock.js";
 import type { HistoricalStrategyEligibilityStatus } from "./idiosyncratic-shock-case-context.js";
+import {
+  loadShockCaseSelection,
+  resolveShockCaseSelection,
+  type ShockCaseSelectionRecord,
+} from "./idiosyncratic-shock-case-selection.js";
 import { DEFAULT_SIGNAL_SEARCH_DAYS, findFirstEligibleShockSignal } from "./idiosyncratic-shock-entry-signal.js";
 import { inferShockMarket, shockBenchmarkLabel, type ShockMarket } from "./idiosyncratic-shock-market.js";
 
@@ -96,6 +101,14 @@ export type ShockCalibrationBucket = {
   positiveRate1y: number | null;
   avgBenchmarkRelative1y: number | null;
   avgTopixRelative1y: number | null;
+};
+
+export type ShockCalibrationScope = "research" | "prospective" | "all";
+export type ShockCalibrationOptions = {
+  /** default=research。prospective holdoutをthreshold fittingへ戻さない。 */
+  scope?: ShockCalibrationScope;
+  /** tests / deterministic replay用。省略時はcommitted selection registryを使う。 */
+  selections?: Map<string, ShockCaseSelectionRecord>;
 };
 
 function normalizedDate(value: string): string {
@@ -385,7 +398,24 @@ function calibrationBucket(bucket: string, records: ShockHistoricalOutcomeRecord
   };
 }
 
-export function calibrateShockThresholds(records: ShockHistoricalOutcomeRecord[]): ShockCalibrationBucket[] {
+function recordsForCalibrationScope(
+  records: ShockHistoricalOutcomeRecord[],
+  options: ShockCalibrationOptions,
+): ShockHistoricalOutcomeRecord[] {
+  const scope = options.scope ?? "research";
+  if (scope === "all") return records;
+  const selections = options.selections ?? loadShockCaseSelection();
+  return records.filter(row => {
+    const prospective = resolveShockCaseSelection(row.caseId, selections.get(row.caseId)).validationHoldoutEligible;
+    return scope === "prospective" ? prospective : !prospective;
+  });
+}
+
+export function calibrateShockThresholds(
+  records: ShockHistoricalOutcomeRecord[],
+  options: ShockCalibrationOptions = {},
+): ShockCalibrationBucket[] {
+  const scopedRecords = recordsForCalibrationScope(records, options);
   const buckets: Array<[string, (row: ShockHistoricalOutcomeRecord) => boolean]> = [
     ["all", () => true],
     ["score_16_20", row => row.score >= 16],
@@ -395,7 +425,7 @@ export function calibrateShockThresholds(records: ShockHistoricalOutcomeRecord[]
     ["score_0_7", row => row.score < 8],
     ["score_lt_12", row => row.score < 12],
   ];
-  return buckets.map(([name, predicate]) => calibrationBucket(name, records.filter(predicate)));
+  return buckets.map(([name, predicate]) => calibrationBucket(name, scopedRecords.filter(predicate)));
 }
 
 export function outcomeFetchRangeIso(item: HistoricalShockCase, generatedAt: string): { from: string; to: string } {
