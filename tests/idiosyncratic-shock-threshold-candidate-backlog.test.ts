@@ -12,8 +12,9 @@ import { buildThresholdDiversityRows, type ThresholdDiversityRow } from "../src/
 
 const backlog = loadThresholdCandidateBacklog();
 assert.equal(backlog.version, 1);
-assert.equal(backlog.candidates.length, 15, "batch1+2 promoted 11 + frozen batch3 4 candidates expected");
+assert.equal(backlog.candidates.length, 15, "three frozen outcome-blind batches should contain 15 candidates");
 assert.equal(new Set(backlog.candidates.map(row => row.id)).size, backlog.candidates.length);
+assert(backlog.candidates.every(row => row.researchState === "promoted"), "separate research-state registry must close batch1-3 without mutating freeze files");
 
 for (const row of backlog.candidates) {
   const serialized = JSON.stringify(row);
@@ -34,37 +35,24 @@ const expectedScores = new Map<string, number>([
   ["tesla-2018-musk-sec", 9],
   ["equifax-2017-cybersecurity-breach", 5],
   ["wells-fargo-2016-unauthorized-accounts", 5],
+  ["snow-peak-2022-yamai", 12],
+  ["subaru-2017-final-inspection", 8],
+  ["lululemon-2018-potdevin", 14],
+  ["barnes-noble-2018-parneros", 13],
 ]);
-const batch3Ids = [
-  "snow-peak-2022-yamai",
-  "subaru-2017-final-inspection",
-  "lululemon-2018-potdevin",
-  "barnes-noble-2018-parneros",
-] as const;
 
 const historical = new Map(loadHistoricalShockCases().map(row => [row.id, row]));
 const contexts = loadHistoricalShockCaseContext();
-for (const [id, expectedScore] of expectedScores) {
-  const backlogRow = backlog.candidates.find(row => row.id === id);
-  assert(backlogRow, `${id}: promoted backlog row required`);
-  assert.equal(backlogRow.researchState, "promoted", `${id}: batch1+2 must remain promoted`);
-  const item = historical.get(id);
-  assert(item, `${id}: promoted candidate must exist in historical DB`);
-  assert.equal(item.score, expectedScore, `${id}: PIT score must stay outcome-blind`);
-  assert.equal(item.priceStateAtCheckpoint, "unknown", `${id}: later price path must not enter checkpoint score`);
-  assert.equal(item.outcome?.recoveryPattern, "unknown", `${id}: realized recovery must remain outside intake`);
+for (const row of backlog.candidates) {
+  const item = historical.get(row.id);
+  assert(item, `${row.id}: promoted candidate must exist in historical DB`);
+  assert.equal(item.score, expectedScores.get(row.id), `${row.id}: PIT score must stay outcome-blind`);
+  assert.equal(item.priceStateAtCheckpoint, "unknown", `${row.id}: later price path must not enter checkpoint score`);
+  assert.equal(item.outcome?.recoveryPattern, "unknown", `${row.id}: realized recovery must remain outside intake`);
 }
 assert.equal(historical.get("chipotle-2015-ecoli")?.score, 7, "candidate may land below 8-11 band");
 assert.equal(historical.get("guess-2018-marciano")?.score, 12, "candidate may land at production threshold");
-
-for (const id of batch3Ids) {
-  const row = backlog.candidates.find(candidate => candidate.id === id);
-  assert(row, `${id}: batch3 expansion must auto-load`);
-  assert.equal(row.researchState, "unscored", `${id}: batch3 must remain unscored before PIT research`);
-  assert.equal(historical.has(id), false, `${id}: unscored batch3 candidate must not silently appear in scored historical DB`);
-}
-assert.equal(batch3Ids.filter(id => backlog.candidates.find(row => row.id === id)?.market === "JP").length, 2);
-assert.equal(batch3Ids.filter(id => backlog.candidates.find(row => row.id === id)?.market === "US").length, 2);
+assert.equal(historical.get("lululemon-2018-potdevin")?.score, 14, "candidate may land clearly above threshold");
 
 for (const [id, blocker] of [
   ["jal-2018-alcohol-compliance", "investigationStatus=open"],
@@ -73,6 +61,7 @@ for (const [id, blocker] of [
   ["equifax-2017-cybersecurity-breach", "investigationStatus=open"],
   ["wells-fargo-2016-unauthorized-accounts", "recurrenceStatus=systemic"],
   ["recruit-2019-rikunabi-dmp", "investigationStatus=open"],
+  ["subaru-2017-final-inspection", "investigationStatus=open"],
 ] as const) {
   const item = historical.get(id);
   assert(item);
@@ -83,18 +72,10 @@ for (const [id, blocker] of [
 
 const diversityRows = buildThresholdDiversityRows();
 const liveStatus = summarizeThresholdCandidateBacklogStatus(backlog.candidates, diversityRows);
-assert.equal(liveStatus.activeCandidateCount, 4, "batch3 replenishes the outcome-blind research queue");
-assert.equal(liveStatus.promotedCount, 11);
+assert.equal(liveStatus.activeCandidateCount, 0, "batch1-3 are fully researched");
+assert.equal(liveStatus.promotedCount, 15);
 assert.equal(liveStatus.thresholdChangeReady, false, "threshold research gate remains unmet");
-assert.equal(liveStatus.replenishmentRequired, false, "active batch3 suppresses exhausted-backlog warning");
-
-const exhaustedFixture = backlog.candidates.map(row => row.researchState === "unscored"
-  ? { ...row, researchState: "promoted" as const }
-  : row);
-const exhaustedStatus = summarizeThresholdCandidateBacklogStatus(exhaustedFixture, diversityRows);
-assert.equal(exhaustedStatus.activeCandidateCount, 0);
-assert.equal(exhaustedStatus.thresholdChangeReady, false);
-assert.equal(exhaustedStatus.replenishmentRequired, true, "next replenishment must be required once batch3 is exhausted without threshold readiness");
+assert.equal(liveStatus.replenishmentRequired, true, "batch4 must be frozen before further threshold research");
 
 const baseCandidate: ThresholdCandidateBacklogRow = {
   id: "fixture-us", company: "Fixture US", ticker: "FIX", market: "US", eventDate: "2020-01-01",
@@ -121,4 +102,4 @@ const rankingWithoutOutcomes = ranked.map(row => row.id);
 const rankingWithOnlyUsableFlagChanged = rankThresholdCandidateBacklog(synthetic, diversityFixture.map(row => ({ ...row, usable3m: true }))).map(row => row.id);
 assert.deepEqual(rankingWithOnlyUsableFlagChanged, rankingWithoutOutcomes, "realized 3m usability must not change candidate priority");
 
-console.log("idiosyncratic-shock threshold candidate backlog tests: 11 promoted + 4 frozen batch3 candidates; outcome-blind expansion queue active");
+console.log("idiosyncratic-shock threshold candidate backlog tests: 15/15 promoted via separate state registry; batch4 replenishment required");
