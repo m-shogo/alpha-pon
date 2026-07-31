@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 2。Dentsu 2016を2016-12-28 checkpointの会社一次情報だけで採点し、8点deep bandでも組織性・規制調査を無視してshadow PASSへ寄せない。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: dentsu-2016-labor-violation
+    company: "Dentsu"
+    ticker: "4324"
+    country: JP
+    eventDate: "2016-12-28"
+    checkpoint: "2016-12-28"
+    category: labor_governance
+    actorType: organization
+    scoreVector: [1,2,0,0,0,1,2,1,1,0]
+    priceState: unknown
+    summary: "法人としての電通および社員が労働基準法違反容疑で書類送検。会社は過去の複数拠点での是正勧告、長時間労働、勤務登録問題、企業風土の影響を認め、当局調査への協力と全社的な労働環境改革を継続していた。"
+    source: "https://www.dentsu.co.jp/news/release/2016/1228-009123.html"
+    sourceType: company
+    outcomePattern: unknown
+    lesson: "単一社員の問題ではなく、複数年・複数拠点・企業風土・法令遵守へ広がる組織型。価格や後日の判決をscoreへ使わず、checkpoint時点のopen investigationだけでもshadow BLOCK。"
+    confidence: high
