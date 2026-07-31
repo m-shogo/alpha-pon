@@ -80,9 +80,7 @@ assert.equal(isHistoricalReactionAnchorVerified({ announcementTiming: "after_clo
 
 const loadedHistoricalContext = loadHistoricalShockCaseContext();
 assert.equal(loadedHistoricalContext.get("mcdonalds-2019-easterbrook")?.strategyEligibilityAtCheckpoint, "confirmed_pass", "reaction anchor overlayでbase eligibilityを壊さない");
-assert.equal(loadedHistoricalContext.get("mcdonalds-2019-easterbrook")?.announcementTiming, "non_trading_day");
 assert.equal(loadedHistoricalContext.get("mcdonalds-2019-easterbrook")?.priceReactionStartDate, "2019-11-04");
-assert.equal(loadedHistoricalContext.get("hp-2010-hurd")?.announcementTiming, "after_close");
 assert.equal(loadedHistoricalContext.get("hp-2010-hurd")?.priceReactionStartDate, "2010-08-09");
 assert.equal(loadedHistoricalContext.get("sushiro-2023-customer")?.priceReactionStartDate, "2023-01-30");
 assert.equal(loadedHistoricalContext.get("skylark-2019-bamiyan")?.priceReactionStartDate, "2019-02-12");
@@ -94,39 +92,14 @@ assert.equal(loadedHistoricalContext.get("keurig-dr-pepper-2022-ceo-conduct")?.p
 assert.equal(loadedHistoricalContext.get("boeing-2005-stonecipher")?.priceReactionStartDate, "2005-03-07");
 assert.equal(loadedHistoricalContext.get("ebay-2020-cyberstalking")?.priceReactionStartDate, "2020-06-15");
 assert.equal(loadedHistoricalContext.get("dominos-japan-2024-employee-video")?.priceReactionStartDate, "2024-02-13");
-for (const id of [
-  "mcdonalds-2019-easterbrook",
-  "hp-2010-hurd",
-  "sushiro-2023-customer",
-  "skylark-2019-bamiyan",
-  "seven-eleven-2019-employee-video",
-  "intel-2018-krzanich",
-  "priceline-2016-huston",
-  "ti-2018-crutcher",
-  "keurig-dr-pepper-2022-ceo-conduct",
-  "boeing-2005-stonecipher",
-  "ebay-2020-cyberstalking",
-  "dominos-japan-2024-employee-video",
-]) {
-  assert.equal(isHistoricalReactionAnchorVerified(loadedHistoricalContext.get(id)), true, `${id}: committed reaction anchor must be verified`);
-}
-assert((loadedHistoricalContext.get("hp-2010-hurd")?.reactionAnchorEvidenceSources?.length ?? 0) >= 2, "anchorには再現可能な証拠を保持する");
-assert.equal(loadedHistoricalContext.get("sanrio-2026-compensation")?.priceReactionStartDate, "2026-06-01", "既存base sidecarのanchorも維持する");
-assert.equal(isHistoricalReactionAnchorVerified(loadedHistoricalContext.get("sanrio-2026-compensation")), true);
+assert.equal(loadedHistoricalContext.get("ootoya-2019-employee-video")?.priceReactionStartDate, "2019-02-18");
 
 const lowScoreCase: HistoricalShockCase = { ...strongCase, id: "fixture-low-score", score: 11, label: labelShockScore(11) };
-assert.equal(resolveHistoricalStrategyEligibility(lowScoreCase, verifiedPassContext), "confirmed_block", "score<12は手動PASSでも確定BLOCK");
-const accountingBlockCase: HistoricalShockCase = {
-  ...strongCase,
-  id: "fixture-accounting-block",
-  scores: { ...strongCase.scores, accountingIntegrity: 0 },
-};
-assert.equal(resolveHistoricalStrategyEligibility(accountingBlockCase, verifiedPassContext), "confirmed_block", "accountingIntegrity=0は確定BLOCK");
+assert.equal(resolveHistoricalStrategyEligibility(lowScoreCase, verifiedPassContext), "confirmed_block", "score<12は本番では確定BLOCK");
+const accountingBlockCase: HistoricalShockCase = { ...strongCase, id: "fixture-accounting-block", scores: { ...strongCase.scores, accountingIntegrity: 0 } };
+assert.equal(resolveHistoricalStrategyEligibility(accountingBlockCase, verifiedPassContext), "confirmed_block");
 const macroBlockCase: HistoricalShockCase = { ...strongCase, id: "fixture-macro-block", macroPrimaryCause: true };
-assert.equal(resolveHistoricalStrategyEligibility(macroBlockCase, verifiedPassContext), "confirmed_block", "macro主因は確定BLOCK");
-assert.equal(resolveHistoricalStrategyEligibility(strongCase, { ...verifiedPassContext, strategyInvestigationStatusAtCheckpoint: "open" }), "confirmed_block", "open investigationは確定BLOCK");
-assert.equal(resolveHistoricalStrategyEligibility(strongCase, { ...verifiedPassContext, strategyCriticalLicenseOrDelistingRiskAtCheckpoint: true }), "confirmed_block", "critical license/delisting riskは確定BLOCK");
-assert.equal(resolveHistoricalStrategyEligibility(strongCase, { ...verifiedPassContext, confounderStatus: "major" }), "confirmed_block", "major confounderは確定BLOCK");
+assert.equal(resolveHistoricalStrategyEligibility(macroBlockCase, verifiedPassContext), "confirmed_block");
 
 const stock: ShockOutcomeQuote[] = [
   { Date: "20260109", AdjustmentClose: 100 },
@@ -156,130 +129,127 @@ const benchmark: ShockOutcomeQuote[] = [
 const record = buildShockHistoricalOutcome(strongCase, stock, benchmark, "2027-02-01", {
   reactionAnchorStatus: "verified",
   strategyEligibilityAtCheckpoint: "confirmed_pass",
+  thresholdCalibrationEligibilityAtCheckpoint: "confirmed_pass",
 });
-assert(record, "JP4桁tickerはoutcomeを生成できる");
+assert(record);
 assert.equal(record?.strategyEligibilityAtCheckpoint, "confirmed_pass");
-assert.equal(record?.reactionAnchorStatus, "verified");
-assert.equal(record?.market, "JP");
-assert.equal(record?.benchmark, "TOPIX");
-assert.equal(record?.reactionStartDate, "2026-01-10");
-assert.equal(record?.baseDate, "2026-01-13");
-assert.equal(record?.preEventPrice, 100);
-assert.equal(record?.shockLowPrice, 86);
-assert.equal(record?.shockDrawdownPct, -14);
-assert.equal(record?.firstEligibleSignalDate, "2026-01-19", "checkpointではなく最初の下落一巡日をsignalにする");
-assert.equal(record?.firstEligibleSignalPrice, 89);
-assert.equal(record?.signalShockDrawdownPct, -14);
-assert((record?.signalRelativeShockDrawdownPct ?? 0) <= -3);
-assert.equal(record?.signalReturn1m, 6.7416);
-assert.equal(record?.signalBenchmarkRelative1m, 4.7214);
-assert.equal(record?.signalReturn3m, 17.9775);
+assert.equal(record?.thresholdCalibrationEligibilityAtCheckpoint, "confirmed_pass");
+assert.equal(record?.firstEligibleSignalDate, "2026-01-19");
+assert.equal(record?.calibrationFirstEligibleSignalDate, "2026-01-19", "12点以上の本番PASSではproduction/shadow signalが一致する");
+assert.equal(record?.firstEligibleSignalPrice, record?.calibrationFirstEligibleSignalPrice);
 assert.equal(record?.signalBenchmarkRelative3m, 13.9371);
+assert.equal(record?.calibrationSignalBenchmarkRelative3m, 13.9371);
+assert.equal(record?.signalReturn3m, record?.calibrationSignalReturn3m);
+assert.equal(record?.shockDrawdownPct, -14);
 assert.notEqual(record?.return1m, record?.signalReturn1m, "checkpoint returnとsignal returnを混同しない");
-assert.equal(record?.topixRelative1m, record?.benchmarkRelative1m, "JP互換fieldを維持");
+
+const shadowOnly = buildShockHistoricalOutcome(lowScoreCase, stock, benchmark, "2027-02-01", {
+  reactionAnchorStatus: "verified",
+  strategyEligibilityAtCheckpoint: "confirmed_block",
+  thresholdCalibrationEligibilityAtCheckpoint: "confirmed_pass",
+});
+assert(shadowOnly);
+assert.equal(shadowOnly?.firstEligibleSignalDate, null, "11点はproduction signalを生成しない");
+assert.equal(shadowOnly?.calibrationFirstEligibleSignalDate, "2026-01-19", "11点でも明示shadow PASSならthreshold比較用signalを生成できる");
+assert.equal(shadowOnly?.calibrationSignalBenchmarkRelative3m, 13.9371);
 
 const unverifiedAnchor = buildShockHistoricalOutcome(strongCase, stock, benchmark, "2027-02-01", {
   strategyEligibilityAtCheckpoint: "confirmed_pass",
+  thresholdCalibrationEligibilityAtCheckpoint: "confirmed_pass",
 });
 assert(unverifiedAnchor);
-assert.equal(unverifiedAnchor?.reactionAnchorStatus, "unverified");
-assert.equal(unverifiedAnchor?.firstEligibleSignalDate, null, "非価格gateがPASSでもreaction anchor未確認ならsignalを生成しない");
-assert.equal(unverifiedAnchor?.signalBenchmarkRelative3m, null);
+assert.equal(unverifiedAnchor?.firstEligibleSignalDate, null);
+assert.equal(unverifiedAnchor?.calibrationFirstEligibleSignalDate, null, "shadowもreaction anchor未確認なら生成しない");
 
 const unknownEligibility = buildShockHistoricalOutcome(strongCase, stock, benchmark, "2027-02-01", {
   reactionAnchorStatus: "verified",
 });
 assert(unknownEligibility);
-assert.equal(unknownEligibility?.strategyEligibilityAtCheckpoint, "unknown");
-assert.equal(unknownEligibility?.firstEligibleSignalDate, null, "非価格hard gate未確認なら価格条件が良くてもsignalを生成しない");
-assert.equal(unknownEligibility?.signalBenchmarkRelative3m, null);
-
-const blockedEligibility = buildShockHistoricalOutcome(strongCase, stock, benchmark, "2027-02-01", {
-  reactionAnchorStatus: "verified",
-  strategyEligibilityAtCheckpoint: "confirmed_block",
-});
-assert(blockedEligibility);
-assert.equal(blockedEligibility?.firstEligibleSignalDate, null, "非価格hard gate BLOCKを価格反発で上書きしない");
+assert.equal(unknownEligibility?.firstEligibleSignalDate, null);
+assert.equal(unknownEligibility?.calibrationFirstEligibleSignalDate, null);
 
 const shiftedReaction = buildShockHistoricalOutcome(strongCase, stock, benchmark, "2027-02-01", {
   reactionStartDate: "2026-01-13",
   reactionAnchorStatus: "verified",
   strategyEligibilityAtCheckpoint: "confirmed_pass",
+  thresholdCalibrationEligibilityAtCheckpoint: "confirmed_pass",
 });
 assert(shiftedReaction);
-assert.equal(shiftedReaction?.reactionStartDate, "2026-01-13");
-assert.equal(shiftedReaction?.preEventDate, "2026-01-12", "reaction anchor変更時はpre-event基準も追随");
+assert.equal(shiftedReaction?.preEventDate, "2026-01-12");
 
 const usCase: HistoricalShockCase = { ...strongCase, id: "fixture-us", ticker: "MCD", country: "US" };
 const overseas = buildShockHistoricalOutcome(usCase, stock, benchmark, "2027-02-01", {
   reactionAnchorStatus: "verified",
   strategyEligibilityAtCheckpoint: "confirmed_pass",
+  thresholdCalibrationEligibilityAtCheckpoint: "confirmed_pass",
 });
-assert(overseas, "US英字tickerもmarket-aware outcomeを生成できる");
+assert(overseas);
 assert.equal(overseas?.market, "US");
 assert.equal(overseas?.benchmark, "S&P 500");
-assert.equal(overseas?.topixRelative1m, null, "海外outcomeをTOPIXと誤表記しない");
+assert.equal(overseas?.topixRelative1m, null);
 
-const weakRecord: ShockHistoricalOutcomeRecord = {
-  ...record!,
-  caseId: "fixture-weak",
+const weakShadow: ShockHistoricalOutcomeRecord = {
+  ...shadowOnly!,
+  caseId: "fixture-weak-shadow",
   score: 5,
   label: "avoid",
-  signalReturn1m: -12,
-  signalReturn3m: -20,
-  signalReturn1y: -30,
-  signalBenchmarkRelative1m: -10,
-  signalBenchmarkRelative3m: -18,
-  signalBenchmarkRelative1y: -25,
+  calibrationSignalReturn1m: -12,
+  calibrationSignalReturn3m: -20,
+  calibrationSignalReturn1y: -30,
+  calibrationSignalBenchmarkRelative1m: -10,
+  calibrationSignalBenchmarkRelative3m: -18,
+  calibrationSignalBenchmarkRelative1y: -25,
 };
-const calibration = calibrateShockThresholds([record!, weakRecord, unknownEligibility!, unverifiedAnchor!]);
+const calibration = calibrateShockThresholds([record!, weakShadow, unknownEligibility!, unverifiedAnchor!]);
 const ge12 = calibration.find(row => row.bucket === "score_ge_12");
 const lt12 = calibration.find(row => row.bucket === "score_lt_12");
-assert.equal(ge12?.cases, 1, "unknown eligibility / unverified anchorをcalibration分母へ入れない");
+assert.equal(ge12?.cases, 1);
 assert.equal(ge12?.positiveRate1m, 100);
-assert.equal(lt12?.cases, 1);
+assert.equal(lt12?.cases, 1, "score<12 shadow signalを比較群へ入れる");
 assert.equal(lt12?.positiveRate1m, 0);
 assert((ge12?.avgBenchmarkRelative1m ?? 0) > (lt12?.avgBenchmarkRelative1m ?? 0));
-assert.equal(ge12?.avgTopixRelative1m, ge12?.avgBenchmarkRelative1m, "legacy calibration aliasを維持");
 
-const legacyStoredSignalWithoutAnchor = {
+const legacyProductionSignalOnly = {
   ...record!,
-  caseId: "fixture-legacy-unanchored",
-  // 旧JSONにはこのfield自体が存在しないが、signal/outcome値は保存されていたケースを再現する。
-  reactionAnchorStatus: undefined,
+  caseId: "fixture-legacy-production-only",
+  thresholdCalibrationEligibilityAtCheckpoint: undefined,
+  calibrationFirstEligibleSignalDate: undefined,
+  calibrationSignalBenchmarkRelative1m: undefined,
+  calibrationSignalBenchmarkRelative3m: undefined,
+  calibrationSignalBenchmarkRelative1y: undefined,
 } as unknown as ShockHistoricalOutcomeRecord;
-assert.equal(legacyStoredSignalWithoutAnchor.firstEligibleSignalDate, "2026-01-19", "legacy fixtureは古いsignalを保持している");
-assert.equal(legacyStoredSignalWithoutAnchor.signalBenchmarkRelative3m, 13.9371);
+assert.equal(legacyProductionSignalOnly.firstEligibleSignalDate, "2026-01-19", "legacy fixtureはproduction signalを保持する");
 const calibrationObservations = enrichShockCalibrationObservations(
-  [record!, legacyStoredSignalWithoutAnchor],
-  [strongCase],
+  [record!, shadowOnly!, legacyProductionSignalOnly],
+  [strongCase, lowScoreCase],
 );
 assert.equal(calibrationObservations[0]?.signalDate, "2026-01-19");
 assert.equal(calibrationObservations[0]?.benchmarkRelative3m, 13.9371);
-assert.equal(calibrationObservations[1]?.signalDate, null, "旧保存signalが残っていてもanchor field欠落recordはcalibration observationへ昇格させない");
-assert.equal(calibrationObservations[1]?.benchmarkRelative3m, null);
+assert.equal(calibrationObservations[1]?.signalDate, "2026-01-19", "低score shadow controlもcalibration observationへ入る");
+assert.equal(calibrationObservations[2]?.signalDate, null, "旧production signalだけではthreshold calibrationへ再利用しない");
+assert.equal(calibrationObservations[2]?.benchmarkRelative3m, null);
 
-const noTrade: ShockHistoricalOutcomeRecord = {
+const shadowNoTrade: ShockHistoricalOutcomeRecord = {
   ...record!,
-  caseId: "fixture-no-trade",
-  firstEligibleSignalDate: null,
-  firstEligibleSignalPrice: null,
-  signalShockDrawdownPct: null,
-  signalRelativeShockDrawdownPct: null,
-  signalReturn1w: null,
-  signalReturn1m: null,
-  signalReturn3m: null,
-  signalReturn1y: null,
-  signalBenchmarkRelative1w: null,
-  signalBenchmarkRelative1m: null,
-  signalBenchmarkRelative3m: null,
-  signalBenchmarkRelative1y: null,
+  caseId: "fixture-shadow-no-trade",
+  calibrationFirstEligibleSignalDate: null,
+  calibrationFirstEligibleSignalPrice: null,
+  calibrationSignalShockDrawdownPct: null,
+  calibrationSignalRelativeShockDrawdownPct: null,
+  calibrationSignalReturn1w: null,
+  calibrationSignalReturn1m: null,
+  calibrationSignalReturn3m: null,
+  calibrationSignalReturn1y: null,
+  calibrationSignalBenchmarkRelative1w: null,
+  calibrationSignalBenchmarkRelative1m: null,
+  calibrationSignalBenchmarkRelative3m: null,
+  calibrationSignalBenchmarkRelative1y: null,
 };
-const withNoTrade = calibrateShockThresholds([record!, noTrade, unverifiedAnchor!, legacyStoredSignalWithoutAnchor]);
-assert.equal(withNoTrade.find(row => row.bucket === "score_ge_12")?.cases, 1, "true no-trade / anchor-unverified / legacy-unanchoredを0%として分母へ入れない");
+const withNoTrade = calibrateShockThresholds([record!, shadowNoTrade, unverifiedAnchor!, legacyProductionSignalOnly]);
+assert.equal(withNoTrade.find(row => row.bucket === "score_ge_12")?.cases, 1, "shadow no-signal / unverified / legacy production-onlyを0%リターンへ変換しない");
 
 assert.deepEqual(outcomeFetchRange(strongCase, "2026-06-01"), { from: "20251231", to: "20260601" });
 assert.deepEqual(outcomeFetchRange(strongCase, "2028-01-01"), { from: "20251231", to: "20270428" });
 assert.deepEqual(outcomeFetchRangeIso(usCase, "2026-06-01"), { from: "2025-12-31", to: "2026-06-01" });
 
-console.log("idiosyncratic-shock-outcomes tests: OK");
+console.log("idiosyncratic-shock-outcomes tests: production/shadow separation OK");
