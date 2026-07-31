@@ -1,7 +1,7 @@
 // 企業固有ショックの国別/地域別キャリブレーション。
 // Global Structural Scoreは変更せず、十分なoutcomeが貯まった階層だけを将来Local Opportunityへ昇格させる。
 // 少数標本で係数や閾値を最適化しない。必ず時系列holdoutを残し、足りなければ親モデルへ縮退する。
-// 戦略成績の正本はdecision checkpointではなく、非価格hard gate confirmed_pass後のFirst Eligible Signal起点。
+// 戦略成績の正本はdecision checkpointではなく、非価格hard gate confirmed_pass + verified reaction anchor後のFirst Eligible Signal起点。
 
 import type { HistoricalShockCase } from "./idiosyncratic-shock.js";
 import { inferShockJurisdictionGroup, normalizeShockCountry, type ShockJurisdictionGroup } from "./idiosyncratic-shock-jurisdiction.js";
@@ -66,7 +66,10 @@ export function enrichShockCalibrationObservations(
   return records.map(record => {
     const historical = historicalById.get(record.caseId);
     const country = normalizeShockCountry(historical?.country ?? null, record.market);
-    const eligible = record.strategyEligibilityAtCheckpoint === "confirmed_pass";
+    // 旧outcome JSONにfirstEligibleSignalDateが残っていても、reactionAnchorStatusが
+    // 明示verifiedでなければcalibrationへ再利用しない。読み込み側もfail-closed。
+    const eligible = record.strategyEligibilityAtCheckpoint === "confirmed_pass"
+      && record.reactionAnchorStatus === "verified";
     return {
       caseId: record.caseId,
       company: record.company,
