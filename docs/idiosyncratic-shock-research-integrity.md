@@ -88,7 +88,7 @@ batch1–2のbase backlogは分離導入前のlegacy stateを含むが、現在�
 
 ## 2. Outcome-blind batch実績
 
-2026-07-31時点で **19候補を採点前freeze後にPIT研究**した。
+2026-07-31時点で **23候補を採点前freeze後にPIT研究**した。
 
 | case | PIT score | classification |
 |---|---:|---|
@@ -111,14 +111,18 @@ batch1–2のbase backlogは分離導入前のlegacy stateを含むが、現在�
 | Japan Post Insurance 2019 | 4 | systemic BLOCK / band外 |
 | Intel 2018 | 14 | **high-score hard BLOCK: ongoing investigation** |
 | McDonald's 2019 | 15 | production structural PASS side |
+| Nissan 2018 | 5 | accounting / investigation hard BLOCK |
+| Mitsubishi Motors 2016 | 4 | open investigation / band外 |
+| HP 2010 | 14 | production structural PASS side |
+| Facebook 2018 | 6 | platform privacy open-investigation BLOCK |
 
-この分布はbacklogが「8–11点のPASSを作るリスト」ではないことを示す。4/5/7点や12–15点になった候補もそのまま受け入れる。
+この分布はbacklogが「8–11点のPASSを作るリスト」ではないことを示す。4/5/6/7点や12–15点になった候補もそのまま受け入れる。
 
 特にIntel 2018は14点でも同日一次情報が`ongoing investigation`を明示するためBLOCK。scoreとhard gateを混同しない。
 
 Recruit 2019は一度shadow PASS候補になったが、2019-08-26のPPC一次資料自体に調査継続が明記されていたためPIT再監査でBLOCKへ訂正した。未来資料で結論を変えたのではなく、checkpoint時点で既に公開されていたhard blockerを復元した訂正。
 
-McDonald's 2019では2020年に判明した追加事実を2019-11-04 checkpointへ逆流させない。ENEOS 2022でも2023年以降の別事案を2022 recurrence評価へ逆流させない。
+McDonald's 2019では2020年に判明した追加事実を2019-11-04 checkpointへ逆流させない。ENEOS 2022でも2023年以降の別事案を2022 recurrence評価へ逆流させない。Facebook 2018でも2019年のFTC/SEC settlementを2018-03-19へ逆流させない。Nissan/Mitsubishi Motorsも後日の起訴・最終調査報告・提携や回復結果をcheckpointへ入れない。
 
 active backlogが0かつthreshold readiness未達なら `replenishmentRequired=true`。queue exhaustionをresearch completionと解釈しない。
 
@@ -181,7 +185,7 @@ Evidenceだけでreaction dateをverifiedにしない。
 - production/shadow signalを生成しない
 - signal率の分母にも入れない
 
-ENEOS/McDonald'sの`strategyEligibilityAtCheckpoint=confirmed_pass`も、reaction/価格ゲートを通過したことを意味しない。
+ENEOS/McDonald's/HPの`strategyEligibilityAtCheckpoint=confirmed_pass`も、reaction/価格ゲートを通過したことを意味しない。
 
 ## 6. Case-selection provenance
 
@@ -208,7 +212,7 @@ prospective holdout eligible条件:
 
 historical caseを後からprospectiveへラベル変更してもholdoutにはならない。provenance欠落は `legacy_untracked` でprospective holdout=false。
 
-batch2 / batch3 / batch4のoutcome-blind候補はすべて `retrospective_research + known_or_available` として記録し、prospective holdoutへ偽装しない。
+batch2 / batch3 / batch4 / batch5のoutcome-blind候補はすべて `retrospective_research + known_or_available` として記録し、prospective holdoutへ偽装しない。
 
 ## 7. Pre-outcome research snapshot
 
@@ -324,9 +328,9 @@ Shock固有効果と単なる大幅下落後反発を分離する。future retur
 ## Current state — 2026-07-31
 
 - Production threshold: **12維持**
-- outcome-blind frozen/researched candidates: **19/19**
+- outcome-blind frozen/researched candidates: **23/23**
 - active candidate backlog: **0**
-- next candidate replenishment: **REQUIRED (batch5)**
+- next candidate replenishment: **REQUIRED (batch6)**
 - below-threshold explicit shadow PASS: **Ootoya 2019 (11), United 2017 (10)**
 - high-score hard-BLOCK counterexample: **Intel 2018 (14)**
 - formal `data/idiosyncratic_shock_outcomes.json`: **未生成**
@@ -345,7 +349,7 @@ Shock固有効果と単なる大幅下落後反発を分離する。future retur
 - immutable expansion freeze (`researchState=unscored`)
 - separate research-state registry completeness
 - state registryへのscore/outcome field混入禁止
-- batch1–4 actual PIT scores / hard gates
+- batch1–5 actual PIT scores / hard gates
 - retrospective/prospective isolation
 - outcome methodology / aggregate / snapshot binding
 - offline audits
