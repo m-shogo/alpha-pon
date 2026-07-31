@@ -14,6 +14,10 @@ import {
   historicalReactionAnchorReplayBlockers,
   isHistoricalReactionAnchorReplayReady,
 } from "./idiosyncratic-shock-reaction-anchor.js";
+import {
+  classifyShockResearchReasons,
+  summarizeShockResearchReasons,
+} from "./idiosyncratic-shock-research-status.js";
 
 type Priority = "P0" | "P1" | "P2";
 
@@ -67,6 +71,10 @@ function main(): void {
         ...item.sources.map(source => ({ ...source, origin: "case" as const })),
         ...(context?.strategyEligibilityEvidenceSources ?? []).map(source => ({ ...source, origin: "eligibility_sidecar" as const })),
       ];
+      const researchReasons = classifyShockResearchReasons({
+        blockers: calibration.blockers,
+        missingEvidence: calibration.missingEvidence,
+      });
       return {
         id: item.id,
         company: item.company,
@@ -83,6 +91,7 @@ function main(): void {
         calibrationStatus: calibration.status,
         calibrationBlockers: calibration.blockers,
         calibrationMissingEvidence: calibration.missingEvidence,
+        researchReasons,
         explicitCalibration,
         anchorReady,
         anchorBlockers,
@@ -109,6 +118,8 @@ function main(): void {
   const unknown = rows.filter(row => row.calibrationStatus === "unknown");
   const pass = rows.filter(row => row.calibrationStatus === "confirmed_pass");
   const block = rows.filter(row => row.calibrationStatus === "confirmed_block");
+  const unknownReasonSummary = summarizeShockResearchReasons(unknown.flatMap(row => row.researchReasons));
+  const blockReasonSummary = summarizeShockResearchReasons(block.flatMap(row => row.researchReasons));
   const payload = {
     generatedAt: date,
     scoreRange: "8-11",
@@ -117,6 +128,8 @@ function main(): void {
     calibrationBlock: block.length,
     calibrationUnknown: unknown.length,
     p0Unknown: unknown.filter(row => row.priority === "P0").length,
+    unknownReasonSummary,
+    blockReasonSummary,
     rows,
   };
 
@@ -134,6 +147,19 @@ function main(): void {
     "",
     "> score<12はproductionではBLOCKのまま。このqueueは12点という境界を検証するshadow研究専用。",
     "> unknownをPASSへ寄せず、checkpoint以前の一次情報でPASS/BLOCKを明示する。",
+    "> resolverの自由文とは別にreason codeを保存し、研究未完・hard blocker・score不足を混同しない。",
+    "",
+    "## UNKNOWN reason summary",
+    "",
+    ...(Object.keys(unknownReasonSummary).length
+      ? Object.entries(unknownReasonSummary).map(([code, count]) => `- ${code}: ${count}`)
+      : ["- none"]),
+    "",
+    "## BLOCK reason summary",
+    "",
+    ...(Object.keys(blockReasonSummary).length
+      ? Object.entries(blockReasonSummary).map(([code, count]) => `- ${code}: ${count}`)
+      : ["- none"]),
     "",
     "## P0/P1 unknown",
     "",
@@ -147,6 +173,7 @@ function main(): void {
       lines.push(`- production: ${row.productionStatus}${row.productionBlockers.length ? ` — ${row.productionBlockers.join(" / ")}` : ""}`);
       lines.push(`- calibration: ${row.calibrationStatus}`);
       lines.push(`- missing: ${row.calibrationMissingEvidence.join(" / ") || "-"}`);
+      lines.push(`- reason codes: ${row.researchReasons.map(reason => reason.code).join(" / ") || "-"}`);
       lines.push(`- reaction anchor: ${row.anchorReady ? "replay-ready" : "not ready"}`);
       lines.push(`- existing sources: ${row.sources.length}`);
       for (const action of row.nextActions) lines.push(`  - next: ${action}`);
@@ -160,7 +187,7 @@ function main(): void {
 
   lines.push("", "## Explicit / deterministic shadow BLOCK", "");
   if (block.length === 0) lines.push("- none");
-  else block.forEach(row => lines.push(`- ${row.country} ${row.ticker ?? "-"} ${row.company}: ${row.score}/20 — ${row.calibrationBlockers.join(" / ") || "explicit confirmed_block"}`));
+  else block.forEach(row => lines.push(`- ${row.country} ${row.ticker ?? "-"} ${row.company}: ${row.score}/20 — ${row.researchReasons.map(reason => reason.code).join(" / ") || row.calibrationBlockers.join(" / ") || "explicit confirmed_block"}`));
 
   writeFileSync("reports/idiosyncratic_shock_threshold_review_queue_latest.md", lines.join("\n"), "utf-8");
   console.log(`shock threshold review queue: total=${rows.length} pass/block/unknown=${pass.length}/${block.length}/${unknown.length} p0Unknown=${payload.p0Unknown}`);
