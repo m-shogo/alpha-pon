@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 22。HP 2010 Mark Hurd辞任を同日Board investigation結果と本業見通しだけで採点し、CEO conductの高score境界例として保存。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: hp-2010-hurd-resignation
+    company: "Hewlett-Packard"
+    ticker: HPQ
+    country: US
+    eventDate: "2010-08-06"
+    checkpoint: "2010-08-06"
+    category: executive_personal_conduct
+    actorType: ceo
+    scoreVector: [2,2,2,2,2,1,1,2,0,0]
+    priceState: unknown
+    summary: "Board監督下のoutside counsel/General Counsel調査はsexual harassment policy違反を認めず、Standards of Business Conduct違反を認定。Mark Hurdは即時辞任しCFO Cathie Lesjakがinterim CEOへ移行。同日HPはoperational/financial conditionは強いとし通期見通しを引き上げた。"
+    source: "https://www.sec.gov/Archives/edgar/data/47217/000104746910007177/a2199755z8-k.htm"
+    sourceType: regulator
+    outcomePattern: unknown
+    lesson: "調査結果・人物切除・本業耐性がcheckpoint内で揃うため14点。CEO交代リスクは1点、価格2項目は0。後日のOracle移籍・訴訟・株価returnは使用しない。"
+    confidence: high
