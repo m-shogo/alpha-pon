@@ -66,3 +66,9 @@ cases:
     outcomeVisibilityAtSelection: known_or_available
     selectionReason: "outcome-blind threshold candidate backlogでJP data-securityの未カバーカテゴリとして先にfreezeされ、scoreや将来returnを見ずにPIT研究へ昇格。"
     notes: "historical outcomeは既知になり得るためprospective holdoutには使わない。2014-07-17までの会社一次情報だけでscore=9/open investigation BLOCKを確定し、将来株価やrecovery patternは判定へ使用しない。"
+  dentsu-2016-labor-violation:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlogでJP labor-governanceの未カバーカテゴリとして先にfreezeされ、scoreや後年の判決を見ずにPIT研究へ昇格。"
+    notes: "2016-12-28会社一次情報だけでscore=8、open investigation/systemic recurrence BLOCKを確定。2017年以降の判決・処分・株価returnは判定へ使用しない。"
