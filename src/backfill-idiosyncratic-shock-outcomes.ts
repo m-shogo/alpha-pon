@@ -19,7 +19,16 @@ import {
 } from "./idiosyncratic-shock-case-context.js";
 import { loadHistoricalShockCases } from "./idiosyncratic-shock-data.js";
 import { inferShockMarket, type ShockMarket } from "./idiosyncratic-shock-market.js";
+import {
+  SHOCK_OUTCOME_DATASET_VERSION,
+  SHOCK_OUTCOME_METHODOLOGY,
+  assertShockOutcomeDatasetContract,
+} from "./idiosyncratic-shock-outcome-contract.js";
 import { isHistoricalReactionAnchorReplayReady } from "./idiosyncratic-shock-reaction-anchor.js";
+import {
+  assertShockResearchSnapshot,
+  buildShockResearchSnapshot,
+} from "./idiosyncratic-shock-research-snapshot-contract.js";
 import {
   buildShockHistoricalOutcome,
   calibrateShockThresholds,
@@ -138,7 +147,7 @@ function renderMarkdown(
     lines.push(`### ${row.market} ${row.code} ${row.company} (${row.score}/20)`);
     lines.push(`- benchmark: ${row.benchmark}`);
     lines.push(`- event/reaction/checkpoint: ${row.eventDate} / ${row.reactionStartDate} / ${row.checkpoint}`);
-    lines.push(`- reaction anchor: ${row.reactionAnchorStatus}`);
+    lines.push(`- reaction anchor: ${row.reactionAnchorStatus} / trading-day-observed=${row.reactionAnchorTradingDayObserved}`);
     lines.push(`- production eligibility: ${row.strategyEligibilityAtCheckpoint}`);
     lines.push(`- threshold calibration eligibility: ${row.thresholdCalibrationEligibilityAtCheckpoint ?? "unknown"}`);
     lines.push(`- event shock drawdown: ${fp(row.shockDrawdownPct)} (${row.preEventDate ?? "-"} → low ${row.shockLowDate ?? "-"})`);
@@ -169,6 +178,7 @@ function renderMarkdown(
   lines.push("- threshold/weights学習はcalibration shadow signalを使う。score thresholdだけを外し、その他hard gateは本番と共有する。");
   lines.push("- score<12のproduction BLOCKを自動でshadow PASSへ変換しない。一次情報でcalibrationEligibilityAtCheckpointを明示確認したケースだけ比較群へ入れる。");
   lines.push("- eligibility unknown / reaction-anchor not replay-readyをsignal率の分母にも入れない。");
+  lines.push("- reaction anchorはevidenceだけでなくstock/benchmark両方の同日価格観測を要求する。provider欠損や休日誤登録はunverifiedへ降格する。");
   lines.push("- shadow PASS + replay-readyだがsignalなしはreturn=0にせず、signal率の分母へだけ残す。");
   lines.push("- `score_ge_12` と `score_lt_12` をsignal率、signal後3m benchmark-relative、中央値、プラス率で比較する。");
   lines.push("- JPとUSは市場構造が違うため、全市場混合値だけで閾値を変更しない。");
@@ -182,6 +192,8 @@ async function main(): Promise<void> {
   const date = todayJst();
   const allCases = loadHistoricalShockCases().filter(item => Boolean(item.ticker));
   const contextById = loadHistoricalShockCaseContext();
+  const researchSnapshot = buildShockResearchSnapshot(allCases, contextById, date);
+  assertShockResearchSnapshot(researchSnapshot);
   const jpCases = allCases.filter(item => inferShockMarket({ country: item.country, ticker: item.ticker }) === "JP" && /^\d{4}$/.test(item.ticker ?? ""));
   const usCases = allCases.filter(item => inferShockMarket({ country: item.country, ticker: item.ticker }) === "US" && Boolean(item.ticker));
   const jqConfigured = isJQuantsConfigured();
@@ -193,6 +205,7 @@ async function main(): Promise<void> {
   ];
 
   console.log(`[backfill:shock-outcomes] mode=${doWrite ? "WRITE" : "DRY-RUN"} JP=${jpCases.length} US=${usCases.length}`);
+  console.log(`  researchSnapshot=${researchSnapshot.aggregateSha256}`);
   console.log(`  providers: JQuants=${jqConfigured} TwelveData=${twelveConfigured}`);
 
   const records: ShockHistoricalOutcomeRecord[] = [];
@@ -298,15 +311,19 @@ async function main(): Promise<void> {
   mkdirSync("data", { recursive: true });
   mkdirSync("reports", { recursive: true });
   const payload = {
+    version: SHOCK_OUTCOME_DATASET_VERSION,
     generatedAt: date,
+    researchSnapshotSha256: researchSnapshot.aggregateSha256,
     providers: providerStatus,
-    methodology: "production signal keeps threshold=12; threshold calibration shadow removes only the score gate while preserving all other fail-closed hard gates; both require replay-ready reaction anchors; no-signal remains in signal-rate denominator but is never converted to a zero return",
+    methodology: SHOCK_OUTCOME_METHODOLOGY,
     records,
     calibration,
     calibrationByMarket,
     failures,
   };
+  assertShockOutcomeDatasetContract(payload);
   writeFileSync(OUTPUT_PATH, JSON.stringify(payload, null, 2), "utf-8");
+  writeFileSync("reports/idiosyncratic_shock_research_snapshot_latest.json", JSON.stringify(researchSnapshot, null, 2), "utf-8");
   writeFileSync("reports/idiosyncratic_shock_outcomes_latest.json", JSON.stringify(payload, null, 2), "utf-8");
   writeFileSync("reports/idiosyncratic_shock_outcomes_latest.md", renderMarkdown(date, records, providerStatus, failures), "utf-8");
   console.log(`saved: ${OUTPUT_PATH}`);
