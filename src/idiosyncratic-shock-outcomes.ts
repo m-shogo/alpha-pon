@@ -20,6 +20,7 @@ export type ShockHistoricalOutcomeRecord = {
   eventDate: string;
   reactionStartDate: string;
   reactionAnchorStatus: HistoricalReactionAnchorStatus;
+  reactionAnchorTradingDayObserved: boolean;
   checkpoint: string;
   score: number;
   label: string;
@@ -121,6 +122,10 @@ function onOrBefore(quotes: ReturnType<typeof sortedQuotes>, target: string) {
   return [...quotes].reverse().find(row => row.normalizedDate <= target) ?? null;
 }
 
+function hasQuoteOnDate(quotes: ReturnType<typeof sortedQuotes>, target: string): boolean {
+  return quotes.some(row => row.normalizedDate === target);
+}
+
 function pct(from: number | null, to: number | null): number | null {
   if (from == null || to == null || from <= 0) return null;
   return ((to - from) / from) * 100;
@@ -215,7 +220,12 @@ export function buildShockHistoricalOutcome(
   const stockQuotes = sortedQuotes(stockQuotesInput);
   const benchmarkQuotes = sortedQuotes(benchmarkQuotesInput);
   const reactionStartDate = options.reactionStartDate ?? item.eventDate;
-  const reactionAnchorStatus = options.reactionAnchorStatus ?? "unverified";
+  const evidenceReactionAnchorStatus = options.reactionAnchorStatus ?? "unverified";
+  const reactionAnchorTradingDayObserved = hasQuoteOnDate(stockQuotes, reactionStartDate)
+    && hasQuoteOnDate(benchmarkQuotes, reactionStartDate);
+  const reactionAnchorStatus: HistoricalReactionAnchorStatus = evidenceReactionAnchorStatus === "verified" && reactionAnchorTradingDayObserved
+    ? "verified"
+    : "unverified";
   const strategyEligibilityAtCheckpoint = options.strategyEligibilityAtCheckpoint ?? "unknown";
   const thresholdCalibrationEligibilityAtCheckpoint = options.thresholdCalibrationEligibilityAtCheckpoint ?? "unknown";
   const checkpoint = item.decisionCheckpoint;
@@ -259,6 +269,7 @@ export function buildShockHistoricalOutcome(
     eventDate: item.eventDate,
     reactionStartDate,
     reactionAnchorStatus,
+    reactionAnchorTradingDayObserved,
     checkpoint,
     score: item.score,
     label: item.label,
