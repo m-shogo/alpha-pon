@@ -187,15 +187,15 @@ export function rankThresholdCandidateBacklog(
       const gapReasons: string[] = ["score band intentionally unknown until PIT-safe scoring"];
 
       if (candidate.market === "JP" && jpDeficit > 0) {
-        priorityScore += 20;
+        priorityScore += 20 * jpDeficit;
         gapReasons.push(`JP control deficit ${jpDeficit}`);
       }
       if (candidate.market === "US" && usDeficit > 0) {
-        priorityScore += 20;
+        priorityScore += 20 * usDeficit;
         gapReasons.push(`US control deficit ${usDeficit}`);
       }
       if (!categories.has(candidate.category) && categoryDeficit > 0) {
-        priorityScore += 15;
+        priorityScore += 15 * categoryDeficit;
         gapReasons.push(`new category coverage: ${candidate.category}`);
       }
       if (PRIMARY_SOURCE_TYPES.has(candidate.primarySource.sourceType)) {
@@ -206,7 +206,7 @@ export function rankThresholdCandidateBacklog(
         priorityScore += 2;
         gapReasons.push("research already in progress");
       }
-      if (totalDeficit > 0) priorityScore += 1;
+      if (totalDeficit > 0) priorityScore += totalDeficit;
 
       return { ...candidate, priorityScore, gapReasons };
     })
