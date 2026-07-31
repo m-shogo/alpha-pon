@@ -71,3 +71,15 @@ states:
   facebook-2018-cambridge-analytica:
     researchState: promoted
     decidedAt: "2026-07-31"
+  olympus-2011-loss-concealment:
+    researchState: unscored
+    decidedAt: "2026-07-31"
+  toyota-2010-accelerator-recall:
+    researchState: unscored
+    decidedAt: "2026-07-31"
+  target-2013-payment-card-breach:
+    researchState: unscored
+    decidedAt: "2026-07-31"
+  boeing-2019-737-max-grounding:
+    researchState: unscored
+    decidedAt: "2026-07-31"
