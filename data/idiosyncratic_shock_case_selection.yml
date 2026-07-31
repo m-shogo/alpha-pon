@@ -43,3 +43,8 @@ cases:
     selectionMode: retrospective_research
     outcomeVisibilityAtSelection: known_or_available
     selectionReason: "score 8のUS organizational-misconduct deep controlとして、強いIPがopen regulatory/culture issueを上書きしないか検証するため再監査。"
+  kobayashi-pharma-2024-benikoji:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "score 8のJP product-safety deep controlとして、健康被害原因と影響範囲が未確定な段階をshadow PASSへ誤分類しないか検証するため再監査。"
