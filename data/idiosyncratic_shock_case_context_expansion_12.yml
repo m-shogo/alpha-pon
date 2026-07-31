@@ -6,7 +6,7 @@ cases:
     incidentCountry: JP
     sector: education_services
     stakeholder: customer
-    incidentScope: subsidiary
+    incidentScope: multi_unit
     confounderStatus: unknown
     strategyInvestigationStatusAtCheckpoint: open
     strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
