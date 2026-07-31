@@ -44,7 +44,7 @@ candidates:
     market: US
     eventDate: "2018-04-12"
     category: customer_service_discrimination
-    researchState: unscored
+    researchState: promoted
     discoveryReason: "USで未カバーのcustomer-treatment/racial-bias shock。単店事件から全米店舗のpolicy/remediationへ広がった構造を、株価結果を使わず検証する。"
     primarySource:
       title: "Starbucks to Close All Stores Nationwide for Racial-Bias Education on May 29"
@@ -58,7 +58,7 @@ candidates:
     market: US
     eventDate: "2018-02-09"
     category: founder_misconduct
-    researchState: unscored
+    researchState: promoted
     discoveryReason: "US founder/key-person境界例。独立調査は完了したが創業者の役割移行が段階的で、actor separabilityとremediationを結果非依存で検証できる。"
     primarySource:
       title: "Guess? Form 8-K - Special Committee Investigation"
