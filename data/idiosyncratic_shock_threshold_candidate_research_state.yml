@@ -48,14 +48,14 @@ states:
     researchState: promoted
     decidedAt: "2026-07-31"
   eneos-2022-sugimori:
-    researchState: unscored
+    researchState: promoted
     decidedAt: "2026-07-31"
   japan-post-insurance-2019-improper-sales:
-    researchState: unscored
+    researchState: promoted
     decidedAt: "2026-07-31"
   intel-2018-krzanich:
-    researchState: unscored
+    researchState: promoted
     decidedAt: "2026-07-31"
   mcdonalds-2019-easterbrook:
-    researchState: unscored
+    researchState: promoted
     decidedAt: "2026-07-31"
