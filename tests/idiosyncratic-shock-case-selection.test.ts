@@ -15,18 +15,36 @@ assert.equal(resolveShockCaseSelection("retro", retrospective).validationHoldout
 
 const prospective = validateShockCaseSelectionRecord({
   registeredAt: "2026-07-31",
+  decisionCheckpointAtRegistration: "2026-07-31",
   selectionMode: "prospective_pre_outcome",
   outcomeVisibilityAtSelection: "not_observed",
   selectionReason: "live case registered before the future outcome horizon was observed",
 });
-assert.equal(resolveShockCaseSelection("future", prospective).validationHoldoutEligible, true);
+assert.equal(resolveShockCaseSelection("future", prospective, "2026-07-31").validationHoldoutEligible, true);
+assert.equal(resolveShockCaseSelection("future", prospective, "2026-08-01").validationHoldoutEligible, false, "frozen checkpoint must match current case checkpoint");
 
 assert.throws(() => validateShockCaseSelectionRecord({
   registeredAt: "2026-07-31",
+  decisionCheckpointAtRegistration: "2026-07-31",
   selectionMode: "prospective_pre_outcome",
   outcomeVisibilityAtSelection: "known_or_available",
   selectionReason: "invalid prospective case because future outcome is already known",
 }), /requires outcomeVisibilityAtSelection=not_observed/);
+
+assert.throws(() => validateShockCaseSelectionRecord({
+  registeredAt: "2026-08-01",
+  decisionCheckpointAtRegistration: "2026-07-31",
+  selectionMode: "prospective_pre_outcome",
+  outcomeVisibilityAtSelection: "not_observed",
+  selectionReason: "invalid prospective case because it was registered after the frozen checkpoint",
+}), /no later than decisionCheckpointAtRegistration/);
+
+assert.throws(() => validateShockCaseSelectionRecord({
+  registeredAt: "2026-07-31",
+  selectionMode: "prospective_pre_outcome",
+  outcomeVisibilityAtSelection: "not_observed",
+  selectionReason: "invalid prospective case because no checkpoint was frozen",
+}), /requires decisionCheckpointAtRegistration/);
 
 assert.throws(() => validateShockCaseSelectionRecord({
   registeredAt: "2026-07-31",
@@ -53,4 +71,4 @@ for (const id of [
   assert.equal(resolved.validationHoldoutEligible, false);
 }
 
-console.log("idiosyncratic-shock case selection tests: retrospective research separated from prospective holdout");
+console.log("idiosyncratic-shock case selection tests: prospective registration timing + checkpoint freeze enforced");
