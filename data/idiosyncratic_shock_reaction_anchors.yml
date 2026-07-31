@@ -29,3 +29,45 @@ cases:
         sourceType: major_media
         publishedAt: "2010-08-06"
     reactionAnchorNotes: "当時報道が『After the market closed Friday』と明記し、株価反応はafter-hoursで発生。historical daily-bar replayでは次の通常取引日2010-08-09をreaction startとする。"
+
+  sushiro-2023-customer:
+    announcementTiming: non_trading_day
+    priceReactionStartDate: "2023-01-30"
+    reactionAnchorEvidenceSources:
+      - title: "SNSで拡散されたスシロー店舗での迷惑行為について"
+        url: "https://www.food-and-life.co.jp/wp-content/uploads/2023/01/20230130-3.pdf"
+        sourceType: company
+        publishedAt: "2023-01-30"
+      - title: "スシロー迷惑動画 刑事民事の両面から厳正に対処"
+        url: "https://www.youtube.com/watch?v=Wn46DHr4krU"
+        sourceType: major_media
+        publishedAt: "2023-01-29"
+    reactionAnchorNotes: "迷惑動画は2023-01-29（日曜）時点で既に拡散・報道され、会社は翌30日に公式文書を公表。最初の通常取引反応日は2023-01-30。"
+
+  skylark-2019-bamiyan:
+    announcementTiming: non_trading_day
+    priceReactionStartDate: "2019-02-12"
+    reactionAnchorEvidenceSources:
+      - title: "当社従業員による不適切な行為とお詫びについて"
+        url: "https://corp.skylark.co.jp/Portals/0/images/news/press_release/2019/pk637h000001i6wm-att/190210.pdf?TabModule721=0"
+        sourceType: company
+        publishedAt: "2019-02-10"
+      - title: "国民の祝日について（建国記念の日）"
+        url: "https://www8.cao.go.jp/chosei/shukujitsu/gaiyou/kaku.html"
+        sourceType: regulator
+        publishedAt: "2019-02-11"
+    reactionAnchorNotes: "会社は2019-02-10（日曜）に『本日インターネット上への動画掲載により判明』と公表。翌2/11は建国記念の日で通常株式市場は休場のため、最初の通常取引日は2/12。"
+
+  seven-eleven-2019-employee-video:
+    announcementTiming: non_trading_day
+    priceReactionStartDate: "2019-02-12"
+    reactionAnchorEvidenceSources:
+      - title: "当社加盟店従業員による不適切行為について"
+        url: "https://www.sej.co.jp/company/news_release/news/2019/190211.html"
+        sourceType: company
+        publishedAt: "2019-02-11"
+      - title: "国民の祝日について（建国記念の日）"
+        url: "https://www8.cao.go.jp/chosei/shukujitsu/gaiyou/kaku.html"
+        sourceType: regulator
+        publishedAt: "2019-02-11"
+    reactionAnchorNotes: "会社公式発表は2019-02-11（建国記念の日）。通常株式市場の次の取引日2019-02-12をreaction startとする。"
