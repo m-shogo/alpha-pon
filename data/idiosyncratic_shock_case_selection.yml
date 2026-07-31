@@ -72,3 +72,9 @@ cases:
     outcomeVisibilityAtSelection: known_or_available
     selectionReason: "outcome-blind threshold candidate backlogでJP labor-governanceの未カバーカテゴリとして先にfreezeされ、scoreや後年の判決を見ずにPIT研究へ昇格。"
     notes: "2016-12-28会社一次情報だけでscore=8、open investigation/systemic recurrence BLOCKを確定。2017年以降の判決・処分・株価returnは判定へ使用しない。"
+  chipotle-2015-ecoli:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlogでUS food-safetyカテゴリとして先にfreezeされ、score帯を知らない状態でPIT研究へ昇格。"
+    notes: "CDC/会社の2016-02-02までの一次情報でscore=7と判明したため8-11境界帯へ無理に合わせない。prospective holdoutには使わず、後年の株価returnも判定に使用しない。"
