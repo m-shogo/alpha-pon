@@ -46,6 +46,7 @@ for (const id of [
   "kobe-steel-2017-quality-falsification",
   "tesla-2018-musk-sec",
   "recruit-2019-rikunabi-dmp",
+  "subaru-2017-final-inspection",
 ]) {
   const result = calibration(id);
   assert.equal(result.status, "confirmed_block", `${id} must not become a shadow control merely because its score is below 12`);
@@ -73,5 +74,16 @@ assert.equal(cases.get("tesla-2018-musk-sec")?.score, 9);
 assert(calibration("tesla-2018-musk-sec").blockers.includes("investigationStatus=open"));
 assert.equal(cases.get("recruit-2019-rikunabi-dmp")?.score, 11);
 assert(calibration("recruit-2019-rikunabi-dmp").blockers.includes("investigationStatus=open"), "Recruit Aug26 PPC release explicitly said investigation was continuing");
+assert.equal(cases.get("subaru-2017-final-inspection")?.score, 8);
+assert(calibration("subaru-2017-final-inspection").blockers.includes("investigationStatus=open"), "SUBARU process-level completion inspection issue remains a hard blocker at checkpoint");
 
-console.log("idiosyncratic-shock low-score control tests: Ootoya + United shadow PASS; PIT-open Recruit and unsafe 8-11 controls remain BLOCK");
+for (const [id, expectedScore] of [
+  ["snow-peak-2022-yamai", 12],
+  ["lululemon-2018-potdevin", 14],
+  ["barnes-noble-2018-parneros", 13],
+] as const) {
+  assert.equal(cases.get(id)?.score, expectedScore, `${id}: outcome-blind batch3 candidate must stay on the score actually produced by PIT research`);
+  assert(expectedScore >= 12, `${id}: these are counterexamples to cherry-picking below-threshold candidates`);
+}
+
+console.log("idiosyncratic-shock low-score control tests: Ootoya + United shadow PASS; batch3 adds SUBARU BLOCK and three >=12 counterexamples");
