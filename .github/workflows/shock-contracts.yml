@@ -1,0 +1,53 @@
+name: Shock Contracts
+
+on:
+  pull_request:
+    paths:
+      - "data/idiosyncratic_shock_*.yml"
+      - "config/idiosyncratic-shock-*.yml"
+      - "src/idiosyncratic-shock-*.ts"
+      - "src/backfill-idiosyncratic-shock-outcomes.ts"
+      - "tests/idiosyncratic-shock-*.test.ts"
+      - "docs/idiosyncratic-shock-*.md"
+      - ".github/workflows/shock-contracts.yml"
+  workflow_dispatch:
+
+jobs:
+  shock-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Typecheck core and tests
+        run: |
+          pnpm typecheck
+          pnpm typecheck:tests
+      - name: Context envelope contract
+        run: node --import tsx/esm tests/idiosyncratic-shock-context-envelope.test.ts
+      - name: Context field contract
+        run: node --import tsx/esm tests/idiosyncratic-shock-context-validation.test.ts
+      - name: PIT evidence contract
+        run: node --import tsx/esm tests/idiosyncratic-shock-pit-evidence.test.ts
+      - name: Threshold eligibility contract
+        run: node --import tsx/esm tests/idiosyncratic-shock-threshold-calibration.test.ts
+      - name: Threshold diversity contract
+        run: node --import tsx/esm tests/idiosyncratic-shock-threshold-diversity.test.ts
+      - name: Reaction anchor contract
+        run: node --import tsx/esm tests/idiosyncratic-shock-reaction-anchor.test.ts
+      - name: Backfill plan contract
+        run: node --import tsx/esm tests/idiosyncratic-shock-backfill-plan.test.ts
+      - name: Outcome production/shadow contract
+        run: node --import tsx/esm tests/idiosyncratic-shock-outcomes.test.ts
+      - name: Offline audits
+        run: |
+          node --import tsx/esm src/idiosyncratic-shock-context-file-audit.ts
+          node --import tsx/esm src/idiosyncratic-shock-threshold-calibration-audit.ts
+          node --import tsx/esm src/idiosyncratic-shock-threshold-diversity-audit.ts
