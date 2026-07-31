@@ -16,7 +16,7 @@ candidates:
     market: JP
     eventDate: "2014-07-09"
     category: data_security
-    researchState: unscored
+    researchState: promoted
     discoveryReason: "JPで未カバーの大規模data-security shock。顧客情報・ブランド・事業影響が強く、個人起点と組織統制の境界をscore結果を見ずに検証する。"
     primarySource:
       title: "お客様情報の漏えいについてお詫びとご説明"
