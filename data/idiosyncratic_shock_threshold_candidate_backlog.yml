@@ -30,7 +30,7 @@ candidates:
     market: JP
     eventDate: "2016-12-28"
     category: labor_governance
-    researchState: unscored
+    researchState: promoted
     discoveryReason: "JPの組織労務・ガバナンスshock。個人不祥事ではなく業務プロセスと企業文化へ触れるため、低score帯へ入るかを事前に決めつけず調査する。"
     primarySource:
       title: "労働基準法違反容疑による書類送検と再発防止に向けての当社の取り組みについて"
