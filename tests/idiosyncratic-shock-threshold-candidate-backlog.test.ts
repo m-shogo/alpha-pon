@@ -12,9 +12,9 @@ import { buildThresholdDiversityRows, type ThresholdDiversityRow } from "../src/
 
 const backlog = loadThresholdCandidateBacklog();
 assert.equal(backlog.version, 1);
-assert.equal(backlog.candidates.length, 23, "five frozen outcome-blind batches should contain 23 candidates");
+assert.equal(backlog.candidates.length, 27, "six frozen outcome-blind batches should contain 27 candidates");
 assert.equal(new Set(backlog.candidates.map(row => row.id)).size, backlog.candidates.length);
-assert(backlog.candidates.every(row => row.researchState === "promoted"), "separate research-state registry must close batch1-5 without mutating expansion freeze files");
+assert(backlog.candidates.every(row => row.researchState === "promoted"), "separate research-state registry must close batch1-6 without mutating expansion freeze files");
 
 for (const row of backlog.candidates) {
   const serialized = JSON.stringify(row);
@@ -47,6 +47,10 @@ const expectedScores = new Map<string, number>([
   ["mitsubishi-motors-2016-fuel-economy", 4],
   ["hp-2010-hurd-resignation", 14],
   ["facebook-2018-cambridge-analytica", 6],
+  ["olympus-2011-loss-concealment", 3],
+  ["toyota-2010-accelerator-recall", 8],
+  ["target-2013-payment-card-breach", 7],
+  ["boeing-2019-737-max-grounding", 4],
 ]);
 
 const historical = new Map(loadHistoricalShockCases().map(row => [row.id, row]));
@@ -58,9 +62,10 @@ for (const row of backlog.candidates) {
   assert.equal(item.priceStateAtCheckpoint, "unknown", `${row.id}: later price path must not enter checkpoint score`);
   assert.equal(item.outcome?.recoveryPattern, "unknown", `${row.id}: realized recovery must remain outside intake`);
 }
-assert.equal(historical.get("chipotle-2015-ecoli")?.score, 7, "candidate may land below 8-11 band");
-assert.equal(historical.get("japan-post-insurance-2019-improper-sales")?.score, 4, "candidate may land far below research boundary band");
-assert.equal(historical.get("mitsubishi-motors-2016-fuel-economy")?.score, 4, "another outcome-blind candidate may land far below boundary band");
+assert.equal(historical.get("olympus-2011-loss-concealment")?.score, 3, "candidate may land at an extreme low score without being discarded");
+assert.equal(historical.get("toyota-2010-accelerator-recall")?.score, 8, "candidate may land in the lower calibration band");
+assert.equal(historical.get("target-2013-payment-card-breach")?.score, 7, "candidate may land below the calibration band");
+assert.equal(historical.get("boeing-2019-737-max-grounding")?.score, 4, "critical product-safety candidate may land far below threshold");
 assert.equal(historical.get("guess-2018-marciano")?.score, 12, "candidate may land at production threshold");
 assert.equal(historical.get("mcdonalds-2019-easterbrook")?.score, 15, "candidate may land clearly above threshold");
 
@@ -77,20 +82,24 @@ for (const [id, blocker] of [
   ["nissan-2018-ghosn-misconduct", "accountingIntegrity=0"],
   ["mitsubishi-motors-2016-fuel-economy", "investigationStatus=open"],
   ["facebook-2018-cambridge-analytica", "investigationStatus=open"],
+  ["olympus-2011-loss-concealment", "accountingIntegrity=0"],
+  ["toyota-2010-accelerator-recall", "investigationStatus=open"],
+  ["target-2013-payment-card-breach", "investigationStatus=open"],
+  ["boeing-2019-737-max-grounding", "investigationStatus=open"],
 ] as const) {
   const item = historical.get(id);
   assert(item);
   const shadow = resolveHistoricalThresholdCalibrationEligibilityDetailed(item, contexts.get(id));
   assert.equal(shadow.status, "confirmed_block", `${id}: hard blocker must survive shadow`);
-  assert(shadow.blockers.includes(blocker), `${id}: expected ${blocker}`);
+  assert(shadow.blockers.includes(blocker), `${id}: expected ${blocker}; blockers=${shadow.blockers.join(",")}`);
 }
 
 const diversityRows = buildThresholdDiversityRows();
 const liveStatus = summarizeThresholdCandidateBacklogStatus(backlog.candidates, diversityRows);
-assert.equal(liveStatus.activeCandidateCount, 0, "batch1-5 are fully researched");
-assert.equal(liveStatus.promotedCount, 23);
+assert.equal(liveStatus.activeCandidateCount, 0, "batch1-6 are fully researched");
+assert.equal(liveStatus.promotedCount, 27);
 assert.equal(liveStatus.thresholdChangeReady, false, "threshold research gate remains unmet");
-assert.equal(liveStatus.replenishmentRequired, true, "batch6 must be frozen before further threshold research");
+assert.equal(liveStatus.replenishmentRequired, true, "another outcome-blind batch is required while diversity/readiness gates remain unmet");
 
 const baseCandidate: ThresholdCandidateBacklogRow = {
   id: "fixture-us", company: "Fixture US", ticker: "FIX", market: "US", eventDate: "2020-01-01",
@@ -117,4 +126,4 @@ const rankingWithoutOutcomes = ranked.map(row => row.id);
 const rankingWithOnlyUsableFlagChanged = rankThresholdCandidateBacklog(synthetic, diversityFixture.map(row => ({ ...row, usable3m: true }))).map(row => row.id);
 assert.deepEqual(rankingWithOnlyUsableFlagChanged, rankingWithoutOutcomes, "realized 3m usability must not change candidate priority");
 
-console.log("idiosyncratic-shock threshold candidate backlog tests: 23/23 promoted via separate state registry; batch6 replenishment required");
+console.log("idiosyncratic-shock threshold candidate backlog tests: 27/27 promoted via separate state registry; further replenishment remains readiness-driven");
