@@ -59,3 +59,15 @@ states:
   mcdonalds-2019-easterbrook:
     researchState: promoted
     decidedAt: "2026-07-31"
+  nissan-2018-ghosn-misconduct:
+    researchState: unscored
+    decidedAt: "2026-07-31"
+  mitsubishi-motors-2016-fuel-economy:
+    researchState: unscored
+    decidedAt: "2026-07-31"
+  hp-2010-hurd-resignation:
+    researchState: unscored
+    decidedAt: "2026-07-31"
+  facebook-2018-cambridge-analytica:
+    researchState: unscored
+    decidedAt: "2026-07-31"
