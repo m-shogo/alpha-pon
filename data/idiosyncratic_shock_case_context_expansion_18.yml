@@ -1,0 +1,27 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 7 context。Kobe Steel 2017は複数事業・group companyへ拡大し、外部調査委員会が調査を継続しているためshadow BLOCK。"
+cases:
+  kobe-steel-2017-quality-falsification:
+    incidentCountry: JP
+    sector: materials_manufacturing
+    stakeholder: customer
+    incidentScope: company_wide
+    confounderStatus: possible
+    recurrenceStatus: related_multiple
+    remediationStatus: partial
+    incidentClusterStatus: cascade
+    strategyInvestigationStatusAtCheckpoint: open
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    calibrationEligibilityAtCheckpoint: confirmed_block
+    calibrationEligibilityNotes: "productionはscore=8でBLOCK。threshold研究でもcheckpoint=2017-10-26時点で、複数事業・グループ会社に不適切行為が広がり、疑義案件4件を残したまま外部調査委員会へ調査を引き継いでいる。組織範囲・顧客安全性・業績影響が確定しておらず、investigationStatus=open + incidentClusterStatus=cascadeでshadow BLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "当社及び当社グループ会社における不適切行為に関するご報告について"
+        url: "https://www.kobelco.co.jp/releases/1197833_15541.html"
+        sourceType: company
+        publishedAt: "2017-10-13"
+      - title: "当社グループにおける不適切行為について（安全性の検証状況と外部調査委員会の設置について）"
+        url: "https://www.kobelco.co.jp/releases/1197904_15541.html"
+        sourceType: company
+        publishedAt: "2017-10-26"
+    notes: "2018-03-06の外部調査最終報告はcheckpoint後なのでeligibility根拠に使用しない。outcome-blind backlogで事前freeze済み。"
