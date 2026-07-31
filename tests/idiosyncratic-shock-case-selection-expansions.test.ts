@@ -28,8 +28,14 @@ const batch5 = [
   "hp-2010-hurd-resignation",
   "facebook-2018-cambridge-analytica",
 ] as const;
+const batch6 = [
+  "olympus-2011-loss-concealment",
+  "toyota-2010-accelerator-recall",
+  "target-2013-payment-card-breach",
+  "boeing-2019-737-max-grounding",
+] as const;
 
-for (const id of [...batch2, ...batch3, ...batch4, ...batch5]) {
+for (const id of [...batch2, ...batch3, ...batch4, ...batch5, ...batch6]) {
   const record = registry.get(id);
   assert(record, `${id}: selection expansion must be auto-loaded`);
   assert.equal(record.selectionMode, "retrospective_research");
@@ -39,5 +45,5 @@ for (const id of [...batch2, ...batch3, ...batch4, ...batch5]) {
   assert.equal(resolved.validationHoldoutEligible, false, `${id}: retrospective backlog research must never become prospective holdout`);
 }
 
-assert(registry.size >= batch2.length + batch3.length + batch4.length + batch5.length + 10, `base + expansion provenance should be merged: ${registry.size}`);
-console.log(`idiosyncratic-shock case selection expansion tests: batch2=${batch2.length}, batch3=${batch3.length}, batch4=${batch4.length}, batch5=${batch5.length}, registry=${registry.size}`);
+assert(registry.size >= batch2.length + batch3.length + batch4.length + batch5.length + batch6.length + 10, `base + expansion provenance should be merged: ${registry.size}`);
+console.log(`idiosyncratic-shock case selection expansion tests: batch2=${batch2.length}, batch3=${batch3.length}, batch4=${batch4.length}, batch5=${batch5.length}, batch6=${batch6.length}, registry=${registry.size}`);
