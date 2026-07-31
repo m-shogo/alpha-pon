@@ -8,6 +8,7 @@ import type { ShockMarket } from "./idiosyncratic-shock-market.js";
 import type { ShockSource } from "./idiosyncratic-shock.js";
 import {
   THRESHOLD_DIVERSITY_TARGETS,
+  summarizeThresholdDiversity,
   type ThresholdDiversityRow,
 } from "./idiosyncratic-shock-threshold-diversity-audit.js";
 
@@ -40,6 +41,16 @@ export type ThresholdCandidateBacklog = {
 export type ThresholdCandidatePriorityRow = ThresholdCandidateBacklogRow & {
   priorityScore: number;
   gapReasons: string[];
+};
+
+export type ThresholdCandidateBacklogStatus = {
+  totalCandidateCount: number;
+  activeCandidateCount: number;
+  promotedCount: number;
+  rejectedCount: number;
+  thresholdChangeReady: boolean;
+  replenishmentRequired: boolean;
+  blockers: string[];
 };
 
 const DEFAULT_PATH = "data/idiosyncratic_shock_threshold_candidate_backlog.yml";
@@ -211,4 +222,29 @@ export function rankThresholdCandidateBacklog(
       return { ...candidate, priorityScore, gapReasons };
     })
     .sort((a, b) => b.priorityScore - a.priorityScore || a.market.localeCompare(b.market) || a.id.localeCompare(b.id));
+}
+
+export function summarizeThresholdCandidateBacklogStatus(
+  candidates: ThresholdCandidateBacklogRow[],
+  rows: ThresholdDiversityRow[],
+): ThresholdCandidateBacklogStatus {
+  const diversity = summarizeThresholdDiversity(rows);
+  const active = rankThresholdCandidateBacklog(candidates, rows);
+  const promotedCount = candidates.filter(candidate => candidate.researchState === "promoted").length;
+  const rejectedCount = candidates.filter(candidate => candidate.researchState === "rejected").length;
+  const replenishmentRequired = !diversity.ready && active.length === 0;
+  const blockers = [...diversity.blockers];
+  if (replenishmentRequired) {
+    blockers.push("active threshold candidate backlog exhausted while threshold diversity is not ready");
+  }
+
+  return {
+    totalCandidateCount: candidates.length,
+    activeCandidateCount: active.length,
+    promotedCount,
+    rejectedCount,
+    thresholdChangeReady: diversity.ready,
+    replenishmentRequired,
+    blockers,
+  };
 }
