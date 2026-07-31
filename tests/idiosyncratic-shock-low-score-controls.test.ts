@@ -30,6 +30,7 @@ for (const id of [
   "sukiya-2025-rat",
   "activision-2021-culture",
   "kobayashi-pharma-2024-benikoji",
+  "kddi-2026-biglobe-circular-transactions",
 ]) {
   const result = calibration(id);
   assert.equal(result.status, "confirmed_block", `${id} must not become a shadow control merely because its score is below 12`);
@@ -46,5 +47,7 @@ assert(calibration("activision-2021-culture").blockers.includes("investigationSt
 assert(calibration("activision-2021-culture").blockers.includes("recurrenceStatus=systemic"));
 assert(calibration("activision-2021-culture").blockers.includes("remediationStatus=weak"));
 assert(calibration("kobayashi-pharma-2024-benikoji").blockers.includes("investigationStatus=open"));
+assert(calibration("kddi-2026-biglobe-circular-transactions").blockers.includes("accountingIntegrity=0"));
+assert(calibration("kddi-2026-biglobe-circular-transactions").blockers.includes("confounderStatus=major"));
 
 console.log("idiosyncratic-shock low-score control tests: Ootoya PASS; unsafe 8-11 controls remain BLOCK");
