@@ -1,0 +1,23 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog batch 6 context。Target 2013 payment-card breachをforensic/criminal investigation継続中のcompany-wide cyber/privacy incidentとして固定。"
+cases:
+  target-2013-payment-card-breach:
+    incidentCountry: US
+    sector: retail
+    stakeholder: customer
+    incidentScope: company_wide
+    confounderStatus: clear
+    recurrenceStatus: related_multiple
+    remediationStatus: partial
+    incidentClusterStatus: related_multiple
+    strategyInvestigationStatusAtCheckpoint: open
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    calibrationEligibilityAtCheckpoint: confirmed_block
+    calibrationEligibilityNotes: "productionはscore=7でBLOCK。threshold研究でも2013-12-27時点で侵入停止後も第三者forensics、Secret Service、DOJとのcriminal/forensic investigationが継続し、追加で暗号化PIN data取得が判明。scopeとfinancial/customer impactが未確定なためscore gateを外してもshadow BLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "Target Data Security Media Update 4"
+        url: "https://corporate.target.com/press/release/2013/12/target-data-security-media-update-4"
+        sourceType: company
+        publishedAt: "2013-12-27"
+    notes: "後日の費用、訴訟、CEO交代、業績、株価returnはcheckpoint判定へ逆流させない。"
