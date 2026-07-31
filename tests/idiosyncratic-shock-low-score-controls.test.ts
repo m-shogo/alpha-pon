@@ -15,11 +15,19 @@ function calibration(id: string) {
   return resolveHistoricalThresholdCalibrationEligibilityDetailed(item, contexts.get(id));
 }
 
-const ootoya = cases.get("ootoya-2019-employee-video");
-assert(ootoya);
-assert.equal(ootoya.score, 11);
-assert.equal(resolveHistoricalStrategyEligibility(ootoya, contexts.get(ootoya.id)), "confirmed_block", "below-threshold control remains production BLOCK");
-assert.equal(calibration(ootoya.id).status, "confirmed_pass", "Ootoya is an explicit shadow PASS after checkpoint-safe research");
+for (const [id, expectedScore] of [
+  ["ootoya-2019-employee-video", 11],
+  ["united-2017-flight3411", 10],
+] as const) {
+  const item = cases.get(id);
+  assert(item, `missing low-score shadow PASS case: ${id}`);
+  assert.equal(item.score, expectedScore);
+  assert.equal(resolveHistoricalStrategyEligibility(item, contexts.get(id)), "confirmed_block", `${id}: below-threshold control remains production BLOCK`);
+  const shadow = calibration(id);
+  assert.equal(shadow.status, "confirmed_pass", `${id}: explicit shadow PASS requires checkpoint-safe research`);
+  assert.deepEqual(shadow.blockers, [], `${id}: shadow PASS cannot retain a non-score hard blocker`);
+  assert.deepEqual(shadow.missingEvidence, [], `${id}: shadow PASS cannot retain unresolved evidence`);
+}
 
 for (const id of [
   "papa-johns-2018-schnatter",
@@ -50,4 +58,4 @@ assert(calibration("kobayashi-pharma-2024-benikoji").blockers.includes("investig
 assert(calibration("kddi-2026-biglobe-circular-transactions").blockers.includes("accountingIntegrity=0"));
 assert(calibration("kddi-2026-biglobe-circular-transactions").blockers.includes("confounderStatus=major"));
 
-console.log("idiosyncratic-shock low-score control tests: Ootoya PASS; unsafe 8-11 controls remain BLOCK");
+console.log("idiosyncratic-shock low-score control tests: Ootoya + United shadow PASS; unsafe 8-11 controls remain BLOCK");
