@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Reaction anchor research batch 2。日本株の場中公表を当時記事の時刻で再現できたケース。base/他expansionとID重複禁止。"
+cases:
+  yoshinoya-2022-remark:
+    announcementTiming: during_session
+    priceReactionStartDate: "2022-04-18"
+    reactionAnchorEvidenceSources:
+      - title: "吉野家常務の不適切発言、会社が謝罪『人権・ジェンダーの観点から到底許容できない』"
+        url: "https://www.j-cast.com/2022/04/18435490.html?p=all"
+        sourceType: major_media
+        publishedAt: "2022-04-18"
+      - title: "当社役員の不適切な発言についてのお詫び"
+        url: "https://www.yoshinoya.com/wp-content/uploads/2022/04/18120356/news_20220418_4.pdf"
+        sourceType: company
+        publishedAt: "2022-04-18"
+    reactionAnchorNotes: "当時記事は2022-04-18 12:57公開で、既に吉野家の謝罪文書を引用していた。東証後場の通常取引時間中に市場が情報を認識可能だったため同日をreaction startとする。"
+
+  zensho-sukiya-2019-employee-video:
+    announcementTiming: during_session
+    priceReactionStartDate: "2019-01-29"
+    reactionAnchorEvidenceSources:
+      - title: "すき家、不適切動画で謝罪　出演者を社内規定に則り厳正な処分、再発防止を徹底"
+        url: "https://netatopi.jp/article/1172766.html"
+        sourceType: other
+        publishedAt: "2019-01-29"
+      - title: "当社従業員による不適切な行為についてのお詫びとお知らせ"
+        url: "https://www.sukiya.jp/news/2019/01/20190131.html"
+        sourceType: company
+        publishedAt: "2019-01-31"
+    reactionAnchorNotes: "当時記事は2019-01-29 13:28公開で、同日にすき家公式サイトへ謝罪掲載済みと報じている。東証後場の通常取引時間中に市場が情報を認識可能だったため2019-01-29をreaction startとする。"
