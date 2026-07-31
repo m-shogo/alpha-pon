@@ -1,0 +1,23 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog batch 5 context。HP 2010 Mark Hurd辞任をBoard監督調査の結論・即時succession・本業耐性がcheckpoint内で揃った高score構造PASS例として固定。"
+cases:
+  hp-2010-hurd-resignation:
+    incidentCountry: US
+    sector: technology
+    stakeholder: employee
+    incidentScope: individual
+    confounderStatus: clear
+    recurrenceStatus: first_known
+    remediationStatus: credible
+    incidentClusterStatus: single
+    strategyInvestigationStatusAtCheckpoint: substantially_complete
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyEligibilityNotes: "checkpoint=2010-08-06までにBoard監督下のoutside counsel/General Counsel調査がsexual harassment policy違反なし・Standards of Business Conduct違反ありと結論。Hurdは即時辞任しinterim CEOを任命、本業・financial conditionは強く通期見通しも引き上げ。score=14で非score hard blockerを確認しない。reaction/価格gateは別。"
+    strategyEligibilityEvidenceSources:
+      - title: "HP Form 8-K - Mark Hurd resignation and interim CEO appointment"
+        url: "https://www.sec.gov/Archives/edgar/data/47217/000104746910007177/a2199755z8-k.htm"
+        sourceType: regulator
+        publishedAt: "2010-08-06"
+    notes: "後日のOracle移籍・HP訴訟・株価returnは2010-08-06 checkpointへ使用しない。"
