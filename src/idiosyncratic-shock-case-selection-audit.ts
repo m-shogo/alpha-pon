@@ -18,20 +18,30 @@ function main(): void {
   }
 
   const rows = cases.map(item => {
-    const resolved = resolveShockCaseSelection(item.id, registry.get(item.id));
+    const selection = registry.get(item.id);
+    const resolved = resolveShockCaseSelection(item.id, selection, item.decisionCheckpoint);
     return {
       id: item.id,
       company: item.company,
       ticker: item.ticker ?? null,
       country: item.country,
       checkpoint: item.decisionCheckpoint,
+      registeredAt: selection?.registeredAt ?? null,
+      frozenCheckpoint: selection?.decisionCheckpointAtRegistration ?? null,
       score: item.score,
       provenance: resolved.provenance,
       selectionMode: resolved.selectionMode,
       outcomeVisibilityAtSelection: resolved.outcomeVisibilityAtSelection,
+      registrationTimingVerified: resolved.registrationTimingVerified,
       validationHoldoutEligible: resolved.validationHoldoutEligible,
+      resolutionReason: resolved.reason,
     };
   });
+
+  const invalidProspective = rows.filter(row => row.selectionMode === "prospective_pre_outcome" && !row.validationHoldoutEligible);
+  if (invalidProspective.length > 0) {
+    throw new Error(`invalid prospective case-selection provenance: ${invalidProspective.map(row => `${row.id} (${row.resolutionReason})`).join("; ")}`);
+  }
 
   const explicit = rows.filter(row => row.provenance === "explicit");
   const legacyUntracked = rows.filter(row => row.provenance === "legacy_untracked");
@@ -66,12 +76,12 @@ function main(): void {
     `- holdout ready: ${payload.holdoutReady ? "YES" : "NO"}`,
     "",
     "> retrospective / legacy-untracked cases may support research and calibration, but must never be presented as pristine prospective holdout evidence.",
-    "> a future live case becomes holdout-eligible only when it is registered as prospective_pre_outcome while the evaluated outcome horizon is still unobserved.",
+    "> a future live case becomes holdout-eligible only when it is registered as prospective_pre_outcome, the outcome is still unobserved, registeredAt is no later than the frozen decision checkpoint, and that frozen checkpoint matches the case DB.",
     "",
     "## Explicit provenance",
     "",
     ...(explicit.length
-      ? explicit.map(row => `- ${row.id}: ${row.selectionMode}, outcome=${row.outcomeVisibilityAtSelection}, holdout=${row.validationHoldoutEligible ? "yes" : "no"}`)
+      ? explicit.map(row => `- ${row.id}: ${row.selectionMode}, registered=${row.registeredAt ?? "-"}, frozenCheckpoint=${row.frozenCheckpoint ?? "-"}, caseCheckpoint=${row.checkpoint}, timing=${row.registrationTimingVerified ? "verified" : "n/a"}, outcome=${row.outcomeVisibilityAtSelection}, holdout=${row.validationHoldoutEligible ? "yes" : "no"}`)
       : ["- none"]),
     "",
     "## Legacy / untracked selection debt",
