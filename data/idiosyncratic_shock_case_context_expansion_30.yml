@@ -1,0 +1,23 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog batch 4 context。McDonald's 2019 CEO policy violationを2019-11-04時点のBoard判断と即時successionだけで固定し、2020年追加事実を排除。"
+cases:
+  mcdonalds-2019-easterbrook:
+    incidentCountry: US
+    sector: restaurant_food_service
+    stakeholder: employee
+    incidentScope: individual
+    confounderStatus: clear
+    recurrenceStatus: first_known
+    remediationStatus: credible
+    incidentClusterStatus: single
+    strategyInvestigationStatusAtCheckpoint: substantially_complete
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyEligibilityNotes: "checkpoint=2019-11-04でBoardは会社方針違反と判断しSteve EasterbrookをCEO・取締役から分離、Chris Kempczinskiを即時後継CEOへ任命。会社はleadership transitionがoperational/financial performanceと無関係と開示。score=15で同日情報に非score hard blockerを確認しない。reaction anchor/価格条件は別契約。"
+    strategyEligibilityEvidenceSources:
+      - title: "McDonald's Form 8-K - Leadership Transition"
+        url: "https://www.sec.gov/Archives/edgar/data/63908/000089882219000080/mcd8k20191104.htm"
+        sourceType: regulator
+        publishedAt: "2019-11-04"
+    notes: "2020年に判明した追加関係・訴訟等は2019-11-04 checkpoint後の未来情報であり、recurrence・investigation・scoreへ逆流させない。"
