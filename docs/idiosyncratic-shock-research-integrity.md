@@ -9,6 +9,10 @@ Production thresholdは現在 **12/20**。この文書の契約を満たして�
 ## Integrity chain
 
 ```text
+outcome-blind candidate freeze
+  ↓
+research-state registry
+  ↓
 historical case facts
   ↓
 PIT eligibility evidence
@@ -34,7 +38,85 @@ validated local registry
 
 各段階は後段だけで補正してはいけない。前段が変わった場合は、その前段に依存する後段を再生成・再検証する。
 
-## 1. PIT evidence
+## 1. Outcome-blind candidate freeze
+
+threshold境界事例を「結果を知った後で都合よく選ぶ」ことを防ぐため、候補は採点前にfreezeする。
+
+正本:
+
+```text
+data/idiosyncratic_shock_threshold_candidate_backlog.yml
+data/idiosyncratic_shock_threshold_candidate_backlog_expansion_*.yml
+```
+
+候補selectionで許可するのは構造情報だけ。
+
+- market / jurisdiction不足
+- category不足
+- event structure
+- primary-source availability
+
+候補freezeへ入れてはいけないもの:
+
+- score / scoreVector
+- future return
+- recovery pattern
+- realized outcome
+- post-event price path
+
+### Freezeと進捗を分離する
+
+batch 3以降のexpansion freezeは `researchState=unscored` のまま変更禁止。
+
+研究進捗は別正本:
+
+```text
+data/idiosyncratic_shock_threshold_candidate_research_state.yml
+```
+
+で管理する。
+
+state registryが保持できるのは lifecycle metadata のみ。
+
+- `researchState`
+- `decidedAt`
+- notes
+
+score / return / outcome等をstate registryへ入れることも禁止する。
+
+runtime default loaderはfreeze recordへstate registryをoverlayする。expansion freeze自体を`promoted`へ直接書き換えた場合はfailする。
+
+batch1–2のbase backlogはこの分離導入前のlegacy stateを含むが、現在のruntime progress正本はstate registry。batch3以降はimmutable freeze方式を必須とする。
+
+### Outcome-blind batch実績
+
+2026-07-31時点で15候補を採点前freeze後にPIT研究した。
+
+| case | PIT score | classification |
+|---|---:|---|
+| Benesse 2014 | 9 | shadow BLOCK |
+| Dentsu 2016 | 8 | shadow BLOCK |
+| Chipotle 2015 | 7 | shadow BLOCK / band外 |
+| Guess 2018 | 12 | production-threshold side |
+| Starbucks 2018 | 11 | shadow BLOCK |
+| Recruit 2019 | 11 | shadow BLOCK |
+| JAL 2018 | 9 | shadow BLOCK |
+| Kobe Steel 2017 | 8 | shadow BLOCK |
+| Tesla 2018 | 9 | shadow BLOCK |
+| Equifax 2017 | 5 | shadow BLOCK / band外 |
+| Wells Fargo 2016 | 5 | shadow BLOCK / band外 |
+| Snow Peak 2022 | 12 | production-threshold side |
+| SUBARU 2017 | 8 | shadow BLOCK |
+| lululemon 2018 | 14 | production-threshold side |
+| Barnes & Noble 2018 | 13 | production-threshold side |
+
+この結果は、backlogが「8–11点のPASSを作るリスト」ではないことを示す。7/5点や12–14点になった候補も、そのまま受け入れる。
+
+Recruit 2019は一度shadow PASS候補になったが、2019-08-26のPPC一次資料自体に調査継続が明記されていたためPIT再監査でBLOCKへ訂正した。将来資料で結論を変えたのではなく、checkpoint時点で既に公開されていたhard blockerを復元した訂正である。
+
+active backlogが0かつthreshold readiness未達なら `replenishmentRequired=true`。queue exhaustionをresearch completionと解釈しない。
+
+## 2. PIT evidence
 
 ### Historical case source
 
@@ -52,7 +134,7 @@ validated local registry
 
 Productionとthreshold-calibration shadowは同じPIT source gateを使う。
 
-## 2. Production / threshold-calibration separation
+## 3. Production / threshold-calibration separation
 
 ### Production
 
@@ -70,7 +152,14 @@ Productionとthreshold-calibration shadowは同じPIT source gateを使う。
 
 score < 12を自動PASSにしない。
 
-## 3. Reaction anchor
+現在のbelow-threshold explicit shadow PASSは:
+
+- Ootoya 2019 — 11/20
+- United Flight 3411 2017 — 10/20
+
+のみ。両方Productionではscore gateによりBLOCK。
+
+## 4. Reaction anchor
 
 Evidenceだけでreaction dateをverifiedにしない。
 
@@ -88,12 +177,13 @@ Evidenceだけでreaction dateをverifiedにしない。
 - production/shadow signalを生成しない
 - signal率の分母にも入れない
 
-## 4. Case-selection provenance
+## 5. Case-selection provenance
 
 正本:
 
 ```text
 data/idiosyncratic_shock_case_selection.yml
+data/idiosyncratic_shock_case_selection_expansion_*.yml
 ```
 
 mode:
@@ -114,7 +204,9 @@ historical caseを後からprospectiveへラベル変更しても、checkpoint�
 
 provenance欠落は `legacy_untracked` とし、prospective holdout eligibilityはfalse。
 
-## 5. Pre-outcome research snapshot
+batch2 / batch3のoutcome-blind候補はすべて`retrospective_research + known_or_available`として記録し、prospective holdoutへ偽装しない。
+
+## 6. Pre-outcome research snapshot
 
 `src/idiosyncratic-shock-research-snapshot-contract.ts`
 
@@ -137,7 +229,9 @@ realized future outcomeはhash対象外。
 
 正式outcome datasetには `researchSnapshotSha256` を保存する。
 
-## 6. Outcome dataset methodology
+candidate research stateはlifecycle metadataであり、採点内容の正本ではないためsnapshot定義には混ぜない。
+
+## 7. Outcome dataset methodology
 
 `shock-outcome-v1` は名前だけでなくmethodology object全体をruntime完全一致させる。
 
@@ -157,7 +251,7 @@ realized future outcomeはhash対象外。
 
 dataset内の全recordはdataset `generatedAt` と同一runでなければならない。
 
-## 7. Aggregates are derived data
+## 8. Aggregates are derived data
 
 正式datasetの:
 
@@ -176,7 +270,7 @@ runtime contractはrecordから `calibrateShockThresholds()` を再計算し、�
 
 を拒否する。
 
-## 8. Outcome snapshot binding
+## 9. Outcome snapshot binding
 
 `src/idiosyncratic-shock-outcome-snapshot-audit.ts`
 
@@ -194,7 +288,7 @@ currentResearchSnapshot.aggregateSha256
 
 formal outcome datasetがまだ存在しない現在は `not_applicable`。
 
-## 9. Retrospective temporal validation
+## 10. Retrospective temporal validation
 
 retrospective research pool内でchronological train / later validation sliceを作る。
 
@@ -209,7 +303,7 @@ retrospective research pool内でchronological train / later validation sliceを
 
 retrospective chronological validationだけでlocal thresholdを `validated` にしない。
 
-## 10. Prospective holdout
+## 11. Prospective holdout
 
 local threshold / weights候補をretrospective researchで固定した後、outcome観測前に登録したcaseだけで独立確認する。
 
@@ -226,7 +320,7 @@ prospective outcomeはdefault `calibrateShockThresholds()` から除外する。
 
 prospective結果をthreshold fittingへ戻さない。
 
-## 11. Local registry evidence binding
+## 12. Local registry evidence binding
 
 正本:
 
@@ -255,15 +349,9 @@ runtimeではさらに:
 
 を要求する。
 
-例:
-
-- 2024–2025 validation registryを2030年の成功例で後から満たす → BLOCK
-- registryが10件と主張、実際は8件 → BLOCK
-- 2018–2023 train registryを2030年追加のretrospective caseで後から満たす → BLOCK
-
 registry evidence不一致時はlocal thresholdを使わず、検証済み親またはglobal threshold=12へ縮退する。
 
-## 12. Matched negative controls
+## 13. Matched negative controls
 
 「企業固有shockのルールが効いた」のか「単に大幅下落株が反発した」のかを分離する。
 
@@ -278,7 +366,7 @@ future returnをmatching inputに使わない。
 - material corporate eventを除外
 - abnormal liquidityを除外
 
-## 13. Threshold変更gate
+## 14. Threshold変更gate
 
 最低でも:
 
@@ -299,11 +387,13 @@ future returnをmatching inputに使わない。
 ## Current state — 2026-07-31
 
 - Production threshold: **12維持**
+- outcome-blind frozen/researched candidates: **15/15**
+- active candidate backlog: **0**
+- next candidate replenishment: **REQUIRED**
+- below-threshold explicit shadow PASS: **Ootoya 2019 (11), United 2017 (10)**
 - formal `data/idiosyncratic_shock_outcomes.json`: **未生成**
 - validated local registry: **空**
 - prospective holdout: **未充足**
-- below-threshold explicit shadow PASS: **Ootoya 2019 (11/20) のみ**
-- researched below-threshold BLOCK: Papa John's / CBS / Super Retail / Wynn / KADOKAWA / Sukiya / Activision Blizzard / Kobayashi Pharma
 - strategy profitability: **未証明**
 - threshold=12 optimality: **未証明**
 
@@ -311,6 +401,16 @@ future returnをmatching inputに使わない。
 
 `.github/workflows/shock-contracts.yml` が上記契約の軽量検査を担当する。
 
-ただし現在のGitHub Actionsはjob生成後、checkout以前に `steps=null / logs=null` で停止しているため、code/test greenとは扱わない。
+追加契約:
+
+- all loaded historical context enum validation
+- case-selection expansion provenance
+- candidate backlog expansion merge
+- immutable expansion freeze (`researchState=unscored`)
+- separate research-state registry completeness
+- state registryへのscore/outcome field混入禁止
+- batch1–3のactual PIT scores
+
+ただしGitHub Actionsの実行証跡がcheckout以前で停止している状態では、code/test greenとは扱わない。
 
 Actionsまたは別の実行可能環境でtypecheck/tests/auditsの実行証跡が取れるまでPRはDraftを維持する。
