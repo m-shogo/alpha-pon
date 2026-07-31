@@ -76,10 +76,18 @@ for (const id of [
   "sukiya-2025-rat",
   "activision-2021-culture",
   "kobayashi-pharma-2024-benikoji",
+  "kddi-2026-biglobe-circular-transactions",
+  "united-2017-flight3411",
 ]) {
   const resolved = resolveShockCaseSelection(id, registry.get(id));
   assert.equal(resolved.selectionMode, "retrospective_research");
   assert.equal(resolved.validationHoldoutEligible, false);
+}
+
+for (const id of ["kddi-2026-biglobe-circular-transactions", "united-2017-flight3411"]) {
+  const record = registry.get(id);
+  assert(record, `${id}: explicit selection provenance required`);
+  assert.equal(record.outcomeVisibilityAtSelection, "known_or_available", `${id}: historical research must not masquerade as unseen outcome`);
 }
 
 console.log("idiosyncratic-shock case selection tests: prospective registration timing + checkpoint freeze enforced");
