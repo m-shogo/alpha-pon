@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { loadHistoricalShockCases } from "../src/idiosyncratic-shock-data.js";
 
 const historical = loadHistoricalShockCases();
-assert(historical.length >= 59, `過去事例は59件以上必要: ${historical.length}`);
+assert(historical.length >= 60, `過去事例は60件以上必要: ${historical.length}`);
 assert.equal(new Set(historical.map(item => item.id)).size, historical.length, "historical idは重複禁止");
 
 const byId = new Map(historical.map(item => [item.id, item]));
@@ -27,7 +27,14 @@ assert(smfg, "SMBC日興相場操縦を規制・組織負例として保持");
 assert.equal(smfg?.category, "systemic_misconduct");
 assert((smfg?.score ?? 99) < 8, "法人起訴・行政処分・親会社改善命令はavoid帯");
 
+const united = byId.get("united-2017-flight3411");
+assert(united, "United 3411をUSの低score policy-shock境界例として保持");
+assert.equal(united.actorType, "organization");
+assert.equal(united.score, 10, "組織ポリシー・顧客信頼を低く評価し、価格未検証を楽観化しない");
+assert.equal(united.priceStateAtCheckpoint, "unknown", "正式price replay前にstabilizedを後付けしない");
+assert.equal(united.outcome?.recoveryPattern, "unknown", "historical future outcomeをcase seedへ逆流させない");
+
 const highConfidence = historical.filter(item => item.researchConfidence === "high").length;
-assert(highConfidence >= 20, `high-confidence事例を厚く保つ: ${highConfidence}`);
+assert(highConfidence >= 21, `high-confidence事例を厚く保つ: ${highConfidence}`);
 
 console.log(`idiosyncratic-shock-expansions tests: OK (${historical.length} historical cases, high=${highConfidence})`);
