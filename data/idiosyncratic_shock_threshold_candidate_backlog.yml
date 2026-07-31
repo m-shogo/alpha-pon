@@ -86,7 +86,7 @@ candidates:
     market: JP
     eventDate: "2019-08-26"
     category: data_privacy_regulatory
-    researchState: unscored
+    researchState: promoted
     discoveryReason: "JPのprivacy/regulatoryカテゴリを追加する第2batch候補。個人データの同意・安全管理・事業ガバナンスの波及を、scoreや後日の株価を見ずに検証する。"
     primarySource:
       title: "当社孫会社への個人情報保護委員会からの勧告等について"
@@ -100,7 +100,7 @@ candidates:
     market: JP
     eventDate: "2018-10-28"
     category: safety_compliance
-    researchState: unscored
+    researchState: promoted
     discoveryReason: "JPのregulated safety/complianceカテゴリを追加する第2batch候補。個人の飲酒事案と会社の検査・安全管理体制を、将来returnなしで分離評価する。"
     primarySource:
       title: "飲酒に起因する不適切な事案等を受けた航空運送事業者及び運航乗務員に対する不利益処分等について"
@@ -114,7 +114,7 @@ candidates:
     market: JP
     eventDate: "2017-10-08"
     category: quality_falsification
-    researchState: unscored
+    researchState: promoted
     discoveryReason: "JP manufacturing quality/governanceカテゴリの第2batch候補。複数製品・顧客への品質データ書換えがどのscore帯になるかを事前に決めず調査する。"
     primarySource:
       title: "当社が製造したアルミ・銅製品の一部に関する不適切な行為について"
@@ -128,7 +128,7 @@ candidates:
     market: US
     eventDate: "2018-09-27"
     category: executive_regulatory
-    researchState: unscored
+    researchState: promoted
     discoveryReason: "US founder/key-person regulatoryカテゴリの第2batch候補。CEO発言と企業disclosure controlsへの波及を、株価結果を選定根拠にせず検証する。"
     primarySource:
       title: "Elon Musk Charged With Securities Fraud for Misleading Tweets"
@@ -142,7 +142,7 @@ candidates:
     market: US
     eventDate: "2017-09-07"
     category: data_security
-    researchState: unscored
+    researchState: promoted
     discoveryReason: "US data-securityカテゴリの第2batch候補。大規模個人情報漏えいとcredit-reporting本業の信頼・事業影響を、future returnを見ずに採点する。"
     primarySource:
       title: "Equifax Announces Cybersecurity Incident Involving Consumer Information"
@@ -156,7 +156,7 @@ candidates:
     market: US
     eventDate: "2016-09-08"
     category: systemic_sales_misconduct
-    researchState: unscored
+    researchState: promoted
     discoveryReason: "US financial systemic-misconductカテゴリの第2batch候補。販売インセンティブ・不正口座・enterprise risk managementの組織波及を結果非依存で検証する。"
     primarySource:
       title: "Consumer Financial Protection Bureau Fines Wells Fargo $100 Million for Widespread Illegal Practice of Secretly Opening Unauthorized Accounts"
