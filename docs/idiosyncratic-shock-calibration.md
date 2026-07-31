@@ -6,7 +6,7 @@ Alpha Ponでは、国ごとに最初から別の「不祥事20点モデル」を
 
 - **Global Structural Score**: 10項目・20点。事件の事実と企業への実害を世界共通の物差しで測る。
 - **Context / Jurisdiction**: 本社国、事件国、上場市場、業種、被害者、支配構造、規制、流動性などを別レイヤーで確認する。
-- **Local Opportunity Score**: 十分なoutcomeが貯まり、out-of-sample検証を通った国/地域/カテゴリだけ、10項目の重みと通知閾値を独立させる。
+- **Local Opportunity Score**: 十分なoutcomeが貯まり、retrospective temporal validationと独立したprospective pre-outcome holdoutの両方を通った国/地域/カテゴリだけ、10項目の重みと通知閾値を独立させる。
 
 「日本では不倫が重い」「米国では軽い」のような文化ステレオタイプを直接係数化しない。差分は実際の市場反応・業績・規制結果から学習する。
 
@@ -20,6 +20,7 @@ Alpha Ponでは、国ごとに最初から別の「不祥事20点モデル」を
 - 会計不正・免許取消等のhard gate
 - event / decision checkpoint / outcomeの分離
 - 将来情報を過去scoreへ混ぜない原則
+- retrospective researchとprospective validationの分離
 
 ### 国・地域・カテゴリで差分化可能
 
@@ -28,7 +29,12 @@ Alpha Ponでは、国ごとに最初から別の「不祥事20点モデル」を
 - 類似事例のローカル/地域/世界weight
 - 追加確認すべき制度・規制軸
 
-ただし差分を有効化できるのは、時系列holdoutで再現し、registryへ証跡付きで登録した場合だけ。
+ただし差分を有効化できるのは、次の2段階を両方通過した場合だけ。
+
+1. retrospective research内のchronological train / temporal-validationで再現する
+2. outcome観測前に登録した `prospective_pre_outcome` caseを独立holdoutとして最低件数以上通過する
+
+retrospectiveに収集した有名な過去事例を「未見holdout」と呼ばない。
 
 ## なぜ完全分離しないか
 
@@ -55,19 +61,47 @@ jurisdiction group
 global default
 ```
 
-重要: **子モデルがholdout-readyになっただけでは親モデルを捨てない。** 子がregistryへvalidatedとして登録されるまでは、検証済みの親モデルを使い続ける。
+重要: **子モデルがretrospective temporal-readyになっただけでは親モデルを捨てない。** 子がprospective holdoutまで通過し、registryへvalidatedとして登録されるまでは、検証済みの親モデルを使い続ける。
 
 ## 現在の昇格条件
 
 初期の保守的な条件。将来、十分なデータが貯まった後に条件自体を再検証する。
 
+### Retrospective research / temporal robustness
+
 - country: 3か月benchmark相対outcomeが **30件以上**
 - country × category: **20件以上**
 - jurisdiction group: **40件以上**
 - chronological train: **18件以上**
-- chronological validation: **8件以上**
+- chronological temporal-validation: **8件以上**
 
-単純な件数だけでなく、後ろの時系列をvalidationとして残せることを必須にする。
+後ろの時系列をtemporal-validationとして残す。ただし、これはretrospective collection内部のrobustness確認であり、真のprospective holdoutではない。
+
+### Prospective validation
+
+- `selectionMode: prospective_pre_outcome`
+- `outcomeVisibilityAtSelection: not_observed`
+- 対象model levelでusable 3m outcome **8件以上**
+
+このprospective caseはdefault calibration / threshold fittingへ戻さない。評価時だけ明示的なprospective scopeで使用する。
+
+## Case selection provenance
+
+正本:
+
+```text
+data/idiosyncratic_shock_case_selection.yml
+```
+
+selection mode:
+
+- `retrospective_research`
+- `prospective_pre_outcome`
+- `matched_negative_control`
+
+既存historical caseでselection provenanceがないものは `legacy_untracked` として扱い、prospective holdout eligibilityはfalse。
+
+retrospective caseは研究・calibrationに使えるが、prospective validation evidenceとしては使わない。
 
 ## validated registry
 
@@ -88,8 +122,11 @@ local modelを有効化するには、最低でも次を登録する。
 - threshold
 - train period / validation period
 - trainCases / validationCases
-- benchmarkMetric
+- `validationDesign: prospective_pre_outcome`
+- `benchmarkMetric: calibrationSignalBenchmarkRelative3m`
 - evidenceNote
+
+registryへ値を書くだけでは有効化されない。現在のoutcome observations側でもprospective holdout最低件数を満たさなければfail-closedでthreshold=12を維持する。
 
 ### scoreMethod
 
@@ -101,7 +138,7 @@ local modelを有効化するには、最低でも次を登録する。
 
 重みは0.25〜4の範囲に制限し、10項目すべてを明示する。計算結果は0〜20へ正規化する。
 
-registryが空、不一致、現在のdataでholdout条件を満たさない、またはより深いモデルが未承認の場合は、検証済み親モデルまたはGlobal defaultへfail-closedで戻る。
+registryが空、不一致、現在のretrospective dataでtemporal条件を満たさない、prospective holdoutが不足、またはより深いモデルが未承認の場合は、検証済み親モデルまたはGlobal defaultへfail-closedで戻る。
 
 ## 大事な安全ルール
 
@@ -111,19 +148,31 @@ registryが空、不一致、現在のdataでholdout条件を満たさない、�
 
 ### 2. 閾値・重み候補を全期間で最適化しない
 
-train期間で候補を作り、後ろのvalidation期間で確認する。
+retrospective train期間で候補を作り、後ろのtemporal-validation期間でrobustnessを確認する。
 
-validation + registry登録前は12点/共通weightを維持する。
+その後、候補を固定してからprospective pre-outcome holdoutで確認する。
 
-### 3. 子モデルが未承認なら検証済み親モデルへ戻る
+prospective validation + registry登録前は12点/共通weightを維持する。
 
-US全体のvalidated modelがあって、US × executive_relationshipが十分な母数へ育っても、その子モデルがvalidation未承認ならUS全体モデルを継続利用する。
+### 3. Prospective holdoutを学習へ戻さない
 
-### 4. 観測できない事例を成功扱いしない
+`calibrateShockThresholds()` のdefault scopeは `research`。
+
+- default: prospective holdoutを除外
+- `scope: prospective`: holdout評価専用
+- `scope: all`: descriptive集計を明示した場合だけ
+
+prospective結果を見た後にthreshold fittingへ戻すことは禁止。
+
+### 4. 子モデルが未承認なら検証済み親モデルへ戻る
+
+US全体のvalidated modelがあって、US × executive_relationshipが十分なretrospective母数へ育っても、その子モデルがprospective validation未承認ならUS全体モデルを継続利用する。
+
+### 5. 観測できない事例を成功扱いしない
 
 3か月benchmark相対returnが欠損しているケースは、country calibrationの母数に入れない。
 
-### 5. 生存者バイアスを監査する
+### 6. 生存者バイアスを監査する
 
 有名な「戻った会社」だけを収集しない。
 
@@ -210,10 +259,10 @@ Global Structural Score: 17/20
 US Local Opportunity: 14.6/20
 US effective threshold: 13.8
 method: weighted_dimensions
-calibration source: US / validated 78 cases
+calibration source: US / prospectively validated
 ```
 
-Local Opportunityの重みは人間が文化イメージで設定せず、out-of-sampleで再現した差分のみ採用する。
+Local Opportunityの重みは人間が文化イメージで設定せず、retrospective temporal robustness + prospective holdoutで再現した差分のみ採用する。
 
 ## ロードマップ
 
@@ -224,6 +273,7 @@ Local Opportunityの重みは人間が文化イメージで設定せず、out-of
 - source confidenceを上げる
 - event / checkpoint / outcomeを分離
 - dataset bias / disclosure observabilityを監査
+- case selection provenanceを残す
 
 ### Phase B — JP / US outcome充足
 
@@ -232,26 +282,34 @@ Local Opportunityの重みは人間が文化イメージで設定せず、out-of
 - peer/industry relative
 - EPS/guidance等の事業結果
 - missing outcome監査
+- matched-drawdown negative controls
 
-### Phase C — JP / US country calibration
+### Phase C — JP / US retrospective calibration
 
 - readiness条件達成
-- chronological train/validation
+- chronological train / temporal-validation
 - threshold候補を比較
 - dimension weight候補を比較
-- validationで再現した場合だけregistryへ昇格
+- 候補を固定する
 
-### Phase D — country × category
+### Phase D — Prospective validation
+
+- live caseをoutcome観測前に `prospective_pre_outcome` 登録
+- prospective holdoutをthreshold fittingへ戻さない
+- 対象levelで8件以上のusable outcomeを蓄積
+- 固定候補が再現した場合だけregistryへ昇格
+
+### Phase E — country × category
 
 十分な母数があるカテゴリだけ分裂させる。
 
 文化依存度が高いrelationship / statements / sabotageは特に同国データを重視する。
 
-### Phase E — UK / Korea / China / Hong Kong / Europe / Singapore / Taiwan
+### Phase F — UK / Korea / China / Hong Kong / Europe / Singapore / Taiwan
 
 まずresearch-onlyで収集し、検証済み親モデルを使う。母数と価格providerが揃った地域から昇格する。
 
-### Phase F — 継続検証
+### Phase G — 継続検証
 
 閾値・重みは固定の真理にしない。walk-forwardで劣化を検知し、再現しなければ親モデルへ降格できるようにする。
 
