@@ -11,6 +11,7 @@ import { SHOCK_SCORE_KEYS, type ShockDimensionScores } from "../src/idiosyncrati
 import { inferShockJurisdictionGroup, type ShockJurisdictionGroup } from "../src/idiosyncratic-shock-jurisdiction.js";
 import type { ShockCalibrationObservation } from "../src/idiosyncratic-shock-calibration.js";
 
+const SHADOW_METRIC = "calibrationSignalBenchmarkRelative3m" as const;
 const committed = loadShockCalibrationConfig();
 assert.equal(committed.globalDefaultThreshold, 12);
 assert.equal(committed.validatedLocalThresholds.length, 0, "初期状態ではlocal thresholdを有効化しない");
@@ -31,7 +32,7 @@ const invalid: ShockCalibrationConfig = {
     validationThrough: "2025-12-31",
     trainCases: 30,
     validationCases: 8,
-    benchmarkMetric: "signalBenchmarkRelative3m",
+    benchmarkMetric: SHADOW_METRIC,
     evidenceNote: "invalid overlap fixture",
   }],
 };
@@ -53,7 +54,7 @@ const registry: ShockCalibrationConfig = {
     validationThrough: "2025-12-31",
     trainCases: 22,
     validationCases: 8,
-    benchmarkMetric: "signalBenchmarkRelative3m",
+    benchmarkMetric: SHADOW_METRIC,
     evidenceNote: "fixture validated threshold",
   }],
 };
@@ -88,7 +89,7 @@ function observations(count: number, relationshipCount = 15): ShockCalibrationOb
       country: "US",
       jurisdictionGroup: group,
       category: index < relationshipCount ? "executive_relationship" : "personal_behavior",
-      score: 12 + (index % 4),
+      score: 8 + (index % 9),
       benchmarkRelative1m: 1,
       benchmarkRelative3m: 2,
       benchmarkRelative1y: 4,
@@ -145,10 +146,21 @@ const globalAccountingWeak = computeLocalOpportunityScore(accountingWeak, null);
 const localAccountingWeak = computeLocalOpportunityScore(accountingWeak, weightedEntry);
 assert(localAccountingWeak < globalAccountingWeak, "検証済みlocal weightsは国/モデル別に項目重要度を変えられる");
 
+const wrongMetric = {
+  ...registry.validatedLocalThresholds[0],
+  id: "bad-metric",
+  benchmarkMetric: "signalBenchmarkRelative3m",
+} as unknown as ShockCalibrationConfig["validatedLocalThresholds"][number];
+assert.throws(
+  () => validateShockCalibrationConfig({ version: 1, globalDefaultThreshold: 12, validatedLocalThresholds: [wrongMetric] }),
+  /benchmarkMetric must be calibrationSignalBenchmarkRelative3m/,
+  "production signal metricをvalidated registryへ戻さない",
+);
+
 const missingWeights = { ...weightedEntry, id: "bad-weights", dimensionWeights: undefined };
 assert.throws(
   () => validateShockCalibrationConfig({ version: 1, globalDefaultThreshold: 12, validatedLocalThresholds: [missingWeights] }),
   /requires dimensionWeights/,
 );
 
-console.log("idiosyncratic-shock calibration config tests: OK");
+console.log("idiosyncratic-shock calibration config tests: shadow metric OK");
