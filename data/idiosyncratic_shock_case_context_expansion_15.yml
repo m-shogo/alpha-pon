@@ -1,0 +1,21 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 4 context。Guess 2018は独立調査終了と段階的founder transitionをcheckpoint-safe SEC filingで固定。"
+cases:
+  guess-2018-marciano:
+    incidentCountry: US
+    sector: apparel_retail
+    stakeholder: public
+    incidentScope: individual
+    confounderStatus: unknown
+    recurrenceStatus: first_known
+    remediationStatus: partial
+    incidentClusterStatus: single
+    strategyInvestigationStatusAtCheckpoint: closed
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityEvidenceSources:
+      - title: "Guess? Form 8-K - Special Committee Investigation"
+        url: "https://www.sec.gov/Archives/edgar/data/912463/000091246318000039/form8kjune122018.htm"
+        sourceType: regulator
+        publishedAt: "2018-06-12"
+    notes: "Special Committee investigationはcheckpointでclosed。Paul MarcianoはExecutive Chairmanを辞任したが取締役に残り、Chief Creative Officer業務は2019-01-30まで段階移管。score=12はこのkey-person/transition減点を含むPIT採点で、後日の業績・株価は使用しない。"
