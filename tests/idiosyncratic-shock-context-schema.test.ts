@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { readFileSync, readdirSync } from "fs";
+import { join } from "path";
+import { load } from "js-yaml";
 import {
   assertHistoricalShockContextDocument,
   validateHistoricalShockContextDocument,
@@ -88,4 +91,20 @@ const anchorWithContextOnlyField = {
 assert(validateHistoricalShockContextDocument(anchorWithContextOnlyField, "anchor.yml", "reaction_anchor")
   .some(issue => issue.path.endsWith("confounderStatus")));
 
-console.log("idiosyncratic-shock context-schema tests: OK");
+const contextPattern = /^idiosyncratic_shock_case_context(?:_expansion_\d+)?\.yml$/;
+const anchorPattern = /^idiosyncratic_shock_reaction_anchors(?:_expansion_\d+)?\.yml$/;
+const committedFiles = readdirSync("data")
+  .filter(name => contextPattern.test(name) || anchorPattern.test(name))
+  .sort();
+assert(committedFiles.length > 0, "committed historical context/anchor YAML files must exist");
+for (const name of committedFiles) {
+  const path = join("data", name);
+  const raw = load(readFileSync(path, "utf-8"));
+  const kind = anchorPattern.test(name) ? "reaction_anchor" as const : "context" as const;
+  assert.doesNotThrow(
+    () => assertHistoricalShockContextDocument(raw, path, kind),
+    `${path}: committed YAML must satisfy runtime schema`,
+  );
+}
+
+console.log(`idiosyncratic-shock context-schema tests: committed=${committedFiles.length} OK`);
