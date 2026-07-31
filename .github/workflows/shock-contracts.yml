@@ -36,6 +36,8 @@ jobs:
         run: node --import tsx/esm tests/idiosyncratic-shock-context-validation.test.ts
       - name: PIT evidence contract
         run: node --import tsx/esm tests/idiosyncratic-shock-pit-evidence.test.ts
+      - name: Case selection provenance contract
+        run: node --import tsx/esm tests/idiosyncratic-shock-case-selection.test.ts
       - name: Threshold eligibility contract
         run: node --import tsx/esm tests/idiosyncratic-shock-threshold-calibration.test.ts
       - name: Threshold diversity contract
@@ -57,6 +59,7 @@ jobs:
       - name: Offline audits
         run: |
           node --import tsx/esm src/idiosyncratic-shock-context-file-audit.ts
+          node --import tsx/esm src/idiosyncratic-shock-case-selection-audit.ts
           node --import tsx/esm src/idiosyncratic-shock-threshold-review-queue.ts
           node --import tsx/esm src/idiosyncratic-shock-pit-source-audit.ts
           node --import tsx/esm src/idiosyncratic-shock-threshold-calibration-audit.ts
