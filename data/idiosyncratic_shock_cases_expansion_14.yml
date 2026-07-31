@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 9。Equifax 2017 cyber breachをCEO交代・Board特別委員会設置時点で採点し、大規模data-security組織型としてband外deep controlを保存。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: equifax-2017-cybersecurity-breach
+    company: "Equifax"
+    ticker: EFX
+    country: US
+    eventDate: "2017-09-07"
+    checkpoint: "2017-09-26"
+    category: data_security
+    actorType: organization
+    scoreVector: [0,2,0,0,0,0,1,1,1,0]
+    priceState: unknown
+    summary: "約1億4300万人の米国消費者に影響し得る大規模cybersecurity incident。9月26日までにCEOが退任し暫定CEOへ交代、Boardはincident対応のSpecial Committeeを設置して継続対応していた。"
+    source: "https://investor.equifax.com/news-events/press-releases/detail/236/equifax-chairman-ceo-richard-smith-retires-board-of"
+    sourceType: company
+    outcomePattern: unknown
+    lesson: "信用情報会社の中核である個人データ信頼へ直接触れ、経営交代・Board調査まで波及した大規模breachはthreshold境界へ無理に寄せない。将来株価を使わずscore=5を受け入れる。"
+    confidence: high
