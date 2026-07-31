@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 5。Starbucks Philadelphia 2018を全米anti-bias training実施日のcheckpointで採点し、11点でも継続中の外部reviewをshadow hard blockerとして維持。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: starbucks-2018-philadelphia
+    company: "Starbucks"
+    ticker: SBUX
+    country: US
+    eventDate: "2018-04-12"
+    checkpoint: "2018-05-29"
+    category: customer_service_discrimination
+    actorType: employee
+    scoreVector: [1,2,1,1,1,0,2,2,1,0]
+    priceState: unknown
+    summary: "Philadelphia店舗で黒人男性2名が逮捕された事件を受け、Starbucksは8,000超の米国直営店を閉め約17.5万人へracial-bias trainingを実施。Q2時点で本業ガイダンスは概ね維持された一方、5月29日時点でもPhiladelphia Commission on Human RelationsがStarbucksの方針を調査中だった。"
+    source: "https://investor.starbucks.com/news/financial-releases/news-details/2018/Starbucks-to-Close-All-Stores-Nationwide-for-Racial-Bias-Education-onMay-29/default.aspx"
+    sourceType: company
+    outcomePattern: unknown
+    lesson: "迅速で大規模なremediationと本業耐性があっても、ブランド中核の顧客体験に触れ、外部civil-rights reviewが開いているcheckpointではshadow PASSへ先走らない。"
+    confidence: high
