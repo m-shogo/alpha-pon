@@ -72,7 +72,7 @@ candidates:
     market: US
     eventDate: "2015-10-30"
     category: food_safety
-    researchState: unscored
+    researchState: promoted
     discoveryReason: "US food-safety shock。複数州・複数店舗の実害と調査終了が確認できるため、brand/business damageが低scoreを作るケースをhard gateと分離して検証する。"
     primarySource:
       title: "2015 E. coli Outbreak Linked to Chipotle Mexican Grill Restaurants - Final Update"
