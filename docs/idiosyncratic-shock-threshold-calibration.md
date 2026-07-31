@@ -46,25 +46,6 @@ score < 12 はproductionでは必ずBLOCK。
 - score < 12なのにraw `strategyEligibilityAtCheckpoint: confirmed_pass` と誤記されてもshadow PASSへ継承しない
 - score >= 12でproduction BLOCKならthreshold由来ではないためshadowでもBLOCK
 
-## 低score raw production PASSの禁止
-
-score < 12なのに誤って
-
-```yaml
-strategyEligibilityAtCheckpoint: confirmed_pass
-```
-
-と書かれていても、shadow PASSへ継承しない。
-
-低scoreをthreshold研究へ入れるには必ず:
-
-```yaml
-calibrationEligibilityAtCheckpoint: confirmed_pass
-calibrationEligibilityNotes: "..."
-```
-
-が必要。
-
 ## 2つのFirst Eligible Signal
 
 ### Production signal
@@ -113,12 +94,6 @@ threshold calibration:
 - accounting / macro / critical listing risk / major confounderを確認せず
 - score threshold以外のhard gateはPASS
 
-したがって:
-
-```yaml
-calibrationEligibilityAtCheckpoint: confirmed_pass
-```
-
 reaction anchor:
 
 - 2019-02-16（土）会社公表
@@ -131,24 +106,9 @@ reaction anchor:
 
 低score controlを増やすためにhard gateを緩めてはいけない。
 
-### Papa John's 2018 — 11/20
-
-checkpoint 2018-07-13時点ではSpecial Committee / external auditが未完。
-
-→ shadowでも `investigationStatus=open` BLOCK。
-
-### CBS 2018 — 11/20
-
-checkpoint 2018-09-10時点で独立law-firm調査が継続中。
-最終結論は12月。
-
-→ shadowでもBLOCK。
-
-### Super Retail 2025 — 10/20
-
-CEO解任時点でBoard自身が新情報のimplicationsを今後検討すると明示。
-
-→ shadowでも影響範囲未確定としてBLOCK。
+- **Papa John's 2018 — 11/20**: checkpoint時点でSpecial Committee / external audit未完 → open investigation BLOCK
+- **CBS 2018 — 11/20**: checkpoint時点で独立law-firm調査継続中 → BLOCK
+- **Super Retail 2025 — 10/20**: Board自身が新情報のimplicationsを今後検討 → 影響範囲未確定でBLOCK
 
 これらは `calibrationEligibilityAtCheckpoint: confirmed_block` として正本化し、**unknownと危険を分離**する。
 
@@ -211,13 +171,7 @@ calibrationSignalBenchmarkRelative3m
 
 のみ。
 
-旧production metric:
-
-```text
-signalBenchmarkRelative3m
-```
-
-をregistryへ登録するとvalidation errorにする。
+旧production metric `signalBenchmarkRelative3m` をregistryへ登録するとvalidation errorにする。
 
 ## 現在地
 
