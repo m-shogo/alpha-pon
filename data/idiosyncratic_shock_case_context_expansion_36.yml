@@ -1,0 +1,23 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog batch 6 context。Toyota 2010 accelerator-pedal recallを複数地域・複数モデルへ波及するopen product-safety investigation/remediationとして固定。"
+cases:
+  toyota-2010-accelerator-recall:
+    incidentCountry: JP
+    sector: automotive
+    stakeholder: customer
+    incidentScope: company_wide
+    confounderStatus: clear
+    recurrenceStatus: related_multiple
+    remediationStatus: partial
+    incidentClusterStatus: related_multiple
+    strategyInvestigationStatusAtCheckpoint: open
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    calibrationEligibilityAtCheckpoint: confirmed_block
+    calibrationEligibilityNotes: "productionはscore=8でBLOCK。threshold研究でも2010-02-01時点で米国8モデルへのremedyは公表されたが、販売・生産再開判断や欧州・中国等の当局対応が進行中で、複数地域・複数モデルのproduct-safety scopeが未収束。score gateを外してもopen investigation/remediationでshadow BLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "TMC Announces Remedy for U.S. Accelerator-pedal Recall"
+        url: "https://global.toyota/en/detail/339106"
+        sourceType: company
+        publishedAt: "2010-02-01"
+    notes: "後日の追加リコール、公聴会、罰金、業績、株価回復はcheckpoint判定へ逆流させない。"
