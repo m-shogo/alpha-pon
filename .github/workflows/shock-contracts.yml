@@ -32,7 +32,7 @@ jobs:
           pnpm typecheck:tests
       - name: Context envelope contract
         run: node --import tsx/esm tests/idiosyncratic-shock-context-envelope.test.ts
-      - name: Context field contract
+      - name: Context field and loaded enum contract
         run: node --import tsx/esm tests/idiosyncratic-shock-context-validation.test.ts
       - name: PIT evidence contract
         run: node --import tsx/esm tests/idiosyncratic-shock-pit-evidence.test.ts
