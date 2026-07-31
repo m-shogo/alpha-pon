@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Threshold calibration research expansion。将来returnを見ず、checkpoint以前/同日の一次情報だけで追加したUS customer-service policy shock。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: united-2017-flight3411
+    company: "United Continental Holdings / United Airlines"
+    ticker: UAL
+    country: US
+    eventDate: "2017-04-09"
+    checkpoint: "2017-05-12"
+    category: customer_service_failure
+    actorType: organization
+    scoreVector: [1,2,0,0,2,0,2,2,1,0]
+    priceState: unknown
+    summary: "United Express Flight 3411で搭乗済み旅客が強制降機させられ負傷。会社レビューは個人の逸脱ではなく、crew movement・oversales・law-enforcement連携等の会社ポリシー/手続を原因として扱い、全社的な改善策を導入した。"
+    source: "https://united.mediaroom.com/2017-04-27-United-Airlines-Announces-Changes-to-Improve-Customer-Experience"
+    sourceType: company
+    outcomePattern: unknown
+    lesson: "会計・免許問題ではない一方、顧客対応の中核ポリシーとブランド信頼に触れるためactor/organization/brandを低く採点する。価格安定化はこのresearch追加時点では未検証として0点に固定し、将来returnをscoreへ入れない。"
+    confidence: high
