@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
+import { enrichShockCalibrationObservations } from "../src/idiosyncratic-shock-calibration.js";
 import { labelShockScore, type HistoricalShockCase } from "../src/idiosyncratic-shock.js";
 import {
+  isHistoricalReactionAnchorVerified,
   isTrustedHistoricalPrimarySource,
   loadHistoricalShockCaseContext,
   resolveHistoricalStrategyEligibility,
@@ -71,6 +73,11 @@ assert.equal(resolveHistoricalStrategyEligibility(mislabeledAggregatorCase, {
   strategyEligibilityEvidenceSources: [{ title: "JPX", url: "https://www2.jpx.co.jp/disc/99990/example.pdf", sourceType: "exchange" }],
 }), "confirmed_pass", "trusted primary evidenceをsidecarで補えばPASS可能");
 
+assert.equal(isHistoricalReactionAnchorVerified({ announcementTiming: "before_open", priceReactionStartDate: "2026-01-13" }), true);
+assert.equal(isHistoricalReactionAnchorVerified({ announcementTiming: "before_open" }), false, "timingだけでreaction anchor verifiedにしない");
+assert.equal(isHistoricalReactionAnchorVerified({ announcementTiming: "unknown", priceReactionStartDate: "2026-01-13" }), false);
+assert.equal(isHistoricalReactionAnchorVerified({ announcementTiming: "after_close", priceReactionStartDate: "20260114" }), false, "reaction date formatも固定する");
+
 const loadedHistoricalContext = loadHistoricalShockCaseContext();
 assert.equal(loadedHistoricalContext.get("mcdonalds-2019-easterbrook")?.strategyEligibilityAtCheckpoint, "confirmed_pass", "reaction anchor overlayでbase eligibilityを壊さない");
 assert.equal(loadedHistoricalContext.get("mcdonalds-2019-easterbrook")?.announcementTiming, "non_trading_day");
@@ -80,8 +87,28 @@ assert.equal(loadedHistoricalContext.get("hp-2010-hurd")?.priceReactionStartDate
 assert.equal(loadedHistoricalContext.get("sushiro-2023-customer")?.priceReactionStartDate, "2023-01-30");
 assert.equal(loadedHistoricalContext.get("skylark-2019-bamiyan")?.priceReactionStartDate, "2019-02-12");
 assert.equal(loadedHistoricalContext.get("seven-eleven-2019-employee-video")?.priceReactionStartDate, "2019-02-12");
+assert.equal(loadedHistoricalContext.get("intel-2018-krzanich")?.priceReactionStartDate, "2018-06-21");
+assert.equal(loadedHistoricalContext.get("priceline-2016-huston")?.priceReactionStartDate, "2016-04-28");
+assert.equal(loadedHistoricalContext.get("ti-2018-crutcher")?.priceReactionStartDate, "2018-07-18");
+assert.equal(loadedHistoricalContext.get("keurig-dr-pepper-2022-ceo-conduct")?.priceReactionStartDate, "2022-11-10");
+assert.equal(loadedHistoricalContext.get("boeing-2005-stonecipher")?.priceReactionStartDate, "2005-03-07");
+for (const id of [
+  "mcdonalds-2019-easterbrook",
+  "hp-2010-hurd",
+  "sushiro-2023-customer",
+  "skylark-2019-bamiyan",
+  "seven-eleven-2019-employee-video",
+  "intel-2018-krzanich",
+  "priceline-2016-huston",
+  "ti-2018-crutcher",
+  "keurig-dr-pepper-2022-ceo-conduct",
+  "boeing-2005-stonecipher",
+]) {
+  assert.equal(isHistoricalReactionAnchorVerified(loadedHistoricalContext.get(id)), true, `${id}: committed reaction anchor must be verified`);
+}
 assert((loadedHistoricalContext.get("hp-2010-hurd")?.reactionAnchorEvidenceSources?.length ?? 0) >= 2, "anchorには再現可能な証拠を保持する");
 assert.equal(loadedHistoricalContext.get("sanrio-2026-compensation")?.priceReactionStartDate, "2026-06-01", "既存base sidecarのanchorも維持する");
+assert.equal(isHistoricalReactionAnchorVerified(loadedHistoricalContext.get("sanrio-2026-compensation")), true);
 
 const lowScoreCase: HistoricalShockCase = { ...strongCase, id: "fixture-low-score", score: 11, label: labelShockScore(11) };
 assert.equal(resolveHistoricalStrategyEligibility(lowScoreCase, verifiedPassContext), "confirmed_block", "score<12は手動PASSでも確定BLOCK");
@@ -210,6 +237,15 @@ assert.equal(lt12?.cases, 1);
 assert.equal(lt12?.positiveRate1m, 0);
 assert((ge12?.avgBenchmarkRelative1m ?? 0) > (lt12?.avgBenchmarkRelative1m ?? 0));
 assert.equal(ge12?.avgTopixRelative1m, ge12?.avgBenchmarkRelative1m, "legacy calibration aliasを維持");
+
+const calibrationObservations = enrichShockCalibrationObservations(
+  [record!, unverifiedAnchor!],
+  [strongCase],
+);
+assert.equal(calibrationObservations[0]?.signalDate, "2026-01-19");
+assert.equal(calibrationObservations[0]?.benchmarkRelative3m, 13.9371);
+assert.equal(calibrationObservations[1]?.signalDate, null, "旧保存signalがあってもanchor未確認recordはcalibration observationへ昇格させない");
+assert.equal(calibrationObservations[1]?.benchmarkRelative3m, null);
 
 const noTrade: ShockHistoricalOutcomeRecord = {
   ...record!,
