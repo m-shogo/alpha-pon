@@ -1,7 +1,8 @@
 // Historical case selection provenance。
 // 後から選んだ有名事例を、時系列holdout / prospective validationと誤認しないための契約。
 
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, readdirSync } from "fs";
+import { join } from "path";
 import { load } from "js-yaml";
 import { loadHistoricalShockCases } from "./idiosyncratic-shock-data.js";
 
@@ -46,6 +47,7 @@ type SelectionFile = {
 };
 
 const DEFAULT_PATH = "data/idiosyncratic_shock_case_selection.yml";
+const SELECTION_EXPANSION_PATTERN = /^idiosyncratic_shock_case_selection_expansion_\d+\.yml$/;
 const VALID_MODES = new Set<ShockCaseSelectionMode>([
   "retrospective_research",
   "prospective_pre_outcome",
@@ -116,19 +118,37 @@ export function validateShockCaseSelectionRecord(value: unknown, path = "selecti
   return record;
 }
 
-export function loadShockCaseSelection(path = DEFAULT_PATH): Map<string, ShockCaseSelectionRecord> {
-  if (!existsSync(path)) return new Map();
-  const raw = load(readFileSync(path, "utf-8")) as SelectionFile;
-  if (!raw || typeof raw !== "object") throw new Error(`${path}: selection envelope is required`);
-  if (raw.version !== SHOCK_CASE_SELECTION_VERSION) throw new Error(`${path}: version must be ${SHOCK_CASE_SELECTION_VERSION}`);
-  if (!isDate(raw.generatedAt)) throw new Error(`${path}: generatedAt must be YYYY-MM-DD`);
-  if (!raw.cases || typeof raw.cases !== "object" || Array.isArray(raw.cases)) throw new Error(`${path}: cases object is required`);
+function validateSelectionFile(raw: unknown, path: string): SelectionFile {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error(`${path}: selection envelope is required`);
+  const file = raw as SelectionFile;
+  if (file.version !== SHOCK_CASE_SELECTION_VERSION) throw new Error(`${path}: version must be ${SHOCK_CASE_SELECTION_VERSION}`);
+  if (!isDate(file.generatedAt)) throw new Error(`${path}: generatedAt must be YYYY-MM-DD`);
+  if (!file.cases || typeof file.cases !== "object" || Array.isArray(file.cases)) throw new Error(`${path}: cases object is required`);
+  return file;
+}
 
+function defaultSelectionPaths(): string[] {
+  const dataDir = "data";
+  const expansions = existsSync(dataDir)
+    ? readdirSync(dataDir)
+      .filter(name => SELECTION_EXPANSION_PATTERN.test(name))
+      .sort()
+      .map(name => join(dataDir, name))
+    : [];
+  return [DEFAULT_PATH, ...expansions].filter(existsSync);
+}
+
+export function loadShockCaseSelection(path?: string): Map<string, ShockCaseSelectionRecord> {
+  const paths = path ? [path] : defaultSelectionPaths();
   const result = new Map<string, ShockCaseSelectionRecord>();
-  for (const [id, value] of Object.entries(raw.cases)) {
-    if (!id.trim()) throw new Error(`${path}: empty case id`);
-    if (result.has(id)) throw new Error(`${path}: duplicate case id ${id}`);
-    result.set(id, validateShockCaseSelectionRecord(value, `${path}.cases.${id}`));
+
+  for (const currentPath of paths) {
+    const raw = validateSelectionFile(load(readFileSync(currentPath, "utf-8")), currentPath);
+    for (const [id, value] of Object.entries(raw.cases)) {
+      if (!id.trim()) throw new Error(`${currentPath}: empty case id`);
+      if (result.has(id)) throw new Error(`duplicate shock case selection id: ${id}`);
+      result.set(id, validateShockCaseSelectionRecord(value, `${currentPath}.cases.${id}`));
+    }
   }
   return result;
 }
