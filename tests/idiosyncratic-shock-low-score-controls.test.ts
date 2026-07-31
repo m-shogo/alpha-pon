@@ -81,9 +81,25 @@ for (const [id, expectedScore] of [
   ["snow-peak-2022-yamai", 12],
   ["lululemon-2018-potdevin", 14],
   ["barnes-noble-2018-parneros", 13],
+  ["eneos-2022-sugimori", 14],
+  ["mcdonalds-2019-easterbrook", 15],
 ] as const) {
-  assert.equal(cases.get(id)?.score, expectedScore, `${id}: outcome-blind batch3 candidate must stay on the score actually produced by PIT research`);
-  assert(expectedScore >= 12, `${id}: these are counterexamples to cherry-picking below-threshold candidates`);
+  assert.equal(cases.get(id)?.score, expectedScore, `${id}: outcome-blind candidate must stay on the score actually produced by PIT research`);
+  assert(expectedScore >= 12, `${id}: high-score cases are counterexamples to cherry-picking below-threshold candidates`);
 }
 
-console.log("idiosyncratic-shock low-score control tests: Ootoya + United shadow PASS; batch3 adds SUBARU BLOCK and three >=12 counterexamples");
+assert.equal(cases.get("japan-post-insurance-2019-improper-sales")?.score, 4, "Japan Post Insurance must remain a deep systemic outcome-blind control");
+assert(calibration("japan-post-insurance-2019-improper-sales").blockers.includes("investigationStatus=open"));
+assert(calibration("japan-post-insurance-2019-improper-sales").blockers.includes("recurrenceStatus=systemic"));
+
+assert.equal(cases.get("intel-2018-krzanich")?.score, 14, "Intel demonstrates that high score cannot override a hard gate");
+assert.equal(calibration("intel-2018-krzanich").status, "confirmed_block");
+assert(calibration("intel-2018-krzanich").blockers.includes("investigationStatus=open"), "Intel same-day release explicitly called investigation ongoing");
+
+for (const id of ["eneos-2022-sugimori", "mcdonalds-2019-easterbrook"] as const) {
+  const item = cases.get(id);
+  assert(item);
+  assert.equal(resolveHistoricalStrategyEligibility(item, contexts.get(id)), "confirmed_pass", `${id}: score>=12 and PIT non-score gates pass; reaction/price gates remain separate`);
+}
+
+console.log("idiosyncratic-shock low-score control tests: Ootoya + United shadow PASS; batch4 adds systemic 4-point BLOCK, high-score Intel BLOCK, and high-score PIT passes");
