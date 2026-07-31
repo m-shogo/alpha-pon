@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { loadHistoricalShockCases } from "../src/idiosyncratic-shock-data.js";
 
 const historical = loadHistoricalShockCases();
-assert(historical.length >= 60, `過去事例は60件以上必要: ${historical.length}`);
+assert(historical.length >= 61, `過去事例は61件以上必要: ${historical.length}`);
 assert.equal(new Set(historical.map(item => item.id)).size, historical.length, "historical idは重複禁止");
 
 const byId = new Map(historical.map(item => [item.id, item]));
@@ -34,7 +34,13 @@ assert.equal(united.score, 10, "組織ポリシー・顧客信頼を低く評価
 assert.equal(united.priceStateAtCheckpoint, "unknown", "正式price replay前にstabilizedを後付けしない");
 assert.equal(united.outcome?.recoveryPattern, "unknown", "historical future outcomeをcase seedへ逆流させない");
 
+const benesse = byId.get("benesse-2014-data-leak");
+assert(benesse, "Benesse 2014をoutcome-blind backlogから昇格したdeep controlとして保持");
+assert.equal(benesse.score, 9, "PIT採点結果をthresholdへ合わせずdeep 8-9帯に保持");
+assert.equal(benesse.priceStateAtCheckpoint, "unknown", "後から価格安定化を埋めてscoreを上げない");
+assert.equal(benesse.outcome?.recoveryPattern, "unknown", "将来回復をhistorical seedへ逆流させない");
+
 const highConfidence = historical.filter(item => item.researchConfidence === "high").length;
-assert(highConfidence >= 21, `high-confidence事例を厚く保つ: ${highConfidence}`);
+assert(highConfidence >= 22, `high-confidence事例を厚く保つ: ${highConfidence}`);
 
 console.log(`idiosyncratic-shock-expansions tests: OK (${historical.length} historical cases, high=${highConfidence})`);
