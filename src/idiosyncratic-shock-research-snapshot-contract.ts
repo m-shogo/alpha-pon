@@ -1,9 +1,10 @@
 // Outcomeを観測する前のresearch definitionをhash固定する。
-// Historical caseのrealized outcomeは意図的にhash対象外。score/context/evidence/anchor等の変更はhashを変える。
+// Historical caseのrealized outcomeは意図的にhash対象外。score/context/evidence/anchor/selection provenance等の変更はhashを変える。
 
 import { createHash } from "node:crypto";
 import type { HistoricalShockCase, ShockSource } from "./idiosyncratic-shock.js";
 import type { HistoricalShockCaseContext } from "./idiosyncratic-shock-case-context.js";
+import type { ShockCaseSelectionRecord } from "./idiosyncratic-shock-case-selection.js";
 
 export const SHOCK_RESEARCH_SNAPSHOT_VERSION = 1 as const;
 
@@ -71,10 +72,12 @@ function normalizedContext(context?: HistoricalShockCaseContext | null): Histori
 export function shockResearchInputHash(
   item: HistoricalShockCase,
   context?: HistoricalShockCaseContext | null,
+  selection?: ShockCaseSelectionRecord | null,
 ): string {
   return sha256({
     case: normalizedCase(item),
     context: normalizedContext(context),
+    selection: selection ?? null,
   });
 }
 
@@ -82,6 +85,7 @@ export function buildShockResearchSnapshot(
   cases: HistoricalShockCase[],
   contexts: Map<string, HistoricalShockCaseContext>,
   generatedAt: string,
+  selections: Map<string, ShockCaseSelectionRecord> = new Map(),
 ): ShockResearchSnapshot {
   const rows = [...cases]
     .sort((a, b) => a.id.localeCompare(b.id))
@@ -89,7 +93,7 @@ export function buildShockResearchSnapshot(
       id: item.id,
       checkpoint: item.decisionCheckpoint,
       score: item.score,
-      inputSha256: shockResearchInputHash(item, contexts.get(item.id)),
+      inputSha256: shockResearchInputHash(item, contexts.get(item.id), selections.get(item.id)),
     }));
 
   return {
