@@ -1,0 +1,21 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 12 context。Snow Peak 2022を個人起点のCEO交代として固定し、価格や将来業績を使わず構造情報だけを保存。"
+cases:
+  snow-peak-2022-yamai:
+    incidentCountry: JP
+    sector: outdoor_consumer_goods
+    stakeholder: public
+    incidentScope: individual
+    confounderStatus: unknown
+    recurrenceStatus: first_known
+    remediationStatus: credible
+    incidentClusterStatus: single
+    strategyInvestigationStatusAtCheckpoint: substantially_complete
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityEvidenceSources:
+      - title: "代表取締役の異動及び役員報酬の減額に関するお知らせ"
+        url: "https://ir.snowpeak.co.jp/news/files/140120220921534702.pdf"
+        sourceType: company
+        publishedAt: "2022-09-21"
+    notes: "会社開示で本人申出・取締役会受理・役員報酬減額まで同日確定。score=12のためbelow-threshold shadow controlではない。後日の株価・業績・経営体制評価はcheckpointへ逆流させない。"
