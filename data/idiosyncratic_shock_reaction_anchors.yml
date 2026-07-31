@@ -137,3 +137,31 @@ cases:
         sourceType: major_media
         publishedAt: "2005-03-07"
     reactionAnchorNotes: "CBS/APは2005-03-07 8:00 AM ESTに報道、Boeing/SECリリースも同日。NYSE通常取引開始前なので2005-03-07をreaction startとする。"
+
+  ebay-2020-cyberstalking:
+    announcementTiming: during_session
+    priceReactionStartDate: "2020-06-15"
+    reactionAnchorEvidenceSources:
+      - title: "eBay Inc. Issues Statement Regarding Indictments of Previously Terminated Employees"
+        url: "https://www.prnewswire.com/news-releases/ebay-inc-issues-statement-regarding-indictments-of-previously-terminated-employees-301076948.html"
+        sourceType: other
+        publishedAt: "2020-06-15"
+      - title: "Six Former eBay Employees Charged with Aggressive Cyberstalking Campaign"
+        url: "https://www.justice.gov/usao-ma/pr/six-former-ebay-employees-charged-aggressive-cyberstalking-campaign-targeting-natick"
+        sourceType: regulator
+        publishedAt: "2020-06-15"
+    reactionAnchorNotes: "eBay会社配信は2020-06-15 12:24 PM ETでNASDAQ通常取引中。政府発表も同日なので同日をreaction startとする。"
+
+  dominos-japan-2024-employee-video:
+    announcementTiming: non_trading_day
+    priceReactionStartDate: "2024-02-13"
+    reactionAnchorEvidenceSources:
+      - title: "弊社従業員による不適切な行為についてのお詫びとお知らせ"
+        url: "https://www.dominos.jp/announcement/"
+        sourceType: company
+        publishedAt: "2024-02-14"
+      - title: "国民の祝日について（振替休日）"
+        url: "https://www8.cao.go.jp/chosei/shukujitsu/gaiyou/kaku.html"
+        sourceType: regulator
+        publishedAt: "2024-02-12"
+    reactionAnchorNotes: "会社公式は動画が2024-02-12にSNS拡散し店舗も同日付で営業停止したと確認。2/12は建国記念の日の振替休日で通常株式市場が休場のため、最初の通常取引日2024-02-13をreaction startとする。"
