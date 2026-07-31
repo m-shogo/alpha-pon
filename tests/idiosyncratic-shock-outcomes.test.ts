@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { labelShockScore, type HistoricalShockCase } from "../src/idiosyncratic-shock.js";
 import {
   isTrustedHistoricalPrimarySource,
+  loadHistoricalShockCaseContext,
   resolveHistoricalStrategyEligibility,
 } from "../src/idiosyncratic-shock-case-context.js";
 import {
@@ -69,6 +70,18 @@ assert.equal(resolveHistoricalStrategyEligibility(mislabeledAggregatorCase, {
   ...verifiedPassContext,
   strategyEligibilityEvidenceSources: [{ title: "JPX", url: "https://www2.jpx.co.jp/disc/99990/example.pdf", sourceType: "exchange" }],
 }), "confirmed_pass", "trusted primary evidenceをsidecarで補えばPASS可能");
+
+const loadedHistoricalContext = loadHistoricalShockCaseContext();
+assert.equal(loadedHistoricalContext.get("mcdonalds-2019-easterbrook")?.strategyEligibilityAtCheckpoint, "confirmed_pass", "reaction anchor overlayでbase eligibilityを壊さない");
+assert.equal(loadedHistoricalContext.get("mcdonalds-2019-easterbrook")?.announcementTiming, "non_trading_day");
+assert.equal(loadedHistoricalContext.get("mcdonalds-2019-easterbrook")?.priceReactionStartDate, "2019-11-04");
+assert.equal(loadedHistoricalContext.get("hp-2010-hurd")?.announcementTiming, "after_close");
+assert.equal(loadedHistoricalContext.get("hp-2010-hurd")?.priceReactionStartDate, "2010-08-09");
+assert.equal(loadedHistoricalContext.get("sushiro-2023-customer")?.priceReactionStartDate, "2023-01-30");
+assert.equal(loadedHistoricalContext.get("skylark-2019-bamiyan")?.priceReactionStartDate, "2019-02-12");
+assert.equal(loadedHistoricalContext.get("seven-eleven-2019-employee-video")?.priceReactionStartDate, "2019-02-12");
+assert((loadedHistoricalContext.get("hp-2010-hurd")?.reactionAnchorEvidenceSources?.length ?? 0) >= 2, "anchorには再現可能な証拠を保持する");
+assert.equal(loadedHistoricalContext.get("sanrio-2026-compensation")?.priceReactionStartDate, "2026-06-01", "既存base sidecarのanchorも維持する");
 
 const lowScoreCase: HistoricalShockCase = { ...strongCase, id: "fixture-low-score", score: 11, label: labelShockScore(11) };
 assert.equal(resolveHistoricalStrategyEligibility(lowScoreCase, verifiedPassContext), "confirmed_block", "score<12は手動PASSでも確定BLOCK");
