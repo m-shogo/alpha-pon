@@ -23,6 +23,17 @@ const prospective = validateShockCaseSelectionRecord({
 assert.equal(resolveShockCaseSelection("future", prospective, "2026-07-31").validationHoldoutEligible, true);
 assert.equal(resolveShockCaseSelection("future", prospective, "2026-08-01").validationHoldoutEligible, false, "frozen checkpoint must match current case checkpoint");
 
+const forgedHistoricalProspective = validateShockCaseSelectionRecord({
+  registeredAt: "2026-03-30",
+  decisionCheckpointAtRegistration: "2026-03-30",
+  selectionMode: "prospective_pre_outcome",
+  outcomeVisibilityAtSelection: "not_observed",
+  selectionReason: "fixture attempts to relabel an existing historical case using a wrong frozen checkpoint",
+});
+const forgedHistoricalResolution = resolveShockCaseSelection("kddi-2026-biglobe-circular-transactions", forgedHistoricalProspective);
+assert.equal(forgedHistoricalResolution.validationHoldoutEligible, false, "resolver must cross-check frozen checkpoint against historical case DB even when caller omits checkpoint");
+assert.match(forgedHistoricalResolution.reason, /does not match repository case checkpoint 2026-03-31/);
+
 assert.throws(() => validateShockCaseSelectionRecord({
   registeredAt: "2026-07-31",
   decisionCheckpointAtRegistration: "2026-07-31",
