@@ -1,9 +1,10 @@
 // Threshold research用の「未採点candidate backlog」。
 // historical returnを見てから都合の良い事例だけ採用するselection biasを減らすため、
 // score/priceState/recovery/returnを持たない構造情報だけを先にfreezeする。
+// freeze recordとresearch progressは分離し、default loaderではstate registryをoverlayする。
 
 import { existsSync, readFileSync, readdirSync } from "fs";
-import { join } from "path";
+import { basename, join } from "path";
 import { load } from "js-yaml";
 import type { ShockMarket } from "./idiosyncratic-shock-market.js";
 import type { ShockSource } from "./idiosyncratic-shock.js";
@@ -39,6 +40,12 @@ export type ThresholdCandidateBacklog = {
   candidates: ThresholdCandidateBacklogRow[];
 };
 
+export type ThresholdCandidateResearchStateRecord = {
+  researchState: ThresholdCandidateResearchState;
+  decidedAt: string;
+  notes?: string | null;
+};
+
 export type ThresholdCandidatePriorityRow = ThresholdCandidateBacklogRow & {
   priorityScore: number;
   gapReasons: string[];
@@ -55,6 +62,7 @@ export type ThresholdCandidateBacklogStatus = {
 };
 
 const DEFAULT_PATH = "data/idiosyncratic_shock_threshold_candidate_backlog.yml";
+const DEFAULT_STATE_PATH = "data/idiosyncratic_shock_threshold_candidate_research_state.yml";
 const BACKLOG_EXPANSION_PATTERN = /^idiosyncratic_shock_threshold_candidate_backlog_expansion_\d+\.yml$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const ID_RE = /^[a-z0-9][a-z0-9-]*$/;
@@ -62,6 +70,7 @@ const ALLOWED_STATES = new Set<ThresholdCandidateResearchState>(["unscored", "re
 const PRIMARY_SOURCE_TYPES = new Set<ShockSource["sourceType"]>(["company", "regulator", "exchange"]);
 const REQUIRED_FORBIDDEN_INPUTS = ["future_return", "recovery_pattern", "realized_outcome", "post_event_price_path"];
 const FORBIDDEN_CANDIDATE_KEY = /score(?:vector)?|price[_-]?state|return|recovery|outcome|realized|future[_-]?price|post[_-]?event[_-]?price/i;
+const ALLOWED_STATE_KEYS = new Set(["researchState", "decidedAt", "notes"]);
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -174,6 +183,43 @@ export function validateThresholdCandidateBacklogPayload(value: unknown, label =
   };
 }
 
+export function validateThresholdCandidateResearchStatePayload(
+  value: unknown,
+  label = "threshold candidate research state",
+): Map<string, ThresholdCandidateResearchStateRecord> {
+  if (!isPlainObject(value)) throw new Error(`${label}: object required`);
+  if (value.version !== 1) throw new Error(`${label}.version: expected 1`);
+  assertDate(value.generatedAt, `${label}.generatedAt`);
+  if (typeof value.description !== "string" || value.description.trim().length < 20) throw new Error(`${label}.description: required`);
+  if (!isPlainObject(value.states)) throw new Error(`${label}.states: object required`);
+
+  const result = new Map<string, ThresholdCandidateResearchStateRecord>();
+  for (const [id, raw] of Object.entries(value.states)) {
+    if (!ID_RE.test(id)) throw new Error(`${label}.states.${id}: lowercase slug id required`);
+    if (!isPlainObject(raw)) throw new Error(`${label}.states.${id}: object required`);
+    for (const key of Object.keys(raw)) {
+      if (!ALLOWED_STATE_KEYS.has(key)) throw new Error(`${label}.states.${id}: unsupported state field ${key}`);
+    }
+    if (typeof raw.researchState !== "string" || !ALLOWED_STATES.has(raw.researchState as ThresholdCandidateResearchState)) {
+      throw new Error(`${label}.states.${id}.researchState: invalid state`);
+    }
+    assertDate(raw.decidedAt, `${label}.states.${id}.decidedAt`);
+    if (raw.decidedAt > (value.generatedAt as string)) throw new Error(`${label}.states.${id}.decidedAt: cannot be after generatedAt`);
+    if (raw.notes != null && typeof raw.notes !== "string") throw new Error(`${label}.states.${id}.notes: string|null required`);
+    result.set(id, {
+      researchState: raw.researchState as ThresholdCandidateResearchState,
+      decidedAt: raw.decidedAt,
+      notes: (raw.notes as string | null | undefined) ?? null,
+    });
+  }
+  return result;
+}
+
+export function loadThresholdCandidateResearchState(path = DEFAULT_STATE_PATH): Map<string, ThresholdCandidateResearchStateRecord> {
+  if (!existsSync(path)) throw new Error(`${path}: research state registry required`);
+  return validateThresholdCandidateResearchStatePayload(load(readFileSync(path, "utf-8")), path);
+}
+
 function defaultBacklogPaths(): string[] {
   const dataDir = "data";
   const expansions = existsSync(dataDir)
@@ -189,6 +235,14 @@ function normalizedForbiddenInputs(backlog: ThresholdCandidateBacklog): string {
   return [...backlog.selectionPolicy.forbiddenInputs].sort().join("|");
 }
 
+function assertFrozenExpansionState(path: string, backlog: ThresholdCandidateBacklog): void {
+  if (!BACKLOG_EXPANSION_PATTERN.test(basename(path))) return;
+  const mutated = backlog.candidates.filter(candidate => candidate.researchState !== "unscored");
+  if (mutated.length > 0) {
+    throw new Error(`${path}: candidate freeze expansions must remain researchState=unscored; move progress to research state registry: ${mutated.map(row => row.id).join(", ")}`);
+  }
+}
+
 export function loadThresholdCandidateBacklog(path?: string): ThresholdCandidateBacklog {
   const paths = path ? [path] : defaultBacklogPaths();
   if (paths.length === 0) throw new Error("threshold candidate backlog: no backlog files found");
@@ -200,6 +254,7 @@ export function loadThresholdCandidateBacklog(path?: string): ThresholdCandidate
 
   for (const currentPath of paths) {
     const parsed = validateThresholdCandidateBacklogPayload(load(readFileSync(currentPath, "utf-8")), currentPath);
+    assertFrozenExpansionState(currentPath, parsed);
     if (base == null) {
       base = parsed;
     } else if (normalizedForbiddenInputs(parsed) !== normalizedForbiddenInputs(base)) {
@@ -215,11 +270,25 @@ export function loadThresholdCandidateBacklog(path?: string): ThresholdCandidate
   }
 
   if (base == null) throw new Error("threshold candidate backlog: base backlog missing");
+
+  let resolvedCandidates = candidates;
+  if (!path) {
+    const states = loadThresholdCandidateResearchState();
+    const orphanStates = [...states.keys()].filter(id => !ids.has(id));
+    if (orphanStates.length > 0) throw new Error(`threshold candidate research state has unknown candidate ids: ${orphanStates.join(", ")}`);
+    const missingStates = candidates.filter(candidate => !states.has(candidate.id)).map(candidate => candidate.id);
+    if (missingStates.length > 0) throw new Error(`threshold candidate research state missing candidate ids: ${missingStates.join(", ")}`);
+    resolvedCandidates = candidates.map(candidate => ({
+      ...candidate,
+      researchState: states.get(candidate.id)!.researchState,
+    }));
+  }
+
   return {
     ...base,
     generatedAt,
     description: paths.length === 1 ? base.description : `${base.description} mergedFiles=${paths.length}`,
-    candidates,
+    candidates: resolvedCandidates,
   };
 }
 
