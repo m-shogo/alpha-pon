@@ -13,6 +13,7 @@ import { todayJst } from "./date.js";
 import { fetchDailyQuotes, isJQuantsConfigured } from "./fetcher/jquants.js";
 import { fetchTwelveDataDailyQuotes, isTwelveDataConfigured } from "./fetcher/twelve-data.js";
 import {
+  isHistoricalReactionAnchorVerified,
   loadHistoricalShockCaseContext,
   resolveHistoricalStrategyEligibility,
   type HistoricalShockCaseContext,
@@ -57,7 +58,7 @@ function fp(value: number | null): string {
 }
 
 function resolveReactionAnchorStatus(context?: HistoricalShockCaseContext | null): HistoricalReactionAnchorStatus {
-  return context?.announcementTiming && context.announcementTiming !== "unknown" ? "verified" : "unverified";
+  return isHistoricalReactionAnchorVerified(context) ? "verified" : "unverified";
 }
 
 function marketCalibration(records: ShockHistoricalOutcomeRecord[]): CalibrationByMarket {
