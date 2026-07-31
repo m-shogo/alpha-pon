@@ -134,8 +134,42 @@ export function isTrustedHistoricalPrimarySource(source: ShockSource): boolean {
   return true;
 }
 
+function publishedDate(source: ShockSource): string | null {
+  const value = source.publishedAt?.slice(0, 10) ?? null;
+  return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
+}
+
+/**
+ * Sidecarへ後から追加したeligibility evidenceは、checkpointまでに公開されたことを
+ * publishedAtで再現できる資料だけ使用する。undated/future evidenceはfail-closed。
+ */
+export function isHistoricalEligibilityEvidenceAvailableAtCheckpoint(
+  source: ShockSource,
+  checkpoint: string,
+): boolean {
+  const date = publishedDate(source);
+  return date != null && date <= checkpoint;
+}
+
+/**
+ * 既存case本体のlegacy sourceはundated provenanceを後方互換で暫定許可する。
+ * ただしpublishedAtが明示されている場合はcheckpoint後の資料を必ず除外する。
+ */
+function isHistoricalCaseSourceAvailableAtCheckpoint(
+  source: ShockSource,
+  checkpoint: string,
+): boolean {
+  if (source.publishedAt == null) return true;
+  const date = publishedDate(source);
+  return date != null && date <= checkpoint;
+}
+
 function sourceGateSatisfied(item: HistoricalShockCase, context?: HistoricalShockCaseContext | null): boolean {
-  const sources = [...item.sources, ...(context?.strategyEligibilityEvidenceSources ?? [])];
+  const checkpoint = item.decisionCheckpoint;
+  const originalSources = item.sources.filter(source => isHistoricalCaseSourceAvailableAtCheckpoint(source, checkpoint));
+  const addedEvidence = (context?.strategyEligibilityEvidenceSources ?? [])
+    .filter(source => isHistoricalEligibilityEvidenceAvailableAtCheckpoint(source, checkpoint));
+  const sources = [...originalSources, ...addedEvidence];
   const hasPrimary = sources.some(isTrustedHistoricalPrimarySource);
   const majorMediaCount = sources.filter(source => source.sourceType === "major_media").length;
   return hasPrimary || majorMediaCount >= 2;
@@ -194,7 +228,7 @@ function resolveHistoricalEligibilityDetailed(
   if (investigation === "unknown") missingEvidence.push("strategyInvestigationStatusAtCheckpoint");
   if (context?.strategyCriticalLicenseOrDelistingRiskAtCheckpoint == null) missingEvidence.push("strategyCriticalLicenseOrDelistingRiskAtCheckpoint");
   if (context?.confounderStatus == null || context.confounderStatus === "unknown") missingEvidence.push("confounderStatus");
-  if (!sourceGateSatisfied(item, context)) missingEvidence.push("trusted primary source or >=2 major media");
+  if (!sourceGateSatisfied(item, context)) missingEvidence.push("trusted primary source or >=2 major media available by checkpoint");
   if ((context?.announcementTiming === "after_close" || context?.announcementTiming === "non_trading_day") && !context.priceReactionStartDate) {
     missingEvidence.push("priceReactionStartDate for announcement timing");
   }
