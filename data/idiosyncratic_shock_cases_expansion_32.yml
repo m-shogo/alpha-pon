@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 27。Boeing 2019 737 MAX groundingを世界規模grounding・二件の死亡事故・原因調査継続checkpointで採点し、aviation safety deep controlとして保存。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: boeing-2019-737-max-grounding
+    company: "Boeing"
+    ticker: BA
+    country: US
+    eventDate: "2019-03-13"
+    checkpoint: "2019-03-13"
+    category: aviation_product_safety
+    actorType: organization
+    scoreVector: [0,2,0,0,0,0,1,1,0,0]
+    priceState: unknown
+    summary: "Lion Air 610とEthiopian Airlines 302の二件の死亡事故後、BoeingはFAA/NTSB等と協議し371機の737 MAX全世界fleetの一時運航停止を支持。原因理解・software enhancement・安全性確認に向けた調査が継続中だった。"
+    source: "https://investors.boeing.com/investors/news/press-release-details/2019/In-Consultation-with-the-FAA-NTSB-and-its-Customers-Boeing-Supports-Action-to-Temporarily-Ground-737-MAX-Operations/default.aspx"
+    sourceType: company
+    outcomePattern: unknown
+    lesson: "全世界groundingと死亡事故を伴うsafety-critical issueは原因確定前に個人/局所へ切り離せない。後日のcertification、補償費用、政府調査、株価returnを使わず4点とする。"
+    confidence: high
