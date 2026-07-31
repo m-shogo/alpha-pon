@@ -1,12 +1,16 @@
 import assert from "node:assert/strict";
 import { loadHistoricalShockCaseContext, isHistoricalReactionAnchorVerified } from "../src/idiosyncratic-shock-case-context.js";
 import { loadHistoricalShockCases } from "../src/idiosyncratic-shock-data.js";
+import {
+  historicalReactionAnchorReplayBlockers,
+  isHistoricalReactionAnchorReplayReady,
+} from "../src/idiosyncratic-shock-reaction-anchor.js";
 
 const contexts = loadHistoricalShockCaseContext();
 const cases = loadHistoricalShockCases();
 const caseById = new Map(cases.map(item => [item.id, item]));
 
-const expectedVerifiedAnchors: Record<string, string> = {
+const expectedReplayReadyAnchors: Record<string, string> = {
   "sanrio-2026-compensation": "2026-06-01",
   "mcdonalds-2019-easterbrook": "2019-11-04",
   "hp-2010-hurd": "2010-08-09",
@@ -25,30 +29,40 @@ const expectedVerifiedAnchors: Record<string, string> = {
   "zensho-sukiya-2019-employee-video": "2019-01-29",
 };
 
-for (const [id, expectedReactionStart] of Object.entries(expectedVerifiedAnchors)) {
+for (const [id, expectedReactionStart] of Object.entries(expectedReplayReadyAnchors)) {
   const context = contexts.get(id);
   const historical = caseById.get(id);
   assert(context, `${id}: context/anchor overlay must exist`);
   assert(historical, `${id}: historical case must exist`);
-  assert.equal(isHistoricalReactionAnchorVerified(context), true, `${id}: anchor must satisfy shared verifier`);
+  assert.equal(isHistoricalReactionAnchorVerified(context), true, `${id}: timing/date anchor must be structurally verified`);
+  assert.equal(isHistoricalReactionAnchorReplayReady(context), true, `${id}: anchor must be replay-ready`);
+  assert.deepEqual(historicalReactionAnchorReplayBlockers(context), [], `${id}: replay-ready anchor must have no blockers`);
   assert.equal(context.priceReactionStartDate, expectedReactionStart, `${id}: reaction start must stay pinned`);
   assert.match(context.priceReactionStartDate ?? "", /^\d{4}-\d{2}-\d{2}$/);
   assert((context.priceReactionStartDate ?? "") >= historical.eventDate, `${id}: reaction start cannot precede eventDate`);
+  assert((context.reactionAnchorEvidenceSources?.length ?? 0) >= 1, `${id}: replay-ready anchor requires evidence source`);
+  assert(context.reactionAnchorNotes?.trim(), `${id}: replay-ready anchor requires provenance note`);
 }
 
 assert.equal(contexts.get("lockheed-2012-kubasik")?.announcementTiming, "before_open", "reaction-anchor expansion must overlay base context");
 assert.equal(contexts.get("lockheed-2012-kubasik")?.strategyEligibilityAtCheckpoint, "confirmed_pass", "anchor overlay must preserve eligibility fields");
-assert((contexts.get("lockheed-2012-kubasik")?.reactionAnchorEvidenceSources?.length ?? 0) >= 1);
 assert.equal(contexts.get("yoshinoya-2022-remark")?.announcementTiming, "during_session");
 assert.equal(contexts.get("zensho-sukiya-2019-employee-video")?.announcementTiming, "during_session");
 
+assert.equal(isHistoricalReactionAnchorReplayReady({
+  announcementTiming: "before_open",
+  priceReactionStartDate: "2026-01-05",
+}), false, "timing/dateだけではreplay-readyにしない");
+assert(historicalReactionAnchorReplayBlockers({
+  announcementTiming: "before_open",
+  priceReactionStartDate: "2026-01-05",
+}).includes("reactionAnchorEvidenceSources missing or invalid"));
+
 for (const [id, context] of contexts) {
-  if (!isHistoricalReactionAnchorVerified(context)) continue;
+  if (!isHistoricalReactionAnchorReplayReady(context)) continue;
   const historical = caseById.get(id);
-  assert(historical, `${id}: verified anchor must not be orphaned`);
-  assert(context.announcementTiming && context.announcementTiming !== "unknown");
-  assert(context.priceReactionStartDate);
+  assert(historical, `${id}: replay-ready anchor must not be orphaned`);
 }
 
-assert.equal(Object.keys(expectedVerifiedAnchors).length, 16, "verified anchor seed count changed; update expected registry deliberately");
-console.log(`idiosyncratic-shock reaction-anchor tests: verified=${Object.keys(expectedVerifiedAnchors).length} OK`);
+assert.equal(Object.keys(expectedReplayReadyAnchors).length, 16, "replay-ready anchor seed count changed; update expected registry deliberately");
+console.log(`idiosyncratic-shock reaction-anchor tests: replayReady=${Object.keys(expectedReplayReadyAnchors).length} OK`);
