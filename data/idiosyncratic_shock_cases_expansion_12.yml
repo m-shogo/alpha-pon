@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 7。Kobe Steel 2017品質不正を外部調査委員会設置時点の一次情報で採点し、複数事業・グループへ拡大した組織型deep controlとして保存。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: kobe-steel-2017-quality-falsification
+    company: "Kobe Steel"
+    ticker: "5406"
+    country: JP
+    eventDate: "2017-10-08"
+    checkpoint: "2017-10-26"
+    category: quality_falsification
+    actorType: organization
+    scoreVector: [1,2,0,0,1,0,2,1,1,0]
+    priceState: unknown
+    summary: "アルミ・銅製品の検査証明データ書換えを起点に、鉄粉・検査会社・グループ会社など複数事業へ不適切行為が拡大。10月26日時点でも疑義案件を残し、外部調査委員会を設置して調査を引き継いだ。"
+    source: "https://www.kobelco.co.jp/releases/1197904_15541.html"
+    sourceType: company
+    outcomePattern: unknown
+    lesson: "財務会計不正ではないためaccountingIntegrityを0にしない一方、品質保証という製造業の中核統制が複数部門へ波及し調査中ならactor/organization/brandを厳しく評価する。将来returnは使わない。"
+    confidence: high
