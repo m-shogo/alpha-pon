@@ -14,9 +14,8 @@ const backlog = loadThresholdCandidateBacklog();
 assert.equal(backlog.version, 1);
 assert.equal(backlog.selectionPolicy.basis, "structural_coverage_only");
 assert.equal(backlog.selectionPolicy.knownHistoricalOutcomeMayExist, true);
-assert.equal(backlog.candidates.length, 5, "initial frozen backlog size changed unexpectedly");
+assert.equal(backlog.candidates.length, 11, "two frozen backlog batches should contain 11 candidates");
 assert.equal(new Set(backlog.candidates.map(row => row.id)).size, backlog.candidates.length, "candidate ids must be unique");
-assert(backlog.candidates.every(row => row.researchState === "promoted"), "initial backlog should now be fully researched/promoted");
 
 for (const row of backlog.candidates) {
   assert(["company", "regulator", "exchange"].includes(row.primarySource.sourceType), `${row.id}: primary source required`);
@@ -26,24 +25,45 @@ for (const row of backlog.candidates) {
   }
 }
 
-const expectedScores = new Map<string, number>([
+const firstBatchScores = new Map<string, number>([
   ["benesse-2014-data-leak", 9],
   ["dentsu-2016-labor-violation", 8],
   ["chipotle-2015-ecoli", 7],
   ["guess-2018-marciano", 12],
   ["starbucks-2018-philadelphia", 11],
 ]);
+const secondBatchIds = [
+  "recruit-2019-rikunabi-dmp",
+  "jal-2018-alcohol-compliance",
+  "kobe-steel-2017-quality-falsification",
+  "tesla-2018-musk-sec",
+  "equifax-2017-cybersecurity-breach",
+  "wells-fargo-2016-unauthorized-accounts",
+] as const;
+
 const historical = new Map(loadHistoricalShockCases().map(row => [row.id, row]));
 const contexts = loadHistoricalShockCaseContext();
-for (const row of backlog.candidates) {
-  const item = historical.get(row.id);
-  assert(item, `${row.id}: promoted candidate must exist in historical DB`);
-  assert.equal(item.score, expectedScores.get(row.id), `${row.id}: PIT score must not be fit to threshold`);
-  assert.equal(item.priceStateAtCheckpoint, "unknown", `${row.id}: later price path must not enter checkpoint score`);
-  assert.equal(item.outcome?.recoveryPattern, "unknown", `${row.id}: realized recovery must remain outside intake`);
+for (const [id, expectedScore] of firstBatchScores) {
+  const backlogRow = backlog.candidates.find(row => row.id === id);
+  assert(backlogRow);
+  assert.equal(backlogRow.researchState, "promoted", `${id}: first batch must stay promoted`);
+  const item = historical.get(id);
+  assert(item, `${id}: promoted candidate must exist in historical DB`);
+  assert.equal(item.score, expectedScore, `${id}: PIT score must not be fit to threshold`);
+  assert.equal(item.priceStateAtCheckpoint, "unknown", `${id}: later price path must not enter checkpoint score`);
+  assert.equal(item.outcome?.recoveryPattern, "unknown", `${id}: realized recovery must remain outside intake`);
 }
 assert.equal(historical.get("chipotle-2015-ecoli")?.score, 7, "backlog must accept a candidate outside the 8-11 research band");
 assert.equal(historical.get("guess-2018-marciano")?.score, 12, "backlog must accept a candidate at production threshold");
+
+for (const id of secondBatchIds) {
+  const row = backlog.candidates.find(candidate => candidate.id === id);
+  assert(row, `${id}: second outcome-blind batch must stay frozen in backlog`);
+  assert.equal(row.researchState, "unscored", `${id}: second batch must remain unscored before PIT research`);
+  assert.equal(historical.has(id), false, `${id}: unscored candidate must not silently appear in scored historical DB`);
+}
+assert.equal(secondBatchIds.filter(id => backlog.candidates.find(row => row.id === id)?.market === "JP").length, 3);
+assert.equal(secondBatchIds.filter(id => backlog.candidates.find(row => row.id === id)?.market === "US").length, 3);
 
 for (const [id, blocker] of [
   ["chipotle-2015-ecoli", "incidentClusterStatus=cascade"],
@@ -56,12 +76,21 @@ for (const [id, blocker] of [
   assert(shadow.blockers.includes(blocker), `${id}: expected blocker ${blocker}`);
 }
 
-const liveStatus = summarizeThresholdCandidateBacklogStatus(backlog.candidates, buildThresholdDiversityRows());
-assert.equal(liveStatus.activeCandidateCount, 0, "initial backlog is exhausted after 5/5 promotion");
+const diversityRows = buildThresholdDiversityRows();
+const liveStatus = summarizeThresholdCandidateBacklogStatus(backlog.candidates, diversityRows);
+assert.equal(liveStatus.activeCandidateCount, 6, "second batch replenishes active research queue");
 assert.equal(liveStatus.promotedCount, 5);
 assert.equal(liveStatus.thresholdChangeReady, false, "threshold=12 research gate must still be unmet");
-assert.equal(liveStatus.replenishmentRequired, true, "empty backlog cannot masquerade as research completion while threshold gate is unmet");
-assert(liveStatus.blockers.includes("active threshold candidate backlog exhausted while threshold diversity is not ready"));
+assert.equal(liveStatus.replenishmentRequired, false, "active outcome-blind candidates satisfy the replenishment requirement");
+
+const exhaustedFixture = backlog.candidates.map(row => row.researchState === "unscored"
+  ? { ...row, researchState: "promoted" as const }
+  : row);
+const exhaustedStatus = summarizeThresholdCandidateBacklogStatus(exhaustedFixture, diversityRows);
+assert.equal(exhaustedStatus.activeCandidateCount, 0);
+assert.equal(exhaustedStatus.thresholdChangeReady, false);
+assert.equal(exhaustedStatus.replenishmentRequired, true, "queue exhaustion must trigger replenishment while threshold gate is unmet");
+assert(exhaustedStatus.blockers.includes("active threshold candidate backlog exhausted while threshold diversity is not ready"));
 
 const baseCandidate: ThresholdCandidateBacklogRow = {
   id: "fixture-us",
@@ -96,8 +125,6 @@ const diversityFixture: ThresholdDiversityRow[] = [{
   category: "existing_category", actorType: "employee", calibrationEligibility: "confirmed_pass", replayReady: true,
   supportedMarket: true, usable3m: false,
 }];
-assert.equal(rankThresholdCandidateBacklog(backlog.candidates, diversityFixture).length, 0, "fully promoted live backlog should have no active rows");
-
 const jpFixture: ThresholdCandidateBacklogRow = {
   ...baseCandidate,
   id: "fixture-jp",
@@ -117,4 +144,4 @@ const rankingWithoutOutcomes = ranked.map(row => row.id);
 const rankingWithOnlyUsableFlagChanged = rankThresholdCandidateBacklog(synthetic, diversityFixture.map(row => ({ ...row, usable3m: true }))).map(row => row.id);
 assert.deepEqual(rankingWithOnlyUsableFlagChanged, rankingWithoutOutcomes, "candidate priority must not change when realized 3m usability changes");
 
-console.log("idiosyncratic-shock threshold candidate backlog tests: 5/5 promoted, threshold not ready => replenishment required");
+console.log("idiosyncratic-shock threshold candidate backlog tests: batch1=5 promoted, batch2=6 frozen unscored, outcome-blind queue replenished");
