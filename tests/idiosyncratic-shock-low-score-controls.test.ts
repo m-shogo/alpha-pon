@@ -39,6 +39,7 @@ for (const id of [
   "activision-2021-culture",
   "kobayashi-pharma-2024-benikoji",
   "kddi-2026-biglobe-circular-transactions",
+  "benesse-2014-data-leak",
 ]) {
   const result = calibration(id);
   assert.equal(result.status, "confirmed_block", `${id} must not become a shadow control merely because its score is below 12`);
@@ -57,5 +58,7 @@ assert(calibration("activision-2021-culture").blockers.includes("remediationStat
 assert(calibration("kobayashi-pharma-2024-benikoji").blockers.includes("investigationStatus=open"));
 assert(calibration("kddi-2026-biglobe-circular-transactions").blockers.includes("accountingIntegrity=0"));
 assert(calibration("kddi-2026-biglobe-circular-transactions").blockers.includes("confounderStatus=major"));
+assert.equal(cases.get("benesse-2014-data-leak")?.score, 9, "Benesse must remain a deep 8-9 control rather than being fit to threshold");
+assert(calibration("benesse-2014-data-leak").blockers.includes("investigationStatus=open"));
 
 console.log("idiosyncratic-shock low-score control tests: Ootoya + United shadow PASS; unsafe 8-11 controls remain BLOCK");
