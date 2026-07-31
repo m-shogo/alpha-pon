@@ -46,6 +46,7 @@ for (const id of [
   "kadokawa-2022-bribery",
   "sukiya-2025-rat",
   "activision-2021-culture",
+  "kobayashi-pharma-2024-benikoji",
 ]) {
   const resolved = resolveShockCaseSelection(id, registry.get(id));
   assert.equal(resolved.selectionMode, "retrospective_research");
