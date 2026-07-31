@@ -1,0 +1,49 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Threshold candidate freeze記録とは分離したresearch state registry。candidate intake YAMLは採点前の状態を保持し、研究進捗だけをこのregistryで更新する。"
+states:
+  benesse-2014-data-leak:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  dentsu-2016-labor-violation:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  starbucks-2018-philadelphia:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  guess-2018-marciano:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  chipotle-2015-ecoli:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  recruit-2019-rikunabi-dmp:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  jal-2018-alcohol-compliance:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  kobe-steel-2017-quality-falsification:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  tesla-2018-musk-sec:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  equifax-2017-cybersecurity-breach:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  wells-fargo-2016-unauthorized-accounts:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  snow-peak-2022-yamai:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  subaru-2017-final-inspection:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  lululemon-2018-potdevin:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  barnes-noble-2018-parneros:
+    researchState: promoted
+    decidedAt: "2026-07-31"
