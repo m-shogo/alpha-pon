@@ -40,27 +40,17 @@ export type HistoricalShockCaseContext = {
   disclosureObservability?: ShockDisclosureObservability | null;
   announcementTiming?: ShockAnnouncementTiming | null;
   priceReactionStartDate?: string | null;
-  /** reaction anchor専用に追加確認した一次情報/major media。 */
   reactionAnchorEvidenceSources?: ShockSource[] | null;
   reactionAnchorNotes?: string | null;
   incidentRevenueExposurePct?: number | null;
   estimatedDirectCostPctMarketCap?: number | null;
   industryRelativeShockDrawdownPct?: number | null;
-  /**
-   * decisionCheckpoint時点で、本番通知の非価格hard gate（現行score threshold含む）が再現できたか。
-   * confirmed_pass と書くだけではPASSにならず、下記structured evidenceもresolverが検証する。
-   */
   strategyEligibilityAtCheckpoint?: HistoricalStrategyEligibilityStatus | null;
-  /**
-   * score threshold自体を検証するshadow研究用。score<12だけを理由にBLOCKしない。
-   * 未記載の低scoreケースを自動PASSにはしない。必ず一次情報で明示確認する。
-   */
   calibrationEligibilityAtCheckpoint?: HistoricalStrategyEligibilityStatus | null;
   calibrationEligibilityNotes?: string | null;
   strategyInvestigationStatusAtCheckpoint?: ShockInvestigationStatus | null;
   strategyCriticalLicenseOrDelistingRiskAtCheckpoint?: boolean | null;
   strategyEligibilityNotes?: string | null;
-  /** eligibility判定専用に追加確認した一次情報/major media。case本体のsource正本は変更しない。 */
   strategyEligibilityEvidenceSources?: ShockSource[] | null;
   notes?: string | null;
 };
@@ -76,11 +66,6 @@ export type HistoricalStrategyEligibilityResolution = {
   missingEvidence: string[];
 };
 
-/**
- * Historical signal replayで使えるreaction anchorの共通定義。
- * announcementTimingだけでなく、最初に通常取引で反応できる日を必ず明示する。
- * 旧sidecar/旧outcomeの暗黙eventDate fallbackをverified扱いしない。
- */
 export function isHistoricalReactionAnchorVerified(
   context?: HistoricalShockCaseContext | null,
 ): boolean {
@@ -136,18 +121,12 @@ function isGovernmentOrRegulatorHost(host: string): boolean {
     || host.endsWith(".gc.ca");
 }
 
-/**
- * sourceTypeラベルだけで一次情報扱いしない。
- * 特にaggregatorをexchange/companyと誤分類してhistorical PASSを作る事故を防ぐ。
- */
 export function isTrustedHistoricalPrimarySource(source: ShockSource): boolean {
   if (source.sourceType !== "company" && source.sourceType !== "regulator" && source.sourceType !== "exchange") return false;
   const host = normalizedHost(source.url);
   if (!host || KNOWN_NON_PRIMARY_HOSTS.has(host)) return false;
   if (source.sourceType === "regulator") return isGovernmentOrRegulatorHost(host);
   if (source.sourceType === "exchange") return TRUSTED_EXCHANGE_HOST_SUFFIXES.some(suffix => hostMatchesSuffix(host, suffix));
-  // company sourceは世界中のissuer domainを固定allowlist化できないため、既知aggregatorをrejectし、
-  // explicit structured eligibility + audit evidenceと組み合わせてfail-closedにする。
   return true;
 }
 
@@ -168,13 +147,14 @@ function explicitStatusForMode(
   const explicitCalibration = context?.calibrationEligibilityAtCheckpoint;
   if (explicitCalibration) return explicitCalibration;
 
-  // 本番PASSはscore threshold以外のstructured evidenceも通っているのでshadow研究へ継承可能。
-  if (context?.strategyEligibilityAtCheckpoint === "confirmed_pass") return "confirmed_pass";
+  // raw文字列ではなく、production PASSが構造上成立し得るscore>=12の場合だけ継承する。
+  // score<12で誤ってstrategyEligibilityAtCheckpoint=confirmed_passと書かれてもshadow PASSへ漏らさない。
+  if (item.score >= 12 && context?.strategyEligibilityAtCheckpoint === "confirmed_pass") return "confirmed_pass";
 
   // score>=12の本番BLOCKはthreshold由来ではないためshadow研究でもBLOCKを継承する。
   if (item.score >= 12 && context?.strategyEligibilityAtCheckpoint === "confirmed_block") return "confirmed_block";
 
-  // score<12の本番BLOCK/未記載は「scoreだけが原因か」を推測しない。別途calibration sidecarで確認する。
+  // score<12はproduction文字列から推測せず、calibration sidecarを別途要求する。
   return "unknown";
 }
 
@@ -187,12 +167,10 @@ function resolveHistoricalEligibilityDetailed(
   const blockers: string[] = [];
   const missingEvidence: string[] = [];
 
-  // productionだけが現行thresholdをhard gateとして使う。threshold_calibrationはこの1条件だけ外す。
   if (mode === "production" && item.score < 12) blockers.push(`score=${item.score}<12`);
   if (item.scores.accountingIntegrity === 0) blockers.push("accountingIntegrity=0");
   if (item.macroPrimaryCause) blockers.push("macroPrimaryCause=true");
 
-  // score以外のhard gateはproduction/shadow研究で完全共有する。
   const investigation = context?.strategyInvestigationStatusAtCheckpoint ?? "unknown";
   if (investigation === "open") blockers.push("investigationStatus=open");
   if (context?.strategyCriticalLicenseOrDelistingRiskAtCheckpoint === true) blockers.push("criticalLicenseOrDelistingRisk=true");
@@ -215,13 +193,10 @@ function resolveHistoricalEligibilityDetailed(
     return { status: "unknown", blockers, missingEvidence: [missing] };
   }
 
-  // PASSだけは追加のstructured evidenceを必須にする。
   if (investigation === "unknown") missingEvidence.push("strategyInvestigationStatusAtCheckpoint");
   if (context?.strategyCriticalLicenseOrDelistingRiskAtCheckpoint == null) missingEvidence.push("strategyCriticalLicenseOrDelistingRiskAtCheckpoint");
   if (context?.confounderStatus == null || context.confounderStatus === "unknown") missingEvidence.push("confounderStatus");
   if (!sourceGateSatisfied(item, context)) missingEvidence.push("trusted primary source or >=2 major media");
-  // eligibilityとreaction-anchor品質は別レイヤー。ただし引け後/休場日発表でreaction dateが無い場合は、
-  // checkpoint時点の価格windowを正しく再現できないのでPASSにしない。
   if ((context?.announcementTiming === "after_close" || context?.announcementTiming === "non_trading_day") && !context.priceReactionStartDate) {
     missingEvidence.push("priceReactionStartDate for announcement timing");
   }
@@ -230,9 +205,6 @@ function resolveHistoricalEligibilityDetailed(
   return { status: "confirmed_pass", blockers, missingEvidence };
 }
 
-/**
- * 本番通知/本番parity用。現行threshold=12を含む。
- */
 export function resolveHistoricalStrategyEligibilityDetailed(
   item: HistoricalShockCase,
   context?: HistoricalShockCaseContext | null,
@@ -247,10 +219,6 @@ export function resolveHistoricalStrategyEligibility(
   return resolveHistoricalStrategyEligibilityDetailed(item, context).status;
 }
 
-/**
- * threshold=12そのものを検証するshadow研究用。
- * score<12だけはblockerから外すが、それ以外のhard gate/一次情報要件は本番と同一。
- */
 export function resolveHistoricalThresholdCalibrationEligibilityDetailed(
   item: HistoricalShockCase,
   context?: HistoricalShockCaseContext | null,
@@ -334,7 +302,6 @@ export function loadHistoricalShockCaseContext(
     }
   }
 
-  // custom path指定時は既存fixture/テスト互換のためreaction anchor overlayを自動適用しない。
   if (path) return result;
 
   const seenAnchorIds = new Set<string>();
