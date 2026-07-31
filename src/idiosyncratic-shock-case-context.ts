@@ -20,6 +20,10 @@ import type {
   ShockRemediationStatus,
   ShockStakeholder,
 } from "./idiosyncratic-shock-context.js";
+import {
+  validateHistoricalShockCaseContextShape,
+  validateHistoricalShockReactionAnchorShape,
+} from "./idiosyncratic-shock-case-context-validation.js";
 
 export type HistoricalStrategyEligibilityStatus = "confirmed_pass" | "confirmed_block" | "unknown";
 export type HistoricalEligibilityMode = "production" | "threshold_calibration";
@@ -147,14 +151,8 @@ function explicitStatusForMode(
   const explicitCalibration = context?.calibrationEligibilityAtCheckpoint;
   if (explicitCalibration) return explicitCalibration;
 
-  // raw文字列ではなく、production PASSが構造上成立し得るscore>=12の場合だけ継承する。
-  // score<12で誤ってstrategyEligibilityAtCheckpoint=confirmed_passと書かれてもshadow PASSへ漏らさない。
   if (item.score >= 12 && context?.strategyEligibilityAtCheckpoint === "confirmed_pass") return "confirmed_pass";
-
-  // score>=12の本番BLOCKはthreshold由来ではないためshadow研究でもBLOCKを継承する。
   if (item.score >= 12 && context?.strategyEligibilityAtCheckpoint === "confirmed_block") return "confirmed_block";
-
-  // score<12はproduction文字列から推測せず、calibration sidecarを別途要求する。
   return "unknown";
 }
 
@@ -237,14 +235,14 @@ type ContextFile = {
   version: number;
   generatedAt: string;
   description?: string;
-  cases: Record<string, HistoricalShockCaseContext>;
+  cases: Record<string, unknown>;
 };
 
 type ReactionAnchorFile = {
   version: number;
   generatedAt: string;
   description?: string;
-  cases: Record<string, HistoricalShockReactionAnchor>;
+  cases: Record<string, unknown>;
 };
 
 const DEFAULT_PATH = "data/idiosyncratic_shock_case_context.yml";
@@ -276,18 +274,24 @@ function defaultReactionAnchorPaths(): string[] {
 
 function loadHistoricalContextFile(path: string): Array<[string, HistoricalShockCaseContext]> {
   const raw = load(readFileSync(path, "utf-8")) as ContextFile;
-  if (!raw || typeof raw !== "object" || !raw.cases || typeof raw.cases !== "object") {
+  if (!raw || typeof raw !== "object" || !raw.cases || typeof raw.cases !== "object" || Array.isArray(raw.cases)) {
     throw new Error(`${path}: cases object is required`);
   }
-  return Object.entries(raw.cases);
+  return Object.entries(raw.cases).map(([id, context]) => [
+    id,
+    validateHistoricalShockCaseContextShape(context, `${path}.cases.${id}`),
+  ]);
 }
 
 function loadReactionAnchorFile(path: string): Array<[string, HistoricalShockReactionAnchor]> {
   const raw = load(readFileSync(path, "utf-8")) as ReactionAnchorFile;
-  if (!raw || typeof raw !== "object" || !raw.cases || typeof raw.cases !== "object") {
+  if (!raw || typeof raw !== "object" || !raw.cases || typeof raw.cases !== "object" || Array.isArray(raw.cases)) {
     throw new Error(`${path}: cases object is required`);
   }
-  return Object.entries(raw.cases);
+  return Object.entries(raw.cases).map(([id, anchor]) => [
+    id,
+    validateHistoricalShockReactionAnchorShape(anchor, `${path}.cases.${id}`),
+  ]);
 }
 
 export function loadHistoricalShockCaseContext(
