@@ -1,0 +1,10 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog batch 2 selection provenance。base registryを肥大化させず、promoted historical casesのretrospective provenanceを追加する。"
+cases:
+  jal-2018-alcohol-compliance:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlog batch 2でJP safety/compliance候補としてscore記入前にfreezeされ、その後2018-12-21までの国交省一次情報だけでPIT採点した。"
+    notes: "score=9。12/17の新規飲酒事案について12/20時点で詳細調査・追加再発防止策の報告が未完、12/21に事業改善命令等。将来return・後日の改善結果はscore/eligibilityへ使用しない。"
