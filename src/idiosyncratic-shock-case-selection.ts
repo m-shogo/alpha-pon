@@ -30,6 +30,7 @@ export type ShockCaseSelectionResolution = {
   provenance: "explicit" | "legacy_untracked";
   selectionMode: ShockCaseSelectionMode | "legacy_untracked";
   outcomeVisibilityAtSelection: ShockOutcomeVisibilityAtSelection;
+  registrationTimingVerified: boolean;
   validationHoldoutEligible: boolean;
   reason: string;
 };
@@ -110,6 +111,7 @@ export function loadShockCaseSelection(path = DEFAULT_PATH): Map<string, ShockCa
 export function resolveShockCaseSelection(
   caseId: string,
   record?: ShockCaseSelectionRecord | null,
+  decisionCheckpoint?: string | null,
 ): ShockCaseSelectionResolution {
   if (!record) {
     return {
@@ -117,21 +119,36 @@ export function resolveShockCaseSelection(
       provenance: "legacy_untracked",
       selectionMode: "legacy_untracked",
       outcomeVisibilityAtSelection: "unknown",
+      registrationTimingVerified: false,
       validationHoldoutEligible: false,
       reason: "selection provenance predates the contract or is missing; use for research only, never claim prospective holdout",
     };
   }
 
-  const validationHoldoutEligible = record.selectionMode === "prospective_pre_outcome"
+  const checkpointValid = isDate(decisionCheckpoint);
+  const registrationTimingVerified = checkpointValid && record.registeredAt <= decisionCheckpoint;
+  const prospectiveClaim = record.selectionMode === "prospective_pre_outcome"
     && record.outcomeVisibilityAtSelection === "not_observed";
+  const validationHoldoutEligible = prospectiveClaim && registrationTimingVerified;
+
+  let reason: string;
+  if (validationHoldoutEligible) {
+    reason = "case was registered no later than its decision checkpoint while the evaluated outcome was not observed";
+  } else if (prospectiveClaim && !checkpointValid) {
+    reason = "prospective claim cannot be verified without a valid decision checkpoint; fail closed as research-only";
+  } else if (prospectiveClaim && !registrationTimingVerified) {
+    reason = `prospective registration ${record.registeredAt} is after decision checkpoint ${decisionCheckpoint}; fail closed as research-only`;
+  } else {
+    reason = "retrospective/control selection may be used for research but is not a prospective validation holdout";
+  }
+
   return {
     caseId,
     provenance: "explicit",
     selectionMode: record.selectionMode,
     outcomeVisibilityAtSelection: record.outcomeVisibilityAtSelection,
+    registrationTimingVerified,
     validationHoldoutEligible,
-    reason: validationHoldoutEligible
-      ? "case was registered prospectively before its outcome was observed"
-      : "retrospective/control selection may be used for research but is not a prospective validation holdout",
+    reason,
   };
 }
