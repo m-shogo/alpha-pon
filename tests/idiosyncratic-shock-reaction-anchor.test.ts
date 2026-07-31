@@ -46,4 +46,5 @@ for (const [id, context] of contexts) {
   assert(context.priceReactionStartDate);
 }
 
+assert.equal(Object.keys(expectedVerifiedAnchors).length, 14, "verified anchor seed count changed; update expected registry deliberately");
 console.log(`idiosyncratic-shock reaction-anchor tests: verified=${Object.keys(expectedVerifiedAnchors).length} OK`);
