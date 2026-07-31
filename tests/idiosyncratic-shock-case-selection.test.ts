@@ -78,13 +78,18 @@ for (const id of [
   "kobayashi-pharma-2024-benikoji",
   "kddi-2026-biglobe-circular-transactions",
   "united-2017-flight3411",
+  "benesse-2014-data-leak",
 ]) {
   const resolved = resolveShockCaseSelection(id, registry.get(id));
   assert.equal(resolved.selectionMode, "retrospective_research");
   assert.equal(resolved.validationHoldoutEligible, false);
 }
 
-for (const id of ["kddi-2026-biglobe-circular-transactions", "united-2017-flight3411"]) {
+for (const id of [
+  "kddi-2026-biglobe-circular-transactions",
+  "united-2017-flight3411",
+  "benesse-2014-data-leak",
+]) {
   const record = registry.get(id);
   assert(record, `${id}: explicit selection provenance required`);
   assert.equal(record.outcomeVisibilityAtSelection, "known_or_available", `${id}: historical research must not masquerade as unseen outcome`);
