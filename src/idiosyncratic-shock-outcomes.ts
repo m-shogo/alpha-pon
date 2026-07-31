@@ -9,6 +9,8 @@ export type ShockOutcomeQuote = {
   AdjustmentClose: number;
 };
 
+export type HistoricalReactionAnchorStatus = "verified" | "unverified";
+
 export type ShockHistoricalOutcomeRecord = {
   caseId: string;
   company: string;
@@ -17,6 +19,8 @@ export type ShockHistoricalOutcomeRecord = {
   benchmark: string;
   eventDate: string;
   reactionStartDate: string;
+  /** 市場が最初に反応可能なsessionを一次情報/当時報道で再現できたか。 */
+  reactionAnchorStatus: HistoricalReactionAnchorStatus;
   checkpoint: string;
   score: number;
   label: string;
@@ -38,7 +42,7 @@ export type ShockHistoricalOutcomeRecord = {
   benchmarkRelative1m: number | null;
   benchmarkRelative3m: number | null;
   benchmarkRelative1y: number | null;
-  /** 非価格hard gate confirmed_pass後、価格hard gateが初めて成立した取引日。 */
+  /** 非価格hard gate confirmed_pass + verified reaction anchor後、価格hard gateが初めて成立した取引日。 */
   firstEligibleSignalDate: string | null;
   firstEligibleSignalPrice: number | null;
   signalShockDrawdownPct: number | null;
@@ -150,6 +154,7 @@ export function buildShockHistoricalOutcome(
     market?: ShockMarket;
     benchmarkLabel?: string;
     reactionStartDate?: string | null;
+    reactionAnchorStatus?: HistoricalReactionAnchorStatus | null;
     strategyEligibilityAtCheckpoint?: HistoricalStrategyEligibilityStatus | null;
   } = {},
 ): ShockHistoricalOutcomeRecord | null {
@@ -160,6 +165,7 @@ export function buildShockHistoricalOutcome(
   const stockQuotes = sortedQuotes(stockQuotesInput);
   const benchmarkQuotes = sortedQuotes(benchmarkQuotesInput);
   const reactionStartDate = options.reactionStartDate ?? item.eventDate;
+  const reactionAnchorStatus = options.reactionAnchorStatus ?? "unverified";
   const strategyEligibilityAtCheckpoint = options.strategyEligibilityAtCheckpoint ?? "unknown";
   const checkpoint = item.decisionCheckpoint;
   const base = onOrAfter(stockQuotes, checkpoint);
@@ -178,9 +184,9 @@ export function buildShockHistoricalOutcome(
   const benchmarkRelative3m = relativeReturn(stockQuotes, benchmarkQuotes, checkpoint, 90);
   const benchmarkRelative1y = relativeReturn(stockQuotes, benchmarkQuotes, checkpoint, 365);
 
-  // 非価格hard gateをcheckpoint時点で確認できたケースだけ価格signalを再現する。
-  // unknownをno-trade扱いしない。confirmed_blockも戦略calibration母数へ入れない。
-  const signal = strategyEligibilityAtCheckpoint === "confirmed_pass"
+  // 非価格hard gateとreaction anchorを両方checkpoint研究で確認できたケースだけ価格signalを再現する。
+  // eligibility unknown/blockedやanchor unverifiedをno-trade扱いしない。
+  const signal = strategyEligibilityAtCheckpoint === "confirmed_pass" && reactionAnchorStatus === "verified"
     ? findFirstEligibleShockSignal({
       stock: observations(stockQuotes),
       benchmark: observations(benchmarkQuotes),
@@ -207,6 +213,7 @@ export function buildShockHistoricalOutcome(
     benchmark,
     eventDate: item.eventDate,
     reactionStartDate,
+    reactionAnchorStatus,
     checkpoint,
     score: item.score,
     label: item.label,
@@ -266,13 +273,13 @@ function positiveRate(values: number[]): number | null {
 
 function strategyValues(records: ShockHistoricalOutcomeRecord[], key: keyof ShockHistoricalOutcomeRecord): number[] {
   return records
-    .filter(row => row.strategyEligibilityAtCheckpoint === "confirmed_pass" && Boolean(row.firstEligibleSignalDate))
+    .filter(row => row.strategyEligibilityAtCheckpoint === "confirmed_pass" && row.reactionAnchorStatus === "verified" && Boolean(row.firstEligibleSignalDate))
     .map(row => row[key])
     .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
 }
 
 function calibrationBucket(bucket: string, records: ShockHistoricalOutcomeRecord[]): ShockCalibrationBucket {
-  const signaled = records.filter(row => row.strategyEligibilityAtCheckpoint === "confirmed_pass" && Boolean(row.firstEligibleSignalDate));
+  const signaled = records.filter(row => row.strategyEligibilityAtCheckpoint === "confirmed_pass" && row.reactionAnchorStatus === "verified" && Boolean(row.firstEligibleSignalDate));
   const r1m = strategyValues(signaled, "signalReturn1m");
   const rel1m = strategyValues(signaled, "signalBenchmarkRelative1m");
   const r3m = strategyValues(signaled, "signalReturn3m");
