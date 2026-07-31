@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 12。Snow Peak 2022代表取締役辞任を同日会社一次情報で採点し、価格未検証のままscore=12としてthresholdへ後付けfitしない。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: snow-peak-2022-yamai
+    company: "Snow Peak"
+    ticker: "7816"
+    country: JP
+    eventDate: "2022-09-21"
+    checkpoint: "2022-09-21"
+    category: executive_personal_conduct
+    actorType: ceo
+    scoreVector: [2,2,1,2,2,1,1,1,0,0]
+    priceState: unknown
+    summary: "代表取締役社長執行役員が私的事情により辞任を申し出て取締役会が受理。事業・会計不正とは切り離せる一方、トップ交代と創業家/key-person性を管理継続・fundamental面で減点した。"
+    source: "https://ir.snowpeak.co.jp/news/files/140120220921534702.pdf"
+    sourceType: company
+    outcomePattern: unknown
+    lesson: "個人切除型でもCEO/key-person交代を無傷と決めつけない。価格データを正式確認していないためdiscountMagnitude/priceStabilizationを0に固定し、結果的に12点でもそのまま受け入れる。"
+    confidence: high
