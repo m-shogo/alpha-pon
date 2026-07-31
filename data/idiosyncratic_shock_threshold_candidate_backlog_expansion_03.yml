@@ -1,0 +1,67 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold candidate backlog batch 5。JP/USのexecutive misconduct・manufacturing falsification・platform privacyを構造情報だけで補充し、score・price path・future outcomeは研究開始後まで記録しない。"
+selectionPolicy:
+  basis: structural_coverage_only
+  knownHistoricalOutcomeMayExist: true
+  forbiddenInputs:
+    - future_return
+    - recovery_pattern
+    - realized_outcome
+    - post_event_price_path
+candidates:
+  - id: nissan-2018-ghosn-misconduct
+    company: "Nissan Motor"
+    ticker: "7201"
+    market: JP
+    eventDate: "2018-11-19"
+    category: executive_financial_misconduct
+    researchState: unscored
+    discoveryReason: "JPのchairman/key-person financial misconduct候補。複数年の報酬開示・会社資産利用・governance波及を、scoreや後年の刑事手続・株価結果を選定材料にせず検証する。"
+    primarySource:
+      title: "Regarding Serious Misconduct by Our Chairman and Representative Director"
+      url: "https://www.nissan-global.com/EN/IR/TSE/ASSETS/2018/PDF/20181119TDnet_E.pdf"
+      sourceType: company
+      publishedAt: "2018-11-19"
+
+  - id: mitsubishi-motors-2016-fuel-economy
+    company: "Mitsubishi Motors"
+    ticker: "7211"
+    market: JP
+    eventDate: "2016-04-20"
+    category: fuel_economy_falsification
+    researchState: unscored
+    discoveryReason: "JP manufacturing/regulatory falsification候補。型式認証向け燃費試験データ操作と生産販売停止、調査範囲拡大をfuture returnなしで採点する。"
+    primarySource:
+      title: "当社製車両の燃費試験における不正行為について"
+      url: "https://www.mitsubishi-motors.com/content/dam/com/ir_jp/pdf/irnews/2016/20160420-01.pdf"
+      sourceType: company
+      publishedAt: "2016-04-20"
+
+  - id: hp-2010-hurd-resignation
+    company: "Hewlett-Packard"
+    ticker: HPQ
+    market: US
+    eventDate: "2010-08-06"
+    category: executive_personal_conduct
+    researchState: unscored
+    discoveryReason: "US CEO conduct・succession候補。outside counsel調査後の即時辞任と強い本業見通しを、historical returnやthreshold帯を見ずに検証する。"
+    primarySource:
+      title: "HP Form 8-K - Mark Hurd resignation and interim CEO appointment"
+      url: "https://www.sec.gov/Archives/edgar/data/47217/000104746910007177/a2199755z8-k.htm"
+      sourceType: regulator
+      publishedAt: "2010-08-06"
+
+  - id: facebook-2018-cambridge-analytica
+    company: "Facebook"
+    ticker: FB
+    market: US
+    eventDate: "2018-03-19"
+    category: data_privacy_platform
+    researchState: unscored
+    discoveryReason: "US platform privacy/governance候補。Cambridge Analytica claimsへのinternal/external reviewと規制当局関与を、将来settlementや株価returnを使わずcheckpoint内で評価する。"
+    primarySource:
+      title: "Pursuing Forensic Audits to Investigate Cambridge Analytica Claims"
+      url: "https://about.fb.com/news/2018/03/forensic-audits-cambridge-analytica/"
+      sourceType: company
+      publishedAt: "2018-03-19"
