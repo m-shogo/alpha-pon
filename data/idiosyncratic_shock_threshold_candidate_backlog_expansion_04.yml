@@ -1,0 +1,67 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold candidate backlog batch 6。JP/USのaccounting concealment・product safety・retail data breach・aviation safetyを構造情報だけで補充し、score・price path・future outcomeは研究開始後まで記録しない。"
+selectionPolicy:
+  basis: structural_coverage_only
+  knownHistoricalOutcomeMayExist: true
+  forbiddenInputs:
+    - future_return
+    - recovery_pattern
+    - realized_outcome
+    - post_event_price_path
+candidates:
+  - id: olympus-2011-loss-concealment
+    company: "Olympus"
+    ticker: "7733"
+    market: JP
+    eventDate: "2011-11-08"
+    category: accounting_loss_concealment
+    researchState: unscored
+    discoveryReason: "JP accounting/governanceの強い負例を第6batchへ追加。過去損失の繰延べ・過年度財務諸表修正・第三者委員会報告を、将来回復や株価を見ずにPIT評価する。"
+    primarySource:
+      title: "Notice Concerning Receipt of Third Party Committee Report"
+      url: "https://www.olympus-global.com/ir/data/announcement/pdf/nr111206e.pdf"
+      sourceType: company
+      publishedAt: "2011-12-06"
+
+  - id: toyota-2010-accelerator-recall
+    company: "Toyota Motor"
+    ticker: "7203"
+    market: JP
+    eventDate: "2010-01-21"
+    category: automotive_product_safety
+    researchState: unscored
+    discoveryReason: "JP product-safety/regulatoryカテゴリの第6batch候補。複数地域・複数モデルのアクセルペダルリコールと生産販売影響を、score帯や後日の回復を事前に見ずに検証する。"
+    primarySource:
+      title: "TMC Announces Remedy for U.S. Accelerator-pedal Recall"
+      url: "https://global.toyota/en/detail/339106"
+      sourceType: company
+      publishedAt: "2010-02-01"
+
+  - id: target-2013-payment-card-breach
+    company: "Target"
+    ticker: TGT
+    market: US
+    eventDate: "2013-12-19"
+    category: retail_data_security
+    researchState: unscored
+    discoveryReason: "US retail data-securityカテゴリの第6batch候補。約4,000万payment-card accountsへの影響とforensic/criminal investigationを、future returnなしでPIT評価する。"
+    primarySource:
+      title: "Target Confirms Unauthorized Access to Payment Card Data in U.S. Stores"
+      url: "https://corporate.target.com/press/release/2013/12/target-confirms-unauthorized-access-to-payment-card-data-in-u-s-stores"
+      sourceType: company
+      publishedAt: "2013-12-19"
+
+  - id: boeing-2019-737-max-grounding
+    company: "Boeing"
+    ticker: BA
+    market: US
+    eventDate: "2019-03-13"
+    category: aviation_product_safety
+    researchState: unscored
+    discoveryReason: "US aviation safety/regulatoryカテゴリの第6batch候補。二件の死亡事故後の全世界規模groundingと事故原因調査を、後日の認証・補償・株価結果を使わずcheckpoint内で検証する。"
+    primarySource:
+      title: "Boeing Supports Action to Temporarily Ground 737 MAX Operations"
+      url: "https://investors.boeing.com/investors/news/press-release-details/2019/In-Consultation-with-the-FAA-NTSB-and-its-Customers-Boeing-Supports-Action-to-Temporarily-Ground-737-MAX-Operations/default.aspx"
+      sourceType: company
+      publishedAt: "2019-03-13"
