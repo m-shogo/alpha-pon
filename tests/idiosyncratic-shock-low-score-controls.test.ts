@@ -41,6 +41,7 @@ for (const id of [
   "kddi-2026-biglobe-circular-transactions",
   "benesse-2014-data-leak",
   "dentsu-2016-labor-violation",
+  "starbucks-2018-philadelphia",
 ]) {
   const result = calibration(id);
   assert.equal(result.status, "confirmed_block", `${id} must not become a shadow control merely because its score is below 12`);
@@ -64,5 +65,7 @@ assert(calibration("benesse-2014-data-leak").blockers.includes("investigationSta
 assert.equal(cases.get("dentsu-2016-labor-violation")?.score, 8, "Dentsu must remain a deep 8-9 control rather than being fit to threshold");
 assert(calibration("dentsu-2016-labor-violation").blockers.includes("investigationStatus=open"));
 assert(calibration("dentsu-2016-labor-violation").blockers.includes("recurrenceStatus=systemic"));
+assert.equal(cases.get("starbucks-2018-philadelphia")?.score, 11, "Starbucks must remain near-boundary after PIT scoring");
+assert(calibration("starbucks-2018-philadelphia").blockers.includes("investigationStatus=open"));
 
 console.log("idiosyncratic-shock low-score control tests: Ootoya + United shadow PASS; unsafe 8-11 controls remain BLOCK");
