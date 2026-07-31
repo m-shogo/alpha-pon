@@ -1,0 +1,30 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Threshold calibration research batch 1。production score thresholdを外したshadow eligibilityを一次情報で確認した低score control。"
+cases:
+  ootoya-2019-employee-video:
+    incidentCountry: JP
+    sector: restaurant_food_service
+    stakeholder: employee
+    incidentScope: site
+    confounderStatus: clear
+    informationLeakStatus: clear
+    recurrenceStatus: first_known
+    remediationStatus: credible
+    liquidityStatus: normal
+    incidentClusterStatus: single
+    disclosureObservability: high
+    calibrationEligibilityAtCheckpoint: confirmed_pass
+    calibrationEligibilityNotes: "productionではscore=11のためBLOCK。ただしthreshold=12自体を検証するshadow研究では、2019-02-18会社一次情報で社内調査結果・当該従業員3名の退職処分・使用トレイ廃棄を確認し、2019-03-04までに全社再発防止策を公表。会計・マクロ・重大免許/上場risk・別重大材料を確認していないためscore threshold以外のhard gateはPASSと判定する。"
+    strategyInvestigationStatusAtCheckpoint: substantially_complete
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityEvidenceSources:
+      - title: "当社従業員による不適切な行為についてのお詫びとお知らせ"
+        url: "https://www.ootoya.com/news/20190218.pdf"
+        sourceType: company
+        publishedAt: "2019-02-18"
+      - title: "不適切行為の再発防止に向けた取り組みについて"
+        url: "https://www.ootoya.com/news/20190304_2.pdf"
+        sourceType: company
+        publishedAt: "2019-03-04"
+    notes: "低score control。事件自体は局所従業員型だが、全店休業・全従業員再教育まで必要になったためGlobal Structural Scoreは11に留まる。"
