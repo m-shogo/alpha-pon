@@ -21,6 +21,8 @@ const expectedVerifiedAnchors: Record<string, string> = {
   "ebay-2020-cyberstalking": "2020-06-15",
   "dominos-japan-2024-employee-video": "2024-02-13",
   "lockheed-2012-kubasik": "2012-11-09",
+  "yoshinoya-2022-remark": "2022-04-18",
+  "zensho-sukiya-2019-employee-video": "2019-01-29",
 };
 
 for (const [id, expectedReactionStart] of Object.entries(expectedVerifiedAnchors)) {
@@ -37,6 +39,8 @@ for (const [id, expectedReactionStart] of Object.entries(expectedVerifiedAnchors
 assert.equal(contexts.get("lockheed-2012-kubasik")?.announcementTiming, "before_open", "reaction-anchor expansion must overlay base context");
 assert.equal(contexts.get("lockheed-2012-kubasik")?.strategyEligibilityAtCheckpoint, "confirmed_pass", "anchor overlay must preserve eligibility fields");
 assert((contexts.get("lockheed-2012-kubasik")?.reactionAnchorEvidenceSources?.length ?? 0) >= 1);
+assert.equal(contexts.get("yoshinoya-2022-remark")?.announcementTiming, "during_session");
+assert.equal(contexts.get("zensho-sukiya-2019-employee-video")?.announcementTiming, "during_session");
 
 for (const [id, context] of contexts) {
   if (!isHistoricalReactionAnchorVerified(context)) continue;
@@ -46,5 +50,5 @@ for (const [id, context] of contexts) {
   assert(context.priceReactionStartDate);
 }
 
-assert.equal(Object.keys(expectedVerifiedAnchors).length, 14, "verified anchor seed count changed; update expected registry deliberately");
+assert.equal(Object.keys(expectedVerifiedAnchors).length, 16, "verified anchor seed count changed; update expected registry deliberately");
 console.log(`idiosyncratic-shock reaction-anchor tests: verified=${Object.keys(expectedVerifiedAnchors).length} OK`);
