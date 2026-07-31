@@ -54,6 +54,7 @@ for (const [id, blocker] of [
   ["tesla-2018-musk-sec", "investigationStatus=open"],
   ["equifax-2017-cybersecurity-breach", "investigationStatus=open"],
   ["wells-fargo-2016-unauthorized-accounts", "recurrenceStatus=systemic"],
+  ["recruit-2019-rikunabi-dmp", "investigationStatus=open"],
 ] as const) {
   const item = historical.get(id);
   assert(item);
@@ -61,9 +62,6 @@ for (const [id, blocker] of [
   assert.equal(shadow.status, "confirmed_block", `${id}: hard blocker must survive shadow`);
   assert(shadow.blockers.includes(blocker), `${id}: expected ${blocker}`);
 }
-const recruit = historical.get("recruit-2019-rikunabi-dmp");
-assert(recruit);
-assert.equal(resolveHistoricalThresholdCalibrationEligibilityDetailed(recruit, contexts.get(recruit.id)).status, "confirmed_pass");
 
 const diversityRows = buildThresholdDiversityRows();
 const liveStatus = summarizeThresholdCandidateBacklogStatus(backlog.candidates, diversityRows);
@@ -97,4 +95,4 @@ const rankingWithoutOutcomes = ranked.map(row => row.id);
 const rankingWithOnlyUsableFlagChanged = rankThresholdCandidateBacklog(synthetic, diversityFixture.map(row => ({ ...row, usable3m: true }))).map(row => row.id);
 assert.deepEqual(rankingWithOnlyUsableFlagChanged, rankingWithoutOutcomes, "realized 3m usability must not change candidate priority");
 
-console.log("idiosyncratic-shock threshold candidate backlog tests: 11/11 promoted; batch3 replenishment required");
+console.log("idiosyncratic-shock threshold candidate backlog tests: 11/11 promoted; Recruit PIT correction keeps batch3 replenishment required");
