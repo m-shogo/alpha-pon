@@ -39,6 +39,9 @@ export type HistoricalShockCaseContext = {
   disclosureObservability?: ShockDisclosureObservability | null;
   announcementTiming?: ShockAnnouncementTiming | null;
   priceReactionStartDate?: string | null;
+  /** reaction anchor専用に追加確認した一次情報/major media。 */
+  reactionAnchorEvidenceSources?: ShockSource[] | null;
+  reactionAnchorNotes?: string | null;
   incidentRevenueExposurePct?: number | null;
   estimatedDirectCostPctMarketCap?: number | null;
   industryRelativeShockDrawdownPct?: number | null;
@@ -54,6 +57,11 @@ export type HistoricalShockCaseContext = {
   strategyEligibilityEvidenceSources?: ShockSource[] | null;
   notes?: string | null;
 };
+
+export type HistoricalShockReactionAnchor = Pick<
+  HistoricalShockCaseContext,
+  "announcementTiming" | "priceReactionStartDate" | "reactionAnchorEvidenceSources" | "reactionAnchorNotes"
+>;
 
 export type HistoricalStrategyEligibilityResolution = {
   status: HistoricalStrategyEligibilityStatus;
@@ -189,8 +197,17 @@ type ContextFile = {
   cases: Record<string, HistoricalShockCaseContext>;
 };
 
+type ReactionAnchorFile = {
+  version: number;
+  generatedAt: string;
+  description?: string;
+  cases: Record<string, HistoricalShockReactionAnchor>;
+};
+
 const DEFAULT_PATH = "data/idiosyncratic_shock_case_context.yml";
 const CONTEXT_EXPANSION_PATTERN = /^idiosyncratic_shock_case_context_expansion_\d+\.yml$/;
+const DEFAULT_REACTION_ANCHOR_PATH = "data/idiosyncratic_shock_reaction_anchors.yml";
+const REACTION_ANCHOR_EXPANSION_PATTERN = /^idiosyncratic_shock_reaction_anchors_expansion_\d+\.yml$/;
 
 function defaultHistoricalContextPaths(): string[] {
   const dataDir = "data";
@@ -203,8 +220,27 @@ function defaultHistoricalContextPaths(): string[] {
   return [DEFAULT_PATH, ...expansions].filter(existsSync);
 }
 
+function defaultReactionAnchorPaths(): string[] {
+  const dataDir = "data";
+  const expansions = existsSync(dataDir)
+    ? readdirSync(dataDir)
+      .filter(name => REACTION_ANCHOR_EXPANSION_PATTERN.test(name))
+      .sort()
+      .map(name => join(dataDir, name))
+    : [];
+  return [DEFAULT_REACTION_ANCHOR_PATH, ...expansions].filter(existsSync);
+}
+
 function loadHistoricalContextFile(path: string): Array<[string, HistoricalShockCaseContext]> {
   const raw = load(readFileSync(path, "utf-8")) as ContextFile;
+  if (!raw || typeof raw !== "object" || !raw.cases || typeof raw.cases !== "object") {
+    throw new Error(`${path}: cases object is required`);
+  }
+  return Object.entries(raw.cases);
+}
+
+function loadReactionAnchorFile(path: string): Array<[string, HistoricalShockReactionAnchor]> {
+  const raw = load(readFileSync(path, "utf-8")) as ReactionAnchorFile;
   if (!raw || typeof raw !== "object" || !raw.cases || typeof raw.cases !== "object") {
     throw new Error(`${path}: cases object is required`);
   }
@@ -220,6 +256,18 @@ export function loadHistoricalShockCaseContext(
     for (const [id, context] of loadHistoricalContextFile(currentPath)) {
       if (result.has(id)) throw new Error(`duplicate historical shock context id: ${id}`);
       result.set(id, context);
+    }
+  }
+
+  // custom path指定時は既存fixture/テスト互換のためreaction anchor overlayを自動適用しない。
+  if (path) return result;
+
+  const seenAnchorIds = new Set<string>();
+  for (const currentPath of defaultReactionAnchorPaths()) {
+    for (const [id, anchor] of loadReactionAnchorFile(currentPath)) {
+      if (seenAnchorIds.has(id)) throw new Error(`duplicate historical shock reaction anchor id: ${id}`);
+      seenAnchorIds.add(id);
+      result.set(id, { ...(result.get(id) ?? {}), ...anchor });
     }
   }
   return result;
