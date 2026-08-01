@@ -1,0 +1,162 @@
+{
+  "schema_version": "filing-deadline-extension-seed.0.1",
+  "as_of": "2026-08-02T05:44:00+09:00",
+  "status": "SHADOW_RESEARCH",
+  "production_use": false,
+  "source_policy": {
+    "allowed": [
+      "JPX",
+      "EDINET/FSA",
+      "company IR and timely disclosure",
+      "official regulatory and exchange notices",
+      "market and benchmark data"
+    ],
+    "excluded": [
+      "SNS",
+      "forums",
+      "influencers",
+      "anonymous posts",
+      "social sentiment"
+    ]
+  },
+  "research_hypotheses": [
+    "approval_relief",
+    "deadline_proximity_convexity",
+    "filing_uncertainty_relief",
+    "filing_package_dominance",
+    "explicit_inability_to_file_cliff"
+  ],
+  "cases": [
+    {
+      "issuer": "Omikenshi",
+      "code": "3111",
+      "report_type": "annual securities report",
+      "original_deadline": "2026-06-30",
+      "extended_deadline": "2026-09-30",
+      "state_at_snapshot": "extension_active",
+      "next_required_observation": "filing progress and credibility updates",
+      "market_features_status": "pending"
+    },
+    {
+      "issuer": "Abalance",
+      "code": "3856",
+      "report_type": "annual securities report",
+      "original_deadline": "2026-06-30",
+      "extended_deadline": "2026-08-31",
+      "state_at_snapshot": "extension_active",
+      "next_required_observation": "T-20/T-10/T-5/T-1 deadline-distance features",
+      "market_features_status": "pending"
+    },
+    {
+      "issuer": "BlueMeme",
+      "code": "4069",
+      "report_type": "annual securities report",
+      "original_deadline": "2026-06-30",
+      "extended_deadline": "2026-09-30",
+      "state_at_snapshot": "extension_active",
+      "next_required_observation": "filing progress and audit-status updates",
+      "market_features_status": "pending"
+    },
+    {
+      "issuer": "Air Water",
+      "code": "4088",
+      "report_type": "annual securities report",
+      "original_deadline": "2026-06-30",
+      "extended_deadline": "2026-07-31",
+      "state_at_snapshot": "deadline_passed_requires_primary_source_resolution_check",
+      "next_required_observation": "confirm actual filing timestamp and filing package",
+      "market_features_status": "priority_pending"
+    },
+    {
+      "issuer": "Cota",
+      "code": "4923",
+      "report_type": "annual securities report",
+      "original_deadline": "2026-06-30",
+      "extended_deadline": "2026-09-30",
+      "state_at_snapshot": "extension_active",
+      "next_required_observation": "filing progress and audit-status updates",
+      "market_features_status": "pending"
+    },
+    {
+      "issuer": "Nidec",
+      "code": "6594",
+      "report_type": "annual securities report",
+      "original_deadline": "2026-06-30",
+      "extended_deadline": "2026-09-30",
+      "state_at_snapshot": "extension_active",
+      "next_required_observation": "large-cap counterfactual and deadline-distance features",
+      "market_features_status": "pending"
+    },
+    {
+      "issuer": "Iriso Electronics",
+      "code": "6908",
+      "report_type": "annual securities report",
+      "original_deadline": "2026-06-30",
+      "extended_deadline": "2026-09-30",
+      "state_at_snapshot": "extension_active",
+      "next_required_observation": "filing progress and audit-status updates",
+      "market_features_status": "pending"
+    },
+    {
+      "issuer": "Advance Create",
+      "code": "8798",
+      "report_type": "semiannual securities report",
+      "original_deadline": "2026-05-15",
+      "extended_deadline": "2026-08-14",
+      "state_at_snapshot": "near_deadline_active",
+      "next_required_observation": "T-10/T-5/T-1 features and explicit filing guidance",
+      "market_features_status": "priority_pending"
+    },
+    {
+      "issuer": "Asahi Group Holdings",
+      "code": "2502",
+      "report_type": "annual securities report",
+      "original_deadline": "2026-03-31",
+      "extended_deadline": "2026-07-27",
+      "state_at_snapshot": "deadline_passed_requires_primary_source_resolution_check",
+      "next_required_observation": "confirm actual filing timestamp and filing package",
+      "market_features_status": "priority_pending"
+    },
+    {
+      "issuer": "V-cube",
+      "code": "3681",
+      "report_type": "annual securities report",
+      "original_deadline": null,
+      "extended_deadline": null,
+      "state_at_snapshot": "positive_control_explicit_inability_to_file",
+      "next_required_observation": "separate filing-cliff effect from listing-maintenance confounder",
+      "market_features_status": "historical_backfill_pending"
+    }
+  ],
+  "mandatory_controls": [
+    "underlying misconduct or cyber incident severity",
+    "audit-firm resignation or replacement",
+    "concurrent earnings and guidance",
+    "restatement size",
+    "liquidity and small-cap distress",
+    "going-concern wording",
+    "financing or covenant pressure",
+    "existing supervision or special-attention designation",
+    "listing-maintenance noncompliance",
+    "disclosure timestamp and next executable session"
+  ],
+  "promotion_gate": {
+    "minimum_requirements": [
+      "multiple years and market segments",
+      "stage-specific event tests",
+      "sector/size/liquidity/distress controls",
+      "positive net alpha after spread, slippage and borrow costs",
+      "no dominant single issuer",
+      "untouched holdout pass",
+      "PIT-reproducible timestamps and filing packages",
+      "incremental information beyond generic distress momentum and adjacent edges"
+    ]
+  },
+  "next_actions": [
+    "Resolve Air Water and Asahi Group actual filing outcomes from EDINET and company IR",
+    "Build deadline-distance features for Abalance and Advance Create",
+    "Backfill historical extension cohorts",
+    "Join next-executable-session returns and benchmark-adjusted returns",
+    "Tag audit opinion, restatement magnitude, internal-control and going-concern outcomes"
+  ]
+}
