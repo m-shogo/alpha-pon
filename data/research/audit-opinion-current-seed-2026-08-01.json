@@ -1,0 +1,97 @@
+{
+  "schemaVersion": "audit-opinion-current-seed.0.1",
+  "asOf": "2026-08-01T21:41:28+09:00",
+  "status": "RESEARCH_ONLY",
+  "productionUse": false,
+  "sourcePolicy": {
+    "used": [
+      "JPX adverse-opinion list"
+    ],
+    "notUsed": [
+      "SNS",
+      "forums",
+      "influencers",
+      "anonymous posts",
+      "social sentiment"
+    ]
+  },
+  "primarySource": "https://www.jpx.co.jp/listing/others/adverse-opinion/index.html",
+  "records": [
+    {
+      "issuer": "Kubotek Corporation",
+      "code": "7709",
+      "documentType": "annual securities report",
+      "period": "FY2026-03",
+      "opinionDate": "2026-06-26",
+      "opinionState": "DISCLAIMER",
+      "eventRole": "CURRENT_NEGATIVE_SEED",
+      "marketDataStatus": "NEEDS_BACKFILL"
+    },
+    {
+      "issuer": "Kaihan Co., Ltd.",
+      "code": "3133",
+      "documentType": "annual securities report",
+      "period": "FY2026-03",
+      "opinionDate": "2026-06-26",
+      "opinionState": "DISCLAIMER",
+      "eventRole": "CURRENT_NEGATIVE_SEED",
+      "marketDataStatus": "NEEDS_BACKFILL"
+    },
+    {
+      "issuer": "Showa Holdings Co., Ltd.",
+      "code": "5103",
+      "documentType": "annual securities report",
+      "period": "FY2026-03",
+      "opinionDate": "2026-06-24",
+      "opinionState": "QUALIFIED",
+      "eventRole": "CURRENT_NEGATIVE_SEED",
+      "marketDataStatus": "NEEDS_BACKFILL"
+    },
+    {
+      "issuer": "Wedge Holdings Co., Ltd.",
+      "code": "2388",
+      "documentType": "semiannual report",
+      "period": "FY2026-09-H1",
+      "opinionDate": "2026-05-15",
+      "opinionState": "QUALIFIED_REVIEW_CONCLUSION",
+      "eventRole": "CURRENT_NEGATIVE_SEED",
+      "marketDataStatus": "NEEDS_BACKFILL"
+    },
+    {
+      "issuer": "Air Water Inc.",
+      "code": "4088",
+      "documentType": "semiannual report",
+      "period": "FY2026-03-H1",
+      "opinionDate": "2026-02-13",
+      "opinionState": "QUALIFIED_REVIEW_CONCLUSION",
+      "eventRole": "CURRENT_NEGATIVE_SEED",
+      "marketDataStatus": "NEEDS_BACKFILL"
+    }
+  ],
+  "requiredNextFields": [
+    "publishedTimestamp",
+    "nextExecutableSession",
+    "D0",
+    "D1",
+    "D3",
+    "D5",
+    "D20",
+    "TOPIXAdjustedReturn",
+    "sectorAdjustedReturn",
+    "volumeShock",
+    "spreadProxy",
+    "borrowAvailability",
+    "borrowCost",
+    "concurrentDisclosureFlags",
+    "exchangeMeasureState",
+    "nextOpinionTransition"
+  ],
+  "falsificationPriority": [
+    "distressMomentum",
+    "financingConfounder",
+    "microcapLiquidity",
+    "concurrentEarningsOrRestructuring",
+    "noIncrementBeyondExchangeSanctionLadder"
+  ],
+  "assessment": "Seed only. No profitability claim, no production signal, and no threshold change."
+}
