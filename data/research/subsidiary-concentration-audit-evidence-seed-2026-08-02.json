@@ -1,0 +1,106 @@
+{
+  "schemaVersion": "subsidiary-concentration-audit-evidence-seed.0.1",
+  "asOf": "2026-08-02T13:44:00+09:00",
+  "status": "SHADOW_RESEARCH_ONLY",
+  "productionUse": false,
+  "sourcePolicy": {
+    "allowed": [
+      "company_ir",
+      "tdnet",
+      "jpx",
+      "edinet",
+      "regulator",
+      "court_or_administrative_record",
+      "major_news_for_confirmation",
+      "market_data"
+    ],
+    "disallowed": [
+      "sns",
+      "forums",
+      "influencers",
+      "anonymous_posts",
+      "social_sentiment"
+    ]
+  },
+  "confirmedSeeds": [
+    {
+      "issuer": "REVOLUTION",
+      "code": "8894",
+      "eventDate": "2026-07-25",
+      "eventType": "special_attention_designation_after_audit_conclusion_unavailable",
+      "affectedSubsidiary": "Yamawake",
+      "subsidiaryRevenueShareApprox": 0.9,
+      "auditEvidenceFailure": true,
+      "parentOversightWeakness": true,
+      "interactionQualified": true,
+      "evidenceState": "official_jpx_confirmed",
+      "researchUse": "positive_seed_only_not_outcome_label",
+      "notes": "JPX stated that audit-required materials and explanations for subsidiary accounting were insufficient, the subsidiary represented approximately 90% of consolidated sales, and the listed parent failed to recognize and correct subsidiary-management risk in time."
+    }
+  ],
+  "candidateDiscoveryQueue": [
+    {
+      "issuer": "KDDI",
+      "code": "9433",
+      "candidateReason": "subsidiary accounting failure and parent oversight weakness are official, but economic concentration threshold is not established",
+      "currentClassification": "NON_QUALIFYING_UNTIL_CONCENTRATION_EVIDENCE",
+      "requiredNextEvidence": [
+        "point_in_time_subsidiary_revenue_share",
+        "operating_profit_or_cash_flow_share",
+        "audit_evidence_failure_specificity"
+      ]
+    },
+    {
+      "issuer": "nms Holdings",
+      "code": "2162",
+      "candidateReason": "subsidiary loss-recognition failure and authority concentration are official, but affected-subsidiary economic concentration is not yet established",
+      "currentClassification": "NON_QUALIFYING_UNTIL_CONCENTRATION_EVIDENCE",
+      "requiredNextEvidence": [
+        "point_in_time_subsidiary_revenue_share",
+        "profit_and_asset_contribution",
+        "auditor_evidence_limitation_state"
+      ]
+    },
+    {
+      "issuer": "eMnet Japan",
+      "code": "7036",
+      "candidateReason": "subsidiary or controlled-operation accounting and disclosure weakness may be relevant, but concentration and audit-evidence interaction must be verified",
+      "currentClassification": "DISCOVERY_ONLY",
+      "requiredNextEvidence": [
+        "affected_entity_identity",
+        "economic_concentration",
+        "audit_evidence_failure",
+        "parent_oversight_findings"
+      ]
+    }
+  ],
+  "minimumDatasetFields": [
+    "issuer",
+    "code",
+    "decisionCheckpoint",
+    "firstOfficialDisclosureAt",
+    "subsidiaryRevenueShare",
+    "subsidiaryOperatingProfitShare",
+    "subsidiaryAssetShare",
+    "auditEvidenceFailureType",
+    "managementExplanationFailure",
+    "parentOversightFinding",
+    "auditOpinionState",
+    "filingDelayState",
+    "exchangeMeasureState",
+    "financingNeed",
+    "eventReturnsD0D1D3D5D20",
+    "benchmarkAdjustedReturns",
+    "liquidityAndBorrowCost",
+    "concurrentEventConfounders"
+  ],
+  "hardGuards": [
+    "Do not infer concentration from legal importance or headline prominence.",
+    "Do not use post-event segment data if it was unavailable at the decision checkpoint.",
+    "Do not label a case positive without both economic concentration and audit-evidence failure.",
+    "Do not promote based on REVOLUTION alone.",
+    "Do not treat generic subsidiary misconduct as this interaction edge.",
+    "Require realistic next-open execution and net-alpha accounting before any production consideration."
+  ],
+  "nextResearchStep": "Backfill official filings for all current JPX disclaimer or conclusion-unavailable issuers, compute point-in-time subsidiary contribution ratios, and build a negative-control cohort with low-concentration subsidiaries."
+}
