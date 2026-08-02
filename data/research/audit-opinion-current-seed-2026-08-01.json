@@ -1,11 +1,11 @@
 {
-  "schemaVersion": "audit-opinion-current-seed.0.1",
-  "asOf": "2026-08-01T21:41:28+09:00",
+  "schemaVersion": "audit-opinion-current-seed.0.2",
+  "asOf": "2026-08-02T19:47:40+09:00",
   "status": "RESEARCH_ONLY",
   "productionUse": false,
   "sourcePolicy": {
     "used": [
-      "JPX adverse-opinion list"
+      "JPX adverse-opinion current list"
     ],
     "notUsed": [
       "SNS",
@@ -35,6 +35,59 @@
       "opinionDate": "2026-06-26",
       "opinionState": "DISCLAIMER",
       "eventRole": "CURRENT_NEGATIVE_SEED",
+      "marketDataStatus": "NEEDS_BACKFILL"
+    },
+    {
+      "issuer": "REVOLUTION Co., Ltd.",
+      "code": "8894",
+      "documentType": "semiannual report",
+      "period": "FY2026-10-H1",
+      "opinionDate": "2026-06-15",
+      "opinionState": "DISCLAIMER_REVIEW_CONCLUSION",
+      "eventRole": "CURRENT_NEGATIVE_SEED",
+      "exchangeMeasureState": "SPECIAL_ATTENTION",
+      "marketDataStatus": "NEEDS_BACKFILL"
+    },
+    {
+      "issuer": "Wel-Dish Incorporated",
+      "code": "2901",
+      "documentType": "semiannual report",
+      "period": "FY2026-08-H1",
+      "opinionDate": "2026-05-14",
+      "opinionState": "DISCLAIMER_REVIEW_CONCLUSION",
+      "eventRole": "CURRENT_NEGATIVE_SEED",
+      "marketDataStatus": "NEEDS_BACKFILL"
+    },
+    {
+      "issuer": "V-cube, Inc.",
+      "code": "3681",
+      "documentType": "annual securities report",
+      "period": "FY2025-12",
+      "opinionDate": "2026-04-30",
+      "opinionState": "DISCLAIMER",
+      "eventRole": "CURRENT_NEGATIVE_SEED",
+      "marketDataStatus": "NEEDS_BACKFILL"
+    },
+    {
+      "issuer": "Toshin Holdings Co., Ltd.",
+      "code": "9444",
+      "documentType": "quarterly earnings report",
+      "period": "FY2026-04-Q3",
+      "opinionDate": "2026-03-16",
+      "opinionState": "DISCLAIMER_REVIEW_CONCLUSION",
+      "eventRole": "CURRENT_NEGATIVE_SEED",
+      "exchangeMeasureState": "SPECIAL_ATTENTION",
+      "marketDataStatus": "NEEDS_BACKFILL"
+    },
+    {
+      "issuer": "Abalance Corporation",
+      "code": "3856",
+      "documentType": "semiannual report",
+      "period": "FY2026-03-H1",
+      "opinionDate": "2026-01-13",
+      "opinionState": "DISCLAIMER_REVIEW_CONCLUSION",
+      "eventRole": "CURRENT_NEGATIVE_SEED",
+      "exchangeMeasureState": "SPECIAL_ATTENTION",
       "marketDataStatus": "NEEDS_BACKFILL"
     },
     {
@@ -68,9 +121,24 @@
       "marketDataStatus": "NEEDS_BACKFILL"
     }
   ],
+  "cohortAudit": {
+    "previousRecordCount": 5,
+    "currentRecordCount": 10,
+    "addedCodes": [
+      "8894",
+      "2901",
+      "3681",
+      "9444",
+      "3856"
+    ],
+    "reason": "The prior seed captured only part of the JPX current list and would bias validation toward annual-report events and qualified opinions. The corrected seed restores current disclaimer and special-attention cases."
+  },
   "requiredNextFields": [
     "publishedTimestamp",
     "nextExecutableSession",
+    "opinionReasonClass",
+    "scopeLimitationEntity",
+    "revenueConcentrationOfAffectedEntity",
     "D0",
     "D1",
     "D3",
@@ -93,5 +161,5 @@
     "concurrentEarningsOrRestructuring",
     "noIncrementBeyondExchangeSanctionLadder"
   ],
-  "assessment": "Seed only. No profitability claim, no production signal, and no threshold change."
+  "assessment": "Corrected current cohort only. No profitability claim, no production signal, and no threshold change."
 }
