@@ -49,26 +49,34 @@ BEGIN
     THEN RAISE(ABORT, 'event revision observed_at must not move backwards')
   END;
 
-  -- registerMarketEventBundle upserts the current projection before the
-  -- append-only revision. If that upsert was rejected as stale, this catches it.
+  -- Runtime registration upserts the current projection before appending the
+  -- revision. Reject a revision older than that established current pointer.
+  -- During a fresh history bootstrap, market_events.current_revision_id is
+  -- deliberately NULL until the latest historical revision is reached.
   SELECT CASE
     WHEN EXISTS (
       SELECT 1
       FROM market_events current_event
       WHERE current_event.event_id = NEW.event_id
+        AND current_event.current_revision_id IS NOT NULL
         AND julianday(NEW.observed_at) < julianday(current_event.updated_at)
     )
     THEN RAISE(ABORT, 'event revision is older than the current event projection')
   END;
 END;
 
--- The current projection pointer is derived from the append-only ledger.
+-- The current pointer is derived from the append-only ledger. A bootstrap
+-- inserts the latest projection with a NULL pointer and then replays revisions
+-- oldest-first; only the revision reaching the projection's updated_at becomes
+-- current. Normal runtime writes have matching observed_at/updated_at and are
+-- promoted immediately.
 CREATE TRIGGER IF NOT EXISTS trg_event_revision_promote_current
 AFTER INSERT ON event_revisions
 BEGIN
   UPDATE market_events
   SET current_revision_id = NEW.revision_id
-  WHERE event_id = NEW.event_id;
+  WHERE event_id = NEW.event_id
+    AND julianday(NEW.observed_at) >= julianday(updated_at);
 END;
 
 CREATE TRIGGER IF NOT EXISTS trg_event_revisions_no_update
