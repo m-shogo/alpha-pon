@@ -1,0 +1,48 @@
+name: market-event-foundation
+
+on:
+  push:
+    paths:
+      - 'src/market-events/**'
+      - 'scripts/generate-market-event-projection.ts'
+      - 'scripts/verify-market-event-*.ts'
+      - 'migrations/0001_market_event_foundation.sql'
+      - 'apps/web/app/calendar/**'
+      - 'apps/web/lib/market-events.ts'
+      - '.github/workflows/market-event-foundation.yml'
+  pull_request:
+    paths:
+      - 'src/market-events/**'
+      - 'scripts/generate-market-event-projection.ts'
+      - 'scripts/verify-market-event-*.ts'
+      - 'migrations/0001_market_event_foundation.sql'
+      - 'apps/web/app/calendar/**'
+      - 'apps/web/lib/market-events.ts'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Typecheck root
+        run: pnpm typecheck
+      - name: Typecheck scripts
+        run: pnpm typecheck:scripts
+      - name: Verify event contracts and ledger
+        run: node --import tsx/esm scripts/verify-market-event-foundation.ts
+      - name: Verify D1-compatible schema
+        run: node --import tsx/esm scripts/verify-market-event-schema.ts
+      - name: Verify web application
+        run: pnpm web:typecheck && pnpm web:build
