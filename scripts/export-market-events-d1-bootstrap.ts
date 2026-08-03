@@ -33,7 +33,7 @@ function parseFlags(argv: string[]): Flags {
 function stringFlag(flags: Flags, key: string, fallback: string): string {
   const value = flags.get(key);
   if (value === undefined) return fallback;
-  if (value === true) throw new Error(`--${key} requires a value`);
+  if (typeof value !== "string") throw new Error(`--${key} requires a value`);
   return value;
 }
 
