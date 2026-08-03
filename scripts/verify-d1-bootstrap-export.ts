@@ -84,10 +84,13 @@ try {
   assert.equal(firstExport.sha256, secondExport.sha256, "fixed-input exports must be byte deterministic");
   assert.equal(firstExport.sql, secondExport.sql);
 
-  const revisionOnePosition = firstExport.sql.indexOf(firstBundle.revision.revisionId);
-  const revisionTwoPosition = firstExport.sql.indexOf(second.revision.revisionId);
-  assert(revisionOnePosition >= 0 && revisionTwoPosition >= 0);
-  assert(revisionOnePosition < revisionTwoPosition, "parent revision must be emitted before child revision");
+  const revisionInsertLines = firstExport.sql
+    .split("\n")
+    .filter(line => line.startsWith('INSERT OR IGNORE INTO "event_revisions"'));
+  assert.equal(revisionInsertLines.length, 2);
+  assert(revisionInsertLines[0]?.includes(firstBundle.revision.revisionId), "first revision row must be emitted first");
+  assert(revisionInsertLines[1]?.includes(second.revision.revisionId), "second revision row must be emitted second");
+  assert(revisionInsertLines[1]?.includes(firstBundle.revision.revisionId), "child row must reference the parent revision");
 
   target.exec(firstExport.sql);
   target.exec(firstExport.sql);
