@@ -4,7 +4,7 @@
     "issuerName": "KDDI",
     "eventType": "REVIEW_CHECKPOINT",
     "occurrenceKey": "jpx-remediation-status-review-2026-12",
-    "title": "JPX改善状況報告の確認開始",
+    "title": "[内部レビュー] JPX改善状況報告の確認開始",
     "status": "SCHEDULED",
     "priority": "S1",
     "time": {
@@ -18,7 +18,7 @@
     },
     "edgeTypes": ["REMEDIATION_EXECUTION", "REGULATORY_DEADLINE"],
     "currentDecisionState": "WAIT",
-    "whyItMatters": "2026-06-02の改善報告書提出から約6か月。改善措置が計画公表だけでなく運用証拠を伴っているかを再確認する内部チェックポイント。公式提出日を断定する予定ではない。",
+    "whyItMatters": "2026-06-02の改善報告書提出から約6か月。改善措置が計画公表だけでなく運用証拠を伴っているかを再確認するAlpha Pon内部チェックポイント。公式提出予定日ではない。",
     "checksBefore": [
       "JPXの改善報告書・改善状況報告書一覧",
       "会社の改善措置進捗開示",
@@ -32,9 +32,9 @@
       "次回レビュー日の登録"
     ],
     "relatedEventIds": [],
-    "lastVerifiedAt": "2026-08-03T07:15:00Z",
+    "lastVerifiedAt": "2026-08-03T06:45:00Z",
     "staleAfter": "2026-11-25T00:00:00Z",
-    "observedAt": "2026-08-03T07:15:00Z",
+    "observedAt": "2026-08-03T06:45:00Z",
     "publishedAt": null,
     "effectiveAt": null,
     "firstExecutableAt": null,
@@ -44,14 +44,26 @@
       "anchorEvent": "JPX improvement report submitted",
       "anchorDate": "2026-06-02",
       "officialSourceUrl": "https://www.jpx.co.jp/news/1023/20260602-12.html",
-      "dateMeaning": "Alpha Pon review date; not an asserted official filing date"
+      "dateMeaning": "Alpha Pon review date; not an asserted official filing date",
+      "sourceHashBasis": "SHA256 of normalized source URL because storageClass is METADATA_ONLY"
     },
-    "sources": [],
+    "sources": [
+      {
+        "authority": "JPX",
+        "sourceType": "JPX",
+        "url": "https://www.jpx.co.jp/news/1023/20260602-12.html",
+        "title": "改善報告書の公衆の縦覧：KDDI（株）",
+        "publishedAt": null,
+        "retrievedAt": "2026-08-03T06:45:00Z",
+        "contentHash": "ac8347eede14f758a12d7afe8325fe55733d6e302dcfdb89fcd3640289e75ca4",
+        "storageClass": "METADATA_ONLY"
+      }
+    ],
     "decision": {
       "confidenceState": "PARTIAL",
       "reasons": [
         "改善状況報告は改善報告書提出から約6か月後に確認価値が高い",
-        "正式な提出日時は今後のJPX・会社開示で再確認が必要"
+        "正式な改善状況報告日時は今後のJPX・会社開示で再確認が必要"
       ],
       "invalidationConditions": [
         "JPXまたは会社が別の正式日程を公表した場合は日付を改訂する",
@@ -65,7 +77,7 @@
     "issuerName": "nmsホールディングス",
     "eventType": "REVIEW_CHECKPOINT",
     "occurrenceKey": "jpx-remediation-status-review-2026-12",
-    "title": "JPX改善状況報告の確認開始",
+    "title": "[内部レビュー] JPX改善状況報告の確認開始",
     "status": "SCHEDULED",
     "priority": "S1",
     "time": {
@@ -79,7 +91,7 @@
     },
     "edgeTypes": ["REMEDIATION_EXECUTION", "REGULATORY_DEADLINE"],
     "currentDecisionState": "WAIT",
-    "whyItMatters": "JPX一覧上の2026-06-05改善報告書提出から約6か月。再発防止策の実装度、統制人員、追加訂正を再確認する内部チェックポイント。",
+    "whyItMatters": "2026-06-05の改善報告書提出から約6か月。再発防止策の実装度、統制人員、追加訂正を再確認するAlpha Pon内部チェックポイント。公式提出予定日ではない。",
     "checksBefore": [
       "JPXの改善報告書・改善状況報告書一覧",
       "会社の改善措置進捗開示",
@@ -93,9 +105,9 @@
       "次回レビュー日の登録"
     ],
     "relatedEventIds": [],
-    "lastVerifiedAt": "2026-08-03T07:15:00Z",
+    "lastVerifiedAt": "2026-08-03T06:45:00Z",
     "staleAfter": "2026-11-28T00:00:00Z",
-    "observedAt": "2026-08-03T07:15:00Z",
+    "observedAt": "2026-08-03T06:45:00Z",
     "publishedAt": null,
     "effectiveAt": null,
     "firstExecutableAt": null,
@@ -104,15 +116,27 @@
       "checkpointKind": "INTERNAL_RESEARCH_REVIEW",
       "anchorEvent": "JPX improvement report submitted",
       "anchorDate": "2026-06-05",
-      "officialSourceUrl": "https://www.jpx.co.jp/listing/measures/improvement-reports/index.html",
-      "dateMeaning": "Alpha Pon review date; not an asserted official filing date"
+      "officialSourceUrl": "https://www.jpx.co.jp/news/1023/20260605-12.html",
+      "dateMeaning": "Alpha Pon review date; not an asserted official filing date",
+      "sourceHashBasis": "SHA256 of normalized source URL because storageClass is METADATA_ONLY"
     },
-    "sources": [],
+    "sources": [
+      {
+        "authority": "JPX",
+        "sourceType": "JPX",
+        "url": "https://www.jpx.co.jp/news/1023/20260605-12.html",
+        "title": "改善報告書の公衆の縦覧：nmsホールディングス（株）",
+        "publishedAt": null,
+        "retrievedAt": "2026-08-03T06:45:00Z",
+        "contentHash": "35165e4a6f1454d61d0c07de908cc5c224f2d6fec352f6e216a576230f272880",
+        "storageClass": "METADATA_ONLY"
+      }
+    ],
     "decision": {
       "confidenceState": "PARTIAL",
       "reasons": [
         "改善報告書提出後の約6か月地点は実装状況を確認する価値が高い",
-        "正式な提出日時は今後のJPX・会社開示で再確認が必要"
+        "正式な改善状況報告日時は今後のJPX・会社開示で再確認が必要"
       ],
       "invalidationConditions": [
         "正式日程公表時は改訂する",
@@ -126,7 +150,7 @@
     "issuerName": "イーエムネットジャパン",
     "eventType": "REVIEW_CHECKPOINT",
     "occurrenceKey": "jpx-remediation-status-review-2026-12",
-    "title": "JPX改善状況報告の確認開始",
+    "title": "[内部レビュー] JPX改善状況報告の確認開始",
     "status": "SCHEDULED",
     "priority": "S1",
     "time": {
@@ -140,7 +164,7 @@
     },
     "edgeTypes": ["REMEDIATION_EXECUTION", "EXECUTIVE_CONTROL_OVERRIDE", "REGULATORY_DEADLINE"],
     "currentDecisionState": "WAIT",
-    "whyItMatters": "2026-06-16の改善報告書提出から約6か月。経営者による統制overrideが解消され、独立した牽制と運用証拠が形成されたかを確認する内部チェックポイント。",
+    "whyItMatters": "2026-06-16の改善報告書提出から約6か月。経営者による統制overrideが解消され、独立した牽制と運用証拠が形成されたかを確認するAlpha Pon内部チェックポイント。公式提出予定日ではない。",
     "checksBefore": [
       "JPXの改善報告書・改善状況報告書一覧",
       "取締役会・監査・内部統制の変更",
@@ -154,9 +178,9 @@
       "Historical Analogへの結果追記"
     ],
     "relatedEventIds": [],
-    "lastVerifiedAt": "2026-08-03T07:15:00Z",
+    "lastVerifiedAt": "2026-08-03T06:45:00Z",
     "staleAfter": "2026-12-09T00:00:00Z",
-    "observedAt": "2026-08-03T07:15:00Z",
+    "observedAt": "2026-08-03T06:45:00Z",
     "publishedAt": null,
     "effectiveAt": null,
     "firstExecutableAt": null,
@@ -165,15 +189,27 @@
       "checkpointKind": "INTERNAL_RESEARCH_REVIEW",
       "anchorEvent": "JPX improvement report submitted",
       "anchorDate": "2026-06-16",
-      "officialSourceUrl": "https://www.jpx.co.jp/listing/measures/improvement-reports/index.html",
-      "dateMeaning": "Alpha Pon review date; not an asserted official filing date"
+      "officialSourceUrl": "https://www.jpx.co.jp/news/1023/20260616-11.html",
+      "dateMeaning": "Alpha Pon review date; not an asserted official filing date",
+      "sourceHashBasis": "SHA256 of normalized source URL because storageClass is METADATA_ONLY"
     },
-    "sources": [],
+    "sources": [
+      {
+        "authority": "JPX",
+        "sourceType": "JPX",
+        "url": "https://www.jpx.co.jp/news/1023/20260616-11.html",
+        "title": "改善報告書の公衆の縦覧：イーエムネットジャパン",
+        "publishedAt": null,
+        "retrievedAt": "2026-08-03T06:45:00Z",
+        "contentHash": "705c550f46589073f797f396e7eeaf8ea863c3d930229dadbf082576066da35a",
+        "storageClass": "METADATA_ONLY"
+      }
+    ],
     "decision": {
       "confidenceState": "PARTIAL",
       "reasons": [
         "改善報告書提出後の約6か月地点で統制実装を確認する",
-        "正式な提出日時は今後の一次情報で再確認する"
+        "正式な改善状況報告日時は今後の一次情報で再確認する"
       ],
       "invalidationConditions": [
         "正式日程公表時は改訂する",
