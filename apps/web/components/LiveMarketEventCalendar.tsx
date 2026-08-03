@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import type { WebMarketEventData } from '@/lib/market-events'
+import type { WebMarketEventData } from '@/lib/market-event-data'
 import { useMarketEventData } from '@/lib/use-market-events'
 import { MarketEventCalendar } from './MarketEventCalendar'
 
