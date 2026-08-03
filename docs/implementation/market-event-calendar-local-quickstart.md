@@ -1,25 +1,52 @@
 # Market Event Calendar — local quickstart
 
-Status: `LOCAL_ONLY_NO_EXTERNAL_DELIVERY`
+Status: `IMPLEMENTED_PENDING_CI_AND_CLOUDFLARE_REGISTRATION`
+Updated: 2026-08-03 JST
 
-この手順はCloudflare、Google Calendar、LINE、Web Pushへ何も送信しない。ローカルSQLiteへ重要イベントを登録し、Web表示用JSONとICSを生成する。
+この手順はCloudflare、Google Calendar、LINE、Web Pushへ何も送信しない。
+ローカルSQLiteへ重要イベントを登録し、Web表示用JSON、ICS、Cloudflare Pages用静的exportを生成する。
 
-## 1. 基盤検証
+## 最短の検証
+
+依存関係を導入後、production相当のbuildを1コマンドで実行する。
+
+```bash
+pnpm install --frozen-lockfile
+bash scripts/build-cloudflare-pages.sh
+```
+
+このscriptは次を実行する。
+
+1. Event contract検証
+2. SQLite/D1 schema検証
+3. Local DB end-to-end検証
+4. Pages Functions認証・ICS検証
+5. Cloudflare readiness監査
+6. seedを隔離された一時SQLiteへ登録
+7. DB audit
+8. JSON/ICS生成
+9. 既存Alpha Pon Webデータ生成
+10. Web typecheck / lint
+11. Next.js static export
+12. Pages成果物検証
+
+期待結果:
+
+```text
+cloudflare-pages-build: ok
+```
+
+## 個別検証
 
 ```bash
 node --import tsx/esm scripts/verify-market-event-foundation.ts
 node --import tsx/esm scripts/verify-market-event-schema.ts
 node --import tsx/esm scripts/verify-market-event-end-to-end.ts
+node --import tsx/esm scripts/verify-pages-market-event-function.ts
+node --import tsx/esm scripts/verify-cloudflare-calendar-readiness.ts
 ```
 
-## 2. ローカルDB初期化
-
-書き込み前にdry-runする。
-
-```bash
-node --import tsx/esm scripts/market-events.ts init
-node --import tsx/esm scripts/market-events.ts init --write
-```
+## ローカルDB初期化
 
 既定DB:
 
@@ -27,18 +54,41 @@ node --import tsx/esm scripts/market-events.ts init --write
 data/market-events.db
 ```
 
-このDBはruntime dataでありGit管理しない。
+このDB、WAL、SHMはruntime dataでありGit管理しない。
 
-## 3. 初期review checkpointを確認
+書き込み前にdry-runする。
 
-次のseedは、公式の未来日程を断定するものではない。JPX改善報告書の提出日から約6か月後に、Alpha Ponが一次情報を再確認するための内部review checkpoint。
+```bash
+node --import tsx/esm scripts/market-events.ts init
+```
+
+問題なければ初期化する。
+
+```bash
+node --import tsx/esm scripts/market-events.ts init --write
+```
+
+## イベントseed登録
+
+`config/market-events/*.json`は、一次情報で確認できる外部イベントまたは、明示されたAlpha Pon内部review checkpointだけを置く。
+
+登録前dry-run:
 
 ```bash
 node --import tsx/esm scripts/market-events.ts add \
   --file config/market-events/jpx-remediation-review-checkpoints-2026.json
 ```
 
-出力されるevent ID、revision番号、previous revision IDを確認してから書き込む。
+確認項目:
+
+- stable event ID
+- revision番号
+- source件数
+- delivery件数
+- 内部reviewが公式予定のように書かれていない
+- 未来時刻や架空日時がない
+
+問題なければwriteする。
 
 ```bash
 node --import tsx/esm scripts/market-events.ts add \
@@ -46,16 +96,28 @@ node --import tsx/esm scripts/market-events.ts add \
   --write
 ```
 
-## 4. 監査
+同じbundleを再投入しても、Event/Revision/Source/Deliveryはidempotentに重複しない。
+内容を変更する場合は同じoccurrenceKeyの次revisionとして登録する。
+
+## 監査
 
 ```bash
 node --import tsx/esm scripts/market-events.ts audit
 node --import tsx/esm scripts/market-events.ts list --priority S0,S1
 ```
 
-監査が`ok`でない場合、JSON/ICSを公開用に生成しない。
+監査が`ok`でない場合、JSON/ICS生成やD1 bootstrapを行わない。
 
-## 5. Web JSON / ICS生成
+監査対象:
+
+- foreign key
+- eventにrevisionがあるか
+- current revision参照
+- JSON列の破損
+- 件数
+- pending delivery
+
+## JSON / ICS生成
 
 最初にdry-runする。
 
@@ -76,12 +138,18 @@ apps/web/public/generated/alpha-pon-events.json
 apps/web/public/generated/alpha-pon-events.ics
 ```
 
-JSONはWebのlast-known-good snapshot。ICSはApple/Google Calendarへ読み込める配信用snapshotであり、Alpha Ponの正本ではない。
+- JSON: Webのlast-known-good SNAPSHOT
+- ICS: Cloudflare未接続時のcalendar SNAPSHOT
+- D1接続後: WebはLIVE APIを優先し、障害時だけJSONへfallback
+- tokenized LIVE ICS: Pages FunctionsがD1から生成
 
-## 6. Web確認
+`UNKNOWN`日時はUIには残すがICSから除外する。
+
+## Web確認
 
 ```bash
 pnpm web:typecheck
+pnpm --filter @alpha-pon/web lint
 pnpm web:build
 pnpm web:dev
 ```
@@ -90,27 +158,69 @@ pnpm web:dev
 
 ```text
 http://localhost:3000/
-http://localhost:3000/calendar
+http://localhost:3000/calendar/
 ```
 
 確認項目:
 
-- スマホ幅で次の重要イベントが読める
-- PCではカレンダー幅が拡張される
-- `今日 / 7日以内 / 日程未確定 / 結果待ち`が正しく分かれる
-- `BUY_WATCH / WAIT / BLOCK / ABSTAIN / INFO`が表示される
-- 一次情報なしの内部review checkpointが、公式発表のように見えない
-- ICSに`UNKNOWN`日時のイベントが混入しない
-- 静的build後もブラウザ上の「今日」が現在日に更新される
+- スマホではカレンダー1列
+- PCではカレンダー2列・横幅拡張
+- ホームに次の重要イベント
+- LIVE/SNAPSHOT状態
+- 今日 / 7日以内 / 日程未確定 / 結果待ち
+- BUY_WATCH / WAIT / BLOCK / ABSTAIN / INFO
+- 一次情報・事前確認・通過後確認
+- 内部review checkpointが公式発表に見えない
+- static exportで`apps/web/out/calendar/index.html`が生成される
+- PWA manifest / service worker
 
-## 7. 現時点で行わないこと
+## D1 bootstrapのdry-run
 
-- Cloudflare D1/R2/Workers/Pagesの作成
-- Cloudflare billing設定
+Cloudflare登録前でも、D1へ投入するSQLを安全に確認できる。
+
+```bash
+bash scripts/bootstrap-cloudflare-d1.sh \
+  --database alpha-pon-market-events \
+  --keep-export
+```
+
+この段階ではremoteへ書かない。
+
+出力:
+
+```text
+data/exports/market-events-d1-bootstrap.sql
+```
+
+SQLは`INSERT OR IGNORE`のみで、既存D1行の削除・上書きをしない。
+
+## Cloudflare登録後
+
+次を参照する。
+
+```text
+docs/implementation/cloudflare-pages-registration-runbook.md
+```
+
+登録後の主要コマンド:
+
+```bash
+bash scripts/bootstrap-cloudflare-d1.sh \
+  --database alpha-pon-market-events \
+  --apply \
+  --keep-export
+```
+
+## 現時点で行わないこと
+
+- Cloudflare account/project/D1の自動作成
+- billing設定
+- Access policyの自動変更
+- secretのGit保存
 - Google OAuth token作成
-- Google Calendarへの実同期
-- LINE/Web Pushの実送信
+- Google Calendar APIへの書き込み
+- LINE/Web Push実送信
 - production score/threshold変更
-- Edge研究スケジュールの停止
+- Edge研究スケジュール停止
 
-外部状態の変更は、ローカル検証・CI・dry-run・rollback条件が揃った後の別Phaseで行う。
+外部状態の変更以外はrepo内に実装済み。最終greenはdraft PRのCI成功後にのみ宣言する。
