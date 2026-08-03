@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import type { WebMarketEventData, WebMarketEvent } from '@/lib/market-events'
-import { marketEventDateLabel } from '@/lib/market-events'
+import type { WebMarketEventData, WebMarketEvent } from '@/lib/market-event-data'
+import { marketEventDateLabel } from '@/lib/market-event-data'
 import { useMarketEventData } from '@/lib/use-market-events'
 
 const PRIORITY_COLOR: Record<WebMarketEvent['priority'], string> = {
