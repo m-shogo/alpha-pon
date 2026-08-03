@@ -342,7 +342,7 @@ export function registerMarketEventBundle(db: MarketEventDatabase, bundle: Marke
 export function getNextRevisionContext(db: MarketEventDatabase, eventId: string): {
   revisionNumber: number;
   previousRevisionId: string | null;
-  createdAt: string | null;
+  existingCreatedAt: string | null;
 } {
   const latest = db.prepare(`
     SELECT revision_id AS revisionId, revision_number AS revisionNumber
@@ -357,7 +357,7 @@ export function getNextRevisionContext(db: MarketEventDatabase, eventId: string)
   return {
     revisionNumber: (latest?.revisionNumber ?? 0) + 1,
     previousRevisionId: latest?.revisionId ?? null,
-    createdAt: event?.createdAt ?? null,
+    existingCreatedAt: event?.createdAt ?? null,
   };
 }
 
@@ -459,81 +459,71 @@ export function listPendingDeliveries(db: MarketEventDatabase, now: string, limi
       AND (lease_expires_at IS NULL OR lease_expires_at < ?)
     ORDER BY scheduled_at, delivery_id
     LIMIT ?
-  `).all(now, now, Math.max(1, Math.min(limit, 1000))) as Array<Omit<DeliveryOutboxItem, "payload"> & { payloadJson: string }>;
-  return rows.map(({ payloadJson, ...row }) => ({ ...row, payload: parseJson<Record<string, unknown>>(payloadJson, {}) }));
-}
-
-function count(db: MarketEventDatabase, table: string, where = ""): number {
-  const row = db.prepare(`SELECT COUNT(*) AS count FROM ${table} ${where}`).get() as { count: number };
-  return row.count;
+  `).all(now, now, Math.max(1, Math.min(limit, 1000))) as Array<
+    Omit<DeliveryOutboxItem, "payload"> & { payloadJson: string }
+  >;
+  return rows.map(({ payloadJson, ...row }) => ({ ...row, payload: parseJson(payloadJson, {}) }));
 }
 
 export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: string): MarketEventAuditReport {
+  const count = (table: string): number => (db.prepare(`SELECT COUNT(*) AS total FROM ${table}`).get() as { total: number }).total;
+  const pendingDeliveries = (db.prepare(`
+    SELECT COUNT(*) AS total FROM delivery_outbox WHERE state IN ('PENDING', 'FAILED', 'PROCESSING')
+  `).get() as { total: number }).total;
   const foreignKeyErrors = db.prepare("PRAGMA foreign_key_check").all();
-  const eventsWithoutRevision = (db.prepare(`
+  const eventsWithoutRevision = db.prepare(`
+    SELECT event_id AS eventId FROM market_events WHERE current_revision_id IS NULL
+  `).all().map(row => (row as { eventId: string }).eventId);
+  const currentRevisionMismatches = db.prepare(`
     SELECT e.event_id AS eventId
     FROM market_events e
-    LEFT JOIN event_revisions r ON r.event_id = e.event_id
-    GROUP BY e.event_id
-    HAVING COUNT(r.revision_id) = 0
-    ORDER BY e.event_id
-  `).all() as Array<{ eventId: string }>).map(row => row.eventId);
-  const currentRevisionMismatches = (db.prepare(`
-    SELECT e.event_id AS eventId
-    FROM market_events e
-    LEFT JOIN event_revisions r ON r.revision_id = e.current_revision_id AND r.event_id = e.event_id
-    WHERE e.current_revision_id IS NULL OR r.revision_id IS NULL
-    ORDER BY e.event_id
-  `).all() as Array<{ eventId: string }>).map(row => row.eventId);
-
+    LEFT JOIN event_revisions r ON r.revision_id = e.current_revision_id
+    WHERE e.current_revision_id IS NOT NULL
+      AND (r.revision_id IS NULL OR r.event_id != e.event_id)
+  `).all().map(row => (row as { eventId: string }).eventId);
   const malformedJsonRows: MarketEventAuditReport["malformedJsonRows"] = [];
-  const jsonColumns = [
-    ["market_events", "event_id", "edge_types_json"],
-    ["market_events", "event_id", "checks_before_json"],
-    ["market_events", "event_id", "checks_after_json"],
-    ["market_events", "event_id", "related_event_ids_json"],
-    ["event_revisions", "revision_id", "facts_json"],
-    ["event_revisions", "revision_id", "source_ids_json"],
-    ["decision_snapshots", "decision_snapshot_id", "reasons_json"],
-    ["decision_snapshots", "decision_snapshot_id", "invalidation_conditions_json"],
-    ["delivery_outbox", "delivery_id", "payload_json"],
-    ["review_tasks", "review_task_id", "payload_json"],
-  ] as const;
-  for (const [table, idColumn, field] of jsonColumns) {
-    const rows = db.prepare(`SELECT ${idColumn} AS id, ${field} AS value FROM ${table}`).all() as Array<{ id: string; value: string }>;
+  const jsonChecks = [
+    { table: "market_events", id: "event_id", fields: ["edge_types_json", "checks_before_json", "checks_after_json", "related_event_ids_json"] },
+    { table: "event_revisions", id: "revision_id", fields: ["facts_json", "source_ids_json"] },
+    { table: "decision_snapshots", id: "decision_snapshot_id", fields: ["reasons_json", "invalidation_conditions_json"] },
+    { table: "delivery_outbox", id: "delivery_id", fields: ["payload_json"] },
+  ];
+  for (const check of jsonChecks) {
+    const rows = db.prepare(`SELECT ${check.id} AS id, ${check.fields.join(", ")} FROM ${check.table}`).all() as Array<Record<string, unknown>>;
     for (const row of rows) {
-      try {
-        JSON.parse(row.value);
-      } catch (error) {
-        malformedJsonRows.push({
-          table,
-          id: row.id,
-          field,
-          message: error instanceof Error ? error.message : String(error),
-        });
+      for (const field of check.fields) {
+        try {
+          JSON.parse(String(row[field]));
+        } catch (error) {
+          malformedJsonRows.push({
+            table: check.table,
+            id: String(row.id),
+            field,
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
       }
     }
   }
-
-  const report: MarketEventAuditReport = {
+  const status = foreignKeyErrors.length || eventsWithoutRevision.length || currentRevisionMismatches.length || malformedJsonRows.length
+    ? "error"
+    : "ok";
+  return {
     generatedAt: new Date().toISOString(),
     databasePath,
     counts: {
-      events: count(db, "market_events"),
-      revisions: count(db, "event_revisions"),
-      sources: count(db, "event_sources"),
-      decisions: count(db, "decision_snapshots"),
-      outbox: count(db, "delivery_outbox"),
-      pendingDeliveries: count(db, "delivery_outbox", "WHERE state IN ('PENDING', 'FAILED')"),
-      reviewTasks: count(db, "review_tasks"),
+      events: count("market_events"),
+      revisions: count("event_revisions"),
+      sources: count("event_sources"),
+      decisions: count("decision_snapshots"),
+      outbox: count("delivery_outbox"),
+      pendingDeliveries,
+      reviewTasks: count("review_tasks"),
     },
     foreignKeyErrors,
     eventsWithoutRevision,
     currentRevisionMismatches,
     malformedJsonRows,
-    status: foreignKeyErrors.length || eventsWithoutRevision.length || currentRevisionMismatches.length || malformedJsonRows.length
-      ? "error"
-      : "ok",
+    status,
   };
-  return report;
 }
