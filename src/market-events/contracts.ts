@@ -74,12 +74,10 @@ export type MarketEventIdentityInput = {
   issuerCode: string | null;
   issuerName: string;
   eventType: MarketEventType;
-  externalAuthority: string;
-  externalKey: string | null;
   /**
    * Stable occurrence label such as "FY2026-Q1" or
    * "third-party-committee-final-report-2026". It must not be replaced when
-   * the scheduled date changes.
+   * the scheduled date, issuer display name, or discovery source changes.
    */
   occurrenceKey: string;
 };
@@ -147,9 +145,29 @@ export type DeliveryOutboxItem = {
   lastError: string | null;
 };
 
+function normalizeIdentityText(value: string): string {
+  return value.normalize("NFKC").trim().replace(/\s+/g, " ");
+}
+
 function canonicalize(value: unknown): string {
-  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (value === null) return "null";
+  if (value === undefined) throw new Error("Stable ID input must not contain undefined");
+
+  if (typeof value === "string" || typeof value === "boolean") {
+    return JSON.stringify(value);
+  }
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) throw new Error("Stable ID input must contain finite numbers only");
+    return JSON.stringify(value);
+  }
+  if (typeof value === "bigint" || typeof value === "function" || typeof value === "symbol") {
+    throw new Error(`Unsupported stable ID value type: ${typeof value}`);
+  }
+
   if (Array.isArray(value)) return `[${value.map(canonicalize).join(",")}]`;
+  if (Object.getPrototypeOf(value) !== Object.prototype) {
+    throw new Error("Stable ID input must contain plain objects only");
+  }
 
   const entries = Object.entries(value as Record<string, unknown>)
     .sort(([a], [b]) => a.localeCompare(b))
@@ -163,15 +181,15 @@ function stableId(prefix: string, value: unknown): string {
 }
 
 export function buildEventId(input: MarketEventIdentityInput): string {
-  const occurrenceKey = input.occurrenceKey.trim();
+  const issuerCode = input.issuerCode ? normalizeIdentityText(input.issuerCode) : null;
+  const issuerName = normalizeIdentityText(input.issuerName);
+  const occurrenceKey = normalizeIdentityText(input.occurrenceKey);
+  if (!issuerCode && !issuerName) throw new Error("issuerCode or issuerName is required");
   if (!occurrenceKey) throw new Error("occurrenceKey is required for stable event identity");
 
   return stableId("evt", {
-    issuerCode: input.issuerCode?.trim() || null,
-    issuerName: input.issuerName.trim(),
+    issuerIdentity: issuerCode ? `code:${issuerCode}` : `name:${issuerName}`,
     eventType: input.eventType,
-    externalAuthority: input.externalAuthority.trim(),
-    externalKey: input.externalKey?.trim() || null,
     occurrenceKey,
   });
 }
