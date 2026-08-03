@@ -3,6 +3,7 @@ node_modules/
 dist/
 .env
 *.local
+.dev.vars
 
 # データはgit管理しない（大きくなるため）
 data/prices/*.json
@@ -18,6 +19,7 @@ logs/
 
 # Next.js ビルド成果物
 apps/web/.next/
+apps/web/out/
 apps/web/tsconfig.tsbuildinfo
 
 # 自動生成データ（runtime / daily生成）
@@ -52,3 +54,7 @@ data/run-cursors.json
 
 data/hypothesis_outcomes.db
 data/alpha-pon-jobs.db
+data/market-events.db
+data/market-events.db-shm
+data/market-events.db-wal
+data/exports/
