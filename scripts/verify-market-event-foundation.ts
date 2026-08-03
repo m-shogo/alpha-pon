@@ -20,8 +20,6 @@ const eventId = buildEventId({
   issuerCode: "8136",
   issuerName: "サンリオ",
   eventType: "EARNINGS_RELEASE",
-  externalAuthority: "SANRIO_IR",
-  externalKey: null,
   occurrenceKey: "FY2026-Q1",
 });
 
@@ -29,13 +27,11 @@ assert.equal(
   eventId,
   buildEventId({
     issuerCode: "8136",
-    issuerName: "サンリオ",
+    issuerName: "株式会社サンリオ（表示名変更後）",
     eventType: "EARNINGS_RELEASE",
-    externalAuthority: "SANRIO_IR",
-    externalKey: null,
     occurrenceKey: "FY2026-Q1",
   }),
-  "same occurrence must keep the same event identity",
+  "issuer display-name changes must not change identity when a code exists",
 );
 
 assert.notEqual(
@@ -44,8 +40,6 @@ assert.notEqual(
     issuerCode: "8136",
     issuerName: "サンリオ",
     eventType: "EARNINGS_RELEASE",
-    externalAuthority: "SANRIO_IR",
-    externalKey: null,
     occurrenceKey: "FY2026-Q2",
   }),
   "different occurrence must receive a different event identity",
@@ -66,6 +60,18 @@ assert.equal(
     sourceIds: ["src_a", "src_b"],
   }),
   "revision identity must be canonical across object/source ordering",
+);
+
+assert.throws(
+  () =>
+    buildRevisionId({
+      eventId,
+      revisionNumber: 2,
+      facts: { unsupported: undefined },
+      sourceIds: [],
+    }),
+  /must not contain undefined/,
+  "unsupported non-JSON values must fail closed",
 );
 
 const deliveryId = buildDeliveryId({
