@@ -28,6 +28,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Prepare offline CI environment
+        run: test -f .env || touch .env
+
       - name: Check (core CLI)
         run: pnpm check
 
