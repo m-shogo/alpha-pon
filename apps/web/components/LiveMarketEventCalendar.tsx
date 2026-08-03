@@ -1,11 +1,21 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import type { WebMarketEventData } from '@/lib/market-events'
 import { useMarketEventData } from '@/lib/use-market-events'
 import { MarketEventCalendar } from './MarketEventCalendar'
 
-export function LiveMarketEventCalendar({ fallback, nowIso }: { fallback: WebMarketEventData; nowIso: string }) {
+export function LiveMarketEventCalendar({ fallback, nowIso: initialNowIso }: { fallback: WebMarketEventData; nowIso: string }) {
   const { data, delivery, loading } = useMarketEventData(fallback)
+  const [nowIso, setNowIso] = useState(initialNowIso)
+
+  useEffect(() => {
+    const refreshNow = () => setNowIso(new Date().toISOString())
+    refreshNow()
+    const timer = window.setInterval(refreshNow, 60_000)
+    return () => window.clearInterval(timer)
+  }, [])
+
   const warnings = [
     ...data.meta.warnings,
     loading
