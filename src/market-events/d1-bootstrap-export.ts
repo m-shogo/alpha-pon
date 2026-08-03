@@ -19,6 +19,19 @@ const TABLE_ORDER = [
   "review_tasks",
 ] as const;
 
+const TABLE_ROW_ORDER: Record<(typeof TABLE_ORDER)[number], string> = {
+  market_events: "event_id",
+  event_sources: "event_id, source_id",
+  // previous_revision_id is a self-reference. Earlier revisions must be emitted first.
+  event_revisions: "event_id, revision_number, revision_id",
+  decision_snapshots: "event_id, created_at, decision_snapshot_id",
+  delivery_outbox: "event_id, scheduled_at, delivery_id",
+  alert_deliveries: "delivery_id",
+  calendar_sync_state: "event_id, calendar_provider, calendar_id",
+  source_checkpoints: "source_key",
+  review_tasks: "event_id, due_at, review_task_id",
+};
+
 type SqlValue = string | number | bigint | Uint8Array | null;
 
 function quoteIdentifier(value: string): string {
@@ -42,9 +55,15 @@ function tableColumns(db: MarketEventDatabase, table: string): string[] {
   return rows.map(row => row.name);
 }
 
-function tableRows(db: MarketEventDatabase, table: string, columns: string[]): Record<string, SqlValue>[] {
+function tableRows(
+  db: MarketEventDatabase,
+  table: (typeof TABLE_ORDER)[number],
+  columns: string[],
+): Record<string, SqlValue>[] {
   const select = columns.map(quoteIdentifier).join(", ");
-  return db.prepare(`SELECT ${select} FROM ${quoteIdentifier(table)}`).all() as Record<string, SqlValue>[];
+  return db.prepare(
+    `SELECT ${select} FROM ${quoteIdentifier(table)} ORDER BY ${TABLE_ROW_ORDER[table]}`,
+  ).all() as Record<string, SqlValue>[];
 }
 
 export function buildD1BootstrapExport(
@@ -58,6 +77,7 @@ export function buildD1BootstrapExport(
     `-- generated_at: ${generatedAt}`,
     `-- source_database: ${options.sourceDatabase ?? "local"}`,
     "-- Safety: INSERT OR IGNORE only. This file never deletes or overwrites existing D1 rows.",
+    "-- Rows are emitted in deterministic dependency-safe order.",
     "-- Apply migrations/0001_market_event_foundation.sql before this file.",
     "PRAGMA foreign_keys = ON;",
     "BEGIN TRANSACTION;",
