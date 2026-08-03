@@ -1,0 +1,25 @@
+name = "alpha-pon-api"
+main = "worker.ts"
+compatibility_date = "2026-08-01"
+workers_dev = true
+
+[vars]
+APP_ENV = "production"
+EVENT_STALE_AFTER_HOURS = "6"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "alpha-pon-prod"
+database_id = "REPLACE_AFTER_CLOUDFLARE_REGISTRATION"
+migrations_dir = "../migrations"
+
+# R2 is intentionally optional until the account owner enables it.
+# [[r2_buckets]]
+# binding = "EVIDENCE"
+# bucket_name = "alpha-pon-evidence"
+
+# Secrets to add after registration:
+# wrangler secret put GOOGLE_CALENDAR_CLIENT_ID
+# wrangler secret put GOOGLE_CALENDAR_CLIENT_SECRET
+# wrangler secret put GOOGLE_CALENDAR_REFRESH_TOKEN
+# wrangler secret put LINE_CHANNEL_ACCESS_TOKEN
