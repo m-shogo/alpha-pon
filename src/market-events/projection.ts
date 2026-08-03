@@ -78,6 +78,10 @@ function projectionSource(source: EventSource): MarketEventProjectionSource {
   };
 }
 
+function chronologicalValue(event: MarketEventProjectionItem): string {
+  return event.sortAt ?? "9999-12-31T23:59:59Z";
+}
+
 export function buildMarketEventGeneratedData(
   db: MarketEventDatabase,
   options: {
@@ -102,9 +106,7 @@ export function buildMarketEventGeneratedData(
   events.sort((a, b) => {
     const priority = a.priority.localeCompare(b.priority);
     if (priority !== 0) return priority;
-    const aSort = a.sortAt ?? "9999-12-31";
-    const bSort = b.sortAt ?? "9999-12-31";
-    const date = aSort.localeCompare(bSort);
+    const date = chronologicalValue(a).localeCompare(chronologicalValue(b));
     if (date !== 0) return date;
     return a.eventId.localeCompare(b.eventId);
   });
@@ -142,10 +144,13 @@ export function buildMarketEventGeneratedData(
   if (icsResult.excludedUnknownDate) {
     warnings.push(`${icsResult.excludedUnknownDate}件は日程未確定のためICSから除外しています。`);
   }
-  const nextEvent = events.find(event => {
-    if (!event.sortAt || event.status === "CANCELLED" || event.status === "COMPLETED") return false;
-    return event.sortAt >= generatedAt.slice(0, 10);
-  });
+  const nextEventAt = events
+    .filter(event => {
+      if (!event.sortAt || event.status === "CANCELLED" || event.status === "COMPLETED") return false;
+      return event.sortAt >= generatedAt.slice(0, 10);
+    })
+    .map(event => event.sortAt as string)
+    .sort()[0] ?? null;
 
   return {
     data: {
@@ -162,7 +167,7 @@ export function buildMarketEventGeneratedData(
         calendarExcludedUnknownDate: icsResult.excludedUnknownDate,
         priorityCounts,
         decisionCounts,
-        nextEventAt: nextEvent?.sortAt ?? null,
+        nextEventAt,
       },
       meta: {
         warnings,
