@@ -31,6 +31,15 @@ jobs:
       - name: Check (core CLI)
         run: pnpm check
 
+      - name: Verify market event contracts
+        run: node --import tsx/esm scripts/verify-market-event-foundation.ts
+
+      - name: Verify market event SQLite schema
+        run: node --import tsx/esm scripts/verify-market-event-schema.ts
+
+      - name: Verify market event end-to-end flow
+        run: node --import tsx/esm scripts/verify-market-event-end-to-end.ts
+
       - name: Generate IPO theme watch
         run: pnpm theme:ipo
 
