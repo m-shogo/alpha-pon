@@ -1,9 +1,9 @@
-const CACHE_VERSION = 'alpha-pon-v1'
+const CACHE_VERSION = 'alpha-pon-v2'
 const SHELL_CACHE = `${CACHE_VERSION}-shell`
 const DATA_CACHE = `${CACHE_VERSION}-data`
 const SHELL_URLS = [
   '/',
-  '/calendar',
+  '/calendar/',
   '/manifest.webmanifest',
   '/icon.svg',
   '/generated/alpha-pon-events.json',
@@ -11,7 +11,15 @@ const SHELL_URLS = [
 ]
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(SHELL_CACHE).then((cache) => cache.addAll(SHELL_URLS)).catch(() => undefined))
+  event.waitUntil(
+    caches.open(SHELL_CACHE).then((cache) => Promise.allSettled(
+      SHELL_URLS.map(async (url) => {
+        const response = await fetch(url, { cache: 'reload' })
+        if (!response.ok) throw new Error(`precache failed: ${url} ${response.status}`)
+        await cache.put(url, response)
+      }),
+    )),
+  )
   self.skipWaiting()
 })
 
@@ -42,7 +50,9 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return
   const url = new URL(request.url)
   if (url.origin !== self.location.origin) return
-  if (url.pathname.startsWith('/api/')) return
+
+  // API and tokenized calendar feeds must never be persisted by the service worker.
+  if (url.pathname.startsWith('/api/') || url.pathname === '/calendar.ics') return
 
   if (url.pathname.startsWith('/generated/')) {
     event.respondWith(networkFirst(request, DATA_CACHE))
@@ -50,7 +60,12 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (request.mode === 'navigate') {
-    event.respondWith(networkFirst(request, SHELL_CACHE).catch(() => caches.match('/')))
+    event.respondWith(
+      networkFirst(request, SHELL_CACHE).catch(async () => {
+        const cache = await caches.open(SHELL_CACHE)
+        return (await cache.match(request)) || (await cache.match('/')) || Response.error()
+      }),
+    )
     return
   }
 
