@@ -96,20 +96,26 @@ Safety:
 `);
 }
 
-function dryRunContexts(inputs: MarketEventRegistrationInput[]): Map<string, MarketEventRegistrationContext> {
+function buildDryRunBundles(inputs: MarketEventRegistrationInput[]) {
   const contexts = new Map<string, MarketEventRegistrationContext>();
-  for (const input of inputs) {
+  return inputs.map(input => {
     const eventId = buildEventId(input);
-    const existing = contexts.get(eventId);
-    contexts.set(eventId, existing
+    const previous = contexts.get(eventId);
+    const context: MarketEventRegistrationContext = previous
       ? {
-          revisionNumber: existing.revisionNumber + 1,
-          previousRevisionId: existing.previousRevisionId,
-          existingCreatedAt: existing.existingCreatedAt,
+          revisionNumber: previous.revisionNumber + 1,
+          previousRevisionId: previous.previousRevisionId,
+          existingCreatedAt: previous.existingCreatedAt,
         }
-      : { revisionNumber: 1, previousRevisionId: null, existingCreatedAt: null });
-  }
-  return contexts;
+      : { revisionNumber: 1, previousRevisionId: null, existingCreatedAt: null };
+    const bundle = buildMarketEventBundle(input, context);
+    contexts.set(eventId, {
+      revisionNumber: bundle.revision.revisionNumber,
+      previousRevisionId: bundle.revision.revisionId,
+      existingCreatedAt: bundle.event.createdAt,
+    });
+    return bundle;
+  });
 }
 
 function commandInit(args: ParsedArguments): void {
@@ -134,15 +140,7 @@ function commandAdd(args: ParsedArguments): void {
   const write = booleanFlag(args.flags, "write");
 
   if (!write) {
-    const contexts = dryRunContexts(inputs);
-    const bundles = inputs.map(input => {
-      const eventId = buildEventId(input);
-      const context = contexts.get(eventId);
-      if (!context) throw new Error(`Missing dry-run context for ${eventId}`);
-      const bundle = buildMarketEventBundle(input, context);
-      context.previousRevisionId = bundle.revision.revisionId;
-      return bundle;
-    });
+    const bundles = buildDryRunBundles(inputs);
     console.log(JSON.stringify({
       mode: "dry-run",
       command: "add",
@@ -151,6 +149,8 @@ function commandAdd(args: ParsedArguments): void {
       events: bundles.map(bundle => ({
         eventId: bundle.event.eventId,
         revisionId: bundle.revision.revisionId,
+        revisionNumber: bundle.revision.revisionNumber,
+        previousRevisionId: bundle.revision.previousRevisionId,
         title: bundle.event.title,
         status: bundle.event.status,
         priority: bundle.event.priority,
