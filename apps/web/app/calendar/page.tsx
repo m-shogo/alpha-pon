@@ -1,4 +1,4 @@
-import { MarketEventCalendar } from '@/components/MarketEventCalendar'
+import { LiveMarketEventCalendar } from '@/components/LiveMarketEventCalendar'
 import { loadMarketEventData } from '@/lib/market-events'
 
 export const metadata = {
@@ -10,5 +10,5 @@ export const dynamic = 'force-static'
 
 export default function CalendarPage() {
   const data = loadMarketEventData()
-  return <MarketEventCalendar data={data} nowIso={new Date().toISOString()} />
+  return <LiveMarketEventCalendar fallback={data} nowIso={new Date().toISOString()} />
 }
