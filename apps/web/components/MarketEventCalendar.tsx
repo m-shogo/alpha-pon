@@ -1,8 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import type { WebMarketEvent, WebMarketEventData } from '@/lib/market-events'
-import { marketEventDateLabel } from '@/lib/market-events'
+import type { WebMarketEvent, WebMarketEventData } from '@/lib/market-event-data'
+import { marketEventDateLabel } from '@/lib/market-event-data'
 import { CalendarFeedActions } from './CalendarFeedActions'
 import styles from '@/app/calendar/calendar.module.css'
 
