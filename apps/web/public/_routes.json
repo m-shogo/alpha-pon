@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "include": [
+    "/api/market-events*",
+    "/api/calendar-feed-url*",
+    "/calendar.ics*",
+    "/healthz*"
+  ],
+  "exclude": []
+}

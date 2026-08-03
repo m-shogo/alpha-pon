@@ -1,7 +1,7 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
-import { NavBar } from '@/components/NavBar'
-import { DisclaimerBar } from '@/components/DisclaimerBar'
+import { AppShell } from '@/components/AppShell'
+import { loadMarketEventData } from '@/lib/market-events'
 
 export const metadata: Metadata = {
   title: {
@@ -9,37 +9,37 @@ export const metadata: Metadata = {
     template: '%s | alpha-pon',
   },
   description:
-    '長期投資向け調査候補・確認ポイント自動発見アプリ。特定銘柄の売買を推奨するものではありません。',
+    '一次情報からEdge候補・重要イベント・確認条件を追跡する個人用リサーチアプリ。特定銘柄の売買を推奨するものではありません。',
+  manifest: '/manifest.webmanifest',
+  applicationName: 'Alpha Pon',
+  appleWebApp: {
+    capable: true,
+    title: 'Alpha Pon',
+    statusBarStyle: 'default',
+  },
+  icons: {
+    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
+  },
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+  },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#FFF7F2',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const marketEvents = loadMarketEventData()
   return (
     <html lang="ja">
       <body>
-        <div
-          style={{
-            minHeight: '100dvh',
-            display: 'flex',
-            justifyContent: 'center',
-            background: 'var(--bg)',
-          }}
-        >
-          <div
-            style={{
-              width: '100%',
-              maxWidth: 480,
-              display: 'flex',
-              flexDirection: 'column',
-              minHeight: '100dvh',
-            }}
-          >
-            <main style={{ flex: 1, overflowY: 'auto', paddingBottom: 8 }}>
-              {children}
-            </main>
-            <DisclaimerBar />
-            <NavBar />
-          </div>
-        </div>
+        <AppShell marketEvents={marketEvents}>{children}</AppShell>
       </body>
     </html>
   )

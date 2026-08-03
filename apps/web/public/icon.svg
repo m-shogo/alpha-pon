@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Alpha Pon">
+  <rect width="512" height="512" rx="112" fill="#FFF7F2"/>
+  <path d="M128 338c44-16 70-47 84-91 12-38 34-72 76-83 33-9 69-2 96 19-15 1-29 7-40 17 25 5 45 20 57 43-19-7-38-8-56-3 19 15 30 35 33 59-22-20-49-30-80-28-35 2-60 19-78 50-15 26-39 43-72 51-31 8-60 3-87-15 25-1 48-7 67-19Z" fill="#FF7EA6"/>
+  <circle cx="330" cy="196" r="12" fill="#43303B"/>
+  <path d="M152 365h215" stroke="#43303B" stroke-width="24" stroke-linecap="round"/>
+  <path d="M188 404h143" stroke="#7EC8E3" stroke-width="18" stroke-linecap="round"/>
+</svg>
