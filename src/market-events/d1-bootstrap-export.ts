@@ -61,9 +61,18 @@ function tableRows(
   columns: string[],
 ): Record<string, SqlValue>[] {
   const select = columns.map(quoteIdentifier).join(", ");
-  return db.prepare(
+  const rows = db.prepare(
     `SELECT ${select} FROM ${quoteIdentifier(table)} ORDER BY ${TABLE_ROW_ORDER[table]}`,
   ).all() as Record<string, SqlValue>[];
+
+  if (table !== "market_events") return rows;
+
+  // A fresh D1 bootstrap stores the latest materialized event fields first but
+  // leaves the current pointer empty. Ordered event_revisions then rebuild the
+  // append-only chain and the database trigger promotes only the revision whose
+  // observed_at reaches the projection updated_at. This avoids treating older
+  // history as a stale runtime write.
+  return rows.map(row => ({ ...row, current_revision_id: null }));
 }
 
 export function buildD1BootstrapExport(
@@ -77,8 +86,9 @@ export function buildD1BootstrapExport(
     `-- generated_at: ${generatedAt}`,
     `-- source_database: ${options.sourceDatabase ?? "local"}`,
     "-- Safety: INSERT OR IGNORE only. This file never deletes or overwrites existing D1 rows.",
+    "-- Intended for a newly migrated empty D1 database, not incremental synchronization.",
     "-- Rows are emitted in deterministic dependency-safe order.",
-    "-- Apply migrations/0001_market_event_foundation.sql before this file.",
+    "-- Apply every ordered migrations/[0-9]*.sql file before this file.",
     "PRAGMA foreign_keys = ON;",
     "BEGIN TRANSACTION;",
   ];
