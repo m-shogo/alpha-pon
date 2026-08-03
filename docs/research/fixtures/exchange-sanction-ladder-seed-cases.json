@@ -1,0 +1,159 @@
+{
+  "schema_version": "0.1",
+  "status": "research_seed_only",
+  "production_use": false,
+  "last_updated_jst": "2026-08-03",
+  "source_policy": {
+    "allowed": [
+      "JPX",
+      "company disclosures",
+      "official regulatory materials",
+      "market data"
+    ],
+    "disallowed": [
+      "SNS",
+      "forums",
+      "influencers",
+      "anonymous posts",
+      "social sentiment"
+    ]
+  },
+  "cases": [
+    {
+      "issuer": "KDDI CORPORATION",
+      "code": "9433",
+      "market_segment": "Prime",
+      "misconduct_class": "subsidiary fictitious transactions and prior-period financial corrections",
+      "stages": [
+        {
+          "stage": "investigation_report_and_corrections",
+          "date": "2026-03-31",
+          "source_type": "JPX chronology referencing company disclosure",
+          "new_economic_facts": true
+        },
+        {
+          "stage": "improvement_report_request_and_listing_agreement_penalty",
+          "date": "2026-04-30",
+          "source_type": "JPX enforcement",
+          "penalty_jpy": 91200000,
+          "new_economic_facts": false,
+          "state_change": "formal exchange enforcement escalation"
+        },
+        {
+          "stage": "improvement_report_submission",
+          "date": "2026-06-02",
+          "source_type": "JPX public inspection",
+          "new_economic_facts": "unknown_pending_document_review",
+          "state_change": "submission completed"
+        }
+      ],
+      "market_fields": {
+        "d0_return": null,
+        "d1_return": null,
+        "d3_return": null,
+        "d5_return": null,
+        "benchmark_adjusted": null,
+        "sector_adjusted": null,
+        "volume_shock": null,
+        "borrow_cost": null
+      },
+      "confounders_pending": [
+        "earnings and guidance",
+        "capital actions",
+        "index or block-trade effects",
+        "macro and sector moves"
+      ]
+    },
+    {
+      "issuer": "nms Holdings Corporation",
+      "code": "2162",
+      "market_segment": "Standard",
+      "misconduct_class": "subsidiary loss recognition and prior-period financial corrections",
+      "stages": [
+        {
+          "stage": "special_investigation_report",
+          "date": "2026-03-16",
+          "source_type": "JPX chronology referencing company disclosure",
+          "new_economic_facts": true
+        },
+        {
+          "stage": "financial_corrections",
+          "dates": ["2026-04-28", "2026-05-11"],
+          "source_type": "JPX chronology referencing company disclosures",
+          "new_economic_facts": true
+        },
+        {
+          "stage": "improvement_report_request_and_public_measure",
+          "date": "2026-05-13",
+          "source_type": "JPX enforcement",
+          "new_economic_facts": false,
+          "state_change": "formal exchange enforcement escalation"
+        },
+        {
+          "stage": "improvement_report_submission",
+          "date": "2026-06-05",
+          "source_type": "JPX public inspection",
+          "new_economic_facts": "unknown_pending_document_review",
+          "state_change": "submission completed"
+        }
+      ],
+      "market_fields": {
+        "d0_return": null,
+        "d1_return": null,
+        "d3_return": null,
+        "d5_return": null,
+        "benchmark_adjusted": null,
+        "sector_adjusted": null,
+        "volume_shock": null,
+        "borrow_cost": null
+      },
+      "confounders_pending": [
+        "earnings and guidance",
+        "capital actions",
+        "index or block-trade effects",
+        "macro and sector moves"
+      ]
+    },
+    {
+      "issuer": "eMnet Japan Co., Ltd.",
+      "code": "7036",
+      "market_segment": "Growth",
+      "misconduct_class": "accounting and disclosure control failure",
+      "stages": [
+        {
+          "stage": "improvement_report_submission",
+          "date": "2026-06-16",
+          "source_type": "JPX improvement-report list",
+          "new_economic_facts": "unknown_pending_document_review",
+          "state_change": "submission completed"
+        }
+      ],
+      "market_fields": {
+        "d0_return": null,
+        "d1_return": null,
+        "d3_return": null,
+        "d5_return": null,
+        "benchmark_adjusted": null,
+        "sector_adjusted": null,
+        "volume_shock": null,
+        "borrow_cost": null
+      },
+      "confounders_pending": [
+        "complete prior-stage chronology",
+        "earnings and guidance",
+        "capital actions",
+        "index or block-trade effects",
+        "macro and sector moves"
+      ]
+    }
+  ],
+  "next_actions": [
+    "retrieve every underlying company disclosure with point-in-time timestamps",
+    "complete eMnet Japan stage chronology",
+    "join daily and intraday prices plus TOPIX and sector benchmarks",
+    "record event publication time and executable next-open entry",
+    "measure borrow availability, spread and short cost",
+    "exclude concurrent earnings, financing and index events",
+    "reserve issuer-level untouched holdout before model selection"
+  ]
+}
