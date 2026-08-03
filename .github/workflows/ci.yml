@@ -43,6 +43,9 @@ jobs:
       - name: Verify market event end-to-end flow
         run: node --import tsx/esm scripts/verify-market-event-end-to-end.ts
 
+      - name: Verify Cloudflare Pages market event function
+        run: node --import tsx/esm scripts/verify-pages-market-event-function.ts
+
       - name: Generate IPO theme watch
         run: pnpm theme:ipo
 
@@ -55,5 +58,14 @@ jobs:
       - name: Lint web
         run: pnpm --filter @alpha-pon/web lint
 
-      - name: Build web
+      - name: Build static web export
         run: pnpm web:build
+
+      - name: Verify Cloudflare Pages output
+        run: |
+          test -f apps/web/out/index.html
+          test -f apps/web/out/calendar/index.html
+          test -f apps/web/out/_routes.json
+          test -f apps/web/out/generated/alpha-pon-events.json
+          test -f apps/web/out/generated/alpha-pon-events.ics
+          test -f apps/web/out/sw.js
