@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import type { WebMarketEventData, WebMarketEvent } from '@/lib/market-events'
 import { marketEventDateLabel } from '@/lib/market-events'
+import { useMarketEventData } from '@/lib/use-market-events'
 
 const PRIORITY_COLOR: Record<WebMarketEvent['priority'], string> = {
   S0: 'var(--urgent)',
@@ -15,7 +16,8 @@ function sortValue(event: WebMarketEvent): string {
   return event.sortAt ?? '9999-12-31'
 }
 
-export function MarketEventHomeCard({ data }: { data: WebMarketEventData }) {
+export function MarketEventHomeCard({ data: fallback }: { data: WebMarketEventData }) {
+  const { data, delivery, loading } = useMarketEventData(fallback)
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tokyo' }).format(new Date())
   const upcoming = data.events
     .filter(event => !['CANCELLED', 'COMPLETED'].includes(event.status))
@@ -38,7 +40,12 @@ export function MarketEventHomeCard({ data }: { data: WebMarketEventData }) {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: upcoming.length ? 10 : 0 }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 850, color: 'var(--accent)', letterSpacing: 0.3 }}>MARKET EVENT</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 11, fontWeight: 850, color: 'var(--accent)', letterSpacing: 0.3 }}>MARKET EVENT</span>
+              <span style={{ fontSize: 9.5, fontWeight: 850, color: delivery === 'api' ? 'var(--mint-deep)' : 'var(--ink-3)' }}>
+                {loading ? '更新確認中' : delivery === 'api' ? 'LIVE' : 'SNAPSHOT'}
+              </span>
+            </div>
             <div style={{ fontSize: 15, fontWeight: 850, color: 'var(--ink)', marginTop: 2 }}>次の重要イベント</div>
           </div>
           <Link href="/calendar" style={{ fontSize: 12, fontWeight: 850, color: 'var(--sky-deep)', textDecoration: 'none' }}>
