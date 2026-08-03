@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { normalizeMarketEventData, type WebMarketEventData } from './market-events'
+import { normalizeMarketEventData, type WebMarketEventData } from './market-event-data'
 
 export function useMarketEventData(fallback: WebMarketEventData): {
   data: WebMarketEventData
