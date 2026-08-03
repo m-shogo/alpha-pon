@@ -76,7 +76,12 @@ export type MarketEventIdentityInput = {
   eventType: MarketEventType;
   externalAuthority: string;
   externalKey: string | null;
-  canonicalDate: string | null;
+  /**
+   * Stable occurrence label such as "FY2026-Q1" or
+   * "third-party-committee-final-report-2026". It must not be replaced when
+   * the scheduled date changes.
+   */
+  occurrenceKey: string;
 };
 
 export type MarketEvent = {
@@ -158,13 +163,16 @@ function stableId(prefix: string, value: unknown): string {
 }
 
 export function buildEventId(input: MarketEventIdentityInput): string {
+  const occurrenceKey = input.occurrenceKey.trim();
+  if (!occurrenceKey) throw new Error("occurrenceKey is required for stable event identity");
+
   return stableId("evt", {
     issuerCode: input.issuerCode?.trim() || null,
     issuerName: input.issuerName.trim(),
     eventType: input.eventType,
     externalAuthority: input.externalAuthority.trim(),
     externalKey: input.externalKey?.trim() || null,
-    canonicalDate: input.canonicalDate,
+    occurrenceKey,
   });
 }
 
