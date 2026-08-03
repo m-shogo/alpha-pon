@@ -1,0 +1,47 @@
+{
+  "identity": {
+    "issuerCode": "8136",
+    "issuerName": "サンリオ",
+    "eventType": "EARNINGS_RELEASE",
+    "occurrenceKey": "FY2026-Q1"
+  },
+  "event": {
+    "issuerCode": "8136",
+    "issuerName": "サンリオ",
+    "eventType": "EARNINGS_RELEASE",
+    "title": "FY2026 Q1 決算発表",
+    "status": "SCHEDULED",
+    "priority": "S1",
+    "time": {
+      "startAt": "2026-08-10T15:00:00+09:00",
+      "endAt": null,
+      "allDay": false,
+      "timezone": "Asia/Tokyo",
+      "precision": "EXACT",
+      "windowStart": null,
+      "windowEnd": null
+    },
+    "edgeTypes": ["PERSONAL_EXECUTIVE_SHOCK", "KNOWN_BAD_EVENT_REPRICING"],
+    "currentDecisionState": "WAIT",
+    "whyItMatters": "不祥事後の本業影響、追加費用、調査範囲の拡大有無を確認する",
+    "checksBefore": ["会社予想", "不祥事関連費用", "会見・説明会予定"],
+    "checksAfter": ["新事実の有無", "TOPIX・業種相対株価", "翌営業日の出来高と価格安定"]
+  },
+  "source": {
+    "authority": "SANRIO_IR",
+    "sourceType": "IR",
+    "url": "https://www.sanrio.co.jp/corporate/ir/",
+    "title": "IRスケジュール確認用メタデータ例",
+    "publishedAt": null,
+    "retrievedAt": "2026-08-03T08:00:00Z",
+    "contentHash": "example-replace-with-real-sha256",
+    "storageClass": "METADATA_ONLY",
+    "objectKey": null
+  },
+  "observedAt": "2026-08-03T08:00:00Z",
+  "publishedAt": null,
+  "effectiveAt": "2026-08-10T06:00:00Z",
+  "firstExecutableAt": "2026-08-10T06:00:00Z",
+  "deliveryChannels": ["GOOGLE_CALENDAR", "IN_APP"],
+  "deliveryScheduledAt": "2026-08-03T08:00:00Z"
+}
