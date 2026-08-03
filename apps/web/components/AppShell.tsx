@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
-import type { WebMarketEventData } from '@/lib/market-events'
+import type { WebMarketEventData } from '@/lib/market-event-data'
 import { MarketEventHomeCard } from './MarketEventHomeCard'
 import { NavBar } from './NavBar'
 import { DisclaimerBar } from './DisclaimerBar'
