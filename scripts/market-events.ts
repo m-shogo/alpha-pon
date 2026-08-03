@@ -51,7 +51,7 @@ function parseArguments(argv: string[]): ParsedArguments {
 function stringFlag(flags: ParsedArguments["flags"], key: string, fallback?: string): string | undefined {
   const value = flags.get(key);
   if (value === undefined) return fallback;
-  if (value === true) throw new Error(`--${key} requires a value`);
+  if (typeof value !== "string") throw new Error(`--${key} requires a value`);
   return value;
 }
 
