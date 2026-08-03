@@ -1,0 +1,5 @@
+# Copy to .dev.vars for local Cloudflare Pages Functions development.
+# Never commit .dev.vars.
+OWNER_EMAIL=your-cloudflare-access-email@example.com
+PUBLIC_ORIGIN=http://localhost:8788
+CALENDAR_FEED_TOKEN=replace-with-at-least-32-random-bytes

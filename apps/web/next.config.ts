@@ -1,9 +1,14 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  // public/generated/*.json を静的ファイルとしてホスト
-  // 将来 API Route に移行する場合はここを変更する
-  output: undefined,
+  // Cloudflare Pagesへ追加adapterなしで配置できる静的export。
+  // 最新イベントはブラウザからCloudflare Worker APIを読み、失敗時は
+  // public/generated/*.json のlast-known-good snapshotへフォールバックする。
+  output: 'export',
+  trailingSlash: true,
+  images: {
+    unoptimized: true,
+  },
 }
 
 export default nextConfig

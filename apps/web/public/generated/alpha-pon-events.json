@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": null,
+  "source": "fallback",
+  "events": [],
+  "summary": {
+    "total": 0,
+    "scheduled": 0,
+    "unknownDate": 0,
+    "stale": 0,
+    "calendarIncluded": 0,
+    "calendarExcludedUnknownDate": 0,
+    "priorityCounts": { "S0": 0, "S1": 0, "S2": 0, "S3": 0 },
+    "decisionCounts": { "BUY_WATCH": 0, "WAIT": 0, "BLOCK": 0, "ABSTAIN": 0, "INFO": 0 },
+    "nextEventAt": null
+  },
+  "meta": {
+    "warnings": ["イベントデータはまだ生成されていません。"],
+    "databasePath": null
+  }
+}

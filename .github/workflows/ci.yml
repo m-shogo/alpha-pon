@@ -28,20 +28,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Check (core CLI)
+      - name: Prepare offline CI environment
+        run: test -f .env || touch .env
+
+      - name: Check core CLI and research contracts
         run: pnpm check
 
-      - name: Generate IPO theme watch
-        run: pnpm theme:ipo
-
-      - name: Generate web data
-        run: pnpm ui:data
-
-      - name: Typecheck web
-        run: pnpm web:typecheck
-
-      - name: Lint web
-        run: pnpm --filter @alpha-pon/web lint
-
-      - name: Build web
-        run: pnpm web:build
+      - name: Build and verify Cloudflare Pages artifact
+        run: bash scripts/build-cloudflare-pages.sh
