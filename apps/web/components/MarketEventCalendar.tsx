@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import type { WebMarketEvent, WebMarketEventData } from '@/lib/market-events'
 import { marketEventDateLabel } from '@/lib/market-events'
+import { CalendarFeedActions } from './CalendarFeedActions'
 import styles from '@/app/calendar/calendar.module.css'
 
 type Category = 'ALL' | 'GOVERNANCE' | 'EARNINGS' | 'STRUCTURE' | 'FUTURE' | 'REVIEW'
@@ -160,7 +161,6 @@ export function MarketEventCalendar({ data, nowIso }: { data: WebMarketEventData
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<Category>('ALL')
   const [visibility, setVisibility] = useState<Visibility>('ACTIVE')
-  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle')
   const today = dateOnlyJst(nowIso)
 
   const filtered = useMemo(() => data.events.filter(event => {
@@ -187,15 +187,6 @@ export function MarketEventCalendar({ data, nowIso }: { data: WebMarketEventData
     return result
   }, [filtered, today])
 
-  async function copyFeedUrl() {
-    try {
-      await navigator.clipboard.writeText(`${window.location.origin}/generated/alpha-pon-events.ics`)
-      setCopyState('copied')
-    } catch {
-      setCopyState('failed')
-    }
-  }
-
   return (
     <>
       <header className={styles.header}>
@@ -204,12 +195,7 @@ export function MarketEventCalendar({ data, nowIso }: { data: WebMarketEventData
             <h1 className={styles.title}>重要イベント</h1>
             <div className={styles.subtitle}>決算・会見・調査報告・企業構造イベントを、買う前の確認条件と一緒に管理します。</div>
           </div>
-          <div className={styles.actions}>
-            <button className={styles.actionButton} type="button" onClick={copyFeedUrl}>
-              {copyState === 'copied' ? 'URLをコピー済み' : copyState === 'failed' ? 'コピー失敗' : '購読URLをコピー'}
-            </button>
-            <a className={styles.actionLink} href="/generated/alpha-pon-events.ics">ICSを開く</a>
-          </div>
+          <CalendarFeedActions />
         </div>
       </header>
 
