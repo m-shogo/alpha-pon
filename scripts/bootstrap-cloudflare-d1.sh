@@ -16,10 +16,11 @@ Usage:
 Default mode is dry-run. It validates local event seeds, creates a temporary
 SQLite database, audits it, and produces a D1 bootstrap SQL preview.
 
---apply       Apply migration and bootstrap SQL to the named remote D1 database.
-              Requires an already-created Cloudflare account/database and
-              authenticated Wrangler. This script never creates the account,
-              Pages project, D1 database, Access policy, or billing settings.
+--apply       Apply every ordered migration and the bootstrap SQL to the named
+              remote D1 database. Requires an already-created Cloudflare
+              account/database and authenticated Wrangler. This script never
+              creates the account, Pages project, D1 database, Access policy,
+              or billing settings.
 --keep-export Keep the generated bootstrap SQL under data/exports/.
 EOF
 }
@@ -66,6 +67,7 @@ BOOTSTRAP_SQL="$TEMP_DIR/market-events-d1-bootstrap.sql"
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
 run_ts scripts/verify-cloudflare-calendar-readiness.ts
+run_ts scripts/verify-d1-bootstrap-export.ts
 run_ts scripts/market-events.ts init --db "$DB_PATH" --write >/dev/null
 
 shopt -s nullglob
@@ -100,10 +102,18 @@ fi
 # Confirm the user is authenticated before attempting remote writes.
 npx --yes wrangler@latest whoami >/dev/null
 
-echo "Applying schema migration to remote D1 database: $DATABASE_NAME"
-npx --yes wrangler@latest d1 execute "$DATABASE_NAME" \
-  --remote \
-  --file=migrations/0001_market_event_foundation.sql
+MIGRATION_FILES=(migrations/[0-9]*.sql)
+if [[ "${#MIGRATION_FILES[@]}" -eq 0 ]]; then
+  echo "No migrations found" >&2
+  exit 1
+fi
+
+for migration_file in "${MIGRATION_FILES[@]}"; do
+  echo "Applying $(basename "$migration_file") to remote D1 database: $DATABASE_NAME"
+  npx --yes wrangler@latest d1 execute "$DATABASE_NAME" \
+    --remote \
+    --file="$migration_file"
+done
 
 echo "Applying INSERT OR IGNORE bootstrap rows to remote D1 database: $DATABASE_NAME"
 npx --yes wrangler@latest d1 execute "$DATABASE_NAME" \
@@ -113,6 +123,6 @@ npx --yes wrangler@latest d1 execute "$DATABASE_NAME" \
 echo "Verifying remote migration and row counts"
 npx --yes wrangler@latest d1 execute "$DATABASE_NAME" \
   --remote \
-  --command="SELECT version, applied_at FROM schema_migrations ORDER BY version; SELECT COUNT(*) AS events FROM market_events; SELECT COUNT(*) AS revisions FROM event_revisions; SELECT COUNT(*) AS sources FROM event_sources;"
+  --command="SELECT version, applied_at FROM schema_migrations ORDER BY version; SELECT COUNT(*) AS events FROM market_events; SELECT COUNT(*) AS revisions FROM event_revisions; SELECT COUNT(*) AS sources FROM event_sources; SELECT COUNT(*) AS decisions FROM decision_snapshots;"
 
 echo "cloudflare-d1-bootstrap: applied"
