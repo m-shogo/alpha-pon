@@ -14,7 +14,12 @@ const requiredFiles = [
   "apps/web/public/sw.js",
   "functions/[[path]].ts",
   "migrations/0001_market_event_foundation.sql",
+  "migrations/0002_market_event_revision_guards.sql",
   "scripts/build-cloudflare-pages.sh",
+  "scripts/bootstrap-cloudflare-d1.sh",
+  "scripts/verify-d1-bootstrap-export.ts",
+  "scripts/verify-market-event-revision-guards.ts",
+  "docs/implementation/cloudflare-pages-registration-runbook.md",
   "wrangler.jsonc.example",
   ".dev.vars.example",
 ];
@@ -41,9 +46,18 @@ for (const header of ["X-Content-Type-Options", "X-Frame-Options", "X-Robots-Tag
   assert(headers.includes(header), `missing security header: ${header}`);
 }
 
-const migration = readFileSync("migrations/0001_market_event_foundation.sql", "utf8");
+const foundationMigration = readFileSync("migrations/0001_market_event_foundation.sql", "utf8");
 for (const table of ["market_events", "event_revisions", "event_sources", "decision_snapshots", "delivery_outbox", "calendar_sync_state"]) {
-  assert(migration.includes(`CREATE TABLE IF NOT EXISTS ${table}`), `missing D1 table: ${table}`);
+  assert(foundationMigration.includes(`CREATE TABLE IF NOT EXISTS ${table}`), `missing D1 table: ${table}`);
+}
+const guardMigration = readFileSync("migrations/0002_market_event_revision_guards.sql", "utf8");
+for (const trigger of [
+  "trg_event_revision_continuity",
+  "trg_event_revision_promote_current",
+  "trg_event_revisions_no_update",
+  "trg_event_revisions_no_delete",
+]) {
+  assert(guardMigration.includes(`TRIGGER IF NOT EXISTS ${trigger}`), `missing D1 guard trigger: ${trigger}`);
 }
 
 const gitignore = readFileSync(".gitignore", "utf8");
@@ -75,9 +89,29 @@ for (const name of files) {
     const eventRevisionKey = `${bundle.event.eventId}:${bundle.revision.revisionNumber}`;
     assert(!eventIds.has(eventRevisionKey), `duplicate seed event revision: ${eventRevisionKey}`);
     eventIds.add(eventRevisionKey);
+
+    assert(
+      Date.parse(bundle.event.lastVerifiedAt) <= Date.parse(bundle.revision.observedAt),
+      `lastVerifiedAt must not be after observedAt: ${path}`,
+    );
+    for (const source of bundle.sources) {
+      assert(/^[a-f0-9]{32,128}$/.test(source.contentHash), `source contentHash must be lowercase hex: ${path}`);
+      assert(
+        Date.parse(source.retrievedAt) <= Date.parse(bundle.revision.observedAt),
+        `source retrievedAt must not be after observedAt: ${path}`,
+      );
+      if (source.publishedAt) {
+        assert(
+          Date.parse(source.publishedAt) <= Date.parse(source.retrievedAt),
+          `source publishedAt must not be after retrievedAt: ${path}`,
+        );
+      }
+    }
+
     if (bundle.event.eventType === "REVIEW_CHECKPOINT") {
       assert(bundle.event.title.includes("内部レビュー"), `review checkpoint must be explicit: ${path}`);
       assert.equal(bundle.deliveries.length, 0, `review seed must not enqueue external delivery: ${path}`);
+      assert(bundle.sources.length > 0, `review checkpoint must retain an official source: ${path}`);
     }
   }
 }
@@ -85,6 +119,10 @@ for (const name of files) {
 const wranglerExample = readFileSync("wrangler.jsonc.example", "utf8");
 assert(wranglerExample.includes("REPLACE_AFTER_CLOUDFLARE_REGISTRATION"));
 assert(!wranglerExample.includes("CALENDAR_FEED_TOKEN"), "calendar bearer token must be a secret, not wrangler vars");
+
+const bootstrapScript = readFileSync("scripts/bootstrap-cloudflare-d1.sh", "utf8");
+assert(bootstrapScript.includes("migrations/[0-9]*.sql"), "D1 bootstrap must apply every ordered migration");
+assert(bootstrapScript.includes("--apply"), "D1 remote writes must require explicit --apply");
 
 console.log(JSON.stringify({
   status: "READY_PENDING_CLOUDFLARE_REGISTRATION",
@@ -95,7 +133,7 @@ console.log(JSON.stringify({
   remainingExternalSteps: [
     "Create/connect Cloudflare Pages project",
     "Create D1 database and bind it as DB",
-    "Apply migration and optional bootstrap SQL",
+    "Apply every migration and optional bootstrap SQL",
     "Set OWNER_EMAIL and PUBLIC_ORIGIN",
     "Set encrypted CALENDAR_FEED_TOKEN",
     "Configure Cloudflare Access and narrow calendar.ics bypass",
