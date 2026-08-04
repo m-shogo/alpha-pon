@@ -3,8 +3,8 @@
 Updated: 2026-08-04 JST
 Status: `READY_PENDING_PR_MERGE_AND_WORKER_REDEPLOY`
 Branch: `agent/workers-static-assets-migration`
-Draft PR: `#6`
-Verified implementation commit: `2747d7fbd0b63b28feb853ba220e86f69b153fd2`
+PR: `#6`（Ready for review / mergeable）
+Final verified head: `c637507b53577940e85580087c8a6fed679e5be2`
 
 ## 結論
 
@@ -35,10 +35,11 @@ Cloudflare本番環境、D1、Access、runtime variables、secretは変更して
 
 ## CI evidence
 
-Implementation commit `2747d7fbd0b63b28feb853ba220e86f69b153fd2`:
+Final verified head `c637507b53577940e85580087c8a6fed679e5be2`:
 
-- `Check` run `30874725348`: success
-- `CI` run `30874725349`: success
+- `Check` run `30874876441`: success
+- `CI` run `30874876438`: success
+- unresolved review threads: 0
 
 CIで確認した主な項目:
 
@@ -69,7 +70,7 @@ CIで確認した主な項目:
 | `/calendar.ics*` | Worker |
 | `/healthz*` | Worker |
 
-Broad `/api*` Worker-first routing is prohibited because it shadows the existing static generated API exports.
+Broad `/api*` Worker-first routing is prohibited because it shadows the existing static generated API exports。
 
 ## 残る外部作業
 
