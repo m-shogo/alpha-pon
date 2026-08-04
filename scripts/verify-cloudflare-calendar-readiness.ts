@@ -17,6 +17,14 @@ const requiredFiles = [
   "wrangler.jsonc",
   "migrations/0001_market_event_foundation.sql",
   "migrations/0002_market_event_revision_guards.sql",
+  "migrations/0003_promote_current_revision.sql",
+  "migrations/0004_event_revisions_no_update.sql",
+  "migrations/0005_event_revisions_no_delete.sql",
+  "migrations/0006_event_sources_no_update.sql",
+  "migrations/0007_event_sources_no_delete.sql",
+  "migrations/0008_decision_snapshots_no_update.sql",
+  "migrations/0009_decision_snapshots_no_delete.sql",
+  "migrations/0010_revision_guards_marker.sql",
   "scripts/build-cloudflare-pages.sh",
   "scripts/build-cloudflare-workers.sh",
   "scripts/bootstrap-cloudflare-d1.sh",
@@ -82,15 +90,53 @@ const foundationMigration = readFileSync("migrations/0001_market_event_foundatio
 for (const table of ["market_events", "event_revisions", "event_sources", "decision_snapshots", "delivery_outbox", "calendar_sync_state"]) {
   assert(foundationMigration.includes(`CREATE TABLE IF NOT EXISTS ${table}`), `missing D1 table: ${table}`);
 }
-const guardMigration = readFileSync("migrations/0002_market_event_revision_guards.sql", "utf8");
-for (const trigger of [
-  "trg_event_revision_continuity",
-  "trg_event_revision_promote_current",
-  "trg_event_revisions_no_update",
-  "trg_event_revisions_no_delete",
-]) {
-  assert(guardMigration.includes(`TRIGGER IF NOT EXISTS ${trigger}`), `missing D1 guard trigger: ${trigger}`);
+
+const expectedTriggerMigrations = new Map<string, string>([
+  ["0002_market_event_revision_guards.sql", "trg_event_revision_continuity"],
+  ["0003_promote_current_revision.sql", "trg_event_revision_promote_current"],
+  ["0004_event_revisions_no_update.sql", "trg_event_revisions_no_update"],
+  ["0005_event_revisions_no_delete.sql", "trg_event_revisions_no_delete"],
+  ["0006_event_sources_no_update.sql", "trg_event_sources_no_update"],
+  ["0007_event_sources_no_delete.sql", "trg_event_sources_no_delete"],
+  ["0008_decision_snapshots_no_update.sql", "trg_decision_snapshots_no_update"],
+  ["0009_decision_snapshots_no_delete.sql", "trg_decision_snapshots_no_delete"],
+]);
+
+const migrationDirectory = "migrations";
+const migrationFiles = readdirSync(migrationDirectory)
+  .filter(name => /^\d+.*\.sql$/.test(name))
+  .sort();
+
+for (const name of migrationFiles) {
+  const sql = readFileSync(join(migrationDirectory, name), "utf8");
+  assert(!/^\s*--/m.test(sql), `D1 migration must not contain remote-unsafe line comments: ${name}`);
+  assert(
+    !/\b(?:BEGIN\s+TRANSACTION|SAVEPOINT|COMMIT|ROLLBACK)\b/i.test(sql),
+    `D1 migration must not contain explicit transaction control: ${name}`,
+  );
+  const triggerCount = sql.match(/CREATE\s+TRIGGER\s+IF\s+NOT\s+EXISTS/gi)?.length ?? 0;
+  assert(triggerCount <= 1, `D1 migration must contain at most one trigger: ${name}`);
 }
+
+for (const [name, trigger] of expectedTriggerMigrations) {
+  const sql = readFileSync(join(migrationDirectory, name), "utf8");
+  assert(sql.includes(`TRIGGER IF NOT EXISTS ${trigger}`), `missing D1 guard trigger: ${trigger}`);
+  const triggerCount = sql.match(/CREATE\s+TRIGGER\s+IF\s+NOT\s+EXISTS/gi)?.length ?? 0;
+  assert.equal(triggerCount, 1, `D1 trigger migration must contain exactly one trigger: ${name}`);
+}
+
+const guardMarkerMigration = readFileSync(
+  "migrations/0010_revision_guards_marker.sql",
+  "utf8",
+);
+assert(
+  guardMarkerMigration.includes("0002_market_event_revision_guards"),
+  "missing D1 revision-guard migration marker",
+);
+assert(
+  !/CREATE\s+TRIGGER/i.test(guardMarkerMigration),
+  "D1 revision-guard marker migration must not define a trigger",
+);
 
 const gitignore = readFileSync(".gitignore", "utf8");
 for (const ignored of [".dev.vars", "data/market-events.db", "data/exports/", "apps/web/out/"]) {
@@ -170,6 +216,8 @@ console.log(JSON.stringify({
   transitionalPagesRoutes: routes.include,
   validatedSeedFiles: files.length,
   validatedSeedInputs: inputCount,
+  validatedMigrations: migrationFiles.length,
+  validatedGuardTriggers: expectedTriggerMigrations.size,
   remainingExternalSteps: [
     "Merge the Workers migration PR",
     "Redeploy the existing alpha-pon Worker from main",
