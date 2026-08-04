@@ -11,7 +11,7 @@ type D1Database = {
 }
 
 type Env = {
-  DB: D1Database
+  DB?: D1Database
   PUBLIC_ORIGIN?: string
   CALENDAR_FEED_TOKEN?: string
 }
@@ -155,6 +155,10 @@ function json(value: unknown, status = 200, headers: HeadersInit = {}): Response
   })
 }
 
+function databaseUnavailable(): Response {
+  return json({ error: 'database unavailable' }, 503)
+}
+
 function safeParseArray(value: string): string[] {
   try {
     const parsed = JSON.parse(value) as unknown
@@ -173,17 +177,17 @@ function freshness(row: EventRow, generatedAt: string): 'FRESH' | 'STALE' | 'UNK
   return Date.parse(generatedAt) > Date.parse(row.stale_after) ? 'STALE' : 'FRESH'
 }
 
-async function projection(env: Env): Promise<MarketEventProjection> {
+async function projection(db: D1Database, env: Env): Promise<MarketEventProjection> {
   const generatedAt = new Date().toISOString()
   const [eventResult, sourceResult, revisionResult] = await Promise.all([
-    env.DB.prepare("SELECT * FROM market_events ORDER BY priority, COALESCE(start_at, window_start, '9999-12-31'), event_id").all<EventRow>(),
-    env.DB.prepare(`
+    db.prepare("SELECT * FROM market_events ORDER BY priority, COALESCE(start_at, window_start, '9999-12-31'), event_id").all<EventRow>(),
+    db.prepare(`
       SELECT source_id, event_id, authority, source_type, url, title,
              published_at, retrieved_at, content_hash
       FROM event_sources
       ORDER BY event_id, COALESCE(published_at, retrieved_at), source_id
     `).all<SourceRow>(),
-    env.DB.prepare(`
+    db.prepare(`
       SELECT event_id, MAX(revision_number) AS revision_number
       FROM event_revisions
       GROUP BY event_id
@@ -408,7 +412,9 @@ async function handle(request: Request, env: Env): Promise<Response> {
     const expected = env.CALENDAR_FEED_TOKEN ?? ''
     const supplied = url.searchParams.get('token') ?? ''
     if (!expected || !supplied || !(await tokenMatches(supplied, expected))) return new Response('Not found', { status: 404 })
-    const data = await projection(env)
+    const db = env.DB
+    if (!db) return databaseUnavailable()
+    const data = await projection(db, env)
     return new Response(calendarFeed(data), {
       headers: {
         'content-type': 'text/calendar; charset=utf-8',
@@ -419,11 +425,17 @@ async function handle(request: Request, env: Env): Promise<Response> {
     })
   }
 
-  if (url.pathname === '/api/market-events' || url.pathname === '/api/market-events/') return json(await projection(env))
+  if (url.pathname === '/api/market-events' || url.pathname === '/api/market-events/') {
+    const db = env.DB
+    if (!db) return databaseUnavailable()
+    return json(await projection(db, env))
+  }
 
   if (url.pathname.startsWith('/api/market-events/')) {
+    const db = env.DB
+    if (!db) return databaseUnavailable()
     const eventId = decodeURIComponent(url.pathname.slice('/api/market-events/'.length).replace(/\/$/, ''))
-    const data = await projection(env)
+    const data = await projection(db, env)
     const event = data.events.find(item => item.eventId === eventId)
     return event ? json(event) : json({ error: 'not found' }, 404)
   }

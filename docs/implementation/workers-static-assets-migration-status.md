@@ -1,100 +1,126 @@
 # Workers Static Assets migration — current status
 
 Updated: 2026-08-04 JST
-Status: `READY_PENDING_PR_MERGE_AND_WORKER_REDEPLOY`
-Branch: `agent/workers-static-assets-migration`
-PR: `#6`（Ready for review / mergeable）
-Final verified head: `c637507b53577940e85580087c8a6fed679e5be2`
+Status: `PUBLIC_READ_ONLY_D1_FIX_PR_CI_PENDING`
+Current fix PR: `#15`
+Base deployment merge: PR `#14`, merge commit `e72c96cd81c4a8f420b40fe78acd9ced66fd31bc`
 
 ## 結論
 
-Alpha Ponの重要イベントカレンダーは、repo内ではCloudflare Pages / Pages Functions前提から、Cloudflare Workers Static Assets + Worker scriptへ移行済み。
+Alpha Ponの重要イベントカレンダーは、Cloudflare Workers Static Assets + Worker script + D1へ移行済み。
 
-Cloudflare本番環境、D1、Access、runtime variables、secretは変更していない。残る外部作業はPR #6のマージ後、既存Worker `alpha-pon`を再デプロイし、段階的にD1と認証設定を接続すること。
+現在の方針は次で固定する。
 
-## 実装済み
+- Cloudflare Accessを使用しない
+- Zero Trustを作成しない
+- クレジットカード登録を行わない
+- `/api/market-events*`は公開GET専用
+- public browser write APIを作らない
+- `/api/calendar-feed-url`は常に404
+- `/calendar.ics`は`CALENDAR_FEED_TOKEN`必須
+- D1は`READ_ONLY_NO_TRIGGERS`
+- D1 bootstrapを再実行しない
 
-- repo rootの正式`wrangler.jsonc`
-- Worker entry `worker/index.ts`
-- Static Assets directory `apps/web/out`
-- ASSETS binding
-- trailing-slash / custom 404設定
-- Worker-first routeの最小化
-  - `/api/market-events*`
-  - `/api/calendar-feed-url*`
-  - `/calendar.ics*`
-  - `/healthz*`
-- `/api/generated/*`を静的assetとして維持
-- 既存Pages handlerの段階的再利用
-- Worker/Assets routing回帰テスト
-- Workers専用production build contract
-- Node 22固定
-- Wrangler 4.118.0 dry-run bundle検証
-- Workers登録・D1・Access・rollback runbook
-- 旧Pages登録runbookのdeprecated化
+## 確定済みの外部状態
 
-## CI evidence
+- Worker: `alpha-pon`
+- Production URL: `https://alpha-pon.m-shogo-0409.workers.dev`
+- D1 database: `alpha-pon-market-events`
+- D1 database ID: `7b90faf4-9834-4393-a921-275e0a68b398`
+- Worker binding: `DB`
+- events: 3
+- revisions: 3
+- sources: 3
+- decisions: 3
+- remote trigger: 0
+- legacy guard marker: 0
+- `PUBLIC_ORIGIN`: 設定済み
+- `CALENDAR_FEED_TOKEN`: 設定済み
+- `OWNER_EMAIL`: runtimeでは未使用。公開版の本番確認後に削除可能
 
-Final verified head `c637507b53577940e85580087c8a6fed679e5be2`:
+## PR #14で実装済み
 
-- `Check` run `30874876441`: success
-- `CI` run `30874876438`: success
-- unresolved review threads: 0
+- `/api/market-events`を認証不要の公開GETへ変更
+- `/api/market-events/<eventId>`を認証不要の公開GETへ変更
+- GET以外は405
+- D1 read-only維持
+- `/api/calendar-feed-url`を常時404へ変更
+- tokenized ICSを維持
+- `/healthz`へ`apiAccessMode: public-read-only`を追加
+- Access / OWNER_EMAIL依存をruntime contractから削除
 
-CIで確認した主な項目:
+## PR #15の修正対象
 
-- existing Alpha Pon core checks and tests
-- market-event contracts / schema / append-only guards
-- deterministic D1 bootstrap
-- auth / API / tokenized ICS handler contract
-- Workers readiness audit
-- Next.js static export 55 pages
-- static output and 404 artifact
-- Worker route parity
-- static `/api/generated/*` preservation
-- `cloudflare-workers-build: ok`
-- Wrangler dry-run
-- 244 static assets detected
-- Worker bundle generated
-- `env.ASSETS` binding detected
-- no external deploy performed
+PR #14後のCloudflare buildで、DB bindingなしの検証が次の回帰を検出した。
+
+```text
+Cannot read properties of undefined (reading 'prepare')
+actual 500
+expected 503
+```
+
+PR #15では次を修正する。
+
+- `Env.DB`をoptionalにする
+- D1依存routeでprojection前にDBを確認する
+- DBなしは`503 {"error":"database unavailable"}`
+- ICSはtokenなし・誤tokenの404をDB状態より優先する
+- DBあり200 / DBなし503をWorkersとPages handlerの両方で検証する
+- readiness出力をpublic read-only / Access不要 / OWNER_EMAIL不要へ更新する
+
+500を正解に変更せず、503 contractを維持する。
 
 ## Current route authority
 
-| Route | Authority |
-|---|---|
-| `/`, `/calendar/`, `/_next/*` | Static Assets |
-| `/api/generated/*` | Static Assets |
-| `/api/market-events*` | Worker |
-| `/api/calendar-feed-url*` | Worker |
-| `/calendar.ics*` | Worker |
-| `/healthz*` | Worker |
+| Route | Authority | Contract |
+|---|---|---|
+| `/`, `/calendar/`, `/_next/*` | Static Assets | public static |
+| `/api/generated/*` | Static Assets | generated snapshot |
+| `/api/market-events*` | Worker | public GET / DB read-only |
+| `/api/calendar-feed-url*` | Worker | always 404 |
+| `/calendar.ics*` | Worker | token required |
+| `/healthz*` | Worker | safe runtime readiness |
 
-Broad `/api*` Worker-first routing is prohibited because it shadows the existing static generated API exports。
+Broad `/api*` Worker-first routingは禁止。既存の静的`/api/generated/*`をshadowしてはいけない。
 
-## 残る外部作業
+## 次の完了条件
 
-1. PR #6をmainへマージ
-2. Cloudflare BuildsのBuild commandを`bash scripts/build-cloudflare-workers.sh`へ更新
-3. 既存Worker `alpha-pon`をmainから再デプロイ
-4. static UI / generated API / healthzを確認
-5. D1 `alpha-pon-market-events`を作成して`DB` bindingを追加
-6. migrations/bootstrapをdry-run後に適用
-7. `OWNER_EMAIL` / `PUBLIC_ORIGIN`をruntime variablesへ設定
-8. `CALENDAR_FEED_TOKEN`をencrypted secretとして設定
-9. Cloudflare Accessをdeny-by-defaultにし、`/calendar.ics`だけspecific bypass
-10. live API / tokenized ICS / snapshot fallback / rollbackを実環境確認
+1. PR #15のCheckとCIがgreen
+2. PR #15をmainへmerge
+3. Cloudflare Buildsのproduction deploy成功を確認
+4. 本番でhealthzを実測
+5. market event API 3件を実測
+6. individual event 200 / missing 404を実測
+7. POST 405を実測
+8. hidden feed URL 404を実測
+9. ICS invalid token 404を実測
+10. 正しいtokenのICS 200をローカルで安全に確認
+11. `/calendar/`がLIVE D1 3件表示であることをPC/スマホ幅で確認
+12. remote trigger 0 / legacy marker 0を再確認
+13. 実測結果をrunbookへ記録
+14. その後、未使用の`OWNER_EMAIL`をCloudflareから削除可能
+
+## 後続PR
+
+本番安定後、公開Workerへ書き込みrouteを追加せず、次を別PRで進める。
+
+- dry-run-first管理用D1 sync CLI
+- workflow_dispatch限定のmanual GitHub Actions
+- backup / diff / audit / idempotency
+- destructive deleteなし
+- production environment protection
+- scheduleは追加しない
 
 ## Completion states
 
-### `READY_PENDING_PR_MERGE_AND_WORKER_REDEPLOY`
+### `PUBLIC_READ_ONLY_D1_FIX_PR_CI_PENDING`
 
-repo実装、テスト、bundle dry-runが成功。mainへのマージと外部再デプロイが未実施。
+DB guard修正PRのCI待ち。
 
-### `WORKER_STATIC_ASSETS_CONNECTED_SHADOW`
+### `PUBLIC_READ_ONLY_D1_DEPLOYED_PENDING_VERIFICATION`
 
-Worker static UI、dynamic routes、D1、Access、tokenized ICSをShadow環境で確認。実売買判断には未使用。
+main mergeとCloudflare deployは完了したが、本番API・ICS・UIの全実測が未完了。
 
 ### `CALENDAR_V1_OPERATIONAL`
 
-live API、snapshot fallback、calendar subscription、監査、rollbackを実環境で確認。
+LIVE API、tokenized ICS、snapshot fallback、監査、rollbackを本番で確認済み。
