@@ -13,24 +13,52 @@ const requiredFiles = [
   "apps/web/public/_headers",
   "apps/web/public/sw.js",
   "functions/[[path]].ts",
+  "worker/index.ts",
+  "wrangler.jsonc",
   "migrations/0001_market_event_foundation.sql",
   "migrations/0002_market_event_revision_guards.sql",
   "scripts/build-cloudflare-pages.sh",
+  "scripts/build-cloudflare-workers.sh",
   "scripts/bootstrap-cloudflare-d1.sh",
   "scripts/verify-d1-bootstrap-export.ts",
   "scripts/verify-market-event-revision-guards.ts",
-  "docs/implementation/cloudflare-pages-registration-runbook.md",
+  "scripts/verify-workers-static-assets.ts",
+  "docs/implementation/cloudflare-workers-static-assets-runbook.md",
   "wrangler.jsonc.example",
   ".dev.vars.example",
+  ".node-version",
 ];
 for (const path of requiredFiles) assert(existsSync(path), `missing Cloudflare readiness file: ${path}`);
 
 assert(!existsSync(".dev.vars"), ".dev.vars must never be committed or present in the readiness workspace");
-assert(!existsSync("wrangler.jsonc"), "real wrangler.jsonc is created only after Cloudflare registration");
 
 const nextConfig = readFileSync("apps/web/next.config.ts", "utf8");
-assert.match(nextConfig, /output:\s*['"]export['"]/, "Next.js must produce a static Pages export");
+assert.match(nextConfig, /output:\s*['"]export['"]/, "Next.js must produce a static export");
+assert.match(nextConfig, /trailingSlash:\s*true/, "static export routes must use trailing slashes");
 
+const wranglerConfig = readFileSync("wrangler.jsonc", "utf8");
+for (const contract of [
+  '"main": "./worker/index.ts"',
+  '"keep_vars": true',
+  '"directory": "./apps/web/out"',
+  '"binding": "ASSETS"',
+  '"html_handling": "force-trailing-slash"',
+  '"not_found_handling": "404-page"',
+  '"/api*"',
+  '"/calendar.ics*"',
+  '"/healthz*"',
+]) {
+  assert(wranglerConfig.includes(contract), `missing Workers Static Assets contract: ${contract}`);
+}
+assert(!wranglerConfig.includes('"CALENDAR_FEED_TOKEN":'), "calendar bearer token must not be committed as a Wrangler variable");
+
+const workerEntry = readFileSync("worker/index.ts", "utf8");
+assert(workerEntry.includes("env.ASSETS.fetch(request)"), "Worker must delegate static routes to ASSETS");
+assert(workerEntry.includes("pathname.startsWith('/api/')"), "Worker must execute API routes before asset lookup");
+assert(workerEntry.includes("pathname === '/calendar.ics'"), "Worker must execute tokenized ICS before asset lookup");
+
+// Kept during the staged migration so Pages parity remains testable until the
+// Worker deployment has been verified. Workers routing is authoritative.
 const routes = JSON.parse(readFileSync("apps/web/public/_routes.json", "utf8")) as {
   version: number;
   include: string[];
@@ -38,7 +66,7 @@ const routes = JSON.parse(readFileSync("apps/web/public/_routes.json", "utf8")) 
 };
 assert.equal(routes.version, 1);
 for (const requiredRoute of ["/api/market-events*", "/api/calendar-feed-url*", "/calendar.ics*", "/healthz*"]) {
-  assert(routes.include.includes(requiredRoute), `missing Pages Functions route: ${requiredRoute}`);
+  assert(routes.include.includes(requiredRoute), `missing transitional Pages parity route: ${requiredRoute}`);
 }
 
 const headers = readFileSync("apps/web/public/_headers", "utf8");
@@ -117,24 +145,27 @@ for (const name of files) {
 }
 
 const wranglerExample = readFileSync("wrangler.jsonc.example", "utf8");
-assert(wranglerExample.includes("REPLACE_AFTER_CLOUDFLARE_REGISTRATION"));
-assert(!wranglerExample.includes("CALENDAR_FEED_TOKEN"), "calendar bearer token must be a secret, not wrangler vars");
+assert(wranglerExample.includes("REPLACE_AFTER_D1_CREATION"));
+assert(wranglerExample.includes('"binding": "DB"'));
+assert(!wranglerExample.includes('"CALENDAR_FEED_TOKEN":'), "calendar bearer token must be a secret, not wrangler vars");
 
 const bootstrapScript = readFileSync("scripts/bootstrap-cloudflare-d1.sh", "utf8");
 assert(bootstrapScript.includes("migrations/[0-9]*.sql"), "D1 bootstrap must apply every ordered migration");
 assert(bootstrapScript.includes("--apply"), "D1 remote writes must require explicit --apply");
 
 console.log(JSON.stringify({
-  status: "READY_PENDING_CLOUDFLARE_REGISTRATION",
+  status: "READY_PENDING_WORKERS_DEPLOYMENT",
   requiredFiles: requiredFiles.length,
-  pagesFunctionRoutes: routes.include,
+  workerFirstRoutes: ["/api*", "/calendar.ics*", "/healthz*"],
+  transitionalPagesRoutes: routes.include,
   validatedSeedFiles: files.length,
   validatedSeedInputs: inputCount,
   remainingExternalSteps: [
-    "Create/connect Cloudflare Pages project",
+    "Merge the Workers migration PR",
+    "Redeploy the existing alpha-pon Worker from main",
     "Create D1 database and bind it as DB",
     "Apply every migration and optional bootstrap SQL",
-    "Set OWNER_EMAIL and PUBLIC_ORIGIN",
+    "Set OWNER_EMAIL and PUBLIC_ORIGIN runtime variables",
     "Set encrypted CALENDAR_FEED_TOKEN",
     "Configure Cloudflare Access and narrow calendar.ics bypass",
   ],
