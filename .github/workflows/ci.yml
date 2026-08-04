@@ -34,5 +34,8 @@ jobs:
       - name: Check core CLI and research contracts
         run: pnpm check
 
-      - name: Build and verify Cloudflare Pages artifact
-        run: bash scripts/build-cloudflare-pages.sh
+      - name: Build and verify Workers Static Assets artifact
+        run: bash scripts/build-cloudflare-workers.sh
+
+      - name: Bundle Worker without deploying
+        run: npx --yes wrangler@4.118.0 deploy --dry-run --outdir .wrangler-dry-run
