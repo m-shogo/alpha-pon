@@ -1,9 +1,8 @@
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   D1_PERMISSION_NAMES,
-  D1_TOKEN_BASE_NAMES,
   buildD1UserTokenCreateBody,
   buildProvisionedTokenNames,
   isManagedD1TokenName,
@@ -18,6 +17,8 @@ import {
 } from "../src/cloudflare/d1-token-provisioning.js";
 
 type Flags = Map<string, string | boolean>;
+type EditSecretScopeOption = "auto" | "environment" | "repository";
+type ResolvedEditSecretScope = Exclude<EditSecretScopeOption, "auto">;
 
 type CliOptions = {
   apply: boolean;
@@ -28,6 +29,7 @@ type CliOptions = {
   databaseName: string;
   repository: string | null;
   environment: string;
+  editSecretScope: EditSecretScopeOption;
 };
 
 type CloudflareEnvelope<T> = {
@@ -56,8 +58,9 @@ const CLOUDFLARE_API_BASE = "https://api.cloudflare.com/client/v4";
 const BOOTSTRAP_TOKEN_ENV = "CLOUDFLARE_TOKEN_CREATOR_API_TOKEN";
 const ACCOUNT_ID_ENV = "CLOUDFLARE_ACCOUNT_ID";
 const GITHUB_REPOSITORY_ENV = "GITHUB_REPOSITORY";
-const REPOSITORY_SECRET_NAMES = ["CLOUDFLARE_D1_READ_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"] as const;
-const ENVIRONMENT_SECRET_NAME = "CLOUDFLARE_D1_EDIT_API_TOKEN";
+const READ_SECRET_NAME = "CLOUDFLARE_D1_READ_API_TOKEN";
+const EDIT_SECRET_NAME = "CLOUDFLARE_D1_EDIT_API_TOKEN";
+const ACCOUNT_SECRET_NAME = "CLOUDFLARE_ACCOUNT_ID";
 
 function parseFlags(argv: string[]): Flags {
   const flags = new Map<string, string | boolean>();
@@ -97,6 +100,14 @@ function readWranglerDefaults(): { databaseId: string; databaseName: string } {
   return parseD1BindingConfig(readFileSync(path, "utf8"));
 }
 
+function parseEditSecretScope(value: string | null): EditSecretScopeOption {
+  const normalized = value ?? "auto";
+  if (normalized !== "auto" && normalized !== "environment" && normalized !== "repository") {
+    throw new Error("--edit-secret-scope must be auto, environment, or repository");
+  }
+  return normalized;
+}
+
 function options(argv: string[]): CliOptions {
   const flags = parseFlags(argv);
   const defaults = readWranglerDefaults();
@@ -115,6 +126,7 @@ function options(argv: string[]): CliOptions {
     databaseName: stringFlag(flags, "database-name") ?? defaults.databaseName,
     repository: repository ? validateGitHubRepository(repository) : null,
     environment,
+    editSecretScope: parseEditSecretScope(stringFlag(flags, "edit-secret-scope")),
   };
 }
 
@@ -129,14 +141,15 @@ Default mode:
   Dry-run only. Shows the exact Cloudflare permissions and GitHub Secret names.
 
 Apply options:
-  --apply                 Create D1 Read/Edit tokens and store them in GitHub
-  --account-id <id>       Cloudflare account ID (or CLOUDFLARE_ACCOUNT_ID)
-  --repo <owner/name>     GitHub repository; auto-detected with gh when omitted
-  --environment <name>    GitHub environment for the Edit token (default: production)
-  --rotate                Replace managed tokens after new Secrets verify successfully
-  --revoke-bootstrap      Revoke the one-time token-creator token after success
-  --database-id <uuid>    Override wrangler.jsonc D1 database ID
-  --database-name <name>  Override wrangler.jsonc D1 database name
+  --apply                        Create D1 Read/Edit tokens and store them in GitHub
+  --account-id <id>              Cloudflare account ID (or CLOUDFLARE_ACCOUNT_ID)
+  --repo <owner/name>            GitHub repository; auto-detected with gh when omitted
+  --environment <name>           GitHub environment name (default: production)
+  --edit-secret-scope <scope>    auto, environment, or repository (default: auto)
+  --rotate                       Replace managed tokens after new Secrets verify successfully
+  --revoke-bootstrap             Revoke the one-time token-creator token after success
+  --database-id <uuid>           Override wrangler.jsonc D1 database ID
+  --database-name <name>         Override wrangler.jsonc D1 database name
 
 Required one-time prerequisite:
   Create a Cloudflare token from the official "Create additional tokens" template.
@@ -171,8 +184,9 @@ function runGh(args: string[], input?: string): string {
 }
 
 function detectRepository(): string {
-  const value = runGh(["repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner"]);
-  return validateGitHubRepository(value);
+  return validateGitHubRepository(
+    runGh(["repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner"]),
+  );
 }
 
 function listGitHubSecretNames(repository: string, environment?: string): Set<string> {
@@ -188,8 +202,24 @@ function ensureGitHubEnvironment(repository: string, environment: string): void 
     "--method", "PUT",
     `repos/${repository}/environments/${encodeURIComponent(environment)}`,
     "--input", "-",
-    "--silent",
   ], "{}\n");
+}
+
+function resolveEditSecretScope(
+  repository: string,
+  environment: string,
+  requested: EditSecretScopeOption,
+): ResolvedEditSecretScope {
+  if (requested === "repository") return "repository";
+  try {
+    ensureGitHubEnvironment(repository, environment);
+    listGitHubSecretNames(repository, environment);
+    return "environment";
+  } catch (error) {
+    if (requested === "environment") throw error;
+    console.warn(`GitHub environment Secret is unavailable; using repository Secret ${EDIT_SECRET_NAME} without changing the GitHub plan.`);
+    return "repository";
+  }
 }
 
 function setGitHubSecret(repository: string, name: string, value: string, environment?: string): void {
@@ -206,6 +236,10 @@ function deleteGitHubSecret(repository: string, name: string, environment?: stri
   } catch {
     // Best-effort cleanup is followed by an explicit failure report.
   }
+}
+
+function editSecretEnvironment(scope: ResolvedEditSecretScope, environment: string): string | undefined {
+  return scope === "environment" ? environment : undefined;
 }
 
 const knownSecrets = new Set<string>();
@@ -331,6 +365,9 @@ function printPlan(cli: CliOptions, repository: string): void {
     mode: cli.apply ? "apply" : "dry-run",
     repository,
     githubEnvironment: cli.environment,
+    editSecretScope: cli.editSecretScope === "auto"
+      ? "environment when available; repository fallback without plan upgrade"
+      : cli.editSecretScope,
     cloudflareAccount: cli.accountId ?? "required-at-apply",
     d1: { databaseName: cli.databaseName, databaseId: cli.databaseId },
     cloudflareTokens: {
@@ -344,8 +381,8 @@ function printPlan(cli: CliOptions, repository: string): void {
       },
     },
     githubSecrets: {
-      repository: [...REPOSITORY_SECRET_NAMES],
-      environment: { [cli.environment]: [ENVIRONMENT_SECRET_NAME] },
+      repository: [READ_SECRET_NAME, ACCOUNT_SECRET_NAME],
+      edit: EDIT_SECRET_NAME,
     },
     publicWorkerWriteApi: false,
     d1DataWrite: false,
@@ -353,6 +390,7 @@ function printPlan(cli: CliOptions, repository: string): void {
     schedule: false,
     accessOrZeroTrust: false,
     billingChange: false,
+    githubPlanChange: false,
     tokenValuesPrinted: false,
   }, null, 2));
 }
@@ -379,6 +417,8 @@ async function main(): Promise<void> {
   knownSecrets.add(bootstrapToken);
 
   const bootstrap = await verifyToken(bootstrapToken);
+  const editSecretScope = resolveEditSecretScope(repository, cli.environment, cli.editSecretScope);
+  const editEnvironment = editSecretEnvironment(editSecretScope, cli.environment);
   const permissionGroups = await listPermissionGroups(bootstrapToken);
   const readPermission = selectD1PermissionGroup(permissionGroups, "read");
   const editPermission = selectD1PermissionGroup(permissionGroups, "edit");
@@ -392,15 +432,14 @@ async function main(): Promise<void> {
   }
 
   const existingRepoSecrets = listGitHubSecretNames(repository);
-  let existingEnvironmentSecrets = new Set<string>();
-  try {
-    existingEnvironmentSecrets = listGitHubSecretNames(repository, cli.environment);
-  } catch {
-    // The environment may not exist yet. It is created immediately before storing the Edit token.
-  }
+  const existingEnvironmentSecrets = editEnvironment
+    ? listGitHubSecretNames(repository, editEnvironment)
+    : new Set<string>();
   const preexistingTargetSecrets = [
-    ...REPOSITORY_SECRET_NAMES.filter(name => existingRepoSecrets.has(name)),
-    ...(existingEnvironmentSecrets.has(ENVIRONMENT_SECRET_NAME) ? [ENVIRONMENT_SECRET_NAME] : []),
+    ...[READ_SECRET_NAME, ACCOUNT_SECRET_NAME].filter(name => existingRepoSecrets.has(name)),
+    ...(editEnvironment
+      ? (existingEnvironmentSecrets.has(EDIT_SECRET_NAME) ? [EDIT_SECRET_NAME] : [])
+      : (existingRepoSecrets.has(EDIT_SECRET_NAME) ? [EDIT_SECRET_NAME] : [])),
   ];
   if (preexistingTargetSecrets.length > 0 && !cli.rotate) {
     throw new Error(`Target GitHub Secrets already exist: ${preexistingTargetSecrets.join(", ")}. Rerun with --rotate after review.`);
@@ -430,19 +469,20 @@ async function main(): Promise<void> {
     await verifyD1Access({ token: readToken, accountId: cli.accountId, databaseId: cli.databaseId, databaseName: cli.databaseName });
     await verifyD1Access({ token: editToken, accountId: cli.accountId, databaseId: cli.databaseId, databaseName: cli.databaseName });
 
-    ensureGitHubEnvironment(repository, cli.environment);
     githubSecretWriteStarted = true;
-    setGitHubSecret(repository, ENVIRONMENT_SECRET_NAME, editToken.value, cli.environment);
-    setGitHubSecret(repository, "CLOUDFLARE_D1_READ_API_TOKEN", readToken.value);
-    setGitHubSecret(repository, "CLOUDFLARE_ACCOUNT_ID", cli.accountId);
+    setGitHubSecret(repository, EDIT_SECRET_NAME, editToken.value, editEnvironment);
+    setGitHubSecret(repository, READ_SECRET_NAME, readToken.value);
+    setGitHubSecret(repository, ACCOUNT_SECRET_NAME, cli.accountId);
 
     const repoSecretsAfter = listGitHubSecretNames(repository);
-    const environmentSecretsAfter = listGitHubSecretNames(repository, cli.environment);
-    for (const required of REPOSITORY_SECRET_NAMES) {
+    const editSecretsAfter = editEnvironment
+      ? listGitHubSecretNames(repository, editEnvironment)
+      : repoSecretsAfter;
+    for (const required of [READ_SECRET_NAME, ACCOUNT_SECRET_NAME]) {
       if (!repoSecretsAfter.has(required)) throw new Error(`GitHub repository Secret was not confirmed: ${required}`);
     }
-    if (!environmentSecretsAfter.has(ENVIRONMENT_SECRET_NAME)) {
-      throw new Error(`GitHub environment Secret was not confirmed: ${ENVIRONMENT_SECRET_NAME}`);
+    if (!editSecretsAfter.has(EDIT_SECRET_NAME)) {
+      throw new Error(`GitHub ${editSecretScope} Secret was not confirmed: ${EDIT_SECRET_NAME}`);
     }
 
     if (cli.rotate) {
@@ -461,12 +501,19 @@ async function main(): Promise<void> {
     console.log(JSON.stringify({
       result: "configured-and-verified",
       repository,
-      githubEnvironment: cli.environment,
+      githubEnvironment: editEnvironment ?? null,
+      editSecretScope,
       d1: { databaseName: cli.databaseName, databaseId: cli.databaseId },
-      cloudflareTokens: created.map(token => ({ id: token.id, name: token.name, permission: D1_PERMISSION_NAMES[token.kind] })),
+      cloudflareTokens: created.map(token => ({
+        id: token.id,
+        name: token.name,
+        permission: D1_PERMISSION_NAMES[token.kind],
+      })),
       githubSecrets: {
-        repository: [...REPOSITORY_SECRET_NAMES],
-        environment: { [cli.environment]: [ENVIRONMENT_SECRET_NAME] },
+        repository: editSecretScope === "repository"
+          ? [READ_SECRET_NAME, ACCOUNT_SECRET_NAME, EDIT_SECRET_NAME]
+          : [READ_SECRET_NAME, ACCOUNT_SECRET_NAME],
+        environment: editEnvironment ? { [editEnvironment]: [EDIT_SECRET_NAME] } : {},
       },
       oldManagedTokensRevoked: cli.rotate ? managedExisting.length : 0,
       bootstrapTokenRevoked: bootstrapRevoked,
@@ -482,8 +529,9 @@ async function main(): Promise<void> {
         }
       }
     } else if (githubSecretWriteStarted && !cli.rotate && preexistingTargetSecrets.length === 0) {
-      deleteGitHubSecret(repository, ENVIRONMENT_SECRET_NAME, cli.environment);
-      for (const secret of REPOSITORY_SECRET_NAMES) deleteGitHubSecret(repository, secret);
+      deleteGitHubSecret(repository, EDIT_SECRET_NAME, editEnvironment);
+      deleteGitHubSecret(repository, READ_SECRET_NAME);
+      deleteGitHubSecret(repository, ACCOUNT_SECRET_NAME);
       for (const token of created.reverse()) {
         try {
           await deleteCloudflareToken(bootstrapToken, token.id);
