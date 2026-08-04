@@ -9,6 +9,17 @@ APPLY=0
 KEEP_EXPORT=0
 WRANGLER_VERSION="${WRANGLER_VERSION:-4.114.0}"
 REMOTE_MIGRATION_DIR="migrations/d1"
+LEGACY_REMOTE_CLEANUP_SQL=(
+  "DROP TRIGGER IF EXISTS trg_event_revision_continuity;"
+  "DROP TRIGGER IF EXISTS trg_event_revision_promote_current;"
+  "DROP TRIGGER IF EXISTS trg_event_revisions_no_update;"
+  "DROP TRIGGER IF EXISTS trg_event_revisions_no_delete;"
+  "DROP TRIGGER IF EXISTS trg_event_sources_no_update;"
+  "DROP TRIGGER IF EXISTS trg_event_sources_no_delete;"
+  "DROP TRIGGER IF EXISTS trg_decision_snapshots_no_update;"
+  "DROP TRIGGER IF EXISTS trg_decision_snapshots_no_delete;"
+  "DELETE FROM schema_migrations WHERE version = '0002_market_event_revision_guards';"
+)
 
 usage() {
   cat <<'EOF'
@@ -66,6 +77,7 @@ run_ts() {
 TEMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/alpha-pon-d1-bootstrap.XXXXXX")"
 DB_PATH="$TEMP_DIR/market-events.db"
 BOOTSTRAP_SQL="$TEMP_DIR/market-events-d1-bootstrap.sql"
+REMOTE_VERIFY_JSON="$TEMP_DIR/remote-d1-verify.json"
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
 run_ts scripts/verify-cloudflare-calendar-readiness.ts
@@ -115,6 +127,11 @@ for migration_file in "${REMOTE_MIGRATION_FILES[@]}"; do
   fi
 done
 
+if [[ "${#LEGACY_REMOTE_CLEANUP_SQL[@]}" -ne 9 ]]; then
+  echo "Legacy remote D1 cleanup contract is incomplete" >&2
+  exit 1
+fi
+
 if [[ "$KEEP_EXPORT" -eq 1 ]]; then
   mkdir -p data/exports
   cp "$BOOTSTRAP_SQL" "data/exports/market-events-d1-bootstrap.sql"
@@ -138,6 +155,17 @@ npx --yes "$WRANGLER_PACKAGE" whoami >/dev/null
 echo "Applying trigger-free remote D1 migrations to database: $DATABASE_NAME"
 npx --yes "$WRANGLER_PACKAGE" d1 migrations apply "$DATABASE_NAME" --remote
 
+echo "Removing legacy remote D1 trigger artifacts"
+cleanup_index=0
+for cleanup_sql in "${LEGACY_REMOTE_CLEANUP_SQL[@]}"; do
+  cleanup_index=$((cleanup_index + 1))
+  echo "Legacy cleanup ${cleanup_index}/${#LEGACY_REMOTE_CLEANUP_SQL[@]}"
+  npx --yes "$WRANGLER_PACKAGE" d1 execute "$DATABASE_NAME" \
+    --remote \
+    --command="$cleanup_sql" \
+    >/dev/null
+done
+
 echo "Applying INSERT OR IGNORE bootstrap rows to remote D1 database: $DATABASE_NAME"
 npx --yes "$WRANGLER_PACKAGE" d1 execute "$DATABASE_NAME" \
   --remote \
@@ -147,5 +175,40 @@ echo "Verifying remote migration mode and row counts"
 npx --yes "$WRANGLER_PACKAGE" d1 execute "$DATABASE_NAME" \
   --remote \
   --command="SELECT version, applied_at FROM schema_migrations ORDER BY version; SELECT COUNT(*) AS events FROM market_events; SELECT COUNT(*) AS revisions FROM event_revisions; SELECT COUNT(*) AS sources FROM event_sources; SELECT COUNT(*) AS decisions FROM decision_snapshots; SELECT COUNT(*) AS triggers FROM sqlite_master WHERE type = 'trigger';"
+
+npx --yes "$WRANGLER_PACKAGE" d1 execute "$DATABASE_NAME" \
+  --remote \
+  --json \
+  --command="SELECT COUNT(*) AS triggers FROM sqlite_master WHERE type = 'trigger'; SELECT COUNT(*) AS legacy_guard_marker FROM schema_migrations WHERE version = '0002_market_event_revision_guards';" \
+  > "$REMOTE_VERIFY_JSON"
+
+node --input-type=module - "$REMOTE_VERIFY_JSON" <<'NODE'
+import { readFileSync } from 'node:fs'
+
+const path = process.argv[2]
+const payload = JSON.parse(readFileSync(path, 'utf8'))
+const observed = new Map()
+
+function visit(value) {
+  if (Array.isArray(value)) {
+    for (const item of value) visit(item)
+    return
+  }
+  if (!value || typeof value !== 'object') return
+  for (const [key, item] of Object.entries(value)) {
+    if (key === 'triggers' || key === 'legacy_guard_marker') observed.set(key, Number(item))
+    visit(item)
+  }
+}
+
+visit(payload)
+const triggers = observed.get('triggers')
+const legacyGuardMarker = observed.get('legacy_guard_marker')
+if (triggers !== 0) throw new Error(`remote D1 must have zero triggers, found ${String(triggers)}`)
+if (legacyGuardMarker !== 0) {
+  throw new Error(`legacy revision guard marker must be absent, found ${String(legacyGuardMarker)}`)
+}
+console.log(JSON.stringify({ remoteD1Mode: 'read-only-no-trigger', triggers, legacyGuardMarker }))
+NODE
 
 echo "cloudflare-d1-bootstrap: applied"
