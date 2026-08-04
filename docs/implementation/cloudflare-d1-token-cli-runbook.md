@@ -9,13 +9,20 @@ Create the least-privilege Cloudflare API tokens required by Alpha Pon's manual 
 
 The CLI configures:
 
-| Token | Cloudflare permission | GitHub location |
+| Value | Cloudflare permission | GitHub location |
 | --- | --- | --- |
 | Read token | `D1 Read` | repository Secret `CLOUDFLARE_D1_READ_API_TOKEN` |
-| Edit token | `D1 Edit` | `production` environment Secret `CLOUDFLARE_D1_EDIT_API_TOKEN` |
+| Edit token | `D1 Edit` | `production` environment Secret when available; otherwise repository Secret `CLOUDFLARE_D1_EDIT_API_TOKEN` |
 | Account ID | n/a | repository Secret `CLOUDFLARE_ACCOUNT_ID` |
 
-The Edit token is not stored as a repository-wide Secret. It becomes available only to jobs that declare the `production` environment.
+The default `--edit-secret-scope auto` attempts the stronger environment-secret boundary first. If the current private-repository GitHub plan does not support environment Secrets, it falls back to a repository Secret with the same name. It never upgrades a GitHub plan or requests billing.
+
+Explicit overrides are available:
+
+```text
+--edit-secret-scope environment
+--edit-secret-scope repository
+```
 
 ## Cloudflare bootstrap limitation
 
@@ -42,7 +49,7 @@ Recommended bootstrap-token controls:
 - local checkout of `m-shogo/alpha-pon`
 - Node.js 22 and installed dependencies
 - authenticated GitHub CLI: `gh auth status`
-- repository administration permission for GitHub Secrets and environments
+- repository administration permission for GitHub Secrets
 - the 32-character Cloudflare account ID
 - one-time Cloudflare token created from **Create additional tokens**
 
@@ -69,11 +76,11 @@ DRY_RUN_ONLY: no Cloudflare token or GitHub Secret was changed.
 
 It displays only the plan:
 
-- target repository and GitHub environment
+- target repository and intended GitHub Secret scope
 - D1 database name and ID
 - requested permission names
 - GitHub Secret names
-- confirmation that no D1 data, Access, Zero Trust, billing, or schedule will change
+- confirmation that no D1 data, Access, Zero Trust, billing, plan, or schedule will change
 
 ## First setup
 
@@ -91,15 +98,15 @@ The shell asks for:
 The CLI then:
 
 1. verifies the one-time creator token
-2. fetches the current Cloudflare permission-group IDs instead of hard-coding them
-3. selects exactly one account-scoped `D1 Read` and `D1 Edit` permission
-4. creates two user-owned API tokens restricted to the specified Cloudflare account
-5. verifies both tokens are active
-6. verifies both tokens resolve the configured D1 database
-7. executes only `SELECT 1 AS ok` as the D1 access check
-8. creates or confirms the GitHub `production` environment
+2. determines whether the Edit token can use a `production` environment Secret without a plan change
+3. fetches the current Cloudflare permission-group IDs instead of hard-coding them
+4. selects exactly one account-scoped `D1 Read` and `D1 Edit` permission
+5. creates two user-owned API tokens restricted to the specified Cloudflare account
+6. verifies both tokens are active
+7. verifies both tokens resolve the configured D1 database
+8. executes only `SELECT 1 AS ok` as the D1 access check
 9. sends Secret values to `gh secret set` through standard input
-10. confirms the three Secret names exist
+10. confirms the three Secret names exist in their resolved scopes
 11. revokes the one-time creator token when `--revoke-bootstrap` is present
 12. prints token IDs, names, permissions, and status only — never values
 
@@ -162,6 +169,7 @@ Token values are never printed during any failure path. Cloudflare errors are re
 - does not create Access or Zero Trust resources
 - does not add a GitHub Actions schedule
 - does not change Cloudflare billing or request a credit card
+- does not change or upgrade the GitHub plan
 - does not read or expose `CALENDAR_FEED_TOKEN`
 - does not change Edge research, score, threshold, or notification logic
 
