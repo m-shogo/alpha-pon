@@ -25,6 +25,8 @@ const requiredFiles = [
   "migrations/0008_decision_snapshots_no_update.sql",
   "migrations/0009_decision_snapshots_no_delete.sql",
   "migrations/0010_revision_guards_marker.sql",
+  "migrations/d1/0001_market_event_foundation.sql",
+  "migrations/d1/0002_d1_readonly_mode.sql",
   "scripts/build-cloudflare-pages.sh",
   "scripts/build-cloudflare-workers.sh",
   "scripts/bootstrap-cloudflare-d1.sh",
@@ -52,6 +54,7 @@ for (const contract of [
   '"binding": "ASSETS"',
   '"html_handling": "force-trailing-slash"',
   '"not_found_handling": "404-page"',
+  '"migrations_dir": "migrations/d1"',
   '"/api/market-events*"',
   '"/api/calendar-feed-url*"',
   '"/calendar.ics*"',
@@ -69,8 +72,6 @@ assert(workerEntry.includes("pathname === '/api/calendar-feed-url'"), "Worker mu
 assert(workerEntry.includes("pathname === '/calendar.ics'"), "Worker must execute tokenized ICS before asset lookup");
 assert(!workerEntry.includes("pathname.startsWith('/api/')"), "Worker must not shadow static /api/generated/* routes");
 
-// Kept during the staged migration so Pages parity remains testable until the
-// Worker deployment has been verified. Workers routing is authoritative.
 const routes = JSON.parse(readFileSync("apps/web/public/_routes.json", "utf8")) as {
   version: number;
   include: string[];
@@ -102,41 +103,55 @@ const expectedTriggerMigrations = new Map<string, string>([
   ["0009_decision_snapshots_no_delete.sql", "trg_decision_snapshots_no_delete"],
 ]);
 
-const migrationDirectory = "migrations";
-const migrationFiles = readdirSync(migrationDirectory)
+const localMigrationDirectory = "migrations";
+const localMigrationFiles = readdirSync(localMigrationDirectory)
   .filter(name => /^\d+.*\.sql$/.test(name))
   .sort();
 
-for (const name of migrationFiles) {
-  const sql = readFileSync(join(migrationDirectory, name), "utf8");
-  assert(!/^\s*--/m.test(sql), `D1 migration must not contain remote-unsafe line comments: ${name}`);
+for (const name of localMigrationFiles) {
+  const sql = readFileSync(join(localMigrationDirectory, name), "utf8");
   assert(
     !/\b(?:BEGIN\s+TRANSACTION|SAVEPOINT|COMMIT|ROLLBACK)\b/i.test(sql),
-    `D1 migration must not contain explicit transaction control: ${name}`,
+    `local SQLite migration must not contain explicit transaction control: ${name}`,
   );
   const triggerCount = sql.match(/CREATE\s+TRIGGER\s+IF\s+NOT\s+EXISTS/gi)?.length ?? 0;
-  assert(triggerCount <= 1, `D1 migration must contain at most one trigger: ${name}`);
+  assert(triggerCount <= 1, `local SQLite migration must contain at most one trigger: ${name}`);
 }
 
 for (const [name, trigger] of expectedTriggerMigrations) {
-  const sql = readFileSync(join(migrationDirectory, name), "utf8");
-  assert(sql.includes(`TRIGGER IF NOT EXISTS ${trigger}`), `missing D1 guard trigger: ${trigger}`);
+  const sql = readFileSync(join(localMigrationDirectory, name), "utf8");
+  assert(sql.includes(`TRIGGER IF NOT EXISTS ${trigger}`), `missing local SQLite guard trigger: ${trigger}`);
   const triggerCount = sql.match(/CREATE\s+TRIGGER\s+IF\s+NOT\s+EXISTS/gi)?.length ?? 0;
-  assert.equal(triggerCount, 1, `D1 trigger migration must contain exactly one trigger: ${name}`);
+  assert.equal(triggerCount, 1, `local SQLite trigger migration must contain exactly one trigger: ${name}`);
 }
 
-const guardMarkerMigration = readFileSync(
-  "migrations/0010_revision_guards_marker.sql",
-  "utf8",
-);
-assert(
-  guardMarkerMigration.includes("0002_market_event_revision_guards"),
-  "missing D1 revision-guard migration marker",
-);
-assert(
-  !/CREATE\s+TRIGGER/i.test(guardMarkerMigration),
-  "D1 revision-guard marker migration must not define a trigger",
-);
+const guardMarkerMigration = readFileSync("migrations/0010_revision_guards_marker.sql", "utf8");
+assert(guardMarkerMigration.includes("0002_market_event_revision_guards"), "missing local revision-guard migration marker");
+assert(!/CREATE\s+TRIGGER/i.test(guardMarkerMigration), "local revision-guard marker must not define a trigger");
+
+const remoteMigrationDirectory = "migrations/d1";
+const remoteMigrationFiles = readdirSync(remoteMigrationDirectory)
+  .filter(name => /^\d+.*\.sql$/.test(name))
+  .sort();
+assert.deepEqual(remoteMigrationFiles, [
+  "0001_market_event_foundation.sql",
+  "0002_d1_readonly_mode.sql",
+]);
+
+for (const name of remoteMigrationFiles) {
+  const sql = readFileSync(join(remoteMigrationDirectory, name), "utf8");
+  assert(!/^\s*--/m.test(sql), `remote D1 migration must not contain line comments: ${name}`);
+  assert(
+    !/\b(?:BEGIN\s+TRANSACTION|SAVEPOINT|COMMIT|ROLLBACK)\b/i.test(sql),
+    `remote D1 migration must not contain explicit transaction control: ${name}`,
+  );
+  assert(!/CREATE\s+TRIGGER/i.test(sql), `remote D1 migration must remain trigger-free: ${name}`);
+}
+
+const remoteFoundationMigration = readFileSync("migrations/d1/0001_market_event_foundation.sql", "utf8");
+assert.equal(remoteFoundationMigration, foundationMigration, "remote D1 foundation must match the already-applied 0001 migration");
+const remoteModeMigration = readFileSync("migrations/d1/0002_d1_readonly_mode.sql", "utf8");
+assert(remoteModeMigration.includes("0002_d1_readonly_no_trigger_mode"), "missing remote D1 read-only mode marker");
 
 const gitignore = readFileSync(".gitignore", "utf8");
 for (const ignored of [".dev.vars", "data/market-events.db", "data/exports/", "apps/web/out/"]) {
@@ -197,10 +212,12 @@ for (const name of files) {
 const wranglerExample = readFileSync("wrangler.jsonc.example", "utf8");
 assert(wranglerExample.includes("REPLACE_AFTER_D1_CREATION"));
 assert(wranglerExample.includes('"binding": "DB"'));
+assert(wranglerExample.includes('"migrations_dir": "migrations/d1"'));
 assert(!wranglerExample.includes('"CALENDAR_FEED_TOKEN":'), "calendar bearer token must be a secret, not wrangler vars");
 
 const bootstrapScript = readFileSync("scripts/bootstrap-cloudflare-d1.sh", "utf8");
-assert(bootstrapScript.includes("migrations/[0-9]*.sql"), "D1 bootstrap must apply every ordered migration");
+assert(bootstrapScript.includes('REMOTE_MIGRATION_DIR="migrations/d1"'), "D1 bootstrap must use the remote migration directory");
+assert(bootstrapScript.includes("must remain trigger-free"), "D1 bootstrap must reject remote trigger migrations");
 assert(bootstrapScript.includes("--apply"), "D1 remote writes must require explicit --apply");
 
 const workerFirstRoutes = [
@@ -216,13 +233,15 @@ console.log(JSON.stringify({
   transitionalPagesRoutes: routes.include,
   validatedSeedFiles: files.length,
   validatedSeedInputs: inputCount,
-  validatedMigrations: migrationFiles.length,
-  validatedGuardTriggers: expectedTriggerMigrations.size,
+  validatedLocalMigrations: localMigrationFiles.length,
+  validatedRemoteMigrations: remoteMigrationFiles.length,
+  validatedLocalGuardTriggers: expectedTriggerMigrations.size,
+  remoteD1WriteMode: "READ_ONLY_NO_TRIGGERS",
   remainingExternalSteps: [
     "Merge the Workers migration PR",
     "Redeploy the existing alpha-pon Worker from main",
     "Create D1 database and bind it as DB",
-    "Apply every migration and optional bootstrap SQL",
+    "Apply every remote D1 migration and bootstrap SQL",
     "Set OWNER_EMAIL and PUBLIC_ORIGIN runtime variables",
     "Set encrypted CALENDAR_FEED_TOKEN",
     "Configure Cloudflare Access and narrow calendar.ics bypass",
