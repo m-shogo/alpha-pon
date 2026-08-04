@@ -37,6 +37,9 @@ jobs:
       - name: Verify Cloudflare D1 sync contracts
         run: node --import tsx/esm scripts/verify-cloudflare-d1-sync.ts
 
+      - name: Verify Cloudflare D1 token provisioning CLI
+        run: node --import tsx/esm scripts/verify-cloudflare-d1-token-provisioning.ts
+
       - name: Verify calendar feed UI boundary
         run: node --import tsx/esm scripts/verify-calendar-feed-ui-contract.ts
 
