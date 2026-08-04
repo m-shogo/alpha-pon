@@ -17,14 +17,14 @@ const requiredFiles = [
   "wrangler.jsonc",
   "migrations/0001_market_event_foundation.sql",
   "migrations/0002_market_event_revision_guards.sql",
-  "migrations/0003_market_event_promote_current.sql",
+  "migrations/0003_promote_current_revision.sql",
   "migrations/0004_event_revisions_no_update.sql",
   "migrations/0005_event_revisions_no_delete.sql",
   "migrations/0006_event_sources_no_update.sql",
   "migrations/0007_event_sources_no_delete.sql",
   "migrations/0008_decision_snapshots_no_update.sql",
   "migrations/0009_decision_snapshots_no_delete.sql",
-  "migrations/0010_market_event_revision_guards_marker.sql",
+  "migrations/0010_revision_guards_marker.sql",
   "scripts/build-cloudflare-pages.sh",
   "scripts/build-cloudflare-workers.sh",
   "scripts/bootstrap-cloudflare-d1.sh",
@@ -93,7 +93,7 @@ for (const table of ["market_events", "event_revisions", "event_sources", "decis
 
 const expectedTriggerMigrations = new Map<string, string>([
   ["0002_market_event_revision_guards.sql", "trg_event_revision_continuity"],
-  ["0003_market_event_promote_current.sql", "trg_event_revision_promote_current"],
+  ["0003_promote_current_revision.sql", "trg_event_revision_promote_current"],
   ["0004_event_revisions_no_update.sql", "trg_event_revisions_no_update"],
   ["0005_event_revisions_no_delete.sql", "trg_event_revisions_no_delete"],
   ["0006_event_sources_no_update.sql", "trg_event_sources_no_update"],
@@ -126,7 +126,7 @@ for (const [name, trigger] of expectedTriggerMigrations) {
 }
 
 const guardMarkerMigration = readFileSync(
-  "migrations/0010_market_event_revision_guards_marker.sql",
+  "migrations/0010_revision_guards_marker.sql",
   "utf8",
 );
 assert(
