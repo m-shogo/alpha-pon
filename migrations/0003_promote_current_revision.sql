@@ -1,0 +1,1 @@
+CREATE TRIGGER IF NOT EXISTS trg_event_revision_promote_current AFTER INSERT ON event_revisions BEGIN UPDATE market_events SET current_revision_id = NEW.revision_id WHERE event_id = NEW.event_id AND julianday(NEW.observed_at) >= julianday(updated_at); END;
