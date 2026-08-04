@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   buildD1SyncApplySql,
   buildD1SyncPlan,
@@ -161,5 +162,15 @@ assert.match(sql, /INSERT OR IGNORE INTO "event_revisions"/);
 assert.doesNotMatch(sql, /\bDELETE\b/i);
 assert.doesNotMatch(sql, /\bDROP\b/i);
 assert.doesNotMatch(sql, /CREATE\s+TRIGGER/i);
+
+const workflow = readFileSync(".github/workflows/sync-cloudflare-d1-market-events.yml", "utf8");
+assert.match(workflow, /DATABASE_NAME: \$\{\{ inputs\.database \}\}/);
+assert.match(workflow, /CLOUDFLARE_D1_READ_API_TOKEN/);
+assert.match(workflow, /CLOUDFLARE_D1_EDIT_API_TOKEN/);
+assert.match(workflow, /environment: production/);
+assert.match(workflow, /\^\[A-Za-z0-9\]\[A-Za-z0-9_-\]\{0,63\}\$/);
+assert.doesNotMatch(workflow, /--database "\$\{\{ inputs\.database \}\}"/);
+assert.doesNotMatch(workflow, /CLOUDFLARE_API_TOKEN: \$\{\{ secrets\.CLOUDFLARE_API_TOKEN \}\}/);
+assert.doesNotMatch(workflow, /^env:\n  CLOUDFLARE_API_TOKEN:/m);
 
 console.log("cloudflare-d1-sync-verification: ok");
