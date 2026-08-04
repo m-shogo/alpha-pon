@@ -87,6 +87,22 @@ if grep -Eiq '^[[:space:]]*(BEGIN[[:space:]]+TRANSACTION|SAVEPOINT|COMMIT|ROLLBA
   exit 1
 fi
 
+MIGRATION_FILES=(migrations/[0-9]*.sql)
+if [[ "${#MIGRATION_FILES[@]}" -eq 0 ]]; then
+  echo "No migrations found" >&2
+  exit 1
+fi
+
+# Wrangler remote migration parsing has failed on SQL comments in real D1
+# imports. Keep executable migration files comment-free and put rationale in
+# docs or source-control history instead.
+for migration_file in "${MIGRATION_FILES[@]}"; do
+  if grep -Eq '^[[:space:]]*--' "$migration_file"; then
+    echo "D1 migration contains a remote-unsafe SQL line comment: $migration_file" >&2
+    exit 1
+  fi
+done
+
 if [[ "$KEEP_EXPORT" -eq 1 ]]; then
   mkdir -p data/exports
   cp "$BOOTSTRAP_SQL" "data/exports/market-events-d1-bootstrap.sql"
@@ -106,12 +122,6 @@ fi
 
 # Confirm the user is authenticated before attempting remote writes.
 npx --yes wrangler@latest whoami >/dev/null
-
-MIGRATION_FILES=(migrations/[0-9]*.sql)
-if [[ "${#MIGRATION_FILES[@]}" -eq 0 ]]; then
-  echo "No migrations found" >&2
-  exit 1
-fi
 
 # Use Wrangler's D1 migration command rather than executing migration files as
 # generic SQL imports. D1 manages migration ordering and its own migration log.
