@@ -36,7 +36,11 @@ const editPermission = selectD1PermissionGroup(groups, "edit");
 assert.deepEqual(readPermission, { id: "1".repeat(32), name: D1_PERMISSION_NAMES.read });
 assert.deepEqual(editPermission, { id: "2".repeat(32), name: D1_PERMISSION_NAMES.edit });
 assert.throws(
-  () => selectD1PermissionGroup([...groups, { id: "4".repeat(32), name: "D1 Read", scopes: ["com.cloudflare.api.account"] }], "read"),
+  () => selectD1PermissionGroup([...groups, {
+    id: "4".repeat(32),
+    name: "D1 Read",
+    scopes: ["com.cloudflare.api.account"],
+  }], "read"),
   /exactly one/,
 );
 
@@ -85,17 +89,26 @@ for (const contract of [
   "CLOUDFLARE_D1_READ_API_TOKEN",
   "CLOUDFLARE_D1_EDIT_API_TOKEN",
   "CLOUDFLARE_ACCOUNT_ID",
+  "--edit-secret-scope",
   "--revoke-bootstrap",
   "DRY_RUN_ONLY",
+  "without changing the GitHub plan",
 ]) {
   assert.ok(cli.includes(contract), `missing token setup contract: ${contract}`);
 }
-assert.match(cli, /setGitHubSecret\(repository, ENVIRONMENT_SECRET_NAME, editToken\.value, cli\.environment\)/);
-assert.match(cli, /setGitHubSecret\(repository, "CLOUDFLARE_D1_READ_API_TOKEN", readToken\.value\)/);
+assert.match(cli, /setGitHubSecret\(repository, EDIT_SECRET_NAME, editToken\.value, editEnvironment\)/);
+assert.match(cli, /setGitHubSecret\(repository, READ_SECRET_NAME, readToken\.value\)/);
+assert.match(cli, /setGitHubSecret\(repository, ACCOUNT_SECRET_NAME, cli\.accountId\)/);
 assert.match(cli, /runGh\(args, `\$\{value\}\\n`\)/);
 assert.doesNotMatch(cli, /--body.*token/i);
 assert.doesNotMatch(cli, /console\.log\([^\n]*\.value/);
 assert.doesNotMatch(cli, /writeFileSync\([^\n]*(?:token|secret)/i);
 assert.doesNotMatch(cli, /CLOUDFLARE_TOKEN_CREATOR_API_TOKEN[^\n]*--/);
+
+const runbook = readFileSync("docs/implementation/cloudflare-d1-token-cli-runbook.md", "utf8");
+assert.match(runbook, /Create additional tokens/);
+assert.match(runbook, /--revoke-bootstrap/);
+assert.match(runbook, /does not run D1 bootstrap/);
+assert.doesNotMatch(runbook, /paste it into chat/i);
 
 console.log("cloudflare-d1-token-provisioning-verification: ok");
