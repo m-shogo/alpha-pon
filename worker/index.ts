@@ -1,4 +1,4 @@
-import { onRequest } from '../functions/[[path]]'
+import { onRequest } from '../functions/[[path]].js'
 
 type PagesRequestContext = Parameters<typeof onRequest>[0]
 
@@ -40,7 +40,7 @@ export async function fetchAlphaPon(
     return onRequest({
       request,
       env,
-      waitUntil: promise => context.waitUntil(promise),
+      waitUntil: (promise: Promise<unknown>) => context.waitUntil(promise),
     })
   }
 
