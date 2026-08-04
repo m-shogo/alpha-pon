@@ -21,7 +21,8 @@
     {
       "binding": "DB",
       "database_name": "alpha-pon-market-events",
-      "database_id": "7b90faf4-9834-4393-a921-275e0a68b398"
+      "database_id": "7b90faf4-9834-4393-a921-275e0a68b398",
+      "migrations_dir": "migrations/d1"
     }
   ]
 
