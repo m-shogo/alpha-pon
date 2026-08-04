@@ -12,7 +12,6 @@ type D1Database = {
 
 type Env = {
   DB: D1Database
-  OWNER_EMAIL?: string
   PUBLIC_ORIGIN?: string
   CALENDAR_FEED_TOKEN?: string
 }
@@ -154,17 +153,6 @@ function json(value: unknown, status = 200, headers: HeadersInit = {}): Response
       ...headers,
     },
   })
-}
-
-function authenticatedEmail(request: Request): string {
-  return (request.headers.get('Cf-Access-Authenticated-User-Email') ?? '').trim().toLowerCase()
-}
-
-function requireOwner(request: Request, env: Env): Response | null {
-  const expected = (env.OWNER_EMAIL ?? '').trim().toLowerCase()
-  if (!expected) return json({ error: 'OWNER_EMAIL is not configured' }, 503)
-  if (authenticatedEmail(request) !== expected) return json({ error: 'forbidden' }, 403)
-  return null
 }
 
 function safeParseArray(value: string): string[] {
@@ -409,8 +397,9 @@ async function handle(request: Request, env: Env): Promise<Response> {
   if (url.pathname === '/healthz' || url.pathname === '/healthz/') {
     return json({
       ok: true,
-      accessConfigured: Boolean(env.OWNER_EMAIL),
-      calendarFeedConfigured: Boolean(env.CALENDAR_FEED_TOKEN),
+      accessConfigured: false,
+      apiAccessMode: 'public-read-only',
+      calendarFeedConfigured: Boolean(env.CALENDAR_FEED_TOKEN && env.PUBLIC_ORIGIN),
       databaseBound: Boolean(env.DB),
     })
   }
@@ -430,22 +419,17 @@ async function handle(request: Request, env: Env): Promise<Response> {
     })
   }
 
-  const denied = requireOwner(request, env)
-  if (denied) return denied
-
   if (url.pathname === '/api/market-events' || url.pathname === '/api/market-events/') return json(await projection(env))
-
-  if (url.pathname === '/api/calendar-feed-url' || url.pathname === '/api/calendar-feed-url/') {
-    if (!env.PUBLIC_ORIGIN || !env.CALENDAR_FEED_TOKEN) return json({ configured: false, url: null }, 503)
-    const origin = env.PUBLIC_ORIGIN.replace(/\/$/, '')
-    return json({ configured: true, url: `${origin}/calendar.ics?token=${encodeURIComponent(env.CALENDAR_FEED_TOKEN)}` })
-  }
 
   if (url.pathname.startsWith('/api/market-events/')) {
     const eventId = decodeURIComponent(url.pathname.slice('/api/market-events/'.length).replace(/\/$/, ''))
     const data = await projection(env)
     const event = data.events.find(item => item.eventId === eventId)
     return event ? json(event) : json({ error: 'not found' }, 404)
+  }
+
+  if (url.pathname === '/api/calendar-feed-url' || url.pathname === '/api/calendar-feed-url/') {
+    return json({ error: 'not found' }, 404)
   }
 
   return json({ error: 'not found' }, 404)
