@@ -11,6 +11,7 @@ const config = await readFile(new URL('../wrangler.jsonc', import.meta.url), 'ut
 
 for (const required of [
   '"main": "./worker/index.ts"',
+  '"keep_vars": true',
   '"directory": "./apps/web/out"',
   '"binding": "ASSETS"',
   '"html_handling": "force-trailing-slash"',
