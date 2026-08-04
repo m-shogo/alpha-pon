@@ -3,71 +3,57 @@
 import { useState } from 'react'
 import styles from '@/app/calendar/calendar.module.css'
 
-type State = 'idle' | 'loading' | 'copied-live' | 'copied-snapshot' | 'failed'
+type State = 'idle' | 'loading' | 'copied' | 'failed'
 
-async function resolveFeedUrl(): Promise<{ url: string; live: boolean }> {
-  try {
-    const response = await fetch('/api/calendar-feed-url', {
-      method: 'GET',
-      cache: 'no-store',
-      credentials: 'same-origin',
-      headers: { accept: 'application/json' },
-    })
-    if (response.ok) {
-      const body = await response.json() as { configured?: boolean; url?: unknown }
-      if (body.configured && typeof body.url === 'string' && body.url.startsWith('https://')) {
-        return { url: body.url, live: true }
-      }
-    }
-  } catch {
-    // Cloudflare未接続・offline時は静的snapshotへフォールバックする。
-  }
-  return { url: `${window.location.origin}/generated/alpha-pon-events.ics`, live: false }
+function snapshotFeedUrl(): string {
+  return new URL('/generated/alpha-pon-events.ics', window.location.origin).toString()
 }
 
 export function CalendarFeedActions() {
   const [state, setState] = useState<State>('idle')
 
-  async function copyFeedUrl() {
+  async function copySnapshotUrl() {
     setState('loading')
     try {
-      const feed = await resolveFeedUrl()
-      await navigator.clipboard.writeText(feed.url)
-      setState(feed.live ? 'copied-live' : 'copied-snapshot')
+      await navigator.clipboard.writeText(snapshotFeedUrl())
+      setState('copied')
     } catch {
       setState('failed')
     }
   }
 
-  async function openFeed() {
+  function openSnapshotFeed() {
     setState('loading')
     try {
-      const feed = await resolveFeedUrl()
-      window.open(feed.url, '_blank', 'noopener,noreferrer')
-      setState(feed.live ? 'idle' : 'copied-snapshot')
+      window.open(snapshotFeedUrl(), '_blank', 'noopener,noreferrer')
+      setState('idle')
     } catch {
       setState('failed')
     }
   }
 
-  const label = state === 'loading'
-    ? '取得中…'
-    : state === 'copied-live'
-      ? 'LIVE購読URLをコピー済み'
-      : state === 'copied-snapshot'
-        ? 'SNAPSHOT URLを使用'
-        : state === 'failed'
-          ? '取得失敗'
-          : '購読URLをコピー'
+  const copyLabel = state === 'loading'
+    ? '処理中…'
+    : state === 'copied'
+      ? 'SNAPSHOT URLをコピー済み'
+      : state === 'failed'
+        ? 'コピー失敗'
+        : 'SNAPSHOT URLをコピー'
 
   return (
-    <div className={styles.actions}>
-      <button className={styles.actionButton} type="button" onClick={copyFeedUrl} disabled={state === 'loading'}>
-        {label}
-      </button>
-      <button className={styles.actionButton} type="button" onClick={openFeed} disabled={state === 'loading'}>
-        ICSを開く
-      </button>
+    <div>
+      <div className={styles.actions} aria-label="公開カレンダー購読">
+        <button className={styles.actionButton} type="button" onClick={copySnapshotUrl} disabled={state === 'loading'} aria-live="polite">
+          {copyLabel}
+        </button>
+        <button className={styles.actionButton} type="button" onClick={openSnapshotFeed} disabled={state === 'loading'}>
+          SNAPSHOT ICSを開く
+        </button>
+      </div>
+      <div className={styles.subtitle}>
+        公開購読は生成時点のSNAPSHOTです。画面の表示元はページ内の状態メッセージで確認できます。
+        Token付きLIVE購読URLはこの画面へ出さず、本人がパスワード管理アプリから手動登録します。
+      </div>
     </div>
   )
 }
