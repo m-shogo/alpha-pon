@@ -27,11 +27,17 @@ Pages projectは新規作成しない。既存のWorker `alpha-pon`を利用す�
 | Repository | `m-shogo/alpha-pon` |
 | Production branch | `main` |
 | Root directory | `/` |
-| Build command | `bash scripts/build-cloudflare-pages.sh` |
+| Build command | `bash scripts/build-cloudflare-workers.sh` |
 | Deploy command | `npx wrangler deploy` |
 | Non-production deploy command | `npx wrangler versions upload` |
 
-現在のbuild script名には`pages`が残るが、処理内容はNext.js static exportと成果物検証であり、Workers Static Assetsでも再利用できる。移行完了後に名称を整理する。
+Build variables:
+
+```text
+PNPM_VERSION=9
+```
+
+Node.jsはrepo rootの`.node-version`で22系へ固定する。Cloudflareがversion fileを読めない場合だけBuild variableとして`NODE_VERSION=22`も追加する。
 
 初回deployではD1 bindingとruntime secretをまだ追加しない。静的UIとgenerated snapshotを先に公開して、Worker/Assets routingを確認する。
 
@@ -41,6 +47,8 @@ build成功:
 
 ```text
 cloudflare-pages-build: ok
+workers-static-assets: ok
+cloudflare-workers-build: ok
 Success: Build command completed
 ```
 
@@ -136,6 +144,7 @@ openssl rand -hex 32
 実tokenをGitHub、Issue、ログ、スクリーンショットへ保存しない。
 
 Build variablesはruntime variablesとは別物である。OWNER_EMAIL等をBuild variablesだけに入れない。
+`wrangler.jsonc`の`keep_vars: true`により、repoへ実値を書かずにDashboardで設定したplain runtime variablesを次回deployでも維持する。D1 bindingは正式なdatabase ID取得後、configへ追加する。
 
 ## 6. Cloudflare Access
 
