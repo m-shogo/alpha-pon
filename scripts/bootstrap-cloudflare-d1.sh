@@ -66,6 +66,7 @@ run_ts() {
 TEMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/alpha-pon-d1-bootstrap.XXXXXX")"
 DB_PATH="$TEMP_DIR/market-events.db"
 BOOTSTRAP_SQL="$TEMP_DIR/market-events-d1-bootstrap.sql"
+REMOTE_VERIFY_JSON="$TEMP_DIR/remote-d1-verify.json"
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
 run_ts scripts/verify-cloudflare-calendar-readiness.ts
@@ -147,5 +148,40 @@ echo "Verifying remote migration mode and row counts"
 npx --yes "$WRANGLER_PACKAGE" d1 execute "$DATABASE_NAME" \
   --remote \
   --command="SELECT version, applied_at FROM schema_migrations ORDER BY version; SELECT COUNT(*) AS events FROM market_events; SELECT COUNT(*) AS revisions FROM event_revisions; SELECT COUNT(*) AS sources FROM event_sources; SELECT COUNT(*) AS decisions FROM decision_snapshots; SELECT COUNT(*) AS triggers FROM sqlite_master WHERE type = 'trigger';"
+
+npx --yes "$WRANGLER_PACKAGE" d1 execute "$DATABASE_NAME" \
+  --remote \
+  --json \
+  --command="SELECT COUNT(*) AS triggers FROM sqlite_master WHERE type = 'trigger'; SELECT COUNT(*) AS legacy_guard_marker FROM schema_migrations WHERE version = '0002_market_event_revision_guards';" \
+  > "$REMOTE_VERIFY_JSON"
+
+node --input-type=module - "$REMOTE_VERIFY_JSON" <<'NODE'
+import { readFileSync } from 'node:fs'
+
+const path = process.argv[2]
+const payload = JSON.parse(readFileSync(path, 'utf8'))
+const observed = new Map()
+
+function visit(value) {
+  if (Array.isArray(value)) {
+    for (const item of value) visit(item)
+    return
+  }
+  if (!value || typeof value !== 'object') return
+  for (const [key, item] of Object.entries(value)) {
+    if (key === 'triggers' || key === 'legacy_guard_marker') observed.set(key, Number(item))
+    visit(item)
+  }
+}
+
+visit(payload)
+const triggers = observed.get('triggers')
+const legacyGuardMarker = observed.get('legacy_guard_marker')
+if (triggers !== 0) throw new Error(`remote D1 must have zero triggers, found ${String(triggers)}`)
+if (legacyGuardMarker !== 0) {
+  throw new Error(`legacy revision guard marker must be absent, found ${String(legacyGuardMarker)}`)
+}
+console.log(JSON.stringify({ remoteD1Mode: 'read-only-no-trigger', triggers, legacyGuardMarker }))
+NODE
 
 echo "cloudflare-d1-bootstrap: applied"
