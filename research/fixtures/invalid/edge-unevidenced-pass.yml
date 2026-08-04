@@ -1,0 +1,43 @@
+# テスト用フィクスチャ（不正データ）。
+# 違反1: promotionGate.netAlphaPositive が evidence 無しで pass
+# 違反2: mechanism が短すぎる（10文字未満）
+schemaVersion: 1
+id: "fixture-unevidenced-pass"
+title: "フィクスチャ: 根拠なし pass"
+status: "shadow"
+priority: "C"
+owner: "fixture"
+createdAt: "2024-01-04"
+lastUpdate: "2024-02-01"
+hypothesis: "フィクスチャ用の不正な仮説。根拠のない pass を検出できるかを確認する。"
+mechanism: "短い"
+confidence: 0.9
+requiredData:
+  - "なし"
+entry:
+  trigger: "テスト"
+  side: "long"
+exit:
+  rule: "テスト"
+voiInputs:
+  expectedNetAlphaBps: 500
+  uncertaintyReduction: 0.1
+  researchCost: 0.1
+samples:
+  required: 20
+  current: 0
+  requiredAnalogs: 10
+promotionGate:
+  sufficientSamples: { state: "unknown" }
+  holdoutPass: { state: "unknown" }
+  pitSafe: { state: "unknown" }
+  netAlphaPositive: { state: "pass" }
+  executionFeasible: { state: "unknown" }
+  liquiditySufficient: { state: "unknown" }
+  borrowCostCovered: { state: "unknown" }
+  confoundersRemoved: { state: "unknown" }
+  counterfactualExplained: { state: "unknown" }
+  decayChecked: { state: "unknown" }
+  falseDiscoveryGuard: { state: "unknown" }
+decay:
+  reviewIntervalDays: 90

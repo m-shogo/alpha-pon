@@ -1,0 +1,239 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "alpha-pon/research/edge.schema.json",
+  "title": "Edge",
+  "description": "Edge Registry の1件。research/edge_registry/edges/<id>.yml に1件1ファイルで置く。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "title",
+    "status",
+    "priority",
+    "owner",
+    "createdAt",
+    "lastUpdate",
+    "hypothesis",
+    "mechanism",
+    "confidence",
+    "requiredData",
+    "entry",
+    "exit",
+    "voiInputs",
+    "samples",
+    "promotionGate",
+    "decay"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "minLength": 4,
+      "maxLength": 64,
+      "description": "kebab-case。ファイル名と一致。immutable。"
+    },
+    "title": { "type": "string", "minLength": 4, "maxLength": 120 },
+    "status": {
+      "type": "string",
+      "enum": ["idea", "research", "shadow", "production", "rejected", "deprecated"]
+    },
+    "priority": { "type": "string", "enum": ["S", "A", "B", "C"] },
+    "owner": { "type": "string", "minLength": 1 },
+    "createdAt": { "type": "string", "format": "date", "description": "immutable" },
+    "lastUpdate": { "type": "string", "format": "date" },
+    "hypothesis": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 500,
+      "description": "検証可能な1文。immutable。変えたい場合は新 Edge を作る。"
+    },
+    "mechanism": {
+      "type": "string",
+      "minLength": 10,
+      "description": "因果機序。なぜ利益が残るのか。"
+    },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "requiredData": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 2 }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source", "sourceType", "observedAt", "summary"],
+        "properties": {
+          "source": { "type": "string", "minLength": 1, "description": "URL または一次資料の識別子" },
+          "sourceType": {
+            "type": "string",
+            "enum": [
+              "company_ir",
+              "tdnet",
+              "jpx",
+              "edinet",
+              "financial_statement",
+              "regulator",
+              "ministry",
+              "court",
+              "administrative",
+              "major_media",
+              "market_data",
+              "historical_db",
+              "academic"
+            ],
+            "description": "SNS・掲示板・匿名投稿は許可されない（enum に存在しない）。"
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "その情報が公に入手可能になった時刻。PIT の基準。"
+          },
+          "eventDate": { "type": "string", "format": "date" },
+          "summary": { "type": "string", "minLength": 4 }
+        }
+      }
+    },
+    "analogIds": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+      "uniqueItems": true
+    },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["trigger", "side"],
+      "properties": {
+        "trigger": { "type": "string", "minLength": 4 },
+        "side": { "type": "string", "enum": ["long", "short", "pair", "undecided"] },
+        "decisionLagMinutes": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "exit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rule"],
+      "properties": {
+        "rule": { "type": "string", "minLength": 4 },
+        "holdingPeriodDays": { "type": "integer", "minimum": 1 },
+        "invalidation": { "type": "string" }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "feasibility": { "type": "string", "enum": ["unknown", "blocked", "hard", "feasible"] },
+        "notes": { "type": "string" },
+        "borrowAvailability": { "type": "string", "enum": ["unknown", "none", "scarce", "available"] },
+        "adtvJpy": { "type": "number", "minimum": 0 }
+      }
+    },
+    "voiInputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["expectedNetAlphaBps", "uncertaintyReduction", "researchCost"],
+      "properties": {
+        "expectedNetAlphaBps": { "type": "number", "description": "1トレードあたりの期待 Net Alpha（bps）。未知なら仮置きし、根拠を notes に書く。" },
+        "uncertaintyReduction": { "type": "number", "minimum": 0, "maximum": 1 },
+        "executionImprovement": { "type": "number", "minimum": 0, "maximum": 1 },
+        "researchCost": { "type": "number", "minimum": 0, "maximum": 1 },
+        "notes": { "type": "string" }
+      }
+    },
+    "samples": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "current", "requiredAnalogs"],
+      "properties": {
+        "required": { "type": "integer", "minimum": 1 },
+        "current": { "type": "integer", "minimum": 0 },
+        "requiredAnalogs": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "promotionGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sufficientSamples",
+        "holdoutPass",
+        "pitSafe",
+        "netAlphaPositive",
+        "executionFeasible",
+        "liquiditySufficient",
+        "borrowCostCovered",
+        "confoundersRemoved",
+        "counterfactualExplained",
+        "decayChecked",
+        "falseDiscoveryGuard"
+      ],
+      "properties": {
+        "sufficientSamples": { "$ref": "#/$defs/gateItem" },
+        "holdoutPass": { "$ref": "#/$defs/gateItem" },
+        "pitSafe": { "$ref": "#/$defs/gateItem" },
+        "netAlphaPositive": { "$ref": "#/$defs/gateItem" },
+        "executionFeasible": { "$ref": "#/$defs/gateItem" },
+        "liquiditySufficient": { "$ref": "#/$defs/gateItem" },
+        "borrowCostCovered": { "$ref": "#/$defs/gateItem" },
+        "confoundersRemoved": { "$ref": "#/$defs/gateItem" },
+        "counterfactualExplained": { "$ref": "#/$defs/gateItem" },
+        "decayChecked": { "$ref": "#/$defs/gateItem" },
+        "falseDiscoveryGuard": { "$ref": "#/$defs/gateItem" }
+      }
+    },
+    "decay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reviewIntervalDays"],
+      "properties": {
+        "reviewIntervalDays": { "type": "integer", "minimum": 1 },
+        "lastCheckedAt": { "type": "string", "format": "date" },
+        "score": { "type": "number", "minimum": 0, "maximum": 1, "description": "1 = 劣化なし, 0 = 完全に消滅" },
+        "notes": { "type": "string" }
+      }
+    },
+    "holdout": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "researchWindow": { "$ref": "#/$defs/window" },
+        "holdoutWindow": { "$ref": "#/$defs/window" }
+      }
+    },
+    "rejection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason", "rejectedAt"],
+      "properties": {
+        "reason": { "type": "string", "minLength": 10 },
+        "rejectedAt": { "type": "string", "format": "date" },
+        "disconfirmingEvidence": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "notes": { "type": "string" }
+  },
+  "$defs": {
+    "gateItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state"],
+      "properties": {
+        "state": { "type": "string", "enum": ["pass", "fail", "unknown"] },
+        "evidence": { "type": "string" },
+        "checkedAt": { "type": "string", "format": "date" }
+      }
+    },
+    "window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to"],
+      "properties": {
+        "from": { "type": "string", "format": "date" },
+        "to": { "type": "string", "format": "date" }
+      }
+    }
+  }
+}

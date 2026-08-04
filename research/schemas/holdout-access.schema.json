@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "alpha-pon/research/holdout-access.schema.json",
+  "title": "HoldoutAccessEntry",
+  "description": "Holdout 開封記録。access_log.jsonl に1行1件（Append Only）。開封は Production 判定時のみ。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "edgeId", "windowId", "openedAt", "actor", "purpose", "result"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "minLength": 6 },
+    "edgeId": { "type": "string", "minLength": 1 },
+    "windowId": { "type": "string", "minLength": 1 },
+    "openedAt": { "type": "string", "format": "date-time" },
+    "actor": { "type": "string", "minLength": 1 },
+    "purpose": {
+      "type": "string",
+      "enum": ["production_gate"],
+      "description": "Production Gate 判定以外の目的で開封してはいけない。"
+    },
+    "result": { "type": "string", "enum": ["pass", "fail"] },
+    "netAlphaBps": { "type": "number" },
+    "sampleCount": { "type": "integer", "minimum": 0 },
+    "notes": { "type": "string" }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "alpha-pon/research/research-log.schema.json",
+  "title": "ResearchLogEntry",
+  "description": "毎時の研究ログ。research/research_log/YYYY-MM.jsonl に1行1件（Append Only）。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "at", "actor", "type", "summary"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "minLength": 6, "description": "重複検知に使う一意 ID。<YYYYMMDDTHHmm>-<slug> 推奨。" },
+    "at": { "type": "string", "format": "date-time", "description": "記録時刻。未来日時は不可。" },
+    "actor": { "type": "string", "minLength": 1, "description": "chatgpt-hourly / human / ci など" },
+    "type": {
+      "type": "string",
+      "enum": [
+        "research",
+        "edge_created",
+        "edge_updated",
+        "edge_rejected",
+        "edge_promoted",
+        "analog_added",
+        "counterfactual_added",
+        "confounder_added",
+        "backtest_run",
+        "decay_check",
+        "data_gap",
+        "os_change"
+      ]
+    },
+    "edgeId": { "type": "string" },
+    "queueRank": { "type": "integer", "minimum": 1, "description": "この研究を選んだときの Queue 順位。1 以外なら理由が必要。" },
+    "queueOverrideReason": { "type": "string" },
+    "summary": { "type": "string", "minLength": 10 },
+    "findings": { "type": "array", "items": { "type": "string" } },
+    "addedAnalogIds": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "rejectionReason": { "type": "string" },
+    "dataGaps": { "type": "array", "items": { "type": "string" } },
+    "nextActions": { "type": "array", "items": { "type": "string" } },
+    "sources": { "type": "array", "items": { "type": "string" } }
+  }
+}

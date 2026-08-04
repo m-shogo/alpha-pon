@@ -1,0 +1,16 @@
+# Research Queue（VOI Scheduler）の重み。
+# ここを変えると「毎時どの研究を選ぶか」が変わる。変更は必ず理由を research_log に残すこと。
+# 未記載の項目は src/research/queue.ts の DEFAULT_WEIGHTS が使われる。
+
+# expectedNetAlphaBps をこの値で 1.0 に正規化する（300bps = 3% を上限とみなす）
+roiNormalizationBps: 300
+
+expectedRoi: 0.25            # 期待 Net Alpha の大きさ
+uncertaintyReduction: 0.20   # 1回の研究で減る不確実性
+sampleGap: 0.15              # サンプル不足
+historicalGap: 0.15          # Historical Analog 不足
+productionProximity: 0.10    # Production Gate の充足率（あと少しのものを優先）
+decayUrgency: 0.20           # Decay 再検証の期限超過（期限切れは最優先で浮上させる）
+executionImprovement: 0.05   # Execution 改善余地
+priority: 0.10               # 人間が付けた優先度 S/A/B/C
+researchCost: 0.10           # 研究コスト（この重みで減点する）

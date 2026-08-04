@@ -1,0 +1,104 @@
+name: Research OS
+
+# Research OS の整合性チェックと生成物の更新のみを行う。
+# このワークフローは研究しない。新しい Edge の作成・投資判断・Production 昇格は一切行わない。
+# 判断するのは人間、研究するのは ChatGPT、ここは器の健全性を守るだけ。
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "research/**"
+      - "src/research/**"
+      - "tests/research/**"
+      - "docs/research/**"
+      - "docs/prompts/**"
+      - "docs/roadmaps/**"
+      - ".github/workflows/research-os.yml"
+  pull_request:
+    paths:
+      - "research/**"
+      - "src/research/**"
+      - "tests/research/**"
+      - "docs/research/**"
+      - "docs/prompts/**"
+      - "docs/roadmaps/**"
+      - ".github/workflows/research-os.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: research-os-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  research-os:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Append Only / 不変性ガードが履歴を比較するため全履歴が必要
+          fetch-depth: 0
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # --- 器の健全性（実装が壊れていないか） -----------------------------
+      - name: 型チェック
+        run: pnpm typecheck && pnpm typecheck:tests
+
+      - name: Research OS ユニットテスト
+        run: pnpm research:test
+
+      # --- データの健全性（研究記録が契約を守っているか） -------------------
+      - name: Schema / 重複 / PIT / Gate / Decay
+        run: pnpm research:validate
+
+      - name: Append Only・不変性ガード
+        run: pnpm research:check:history
+
+      - name: ドキュメント整合性（リンク切れ・生成物の手編集）
+        run: pnpm research:check:docs
+
+      # --- 安全な Backtest のみ自動実行 ------------------------------------
+      # 外部 IO なし・固定の合成データのみ。実価格を使う backtest は自動実行しない。
+      - name: Backtest（fixtures のみ）
+        run: pnpm research:backtest:fixtures
+
+      # --- 生成物 ----------------------------------------------------------
+      # PR では「再生成して差分が出たら失敗」（人間は CLI を実行できる）。
+      - name: 生成物が最新か検証
+        if: github.event_name == 'pull_request'
+        run: pnpm research:generate:check
+
+      # main への push では CI が生成物を作り直してコミットする。
+      # ChatGPT はファイルを書くだけでよく、生成物を手で作る必要がない。
+      - name: 生成物を再生成
+        if: github.event_name != 'pull_request'
+        run: pnpm research:generate
+
+      - name: 生成物の差分をコミット
+        if: github.event_name != 'pull_request'
+        run: |
+          if [ -z "$(git status --porcelain research/)" ]; then
+            echo "生成物に差分はありません"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add research/
+          git commit -m "chore(research): 生成物を更新（index / queue / dashboard）"
+          git push

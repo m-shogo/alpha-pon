@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "alpha-pon/research/counterfactual.schema.json",
+  "title": "Counterfactual",
+  "description": "「そのイベントが無かった場合」の比較対象。counterfactuals.jsonl に1行1件（Append Only）。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "analogId", "method", "comparator", "recordedAt", "observedAt"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "minLength": 6 },
+    "analogId": { "type": "string", "minLength": 1 },
+    "edgeId": { "type": "string" },
+    "method": {
+      "type": "string",
+      "enum": ["peer_matched", "sector_index", "market_index", "pre_event_trend", "synthetic_control", "same_company_prior_period"]
+    },
+    "comparator": { "type": "string", "minLength": 2, "description": "比較対象の具体名（ピア銘柄コード / 指数名など）" },
+    "observedAt": { "type": "string", "format": "date-time" },
+    "recordedAt": { "type": "string", "format": "date" },
+    "eventReturnBps": { "type": "number" },
+    "counterfactualReturnBps": { "type": "number" },
+    "differenceBps": { "type": "number" },
+    "explanation": { "type": "string" },
+    "dataGaps": { "type": "array", "items": { "type": "string" } }
+  }
+}
