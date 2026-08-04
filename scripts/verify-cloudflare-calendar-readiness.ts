@@ -64,6 +64,12 @@ for (const contract of [
 }
 assert(!wranglerConfig.includes('"/api*"'), "broad /api* route must not shadow static generated API assets");
 assert(!wranglerConfig.includes('"CALENDAR_FEED_TOKEN":'), "calendar bearer token must not be committed as a Wrangler variable");
+assert(!wranglerConfig.includes("OWNER_EMAIL"), "OWNER_EMAIL is not part of the public read-only runtime contract");
+
+const devVarsExample = readFileSync(".dev.vars.example", "utf8");
+assert(devVarsExample.includes("PUBLIC_ORIGIN="), "PUBLIC_ORIGIN must be documented for local Workers development");
+assert(devVarsExample.includes("CALENDAR_FEED_TOKEN="), "CALENDAR_FEED_TOKEN must be documented without a real value");
+assert(!devVarsExample.includes("OWNER_EMAIL"), "OWNER_EMAIL must not be required by the local runtime example");
 
 const workerEntry = readFileSync("worker/index.ts", "utf8");
 assert(workerEntry.includes("env.ASSETS.fetch(request)"), "Worker must delegate static routes to ASSETS");
@@ -71,6 +77,13 @@ assert(workerEntry.includes("pathname.startsWith('/api/market-events/')"), "Work
 assert(workerEntry.includes("pathname === '/api/calendar-feed-url'"), "Worker must execute calendar URL route before asset lookup");
 assert(workerEntry.includes("pathname === '/calendar.ics'"), "Worker must execute tokenized ICS before asset lookup");
 assert(!workerEntry.includes("pathname.startsWith('/api/')"), "Worker must not shadow static /api/generated/* routes");
+
+const pagesFunction = readFileSync("functions/[[path]].ts", "utf8");
+assert(pagesFunction.includes("DB?: D1Database"), "D1 binding must be optional at the runtime type boundary");
+assert(pagesFunction.includes("database unavailable"), "D1-backed routes must have an explicit 503 response");
+assert(pagesFunction.includes("apiAccessMode: 'public-read-only'"), "healthz must expose the public read-only API contract");
+assert(!pagesFunction.includes("OWNER_EMAIL"), "public read-only routes must not depend on OWNER_EMAIL");
+assert(!pagesFunction.includes("Cf-Access-Authenticated-User-Email"), "public read-only routes must not trust Access identity headers");
 
 const routes = JSON.parse(readFileSync("apps/web/public/_routes.json", "utf8")) as {
   version: number;
@@ -214,11 +227,26 @@ assert(wranglerExample.includes("REPLACE_AFTER_D1_CREATION"));
 assert(wranglerExample.includes('"binding": "DB"'));
 assert(wranglerExample.includes('"migrations_dir": "migrations/d1"'));
 assert(!wranglerExample.includes('"CALENDAR_FEED_TOKEN":'), "calendar bearer token must be a secret, not wrangler vars");
+assert(!wranglerExample.includes("OWNER_EMAIL"), "OWNER_EMAIL must not appear in the public read-only example");
 
 const bootstrapScript = readFileSync("scripts/bootstrap-cloudflare-d1.sh", "utf8");
 assert(bootstrapScript.includes('REMOTE_MIGRATION_DIR="migrations/d1"'), "D1 bootstrap must use the remote migration directory");
 assert(bootstrapScript.includes("must remain trigger-free"), "D1 bootstrap must reject remote trigger migrations");
 assert(bootstrapScript.includes("--apply"), "D1 remote writes must require explicit --apply");
+
+const runbook = readFileSync("docs/implementation/cloudflare-workers-static-assets-runbook.md", "utf8");
+for (const contract of [
+  "Cloudflare Access: 使用しない",
+  "D1 mode: `READ_ONLY_NO_TRIGGERS`",
+  "D1 bootstrapは再実行不要",
+  "market-events APIはGET専用",
+  "`/api/calendar-feed-url`は常に404",
+  "`CALENDAR_FEED_TOKEN`一致時",
+]) {
+  assert(runbook.includes(contract), `runbook is missing public read-only contract: ${contract}`);
+}
+assert(!runbook.includes("Configure Cloudflare Access"), "runbook must not instruct operators to configure Access");
+assert(!runbook.includes("Set OWNER_EMAIL"), "runbook must not require OWNER_EMAIL");
 
 const workerFirstRoutes = [
   "/api/market-events*",
@@ -227,10 +255,17 @@ const workerFirstRoutes = [
   "/healthz*",
 ];
 console.log(JSON.stringify({
-  status: "READY_PENDING_WORKERS_DEPLOYMENT",
+  status: "PUBLIC_READ_ONLY_READY_PENDING_PRODUCTION_VERIFICATION",
   requiredFiles: requiredFiles.length,
   workerFirstRoutes,
   transitionalPagesRoutes: routes.include,
+  apiAccessMode: "public-read-only",
+  cloudflareAccessRequired: false,
+  ownerEmailRequired: false,
+  publicMarketEventGet: true,
+  publicWriteApi: false,
+  calendarFeedUrlRoute: "404",
+  calendarFeedMode: "TOKEN_REQUIRED",
   validatedSeedFiles: files.length,
   validatedSeedInputs: inputCount,
   validatedLocalMigrations: localMigrationFiles.length,
@@ -238,12 +273,10 @@ console.log(JSON.stringify({
   validatedLocalGuardTriggers: expectedTriggerMigrations.size,
   remoteD1WriteMode: "READ_ONLY_NO_TRIGGERS",
   remainingExternalSteps: [
-    "Merge the Workers migration PR",
-    "Redeploy the existing alpha-pon Worker from main",
-    "Create D1 database and bind it as DB",
-    "Apply every remote D1 migration and bootstrap SQL",
-    "Set OWNER_EMAIL and PUBLIC_ORIGIN runtime variables",
-    "Set encrypted CALENDAR_FEED_TOKEN",
-    "Configure Cloudflare Access and narrow calendar.ics bypass",
+    "Merge the public read-only DB guard fix PR after every required check is green",
+    "Wait for Cloudflare Builds to deploy the merged main commit",
+    "Verify healthz, public market-event APIs, token protection, and LIVE calendar UI in production",
+    "Remove the unused OWNER_EMAIL variable only after production verification",
+    "Implement the separate dry-run-first administrative D1 sync path without a public write API",
   ],
 }, null, 2));
