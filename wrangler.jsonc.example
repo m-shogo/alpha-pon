@@ -4,13 +4,15 @@
   "main": "./worker/index.ts",
   "compatibility_date": "2026-08-04",
   "workers_dev": true,
+  "keep_vars": true,
   "assets": {
     "directory": "./apps/web/out",
     "binding": "ASSETS",
     "html_handling": "force-trailing-slash",
     "not_found_handling": "404-page",
     "run_worker_first": [
-      "/api*",
+      "/api/market-events*",
+      "/api/calendar-feed-url*",
       "/calendar.ics*",
       "/healthz*"
     ]
