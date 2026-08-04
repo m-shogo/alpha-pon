@@ -54,7 +54,7 @@ const first: MarketEventRegistrationInput = {
 };
 
 const source = openMarketEventDatabase({ path: ":memory:" });
-const target = openMarketEventDatabase({ path: ":memory:" });
+const target = openMarketEventDatabase({ path: ":memory:", migrationDirectory: "migrations/d1" });
 try {
   const eventId = buildEventId(first);
   const firstBundle = buildMarketEventBundle(first, getNextRevisionContext(source, eventId));
@@ -109,6 +109,10 @@ try {
   assert.equal(audit.counts.decisions, 2);
   assert.equal(audit.counts.outbox, 1);
   assert.equal((target.prepare("PRAGMA foreign_key_check").all() as unknown[]).length, 0);
+  const current = target.prepare(
+    "SELECT current_revision_id AS currentRevisionId FROM market_events WHERE event_id = ?",
+  ).get(eventId) as { currentRevisionId: string } | undefined;
+  assert.equal(current?.currentRevisionId, second.revision.revisionId, "D1 bootstrap must preserve the latest revision pointer");
 
   console.log("d1-bootstrap-export: ok");
 } finally {

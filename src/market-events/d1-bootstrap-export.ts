@@ -22,7 +22,6 @@ const TABLE_ORDER = [
 const TABLE_ROW_ORDER: Record<(typeof TABLE_ORDER)[number], string> = {
   market_events: "event_id",
   event_sources: "event_id, source_id",
-  // previous_revision_id is a self-reference. Earlier revisions must be emitted first.
   event_revisions: "event_id, revision_number, revision_id",
   decision_snapshots: "event_id, created_at, decision_snapshot_id",
   delivery_outbox: "event_id, scheduled_at, delivery_id",
@@ -61,43 +60,24 @@ function tableRows(
   columns: string[],
 ): Record<string, SqlValue>[] {
   const select = columns.map(quoteIdentifier).join(", ");
-  const rows = db.prepare(
+  return db.prepare(
     `SELECT ${select} FROM ${quoteIdentifier(table)} ORDER BY ${TABLE_ROW_ORDER[table]}`,
   ).all() as Record<string, SqlValue>[];
-
-  if (table !== "market_events") return rows;
-
-  // A fresh D1 bootstrap stores the latest materialized event fields first but
-  // leaves the current pointer empty. Ordered event_revisions then rebuild the
-  // append-only chain and the database trigger promotes only the revision whose
-  // observed_at reaches the projection updated_at. This avoids treating older
-  // history as a stale runtime write.
-  return rows.map(row => ({ ...row, current_revision_id: null }));
 }
 
 export function buildD1BootstrapExport(
   db: MarketEventDatabase,
   options: { generatedAt?: string; sourceDatabase?: string } = {},
 ): D1BootstrapExport {
-  const generatedAt = options.generatedAt ?? new Date().toISOString();
+  void options.generatedAt;
+  void options.sourceDatabase;
   const rowCounts: Record<string, number> = {};
-  const lines: string[] = [
-    "-- Alpha Pon Market Event D1 bootstrap",
-    `-- generated_at: ${generatedAt}`,
-    `-- source_database: ${options.sourceDatabase ?? "local"}`,
-    "-- Safety: INSERT OR IGNORE only. This file never deletes or overwrites existing D1 rows.",
-    "-- Intended for a newly migrated empty D1 database, not incremental synchronization.",
-    "-- Rows are emitted in deterministic dependency-safe order.",
-    "-- Apply every ordered migrations/[0-9]*.sql file before this file.",
-    "-- D1 remote imports reject explicit BEGIN TRANSACTION / COMMIT statements.",
-    "PRAGMA foreign_keys = ON;",
-  ];
+  const lines: string[] = ["PRAGMA foreign_keys = ON;"];
 
   for (const table of TABLE_ORDER) {
     const columns = tableColumns(db, table);
     const rows = tableRows(db, table, columns);
     rowCounts[table] = rows.length;
-    lines.push("", `-- ${table}: ${rows.length} rows`);
     if (!rows.length) continue;
     const columnSql = columns.map(quoteIdentifier).join(", ");
     for (const row of rows) {
