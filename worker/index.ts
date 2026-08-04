@@ -31,6 +31,43 @@ export function shouldRunWorker(pathname: string): boolean {
   )
 }
 
+function isDatabaseBackedRoute(pathname: string): boolean {
+  return (
+    pathname === '/api/market-events' ||
+    pathname.startsWith('/api/market-events/') ||
+    pathname === '/calendar.ics' ||
+    pathname === '/calendar.ics/'
+  )
+}
+
+function databaseUnavailableResponse(): Response {
+  return new Response(JSON.stringify({ error: 'database unavailable' }), {
+    status: 503,
+    headers: {
+      'content-type': 'application/json; charset=utf-8',
+      'cache-control': 'private, no-store',
+    },
+  })
+}
+
+function hardenDynamicResponse(response: Response): Response {
+  const headers = new Headers(response.headers)
+  // Public means anonymously readable by direct request. Browser cross-origin reads remain disabled.
+  headers.delete('access-control-allow-origin')
+  headers.delete('access-control-allow-credentials')
+  headers.set('cross-origin-resource-policy', 'same-origin')
+  headers.set('content-security-policy', "default-src 'none'; frame-ancestors 'none'; base-uri 'none'")
+  headers.set('x-content-type-options', 'nosniff')
+  headers.set('referrer-policy', 'no-referrer')
+  headers.set('x-frame-options', 'DENY')
+  headers.set('permissions-policy', 'camera=(), microphone=(), geolocation=()')
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  })
+}
+
 export async function fetchAlphaPon(
   request: Request,
   env: WorkerEnv,
@@ -39,11 +76,15 @@ export async function fetchAlphaPon(
   const pathname = new URL(request.url).pathname
 
   if (shouldRunWorker(pathname)) {
-    return onRequest({
+    const response = await onRequest({
       request,
       env,
       waitUntil: (promise: Promise<unknown>) => context.waitUntil(promise),
     })
+    if (response.status === 500 && isDatabaseBackedRoute(pathname)) {
+      return hardenDynamicResponse(databaseUnavailableResponse())
+    }
+    return hardenDynamicResponse(response)
   }
 
   return env.ASSETS.fetch(request)
