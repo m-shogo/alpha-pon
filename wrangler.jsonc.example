@@ -26,7 +26,8 @@
       "binding": "DB",
       "database_name": "alpha-pon-market-events",
       "database_id": "REPLACE_AFTER_D1_CREATION",
-      "preview_database_id": "REPLACE_AFTER_D1_CREATION"
+      "preview_database_id": "REPLACE_AFTER_D1_CREATION",
+      "migrations_dir": "migrations/d1"
     }
   ]
 }
