@@ -15,13 +15,15 @@ export type WorkerExecutionContext = {
 }
 
 /**
- * These routes contain dynamic or protected responses and must execute the
- * Worker before Cloudflare attempts a static-asset lookup.
+ * Only live D1/auth routes execute the Worker before static-asset lookup.
+ * Existing /api/generated/* exports must remain static assets.
  */
 export function shouldRunWorker(pathname: string): boolean {
   return (
-    pathname === '/api' ||
-    pathname.startsWith('/api/') ||
+    pathname === '/api/market-events' ||
+    pathname.startsWith('/api/market-events/') ||
+    pathname === '/api/calendar-feed-url' ||
+    pathname === '/api/calendar-feed-url/' ||
     pathname === '/calendar.ics' ||
     pathname === '/calendar.ics/' ||
     pathname === '/healthz' ||
