@@ -24,7 +24,7 @@ jobs:
           cache: pnpm
       - name: Install shellcheck
         run: sudo apt-get update && sudo apt-get install -y shellcheck
-      - run: shellcheck scripts/run-daily.sh scripts/ci-pipeline-smoke.sh scripts/run-proposal-history.sh scripts/run-daily-complete.sh scripts/verify-cloudflare-production.sh
+      - run: shellcheck scripts/run-daily.sh scripts/ci-pipeline-smoke.sh scripts/run-proposal-history.sh scripts/run-daily-complete.sh scripts/verify-cloudflare-production.sh scripts/setup-cloudflare-d1-github-secrets.sh
       - run: pnpm install --frozen-lockfile
       - name: Prepare offline CI environment
         run: test -f .env || touch .env
@@ -89,7 +89,7 @@ jobs:
             reports/ipo_theme_watch_latest.md
             reports/ipo_theme_watch_latest.json
             reports/stock_pro_agent_latest.md
-            reports/stock_pro_summary_latest.md
+            reports/stock-pro-summary_latest.md
             reports/company_hypotheses_latest.md
             reports/company_network_latest.md
             reports/company_coverage_audit_latest.md
