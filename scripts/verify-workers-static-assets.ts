@@ -44,6 +44,12 @@ const assets = {
 
 const envWithoutDb = { ASSETS: assets } as unknown as WorkerEnv
 const eventId = 'evt_111111111111111111111111'
+const privateMarkers = {
+  ownerEmail: 'private-owner@example.com',
+  privateNote: 'PRIVATE_NOTE_MUST_NOT_LEAK',
+  apiKey: 'sk-private-api-key-must-not-leak',
+  token: 'private-calendar-token-must-not-leak',
+}
 const eventRows = [{
   event_id: eventId,
   schema_version: 1,
@@ -72,6 +78,10 @@ const eventRows = [{
   stale_after: '2099-08-04T06:00:00Z',
   created_at: '2026-08-03T06:00:00Z',
   updated_at: '2026-08-03T06:00:00Z',
+  owner_email: privateMarkers.ownerEmail,
+  private_note: privateMarkers.privateNote,
+  api_key: privateMarkers.apiKey,
+  calendar_feed_token: privateMarkers.token,
 }]
 const fakeDb = {
   prepare(query: string) {
@@ -89,10 +99,29 @@ const fakeDb = {
     }
   },
 }
+const failingDb = {
+  prepare() {
+    return {
+      bind() { return this },
+      async all<T>() {
+        throw new Error('simulated D1 outage')
+      },
+      async first<T>() {
+        throw new Error('simulated D1 outage')
+      },
+    }
+  },
+}
 const calendarToken = '0123456789abcdef0123456789abcdef'
 const envWithDb = {
   ASSETS: assets,
   DB: fakeDb,
+  PUBLIC_ORIGIN: 'https://alpha-pon.example',
+  CALENDAR_FEED_TOKEN: calendarToken,
+} as unknown as WorkerEnv
+const envWithFailingDb = {
+  ASSETS: assets,
+  DB: failingDb,
   PUBLIC_ORIGIN: 'https://alpha-pon.example',
   CALENDAR_FEED_TOKEN: calendarToken,
 } as unknown as WorkerEnv
@@ -102,6 +131,16 @@ const context: WorkerExecutionContext = {
   waitUntil(promise: Promise<unknown>) {
     pending.push(promise)
   },
+}
+
+function assertDynamicSecurityHeaders(response: Response): void {
+  assert.equal(response.headers.get('access-control-allow-origin'), null)
+  assert.equal(response.headers.get('cross-origin-resource-policy'), 'same-origin')
+  assert.match(response.headers.get('content-security-policy') ?? '', /default-src 'none'/)
+  assert.equal(response.headers.get('x-content-type-options'), 'nosniff')
+  assert.equal(response.headers.get('referrer-policy'), 'no-referrer')
+  assert.equal(response.headers.get('x-frame-options'), 'DENY')
+  assert.match(response.headers.get('permissions-policy') ?? '', /camera=\(\)/)
 }
 
 for (const staticPath of ['/calendar/', '/api/generated/alerts/']) {
@@ -122,6 +161,7 @@ const healthResponse = await worker.fetch(
   context,
 )
 assert.equal(healthResponse.status, 200)
+assertDynamicSecurityHeaders(healthResponse)
 assert.equal(assetRequests.length, staticRequestCount, 'dynamic route must not use ASSETS')
 const health = (await healthResponse.json()) as Record<string, unknown>
 assert.equal(health.ok, true)
@@ -134,6 +174,7 @@ const feedResponse = await worker.fetch(
   context,
 )
 assert.equal(feedResponse.status, 404)
+assertDynamicSecurityHeaders(feedResponse)
 assert.equal(assetRequests.length, staticRequestCount, 'tokenized ICS must not fall through to ASSETS')
 
 const apiWithoutDb = await worker.fetch(
@@ -142,6 +183,7 @@ const apiWithoutDb = await worker.fetch(
   context,
 )
 assert.equal(apiWithoutDb.status, 503)
+assertDynamicSecurityHeaders(apiWithoutDb)
 assert.deepEqual(await apiWithoutDb.json(), { error: 'database unavailable' })
 assert.equal(assetRequests.length, staticRequestCount, 'live API must not fall through to ASSETS')
 
@@ -151,10 +193,31 @@ const apiWithDb = await worker.fetch(
   context,
 )
 assert.equal(apiWithDb.status, 200)
-const projection = await apiWithDb.json() as { source: string; events: Array<{ eventId: string }> }
+assertDynamicSecurityHeaders(apiWithDb)
+assert.equal(apiWithDb.headers.get('cache-control'), 'private, no-store')
+const projectionText = await apiWithDb.text()
+for (const marker of Object.values(privateMarkers)) assert.doesNotMatch(projectionText, new RegExp(marker))
+const projection = JSON.parse(projectionText) as { source: string; events: Array<{ eventId: string }> }
 assert.equal(projection.source, 'cloudflare-d1')
 assert.equal(projection.events.length, 1)
 assert.equal(projection.events[0].eventId, eventId)
+
+const failingApi = await worker.fetch(
+  new Request('https://alpha-pon.example/api/market-events'),
+  envWithFailingDb,
+  context,
+)
+assert.equal(failingApi.status, 503)
+assertDynamicSecurityHeaders(failingApi)
+assert.deepEqual(await failingApi.json(), { error: 'database unavailable' })
+
+const failingEvent = await worker.fetch(
+  new Request(`https://alpha-pon.example/api/market-events/${eventId}`),
+  envWithFailingDb,
+  context,
+)
+assert.equal(failingEvent.status, 503)
+assert.deepEqual(await failingEvent.json(), { error: 'database unavailable' })
 
 const calendarWithDb = await worker.fetch(
   new Request(`https://alpha-pon.example/calendar.ics?token=${calendarToken}`),
@@ -162,9 +225,19 @@ const calendarWithDb = await worker.fetch(
   context,
 )
 assert.equal(calendarWithDb.status, 200)
+assertDynamicSecurityHeaders(calendarWithDb)
 assert.match(calendarWithDb.headers.get('content-type') ?? '', /text\/calendar/)
 assert.match(await calendarWithDb.text(), new RegExp(`UID:${eventId}@alpha-pon`))
 assert.equal(assetRequests.length, staticRequestCount, 'live ICS must not fall through to ASSETS')
+
+const failingCalendar = await worker.fetch(
+  new Request(`https://alpha-pon.example/calendar.ics?token=${calendarToken}`),
+  envWithFailingDb,
+  context,
+)
+assert.equal(failingCalendar.status, 503)
+assertDynamicSecurityHeaders(failingCalendar)
+assert.deepEqual(await failingCalendar.json(), { error: 'database unavailable' })
 
 await Promise.all(pending)
 console.log('workers-static-assets: ok')
