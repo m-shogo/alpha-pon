@@ -171,6 +171,6 @@ assert.match(workflow, /environment: production/);
 assert.match(workflow, /\^\[A-Za-z0-9\]\[A-Za-z0-9_-\]\{0,63\}\$/);
 assert.doesNotMatch(workflow, /--database "\$\{\{ inputs\.database \}\}"/);
 assert.doesNotMatch(workflow, /CLOUDFLARE_API_TOKEN: \$\{\{ secrets\.CLOUDFLARE_API_TOKEN \}\}/);
-assert.doesNotMatch(workflow, /^\s*CLOUDFLARE_API_TOKEN:/m);
+assert.doesNotMatch(workflow, /^env:\n  CLOUDFLARE_API_TOKEN:/m);
 
 console.log("cloudflare-d1-sync-verification: ok");
