@@ -1,0 +1,64 @@
+# テスト用フィクスチャ。実在の投資判断ではなく、スキーマ検証のための合成データ。
+schemaVersion: 1
+id: "fixture-complete-edge"
+title: "フィクスチャ: スキーマを完全に満たす Edge"
+status: "research"
+priority: "A"
+owner: "fixture"
+createdAt: "2024-01-04"
+lastUpdate: "2024-02-01"
+hypothesis: "フィクスチャ用の仮説。イベント X の後、対象銘柄は N 営業日で超過収益を生む。"
+mechanism: "フィクスチャ用の因果機序。制度的な売り手が価格を無視して売るため、一時的に価格が押し下げられる。"
+confidence: 0.4
+requiredData:
+  - "イベント日の一覧"
+  - "日次の始値・終値・出来高"
+evidence:
+  - source: "https://example.invalid/fixture"
+    sourceType: "tdnet"
+    observedAt: "2024-01-04T15:30:00+09:00"
+    eventDate: "2024-01-04"
+    summary: "フィクスチャ用の一次情報"
+analogIds: []
+entry:
+  trigger: "イベント開示の翌営業日寄付"
+  side: "long"
+  decisionLagMinutes: 0
+exit:
+  rule: "保有 5 営業日で手仕舞う"
+  holdingPeriodDays: 5
+  invalidation: "3 件以上の事例で超過収益が観測できない場合"
+execution:
+  feasibility: "feasible"
+  borrowAvailability: "available"
+  adtvJpy: 1000000000
+voiInputs:
+  expectedNetAlphaBps: 120
+  uncertaintyReduction: 0.6
+  executionImprovement: 0.2
+  researchCost: 0.3
+  notes: "フィクスチャ"
+samples:
+  required: 20
+  current: 4
+  requiredAnalogs: 10
+promotionGate:
+  sufficientSamples: { state: "fail", evidence: "4/20", checkedAt: "2024-02-01" }
+  holdoutPass: { state: "unknown" }
+  pitSafe: { state: "unknown" }
+  netAlphaPositive: { state: "unknown" }
+  executionFeasible: { state: "unknown" }
+  liquiditySufficient: { state: "unknown" }
+  borrowCostCovered: { state: "unknown" }
+  confoundersRemoved: { state: "unknown" }
+  counterfactualExplained: { state: "unknown" }
+  decayChecked: { state: "unknown" }
+  falseDiscoveryGuard: { state: "unknown" }
+decay:
+  reviewIntervalDays: 90
+  lastCheckedAt: "2024-02-01"
+  score: 0.8
+holdout:
+  researchWindow: { from: "2020-01-01", to: "2024-06-30" }
+  holdoutWindow: { from: "2024-07-01", to: "2025-06-30" }
+notes: "テスト専用"
