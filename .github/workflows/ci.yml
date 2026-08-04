@@ -34,11 +34,8 @@ jobs:
       - name: Check core CLI and research contracts
         run: pnpm check
 
-      - name: Build and verify static export
-        run: bash scripts/build-cloudflare-pages.sh
-
-      - name: Verify Workers Static Assets routing
-        run: node --import tsx/esm scripts/verify-workers-static-assets.ts
+      - name: Build and verify Workers Static Assets artifact
+        run: bash scripts/build-cloudflare-workers.sh
 
       - name: Bundle Worker without deploying
         run: npx --yes wrangler@4.118.0 deploy --dry-run --outdir .wrangler-dry-run
