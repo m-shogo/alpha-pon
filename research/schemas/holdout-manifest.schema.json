@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "alpha-pon/research/holdout-manifest.schema.json",
+  "title": "HoldoutVaultManifest",
+  "description": "Holdout Vault の封印定義。ここに書かれた期間・銘柄は Production 判定時以外は参照禁止。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "sealedAt", "policy", "windows"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "sealedAt": { "type": "string", "format": "date" },
+    "policy": { "type": "string", "minLength": 10 },
+    "windows": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "from", "to", "scope"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+          "from": { "type": "string", "format": "date" },
+          "to": { "type": "string", "format": "date" },
+          "scope": { "type": "string", "enum": ["all_universe", "named_codes"] },
+          "codes": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+          "notes": { "type": "string" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "alpha-pon/research/backtest.schema.json",
+  "title": "BacktestSpec",
+  "description": "Backtest の共通入力。価格系列は別途注入する（OS は価格を取得しない）。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "edgeId", "side", "entry", "exit", "costs", "liquidity"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "minLength": 6 },
+    "edgeId": { "type": "string", "minLength": 1 },
+    "side": { "type": "string", "enum": ["long", "short"] },
+    "notionalJpy": { "type": "number", "minimum": 1 },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["next_open", "same_close", "vwap_next_day"],
+          "description": "same_close は observedAt が引け前であることを PIT チェックで要求する。"
+        },
+        "lagDays": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "exit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": { "type": "string", "enum": ["holding_period", "event_resolution", "stop_or_period"] },
+        "holdingPeriodDays": { "type": "integer", "minimum": 1 },
+        "stopLossBps": { "type": "number", "minimum": 0 }
+      }
+    },
+    "costs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commissionBps", "spreadBps", "slippageBps"],
+      "properties": {
+        "commissionBps": { "type": "number", "minimum": 0 },
+        "spreadBps": { "type": "number", "minimum": 0 },
+        "slippageBps": { "type": "number", "minimum": 0 },
+        "marketImpactBpsPerPctAdv": { "type": "number", "minimum": 0 },
+        "borrowCostAnnualBps": { "type": "number", "minimum": 0 },
+        "shortRebateAnnualBps": { "type": "number" }
+      }
+    },
+    "liquidity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["participationLimitPct"],
+      "properties": {
+        "participationLimitPct": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "description": "1日の出来高に対する許容執行比率。超過は executable:false。"
+        },
+        "minAdtvJpy": { "type": "number", "minimum": 0 }
+      }
+    },
+    "benchmark": { "type": "string", "description": "超過収益の基準（例: TOPIX）" },
+    "notes": { "type": "string" }
+  }
+}

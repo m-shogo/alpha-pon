@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "alpha-pon/research/confounder.schema.json",
+  "title": "Confounder",
+  "description": "交絡因子。confounders.jsonl に1行1件（Append Only）。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "category", "date", "description", "recordedAt", "handling"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "minLength": 6 },
+    "analogId": { "type": "string" },
+    "edgeId": { "type": "string" },
+    "category": {
+      "type": "string",
+      "enum": [
+        "index_event",
+        "earnings",
+        "large_flow",
+        "supply_demand",
+        "interest_rate",
+        "fx",
+        "geopolitics",
+        "same_day_event",
+        "sector_rotation",
+        "market_regime",
+        "corporate_action",
+        "other"
+      ]
+    },
+    "date": { "type": "string", "format": "date" },
+    "description": { "type": "string", "minLength": 5 },
+    "handling": {
+      "type": "string",
+      "enum": ["excluded_sample", "adjusted", "controlled_by_counterfactual", "acknowledged_unresolved"],
+      "description": "この交絡をどう処理したか。unresolved のまま Production Gate は通せない。"
+    },
+    "impactEstimateBps": { "type": "number" },
+    "source": { "type": "string" },
+    "recordedAt": { "type": "string", "format": "date" }
+  }
+}

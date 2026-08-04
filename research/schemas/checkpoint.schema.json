@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "alpha-pon/research/checkpoint.schema.json",
+  "title": "Checkpoint",
+  "description": "毎時の続きを保証する唯一の入口。research/checkpoint/latest.json。上書き時は history/ にスナップショットを残す。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "sequence",
+    "savedAt",
+    "actor",
+    "researchDone",
+    "addedAnalogIds",
+    "rejections",
+    "dataGaps",
+    "nextCandidates"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "sequence": { "type": "integer", "minimum": 1, "description": "毎回 +1。逆行・重複は CI が拒否する。" },
+    "savedAt": { "type": "string", "format": "date-time" },
+    "actor": { "type": "string", "minLength": 1 },
+    "researchedEdgeId": { "type": "string" },
+    "researchDone": { "type": "string", "minLength": 10, "description": "今回行った研究" },
+    "addedAnalogIds": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "rejections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["target", "reason"],
+        "properties": {
+          "target": { "type": "string", "minLength": 1 },
+          "reason": { "type": "string", "minLength": 10 }
+        }
+      }
+    },
+    "dataGaps": { "type": "array", "items": { "type": "string" } },
+    "nextCandidates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["edgeId", "why"],
+        "properties": {
+          "edgeId": { "type": "string", "minLength": 1 },
+          "why": { "type": "string", "minLength": 5 }
+        }
+      },
+      "description": "次回研究候補。空にはできない（続きが必ず存在すること）。"
+    },
+    "openQuestions": { "type": "array", "items": { "type": "string" } },
+    "osIssues": { "type": "array", "items": { "type": "string" }, "description": "Research OS 自体の不具合・改善要望" }
+  }
+}

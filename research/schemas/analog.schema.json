@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "alpha-pon/research/analog.schema.json",
+  "title": "HistoricalAnalog",
+  "description": "過去事例。research/historical/analogs/<id>.yml。作成後は immutable。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "eventType",
+    "companyCode",
+    "companyName",
+    "eventDate",
+    "observedAt",
+    "source",
+    "sourceType",
+    "summary",
+    "recordedAt"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "minLength": 6, "maxLength": 80 },
+    "eventType": {
+      "type": "string",
+      "enum": [
+        "misconduct_investigation",
+        "special_committee_report",
+        "earnings_delay",
+        "filing_extension",
+        "restatement",
+        "administrative_action",
+        "litigation",
+        "improvement_report",
+        "shareholder_meeting_adjourned",
+        "tob",
+        "mbo",
+        "parent_subsidiary_listing",
+        "pe_exit",
+        "spin_off",
+        "carve_out",
+        "lockup_expiry",
+        "index_event",
+        "capacity_expansion",
+        "design_win",
+        "government_procurement",
+        "other"
+      ]
+    },
+    "companyCode": { "type": "string", "minLength": 4, "maxLength": 5 },
+    "companyName": { "type": "string", "minLength": 1 },
+    "eventDate": { "type": "string", "format": "date" },
+    "observedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "その事実が公に入手可能になった時刻。PIT の基準。"
+    },
+    "source": { "type": "string", "minLength": 1 },
+    "sourceType": {
+      "type": "string",
+      "enum": [
+        "company_ir",
+        "tdnet",
+        "jpx",
+        "edinet",
+        "financial_statement",
+        "regulator",
+        "ministry",
+        "court",
+        "administrative",
+        "major_media",
+        "market_data",
+        "historical_db"
+      ]
+    },
+    "summary": { "type": "string", "minLength": 10 },
+    "recordedAt": { "type": "string", "format": "date", "description": "Research OS に記録した日" },
+    "edgeIds": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "marketReaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["measuredAt", "horizonDays", "rawReturnBps"],
+      "properties": {
+        "measuredAt": { "type": "string", "format": "date" },
+        "horizonDays": { "type": "integer", "minimum": 0 },
+        "rawReturnBps": { "type": "number" },
+        "benchmarkReturnBps": { "type": "number" },
+        "excessReturnBps": { "type": "number" },
+        "benchmark": { "type": "string" },
+        "priceSource": { "type": "string" }
+      }
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["measuredAt", "verdict"],
+      "properties": {
+        "measuredAt": { "type": "string", "format": "date" },
+        "verdict": { "type": "string", "enum": ["repriced_up", "repriced_down", "no_move", "unresolved"] },
+        "roiBps": { "type": "number" },
+        "notes": { "type": "string" }
+      }
+    },
+    "keyEvents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["date", "label"],
+        "properties": {
+          "date": { "type": "string", "format": "date" },
+          "label": { "type": "string", "minLength": 2 },
+          "source": { "type": "string" }
+        }
+      }
+    },
+    "dataGaps": { "type": "array", "items": { "type": "string" } }
+  }
+}
