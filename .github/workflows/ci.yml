@@ -34,6 +34,9 @@ jobs:
       - name: Check core CLI and research contracts
         run: pnpm check
 
+      - name: Verify Cloudflare D1 sync contracts
+        run: node --import tsx/esm scripts/verify-cloudflare-d1-sync.ts
+
       - name: Build and verify Workers Static Assets artifact
         run: bash scripts/build-cloudflare-workers.sh
 
