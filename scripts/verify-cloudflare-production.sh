@@ -51,6 +51,8 @@ TMP_DIR="$(mktemp -d)"
 TOKEN=""
 FAILURES=0
 
+# Invoked indirectly by trap.
+# shellcheck disable=SC2317
 cleanup() {
   rm -rf "$TMP_DIR"
   TOKEN=""
