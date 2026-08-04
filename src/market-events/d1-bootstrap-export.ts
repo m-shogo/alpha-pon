@@ -22,7 +22,6 @@ const TABLE_ORDER = [
 const TABLE_ROW_ORDER: Record<(typeof TABLE_ORDER)[number], string> = {
   market_events: "event_id",
   event_sources: "event_id, source_id",
-  // previous_revision_id is a self-reference. Earlier revisions must be emitted first.
   event_revisions: "event_id, revision_number, revision_id",
   decision_snapshots: "event_id, created_at, decision_snapshot_id",
   delivery_outbox: "event_id, scheduled_at, delivery_id",
@@ -70,26 +69,15 @@ export function buildD1BootstrapExport(
   db: MarketEventDatabase,
   options: { generatedAt?: string; sourceDatabase?: string } = {},
 ): D1BootstrapExport {
-  const generatedAt = options.generatedAt ?? new Date().toISOString();
+  void options.generatedAt;
+  void options.sourceDatabase;
   const rowCounts: Record<string, number> = {};
-  const lines: string[] = [
-    "-- Alpha Pon Market Event D1 bootstrap",
-    `-- generated_at: ${generatedAt}`,
-    `-- source_database: ${options.sourceDatabase ?? "local"}`,
-    "-- Safety: INSERT OR IGNORE only. This file never deletes or overwrites existing D1 rows.",
-    "-- Intended for a newly migrated empty D1 database, not incremental synchronization.",
-    "-- Rows are emitted in deterministic dependency-safe order.",
-    "-- Apply every ordered remote D1 migration before this file.",
-    "-- Remote D1 is read-only for market-event writes until application-level guards are implemented.",
-    "-- D1 remote imports reject explicit BEGIN TRANSACTION / COMMIT statements.",
-    "PRAGMA foreign_keys = ON;",
-  ];
+  const lines: string[] = ["PRAGMA foreign_keys = ON;"];
 
   for (const table of TABLE_ORDER) {
     const columns = tableColumns(db, table);
     const rows = tableRows(db, table, columns);
     rowCounts[table] = rows.length;
-    lines.push("", `-- ${table}: ${rows.length} rows`);
     if (!rows.length) continue;
     const columnSql = columns.map(quoteIdentifier).join(", ");
     for (const row of rows) {
