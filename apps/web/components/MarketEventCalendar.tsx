@@ -80,6 +80,28 @@ function daysFrom(today: string, target: string): number {
   return Math.round((end - start) / 86_400_000)
 }
 
+function relativeDayLabel(today: string, target: string): string {
+  const diff = daysFrom(today, target)
+  if (diff === 0) return '今日'
+  if (diff === 1) return '明日'
+  if (diff > 1) return `あと${diff}日`
+  return `${Math.abs(diff)}日前`
+}
+
+function readableDay(day: string): string {
+  try {
+    return new Intl.DateTimeFormat('ja-JP', {
+      timeZone: 'Asia/Tokyo',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'short',
+    }).format(new Date(`${day}T00:00:00+09:00`))
+  } catch {
+    return day
+  }
+}
+
 function groupFor(event: WebMarketEvent, today: string): string {
   if (event.status === 'COMPLETED' || event.status === 'CANCELLED') return '完了・取消'
   if (event.time.precision === 'UNKNOWN') return '日程未確定'
@@ -144,60 +166,82 @@ function calendarCells(month: string): CalendarCell[] {
   })
 }
 
-function EventCard({ event }: { event: WebMarketEvent }) {
+function EventBadges({ event }: { event: WebMarketEvent }) {
   const priority = PRIORITY_STYLE[event.priority]
   const decision = DECISION_STYLE[event.currentDecisionState]
   return (
+    <div className={styles.badges}>
+      <span className={styles.badge} style={{ color: priority.color, background: priority.background }}>{event.priority}</span>
+      <span className={styles.badge} style={{ color: decision.color, background: decision.background }}>{event.currentDecisionState}</span>
+      <span className={styles.badge} style={{ color: 'var(--ink-2)', background: 'var(--surface-2)' }}>{STATUS_LABEL[event.status]}</span>
+      {event.freshnessState === 'STALE' && (
+        <span className={styles.badge} style={{ color: 'var(--urgent)', background: 'var(--urgent-soft)' }}>STALE</span>
+      )}
+    </div>
+  )
+}
+
+function EventCard({ event, onOpen }: { event: WebMarketEvent; onOpen: (event: WebMarketEvent) => void }) {
+  return (
     <article id={event.eventId} className={styles.eventCard}>
       <div className={styles.eventTop}>
-        <div className={styles.badges}>
-          <span className={styles.badge} style={{ color: priority.color, background: priority.background }}>{event.priority}</span>
-          <span className={styles.badge} style={{ color: decision.color, background: decision.background }}>{event.currentDecisionState}</span>
-          <span className={styles.badge} style={{ color: 'var(--ink-2)', background: 'var(--surface-2)' }}>{STATUS_LABEL[event.status]}</span>
-          {event.freshnessState === 'STALE' && (
-            <span className={styles.badge} style={{ color: 'var(--urgent)', background: 'var(--urgent-soft)' }}>STALE</span>
-          )}
-        </div>
+        <EventBadges event={event} />
         <div className={styles.eventDate}>{marketEventDateLabel(event)}</div>
       </div>
       <h3 className={styles.eventTitle}>{event.issuerCode ? `${event.issuerCode} ` : ''}{event.issuerName} — {event.title}</h3>
       <div className={styles.eventMeta}>{event.eventType} · rev.{event.revisionNumber} · {categoryOf(event)}</div>
       <p className={styles.why}>{event.whyItMatters}</p>
-
-      <details className={styles.details}>
-        <summary>確認項目・一次情報を見る</summary>
-        <div className={styles.detailGrid}>
-          <div>
-            <div className={styles.detailLabel}>事前に見る</div>
-            {event.checksBefore.length ? (
-              <ul className={styles.detailList}>{event.checksBefore.map(item => <li key={item}>{item}</li>)}</ul>
-            ) : <div className={styles.eventMeta}>未登録</div>}
-          </div>
-          <div>
-            <div className={styles.detailLabel}>通過後に見る</div>
-            {event.checksAfter.length ? (
-              <ul className={styles.detailList}>{event.checksAfter.map(item => <li key={item}>{item}</li>)}</ul>
-            ) : <div className={styles.eventMeta}>未登録</div>}
-          </div>
-          <div>
-            <div className={styles.detailLabel}>関連Edge</div>
-            <div className={styles.eventMeta}>{event.edgeTypes.join(' / ') || '未登録'}</div>
-          </div>
-          <div>
-            <div className={styles.detailLabel}>鮮度</div>
-            <div className={styles.eventMeta}>最終確認 {event.lastVerifiedAt}<br />stale予定 {event.staleAfter ?? '未設定'}</div>
-          </div>
-          <div style={{ gridColumn: '1 / -1' }}>
-            <div className={styles.detailLabel}>一次情報</div>
-            {event.sources.length ? event.sources.map(source => (
-              <a key={source.sourceId} className={styles.sourceLink} href={source.url} target="_blank" rel="noreferrer">
-                {source.authority} · {source.title}
-              </a>
-            )) : <div className={styles.eventMeta}>一次情報リンクなし</div>}
-          </div>
-        </div>
-      </details>
+      <button type="button" className={styles.openDetailButton} onClick={() => onOpen(event)}>
+        詳細・一次情報を見る
+      </button>
     </article>
+  )
+}
+
+function EventDetail({ event }: { event: WebMarketEvent }) {
+  return (
+    <>
+      <div className={styles.modalEventTop}>
+        <EventBadges event={event} />
+        <div className={styles.eventDate}>{marketEventDateLabel(event)}</div>
+      </div>
+      <h2 id="market-event-dialog-title" className={styles.modalTitle}>
+        {event.issuerCode ? `${event.issuerCode} ` : ''}{event.issuerName} — {event.title}
+      </h2>
+      <div className={styles.eventMeta}>{event.eventType} · rev.{event.revisionNumber} · {categoryOf(event)}</div>
+      <p className={styles.modalWhy}>{event.whyItMatters}</p>
+
+      <div className={styles.detailGrid}>
+        <div className={styles.detailBlock}>
+          <div className={styles.detailLabel}>事前に見る</div>
+          {event.checksBefore.length ? (
+            <ul className={styles.detailList}>{event.checksBefore.map(item => <li key={item}>{item}</li>)}</ul>
+          ) : <div className={styles.eventMeta}>未登録</div>}
+        </div>
+        <div className={styles.detailBlock}>
+          <div className={styles.detailLabel}>通過後に見る</div>
+          {event.checksAfter.length ? (
+            <ul className={styles.detailList}>{event.checksAfter.map(item => <li key={item}>{item}</li>)}</ul>
+          ) : <div className={styles.eventMeta}>未登録</div>}
+        </div>
+        <div className={styles.detailBlock}>
+          <div className={styles.detailLabel}>関連Edge</div>
+          <div className={styles.eventMeta}>{event.edgeTypes.join(' / ') || '未登録'}</div>
+        </div>
+        <div className={styles.detailBlock}>
+          <div className={styles.detailLabel}>鮮度</div>
+          <div className={styles.eventMeta}>最終確認 {event.lastVerifiedAt}<br />stale予定 {event.staleAfter ?? '未設定'}</div>
+        </div>
+        <div className={`${styles.detailBlock} ${styles.sourceBlock}`}>
+          <div className={styles.detailLabel}>一次情報</div>
+          {event.sources.length ? event.sources.map(source => (
+            <a key={source.sourceId} className={styles.sourceLink} href={source.url} target="_blank" rel="noreferrer">
+              {source.authority} · {source.title}
+            </a>
+          )) : <div className={styles.eventMeta}>一次情報リンクなし</div>}
+        </div>
+      </div>
+    </>
   )
 }
 
@@ -208,6 +252,8 @@ export function MarketEventCalendar({ data, nowIso }: { data: WebMarketEventData
   const [visibility, setVisibility] = useState<Visibility>('ACTIVE')
   const [viewMode, setViewMode] = useState<ViewMode>('CALENDAR')
   const [calendarMonth, setCalendarMonth] = useState(() => monthForEvents(data.events, today))
+  const [selectedDay, setSelectedDay] = useState<string | null>(null)
+  const [selectedEvent, setSelectedEvent] = useState<WebMarketEvent | null>(null)
   const autoSelectedMonth = useRef(false)
 
   const filtered = useMemo(() => data.events.filter(event => {
@@ -227,6 +273,23 @@ export function MarketEventCalendar({ data, nowIso }: { data: WebMarketEventData
     setCalendarMonth(availableMonths.find(month => month >= today.slice(0, 7)) ?? availableMonths[0])
     autoSelectedMonth.current = true
   }, [availableMonths, today])
+
+  useEffect(() => {
+    if (!selectedDay && !selectedEvent) return
+    const previousOverflow = document.body.style.overflow
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setSelectedDay(null)
+        setSelectedEvent(null)
+      }
+    }
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [selectedDay, selectedEvent])
 
   const grouped = useMemo(() => {
     const result = new Map<string, WebMarketEvent[]>()
@@ -262,8 +325,31 @@ export function MarketEventCalendar({ data, nowIso }: { data: WebMarketEventData
     .filter(event => eventDay(event)?.startsWith(calendarMonth))
     .sort((a, b) => (a.sortAt ?? '').localeCompare(b.sortAt ?? '')), [calendarMonth, filtered])
 
+  const nextEvent = useMemo(() => data.events
+    .filter(event => {
+      const day = eventDay(event)
+      return day && day >= today && !['COMPLETED', 'CANCELLED'].includes(event.status)
+    })
+    .sort((a, b) => (a.sortAt ?? '9999-12-31').localeCompare(b.sortAt ?? '9999-12-31'))[0] ?? null, [data.events, today])
+
+  const selectedDayEvents = useMemo(
+    () => selectedDay ? (eventsByDay.get(selectedDay) ?? []) : [],
+    [eventsByDay, selectedDay],
+  )
+
   const cells = useMemo(() => calendarCells(calendarMonth), [calendarMonth])
   const nextAvailableMonth = availableMonths.find(month => month > calendarMonth) ?? availableMonths[0]
+  const dialogOpen = Boolean(selectedDay || selectedEvent)
+
+  const closeDialog = () => {
+    setSelectedDay(null)
+    setSelectedEvent(null)
+  }
+
+  const openEvent = (event: WebMarketEvent, day: string | null = null) => {
+    setSelectedDay(day)
+    setSelectedEvent(event)
+  }
 
   return (
     <>
@@ -271,7 +357,7 @@ export function MarketEventCalendar({ data, nowIso }: { data: WebMarketEventData
         <div className={styles.headerRow}>
           <div>
             <h1 className={styles.title}>重要イベント</h1>
-            <div className={styles.subtitle}>決算・会見・調査報告・企業構造イベントを、買う前の確認条件と一緒に管理します。</div>
+            <div className={styles.subtitle}>予定は日付をタップして確認。詳細はポップアップで開きます。</div>
           </div>
           <CalendarFeedActions />
         </div>
@@ -279,6 +365,25 @@ export function MarketEventCalendar({ data, nowIso }: { data: WebMarketEventData
 
       <div className={styles.page}>
         {data.meta.warnings.map(warning => <div key={warning} className={styles.warning}>⚠ {warning}</div>)}
+
+        {nextEvent && (() => {
+          const day = eventDay(nextEvent)
+          const priority = PRIORITY_STYLE[nextEvent.priority]
+          return (
+            <button type="button" className={styles.nextEventWidget} onClick={() => openEvent(nextEvent)}>
+              <span className={styles.widgetAccent} style={{ background: priority.color }} aria-hidden="true" />
+              <span className={styles.widgetBody}>
+                <span className={styles.widgetEyebrow}>次の重要予定</span>
+                <span className={styles.widgetTitle}>{nextEvent.issuerCode ? `${nextEvent.issuerCode} ` : ''}{nextEvent.issuerName}</span>
+                <span className={styles.widgetSubtitle}>{nextEvent.title}</span>
+              </span>
+              <span className={styles.widgetDate}>
+                <strong>{day ? relativeDayLabel(today, day) : '日程未確定'}</strong>
+                <span>{marketEventDateLabel(nextEvent)}</span>
+              </span>
+            </button>
+          )
+        })()}
 
         <div className={styles.summaryGrid}>
           {[
@@ -362,33 +467,26 @@ export function MarketEventCalendar({ data, nowIso }: { data: WebMarketEventData
                 {cells.map(cell => {
                   const dayEvents = eventsByDay.get(cell.day) ?? []
                   const isToday = cell.day === today
+                  const label = dayEvents.length
+                    ? `${readableDay(cell.day)}、予定${dayEvents.length}件。タップして表示`
+                    : readableDay(cell.day)
                   return (
-                    <div
+                    <button
                       key={cell.day}
-                      className={`${styles.calendarDay} ${cell.inMonth ? '' : styles.outsideMonth} ${isToday ? styles.today : ''}`}
+                      type="button"
+                      className={`${styles.calendarDay} ${cell.inMonth ? '' : styles.outsideMonth} ${isToday ? styles.today : ''} ${dayEvents.length ? styles.hasEvents : ''}`}
+                      onClick={() => dayEvents.length && setSelectedDay(cell.day)}
+                      disabled={dayEvents.length === 0}
+                      aria-label={label}
                     >
-                      <div className={styles.dayNumber}>{cell.dayNumber}</div>
-                      <div className={styles.calendarEvents}>
-                        {dayEvents.slice(0, 2).map(event => {
-                          const priority = PRIORITY_STYLE[event.priority]
-                          const label = `${event.issuerCode ? `${event.issuerCode} ` : ''}${event.issuerName} ${event.title}`
-                          return (
-                            <a
-                              key={event.eventId}
-                              href={`#${event.eventId}`}
-                              className={styles.calendarEvent}
-                              style={{ color: priority.color, background: priority.background }}
-                              title={label}
-                              aria-label={`${cell.day} ${label}`}
-                            >
-                              <span className={styles.calendarEventDot} aria-hidden="true">●</span>
-                              <span className={styles.calendarEventLabel}>{event.issuerCode ?? event.issuerName}</span>
-                            </a>
-                          )
-                        })}
-                        {dayEvents.length > 2 && <div className={styles.moreEvents}>+{dayEvents.length - 2}</div>}
-                      </div>
-                    </div>
+                      <span className={styles.dayNumber}>{cell.dayNumber}</span>
+                      <span className={styles.calendarEventDots} aria-hidden="true">
+                        {dayEvents.slice(0, 3).map(event => (
+                          <span key={event.eventId} className={styles.calendarEventDot} style={{ background: PRIORITY_STYLE[event.priority].color }} />
+                        ))}
+                      </span>
+                      {dayEvents.length > 0 && <span className={styles.calendarEventCount}>{dayEvents.length}件</span>}
+                    </button>
                   )
                 })}
               </div>
@@ -397,7 +495,7 @@ export function MarketEventCalendar({ data, nowIso }: { data: WebMarketEventData
             <section className={styles.section}>
               <h2 className={styles.sectionTitle}><span>{monthLabel(calendarMonth)}の予定</span><span>{monthEvents.length}件</span></h2>
               {monthEvents.length ? (
-                <div className={styles.eventGrid}>{monthEvents.map(event => <EventCard key={event.eventId} event={event} />)}</div>
+                <div className={styles.eventGrid}>{monthEvents.map(event => <EventCard key={event.eventId} event={event} onOpen={openEvent} />)}</div>
               ) : (
                 <div className={styles.empty}>この月に条件と一致するイベントはありません。「予定がある月へ」を押すと次の予定を表示します。</div>
               )}
@@ -411,11 +509,52 @@ export function MarketEventCalendar({ data, nowIso }: { data: WebMarketEventData
           return (
             <section key={group} className={styles.section}>
               <h2 className={styles.sectionTitle}><span>{group}</span><span>{events.length}件</span></h2>
-              <div className={styles.eventGrid}>{events.map(event => <EventCard key={event.eventId} event={event} />)}</div>
+              <div className={styles.eventGrid}>{events.map(event => <EventCard key={event.eventId} event={event} onOpen={openEvent} />)}</div>
             </section>
           )
         })}
       </div>
+
+      {dialogOpen && (
+        <div className={styles.modalBackdrop} onMouseDown={event => event.target === event.currentTarget && closeDialog()}>
+          <section className={styles.modalSheet} role="dialog" aria-modal="true" aria-labelledby="market-event-dialog-title">
+            <div className={styles.sheetHandle} aria-hidden="true" />
+            <div className={styles.modalHeader}>
+              {selectedEvent && selectedDay ? (
+                <button type="button" className={styles.backButton} onClick={() => setSelectedEvent(null)}>← 日付の予定</button>
+              ) : <span />}
+              <button type="button" className={styles.closeButton} onClick={closeDialog} aria-label="閉じる">×</button>
+            </div>
+
+            <div className={styles.modalContent}>
+              {selectedEvent ? (
+                <EventDetail event={selectedEvent} />
+              ) : selectedDay ? (
+                <>
+                  <div className={styles.modalEyebrow}>この日の予定</div>
+                  <h2 id="market-event-dialog-title" className={styles.modalTitle}>{readableDay(selectedDay)}</h2>
+                  <div className={styles.dayEventList}>
+                    {selectedDayEvents.map(event => {
+                      const priority = PRIORITY_STYLE[event.priority]
+                      return (
+                        <button key={event.eventId} type="button" className={styles.dayEventButton} onClick={() => setSelectedEvent(event)}>
+                          <span className={styles.dayEventAccent} style={{ background: priority.color }} />
+                          <span className={styles.dayEventBody}>
+                            <span className={styles.dayEventIssuer}>{event.issuerCode ? `${event.issuerCode} ` : ''}{event.issuerName}</span>
+                            <span className={styles.dayEventTitle}>{event.title}</span>
+                            <span className={styles.dayEventMeta}>{event.priority} · {STATUS_LABEL[event.status]} · {event.currentDecisionState}</span>
+                          </span>
+                          <span className={styles.dayEventArrow}>›</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </>
+              ) : null}
+            </div>
+          </section>
+        </div>
+      )}
     </>
   )
 }
