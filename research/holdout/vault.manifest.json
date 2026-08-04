@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "sealedAt": "2026-08-04",
+  "policy": "ここに定義した期間のデータは、Production Gate 判定のとき以外は一切参照しない。研究中（idea〜shadow）の Edge が参照した場合、CI が holdout_leak として失敗させる。開封は research:holdout:open のみで行い、access_log.jsonl に記録が残る。",
+  "windows": [
+    {
+      "id": "vault-2025h2-2026h1",
+      "from": "2025-07-01",
+      "to": "2026-06-30",
+      "scope": "all_universe",
+      "notes": "直近1年を最終検証用に封印する。研究は 2025-06-30 以前のデータで行う。"
+    }
+  ]
+}
