@@ -96,7 +96,6 @@ const fakeDb = {
 
 const env = {
   DB: fakeDb,
-  OWNER_EMAIL: "owner@example.com",
   PUBLIC_ORIGIN: "https://alpha.example.com",
   CALENDAR_FEED_TOKEN: "0123456789abcdef0123456789abcdef",
 };
@@ -111,16 +110,20 @@ function context(url: string, options: RequestInit = {}) {
 
 const health = await onRequest(context("https://alpha.example.com/healthz"));
 assert.equal(health.status, 200);
-assert.equal((await health.json() as { databaseBound: boolean }).databaseBound, true);
+const healthBody = await health.json() as {
+  accessConfigured: boolean;
+  apiAccessMode: string;
+  calendarFeedConfigured: boolean;
+  databaseBound: boolean;
+};
+assert.equal(healthBody.accessConfigured, false);
+assert.equal(healthBody.apiAccessMode, "public-read-only");
+assert.equal(healthBody.calendarFeedConfigured, true);
+assert.equal(healthBody.databaseBound, true);
 
-const unauthorized = await onRequest(context("https://alpha.example.com/api/market-events"));
-assert.equal(unauthorized.status, 403);
-
-const authorized = await onRequest(context("https://alpha.example.com/api/market-events", {
-  headers: { "Cf-Access-Authenticated-User-Email": "OWNER@example.com" },
-}));
-assert.equal(authorized.status, 200);
-const projection = await authorized.json() as {
+const publicProjection = await onRequest(context("https://alpha.example.com/api/market-events"));
+assert.equal(publicProjection.status, 200);
+const projection = await publicProjection.json() as {
   source: string;
   events: Array<{ eventId: string }>;
   summary: { unknownDate: number; calendarIncluded: number };
@@ -142,24 +145,22 @@ assert.match(ics, new RegExp(`UID:${eventRows[0].event_id}@alpha-pon`));
 assert.doesNotMatch(ics, new RegExp(`UID:${eventRows[1].event_id}@alpha-pon`));
 assert.equal((ics.match(/BEGIN:VEVENT/g) ?? []).length, 1);
 
-const feedUrl = await onRequest(context("https://alpha.example.com/api/calendar-feed-url", {
-  headers: { "Cf-Access-Authenticated-User-Email": "owner@example.com" },
-}));
-assert.equal(feedUrl.status, 200);
-assert.equal(
-  (await feedUrl.json() as { url: string }).url,
-  `https://alpha.example.com/calendar.ics?token=${env.CALENDAR_FEED_TOKEN}`,
-);
+const hiddenFeedUrl = await onRequest(context("https://alpha.example.com/api/calendar-feed-url"));
+assert.equal(hiddenFeedUrl.status, 404);
+assert.doesNotMatch(await hiddenFeedUrl.text(), new RegExp(env.CALENDAR_FEED_TOKEN));
 
-const oneEvent = await onRequest(context(`https://alpha.example.com/api/market-events/${eventRows[0].event_id}`, {
+const spoofedFeedUrl = await onRequest(context("https://alpha.example.com/api/calendar-feed-url", {
   headers: { "Cf-Access-Authenticated-User-Email": "owner@example.com" },
 }));
+assert.equal(spoofedFeedUrl.status, 404);
+assert.doesNotMatch(await spoofedFeedUrl.text(), new RegExp(env.CALENDAR_FEED_TOKEN));
+
+const oneEvent = await onRequest(context(`https://alpha.example.com/api/market-events/${eventRows[0].event_id}`));
 assert.equal(oneEvent.status, 200);
 assert.equal((await oneEvent.json() as { eventId: string }).eventId, eventRows[0].event_id);
 
 const post = await onRequest(context("https://alpha.example.com/api/market-events", {
   method: "POST",
-  headers: { "Cf-Access-Authenticated-User-Email": "owner@example.com" },
 }));
 assert.equal(post.status, 405);
 
