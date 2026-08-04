@@ -5,7 +5,7 @@ import worker, {
   shouldRunWorker,
   type WorkerEnv,
   type WorkerExecutionContext,
-} from '../worker/index'
+} from '../worker/index.js'
 
 const config = await readFile(new URL('../wrangler.jsonc', import.meta.url), 'utf8')
 
@@ -40,7 +40,7 @@ const env = {
 
 const pending: Promise<unknown>[] = []
 const context: WorkerExecutionContext = {
-  waitUntil(promise) {
+  waitUntil(promise: Promise<unknown>) {
     pending.push(promise)
   },
 }
