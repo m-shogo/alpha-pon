@@ -1,7 +1,5 @@
 PRAGMA foreign_keys = ON;
 
--- Idempotent replays of an existing revision_id are allowed by INSERT OR IGNORE.
--- Any genuinely new revision must extend the current chain by exactly one.
 CREATE TRIGGER IF NOT EXISTS trg_event_revision_continuity
 BEFORE INSERT ON event_revisions
 WHEN NOT EXISTS (
@@ -49,10 +47,6 @@ BEGIN
     THEN RAISE(ABORT, 'event revision observed_at must not move backwards')
   END;
 
-  -- Runtime registration upserts the current projection before appending the
-  -- revision. Reject a revision older than that established current pointer.
-  -- During a fresh history bootstrap, market_events.current_revision_id is
-  -- deliberately NULL until the latest historical revision is reached.
   SELECT CASE
     WHEN EXISTS (
       SELECT 1
@@ -65,11 +59,6 @@ BEGIN
   END;
 END;
 
--- The current pointer is derived from the append-only ledger. A bootstrap
--- inserts the latest projection with a NULL pointer and then replays revisions
--- oldest-first; only the revision reaching the projection's updated_at becomes
--- current. Normal runtime writes have matching observed_at/updated_at and are
--- promoted immediately.
 CREATE TRIGGER IF NOT EXISTS trg_event_revision_promote_current
 AFTER INSERT ON event_revisions
 BEGIN
