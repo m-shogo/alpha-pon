@@ -1,6 +1,6 @@
 # Alpha Pon Workers Static Assets deployment runbook
 
-Status: `IMPLEMENTATION_IN_PROGRESS`
+Status: `READY_PENDING_WORKERS_DEPLOYMENT`
 Updated: 2026-08-04 JST
 Scope: Next.js static export、Worker API、D1、tokenized ICSを単一のCloudflare Workerへ配置する
 
@@ -10,15 +10,20 @@ Scope: Next.js static export、Worker API、D1、tokenized ICSを単一のCloudf
 Cloudflare Worker: alpha-pon
 ├─ Static Assets: apps/web/out
 ├─ Worker entry: worker/index.ts
-├─ Dynamic routes
+├─ Worker-first routes
 │  ├─ /healthz
-│  ├─ /api/*
-│  └─ /calendar.ics
+│  ├─ /api/market-events*
+│  ├─ /api/calendar-feed-url*
+│  └─ /calendar.ics*
+├─ Static API exports
+│  └─ /api/generated/*
 └─ D1 binding: DB（初回静的deploy後に追加）
 ```
 
 Pages projectは新規作成しない。既存のWorker `alpha-pon`を利用する。
 旧`functions/[[path]].ts`は移行中の互換実装として残し、Worker entryから呼び出す。
+
+`/api*`全体をWorker-firstにしてはいけない。Next.jsが静的生成する`/api/generated/*`までWorkerが奪い、404にするためである。動的な2系統だけを明示する。
 
 ## 1. Cloudflare Builds設定
 
@@ -76,6 +81,7 @@ D1・variables未設定の段階:
 - `/calendar/` が200
 - CSS/JS/iconが読み込める
 - `/generated/alpha-pon-events.json` が200
+- `/api/generated/alerts/`など既存静的APIが200
 - `/healthz` が200
 - healthの`databaseBound`は`false`
 - `/calendar.ics`は404
@@ -154,7 +160,7 @@ Worker hostname全体をdeny-by-defaultにし、本人メールだけAllowする
 
 BypassしてもWorker側で`CALENDAR_FEED_TOKEN`を検証する。tokenなし・誤tokenは404を返す。
 
-`/api/*`、`/healthz`、静的UI全体をBypassしない。
+動的API、`/healthz`、静的UI全体をBypassしない。
 
 ## 7. 完了確認
 
@@ -165,6 +171,7 @@ BypassしてもWorker側で`CALENDAR_FEED_TOKEN`を検証する。tokenなし・
 - `/manifest.webmanifest`
 - `/sw.js`
 - `/_next/static/*`
+- `/api/generated/alerts/`など静的生成API
 - 存在しないpathはcustom 404
 - `/calendar`から`/calendar/`へのcanonical redirect
 
@@ -172,6 +179,7 @@ BypassしてもWorker側で`CALENDAR_FEED_TOKEN`を検証する。tokenなし・
 
 - `/healthz`: 200
 - `/api/market-events`: Access認証済み本人のみ200
+- `/api/market-events/<eventId>`: 対象イベントまたは404
 - `/api/calendar-feed-url`: tokenized URLを返す
 - `/calendar.ics?token=...`: 200、`text/calendar`
 - tokenなし・誤token: 404
