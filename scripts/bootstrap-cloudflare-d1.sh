@@ -9,6 +9,17 @@ APPLY=0
 KEEP_EXPORT=0
 WRANGLER_VERSION="${WRANGLER_VERSION:-4.114.0}"
 REMOTE_MIGRATION_DIR="migrations/d1"
+LEGACY_REMOTE_CLEANUP_SQL=(
+  "DROP TRIGGER IF EXISTS trg_event_revision_continuity;"
+  "DROP TRIGGER IF EXISTS trg_event_revision_promote_current;"
+  "DROP TRIGGER IF EXISTS trg_event_revisions_no_update;"
+  "DROP TRIGGER IF EXISTS trg_event_revisions_no_delete;"
+  "DROP TRIGGER IF EXISTS trg_event_sources_no_update;"
+  "DROP TRIGGER IF EXISTS trg_event_sources_no_delete;"
+  "DROP TRIGGER IF EXISTS trg_decision_snapshots_no_update;"
+  "DROP TRIGGER IF EXISTS trg_decision_snapshots_no_delete;"
+  "DELETE FROM schema_migrations WHERE version = '0002_market_event_revision_guards';"
+)
 
 usage() {
   cat <<'EOF'
@@ -116,6 +127,11 @@ for migration_file in "${REMOTE_MIGRATION_FILES[@]}"; do
   fi
 done
 
+if [[ "${#LEGACY_REMOTE_CLEANUP_SQL[@]}" -ne 9 ]]; then
+  echo "Legacy remote D1 cleanup contract is incomplete" >&2
+  exit 1
+fi
+
 if [[ "$KEEP_EXPORT" -eq 1 ]]; then
   mkdir -p data/exports
   cp "$BOOTSTRAP_SQL" "data/exports/market-events-d1-bootstrap.sql"
@@ -138,6 +154,17 @@ npx --yes "$WRANGLER_PACKAGE" whoami >/dev/null
 
 echo "Applying trigger-free remote D1 migrations to database: $DATABASE_NAME"
 npx --yes "$WRANGLER_PACKAGE" d1 migrations apply "$DATABASE_NAME" --remote
+
+echo "Removing legacy remote D1 trigger artifacts"
+cleanup_index=0
+for cleanup_sql in "${LEGACY_REMOTE_CLEANUP_SQL[@]}"; do
+  cleanup_index=$((cleanup_index + 1))
+  echo "Legacy cleanup ${cleanup_index}/${#LEGACY_REMOTE_CLEANUP_SQL[@]}"
+  npx --yes "$WRANGLER_PACKAGE" d1 execute "$DATABASE_NAME" \
+    --remote \
+    --command="$cleanup_sql" \
+    >/dev/null
+done
 
 echo "Applying INSERT OR IGNORE bootstrap rows to remote D1 database: $DATABASE_NAME"
 npx --yes "$WRANGLER_PACKAGE" d1 execute "$DATABASE_NAME" \
