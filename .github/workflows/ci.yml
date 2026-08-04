@@ -37,6 +37,9 @@ jobs:
       - name: Verify Cloudflare D1 sync contracts
         run: node --import tsx/esm scripts/verify-cloudflare-d1-sync.ts
 
+      - name: Verify calendar feed UI boundary
+        run: node --import tsx/esm scripts/verify-calendar-feed-ui-contract.ts
+
       - name: Build and verify Workers Static Assets artifact
         run: bash scripts/build-cloudflare-workers.sh
 
