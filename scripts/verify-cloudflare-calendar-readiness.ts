@@ -44,18 +44,22 @@ for (const contract of [
   '"binding": "ASSETS"',
   '"html_handling": "force-trailing-slash"',
   '"not_found_handling": "404-page"',
-  '"/api*"',
+  '"/api/market-events*"',
+  '"/api/calendar-feed-url*"',
   '"/calendar.ics*"',
   '"/healthz*"',
 ]) {
   assert(wranglerConfig.includes(contract), `missing Workers Static Assets contract: ${contract}`);
 }
+assert(!wranglerConfig.includes('"/api*"'), "broad /api* route must not shadow static generated API assets");
 assert(!wranglerConfig.includes('"CALENDAR_FEED_TOKEN":'), "calendar bearer token must not be committed as a Wrangler variable");
 
 const workerEntry = readFileSync("worker/index.ts", "utf8");
 assert(workerEntry.includes("env.ASSETS.fetch(request)"), "Worker must delegate static routes to ASSETS");
-assert(workerEntry.includes("pathname.startsWith('/api/')"), "Worker must execute API routes before asset lookup");
+assert(workerEntry.includes("pathname.startsWith('/api/market-events/')"), "Worker must execute live market-event routes before asset lookup");
+assert(workerEntry.includes("pathname === '/api/calendar-feed-url'"), "Worker must execute calendar URL route before asset lookup");
 assert(workerEntry.includes("pathname === '/calendar.ics'"), "Worker must execute tokenized ICS before asset lookup");
+assert(!workerEntry.includes("pathname.startsWith('/api/')"), "Worker must not shadow static /api/generated/* routes");
 
 // Kept during the staged migration so Pages parity remains testable until the
 // Worker deployment has been verified. Workers routing is authoritative.
@@ -153,10 +157,16 @@ const bootstrapScript = readFileSync("scripts/bootstrap-cloudflare-d1.sh", "utf8
 assert(bootstrapScript.includes("migrations/[0-9]*.sql"), "D1 bootstrap must apply every ordered migration");
 assert(bootstrapScript.includes("--apply"), "D1 remote writes must require explicit --apply");
 
+const workerFirstRoutes = [
+  "/api/market-events*",
+  "/api/calendar-feed-url*",
+  "/calendar.ics*",
+  "/healthz*",
+];
 console.log(JSON.stringify({
   status: "READY_PENDING_WORKERS_DEPLOYMENT",
   requiredFiles: requiredFiles.length,
-  workerFirstRoutes: ["/api*", "/calendar.ics*", "/healthz*"],
+  workerFirstRoutes,
   transitionalPagesRoutes: routes.include,
   validatedSeedFiles: files.length,
   validatedSeedInputs: inputCount,
