@@ -1,18 +1,30 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "alpha-pon",
-  "compatibility_date": "2026-08-03",
-  "pages_build_output_dir": "apps/web/out",
+  "main": "./worker/index.ts",
+  "compatibility_date": "2026-08-04",
+  "workers_dev": true,
+  "assets": {
+    "directory": "./apps/web/out",
+    "binding": "ASSETS",
+    "html_handling": "force-trailing-slash",
+    "not_found_handling": "404-page",
+    "run_worker_first": [
+      "/api*",
+      "/calendar.ics*",
+      "/healthz*"
+    ]
+  },
   "vars": {
     "OWNER_EMAIL": "YOUR_CLOUDFLARE_ACCESS_EMAIL",
-    "PUBLIC_ORIGIN": "https://YOUR_ALPHA_PON_DOMAIN"
+    "PUBLIC_ORIGIN": "https://YOUR_ALPHA_PON_WORKERS_DEV_OR_CUSTOM_DOMAIN"
   },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "alpha-pon-market-events",
-      "database_id": "REPLACE_AFTER_CLOUDFLARE_REGISTRATION",
-      "preview_database_id": "REPLACE_AFTER_CLOUDFLARE_REGISTRATION"
+      "database_id": "REPLACE_AFTER_D1_CREATION",
+      "preview_database_id": "REPLACE_AFTER_D1_CREATION"
     }
   ]
 }
