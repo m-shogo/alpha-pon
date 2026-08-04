@@ -94,16 +94,25 @@ const fakeDb = {
   },
 };
 
+const feedToken = "0123456789abcdef0123456789abcdef";
 const env = {
   DB: fakeDb,
   PUBLIC_ORIGIN: "https://alpha.example.com",
-  CALENDAR_FEED_TOKEN: "0123456789abcdef0123456789abcdef",
+  CALENDAR_FEED_TOKEN: feedToken,
+};
+const envWithoutDb = {
+  PUBLIC_ORIGIN: "https://alpha.example.com",
+  CALENDAR_FEED_TOKEN: feedToken,
 };
 
-function context(url: string, options: RequestInit = {}) {
+function context(
+  url: string,
+  options: RequestInit = {},
+  contextEnv: typeof env | typeof envWithoutDb = env,
+) {
   return {
     request: new Request(url, options),
-    env,
+    env: contextEnv,
     waitUntil() {},
   };
 }
@@ -123,45 +132,92 @@ assert.equal(healthBody.databaseBound, true);
 
 const publicProjection = await onRequest(context("https://alpha.example.com/api/market-events"));
 assert.equal(publicProjection.status, 200);
-const projection = await publicProjection.json() as {
+const projectionText = await publicProjection.text();
+assert.doesNotMatch(projectionText, new RegExp(feedToken));
+const projection = JSON.parse(projectionText) as {
   source: string;
   events: Array<{ eventId: string }>;
-  summary: { unknownDate: number; calendarIncluded: number };
+  summary: { total: number; unknownDate: number; calendarIncluded: number };
 };
 assert.equal(projection.source, "cloudflare-d1");
 assert.equal(projection.events.length, 2);
+assert.equal(projection.summary.total, 2);
 assert.equal(projection.summary.unknownDate, 1);
 assert.equal(projection.summary.calendarIncluded, 1);
-
-const missingToken = await onRequest(context("https://alpha.example.com/calendar.ics"));
-assert.equal(missingToken.status, 404);
-const wrongToken = await onRequest(context("https://alpha.example.com/calendar.ics?token=wrong"));
-assert.equal(wrongToken.status, 404);
-const calendar = await onRequest(context(`https://alpha.example.com/calendar.ics?token=${env.CALENDAR_FEED_TOKEN}`));
-assert.equal(calendar.status, 200);
-assert.match(calendar.headers.get("content-type") ?? "", /text\/calendar/);
-const ics = await calendar.text();
-assert.match(ics, new RegExp(`UID:${eventRows[0].event_id}@alpha-pon`));
-assert.doesNotMatch(ics, new RegExp(`UID:${eventRows[1].event_id}@alpha-pon`));
-assert.equal((ics.match(/BEGIN:VEVENT/g) ?? []).length, 1);
-
-const hiddenFeedUrl = await onRequest(context("https://alpha.example.com/api/calendar-feed-url"));
-assert.equal(hiddenFeedUrl.status, 404);
-assert.doesNotMatch(await hiddenFeedUrl.text(), new RegExp(env.CALENDAR_FEED_TOKEN));
-
-const spoofedFeedUrl = await onRequest(context("https://alpha.example.com/api/calendar-feed-url", {
-  headers: { "Cf-Access-Authenticated-User-Email": "owner@example.com" },
-}));
-assert.equal(spoofedFeedUrl.status, 404);
-assert.doesNotMatch(await spoofedFeedUrl.text(), new RegExp(env.CALENDAR_FEED_TOKEN));
 
 const oneEvent = await onRequest(context(`https://alpha.example.com/api/market-events/${eventRows[0].event_id}`));
 assert.equal(oneEvent.status, 200);
 assert.equal((await oneEvent.json() as { eventId: string }).eventId, eventRows[0].event_id);
 
+const missingEvent = await onRequest(context("https://alpha.example.com/api/market-events/evt_missing"));
+assert.equal(missingEvent.status, 404);
+assert.deepEqual(await missingEvent.json(), { error: "not found" });
+
+const marketWithoutDb = await onRequest(context(
+  "https://alpha.example.com/api/market-events",
+  {},
+  envWithoutDb,
+));
+assert.equal(marketWithoutDb.status, 503);
+assert.deepEqual(await marketWithoutDb.json(), { error: "database unavailable" });
+
+const eventWithoutDb = await onRequest(context(
+  `https://alpha.example.com/api/market-events/${eventRows[0].event_id}`,
+  {},
+  envWithoutDb,
+));
+assert.equal(eventWithoutDb.status, 503);
+assert.deepEqual(await eventWithoutDb.json(), { error: "database unavailable" });
+
 const post = await onRequest(context("https://alpha.example.com/api/market-events", {
   method: "POST",
 }));
 assert.equal(post.status, 405);
+assert.equal(post.headers.get("allow"), "GET");
+
+const hiddenFeedUrl = await onRequest(context("https://alpha.example.com/api/calendar-feed-url"));
+assert.equal(hiddenFeedUrl.status, 404);
+assert.doesNotMatch(await hiddenFeedUrl.text(), new RegExp(feedToken));
+
+const spoofedFeedUrl = await onRequest(context("https://alpha.example.com/api/calendar-feed-url", {
+  headers: { "Cf-Access-Authenticated-User-Email": "owner@example.com" },
+}));
+assert.equal(spoofedFeedUrl.status, 404);
+assert.doesNotMatch(await spoofedFeedUrl.text(), new RegExp(feedToken));
+
+const missingToken = await onRequest(context("https://alpha.example.com/calendar.ics"));
+assert.equal(missingToken.status, 404);
+const missingTokenWithoutDb = await onRequest(context(
+  "https://alpha.example.com/calendar.ics",
+  {},
+  envWithoutDb,
+));
+assert.equal(missingTokenWithoutDb.status, 404);
+
+const wrongToken = await onRequest(context("https://alpha.example.com/calendar.ics?token=wrong"));
+assert.equal(wrongToken.status, 404);
+const wrongTokenWithoutDb = await onRequest(context(
+  "https://alpha.example.com/calendar.ics?token=wrong",
+  {},
+  envWithoutDb,
+));
+assert.equal(wrongTokenWithoutDb.status, 404);
+
+const calendar = await onRequest(context(`https://alpha.example.com/calendar.ics?token=${feedToken}`));
+assert.equal(calendar.status, 200);
+assert.match(calendar.headers.get("content-type") ?? "", /text\/calendar/);
+const ics = await calendar.text();
+assert.match(ics, new RegExp(`UID:${eventRows[0].event_id}@alpha-pon`));
+assert.doesNotMatch(ics, new RegExp(`UID:${eventRows[1].event_id}@alpha-pon`));
+assert.doesNotMatch(ics, new RegExp(feedToken));
+assert.equal((ics.match(/BEGIN:VEVENT/g) ?? []).length, 1);
+
+const calendarWithoutDb = await onRequest(context(
+  `https://alpha.example.com/calendar.ics?token=${feedToken}`,
+  {},
+  envWithoutDb,
+));
+assert.equal(calendarWithoutDb.status, 503);
+assert.deepEqual(await calendarWithoutDb.json(), { error: "database unavailable" });
 
 console.log("pages-market-event-function: ok");
