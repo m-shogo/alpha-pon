@@ -1,10 +1,22 @@
 # Cloudflare production verification
 
-Updated: 2026-08-04 JST
-Status: `AUTHENTICATED_ICS_RECHECK_PENDING`
+Updated: 2026-08-04 22:53 JST
+Status: `PRODUCTION_TECHNICAL_VERIFICATION_PASS`
 Scope: Alpha Pon public read-only Worker / D1 / calendar production verification
 
-## Confirmed production facts
+## Verification result
+
+Canonical production verification completed successfully on 2026-08-04 22:53 JST.
+
+```text
+RESULT: PASS
+```
+
+Verified against production after merge commit:
+
+```text
+e7f69e0875917c3bfe1224c2f4fa3f17f41eea64
+```
 
 Production origin:
 
@@ -12,11 +24,9 @@ Production origin:
 https://alpha-pon.m-shogo-0409.workers.dev
 ```
 
-Confirmed by direct production requests after merge commit:
+No Secret value was printed, committed, or recorded.
 
-```text
-9bf3ae3490a4b08c4cf1f7916bf73c5867a06fb1
-```
+## Confirmed production facts
 
 - `/healthz`: HTTP 200
 - `accessConfigured: false`
@@ -27,6 +37,7 @@ Confirmed by direct production requests after merge commit:
 - source: `cloudflare-d1`
 - events: 3
 - `summary.total`: 3
+- no obvious Token, email, or API-key leakage in the public market-events response
 - individual existing event: HTTP 200
 - missing event: HTTP 404
 - `POST /api/market-events`: HTTP 405 with `Allow: GET`
@@ -34,11 +45,30 @@ Confirmed by direct production requests after merge commit:
 - spoofed `Cf-Access-Authenticated-User-Email`: still HTTP 404
 - `/calendar.ics` without token: HTTP 404
 - `/calendar.ics?token=wrong`: HTTP 404
+- authenticated `/calendar.ics`: HTTP 200
+- authenticated ICS content type: `text/calendar`
+- authenticated ICS events: 3 `VEVENT` entries
 - `/calendar/`: HTTP 200
 - remote D1 mode remains `READ_ONLY_NO_TRIGGERS`
+- remote triggers remain 0
+- legacy guard marker remains 0
 - no public write API was added
+- Cloudflare Access and Zero Trust remain unused
 
-## Authenticated ICS diagnostic
+## Remaining visual QA boundary
+
+The canonical verifier confirms that `/calendar/` returns HTTP 200. It does not prove visual layout quality.
+
+The following remain manual browser checks and must not be inferred from this technical PASS:
+
+- LIVE D1 is displayed rather than fallback or snapshot data
+- event source, dates, state, and primary-information links render correctly
+- desktop and mobile layouts do not break
+- browser console has no errors
+
+These visual checks do not block the Worker, D1 API, Secret protection, or authenticated ICS technical verification recorded above.
+
+## Authenticated ICS diagnostic history
 
 The Worker handler returns only these authenticated-ICS outcomes:
 
@@ -49,7 +79,7 @@ The Worker handler returns only these authenticated-ICS outcomes:
 
 The Worker does not generate HTTP 403.
 
-A production check made with Python `urllib` returned an unstyled Cloudflare HTTP 403 before a Worker response could be observed. Cloudflare Browser Integrity Check is enabled by default and may challenge or deny requests with a missing or non-standard User-Agent. Python's default network User-Agent is therefore not used by the canonical production verifier.
+Earlier production checks made with Python `urllib` returned an unstyled Cloudflare HTTP 403 before a Worker response could be observed. The canonical verifier therefore uses `curl` with a browser-compatible User-Agent. The same stored Secret then returned HTTP 200 with three `VEVENT` entries.
 
 Do not disable Cloudflare security globally for this diagnosis. Do not add Cloudflare Access or Zero Trust.
 
@@ -85,9 +115,9 @@ bash scripts/verify-cloudflare-production.sh --skip-authenticated-ics
 
 `--skip-authenticated-ics` is diagnostic only and does not complete production verification.
 
-## Completion requirement
+## Completion rule
 
-Do not mark the Cloudflare migration complete until the canonical verifier reports:
+A future production verification is successful only when the canonical verifier reports:
 
 ```text
 RESULT: PASS

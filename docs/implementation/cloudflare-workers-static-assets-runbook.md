@@ -1,7 +1,7 @@
 # Alpha Pon Workers Static Assets deployment runbook
 
-Status: `PUBLIC_READ_ONLY_D1_PRODUCTION_VERIFICATION_PENDING`
-Updated: 2026-08-04 JST
+Status: `PUBLIC_READ_ONLY_D1_PRODUCTION_TECHNICAL_VERIFIED`
+Updated: 2026-08-04 22:53 JST
 Scope: Next.js static export、Worker API、D1、tokenized ICSを単一のCloudflare Workerへ配置する
 
 ## 0. 採用構成
@@ -82,7 +82,7 @@ openssl rand -hex 32
 ```
 
 実tokenをGitHub、Issue、ログ、スクリーンショット、チャットへ保存しない。
-以前登録した`OWNER_EMAIL`は現在のpublic read-only runtimeでは使用しない。公開読み取り専用版の本番確認後に削除してよい。
+以前登録した`OWNER_EMAIL`は現在のpublic read-only runtimeでは使用しない。本番技術確認が完了したため削除してよい。
 
 ## 4. 公開範囲とエラー契約
 
@@ -126,6 +126,12 @@ Token判定はDB確認より先に行う。tokenなし・誤token時にDB bindin
 ## 5. デプロイ後の確認
 
 本番deploy完了はCloudflare Buildsの成功記録または実測で確認し、推測で断定しない。
+
+Canonical verifier:
+
+```bash
+bash scripts/verify-cloudflare-production.sh
+```
 
 ### Health
 
@@ -185,7 +191,11 @@ POST /api/market-events
 GET /calendar/
 ```
 
-期待値:
+技術確認:
+
+- HTTP 200
+
+別途行う手動ブラウザQA:
 
 - 画面表示データはLIVE D1
 - fallback / snapshotをLIVEと表示しない
@@ -193,6 +203,8 @@ GET /calendar/
 - source、日程、状態、一次情報URLが正常
 - PC幅とスマホ幅で破綻なし
 - browser console errorなし
+
+HTTP 200だけで上記の視覚品質を確認済みと扱わない。
 
 ### Feed secret protection
 
@@ -213,15 +225,7 @@ GET /calendar.ics?token=wrong
 
 ### ICS valid token
 
-正しいtokenはパスワード管理アプリからローカル入力し、標準出力やshell historyへ出さない。
-
-```bash
-read -s "CALENDAR_FEED_TOKEN?Token: "
-curl -sS -D /tmp/alpha-pon-ics-headers.txt \
-  -o /tmp/alpha-pon-events.ics \
-  "https://alpha-pon.m-shogo-0409.workers.dev/calendar.ics?token=${CALENDAR_FEED_TOKEN}"
-unset CALENDAR_FEED_TOKEN
-```
+正しいtokenは環境変数、macOS Keychain、または非表示入力からcanonical verifierへ渡す。標準出力、shell history、GitHub、チャットへ値を出さない。
 
 確認項目:
 
@@ -233,20 +237,32 @@ unset CALENDAR_FEED_TOKEN
 
 ## 6. 本番確認記録
 
-確認後、Secretを含めず次だけを記録する。
+2026-08-04 22:53 JST、merge commit `e7f69e0875917c3bfe1224c2f4fa3f17f41eea64`後の本番に対してcanonical verifierを実行し、`RESULT: PASS`を確認した。
 
-- deploy commit SHA
-- 確認日時（JST）
-- healthz結果
-- market event件数
-- 個別event 200 / missing 404
-- POST 405
-- hidden feed URL 404
-- ICS invalid token 404
-- ICS valid token 200
-- calendar UI LIVE D1
-- remote trigger 0
-- legacy marker 0
+記録した実測結果:
+
+- healthz: HTTP 200
+- public-read-only: 有効
+- calendar configured: true
+- DB bound: true
+- market events source: `cloudflare-d1`
+- market event件数: 3
+- public responseの明白なToken / email / API-key漏えい: なし
+- 個別event: 200
+- missing event: 404
+- POST: 405 / `Allow: GET`
+- hidden feed URL: 404
+- spoofed Access identity: 404
+- ICS tokenなし: 404
+- ICS誤token: 404
+- ICS正しいtoken: 200 `text/calendar`
+- ICS `VEVENT`: 3
+- calendar UI endpoint: HTTP 200
+- remote trigger: 0
+- legacy marker: 0
+- Secret値: 表示・記録なし
+
+Calendar UIのPC/スマホ表示およびbrowser consoleは、このCLI実測とは別の手動QA項目として残る。
 
 ## 7. Rollback
 
@@ -270,6 +286,8 @@ repo内で自動化してよい:
 本番確認後に行ってよい:
 
 - 使用されない`OWNER_EMAIL`の削除
+- private admin D1 sync CLIの実装
+- manual `workflow_dispatch`による管理用D1 sync Actionの実装
 
 行わない:
 
