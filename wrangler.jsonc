@@ -16,13 +16,18 @@
       "/calendar.ics*",
       "/healthz*"
     ]
-  }
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "alpha-pon-market-events",
+      "database_id": "7b90faf4-9834-4393-a921-275e0a68b398"
+    }
+  ]
 
-  // Runtime variables and bindings are intentionally configured after the
-  // first successful deployment. Do not commit their real values here.
+  // Runtime values stay in Cloudflare Variables and Secrets rather than Git.
   // Required later:
   // - OWNER_EMAIL
   // - PUBLIC_ORIGIN
   // - secret CALENDAR_FEED_TOKEN
-  // - D1 binding DB -> alpha-pon-market-events
 }
