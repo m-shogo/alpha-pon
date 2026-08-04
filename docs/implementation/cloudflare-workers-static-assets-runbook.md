@@ -1,6 +1,6 @@
 # Alpha Pon Workers Static Assets deployment runbook
 
-Status: `READY_PENDING_WORKERS_DEPLOYMENT`
+Status: `PUBLIC_READ_ONLY_D1_READY_PENDING_DEPLOYMENT`
 Updated: 2026-08-04 JST
 Scope: Next.js static export、Worker API、D1、tokenized ICSを単一のCloudflare Workerへ配置する
 
@@ -10,22 +10,35 @@ Scope: Next.js static export、Worker API、D1、tokenized ICSを単一のCloudf
 Cloudflare Worker: alpha-pon
 ├─ Static Assets: apps/web/out
 ├─ Worker entry: worker/index.ts
-├─ Worker-first routes
+├─ Public read-only routes
 │  ├─ /healthz
 │  ├─ /api/market-events*
-│  ├─ /api/calendar-feed-url*
-│  └─ /calendar.ics*
+│  └─ /calendar.ics?token=...
+├─ Disabled secret-disclosure route
+│  └─ /api/calendar-feed-url → 404
 ├─ Static API exports
 │  └─ /api/generated/*
-└─ D1 binding: DB（初回静的deploy後に追加）
+└─ D1 binding: DB
 ```
 
-Pages projectは新規作成しない。既存のWorker `alpha-pon`を利用する。
-旧`functions/[[path]].ts`は移行中の互換実装として残し、Worker entryから呼び出す。
+Pages projectは新規作成しない。既存Worker `alpha-pon`を利用する。
+`/api*`全体をWorker-firstにしてはいけない。Next.jsが静的生成する`/api/generated/*`までWorkerが奪うため、動的routeだけを明示する。
 
-`/api*`全体をWorker-firstにしてはいけない。Next.jsが静的生成する`/api/generated/*`までWorkerが奪い、404にするためである。動的な2系統だけを明示する。
+## 1. 確定済みの本番構成
 
-## 1. Cloudflare Builds設定
+- Worker URL: `https://alpha-pon.m-shogo-0409.workers.dev`
+- D1 database: `alpha-pon-market-events`
+- D1 binding: `DB`
+- D1 mode: `READ_ONLY_NO_TRIGGERS`
+- seed counts: events 3 / revisions 3 / sources 3 / decisions 3
+- remote triggers: 0
+- legacy guard marker: 0
+- Cloudflare Access: 使用しない
+- Zero Trustおよびクレジットカード登録: 不要
+
+D1 bootstrapは再実行不要。schema変更またはseed更新を明示的に行う場合だけ、専用手順で実行する。
+
+## 2. Cloudflare Builds設定
 
 | 項目 | 値 |
 |---|---|
@@ -42,97 +55,16 @@ Build variables:
 PNPM_VERSION=9
 ```
 
-Node.jsはrepo rootの`.node-version`で22系へ固定する。Cloudflareがversion fileを読めない場合だけBuild variableとして`NODE_VERSION=22`も追加する。
+Node.jsはrepo rootの`.node-version`で22系へ固定する。
 
-初回deployではD1 bindingとruntime secretをまだ追加しない。静的UIとgenerated snapshotを先に公開して、Worker/Assets routingを確認する。
+## 3. Runtime variablesとsecret
 
-## 2. 初回deployで確認するログ
+Workerの`Settings > Variables and Secrets`で次を維持する。
 
-build成功:
-
-```text
-cloudflare-pages-build: ok
-workers-static-assets: ok
-cloudflare-workers-build: ok
-Success: Build command completed
-```
-
-deployではrepo rootの`wrangler.jsonc`が検出され、次が認識されること。
+Plain variable:
 
 ```text
-main: worker/index.ts
-assets directory: apps/web/out
-assets binding: ASSETS
-```
-
-以前の次のエラーが再発してはならない。
-
-```text
-application detection logic has been run in the root of a workspace
-```
-
-`wrangler.jsonc`が存在するため、自動framework検出ではなく明示設定が使用される。
-
-## 3. 初回deploy後の確認
-
-D1・variables未設定の段階:
-
-- `/` が200
-- `/calendar/` が200
-- CSS/JS/iconが読み込める
-- `/generated/alpha-pon-events.json` が200
-- `/api/generated/alerts/`など既存静的APIが200
-- `/healthz` が200
-- healthの`databaseBound`は`false`
-- `/calendar.ics`は404
-- `/api/market-events`は503または認証拒否
-
-カレンダーUIはlive APIに失敗した場合、last-known-good snapshotへfallbackする。
-
-## 4. D1作成とbinding
-
-D1 database名:
-
-```text
-alpha-pon-market-events
-```
-
-WorkerのSettings > Bindingsで次を追加する。
-
-```text
-Binding type: D1 database
-Variable name: DB
-Database: alpha-pon-market-events
-```
-
-D1作成後、database IDを確認し、`wrangler.jsonc.example`を参考に正式な`d1_databases`設定をrepoへ追加する。実IDを追加する変更は専用commitで行い、対象Cloudflare account以外へ流用しない。
-
-schemaとseedは最初にdry-runする。
-
-```bash
-bash scripts/bootstrap-cloudflare-d1.sh \
-  --database alpha-pon-market-events \
-  --keep-export
-```
-
-確認後にremoteへ適用する。
-
-```bash
-bash scripts/bootstrap-cloudflare-d1.sh \
-  --database alpha-pon-market-events \
-  --apply \
-  --keep-export
-```
-
-## 5. Runtime variablesとsecret
-
-WorkerのSettings > Variables and Secretsへ追加する。
-
-Plain variables:
-
-```text
-OWNER_EMAIL=<Cloudflare Accessで許可する本人メール>
-PUBLIC_ORIGIN=https://<workers.devまたはcustom domain>
+PUBLIC_ORIGIN=https://alpha-pon.m-shogo-0409.workers.dev
 ```
 
 Encrypted secret:
@@ -147,65 +79,108 @@ CALENDAR_FEED_TOKEN=<32bytes以上のランダム値>
 openssl rand -hex 32
 ```
 
-実tokenをGitHub、Issue、ログ、スクリーンショットへ保存しない。
+実tokenをGitHub、Issue、ログ、スクリーンショット、チャットへ保存しない。
+以前登録した`OWNER_EMAIL`は現在のpublic read-only runtimeでは使用しない。残っていても動作へ影響しないが、後で削除してよい。
 
-Build variablesはruntime variablesとは別物である。OWNER_EMAIL等をBuild variablesだけに入れない。
-`wrangler.jsonc`の`keep_vars: true`により、repoへ実値を書かずにDashboardで設定したplain runtime variablesを次回deployでも維持する。D1 bindingは正式なdatabase ID取得後、configへ追加する。
+## 4. 公開範囲
 
-## 6. Cloudflare Access
+### 公開するもの
 
-Worker hostname全体をdeny-by-defaultにし、本人メールだけAllowする。
-
-例外として`/calendar.ics`だけ、よりspecificなAccess policyでBypassする。カレンダー購読クライアントはAccess loginを通過できないためである。
-
-BypassしてもWorker側で`CALENDAR_FEED_TOKEN`を検証する。tokenなし・誤tokenは404を返す。
-
-動的API、`/healthz`、静的UI全体をBypassしない。
-
-## 7. 完了確認
-
-### Static Assets
-
-- `/`
+- 静的サイト
 - `/calendar/`
-- `/manifest.webmanifest`
-- `/sw.js`
-- `/_next/static/*`
-- `/api/generated/alerts/`など静的生成API
-- 存在しないpathはcustom 404
-- `/calendar`から`/calendar/`へのcanonical redirect
+- `/healthz`
+- `/api/market-events`
+- `/api/market-events/<eventId>`
 
-### Worker routes
+market-events APIはGET専用で、D1を読み取るだけである。書き込みAPIは作らない。GET以外は405を返す。
 
-- `/healthz`: 200
-- `/api/market-events`: Access認証済み本人のみ200
-- `/api/market-events/<eventId>`: 対象イベントまたは404
-- `/api/calendar-feed-url`: tokenized URLを返す
-- `/calendar.ics?token=...`: 200、`text/calendar`
-- tokenなし・誤token: 404
-- POST等GET以外: 405
+### 公開しないもの
 
-### D1
+`/api/calendar-feed-url`は常に404を返す。公開サイトからSecretを含む購読URLを取得できないようにする。
 
-- `source: cloudflare-d1`
-- seed eventが存在
-- unknown dateはICSから除外
-- secretsやprivate raw本文をAPIへ返さない
+### tokenで保護するもの
 
-## 8. Rollback
+`/calendar.ics?token=...`だけは`CALENDAR_FEED_TOKEN`一致時に返す。
 
-Workers Buildsの直前の成功Versionを保持する。
+- tokenなし: 404
+- 誤token: 404
+- 正しいtoken: 200 `text/calendar`
+
+## 5. デプロイ後の確認
+
+### Health
+
+```text
+GET /healthz
+```
+
+期待値:
+
+```json
+{
+  "ok": true,
+  "accessConfigured": false,
+  "apiAccessMode": "public-read-only",
+  "calendarFeedConfigured": true,
+  "databaseBound": true
+}
+```
+
+### Public D1 API
+
+```text
+GET /api/market-events
+```
+
+期待値:
+
+- HTTP 200
+- `source: "cloudflare-d1"`
+- events 3件
+- 認証画面なし
+- `forbidden`なし
+
+### Calendar page
+
+```text
+GET /calendar/
+```
+
+期待値:
+
+- LIVE D1表示
+- fallbackではない
+- event 3件を取得
+- unknown dateは画面に表示可能だがICSから除外
+
+### Feed secret protection
+
+```text
+GET /api/calendar-feed-url
+```
+
+期待値: 404。レスポンスへtokenを含めない。
+
+### ICS
+
+正しいtokenを自分のパスワード管理アプリから取り出し、次の形式で登録する。
+
+```text
+https://alpha-pon.m-shogo-0409.workers.dev/calendar.ics?token=<CALENDAR_FEED_TOKEN>
+```
+
+token文字列をGitHubやチャットへ貼らない。
+
+## 6. Rollback
 
 移行版に問題がある場合:
 
-1. Cloudflare DashboardのDeploymentsで直前Versionへrollback
-2. `main`を巻き戻さず、専用fix PRを作成
+1. Cloudflare DashboardのDeploymentsで直前の成功Versionへrollback
+2. `main`を直接巻き戻さず、専用fix PRを作成
 3. 静的snapshotが利用できることを確認
-4. D1 schemaを破壊的に戻さない
+4. D1 schemaやデータを破壊的に戻さない
 
-旧Pages FunctionファイルはWorker parity確認が終わるまで削除しない。
-
-## 9. 外部操作の境界
+## 7. 外部操作の境界
 
 repo内で自動化してよい:
 
@@ -216,8 +191,6 @@ repo内で自動化してよい:
 ユーザー確認後だけ行う:
 
 - Cloudflare本番deploy
-- D1作成・binding
-- Access変更
-- runtime variable/secret登録
+- runtime variable/secret変更
 - custom domain変更
 - 課金が発生する設定

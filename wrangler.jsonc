@@ -27,8 +27,7 @@
   ]
 
   // Runtime values stay in Cloudflare Variables and Secrets rather than Git.
-  // Required later:
-  // - OWNER_EMAIL
+  // Required:
   // - PUBLIC_ORIGIN
   // - secret CALENDAR_FEED_TOKEN
 }
