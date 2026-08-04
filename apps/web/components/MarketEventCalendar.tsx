@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { WebMarketEvent, WebMarketEventData } from '@/lib/market-event-data'
 import { marketEventDateLabel } from '@/lib/market-event-data'
 import { CalendarFeedActions } from './CalendarFeedActions'
@@ -8,6 +8,13 @@ import styles from '@/app/calendar/calendar.module.css'
 
 type Category = 'ALL' | 'GOVERNANCE' | 'EARNINGS' | 'STRUCTURE' | 'FUTURE' | 'REVIEW'
 type Visibility = 'ACTIVE' | 'ALL'
+type ViewMode = 'CALENDAR' | 'LIST'
+
+type CalendarCell = {
+  day: string
+  dayNumber: number
+  inMonth: boolean
+}
 
 const CATEGORY_LABELS: Array<{ key: Category; label: string }> = [
   { key: 'ALL', label: 'すべて' },
@@ -17,6 +24,8 @@ const CATEGORY_LABELS: Array<{ key: Category; label: string }> = [
   { key: 'FUTURE', label: '将来需要' },
   { key: 'REVIEW', label: '答え合わせ' },
 ]
+
+const WEEKDAY_LABELS = ['日', '月', '火', '水', '木', '金', '土']
 
 const PRIORITY_STYLE: Record<WebMarketEvent['priority'], { color: string; background: string }> = {
   S0: { color: 'var(--urgent)', background: 'var(--urgent-soft)' },
@@ -100,6 +109,41 @@ function matchesQuery(event: WebMarketEvent, query: string): boolean {
   ].join(' ').normalize('NFKC').toLocaleLowerCase('ja-JP').includes(normalized)
 }
 
+function monthForEvents(events: WebMarketEvent[], today: string): string {
+  const currentMonth = today.slice(0, 7)
+  const months = Array.from(new Set(events
+    .map(eventDay)
+    .filter((day): day is string => Boolean(day))
+    .map(day => day.slice(0, 7))))
+    .sort()
+  return months.find(month => month >= currentMonth) ?? months[0] ?? currentMonth
+}
+
+function shiftMonth(month: string, delta: number): string {
+  const [year, monthNumber] = month.split('-').map(Number)
+  const date = new Date(Date.UTC(year, monthNumber - 1 + delta, 1))
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`
+}
+
+function monthLabel(month: string): string {
+  const [year, monthNumber] = month.split('-').map(Number)
+  return `${year}年${monthNumber}月`
+}
+
+function calendarCells(month: string): CalendarCell[] {
+  const [year, monthNumber] = month.split('-').map(Number)
+  const first = new Date(Date.UTC(year, monthNumber - 1, 1))
+  const firstWeekday = first.getUTCDay()
+  return Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(Date.UTC(year, monthNumber - 1, index - firstWeekday + 1))
+    return {
+      day: `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`,
+      dayNumber: date.getUTCDate(),
+      inMonth: date.getUTCMonth() === monthNumber - 1,
+    }
+  })
+}
+
 function EventCard({ event }: { event: WebMarketEvent }) {
   const priority = PRIORITY_STYLE[event.priority]
   const decision = DECISION_STYLE[event.currentDecisionState]
@@ -158,16 +202,31 @@ function EventCard({ event }: { event: WebMarketEvent }) {
 }
 
 export function MarketEventCalendar({ data, nowIso }: { data: WebMarketEventData; nowIso: string }) {
+  const today = dateOnlyJst(nowIso)
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<Category>('ALL')
   const [visibility, setVisibility] = useState<Visibility>('ACTIVE')
-  const today = dateOnlyJst(nowIso)
+  const [viewMode, setViewMode] = useState<ViewMode>('CALENDAR')
+  const [calendarMonth, setCalendarMonth] = useState(() => monthForEvents(data.events, today))
+  const autoSelectedMonth = useRef(false)
 
   const filtered = useMemo(() => data.events.filter(event => {
     if (visibility === 'ACTIVE' && ['COMPLETED', 'CANCELLED'].includes(event.status)) return false
     if (category !== 'ALL' && categoryOf(event) !== category) return false
     return matchesQuery(event, query)
   }), [category, data.events, query, visibility])
+
+  const availableMonths = useMemo(() => Array.from(new Set(filtered
+    .map(eventDay)
+    .filter((day): day is string => Boolean(day))
+    .map(day => day.slice(0, 7))))
+    .sort(), [filtered])
+
+  useEffect(() => {
+    if (autoSelectedMonth.current || availableMonths.length === 0) return
+    setCalendarMonth(availableMonths.find(month => month >= today.slice(0, 7)) ?? availableMonths[0])
+    autoSelectedMonth.current = true
+  }, [availableMonths, today])
 
   const grouped = useMemo(() => {
     const result = new Map<string, WebMarketEvent[]>()
@@ -186,6 +245,25 @@ export function MarketEventCalendar({ data, nowIso }: { data: WebMarketEventData
     }
     return result
   }, [filtered, today])
+
+  const eventsByDay = useMemo(() => {
+    const result = new Map<string, WebMarketEvent[]>()
+    for (const event of filtered) {
+      const day = eventDay(event)
+      if (!day) continue
+      const events = result.get(day) ?? []
+      events.push(event)
+      result.set(day, events)
+    }
+    return result
+  }, [filtered])
+
+  const monthEvents = useMemo(() => filtered
+    .filter(event => eventDay(event)?.startsWith(calendarMonth))
+    .sort((a, b) => (a.sortAt ?? '').localeCompare(b.sortAt ?? '')), [calendarMonth, filtered])
+
+  const cells = useMemo(() => calendarCells(calendarMonth), [calendarMonth])
+  const nextAvailableMonth = availableMonths.find(month => month > calendarMonth) ?? availableMonths[0]
 
   return (
     <>
@@ -214,6 +292,23 @@ export function MarketEventCalendar({ data, nowIso }: { data: WebMarketEventData
               <div className={styles.summaryValue}>{value}</div>
             </div>
           ))}
+        </div>
+
+        <div className={styles.viewTabs} aria-label="表示形式">
+          <button
+            type="button"
+            className={`${styles.viewTab} ${viewMode === 'CALENDAR' ? styles.viewTabActive : ''}`}
+            onClick={() => setViewMode('CALENDAR')}
+          >
+            月間カレンダー
+          </button>
+          <button
+            type="button"
+            className={`${styles.viewTab} ${viewMode === 'LIST' ? styles.viewTabActive : ''}`}
+            onClick={() => setViewMode('LIST')}
+          >
+            イベント一覧
+          </button>
         </div>
 
         <div className={styles.filterPanel}>
@@ -246,7 +341,69 @@ export function MarketEventCalendar({ data, nowIso }: { data: WebMarketEventData
           </div>
         </div>
 
-        {filtered.length === 0 ? (
+        {viewMode === 'CALENDAR' ? (
+          <>
+            <section className={styles.calendarPanel} aria-label={`${monthLabel(calendarMonth)}の月間カレンダー`}>
+              <div className={styles.calendarToolbar}>
+                <button type="button" className={styles.monthButton} onClick={() => setCalendarMonth(month => shiftMonth(month, -1))} aria-label="前の月">←</button>
+                <h2 className={styles.calendarTitle}>{monthLabel(calendarMonth)}</h2>
+                <button type="button" className={styles.monthButton} onClick={() => setCalendarMonth(month => shiftMonth(month, 1))} aria-label="次の月">→</button>
+                {nextAvailableMonth && nextAvailableMonth !== calendarMonth && (
+                  <button type="button" className={styles.nextEventMonth} onClick={() => setCalendarMonth(nextAvailableMonth)}>
+                    予定がある月へ
+                  </button>
+                )}
+              </div>
+
+              <div className={styles.calendarGrid}>
+                {WEEKDAY_LABELS.map((label, index) => (
+                  <div key={label} className={`${styles.weekday} ${index === 0 ? styles.sunday : ''} ${index === 6 ? styles.saturday : ''}`}>{label}</div>
+                ))}
+                {cells.map(cell => {
+                  const dayEvents = eventsByDay.get(cell.day) ?? []
+                  const isToday = cell.day === today
+                  return (
+                    <div
+                      key={cell.day}
+                      className={`${styles.calendarDay} ${cell.inMonth ? '' : styles.outsideMonth} ${isToday ? styles.today : ''}`}
+                    >
+                      <div className={styles.dayNumber}>{cell.dayNumber}</div>
+                      <div className={styles.calendarEvents}>
+                        {dayEvents.slice(0, 2).map(event => {
+                          const priority = PRIORITY_STYLE[event.priority]
+                          const label = `${event.issuerCode ? `${event.issuerCode} ` : ''}${event.issuerName} ${event.title}`
+                          return (
+                            <a
+                              key={event.eventId}
+                              href={`#${event.eventId}`}
+                              className={styles.calendarEvent}
+                              style={{ color: priority.color, background: priority.background }}
+                              title={label}
+                              aria-label={`${cell.day} ${label}`}
+                            >
+                              <span className={styles.calendarEventDot} aria-hidden="true">●</span>
+                              <span className={styles.calendarEventLabel}>{event.issuerCode ?? event.issuerName}</span>
+                            </a>
+                          )
+                        })}
+                        {dayEvents.length > 2 && <div className={styles.moreEvents}>+{dayEvents.length - 2}</div>}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+
+            <section className={styles.section}>
+              <h2 className={styles.sectionTitle}><span>{monthLabel(calendarMonth)}の予定</span><span>{monthEvents.length}件</span></h2>
+              {monthEvents.length ? (
+                <div className={styles.eventGrid}>{monthEvents.map(event => <EventCard key={event.eventId} event={event} />)}</div>
+              ) : (
+                <div className={styles.empty}>この月に条件と一致するイベントはありません。「予定がある月へ」を押すと次の予定を表示します。</div>
+              )}
+            </section>
+          </>
+        ) : filtered.length === 0 ? (
           <div className={styles.empty}>条件に合うイベントはありません。</div>
         ) : GROUP_ORDER.map(group => {
           const events = grouped.get(group)
