@@ -1,0 +1,170 @@
+name: Sync Cloudflare D1 Market Events
+
+on:
+  workflow_dispatch:
+    inputs:
+      database:
+        description: Remote D1 database name
+        required: true
+        default: alpha-pon-market-events
+        type: string
+      apply:
+        description: Apply the reviewed append/upsert plan
+        required: true
+        default: false
+        type: boolean
+      confirmation:
+        description: Type APPLY only when apply=true
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: alpha-pon-production-d1-market-event-sync
+  cancel-in-progress: false
+
+env:
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+  WRANGLER_VERSION: 4.118.0
+
+jobs:
+  dry-run:
+    name: Build and review D1 diff
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Validate explicit apply confirmation
+        if: ${{ inputs.apply && inputs.confirmation != 'APPLY' }}
+        run: |
+          echo "apply=true requires confirmation=APPLY" >&2
+          exit 1
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify offline sync contracts
+        run: node --import tsx/esm scripts/verify-cloudflare-d1-sync.ts
+
+      - name: Build remote dry-run plan
+        run: |
+          bash scripts/sync-cloudflare-d1-market-events.sh \
+            --database "${{ inputs.database }}" \
+            --wrangler-version "$WRANGLER_VERSION" \
+            --out-dir artifacts/d1-sync-plan
+
+      - name: Write dry-run summary
+        if: always()
+        run: |
+          {
+            echo "## Cloudflare D1 market-event dry-run"
+            echo
+            echo "- Database: \`${{ inputs.database }}\`"
+            echo "- Apply requested: \`${{ inputs.apply }}\`"
+            echo "- Public Worker write API: not used"
+            echo "- Destructive delete: disabled"
+            echo
+            if [[ -f artifacts/d1-sync-plan/market-events-sync-plan.json ]]; then
+              echo '```json'
+              cat artifacts/d1-sync-plan/market-events-sync-plan.json
+              echo '```'
+            else
+              echo "Plan artifact was not produced. Inspect the failed step logs."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload dry-run diff artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudflare-d1-market-event-plan-${{ github.run_id }}
+          path: artifacts/d1-sync-plan
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Mark failure for GitHub notifications
+        if: failure()
+        run: echo "Cloudflare D1 dry-run failed; GitHub workflow failure notification is the canonical alert." >&2
+
+  apply:
+    name: Apply reviewed D1 diff
+    needs: dry-run
+    if: ${{ inputs.apply && inputs.confirmation == 'APPLY' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Export, apply, and re-query remote D1
+        run: |
+          bash scripts/sync-cloudflare-d1-market-events.sh \
+            --database "${{ inputs.database }}" \
+            --wrangler-version "$WRANGLER_VERSION" \
+            --out-dir artifacts/d1-sync-apply \
+            --apply
+
+      - name: Write apply summary
+        if: always()
+        run: |
+          {
+            echo "## Cloudflare D1 market-event apply"
+            echo
+            echo "- Database: \`${{ inputs.database }}\`"
+            echo "- Environment: \`production\`"
+            echo "- Backup export: required before write"
+            echo "- Remote re-query: required after write"
+            echo "- Public Worker write API: not used"
+            echo
+            if [[ -f artifacts/d1-sync-apply/market-events-sync-result.json ]]; then
+              echo '```json'
+              cat artifacts/d1-sync-apply/market-events-sync-result.json
+              echo '```'
+            else
+              echo "Verified result artifact was not produced. Inspect logs and the uploaded pre/post state."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload apply audit artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudflare-d1-market-event-apply-${{ github.run_id }}
+          path: artifacts/d1-sync-apply
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Mark failure for GitHub notifications
+        if: failure()
+        run: echo "Cloudflare D1 apply failed or could not be verified; do not assume rollback." >&2
