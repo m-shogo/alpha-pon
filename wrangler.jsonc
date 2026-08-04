@@ -1,0 +1,26 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "alpha-pon",
+  "main": "./worker/index.ts",
+  "compatibility_date": "2026-08-04",
+  "workers_dev": true,
+  "assets": {
+    "directory": "./apps/web/out",
+    "binding": "ASSETS",
+    "html_handling": "force-trailing-slash",
+    "not_found_handling": "404-page",
+    "run_worker_first": [
+      "/api*",
+      "/calendar.ics*",
+      "/healthz*"
+    ]
+  }
+
+  // Runtime variables and bindings are intentionally configured after the
+  // first successful deployment. Do not commit their real values here.
+  // Required later:
+  // - OWNER_EMAIL
+  // - PUBLIC_ORIGIN
+  // - secret CALENDAR_FEED_TOKEN
+  // - D1 binding DB -> alpha-pon-market-events
+}
