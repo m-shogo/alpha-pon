@@ -109,6 +109,6 @@ const runbook = readFileSync("docs/implementation/cloudflare-d1-token-cli-runboo
 assert.match(runbook, /Create additional tokens/);
 assert.match(runbook, /--revoke-bootstrap/);
 assert.match(runbook, /does not run D1 bootstrap/);
-assert.doesNotMatch(runbook, /paste it into chat/i);
+assert.match(runbook, /do not paste it into chat/i);
 
 console.log("cloudflare-d1-token-provisioning-verification: ok");
