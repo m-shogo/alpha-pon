@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "alpha-pon",
+  "compatibility_date": "2026-08-03",
+  "pages_build_output_dir": "apps/web/out",
+  "vars": {
+    "OWNER_EMAIL": "YOUR_CLOUDFLARE_ACCESS_EMAIL",
+    "PUBLIC_ORIGIN": "https://YOUR_ALPHA_PON_DOMAIN"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "alpha-pon-market-events",
+      "database_id": "REPLACE_AFTER_CLOUDFLARE_REGISTRATION",
+      "preview_database_id": "REPLACE_AFTER_CLOUDFLARE_REGISTRATION"
+    }
+  ]
+}

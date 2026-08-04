@@ -26,6 +26,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y shellcheck
       - run: shellcheck scripts/run-daily.sh scripts/ci-pipeline-smoke.sh scripts/run-proposal-history.sh scripts/run-daily-complete.sh
       - run: pnpm install --frozen-lockfile
+      - name: Prepare offline CI environment
+        run: test -f .env || touch .env
       - run: pnpm check
       - run: pnpm ci:smoke
       - run: bash scripts/ci-pipeline-smoke.sh
