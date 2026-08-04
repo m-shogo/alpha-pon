@@ -89,8 +89,8 @@ export function buildD1BootstrapExport(
     "-- Intended for a newly migrated empty D1 database, not incremental synchronization.",
     "-- Rows are emitted in deterministic dependency-safe order.",
     "-- Apply every ordered migrations/[0-9]*.sql file before this file.",
+    "-- D1 remote imports reject explicit BEGIN TRANSACTION / COMMIT statements.",
     "PRAGMA foreign_keys = ON;",
-    "BEGIN TRANSACTION;",
   ];
 
   for (const table of TABLE_ORDER) {
@@ -106,7 +106,7 @@ export function buildD1BootstrapExport(
     }
   }
 
-  lines.push("", "COMMIT;", "");
+  lines.push("");
   const sql = lines.join("\n");
   const sha256 = createHash("sha256").update(sql).digest("hex");
   return { sql, sha256, rowCounts };
