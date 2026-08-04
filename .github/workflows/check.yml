@@ -89,7 +89,7 @@ jobs:
             reports/ipo_theme_watch_latest.md
             reports/ipo_theme_watch_latest.json
             reports/stock_pro_agent_latest.md
-            reports/stock-pro-summary_latest.md
+            reports/stock_pro_summary_latest.md
             reports/company_hypotheses_latest.md
             reports/company_network_latest.md
             reports/company_coverage_audit_latest.md
