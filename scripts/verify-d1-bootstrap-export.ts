@@ -1,3 +1,5 @@
+'use strict'
+
 import assert from "node:assert/strict";
 import { buildD1BootstrapExport } from "../src/market-events/d1-bootstrap-export.js";
 import { buildEventId } from "../src/market-events/contracts.js";
@@ -83,6 +85,11 @@ try {
   const secondExport = buildD1BootstrapExport(source, options);
   assert.equal(firstExport.sha256, secondExport.sha256, "fixed-input exports must be byte deterministic");
   assert.equal(firstExport.sql, secondExport.sql);
+  assert.doesNotMatch(
+    firstExport.sql,
+    /^\s*(?:BEGIN\s+TRANSACTION|SAVEPOINT|COMMIT|ROLLBACK)\b/im,
+    "D1 bootstrap SQL must not contain explicit transaction statements",
+  );
 
   const revisionInsertLines = firstExport.sql
     .split("\n")

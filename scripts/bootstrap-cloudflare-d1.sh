@@ -82,6 +82,11 @@ run_ts scripts/export-market-events-d1-bootstrap.ts \
   --out "$BOOTSTRAP_SQL" \
   --write
 
+if grep -Eiq '^[[:space:]]*(BEGIN[[:space:]]+TRANSACTION|SAVEPOINT|COMMIT|ROLLBACK)([[:space:];]|$)' "$BOOTSTRAP_SQL"; then
+  echo "D1 bootstrap SQL contains an unsupported explicit transaction statement" >&2
+  exit 1
+fi
+
 if [[ "$KEEP_EXPORT" -eq 1 ]]; then
   mkdir -p data/exports
   cp "$BOOTSTRAP_SQL" "data/exports/market-events-d1-bootstrap.sql"
@@ -108,12 +113,10 @@ if [[ "${#MIGRATION_FILES[@]}" -eq 0 ]]; then
   exit 1
 fi
 
-for migration_file in "${MIGRATION_FILES[@]}"; do
-  echo "Applying $(basename "$migration_file") to remote D1 database: $DATABASE_NAME"
-  npx --yes wrangler@latest d1 execute "$DATABASE_NAME" \
-    --remote \
-    --file="$migration_file"
-done
+# Use Wrangler's D1 migration command rather than executing migration files as
+# generic SQL imports. D1 manages migration ordering and its own migration log.
+echo "Applying ordered D1 migrations to remote database: $DATABASE_NAME"
+npx --yes wrangler@latest d1 migrations apply "$DATABASE_NAME" --remote
 
 echo "Applying INSERT OR IGNORE bootstrap rows to remote D1 database: $DATABASE_NAME"
 npx --yes wrangler@latest d1 execute "$DATABASE_NAME" \
