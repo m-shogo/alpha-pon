@@ -39,3 +39,6 @@ jobs:
 
       - name: Verify Workers Static Assets routing
         run: node --import tsx/esm scripts/verify-workers-static-assets.ts
+
+      - name: Bundle Worker without deploying
+        run: npx --yes wrangler@4.118.0 deploy --dry-run --outdir .wrangler-dry-run
