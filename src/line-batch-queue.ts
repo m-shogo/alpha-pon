@@ -43,7 +43,8 @@ export type LedgerEntry = {
   queuedAt: string;
   lastAttemptAt?: string;
   lastError?: string; // redacted, truncated
-  deliveredAt?: string;
+  deliveredAt?: string; // UTC ISO
+  deliveredDateJst?: string; // Asia/Tokyo YYYY-MM-DD（当日判定の正本）
 };
 
 export type Ledger = {
@@ -53,6 +54,29 @@ export type Ledger = {
 
 export function emptyLedger(): Ledger {
   return { version: 1, entries: {} };
+}
+
+// ledger JSON が壊れているときに投げる（送信側は安全側に停止するため）。
+export class LedgerCorruptError extends Error {
+  constructor(
+    message: string,
+    public readonly backupPath: string | null,
+  ) {
+    super(message);
+    this.name = "LedgerCorruptError";
+  }
+}
+
+// UTC ISO 文字列を Asia/Tokyo の YYYY-MM-DD へ変換する。
+export function jstDateOf(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso.slice(0, 10);
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
 }
 
 // contentHash: 内容の論理IDかつファイル名。send-daily-complete.sh のインライン
@@ -93,6 +117,7 @@ export function markSent(ledger: Ledger, hashes: string[], now: string): Ledger 
     if (!e) continue;
     e.status = "sent";
     e.deliveredAt = now;
+    e.deliveredDateJst = jstDateOf(now);
     e.attempts += 1;
     e.lastAttemptAt = now;
     delete e.lastError;
@@ -142,11 +167,14 @@ export function isDelivered(ledger: Ledger, hash: string): boolean {
   return ledger.entries[hash]?.status === "sent";
 }
 
-// 当日 delivered した urgent 件数（「即時通知済み N 件」表示の正本）。
-export function countUrgentDeliveredToday(ledger: Ledger, today: string): number {
-  return Object.values(ledger.entries).filter(
-    (e) => e.kind === "urgent" && e.status === "sent" && (e.deliveredAt ?? "").startsWith(today),
-  ).length;
+// 当日(JST) delivered した urgent 件数（「即時通知済み N 件」表示の正本）。
+// deliveredDateJst を優先し、無い古いentryは deliveredAt を JST 変換して比較する。
+export function countUrgentDeliveredToday(ledger: Ledger, todayJstDate: string): number {
+  return Object.values(ledger.entries).filter((e) => {
+    if (e.kind !== "urgent" || e.status !== "sent") return false;
+    const dateJst = e.deliveredDateJst ?? (e.deliveredAt ? jstDateOf(e.deliveredAt) : undefined);
+    return dateJst === todayJstDate;
+  }).length;
 }
 
 // sent / skipped の古いエントリを掃除（無限蓄積防止）。retentionDays は deliveredAt 基準。
@@ -171,16 +199,94 @@ function atomicWrite(path: string, data: string): void {
   renameSync(tmp, path);
 }
 
+function parseLedger(raw: string): Ledger | null {
+  const parsed = JSON.parse(raw) as Ledger;
+  if (!parsed || typeof parsed !== "object" || typeof parsed.entries !== "object" || parsed.entries === null) {
+    return null;
+  }
+  return { version: 1, entries: parsed.entries };
+}
+
+// 壊れた ledger を安全なバックアップ名へ退避し、パスを返す（黙って捨てない）。
+function quarantineCorruptLedger(dir: string): string | null {
+  const path = join(dir, LEDGER_FILE);
+  if (!existsSync(path)) return null;
+  const backup = join(dir, `${LEDGER_FILE}.corrupt-${Date.now()}`);
+  try {
+    renameSync(path, backup);
+    return backup;
+  } catch {
+    return null;
+  }
+}
+
+// 書き込み系（enqueue等）向け: 壊れていれば退避して空 ledger を返す（送信はしないので安全）。
 export function loadLedger(dir: string): Ledger {
   const path = join(dir, LEDGER_FILE);
   if (!existsSync(path)) return emptyLedger();
   try {
-    const parsed = JSON.parse(readFileSync(path, "utf-8")) as Ledger;
-    if (!parsed || typeof parsed !== "object" || !parsed.entries) return emptyLedger();
-    return { version: 1, entries: parsed.entries };
+    const parsed = parseLedger(readFileSync(path, "utf-8"));
+    if (parsed) return parsed;
   } catch {
-    return emptyLedger();
+    // fallthrough to quarantine
   }
+  quarantineCorruptLedger(dir);
+  return emptyLedger();
+}
+
+// 送信系向け: 壊れていれば退避のうえ LedgerCorruptError を投げ、送信を停止させる
+// （dedupe状態を失ったまま送ると重複送信の恐れがあるため安全側に倒す）。
+export function loadLedgerStrict(dir: string): Ledger {
+  const path = join(dir, LEDGER_FILE);
+  if (!existsSync(path)) return emptyLedger();
+  let raw: string;
+  try {
+    raw = readFileSync(path, "utf-8");
+  } catch (err) {
+    throw new LedgerCorruptError(`ledger read failed: ${(err as Error).message}`, null);
+  }
+  let parsed: Ledger | null = null;
+  try {
+    parsed = parseLedger(raw);
+  } catch {
+    parsed = null;
+  }
+  if (parsed) return parsed;
+  const backup = quarantineCorruptLedger(dir);
+  throw new LedgerCorruptError("ledger JSON is corrupt; quarantined and stopped sending", backup);
+}
+
+// ledger と実ファイルの不整合を構造化して返す（黙って無視しない）。
+export function findLedgerAnomalies(
+  dir: string,
+  ledger: Ledger,
+): { missingBody: string[]; orphanFiles: string[] } {
+  const files = new Set(listFragmentFiles(dir).map((f) => f.replace(/\.txt$/, "")));
+  const missingBody: string[] = [];
+  for (const e of Object.values(ledger.entries)) {
+    if ((e.status === "queued" || e.status === "pending-retry") && !files.has(e.hash)) {
+      missingBody.push(e.hash);
+    }
+  }
+  const orphanFiles: string[] = [];
+  for (const hash of files) {
+    if (!ledger.entries[hash]) orphanFiles.push(hash);
+  }
+  return { missingBody: missingBody.sort(), orphanFiles: orphanFiles.sort() };
+}
+
+// MAX_ATTEMPTS 到達後の手動復旧: failed を queued に戻し再送候補へ（runbook用）。
+export function requeueFailed(ledger: Ledger): { ledger: Ledger; requeued: string[] } {
+  const requeued: string[] = [];
+  for (const e of Object.values(ledger.entries)) {
+    if (e.status === "failed") {
+      e.status = "queued";
+      e.attempts = 0;
+      delete e.lastError;
+      requeued.push(e.hash);
+    }
+  }
+  return { ledger, requeued: requeued.sort() };
 }
 
 export function saveLedger(dir: string, ledger: Ledger): void {

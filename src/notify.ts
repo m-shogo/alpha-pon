@@ -7,19 +7,10 @@ import {
 } from "./notification-dedupe.js";
 import {
   createTransport,
-  detectSection,
   redactSecrets,
-  type TransportResult,
 } from "./line-consolidation.js";
-import {
-  contentHash,
-  enqueueFragment,
-  ensureEntry,
-  loadLedger,
-  markFailed,
-  markSent,
-  saveLedger,
-} from "./line-batch-queue.js";
+import { enqueueFragment } from "./line-batch-queue.js";
+import { deliverUrgent, type UrgentDeliveryResult } from "./line-delivery.js";
 
 // -------------------------------------------------------
 // LINE バッチモード（LINE_BATCH_DIR 設定時に有効）
@@ -36,30 +27,6 @@ function enqueueNormal(text: string): void {
   const dir = batchDir();
   if (!dir) return;
   enqueueFragment(dir, { text, kind: "normal" });
-}
-
-// 緊急の実送信成功をledgerに記録する（当日の「即時通知済み」件数の正本）。
-function recordUrgentDelivered(text: string): void {
-  const dir = batchDir();
-  if (!dir) return;
-  const now = new Date().toISOString();
-  const hash = contentHash(text);
-  const ledger = loadLedger(dir);
-  ensureEntry(ledger, { hash, section: detectSection(text) ?? "🚨 緊急開示", kind: "urgent", now });
-  markSent(ledger, [hash], now);
-  saveLedger(dir, ledger);
-}
-
-// 緊急の送信失敗をpendingキューへ積む（次回実行が再送）。
-function enqueueUrgentPending(text: string, error: string): void {
-  const dir = batchDir();
-  if (!dir) return;
-  const now = new Date().toISOString();
-  const hash = contentHash(text);
-  enqueueFragment(dir, { text, kind: "urgent" });
-  const ledger = loadLedger(dir);
-  markFailed(ledger, [hash], error, now);
-  saveLedger(dir, ledger);
 }
 
 // -------------------------------------------------------
@@ -271,7 +238,7 @@ function buildLineSummaryText(
 }
 
 // 統一transport経由の送信。成否を TransportResult で返す（void で握りつぶさない）。
-async function deliver(messages: object[]): Promise<TransportResult> {
+async function deliver(messages: object[]) {
   return createTransport().send(messages);
 }
 
@@ -311,42 +278,53 @@ async function pushDedupedText(text: string): Promise<void> {
   }
 }
 
-// 緊急送信結果の後処理。実送信成功時だけ「即時通知済み」に数える。
-function handleUrgentResult(text: string, res: TransportResult): void {
-  if (res.ok) {
-    recordUrgentDelivered(text);
-    recordTextNotification(text);
-    return;
+// 緊急配信結果のログ（実送信成功時だけ delivered。dry-run/creds不足はpending維持・非消費）。
+function logUrgentResult(label: string, res: UrgentDeliveryResult): void {
+  switch (res.outcome) {
+    case "sent":
+      return; // 成功は静か
+    case "skipped-already-sent":
+      console.log(`${label}: 送信済みのためスキップ（重複送信しない）`);
+      return;
+    case "dry-run":
+    case "credentials-missing":
+      console.log(`${label}: 実送信なし（${res.outcome}）。pending維持・retry非消費`);
+      return;
+    case "failed-max-attempts":
+      console.warn(`${label}: 上限到達。手動requeueが必要（runbook参照）`);
+      return;
+    default:
+      console.warn(`${label}: 未達（${res.outcome}）。pending-retryへ`);
   }
-  if (res.outcome === "dry-run") {
-    console.log("緊急通知（ドライラン。実送信なし・未達扱い）");
-    return;
-  }
-  const reason = redactSecrets(res.error ?? res.outcome, [process.env.LINE_CHANNEL_TOKEN, process.env.LINE_USER_ID]);
-  console.warn(`緊急通知未達（${res.outcome}）: ${reason} — pendingへ退避し次回再送`);
-  enqueueUrgentPending(text, res.outcome === "credentials-missing" ? "credentials-missing" : (res.error ?? res.outcome));
 }
 
 // -------------------------------------------------------
 // 公開API
 // -------------------------------------------------------
 
-// 緊急（alertLevel === "urgent"）だけが即時送信パス。
-// 実送信成功時だけ delivered/即時通知済みに数える。失敗は pending へ退避して再送保証する。
+// 緊急（alertLevel === "urgent"）だけが即時送信パス。共通 deliverUrgent 経由で
+// 送信前dedupe・retryability・pending維持を一元化する。
 export async function sendUrgentNotifications(results: ScoreResult[]): Promise<void> {
+  const transport = createTransport();
   for (const result of results) {
     notifyMacOS(result);
     console.log(`  macOS通知: ${result.candidate.code} ${result.candidate.name} ${result.score}点`);
-    const res = await deliver([buildLineFlexCard(result)]);
-    handleUrgentResult(urgentText(result), res);
+    const res = await deliverUrgent(batchDir(), transport, {
+      text: urgentText(result),
+      messages: [buildLineFlexCard(result)],
+    });
+    logUrgentResult(`緊急 ${result.candidate.code}`, res);
   }
 }
 
-// TDnet重要開示のP0即時通知経路。朝刊バッチには回さない。
+// TDnet重要開示のP0即時通知経路。朝刊バッチには回さず、送信前dedupeで同日重複を防ぐ。
 export async function sendUrgentDisclosure(text: string): Promise<void> {
   notifyMacOSText("🚨 緊急開示", text.slice(0, 200), "Basso");
-  const res = await deliver([{ type: "text", text }]);
-  handleUrgentResult(text, res);
+  const res = await deliverUrgent(batchDir(), createTransport(), {
+    text,
+    messages: [{ type: "text", text }],
+  });
+  logUrgentResult("緊急開示", res);
 }
 
 export async function sendDailySummary(results: ScoreResult[], date: string): Promise<void> {
