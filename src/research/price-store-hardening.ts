@@ -50,6 +50,7 @@ export type PriceHardeningIssueCode =
   | "execution_before_retrieval"
   | "unknown_provider_plan"
   | "unknown_source"
+  | "metadata_only_price_payload"
   | "status_reason_mismatch"
   | "future_effective_corporate_action"
   | "batch_query_plan_mismatch"
@@ -61,6 +62,7 @@ export type PriceHardeningIssueCode =
   | "missing_required_series"
   | "misaligned_price_basis"
   | "misaligned_trading_dates"
+  | "theoretical_mode_not_executable"
   | "partial_jsonl_tail";
 
 export interface PriceHardeningIssue {
@@ -139,6 +141,14 @@ export function validatePriceRecordHardening(record: PitPriceRecord): PriceHarde
       "unknown_source",
       target,
       "source未解決のrecordはgoverned price seriesへ昇格できません",
+    ));
+  }
+
+  if (record.license === "metadata_only" && (record.status === "traded" || !!record.ohlcv)) {
+    issues.push(hardeningIssue(
+      "metadata_only_price_payload",
+      target,
+      "license=metadata_onlyではOHLCV価格payloadを保存・利用できません",
     ));
   }
 
@@ -388,6 +398,9 @@ export function toHardenedBacktestPriceSeries(
   selector: HardenedPriceSeriesSelector,
   mode: PriceReplayMode = "system_replay",
 ): PriceSeries {
+  if (mode !== "system_replay") {
+    throw new Error("Backtest requires system_replay; provider_available is availability research only");
+  }
   const selected = selectPriceRecordsForReplay(records, asOf, selector, mode);
   return {
     code: selector.code,
@@ -417,6 +430,14 @@ export function validateEventStudyPriceAlignment(
   asOf: string,
   mode: PriceReplayMode = "system_replay",
 ): PriceHardeningIssue[] {
+  if (mode !== "system_replay") {
+    return [hardeningIssue(
+      "theoretical_mode_not_executable",
+      "event-study",
+      "Event Study / Net Alphaはsystem_replay専用です。provider_availableは資料可用性の研究にのみ使用できます",
+    )];
+  }
+
   const issues: PriceHardeningIssue[] = [];
   const byRole = new Map(inputs.map((input) => [input.role, input]));
 
