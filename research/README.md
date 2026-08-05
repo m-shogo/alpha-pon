@@ -6,6 +6,7 @@
 - 毎時プロンプト: [../docs/prompts/hourly-research.md](../docs/prompts/hourly-research.md)
 - 現在の全体ロードマップ: [../docs/roadmaps/alpha-pon-current-roadmap-2026-08-05.md](../docs/roadmaps/alpha-pon-current-roadmap-2026-08-05.md)
 - Research OSロードマップ: [../docs/roadmaps/research-os-roadmap.md](../docs/roadmaps/research-os-roadmap.md)
+- PIT Price Store契約: [../docs/research/pit-price-store.md](../docs/research/pit-price-store.md)
 - エージェント役割分担: [../docs/operations/agent-work-routing.md](../docs/operations/agent-work-routing.md)
 - Claude Code / Codex引き継ぎテンプレート: [../docs/prompts/code-agent-handoff-template.md](../docs/prompts/code-agent-handoff-template.md)
 
@@ -22,6 +23,7 @@
 | `checkpoint/latest.json` | 次回の出発点 | 上書き可（唯一） |
 | `checkpoint/history/` | Checkpoint スナップショット | 作成のみ。**変更禁止** |
 | `holdout/` | Holdout Vault | [holdout/README.md](holdout/README.md) 参照 |
+| `prices/` | PIT価格・ベンチマークのローカル保存先 | **JSONL末尾追記のみ。実データはGit管理しない** |
 | `queue/queue.generated.json` | VOI ランキング | **生成物** |
 | `queue/weights.yml` | VOI の重み | 変更時は理由を research_log に残す |
 | `dashboard/dashboard.generated.md` | 一覧 | **生成物** |
