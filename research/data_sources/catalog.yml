@@ -1,0 +1,739 @@
+schemaVersion: 1
+updatedAt: 2026-08-05
+policyVersion: data-source-adoption-v1
+
+# 原則:
+# - 無料であることは採用理由にならない。
+# - SNS・技術記事・GitHubは新しいAPI/OSSを発見する入口に限る。
+# - 投資上の事実は一次情報へ照合し、一般SNS投稿を証拠・スコア・BUY判定へ使わない。
+# - 公式SNSは、企業・官公庁の公式Webサイトから当該アカウントURLへの逆向きリンクを確認できた場合のみ verified とする。
+# - core_now でも全件クロールを意味しない。Edgeに必要な最小範囲だけ利用する。
+
+sources:
+  - id: jquants-free
+    name: J-Quants API Free
+    operator: Japan Exchange Group
+    officialUrl: https://jpx-jquants.com/
+    verifiedAt: 2026-08-05
+    sourceClass: licensed_market_data
+    roles: [market_reaction, confounder]
+    adoption: core_now
+    roadmapPhase: P2
+    auth:
+      mode: api_key
+      secretRequired: true
+      notes: 既存クライアントあり。秘密値はローカル環境のみ。
+    cost:
+      freeStatus: free_limited
+      limits: 履歴と鮮度に無料プラン制約がある。遅延値を現在値として表示しない。
+      upgradeTrigger: PIT Price Store完成後、10年検証を一括実行できる準備が整った月にStandardを1か月試す。
+    temporal:
+      freshness: 遅延あり
+      history: 無料範囲のみ
+      publicationTimestamp: date_only
+    pit:
+      support: partial
+      revisionHandling: provider取得時刻、データ基準日、調整前後、corporate actionを別保存する。
+      requiredTimestamps: [observedAt, retrievedAt, firstExecutableAt]
+    rights:
+      rawStorage: local_only
+      gitCommit: metadata_only
+      publicDisplay: derived_only
+      redistribution: prohibited
+      notes: 契約・利用規約を優先し、生データや継続的な市場データを公開サイトへ載せない。
+    reliability:
+      authority: official
+      operationalRisk: low
+      fallback: 欠損時はデータギャップとして停止し、非公式価格へ自動フォールバックしない。
+    integration:
+      existingState: partial
+      maintenanceCost: medium
+      failureIsolation: required
+      entityKeys: [security_code, trading_date]
+      notes: 84日遅延制御と日足・財務サマリー実装あり。正式PIT provider化が未完。
+    edgeUseCases: [known-bad-event-repricing, executable-event-study, benchmark-adjustment]
+    blockers: [PIT Price Store契約未完成, TOPIX・業種benchmarkの正式保存未完成]
+    nextAction: P2で既存実装を正式providerへ昇格し、遅延・権利・revisionを明示する。
+
+  - id: jquants-standard
+    name: J-Quants API Standard
+    operator: Japan Exchange Group
+    officialUrl: https://jpx-jquants.com/
+    verifiedAt: 2026-08-05
+    sourceClass: licensed_market_data
+    roles: [market_reaction, supply_demand, confounder, execution_constraint]
+    adoption: pilot_after_current_edge
+    roadmapPhase: P3
+    auth:
+      mode: api_key
+      secretRequired: true
+      notes: 恒久契約ではなく検証スプリントとして開始する。
+    cost:
+      freeStatus: paid
+      limits: 月額契約。契約期間・保存・利用条件を契約時に再確認する。
+      upgradeTrigger: イベント時系列、PIT Price Store、最低40件の検証キューが揃った時。
+    temporal:
+      freshness: 日次運用向け
+      history: 長期履歴と需給系データを利用可能なプラン
+      publicationTimestamp: mixed
+    pit:
+      support: partial
+      revisionHandling: 初回取得スナップショットを残し、provider revisionをsupersessionで管理する。
+      requiredTimestamps: [observedAt, retrievedAt, firstExecutableAt]
+    rights:
+      rawStorage: local_only
+      gitCommit: metadata_only
+      publicDisplay: derived_only
+      redistribution: prohibited
+      notes: 個人研究用。公開サイトへ生データを出さない。
+    reliability:
+      authority: official
+      operationalRisk: low
+      fallback: 解約時はFreeへ戻し、過去取得データの継続利用条件を確認する。
+    integration:
+      existingState: not_started
+      maintenanceCost: low
+      failureIsolation: required
+      entityKeys: [security_code, trading_date]
+      notes: Free providerと同じ契約を使い、プラン差を機能フラグで扱う。
+    edgeUseCases: [known-bad-event-repricing, short-margin-crowding, edge-decay]
+    blockers: [検証基盤未完成, 契約後データ利用条件の最終確認]
+    nextAction: 基盤完成後に1か月のSTANDARD_EDGE_VALIDATION_SPRINTとして契約判断する。
+
+  - id: edinet-v2
+    name: EDINET API Version 2
+    operator: Financial Services Agency Japan
+    officialUrl: https://disclosure2.edinet-fsa.go.jp/guide/static/disclosure/WEEK0060.html
+    verifiedAt: 2026-08-05
+    sourceClass: primary_official
+    roles: [evidence, entity_resolution, commercialization]
+    adoption: core_now
+    roadmapPhase: P2_5
+    auth:
+      mode: api_key
+      secretRequired: true
+      notes: 現行Version 2はAPIキー方式。既存コードのAPIキー不要・旧URL前提は移行が必要。
+    cost:
+      freeStatus: free
+      limits: 公式レート・運用要件を守る。
+      upgradeTrigger: none
+    temporal:
+      freshness: 提出書類一覧を日付単位で取得
+      history: EDINET提供範囲
+      publicationTimestamp: precise
+    pit:
+      support: strong
+      revisionHandling: docID、parentDocID、withdrawalStatus、edit status、content hashで訂正・撤回・再訂正を連鎖保存する。
+      requiredTimestamps: [eventAt, publishedAt, observedAt, retrievedAt]
+    rights:
+      rawStorage: restricted
+      gitCommit: metadata_only
+      publicDisplay: derived_only
+      redistribution: restricted
+      notes: 原文URL・hash・抽出根拠をGitへ残し、大量原文はローカル保存方針を別途確認する。
+    reliability:
+      authority: primary
+      operationalRisk: low
+      fallback: 企業IR・TDnetへ照合するが、法定書類の代替正本とはしない。
+    integration:
+      existingState: partial
+      maintenanceCost: medium
+      failureIsolation: required
+      entityKeys: [edinet_code, security_code, corporate_number, document_id]
+      notes: 一覧・構造イベント検出は存在するが、checkpoint、auth、supersession、source healthが未完成。
+    edgeUseCases: [known-bad-event-repricing, audit-opinion-transition, large-shareholding, research-to-capex]
+    blockers: [現行APIキー対応, 旧base URL移行, checkpoint, correction chain]
+    nextAction: LINEとは別PRでEDINET_V2_AUTH_MIGRATION_GREENを最初のcollector改善にする。
+
+  - id: tdnet-and-company-ir
+    name: TDnet and Corporate IR
+    operator: Japan Exchange Group and listed issuers
+    officialUrl: https://www.release.tdnet.info/inbs/I_main_00.html
+    verifiedAt: 2026-08-05
+    sourceClass: primary_official
+    roles: [discovery, evidence, commercialization]
+    adoption: core_now
+    roadmapPhase: P3
+    auth:
+      mode: none
+      secretRequired: false
+      notes: 無料閲覧範囲を対象とし、有料TDnet APIは現時点で採用しない。
+    cost:
+      freeStatus: free_limited
+      limits: 全市場高頻度クロールを避け、Named Watch・Edge対象企業に限定する。
+      upgradeTrigger: 通知遅延が検証済みEdgeの実運用を阻害すると実測できた時。
+    temporal:
+      freshness: 適時開示・企業発表
+      history: 公開範囲と企業ごとの差がある
+      publicationTimestamp: precise
+    pit:
+      support: strong
+      revisionHandling: 原文URL、公開時刻、content hash、差替えURL、retrievedAtを保存する。
+      requiredTimestamps: [publishedAt, observedAt, retrievedAt, firstExecutableAt]
+    rights:
+      rawStorage: restricted
+      gitCommit: metadata_only
+      publicDisplay: derived_only
+      redistribution: restricted
+      notes: robots.txt・利用規約・ドメイン別レート制御を必須にする。
+    reliability:
+      authority: primary
+      operationalRisk: medium
+      fallback: HTML構造変化時はmanual review queueへ送り、第三者APIを証拠正本へ自動昇格しない。
+    integration:
+      existingState: partial
+      maintenanceCost: high
+      failureIsolation: required
+      entityKeys: [security_code, issuer_domain, disclosure_url]
+      notes: 簡易JPX HTML parserあり。公式IRの限定監視と変更検知が未完成。
+    edgeUseCases: [known-bad-event-repricing, research-to-capex, supplier-qualification-moat]
+    blockers: [HTML変更耐性, 利用条件監査, issuer domain registry]
+    nextAction: EDINETと同じEvidence Package契約へ正規化し、取得失敗をpipeline全体から隔離する。
+
+  - id: jpx-official-measures
+    name: JPX Listed Company Measures and Alerts
+    operator: Japan Exchange Group
+    officialUrl: https://www.jpx.co.jp/equities/listing/measure/index.html
+    verifiedAt: 2026-08-05
+    sourceClass: primary_official
+    roles: [discovery, evidence, supply_demand]
+    adoption: pilot_after_current_edge
+    roadmapPhase: P5
+    auth:
+      mode: none
+      secretRequired: false
+      notes: 公表措置、改善報告、特別注意、監理・整理、監査意見等を対象候補とする。
+    cost:
+      freeStatus: free
+      limits: HTML・PDF・CSVごとの取得条件を個別確認する。
+      upgradeTrigger: none
+    temporal:
+      freshness: 取引所公表時
+      history: ページごとに異なる
+      publicationTimestamp: mixed
+    pit:
+      support: strong
+      revisionHandling: 措置の指定・継続・解除を状態遷移としてappend-only保存する。
+      requiredTimestamps: [publishedAt, observedAt, retrievedAt, firstExecutableAt]
+    rights:
+      rawStorage: restricted
+      gitCommit: metadata_only
+      publicDisplay: derived_only
+      redistribution: restricted
+      notes: 取得前に各ページの利用条件を確認する。
+    reliability:
+      authority: primary
+      operationalRisk: medium
+      fallback: JPX原ページのmanual review。
+    integration:
+      existingState: not_started
+      maintenanceCost: medium
+      failureIsolation: required
+      entityKeys: [security_code, measure_type]
+      notes: Exchange Sanction Ladderの客観ラベル候補。
+    edgeUseCases: [exchange-sanction-ladder, rumor-resolution, audit-opinion-escalation]
+    blockers: [履歴形式のばらつき, 公表時刻精度の確認]
+    nextAction: Known-Badの最初の証拠パッケージ後に1種類だけpilotし、重複Edgeを避ける。
+
+  - id: jpx-short-selling-margin
+    name: JPX Short Selling and Margin Data
+    operator: Japan Exchange Group
+    officialUrl: https://www.jpx.co.jp/markets/public/short-selling/index.html
+    verifiedAt: 2026-08-05
+    sourceClass: primary_official
+    roles: [supply_demand, confounder, execution_constraint]
+    adoption: pilot_after_current_edge
+    roadmapPhase: P4
+    auth:
+      mode: none
+      secretRequired: false
+      notes: 0.5%以上空売り残高、売買代金、信用関連公表を候補とする。
+    cost:
+      freeStatus: free
+      limits: ファイル単位の履歴・公開条件を確認する。
+      upgradeTrigger: none
+    temporal:
+      freshness: 営業日更新中心
+      history: データセットごとに異なる
+      publicationTimestamp: mixed
+    pit:
+      support: strong
+      revisionHandling: 公表日・対象日・retrievedAtを分け、後日修正をsupersession保存する。
+      requiredTimestamps: [eventAt, publishedAt, observedAt, retrievedAt]
+    rights:
+      rawStorage: restricted
+      gitCommit: metadata_only
+      publicDisplay: derived_only
+      redistribution: restricted
+      notes: 原ファイルの再配布を前提にしない。
+    reliability:
+      authority: primary
+      operationalRisk: medium
+      fallback: 欠損をunknownとして扱い、ゼロ埋めしない。
+    integration:
+      existingState: not_started
+      maintenanceCost: medium
+      failureIsolation: required
+      entityKeys: [security_code, position_holder, position_date]
+      notes: Known-Badの需給交絡を分解する補助であり、単独BUYシグナルにしない。
+    edgeUseCases: [known-bad-event-repricing, crowded-bad-news, short-covering]
+    blockers: [銘柄コード・報告者の正規化, borrow cost不足]
+    nextAction: P4で同日情報として利用可能だった時刻を検証してからpilotする。
+
+  - id: gbizinfo
+    name: gBizINFO REST API
+    operator: Ministry of Economy Trade and Industry
+    officialUrl: https://info.gbiz.go.jp/hojin/APIManual
+    verifiedAt: 2026-08-05
+    sourceClass: official_aggregate
+    roles: [discovery, evidence, entity_resolution, commercialization]
+    adoption: pilot_after_current_edge
+    roadmapPhase: P5
+    auth:
+      mode: api_key
+      secretRequired: true
+      notes: 法人番号を中心キーとして利用する。
+    cost:
+      freeStatus: free
+      limits: API仕様とレート制御を守る。
+      upgradeTrigger: none
+    temporal:
+      freshness: 元制度・データごとに異なる
+      history: 補助金・調達・特許・認定等
+      publicationTimestamp: mixed
+    pit:
+      support: partial
+      revisionHandling: 元データの公表日とgBizINFO取得日を分け、集約遅延を記録する。
+      requiredTimestamps: [eventAt, publishedAt, observedAt, retrievedAt]
+    rights:
+      rawStorage: restricted
+      gitCommit: metadata_only
+      publicDisplay: derived_only
+      redistribution: restricted
+      notes: 元データとAPI規約を個別確認する。
+    reliability:
+      authority: official
+      operationalRisk: low
+      fallback: 調達機関・補助金執行機関の一次資料へ照合する。
+    integration:
+      existingState: not_started
+      maintenanceCost: medium
+      failureIsolation: required
+      entityKeys: [corporate_number, security_code]
+      notes: 政府需要・特許・認定の候補発見に使い、金額の企業規模比を必ず確認する。
+    edgeUseCases: [government-demand, grant-private-capital-multiplier, supplier-cascade]
+    blockers: [上場企業とのentity mapping, 元公表日時の精度]
+    nextAction: 最初は宇宙・防衛・半導体の少数企業で情報鮮度をpilotする。
+
+  - id: boj-time-series-api
+    name: Bank of Japan Time-Series API
+    operator: Bank of Japan
+    officialUrl: https://www.boj.or.jp/statistics/outline/notice_2026/not260218a.htm
+    verifiedAt: 2026-08-05
+    sourceClass: primary_official
+    roles: [confounder]
+    adoption: catalog_only
+    roadmapPhase: P4
+    auth:
+      mode: none
+      secretRequired: false
+      notes: 系列コードregistryを作ってから接続する。
+    cost:
+      freeStatus: free
+      limits: 必要系列だけ取得する。
+      upgradeTrigger: none
+    temporal:
+      freshness: 統計公表後
+      history: 系列ごとに異なる
+      publicationTimestamp: mixed
+    pit:
+      support: partial
+      revisionHandling: observation date、release date、retrievedAt、改定状態を分離する。
+      requiredTimestamps: [eventAt, publishedAt, observedAt, retrievedAt]
+    rights:
+      rawStorage: restricted
+      gitCommit: metadata_only
+      publicDisplay: derived_only
+      redistribution: restricted
+      notes: 出典表示・利用条件を確認する。
+    reliability:
+      authority: primary
+      operationalRisk: low
+      fallback: 公式統計ページのmanual review。
+    integration:
+      existingState: not_started
+      maintenanceCost: low
+      failureIsolation: required
+      entityKeys: [series_code, observation_date]
+      notes: 個別銘柄発見ではなく日本マクロ交絡の除去用。
+    edgeUseCases: [macro-regime-control, technology-substitution]
+    blockers: [first Edge未検証, series selection未固定]
+    nextAction: Known-Badの実行可能イベントスタディ後に最小5系列を選定する。
+
+  - id: estat-api
+    name: e-Stat API
+    operator: Statistics Bureau and Japanese Government
+    officialUrl: https://www.e-stat.go.jp/api/api-info/e-stat-manual3-0
+    verifiedAt: 2026-08-05
+    sourceClass: official_aggregate
+    roles: [confounder, demand_proxy]
+    adoption: catalog_only
+    roadmapPhase: P5
+    auth:
+      mode: application_id
+      secretRequired: true
+      notes: 統計表のmetadataを固定し、検索結果の先頭を自動採用しない。
+    cost:
+      freeStatus: free
+      limits: 大量取得を避け、Edge因果経路に必要な表だけ使う。
+      upgradeTrigger: none
+    temporal:
+      freshness: 月次・四半期等
+      history: 統計表ごとに異なる
+      publicationTimestamp: mixed
+    pit:
+      support: partial
+      revisionHandling: 速報・確報・改定を別versionとして保存する。
+      requiredTimestamps: [eventAt, publishedAt, observedAt, retrievedAt]
+    rights:
+      rawStorage: restricted
+      gitCommit: metadata_only
+      publicDisplay: derived_only
+      redistribution: restricted
+      notes: 各統計の出典・利用条件を確認する。
+    reliability:
+      authority: official
+      operationalRisk: low
+      fallback: 統計の公式公表ページ。
+    integration:
+      existingState: not_started
+      maintenanceCost: medium
+      failureIsolation: required
+      entityKeys: [stats_data_id, category_code, area_code, time_code]
+      notes: 人流・宿泊・生産・小売等の客観需要を検証する候補。
+    edgeUseCases: [objective-demand, tourism-demand, industrial-production-control]
+    blockers: [統計表の選定, revision/PIT設計]
+    nextAction: Edgeが必要とした系列だけをdata source registryからactivateする。
+
+  - id: fred-alfred
+    name: FRED and ALFRED API
+    operator: Federal Reserve Bank of St. Louis
+    officialUrl: https://fred.stlouisfed.org/docs/api/fred/
+    verifiedAt: 2026-08-05
+    sourceClass: primary_official
+    roles: [confounder]
+    adoption: catalog_only
+    roadmapPhase: P4
+    auth:
+      mode: api_key
+      secretRequired: true
+      notes: ALFRED vintageを優先し、現在改定値で過去を上書きしない。
+    cost:
+      freeStatus: free
+      limits: 利用条件とレートを守る。
+      upgradeTrigger: none
+    temporal:
+      freshness: 系列ごとに異なる
+      history: 長期系列・vintage対応
+      publicationTimestamp: mixed
+    pit:
+      support: strong
+      revisionHandling: realtime_start、realtime_end、vintage date、release dateを保存する。
+      requiredTimestamps: [eventAt, publishedAt, observedAt, retrievedAt]
+    rights:
+      rawStorage: restricted
+      gitCommit: metadata_only
+      publicDisplay: derived_only
+      redistribution: restricted
+      notes: 系列ごとの利用条件を確認する。
+    reliability:
+      authority: primary
+      operationalRisk: low
+      fallback: 公式系列ページ。
+    integration:
+      existingState: not_started
+      maintenanceCost: low
+      failureIsolation: required
+      entityKeys: [series_id, observation_date, vintage_date]
+      notes: 米金利・信用・景気の交絡除去用。
+    edgeUseCases: [macro-regime-control, world-impact]
+    blockers: [first Edge未検証, series selection未固定]
+    nextAction: 日銀APIと同じmacro observation契約を共有する。
+
+  - id: sec-edgar
+    name: SEC EDGAR APIs
+    operator: United States Securities and Exchange Commission
+    officialUrl: https://www.sec.gov/search-filings/edgar-application-programming-interfaces
+    verifiedAt: 2026-08-05
+    sourceClass: primary_official
+    roles: [evidence, technology_research, commercialization, entity_resolution]
+    adoption: catalog_only
+    roadmapPhase: P5
+    auth:
+      mode: none
+      secretRequired: false
+      notes: SECのUser-Agentとfair access policyを厳守する。
+    cost:
+      freeStatus: free
+      limits: Fair access・リクエスト上限を守る。
+      upgradeTrigger: none
+    temporal:
+      freshness: filing更新後
+      history: submissionsとXBRL company facts
+      publicationTimestamp: precise
+    pit:
+      support: strong
+      revisionHandling: accession number、filing date、accepted timestamp、amendmentを保存する。
+      requiredTimestamps: [publishedAt, observedAt, retrievedAt, firstExecutableAt]
+    rights:
+      rawStorage: restricted
+      gitCommit: metadata_only
+      publicDisplay: derived_only
+      redistribution: restricted
+      notes: SECおよび添付資料の利用条件を確認する。
+    reliability:
+      authority: primary
+      operationalRisk: low
+      fallback: SEC filing page manual review。
+    integration:
+      existingState: not_started
+      maintenanceCost: medium
+      failureIsolation: required
+      entityKeys: [cik, ticker, accession_number]
+      notes: 米国企業の売買判断ではなく、AI・半導体・宇宙の先行需要から日本企業候補を探す。
+    edgeUseCases: [bottleneck-migration, upstream-order-sequence, research-to-capex]
+    blockers: [P5未到達, US-JP supplier mapping未完成]
+    nextAction: 日本株の最初のEdge検証後に優先10社だけ接続する。
+
+  - id: jpo-patent-api
+    name: Japan Patent Office API and Patent Information
+    operator: Japan Patent Office
+    officialUrl: https://www.jpo.go.jp/system/laws/sesaku/data/download.html
+    verifiedAt: 2026-08-05
+    sourceClass: primary_official
+    roles: [technology_research, commercialization, entity_resolution]
+    adoption: catalog_only
+    roadmapPhase: P5
+    auth:
+      mode: manual_application
+      secretRequired: true
+      notes: 試行提供・申請・アクセス上限を前提とする。
+    cost:
+      freeStatus: application_based
+      limits: 利用申請とアクセス制御あり。
+      upgradeTrigger: none
+    temporal:
+      freshness: 公開公報・法的状態更新
+      history: 特許・意匠・商標等
+      publicationTimestamp: date_only
+    pit:
+      support: partial
+      revisionHandling: 出願、公開、審査請求、登録、放棄、権利移転を状態遷移として保存する。
+      requiredTimestamps: [eventAt, publishedAt, observedAt, retrievedAt]
+    rights:
+      rawStorage: restricted
+      gitCommit: metadata_only
+      publicDisplay: derived_only
+      redistribution: restricted
+      notes: API・公報・標準データの条件を個別確認する。
+    reliability:
+      authority: primary
+      operationalRisk: medium
+      fallback: J-PlatPat manual review。
+    integration:
+      existingState: not_started
+      maintenanceCost: high
+      failureIsolation: required
+      entityKeys: [application_number, applicant, corporate_number, patent_family]
+      notes: 件数ではなくfamily、共同出願、法的状態、標準化、量産証拠との遷移を見る。
+    edgeUseCases: [research-to-commercialization, enabling-material, technology-substitution]
+    blockers: [applicant entity resolution, family normalization, 商用化との因果接続]
+    nextAction: API接続前に少数テーマでmanual evidence graphを作り、有用特徴量を固定する。
+
+  - id: kaken-cinii-jstage
+    name: KAKEN, CiNii Research and J-STAGE
+    operator: National Institute of Informatics and Japan Science and Technology Agency
+    officialUrl: https://support.nii.ac.jp/ja/cir/r_api
+    verifiedAt: 2026-08-05
+    sourceClass: official_aggregate
+    roles: [discovery, technology_research]
+    adoption: catalog_only
+    roadmapPhase: P5
+    auth:
+      mode: application_id
+      secretRequired: true
+      notes: サービスごとにAPI・登録・大量取得条件が異なる。
+    cost:
+      freeStatus: free_limited
+      limits: J-STAGE等は大量ダウンロード禁止や商用利用許可が必要な場合がある。
+      upgradeTrigger: none
+    temporal:
+      freshness: 論文・研究課題公開時
+      history: サービスごとに異なる
+      publicationTimestamp: date_only
+    pit:
+      support: partial
+      revisionHandling: metadata version、取得日、撤回・訂正を保存する。
+      requiredTimestamps: [publishedAt, observedAt, retrievedAt]
+    rights:
+      rawStorage: restricted
+      gitCommit: metadata_only
+      publicDisplay: derived_only
+      redistribution: restricted
+      notes: 本文収集を前提にせず、metadataと公式リンク中心にする。
+    reliability:
+      authority: official
+      operationalRisk: medium
+      fallback: 各公式検索画面。
+    integration:
+      existingState: not_started
+      maintenanceCost: high
+      failureIsolation: required
+      entityKeys: [doi, research_project_id, researcher_id, institution]
+      notes: 論文単独で株候補にせず、特許・共同研究・設備投資へ進む遷移の起点として使う。
+    edgeUseCases: [research-to-commercialization, commercialization-lag-compression]
+    blockers: [企業・研究機関entity mapping, 権利条件, 論文と商用化の長いlag]
+    nextAction: まず公式発表と研究課題IDだけをmanual catalog化し、API導入価値を測る。
+
+  - id: jst-grants-project-db
+    name: JST Grants and Project Database
+    operator: Japan Science and Technology Agency
+    officialUrl: https://grants.jst.go.jp/
+    verifiedAt: 2026-08-05
+    sourceClass: official_aggregate
+    roles: [discovery, technology_research, commercialization]
+    adoption: catalog_only
+    roadmapPhase: P5
+    auth:
+      mode: manual_application
+      secretRequired: true
+      notes: 検索利用と一括提供の条件を分離する。
+    cost:
+      freeStatus: application_based
+      limits: 機械的大量取得や一括データには申請・承認が必要な場合がある。
+      upgradeTrigger: none
+    temporal:
+      freshness: 採択・課題更新時
+      history: JST・KAKEN・AMED等の統合情報
+      publicationTimestamp: mixed
+    pit:
+      support: partial
+      revisionHandling: 採択、公表、期間、変更、終了を状態遷移保存する。
+      requiredTimestamps: [eventAt, publishedAt, observedAt, retrievedAt]
+    rights:
+      rawStorage: restricted
+      gitCommit: metadata_only
+      publicDisplay: derived_only
+      redistribution: restricted
+      notes: 一括取得条件を必ず確認する。
+    reliability:
+      authority: official
+      operationalRisk: medium
+      fallback: 各助成機関の公募・採択ページ。
+    integration:
+      existingState: not_started
+      maintenanceCost: high
+      failureIsolation: required
+      entityKeys: [project_id, institution, researcher, corporate_number]
+      notes: 助成採択単独ではなく、共同研究・民間資金・設備投資への移行速度を見る。
+    edgeUseCases: [grant-private-capital-multiplier, research-to-capex]
+    blockers: [一括利用許可, 民間企業entity mapping, 助成金額の重要性評価]
+    nextAction: API前に研究テーマ3件で採択から企業提携までのmanual timelineを作る。
+
+  - id: official-social-account
+    name: Verified Official Corporate Social Account
+    operator: Individual issuer or public body
+    officialUrl: https://example.invalid/official-site-reverse-link-required
+    verifiedAt: 2026-08-05
+    sourceClass: discovery_only
+    roles: [discovery]
+    adoption: catalog_only
+    roadmapPhase: P0
+    auth:
+      mode: unknown
+      secretRequired: false
+      notes: プラットフォームAPIの有無とは別に、アカウントの真正性確認が必要。
+    cost:
+      freeStatus: unknown
+      limits: 自動収集は各SNS規約・API条件に従う。
+      upgradeTrigger: none
+    temporal:
+      freshness: 速報的
+      history: プラットフォーム依存
+      publicationTimestamp: precise
+    pit:
+      support: weak
+      revisionHandling: 削除・編集を前提とし、投稿だけを唯一の証拠にしない。
+      requiredTimestamps: [publishedAt, discoveredAt, retrievedAt]
+    rights:
+      rawStorage: unknown
+      gitCommit: metadata_only
+      publicDisplay: prohibited
+      redistribution: prohibited
+      notes: 投稿本文の保存・再配布は規約確認なしに行わない。
+    reliability:
+      authority: discovery
+      operationalRisk: high
+      fallback: 企業公式Web、IR、TDnet、EDINET、官公庁へ照合する。
+    integration:
+      existingState: not_started
+      maintenanceCost: high
+      failureIsolation: required
+      entityKeys: [official_domain, exact_account_url]
+      notes: 名前、ロゴ、認証マーク、フォロワー数、プロフィールの公式URLだけでは公式認定しない。
+    edgeUseCases: [official-announcement-discovery]
+    blockers: [公式サイトからの逆向きリンク確認, SNS API規約]
+    nextAction: 本採用しない。発見補助として使う場合もmaterial factは一次資料で確定する。
+    discoveryPolicy:
+      mayDiscoverFromSocial: true
+      mayUseAsEvidence: false
+      officialAccountRule: 企業・官公庁の公式Webサイトから完全一致するアカウントURLへのリンクが確認できた場合のみverified。verifiedでも重要事実はIR・法定開示へ照合する。
+
+  - id: general-social-and-tech-community
+    name: General Social, Developer Communities and GitHub Discovery
+    operator: Multiple third-party platforms
+    officialUrl: https://github.com/
+    verifiedAt: 2026-08-05
+    sourceClass: discovery_only
+    roles: [discovery]
+    adoption: catalog_only
+    roadmapPhase: none
+    auth:
+      mode: unknown
+      secretRequired: false
+      notes: X、Reddit、Qiita、Zenn、note、GitHub、Hacker News等をAPI・OSS・MCP発見に限って見る。
+    cost:
+      freeStatus: unknown
+      limits: プラットフォームごとに異なる。無理なスクレイピングをしない。
+      upgradeTrigger: none
+    temporal:
+      freshness: 高いが信頼性は不定
+      history: プラットフォーム依存
+      publicationTimestamp: precise
+    pit:
+      support: weak
+      revisionHandling: 投稿の削除・編集・誤情報を前提にし、証拠には使わない。
+      requiredTimestamps: [discoveredAt, retrievedAt]
+    rights:
+      rawStorage: unknown
+      gitCommit: metadata_only
+      publicDisplay: prohibited
+      redistribution: prohibited
+      notes: 投稿本文の収集・保存を基盤要件にしない。
+    reliability:
+      authority: discovery
+      operationalRisk: high
+      fallback: 発見したAPI・OSSの公式運営元、公式docs、license、元データへ遡る。
+    integration:
+      existingState: not_started
+      maintenanceCost: high
+      failureIsolation: required
+      entityKeys: [service_name, repository_url, official_operator_domain]
+      notes: 株の噂、感情、推奨、匿名リーク、いいね数をモデルへ入れない。
+    edgeUseCases: [api-discovery, open-source-discovery]
+    blockers: [真正性, 規約, 継続性]
+    nextAction: 手動調査レーダーとしてのみ利用し、候補は本catalogの審査を通してから採用する。
+    discoveryPolicy:
+      mayDiscoverFromSocial: true
+      mayUseAsEvidence: false
+      officialAccountRule: アカウント名や認証表示では公式判定しない。サービス自体も運営元公式docsまで遡る。
