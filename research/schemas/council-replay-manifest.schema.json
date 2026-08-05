@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alpha-pon.local/schemas/council-replay-manifest.schema.json",
+  "title": "Stock Pro Council Deterministic Replay Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "replayId",
+    "councilRunId",
+    "caseType",
+    "informationCutoff",
+    "createdAt",
+    "evidencePackageHash",
+    "priceSnapshotHash",
+    "codeVersion",
+    "ruleVersion",
+    "personaCatalogVersion",
+    "requiredPersonaIds",
+    "verdictHashes",
+    "dissentHashes",
+    "vetoHashes",
+    "automaticTradingAuthorized",
+    "contentHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "replayId": { "type": "string", "minLength": 3 },
+    "councilRunId": { "type": "string", "minLength": 3 },
+    "caseType": {
+      "type": "string",
+      "enum": [
+        "event_driven",
+        "misconduct_accounting",
+        "technology",
+        "short_research",
+        "position_sizing",
+        "general"
+      ]
+    },
+    "informationCutoff": { "type": "string", "format": "date-time" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "evidencePackageHash": { "$ref": "#/$defs/hash" },
+    "priceSnapshotHash": { "$ref": "#/$defs/hash" },
+    "codeVersion": { "type": "string", "minLength": 1 },
+    "ruleVersion": { "type": "string", "minLength": 1 },
+    "personaCatalogVersion": { "type": "string", "minLength": 1 },
+    "requiredPersonaIds": { "$ref": "#/$defs/nonEmptyIdArray" },
+    "verdictHashes": { "$ref": "#/$defs/nonEmptyHashArray" },
+    "dissentHashes": { "$ref": "#/$defs/hashArray" },
+    "vetoHashes": { "$ref": "#/$defs/hashArray" },
+    "automaticTradingAuthorized": { "const": false },
+    "contentHash": { "$ref": "#/$defs/hash" }
+  },
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "hashArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/hash" }
+    },
+    "nonEmptyHashArray": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/hash" }
+    },
+    "nonEmptyIdArray": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "pattern": "^[a-z][a-z0-9_]+$"
+      }
+    }
+  }
+}
