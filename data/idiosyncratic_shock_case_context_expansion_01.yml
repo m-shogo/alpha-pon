@@ -1,0 +1,54 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "provider-independent eligibility research queueから一次情報で解消した追加ケース。base sidecarとID重複禁止。"
+cases:
+  boeing-2005-stonecipher:
+    incidentCountry: US
+    sector: aerospace_defense
+    stakeholder: employee
+    incidentScope: individual
+    confounderStatus: clear
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyInvestigationStatusAtCheckpoint: closed
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityNotes: "2005-03-07 Boeing一次情報で、internal/external legal counselによるimmediate and comprehensive investigation完了、Code of Conduct不一致、CEO辞任を確認。会社はoperational performance/financial conditionとは無関係で、relationshipはbusiness conductへ影響しなかったと明示。"
+    strategyEligibilityEvidenceSources:
+      - title: "Boeing CEO Harry Stonecipher Resigns; Board Appoints James Bell Interim President and CEO"
+        url: "https://boeing.mediaroom.com/2005-03-07-Boeing-CEO-Harry-Stonecipher-Resigns-Board-Appoints-James-Bell-Interim-President-and-CEO-Lew-Platt-to-Expand-Role"
+        sourceType: company
+        publishedAt: "2005-03-07"
+    notes: "license/safety-critical業種だが、本件personal relationship自体に重大免許・事業・財務波及を示す材料はcheckpoint時点で確認されない。"
+
+  seven-eleven-2019-employee-video:
+    incidentCountry: JP
+    sector: convenience_retail_food
+    stakeholder: employee
+    incidentScope: site
+    confounderStatus: clear
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyInvestigationStatusAtCheckpoint: substantially_complete
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityNotes: "2019-02-11セブン‐イレブン・ジャパン一次情報で加盟店元従業員2名を特定・解雇済み、対象のおでんは投稿後廃棄され販売されていないことを確認。加盟店への従業員教育再徹底と再発防止を公表。"
+    strategyEligibilityEvidenceSources:
+      - title: "当社加盟店従業員による不適切行為について"
+        url: "https://www.sej.co.jp/company/news_release/news/2019/190211.html"
+        sourceType: company
+        publishedAt: "2019-02-11"
+    notes: "FC加盟店の局所employee sabotage。全国ブランドへの波及はscore側で残すが、当該食品の顧客提供なしを一次情報で確認。"
+
+  kura-2023-customer-prank:
+    incidentCountry: JP
+    sector: restaurant_food_service
+    stakeholder: customer
+    incidentScope: site
+    confounderStatus: clear
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyInvestigationStatusAtCheckpoint: not_applicable
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityNotes: "2023-03-08くら寿司一次情報で名古屋栄店の迷惑行為について容疑者3名全員の逮捕、2/3事件発生後の被害届提出・全面捜査協力を確認。行為者は顧客で社内不正調査の完了を待つ類型ではないためinvestigation=not_applicable。"
+    strategyEligibilityEvidenceSources:
+      - title: "当社店舗（名古屋栄店）において迷惑行為を行った者の逮捕につきまして"
+        url: "https://www.kurasushi.co.jp/upload/230308release.pdf"
+        sourceType: company
+        publishedAt: "2023-03-08"
+    notes: "customer sabotage。回転寿司の信頼モデルへの影響は残るためbrand/business impactはscoreで評価し、会社内部不正と混同しない。"

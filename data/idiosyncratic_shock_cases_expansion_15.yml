@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 10。Tesla 2018 Musk take-private regulatory shockをSEC final judgment時点で採点するが、同時期に公知のDOJ investigationをhard blockerとして維持。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: tesla-2018-musk-sec
+    company: "Tesla"
+    ticker: TSLA
+    country: US
+    eventDate: "2018-09-27"
+    checkpoint: "2018-10-16"
+    category: executive_regulatory
+    actorType: founder
+    scoreVector: [2,2,0,1,0,1,0,2,1,0]
+    priceState: unknown
+    summary: "Elon Muskのtake-private tweetsを巡りSECが証券詐欺で提訴。9月29日にTesla/Muskと和解し、10月16日にfinal judgmentが裁判所承認された一方、9月18日から同じtake-private statementsについてDOJのdocument request/investigationが公知だった。"
+    source: "https://www.sec.gov/newsroom/press-releases/2018-226"
+    sourceType: regulator
+    outcomePattern: unknown
+    lesson: "一つのregulator settlementだけを見て『解決済み』にしない。同一事実について別当局の調査が公知ならinvestigation hard gateを維持する。Founder/key-person性もscoreで別途減点する。"
+    confidence: high

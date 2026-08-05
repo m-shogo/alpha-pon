@@ -1,0 +1,17 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Reaction anchor research batch 4。threshold calibration用低score controlの市場反応開始日を一次情報で固定。"
+cases:
+  ootoya-2019-employee-video:
+    announcementTiming: non_trading_day
+    priceReactionStartDate: "2019-02-18"
+    reactionAnchorEvidenceSources:
+      - title: "当社店舗での不適切な行為とお詫び"
+        url: "https://ootoya-web2.ootoya.com/news/20190216.pdf"
+        sourceType: company
+        publishedAt: "2019-02-16"
+      - title: "当社従業員による不適切な行為についてのお詫びとお知らせ"
+        url: "https://www.ootoya.com/news/20190218.pdf"
+        sourceType: company
+        publishedAt: "2019-02-18"
+    reactionAnchorNotes: "会社は2019-02-16（土）に、同日顧客指摘で不適切動画が判明したと公表。土曜は東証通常取引がないため、最初の通常取引反応日は次の営業日2019-02-18（月）とする。"

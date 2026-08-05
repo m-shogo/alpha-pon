@@ -1,0 +1,303 @@
+version: 1
+generatedAt: "2026-07-30"
+description: "企業固有ショック過去事例DB expansion 01。base 33件に17件を追加し計50件。未来outcomeはcheckpoint scoreと分離する。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: ootoya-2019-employee-video
+    company: "Ootoya Holdings"
+    ticker: "2705"
+    country: JP
+    eventDate: "2019-02-16"
+    checkpoint: "2019-03-04"
+    category: employee_sabotage
+    actorType: employee
+    scoreVector: [0,2,2,1,2,0,2,0,1,1]
+    priceState: stabilizing
+    summary: "アルバイト従業員の不適切動画を受け、全店規模の一斉休業・再教育・清掃まで実施。本業オペレーションへ直接コストが発生したバイトテロ例。"
+    source: "https://www.ootoya.com/news/20190304_1.pdf"
+    sourceType: company
+    outcomePattern: mixed
+    lesson: "同じバイトテロでも全店休業まで波及した場合はbusinessImpactContainmentとbrandResilienceを大きく下げる。"
+    confidence: high
+
+  - id: daiichikosho-2018-big-echo-video
+    company: "Daiichikosho"
+    ticker: "7458"
+    country: JP
+    eventDate: "2018-12-06"
+    checkpoint: "2019-02-08"
+    category: employee_sabotage
+    actorType: employee
+    scoreVector: [1,2,2,2,2,0,2,2,1,1]
+    priceState: stabilizing
+    summary: "ビッグエコー従業員による食品を床に接触させる不適切動画が拡散し、会社が謝罪・被害届対応。"
+    source: "https://www.itmedia.co.jp/news/spv/1902/08/news071.html"
+    sourceType: major_media
+    outcomePattern: gradual
+    lesson: "局所従業員型でも食品衛生への疑念が強い映像はbrandResilienceを厳しく評価する。"
+    confidence: medium
+
+  - id: zensho-sukiya-2019-employee-video
+    company: "Zensho Holdings / Sukiya"
+    ticker: "7550"
+    country: JP
+    eventDate: "2019-01-29"
+    checkpoint: "2019-01-31"
+    category: employee_sabotage
+    actorType: employee
+    scoreVector: [2,2,2,2,2,1,2,2,1,1]
+    priceState: stabilizing
+    summary: "すき家従業員の不適切行為動画。店舗・関与従業員を特定し、関係者を退職処分、従業員教育徹底を公表。"
+    source: "https://www.sukiya.jp/news/2019/01/20190131.html"
+    sourceType: company
+    outcomePattern: fast
+    lesson: "当事者特定・即時処分・局所事案なら個人切除型に近いが、外食ではブランド毀損を1段割り引く。"
+    confidence: high
+
+  - id: dominos-japan-2024-employee-video
+    company: "Domino's Pizza Enterprises / Domino's Pizza Japan"
+    ticker: "DMP.AX"
+    country: JP
+    eventDate: "2024-02-12"
+    checkpoint: "2024-03-04"
+    category: employee_sabotage
+    actorType: employee
+    scoreVector: [1,2,2,2,2,1,2,2,1,1]
+    priceState: stabilizing
+    summary: "尼崎店のアルバイト2名の不適切動画。問題の生地は使用前に廃棄、店舗は一時営業停止し外部清掃・再教育後に再開。"
+    source: "https://www.dominos.jp/en/announcement"
+    sourceType: company
+    outcomePattern: gradual
+    lesson: "商品未提供の確認はプラスだが、店舗休業が発生したため完全な2点型よりbusinessImpactを下げる。"
+    confidence: high
+
+  - id: keurig-dr-pepper-2022-ceo-conduct
+    company: "Keurig Dr Pepper"
+    ticker: KDP
+    country: US
+    eventDate: "2022-11-10"
+    checkpoint: "2022-11-10"
+    category: personal_behavior
+    actorType: ceo
+    scoreVector: [2,2,2,2,2,2,2,2,1,1]
+    priceState: stabilizing
+    summary: "CEO Ozan DokmeciogluがCode of Conduct違反で辞任。会社はstrategy, operations, financial reportingとは無関係と明示し、前CEOが復帰。"
+    source: "https://investors.keurigdrpepper.com/2022-11-10-KDP-EXECUTIVE-CHAIRMAN-BOB-GAMGORT-TO-REASSUME-CEO-ROLE-FOLLOWING-RESIGNATION-OF-OZAN-DOKMECIOGLU"
+    sourceType: company
+    outcomePattern: fast
+    lesson: "会社自身が事業・財務との非関連を明示し、後継も即時確保した強い個人切除型。"
+    confidence: high
+
+  - id: credit-suisse-2022-chairman-quarantine
+    company: "Credit Suisse"
+    ticker: CSGN.SW
+    country: CH
+    eventDate: "2022-01-17"
+    checkpoint: "2022-01-17"
+    category: personal_behavior
+    actorType: executive
+    scoreVector: [2,2,2,1,2,1,2,0,1,1]
+    priceState: stabilizing
+    summary: "会長Antonio Horta-OsorioがCOVID隔離規則違反を受け辞任。個人行動は本業と切離可能だが、銀行自体が既存の複数スキャンダルからの再建中だった。"
+    source: "https://www.investing.com/news/stock-market-news/factboxspies-lies-and-chairmans-exit-credit-suisses-scandals-2740199"
+    sourceType: major_media
+    outcomePattern: failed
+    lesson: "個人事件が軽くてもfundamentalResilienceが弱い会社では『不祥事だけで下げた』と誤認しない。"
+    confidence: high
+
+  - id: barclays-2021-staley-epstein
+    company: Barclays
+    ticker: BARC.L
+    country: UK
+    eventDate: "2021-11-01"
+    checkpoint: "2021-11-01"
+    category: organizational_governance
+    actorType: ceo
+    scoreVector: [2,2,2,1,0,1,2,2,1,1]
+    priceState: stabilizing
+    summary: "CEO Jes StaleyがEpsteinとの関係の説明をめぐるFCA/PRA調査の予備結論を受け退任。"
+    source: "https://www.investegate.co.uk/index.php/announcement/rns/barclays--barc/directorate-change/6624452"
+    sourceType: exchange
+    outcomePattern: mixed
+    lesson: "銀行の営業自体は継続しても、規制当局との信頼問題があるためregulatoryContainmentを0にする。"
+    confidence: high
+
+  - id: wwe-2022-mcmahon
+    company: "World Wrestling Entertainment"
+    ticker: WWE
+    country: US
+    eventDate: "2022-06-17"
+    checkpoint: "2022-07-25"
+    category: sexual_misconduct
+    actorType: founder
+    scoreVector: [1,0,0,0,1,1,0,2,2,0]
+    priceState: volatile
+    summary: "Vince McMahonに関するmisconduct特別調査。後に個人支払い約1,460万ドル等が会社費用として適切に記録されていなかったことが判明。"
+    source: "https://www.sec.gov/Archives/edgar/data/1091907/000109190722000097/wwe-20211231x10ka.htm"
+    sourceType: regulator
+    outcomePattern: mixed
+    lesson: "『女問題』でも創業者支配 + 財務諸表訂正が入った時点でaccountingIntegrity=0、通知対象外。"
+    confidence: high
+
+  - id: ebay-2020-cyberstalking
+    company: eBay
+    ticker: EBAY
+    country: US
+    eventDate: "2020-06-15"
+    checkpoint: "2020-06-15"
+    category: systemic_misconduct
+    actorType: organization
+    scoreVector: [2,2,1,0,1,1,2,2,1,1]
+    priceState: stabilizing
+    summary: "元セキュリティ部門従業員らが批判的なブログ運営者夫妻へのサイバーストーキングで起訴。eBayは関係従業員を解雇したと発表。"
+    source: "https://www.ebayinc.com/stories/news/ebay-inc-issues-statement-regarding-indictments-of-previously-terminated-employees/"
+    sourceType: company
+    outcomePattern: failed
+    lesson: "checkpoint時は切離し可能に見えても、2024年に会社自身が刑事事件でDPA・300万ドル罰金。組織範囲が後から広がる例。"
+    confidence: high
+
+  - id: japan-post-insurance-2019-misselling
+    company: "Japan Post Insurance"
+    ticker: "7181"
+    country: JP
+    eventDate: "2019-07-10"
+    checkpoint: "2019-09-30"
+    category: improper_sales
+    actorType: organization
+    scoreVector: [0,2,0,0,0,0,1,0,2,0]
+    priceState: falling
+    summary: "保険商品の不適切販売・二重徴収が多数発覚し、販売停止・金融当局対応へ拡大。"
+    source: "https://www.investing.com/news/stock-market-news/japan-post-insurance-says-1400-impropersales-cases-broke-law-1988847"
+    sourceType: major_media
+    outcomePattern: failed
+    lesson: "顧客への営業プロセス自体が壊れている場合は、従業員個人の事件ではなく組織不正として扱う。"
+    confidence: high
+
+  - id: kobe-steel-2017-quality-data
+    company: "Kobe Steel"
+    ticker: "5406"
+    country: JP
+    eventDate: "2017-10-08"
+    checkpoint: "2017-10-17"
+    category: quality_falsification
+    actorType: organization
+    scoreVector: [0,2,0,0,0,0,1,0,2,0]
+    priceState: falling
+    summary: "アルミ・銅等の品質データ改ざんが多数顧客へ波及し、10年以上続いた可能性や米司法省対応まで拡大。"
+    source: "https://www.investing.com/news/stock-market-news/kobe-steel-plants-faked-quality-data-for-decades--nikkei-542382"
+    sourceType: major_media
+    outcomePattern: failed
+    lesson: "製品仕様そのものへの信頼を壊す品質偽装は、役員個人スキャンダルと正反対の負例。"
+    confidence: high
+
+  - id: hino-2022-emissions
+    company: "Hino Motors"
+    ticker: "7205"
+    country: JP
+    eventDate: "2022-03-04"
+    checkpoint: "2022-03-07"
+    category: quality_falsification
+    actorType: organization
+    scoreVector: [0,2,0,0,0,0,1,0,2,0]
+    priceState: falling
+    summary: "排ガス・燃費性能試験データの不正が発覚し、国交省立入・株価ストップ安級下落。"
+    source: "https://www.nippon.com/en/news/reu20220307KBN2L4047/"
+    sourceType: major_media
+    outcomePattern: failed
+    lesson: "認証・販売可否に直結する品質不正はregulatoryContainment=0で機械的に警戒する。"
+    confidence: high
+
+  - id: kobayashi-pharma-2024-benikoji
+    company: "Kobayashi Pharmaceutical"
+    ticker: "4967"
+    country: JP
+    eventDate: "2024-03-22"
+    checkpoint: "2024-03-25"
+    category: product_safety
+    actorType: organization
+    scoreVector: [0,2,1,1,0,0,2,0,2,0]
+    priceState: volatile
+    summary: "紅麹関連製品の健康被害を受け自主回収・使用中止を要請。入院等の報告が拡大。"
+    source: "https://www.kobayashi.co.jp/newsrelease/files/pdf/20240325_en.pdf"
+    sourceType: company
+    outcomePattern: failed
+    lesson: "不祥事というより企業固有の製品安全ショック。事業・ブランドに直撃するので『人だけの問題』とは区別する。"
+    confidence: high
+
+  - id: prudential-japan-2026-staff-misconduct
+    company: "Prudential Financial / Prudential Life Japan"
+    ticker: PRU
+    country: JP
+    eventDate: "2026-01-16"
+    checkpoint: "2026-01-16"
+    category: systemic_misconduct
+    actorType: organization
+    scoreVector: [0,2,0,0,0,0,2,0,1,0]
+    priceState: unknown
+    summary: "日本生命保険子会社で約100人の従業員による横領・不適切な資金受領等、約498顧客・約31億円規模の不祥事が判明しCEO辞任。"
+    source: "https://www.reuters.com/sustainability/prudential-financials-japan-life-unit-ceo-resign-after-widespread-staff-2026-01-16/"
+    sourceType: major_media
+    outcomePattern: unknown
+    lesson: "人数が多く顧客資金へ直接触れる場合、CEO辞任があっても個人切除型には分類しない。"
+    confidence: high
+
+  - id: super-retail-2025-heraghty
+    company: "Super Retail Group"
+    ticker: SUL.AX
+    country: AU
+    eventDate: "2025-09-16"
+    checkpoint: "2025-09-16"
+    category: conflict_of_interest
+    actorType: ceo
+    scoreVector: [1,2,1,0,1,1,2,1,1,0]
+    priceState: volatile
+    summary: "CEO Anthony Heraghtyが元CHROとの関係について従来開示が不十分と取締役会が判断し即時解任。関連する組織・訴訟論点も残った。"
+    source: "https://announcements.asx.com.au/asxpdf/20250916/pdf/06p835741wm3h0.pdf"
+    sourceType: exchange
+    outcomePattern: mixed
+    lesson: "恋愛問題でも利益相反・内部通報・組織文化へ広がったらactorSeparabilityを下げる。"
+    confidence: high
+
+  - id: cbs-2018-moonves
+    company: CBS
+    ticker: CBS
+    country: US
+    eventDate: "2018-09-09"
+    checkpoint: "2018-09-10"
+    category: sexual_misconduct
+    actorType: ceo
+    scoreVector: [1,2,1,0,1,1,1,2,2,0]
+    priceState: volatile
+    summary: "Chairman/CEO Leslie Moonvesが複数女性によるsexual misconduct allegationsの中で即時退任。調査結果待ちで巨額退職金も保留。"
+    source: "https://www.cbsnews.com/chicago/news/moonves-resigns-cbs/"
+    sourceType: major_media
+    outcomePattern: mixed
+    lesson: "CEO個人に見えて複数証言・会社文化の論点がある場合はorganizationalContainment=0寄りで扱う。"
+    confidence: medium
+
+  - id: lululemon-2018-potdevin
+    company: lululemon
+    ticker: LULU
+    country: CA
+    eventDate: "2018-02-05"
+    checkpoint: "2018-02-05"
+    category: personal_behavior
+    actorType: ceo
+    scoreVector: [2,2,2,2,2,2,2,2,1,1]
+    priceState: stabilizing
+    summary: "CEO Laurent Potdevinがstandards of conductを満たさなかったとして即時辞任。会社は直近guidanceを再確認し、3人の幹部へ役割を分散。"
+    source: "https://corporate.lululemon.com/media/press-releases/2018/02-05-2018-085742151"
+    sourceType: company
+    outcomePattern: fast
+    lesson: "業績guidance維持と複数幹部による継続体制が確認できる、個人切除型の良い比較例。"
+    confidence: high

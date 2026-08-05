@@ -1,0 +1,23 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog batch 6 context。Olympus 2011損失隠しを過年度財務訂正を要するcompany-wide accounting/governance failureとして固定。"
+cases:
+  olympus-2011-loss-concealment:
+    incidentCountry: JP
+    sector: medical_technology
+    stakeholder: investor
+    incidentScope: company_wide
+    confounderStatus: clear
+    recurrenceStatus: systemic
+    remediationStatus: partial
+    incidentClusterStatus: related_multiple
+    strategyInvestigationStatusAtCheckpoint: substantially_complete
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    calibrationEligibilityAtCheckpoint: confirmed_block
+    calibrationEligibilityNotes: "productionはscore=3かつaccountingIntegrity=0でBLOCK。threshold研究でも2011-12-06時点の第三者委員会報告受領により、長期間の損失先送りと複数年度の財務報告訂正が必要なcompany-wide accounting failureであることが確認された。score gateを外してもaccounting hard gateでshadow BLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "Notice Concerning Receipt of Third Party Committee Report"
+        url: "https://www.olympus-global.com/ir/data/announcement/pdf/nr111206e.pdf"
+        sourceType: company
+        publishedAt: "2011-12-06"
+    notes: "後日の上場維持、資本提携、経営再建、株価回復はcheckpoint判定へ逆流させない。"

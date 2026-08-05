@@ -1,0 +1,159 @@
+version: 4
+description: "マクロ要因ではなく、個社固有の不祥事・炎上・ガバナンスショックを分類する。売買推奨ではない。"
+notificationThreshold: 12
+researchPriorityThreshold: 16
+hardGates:
+  requireConfirmedEvidence: true
+  requireInvestigationScopeResolved: true
+  requireActualShockDrawdown: true
+  minimumShockDrawdownPct: -5
+  shockWindowDays: 20
+  requireMarketRelativeShock: true
+  minimumRelativeShockDrawdownPct: -3
+  benchmarkCode: "1306"
+  requirePriceStabilized: true
+  rejectAccountingFraud: true
+  rejectMacroPrimaryCause: true
+  rejectCriticalLicenseOrDelistingRisk: true
+
+macroExclusions:
+  - 戦争
+  - 地政学
+  - 関税
+  - 制裁
+  - 輸出規制
+  - 食糧不足
+  - 食料不足
+  - 原材料不足
+  - 金利
+  - 為替
+  - インフレ
+  - 景気後退
+  - 地震
+  - 台風
+  - 津波
+  - 洪水
+  - drought
+  - war
+  - tariff
+  - sanction
+  - inflation
+  - recession
+  - earthquake
+  - hurricane
+
+categories:
+  - id: executive_relationship
+    label: "経営者・役員の社内恋愛/関係問題"
+    keywords: ["不倫", "交際", "relationship", "romance", "fraternization", "intimate relationship", "inappropriate relationship"]
+    defaultActorType: executive
+  - id: personal_behavior
+    label: "経営者・役員個人の行動規範違反"
+    keywords: ["行動規範違反", "倫理規定違反", "code of conduct violation", "standards of conduct", "personal conduct"]
+    defaultActorType: executive
+  - id: sexual_misconduct
+    label: "性的 misconduct / ハラスメント"
+    keywords: ["性的", "セクハラ", "sexual misconduct", "harassment", "assault"]
+    defaultActorType: executive
+  - id: personal_compensation
+    label: "個人的な不適切報酬・利益"
+    keywords: ["不適切な報酬", "報酬受給", "undisclosed compensation", "improper compensation"]
+    defaultActorType: executive
+  - id: expense_misuse
+    label: "経費・会社資産の私的利用"
+    keywords: ["経費", "私的流用", "expense", "misuse of company resources"]
+    defaultActorType: executive
+  - id: conflict_of_interest
+    label: "利益相反・関連当事者問題"
+    keywords: ["利益相反", "関連当事者", "conflict of interest", "related party", "undisclosed relationship"]
+    defaultActorType: executive
+  - id: offensive_remark
+    label: "暴言・差別発言・不適切発言"
+    keywords: ["不適切発言", "差別発言", "暴言", "slur", "offensive remark", "racial"]
+    defaultActorType: executive
+  - id: personal_crime
+    label: "役員・従業員個人の犯罪・贈収賄"
+    keywords: ["逮捕", "起訴", "強盗", "放火", "贈賄", "収賄", "bribery", "arrested", "indicted", "robbery"]
+    defaultActorType: unknown
+  - id: employee_sabotage
+    label: "従業員・バイトテロ/SNS不適切動画"
+    keywords: ["バイトテロ", "従業員 不適切", "店員 不適切", "不適切動画", "employee video", "employee misconduct", "part-timer"]
+    defaultActorType: employee
+  - id: customer_sabotage
+    label: "顧客の迷惑行為・SNS拡散"
+    keywords: ["迷惑動画", "迷惑行為", "客 不適切", "customer prank", "customer misconduct", "sushi terrorism"]
+    defaultActorType: customer
+  - id: localized_food_safety
+    label: "店舗単位の衛生・異物混入"
+    keywords: ["異物混入", "衛生", "食中毒", "contamination", "food safety"]
+    defaultActorType: organization
+  - id: product_safety
+    label: "製品安全・健康被害"
+    keywords: ["自主回収", "健康被害", "死亡", "recall", "product safety", "hospitalization"]
+    defaultActorType: organization
+  - id: quality_falsification
+    label: "品質・検査・認証データ改ざん"
+    keywords: ["品質データ", "検査不正", "認証不正", "性能試験", "品質偽装", "不適切検査", "data falsification", "emissions falsification", "test data"]
+    defaultActorType: organization
+  - id: improper_sales
+    label: "顧客への組織的不適切販売"
+    keywords: ["不適切販売", "不正販売", "二重徴収", "improper sales", "mis-selling", "double-charging"]
+    defaultActorType: organization
+  - id: employee_accounting_misconduct
+    label: "従業員単独とされる会計処理不正"
+    keywords: ["従業員 会計", "費用 隠蔽", "accounting employee", "hid expenses", "erroneous accrual"]
+    defaultActorType: employee
+  - id: organizational_governance
+    label: "組織的ガバナンス問題"
+    keywords: ["第三者委員会", "特別調査委員会", "組織的", "企業風土", "governance failure", "company culture", "special committee"]
+    defaultActorType: organization
+  - id: systemic_misconduct
+    label: "組織ぐるみの不正"
+    keywords: ["組織ぐるみ", "不正口座", "改ざん", "systemic misconduct", "fake accounts", "widespread misconduct"]
+    defaultActorType: organization
+  - id: accounting_fraud
+    label: "粉飾・重大な会計不正"
+    keywords: ["粉飾", "架空売上", "架空取引", "循環取引", "不正会計", "accounting fraud", "fabricated sales", "overstated profit", "unrecorded expenses", "circular transaction"]
+    defaultActorType: organization
+
+actorTypes:
+  - founder
+  - ceo
+  - executive
+  - employee
+  - customer
+  - organization
+  - unknown
+
+priceStates:
+  - falling
+  - volatile
+  - stabilizing
+  - stabilized_after_drop
+  - rebounded_too_fast
+  - unknown
+
+investigationStatuses:
+  - open
+  - substantially_complete
+  - closed
+  - not_applicable
+  - unknown
+
+evidenceStatuses:
+  - confirmed
+  - reported
+  - rumor
+  - unknown
+
+scoring:
+  businessImpactContainment: "本業への直接影響が小さいほど高得点"
+  accountingIntegrity: "財務報告が無傷なほど高得点。粉飾・架空取引は0点かつ通知ブロック"
+  actorSeparability: "問題人物/少人数を切り離せるほど高得点。ただし会計訂正発生時は別ゲートを優先"
+  organizationalContainment: "組織全体へ広がっていないほど高得点"
+  regulatoryContainment: "免許・規制・長期訴訟リスクが小さいほど高得点"
+  brandResilience: "商品/IP/ブランド需要が維持されるほど高得点"
+  managementContinuity: "後継体制で事業継続できるほど高得点"
+  fundamentalResilience: "売上・利益・CFが維持されるほど高得点"
+  discountMagnitude: "実害に比べ下落が大きいほど高得点"
+  priceStabilization: "急落が一巡し値動きが落ち着くほど高得点。実下落とTOPIX超過下落は別hard gateで確認"

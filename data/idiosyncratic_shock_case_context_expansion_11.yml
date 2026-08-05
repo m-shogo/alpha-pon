@@ -1,0 +1,34 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Threshold calibration research batch 7。United Flight 3411を、会社レビュー・和解・DOT調査終了までのcheckpoint-safe一次情報だけでshadow eligibility再監査。"
+cases:
+  united-2017-flight3411:
+    incidentCountry: US
+    sector: airlines
+    stakeholder: customer
+    incidentScope: multi_unit
+    confounderStatus: possible
+    informationLeakStatus: clear
+    recurrenceStatus: first_known
+    remediationStatus: credible
+    liquidityStatus: normal
+    incidentClusterStatus: single
+    disclosureObservability: high
+    strategyInvestigationStatusAtCheckpoint: closed
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    calibrationEligibilityAtCheckpoint: confirmed_pass
+    calibrationEligibilityNotes: "productionはscore=10でBLOCK。threshold研究ではcheckpoint=2017-05-12までに、UnitedがFlight 3411を受けた会社ポリシー/手続のthorough examinationを完了して10項目の改善策を公表し、Dr. Daoとの和解も成立。DOTも5/12にoversales/anti-discrimination調査を終了し、限定的なoversales rule違反を認定した一方、差別違反は認めず、是正状況等からenforcement actionは不要と結論した。会計問題・重大免許/上場risk・open investigationは残っていないためscore gate以外のeligibility hard gateはPASSと判定する。"
+    strategyEligibilityEvidenceSources:
+      - title: "United Airlines Announces Changes to Improve Customer Experience"
+        url: "https://united.mediaroom.com/2017-04-27-United-Airlines-Announces-Changes-to-Improve-Customer-Experience"
+        sourceType: company
+        publishedAt: "2017-04-27"
+      - title: "Statement from United Airlines Regarding Resolution with Dr. David Dao"
+        url: "https://united.mediaroom.com/2017-04-27-Statement-from-United-Airlines-Regarding-Resolution-with-Dr-David-Dao"
+        sourceType: company
+        publishedAt: "2017-04-27"
+      - title: "DOT letter concluding investigation of United Express Flight 3411"
+        url: "https://www.transportation.gov/sites/dot.gov/files/docs/resources/individuals/aviation-consumer-protection/285521/dot-letter-united.pdf"
+        sourceType: regulator
+        publishedAt: "2017-05-12"
+    notes: "会社自身が『policies got in the way』と認めたため個人切除型にはせずactorSeparability/organizationalContainment/brandResilienceを低く採点。4/10には定例March operational performanceも公表されているためprice attributionにはpossible confounderを残す。価格安定化・将来returnはshadow eligibility判定へ使用しない。"

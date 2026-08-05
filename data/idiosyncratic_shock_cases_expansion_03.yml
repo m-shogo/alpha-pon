@@ -1,0 +1,65 @@
+version: 1
+generatedAt: "2026-07-30"
+description: "日本株の境界ケースと品質不正負例を追加。個人犯罪でも顧客接点への実害があるケース、全社品質不正を含む。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: nomura-2024-former-employee-robbery
+    company: "Nomura Holdings"
+    ticker: "8604"
+    country: JP
+    eventDate: "2024-10-30"
+    checkpoint: "2024-12-03"
+    category: personal_crime
+    actorType: employee
+    scoreVector: [1,2,2,2,1,1,2,2,1,0]
+    priceState: volatile
+    summary: "野村證券の元社員が顧客宅に関連する強盗殺人未遂・放火容疑で逮捕・起訴。会社は顧客宅訪問の事前承認や社員モニタリング強化等を導入。"
+    source: "https://www.nomuraholdings.com/jp/news/nr/news20241203103022.html"
+    sourceType: company
+    outcomePattern: mixed
+    lesson: "一人の犯罪で会計は無傷でも、金融機関では顧客接点の信頼と営業オペレーションに直接コストが発生するため、単純な個人切除型より低く見る。"
+    confidence: high
+
+  - id: mitsubishi-electric-2021-quality-misconduct
+    company: "Mitsubishi Electric"
+    ticker: "6503"
+    country: JP
+    eventDate: "2021-06-29"
+    checkpoint: "2022-10-20"
+    category: quality_falsification
+    actorType: organization
+    scoreVector: [0,2,0,0,0,0,1,1,2,0]
+    priceState: unknown
+    summary: "鉄道車両用空調装置等の不適切検査を端緒に全22製作所等を調査。最終報告までに197件が報告され、故意112件・管理職関与62件など全社的な品質・組織風土・ガバナンス問題へ拡大。"
+    source: "https://www.mitsubishielectric.co.jp/reform/report/index.html"
+    sourceType: company
+    outcomePattern: gradual
+    lesson: "最初は特定製作所の検査問題でも、全社調査で多数案件・管理職関与へ広がれば個人/局所切除型ではない。investigationStatusを待つ理由の代表例。"
+    confidence: high
+
+  - id: toyo-tire-2015-seismic-rubber
+    company: "Toyo Tire"
+    ticker: "5105"
+    country: JP
+    eventDate: "2015-03-13"
+    checkpoint: "2015-06-23"
+    category: quality_falsification
+    actorType: organization
+    scoreVector: [0,2,0,0,0,0,1,0,2,0]
+    priceState: falling
+    summary: "建築用免震積層ゴムで国土交通大臣認定の性能評価基準に適合しない製品や、技術的根拠のない申請・検査成績書の改ざんが判明。製品交換や経営責任まで問題化。"
+    source: "https://www.toyotires.co.jp/responsibility/menshin/overview/"
+    sourceType: company
+    outcomePattern: failed
+    lesson: "製品性能・認定・交換費用に直結する品質偽装は、本業と切り離せず大幅下落だけを理由に拾わない。"
+    confidence: high

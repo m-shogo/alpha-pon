@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 21。Mitsubishi Motors 2016燃費試験不正を初日checkpointで採点し、生産販売停止・調査拡大・外部委員会設置をdeep systemic controlとして保存。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: mitsubishi-motors-2016-fuel-economy
+    company: "Mitsubishi Motors"
+    ticker: "7211"
+    country: JP
+    eventDate: "2016-04-20"
+    checkpoint: "2016-04-20"
+    category: fuel_economy_falsification
+    actorType: organization
+    scoreVector: [0,2,0,0,0,0,1,1,0,0]
+    priceState: unknown
+    summary: "型式認証向け燃費試験データの不正操作と法定外試験方法が判明。対象4車種の生産・販売を停止し、他の国内車種や海外向け車両まで調査を広げ、独立外部委員会による調査を予定していた。"
+    source: "https://www.mitsubishi-motors.com/content/dam/com/ir_jp/pdf/irnews/2016/20160420-01.pdf"
+    sourceType: company
+    outcomePattern: unknown
+    lesson: "financial accountingそのものではないためaccountingIntegrityを0にしないが、営業影響・組織統制・規制・ブランド・調査未完を厳しく評価。後日の調査報告・提携・株価returnは使わない。"
+    confidence: high

@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 5 context。Starbucks 2018はcredible remediation後でもPCHR review継続中のためnear-boundary shadow BLOCK。"
+cases:
+  starbucks-2018-philadelphia:
+    incidentCountry: US
+    sector: restaurant_food_service
+    stakeholder: customer
+    incidentScope: site
+    confounderStatus: unknown
+    recurrenceStatus: first_known
+    remediationStatus: credible
+    incidentClusterStatus: single
+    strategyInvestigationStatusAtCheckpoint: open
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    calibrationEligibilityAtCheckpoint: confirmed_block
+    calibrationEligibilityNotes: "productionはscore=11でBLOCK。Starbucksは2018-05-29までに全米8,000超の直営店でracial-bias trainingを実施し、remediationはcredible。一方、同日のPhiladelphia市長発信でもPCHRがStarbucksの方針について意図的/非意図的な差別的影響を調査中とされており、外部reviewはclosedではない。score gateを外してもinvestigationStatus=openでshadow BLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "Starbucks to Close All Stores Nationwide for Racial-Bias Education on May 29"
+        url: "https://investor.starbucks.com/news/financial-releases/news-details/2018/Starbucks-to-Close-All-Stores-Nationwide-for-Racial-Bias-Education-onMay-29/default.aspx"
+        sourceType: company
+        publishedAt: "2018-04-17"
+      - title: "Starbucks Reports Record Q2 Fiscal 2018 Results"
+        url: "https://investor.starbucks.com/news/financial-releases/news-details/2018/Starbucks-Reports-Record-Q2-Fiscal-2018-Results/default.aspx"
+        sourceType: company
+        publishedAt: "2018-04-26"
+      - title: "We cannot allow the Starbucks incident to define Philadelphia"
+        url: "https://www.phila.gov/2018-05-29-we-cannot-allow-the-starbucks-incident-to-define-philadelphia/"
+        sourceType: regulator
+        publishedAt: "2018-05-29"
+    notes: "未採点backlogから先に選定。後日のPCHR最終報告・Q3業績・株価returnはcheckpoint判定へ使用しない。"

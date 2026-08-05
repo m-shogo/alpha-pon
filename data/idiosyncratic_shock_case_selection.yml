@@ -1,0 +1,92 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Case selection provenance registry。既存historical caseは、明示的にprospective登録されていない限りvalidation holdoutとして扱わない。"
+cases:
+  ootoya-2019-employee-video:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: unknown
+    selectionReason: "score 11のthreshold境界例として、production thresholdを外したshadow eligibility研究へ採用。"
+    notes: "research controlには使えるがprospective validation holdoutではない。"
+  papa-johns-2018-schnatter:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: unknown
+    selectionReason: "score 11のfounder-brand境界例として、低scoreでもhard gateを維持できるか検証するため採用。"
+  cbs-2018-moonves:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: unknown
+    selectionReason: "score 11の経営者misconduct境界例として、open investigationをthreshold研究でもBLOCKできるか確認するため採用。"
+  super-retail-2025-heraghty:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: unknown
+    selectionReason: "score 10の海外retail境界例として、影響範囲未確定時にscoreだけでshadow PASSへ入れないことを確認するため採用。"
+  wynn-2018-founder:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "score 9のUS regulated-industry deep controlとして、創業者切離しとgaming-license riskの衝突を検証するため再監査。"
+  kadokawa-2022-bribery:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "score 9のJP founder/crime deep controlとして、個人事件に見える刑事事件の組織波及を検証するため再監査。"
+  sukiya-2025-rat:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "score 8のJP food-safety deep controlとして、再発と全店休業を単一店舗事件から切り離せるか検証するため再監査。"
+  activision-2021-culture:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "score 8のUS organizational-misconduct deep controlとして、強いIPがopen regulatory/culture issueを上書きしないか検証するため再監査。"
+  kobayashi-pharma-2024-benikoji:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "score 8のJP product-safety deep controlとして、健康被害原因と影響範囲が未確定な段階をshadow PASSへ誤分類しないか検証するため再監査。"
+  kddi-2026-biglobe-circular-transactions:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "score 10のJP accounting境界例として、少人数起因でも財務訂正・重要な内部統制不備が生じた場合にthreshold shadowへ入れないことを検証するため採用。"
+    notes: "historical caseなのでoutcomeは既知になり得ると明示するが、2026-03-31 checkpoint以前/同日の会社一次情報だけでeligibilityを再監査し、将来株価outcomeは判定に使用しない。"
+  united-2017-flight3411:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "score 10のUS customer-service policy境界例として、個人切除できない組織ポリシー起因でも調査・規制・remediationがcheckpointまでに閉じた場合のthreshold shadow eligibilityを検証するため採用。"
+    notes: "historical outcomeは既知になり得るためprospective holdoutには使わない。case選定・score・PASS判定には2017-05-12までの会社/DOT一次情報のみ使用し、将来returnは参照しない。"
+  benesse-2014-data-leak:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlogでJP data-securityの未カバーカテゴリとして先にfreezeされ、scoreや将来returnを見ずにPIT研究へ昇格。"
+    notes: "historical outcomeは既知になり得るためprospective holdoutには使わない。2014-07-17までの会社一次情報だけでscore=9/open investigation BLOCKを確定し、将来株価やrecovery patternは判定へ使用しない。"
+  dentsu-2016-labor-violation:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlogでJP labor-governanceの未カバーカテゴリとして先にfreezeされ、scoreや後年の判決を見ずにPIT研究へ昇格。"
+    notes: "2016-12-28会社一次情報だけでscore=8、open investigation/systemic recurrence BLOCKを確定。2017年以降の判決・処分・株価returnは判定へ使用しない。"
+  chipotle-2015-ecoli:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlogでUS food-safetyカテゴリとして先にfreezeされ、score帯を知らない状態でPIT研究へ昇格。"
+    notes: "CDC/会社の2016-02-02までの一次情報でscore=7と判明したため8-11境界帯へ無理に合わせない。prospective holdoutには使わず、後年の株価returnも判定に使用しない。"
+  guess-2018-marciano:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlogでUS founder/key-person境界例として先にfreezeされ、独立調査終了後のscoreを事後調整せず評価。"
+    notes: "2018-06-12 SEC filingまでの情報でscore=12。below-threshold件数へ合わせずproduction threshold側へ分類し、後日の業績・株価returnは使用しない。"
+  starbucks-2018-philadelphia:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlogでUS customer-treatment/racial-bias shockとして先にfreezeされ、全米remediationと外部reviewをPIT評価。"
+    notes: "2018-05-29までの会社・Philadelphia市一次情報でscore=11、PCHR review継続によりshadow BLOCK。後日のPCHR最終報告・Q3業績・株価returnは使用しない。"

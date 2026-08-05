@@ -1,0 +1,48 @@
+version: 1
+generatedAt: "2026-07-30"
+description: "2026年の一次情報で追加した企業固有ショック負例。少人数起因でも会計訂正が生じるケースを重視する。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: kddi-2026-biglobe-circular-transactions
+    company: "KDDI"
+    ticker: "9433"
+    country: JP
+    eventDate: "2026-01-14"
+    checkpoint: "2026-03-31"
+    category: accounting_fraud
+    actorType: employee
+    scoreVector: [1,0,1,1,1,2,2,1,1,0]
+    priceState: unknown
+    summary: "連結子会社BIGLOBE/G-PLANの広告代理事業で従業員2名による架空循環取引が認定され、過年度の有価証券報告書・決算短信を訂正。"
+    source: "https://www2.jpx.co.jp/disc/94330/140120260331594003.pdf"
+    sourceType: exchange
+    outcomePattern: unknown
+    lesson: "行為者が少人数でも、架空取引が財務諸表訂正へ到達した時点でaccountingIntegrity=0。個人切除型として通知しない。"
+    confidence: high
+
+  - id: airwater-2026-improper-accounting
+    company: "Air Water"
+    ticker: "4088"
+    country: JP
+    eventDate: "2025-10-09"
+    checkpoint: "2026-02-13"
+    category: accounting_fraud
+    actorType: organization
+    scoreVector: [0,0,0,0,1,1,0,0,1,0]
+    priceState: unknown
+    summary: "複数の連結子会社および本体部門で損失先送り・引当回避・資産性のない支出の資産計上等の不適切会計が判明し、過年度修正へ。"
+    source: "https://www2.jpx.co.jp/disc/40880/140120260213560465.pdf"
+    sourceType: exchange
+    outcomePattern: unknown
+    lesson: "複数拠点・多数取引・マネジメント関与へ広がる会計問題は、下落が大きくても個人不祥事ディップと逆の構造。"
+    confidence: high

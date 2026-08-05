@@ -1,0 +1,165 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Threshold=12の境界研究を、過去returnを見て都合の良い事件を選ぶ作業にしないための未採点candidate backlog。ここでは構造・市場・カテゴリ・一次情報だけを固定し、score/priceState/recovery/returnは研究後まで記録禁止。"
+selectionPolicy:
+  basis: structural_coverage_only
+  knownHistoricalOutcomeMayExist: true
+  forbiddenInputs:
+    - future_return
+    - recovery_pattern
+    - realized_outcome
+    - post_event_price_path
+candidates:
+  - id: benesse-2014-data-leak
+    company: "Benesse Holdings"
+    ticker: "9783"
+    market: JP
+    eventDate: "2014-07-09"
+    category: data_security
+    researchState: promoted
+    discoveryReason: "JPで未カバーの大規模data-security shock。顧客情報・ブランド・事業影響が強く、個人起点と組織統制の境界をscore結果を見ずに検証する。"
+    primarySource:
+      title: "お客様情報の漏えいについてお詫びとご説明"
+      url: "https://www.benesse-hd.co.jp/ja/about/release_20140709.pdf"
+      sourceType: company
+      publishedAt: "2014-07-09"
+
+  - id: dentsu-2016-labor-violation
+    company: "Dentsu"
+    ticker: "4324"
+    market: JP
+    eventDate: "2016-12-28"
+    category: labor_governance
+    researchState: promoted
+    discoveryReason: "JPの組織労務・ガバナンスshock。個人不祥事ではなく業務プロセスと企業文化へ触れるため、低score帯へ入るかを事前に決めつけず調査する。"
+    primarySource:
+      title: "労働基準法違反容疑による書類送検と再発防止に向けての当社の取り組みについて"
+      url: "https://www.dentsu.co.jp/news/release/2016/1228-009123.html"
+      sourceType: company
+      publishedAt: "2016-12-28"
+
+  - id: starbucks-2018-philadelphia
+    company: "Starbucks"
+    ticker: SBUX
+    market: US
+    eventDate: "2018-04-12"
+    category: customer_service_discrimination
+    researchState: promoted
+    discoveryReason: "USで未カバーのcustomer-treatment/racial-bias shock。単店事件から全米店舗のpolicy/remediationへ広がった構造を、株価結果を使わず検証する。"
+    primarySource:
+      title: "Starbucks to Close All Stores Nationwide for Racial-Bias Education on May 29"
+      url: "https://investor.starbucks.com/files/doc_news/Starbucks-to-Close-All-Stores-Nationwide-for-Racial-Bias-Education-onMay-29-2018.pdf"
+      sourceType: company
+      publishedAt: "2018-04-17"
+
+  - id: guess-2018-marciano
+    company: "Guess?"
+    ticker: GES
+    market: US
+    eventDate: "2018-02-09"
+    category: founder_misconduct
+    researchState: promoted
+    discoveryReason: "US founder/key-person境界例。独立調査は完了したが創業者の役割移行が段階的で、actor separabilityとremediationを結果非依存で検証できる。"
+    primarySource:
+      title: "Guess? Form 8-K - Special Committee Investigation"
+      url: "https://www.sec.gov/Archives/edgar/data/912463/000091246318000039/form8kjune122018.htm"
+      sourceType: regulator
+      publishedAt: "2018-06-12"
+
+  - id: chipotle-2015-ecoli
+    company: "Chipotle Mexican Grill"
+    ticker: CMG
+    market: US
+    eventDate: "2015-10-30"
+    category: food_safety
+    researchState: promoted
+    discoveryReason: "US food-safety shock。複数州・複数店舗の実害と調査終了が確認できるため、brand/business damageが低scoreを作るケースをhard gateと分離して検証する。"
+    primarySource:
+      title: "2015 E. coli Outbreak Linked to Chipotle Mexican Grill Restaurants - Final Update"
+      url: "https://archive.cdc.gov/www_cdc_gov/ecoli/2015/o26-11-15/index.html"
+      sourceType: regulator
+      publishedAt: "2016-02-01"
+
+  - id: recruit-2019-rikunabi-dmp
+    company: "Recruit Holdings"
+    ticker: "6098"
+    market: JP
+    eventDate: "2019-08-26"
+    category: data_privacy_regulatory
+    researchState: promoted
+    discoveryReason: "JPのprivacy/regulatoryカテゴリを追加する第2batch候補。個人データの同意・安全管理・事業ガバナンスの波及を、scoreや後日の株価を見ずに検証する。"
+    primarySource:
+      title: "当社孫会社への個人情報保護委員会からの勧告等について"
+      url: "https://recruit-holdings.com/ja/newsroom/20190826_18581/"
+      sourceType: company
+      publishedAt: "2019-08-26"
+
+  - id: jal-2018-alcohol-compliance
+    company: "Japan Airlines"
+    ticker: "9201"
+    market: JP
+    eventDate: "2018-10-28"
+    category: safety_compliance
+    researchState: promoted
+    discoveryReason: "JPのregulated safety/complianceカテゴリを追加する第2batch候補。個人の飲酒事案と会社の検査・安全管理体制を、将来returnなしで分離評価する。"
+    primarySource:
+      title: "飲酒に起因する不適切な事案等を受けた航空運送事業者及び運航乗務員に対する不利益処分等について"
+      url: "https://www.mlit.go.jp/report/press/kouku10_hh_000140.html"
+      sourceType: regulator
+      publishedAt: "2018-12-21"
+
+  - id: kobe-steel-2017-quality-falsification
+    company: "Kobe Steel"
+    ticker: "5406"
+    market: JP
+    eventDate: "2017-10-08"
+    category: quality_falsification
+    researchState: promoted
+    discoveryReason: "JP manufacturing quality/governanceカテゴリの第2batch候補。複数製品・顧客への品質データ書換えがどのscore帯になるかを事前に決めず調査する。"
+    primarySource:
+      title: "当社が製造したアルミ・銅製品の一部に関する不適切な行為について"
+      url: "https://www.kobelco.co.jp/releases/1197805_15541.html"
+      sourceType: company
+      publishedAt: "2017-10-08"
+
+  - id: tesla-2018-musk-sec
+    company: "Tesla"
+    ticker: TSLA
+    market: US
+    eventDate: "2018-09-27"
+    category: executive_regulatory
+    researchState: promoted
+    discoveryReason: "US founder/key-person regulatoryカテゴリの第2batch候補。CEO発言と企業disclosure controlsへの波及を、株価結果を選定根拠にせず検証する。"
+    primarySource:
+      title: "Elon Musk Charged With Securities Fraud for Misleading Tweets"
+      url: "https://www.sec.gov/newsroom/press-releases/2018-219"
+      sourceType: regulator
+      publishedAt: "2018-09-27"
+
+  - id: equifax-2017-cybersecurity-breach
+    company: "Equifax"
+    ticker: EFX
+    market: US
+    eventDate: "2017-09-07"
+    category: data_security
+    researchState: promoted
+    discoveryReason: "US data-securityカテゴリの第2batch候補。大規模個人情報漏えいとcredit-reporting本業の信頼・事業影響を、future returnを見ずに採点する。"
+    primarySource:
+      title: "Equifax Announces Cybersecurity Incident Involving Consumer Information"
+      url: "https://www.sec.gov/Archives/edgar/data/33185/000003318517000026/exhibit99120170907.htm"
+      sourceType: regulator
+      publishedAt: "2017-09-07"
+
+  - id: wells-fargo-2016-unauthorized-accounts
+    company: "Wells Fargo"
+    ticker: WFC
+    market: US
+    eventDate: "2016-09-08"
+    category: systemic_sales_misconduct
+    researchState: promoted
+    discoveryReason: "US financial systemic-misconductカテゴリの第2batch候補。販売インセンティブ・不正口座・enterprise risk managementの組織波及を結果非依存で検証する。"
+    primarySource:
+      title: "Consumer Financial Protection Bureau Fines Wells Fargo $100 Million for Widespread Illegal Practice of Secretly Opening Unauthorized Accounts"
+      url: "https://www.consumerfinance.gov/archive/newsroom/consumer-financial-protection-bureau-fines-wells-fargo-100-million-widespread-illegal-practice-secretly-opening-unauthorized-accounts/"
+      sourceType: regulator
+      publishedAt: "2016-09-08"

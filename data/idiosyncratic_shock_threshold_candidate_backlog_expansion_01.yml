@@ -1,0 +1,67 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold candidate backlog batch 3。JP/USとカテゴリ不足を構造情報だけで補充し、score・price path・future outcomeは研究開始後まで記録しない。"
+selectionPolicy:
+  basis: structural_coverage_only
+  knownHistoricalOutcomeMayExist: true
+  forbiddenInputs:
+    - future_return
+    - recovery_pattern
+    - realized_outcome
+    - post_event_price_path
+candidates:
+  - id: snow-peak-2022-yamai
+    company: "Snow Peak"
+    ticker: "7816"
+    market: JP
+    eventDate: "2022-09-21"
+    category: executive_personal_conduct
+    researchState: unscored
+    discoveryReason: "JPのCEO個人行動・key-person境界を追加する第3batch候補。代表取締役辞任と経営継続への波及を、株価結果やscore帯を見ずに検証する。"
+    primarySource:
+      title: "代表取締役の異動及び役員報酬の減額に関するお知らせ"
+      url: "https://ir.snowpeak.co.jp/news/files/140120220921534702.pdf"
+      sourceType: company
+      publishedAt: "2022-09-21"
+
+  - id: subaru-2017-final-inspection
+    company: "SUBARU"
+    ticker: "7270"
+    market: JP
+    eventDate: "2017-10-27"
+    category: quality_compliance
+    researchState: unscored
+    discoveryReason: "JP manufacturing complianceカテゴリの第3batch候補。完成検査工程の資格・運用統制問題が個人逸脱か組織プロセスかを、将来returnなしで検証する。"
+    primarySource:
+      title: "当社完成検査工程における不適切事案について"
+      url: "https://www.subaru.co.jp/press/file/uploads/news/2017_1027_0001.pdf"
+      sourceType: company
+      publishedAt: "2017-10-27"
+
+  - id: lululemon-2018-potdevin
+    company: "lululemon athletica"
+    ticker: LULU
+    market: US
+    eventDate: "2018-02-05"
+    category: executive_personal_conduct
+    researchState: unscored
+    discoveryReason: "US CEO conduct境界を追加する第3batch候補。CEO即時辞任と本業・財務からの切離し可能性を、historical returnを選定根拠にせず検証する。"
+    primarySource:
+      title: "lululemon athletica inc. Announces CEO Laurent Potdevin Resignation"
+      url: "https://www.sec.gov/Archives/edgar/data/1397187/000139718718000005/lulu-20180202xex991.htm"
+      sourceType: regulator
+      publishedAt: "2018-02-05"
+
+  - id: barnes-noble-2018-parneros
+    company: "Barnes & Noble"
+    ticker: BKS
+    market: US
+    eventDate: "2018-07-03"
+    category: executive_policy_violation
+    researchState: unscored
+    discoveryReason: "US CEO policy-violation境界を追加する第3batch候補。会社が財務報告・fraudとの非関連を明示した事案で、investigation completionとactor separabilityを結果非依存で検証する。"
+    primarySource:
+      title: "Barnes & Noble Form 8-K - Termination of Chief Executive Officer"
+      url: "https://www.sec.gov/Archives/edgar/data/890491/000119312518210243/d596092d8k.htm"
+      sourceType: regulator
+      publishedAt: "2018-07-03"

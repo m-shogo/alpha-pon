@@ -1,0 +1,23 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog batch 4 context。ENEOS 2022元会長不適切行為を2022-09-21同日情報だけで個人切除型として保存し、後年の別事案をrecurrenceへ混ぜない。"
+cases:
+  eneos-2022-sugimori:
+    incidentCountry: JP
+    sector: energy
+    stakeholder: public
+    incidentScope: individual
+    confounderStatus: clear
+    recurrenceStatus: first_known
+    remediationStatus: credible
+    incidentClusterStatus: single
+    strategyInvestigationStatusAtCheckpoint: substantially_complete
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyEligibilityNotes: "checkpoint=2022-09-21までに会社が事実確認を行い不適切行為を認定、元会長への辞任要求と取締役会受理まで完了。score=14で、同日情報では非score hard blockerを確認しない。reaction anchor/価格条件は別契約であり、このstatusだけでsignalを作らない。"
+    strategyEligibilityEvidenceSources:
+      - title: "当社元会長に関する一部報道について"
+        url: "https://www.eneos.co.jp/information/upload_pdf/20220921_01_01_2008355.pdf"
+        sourceType: company
+        publishedAt: "2022-09-21"
+    notes: "2023年以降のENEOSグループ別事案は未来情報なので2022 checkpointのrecurrence判定へ使用しない。"

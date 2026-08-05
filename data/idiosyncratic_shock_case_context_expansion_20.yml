@@ -1,0 +1,27 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 9 context。Equifax 2017は大規模data-security incident、経営交代、Board特別委員会による継続対応のためshadow BLOCK。"
+cases:
+  equifax-2017-cybersecurity-breach:
+    incidentCountry: US
+    sector: credit_reporting
+    stakeholder: customer
+    incidentScope: company_wide
+    confounderStatus: possible
+    recurrenceStatus: first_known
+    remediationStatus: partial
+    incidentClusterStatus: single
+    strategyInvestigationStatusAtCheckpoint: open
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    calibrationEligibilityAtCheckpoint: confirmed_block
+    calibrationEligibilityNotes: "productionはscore=5でBLOCK。threshold研究でもcheckpoint=2017-09-26時点でBoardがincident対応のSpecial Committeeを設置し、CEO退任・暫定CEO移行の最中。影響は約1億4300万人規模で、原因・責任・remediationの全容はclosedではなくinvestigationStatus=openのためshadow BLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "Equifax Announces Cybersecurity Incident Involving Consumer Information"
+        url: "https://investor.equifax.com/news-events/press-releases/detail/240/equifax-announces-cybersecurity-incident-involving-consumer"
+        sourceType: company
+        publishedAt: "2017-09-07"
+      - title: "Equifax Chairman, CEO, Richard Smith Retires"
+        url: "https://investor.equifax.com/news-events/press-releases/detail/236/equifax-chairman-ceo-richard-smith-retires-board-of"
+        sourceType: company
+        publishedAt: "2017-09-26"
+    notes: "November 2017以降のSpecial Committee reportや将来returnはcheckpoint判定へ使用しない。"

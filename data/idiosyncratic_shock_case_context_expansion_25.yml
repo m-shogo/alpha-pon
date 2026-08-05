@@ -1,0 +1,21 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 14 context。lululemon 2018はCEO即時辞任・経営移行を確認するが、公開資料から調査完了を推測しない。"
+cases:
+  lululemon-2018-potdevin:
+    incidentCountry: US
+    sector: apparel_retail
+    stakeholder: public
+    incidentScope: individual
+    confounderStatus: clear
+    recurrenceStatus: first_known
+    remediationStatus: credible
+    incidentClusterStatus: single
+    strategyInvestigationStatusAtCheckpoint: unknown
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityEvidenceSources:
+      - title: "lululemon athletica inc. Announces CEO Laurent Potdevin Resignation"
+        url: "https://www.sec.gov/Archives/edgar/data/1397187/000139718718000005/lulu-20180202xex991.htm"
+        sourceType: regulator
+        publishedAt: "2018-02-05"
+    notes: "Board action and immediate management transition are explicit, but the release does not provide enough detail to assert a fully closed investigation. score=14なのでbelow-threshold calibration controlではない。future returnは使用しない。"

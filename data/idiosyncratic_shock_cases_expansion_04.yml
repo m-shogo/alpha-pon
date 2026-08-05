@@ -1,0 +1,82 @@
+version: 1
+generatedAt: "2026-07-30"
+description: "金融・公益企業の境界ケース。個人/金銭問題に見えて顧客信頼・規制・組織ガバナンスへ波及する事例を追加。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: mufg-2024-safe-deposit-theft
+    company: "Mitsubishi UFJ Financial Group"
+    ticker: "8306"
+    country: JP
+    eventDate: "2024-11-22"
+    checkpoint: "2025-01-16"
+    category: personal_crime
+    actorType: employee
+    scoreVector: [1,2,2,1,1,0,2,2,1,0]
+    priceState: unknown
+    summary: "三菱UFJ銀行の元行員が2店舗の貸金庫から顧客資産を窃取。約4年半にわたり約60名、時価十数億円程度の被害が判明し、銀行は『信頼・信用というビジネスの根幹を揺るがす』事案と説明。"
+    source: "https://www.bk.mufg.jp/news/news2025/pdf/news0116.pdf"
+    sourceType: company
+    outcomePattern: mixed
+    lesson: "行為者が1人でも、銀行の顧客資産管理という中核的信頼に直接触れ、補償・規制対応・全行再発防止が必要ならCEO私生活型ほど高得点にはしない。"
+    confidence: high
+
+  - id: daiichi-life-2020-former-employee-fraud
+    company: "Dai-ichi Life Holdings"
+    ticker: "8750"
+    country: JP
+    eventDate: "2020-10-02"
+    checkpoint: "2020-12-22"
+    category: systemic_misconduct
+    actorType: organization
+    scoreVector: [0,2,0,0,1,0,1,0,2,0]
+    priceState: unknown
+    summary: "元特別調査役による架空金融取引で24名から約19億5100万円を不正取得。追加の複数金銭不正も発覚し、会社は管理監督不足だけでなく優績者の特権意識や企業風土・体質にも問題があったと認定。"
+    source: "https://www.dai-ichi-life.co.jp/company/news/pdf/2020_077.pdf"
+    sourceType: company
+    outcomePattern: mixed
+    lesson: "最初は一人の巨額詐欺でも、複数事案・長期管理不全・企業風土まで原因分析が広がれば個人切除型ではなく組織型として扱う。"
+    confidence: high
+
+  - id: kansai-electric-2019-gifts
+    company: "Kansai Electric Power"
+    ticker: "9503"
+    country: JP
+    eventDate: "2019-09-27"
+    checkpoint: "2020-03-14"
+    category: organizational_governance
+    actorType: organization
+    scoreVector: [1,2,0,0,0,0,0,1,2,0]
+    priceState: unknown
+    summary: "役職員75名が元高浜町助役らから総額約3億6000万円相当の金品を受領。第三者委員会は経営陣の問題先送り、取締役会への未報告、閉鎖的企業体質などガバナンス機能不全を認定。"
+    source: "https://www.kepco.co.jp/kaizenkeikaku/improper_receipting/summary/index.html"
+    sourceType: company
+    outcomePattern: gradual
+    lesson: "『役員が金品を受け取った』という見出しでも、75名・経営陣・取締役会・業務改善命令まで広がれば個人の金銭問題とは真逆の組織ガバナンス型。"
+    confidence: high
+
+  - id: smfg-2022-nikko-market-manipulation
+    company: "Sumitomo Mitsui Financial Group"
+    ticker: "8316"
+    country: JP
+    eventDate: "2022-03-05"
+    checkpoint: "2022-10-07"
+    category: systemic_misconduct
+    actorType: organization
+    scoreVector: [0,2,0,0,0,0,1,1,2,0]
+    priceState: unknown
+    summary: "SMBC日興証券の相場操縦事案で役社員と法人が起訴され、金融庁は同社だけでなく親会社SMFGにも経営管理態勢の改善措置を命令。"
+    source: "https://www.fsa.go.jp/news/r4/shouken/20221007/20221007.html"
+    sourceType: regulator
+    outcomePattern: mixed
+    lesson: "役社員の刑事事件でも法人起訴・行政処分・親会社の経営管理改善命令まで到達すれば、個人犯罪ディップではなく規制・組織不正型。"
+    confidence: high

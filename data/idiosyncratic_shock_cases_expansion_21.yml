@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 16。ENEOS 2022元会長不適切行為を同日会社一次情報で採点し、後年のグループ内再発をcheckpointへ逆流させない。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: eneos-2022-sugimori
+    company: "ENEOS Holdings"
+    ticker: "5020"
+    country: JP
+    eventDate: "2022-09-21"
+    checkpoint: "2022-09-21"
+    category: executive_personal_conduct
+    actorType: executive
+    scoreVector: [2,2,2,2,2,1,2,1,0,0]
+    priceState: unknown
+    summary: "会社は被害申告後に社長指揮で事実確認を行い、元会長の不適切言動を認定して辞任を要求、取締役会が辞任を受理したと公表。個人切除性と経営継続性は高いが、会長による人権・コンプライアンス違反としてブランド面を減点し、業績は同日資料だけでは未確認。"
+    source: "https://www.eneos.co.jp/information/upload_pdf/20220921_01_01_2008355.pdf"
+    sourceType: company
+    outcomePattern: unknown
+    lesson: "2023年以降に起きたENEOSグループの別の不適切行為は2022-09-21 checkpointには存在しないためrecurrence評価へ逆流させない。価格未検証2項目は0のまま14点を受け入れる。"
+    confidence: high

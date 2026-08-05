@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 14。lululemon 2018 CEO resignationをSEC-hosted company releaseで採点し、価格未検証のままhigh-score sideへ分類する反証例。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: lululemon-2018-potdevin
+    company: "lululemon athletica"
+    ticker: LULU
+    country: US
+    eventDate: "2018-02-05"
+    checkpoint: "2018-02-05"
+    category: executive_personal_conduct
+    actorType: ceo
+    scoreVector: [2,2,2,2,2,1,1,2,0,0]
+    priceState: unknown
+    summary: "BoardがLaurent Potdevinの行動が会社のconduct standardsを満たさなかったとしてCEO・取締役からの即時辞任を発表。経営移行体制を置きCEO searchへ移った。事件を本業・会計問題へ拡張する一次情報はcheckpointでは確認しない。"
+    source: "https://www.sec.gov/Archives/edgar/data/1397187/000139718718000005/lulu-20180202xex991.htm"
+    sourceType: regulator
+    outcomePattern: unknown
+    lesson: "outcome-blind backlogは低scoreを作るためのものではない。個人切除性・本業耐性が高く、価格項目を0のままにしても14点なら、そのままhigh-score sideへ分類する。"
+    confidence: high

@@ -1,0 +1,24 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Threshold calibration research batch 6。score 10のJP accounting caseをcheckpoint-safe会社一次情報で再監査し、少人数起因でも財務訂正・内部統制不備・同日confounderがあればshadow PASSへ寄せない。"
+cases:
+  kddi-2026-biglobe-circular-transactions:
+    incidentCountry: JP
+    sector: telecommunications
+    stakeholder: investor
+    incidentScope: multi_unit
+    confounderStatus: major
+    strategyInvestigationStatusAtCheckpoint: substantially_complete
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    calibrationEligibilityAtCheckpoint: confirmed_block
+    calibrationEligibilityNotes: "productionはscore=10でBLOCK。threshold研究でもcheckpoint=2026-03-31時点で、KDDIは特別調査委員会報告を受領し、BIGLOBE/G-PLANの広告代理事業で実体のない架空循環取引を認定。2023年3月期以降の過年度決算・有価証券報告書等を訂正し、財務報告に重要な影響を及ぼす開示すべき重要な内部統制不備を認定した。さらに同日の業績予想修正には、本件とは別にモバイル競争環境変化と契約コスト減損も含まれるため、accountingIntegrity=0に加えてsame-day confounderもmajor。score gateを外してもshadow BLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "過年度の内部統制報告書の訂正報告書の提出及び財務報告に係る内部統制の開示すべき重要な不備に関するお知らせ"
+        url: "https://newsroom.kddi.com/ir-news/assets/2026/kddi_ir-1111_4400/kddi_ir-1111_4400_pdf_D.pdf"
+        sourceType: company
+        publishedAt: "2026-03-31"
+      - title: "特別調査委員会の調査結果に関する説明会 質疑応答"
+        url: "https://www.kddi.com/extlib/files/corporate/ir/library/presentation/2026/pdf/kddi_260331_qa_zzroN0.pdf"
+        sourceType: company
+        publishedAt: "2026-03-31"
+    notes: "従業員2名起因でも、長期の架空循環取引が過年度財務訂正と重要な内部統制不備へ到達した時点で個人切除型ではない。将来株価/outcomeは判定に使用していない。"

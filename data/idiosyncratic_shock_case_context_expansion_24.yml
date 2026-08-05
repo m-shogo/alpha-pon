@@ -1,0 +1,23 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 13 context。SUBARU 2017完成検査問題をcompany-wide process controlとして固定し、調査未完のためshadow BLOCK。"
+cases:
+  subaru-2017-final-inspection:
+    incidentCountry: JP
+    sector: automotive_manufacturing
+    stakeholder: customer
+    incidentScope: company_wide
+    confounderStatus: possible
+    recurrenceStatus: related_multiple
+    remediationStatus: partial
+    incidentClusterStatus: related_multiple
+    strategyInvestigationStatusAtCheckpoint: open
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    calibrationEligibilityAtCheckpoint: confirmed_block
+    calibrationEligibilityNotes: "productionはscore=8でBLOCK。threshold研究でもcheckpoint=2017-10-27時点では完成検査工程の不適切運用について詳細調査・国交省対応が継続中で、影響範囲や再発防止が確定していない。個人の単発逸脱ではなくcompany-wide process controlとしてinvestigationStatus=openでshadow BLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "当社完成検査工程における不適切事案について"
+        url: "https://www.subaru.co.jp/press/file/uploads/news/2017_1027_0001.pdf"
+        sourceType: company
+        publishedAt: "2017-10-27"
+    notes: "後日の調査報告・リコール規模・株価returnをcheckpoint判定へ使用しない。outcome-blind backlogでscore記入前にfreeze済み。"

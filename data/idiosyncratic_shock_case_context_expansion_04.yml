@@ -1,0 +1,28 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "provider-independent eligibility research batch 4。古いUS employee sabotageを複数major mediaでpoint-in-time再現したケース。base/他expansionとID重複禁止。"
+cases:
+  dominos-2009-employee-video:
+    incidentCountry: US
+    sector: restaurant_food_service
+    stakeholder: employee
+    incidentScope: site
+    confounderStatus: clear
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyInvestigationStatusAtCheckpoint: substantially_complete
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityNotes: "historical checkpoint=2009-04-16までに、問題動画の従業員2名は特定・解雇され、逮捕/food-tampering felony chargesへ進み、当該店舗は閉鎖・再配置/消毒対応が実施されたことを複数の当時主要報道で確認。会社内部の会計・免許・上場継続問題ではなく、既知の局所employee sabotageとして事実範囲がsubstantially completeと判定する。"
+    strategyEligibilityEvidenceSources:
+      - title: "Employee Misconduct and Internet Video Create PR Disaster for Domino's Pizza"
+        url: "https://www.workforce.com/news/employee-misconduct-and-internet-video-create-pr-disaster-for-dominos-pizza"
+        sourceType: major_media
+        publishedAt: "2009-04-15"
+      - title: "Domino's Employee Video Taints Food and Brand"
+        url: "https://abcnews.go.com/Business/story?id=7355967&page=1"
+        sourceType: major_media
+        publishedAt: "2009-04-16"
+      - title: "Domino's YouTube Crisis: 5 Ways to Fight Back"
+        url: "https://time.com/archive/6914398/dominos-youtube-crisis-5-ways-to-fight-back/"
+        sourceType: major_media
+        publishedAt: "2009-04-17"
+    notes: "古い事例で会社一次情報URLが現存確認できないため、resolverが許可する複数major-media routeを使用。食品ブランド毀損はscoreのbrandResilience=0、店舗対応コストはbusinessImpactContainment=1で保持する。"

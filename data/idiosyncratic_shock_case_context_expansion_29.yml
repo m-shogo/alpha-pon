@@ -1,0 +1,23 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog batch 4 context。Intel 2018 CEO辞任は本業耐性が高くても同日一次情報のongoing investigationをhard blockerとして固定。"
+cases:
+  intel-2018-krzanich:
+    incidentCountry: US
+    sector: semiconductors
+    stakeholder: employee
+    incidentScope: individual
+    confounderStatus: clear
+    recurrenceStatus: first_known
+    remediationStatus: partial
+    incidentClusterStatus: single
+    strategyInvestigationStatusAtCheckpoint: open
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    calibrationEligibilityAtCheckpoint: confirmed_block
+    calibrationEligibilityNotes: "score=14だがthreshold研究の目的はscoreだけではない。2018-06-21会社一次情報にinternal/external counselによるongoing investigationが明記されているため、production/shadowともinvestigationStatus=openでBLOCK。本業の記録的売上見通しはこのhard blockerを上書きしない。"
+    strategyEligibilityEvidenceSources:
+      - title: "Intel CEO Brian Krzanich Resigns; Board Appoints Bob Swan Interim CEO"
+        url: "https://download.intel.com/newsroom/2021/archive/2018-06-21-news-releases-intel-ceo-brian-krzanich-resigns-board-appoints-bob-swan-interim-ceo.pdf"
+        sourceType: company
+        publishedAt: "2018-06-21"
+    notes: "後日のinvestigation resolution・CEO search結果・株価returnはcheckpoint判定へ使用しない。"

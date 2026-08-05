@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 11。Wells Fargo 2016 unauthorized accountsをBoard independent investigation開始時点で採点し、systemic sales misconduct deep controlとして保存。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: wells-fargo-2016-unauthorized-accounts
+    company: "Wells Fargo"
+    ticker: WFC
+    country: US
+    eventDate: "2016-09-08"
+    checkpoint: "2016-09-27"
+    category: systemic_sales_misconduct
+    actorType: organization
+    scoreVector: [0,2,0,0,0,0,1,1,1,0]
+    priceState: unknown
+    summary: "販売目標・インセンティブの下で大量の無断口座等が作られ、CFPB/OCC/LA City Attorneyと総額1億8500万ドルのsettlement。9月27日時点でBoard独立取締役が包括的な調査を開始し、DOJ・州当局・議会等の複数調査も継続していた。"
+    source: "https://www.sec.gov/Archives/edgar/data/72971/000119312516722259/d266244d8k.htm"
+    sourceType: regulator
+    outcomePattern: unknown
+    lesson: "件数・期間・インセンティブ設計・control functionsへ広がる販売不正は個人切除型ではない。settlement済みでもBoard/政府調査が開いているならshadowへ入れない。"
+    confidence: high

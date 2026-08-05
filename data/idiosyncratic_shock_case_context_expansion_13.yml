@@ -1,0 +1,27 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 2 context。Dentsu 2016を2016-12-28 checkpointの会社一次情報で再監査し、open investigation/systemic recurrenceをdeep control blockerとして固定。"
+cases:
+  dentsu-2016-labor-violation:
+    incidentCountry: JP
+    sector: advertising_services
+    stakeholder: employee
+    incidentScope: company_wide
+    confounderStatus: unknown
+    recurrenceStatus: systemic
+    remediationStatus: partial
+    incidentClusterStatus: related_multiple
+    strategyInvestigationStatusAtCheckpoint: open
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    calibrationEligibilityAtCheckpoint: confirmed_block
+    calibrationEligibilityNotes: "productionはscore=8でBLOCK。threshold研究でもcheckpoint=2016-12-28時点で法人・社員が労働基準法違反容疑で書類送検され、会社は当局調査へ今後も全面協力すると公表。東京本社・関西支社・中部支社で過去の是正勧告があり、長時間労働を容認したコンプライアンス意識や『過剰なクオリティ志向』『強すぎる上下関係』等の企業風土まで原因として認識していたため、open investigation + systemic recurrenceでshadow BLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "電通、本日付で『電通労働環境改革本部』を発足"
+        url: "https://www.dentsu.co.jp/news/release/2016/1101-009070.html"
+        sourceType: company
+        publishedAt: "2016-11-01"
+      - title: "労働基準法違反容疑による書類送検と再発防止に向けての当社の取り組みについて"
+        url: "https://www.dentsu.co.jp/news/release/2016/1228-009123.html"
+        sourceType: company
+        publishedAt: "2016-12-28"
+    notes: "未採点backlogから先に選択した事例。2017年以降の判決・処分・株価returnはscore/eligibilityへ使用しない。"

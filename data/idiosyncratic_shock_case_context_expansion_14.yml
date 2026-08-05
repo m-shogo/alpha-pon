@@ -1,0 +1,27 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 3 context。Chipotle 2015はCDC調査終了後でも、複数outbreakと本業実害を持つincident clusterとしてshadow hard gateを維持する。"
+cases:
+  chipotle-2015-ecoli:
+    incidentCountry: US
+    sector: restaurant_food_service
+    stakeholder: customer
+    incidentScope: multi_unit
+    confounderStatus: possible
+    recurrenceStatus: related_multiple
+    remediationStatus: credible
+    incidentClusterStatus: cascade
+    strategyInvestigationStatusAtCheckpoint: closed
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    calibrationEligibilityAtCheckpoint: confirmed_block
+    calibrationEligibilityNotes: "productionはscore=7でBLOCK。threshold研究でもCDC final updateは二つのE. coli outbreakを扱い、原因食材を特定できなかった。会社の2016-02-02決算では食中毒関連のpublicityがQ4既存店売上14.6%減の主因とされ、同時期には複数のfood-borne illness incidentsが存在した。単一局所事件ではなくincident cascadeとしてshadow BLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "2015 E. coli Outbreak Linked to Chipotle Mexican Grill Restaurants - Final Update"
+        url: "https://archive.cdc.gov/www_cdc_gov/ecoli/2015/o26-11-15/index.html"
+        sourceType: regulator
+        publishedAt: "2016-02-01"
+      - title: "Chipotle Announces Fourth Quarter and Full Year 2015 Results; CDC Investigation Over"
+        url: "https://ir.chipotle.com/news-releases?item=122452"
+        sourceType: company
+        publishedAt: "2016-02-02"
+    notes: "backlog登録時点でscore/price/recoveryを持たせず、PIT研究後にscore=7と判明したため8-11境界研究の件数には数えない。後年の株価returnは使用しない。"

@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 19。McDonald's 2019 CEO policy violationを2019-11-04 checkpointだけで採点し、2020年に判明した追加事実を排除する。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: mcdonalds-2019-easterbrook
+    company: "McDonald's"
+    ticker: MCD
+    country: US
+    eventDate: "2019-11-04"
+    checkpoint: "2019-11-04"
+    category: executive_policy_violation
+    actorType: ceo
+    scoreVector: [2,2,2,2,2,1,2,2,0,0]
+    priceState: unknown
+    summary: "BoardはSteve Easterbrookが会社方針に違反し判断を誤ったとしてCEO・取締役から分離し、Chris Kempczinskiを即時後継CEOに任命。会社はleadership transitionがoperational・financial performanceと無関係であることを同日開示した。"
+    source: "https://www.sec.gov/Archives/edgar/data/63908/000089882219000080/mcd8k20191104.htm"
+    sourceType: regulator
+    outcomePattern: unknown
+    lesson: "2019-11-04時点のBoard判断・即時succession・本業非関連だけで15点。2020年に判明した追加関係・訴訟等は未来情報なのでcheckpoint score/eligibilityへ絶対に逆流させない。価格未検証2項目は0。"
+    confidence: high

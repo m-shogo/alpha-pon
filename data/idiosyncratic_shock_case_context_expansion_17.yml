@@ -1,0 +1,27 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 6 context。JAL 2018は12/21 checkpoint時点で新規飲酒事案の詳細調査がopenで、複数事案clusterと行政処分を伴うためshadow BLOCK。"
+cases:
+  jal-2018-alcohol-compliance:
+    incidentCountry: JP
+    sector: airlines
+    stakeholder: customer
+    incidentScope: company_wide
+    confounderStatus: possible
+    recurrenceStatus: related_multiple
+    remediationStatus: partial
+    incidentClusterStatus: cascade
+    strategyInvestigationStatusAtCheckpoint: open
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    calibrationEligibilityAtCheckpoint: confirmed_block
+    calibrationEligibilityNotes: "productionはscore=9でBLOCK。threshold研究でもcheckpoint=2018-12-21時点で、12/17の客室乗務員飲酒事案について国交省が12/20に詳細調査とより実効性ある再発防止策の報告を12/25までに求めており、investigationはopen。さらに一連の飲酒事案を受け12/21に事業改善命令等が出ており、単一個人の局所問題ではなくrelated multiple/cascadeとしてshadow BLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "日本航空株式会社に対する飲酒事案に係る指示について"
+        url: "https://www.mlit.go.jp/report/press/kouku10_hh_000139.html"
+        sourceType: regulator
+        publishedAt: "2018-12-20"
+      - title: "飲酒に起因する不適切な事案等を受けた航空運送事業者及び運航乗務員に対する不利益処分等について"
+        url: "https://www.mlit.go.jp/report/press/kouku10_hh_000140.html"
+        sourceType: regulator
+        publishedAt: "2018-12-21"
+    notes: "outcome-blind backlogで採点前にfreezeした事例。12/25以降の会社報告・2019年以降の改善状況・株価returnはscore/eligibilityに使用しない。"

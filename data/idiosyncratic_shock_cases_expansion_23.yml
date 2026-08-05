@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 18。Intel 2018 CEO辞任を同日一次情報で採点し、高scoreでもongoing investigationをhard gateとして分離する。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: intel-2018-krzanich
+    company: "Intel"
+    ticker: INTC
+    country: US
+    eventDate: "2018-06-21"
+    checkpoint: "2018-06-21"
+    category: executive_personal_conduct
+    actorType: ceo
+    scoreVector: [2,2,2,2,2,1,1,2,0,0]
+    priceState: unknown
+    summary: "Brian KrzanichがCEO・取締役を辞任しBob Swanがinterim CEOへ移行。会社は事業戦略と記録的なQ2・通期売上見通しを維持した一方、internal/external counselによるinvestigationはongoingと明記されていた。"
+    source: "https://download.intel.com/newsroom/2021/archive/2018-06-21-news-releases-intel-ceo-brian-krzanich-resigns-board-appoints-bob-swan-interim-ceo.pdf"
+    sourceType: company
+    outcomePattern: unknown
+    lesson: "本業耐性・個人切除性が高く14点でも、checkpointで明示されたongoing investigationは別hard gateとして維持する。価格未検証2項目は0、後日の調査終了や株価returnは使用しない。"
+    confidence: high

@@ -1,0 +1,28 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog batch 6 selection provenance。4件とも未採点freeze後にPIT一次情報で採点し、historical outcomeが既知になり得るためretrospective researchとしてのみ扱う。"
+cases:
+  olympus-2011-loss-concealment:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlog batch 6でJP accounting/governance deep controlとして未採点freeze後、2011-12-06第三者委員会報告受領までの会社一次情報でPIT採点した。"
+    notes: "score=3。長期間の損失先送りと過年度財務訂正をaccounting hard BLOCKとして維持。後日の上場維持・再建・returnは使用しない。"
+  toyota-2010-accelerator-recall:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlog batch 6でJP automotive product-safety候補として未採点freeze後、2010-02-01会社一次情報でPIT採点した。"
+    notes: "score=8。複数モデル・複数地域・生産販売影響を伴い、remediation/regulatory processが未収束のためBLOCK。後日の追加リコール・罰金・returnは使用しない。"
+  target-2013-payment-card-breach:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlog batch 6でUS retail data-security候補として未採点freeze後、2013-12-27会社一次情報でPIT採点した。"
+    notes: "score=7。forensic/criminal investigation継続と追加PIN data判明によりscope未収束としてBLOCK。後日の費用・CEO交代・returnは使用しない。"
+  boeing-2019-737-max-grounding:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlog batch 6でUS aviation product-safety候補として未採点freeze後、2019-03-13会社一次情報でPIT採点した。"
+    notes: "score=4。二件の死亡事故、371機の全世界grounding、原因・安全性確認未完了をcritical/open hard BLOCKとして維持。後日のcertification・補償・returnは使用しない。"

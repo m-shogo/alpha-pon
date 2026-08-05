@@ -1,0 +1,24 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Threshold calibration research batch 5。score 8のJP product-safety事例をcheckpoint-safe一次情報で再監査し、深い低score帯を件数合わせでPASSへ寄せない。"
+cases:
+  kobayashi-pharma-2024-benikoji:
+    incidentCountry: JP
+    sector: consumer_health
+    stakeholder: customer
+    incidentScope: multi_unit
+    confounderStatus: possible
+    strategyInvestigationStatusAtCheckpoint: open
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    calibrationEligibilityAtCheckpoint: confirmed_block
+    calibrationEligibilityNotes: "productionはscore=8でBLOCK。checkpoint=2024-03-25時点で会社は紅麹関連製品を全製造番号対象で自主回収し、腎疾患等の入院症例26件を把握。一部原料に想定外成分が含まれる可能性は判明していたが、成分の特定および製品と腎疾患等の関連性は未確定で調査継続中だった。score gateを外してもopen investigation hard gateでshadow BLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "紅麹関連製品の使用中止のお願いと自主回収のお知らせ"
+        url: "https://www.kobayashi.co.jp/info/20240322/"
+        sourceType: company
+        publishedAt: "2024-03-22"
+      - title: "紅麹関連製品の使用中止のお願いと自主回収のお知らせ（第2報）"
+        url: "https://www.kobayashi.co.jp/newsrelease/2024/20240325/"
+        sourceType: company
+        publishedAt: "2024-03-25"
+    notes: "健康被害原因・影響範囲がcheckpoint時点で未確定のproduct-safety shock。後日情報を使わなくてもopen investigationが明白なので、score 8 controlとしてPASSへ変換しない。"

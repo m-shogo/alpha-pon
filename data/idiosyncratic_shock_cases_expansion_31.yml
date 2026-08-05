@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 26。Target 2013 payment-card breachをforensic/criminal investigation継続checkpointで採点し、retail data-security deep controlとして保存。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: target-2013-payment-card-breach
+    company: "Target"
+    ticker: TGT
+    country: US
+    eventDate: "2013-12-19"
+    checkpoint: "2013-12-27"
+    category: retail_data_security
+    actorType: organization
+    scoreVector: [1,2,0,0,1,0,2,1,0,0]
+    priceState: unknown
+    summary: "約4,000万件のcredit/debit card accountが影響し得るbreachを確認。侵入自体は解消したが第三者forensics、Secret Service、DOJと連携したcriminal/forensic investigationは継続中で、12月27日には暗号化PIN data取得も追加確認された。"
+    source: "https://corporate.target.com/press/release/2013/12/target-data-security-media-update-4"
+    sourceType: company
+    outcomePattern: unknown
+    lesson: "technical intrusionを止めたこととincident scope/investigation closureは別。顧客信頼が本業に直結するretail breachとして7点、後日の費用・CEO交代・株価returnは使用しない。"
+    confidence: high

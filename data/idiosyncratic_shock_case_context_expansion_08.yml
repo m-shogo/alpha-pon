@@ -1,0 +1,30 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Threshold calibration research batch 4。US score 8のorganizational misconductをPIT一次情報で再監査し、IPの強さだけでshadow PASSへ寄せない。"
+cases:
+  activision-2021-culture:
+    incidentCountry: US
+    sector: gaming_entertainment
+    stakeholder: employee
+    incidentScope: multi_unit
+    confounderStatus: possible
+    recurrenceStatus: systemic
+    remediationStatus: weak
+    strategyInvestigationStatusAtCheckpoint: open
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    calibrationEligibilityAtCheckpoint: confirmed_block
+    calibrationEligibilityNotes: "productionはscore=8でBLOCK。threshold研究でもcheckpoint=2021-11-16以前から会社自身が複数regulatorとworkplace complaintsの解決に取り組んでいると公表し、9/27にはEEOC claimsについて3年間の外部監督を含む合意を発表。checkpoint当日にも新たな報道へ会社・取締役会が反論/対応する段階で、事実範囲・組織文化・経営責任は収束していない。open investigation + systemic recurrence + remediation未完のためshadowもBLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "Activision Blizzard Provides Update on Workplace Initiatives"
+        url: "https://investor.activision.com/news-releases/news-release-details/activision-blizzard-provides-update-workplace-initiatives"
+        sourceType: company
+        publishedAt: "2021-09-21"
+      - title: "Activision Blizzard Commits to Expanded Workplace Initiatives, Reaches Agreement with the EEOC"
+        url: "https://investor.activision.com/news-releases/news-release-details/activision-blizzard-commits-expanded-workplace-initiatives"
+        sourceType: company
+        publishedAt: "2021-09-27"
+      - title: "Activision Blizzard Board of Directors Issues Statement Regarding Recent Article"
+        url: "https://investor.activision.com/news-releases/news-release-details/activision-blizzard-board-directors-issues-statement-regarding"
+        sourceType: company
+        publishedAt: "2021-11-16"
+    notes: "強力IP/fundamental resilienceがあっても、規制対応・組織文化・経営責任が継続中なら『会社は強いから反発』という理由で8点controlをPASSにしない。"

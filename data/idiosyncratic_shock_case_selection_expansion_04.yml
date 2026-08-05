@@ -1,0 +1,28 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog batch 5 selection provenance。4件とも未採点freeze後にPIT一次情報で採点し、historical outcomeが既知になり得るためretrospective researchとしてのみ扱う。"
+cases:
+  nissan-2018-ghosn-misconduct:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlog batch 5でJP executive financial misconduct候補として未採点freeze後、2018-11-22までの会社一次情報でPIT採点した。"
+    notes: "score=5。虚偽報酬開示・複数関係者・継続内部/刑事調査をhard BLOCKとして維持。後日の起訴・訂正・株価returnは使用しない。"
+  mitsubishi-motors-2016-fuel-economy:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlog batch 5でJP manufacturing/regulatory falsification候補として未採点freeze後、2016-04-20会社一次情報だけでPIT採点した。"
+    notes: "score=4。生産販売停止・国内外への調査拡大・外部委員会設置予定のopen investigation。後日の調査報告・日産出資・株価returnは使用しない。"
+  hp-2010-hurd-resignation:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlog batch 5でUS CEO conduct候補として未採点freeze後、2010-08-06 SEC 8-Kと同日company releaseでPIT採点した。"
+    notes: "score=14。Board監督調査の結論・即時辞任/暫定CEO・強い本業見通しをcheckpoint内で評価。後日のOracle移籍・訴訟・returnは使用しない。"
+  facebook-2018-cambridge-analytica:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlog batch 5でUS platform privacy候補として未採点freeze後、2018-03-19会社一次情報だけでPIT採点した。"
+    notes: "score=6。comprehensive internal/external reviewと規制当局関与が始まったopen investigationとしてBLOCK。2019 settlement・将来returnは使用しない。"

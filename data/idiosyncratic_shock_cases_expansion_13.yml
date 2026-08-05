@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 8。Recruit/Rikunabi DMP 2019をPPC・東京労働局の主要行政対応が出揃ったcheckpointで採点し、11点のbelow-threshold shadow PASS境界例として保存。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: recruit-2019-rikunabi-dmp
+    company: "Recruit Holdings"
+    ticker: "6098"
+    country: JP
+    eventDate: "2019-08-26"
+    checkpoint: "2019-09-06"
+    category: data_privacy_regulatory
+    actorType: organization
+    scoreVector: [2,2,0,1,1,0,2,2,1,0]
+    priceState: unknown
+    summary: "リクナビDMPフォローで必要な同意なく個人データを第三者提供し、安全管理措置にも不備。PPCの勧告・指導後、東京労働局も職業安定法等違反として全募集情報提供/職業紹介事業の確認・是正・再発防止を指導。対象サービスは8月4日に廃止済みで、Recruit Holdingsは連結業績影響を軽微とした。"
+    source: "https://recruit-holdings.com/ja/newsroom/20190906_18584/"
+    sourceType: company
+    outcomePattern: unknown
+    lesson: "本業影響が軽微でも、データ利用設計とグループガバナンスに触れるためactor/brandを高得点化しない。主要行政判断が出揃い対象サービスも廃止済みなら、score gateだけを外すshadow eligibilityの境界例になり得る。"
+    confidence: high

@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 3。Chipotle 2015 food-safety shockをCDC調査終了直後のcheckpointで採点し、候補を8-11帯へ合わせず7点として受け入れる反証例。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: chipotle-2015-ecoli
+    company: "Chipotle Mexican Grill"
+    ticker: CMG
+    country: US
+    eventDate: "2015-10-30"
+    checkpoint: "2016-02-02"
+    category: food_safety
+    actorType: organization
+    scoreVector: [0,2,0,0,2,0,2,0,1,0]
+    priceState: unknown
+    summary: "複数州・複数店舗に関連したE. coli O26 outbreak。CDCは2016-02-01に二つのoutbreakが終息したとしたが原因食材は特定できず、会社は翌2日に食中毒関連の悪評でQ4既存店売上14.6%減・純利益44.0%減と公表した。"
+    source: "https://archive.cdc.gov/www_cdc_gov/ecoli/2015/o26-11-15/index.html"
+    sourceType: regulator
+    outcomePattern: unknown
+    lesson: "調査終了だけで反発候補にはしない。複数店舗・ブランド・本業売上へ直接実害が出たfood-safety shockは構造的scoreが低く、threshold backlogへ入れた後でも8-11帯外ならそのまま受け入れる。"
+    confidence: high

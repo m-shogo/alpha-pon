@@ -1,0 +1,89 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Threshold candidate freeze記録とは分離したresearch state registry。candidate intake YAMLは採点前の状態を保持し、研究進捗だけをこのregistryで更新する。"
+states:
+  benesse-2014-data-leak:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  dentsu-2016-labor-violation:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  starbucks-2018-philadelphia:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  guess-2018-marciano:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  chipotle-2015-ecoli:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  recruit-2019-rikunabi-dmp:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  jal-2018-alcohol-compliance:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  kobe-steel-2017-quality-falsification:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  tesla-2018-musk-sec:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  equifax-2017-cybersecurity-breach:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  wells-fargo-2016-unauthorized-accounts:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  snow-peak-2022-yamai:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  subaru-2017-final-inspection:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  lululemon-2018-potdevin:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  barnes-noble-2018-parneros:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  eneos-2022-sugimori:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  japan-post-insurance-2019-improper-sales:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  intel-2018-krzanich:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  mcdonalds-2019-easterbrook:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  nissan-2018-ghosn-misconduct:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  mitsubishi-motors-2016-fuel-economy:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  hp-2010-hurd-resignation:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  facebook-2018-cambridge-analytica:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+  olympus-2011-loss-concealment:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+    notes: "Batch6 PIT research complete; accounting hard block."
+  toyota-2010-accelerator-recall:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+    notes: "Batch6 PIT research complete; open product-safety investigation/remediation hard block."
+  target-2013-payment-card-breach:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+    notes: "Batch6 PIT research complete; open forensic/criminal investigation hard block."
+  boeing-2019-737-max-grounding:
+    researchState: promoted
+    decidedAt: "2026-07-31"
+    notes: "Batch6 PIT research complete; open safety investigation and critical certification risk hard block."

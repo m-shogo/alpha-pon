@@ -1,0 +1,40 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog batch 2 selection provenance。base registryを肥大化させず、promoted historical casesのretrospective provenanceを追加する。"
+cases:
+  jal-2018-alcohol-compliance:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlog batch 2でJP safety/compliance候補としてscore記入前にfreezeされ、その後2018-12-21までの国交省一次情報だけでPIT採点した。"
+    notes: "score=9。12/17の新規飲酒事案について12/20時点で詳細調査・追加再発防止策の報告が未完、12/21に事業改善命令等。将来return・後日の改善結果はscore/eligibilityへ使用しない。"
+  kobe-steel-2017-quality-falsification:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlog batch 2でJP manufacturing quality候補としてscore記入前にfreezeされ、2017-10-26までの会社一次情報でPIT採点した。"
+    notes: "score=8。複数事業・グループ会社へ不適切行為が拡大し外部調査委員会が調査継続中。2018年の最終調査報告・将来returnは使用しない。"
+  recruit-2019-rikunabi-dmp:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlog batch 2でJP privacy/regulatory候補としてscore記入前にfreezeされ、2019-09-06までのPPC・東京労働局・会社一次情報でPIT採点した。"
+    notes: "score=11。PIT再監査でPPCの2019-08-26公式勧告資料に『引き続き調査を実施』と明記されていたためinvestigationStatus=openでshadow BLOCKへ訂正。12/4追加勧告や将来returnを遡及根拠には使用しない。"
+  equifax-2017-cybersecurity-breach:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlog batch 2でUS data-security候補としてscore記入前にfreezeされ、2017-09-26までの会社一次情報だけでPIT採点した。"
+    notes: "score=5。約1億4300万人規模、CEO退任・暫定CEO移行、Board Special Committee対応中。後日の調査結果・将来returnは使用しない。"
+  tesla-2018-musk-sec:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlog batch 2でUS founder/regulatory候補としてscore記入前にfreezeされ、2018-10-16までのSEC資料とcheckpoint以前に公知のDOJ investigationでPIT採点した。"
+    notes: "score=9。SEC settlement/final judgmentだけでclosed扱いせず、同一take-private statementsへのDOJ investigationをhard blockerとして維持。将来returnは使用しない。"
+  wells-fargo-2016-unauthorized-accounts:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlog batch 2でUS systemic sales misconduct候補としてscore記入前にfreezeされ、2016-09-27までのCFPB/SEC一次情報でPIT採点した。"
+    notes: "score=5。大量のpotentially unauthorized accounts、Board独立調査、DOJ・州当局・議会等の調査継続。2017年Board最終報告・将来returnは使用しない。"

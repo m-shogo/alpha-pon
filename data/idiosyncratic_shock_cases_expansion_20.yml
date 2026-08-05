@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 15。Barnes & Noble 2018 CEO terminationをSEC 8-Kで採点し、財務報告・fraud非関連を保ちながら調査完了は推測しない。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: barnes-noble-2018-parneros
+    company: "Barnes & Noble"
+    ticker: BKS
+    country: US
+    eventDate: "2018-07-03"
+    checkpoint: "2018-07-03"
+    category: executive_policy_violation
+    actorType: ceo
+    scoreVector: [2,2,2,2,2,1,1,1,0,0]
+    priceState: unknown
+    summary: "BoardがDemos Parneros CEOを会社方針違反で解任。会社は解任理由がfinancial reporting・company policies/practicesに関する意見不一致やfraudではないと8-Kで明示した一方、違反内容や調査完了度の詳細は同日開示だけでは確定しない。"
+    source: "https://www.sec.gov/Archives/edgar/data/890491/000119312518210243/d596092d8k.htm"
+    sourceType: regulator
+    outcomePattern: unknown
+    lesson: "会計・fraud非関連は高得点根拠に使えるが、詳細不明を『調査完了』へ読み替えない。価格項目0でも13点ならbelow-threshold controlへ無理に寄せない。"
+    confidence: high

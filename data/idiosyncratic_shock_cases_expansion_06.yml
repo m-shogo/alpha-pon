@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 1。Benesse 2014を初期checkpointの会社一次情報だけで採点し、score bandへ合わせずopen investigationを明示BLOCKとして保存。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: benesse-2014-data-leak
+    company: "Benesse Holdings"
+    ticker: "9783"
+    country: JP
+    eventDate: "2014-07-09"
+    checkpoint: "2014-07-17"
+    category: data_security
+    actorType: unknown
+    scoreVector: [1,2,0,1,1,0,2,1,1,0]
+    priceState: unknown
+    summary: "Benesse Corporationの顧客情報約760万件の漏えいを確認し、最大約2,070万件の可能性を公表。7月17日時点でも事故調査委員会・警察による全容解明は継続中で、連結業績への影響も精査中だった。"
+    source: "https://www.benesse-hd.co.jp/ja/about/release_20140717.pdf"
+    sourceType: company
+    outcomePattern: unknown
+    lesson: "大規模data-security事件は個人起点と決めつけず、調査範囲・事業影響・顧客信頼が未確定なcheckpointではfail-closedにする。将来returnや後年の回復はscoreへ使わない。"
+    confidence: high

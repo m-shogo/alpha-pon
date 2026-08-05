@@ -1,0 +1,21 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 15 context。Barnes & Noble 2018はCEO解任と財務報告・fraud非関連を確認するが、違反詳細や調査完了度はunknownのまま保持。"
+cases:
+  barnes-noble-2018-parneros:
+    incidentCountry: US
+    sector: retail_books
+    stakeholder: public
+    incidentScope: individual
+    confounderStatus: possible
+    recurrenceStatus: first_known
+    remediationStatus: partial
+    incidentClusterStatus: single
+    strategyInvestigationStatusAtCheckpoint: unknown
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityEvidenceSources:
+      - title: "Barnes & Noble Form 8-K - Termination of Chief Executive Officer"
+        url: "https://www.sec.gov/Archives/edgar/data/890491/000119312518210243/d596092d8k.htm"
+        sourceType: regulator
+        publishedAt: "2018-07-03"
+    notes: "8-Kは解任がfinancial reporting disagreementやfraudによるものではないと明示するが、policy violationの詳細・調査完了度までは開示しない。score=13のためbelow-threshold calibration controlではなく、unknownをclosedへ補完しない。"

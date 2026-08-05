@@ -1,0 +1,31 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog research batch 23。Facebook 2018 Cambridge Analytica claimsをforensic audit開始checkpointで採点し、platform-level privacy/governance調査未完をdeep controlとして保存。"
+scoreOrder:
+  - businessImpactContainment
+  - accountingIntegrity
+  - actorSeparability
+  - organizationalContainment
+  - regulatoryContainment
+  - brandResilience
+  - managementContinuity
+  - fundamentalResilience
+  - discountMagnitude
+  - priceStabilization
+cases:
+  - id: facebook-2018-cambridge-analytica
+    company: "Facebook"
+    ticker: FB
+    country: US
+    eventDate: "2018-03-19"
+    checkpoint: "2018-03-19"
+    category: data_privacy_platform
+    actorType: organization
+    scoreVector: [1,2,0,0,0,0,2,1,0,0]
+    priceState: unknown
+    summary: "FacebookはCambridge Analytica claimsについてdigital forensics firmを雇いcomprehensive auditとinternal/external reviewを開始。UK Information Commissioner's Officeも独自のon-site investigationに向けたwarrantを進めており、事実範囲・規制影響・信頼毀損が未確定だった。"
+    source: "https://about.fb.com/news/2018/03/forensic-audits-cambridge-analytica/"
+    sourceType: company
+    outcomePattern: unknown
+    lesson: "developerだけへ切り離せる事件ではなくplatform data governance自体が調査対象。2019年FTC/SEC settlementや将来業績・株価は2018-03-19 score/eligibilityへ逆流させない。"
+    confidence: high

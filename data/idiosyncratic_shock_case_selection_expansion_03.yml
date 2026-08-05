@@ -1,0 +1,28 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog batch 4 selection provenance。4件とも未採点freeze後にPIT一次情報で採点し、historical outcomeが既知になり得るためretrospective researchとしてのみ扱う。"
+cases:
+  eneos-2022-sugimori:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlog batch 4でJP executive personal-conduct候補として未採点freeze後、2022-09-21会社一次情報だけでPIT採点した。"
+    notes: "score=14。後年のENEOSグループ別事案・株価returnを2022 checkpointへ逆流させずhigh-score sideへ分類。"
+  japan-post-insurance-2019-improper-sales:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlog batch 4でJP systemic insurance-sales候補として未採点freeze後、2019-12-27金融庁一次情報だけでPIT採点した。"
+    notes: "score=4。業務停止・顧客調査・募集管理/ガバナンス改善を要するsystemic BLOCK。将来の業務再開・株価returnは使用しない。"
+  intel-2018-krzanich:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlog batch 4でUS CEO conduct候補として未採点freeze後、2018-06-21会社一次情報だけでPIT採点した。"
+    notes: "score=14。ただし同日資料がongoing investigationを明示するためhigh scoreでもhard BLOCK。後日の調査終了・株価returnは使用しない。"
+  mcdonalds-2019-easterbrook:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlog batch 4でUS CEO policy-violation候補として未採点freeze後、2019-11-04 SEC 8-KだけでPIT採点した。"
+    notes: "score=15。2019 checkpointでは即時successionと本業/財務非関連を評価し、2020年に判明した追加事実は未来情報として除外。"

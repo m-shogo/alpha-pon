@@ -1,0 +1,290 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "過去事例score正本を変更せず、確認できた文脈だけを追加するsidecar。confirmed_passはinvestigation/critical-risk/confounder/sourceをstructured evidenceで再現できる場合だけ。unknownを推測で埋めない。"
+cases:
+  mcdonalds-2019-easterbrook:
+    incidentCountry: US
+    sector: restaurant_food_service
+    stakeholder: employee
+    incidentScope: individual
+    confounderStatus: clear
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyInvestigationStatusAtCheckpoint: substantially_complete
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityNotes: "会社一次情報で規定違反によるCEO退任と後継CEOを確認済み。調査結果が取締役会判断まで到達し、重大免許・上場riskや同時重大材料を確認していない。"
+    notes: "従業員との関係・社内規定違反。会社運営そのものとは分離して比較。"
+  intel-2018-krzanich:
+    incidentCountry: US
+    sector: semiconductor
+    stakeholder: employee
+    incidentScope: individual
+    confounderStatus: clear
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyInvestigationStatusAtCheckpoint: substantially_complete
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityNotes: "会社一次情報で調査後のpolicy violationとCEO辞任を確認。会計・免許・上場継続へ波及する材料は確認していない。"
+    notes: "従業員との関係に関するnon-fraternization policy違反。"
+  ti-2018-crutcher:
+    incidentCountry: US
+    sector: semiconductor
+    stakeholder: public
+    incidentScope: individual
+    confounderStatus: clear
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyInvestigationStatusAtCheckpoint: substantially_complete
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityNotes: "会社一次情報で行動規範違反によるCEO辞任、strategy/operations/financial reportingとは無関係との説明を確認。"
+    notes: "会社がstrategy/operations/financial reportingとは無関係と説明した個人行動型。"
+  lockheed-2012-kubasik:
+    incidentCountry: US
+    sector: defense_aerospace
+    stakeholder: employee
+    incidentScope: individual
+    confounderStatus: clear
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyInvestigationStatusAtCheckpoint: substantially_complete
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityNotes: "会社一次情報で倫理規定違反への取締役会対応と後継CEO選任を確認。規制依存業種だが当該事件による重大免許取消・上場riskを示す証拠は確認していない。"
+    notes: "部下との関係による倫理規定違反。規制・政府契約依存業種である点は別途考慮。"
+  bestbuy-2012-dunn:
+    incidentCountry: US
+    sector: retail
+    stakeholder: employee
+    incidentScope: individual
+    confounderStatus: major
+    strategyEligibilityAtCheckpoint: confirmed_block
+    strategyInvestigationStatusAtCheckpoint: closed
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityNotes: "独立調査自体は完了したが、取締役会/会長の対応問題と本業悪化が同時に強く、株価反応をCEO個人関係だけへ帰属できないためBLOCK。"
+    notes: "CEOと女性従業員の関係に加えboard oversightと事業悪化を伴うため純粋個人型として扱わない。"
+  priceline-2016-huston:
+    incidentCountry: US
+    sector: online_travel_platform
+    stakeholder: employee
+    incidentScope: individual
+    confounderStatus: clear
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyInvestigationStatusAtCheckpoint: substantially_complete
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityNotes: "2016-04-28 SEC Form 8-Kで、独立取締役監督の調査がpersonal relationshipを確認しCode of Conduct違反を認定、辞任と暫定CEO就任まで確認。"
+    strategyEligibilityEvidenceSources:
+      - title: "The Priceline Group Form 8-K (2016-04-28)"
+        url: "https://www.sec.gov/Archives/edgar/data/1075531/000107553116000093/a8-kapril2016.htm"
+        sourceType: regulator
+        publishedAt: "2016-04-28"
+    notes: "従業員との関係による行動規範違反。"
+  hp-2010-hurd:
+    incidentCountry: US
+    sector: technology_hardware
+    stakeholder: mixed
+    incidentScope: individual
+    confounderStatus: possible
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyInvestigationStatusAtCheckpoint: substantially_complete
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityNotes: "会社調査後のBusiness Conduct違反とCEO辞任を確認。業績見通し等の同時材料があり得るためconfounder=possibleとし、価格event-study側で分離する。"
+    notes: "契約社員をめぐる調査と経費/Business Conduct問題。CEO喪失価値が重要。"
+  norfolk-2024-shaw:
+    incidentCountry: US
+    sector: rail_transport
+    stakeholder: employee
+    incidentScope: individual
+    confounderStatus: possible
+    strategyEligibilityAtCheckpoint: confirmed_block
+    strategyInvestigationStatusAtCheckpoint: open
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityNotes: "2024-09-11 SEC Form 8-K/Exhibit 99.1はpolicy violationと即時解任を確認する一方、根拠をongoing investigationのpreliminary findingsと明記。open investigationのためBLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "Norfolk Southern Form 8-K (2024-09-11)"
+        url: "https://www.sec.gov/Archives/edgar/data/702165/000119312524217556/d846772d8k.htm"
+        sourceType: regulator
+        publishedAt: "2024-09-11"
+      - title: "Norfolk Southern Leadership Transition Press Release"
+        url: "https://www.sec.gov/Archives/edgar/data/702165/000119312524217556/d846772dex991.htm"
+        sourceType: regulator
+        publishedAt: "2024-09-11"
+    notes: "鉄道事故・アクティビスト等の別要因もあるためconfounderはpossible。"
+  bp-2023-looney:
+    incidentCountry: GB
+    sector: energy
+    stakeholder: employee
+    incidentScope: individual
+    confounderStatus: possible
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyInvestigationStatusAtCheckpoint: closed
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityNotes: "2023-12-13 BP一次情報で取締役会が過去assuranceをinaccurate/incompleteと結論付けserious misconductとして即時解任・報酬失権/clawbackを決定。戦略評価等の同時材料はpossibleとして価格側で分離する。"
+    strategyEligibilityEvidenceSources:
+      - title: "BP Remuneration for former CEO"
+        url: "https://www.bp.com/content/dam/bp/business-sites/en/global/corporate/pdfs/news-and-insights/press-releases/remuneration-for-former-ceo.pdf"
+        sourceType: company
+        publishedAt: "2023-12-13"
+    notes: "過去の社内関係の開示完全性・取締役会説明まで論点化。"
+  wynn-2018-founder:
+    incidentCountry: US
+    sector: casino_gaming
+    stakeholder: mixed
+    incidentScope: individual
+    confounderStatus: possible
+    strategyEligibilityAtCheckpoint: confirmed_block
+    strategyInvestigationStatusAtCheckpoint: open
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: true
+    strategyEligibilityNotes: "historical score=9でthreshold未満。加えてcasino license/fit-and-properへの波及と調査継続があり、価格反発の有無に関係なくBLOCK。"
+    notes: "創業者のsexual misconduct allegations。創業者=ブランドかつ規制産業。"
+  yoshinoya-2022-remark:
+    incidentCountry: JP
+    sector: restaurant_food_service
+    stakeholder: public
+    incidentScope: individual
+    confounderStatus: clear
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyInvestigationStatusAtCheckpoint: substantially_complete
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityNotes: "2022-04-19吉野家HD一次情報で4/18臨時取締役会による執行役員/子会社取締役解任、契約関係終了、コンプライアンス研修を確認。"
+    strategyEligibilityEvidenceSources:
+      - title: "当社役員の解任に関するお知らせ"
+        url: "https://www.yoshinoya.com/wp-content/uploads/2022/04/19113244/news20220419.pdf"
+        sourceType: company
+        publishedAt: "2022-04-19"
+    notes: "執行役員の不適切発言による消費者/ブランド反応。"
+  zensho-sukiya-2019-employee-video:
+    incidentCountry: JP
+    sector: restaurant_food_service
+    stakeholder: employee
+    incidentScope: individual
+    confounderStatus: clear
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyInvestigationStatusAtCheckpoint: substantially_complete
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityNotes: "2019-01-31すき家一次情報で不適切行為、関与従業員の特定・退職処分、従業員教育の徹底を確認。"
+    strategyEligibilityEvidenceSources:
+      - title: "当社従業員による不適切な行為についてのお詫びとお知らせ"
+        url: "https://www.sukiya.jp/news/2019/01/20190131.html"
+        sourceType: company
+        publishedAt: "2019-01-31"
+    notes: "局所従業員型。"
+  keurig-dr-pepper-2022-ceo-conduct:
+    incidentCountry: US
+    sector: beverage
+    stakeholder: public
+    incidentScope: individual
+    confounderStatus: clear
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyInvestigationStatusAtCheckpoint: substantially_complete
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityNotes: "2022-11-10会社一次情報でCEO辞任理由をCode of Conduct違反とし、strategy/operations/financial reportingとは無関係と明示。前CEO復帰も同時発表。"
+    strategyEligibilityEvidenceSources:
+      - title: "KDP Executive Chairman Bob Gamgort to Reassume CEO Role"
+        url: "https://www.keurigdrpepper.com/kdp-executive-chairman-bob-gamgort-to-reassume-ceo-role-following-resignation-of-ozan-dokmecioglu/"
+        sourceType: company
+        publishedAt: "2022-11-10"
+    notes: "会社自身が事業・財務との非関連を明示した個人切除型。"
+  ebay-2020-cyberstalking:
+    incidentCountry: US
+    sector: online_marketplace
+    stakeholder: public
+    incidentScope: multi_unit
+    confounderStatus: clear
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyInvestigationStatusAtCheckpoint: closed
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityNotes: "2020-06-15 eBay一次情報で外部法律事務所を伴う包括調査を完了し関与者全員を解雇、特別取締役会委員会が監督、会社および現職従業員は起訴対象外と説明。2024 DPAは未来outcomeとしてのみ扱う。"
+    strategyEligibilityEvidenceSources:
+      - title: "eBay Inc. Issues Statement Regarding Indictments of Previously Terminated Employees"
+        url: "https://www.ebayinc.com/stories/news/ebay-inc-issues-statement-regarding-indictments-of-previously-terminated-employees/"
+        sourceType: company
+        publishedAt: "2020-06-15"
+    notes: "checkpointでは切離し可能に見えたが後年会社DPAへ発展したPIT上重要な負例。"
+  nomura-2024-former-employee-robbery:
+    incidentCountry: JP
+    sector: securities_financial
+    stakeholder: customer
+    incidentScope: individual
+    confounderStatus: major
+    strategyEligibilityAtCheckpoint: confirmed_block
+    strategyInvestigationStatusAtCheckpoint: open
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityNotes: "2024-12-03会社一次情報は元社員起訴と再発防止策を公表する一方、担当顧客への連絡と余罪調査を継続。さらに同時期に国債先物取引の行政処分材料も存在し、事件単独への株価帰属が困難なためBLOCK。"
+    strategyEligibilityEvidenceSources:
+      - title: "当社元社員の起訴を受けてのお詫びと対応策について"
+        url: "https://www.nomuraholdings.com/jp/news/nr/news20241203103022.html"
+        sourceType: company
+        publishedAt: "2024-12-03"
+    notes: "顧客資産を扱うtrust-critical業種。余罪調査継続と別行政処分を分離できるまで戦略対象外。"
+  mufg-2024-safe-deposit-theft:
+    incidentCountry: JP
+    sector: bank_financial
+    stakeholder: customer
+    incidentScope: individual
+    confounderStatus: clear
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyInvestigationStatusAtCheckpoint: substantially_complete
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityNotes: "2025-01-16三菱UFJ銀行一次情報で事案の発生原因分析と再発防止策策定の完了、役員処分、金融庁への報告書提出を確認。警察捜査協力と補償は継続するが会社側原因究明はsubstantially completeと判定。"
+    strategyEligibilityEvidenceSources:
+      - title: "元行員の不祥事に関する対応状況・再発防止策等について"
+        url: "https://www.bk.mufg.jp/news/news2025/pdf/news0116.pdf"
+        sourceType: company
+        publishedAt: "2025-01-16"
+    notes: "約70名・約14億円規模でtrust impactは大きい。score=12の境界例として価格signalとoutcomeで厳しく検証する。"
+  sushiro-2023-customer:
+    incidentCountry: JP
+    sector: restaurant_food_service
+    stakeholder: customer
+    incidentScope: individual
+    confounderStatus: clear
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyInvestigationStatusAtCheckpoint: not_applicable
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityNotes: "行為者は顧客で会社内部不正の調査完了を待つ類型ではない。2023-02-10会社一次情報で食の安全・安心への対応と刑事/民事対応方針を確認。"
+    notes: "customer sabotage。会社責任とは分離するが来店心理・店舗運用影響はscore側で残す。"
+  skylark-2019-bamiyan:
+    incidentCountry: JP
+    sector: restaurant_food_service
+    stakeholder: employee
+    incidentScope: site
+    confounderStatus: clear
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyInvestigationStatusAtCheckpoint: closed
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityNotes: "2019-02-10会社一次情報で調査結果を公表し、動画内の料理は顧客へ提供されていないことを確認。関係者処分・再教育方針まで公表。"
+    notes: "典型的な局所バイトテロ。business impact containmentを一次情報で確認可能。"
+  tokyu-rec-2025-employee:
+    incidentCountry: JP
+    sector: cinema_entertainment
+    stakeholder: employee
+    incidentScope: site
+    confounderStatus: clear
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyInvestigationStatusAtCheckpoint: closed
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityNotes: "2025-07-03最終報告で詳細調査完了、ポップコーンは販売品ではなく廃棄品と断定、処分・再教育・警察相談まで確認。"
+    strategyEligibilityEvidenceSources:
+      - title: "【ご報告・最終】当社従業員による不適切な行為とお詫びについて"
+        url: "https://www.tokyu-rec.co.jp/news/5212/"
+        sourceType: company
+        publishedAt: "2025-07-03"
+    notes: "店舗局所・従業員起因で最終調査まで確認できる高品質historical pass例。"
+  sanrio-2026-compensation:
+    incidentCountry: US
+    sector: consumer_ip
+    stakeholder: investor
+    incidentScope: subsidiary
+    confounderStatus: possible
+    informationLeakStatus: clear
+    recurrenceStatus: repeat
+    remediationStatus: credible
+    incidentClusterStatus: related_multiple
+    disclosureObservability: high
+    announcementTiming: after_close
+    priceReactionStartDate: "2026-06-01"
+    strategyEligibilityAtCheckpoint: confirmed_pass
+    strategyInvestigationStatusAtCheckpoint: substantially_complete
+    strategyCriticalLicenseOrDelistingRiskAtCheckpoint: false
+    strategyEligibilityNotes: "2026-05-29の特別調査委員会報告で事実関係・類似給付・原因分析・再発防止策まで公表。会計監査は継続中だが、当該給付は米国子会社で費用計上済みで連結業績等の虚偽は確認されず、調査費用の業績影響も軽微見込み。決算延期/監査継続を同一事案由来の不確実性としてconfounder=possibleに残す。"
+    strategyEligibilityEvidenceSources:
+      - title: "当社常務取締役の不適切な報酬受給の疑いに関する特別調査委員会の調査報告書の受領および今後の当社の対応について"
+        url: "https://www2.jpx.co.jp/disc/81360/140120260529553963.pdf"
+        sourceType: exchange
+        publishedAt: "2026-05-29"
+    notes: "15:30開示のため、価格reaction startは次取引日の2026-06-01。元historical sourceのMinkabuは一次情報hard gateには使わない。"

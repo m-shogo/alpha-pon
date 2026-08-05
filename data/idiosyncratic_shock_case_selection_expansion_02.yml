@@ -1,0 +1,28 @@
+version: 1
+generatedAt: "2026-07-31"
+description: "Outcome-blind threshold backlog batch 3 selection provenance。candidate freezeを先に作成し、score・価格経路・将来outcomeを選定入力にせずPIT採点した4件をretrospective researchとして記録。"
+cases:
+  snow-peak-2022-yamai:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlog batch 3でJP executive personal-conduct候補として未採点freeze後、2022-09-21会社一次情報だけでPIT採点した。"
+    notes: "score=12。個人切除性は高いがCEO交代・創業家/key-person性を減点し、価格項目は未検証のため0。below-thresholdへ合わせずproduction threshold側へ分類。"
+  subaru-2017-final-inspection:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlog batch 3でJP quality/compliance候補として未採点freeze後、2017-10-27会社一次情報だけでPIT採点した。"
+    notes: "score=8。完成検査工程の資格・運用統制問題で詳細調査が必要なcheckpointのためshadow BLOCK。後日の最終報告・株価returnは判定へ使用しない。"
+  lululemon-2018-potdevin:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlog batch 3でUS CEO conduct候補として未採点freeze後、2018-02-05 SEC-hosted company releaseだけでPIT採点した。"
+    notes: "score=14。CEO即時辞任と経営移行を確認し、価格項目0でもhigh-score sideへ分類。historical returnを選定・採点へ使用しない。"
+  barnes-noble-2018-parneros:
+    registeredAt: "2026-07-31"
+    selectionMode: retrospective_research
+    outcomeVisibilityAtSelection: known_or_available
+    selectionReason: "outcome-blind threshold candidate backlog batch 3でUS CEO policy-violation候補として未採点freeze後、2018-07-03 SEC 8-KだけでPIT採点した。"
+    notes: "score=13。financial reporting・fraud非関連という同日開示は使うが、違反詳細や調査完了を推測せず価格項目も0のまま。below-thresholdへ後付けfitしない。"
