@@ -1,0 +1,535 @@
+schemaVersion: 1
+updatedAt: 2026-08-05
+
+# ここは「研究候補カタログ」であり、active Edge Registryではない。
+# 数は広く保持するが、同時にactive-researchへ昇格するのは少数だけ。
+# 単独の論文、特許件数、「世界初」、大手との取引、補助金、求人増だけでは昇格しない。
+
+families:
+  - id: research-to-commercialization
+    title: Research-to-Commercialization Edge
+    activationState: catalog
+    priority: A
+    thesis: 研究成果が共同開発、試作品、認証、量産へ段階移行する過程を追うと、売上寄与前に商用化確率の上昇を検出できる可能性がある。
+    mechanismSteps: [論文・研究課題, 再現・追加検証, 特許family, 企業共同研究, 試作品・顧客評価, 認証・pilot, 量産・供給契約]
+    beneficiaryLayers: [platform, tier-1, tier-2, material, equipment, inspection]
+    leadingEvidence: [研究助成採択, 複数機関による再現, 共同研究契約, 特許family拡大]
+    confirmationEvidence: [顧客sample, 認証, pilot line, 設備投資, 長期供給契約, 売上開示]
+    requiredDataRoles: [research, patent, grant, company_ir, filing, capacity, supplier_mapping, market_data]
+    confounders: [研究テーマの流行, 企業PRの誇張, 補助金依存, 長期の商用化lag, 別技術による代替]
+    falsificationRules: [共同開発後にpilotへ進まない, 特許が失効・放棄される, 顧客評価が中止される, 売上寄与が企業規模に対して軽微]
+    expectedLag: 1年から10年以上。段階別に別horizonで検証する。
+    activationGate:
+      objectiveTriggerDefined: false
+      entityMappingAvailable: false
+      pitTimestampsAvailable: false
+      executablePriceRouteAvailable: false
+      samplePathAvailable: false
+      dataRightsReviewed: false
+      falsificationDefined: true
+    examples: [全固体電池, 3D DRAM, 光電融合, 自律実験, 新触媒]
+    excludedShortcuts: [論文1件だけ, 特許件数だけ, 世界初という表現だけ, SNS上の技術評価]
+
+  - id: enabling-material
+    title: Enabling Material Edge
+    activationState: catalog
+    priority: A
+    thesis: 新技術の量産では完成品よりも純度、耐熱、接着、絶縁、成膜などを満たす材料が制約となり、交換しにくい材料企業へ需要が集中する可能性がある。
+    mechanismSteps: [新製品性能向上, 工程条件厳格化, 材料仕様上昇, 顧客認定, 採用拡大, 生産能力増強]
+    beneficiaryLayers: [material, tier-2, tier-3, equipment, inspection]
+    leadingEvidence: [共同開発, sample出荷, 顧客評価, 新grade発表, 品質監査]
+    confirmationEvidence: [量産認定, 工場増設, 長期契約, 複数顧客採用, 対象事業売上増]
+    requiredDataRoles: [patent, company_ir, filing, certification, capacity, supplier_mapping, market_data]
+    confounders: [顧客名非開示, 対象売上比率が小さい, 原材料価格上昇, セカンドソース化, 技術世代交代]
+    falsificationRules: [対象材料が標準品化する, 顧客切替が容易, 増収しても利益率が悪化, 対象用途売上が確認できない]
+    expectedLag: sampleから量産まで6か月から5年。
+    activationGate:
+      objectiveTriggerDefined: false
+      entityMappingAvailable: false
+      pitTimestampsAvailable: false
+      executablePriceRouteAvailable: false
+      samplePathAvailable: false
+      dataRightsReviewed: false
+      falsificationDefined: true
+    examples: [HBM封止材, 全固体電池電解質, 光学接着剤, 半導体洗浄材, 高耐熱フィルム]
+    excludedShortcuts: [材料名がテーマに一致するだけ, 大手顧客との取引だけ, 生産能力を確認しない]
+
+  - id: supplier-cascade
+    title: Supplier Cascade Edge
+    activationState: catalog
+    priority: A
+    thesis: 完成品需要の増加がTier 1、Tier 2、材料、設備、消耗品へ時間差で波及する順序を追うことで、未評価の下位供給企業を発見できる可能性がある。
+    mechanismSteps: [完成品需要増, Tier 1受注, 部品発注, 材料・設備発注, 稼働率上昇, 業績反映]
+    beneficiaryLayers: [tier-1, tier-2, tier-3, material, equipment, service]
+    leadingEvidence: [顧客capex, 受注残, 部品納期, supplier求人, 工場稼働率]
+    confirmationEvidence: [対象売上増, 受注残増, 稼働率上昇, 設備増強, 複数顧客への波及]
+    requiredDataRoles: [company_ir, filing, procurement, capacity, supplier_mapping, market_data, demand_proxy]
+    confounders: [顧客集中, 値下げ要請, 在庫積み増し, channel stuffing, 為替, 対象比率の小ささ]
+    falsificationRules: [顧客需要増がsupplier売上へ波及しない, 在庫増だけで説明できる, 粗利が悪化する, supplierが容易に代替される]
+    expectedLag: 数週間から6四半期。
+    activationGate:
+      objectiveTriggerDefined: false
+      entityMappingAvailable: false
+      pitTimestampsAvailable: false
+      executablePriceRouteAvailable: false
+      samplePathAvailable: false
+      dataRightsReviewed: false
+      falsificationDefined: true
+    examples: [GPUから冷却・電源, EVから部材・充電設備, ロボットからSI・安全機器]
+    excludedShortcuts: [取引先というだけ, 売上構成を見ない, 一社だけのsupplier map]
+
+  - id: bottleneck-migration
+    title: Bottleneck Migration Edge
+    activationState: catalog
+    priority: A
+    thesis: 成長市場では主役製品の性能向上によって次の物理・制度・供給制約が移動し、その解消企業へ需要が先行集中する可能性がある。
+    mechanismSteps: [主役市場成長, 従来制約解消, 新ボトルネック顕在化, 解決投資増加, supplier受注, 市場認識]
+    beneficiaryLayers: [material, equipment, inspection, infrastructure, integration, maintenance]
+    leadingEvidence: [納期長期化, 価格上昇, 稼働率上昇, 技術ロードマップ変更, capex配分変更]
+    confirmationEvidence: [受注残増, 新工場, 長期契約, 規格採用, 顧客横展開]
+    requiredDataRoles: [research, standard, company_ir, filing, capacity, supplier_mapping, market_data, demand_proxy]
+    confounders: [一時的供給障害, cyclical inventory, 補助金主導, 技術代替, 過剰投資]
+    falsificationRules: [ボトルネックが解消して価格・納期が正常化, 需要が別方式へ移る, supplier利益へ転換しない]
+    expectedLag: 1四半期から5年。
+    activationGate:
+      objectiveTriggerDefined: false
+      entityMappingAvailable: false
+      pitTimestampsAvailable: false
+      executablePriceRouteAvailable: false
+      samplePathAvailable: false
+      dataRightsReviewed: false
+      falsificationDefined: true
+    examples: [AI電力・変圧器, HBM熱・検査, データセンター冷却, 光配線, 電池安全]
+    excludedShortcuts: [テーマ名だけ, 価格上昇だけ, supplier能力を確認しない]
+
+  - id: research-to-capex
+    title: Research-to-Capex Edge
+    activationState: catalog
+    priority: A
+    thesis: 技術の商用化確率は論文や特許より、pilot設備、工場建設、装置発注、採用増など不可逆性の高い資本配分へ移った時に大きく上がる可能性がある。
+    mechanismSteps: [研究成果, 共同開発, pilot line, 補助金・用地・許認可, 装置発注, 工場稼働, 量産]
+    beneficiaryLayers: [equipment, material, infrastructure, integration, inspection]
+    leadingEvidence: [環境アセス, 建設計画, 補助金採択, 設備求人, 装置メーカー受注]
+    confirmationEvidence: [有形固定資産増, 建設中資産, 生産能力目標, 稼働開始, 顧客契約]
+    requiredDataRoles: [grant, company_ir, filing, procurement, capacity, supplier_mapping, market_data]
+    confounders: [計画延期, 補助金だけで自社負担が少ない, 過剰能力, 歩留まり問題, 需要消失]
+    falsificationRules: [capexが継続延期, 装置発注取消, 稼働後も低稼働, commercial revenueが立たない]
+    expectedLag: 6か月から5年。
+    activationGate:
+      objectiveTriggerDefined: false
+      entityMappingAvailable: false
+      pitTimestampsAvailable: false
+      executablePriceRouteAvailable: false
+      samplePathAvailable: false
+      dataRightsReviewed: false
+      falsificationDefined: true
+    examples: [電池pilot line, 半導体新工程, 水素設備, 自律実験設備]
+    excludedShortcuts: [研究成果だけ, 補助金だけ, 工場計画だけで発注確認なし]
+
+  - id: standardization-certification
+    title: Standardization and Certification Edge
+    activationState: catalog
+    priority: B
+    thesis: 技術競争の後に標準・相互接続・安全認証が固まると、採用方式と必須部品が絞られ、認証済みsupplierへ需要が集中する可能性がある。
+    mechanismSteps: [複数方式競争, 標準化活動, 仕様確定, 相互接続試験, 認証, 量産採用]
+    beneficiaryLayers: [platform, tier-1, tier-2, material, equipment, inspection]
+    leadingEvidence: [標準化団体参加, draft仕様, plugfest, 評価kit, 認証試験]
+    confirmationEvidence: [正式規格, 顧客認証, 複数社採用, mandatory compliance, 量産契約]
+    requiredDataRoles: [standard, certification, patent, company_ir, supplier_mapping, market_data]
+    confounders: [複数規格併存, proprietary方式, 規格採用の遅延, royalty負担]
+    falsificationRules: [標準が普及しない, supplierが必須でない, open仕様で差別化が消える]
+    expectedLag: 1年から8年。
+    activationGate:
+      objectiveTriggerDefined: false
+      entityMappingAvailable: false
+      pitTimestampsAvailable: false
+      executablePriceRouteAvailable: false
+      samplePathAvailable: false
+      dataRightsReviewed: false
+      falsificationDefined: true
+    examples: [CXL, chiplet, co-packaged optics, EV充電, 電池安全規格]
+    excludedShortcuts: [団体参加だけ, 特許保有だけ, draftを正式規格と扱う]
+
+  - id: regulatory-forced-demand
+    title: Regulatory Forced Demand Edge
+    activationState: catalog
+    priority: A
+    thesis: 新技術の普及後に事故・社会問題が顕在化し、報告・監視・検査・認証が義務化されると、任意需要より強い強制需要が生まれる可能性がある。
+    mechanismSteps: [普及, 事故・問題, 行政調査, 基準改定, compliance期限, 必須設備導入, 継続保守]
+    beneficiaryLayers: [inspection, equipment, maintenance, service, infrastructure]
+    leadingEvidence: [事故件数増, 検討会, 通達, draft規則, 保険条件変更]
+    confirmationEvidence: [法令施行, 義務対象確定, compliance期限, 予算化, 定期点検契約]
+    requiredDataRoles: [regulation, company_ir, procurement, certification, supplier_mapping, market_data]
+    confounders: [規制延期, 対象範囲縮小, 自社対応, 価格競争, 一過性の導入需要]
+    falsificationRules: [義務化されない, 対象市場が小さい, compliance支出が内製化, 継続収益にならない]
+    expectedLag: 数か月から5年。
+    activationGate:
+      objectiveTriggerDefined: false
+      entityMappingAvailable: false
+      pitTimestampsAvailable: false
+      executablePriceRouteAvailable: false
+      samplePathAvailable: false
+      dataRightsReviewed: false
+      falsificationDefined: true
+    examples: [電池火災監視, インフラ点検, サイバー対策, PFAS, ドローン安全]
+    excludedShortcuts: [事故報道だけ, draft規制だけ, 対象企業売上比率を見ない]
+
+  - id: technology-substitution
+    title: Technology Substitution Edge
+    activationState: catalog
+    priority: B
+    thesis: 資源不足、輸出規制、価格高騰、環境規制によって既存技術の総コストが上がると、性能が完全には上回らなくても代替技術の採用が加速する可能性がある。
+    mechanismSteps: [供給制約・規制, 既存方式コスト上昇, 代替評価, pilot採用, 規模拡大, supply chain再編]
+    beneficiaryLayers: [material, equipment, tier-1, tier-2, infrastructure]
+    leadingEvidence: [原料価格, 輸出規制, dual sourcing, pilot採用, 政策支援]
+    confirmationEvidence: [量産採用, 長期調達, share上昇, cost parity, capacity増強]
+    requiredDataRoles: [regulation, demand_proxy, patent, company_ir, capacity, supplier_mapping, market_data]
+    confounders: [一時的価格高騰, 補助金依存, 性能不足, switching cost, 既存方式の改善]
+    falsificationRules: [既存方式価格が正常化, 代替の性能・安全が不足, 顧客採用がpilotで止まる]
+    expectedLag: 1年から10年。
+    activationGate:
+      objectiveTriggerDefined: false
+      entityMappingAvailable: false
+      pitTimestampsAvailable: false
+      executablePriceRouteAvailable: false
+      samplePathAvailable: false
+      dataRightsReviewed: false
+      falsificationDefined: true
+    examples: [ナトリウムイオン, 銅使用量削減, 希少金属代替, 光配線, 水再利用]
+    excludedShortcuts: [代替技術の性能発表だけ, 原料価格だけ, 量産能力を見ない]
+
+  - id: supplier-qualification-moat
+    title: Supplier Qualification Moat Edge
+    activationState: catalog
+    priority: A
+    thesis: 材料・精密部品は長期評価、工程認定、品質監査を通過すると切替コストが高まり、下位supplierでも持続的な価格決定力を得る可能性がある。
+    mechanismSteps: [sample, 長期評価, 品質監査, 工程認定, 量産採用, 複数工場展開, 継続供給]
+    beneficiaryLayers: [tier-2, tier-3, material, inspection]
+    leadingEvidence: [sample出荷, 評価期間長期化, 品質認証, 顧客監査]
+    confirmationEvidence: [量産認定, 複数site採用, 長期契約, 高い継続率, margin維持]
+    requiredDataRoles: [certification, company_ir, filing, supplier_mapping, capacity, market_data]
+    confounders: [顧客依存, 顧客名非開示, セカンドソース要求, 値下げ, 技術世代交代]
+    falsificationRules: [顧客切替が短期間, margin改善なし, 量産採用が一社一製品のみ, 認定が失効]
+    expectedLag: 1年から7年。
+    activationGate:
+      objectiveTriggerDefined: false
+      entityMappingAvailable: false
+      pitTimestampsAvailable: false
+      executablePriceRouteAvailable: false
+      samplePathAvailable: false
+      dataRightsReviewed: false
+      falsificationDefined: true
+    examples: [半導体材料, 電池材料, 航空宇宙部品, 医療部品]
+    excludedShortcuts: [認証取得だけ, 大手顧客名だけ, 継続率・marginを見ない]
+
+  - id: hidden-capacity-constraint
+    title: Hidden Capacity Constraint Edge
+    activationState: catalog
+    priority: A
+    thesis: 技術や需要が正しくても、生産設備、歩留まり、許認可、人材、原料が能力上限となり、需要を出荷へ変換できる企業だけが利益を得る可能性がある。
+    mechanismSteps: [需要増, 稼働率上昇, 能力上限, 増設判断, ramp, 歩留まり改善, 出荷増]
+    beneficiaryLayers: [material, equipment, tier-1, tier-2, infrastructure]
+    leadingEvidence: [稼働率, 納期, 増設計画, 建設中資産, 採用, 原料契約]
+    confirmationEvidence: [capacity稼働, yield改善, volume増, unit cost低下, margin拡大]
+    requiredDataRoles: [capacity, company_ir, filing, procurement, supplier_mapping, market_data]
+    confounders: [需要の一時性, ramp遅延, 歩留まり不良, 顧客認定遅延, 原料不足]
+    falsificationRules: [増設しても低稼働, 出荷量が増えない, marginが悪化, 競合増設で供給過剰]
+    expectedLag: 2四半期から5年。
+    activationGate:
+      objectiveTriggerDefined: false
+      entityMappingAvailable: false
+      pitTimestampsAvailable: false
+      executablePriceRouteAvailable: false
+      samplePathAvailable: false
+      dataRightsReviewed: false
+      falsificationDefined: true
+    examples: [変圧器, HBM packaging, 固体電解質, 光部品, 高純度材料]
+    excludedShortcuts: [需要予測だけ, 名目capacityだけ, yield・認定を見ない]
+
+  - id: commercialization-lag-compression
+    title: Commercialization Lag Compression Edge
+    activationState: catalog
+    priority: A
+    thesis: 研究からsample、pilot、量産までの各段階の所要時間が過去案件より短縮すると、商用化確率と資本回収速度が市場予想より早く上がる可能性がある。
+    mechanismSteps: [過去案件の標準lag推定, 新案件の遷移時刻記録, lag短縮, 顧客参加増, capex前倒し, 売上前倒し]
+    beneficiaryLayers: [platform, material, equipment, integration]
+    leadingEvidence: [評価期間短縮, pilot前倒し, 認証期間短縮, 複数顧客同時評価]
+    confirmationEvidence: [量産時期前倒し, capex前倒し, 供給契約前倒し, revenue guidance上方修正]
+    requiredDataRoles: [research, patent, certification, company_ir, capacity, market_data]
+    confounders: [PR表現変更, 比較案件の不一致, 規制緩和, 小規模pilot]
+    falsificationRules: [実際の量産時期が再延期, 品質問題が増える, 小規模案件だけで短縮]
+    expectedLag: 6か月から5年。
+    activationGate:
+      objectiveTriggerDefined: false
+      entityMappingAvailable: false
+      pitTimestampsAvailable: false
+      executablePriceRouteAvailable: false
+      samplePathAvailable: false
+      dataRightsReviewed: false
+      falsificationDefined: true
+    examples: [電池材料, 半導体process, 医療機器, 光デバイス]
+    excludedShortcuts: [会社の予定日だけ, 比較基準なし, 延期履歴を削除]
+
+  - id: grant-private-capital-multiplier
+    title: Grant-to-Private-Capital Multiplier Edge
+    activationState: catalog
+    priority: B
+    thesis: 公的助成額そのものではなく、採択後に企業共同研究、自己資金、設備投資が何倍付いたかを見ると、政策テーマの実需化を識別できる可能性がある。
+    mechanismSteps: [公的助成, 企業参加, 共同研究費, 自己資金capex, 顧客契約, commercial revenue]
+    beneficiaryLayers: [platform, material, equipment, infrastructure]
+    leadingEvidence: [採択, 企業コンソーシアム, 共同研究契約, 民間出資]
+    confirmationEvidence: [自己資金比率上昇, capex, 顧客契約, 補助終了後の継続]
+    requiredDataRoles: [grant, procurement, company_ir, filing, capacity, market_data]
+    confounders: [補助金依存, 政策変更, 重複採択, 研究主体と上場企業の関係不明]
+    falsificationRules: [民間資金が付かない, 補助終了で停止, 売上・設備へ移らない]
+    expectedLag: 1年から8年。
+    activationGate:
+      objectiveTriggerDefined: false
+      entityMappingAvailable: false
+      pitTimestampsAvailable: false
+      executablePriceRouteAvailable: false
+      samplePathAvailable: false
+      dataRightsReviewed: false
+      falsificationDefined: true
+    examples: [宇宙, 半導体, 蓄電池, 水素, 防衛]
+    excludedShortcuts: [採択だけ, 助成額の絶対値だけ, 自己資金を見ない]
+
+  - id: specification-tightening-winner
+    title: Specification Tightening Winner Edge
+    activationState: catalog
+    priority: A
+    thesis: 世代更新で許容誤差、耐熱、純度、速度、安全基準が厳しくなるほど、従来supplierが脱落し、上位仕様を満たせる少数企業へshareが集中する可能性がある。
+    mechanismSteps: [新世代仕様, tolerance厳格化, supplier再評価, 不合格・退出, 認定集中, share上昇]
+    beneficiaryLayers: [material, tier-2, tier-3, equipment, inspection]
+    leadingEvidence: [仕様書改定, 検査項目増, 新grade, 評価期間延長, competitor退出]
+    confirmationEvidence: [認定supplier減少, share増, ASP上昇, margin拡大, 複数顧客採用]
+    requiredDataRoles: [standard, certification, patent, company_ir, supplier_mapping, market_data]
+    confounders: [顧客内製化, supplier非開示, 一時的歩留まり差, 規格緩和]
+    falsificationRules: [supplier数が増える, ASP・marginに反映しない, 仕様が任意]
+    expectedLag: 1年から5年。
+    activationGate:
+      objectiveTriggerDefined: false
+      entityMappingAvailable: false
+      pitTimestampsAvailable: false
+      executablePriceRouteAvailable: false
+      samplePathAvailable: false
+      dataRightsReviewed: false
+      falsificationDefined: true
+    examples: [HBM検査, 電池安全, 半導体純度, 光コネクタ, 航空部品]
+    excludedShortcuts: [高性能という広告だけ, competitor比較なし, 認定確認なし]
+
+  - id: failure-analysis-picks-shovels
+    title: Failure Analysis Picks-and-Shovels Edge
+    activationState: catalog
+    priority: B
+    thesis: 新技術の量産初期は故障原因が未知で、不良解析・非破壊検査・計測・traceabilityへの支出が製品生産より速く伸びる可能性がある。
+    mechanismSteps: [新工程導入, 初期不良, 原因不明, 解析装置導入, 工程feedback, yield改善, installed base保守]
+    beneficiaryLayers: [inspection, equipment, service, maintenance]
+    leadingEvidence: [recall・不良, yield課題, 解析求人, 測定項目追加, 共同評価lab]
+    confirmationEvidence: [検査装置受注, service revenue, installed base増, 顧客横展開]
+    requiredDataRoles: [company_ir, filing, certification, capacity, supplier_mapping, market_data]
+    confounders: [一時的recall, 顧客内製, 装置の汎用品化, capex cycle]
+    falsificationRules: [不良率が低く追加検査不要, 顧客内製化, service売上が伸びない]
+    expectedLag: 0から8四半期。
+    activationGate:
+      objectiveTriggerDefined: false
+      entityMappingAvailable: false
+      pitTimestampsAvailable: false
+      executablePriceRouteAvailable: false
+      samplePathAvailable: false
+      dataRightsReviewed: false
+      falsificationDefined: true
+    examples: [電池熱暴走解析, HBM接合検査, 複合材料NDT, 水素漏洩検知]
+    excludedShortcuts: [事故件数だけ, 検査会社という分類だけ, installed baseを見ない]
+
+  - id: second-source-qualification
+    title: Second-Source Qualification Edge
+    activationState: catalog
+    priority: A
+    thesis: 地政学・供給障害・顧客集中リスクによりsecond source認定が進むと、従来shareが小さかったsupplierへ非連続な受注移転が起こる可能性がある。
+    mechanismSteps: [供給リスク顕在化, dual source方針, sample評価, 認定, 初回発注, share拡大]
+    beneficiaryLayers: [tier-1, tier-2, tier-3, material]
+    leadingEvidence: [顧客の供給多様化方針, sample, 品質監査, 新地域工場]
+    confirmationEvidence: [認定, 量産発注, 顧客集中低下, capacity増設, 売上寄与]
+    requiredDataRoles: [regulation, company_ir, certification, capacity, supplier_mapping, market_data]
+    confounders: [backup認定だけで発注なし, 価格競争, 一時的緊急発注, 顧客名非開示]
+    falsificationRules: [認定後も売上なし, incumbent供給回復で終了, marginが低すぎる]
+    expectedLag: 6か月から4年。
+    activationGate:
+      objectiveTriggerDefined: false
+      entityMappingAvailable: false
+      pitTimestampsAvailable: false
+      executablePriceRouteAvailable: false
+      samplePathAvailable: false
+      dataRightsReviewed: false
+      falsificationDefined: true
+    examples: [半導体材料, 電池部材, 医薬原料, 防衛部品]
+    excludedShortcuts: [国内回帰という言葉だけ, 工場新設だけ, 認定と発注を混同]
+
+  - id: yield-learning-curve
+    title: Yield Learning Curve Edge
+    activationState: catalog
+    priority: B
+    thesis: 新工程では売上より先に歩留まり改善速度が利益を決めるため、同じcapacityでもyield学習が速い企業の利益転換を早期に検出できる可能性がある。
+    mechanismSteps: [pilot, 初期低yield, defect解析, process改善, yield上昇, unit cost低下, margin改善]
+    beneficiaryLayers: [final-product, tier-1, material, equipment, inspection]
+    leadingEvidence: [scrap低下, cycle time改善, 品質指標, 装置再現性, 技術者採用]
+    confirmationEvidence: [gross margin改善, output増, warranty低下, capex効率改善]
+    requiredDataRoles: [company_ir, filing, capacity, inspection, market_data]
+    confounders: [製品mix, ASP変化, 原料価格, subsidy, 会計処理]
+    falsificationRules: [margin改善が価格要因のみ, outputが増えない, defect再発, customer return増]
+    expectedLag: 2四半期から4年。
+    activationGate:
+      objectiveTriggerDefined: false
+      entityMappingAvailable: false
+      pitTimestampsAvailable: false
+      executablePriceRouteAvailable: false
+      samplePathAvailable: false
+      dataRightsReviewed: false
+      falsificationDefined: true
+    examples: [先端packaging, 全固体電池, SiC, 光デバイス]
+    excludedShortcuts: [capacityだけ, 売上だけ, yield proxyなし]
+
+  - id: import-dependence-localization
+    title: Import Dependence Localization Edge
+    activationState: catalog
+    priority: B
+    thesis: 輸入依存が高い重要部材で安全保障・供給途絶リスクが上がると、国内または同盟国supplierへの認定・設備投資が政策と顧客の双方から加速する可能性がある。
+    mechanismSteps: [輸入集中把握, 供給途絶, 政策指定, 補助・調達方針, local supplier評価, 量産移管]
+    beneficiaryLayers: [material, tier-2, tier-3, equipment, infrastructure]
+    leadingEvidence: [輸入統計, 政策文書, 補助公募, 企業dual source方針]
+    confirmationEvidence: [国内工場, 認定, 長期調達, 輸入share低下, 売上増]
+    requiredDataRoles: [regulation, demand_proxy, grant, procurement, company_ir, supplier_mapping, market_data]
+    confounders: [コスト劣位, 補助終了, 品質不足, 需要減少, 同盟国供給で国内不要]
+    falsificationRules: [認定されない, 輸入依存が維持, 国内capacityが稼働しない]
+    expectedLag: 1年から10年。
+    activationGate:
+      objectiveTriggerDefined: false
+      entityMappingAvailable: false
+      pitTimestampsAvailable: false
+      executablePriceRouteAvailable: false
+      samplePathAvailable: false
+      dataRightsReviewed: false
+      falsificationDefined: true
+    examples: [半導体材料, 医薬原料, 希少金属, 変圧器部材, 防衛部品]
+    excludedShortcuts: [国産化というPRだけ, 補助金だけ, 輸入依存率を見ない]
+
+  - id: maintenance-installed-base
+    title: Maintenance Installed-Base Edge
+    activationState: catalog
+    priority: A
+    thesis: 装置・インフラの新規販売後、点検、消耗品、software update、校正、交換部品が累積installed baseに比例して増え、景気感応度の低い継続収益を生む可能性がある。
+    mechanismSteps: [装置販売, installed base累積, 保証終了, 点検・消耗品, update・交換, service margin拡大]
+    beneficiaryLayers: [equipment, inspection, maintenance, service]
+    leadingEvidence: [設置台数, service拠点, 保守契約率, 消耗品attach rate]
+    confirmationEvidence: [recurring revenue, service margin, renewal rate, installed base成長]
+    requiredDataRoles: [company_ir, filing, procurement, capacity, market_data]
+    confounders: [装置寿命短縮, 互換消耗品, 顧客内製, installed base非開示]
+    falsificationRules: [service売上が台数に連動しない, marginが低い, renewal低下]
+    expectedLag: 新規販売から1年から10年以上。
+    activationGate:
+      objectiveTriggerDefined: false
+      entityMappingAvailable: false
+      pitTimestampsAvailable: false
+      executablePriceRouteAvailable: false
+      samplePathAvailable: false
+      dataRightsReviewed: false
+      falsificationDefined: true
+    examples: [半導体装置, 解析装置, 医療機器, インフラ点検, 充電設備]
+    excludedShortcuts: [装置売上だけ, installed baseなし, 保守契約率を見ない]
+
+  - id: upstream-order-sequence
+    title: Upstream Order Sequence Edge
+    activationState: catalog
+    priority: A
+    thesis: 新工場や新技術の量産では、土地・電力、建屋、製造装置、検査、材料の発注が一定の順序で発生するため、上流受注から下流稼働時期を推定できる可能性がある。
+    mechanismSteps: [用地・電力, 建屋, utility, 製造装置, 検査装置, 材料契約, ramp]
+    beneficiaryLayers: [infrastructure, equipment, inspection, material, integration]
+    leadingEvidence: [系統接続, 建設発注, utility受注, lead time, 装置受注]
+    confirmationEvidence: [装置搬入, 材料長期契約, trial production, 稼働開始]
+    requiredDataRoles: [procurement, company_ir, filing, capacity, supplier_mapping, market_data]
+    confounders: [複数案件混在, 発注取消, 中古装置, 工期遅延, secret project]
+    falsificationRules: [発注順序が案件間で再現しない, 上流受注が別用途, 稼働へ到達しない]
+    expectedLag: 3か月から5年。
+    activationGate:
+      objectiveTriggerDefined: false
+      entityMappingAvailable: false
+      pitTimestampsAvailable: false
+      executablePriceRouteAvailable: false
+      samplePathAvailable: false
+      dataRightsReviewed: false
+      falsificationDefined: true
+    examples: [半導体fab, 電池工場, データセンター, 水素設備]
+    excludedShortcuts: [単一受注だけ, 工期差を無視, project識別なし]
+
+  - id: standards-essential-component
+    title: Standards-Essential Component Edge
+    activationState: catalog
+    priority: B
+    thesis: 標準規格が普及すると、標準必須機能を実装する部品・測定・認証サービスが出荷台数に連動して増え、主役製品より安定した需要を得る可能性がある。
+    mechanismSteps: [規格確定, mandatory機能, component設計, 認証, device採用, volume増]
+    beneficiaryLayers: [tier-1, tier-2, equipment, inspection, service]
+    leadingEvidence: [仕様mandatory化, reference design, certification program, plugfest]
+    confirmationEvidence: [複数vendor採用, shipment連動, recurring認証・測定需要]
+    requiredDataRoles: [standard, certification, patent, supplier_mapping, company_ir, market_data]
+    confounders: [royalty問題, open-source代替, component統合, standard競合]
+    falsificationRules: [mandatoryでない, integrated solutionに吸収, ASP下落で利益なし]
+    expectedLag: 1年から8年。
+    activationGate:
+      objectiveTriggerDefined: false
+      entityMappingAvailable: false
+      pitTimestampsAvailable: false
+      executablePriceRouteAvailable: false
+      samplePathAvailable: false
+      dataRightsReviewed: false
+      falsificationDefined: true
+    examples: [CXL controller, 光transceiver試験, EV充電認証, battery safety sensor]
+    excludedShortcuts: [標準化団体参加だけ, 特許だけ, mandatory要件を確認しない]
+
+  - id: evidence-density-divergence
+    title: Evidence Density Divergence Edge
+    activationState: catalog
+    priority: B
+    thesis: 論文・特許・PRだけが増える一方で顧客sample、設備投資、認証、契約が増えない乖離は、技術テーマの過熱や商用化停滞を示すnegative controlになり得る。
+    mechanismSteps: [研究・PR増加, commercial evidence停滞, 期待先行, 時間経過, 失望・減損]
+    beneficiaryLayers: [platform, final-product, material, equipment]
+    leadingEvidence: [publication増, patent増, media露出増, capex不変, 顧客証拠不在]
+    confirmationEvidence: [計画延期, impairment, 研究縮小, partner離脱, guidance撤回]
+    requiredDataRoles: [research, patent, company_ir, filing, capacity, market_data]
+    confounders: [秘匿開発, 長い規制審査, early-stage産業, 非公開顧客]
+    falsificationRules: [後から商用証拠が急増, 秘匿契約が確認, 業界標準lag内]
+    expectedLag: 2年から10年以上。
+    activationGate:
+      objectiveTriggerDefined: false
+      entityMappingAvailable: false
+      pitTimestampsAvailable: false
+      executablePriceRouteAvailable: false
+      samplePathAvailable: false
+      dataRightsReviewed: false
+      falsificationDefined: true
+    examples: [新電池, 量子, 核融合, 新メモリ, 水素]
+    excludedShortcuts: [研究数だけでshort, commercial evidenceの定義なし, long lagを失敗扱い]
+
+  - id: customer-qualification-topology
+    title: Customer Qualification Topology Edge
+    activationState: catalog
+    priority: A
+    thesis: 一社の大口顧客採用より、独立した複数顧客・複数工場・複数用途で認定が連鎖する構造の方が、技術の一般性と継続需要を強く示す可能性がある。
+    mechanismSteps: [初回認定, 別工場展開, 別顧客評価, 複数用途, 依存低下, scale]
+    beneficiaryLayers: [tier-1, tier-2, tier-3, material, equipment]
+    leadingEvidence: [複数sample, 地域別評価, 用途展開, 顧客監査]
+    confirmationEvidence: [複数顧客量産, 顧客集中低下, 同一製品の横展開, margin維持]
+    requiredDataRoles: [certification, company_ir, filing, supplier_mapping, capacity, market_data]
+    confounders: [同一企業groupを複数顧客と誤認, distributor経由重複, 顧客名非開示]
+    falsificationRules: [実質一顧客依存, 採用が試作止まり, 用途ごとの大幅customでscaleしない]
+    expectedLag: 1年から7年。
+    activationGate:
+      objectiveTriggerDefined: false
+      entityMappingAvailable: false
+      pitTimestampsAvailable: false
+      executablePriceRouteAvailable: false
+      samplePathAvailable: false
+      dataRightsReviewed: false
+      falsificationDefined: true
+    examples: [半導体材料, 光部品, 電池材料, 産業robot component]
+    excludedShortcuts: [顧客数の自己申告だけ, group重複, sampleと量産を混同]
