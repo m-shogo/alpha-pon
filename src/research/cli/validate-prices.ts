@@ -2,10 +2,12 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import {
   parsePriceJsonl,
-  validatePriceRecords,
   type PitPriceRecord,
-  type PriceStoreIssue,
 } from "../price-store.js";
+import {
+  validateHardenedPriceRecords,
+  type HardenedPriceIssue,
+} from "../price-store-hardening.js";
 import type { JsonSchema } from "../schema.js";
 
 function argValue(name: string): string | undefined {
@@ -30,7 +32,7 @@ const schemaPath = argValue("schema") ?? "research/schemas/price-record.schema.j
 const schema = JSON.parse(readFileSync(schemaPath, "utf-8")) as JsonSchema;
 const files = listJsonl(root);
 const records: PitPriceRecord[] = [];
-const parseIssues: PriceStoreIssue[] = [];
+const parseIssues: HardenedPriceIssue[] = [];
 
 for (const file of files) {
   try {
@@ -45,7 +47,7 @@ for (const file of files) {
   }
 }
 
-const issues = [...parseIssues, ...validatePriceRecords(records, schema)];
+const issues = [...parseIssues, ...validateHardenedPriceRecords(records, schema)];
 for (const issue of issues) {
   console.log(`${issue.severity.toUpperCase()} ${issue.code} ${issue.target}: ${issue.message}`);
 }
