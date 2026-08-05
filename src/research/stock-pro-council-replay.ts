@@ -58,6 +58,7 @@ export type CouncilReplayResult = {
   presentPersonaIds: string[];
   missingPersonaIds: string[];
   abstainingPersonaIds: string[];
+  vetoingPersonaIds: string[];
   bindingVetoIds: string[];
   dissentIds: string[];
   manifestHash: string;
@@ -182,11 +183,7 @@ export function requiredPersonaIdsForCase(caseType: CouncilCaseType): string[] {
   return [...REQUIRED_PERSONA_MATRIX[caseType]].sort();
 }
 
-function issue(
-  code: string,
-  target: string,
-  message: string,
-): CouncilIssue {
+function issue(code: string, target: string, message: string): CouncilIssue {
   return { severity: "error", code, target, message };
 }
 
@@ -222,8 +219,9 @@ function activeVetoHeads(records: CouncilVetoRecord[]): CouncilVetoRecord[] {
 function packageIdentityIssues(pkg: CouncilReplayPackage): CouncilIssue[] {
   const { manifest } = pkg;
   const issues: CouncilIssue[] = [];
+  const createdAtMs = Date.parse(manifest.createdAt);
   const check = (
-    values: Array<{ runId: string; cutoff: string; target: string }>,
+    values: Array<{ runId: string; cutoff: string; issuedAt: string; target: string }>,
   ): void => {
     for (const value of values) {
       if (value.runId !== manifest.councilRunId) {
@@ -240,22 +238,32 @@ function packageIdentityIssues(pkg: CouncilReplayPackage): CouncilIssue[] {
           `${value.cutoff} != ${manifest.informationCutoff}`,
         ));
       }
+      if (Date.parse(value.issuedAt) > createdAtMs) {
+        issues.push(issue(
+          "replay_record_after_manifest",
+          value.target,
+          `${value.issuedAt} is after manifest.createdAt=${manifest.createdAt}`,
+        ));
+      }
     }
   };
 
   check(pkg.verdicts.map((record) => ({
     runId: record.runId,
     cutoff: record.informationCutoff,
+    issuedAt: record.issuedAt,
     target: `verdict:${record.personaId}`,
   })));
   check(pkg.dissent.map((record) => ({
     runId: record.councilRunId,
     cutoff: record.informationCutoff,
+    issuedAt: record.issuedAt,
     target: `dissent:${record.dissentId}`,
   })));
   check(pkg.veto.map((record) => ({
     runId: record.councilRunId,
     cutoff: record.informationCutoff,
+    issuedAt: record.issuedAt,
     target: `veto:${record.vetoId}`,
   })));
   return issues;
@@ -267,6 +275,7 @@ function referenceCompletenessIssues(pkg: CouncilReplayPackage): CouncilIssue[] 
   const vetoByPersonaCode = new Set(
     pkg.veto.map((record) => `${record.personaId}:${record.vetoCode}`),
   );
+  const verdictByPersona = new Map(pkg.verdicts.map((record) => [record.personaId, record]));
 
   for (const verdict of pkg.verdicts) {
     if (verdict.stance !== "support") {
@@ -287,6 +296,17 @@ function referenceCompletenessIssues(pkg: CouncilReplayPackage): CouncilIssue[] 
           `vetoCode=${vetoCode}に対応するveto ledger recordがありません`,
         ));
       }
+    }
+  }
+
+  for (const veto of activeVetoHeads(pkg.veto).filter((record) => record.status === "binding")) {
+    const verdict = verdictByPersona.get(veto.personaId);
+    if (!verdict || verdict.stance !== "veto" || !verdict.vetoCodes.includes(veto.vetoCode)) {
+      issues.push(issue(
+        "binding_veto_without_veto_verdict",
+        veto.vetoId,
+        "binding veto headには同一persona/codeのveto PersonaVerdictが必要です",
+      ));
     }
   }
   return issues;
@@ -396,6 +416,11 @@ export function buildCouncilReplayResult(
       .filter((record) => requiredPersonaIds.includes(record.personaId) && record.stance === "abstain")
       .map((record) => record.personaId),
   );
+  const vetoingPersonaIds = sortedUnique(
+    pkg.verdicts
+      .filter((record) => requiredPersonaIds.includes(record.personaId) && record.stance === "veto")
+      .map((record) => record.personaId),
+  );
   const bindingVetoIds = activeVetoHeads(pkg.veto)
     .filter((record) => record.status === "binding")
     .map((record) => record.vetoId)
@@ -407,6 +432,7 @@ export function buildCouncilReplayResult(
   const blockers = sortedUnique([
     ...missingPersonaIds.map((id) => `missing_required_persona:${id}`),
     ...abstainingPersonaIds.map((id) => `required_persona_abstained:${id}`),
+    ...vetoingPersonaIds.map((id) => `required_persona_veto:${id}`),
     ...bindingVetoIds.map((id) => `binding_veto:${id}`),
   ]);
 
@@ -422,6 +448,7 @@ export function buildCouncilReplayResult(
     presentPersonaIds,
     missingPersonaIds,
     abstainingPersonaIds,
+    vetoingPersonaIds,
     bindingVetoIds,
     dissentIds,
     manifestHash: pkg.manifest.contentHash,
