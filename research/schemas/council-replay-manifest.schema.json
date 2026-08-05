@@ -20,6 +20,7 @@
     "verdictHashes",
     "dissentHashes",
     "vetoHashes",
+    "calibrationHashes",
     "automaticTradingAuthorized",
     "contentHash"
   ],
@@ -49,6 +50,7 @@
     "verdictHashes": { "$ref": "#/$defs/nonEmptyHashArray" },
     "dissentHashes": { "$ref": "#/$defs/hashArray" },
     "vetoHashes": { "$ref": "#/$defs/hashArray" },
+    "calibrationHashes": { "$ref": "#/$defs/hashArray" },
     "automaticTradingAuthorized": { "const": false },
     "contentHash": { "$ref": "#/$defs/hash" }
   },
