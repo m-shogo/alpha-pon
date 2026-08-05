@@ -24,6 +24,7 @@ cd "$DIR" || exit 1
 # 通知 ledger の read-modify-write が並行実行で lost update しないようにする。
 # 2番目のrunは非致命 skip（skipped_locked）。lock処理からLINE通知は呼ばない。
 # shellcheck source=scripts/pipeline-lock.sh
+# shellcheck disable=SC1091
 . "$DIR/scripts/pipeline-lock.sh"
 COMPLETE_LOCK_DIR="$DIR/tmp/run-daily-complete.lock"
 mkdir -p "$DIR/tmp"
