@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alpha-pon.local/schemas/claim-record.schema.json",
+  "title": "Alpha Pon Claim Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordId",
+    "claimId",
+    "entityIds",
+    "claimClass",
+    "statement",
+    "status",
+    "informationCutoff",
+    "effectiveFrom",
+    "observedAt",
+    "retrievedAt",
+    "falsificationConditions",
+    "unknownRefs",
+    "modelVersion",
+    "ruleVersion",
+    "contentHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "recordId": { "type": "string", "minLength": 3 },
+    "claimId": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9:_-]+$"
+    },
+    "entityIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "pattern": "^[a-z][a-z0-9:_-]+$"
+      }
+    },
+    "claimClass": {
+      "type": "string",
+      "enum": ["fact", "assumption", "forecast", "opinion", "unknown"]
+    },
+    "statement": { "type": "string", "minLength": 3 },
+    "status": {
+      "type": "string",
+      "enum": ["proposed", "active", "contradicted", "invalidated", "superseded", "expired"]
+    },
+    "informationCutoff": { "type": "string", "format": "date-time" },
+    "effectiveFrom": { "type": "string", "format": "date-time" },
+    "effectiveTo": { "type": "string", "format": "date-time" },
+    "observedAt": { "type": "string", "format": "date-time" },
+    "retrievedAt": { "type": "string", "format": "date-time" },
+    "horizon": { "type": "string", "minLength": 1 },
+    "falsificationConditions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 3 }
+    },
+    "unknownRefs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 3 }
+    },
+    "modelVersion": { "type": "string", "minLength": 1 },
+    "ruleVersion": { "type": "string", "minLength": 1 },
+    "supersedesRecordId": { "type": "string", "minLength": 3 },
+    "contentHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}
