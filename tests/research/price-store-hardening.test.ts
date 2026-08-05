@@ -5,6 +5,7 @@ import { join } from "node:path";
 import {
   appendPriceRecordsWithLock,
   selectPriceRecordsForReplay,
+  toHardenedBacktestPriceSeries,
   validateEventStudyPriceAlignment,
   validateHardenedPriceRecords,
   validatePriceRecordHardening,
@@ -98,6 +99,12 @@ function record(overrides: Partial<PitPriceRecordInput> = {}): PitPriceRecord {
 }
 
 {
+  const issues = validatePriceRecordHardening(record({ license: "metadata_only" }));
+  assert.ok(issues.some((issue) => issue.code === "metadata_only_price_payload"));
+  console.log("price-store-hardening: metadata-only payload boundary OK");
+}
+
+{
   assert.ok(validatePriceRecordHardening(record({
     status: "suspended",
     missingReason: "provider_gap",
@@ -151,6 +158,15 @@ function record(overrides: Partial<PitPriceRecordInput> = {}): PitPriceRecord {
     selector,
     "system_replay",
   ).length, 0);
+  assert.throws(
+    () => toHardenedBacktestPriceSeries(
+      [delayedIngestion],
+      "2024-01-05T12:00:00+09:00",
+      selector,
+      "provider_available",
+    ),
+    /Backtest requires system_replay/,
+  );
   console.log("price-store-hardening: provider/system replay separation OK");
 }
 
@@ -242,6 +258,11 @@ function record(overrides: Partial<PitPriceRecordInput> = {}): PitPriceRecord {
     "2026-01-01T00:00:00+09:00",
   ), []);
   assert.ok(validateEventStudyPriceAlignment(
+    inputs,
+    "2026-01-01T00:00:00+09:00",
+    "provider_available",
+  ).some((issue) => issue.code === "theoretical_mode_not_executable"));
+  assert.ok(validateEventStudyPriceAlignment(
     inputs.slice(0, 2),
     "2026-01-01T00:00:00+09:00",
   ).some((issue) => issue.code === "missing_required_series"));
@@ -277,6 +298,13 @@ function record(overrides: Partial<PitPriceRecordInput> = {}): PitPriceRecord {
         now: NOW,
       }),
       /unknown_provider_plan/,
+    );
+    assert.throws(
+      () => appendPriceRecordsWithLock(path, [record({ license: "metadata_only" })], schema, {
+        ownerToken: "metadata-only-owner",
+        now: NOW,
+      }),
+      /metadata_only_price_payload/,
     );
 
     mkdirSync(`${path}.lock`);
