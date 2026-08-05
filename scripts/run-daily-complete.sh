@@ -19,6 +19,20 @@ set -u
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$DIR" || exit 1
 
+# ── full complete pipeline の single-writer lock ─────────────────────────────
+# run-daily-complete.sh 全体（補助step + 通知enqueue + 統合送信）を1プロセスに限定し、
+# 通知 ledger の read-modify-write が並行実行で lost update しないようにする。
+# 2番目のrunは非致命 skip（skipped_locked）。lock処理からLINE通知は呼ばない。
+# shellcheck source=scripts/pipeline-lock.sh
+. "$DIR/scripts/pipeline-lock.sh"
+COMPLETE_LOCK_DIR="$DIR/tmp/run-daily-complete.lock"
+mkdir -p "$DIR/tmp"
+if ! pl_acquire "$COMPLETE_LOCK_DIR"; then
+  echo "[complete-wrapper] skipped_locked: 別の run-daily-complete が実行中のためスキップ"
+  exit 0
+fi
+trap 'pl_release' EXIT INT TERM
+
 DOW="$(date '+%u')"   # 1=Mon ... 7=Sun
 DOM="$(date '+%d')"   # 01..31
 MONTH="$(date '+%m')" # 01..12
@@ -88,7 +102,7 @@ run_optional_step() {
 
 # ── イベント3日前リマインド ─────────────────────────────────────────────────
 # 総会・決算・継続会・ロックアップ解除など、日付がある重要イベントだけ通知する。
-run_optional_step "event-3day-reminder" node --env-file="$DIR/.env" --input-type=module - <<'NODE'
+run_optional_step "event-3day-reminder" node --env-file="$DIR/.env" --import "tsx/esm" --input-type=module - <<'NODE'
 import { readFileSync } from "fs";
 import { load } from "js-yaml";
 
@@ -142,18 +156,11 @@ const text = [
 ].join("\n");
 const batchDir = process.env.LINE_BATCH_DIR;
 if (batchDir) {
-  // content-addressed で pending キューへ enqueue（src/line-batch-queue.ts の contentHash と同一算出）。
+  // 実 enqueueFragment を使い、envelope（kind=normal）保存 + block marker 尊重で pending へ積む。
   // enqueue しただけでは delivered 扱いにしない。統合CLIが実送信成功時に記録・削除する。
-  const { mkdirSync, writeFileSync, renameSync } = await import("fs");
-  const { join } = await import("path");
-  const { createHash } = await import("crypto");
-  mkdirSync(batchDir, { recursive: true });
-  const hash = createHash("sha256").update(text).digest("hex").slice(0, 16);
-  const dest = join(batchDir, `${hash}.txt`);
-  const tmp = `${dest}.tmp-${process.pid}-${Date.now()}`;
-  writeFileSync(tmp, text);
-  renameSync(tmp, dest);
-  console.log("3日前リマインドをpendingキューに追加");
+  const { enqueueFragment } = await import("./src/line-batch-queue.ts");
+  const { action } = enqueueFragment(batchDir, { text, kind: "normal" });
+  console.log(`3日前リマインドをpendingキューに追加（${action}）`);
 } else if (token && userId) {
   const res = await fetch("https://api.line.me/v2/bot/message/push", {
     method: "POST",
