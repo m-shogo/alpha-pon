@@ -1,5 +1,6 @@
 import "./price-store.test.js";
 import "./price-store-hardening.test.js";
+import "./price-store-replay-guard.test.js";
 import assert from "node:assert/strict";
 import { canEnterSameClose, checkPit, jstDateOf } from "../../src/research/pit.js";
 import { makeAnalog, makeEdge, makeState } from "./helpers.js";
