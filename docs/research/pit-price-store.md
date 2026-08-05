@@ -200,3 +200,5 @@ validate-prices (fixtures root)  files=1 records=1 errors=0
 ## Next slice
 
 Actionsが復旧しcontract greenを確認後、既存J-Quants clientを`PriceProvider` adapterへ接続します。Free／Standardはcapability flagsだけを切り替え、実市場データはlocal storeへ保存します。
+
+具体的な手順は [J-Quants Free adapter next slice](jquants-free-adapter-next-slice.md) を参照。答え合わせと推奨保存の契約は [Recommendation & Outcome contract](recommendation-outcome-contract.md)。
