@@ -13,6 +13,31 @@
     "priority": 0.1,
     "researchCost": 0.1
   },
-  "entries": [],
+  "entries": [
+    {
+      "rank": 1,
+      "edgeId": "known-bad-event-repricing",
+      "title": "Known-Bad Event Repricing Edge",
+      "status": "research",
+      "voi": 0.705,
+      "components": {
+        "expectedRoi": 0,
+        "uncertaintyReduction": 0.9,
+        "sampleGap": 1,
+        "historicalGap": 1,
+        "productionProximity": 0,
+        "decayUrgency": 1,
+        "executionImprovement": 0.5,
+        "priority": 0.75,
+        "researchCost": 0.75
+      },
+      "drivers": [
+        "Decay 再検証の期限が来ている",
+        "1回の研究で不確実性が大きく減る",
+        "Historical Analog が不足している"
+      ],
+      "suggestedAction": "Decay 再検証：直近データで Edge がまだ生きているか確認する"
+    }
+  ],
   "excluded": []
 }
