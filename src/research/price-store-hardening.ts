@@ -203,13 +203,22 @@ export function validateHardenedPriceRecords(
   );
 }
 
+export interface ProviderBatchValidationOptions {
+  expectedSource?: string;
+  expectedIngestionRunId?: string;
+}
+
 export function validateProviderBatchAgainstQuery(
   batch: PriceProviderBatch,
   query: PriceProviderQuery,
+  options: ProviderBatchValidationOptions = {},
 ): string[] {
   const issues = [...validateProviderBatch(batch)];
   const asOfMs = timeMs(query.asOf);
 
+  if (!Number.isFinite(asOfMs)) {
+    issues.push(`invalid query.asOf: ${query.asOf}`);
+  }
   if (batch.capabilities.plan === "unknown") {
     issues.push("batch capabilities.plan may not be unknown");
   }
@@ -221,11 +230,26 @@ export function validateProviderBatchAgainstQuery(
   }
 
   const sources = new Set<string>();
+  const ingestionRunIds = new Set<string>();
   batch.records.forEach((record, index) => {
     const prefix = `records[${index}]`;
     const source = record.source.trim();
+    const ingestionRunId = record.ingestionRunId.trim();
     if (source) sources.add(source);
+    if (ingestionRunId) ingestionRunIds.add(ingestionRunId);
 
+    if (options.expectedSource && record.source !== options.expectedSource) {
+      issues.push(`${prefix}.source does not match expectedSource`);
+    }
+    if (
+      options.expectedIngestionRunId &&
+      record.ingestionRunId !== options.expectedIngestionRunId
+    ) {
+      issues.push(`${prefix}.ingestionRunId does not match expectedIngestionRunId`);
+    }
+    if (!ingestionRunId) {
+      issues.push(`${prefix}.ingestionRunId is required`);
+    }
     if (record.seriesKind !== query.seriesKind) {
       issues.push(`${prefix}.seriesKind does not match query.seriesKind`);
     }
@@ -234,6 +258,9 @@ export function validateProviderBatchAgainstQuery(
     }
     if (record.tradingDate < query.from || record.tradingDate > query.to) {
       issues.push(`${prefix}.tradingDate is outside query range: ${record.tradingDate}`);
+    }
+    if (Number.isFinite(asOfMs) && timeMs(record.dataAsOf) > asOfMs) {
+      issues.push(`${prefix}.dataAsOf is after query.asOf: ${record.dataAsOf}`);
     }
     if (Number.isFinite(asOfMs) && timeMs(record.observedAt) > asOfMs) {
       issues.push(`${prefix}.observedAt is after query.asOf: ${record.observedAt}`);
@@ -248,6 +275,11 @@ export function validateProviderBatchAgainstQuery(
 
   if (sources.size > 1) {
     issues.push(`batch contains ambiguous record sources: ${[...sources].sort().join(", ")}`);
+  }
+  if (ingestionRunIds.size > 1) {
+    issues.push(
+      `batch contains ambiguous ingestionRunIds: ${[...ingestionRunIds].sort().join(", ")}`,
+    );
   }
 
   return [...new Set(issues)].sort();
@@ -298,6 +330,9 @@ export function selectPriceRecordsForReplay(
 ): PitPriceRecord[] {
   const asOfMs = timeMs(asOf);
   if (!Number.isFinite(asOfMs)) throw new Error(`invalid asOf: ${asOf}`);
+  if (selector.priceBasis !== "adjusted" && selector.priceBasis !== "unadjusted") {
+    throw new Error("selector.priceBasis must be adjusted or unadjusted");
+  }
 
   const selected = new Map<string, PitPriceRecord>();
   for (const record of records) {
