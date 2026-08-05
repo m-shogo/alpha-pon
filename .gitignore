@@ -11,6 +11,10 @@ data/disclosures/*.json
 data/edinet/*.json
 data/ipo/*.json
 
+# Research OS の実市場データは local-only が既定
+# schema / validator / synthetic fixtures だけをGit管理する
+research/prices/**/*.jsonl
+
 # レポートはgit管理しない
 reports/*.md
 reports/*.json
