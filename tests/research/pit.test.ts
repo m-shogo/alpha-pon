@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import "./price-store.test.js";
 import { canEnterSameClose, checkPit, jstDateOf } from "../../src/research/pit.js";
 import { makeAnalog, makeEdge, makeState } from "./helpers.js";
 
