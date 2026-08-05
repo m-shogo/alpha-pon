@@ -1,34 +1,30 @@
 # Market Event Foundation v1 — current status
 
-Updated: 2026-08-03 JST
-Status: `READY_PENDING_CLOUDFLARE_REGISTRATION`
-Branch: `agent/market-event-calendar-foundation`
-Draft PR: `#4`
-CI evidence: workflow `CI` run `30796420646` — `success`
+Updated: 2026-08-05 JST
+Status: `CALENDAR_V1_OPERATIONAL`
+Production base: `https://alpha-pon.m-shogo-0409.workers.dev`
+Calendar: `https://alpha-pon.m-shogo-0409.workers.dev/calendar/`
+D1 database: `alpha-pon-market-events`
 
 ## 結論
 
-Cloudflareアカウント上の外部登録・binding・secret・Access設定を除き、Market Event Calendar v1のrepo内実装とproduction-equivalent CI検証は完了した。
+Market Event Foundation v1は、repo内contract・append-only ledger・D1 projection・Workers Static Assets UI・公開read-only API・tokenized ICS・snapshot fallback・manual D1 syncまで接続され、運用可能な状態に到達した。
 
-次の段階はCloudflare Pages / D1 / Access / tokenized ICSをShadow接続すること。現時点ではCloudflare resource、billing、Google Calendar、LINE、Web Push、production score/thresholdを変更していない。
+過去の`READY_PENDING_CLOUDFLARE_REGISTRATION`、Pages / Access前提、Cloudflare未接続前提は現在の正本ではない。
 
-## CIで成功した範囲
+現在の構成:
 
-- 既存Alpha Pon core CLI / research contracts
-- core / tests / scripts TypeScript typecheck
-- 既存test suite
-- market event contract verification
-- D1-compatible SQLite migration verification
-- event registration → append-only revision → SQLite → JSON / ICS end-to-end
-- deterministic D1 bootstrap export
-- Pages Functions auth / API / tokenized ICS verification
-- pre-Cloudflare readiness audit
-- isolated JPX review-checkpoint seed import
-- database foreign-key / JSON / current-revision audit
-- Web typecheck
-- Web lint（warning/errorなし）
-- Next.js static export
-- Cloudflare Pages output verification
+- Cloudflare Workers Static Assets
+- Worker script
+- D1 `alpha-pon-market-events`
+- public GET-only market event API
+- public write APIなし
+- Cloudflare Access / Zero Trustなし
+- billing / credit card変更なし
+- tokenized LIVE ICS
+- generated SNAPSHOT fallback
+- manual D1 syncはworkflow_dispatchのみ
+- scheduleは未追加
 
 ## 実装済み
 
@@ -38,41 +34,38 @@ Cloudflareアカウント上の外部登録・binding・secret・Access設定を
 - exact / date-only / window / unknown time precision
 - unknown-date anti-fabrication guard
 - stable deterministic event ID
-  - 延期で変わらない
-  - 証券コードがある場合は会社表示名変更で変わらない
-  - IR / TDnet / JPXの取得経路で変わらない
 - source / revision / decision / delivery / review task ID
 - unsupported non-JSON value fail-closed
+- first executable timestampをevent observationから分離可能な契約
 
 ### Operational ledger
 
 - append-only JSONL ledger
 - transactional local SQLite store
-- D1-compatible migration
+- D1-compatible schema
 - event revisions / decision snapshots
 - transactional delivery outbox / alert delivery ledger
 - calendar sync state / source checkpoints / review tasks
 - foreign-key / JSON / current-revision audit
-- safe deterministic D1 bootstrap export using `INSERT OR IGNORE`
+- deterministic canonical export
+- remote D1 read-only/no-trigger mode
 
 ### Calendar delivery
 
 - generated JSON snapshot
 - RFC5545-style ICS snapshot
+- tokenized LIVE ICS from D1
 - exact/date/window event output
 - unknown date exclusion
 - stable UID / revision sequence
-- tokenized LIVE ICS from D1
-- Apple/Google Calendar URL subscription path
-- Google OAuth不要のv1構成
+- Apple / Google Calendar URL subscription path
 
 ### Web / PWA
 
 - `/calendar/`
-- mobile one-column agenda
-- PC two-column decision cockpit
+- real monthly calendar
+- mobile bottom sheet / desktop modal
 - category/search/status filters
-- today / 7 days / overdue / unknown / completed grouping
 - priority / decision / stale visibility
 - primary-source links
 - checks-before / checks-after
@@ -81,112 +74,161 @@ Cloudflareアカウント上の外部登録・binding・secret・Access設定を
 - responsive AppShell
 - PWA manifest / icon / service worker
 - API/token feed excluded from service-worker cache
-- static `robots.txt` with deny-all indexing policy
+- static `robots.txt` deny-all indexing policy
 - security headers
-- browser current-day refresh; build時刻を「今日」として固定しない
-- browser-safe shared data moduleとserver-only filesystem loaderの分離
 
-### Cloudflare Pages preparation
+### Cloudflare production runtime
 
-- Next.js static export
-- Pages catch-all Function
-- `_routes.json` limiting Function invocations
-- D1 binding name `DB`
-- owner-email Access header verification
-- encrypted calendar bearer token contract
-- health endpoint
-- registration runbook
-- wrangler/dev vars templates
-- production-equivalent Pages build script
+- Workers Static Assetsへ移行
+- D1 binding `DB`
+- public read-only market event API
+- GET以外は405
+- D1 unavailable時は503
+- `/api/calendar-feed-url`は常に404
+- `/calendar.ics`は`CALENDAR_FEED_TOKEN`必須
+- runtime security headers
+- private field allowlist projection
+- D1 query failureを503へ正規化
+- Access identity headerをruntimeで使用しない
 
-### Seed integration
+## Production evidence
 
-- JPX remediation internal review checkpoints 3件
-- KDDI / nmsホールディングス / イーエムネットジャパン
-- dates explicitly labelled as Alpha Pon internal review dates
-- official future filing dateとして断定しない
-- no external delivery queued by internal review seeds
+PR #14〜#28で、public read-only化からD1 Token境界まで段階的に実装・修正した。
 
-## Reviewで発見・修正した主要問題
+本番契約の主要証拠:
 
-1. Scheduled dateをevent IDへ含めると延期時に重複する
-   - stable occurrenceKeyへ変更
-2. Source authorityをevent IDへ含めるとIR/TDnet/JPXで重複する
-   - source identityへ分離
-3. issuer display nameをIDへ含めると名称変更で重複する
-   - code優先identityへ変更
-4. Type contractとSQL schemaの不一致
-   - occurrence、decision、outbox payload、freshnessを同期
-5. dry-run内の同一event複数revisionが同じrevision numberになる
-   - input順に仮想contextを更新
-6. Next.js server/client境界から`node:fs`がclient bundleへ混入する
-   - browser-safe data moduleとserver-only loaderへ分離
-7. static exportでmanifest / robots metadata routeが失敗する
-   - manifestをforce-static、robotsをpublic static fileへ変更
-8. D1 bootstrap親子順テストがcurrent revision参照を誤検知する
-   - `event_revisions` INSERT行だけを検査
-9. PWA precacheが1件失敗すると全件空になる
-   - per-item `Promise.allSettled`へ変更
-10. Service workerがtokenized calendar feedをcacheし得る
-    - APIと`/calendar.ics`をcache対象外へ変更
-11. 内部review seedが公式予定に見え得る
-    - `[内部レビュー]`と公式予定ではない説明を追加
-12. 空のCI環境で既存`--env-file=.env`コマンドが失敗する
-    - offline CI用empty `.env`を明示生成
-13. 並行変更中の古いSHA update
-    - GitHubの409を尊重し、最新を再取得して差分を再適用
+- PR #14〜#15: public read-only APIとDB guard
+- PR #16〜#17: production verifierとPASS記録
+- PR #19〜#20: monthly calendar / mobile UX
+- PR #21〜#22: manual D1 sync / input hardening
+- PR #23〜#24: LIVE/SNAPSHOT分離 / runtime hardening
+- PR #25〜#28: D1 Token設定・検証経路の確定
 
-## 自動検証契約
+GitHub Actions D1 dry-run Run `30970892738`:
 
-```bash
-bash scripts/build-cloudflare-pages.sh
-```
+- success
+- canonical 12 rows
+- remote 12 rows
+- added 0
+- updated 0
+- unchanged 12
+- removed candidates 0
+- collisions 0
+- validation errors 0
+- blockers 0
+- apply不要
 
-この1コマンドに次を集約している。
+D1 bootstrapやmigrationは再実行しない。
 
-- contract / schema / local end-to-end
-- deterministic D1 bootstrap
-- Pages Functions verification
-- Cloudflare readiness audit
-- isolated seed import / DB audit
+## Current data
+
+Canonical / remote D1:
+
+- market events: 3
+- event sources: 3
+- event revisions: 3
+- decision snapshots: 3
+- total: 12
+
+現在の3 eventは、JPX一次情報をanchorにしたAlpha Pon内部review checkpointであり、公式提出予定日ではないことを明示している。
+
+## Secrets / external configuration
+
+記録するのはSecret名だけ。
+
+Repository Secrets:
+
+- `CLOUDFLARE_ACCOUNT_ID`
+- `CLOUDFLARE_D1_READ_API_TOKEN`
+
+`production` Environment Secret:
+
+- `CLOUDFLARE_D1_EDIT_API_TOKEN`
+
+Runtime secret:
+
+- `CALENDAR_FEED_TOKEN`
+
+Secret値はrepo、ログ、artifact、例外へ出さない。
+
+`OWNER_EMAIL`はruntime contractから除外済み。Cloudflare Dashboardに旧変数が残る場合の削除だけが外部作業。
+
+## 完了済みPhase
+
+### Phase 0 — Contract
+
+- event schema v1
+- enums
+- PIT日時ルール
+- dedupe / revision契約
+- notification / delivery contract
+- fixtures / validator / tests
+
+### Phase 1 — Data authority / CLI
+
+- append-only event ledger
+- current projection
+- audit
+- register / revision path
 - JSON / ICS generation
-- existing UI data generation
-- web typecheck / lint / Next.js static export
-- Pages output verification
+- local SQLite / D1 schema
 
-## 未完了 — Cloudflare登録が必要
+### Phase 2 — Web UI
 
-- Pages project作成 / GitHub接続
-- D1 database作成
-- Pages projectへD1 `DB` binding
-- migration / bootstrap remote適用
-- `OWNER_EMAIL` / `PUBLIC_ORIGIN`設定
-- encrypted `CALENDAR_FEED_TOKEN`設定
-- Cloudflare Access全体保護
-- `/calendar.ics`だけspecific bypass + token guard
-- production deploy / live verification
-- Apple / Google Calendarでtokenized ICS購読
+- generated-data integration
+- monthly calendar
+- next event card
+- event detail
+- mobile UX
+- LIVE / SNAPSHOT / stale / unknown表示
 
-## 後段へ送るもの
+### Phase 3 — Public delivery foundation
 
-- R2 evidence storage / backup
-- Google Calendar API OAuth同期
-- Web Push / LINE delivery worker
-- full official-source collection adapters
-- D1 daily export / restore drill
+- tokenized LIVE ICS
+- SNAPSHOT ICS
+- deterministic UID / revision
+- manual D1 sync
+- production verification
 
-これらはv1のCloudflare登録ブロッカーではない。
+Google Calendar API OAuth同期は未実装だが、v1 operationalの必須条件ではない。
+
+### Phase 4 — Production runtime
+
+- Workers Static Assets deploy
+- D1 binding
+- public read-only API
+- fallback
+- runtime hardening
+- no Access / Zero Trust
+- no public write API
+
+## 未完了 — 次のworkstream
+
+### Phase 5 — Official-source collection
+
+- 決算発表日
+- TDnet / EDINET / JPX日程
+- 株主総会・継続会
+- 会見・第三者委員会報告
+- 行政処分・改善報告期限
+- 訴訟・判決
+- TOB / lock-up / restructuring
+- D+1 / D+5 / 1m / 3m review
+
+### Delivery / operations
+
+- official collectorからevent ledgerへのappend-only registration
+- outbox配送接続
+- export / restore drill
+- repeated dry-run / idempotency検証
+- 明示承認後のschedule候補
 
 ## Completion rule
 
-### `READY_PENDING_CLOUDFLARE_REGISTRATION`
-
-repo実装とCI成功。外部Cloudflare resource未登録。
-
-### `CLOUDFLARE_CONNECTED_SHADOW`
-
-Pages / D1 / Access / tokenized ICSが接続され、実売買判断には未使用。
-
 ### `CALENDAR_V1_OPERATIONAL`
 
-LIVE API、SNAPSHOT fallback、calendar subscription、監査、rollbackを実環境で確認。
+LIVE API、tokenized ICS、SNAPSHOT fallback、監査、public read-only境界、manual D1 dry-run一致を実環境で確認済み。
+
+### 将来の拡張
+
+collector、Google Calendar API、outbox delivery、scheduleは別workstreamで進める。未実装であることを明示し、v1完了を偽装しない。
