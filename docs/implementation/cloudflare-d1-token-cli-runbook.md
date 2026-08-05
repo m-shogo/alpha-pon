@@ -1,210 +1,136 @@
 # Cloudflare D1 token CLI runbook
 
-Status: `ACCOUNT_TOKEN_CLI_READY_REQUIRES_ONE_TIME_CREATOR_TOKEN`
+Status: `FINAL_ACCOUNT_TOKENS_REQUIRED`
 Updated: 2026-08-05 JST
 
 ## Purpose
 
-Create the least-privilege Cloudflare API tokens required by Alpha Pon's manual D1 sync workflow and store them in GitHub without printing or writing token values.
+Verify two final Cloudflare Account API tokens for Alpha Pon's D1 workflow and register them as GitHub Secrets without printing, persisting, or passing token values as command arguments.
 
-The operational tokens are **account-owned API tokens**. Cloudflare recommends account-owned tokens for durable CI/CD integrations, and D1 supports them. The one-time bootstrap credential remains a user token created from the official **Create additional tokens** template.
-
-The CLI configures:
+The importer configures:
 
 | Value | Cloudflare permission | GitHub location |
 | --- | --- | --- |
 | Read token | `D1 Read` | repository Secret `CLOUDFLARE_D1_READ_API_TOKEN` |
-| Edit token | account-scoped `D1 Edit` or `D1 Write` as returned by Cloudflare | `production` environment Secret when available; otherwise repository Secret `CLOUDFLARE_D1_EDIT_API_TOKEN` |
-| Account ID | n/a | repository Secret `CLOUDFLARE_ACCOUNT_ID` |
+| Write token | `D1 Write` or dashboard-equivalent `D1 Edit` | `production` environment Secret when available; otherwise repository Secret `CLOUDFLARE_D1_EDIT_API_TOKEN` |
+| Account ID | identifier only | repository Secret `CLOUDFLARE_ACCOUNT_ID` |
 
-Cloudflare currently uses both `D1 Edit` and `D1 Write` labels across its permission-group API and D1 API documentation. The CLI accepts either label only when exactly one matching account-scoped permission group exists. If both or neither are returned, it fails closed rather than guessing.
+## Why direct dashboard creation is required
 
-The default `--edit-secret-scope auto` attempts the stronger environment-secret boundary first. If the current private-repository GitHub plan does not support environment Secrets, it falls back to a repository Secret with the same name. It never upgrades a GitHub plan or requests billing.
+The Cloudflare **Create additional tokens** template creates a user-owned bootstrap token with permission to manage user-owned API tokens. It does not grant `Account API Tokens Read` or `Account API Tokens Write`, which are required by `/accounts/{account_id}/tokens` endpoints.
 
-Explicit overrides:
+Alpha Pon therefore does not attempt nested Account API Token creation. Create the two final Account API tokens directly in the dashboard and import them through hidden prompts.
 
-```text
---edit-secret-scope environment
---edit-secret-scope repository
-```
-
-## Why account-owned tokens
-
-User tokens act on behalf of an individual user. Account API tokens act as service principals and are the Cloudflare-recommended option for CI/CD. They remain tied to the Cloudflare account rather than to one person's dashboard identity.
-
-Official documentation:
+Official references:
 
 - `https://developers.cloudflare.com/fundamentals/api/get-started/account-owned-tokens/`
+- `https://developers.cloudflare.com/api/resources/accounts/subresources/tokens/methods/list/`
+- `https://developers.cloudflare.com/api/resources/accounts/subresources/tokens/methods/create/`
 - `https://developers.cloudflare.com/fundamentals/api/how-to/create-via-api/`
-- `https://developers.cloudflare.com/fundamentals/api/reference/permissions/`
-- `https://developers.cloudflare.com/api/resources/d1/subresources/database/methods/get/`
 
-## Cloudflare bootstrap limitation
+## Create the final tokens
 
-The first token-creator credential cannot be bootstrapped from nothing. Create one user token in the Cloudflare dashboard with the official **Create additional tokens** template.
+Cloudflare Dashboard:
 
-Do not add D1, Workers, Access, Zero Trust, billing, or any unrelated permission to the bootstrap token.
+```text
+Manage Account → Account API Tokens → Create Token
+```
 
-Bootstrap-token controls:
+Create two separate account-owned tokens for the explicit Alpha Pon account:
 
-- save the token value directly in a password manager
-- do not paste it into chat, source code, shell history, GitHub, or logs
-- use a short TTL or client-IP restriction when practical
-- run the CLI with `--revoke-bootstrap` so it revokes the bootstrap token only after successful setup
+1. `Alpha Pon D1 Read GitHub Actions`
+   - Account permission: `D1 Read`
+   - Resource: the current Alpha Pon account only
+2. `Alpha Pon D1 Write GitHub Actions`
+   - Account permission: `D1 Write` or the write-equivalent label shown by the dashboard
+   - Resource: the current Alpha Pon account only
 
-## Prerequisites
+Do not add Workers, Access, Zero Trust, billing, account-token-management, or unrelated permissions. Token values are shown once. Save each directly in a password manager and do not paste either value into chat.
 
-- local checkout of `m-shogo/alpha-pon`
-- Node.js 22 and installed dependencies
-- authenticated GitHub CLI: `gh auth status`
-- repository administration permission for GitHub Secrets
-- the 32-character Cloudflare account ID
-- one-time Cloudflare token created from **Create additional tokens**
+Creating Account API tokens requires the appropriate Cloudflare account administrator role. D1 supports account-owned tokens.
 
-The D1 binding is read from `wrangler.jsonc`:
+## Remove the temporary bootstrap token
+
+The temporary user token named `Alpha Pon Temporary Token Creator` is no longer needed. Revoke it manually after the final tokens are safely stored. It must not be used as either final D1 token.
+
+## Dry-run
+
+```bash
+bash scripts/setup-cloudflare-d1-github-secrets.sh
+```
+
+Dry-run makes no Cloudflare or GitHub change and prints:
+
+```text
+DRY_RUN_ONLY: no Cloudflare token or GitHub Secret was changed.
+```
+
+## Import and verify
+
+```bash
+bash scripts/setup-cloudflare-d1-github-secrets.sh \
+  --apply \
+  --account-id a820e23d890fcfeccdcbac6531543d83
+```
+
+The shell asks for two hidden values in this order:
+
+1. final D1 Read account token
+2. final D1 Write account token
+
+The importer then:
+
+1. verifies each token with the account-token verification endpoint
+2. verifies the configured D1 database name and ID
+3. executes only `SELECT 1 AS ok` with each token
+4. uses bounded retries only for temporary propagation/service errors
+5. sends values to `gh secret set` via standard input
+6. confirms all three Secret names in their resolved scopes
+7. prints token IDs and Secret names only, never token values
+
+The importer does not create, list, update, roll, or delete Cloudflare tokens. It cannot revoke the temporary bootstrap token.
+
+## Existing GitHub Secrets
+
+The first setup fails closed if a target Secret already exists. After reviewing existing Secret names, an intentional replacement can use:
+
+```text
+--replace-existing
+```
+
+The importer verifies both Cloudflare tokens before replacing any Secret.
+
+## D1 binding
+
+Read from `wrangler.jsonc`:
 
 ```text
 database_name: alpha-pon-market-events
 database_id: 7b90faf4-9834-4393-a921-275e0a68b398
 ```
 
-## Dry-run
+## Safety boundary
 
-Dry-run performs no Cloudflare or GitHub write:
+The importer:
 
-```bash
-bash scripts/setup-cloudflare-d1-github-secrets.sh
-```
-
-Expected marker:
-
-```text
-DRY_RUN_ONLY: no Cloudflare token or GitHub Secret was changed.
-```
-
-The plan identifies:
-
-- account-owned service-principal token ownership
-- target repository and intended GitHub Secret scope
-- D1 database name and ID
-- requested permission names
-- bounded permission-propagation retry timings
-- confirmation that no D1 data, Access, Zero Trust, billing, plan, or schedule changes
-
-## First setup
-
-Run:
-
-```bash
-bash scripts/setup-cloudflare-d1-github-secrets.sh --apply --revoke-bootstrap
-```
-
-The shell asks for:
-
-1. Cloudflare account ID — visible because it is an identifier, not a credential
-2. one-time token-creator token — hidden with terminal echo disabled
-
-Paste only the token value. Do not paste the `curl` command, `Authorization: Bearer`, quotes, or the token's display name.
-
-The CLI then:
-
-1. verifies the one-time user token
-2. resolves the GitHub Edit Secret boundary without changing the GitHub plan
-3. fetches current permission-group IDs instead of hard-coding them
-4. selects exactly one account-scoped `D1 Read` and one account-scoped `D1 Edit` or `D1 Write`
-5. creates two account-owned API tokens restricted to the explicit Cloudflare account
-6. verifies each account token is active
-7. verifies the expected D1 database name and ID
-8. executes only `SELECT 1 AS ok`
-9. retries only bounded transient authentication/service errors while a newly created token propagates
-10. sends Secret values to `gh secret set` through standard input
-11. confirms all three Secret names exist in their resolved scopes
-12. revokes the bootstrap token only after the complete setup verifies
-13. prints token IDs, names, permissions, ownership, and status only — never values
-
-## D1 resource scope
-
-Cloudflare's `D1 Read` and D1 write permission groups are account-scoped. Token policies cannot currently narrow these permissions to one D1 database resource.
-
-The CLI therefore:
-
-- restricts each token to one explicit Cloudflare account
-- never uses `com.cloudflare.api.account.*`
-- verifies the configured D1 database identity before GitHub Secret registration
-- runs only a read-only verification query
-
-If the account contains multiple D1 databases, the tokens can access D1 within that account according to their Read/Write permission. Do not reuse them outside Alpha Pon.
-
-## Propagation retry
-
-A newly created Cloudflare token can verify as active before a product endpoint accepts its policy. The CLI uses a bounded retry sequence for transient authentication and service errors only:
-
-```text
-0s, 1s, 2s, 4s, 8s, 15s
-```
-
-Permanent permission, account, or database-identity errors fail immediately. No infinite loop is allowed.
-
-## Rotation
-
-Rotation creates and verifies replacements before changing GitHub Secrets:
-
-```bash
-bash scripts/setup-cloudflare-d1-github-secrets.sh \
-  --apply \
-  --rotate \
-  --revoke-bootstrap
-```
-
-After the new Secret names verify, old account-owned tokens whose names begin with the following are revoked:
-
-```text
-Alpha Pon D1 Read GitHub Actions
-Alpha Pon D1 Edit GitHub Actions
-```
-
-Without `--rotate`, setup fails closed when managed account tokens or target GitHub Secrets already exist.
-
-## Failure behavior
-
-### Before GitHub Secret writes
-
-New account tokens are deleted in reverse creation order. The final error contains a structured `Cleanup=` report listing successful deletions and any deletion failures.
-
-### First setup after GitHub Secret writes begin
-
-When no target Secret existed before execution, the CLI removes newly written Secrets and deletes newly created account tokens. The exact cleanup result is reported.
-
-### Rotation after GitHub Secret writes begin
-
-Old tokens are preserved. New tokens are not deleted because GitHub Secrets may already reference them. The CLI explicitly reports that rotation may be partially applied.
-
-Token values are never printed during any failure path. Cloudflare errors are redacted against every credential held in memory.
-
-### Recovery from the 2026-08-05 user-token authentication failure
-
-The previous user-token CLI stopped before GitHub Secret writes when the new token received Cloudflare error `10000` on the D1 database endpoint. Its cleanup attempted to delete both newly created user tokens. Before retrying after this account-token change, confirm that no active tokens named `Alpha Pon D1 Read GitHub Actions` or `Alpha Pon D1 Edit GitHub Actions` remain under the user-token list. Do not delete unrelated `alpha-pon build token` entries.
-
-## What this CLI does not do
-
+- does not create or delete Cloudflare tokens
 - does not run D1 bootstrap
-- does not apply D1 migrations
+- does not apply migrations
 - does not write market-event rows
 - does not create a public Worker write API
 - does not create Access or Zero Trust resources
-- does not add a GitHub Actions schedule
-- does not change Cloudflare billing or request a credit card
-- does not change or upgrade the GitHub plan
+- does not add a schedule
+- does not change billing or GitHub plan
 - does not read or expose `CALENDAR_FEED_TOKEN`
-- does not change Edge research, score, threshold, or notification logic
+- does not change research, scoring, or notification logic
 
-## After setup
+## After successful import
 
-Run the GitHub Actions workflow manually with dry-run inputs only:
+Run only the manual GitHub Actions D1 dry-run:
 
 ```text
 Actions → Sync Cloudflare D1 Market Events → Run workflow
 apply: false
 ```
 
-Review the uploaded diff artifact before any apply run. Do not enable a schedule until repeated manual dry-runs and applies demonstrate idempotency and the user explicitly approves cadence and operational risk.
+Review its artifact before any apply run. Do not enable a schedule without explicit approval.
