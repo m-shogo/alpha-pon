@@ -1,5 +1,5 @@
 // Research OS — 整合性の一括検査。
-// スキーマ / 重複 / 参照 / PIT / Gate / Decay / research catalog をまとめて検査する。
+// スキーマ / 重複 / 参照 / PIT / Gate / Decay / research catalog / councilをまとめて検査する。
 
 import { existsSync, readFileSync } from "fs";
 import { validateRepositoryCatalogs, type CatalogIssue } from "../catalog-validation.js";
@@ -9,6 +9,10 @@ import { loadResearchState, loadSchema, paths, readJsonl, ResearchDataError } fr
 import { checkPit } from "../pit.js";
 import { checkProductionIntegrity, type HoldoutAccessEntry, type HoldoutManifest } from "../promotion.js";
 import { formatErrors, validate as validateSchema } from "../schema.js";
+import {
+  validateRepositoryStockProCouncilV2,
+  type CouncilIssue,
+} from "../stock-pro-council-v2-validation.js";
 import { fail, parseArgs, printIssues, todayJst } from "./common.js";
 
 function loadHoldout(): { manifest: HoldoutManifest | null; accessLog: HoldoutAccessEntry[]; issues: Issue[] } {
@@ -49,7 +53,7 @@ function loadHoldout(): { manifest: HoldoutManifest | null; accessLog: HoldoutAc
   return { manifest, accessLog, issues };
 }
 
-function toResearchIssue(issue: CatalogIssue): Issue {
+function toResearchIssue(issue: CatalogIssue | CouncilIssue): Issue {
   return {
     severity: issue.severity,
     code: issue.code,
@@ -74,7 +78,10 @@ function main(): void {
 
   const holdout = loadHoldout();
   const catalogs = validateRepositoryCatalogs();
+  const council = validateRepositoryStockProCouncilV2();
   const catalogIssues = [...catalogs.dataSourceIssues, ...catalogs.edgeFamilyIssues]
+    .map(toResearchIssue);
+  const councilIssues = [...council.catalogIssues, ...council.verdictIssues]
     .map(toResearchIssue);
 
   const issues: Issue[] = [
@@ -84,6 +91,7 @@ function main(): void {
     ...checkProductionIntegrity(state, holdout.accessLog, asOf),
     ...checkDecay(state, asOf),
     ...catalogIssues,
+    ...councilIssues,
   ];
 
   console.log(
@@ -92,7 +100,10 @@ function main(): void {
   console.log(
     `Research Catalog: Data Source ${catalogs.sourceCount} / Technology Family ${catalogs.familyCount} / Active Edge ${catalogs.activeEdgeCount}`,
   );
-  console.log("Catalog entries are not counted as active Research OS Edges.");
+  console.log(
+    `Stock Pro Council v2: Persona ${council.personaCount} / Persisted Verdict ${council.verdictCount}`,
+  );
+  console.log("Catalog entries and council personas are not counted as active Research OS Edges.");
 
   const { errors } = printIssues("整合性", issues);
   if (errors > 0) fail(`エラー ${errors} 件。修正するまで研究成果は取り込めません。`);
@@ -100,6 +111,7 @@ function main(): void {
   console.log("\n✓ Research OS の不変条件をすべて満たしています");
   console.log("✓ DATA_SOURCE_REGISTRY_CONTRACT_GREEN");
   console.log("✓ TECH_EDGE_CANDIDATE_CATALOG_GREEN");
+  console.log("✓ STOCK_PRO_COUNCIL_V2_CONTRACT_GREEN");
 }
 
 main();
