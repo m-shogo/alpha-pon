@@ -129,7 +129,32 @@ Required outputs even without credentials:
 
 Do not commit licensed data to Git without an explicit redistribution right.
 
-### P3 — First Edge evidence package
+Status: contract complete (PR #37), local verification green, merge blocked by the GitHub Actions billing block above.
+
+### P2.5 — J-Quants Free `PriceProvider` adapter
+
+Primary executor: Claude Code or Codex. Starts only after P2 merges.
+Handoff: `docs/research/jquants-free-adapter-next-slice.md`.
+
+- Reuse the existing `src/fetcher/jquants.ts` client; do not rebuild it. Add a thin `src/research/providers/jquants-free.ts` implementing `PriceProvider` with `plan: "free"`.
+- Declare Free capabilities explicitly: `delayDays`, `historyFrom`, adjusted/unadjusted, benchmark and sector benchmark support.
+- Map `DailyQuote` to `PitPriceRecord` with `dataAsOf` (market time), `observedAt` (Free availability), `retrievedAt` (fetch time) and `firstExecutableAt` (first executable slot after `observedAt`). Do not assume "next day" — follow the real JST trading calendar for holidays and session times.
+- Missing credentials are non-fatal; provider failure must not propagate to LINE/daily; real prices stay local-only; secrets are never stored in records; unknown license stays `unknown` and is rejected by the store.
+- Measure with the real Free plan (do not fix by guess): actual delay days and whether the 84-day default holds, earliest history, missing/no_trade/suspended patterns, TOPIX and sector-index retrieval paths and series codes, adjusted/unadjusted coverage, license and local-storage boundary.
+- Fixture / dry-run first; leave genuinely unmeasurable items as honest blockers.
+
+### P2.6 — EDINET Version 2 auth migration
+
+Milestone: `EDINET_V2_AUTH_MIGRATION_GREEN`. The existing `src/fetcher/edinet.ts`
+assumes the old URL with no API key; do not do a half migration that only swaps the URL.
+
+- Current endpoint, `EDINET_API_KEY`, `Subscription-Key` header.
+- Missing credentials are non-fatal; redact secrets; checkpoint, retry and rate limit.
+- `docID`, content hash, correction / re-correction / withdrawal and supersession chain.
+- Source health, fixture tests, `publishedAt` / `observedAt` / `firstExecutableAt`, document-type classification and company-entity mapping.
+- An EDINET failure or missing credentials must not stop LINE/daily.
+
+### P3 — First Edge evidence package (Known-Bad Event)
 
 Research owner: ChatGPT scheduled orchestration.
 Implementation support: Claude Code or Codex when scripts/importers are required.
@@ -153,10 +178,36 @@ Research review: ChatGPT.
 - Generate Backtest input signals from Edge and market-event records.
 - Persist `signalGeneratedAt`, `publicObservedAt`, `firstExecutableAt`, direction, entry/exit rule, blocking reason, confounder refs and training/holdout split.
 - Measure prior-close to next-open, D0 open-close, D0 close-close, D+1, D+3 and D+5; add D+10/D+20 only when mechanism requires them.
-- Adjust for TOPIX, sector, beta/matched control, volume, gap, spread, liquidity and concurrent disclosures.
+- Adjust for TOPIX, sector, beta/matched control, volume, gap, spread, liquidity, borrow availability, borrow cost and concurrent disclosures.
 - Report gross return and net alpha separately.
 
-### P5 — Research scale-up
+### P5 — Recommendation & Outcome persistence
+
+Primary executor: Claude Code or Codex.
+Research review: ChatGPT.
+Implemented as a separate PR from the J-Quants Free adapter; never mix the two.
+
+Implement the issue-time-immutable recommendation record and its later
+outcome answer-check. Contract: `docs/research/recommendation-outcome-contract.md`
+(currently `CONTRACT_DRAFT_NOT_IMPLEMENTED`).
+
+- Persist `RecommendationRecord` at `issuedAt` with `informationCutoff`,
+  `decision`, `buyRange`, `targetRange`, scenarios, `confidence`,
+  `confirmationConditions`, `invalidationRules`, `exitConditions`, evidence
+  tiers, `edgeIds`, benchmark/sector benchmark and `outcomeReviewDate`.
+- Never overwrite an issued record; append revisions via `supersedesId`.
+- Do not mix information after `informationCutoff` into the original judgment.
+- Reject BUY built only from catalog-stage Edges or Discovery-only evidence.
+- Omit `confidence` / price ranges when there is no basis; never fabricate them.
+- Compute `maxReturn`, `maxDrawdown` and benchmark excess return from the PIT
+  Price Store using only prices at or after `issuedAt`; measure TOPIX and sector diff.
+- Judge target-reached / invalidation-triggered / expiry.
+- Keep failed forecasts and rejected Edges; never delete them.
+
+This phase depends on P2 (PIT Price Store) for price truth and on a validated
+Edge for evidence. It does not authorize automatic order placement.
+
+### P6 — Research scale-up
 
 Shared ownership under the routing policy.
 
@@ -168,30 +219,34 @@ Shared ownership under the routing policy.
 - Opportunity-cost scoring.
 - Automated Decay calculation.
 - Self-hosted runner contracts for archive scans and heavy backtests.
+- Pilot required official data sources one at a time, only after their contracts and dedupe/checkpoint behavior are deterministic.
 
-### P6b — Recommendation & Outcome persistence contract
+### P7 — Technology Commercialization Graph
 
-Primary executor: Claude Code or Codex.
-Research review: ChatGPT.
+Model the commercialization path so beneficiaries are found by structure, not by
+paper counts, patent counts, a single "world first" or SNS hype.
 
-Implement the issue-time-immutable recommendation record and its later
-outcome answer-check. Contract: `docs/research/recommendation-outcome-contract.md`.
+```text
+research -> reproduction -> grant -> patent family -> joint research ->
+standardization -> prototype -> customer sample -> certification/qualification ->
+pilot line -> capex -> long-term supply contract -> mass production -> revenue/profit
+```
 
-- Persist `RecommendationRecord` at `issuedAt` with `informationCutoff`,
-  `decision`, `buyRange`, `targetRange`, scenarios, `confidence`,
-  `confirmationConditions`, `invalidationRules`, `exitConditions`, evidence
-  tiers, `edgeIds`, benchmark/sector benchmark and `outcomeReviewDate`.
-- Never overwrite an issued record; append revisions via `supersedesId`.
-- Reject BUY built only from catalog-stage Edges or Discovery-only evidence.
-- Compute `maxReturn`, `maxDrawdown` and benchmark excess return from the PIT
-  Price Store using only prices at or after `issuedAt`.
-- Judge target-reached / invalidation-triggered / expiry.
-- Keep failed forecasts and rejected Edges; never delete them.
+- Represent beneficiary layers explicitly: final-product / platform / tier-1 / tier-2 / material / equipment / inspection / infrastructure / service.
+- Core families: Research-to-Commercialization, Enabling Material, Supplier Cascade, Bottleneck Migration, Research-to-Capex, Standardization and Certification, Regulatory Forced Demand, Technology Substitution, Supplier Qualification Moat, Hidden Capacity Constraint (plus the additional research concepts in the Data Source / Technology Edge roadmap).
+- Guiding heuristic: do not try to pick the hero product; find what必ず不足する (must run short) when that hero product scales.
 
-This phase depends on P2 (PIT Price Store) for price truth and on a validated
-Edge for evidence. It does not authorize automatic order placement.
+### P8 — First Technology Edge active-research promotion
 
-### P6 — Shadow validation and promotion discipline
+Promote exactly one technology Edge from the catalog into active-research, in a
+separate evidence-backed PR. Lifecycle: `catalog -> candidate -> active-research
+-> shadow -> validated / rejected / dormant`.
+
+- Register many Edge candidates, but keep only a small number active at once.
+- Promotion requires causal path, objective trigger, beneficiary layer, PIT-safe timing, required data and data rights, confounders, invalidation and entry conditions, horizon, benchmark, holdout design, overlap check against existing active Edges, and the evidence tier usable for a BUY decision.
+- No direct catalog -> active promotion; candidates must clear the gate above.
+
+### P9 — Shadow validation and promotion discipline
 
 - Freeze discovery and confirmatory samples.
 - Keep an untouched Holdout.
@@ -227,14 +282,17 @@ The schedule is an orchestrator, not a substitute for Claude Code, Codex, a loca
 
 ## 6. Next concrete milestones
 
-1. `LINE_CONSOLIDATED_NOTIFICATION_GREEN`
-2. `PIT_PRICE_STORE_CONTRACT_GREEN`
-3. `PIT_PRICE_FIRST_REAL_SERIES_VALIDATED`
-4. `KNOWN_BAD_FIRST_ANALOG_PACKAGE`
-5. `KNOWN_BAD_FIRST_EXECUTABLE_EVENT_STUDY`
-6. `SIGNAL_STORE_V1_GREEN`
-7. `RECOMMENDATION_OUTCOME_CONTRACT_GREEN`
-8. `CONFOUNDER_AUTOMATION_V1_GREEN`
-9. `FIRST_CONFIRMATORY_SAMPLE_READY`
+1. `LINE_CONSOLIDATED_NOTIFICATION_GREEN` — DONE (PR #34)
+2. `PIT_PRICE_STORE_CONTRACT_GREEN` — P2, contract + local checks green; awaiting Actions billing fix to merge
+3. `PIT_PRICE_FIRST_REAL_SERIES_VALIDATED` — P2.5
+4. `EDINET_V2_AUTH_MIGRATION_GREEN` — P2.6
+5. `KNOWN_BAD_FIRST_ANALOG_PACKAGE` — P3
+6. `KNOWN_BAD_FIRST_EXECUTABLE_EVENT_STUDY` — P3/P4
+7. `SIGNAL_STORE_V1_GREEN` — P4
+8. `RECOMMENDATION_OUTCOME_CONTRACT_GREEN` — P5
+9. `CONFOUNDER_AUTOMATION_V1_GREEN` — P6
+10. `TECHNOLOGY_COMMERCIALIZATION_GRAPH_V1` — P7
+11. `FIRST_TECHNOLOGY_EDGE_ACTIVE_RESEARCH` — P8
+12. `FIRST_CONFIRMATORY_SAMPLE_READY` — P9
 
 The next milestone must not be marked complete from narrative evidence alone. It requires committed artifacts and green checks.
