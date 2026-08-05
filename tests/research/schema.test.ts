@@ -1,7 +1,14 @@
+import "./catalog-validation.test.js";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { load } from "js-yaml";
-import { formatErrors, isValidDate, isValidDateTime, stableStringify, validate } from "../../src/research/schema.js";
+import {
+  formatErrors,
+  isValidDate,
+  isValidDateTime,
+  stableStringify,
+  validate,
+} from "../../src/research/schema.js";
 
 const edgeSchema = JSON.parse(readFileSync("research/schemas/edge.schema.json", "utf-8"));
 
@@ -16,7 +23,11 @@ function testDateFormats() {
 }
 
 function testStableStringify() {
-  assert.equal(stableStringify({ b: 1, a: 2 }), stableStringify({ a: 2, b: 1 }), "キー順に依存しない");
+  assert.equal(
+    stableStringify({ b: 1, a: 2 }),
+    stableStringify({ a: 2, b: 1 }),
+    "キー順に依存しない",
+  );
   assert.notEqual(stableStringify({ a: 1 }), stableStringify({ a: 2 }));
   console.log("research/schema: stableStringify OK");
 }
@@ -29,7 +40,9 @@ function testValidFixturePasses() {
 }
 
 function testInvalidFixtureFails() {
-  const edge = load(readFileSync("research/fixtures/invalid/edge-unevidenced-pass.yml", "utf-8"));
+  const edge = load(
+    readFileSync("research/fixtures/invalid/edge-unevidenced-pass.yml", "utf-8"),
+  );
   const errors = validate(edge, edgeSchema);
   assert.ok(
     errors.some((error) => error.path === "mechanism"),
@@ -39,7 +52,9 @@ function testInvalidFixtureFails() {
 }
 
 function testUnknownFieldRejected() {
-  const edge = load(readFileSync("research/fixtures/valid/edge-complete.yml", "utf-8")) as Record<string, unknown>;
+  const edge = load(
+    readFileSync("research/fixtures/valid/edge-complete.yml", "utf-8"),
+  ) as Record<string, unknown>;
   const errors = validate({ ...edge, whoopsTypo: 1 }, edgeSchema);
   assert.ok(
     errors.some((error) => error.path === "whoopsTypo"),
@@ -49,7 +64,9 @@ function testUnknownFieldRejected() {
 }
 
 function testSourceTypeRejectsSns() {
-  const edge = load(readFileSync("research/fixtures/valid/edge-complete.yml", "utf-8")) as Record<string, unknown>;
+  const edge = load(
+    readFileSync("research/fixtures/valid/edge-complete.yml", "utf-8"),
+  ) as Record<string, unknown>;
   const evidence = [
     {
       source: "https://example.invalid/post",
