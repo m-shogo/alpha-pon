@@ -1,32 +1,31 @@
-# PIT Price Store v1 Foundation
+# PIT Price Store v1
 
-Status: `FOUNDATION_IMPLEMENTED_PENDING_CI`
+Status: `CONTRACT_IMPLEMENTED_ACTIONS_STARTUP_BLOCKED`
 
 ## Purpose
 
-Research OS の Backtest は現在、外部から注入された `PriceSeries` だけを扱います。本契約は、実価格・TOPIX・業種指数を後日改訂による先読みなしで保存し、特定の `asOf` 時点で利用可能だった系列だけを再構築するための基盤です。
+Research OSのEvent StudyとBacktestへ、銘柄価格・TOPIX・業種指数をpoint-in-time安全に供給するためのappend-only基盤です。
 
-この段階では J-Quants や JPX への実接続、実価格の commit、Net Alpha の実測は行いません。
+このPRでは契約、schema、validator、writer、selector、synthetic fixtureを実装します。J-Quants等への実接続、実価格のGit保存、Net Alphaの実測は行いません。
 
 ## Canonical record
 
 1 JSONL line = 1 immutable observation.
 
-主な項目:
+必須境界:
 
 - `seriesKind`: `security` / `benchmark`
 - `code`, `market`, `tradingDate`
-- `observedAt`: データが取得・利用可能になった時刻
-- `firstExecutableAt`: その行を利用した判断が初めて約定可能になる時刻
-- `source`, `sourceVersion`, `ingestionRunId`
-- `status`: `traded`, `suspended`, `no_trade`, `missing`
-- `ohlcv`
-- `adjusted`, `adjustmentFactor`
-- `corporateActions`
+- `dataAsOf`: OHLCVが表す市場時点
+- `observedAt`: provider上で契約上利用可能になった時刻
+- `retrievedAt`: Alpha Ponが実際に取得した時刻
+- `firstExecutableAt`: このrecordを使った注文が最初に約定可能な時刻
+- `source`, `sourceVersion`, `providerPlan`, `ingestionRunId`
+- `delayDays`, `isDelayed`
+- `status`, `missingReason`, `ohlcv`
+- `adjusted`, `adjustmentFactor`, `corporateActions`
 - `benchmarkCode`, `sectorBenchmarkCode`
-- `license`
-- `contentHash`
-- `supersedesHash`
+- `license`, `contentHash`, `supersedesHash`
 
 Schema authority:
 
@@ -40,69 +39,89 @@ Runtime authority:
 src/research/price-store.ts
 ```
 
-## Append-only revision model
+## Four timestamps
 
-同じ `seriesKind + market + code + tradingDate + source` に訂正値が出た場合:
+```text
+dataAsOf
+  <= observedAt
+  <= retrievedAt
+  <= firstExecutableAt（通常）
+```
+
+現実には取得直後に同時刻で実行可能となる場合もありますが、少なくとも公開前・取得前の約定を許可しません。
+
+Backtest adapterは`firstExecutableAt <= asOf`のみを使用します。公開済みでも、まだ執行不能なrecordは除外します。
+
+## Provider plans
+
+J-Quants Free／Standard等は、別の業務ロジックへ分岐させません。同じ`PriceProvider` interfaceを使い、差分をcapabilityとして保存します。
+
+- plan
+- delay days
+- adjusted / unadjusted
+- corporate actions
+- benchmark / sector benchmark
+- history range
+- license
+
+Provider batchは各recordと次が一致する必要があります。
+
+- `providerPlan`
+- `delayDays`
+- `retrievedAt`
+- `sourceVersion`
+- `license`
+- supported capabilities
+
+## Revision model
+
+同じ`seriesKind + market + code + tradingDate + source + providerPlan`に訂正値が出た場合:
 
 1. 既存行を変更しない
-2. 新しい `observedAt` と `sourceVersion` で新規行を追加
-3. `supersedesHash` に直前revisionの `contentHash` を指定
-4. 新しい行の `contentHash` を再計算
+2. 新しい`observedAt`で行を追加
+3. `supersedesHash`で直前revisionを参照
+4. `contentHash`を再計算
 
-`contentHash` は自身の `contentHash` フィールドを除くcanonical recordのSHA-256です。
+Revision順序はISO文字列の辞書順ではなく、epoch timestampで比較します。
 
-## PIT semantics
+## Missing and non-traded rows
 
-- `observedAt` のJST日付は `tradingDate` より前にできない
-- `firstExecutableAt` は `observedAt` より前にできない
-- `observedAt` が現在時刻より未来の行は拒否
-- Backtest変換時は `observedAt <= asOf` のrevisionだけを使用
-- 同一営業日の後日訂正値を過去の `asOf` に混ぜない
-- 休場・売買停止・欠損はforward fillせず、`status` として保持
+`status`:
 
-## OHLCV semantics
+- `traded`
+- `suspended`
+- `no_trade`
+- `missing`
 
-`status=traded` のみOHLCVを持ちます。
-
-- Open / High / Low / Close > 0
-- HighはOpen/Close/Low以上
-- LowはOpen/Close/High以下
-- Volumeは0以上の整数
-- `adjusted=false` の場合は `adjustmentFactor=1`
-
-Provider調整済みOHLCVとunadjusted OHLCVを混同しないため、`adjusted` と `adjustmentFactor` を必須にしています。
+`traded`だけがOHLCVを持ちます。それ以外は`missingReason`が必須です。Price Storeはforward fillを行いません。
 
 ## Corporate actions
 
-Split、reverse split、dividend、rights、merger、spinoff等を行内で参照できます。ただし、価格調整の二重適用を避けるため、実Provider adapterでは次を記録します。
+Split、reverse split、dividend、rights、merger、spinoff等を参照できます。
 
-- Providerが返すOHLCVがadjustedか
-- adjustment factorの由来
-- corporate actionの公表時刻
-- effective date
-- source
+- actionの`observedAt`がprice recordより後ならPIT漏れ
+- split/reverse splitは正のfactor必須
+- adjusted/unadjustedとfactorを明示
+- Provider調整済み価格へ二重調整しない
 
-## Provider boundary
+## Provider ambiguity
 
-`PriceProvider` はnetwork-freeなinterfaceです。Provider adapterは後続PRで実装します。
+複数sourceまたは複数planが同一日付に存在する場合、Backtest adapterは黙って混ぜません。
 
-候補:
+```text
+selector.source
+selector.providerPlan
+```
 
-- J-Quants
-- JPX一次データ
-- Mac local historical DB / archive
-- 利用許諾済み市場データ
-
-Credentialや利用許諾がない場合も、fixtureとprovider contractはCIで検証できます。
+を指定し、一意のseriesへ固定します。
 
 ## License boundary
 
-実価格は `local_only` を既定とします。
-
-- `research/prices/**/*.jsonl` はGit ignore
-- Git管理する価格データはsynthetic fixtureだけ
-- `unknown` licenseを再配布しない
-- Secret、API token、account IDをrecordへ保存しない
+- 実価格はlocal-onlyが既定
+- `research/prices/**/*.jsonl`とJSONはGit ignore
+- Git管理する価格はsynthetic fixtureのみ
+- `license=unknown`は取込エラー
+- credentialはrecordへ保存しない
 
 ## Commands
 
@@ -112,31 +131,41 @@ pnpm research:test
 pnpm research:check
 ```
 
-Local storeを別pathで検証:
+別local store:
 
 ```bash
 node --import tsx/esm src/research/cli/validate-prices.ts --root=/absolute/path/to/prices
 ```
 
-## Definition of done for this foundation
+## Definition of done
 
 - [x] schema
 - [x] TypeScript contract
+- [x] four timestamp boundary
+- [x] provider plan/capability boundary
 - [x] deterministic content hash
-- [x] append-only writer
+- [x] append-only writer + fsync
 - [x] duplicate/revision validation
-- [x] PIT/as-of selector
-- [x] Backtest `PriceSeries` adapter
+- [x] observed/executable selector
+- [x] Backtest adapter
+- [x] provider ambiguity guard
+- [x] missing/no-forward-fill contract
 - [x] synthetic fixture
 - [x] tests
 - [x] local-only license boundary
-- [ ] CI green
-- [ ] real provider adapter
-- [ ] real security series
+- [ ] GitHub Actions green
+- [ ] real J-Quants adapter
+- [ ] first real security series
 - [ ] TOPIX / sector benchmark ingestion
 - [ ] trading calendar integration
-- [ ] data gap report from real provider
+- [ ] provider data-gap report
+
+## Current external blocker
+
+2026-08-05のPR実行では、GitHub ActionsのCI／Check／Research OSがjob step開始前にfailureとなり、job logも生成されていません。同じrunのfailed-job再実行でも同様です。
+
+コード失敗のログが得られる状態へ戻るまでは、PRをmergeしません。
 
 ## Next slice
 
-After CI green, implement one provider adapter in dry-run mode. No real market data is committed until the license classification is verified.
+Actionsが復旧しcontract greenを確認後、既存J-Quants clientを`PriceProvider` adapterへ接続します。Free／Standardはcapability flagsだけを切り替え、実市場データはlocal storeへ保存します。
