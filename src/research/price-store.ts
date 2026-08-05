@@ -1,13 +1,22 @@
-// Research OS — PIT Price Store foundation.
+// Research OS — PIT Price Store v1.
 //
 // Principles:
-// - observedAt is the point-in-time boundary. A later revision never rewrites an older record.
-// - JSONL files are append-only. Revisions form an explicit supersedesHash chain.
-// - raw market data is local-only by default; repository fixtures are synthetic.
-// - this module performs no network access. Providers are injected through a small interface.
+// - dataAsOf / observedAt / retrievedAt / firstExecutableAt are distinct.
+// - later corrections append a new row with supersedesHash; old rows are immutable.
+// - missing/suspended/no-trade rows are explicit and never forward-filled here.
+// - provider/network logic is injected. This module performs no network access.
+// - licensed raw data is local-only unless redistribution is explicitly allowed.
 
 import { createHash } from "node:crypto";
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import {
+  appendFileSync,
+  closeSync,
+  existsSync,
+  fsyncSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+} from "node:fs";
 import { dirname } from "node:path";
 import type { PriceSeries } from "./backtest.js";
 import { jstDateOf } from "./pit.js";
@@ -16,6 +25,21 @@ import { formatErrors, stableStringify, validate, type JsonSchema } from "./sche
 export type PriceSeriesKind = "security" | "benchmark";
 export type PriceRecordStatus = "traded" | "suspended" | "no_trade" | "missing";
 export type PriceDataLicense = "redistributable" | "metadata_only" | "local_only" | "unknown";
+export type PriceProviderPlan =
+  | "free"
+  | "standard"
+  | "premium"
+  | "official_public"
+  | "synthetic"
+  | "unknown";
+export type MissingPriceReason =
+  | "exchange_suspension"
+  | "market_holiday"
+  | "no_execution"
+  | "provider_gap"
+  | "outside_entitlement"
+  | "not_yet_available"
+  | "unknown";
 export type CorporateActionType =
   | "split"
   | "reverse_split"
@@ -36,7 +60,6 @@ export interface PriceOhlcv {
 export interface PriceCorporateAction {
   type: CorporateActionType;
   effectiveDate: string;
-  /** Split 1:2 => 2. Reverse split 2:1 => 0.5. */
   factor?: number;
   observedAt: string;
   source: string;
@@ -48,49 +71,45 @@ export interface PitPriceRecord {
   code: string;
   market: string;
   tradingDate: string;
+  /** Market time represented by the OHLCV row, normally the trading-day close. */
+  dataAsOf: string;
+  /** Contractual/public availability boundary. The PIT source of truth. */
   observedAt: string;
-  /** Earliest timestamp at which this stored record may be used for an executable decision. */
+  /** Actual Alpha Pon ingestion time. */
+  retrievedAt: string;
+  /** Earliest timestamp at which a decision using this row could be executed. */
   firstExecutableAt: string;
   source: string;
   sourceVersion: string;
+  providerPlan: PriceProviderPlan;
+  delayDays: number;
+  isDelayed: boolean;
   ingestionRunId: string;
   currency: string;
   status: PriceRecordStatus;
+  missingReason?: MissingPriceReason;
   ohlcv?: PriceOhlcv;
-  /** Whether ohlcv has already been adjusted by the provider. */
   adjusted: boolean;
-  /** Provider adjustment factor. Must be 1 for unadjusted rows. */
   adjustmentFactor: number;
   corporateActions: PriceCorporateAction[];
   benchmarkCode?: string;
   sectorBenchmarkCode?: string;
   license: PriceDataLicense;
-  /** SHA-256 of the canonical record excluding contentHash. */
   contentHash: string;
-  /** Required when the same source revises a prior record for the same series/date. */
   supersedesHash?: string;
 }
 
 export type PitPriceRecordInput = Omit<PitPriceRecord, "contentHash">;
 
-export interface PriceStoreIssue {
-  severity: "error" | "warning";
-  code:
-    | "schema"
-    | "future_observation"
-    | "observed_before_trading_date"
-    | "execution_before_observation"
-    | "invalid_ohlcv"
-    | "ohlcv_for_non_traded"
-    | "missing_ohlcv"
-    | "invalid_adjustment"
-    | "invalid_content_hash"
-    | "duplicate_content_hash"
-    | "missing_supersedes_hash"
-    | "invalid_supersedes_hash"
-    | "revision_time_not_monotonic";
-  target: string;
-  message: string;
+export interface PriceProviderCapabilities {
+  plan: PriceProviderPlan;
+  delayDays: number;
+  supportsAdjusted: boolean;
+  supportsUnadjusted: boolean;
+  supportsCorporateActions: boolean;
+  supportsBenchmarks: boolean;
+  supportsSectorBenchmarks: boolean;
+  historyFrom?: string;
 }
 
 export interface PriceProviderQuery {
@@ -99,19 +118,55 @@ export interface PriceProviderQuery {
   from: string;
   to: string;
   asOf: string;
+  plan?: PriceProviderPlan;
 }
 
 export interface PriceProviderBatch {
   providerId: string;
   sourceVersion: string;
+  capabilities: PriceProviderCapabilities;
   license: PriceDataLicense;
+  retrievedAt: string;
   records: PitPriceRecordInput[];
 }
 
 export interface PriceProvider {
   readonly id: string;
   readonly license: PriceDataLicense;
+  readonly capabilities: PriceProviderCapabilities;
   fetchDaily(query: PriceProviderQuery): Promise<PriceProviderBatch>;
+}
+
+export type PriceStoreIssueCode =
+  | "schema"
+  | "future_observation"
+  | "future_retrieval"
+  | "data_after_observation"
+  | "retrieval_before_observation"
+  | "execution_before_observation"
+  | "trading_date_mismatch"
+  | "delay_flag_mismatch"
+  | "invalid_ohlcv"
+  | "ohlcv_for_non_traded"
+  | "missing_ohlcv"
+  | "missing_reason_required"
+  | "missing_reason_for_traded"
+  | "invalid_adjustment"
+  | "corporate_action_after_record"
+  | "corporate_action_factor_required"
+  | "unknown_license"
+  | "missing_benchmark"
+  | "invalid_content_hash"
+  | "duplicate_content_hash"
+  | "missing_supersedes_hash"
+  | "invalid_supersedes_hash"
+  | "revision_time_not_monotonic";
+
+export interface PriceStoreIssue {
+  severity: "error" | "warning";
+  code: PriceStoreIssueCode;
+  target: string;
+  message: string;
 }
 
 function withoutContentHash(record: PitPriceRecord | PitPriceRecordInput): PitPriceRecordInput {
@@ -120,19 +175,27 @@ function withoutContentHash(record: PitPriceRecord | PitPriceRecordInput): PitPr
 }
 
 export function computePriceRecordHash(record: PitPriceRecord | PitPriceRecordInput): string {
-  return createHash("sha256").update(stableStringify(withoutContentHash(record))).digest("hex");
+  return createHash("sha256")
+    .update(stableStringify(withoutContentHash(record)))
+    .digest("hex");
 }
 
 export function withPriceRecordHash(record: PitPriceRecordInput): PitPriceRecord {
   return { ...record, contentHash: computePriceRecordHash(record) };
 }
 
-function recordTarget(record: Pick<PitPriceRecord, "seriesKind" | "code" | "market" | "tradingDate" | "source">): string {
-  return `${record.seriesKind}:${record.market}:${record.code}:${record.tradingDate}:${record.source}`;
+function targetOf(
+  record: Pick<PitPriceRecord, "seriesKind" | "code" | "market" | "tradingDate" | "source" | "providerPlan">,
+): string {
+  return `${record.seriesKind}:${record.market}:${record.code}:${record.tradingDate}:${record.source}:${record.providerPlan}`;
 }
 
 function revisionKey(record: PitPriceRecord): string {
-  return recordTarget(record);
+  return targetOf(record);
+}
+
+function timeMs(value: string): number {
+  return Date.parse(value);
 }
 
 function pushIssue(
@@ -143,31 +206,74 @@ function pushIssue(
 }
 
 function validateOhlcv(record: PitPriceRecord, issues: PriceStoreIssue[]): void {
-  const target = recordTarget(record);
-  if (record.status === "traded" && !record.ohlcv) {
-    pushIssue(issues, { code: "missing_ohlcv", target, message: "status=traded には OHLCV が必要です" });
-    return;
+  const target = targetOf(record);
+  if (record.status === "traded") {
+    if (!record.ohlcv) {
+      pushIssue(issues, {
+        code: "missing_ohlcv",
+        target,
+        message: "status=tradedにはOHLCVが必要です",
+      });
+    }
+    if (record.missingReason !== undefined) {
+      pushIssue(issues, {
+        code: "missing_reason_for_traded",
+        target,
+        message: "status=tradedにmissingReasonを設定しないでください",
+      });
+    }
+  } else {
+    if (record.ohlcv) {
+      pushIssue(issues, {
+        code: "ohlcv_for_non_traded",
+        target,
+        message: `status=${record.status}にOHLCVを保存しないでください`,
+      });
+    }
+    if (!record.missingReason) {
+      pushIssue(issues, {
+        code: "missing_reason_required",
+        target,
+        message: `status=${record.status}にはmissingReasonが必要です`,
+      });
+    }
   }
-  if (record.status !== "traded" && record.ohlcv) {
-    pushIssue(issues, {
-      code: "ohlcv_for_non_traded",
-      target,
-      message: `status=${record.status} に OHLCV を保存しないでください。欠損理由を status で保持します`,
-    });
-    return;
-  }
-  if (!record.ohlcv) return;
 
+  if (!record.ohlcv) return;
   const { open, high, low, close, volume } = record.ohlcv;
-  const positive = [open, high, low, close].every((value) => Number.isFinite(value) && value > 0);
+  const positive = [open, high, low, close]
+    .every((value) => Number.isFinite(value) && value > 0);
   const rangeValid = high >= Math.max(open, close, low) && low <= Math.min(open, close, high);
   const volumeValid = Number.isInteger(volume) && volume >= 0;
   if (!positive || !rangeValid || !volumeValid) {
     pushIssue(issues, {
       code: "invalid_ohlcv",
       target,
-      message: `不正な OHLCV です: ${JSON.stringify(record.ohlcv)}`,
+      message: `不正なOHLCVです: ${JSON.stringify(record.ohlcv)}`,
     });
+  }
+}
+
+function validateCorporateActions(record: PitPriceRecord, issues: PriceStoreIssue[]): void {
+  const target = targetOf(record);
+  for (const action of record.corporateActions) {
+    if (timeMs(action.observedAt) > timeMs(record.observedAt)) {
+      pushIssue(issues, {
+        code: "corporate_action_after_record",
+        target,
+        message: `record観測後のcorporate actionを混入できません: ${action.observedAt}`,
+      });
+    }
+    if (
+      (action.type === "split" || action.type === "reverse_split") &&
+      (!Number.isFinite(action.factor) || Number(action.factor) <= 0)
+    ) {
+      pushIssue(issues, {
+        code: "corporate_action_factor_required",
+        target,
+        message: `${action.type}には正のfactorが必要です`,
+      });
+    }
   }
 }
 
@@ -177,7 +283,7 @@ export function validatePriceRecord(
   now: Date = new Date(),
 ): PriceStoreIssue[] {
   const issues: PriceStoreIssue[] = [];
-  const target = recordTarget(record);
+  const target = targetOf(record);
   const schemaErrors = validate(record, schema);
   if (schemaErrors.length > 0) {
     pushIssue(issues, {
@@ -188,45 +294,92 @@ export function validatePriceRecord(
     return issues;
   }
 
+  const dataMs = timeMs(record.dataAsOf);
+  const observedMs = timeMs(record.observedAt);
+  const retrievedMs = timeMs(record.retrievedAt);
+  const executableMs = timeMs(record.firstExecutableAt);
   const nowMs = now.getTime();
-  const observedMs = Date.parse(record.observedAt);
-  const executableMs = Date.parse(record.firstExecutableAt);
+
   if (observedMs > nowMs) {
     pushIssue(issues, {
       code: "future_observation",
       target,
-      message: `observedAt が現在より未来です: ${record.observedAt}`,
+      message: `observedAtが現在より未来です: ${record.observedAt}`,
     });
   }
-  if (jstDateOf(record.observedAt) < record.tradingDate) {
+  if (retrievedMs > nowMs) {
     pushIssue(issues, {
-      code: "observed_before_trading_date",
+      code: "future_retrieval",
       target,
-      message: `tradingDate=${record.tradingDate} より前に日足を観測したことになっています: ${record.observedAt}`,
+      message: `retrievedAtが現在より未来です: ${record.retrievedAt}`,
+    });
+  }
+  if (dataMs > observedMs) {
+    pushIssue(issues, {
+      code: "data_after_observation",
+      target,
+      message: `dataAsOf=${record.dataAsOf}より前に観測したことにはできません`,
+    });
+  }
+  if (retrievedMs < observedMs) {
+    pushIssue(issues, {
+      code: "retrieval_before_observation",
+      target,
+      message: `retrievedAt=${record.retrievedAt}がobservedAtより前です`,
     });
   }
   if (executableMs < observedMs) {
     pushIssue(issues, {
       code: "execution_before_observation",
       target,
-      message: `firstExecutableAt=${record.firstExecutableAt} が observedAt より前です`,
+      message: `firstExecutableAt=${record.firstExecutableAt}がobservedAtより前です`,
+    });
+  }
+  if (jstDateOf(record.dataAsOf) !== record.tradingDate) {
+    pushIssue(issues, {
+      code: "trading_date_mismatch",
+      target,
+      message: `dataAsOfのJST日付とtradingDateが一致しません: ${record.dataAsOf}`,
+    });
+  }
+  if (record.isDelayed !== (record.delayDays > 0)) {
+    pushIssue(issues, {
+      code: "delay_flag_mismatch",
+      target,
+      message: `delayDays=${record.delayDays}とisDelayed=${record.isDelayed}が不整合です`,
     });
   }
 
   validateOhlcv(record, issues);
+  validateCorporateActions(record, issues);
 
   if (!Number.isFinite(record.adjustmentFactor) || record.adjustmentFactor <= 0) {
     pushIssue(issues, {
       code: "invalid_adjustment",
       target,
-      message: "adjustmentFactor は 0 より大きい有限値である必要があります",
+      message: "adjustmentFactorは0より大きい有限値が必要です",
     });
   }
   if (!record.adjusted && record.adjustmentFactor !== 1) {
     pushIssue(issues, {
       code: "invalid_adjustment",
       target,
-      message: "adjusted=false の行は adjustmentFactor=1 である必要があります",
+      message: "adjusted=falseの行はadjustmentFactor=1が必要です",
+    });
+  }
+  if (record.license === "unknown") {
+    pushIssue(issues, {
+      code: "unknown_license",
+      target,
+      message: "利用権不明の価格recordは研究基盤へ取り込めません",
+    });
+  }
+  if (record.seriesKind === "security" && !record.benchmarkCode) {
+    pushIssue(issues, {
+      severity: "warning",
+      code: "missing_benchmark",
+      target,
+      message: "security recordにbenchmarkCodeがありません。event study前に補完してください",
     });
   }
 
@@ -235,10 +388,9 @@ export function validatePriceRecord(
     pushIssue(issues, {
       code: "invalid_content_hash",
       target,
-      message: `contentHash が一致しません（expected=${expectedHash}, actual=${record.contentHash}）`,
+      message: `contentHash不一致 expected=${expectedHash} actual=${record.contentHash}`,
     });
   }
-
   return issues;
 }
 
@@ -252,60 +404,57 @@ export function validatePriceRecords(
   const byRevisionKey = new Map<string, PitPriceRecord[]>();
 
   for (const record of records) {
-    const duplicate = byHash.get(record.contentHash);
-    if (duplicate) {
+    if (byHash.has(record.contentHash)) {
       pushIssue(issues, {
         code: "duplicate_content_hash",
-        target: recordTarget(record),
-        message: `同一 contentHash が重複しています: ${record.contentHash}`,
+        target: targetOf(record),
+        message: `同一contentHashが重複しています: ${record.contentHash}`,
       });
     } else {
       byHash.set(record.contentHash, record);
     }
-    const key = revisionKey(record);
-    const group = byRevisionKey.get(key) ?? [];
+    const group = byRevisionKey.get(revisionKey(record)) ?? [];
     group.push(record);
-    byRevisionKey.set(key, group);
+    byRevisionKey.set(revisionKey(record), group);
   }
 
   for (const group of byRevisionKey.values()) {
-    group.sort((a, b) =>
-      a.observedAt === b.observedAt
-        ? a.contentHash < b.contentHash
-          ? -1
-          : 1
-        : a.observedAt < b.observedAt
-          ? -1
-          : 1,
-    );
+    group.sort((a, b) => {
+      const timeDiff = timeMs(a.observedAt) - timeMs(b.observedAt);
+      return timeDiff !== 0 ? timeDiff : a.contentHash.localeCompare(b.contentHash);
+    });
     for (let index = 1; index < group.length; index += 1) {
       const previous = group[index - 1];
       const current = group[index];
-      const target = recordTarget(current);
-      if (current.observedAt <= previous.observedAt) {
+      const target = targetOf(current);
+      if (timeMs(current.observedAt) <= timeMs(previous.observedAt)) {
         pushIssue(issues, {
           code: "revision_time_not_monotonic",
           target,
-          message: `revision observedAt は単調増加が必要です: ${previous.observedAt} -> ${current.observedAt}`,
+          message: `revision observedAtは単調増加が必要です: ${previous.observedAt} -> ${current.observedAt}`,
         });
       }
       if (!current.supersedesHash) {
         pushIssue(issues, {
           code: "missing_supersedes_hash",
           target,
-          message: `同一 series/date/source の改訂は prior hash ${previous.contentHash} を supersedesHash に指定してください`,
+          message: `改訂は直前hash ${previous.contentHash} をsupersedesHashへ指定してください`,
         });
       } else if (current.supersedesHash !== previous.contentHash) {
         pushIssue(issues, {
           code: "invalid_supersedes_hash",
           target,
-          message: `supersedesHash は直前改訂 ${previous.contentHash} を指す必要があります`,
+          message: `supersedesHashは直前改訂 ${previous.contentHash} を指す必要があります`,
         });
       }
     }
   }
 
-  return issues;
+  return issues.sort((a, b) =>
+    `${a.severity}|${a.code}|${a.target}|${a.message}`.localeCompare(
+      `${b.severity}|${b.code}|${b.target}|${b.message}`,
+    ),
+  );
 }
 
 export function parsePriceJsonl(content: string, sourceName = "<memory>"): PitPriceRecord[] {
@@ -316,7 +465,7 @@ export function parsePriceJsonl(content: string, sourceName = "<memory>"): PitPr
     try {
       records.push(JSON.parse(line) as PitPriceRecord);
     } catch (error) {
-      throw new Error(`${sourceName}:${index + 1} の JSON を解析できません: ${(error as Error).message}`);
+      throw new Error(`${sourceName}:${index + 1}のJSONを解析できません: ${(error as Error).message}`);
     }
   }
   return records;
@@ -338,55 +487,89 @@ export function appendPriceRecords(
   const existingHashes = new Set(existing.map((record) => record.contentHash));
   for (const record of incoming) {
     if (existingHashes.has(record.contentHash)) {
-      throw new Error(`既存 contentHash を再追加できません: ${record.contentHash}`);
+      throw new Error(`既存contentHashを再追加できません: ${record.contentHash}`);
     }
   }
 
-  const issues = validatePriceRecords([...existing, ...incoming], schema, now).filter(
-    (issue) => issue.severity === "error",
-  );
-  if (issues.length > 0) {
-    throw new Error(issues.map((issue) => `${issue.code} ${issue.target}: ${issue.message}`).join("\n"));
+  const errors = validatePriceRecords([...existing, ...incoming], schema, now)
+    .filter((issue) => issue.severity === "error");
+  if (errors.length > 0) {
+    throw new Error(errors.map((issue) => `${issue.code} ${issue.target}: ${issue.message}`).join("\n"));
   }
 
   mkdirSync(dirname(path), { recursive: true });
-  const prefix = existsSync(path) && readFileSync(path, "utf-8").length > 0 ? "" : "";
-  appendFileSync(path, `${prefix}${incoming.map((record) => JSON.stringify(record)).join("\n")}\n`, "utf-8");
+  const fd = openSync(path, "a");
+  try {
+    appendFileSync(fd, `${incoming.map((record) => JSON.stringify(record)).join("\n")}\n`, "utf-8");
+    fsyncSync(fd);
+  } finally {
+    closeSync(fd);
+  }
 }
 
-/** Select the latest revision known at asOf for each trading date. */
+export type PriceAvailabilityBoundary = "observed" | "executable";
+
+/** Select the latest revision available at asOf for each trading date. */
 export function selectPriceRecordsAsOf(
   records: PitPriceRecord[],
   asOf: string,
-  selector: { seriesKind: PriceSeriesKind; code: string; market?: string; source?: string },
+  selector: {
+    seriesKind: PriceSeriesKind;
+    code: string;
+    market?: string;
+    source?: string;
+    providerPlan?: PriceProviderPlan;
+  },
+  boundary: PriceAvailabilityBoundary = "executable",
 ): PitPriceRecord[] {
+  const asOfMs = timeMs(asOf);
+  if (!Number.isFinite(asOfMs)) throw new Error(`invalid asOf: ${asOf}`);
+
   const selected = new Map<string, PitPriceRecord>();
   for (const record of records) {
     if (record.seriesKind !== selector.seriesKind || record.code !== selector.code) continue;
     if (selector.market && record.market !== selector.market) continue;
     if (selector.source && record.source !== selector.source) continue;
-    if (record.observedAt > asOf) continue;
+    if (selector.providerPlan && record.providerPlan !== selector.providerPlan) continue;
+    if (timeMs(record.observedAt) > asOfMs) continue;
+    if (boundary === "executable" && timeMs(record.firstExecutableAt) > asOfMs) continue;
 
-    const key = `${record.market}:${record.tradingDate}`;
+    const key = `${record.market}:${record.tradingDate}:${record.source}:${record.providerPlan}`;
     const prior = selected.get(key);
-    if (!prior || prior.observedAt < record.observedAt) selected.set(key, record);
+    if (
+      !prior ||
+      timeMs(prior.observedAt) < timeMs(record.observedAt) ||
+      (timeMs(prior.observedAt) === timeMs(record.observedAt) && prior.contentHash > record.contentHash)
+    ) {
+      selected.set(key, record);
+    }
   }
   return [...selected.values()].sort((a, b) =>
-    a.tradingDate === b.tradingDate ? (a.market < b.market ? -1 : 1) : a.tradingDate < b.tradingDate ? -1 : 1,
+    a.tradingDate === b.tradingDate
+      ? targetOf(a).localeCompare(targetOf(b))
+      : a.tradingDate.localeCompare(b.tradingDate),
   );
 }
 
-/** Adapter from PIT records to the deterministic Backtest PriceSeries contract. */
 export function toBacktestPriceSeries(
   records: PitPriceRecord[],
   asOf: string,
-  selector: { seriesKind: PriceSeriesKind; code: string; market?: string; source?: string },
+  selector: {
+    seriesKind: PriceSeriesKind;
+    code: string;
+    market?: string;
+    source?: string;
+    providerPlan?: PriceProviderPlan;
+  },
 ): PriceSeries {
-  const selected = selectPriceRecordsAsOf(records, asOf, selector);
+  const selected = selectPriceRecordsAsOf(records, asOf, selector, "executable");
   return {
     code: selector.code,
     bars: selected
-      .filter((record): record is PitPriceRecord & { ohlcv: PriceOhlcv } => record.status === "traded" && !!record.ohlcv)
+      .filter(
+        (record): record is PitPriceRecord & { ohlcv: PriceOhlcv } =>
+          record.status === "traded" && !!record.ohlcv,
+      )
       .map((record) => ({ date: record.tradingDate, ...record.ohlcv })),
   };
 }
