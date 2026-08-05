@@ -70,6 +70,14 @@ function record(overrides: Partial<PitPriceRecordInput> = {}): PitPriceRecord {
   const issues = validateHardenedPriceRecords([unadjusted, adjusted], schema, NOW);
   assert.equal(issues.some((issue) => issue.code === "missing_supersedes_hash"), false);
   assert.equal(issues.some((issue) => issue.severity === "error"), false);
+  assert.throws(
+    () => selectPriceRecordsForReplay(
+      [unadjusted, adjusted],
+      "2026-01-01T00:00:00+09:00",
+      { seriesKind: "security", code: "TEST1" } as never,
+    ),
+    /selector\.priceBasis/,
+  );
   console.log("price-store-hardening: adjusted/unadjusted identity isolation OK");
 }
 
@@ -178,6 +186,15 @@ function record(overrides: Partial<PitPriceRecordInput> = {}): PitPriceRecord {
     { ...batch, records: [{ ...input, code: "OUTSIDE" }] },
     query,
   ).some((issue) => issue.includes("outside query.codes")));
+  assert.ok(validateProviderBatchAgainstQuery(
+    { ...batch, records: [input, { ...input, ingestionRunId: "other-run" }] },
+    query,
+  ).some((issue) => issue.includes("ambiguous ingestionRunIds")));
+  assert.ok(validateProviderBatchAgainstQuery(
+    batch,
+    query,
+    { expectedSource: "different-source" },
+  ).some((issue) => issue.includes("expectedSource")));
   console.log("price-store-hardening: provider batch/query contract OK");
 }
 
