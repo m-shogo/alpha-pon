@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "price-record.schema.json",
+  "title": "Research OS PIT Price Record",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "seriesKind",
+    "code",
+    "market",
+    "tradingDate",
+    "observedAt",
+    "firstExecutableAt",
+    "source",
+    "sourceVersion",
+    "ingestionRunId",
+    "currency",
+    "status",
+    "adjusted",
+    "adjustmentFactor",
+    "corporateActions",
+    "license",
+    "contentHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "seriesKind": { "enum": ["security", "benchmark"] },
+    "code": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "market": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "tradingDate": { "type": "string", "format": "date" },
+    "observedAt": { "type": "string", "format": "date-time" },
+    "firstExecutableAt": { "type": "string", "format": "date-time" },
+    "source": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "sourceVersion": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "ingestionRunId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "currency": { "type": "string", "minLength": 3, "maxLength": 8 },
+    "status": { "enum": ["traded", "suspended", "no_trade", "missing"] },
+    "ohlcv": {
+      "type": "object",
+      "required": ["open", "high", "low", "close", "volume"],
+      "properties": {
+        "open": { "type": "number", "exclusiveMinimum": 0 },
+        "high": { "type": "number", "exclusiveMinimum": 0 },
+        "low": { "type": "number", "exclusiveMinimum": 0 },
+        "close": { "type": "number", "exclusiveMinimum": 0 },
+        "volume": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "adjusted": { "type": "boolean" },
+    "adjustmentFactor": { "type": "number", "exclusiveMinimum": 0 },
+    "corporateActions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "effectiveDate", "observedAt", "source"],
+        "properties": {
+          "type": {
+            "enum": ["split", "reverse_split", "dividend", "rights", "merger", "spinoff", "other"]
+          },
+          "effectiveDate": { "type": "string", "format": "date" },
+          "factor": { "type": "number", "exclusiveMinimum": 0 },
+          "observedAt": { "type": "string", "format": "date-time" },
+          "source": { "type": "string", "minLength": 1, "maxLength": 256 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "benchmarkCode": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "sectorBenchmarkCode": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "license": { "enum": ["redistributable", "metadata_only", "local_only", "unknown"] },
+    "contentHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "supersedesHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  },
+  "additionalProperties": false
+}
