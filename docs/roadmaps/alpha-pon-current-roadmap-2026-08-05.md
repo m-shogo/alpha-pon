@@ -49,13 +49,15 @@ memory is not authoritative.
 - Research OS v1 is implemented: Registry, Queue, Checkpoint, PIT guards, immutable history, Backtest framework, Net Alpha engine, Holdout, Decay, Gate, Dashboard and CI.
 - First real Research OS Edge is registered: `known-bad-event-repricing`.
 - Current Edge state: `research`, Gate `0/11`, sample `0/40`, real measured Net Alpha `0` cases.
+- LINE consolidated notification is COMPLETED and merged: PR #34, final head `32cc958`, merge commit `97a95bc`. Foundation code and tests are on `main`; do not rebuild it.
+- Data Source Governance / Technology Edge Foundation (PR #35, `1fb437d`) and the Data Source / Edge Catalog Validator (PR #36, `9c68e57`) are merged.
 
 ### Known blockers and incomplete work
 
-- Mac-local LINE consolidation changes are not in GitHub and must be protected before editing.
+- PIT Price Store v1 (PR #37) is contract-complete with green local verification but cannot merge: GitHub Actions is blocked at runner startup by an account billing / spending-limit issue (`steps: []`, no job log). This is a billing-origin blocker requiring human action, not a code failure. See `docs/research/pit-price-store.md`.
 - Historical market prices, benchmark series, borrow availability and borrow costs are not connected.
 - Historical Analog, Counterfactual and Confounder records for the first Edge remain empty.
-- The latest docs/research-only branch builds have received Cloudflare Git deployment failure notifications; the last-known-good production runtime and the latest main deployment must remain distinguished until Dashboard logs are inspected.
+- The latest docs/research-only branch builds have received Cloudflare Git deployment failure notifications; the last-known-good production runtime and the latest main deployment must remain distinguished until Dashboard logs are inspected. This is separate from the GitHub Actions billing block.
 - No Edge is eligible for Production.
 
 ## 3. Priority order
@@ -71,27 +73,26 @@ Owner: ChatGPT scheduled research orchestration.
 - Notify only material changes; otherwise persist silent research progress.
 - Do not use SNS, forums, anonymous posts, influencers or social sentiment.
 
-### P1 — Protect and finish LINE consolidated notification
+### P1 — LINE consolidated notification — COMPLETED
 
-Primary executor: Claude Code or Codex on the Mac-local checkout.
-Reviewer/orchestrator: ChatGPT.
+Status: `COMPLETED`. Merged as PR #34 (final head `32cc958`, merge commit `97a95bc`).
+Do not rebuild this foundation unless a new critical defect is found.
 
-Required first actions:
+Merged code and tests on `main`: `src/send-consolidated-line.ts`, `src/notify.ts`,
+`src/line-batch-queue.ts`, `src/line-delivery.ts`, `src/line-consolidation.ts`,
+`scripts/run-daily.sh`, `scripts/run-daily-complete.sh`, `scripts/pipeline-lock.sh`,
+`tests/line-consolidation.test.ts`, `docs/operations/line-consolidated-notification.md`.
 
-1. Measure `git status`, stash list and diffs.
-2. Protect current local changes on a dedicated branch without reset/clean/restore.
-3. Review `src/send-consolidated-line.ts`, `src/notify.ts`, `scripts/run-daily.sh`, `scripts/run-daily-complete.sh` and generated JSON provenance.
-4. Add dry-run/mock transport and tests for zero, one, many, urgent mixed and partial-failure cases.
-5. Ensure secrets never appear in logs, errors or generated artifacts.
-6. Commit in small coherent slices and keep existing stash until CI is green and changes are pushed.
+Delivered contract (all satisfied):
 
-Definition of done:
-
-- One normal consolidated morning message.
-- Immediate delivery only for genuinely urgent events.
-- No duplicate pipeline/stock summary delivery.
-- LINE failure does not fail the entire daily pipeline.
-- Tests, typecheck and relevant build/check commands pass.
+- One normal consolidated morning message; immediate delivery only for genuinely urgent events; urgent is not re-listed in the normal morning message.
+- Fragment envelopes stored atomically; ledger is append/state-managed; `sent` only on success; dry-run / missing credentials keep pending.
+- Corrupt ledger is quarantined (never overwritten with an empty ledger) and a block marker is written; block markers clear only by explicit human action.
+- normal/urgent kind is never inferred from body text or emoji; malformed envelopes and ambiguous legacy `.txt` are not sent.
+- Urgent is persisted before transport send; LINE failure does not fail the daily pipeline.
+- The complete pipeline is protected by a single-writer lock with an owner token; INT/TERM does not continue downstream work; oversized fragments do not block the queue.
+- Secrets never appear in logs, ledger, envelopes or markers.
+- No exactly-once guarantee: a crash after remote success but before markSent may resend once. Tested with mock/dry-run only; no real LINE send.
 
 ### P2 — PIT Price Store v1
 
