@@ -22,12 +22,12 @@ cd "$DIR" || exit 1
 DOW="$(date '+%u')"   # 1=Mon ... 7=Sun
 DOM="$(date '+%d')"   # 01..31
 MONTH="$(date '+%m')" # 01..12
-TODAY="$(date '+%Y-%m-%d')"
 
-# ── LINE統合通知（バッチモード）────────────────────────────────────────────
-# 各ステップの通知を個別送信せずファイルに蓄積し、最後に1通にまとめて送る。
-export LINE_BATCH_DIR="$DIR/tmp/line-batch-$TODAY"
-rm -rf "$LINE_BATCH_DIR"
+# ── LINE統合通知（バッチモード / 永続pendingキュー）──────────────────────────
+# 各ステップの通知を個別送信せず pending キューへ蓄積し、最後に統合CLIが1通に送る。
+# 安定ディレクトリを使い、開始時に削除しない（crash/失敗/再実行でpendingを失わない）。
+# 実送信に成功した fragment だけを統合CLIが削除する（再送は line-batch-queue が保証）。
+export LINE_BATCH_DIR="$DIR/tmp/line-batch-pending"
 mkdir -p "$LINE_BATCH_DIR"
 
 # ── ログローテーション（7日分を保持）───────────────────────────────────────
@@ -142,12 +142,18 @@ const text = [
 ].join("\n");
 const batchDir = process.env.LINE_BATCH_DIR;
 if (batchDir) {
-  const { mkdirSync, readdirSync, writeFileSync } = await import("fs");
+  // content-addressed で pending キューへ enqueue（src/line-batch-queue.ts の contentHash と同一算出）。
+  // enqueue しただけでは delivered 扱いにしない。統合CLIが実送信成功時に記録・削除する。
+  const { mkdirSync, writeFileSync, renameSync } = await import("fs");
   const { join } = await import("path");
+  const { createHash } = await import("crypto");
   mkdirSync(batchDir, { recursive: true });
-  const index = readdirSync(batchDir).filter(f => f.endsWith(".txt")).length;
-  writeFileSync(join(batchDir, `${String(index).padStart(3, "0")}.txt`), text);
-  console.log("3日前リマインドをバッチに追加");
+  const hash = createHash("sha256").update(text).digest("hex").slice(0, 16);
+  const dest = join(batchDir, `${hash}.txt`);
+  const tmp = `${dest}.tmp-${process.pid}-${Date.now()}`;
+  writeFileSync(tmp, text);
+  renameSync(tmp, dest);
+  console.log("3日前リマインドをpendingキューに追加");
 } else if (token && userId) {
   const res = await fetch("https://api.line.me/v2/bot/message/push", {
     method: "POST",
