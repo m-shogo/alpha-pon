@@ -32,7 +32,9 @@ if ! pl_acquire "$COMPLETE_LOCK_DIR"; then
   echo "[complete-wrapper] skipped_locked: 別の run-daily-complete が実行中のためスキップ"
   exit 0
 fi
-trap 'pl_release' EXIT INT TERM
+trap 'pl_release' EXIT
+trap 'pl_exit_on_signal 130' INT
+trap 'pl_exit_on_signal 143' TERM
 
 DOW="$(date '+%u')"   # 1=Mon ... 7=Sun
 DOM="$(date '+%d')"   # 01..31
@@ -157,8 +159,6 @@ const text = [
 ].join("\n");
 const batchDir = process.env.LINE_BATCH_DIR;
 if (batchDir) {
-  // 実 enqueueFragment を使い、envelope（kind=normal）保存 + block marker 尊重で pending へ積む。
-  // enqueue しただけでは delivered 扱いにしない。統合CLIが実送信成功時に記録・削除する。
   const { enqueueFragment } = await import("./src/line-batch-queue.ts");
   const { action } = enqueueFragment(batchDir, { text, kind: "normal" });
   console.log(`3日前リマインドをpendingキューに追加（${action}）`);
@@ -229,10 +229,6 @@ if [ "$MONTH" = "01" ] && [ "$DOM" = "01" ]; then
 fi
 
 # ── ユニバーススキャン・仮説生成・検証 ──────────────────────────────────────
-# J-Quants設定済み: 本番API / 未設定: エラー（mockを使うなら --mock を明示）
-#
-# scan:universe が失敗した場合、古い universe_candidates_latest.json を元に
-# 新規仮説を作らないよう candidate:hypothesis をスキップする。
 SCAN_UNIVERSE_OK=0
 
 if run_optional_step "scan:universe" node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/scan-stock-universe.ts"; then
@@ -247,14 +243,9 @@ else
   FAILED_COMPLETE_STEPS="$FAILED_COMPLETE_STEPS candidate:hypothesis(skipped_scan_failed)"
 fi
 
-# review:hypotheses は既存仮説の期限レビューなので scan失敗時も実行する
-# （stock-candidate-hypothesis.ts の generatedAt チェックにより、
-#   仮に古いファイルでも hypothesis 側でエラー終了する）
 run_optional_step "review:hypotheses"         node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/review-hypothesis-outcomes.ts"
 
 # ── pipeline_status に失敗情報を書く（ui:data の前に実行）──────────────────
-# ui:data / report-ui-data.ts が pipeline_status_latest.json を読んで
-# meta.warnings に反映するため、必ず ui:data より先に書く。
 write_complete_wrapper_status() {
   local pipeline_status="$DIR/reports/pipeline_status_latest.json"
   if [ ! -f "$pipeline_status" ]; then
@@ -276,15 +267,9 @@ write_complete_wrapper_status() {
 write_complete_wrapper_status
 
 # ── Next.js JSON 更新（最終ステップ）───────────────────────────────────────
-# 出力先: apps/web/public/generated/alpha-pon-data.json のみ（design/ には出力しない）
-# この時点で pipeline_status_latest.json に completeWrapperFailedSteps が書かれているため、
-# report-ui-data.ts が meta.warnings に失敗情報を反映できる。
-# pnpm ui:data と同じく base → pro の順で実行する（pro は base の出力に
-# legendProCommittee / buffettQuality などの addon キー追記する）。
 run_optional_step "ui:data:base"              node --import "tsx/esm" "$DIR/src/report-ui-data.ts"
 run_optional_step "ui:data:pro"               node --import "tsx/esm" "$DIR/src/pro-ui-data-addon.ts"
 
-# ui:data 自体が失敗した場合も pipeline_status に残す
 write_complete_wrapper_status
 
 # ── LINE統合通知（バッチをまとめて1通送信）─────────────────────────────────
