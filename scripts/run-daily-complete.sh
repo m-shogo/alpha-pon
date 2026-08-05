@@ -22,6 +22,13 @@ cd "$DIR" || exit 1
 DOW="$(date '+%u')"   # 1=Mon ... 7=Sun
 DOM="$(date '+%d')"   # 01..31
 MONTH="$(date '+%m')" # 01..12
+TODAY="$(date '+%Y-%m-%d')"
+
+# ── LINE統合通知（バッチモード）────────────────────────────────────────────
+# 各ステップの通知を個別送信せずファイルに蓄積し、最後に1通にまとめて送る。
+export LINE_BATCH_DIR="$DIR/tmp/line-batch-$TODAY"
+rm -rf "$LINE_BATCH_DIR"
+mkdir -p "$LINE_BATCH_DIR"
 
 # ── ログローテーション（7日分を保持）───────────────────────────────────────
 # launchd は StandardOutPath に追記するため、1週間分だけ残して truncate する。
@@ -133,17 +140,25 @@ const text = [
   "",
   "※事実・報道・噂を混ぜず、未確認は一次情報不足として扱います。",
 ].join("\n");
-if (!token || !userId) {
+const batchDir = process.env.LINE_BATCH_DIR;
+if (batchDir) {
+  const { mkdirSync, readdirSync, writeFileSync } = await import("fs");
+  const { join } = await import("path");
+  mkdirSync(batchDir, { recursive: true });
+  const index = readdirSync(batchDir).filter(f => f.endsWith(".txt")).length;
+  writeFileSync(join(batchDir, `${String(index).padStart(3, "0")}.txt`), text);
+  console.log("3日前リマインドをバッチに追加");
+} else if (token && userId) {
+  const res = await fetch("https://api.line.me/v2/bot/message/push", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ to: userId, messages: [{ type: "text", text }] }),
+  });
+  if (!res.ok) throw new Error(`LINE event reminder failed: ${res.status} ${await res.text()}`);
+} else {
   console.log("LINE未設定のため送信スキップ");
   console.log(text);
-  process.exit(0);
 }
-const res = await fetch("https://api.line.me/v2/bot/message/push", {
-  method: "POST",
-  headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-  body: JSON.stringify({ to: userId, messages: [{ type: "text", text }] }),
-});
-if (!res.ok) throw new Error(`LINE event reminder failed: ${res.status} ${await res.text()}`);
 NODE
 
 # ── 情報秘書 Lite 通知 ───────────────────────────────────────────────────────
@@ -257,6 +272,9 @@ run_optional_step "ui:data:pro"               node --import "tsx/esm" "$DIR/src/
 
 # ui:data 自体が失敗した場合も pipeline_status に残す
 write_complete_wrapper_status
+
+# ── LINE統合通知（バッチをまとめて1通送信）─────────────────────────────────
+run_optional_step "line:consolidated" node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/send-consolidated-line.ts"
 
 # ── 失敗ステップのサマリー（echo のみ）──────────────────────────────────────
 echo ""

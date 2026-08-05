@@ -218,10 +218,8 @@ run_if_month_start "review:monthly" node --import "tsx/esm" "$DIR/src/periodic-r
 run_step "maintain:data:write" "noncritical" node --import "tsx/esm" "$DIR/src/maintain-data.ts" --write || true
 
 if [ -n "$FAILED_STEPS" ]; then
-  notify_pipeline "summary" "alpha-pon pipeline completed with warnings" "date=$TODAY failed_steps=$FAILED_STEPS reports=reports/latest.md reports/learning_latest.md reports/primary_disclosure_learning_latest.md reports/primary_disclosure_category_learning_latest.md reports/source_health_latest.md reports/rule_diagnostics_latest.md reports/proposals_latest.md reports/company_memory_latest.md reports/pipeline_status_latest.json"
   write_status "completed_with_warnings"
 else
-  notify_pipeline "summary" "alpha-pon pipeline completed" "date=$TODAY all steps ok reports=reports/latest.md reports/learning_latest.md reports/primary_disclosure_learning_latest.md reports/primary_disclosure_category_learning_latest.md reports/source_health_latest.md reports/rule_diagnostics_latest.md reports/proposals_latest.md reports/company_memory_latest.md reports/pipeline_status_latest.json"
   write_status "completed"
 fi
 

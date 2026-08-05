@@ -1,6 +1,40 @@
 import { execFileSync } from "child_process";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
+import { join } from "path";
 import type { ScoreResult, AlertLevel } from "./types.js";
 import { recordTextNotification, shouldSendTextNotification, textNotificationCountToday } from "./notification-dedupe.js";
+
+// -------------------------------------------------------
+// LINE バッチモード（LINE_BATCH_DIR 設定時に有効）
+// 各ステップが個別送信せず、ファイルに蓄積 → 最後に1通にまとめる
+// -------------------------------------------------------
+
+function batchDir(): string | undefined {
+  return process.env.LINE_BATCH_DIR || undefined;
+}
+
+function writeBatch(text: string): void {
+  const dir = batchDir()!;
+  mkdirSync(dir, { recursive: true });
+  const index = readdirSync(dir).filter(f => f.endsWith(".txt")).length;
+  const filename = `${String(index).padStart(3, "0")}.txt`;
+  writeFileSync(join(dir, filename), text);
+  console.log(`LINE通知をバッチに追加: ${filename}`);
+}
+
+// 即時送信した緊急件数をバッチdirのサイドカーに累積する。
+// 統合通知（send-consolidated-line）が「即時通知済み」参照を1行だけ出すために読む。
+// .txt 以外の拡張子にしてバッチ本文と混同しないようにする。
+const IMMEDIATE_URGENT_COUNT_FILE = "immediate-urgent.count";
+
+function recordImmediateUrgent(count: number): void {
+  const dir = batchDir();
+  if (!dir) return;
+  mkdirSync(dir, { recursive: true });
+  const file = join(dir, IMMEDIATE_URGENT_COUNT_FILE);
+  const prev = existsSync(file) ? Number(readFileSync(file, "utf-8")) || 0 : 0;
+  writeFileSync(file, String(prev + count));
+}
 
 // -------------------------------------------------------
 // macOS ネイティブ通知
@@ -148,13 +182,21 @@ function nextCheck(result: ScoreResult): string {
   );
 }
 
-function buildLineSummaryText(results: ScoreResult[], date: string): string {
+function buildLineSummaryText(
+  results: ScoreResult[],
+  date: string,
+  options: { excludeUrgent?: boolean } = {},
+): string {
   const urgent = results.filter(r => r.alertLevel === "urgent");
   const daily  = results.filter(r => r.alertLevel === "daily");
-  const allItems = [...urgent, ...daily];
+  // 緊急は即時通知済みのため、統合メッセージ側の一覧からは除外して重複を防ぐ。
+  const allItems = options.excludeUrgent ? daily : [...urgent, ...daily];
   const visibleItems = allItems.slice(0, MORNING_LITE_ITEM_LIMIT);
 
   if (allItems.length === 0) {
+    // バッチ（統合）モードで日次項目が無い場合は空文字を返し、
+    // 「対象なし」の誤解を招く空通知を出さない（緊急があれば即時通知済み）。
+    if (options.excludeUrgent) return "";
     return [
       `🌅 Alpha Pon Morning Lite ${date}`,
       "5分朝刊 / 重要な変化だけ",
@@ -195,6 +237,11 @@ function buildLineSummaryText(results: ScoreResult[], date: string): string {
 async function pushLine(messages: object[]): Promise<void> {
   const token  = process.env.LINE_CHANNEL_TOKEN;
   const userId = process.env.LINE_USER_ID;
+  const dryRun = process.env.LINE_DRY_RUN === "1" || process.env.NOTIFY_MODE === "off";
+  if (dryRun) {
+    console.log("LINE送信スキップ（ドライラン/通知OFF）");
+    return;
+  }
   if (!token || !userId) return;
 
   const res = await fetch("https://api.line.me/v2/bot/message/push", {
@@ -226,6 +273,11 @@ async function pushDedupedText(text: string): Promise<void> {
     console.log("重複通知スキップ");
     return;
   }
+  if (batchDir()) {
+    writeBatch(text);
+    recordTextNotification(text);
+    return;
+  }
   await pushLine([{ type: "text", text }]);
   recordTextNotification(text);
 }
@@ -234,16 +286,22 @@ async function pushDedupedText(text: string): Promise<void> {
 // 公開API
 // -------------------------------------------------------
 
+// 緊急（alertLevel === "urgent"）だけが即時送信パス。
+// バッチモードでも統合メッセージへ畳まず、その場でLINE送信する。
+// 二重送信を避けるため、統合メッセージ側は本文を再掲せず件数だけ参照する
+// （recordImmediateUrgent でサイドカーに累積 → send-consolidated-line が読む）。
 export async function sendUrgentNotifications(results: ScoreResult[]): Promise<void> {
   for (const result of results) {
     notifyMacOS(result);
     console.log(`  macOS通知: ${result.candidate.code} ${result.candidate.name} ${result.score}点`);
     await pushLine([buildLineFlexCard(result)]);
+    if (batchDir()) recordImmediateUrgent(1);
   }
 }
 
 export async function sendDailySummary(results: ScoreResult[], date: string): Promise<void> {
-  const text = buildLineSummaryText(results, date);
+  const text = buildLineSummaryText(results, date, { excludeUrgent: Boolean(batchDir()) });
+  if (!text) return;
   await pushDedupedText(text);
 }
 
