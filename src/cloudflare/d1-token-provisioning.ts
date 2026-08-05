@@ -4,7 +4,12 @@ export const GITHUB_REPOSITORY_PATTERN = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 
 export const D1_PERMISSION_NAMES = {
   read: "D1 Read",
-  edit: "D1 Edit",
+  edit: "D1 Edit / D1 Write",
+} as const;
+
+export const D1_PERMISSION_NAME_CANDIDATES = {
+  read: ["D1 Read"],
+  edit: ["D1 Edit", "D1 Write"],
 } as const;
 
 export const D1_TOKEN_BASE_NAMES = {
@@ -79,17 +84,20 @@ export function selectD1PermissionGroup(
   groups: CloudflarePermissionGroup[],
   kind: D1PermissionKind,
 ): { id: string; name: string } {
-  const expectedName = D1_PERMISSION_NAMES[kind];
+  const expectedNames = new Set<string>(D1_PERMISSION_NAME_CANDIDATES[kind]);
   const matches = groups.filter(group => (
-    group.name === expectedName
+    typeof group.name === "string"
+    && expectedNames.has(group.name)
     && group.scopes?.includes("com.cloudflare.api.account")
     && typeof group.id === "string"
     && /^[a-f0-9]{32}$/i.test(group.id)
   ));
   if (matches.length !== 1) {
-    throw new Error(`Expected exactly one account-scoped ${expectedName} permission group, found ${matches.length}`);
+    throw new Error(
+      `Expected exactly one account-scoped ${Array.from(expectedNames).join(" or ")} permission group, found ${matches.length}`,
+    );
   }
-  return { id: matches[0].id as string, name: expectedName };
+  return { id: matches[0].id as string, name: matches[0].name as string };
 }
 
 export function buildD1UserTokenCreateBody(options: {
