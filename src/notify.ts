@@ -290,6 +290,10 @@ function logUrgentResult(label: string, res: UrgentDeliveryResult): void {
     case "credentials-missing":
       console.log(`${label}: 実送信なし（${res.outcome}）。pending維持・retry非消費`);
       return;
+    case "ledger-corrupt":
+    case "ledger-blocked":
+      console.warn(`${label}: 通知ledger障害（${res.outcome}）。LINE送信を安全側に停止・本文はenvelopeで保全・要手動復旧（非致命）`);
+      return;
     case "failed-max-attempts":
       console.warn(`${label}: 上限到達。手動requeueが必要（runbook参照）`);
       return;
@@ -298,33 +302,51 @@ function logUrgentResult(label: string, res: UrgentDeliveryResult): void {
   }
 }
 
+// 緊急配信を非致命に実行する。ledger障害や想定外例外でも daily pipeline を止めない
+// （macOS補助通知は表示、LINEは安全側に停止、警告のみ）。
+async function safeDeliverUrgent(
+  label: string,
+  input: { text: string; messages: object[]; section?: string },
+): Promise<void> {
+  try {
+    const res = await deliverUrgent(batchDir(), createTransport(), input);
+    logUrgentResult(label, res);
+  } catch (err) {
+    // 想定外エラーも通知経路では握って daily を継続させる（本文は envelope 側で保全済み）。
+    const reason = redactSecrets(err instanceof Error ? err.message : String(err), [
+      process.env.LINE_CHANNEL_TOKEN,
+      process.env.LINE_USER_ID,
+    ]);
+    console.warn(`${label}: 通知処理で例外（非致命・daily継続）: ${reason}`);
+  }
+}
+
 // -------------------------------------------------------
 // 公開API
 // -------------------------------------------------------
 
 // 緊急（alertLevel === "urgent"）だけが即時送信パス。共通 deliverUrgent 経由で
-// 送信前dedupe・retryability・pending維持を一元化する。
+// 送信前dedupe・retryability・pending維持を一元化する。ledger障害でも daily を止めない。
 export async function sendUrgentNotifications(results: ScoreResult[]): Promise<void> {
-  const transport = createTransport();
   for (const result of results) {
     notifyMacOS(result);
     console.log(`  macOS通知: ${result.candidate.code} ${result.candidate.name} ${result.score}点`);
-    const res = await deliverUrgent(batchDir(), transport, {
+    await safeDeliverUrgent(`緊急 ${result.candidate.code}`, {
       text: urgentText(result),
+      section: "🚨 緊急開示",
       messages: [buildLineFlexCard(result)],
     });
-    logUrgentResult(`緊急 ${result.candidate.code}`, res);
   }
 }
 
 // TDnet重要開示のP0即時通知経路。朝刊バッチには回さず、送信前dedupeで同日重複を防ぐ。
 export async function sendUrgentDisclosure(text: string): Promise<void> {
   notifyMacOSText("🚨 緊急開示", text.slice(0, 200), "Basso");
-  const res = await deliverUrgent(batchDir(), createTransport(), {
+  await safeDeliverUrgent("緊急開示", {
     text,
+    section: "🚨 緊急開示",
     messages: [{ type: "text", text }],
   });
-  logUrgentResult("緊急開示", res);
 }
 
 export async function sendDailySummary(results: ScoreResult[], date: string): Promise<void> {
