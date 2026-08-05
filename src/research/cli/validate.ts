@@ -1,8 +1,8 @@
 // Research OS — 整合性の一括検査。
-// スキーマ / 重複 / 参照 / PIT / Gate / Decay をまとめて検査し、エラーがあれば exit 1。
-// ChatGPT は書き込み後に必ずこれを実行する（CI でも同じものが走る）。
+// スキーマ / 重複 / 参照 / PIT / Gate / Decay / research catalog をまとめて検査する。
 
 import { existsSync, readFileSync } from "fs";
+import { validateRepositoryCatalogs, type CatalogIssue } from "../catalog-validation.js";
 import { checkEdgeRegistry, type Issue } from "../edge-registry.js";
 import { checkDecay } from "../decay.js";
 import { loadResearchState, loadSchema, paths, readJsonl, ResearchDataError } from "../io.js";
@@ -49,6 +49,15 @@ function loadHoldout(): { manifest: HoldoutManifest | null; accessLog: HoldoutAc
   return { manifest, accessLog, issues };
 }
 
+function toResearchIssue(issue: CatalogIssue): Issue {
+  return {
+    severity: issue.severity,
+    code: issue.code,
+    target: issue.target,
+    message: issue.message,
+  };
+}
+
 function main(): void {
   const { options } = parseArgs();
   const asOf = options.get("as-of") ?? todayJst();
@@ -64,21 +73,33 @@ function main(): void {
   }
 
   const holdout = loadHoldout();
+  const catalogs = validateRepositoryCatalogs();
+  const catalogIssues = [...catalogs.dataSourceIssues, ...catalogs.edgeFamilyIssues]
+    .map(toResearchIssue);
+
   const issues: Issue[] = [
     ...holdout.issues,
     ...checkEdgeRegistry(state),
     ...checkPit(state),
     ...checkProductionIntegrity(state, holdout.accessLog, asOf),
     ...checkDecay(state, asOf),
+    ...catalogIssues,
   ];
 
   console.log(
     `Research OS 検査 (asOf=${asOf}): Edge ${state.edges.length} / Analog ${state.analogs.length} / Counterfactual ${state.counterfactuals.length} / Confounder ${state.confounders.length}`,
   );
-  const { errors } = printIssues("整合性", issues);
+  console.log(
+    `Research Catalog: Data Source ${catalogs.sourceCount} / Technology Family ${catalogs.familyCount} / Active Edge ${catalogs.activeEdgeCount}`,
+  );
+  console.log("Catalog entries are not counted as active Research OS Edges.");
 
+  const { errors } = printIssues("整合性", issues);
   if (errors > 0) fail(`エラー ${errors} 件。修正するまで研究成果は取り込めません。`);
+
   console.log("\n✓ Research OS の不変条件をすべて満たしています");
+  console.log("✓ DATA_SOURCE_REGISTRY_CONTRACT_GREEN");
+  console.log("✓ TECH_EDGE_CANDIDATE_CATALOG_GREEN");
 }
 
 main();
