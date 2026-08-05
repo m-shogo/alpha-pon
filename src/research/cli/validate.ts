@@ -1,5 +1,5 @@
 // Research OS — 整合性の一括検査。
-// スキーマ / 重複 / 参照 / PIT / Gate / Decay / catalogs / council ledgersをまとめて検査する。
+// スキーマ / 重複 / 参照 / PIT / Gate / Decay / catalogs / council replayをまとめて検査する。
 
 import { existsSync, readFileSync } from "fs";
 import { validateRepositoryCatalogs, type CatalogIssue } from "../catalog-validation.js";
@@ -10,6 +10,7 @@ import { checkPit } from "../pit.js";
 import { checkProductionIntegrity, type HoldoutAccessEntry, type HoldoutManifest } from "../promotion.js";
 import { formatErrors, validate as validateSchema } from "../schema.js";
 import { validateRepositoryCouncilLedgersGoverned } from "../stock-pro-council-ledger-hardening.js";
+import { validateCouncilReplayRepository } from "../stock-pro-council-replay-repository.js";
 import {
   validateRepositoryStockProCouncilV2,
   type CouncilIssue,
@@ -81,6 +82,7 @@ function main(): void {
   const catalogs = validateRepositoryCatalogs();
   const council = validateRepositoryStockProCouncilV2();
   const ledgers = validateRepositoryCouncilLedgersGoverned();
+  const replay = validateCouncilReplayRepository();
   const catalogIssues = [...catalogs.dataSourceIssues, ...catalogs.edgeFamilyIssues]
     .map(toResearchIssue);
   const councilIssues = [
@@ -90,6 +92,7 @@ function main(): void {
     ...ledgers.dissentIssues,
     ...ledgers.vetoIssues,
     ...ledgers.lifecycleIssues,
+    ...replay.issues,
   ].map(toResearchIssue);
 
   const issues: Issue[] = [
@@ -111,6 +114,9 @@ function main(): void {
   console.log(
     `Stock Pro Council v2: Persona ${council.personaCount} / Verdict ${council.verdictCount} / Dissent ${ledgers.dissentCount} / Veto ${ledgers.vetoCount} / Binding Veto ${ledgers.bindingVetoCount}`,
   );
+  console.log(
+    `Council Replay: Manifest ${replay.replayCount} / Eligible ${replay.eligibleCount} / Blocked ${replay.blockedCount}`,
+  );
   console.log("Catalog entries and council personas are not counted as active Research OS Edges.");
 
   const { errors } = printIssues("整合性", issues);
@@ -121,6 +127,11 @@ function main(): void {
   console.log("✓ TECH_EDGE_CANDIDATE_CATALOG_GREEN");
   console.log("✓ STOCK_PRO_COUNCIL_V2_CONTRACT_GREEN");
   console.log("✓ COUNCIL_DISSENT_VETO_LEDGER_GREEN");
+  if (replay.replayCount > 0) {
+    console.log("✓ COUNCIL_DETERMINISTIC_REPLAY_GREEN");
+  } else {
+    console.log("Council replay contracts are present, but no local replay manifest exists; milestone remains unproven.");
+  }
 }
 
 main();
