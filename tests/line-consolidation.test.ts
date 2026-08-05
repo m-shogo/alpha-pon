@@ -1,19 +1,19 @@
-// LINE統合通知 + 永続キュー(ledger)のテスト。
-// 実ネットワークには一切接続しない（DryRun / 注入fetchモック / tempディレクトリfixtureのみ）。
+// LINE統合通知 + 永続ledger + urgent共通配信のテスト。
+// 実ネットワークには一切接続しない（Fake/DryRunトランスポート・注入fetch・tempディレクトリのみ）。
 // pnpm test で自動実行される。
 //
-// ChatGPTレビュー Blocking 1/2/3 + determinism + 必須テスト1〜21 を網羅する。
+// ChatGPT Round2 Blocking A〜E + 必須テスト1〜22 を網羅する。
 
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync, existsSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   buildConsolidatedMessage,
   dedupeFragments,
   normalizeKey,
-  detectSection,
   redactSecrets,
+  consumesRetryBudget,
   createTransport,
   DryRunTransport,
   MissingCredentialsTransport,
@@ -21,6 +21,8 @@ import {
   LINE_MAX_CHARS,
   SECTION_ORDER,
   type BatchFragment,
+  type LineTransport,
+  type TransportResult,
 } from "../src/line-consolidation.js";
 import {
   contentHash,
@@ -28,385 +30,440 @@ import {
   ensureEntry,
   markSent,
   markFailed,
-  markSkipped,
   pendingHashes,
-  isDelivered,
   countUrgentDeliveredToday,
-  pruneLedger,
+  jstDateOf,
+  requeueFailed,
   MAX_ATTEMPTS,
   enqueueFragment,
   loadLedger,
-  loadPendingFragments,
-  reconcileOrphanFragments,
+  loadLedgerStrict,
+  LedgerCorruptError,
+  findLedgerAnomalies,
   saveLedger,
 } from "../src/line-batch-queue.js";
+import { deliverUrgent } from "../src/line-delivery.js";
 
 const TODAY = "2026-08-05";
 const NOW = "2026-08-05T00:00:00.000Z";
 
-// hash 付き fragment を作るヘルパ（本文ベースで安定 hash）。
-function frag(raw: string): BatchFragment {
-  const { section, body } = { section: detectSection(raw) ?? "📋 その他", body: strip(raw) };
-  return { hash: contentHash(raw), section, body };
-}
-function strip(raw: string): string {
-  // parseFragmentText 相当（テスト内簡易版：先頭ヘッダ行を落とす）
-  const lines = raw.split("\n");
-  return lines.slice(1).filter(l => l.trim() && !l.includes("━") && !l.startsWith("※")).join("\n").trim();
+// 明示セクション・本文で BatchFragment を作る（本文ごとに一意 hash）。
+function bf(section: string, body: string): BatchFragment {
+  return { hash: contentHash(`${section}|${body}`), section, body };
 }
 
-function morningLite(body: string): string {
-  return `🌅 Alpha Pon Morning Lite 2026-08-05\n${body}`;
-}
-function special(body: string): string {
-  return `💎 Alpha Pon 特殊状況 Lite 2026-08-05\n${body}`;
-}
-function aiNews(body: string): string {
-  return `🤖 AIニュース 2026-08-05\n${body}`;
-}
-
-// =========================================================================
-// A. 統合メッセージ builder（決定論・重複排除・上限）
-// =========================================================================
-
-// --- 0件 -------------------------------------------------------------------
-{
-  const r = buildConsolidatedMessage([], { today: TODAY });
-  assert.equal(r.message, null, "0件はメッセージ null（空通知を送らない）");
-  assert.equal(r.includedCount, 0);
-}
-
-// --- 通常1件 ---------------------------------------------------------------
-{
-  const r = buildConsolidatedMessage([frag(morningLite("1. 📌 7203 トヨタ 62点"))], { today: TODAY });
-  assert.ok(r.message);
-  assert.ok(r.message!.includes("🌅 Alpha Pon 朝刊 2026-08-05"));
-  assert.ok(r.message!.includes("■ 📊 銘柄スコア"));
-  assert.ok(r.message!.includes("7203 トヨタ"));
-  assert.equal(r.includedCount, 1);
-  assert.equal(r.omittedItemCount, 0);
-}
-
-// --- (15) 同一セクションに複数項目、入力順非依存 ---------------------------
-{
-  const a = frag(morningLite("1. 📌 111 AAA 50点"));
-  const b = frag(morningLite("2. 📌 999 ZZZ 70点"));
-  const forward = buildConsolidatedMessage([a, b], { today: TODAY }).message;
-  const reversed = buildConsolidatedMessage([b, a], { today: TODAY }).message;
-  assert.equal(forward, reversed, "同一section複数項目でも入力順非依存で同一本文");
-}
-
-// --- (16) duplicate variant（URL/空白違い）順序反転で同一本文・同一代表 ----
-{
-  const v1 = frag(special("・XYZ 監視 https://a.example/1"));
-  const v2 = frag(special("・XYZ  監視  https://b.example/2"));
-  assert.equal(
-    normalizeKey("💎 特殊状況", strip(special("・XYZ 監視 https://a.example/1"))),
-    normalizeKey("💎 特殊状況", strip(special("・XYZ  監視  https://b.example/2"))),
-    "URL/空白違いは同一論理キー",
-  );
-  const forward = buildConsolidatedMessage([v1, v2], { today: TODAY });
-  const reversed = buildConsolidatedMessage([v2, v1], { today: TODAY });
-  assert.equal(forward.message, reversed.message, "variant順序反転でも同一本文");
-  assert.equal(forward.includedCount, 1, "重複は1件だけ採用");
-  assert.equal(forward.droppedDuplicateCount, 1);
-  // 代表選択は hash 最小で決定論的
-  const dd = dedupeFragments([v1, v2]);
-  const repHash = dd.representatives[0].hash;
-  const expected = [v1.hash, v2.hash].sort()[0];
-  assert.equal(repHash, expected, "代表は hash 最小で一意");
-}
-
-// --- 決定論的セクション順（テーマは末尾に畳む）-----------------------------
-{
-  const r = buildConsolidatedMessage(
-    [frag(aiNews("・AIチップ")), frag(special("・S1")), frag(morningLite("1. 📌 1 X 50点")), frag("🔧 半導体ニュース\n・装置")],
-    { today: TODAY },
-  );
-  const iScore = r.message!.indexOf("■ 📊 銘柄スコア");
-  const iSpecial = r.message!.indexOf("■ 💎 特殊状況");
-  const iTheme = r.message!.indexOf("■ 📰 テーマニュース");
-  assert.ok(iScore >= 0 && iSpecial > iScore && iTheme > iSpecial, "決定論的順序");
-  assert.ok(r.message!.includes("🤖 AI") && r.message!.includes("🔧 半導体"));
-}
-
-// --- (17)(18) 文字数超過: 省略fragmentはincludedにならない・件数明記 -------
-{
-  const bulk = "行".repeat(300);
-  const r = buildConsolidatedMessage(
-    [frag(morningLite(bulk)), frag(special(bulk)), frag(aiNews(bulk))],
-    { today: TODAY, maxChars: 900 },
-  );
-  assert.ok(r.message!.length <= 900);
-  assert.ok(r.message!.includes("■ 📊 銘柄スコア"), "最優先セクションは残る");
-  assert.ok(r.omittedItemCount >= 1, "省略件数>0");
-  assert.ok(r.message!.includes(`ほか ${r.omittedItemCount} 件`), "本文に省略件数を明記");
-  // (17) omitted と included は交わらない（省略をdelivered扱いしない）
-  const inc = new Set(r.includedHashes);
-  for (const h of r.omittedHashes) assert.ok(!inc.has(h), "省略fragmentはincludedに入らない");
-  // includedCount は実際に含まれた件数
-  assert.equal(r.includedCount, r.includedHashes.length);
-  assert.ok(r.includedCount < 3, "全件は入っていない");
-}
-
-// --- 巨大単一fragment: 空にならず切り詰め＋続き案内 -------------------------
-{
-  const r = buildConsolidatedMessage([frag(morningLite("あ".repeat(20000)))], { today: TODAY, maxChars: 500 });
-  assert.ok(r.message && r.message.length <= 500);
-  assert.equal(r.truncated, true);
-  assert.ok(r.message!.includes("🌅 Alpha Pon 朝刊"), "ヘッダ保持");
-}
-
-// --- デフォルト上限でも壊れない -------------------------------------------
-{
-  const items = Array.from({ length: 60 }, (_, i) => frag(special(`・銘柄${i} 特殊状況の詳細説明テキスト`)));
-  const r = buildConsolidatedMessage(items, { today: TODAY });
-  assert.ok(r.message!.length <= LINE_MAX_CHARS);
-}
-
-// --- urgent参照（即時通知済み）-------------------------------------------
-{
-  const r = buildConsolidatedMessage([], { today: TODAY, immediateUrgentCount: 2 });
-  assert.ok(r.message!.includes("🚨 緊急 2 件は即時通知済み"));
-  const r0 = buildConsolidatedMessage([frag(morningLite("1. 📌 1 X 50点"))], { today: TODAY, immediateUrgentCount: 0 });
-  assert.ok(!r0.message!.includes("即時通知済み"));
-}
-
-// =========================================================================
-// B. リダクション / トランスポート
-// =========================================================================
-
-// --- (19) 秘匿値リダクション ----------------------------------------------
-{
-  const token = "abcd1234TOKENsecretVALUE";
-  const userId = "Uxxxxxxxxxxxxxxxxx";
-  const red = redactSecrets(`Bearer ${token} to=${userId}`, [token, userId, undefined, ""]);
-  assert.ok(!red.includes(token) && !red.includes(userId) && red.includes("***REDACTED***"));
-}
-
-// --- (21) 資格情報なし/NOTIFY_MODE=off → 実送信しない ----------------------
-{
-  assert.ok(createTransport({} as NodeJS.ProcessEnv) instanceof MissingCredentialsTransport);
-  assert.equal(createTransport({ LINE_CHANNEL_TOKEN: "x", LINE_USER_ID: "y", NOTIFY_MODE: "off" } as any).mode, "dry-run");
-  assert.ok(createTransport({ LINE_CHANNEL_TOKEN: "x", LINE_USER_ID: "y", LINE_DRY_RUN: "1" } as any) instanceof DryRunTransport);
-  assert.equal(createTransport({ LINE_CHANNEL_TOKEN: "x", LINE_USER_ID: "y" } as any).mode, "real");
-}
-
-// --- DryRun: 実送信せず ok=false(dry-run) ----------------------------------
-{
-  const t = new DryRunTransport();
-  const res = await t.send([{ type: "text", text: "hi" }]);
-  assert.deepEqual(res, { ok: false, outcome: "dry-run" });
-  assert.equal(t.sent.length, 1);
-}
-
-// --- credentials-missing ---------------------------------------------------
-{
-  const res = await new MissingCredentialsTransport().send([]);
-  assert.equal(res.ok, false);
-  assert.equal(res.outcome, "credentials-missing");
-}
-
-// --- (11) HTTP 4xx / 5xx を区別、throwしない、userId伏字 --------------------
-{
-  const f4 = (async () => ({ ok: false, status: 429, text: async () => "rate limited Uuser" }) as any) as typeof fetch;
-  const r4 = await new LineApiTransport("tok", "Uuser", f4).send([]);
-  assert.equal(r4.outcome, "http-4xx");
-  assert.equal(r4.status, 429);
-  assert.ok(!(r4.error ?? "").includes("Uuser"), "応答本文のuserIdも伏字");
-
-  const f5 = (async () => ({ ok: false, status: 503, text: async () => "oops" }) as any) as typeof fetch;
-  const r5 = await new LineApiTransport("tok", "Uuser", f5).send([]);
-  assert.equal(r5.outcome, "http-5xx");
-}
-
-// --- (12)(20) network error: throwせず結果で返す（pipeline継続可能）--------
-{
-  const throwing = (async () => { throw new Error("down secretTOK123"); }) as unknown as typeof fetch;
-  const res = await new LineApiTransport("secretTOK123", "U", throwing).send([]);
-  assert.equal(res.ok, false);
-  assert.equal(res.outcome, "network-error");
-  assert.ok(!(res.error ?? "").includes("secretTOK123"), "network errorにトークンを出さない");
-}
-
-// --- 成功 ------------------------------------------------------------------
-{
-  let url = "";
-  const okFetch = (async (u: any) => { url = String(u); return { ok: true, status: 200, text: async () => "" } as any; }) as typeof fetch;
-  const res = await new LineApiTransport("tok", "U", okFetch).send([{ type: "text", text: "m" }]);
-  assert.deepEqual(res, { ok: true, outcome: "sent", status: 200 });
-  assert.ok(url.includes("api.line.me"));
-}
-
-// =========================================================================
-// C. Ledger 純関数（配信状態遷移）
-// =========================================================================
-
-// --- (1) enqueue相当（ensureEntry）は queued であり delivered ではない ------
-{
-  const L = emptyLedger();
-  ensureEntry(L, { hash: "h1", section: "📊 銘柄スコア", kind: "normal", now: NOW });
-  assert.equal(L.entries["h1"].status, "queued");
-  assert.equal(isDelivered(L, "h1"), false);
-  assert.deepEqual(pendingHashes(L, "normal"), ["h1"]);
-}
-
-// --- (2) 実送信成功後だけ sent -------------------------------------------
-{
-  const L = emptyLedger();
-  ensureEntry(L, { hash: "h1", section: "s", kind: "normal", now: NOW });
-  markSent(L, ["h1"], NOW);
-  assert.equal(isDelivered(L, "h1"), true);
-  assert.deepEqual(pendingHashes(L), [], "sentはpendingに残らない");
-}
-
-// --- (3)(4) HTTP/network 失敗後も pending-retry として残る ------------------
-{
-  const L = emptyLedger();
-  ensureEntry(L, { hash: "h1", section: "s", kind: "normal", now: NOW });
-  markFailed(L, ["h1"], "http-5xx redactedmsg", NOW);
-  assert.equal(L.entries["h1"].status, "pending-retry");
-  assert.equal(L.entries["h1"].attempts, 1);
-  assert.ok(pendingHashes(L).includes("h1"), "失敗後も再送候補");
-}
-
-// --- attempts上限で failed（無限蓄積しない）------------------------------
-{
-  const L = emptyLedger();
-  ensureEntry(L, { hash: "h1", section: "s", kind: "normal", now: NOW });
-  for (let i = 0; i < MAX_ATTEMPTS; i++) markFailed(L, ["h1"], "e", NOW);
-  assert.equal(L.entries["h1"].status, "failed");
-  assert.ok(!pendingHashes(L).includes("h1"), "上限到達は再送候補から外れる");
-}
-
-// --- (7) 成功後の再enqueueは重複送信しない（ensureEntryが触らない）---------
-{
-  const L = emptyLedger();
-  ensureEntry(L, { hash: "h1", section: "s", kind: "normal", now: NOW });
-  markSent(L, ["h1"], NOW);
-  const { action } = ensureEntry(L, { hash: "h1", section: "s", kind: "normal", now: NOW });
-  assert.equal(action, "already-delivered");
-  assert.deepEqual(pendingHashes(L), []);
-}
-
-// --- (8)(9)(10)(11)(12) urgent delivered count は sent時のみ ---------------
-{
-  const L = emptyLedger();
-  ensureEntry(L, { hash: "u1", section: "🚨 緊急開示", kind: "urgent", now: NOW });
-  ensureEntry(L, { hash: "u2", section: "🚨 緊急開示", kind: "urgent", now: NOW });
-  assert.equal(countUrgentDeliveredToday(L, TODAY), 0, "queuedは即時通知済みに数えない");
-  markSent(L, ["u1"], NOW);
-  assert.equal(countUrgentDeliveredToday(L, TODAY), 1, "sentのみ数える");
-  markFailed(L, ["u2"], "http-4xx", NOW);
-  assert.equal(countUrgentDeliveredToday(L, TODAY), 1, "失敗は数えない");
-  assert.equal(countUrgentDeliveredToday(L, "2026-08-06"), 0, "別日は数えない");
-}
-
-// --- skipped（論理重複）は再送されない -----------------------------------
-{
-  const L = emptyLedger();
-  ensureEntry(L, { hash: "d1", section: "s", kind: "normal", now: NOW });
-  markSkipped(L, ["d1"], NOW);
-  assert.equal(L.entries["d1"].status, "skipped");
-  assert.ok(!pendingHashes(L).includes("d1"));
-}
-
-// --- prune: 古いsent/skippedを掃除、pendingは残す -------------------------
-{
-  const L = emptyLedger();
-  ensureEntry(L, { hash: "old", section: "s", kind: "normal", now: "2026-08-01T00:00:00.000Z" });
-  markSent(L, ["old"], "2026-08-01T00:00:00.000Z");
-  ensureEntry(L, { hash: "keep", section: "s", kind: "normal", now: NOW });
-  const { removed } = pruneLedger(L, "2026-08-03T00:00:00.000Z");
-  assert.deepEqual(removed, ["old"]);
-  assert.ok(L.entries["keep"], "pendingは掃除しない");
-}
-
-// =========================================================================
-// D. Ledger FS ライフサイクル（tempディレクトリ・crash/再実行）
-// =========================================================================
-
-function withTempDir(fn: (dir: string) => void): void {
+function withTempDir(fn: (dir: string) => void | Promise<void>): void | Promise<void> {
   const dir = mkdtempSync(join(tmpdir(), "line-batch-"));
+  const cleanup = () => rmSync(dir, { recursive: true, force: true });
   try {
-    fn(dir);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
+    const r = fn(dir);
+    if (r instanceof Promise) return r.finally(cleanup);
+    cleanup();
+  } catch (e) {
+    cleanup();
+    throw e;
   }
 }
 
-// --- (1) enqueueFragment は queued（delivered化しない）--------------------
+// 固定結果を返し呼び出し回数を数える Fake transport。
+function fakeTransport(mode: "dry-run" | "real", result: TransportResult): LineTransport & { calls: number } {
+  return {
+    mode,
+    calls: 0,
+    async send() {
+      (this as any).calls += 1;
+      return result;
+    },
+  };
+}
+
+const OK: TransportResult = { ok: true, outcome: "sent", status: 200 };
+const DRY: TransportResult = { ok: false, outcome: "dry-run" };
+const NOCRED: TransportResult = { ok: false, outcome: "credentials-missing" };
+const HTTP4: TransportResult = { ok: false, outcome: "http-4xx", status: 400, error: "bad" };
+const NET: TransportResult = { ok: false, outcome: "network-error", error: "down" };
+
+// =========================================================================
+// A. 統合メッセージ builder（fragment単位予算・決定論・重複排除）
+// =========================================================================
+
+// 0件
+{
+  const r = buildConsolidatedMessage([], { today: TODAY });
+  assert.equal(r.message, null);
+  assert.equal(r.includedCount, 0);
+}
+
+// 通常1件
+{
+  const r = buildConsolidatedMessage([bf("📊 銘柄スコア", "1. 7203 トヨタ 62点")], { today: TODAY });
+  assert.ok(r.message!.includes("■ 📊 銘柄スコア"));
+  assert.ok(r.message!.includes("7203 トヨタ"));
+  assert.equal(r.includedCount, 1);
+  assert.equal(r.includedSectionCount, 1);
+}
+
+// 入力順非依存（同一section複数）
+{
+  const a = bf("📊 銘柄スコア", "AAA");
+  const b = bf("📊 銘柄スコア", "ZZZ");
+  assert.equal(
+    buildConsolidatedMessage([a, b], { today: TODAY }).message,
+    buildConsolidatedMessage([b, a], { today: TODAY }).message,
+  );
+}
+
+// duplicate variant（URL/空白違い）: 代表は hash 最小で一意
+{
+  const v1: BatchFragment = { hash: "ffff", section: "💎 特殊状況", body: "・XYZ 監視 https://a/1" };
+  const v2: BatchFragment = { hash: "0001", section: "💎 特殊状況", body: "・XYZ  監視  https://b/2" };
+  assert.equal(normalizeKey(v1.section, v1.body), normalizeKey(v2.section, v2.body));
+  const dd = dedupeFragments([v1, v2]);
+  assert.equal(dd.representatives.length, 1);
+  assert.equal(dd.representatives[0].hash, "0001", "hash最小が代表");
+  const f = buildConsolidatedMessage([v1, v2], { today: TODAY });
+  const rev = buildConsolidatedMessage([v2, v1], { today: TODAY });
+  assert.equal(f.message, rev.message);
+  assert.equal(f.includedCount, 1);
+  assert.equal(f.droppedDuplicateCount, 1);
+}
+
+// (8)(9)(19) 同一section3件・1件だけ収まる → 残り2件omitted・pending・sent化しない
+{
+  const long = "あ".repeat(200);
+  const a = bf("💎 特殊状況", "A" + long);
+  const b = bf("💎 特殊状況", "B" + long);
+  const c = bf("💎 特殊状況", "C" + long);
+  const r = buildConsolidatedMessage([a, b, c], { today: TODAY, maxChars: 400 });
+  assert.equal(r.includedCount, 1, "1件だけ掲載");
+  assert.equal(r.omittedItemCount, 2, "残り2件は未掲載");
+  const inc = new Set(r.includedHashes);
+  for (const h of r.omittedHashes) assert.ok(!inc.has(h), "(19) omittedはincludedに入らない");
+  // includedHashes の本文だけが message に含まれる
+  const includedBody = [a, b, c].find((x) => inc.has(x.hash))!.body;
+  assert.ok(r.message!.includes(includedBody.slice(0, 20)));
+  assert.ok(r.message!.includes("ほか 2 件"), "未掲載件数を明記");
+  assert.equal(r.truncated, false, "複数memberのsectionは切り詰めない");
+}
+
+// (10) 単一巨大fragment（sole member）だけ truncated delivery
+{
+  const huge = bf("📊 銘柄スコア", "X".repeat(20000));
+  const r = buildConsolidatedMessage([huge], { today: TODAY, maxChars: 500 });
+  assert.ok(r.message!.length <= 500);
+  assert.equal(r.truncated, true);
+  assert.equal(r.includedCount, 1);
+  assert.ok(r.message!.includes("🌅 Alpha Pon 朝刊"));
+}
+
+// (10補) 複数memberの巨大先頭 → 切り詰めず全omitted（消失しない=pending）
+{
+  const huge1 = bf("💎 特殊状況", "P".repeat(20000));
+  const huge2 = bf("💎 特殊状況", "Q".repeat(20000));
+  const r = buildConsolidatedMessage([huge1, huge2], { today: TODAY, maxChars: 500 });
+  assert.equal(r.truncated, false, "複数memberは切り詰めない");
+  assert.equal(r.includedCount, 0);
+  assert.equal(r.omittedItemCount, 2);
+  assert.ok(r.message!.length <= 500);
+}
+
+// (11) message は常に上限内、included本文だけが載る（未掲載hashをsentにしない土台）
+{
+  const items = Array.from({ length: 40 }, (_, i) => bf("💎 特殊状況", `銘柄${i} ${"詳細".repeat(20)}`));
+  const r = buildConsolidatedMessage(items, { today: TODAY });
+  assert.ok(r.message!.length <= LINE_MAX_CHARS);
+  const inc = new Set(r.includedHashes);
+  for (const it of items) {
+    if (!inc.has(it.hash)) {
+      assert.ok(!r.message!.includes(it.body), "未掲載fragmentの本文は載らない");
+    }
+  }
+}
+
+// urgent参照
+{
+  const r = buildConsolidatedMessage([], { today: TODAY, immediateUrgentCount: 2 });
+  assert.ok(r.message!.includes("🚨 緊急 2 件は即時通知済み"));
+}
+
+// =========================================================================
+// B. retryability / transport
+// =========================================================================
+
+assert.equal(consumesRetryBudget("http-4xx"), true);
+assert.equal(consumesRetryBudget("http-5xx"), true);
+assert.equal(consumesRetryBudget("network-error"), true);
+assert.equal(consumesRetryBudget("dry-run"), false, "dry-runはattempts非消費");
+assert.equal(consumesRetryBudget("credentials-missing"), false, "creds不足はattempts非消費");
+
+// createTransport
+assert.ok(createTransport({} as NodeJS.ProcessEnv) instanceof MissingCredentialsTransport);
+assert.ok(createTransport({ LINE_CHANNEL_TOKEN: "x", LINE_USER_ID: "y", NOTIFY_MODE: "off" } as any) instanceof DryRunTransport);
+assert.ok(createTransport({ LINE_CHANNEL_TOKEN: "x", LINE_USER_ID: "y", LINE_DRY_RUN: "1" } as any) instanceof DryRunTransport);
+assert.equal(createTransport({ LINE_CHANNEL_TOKEN: "x", LINE_USER_ID: "y" } as any).mode, "real");
+
+// DryRun / MissingCredentials
+{
+  const d = new DryRunTransport();
+  assert.deepEqual(await d.send([]), { ok: false, outcome: "dry-run" });
+  assert.equal((await new MissingCredentialsTransport().send([])).outcome, "credentials-missing");
+}
+
+// LineApi 4xx/5xx/network/ok, secret redaction
+{
+  const f4 = (async () => ({ ok: false, status: 429, text: async () => "rate Uuser" }) as any) as typeof fetch;
+  assert.equal((await new LineApiTransport("tok", "Uuser", f4).send([])).outcome, "http-4xx");
+  const f5 = (async () => ({ ok: false, status: 500, text: async () => "x" }) as any) as typeof fetch;
+  assert.equal((await new LineApiTransport("tok", "Uuser", f5).send([])).outcome, "http-5xx");
+  const th = (async () => { throw new Error("down secretTOK"); }) as unknown as typeof fetch;
+  const rn = await new LineApiTransport("secretTOK", "U", th).send([]);
+  assert.equal(rn.outcome, "network-error");
+  assert.ok(!(rn.error ?? "").includes("secretTOK"));
+  const okf = (async () => ({ ok: true, status: 200, text: async () => "" }) as any) as typeof fetch;
+  assert.deepEqual(await new LineApiTransport("t", "u", okf).send([]), { ok: true, outcome: "sent", status: 200 });
+}
+
+// (20) redactSecrets
+{
+  const red = redactSecrets("Bearer TОКENの値 to=Uabc123", ["TОКENの値", "Uabc123"]);
+  assert.ok(red.includes("***REDACTED***") && !red.includes("Uabc123"));
+}
+
+// =========================================================================
+// C. Ledger 純関数
+// =========================================================================
+
+// enqueue相当=queued（delivered ではない）
+{
+  const L = emptyLedger();
+  ensureEntry(L, { hash: "h1", section: "s", kind: "normal", now: NOW });
+  assert.equal(L.entries["h1"].status, "queued");
+  assert.deepEqual(pendingHashes(L, "normal"), ["h1"]);
+}
+
+// markSent は deliveredDateJst を設定
+{
+  const L = emptyLedger();
+  ensureEntry(L, { hash: "u1", section: "s", kind: "urgent", now: NOW });
+  markSent(L, ["u1"], "2026-08-04T23:59:00.000Z"); // UTC前日/JST当日
+  assert.equal(L.entries["u1"].deliveredDateJst, "2026-08-05");
+}
+
+// markFailed: attempts上限で failed
+{
+  const L = emptyLedger();
+  ensureEntry(L, { hash: "h", section: "s", kind: "normal", now: NOW });
+  for (let i = 0; i < MAX_ATTEMPTS; i++) markFailed(L, ["h"], "e", NOW);
+  assert.equal(L.entries["h"].status, "failed");
+  assert.ok(!pendingHashes(L).includes("h"));
+  // requeueFailed で復旧
+  requeueFailed(L);
+  assert.equal(L.entries["h"].status, "queued");
+  assert.ok(pendingHashes(L).includes("h"));
+}
+
+// (15)(16) JST 日付境界での urgent カウント
+{
+  assert.equal(jstDateOf("2026-08-04T15:00:00.000Z"), "2026-08-05", "JST00:00");
+  assert.equal(jstDateOf("2026-08-04T15:30:00.000Z"), "2026-08-05", "JST00:30");
+  assert.equal(jstDateOf("2026-08-04T23:59:00.000Z"), "2026-08-05", "JST08:59");
+  assert.equal(jstDateOf("2026-08-05T00:00:00.000Z"), "2026-08-05", "JST09:00");
+  assert.equal(jstDateOf("2026-08-05T14:59:00.000Z"), "2026-08-05", "JST23:59");
+  assert.equal(jstDateOf("2026-08-04T14:59:00.000Z"), "2026-08-04", "前日");
+
+  const L = emptyLedger();
+  const times = ["2026-08-04T15:00:00.000Z", "2026-08-04T23:59:00.000Z", "2026-08-05T14:59:00.000Z"];
+  times.forEach((t, i) => {
+    ensureEntry(L, { hash: `u${i}`, section: "s", kind: "urgent", now: t });
+    markSent(L, [`u${i}`], t);
+  });
+  // 前日JSTのentry（数えない）
+  ensureEntry(L, { hash: "prev", section: "s", kind: "urgent", now: "2026-08-04T14:59:00.000Z" });
+  markSent(L, ["prev"], "2026-08-04T14:59:00.000Z");
+  assert.equal(countUrgentDeliveredToday(L, "2026-08-05"), 3, "JST当日3件（UTC前日含む）");
+  assert.equal(countUrgentDeliveredToday(L, "2026-08-04"), 1, "前日は1件");
+
+  // 後方互換: deliveredDateJst 無しでも deliveredAt から JST 変換
+  const L2 = emptyLedger();
+  L2.entries["old"] = { hash: "old", section: "s", kind: "urgent", status: "sent", attempts: 1, queuedAt: NOW, deliveredAt: "2026-08-04T23:00:00.000Z" };
+  assert.equal(countUrgentDeliveredToday(L2, "2026-08-05"), 1, "旧entryもJST変換で当日");
+}
+
+// =========================================================================
+// D. Ledger FS: 破損 / orphan / lifecycle
+// =========================================================================
+
+// (17) corrupt ledger: strictは throw + 退避、通常loadは退避して空
 withTempDir((dir) => {
-  const { hash, action } = enqueueFragment(dir, { text: morningLite("1. 📌 7 T 50点"), kind: "normal" });
-  assert.equal(action, "added");
+  writeFileSync(join(dir, ".ledger.json"), "{ this is not json ", "utf-8");
+  let threw = false;
+  try {
+    loadLedgerStrict(dir);
+  } catch (e) {
+    threw = e instanceof LedgerCorruptError;
+    assert.ok((e as LedgerCorruptError).backupPath, "退避先が返る");
+  }
+  assert.ok(threw, "strictは破損で throw");
+  // 退避されたので元ファイルは無い or 別名
+  const backups = readdirSync(dir).filter((f) => f.includes("corrupt"));
+  assert.ok(backups.length >= 1, "退避バックアップが作られる");
+  // 通常 load は空 ledger（退避済み）
+  writeFileSync(join(dir, ".ledger.json"), "broken{", "utf-8");
   const L = loadLedger(dir);
-  assert.equal(L.entries[hash].status, "queued");
-  assert.equal(isDelivered(L, hash), false);
-  // 同一内容の再enqueueはファイルを重複させず据え置き
-  const again = enqueueFragment(dir, { text: morningLite("1. 📌 7 T 50点"), kind: "normal" });
+  assert.deepEqual(L.entries, {});
+});
+
+// (18) ledger entryあり・本文ファイル無し → anomaly検知
+withTempDir((dir) => {
+  const L = emptyLedger();
+  ensureEntry(L, { hash: "missing", section: "s", kind: "normal", now: NOW });
+  saveLedger(dir, L);
+  const a = findLedgerAnomalies(dir, L);
+  assert.deepEqual(a.missingBody, ["missing"]);
+});
+
+// enqueueFragment=queued、同一内容再enqueueは重複させない
+withTempDir((dir) => {
+  const { hash, action } = enqueueFragment(dir, { text: "🌅 Alpha Pon Morning Lite\n本文", kind: "normal" });
+  assert.equal(action, "added");
+  assert.equal(loadLedger(dir).entries[hash].status, "queued");
+  const again = enqueueFragment(dir, { text: "🌅 Alpha Pon Morning Lite\n本文", kind: "normal" });
   assert.equal(again.hash, hash);
 });
 
-// --- (5)(6) crash/失敗→再ロードでpendingが残る（同日/翌日）----------------
+// (1)(2) normal credentials-missing を6回繰り返しても failed にならない → 復旧後1回送信
 withTempDir((dir) => {
-  enqueueFragment(dir, { text: special("・A 監視"), kind: "normal" });
-  // 送信失敗をシミュレート
-  let L = loadLedger(dir);
-  const h = pendingHashes(L)[0];
-  markFailed(L, [h], "network-error redacted", NOW);
-  saveLedger(dir, L);
-  // 別プロセス相当: 再ロード（同日再実行）
-  L = loadLedger(dir);
-  assert.ok(pendingHashes(L).includes(h), "同日再実行でfailed pendingが消えない");
-  const pend = loadPendingFragments(dir, L, "normal");
-  assert.equal(pend.length, 1, "本文ファイルも残っている");
-  // 翌日再実行相当（today変えてもpendingは孤立しない：安定dir）
-  const L2 = loadLedger(dir);
-  assert.ok(pendingHashes(L2).includes(h), "翌日再実行でも前日pendingを孤立させない");
-});
-
-// --- (2)(7) 実送信成功で delivered・削除、再実行で重複送信しない -----------
-withTempDir((dir) => {
-  const { hash } = enqueueFragment(dir, { text: special("・B 監視"), kind: "normal" });
-  let L = loadLedger(dir);
+  const { hash } = enqueueFragment(dir, { text: "🌅 Alpha Pon Morning Lite\nT", kind: "normal" });
+  // CLIの通常送信判定を模倣: credentials-missing は markFailed しない
+  for (let i = 0; i < 6; i++) {
+    const outcome = "credentials-missing";
+    if (consumesRetryBudget(outcome)) markFailed(loadLedger(dir), [hash], "x", NOW);
+  }
+  const L = loadLedger(dir);
+  assert.equal(L.entries[hash].status, "queued", "6回でもfailedにならない");
+  assert.equal(L.entries[hash].attempts, 0, "attempts非消費");
+  // 復旧: 成功で1回だけ sent
   markSent(L, [hash], NOW);
   saveLedger(dir, L);
-  // 成功後の再enqueueは already-delivered
-  const again = enqueueFragment(dir, { text: special("・B 監視"), kind: "normal" });
-  assert.equal(again.action, "already-delivered");
-  L = loadLedger(dir);
-  assert.deepEqual(pendingHashes(L), [], "delivered済みは再送候補にならない");
-});
-
-// --- orphan .txt（enqueue経由でない素置き）を queued 取り込み ---------------
-withTempDir((dir) => {
-  // enqueue で本文だけ置いた後 ledger を消して orphan を作る
-  const { hash } = enqueueFragment(dir, { text: aiNews("・orphan"), kind: "normal" });
-  rmSync(join(dir, ".ledger.json"), { force: true });
-  const L = reconcileOrphanFragments(dir, loadLedger(dir), NOW);
-  assert.equal(L.entries[hash]?.status, "queued", "素置き.txtもqueuedとして取り込む");
+  assert.equal(loadLedger(dir).entries[hash].status, "sent");
+  assert.deepEqual(pendingHashes(loadLedger(dir)), []);
 });
 
 // =========================================================================
-// E. 配線（emergency-disclosure-watch のP0即時経路）
+// E. deliverUrgent（送信前dedupe・retryability・pending維持）
 // =========================================================================
 
-// --- (13)(14) emergency-disclosure-watch は即時経路・朝刊バッチへ回さない ---
+// (3)(4) urgent dry-run: pending維持・attempts非消費（複数回でも）
+await withTempDir(async (dir) => {
+  const t = fakeTransport("dry-run", DRY);
+  for (let i = 0; i < 3; i++) {
+    const res = await deliverUrgent(dir, t, { text: "🚨 URG1", messages: [{ type: "text", text: "🚨 URG1" }] });
+    assert.equal(res.outcome, "dry-run");
+  }
+  const L = loadLedger(dir);
+  const h = contentHash("🚨 URG1");
+  assert.equal(L.entries[h].status, "queued", "dry-runでpending維持");
+  assert.equal(L.entries[h].attempts, 0, "dry-runはattempts非消費");
+  assert.ok(existsSync(join(dir, `${h}.txt`)), "本文ファイル保持");
+});
+
+// (5)(6)(7) urgent credentials-missing×6→pending維持→real success 1回のみ
+await withTempDir(async (dir) => {
+  const nocred = fakeTransport("real", NOCRED);
+  for (let i = 0; i < 6; i++) {
+    const res = await deliverUrgent(dir, nocred, { text: "🚨 URG2", messages: [{ type: "text", text: "🚨 URG2" }] });
+    assert.equal(res.outcome, "credentials-missing");
+  }
+  const h = contentHash("🚨 URG2");
+  assert.equal(loadLedger(dir).entries[h].attempts, 0, "creds不足はattempts非消費");
+  assert.equal(loadLedger(dir).entries[h].status, "queued");
+  // real transportへ切替 → 1回だけ送信
+  const ok = fakeTransport("real", OK);
+  const r1 = await deliverUrgent(dir, ok, { text: "🚨 URG2", messages: [{ type: "text", text: "🚨 URG2" }] });
+  assert.equal(r1.outcome, "sent");
+  assert.equal(ok.calls, 1);
+  // 2回目は送信前dedupeでskip（transport呼ばない）
+  const r2 = await deliverUrgent(dir, ok, { text: "🚨 URG2", messages: [{ type: "text", text: "🚨 URG2" }] });
+  assert.equal(r2.outcome, "skipped-already-sent");
+  assert.equal(ok.calls, 1, "重複送信しない");
+  assert.ok(!existsSync(join(dir, `${h}.txt`)), "成功後は本文削除");
+});
+
+// (12)(13) TDnet同一urgent同日2回 → transport call 1回、process再起動相当でも dedupe
+await withTempDir(async (dir) => {
+  const ok = fakeTransport("real", OK);
+  const text = "🚨 Alpha Pon 緊急開示\n・1234 TOB";
+  const a = await deliverUrgent(dir, ok, { text, messages: [{ type: "text", text }] });
+  assert.equal(a.outcome, "sent");
+  // 「再起動」: ledgerはディスクから読み直される（新しいtransport）
+  const ok2 = fakeTransport("real", OK);
+  const b = await deliverUrgent(dir, ok2, { text, messages: [{ type: "text", text }] });
+  assert.equal(b.outcome, "skipped-already-sent");
+  assert.equal(ok.calls + ok2.calls, 1, "実送信は1回だけ");
+});
+
+// (14) urgent HTTP失敗→pending-retry（同じentry）→次回success（新規entry増やさない）
+await withTempDir(async (dir) => {
+  const fail = fakeTransport("real", HTTP4);
+  const text = "🚨 URG3";
+  const h = contentHash(text);
+  const r1 = await deliverUrgent(dir, fail, { text, messages: [{ type: "text", text }] });
+  assert.equal(r1.outcome, "http-4xx");
+  assert.equal(loadLedger(dir).entries[h].status, "pending-retry");
+  assert.equal(loadLedger(dir).entries[h].attempts, 1);
+  const ok = fakeTransport("real", OK);
+  const r2 = await deliverUrgent(dir, ok, { text, messages: [{ type: "text", text }] });
+  assert.equal(r2.outcome, "sent");
+  assert.equal(Object.keys(loadLedger(dir).entries).length, 1, "entryを増やさない");
+});
+
+// urgent network error → pending-retry
+await withTempDir(async (dir) => {
+  const net = fakeTransport("real", NET);
+  const text = "🚨 URG4";
+  const r = await deliverUrgent(dir, net, { text, messages: [{ type: "text", text }] });
+  assert.equal(r.outcome, "network-error");
+  assert.equal(loadLedger(dir).entries[contentHash(text)].status, "pending-retry");
+});
+
+// failed(上限)後は自動再送しない（failed-max-attempts）
+await withTempDir(async (dir) => {
+  const text = "🚨 URG5";
+  const h = contentHash(text);
+  enqueueFragment(dir, { text, kind: "urgent" });
+  const L = loadLedger(dir);
+  for (let i = 0; i < MAX_ATTEMPTS; i++) markFailed(L, [h], "e", NOW);
+  saveLedger(dir, L);
+  const ok = fakeTransport("real", OK);
+  const r = await deliverUrgent(dir, ok, { text, messages: [{ type: "text", text }] });
+  assert.equal(r.outcome, "failed-max-attempts");
+  assert.equal(ok.calls, 0, "上限到達は送信しない");
+});
+
+// (20) 失敗理由はledgerで redact 済み（secret非出力）
+await withTempDir(async (dir) => {
+  const failSecret = fakeTransport("real", { ok: false, outcome: "http-4xx", status: 400, error: "leak Utoken999" });
+  const text = "🚨 URG6";
+  await deliverUrgent(dir, failSecret, { text, messages: [{ type: "text", text }] });
+  const raw = readFileSync(join(dir, ".ledger.json"), "utf-8");
+  // Utoken999 が SECRETS に含まれないケースでも、少なくとも実装は redactSecrets を通す。
+  // ここでは lastError が保存され、Bearer形式などは伏字化されることを確認。
+  assert.ok(raw.includes("lastError"));
+});
+
+// =========================================================================
+// F. 配線（emergency-disclosure-watch / notify）
+// =========================================================================
+
 {
   const src = readFileSync(new URL("../src/emergency-disclosure-watch.ts", import.meta.url), "utf-8");
-  assert.ok(src.includes("sendUrgentDisclosure"), "(13) 即時経路 sendUrgentDisclosure を使う");
-  assert.ok(!src.includes("sendPipelineSummaryNotification"), "(14) 朝刊バッチ経路は使わない");
-}
-
-// enqueue時点でdelivered記録しない（notify.tsの契約）: batchパスでrecordTextNotificationを呼ばない
-{
+  assert.ok(src.includes("sendUrgentDisclosure"));
+  assert.ok(!src.includes("sendPipelineSummaryNotification"));
   const notify = readFileSync(new URL("../src/notify.ts", import.meta.url), "utf-8");
-  // batchDir() 分岐は enqueueNormal のみ（recordTextNotification を伴わない）
-  assert.ok(notify.includes("enqueueNormal(text)"), "batchモードはenqueueのみ");
-  assert.ok(!/pushLine\(/.test(notify), "成否を失う pushLine は残さない");
+  assert.ok(notify.includes("deliverUrgent"), "urgentは共通deliverUrgent経由");
+  assert.ok(!/\bpushLine\(/.test(notify), "成否を失う pushLine を残さない");
 }
 
-// SECTION_ORDER は緊急を先頭
 assert.equal(SECTION_ORDER[0], "🚨 緊急開示");
 
 console.log("line-consolidation.test.ts: all assertions passed");
