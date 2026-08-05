@@ -12,8 +12,10 @@ The CLI configures:
 | Value | Cloudflare permission | GitHub location |
 | --- | --- | --- |
 | Read token | `D1 Read` | repository Secret `CLOUDFLARE_D1_READ_API_TOKEN` |
-| Edit token | `D1 Edit` | `production` environment Secret when available; otherwise repository Secret `CLOUDFLARE_D1_EDIT_API_TOKEN` |
+| Edit token | account-scoped `D1 Edit` or `D1 Write` as returned by Cloudflare | `production` environment Secret when available; otherwise repository Secret `CLOUDFLARE_D1_EDIT_API_TOKEN` |
 | Account ID | n/a | repository Secret `CLOUDFLARE_ACCOUNT_ID` |
+
+Cloudflare currently uses both `D1 Edit` and `D1 Write` labels across its permission-group API and D1 API documentation. The CLI accepts either label only when exactly one matching account-scoped permission group exists. If both or neither are returned, it fails closed rather than guessing.
 
 The default `--edit-secret-scope auto` attempts the stronger environment-secret boundary first. If the current private-repository GitHub plan does not support environment Secrets, it falls back to a repository Secret with the same name. It never upgrades a GitHub plan or requests billing.
 
@@ -34,6 +36,8 @@ Official documentation:
 
 - `https://developers.cloudflare.com/fundamentals/api/how-to/create-via-api/`
 - `https://developers.cloudflare.com/api/resources/user/subresources/tokens/methods/create/`
+- `https://developers.cloudflare.com/fundamentals/api/reference/permissions/`
+- `https://developers.cloudflare.com/api/resources/d1/subresources/database/methods/get/`
 
 This is the only mandatory dashboard step. Do not add D1, Workers, Access, Zero Trust, billing, or any other permission to this bootstrap token.
 
@@ -100,7 +104,7 @@ The CLI then:
 1. verifies the one-time creator token
 2. determines whether the Edit token can use a `production` environment Secret without a plan change
 3. fetches the current Cloudflare permission-group IDs instead of hard-coding them
-4. selects exactly one account-scoped `D1 Read` and `D1 Edit` permission
+4. selects exactly one account-scoped `D1 Read` permission and exactly one account-scoped `D1 Edit` or `D1 Write` permission
 5. creates two user-owned API tokens restricted to the specified Cloudflare account
 6. verifies both tokens are active
 7. verifies both tokens resolve the configured D1 database
@@ -112,7 +116,7 @@ The CLI then:
 
 ## D1 resource scope
 
-Cloudflare's `D1 Read` and `D1 Edit` permission groups are account-scoped. Cloudflare token policies cannot currently narrow these permissions to one D1 database resource.
+Cloudflare's `D1 Read` and D1 write permission groups are account-scoped. Cloudflare token policies cannot currently narrow these permissions to one D1 database resource.
 
 The CLI therefore:
 
