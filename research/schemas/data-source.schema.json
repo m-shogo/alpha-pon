@@ -1,0 +1,205 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "alpha-pon/research/data-source.schema.json",
+  "title": "ResearchDataSourceCatalog",
+  "description": "Alpha Ponで利用候補となるAPI・公開データ・OSSの採用判断契約。無料であっても自動採用しない。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "updatedAt", "policyVersion", "sources"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "updatedAt": { "type": "string", "format": "date" },
+    "policyVersion": { "type": "string", "minLength": 1 },
+    "sources": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/source" },
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "operator",
+        "officialUrl",
+        "sourceClass",
+        "roles",
+        "adoption",
+        "roadmapPhase",
+        "auth",
+        "cost",
+        "temporal",
+        "pit",
+        "rights",
+        "reliability",
+        "integration",
+        "edgeUseCases",
+        "blockers",
+        "nextAction"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "minLength": 3,
+          "maxLength": 80
+        },
+        "name": { "type": "string", "minLength": 2 },
+        "operator": { "type": "string", "minLength": 2 },
+        "officialUrl": { "type": "string", "format": "uri" },
+        "verifiedAt": { "type": "string", "format": "date" },
+        "sourceClass": {
+          "type": "string",
+          "enum": [
+            "primary_official",
+            "official_aggregate",
+            "licensed_market_data",
+            "third_party_aggregate",
+            "open_source_tool",
+            "discovery_only"
+          ]
+        },
+        "roles": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "discovery",
+              "evidence",
+              "market_reaction",
+              "supply_demand",
+              "confounder",
+              "technology_research",
+              "commercialization",
+              "entity_resolution",
+              "execution_constraint"
+            ]
+          }
+        },
+        "adoption": {
+          "type": "string",
+          "enum": [
+            "core_now",
+            "pilot_after_current_edge",
+            "catalog_only",
+            "reject"
+          ]
+        },
+        "roadmapPhase": {
+          "type": "string",
+          "enum": ["P0", "P2", "P2_5", "P3", "P4", "P5", "P6", "none"]
+        },
+        "auth": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode", "secretRequired"],
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": ["none", "api_key", "oauth", "application_id", "manual_application", "unknown"]
+            },
+            "secretRequired": { "type": "boolean" },
+            "notes": { "type": "string" }
+          }
+        },
+        "cost": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["freeStatus"],
+          "properties": {
+            "freeStatus": {
+              "type": "string",
+              "enum": ["free", "free_limited", "paid", "application_based", "unknown"]
+            },
+            "limits": { "type": "string" },
+            "upgradeTrigger": { "type": "string" }
+          }
+        },
+        "temporal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["freshness", "history"],
+          "properties": {
+            "freshness": { "type": "string", "minLength": 1 },
+            "history": { "type": "string", "minLength": 1 },
+            "publicationTimestamp": {
+              "type": "string",
+              "enum": ["precise", "date_only", "derived", "unavailable", "mixed"]
+            }
+          }
+        },
+        "pit": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["support", "revisionHandling"],
+          "properties": {
+            "support": {
+              "type": "string",
+              "enum": ["strong", "partial", "weak", "not_applicable", "unknown"]
+            },
+            "revisionHandling": { "type": "string", "minLength": 1 },
+            "requiredTimestamps": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "enum": ["eventAt", "publishedAt", "discoveredAt", "observedAt", "firstExecutableAt", "retrievedAt"]
+              }
+            }
+          }
+        },
+        "rights": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["rawStorage", "gitCommit", "publicDisplay", "redistribution"],
+          "properties": {
+            "rawStorage": { "type": "string", "enum": ["allowed", "local_only", "restricted", "unknown"] },
+            "gitCommit": { "type": "string", "enum": ["allowed", "metadata_only", "prohibited", "unknown"] },
+            "publicDisplay": { "type": "string", "enum": ["allowed", "derived_only", "prohibited", "unknown"] },
+            "redistribution": { "type": "string", "enum": ["allowed", "restricted", "prohibited", "unknown"] },
+            "notes": { "type": "string" }
+          }
+        },
+        "reliability": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["authority", "operationalRisk"],
+          "properties": {
+            "authority": { "type": "string", "enum": ["primary", "official", "secondary", "discovery"] },
+            "operationalRisk": { "type": "string", "enum": ["low", "medium", "high", "unknown"] },
+            "fallback": { "type": "string" }
+          }
+        },
+        "integration": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["existingState", "maintenanceCost", "failureIsolation"],
+          "properties": {
+            "existingState": { "type": "string", "enum": ["implemented", "partial", "not_started", "deprecated"] },
+            "maintenanceCost": { "type": "string", "enum": ["low", "medium", "high", "unknown"] },
+            "failureIsolation": { "type": "string", "enum": ["required", "implemented", "not_applicable"] },
+            "entityKeys": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+            "notes": { "type": "string" }
+          }
+        },
+        "edgeUseCases": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "blockers": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "nextAction": { "type": "string", "minLength": 5 },
+        "discoveryPolicy": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "mayDiscoverFromSocial": { "type": "boolean" },
+            "mayUseAsEvidence": { "type": "boolean" },
+            "officialAccountRule": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}
