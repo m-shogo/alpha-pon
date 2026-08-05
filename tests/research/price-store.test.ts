@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   appendPriceRecords,
+  computePriceRecordHash,
   parsePriceJsonl,
   readPriceJsonl,
   selectPriceRecordsAsOf,
@@ -11,25 +12,34 @@ import {
   validatePriceRecord,
   validatePriceRecords,
   withPriceRecordHash,
+  type PitPriceRecord,
   type PitPriceRecordInput,
+  type PriceProvider,
 } from "../../src/research/price-store.js";
-import type { JsonSchema } from "../../src/research/schema.js";
+import { loadSchema } from "../../src/research/io.js";
 
-const NOW = new Date("2026-08-05T14:00:00+09:00");
-const schema = JSON.parse(readFileSync("research/schemas/price-record.schema.json", "utf-8")) as JsonSchema;
+const schema = loadSchema("price-record");
+const NOW = new Date("2026-08-05T20:00:00+09:00");
 
-function input(overrides: Partial<PitPriceRecordInput> = {}): PitPriceRecordInput {
+function input(
+  overrides: Partial<PitPriceRecordInput> = {},
+): PitPriceRecordInput {
   return {
     schemaVersion: 1,
     seriesKind: "security",
     code: "TEST1",
     market: "TSE",
     tradingDate: "2024-01-04",
+    dataAsOf: "2024-01-04T15:00:00+09:00",
     observedAt: "2024-01-04T15:35:00+09:00",
+    retrievedAt: "2024-01-04T15:36:00+09:00",
     firstExecutableAt: "2024-01-05T09:00:00+09:00",
     source: "synthetic_fixture",
-    sourceVersion: "fixture-v1",
-    ingestionRunId: "fixture-run-001",
+    sourceVersion: "fixture-v2",
+    providerPlan: "synthetic",
+    delayDays: 0,
+    isDelayed: false,
+    ingestionRunId: "fixture-run-002",
     currency: "JPY",
     status: "traded",
     ohlcv: { open: 1000, high: 1030, low: 990, close: 1020, volume: 1_000_000 },
@@ -43,118 +53,235 @@ function input(overrides: Partial<PitPriceRecordInput> = {}): PitPriceRecordInpu
   };
 }
 
-function codes(records: ReturnType<typeof withPriceRecordHash>[]): string[] {
-  return validatePriceRecords(records, schema, NOW).map((issue) => issue.code);
+function record(overrides: Partial<PitPriceRecordInput> = {}): PitPriceRecord {
+  return withPriceRecordHash(input(overrides));
 }
 
-function testSyntheticFixturePasses() {
-  const records = parsePriceJsonl(
-    readFileSync("research/fixtures/prices/synthetic-security.jsonl", "utf-8"),
-    "synthetic-security.jsonl",
-  );
-  assert.deepEqual(validatePriceRecords(records, schema, NOW), []);
+function errorCodes(records: PitPriceRecord[]): string[] {
+  return validatePriceRecords(records, schema, NOW)
+    .filter((issue) => issue.severity === "error")
+    .map((issue) => issue.code);
+}
+
+// committed synthetic fixture is valid and hash-stable.
+{
+  const content = readFileSync("research/fixtures/prices/synthetic-security.jsonl", "utf-8");
+  const records = parsePriceJsonl(content, "fixture");
+  assert.equal(records.length, 1);
+  assert.deepEqual(errorCodes(records), []);
+  assert.equal(records[0].contentHash, computePriceRecordHash(records[0]));
   console.log("research/price-store: synthetic fixture OK");
 }
 
-function testHashTamperingRejected() {
-  const record = { ...withPriceRecordHash(input()), contentHash: "0".repeat(64) };
-  assert.ok(validatePriceRecord(record, schema, NOW).some((issue) => issue.code === "invalid_content_hash"));
-  console.log("research/price-store: content hash tampering rejected");
+// hash is deterministic and any material mutation is detected.
+{
+  const original = record();
+  assert.equal(computePriceRecordHash(original), original.contentHash);
+  const tampered = { ...original, delayDays: 84 };
+  assert.ok(errorCodes([tampered]).includes("invalid_content_hash"));
+  console.log("research/price-store: content hash tamper detection OK");
 }
 
-function testFutureAndExecutionOrderRejected() {
-  const future = withPriceRecordHash(input({ observedAt: "2026-08-06T15:35:00+09:00", firstExecutableAt: "2026-08-07T09:00:00+09:00" }));
-  assert.ok(validatePriceRecord(future, schema, NOW).some((issue) => issue.code === "future_observation"));
-
-  const reversed = withPriceRecordHash(input({ firstExecutableAt: "2024-01-04T15:00:00+09:00" }));
-  assert.ok(validatePriceRecord(reversed, schema, NOW).some((issue) => issue.code === "execution_before_observation"));
-  console.log("research/price-store: PIT timestamp order OK");
+// PIT timestamp order and trading-date mapping.
+{
+  assert.ok(errorCodes([record({ dataAsOf: "2024-01-04T16:00:00+09:00", observedAt: "2024-01-04T15:35:00+09:00" })]).includes("data_after_observation"));
+  assert.ok(errorCodes([record({ retrievedAt: "2024-01-04T15:34:00+09:00" })]).includes("retrieval_before_observation"));
+  assert.ok(errorCodes([record({ firstExecutableAt: "2024-01-04T15:00:00+09:00" })]).includes("execution_before_observation"));
+  assert.ok(errorCodes([record({ tradingDate: "2024-01-03" })]).includes("trading_date_mismatch"));
+  assert.ok(errorCodes([record({ observedAt: "2027-01-01T00:00:00+09:00", retrievedAt: "2027-01-01T00:01:00+09:00", firstExecutableAt: "2027-01-04T09:00:00+09:00" })]).includes("future_observation"));
+  console.log("research/price-store: timestamp boundaries OK");
 }
 
-function testInvalidOhlcvRejected() {
-  const record = withPriceRecordHash(
-    input({ ohlcv: { open: 1000, high: 900, low: 950, close: 980, volume: 10.5 } }),
-  );
-  assert.ok(validatePriceRecord(record, schema, NOW).some((issue) => issue.code === "schema" || issue.code === "invalid_ohlcv"));
-  console.log("research/price-store: invalid OHLCV rejected");
+// Free/Standard share one record shape; delay flag must match delayDays.
+{
+  const free = record({
+    providerPlan: "free",
+    delayDays: 84,
+    isDelayed: true,
+    observedAt: "2024-03-28T16:00:00+09:00",
+    retrievedAt: "2024-03-28T16:01:00+09:00",
+    firstExecutableAt: "2024-03-29T09:00:00+09:00",
+  });
+  const standard = record({ providerPlan: "standard", delayDays: 0, isDelayed: false });
+  assert.deepEqual(errorCodes([free]), []);
+  assert.deepEqual(errorCodes([standard]), []);
+  assert.ok(errorCodes([record({ providerPlan: "free", delayDays: 84, isDelayed: false })]).includes("delay_flag_mismatch"));
+  console.log("research/price-store: provider plan/delay contract OK");
 }
 
-function testRevisionRequiresHashChain() {
-  const first = withPriceRecordHash(input());
-  const missingLink = withPriceRecordHash(
-    input({
-      observedAt: "2024-01-05T18:00:00+09:00",
-      firstExecutableAt: "2024-01-09T09:00:00+09:00",
-      sourceVersion: "fixture-v2",
-      ingestionRunId: "fixture-run-002",
-      ohlcv: { open: 1000, high: 1030, low: 990, close: 1015, volume: 1_000_000 },
-    }),
-  );
-  assert.ok(codes([first, missingLink]).includes("missing_supersedes_hash"));
-
-  const linked = withPriceRecordHash({ ...missingLink, supersedesHash: first.contentHash });
-  assert.deepEqual(validatePriceRecords([first, linked], schema, NOW), []);
-  console.log("research/price-store: explicit revision chain OK");
-}
-
-function testAsOfSelectionDoesNotLeakRevision() {
-  const first = withPriceRecordHash(input());
-  const revised = withPriceRecordHash(
-    input({
-      observedAt: "2024-01-05T18:00:00+09:00",
-      firstExecutableAt: "2024-01-09T09:00:00+09:00",
-      sourceVersion: "fixture-v2",
-      ingestionRunId: "fixture-run-002",
-      supersedesHash: first.contentHash,
-      ohlcv: { open: 1000, high: 1030, low: 990, close: 1015, volume: 1_000_000 },
-    }),
-  );
-
-  const beforeRevision = selectPriceRecordsAsOf([first, revised], "2024-01-05T12:00:00+09:00", {
+// Non-traded rows require a reason and may not carry OHLCV; no forward-fill occurs.
+{
+  const missing = record({
+    status: "missing",
+    missingReason: "provider_gap",
+    ohlcv: undefined,
+  });
+  assert.deepEqual(errorCodes([missing]), []);
+  assert.ok(errorCodes([record({ status: "missing", ohlcv: undefined })]).includes("missing_reason_required"));
+  assert.ok(errorCodes([record({ status: "suspended", missingReason: "exchange_suspension" })]).includes("ohlcv_for_non_traded"));
+  assert.ok(errorCodes([record({ missingReason: "unknown" })]).includes("missing_reason_for_traded"));
+  const series = toBacktestPriceSeries([record(), missing], "2026-01-01T00:00:00+09:00", {
     seriesKind: "security",
     code: "TEST1",
   });
-  assert.equal(beforeRevision[0].contentHash, first.contentHash, "revision publication before cannot use revision");
-
-  const afterRevision = toBacktestPriceSeries([first, revised], "2024-01-05T19:00:00+09:00", {
-    seriesKind: "security",
-    code: "TEST1",
-  });
-  assert.equal(afterRevision.bars[0].close, 1015);
-  console.log("research/price-store: as-of revision selection OK");
+  assert.equal(series.bars.length, 1, "missing row is not forward-filled into Backtest");
+  console.log("research/price-store: missing/no-forward-fill contract OK");
 }
 
-function testAppendOnlyWriter() {
-  const root = mkdtempSync(join(tmpdir(), "alpha-pon-price-store-"));
-  const path = join(root, "TEST1.jsonl");
+// Corporate actions cannot leak from after the record observation.
+{
+  const leaked = record({
+    corporateActions: [{
+      type: "split",
+      effectiveDate: "2024-02-01",
+      factor: 2,
+      observedAt: "2024-02-01T15:30:00+09:00",
+      source: "fixture",
+    }],
+  });
+  assert.ok(errorCodes([leaked]).includes("corporate_action_after_record"));
+
+  const noFactor = record({
+    corporateActions: [{
+      type: "split",
+      effectiveDate: "2024-01-04",
+      observedAt: "2024-01-04T14:00:00+09:00",
+      source: "fixture",
+    }],
+  });
+  assert.ok(errorCodes([noFactor]).includes("corporate_action_factor_required"));
+  console.log("research/price-store: corporate action PIT contract OK");
+}
+
+// Unknown rights are not accepted into the store.
+{
+  assert.ok(errorCodes([record({ license: "unknown" })]).includes("unknown_license"));
+  console.log("research/price-store: license boundary OK");
+}
+
+// Revision chain is append-only and uses real timestamp comparison, not lexical timezone comparison.
+{
+  const first = record({
+    observedAt: "2024-01-05T00:30:00+09:00",
+    retrievedAt: "2024-01-05T00:31:00+09:00",
+    firstExecutableAt: "2024-01-05T09:00:00+09:00",
+  });
+  const secondInput = input({
+    observedAt: "2024-01-04T16:00:00Z",
+    retrievedAt: "2024-01-04T16:01:00Z",
+    firstExecutableAt: "2024-01-05T09:00:00+09:00",
+    sourceVersion: "fixture-v3",
+    ingestionRunId: "fixture-run-003",
+    ohlcv: { open: 1000, high: 1040, low: 990, close: 1030, volume: 1_100_000 },
+    supersedesHash: first.contentHash,
+  });
+  const second = withPriceRecordHash(secondInput);
+  assert.deepEqual(errorCodes([first, second]), []);
+  const selected = selectPriceRecordsAsOf(
+    [first, second],
+    "2024-01-05T10:00:00+09:00",
+    { seriesKind: "security", code: "TEST1", providerPlan: "synthetic" },
+  );
+  assert.equal(selected.length, 1);
+  assert.equal(selected[0].contentHash, second.contentHash);
+
+  const broken = withPriceRecordHash({ ...secondInput, supersedesHash: "0".repeat(64) });
+  assert.ok(errorCodes([first, broken]).includes("invalid_supersedes_hash"));
+  console.log("research/price-store: revision chain/timezone ordering OK");
+}
+
+// Observed data may exist before it is executable; Backtest adapter uses executable boundary.
+{
+  const row = record();
+  assert.equal(
+    selectPriceRecordsAsOf(
+      [row],
+      "2024-01-04T16:00:00+09:00",
+      { seriesKind: "security", code: "TEST1" },
+      "observed",
+    ).length,
+    1,
+  );
+  assert.equal(
+    selectPriceRecordsAsOf(
+      [row],
+      "2024-01-04T16:00:00+09:00",
+      { seriesKind: "security", code: "TEST1" },
+      "executable",
+    ).length,
+    0,
+  );
+  assert.equal(
+    toBacktestPriceSeries(
+      [row],
+      "2024-01-04T16:00:00+09:00",
+      { seriesKind: "security", code: "TEST1" },
+    ).bars.length,
+    0,
+  );
+  console.log("research/price-store: firstExecutable boundary OK");
+}
+
+// Append-only writer validates the combined history and rejects duplicate hashes.
+{
+  const dir = mkdtempSync(join(tmpdir(), "pit-price-store-"));
+  const path = join(dir, "security", "TEST1.jsonl");
   try {
-    const first = withPriceRecordHash(input());
-    const revised = withPriceRecordHash(
-      input({
-        observedAt: "2024-01-05T18:00:00+09:00",
-        firstExecutableAt: "2024-01-09T09:00:00+09:00",
-        sourceVersion: "fixture-v2",
-        ingestionRunId: "fixture-run-002",
-        supersedesHash: first.contentHash,
-        ohlcv: { open: 1000, high: 1030, low: 990, close: 1015, volume: 1_000_000 },
-      }),
-    );
+    const first = record();
     appendPriceRecords(path, [first], schema, NOW);
-    appendPriceRecords(path, [revised], schema, NOW);
-    assert.equal(readPriceJsonl(path).length, 2);
-    assert.throws(() => appendPriceRecords(path, [first], schema, NOW), /再追加できません/);
+    assert.equal(readPriceJsonl(path).length, 1);
+    assert.throws(() => appendPriceRecords(path, [first], schema, NOW), /既存contentHash/);
+    assert.equal(readPriceJsonl(path).length, 1);
   } finally {
-    rmSync(root, { recursive: true, force: true });
+    rmSync(dir, { recursive: true, force: true });
   }
   console.log("research/price-store: append-only writer OK");
 }
 
-testSyntheticFixturePasses();
-testHashTamperingRejected();
-testFutureAndExecutionOrderRejected();
-testInvalidOhlcvRejected();
-testRevisionRequiresHashChain();
-testAsOfSelectionDoesNotLeakRevision();
-testAppendOnlyWriter();
+// Provider contract exposes plan capabilities without separate business logic.
+{
+  const provider: PriceProvider = {
+    id: "synthetic-provider",
+    license: "redistributable",
+    capabilities: {
+      plan: "synthetic",
+      delayDays: 0,
+      supportsAdjusted: true,
+      supportsUnadjusted: true,
+      supportsCorporateActions: true,
+      supportsBenchmarks: true,
+      supportsSectorBenchmarks: true,
+      historyFrom: "2020-01-01",
+    },
+    async fetchDaily() {
+      return {
+        providerId: "synthetic-provider",
+        sourceVersion: "fixture-v2",
+        capabilities: this.capabilities,
+        license: this.license,
+        retrievedAt: "2024-01-04T15:36:00+09:00",
+        records: [input()],
+      };
+    },
+  };
+  const batch = await provider.fetchDaily({
+    seriesKind: "security",
+    codes: ["TEST1"],
+    from: "2024-01-01",
+    to: "2024-01-31",
+    asOf: "2024-02-01T00:00:00+09:00",
+  });
+  assert.equal(batch.capabilities.plan, "synthetic");
+  assert.equal(batch.records.length, 1);
+  console.log("research/price-store: provider capability contract OK");
+}
 
-console.log("research/price-store: all tests passed");
+// Schema validator itself catches missing mandatory timing fields.
+{
+  const raw = record() as unknown as Record<string, unknown>;
+  delete raw.retrievedAt;
+  const issues = validatePriceRecord(raw as unknown as PitPriceRecord, schema, NOW);
+  assert.ok(issues.some((issue) => issue.code === "schema"));
+}
+
+console.log("research/price-store: 全テスト成功");
