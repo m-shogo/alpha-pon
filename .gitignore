@@ -44,6 +44,13 @@ data/world_theme_candidate_hypotheses_latest.json
 data/world_theme_candidate_hypotheses.jsonl
 data/world_theme_candidate_review_results.jsonl
 
+# Stock Pro Council runtime records are append-only local data.
+# Schemas, validators and README files are versioned; real verdict/dissent/veto rows are not.
+research/persona_verdicts/*
+!research/persona_verdicts/README.md
+research/council_ledgers/*
+!research/council_ledgers/README.md
+
 # デザイン確認用の一時出力
 design/alpha-pon-standalone.html
 design/screenshots/*.png
