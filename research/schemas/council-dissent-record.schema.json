@@ -7,6 +7,7 @@
   "required": [
     "schemaVersion",
     "dissentId",
+    "dissentCode",
     "councilRunId",
     "personaId",
     "personaVersion",
@@ -23,6 +24,11 @@
   "properties": {
     "schemaVersion": { "const": 1 },
     "dissentId": { "type": "string", "minLength": 3 },
+    "dissentCode": {
+      "type": "string",
+      "minLength": 2,
+      "pattern": "^[a-z0-9_]+$"
+    },
     "councilRunId": { "type": "string", "minLength": 3 },
     "personaId": {
       "type": "string",
