@@ -53,7 +53,7 @@
         "mechanismSteps": {
           "type": "array",
           "minItems": 2,
-          "items": { "type": "string", "minLength": 3 }
+          "items": { "type": "string", "minLength": 2 }
         },
         "beneficiaryLayers": {
           "type": "array",
@@ -95,6 +95,7 @@
               "filing",
               "procurement",
               "capacity",
+              "inspection",
               "supplier_mapping",
               "market_data",
               "benchmark",
