@@ -2,6 +2,7 @@ import "./catalog-validation.test.js";
 import "./claim-contradiction-graph.test.js";
 import "./claim-contradiction-graph-hardening.test.js";
 import "./claim-contradiction-graph-repository.test.js";
+import "./claim-contradiction-graph-pit.test.js";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { load } from "js-yaml";
