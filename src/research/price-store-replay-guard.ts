@@ -2,8 +2,7 @@
 //
 // A timestamp cutoff alone is not a deterministic snapshot. Recommendation,
 // Event Study and historical decision replay must also pin the ingestion runs
-// that were accepted at issue time. This module validates that manifest before
-// exposing price bars to downstream research.
+// and immutable content hashes accepted at issue time.
 
 import type { PriceSeries } from "./backtest.js";
 import {
@@ -27,6 +26,7 @@ export interface PriceReplaySnapshotManifest {
   snapshotId: string;
   informationCutoff: string;
   allowedIngestionRunIds: readonly string[];
+  allowedContentHashes: readonly string[];
 }
 
 export interface GovernedReplayContext {
@@ -45,32 +45,106 @@ export interface ExpectedProviderBatchIdentity {
   ingestionRunId: string;
 }
 
+export type PriceReplayGuardIssueCode =
+  | "snapshot_manifest_mismatch"
+  | "replay_cutoff_mismatch"
+  | "duplicate_series_role"
+  | "role_series_kind_mismatch"
+  | "duplicate_required_series"
+  | "pinned_record_invalid";
+
+export interface PriceReplayGuardIssue {
+  severity: "error";
+  code: PriceReplayGuardIssueCode;
+  target: string;
+  message: string;
+}
+
+export type GovernedReplayIssue = PriceHardeningIssue | PriceReplayGuardIssue;
+
+interface ValidatedManifest {
+  runIds: Set<string>;
+  contentHashes: Set<string>;
+  signature: string;
+}
+
 function timeMs(value: string): number {
   return Date.parse(value);
 }
 
-function assertManifest(manifest: PriceReplaySnapshotManifest): Set<string> {
-  if (!manifest.snapshotId.trim()) throw new Error("snapshotId is required");
+function replayIssue(
+  code: PriceReplayGuardIssueCode,
+  target: string,
+  message: string,
+): PriceReplayGuardIssue {
+  return { severity: "error", code, target, message };
+}
+
+function normalizedUniqueValues(
+  values: readonly string[],
+  label: string,
+  validator?: (value: string) => boolean,
+): string[] {
+  const normalized = values.map((value) => value.trim());
+  if (normalized.length === 0 || normalized.some((value) => value.length === 0)) {
+    throw new Error(`${label} must contain non-empty values`);
+  }
+  if (validator && normalized.some((value) => !validator(value))) {
+    throw new Error(`${label} contains an invalid value`);
+  }
+  if (new Set(normalized).size !== normalized.length) {
+    throw new Error(`${label} must not contain duplicates`);
+  }
+  return normalized.sort();
+}
+
+function assertManifest(manifest: PriceReplaySnapshotManifest): ValidatedManifest {
+  const snapshotId = manifest.snapshotId.trim();
+  if (!snapshotId) throw new Error("snapshotId is required");
   if (!Number.isFinite(timeMs(manifest.informationCutoff))) {
     throw new Error(`invalid informationCutoff: ${manifest.informationCutoff}`);
   }
-  const runIds = manifest.allowedIngestionRunIds.map((value) => value.trim());
-  if (runIds.length === 0 || runIds.some((value) => value.length === 0)) {
-    throw new Error("allowedIngestionRunIds must contain non-empty run IDs");
-  }
-  if (new Set(runIds).size !== runIds.length) {
-    throw new Error("allowedIngestionRunIds must not contain duplicates");
-  }
-  return new Set(runIds);
+  const runIds = normalizedUniqueValues(
+    manifest.allowedIngestionRunIds,
+    "allowedIngestionRunIds",
+  );
+  const contentHashes = normalizedUniqueValues(
+    manifest.allowedContentHashes,
+    "allowedContentHashes",
+    (value) => /^[a-f0-9]{64}$/.test(value),
+  );
+  const signature = JSON.stringify({
+    snapshotId,
+    informationCutoff: manifest.informationCutoff,
+    allowedIngestionRunIds: runIds,
+    allowedContentHashes: contentHashes,
+  });
+  return {
+    runIds: new Set(runIds),
+    contentHashes: new Set(contentHashes),
+    signature,
+  };
 }
 
-function matchesSelectorIdentity(
+function basisOf(record: PitPriceRecord): "adjusted" | "unadjusted" {
+  return record.adjusted ? "adjusted" : "unadjusted";
+}
+
+function matchesBaseIdentity(
   record: PitPriceRecord,
   selector: HardenedPriceSeriesSelector,
 ): boolean {
   if (record.seriesKind !== selector.seriesKind || record.code !== selector.code) return false;
-  if ((record.adjusted ? "adjusted" : "unadjusted") !== selector.priceBasis) return false;
+  if (basisOf(record) !== selector.priceBasis) return false;
   if (selector.market && record.market !== selector.market) return false;
+  return true;
+}
+
+function matchesFullIdentity(
+  record: PitPriceRecord,
+  selector: HardenedPriceSeriesSelector,
+): boolean {
+  if (!matchesBaseIdentity(record, selector)) return false;
   if (selector.source && record.source !== selector.source) return false;
   if (selector.providerPlan && record.providerPlan !== selector.providerPlan) return false;
   return true;
@@ -89,24 +163,34 @@ function validatePinnedCandidates(
   selector: HardenedPriceSeriesSelector,
   context: GovernedReplayContext,
 ): PitPriceRecord[] {
-  const allowedRunIds = assertManifest(context.manifest);
-  const candidates = records.filter(
-    (record) => matchesSelectorIdentity(record, selector) && allowedRunIds.has(record.ingestionRunId),
+  const manifest = assertManifest(context.manifest);
+  const pinnedBaseRecords = records.filter(
+    (record) =>
+      matchesBaseIdentity(record, selector) &&
+      manifest.runIds.has(record.ingestionRunId) &&
+      manifest.contentHashes.has(record.contentHash),
   );
-  if (candidates.length === 0) {
+  if (pinnedBaseRecords.length === 0) {
     throw new Error(
       `no records match pinned snapshot ${context.manifest.snapshotId} for ${selector.code}`,
     );
   }
 
   const errors = validateHardenedPriceRecords(
-    candidates,
+    pinnedBaseRecords,
     context.schema,
     context.now ?? new Date(),
   ).filter((issue) => issue.severity === "error");
   if (errors.length > 0) {
     throw new Error(
       errors.map((issue) => `${issue.code} ${issue.target}: ${issue.message}`).join("\n"),
+    );
+  }
+
+  const candidates = pinnedBaseRecords.filter((record) => matchesFullIdentity(record, selector));
+  if (candidates.length === 0) {
+    throw new Error(
+      `pinned snapshot ${context.manifest.snapshotId} has no record matching source/plan for ${selector.code}`,
     );
   }
   return candidates;
@@ -152,28 +236,70 @@ export function toGovernedBacktestPriceSeries(
   };
 }
 
+function roleCount(inputs: GovernedEventStudyPriceInput[], role: string): number {
+  return inputs.filter((input) => input.role === role).length;
+}
+
 export function validateGovernedEventStudyPriceAlignment(
   inputs: GovernedEventStudyPriceInput[],
   asOf: string,
-): PriceHardeningIssue[] {
-  const issues: PriceHardeningIssue[] = [];
-  const snapshotIds = new Set(inputs.map((input) => input.context.manifest.snapshotId));
-  const cutoffs = new Set(inputs.map((input) => input.context.manifest.informationCutoff));
-  if (snapshotIds.size !== 1) {
-    issues.push({
-      severity: "error",
-      code: "missing_required_series",
-      target: "event-study",
-      message: `issuer/TOPIX/sector must use one pinned snapshotId: ${[...snapshotIds].sort().join(", ")}`,
-    });
+): GovernedReplayIssue[] {
+  const issues: GovernedReplayIssue[] = [];
+  const manifestSignatures = new Set<string>();
+  for (const input of inputs) {
+    try {
+      manifestSignatures.add(assertManifest(input.context.manifest).signature);
+    } catch (error) {
+      issues.push(replayIssue("pinned_record_invalid", input.role, (error as Error).message));
+    }
   }
+  if (manifestSignatures.size > 1) {
+    issues.push(replayIssue(
+      "snapshot_manifest_mismatch",
+      "event-study",
+      "issuer/TOPIX/sector must use the exact same pinned snapshot manifest",
+    ));
+  }
+
+  for (const role of ["issuer", "benchmark", "sector"] as const) {
+    if (roleCount(inputs, role) > 1) {
+      issues.push(replayIssue(
+        "duplicate_series_role",
+        role,
+        `Event Study role=${role} must appear exactly once`,
+      ));
+    }
+  }
+
+  for (const input of inputs) {
+    const expectedKind = input.role === "issuer" ? "security" : "benchmark";
+    if (input.selector.seriesKind !== expectedKind) {
+      issues.push(replayIssue(
+        "role_series_kind_mismatch",
+        input.role,
+        `role=${input.role} requires seriesKind=${expectedKind}`,
+      ));
+    }
+  }
+
+  const byRole = new Map(inputs.map((input) => [input.role, input]));
+  const benchmark = byRole.get("benchmark");
+  const sector = byRole.get("sector");
+  if (benchmark && sector && benchmark.selector.code === sector.selector.code) {
+    issues.push(replayIssue(
+      "duplicate_required_series",
+      "event-study",
+      "benchmark and sector benchmark must be distinct series",
+    ));
+  }
+
+  const cutoffs = new Set(inputs.map((input) => input.context.manifest.informationCutoff));
   if (cutoffs.size !== 1 || !cutoffs.has(asOf)) {
-    issues.push({
-      severity: "error",
-      code: "missing_required_series",
-      target: "event-study",
-      message: "issuer/TOPIX/sector informationCutoff must equal the requested replay cutoff",
-    });
+    issues.push(replayIssue(
+      "replay_cutoff_mismatch",
+      "event-study",
+      "issuer/TOPIX/sector informationCutoff must equal the requested replay cutoff",
+    ));
   }
   if (issues.length > 0) return issues;
 
@@ -184,12 +310,7 @@ export function validateGovernedEventStudyPriceAlignment(
       const records = validatePinnedCandidates(input.records, input.selector, input.context);
       hardenedInputs.push({ role: input.role, records, selector: input.selector });
     } catch (error) {
-      issues.push({
-        severity: "error",
-        code: "missing_required_series",
-        target: input.role,
-        message: (error as Error).message,
-      });
+      issues.push(replayIssue("pinned_record_invalid", input.role, (error as Error).message));
     }
   }
   if (issues.length > 0) return issues;
@@ -208,6 +329,11 @@ export function validateGovernedProviderBatch(
   if (batch.providerId !== expected.providerId) {
     issues.push("batch.providerId does not match expected.providerId");
   }
+  batch.records.forEach((record, index) => {
+    if (record.license === "metadata_only" && (record.status === "traded" || !!record.ohlcv)) {
+      issues.push(`records[${index}] metadata_only may not contain OHLCV price payload`);
+    }
+  });
   issues.push(...validateProviderBatchAgainstQuery(batch, query, {
     expectedSource: expected.source,
     expectedIngestionRunId: expected.ingestionRunId,
