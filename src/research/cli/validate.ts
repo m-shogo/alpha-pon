@@ -1,5 +1,5 @@
 // Research OS — 整合性の一括検査。
-// スキーマ / 重複 / 参照 / PIT / Gate / Decay / research catalog / councilをまとめて検査する。
+// スキーマ / 重複 / 参照 / PIT / Gate / Decay / catalogs / council ledgersをまとめて検査する。
 
 import { existsSync, readFileSync } from "fs";
 import { validateRepositoryCatalogs, type CatalogIssue } from "../catalog-validation.js";
@@ -9,6 +9,7 @@ import { loadResearchState, loadSchema, paths, readJsonl, ResearchDataError } fr
 import { checkPit } from "../pit.js";
 import { checkProductionIntegrity, type HoldoutAccessEntry, type HoldoutManifest } from "../promotion.js";
 import { formatErrors, validate as validateSchema } from "../schema.js";
+import { validateRepositoryCouncilLedgers } from "../stock-pro-council-ledgers.js";
 import {
   validateRepositoryStockProCouncilV2,
   type CouncilIssue,
@@ -79,10 +80,15 @@ function main(): void {
   const holdout = loadHoldout();
   const catalogs = validateRepositoryCatalogs();
   const council = validateRepositoryStockProCouncilV2();
+  const ledgers = validateRepositoryCouncilLedgers();
   const catalogIssues = [...catalogs.dataSourceIssues, ...catalogs.edgeFamilyIssues]
     .map(toResearchIssue);
-  const councilIssues = [...council.catalogIssues, ...council.verdictIssues]
-    .map(toResearchIssue);
+  const councilIssues = [
+    ...council.catalogIssues,
+    ...council.verdictIssues,
+    ...ledgers.dissentIssues,
+    ...ledgers.vetoIssues,
+  ].map(toResearchIssue);
 
   const issues: Issue[] = [
     ...holdout.issues,
@@ -101,7 +107,7 @@ function main(): void {
     `Research Catalog: Data Source ${catalogs.sourceCount} / Technology Family ${catalogs.familyCount} / Active Edge ${catalogs.activeEdgeCount}`,
   );
   console.log(
-    `Stock Pro Council v2: Persona ${council.personaCount} / Persisted Verdict ${council.verdictCount}`,
+    `Stock Pro Council v2: Persona ${council.personaCount} / Verdict ${council.verdictCount} / Dissent ${ledgers.dissentCount} / Veto ${ledgers.vetoCount}`,
   );
   console.log("Catalog entries and council personas are not counted as active Research OS Edges.");
 
@@ -112,6 +118,7 @@ function main(): void {
   console.log("✓ DATA_SOURCE_REGISTRY_CONTRACT_GREEN");
   console.log("✓ TECH_EDGE_CANDIDATE_CATALOG_GREEN");
   console.log("✓ STOCK_PRO_COUNCIL_V2_CONTRACT_GREEN");
+  console.log("✓ COUNCIL_DISSENT_VETO_LEDGER_GREEN");
 }
 
 main();
