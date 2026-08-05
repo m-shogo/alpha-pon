@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alpha-pon.local/schemas/council-dissent-record.schema.json",
+  "title": "Stock Pro Council Dissent Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "dissentId",
+    "councilRunId",
+    "personaId",
+    "personaVersion",
+    "issuedAt",
+    "informationCutoff",
+    "jurisdiction",
+    "stance",
+    "summary",
+    "evidenceRefs",
+    "unresolvedQuestions",
+    "status",
+    "contentHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "dissentId": { "type": "string", "minLength": 3 },
+    "councilRunId": { "type": "string", "minLength": 3 },
+    "personaId": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9_]+$"
+    },
+    "personaVersion": { "type": "string", "minLength": 1 },
+    "issuedAt": { "type": "string", "format": "date-time" },
+    "informationCutoff": { "type": "string", "format": "date-time" },
+    "jurisdiction": {
+      "type": "string",
+      "minLength": 2,
+      "pattern": "^[a-z0-9_]+$"
+    },
+    "stance": {
+      "type": "string",
+      "enum": ["oppose", "neutral", "abstain", "veto"]
+    },
+    "summary": { "type": "string", "minLength": 5 },
+    "evidenceRefs": { "$ref": "#/$defs/stringArray" },
+    "unresolvedQuestions": { "$ref": "#/$defs/stringArray" },
+    "status": {
+      "type": "string",
+      "enum": ["open", "acknowledged", "resolved", "superseded"]
+    },
+    "supersedesDissentId": { "type": "string", "minLength": 3 },
+    "resolvedAt": { "type": "string", "format": "date-time" },
+    "resolutionSummary": { "type": "string", "minLength": 5 },
+    "resolutionEvidenceRefs": { "$ref": "#/$defs/stringArray" },
+    "contentHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  },
+  "$defs": {
+    "stringArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}
