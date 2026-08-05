@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "id": "known-bad-event-repricing",
+    "title": "Known-Bad Event Repricing Edge",
+    "status": "research",
+    "priority": "A",
+    "confidence": 0.2,
+    "owner": "chatgpt-hourly",
+    "lastUpdate": "2026-08-05",
+    "hypothesisFingerprint": "30c9ff93",
+    "analogCount": 0,
+    "gatePassCount": 0
+  }
+]
