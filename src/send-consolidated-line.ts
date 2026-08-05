@@ -28,8 +28,8 @@ import {
   deleteFragmentByHash,
   findLedgerAnomalies,
   loadLedger,
-  loadLedgerStrict,
-  LedgerCorruptError,
+  readBlockMarker,
+  readLedgerState,
   loadPendingFragments,
   markFailed,
   markSent,
@@ -42,7 +42,7 @@ import { deliverUrgent } from "./line-delivery.js";
 import { recordTextNotification } from "./notification-dedupe.js";
 
 type RunResult = {
-  status: "sent" | "dry-run" | "skipped" | "failed" | "partial" | "credentials-missing";
+  status: "sent" | "dry-run" | "skipped" | "failed" | "partial" | "credentials-missing" | "blocked";
   reason?: string;
   urgentRetried?: number;
   urgentDelivered?: number;
@@ -53,7 +53,7 @@ type RunResult = {
   droppedDuplicates?: number;
   truncated?: boolean;
   pendingAfter?: number;
-  anomalies?: { missingBody: number; orphanFiles: number };
+  anomalies?: { missingBody: number; malformedEnvelopes: number; ambiguousLegacy: number };
 };
 
 const SECRETS = () => [process.env.LINE_CHANNEL_TOKEN, process.env.LINE_USER_ID];
@@ -68,12 +68,12 @@ async function retryUrgent(
   dir: string,
   transport: LineTransport,
 ): Promise<{ retried: number; delivered: number }> {
-  const ledger = loadLedgerStrict(dir);
-  const urgent = loadPendingFragments(dir, ledger, "urgent");
+  const urgent = loadPendingFragments(dir, loadLedger(dir), "urgent");
   let delivered = 0;
   for (const frag of urgent) {
     const res = await deliverUrgent(dir, transport, {
       text: frag.text,
+      section: frag.section,
       messages: [{ type: "text", text: frag.text }],
     });
     if (res.outcome === "sent") delivered += 1;
@@ -95,32 +95,39 @@ async function main(): Promise<RunResult> {
   const today = todayJst();
   const transport = createTransport();
 
-  // ledger を安全に読む。破損していれば退避して送信を停止（重複送信を防ぐ）。
-  let ledger;
-  try {
-    ledger = loadLedgerStrict(dir);
-  } catch (err) {
-    if (err instanceof LedgerCorruptError) {
-      const where = err.backupPath ? `退避先 ${basename(err.backupPath)}` : "退避失敗";
-      return { status: "failed", reason: `ledger破損のため送信停止（${where}）` };
+  // block marker を最優先で確認。人間が復旧するまで送信しない（fragmentは残す）。
+  {
+    const state = readLedgerState(dir);
+    if (state.status === "blocked" || state.status === "corrupt") {
+      if (state.status === "corrupt") {
+        const { blockOnCorrupt } = await import("./line-batch-queue.js");
+        blockOnCorrupt(dir, now);
+      }
+      const marker = readBlockMarker(dir);
+      const where = marker?.corruptBackupPath ? `退避先 ${basename(marker.corruptBackupPath)}` : "退避先なし";
+      return { status: "blocked", reason: `ledger破損のため送信停止・要手動復旧（${where}）` };
     }
-    throw err;
   }
 
-  // 素で置かれた .txt を取り込み、実ファイルとの不整合を surface する。
+  // envelope / legacy を kind を保持したまま取り込み、不整合を surface する。
+  let ledger = readLedgerState(dir).ledger;
   reconcileOrphanFragments(dir, ledger, now);
   saveLedger(dir, ledger);
   const anomalyDetail = findLedgerAnomalies(dir, ledger);
-  const anomalies = { missingBody: anomalyDetail.missingBody.length, orphanFiles: anomalyDetail.orphanFiles.length };
-  if (anomalyDetail.missingBody.length > 0) {
-    console.warn(`ledger anomaly: 本文欠落 ${anomalyDetail.missingBody.length}件（pending扱い・送信対象外）`);
+  const anomalies = {
+    missingBody: anomalyDetail.missingBody.length,
+    malformedEnvelopes: anomalyDetail.malformedEnvelopes.length,
+    ambiguousLegacy: anomalyDetail.ambiguousLegacy.length,
+  };
+  if (anomalyDetail.missingBody.length + anomalyDetail.malformedEnvelopes.length + anomalyDetail.ambiguousLegacy.length > 0) {
+    console.warn(`ledger anomaly: 本文欠落${anomalies.missingBody}/破損envelope${anomalies.malformedEnvelopes}/曖昧legacy${anomalies.ambiguousLegacy}（送信対象外）`);
   }
 
   // 1) pending な緊急fragmentの即時再送。
   const urgent = await retryUrgent(dir, transport);
 
   // 2) 通常fragmentを1通へ統合。
-  ledger = loadLedgerStrict(dir);
+  ledger = readLedgerState(dir).ledger;
   const normal = loadPendingFragments(dir, ledger, "normal");
   const immediateUrgentCount = countUrgentDeliveredToday(ledger, today);
 
