@@ -12,7 +12,9 @@ import {
 } from "../../src/research/price-store-hardening.js";
 import {
   readPriceJsonl,
+  withPriceRecordHash,
   type PitPriceRecord,
+  type PitPriceRecordInput,
   type PriceProviderBatch,
 } from "../../src/research/price-store.js";
 import type { JsonSchema } from "../../src/research/schema.js";
@@ -21,11 +23,9 @@ const schema = JSON.parse(
   readFileSync("research/schemas/price-record.schema.json", "utf-8"),
 ) as JsonSchema;
 const NOW = new Date("2026-08-05T23:30:00+09:00");
-let hashCounter = 0;
 
-function record(overrides: Partial<PitPriceRecord> = {}): PitPriceRecord {
-  hashCounter += 1;
-  return {
+function record(overrides: Partial<PitPriceRecordInput> = {}): PitPriceRecord {
+  return withPriceRecordHash({
     schemaVersion: 1,
     seriesKind: "security",
     code: "TEST1",
@@ -50,9 +50,8 @@ function record(overrides: Partial<PitPriceRecord> = {}): PitPriceRecord {
     benchmarkCode: "TOPIX",
     sectorBenchmarkCode: "TOPIX-17",
     license: "redistributable",
-    contentHash: hashCounter.toString(16).padStart(64, "0"),
     ...overrides,
-  };
+  });
 }
 
 {
@@ -70,6 +69,7 @@ function record(overrides: Partial<PitPriceRecord> = {}): PitPriceRecord {
   });
   const issues = validateHardenedPriceRecords([unadjusted, adjusted], schema, NOW);
   assert.equal(issues.some((issue) => issue.code === "missing_supersedes_hash"), false);
+  assert.equal(issues.some((issue) => issue.severity === "error"), false);
   console.log("price-store-hardening: adjusted/unadjusted identity isolation OK");
 }
 
