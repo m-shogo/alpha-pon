@@ -107,7 +107,7 @@ Credentialや利用許諾がない場合も、fixtureとprovider contractはCI�
 ## Commands
 
 ```bash
-pnpm research:prices:validate
+node --import tsx/esm src/research/cli/validate-prices.ts
 pnpm research:test
 pnpm research:check
 ```
@@ -115,7 +115,7 @@ pnpm research:check
 Local storeを別pathで検証:
 
 ```bash
-pnpm research:prices:validate -- --root=/absolute/path/to/prices
+node --import tsx/esm src/research/cli/validate-prices.ts --root=/absolute/path/to/prices
 ```
 
 ## Definition of done for this foundation
