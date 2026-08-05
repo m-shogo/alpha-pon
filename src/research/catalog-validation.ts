@@ -1,10 +1,9 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { load } from "js-yaml";
-import { formatErrors, stableStringify, validate, type JsonSchema } from "./schema.js";
+import { JSON_SCHEMA, load } from "js-yaml";
+import { stableStringify, validate, type JsonSchema } from "./schema.js";
 
 export type CatalogIssueSeverity = "error" | "warning";
-
 export type CatalogIssue = {
   severity: CatalogIssueSeverity;
   code: string;
@@ -77,20 +76,24 @@ export const CATALOG_PATHS = {
   activeEdgesDir: "research/edge_registry/edges",
 } as const;
 
-function schemaIssues(
-  value: unknown,
-  schema: JsonSchema,
-  target: string,
-): CatalogIssue[] {
+function sortIssues(issues: CatalogIssue[]): CatalogIssue[] {
+  return [...issues].sort((a, b) =>
+    `${a.severity}|${a.code}|${a.target}|${a.message}`.localeCompare(
+      `${b.severity}|${b.code}|${b.target}|${b.message}`,
+    ),
+  );
+}
+
+function schemaIssues(value: unknown, schema: JsonSchema, target: string): CatalogIssue[] {
   return validate(value, schema).map((error) => ({
-    severity: "error" as const,
+    severity: "error",
     code: "schema_violation",
     target: error.path ? `${target}:${error.path}` : target,
     message: error.message,
   }));
 }
 
-function duplicateValues(values: string[]): string[] {
+function duplicates(values: string[]): string[] {
   const counts = new Map<string, number>();
   for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
   return [...counts.entries()]
@@ -105,7 +108,7 @@ function duplicateIssues(
   target: string,
   label: string,
 ): CatalogIssue[] {
-  return duplicateValues(values).map((value) => ({
+  return duplicates(values).map((value) => ({
     severity: "error",
     code,
     target,
@@ -122,7 +125,7 @@ function isHttpUrl(value: string): boolean {
   }
 }
 
-function semanticDataSourceIssues(source: DataSourceRecord, index: number): CatalogIssue[] {
+function sourceSemanticIssues(source: DataSourceRecord, index: number): CatalogIssue[] {
   const target = `sources[${index}](${source.id || "unknown"})`;
   const issues: CatalogIssue[] = [];
   const governed = source.adoption === "core_now" || source.adoption === "pilot_after_current_edge";
@@ -135,7 +138,6 @@ function semanticDataSourceIssues(source: DataSourceRecord, index: number): Cata
       message: "officialUrlはHTTP(S)の有効なURLである必要があります",
     });
   }
-
   if (governed && source.blockers.length === 0) {
     issues.push({
       severity: "error",
@@ -144,7 +146,6 @@ function semanticDataSourceIssues(source: DataSourceRecord, index: number): Cata
       message: "core/pilot sourceには未解決blockerを最低1件明示してください",
     });
   }
-
   if (governed && source.nextAction.trim().length < 5) {
     issues.push({
       severity: "error",
@@ -153,7 +154,6 @@ function semanticDataSourceIssues(source: DataSourceRecord, index: number): Cata
       message: "core/pilot sourceには具体的なnextActionが必要です",
     });
   }
-
   if (governed && source.edgeUseCases.length === 0) {
     issues.push({
       severity: "error",
@@ -162,16 +162,14 @@ function semanticDataSourceIssues(source: DataSourceRecord, index: number): Cata
       message: "採用候補はどのEdgeに必要かを最低1件示してください",
     });
   }
-
   if (governed && Object.values(source.rights).some((value) => value === "unknown")) {
     issues.push({
       severity: "error",
       code: "unknown_rights_for_adopted_source",
       target: `${target}.rights`,
-      message: "core/pilot sourceは保存・Git・公開・再配布権利をunknownのまま採用できません",
+      message: "core/pilot sourceは権利をunknownのまま採用できません",
     });
   }
-
   if (governed && source.integration.failureIsolation === "not_applicable") {
     issues.push({
       severity: "error",
@@ -189,7 +187,6 @@ function semanticDataSourceIssues(source: DataSourceRecord, index: number): Cata
       message: "auth.mode=noneではsecretRequired=falseである必要があります",
     });
   }
-
   if (["api_key", "oauth", "application_id"].includes(source.auth.mode) && !source.auth.secretRequired) {
     issues.push({
       severity: "error",
@@ -233,7 +230,7 @@ function semanticDataSourceIssues(source: DataSourceRecord, index: number): Cata
         severity: "error",
         code: "missing_official_account_rule",
         target: `${target}.discoveryPolicy.officialAccountRule`,
-        message: "SNS発見を許可する場合は公式Webサイトからの逆向きリンク確認規則が必要です",
+        message: "SNS発見時は公式Webサイトからの逆向きリンク確認規則が必要です",
       });
     }
   }
@@ -241,12 +238,9 @@ function semanticDataSourceIssues(source: DataSourceRecord, index: number): Cata
   return issues;
 }
 
-export function validateDataSourceCatalog(
-  value: unknown,
-  schema: JsonSchema,
-): CatalogIssue[] {
+export function validateDataSourceCatalog(value: unknown, schema: JsonSchema): CatalogIssue[] {
   const issues = schemaIssues(value, schema, CATALOG_PATHS.dataSources);
-  if (issues.length > 0) return issues;
+  if (issues.length > 0) return sortIssues(issues);
 
   const catalog = value as DataSourceCatalog;
   issues.push(
@@ -257,18 +251,13 @@ export function validateDataSourceCatalog(
       "source id",
     ),
   );
-  catalog.sources.forEach((source, index) => {
-    issues.push(...semanticDataSourceIssues(source, index));
-  });
+  catalog.sources.forEach((source, index) => issues.push(...sourceSemanticIssues(source, index)));
   return sortIssues(issues);
 }
 
-function duplicatedArrayIssues(
-  family: EdgeFamilyRecord,
-  index: number,
-): CatalogIssue[] {
+function familyArrayDuplicateIssues(family: EdgeFamilyRecord, index: number): CatalogIssue[] {
   const target = `families[${index}](${family.id})`;
-  const fields: Array<[keyof EdgeFamilyRecord, string[]]> = [
+  const fields: Array<[string, string[]]> = [
     ["mechanismSteps", family.mechanismSteps],
     ["leadingEvidence", family.leadingEvidence],
     ["confirmationEvidence", family.confirmationEvidence],
@@ -278,16 +267,11 @@ function duplicatedArrayIssues(
     ["excludedShortcuts", family.excludedShortcuts],
   ];
   return fields.flatMap(([field, values]) =>
-    duplicateIssues(
-      values,
-      "duplicate_family_item",
-      `${target}.${String(field)}`,
-      String(field),
-    ),
+    duplicateIssues(values, "duplicate_family_item", `${target}.${field}`, field),
   );
 }
 
-function semanticEdgeFamilyIssues(
+function familySemanticIssues(
   family: EdgeFamilyRecord,
   index: number,
   activeEdgeIds: ReadonlySet<string>,
@@ -300,19 +284,27 @@ function semanticEdgeFamilyIssues(
       severity: "error",
       code: "catalog_activation_forbidden",
       target: `${target}.activationState`,
-      message: "このcandidate catalogからactive-research以上へ直接昇格できません。別PRのactivation packageが必要です",
+      message: "candidate catalogから直接active化できません。証拠付きactivation PRが必要です",
     });
   }
-
   if (activeEdgeIds.has(family.id)) {
     issues.push({
       severity: "error",
       code: "catalog_active_edge_overlap",
       target: `${target}.id`,
-      message: "catalog family idがactive Edge Registryと重複しています。catalog件数をactive Edge数へ混入させないでください",
+      message: "catalog family idがactive Edge Registryと重複しています",
     });
   }
 
+  const expectedGateKeys = [
+    "objectiveTriggerDefined",
+    "entityMappingAvailable",
+    "pitTimestampsAvailable",
+    "executablePriceRouteAvailable",
+    "samplePathAvailable",
+    "dataRightsReviewed",
+    "falsificationDefined",
+  ];
   if (!family.activationGate) {
     issues.push({
       severity: "error",
@@ -321,16 +313,7 @@ function semanticEdgeFamilyIssues(
       message: "catalog段階でも未充足gateを明示してください",
     });
   } else {
-    const expectedKeys = [
-      "objectiveTriggerDefined",
-      "entityMappingAvailable",
-      "pitTimestampsAvailable",
-      "executablePriceRouteAvailable",
-      "samplePathAvailable",
-      "dataRightsReviewed",
-      "falsificationDefined",
-    ];
-    for (const key of expectedKeys) {
+    for (const key of expectedGateKeys) {
       if (typeof family.activationGate[key] !== "boolean") {
         issues.push({
           severity: "error",
@@ -348,19 +331,19 @@ function semanticEdgeFamilyIssues(
         message: "catalog登録時点で反証条件は定義済みである必要があります",
       });
     }
-    for (const key of expectedKeys.filter((key) => key !== "falsificationDefined")) {
+    for (const key of expectedGateKeys.filter((key) => key !== "falsificationDefined")) {
       if (family.activationGate[key] === true) {
         issues.push({
           severity: "error",
           code: "premature_activation_claim",
           target: `${target}.activationGate.${key}`,
-          message: "catalogでは未検証gateをtrueにせず、証拠付きactivation PRで更新してください",
+          message: "未検証gateは証拠付きactivation PRまでfalseにしてください",
         });
       }
     }
   }
 
-  issues.push(...duplicatedArrayIssues(family, index));
+  issues.push(...familyArrayDuplicateIssues(family, index));
   return issues;
 }
 
@@ -370,7 +353,7 @@ export function validateEdgeFamilyCatalog(
   activeEdgeIds: ReadonlySet<string> = new Set(),
 ): CatalogIssue[] {
   const issues = schemaIssues(value, schema, CATALOG_PATHS.edgeFamilies);
-  if (issues.length > 0) return issues;
+  if (issues.length > 0) return sortIssues(issues);
 
   const catalog = value as EdgeFamilyCatalog;
   issues.push(
@@ -387,14 +370,15 @@ export function validateEdgeFamilyCatalog(
       "family title",
     ),
   );
-  catalog.families.forEach((family, index) => {
-    issues.push(...semanticEdgeFamilyIssues(family, index, activeEdgeIds));
-  });
+  catalog.families.forEach((family, index) =>
+    issues.push(...familySemanticIssues(family, index, activeEdgeIds)),
+  );
   return sortIssues(issues);
 }
 
+// JSON_SCHEMAを使い、YYYY-MM-DDをDateへ暗黙変換しない。PITの正本は文字列で保持する。
 export function loadYaml(path: string): unknown {
-  return load(readFileSync(path, "utf-8"));
+  return load(readFileSync(path, "utf-8"), { schema: JSON_SCHEMA });
 }
 
 export function loadJsonSchema(path: string): JsonSchema {
@@ -406,8 +390,9 @@ export function loadActiveEdgeIds(dir = CATALOG_PATHS.activeEdgesDir): Set<strin
   if (!existsSync(dir)) return ids;
   for (const filename of readdirSync(dir).filter((name) => name.endsWith(".yml")).sort()) {
     const raw = loadYaml(join(dir, filename));
-    if (raw && typeof raw === "object" && typeof (raw as Record<string, unknown>).id === "string") {
-      ids.add((raw as Record<string, string>).id);
+    if (raw && typeof raw === "object") {
+      const id = (raw as Record<string, unknown>).id;
+      if (typeof id === "string") ids.add(id);
     }
   }
   return ids;
@@ -420,35 +405,23 @@ export function validateRepositoryCatalogs(): {
   familyCount: number;
   activeEdgeCount: number;
 } {
-  const dataSourceValue = loadYaml(CATALOG_PATHS.dataSources);
-  const edgeFamilyValue = loadYaml(CATALOG_PATHS.edgeFamilies);
+  const sourceValue = loadYaml(CATALOG_PATHS.dataSources);
+  const familyValue = loadYaml(CATALOG_PATHS.edgeFamilies);
   const activeEdgeIds = loadActiveEdgeIds();
-
-  const dataSourceIssues = validateDataSourceCatalog(
-    dataSourceValue,
-    loadJsonSchema(CATALOG_PATHS.dataSourceSchema),
-  );
-  const edgeFamilyIssues = validateEdgeFamilyCatalog(
-    edgeFamilyValue,
-    loadJsonSchema(CATALOG_PATHS.edgeFamilySchema),
-    activeEdgeIds,
-  );
-
   return {
-    dataSourceIssues,
-    edgeFamilyIssues,
-    sourceCount: (dataSourceValue as DataSourceCatalog).sources?.length ?? 0,
-    familyCount: (edgeFamilyValue as EdgeFamilyCatalog).families?.length ?? 0,
+    dataSourceIssues: validateDataSourceCatalog(
+      sourceValue,
+      loadJsonSchema(CATALOG_PATHS.dataSourceSchema),
+    ),
+    edgeFamilyIssues: validateEdgeFamilyCatalog(
+      familyValue,
+      loadJsonSchema(CATALOG_PATHS.edgeFamilySchema),
+      activeEdgeIds,
+    ),
+    sourceCount: (sourceValue as DataSourceCatalog).sources?.length ?? 0,
+    familyCount: (familyValue as EdgeFamilyCatalog).families?.length ?? 0,
     activeEdgeCount: activeEdgeIds.size,
   };
-}
-
-export function sortIssues(issues: CatalogIssue[]): CatalogIssue[] {
-  return [...issues].sort((a, b) => {
-    const left = `${a.severity}|${a.code}|${a.target}|${a.message}`;
-    const right = `${b.severity}|${b.code}|${b.target}|${b.message}`;
-    return left.localeCompare(right);
-  });
 }
 
 export function formatCatalogIssues(issues: CatalogIssue[]): string {
@@ -459,8 +432,4 @@ export function formatCatalogIssues(issues: CatalogIssue[]): string {
 
 export function catalogFingerprint(value: unknown): string {
   return stableStringify(value);
-}
-
-export function formatSchemaErrorsForDebug(value: unknown, schema: JsonSchema): string {
-  return formatErrors(validate(value, schema));
 }
