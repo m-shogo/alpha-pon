@@ -9,19 +9,34 @@ This document is the current cross-track roadmap for Alpha Pon. Older dated road
 
 ## 1. Product objective
 
-Alpha Pon is not a buy-recommendation or automatic-trading system. It should connect:
+Alpha Pon supports real investment decisions, up to and including
+BUY候補 / WATCH / WAIT / AVOID calls with price ranges and scenarios when the
+evidence genuinely supports them. It is **not** an automatic-trading system:
+no order is placed on a brokerage account without the user's explicit action.
+
+Every recommendation must fix its issue-time conditions immutably and be
+answer-checked later. Groundless assertions, stale-as-current facts, SNS-only
+BUY calls, fabricated probabilities/targets, retroactive edits to forecasts,
+deletion of failed forecasts/Edges, and BUY from catalog-only Edges are
+forbidden. See `docs/research/recommendation-outcome-contract.md`.
 
 ```text
-world / company events / misconduct / special situations
-  -> research candidates
+world / policy / technology / company events / misconduct / special situations
+  -> theme & industry-structure change
+  -> next bottleneck
+  -> beneficiary layers (final / platform / tier1 / tier2 / material /
+     equipment / inspection / infrastructure / service)
   -> testable Edge hypotheses
   -> point-in-time-safe evidence and historical analogs
   -> executable event studies
   -> measured net alpha after costs
-  -> material alerts only
+  -> BUY / WATCH / WAIT / AVOID with ranges, scenarios and confidence
+  -> outcome answer-check -> lessons -> better next forecast
 ```
 
-GitHub is the source of truth. Conversation memory is not authoritative.
+New facts, previously known facts, assumptions, forecasts and opinion must
+always be presented separately. GitHub is the source of truth. Conversation
+memory is not authoritative.
 
 ## 2. Current confirmed state
 
@@ -153,6 +168,28 @@ Shared ownership under the routing policy.
 - Automated Decay calculation.
 - Self-hosted runner contracts for archive scans and heavy backtests.
 
+### P6b — Recommendation & Outcome persistence contract
+
+Primary executor: Claude Code or Codex.
+Research review: ChatGPT.
+
+Implement the issue-time-immutable recommendation record and its later
+outcome answer-check. Contract: `docs/research/recommendation-outcome-contract.md`.
+
+- Persist `RecommendationRecord` at `issuedAt` with `informationCutoff`,
+  `decision`, `buyRange`, `targetRange`, scenarios, `confidence`,
+  `confirmationConditions`, `invalidationRules`, `exitConditions`, evidence
+  tiers, `edgeIds`, benchmark/sector benchmark and `outcomeReviewDate`.
+- Never overwrite an issued record; append revisions via `supersedesId`.
+- Reject BUY built only from catalog-stage Edges or Discovery-only evidence.
+- Compute `maxReturn`, `maxDrawdown` and benchmark excess return from the PIT
+  Price Store using only prices at or after `issuedAt`.
+- Judge target-reached / invalidation-triggered / expiry.
+- Keep failed forecasts and rejected Edges; never delete them.
+
+This phase depends on P2 (PIT Price Store) for price truth and on a validated
+Edge for evidence. It does not authorize automatic order placement.
+
 ### P6 — Shadow validation and promotion discipline
 
 - Freeze discovery and confirmatory samples.
@@ -195,7 +232,8 @@ The schedule is an orchestrator, not a substitute for Claude Code, Codex, a loca
 4. `KNOWN_BAD_FIRST_ANALOG_PACKAGE`
 5. `KNOWN_BAD_FIRST_EXECUTABLE_EVENT_STUDY`
 6. `SIGNAL_STORE_V1_GREEN`
-7. `CONFOUNDER_AUTOMATION_V1_GREEN`
-8. `FIRST_CONFIRMATORY_SAMPLE_READY`
+7. `RECOMMENDATION_OUTCOME_CONTRACT_GREEN`
+8. `CONFOUNDER_AUTOMATION_V1_GREEN`
+9. `FIRST_CONFIRMATORY_SAMPLE_READY`
 
 The next milestone must not be marked complete from narrative evidence alone. It requires committed artifacts and green checks.
