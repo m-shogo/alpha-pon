@@ -44,4 +44,4 @@ if [[ "$APPLY" -eq 1 ]]; then
   fi
 fi
 
-node --import tsx/esm scripts/setup-cloudflare-d1-github-secrets.ts "$@"
+node --import tsx/esm scripts/setup-cloudflare-d1-account-github-secrets.ts "$@"
