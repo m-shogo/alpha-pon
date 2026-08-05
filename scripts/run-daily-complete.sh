@@ -19,9 +19,33 @@ set -u
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$DIR" || exit 1
 
+# ── full complete pipeline の single-writer lock ─────────────────────────────
+# run-daily-complete.sh 全体（補助step + 通知enqueue + 統合送信）を1プロセスに限定し、
+# 通知 ledger の read-modify-write が並行実行で lost update しないようにする。
+# 2番目のrunは非致命 skip（skipped_locked）。lock処理からLINE通知は呼ばない。
+# shellcheck source=scripts/pipeline-lock.sh
+# shellcheck disable=SC1091
+. "$DIR/scripts/pipeline-lock.sh"
+COMPLETE_LOCK_DIR="$DIR/tmp/run-daily-complete.lock"
+mkdir -p "$DIR/tmp"
+if ! pl_acquire "$COMPLETE_LOCK_DIR"; then
+  echo "[complete-wrapper] skipped_locked: 別の run-daily-complete が実行中のためスキップ"
+  exit 0
+fi
+trap 'pl_release' EXIT
+trap 'pl_exit_on_signal 130' INT
+trap 'pl_exit_on_signal 143' TERM
+
 DOW="$(date '+%u')"   # 1=Mon ... 7=Sun
 DOM="$(date '+%d')"   # 01..31
 MONTH="$(date '+%m')" # 01..12
+
+# ── LINE統合通知（バッチモード / 永続pendingキュー）──────────────────────────
+# 各ステップの通知を個別送信せず pending キューへ蓄積し、最後に統合CLIが1通に送る。
+# 安定ディレクトリを使い、開始時に削除しない（crash/失敗/再実行でpendingを失わない）。
+# 実送信に成功した fragment だけを統合CLIが削除する（再送は line-batch-queue が保証）。
+export LINE_BATCH_DIR="$DIR/tmp/line-batch-pending"
+mkdir -p "$LINE_BATCH_DIR"
 
 # ── ログローテーション（7日分を保持）───────────────────────────────────────
 # launchd は StandardOutPath に追記するため、1週間分だけ残して truncate する。
@@ -81,7 +105,7 @@ run_optional_step() {
 
 # ── イベント3日前リマインド ─────────────────────────────────────────────────
 # 総会・決算・継続会・ロックアップ解除など、日付がある重要イベントだけ通知する。
-run_optional_step "event-3day-reminder" node --env-file="$DIR/.env" --input-type=module - <<'NODE'
+run_optional_step "event-3day-reminder" node --env-file="$DIR/.env" --import "tsx/esm" --input-type=module - <<'NODE'
 import { readFileSync } from "fs";
 import { load } from "js-yaml";
 
@@ -133,17 +157,22 @@ const text = [
   "",
   "※事実・報道・噂を混ぜず、未確認は一次情報不足として扱います。",
 ].join("\n");
-if (!token || !userId) {
+const batchDir = process.env.LINE_BATCH_DIR;
+if (batchDir) {
+  const { enqueueFragment } = await import("./src/line-batch-queue.ts");
+  const { action } = enqueueFragment(batchDir, { text, kind: "normal" });
+  console.log(`3日前リマインドをpendingキューに追加（${action}）`);
+} else if (token && userId) {
+  const res = await fetch("https://api.line.me/v2/bot/message/push", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ to: userId, messages: [{ type: "text", text }] }),
+  });
+  if (!res.ok) throw new Error(`LINE event reminder failed: ${res.status} ${await res.text()}`);
+} else {
   console.log("LINE未設定のため送信スキップ");
   console.log(text);
-  process.exit(0);
 }
-const res = await fetch("https://api.line.me/v2/bot/message/push", {
-  method: "POST",
-  headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-  body: JSON.stringify({ to: userId, messages: [{ type: "text", text }] }),
-});
-if (!res.ok) throw new Error(`LINE event reminder failed: ${res.status} ${await res.text()}`);
 NODE
 
 # ── 情報秘書 Lite 通知 ───────────────────────────────────────────────────────
@@ -200,10 +229,6 @@ if [ "$MONTH" = "01" ] && [ "$DOM" = "01" ]; then
 fi
 
 # ── ユニバーススキャン・仮説生成・検証 ──────────────────────────────────────
-# J-Quants設定済み: 本番API / 未設定: エラー（mockを使うなら --mock を明示）
-#
-# scan:universe が失敗した場合、古い universe_candidates_latest.json を元に
-# 新規仮説を作らないよう candidate:hypothesis をスキップする。
 SCAN_UNIVERSE_OK=0
 
 if run_optional_step "scan:universe" node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/scan-stock-universe.ts"; then
@@ -218,14 +243,9 @@ else
   FAILED_COMPLETE_STEPS="$FAILED_COMPLETE_STEPS candidate:hypothesis(skipped_scan_failed)"
 fi
 
-# review:hypotheses は既存仮説の期限レビューなので scan失敗時も実行する
-# （stock-candidate-hypothesis.ts の generatedAt チェックにより、
-#   仮に古いファイルでも hypothesis 側でエラー終了する）
 run_optional_step "review:hypotheses"         node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/review-hypothesis-outcomes.ts"
 
 # ── pipeline_status に失敗情報を書く（ui:data の前に実行）──────────────────
-# ui:data / report-ui-data.ts が pipeline_status_latest.json を読んで
-# meta.warnings に反映するため、必ず ui:data より先に書く。
 write_complete_wrapper_status() {
   local pipeline_status="$DIR/reports/pipeline_status_latest.json"
   if [ ! -f "$pipeline_status" ]; then
@@ -247,16 +267,13 @@ write_complete_wrapper_status() {
 write_complete_wrapper_status
 
 # ── Next.js JSON 更新（最終ステップ）───────────────────────────────────────
-# 出力先: apps/web/public/generated/alpha-pon-data.json のみ（design/ には出力しない）
-# この時点で pipeline_status_latest.json に completeWrapperFailedSteps が書かれているため、
-# report-ui-data.ts が meta.warnings に失敗情報を反映できる。
-# pnpm ui:data と同じく base → pro の順で実行する（pro は base の出力に
-# legendProCommittee / buffettQuality などの addon キー追記する）。
 run_optional_step "ui:data:base"              node --import "tsx/esm" "$DIR/src/report-ui-data.ts"
 run_optional_step "ui:data:pro"               node --import "tsx/esm" "$DIR/src/pro-ui-data-addon.ts"
 
-# ui:data 自体が失敗した場合も pipeline_status に残す
 write_complete_wrapper_status
+
+# ── LINE統合通知（バッチをまとめて1通送信）─────────────────────────────────
+run_optional_step "line:consolidated" node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/send-consolidated-line.ts"
 
 # ── 失敗ステップのサマリー（echo のみ）──────────────────────────────────────
 echo ""

@@ -2,7 +2,7 @@
 
 import { fetchTdnetDisclosures } from "./fetcher/jpx.js";
 import { todayJst } from "./date.js";
-import { sendPipelineSummaryNotification } from "./notify.js";
+import { sendUrgentDisclosure } from "./notify.js";
 
 const EMERGENCY_KEYWORDS = [
   "TOB", "公開買付", "MBO", "マネジメント・バイアウト", "完全子会社化",
@@ -61,7 +61,8 @@ async function main(): Promise<void> {
   ].join("\n");
 
   console.log(text);
-  await sendPipelineSummaryNotification(text);
+  // P0即時通知経路。朝刊バッチには回さず即時送信し、成功時のみ「即時通知済み」に数える。
+  await sendUrgentDisclosure(text);
 }
 
 main().catch(err => {

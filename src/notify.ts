@@ -1,6 +1,33 @@
 import { execFileSync } from "child_process";
 import type { ScoreResult, AlertLevel } from "./types.js";
-import { recordTextNotification, shouldSendTextNotification, textNotificationCountToday } from "./notification-dedupe.js";
+import {
+  recordTextNotification,
+  shouldSendTextNotification,
+  textNotificationCountToday,
+} from "./notification-dedupe.js";
+import {
+  createTransport,
+  redactSecrets,
+} from "./line-consolidation.js";
+import { enqueueFragment } from "./line-batch-queue.js";
+import { deliverUrgent, type UrgentDeliveryResult } from "./line-delivery.js";
+
+// -------------------------------------------------------
+// LINE バッチモード（LINE_BATCH_DIR 設定時に有効）
+// 各ステップが個別送信せず、pendingキューへ蓄積 → 最後に統合CLIが1通にまとめる。
+// enqueue しただけでは delivered 扱いにしない（実送信成功時のみ記録）。
+// -------------------------------------------------------
+
+function batchDir(): string | undefined {
+  return process.env.LINE_BATCH_DIR || undefined;
+}
+
+// 通常通知をpendingキューへ追加する（delivered記録はしない）。
+function enqueueNormal(text: string): void {
+  const dir = batchDir();
+  if (!dir) return;
+  enqueueFragment(dir, { text, kind: "normal" });
+}
 
 // -------------------------------------------------------
 // macOS ネイティブ通知
@@ -54,7 +81,7 @@ function notifyMacOSText(title: string, body: string, sound = "Basso"): void {
 }
 
 // -------------------------------------------------------
-// LINE Messaging API
+// LINE Messaging API（transport抽象経由。成否は TransportResult で返す）
 // -------------------------------------------------------
 
 type LineFlexMessage = {
@@ -148,13 +175,31 @@ function nextCheck(result: ScoreResult): string {
   );
 }
 
-function buildLineSummaryText(results: ScoreResult[], date: string): string {
+// 緊急の安定テキスト表現（hash/dedup/pending 再送に使う。表示はflexだが再送時はこのtext）。
+function urgentText(result: ScoreResult): string {
+  return [
+    `🚨 ${result.candidate.code} ${result.candidate.name} ${result.score}点`,
+    `  区分: ${evidenceLabel(result)}`,
+    `  なぜ重要: ${result.reasons[0] ?? "重要変化の兆候を検出"}`,
+    `  次に確認: ${nextCheck(result)}`,
+  ].join("\n");
+}
+
+function buildLineSummaryText(
+  results: ScoreResult[],
+  date: string,
+  options: { excludeUrgent?: boolean } = {},
+): string {
   const urgent = results.filter(r => r.alertLevel === "urgent");
   const daily  = results.filter(r => r.alertLevel === "daily");
-  const allItems = [...urgent, ...daily];
+  // 緊急は即時通知済みのため、統合メッセージ側の一覧からは除外して重複を防ぐ。
+  const allItems = options.excludeUrgent ? daily : [...urgent, ...daily];
   const visibleItems = allItems.slice(0, MORNING_LITE_ITEM_LIMIT);
 
   if (allItems.length === 0) {
+    // バッチ（統合）モードで日次項目が無い場合は空文字を返し、
+    // 「対象なし」の誤解を招く空通知を出さない（緊急があれば即時通知済み）。
+    if (options.excludeUrgent) return "";
     return [
       `🌅 Alpha Pon Morning Lite ${date}`,
       "5分朝刊 / 重要な変化だけ",
@@ -192,18 +237,9 @@ function buildLineSummaryText(results: ScoreResult[], date: string): string {
   return lines.join("\n");
 }
 
-async function pushLine(messages: object[]): Promise<void> {
-  const token  = process.env.LINE_CHANNEL_TOKEN;
-  const userId = process.env.LINE_USER_ID;
-  if (!token || !userId) return;
-
-  const res = await fetch("https://api.line.me/v2/bot/message/push", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ to: userId, messages }),
-  });
-
-  if (!res.ok) console.warn(`LINE通知失敗: ${res.status} ${await res.text()}`);
+// 統一transport経由の送信。成否を TransportResult で返す（void で握りつぶさない）。
+async function deliver(messages: object[]) {
+  return createTransport().send(messages);
 }
 
 function liteDailyLimit(): number {
@@ -217,33 +253,105 @@ function shouldSuppressByLiteLimit(text: string): boolean {
   return isLite && !isEmergency && textNotificationCountToday() >= liteDailyLimit();
 }
 
+// 通常テキスト通知。バッチモードは enqueue のみ（delivered記録は統合送信成功時）。
 async function pushDedupedText(text: string): Promise<void> {
+  if (!text) return;
   if (shouldSuppressByLiteLimit(text)) {
     console.log(`Lite通知上限スキップ: ${textNotificationCountToday()}/${liteDailyLimit()}件`);
     return;
   }
+  // 本日すでに実送信済みの内容は再enqueue/再送しない（送信成功時のみ記録されている）。
   if (!shouldSendTextNotification(text)) {
-    console.log("重複通知スキップ");
+    console.log("重複通知スキップ（本日送信済み）");
     return;
   }
-  await pushLine([{ type: "text", text }]);
-  recordTextNotification(text);
+  if (batchDir()) {
+    enqueueNormal(text);
+    return;
+  }
+  // 非バッチ: 直接送信し、成功時だけ dedupe 記録。
+  const res = await deliver([{ type: "text", text }]);
+  if (res.ok) {
+    recordTextNotification(text);
+  } else if (res.outcome !== "dry-run" && res.outcome !== "credentials-missing") {
+    console.warn(`LINE通知失敗: ${redactSecrets(res.error ?? res.outcome, [process.env.LINE_CHANNEL_TOKEN, process.env.LINE_USER_ID])}`);
+  }
+}
+
+// 緊急配信結果のログ（実送信成功時だけ delivered。dry-run/creds不足はpending維持・非消費）。
+function logUrgentResult(label: string, res: UrgentDeliveryResult): void {
+  switch (res.outcome) {
+    case "sent":
+      return; // 成功は静か
+    case "skipped-already-sent":
+      console.log(`${label}: 送信済みのためスキップ（重複送信しない）`);
+      return;
+    case "dry-run":
+    case "credentials-missing":
+      console.log(`${label}: 実送信なし（${res.outcome}）。pending維持・retry非消費`);
+      return;
+    case "ledger-corrupt":
+    case "ledger-blocked":
+      console.warn(`${label}: 通知ledger障害（${res.outcome}）。LINE送信を安全側に停止・本文はenvelopeで保全・要手動復旧（非致命）`);
+      return;
+    case "failed-max-attempts":
+      console.warn(`${label}: 上限到達。手動requeueが必要（runbook参照）`);
+      return;
+    default:
+      console.warn(`${label}: 未達（${res.outcome}）。pending-retryへ`);
+  }
+}
+
+// 緊急配信を非致命に実行する。ledger障害や想定外例外でも daily pipeline を止めない
+// （macOS補助通知は表示、LINEは安全側に停止、警告のみ）。
+async function safeDeliverUrgent(
+  label: string,
+  input: { text: string; messages: object[]; section?: string },
+): Promise<void> {
+  try {
+    const res = await deliverUrgent(batchDir(), createTransport(), input);
+    logUrgentResult(label, res);
+  } catch (err) {
+    // 想定外エラーも通知経路では握って daily を継続させる（本文は envelope 側で保全済み）。
+    const reason = redactSecrets(err instanceof Error ? err.message : String(err), [
+      process.env.LINE_CHANNEL_TOKEN,
+      process.env.LINE_USER_ID,
+    ]);
+    console.warn(`${label}: 通知処理で例外（非致命・daily継続）: ${reason}`);
+  }
 }
 
 // -------------------------------------------------------
 // 公開API
 // -------------------------------------------------------
 
+// 緊急（alertLevel === "urgent"）だけが即時送信パス。共通 deliverUrgent 経由で
+// 送信前dedupe・retryability・pending維持を一元化する。ledger障害でも daily を止めない。
 export async function sendUrgentNotifications(results: ScoreResult[]): Promise<void> {
   for (const result of results) {
     notifyMacOS(result);
     console.log(`  macOS通知: ${result.candidate.code} ${result.candidate.name} ${result.score}点`);
-    await pushLine([buildLineFlexCard(result)]);
+    await safeDeliverUrgent(`緊急 ${result.candidate.code}`, {
+      text: urgentText(result),
+      section: "🚨 緊急開示",
+      messages: [buildLineFlexCard(result)],
+    });
   }
 }
 
+// TDnet重要開示のP0即時通知経路。朝刊バッチには回さず、送信前dedupeで同日重複を防ぐ。
+export async function sendUrgentDisclosure(text: string): Promise<void> {
+  notifyMacOSText("🚨 緊急開示", text.slice(0, 200), "Basso");
+  await safeDeliverUrgent("緊急開示", {
+    text,
+    section: "🚨 緊急開示",
+    messages: [{ type: "text", text }],
+  });
+}
+
 export async function sendDailySummary(results: ScoreResult[], date: string): Promise<void> {
-  const text = buildLineSummaryText(results, date);
+  const text = buildLineSummaryText(results, date, { excludeUrgent: Boolean(batchDir()) });
+  if (!text) return;
   await pushDedupedText(text);
 }
 
@@ -251,7 +359,11 @@ export async function sendPipelineFailureNotification(step: string, message: str
   const title = "🚨 alpha-pon 自動実行失敗";
   const body = `${step}\n${message.slice(0, 500)}`;
   notifyMacOSText(title, body, "Basso");
-  await pushLine([{ type: "text", text: `${title}\n\nstep: ${step}\n${message.slice(0, 1000)}` }]);
+  // パイプライン失敗は即時アラート（バッチに畳まない）。成否は握りつぶさずログ。
+  const res = await deliver([{ type: "text", text: `${title}\n\nstep: ${step}\n${message.slice(0, 1000)}` }]);
+  if (!res.ok && res.outcome !== "dry-run" && res.outcome !== "credentials-missing") {
+    console.warn(`失敗アラート未達（${res.outcome}）`);
+  }
 }
 
 export async function sendPipelineSummaryNotification(text: string): Promise<void> {

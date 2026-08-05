@@ -52,6 +52,9 @@ design/screenshots/*.png
 backups/
 data/run-cursors.json
 
+# LINE統合通知のバッチ一時ディレクトリ（各ステップの通知断片を蓄積）
+tmp/
+
 data/hypothesis_outcomes.db
 data/alpha-pon-jobs.db
 data/market-events.db
