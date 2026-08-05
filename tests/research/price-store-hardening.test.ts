@@ -254,7 +254,30 @@ function record(overrides: Partial<PitPriceRecordInput> = {}): PitPriceRecord {
   try {
     const first = record();
     appendPriceRecordsWithLock(path, [first], schema, { ownerToken: "test-owner", now: NOW });
-    assert.equal(readPriceJsonl(path).length, 1);
+    const adjusted = record({
+      adjusted: true,
+      adjustmentFactor: 0.5,
+      corporateActions: [{
+        type: "split",
+        effectiveDate: "2023-12-01",
+        factor: 2,
+        observedAt: "2023-11-01T15:30:00+09:00",
+        source: "synthetic_fixture",
+      }],
+    });
+    appendPriceRecordsWithLock(path, [adjusted], schema, {
+      ownerToken: "basis-owner",
+      now: NOW,
+    });
+    assert.equal(readPriceJsonl(path).length, 2);
+
+    assert.throws(
+      () => appendPriceRecordsWithLock(path, [record({ providerPlan: "unknown" })], schema, {
+        ownerToken: "unknown-plan-owner",
+        now: NOW,
+      }),
+      /unknown_provider_plan/,
+    );
 
     mkdirSync(`${path}.lock`);
     assert.throws(
