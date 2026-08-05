@@ -6,8 +6,12 @@
 // than selecting raw records directly.
 
 import {
+  appendFileSync,
+  closeSync,
   existsSync,
+  fsyncSync,
   mkdirSync,
+  openSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -15,8 +19,8 @@ import {
 import { dirname } from "node:path";
 import type { PriceSeries } from "./backtest.js";
 import {
-  appendPriceRecords,
   parsePriceJsonl,
+  readPriceJsonl,
   validatePriceRecords,
   validateProviderBatch,
   type PitPriceRecord,
@@ -523,7 +527,23 @@ export function appendPriceRecordsWithLock(
       { encoding: "utf-8", flag: "wx" },
     );
     assertCompleteJsonlTail(path);
-    appendPriceRecords(path, incoming, schema, options.now ?? new Date());
+    const existing = readPriceJsonl(path);
+    const now = options.now ?? new Date();
+    const errors = validateHardenedPriceRecords([...existing, ...incoming], schema, now)
+      .filter((issue) => issue.severity === "error");
+    if (errors.length > 0) {
+      throw new Error(
+        errors.map((issue) => `${issue.code} ${issue.target}: ${issue.message}`).join("\n"),
+      );
+    }
+
+    const fd = openSync(path, "a");
+    try {
+      appendFileSync(fd, `${incoming.map((record) => JSON.stringify(record)).join("\n")}\n`, "utf-8");
+      fsyncSync(fd);
+    } finally {
+      closeSync(fd);
+    }
   } finally {
     rmSync(lockPath, { recursive: true, force: true });
   }
