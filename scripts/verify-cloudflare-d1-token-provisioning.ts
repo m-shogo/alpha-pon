@@ -28,20 +28,34 @@ assert.throws(() => validateGitHubRepository("alpha-pon"), /owner\/name/);
 
 const groups = [
   { id: "1".repeat(32), name: "D1 Read", scopes: ["com.cloudflare.api.account"] },
-  { id: "2".repeat(32), name: "D1 Edit", scopes: ["com.cloudflare.api.account"] },
+  { id: "2".repeat(32), name: "D1 Write", scopes: ["com.cloudflare.api.account"] },
   { id: "3".repeat(32), name: "D1 Read", scopes: ["com.cloudflare.api.account.zone"] },
 ];
 const readPermission = selectD1PermissionGroup(groups, "read");
 const editPermission = selectD1PermissionGroup(groups, "edit");
-assert.deepEqual(readPermission, { id: "1".repeat(32), name: D1_PERMISSION_NAMES.read });
-assert.deepEqual(editPermission, { id: "2".repeat(32), name: D1_PERMISSION_NAMES.edit });
+assert.deepEqual(readPermission, { id: "1".repeat(32), name: "D1 Read" });
+assert.deepEqual(editPermission, { id: "2".repeat(32), name: "D1 Write" });
+assert.equal(D1_PERMISSION_NAMES.edit, "D1 Edit / D1 Write");
+
+const legacyEditPermission = selectD1PermissionGroup([
+  { id: "4".repeat(32), name: "D1 Edit", scopes: ["com.cloudflare.api.account"] },
+], "edit");
+assert.deepEqual(legacyEditPermission, { id: "4".repeat(32), name: "D1 Edit" });
+
 assert.throws(
   () => selectD1PermissionGroup([...groups, {
-    id: "4".repeat(32),
+    id: "5".repeat(32),
     name: "D1 Read",
     scopes: ["com.cloudflare.api.account"],
   }], "read"),
   /exactly one/,
+);
+assert.throws(
+  () => selectD1PermissionGroup([
+    { id: "6".repeat(32), name: "D1 Edit", scopes: ["com.cloudflare.api.account"] },
+    { id: "7".repeat(32), name: "D1 Write", scopes: ["com.cloudflare.api.account"] },
+  ], "edit"),
+  /found 2/,
 );
 
 const accountId = "a".repeat(32);
@@ -107,6 +121,7 @@ assert.doesNotMatch(cli, /CLOUDFLARE_TOKEN_CREATOR_API_TOKEN[^\n]*--/);
 
 const runbook = readFileSync("docs/implementation/cloudflare-d1-token-cli-runbook.md", "utf8");
 assert.match(runbook, /Create additional tokens/);
+assert.match(runbook, /D1 Edit.*D1 Write/s);
 assert.match(runbook, /--revoke-bootstrap/);
 assert.match(runbook, /does not run D1 bootstrap/);
 assert.match(runbook, /do not paste it into chat/i);
