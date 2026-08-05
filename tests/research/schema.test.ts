@@ -1,5 +1,6 @@
 import "./catalog-validation.test.js";
 import "./stock-pro-council-v2-validation.test.js";
+import "./stock-pro-council-ledgers.test.js";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { load } from "js-yaml";
