@@ -1,18 +1,6 @@
 // LINE通知バッチの永続キュー + 配信台帳（ledger）。
-//
-// 目的（ChatGPTレビュー Blocking 1/3 対応）:
-//  - enqueue しただけでは delivered 扱いにしない。実LINE送信成功時だけ sent にする。
-//  - 送信失敗・crash・同日再実行・翌日再実行でも pending fragment を失わない。
-//    そのため **安定した pending ディレクトリ**（run-daily-complete.sh の
-//    tmp/line-batch-pending）を使い、日付別 dir にしない。
-//  - 成功した fragment だけ削除し、再送しない。失敗は attempts と lastError を記録し、
-//    上限超過で無限蓄積しないよう MAX_ATTEMPTS で打ち切る。
-//  - 一時ファイル書き込みは temp + rename で可能な限り atomic にする。
-//
-// fragment はコンテンツアドレス（contentHash.txt）で保存し、同一内容の再 enqueue は
-// 同じファイルへ上書きされる（重複ファイルを作らない）。ledger は hash キーで状態を持つ。
-//
-// 純関数（ledger 変換）と薄い FS ラッパを分離し、temp ディレクトリ fixture でテストする。
+// enqueue時点では delivered 扱いにせず、実LINE送信成功時だけ sent にする。
+// fragment envelopeを先にatomic保存し、ledger破損時は空で上書きせずblockする。
 
 import { createHash } from "crypto";
 import {
@@ -32,11 +20,12 @@ const LEDGER_FILE = ".ledger.json";
 const BLOCKED_FILE = ".ledger-blocked.json";
 const FRAGMENTS_DIR = "fragments";
 const OTHER_SECTION = "📋 その他";
+const HASH_PATTERN = /^[0-9a-f]{16}$/;
+const JST_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export type FragmentStatus = "queued" | "sent" | "pending-retry" | "failed" | "skipped";
 export type FragmentKind = "normal" | "urgent";
 
-// crash 復旧で kind を本文推測に依存しないための durable envelope。
 export type FragmentEnvelopeV1 = {
   version: 1;
   hash: string;
@@ -46,14 +35,12 @@ export type FragmentEnvelopeV1 = {
   queuedAt: string;
 };
 
-// ledger 破損を検知したら書く block marker（本文/Secretは入れない）。
 export type BlockMarker = {
   reason: "ledger-corrupt";
   detectedAt: string;
   corruptBackupPath?: string;
 };
 
-// ledger の読み取り状態（破損を空ledgerで隠さず区別する）。
 export type LedgerStateStatus = "ok" | "corrupt" | "blocked";
 
 export type LedgerEntry = {
@@ -64,9 +51,9 @@ export type LedgerEntry = {
   attempts: number;
   queuedAt: string;
   lastAttemptAt?: string;
-  lastError?: string; // redacted, truncated
-  deliveredAt?: string; // UTC ISO
-  deliveredDateJst?: string; // Asia/Tokyo YYYY-MM-DD（当日判定の正本）
+  lastError?: string;
+  deliveredAt?: string;
+  deliveredDateJst?: string;
 };
 
 export type Ledger = {
@@ -78,7 +65,6 @@ export function emptyLedger(): Ledger {
   return { version: 1, entries: {} };
 }
 
-// UTC ISO 文字列を Asia/Tokyo の YYYY-MM-DD へ変換する。
 export function jstDateOf(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso.slice(0, 10);
@@ -90,18 +76,10 @@ export function jstDateOf(iso: string): string {
   }).format(d);
 }
 
-// contentHash: 内容の論理IDかつファイル名。send-daily-complete.sh のインライン
-// リマインド生成も同じ算出（sha256 hex 先頭16）を使うこと。
 export function contentHash(text: string): string {
   return createHash("sha256").update(text).digest("hex").slice(0, 16);
 }
 
-// -------------------------------------------------------
-// 純関数: ledger 変換（FSに触れない）
-// -------------------------------------------------------
-
-// fragment を ledger に登録する。既に sent のものは触らない（再送しない）。
-// 既存 pending/failed は据え置き（重複 enqueue で状態を巻き戻さない）。
 export function ensureEntry(
   ledger: Ledger,
   input: { hash: string; section: string; kind: FragmentKind; now: string },
@@ -146,7 +124,6 @@ export function markSkipped(ledger: Ledger, hashes: string[], now: string): Ledg
   return ledger;
 }
 
-// 送信失敗。attempts を増やし、上限未満なら pending-retry、上限到達で failed。
 export function markFailed(
   ledger: Ledger,
   hashes: string[],
@@ -165,7 +142,6 @@ export function markFailed(
   return ledger;
 }
 
-// 再送候補（queued / pending-retry）の hash。failed（上限到達）は含めない。
 export function pendingHashes(ledger: Ledger, kind?: FragmentKind): string[] {
   return Object.values(ledger.entries)
     .filter((e) => (kind ? e.kind === kind : true))
@@ -178,8 +154,6 @@ export function isDelivered(ledger: Ledger, hash: string): boolean {
   return ledger.entries[hash]?.status === "sent";
 }
 
-// 当日(JST) delivered した urgent 件数（「即時通知済み N 件」表示の正本）。
-// deliveredDateJst を優先し、無い古いentryは deliveredAt を JST 変換して比較する。
 export function countUrgentDeliveredToday(ledger: Ledger, todayJstDate: string): number {
   return Object.values(ledger.entries).filter((e) => {
     if (e.kind !== "urgent" || e.status !== "sent") return false;
@@ -188,7 +162,6 @@ export function countUrgentDeliveredToday(ledger: Ledger, todayJstDate: string):
   }).length;
 }
 
-// sent / skipped の古いエントリを掃除（無限蓄積防止）。retentionDays は deliveredAt 基準。
 export function pruneLedger(ledger: Ledger, olderThanIso: string): { ledger: Ledger; removed: string[] } {
   const removed: string[] = [];
   for (const [h, e] of Object.entries(ledger.entries)) {
@@ -200,7 +173,6 @@ export function pruneLedger(ledger: Ledger, olderThanIso: string): { ledger: Led
   return { ledger, removed };
 }
 
-// MAX_ATTEMPTS 到達後の手動復旧: failed を queued に戻し再送候補へ（runbook用）。
 export function requeueFailed(ledger: Ledger): { ledger: Ledger; requeued: string[] } {
   const requeued: string[] = [];
   for (const e of Object.values(ledger.entries)) {
@@ -213,10 +185,6 @@ export function requeueFailed(ledger: Ledger): { ledger: Ledger; requeued: strin
   }
   return { ledger, requeued: requeued.sort() };
 }
-
-// -------------------------------------------------------
-// FS ラッパ（temp ディレクトリ fixture でテスト可能）
-// -------------------------------------------------------
 
 function atomicWrite(path: string, data: string): void {
   const tmp = `${path}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -232,16 +200,11 @@ function envelopePath(dir: string, hash: string): string {
   return join(fragmentsPath(dir), `${hash}.fragment.json`);
 }
 
-// -------------------------------------------------------
-// Fragment envelope（kind を durable に永続化。本文推測に依存しない）
-// -------------------------------------------------------
-
 export function writeEnvelope(dir: string, env: FragmentEnvelopeV1): void {
   mkdirSync(fragmentsPath(dir), { recursive: true });
   atomicWrite(envelopePath(dir, env.hash), JSON.stringify(env, null, 2));
 }
 
-// envelope を検証して返す。壊れ/hash不一致は null（送信させない）。
 export function readEnvelope(dir: string, hash: string): FragmentEnvelopeV1 | null {
   const path = envelopePath(dir, hash);
   if (!existsSync(path)) return null;
@@ -255,9 +218,9 @@ export function readEnvelope(dir: string, hash: string): FragmentEnvelopeV1 | nu
   if (!e || e.version !== 1) return null;
   if (typeof e.hash !== "string" || typeof e.text !== "string") return null;
   if (e.kind !== "normal" && e.kind !== "urgent") return null;
-  if (typeof e.section !== "string" || typeof e.queuedAt !== "string") return null;
-  // filename hash / envelope hash / content hash の三者一致を検証。
-  if (e.hash !== hash) return null;
+  if (typeof e.section !== "string" || e.section.length === 0) return null;
+  if (typeof e.queuedAt !== "string" || Number.isNaN(Date.parse(e.queuedAt))) return null;
+  if (e.hash !== hash || !HASH_PATTERN.test(hash)) return null;
   if (contentHash(e.text) !== e.hash) return null;
   return e as FragmentEnvelopeV1;
 }
@@ -274,7 +237,6 @@ export function listEnvelopeHashes(dir: string): string[] {
 export function deleteFragmentByHash(dir: string, hash: string): void {
   const ep = envelopePath(dir, hash);
   if (existsSync(ep)) rmSync(ep, { force: true });
-  // legacy .txt も掃除
   const tp = join(dir, `${hash}.txt`);
   if (existsSync(tp)) rmSync(tp, { force: true });
 }
@@ -287,16 +249,43 @@ function listLegacyTxtHashes(dir: string): string[] {
     .sort();
 }
 
-// -------------------------------------------------------
-// ledger の読み取り / block marker
-// -------------------------------------------------------
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isIsoTimestamp(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0 && !Number.isNaN(Date.parse(value));
+}
+
+function isOptionalIsoTimestamp(value: unknown): value is string | undefined {
+  return value === undefined || isIsoTimestamp(value);
+}
+
+function isValidLedgerEntry(key: string, value: unknown): value is LedgerEntry {
+  if (!HASH_PATTERN.test(key) || !isPlainObject(value)) return false;
+  if (value.hash !== key) return false;
+  if (typeof value.section !== "string" || value.section.length === 0) return false;
+  if (value.kind !== "normal" && value.kind !== "urgent") return false;
+  if (!["queued", "sent", "pending-retry", "failed", "skipped"].includes(String(value.status))) return false;
+  if (!Number.isInteger(value.attempts) || Number(value.attempts) < 0) return false;
+  if (!isIsoTimestamp(value.queuedAt)) return false;
+  if (!isOptionalIsoTimestamp(value.lastAttemptAt)) return false;
+  if (!isOptionalIsoTimestamp(value.deliveredAt)) return false;
+  if (value.lastError !== undefined && typeof value.lastError !== "string") return false;
+  if (value.deliveredDateJst !== undefined && (typeof value.deliveredDateJst !== "string" || !JST_DATE_PATTERN.test(value.deliveredDateJst))) return false;
+  return true;
+}
 
 function parseLedger(raw: string): Ledger | null {
-  const parsed = JSON.parse(raw) as Ledger;
-  if (!parsed || typeof parsed !== "object" || typeof parsed.entries !== "object" || parsed.entries === null) {
-    return null;
+  const parsed: unknown = JSON.parse(raw);
+  if (!isPlainObject(parsed) || parsed.version !== 1 || !isPlainObject(parsed.entries)) return null;
+
+  const entries: Record<string, LedgerEntry> = {};
+  for (const [key, value] of Object.entries(parsed.entries)) {
+    if (!isValidLedgerEntry(key, value)) return null;
+    entries[key] = value;
   }
-  return { version: 1, entries: parsed.entries };
+  return { version: 1, entries };
 }
 
 export function readBlockMarker(dir: string): BlockMarker | null {
@@ -306,7 +295,7 @@ export function readBlockMarker(dir: string): BlockMarker | null {
     const m = JSON.parse(readFileSync(path, "utf-8")) as BlockMarker;
     if (m && m.reason === "ledger-corrupt") return m;
   } catch {
-    /* 壊れた marker も blocked 扱いにする（下で fallback） */
+    // 壊れたmarkerもblocked扱い。
   }
   return { reason: "ledger-corrupt", detectedAt: "unknown" };
 }
@@ -315,11 +304,10 @@ export function isBlocked(dir: string): boolean {
   return existsSync(join(dir, BLOCKED_FILE));
 }
 
-// 破損検知時に呼ぶ: 破損ledgerを退避し block marker を書く（ledgerは空で上書きしない）。
-// runbook で明示的に解除するまで、以降の実行は送信を停止する。
 export function blockOnCorrupt(dir: string, now: string): BlockMarker {
   const existing = readBlockMarker(dir);
   if (isBlocked(dir) && existing && existing.detectedAt !== "unknown") return existing;
+
   let corruptBackupPath: string | undefined;
   const ledgerFile = join(dir, LEDGER_FILE);
   if (existsSync(ledgerFile)) {
@@ -328,7 +316,7 @@ export function blockOnCorrupt(dir: string, now: string): BlockMarker {
       renameSync(ledgerFile, backup);
       corruptBackupPath = backup;
     } catch {
-      /* 退避失敗でも marker は書く */
+      // 退避失敗でも送信停止markerは残す。
     }
   }
   const marker: BlockMarker = { reason: "ledger-corrupt", detectedAt: now, corruptBackupPath };
@@ -336,13 +324,11 @@ export function blockOnCorrupt(dir: string, now: string): BlockMarker {
   return marker;
 }
 
-// 明示的復旧（runbook用）。自動では絶対に呼ばない。
 export function clearBlockMarker(dir: string): void {
   const path = join(dir, BLOCKED_FILE);
   if (existsSync(path)) rmSync(path, { force: true });
 }
 
-// ledger の状態を破損を隠さず区別して返す（空ledgerで上書きしない）。
 export function readLedgerState(
   dir: string,
 ): { status: LedgerStateStatus; ledger: Ledger; marker?: BlockMarker } {
@@ -355,15 +341,13 @@ export function readLedgerState(
     const parsed = parseLedger(readFileSync(path, "utf-8"));
     if (parsed) return { status: "ok", ledger: parsed };
   } catch {
-    /* fallthrough */
+    // fallthrough
   }
   return { status: "corrupt", ledger: emptyLedger() };
 }
 
-// 読み取り専用の安全ロード（副作用なし）: 破損/未存在は空を返す。書き込みには使わない。
 export function loadLedger(dir: string): Ledger {
-  const s = readLedgerState(dir);
-  return s.ledger;
+  return readLedgerState(dir).ledger;
 }
 
 export function saveLedger(dir: string, ledger: Ledger): void {
@@ -371,15 +355,11 @@ export function saveLedger(dir: string, ledger: Ledger): void {
   atomicWrite(join(dir, LEDGER_FILE), JSON.stringify(ledger, null, 2));
 }
 
-// -------------------------------------------------------
-// anomaly 検出（黙って無視しない）
-// -------------------------------------------------------
-
 export type LedgerAnomalies = {
-  missingBody: string[]; // pending だが envelope が読めない
-  malformedEnvelopes: string[]; // envelope 破損 / hash不一致
-  ambiguousLegacy: string[]; // legacy .txt で kind 確定不能（送信しない）
-  orphanEnvelopes: string[]; // envelope あり・ledger未登録（reconcileで取り込む）
+  missingBody: string[];
+  malformedEnvelopes: string[];
+  ambiguousLegacy: string[];
+  orphanEnvelopes: string[];
 };
 
 export function findLedgerAnomalies(dir: string, ledger: Ledger): LedgerAnomalies {
@@ -390,20 +370,22 @@ export function findLedgerAnomalies(dir: string, ledger: Ledger): LedgerAnomalie
       missingBody.push(e.hash);
     }
   }
+
   const malformedEnvelopes: string[] = [];
-  for (const hash of envelopeHashes) {
-    if (readEnvelope(dir, hash) === null) malformedEnvelopes.push(hash);
-  }
   const orphanEnvelopes: string[] = [];
   for (const hash of envelopeHashes) {
-    if (!ledger.entries[hash] && readEnvelope(dir, hash) !== null) orphanEnvelopes.push(hash);
+    const env = readEnvelope(dir, hash);
+    if (env === null) malformedEnvelopes.push(hash);
+    else if (!ledger.entries[hash]) orphanEnvelopes.push(hash);
   }
+
   const ambiguousLegacy: string[] = [];
   for (const hash of listLegacyTxtHashes(dir)) {
     if (envelopeHashes.has(hash) || ledger.entries[hash]) continue;
     const text = readLegacyText(dir, hash);
     if (text !== null && legacyContractKind(text) === null) ambiguousLegacy.push(hash);
   }
+
   return {
     missingBody: missingBody.sort(),
     malformedEnvelopes: malformedEnvelopes.sort(),
@@ -414,28 +396,17 @@ export function findLedgerAnomalies(dir: string, ledger: Ledger): LedgerAnomalie
 
 function readLegacyText(dir: string, hash: string): string | null {
   const path = join(dir, `${hash}.txt`);
-  if (!existsSync(path)) return null;
-  return readFileSync(path, "utf-8");
+  return existsSync(path) ? readFileSync(path, "utf-8") : null;
 }
 
-// legacy .txt で契約上 kind を確定できるものだけ返す（確定不能は null → 送信しない）。
 function legacyContractKind(text: string): FragmentKind | null {
   const first = text.split("\n")[0] ?? "";
-  // 契約上明確な TDnet 緊急開示ヘッダのみ urgent と確定する。
   if (first.includes("Alpha Pon 緊急開示")) return "urgent";
-  return null; // それ以外（🚨 単独の銘柄urgent含む）は曖昧 → 人間確認待ち
+  return null;
 }
-
-// -------------------------------------------------------
-// enqueue / 復旧
-// -------------------------------------------------------
 
 export type EnqueueAction = "added" | "exists" | "already-delivered" | "ledger-corrupt" | "ledger-blocked";
 
-// fragment をキューへ追加する。
-// 1) envelope を atomic 保存（本文と kind を必ず保全）
-// 2) block marker / ledger 破損を確認
-// 3) blocked/corrupt なら ledger を更新せず、正常 ledger で上書きもしない（送信は止まる）
 export function enqueueFragment(
   dir: string,
   input: { text: string; kind?: FragmentKind; now?: string },
@@ -446,10 +417,8 @@ export function enqueueFragment(
   const kind = input.kind ?? "normal";
   const section = detectSection(input.text) ?? parseFragmentText(input.text).section ?? OTHER_SECTION;
 
-  // 1) envelope を先に保全（crash しても kind を失わない）。
   writeEnvelope(dir, { version: 1, hash, kind, section, text: input.text, queuedAt: now });
 
-  // 2) block marker / 破損を確認（破損を空ledgerで隠さない）。
   const state = readLedgerState(dir);
   if (state.status === "blocked") return { hash, action: "ledger-blocked" };
   if (state.status === "corrupt") {
@@ -460,7 +429,6 @@ export function enqueueFragment(
   const ledger = state.ledger;
   const existing = ledger.entries[hash];
   if (existing?.status === "sent") {
-    // 既に delivered。pending envelope は不要（再送しない）。
     deleteFragmentByHash(dir, hash);
     return { hash, action: "already-delivered" };
   }
@@ -471,12 +439,11 @@ export function enqueueFragment(
 
 export type PendingFragment = { hash: string; section: string; body: string; text: string; kind: FragmentKind };
 
-// pending（queued/pending-retry）な hash から envelope を読み出す（kind は envelope 由来）。
 export function loadPendingFragments(dir: string, ledger: Ledger, kind?: FragmentKind): PendingFragment[] {
   const out: PendingFragment[] = [];
   for (const hash of pendingHashes(ledger, kind)) {
     const env = readEnvelope(dir, hash);
-    if (env === null) continue; // envelope 欠落/破損は anomaly（findLedgerAnomalies で surface）
+    if (env === null) continue;
     const { body } = parseFragmentText(env.text);
     if (body.length === 0) continue;
     out.push({ hash, section: env.section, body, text: env.text, kind: env.kind });
@@ -484,24 +451,20 @@ export function loadPendingFragments(dir: string, ledger: Ledger, kind?: Fragmen
   return out;
 }
 
-// crash 復旧: envelope（kind保持）と legacy .txt を安全に ledger へ取り込む。
-// 曖昧な legacy は送信対象にしない（anomaly 側で surface）。
 export function reconcileOrphanFragments(dir: string, ledger: Ledger, now: string): Ledger {
-  // 1) envelope（kind を保持したまま復旧）。
   for (const hash of listEnvelopeHashes(dir)) {
     if (ledger.entries[hash]) continue;
     const env = readEnvelope(dir, hash);
-    if (env === null) continue; // malformed は取り込まない（anomaly）
+    if (env === null) continue;
     ensureEntry(ledger, { hash, section: env.section, kind: env.kind, now });
   }
-  // 2) legacy .txt（envelope が無いもののみ）。
+
   for (const hash of listLegacyTxtHashes(dir)) {
-    if (readEnvelope(dir, hash) !== null) continue; // envelope 優先
+    if (readEnvelope(dir, hash) !== null) continue;
     const text = readLegacyText(dir, hash);
     if (text === null) continue;
     const existing = ledger.entries[hash];
     if (existing) {
-      // ledger の kind で envelope へ移行（元 .txt は成功確認まで残す）。
       writeEnvelope(dir, {
         version: 1,
         hash,
@@ -513,7 +476,7 @@ export function reconcileOrphanFragments(dir: string, ledger: Ledger, now: strin
       continue;
     }
     const contractKind = legacyContractKind(text);
-    if (contractKind === null) continue; // 曖昧 → 送信しない（anomaly）
+    if (contractKind === null) continue;
     const section = detectSection(text) ?? OTHER_SECTION;
     writeEnvelope(dir, { version: 1, hash, kind: contractKind, section, text, queuedAt: now });
     ensureEntry(ledger, { hash, section, kind: contractKind, now });
