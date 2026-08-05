@@ -137,6 +137,14 @@ export interface PriceProvider {
   fetchDaily(query: PriceProviderQuery): Promise<PriceProviderBatch>;
 }
 
+export interface PriceSeriesSelector {
+  seriesKind: PriceSeriesKind;
+  code: string;
+  market?: string;
+  source?: string;
+  providerPlan?: PriceProviderPlan;
+}
+
 export type PriceStoreIssueCode =
   | "schema"
   | "future_observation"
@@ -457,6 +465,51 @@ export function validatePriceRecords(
   );
 }
 
+export function validateProviderBatch(batch: PriceProviderBatch): string[] {
+  const issues: string[] = [];
+  const retrievedMs = timeMs(batch.retrievedAt);
+  if (!batch.providerId.trim()) issues.push("providerId is required");
+  if (!batch.sourceVersion.trim()) issues.push("sourceVersion is required");
+  if (!Number.isFinite(retrievedMs)) issues.push(`invalid batch retrievedAt: ${batch.retrievedAt}`);
+  if (batch.license === "unknown") issues.push("batch license may not be unknown");
+
+  batch.records.forEach((record, index) => {
+    const prefix = `records[${index}]`;
+    if (record.providerPlan !== batch.capabilities.plan) {
+      issues.push(`${prefix}.providerPlan does not match capabilities.plan`);
+    }
+    if (record.delayDays !== batch.capabilities.delayDays) {
+      issues.push(`${prefix}.delayDays does not match capabilities.delayDays`);
+    }
+    if (record.license !== batch.license) {
+      issues.push(`${prefix}.license does not match batch license`);
+    }
+    if (record.retrievedAt !== batch.retrievedAt) {
+      issues.push(`${prefix}.retrievedAt does not match batch retrievedAt`);
+    }
+    if (record.sourceVersion !== batch.sourceVersion) {
+      issues.push(`${prefix}.sourceVersion does not match batch sourceVersion`);
+    }
+    if (record.adjusted && !batch.capabilities.supportsAdjusted) {
+      issues.push(`${prefix} is adjusted but provider does not support adjusted prices`);
+    }
+    if (!record.adjusted && !batch.capabilities.supportsUnadjusted) {
+      issues.push(`${prefix} is unadjusted but provider does not support unadjusted prices`);
+    }
+    if (record.corporateActions.length > 0 && !batch.capabilities.supportsCorporateActions) {
+      issues.push(`${prefix} contains corporate actions unsupported by provider`);
+    }
+    if (record.seriesKind === "benchmark" && !batch.capabilities.supportsBenchmarks) {
+      issues.push(`${prefix} is benchmark data unsupported by provider`);
+    }
+    if (record.sectorBenchmarkCode && !batch.capabilities.supportsSectorBenchmarks) {
+      issues.push(`${prefix} references a sector benchmark unsupported by provider`);
+    }
+  });
+
+  return issues.sort();
+}
+
 export function parsePriceJsonl(content: string, sourceName = "<memory>"): PitPriceRecord[] {
   const records: PitPriceRecord[] = [];
   for (const [index, rawLine] of content.split(/\r?\n/).entries()) {
@@ -509,17 +562,11 @@ export function appendPriceRecords(
 
 export type PriceAvailabilityBoundary = "observed" | "executable";
 
-/** Select the latest revision available at asOf for each trading date. */
+/** Select the latest revision available at asOf for each source/plan/trading date. */
 export function selectPriceRecordsAsOf(
   records: PitPriceRecord[],
   asOf: string,
-  selector: {
-    seriesKind: PriceSeriesKind;
-    code: string;
-    market?: string;
-    source?: string;
-    providerPlan?: PriceProviderPlan;
-  },
+  selector: PriceSeriesSelector,
   boundary: PriceAvailabilityBoundary = "executable",
 ): PitPriceRecord[] {
   const asOfMs = timeMs(asOf);
@@ -551,18 +598,34 @@ export function selectPriceRecordsAsOf(
   );
 }
 
+function assertUnambiguousSeries(records: PitPriceRecord[], selector: PriceSeriesSelector): void {
+  const byDate = new Map<string, PitPriceRecord[]>();
+  for (const record of records) {
+    const group = byDate.get(record.tradingDate) ?? [];
+    group.push(record);
+    byDate.set(record.tradingDate, group);
+  }
+
+  for (const [date, group] of byDate) {
+    if (group.length <= 1) continue;
+    const choices = group
+      .map((record) => `${record.source}/${record.providerPlan}`)
+      .sort()
+      .join(", ");
+    throw new Error(
+      `PIT price series is ambiguous for ${selector.code} ${date}: ${choices}. ` +
+      "Specify selector.source and selector.providerPlan.",
+    );
+  }
+}
+
 export function toBacktestPriceSeries(
   records: PitPriceRecord[],
   asOf: string,
-  selector: {
-    seriesKind: PriceSeriesKind;
-    code: string;
-    market?: string;
-    source?: string;
-    providerPlan?: PriceProviderPlan;
-  },
+  selector: PriceSeriesSelector,
 ): PriceSeries {
   const selected = selectPriceRecordsAsOf(records, asOf, selector, "executable");
+  assertUnambiguousSeries(selected, selector);
   return {
     code: selector.code,
     bars: selected
