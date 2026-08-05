@@ -12,11 +12,14 @@ import {
   type ClaimRecord,
 } from "./claim-contradiction-graph.js";
 import {
-  assessClaimForRecommendationGoverned,
-  buildGovernedClaimGraphSnapshot,
-  validateClaimGraphGovernance,
   type GovernedClaimGraphSnapshot,
 } from "./claim-contradiction-graph-hardening.js";
+import {
+  assessClaimForRecommendationAtCutoff,
+  buildClaimGraphSnapshotGovernedAtCutoff,
+  validateClaimGraphGovernedAtCutoff,
+  visibleClaimRecordsAtCutoff,
+} from "./claim-contradiction-graph-governed.js";
 import {
   SECURITY_MASTER_PATHS,
 } from "./security-master.js";
@@ -147,7 +150,7 @@ export function validateClaimGraphRepository(
   const knownEntityIds = new Set(
     security.snapshot.entities.map((record) => record.entityId),
   );
-  issues.push(...validateClaimGraphGovernance(
+  issues.push(...validateClaimGraphGovernedAtCutoff(
     claimsRead.records,
     edgesRead.records,
     schemas,
@@ -157,18 +160,20 @@ export function validateClaimGraphRepository(
 
   let snapshot: GovernedClaimGraphSnapshot | null = null;
   const assessments: ClaimRecommendationAssessment[] = [];
+  const visibleClaims = visibleClaimRecordsAtCutoff(claimsRead.records, asOf);
+  const visibleHeads = activeClaimHeads(visibleClaims)
+    .sort((a, b) => a.claimId.localeCompare(b.claimId));
   if (!issues.some((item) => item.severity === "error")) {
     try {
-      snapshot = buildGovernedClaimGraphSnapshot(
+      snapshot = buildClaimGraphSnapshotGovernedAtCutoff(
         claimsRead.records,
         edgesRead.records,
         schemas,
         evidence.snapshot,
         knownEntityIds,
       );
-      for (const claim of activeClaimHeads(claimsRead.records)
-        .sort((a, b) => a.claimId.localeCompare(b.claimId))) {
-        assessments.push(assessClaimForRecommendationGoverned(
+      for (const claim of visibleHeads) {
+        assessments.push(assessClaimForRecommendationAtCutoff(
           claimsRead.records,
           edgesRead.records,
           schemas,
@@ -187,7 +192,7 @@ export function validateClaimGraphRepository(
     issues: sortIssues(issues),
     claimRecordCount: claimsRead.records.length,
     edgeRecordCount: edgesRead.records.length,
-    activeClaimHeadCount: activeClaimHeads(claimsRead.records).length,
+    activeClaimHeadCount: visibleHeads.length,
     snapshotClaimCount: snapshot?.claimIds.length ?? 0,
     snapshotEdgeCount: snapshot?.edgeIds.length ?? 0,
     recommendationEligibleClaimCount: assessments.filter((item) => item.eligible).length,
