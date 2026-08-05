@@ -162,9 +162,40 @@ node --import tsx/esm src/research/cli/validate-prices.ts --root=/absolute/path/
 
 ## Current external blocker
 
-2026-08-05のPR実行では、GitHub ActionsのCI／Check／Research OSがjob step開始前にfailureとなり、job logも生成されていません。同じrunのfailed-job再実行でも同様です。
+2026-08-05のPR実行では、GitHub ActionsのCI／Check／Research OSがjob step開始前にfailureとなり、`steps: []` / job logなしで数秒以内に終了します。
 
-コード失敗のログが得られる状態へ戻るまでは、PRをmergeしません。
+根本原因を特定しました。failed jobのcheck-run annotationは以下を返しています。
+
+```text
+The job was not started because recent account payments have failed or
+your spending limit needs to be increased. Please check the
+'Billing & plans' section in your settings
+```
+
+- これはコード・workflow YAML・runner labelの問題ではなく、**アカウントのGitHub Actions課金／spending limit**によるstartup blockです。runnerが割り当てられる前に停止するため`steps`が空になります。
+- 該当run: `31006034441` (Check), `31006039600` (Check/PR), `31006040121` (CI), `31006039702` (Research OS)。すべてhead `1309e49`。
+- **人間の対応が必要**: GitHub Settings → Billing & plans で支払い失敗の解消またはspending limitの引き上げ。エージェントは課金設定を変更しません。
+- Cloudflare Workers Buildsのfail (`alpha-pon`) はこのActions課金blockerとは別事象であり、切り分けて扱います。
+
+課金blockが解消しActionsが実際にstepを実行してgreenになるまでは、PR #37をmergeしません。ローカル検証(下記)はすべてgreenです。
+
+## Local verification (Actions代替)
+
+課金blockの間、worktree上で以下をローカル実行し、すべてgreenを確認済み (2026-08-05 JST):
+
+```text
+tsc --noEmit                     PASS
+tsc --noEmit -p tsconfig.test.json   PASS
+tsc --noEmit -p tsconfig.scripts.json PASS
+research:validate                PASS
+research:generate:check          PASS
+research:check:history           PASS
+research:check:docs              PASS
+research:backtest:fixtures       PASS
+research:test (8 suites)         PASS
+tests/research/price-store.test  PASS
+validate-prices (fixtures root)  files=1 records=1 errors=0
+```
 
 ## Next slice
 
