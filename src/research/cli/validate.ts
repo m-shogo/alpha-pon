@@ -9,7 +9,7 @@ import { loadResearchState, loadSchema, paths, readJsonl, ResearchDataError } fr
 import { checkPit } from "../pit.js";
 import { checkProductionIntegrity, type HoldoutAccessEntry, type HoldoutManifest } from "../promotion.js";
 import { formatErrors, validate as validateSchema } from "../schema.js";
-import { validateRepositoryCouncilLedgers } from "../stock-pro-council-ledgers.js";
+import { validateRepositoryCouncilLedgersGoverned } from "../stock-pro-council-ledger-hardening.js";
 import {
   validateRepositoryStockProCouncilV2,
   type CouncilIssue,
@@ -80,14 +80,16 @@ function main(): void {
   const holdout = loadHoldout();
   const catalogs = validateRepositoryCatalogs();
   const council = validateRepositoryStockProCouncilV2();
-  const ledgers = validateRepositoryCouncilLedgers();
+  const ledgers = validateRepositoryCouncilLedgersGoverned();
   const catalogIssues = [...catalogs.dataSourceIssues, ...catalogs.edgeFamilyIssues]
     .map(toResearchIssue);
   const councilIssues = [
     ...council.catalogIssues,
     ...council.verdictIssues,
+    ...ledgers.catalogIssues,
     ...ledgers.dissentIssues,
     ...ledgers.vetoIssues,
+    ...ledgers.lifecycleIssues,
   ].map(toResearchIssue);
 
   const issues: Issue[] = [
@@ -107,7 +109,7 @@ function main(): void {
     `Research Catalog: Data Source ${catalogs.sourceCount} / Technology Family ${catalogs.familyCount} / Active Edge ${catalogs.activeEdgeCount}`,
   );
   console.log(
-    `Stock Pro Council v2: Persona ${council.personaCount} / Verdict ${council.verdictCount} / Dissent ${ledgers.dissentCount} / Veto ${ledgers.vetoCount}`,
+    `Stock Pro Council v2: Persona ${council.personaCount} / Verdict ${council.verdictCount} / Dissent ${ledgers.dissentCount} / Veto ${ledgers.vetoCount} / Binding Veto ${ledgers.bindingVetoCount}`,
   );
   console.log("Catalog entries and council personas are not counted as active Research OS Edges.");
 
