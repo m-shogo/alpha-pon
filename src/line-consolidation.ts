@@ -61,8 +61,6 @@ export const SECTION_ORDER = [
 
 const OTHER_SECTION = "📋 その他";
 const THEME_SECTION_TITLE = "📰 テーマニュース";
-// テーマは他セクションの後ろに置く（決定論的な優先度）。
-const THEME_PRIORITY = SECTION_ORDER.length;
 
 export function detectSection(text: string): string | null {
   const firstLine = text.split("\n")[0] ?? "";
@@ -139,13 +137,6 @@ export function fragmentsFromRaw(rawTexts: string[], hashFn: (t: string) => stri
     .filter((f) => f.body.length > 0);
 }
 
-const SECTION_PRIORITY = new Map(SECTION_ORDER.map((s, i) => [s, i]));
-
-function priorityOf(section: string): number {
-  if (isThemeSection(section)) return THEME_PRIORITY;
-  return SECTION_PRIORITY.get(section) ?? SECTION_ORDER.indexOf(OTHER_SECTION);
-}
-
 // (key, hash) の安定した昇順比較（入力順に依存しない）。
 function byKeyThenHash(a: WithKey, b: WithKey): number {
   if (a.key < b.key) return -1;
@@ -192,35 +183,43 @@ export function dedupeFragments(fragments: BatchFragment[]): DedupeResult {
   return { representatives, duplicatesByRepresentative, droppedDuplicateCount: dropped };
 }
 
-type AssembledSection = { title: string; body: string; memberHashes: string[]; priority: number };
+// 表示グループ: 1つの見出し（■ title）と、その配下の**個別fragment**を保持する。
+// fragment単位の予算計算・includedHashesのために、本文を結合せず member を残す。
+type DisplayMember = { hash: string; rendered: string };
+type DisplayGroup = { title: string; members: DisplayMember[] };
 
-function assembleSections(reps: WithKey[]): AssembledSection[] {
+function assembleGroups(reps: WithKey[]): DisplayGroup[] {
   const themeReps = reps.filter((r) => isThemeSection(r.section)).sort(byKeyThenHash);
   const otherReps = reps.filter((r) => !isThemeSection(r.section));
 
-  const sections: AssembledSection[] = [];
+  const groups: DisplayGroup[] = [];
   for (const title of SECTION_ORDER) {
-    const members = otherReps.filter((r) => r.section === title).sort(byKeyThenHash);
-    if (members.length > 0) {
-      sections.push({
-        title,
-        body: members.map((m) => m.body).join("\n\n"),
-        memberHashes: members.map((m) => m.hash),
-        priority: priorityOf(title),
-      });
-    }
+    const members = otherReps
+      .filter((r) => r.section === title)
+      .sort(byKeyThenHash)
+      .map((m) => ({ hash: m.hash, rendered: m.body }));
+    if (members.length > 0) groups.push({ title, members });
   }
 
   if (themeReps.length > 0) {
-    sections.push({
+    groups.push({
       title: THEME_SECTION_TITLE,
-      body: themeReps.map((r) => `${r.section}\n${r.body}`).join("\n\n"),
-      memberHashes: themeReps.map((r) => r.hash),
-      priority: THEME_PRIORITY,
+      // テーマは各fragmentにサブセクション見出しを付ける。
+      members: themeReps.map((r) => ({ hash: r.hash, rendered: `${r.section}\n${r.body}` })),
     });
   }
 
-  return sections;
+  return groups;
+}
+
+// 選択された（included）memberだけで本文を描画する（決定論的）。
+function renderBody(groups: Array<{ title: string; members: DisplayMember[] }>): string {
+  const blocks: string[] = [];
+  for (const g of groups) {
+    if (g.members.length === 0) continue;
+    blocks.push(`■ ${g.title}\n${g.members.map((m) => m.rendered).join("\n\n")}`);
+  }
+  return blocks.join("\n\n");
 }
 
 export type BuildResult = {
@@ -235,6 +234,8 @@ export type BuildResult = {
   skippedDuplicateHashes: string[];
   /** 実際に含まれた項目数（全kept件数ではない）。 */
   includedCount: number;
+  /** 実際に本文へ描画されたセクション数。 */
+  includedSectionCount: number;
   droppedDuplicateCount: number;
   /** 文字数上限で先頭セクション本文を切り詰めたか。 */
   truncated: boolean;
@@ -264,6 +265,7 @@ function emptyResultBase(): Omit<BuildResult, "message" | "droppedDuplicateCount
     omittedHashes: [],
     skippedDuplicateHashes: [],
     includedCount: 0,
+    includedSectionCount: 0,
     truncated: false,
     omittedSectionCount: 0,
     omittedItemCount: 0,
@@ -280,14 +282,15 @@ export function buildConsolidatedMessage(
   const maxChars = opts.maxChars ?? LINE_MAX_CHARS;
   const { representatives, duplicatesByRepresentative, droppedDuplicateCount } =
     dedupeFragments(fragments);
-  const allSections = assembleSections(representatives);
+  const groups = assembleGroups(representatives);
+  const allMemberCount = groups.reduce((n, g) => n + g.members.length, 0);
 
   const immediateNote =
     opts.immediateUrgentCount && opts.immediateUrgentCount > 0
       ? `🚨 緊急 ${opts.immediateUrgentCount} 件は即時通知済み`
       : null;
 
-  if (allSections.length === 0 && !immediateNote) {
+  if (allMemberCount === 0 && !immediateNote) {
     return { message: null, droppedDuplicateCount, ...emptyResultBase() };
   }
 
@@ -298,44 +301,74 @@ export function buildConsolidatedMessage(
   const webHint = opts.webReportHint ? ` ${opts.webReportHint} で確認`
     : " 次回統合またはWebレポートで確認";
 
-  // まず本文に収まる範囲でセクションを優先順に採用（決定論的順序で）。
-  const budget = maxChars - header.length - footer.length;
-  const included: AssembledSection[] = [];
-  const includedHashes: string[] = [];
-  const omittedHashes: string[] = [];
-  let used = 0;
-  let truncated = false;
+  // fragment を全体決定論順（グループ順→member順）にフラット化。
+  const flat: Array<{ groupIdx: number; member: DisplayMember }> = [];
+  groups.forEach((g, gi) => g.members.forEach((m) => flat.push({ groupIdx: gi, member: m })));
 
-  for (const section of allSections) {
-    const block = `■ ${section.title}\n${section.body}\n`;
-    // 省略注記の分の余白を残す（保守的に予約）。
-    const reserve = 60;
-    if (used + block.length + reserve <= budget) {
-      included.push(section);
-      includedHashes.push(...section.memberHashes);
-      used += block.length;
-      continue;
+  // 省略注記（fragment単位の omitted 集計に基づく）。
+  const noteFor = (omittedItems: number, omittedGroups: number): string =>
+    omittedItems > 0
+      ? `\n\n※ ほか ${omittedItems} 件（${omittedGroups} セクション）は文字数上限のため未掲載。pendingとして次回統合へ持ち越し、${webHint.trim()}。`
+      : "";
+
+  // 選択集合（flat index）から本文を決定論的に描画する。
+  const renderFor = (sel: Set<number>): string => {
+    let cursor = 0;
+    const shown = groups.map((g) => {
+      const members = g.members.filter(() => sel.has(cursor++));
+      return { title: g.title, members };
+    });
+    return renderBody(shown.filter((g) => g.members.length > 0));
+  };
+
+  const omittedInfo = (sel: Set<number>) => {
+    const omitted: string[] = [];
+    const omittedGroupSet = new Set<number>();
+    flat.forEach((u, i) => {
+      if (!sel.has(i)) {
+        omitted.push(u.member.hash);
+        omittedGroupSet.add(u.groupIdx);
+      }
+    });
+    return { omittedHashes: omitted, omittedGroups: omittedGroupSet.size };
+  };
+
+  // note長は omitted 件数で変動するが、**最悪ケース長を常に予約**して予算超過を防ぐ
+  // （reserve推測やslice-guard依存を避け、fragment単位で正確に判定する）。
+  const maxNoteLen = noteFor(allMemberCount, groups.length).length;
+
+  const selected = new Set<number>();
+  let truncated = false;
+  let clippedBody: string | null = null;
+
+  for (let i = 0; i < flat.length; i++) {
+    const candidate = new Set(selected);
+    candidate.add(i);
+    if (header.length + renderFor(candidate).length + maxNoteLen + footer.length <= maxChars) {
+      selected.add(i);
+    } else {
+      break; // 完全に収まる fragment だけ採用。以降は決定論的に省略。
     }
-    // 先頭セクションすら入らない極端なケースは、本文を安全に切り詰めて必ず何か残す。
-    // 切り詰めた先頭セクションのメンバは delivered 扱い（無限再送を避ける／注記を出す）。
-    if (included.length === 0) {
-      const room = Math.max(
-        0,
-        budget - `■ ${section.title}\n`.length - TRUNCATION_SUFFIX.length - reserve,
-      );
-      const clippedBody = section.body.slice(0, room);
-      included.push({ ...section, body: clippedBody });
-      includedHashes.push(...section.memberHashes);
-      truncated = true;
-    }
-    // 予算を超えたので、以降のセクションはすべて省略（下で集計）。
-    break;
   }
 
-  // 省略されたセクション（included に無いもの）を集計。
-  const includedTitles = new Set(included.map((s) => s.title));
-  const omittedSections = allSections.filter((s) => !includedTitles.has(s.title));
-  for (const s of omittedSections) omittedHashes.push(...s.memberHashes);
+  // 先頭fragmentすら入らない極端ケース: そのfragmentがグループ唯一の代表のときだけ切り詰め。
+  if (selected.size === 0 && flat.length > 0 && groups[flat[0].groupIdx].members.length === 1) {
+    const gi = flat[0].groupIdx;
+    const room = Math.max(
+      0,
+      maxChars - header.length - footer.length - maxNoteLen -
+        `■ ${groups[gi].title}\n`.length - TRUNCATION_SUFFIX.length,
+    );
+    clippedBody = flat[0].member.rendered.slice(0, room);
+    selected.add(0);
+    truncated = true;
+  }
+
+  const includedHashes: string[] = [];
+  flat.forEach((u, i) => {
+    if (selected.has(i)) includedHashes.push(u.member.hash);
+  });
+  const { omittedHashes, omittedGroups } = omittedInfo(selected);
   const omittedItemCount = omittedHashes.length;
 
   // 含まれた代表の重複だけ skip 対象にする（省略された代表の重複は pending 継続）。
@@ -345,21 +378,24 @@ export function buildConsolidatedMessage(
     if (includedHashSet.has(repHash)) skippedDuplicateHashes.push(...dupHashes);
   }
 
-  const bodyLines: string[] = [];
-  for (const { title, body } of included) {
-    bodyLines.push(`■ ${title}`, body, "");
-  }
-  if (omittedItemCount > 0) {
-    bodyLines.push(
-      `※ ほか ${omittedItemCount} 件（${omittedSections.length} セクション）は文字数上限のため未掲載。${webHint}`,
-      "",
-    );
+  // 本文の描画（clip 時は先頭グループの唯一memberを切り詰めた本文で置換）。
+  let body: string;
+  if (clippedBody !== null && selected.size === 1) {
+    const gi = flat[0].groupIdx;
+    body = `■ ${groups[gi].title}\n${clippedBody}`;
+  } else {
+    body = renderFor(selected);
   }
 
-  let message =
-    header + bodyLines.join("\n") + (truncated ? TRUNCATION_SUFFIX : "") + footer;
+  const note = noteFor(omittedItemCount, omittedGroups);
+  const shownGroupCount = new Set(
+    flat.filter((_, i) => selected.has(i)).map((u) => u.groupIdx),
+  ).size;
 
-  // 念のための最終ガード（想定外の長大入力でも上限を超えない）。
+  let message = header + body + note + (truncated ? TRUNCATION_SUFFIX : "") + footer;
+
+  // 防御的ガード: 通常経路では発動しない（fragment単位で予算計算済み）。
+  // 万一超過しても、切り詰めるのは clip 済み先頭fragmentのみ（includedHashesは変えない）。
   if (message.length > maxChars) {
     message = message.slice(0, maxChars - TRUNCATION_SUFFIX.length) + TRUNCATION_SUFFIX;
     truncated = true;
@@ -367,14 +403,15 @@ export function buildConsolidatedMessage(
 
   return {
     message,
-    sections: included.map((s) => ({ title: s.title, body: s.body })),
+    sections: [], // fragment単位描画のため section 単位の body は返さない。
     includedHashes,
     omittedHashes,
     skippedDuplicateHashes,
     includedCount: includedHashes.length,
+    includedSectionCount: shownGroupCount,
     droppedDuplicateCount,
     truncated,
-    omittedSectionCount: omittedSections.length,
+    omittedSectionCount: omittedGroups,
     omittedItemCount,
   };
 }
@@ -414,6 +451,12 @@ export type TransportResult = {
   status?: number;
   error?: string; // redacted
 };
+
+// 実送信attempt（retry budgetを消費する）失敗かどうか。
+// dry-run / credentials-missing は「実送信していない」ので attempts を消費しない。
+export function consumesRetryBudget(outcome: TransportOutcome): boolean {
+  return outcome === "http-4xx" || outcome === "http-5xx" || outcome === "network-error";
+}
 
 export interface LineTransport {
   readonly mode: "dry-run" | "real";
