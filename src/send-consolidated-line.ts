@@ -1,21 +1,24 @@
 // LINE統合通知の実行時 CLI ラッパ。
 //
 // 安定 pending dir（LINE_BATCH_DIR = tmp/line-batch-pending）を読み、
-//  1) pending な緊急fragmentを即時経路で再送、
+//  1) pending な緊急fragmentを即時経路で再送（送信前dedupe付き）、
 //  2) pending な通常fragmentを1通へ統合して送信、
 // する。実LINE送信が成功した fragment だけ delivered として ledger に記録・削除し、
 // 省略/切り詰め/失敗した fragment は pending のまま残す（次回実行が再送する）。
 //
 // 契約:
-//  - queued/dry-run を sent として扱わない。
-//  - 送信失敗は throw せず「非致命的な結果」として扱い、daily pipeline を止めない
-//    （プロセスは常に exit 0）。
+//  - queued/dry-run/credentials-missing を sent として扱わない。
+//  - dry-run / credentials-missing は retry budget を消費しない（http/networkのみ消費）。
+//  - ledger 破損時は退避のうえ送信を停止（重複送信を防ぐ安全側）。
+//  - 送信失敗は throw せず非致命（プロセスは常に exit 0）。
 //  - トークン / userId 等の秘匿値をログ・エラー・ledger へ出さない。
 
 import { existsSync } from "fs";
+import { basename } from "path";
 import { todayJst } from "./date.js";
 import {
   buildConsolidatedMessage,
+  consumesRetryBudget,
   createTransport,
   redactSecrets,
   type LineTransport,
@@ -23,7 +26,10 @@ import {
 import {
   countUrgentDeliveredToday,
   deleteFragmentByHash,
+  findLedgerAnomalies,
   loadLedger,
+  loadLedgerStrict,
+  LedgerCorruptError,
   loadPendingFragments,
   markFailed,
   markSent,
@@ -32,10 +38,11 @@ import {
   reconcileOrphanFragments,
   saveLedger,
 } from "./line-batch-queue.js";
+import { deliverUrgent } from "./line-delivery.js";
 import { recordTextNotification } from "./notification-dedupe.js";
 
 type RunResult = {
-  status: "sent" | "dry-run" | "skipped" | "failed" | "partial";
+  status: "sent" | "dry-run" | "skipped" | "failed" | "partial" | "credentials-missing";
   reason?: string;
   urgentRetried?: number;
   urgentDelivered?: number;
@@ -46,6 +53,7 @@ type RunResult = {
   droppedDuplicates?: number;
   truncated?: boolean;
   pendingAfter?: number;
+  anomalies?: { missingBody: number; orphanFiles: number };
 };
 
 const SECRETS = () => [process.env.LINE_CHANNEL_TOKEN, process.env.LINE_USER_ID];
@@ -55,30 +63,26 @@ function logResult(result: RunResult): void {
   console.log(`line:consolidated result ${safe}`);
 }
 
-// pending な緊急fragmentを個別に即時再送する。成功した分だけ delivered 記録・削除。
+// pending な緊急fragmentを個別に即時再送（送信前dedupe・retryabilityは deliverUrgent が担う）。
 async function retryUrgent(
   dir: string,
   transport: LineTransport,
-  now: string,
 ): Promise<{ retried: number; delivered: number }> {
-  const ledger = loadLedger(dir);
+  const ledger = loadLedgerStrict(dir);
   const urgent = loadPendingFragments(dir, ledger, "urgent");
   let delivered = 0;
   for (const frag of urgent) {
-    const res = await transport.send([{ type: "text", text: frag.text }]);
-    if (res.ok) {
-      markSent(ledger, [frag.hash], now);
-      recordTextNotification(frag.text);
-      deleteFragmentByHash(dir, frag.hash);
-      delivered += 1;
-    } else if (res.outcome === "dry-run" || res.outcome === "credentials-missing") {
-      // 実送信なし → 状態を変えず pending のまま。
-    } else {
-      markFailed(ledger, [frag.hash], res.error ?? res.outcome, now);
-    }
+    const res = await deliverUrgent(dir, transport, {
+      text: frag.text,
+      messages: [{ type: "text", text: frag.text }],
+    });
+    if (res.outcome === "sent") delivered += 1;
   }
-  saveLedger(dir, ledger);
   return { retried: urgent.length, delivered };
+}
+
+function pendingCount(dir: string): number {
+  return loadPendingFragments(dir, loadLedger(dir)).length;
 }
 
 async function main(): Promise<RunResult> {
@@ -91,17 +95,32 @@ async function main(): Promise<RunResult> {
   const today = todayJst();
   const transport = createTransport();
 
-  // ledger を最新化（素で置かれた .txt を取り込む）。
-  {
-    const ledger = reconcileOrphanFragments(dir, loadLedger(dir), now);
-    saveLedger(dir, ledger);
+  // ledger を安全に読む。破損していれば退避して送信を停止（重複送信を防ぐ）。
+  let ledger;
+  try {
+    ledger = loadLedgerStrict(dir);
+  } catch (err) {
+    if (err instanceof LedgerCorruptError) {
+      const where = err.backupPath ? `退避先 ${basename(err.backupPath)}` : "退避失敗";
+      return { status: "failed", reason: `ledger破損のため送信停止（${where}）` };
+    }
+    throw err;
+  }
+
+  // 素で置かれた .txt を取り込み、実ファイルとの不整合を surface する。
+  reconcileOrphanFragments(dir, ledger, now);
+  saveLedger(dir, ledger);
+  const anomalyDetail = findLedgerAnomalies(dir, ledger);
+  const anomalies = { missingBody: anomalyDetail.missingBody.length, orphanFiles: anomalyDetail.orphanFiles.length };
+  if (anomalyDetail.missingBody.length > 0) {
+    console.warn(`ledger anomaly: 本文欠落 ${anomalyDetail.missingBody.length}件（pending扱い・送信対象外）`);
   }
 
   // 1) pending な緊急fragmentの即時再送。
-  const urgent = await retryUrgent(dir, transport, now);
+  const urgent = await retryUrgent(dir, transport);
 
   // 2) 通常fragmentを1通へ統合。
-  const ledger = loadLedger(dir);
+  ledger = loadLedgerStrict(dir);
   const normal = loadPendingFragments(dir, ledger, "normal");
   const immediateUrgentCount = countUrgentDeliveredToday(ledger, today);
 
@@ -110,23 +129,23 @@ async function main(): Promise<RunResult> {
     { today, immediateUrgentCount },
   );
 
-  const base = {
-    urgentRetried: urgent.retried,
-    urgentDelivered: urgent.delivered,
-  };
+  const base = { urgentRetried: urgent.retried, urgentDelivered: urgent.delivered, anomalies };
 
   if (built.message === null) {
-    // 通常は無いが緊急を送った/pendingは残る、というケース。
-    const pendingAfter = loadPendingFragments(dir, loadLedger(dir)).length;
     saveLedger(dir, pruneOld(ledger, now));
-    return { status: urgent.delivered > 0 ? "sent" : "skipped", reason: "通常統合対象なし", ...base, pendingAfter };
+    return {
+      status: urgent.delivered > 0 ? "sent" : "skipped",
+      reason: "通常統合対象なし",
+      ...base,
+      pendingAfter: pendingCount(dir),
+    };
   }
 
   const sendRes = await transport.send([{ type: "text", text: built.message }]);
 
   const buildBase = {
     ...base,
-    normalSections: built.sections.length,
+    normalSections: built.includedSectionCount,
     normalChars: built.message.length,
     includedItems: built.includedCount,
     omittedItems: built.omittedItemCount,
@@ -134,46 +153,55 @@ async function main(): Promise<RunResult> {
     truncated: built.truncated,
   };
 
+  // ドライラン: 何も delivered にしない（本文だけ確認、pending維持）。
   if (transport.mode === "dry-run" || sendRes.outcome === "dry-run") {
-    // ドライラン: 何も delivered にしない（本文だけ確認）。
     console.log("LINE統合通知（ドライラン。実送信なし）:");
     console.log(built.message);
-    const pendingAfter = loadPendingFragments(dir, loadLedger(dir)).length;
-    return { status: "dry-run", ...buildBase, pendingAfter };
+    return { status: "dry-run", ...buildBase, pendingAfter: pendingCount(dir) };
   }
 
-  if (!sendRes.ok) {
-    // 送信失敗: 統合対象を pending-retry へ。omitted は元々 pending 継続。二重送信しない。
-    markFailed(ledger, built.includedHashes, sendRes.error ?? sendRes.outcome, now);
+  // credentials-missing: 実送信していない → retry budget を消費せず pending 維持。
+  if (sendRes.outcome === "credentials-missing") {
+    return { status: "credentials-missing", ...buildBase, pendingAfter: pendingCount(dir) };
+  }
+
+  // http/network 失敗: 実送信attempt → 統合対象を pending-retry へ（omittedは元々pending継続）。
+  if (!sendRes.ok && consumesRetryBudget(sendRes.outcome)) {
+    markFailed(ledger, built.includedHashes, redactSecrets(sendRes.error ?? sendRes.outcome, SECRETS()), now);
     saveLedger(dir, ledger);
-    const pendingAfter = loadPendingFragments(dir, loadLedger(dir)).length;
     return {
       status: "failed",
       reason: redactSecrets(sendRes.error ?? sendRes.outcome, SECRETS()),
       ...buildBase,
-      pendingAfter,
+      pendingAfter: pendingCount(dir),
     };
   }
 
-  // 送信成功: 実際に含まれた代表だけ delivered、その重複は skipped、
+  if (!sendRes.ok) {
+    // 想定外の !ok（分類外）: 安全側に pending 維持、attempts非消費。
+    return { status: "failed", reason: sendRes.outcome, ...buildBase, pendingAfter: pendingCount(dir) };
+  }
+
+  // 送信成功: 本文へ実際に含まれた fragment だけ delivered、その重複は skipped、
   // ファイル削除は delivered/skipped のみ。omitted は pending 継続。
   markSent(ledger, built.includedHashes, now);
   markSkipped(ledger, built.skippedDuplicateHashes, now);
+  const includedSet = new Set(built.includedHashes);
+  const skippedSet = new Set(built.skippedDuplicateHashes);
   for (const frag of normal) {
-    if (built.includedHashes.includes(frag.hash)) {
+    if (includedSet.has(frag.hash)) {
       recordTextNotification(frag.text);
       deleteFragmentByHash(dir, frag.hash);
-    } else if (built.skippedDuplicateHashes.includes(frag.hash)) {
+    } else if (skippedSet.has(frag.hash)) {
       deleteFragmentByHash(dir, frag.hash);
     }
   }
   saveLedger(dir, pruneOld(ledger, now));
 
-  const pendingAfter = loadPendingFragments(dir, loadLedger(dir)).length;
   return {
     status: built.omittedItemCount > 0 ? "partial" : "sent",
     ...buildBase,
-    pendingAfter,
+    pendingAfter: pendingCount(dir),
   };
 }
 
