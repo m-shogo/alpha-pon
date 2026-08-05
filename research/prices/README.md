@@ -24,8 +24,8 @@ research/prices/
 ## 検証
 
 ```bash
-pnpm research:prices:validate
-pnpm research:prices:validate -- --root=/path/to/local/price-store
+node --import tsx/esm src/research/cli/validate-prices.ts
+node --import tsx/esm src/research/cli/validate-prices.ts --root=/path/to/local/price-store
 ```
 
 検証内容:
