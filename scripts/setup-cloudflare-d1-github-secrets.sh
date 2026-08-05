@@ -6,6 +6,7 @@ cd "$ROOT_DIR"
 
 APPLY=0
 HAS_ACCOUNT_ID=0
+HIDDEN_TOKEN=""
 for argument in "$@"; do
   case "$argument" in
     --apply)
@@ -19,6 +20,7 @@ done
 
 restore_terminal() {
   stty echo 2>/dev/null || true
+  HIDDEN_TOKEN=""
   unset CLOUDFLARE_D1_READ_API_TOKEN_INPUT
   unset CLOUDFLARE_D1_EDIT_API_TOKEN_INPUT
 }
@@ -26,15 +28,11 @@ trap restore_terminal EXIT INT TERM
 
 read_hidden_token() {
   local prompt="$1"
-  local variable_name="$2"
-  local token_value=""
   printf '%s' "$prompt"
   stty -echo
-  IFS= read -r token_value
+  IFS= read -r HIDDEN_TOKEN
   stty echo
   printf '\n'
-  printf -v "$variable_name" '%s' "$token_value"
-  export "$variable_name"
 }
 
 if [[ "$APPLY" -eq 1 ]]; then
@@ -50,10 +48,16 @@ if [[ "$APPLY" -eq 1 ]]; then
   fi
 
   if [[ -z "${CLOUDFLARE_D1_READ_API_TOKEN_INPUT:-}" ]]; then
-    read_hidden_token 'Final Cloudflare D1 Read account token (hidden): ' CLOUDFLARE_D1_READ_API_TOKEN_INPUT
+    read_hidden_token 'Final Cloudflare D1 Read account token (hidden): '
+    CLOUDFLARE_D1_READ_API_TOKEN_INPUT="$HIDDEN_TOKEN"
+    export CLOUDFLARE_D1_READ_API_TOKEN_INPUT
+    HIDDEN_TOKEN=""
   fi
   if [[ -z "${CLOUDFLARE_D1_EDIT_API_TOKEN_INPUT:-}" ]]; then
-    read_hidden_token 'Final Cloudflare D1 Write account token (hidden): ' CLOUDFLARE_D1_EDIT_API_TOKEN_INPUT
+    read_hidden_token 'Final Cloudflare D1 Write account token (hidden): '
+    CLOUDFLARE_D1_EDIT_API_TOKEN_INPUT="$HIDDEN_TOKEN"
+    export CLOUDFLARE_D1_EDIT_API_TOKEN_INPUT
+    HIDDEN_TOKEN=""
   fi
 fi
 
