@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "sequence": 1,
-  "savedAt": "2026-08-05T12:29:00+09:00",
+  "savedAt": "2026-08-05T03:29:00.000Z",
   "actor": "chatgpt-hourly",
   "researchedEdgeId": "known-bad-event-repricing",
   "researchDone": "既存のKnown-Bad Event Repricing研究をResearch OSの最初のEdgeへ移し、機構、対象event、PIT条件、entry/exit候補、交絡、執行制約、反証条件、source policy、hard blockerを固定した。実価格とAnalogが無いため全Promotion Gateはunknownのまま維持した。",
