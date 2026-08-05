@@ -6,7 +6,7 @@ PR: #37
 
 ## Purpose
 
-Close the remaining PIT and series-identity gaps found during the Pre-Edge Foundation review. These fixes protect Backtest, Deterministic Replay, Event Study and Recommendation from price-basis mixing, execution-before-retrieval, ambiguous provider state and future corporate-action leakage.
+Close the remaining PIT and series-identity gaps found during the Pre-Edge Foundation review. These fixes protect Backtest, Deterministic Replay, Event Study and Recommendation from price-basis mixing, execution-before-retrieval, ambiguous provider state, license misuse and future corporate-action leakage.
 
 This handoff does not authorize real API access, licensed price commits, live LINE delivery, Cloudflare/D1 changes, billing changes or brokerage orders.
 
@@ -48,7 +48,11 @@ The original validator already enforces `retrievedAt >= observedAt` and `firstEx
 ```text
 provider_available
   observedAt <= cutoff
+```
 
+This mode is only for studying when information theoretically existed at the provider. It does not mean Alpha Pon retrieved it and does not authorize a paper trade.
+
+```text
 system_replay
   observedAt <= cutoff
   retrievedAt <= cutoff
@@ -57,7 +61,13 @@ system_replay
 
 `system_replay` is the default and is required for Recommendation and deterministic replay.
 
-`provider_available` is only a theoretical data-availability study. It does not claim that Alpha Pon had retrieved the data or that a trade was executable. A theoretical execution study must separately derive the executable route from the versioned market calendar.
+The executable APIs enforce this boundary:
+
+- `toHardenedBacktestPriceSeries` rejects `provider_available`;
+- `validateEventStudyPriceAlignment` rejects `provider_available`;
+- Event Study and Net Alpha are `system_replay` only.
+
+A theoretical provider study must not be reported as executable Alpha. A future provider-theoretical execution timestamp must be derived separately from the versioned Market Calendar rather than reusing Alpha Pon's actual `firstExecutableAt`.
 
 ### 4. Reject unknown governed provider state — IMPLEMENTED
 
@@ -66,9 +76,16 @@ The hardening validator blocks:
 - `providerPlan=unknown`
 - blank or unresolved source identifiers
 
-The governed selector silently excludes unresolved rows, and validation reports them as errors before append/use.
+The governed writer rejects these rows before append.
 
-### 5. Provider batch coherence — IMPLEMENTED FOR V1
+### 5. License scope boundary — IMPLEMENTED
+
+- `license=unknown` remains rejected by the base store;
+- `license=metadata_only` cannot carry a traded OHLCV payload;
+- real price rows require an applicable `local_only` or `redistributable` contract;
+- storage rights do not imply redistribution rights.
+
+### 6. Provider batch coherence — IMPLEMENTED FOR V1
 
 `validateProviderBatchAgainstQuery` checks:
 
@@ -84,7 +101,7 @@ The governed selector silently excludes unresolved rows, and validation reports 
 
 The J-Quants adapter must pass its exact expected source and run ID. A future batch manifest/content hash may be added with the adapter without weakening this contract.
 
-### 6. Status and missing reason matrix — IMPLEMENTED
+### 7. Status and missing reason matrix — IMPLEMENTED
 
 Allowed combinations:
 
@@ -105,7 +122,7 @@ missing
 
 `market_holiday` still requires the Market Calendar layer before Recommendation use. `unknown` is not an accepted governed reason.
 
-### 7. Corporate-action effective-time safety — IMPLEMENTED FOR V1
+### 8. Corporate-action effective-time safety — IMPLEMENTED FOR V1
 
 The existing record carries:
 
@@ -118,7 +135,7 @@ The hardening validator rejects a future-effective corporate action inside an ea
 
 A richer announcement/event/revision graph belongs in the Bitemporal Evidence Store and Capitalization Ledger; it must extend rather than weaken this rule.
 
-### 8. Append concurrency and partial-write recovery — IMPLEMENTED
+### 9. Append concurrency and partial-write recovery — IMPLEMENTED
 
 `appendPriceRecordsWithLock` adds:
 
@@ -128,19 +145,21 @@ A richer announcement/event/revision graph belongs in the Bitemporal Evidence St
 - strict final-newline check;
 - strict JSONL parse before append;
 - explicit block on malformed/partial tails;
+- validation of existing and incoming rows through the hardening contract;
+- append and `fsync` only after all errors are cleared;
 - cleanup after a completed or failed owned write.
 
 All governed writers must use this wrapper. Non-cooperating direct writers are forbidden by contract.
 
-### 9. Downstream benchmark completeness — IMPLEMENTED
+### 10. Downstream benchmark completeness — IMPLEMENTED
 
 `validateEventStudyPriceAlignment` requires:
 
 - issuer series;
 - benchmark/TOPIX series;
 - sector series;
+- `system_replay` cutoff mode;
 - same declared price basis;
-- same cutoff mode;
 - matching traded-date sets;
 - no ambiguous source/plan selection.
 
@@ -152,14 +171,18 @@ No silent fallback is permitted.
 2. selector omission of price basis throws;
 3. first executable before retrieval is rejected;
 4. system replay excludes a record retrieved after cutoff;
-5. provider-available mode includes it only when explicitly selected;
-6. unknown provider plan/source is rejected;
-7. batch code/range/source/run identity is checked;
-8. invalid status/reason combinations are rejected;
-9. future-effective split cannot leak into an earlier adjusted row;
-10. existing lock blocks a second writer;
-11. partial JSONL tail blocks append;
-12. Event Study without issuer/TOPIX/sector completeness is blocked.
+5. provider-available mode can be selected only for availability research;
+6. Backtest rejects provider-available mode;
+7. Event Study / Net Alpha rejects provider-available mode;
+8. unknown provider plan/source is rejected;
+9. metadata-only OHLCV payload is rejected;
+10. batch code/range/source/run identity is checked;
+11. invalid status/reason combinations are rejected;
+12. future-effective split cannot leak into an earlier adjusted row;
+13. existing lock blocks a second writer;
+14. partial JSONL tail blocks append;
+15. unsafe rows are rejected inside the locked writer;
+16. Event Study without issuer/TOPIX/sector completeness is blocked.
 
 ## Validation status
 
