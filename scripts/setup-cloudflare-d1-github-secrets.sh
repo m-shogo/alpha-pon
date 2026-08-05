@@ -19,9 +19,23 @@ done
 
 restore_terminal() {
   stty echo 2>/dev/null || true
-  unset CLOUDFLARE_TOKEN_CREATOR_API_TOKEN
+  unset CLOUDFLARE_D1_READ_API_TOKEN_INPUT
+  unset CLOUDFLARE_D1_EDIT_API_TOKEN_INPUT
 }
 trap restore_terminal EXIT INT TERM
+
+read_hidden_token() {
+  local prompt="$1"
+  local variable_name="$2"
+  local token_value=""
+  printf '%s' "$prompt"
+  stty -echo
+  IFS= read -r token_value
+  stty echo
+  printf '\n'
+  printf -v "$variable_name" '%s' "$token_value"
+  export "$variable_name"
+}
 
 if [[ "$APPLY" -eq 1 ]]; then
   if [[ "$HAS_ACCOUNT_ID" -eq 0 && -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
@@ -30,18 +44,17 @@ if [[ "$APPLY" -eq 1 ]]; then
     export CLOUDFLARE_ACCOUNT_ID
   fi
 
-  if [[ -z "${CLOUDFLARE_TOKEN_CREATOR_API_TOKEN:-}" ]]; then
-    if [[ ! -t 0 ]]; then
-      echo "Interactive terminal required to read the one-time Cloudflare token securely." >&2
-      exit 1
-    fi
-    printf 'Cloudflare one-time token creator token (hidden): '
-    stty -echo
-    IFS= read -r CLOUDFLARE_TOKEN_CREATOR_API_TOKEN
-    stty echo
-    printf '\n'
-    export CLOUDFLARE_TOKEN_CREATOR_API_TOKEN
+  if [[ ! -t 0 ]]; then
+    echo "Interactive terminal required to read final Cloudflare D1 tokens securely." >&2
+    exit 1
+  fi
+
+  if [[ -z "${CLOUDFLARE_D1_READ_API_TOKEN_INPUT:-}" ]]; then
+    read_hidden_token 'Final Cloudflare D1 Read account token (hidden): ' CLOUDFLARE_D1_READ_API_TOKEN_INPUT
+  fi
+  if [[ -z "${CLOUDFLARE_D1_EDIT_API_TOKEN_INPUT:-}" ]]; then
+    read_hidden_token 'Final Cloudflare D1 Write account token (hidden): ' CLOUDFLARE_D1_EDIT_API_TOKEN_INPUT
   fi
 fi
 
-node --import tsx/esm scripts/setup-cloudflare-d1-account-github-secrets.ts "$@"
+node --import tsx/esm scripts/import-cloudflare-d1-github-secrets.ts "$@"
