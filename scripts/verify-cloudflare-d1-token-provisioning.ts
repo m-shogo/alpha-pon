@@ -41,7 +41,6 @@ const legacyEditPermission = selectD1PermissionGroup([
   { id: "4".repeat(32), name: "D1 Edit", scopes: ["com.cloudflare.api.account"] },
 ], "edit");
 assert.deepEqual(legacyEditPermission, { id: "4".repeat(32), name: "D1 Edit" });
-
 assert.throws(
   () => selectD1PermissionGroup([...groups, {
     id: "5".repeat(32),
@@ -90,68 +89,46 @@ assert.equal(redactSecrets(`failure: ${secret}`, [secret]), "failure: [REDACTED]
 const shell = readFileSync("scripts/setup-cloudflare-d1-github-secrets.sh", "utf8");
 assert.match(shell, /set -euo pipefail/);
 assert.match(shell, /stty -echo/);
-assert.match(shell, /unset CLOUDFLARE_TOKEN_CREATOR_API_TOKEN/);
-assert.match(shell, /setup-cloudflare-d1-account-github-secrets\.ts/);
+assert.match(shell, /CLOUDFLARE_D1_READ_API_TOKEN_INPUT/);
+assert.match(shell, /CLOUDFLARE_D1_EDIT_API_TOKEN_INPUT/);
+assert.match(shell, /import-cloudflare-d1-github-secrets\.ts/);
+assert.doesNotMatch(shell, /CLOUDFLARE_TOKEN_CREATOR_API_TOKEN/);
 assert.doesNotMatch(shell, /set -x/);
-assert.doesNotMatch(shell, /echo .*CLOUDFLARE_TOKEN_CREATOR_API_TOKEN/);
+assert.doesNotMatch(shell, /echo .*API_TOKEN_INPUT/);
 
-const legacyCli = readFileSync("scripts/setup-cloudflare-d1-github-secrets.ts", "utf8");
+const importCli = readFileSync("scripts/import-cloudflare-d1-github-secrets.ts", "utf8");
 for (const contract of [
-  "/user/tokens/verify",
-  "/user/tokens/permission_groups",
-  "/user/tokens",
-  "/query",
-  "CLOUDFLARE_D1_READ_API_TOKEN",
-  "CLOUDFLARE_D1_EDIT_API_TOKEN",
-  "CLOUDFLARE_ACCOUNT_ID",
-  "--edit-secret-scope",
-  "--revoke-bootstrap",
-  "DRY_RUN_ONLY",
-  "without changing the GitHub plan",
-]) {
-  assert.ok(legacyCli.includes(contract), `missing legacy token setup contract: ${contract}`);
-}
-assert.doesNotMatch(legacyCli, /--body.*token/i);
-assert.doesNotMatch(legacyCli, /console\.log\([^\n]*\.value/);
-assert.doesNotMatch(legacyCli, /writeFileSync\([^\n]*(?:token|secret)/i);
-assert.doesNotMatch(legacyCli, /CLOUDFLARE_TOKEN_CREATOR_API_TOKEN[^\n]*--/);
-
-const accountCli = readFileSync("scripts/setup-cloudflare-d1-account-github-secrets.ts", "utf8");
-for (const contract of [
-  "/user/tokens/verify",
-  "/user/tokens/permission_groups",
-  "/accounts/${accountId}/tokens/verify",
-  "/accounts/${options.accountId}/tokens",
-  "/accounts/${accountId}/tokens/${tokenId}",
-  "account-owned service principal",
-  "D1_VERIFICATION_DELAYS_MS",
+  "/accounts/${options.accountId}/tokens/verify",
+  "/accounts/${options.accountId}/d1/database/${options.databaseId}",
   "SELECT 1 AS ok",
-  "Cleanup=",
+  "cloudflareTokenMutation: false",
+  "CLOUDFLARE_D1_READ_API_TOKEN_INPUT",
+  "CLOUDFLARE_D1_EDIT_API_TOKEN_INPUT",
   "CLOUDFLARE_D1_READ_API_TOKEN",
   "CLOUDFLARE_D1_EDIT_API_TOKEN",
   "CLOUDFLARE_ACCOUNT_ID",
+  "--replace-existing",
   "--edit-secret-scope",
-  "--revoke-bootstrap",
   "DRY_RUN_ONLY",
 ]) {
-  assert.ok(accountCli.includes(contract), `missing account-token setup contract: ${contract}`);
+  assert.ok(importCli.includes(contract), `missing final-token import contract: ${contract}`);
 }
-assert.match(accountCli, /setGitHubSecret\(repository, EDIT_SECRET_NAME, editToken\.value, editEnvironment\)/);
-assert.match(accountCli, /setGitHubSecret\(repository, READ_SECRET_NAME, readToken\.value\)/);
-assert.match(accountCli, /setGitHubSecret\(repository, ACCOUNT_SECRET_NAME, cli\.accountId\)/);
-assert.match(accountCli, /runGh\(args, `\$\{value\}\\n`\)/);
-assert.match(accountCli, /RETRYABLE_CLOUDFLARE_CODES/);
-assert.match(accountCli, /cleanupCreatedAccountTokens/);
-assert.doesNotMatch(accountCli, /--body.*token/i);
-assert.doesNotMatch(accountCli, /console\.log\([^\n]*\.value/);
-assert.doesNotMatch(accountCli, /writeFileSync\([^\n]*(?:token|secret)/i);
-assert.doesNotMatch(accountCli, /CLOUDFLARE_TOKEN_CREATOR_API_TOKEN[^\n]*--/);
+assert.match(importCli, /setGitHubSecret\(repository, targets\[2\], editToken\)/);
+assert.match(importCli, /setGitHubSecret\(repository, targets\[0\], readToken\)/);
+assert.match(importCli, /setGitHubSecret\(repository, targets\[1\], cli\.accountId\)/);
+assert.match(importCli, /runGh\(args, `\$\{value\}\\n`\)/);
+assert.doesNotMatch(importCli, /\/accounts\/\$\{[^}]+\}\/tokens(?:\?|`|\")/);
+assert.doesNotMatch(importCli, /method:\s*"(?:POST|PUT|DELETE)"[^\n]*tokens/);
+assert.doesNotMatch(importCli, /console\.log\([^\n]*(?:readToken|editToken)/);
+assert.doesNotMatch(importCli, /writeFileSync\([^\n]*(?:token|secret)/i);
+assert.doesNotMatch(importCli, /--body.*token/i);
 
 const runbook = readFileSync("docs/implementation/cloudflare-d1-token-cli-runbook.md", "utf8");
-assert.match(runbook, /Create additional tokens/);
-assert.match(runbook, /D1 Edit.*D1 Write/s);
-assert.match(runbook, /--revoke-bootstrap/);
+assert.match(runbook, /Manage Account.*Account API Tokens/s);
+assert.match(runbook, /D1 Read/);
+assert.match(runbook, /D1 Write|D1 Edit/);
+assert.match(runbook, /does not create.*Cloudflare token/is);
 assert.match(runbook, /does not run D1 bootstrap/);
-assert.match(runbook, /do not paste it into chat/i);
+assert.match(runbook, /do not paste.*chat/i);
 
 console.log("cloudflare-d1-token-provisioning-verification: ok");
