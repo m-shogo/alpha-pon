@@ -12,6 +12,9 @@ import {
   validateClaimGraphGovernance,
   type GovernedClaimGraphSnapshot,
 } from "./claim-contradiction-graph-hardening.js";
+import {
+  validateClaimGraphEndpointChronology,
+} from "./claim-contradiction-graph-integrity.js";
 
 function timeMs(value: string): number {
   return Date.parse(value);
@@ -31,6 +34,14 @@ function availableAtCutoff(
   if (timeMs(record.effectiveFrom) > cutoffMs) return false;
   if (record.effectiveTo && timeMs(record.effectiveTo) < cutoffMs) return false;
   return true;
+}
+
+function sortIssues(issues: ClaimGraphIssue[]): ClaimGraphIssue[] {
+  return [...issues].sort((a, b) =>
+    `${a.severity}|${a.code}|${a.target}|${a.message}`.localeCompare(
+      `${b.severity}|${b.code}|${b.target}|${b.message}`,
+    ),
+  );
 }
 
 export function visibleClaimRecordsAtCutoff(
@@ -66,13 +77,22 @@ export function validateClaimGraphGovernedAtCutoff(
       message: "Claim Graphはsystem_replay Evidence Snapshotだけを利用できます",
     }];
   }
-  return validateClaimGraphGovernance(
-    visibleClaimRecordsAtCutoff(claims, evidenceSnapshot.asOf),
-    visibleClaimEdgeRecordsAtCutoff(edges, evidenceSnapshot.asOf),
-    schemas,
-    evidenceSnapshot,
-    knownEntityIds,
-  );
+  const visibleClaims = visibleClaimRecordsAtCutoff(claims, evidenceSnapshot.asOf);
+  const visibleEdges = visibleClaimEdgeRecordsAtCutoff(edges, evidenceSnapshot.asOf);
+  return sortIssues([
+    ...validateClaimGraphGovernance(
+      visibleClaims,
+      visibleEdges,
+      schemas,
+      evidenceSnapshot,
+      knownEntityIds,
+    ),
+    ...validateClaimGraphEndpointChronology(
+      visibleClaims,
+      visibleEdges,
+      evidenceSnapshot,
+    ),
+  ]);
 }
 
 export function buildClaimGraphSnapshotGovernedAtCutoff(
@@ -82,6 +102,16 @@ export function buildClaimGraphSnapshotGovernedAtCutoff(
   evidenceSnapshot: EvidenceSnapshot,
   knownEntityIds?: ReadonlySet<string>,
 ): GovernedClaimGraphSnapshot {
+  const errors = validateClaimGraphGovernedAtCutoff(
+    claims,
+    edges,
+    schemas,
+    evidenceSnapshot,
+    knownEntityIds,
+  ).filter((item) => item.severity === "error");
+  if (errors.length > 0) {
+    throw new Error(errors.map((item) => `${item.code} ${item.target}: ${item.message}`).join("\n"));
+  }
   return buildGovernedClaimGraphSnapshot(
     visibleClaimRecordsAtCutoff(claims, evidenceSnapshot.asOf),
     visibleClaimEdgeRecordsAtCutoff(edges, evidenceSnapshot.asOf),
@@ -99,6 +129,16 @@ export function assessClaimForRecommendationAtCutoff(
   claimId: string,
   knownEntityIds?: ReadonlySet<string>,
 ): ClaimRecommendationAssessment {
+  const errors = validateClaimGraphGovernedAtCutoff(
+    claims,
+    edges,
+    schemas,
+    evidenceSnapshot,
+    knownEntityIds,
+  ).filter((item) => item.severity === "error");
+  if (errors.length > 0) {
+    throw new Error(errors.map((item) => `${item.code} ${item.target}: ${item.message}`).join("\n"));
+  }
   return assessClaimForRecommendationGoverned(
     visibleClaimRecordsAtCutoff(claims, evidenceSnapshot.asOf),
     visibleClaimEdgeRecordsAtCutoff(edges, evidenceSnapshot.asOf),
@@ -144,7 +184,5 @@ export function validateIncomingClaimGraphCutoff(
       });
     }
   }
-  return issues.sort((a, b) =>
-    `${a.code}|${a.target}|${a.message}`.localeCompare(`${b.code}|${b.target}|${b.message}`),
-  );
+  return sortIssues(issues);
 }
