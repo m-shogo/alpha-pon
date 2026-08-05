@@ -30,7 +30,6 @@ pl_is_valid_pid() {
   esac
 }
 
-# mkdir 後の所有情報を作る。途中状態は他プロセスから busy 扱いされる。
 pl_initialize_owner() {
   local lock_dir="$1"
   local token="$2"
@@ -65,7 +64,6 @@ pl_create_owned_lock() {
     return 1
   fi
   if ! pl_initialize_owner "$lock_dir" "$token"; then
-    # mkdir直後の初期化失敗。まだ自分だけが作成者なので掃除して失敗する。
     rm -rf -- "$lock_dir"
     return 1
   fi
@@ -75,13 +73,12 @@ pl_create_owned_lock() {
   return 0
 }
 
-# pl_acquire <lock_dir>
-# 成功で 0（PL_LOCK_DIR / PL_LOCK_TOKEN / PL_LOCK_OWNED を設定）、取得不可で 1。
 pl_acquire() {
   local lock_dir="$1"
-  local token="$$-$(date -u '+%s')-${RANDOM:-0}"
+  local token
   local owner_pid owner_token stale_backup
 
+  token="$$-$(date -u '+%s')-${RANDOM:-0}"
   PL_LOCK_OWNED=0
   PL_LOCK_DIR="$lock_dir"
   PL_LOCK_TOKEN=""
@@ -90,7 +87,6 @@ pl_acquire() {
     return 0
   fi
 
-  # 既存 lock。PID/token が揃わない初期化途中・破損lockは安全側に奪わない。
   owner_pid="$(cat "$lock_dir/pid" 2>/dev/null || true)"
   owner_token="$(cat "$lock_dir/token" 2>/dev/null || true)"
   if ! pl_is_valid_pid "$owner_pid" || [ -z "$owner_token" ]; then
@@ -98,24 +94,19 @@ pl_acquire() {
   fi
 
   if kill -0 "$owner_pid" 2>/dev/null; then
-    # 生存 owner。絶対に奪わない。
     return 1
   fi
 
-  # 有効な所有情報があり、PID死亡を確認できた場合だけ stale として退避する。
   stale_backup="${lock_dir}.stale-$(date -u '+%Y%m%d%H%M%S')-$$"
   if mv "$lock_dir" "$stale_backup" 2>/dev/null; then
     printf 'stale lock 退避: %s\n' "$stale_backup" >&2
   else
-    # 他プロセスが同時に処理した可能性。安全側に取得しない。
     return 1
   fi
 
   pl_create_owned_lock "$lock_dir" "$token"
 }
 
-# pl_release
-# 自分が取得した token と現在の lock token が一致する場合だけ削除する。
 pl_release() {
   local current_token
   if [ "${PL_LOCK_OWNED:-0}" != "1" ] || [ -z "${PL_LOCK_DIR:-}" ] || [ -z "${PL_LOCK_TOKEN:-}" ]; then
@@ -131,7 +122,6 @@ pl_release() {
   PL_LOCK_OWNED=0
 }
 
-# signal handler。EXIT trapを解除して二重処理を避け、必ず指定codeで終了する。
 pl_exit_on_signal() {
   local code="$1"
   pl_release
