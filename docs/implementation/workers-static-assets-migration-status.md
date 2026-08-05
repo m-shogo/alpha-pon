@@ -85,6 +85,22 @@ artifact: `cloudflare-d1-market-event-plan-30970892738`
 
 この結果により、canonicalとremote D1は完全一致している。D1 bootstrapやmigrationの再実行は不要。
 
+## Latest Cloudflare Git build follow-up
+
+最後に確認できたCloudflare deployment successは、PR #28 head `e669107d3355aed5c8c28b621edf5756eed35116`。
+
+その後、application/runtime codeを変更しないdocs-only PR #29 head `4f4015c72ed86279a1eee794f0eb3ad86aa68aae`と、status branchを一時的にmainと同一へ戻した`cf5f916624fcff0acc48f4eb5a6797ed2e4fc02f`で、Cloudflare Git integration botがdeployment failureを報告した。
+
+現時点でGitHub側から確認できるのは成功/失敗statusとDashboard log URLだけで、失敗原因はCloudflare Dashboard logの外部確認が必要。
+
+したがって:
+
+- `CALENDAR_V1_OPERATIONAL`はPR #28までに実測済みのlast-known-good production runtimeを指す
+- 最新mainがCloudflareへ正常deploy済みとは断定しない
+- app/runtime変更がないため、D1 bootstrap、migration、Token再作成、Access追加、billing変更で迂回しない
+- GitHub CIのWorkers build / dry-run結果とCloudflare Dashboard logを比較して原因を切り分ける
+- 原因確認後、同一commitの再buildまたは最小修正だけを行う
+
 ## Current route authority
 
 | Route | Authority | Contract |
@@ -112,7 +128,7 @@ Cloudflare Dashboardに旧`OWNER_EMAIL`変数が残っている場合、削除�
 
 ## 完了済み
 
-- Workers Static Assets production deploy
+- Workers Static Assets production deploy（last-known-good: PR #28）
 - public read-only market event API
 - tokenized LIVE ICS
 - public SNAPSHOT ICS
@@ -129,6 +145,7 @@ Cloudflare Dashboardに旧`OWNER_EMAIL`変数が残っている場合、削除�
 
 Calendar v1の運用開始を妨げない後続作業:
 
+- latest Cloudflare Git build failureのDashboard log確認と再build
 - 公式日程collector
 - Google Calendar API同期（必要性を再評価してから）
 - D1 export / restore drill
@@ -140,8 +157,8 @@ Calendar v1の運用開始を妨げない後続作業:
 
 ### `CALENDAR_V1_OPERATIONAL`
 
-LIVE API、tokenized ICS、snapshot fallback、公開read-only境界、監査、manual D1 dry-run一致を実環境で確認済み。
+LIVE API、tokenized ICS、snapshot fallback、公開read-only境界、監査、manual D1 dry-run一致をlast-known-good productionで確認済み。
 
 ### 将来状態
 
-collector、delivery、restore drill、scheduleは別workstream。Calendar v1 operationalを未完了へ戻す条件にはしない。
+collector、delivery、restore drill、scheduleは別workstream。Cloudflare Git build failureは別途解消し、latest main deployment statusを再確認する。
