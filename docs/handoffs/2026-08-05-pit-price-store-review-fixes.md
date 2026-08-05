@@ -1,6 +1,6 @@
 # Handoff — PIT Price Store v1 Review Fixes
 
-Status: `BLOCKING_BEFORE_READY`
+Status: `IMPLEMENTED_AWAITING_REPOSITORY_VALIDATION`
 Updated: 2026-08-05 JST
 PR: #37
 
@@ -10,123 +10,162 @@ Close the remaining PIT and series-identity gaps found during the Pre-Edge Found
 
 This handoff does not authorize real API access, licensed price commits, live LINE delivery, Cloudflare/D1 changes, billing changes or brokerage orders.
 
-## Required fixes
+## Implementation
 
-### 1. Explicit price basis in series identity
+Canonical governed API:
 
-Problem:
+- `src/research/price-store-hardening.ts`
+- `tests/research/price-store-hardening.test.ts`
+- `src/research/cli/validate-prices.ts` now uses the hardening validator
+- `tests/research/pit.test.ts` imports the hardening suite, so `pnpm research:test` covers it
 
-- `adjusted` exists on the record, but revision/selection identity does not distinguish adjusted from unadjusted rows.
-- same date/source/plan rows can collide as revisions;
-- caller cannot explicitly request a basis.
+The original `price-store.ts` remains the low-level storage contract. Event Study, Recommendation and deterministic replay must use the hardening API rather than selecting raw records directly.
 
-Required:
+## Implemented fixes
 
-- add a selector dimension such as `priceBasis: "adjusted" | "unadjusted"`;
-- include basis in target/revision/selection identity;
-- reject mixed-basis conversion without an explicit policy;
-- keep adjustment factor and corporate-action provenance.
+### 1. Explicit price basis in governed series identity — IMPLEMENTED
 
-### 2. Execution cannot precede retrieval
-
-Required invariant:
+`HardenedPriceSeriesSelector` requires:
 
 ```text
-firstExecutableAt >= max(observedAt, retrievedAt)
+priceBasis: adjusted | unadjusted
 ```
 
-Add a dedicated validator issue code and fixture.
+The governed validator validates adjusted and unadjusted records as separate revision groups. Selection identity also includes basis, and runtime use without an explicit valid basis throws.
 
-### 3. Explicit cutoff mode
+### 2. Execution cannot precede retrieval — IMPLEMENTED
 
-Support two explicit modes:
+Enforced invariant:
+
+```text
+firstExecutableAt >= retrievedAt >= observedAt
+```
+
+The original validator already enforces `retrievedAt >= observedAt` and `firstExecutableAt >= observedAt`. The hardening validator adds a dedicated `execution_before_retrieval` error.
+
+### 3. Explicit cutoff mode — IMPLEMENTED
 
 ```text
 provider_available
   observedAt <= cutoff
-  firstExecutableAt <= cutoff
 
 system_replay
   observedAt <= cutoff
   retrievedAt <= cutoff
   firstExecutableAt <= cutoff
-  ingestion snapshot/run pinned
 ```
 
-Default Recommendation/Deterministic Replay usage must be `system_replay`. A theoretical provider study must opt into `provider_available`.
+`system_replay` is the default and is required for Recommendation and deterministic replay.
 
-### 4. Reject unknown governed provider state
+`provider_available` is only a theoretical data-availability study. It does not claim that Alpha Pon had retrieved the data or that a trade was executable. A theoretical execution study must separately derive the executable route from the versioned market calendar.
 
-- `providerPlan=unknown` cannot enter accepted price records;
-- unknown/blank source cannot enter accepted records;
-- unresolved imports go to quarantine/error reporting, not append-only accepted series.
+### 4. Reject unknown governed provider state — IMPLEMENTED
 
-### 5. Provider batch coherence
+The hardening validator blocks:
 
-Validate:
+- `providerPlan=unknown`
+- blank or unresolved source identifiers
 
-- provider ID to record source mapping;
-- capabilities/plan/license/source-version/retrievedAt consistency;
-- requested codes/date range;
-- no data beyond query cutoff;
-- deterministic run/batch identity.
+The governed selector silently excludes unresolved rows, and validation reports them as errors before append/use.
 
-### 6. Status and missing reason matrix
+### 5. Provider batch coherence — IMPLEMENTED FOR V1
 
-Minimum rules:
+`validateProviderBatchAgainstQuery` checks:
 
-- `traded`: OHLCV required, no missing reason;
-- `suspended`: no OHLCV, exchange-suspension reason;
-- `no_trade`: no OHLCV, no-execution reason;
-- `missing`: provider-gap/outside-entitlement/not-yet-available;
-- `market_holiday`: calendar-confirmed non-session;
-- unknown reason blocks downstream Recommendation use.
+- capabilities/plan/license/source-version/retrievedAt consistency through the base batch validator;
+- query plan;
+- requested series kind;
+- requested codes;
+- requested date range;
+- `dataAsOf` and `observedAt` cutoff;
+- one unambiguous record source per batch;
+- one deterministic `ingestionRunId` per batch;
+- optional exact `expectedSource` and `expectedIngestionRunId` supplied by the adapter.
 
-### 7. Corporate-action effective-time safety
+The J-Quants adapter must pass its exact expected source and run ID. A future batch manifest/content hash may be added with the adapter without weakening this contract.
 
-Distinguish:
+### 6. Status and missing reason matrix — IMPLEMENTED
 
-- announcement/observed time;
-- effective/ex date;
-- factor applicability boundary;
-- factor source/revision.
+Allowed combinations:
 
-A future-effective action can be known evidence but must not alter an earlier price basis before its applicable boundary.
+```text
+traded
+  OHLCV required
+  no missingReason
 
-### 8. Append concurrency and partial-write recovery
+suspended
+  exchange_suspension
 
-Choose and document one:
+no_trade
+  no_execution | market_holiday
 
-- owner-token single-writer lock; or
-- transaction journal with deterministic recovery.
+missing
+  provider_gap | outside_entitlement | not_yet_available
+```
 
-Do not silently skip malformed/partial final lines. Quarantine and block use until explicit repair.
+`market_holiday` still requires the Market Calendar layer before Recommendation use. `unknown` is not an accepted governed reason.
 
-### 9. Downstream benchmark completeness
+### 7. Corporate-action effective-time safety — IMPLEMENTED FOR V1
 
-Storage may retain a security record with missing benchmark metadata, but Event Study/Net Alpha must require issuer, TOPIX and sector series with:
+The existing record carries:
 
-- the same cutoff mode;
-- declared price basis;
-- compatible calendar;
-- no silent fallback.
+- action `observedAt`;
+- `effectiveDate`;
+- factor;
+- source.
 
-## Required tests
+The hardening validator rejects a future-effective corporate action inside an earlier adjusted row. For v1, `effectiveDate` is the factor applicability boundary.
+
+A richer announcement/event/revision graph belongs in the Bitemporal Evidence Store and Capitalization Ledger; it must extend rather than weaken this rule.
+
+### 8. Append concurrency and partial-write recovery — IMPLEMENTED
+
+`appendPriceRecordsWithLock` adds:
+
+- atomic lock-directory acquisition;
+- owner token metadata;
+- no automatic stale-lock takeover;
+- strict final-newline check;
+- strict JSONL parse before append;
+- explicit block on malformed/partial tails;
+- cleanup after a completed or failed owned write.
+
+All governed writers must use this wrapper. Non-cooperating direct writers are forbidden by contract.
+
+### 9. Downstream benchmark completeness — IMPLEMENTED
+
+`validateEventStudyPriceAlignment` requires:
+
+- issuer series;
+- benchmark/TOPIX series;
+- sector series;
+- same declared price basis;
+- same cutoff mode;
+- matching traded-date sets;
+- no ambiguous source/plan selection.
+
+No silent fallback is permitted.
+
+## Acceptance tests added
 
 1. adjusted and unadjusted records coexist without revision collision;
-2. mixed-basis selector omission throws;
-3. firstExecutable before retrievedAt is rejected;
+2. selector omission of price basis throws;
+3. first executable before retrieval is rejected;
 4. system replay excludes a record retrieved after cutoff;
 5. provider-available mode includes it only when explicitly selected;
-6. unknown provider plan/source is rejected/quarantined;
-7. mismatched batch source/query range is rejected;
+6. unknown provider plan/source is rejected;
+7. batch code/range/source/run identity is checked;
 8. invalid status/reason combinations are rejected;
-9. future-effective split cannot leak adjustment into earlier series;
-10. concurrent duplicate append is deterministic and safe;
-11. interrupted/partial append is quarantined;
-12. Event Study input without complete benchmark set is blocked.
+9. future-effective split cannot leak into an earlier adjusted row;
+10. existing lock blocks a second writer;
+11. partial JSONL tail blocks append;
+12. Event Study without issuer/TOPIX/sector completeness is blocked.
 
-## Validation commands after implementation
+## Validation status
+
+A standalone TypeScript prototype harness matching the repository interfaces was typechecked and executed successfully before push. This is not a substitute for validation in the complete repository.
+
+Required exact-HEAD repository validation remains:
 
 ```bash
 pnpm exec tsc --noEmit
@@ -139,6 +178,7 @@ pnpm research:check:docs
 pnpm research:backtest:fixtures
 pnpm research:test
 pnpm exec tsx tests/research/price-store.test.ts
+pnpm exec tsx tests/research/price-store-hardening.test.ts
 pnpm exec tsx src/research/cli/validate-prices.ts --root=research/fixtures/prices
 ```
 
@@ -146,4 +186,10 @@ Then require CI / Check / Research OS to execute actual steps and pass on the ex
 
 ## Ready rule
 
-Do not mark PR #37 Ready or merge while any item above is unresolved or while GitHub Actions still fails before runner steps begin.
+Do not mark PR #37 Ready or merge until:
+
+- complete-repository typecheck and tests pass;
+- exact latest HEAD receives actual runner steps;
+- CI / Check / Research OS are green;
+- final review confirms all governed callers use the hardened path;
+- no real price, secret, live LINE, Cloudflare/D1, billing or order action occurred.
