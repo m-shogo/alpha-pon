@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "sequence": 1,
+  "savedAt": "2026-08-05T03:29:00.000Z",
+  "actor": "chatgpt-hourly",
+  "researchedEdgeId": "known-bad-event-repricing",
+  "researchDone": "既存のKnown-Bad Event Repricing研究をResearch OSの最初のEdgeへ移し、機構、対象event、PIT条件、entry/exit候補、交絡、執行制約、反証条件、source policy、hard blockerを固定した。実価格とAnalogが無いため全Promotion Gateはunknownのまま維持した。",
+  "addedAnalogIds": [],
+  "rejections": [
+    {
+      "target": "外部犯罪・災害の舞台になっただけの企業をcore misconduct sampleへ含める案",
+      "reason": "企業内部の会計・統制・経営者問題とは因果経路が異なり、同一sampleへ混ぜると事件の舞台化と企業固有責任を混同するため。negative control候補として別管理する。"
+    }
+  ],
+  "dataGaps": [
+    "PIT安全な個別株OHLCV・TOPIX・業種benchmark・corporate action価格ストア",
+    "formal eventごとのpublicObservedAtとfirstExecutableAt",
+    "同日決算・業績修正・資本政策・指数・大口売買のconfounder ledger",
+    "貸株可否・逆日歩・borrow cost・spread・liquidity",
+    "immutable Historical Analogの初期sample",
+    "matched controlとgeneric reversal model"
+  ],
+  "nextCandidates": [
+    {
+      "edgeId": "known-bad-event-repricing",
+      "why": "最初のEdgeとして登録したが、Sanrio calibration timeline、Analog、PIT価格、confounderが未接続で最優先の継続研究が必要。"
+    },
+    {
+      "edgeId": "exchange-sanction-ladder",
+      "why": "正式状態遷移という機構が近く、Known-Bad umbrellaへ統合する範囲と独立Edgeにする範囲を先に確定する必要がある。"
+    },
+    {
+      "edgeId": "external-incident-venue-negative-control",
+      "why": "会社内部の問題と外部事件の舞台化を分離するnegative controlが、交絡除去と反証力を高める。"
+    }
+  ],
+  "openQuestions": [
+    "正式イベント後の主entryをnext open、event open、first executable priceのどれとして事前固定するか。",
+    "Known-Bad umbrellaとRemediation Half-Life、Audit Opinion State Transitionをどの粒度で分離するか。",
+    "borrow不能caseをshort Edgeから除外するか、long-side反応研究へ残すか。"
+  ],
+  "osIssues": [
+    "Edge schemaにuniverse、eventTypes、PIT requirements、confounders、hardBlockers、sourcePolicy、snsUsedの専用fieldがなく、現状はnotesへ構造化して保存する必要がある。schema変更はこのPRでは行わない。"
+  ]
+}
