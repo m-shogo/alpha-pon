@@ -73,6 +73,7 @@
               "evidence",
               "market_reaction",
               "supply_demand",
+              "demand_proxy",
               "confounder",
               "technology_research",
               "commercialization",
