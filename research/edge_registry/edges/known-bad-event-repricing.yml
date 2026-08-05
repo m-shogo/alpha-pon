@@ -1,0 +1,155 @@
+schemaVersion: 1
+id: known-bad-event-repricing
+title: Known-Bad Event Repricing Edge
+status: research
+priority: A
+owner: chatgpt-hourly
+createdAt: 2026-08-05
+lastUpdate: 2026-08-05
+hypothesis: "日本の上場企業で主要な悪材料が正式イベント前に既知であり、イベント時に支配的な新規悪材料が出ない場合でも、解決期待の剥落とポジション解消により、最初の執行可能時点から短期の負の異常収益が発生する。"
+mechanism: >-
+  投資家が株主総会、継続会、記者会見、第三者委員会最終報告、行政処分、訴訟・判決、訂正決算、改善報告書などの正式イベントを「問題の終結」や「追加悪材料なし」の確認機会として先回りすると、イベントが期待した増分好材料を含まないだけでも、解決期待の剥落、利益確定、信用買いの縮小、制度上のリスク再分類が重なり得る。仮説は隠れた悪材料の予測ではなく、既知情報が正式状態へ遷移する際の短期リプライシングを、一般的な反転・高バリュエーション・需給要因から分離して検証する。
+confidence: 0.2
+requiredData:
+  - 主要悪材料の初回公表時刻と会社確認時刻
+  - 正式イベントの日付・開始時刻・資料公開時刻
+  - イベントで新たに判明した事実と既知事実の差分
+  - first executable timestampと売買停止・値幅制限情報
+  - 個別株OHLCVと可能な場合の分足価格
+  - TOPIXおよび業種benchmark系列
+  - 信用残・空売り・貸株可否・借株コスト
+  - 同日決算・業績修正・資本政策・大口売買・指数イベント
+  - 流動性・spread proxy・出来高shock
+  - corporate actionと価格調整履歴
+entry:
+  trigger: "正式イベントまたは公式資料のpublicObservedAt後、支配的な新規悪材料がないと判定できる最初の執行可能時点"
+  side: short
+  decisionLagMinutes: 0
+exit:
+  rule: "D+1・D+3・D+5を別々に計測し、主検証ではD+5までにクローズする"
+  holdingPeriodDays: 5
+  invalidation: "支配的な新規悪材料、未解決の強い交絡因子、売買停止、値幅制限、借株不能、またはfirst executable timestamp不明"
+execution:
+  feasibility: unknown
+  notes: "実価格・spread・borrow系列が未接続。previous close、next open、event後first executable priceを混同せず別routeで検証する。"
+  borrowAvailability: unknown
+voiInputs:
+  expectedNetAlphaBps: 0
+  uncertaintyReduction: 0.9
+  executionImprovement: 0.5
+  researchCost: 0.75
+  notes: "実測Net Alphaが0件のため期待値は中立の0 bpsで仮置き。高いVOIは、既存研究文書が成熟している一方でPIT価格・交絡・執行データが欠け、1つずつ解消できるため。"
+samples:
+  required: 40
+  current: 0
+  requiredAnalogs: 12
+promotionGate:
+  sufficientSamples:
+    state: unknown
+    evidence: "Research OSへ登録された実サンプルは0件。"
+  holdoutPass:
+    state: unknown
+    evidence: "Holdoutは未開封で、評価結果は存在しない。"
+  pitSafe:
+    state: unknown
+    evidence: "PIT価格ストアと各eventのpublicObservedAt/firstExecutableAt接続が未実装。"
+  netAlphaPositive:
+    state: unknown
+    evidence: "実価格・benchmark・取引コストを使ったNet Alpha実測は0件。"
+  executionFeasible:
+    state: unknown
+    evidence: "gap、spread、値幅制限、売買停止、first executable priceの検証が未実施。"
+  liquiditySufficient:
+    state: unknown
+    evidence: "ADTV、出来高shock、参加率制約の実測が未実施。"
+  borrowCostCovered:
+    state: unknown
+    evidence: "貸株可否・逆日歩・借株コスト系列が未接続。"
+  confoundersRemoved:
+    state: unknown
+    evidence: "同日決算、業績修正、資本政策、指数、大口売買、macro要因のledgerが未作成。"
+  counterfactualExplained:
+    state: unknown
+    evidence: "matched controlと単純反転モデルとの比較が未実施。"
+  decayChecked:
+    state: unknown
+    evidence: "recent対historical比較を行う実データがない。"
+  falseDiscoveryGuard:
+    state: unknown
+    evidence: "探索sample、confirmatory sample、untouched holdoutの分離が未実施。"
+decay:
+  reviewIntervalDays: 30
+  notes: "production/shadowではないため自動decay判定は未開始。実データ接続後にrecent対historical Net Alphaを測る。"
+notes: |-
+  universe:
+    - 日本の上場企業
+    - 企業内部の会計・統制・ガバナンス・経営者問題を中心とする
+    - 外部犯罪や災害の舞台になっただけの企業はcore sampleへ混ぜず、反証・negative control候補として扱う
+
+  eventTypes:
+    - 株主総会・継続会
+    - 記者会見
+    - 第三者委員会・特別調査委員会の最終報告
+    - 行政処分・改善報告期限
+    - 訴訟・判決
+    - 訂正決算・訂正有価証券報告書
+    - 監査意見・内部統制状態の遷移
+    - 経営者・著名個人の辞任、解任、逮捕、起訴、処分
+
+  direction:
+    primaryTest: short
+    diagnosticRoutes:
+      - prior close to next open
+      - event day open to close
+      - first executable price after official publication
+      - D+1, D+3, D+5, D+10
+
+  pitRequirements:
+    - 新規事実、既知事実、仮定、意見を別フィールドまたは別判定で保持する
+    - observedAtは公式資料が公に取得可能になった時刻とする
+    - event開始時刻と資料公開時刻を混同しない
+    - firstExecutableAtはpublication後かつ市場で実際に約定可能な最初の時刻とする
+    - 未確定時刻は厳格sampleへ入れない
+    - adjusted closeだけに依存しない
+
+  confounders:
+    - 決算・業績修正・配当・自己株買い
+    - 増資・CB・TOB・MBO・再編
+    - 指数採用除外・大口売買・主要株主売却
+    - 市場全体急落・業種shock・macro event
+    - generic short-term reversal・高valuation・信用買い混雑
+    - 売買停止・値幅制限・貸株制約
+
+  hardBlockers:
+    - 支配的な新規悪材料を既知悪材料から分離できない
+    - event/publication/first executable timestampをPITで再現できない
+    - 強い同時開示を除去できない
+    - 実価格またはbenchmarkがない
+    - short routeでborrowまたはliquidityを確認できない
+    - holdoutを研究途中で開封した
+
+  falsificationConditions:
+    - benchmark・sector・beta・matched control補正後に異常収益が消える
+    - pre-event momentum reversalだけで説明できる
+    - Sanrio等の少数事例へ集中する
+    - spread・slippage・borrowを控除するとNet Alphaが非正になる
+    - event-day gapで理論収益の大半が消え、再現可能なentryがない
+    - confirmatory sampleまたはholdoutが非正になる
+
+  sourcePolicy:
+    allowed: company IR, TDnet, JPX, EDINET, regulators, ministries, courts, administrative records, major media, licensed market data, historical DB, academic research
+    prohibited: SNS, message boards, anonymous posts, influencer commentary, social sentiment
+    snsUsed: false
+
+  relatedButSeparateCandidates:
+    - exchange-sanction-ladder
+    - remediation-half-life
+    - regulatory-clock-slippage
+    - audit-opinion-state-transition
+    - executive-dependence-misconduct
+    - external-incident-venue-negative-control
+
+  boundary:
+    - これは買い推奨や自動売買ではない
+    - production 12/20 misconduct scoreやNamed Watchの閾値を変更しない
+    - 根拠のないGate passやproduction昇格を行わない
