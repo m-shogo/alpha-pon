@@ -18,6 +18,7 @@ import {
 } from "node:fs";
 import { dirname } from "node:path";
 import type { PriceSeries } from "./backtest.js";
+import { jstDateOf } from "./pit.js";
 import {
   parsePriceJsonl,
   readPriceJsonl,
@@ -170,12 +171,13 @@ export function validatePriceRecordHardening(record: PitPriceRecord): PriceHarde
   }
 
   if (record.adjusted) {
+    const observedDate = jstDateOf(record.observedAt);
     for (const action of record.corporateActions) {
-      if (action.effectiveDate > record.tradingDate) {
+      if (action.effectiveDate > observedDate) {
         issues.push(hardeningIssue(
           "future_effective_corporate_action",
           target,
-          `tradingDate=${record.tradingDate}より後にeffectiveなcorporate actionをadjusted rowへ混入できません: ${action.type} ${action.effectiveDate}`,
+          `observedAtのJST日付=${observedDate}より後にeffectiveなcorporate actionをadjusted rowへ混入できません: ${action.type} ${action.effectiveDate}`,
         ));
       }
     }
@@ -312,6 +314,31 @@ function isRecordAvailable(
   return true;
 }
 
+function matchesSelectorBaseIdentity(
+  record: PitPriceRecord,
+  selector: HardenedPriceSeriesSelector,
+): boolean {
+  if (record.seriesKind !== selector.seriesKind || record.code !== selector.code) return false;
+  if (basisOf(record) !== selector.priceBasis) return false;
+  if (selector.market && record.market !== selector.market) return false;
+  return true;
+}
+
+function assertReplayRecordsSafe(
+  records: PitPriceRecord[],
+  selector: HardenedPriceSeriesSelector,
+): void {
+  const errors = records
+    .filter((record) => matchesSelectorBaseIdentity(record, selector))
+    .flatMap((record) => validatePriceRecordHardening(record))
+    .filter((issue) => issue.severity === "error");
+  if (errors.length > 0) {
+    throw new Error(
+      errors.map((issue) => `${issue.code} ${issue.target}: ${issue.message}`).join("\n"),
+    );
+  }
+}
+
 function assertUnambiguousSeries(
   records: PitPriceRecord[],
   selector: HardenedPriceSeriesSelector,
@@ -347,13 +374,11 @@ export function selectPriceRecordsForReplay(
   if (selector.priceBasis !== "adjusted" && selector.priceBasis !== "unadjusted") {
     throw new Error("selector.priceBasis must be adjusted or unadjusted");
   }
+  assertReplayRecordsSafe(records, selector);
 
   const selected = new Map<string, PitPriceRecord>();
   for (const record of records) {
-    if (record.seriesKind !== selector.seriesKind || record.code !== selector.code) continue;
-    if (basisOf(record) !== selector.priceBasis) continue;
-    if (record.providerPlan === "unknown" || isUnknownSource(record.source)) continue;
-    if (selector.market && record.market !== selector.market) continue;
+    if (!matchesSelectorBaseIdentity(record, selector)) continue;
     if (selector.source && record.source !== selector.source) continue;
     if (selector.providerPlan && record.providerPlan !== selector.providerPlan) continue;
     if (!isRecordAvailable(record, asOfMs, mode)) continue;
@@ -516,6 +541,20 @@ function assertCompleteJsonlTail(path: string): void {
   parsePriceJsonl(content, path);
 }
 
+function releasePriceStoreLock(lockPath: string, ownerToken: string): void {
+  const ownerPath = `${lockPath}/owner.json`;
+  let owner: { ownerToken?: unknown };
+  try {
+    owner = JSON.parse(readFileSync(ownerPath, "utf-8")) as { ownerToken?: unknown };
+  } catch (error) {
+    throw new Error(`price store lock ownership cannot be verified: ${(error as Error).message}`);
+  }
+  if (owner.ownerToken !== ownerToken) {
+    throw new Error(`price store lock ownership changed; refusing to remove ${lockPath}`);
+  }
+  rmSync(lockPath, { recursive: true, force: false });
+}
+
 /**
  * Cooperative single-writer wrapper. A stale lock is never stolen
  * automatically; recovery requires an explicit human operation.
@@ -541,15 +580,15 @@ export function appendPriceRecordsWithLock(
     throw error;
   }
 
+  const now = options.now ?? new Date();
   try {
     writeFileSync(
       `${lockPath}/owner.json`,
-      `${JSON.stringify({ ownerToken: options.ownerToken, acquiredAt: new Date().toISOString() })}\n`,
+      `${JSON.stringify({ ownerToken: options.ownerToken, acquiredAt: now.toISOString() })}\n`,
       { encoding: "utf-8", flag: "wx" },
     );
     assertCompleteJsonlTail(path);
     const existing = readPriceJsonl(path);
-    const now = options.now ?? new Date();
     const errors = validateHardenedPriceRecords([...existing, ...incoming], schema, now)
       .filter((issue) => issue.severity === "error");
     if (errors.length > 0) {
@@ -566,6 +605,6 @@ export function appendPriceRecordsWithLock(
       closeSync(fd);
     }
   } finally {
-    rmSync(lockPath, { recursive: true, force: true });
+    releasePriceStoreLock(lockPath, options.ownerToken);
   }
 }
