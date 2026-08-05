@@ -1,5 +1,12 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -55,6 +62,14 @@ function record(overrides: Partial<PitPriceRecordInput> = {}): PitPriceRecord {
   });
 }
 
+const selector = {
+  seriesKind: "security" as const,
+  code: "TEST1",
+  priceBasis: "unadjusted" as const,
+  source: "synthetic_fixture",
+  providerPlan: "synthetic" as const,
+};
+
 {
   const unadjusted = record();
   const adjusted = record({
@@ -99,9 +114,18 @@ function record(overrides: Partial<PitPriceRecordInput> = {}): PitPriceRecord {
 }
 
 {
-  const issues = validatePriceRecordHardening(record({ license: "metadata_only" }));
+  const metadataOnly = record({ license: "metadata_only" });
+  const issues = validatePriceRecordHardening(metadataOnly);
   assert.ok(issues.some((issue) => issue.code === "metadata_only_price_payload"));
-  console.log("price-store-hardening: metadata-only payload boundary OK");
+  assert.throws(
+    () => selectPriceRecordsForReplay(
+      [metadataOnly],
+      "2026-01-01T00:00:00+09:00",
+      selector,
+    ),
+    /metadata_only_price_payload/,
+  );
+  console.log("price-store-hardening: metadata-only payload/replay boundary OK");
 }
 
 {
@@ -119,7 +143,7 @@ function record(overrides: Partial<PitPriceRecordInput> = {}): PitPriceRecord {
 }
 
 {
-  const issues = validatePriceRecordHardening(record({
+  const futureAction = record({
     adjusted: true,
     adjustmentFactor: 0.5,
     corporateActions: [{
@@ -129,9 +153,27 @@ function record(overrides: Partial<PitPriceRecordInput> = {}): PitPriceRecord {
       observedAt: "2024-01-03T15:30:00+09:00",
       source: "synthetic_fixture",
     }],
-  }));
-  assert.ok(issues.some((issue) => issue.code === "future_effective_corporate_action"));
-  console.log("price-store-hardening: future-effective action leakage guard OK");
+  });
+  assert.ok(validatePriceRecordHardening(futureAction)
+    .some((issue) => issue.code === "future_effective_corporate_action"));
+
+  const validHistoricalAdjustment = record({
+    observedAt: "2024-02-02T15:35:00+09:00",
+    retrievedAt: "2024-02-02T15:36:00+09:00",
+    firstExecutableAt: "2024-02-05T09:00:00+09:00",
+    adjusted: true,
+    adjustmentFactor: 0.5,
+    corporateActions: [{
+      type: "split",
+      effectiveDate: "2024-02-01",
+      factor: 2,
+      observedAt: "2024-01-03T15:30:00+09:00",
+      source: "synthetic_fixture",
+    }],
+  });
+  assert.equal(validatePriceRecordHardening(validHistoricalAdjustment)
+    .some((issue) => issue.code === "future_effective_corporate_action"), false);
+  console.log("price-store-hardening: corporate-action knowledge/effective boundary OK");
 }
 
 {
@@ -139,13 +181,6 @@ function record(overrides: Partial<PitPriceRecordInput> = {}): PitPriceRecord {
     retrievedAt: "2024-01-06T08:00:00+09:00",
     firstExecutableAt: "2024-01-06T09:00:00+09:00",
   });
-  const selector = {
-    seriesKind: "security" as const,
-    code: "TEST1",
-    priceBasis: "unadjusted" as const,
-    source: "synthetic_fixture",
-    providerPlan: "synthetic" as const,
-  };
   assert.equal(selectPriceRecordsForReplay(
     [delayedIngestion],
     "2024-01-05T12:00:00+09:00",
@@ -222,34 +257,24 @@ function record(overrides: Partial<PitPriceRecordInput> = {}): PitPriceRecord {
     {
       role: "issuer" as const,
       records: [issuer],
-      selector: {
-        seriesKind: "security" as const,
-        code: "TEST1",
-        priceBasis: "unadjusted" as const,
-        source: "synthetic_fixture",
-        providerPlan: "synthetic" as const,
-      },
+      selector,
     },
     {
       role: "benchmark" as const,
       records: [benchmark],
       selector: {
+        ...selector,
         seriesKind: "benchmark" as const,
         code: "TOPIX",
-        priceBasis: "unadjusted" as const,
-        source: "synthetic_fixture",
-        providerPlan: "synthetic" as const,
       },
     },
     {
       role: "sector" as const,
       records: [sector],
       selector: {
+        ...selector,
         seriesKind: "benchmark" as const,
         code: "TOPIX-17",
-        priceBasis: "unadjusted" as const,
-        source: "synthetic_fixture",
-        providerPlan: "synthetic" as const,
       },
     },
   ];
@@ -299,6 +324,8 @@ function record(overrides: Partial<PitPriceRecordInput> = {}): PitPriceRecord {
       }),
       /unknown_provider_plan/,
     );
+    assert.equal(existsSync(`${path}.lock`), false, "validation failure後もlockを残さない");
+
     assert.throws(
       () => appendPriceRecordsWithLock(path, [record({ license: "metadata_only" })], schema, {
         ownerToken: "metadata-only-owner",
@@ -306,6 +333,7 @@ function record(overrides: Partial<PitPriceRecordInput> = {}): PitPriceRecord {
       }),
       /metadata_only_price_payload/,
     );
+    assert.equal(existsSync(`${path}.lock`), false, "license failure後もlockを残さない");
 
     mkdirSync(`${path}.lock`);
     assert.throws(
@@ -326,6 +354,7 @@ function record(overrides: Partial<PitPriceRecordInput> = {}): PitPriceRecord {
       }),
       /partial_jsonl_tail/,
     );
+    assert.equal(existsSync(`${partialPath}.lock`), false, "partial tail failure後もlockを残さない");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
