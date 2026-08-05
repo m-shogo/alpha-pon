@@ -52,13 +52,18 @@ function record(overrides: Partial<PitPriceRecordInput> = {}): PitPriceRecord {
 }
 
 function context(
+  records: readonly PitPriceRecord[],
   snapshotId = "snapshot-a",
-  allowedIngestionRunIds: readonly string[] = ["run-a"],
 ): GovernedReplayContext {
   return {
     schema,
     now: NOW,
-    manifest: { snapshotId, informationCutoff: CUTOFF, allowedIngestionRunIds },
+    manifest: {
+      snapshotId,
+      informationCutoff: CUTOFF,
+      allowedIngestionRunIds: [...new Set(records.map((item) => item.ingestionRunId))],
+      allowedContentHashes: [...new Set(records.map((item) => item.contentHash))],
+    },
   };
 }
 
@@ -72,49 +77,75 @@ const selector = {
 
 {
   const pinned = record();
-  const unpinned = record({ ingestionRunId: "run-b", retrievedAt: "2024-01-04T15:37:00+09:00" });
+  const unpinned = record({
+    ingestionRunId: "run-b",
+    retrievedAt: "2024-01-04T15:37:00+09:00",
+  });
+  const snapshot = context([pinned]);
   const selected = selectGovernedPriceRecordsForReplay(
     [pinned, unpinned],
     CUTOFF,
     selector,
-    context(),
+    snapshot,
   );
   assert.equal(selected.length, 1);
   assert.equal(selected[0].ingestionRunId, "run-a");
-  assert.equal(toGovernedBacktestPriceSeries([pinned, unpinned], CUTOFF, selector, context()).bars.length, 1);
-  console.log("price-store-replay-guard: ingestion run pinning OK");
+  assert.equal(
+    toGovernedBacktestPriceSeries([pinned, unpinned], CUTOFF, selector, snapshot).bars.length,
+    1,
+  );
+  console.log("price-store-replay-guard: ingestion run/hash pinning OK");
 }
 
 {
-  const tampered = { ...record(), contentHash: "0".repeat(64) };
-  assert.throws(
-    () => selectGovernedPriceRecordsForReplay([tampered], CUTOFF, selector, context()),
-    /invalid_content_hash/,
-  );
+  const original = record();
+  const tampered = { ...original, close: undefined, contentHash: original.contentHash } as never;
   assert.throws(
     () => selectGovernedPriceRecordsForReplay(
-      [record({ providerPlan: "unknown" })],
+      [tampered],
       CUTOFF,
       selector,
-      context(),
+      context([tampered]),
     ),
-    /no records match pinned snapshot|unknown_provider_plan/,
+    /schema|invalid_content_hash/,
+  );
+
+  const unknownPlan = record({ providerPlan: "unknown" });
+  assert.throws(
+    () => selectGovernedPriceRecordsForReplay(
+      [unknownPlan],
+      CUTOFF,
+      { ...selector, providerPlan: undefined },
+      context([unknownPlan]),
+    ),
+    /unknown_provider_plan/,
   );
   console.log("price-store-replay-guard: pinned record validation OK");
 }
 
 {
+  const pinned = record();
   assert.throws(
     () => selectGovernedPriceRecordsForReplay(
-      [record()],
+      [pinned],
       "2024-01-05T12:01:00+09:00",
       selector,
-      context(),
+      context([pinned]),
     ),
     /cutoff must equal pinned informationCutoff/,
   );
+  const invalidContext: GovernedReplayContext = {
+    schema,
+    now: NOW,
+    manifest: {
+      snapshotId: "",
+      informationCutoff: CUTOFF,
+      allowedIngestionRunIds: [],
+      allowedContentHashes: [],
+    },
+  };
   assert.throws(
-    () => selectGovernedPriceRecordsForReplay([record()], CUTOFF, selector, context("", [])),
+    () => selectGovernedPriceRecordsForReplay([pinned], CUTOFF, selector, invalidContext),
     /snapshotId is required/,
   );
   console.log("price-store-replay-guard: manifest validation OK");
@@ -124,28 +155,42 @@ const selector = {
   const issuer = record();
   const benchmark = record({ seriesKind: "benchmark", code: "TOPIX", benchmarkCode: undefined });
   const sector = record({ seriesKind: "benchmark", code: "TOPIX-17", benchmarkCode: undefined });
+  const sharedContext = context([issuer, benchmark, sector]);
   const inputs = [
-    { role: "issuer" as const, records: [issuer], selector, context: context() },
+    { role: "issuer" as const, records: [issuer], selector, context: sharedContext },
     {
       role: "benchmark" as const,
       records: [benchmark],
       selector: { ...selector, seriesKind: "benchmark" as const, code: "TOPIX" },
-      context: context(),
+      context: sharedContext,
     },
     {
       role: "sector" as const,
       records: [sector],
       selector: { ...selector, seriesKind: "benchmark" as const, code: "TOPIX-17" },
-      context: context(),
+      context: sharedContext,
     },
   ];
   assert.deepEqual(validateGovernedEventStudyPriceAlignment(inputs, CUTOFF), []);
+
   const mismatch = inputs.map((input, index) =>
-    index === 2 ? { ...input, context: context("snapshot-b") } : input
+    index === 2 ? { ...input, context: context([issuer, benchmark, sector], "snapshot-b") } : input
   );
   assert.ok(validateGovernedEventStudyPriceAlignment(mismatch, CUTOFF)
-    .some((issue) => issue.message.includes("one pinned snapshotId")));
-  console.log("price-store-replay-guard: event study snapshot alignment OK");
+    .some((issue) => issue.code === "snapshot_manifest_mismatch"));
+
+  assert.ok(validateGovernedEventStudyPriceAlignment(
+    [...inputs, inputs[0]],
+    CUTOFF,
+  ).some((issue) => issue.code === "duplicate_series_role"));
+
+  assert.ok(validateGovernedEventStudyPriceAlignment(
+    inputs.map((input, index) => index === 0
+      ? { ...input, selector: { ...input.selector, seriesKind: "benchmark" as const } }
+      : input),
+    CUTOFF,
+  ).some((issue) => issue.code === "role_series_kind_mismatch"));
+  console.log("price-store-replay-guard: event study snapshot/role alignment OK");
 }
 
 {
@@ -185,7 +230,20 @@ const selector = {
     source: "synthetic_fixture",
     ingestionRunId: "run-a",
   }).some((issue) => issue.includes("providerId")));
-  console.log("price-store-replay-guard: mandatory provider identity OK");
+  assert.ok(validateGovernedProviderBatch(
+    {
+      ...batch,
+      license: "metadata_only",
+      records: [{ ...input, license: "metadata_only" }],
+    },
+    query,
+    {
+      providerId: "synthetic-provider",
+      source: "synthetic_fixture",
+      ingestionRunId: "run-a",
+    },
+  ).some((issue) => issue.includes("metadata_only")));
+  console.log("price-store-replay-guard: mandatory provider identity/license OK");
 }
 
 console.log("price-store-replay-guard: 全テスト成功");
