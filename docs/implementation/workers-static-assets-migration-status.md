@@ -1,126 +1,147 @@
 # Workers Static Assets migration — current status
 
-Updated: 2026-08-04 JST
-Status: `PUBLIC_READ_ONLY_D1_FIX_PR_CI_PENDING`
-Current fix PR: `#15`
-Base deployment merge: PR `#14`, merge commit `e72c96cd81c4a8f420b40fe78acd9ced66fd31bc`
+Updated: 2026-08-05 JST
+Status: `CALENDAR_V1_OPERATIONAL`
+Production base: `https://alpha-pon.m-shogo-0409.workers.dev`
+Calendar: `https://alpha-pon.m-shogo-0409.workers.dev/calendar/`
+D1 database: `alpha-pon-market-events`
+D1 database ID: `7b90faf4-9834-4393-a921-275e0a68b398`
 
 ## 結論
 
-Alpha Ponの重要イベントカレンダーは、Cloudflare Workers Static Assets + Worker script + D1へ移行済み。
+Alpha Ponの重要イベントカレンダーは、Cloudflare Workers Static Assets + Worker script + D1の公開読み取り専用構成で運用可能な状態まで到達した。
 
-現在の方針は次で固定する。
+現在の運用方針は次で固定する。
 
 - Cloudflare Accessを使用しない
 - Zero Trustを作成しない
-- クレジットカード登録を行わない
+- クレジットカード登録やCloudflare billing変更を行わない
 - `/api/market-events*`は公開GET専用
 - public browser write APIを作らない
 - `/api/calendar-feed-url`は常に404
 - `/calendar.ics`は`CALENDAR_FEED_TOKEN`必須
 - D1は`READ_ONLY_NO_TRIGGERS`
-- D1 bootstrapを再実行しない
+- D1 bootstrapやmigrationを再実行しない
+- GitHub Actions scheduleはまだ追加しない
 
 ## 確定済みの外部状態
 
 - Worker: `alpha-pon`
 - Production URL: `https://alpha-pon.m-shogo-0409.workers.dev`
-- D1 database: `alpha-pon-market-events`
-- D1 database ID: `7b90faf4-9834-4393-a921-275e0a68b398`
-- Worker binding: `DB`
-- events: 3
-- revisions: 3
-- sources: 3
-- decisions: 3
+- Calendar URL: `https://alpha-pon.m-shogo-0409.workers.dev/calendar/`
+- D1 binding: `DB`
+- canonical / remote rows:
+  - market events: 3
+  - event sources: 3
+  - event revisions: 3
+  - decision snapshots: 3
+  - total: 12
 - remote trigger: 0
 - legacy guard marker: 0
-- `PUBLIC_ORIGIN`: 設定済み
-- `CALENDAR_FEED_TOKEN`: 設定済み
-- `OWNER_EMAIL`: runtimeでは未使用。公開版の本番確認後に削除可能
+- `PUBLIC_ORIGIN`: configured
+- `CALENDAR_FEED_TOKEN`: configured
+- repository secret names:
+  - `CLOUDFLARE_ACCOUNT_ID`
+  - `CLOUDFLARE_D1_READ_API_TOKEN`
+- `production` environment secret name:
+  - `CLOUDFLARE_D1_EDIT_API_TOKEN`
 
-## PR #14で実装済み
+Secret values are not recorded in this repository.
 
-- `/api/market-events`を認証不要の公開GETへ変更
-- `/api/market-events/<eventId>`を認証不要の公開GETへ変更
-- GET以外は405
-- D1 read-only維持
-- `/api/calendar-feed-url`を常時404へ変更
-- tokenized ICSを維持
-- `/healthz`へ`apiAccessMode: public-read-only`を追加
-- Access / OWNER_EMAIL依存をruntime contractから削除
+## 実装・修正の証拠
 
-## PR #15の修正対象
+PR #14〜#28で、公開read-only化、DB guard、production verifier、Workers Static Assets移行、月間カレンダー、mobile bottom sheet、LIVE/SNAPSHOT表示の分離、runtime hardening、manual D1 sync、input/token境界の強化を段階的に実装した。
 
-PR #14後のCloudflare buildで、DB bindingなしの検証が次の回帰を検出した。
+主要な確定事項:
 
-```text
-Cannot read properties of undefined (reading 'prepare')
-actual 500
-expected 503
-```
+- PR #14: market event APIを公開GET専用へ変更し、Access / `OWNER_EMAIL`依存をruntimeから削除
+- PR #15: D1 unavailable時の503契約を実装
+- PR #16〜#17: canonical production verifierと本番PASS証拠を追加
+- PR #18: Research OS v1を追加（Calendar runtimeとは独立）
+- PR #19〜#20: 実月間カレンダーとmobile bottom sheetを追加
+- PR #21〜#22: protected manual D1 syncと入力・権限境界を追加
+- PR #23〜#24: LIVE表示とSNAPSHOT購読の分離、runtime security hardening
+- PR #25〜#28: D1 Token設定経路を安全化し、最終Token import方式へ確定
 
-PR #15では次を修正する。
+## D1 dry-run evidence
 
-- `Env.DB`をoptionalにする
-- D1依存routeでprojection前にDBを確認する
-- DBなしは`503 {"error":"database unavailable"}`
-- ICSはtokenなし・誤tokenの404をDB状態より優先する
-- DBあり200 / DBなし503をWorkersとPages handlerの両方で検証する
-- readiness出力をpublic read-only / Access不要 / OWNER_EMAIL不要へ更新する
+GitHub Actions Run `30970892738`:
 
-500を正解に変更せず、503 contractを維持する。
+- `Build and review D1 diff`: success
+- `Apply reviewed D1 diff`: skipped
+- mode: dry-run
+- canonical count: 12
+- remote count: 12
+- added: 0
+- updated: 0
+- unchanged: 12
+- removed candidates: 0
+- collisions: 0
+- validation errors: 0
+- blockers: 0
+- apply: 不要
+
+artifact: `cloudflare-d1-market-event-plan-30970892738`
+
+この結果により、canonicalとremote D1は完全一致している。D1 bootstrapやmigrationの再実行は不要。
 
 ## Current route authority
 
 | Route | Authority | Contract |
 |---|---|---|
-| `/`, `/calendar/`, `/_next/*` | Static Assets | public static |
-| `/api/generated/*` | Static Assets | generated snapshot |
-| `/api/market-events*` | Worker | public GET / DB read-only |
+| `/`, `/calendar/`, `/_next/*` | Workers Static Assets | public static |
+| `/api/generated/*` | Workers Static Assets | generated snapshot |
+| `/api/market-events*` | Worker | public GET / D1 read-only |
 | `/api/calendar-feed-url*` | Worker | always 404 |
 | `/calendar.ics*` | Worker | token required |
 | `/healthz*` | Worker | safe runtime readiness |
 
-Broad `/api*` Worker-first routingは禁止。既存の静的`/api/generated/*`をshadowしてはいけない。
+Broad `/api*` Worker-first routingは禁止。静的`/api/generated/*`をshadowしてはいけない。
 
-## 次の完了条件
+## `OWNER_EMAIL` status
 
-1. PR #15のCheckとCIがgreen
-2. PR #15をmainへmerge
-3. Cloudflare Buildsのproduction deploy成功を確認
-4. 本番でhealthzを実測
-5. market event API 3件を実測
-6. individual event 200 / missing 404を実測
-7. POST 405を実測
-8. hidden feed URL 404を実測
-9. ICS invalid token 404を実測
-10. 正しいtokenのICS 200をローカルで安全に確認
-11. `/calendar/`がLIVE D1 3件表示であることをPC/スマホ幅で確認
-12. remote trigger 0 / legacy marker 0を再確認
-13. 実測結果をrunbookへ記録
-14. その後、未使用の`OWNER_EMAIL`をCloudflareから削除可能
+`OWNER_EMAIL`はpublic read-only runtime contractには不要で、コードとlocal runtime exampleから除外済み。
 
-## 後続PR
+残存参照は主に次の用途に限る。
 
-本番安定後、公開Workerへ書き込みrouteを追加せず、次を別PRで進める。
+- 「runtimeで不要である」ことを検証するnegative assertion
+- 過去のPages / Access設計からの移行記録
+- Cloudflare Dashboard上の旧変数を削除可能であることの運用メモ
 
-- dry-run-first管理用D1 sync CLI
-- workflow_dispatch限定のmanual GitHub Actions
-- backup / diff / audit / idempotency
-- destructive deleteなし
-- production environment protection
-- scheduleは追加しない
+Cloudflare Dashboardに旧`OWNER_EMAIL`変数が残っている場合、削除は外部作業。削除しても現在のpublic read-only runtimeには影響しない。Secret値や個人メールアドレスはrepoへ記録しない。
+
+## 完了済み
+
+- Workers Static Assets production deploy
+- public read-only market event API
+- tokenized LIVE ICS
+- public SNAPSHOT ICS
+- LIVE D1 → SNAPSHOT fallback
+- production contract verification
+- remote trigger 0 / legacy marker 0
+- manual D1 dry-run sync
+- canonical 12件とremote 12件の一致確認
+- no public write API
+- no Access / Zero Trust
+- no billing change
+
+## 未完了・後続
+
+Calendar v1の運用開始を妨げない後続作業:
+
+- 公式日程collector
+- Google Calendar API同期（必要性を再評価してから）
+- D1 export / restore drill
+- delivery outboxの実配送接続
+- repeated dry-run後のschedule候補提示
+- PC / smartphoneの継続visual QA
 
 ## Completion states
 
-### `PUBLIC_READ_ONLY_D1_FIX_PR_CI_PENDING`
-
-DB guard修正PRのCI待ち。
-
-### `PUBLIC_READ_ONLY_D1_DEPLOYED_PENDING_VERIFICATION`
-
-main mergeとCloudflare deployは完了したが、本番API・ICS・UIの全実測が未完了。
-
 ### `CALENDAR_V1_OPERATIONAL`
 
-LIVE API、tokenized ICS、snapshot fallback、監査、rollbackを本番で確認済み。
+LIVE API、tokenized ICS、snapshot fallback、公開read-only境界、監査、manual D1 dry-run一致を実環境で確認済み。
+
+### 将来状態
+
+collector、delivery、restore drill、scheduleは別workstream。Calendar v1 operationalを未完了へ戻す条件にはしない。
