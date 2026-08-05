@@ -34,10 +34,12 @@ const activeEdgeIds = loadActiveEdgeIds();
   console.log(`research/catalog: edge family ${familyCatalog.families.length}件 OK`);
 }
 
-// source id重複を拒否。
+// 内容が異なってもsource idが同じなら拒否。
 {
   const value = clone(sourceCatalog);
-  value.sources.push(clone(value.sources[0]));
+  const duplicate = clone(value.sources[0]);
+  duplicate.name = `${duplicate.name} duplicate fixture`;
+  value.sources.push(duplicate);
   const issues = validateDataSourceCatalog(value, sourceSchema);
   assert.ok(issues.some((issue) => issue.code === "duplicate_source_id"));
 }
@@ -85,10 +87,12 @@ const activeEdgeIds = loadActiveEdgeIds();
   assert.ok(codes.includes("auth_secret_mismatch"));
 }
 
-// family id/title重複を拒否。
+// 内容が異なってもfamily id/titleが同じなら拒否。
 {
   const value = clone(familyCatalog);
-  value.families.push(clone(value.families[0]));
+  const duplicate = clone(value.families[0]);
+  duplicate.thesis = `${duplicate.thesis} duplicate fixture`;
+  value.families.push(duplicate);
   const codes = validateEdgeFamilyCatalog(value, familySchema, activeEdgeIds)
     .map((issue) => issue.code);
   assert.ok(codes.includes("duplicate_family_id"));
