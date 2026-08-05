@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alpha-pon.local/schemas/decision-firewall-record.schema.json",
+  "title": "Alpha Pon Decision Firewall Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "firewallId",
+    "candidateId",
+    "createdAt",
+    "informationCutoff",
+    "replayManifestHash",
+    "replayResultHash",
+    "evidencePackageHash",
+    "priceSnapshotHash",
+    "securityMasterVersion",
+    "evidenceStoreVersion",
+    "marketCalendarVersion",
+    "ruleVersion",
+    "evidenceReadiness",
+    "unknownBudget",
+    "bindingVetoIds",
+    "stockRecommendationCandidateEligible",
+    "personalRecommendationCandidateEligible",
+    "portfolioSuitabilityStatus",
+    "blockers",
+    "automaticTradingAuthorized",
+    "contentHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "firewallId": { "type": "string", "minLength": 3 },
+    "candidateId": { "type": "string", "minLength": 3 },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "informationCutoff": { "type": "string", "format": "date-time" },
+    "replayManifestHash": { "$ref": "#/$defs/hash" },
+    "replayResultHash": { "$ref": "#/$defs/hash" },
+    "evidencePackageHash": { "$ref": "#/$defs/hash" },
+    "priceSnapshotHash": { "$ref": "#/$defs/hash" },
+    "securityMasterVersion": { "type": "string", "minLength": 1 },
+    "evidenceStoreVersion": { "type": "string", "minLength": 1 },
+    "marketCalendarVersion": { "type": "string", "minLength": 1 },
+    "ruleVersion": { "type": "string", "minLength": 1 },
+    "evidenceReadiness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "normalizedEvidence",
+        "claimGraph",
+        "falsifiableHypothesis",
+        "primarySources",
+        "contradictionsReviewed",
+        "correctionChainComplete",
+        "benchmarkComplete",
+        "executionRouteComplete",
+        "scenarioAssumptionsReproducible"
+      ],
+      "properties": {
+        "normalizedEvidence": { "type": "boolean" },
+        "claimGraph": { "type": "boolean" },
+        "falsifiableHypothesis": { "type": "boolean" },
+        "primarySources": { "type": "boolean" },
+        "contradictionsReviewed": { "type": "boolean" },
+        "correctionChainComplete": { "type": "boolean" },
+        "benchmarkComplete": { "type": "boolean" },
+        "executionRouteComplete": { "type": "boolean" },
+        "scenarioAssumptionsReproducible": { "type": "boolean" }
+      }
+    },
+    "unknownBudget": {
+      "type": "array",
+      "minItems": 11,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "category",
+          "status",
+          "severity",
+          "summary",
+          "evidenceRefs"
+        ],
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "entity",
+              "time",
+              "license",
+              "source",
+              "evidence_gap",
+              "execution",
+              "confounder",
+              "counterfactual",
+              "valuation",
+              "liquidity",
+              "portfolio_exposure"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["known", "unknown", "resolved"]
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["informational", "blocking"]
+          },
+          "summary": { "type": "string", "minLength": 3 },
+          "evidenceRefs": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "bindingVetoIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 3 }
+    },
+    "stockRecommendationCandidateEligible": { "type": "boolean" },
+    "personalRecommendationCandidateEligible": { "type": "boolean" },
+    "portfolioSuitabilityStatus": {
+      "type": "string",
+      "enum": ["not_assessed", "eligible", "wait", "avoid"]
+    },
+    "blockers": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "supersedesFirewallId": { "type": "string", "minLength": 3 },
+    "automaticTradingAuthorized": { "const": false },
+    "contentHash": { "$ref": "#/$defs/hash" }
+  },
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}
