@@ -67,6 +67,7 @@ import {
       verdictHashes: ["c".repeat(64)],
       dissentHashes: [],
       vetoHashes: [],
+      calibrationHashes: [],
       automaticTradingAuthorized: false,
     });
     writeFileSync(
