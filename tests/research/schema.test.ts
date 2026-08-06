@@ -10,6 +10,7 @@ import "./document-revision-diff-pit.test.js";
 import "./document-revision-diff-writer.test.js";
 import "./document-revision-diff-repository.test.js";
 import "./document-revision-diff-snapshot.test.js";
+import "./document-revision-diff-integrity.test.js";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { load } from "js-yaml";
