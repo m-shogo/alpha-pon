@@ -1,10 +1,15 @@
 // EDINET開示スキャン
 // 直近5営業日の構造イベント（スピンオフ・会社分割等）を検出してレポート出力
-// pnpm scan-edinet
+// pnpm scan:edinet
 
 import { writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
-import { scanEdinetDays, STRUCTURAL_KEYWORDS } from "./fetcher/edinet.js";
+import {
+  EDINET_API_KEY_ENV,
+  getEdinetConfigurationStatus,
+  scanEdinetDays,
+  STRUCTURAL_KEYWORDS,
+} from "./fetcher/edinet.js";
 import { todayJst } from "./date.js";
 
 async function main() {
@@ -12,6 +17,13 @@ async function main() {
   const scanDays = parseInt(process.env.EDINET_SCAN_DAYS ?? "5", 10);
 
   console.log(`\nEDINET構造イベントスキャン: 直近${scanDays}営業日\n`);
+
+  const sourceStatus = getEdinetConfigurationStatus();
+  if (!sourceStatus.configured) {
+    console.log(`EDINET: credentials_missing (${EDINET_API_KEY_ENV})`);
+    console.log("EDINETのみ非致命スキップします。daily/LINE pipelineは継続できます。\n");
+    return;
+  }
 
   const found = await scanEdinetDays(scanDays);
 
@@ -52,6 +64,7 @@ async function main() {
 }
 
 main().catch(err => {
-  console.error("エラー:", err);
+  console.error("EDINET scan failed without exposing credentials");
+  if (err instanceof Error) console.error(err.message);
   process.exit(1);
 });

@@ -5,10 +5,12 @@
 import { writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import {
+  EDINET_API_KEY_ENV,
   fetchEdinetDocList,
   findAnnualReports,
   filterBySecCodes,
   buildPdfUrl,
+  getEdinetConfigurationStatus,
   toSecCode,
 } from "./fetcher/edinet.js";
 import { loadWatchlist } from "./config.js";
@@ -19,6 +21,13 @@ const SCAN_DAYS = parseInt(process.env.EDINET_ANNUAL_DAYS ?? "60", 10);
 async function main() {
   const today = todayJst();
   console.log(`\nEDINET 有報スキャン: 直近${SCAN_DAYS}日 (${today})\n`);
+
+  const sourceStatus = getEdinetConfigurationStatus();
+  if (!sourceStatus.configured) {
+    console.log(`EDINET: credentials_missing (${EDINET_API_KEY_ENV})`);
+    console.log("EDINETのみ非致命スキップします。daily/LINE pipelineは継続できます。\n");
+    return;
+  }
 
   const watchlist = loadWatchlist();
   const activeSymbols = watchlist.symbols.filter(
@@ -112,7 +121,8 @@ async function main() {
     lines.push(`| 提出日時 | ${r.submitDateTime} |`);
     lines.push(`| 対象期間 | ${r.periodStart} ～ ${r.periodEnd} |`);
     lines.push(`| 書類種別 | ${r.docDescription} |`);
-    lines.push(`| PDF | [ダウンロード](${r.pdfUrl}) |`);
+    lines.push(`| EDINET docID | \`${r.docID}\` |`);
+    lines.push(`| 認証付き取得endpoint | \`${r.pdfUrl}\` |`);
     lines.push(``);
 
     if (sym) {
@@ -123,7 +133,7 @@ async function main() {
       lines.push(``);
     }
 
-    lines.push(`> 💡 次のステップ: PDFをダウンロードして ChatGPT/Claude に要約を依頼`);
+    lines.push(`> 次のステップ: APIキーをURLやレポートへ埋め込まず、認証付きdownloaderでlocal-only取得する`);
     lines.push(``);
     lines.push(`---`);
     lines.push(``);
@@ -138,6 +148,7 @@ async function main() {
 }
 
 main().catch(err => {
-  console.error("エラー:", err);
+  console.error("EDINET annual scan failed without exposing credentials");
+  if (err instanceof Error) console.error(err.message);
   process.exit(1);
 });
