@@ -77,6 +77,40 @@ function testOfficialDocumentTypePlan(): void {
   assert.deepEqual(documentTypePlan(doc({ legalStatus: "3" })), []);
 }
 
+function testNullableLiveMetadataIsFailSafe(): void {
+  const nullable = {
+    ...doc(),
+    parentDocID: null,
+    currentReportReason: null,
+    withdrawalStatus: null,
+    docInfoEditStatus: null,
+    disclosureStatus: null,
+    legalStatus: null,
+    pdfFlag: null,
+    attachDocFlag: null,
+    englishDocFlag: null,
+    csvFlag: null,
+    opeDateTime: null,
+  } as unknown as EdinetDoc;
+
+  const inventory = buildSanrioEdinetInventory({
+    from: "2026-01-01",
+    to: "2026-08-06",
+    generatedAt: "2026-08-06T06:30:00.000Z",
+    scannedBusinessDays: 156,
+    failedDates: [],
+    docs: [nullable],
+  });
+
+  assert.equal(inventory.candidates.length, 1);
+  assert.equal(inventory.candidates[0]?.retrievableByLegalStatus, false);
+  assert.deepEqual(inventory.candidates[0]?.documentTypePlan, []);
+  assert.ok(
+    inventory.candidates[0]?.reviewReasons.includes("outside_retrievable_legal_status"),
+  );
+  assert.equal(inventory.lineage.hasBlockingIssues, false);
+}
+
 function testInventoryAndLineage(): void {
   const initial = doc();
   const staleDuplicate = doc({
@@ -160,6 +194,7 @@ async function main(): Promise<void> {
   testBusinessDateEnumeration();
   testSanrioIdentityBoundary();
   testOfficialDocumentTypePlan();
+  testNullableLiveMetadataIsFailSafe();
   testInventoryAndLineage();
   await testAuthenticatedRangeScan();
   console.log("edinet-sanrio-pilot.test.ts passed");
