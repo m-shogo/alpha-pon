@@ -1,11 +1,18 @@
+import { createHash } from "node:crypto";
 import type { EvidenceSnapshot } from "./bitemporal-evidence-store.js";
+import {
+  recommendationEligibleEvidence,
+} from "./bitemporal-evidence-store.js";
 import {
   computeEvidenceSnapshotHash,
 } from "./claim-contradiction-graph-hardening.js";
 import {
+  activeDocumentRevisionHeads,
   buildDocumentRevisionDiffSnapshot,
   claimEligibleDocumentChanges,
+  validateDocumentDiffRecord,
   validateDocumentRevisionDiffStore,
+  validateDocumentRevisionRecord,
   type ClaimEligibleDocumentChange,
   type DocumentDiffRecord,
   type DocumentRevisionDiffIssue,
@@ -13,7 +20,9 @@ import {
   type DocumentRevisionDiffSnapshot,
   type DocumentRevisionRecord,
 } from "./document-revision-diff.js";
-import { createHash } from "node:crypto";
+import {
+  validateDocumentIdentityContinuity,
+} from "./document-revision-diff-integrity.js";
 import { stableStringify } from "./schema.js";
 
 export type GovernedDocumentRevisionDiffSnapshot = {
@@ -79,6 +88,22 @@ export function visibleDocumentDiffsAtCutoff(
   return diffs.filter((record) => availableAtCutoff(record, cutoffMs));
 }
 
+export function usableDocumentRevisionsAtCutoff(
+  revisions: DocumentRevisionRecord[],
+  asOf: string,
+): DocumentRevisionRecord[] {
+  return visibleDocumentRevisionsAtCutoff(revisions, asOf)
+    .filter((record) => record.status !== "rejected");
+}
+
+export function usableDocumentDiffsAtCutoff(
+  diffs: DocumentDiffRecord[],
+  asOf: string,
+): DocumentDiffRecord[] {
+  return visibleDocumentDiffsAtCutoff(diffs, asOf)
+    .filter((record) => record.status !== "rejected");
+}
+
 export function validateDocumentRevisionDiffAtCutoff(
   revisions: DocumentRevisionRecord[],
   diffs: DocumentDiffRecord[],
@@ -94,13 +119,64 @@ export function validateDocumentRevisionDiffAtCutoff(
       message: "Document Revision/Diffはsystem_replay Evidence Snapshotが必要です",
     }];
   }
-  return validateDocumentRevisionDiffStore(
-    visibleDocumentRevisionsAtCutoff(revisions, evidenceSnapshot.asOf),
-    visibleDocumentDiffsAtCutoff(diffs, evidenceSnapshot.asOf),
-    schemas,
-    evidenceSnapshot,
-    knownEntityIds,
+
+  const visibleRevisions = visibleDocumentRevisionsAtCutoff(
+    revisions,
+    evidenceSnapshot.asOf,
   );
+  const visibleDiffs = visibleDocumentDiffsAtCutoff(
+    diffs,
+    evidenceSnapshot.asOf,
+  );
+  const usableRevisions = visibleRevisions.filter(
+    (record) => record.status !== "rejected",
+  );
+  const usableDiffs = visibleDiffs.filter(
+    (record) => record.status !== "rejected",
+  );
+  const evidenceById = new Map(
+    evidenceSnapshot.evidence.map((record) => [record.evidenceId, record]),
+  );
+  const eligibleEvidenceIds = new Set(
+    recommendationEligibleEvidence(evidenceSnapshot).map((record) => record.evidenceId),
+  );
+  const revisionById = new Map(
+    activeDocumentRevisionHeads(visibleRevisions).map((record) => [
+      record.documentRevisionId,
+      record,
+    ]),
+  );
+
+  const rejectedRevisionIssues = visibleRevisions
+    .filter((record) => record.status === "rejected")
+    .flatMap((record) => validateDocumentRevisionRecord(
+      record,
+      schemas.revision,
+      evidenceById,
+      knownEntityIds,
+    ));
+  const rejectedDiffIssues = visibleDiffs
+    .filter((record) => record.status === "rejected")
+    .flatMap((record) => validateDocumentDiffRecord(
+      record,
+      schemas.diff,
+      revisionById,
+      evidenceById,
+      eligibleEvidenceIds,
+    ));
+
+  return sortIssues([
+    ...validateDocumentRevisionDiffStore(
+      usableRevisions,
+      usableDiffs,
+      schemas,
+      evidenceSnapshot,
+      knownEntityIds,
+    ),
+    ...rejectedRevisionIssues,
+    ...rejectedDiffIssues,
+    ...validateDocumentIdentityContinuity(visibleRevisions, visibleDiffs),
+  ]);
 }
 
 export function validateIncomingDocumentRevisionDiffCutoff(
@@ -156,11 +232,13 @@ export function buildDocumentRevisionDiffSnapshotAtCutoff(
     knownEntityIds,
   ).filter((item) => item.severity === "error");
   if (errors.length > 0) {
-    throw new Error(errors.map((item) => `${item.code} ${item.target}: ${item.message}`).join("\n"));
+    throw new Error(
+      errors.map((item) => `${item.code} ${item.target}: ${item.message}`).join("\n"),
+    );
   }
   return buildDocumentRevisionDiffSnapshot(
-    visibleDocumentRevisionsAtCutoff(revisions, evidenceSnapshot.asOf),
-    visibleDocumentDiffsAtCutoff(diffs, evidenceSnapshot.asOf),
+    usableDocumentRevisionsAtCutoff(revisions, evidenceSnapshot.asOf),
+    usableDocumentDiffsAtCutoff(diffs, evidenceSnapshot.asOf),
     evidenceSnapshot,
   );
 }
