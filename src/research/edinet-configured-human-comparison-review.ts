@@ -27,7 +27,7 @@ export type ConfiguredEdinetReviewAmount = {
   sourcePage: number;
 };
 
-export type ConfiguredEdinetHumanComparisonAnchor = {
+type AnchorSource = {
   anchorId: string;
   sourceResultHash: string;
   sourceComparisonResult:
@@ -50,6 +50,9 @@ export type ConfiguredEdinetHumanComparisonAnchor = {
     normalizedTextHash: string;
     normalizedLength: number;
   };
+};
+
+export type ConfiguredEdinetHumanComparisonAnchor = AnchorSource & {
   visualConfirmation: boolean;
   visualDecision: ConfiguredEdinetVisualDecision;
   equivalenceDecision: ConfiguredEdinetEquivalenceDecision;
@@ -109,6 +112,15 @@ export type ConfiguredEdinetHumanComparisonRecord = {
   recordHash: string;
 };
 
+type SourceDocument = {
+  pairId: string;
+  pairHash: string;
+  extractionHash: string;
+  docID: string;
+  sourceDocumentResultHash: string;
+  anchors: AnchorSource[];
+};
+
 function object(value: unknown, field: string): JsonObject {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error(`${field} must be an object`);
@@ -152,13 +164,6 @@ function timestamp(value: unknown, field: string): string {
 function positiveInteger(value: unknown, field: string): number {
   if (!Number.isSafeInteger(value) || Number(value) <= 0) {
     throw new Error(`${field} must be a positive integer`);
-  }
-  return Number(value);
-}
-
-function nonNegativeInteger(value: unknown, field: string): number {
-  if (!Number.isSafeInteger(value) || Number(value) < 0) {
-    throw new Error(`${field} must be a non-negative integer`);
   }
   return Number(value);
 }
@@ -265,42 +270,39 @@ function verifyComparisonReport(report: JsonObject): string {
   return expected;
 }
 
-function immutableAnchorSource(anchor: JsonObject, field: string): Omit<ConfiguredEdinetHumanComparisonAnchor,
-  | "visualConfirmation"
-  | "visualDecision"
-  | "equivalenceDecision"
-  | "confirmedFacts"
-  | "previouslyKnownFacts"
-  | "assumptions"
-  | "opinions"
-  | "exactAmounts"
-  | "accountingImpact"
-  | "internalControlImpact"
-  | "auditOpinionImpact"
-  | "materiality"
-  | "direction"
-  | "reviewNotes"
-  | "completed"
-  | "decisionHash"
-> {
+function parseComparisonResult(value: unknown, field: string): AnchorSource["sourceComparisonResult"] {
+  const result = required(value, field);
+  if (result !== "exact_normalized_match" && result !== "not_exact_normalized_match_pending_visual_review") {
+    throw new Error(`${field} is invalid`);
+  }
+  return result;
+}
+
+function parseExpectedRelation(value: unknown, field: string): AnchorSource["expectedRelation"] {
+  const result = required(value, field);
+  if (result !== "exact_normalized_match" && result !== "visual_layout_variance_review") {
+    throw new Error(`${field} is invalid`);
+  }
+  return result;
+}
+
+function parseAnchorSource(input: {
+  anchor: JsonObject;
+  field: string;
+  resultField: "comparisonResult" | "sourceComparisonResult";
+  hashField: "resultHash" | "sourceResultHash";
+}): AnchorSource {
+  const { anchor, field } = input;
   const structured = object(anchor.structured, `${field}.structured`);
   const pdf = object(anchor.pdf, `${field}.pdf`);
-  const sourceComparisonResult = required(anchor.comparisonResult, `${field}.comparisonResult`);
-  if (sourceComparisonResult !== "exact_normalized_match" && sourceComparisonResult !== "not_exact_normalized_match_pending_visual_review") {
-    throw new Error(`${field}.comparisonResult is invalid`);
-  }
-  const expectedRelation = required(anchor.expectedRelation, `${field}.expectedRelation`);
-  if (expectedRelation !== "exact_normalized_match" && expectedRelation !== "visual_layout_variance_review") {
-    throw new Error(`${field}.expectedRelation is invalid`);
-  }
   if (typeof anchor.rawExactMatch !== "boolean" || typeof anchor.normalizedExactMatch !== "boolean") {
     throw new Error(`${field} exact-match flags are invalid`);
   }
   return {
     anchorId: required(anchor.anchorId, `${field}.anchorId`),
-    sourceResultHash: hash(anchor.resultHash, `${field}.resultHash`),
-    sourceComparisonResult,
-    expectedRelation,
+    sourceResultHash: hash(anchor[input.hashField], `${field}.${input.hashField}`),
+    sourceComparisonResult: parseComparisonResult(anchor[input.resultField], `${field}.${input.resultField}`),
+    expectedRelation: parseExpectedRelation(anchor.expectedRelation, `${field}.expectedRelation`),
     rawExactMatch: anchor.rawExactMatch,
     normalizedExactMatch: anchor.normalizedExactMatch,
     structured: {
@@ -320,30 +322,36 @@ function immutableAnchorSource(anchor: JsonObject, field: string): Omit<Configur
   };
 }
 
-function sourceDocuments(report: JsonObject): Array<{
-  pairId: string;
-  pairHash: string;
-  extractionHash: string;
-  docID: string;
-  sourceDocumentResultHash: string;
-  anchors: ReturnType<typeof immutableAnchorSource>[];
-}> {
-  return array(report.documents, "comparisonReport.documents").map((value, documentIndex) => {
+function sourceDocuments(report: JsonObject): SourceDocument[] {
+  const seenDocs = new Set<string>();
+  const seenAnchors = new Set<string>();
+  const documents = array(report.documents, "comparisonReport.documents").map((value, documentIndex) => {
     const document = object(value, `comparisonReport.documents[${documentIndex}]`);
-    const expectedHash = hash(document.documentResultHash, `comparisonReport.documents[${documentIndex}].documentResultHash`);
+    const documentHash = hash(document.documentResultHash, `comparisonReport.documents[${documentIndex}].documentResultHash`);
     const { documentResultHash: _ignored, ...withoutHash } = document;
-    if (digest(withoutHash) !== expectedHash) {
+    if (digest(withoutHash) !== documentHash) {
       throw new Error(`comparisonReport.documents[${documentIndex}].documentResultHash mismatch`);
     }
-    const anchors = array(document.anchors, `comparisonReport.documents[${documentIndex}].anchors`).map((anchor, anchorIndex) => {
-      const record = object(anchor, `comparisonReport.documents[${documentIndex}].anchors[${anchorIndex}]`);
-      const expectedAnchorHash = hash(record.resultHash, `comparisonReport.documents[${documentIndex}].anchors[${anchorIndex}].resultHash`);
-      const { resultHash: _ignoredAnchorHash, ...anchorWithoutHash } = record;
-      if (digest(anchorWithoutHash) !== expectedAnchorHash) {
+    const id = docID(document.docID, `comparisonReport.documents[${documentIndex}].docID`);
+    if (seenDocs.has(id)) throw new Error(`comparisonReport has duplicate document ${id}`);
+    seenDocs.add(id);
+    const anchors = array(document.anchors, `comparisonReport.documents[${documentIndex}].anchors`).map((value2, anchorIndex) => {
+      const anchor = object(value2, `comparisonReport.documents[${documentIndex}].anchors[${anchorIndex}]`);
+      const resultHash = hash(anchor.resultHash, `comparisonReport.documents[${documentIndex}].anchors[${anchorIndex}].resultHash`);
+      const { resultHash: _ignoredAnchorHash, ...anchorWithoutHash } = anchor;
+      if (digest(anchorWithoutHash) !== resultHash) {
         throw new Error(`comparisonReport.documents[${documentIndex}].anchors[${anchorIndex}].resultHash mismatch`);
       }
-      return immutableAnchorSource(record, `comparisonReport.documents[${documentIndex}].anchors[${anchorIndex}]`);
-    });
+      const source = parseAnchorSource({
+        anchor,
+        field: `comparisonReport.documents[${documentIndex}].anchors[${anchorIndex}]`,
+        resultField: "comparisonResult",
+        hashField: "resultHash",
+      });
+      if (seenAnchors.has(source.anchorId)) throw new Error(`comparisonReport has duplicate anchor ${source.anchorId}`);
+      seenAnchors.add(source.anchorId);
+      return source;
+    }).sort((left, right) => left.anchorId.localeCompare(right.anchorId));
     if (anchors.length !== positiveInteger(document.anchorCount, `comparisonReport.documents[${documentIndex}].anchorCount`)) {
       throw new Error(`comparisonReport.documents[${documentIndex}].anchorCount mismatch`);
     }
@@ -351,11 +359,30 @@ function sourceDocuments(report: JsonObject): Array<{
       pairId: required(document.pairId, `comparisonReport.documents[${documentIndex}].pairId`),
       pairHash: hash(document.pairHash, `comparisonReport.documents[${documentIndex}].pairHash`),
       extractionHash: hash(document.extractionHash, `comparisonReport.documents[${documentIndex}].extractionHash`),
-      docID: docID(document.docID, `comparisonReport.documents[${documentIndex}].docID`),
-      sourceDocumentResultHash: expectedHash,
+      docID: id,
+      sourceDocumentResultHash: documentHash,
       anchors,
     };
   }).sort((left, right) => left.docID.localeCompare(right.docID));
+  if (documents.length !== positiveInteger(report.documentCount, "comparisonReport.documentCount")) {
+    throw new Error("comparisonReport.documentCount mismatch");
+  }
+  if (documents.reduce((sum, document) => sum + document.anchors.length, 0)
+    !== positiveInteger(report.anchorCount, "comparisonReport.anchorCount")) {
+    throw new Error("comparisonReport.anchorCount mismatch");
+  }
+  return documents;
+}
+
+function issuerFromReport(report: JsonObject): ConfiguredEdinetHumanComparisonRecord["issuer"] {
+  const issuer = object(report.issuer, "comparisonReport.issuer");
+  return {
+    issuerKey: required(issuer.issuerKey, "comparisonReport.issuer.issuerKey"),
+    name: required(issuer.name, "comparisonReport.issuer.name"),
+    edinetCode: required(issuer.edinetCode, "comparisonReport.issuer.edinetCode"),
+    secCode: required(issuer.secCode, "comparisonReport.issuer.secCode"),
+    boundaryHash: hash(issuer.boundaryHash, "comparisonReport.issuer.boundaryHash"),
+  };
 }
 
 export function buildConfiguredEdinetHumanComparisonTemplate(input: {
@@ -401,18 +428,11 @@ export function buildConfiguredEdinetHumanComparisonTemplate(input: {
     };
     return { ...base, documentDecisionHash: digest(base) };
   });
-  const issuer = object(report.issuer, "comparisonReport.issuer");
   const base = {
     schemaVersion: 1 as const,
     source: "edinet" as const,
     registryHash: hash(report.registryHash, "comparisonReport.registryHash"),
-    issuer: {
-      issuerKey: required(issuer.issuerKey, "comparisonReport.issuer.issuerKey"),
-      name: required(issuer.name, "comparisonReport.issuer.name"),
-      edinetCode: required(issuer.edinetCode, "comparisonReport.issuer.edinetCode"),
-      secCode: required(issuer.secCode, "comparisonReport.issuer.secCode"),
-      boundaryHash: hash(issuer.boundaryHash, "comparisonReport.issuer.boundaryHash"),
-    },
+    issuer: issuerFromReport(report),
     sourceComparisonFile,
     sourceComparisonHash,
     generatedAt,
@@ -440,65 +460,56 @@ export function buildConfiguredEdinetHumanComparisonTemplate(input: {
   return { ...base, recordHash: digest(base) };
 }
 
-function rehashEditedRecord(value: unknown): { record: JsonObject; inputHash: string } {
-  const edited = object(value, "reviewInput");
-  const { recordHash: _staleHash, ...withoutHash } = edited;
-  return { record: { ...withoutHash, recordHash: digest(withoutHash) }, inputHash: digest(withoutHash) };
-}
-
 function assertDecisionConsistency(
   visual: ConfiguredEdinetVisualDecision,
   equivalence: ConfiguredEdinetEquivalenceDecision,
   field: string,
 ): void {
+  if (visual === "pending_human_review" || equivalence === "pending_human_review") {
+    throw new Error(`${field} decisions must not remain pending`);
+  }
   const expected: Record<Exclude<ConfiguredEdinetVisualDecision, "pending_human_review">, ConfiguredEdinetEquivalenceDecision> = {
     visually_equivalent: "equivalent",
     visually_different: "substantively_different",
     insufficient_visual_evidence: "insufficient_evidence",
   };
-  if (visual === "pending_human_review" || equivalence === "pending_human_review") {
-    throw new Error(`${field} decisions must not remain pending`);
-  }
   if (expected[visual] !== equivalence) throw new Error(`${field} visual/equivalence decisions are inconsistent`);
 }
 
-function immutableAnchorComparable(anchor: JsonObject, field: string): ReturnType<typeof immutableAnchorSource> {
-  return immutableAnchorSource(anchor, field);
+function sameCanonical(left: unknown, right: unknown): boolean {
+  return JSON.stringify(canonical(left)) === JSON.stringify(canonical(right));
 }
 
 export function finalizeConfiguredEdinetHumanComparisonReview(input: {
   comparisonReport: unknown;
   sourceComparisonFile: string;
   editedReviewInput: unknown;
-  sourceReviewInputFile: string;
   generatedAt?: string;
 }): ConfiguredEdinetHumanComparisonRecord {
-  const template = buildConfiguredEdinetHumanComparisonTemplate({
-    comparisonReport: input.comparisonReport,
-    sourceComparisonFile: input.sourceComparisonFile,
-    generatedAt: object(input.editedReviewInput, "reviewInput").generatedAt
-      ? timestamp(object(input.editedReviewInput, "reviewInput").generatedAt, "reviewInput.generatedAt")
-      : undefined,
-  });
-  const edited = rehashEditedRecord(input.editedReviewInput);
-  const record = edited.record;
+  const report = object(input.comparisonReport, "comparisonReport");
+  const sourceComparisonHash = verifyComparisonReport(report);
+  const sourceComparisonFile = localJsonBasename(input.sourceComparisonFile, "sourceComparisonFile");
+  const sources = sourceDocuments(report);
+  const sourceByDoc = new Map(sources.map(document => [document.docID, document]));
+  const edited = object(input.editedReviewInput, "reviewInput");
   if (
-    record.schemaVersion !== 1
-    || record.source !== "edinet"
-    || record.reviewStatus !== "draft_human_input"
-    || record.automaticFactPromotionAuthorized !== false
-    || record.automaticImpactDecisionAuthorized !== false
-    || record.foundationPreviewEligible !== false
-    || record.appendAuthorized !== false
+    edited.schemaVersion !== 1
+    || edited.source !== "edinet"
+    || edited.reviewStatus !== "draft_human_input"
+    || edited.automaticFactPromotionAuthorized !== false
+    || edited.automaticImpactDecisionAuthorized !== false
+    || edited.foundationPreviewEligible !== false
+    || edited.appendAuthorized !== false
   ) {
     throw new Error("reviewInput safety boundary is invalid");
   }
-  if (text(record.sourceComparisonHash) !== template.sourceComparisonHash) throw new Error("reviewInput sourceComparisonHash mismatch");
-  if (text(record.sourceComparisonFile) !== template.sourceComparisonFile) throw new Error("reviewInput sourceComparisonFile mismatch");
-  const reviewer = required(record.reviewer, "reviewInput.reviewer");
-  const reviewedAt = timestamp(record.reviewedAt, "reviewInput.reviewedAt");
-  const sourceByDoc = new Map(template.documents.map(document => [document.docID, document]));
-  const editedDocuments = array(record.documents, "reviewInput.documents");
+  if (text(edited.sourceComparisonHash) !== sourceComparisonHash) throw new Error("reviewInput sourceComparisonHash mismatch");
+  if (text(edited.sourceComparisonFile) !== sourceComparisonFile) throw new Error("reviewInput sourceComparisonFile mismatch");
+  if (text(edited.registryHash) !== text(report.registryHash)) throw new Error("reviewInput registryHash mismatch");
+  if (!sameCanonical(edited.issuer, issuerFromReport(report))) throw new Error("reviewInput issuer fields changed");
+  const reviewer = required(edited.reviewer, "reviewInput.reviewer");
+  const reviewedAt = timestamp(edited.reviewedAt, "reviewInput.reviewedAt");
+  const editedDocuments = array(edited.documents, "reviewInput.documents");
   if (editedDocuments.length !== sourceByDoc.size) throw new Error("reviewInput document count mismatch");
   const seenDocs = new Set<string>();
   const seenAnchors = new Set<string>();
@@ -527,10 +538,13 @@ export function finalizeConfiguredEdinetHumanComparisonReview(input: {
       seenAnchors.add(anchorId);
       const sourceAnchor = sourceByAnchor.get(anchorId);
       if (!sourceAnchor) throw new Error(`unknown review anchor ${anchorId}`);
-      if (JSON.stringify(canonical(immutableAnchorComparable(anchor, `reviewInput anchor ${anchorId}`)))
-        !== JSON.stringify(canonical(immutableAnchorComparable(sourceAnchor as unknown as JsonObject, `source anchor ${anchorId}`)))) {
-        throw new Error(`reviewInput anchor ${anchorId} source fields changed`);
-      }
+      const editedSource = parseAnchorSource({
+        anchor,
+        field: `reviewInput anchor ${anchorId}`,
+        resultField: "sourceComparisonResult",
+        hashField: "sourceResultHash",
+      });
+      if (!sameCanonical(editedSource, sourceAnchor)) throw new Error(`reviewInput anchor ${anchorId} source fields changed`);
       if (anchor.completed !== true) throw new Error(`reviewInput anchor ${anchorId} must be completed`);
       if (anchor.visualConfirmation !== true) throw new Error(`reviewInput anchor ${anchorId} requires official PDF visual confirmation`);
       const visualDecision = parseVisualDecision(anchor.visualDecision, `reviewInput anchor ${anchorId}.visualDecision`);
@@ -579,10 +593,10 @@ export function finalizeConfiguredEdinetHumanComparisonReview(input: {
   const finalBase = {
     schemaVersion: 1 as const,
     source: "edinet" as const,
-    registryHash: template.registryHash,
-    issuer: template.issuer,
-    sourceComparisonFile: template.sourceComparisonFile,
-    sourceComparisonHash: template.sourceComparisonHash,
+    registryHash: hash(report.registryHash, "comparisonReport.registryHash"),
+    issuer: issuerFromReport(report),
+    sourceComparisonFile,
+    sourceComparisonHash,
     generatedAt,
     reviewer,
     reviewedAt,
