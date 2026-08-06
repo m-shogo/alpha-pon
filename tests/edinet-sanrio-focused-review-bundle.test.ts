@@ -226,7 +226,7 @@ function sourceTriageWorkspace() {
     generatedAt: "2026-08-06T08:30:00.000Z",
   });
   assert.equal(bundle.candidateCount, 4);
-  assert.ok(bundle.focusLineCount >= 10);
+  assert.equal(bundle.focusLineCount, 8);
   const reasonCandidate = bundle.candidates.find(item => item.afterPath?.includes("0101000"))!;
   assert.ok(reasonCandidate.focusLines.some(line => line.matchedKeywords.includes("COLA")));
   assert.ok(reasonCandidate.focusLines.some(line => line.matchedKeywords.includes("学費")));
