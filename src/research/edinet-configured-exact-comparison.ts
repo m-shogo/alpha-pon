@@ -110,6 +110,13 @@ function required(value: unknown, field: string): string {
   return result;
 }
 
+function exactText(value: unknown, field: string): string {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new Error(`${field} must be a non-empty string`);
+  }
+  return value;
+}
+
 function hash(value: unknown, field: string): string {
   const result = required(value, field);
   if (!HASH_RE.test(result)) throw new Error(`${field} must be a SHA-256 hash`);
@@ -193,7 +200,7 @@ function verifyFinalRecord(record: JsonObject): string {
 }
 
 function verifyAnchorText(value: unknown, expectedHash: unknown, field: string): string {
-  const exact = required(value, field);
+  const exact = exactText(value, field);
   if (textDigest(exact) !== hash(expectedHash, `${field}Hash`)) {
     throw new Error(`${field} hash mismatch`);
   }
@@ -209,11 +216,7 @@ function compareAnchor(value: unknown, field: string): ConfiguredEdinetExactComp
   }
   const structured = object(anchor.structured, `${field}.structured`);
   const pdf = object(anchor.pdf, `${field}.pdf`);
-  const structuredText = verifyAnchorText(
-    structured.text,
-    structured.textHash,
-    `${field}.structured.text`,
-  );
+  const structuredText = verifyAnchorText(structured.text, structured.textHash, `${field}.structured.text`);
   const pdfText = verifyAnchorText(pdf.text, pdf.textHash, `${field}.pdf.text`);
   const structuredNormalized = normalizeConfiguredEdinetAnchorText(structuredText);
   const pdfNormalized = normalizeConfiguredEdinetAnchorText(pdfText);
@@ -295,10 +298,9 @@ export function buildConfiguredEdinetExactComparisonReport(input: {
   const sourceAnchorFinalHash = verifyFinalRecord(finalRecord);
   const sourceAnchorFinalFile = localBasename(input.sourceAnchorFinalFile, "sourceAnchorFinalFile");
   if (!sourceAnchorFinalFile.endsWith(".json")) throw new Error("sourceAnchorFinalFile must be JSON");
-  const rawDocuments = array(finalRecord.documents, "anchorFinal.documents");
-  const documents = rawDocuments.map((document, index) =>
-    compareDocument(document, `anchorFinal.documents[${index}]`),
-  ).sort((left, right) => left.docID.localeCompare(right.docID));
+  const documents = array(finalRecord.documents, "anchorFinal.documents")
+    .map((document, index) => compareDocument(document, `anchorFinal.documents[${index}]`))
+    .sort((left, right) => left.docID.localeCompare(right.docID));
   const documentCount = positiveInteger(finalRecord.documentCount, "anchorFinal.documentCount");
   const anchorCount = positiveInteger(finalRecord.anchorCount, "anchorFinal.anchorCount");
   if (documents.length !== documentCount) throw new Error("anchorFinal.documentCount mismatch");
@@ -310,9 +312,7 @@ export function buildConfiguredEdinetExactComparisonReport(input: {
     0,
   );
   const issuer = object(finalRecord.issuer, "anchorFinal.issuer");
-  const generatedAt = input.generatedAt
-    ? timestamp(input.generatedAt, "generatedAt")
-    : new Date().toISOString();
+  const generatedAt = input.generatedAt ? timestamp(input.generatedAt, "generatedAt") : new Date().toISOString();
   const base = {
     schemaVersion: 1 as const,
     source: "edinet" as const,
