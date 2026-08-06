@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alpha-pon.local/schemas/document-revision-diff-snapshot.schema.json",
+  "title": "Alpha Pon Governed Document Revision Diff Snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "asOf",
+    "mode",
+    "documentSnapshotHash",
+    "evidenceSnapshotHash",
+    "revisionIds",
+    "diffIds",
+    "evidenceIds",
+    "contentHash"
+  ],
+  "properties": {
+    "asOf": { "type": "string", "format": "date-time" },
+    "mode": { "const": "system_replay" },
+    "documentSnapshotHash": { "$ref": "#/$defs/hash" },
+    "evidenceSnapshotHash": { "$ref": "#/$defs/hash" },
+    "revisionIds": { "$ref": "#/$defs/idArray" },
+    "diffIds": { "$ref": "#/$defs/idArray" },
+    "evidenceIds": { "$ref": "#/$defs/idArray" },
+    "contentHash": { "$ref": "#/$defs/hash" }
+  },
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "idArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "pattern": "^[a-z][a-z0-9:_-]+$"
+      }
+    }
+  }
+}

@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alpha-pon.local/schemas/document-diff-record.schema.json",
+  "title": "Alpha Pon Document Diff Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordId",
+    "diffId",
+    "documentId",
+    "fromRevisionId",
+    "toRevisionId",
+    "diffKind",
+    "status",
+    "observedAt",
+    "retrievedAt",
+    "effectiveFrom",
+    "reviewStatus",
+    "sourceEvidenceIds",
+    "changes",
+    "parserVersion",
+    "ruleVersion",
+    "contentHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "recordId": { "type": "string", "minLength": 3 },
+    "diffId": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9:_-]+$"
+    },
+    "documentId": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9:_-]+$"
+    },
+    "fromRevisionId": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9:_-]+$"
+    },
+    "toRevisionId": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9:_-]+$"
+    },
+    "diffKind": {
+      "type": "string",
+      "enum": [
+        "amendment",
+        "correction",
+        "restatement",
+        "replacement",
+        "withdrawal",
+        "periodic_update"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "superseded", "rejected"]
+    },
+    "observedAt": { "type": "string", "format": "date-time" },
+    "retrievedAt": { "type": "string", "format": "date-time" },
+    "effectiveFrom": { "type": "string", "format": "date-time" },
+    "effectiveTo": { "type": "string", "format": "date-time" },
+    "reviewStatus": {
+      "type": "string",
+      "enum": ["auto_detected", "reviewed", "confirmed", "rejected"]
+    },
+    "sourceEvidenceIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "pattern": "^[a-z][a-z0-9:_-]+$"
+      }
+    },
+    "changes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "changeType",
+          "semanticType",
+          "materiality",
+          "direction",
+          "sourceEvidenceIds"
+        ],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "changeType": {
+            "type": "string",
+            "enum": ["added", "removed", "modified", "reclassified", "moved"]
+          },
+          "semanticType": {
+            "type": "string",
+            "enum": [
+              "numeric",
+              "text",
+              "date",
+              "entity",
+              "reference",
+              "structure",
+              "accounting_policy",
+              "guidance",
+              "risk_factor",
+              "governance",
+              "other"
+            ]
+          },
+          "materiality": {
+            "type": "string",
+            "enum": ["informational", "material", "binding"]
+          },
+          "direction": {
+            "type": "string",
+            "enum": ["positive", "negative", "mixed", "neutral", "unknown"]
+          },
+          "beforeHash": { "$ref": "#/$defs/hash" },
+          "afterHash": { "$ref": "#/$defs/hash" },
+          "sourceEvidenceIds": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 3,
+              "pattern": "^[a-z][a-z0-9:_-]+$"
+            }
+          }
+        }
+      }
+    },
+    "supersedesRecordId": { "type": "string", "minLength": 3 },
+    "parserVersion": { "type": "string", "minLength": 1 },
+    "ruleVersion": { "type": "string", "minLength": 1 },
+    "contentHash": { "$ref": "#/$defs/hash" }
+  },
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}
