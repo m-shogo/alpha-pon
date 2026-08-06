@@ -1,10 +1,20 @@
-import { mkdirSync, renameSync, writeFileSync } from "node:fs";
+import {
+  closeSync,
+  fsyncSync,
+  lstatSync,
+  mkdirSync,
+  openSync,
+  writeFileSync,
+} from "node:fs";
 import { resolve, sep } from "node:path";
 import {
   EdinetCredentialsMissingError,
   EDINET_API_KEY_ENV,
 } from "./fetcher/edinet.js";
-import { fetchEdinetDocument } from "./fetcher/edinet-document.js";
+import {
+  fetchEdinetDocument,
+  type EdinetDocumentTypeCode,
+} from "./fetcher/edinet-document.js";
 
 function argValue(name: string): string | null {
   const prefix = `--${name}=`;
@@ -28,13 +38,26 @@ function resolveLocalOutputDir(input: string | null): string {
   if (target !== allowedRoot && !target.startsWith(`${allowedRoot}${sep}`)) {
     throw new Error("EDINET documents must remain under local-only data/edinet");
   }
+  mkdirSync(target, { recursive: true, mode: 0o700 });
+  const stat = lstatSync(target);
+  if (stat.isSymbolicLink() || !stat.isDirectory()) {
+    throw new Error("EDINET output must be a regular local directory");
+  }
   return target;
 }
 
-function writeAtomic(path: string, data: Uint8Array | string): void {
-  const temporary = `${path}.part-${process.pid}`;
-  writeFileSync(temporary, data);
-  renameSync(temporary, path);
+function writeExclusiveDurable(path: string, data: Uint8Array | string): void {
+  const fd = openSync(path, "wx", 0o600);
+  try {
+    writeFileSync(fd, data);
+    fsyncSync(fd);
+  } finally {
+    closeSync(fd);
+  }
+}
+
+function extensionForType(type: EdinetDocumentTypeCode): "pdf" | "zip" {
+  return type === "2" ? "pdf" : "zip";
 }
 
 async function main(): Promise<void> {
@@ -43,20 +66,20 @@ async function main(): Promise<void> {
   const outputDir = resolveLocalOutputDir(argValue("out-dir"));
 
   const document = await fetchEdinetDocument(docID, documentType);
-  mkdirSync(outputDir, { recursive: true });
-
+  const extension = extensionForType(document.documentType);
   const stem = `${document.docID}.type-${document.documentType}.${document.sha256.slice(0, 16)}`;
-  const binaryPath = resolve(outputDir, `${stem}.bin`);
+  const binaryPath = resolve(outputDir, `${stem}.${extension}`);
   const metadataPath = resolve(outputDir, `${stem}.metadata.json`);
 
-  writeAtomic(binaryPath, document.bytes);
-  writeAtomic(
+  writeExclusiveDurable(binaryPath, document.bytes);
+  writeExclusiveDurable(
     metadataPath,
     `${JSON.stringify({
       schemaVersion: 1,
       source: "edinet",
       docID: document.docID,
       documentType: document.documentType,
+      format: extension,
       byteLength: document.byteLength,
       sha256: document.sha256,
       contentType: document.contentType,
@@ -64,6 +87,7 @@ async function main(): Promise<void> {
       retrievedAt: document.retrievedAt,
       sourceEndpoint: document.sourceEndpoint,
       storageBoundary: "local_only",
+      appendAuthorized: false,
     }, null, 2)}\n`,
   );
 
@@ -73,6 +97,7 @@ async function main(): Promise<void> {
   console.log(`sha256: ${document.sha256}`);
   console.log(`binary: ${binaryPath}`);
   console.log(`metadata: ${metadataPath}`);
+  console.log("appendAuthorized: false");
 }
 
 main().catch(error => {
