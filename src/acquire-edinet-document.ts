@@ -39,7 +39,7 @@ function writeAtomic(path: string, data: Uint8Array | string): void {
 
 async function main(): Promise<void> {
   const docID = requiredArg("doc-id");
-  const documentType = argValue("type")?.trim() || "1";
+  const documentType = requiredArg("type");
   const outputDir = resolveLocalOutputDir(argValue("out-dir"));
 
   const document = await fetchEdinetDocument(docID, documentType);
