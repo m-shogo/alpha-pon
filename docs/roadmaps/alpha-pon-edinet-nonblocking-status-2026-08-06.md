@@ -1,7 +1,7 @@
 # Alpha Pon EDINET non-blocking status — 2026-08-06
 
 Status: `ACTIVE_SUBROADMAP`
-Updated: 2026-08-06 22:20 JST
+Updated: 2026-08-06 22:40 JST
 Parent roadmap: `docs/roadmaps/alpha-pon-current-roadmap-2026-08-06.md`
 
 ## Durable operating decision
@@ -77,6 +77,7 @@ Do not block unrelated implementation on this command. Surface it again only whe
 #77 governed Security Master, PIT, section-hash, and revision-lineage Foundation preview mapping
 #78 generic configured-issuer downstream review plan before acquisition
 #79 explicit configured local acquisition with complete-only canonical manifest
+#80 schema-versioned configured acquired-file review workspace v2
 ```
 
 ## Non-blocking implementation queue
@@ -89,15 +90,17 @@ Proceed in this order unless current `main`, tests, or measured local data show 
 4. **COMPLETE — PR #73:** Establish the configured issuer registry and fail-closed identity boundary.
 5. **COMPLETE — PR #74:** Add a configured inventory-only pilot with no filing download.
 6. **COMPLETE — PR #75:** Add legacy/configured inventory compatibility auditing while keeping replacement unauthorized.
-7. **COMPLETE — PR #76:** Add the local read-only review dashboard.
+7. **COMPLETE — PR #76:** Add the local read-only Sanrio review dashboard.
 8. **COMPLETE — PR #77:** Add explicit Security Master, PIT, source hash, section hash, license, storage, and revision mapping for non-appendable Foundation previews.
 9. **COMPLETE — PR #78:** Add a generic configured-issuer review plan and synthetic non-Sanrio boundary before acquisition.
 10. **COMPLETE — PR #79:** Add an explicit configured local acquisition executor with type 1/2-only tasks, no automatic external parent, local SHA lineage, and no canonical manifest after partial failure.
-11. **IN PROGRESS — PR #80:** Add a schema-versioned generic acquired-file review workspace. Revalidate registry/review-plan/acquisition-plan/manifest hashes, verify every binary and metadata file on disk, group by lineage root, and keep official-PDF review and Foundation promotion blocked.
-12. Run a second synthetic issuer end-to-end through inventory → review plan → synthetic acquisition manifest → generic review workspace before registering any second real issuer.
-13. Extend the local read-only dashboard to recognize configured review-plan/acquisition/workspace v2 stages without rendering filing text.
-14. Run real legacy/configured Sanrio parity locally and human-review the report before considering legacy entry-point replacement.
-15. Resume Known-Bad Event Repricing validation only after the real Foundation pilot gates are satisfied.
+11. **COMPLETE — PR #80:** Add a generic acquired-file review workspace v2 with binary/metadata re-hashing and independent schema lineage.
+12. **IN PROGRESS — PR #81:** Add a generic read-only configured pipeline dashboard. Verify inventory → review plan → acquisition plan → manifest → workspace hashes, filenames, issuer identity, and safety boundaries without rendering filing text.
+13. Add a synthetic pipeline fixture exporter so inventory, review plan, manifest, workspace, and dashboard schemas can be inspected outside unit-test code without real filings.
+14. Add a generic configured PDF/source-fidelity review plan after the synthetic exported fixture proves the full metadata pipeline.
+15. Run real legacy/configured Sanrio parity locally and human-review the report before considering legacy entry-point replacement.
+16. Register a second real issuer only after an inventory-only proposal identifies a measured Evidence Gap and explicit user approval.
+17. Resume Known-Bad Event Repricing validation only after the real Foundation pilot gates are satisfied.
 
 ## Safety invariants
 
@@ -110,7 +113,7 @@ Proceed in this order unless current `main`, tests, or measured local data show 
 - A generated Foundation preview is not a governed store append.
 - Review plans never authorize automatic acquisition; the configured executor requires an explicit local command flag.
 - Partial acquisition attempts never create a canonical complete manifest.
-- A hash-verified configured workspace still represents unreviewed source material.
+- A hash-verified configured workspace and dashboard still represent unreviewed source material.
 - Keep replacement, Foundation preview eligibility, and append authorization false unless a distinct explicit workflow is reviewed.
 - No BUY/order automation, brokerage action, Production Gate change, active Edge promotion, or real LINE send.
 - No Cloudflare production deploy or D1 write from this queue.
