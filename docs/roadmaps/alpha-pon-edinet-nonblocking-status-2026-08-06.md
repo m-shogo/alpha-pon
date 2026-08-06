@@ -1,7 +1,7 @@
 # Alpha Pon EDINET non-blocking status — 2026-08-06
 
 Status: `ACTIVE_SUBROADMAP`
-Updated: 2026-08-06 21:35 JST
+Updated: 2026-08-06 22:00 JST
 Parent roadmap: `docs/roadmaps/alpha-pon-current-roadmap-2026-08-06.md`
 
 ## Durable operating decision
@@ -75,6 +75,7 @@ Do not block unrelated implementation on this command. Surface it again only whe
 #75 legacy/configured inventory compatibility audit
 #76 read-only local review dashboard with stage hash and safety checks
 #77 governed Security Master, PIT, section-hash, and revision-lineage Foundation preview mapping
+#78 generic configured-issuer downstream review plan before acquisition
 ```
 
 ## Non-blocking implementation queue
@@ -89,8 +90,8 @@ Proceed in this order unless current `main`, tests, or measured local data show 
 6. **COMPLETE — PR #75:** Add legacy/configured inventory compatibility auditing while keeping replacement unauthorized.
 7. **COMPLETE — PR #76:** Add the local read-only review dashboard.
 8. **COMPLETE — PR #77:** Add explicit Security Master, PIT, source hash, section hash, license, storage, and revision mapping for non-appendable Foundation previews.
-9. **IN PROGRESS — PR #78:** Add a generic configured-issuer downstream review plan before acquisition. Verify a second synthetic issuer, registry drift, cross-issuer contamination, lineage blockers, type allowlists, and missing official-PDF blockers. Keep acquisition and append unauthorized.
-10. Add a separate configured local acquisition executor only after the review-plan contract is green. It must download only allowed types, preserve local-only storage, record hashes, and require an explicit command.
+9. **COMPLETE — PR #78:** Add a generic configured-issuer review plan and synthetic non-Sanrio boundary before acquisition.
+10. **IN PROGRESS — PR #79:** Add an explicit configured local acquisition executor. Require type 1 and type 2 coverage, reject unresolved external parents, download only allowlisted tasks, record SHA-256 and lineage hashes, write a canonical manifest only after all tasks succeed, and keep all content local-only/non-appendable.
 11. Generalize the acquired-file review workspace using registry/boundary evidence and schema versioning; do not silently rewrite the Sanrio v1 workspace.
 12. Run a second synthetic issuer end-to-end through inventory → review plan → synthetic acquisition manifest → generic review workspace before registering any second real issuer.
 13. Run real legacy/configured Sanrio parity locally and human-review the report before considering legacy entry-point replacement.
@@ -105,7 +106,9 @@ Proceed in this order unless current `main`, tests, or measured local data show 
 - Do not auto-classify source text as confirmed fact, material, positive, negative, or fraud.
 - Keep new facts, previously known facts, assumptions/inference, and opinion separate.
 - A generated Foundation preview is not a governed store append.
-- Keep acquisition, replacement, and append authorization false unless a distinct explicit workflow is reviewed.
+- Review plans never authorize automatic acquisition; the configured executor requires an explicit local command flag.
+- Partial acquisition attempts never create a canonical complete manifest.
+- Keep replacement and append authorization false unless a distinct explicit workflow is reviewed.
 - No BUY/order automation, brokerage action, Production Gate change, active Edge promotion, or real LINE send.
 - No Cloudflare production deploy or D1 write from this queue.
 - Do not modify GitHub Actions runners or cost controls unless a distinct measured workflow defect requires it.
