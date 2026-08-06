@@ -9,6 +9,20 @@ function sha256(content: string): string {
   return createHash("sha256").update(content, "utf-8").digest("hex");
 }
 
+function collectKeys(value: unknown, result = new Set<string>()): Set<string> {
+  if (Array.isArray(value)) {
+    for (const item of value) collectKeys(item, result);
+    return result;
+  }
+  if (value && typeof value === "object") {
+    for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+      result.add(key.toLowerCase());
+      collectKeys(child, result);
+    }
+  }
+  return result;
+}
+
 {
   const first = buildConfiguredEdinetSyntheticFixture();
   const second = buildConfiguredEdinetSyntheticFixture();
@@ -86,15 +100,31 @@ function sha256(content: string): string {
     "subscription-key",
     "EDINET_API_KEY",
     "apiKey",
-    "portfolio",
-    "BUY",
   ]) {
     assert.ok(!serialized.includes(forbidden), `forbidden real/sensitive token found: ${forbidden}`);
+  }
+  const keys = collectKeys(bundle);
+  for (const forbiddenKey of [
+    "portfolio",
+    "portfolios",
+    "position",
+    "positions",
+    "buy",
+    "buys",
+    "order",
+    "orders",
+    "brokerageaccount",
+    "recommendation",
+    "recommendations",
+    "quantity",
+    "executionprice",
+  ]) {
+    assert.ok(!keys.has(forbiddenKey), `forbidden portfolio/order field found: ${forbiddenKey}`);
   }
   assert.ok(serialized.includes("E90000"));
   assert.ok(serialized.includes("synthetic-co"));
   assert.ok(serialized.includes("realFilingContentIncluded"));
-  console.log("edinet-configured-synthetic-fixture: no real Sanrio identity, credential, portfolio or BUY data OK");
+  console.log("edinet-configured-synthetic-fixture: no real Sanrio identity, credential or structured portfolio/order data OK");
 }
 
 {
