@@ -1,7 +1,9 @@
 // Research OS — 整合性の一括検査。
-// スキーマ / 重複 / 参照 / PIT / Gate / Decay / catalogs / council replay / calibration / Security Masterをまとめて検査する。
+// スキーマ / 重複 / 参照 / PIT / Gate / Decay / catalogs / council / Security Master / Evidence Storeをまとめて検査する。
 
 import { existsSync, readFileSync } from "fs";
+import { validateBitemporalEvidenceRepository } from "../bitemporal-evidence-repository.js";
+import type { EvidenceStoreIssue } from "../bitemporal-evidence-store.js";
 import { validateRepositoryCatalogs, type CatalogIssue } from "../catalog-validation.js";
 import { checkEdgeRegistry, type Issue } from "../edge-registry.js";
 import { checkDecay } from "../decay.js";
@@ -58,7 +60,9 @@ function loadHoldout(): { manifest: HoldoutManifest | null; accessLog: HoldoutAc
   return { manifest, accessLog, issues };
 }
 
-function toResearchIssue(issue: CatalogIssue | CouncilIssue | SecurityMasterIssue): Issue {
+function toResearchIssue(
+  issue: CatalogIssue | CouncilIssue | SecurityMasterIssue | EvidenceStoreIssue,
+): Issue {
   return {
     severity: issue.severity,
     code: issue.code,
@@ -88,6 +92,7 @@ function main(): void {
   const replay = validateCouncilReplayRepository();
   const calibration = validatePersonaCalibrationRepository();
   const securityMaster = validateSecurityMasterRepository({ asOf });
+  const evidenceStore = validateBitemporalEvidenceRepository();
   const catalogIssues = [...catalogs.dataSourceIssues, ...catalogs.edgeFamilyIssues]
     .map(toResearchIssue);
   const councilIssues = [
@@ -100,6 +105,7 @@ function main(): void {
     ...replay.issues,
     ...calibration.issues,
     ...securityMaster.issues,
+    ...evidenceStore.issues,
   ].map(toResearchIssue);
 
   const issues: Issue[] = [
@@ -130,6 +136,9 @@ function main(): void {
   console.log(
     `Security Master: Entity Record ${securityMaster.entityRecordCount} / Relationship Record ${securityMaster.relationshipRecordCount} / Active Entity ${securityMaster.activeEntityCount} / Active Relationship ${securityMaster.activeRelationshipCount} / Unresolved Entity ${securityMaster.unresolvedEntityCount} / Unresolved Relationship ${securityMaster.unresolvedRelationshipCount}`,
   );
+  console.log(
+    `Bitemporal Evidence: Evidence Record ${evidenceStore.evidenceRecordCount} / Relation Record ${evidenceStore.relationRecordCount} / Snapshot Evidence ${evidenceStore.snapshotEvidenceCount} / Recommendation Eligible ${evidenceStore.recommendationEligibleCount} / Corrected or Retracted ${evidenceStore.correctedOrRetractedCount} / Discovery Only ${evidenceStore.discoveryOnlyCount}`,
+  );
   console.log("Catalog entries and council personas are not counted as active Research OS Edges.");
 
   const { errors } = printIssues("整合性", issues);
@@ -154,6 +163,11 @@ function main(): void {
     console.log("Security Master contracts are present, but no local entity record exists; SECURITY_MASTER_V1_GREEN remains unproven.");
   } else {
     console.log("Security Master records are structurally valid; historical local pilot evidence is still required before SECURITY_MASTER_V1_GREEN.");
+  }
+  if (evidenceStore.evidenceRecordCount === 0) {
+    console.log("Bitemporal Evidence Store contracts are present, but no local Evidence record exists; milestone remains unproven.");
+  } else {
+    console.log("Evidence Store records are structurally valid; correction before/after cutoff replay is still required before milestone green.");
   }
 }
 

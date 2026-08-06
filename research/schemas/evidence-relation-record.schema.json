@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alpha-pon.local/schemas/evidence-relation-record.schema.json",
+  "title": "Alpha Pon Evidence Relation Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordId",
+    "relationId",
+    "relationType",
+    "fromEvidenceId",
+    "toEvidenceId",
+    "effectiveFrom",
+    "observedAt",
+    "retrievedAt",
+    "sourceRefs",
+    "supersessionStrength",
+    "contentHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "recordId": { "type": "string", "minLength": 3 },
+    "relationId": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9:_-]+$"
+    },
+    "relationType": {
+      "type": "string",
+      "enum": [
+        "supports",
+        "contradicts",
+        "corrects",
+        "retracts",
+        "supersedes",
+        "confirms",
+        "invalidates",
+        "expires"
+      ]
+    },
+    "fromEvidenceId": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9:_-]+$"
+    },
+    "toEvidenceId": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9:_-]+$"
+    },
+    "effectiveFrom": { "type": "string", "format": "date-time" },
+    "effectiveTo": { "type": "string", "format": "date-time" },
+    "observedAt": { "type": "string", "format": "date-time" },
+    "retrievedAt": { "type": "string", "format": "date-time" },
+    "sourceRefs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "supersessionStrength": {
+      "type": "string",
+      "enum": ["informational", "partial", "binding"]
+    },
+    "supersedesRecordId": { "type": "string", "minLength": 3 },
+    "contentHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}
