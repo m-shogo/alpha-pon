@@ -73,6 +73,11 @@ export type SanrioEdinetScanOptions = EdinetClientOptions & {
   onProgress?: (progress: SanrioEdinetScanProgress) => void;
 };
 
+function normalizedText(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  return String(value).trim();
+}
+
 function assertIsoDate(value: string, field: string): void {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     throw new Error(`${field} must be YYYY-MM-DD`);
@@ -105,37 +110,45 @@ export function enumerateBusinessDates(from: string, to: string): string[] {
 }
 
 export function isSanrioPrimaryDisclosure(doc: EdinetDoc): boolean {
-  return doc.edinetCode === SANRIO_EDINET_CODE || doc.secCode === SANRIO_SEC_CODE;
+  return normalizedText(doc.edinetCode) === SANRIO_EDINET_CODE
+    || normalizedText(doc.secCode) === SANRIO_SEC_CODE;
 }
 
-function flagIsActive(value: string): boolean {
-  const normalized = value.trim().toLowerCase();
-  return normalized !== "" && normalized !== "0" && normalized !== "false";
+function flagIsActive(value: unknown): boolean {
+  const normalized = normalizedText(value).toLowerCase();
+  return normalized !== ""
+    && normalized !== "0"
+    && normalized !== "false"
+    && normalized !== "none";
 }
 
 function reviewReasons(doc: EdinetDoc): string[] {
   const reasons: string[] = [];
-  if (doc.parentDocID.trim()) reasons.push("parent_document_link");
-  if (/訂正|修正|差替|再提出/.test(`${doc.docDescription} ${doc.currentReportReason}`)) {
+  if (normalizedText(doc.parentDocID)) reasons.push("parent_document_link");
+  if (/訂正|修正|差替|再提出/.test(
+    `${normalizedText(doc.docDescription)} ${normalizedText(doc.currentReportReason)}`,
+  )) {
     reasons.push("correction_like_text");
   }
   if (flagIsActive(doc.withdrawalStatus)) reasons.push("withdrawal_status_active");
   if (flagIsActive(doc.docInfoEditStatus)) reasons.push("document_info_edit_status_active");
   if (flagIsActive(doc.disclosureStatus)) reasons.push("disclosure_status_active");
-  if (!["1", "2"].includes(doc.legalStatus.trim())) reasons.push("outside_retrievable_legal_status");
+  if (!["1", "2"].includes(normalizedText(doc.legalStatus))) {
+    reasons.push("outside_retrievable_legal_status");
+  }
   return [...new Set(reasons)].sort();
 }
 
 export function documentTypePlan(doc: EdinetDoc): SanrioEdinetDocumentTypePlan[] {
   const plan: SanrioEdinetDocumentTypePlan[] = [];
-  if (["1", "2"].includes(doc.legalStatus.trim())) {
+  if (["1", "2"].includes(normalizedText(doc.legalStatus))) {
     plan.push({
       type: "1",
       label: "submitted_document_and_audit_zip",
       format: "zip",
       reason: "official EDINET API v2 submitted-document package",
     });
-    if (doc.pdfFlag === "1") {
+    if (normalizedText(doc.pdfFlag) === "1") {
       plan.push({
         type: "2",
         label: "pdf",
@@ -143,7 +156,7 @@ export function documentTypePlan(doc: EdinetDoc): SanrioEdinetDocumentTypePlan[]
         reason: "pdfFlag=1",
       });
     }
-    if (doc.attachDocFlag === "1") {
+    if (normalizedText(doc.attachDocFlag) === "1") {
       plan.push({
         type: "3",
         label: "attachments_zip",
@@ -151,7 +164,7 @@ export function documentTypePlan(doc: EdinetDoc): SanrioEdinetDocumentTypePlan[]
         reason: "attachDocFlag=1",
       });
     }
-    if (doc.englishDocFlag === "1") {
+    if (normalizedText(doc.englishDocFlag) === "1") {
       plan.push({
         type: "4",
         label: "english_files_zip",
@@ -159,7 +172,7 @@ export function documentTypePlan(doc: EdinetDoc): SanrioEdinetDocumentTypePlan[]
         reason: "englishDocFlag=1",
       });
     }
-    if (doc.csvFlag === "1") {
+    if (normalizedText(doc.csvFlag) === "1") {
       plan.push({
         type: "5",
         label: "csv_zip",
@@ -172,19 +185,23 @@ export function documentTypePlan(doc: EdinetDoc): SanrioEdinetDocumentTypePlan[]
 }
 
 function preferLatest(left: EdinetDoc, right: EdinetDoc): EdinetDoc {
-  const leftKey = `${left.opeDateTime}|${left.submitDateTime}|${left.seqNumber}`;
-  const rightKey = `${right.opeDateTime}|${right.submitDateTime}|${right.seqNumber}`;
+  const leftKey = `${normalizedText(left.opeDateTime)}|${normalizedText(left.submitDateTime)}|${left.seqNumber}`;
+  const rightKey = `${normalizedText(right.opeDateTime)}|${normalizedText(right.submitDateTime)}|${right.seqNumber}`;
   return rightKey > leftKey ? right : left;
 }
 
 function dedupeDocuments(docs: EdinetDoc[]): EdinetDoc[] {
   const byId = new Map<string, EdinetDoc>();
   for (const doc of docs) {
-    const existing = byId.get(doc.docID);
-    byId.set(doc.docID, existing ? preferLatest(existing, doc) : doc);
+    const docID = normalizedText(doc.docID);
+    if (!docID) continue;
+    const existing = byId.get(docID);
+    byId.set(docID, existing ? preferLatest(existing, doc) : doc);
   }
   return [...byId.values()].sort((a, b) =>
-    `${a.submitDateTime}|${a.docID}`.localeCompare(`${b.submitDateTime}|${b.docID}`),
+    `${normalizedText(a.submitDateTime)}|${normalizedText(a.docID)}`.localeCompare(
+      `${normalizedText(b.submitDateTime)}|${normalizedText(b.docID)}`,
+    ),
   );
 }
 
@@ -213,7 +230,7 @@ export function buildSanrioEdinetInventory(input: {
       doc,
       reviewPriority: reasons.length > 0 ? "high" : "normal",
       reviewReasons: reasons,
-      retrievableByLegalStatus: ["1", "2"].includes(doc.legalStatus.trim()),
+      retrievableByLegalStatus: ["1", "2"].includes(normalizedText(doc.legalStatus)),
       documentTypePlan: documentTypePlan(doc),
     };
   });
