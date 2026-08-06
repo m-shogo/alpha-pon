@@ -57,7 +57,10 @@ When `pdftotext` is unavailable or fails for a PDF:
 - the official PDF file and SHA-256 are still verified;
 - the report is generated;
 - candidate status remains `pdf_text_extraction_unavailable`;
+- anchors are counted as `pending`, not `unmatched`;
 - manual visual PDF review remains required.
+
+A pending anchor has not been evaluated and is not evidence of a source mismatch.
 
 No automatic installation is performed.
 
@@ -75,9 +78,15 @@ Statuses:
 
 - `exact_anchor_coverage_complete`: all selected anchors were found.
 - `partial_exact_anchor_match`: some anchors were found.
-- `no_exact_anchor_match`: no selected anchors were found.
-- `pdf_text_extraction_unavailable`: no comparable PDF text was available.
+- `no_exact_anchor_match`: no selected anchors were found after PDF text extraction succeeded.
+- `pdf_text_extraction_unavailable`: no comparable PDF text was available; anchors remain pending.
 - `no_reviewable_anchors`: the candidate contained no sufficiently specific anchor.
+
+Anchor counters:
+
+- `matchedAnchorCount`: evaluated anchors found in extracted PDF text.
+- `unmatchedAnchorCount`: evaluated anchors not found in extracted PDF text.
+- `pendingAnchorCount`: anchors not evaluated because PDF text extraction was unavailable.
 
 ## Interpretation boundary
 
