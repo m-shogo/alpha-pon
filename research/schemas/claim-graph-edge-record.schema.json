@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alpha-pon.local/schemas/claim-graph-edge-record.schema.json",
+  "title": "Alpha Pon Claim Graph Edge Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordId",
+    "edgeId",
+    "fromKind",
+    "fromId",
+    "toKind",
+    "toId",
+    "relationType",
+    "strength",
+    "effectiveFrom",
+    "observedAt",
+    "retrievedAt",
+    "sourceEvidenceIds",
+    "contentHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "recordId": { "type": "string", "minLength": 3 },
+    "edgeId": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9:_-]+$"
+    },
+    "fromKind": { "type": "string", "enum": ["claim", "evidence"] },
+    "fromId": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9:_-]+$"
+    },
+    "toKind": { "type": "string", "enum": ["claim", "evidence"] },
+    "toId": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9:_-]+$"
+    },
+    "relationType": {
+      "type": "string",
+      "enum": [
+        "supports",
+        "contradicts",
+        "corrects",
+        "supersedes",
+        "confirms",
+        "invalidates",
+        "expires",
+        "competes_with",
+        "better_peer",
+        "external_factor"
+      ]
+    },
+    "strength": {
+      "type": "string",
+      "enum": ["informational", "material", "binding"]
+    },
+    "effectiveFrom": { "type": "string", "format": "date-time" },
+    "effectiveTo": { "type": "string", "format": "date-time" },
+    "observedAt": { "type": "string", "format": "date-time" },
+    "retrievedAt": { "type": "string", "format": "date-time" },
+    "sourceEvidenceIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "pattern": "^[a-z][a-z0-9:_-]+$"
+      }
+    },
+    "supersedesRecordId": { "type": "string", "minLength": 3 },
+    "contentHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}

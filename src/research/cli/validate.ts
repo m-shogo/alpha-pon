@@ -1,10 +1,12 @@
 // Research OS — 整合性の一括検査。
-// スキーマ / 重複 / 参照 / PIT / Gate / Decay / catalogs / council / Security Master / Evidence Storeをまとめて検査する。
+// スキーマ / 重複 / 参照 / PIT / Gate / Decay / catalogs / council / Security Master / Evidence / Claim Graphをまとめて検査する。
 
 import { existsSync, readFileSync } from "fs";
 import { validateBitemporalEvidenceRepository } from "../bitemporal-evidence-repository.js";
 import type { EvidenceStoreIssue } from "../bitemporal-evidence-store.js";
 import { validateRepositoryCatalogs, type CatalogIssue } from "../catalog-validation.js";
+import { validateClaimGraphRepository } from "../claim-contradiction-graph-repository.js";
+import type { ClaimGraphIssue } from "../claim-contradiction-graph.js";
 import { checkEdgeRegistry, type Issue } from "../edge-registry.js";
 import { checkDecay } from "../decay.js";
 import { loadResearchState, loadSchema, paths, readJsonl, ResearchDataError } from "../io.js";
@@ -61,7 +63,7 @@ function loadHoldout(): { manifest: HoldoutManifest | null; accessLog: HoldoutAc
 }
 
 function toResearchIssue(
-  issue: CatalogIssue | CouncilIssue | SecurityMasterIssue | EvidenceStoreIssue,
+  issue: CatalogIssue | CouncilIssue | SecurityMasterIssue | EvidenceStoreIssue | ClaimGraphIssue,
 ): Issue {
   return {
     severity: issue.severity,
@@ -74,6 +76,7 @@ function toResearchIssue(
 function main(): void {
   const { options } = parseArgs();
   const asOf = options.get("as-of") ?? todayJst();
+  const claimAsOf = options.get("claim-as-of") ?? new Date().toISOString();
 
   let state;
   try {
@@ -93,9 +96,13 @@ function main(): void {
   const calibration = validatePersonaCalibrationRepository();
   const securityMaster = validateSecurityMasterRepository({ asOf });
   const evidenceStore = validateBitemporalEvidenceRepository();
+  const claimGraph = validateClaimGraphRepository({
+    asOf: claimAsOf,
+    includeDependencyIssues: false,
+  });
   const catalogIssues = [...catalogs.dataSourceIssues, ...catalogs.edgeFamilyIssues]
     .map(toResearchIssue);
-  const councilIssues = [
+  const foundationIssues = [
     ...council.catalogIssues,
     ...council.verdictIssues,
     ...ledgers.catalogIssues,
@@ -106,6 +113,7 @@ function main(): void {
     ...calibration.issues,
     ...securityMaster.issues,
     ...evidenceStore.issues,
+    ...claimGraph.issues,
   ].map(toResearchIssue);
 
   const issues: Issue[] = [
@@ -115,7 +123,7 @@ function main(): void {
     ...checkProductionIntegrity(state, holdout.accessLog, asOf),
     ...checkDecay(state, asOf),
     ...catalogIssues,
-    ...councilIssues,
+    ...foundationIssues,
   ];
 
   console.log(
@@ -139,7 +147,10 @@ function main(): void {
   console.log(
     `Bitemporal Evidence: Evidence Record ${evidenceStore.evidenceRecordCount} / Relation Record ${evidenceStore.relationRecordCount} / Snapshot Evidence ${evidenceStore.snapshotEvidenceCount} / Recommendation Eligible ${evidenceStore.recommendationEligibleCount} / Corrected or Retracted ${evidenceStore.correctedOrRetractedCount} / Discovery Only ${evidenceStore.discoveryOnlyCount}`,
   );
-  console.log("Catalog entries and council personas are not counted as active Research OS Edges.");
+  console.log(
+    `Claim Graph (asOf=${claimAsOf}): Claim Record ${claimGraph.claimRecordCount} / Edge Record ${claimGraph.edgeRecordCount} / Active Head ${claimGraph.activeClaimHeadCount} / Snapshot Claim ${claimGraph.snapshotClaimCount} / Eligible ${claimGraph.recommendationEligibleClaimCount} / Blocked ${claimGraph.blockedClaimCount}`,
+  );
+  console.log("Catalog entries, council personas and Claim Graph claims are not counted as active Research OS Edges.");
 
   const { errors } = printIssues("整合性", issues);
   if (errors > 0) fail(`エラー ${errors} 件。修正するまで研究成果は取り込めません。`);
@@ -168,6 +179,11 @@ function main(): void {
     console.log("Bitemporal Evidence Store contracts are present, but no local Evidence record exists; milestone remains unproven.");
   } else {
     console.log("Evidence Store records are structurally valid; correction before/after cutoff replay is still required before milestone green.");
+  }
+  if (claimGraph.claimRecordCount === 0) {
+    console.log("Claim Graph contracts are present, but no local Claim record exists; milestone remains unproven.");
+  } else {
+    console.log("Claim Graph records are structurally valid; a real issue-time-compatible graph and deterministic replay are still required before milestone green.");
   }
 }
 
