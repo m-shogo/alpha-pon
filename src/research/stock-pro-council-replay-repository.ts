@@ -24,6 +24,16 @@ import {
   type PersonaVerdict,
   type StockProCouncilV2Catalog,
 } from "./stock-pro-council-v2-validation.js";
+import {
+  PERSONA_CALIBRATION_PATHS,
+  parsePersonaCalibrationJsonl,
+  type PersonaCalibrationRecord,
+} from "./stock-pro-council-calibration.js";
+import {
+  buildCalibrationAwareCouncilReplayResult,
+  validateCalibrationAwareCouncilReplayPackage,
+  type CalibrationAwareCouncilReplayPackage,
+} from "./stock-pro-council-replay-calibration.js";
 import { validate, type JsonSchema } from "./schema.js";
 
 export const COUNCIL_REPLAY_PATHS = {
@@ -37,6 +47,9 @@ export type CouncilReplayRepositoryOptions = {
   verdictDir?: string;
   dissentPath?: string;
   vetoPath?: string;
+  // 指定するとcalibration-aware検証(manifest.calibrationHashesとcalibration台帳の照合)を有効化する。
+  // 未指定なら従来どおりcalibrationを参照しないreplay検証のみを行う。
+  calibrationDir?: string;
 };
 
 export type CouncilReplayRepositoryResult = {
@@ -92,6 +105,28 @@ function readAllVerdicts(dir: string): { records: PersonaVerdict[]; issues: Coun
     const result = readStrictJsonl<PersonaVerdict>(join(dir, filename));
     records.push(...result.records);
     issues.push(...result.issues);
+  }
+  return { records, issues };
+}
+
+function readAllCalibrations(
+  dir: string,
+): { records: PersonaCalibrationRecord[]; issues: CouncilIssue[] } {
+  if (!existsSync(dir)) return { records: [], issues: [] };
+  const records: PersonaCalibrationRecord[] = [];
+  const issues: CouncilIssue[] = [];
+  for (const filename of readdirSync(dir).filter((name) => name.endsWith(".jsonl")).sort()) {
+    const path = join(dir, filename);
+    const content = readFileSync(path, "utf-8");
+    if (content.length > 0 && !content.endsWith("\n")) {
+      issues.push(issue("partial_calibration_tail", path, "final newlineがなくpartial writeの可能性があります"));
+      continue;
+    }
+    try {
+      records.push(...parsePersonaCalibrationJsonl(content, path));
+    } catch (error) {
+      issues.push(issue("invalid_calibration_jsonl", path, (error as Error).message));
+    }
   }
   return { records, issues };
 }
@@ -176,6 +211,22 @@ export function validateCouncilReplayRepository(
   const verdictByHash = new Map(verdictRead.records.map((record) => [hashPersonaVerdict(record), record]));
   const dissentByHash = new Map(dissentRead.records.map((record) => [record.contentHash, record]));
   const vetoByHash = new Map(vetoRead.records.map((record) => [record.contentHash, record]));
+
+  // calibrationDirが渡された場合のみcalibration-aware検証を有効化する。
+  // manifest.calibrationHashesとcalibration台帳を突き合わせ、hash集合不一致・manifest後calibration混入を
+  // structural errorとして検出する。未指定なら従来のcalibration非参照replay検証のみを行う。
+  const calibrationAware = options.calibrationDir !== undefined;
+  const calibrationRead = calibrationAware
+    ? readAllCalibrations(options.calibrationDir ?? PERSONA_CALIBRATION_PATHS.dir)
+    : { records: [] as PersonaCalibrationRecord[], issues: [] as CouncilIssue[] };
+  const calibrationSchema = calibrationAware
+    ? loadCouncilSchema(PERSONA_CALIBRATION_PATHS.schema)
+    : undefined;
+  const calibrationByHash = new Map(
+    calibrationRead.records.map((record) => [record.contentHash, record]),
+  );
+  if (calibrationAware) issues.push(...calibrationRead.issues);
+
   const results: CouncilReplayResult[] = [];
 
   for (const manifest of manifestRead.manifests) {
@@ -194,6 +245,35 @@ export function validateCouncilReplayRepository(
         return record ? [record] : [];
       }),
     };
+
+    if (calibrationAware && calibrationSchema) {
+      const awarePkg: CalibrationAwareCouncilReplayPackage = {
+        ...pkg,
+        calibrations: manifest.calibrationHashes.flatMap((hash) => {
+          const record = calibrationByHash.get(hash);
+          return record ? [record] : [];
+        }),
+      };
+      const packageIssues = validateCalibrationAwareCouncilReplayPackage(
+        awarePkg,
+        replaySchemas,
+        calibrationSchema,
+        catalog,
+      );
+      issues.push(...packageIssues);
+      if (packageIssues.some((item) => item.severity === "error")) continue;
+      try {
+        results.push(buildCalibrationAwareCouncilReplayResult(
+          awarePkg,
+          replaySchemas,
+          calibrationSchema,
+          catalog,
+        ));
+      } catch (error) {
+        issues.push(issue("replay_build_failed", manifest.replayId, (error as Error).message));
+      }
+      continue;
+    }
 
     const packageIssues = validateCouncilReplayPackage(pkg, replaySchemas, catalog);
     issues.push(...packageIssues);
