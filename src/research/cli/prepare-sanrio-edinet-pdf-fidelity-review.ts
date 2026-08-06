@@ -265,6 +265,7 @@ function main(): void {
   console.log(`extraction unavailable candidates: ${report.unavailableCandidateCount}`);
   console.log(`matched anchors: ${report.matchedAnchorCount}`);
   console.log(`unmatched anchors: ${report.unmatchedAnchorCount}`);
+  console.log(`pending anchors: ${report.pendingAnchorCount}`);
   console.log(`fidelity report: ${jsonPath}`);
   console.log(`fidelity review: ${markdownPath}`);
   console.log(`fidelityReportHash: ${report.fidelityReportHash}`);

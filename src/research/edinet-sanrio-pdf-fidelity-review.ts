@@ -82,6 +82,7 @@ export type SanrioEdinetPdfFidelityCandidateResult = SanrioEdinetPdfFidelityPlan
   anchorCount: number;
   matchedAnchorCount: number;
   unmatchedAnchorCount: number;
+  pendingAnchorCount: number;
   status:
     | "exact_anchor_coverage_complete"
     | "partial_exact_anchor_match"
@@ -93,7 +94,7 @@ export type SanrioEdinetPdfFidelityCandidateResult = SanrioEdinetPdfFidelityPlan
     sourceLineNumber: number;
     sourceText: string;
     matchedKeywords: string[];
-    matched: boolean;
+    matched: boolean | null;
   }>;
   contentEquivalent: "unknown_pending_human_review";
   accountingImpact: "unknown_pending_human_review";
@@ -120,6 +121,7 @@ export type SanrioEdinetPdfFidelityReport = {
   unavailableCandidateCount: number;
   matchedAnchorCount: number;
   unmatchedAnchorCount: number;
+  pendingAnchorCount: number;
   reviewStatus: "pending_human_review";
   candidates: SanrioEdinetPdfFidelityCandidateResult[];
   globalBlockers: string[];
@@ -433,17 +435,21 @@ export function buildSanrioEdinetPdfFidelityReport(input: {
     if (pdf.pdfBinaryFile !== candidate.pdfBinaryFile) {
       throw new Error(`PDF binary mismatch for ${candidate.toDocID}`);
     }
-    const normalizedPdf = pdf.text === null ? "" : normalize(pdf.text);
+    const extractionAvailable = pdf.text !== null;
+    const normalizedPdf = extractionAvailable ? normalize(pdf.text!) : "";
     const anchorResults = candidate.anchors.map(anchor => ({
       anchorId: anchor.anchorId,
       sourceLineNumber: anchor.sourceLineNumber,
       sourceText: anchor.sourceText,
       matchedKeywords: anchor.matchedKeywords,
-      matched: pdf.text !== null && normalizedPdf.includes(anchor.normalizedText),
+      matched: extractionAvailable ? normalizedPdf.includes(anchor.normalizedText) : null,
     }));
-    const matchedAnchorCount = anchorResults.filter(item => item.matched).length;
-    const unmatchedAnchorCount = anchorResults.length - matchedAnchorCount;
-    const status: SanrioEdinetPdfFidelityCandidateResult["status"] = pdf.text === null
+    const matchedAnchorCount = anchorResults.filter(item => item.matched === true).length;
+    const unmatchedAnchorCount = extractionAvailable
+      ? anchorResults.filter(item => item.matched === false).length
+      : 0;
+    const pendingAnchorCount = extractionAvailable ? 0 : anchorResults.length;
+    const status: SanrioEdinetPdfFidelityCandidateResult["status"] = !extractionAvailable
       ? "pdf_text_extraction_unavailable"
       : anchorResults.length === 0
         ? "no_reviewable_anchors"
@@ -460,6 +466,7 @@ export function buildSanrioEdinetPdfFidelityReport(input: {
       anchorCount: anchorResults.length,
       matchedAnchorCount,
       unmatchedAnchorCount,
+      pendingAnchorCount,
       status,
       anchorResults,
       contentEquivalent: "unknown_pending_human_review" as const,
@@ -473,6 +480,9 @@ export function buildSanrioEdinetPdfFidelityReport(input: {
   const extractedPdfCount = new Set(
     input.pdfTexts.filter(item => item.text !== null).map(item => item.pdfBinaryFile),
   ).size;
+  const matchedAnchorCount = candidates.reduce((sum, item) => sum + item.matchedAnchorCount, 0);
+  const unmatchedAnchorCount = candidates.reduce((sum, item) => sum + item.unmatchedAnchorCount, 0);
+  const pendingAnchorCount = candidates.reduce((sum, item) => sum + item.pendingAnchorCount, 0);
   const hashBase = {
     schemaVersion: 1 as const,
     source: "edinet" as const,
@@ -498,13 +508,19 @@ export function buildSanrioEdinetPdfFidelityReport(input: {
     exactCoverageCandidateCount: candidates.filter(item => item.status === "exact_anchor_coverage_complete").length,
     partialCoverageCandidateCount: candidates.filter(item => item.status === "partial_exact_anchor_match").length,
     unavailableCandidateCount: candidates.filter(item => item.status === "pdf_text_extraction_unavailable").length,
-    matchedAnchorCount: candidates.reduce((sum, item) => sum + item.matchedAnchorCount, 0),
-    unmatchedAnchorCount: candidates.reduce((sum, item) => sum + item.unmatchedAnchorCount, 0),
+    matchedAnchorCount,
+    unmatchedAnchorCount,
+    pendingAnchorCount,
     reviewStatus: "pending_human_review" as const,
     candidates,
     globalBlockers: [
       "exact_anchor_match_is_not_full_document_equivalence",
-      "unmatched_anchor_may_be_pdf_layout_or_text_extraction_variance",
+      ...(unmatchedAnchorCount > 0
+        ? ["unmatched_anchor_may_be_pdf_layout_or_text_extraction_variance"]
+        : []),
+      ...(pendingAnchorCount > 0
+        ? ["pending_anchor_requires_pdf_text_extraction_or_visual_review"]
+        : []),
       "human_pdf_visual_review_required",
       "financial_statement_impact_not_confirmed",
       "materiality_not_confirmed",
@@ -535,6 +551,7 @@ export function renderSanrioEdinetPdfFidelityReport(report: SanrioEdinetPdfFidel
     `- unavailableCandidateCount: ${report.unavailableCandidateCount}`,
     `- matchedAnchorCount: ${report.matchedAnchorCount}`,
     `- unmatchedAnchorCount: ${report.unmatchedAnchorCount}`,
+    `- pendingAnchorCount: ${report.pendingAnchorCount}`,
     "- reviewStatus: pending_human_review",
     "- appendAuthorized: false",
     "",
@@ -543,6 +560,7 @@ export function renderSanrioEdinetPdfFidelityReport(report: SanrioEdinetPdfFidel
     "- EDINET API type=1 structured data and type=2 PDF are official acquisition artifacts for the same filing docID.",
     "- Exact anchor coverage confirms selected source lines also appear in extracted PDF text; it does not prove full document equivalence.",
     "- PDF extraction can alter line breaks, spacing, and table order. Unmatched anchors require visual PDF review, not an automatic contradiction finding.",
+    "- Pending anchors were not evaluated because PDF text extraction was unavailable; they are not mismatches.",
     "",
   ];
   for (const candidate of report.candidates) {
@@ -554,12 +572,13 @@ export function renderSanrioEdinetPdfFidelityReport(report: SanrioEdinetPdfFidel
       `- PDF SHA-256: ${candidate.pdfSha256}`,
       `- extractionMethod: ${candidate.extractionMethod}`,
       `- status: ${candidate.status}`,
-      `- anchors: matched=${candidate.matchedAnchorCount}, unmatched=${candidate.unmatchedAnchorCount}`,
+      `- anchors: matched=${candidate.matchedAnchorCount}, unmatched=${candidate.unmatchedAnchorCount}, pending=${candidate.pendingAnchorCount}`,
       "- contentEquivalent/accountingImpact/materiality/direction: unknown_pending_human_review",
       "",
     );
     for (const result of candidate.anchorResults) {
-      lines.push(`- [${result.matched ? "x" : " "}] line ${result.sourceLineNumber}: ${result.sourceText}`);
+      const marker = result.matched === true ? "x" : result.matched === false ? " " : "?";
+      lines.push(`- [${marker}] line ${result.sourceLineNumber}: ${result.sourceText}`);
     }
     lines.push("");
   }
