@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "registryId": "edinet-issuer-boundary-v1",
+  "generatedAt": "2026-08-06T10:45:00.000Z",
+  "issuerCount": 1,
+  "issuers": [
+    {
+      "issuerKey": "sanrio",
+      "name": "株式会社サンリオ",
+      "edinetCode": "E02655",
+      "secCode": "81360",
+      "aliases": [
+        "サンリオ",
+        "SANRIO CO., LTD."
+      ],
+      "active": true,
+      "allowedDocumentTypes": [
+        "1",
+        "2"
+      ],
+      "storagePolicy": "local_only",
+      "factPromotionPolicy": "human_review_required",
+      "requireOfficialPdfVisualReview": true
+    }
+  ]
+}
