@@ -11,6 +11,11 @@ data/disclosures/*.json
 data/edinet/*.json
 data/ipo/*.json
 
+# PIT価格の実データは利用許諾にかかわらずlocal storeへ置き、Gitへcommitしない。
+research/prices/**/*.jsonl
+research/prices/**/*.json
+!research/prices/README.md
+
 # レポートはgit管理しない
 reports/*.md
 reports/*.json
