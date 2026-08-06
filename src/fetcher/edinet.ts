@@ -267,9 +267,10 @@ export function filterBySecCodes(docs: EdinetDoc[], secCodes: string[]): EdinetD
   return docs.filter(d => normalized.has(d.secCode));
 }
 
-// 認証付き取得で使用するAPI endpoint。APIキーはURLへ埋め込まず、ログにも出さない。
+// PDF取得用の認証前endpoint。EDINET API v2ではtype=2がPDF。
+// APIキーはURLへ埋め込まず、ログにも出さない。
 export function buildPdfUrl(docID: string): string {
-  return `${EDINET_API_BASE_URL}/documents/${encodeURIComponent(docID)}?type=1`;
+  return `${EDINET_API_BASE_URL}/documents/${encodeURIComponent(docID)}?type=2`;
 }
 
 // 企業コード（4桁）→ EDINETのsecCode（5桁）に変換
