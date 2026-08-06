@@ -272,14 +272,21 @@ function splitChangePath(change: SourceChange): { beforePath: string | null; aft
   return { beforePath: change.path, afterPath: change.path };
 }
 
+export function edinetPublicDocumentCrossPeriodRoleKey(path: string): string {
+  return edinetPublicDocumentLogicalKey(path)
+    .replace(/\d{4}-\d{2}-\d{2}/g, "<period-date>")
+    .replace(/\d{8}/g, "<period-date>")
+    .replace(/第\d+期/g, "第<period>期");
+}
+
 function logicalRoleKey(change: SourceChange): {
   beforePath: string | null;
   afterPath: string | null;
   key: string;
 } {
   const paths = splitChangePath(change);
-  const beforeKey = paths.beforePath ? edinetPublicDocumentLogicalKey(paths.beforePath) : null;
-  const afterKey = paths.afterPath ? edinetPublicDocumentLogicalKey(paths.afterPath) : null;
+  const beforeKey = paths.beforePath ? edinetPublicDocumentCrossPeriodRoleKey(paths.beforePath) : null;
+  const afterKey = paths.afterPath ? edinetPublicDocumentCrossPeriodRoleKey(paths.afterPath) : null;
   const key = beforeKey && afterKey && beforeKey !== afterKey
     ? `${beforeKey} => ${afterKey}`
     : beforeKey ?? afterKey;
