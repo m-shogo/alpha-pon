@@ -48,7 +48,7 @@ function setup() {
     const structuredContent = `${JSON.stringify(archive, null, 2)}\n`;
     structuredFiles[structuredFile] = archive;
 
-    const pdfLine = `PDF exact line ${index + 1}`;
+    const pdfLine = `  PDF exact line ${index + 1}`;
     const pdfFile = `${document.docID}.configured-pdf-layout-v1.txt`;
     const pdfContent = `${pdfLine}\nPDF secondary ${index + 1}\fPDF page two ${index + 1}\n`;
     pdfFiles[pdfFile] = pdfContent;
@@ -146,6 +146,7 @@ function finalize(input = setup()) {
     document.status === "complete_human_input"
     && document.anchorCount === 1
     && document.anchors[0]!.lineageVerified
+    && document.anchors[0]!.pdf.text.startsWith("  PDF")
     && /^[a-f0-9]{64}$/.test(document.anchorSetHash),
   ));
   assert.match(final.sourceAnchorInputHash, /^[a-f0-9]{64}$/);
@@ -153,7 +154,7 @@ function finalize(input = setup()) {
   const markdown = renderConfiguredEdinetAnchorFinalRecord(final);
   assert.match(markdown, /No normalized comparison or equivalence decision has been executed/);
   assert.ok(!markdown.includes("株式会社サンリオ"));
-  console.log("edinet-configured-anchor-finalizer: edited input rehash and exact line lineage finalization OK");
+  console.log("edinet-configured-anchor-finalizer: edited input rehash, indentation, and exact line lineage finalization OK");
 }
 
 {
