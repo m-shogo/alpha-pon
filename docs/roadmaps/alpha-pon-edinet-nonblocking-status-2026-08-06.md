@@ -1,7 +1,7 @@
 # Alpha Pon EDINET non-blocking status — 2026-08-06
 
 Status: `ACTIVE_SUBROADMAP`
-Updated: 2026-08-06 19:55 JST
+Updated: 2026-08-06 20:10 JST
 Parent roadmap: `docs/roadmaps/alpha-pon-current-roadmap-2026-08-06.md`
 
 ## Durable operating decision
@@ -70,6 +70,7 @@ Do not repeatedly block the development queue on this command. Surface it again 
 #70 review-next exception/representative batching
 #71 review-next full-text, numeric, footnote, and accounting-line bundle
 #72 governed financial-statement, internal-control, and audit-opinion checklist
+#73 configured issuer registry and exact issuer boundary
 ```
 
 ## Non-blocking implementation queue
@@ -79,11 +80,12 @@ Proceed in this order unless current `main`, tests, or real measured data show a
 1. **COMPLETE — PR #70:** Batch and prioritize the `review_next` correction candidates without assigning materiality.
 2. **COMPLETE — PR #71:** Extract exact PublicDoc full text and numeric/footnote/accounting-line navigation candidates. These remain unreviewed source text, not confirmed amounts or table cells.
 3. **COMPLETE — PR #72:** Record financial-statement, internal-control, and audit-opinion decisions separately with source-line/PDF-page evidence, while remaining non-appendable.
-4. **IN PROGRESS — PR #73:** Establish a configured EDINET issuer registry with exact issuer/code/alias resolution, document-type allowlists, duplicate/ambiguity checks, mandatory human fact promotion, and mandatory PDF review.
-5. Migrate the local inventory/pilot entry point to the configured issuer boundary without changing existing Sanrio output semantics.
-6. Add a local review UI/report that consumes governed JSON but does not mutate Foundation stores.
-7. Prepare the Security Master and PIT-time mapping inputs required for a non-appendable Foundation preview.
-8. Resume Known-Bad Event Repricing validation only after the real Foundation pilot gates are satisfied.
+4. **COMPLETE — PR #73:** Establish a configured EDINET issuer registry with exact issuer/code/alias resolution, document-type allowlists, duplicate/ambiguity checks, mandatory human fact promotion, and mandatory PDF review.
+5. **IN PROGRESS — PR #74:** Add a separate configured inventory-only pilot. Preserve the existing Sanrio entry point, require explicit configured issuer selection, reject mixed issuer identities, and filter future acquisition plans through the issuer document-type allowlist.
+6. Compare configured and legacy Sanrio inventories locally before any downstream schema migration or legacy entry-point replacement.
+7. Add a local review UI/report that consumes governed JSON but does not mutate Foundation stores.
+8. Prepare the Security Master and PIT-time mapping inputs required for a non-appendable Foundation preview.
+9. Resume Known-Bad Event Repricing validation only after the real Foundation pilot gates are satisfied.
 
 ## Safety invariants
 
