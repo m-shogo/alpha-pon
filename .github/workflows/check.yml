@@ -38,6 +38,9 @@ jobs:
       - name: Prepare offline CI environment
         run: test -f .env || touch .env
 
+      - name: Verify GitHub Actions cost controls
+        run: node --import tsx/esm scripts/verify-github-actions-cost-control.ts
+
       - name: Run lightweight draft checks
         if: github.event_name == 'pull_request' && github.event.pull_request.draft == true
         run: bash scripts/run-draft-checks.sh
