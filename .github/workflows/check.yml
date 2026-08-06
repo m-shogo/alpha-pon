@@ -2,70 +2,120 @@ name: Check
 
 on:
   push:
+    branches:
+      - main
   pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+      - converted_to_draft
   workflow_dispatch:
 
 concurrency:
-  group: check-${{ github.ref }}
+  group: check-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
         with:
           version: 9
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
-      - name: Install shellcheck
-        run: sudo apt-get update && sudo apt-get install -y shellcheck
-      - run: shellcheck scripts/run-daily.sh scripts/ci-pipeline-smoke.sh scripts/run-proposal-history.sh scripts/run-daily-complete.sh scripts/pipeline-lock.sh scripts/verify-cloudflare-production.sh scripts/setup-cloudflare-d1-github-secrets.sh
+
       - run: pnpm install --frozen-lockfile
+
       - name: Prepare offline CI environment
         run: test -f .env || touch .env
-      - run: pnpm check
-      - run: pnpm ci:smoke
-      - run: bash scripts/ci-pipeline-smoke.sh
-      - run: bash scripts/run-proposal-history.sh
-      - run: node --import tsx/esm src/persona-audit.ts
-      - run: node --import tsx/esm src/valuation-range.ts
-      - run: node --import tsx/esm src/primary-disclosure-subtypes.ts
-      - run: node --import tsx/esm src/regime-scenario-report.ts
-      - run: node --import tsx/esm src/pro-knowledge-refresh-report.ts
-      - run: node --import tsx/esm src/company-onboarding-audit.ts
-      - run: node --import tsx/esm src/stock-pro-quality-audit.ts
-      - run: node --import tsx/esm src/stock-pro-improvement-roadmap.ts
-      - run: pnpm pro:quality
-      - run: pnpm pro:valuation
-      - run: pnpm pro:ir-events
-      - run: pnpm pro:committee
-      - run: pnpm theme:ipo
-      - run: node --import tsx/esm src/stock-pro-agent-report.ts
-      - run: node --import tsx/esm src/stock-pro-summary.ts
-      - run: node --import tsx/esm src/company-hypothesis-report.ts
-      - run: node --import tsx/esm src/company-network-report.ts
-      - run: node --import tsx/esm src/company-coverage-audit.ts
-      - run: node --import tsx/esm src/regime-hypothesis-alignment.ts
-      - run: node --import tsx/esm src/stale-hypothesis-report.ts
-      - run: node --import tsx/esm src/pipeline-health-summary.ts
-      - run: node --import tsx/esm src/pipeline-health-alert.ts --dry-run
-      - run: node --import tsx/esm src/register-company-context.ts --sample=sanrio
-      - run: node --import tsx/esm src/strategic-advice-report.ts
-      - run: node --import tsx/esm src/regime-history.ts
-      - run: node --import tsx/esm src/source-health-history.ts
-      - run: node --import tsx/esm src/company-non-move-sync.ts
-      - run: node --import tsx/esm src/ci-health-report.ts
-      - run: pnpm ui:data
+
+      - name: Verify GitHub Actions cost controls
+        run: node --import tsx/esm scripts/verify-github-actions-cost-control.ts
+
+      - name: Run lightweight draft checks
+        if: github.event_name == 'pull_request' && github.event.pull_request.draft == true
+        run: bash scripts/run-draft-checks.sh
+
+      - name: Install shellcheck
+        if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Check shell scripts
+        if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+        run: shellcheck scripts/run-draft-checks.sh scripts/run-daily.sh scripts/ci-pipeline-smoke.sh scripts/run-proposal-history.sh scripts/run-daily-complete.sh scripts/pipeline-lock.sh scripts/verify-cloudflare-production.sh scripts/setup-cloudflare-d1-github-secrets.sh
+
+      - name: Run full core checks
+        if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+        run: pnpm check
+
+      - name: Run offline smoke workflow
+        if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+        run: pnpm ci:smoke
+
+      - name: Run pipeline smoke scripts
+        if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+        run: |
+          bash scripts/ci-pipeline-smoke.sh
+          bash scripts/run-proposal-history.sh
+
+      - name: Generate persona and valuation reports
+        if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+        run: |
+          node --import tsx/esm src/persona-audit.ts
+          node --import tsx/esm src/valuation-range.ts
+          node --import tsx/esm src/primary-disclosure-subtypes.ts
+          node --import tsx/esm src/regime-scenario-report.ts
+          node --import tsx/esm src/pro-knowledge-refresh-report.ts
+          node --import tsx/esm src/company-onboarding-audit.ts
+          node --import tsx/esm src/stock-pro-quality-audit.ts
+          node --import tsx/esm src/stock-pro-improvement-roadmap.ts
+
+      - name: Generate governed stock-pro datasets
+        if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+        run: |
+          pnpm pro:quality
+          pnpm pro:valuation
+          pnpm pro:ir-events
+          pnpm pro:committee
+
+      - name: Generate stock-pro and company reports
+        if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+        run: |
+          node --import tsx/esm src/stock-pro-agent-report.ts
+          node --import tsx/esm src/stock-pro-summary.ts
+          node --import tsx/esm src/company-hypothesis-report.ts
+          node --import tsx/esm src/company-network-report.ts
+          node --import tsx/esm src/company-coverage-audit.ts
+          node --import tsx/esm src/regime-hypothesis-alignment.ts
+          node --import tsx/esm src/stale-hypothesis-report.ts
+
+      - name: Generate pipeline and strategic reports
+        if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+        run: |
+          node --import tsx/esm src/pipeline-health-summary.ts
+          node --import tsx/esm src/pipeline-health-alert.ts --dry-run
+          node --import tsx/esm src/register-company-context.ts --sample=sanrio
+          node --import tsx/esm src/strategic-advice-report.ts
+          node --import tsx/esm src/regime-history.ts
+          node --import tsx/esm src/source-health-history.ts
+          node --import tsx/esm src/company-non-move-sync.ts
+          node --import tsx/esm src/ci-health-report.ts
+
       - name: Upload smoke reports
-        if: always()
+        if: ${{ failure() || github.ref == 'refs/heads/main' }}
         uses: actions/upload-artifact@v4
         with:
           name: alpha-pon-reports
+          retention-days: 7
           path: |
             reports/latest.md
             reports/primary_disclosure_learning_latest.md
@@ -89,7 +139,7 @@ jobs:
             reports/ipo_theme_watch_latest.md
             reports/ipo_theme_watch_latest.json
             reports/stock_pro_agent_latest.md
-            reports/stock_pro_summary_latest.md
+            reports/stock-pro-summary_latest.md
             reports/company_hypotheses_latest.md
             reports/company_network_latest.md
             reports/company_coverage_audit_latest.md

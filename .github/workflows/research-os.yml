@@ -17,6 +17,12 @@ on:
       - "docs/roadmaps/**"
       - ".github/workflows/research-os.yml"
   pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+      - converted_to_draft
     paths:
       - "research/**"
       - "src/research/**"
@@ -28,7 +34,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: research-os-${{ github.ref }}
+  group: research-os-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -56,42 +62,41 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # --- 器の健全性（実装が壊れていないか） -----------------------------
+      # Draft PRでは型とユニットテストだけを実行する。
+      # Ready・main・手動実行では下記のfull validationまで実行する。
       - name: 型チェック
         run: pnpm typecheck && pnpm typecheck:tests
 
       - name: Research OS ユニットテスト
         run: pnpm research:test
 
-      # --- データの健全性（研究記録が契約を守っているか） -------------------
       - name: Schema / 重複 / PIT / Gate / Decay
+        if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
         run: pnpm research:validate
 
       - name: Append Only・不変性ガード
+        if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
         run: pnpm research:check:history
 
       - name: ドキュメント整合性（リンク切れ・生成物の手編集）
+        if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
         run: pnpm research:check:docs
 
-      # --- 安全な Backtest のみ自動実行 ------------------------------------
-      # 外部 IO なし・固定の合成データのみ。実価格を使う backtest は自動実行しない。
       - name: Backtest（fixtures のみ）
+        if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
         run: pnpm research:backtest:fixtures
 
-      # --- 生成物 ----------------------------------------------------------
-      # PR では「再生成して差分が出たら失敗」（人間は CLI を実行できる）。
       - name: 生成物が最新か検証
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
         run: pnpm research:generate:check
 
-      # main への push では CI が生成物を作り直してコミットする。
-      # ChatGPT はファイルを書くだけでよく、生成物を手で作る必要がない。
+      # mainへのpushだけが生成物を更新する。手動実行は検証のみでcommitしない。
       - name: 生成物を再生成
-        if: github.event_name != 'pull_request'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: pnpm research:generate
 
       - name: 生成物の差分をコミット
-        if: github.event_name != 'pull_request'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           if [ -z "$(git status --porcelain research/)" ]; then
             echo "生成物に差分はありません"
