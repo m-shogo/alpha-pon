@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alpha-pon.local/schemas/foundation-decision-integration-record.schema.json",
+  "title": "Alpha Pon Foundation Decision Integration Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "decisionId",
+    "candidateId",
+    "listedSecurityEntityId",
+    "issuedAt",
+    "informationCutoff",
+    "firstExecutableAt",
+    "securityMasterSnapshotHash",
+    "evidenceSnapshotHash",
+    "claimGraphSnapshotHash",
+    "documentRevisionSnapshotHash",
+    "evidencePackageId",
+    "evidencePackageHash",
+    "evidencePackageStatus",
+    "evidencePackageCompleteness",
+    "hypothesisId",
+    "hypothesisHash",
+    "scenarioSetId",
+    "scenarioSetHash",
+    "scenarios",
+    "replayId",
+    "councilRunId",
+    "replayManifestHash",
+    "replayResultHash",
+    "calibrationHashes",
+    "priceSnapshots",
+    "status",
+    "eligibleForRecommendationCandidate",
+    "blockers",
+    "automaticTradingAuthorized",
+    "contentHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "decisionId": { "type": "string", "minLength": 3 },
+    "candidateId": { "type": "string", "minLength": 3 },
+    "listedSecurityEntityId": { "type": "string", "minLength": 3 },
+    "issuedAt": { "type": "string", "format": "date-time" },
+    "informationCutoff": { "type": "string", "format": "date-time" },
+    "firstExecutableAt": { "type": "string", "format": "date-time" },
+    "securityMasterSnapshotHash": { "$ref": "#/$defs/hash" },
+    "evidenceSnapshotHash": { "$ref": "#/$defs/hash" },
+    "claimGraphSnapshotHash": { "$ref": "#/$defs/hash" },
+    "documentRevisionSnapshotHash": { "$ref": "#/$defs/hash" },
+    "evidencePackageId": { "type": "string", "minLength": 3 },
+    "evidencePackageHash": { "$ref": "#/$defs/hash" },
+    "evidencePackageStatus": { "const": "complete" },
+    "evidencePackageCompleteness": { "$ref": "#/$defs/completeness" },
+    "hypothesisId": { "type": "string", "minLength": 3 },
+    "hypothesisHash": { "$ref": "#/$defs/hash" },
+    "scenarioSetId": { "type": "string", "minLength": 3 },
+    "scenarioSetHash": { "$ref": "#/$defs/hash" },
+    "scenarios": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["downside", "base", "upside", "nullHypothesis"],
+      "properties": {
+        "downside": { "$ref": "#/$defs/objectPin" },
+        "base": { "$ref": "#/$defs/objectPin" },
+        "upside": { "$ref": "#/$defs/objectPin" },
+        "nullHypothesis": { "$ref": "#/$defs/objectPin" }
+      }
+    },
+    "replayId": { "type": "string", "minLength": 3 },
+    "councilRunId": { "type": "string", "minLength": 3 },
+    "replayManifestHash": { "$ref": "#/$defs/hash" },
+    "replayResultHash": { "$ref": "#/$defs/hash" },
+    "calibrationHashes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/hash" }
+    },
+    "priceSnapshots": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["issuerPrice", "issuerBenchmark", "topixBenchmark", "sectorBenchmark"],
+      "properties": {
+        "issuerPrice": { "$ref": "#/$defs/objectPin" },
+        "issuerBenchmark": { "$ref": "#/$defs/objectPin" },
+        "topixBenchmark": { "$ref": "#/$defs/objectPin" },
+        "sectorBenchmark": { "$ref": "#/$defs/objectPin" }
+      }
+    },
+    "status": { "type": "string", "enum": ["eligible", "blocked"] },
+    "eligibleForRecommendationCandidate": { "type": "boolean" },
+    "blockers": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "supersedesDecisionId": { "type": "string", "minLength": 3 },
+    "automaticTradingAuthorized": { "const": false },
+    "contentHash": { "$ref": "#/$defs/hash" }
+  },
+  "$defs": {
+    "hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "objectPin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "hash"],
+      "properties": {
+        "id": { "type": "string", "minLength": 3 },
+        "hash": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "completeness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "securityResolved",
+        "normalizedEvidence",
+        "correctionChainComplete",
+        "claimGraphComplete",
+        "documentDiffReviewed",
+        "benchmarkComplete",
+        "priceSnapshotComplete",
+        "executionRouteComplete",
+        "licenseComplete",
+        "contradictionsReviewed"
+      ],
+      "properties": {
+        "securityResolved": { "type": "boolean" },
+        "normalizedEvidence": { "type": "boolean" },
+        "correctionChainComplete": { "type": "boolean" },
+        "claimGraphComplete": { "type": "boolean" },
+        "documentDiffReviewed": { "type": "boolean" },
+        "benchmarkComplete": { "type": "boolean" },
+        "priceSnapshotComplete": { "type": "boolean" },
+        "executionRouteComplete": { "type": "boolean" },
+        "licenseComplete": { "type": "boolean" },
+        "contradictionsReviewed": { "type": "boolean" }
+      }
+    }
+  }
+}
