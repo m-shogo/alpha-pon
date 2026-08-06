@@ -1,0 +1,225 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alpha-pon.local/schemas/testable-hypothesis-record.schema.json",
+  "title": "Alpha Pon Testable Hypothesis Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "hypothesisId",
+    "candidateId",
+    "listedSecurityEntityId",
+    "evidencePackageId",
+    "evidencePackageHash",
+    "createdAt",
+    "informationCutoff",
+    "hypothesisClass",
+    "statement",
+    "expectedDirection",
+    "factClaimIds",
+    "assumptionClaimIds",
+    "forecastClaimIds",
+    "supportEvidenceIds",
+    "documentChangeRefs",
+    "mechanismSteps",
+    "falsificationConditions",
+    "evaluationPlan",
+    "status",
+    "modelVersion",
+    "ruleVersion",
+    "automaticTradingAuthorized",
+    "contentHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "hypothesisId": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9:_-]+$"
+    },
+    "candidateId": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9:_-]+$"
+    },
+    "listedSecurityEntityId": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9:_-]+$"
+    },
+    "evidencePackageId": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9:_-]+$"
+    },
+    "evidencePackageHash": { "$ref": "#/$defs/hash" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "informationCutoff": { "type": "string", "format": "date-time" },
+    "hypothesisClass": {
+      "type": "string",
+      "enum": [
+        "event_repricing",
+        "special_situation",
+        "governance_accounting",
+        "structural_growth",
+        "supply_chain",
+        "valuation_expectations",
+        "market_microstructure",
+        "other"
+      ]
+    },
+    "statement": { "type": "string", "minLength": 20 },
+    "expectedDirection": {
+      "type": "string",
+      "enum": ["positive", "negative", "mixed", "neutral"]
+    },
+    "factClaimIds": { "$ref": "#/$defs/nonEmptyIdArray" },
+    "assumptionClaimIds": { "$ref": "#/$defs/nonEmptyIdArray" },
+    "forecastClaimIds": { "$ref": "#/$defs/nonEmptyIdArray" },
+    "supportEvidenceIds": { "$ref": "#/$defs/nonEmptyIdArray" },
+    "documentChangeRefs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 3 }
+    },
+    "mechanismSteps": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "stepId",
+          "ordinal",
+          "statement",
+          "inputClaimIds",
+          "outputStatement"
+        ],
+        "properties": {
+          "stepId": {
+            "type": "string",
+            "minLength": 3,
+            "pattern": "^[a-z][a-z0-9:_-]+$"
+          },
+          "ordinal": { "type": "integer", "minimum": 0 },
+          "statement": { "type": "string", "minLength": 10 },
+          "inputClaimIds": { "$ref": "#/$defs/nonEmptyIdArray" },
+          "outputStatement": { "type": "string", "minLength": 10 }
+        }
+      }
+    },
+    "falsificationConditions": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "conditionId",
+          "statement",
+          "effect",
+          "checkBy",
+          "requiredEvidenceTypes"
+        ],
+        "properties": {
+          "conditionId": {
+            "type": "string",
+            "minLength": 3,
+            "pattern": "^[a-z][a-z0-9:_-]+$"
+          },
+          "statement": { "type": "string", "minLength": 10 },
+          "effect": {
+            "type": "string",
+            "enum": ["weakens", "invalidates"]
+          },
+          "checkBy": { "type": "string", "format": "date-time" },
+          "requiredEvidenceTypes": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 2 }
+          }
+        }
+      }
+    },
+    "evaluationPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "primaryMetric",
+        "secondaryMetrics",
+        "benchmarkRoles",
+        "entryRule",
+        "horizonTradingDays",
+        "evaluationDelayDays",
+        "transactionCostModelVersion",
+        "corporateActionPolicyVersion",
+        "holdoutPolicy"
+      ],
+      "properties": {
+        "primaryMetric": {
+          "type": "string",
+          "enum": [
+            "net_alpha",
+            "relative_return",
+            "event_classification_accuracy",
+            "fundamental_realization",
+            "drawdown_control",
+            "other"
+          ]
+        },
+        "secondaryMetrics": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 2 }
+        },
+        "benchmarkRoles": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": ["issuer", "topix", "sector"]
+          }
+        },
+        "entryRule": { "type": "string", "minLength": 10 },
+        "horizonTradingDays": { "type": "integer", "minimum": 1 },
+        "evaluationDelayDays": { "type": "integer", "minimum": 0 },
+        "transactionCostModelVersion": { "type": "string", "minLength": 1 },
+        "corporateActionPolicyVersion": { "type": "string", "minLength": 1 },
+        "holdoutPolicy": {
+          "type": "string",
+          "enum": ["registered_holdout", "walk_forward", "out_of_sample_only"]
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "registered"]
+    },
+    "registeredAt": { "type": "string", "format": "date-time" },
+    "supersedesHypothesisId": { "type": "string", "minLength": 3 },
+    "modelVersion": { "type": "string", "minLength": 1 },
+    "ruleVersion": { "type": "string", "minLength": 1 },
+    "automaticTradingAuthorized": { "const": false },
+    "contentHash": { "$ref": "#/$defs/hash" }
+  },
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "nonEmptyIdArray": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "pattern": "^[a-z][a-z0-9:_-]+$"
+      }
+    }
+  }
+}
