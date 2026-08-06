@@ -26,8 +26,8 @@ function snapshot(
     ],
     diffIds: ["document-diff:snapshot:0-1"],
     evidenceIds: [
-      "evidence:snapshot:initial",
       "evidence:snapshot:correction",
+      "evidence:snapshot:initial",
     ],
     ...overrides,
   };

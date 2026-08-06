@@ -1,73 +1,76 @@
-// Research OS — 整合性の一括検査。
-// スキーマ / 重複 / 参照 / PIT / Gate / Decay / catalogs / Claim Graph / Document Revision をまとめて検査する。
+// Research OS — Foundation整合性の一括検査。
 
 import { existsSync, readFileSync } from "fs";
+import { validateBitemporalEvidenceRepository } from "../bitemporal-evidence-repository.js";
+import type { EvidenceStoreIssue } from "../bitemporal-evidence-store.js";
 import { validateRepositoryCatalogs, type CatalogIssue } from "../catalog-validation.js";
-import {
-  validateClaimGraphRepository,
-} from "../claim-contradiction-graph-repository.js";
-import {
-  validateDocumentRevisionDiffRepository,
-} from "../document-revision-diff-repository.js";
+import { validateClaimGraphRepository } from "../claim-contradiction-graph-repository.js";
+import type { ClaimGraphIssue } from "../claim-contradiction-graph.js";
+import { validateDocumentRevisionDiffRepository } from "../document-revision-diff-repository.js";
+import type { DocumentRevisionDiffIssue } from "../document-revision-diff.js";
+import { validateEvidencePackageRepository } from "../evidence-package-repository.js";
+import type { EvidencePackageIssue } from "../evidence-package-manifest.js";
 import { checkEdgeRegistry, type Issue } from "../edge-registry.js";
 import { checkDecay } from "../decay.js";
 import { loadResearchState, loadSchema, paths, readJsonl, ResearchDataError } from "../io.js";
 import { checkPit } from "../pit.js";
 import { checkProductionIntegrity, type HoldoutAccessEntry, type HoldoutManifest } from "../promotion.js";
 import { formatErrors, validate as validateSchema } from "../schema.js";
+import { validateSecurityMasterRepository } from "../security-master-repository.js";
+import type { SecurityMasterIssue } from "../security-master.js";
+import { validatePersonaCalibrationRepository } from "../stock-pro-council-calibration-repository.js";
+import { validateRepositoryCouncilLedgersGoverned } from "../stock-pro-council-ledger-hardening.js";
+import { validateCouncilReplayRepository } from "../stock-pro-council-replay-repository.js";
+import {
+  validateRepositoryStockProCouncilV2,
+  type CouncilIssue,
+} from "../stock-pro-council-v2-validation.js";
 import { fail, parseArgs, printIssues, todayJst } from "./common.js";
 
 function loadHoldout(): { manifest: HoldoutManifest | null; accessLog: HoldoutAccessEntry[]; issues: Issue[] } {
   const issues: Issue[] = [];
   let manifest: HoldoutManifest | null = null;
-
   const manifestPath = paths.holdoutManifest();
   if (existsSync(manifestPath)) {
     const raw = JSON.parse(readFileSync(manifestPath, "utf-8"));
     const errors = validateSchema(raw, loadSchema("holdout-manifest"));
     if (errors.length > 0) {
-      issues.push({
-        severity: "error",
-        code: "invalid_holdout_manifest",
-        target: manifestPath,
-        message: formatErrors(errors),
-      });
+      issues.push({ severity: "error", code: "invalid_holdout_manifest", target: manifestPath, message: formatErrors(errors) });
     } else {
       manifest = raw as HoldoutManifest;
     }
   }
-
   const accessLog: HoldoutAccessEntry[] = [];
   for (const raw of readJsonl(paths.holdoutAccessLog())) {
     const errors = validateSchema(raw, loadSchema("holdout-access"));
     if (errors.length > 0) {
-      issues.push({
-        severity: "error",
-        code: "invalid_holdout_access",
-        target: paths.holdoutAccessLog(),
-        message: formatErrors(errors),
-      });
+      issues.push({ severity: "error", code: "invalid_holdout_access", target: paths.holdoutAccessLog(), message: formatErrors(errors) });
     } else {
       accessLog.push(raw as HoldoutAccessEntry);
     }
   }
-
   return { manifest, accessLog, issues };
 }
 
-function toResearchIssue(issue: CatalogIssue): Issue {
-  return {
-    severity: issue.severity,
-    code: issue.code,
-    target: issue.target,
-    message: issue.message,
-  };
+function toResearchIssue(
+  issue:
+    | CatalogIssue
+    | CouncilIssue
+    | SecurityMasterIssue
+    | EvidenceStoreIssue
+    | ClaimGraphIssue
+    | DocumentRevisionDiffIssue
+    | EvidencePackageIssue,
+): Issue {
+  return { severity: issue.severity, code: issue.code, target: issue.target, message: issue.message };
 }
 
 function main(): void {
   const { options } = parseArgs();
   const asOf = options.get("as-of") ?? todayJst();
-  const foundationAsOf = options.get("foundation-as-of") ?? new Date().toISOString();
+  const foundationAsOf = options.get("foundation-as-of")
+    ?? options.get("claim-as-of")
+    ?? new Date().toISOString();
 
   let state;
   try {
@@ -81,25 +84,35 @@ function main(): void {
 
   const holdout = loadHoldout();
   const catalogs = validateRepositoryCatalogs();
-  const claimGraph = validateClaimGraphRepository({ asOf: foundationAsOf });
-  const documentRevision = validateDocumentRevisionDiffRepository({
+  const council = validateRepositoryStockProCouncilV2();
+  const ledgers = validateRepositoryCouncilLedgersGoverned();
+  const replay = validateCouncilReplayRepository();
+  const calibration = validatePersonaCalibrationRepository();
+  const securityMaster = validateSecurityMasterRepository({ asOf });
+  const evidenceStore = validateBitemporalEvidenceRepository({ asOf: foundationAsOf });
+  const claimGraph = validateClaimGraphRepository({ asOf: foundationAsOf, includeDependencyIssues: false });
+  const documentRevisions = validateDocumentRevisionDiffRepository({
     asOf: foundationAsOf,
     includeDependencyIssues: false,
   });
-  const catalogIssues = [...catalogs.dataSourceIssues, ...catalogs.edgeFamilyIssues]
-    .map(toResearchIssue);
-  const claimGraphIssues: Issue[] = claimGraph.issues.map((item) => ({
-    severity: item.severity,
-    code: item.code,
-    target: item.target,
-    message: item.message,
-  }));
-  const documentRevisionIssues: Issue[] = documentRevision.issues.map((item) => ({
-    severity: item.severity,
-    code: item.code,
-    target: item.target,
-    message: item.message,
-  }));
+  const evidencePackages = validateEvidencePackageRepository({ includeDependencyIssues: false });
+
+  const catalogIssues = [...catalogs.dataSourceIssues, ...catalogs.edgeFamilyIssues].map(toResearchIssue);
+  const foundationIssues = [
+    ...council.catalogIssues,
+    ...council.verdictIssues,
+    ...ledgers.catalogIssues,
+    ...ledgers.dissentIssues,
+    ...ledgers.vetoIssues,
+    ...ledgers.lifecycleIssues,
+    ...replay.issues,
+    ...calibration.issues,
+    ...securityMaster.issues,
+    ...evidenceStore.issues,
+    ...claimGraph.issues,
+    ...documentRevisions.issues,
+    ...evidencePackages.issues,
+  ].map(toResearchIssue);
 
   const issues: Issue[] = [
     ...holdout.issues,
@@ -108,23 +121,20 @@ function main(): void {
     ...checkProductionIntegrity(state, holdout.accessLog, asOf),
     ...checkDecay(state, asOf),
     ...catalogIssues,
-    ...claimGraphIssues,
-    ...documentRevisionIssues,
+    ...foundationIssues,
   ];
 
-  console.log(
-    `Research OS 検査 (asOf=${asOf}): Edge ${state.edges.length} / Analog ${state.analogs.length} / Counterfactual ${state.counterfactuals.length} / Confounder ${state.confounders.length}`,
-  );
-  console.log(
-    `Research Catalog: Data Source ${catalogs.sourceCount} / Technology Family ${catalogs.familyCount} / Active Edge ${catalogs.activeEdgeCount}`,
-  );
-  console.log(
-    `Claim Graph (asOf=${foundationAsOf}): Claim records ${claimGraph.claimRecordCount} / Edge records ${claimGraph.edgeRecordCount} / Snapshot claims ${claimGraph.snapshotClaimCount} / Eligible ${claimGraph.recommendationEligibleClaimCount} / Blocked ${claimGraph.blockedClaimCount}`,
-  );
-  console.log(
-    `Document Revision/Diff (asOf=${foundationAsOf}): Revision records ${documentRevision.revisionRecordCount} / Diff records ${documentRevision.diffRecordCount} / Snapshot revisions ${documentRevision.snapshotRevisionCount} / Snapshot diffs ${documentRevision.snapshotDiffCount} / Claim-eligible changes ${documentRevision.claimEligibleChangeCount}`,
-  );
-  console.log("Catalog entries, Claims and Document revisions are not counted as active Research OS Edges.");
+  console.log(`Research OS 検査 (asOf=${asOf}): Edge ${state.edges.length} / Analog ${state.analogs.length} / Counterfactual ${state.counterfactuals.length} / Confounder ${state.confounders.length}`);
+  console.log(`Research Catalog: Data Source ${catalogs.sourceCount} / Technology Family ${catalogs.familyCount} / Active Edge ${catalogs.activeEdgeCount}`);
+  console.log(`Stock Pro Council v2: Persona ${council.personaCount} / Verdict ${council.verdictCount} / Dissent ${ledgers.dissentCount} / Veto ${ledgers.vetoCount} / Binding Veto ${ledgers.bindingVetoCount}`);
+  console.log(`Council Replay: Manifest ${replay.replayCount} / Eligible ${replay.eligibleCount} / Blocked ${replay.blockedCount}`);
+  console.log(`Council Calibration: Record ${calibration.calibrationCount} / Active Head ${calibration.activeHeadCount} / Eligible Head ${calibration.eligibleHeadCount}`);
+  console.log(`Security Master: Entity Record ${securityMaster.entityRecordCount} / Relationship Record ${securityMaster.relationshipRecordCount} / Active Entity ${securityMaster.activeEntityCount} / Active Relationship ${securityMaster.activeRelationshipCount} / Unresolved Entity ${securityMaster.unresolvedEntityCount} / Unresolved Relationship ${securityMaster.unresolvedRelationshipCount}`);
+  console.log(`Bitemporal Evidence: Evidence Record ${evidenceStore.evidenceRecordCount} / Relation Record ${evidenceStore.relationRecordCount} / Snapshot Evidence ${evidenceStore.snapshotEvidenceCount} / Recommendation Eligible ${evidenceStore.recommendationEligibleCount} / Corrected or Retracted ${evidenceStore.correctedOrRetractedCount} / Discovery Only ${evidenceStore.discoveryOnlyCount}`);
+  console.log(`Claim Graph (asOf=${foundationAsOf}): Claim Record ${claimGraph.claimRecordCount} / Edge Record ${claimGraph.edgeRecordCount} / Active Head ${claimGraph.activeClaimHeadCount} / Snapshot Claim ${claimGraph.snapshotClaimCount} / Eligible ${claimGraph.recommendationEligibleClaimCount} / Blocked ${claimGraph.blockedClaimCount}`);
+  console.log(`Document Revision (asOf=${foundationAsOf}): Revision Record ${documentRevisions.revisionRecordCount} / Diff Record ${documentRevisions.diffRecordCount} / Active Revision ${documentRevisions.activeRevisionHeadCount} / Active Diff ${documentRevisions.activeDiffHeadCount} / Snapshot Revision ${documentRevisions.snapshotRevisionCount} / Snapshot Diff ${documentRevisions.snapshotDiffCount} / Claim Eligible Change ${documentRevisions.claimEligibleChangeCount}`);
+  console.log(`Evidence Package: Manifest ${evidencePackages.manifestCount} / Active Head ${evidencePackages.activeHeadCount} / Draft Head ${evidencePackages.draftHeadCount} / Complete Head ${evidencePackages.completeHeadCount}`);
+  console.log("Catalog entries and Foundation records are not counted as active Research OS Edges.");
 
   const { errors } = printIssues("整合性", issues);
   if (errors > 0) fail(`エラー ${errors} 件。修正するまで研究成果は取り込めません。`);
@@ -132,16 +142,15 @@ function main(): void {
   console.log("\n✓ Research OS の不変条件をすべて満たしています");
   console.log("✓ DATA_SOURCE_REGISTRY_CONTRACT_GREEN");
   console.log("✓ TECH_EDGE_CANDIDATE_CATALOG_GREEN");
-  if (claimGraph.claimRecordCount > 0) {
-    console.log("✓ CLAIM_CONTRADICTION_GRAPH_RECORDS_VALID");
-  } else {
-    console.log("Claim Graph contracts are present, but no local Claim record exists; milestone remains unproven.");
-  }
-  if (documentRevision.revisionRecordCount > 0) {
-    console.log("✓ DOCUMENT_REVISION_DIFF_RECORDS_VALID");
-  } else {
-    console.log("Document Revision/Diff contracts are present, but no local revision record exists; milestone remains unproven.");
-  }
+  console.log("✓ STOCK_PRO_COUNCIL_V2_CONTRACT_GREEN");
+  console.log("✓ COUNCIL_DISSENT_VETO_LEDGER_GREEN");
+  console.log(replay.replayCount > 0 ? "✓ COUNCIL_DETERMINISTIC_REPLAY_GREEN" : "Council replay contracts are present, but no local replay manifest exists; milestone remains unproven.");
+  console.log(calibration.eligibleHeadCount > 0 ? "✓ COUNCIL_CALIBRATION_V1_GREEN" : "Council calibration contracts are present, but no eligible local calibration head exists; milestone remains unproven.");
+  console.log(securityMaster.entityRecordCount > 0 ? "Security Master records are structurally valid; historical local pilot evidence is still required before SECURITY_MASTER_V1_GREEN." : "Security Master contracts are present, but no local entity record exists; SECURITY_MASTER_V1_GREEN remains unproven.");
+  console.log(evidenceStore.evidenceRecordCount > 0 ? "Evidence Store records are structurally valid; correction before/after cutoff replay is still required before milestone green." : "Bitemporal Evidence Store contracts are present, but no local Evidence record exists; milestone remains unproven.");
+  console.log(claimGraph.claimRecordCount > 0 ? "Claim Graph records are structurally valid; a real issue-time-compatible graph and deterministic replay are still required before milestone green." : "Claim Graph contracts are present, but no local Claim record exists; milestone remains unproven.");
+  console.log(documentRevisions.revisionRecordCount > 0 ? "Document Revision records are structurally valid; a real disclosure/correction pair replay is still required before milestone green." : "Document Revision contracts are present, but no local revision record exists; milestone remains unproven.");
+  console.log(evidencePackages.manifestCount > 0 ? "Evidence Package manifests are structurally valid; real external pin resolution and historical package replay are still required before milestone green." : "Evidence Package contracts are present, but no local manifest exists; milestone remains unproven.");
 }
 
 main();
