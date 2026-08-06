@@ -1,3 +1,6 @@
+import "./price-store.test.js";
+import "./price-store-hardening.test.js";
+import "./price-store-replay-guard.test.js";
 import assert from "node:assert/strict";
 import { canEnterSameClose, checkPit, jstDateOf } from "../../src/research/pit.js";
 import { makeAnalog, makeEdge, makeState } from "./helpers.js";
@@ -22,13 +25,20 @@ function testSameCloseEntryWindow() {
 }
 
 function testFutureTimestampRejected() {
-  const analog = makeAnalog({ eventDate: "2026-09-01", observedAt: "2026-09-01T15:30:00+09:00", recordedAt: "2026-09-02" });
+  const analog = makeAnalog({
+    eventDate: "2026-09-01",
+    observedAt: "2026-09-01T15:30:00+09:00",
+    recordedAt: "2026-09-02",
+  });
   assert.ok(codes(makeState({ analogs: [analog] })).includes("future_timestamp"), "未来日付を弾く");
   console.log("research/pit: 未来日付の検出 OK");
 }
 
 function testObservedBeforeEventRejected() {
-  const analog = makeAnalog({ eventDate: "2024-01-10", observedAt: "2024-01-04T15:30:00+09:00" });
+  const analog = makeAnalog({
+    eventDate: "2024-01-10",
+    observedAt: "2024-01-04T15:30:00+09:00",
+  });
   assert.ok(
     codes(makeState({ analogs: [analog] })).includes("observed_before_event"),
     "イベント前に観測されたことにはできない",
@@ -45,10 +55,14 @@ function testOutcomeBeforeEventRejected() {
 }
 
 function testHoldoutLeakDetected() {
-  // Edge の holdout 期間（2024-07-01〜2025-06-30）に入る事例を参照している
-  const analog = makeAnalog({ id: "leaky-analog", eventDate: "2024-08-01", observedAt: "2024-08-01T15:30:00+09:00", recordedAt: "2024-08-02" });
+  const analog = makeAnalog({
+    id: "leaky-analog",
+    eventDate: "2024-08-01",
+    observedAt: "2024-08-01T15:30:00+09:00",
+    recordedAt: "2024-08-02",
+  });
   const edge = makeEdge({ analogIds: ["leaky-analog"] });
-  assert.ok(codes(makeState({ edges: [edge], analogs: [analog] })).includes("holdout_leak"), "Holdout 漏れを検出する");
+  assert.ok(codes(makeState({ edges: [edge], analogs: [analog] })).includes("holdout_leak"));
   console.log("research/pit: Holdout 漏れ検出 OK");
 }
 
@@ -59,16 +73,15 @@ function testOverlappingWindowsRejected() {
       holdoutWindow: { from: "2024-07-01", to: "2025-06-30" },
     },
   });
-  assert.ok(codes(makeState({ edges: [edge] })).includes("holdout_overlap"), "研究期間と Holdout の重複を弾く");
+  assert.ok(codes(makeState({ edges: [edge] })).includes("holdout_overlap"));
   console.log("research/pit: 期間重複の検出 OK");
 }
 
 function testCleanStateHasNoErrors() {
   const analog = makeAnalog({ id: "clean-analog" });
   const edge = makeEdge({ analogIds: ["clean-analog"] });
-  const errors = checkPit(makeState({ edges: [edge], analogs: [analog] }), NOW).filter(
-    (issue) => issue.severity === "error",
-  );
+  const errors = checkPit(makeState({ edges: [edge], analogs: [analog] }), NOW)
+    .filter((issue) => issue.severity === "error");
   assert.deepEqual(errors, [], "正しいデータではエラーが出ない");
   console.log("research/pit: 正常系 OK");
 }
