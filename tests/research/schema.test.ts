@@ -25,6 +25,7 @@ import "./testable-hypothesis-scenario-hardening.test.js";
 import "./testable-hypothesis-scenario-ledger.test.js";
 import "./testable-hypothesis-scenario-repository.test.js";
 import "./testable-hypothesis-scenario-writer.test.js";
+import "./foundation-decision-integration.test.js";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { load } from "js-yaml";
