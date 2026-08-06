@@ -210,7 +210,8 @@ function sourceWorkspace() {
 
 {
   const tampered = sourceWorkspace();
-  tampered.clusters[0]!.candidates[0]!.afterPreview = ["tampered"];
+  const firstCandidate = tampered.clusters[0]!.candidates[0] as JsonObject;
+  firstCandidate.afterPreview = ["tampered"];
   assert.throws(
     () => buildSanrioEdinetReviewNextBatchWorkspace({
       triageWorkspace: tampered,
