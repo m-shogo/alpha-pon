@@ -1,5 +1,5 @@
 // Research OS — 整合性の一括検査。
-// スキーマ / 重複 / 参照 / PIT / Gate / Decay / catalogs / council replayをまとめて検査する。
+// スキーマ / 重複 / 参照 / PIT / Gate / Decay / catalogs / council replay / calibrationをまとめて検査する。
 
 import { existsSync, readFileSync } from "fs";
 import { validateRepositoryCatalogs, type CatalogIssue } from "../catalog-validation.js";
@@ -9,6 +9,7 @@ import { loadResearchState, loadSchema, paths, readJsonl, ResearchDataError } fr
 import { checkPit } from "../pit.js";
 import { checkProductionIntegrity, type HoldoutAccessEntry, type HoldoutManifest } from "../promotion.js";
 import { formatErrors, validate as validateSchema } from "../schema.js";
+import { validatePersonaCalibrationRepository } from "../stock-pro-council-calibration-repository.js";
 import { validateRepositoryCouncilLedgersGoverned } from "../stock-pro-council-ledger-hardening.js";
 import { validateCouncilReplayRepository } from "../stock-pro-council-replay-repository.js";
 import {
@@ -83,6 +84,7 @@ function main(): void {
   const council = validateRepositoryStockProCouncilV2();
   const ledgers = validateRepositoryCouncilLedgersGoverned();
   const replay = validateCouncilReplayRepository();
+  const calibration = validatePersonaCalibrationRepository();
   const catalogIssues = [...catalogs.dataSourceIssues, ...catalogs.edgeFamilyIssues]
     .map(toResearchIssue);
   const councilIssues = [
@@ -93,6 +95,7 @@ function main(): void {
     ...ledgers.vetoIssues,
     ...ledgers.lifecycleIssues,
     ...replay.issues,
+    ...calibration.issues,
   ].map(toResearchIssue);
 
   const issues: Issue[] = [
@@ -117,6 +120,9 @@ function main(): void {
   console.log(
     `Council Replay: Manifest ${replay.replayCount} / Eligible ${replay.eligibleCount} / Blocked ${replay.blockedCount}`,
   );
+  console.log(
+    `Council Calibration: Record ${calibration.calibrationCount} / Active Head ${calibration.activeHeadCount} / Eligible Head ${calibration.eligibleHeadCount}`,
+  );
   console.log("Catalog entries and council personas are not counted as active Research OS Edges.");
 
   const { errors } = printIssues("整合性", issues);
@@ -131,6 +137,11 @@ function main(): void {
     console.log("✓ COUNCIL_DETERMINISTIC_REPLAY_GREEN");
   } else {
     console.log("Council replay contracts are present, but no local replay manifest exists; milestone remains unproven.");
+  }
+  if (calibration.eligibleHeadCount > 0) {
+    console.log("✓ COUNCIL_CALIBRATION_V1_GREEN");
+  } else {
+    console.log("Council calibration contracts are present, but no eligible local calibration head exists; milestone remains unproven.");
   }
 }
 
