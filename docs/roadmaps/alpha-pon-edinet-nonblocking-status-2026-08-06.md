@@ -1,7 +1,7 @@
 # Alpha Pon EDINET non-blocking status — 2026-08-06
 
 Status: `ACTIVE_SUBROADMAP`
-Updated: 2026-08-06 22:00 JST
+Updated: 2026-08-06 22:20 JST
 Parent roadmap: `docs/roadmaps/alpha-pon-current-roadmap-2026-08-06.md`
 
 ## Durable operating decision
@@ -76,6 +76,7 @@ Do not block unrelated implementation on this command. Surface it again only whe
 #76 read-only local review dashboard with stage hash and safety checks
 #77 governed Security Master, PIT, section-hash, and revision-lineage Foundation preview mapping
 #78 generic configured-issuer downstream review plan before acquisition
+#79 explicit configured local acquisition with complete-only canonical manifest
 ```
 
 ## Non-blocking implementation queue
@@ -91,11 +92,12 @@ Proceed in this order unless current `main`, tests, or measured local data show 
 7. **COMPLETE — PR #76:** Add the local read-only review dashboard.
 8. **COMPLETE — PR #77:** Add explicit Security Master, PIT, source hash, section hash, license, storage, and revision mapping for non-appendable Foundation previews.
 9. **COMPLETE — PR #78:** Add a generic configured-issuer review plan and synthetic non-Sanrio boundary before acquisition.
-10. **IN PROGRESS — PR #79:** Add an explicit configured local acquisition executor. Require type 1 and type 2 coverage, reject unresolved external parents, download only allowlisted tasks, record SHA-256 and lineage hashes, write a canonical manifest only after all tasks succeed, and keep all content local-only/non-appendable.
-11. Generalize the acquired-file review workspace using registry/boundary evidence and schema versioning; do not silently rewrite the Sanrio v1 workspace.
+10. **COMPLETE — PR #79:** Add an explicit configured local acquisition executor with type 1/2-only tasks, no automatic external parent, local SHA lineage, and no canonical manifest after partial failure.
+11. **IN PROGRESS — PR #80:** Add a schema-versioned generic acquired-file review workspace. Revalidate registry/review-plan/acquisition-plan/manifest hashes, verify every binary and metadata file on disk, group by lineage root, and keep official-PDF review and Foundation promotion blocked.
 12. Run a second synthetic issuer end-to-end through inventory → review plan → synthetic acquisition manifest → generic review workspace before registering any second real issuer.
-13. Run real legacy/configured Sanrio parity locally and human-review the report before considering legacy entry-point replacement.
-14. Resume Known-Bad Event Repricing validation only after the real Foundation pilot gates are satisfied.
+13. Extend the local read-only dashboard to recognize configured review-plan/acquisition/workspace v2 stages without rendering filing text.
+14. Run real legacy/configured Sanrio parity locally and human-review the report before considering legacy entry-point replacement.
+15. Resume Known-Bad Event Repricing validation only after the real Foundation pilot gates are satisfied.
 
 ## Safety invariants
 
@@ -108,7 +110,8 @@ Proceed in this order unless current `main`, tests, or measured local data show 
 - A generated Foundation preview is not a governed store append.
 - Review plans never authorize automatic acquisition; the configured executor requires an explicit local command flag.
 - Partial acquisition attempts never create a canonical complete manifest.
-- Keep replacement and append authorization false unless a distinct explicit workflow is reviewed.
+- A hash-verified configured workspace still represents unreviewed source material.
+- Keep replacement, Foundation preview eligibility, and append authorization false unless a distinct explicit workflow is reviewed.
 - No BUY/order automation, brokerage action, Production Gate change, active Edge promotion, or real LINE send.
 - No Cloudflare production deploy or D1 write from this queue.
 - Do not modify GitHub Actions runners or cost controls unless a distinct measured workflow defect requires it.
