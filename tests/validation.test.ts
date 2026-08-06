@@ -7,6 +7,7 @@ import "./edinet-configured-review-plan.test.js";
 import "./edinet-configured-acquisition.test.js";
 import "./edinet-configured-review-workspace.test.js";
 import "./edinet-configured-dashboard.test.js";
+import "./edinet-configured-synthetic-fixture.test.js";
 import "./edinet-inventory-compatibility-audit.test.js";
 import "./edinet-local-review-dashboard.test.js";
 import "./edinet-foundation-mapping-template.test.js";
