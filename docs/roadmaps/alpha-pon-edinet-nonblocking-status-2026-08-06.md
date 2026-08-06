@@ -1,7 +1,7 @@
 # Alpha Pon EDINET non-blocking status — 2026-08-06
 
 Status: `ACTIVE_SUBROADMAP`
-Updated: 2026-08-06 23:05 JST
+Updated: 2026-08-06 23:40 JST
 Parent roadmap: `docs/roadmaps/alpha-pon-current-roadmap-2026-08-06.md`
 
 ## Durable operating decision
@@ -79,6 +79,7 @@ Do not block unrelated implementation on this command. Surface it again only whe
 #79 explicit configured local acquisition with complete-only canonical manifest
 #80 schema-versioned configured acquired-file review workspace v2
 #81 generic configured pipeline dashboard with hash, lineage, issuer, and safety checks
+#82 deterministic synthetic configured pipeline exporter
 ```
 
 ## Non-blocking implementation queue
@@ -97,12 +98,13 @@ Proceed in this order unless current `main`, tests, or measured local data show 
 10. **COMPLETE — PR #79:** Add an explicit configured local acquisition executor with type 1/2-only tasks, no automatic external parent, local SHA lineage, and no canonical manifest after partial failure.
 11. **COMPLETE — PR #80:** Add a generic acquired-file review workspace v2 with binary/metadata re-hashing and independent schema lineage.
 12. **COMPLETE — PR #81:** Add a generic read-only configured pipeline dashboard. Verify all five stage hashes, filename/hash lineage, issuer identity, and safety boundaries without rendering filing text.
-13. **IN PROGRESS — PR #82:** Export a deterministic synthetic configured pipeline outside unit-test source code. Include only synthetic issuer metadata, plain-text placeholder binaries, stage JSON/Markdown/HTML, descriptor hashes, and explicit no-network/no-credential/no-real-filing assertions.
-14. Add a generic configured PDF/source-fidelity review plan after the exported synthetic fixture proves the full metadata pipeline.
-15. Add a configured human review decision contract that can consume generic PDF/source-fidelity results without issuer-specific assumptions.
-16. Run real legacy/configured Sanrio parity locally and human-review the report before considering legacy entry-point replacement.
-17. Register a second real issuer only after an inventory-only proposal identifies a measured Evidence Gap and explicit user approval.
-18. Resume Known-Bad Event Repricing validation only after the real Foundation pilot gates are satisfied.
+13. **COMPLETE — PR #82:** Export the complete configured metadata pipeline as deterministic synthetic JSON/Markdown/HTML and plain-text placeholder binaries with no network, credentials, real issuer, or real filing content.
+14. **IN PROGRESS — PR #83:** Pair each configured workspace type 1 source with its verified type 2 official PDF. Keep anchors empty, extraction not started, automatic execution false, all equivalence/impact decisions unknown, and all promotion boundaries blocked.
+15. Add an explicit local configured extraction and anchor-input workflow. It must preserve binary hashes, cap anchors, separate structured/PDF extraction status, and avoid fuzzy equivalence.
+16. Add a configured human review decision contract that consumes generic fidelity results without issuer-specific assumptions.
+17. Run real legacy/configured Sanrio parity locally and human-review the report before considering legacy entry-point replacement.
+18. Register a second real issuer only after an inventory-only proposal identifies a measured Evidence Gap and explicit user approval.
+19. Resume Known-Bad Event Repricing validation only after the real Foundation pilot gates are satisfied.
 
 ## Safety invariants
 
@@ -115,8 +117,9 @@ Proceed in this order unless current `main`, tests, or measured local data show 
 - A generated Foundation preview is not a governed store append.
 - Review plans never authorize automatic acquisition; the configured executor requires an explicit local command flag.
 - Partial acquisition attempts never create a canonical complete manifest.
-- A hash-verified configured workspace, dashboard, or synthetic fixture still represents unreviewed or non-real source material.
+- A hash-verified configured workspace, dashboard, synthetic fixture, or fidelity plan still represents unreviewed or non-real source material.
 - Synthetic placeholder binaries must never be parsed or presented as official EDINET filings.
+- Fidelity plans must not manufacture anchors, extract text automatically, or decide equivalence/materiality/direction.
 - Keep replacement, Foundation preview eligibility, and append authorization false unless a distinct explicit workflow is reviewed.
 - No BUY/order automation, brokerage action, Production Gate change, active Edge promotion, or real LINE send.
 - No Cloudflare production deploy or D1 write from this queue.
