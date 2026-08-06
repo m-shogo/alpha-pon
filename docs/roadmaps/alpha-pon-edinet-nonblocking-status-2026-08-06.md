@@ -1,7 +1,7 @@
 # Alpha Pon EDINET non-blocking status — 2026-08-06
 
 Status: `ACTIVE_SUBROADMAP`
-Updated: 2026-08-06 23:40 JST
+Updated: 2026-08-07 00:25 JST
 Parent roadmap: `docs/roadmaps/alpha-pon-current-roadmap-2026-08-06.md`
 
 ## Durable operating decision
@@ -80,6 +80,8 @@ Do not block unrelated implementation on this command. Surface it again only whe
 #80 schema-versioned configured acquired-file review workspace v2
 #81 generic configured pipeline dashboard with hash, lineage, issuer, and safety checks
 #82 deterministic synthetic configured pipeline exporter
+#83 configured source-fidelity plan with type 1/type 2 pairing
+#84 explicit local structured/PDF extraction and empty anchor template
 ```
 
 ## Non-blocking implementation queue
@@ -99,12 +101,14 @@ Proceed in this order unless current `main`, tests, or measured local data show 
 11. **COMPLETE — PR #80:** Add a generic acquired-file review workspace v2 with binary/metadata re-hashing and independent schema lineage.
 12. **COMPLETE — PR #81:** Add a generic read-only configured pipeline dashboard. Verify all five stage hashes, filename/hash lineage, issuer identity, and safety boundaries without rendering filing text.
 13. **COMPLETE — PR #82:** Export the complete configured metadata pipeline as deterministic synthetic JSON/Markdown/HTML and plain-text placeholder binaries with no network, credentials, real issuer, or real filing content.
-14. **IN PROGRESS — PR #83:** Pair each configured workspace type 1 source with its verified type 2 official PDF. Keep anchors empty, extraction not started, automatic execution false, all equivalence/impact decisions unknown, and all promotion boundaries blocked.
-15. Add an explicit local configured extraction and anchor-input workflow. It must preserve binary hashes, cap anchors, separate structured/PDF extraction status, and avoid fuzzy equivalence.
-16. Add a configured human review decision contract that consumes generic fidelity results without issuer-specific assumptions.
-17. Run real legacy/configured Sanrio parity locally and human-review the report before considering legacy entry-point replacement.
-18. Register a second real issuer only after an inventory-only proposal identifies a measured Evidence Gap and explicit user approval.
-19. Resume Known-Bad Event Repricing validation only after the real Foundation pilot gates are satisfied.
+14. **COMPLETE — PR #83:** Pair each configured workspace type 1 source with its verified type 2 official PDF while keeping anchors empty and all decisions unknown.
+15. **COMPLETE — PR #84:** Add explicit local structured/PDF extraction, binary/hash/magic revalidation, safe PublicDoc extraction, layout-preserving PDF text, and an empty human anchor template.
+16. **IN PROGRESS — PR #86:** Finalize human-selected anchors by exact structured entry/line and PDF page/line lineage. PR #86 replaces closed PR #85, which was created before PR #84 merged.
+17. Add an exact-normalized anchor comparison result contract. It may report exact normalized equality or a mismatch pending visual review; it must not use fuzzy matching or infer semantic equivalence.
+18. Add a configured human review decision contract that consumes generic comparison results without issuer-specific assumptions.
+19. Run real legacy/configured Sanrio parity locally and human-review the report before considering legacy entry-point replacement.
+20. Register a second real issuer only after an inventory-only proposal identifies a measured Evidence Gap and explicit user approval.
+21. Resume Known-Bad Event Repricing validation only after the real Foundation pilot gates are satisfied.
 
 ## Safety invariants
 
@@ -117,9 +121,12 @@ Proceed in this order unless current `main`, tests, or measured local data show 
 - A generated Foundation preview is not a governed store append.
 - Review plans never authorize automatic acquisition; the configured executor requires an explicit local command flag.
 - Partial acquisition attempts never create a canonical complete manifest.
-- A hash-verified configured workspace, dashboard, synthetic fixture, or fidelity plan still represents unreviewed or non-real source material.
+- A hash-verified configured workspace, dashboard, synthetic fixture, fidelity plan, extraction bundle, or anchor record still represents unreviewed source material until the relevant human decision is recorded.
 - Synthetic placeholder binaries must never be parsed or presented as official EDINET filings.
 - Fidelity plans must not manufacture anchors, extract text automatically, or decide equivalence/materiality/direction.
+- Explicit extraction success does not authorize anchor generation, comparison, or fact promotion.
+- Finalized anchor lineage proves only that selected locations match the extracted files; it does not prove normalized equality, visual fidelity, semantic equivalence, accounting impact, materiality, or direction.
+- PDF layout normalization must preserve leading indentation, internal blank lines, and page separators; only line endings and trailing horizontal whitespace may be normalized.
 - Keep replacement, Foundation preview eligibility, and append authorization false unless a distinct explicit workflow is reviewed.
 - No BUY/order automation, brokerage action, Production Gate change, active Edge promotion, or real LINE send.
 - No Cloudflare production deploy or D1 write from this queue.
