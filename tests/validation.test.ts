@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import "./edinet-fetcher.test.js";
+import "./edinet-document-lineage.test.js";
 import { validateWatchlist } from "../src/validation.js";
 import type { WatchlistConfig } from "../src/types.js";
 
