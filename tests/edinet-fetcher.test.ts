@@ -10,12 +10,11 @@ import {
 } from "../src/fetcher/edinet.js";
 
 function jsonResponse(body: unknown, status = 200, headers?: HeadersInit): Response {
+  const responseHeaders = new Headers(headers);
+  responseHeaders.set("content-type", "application/json");
   return new Response(JSON.stringify(body), {
     status,
-    headers: {
-      "content-type": "application/json",
-      ...headers,
-    },
+    headers: responseHeaders,
   });
 }
 
