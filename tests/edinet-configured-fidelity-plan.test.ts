@@ -131,6 +131,7 @@ function rehashWorkspace(record: JsonObject): void {
   const registryDrift = structuredClone(fixture.registry) as unknown as JsonObject;
   const issuers = registryDrift.issuers as JsonObject[];
   issuers[0]!.aliases = ["別名"];
+  delete issuers[0]!.boundaryHash;
   delete registryDrift.registryHash;
   assert.throws(
     () => buildConfiguredEdinetFidelityPlan({
