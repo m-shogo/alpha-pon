@@ -12,6 +12,7 @@ import "./edinet-sanrio-pdf-fidelity-review.test.js";
 import "./edinet-sanrio-unmatched-anchor-inspection.test.js";
 import "./edinet-sanrio-human-review-decision.test.js";
 import "./edinet-sanrio-review-next-batching.test.js";
+import "./edinet-sanrio-review-next-content-bundle.test.js";
 import { validateWatchlist } from "../src/validation.js";
 import type { WatchlistConfig } from "../src/types.js";
 
