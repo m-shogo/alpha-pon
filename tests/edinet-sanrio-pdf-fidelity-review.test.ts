@@ -268,8 +268,10 @@ function reviewWorkspace() {
   assert.equal(report.partialCoverageCandidateCount, 1);
   assert.equal(report.matchedAnchorCount, 2);
   assert.equal(report.unmatchedAnchorCount, 1);
+  assert.equal(report.pendingAnchorCount, 0);
   assert.equal(report.reviewStatus, "pending_human_review");
   assert.equal(report.appendAuthorized, false);
+  assert.ok(report.candidates.every(candidate => candidate.pendingAnchorCount === 0));
   assert.ok(report.candidates.every(candidate =>
     candidate.contentEquivalent === "unknown_pending_human_review",
   ));
@@ -305,10 +307,22 @@ function reviewWorkspace() {
   });
   assert.equal(report.extractedPdfCount, 0);
   assert.equal(report.unavailableCandidateCount, 2);
+  assert.equal(report.matchedAnchorCount, 0);
+  assert.equal(report.unmatchedAnchorCount, 0);
+  assert.equal(report.pendingAnchorCount, 3);
+  assert.ok(report.globalBlockers.includes("pending_anchor_requires_pdf_text_extraction_or_visual_review"));
+  assert.ok(!report.globalBlockers.includes("unmatched_anchor_may_be_pdf_layout_or_text_extraction_variance"));
   assert.ok(report.candidates.every(candidate =>
-    candidate.status === "pdf_text_extraction_unavailable",
+    candidate.status === "pdf_text_extraction_unavailable"
+    && candidate.unmatchedAnchorCount === 0
+    && candidate.pendingAnchorCount === candidate.anchorCount
+    && candidate.anchorResults.every(anchor => anchor.matched === null),
   ));
-  console.log("edinet-sanrio-pdf-fidelity: unavailable extractor remains pending review OK");
+  const markdown = renderSanrioEdinetPdfFidelityReport(report);
+  assert.match(markdown, /Pending anchors were not evaluated/);
+  assert.match(markdown, /matched=0, unmatched=0, pending=2/);
+  assert.match(markdown, /- \[\?\] line 3:/);
+  console.log("edinet-sanrio-pdf-fidelity: unavailable extractor remains pending, not unmatched OK");
 }
 
 {
