@@ -70,9 +70,8 @@ export function normalizePdfLayoutText(value: string): string {
       .split("\n")
       .map(line => line.replace(/[\t ]+$/g, ""))
       .join("\n")
-      .replace(/^\n+|\n+$/g, ""))
-    .join("\f")
-    .trim();
+      .replace(/\n+$/g, ""))
+    .join("\f");
 }
 
 export function countPdfPages(value: string): number {
