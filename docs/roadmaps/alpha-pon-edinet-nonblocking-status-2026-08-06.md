@@ -1,7 +1,7 @@
 # Alpha Pon EDINET non-blocking status — 2026-08-06
 
 Status: `ACTIVE_SUBROADMAP`
-Updated: 2026-08-06 20:40 JST
+Updated: 2026-08-06 21:35 JST
 Parent roadmap: `docs/roadmaps/alpha-pon-current-roadmap-2026-08-06.md`
 
 ## Durable operating decision
@@ -39,7 +39,7 @@ bash scripts/run-sanrio-edinet-human-review-decision-local.sh \
 
 The user must run this because the source files exist only under the user's local `data/edinet` directory. GitHub and CI cannot access or prove those local records.
 
-Do not repeatedly block the development queue on this command. Surface it again only when the Sanrio pilot needs to cross one of these gates:
+Do not block unrelated implementation on this command. Surface it again only when the Sanrio pilot needs to cross one of these gates:
 
 - final equivalence decision for the remaining anchor;
 - confirmed exact amount, period, recipient, or payer;
@@ -73,33 +73,40 @@ Do not repeatedly block the development queue on this command. Surface it again 
 #73 configured issuer registry and exact issuer boundary
 #74 configured inventory-only pilot with strict identity and type allowlist
 #75 legacy/configured inventory compatibility audit
+#76 read-only local review dashboard with stage hash and safety checks
+#77 governed Security Master, PIT, section-hash, and revision-lineage Foundation preview mapping
 ```
 
 ## Non-blocking implementation queue
 
-Proceed in this order unless current `main`, tests, or real measured data show a stronger dependency:
+Proceed in this order unless current `main`, tests, or measured local data show a stronger dependency:
 
-1. **COMPLETE — PR #70:** Batch and prioritize the `review_next` correction candidates without assigning materiality.
-2. **COMPLETE — PR #71:** Extract exact PublicDoc full text and numeric/footnote/accounting-line navigation candidates. These remain unreviewed source text, not confirmed amounts or table cells.
-3. **COMPLETE — PR #72:** Record financial-statement, internal-control, and audit-opinion decisions separately with source-line/PDF-page evidence, while remaining non-appendable.
-4. **COMPLETE — PR #73:** Establish a configured EDINET issuer registry with exact issuer/code/alias resolution, document-type allowlists, duplicate/ambiguity checks, mandatory human fact promotion, and mandatory PDF review.
-5. **COMPLETE — PR #74:** Add a separate configured inventory-only pilot. Preserve the existing Sanrio entry point, require explicit configured issuer selection, reject mixed issuer identities, and filter future acquisition plans through the issuer document-type allowlist.
-6. **COMPLETE — PR #75:** Compare complete legacy and configured Sanrio inventories for the same range. Require parity for candidate docIDs, identity, review reasons, lineage roots, and core document types 1/2. Keep replacement authorization false.
-7. **IN PROGRESS — PR #76:** Generate a standalone read-only local HTML dashboard from the latest governed review JSON. Recompute stage hashes, enforce append/replacement/Foundation boundaries, show bounded counts/blockers, escape all dynamic text, and prohibit scripts/network/forms with CSP.
-8. After a real local parity report is green and human-reviewed, version the downstream schema migration explicitly; do not silently replace legacy inventory files.
-9. Prepare the Security Master and PIT-time mapping inputs required for a non-appendable Foundation preview.
-10. Resume Known-Bad Event Repricing validation only after the real Foundation pilot gates are satisfied.
+1. **COMPLETE — PR #70:** Batch and prioritize `review_next` candidates without assigning materiality.
+2. **COMPLETE — PR #71:** Extract exact PublicDoc full text and numeric/footnote/accounting-line navigation candidates.
+3. **COMPLETE — PR #72:** Record financial-statement, internal-control, and audit-opinion decisions separately with cited evidence.
+4. **COMPLETE — PR #73:** Establish the configured issuer registry and fail-closed identity boundary.
+5. **COMPLETE — PR #74:** Add a configured inventory-only pilot with no filing download.
+6. **COMPLETE — PR #75:** Add legacy/configured inventory compatibility auditing while keeping replacement unauthorized.
+7. **COMPLETE — PR #76:** Add the local read-only review dashboard.
+8. **COMPLETE — PR #77:** Add explicit Security Master, PIT, source hash, section hash, license, storage, and revision mapping for non-appendable Foundation previews.
+9. **IN PROGRESS — PR #78:** Add a generic configured-issuer downstream review plan before acquisition. Verify a second synthetic issuer, registry drift, cross-issuer contamination, lineage blockers, type allowlists, and missing official-PDF blockers. Keep acquisition and append unauthorized.
+10. Add a separate configured local acquisition executor only after the review-plan contract is green. It must download only allowed types, preserve local-only storage, record hashes, and require an explicit command.
+11. Generalize the acquired-file review workspace using registry/boundary evidence and schema versioning; do not silently rewrite the Sanrio v1 workspace.
+12. Run a second synthetic issuer end-to-end through inventory → review plan → synthetic acquisition manifest → generic review workspace before registering any second real issuer.
+13. Run real legacy/configured Sanrio parity locally and human-review the report before considering legacy entry-point replacement.
+14. Resume Known-Bad Event Repricing validation only after the real Foundation pilot gates are satisfied.
 
 ## Safety invariants
 
 - GitHub `main`, current code/tests/workflows, and measured output are authoritative; old chat SHAs are not.
 - Do not commit local EDINET ZIP/PDF/API payloads, secrets, licensed prices, or portfolio data.
 - Do not expose the EDINET API key in Git, logs, PRs, Issues, Actions artifacts, or chat.
-- Do not add broad APIs until the pilot identifies a specific Evidence Gap.
+- Do not add broad APIs until a measured Evidence Gap requires them.
 - Do not auto-classify source text as confirmed fact, material, positive, negative, or fraud.
-- Keep new fact, previously known fact, assumption/inference, and opinion separate.
-- Keep `appendAuthorized=false` until governed human review and Foundation requirements are complete.
+- Keep new facts, previously known facts, assumptions/inference, and opinion separate.
+- A generated Foundation preview is not a governed store append.
+- Keep acquisition, replacement, and append authorization false unless a distinct explicit workflow is reviewed.
 - No BUY/order automation, brokerage action, Production Gate change, active Edge promotion, or real LINE send.
 - No Cloudflare production deploy or D1 write from this queue.
-- Do not modify GitHub Actions runners or cost controls unless a distinct, measured workflow defect requires it.
+- Do not modify GitHub Actions runners or cost controls unless a distinct measured workflow defect requires it.
 - Wrangler dry-run success is not production deployment.
