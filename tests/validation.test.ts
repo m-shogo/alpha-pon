@@ -9,6 +9,8 @@ import "./edinet-configured-review-workspace.test.js";
 import "./edinet-configured-dashboard.test.js";
 import "./edinet-configured-synthetic-fixture.test.js";
 import "./edinet-configured-fidelity-plan.test.js";
+import "./edinet-configured-fidelity-extraction.test.js";
+import "./edinet-configured-anchor-finalizer.test.js";
 import "./edinet-inventory-compatibility-audit.test.js";
 import "./edinet-local-review-dashboard.test.js";
 import "./edinet-foundation-mapping-template.test.js";
