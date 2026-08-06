@@ -65,13 +65,10 @@ export function hasPdfMagic(bytes: Uint8Array): boolean {
 export function normalizePdfLayoutText(value: string): string {
   return value
     .replace(/\r\n?/g, "\n")
-    .split("\f")
-    .map(page => page
-      .split("\n")
-      .map(line => line.replace(/[\t ]+$/g, ""))
-      .join("\n")
-      .replace(/\n+$/g, ""))
-    .join("\f");
+    .split("\n")
+    .map(line => line.replace(/[\t ]+$/g, ""))
+    .join("\n")
+    .replace(/\n+$/g, "");
 }
 
 export function countPdfPages(value: string): number {
