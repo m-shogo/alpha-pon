@@ -74,7 +74,7 @@
     "codeVersion": { "type": "string", "minLength": 1 },
     "ruleVersion": { "type": "string", "minLength": 1 },
     "evidenceIds": { "$ref": "#/$defs/nonEmptyIdArray" },
-    "supportEvidenceIds": { "$ref": "#/$defs/nonEmptyIdArray" },
+    "supportEvidenceIds": { "$ref": "#/$defs/idArray" },
     "claimIds": { "$ref": "#/$defs/idArray" },
     "documentRevisionIds": { "$ref": "#/$defs/idArray" },
     "diffIds": { "$ref": "#/$defs/idArray" },
@@ -158,7 +158,7 @@
     "openContradictionIds": { "$ref": "#/$defs/idArray" },
     "status": {
       "type": "string",
-      "enum": ["draft", "complete", "rejected", "superseded"]
+      "enum": ["draft", "complete"]
     },
     "blockers": {
       "type": "array",
