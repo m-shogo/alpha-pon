@@ -96,7 +96,8 @@ export function enumerateBusinessDates(from: string, to: string): string[] {
   const dates: string[] = [];
   let current = from;
   while (current <= to) {
-    const weekday = new Date(`${current}T00:00:00+09:00`).getDay();
+    // Treat the YYYY-MM-DD value as a calendar date, independent of runner locale.
+    const weekday = new Date(`${current}T00:00:00Z`).getUTCDay();
     if (weekday !== 0 && weekday !== 6) dates.push(current);
     current = addDaysJst(current, 1);
   }
