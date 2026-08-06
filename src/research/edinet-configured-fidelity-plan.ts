@@ -198,17 +198,19 @@ function parseSourceFile(
   field: string,
 ): ConfiguredEdinetFidelitySourceFile {
   const record = object(value, field);
-  const documentType = required(record.documentType, `${field}.documentType`);
-  const format = required(record.format, `${field}.format`);
-  if (documentType !== "1" && documentType !== "2") {
+  const documentTypeValue = required(record.documentType, `${field}.documentType`);
+  const formatValue = required(record.format, `${field}.format`);
+  if (documentTypeValue !== "1" && documentTypeValue !== "2") {
     throw new Error(`${field}.documentType is unsupported`);
   }
   if (
-    (documentType === "1" && format !== "zip")
-    || (documentType === "2" && format !== "pdf")
+    (documentTypeValue === "1" && formatValue !== "zip")
+    || (documentTypeValue === "2" && formatValue !== "pdf")
   ) {
     throw new Error(`${field} type/format mismatch`);
   }
+  const documentType: ConfiguredEdinetFidelitySourceFile["documentType"] = documentTypeValue;
+  const format: ConfiguredEdinetFidelitySourceFile["format"] = formatValue as "zip" | "pdf";
   return {
     documentType,
     format,
