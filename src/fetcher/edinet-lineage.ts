@@ -106,7 +106,8 @@ function resolveRoot(
   while (!visited.has(current)) {
     visited.add(current);
     const parent = parentByDocID.get(current);
-    if (!parent || !knownDocIDs.has(parent)) return current;
+    if (!parent) return current;
+    if (!knownDocIDs.has(parent)) return parent;
     current = parent;
   }
   return docID;
