@@ -1,9 +1,14 @@
-// EDINET API v2（無料・APIキー不要）
-// https://disclosure2.edinet-fsa.go.jp/weee0010.aspx
+// EDINET API v2 authenticated client
+// Official registration is required. Keep EDINET_API_KEY local and never log it.
 
 import { addDaysJst, todayJst } from "../date.js";
 
-const BASE_URL = "https://disclosure.edinet-fsa.go.jp/api/v2";
+export const EDINET_API_KEY_ENV = "EDINET_API_KEY";
+export const EDINET_API_BASE_URL = "https://api.edinet-fsa.go.jp/api/v2";
+const EDINET_API_KEY_QUERY_PARAM = "Subscription-Key";
+const DEFAULT_MAX_ATTEMPTS = 3;
+const DEFAULT_RETRY_BASE_MS = 500;
+const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 504]);
 
 type EdinetDocListResponse = {
   metadata: {
@@ -45,6 +50,148 @@ export type EdinetDoc = {
   legalStatus: string;
 };
 
+export type EdinetClientOptions = {
+  apiKey?: string;
+  baseUrl?: string;
+  fetchImpl?: typeof fetch;
+  maxAttempts?: number;
+  retryBaseMs?: number;
+  sleep?: (ms: number) => Promise<void>;
+};
+
+export type EdinetConfigurationStatus = {
+  source: "edinet";
+  configured: boolean;
+  state: "ready" | "credentials_missing";
+  apiKeyEnv: typeof EDINET_API_KEY_ENV;
+  baseUrl: string;
+};
+
+export class EdinetCredentialsMissingError extends Error {
+  readonly code = "credentials_missing";
+  readonly source = "edinet";
+
+  constructor() {
+    super(`${EDINET_API_KEY_ENV} is not configured`);
+    this.name = "EdinetCredentialsMissingError";
+  }
+}
+
+export class EdinetApiError extends Error {
+  readonly code = "edinet_api_error";
+  readonly source = "edinet";
+  readonly status: number;
+  readonly retryable: boolean;
+
+  constructor(status: number, retryable: boolean) {
+    super(`EDINET API request failed (status=${status}, retryable=${retryable})`);
+    this.name = "EdinetApiError";
+    this.status = status;
+    this.retryable = retryable;
+  }
+}
+
+export function isEdinetCredentialsMissingError(
+  error: unknown
+): error is EdinetCredentialsMissingError {
+  return error instanceof EdinetCredentialsMissingError;
+}
+
+export function getEdinetConfigurationStatus(
+  options: Pick<EdinetClientOptions, "apiKey" | "baseUrl"> = {}
+): EdinetConfigurationStatus {
+  const apiKey = options.apiKey ?? process.env[EDINET_API_KEY_ENV];
+  const configured = typeof apiKey === "string" && apiKey.trim().length > 0;
+  return {
+    source: "edinet",
+    configured,
+    state: configured ? "ready" : "credentials_missing",
+    apiKeyEnv: EDINET_API_KEY_ENV,
+    baseUrl: normalizeBaseUrl(options.baseUrl ?? EDINET_API_BASE_URL),
+  };
+}
+
+function normalizeBaseUrl(baseUrl: string): string {
+  return baseUrl.replace(/\/+$/, "");
+}
+
+function resolveApiKey(options: EdinetClientOptions): string {
+  const apiKey = options.apiKey ?? process.env[EDINET_API_KEY_ENV];
+  if (typeof apiKey !== "string" || apiKey.trim().length === 0) {
+    throw new EdinetCredentialsMissingError();
+  }
+  return apiKey.trim();
+}
+
+function buildAuthenticatedUrl(
+  path: string,
+  params: Record<string, string>,
+  apiKey: string,
+  baseUrl: string
+): URL {
+  const url = new URL(`${normalizeBaseUrl(baseUrl)}/${path.replace(/^\/+/, "")}`);
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, value);
+  }
+  url.searchParams.set(EDINET_API_KEY_QUERY_PARAM, apiKey);
+  return url;
+}
+
+function retryDelayMs(response: Response, attempt: number, retryBaseMs: number): number {
+  const retryAfter = response.headers.get("retry-after");
+  if (retryAfter) {
+    const seconds = Number(retryAfter);
+    if (Number.isFinite(seconds) && seconds >= 0) {
+      return seconds * 1000;
+    }
+  }
+  return retryBaseMs * attempt;
+}
+
+async function requestEdinetJson<T>(
+  path: string,
+  params: Record<string, string>,
+  options: EdinetClientOptions
+): Promise<T> {
+  const apiKey = resolveApiKey(options);
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const maxAttempts = Math.max(1, options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS);
+  const retryBaseMs = Math.max(0, options.retryBaseMs ?? DEFAULT_RETRY_BASE_MS);
+  const sleep = options.sleep ?? (ms => new Promise(resolve => setTimeout(resolve, ms)));
+  const baseUrl = options.baseUrl ?? EDINET_API_BASE_URL;
+  const url = buildAuthenticatedUrl(path, params, apiKey, baseUrl);
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    let response: Response;
+    try {
+      response = await fetchImpl(url, {
+        headers: {
+          accept: "application/json",
+        },
+      });
+    } catch {
+      if (attempt >= maxAttempts) {
+        throw new EdinetApiError(0, true);
+      }
+      await sleep(retryBaseMs * attempt);
+      continue;
+    }
+
+    if (response.ok) {
+      return (await response.json()) as T;
+    }
+
+    const retryable = RETRYABLE_STATUS_CODES.has(response.status);
+    if (!retryable || attempt >= maxAttempts) {
+      throw new EdinetApiError(response.status, retryable);
+    }
+
+    await sleep(retryDelayMs(response, attempt, retryBaseMs));
+  }
+
+  throw new EdinetApiError(0, true);
+}
+
 // 重要開示の形式コード
 const IMPORTANT_FORM_CODES = new Set([
   "030000", // 有価証券報告書
@@ -68,14 +215,25 @@ export const STRUCTURAL_KEYWORDS = [
   "公開買付",
 ];
 
-export async function fetchEdinetDocList(date: string): Promise<EdinetDoc[]> {
-  const url = `${BASE_URL}/documents.json?date=${date}&type=2`;
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`EDINET APIエラー: ${res.status}`);
+export async function fetchEdinetDocList(
+  date: string,
+  options: EdinetClientOptions = {}
+): Promise<EdinetDoc[]> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    throw new Error("EDINET date must be YYYY-MM-DD");
   }
-  const data = (await res.json()) as EdinetDocListResponse;
-  return data.results ?? [];
+
+  const data = await requestEdinetJson<EdinetDocListResponse>(
+    "documents.json",
+    { date, type: "2" },
+    options
+  );
+
+  if (!data.metadata || !Array.isArray(data.results)) {
+    throw new Error("EDINET API returned an invalid document-list response");
+  }
+
+  return data.results;
 }
 
 export function filterBySecCode(docs: EdinetDoc[], secCode: string): EdinetDoc[] {
@@ -109,9 +267,9 @@ export function filterBySecCodes(docs: EdinetDoc[], secCodes: string[]): EdinetD
   return docs.filter(d => normalized.has(d.secCode));
 }
 
-// EDINETドキュメントのPDF URLを生成
+// 認証付き取得で使用するAPI endpoint。APIキーはURLへ埋め込まず、ログにも出さない。
 export function buildPdfUrl(docID: string): string {
-  return `https://disclosure.edinet-fsa.go.jp/api/v2/documents/${docID}?type=1`;
+  return `${EDINET_API_BASE_URL}/documents/${encodeURIComponent(docID)}?type=1`;
 }
 
 // 企業コード（4桁）→ EDINETのsecCode（5桁）に変換
@@ -121,7 +279,8 @@ export function toSecCode(code: string): string {
 
 // 過去N日分のEDINET開示を取得してスクリーニング
 export async function scanEdinetDays(
-  days: number
+  days: number,
+  options: EdinetClientOptions = {}
 ): Promise<Map<string, EdinetDoc[]>> {
   const result = new Map<string, EdinetDoc[]>();
   const base = todayJst();
@@ -133,7 +292,7 @@ export async function scanEdinetDays(
     if (weekday === 0 || weekday === 6) continue;
 
     try {
-      const docs = await fetchEdinetDocList(dateStr);
+      const docs = await fetchEdinetDocList(dateStr, options);
       const structural = findStructuralEvents(docs);
       if (structural.length > 0) {
         for (const doc of structural) {
@@ -144,8 +303,10 @@ export async function scanEdinetDays(
       }
       // レートリミット対策
       await new Promise(r => setTimeout(r, 300));
-    } catch {
-      // 一日分のエラーは無視して続行
+    } catch (error) {
+      // 資格情報不足は日ごとに繰り返さず、EDINETだけを非致命停止する。
+      if (isEdinetCredentialsMissingError(error)) break;
+      // 一日分の外部エラーは無視して続行
     }
   }
 
