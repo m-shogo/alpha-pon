@@ -6,6 +6,7 @@ import "./edinet-sanrio-acquisition.test.js";
 import "./edinet-sanrio-review-workspace.test.js";
 import "./edinet-sanrio-revision-diff-workspace.test.js";
 import "./edinet-sanrio-logical-entry-alignment.test.js";
+import "./edinet-sanrio-cross-period-triage.test.js";
 import { validateWatchlist } from "../src/validation.js";
 import type { WatchlistConfig } from "../src/types.js";
 
