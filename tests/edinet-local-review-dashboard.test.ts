@@ -183,7 +183,7 @@ function artifact(input: {
 
 {
   const tampered = batchWorkspace({ generatedAt: "2026-08-06T11:00:00.000Z" });
-  tampered.initialReviewCandidateCount = 99;
+  tampered.clusters[0]!.logicalRoleKey = "notes/tampered";
   const dashboard = buildEdinetLocalReviewDashboard({
     acquisitionDirectory: "sanrio-acquisition.fixture",
     generatedAt: "2026-08-06T12:00:00.000Z",
@@ -198,7 +198,7 @@ function artifact(input: {
   assert.equal(dashboard.invalidIntegrityCount, 1);
   assert.equal(dashboard.dashboardStatus, "blocked_integrity");
   assert.ok(dashboard.stages[0]!.issues.includes("workspaceHash_mismatch"));
-  console.log("edinet-local-review-dashboard: hash tampering blocks dashboard OK");
+  console.log("edinet-local-review-dashboard: hash-covered tampering blocks dashboard OK");
 }
 
 {
