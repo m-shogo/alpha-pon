@@ -143,9 +143,9 @@ async function testInvalidDateFailsBeforeFetch() {
   assert.equal(called, false);
 }
 
-function testDocumentEndpointDoesNotEmbedSecret() {
+function testPdfEndpointDoesNotEmbedSecret() {
   const url = buildPdfUrl("S100TEST");
-  assert.equal(url, `${EDINET_API_BASE_URL}/documents/S100TEST?type=1`);
+  assert.equal(url, `${EDINET_API_BASE_URL}/documents/S100TEST?type=2`);
   assert.equal(url.includes("Subscription-Key"), false);
 }
 
@@ -155,7 +155,7 @@ async function main() {
   await testRetryAndRetryAfter();
   await testSecretIsNotLeakedInError();
   await testInvalidDateFailsBeforeFetch();
-  testDocumentEndpointDoesNotEmbedSecret();
+  testPdfEndpointDoesNotEmbedSecret();
   console.log("edinet-fetcher.test.ts passed");
 }
 
