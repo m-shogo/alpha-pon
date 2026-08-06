@@ -35,6 +35,19 @@ type ReviewFirstCandidate = {
   direction: "unknown_pending_human_review";
 };
 
+type TriageClusterFixture = {
+  clusterId: string;
+  logicalRoleKey: string;
+  changeType: string;
+  recurrence: string;
+  pairCoverage: number;
+  totalPairs: number;
+  pairIds: string[];
+  priority: string;
+  candidates: ReviewFirstCandidate[];
+  clusterHash: string;
+};
+
 function canonicalize(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonicalize);
   if (value && typeof value === "object") {
@@ -129,7 +142,7 @@ function sourceTriageWorkspace() {
       preview: ["有価証券報告書の訂正報告書の提出理由", "役員の報酬等"],
     }),
   ];
-  const clusters = [
+  const clusters: TriageClusterFixture[] = [
     {
       clusterId: "edinet-triage:header",
       logicalRoleKey: "0000000_header.htm",
@@ -243,7 +256,7 @@ function sourceTriageWorkspace() {
 
 {
   const tampered = sourceTriageWorkspace();
-  tampered.reviewFirstCandidateCount = 5;
+  tampered.clusters[0]!.candidates[0]!.afterPreview = ["tampered source text"];
   assert.throws(
     () => buildSanrioEdinetFocusedReviewPlan({
       triageWorkspace: tampered,
@@ -251,7 +264,20 @@ function sourceTriageWorkspace() {
     }),
     /triageWorkspaceHash mismatch/,
   );
-  console.log("edinet-sanrio-focused-review: triage tampering blocked OK");
+  console.log("edinet-sanrio-focused-review: triage hash tampering blocked OK");
+}
+
+{
+  const wrongCount = sourceTriageWorkspace();
+  wrongCount.reviewFirstCandidateCount = 5;
+  assert.throws(
+    () => buildSanrioEdinetFocusedReviewPlan({
+      triageWorkspace: wrongCount,
+      sourceTriageWorkspaceFile: "revision-diff-triage-v1.20260806T082452Z.json",
+    }),
+    /reviewFirstCandidateCount mismatch/,
+  );
+  console.log("edinet-sanrio-focused-review: aggregate count tampering blocked OK");
 }
 
 {
