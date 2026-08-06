@@ -233,7 +233,7 @@ function sourceWorkspace() {
 
 {
   const tampered = sourceWorkspace();
-  tampered.pairs[0]!.changes[0]!.afterPreview = ["tampered"];
+  (tampered.pairs[0]!.changes[0]! as UnknownRecord).afterPreview = ["tampered"];
   assert.throws(
     () => buildSanrioEdinetCrossPeriodTriage({
       diffWorkspace: tampered,
