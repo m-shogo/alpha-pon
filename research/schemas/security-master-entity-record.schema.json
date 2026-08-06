@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alpha-pon.local/schemas/security-master-entity-record.schema.json",
+  "title": "Alpha Pon Security Master Entity Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordId",
+    "entityId",
+    "entityType",
+    "canonicalName",
+    "jurisdiction",
+    "validFrom",
+    "status",
+    "names",
+    "identifiers",
+    "officialLinks",
+    "sourceRefs",
+    "observedAt",
+    "retrievedAt",
+    "contentHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "recordId": { "type": "string", "minLength": 3 },
+    "entityId": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9:_-]+$"
+    },
+    "entityType": {
+      "type": "string",
+      "enum": [
+        "legal_entity",
+        "listed_security",
+        "listing",
+        "segment",
+        "brand",
+        "facility",
+        "product",
+        "official_account"
+      ]
+    },
+    "canonicalName": { "type": "string", "minLength": 1 },
+    "jurisdiction": { "type": "string", "minLength": 2 },
+    "validFrom": { "type": "string", "format": "date" },
+    "validTo": { "type": "string", "format": "date" },
+    "status": {
+      "type": "string",
+      "enum": ["active", "inactive", "merged", "spun_off", "delisted", "unknown"]
+    },
+    "names": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "kind", "validFrom", "sourceRefs"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "kind": {
+            "type": "string",
+            "enum": ["legal", "trade", "former", "english", "abbreviation", "brand"]
+          },
+          "language": { "type": "string", "minLength": 2 },
+          "validFrom": { "type": "string", "format": "date" },
+          "validTo": { "type": "string", "format": "date" },
+          "sourceRefs": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "identifiers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "value",
+          "validFrom",
+          "confidence",
+          "sourceRefs"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "internal",
+              "jpx_code",
+              "ticker",
+              "isin",
+              "edinet_code",
+              "corporate_number_jp",
+              "lei",
+              "market_code",
+              "provider_code"
+            ]
+          },
+          "value": { "type": "string", "minLength": 1 },
+          "market": { "type": "string", "minLength": 1 },
+          "provider": { "type": "string", "minLength": 1 },
+          "validFrom": { "type": "string", "format": "date" },
+          "validTo": { "type": "string", "format": "date" },
+          "confidence": {
+            "type": "string",
+            "enum": ["verified", "probable", "unresolved"]
+          },
+          "sourceRefs": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "officialLinks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "url", "verificationStatus", "validFrom", "sourceRefs"],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["website", "ir", "disclosure", "sns", "exchange_profile"]
+          },
+          "url": { "type": "string", "minLength": 8 },
+          "platform": { "type": "string", "minLength": 1 },
+          "verificationStatus": {
+            "type": "string",
+            "enum": ["verified_official", "claimed", "unknown"]
+          },
+          "validFrom": { "type": "string", "format": "date" },
+          "validTo": { "type": "string", "format": "date" },
+          "sourceRefs": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "sourceRefs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "observedAt": { "type": "string", "format": "date-time" },
+    "retrievedAt": { "type": "string", "format": "date-time" },
+    "supersedesRecordId": { "type": "string", "minLength": 3 },
+    "contentHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}

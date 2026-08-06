@@ -1,5 +1,5 @@
 // Research OS — 整合性の一括検査。
-// スキーマ / 重複 / 参照 / PIT / Gate / Decay / catalogs / council replay / calibrationをまとめて検査する。
+// スキーマ / 重複 / 参照 / PIT / Gate / Decay / catalogs / council replay / calibration / Security Masterをまとめて検査する。
 
 import { existsSync, readFileSync } from "fs";
 import { validateRepositoryCatalogs, type CatalogIssue } from "../catalog-validation.js";
@@ -9,6 +9,8 @@ import { loadResearchState, loadSchema, paths, readJsonl, ResearchDataError } fr
 import { checkPit } from "../pit.js";
 import { checkProductionIntegrity, type HoldoutAccessEntry, type HoldoutManifest } from "../promotion.js";
 import { formatErrors, validate as validateSchema } from "../schema.js";
+import { validateSecurityMasterRepository } from "../security-master-repository.js";
+import type { SecurityMasterIssue } from "../security-master.js";
 import { validatePersonaCalibrationRepository } from "../stock-pro-council-calibration-repository.js";
 import { validateRepositoryCouncilLedgersGoverned } from "../stock-pro-council-ledger-hardening.js";
 import { validateCouncilReplayRepository } from "../stock-pro-council-replay-repository.js";
@@ -56,7 +58,7 @@ function loadHoldout(): { manifest: HoldoutManifest | null; accessLog: HoldoutAc
   return { manifest, accessLog, issues };
 }
 
-function toResearchIssue(issue: CatalogIssue | CouncilIssue): Issue {
+function toResearchIssue(issue: CatalogIssue | CouncilIssue | SecurityMasterIssue): Issue {
   return {
     severity: issue.severity,
     code: issue.code,
@@ -85,6 +87,7 @@ function main(): void {
   const ledgers = validateRepositoryCouncilLedgersGoverned();
   const replay = validateCouncilReplayRepository();
   const calibration = validatePersonaCalibrationRepository();
+  const securityMaster = validateSecurityMasterRepository({ asOf });
   const catalogIssues = [...catalogs.dataSourceIssues, ...catalogs.edgeFamilyIssues]
     .map(toResearchIssue);
   const councilIssues = [
@@ -96,6 +99,7 @@ function main(): void {
     ...ledgers.lifecycleIssues,
     ...replay.issues,
     ...calibration.issues,
+    ...securityMaster.issues,
   ].map(toResearchIssue);
 
   const issues: Issue[] = [
@@ -123,6 +127,9 @@ function main(): void {
   console.log(
     `Council Calibration: Record ${calibration.calibrationCount} / Active Head ${calibration.activeHeadCount} / Eligible Head ${calibration.eligibleHeadCount}`,
   );
+  console.log(
+    `Security Master: Entity Record ${securityMaster.entityRecordCount} / Relationship Record ${securityMaster.relationshipRecordCount} / Active Entity ${securityMaster.activeEntityCount} / Active Relationship ${securityMaster.activeRelationshipCount} / Unresolved Entity ${securityMaster.unresolvedEntityCount} / Unresolved Relationship ${securityMaster.unresolvedRelationshipCount}`,
+  );
   console.log("Catalog entries and council personas are not counted as active Research OS Edges.");
 
   const { errors } = printIssues("整合性", issues);
@@ -142,6 +149,11 @@ function main(): void {
     console.log("✓ COUNCIL_CALIBRATION_V1_GREEN");
   } else {
     console.log("Council calibration contracts are present, but no eligible local calibration head exists; milestone remains unproven.");
+  }
+  if (securityMaster.entityRecordCount === 0) {
+    console.log("Security Master contracts are present, but no local entity record exists; SECURITY_MASTER_V1_GREEN remains unproven.");
+  } else {
+    console.log("Security Master records are structurally valid; historical local pilot evidence is still required before SECURITY_MASTER_V1_GREEN.");
   }
 }
 
