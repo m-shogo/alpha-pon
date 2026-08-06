@@ -1,7 +1,7 @@
 # Alpha Pon EDINET non-blocking status — 2026-08-06
 
 Status: `ACTIVE_SUBROADMAP`
-Updated: 2026-08-06 20:25 JST
+Updated: 2026-08-06 20:40 JST
 Parent roadmap: `docs/roadmaps/alpha-pon-current-roadmap-2026-08-06.md`
 
 ## Durable operating decision
@@ -72,6 +72,7 @@ Do not repeatedly block the development queue on this command. Surface it again 
 #72 governed financial-statement, internal-control, and audit-opinion checklist
 #73 configured issuer registry and exact issuer boundary
 #74 configured inventory-only pilot with strict identity and type allowlist
+#75 legacy/configured inventory compatibility audit
 ```
 
 ## Non-blocking implementation queue
@@ -83,9 +84,9 @@ Proceed in this order unless current `main`, tests, or real measured data show a
 3. **COMPLETE — PR #72:** Record financial-statement, internal-control, and audit-opinion decisions separately with source-line/PDF-page evidence, while remaining non-appendable.
 4. **COMPLETE — PR #73:** Establish a configured EDINET issuer registry with exact issuer/code/alias resolution, document-type allowlists, duplicate/ambiguity checks, mandatory human fact promotion, and mandatory PDF review.
 5. **COMPLETE — PR #74:** Add a separate configured inventory-only pilot. Preserve the existing Sanrio entry point, require explicit configured issuer selection, reject mixed issuer identities, and filter future acquisition plans through the issuer document-type allowlist.
-6. **IN PROGRESS — PR #75:** Compare complete legacy and configured Sanrio inventories for the same range. Require parity for candidate docIDs, identity, review reasons, lineage roots, and core document types 1/2. Report legacy-only types 3–5 without authorizing replacement.
-7. After a real local parity report is green and human-reviewed, version the downstream schema migration explicitly; do not silently replace legacy inventory files.
-8. Add a local review UI/report that consumes governed JSON but does not mutate Foundation stores.
+6. **COMPLETE — PR #75:** Compare complete legacy and configured Sanrio inventories for the same range. Require parity for candidate docIDs, identity, review reasons, lineage roots, and core document types 1/2. Keep replacement authorization false.
+7. **IN PROGRESS — PR #76:** Generate a standalone read-only local HTML dashboard from the latest governed review JSON. Recompute stage hashes, enforce append/replacement/Foundation boundaries, show bounded counts/blockers, escape all dynamic text, and prohibit scripts/network/forms with CSP.
+8. After a real local parity report is green and human-reviewed, version the downstream schema migration explicitly; do not silently replace legacy inventory files.
 9. Prepare the Security Master and PIT-time mapping inputs required for a non-appendable Foundation preview.
 10. Resume Known-Bad Event Repricing validation only after the real Foundation pilot gates are satisfied.
 
