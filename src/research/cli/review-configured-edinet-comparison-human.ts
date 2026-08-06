@@ -139,7 +139,6 @@ function finalizeMode(reviewInput: string): void {
     comparisonReport: parseJson(comparisonPath, "source comparison report"),
     sourceComparisonFile: basename(comparisonPath),
     editedReviewInput: edited,
-    sourceReviewInputFile: basename(inputPath),
     generatedAt: generatedAt.toISOString(),
   });
   const token = stamp(generatedAt);
