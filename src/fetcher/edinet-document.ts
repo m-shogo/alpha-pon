@@ -112,6 +112,48 @@ function parseContentLength(response: Response): number | null {
   return Number.isSafeInteger(value) && value >= 0 ? value : null;
 }
 
+async function readResponseWithinLimit(
+  response: Response,
+  maxBytes: number,
+): Promise<Uint8Array> {
+  if (!response.body) {
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (bytes.byteLength > maxBytes) {
+      throw new EdinetDocumentTooLargeError(maxBytes, bytes.byteLength);
+    }
+    return bytes;
+  }
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+
+      totalBytes += value.byteLength;
+      if (totalBytes > maxBytes) {
+        await reader.cancel("EDINET document exceeds local size limit");
+        throw new EdinetDocumentTooLargeError(maxBytes, totalBytes);
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const result = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return result;
+}
+
 export async function fetchEdinetDocument(
   docID: string,
   documentTypeInput: string,
@@ -154,14 +196,11 @@ export async function fetchEdinetDocument(
 
     const announcedLength = parseContentLength(response);
     if (announcedLength !== null && announcedLength > maxBytes) {
+      await response.body?.cancel("EDINET document exceeds announced size limit");
       throw new EdinetDocumentTooLargeError(maxBytes, announcedLength);
     }
 
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    if (bytes.byteLength > maxBytes) {
-      throw new EdinetDocumentTooLargeError(maxBytes, bytes.byteLength);
-    }
-
+    const bytes = await readResponseWithinLimit(response, maxBytes);
     return {
       docID,
       documentType,
