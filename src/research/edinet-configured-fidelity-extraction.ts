@@ -452,7 +452,7 @@ export function buildConfiguredEdinetAnchorInputTemplate(input: {
         `extractionBundle.documents[${index}].pdfLayoutTextFileSha256`,
       ),
       minimumAnchorCount: 1 as const,
-      maximumAnchorCount: MAX_ANCHORS_PER_DOCUMENT,
+      maximumAnchorCount: MAX_ANCHORS_PER_DOCUMENT as 40,
       anchorCount: 0 as const,
       anchors: [] as [],
       status: "draft_human_input" as const,
