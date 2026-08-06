@@ -8,7 +8,8 @@ dist/
 # データはgit管理しない（大きくなるため）
 data/prices/*.json
 data/disclosures/*.json
-data/edinet/*.json
+# EDINET inventory / metadata / downloaded PDF・ZIP / batch manifest はすべてlocal-only。
+data/edinet/**
 data/ipo/*.json
 
 # PIT価格の実データは利用許諾にかかわらずlocal storeへ置き、Gitへcommitしない。
@@ -53,9 +54,11 @@ data/generated_company_rules/
 data/proposals_history.jsonl
 data/regime_history.jsonl
 data/source_health_history.jsonl
+data/company_non_move_history.jsonl
+data/analogy_outcomes.jsonl
+data/notification-dedupe/
 data/world_event_reflections/
 data/world_event_reflections_latest.json
-data/notification-dedupe/
 data/world_theme_candidate_hypotheses_latest.json
 data/world_theme_candidate_hypotheses.jsonl
 data/world_theme_candidate_review_results.jsonl
