@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { validate } from "../../src/research/schema.js";
 import {
   buildHypothesisScenarioSet,
   computeHypothesisScenarioSetHash,
@@ -54,7 +55,6 @@ import {
   const classMixed = withTestableHypothesisHash({
     ...valid,
     factClaimIds: [...valid.assumptionClaimIds],
-    contentHash: undefined as never,
   });
   assert.ok(validateTestableHypothesisRecord(
     classMixed,
@@ -73,7 +73,6 @@ import {
   const late = withTestableHypothesisHash({
     ...valid,
     registeredAt: "2026-09-20T15:00:00+09:00",
-    contentHash: undefined as never,
   });
   assert.ok(validateTestableHypothesisRecord(
     late,
@@ -107,7 +106,6 @@ import {
         ? { ...dimension, direction: "positive" as const }
         : dimension,
     ),
-    contentHash: undefined as never,
   });
   assert.ok(validateHypothesisScenarioRecord(
     wrongDirection,
