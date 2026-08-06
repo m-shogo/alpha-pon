@@ -9,6 +9,7 @@ import "./edinet-sanrio-logical-entry-alignment.test.js";
 import "./edinet-sanrio-cross-period-triage.test.js";
 import "./edinet-sanrio-focused-review-bundle.test.js";
 import "./edinet-sanrio-pdf-fidelity-review.test.js";
+import "./edinet-sanrio-unmatched-anchor-inspection.test.js";
 import { validateWatchlist } from "../src/validation.js";
 import type { WatchlistConfig } from "../src/types.js";
 
