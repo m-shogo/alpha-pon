@@ -186,8 +186,12 @@ function editedMappingInput() {
   assert.equal(preview.appendAuthorized, false);
   assert.equal(preview.evidence.entityIds[0], "entity:jp:tse:8136");
   assert.equal(preview.evidence.firstExecutableAt, "2026-06-29T07:03:00.000Z");
-  assert.equal(preview.documentRevision.kind, "correction");
-  assert.equal(preview.documentRevision.priorRevisionId, "document-revision:edinet:s100old1");
+  assert.equal(preview.documentRevision.revisionKind, "correction");
+  assert.equal(
+    preview.documentRevision.supersedesRecordId,
+    "document-revision:edinet:s100old1:record:1",
+  );
+  assert.equal(preview.priorDocumentRevisionId, "document-revision:edinet:s100old1");
   assert.equal(preview.relation?.relationType, "corrects");
   assert.match(final.sourceMappingInputHash, /^[a-f0-9]{64}$/);
   assert.match(final.recordHash, /^[a-f0-9]{64}$/);
@@ -223,7 +227,7 @@ function editedMappingInput() {
       mappingInput: edited,
       sourceMappingInputFile: "revision-foundation-mapping-input-v1.fixture.json",
     }),
-    /firstExecutableAt must be on or after retrievedAt/,
+    /firstExecutableAt must be at or after retrievedAt/,
   );
   console.log("edinet-foundation-mapping: PIT first-executable inversion blocked OK");
 }
