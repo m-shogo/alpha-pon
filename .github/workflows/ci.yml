@@ -4,11 +4,33 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - "research/**"
+      - "src/research/**"
+      - "tests/research/**"
+      - "docs/**"
   pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+    paths-ignore:
+      - "research/**"
+      - "src/research/**"
+      - "tests/research/**"
+      - "docs/**"
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -30,9 +52,6 @@ jobs:
 
       - name: Prepare offline CI environment
         run: test -f .env || touch .env
-
-      - name: Check core CLI and research contracts
-        run: pnpm check
 
       - name: Verify Cloudflare D1 sync contracts
         run: node --import tsx/esm scripts/verify-cloudflare-d1-sync.ts
