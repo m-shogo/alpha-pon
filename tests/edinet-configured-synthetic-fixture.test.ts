@@ -111,20 +111,25 @@ function collectKeys(value: unknown, result = new Set<string>()): Set<string> {
     "positions",
     "buy",
     "buys",
-    "order",
-    "orders",
+    "orderid",
+    "ordertype",
+    "orderside",
     "brokerageaccount",
+    "brokerageaccountid",
     "recommendation",
     "recommendations",
     "quantity",
     "executionprice",
+    "limitprice",
+    "stopprice",
   ]) {
-    assert.ok(!keys.has(forbiddenKey), `forbidden portfolio/order field found: ${forbiddenKey}`);
+    assert.ok(!keys.has(forbiddenKey), `forbidden portfolio/brokerage field found: ${forbiddenKey}`);
   }
+  assert.ok(keys.has("order"), "dashboard stage order should remain present as display metadata");
   assert.ok(serialized.includes("E90000"));
   assert.ok(serialized.includes("synthetic-co"));
   assert.ok(serialized.includes("realFilingContentIncluded"));
-  console.log("edinet-configured-synthetic-fixture: no real Sanrio identity, credential or structured portfolio/order data OK");
+  console.log("edinet-configured-synthetic-fixture: no real Sanrio identity, credential or structured portfolio/brokerage data OK");
 }
 
 {
