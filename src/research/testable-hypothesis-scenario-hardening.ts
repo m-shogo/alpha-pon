@@ -164,6 +164,10 @@ export function validateHypothesisScenarioSetGoverned(
   evidencePackage: EvidencePackageManifest,
   scenarios: HypothesisScenarioRecord[],
 ): HypothesisScenarioIssue[] {
+  // 基底validatorのauthoritative再構築(base build)は登録blockerを持たないため、
+  // governed record(draft + registration blockers)とは正当に食い違う。governed側は
+  // 直下でgoverned buildとの厳密一致(governed_scenario_set_mismatch)を検査し、改ざん検出を
+  // より強く保証するため、基底由来の hypothesis_scenario_set_mismatch は重複かつ誤検出として除外する。
   const issues = validateHypothesisScenarioSet(
     record,
     schemas.scenarioSet,
@@ -171,7 +175,7 @@ export function validateHypothesisScenarioSetGoverned(
     hypothesis,
     evidencePackage,
     scenarios,
-  );
+  ).filter((item) => item.code !== "hypothesis_scenario_set_mismatch");
   const expected = buildHypothesisScenarioSetGoverned(
     request,
     hypothesis,
