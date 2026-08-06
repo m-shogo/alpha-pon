@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alpha-pon.local/schemas/evidence-package-manifest.schema.json",
+  "title": "Alpha Pon Evidence Package Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "packageId",
+    "candidateId",
+    "listedSecurityEntityId",
+    "entityIds",
+    "createdAt",
+    "informationCutoff",
+    "securityMasterSnapshotHash",
+    "evidenceSnapshotHash",
+    "claimGraphSnapshotHash",
+    "documentRevisionSnapshotHash",
+    "priceSnapshotHash",
+    "benchmarkSnapshotHashes",
+    "marketCalendarVersion",
+    "codeVersion",
+    "ruleVersion",
+    "evidenceIds",
+    "claimIds",
+    "documentRevisionIds",
+    "diffIds",
+    "claimEligibleChangeRefs",
+    "completeness",
+    "unknownBudget",
+    "openContradictionIds",
+    "status",
+    "blockers",
+    "automaticTradingAuthorized",
+    "contentHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "packageId": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9:_-]+$"
+    },
+    "candidateId": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9:_-]+$"
+    },
+    "listedSecurityEntityId": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9:_-]+$"
+    },
+    "entityIds": { "$ref": "#/$defs/nonEmptyIdArray" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "informationCutoff": { "type": "string", "format": "date-time" },
+    "securityMasterSnapshotHash": { "$ref": "#/$defs/hash" },
+    "evidenceSnapshotHash": { "$ref": "#/$defs/hash" },
+    "claimGraphSnapshotHash": { "$ref": "#/$defs/hash" },
+    "documentRevisionSnapshotHash": { "$ref": "#/$defs/hash" },
+    "priceSnapshotHash": { "$ref": "#/$defs/hash" },
+    "benchmarkSnapshotHashes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["issuer", "topix", "sector"],
+      "properties": {
+        "issuer": { "$ref": "#/$defs/hash" },
+        "topix": { "$ref": "#/$defs/hash" },
+        "sector": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "marketCalendarVersion": { "type": "string", "minLength": 1 },
+    "codeVersion": { "type": "string", "minLength": 1 },
+    "ruleVersion": { "type": "string", "minLength": 1 },
+    "evidenceIds": { "$ref": "#/$defs/nonEmptyIdArray" },
+    "claimIds": { "$ref": "#/$defs/idArray" },
+    "documentRevisionIds": { "$ref": "#/$defs/idArray" },
+    "diffIds": { "$ref": "#/$defs/idArray" },
+    "claimEligibleChangeRefs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 3 }
+    },
+    "completeness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "securityResolved",
+        "normalizedEvidence",
+        "correctionChainComplete",
+        "claimGraphComplete",
+        "documentDiffReviewed",
+        "benchmarkComplete",
+        "priceSnapshotComplete",
+        "executionRouteComplete",
+        "licenseComplete",
+        "contradictionsReviewed"
+      ],
+      "properties": {
+        "securityResolved": { "type": "boolean" },
+        "normalizedEvidence": { "type": "boolean" },
+        "correctionChainComplete": { "type": "boolean" },
+        "claimGraphComplete": { "type": "boolean" },
+        "documentDiffReviewed": { "type": "boolean" },
+        "benchmarkComplete": { "type": "boolean" },
+        "priceSnapshotComplete": { "type": "boolean" },
+        "executionRouteComplete": { "type": "boolean" },
+        "licenseComplete": { "type": "boolean" },
+        "contradictionsReviewed": { "type": "boolean" }
+      }
+    },
+    "unknownBudget": {
+      "type": "array",
+      "minItems": 11,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "category",
+          "status",
+          "severity",
+          "summary",
+          "evidenceRefs"
+        ],
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "entity",
+              "time",
+              "license",
+              "source",
+              "evidence_gap",
+              "execution",
+              "confounder",
+              "counterfactual",
+              "valuation",
+              "liquidity",
+              "portfolio_exposure"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["known", "unknown", "resolved"]
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["informational", "blocking"]
+          },
+          "summary": { "type": "string", "minLength": 3 },
+          "evidenceRefs": { "$ref": "#/$defs/idArray" }
+        }
+      }
+    },
+    "openContradictionIds": { "$ref": "#/$defs/idArray" },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "complete", "rejected", "superseded"]
+    },
+    "blockers": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "supersedesPackageId": { "type": "string", "minLength": 3 },
+    "automaticTradingAuthorized": { "const": false },
+    "contentHash": { "$ref": "#/$defs/hash" }
+  },
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "idArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "pattern": "^[a-z][a-z0-9:_-]+$"
+      }
+    },
+    "nonEmptyIdArray": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "pattern": "^[a-z][a-z0-9:_-]+$"
+      }
+    }
+  }
+}
