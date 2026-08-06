@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alpha-pon.local/schemas/hypothesis-scenario-set.schema.json",
+  "title": "Alpha Pon Hypothesis Scenario Set",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "scenarioSetId",
+    "hypothesisId",
+    "evidencePackageHash",
+    "createdAt",
+    "informationCutoff",
+    "requiredScenarioTypes",
+    "scenarioIds",
+    "scenarioHashes",
+    "status",
+    "blockers",
+    "automaticTradingAuthorized",
+    "contentHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "scenarioSetId": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9:_-]+$"
+    },
+    "hypothesisId": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9:_-]+$"
+    },
+    "evidencePackageHash": { "$ref": "#/$defs/hash" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "informationCutoff": { "type": "string", "format": "date-time" },
+    "requiredScenarioTypes": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": ["downside", "base", "upside", "null_hypothesis"]
+      }
+    },
+    "scenarioIds": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "pattern": "^[a-z][a-z0-9:_-]+$"
+      }
+    },
+    "scenarioHashes": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/hash" }
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "registered"]
+    },
+    "registeredAt": { "type": "string", "format": "date-time" },
+    "blockers": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "supersedesScenarioSetId": { "type": "string", "minLength": 3 },
+    "automaticTradingAuthorized": { "const": false },
+    "contentHash": { "$ref": "#/$defs/hash" }
+  },
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}
