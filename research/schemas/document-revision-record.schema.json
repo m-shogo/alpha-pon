@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alpha-pon.local/schemas/document-revision-record.schema.json",
+  "title": "Alpha Pon Document Revision Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recordId",
+    "documentRevisionId",
+    "documentId",
+    "entityIds",
+    "evidenceId",
+    "documentType",
+    "revisionKind",
+    "revisionSequence",
+    "status",
+    "sourceContentHash",
+    "normalizedStructureHash",
+    "publishedAt",
+    "observedAt",
+    "retrievedAt",
+    "effectiveFrom",
+    "language",
+    "storagePolicy",
+    "parserVersion",
+    "normalizationVersion",
+    "sections",
+    "contentHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "recordId": { "type": "string", "minLength": 3 },
+    "documentRevisionId": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9:_-]+$"
+    },
+    "documentId": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9:_-]+$"
+    },
+    "entityIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "pattern": "^[a-z][a-z0-9:_-]+$"
+      }
+    },
+    "evidenceId": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9:_-]+$"
+    },
+    "documentType": {
+      "type": "string",
+      "enum": [
+        "statutory_filing",
+        "exchange_disclosure",
+        "earnings_release",
+        "investigation_report",
+        "press_release",
+        "meeting_material",
+        "court_document",
+        "regulatory_document",
+        "official_transcript",
+        "other"
+      ]
+    },
+    "revisionKind": {
+      "type": "string",
+      "enum": [
+        "initial",
+        "amendment",
+        "correction",
+        "restatement",
+        "replacement",
+        "withdrawal",
+        "periodic_update"
+      ]
+    },
+    "revisionSequence": { "type": "integer", "minimum": 0 },
+    "status": {
+      "type": "string",
+      "enum": ["active", "superseded", "withdrawn", "rejected"]
+    },
+    "sourceContentHash": { "$ref": "#/$defs/hash" },
+    "normalizedStructureHash": { "$ref": "#/$defs/hash" },
+    "publishedAt": { "type": "string", "format": "date-time" },
+    "observedAt": { "type": "string", "format": "date-time" },
+    "retrievedAt": { "type": "string", "format": "date-time" },
+    "effectiveFrom": { "type": "string", "format": "date-time" },
+    "effectiveTo": { "type": "string", "format": "date-time" },
+    "language": { "type": "string", "minLength": 2 },
+    "storagePolicy": {
+      "type": "string",
+      "enum": [
+        "metadata_only",
+        "hash_only",
+        "local_only_content",
+        "redistributable_content"
+      ]
+    },
+    "parserVersion": { "type": "string", "minLength": 1 },
+    "normalizationVersion": { "type": "string", "minLength": 1 },
+    "sections": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sectionId",
+          "path",
+          "ordinal",
+          "titleHash",
+          "contentHash"
+        ],
+        "properties": {
+          "sectionId": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[a-z0-9:_-]+$"
+          },
+          "path": { "type": "string", "minLength": 1 },
+          "ordinal": { "type": "integer", "minimum": 0 },
+          "titleHash": { "$ref": "#/$defs/hash" },
+          "contentHash": { "$ref": "#/$defs/hash" }
+        }
+      }
+    },
+    "supersedesRecordId": { "type": "string", "minLength": 3 },
+    "contentHash": { "$ref": "#/$defs/hash" }
+  },
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}
