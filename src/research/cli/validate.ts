@@ -10,6 +10,8 @@ import { validateDocumentRevisionDiffRepository } from "../document-revision-dif
 import type { DocumentRevisionDiffIssue } from "../document-revision-diff.js";
 import { validateEvidencePackageRepository } from "../evidence-package-repository.js";
 import type { EvidencePackageIssue } from "../evidence-package-manifest.js";
+import { validateFoundationDecisionRepository } from "../foundation-decision-integration-repository.js";
+import type { FoundationDecisionIssue } from "../foundation-decision-integration.js";
 import { checkEdgeRegistry, type Issue } from "../edge-registry.js";
 import { checkDecay } from "../decay.js";
 import { loadResearchState, loadSchema, paths, readJsonl, ResearchDataError } from "../io.js";
@@ -55,7 +57,7 @@ function loadHoldout(): { manifest: HoldoutManifest | null; accessLog: HoldoutAc
 }
 
 function toResearchIssue(
-  issue:
+  item:
     | CatalogIssue
     | CouncilIssue
     | SecurityMasterIssue
@@ -63,9 +65,10 @@ function toResearchIssue(
     | ClaimGraphIssue
     | DocumentRevisionDiffIssue
     | EvidencePackageIssue
-    | HypothesisScenarioIssue,
+    | HypothesisScenarioIssue
+    | FoundationDecisionIssue,
 ): Issue {
-  return { severity: issue.severity, code: issue.code, target: issue.target, message: issue.message };
+  return { severity: item.severity, code: item.code, target: item.target, message: item.message };
 }
 
 function main(): void {
@@ -97,6 +100,7 @@ function main(): void {
   const documentRevisions = validateDocumentRevisionDiffRepository({ asOf: foundationAsOf, includeDependencyIssues: false });
   const evidencePackages = validateEvidencePackageRepository({ includeDependencyIssues: false });
   const hypothesisScenarios = validateHypothesisScenarioRepository({ includeDependencyIssues: false });
+  const foundationDecisions = validateFoundationDecisionRepository({ includeDependencyIssues: false });
 
   const catalogIssues = [...catalogs.dataSourceIssues, ...catalogs.edgeFamilyIssues].map(toResearchIssue);
   const foundationIssues = [
@@ -114,6 +118,7 @@ function main(): void {
     ...documentRevisions.issues,
     ...evidencePackages.issues,
     ...hypothesisScenarios.issues,
+    ...foundationDecisions.issues,
   ].map(toResearchIssue);
 
   const issues: Issue[] = [
@@ -137,6 +142,7 @@ function main(): void {
   console.log(`Document Revision (asOf=${foundationAsOf}): Revision Record ${documentRevisions.revisionRecordCount} / Diff Record ${documentRevisions.diffRecordCount} / Active Revision ${documentRevisions.activeRevisionHeadCount} / Active Diff ${documentRevisions.activeDiffHeadCount} / Snapshot Revision ${documentRevisions.snapshotRevisionCount} / Snapshot Diff ${documentRevisions.snapshotDiffCount} / Claim Eligible Change ${documentRevisions.claimEligibleChangeCount}`);
   console.log(`Evidence Package: Manifest ${evidencePackages.manifestCount} / Active Head ${evidencePackages.activeHeadCount} / Draft Head ${evidencePackages.draftHeadCount} / Complete Head ${evidencePackages.completeHeadCount}`);
   console.log(`Hypothesis Scenario: Hypothesis ${hypothesisScenarios.hypothesisCount} / Registered Head ${hypothesisScenarios.registeredHypothesisHeadCount} / Scenario ${hypothesisScenarios.scenarioCount} / Registered Scenario Head ${hypothesisScenarios.registeredScenarioHeadCount} / Scenario Set ${hypothesisScenarios.scenarioSetCount} / Registered Set Head ${hypothesisScenarios.registeredScenarioSetHeadCount}`);
+  console.log(`Foundation Decision: Record ${foundationDecisions.decisionCount} / Active Head ${foundationDecisions.activeDecisionHeadCount} / Eligible Head ${foundationDecisions.eligibleDecisionHeadCount} / Blocked Head ${foundationDecisions.blockedDecisionHeadCount} / Price Snapshot ${foundationDecisions.priceSnapshotCount}`);
   console.log("Catalog entries and Foundation records are not counted as active Research OS Edges.");
 
   const { errors } = printIssues("整合性", issues);
@@ -155,6 +161,7 @@ function main(): void {
   console.log(documentRevisions.revisionRecordCount > 0 ? "Document Revision records are structurally valid; a real disclosure/correction pair replay is still required before milestone green." : "Document Revision contracts are present, but no local revision record exists; milestone remains unproven.");
   console.log(evidencePackages.manifestCount > 0 ? "Evidence Package manifests are structurally valid; real external pin resolution and historical package replay are still required before milestone green." : "Evidence Package contracts are present, but no local manifest exists; milestone remains unproven.");
   console.log(hypothesisScenarios.registeredScenarioSetHeadCount > 0 ? "Hypothesis/Scenario records are structurally valid; real preregistration and outcome-separated replay are still required before milestone green." : "Hypothesis/Scenario contracts are present, but no registered local four-scenario set exists; milestone remains unproven.");
+  console.log(foundationDecisions.eligibleDecisionHeadCount > 0 ? "Foundation Decision records are structurally eligible; real local pilot and correction replay are still required before FOUNDATION_DECISION_INTEGRATION_V1_GREEN." : "Foundation Decision contracts are present, but no eligible local decision head exists; milestone remains unproven.");
 }
 
 main();
