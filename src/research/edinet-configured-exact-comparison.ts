@@ -210,10 +210,11 @@ function verifyAnchorText(value: unknown, expectedHash: unknown, field: string):
 function compareAnchor(value: unknown, field: string): ConfiguredEdinetExactComparisonAnchor {
   const anchor = object(value, field);
   if (anchor.lineageVerified !== true) throw new Error(`${field}.lineageVerified must be true`);
-  const expectedRelation = required(anchor.expectedRelation, `${field}.expectedRelation`);
-  if (expectedRelation !== "exact_normalized_match" && expectedRelation !== "visual_layout_variance_review") {
+  const expectedRelationValue = required(anchor.expectedRelation, `${field}.expectedRelation`);
+  if (expectedRelationValue !== "exact_normalized_match" && expectedRelationValue !== "visual_layout_variance_review") {
     throw new Error(`${field}.expectedRelation is invalid`);
   }
+  const expectedRelation = expectedRelationValue as ConfiguredEdinetExactComparisonAnchor["expectedRelation"];
   const structured = object(anchor.structured, `${field}.structured`);
   const pdf = object(anchor.pdf, `${field}.pdf`);
   const structuredText = verifyAnchorText(structured.text, structured.textHash, `${field}.structured.text`);
