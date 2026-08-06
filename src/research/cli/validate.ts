@@ -25,6 +25,8 @@ import {
   validateRepositoryStockProCouncilV2,
   type CouncilIssue,
 } from "../stock-pro-council-v2-validation.js";
+import { validateHypothesisScenarioRepository } from "../testable-hypothesis-scenario-repository.js";
+import type { HypothesisScenarioIssue } from "../testable-hypothesis-scenario.js";
 import { fail, parseArgs, printIssues, todayJst } from "./common.js";
 
 function loadHoldout(): { manifest: HoldoutManifest | null; accessLog: HoldoutAccessEntry[]; issues: Issue[] } {
@@ -60,7 +62,8 @@ function toResearchIssue(
     | EvidenceStoreIssue
     | ClaimGraphIssue
     | DocumentRevisionDiffIssue
-    | EvidencePackageIssue,
+    | EvidencePackageIssue
+    | HypothesisScenarioIssue,
 ): Issue {
   return { severity: issue.severity, code: issue.code, target: issue.target, message: issue.message };
 }
@@ -91,11 +94,9 @@ function main(): void {
   const securityMaster = validateSecurityMasterRepository({ asOf });
   const evidenceStore = validateBitemporalEvidenceRepository({ asOf: foundationAsOf });
   const claimGraph = validateClaimGraphRepository({ asOf: foundationAsOf, includeDependencyIssues: false });
-  const documentRevisions = validateDocumentRevisionDiffRepository({
-    asOf: foundationAsOf,
-    includeDependencyIssues: false,
-  });
+  const documentRevisions = validateDocumentRevisionDiffRepository({ asOf: foundationAsOf, includeDependencyIssues: false });
   const evidencePackages = validateEvidencePackageRepository({ includeDependencyIssues: false });
+  const hypothesisScenarios = validateHypothesisScenarioRepository({ includeDependencyIssues: false });
 
   const catalogIssues = [...catalogs.dataSourceIssues, ...catalogs.edgeFamilyIssues].map(toResearchIssue);
   const foundationIssues = [
@@ -112,6 +113,7 @@ function main(): void {
     ...claimGraph.issues,
     ...documentRevisions.issues,
     ...evidencePackages.issues,
+    ...hypothesisScenarios.issues,
   ].map(toResearchIssue);
 
   const issues: Issue[] = [
@@ -134,6 +136,7 @@ function main(): void {
   console.log(`Claim Graph (asOf=${foundationAsOf}): Claim Record ${claimGraph.claimRecordCount} / Edge Record ${claimGraph.edgeRecordCount} / Active Head ${claimGraph.activeClaimHeadCount} / Snapshot Claim ${claimGraph.snapshotClaimCount} / Eligible ${claimGraph.recommendationEligibleClaimCount} / Blocked ${claimGraph.blockedClaimCount}`);
   console.log(`Document Revision (asOf=${foundationAsOf}): Revision Record ${documentRevisions.revisionRecordCount} / Diff Record ${documentRevisions.diffRecordCount} / Active Revision ${documentRevisions.activeRevisionHeadCount} / Active Diff ${documentRevisions.activeDiffHeadCount} / Snapshot Revision ${documentRevisions.snapshotRevisionCount} / Snapshot Diff ${documentRevisions.snapshotDiffCount} / Claim Eligible Change ${documentRevisions.claimEligibleChangeCount}`);
   console.log(`Evidence Package: Manifest ${evidencePackages.manifestCount} / Active Head ${evidencePackages.activeHeadCount} / Draft Head ${evidencePackages.draftHeadCount} / Complete Head ${evidencePackages.completeHeadCount}`);
+  console.log(`Hypothesis Scenario: Hypothesis ${hypothesisScenarios.hypothesisCount} / Registered Head ${hypothesisScenarios.registeredHypothesisHeadCount} / Scenario ${hypothesisScenarios.scenarioCount} / Registered Scenario Head ${hypothesisScenarios.registeredScenarioHeadCount} / Scenario Set ${hypothesisScenarios.scenarioSetCount} / Registered Set Head ${hypothesisScenarios.registeredScenarioSetHeadCount}`);
   console.log("Catalog entries and Foundation records are not counted as active Research OS Edges.");
 
   const { errors } = printIssues("整合性", issues);
@@ -151,6 +154,7 @@ function main(): void {
   console.log(claimGraph.claimRecordCount > 0 ? "Claim Graph records are structurally valid; a real issue-time-compatible graph and deterministic replay are still required before milestone green." : "Claim Graph contracts are present, but no local Claim record exists; milestone remains unproven.");
   console.log(documentRevisions.revisionRecordCount > 0 ? "Document Revision records are structurally valid; a real disclosure/correction pair replay is still required before milestone green." : "Document Revision contracts are present, but no local revision record exists; milestone remains unproven.");
   console.log(evidencePackages.manifestCount > 0 ? "Evidence Package manifests are structurally valid; real external pin resolution and historical package replay are still required before milestone green." : "Evidence Package contracts are present, but no local manifest exists; milestone remains unproven.");
+  console.log(hypothesisScenarios.registeredScenarioSetHeadCount > 0 ? "Hypothesis/Scenario records are structurally valid; real preregistration and outcome-separated replay are still required before milestone green." : "Hypothesis/Scenario contracts are present, but no registered local four-scenario set exists; milestone remains unproven.");
 }
 
 main();

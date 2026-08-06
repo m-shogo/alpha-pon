@@ -20,6 +20,11 @@ import "./evidence-package-manifest.test.js";
 import "./evidence-package-governed.test.js";
 import "./evidence-package-ledger.test.js";
 import "./evidence-package-repository.test.js";
+import "./testable-hypothesis-scenario.test.js";
+import "./testable-hypothesis-scenario-hardening.test.js";
+import "./testable-hypothesis-scenario-ledger.test.js";
+import "./testable-hypothesis-scenario-repository.test.js";
+import "./testable-hypothesis-scenario-writer.test.js";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { load } from "js-yaml";
@@ -44,11 +49,7 @@ function testDateFormats() {
 }
 
 function testStableStringify() {
-  assert.equal(
-    stableStringify({ b: 1, a: 2 }),
-    stableStringify({ a: 2, b: 1 }),
-    "キー順に依存しない",
-  );
+  assert.equal(stableStringify({ b: 1, a: 2 }), stableStringify({ a: 2, b: 1 }), "キー順に依存しない");
   assert.notEqual(stableStringify({ a: 1 }), stableStringify({ a: 2 }));
   console.log("research/schema: stableStringify OK");
 }
@@ -61,55 +62,34 @@ function testValidFixturePasses() {
 }
 
 function testInvalidFixtureFails() {
-  const edge = load(
-    readFileSync("research/fixtures/invalid/edge-unevidenced-pass.yml", "utf-8"),
-  );
+  const edge = load(readFileSync("research/fixtures/invalid/edge-unevidenced-pass.yml", "utf-8"));
   const errors = validate(edge, edgeSchema);
-  assert.ok(
-    errors.some((error) => error.path === "mechanism"),
-    "mechanism の長さ違反を検出する",
-  );
+  assert.ok(errors.some((error) => error.path === "mechanism"), "mechanism の長さ違反を検出する");
   console.log("research/schema: invalid フィクスチャ OK");
 }
 
 function testUnknownFieldRejected() {
-  const edge = load(
-    readFileSync("research/fixtures/valid/edge-complete.yml", "utf-8"),
-  ) as Record<string, unknown>;
+  const edge = load(readFileSync("research/fixtures/valid/edge-complete.yml", "utf-8")) as Record<string, unknown>;
   const errors = validate({ ...edge, whoopsTypo: 1 }, edgeSchema);
-  assert.ok(
-    errors.some((error) => error.path === "whoopsTypo"),
-    "スキーマ外フィールドを弾く（タイポで静かに無視されるのを防ぐ）",
-  );
+  assert.ok(errors.some((error) => error.path === "whoopsTypo"), "スキーマ外フィールドを弾く");
   console.log("research/schema: 未定義フィールド検出 OK");
 }
 
 function testSourceTypeRejectsSns() {
-  const edge = load(
-    readFileSync("research/fixtures/valid/edge-complete.yml", "utf-8"),
-  ) as Record<string, unknown>;
-  const evidence = [
-    {
-      source: "https://example.invalid/post",
-      sourceType: "sns",
-      observedAt: "2024-01-04T15:30:00+09:00",
-      summary: "SNS 由来の情報",
-    },
-  ];
+  const edge = load(readFileSync("research/fixtures/valid/edge-complete.yml", "utf-8")) as Record<string, unknown>;
+  const evidence = [{
+    source: "https://example.invalid/post",
+    sourceType: "sns",
+    observedAt: "2024-01-04T15:30:00+09:00",
+    summary: "SNS 由来の情報",
+  }];
   const errors = validate({ ...edge, evidence }, edgeSchema);
-  assert.ok(
-    errors.some((error) => error.path === "evidence[0].sourceType"),
-    "SNS は sourceType の enum に存在しないので弾かれる",
-  );
+  assert.ok(errors.some((error) => error.path === "evidence[0].sourceType"), "SNS は sourceType の enum に存在しないので弾かれる");
   console.log("research/schema: SNS 出典の拒否 OK");
 }
 
 function testUnsupportedKeywordThrows() {
-  assert.throws(
-    () => validate({}, { type: "object", allOf: [] }),
-    /未対応の JSON Schema キーワード/,
-    "未対応キーワードを黙って無視しない",
-  );
+  assert.throws(() => validate({}, { type: "object", allOf: [] }), /未対応の JSON Schema キーワード/, "未対応キーワードを黙って無視しない");
   console.log("research/schema: 未対応キーワードで例外 OK");
 }
 
