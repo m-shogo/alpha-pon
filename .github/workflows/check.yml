@@ -132,7 +132,7 @@ jobs:
             reports/stock_pro_quality_audit_latest.md
             reports/stock_pro_improvement_roadmap_latest.md
             reports/stock_pro_committee_latest.md
-            reports/stock-pro-committee-latest.json
+            reports/stock_pro_committee_latest.json
             reports/ipo_theme_watch_latest.md
             reports/ipo_theme_watch_latest.json
             reports/stock_pro_agent_latest.md
