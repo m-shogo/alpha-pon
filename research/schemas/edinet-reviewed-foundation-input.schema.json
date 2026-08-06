@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alpha-pon.local/schemas/edinet-reviewed-foundation-input.schema.json",
+  "title": "Alpha Pon Human-Reviewed EDINET Foundation Input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "reviewId",
+    "reviewedBy",
+    "reviewedByHuman",
+    "reviewedAt",
+    "semanticMappingStatus",
+    "docID",
+    "chainRootDocID",
+    "documentTypeCode",
+    "entityIds",
+    "sourceContentHash",
+    "title",
+    "summary",
+    "publishedAt",
+    "observedAt",
+    "retrievedAt",
+    "effectiveFrom",
+    "firstExecutableAt",
+    "eventAtStatus",
+    "retrievalRunId",
+    "parserVersion",
+    "normalizationVersion",
+    "normalizedStructureHash",
+    "language",
+    "revisionKind",
+    "revisionSequence",
+    "evidenceStatus",
+    "documentRevisionStatus",
+    "license",
+    "storagePolicy",
+    "sections"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "reviewId": { "type": "string", "minLength": 3 },
+    "reviewedBy": { "type": "string", "minLength": 2 },
+    "reviewedByHuman": { "const": true },
+    "reviewedAt": { "type": "string", "format": "date-time" },
+    "semanticMappingStatus": { "const": "confirmed" },
+    "docID": { "type": "string", "pattern": "^[A-Za-z0-9_-]{4,64}$" },
+    "chainRootDocID": { "type": "string", "pattern": "^[A-Za-z0-9_-]{4,64}$" },
+    "documentTypeCode": { "type": "string", "enum": ["1", "2", "3", "4", "5"] },
+    "entityIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z][a-z0-9:_-]+$" }
+    },
+    "sourceContentHash": { "$ref": "#/$defs/hash" },
+    "title": { "type": "string", "minLength": 1 },
+    "summary": { "type": "string", "minLength": 3 },
+    "publishedAt": { "type": "string", "format": "date-time" },
+    "observedAt": { "type": "string", "format": "date-time" },
+    "retrievedAt": { "type": "string", "format": "date-time" },
+    "effectiveFrom": { "type": "string", "format": "date-time" },
+    "firstExecutableAt": { "type": "string", "format": "date-time" },
+    "eventAtStatus": { "type": "string", "enum": ["known", "unknown", "not_applicable"] },
+    "eventAt": { "type": "string", "format": "date-time" },
+    "retrievalRunId": { "type": "string", "minLength": 1 },
+    "parserVersion": { "type": "string", "minLength": 1 },
+    "normalizationVersion": { "type": "string", "minLength": 1 },
+    "normalizedStructureHash": { "$ref": "#/$defs/hash" },
+    "language": { "type": "string", "minLength": 2 },
+    "revisionKind": {
+      "type": "string",
+      "enum": ["initial", "amendment", "correction", "restatement", "replacement", "withdrawal", "periodic_update"]
+    },
+    "revisionSequence": { "type": "integer", "minimum": 0 },
+    "evidenceStatus": { "type": "string", "enum": ["active", "corrected", "retracted", "withdrawn", "expired"] },
+    "documentRevisionStatus": { "type": "string", "enum": ["active", "superseded", "withdrawn", "rejected"] },
+    "license": { "type": "string", "enum": ["metadata_only", "local_only"] },
+    "storagePolicy": { "type": "string", "enum": ["metadata_only", "hash_only", "local_only_content"] },
+    "sections": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["sectionId", "path", "ordinal", "titleHash", "contentHash"],
+        "properties": {
+          "sectionId": { "type": "string", "pattern": "^[a-z0-9:_-]+$" },
+          "path": { "type": "string", "minLength": 1 },
+          "ordinal": { "type": "integer", "minimum": 0 },
+          "titleHash": { "$ref": "#/$defs/hash" },
+          "contentHash": { "$ref": "#/$defs/hash" }
+        }
+      }
+    },
+    "prior": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidenceId",
+        "documentRevisionId",
+        "documentRevisionRecordId",
+        "relationType",
+        "supersessionStrength"
+      ],
+      "properties": {
+        "evidenceId": { "type": "string", "pattern": "^[a-z][a-z0-9:_-]+$" },
+        "documentRevisionId": { "type": "string", "pattern": "^[a-z][a-z0-9:_-]+$" },
+        "documentRevisionRecordId": { "type": "string", "minLength": 3 },
+        "relationType": { "type": "string", "enum": ["corrects", "retracts", "supersedes", "invalidates"] },
+        "supersessionStrength": { "type": "string", "enum": ["partial", "binding"] }
+      }
+    }
+  },
+  "$defs": {
+    "hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}
