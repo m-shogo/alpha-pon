@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alpha-pon.local/schemas/foundation-price-snapshot-record.schema.json",
+  "title": "Alpha Pon Foundation Price Snapshot Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "snapshotId",
+    "candidateId",
+    "listedSecurityEntityId",
+    "role",
+    "instrumentId",
+    "providerId",
+    "providerRecordId",
+    "tradingDate",
+    "informationCutoff",
+    "observedAt",
+    "firstExecutableAt",
+    "value",
+    "currency",
+    "adjustmentStatus",
+    "licenseClass",
+    "rawPayloadHash",
+    "contentHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "snapshotId": { "type": "string", "minLength": 3 },
+    "candidateId": { "type": "string", "minLength": 3 },
+    "listedSecurityEntityId": { "type": "string", "minLength": 3 },
+    "role": {
+      "type": "string",
+      "enum": [
+        "issuer_price",
+        "issuer_benchmark",
+        "topix_benchmark",
+        "sector_benchmark"
+      ]
+    },
+    "instrumentId": { "type": "string", "minLength": 1 },
+    "providerId": { "type": "string", "minLength": 1 },
+    "providerRecordId": { "type": "string", "minLength": 1 },
+    "tradingDate": { "type": "string", "format": "date" },
+    "informationCutoff": { "type": "string", "format": "date-time" },
+    "observedAt": { "type": "string", "format": "date-time" },
+    "firstExecutableAt": { "type": "string", "format": "date-time" },
+    "value": { "type": "number", "minimum": 0 },
+    "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+    "adjustmentStatus": { "type": "string", "enum": ["raw", "adjusted"] },
+    "licenseClass": {
+      "type": "string",
+      "enum": ["local_only", "licensed_not_redistributable"]
+    },
+    "rawPayloadHash": { "$ref": "#/$defs/hash" },
+    "contentHash": { "$ref": "#/$defs/hash" }
+  },
+  "$defs": {
+    "hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}
