@@ -1,7 +1,7 @@
 # Alpha Pon EDINET non-blocking status — 2026-08-06
 
 Status: `ACTIVE_SUBROADMAP`
-Updated: 2026-08-06 19:09 JST
+Updated: 2026-08-06 19:25 JST
 Parent roadmap: `docs/roadmaps/alpha-pon-current-roadmap-2026-08-06.md`
 
 ## Durable operating decision
@@ -67,14 +67,15 @@ Do not repeatedly block the development queue on this command. Surface it again 
 #67 pending/unmatched semantic separation
 #68 unmatched anchor diagnostic contexts
 #69 governed human review decisions
+#70 review-next exception/representative batching
 ```
 
 ## Non-blocking implementation queue
 
 Proceed in this order unless current `main`, tests, or real measured data show a stronger dependency:
 
-1. Batch and prioritize the `review_next` correction candidates without assigning materiality.
-2. Add full-text/table extraction support for exact before/after amounts and footnotes.
+1. **COMPLETE — PR #70:** Batch and prioritize the `review_next` correction candidates without assigning materiality.
+2. **IN PROGRESS — PR #71:** Add full-text extraction and numeric/footnote/accounting-line navigation support for exact before/after review. These lines remain unreviewed candidates, not confirmed amounts or table cells.
 3. Add explicit financial-statement, internal-control, and audit-opinion change checklists.
 4. Generalize the proven EDINET correction pipeline from the Sanrio boundary to a configured issuer boundary.
 5. Add a local review UI/report that consumes governed JSON but does not mutate Foundation stores.
