@@ -24,6 +24,8 @@ research/council_ledgers/*
 !research/council_ledgers/README.md
 research/council_replays/*
 !research/council_replays/README.md
+research/persona_calibrations/*
+!research/persona_calibrations/README.md
 
 # レポートはgit管理しない
 reports/*.md

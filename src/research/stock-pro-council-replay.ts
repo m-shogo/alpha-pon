@@ -40,6 +40,7 @@ export type CouncilReplayManifest = {
   verdictHashes: string[];
   dissentHashes: string[];
   vetoHashes: string[];
+  calibrationHashes: string[];
   automaticTradingAuthorized: false;
   contentHash: string;
 };
@@ -169,6 +170,7 @@ export function withReplayManifestHash(
     verdictHashes: sortedUnique(manifest.verdictHashes),
     dissentHashes: sortedUnique(manifest.dissentHashes),
     vetoHashes: sortedUnique(manifest.vetoHashes),
+    calibrationHashes: sortedUnique(manifest.calibrationHashes),
   };
   return { ...normalized, contentHash: computeReplayManifestHash(normalized) };
 }

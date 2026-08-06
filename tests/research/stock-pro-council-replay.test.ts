@@ -149,6 +149,7 @@ function makePackage(
     verdictHashes: verdicts.map(hashPersonaVerdict),
     dissentHashes: dissentRecords.map((record) => record.contentHash),
     vetoHashes: vetoRecords.map((record) => record.contentHash),
+    calibrationHashes: [],
     automaticTradingAuthorized: false,
   });
   return { manifest, verdicts, dissent: dissentRecords, veto: vetoRecords };
