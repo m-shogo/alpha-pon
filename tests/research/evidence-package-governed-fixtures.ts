@@ -43,6 +43,12 @@ export function governedEvidencePackageContext(): EvidencePackageContext {
       validFrom: "2020-01-01",
       confidence: "verified",
       sourceRefs: ["source:security:id:evidence-package-listing"],
+    }, {
+      type: "market_code",
+      value: "TSE-PRIME",
+      validFrom: "2020-01-01",
+      confidence: "verified",
+      sourceRefs: ["source:security:market:evidence-package-listing"],
     }],
     officialLinks: [],
     sourceRefs: ["source:security:evidence-package-listing"],

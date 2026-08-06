@@ -188,7 +188,6 @@ export function buildEvidencePackageManifestGoverned(
     completeness,
     status: "draft",
     blockers: [],
-    contentHash: undefined as never,
   };
   delete (intermediate as Partial<EvidencePackageManifest>).contentHash;
   const blockers = deriveGovernedBlockers({

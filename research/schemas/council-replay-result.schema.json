@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alpha-pon.local/schemas/council-replay-result.schema.json",
+  "title": "Stock Pro Council Replay Firewall Result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "replayId",
+    "councilRunId",
+    "caseType",
+    "informationCutoff",
+    "eligibleForRecommendationCandidate",
+    "blockers",
+    "requiredPersonaIds",
+    "presentPersonaIds",
+    "missingPersonaIds",
+    "abstainingPersonaIds",
+    "vetoingPersonaIds",
+    "bindingVetoIds",
+    "dissentIds",
+    "manifestHash",
+    "resultHash",
+    "automaticTradingAuthorized"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "replayId": { "type": "string", "minLength": 3 },
+    "councilRunId": { "type": "string", "minLength": 3 },
+    "caseType": {
+      "type": "string",
+      "enum": [
+        "event_driven",
+        "misconduct_accounting",
+        "technology",
+        "short_research",
+        "position_sizing",
+        "general"
+      ]
+    },
+    "informationCutoff": { "type": "string", "format": "date-time" },
+    "eligibleForRecommendationCandidate": { "type": "boolean" },
+    "blockers": { "$ref": "#/$defs/stringArray" },
+    "requiredPersonaIds": { "$ref": "#/$defs/idArray" },
+    "presentPersonaIds": { "$ref": "#/$defs/idArray" },
+    "missingPersonaIds": { "$ref": "#/$defs/idArray" },
+    "abstainingPersonaIds": { "$ref": "#/$defs/idArray" },
+    "vetoingPersonaIds": { "$ref": "#/$defs/idArray" },
+    "bindingVetoIds": { "$ref": "#/$defs/stringArray" },
+    "dissentIds": { "$ref": "#/$defs/stringArray" },
+    "manifestHash": { "$ref": "#/$defs/hash" },
+    "resultHash": { "$ref": "#/$defs/hash" },
+    "automaticTradingAuthorized": { "const": false }
+  },
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "stringArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "idArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "pattern": "^[a-z][a-z0-9_]+$"
+      }
+    }
+  }
+}

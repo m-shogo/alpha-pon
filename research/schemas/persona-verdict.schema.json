@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://alpha-pon.local/schemas/persona-verdict.schema.json",
+  "title": "Stock Pro Council Persona Verdict",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "personaId",
+    "personaVersion",
+    "runId",
+    "issuedAt",
+    "informationCutoff",
+    "jurisdiction",
+    "stance",
+    "evidenceRefs",
+    "facts",
+    "assumptions",
+    "forecasts",
+    "risks",
+    "missingEvidence",
+    "vetoCodes",
+    "falsificationConditions",
+    "nextEvidenceActions",
+    "modelVersion"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "personaId": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9_]+$"
+    },
+    "personaVersion": { "type": "string", "minLength": 1 },
+    "runId": { "type": "string", "minLength": 3 },
+    "issuedAt": { "type": "string", "format": "date-time" },
+    "informationCutoff": { "type": "string", "format": "date-time" },
+    "jurisdiction": {
+      "type": "string",
+      "minLength": 2,
+      "pattern": "^[a-z0-9_]+$"
+    },
+    "stance": {
+      "type": "string",
+      "enum": ["support", "oppose", "neutral", "abstain", "veto"]
+    },
+    "decisionView": {
+      "type": "string",
+      "enum": ["BUY", "WATCH", "WAIT", "AVOID"]
+    },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "calibrationRef": { "type": "string", "minLength": 3 },
+    "evidenceRefs": { "$ref": "#/$defs/stringArray" },
+    "facts": { "$ref": "#/$defs/stringArray" },
+    "assumptions": { "$ref": "#/$defs/stringArray" },
+    "forecasts": { "$ref": "#/$defs/stringArray" },
+    "risks": { "$ref": "#/$defs/stringArray" },
+    "missingEvidence": { "$ref": "#/$defs/stringArray" },
+    "vetoCodes": { "$ref": "#/$defs/codeArray" },
+    "falsificationConditions": { "$ref": "#/$defs/stringArray" },
+    "nextEvidenceActions": { "$ref": "#/$defs/stringArray" },
+    "modelVersion": { "type": "string", "minLength": 1 }
+  },
+  "$defs": {
+    "stringArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "codeArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 2,
+        "pattern": "^[a-z0-9_]+$"
+      }
+    }
+  }
+}

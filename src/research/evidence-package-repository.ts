@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import {
-  BITEMPORAL_EVIDENCE_PATHS,
+  EVIDENCE_STORE_PATHS,
 } from "./bitemporal-evidence-store.js";
 import {
   validateBitemporalEvidenceRepository,
@@ -200,9 +200,9 @@ function dependencyContext(
     asOf: jstDateOf(cutoff),
   });
   const evidence = validateBitemporalEvidenceRepository({
-    evidencePath: options.evidencePath ?? BITEMPORAL_EVIDENCE_PATHS.evidence,
+    evidencePath: options.evidencePath ?? EVIDENCE_STORE_PATHS.evidence,
     relationsPath:
-      options.evidenceRelationsPath ?? BITEMPORAL_EVIDENCE_PATHS.relations,
+      options.evidenceRelationsPath ?? EVIDENCE_STORE_PATHS.relations,
     securityEntitiesPath: options.securityEntitiesPath,
     securityRelationshipsPath: options.securityRelationshipsPath,
     asOf: cutoff,
