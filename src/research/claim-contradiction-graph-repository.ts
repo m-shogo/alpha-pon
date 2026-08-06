@@ -21,6 +21,10 @@ import {
   visibleClaimRecordsAtCutoff,
 } from "./claim-contradiction-graph-governed.js";
 import {
+  CLAIM_GRAPH_SNAPSHOT_SCHEMA_PATH,
+  validateGovernedClaimGraphSnapshot,
+} from "./claim-contradiction-graph-snapshot.js";
+import {
   SECURITY_MASTER_PATHS,
 } from "./security-master.js";
 import {
@@ -147,6 +151,7 @@ export function validateClaimGraphRepository(
     claim: loadCouncilSchema(CLAIM_GRAPH_PATHS.claimSchema),
     edge: loadCouncilSchema(CLAIM_GRAPH_PATHS.edgeSchema),
   };
+  const snapshotSchema = loadCouncilSchema(CLAIM_GRAPH_SNAPSHOT_SCHEMA_PATH);
   const knownEntityIds = new Set(
     security.snapshot.entities.map((record) => record.entityId),
   );
@@ -172,15 +177,24 @@ export function validateClaimGraphRepository(
         evidence.snapshot,
         knownEntityIds,
       );
-      for (const claim of visibleHeads) {
-        assessments.push(assessClaimForRecommendationAtCutoff(
-          claimsRead.records,
-          edgesRead.records,
-          schemas,
-          evidence.snapshot,
-          claim.claimId,
-          knownEntityIds,
-        ));
+      const snapshotIssues = validateGovernedClaimGraphSnapshot(
+        snapshot,
+        snapshotSchema,
+      );
+      issues.push(...snapshotIssues);
+      if (snapshotIssues.some((item) => item.severity === "error")) {
+        snapshot = null;
+      } else {
+        for (const claim of visibleHeads) {
+          assessments.push(assessClaimForRecommendationAtCutoff(
+            claimsRead.records,
+            edgesRead.records,
+            schemas,
+            evidence.snapshot,
+            claim.claimId,
+            knownEntityIds,
+          ));
+        }
       }
     } catch (error) {
       issues.push(issue("claim_graph_snapshot_failed", claimsPath, (error as Error).message));
