@@ -3,6 +3,7 @@ import "./edinet-fetcher.test.js";
 import "./edinet-document-lineage.test.js";
 import "./edinet-sanrio-pilot.test.js";
 import "./edinet-sanrio-acquisition.test.js";
+import "./edinet-sanrio-review-workspace.test.js";
 import { validateWatchlist } from "../src/validation.js";
 import type { WatchlistConfig } from "../src/types.js";
 
