@@ -1,14 +1,14 @@
 version: 2
 status: catalog_only
-updatedAt: "2026-08-05T14:12:00Z"
+updatedAt: "2026-08-06T00:25:00+09:00"
 
 purpose: >-
   Alpha PonのRecommendation候補を、単純多数決ではなく専門領域・棄権・
   hard veto・反対意見・事後較正を持つ投資委員会として評価する。
 
 activationGate:
-  schemaValidated: false
-  verdictValidatorImplemented: false
+  schemaValidated: true
+  verdictValidatorImplemented: true
   dissentLedgerImplemented: false
   deterministicReplayImplemented: false
   calibrationStoreImplemented: false
@@ -301,8 +301,6 @@ existingAgentMigration:
     - map_legend_outputs_into_functional_jurisdictions
 
 nextImplementation:
-  - create_persona_verdict_schema
-  - create_catalog_validator
   - create_append_only_dissent_ledger
   - implement_hard_veto_protocol
   - add_deterministic_replay_fixtures

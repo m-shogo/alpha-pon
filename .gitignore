@@ -11,6 +11,22 @@ data/disclosures/*.json
 data/edinet/*.json
 data/ipo/*.json
 
+# PIT価格の実データは利用許諾にかかわらずlocal storeへ置き、Gitへcommitしない。
+research/prices/**/*.jsonl
+research/prices/**/*.json
+!research/prices/README.md
+
+# Stock Pro Council runtime records are append-only local data.
+# Schemas, validators and README files are versioned; real records are not.
+research/persona_verdicts/*
+!research/persona_verdicts/README.md
+research/council_ledgers/*
+!research/council_ledgers/README.md
+research/council_replays/*
+!research/council_replays/README.md
+research/persona_calibrations/*
+!research/persona_calibrations/README.md
+
 # レポートはgit管理しない
 reports/*.md
 reports/*.json
