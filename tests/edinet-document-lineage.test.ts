@@ -124,7 +124,7 @@ async function testRetryAfter(): Promise<void> {
   assert.deepEqual(sleeps, [2000]);
 }
 
-async function testSizeLimit(): Promise<void> {
+async function testAnnouncedSizeLimit(): Promise<void> {
   await assert.rejects(
     () => fetchEdinetDocument("S100TEST", "3", {
       apiKey: "size-key",
@@ -132,6 +132,28 @@ async function testSizeLimit(): Promise<void> {
       fetchImpl: (async () => response("12345", 200, { "content-length": "5" })) as typeof fetch,
     }),
     error => error instanceof EdinetDocumentTooLargeError,
+  );
+}
+
+async function testStreamingSizeLimitWithoutContentLength(): Promise<void> {
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode("123"));
+      controller.enqueue(new TextEncoder().encode("45"));
+      controller.close();
+    },
+  });
+
+  await assert.rejects(
+    () => fetchEdinetDocument("S100TEST", "4", {
+      apiKey: "stream-size-key",
+      maxBytes: 4,
+      fetchImpl: (async () => new Response(stream, { status: 200 })) as typeof fetch,
+    }),
+    error =>
+      error instanceof EdinetDocumentTooLargeError
+      && error.actualBytes === 5
+      && error.limitBytes === 4,
   );
 }
 
@@ -225,13 +247,16 @@ function testLineageAnomalies(): void {
   assert.ok(result.issues.some(value => value.code === "missing_parent_document"));
   assert.ok(result.issues.some(value => value.code === "lineage_cycle"));
   assert.ok(result.issues.some(value => value.code === "child_precedes_parent"));
+  const missingParentNode = result.nodes.find(value => value.docID === "S100MISS");
+  assert.equal(missingParentNode?.chainRootDocID, "S100OUTSIDE");
 }
 
 async function main(): Promise<void> {
   await testMissingCredentialsStopsBeforeFetch();
   await testAuthenticatedDownloadAndHash();
   await testRetryAfter();
-  await testSizeLimit();
+  await testAnnouncedSizeLimit();
+  await testStreamingSizeLimitWithoutContentLength();
   await testSecretDoesNotLeakOnError();
   await testInputValidationBeforeFetch();
   testLineageProjection();
