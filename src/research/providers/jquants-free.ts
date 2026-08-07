@@ -265,13 +265,18 @@ export class JQuantsFreePriceProvider implements PriceProvider {
     }
 
     const requestedCode = canonicalStoreCode(query.codes[0]!);
-    const quotes = await this.fetchQuotes(requestedCode, query.from, query.to);
+    const from = normalizeDate(query.from);
+    const to = normalizeDate(query.to);
+    if (from > to) {
+      throw new Error(`invalid J-Quants query range: from=${query.from} to=${query.to}`);
+    }
+    const quotes = await this.fetchQuotes(requestedCode, from, to);
     const retrievedAt = this.now().toISOString();
     const seenDates = new Set<string>();
-    const ingestionRunId = `jquants-free:${requestedCode}:${query.from}:${query.to}:${retrievedAt}`;
+    const ingestionRunId = `jquants-free:${requestedCode}:${from}:${to}:${retrievedAt}`;
     const records = quotes.map((quote) => {
       const tradingDate = normalizeDate(quote.Date);
-      if (tradingDate < query.from || tradingDate > query.to) {
+      if (tradingDate < from || tradingDate > to) {
         throw new Error(`J-Quants returned out-of-range row: ${tradingDate}`);
       }
       if (seenDates.has(tradingDate)) throw new Error(`duplicate J-Quants row for ${tradingDate}`);
