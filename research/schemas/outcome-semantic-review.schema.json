@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "alpha-pon/research/outcome-semantic-review.schema.json",
+  "title": "Alpha Pon Outcome Semantic Review v1",
+  "description": "Append-only semantic review of an immutable Recommendation and Quantitative Outcome. Review may propose lessons but never mutates rules or trading authority automatically.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "reviewId",
+    "recommendationId",
+    "recommendationContentHash",
+    "quantitativeOutcomeId",
+    "quantitativeOutcomeContentHash",
+    "reviewedAt",
+    "evidenceCutoff",
+    "reviewAuthority",
+    "reviewerRef",
+    "learningUse",
+    "invalidationAssessment",
+    "triggeredInvalidationRules",
+    "invalidationEvidenceRefs",
+    "verdict",
+    "assumptionAssessments",
+    "missingEvidence",
+    "unexpectedConfounders",
+    "lessons",
+    "proposedRuleChanges",
+    "sourceEvidence",
+    "ruleMutationAuthorized",
+    "edgeGateMutationAuthorized",
+    "automaticTradingAuthorized",
+    "contentHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "reviewId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "recommendationId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "recommendationContentHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "quantitativeOutcomeId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "quantitativeOutcomeContentHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "reviewedAt": { "type": "string", "format": "date-time" },
+    "evidenceCutoff": { "type": "string", "format": "date-time" },
+    "reviewAuthority": { "type": "string", "enum": ["provisional_ai", "human_confirmed"] },
+    "reviewerRef": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "learningUse": { "type": "string", "enum": ["proposal_only", "human_confirmed"] },
+    "invalidationAssessment": { "type": "string", "enum": ["triggered", "not_triggered", "inconclusive"] },
+    "triggeredInvalidationRules": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 4000 }
+    },
+    "invalidationEvidenceRefs": { "$ref": "#/$defs/refListAllowEmpty" },
+    "verdict": { "type": "string", "enum": ["correct", "partly_correct", "incorrect", "inconclusive"] },
+    "assumptionAssessments": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["assumption", "assessment", "evidenceRefs"],
+        "properties": {
+          "assumption": { "type": "string", "minLength": 1, "maxLength": 4000 },
+          "assessment": { "type": "string", "enum": ["correct", "incorrect", "inconclusive"] },
+          "evidenceRefs": { "$ref": "#/$defs/refList" }
+        }
+      }
+    },
+    "missingEvidence": { "$ref": "#/$defs/textList" },
+    "unexpectedConfounders": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["statement", "evidenceRefs"],
+        "properties": {
+          "statement": { "type": "string", "minLength": 1, "maxLength": 4000 },
+          "evidenceRefs": { "$ref": "#/$defs/refList" }
+        }
+      }
+    },
+    "lessons": { "$ref": "#/$defs/textList" },
+    "proposedRuleChanges": { "$ref": "#/$defs/textList" },
+    "sourceEvidence": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["tier", "ref"],
+        "properties": {
+          "tier": { "type": "string", "enum": ["A", "B", "C", "D"] },
+          "ref": { "type": "string", "minLength": 1, "maxLength": 512 }
+        }
+      }
+    },
+    "supersedesReviewId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "ruleMutationAuthorized": { "const": false },
+    "edgeGateMutationAuthorized": { "const": false },
+    "automaticTradingAuthorized": { "const": false },
+    "contentHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  },
+  "$defs": {
+    "textList": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 4000 }
+    },
+    "refList": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 512 }
+    },
+    "refListAllowEmpty": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 512 }
+    }
+  }
+}
