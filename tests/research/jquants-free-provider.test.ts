@@ -51,6 +51,15 @@ const tradedQuote: DailyQuote = {
 }
 
 {
+  assert.equal(jquantsTradingDayCloseJst("2024-02-29"), "2024-02-29T15:00:00+09:00");
+  assert.throws(() => jquantsTradingDayCloseJst("2024-02-31"), /invalid J-Quants trading date/);
+  assert.throws(() => jquantsFreeObservedAt("2023-02-29"), /invalid J-Quants trading date/);
+  assert.throws(() => jquantsFreeObservedAt("2026-13-01"), /invalid J-Quants trading date/);
+  assert.throws(() => jquantsFreeObservedAt("2026-00-10"), /invalid J-Quants trading date/);
+  console.log("jquants-free-provider: impossible Gregorian calendar dates fail closed OK");
+}
+
+{
   const record = mapJQuantsFreeQuote({
     requestedCode: "8136",
     quote: tradedQuote,
@@ -109,7 +118,14 @@ const tradedQuote: DailyQuote = {
     firstExecutableAt: "2026-08-07T09:00:00+09:00",
     ingestionRunId: "fixture-run-4",
   }), /retrievedAt must be at or after/);
-  console.log("jquants-free-provider: source-code and observation boundaries fail closed OK");
+  assert.throws(() => mapJQuantsFreeQuote({
+    requestedCode: "8136",
+    quote: { ...tradedQuote, Date: "20260230" },
+    retrievedAt: "2026-08-07T02:30:00.000Z",
+    firstExecutableAt: "2026-08-07T09:00:00+09:00",
+    ingestionRunId: "fixture-run-invalid-date",
+  }), /invalid J-Quants trading date/);
+  console.log("jquants-free-provider: source-code, calendar-date and observation boundaries fail closed OK");
 }
 
 {
