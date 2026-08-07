@@ -12,9 +12,10 @@ J-Quants は Edge を発見する主役ではなく、価格反応と予想結�
 #103 J-Quants Free PIT PriceProvider adapter
 #104 J-Quants V2 JST / delayed-date-cap hardening
 #105 canonical Price Store schema conformance + default raw-value redaction
+#108 private local price-store filesystem boundary
 ```
 
-All three PRs passed their applicable Draft checks and Ready/full CI before merge.
+All four PRs passed their applicable Draft checks and Ready/full CI before merge.
 
 Important boundary: **implementation complete** does not mean the real-price Foundation pilot is complete. Real J-Quants rows remain local-only and the remaining real edge cases below have not been measured yet.
 
@@ -121,6 +122,29 @@ PR #105でfixture recordを実`research/schemas/price-record.schema.json`と`val
 
 `PriceProviderBatch`が正しいだけではなく、実際にPIT Price Storeへ入るrecord形までCIで固定する。
 
+### Private filesystem boundary
+
+PR #108で`--append-local`の保存をcallerの`umask`だけに依存させないようにした。
+
+`src/research/private-price-store.ts`が以下を強制する。
+
+```text
+provider root: 0700
+price JSONL:   0600
+```
+
+さらに:
+
+- provider専用root直下のfileだけを許可
+- parent/root/fileをregular non-symlinkとして検証
+- permissiveな既存0777/0666も0700/0600へ矯正
+- dangling symlinkを`lstat`で検出
+- symlink file/rootをappend前に拒否
+- nested pathを拒否
+- append後もfile typeを再検証して0600を再適用
+
+real filesystem fixtureで外部symlink targetへ書き込まないことまでCI固定済み。
+
 ## Local CLI
 
 Runner:
@@ -167,7 +191,7 @@ raw OHLCVをlocal terminalで明示確認する時だけ追加flagを使う:
 research/prices/jquants-free/<code>.jsonl
 ```
 
-consoleへ表示する保存先はrepo-relative pathのみで、absolute local filesystem pathを出さない。runnerは`umask 077`を使用する。
+consoleへ表示する保存先はrepo-relative pathのみで、absolute local filesystem pathを出さない。runnerは`umask 077`を使用し、PR #108以降はstorage boundary自体も0700/0600を強制する。
 
 ## Fixture validation
 
@@ -187,6 +211,10 @@ consoleへ表示する保存先はrepo-relative pathのみで、absolute local f
 - future-only range = no network
 - canonical Price Store schema conformance
 - default raw-value redaction
+- private root/file permission tightening
+- regular-file/root symlink rejection
+- dangling symlink rejection
+- provider-root direct-child enforcement
 
 ## Remaining real measurement — non-blocking
 
@@ -205,6 +233,8 @@ TOPIX / sector benchmarkはFreeで無理に代替せず、Foundation pilot側で
 - 実価格・secret・token・account IDをGitへcommitしない。
 - raw J-Quants dataをpublic dashboard/APIへ流さない。
 - default console outputにもraw OHLCVを出さない。
+- local-only price fileはprovider root 0700 / file 0600を保持する。
+- symlink/dangling symlink経由のprivate price writeを許可しない。
 - 複数provider/planの同日データをsource/providerPlan指定なしに黙って1件選ばない。
 - credentials不足・J-Quants障害をLINE/daily本体へ伝播させない。
 - adjusted seriesをrevision-awareでないPIT storeへ混ぜない。
@@ -225,5 +255,6 @@ TOPIX / sector benchmarkはFreeで無理に代替せず、Foundation pilot側で
 - [x] future-only requestの別日巻き戻し防止 — PR #104
 - [x] canonical Price Store schema conformance — PR #105
 - [x] default console raw-value redaction — PR #105
+- [x] private local price-store 0700/0600 + symlink boundary — PR #108
 - [ ] missing/no_trade/suspensionのreal row pattern実測
 - [ ] exact delayed intraday availabilityのreal measurement
