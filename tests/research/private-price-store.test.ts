@@ -39,7 +39,7 @@ const record = withPriceRecordHash(mapJQuantsFreeQuote({
   requestedCode: "8136",
   quote,
   retrievedAt: "2026-08-07T02:30:00.000Z",
-  firstExecutableAt: "2026-08-07T09:00:00+09:00",
+  firstExecutableAt: "2026-08-07T12:00:00+09:00",
   ingestionRunId: "private-price-store-fixture",
 }));
 

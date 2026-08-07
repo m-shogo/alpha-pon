@@ -152,6 +152,7 @@ export type PriceStoreIssueCode =
   | "data_after_observation"
   | "retrieval_before_observation"
   | "execution_before_observation"
+  | "execution_before_retrieval"
   | "trading_date_mismatch"
   | "delay_flag_mismatch"
   | "invalid_ohlcv"
@@ -344,6 +345,13 @@ export function validatePriceRecord(
       message: `firstExecutableAt=${record.firstExecutableAt}がobservedAtより前です`,
     });
   }
+  if (executableMs < retrievedMs) {
+    pushIssue(issues, {
+      code: "execution_before_retrieval",
+      target,
+      message: `firstExecutableAt=${record.firstExecutableAt}がretrievedAt=${record.retrievedAt}より前です`,
+    });
+  }
   if (jstDateOf(record.dataAsOf) !== record.tradingDate) {
     pushIssue(issues, {
       code: "trading_date_mismatch",
@@ -495,6 +503,10 @@ export function validateProviderBatch(batch: PriceProviderBatch): string[] {
     }
     if (record.retrievedAt !== batch.retrievedAt) {
       issues.push(`${prefix}.retrievedAt does not match batch retrievedAt`);
+    }
+    const executableMs = timeMs(record.firstExecutableAt);
+    if (Number.isFinite(retrievedMs) && Number.isFinite(executableMs) && executableMs < retrievedMs) {
+      issues.push(`${prefix}.firstExecutableAt precedes batch retrievedAt`);
     }
     if (record.sourceVersion !== batch.sourceVersion) {
       issues.push(`${prefix}.sourceVersion does not match batch.sourceVersion`);

@@ -164,11 +164,17 @@ function classifyQuote(quote: DailyQuote): {
   };
 }
 
-function assertTimestampAtOrAfter(value: string, boundary: string, field: string): void {
+function assertTimestampAtOrAfter(
+  value: string,
+  boundary: string,
+  field: string,
+  boundaryField: string,
+): void {
   const valueMs = Date.parse(value);
   const boundaryMs = Date.parse(boundary);
   if (!Number.isFinite(valueMs)) throw new Error(`${field} must be a valid timestamp`);
-  if (valueMs < boundaryMs) throw new Error(`${field} must be at or after observedAt`);
+  if (!Number.isFinite(boundaryMs)) throw new Error(`${boundaryField} must be a valid timestamp`);
+  if (valueMs < boundaryMs) throw new Error(`${field} must be at or after ${boundaryField}`);
 }
 
 export function mapJQuantsFreeQuote(input: {
@@ -190,7 +196,7 @@ export function mapJQuantsFreeQuote(input: {
   if (Date.parse(input.retrievedAt) < Date.parse(observedAt)) {
     throw new Error("retrievedAt must be at or after the Free-plan observedAt boundary");
   }
-  assertTimestampAtOrAfter(input.firstExecutableAt, observedAt, "firstExecutableAt");
+  assertTimestampAtOrAfter(input.firstExecutableAt, input.retrievedAt, "firstExecutableAt", "retrievedAt");
   const classified = classifyQuote(input.quote);
 
   return {

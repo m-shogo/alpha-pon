@@ -64,7 +64,7 @@ const tradedQuote: DailyQuote = {
     requestedCode: "8136",
     quote: tradedQuote,
     retrievedAt: "2026-08-07T02:30:00.000Z",
-    firstExecutableAt: "2026-08-07T09:00:00+09:00",
+    firstExecutableAt: "2026-08-07T12:00:00+09:00",
     ingestionRunId: "fixture-run-1",
   });
   assert.equal(record.code, "8136");
@@ -94,7 +94,7 @@ const tradedQuote: DailyQuote = {
     requestedCode: "8136",
     quote: { ...tradedQuote, Open: 0, High: 0, Low: 0, Close: 0, Volume: 0 },
     retrievedAt: "2026-08-07T02:30:00.000Z",
-    firstExecutableAt: "2026-08-07T09:00:00+09:00",
+    firstExecutableAt: "2026-08-07T12:00:00+09:00",
     ingestionRunId: "fixture-run-2",
   });
   assert.equal(missing.status, "missing");
@@ -108,31 +108,38 @@ const tradedQuote: DailyQuote = {
     requestedCode: "8136",
     quote: { ...tradedQuote, Code: "72030" },
     retrievedAt: "2026-08-07T02:30:00.000Z",
-    firstExecutableAt: "2026-08-07T09:00:00+09:00",
+    firstExecutableAt: "2026-08-07T12:00:00+09:00",
     ingestionRunId: "fixture-run-3",
   }), /quote code mismatch/);
   assert.throws(() => mapJQuantsFreeQuote({
     requestedCode: "8136",
     quote: tradedQuote,
     retrievedAt: "2026-08-06T00:00:00.000Z",
-    firstExecutableAt: "2026-08-07T09:00:00+09:00",
+    firstExecutableAt: "2026-08-07T12:00:00+09:00",
     ingestionRunId: "fixture-run-4",
   }), /retrievedAt must be at or after/);
   assert.throws(() => mapJQuantsFreeQuote({
     requestedCode: "8136",
     quote: { ...tradedQuote, Date: "20260230" },
     retrievedAt: "2026-08-07T02:30:00.000Z",
-    firstExecutableAt: "2026-08-07T09:00:00+09:00",
+    firstExecutableAt: "2026-08-07T12:00:00+09:00",
     ingestionRunId: "fixture-run-invalid-date",
   }), /invalid J-Quants trading date/);
-  console.log("jquants-free-provider: source-code, calendar-date and observation boundaries fail closed OK");
+  assert.throws(() => mapJQuantsFreeQuote({
+    requestedCode: "8136",
+    quote: tradedQuote,
+    retrievedAt: "2026-08-07T02:30:00.000Z",
+    firstExecutableAt: "2026-08-07T11:00:00+09:00",
+    ingestionRunId: "fixture-run-execution-before-retrieval",
+  }), /firstExecutableAt must be at or after retrievedAt/);
+  console.log("jquants-free-provider: source-code, calendar-date and PIT timestamp boundaries fail closed OK");
 }
 
 {
   const provider = new JQuantsFreePriceProvider({
     fetchQuotes: async () => [tradedQuote],
     now: () => new Date("2026-08-07T02:30:00.000Z"),
-    resolveFirstExecutableAt: () => "2026-08-07T09:00:00+09:00",
+    resolveFirstExecutableAt: () => "2026-08-07T12:00:00+09:00",
   });
   const batch = await provider.fetchDaily({
     seriesKind: "security",
@@ -172,7 +179,7 @@ const tradedQuote: DailyQuote = {
       return [];
     },
     now: () => new Date("2026-08-07T02:30:00.000Z"),
-    resolveFirstExecutableAt: () => "2026-08-07T09:00:00+09:00",
+    resolveFirstExecutableAt: () => "2026-08-07T12:00:00+09:00",
   });
 
   await assert.rejects(() => provider.fetchDaily({
