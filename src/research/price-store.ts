@@ -166,6 +166,7 @@ export type PriceStoreIssueCode =
   | "missing_benchmark"
   | "invalid_content_hash"
   | "duplicate_content_hash"
+  | "orphan_supersedes_hash"
   | "missing_supersedes_hash"
   | "invalid_supersedes_hash"
   | "revision_time_not_monotonic";
@@ -431,6 +432,14 @@ export function validatePriceRecords(
       const timeDiff = timeMs(a.observedAt) - timeMs(b.observedAt);
       return timeDiff !== 0 ? timeDiff : a.contentHash.localeCompare(b.contentHash);
     });
+    const root = group[0];
+    if (root?.supersedesHash) {
+      pushIssue(issues, {
+        code: "orphan_supersedes_hash",
+        target: targetOf(root),
+        message: `系列先頭recordはsupersedesHashを持てません: ${root.supersedesHash}`,
+      });
+    }
     for (let index = 1; index < group.length; index += 1) {
       const previous = group[index - 1];
       const current = group[index];
@@ -488,7 +497,7 @@ export function validateProviderBatch(batch: PriceProviderBatch): string[] {
       issues.push(`${prefix}.retrievedAt does not match batch retrievedAt`);
     }
     if (record.sourceVersion !== batch.sourceVersion) {
-      issues.push(`${prefix}.sourceVersion does not match batch sourceVersion`);
+      issues.push(`${prefix}.sourceVersion does not match batch.sourceVersion`);
     }
     if (record.adjusted && !batch.capabilities.supportsAdjusted) {
       issues.push(`${prefix} is adjusted but provider does not support adjusted prices`);
