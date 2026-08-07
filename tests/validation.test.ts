@@ -29,6 +29,7 @@ import "./edinet-sanrio-human-review-decision.test.js";
 import "./edinet-sanrio-configured-parity-workspace.test.js";
 import "./edinet-sanrio-configured-parity-human-review.test.js";
 import "./edinet-sanrio-foundation-readiness-audit.test.js";
+import "./foundation-readiness-remediation-plan.test.js";
 import "./edinet-sanrio-review-next-batching.test.js";
 import "./edinet-sanrio-review-next-content-bundle.test.js";
 import "./edinet-sanrio-impact-review-checklist.test.js";
