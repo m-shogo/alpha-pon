@@ -63,6 +63,7 @@ export type OutcomeLearningProposalRecord = {
 
 export type OutcomeLearningProposalContext = {
   semanticReviewsById: ReadonlyMap<string, OutcomeSemanticReviewRecord>;
+  validatedSemanticReviewHashes: ReadonlySet<string>;
 };
 
 export type OutcomeLearningProposalIssue = {
@@ -121,6 +122,14 @@ function validateSourceReview(input: {
     || computeOutcomeSemanticReviewHash(review) !== review.contentHash
   ) {
     input.issues.push(issue("semantic_review_hash_mismatch", target, "Semantic Review hash lineageが一致しません"));
+    return null;
+  }
+  if (!input.context.validatedSemanticReviewHashes.has(review.contentHash)) {
+    input.issues.push(issue(
+      "semantic_review_not_validated",
+      target,
+      "Learning Proposalのsourceにはupstream validator通過済みSemantic Review hash witnessが必要です",
+    ));
     return null;
   }
   return review;
