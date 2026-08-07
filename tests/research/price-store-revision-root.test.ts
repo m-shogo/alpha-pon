@@ -24,7 +24,7 @@ function baseRecord(overrides: Partial<PitPriceRecordInput> = {}): PitPriceRecor
     dataAsOf: "2026-05-14T15:30:00+09:00",
     observedAt: "2026-08-06T23:59:59+09:00",
     retrievedAt: "2026-08-07T02:30:00.000Z",
-    firstExecutableAt: "2026-08-07T09:00:00+09:00",
+    firstExecutableAt: "2026-08-07T12:00:00+09:00",
     source: "jquants",
     sourceVersion: "fixture-v1",
     providerPlan: "free",
