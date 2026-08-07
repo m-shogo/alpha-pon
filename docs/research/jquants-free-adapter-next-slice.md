@@ -1,10 +1,22 @@
 # J-Quants Free `PriceProvider` Adapter — v1
 
-Status: `IMPLEMENTED_CONTRACT_REAL_EDGE_CASE_MEASUREMENT_PENDING`
+Status: `IMPLEMENTED_AND_CI_GREEN_REAL_EDGE_CASE_MEASUREMENT_PENDING`
 Updated: 2026-08-07 JST
 Depends on: [PIT Price Store v1](pit-price-store.md)
 
 J-Quants は Edge を発見する主役ではなく、価格反応と予想結果を検証する基盤として扱う。
+
+## Completed implementation chain
+
+```text
+#103 J-Quants Free PIT PriceProvider adapter
+#104 J-Quants V2 JST / delayed-date-cap hardening
+#105 canonical Price Store schema conformance + default raw-value redaction
+```
+
+All three PRs passed their applicable Draft checks and Ready/full CI before merge.
+
+Important boundary: **implementation complete** does not mean the real-price Foundation pilot is complete. Real J-Quants rows remain local-only and the remaining real edge cases below have not been measured yet.
 
 ## Current verified Free-plan boundary
 
@@ -65,6 +77,18 @@ Free entitlementはrolling windowなので、固定日付の`historyFrom`をcapa
 - `retrievedAt`: Alpha Ponの実取得時刻
 - `firstExecutableAt`: adapter内部で週末・祝日を推測しない。呼び出し側が明示resolverで供給し、`observedAt`以降であることを強制
 
+### V2 delayed-date cap hardening
+
+PR #104で既存fetcherの危険な境界を修正した。
+
+- cap dateはrunnerのlocal timezoneではなく`Asia/Tokyo`基準
+- `from > to`を拒否
+- requested `to`だけがcap超過なら`to`のみtruncate
+- requested `from`がcapより新しい場合は**別の古い日へ巻き戻さず空結果**
+- future-only ineligible requestはV2 network requestを0回にする
+
+これにより「まだ取得できない日を要求したのに84日前の別日の価格が返る」誤対応を防ぐ。
+
 ### Price representation
 
 v1は**未調整OHLCだけ**を正本化する。
@@ -85,6 +109,17 @@ missingReason: unknown
 ```
 
 実Freeデータでmissing patternを測定した後だけ分類を細分化する。
+
+### Canonical store conformance
+
+PR #105でfixture recordを実`research/schemas/price-record.schema.json`と`validatePriceRecord(...)`へ通す回帰テストを追加した。
+
+- traded row: schema error 0
+- unknown missing row: schema error 0
+- securityにbenchmarkが未設定であることは既存設計どおりwarningで保持
+- content hashを付与した実append形のrecordまで検証
+
+`PriceProviderBatch`が正しいだけではなく、実際にPIT Price Storeへ入るrecord形までCIで固定する。
 
 ## Local CLI
 
@@ -109,17 +144,34 @@ bash scripts/run-jquants-free-price-provider-local.sh \
 
 credentials不足は`credentials_missing_nonfatal`でexit 0。LINE/daily本体へ失敗を伝播させない。
 
+### Output safety
+
+PR #105以降、実取得してもconsoleのdefault outputにはraw OHLCVを含めない。
+
+```text
+rawValuesIncluded: false
+valuesIncluded: false
+```
+
+表示対象はcode/date/PIT timestamps/status/source/plan/license/contentHash等のmetadata中心。
+
+raw OHLCVをlocal terminalで明示確認する時だけ追加flagを使う:
+
+```bash
+--show-values-local
+```
+
 永続化はさらに`--append-local`が必要。保存先はgitignoredのlocal-only領域:
 
 ```text
 research/prices/jquants-free/<code>.jsonl
 ```
 
-runnerは`umask 077`を使用する。
+consoleへ表示する保存先はrepo-relative pathのみで、absolute local filesystem pathを出さない。runnerは`umask 077`を使用する。
 
 ## Fixture validation
 
-`tests/research/jquants-free-provider.test.ts`で実APIなしに以下を固定する。
+実APIなしで以下を固定済み。
 
 - Free entitlement contract
 - 84-day observation boundary
@@ -130,6 +182,11 @@ runnerは`umask 077`を使用する。
 - retrievedAt / source code boundary
 - provider batch consistency
 - benchmark/multi-code rejection
+- JST midnight date-cap transition
+- partial eligible range truncation
+- future-only range = no network
+- canonical Price Store schema conformance
+- default raw-value redaction
 
 ## Remaining real measurement — non-blocking
 
@@ -147,20 +204,26 @@ TOPIX / sector benchmarkはFreeで無理に代替せず、Foundation pilot側で
 
 - 実価格・secret・token・account IDをGitへcommitしない。
 - raw J-Quants dataをpublic dashboard/APIへ流さない。
+- default console outputにもraw OHLCVを出さない。
 - 複数provider/planの同日データをsource/providerPlan指定なしに黙って1件選ばない。
 - credentials不足・J-Quants障害をLINE/daily本体へ伝播させない。
 - adjusted seriesをrevision-awareでないPIT storeへ混ぜない。
 - benchmark entitlementを推測しない。
+- delay capより新しいrequestを別日の古い価格へ自動変換しない。
 - 実LINE送信・自動発注・課金設定変更は行わない。
 
 ## Definition of done
 
-- [x] `PriceProvider`適合adapter
-- [x] Free capabilities / entitlement boundary
-- [x] `DailyQuote` → `PitPriceRecordInput` fixture mapping test
-- [x] explicit-network / dry-run-by-default local CLI
-- [x] credentials-missing non-fatal behavior
-- [x] local-only append path
-- [x] Free delay / rolling history / TOPIX entitlementを公式案内に合わせて固定
+- [x] `PriceProvider`適合adapter — PR #103
+- [x] Free capabilities / entitlement boundary — PR #103
+- [x] `DailyQuote` → `PitPriceRecordInput` fixture mapping test — PR #103
+- [x] explicit-network / dry-run-by-default local CLI — PR #103
+- [x] credentials-missing non-fatal behavior — PR #103
+- [x] local-only append path — PR #103
+- [x] Free delay / rolling history / TOPIX entitlementを公式案内に合わせて固定 — PR #103
+- [x] V2 delay capをJST/PIT安全化 — PR #104
+- [x] future-only requestの別日巻き戻し防止 — PR #104
+- [x] canonical Price Store schema conformance — PR #105
+- [x] default console raw-value redaction — PR #105
 - [ ] missing/no_trade/suspensionのreal row pattern実測
 - [ ] exact delayed intraday availabilityのreal measurement
