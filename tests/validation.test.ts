@@ -30,6 +30,7 @@ import "./edinet-sanrio-configured-parity-workspace.test.js";
 import "./edinet-sanrio-configured-parity-human-review.test.js";
 import "./edinet-sanrio-foundation-readiness-audit.test.js";
 import "./edinet-sanrio-foundation-readiness-parity-lineage.test.js";
+import "./edinet-sanrio-foundation-readiness-parity-decision.test.js";
 import "./foundation-mapping-readiness-contract.test.js";
 import "./foundation-readiness-remediation-plan.test.js";
 import "./foundation-pilot-structural-status.test.js";
