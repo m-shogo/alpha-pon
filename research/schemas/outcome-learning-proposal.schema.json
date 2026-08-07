@@ -36,7 +36,7 @@
     "createdAt": { "type": "string", "format": "date-time" },
     "semanticReviewId": { "type": "string", "minLength": 1, "maxLength": 160 },
     "semanticReviewContentHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-    "proposalStage": { "type": "string", "enum": ["draft_proposal", "human_review_ready", "rejected", "superseded"] },
+    "proposalStage": { "type": "string", "enum": ["draft_proposal", "human_review_ready", "rejected"] },
     "targetKind": {
       "type": "string",
       "enum": [
