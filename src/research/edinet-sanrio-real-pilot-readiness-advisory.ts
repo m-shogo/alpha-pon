@@ -36,7 +36,7 @@ export function addSanrioFoundationReadinessAdvisory(
     readOnlyFollowUpPurpose: "foundation_readiness_evidence_gap_audit",
     readOnlyFollowUpCommand: [
       "bash scripts/run-sanrio-configured-foundation-readiness-audit-local.sh \\",
-      `  --parity-review ${shellQuote(parityReview)} \\",
+      `  --parity-review ${shellQuote(parityReview)} \\`,
       "  --execute-readiness-audit",
     ].join("\n"),
   };
