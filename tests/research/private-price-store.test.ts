@@ -4,6 +4,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   statSync,
   symlinkSync,
   writeFileSync,
@@ -107,8 +108,8 @@ function mode(path: string): number {
     schema,
     now: new Date("2026-08-07T03:00:00.000Z"),
   }), /private price root must be a regular non-symlink directory/);
-  assert.equal(readFileSync(join(sandbox, "outside-root")).length, 0);
-  console.log("private-price-store: symlink provider root is rejected OK");
+  assert.deepEqual(readdirSync(outside), []);
+  console.log("private-price-store: symlink provider root is rejected before writing outside root OK");
 }
 
 {
