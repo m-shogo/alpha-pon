@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "alpha-pon/research/recommendation-record.schema.json",
+  "title": "Alpha Pon Recommendation Record v1",
+  "description": "Issue-time immutable recommendation record. Automatic trading is always disabled.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "recommendationId",
+    "issuedAt",
+    "informationCutoff",
+    "code",
+    "companyName",
+    "currentPrice",
+    "currentPriceRecordHash",
+    "currentPriceFirstExecutableAt",
+    "decision",
+    "timeHorizon",
+    "bullScenario",
+    "baseScenario",
+    "bearScenario",
+    "catalysts",
+    "risks",
+    "confirmationConditions",
+    "invalidationRules",
+    "exitConditions",
+    "evidenceSummary",
+    "sourceEvidence",
+    "edgeIds",
+    "benchmark",
+    "sectorBenchmark",
+    "outcomeReviewDate",
+    "status",
+    "automaticTradingAuthorized",
+    "contentHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "recommendationId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "issuedAt": { "type": "string", "format": "date-time" },
+    "informationCutoff": { "type": "string", "format": "date-time" },
+    "code": { "type": "string", "minLength": 1, "maxLength": 16 },
+    "companyName": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "currentPrice": { "type": "number", "exclusiveMinimum": 0 },
+    "currentPriceRecordHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "currentPriceFirstExecutableAt": { "type": "string", "format": "date-time" },
+    "decision": { "type": "string", "enum": ["BUY", "WATCH", "WAIT", "AVOID"] },
+    "buyRange": { "$ref": "#/$defs/priceRange" },
+    "buyRangeBasisRefs": { "$ref": "#/$defs/refList" },
+    "targetRange": { "$ref": "#/$defs/priceRange" },
+    "targetRangeBasisRefs": { "$ref": "#/$defs/refList" },
+    "timeHorizon": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "confidenceBasisRefs": { "$ref": "#/$defs/refList" },
+    "bullScenario": { "type": "string", "minLength": 1, "maxLength": 4000 },
+    "baseScenario": { "type": "string", "minLength": 1, "maxLength": 4000 },
+    "bearScenario": { "type": "string", "minLength": 1, "maxLength": 4000 },
+    "scenarioProbabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bull", "base", "bear"],
+      "properties": {
+        "bull": { "type": "number", "minimum": 0, "maximum": 1 },
+        "base": { "type": "number", "minimum": 0, "maximum": 1 },
+        "bear": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "scenarioProbabilityBasisRefs": { "$ref": "#/$defs/refList" },
+    "catalysts": { "$ref": "#/$defs/nonEmptyTextList" },
+    "risks": { "$ref": "#/$defs/nonEmptyTextList" },
+    "confirmationConditions": { "$ref": "#/$defs/nonEmptyTextList" },
+    "invalidationRules": { "$ref": "#/$defs/nonEmptyTextList" },
+    "exitConditions": { "$ref": "#/$defs/nonEmptyTextList" },
+    "evidenceSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["newFacts", "knownFacts", "assumptions", "forecasts", "opinions"],
+      "properties": {
+        "newFacts": { "$ref": "#/$defs/textList" },
+        "knownFacts": { "$ref": "#/$defs/textList" },
+        "assumptions": { "$ref": "#/$defs/textList" },
+        "forecasts": { "$ref": "#/$defs/textList" },
+        "opinions": { "$ref": "#/$defs/textList" }
+      }
+    },
+    "sourceEvidence": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["tier", "ref"],
+        "properties": {
+          "tier": { "type": "string", "enum": ["A", "B", "C", "D"] },
+          "ref": { "type": "string", "minLength": 1, "maxLength": 512 }
+        }
+      }
+    },
+    "edgeIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 128 }
+    },
+    "benchmark": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "sectorBenchmark": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "positionSizingRationale": { "type": "string", "minLength": 1, "maxLength": 2000 },
+    "outcomeReviewDate": { "type": "string", "format": "date" },
+    "status": { "type": "string", "enum": ["open", "target_reached", "invalidated", "expired", "reviewed"] },
+    "supersedesId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "automaticTradingAuthorized": { "const": false },
+    "contentHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  },
+  "$defs": {
+    "priceRange": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": { "type": "number", "exclusiveMinimum": 0 }
+    },
+    "textList": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 4000 }
+    },
+    "nonEmptyTextList": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 4000 }
+    },
+    "refList": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 512 }
+    }
+  }
+}
