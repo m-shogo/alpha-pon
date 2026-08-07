@@ -92,6 +92,24 @@ function mode(path: string): number {
 }
 
 {
+  const sandbox = mkdtempSync(join(tmpdir(), "alpha-pon-private-price-dangling-"));
+  const parent = join(sandbox, "prices");
+  const root = join(parent, "jquants-free");
+  const path = join(root, "8136.jsonl");
+  mkdirSync(root, { recursive: true });
+  symlinkSync(join(sandbox, "does-not-exist.jsonl"), path);
+
+  assert.throws(() => appendPrivatePriceRecords({
+    root,
+    path,
+    records: [record],
+    schema,
+    now: new Date("2026-08-07T03:00:00.000Z"),
+  }), /private price file must be a regular non-symlink file/);
+  console.log("private-price-store: dangling symlink is detected by lstat before create/append OK");
+}
+
+{
   const sandbox = mkdtempSync(join(tmpdir(), "alpha-pon-private-price-symlink-root-"));
   const parent = join(sandbox, "prices");
   const outside = join(sandbox, "outside-root");
