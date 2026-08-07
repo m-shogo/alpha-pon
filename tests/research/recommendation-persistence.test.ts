@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { PitPriceRecord } from "../../src/research/price-store.js";
+import {
+  withPriceRecordHash,
+  type PitPriceRecord,
+  type PitPriceRecordInput,
+} from "../../src/research/price-store.js";
 import {
   appendRecommendationRecords,
   parseRecommendationJsonl,
@@ -18,38 +22,59 @@ const schema = JSON.parse(
   readFileSync("research/schemas/recommendation-record.schema.json", "utf-8"),
 ) as JsonSchema;
 
-const priceHash = "a".repeat(64);
-const price: PitPriceRecord = {
-  schemaVersion: 1,
-  seriesKind: "security",
-  code: "81360",
-  market: "TSE",
-  tradingDate: "2026-08-06",
-  dataAsOf: "2026-08-06T15:30:00+09:00",
-  observedAt: "2026-08-07T08:40:00+09:00",
-  retrievedAt: "2026-08-07T08:45:00+09:00",
-  firstExecutableAt: "2026-08-07T09:00:00+09:00",
-  source: "synthetic-fixture",
-  sourceVersion: "v1",
-  providerPlan: "synthetic",
-  delayDays: 0,
-  isDelayed: false,
-  ingestionRunId: "recommendation-fixture",
-  currency: "JPY",
-  status: "traded",
-  ohlcv: { open: 980, high: 1020, low: 970, close: 1000, volume: 100000 },
-  adjusted: false,
-  adjustmentFactor: 1,
-  corporateActions: [],
-  benchmarkCode: "TOPIX",
-  sectorBenchmarkCode: "TOPIX-17-RETAIL",
-  license: "local_only",
-  contentHash: priceHash,
-};
+function priceInput(overrides: Partial<PitPriceRecordInput> = {}): PitPriceRecordInput {
+  return {
+    schemaVersion: 1,
+    seriesKind: "security",
+    code: "81360",
+    market: "TSE",
+    tradingDate: "2026-08-06",
+    dataAsOf: "2026-08-06T15:30:00+09:00",
+    observedAt: "2026-08-07T08:40:00+09:00",
+    retrievedAt: "2026-08-07T08:45:00+09:00",
+    firstExecutableAt: "2026-08-07T09:00:00+09:00",
+    source: "synthetic-fixture",
+    sourceVersion: "v1",
+    providerPlan: "synthetic",
+    delayDays: 0,
+    isDelayed: false,
+    ingestionRunId: "recommendation-fixture",
+    currency: "JPY",
+    status: "traded",
+    ohlcv: { open: 980, high: 1020, low: 970, close: 1000, volume: 100000 },
+    adjusted: false,
+    adjustmentFactor: 1,
+    corporateActions: [],
+    benchmarkCode: "TOPIX",
+    sectorBenchmarkCode: "TOPIX-17-RETAIL",
+    license: "local_only",
+    ...overrides,
+  };
+}
+
+const price = withPriceRecordHash(priceInput());
+const benchmarkPrice = withPriceRecordHash(priceInput({
+  seriesKind: "benchmark",
+  code: "TOPIX",
+  ohlcv: { open: 2000, high: 2020, low: 1990, close: 2010, volume: 0 },
+  benchmarkCode: undefined,
+  sectorBenchmarkCode: undefined,
+}));
+const sectorBenchmarkPrice = withPriceRecordHash(priceInput({
+  seriesKind: "benchmark",
+  code: "TOPIX-17-RETAIL",
+  ohlcv: { open: 3000, high: 3030, low: 2980, close: 3010, volume: 0 },
+  benchmarkCode: undefined,
+  sectorBenchmarkCode: undefined,
+}));
 
 function context(overrides: Partial<RecommendationValidationContext> = {}): RecommendationValidationContext {
   return {
-    priceRecordsByHash: new Map([[priceHash, price]]),
+    priceRecordsByHash: new Map([
+      [price.contentHash, price],
+      [benchmarkPrice.contentHash, benchmarkPrice],
+      [sectorBenchmarkPrice.contentHash, sectorBenchmarkPrice],
+    ]),
     evidenceByRef: new Map([
       ["evidence:ir:001", { tier: "A", observedAt: "2026-08-07T08:30:00+09:00" }],
       ["evidence:market:001", { tier: "B", observedAt: "2026-08-07T08:35:00+09:00" }],
@@ -68,7 +93,7 @@ function baseInput(): Omit<RecommendationRecord, "contentHash"> {
     code: "8136",
     companyName: "株式会社サンリオ",
     currentPrice: 1000,
-    currentPriceRecordHash: priceHash,
+    currentPriceRecordHash: price.contentHash,
     currentPriceFirstExecutableAt: "2026-08-07T09:00:00+09:00",
     decision: "BUY",
     buyRange: [950, 1000],
@@ -101,7 +126,11 @@ function baseInput(): Omit<RecommendationRecord, "contentHash"> {
     ],
     edgeIds: ["known-bad-event-repricing"],
     benchmark: "TOPIX",
+    benchmarkPriceRecordHash: benchmarkPrice.contentHash,
+    benchmarkPriceFirstExecutableAt: "2026-08-07T09:00:00+09:00",
     sectorBenchmark: "TOPIX-17-RETAIL",
+    sectorBenchmarkPriceRecordHash: sectorBenchmarkPrice.contentHash,
+    sectorBenchmarkPriceFirstExecutableAt: "2026-08-07T09:00:00+09:00",
     positionSizingRationale: "synthetic fixture only; no live sizing authority",
     outcomeReviewDate: "2026-11-07",
     status: "open",
@@ -183,6 +212,93 @@ function codes(issues: ReturnType<typeof validateRecommendationRecord>): string[
   const issues = validateRecommendationRecord(withRecommendationHash(input), schema, context());
   assert.ok(codes(issues).includes("current_price_mismatch"));
   console.log("recommendation-persistence: current price must match PIT pin OK");
+}
+
+{
+  const missingBenchmarkContext = context({
+    priceRecordsByHash: new Map([
+      [price.contentHash, price],
+      [sectorBenchmarkPrice.contentHash, sectorBenchmarkPrice],
+    ]),
+  });
+  const issues = validateRecommendationRecord(
+    withRecommendationHash(baseInput()),
+    schema,
+    missingBenchmarkContext,
+  );
+  assert.ok(codes(issues).includes("missing_benchmark_price_provenance"));
+  console.log("recommendation-persistence: missing TOPIX baseline pin is rejected OK");
+}
+
+{
+  const wrongBenchmark: PitPriceRecord = { ...benchmarkPrice, code: "NIKKEI225" };
+  const wrongBenchmarkContext = context({
+    priceRecordsByHash: new Map([
+      [price.contentHash, price],
+      [benchmarkPrice.contentHash, wrongBenchmark],
+      [sectorBenchmarkPrice.contentHash, sectorBenchmarkPrice],
+    ]),
+  });
+  const issues = validateRecommendationRecord(
+    withRecommendationHash(baseInput()),
+    schema,
+    wrongBenchmarkContext,
+  );
+  assert.ok(codes(issues).includes("invalid_pinned_price_content_hash"));
+  assert.ok(codes(issues).includes("benchmark_identity_mismatch"));
+  console.log("recommendation-persistence: mutated/wrong benchmark record is rejected OK");
+}
+
+{
+  const futureSector = withPriceRecordHash(priceInput({
+    seriesKind: "benchmark",
+    code: "TOPIX-17-RETAIL",
+    ohlcv: { open: 3000, high: 3030, low: 2980, close: 3010, volume: 0 },
+    benchmarkCode: undefined,
+    sectorBenchmarkCode: undefined,
+    observedAt: "2026-08-07T09:05:00+09:00",
+    retrievedAt: "2026-08-07T09:06:00+09:00",
+    firstExecutableAt: "2026-08-07T09:15:00+09:00",
+  }));
+  const input = baseInput();
+  input.sectorBenchmarkPriceRecordHash = futureSector.contentHash;
+  input.sectorBenchmarkPriceFirstExecutableAt = futureSector.firstExecutableAt;
+  const futureSectorContext = context({
+    priceRecordsByHash: new Map([
+      [price.contentHash, price],
+      [benchmarkPrice.contentHash, benchmarkPrice],
+      [futureSector.contentHash, futureSector],
+    ]),
+  });
+  const issues = validateRecommendationRecord(
+    withRecommendationHash(input),
+    schema,
+    futureSectorContext,
+  );
+  assert.ok(codes(issues).includes("future_benchmark_observation"));
+  assert.ok(codes(issues).includes("benchmark_not_yet_executable"));
+  console.log("recommendation-persistence: post-cutoff sector baseline is rejected OK");
+}
+
+{
+  const mutatedPrice: PitPriceRecord = {
+    ...price,
+    ohlcv: { ...price.ohlcv!, close: 999 },
+  };
+  const mutatedContext = context({
+    priceRecordsByHash: new Map([
+      [price.contentHash, mutatedPrice],
+      [benchmarkPrice.contentHash, benchmarkPrice],
+      [sectorBenchmarkPrice.contentHash, sectorBenchmarkPrice],
+    ]),
+  });
+  const issues = validateRecommendationRecord(
+    withRecommendationHash(baseInput()),
+    schema,
+    mutatedContext,
+  );
+  assert.ok(codes(issues).includes("invalid_pinned_price_content_hash"));
+  console.log("recommendation-persistence: mutated issuer record with stale hash is rejected OK");
 }
 
 {

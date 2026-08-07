@@ -9,7 +9,7 @@ import {
   readFileSync,
 } from "node:fs";
 import { dirname } from "node:path";
-import type { PitPriceRecord } from "./price-store.js";
+import { computePriceRecordHash, type PitPriceRecord } from "./price-store.js";
 import { stableStringify, validate, type JsonSchema } from "./schema.js";
 
 export type RecommendationDecision = "BUY" | "WATCH" | "WAIT" | "AVOID";
@@ -68,7 +68,11 @@ export type RecommendationRecord = {
   sourceEvidence: RecommendationEvidenceRef[];
   edgeIds: string[];
   benchmark: string;
+  benchmarkPriceRecordHash: string;
+  benchmarkPriceFirstExecutableAt: string;
   sectorBenchmark: string;
+  sectorBenchmarkPriceRecordHash: string;
+  sectorBenchmarkPriceFirstExecutableAt: string;
   positionSizingRationale?: string;
   outcomeReviewDate: string;
   status: "open" | "target_reached" | "invalidated" | "expired" | "reviewed";
@@ -135,6 +139,10 @@ function canonicalCode(code: string): string {
     : normalized;
 }
 
+function canonicalBenchmarkCode(code: string): string {
+  return code.trim().toUpperCase();
+}
+
 function rangeIssues(
   range: [number, number] | undefined,
   basisRefs: string[] | undefined,
@@ -185,6 +193,22 @@ function evidenceSeparationIssues(summary: RecommendationEvidenceSummary): Recom
   return issues;
 }
 
+function assertCanonicalPriceHash(
+  price: PitPriceRecord,
+  expectedHash: string,
+  target: string,
+  mismatchCode: string,
+): RecommendationIssue[] {
+  const issues: RecommendationIssue[] = [];
+  if (price.contentHash !== expectedHash) {
+    issues.push(error(mismatchCode, target, "price record hashがpinと一致しません"));
+  }
+  if (computePriceRecordHash(price) !== price.contentHash) {
+    issues.push(error("invalid_pinned_price_content_hash", target, "pinされたPIT Price Store recordのcontentHashが内容と一致しません"));
+  }
+  return issues;
+}
+
 function priceProvenanceIssues(
   record: RecommendationRecord,
   context: RecommendationValidationContext,
@@ -200,9 +224,7 @@ function priceProvenanceIssues(
   }
 
   const issues: RecommendationIssue[] = [];
-  if (price.contentHash !== record.currentPriceRecordHash) {
-    issues.push(error("price_hash_mismatch", target, "price record hashがpinと一致しません"));
-  }
+  issues.push(...assertCanonicalPriceHash(price, record.currentPriceRecordHash, target, "price_hash_mismatch"));
   if (price.seriesKind !== "security" || canonicalCode(price.code) !== canonicalCode(record.code)) {
     issues.push(error("price_security_mismatch", target, "currentPriceのsecurityがrecommendation対象と一致しません"));
   }
@@ -222,6 +244,47 @@ function priceProvenanceIssues(
   }
   if (price.license === "unknown") {
     issues.push(error("unknown_price_license", target, "利用権不明のprice recordをrecommendationへ使えません"));
+  }
+  return issues;
+}
+
+function benchmarkProvenanceIssues(input: {
+  record: RecommendationRecord;
+  context: RecommendationValidationContext;
+  label: "benchmark" | "sectorBenchmark";
+  expectedCode: string;
+  recordHash: string;
+  firstExecutableAt: string;
+}): RecommendationIssue[] {
+  const target = `recommendation:${input.record.recommendationId}`;
+  const price = input.context.priceRecordsByHash.get(input.recordHash);
+  if (!price) {
+    return [error(
+      "missing_benchmark_price_provenance",
+      `${target}.${input.label}PriceRecordHash`,
+      `${input.label}はPIT Price Storeの既知benchmark recordへpinする必要があります`,
+    )];
+  }
+
+  const issues: RecommendationIssue[] = [];
+  issues.push(...assertCanonicalPriceHash(price, input.recordHash, target, "benchmark_price_hash_mismatch"));
+  if (price.seriesKind !== "benchmark" || canonicalBenchmarkCode(price.code) !== canonicalBenchmarkCode(input.expectedCode)) {
+    issues.push(error("benchmark_identity_mismatch", target, `${input.label}のPIT record identityが一致しません`));
+  }
+  if (price.status !== "traded" || !price.ohlcv) {
+    issues.push(error("benchmark_price_not_traded", target, `${input.label}はtraded OHLC recordである必要があります`));
+  }
+  if (price.firstExecutableAt !== input.firstExecutableAt) {
+    issues.push(error("benchmark_execution_pin_mismatch", target, `${input.label}PriceFirstExecutableAtがPIT recordと一致しません`));
+  }
+  if (Date.parse(price.observedAt) > Date.parse(input.record.informationCutoff)) {
+    issues.push(error("future_benchmark_observation", target, `${input.label}がinformationCutoff後に観測されています`));
+  }
+  if (Date.parse(price.firstExecutableAt) > Date.parse(input.record.issuedAt)) {
+    issues.push(error("benchmark_not_yet_executable", target, `${input.label}はissuedAt時点でまだ実行可能ではありません`));
+  }
+  if (price.license === "unknown") {
+    issues.push(error("unknown_benchmark_license", target, `${input.label}の利用権が不明です`));
   }
   return issues;
 }
@@ -339,6 +402,22 @@ export function validateRecommendationRecord(
 
   issues.push(...evidenceSeparationIssues(record.evidenceSummary));
   issues.push(...priceProvenanceIssues(record, context));
+  issues.push(...benchmarkProvenanceIssues({
+    record,
+    context,
+    label: "benchmark",
+    expectedCode: record.benchmark,
+    recordHash: record.benchmarkPriceRecordHash,
+    firstExecutableAt: record.benchmarkPriceFirstExecutableAt,
+  }));
+  issues.push(...benchmarkProvenanceIssues({
+    record,
+    context,
+    label: "sectorBenchmark",
+    expectedCode: record.sectorBenchmark,
+    recordHash: record.sectorBenchmarkPriceRecordHash,
+    firstExecutableAt: record.sectorBenchmarkPriceFirstExecutableAt,
+  }));
   issues.push(...evidenceContextIssues(record, context));
   issues.push(...edgeContextIssues(record, context));
 
