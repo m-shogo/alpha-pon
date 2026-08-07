@@ -21,7 +21,7 @@ Research OSのEvent Study / Recommendation / Quantitative Outcome / Backtestへ�
 - `code`, `market`, `tradingDate`
 - `dataAsOf`: OHLCVが表す市場時点
 - `observedAt`: provider上で契約上利用可能になった時刻
-- `retrievedAt`: Alpha Ponが実際に取得した時刻
+- `retrievedAt`: Alpha Ponが実際に取得を完了した時刻
 - `firstExecutableAt`: このrecordを使った判断が最初に約定可能な時刻
 - `source`, `sourceVersion`, `providerPlan`, `ingestionRunId`
 - `delayDays`, `isDelayed`
@@ -66,6 +66,15 @@ Equal timestamps are allowed where reality permits them. What is prohibited is b
 - a decision using a price cannot become executable before the price was actually retrieved.
 
 PR #144 made `retrievedAt <= firstExecutableAt` an executable runtime invariant rather than documentation-only intent.
+
+PR #150 clarified that **retrieval start is not `retrievedAt`**. For local J-Quants fetching:
+
+```text
+retrievalStartedAt = pre-network validation / query cutoff
+retrievedAt        = fetch completion後にprovider clockで採時するactual ingestion time
+```
+
+Network開始時刻をrecordの`retrievedAt`へ固定してbackdateしてはいけません。Local append validation clockもfetch後に再採時します。
 
 `validatePriceRecord(...)` now rejects:
 
@@ -227,6 +236,7 @@ Current merged chain includes:
 #144 execution-after-retrieval PIT invariant
 #147 strict J-Quants lexical date shapes
 #148 pre-network CLI execution-time preflight
+#150 actual retrieval-completion timestamp preservation
 ```
 
 Details: [J-Quants Free adapter](jquants-free-adapter-next-slice.md)
@@ -263,6 +273,7 @@ Network fetchは明示`--execute-fetch`時だけです。
 - [x] TypeScript contract
 - [x] four timestamp boundary
 - [x] `retrievedAt <= firstExecutableAt` runtime enforcement — #144
+- [x] actual retrieval-completion timestamp preservation — #150
 - [x] provider plan/capability boundary
 - [x] deterministic content hash
 - [x] append-only writer + fsync
@@ -294,7 +305,7 @@ Network fetchは明示`--execute-fetch`時だけです。
 
 ## Current external boundary
 
-There is **no current GitHub Actions startup/billing blocker in this roadmap**. The 2026-08-05 startup failure was a historical incident; subsequent PRs including #140-#148 executed applicable GitHub-hosted checks successfully. Do not revive that old incident as a current blocker unless a new measured run proves it.
+There is **no current GitHub Actions startup/billing blocker in this roadmap**. The 2026-08-05 startup failure was a historical incident; subsequent PRs including #140-#150 executed applicable GitHub-hosted checks successfully. Do not revive that old incident as a current blocker unless a new measured run proves it.
 
 The current blockers are real-data / rights / local-executor boundaries:
 
