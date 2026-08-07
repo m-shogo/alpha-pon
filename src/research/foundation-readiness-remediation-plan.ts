@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { foundationMappingRemediationDefinition } from "./foundation-mapping-readiness-contract.js";
 
 type JsonObject = Record<string, unknown>;
 
@@ -244,56 +245,29 @@ function verifyReadinessAudit(value: unknown): VerifiedReadinessAudit {
   };
 }
 
-const GROUP_ORDER: Record<string, number> = {
-  security_master: 10,
-  document_metadata: 20,
-  pit_timestamps: 30,
-  retrieval_and_normalization: 40,
-  revision_chain: 50,
-  rights_and_storage: 60,
-  section_mapping: 70,
-};
-
-const GROUP_ACTION: Record<string, string> = {
-  security_master: "resolve_governed_security_master_identity",
-  document_metadata: "collect_document_level_metadata_and_content_hash",
-  pit_timestamps: "establish_complete_point_in_time_clock_lineage",
-  retrieval_and_normalization: "pin_retrieval_parser_and_normalization_lineage",
-  revision_chain: "establish_governed_revision_and_prior_relations",
-  rights_and_storage: "record_explicit_license_and_storage_policy",
-  section_mapping: "build_complete_section_mapping_and_hashes",
-};
-
-const GROUP_DEPENDENCIES: Record<string, string[]> = {
-  security_master: [],
-  document_metadata: ["security_master"],
-  pit_timestamps: ["document_metadata"],
-  retrieval_and_normalization: ["document_metadata"],
-  revision_chain: ["document_metadata", "pit_timestamps"],
-  rights_and_storage: ["document_metadata"],
-  section_mapping: ["document_metadata", "retrieval_and_normalization"],
-};
-
 function buildSteps(groups: VerifiedReadinessGroup[]): FoundationRemediationStep[] {
   const pendingGroups = groups.filter(
     item => item.status === "missing_required_evidence" || item.status === "partial_navigation_only",
   );
   const pendingGroupIds = new Set(pendingGroups.map(item => item.groupId));
-  return pendingGroups.map(item => ({
-    stepId: `foundation-remediation:${item.groupId}`,
-    groupId: item.groupId,
-    order: GROUP_ORDER[item.groupId] ?? 900,
-    status: item.status === "partial_navigation_only"
-      ? "pending_complete_mapping" as const
-      : "pending_explicit_evidence" as const,
-    action: GROUP_ACTION[item.groupId] ?? "collect_explicit_foundation_mapping_evidence",
-    missingFields: [...item.missingFields].sort(),
-    dependsOnGroupIds: (GROUP_DEPENDENCIES[item.groupId] ?? [])
-      .filter(dependency => pendingGroupIds.has(dependency))
-      .sort(),
-    evidenceRefCount: item.evidenceRefs.length,
-    note: item.note,
-  })).sort((left, right) => left.order - right.order || left.groupId.localeCompare(right.groupId));
+  return pendingGroups.map(item => {
+    const definition = foundationMappingRemediationDefinition(item.groupId);
+    return {
+      stepId: `foundation-remediation:${item.groupId}`,
+      groupId: item.groupId,
+      order: definition?.order ?? 900,
+      status: item.status === "partial_navigation_only"
+        ? "pending_complete_mapping" as const
+        : "pending_explicit_evidence" as const,
+      action: definition?.action ?? "collect_explicit_foundation_mapping_evidence",
+      missingFields: [...item.missingFields].sort(),
+      dependsOnGroupIds: (definition?.dependsOnGroupIds ?? [])
+        .filter(dependency => pendingGroupIds.has(dependency))
+        .sort(),
+      evidenceRefCount: item.evidenceRefs.length,
+      note: item.note,
+    };
+  }).sort((left, right) => left.order - right.order || left.groupId.localeCompare(right.groupId));
 }
 
 export function buildFoundationReadinessRemediationPlan(input: {
