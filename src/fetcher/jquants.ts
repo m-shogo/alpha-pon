@@ -31,31 +31,62 @@ function toCompactDate(date: string): string {
   return date.replace(/-/g, "");
 }
 
-function compactFromDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}${m}${d}`;
+function validatedCompactDate(date: string, field: string): string {
+  const compact = toCompactDate(date);
+  if (!/^\d{8}$/.test(compact)) throw new Error(`${field} must be YYYY-MM-DD or YYYYMMDD`);
+  const normalized = `${compact.slice(0, 4)}-${compact.slice(4, 6)}-${compact.slice(6, 8)}`;
+  const parsed = new Date(`${normalized}T00:00:00+09:00`);
+  if (Number.isNaN(parsed.getTime())) throw new Error(`${field} is not a valid date`);
+  return compact;
 }
 
-function addDays(date: Date, days: number): Date {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
-  return d;
+function jstDate(date: Date): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
 }
 
-function v2DateCapCompact(): string {
-  const delayDays = Number(process.env.JQUANTS_V2_DATA_DELAY_DAYS ?? "84");
-  return compactFromDate(addDays(new Date(), -delayDays));
+function compactJstDate(date: Date): string {
+  return jstDate(date).replace(/-/g, "");
 }
 
-function normalizeV2QuoteRange(from: string, to: string): { from: string; to: string } {
-  const compactFrom = toCompactDate(from);
-  const compactTo = toCompactDate(to);
-  const cap = v2DateCapCompact();
-  const cappedTo = compactTo > cap ? cap : compactTo;
-  const cappedFrom = compactFrom > cappedTo ? cappedTo : compactFrom;
-  return { from: cappedFrom, to: cappedTo };
+export function jquantsV2DateCapCompact(
+  now: Date = new Date(),
+  delayDays = Number(process.env.JQUANTS_V2_DATA_DELAY_DAYS ?? "84"),
+): string {
+  if (!Number.isSafeInteger(delayDays) || delayDays < 0) {
+    throw new Error(`JQUANTS_V2_DATA_DELAY_DAYS must be a non-negative integer: ${delayDays}`);
+  }
+  if (Number.isNaN(now.getTime())) throw new Error("J-Quants V2 cap clock is invalid");
+  const todayJst = jstDate(now);
+  const noonJst = new Date(`${todayJst}T12:00:00+09:00`);
+  const capDate = new Date(noonJst.getTime() - delayDays * 86_400_000);
+  return compactJstDate(capDate);
+}
+
+export function normalizeV2QuoteRange(
+  from: string,
+  to: string,
+  now: Date = new Date(),
+  delayDays = Number(process.env.JQUANTS_V2_DATA_DELAY_DAYS ?? "84"),
+): { from: string; to: string } | null {
+  const compactFrom = validatedCompactDate(from, "J-Quants quote from");
+  const compactTo = validatedCompactDate(to, "J-Quants quote to");
+  if (compactFrom > compactTo) throw new Error("J-Quants quote from must be on or before to");
+  const cap = jquantsV2DateCapCompact(now, delayDays);
+
+  // If the requested range starts after the entitlement cap, there is no
+  // eligible row. Never shift `from` backwards to the cap date: doing so would
+  // silently return a different trading day than the caller requested.
+  if (compactFrom > cap) return null;
+
+  return {
+    from: compactFrom,
+    to: compactTo > cap ? cap : compactTo,
+  };
 }
 
 function numberOrNull(value: unknown): number | null {
@@ -305,6 +336,7 @@ export async function fetchDailyQuotes(
 ): Promise<DailyQuote[]> {
   if (process.env.JQUANTS_API_KEY) {
     const range = normalizeV2QuoteRange(from, to);
+    if (!range) return [];
     const rows = await getV2Paginated<V2DailyQuote>("/equities/bars/daily", {
       code,
       from: range.from,
