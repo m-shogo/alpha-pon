@@ -51,13 +51,34 @@ export interface JQuantsFreeProviderOptions {
   sourceVersion?: string;
 }
 
+function isLeapYear(year: number): boolean {
+  return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+}
+
 function normalizeDate(value: string): string {
   const compact = value.replace(/-/g, "");
   if (!/^\d{8}$/.test(compact)) throw new Error(`invalid J-Quants trading date: ${value}`);
-  const result = `${compact.slice(0, 4)}-${compact.slice(4, 6)}-${compact.slice(6, 8)}`;
-  const parsed = new Date(`${result}T00:00:00+09:00`);
-  if (Number.isNaN(parsed.getTime())) throw new Error(`invalid J-Quants trading date: ${value}`);
-  return result;
+  const year = Number(compact.slice(0, 4));
+  const month = Number(compact.slice(4, 6));
+  const day = Number(compact.slice(6, 8));
+  const daysInMonth = [
+    31,
+    isLeapYear(year) ? 29 : 28,
+    31,
+    30,
+    31,
+    30,
+    31,
+    31,
+    30,
+    31,
+    30,
+    31,
+  ];
+  if (month < 1 || month > 12 || day < 1 || day > daysInMonth[month - 1]!) {
+    throw new Error(`invalid J-Quants trading date: ${value}`);
+  }
+  return `${compact.slice(0, 4)}-${compact.slice(4, 6)}-${compact.slice(6, 8)}`;
 }
 
 function addCalendarDaysJst(date: string, days: number): string {
@@ -244,13 +265,18 @@ export class JQuantsFreePriceProvider implements PriceProvider {
     }
 
     const requestedCode = canonicalStoreCode(query.codes[0]!);
-    const quotes = await this.fetchQuotes(requestedCode, query.from, query.to);
+    const from = normalizeDate(query.from);
+    const to = normalizeDate(query.to);
+    if (from > to) {
+      throw new Error(`invalid J-Quants query range: from=${query.from} to=${query.to}`);
+    }
+    const quotes = await this.fetchQuotes(requestedCode, from, to);
     const retrievedAt = this.now().toISOString();
     const seenDates = new Set<string>();
-    const ingestionRunId = `jquants-free:${requestedCode}:${query.from}:${query.to}:${retrievedAt}`;
+    const ingestionRunId = `jquants-free:${requestedCode}:${from}:${to}:${retrievedAt}`;
     const records = quotes.map((quote) => {
       const tradingDate = normalizeDate(quote.Date);
-      if (tradingDate < query.from || tradingDate > query.to) {
+      if (tradingDate < from || tradingDate > to) {
         throw new Error(`J-Quants returned out-of-range row: ${tradingDate}`);
       }
       if (seenDates.has(tradingDate)) throw new Error(`duplicate J-Quants row for ${tradingDate}`);
