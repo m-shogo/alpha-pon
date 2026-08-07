@@ -37,6 +37,7 @@ import "./foundation-pilot-human-replay-proof.test.js";
 import "./edinet-sanrio-review-next-batching.test.js";
 import "./edinet-sanrio-review-next-content-bundle.test.js";
 import "./edinet-sanrio-impact-review-checklist.test.js";
+import "./research/jquants-free-provider.test.js";
 import { validateWatchlist } from "../src/validation.js";
 import type { WatchlistConfig } from "../src/types.js";
 
