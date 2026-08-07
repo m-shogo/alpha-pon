@@ -120,8 +120,8 @@ Provider batchは各recordと少なくとも次が一致する必要がありま
 PR #142以降、系列先頭recordに`supersedesHash`を付けた孤児revisionもfail-closedです。
 
 ```text
-root.suppersedesHash  -> prohibited
-revision.supersedesHash -> exact previous contentHash required
+root.supersedesHash        -> prohibited
+revision.supersedesHash    -> exact previous contentHash required
 ```
 
 Revision順序はISO文字列の辞書順ではなくepoch timestampで比較します。
