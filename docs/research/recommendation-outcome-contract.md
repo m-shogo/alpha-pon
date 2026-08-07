@@ -1,146 +1,325 @@
-# Recommendation & Outcome Persistence Contract v0 (draft)
+# Recommendation & Outcome Persistence Contract v1
 
-Status: `CONTRACT_DRAFT_NOT_IMPLEMENTED`
-Updated: 2026-08-05 JST
+Status: `IMPLEMENTED_QUANTITATIVE_HUMAN_REVIEW_PENDING`
+Updated: 2026-08-07 JST
 Depends on: [PIT Price Store v1](pit-price-store.md), Research OS Registry / Backtest / Gate
 
-## Why this exists
+## 1. Purpose
 
-Alpha Pon は投資判断まで支援するシステムであり、十分な根拠がある場合は
-BUY候補 / WATCH / WAIT / AVOID と価格シナリオを提示してよい。ただし判定を
-出す瞬間の条件を固定保存し、後から答え合わせできることを必須とする。
+Alpha Pon may support real investment decisions with BUY candidate / WATCH / WAIT / AVOID calls when evidence genuinely supports them. It is not an automatic-trading system: no brokerage order is authorized by this contract.
 
-このドキュメントは実装前の契約定義である。実コード・実発注は含まない。
-自動発注は本契約の対象外であり、証券口座への注文はユーザーの明示操作でのみ行う。
+Every recommendation must freeze its issue-time conditions, preserve later revisions without rewriting history, and be answer-checked later from point-in-time-safe evidence and price records.
 
-禁止するのは推奨そのものではなく、以下:
+The contract forbids:
 
-- 根拠なき断定（「絶対に上がる」等）
-- 古い情報を現在の事実として使う
-- SNS・匿名情報だけで BUY 判定する
-- 確率・価格帯・目標価格の捏造
-- 発表後に予想条件を都合よく書き換える
-- 外れた予想や失敗した Edge を削除する
-- 未検証の catalog Edge だけで BUY を出す
+- groundless certainty;
+- stale facts presented as current facts;
+- SNS/anonymous-information-only BUY decisions;
+- fabricated confidence, probabilities, ranges or targets;
+- mixing information discovered after `informationCutoff` into the original judgment;
+- retroactive edits to issued forecasts;
+- deletion of failed forecasts or weak Edges;
+- BUY from catalog-only Edges;
+- hindsight selection of issuer/TOPIX/sector baseline prices;
+- fabricated quantitative Outcome values;
+- interpreting an unadjusted stock split as a real crash/rally.
 
-## Evidence separation (必須)
-
-すべての推奨は、本文中で以下を分離して提示する。混在させない。
-
-```text
-新しく確認された事実
-既に知られていた事実
-仮定・推論
-予想
-意見
-```
-
-## Evidence tiers (BUY/確率/スコアへ使う場合は明示)
+## 2. Implemented chain
 
 ```text
-Tier A  IR / TDnet / EDINET / JPX / 官公庁 / 監査資料 / 法定資料
-Tier B  取引所公式統計 / 客観的人流 / POS / 予約 / 検索 / 交通 / 需給 / 設備投資
-Tier C  確認済み企業公式SNS / 公式動画 / 説明会補足
-Tier D  一般報道 / 技術記事 / 業界解説
-Discovery only  一般SNS / 匿名投稿 / 掲示板 / 感情 / 推奨 / 噂
+#110 Recommendation Persistence v1
+#111 Recommendation benchmark PIT provenance hardening
+#112 Quantitative Outcome Persistence v1
+#113 Evidence-backed Corporate Action Clearance v1
+#114 Corporate Action gate for raw/unadjusted quantitative Outcomes
 ```
 
-一般SNS・匿名情報だけでは BUY へ昇格させない。BUY に用いた最上位 Tier を記録する。
+All five slices were merged only after their applicable checks were green.
 
-## Recommendation record (発表時点で固定保存)
-
-append-only。発表時の価格・価格帯・期間・反証条件を後から上書きしない。
-変更は revision として追記し、旧 record を破棄しない。
-
-```ts
-type RecommendationRecord = {
-  recommendationId: string;
-  issuedAt: string;            // 発表時刻
-  informationCutoff: string;   // この時刻以降の情報は当初判断へ混ぜない
-  code: string;
-  companyName: string;
-  currentPrice: number;
-  decision: "BUY" | "WATCH" | "WAIT" | "AVOID";
-  buyRange?: [number, number];
-  targetRange?: [number, number];
-  timeHorizon: string;
-  confidence?: number;         // 計算根拠が無ければ省略（捏造しない）
-  bullScenario: string;
-  baseScenario: string;
-  bearScenario: string;
-  scenarioProbabilities?: { bull: number; base: number; bear: number };
-  catalysts: string[];
-  risks: string[];
-  confirmationConditions: string[];  // 買う前の確認条件
-  invalidationRules: string[];       // 仮説が崩れる条件
-  exitConditions: string[];          // 撤退条件
-  sourceEvidence: { tier: "A" | "B" | "C" | "D"; ref: string }[];
-  edgeIds: string[];           // validated / active-research Edge のみ
-  benchmark: string;           // 例: TOPIX
-  sectorBenchmark: string;     // 例: TOPIX-17
-  positionSizingRationale?: string;
-  outcomeReviewDate: string;
-  status: "open" | "target_reached" | "invalidated" | "expired" | "reviewed";
-  supersedesId?: string;       // revision chain
-};
-```
-
-不変条件:
-
-- `informationCutoff` 以降に判明した情報を当初判断へ混ぜない。
-- `currentPrice` / `buyRange` / `targetRange` / `timeHorizon` / `invalidationRules`
-  を後から書き換えない。変更は `supersedesId` を持つ新 record として追記。
-- `confidence` / `scenarioProbabilities` / `targetRange` は計算根拠が無ければ出さず、
-  「価格帯算出不可 / 確率算出不可 / 追加確認が必要」と正直に記録する。
-- catalog 段階の Edge だけで `decision: "BUY"` を出さない。
-- 価格は [PIT Price Store](pit-price-store.md) の `firstExecutableAt` 境界に従う。
-
-## Outcome record (答え合わせ、後日追記)
-
-```ts
-type OutcomeRecord = {
-  recommendationId: string;
-  maxReturn: number;
-  maxDrawdown: number;
-  benchmarkExcessReturn: number;   // TOPIX / 業種指数との差
-  targetReached: boolean;
-  invalidationTriggered: boolean;
-  reviewedAt: string;
-  verdict: "correct" | "partly_correct" | "incorrect" | "inconclusive";
-  correctAssumptions: string[];
-  incorrectAssumptions: string[];  // 見落とし・誤りも必ず残す
-  missingEvidence: string[];
-  unexpectedConfounders: string[];
-  lessons: string[];
-  nextRuleChanges: string[];
-};
-```
-
-答え合わせは PIT Price Store の issuer / benchmark / sector benchmark 系列を用い、
-`issuedAt` 以降の価格のみで `maxReturn` / `maxDrawdown` / 超過収益を計測する。
-外れた予想・失敗 Edge も削除せず Git に残し、学習へ回す。
-
-## Output format (提示テンプレート)
+Implementation is intentionally split into two layers:
 
 ```text
-判定: BUY候補 / WATCH / WAIT / AVOID
-現在価格 / 買い検討価格帯 / 基本・強気・弱気の価格帯
-想定期間 / 推奨確度（根拠が無ければ「算出不可」）
-新規事実 / 既知事実 / 仮定・推論 / 予想 / 意見
-使用Edge / 主要な証拠(Tier) / 主要カタリスト / 主なリスク
-買う前の確認条件 / 仮説が崩れる条件 / 見送り条件 / 撤退条件
-次の重要イベント / 次回レビュー日
+issue-time RecommendationRecord
+  -> PIT quantitative Outcome
+  -> human / semantic review (NOT YET IMPLEMENTED)
 ```
 
-根拠が弱い場合は BUY へ昇格させず WATCH で正直に出す。
+The quantitative layer must never invent the human verdict.
 
-## Definition of done (将来PR)
+## 3. Evidence separation
 
-- [ ] `RecommendationRecord` / `OutcomeRecord` schema + validator
-- [ ] append-only writer と revision(`supersedesId`) chain 検証
-- [ ] evidence tier 必須化と Discovery-only 除外の enforcement
-- [ ] catalog-only Edge での BUY 拒否
-- [ ] PIT Price Store 由来の maxReturn / maxDrawdown / 超過収益 計測
-- [ ] outcome review 期日判定（target / invalidation / expiry）
-- [ ] synthetic fixture と PIT-safe tests
-- [ ] 外れ予想・失敗 Edge の非削除保証テスト
+Every RecommendationRecord persists these buckets separately:
+
+```text
+newFacts
+knownFacts
+assumptions
+forecasts
+opinions
+```
+
+The same statement cannot be stored in multiple buckets.
+
+Evidence tiers usable by RecommendationRecord:
+
+```text
+Tier A  IR / TDnet / EDINET / JPX / government / audit / statutory material
+Tier B  official/objective exchange, flow, POS, reservation, traffic, demand/supply or capex data
+Tier C  confirmed company official SNS/video/presentation supplements
+Tier D  general reporting / technical or industry explanation
+Discovery only  anonymous/general SNS, boards, rumors, influencer recommendations
+```
+
+Discovery-only sources cannot enter `sourceEvidence`. A BUY still requires an eligible Edge and cannot be supported by a catalog-only Edge.
+
+## 4. RecommendationRecord — implemented
+
+Canonical schema:
+
+`research/schemas/recommendation-record.schema.json`
+
+Implementation:
+
+`src/research/recommendation-persistence.ts`
+
+The record freezes:
+
+- `recommendationId`
+- `issuedAt`
+- `informationCutoff`
+- issuer identity
+- current price plus exact PIT Price Store hash and first-executable timestamp
+- decision
+- buy/target ranges and explicit basis refs when present
+- time horizon
+- confidence and explicit basis refs when present
+- bull/base/bear scenarios
+- scenario probabilities and explicit basis refs when present
+- catalysts / risks / confirmation / invalidation / exit conditions
+- separated evidence summary
+- canonical evidence refs and tiers
+- Edge IDs
+- TOPIX/benchmark identity plus exact PIT baseline hash/executable timestamp
+- sector benchmark identity plus exact PIT baseline hash/executable timestamp
+- outcome review date
+- status
+- revision lineage
+- deterministic SHA-256 `contentHash`
+- `automaticTradingAuthorized=false`
+
+### Recommendation invariants
+
+- `informationCutoff <= issuedAt`.
+- Every evidence ref must resolve to canonical tier/time metadata; evidence observed after cutoff is rejected.
+- Secret/token-looking source refs are rejected.
+- Issuer current price must resolve to a canonical traded PIT Price Store record.
+- Issuer, TOPIX and sector baseline record hashes are recomputed from the record contents, not trusted by string alone.
+- Baseline price records must be observed by cutoff and executable by issue time.
+- Unknown price license is rejected.
+- BUY requires at least one Edge in `active-research`, `shadow` or `validated`.
+- `buyRange`, `targetRange`, `confidence` and `scenarioProbabilities` require explicit basis refs when present.
+- Scenario probabilities sum to 1.
+- A root Recommendation starts `status=open`.
+- Revisions use `supersedesId`, must move forward in time and may not fork.
+- Rejected append leaves prior JSONL unchanged.
+
+## 5. Quantitative Outcome — implemented
+
+Canonical schema:
+
+`research/schemas/quantitative-outcome-record.schema.json`
+
+Implementation:
+
+`src/research/quantitative-outcome.ts`
+
+Measurement method:
+
+```text
+pit-close-common-date-v1
+```
+
+Return basis:
+
+```text
+unadjusted-close-price-return-corporate-action-cleared-v1
+```
+
+### Baseline rules
+
+Outcome uses only the exact RecommendationRecord baseline hashes for:
+
+- issuer;
+- TOPIX/general benchmark;
+- sector benchmark.
+
+All three baseline trading dates must be the same. This prevents hindsight or date-misaligned excess-return measurement.
+
+### Post-issue price eligibility
+
+For each series, measurement rows must:
+
+- belong to the same series/source/provider plan as the baseline;
+- have `tradingDate > baselineTradingDate`;
+- have `firstExecutableAt > recommendation.issuedAt`;
+- have `firstExecutableAt <= reviewedAt`;
+- have `observedAt <= reviewedAt`;
+- be traded OHLC records with valid content hashes and known license.
+
+If revisions exist for one trading date, v1 uses the latest revision that was actually observable by review time.
+
+The terminal comparison date is the latest trading date common to issuer, TOPIX and sector series. An issuer-only later row cannot extend the comparison horizon.
+
+### Quantitative metrics
+
+All returns are decimal returns.
+
+- `maxReturn`: maximum issuer close-to-baseline-close return.
+- `maxDrawdown`: running-peak-to-later-close drawdown, baseline close as initial peak candidate.
+- `terminalReturn`: issuer terminal close / issuer baseline close - 1.
+- `benchmarkReturn`: TOPIX/common-benchmark terminal return.
+- `sectorBenchmarkReturn`: sector terminal return.
+- `benchmarkExcessReturn`: issuer terminal return minus benchmark return.
+- `sectorBenchmarkExcessReturn`: issuer terminal return minus sector return.
+
+The method is deliberately close-to-close. Daily OHLC does not prove whether high occurred before low, so v1 does not invent intraday path ordering.
+
+### Target assessment
+
+If no target range exists:
+
+```text
+targetAssessment = not_applicable
+```
+
+If a target exists, v1 marks it reached on the first measured trading date whose close is at or above the lower edge of `targetRange`.
+
+Intraday-high target logic requires a separately versioned method.
+
+### Corporate Action gate
+
+Because current J-Quants Free v1 stores unadjusted issuer prices, a raw quantitative Outcome requires an immutable CorporateActionClearanceRecord hash.
+
+Canonical clearance schema:
+
+`research/schemas/corporate-action-clearance.schema.json`
+
+Implementation:
+
+`src/research/corporate-action-clearance.ts`
+
+The referenced clearance must:
+
+- recompute to its stored hash;
+- have `status=clear`;
+- match issuer code/market/source/providerPlan;
+- cover baseline through terminal trading date;
+- be assessed no later than Outcome `reviewedAt`.
+
+The issuer price path itself must remain:
+
+```text
+adjusted = false
+adjustmentFactor = 1
+corporateActions = []
+```
+
+If adjusted/raw records are mixed or an action is detected, this v1 method refuses the calculation rather than guessing an adjustment.
+
+A real J-Quants Free Outcome remains fail-closed until a real Tier A/B evidence-backed clearance exists. Never fabricate `clear` merely to unblock Outcome generation.
+
+### Price return, not total return
+
+Current quantitative metrics are price returns. Cash dividends or other distributions are not added to the numerator.
+
+Do not describe v1 metrics as dividend-inclusive total shareholder return.
+
+## 6. Quantitative Outcome immutability
+
+Each quantitative Outcome persists:
+
+- Outcome ID;
+- Recommendation ID + content hash;
+- reviewedAt / measurementCutoff;
+- measurement method / return basis;
+- Corporate Action Clearance hash;
+- issuer/TOPIX/sector baseline hashes;
+- issuer/TOPIX/sector terminal hashes;
+- complete selected measurement hash paths;
+- baseline/terminal trading dates;
+- all computed metrics;
+- deterministic content hash.
+
+The validator rebuilds the expected Outcome from Recommendation + PIT prices + clearance. Re-hashing manually altered return numbers does not make them valid.
+
+Quantitative revisions are append-only:
+
+- one root Outcome per Recommendation;
+- linear `supersedesOutcomeId` chain;
+- no forks;
+- `reviewedAt` strictly increases;
+- terminal date cannot regress;
+- once target is reached, later quantitative revisions cannot revert it.
+
+## 7. Human / semantic review — NOT YET IMPLEMENTED
+
+The quantitative record intentionally fixes:
+
+```text
+reviewStage = quantitative_measurement
+invalidationAssessment = not_assessed
+verdict = inconclusive
+```
+
+These fields remain empty at the quantitative stage:
+
+- correctAssumptions
+- incorrectAssumptions
+- missingEvidence
+- unexpectedConfounders
+- lessons
+- nextRuleChanges
+
+A future human/semantic review layer must reference immutable Recommendation and Quantitative Outcome hashes. It may evaluate:
+
+- whether an invalidation rule actually fired;
+- whether the thesis was correct / partly correct / incorrect / inconclusive;
+- which assumptions held or failed;
+- missing evidence and confounders;
+- lessons and proposed rule changes.
+
+It must append a new governed record rather than rewriting the quantitative history, and it must not grant automatic rule-change or trading authority.
+
+## 8. Safety boundary
+
+The persistence system does not authorize:
+
+- brokerage orders;
+- automatic trading;
+- automatic position sizing;
+- real LINE BUY delivery by itself;
+- silent promotion of an Edge to Production;
+- automatic model/rule changes from Outcome lessons.
+
+`automaticTradingAuthorized=false` is structurally fixed in persisted records.
+
+## 9. Current Definition of Done
+
+- [x] Recommendation schema + validator — #110
+- [x] Recommendation append-only writer + linear revision validation — #110
+- [x] evidence separation / tier enforcement / post-cutoff rejection — #110
+- [x] catalog-only BUY rejection — #110
+- [x] issuer PIT baseline pin — #110
+- [x] TOPIX / sector PIT baseline pins — #111
+- [x] pinned Price Store record content-hash recomputation — #111
+- [x] PIT quantitative maxReturn / maxDrawdown / terminal/excess returns — #112
+- [x] common terminal-date alignment — #112
+- [x] quantitative Outcome append-only revision model — #112
+- [x] evidence-backed Corporate Action Clearance store — #113
+- [x] raw Outcome Corporate Action gate — #114
+- [x] synthetic recomputation / tamper / append-only tests
+- [ ] semantic invalidation assessment
+- [ ] final human-reviewed verdict record
+- [ ] explicit expiry/review-due orchestration
+- [ ] failed forecast / weak Edge learning integration without automatic rule mutation
+- [ ] first real Recommendation/Outcome pilot after all required real Foundation data is available
