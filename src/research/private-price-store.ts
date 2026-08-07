@@ -1,10 +1,10 @@
 import {
   chmodSync,
   closeSync,
-  existsSync,
   lstatSync,
   mkdirSync,
   openSync,
+  type Stats,
 } from "node:fs";
 import { dirname, resolve } from "node:path";
 import {
@@ -13,15 +13,22 @@ import {
 } from "./price-store.js";
 import type { JsonSchema } from "./schema.js";
 
-function assertRegularNonSymlink(path: string, field: string): void {
-  const stat = lstatSync(path);
+function lstatIfPresent(path: string): Stats | null {
+  try {
+    return lstatSync(path);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw error;
+  }
+}
+
+function assertRegularNonSymlinkStat(stat: Stats, field: string): void {
   if (stat.isSymbolicLink() || !stat.isFile()) {
     throw new Error(`${field} must be a regular non-symlink file`);
   }
 }
 
-function assertRegularNonSymlinkDirectory(path: string, field: string): void {
-  const stat = lstatSync(path);
+function assertRegularNonSymlinkDirectoryStat(stat: Stats, field: string): void {
   if (stat.isSymbolicLink() || !stat.isDirectory()) {
     throw new Error(`${field} must be a regular non-symlink directory`);
   }
@@ -49,21 +56,24 @@ export function appendPrivatePriceRecords(input: {
   }
 
   const parent = dirname(root);
-  if (!existsSync(parent)) {
-    throw new Error("private price root parent must already exist");
-  }
-  assertRegularNonSymlinkDirectory(parent, "private price root parent");
+  const parentStat = lstatIfPresent(parent);
+  if (!parentStat) throw new Error("private price root parent must already exist");
+  assertRegularNonSymlinkDirectoryStat(parentStat, "private price root parent");
 
-  if (existsSync(root)) {
-    assertRegularNonSymlinkDirectory(root, "private price root");
+  const rootStat = lstatIfPresent(root);
+  if (rootStat) {
+    assertRegularNonSymlinkDirectoryStat(rootStat, "private price root");
   } else {
     mkdirSync(root, { mode: 0o700 });
-    assertRegularNonSymlinkDirectory(root, "private price root");
+    const createdRootStat = lstatIfPresent(root);
+    if (!createdRootStat) throw new Error("private price root creation failed");
+    assertRegularNonSymlinkDirectoryStat(createdRootStat, "private price root");
   }
   chmodSync(root, 0o700);
 
-  if (existsSync(path)) {
-    assertRegularNonSymlink(path, "private price file");
+  const fileStat = lstatIfPresent(path);
+  if (fileStat) {
+    assertRegularNonSymlinkStat(fileStat, "private price file");
     chmodSync(path, 0o600);
   } else {
     const fd = openSync(path, "ax", 0o600);
@@ -71,6 +81,8 @@ export function appendPrivatePriceRecords(input: {
   }
 
   appendPriceRecords(path, input.records, input.schema, input.now ?? new Date());
-  assertRegularNonSymlink(path, "private price file");
+  const finalStat = lstatIfPresent(path);
+  if (!finalStat) throw new Error("private price file disappeared after append");
+  assertRegularNonSymlinkStat(finalStat, "private price file");
   chmodSync(path, 0o600);
 }
