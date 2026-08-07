@@ -129,11 +129,13 @@ function decisionScopeIssues(
   const target = `learning-decision:${record.decisionId}`;
   const issues: OutcomeLearningDecisionIssue[] = [];
 
-  if (proposal.proposalStage !== "human_review_ready") {
+  const humanReviewReady = proposal.proposalStage === "human_review_ready";
+  const rejectableAiDraft = proposal.proposalStage === "draft_proposal" && record.decision === "reject";
+  if (!humanReviewReady && !rejectableAiDraft) {
     issues.push(issue(
       "proposal_not_human_review_ready",
       target,
-      "Human DecisionはproposalStage=human_review_readyのProposalにのみ作成できます",
+      "defer/advance_to_shadowにはhuman_review_ready Proposalが必要です。draft_proposalは人間によるrejectのみ許可します",
     ));
   }
   if (Date.parse(record.decidedAt) <= Date.parse(proposal.createdAt)) {
