@@ -481,7 +481,7 @@ function sameCanonical(left: unknown, right: unknown): boolean {
   return JSON.stringify(canonical(left)) === JSON.stringify(canonical(right));
 }
 
-function requireNotesForRisk(value: string, field: string): string {
+function requireNotesForRisk(value: unknown, field: string): string {
   const result = text(value);
   if (!result) throw new Error(`${field} requires human notes`);
   return result;
