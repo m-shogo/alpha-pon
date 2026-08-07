@@ -45,7 +45,14 @@ function audit(): JsonObject {
       groupId: "document_metadata",
       status: "missing_required_evidence",
       verifiedFields: ["docID"],
-      missingFields: ["sourceContentHash", "documentTypeCode"],
+      missingFields: [
+        "chainRootDocID",
+        "documentTypeCode",
+        "sourceContentHash",
+        "title",
+        "summary",
+        "language",
+      ],
       evidenceRefs: ["S900DOC1"],
       note: "Document-level metadata is incomplete.",
     },
@@ -53,15 +60,52 @@ function audit(): JsonObject {
       groupId: "pit_timestamps",
       status: "missing_required_evidence",
       verifiedFields: [],
-      missingFields: ["publishedAt", "firstExecutableAt"],
+      missingFields: [
+        "publishedAt",
+        "observedAt",
+        "retrievedAt",
+        "effectiveFrom",
+        "firstExecutableAt",
+        "eventAtStatus",
+        "eventAt",
+      ],
       evidenceRefs: [],
       note: "PIT clocks are incomplete.",
     },
     {
+      groupId: "retrieval_and_normalization",
+      status: "missing_required_evidence",
+      verifiedFields: [],
+      missingFields: ["retrievalRunId", "parserVersion", "normalizationVersion", "normalizedStructureHash"],
+      evidenceRefs: [],
+      note: "Retrieval and normalization lineage is incomplete.",
+    },
+    {
+      groupId: "revision_chain",
+      status: "missing_required_evidence",
+      verifiedFields: [],
+      missingFields: ["revisionKind", "revisionSequence", "evidenceStatus", "documentRevisionStatus", "prior"],
+      evidenceRefs: [],
+      note: "Revision lineage is incomplete.",
+    },
+    {
+      groupId: "rights_and_storage",
+      status: "missing_required_evidence",
+      verifiedFields: [],
+      missingFields: ["license", "storagePolicy"],
+      evidenceRefs: [],
+      note: "Rights and storage policy are incomplete.",
+    },
+    {
       groupId: "section_mapping",
       status: "partial_navigation_only",
-      verifiedFields: ["sections[].path"],
-      missingFields: ["sections[].sectionId", "sections[].contentHash"],
+      verifiedFields: ["sections[].path", "anchor.structured.textHash"],
+      missingFields: [
+        "sections[].sectionId",
+        "sections[].ordinal",
+        "sections[].titleHash",
+        "sections[].contentHash",
+      ],
       evidenceRefs: ["S900DOC1:anchor:001"],
       note: "Navigation exists but complete section mapping does not.",
     },
@@ -94,9 +138,9 @@ function audit(): JsonObject {
     opinionCount: 0,
     exactAmountCount: 0,
     readinessGroups,
-    verifiedFieldCount: 3,
+    verifiedFieldCount: 4,
     derivableFieldCount: 0,
-    partialFieldCount: 2,
+    partialFieldCount: 4,
     missingFieldCount: missingFields.length,
     missingFields,
     readinessStatus: "blocked_missing_foundation_mapping_evidence",
@@ -127,16 +171,23 @@ function audit(): JsonObject {
     "security_master",
     "document_metadata",
     "pit_timestamps",
+    "retrieval_and_normalization",
+    "revision_chain",
+    "rights_and_storage",
     "section_mapping",
   ]);
   assert.deepEqual(plan.steps[1]!.dependsOnGroupIds, ["security_master"]);
   assert.deepEqual(plan.steps[2]!.dependsOnGroupIds, ["document_metadata"]);
-  assert.equal(plan.steps[3]!.status, "pending_complete_mapping");
+  assert.deepEqual(plan.steps[3]!.dependsOnGroupIds, ["document_metadata"]);
+  assert.deepEqual(plan.steps[4]!.dependsOnGroupIds, ["document_metadata", "pit_timestamps"]);
+  assert.deepEqual(plan.steps[5]!.dependsOnGroupIds, ["document_metadata"]);
+  assert.deepEqual(plan.steps[6]!.dependsOnGroupIds, ["document_metadata", "retrieval_and_normalization"]);
+  assert.equal(plan.steps[6]!.status, "pending_complete_mapping");
   assert.match(plan.planHash, /^[a-f0-9]{64}$/);
   const markdown = renderFoundationReadinessRemediationPlan(plan);
   assert.match(markdown, /resolve_governed_security_master_identity/);
   assert.match(markdown, /foundationMappingGateAuthorized: false/);
-  console.log("foundation-readiness-remediation-plan: deterministic dependency-ordered plan OK");
+  console.log("foundation-readiness-remediation-plan: canonical dependency-ordered plan OK");
 }
 
 {
@@ -144,13 +195,10 @@ function audit(): JsonObject {
   tampered.missingFieldCount = 0;
   const { auditHash: _oldHash, ...withoutHash } = tampered;
   tampered.auditHash = digest(withoutHash);
-  assert.throws(
-    () => buildFoundationReadinessRemediationPlan({
-      readinessAudit: tampered,
-      sourceAuditFile: "configured-foundation-readiness-audit-v1.fixture.json",
-    }),
-    /missingFieldCount mismatch/,
-  );
+  assert.throws(() => buildFoundationReadinessRemediationPlan({
+    readinessAudit: tampered,
+    sourceAuditFile: "configured-foundation-readiness-audit-v1.fixture.json",
+  }), /missingFieldCount mismatch/);
   console.log("foundation-readiness-remediation-plan: inconsistent audit counts blocked OK");
 }
 
@@ -159,26 +207,20 @@ function audit(): JsonObject {
   unsafe.appendAuthorized = true;
   const { auditHash: _oldHash, ...withoutHash } = unsafe;
   unsafe.auditHash = digest(withoutHash);
-  assert.throws(
-    () => buildFoundationReadinessRemediationPlan({
-      readinessAudit: unsafe,
-      sourceAuditFile: "configured-foundation-readiness-audit-v1.fixture.json",
-    }),
-    /safety boundary is invalid/,
-  );
+  assert.throws(() => buildFoundationReadinessRemediationPlan({
+    readinessAudit: unsafe,
+    sourceAuditFile: "configured-foundation-readiness-audit-v1.fixture.json",
+  }), /safety boundary is invalid/);
   console.log("foundation-readiness-remediation-plan: unsafe source audit boundary blocked OK");
 }
 
 {
   const corrupted = audit();
   corrupted.registryHash = "0".repeat(64);
-  assert.throws(
-    () => buildFoundationReadinessRemediationPlan({
-      readinessAudit: corrupted,
-      sourceAuditFile: "configured-foundation-readiness-audit-v1.fixture.json",
-    }),
-    /auditHash mismatch/,
-  );
+  assert.throws(() => buildFoundationReadinessRemediationPlan({
+    readinessAudit: corrupted,
+    sourceAuditFile: "configured-foundation-readiness-audit-v1.fixture.json",
+  }), /auditHash mismatch/);
   console.log("foundation-readiness-remediation-plan: audit hash tampering blocked OK");
 }
 
