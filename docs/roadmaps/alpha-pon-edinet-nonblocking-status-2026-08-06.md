@@ -1,24 +1,24 @@
 # Alpha Pon EDINET non-blocking status — 2026-08-06
 
 Status: `ACTIVE_SUBROADMAP`
-Updated: 2026-08-07 09:50 JST
+Updated: 2026-08-07 16:20 JST
 Parent roadmap: `docs/roadmaps/alpha-pon-current-roadmap-2026-08-06.md`
 
 ## Durable operating decision
 
 The pending local Sanrio PDF visual review is a gate for fact confirmation and Foundation/Evidence append. It is **not** a gate for unrelated implementation work.
 
-Continue autonomous GitHub implementation while the local task remains pending.
+Continue autonomous GitHub implementation only where it improves an already measured boundary, operability, validation, or documentation. Do not use the local human gate as justification to build endless new governance layers.
 
 ## Pending human/local task — keep open
 
-Source:
+Known source snapshot:
 
 ```text
 data/edinet/sanrio-acquisition.20260806T064708Z/revision-unmatched-anchor-inspection-v1.20260806T092942Z.json
 ```
 
-Measured state:
+Measured state from that snapshot:
 
 ```text
 API/PDF selected anchors: 21
@@ -30,21 +30,56 @@ reviewStatus: pending_human_review
 appendAuthorized: false
 ```
 
-Required local action when convenient:
+### Canonical local entrypoint now
+
+PR #129 added a read-only real-pilot preflight. Prefer this command rather than manually guessing timestamped paths:
+
+```bash
+bash scripts/run-sanrio-real-pilot-preflight-local.sh
+```
+
+The preflight reads only local filename/stage/lineage metadata, prints no filing body text or confirmed facts, and returns the next safe local command when one can be derived from actual files.
+
+It can lead to:
+
+- human-review template preparation;
+- human-review finalization;
+- parity input gap reporting;
+- parity workspace generation;
+- parity human-review template preparation;
+- parity human-review finalization;
+- an intentional stop at `parity_complete_foundation_gate_pending`.
+
+Do not guess timestamps when the preflight can resolve the actual local paths.
+
+### Exact known fallback for the currently measured inspection
+
+If the local state still matches the known snapshot above, the human-review preparation command is:
 
 ```bash
 bash scripts/run-sanrio-edinet-human-review-decision-local.sh \
   --inspection data/edinet/sanrio-acquisition.20260806T064708Z/revision-unmatched-anchor-inspection-v1.20260806T092942Z.json
 ```
 
-The user must run this because the source files exist only under the user's local `data/edinet` directory. GitHub and CI cannot access or prove those local records.
+After editing the generated `revision-human-review-input-v1.*.json`, finalize using the **actual filename printed by the command**. Do not invent the timestamp.
 
-Do not block unrelated implementation on this command. Surface it again only when the Sanrio pilot needs to cross one of these gates:
+The current finalized filename is canonicalized as:
+
+```text
+revision-human-review-decision-v1.<timestamp>.json
+```
+
+PR #128 updated the parity workspace to accept this current canonical output directly. The older `revision-human-review-record-v1.*.json` remains compatibility-only; do not rename a new decision file into the old form.
+
+The user must run local human steps because the source files exist only under the user's ignored `data/edinet` directory. GitHub and CI cannot access or prove those real local records.
+
+Surface the human/local gate again when the Sanrio pilot needs to cross one of these boundaries:
 
 - final equivalence decision for the remaining anchor;
 - confirmed exact amount, period, recipient, or payer;
 - confirmed financial-statement impact;
 - confirmed internal-control or audit-opinion impact;
+- parity human finalization;
 - human-reviewed Foundation preview input;
 - Evidence or Document Revision append.
 
@@ -87,6 +122,9 @@ Do not block unrelated implementation on this command. Surface it again only whe
 #88 issuer-neutral official-PDF human comparison review
 #89 Sanrio legacy/configured parity workspace
 #90 Sanrio legacy/configured parity human finalizer
+#92 parity implementation gate closed; real parity Evidence required next
+#128 canonical finalized human-review decision filename accepted by parity workspace
+#129 read-only real local Sanrio pilot preflight with lineage-aware next-command derivation
 ```
 
 ## Non-blocking implementation queue
@@ -113,9 +151,11 @@ Proceed in this order unless current `main`, tests, or measured local data show 
 18. **COMPLETE — PR #88:** Require official PDF visual review for every generic comparison anchor and record equivalence, facts, prior facts, assumptions, opinions, exact amounts, accounting/internal-control/audit impact, materiality, and direction separately.
 19. **COMPLETE — PR #89:** Build a local Sanrio legacy/configured parity workspace from a green inventory compatibility audit plus both completed human-review records. Machine relations are limited to shared `docID` and exact text-hash equality; raw reviewed text is not copied and replacement remains unauthorized.
 20. **COMPLETE — PR #90:** Finalize the parity workspace with explicit human legacy-to-configured mappings, configured-only dispositions, inventory-audit confirmation, and a human replacement recommendation. Even a `recommend_configured_replacement` result remains non-authorizing and cannot mutate the legacy entry point automatically.
-21. **BLOCKED — REAL PARITY EVIDENCE REQUIRED:** Add the configured human-review-to-Foundation mapping gate only after the real Sanrio parity review is completed locally and proves the generic record supplies the required Security Master, PIT, source hash, section hash, license/storage, and revision fields. Do not infer or synthesize this evidence in GitHub/CI.
-22. Register a second real issuer only after an inventory-only proposal identifies a measured Evidence Gap and explicit user approval.
-23. Resume Known-Bad Event Repricing validation only after the real Foundation pilot gates are satisfied.
+21. **COMPLETE — PR #128:** Accept the current canonical finalized legacy human-review decision file directly in the parity workspace while retaining old `record-v1` compatibility without weakening content validation.
+22. **COMPLETE — PR #129:** Add one read-only local preflight that resolves actual local lineage and prints the next safe command without exposing filing content or guessing timestamps.
+23. **BLOCKED — REAL PARITY EVIDENCE REQUIRED:** Add/execute the configured human-review-to-Foundation mapping gate only after the real Sanrio parity review is completed locally and proves the generic record supplies the required Security Master, PIT, source hash, section hash, license/storage, and revision fields. Do not infer or synthesize this evidence in GitHub/CI.
+24. Register a second real issuer only after an inventory-only proposal identifies a measured Evidence Gap and explicit user approval.
+25. Resume Known-Bad Event Repricing validation only after the real Foundation pilot gates are satisfied.
 
 ## Current CI infrastructure note
 
@@ -131,7 +171,7 @@ This is an Actions service failure, not a repository test result. Do not modify 
 ## Safety invariants
 
 - GitHub `main`, current code/tests/workflows, and measured output are authoritative; old chat SHAs are not.
-- Do not commit local EDINET ZIP/PDF/API payloads, secrets, licensed prices, or portfolio data.
+- Do not commit local EDINET ZIP/PDF/API payloads, secrets, licensed prices, portfolio data, Recommendation runtime records, Outcome records, or governed learning runtime JSONL.
 - Do not expose the EDINET API key in Git, logs, PRs, Issues, Actions artifacts, or chat.
 - Do not add broad APIs until a measured Evidence Gap requires them.
 - Do not auto-classify source text as confirmed fact, material, positive, negative, or fraud.
@@ -155,6 +195,9 @@ This is an Actions service failure, not a repository test result. Do not modify 
 - Parity workspaces must not copy raw reviewed source text when a hash is sufficient.
 - Parity human review must not auto-select machine exact-hash candidates, and a human replacement recommendation must never become replacement authorization by itself.
 - The Foundation mapping gate must remain blocked until real local parity evidence exists; CI fixtures cannot satisfy or bypass that gate.
+- The Sanrio real-pilot preflight is read-only and metadata/lineage-only. It must not print raw filing content, confirmed facts, source text, exact amounts, or silently modify local records.
+- Preflight-selected workspace/review artifacts must match exact source lineage; newest mtime alone is never enough to cross a gate.
+- `parity_complete_foundation_gate_pending` must intentionally emit no Foundation append/replacement command.
 - Keep replacement, Foundation preview eligibility, and append authorization false unless a distinct explicit human-reviewed workflow is completed.
 - No BUY/order automation, brokerage action, Production Gate change, active Edge promotion, or real LINE send.
 - No Cloudflare production deploy or D1 write from this queue.
