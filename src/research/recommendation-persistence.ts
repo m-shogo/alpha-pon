@@ -9,7 +9,7 @@ import {
   readFileSync,
 } from "node:fs";
 import { dirname } from "node:path";
-import type { PitPriceRecord } from "./price-store.js";
+import { computePriceRecordHash, type PitPriceRecord } from "./price-store.js";
 import { stableStringify, validate, type JsonSchema } from "./schema.js";
 
 export type RecommendationDecision = "BUY" | "WATCH" | "WAIT" | "AVOID";
@@ -193,6 +193,22 @@ function evidenceSeparationIssues(summary: RecommendationEvidenceSummary): Recom
   return issues;
 }
 
+function assertCanonicalPriceHash(
+  price: PitPriceRecord,
+  expectedHash: string,
+  target: string,
+  mismatchCode: string,
+): RecommendationIssue[] {
+  const issues: RecommendationIssue[] = [];
+  if (price.contentHash !== expectedHash) {
+    issues.push(error(mismatchCode, target, "price record hashがpinと一致しません"));
+  }
+  if (computePriceRecordHash(price) !== price.contentHash) {
+    issues.push(error("invalid_pinned_price_content_hash", target, "pinされたPIT Price Store recordのcontentHashが内容と一致しません"));
+  }
+  return issues;
+}
+
 function priceProvenanceIssues(
   record: RecommendationRecord,
   context: RecommendationValidationContext,
@@ -208,9 +224,7 @@ function priceProvenanceIssues(
   }
 
   const issues: RecommendationIssue[] = [];
-  if (price.contentHash !== record.currentPriceRecordHash) {
-    issues.push(error("price_hash_mismatch", target, "price record hashがpinと一致しません"));
-  }
+  issues.push(...assertCanonicalPriceHash(price, record.currentPriceRecordHash, target, "price_hash_mismatch"));
   if (price.seriesKind !== "security" || canonicalCode(price.code) !== canonicalCode(record.code)) {
     issues.push(error("price_security_mismatch", target, "currentPriceのsecurityがrecommendation対象と一致しません"));
   }
@@ -253,9 +267,7 @@ function benchmarkProvenanceIssues(input: {
   }
 
   const issues: RecommendationIssue[] = [];
-  if (price.contentHash !== input.recordHash) {
-    issues.push(error("benchmark_price_hash_mismatch", target, `${input.label} record hashがpinと一致しません`));
-  }
+  issues.push(...assertCanonicalPriceHash(price, input.recordHash, target, "benchmark_price_hash_mismatch"));
   if (price.seriesKind !== "benchmark" || canonicalBenchmarkCode(price.code) !== canonicalBenchmarkCode(input.expectedCode)) {
     issues.push(error("benchmark_identity_mismatch", target, `${input.label}のPIT record identityが一致しません`));
   }
