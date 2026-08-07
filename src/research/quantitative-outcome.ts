@@ -10,6 +10,10 @@ import {
 } from "node:fs";
 import { dirname } from "node:path";
 import {
+  computeCorporateActionClearanceHash,
+  type CorporateActionClearanceRecord,
+} from "./corporate-action-clearance.js";
+import {
   computePriceRecordHash,
   type PitPriceRecord,
 } from "./price-store.js";
@@ -27,6 +31,8 @@ export type QuantitativeOutcomeRecord = {
   reviewedAt: string;
   measurementCutoff: string;
   measurementMethod: "pit-close-common-date-v1";
+  returnBasis: "unadjusted-close-price-return-corporate-action-cleared-v1";
+  issuerCorporateActionClearanceHash: string;
   baselineTradingDate: string;
   terminalTradingDate: string;
   issuerBaselineRecordHash: string;
@@ -64,6 +70,7 @@ export type QuantitativeOutcomeRecord = {
 export type QuantitativeOutcomeContext = {
   recommendationsById: ReadonlyMap<string, RecommendationRecord>;
   priceRecordsByHash: ReadonlyMap<string, PitPriceRecord>;
+  corporateActionClearancesByHash: ReadonlyMap<string, CorporateActionClearanceRecord>;
 };
 
 export type QuantitativeOutcomeIssue = {
@@ -117,6 +124,24 @@ function canonicalPrice(
     throw new Error(`${label}: unknown price license`);
   }
   return record;
+}
+
+function canonicalClearance(
+  hash: string,
+  clearancesByHash: ReadonlyMap<string, CorporateActionClearanceRecord>,
+): CorporateActionClearanceRecord {
+  const clearance = clearancesByHash.get(hash);
+  if (!clearance) throw new Error(`corporate action clearance not found: ${hash}`);
+  if (
+    clearance.contentHash !== hash
+    || computeCorporateActionClearanceHash(clearance) !== hash
+  ) {
+    throw new Error(`corporate action clearance hash mismatch: ${hash}`);
+  }
+  if (clearance.status !== "clear") {
+    throw new Error(`corporate action clearance must be clear: ${clearance.status}`);
+  }
+  return clearance;
 }
 
 function assertBaselineIdentity(
@@ -220,6 +245,44 @@ function recordOn(records: PitPriceRecord[], tradingDate: string, label: string)
   return record;
 }
 
+function assertUnadjustedIssuerMeasurement(
+  baseline: PitPriceRecord,
+  records: PitPriceRecord[],
+): void {
+  for (const record of [baseline, ...records]) {
+    if (record.adjusted || record.adjustmentFactor !== 1 || record.corporateActions.length > 0) {
+      throw new Error(
+        `pit-close-common-date-v1 only supports unadjusted issuer records with adjustmentFactor=1 and no embedded corporate actions: ${record.contentHash}`,
+      );
+    }
+  }
+}
+
+function assertCorporateActionClearance(input: {
+  clearance: CorporateActionClearanceRecord;
+  issuerBaseline: PitPriceRecord;
+  terminalTradingDate: string;
+  reviewedAt: string;
+}): void {
+  if (
+    input.clearance.code !== input.issuerBaseline.code
+    || input.clearance.market !== input.issuerBaseline.market
+    || input.clearance.source !== input.issuerBaseline.source
+    || input.clearance.providerPlan !== input.issuerBaseline.providerPlan
+  ) {
+    throw new Error("corporate action clearance series identity does not match issuer price series");
+  }
+  if (input.clearance.fromTradingDate > input.issuerBaseline.tradingDate) {
+    throw new Error("corporate action clearance does not cover issuer baseline tradingDate");
+  }
+  if (input.clearance.throughTradingDate < input.terminalTradingDate) {
+    throw new Error("corporate action clearance does not cover terminal tradingDate");
+  }
+  if (Date.parse(input.clearance.assessedAt) > Date.parse(input.reviewedAt)) {
+    throw new Error("corporate action clearance was assessed after reviewedAt");
+  }
+}
+
 function closeReturn(close: number, baseline: number): number {
   return close / baseline - 1;
 }
@@ -260,6 +323,8 @@ export function buildQuantitativeOutcomeRecord(input: {
   recommendation: RecommendationRecord;
   reviewedAt: string;
   priceRecordsByHash: ReadonlyMap<string, PitPriceRecord>;
+  corporateActionClearancesByHash: ReadonlyMap<string, CorporateActionClearanceRecord>;
+  issuerCorporateActionClearanceHash: string;
   supersedesOutcomeId?: string;
 }): QuantitativeOutcomeRecord {
   if (!Number.isFinite(Date.parse(input.reviewedAt))) throw new Error("reviewedAt must be an ISO date-time");
@@ -317,6 +382,18 @@ export function buildQuantitativeOutcomeRecord(input: {
   const benchmarkTerminal = recordOn(benchmarkThrough, terminalTradingDate, "benchmark");
   const sectorTerminal = recordOn(sectorThrough, terminalTradingDate, "sector benchmark");
 
+  assertUnadjustedIssuerMeasurement(issuerBaseline, issuerThrough);
+  const clearance = canonicalClearance(
+    input.issuerCorporateActionClearanceHash,
+    input.corporateActionClearancesByHash,
+  );
+  assertCorporateActionClearance({
+    clearance,
+    issuerBaseline,
+    terminalTradingDate,
+    reviewedAt: input.reviewedAt,
+  });
+
   const issuerBaselineClose = issuerBaseline.ohlcv!.close;
   const benchmarkBaselineClose = benchmarkBaseline.ohlcv!.close;
   const sectorBaselineClose = sectorBaseline.ohlcv!.close;
@@ -333,6 +410,8 @@ export function buildQuantitativeOutcomeRecord(input: {
     reviewedAt: input.reviewedAt,
     measurementCutoff: input.reviewedAt,
     measurementMethod: "pit-close-common-date-v1",
+    returnBasis: "unadjusted-close-price-return-corporate-action-cleared-v1",
+    issuerCorporateActionClearanceHash: clearance.contentHash,
     baselineTradingDate: issuerBaseline.tradingDate,
     terminalTradingDate,
     issuerBaselineRecordHash: issuerBaseline.contentHash,
@@ -420,6 +499,8 @@ export function validateQuantitativeOutcomeRecord(
       recommendation,
       reviewedAt: record.reviewedAt,
       priceRecordsByHash: context.priceRecordsByHash,
+      corporateActionClearancesByHash: context.corporateActionClearancesByHash,
+      issuerCorporateActionClearanceHash: record.issuerCorporateActionClearanceHash,
       ...(record.supersedesOutcomeId ? { supersedesOutcomeId: record.supersedesOutcomeId } : {}),
     });
     if (stableStringify(withoutHash(expected)) !== stableStringify(withoutHash(record))) {
