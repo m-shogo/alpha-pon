@@ -226,6 +226,22 @@ const recommendation: RecommendationRecord = withRecommendationHash({
   automaticTradingAuthorized: false,
 });
 
+const earlyClearance = withCorporateActionClearanceHash({
+  schemaVersion: 1,
+  clearanceId: "ca-clearance:8136:outcome-fixture:early",
+  assessedAt: "2026-08-12T10:00:00+09:00",
+  assessmentMethod: "official-corporate-action-clearance-v1",
+  code: issuerBaseline.code,
+  market: issuerBaseline.market,
+  source: issuerBaseline.source,
+  providerPlan: issuerBaseline.providerPlan,
+  fromTradingDate: issuerBaseline.tradingDate,
+  throughTradingDate: "2026-08-10",
+  status: "clear",
+  sourceEvidence: [{ tier: "A", ref: "synthetic:official:corporate-action:early" }],
+  automaticTradingAuthorized: false,
+});
+
 const clearance = withCorporateActionClearanceHash({
   schemaVersion: 1,
   clearanceId: "ca-clearance:8136:outcome-fixture",
@@ -239,6 +255,7 @@ const clearance = withCorporateActionClearanceHash({
   throughTradingDate: "2026-08-12",
   status: "clear",
   sourceEvidence: [{ tier: "A", ref: "synthetic:official:corporate-action:001" }],
+  supersedesClearanceId: earlyClearance.clearanceId,
   automaticTradingAuthorized: false,
 });
 
@@ -260,7 +277,7 @@ const allPrices = [
 
 function outcomeContext(
   prices: PitPriceRecord[] = allPrices,
-  clearances: CorporateActionClearanceRecord[] = [clearance],
+  clearances: CorporateActionClearanceRecord[] = [earlyClearance, clearance],
 ): QuantitativeOutcomeContext {
   return {
     recommendationsById: new Map([[recommendation.recommendationId, recommendation]]),
@@ -439,9 +456,11 @@ function approx(actual: number, expected: number, tolerance = 1e-12): void {
   const early = build({
     outcomeId: "outcome:sanrio:early",
     reviewedAt: "2026-08-12T12:00:00+09:00",
+    clearanceHash: earlyClearance.contentHash,
   });
   assert.equal(early.terminalTradingDate, "2026-08-10");
   assert.equal(early.targetAssessment, "not_reached");
+  assert.equal(early.issuerCorporateActionClearanceHash, earlyClearance.contentHash);
 
   const later = build({
     outcomeId: "outcome:sanrio:later",
@@ -450,6 +469,7 @@ function approx(actual: number, expected: number, tolerance = 1e-12): void {
   });
   assert.equal(later.terminalTradingDate, "2026-08-12");
   assert.equal(later.targetAssessment, "reached");
+  assert.equal(later.issuerCorporateActionClearanceHash, clearance.contentHash);
   assert.deepEqual(
     validateQuantitativeOutcomeRecords([early, later], outcomeSchema, outcomeContext()),
     [],
@@ -462,7 +482,7 @@ function approx(actual: number, expected: number, tolerance = 1e-12): void {
   });
   const forkIssues = validateQuantitativeOutcomeRecords([early, later, fork], outcomeSchema, outcomeContext());
   assert.ok(forkIssues.some((candidate) => candidate.code === "outcome_revision_fork"));
-  console.log("quantitative-outcome: linear measurement revision passes and fork is rejected OK");
+  console.log("quantitative-outcome: PIT clearance lineage supports linear measurement revision and rejects fork OK");
 
   const sandbox = mkdtempSync(join(tmpdir(), "alpha-pon-outcome-"));
   const path = join(sandbox, "quantitative-outcomes.jsonl");
