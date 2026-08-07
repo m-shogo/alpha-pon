@@ -97,6 +97,13 @@ function required(value: unknown, field: string): string {
   return result;
 }
 
+function exactText(value: unknown, field: string): string {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new Error(`${field} must be a non-empty string`);
+  }
+  return value;
+}
+
 function hash(value: unknown, field: string): string {
   const result = required(value, field);
   if (!HASH_RE.test(result)) throw new Error(`${field} must be a SHA-256 hash`);
@@ -231,7 +238,7 @@ function verifyStructuredArchive(
     const entry = object(entryValue, `structured source ${fileName}.entries[${index}]`);
     const path = required(entry.path, `structured source ${fileName}.entries[${index}].path`);
     if (entries.has(path)) throw new Error(`duplicate structured entry ${path}`);
-    const entryText = required(entry.text, `structured source ${fileName}.entries[${index}].text`);
+    const entryText = exactText(entry.text, `structured source ${fileName}.entries[${index}].text`);
     if (textDigest(entryText) !== hash(entry.textHash, `structured source ${fileName}.entries[${index}].textHash`)) {
       throw new Error(`structured entry textHash mismatch: ${path}`);
     }
@@ -282,17 +289,14 @@ function parseAnchor(
   const entryPath = required(structured.entryPath, `${field}.structured.entryPath`);
   const entry = structuredEntries.get(entryPath);
   if (!entry) throw new Error(`${field}.structured.entryPath is not present in extracted source`);
-  const structuredLineNumber = positiveInteger(
-    structured.lineNumber,
-    `${field}.structured.lineNumber`,
-  );
-  const entryText = required(entry.text, `${field}.structured.entry.text`);
+  const structuredLineNumber = positiveInteger(structured.lineNumber, `${field}.structured.lineNumber`);
+  const entryText = exactText(entry.text, `${field}.structured.entry.text`);
   const structuredLine = exactLine(
     entryText.split("\n"),
     structuredLineNumber,
     `${field}.structured.lineNumber`,
   );
-  const suppliedStructuredText = required(structured.text, `${field}.structured.text`);
+  const suppliedStructuredText = exactText(structured.text, `${field}.structured.text`);
   if (suppliedStructuredText !== structuredLine) {
     throw new Error(`${field}.structured.text does not match extracted line`);
   }
@@ -310,7 +314,7 @@ function parseAnchor(
     pdfLineNumber,
     `${field}.pdf.lineNumber`,
   );
-  const suppliedPdfText = required(pdf.text, `${field}.pdf.text`);
+  const suppliedPdfText = exactText(pdf.text, `${field}.pdf.text`);
   if (suppliedPdfText !== pdfLine) {
     throw new Error(`${field}.pdf.text does not match extracted line`);
   }
@@ -364,10 +368,7 @@ export function finalizeConfiguredEdinetAnchorInput(input: {
 }): ConfiguredEdinetAnchorFinalRecord {
   const bundle = object(input.extractionBundle, "extractionBundle");
   const sourceExtractionBundleHash = verifyExtractionBundle(bundle);
-  const sourceExtractionBundleFile = localBasename(
-    input.sourceExtractionBundleFile,
-    "sourceExtractionBundleFile",
-  );
+  const sourceExtractionBundleFile = localBasename(input.sourceExtractionBundleFile, "sourceExtractionBundleFile");
   const sourceAnchorInputFile = localBasename(input.sourceAnchorInputFile, "sourceAnchorInputFile");
   const edited = rehashEditedTemplate(input.editedAnchorInput);
   verifyTemplateBoundary(edited.record);
@@ -381,9 +382,8 @@ export function finalizeConfiguredEdinetAnchorInput(input: {
   const reviewedAt = timestamp(edited.record.reviewedAt, "anchorInput.reviewedAt");
   const bundleDocuments = sourceDocuments(bundle);
   const editedDocuments = array(edited.record.documents, "anchorInput.documents");
-  if (editedDocuments.length !== bundleDocuments.size) {
-    throw new Error("anchorInput document count mismatch");
-  }
+  if (editedDocuments.length !== bundleDocuments.size) throw new Error("anchorInput document count mismatch");
+
   const seenDocuments = new Set<string>();
   const seenAnchorIds = new Set<string>();
   const documents = editedDocuments.map((value, index) => {
@@ -393,7 +393,6 @@ export function finalizeConfiguredEdinetAnchorInput(input: {
     seenDocuments.add(id);
     const source = bundleDocuments.get(id);
     if (!source) throw new Error(`anchorInput contains unknown document ${id}`);
-    const proposedImmutable = immutableDocumentSource(document);
     const expectedImmutable = {
       pairId: source.pairId,
       pairHash: source.pairHash,
@@ -406,7 +405,7 @@ export function finalizeConfiguredEdinetAnchorInput(input: {
       minimumAnchorCount: 1,
       maximumAnchorCount: MAX_ANCHORS_PER_DOCUMENT,
     };
-    if (JSON.stringify(canonical(proposedImmutable)) !== JSON.stringify(canonical(expectedImmutable))) {
+    if (JSON.stringify(canonical(immutableDocumentSource(document))) !== JSON.stringify(canonical(expectedImmutable))) {
       throw new Error(`anchorInput document ${id} source fields changed`);
     }
     if (document.status !== "complete_human_input") {
@@ -419,14 +418,8 @@ export function finalizeConfiguredEdinetAnchorInput(input: {
     if (positiveInteger(document.anchorCount, `anchorInput document ${id}.anchorCount`) !== rawAnchors.length) {
       throw new Error(`anchorInput document ${id} anchorCount mismatch`);
     }
-    const structuredFile = localBasename(
-      source.structuredTextFile,
-      `extractionBundle document ${id}.structuredTextFile`,
-    );
-    const pdfFile = localBasename(
-      source.pdfLayoutTextFile,
-      `extractionBundle document ${id}.pdfLayoutTextFile`,
-    );
+    const structuredFile = localBasename(source.structuredTextFile, `extractionBundle document ${id}.structuredTextFile`);
+    const pdfFile = localBasename(source.pdfLayoutTextFile, `extractionBundle document ${id}.pdfLayoutTextFile`);
     const structuredEntries = verifyStructuredArchive(
       structuredFile,
       hash(source.structuredTextFileSha256, `extractionBundle document ${id}.structuredTextFileSha256`),
@@ -458,21 +451,16 @@ export function finalizeConfiguredEdinetAnchorInput(input: {
       extractionHash: hash(source.extractionHash, `extractionBundle document ${id}.extractionHash`),
       docID: id,
       structuredTextFile: structuredFile,
-      structuredTextFileSha256: hash(
-        source.structuredTextFileSha256,
-        `extractionBundle document ${id}.structuredTextFileSha256`,
-      ),
+      structuredTextFileSha256: hash(source.structuredTextFileSha256, `extractionBundle document ${id}.structuredTextFileSha256`),
       pdfLayoutTextFile: pdfFile,
-      pdfLayoutTextFileSha256: hash(
-        source.pdfLayoutTextFileSha256,
-        `extractionBundle document ${id}.pdfLayoutTextFileSha256`,
-      ),
+      pdfLayoutTextFileSha256: hash(source.pdfLayoutTextFileSha256, `extractionBundle document ${id}.pdfLayoutTextFileSha256`),
       anchorCount: anchors.length,
       anchors,
       status: "complete_human_input" as const,
     };
     return { ...base, anchorSetHash: digest(base) };
   }).sort((left, right) => left.docID.localeCompare(right.docID));
+
   if (seenDocuments.size !== bundleDocuments.size) throw new Error("anchorInput did not cover every document");
   const issuer = object(bundle.issuer, "extractionBundle.issuer");
   const generatedAt = input.generatedAt ? timestamp(input.generatedAt, "generatedAt") : new Date().toISOString();
