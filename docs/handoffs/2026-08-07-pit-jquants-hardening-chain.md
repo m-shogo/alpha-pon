@@ -17,6 +17,7 @@ The 2026-08-07 GitHub-safe work moved from Foundation-readiness validation into 
 #146 revalidate baseline / measurement timelines in Quantitative Outcome
 #147 accept only YYYYMMDD or YYYY-MM-DD J-Quants date shapes
 #148 reject impossible firstExecutableAt before local J-Quants network fetch
+#150 preserve actual retrieval-completion time instead of backdating to fetch start
 ```
 
 PR #141 was superseded rather than force-rewritten when main moved. Its calendar work was recreated safely and merged as #143.
@@ -53,7 +54,24 @@ This is now enforced at several layers intentionally.
 - explicit network flag remains required;
 - credentials-missing remains non-fatal;
 - requested `--first-executable-at` must be at or after retrieval start **before** `provider.fetchDaily(...)`;
+- `retrievalStartedAt` is only preflight/query-cutoff state;
+- PriceRecord `retrievedAt` is sampled by the provider **after** `fetchQuotes` completes;
+- resolver rechecks `firstExecutableAt >= actual retrievedAt`;
+- local append validation clock is sampled again after fetch;
 - mapper/Price Store still provide final downstream defenses.
+
+Do not conflate the two retrieval timestamps:
+
+```text
+retrievalStartedAt = network前のpreflight / request cutoff
+retrievedAt        = network完了後のactual ingestion timestamp
+```
+
+The provider regression explicitly fixes ordering to:
+
+```text
+fetch-start -> fetch-complete -> retrieved-at-sampled
+```
 
 ### Recommendation
 
@@ -183,13 +201,14 @@ Dry-run/no network:
 bash scripts/run-jquants-free-price-provider-local.sh
 ```
 
-Real fetch remains explicit and local-only. When supplying `--first-executable-at`, use a timestamp at or after the actual retrieval start; do not copy an old fixed example timestamp.
+Real fetch remains explicit and local-only. When supplying `--first-executable-at`, use a future execution timestamp that will still be at or after the actual fetch completion; do not copy an old fixed example timestamp. If the network fetch finishes after the supplied timestamp, the mapper correctly rejects the record.
 
 ## Do not do
 
 - do not commit real EDINET or J-Quants payloads;
 - do not put licensed raw prices in Actions artifacts or chat;
 - do not edit hashes to make Evidence pass;
+- do not backdate `retrievedAt` to request start;
 - do not weaken timestamp validation for a fixture;
 - do not force-push/rewrite around generated-main drift;
 - do not modify runners/workflows without a measured workflow defect;
@@ -204,6 +223,6 @@ Research OS may add a generated dashboard/index commit to main immediately after
 2. create a fresh branch from latest main;
 3. transplant only intended blobs into a new tree/commit;
 4. verify `behind_by=0` and exact changed files;
-5. run Draft → Ready/full CI again.
+5. run Draft -> Ready/full CI again.
 
 Do not force-update stale branches merely to save time.
