@@ -1,7 +1,7 @@
 # Alpha Pon EDINET non-blocking status — 2026-08-06
 
 Status: `ACTIVE_SUBROADMAP`
-Updated: 2026-08-07 09:47 JST
+Updated: 2026-08-07 09:50 JST
 Parent roadmap: `docs/roadmaps/alpha-pon-current-roadmap-2026-08-06.md`
 
 ## Durable operating decision
@@ -86,6 +86,7 @@ Do not block unrelated implementation on this command. Surface it again only whe
 #87 conservative exact-normalized anchor comparison
 #88 issuer-neutral official-PDF human comparison review
 #89 Sanrio legacy/configured parity workspace
+#90 Sanrio legacy/configured parity human finalizer
 ```
 
 ## Non-blocking implementation queue
@@ -111,8 +112,8 @@ Proceed in this order unless current `main`, tests, or measured local data show 
 17. **COMPLETE — PR #87:** Compare finalized anchors with NFKC plus horizontal-whitespace normalization only. Report exact normalized equality or mismatch pending official PDF visual review; never infer semantic equivalence.
 18. **COMPLETE — PR #88:** Require official PDF visual review for every generic comparison anchor and record equivalence, facts, prior facts, assumptions, opinions, exact amounts, accounting/internal-control/audit impact, materiality, and direction separately.
 19. **COMPLETE — PR #89:** Build a local Sanrio legacy/configured parity workspace from a green inventory compatibility audit plus both completed human-review records. Machine relations are limited to shared `docID` and exact text-hash equality; raw reviewed text is not copied and replacement remains unauthorized.
-20. **IN PROGRESS — PR #90:** Finalize the parity workspace with explicit human legacy-to-configured mappings, configured-only dispositions, inventory-audit confirmation, and a human replacement recommendation. Even a `recommend_configured_replacement` result remains non-authorizing and must not mutate the legacy entry point automatically.
-21. Add the configured human-review-to-Foundation mapping gate only after real parity evidence proves the generic record supplies the required Security Master, PIT, source hash, section hash, license/storage, and revision fields.
+20. **COMPLETE — PR #90:** Finalize the parity workspace with explicit human legacy-to-configured mappings, configured-only dispositions, inventory-audit confirmation, and a human replacement recommendation. Even a `recommend_configured_replacement` result remains non-authorizing and cannot mutate the legacy entry point automatically.
+21. **BLOCKED — REAL PARITY EVIDENCE REQUIRED:** Add the configured human-review-to-Foundation mapping gate only after the real Sanrio parity review is completed locally and proves the generic record supplies the required Security Master, PIT, source hash, section hash, license/storage, and revision fields. Do not infer or synthesize this evidence in GitHub/CI.
 22. Register a second real issuer only after an inventory-only proposal identifies a measured Evidence Gap and explicit user approval.
 23. Resume Known-Bad Event Repricing validation only after the real Foundation pilot gates are satisfied.
 
@@ -153,6 +154,7 @@ This is an Actions service failure, not a repository test result. Do not modify 
 - Legacy/configured parity may auto-relate records only by shared exact `docID` and exact SHA-256 text hashes. Exact hash equality is navigation evidence, not semantic equivalence or replacement authorization.
 - Parity workspaces must not copy raw reviewed source text when a hash is sufficient.
 - Parity human review must not auto-select machine exact-hash candidates, and a human replacement recommendation must never become replacement authorization by itself.
+- The Foundation mapping gate must remain blocked until real local parity evidence exists; CI fixtures cannot satisfy or bypass that gate.
 - Keep replacement, Foundation preview eligibility, and append authorization false unless a distinct explicit human-reviewed workflow is completed.
 - No BUY/order automation, brokerage action, Production Gate change, active Edge promotion, or real LINE send.
 - No Cloudflare production deploy or D1 write from this queue.
