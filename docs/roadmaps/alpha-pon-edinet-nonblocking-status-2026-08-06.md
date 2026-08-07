@@ -1,7 +1,7 @@
 # Alpha Pon EDINET non-blocking status — 2026-08-06
 
 Status: `ACTIVE_SUBROADMAP`
-Updated: 2026-08-07 00:50 JST
+Updated: 2026-08-07 01:10 JST
 Parent roadmap: `docs/roadmaps/alpha-pon-current-roadmap-2026-08-06.md`
 
 ## Durable operating decision
@@ -106,10 +106,22 @@ Proceed in this order unless current `main`, tests, or measured local data show 
 15. **COMPLETE — PR #84:** Add explicit local structured/PDF extraction, binary/hash/magic revalidation, safe PublicDoc extraction, layout-preserving PDF text, and an empty human anchor template.
 16. **COMPLETE — PR #86:** Finalize human-selected anchors by exact structured entry/line and PDF page/line lineage. PR #86 replaced closed PR #85.
 17. **IN PROGRESS — PR #87:** Compare finalized anchors with NFKC plus horizontal-whitespace normalization only. Report exact normalized equality or mismatch pending official PDF visual review; never infer semantic equivalence.
-18. Add a configured human review decision contract that consumes generic comparison results without issuer-specific assumptions.
-19. Run real legacy/configured Sanrio parity locally and human-review the report before considering legacy entry-point replacement.
-20. Register a second real issuer only after an inventory-only proposal identifies a measured Evidence Gap and explicit user approval.
-21. Resume Known-Bad Event Repricing validation only after the real Foundation pilot gates are satisfied.
+18. **STACKED IN PROGRESS — PR #88:** Require official PDF visual review for every generic comparison anchor and record equivalence, facts, prior facts, assumptions, opinions, exact amounts, accounting/internal-control/audit impact, materiality, and direction separately. PR #88 is based on #87 until #87 merges.
+19. After #87 and #88 merge, run real configured Sanrio parity locally and human-review the result before considering legacy entry-point replacement.
+20. Add the configured human-review-to-Foundation mapping gate only after real parity evidence proves the generic record supplies the required Security Master, PIT, source hash, section hash, license/storage, and revision fields.
+21. Register a second real issuer only after an inventory-only proposal identifies a measured Evidence Gap and explicit user approval.
+22. Resume Known-Bad Event Repricing validation only after the real Foundation pilot gates are satisfied.
+
+## Current CI infrastructure note
+
+At 2026-08-07 01:00 JST, GitHub-hosted Actions intermittently failed before checkout while resolving `actions/*` metadata:
+
+```text
+Service Unavailable
+Failed to resolve action download info
+```
+
+This is an Actions service failure, not a repository test result. Do not modify workflows, runners, or cost controls in response. Re-run the same commit after the hosted service recovers.
 
 ## Safety invariants
 
@@ -122,7 +134,7 @@ Proceed in this order unless current `main`, tests, or measured local data show 
 - A generated Foundation preview is not a governed store append.
 - Review plans never authorize automatic acquisition; the configured executor requires an explicit local command flag.
 - Partial acquisition attempts never create a canonical complete manifest.
-- A hash-verified configured workspace, dashboard, synthetic fixture, fidelity plan, extraction bundle, anchor record, or comparison report still requires the relevant human review.
+- A hash-verified configured workspace, dashboard, synthetic fixture, fidelity plan, extraction bundle, anchor record, comparison report, or human review record still requires the next governed mapping gate before Foundation append.
 - Synthetic placeholder binaries must never be parsed or presented as official EDINET filings.
 - Fidelity plans must not manufacture anchors, extract text automatically, or decide equivalence/materiality/direction.
 - Explicit extraction success does not authorize anchor generation, comparison, or fact promotion.
@@ -131,6 +143,9 @@ Proceed in this order unless current `main`, tests, or measured local data show 
 - Exact comparison may apply only NFKC and horizontal-whitespace normalization. It must not remove punctuation, alter numbers, fold case, reorder words, join lines, use fuzzy matching, or infer semantic equivalence.
 - Exact normalized equality still requires official PDF visual review and does not authorize a fact or impact decision.
 - A normalized mismatch remains pending human review; it is not automatically a substantive difference.
+- Human comparison review must not derive decisions from the normalized result automatically. Every visual/equivalence/impact/materiality/direction field is explicit human input.
+- Confirmed facts, previously known facts, assumptions, and opinions must remain separate arrays.
+- A complete human comparison record does not automatically promote facts or authorize Foundation/Evidence append.
 - Keep replacement, Foundation preview eligibility, and append authorization false unless a distinct explicit workflow is reviewed.
 - No BUY/order automation, brokerage action, Production Gate change, active Edge promotion, or real LINE send.
 - No Cloudflare production deploy or D1 write from this queue.
