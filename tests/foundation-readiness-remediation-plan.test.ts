@@ -135,7 +135,7 @@ function audit(): JsonObject {
   assert.match(plan.planHash, /^[a-f0-9]{64}$/);
   const markdown = renderFoundationReadinessRemediationPlan(plan);
   assert.match(markdown, /resolve_governed_security_master_identity/);
-  assert.match(markdown, /Foundation mapping gate is still required/);
+  assert.match(markdown, /foundationMappingGateAuthorized: false/);
   console.log("foundation-readiness-remediation-plan: deterministic dependency-ordered plan OK");
 }
 
