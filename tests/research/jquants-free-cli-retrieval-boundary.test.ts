@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import type { DailyQuote } from "../../src/fetcher/jquants.js";
 import { assertFirstExecutableAtAfterRetrievalStart } from "../../src/research/jquants-free-cli-boundary.js";
+import { JQuantsFreePriceProvider } from "../../src/research/providers/jquants-free.js";
 
 {
   const startedAt = new Date("2026-08-07T03:00:00.000Z");
@@ -33,12 +35,83 @@ import { assertFirstExecutableAtAfterRetrievalStart } from "../../src/research/j
 
 {
   const source = readFileSync("src/research/cli/fetch-jquants-free-price.ts", "utf-8");
-  const preflightIndex = source.indexOf("assertFirstExecutableAtAfterRetrievalStart(firstExecutableAt, now)");
+  const preflightIndex = source.indexOf(
+    "assertFirstExecutableAtAfterRetrievalStart(firstExecutableAt, retrievalStartedAt)",
+  );
   const fetchIndex = source.indexOf("await provider.fetchDaily(");
   assert.ok(preflightIndex >= 0, "CLI must invoke retrieval-start timing preflight");
   assert.ok(fetchIndex >= 0, "CLI must contain provider fetch");
   assert.ok(preflightIndex < fetchIndex, "timing preflight must execute before provider/network fetch");
-  console.log("jquants-free-cli-retrieval-boundary: timing preflight stays before network fetch structurally OK");
+  assert.equal(
+    source.includes("now: () => retrievalStartedAt"),
+    false,
+    "CLI must not stamp retrievedAt with the pre-network retrieval start",
+  );
+  assert.match(
+    source,
+    /resolveFirstExecutableAt: \(\{ observedAt, retrievedAt \}\) =>/,
+    "CLI resolver must receive the actual provider retrievedAt",
+  );
+  assert.match(
+    source,
+    /--first-executable-at must be at or after actual retrievedAt/,
+    "CLI must keep an actual-retrieval completion guard",
+  );
+  assert.match(
+    source,
+    /asOf: retrievalStartedAt\.toISOString\(\)/,
+    "query cutoff may use retrieval start without rewriting record retrievedAt",
+  );
+  assert.match(
+    source,
+    /appendPrivatePriceRecords\([\s\S]*?now: new Date\(\),/,
+    "local append validation clock must be sampled after fetch",
+  );
+  console.log("jquants-free-cli-retrieval-boundary: preflight/start cutoff is separated from actual retrievedAt structurally OK");
+}
+
+{
+  const calls: string[] = [];
+  const quote: DailyQuote = {
+    Code: "81360",
+    Date: "20260514",
+    Open: 7200,
+    High: 7350,
+    Low: 7150,
+    Close: 7300,
+    Volume: 1_234_500,
+    AdjustmentFactor: 1,
+    AdjustmentClose: 7300,
+    AdjustmentVolume: 1_234_500,
+  };
+  const provider = new JQuantsFreePriceProvider({
+    fetchQuotes: async () => {
+      calls.push("fetch-start");
+      await Promise.resolve();
+      calls.push("fetch-complete");
+      return [quote];
+    },
+    now: () => {
+      calls.push("retrieved-at-sampled");
+      return new Date("2026-08-07T03:00:00.000Z");
+    },
+    resolveFirstExecutableAt: ({ retrievedAt }) => {
+      assert.equal(retrievedAt, "2026-08-07T03:00:00.000Z");
+      return "2026-08-07T12:00:01+09:00";
+    },
+  });
+  const batch = await provider.fetchDaily({
+    seriesKind: "security",
+    codes: ["8136"],
+    from: "2026-05-14",
+    to: "2026-05-14",
+    asOf: "2026-08-07T02:59:59.000Z",
+    plan: "free",
+  });
+  assert.deepEqual(calls, ["fetch-start", "fetch-complete", "retrieved-at-sampled"]);
+  assert.equal(batch.retrievedAt, "2026-08-07T03:00:00.000Z");
+  assert.equal(batch.records[0]?.retrievedAt, batch.retrievedAt);
+  console.log("jquants-free-cli-retrieval-boundary: provider samples retrievedAt after fetch completion OK");
 }
 
 console.log("jquants-free-cli-retrieval-boundary.test.ts passed");
