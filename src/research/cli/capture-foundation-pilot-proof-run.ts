@@ -13,7 +13,7 @@ import {
   FOUNDATION_DECISION_PATHS,
   type FoundationDecisionIntegrationRecord,
 } from "../foundation-decision-integration.js";
-import { buildFoundationPilotProofRun } from "../foundation-pilot-replay-proof.js";
+import { buildFoundationPilotProofRun } from "../foundation-pilot-hash-witness-conformance.js";
 
 const MAX_STORE_BYTES = 25 * 1024 * 1024;
 
