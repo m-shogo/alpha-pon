@@ -49,6 +49,7 @@ import "./research/jquants-free-provider.test.js";
 import "./research/jquants-free-store-conformance.test.js";
 import "./research/private-price-store.test.js";
 import "./research/price-store-revision-root.test.js";
+import "./research/price-store-execution-after-retrieval.test.js";
 import "./research/recommendation-persistence.test.js";
 import "./research/quantitative-outcome.test.js";
 import "./research/corporate-action-clearance.test.js";
