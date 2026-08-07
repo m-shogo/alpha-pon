@@ -56,8 +56,12 @@ function isLeapYear(year: number): boolean {
 }
 
 function normalizeDate(value: string): string {
-  const compact = value.replace(/-/g, "");
-  if (!/^\d{8}$/.test(compact)) throw new Error(`invalid J-Quants trading date: ${value}`);
+  const compact = /^\d{8}$/.test(value)
+    ? value
+    : /^\d{4}-\d{2}-\d{2}$/.test(value)
+      ? value.replace(/-/g, "")
+      : null;
+  if (!compact) throw new Error(`invalid J-Quants trading date: ${value}`);
   const year = Number(compact.slice(0, 4));
   const month = Number(compact.slice(4, 6));
   const day = Number(compact.slice(6, 8));
