@@ -4,7 +4,7 @@ Status: `IMPLEMENTED_AND_CI_GREEN_REAL_EDGE_CASE_MEASUREMENT_PENDING`
 Updated: 2026-08-07 JST
 Depends on: [PIT Price Store v1](pit-price-store.md)
 
-J-Quants は Edge を発見する主役ではなく、価格反応と予想結果を検証する基盤として扱う。
+J-QuantsはEdgeを発見する主役ではなく、価格反応と予想結果をpoint-in-timeで検証する基盤として扱う。
 
 ## Completed implementation chain
 
@@ -12,16 +12,20 @@ J-Quants は Edge を発見する主役ではなく、価格反応と予想結�
 #103 J-Quants Free PIT PriceProvider adapter
 #104 J-Quants V2 JST / delayed-date-cap hardening
 #105 canonical Price Store schema conformance + default raw-value redaction
-#108 private local price-store filesystem boundary
+#108 private local price-store 0700/0600 + symlink boundary
+#140 private price-store hard-link boundary
+#142 Price Store orphan revision-root rejection
+#143 Gregorian calendar + query range validation
+#144 retrievedAt <= firstExecutableAt PIT enforcement
+#147 strict lexical date-shape validation
+#148 pre-network CLI first-executable timing preflight
 ```
 
-All four PRs passed their applicable Draft checks and Ready/full CI before merge.
-
-Important boundary: **implementation complete** does not mean the real-price Foundation pilot is complete. Real J-Quants rows remain local-only and the remaining real edge cases below have not been measured yet.
+Applicable Draft/Ready checks for this chain were green before merge. This means the software boundary is implemented and tested. It does **not** mean real Free edge cases, real benchmark availability or the real Foundation pilot are complete.
 
 ## Current verified Free-plan boundary
 
-2026-08-07時点のJPX/J-Quants公式案内を基準に、Free adapterは次の境界へ固定する。
+2026-08-07時点でリポジトリに記録済みのJPX/J-Quants公式確認を基準に、Free adapterは次へ固定する。
 
 - plan: `free`
 - stock OHLC: available
@@ -32,65 +36,122 @@ Important boundary: **implementation complete** does not mean the real-price Fou
 - raw data redistribution: authorized扱いにしない
 - Alpha Pon license classification: `local_only`
 
-Free entitlementはrolling windowなので、固定日付の`historyFrom`をcapabilitiesへ書かない。取得日の2年前という情報を、永続的な固定開始日と誤認しないためである。
+Free entitlementはrolling windowなので、固定日付の`historyFrom`をcapabilitiesへ保存しない。取得日の2年前という状態を恒久的な開始日と誤認しないためである。
 
 ## Existing assets reused
 
-- `src/fetcher/jquants.ts`
-  - `isJQuantsConfigured()`
-  - `fetchDailyQuotes(...)`
-  - V2 Free date capの既定遅延は84日
-  - retry / interval / timeout
-- `src/research/price-store.ts`
-  - `PriceProvider`
-  - `PitPriceRecordInput`
-  - provider-batch validation
-  - append-only local price store
-
 新しいHTTP clientは作らない。
 
-## Implemented v1
+`src/fetcher/jquants.ts`:
 
-### Provider
+- `isJQuantsConfigured()`
+- `fetchDailyQuotes(...)`
+- V2 Free date cap
+- retry / interval / timeout
+
+`src/research/price-store.ts`:
+
+- `PriceProvider`
+- `PitPriceRecordInput`
+- provider-batch validation
+- append-only local price store
+
+`src/research/price-record-timeline.ts`:
+
+- reusable upper-layer four-timestamp validation
+
+## Provider boundary
 
 `src/research/providers/jquants-free.ts`
 
-- `PriceProvider`へ薄く適合
-- exactly one security code per fetch
-- `seriesKind=benchmark`をfail-closedで拒否
-- `plan != free`を拒否
-- 4桁codeとJ-Quants 5桁code末尾0を同一securityとして照合
-- returned quote code / date range / duplicate dateを検証
-- `providerPlan=free`
-- `delayDays=84`
-- `license=local_only`
-- `supportsBenchmarks=false`
-- `supportsSectorBenchmarks=false`
-- `supportsCorporateActions=false`
+- exactly one security code per fetch;
+- `seriesKind=benchmark`をfail-closedで拒否;
+- `plan != free`を拒否;
+- 4桁codeとJ-Quants 5桁code末尾0を同一securityとして照合;
+- returned quote code / date range / duplicate dateを検証;
+- `providerPlan=free`;
+- `delayDays=84`;
+- `license=local_only`;
+- `supportsBenchmarks=false`;
+- `supportsSectorBenchmarks=false`;
+- `supportsCorporateActions=false`。
 
-### PIT time boundaries
+## Date boundary
 
-- `dataAsOf`: 当該TSE立会日のclose
-  - 2024-11-04以前: 15:00 JST
-  - 2024-11-05以降: 15:30 JST
-- `observedAt`: trading date + 84 calendar days の23:59:59 JST
-  - Free案内は12週間遅延を明示する一方、このadapterが依拠できる精密な日中release timestampは未確定のため、日付境界を早めにbackdateしない
-- `retrievedAt`: Alpha Ponの実取得時刻
-- `firstExecutableAt`: adapter内部で週末・祝日を推測しない。呼び出し側が明示resolverで供給し、`observedAt`以降であることを強制
+Accepted input shapes are exactly:
 
-### V2 delayed-date cap hardening
+```text
+YYYYMMDD
+YYYY-MM-DD
+```
 
-PR #104で既存fetcherの危険な境界を修正した。
+PR #143:
 
-- cap dateはrunnerのlocal timezoneではなく`Asia/Tokyo`基準
-- `from > to`を拒否
-- requested `to`だけがcap超過なら`to`のみtruncate
-- requested `from`がcapより新しい場合は**別の古い日へ巻き戻さず空結果**
-- future-only ineligible requestはV2 network requestを0回にする
+- Gregorian leap-year ruleを明示;
+- impossible day/monthをreject;
+- query `from > to`をfetch前にreject;
+- query datesをcanonical `YYYY-MM-DD`へnormalizeしてfetcherへ渡す。
 
-これにより「まだ取得できない日を要求したのに84日前の別日の価格が返る」誤対応を防ぐ。
+PR #147:
 
-### Price representation
+- `2026--05-14`, `2026-0514`, `202605-14`等のmalformed lexical shapeをreject;
+- malformed queryはfetcher呼出し0回;
+- quote側のmalformed dateもreject。
+
+JavaScript `Date`の自動繰り上がりや、全ハイフン削除による偶然の正常化には依存しない。
+
+## PIT time boundaries
+
+Canonical order:
+
+```text
+dataAsOf <= observedAt <= retrievedAt <= firstExecutableAt
+```
+
+### `dataAsOf`
+
+当該TSE立会日のclose:
+
+- 2024-11-04以前: 15:00 JST
+- 2024-11-05以降: 15:30 JST
+
+### `observedAt`
+
+trading date + 84 calendar days の23:59:59 JST。
+
+Free案内は12週間遅延を明示する一方、このadapterが依拠できる精密な日中release timestampは未確定なので、日付境界を早めにbackdateしない。
+
+### `retrievedAt`
+
+Alpha Ponが実際に取得した時刻。
+
+### `firstExecutableAt`
+
+adapter内部で週末・祝日を推測しない。呼び出し側が明示resolverで供給する。
+
+PR #144以降、単に`observedAt`以降では足りず:
+
+```text
+firstExecutableAt >= retrievedAt
+```
+
+をprovider mapperとcanonical Price Storeの両方で強制する。
+
+PR #148ではlocal CLIも、指定した`--first-executable-at`がretrieval startより前なら**provider/network fetchより前**に拒否する。mapper側の最終防御も残す。
+
+## V2 delayed-date cap hardening
+
+PR #104:
+
+- cap dateはrunner local timezoneではなく`Asia/Tokyo`基準;
+- `from > to`をreject;
+- requested `to`だけがcap超過なら`to`のみtruncate;
+- requested `from`がcapより新しい場合は別の古い日へ巻き戻さず空結果;
+- future-only ineligible requestはV2 network request 0回。
+
+「まだ取得できない日を要求したのに84日前の別日の価格が返る」誤対応を防ぐ。
+
+## Price representation
 
 v1は**未調整OHLCだけ**を正本化する。
 
@@ -102,31 +163,30 @@ corporateActions: []
 
 J-Quantsの調整後価格は後日のcorporate actionにより過去系列が再計算され得るため、revision lineageなしにPIT価格として採用しない。
 
-V2 fetcherはnull OHLCを0へnormalizeするため、zero/invalid rowを現段階で`suspended`や`no_trade`へ勝手に分類しない。
+V2 fetcherはnull OHLCを0へnormalizeするため、zero/invalid rowを現段階で`suspended` / `no_trade`へ勝手に分類しない。
 
 ```text
 status: missing
 missingReason: unknown
 ```
 
-実Freeデータでmissing patternを測定した後だけ分類を細分化する。
+実Freeデータでpatternを測定した後だけ分類を細分化する。
 
-### Canonical store conformance
+## Canonical store conformance
 
-PR #105でfixture recordを実`research/schemas/price-record.schema.json`と`validatePriceRecord(...)`へ通す回帰テストを追加した。
+PR #105以降、fixture recordを実`research/schemas/price-record.schema.json`と`validatePriceRecord(...)`へ通す。
 
-- traded row: schema error 0
-- unknown missing row: schema error 0
-- securityにbenchmarkが未設定であることは既存設計どおりwarningで保持
-- content hashを付与した実append形のrecordまで検証
+- traded row: schema error 0;
+- unknown missing row: schema error 0;
+- securityにbenchmarkが未設定なら既存設計どおりwarning;
+- content hashを付与したappend形まで検証;
+- raw OHLCVはdefault console outputからredact。
 
-`PriceProviderBatch`が正しいだけではなく、実際にPIT Price Storeへ入るrecord形までCIで固定する。
+PR #142以降、revision series rootに任意`supersedesHash`を付けた孤児recordも拒否する。
 
-### Private filesystem boundary
+## Private filesystem boundary
 
-PR #108で`--append-local`の保存をcallerの`umask`だけに依存させないようにした。
-
-`src/research/private-price-store.ts`が以下を強制する。
+`src/research/private-price-store.ts`:
 
 ```text
 provider root: 0700
@@ -135,15 +195,16 @@ price JSONL:   0600
 
 さらに:
 
-- provider専用root直下のfileだけを許可
-- parent/root/fileをregular non-symlinkとして検証
-- permissiveな既存0777/0666も0700/0600へ矯正
-- dangling symlinkを`lstat`で検出
-- symlink file/rootをappend前に拒否
-- nested pathを拒否
-- append後もfile typeを再検証して0600を再適用
+- provider root直下fileだけを許可;
+- parent/root/fileをregular non-symlinkとして検証;
+- permissive既存0777/0666を0700/0600へ矯正;
+- dangling symlinkを`lstat`で検出;
+- symlink file/rootをappend前に拒否;
+- nested pathを拒否;
+- append後もfile type / permissionを再検証;
+- PR #140以降、existing/new fileで`nlink === 1`を要求しhard linkをreject。
 
-real filesystem fixtureで外部symlink targetへ書き込まないことまでCI固定済み。
+hard-link rejectは`chmod`/append前に行うため、provider root外の同一inodeへpermission/content変更を波及させない。
 
 ## Local CLI
 
@@ -153,7 +214,7 @@ Runner:
 bash scripts/run-jquants-free-price-provider-local.sh
 ```
 
-flagなしではネットワークを使わず、entitlement/capabilitiesだけを表示する。
+flagなしではnetworkを使わず、entitlement/capabilitiesだけを表示する。
 
 実取得は明示flagが必要:
 
@@ -163,98 +224,120 @@ bash scripts/run-jquants-free-price-provider-local.sh \
   --code 8136 \
   --from 2026-05-14 \
   --to 2026-05-14 \
-  --first-executable-at 2026-08-07T09:00:00+09:00
+  --first-executable-at "$FIRST_EXECUTABLE_AT"
 ```
+
+`FIRST_EXECUTABLE_AT`はその実取得開始時刻以上でなければならない。過去の固定サンプル時刻をそのままコピーして実行しない。
 
 credentials不足は`credentials_missing_nonfatal`でexit 0。LINE/daily本体へ失敗を伝播させない。
 
 ### Output safety
 
-PR #105以降、実取得してもconsoleのdefault outputにはraw OHLCVを含めない。
+Default output:
 
 ```text
 rawValuesIncluded: false
 valuesIncluded: false
 ```
 
-表示対象はcode/date/PIT timestamps/status/source/plan/license/contentHash等のmetadata中心。
+表示はcode/date/PIT timestamps/status/source/plan/license/contentHash等のmetadata中心。
 
-raw OHLCVをlocal terminalで明示確認する時だけ追加flagを使う:
+raw OHLCVをlocal terminalで明示確認する時だけ:
 
 ```bash
 --show-values-local
 ```
 
-永続化はさらに`--append-local`が必要。保存先はgitignoredのlocal-only領域:
+永続化はさらに`--append-local`が必要。保存先:
 
 ```text
 research/prices/jquants-free/<code>.jsonl
 ```
 
-consoleへ表示する保存先はrepo-relative pathのみで、absolute local filesystem pathを出さない。runnerは`umask 077`を使用し、PR #108以降はstorage boundary自体も0700/0600を強制する。
+この領域はgitignored/local-only。consoleにはrepo-relative pathだけを出し、absolute local pathを公開しない。
 
-## Fixture validation
+## Fixture / CI validation
 
-実APIなしで以下を固定済み。
+実APIなしで現在固定済み:
 
-- Free entitlement contract
-- 84-day observation boundary
-- TSE 15:00 / 15:30 close transition
-- 4桁/5桁code matching
-- unadjusted OHLC mapping
-- unknown missing-pattern fail-closed
-- retrievedAt / source code boundary
-- provider batch consistency
-- benchmark/multi-code rejection
-- JST midnight date-cap transition
-- partial eligible range truncation
-- future-only range = no network
-- canonical Price Store schema conformance
-- default raw-value redaction
-- private root/file permission tightening
-- regular-file/root symlink rejection
-- dangling symlink rejection
-- provider-root direct-child enforcement
+- Free entitlement contract;
+- 84-day observation boundary;
+- TSE 15:00 / 15:30 close transition;
+- 4桁/5桁code matching;
+- strict lexical + Gregorian date validation;
+- unadjusted OHLC mapping;
+- unknown missing-pattern fail-closed;
+- `observedAt <= retrievedAt <= firstExecutableAt`;
+- provider batch consistency;
+- benchmark/multi-code rejection;
+- JST midnight date-cap transition;
+- partial eligible range truncation;
+- future-only range = no network;
+- malformed query = no network;
+- CLI impossible execution timing = pre-network reject;
+- canonical Price Store schema conformance;
+- default raw-value redaction;
+- private root/file permission tightening;
+- symlink / dangling symlink / hard-link rejection;
+- provider-root direct-child enforcement;
+- orphan revision-root rejection。
 
 ## Remaining real measurement — non-blocking
 
 コード実装を止めない。実Free credentialsを使えるlocal executorがある時だけ測定する。
 
-- 12週間遅延データが実際に取得可能になる日中時刻
-- rolling 2-year boundaryのAPI実挙動
-- missing / no_trade / suspensionの実row pattern
-- code表現の実例外
-- Free entitlement変更の有無
+- 12週間遅延データが実際に取得可能になる日中時刻;
+- rolling 2-year boundaryのAPI実挙動;
+- missing / no_trade / suspensionの実row pattern;
+- code表現の実例外;
+- Free entitlement変更の有無。
 
 TOPIX / sector benchmarkはFreeで無理に代替せず、Foundation pilot側で別の権利確認済みsourceを選ぶ。
 
 ## Guardrails
 
-- 実価格・secret・token・account IDをGitへcommitしない。
-- raw J-Quants dataをpublic dashboard/APIへ流さない。
-- default console outputにもraw OHLCVを出さない。
-- local-only price fileはprovider root 0700 / file 0600を保持する。
-- symlink/dangling symlink経由のprivate price writeを許可しない。
-- 複数provider/planの同日データをsource/providerPlan指定なしに黙って1件選ばない。
-- credentials不足・J-Quants障害をLINE/daily本体へ伝播させない。
-- adjusted seriesをrevision-awareでないPIT storeへ混ぜない。
-- benchmark entitlementを推測しない。
-- delay capより新しいrequestを別日の古い価格へ自動変換しない。
+- 実価格・secret・token・account IDをGitへcommitしない;
+- raw J-Quants dataをpublic dashboard/APIへ流さない;
+- default console outputにもraw OHLCVを出さない;
+- local-only price fileはprovider root 0700 / file 0600;
+- symlink/dangling symlink/hard-link経由のprivate price writeを許可しない;
+- 複数provider/planの同日データをsource/providerPlan指定なしに黙って1件選ばない;
+- credentials不足・J-Quants障害をLINE/daily本体へ伝播させない;
+- adjusted seriesをrevision-awareでないPIT storeへ混ぜない;
+- benchmark entitlementを推測しない;
+- delay capより新しいrequestを別日の古い価格へ自動変換しない;
+- 取得前に価格を使えたことにしない;
 - 実LINE送信・自動発注・課金設定変更は行わない。
 
 ## Definition of done
 
-- [x] `PriceProvider`適合adapter — PR #103
-- [x] Free capabilities / entitlement boundary — PR #103
-- [x] `DailyQuote` → `PitPriceRecordInput` fixture mapping test — PR #103
-- [x] explicit-network / dry-run-by-default local CLI — PR #103
-- [x] credentials-missing non-fatal behavior — PR #103
-- [x] local-only append path — PR #103
-- [x] Free delay / rolling history / TOPIX entitlementを公式案内に合わせて固定 — PR #103
-- [x] V2 delay capをJST/PIT安全化 — PR #104
-- [x] future-only requestの別日巻き戻し防止 — PR #104
-- [x] canonical Price Store schema conformance — PR #105
-- [x] default console raw-value redaction — PR #105
-- [x] private local price-store 0700/0600 + symlink boundary — PR #108
-- [ ] missing/no_trade/suspensionのreal row pattern実測
-- [ ] exact delayed intraday availabilityのreal measurement
+### Software
+
+- [x] `PriceProvider` adapter — #103
+- [x] Free capability / entitlement boundary — #103
+- [x] `DailyQuote` -> `PitPriceRecordInput` mapping — #103
+- [x] explicit-network / dry-run-by-default CLI — #103
+- [x] credentials-missing non-fatal — #103
+- [x] local-only append path — #103
+- [x] JST delayed-date cap / future-only no-network — #104
+- [x] canonical Price Store schema conformance — #105
+- [x] default raw-value redaction — #105
+- [x] private 0700/0600 + symlink boundary — #108
+- [x] hard-link boundary — #140
+- [x] orphan revision-root rejection — #142
+- [x] Gregorian date/query range validation — #143
+- [x] execution-after-retrieval boundary — #144
+- [x] strict lexical date shapes — #147
+- [x] pre-network local CLI execution timing — #148
+
+### Real/local
+
+- [ ] missing/no_trade/suspension real row pattern measurement
+- [ ] exact delayed intraday availability measurement
+- [ ] rolling two-year boundary measurement
+- [ ] first governed real issuer series accepted locally
+- [ ] rights-verified TOPIX / sector benchmark source selected for Foundation pilot
+
+## Current next step
+
+Do not add a second price architecture merely to keep moving. When local execution is available, use this adapter to measure the remaining Free edge cases and keep raw data local-only. For the real Foundation pilot, separately resolve rights-verified TOPIX / sector benchmark Evidence and Corporate Action Clearance.
