@@ -19,6 +19,9 @@ const schema = JSON.parse(
 ) as JsonSchema;
 
 const priceHash = "a".repeat(64);
+const benchmarkHash = "b".repeat(64);
+const sectorBenchmarkHash = "c".repeat(64);
+
 const price: PitPriceRecord = {
   schemaVersion: 1,
   seriesKind: "security",
@@ -47,9 +50,65 @@ const price: PitPriceRecord = {
   contentHash: priceHash,
 };
 
+const benchmarkPrice: PitPriceRecord = {
+  schemaVersion: 1,
+  seriesKind: "benchmark",
+  code: "TOPIX",
+  market: "TSE",
+  tradingDate: "2026-08-06",
+  dataAsOf: "2026-08-06T15:30:00+09:00",
+  observedAt: "2026-08-07T08:40:00+09:00",
+  retrievedAt: "2026-08-07T08:45:00+09:00",
+  firstExecutableAt: "2026-08-07T09:00:00+09:00",
+  source: "synthetic-fixture",
+  sourceVersion: "v1",
+  providerPlan: "synthetic",
+  delayDays: 0,
+  isDelayed: false,
+  ingestionRunId: "recommendation-fixture",
+  currency: "JPY",
+  status: "traded",
+  ohlcv: { open: 2000, high: 2020, low: 1990, close: 2010, volume: 0 },
+  adjusted: false,
+  adjustmentFactor: 1,
+  corporateActions: [],
+  license: "local_only",
+  contentHash: benchmarkHash,
+};
+
+const sectorBenchmarkPrice: PitPriceRecord = {
+  schemaVersion: 1,
+  seriesKind: "benchmark",
+  code: "TOPIX-17-RETAIL",
+  market: "TSE",
+  tradingDate: "2026-08-06",
+  dataAsOf: "2026-08-06T15:30:00+09:00",
+  observedAt: "2026-08-07T08:40:00+09:00",
+  retrievedAt: "2026-08-07T08:45:00+09:00",
+  firstExecutableAt: "2026-08-07T09:00:00+09:00",
+  source: "synthetic-fixture",
+  sourceVersion: "v1",
+  providerPlan: "synthetic",
+  delayDays: 0,
+  isDelayed: false,
+  ingestionRunId: "recommendation-fixture",
+  currency: "JPY",
+  status: "traded",
+  ohlcv: { open: 3000, high: 3030, low: 2980, close: 3010, volume: 0 },
+  adjusted: false,
+  adjustmentFactor: 1,
+  corporateActions: [],
+  license: "local_only",
+  contentHash: sectorBenchmarkHash,
+};
+
 function context(overrides: Partial<RecommendationValidationContext> = {}): RecommendationValidationContext {
   return {
-    priceRecordsByHash: new Map([[priceHash, price]]),
+    priceRecordsByHash: new Map([
+      [priceHash, price],
+      [benchmarkHash, benchmarkPrice],
+      [sectorBenchmarkHash, sectorBenchmarkPrice],
+    ]),
     evidenceByRef: new Map([
       ["evidence:ir:001", { tier: "A", observedAt: "2026-08-07T08:30:00+09:00" }],
       ["evidence:market:001", { tier: "B", observedAt: "2026-08-07T08:35:00+09:00" }],
@@ -101,7 +160,11 @@ function baseInput(): Omit<RecommendationRecord, "contentHash"> {
     ],
     edgeIds: ["known-bad-event-repricing"],
     benchmark: "TOPIX",
+    benchmarkPriceRecordHash: benchmarkHash,
+    benchmarkPriceFirstExecutableAt: "2026-08-07T09:00:00+09:00",
     sectorBenchmark: "TOPIX-17-RETAIL",
+    sectorBenchmarkPriceRecordHash: sectorBenchmarkHash,
+    sectorBenchmarkPriceFirstExecutableAt: "2026-08-07T09:00:00+09:00",
     positionSizingRationale: "synthetic fixture only; no live sizing authority",
     outcomeReviewDate: "2026-11-07",
     status: "open",
@@ -183,6 +246,63 @@ function codes(issues: ReturnType<typeof validateRecommendationRecord>): string[
   const issues = validateRecommendationRecord(withRecommendationHash(input), schema, context());
   assert.ok(codes(issues).includes("current_price_mismatch"));
   console.log("recommendation-persistence: current price must match PIT pin OK");
+}
+
+{
+  const missingBenchmarkContext = context({
+    priceRecordsByHash: new Map([
+      [priceHash, price],
+      [sectorBenchmarkHash, sectorBenchmarkPrice],
+    ]),
+  });
+  const issues = validateRecommendationRecord(
+    withRecommendationHash(baseInput()),
+    schema,
+    missingBenchmarkContext,
+  );
+  assert.ok(codes(issues).includes("missing_benchmark_price_provenance"));
+  console.log("recommendation-persistence: missing TOPIX baseline pin is rejected OK");
+}
+
+{
+  const wrongBenchmark: PitPriceRecord = { ...benchmarkPrice, code: "NIKKEI225" };
+  const wrongBenchmarkContext = context({
+    priceRecordsByHash: new Map([
+      [priceHash, price],
+      [benchmarkHash, wrongBenchmark],
+      [sectorBenchmarkHash, sectorBenchmarkPrice],
+    ]),
+  });
+  const issues = validateRecommendationRecord(
+    withRecommendationHash(baseInput()),
+    schema,
+    wrongBenchmarkContext,
+  );
+  assert.ok(codes(issues).includes("benchmark_identity_mismatch"));
+  console.log("recommendation-persistence: wrong benchmark identity is rejected OK");
+}
+
+{
+  const futureSector: PitPriceRecord = {
+    ...sectorBenchmarkPrice,
+    observedAt: "2026-08-07T09:05:00+09:00",
+    firstExecutableAt: "2026-08-07T09:15:00+09:00",
+  };
+  const futureSectorContext = context({
+    priceRecordsByHash: new Map([
+      [priceHash, price],
+      [benchmarkHash, benchmarkPrice],
+      [sectorBenchmarkHash, futureSector],
+    ]),
+  });
+  const issues = validateRecommendationRecord(
+    withRecommendationHash(baseInput()),
+    schema,
+    futureSectorContext,
+  );
+  assert.ok(codes(issues).includes("future_benchmark_observation"));
+  assert.ok(codes(issues).includes("benchmark_not_yet_executable"));
+  console.log("recommendation-persistence: post-cutoff sector baseline is rejected OK");
 }
 
 {
