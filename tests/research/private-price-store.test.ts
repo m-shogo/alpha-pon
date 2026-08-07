@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   chmodSync,
+  linkSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -89,6 +90,30 @@ function mode(path: string): number {
   }), /private price file must be a regular non-symlink file/);
   assert.equal(readFileSync(target, "utf-8"), "outside\n");
   console.log("private-price-store: symlink price file is rejected before append OK");
+}
+
+{
+  const sandbox = mkdtempSync(join(tmpdir(), "alpha-pon-private-price-hardlink-file-"));
+  const parent = join(sandbox, "prices");
+  const root = join(parent, "jquants-free");
+  const target = join(sandbox, "outside.jsonl");
+  const path = join(root, "8136.jsonl");
+  mkdirSync(root, { recursive: true });
+  writeFileSync(target, "outside\n", { mode: 0o644 });
+  const originalMode = mode(target);
+  linkSync(target, path);
+  assert.equal(statSync(path).nlink, 2);
+
+  assert.throws(() => appendPrivatePriceRecords({
+    root,
+    path,
+    records: [record],
+    schema,
+    now: new Date("2026-08-07T03:00:00.000Z"),
+  }), /private price file must not be hard-linked/);
+  assert.equal(readFileSync(target, "utf-8"), "outside\n");
+  assert.equal(mode(target), originalMode);
+  console.log("private-price-store: hard-linked price file is rejected before chmod/append OK");
 }
 
 {
