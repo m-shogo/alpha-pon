@@ -179,3 +179,59 @@ export function foundationMappingRemediationDefinition(
 export function foundationMappingRequiredFieldPaths(): string[] {
   return [...new Set(FOUNDATION_MAPPING_REMEDIATION_DEFINITIONS.flatMap(definition => definition.fieldPaths))].sort();
 }
+
+export type FoundationReadinessGroupConformanceInput = {
+  groupId: string;
+  status: string;
+  verifiedFields: readonly string[];
+  missingFields: readonly string[];
+};
+
+function pathAccountsFor(canonicalPath: string, accountedPath: string): boolean {
+  return canonicalPath === accountedPath || canonicalPath.startsWith(`${accountedPath}.`);
+}
+
+export function assertFoundationReadinessGroupsConformToMappingContract(
+  groups: readonly FoundationReadinessGroupConformanceInput[],
+): void {
+  const byId = new Map(groups.map(group => [group.groupId, group]));
+  for (const definition of FOUNDATION_MAPPING_REMEDIATION_DEFINITIONS) {
+    const group = byId.get(definition.groupId);
+    if (!group) throw new Error(`readinessAudit is missing canonical Foundation group ${definition.groupId}`);
+
+    if (
+      (group.status === "verified_present" || group.status === "derivable_without_semantic_inference")
+      && group.missingFields.length > 0
+    ) {
+      throw new Error(`readinessAudit group ${group.groupId} cannot be complete while missing fields remain`);
+    }
+    if (
+      (group.status === "missing_required_evidence" || group.status === "partial_navigation_only")
+      && group.missingFields.length === 0
+    ) {
+      throw new Error(`readinessAudit group ${group.groupId} must name missing Foundation fields`);
+    }
+
+    for (const missingField of group.missingFields) {
+      if (!definition.fieldPaths.some(path => pathAccountsFor(path, missingField))) {
+        throw new Error(`readinessAudit group ${group.groupId} has non-canonical missing field ${missingField}`);
+      }
+    }
+
+    const accounted = [...group.verifiedFields, ...group.missingFields];
+    for (const requiredPath of definition.fieldPaths) {
+      if (!accounted.some(path => pathAccountsFor(requiredPath, path))) {
+        throw new Error(`readinessAudit group ${group.groupId} does not account for ${requiredPath}`);
+      }
+    }
+
+    if (group.status === "partial_navigation_only") {
+      const verifiedCanonicalCount = definition.fieldPaths.filter(requiredPath =>
+        group.verifiedFields.some(path => pathAccountsFor(requiredPath, path))
+      ).length;
+      if (verifiedCanonicalCount === 0) {
+        throw new Error(`readinessAudit group ${group.groupId} partial status requires canonical verified coverage`);
+      }
+    }
+  }
+}
