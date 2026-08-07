@@ -356,6 +356,24 @@ function audit(input = setup()) {
 
 {
   const input = setup();
+  input.parity.mappings = [];
+  const { recordHash: _oldHash, ...withoutHash } = input.parity;
+  input.parity.recordHash = digest(withoutHash);
+  assert.throws(() => audit(input), /parityReview mappingCount mismatch/);
+  console.log("edinet-sanrio-foundation-readiness-audit: declared mapping count must match actual mappings OK");
+}
+
+{
+  const input = setup();
+  input.parity.coverage = [];
+  const { recordHash: _oldHash, ...withoutHash } = input.parity;
+  input.parity.recordHash = digest(withoutHash);
+  assert.throws(() => audit(input), /parityReview coverageCount mismatch/);
+  console.log("edinet-sanrio-foundation-readiness-audit: declared coverage count must match actual coverage OK");
+}
+
+{
+  const input = setup();
   input.parity.replacementAuthorized = true;
   const { recordHash: _oldHash, ...withoutHash } = input.parity;
   input.parity.recordHash = digest(withoutHash);
