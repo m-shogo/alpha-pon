@@ -52,11 +52,15 @@ const tradedQuote: DailyQuote = {
 
 {
   assert.equal(jquantsTradingDayCloseJst("2024-02-29"), "2024-02-29T15:00:00+09:00");
+  assert.equal(jquantsTradingDayCloseJst("20240229"), "2024-02-29T15:00:00+09:00");
   assert.throws(() => jquantsTradingDayCloseJst("2024-02-31"), /invalid J-Quants trading date/);
   assert.throws(() => jquantsFreeObservedAt("2023-02-29"), /invalid J-Quants trading date/);
   assert.throws(() => jquantsFreeObservedAt("2026-13-01"), /invalid J-Quants trading date/);
   assert.throws(() => jquantsFreeObservedAt("2026-00-10"), /invalid J-Quants trading date/);
-  console.log("jquants-free-provider: impossible Gregorian calendar dates fail closed OK");
+  assert.throws(() => jquantsTradingDayCloseJst("2024--02-29"), /invalid J-Quants trading date/);
+  assert.throws(() => jquantsTradingDayCloseJst("2024-0229"), /invalid J-Quants trading date/);
+  assert.throws(() => jquantsTradingDayCloseJst("202402-29"), /invalid J-Quants trading date/);
+  console.log("jquants-free-provider: Gregorian calendar and lexical date shapes fail closed OK");
 }
 
 {
@@ -100,7 +104,7 @@ const tradedQuote: DailyQuote = {
   assert.equal(missing.status, "missing");
   assert.equal(missing.missingReason, "unknown");
   assert.equal(missing.ohlcv, undefined);
-  console.log("jquants-free-provider: unknown missing pattern is not fabricated OK");
+  console.log("jquants-free-provider: unknown missing row pattern is not fabricated OK");
 }
 
 {
@@ -127,12 +131,19 @@ const tradedQuote: DailyQuote = {
   }), /invalid J-Quants trading date/);
   assert.throws(() => mapJQuantsFreeQuote({
     requestedCode: "8136",
+    quote: { ...tradedQuote, Date: "2026--05-14" },
+    retrievedAt: "2026-08-07T02:30:00.000Z",
+    firstExecutableAt: "2026-08-07T12:00:00+09:00",
+    ingestionRunId: "fixture-run-invalid-date-shape",
+  }), /invalid J-Quants trading date/);
+  assert.throws(() => mapJQuantsFreeQuote({
+    requestedCode: "8136",
     quote: tradedQuote,
     retrievedAt: "2026-08-07T02:30:00.000Z",
     firstExecutableAt: "2026-08-07T11:00:00+09:00",
     ingestionRunId: "fixture-run-execution-before-retrieval",
   }), /firstExecutableAt must be at or after retrievedAt/);
-  console.log("jquants-free-provider: source-code, calendar-date and PIT timestamp boundaries fail closed OK");
+  console.log("jquants-free-provider: source-code, date and PIT timestamp boundaries fail closed OK");
 }
 
 {
@@ -194,6 +205,24 @@ const tradedQuote: DailyQuote = {
   await assert.rejects(() => provider.fetchDaily({
     seriesKind: "security",
     codes: ["8136"],
+    from: "2026--05-14",
+    to: "2026-05-14",
+    asOf: "2026-08-07T02:30:00.000Z",
+  }), /invalid J-Quants trading date/);
+  assert.equal(fetchCalls, 0);
+
+  await assert.rejects(() => provider.fetchDaily({
+    seriesKind: "security",
+    codes: ["8136"],
+    from: "2026-05-14",
+    to: "2026-0514",
+    asOf: "2026-08-07T02:30:00.000Z",
+  }), /invalid J-Quants trading date/);
+  assert.equal(fetchCalls, 0);
+
+  await assert.rejects(() => provider.fetchDaily({
+    seriesKind: "security",
+    codes: ["8136"],
     from: "2026-05-15",
     to: "2026-05-14",
     asOf: "2026-08-07T02:30:00.000Z",
@@ -209,7 +238,7 @@ const tradedQuote: DailyQuote = {
   });
   assert.equal(fetchCalls, 1);
   assert.deepEqual(lastRange, ["2026-05-14", "2026-05-14"]);
-  console.log("jquants-free-provider: query calendar/range validation happens before fetch and canonicalizes dates OK");
+  console.log("jquants-free-provider: query lexical/calendar/range validation runs before fetch and canonicalizes valid compact dates OK");
 }
 
 console.log("jquants-free-provider.test.ts passed");
