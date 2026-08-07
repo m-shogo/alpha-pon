@@ -229,6 +229,7 @@ function fixture(): { comparison: JsonObject; configured: JsonObject; sourceFile
   const { comparison, configured, sourceFile } = fixture();
   const document = (comparison.documents as JsonObject[])[0]!;
   const sourceAnchor = (document.anchors as JsonObject[])[0]!;
+  const configuredDocument = (configured.documents as JsonObject[])[0]!;
   sourceAnchor.structured = {
     ...(sourceAnchor.structured as JsonObject),
     textHash: "b".repeat(64),
@@ -237,11 +238,12 @@ function fixture(): { comparison: JsonObject; configured: JsonObject; sourceFile
   rehash(document, "documentResultHash");
   rehash(comparison, "reportHash");
   configured.sourceComparisonHash = comparison.reportHash;
+  configuredDocument.sourceDocumentResultHash = document.documentResultHash;
   assert.throws(
     () => assertSanrioFoundationConfiguredSourceLineage({ comparisonReport: comparison, sourceComparisonFile: sourceFile, configuredReview: configured }),
     /anchor configured:001 source lineage mismatch/,
   );
-  console.log("edinet-sanrio-foundation-readiness-configured-source-lineage: fully rehashed alternate comparison source blocked by configured snapshot OK");
+  console.log("edinet-sanrio-foundation-readiness-configured-source-lineage: fully rehashed alternate comparison source blocked by configured anchor snapshot OK");
 }
 
 console.log("edinet-sanrio-foundation-readiness-configured-source-lineage.test.ts passed");
