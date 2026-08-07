@@ -70,7 +70,7 @@ function baseRecord(overrides: Partial<PitPriceRecordInput> = {}): PitPriceRecor
   const revision = withPriceRecordHash(baseRecord({
     observedAt: "2026-08-07T03:30:00.000Z",
     retrievedAt: "2026-08-07T03:31:00.000Z",
-    firstExecutableAt: "2026-08-07T09:30:00+09:00",
+    firstExecutableAt: "2026-08-07T13:00:00+09:00",
     ingestionRunId: "revision-root-fixture-correction",
     supersedesHash: root.contentHash,
     ohlcv: { open: 7200, high: 7350, low: 7150, close: 7295, volume: 1234500 },
