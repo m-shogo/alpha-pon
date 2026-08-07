@@ -38,6 +38,7 @@ import "./edinet-sanrio-review-next-batching.test.js";
 import "./edinet-sanrio-review-next-content-bundle.test.js";
 import "./edinet-sanrio-impact-review-checklist.test.js";
 import "./research/jquants-free-provider.test.js";
+import "./research/jquants-free-store-conformance.test.js";
 import "./jquants-v2-date-cap.test.js";
 import { validateWatchlist } from "../src/validation.js";
 import type { WatchlistConfig } from "../src/types.js";
