@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "alpha-pon/research/corporate-action-clearance.schema.json",
+  "title": "Alpha Pon Corporate Action Clearance v1",
+  "description": "Evidence-backed assessment of stock split/reverse-split risk over an outcome measurement window.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "clearanceId",
+    "assessedAt",
+    "assessmentMethod",
+    "code",
+    "market",
+    "source",
+    "providerPlan",
+    "fromTradingDate",
+    "throughTradingDate",
+    "status",
+    "sourceEvidence",
+    "automaticTradingAuthorized",
+    "contentHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "clearanceId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "assessedAt": { "type": "string", "format": "date-time" },
+    "assessmentMethod": { "const": "official-corporate-action-clearance-v1" },
+    "code": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "market": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "source": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "providerPlan": {
+      "type": "string",
+      "enum": ["free", "standard", "premium", "official_public", "synthetic", "unknown"]
+    },
+    "fromTradingDate": { "type": "string", "format": "date" },
+    "throughTradingDate": { "type": "string", "format": "date" },
+    "status": { "type": "string", "enum": ["clear", "action_detected", "inconclusive"] },
+    "sourceEvidence": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["tier", "ref"],
+        "properties": {
+          "tier": { "type": "string", "enum": ["A", "B"] },
+          "ref": { "type": "string", "minLength": 1, "maxLength": 512 }
+        }
+      }
+    },
+    "notes": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 2000 }
+    },
+    "supersedesClearanceId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "automaticTradingAuthorized": { "const": false },
+    "contentHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}
