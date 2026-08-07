@@ -1,12 +1,10 @@
 import { resolve } from "node:path";
-import {
-  inspectSanrioRealPilotPreflight,
-  renderSanrioRealPilotPreflight,
-} from "../edinet-sanrio-real-pilot-preflight.js";
+import { inspectSanrioRealPilotPreflightWithIntegrity } from "../edinet-sanrio-real-pilot-integrity.js";
+import { renderSanrioRealPilotPreflight } from "../edinet-sanrio-real-pilot-preflight.js";
 
 function main(): void {
   const root = resolve(process.cwd(), "data/edinet");
-  const result = inspectSanrioRealPilotPreflight(root);
+  const result = inspectSanrioRealPilotPreflightWithIntegrity(root);
   process.stdout.write(renderSanrioRealPilotPreflight(result));
 
   if (result.stage === "missing_edinet_root") {
