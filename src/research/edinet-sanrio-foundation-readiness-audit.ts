@@ -401,14 +401,22 @@ function verifyParityReview(input: {
   ) {
     throw new Error("parityReview is not fully completed");
   }
-  for (const [index, value2] of array(review.mappings, "parityReview.mappings").entries()) {
+  const mappings = array(review.mappings, "parityReview.mappings");
+  const coverageItems = array(review.coverage, "parityReview.coverage");
+  if (mappings.length !== mappingCount) {
+    throw new Error("parityReview mappingCount mismatch");
+  }
+  if (coverageItems.length !== coverageCount) {
+    throw new Error("parityReview coverageCount mismatch");
+  }
+  for (const [index, value2] of mappings.entries()) {
     const mapping = object(value2, `parityReview.mappings[${index}]`);
     verifyHashEnvelope(mapping, "humanDecisionHash", `parityReview.mappings[${index}]`);
     if (mapping.completed !== true || text(mapping.humanMappingDecision) === "pending_human_review") {
       throw new Error(`parityReview.mappings[${index}] is incomplete`);
     }
   }
-  for (const [index, value2] of array(review.coverage, "parityReview.coverage").entries()) {
+  for (const [index, value2] of coverageItems.entries()) {
     const coverage = object(value2, `parityReview.coverage[${index}]`);
     verifyHashEnvelope(coverage, "humanDecisionHash", `parityReview.coverage[${index}]`);
     if (coverage.completed !== true || text(coverage.humanDisposition) === "pending_human_review") {
