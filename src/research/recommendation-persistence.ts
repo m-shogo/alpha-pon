@@ -9,6 +9,7 @@ import {
   readFileSync,
 } from "node:fs";
 import { dirname } from "node:path";
+import { validatePriceRecordTimeline } from "./price-record-timeline.js";
 import { computePriceRecordHash, type PitPriceRecord } from "./price-store.js";
 import { stableStringify, validate, type JsonSchema } from "./schema.js";
 
@@ -205,6 +206,16 @@ function assertCanonicalPriceHash(
   }
   if (computePriceRecordHash(price) !== price.contentHash) {
     issues.push(error("invalid_pinned_price_content_hash", target, "pinされたPIT Price Store recordのcontentHashが内容と一致しません"));
+  }
+  const timelineViolations = validatePriceRecordTimeline(price);
+  if (timelineViolations.length > 0) {
+    issues.push(error(
+      "invalid_pinned_price_timeline",
+      target,
+      `pinされたPIT Price Store recordの時系列が不正です: ${timelineViolations
+        .map((violation) => `${violation.code}(${violation.message})`)
+        .join(", ")}`,
+    ));
   }
   return issues;
 }
