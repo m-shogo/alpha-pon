@@ -42,6 +42,7 @@ import "./edinet-sanrio-impact-review-checklist.test.js";
 import "./edinet-sanrio-parity-local-paths.test.js";
 import "./edinet-sanrio-real-pilot-preflight.test.js";
 import "./edinet-sanrio-real-pilot-integrity.test.js";
+import "./edinet-sanrio-real-pilot-readiness-advisory.test.js";
 import "./research/jquants-free-provider.test.js";
 import "./research/jquants-free-store-conformance.test.js";
 import "./research/private-price-store.test.js";
