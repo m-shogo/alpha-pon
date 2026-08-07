@@ -3,6 +3,10 @@ import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  withCorporateActionClearanceHash,
+  type CorporateActionClearanceRecord,
+} from "../../src/research/corporate-action-clearance.js";
+import {
   withPriceRecordHash,
   type PitPriceRecord,
   type PitPriceRecordInput,
@@ -73,6 +77,8 @@ function futurePrice(input: {
   firstExecutableAt: string;
   close: number;
   volume?: number;
+  adjusted?: boolean;
+  adjustmentFactor?: number;
 }): PitPriceRecord {
   const close = input.close;
   return withPriceRecordHash(priceInput({
@@ -87,6 +93,8 @@ function futurePrice(input: {
     source: input.baseline.source,
     sourceVersion: input.baseline.sourceVersion,
     providerPlan: input.baseline.providerPlan,
+    adjusted: input.adjusted ?? false,
+    adjustmentFactor: input.adjustmentFactor ?? 1,
     ohlcv: {
       open: close,
       high: close,
@@ -218,6 +226,22 @@ const recommendation: RecommendationRecord = withRecommendationHash({
   automaticTradingAuthorized: false,
 });
 
+const clearance = withCorporateActionClearanceHash({
+  schemaVersion: 1,
+  clearanceId: "ca-clearance:8136:outcome-fixture",
+  assessedAt: "2026-08-14T10:00:00+09:00",
+  assessmentMethod: "official-corporate-action-clearance-v1",
+  code: issuerBaseline.code,
+  market: issuerBaseline.market,
+  source: issuerBaseline.source,
+  providerPlan: issuerBaseline.providerPlan,
+  fromTradingDate: issuerBaseline.tradingDate,
+  throughTradingDate: "2026-08-12",
+  status: "clear",
+  sourceEvidence: [{ tier: "A", ref: "synthetic:official:corporate-action:001" }],
+  automaticTradingAuthorized: false,
+});
+
 const allPrices = [
   issuerBaseline,
   benchmarkBaseline,
@@ -234,11 +258,35 @@ const allPrices = [
   sectorDay3,
 ];
 
-function outcomeContext(prices: PitPriceRecord[] = allPrices): QuantitativeOutcomeContext {
+function outcomeContext(
+  prices: PitPriceRecord[] = allPrices,
+  clearances: CorporateActionClearanceRecord[] = [clearance],
+): QuantitativeOutcomeContext {
   return {
     recommendationsById: new Map([[recommendation.recommendationId, recommendation]]),
     priceRecordsByHash: new Map(prices.map((record) => [record.contentHash, record])),
+    corporateActionClearancesByHash: new Map(clearances.map((record) => [record.contentHash, record])),
   };
+}
+
+function build(input: {
+  outcomeId: string;
+  reviewedAt: string;
+  recommendation?: RecommendationRecord;
+  context?: QuantitativeOutcomeContext;
+  clearanceHash?: string;
+  supersedesOutcomeId?: string;
+}) {
+  const ctx = input.context ?? outcomeContext();
+  return buildQuantitativeOutcomeRecord({
+    outcomeId: input.outcomeId,
+    recommendation: input.recommendation ?? recommendation,
+    reviewedAt: input.reviewedAt,
+    priceRecordsByHash: ctx.priceRecordsByHash,
+    corporateActionClearancesByHash: ctx.corporateActionClearancesByHash,
+    issuerCorporateActionClearanceHash: input.clearanceHash ?? clearance.contentHash,
+    ...(input.supersedesOutcomeId ? { supersedesOutcomeId: input.supersedesOutcomeId } : {}),
+  });
 }
 
 function approx(actual: number, expected: number, tolerance = 1e-12): void {
@@ -246,12 +294,12 @@ function approx(actual: number, expected: number, tolerance = 1e-12): void {
 }
 
 {
-  const outcome = buildQuantitativeOutcomeRecord({
+  const outcome = build({
     outcomeId: "outcome:sanrio:2026-08-14",
-    recommendation,
     reviewedAt: "2026-08-14T12:00:00+09:00",
-    priceRecordsByHash: outcomeContext().priceRecordsByHash,
   });
+  assert.equal(outcome.returnBasis, "unadjusted-close-price-return-corporate-action-cleared-v1");
+  assert.equal(outcome.issuerCorporateActionClearanceHash, clearance.contentHash);
   assert.equal(outcome.baselineTradingDate, "2026-08-06");
   assert.equal(outcome.terminalTradingDate, "2026-08-12");
   assert.equal(outcome.issuerTerminalRecordHash, issuerDay3.contentHash);
@@ -268,15 +316,88 @@ function approx(actual: number, expected: number, tolerance = 1e-12): void {
   assert.equal(outcome.targetReachedAt, "2026-08-12");
   assert.ok(!outcome.issuerMeasurementRecordHashes.includes(issuerExtra.contentHash));
   assert.deepEqual(validateQuantitativeOutcomeRecord(outcome, outcomeSchema, outcomeContext()), []);
-  console.log("quantitative-outcome: aligned PIT metrics and terminal common date pass OK");
+  console.log("quantitative-outcome: aligned PIT metrics with corporate-action clearance pass OK");
 }
 
 {
-  const outcome = buildQuantitativeOutcomeRecord({
+  const contextWithoutClearance = outcomeContext(allPrices, []);
+  assert.throws(
+    () => build({
+      outcomeId: "outcome:sanrio:no-clearance",
+      reviewedAt: "2026-08-14T12:00:00+09:00",
+      context: contextWithoutClearance,
+    }),
+    /corporate action clearance not found/,
+  );
+  console.log("quantitative-outcome: raw issuer outcome without clearance is rejected OK");
+}
+
+{
+  const detected = withCorporateActionClearanceHash({
+    ...clearance,
+    clearanceId: "ca-clearance:8136:detected",
+    status: "action_detected",
+  });
+  const detectedContext = outcomeContext(allPrices, [detected]);
+  assert.throws(
+    () => build({
+      outcomeId: "outcome:sanrio:action-detected",
+      reviewedAt: "2026-08-14T12:00:00+09:00",
+      context: detectedContext,
+      clearanceHash: detected.contentHash,
+    }),
+    /must be clear/,
+  );
+  console.log("quantitative-outcome: action_detected clearance blocks raw return measurement OK");
+}
+
+{
+  const short = withCorporateActionClearanceHash({
+    ...clearance,
+    clearanceId: "ca-clearance:8136:short",
+    throughTradingDate: "2026-08-10",
+  });
+  const shortContext = outcomeContext(allPrices, [short]);
+  assert.throws(
+    () => build({
+      outcomeId: "outcome:sanrio:short-clearance",
+      reviewedAt: "2026-08-14T12:00:00+09:00",
+      context: shortContext,
+      clearanceHash: short.contentHash,
+    }),
+    /does not cover terminal tradingDate/,
+  );
+  console.log("quantitative-outcome: clearance must cover the entire measured horizon OK");
+}
+
+{
+  const adjustedIssuerDay1 = futurePrice({
+    baseline: issuerBaseline,
+    tradingDate: "2026-08-07",
+    observedAt: "2026-08-07T15:30:00+09:00",
+    firstExecutableAt: "2026-08-10T09:00:00+09:00",
+    close: 1100,
+    adjusted: true,
+    adjustmentFactor: 1.1,
+  });
+  const prices = allPrices.map((record) =>
+    record.contentHash === issuerDay1.contentHash ? adjustedIssuerDay1 : record,
+  );
+  assert.throws(
+    () => build({
+      outcomeId: "outcome:sanrio:adjusted-mixed",
+      reviewedAt: "2026-08-14T12:00:00+09:00",
+      context: outcomeContext(prices),
+    }),
+    /only supports unadjusted issuer records/,
+  );
+  console.log("quantitative-outcome: adjusted/raw issuer series are not silently mixed OK");
+}
+
+{
+  const outcome = build({
     outcomeId: "outcome:sanrio:tamper",
-    recommendation,
     reviewedAt: "2026-08-14T12:00:00+09:00",
-    priceRecordsByHash: outcomeContext().priceRecordsByHash,
   });
   const tampered = withQuantitativeOutcomeHash({
     ...outcome,
@@ -303,11 +424,11 @@ function approx(actual: number, expected: number, tolerance = 1e-12): void {
   });
   const prices = [...allPrices.filter((record) => record.contentHash !== sectorBaseline.contentHash), mismatchedSectorBaseline];
   assert.throws(
-    () => buildQuantitativeOutcomeRecord({
+    () => build({
       outcomeId: "outcome:mismatched-baseline",
       recommendation: mismatchedRecommendation,
       reviewedAt: "2026-08-14T12:00:00+09:00",
-      priceRecordsByHash: new Map(prices.map((record) => [record.contentHash, record])),
+      context: outcomeContext(prices),
     }),
     /baselines must share one tradingDate/,
   );
@@ -315,20 +436,16 @@ function approx(actual: number, expected: number, tolerance = 1e-12): void {
 }
 
 {
-  const early = buildQuantitativeOutcomeRecord({
+  const early = build({
     outcomeId: "outcome:sanrio:early",
-    recommendation,
     reviewedAt: "2026-08-12T12:00:00+09:00",
-    priceRecordsByHash: outcomeContext().priceRecordsByHash,
   });
   assert.equal(early.terminalTradingDate, "2026-08-10");
   assert.equal(early.targetAssessment, "not_reached");
 
-  const later = buildQuantitativeOutcomeRecord({
+  const later = build({
     outcomeId: "outcome:sanrio:later",
-    recommendation,
     reviewedAt: "2026-08-14T12:00:00+09:00",
-    priceRecordsByHash: outcomeContext().priceRecordsByHash,
     supersedesOutcomeId: early.outcomeId,
   });
   assert.equal(later.terminalTradingDate, "2026-08-12");
@@ -338,11 +455,9 @@ function approx(actual: number, expected: number, tolerance = 1e-12): void {
     [],
   );
 
-  const fork = buildQuantitativeOutcomeRecord({
+  const fork = build({
     outcomeId: "outcome:sanrio:fork",
-    recommendation,
     reviewedAt: "2026-08-15T12:00:00+09:00",
-    priceRecordsByHash: outcomeContext().priceRecordsByHash,
     supersedesOutcomeId: early.outcomeId,
   });
   const forkIssues = validateQuantitativeOutcomeRecords([early, later, fork], outcomeSchema, outcomeContext());
