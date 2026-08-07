@@ -13,6 +13,7 @@ import {
   computeCorporateActionClearanceHash,
   type CorporateActionClearanceRecord,
 } from "./corporate-action-clearance.js";
+import { validatePriceRecordTimeline } from "./price-record-timeline.js";
 import {
   computePriceRecordHash,
   type PitPriceRecord,
@@ -107,6 +108,16 @@ export function withQuantitativeOutcomeHash(
   return { ...record, contentHash: computeQuantitativeOutcomeHash(record) };
 }
 
+function assertCanonicalPriceTimeline(record: PitPriceRecord, label: string): void {
+  const violations = validatePriceRecordTimeline(record);
+  if (violations.length === 0) return;
+  throw new Error(
+    `${label}: invalid price PIT timeline: ${violations
+      .map((violation) => `${violation.code}(${violation.message})`)
+      .join(", ")}`,
+  );
+}
+
 function canonicalPrice(
   hash: string,
   priceRecordsByHash: ReadonlyMap<string, PitPriceRecord>,
@@ -117,6 +128,7 @@ function canonicalPrice(
   if (record.contentHash !== hash || computePriceRecordHash(record) !== hash) {
     throw new Error(`${label}: price record hash mismatch: ${hash}`);
   }
+  assertCanonicalPriceTimeline(record, label);
   if (record.status !== "traded" || !record.ohlcv) {
     throw new Error(`${label}: traded OHLC record required`);
   }
@@ -198,6 +210,7 @@ function selectedSeriesAfterIssue(input: {
     if (Date.parse(record.firstExecutableAt) <= issuedMs) continue;
     if (Date.parse(record.firstExecutableAt) > reviewedMs) continue;
     if (Date.parse(record.observedAt) > reviewedMs) continue;
+    assertCanonicalPriceTimeline(record, `${input.label} measurement`);
     if (record.status !== "traded" || !record.ohlcv) continue;
     if (record.license === "unknown") throw new Error(`${input.label}: unknown price license in measurement path`);
     if (computePriceRecordHash(record) !== record.contentHash) {
