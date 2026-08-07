@@ -19,6 +19,7 @@ J-QuantsはEdgeを発見する主役ではなく、価格反応と予想結果�
 #144 retrievedAt <= firstExecutableAt PIT enforcement
 #147 strict lexical date-shape validation
 #148 pre-network CLI first-executable timing preflight
+#150 actual retrieval-completion timestamp preservation
 ```
 
 Applicable Draft/Ready checks for this chain were green before merge. This means the software boundary is implemented and tested. It does **not** mean real Free edge cases, real benchmark availability or the real Foundation pilot are complete.
@@ -123,7 +124,20 @@ Free案内は12週間遅延を明示する一方、このadapterが依拠でき�
 
 ### `retrievedAt`
 
-Alpha Ponが実際に取得した時刻。
+Alpha Ponが実際に取得を完了した時刻。
+
+PR #150以降、local CLIの`retrievalStartedAt`とrecordの`retrievedAt`を明確に分離する。
+
+```text
+retrievalStartedAt = networkへ出る直前のpreflight / query cutoff
+retrievedAt        = fetchQuotes完了後にprovider clockで採時する実取得完了時刻
+```
+
+network開始前の時刻を`retrievedAt`として固定・backdateしない。provider regressionでは採時順を次で固定する。
+
+```text
+fetch-start -> fetch-complete -> retrieved-at-sampled
+```
 
 ### `firstExecutableAt`
 
@@ -137,7 +151,15 @@ firstExecutableAt >= retrievedAt
 
 をprovider mapperとcanonical Price Storeの両方で強制する。
 
-PR #148ではlocal CLIも、指定した`--first-executable-at`がretrieval startより前なら**provider/network fetchより前**に拒否する。mapper側の最終防御も残す。
+PR #148ではlocal CLIも、指定した`--first-executable-at`がretrieval startより前なら**provider/network fetchより前**に拒否する。
+
+PR #150ではfetch完了後のactual `retrievedAt`をresolverへ渡し、次も再確認する。
+
+```text
+firstExecutableAt >= actual retrievedAt
+```
+
+したがって、fetch開始直後なら成立していたexecution timestampが、network完了時には過去になっていた場合もfail-closedになる。mapper側の最終防御も残す。
 
 ## V2 delayed-date cap hardening
 
@@ -227,7 +249,9 @@ bash scripts/run-jquants-free-price-provider-local.sh \
   --first-executable-at "$FIRST_EXECUTABLE_AT"
 ```
 
-`FIRST_EXECUTABLE_AT`はその実取得開始時刻以上でなければならない。過去の固定サンプル時刻をそのままコピーして実行しない。
+`FIRST_EXECUTABLE_AT`は最低でも実取得開始時刻以上である必要があり、さらにfetch完了後のactual `retrievedAt`以上でなければrecord mappingを拒否する。過去の固定サンプル時刻をそのままコピーして実行しない。
+
+CLIのquery `asOf`はretrieval start cutoffを表すが、PriceRecordの`retrievedAt`とは別概念である。local append validation clockもfetch後に再採時する。
 
 credentials不足は`credentials_missing_nonfatal`でexit 0。LINE/daily本体へ失敗を伝播させない。
 
@@ -275,6 +299,9 @@ research/prices/jquants-free/<code>.jsonl
 - future-only range = no network;
 - malformed query = no network;
 - CLI impossible execution timing = pre-network reject;
+- actual `retrievedAt` is sampled after fetch completion;
+- resolver rechecks execution against actual retrieval completion;
+- append validation clock is sampled after fetch;
 - canonical Price Store schema conformance;
 - default raw-value redaction;
 - private root/file permission tightening;
@@ -306,6 +333,7 @@ TOPIX / sector benchmarkはFreeで無理に代替せず、Foundation pilot側で
 - adjusted seriesをrevision-awareでないPIT storeへ混ぜない;
 - benchmark entitlementを推測しない;
 - delay capより新しいrequestを別日の古い価格へ自動変換しない;
+- retrieval startをactual `retrievedAt`へbackdateしない;
 - 取得前に価格を使えたことにしない;
 - 実LINE送信・自動発注・課金設定変更は行わない。
 
@@ -329,6 +357,7 @@ TOPIX / sector benchmarkはFreeで無理に代替せず、Foundation pilot側で
 - [x] execution-after-retrieval boundary — #144
 - [x] strict lexical date shapes — #147
 - [x] pre-network local CLI execution timing — #148
+- [x] actual retrieval-completion timestamp preservation — #150
 
 ### Real/local
 
