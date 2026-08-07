@@ -6,6 +6,7 @@ import {
   isJQuantsFreeConfigured,
   jquantsFreeCapabilities,
 } from "../providers/jquants-free.js";
+import { jquantsFreeRecordOutput } from "../providers/jquants-free-output.js";
 import {
   appendPriceRecords,
   validateProviderBatch,
@@ -45,10 +46,14 @@ function timestampArg(name: string): string {
   return value;
 }
 
-function pricePath(code: string): string {
+function normalizedCode(code: string): string {
   const safe = code.trim().toUpperCase().replace(/\.T$/, "");
   if (!/^[0-9A-Z]{4,5}$/.test(safe)) throw new Error("--code must be a 4-5 character security code");
-  return resolve(process.cwd(), "research/prices/jquants-free", `${safe}.jsonl`);
+  return safe;
+}
+
+function priceRelativePath(code: string): string {
+  return `research/prices/jquants-free/${normalizedCode(code)}.jsonl`;
 }
 
 function schema(): JsonSchema {
@@ -64,6 +69,7 @@ function print(value: unknown): void {
 async function main(): Promise<void> {
   const executeFetch = hasFlag("execute-fetch");
   const appendLocal = hasFlag("append-local");
+  const showValuesLocal = hasFlag("show-values-local");
   const capabilities = jquantsFreeCapabilities();
 
   if (!executeFetch) {
@@ -72,6 +78,7 @@ async function main(): Promise<void> {
       networkUsed: false,
       appendRequested: appendLocal,
       appendPerformed: false,
+      rawValuesIncluded: false,
       configured: isJQuantsFreeConfigured(),
       entitlement: JQUANTS_FREE_ENTITLEMENT,
       capabilities,
@@ -86,6 +93,7 @@ async function main(): Promise<void> {
       networkUsed: false,
       appendRequested: appendLocal,
       appendPerformed: false,
+      rawValuesIncluded: false,
       configured: false,
       entitlement: JQUANTS_FREE_ENTITLEMENT,
       capabilities,
@@ -125,8 +133,8 @@ async function main(): Promise<void> {
   const records = batch.records.map(withPriceRecordHash);
   let outputPath: string | null = null;
   if (appendLocal && records.length > 0) {
-    outputPath = pricePath(code);
-    appendPriceRecords(outputPath, records, schema(), now);
+    outputPath = priceRelativePath(code);
+    appendPriceRecords(resolve(process.cwd(), outputPath), records, schema(), now);
   }
 
   print({
@@ -135,13 +143,14 @@ async function main(): Promise<void> {
     appendRequested: appendLocal,
     appendPerformed: Boolean(outputPath),
     outputPath,
+    rawValuesIncluded: showValuesLocal,
     entitlement: JQUANTS_FREE_ENTITLEMENT,
     capabilities: batch.capabilities,
     providerId: batch.providerId,
     sourceVersion: batch.sourceVersion,
     license: batch.license,
     retrievedAt: batch.retrievedAt,
-    records,
+    records: records.map((record) => jquantsFreeRecordOutput(record, showValuesLocal)),
   });
 }
 
