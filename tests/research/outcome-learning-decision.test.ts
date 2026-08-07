@@ -145,7 +145,29 @@ function codes(issues: ReturnType<typeof validateOutcomeLearningDecisionRecord>)
 {
   const record = withOutcomeLearningDecisionHash(decision({ proposal: draftProposal }));
   assert.ok(codes(validateOutcomeLearningDecisionRecord(record, schema, context())).includes("proposal_not_human_review_ready"));
-  console.log("outcome-learning-decision: draft proposal cannot receive human decision OK");
+  console.log("outcome-learning-decision: draft proposal cannot advance to shadow OK");
+}
+
+{
+  const record = withOutcomeLearningDecisionHash(decision({
+    decisionId: "learning-decision:draft:defer",
+    proposal: draftProposal,
+    kind: "defer",
+    shadowEvaluationAuthorized: false,
+  }));
+  assert.ok(codes(validateOutcomeLearningDecisionRecord(record, schema, context())).includes("proposal_not_human_review_ready"));
+  console.log("outcome-learning-decision: draft proposal cannot enter defer revision chain OK");
+}
+
+{
+  const record = withOutcomeLearningDecisionHash(decision({
+    decisionId: "learning-decision:draft:reject",
+    proposal: draftProposal,
+    kind: "reject",
+    shadowEvaluationAuthorized: false,
+  }));
+  assert.deepEqual(validateOutcomeLearningDecisionRecord(record, schema, context()), []);
+  console.log("outcome-learning-decision: human may explicitly reject and close provisional AI draft OK");
 }
 
 {
