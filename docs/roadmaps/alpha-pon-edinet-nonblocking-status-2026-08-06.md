@@ -1,7 +1,7 @@
 # Alpha Pon EDINET non-blocking status — 2026-08-06
 
 Status: `ACTIVE_SUBROADMAP`
-Updated: 2026-08-07 01:10 JST
+Updated: 2026-08-07 09:10 JST
 Parent roadmap: `docs/roadmaps/alpha-pon-current-roadmap-2026-08-06.md`
 
 ## Durable operating decision
@@ -83,6 +83,8 @@ Do not block unrelated implementation on this command. Surface it again only whe
 #83 configured source-fidelity plan with type 1/type 2 pairing
 #84 explicit local structured/PDF extraction and empty anchor template
 #86 exact human anchor lineage finalization
+#87 conservative exact-normalized anchor comparison
+#88 issuer-neutral official-PDF human comparison review
 ```
 
 ## Non-blocking implementation queue
@@ -105,16 +107,17 @@ Proceed in this order unless current `main`, tests, or measured local data show 
 14. **COMPLETE — PR #83:** Pair each configured workspace type 1 source with its verified type 2 official PDF while keeping anchors empty and all decisions unknown.
 15. **COMPLETE — PR #84:** Add explicit local structured/PDF extraction, binary/hash/magic revalidation, safe PublicDoc extraction, layout-preserving PDF text, and an empty human anchor template.
 16. **COMPLETE — PR #86:** Finalize human-selected anchors by exact structured entry/line and PDF page/line lineage. PR #86 replaced closed PR #85.
-17. **IN PROGRESS — PR #87:** Compare finalized anchors with NFKC plus horizontal-whitespace normalization only. Report exact normalized equality or mismatch pending official PDF visual review; never infer semantic equivalence.
-18. **STACKED IN PROGRESS — PR #88:** Require official PDF visual review for every generic comparison anchor and record equivalence, facts, prior facts, assumptions, opinions, exact amounts, accounting/internal-control/audit impact, materiality, and direction separately. PR #88 is based on #87 until #87 merges.
-19. After #87 and #88 merge, run real configured Sanrio parity locally and human-review the result before considering legacy entry-point replacement.
-20. Add the configured human-review-to-Foundation mapping gate only after real parity evidence proves the generic record supplies the required Security Master, PIT, source hash, section hash, license/storage, and revision fields.
-21. Register a second real issuer only after an inventory-only proposal identifies a measured Evidence Gap and explicit user approval.
-22. Resume Known-Bad Event Repricing validation only after the real Foundation pilot gates are satisfied.
+17. **COMPLETE — PR #87:** Compare finalized anchors with NFKC plus horizontal-whitespace normalization only. Report exact normalized equality or mismatch pending official PDF visual review; never infer semantic equivalence.
+18. **COMPLETE — PR #88:** Require official PDF visual review for every generic comparison anchor and record equivalence, facts, prior facts, assumptions, opinions, exact amounts, accounting/internal-control/audit impact, materiality, and direction separately.
+19. **IN PROGRESS — PR #89:** Build a local Sanrio legacy/configured parity workspace from a green inventory compatibility audit plus both completed human-review records. Machine relations are limited to shared `docID` and exact text-hash equality; raw reviewed text is not copied and replacement remains unauthorized.
+20. Finalize the parity workspace with explicit human legacy-to-configured mappings, configured-only dispositions, inventory-audit confirmation, and a human replacement recommendation. Even an approval recommendation must not mutate the legacy entry point automatically.
+21. Add the configured human-review-to-Foundation mapping gate only after real parity evidence proves the generic record supplies the required Security Master, PIT, source hash, section hash, license/storage, and revision fields.
+22. Register a second real issuer only after an inventory-only proposal identifies a measured Evidence Gap and explicit user approval.
+23. Resume Known-Bad Event Repricing validation only after the real Foundation pilot gates are satisfied.
 
 ## Current CI infrastructure note
 
-At 2026-08-07 01:00 JST, GitHub-hosted Actions intermittently failed before checkout while resolving `actions/*` metadata:
+On 2026-08-07 JST, GitHub-hosted Actions intermittently failed before checkout while resolving `actions/*` metadata:
 
 ```text
 Service Unavailable
@@ -134,7 +137,7 @@ This is an Actions service failure, not a repository test result. Do not modify 
 - A generated Foundation preview is not a governed store append.
 - Review plans never authorize automatic acquisition; the configured executor requires an explicit local command flag.
 - Partial acquisition attempts never create a canonical complete manifest.
-- A hash-verified configured workspace, dashboard, synthetic fixture, fidelity plan, extraction bundle, anchor record, comparison report, or human review record still requires the next governed mapping gate before Foundation append.
+- A hash-verified configured workspace, dashboard, synthetic fixture, fidelity plan, extraction bundle, anchor record, comparison report, human review record, or parity workspace still requires the next governed human gate before Foundation append or legacy replacement.
 - Synthetic placeholder binaries must never be parsed or presented as official EDINET filings.
 - Fidelity plans must not manufacture anchors, extract text automatically, or decide equivalence/materiality/direction.
 - Explicit extraction success does not authorize anchor generation, comparison, or fact promotion.
@@ -146,7 +149,9 @@ This is an Actions service failure, not a repository test result. Do not modify 
 - Human comparison review must not derive decisions from the normalized result automatically. Every visual/equivalence/impact/materiality/direction field is explicit human input.
 - Confirmed facts, previously known facts, assumptions, and opinions must remain separate arrays.
 - A complete human comparison record does not automatically promote facts or authorize Foundation/Evidence append.
-- Keep replacement, Foundation preview eligibility, and append authorization false unless a distinct explicit workflow is reviewed.
+- Legacy/configured parity may auto-relate records only by shared exact `docID` and exact SHA-256 text hashes. Exact hash equality is navigation evidence, not semantic equivalence or replacement authorization.
+- Parity workspaces must not copy raw reviewed source text when a hash is sufficient.
+- Keep replacement, Foundation preview eligibility, and append authorization false unless a distinct explicit human-reviewed workflow is completed.
 - No BUY/order automation, brokerage action, Production Gate change, active Edge promotion, or real LINE send.
 - No Cloudflare production deploy or D1 write from this queue.
 - Do not modify GitHub Actions runners or cost controls unless a distinct measured workflow defect requires it.
