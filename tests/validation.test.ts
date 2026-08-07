@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import "./foundation-pilot-structural-status.test.js";
 import "./edinet-fetcher.test.js";
 import "./edinet-document-lineage.test.js";
 import "./edinet-issuer-boundary.test.js";
