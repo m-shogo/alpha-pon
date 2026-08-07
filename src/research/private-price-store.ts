@@ -22,9 +22,12 @@ function lstatIfPresent(path: string): Stats | null {
   }
 }
 
-function assertRegularNonSymlinkStat(stat: Stats, field: string): void {
+function assertRegularPrivateFileStat(stat: Stats, field: string): void {
   if (stat.isSymbolicLink() || !stat.isFile()) {
     throw new Error(`${field} must be a regular non-symlink file`);
+  }
+  if (stat.nlink !== 1) {
+    throw new Error(`${field} must not be hard-linked`);
   }
 }
 
@@ -39,7 +42,9 @@ function assertRegularNonSymlinkDirectoryStat(stat: Stats, field: string): void 
  * storage boundary instead of relying solely on the caller's umask.
  *
  * The target must be a direct child of a dedicated provider root. Supporting
- * arbitrary nested paths would make symlink traversal harder to reason about.
+ * arbitrary nested paths would make path aliasing harder to reason about.
+ * Existing files must have exactly one hard link so a provider-local pathname
+ * cannot silently alias an inode reachable from another pathname.
  */
 export function appendPrivatePriceRecords(input: {
   root: string;
@@ -73,16 +78,19 @@ export function appendPrivatePriceRecords(input: {
 
   const fileStat = lstatIfPresent(path);
   if (fileStat) {
-    assertRegularNonSymlinkStat(fileStat, "private price file");
+    assertRegularPrivateFileStat(fileStat, "private price file");
     chmodSync(path, 0o600);
   } else {
     const fd = openSync(path, "ax", 0o600);
     closeSync(fd);
+    const createdFileStat = lstatIfPresent(path);
+    if (!createdFileStat) throw new Error("private price file creation failed");
+    assertRegularPrivateFileStat(createdFileStat, "private price file");
   }
 
   appendPriceRecords(path, input.records, input.schema, input.now ?? new Date());
   const finalStat = lstatIfPresent(path);
   if (!finalStat) throw new Error("private price file disappeared after append");
-  assertRegularNonSymlinkStat(finalStat, "private price file");
+  assertRegularPrivateFileStat(finalStat, "private price file");
   chmodSync(path, 0o600);
 }
