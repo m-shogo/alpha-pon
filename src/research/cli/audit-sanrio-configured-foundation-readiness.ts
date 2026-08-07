@@ -12,8 +12,8 @@ import {
   renderSanrioConfiguredFoundationReadinessAudit,
 } from "../edinet-sanrio-foundation-readiness-audit.js";
 import {
-  auditSanrioConfiguredFoundationReadinessWithParityLineage,
-} from "../edinet-sanrio-foundation-readiness-parity-lineage.js";
+  auditSanrioConfiguredFoundationReadinessWithParityDecisionConformance,
+} from "../edinet-sanrio-foundation-readiness-parity-decision.js";
 
 type JsonObject = Record<string, unknown>;
 const MAX_JSON_BYTES = 30 * 1024 * 1024;
@@ -142,7 +142,7 @@ function main(): void {
     "source configured review",
   );
   const generatedAt = new Date();
-  const audit = auditSanrioConfiguredFoundationReadinessWithParityLineage({
+  const audit = auditSanrioConfiguredFoundationReadinessWithParityDecisionConformance({
     parityReview,
     sourceParityReviewFile: basename(parityReviewPath),
     parityWorkspace: workspace,
