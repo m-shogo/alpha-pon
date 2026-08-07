@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "alpha-pon/research/outcome-learning-proposal.schema.json",
+  "title": "Alpha Pon Outcome Learning Proposal v1",
+  "description": "Append-only proposal derived from a semantic outcome review. Proposals may be evaluated manually but never mutate research rules, Edge Gates, production code or trading authority automatically.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "proposalId",
+    "createdAt",
+    "semanticReviewId",
+    "semanticReviewContentHash",
+    "proposalStage",
+    "targetKind",
+    "targetRef",
+    "problemStatement",
+    "proposedChange",
+    "rationale",
+    "expectedEffect",
+    "evaluationPlan",
+    "falsificationConditions",
+    "rollbackPlan",
+    "evidenceRefs",
+    "humanApprovalRequired",
+    "automaticApplyAuthorized",
+    "ruleMutationAuthorized",
+    "edgeGateMutationAuthorized",
+    "codeMutationAuthorized",
+    "automaticTradingAuthorized",
+    "contentHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "proposalId": { "type": "string", "minLength": 1, "maxLength": 180 },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "semanticReviewId": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "semanticReviewContentHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "proposalStage": { "type": "string", "enum": ["draft_proposal", "human_review_ready", "rejected", "superseded"] },
+    "targetKind": {
+      "type": "string",
+      "enum": [
+        "research_rule",
+        "edge_gate",
+        "evidence_requirement",
+        "calibration",
+        "scoring",
+        "backtest_method",
+        "operational_guard"
+      ]
+    },
+    "targetRef": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "problemStatement": { "type": "string", "minLength": 1, "maxLength": 4000 },
+    "proposedChange": { "type": "string", "minLength": 1, "maxLength": 4000 },
+    "rationale": { "type": "string", "minLength": 1, "maxLength": 4000 },
+    "expectedEffect": { "type": "string", "minLength": 1, "maxLength": 4000 },
+    "evaluationPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "successCriteria", "failureCriteria", "minimumEvidence"],
+      "properties": {
+        "method": { "type": "string", "minLength": 1, "maxLength": 4000 },
+        "successCriteria": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1, "maxLength": 4000 }
+        },
+        "failureCriteria": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1, "maxLength": 4000 }
+        },
+        "minimumEvidence": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1, "maxLength": 4000 }
+        }
+      }
+    },
+    "falsificationConditions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 4000 }
+    },
+    "rollbackPlan": { "type": "string", "minLength": 1, "maxLength": 4000 },
+    "evidenceRefs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 512 }
+    },
+    "supersedesProposalId": { "type": "string", "minLength": 1, "maxLength": 180 },
+    "humanApprovalRequired": { "const": true },
+    "automaticApplyAuthorized": { "const": false },
+    "ruleMutationAuthorized": { "const": false },
+    "edgeGateMutationAuthorized": { "const": false },
+    "codeMutationAuthorized": { "const": false },
+    "automaticTradingAuthorized": { "const": false },
+    "contentHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}
