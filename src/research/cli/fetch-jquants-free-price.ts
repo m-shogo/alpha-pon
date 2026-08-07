@@ -111,12 +111,14 @@ async function main(): Promise<void> {
   const to = dateArg("to");
   if (from > to) throw new Error("--from must be on or before --to");
   const firstExecutableAt = timestampArg("first-executable-at");
-  const now = new Date();
-  assertFirstExecutableAtAfterRetrievalStart(firstExecutableAt, now);
+  const retrievalStartedAt = new Date();
+  assertFirstExecutableAtAfterRetrievalStart(firstExecutableAt, retrievalStartedAt);
 
   const provider = new JQuantsFreePriceProvider({
-    now: () => now,
-    resolveFirstExecutableAt: ({ observedAt }) => {
+    resolveFirstExecutableAt: ({ observedAt, retrievedAt }) => {
+      if (Date.parse(firstExecutableAt) < Date.parse(retrievedAt)) {
+        throw new Error("--first-executable-at must be at or after actual retrievedAt");
+      }
       if (Date.parse(firstExecutableAt) < Date.parse(observedAt)) {
         throw new Error("--first-executable-at must be at or after every record observedAt");
       }
@@ -129,7 +131,7 @@ async function main(): Promise<void> {
     codes: [code],
     from,
     to,
-    asOf: now.toISOString(),
+    asOf: retrievalStartedAt.toISOString(),
     plan: "free",
   });
   const batchIssues = validateProviderBatch(batch);
@@ -146,7 +148,7 @@ async function main(): Promise<void> {
       path: resolve(process.cwd(), outputPath),
       records,
       schema: schema(),
-      now,
+      now: new Date(),
     });
   }
 
