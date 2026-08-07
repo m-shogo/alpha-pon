@@ -69,7 +69,7 @@ function allMissingGroups() {
     groupId: definition.groupId,
     status: "missing_required_evidence",
     verifiedFields: [] as string[],
-    missingFields: [...definition.fieldPaths],
+    missingFields: [...definition.fieldPaths] as string[],
   }));
 }
 
