@@ -17,6 +17,11 @@ research/prices/**/*.jsonl
 research/prices/**/*.json
 !research/prices/README.md
 
+# Recommendation / Outcome / governed learning の実レコードはlocal-only。
+# Schema・validator・tests・READMEはversioned、append-only runtime JSONLはGitへcommitしない。
+research/recommendations/*.jsonl
+research/corporate-actions/*.jsonl
+
 # Stock Pro Council runtime records are append-only local data.
 # Schemas, validators and README files are versioned; real records are not.
 research/persona_verdicts/*
