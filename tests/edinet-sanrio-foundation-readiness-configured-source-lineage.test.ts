@@ -195,6 +195,7 @@ function fixture(): { comparison: JsonObject; configured: JsonObject; sourceFile
   const document = (comparison.documents as JsonObject[])[0]!;
   const sourceAnchor = (document.anchors as JsonObject[])[0]!;
   sourceAnchor.expectedRelation = "exact_normalized_match";
+  rehash(document, "documentResultHash");
   rehash(comparison, "reportHash");
   assert.throws(
     () => assertSanrioFoundationConfiguredSourceLineage({ comparisonReport: comparison, sourceComparisonFile: sourceFile, configuredReview: configured }),
