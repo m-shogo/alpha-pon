@@ -68,7 +68,11 @@ export type RecommendationRecord = {
   sourceEvidence: RecommendationEvidenceRef[];
   edgeIds: string[];
   benchmark: string;
+  benchmarkPriceRecordHash: string;
+  benchmarkPriceFirstExecutableAt: string;
   sectorBenchmark: string;
+  sectorBenchmarkPriceRecordHash: string;
+  sectorBenchmarkPriceFirstExecutableAt: string;
   positionSizingRationale?: string;
   outcomeReviewDate: string;
   status: "open" | "target_reached" | "invalidated" | "expired" | "reviewed";
@@ -133,6 +137,10 @@ function canonicalCode(code: string): string {
   return normalized.length === 5 && normalized.endsWith("0")
     ? normalized.slice(0, -1)
     : normalized;
+}
+
+function canonicalBenchmarkCode(code: string): string {
+  return code.trim().toUpperCase();
 }
 
 function rangeIssues(
@@ -222,6 +230,49 @@ function priceProvenanceIssues(
   }
   if (price.license === "unknown") {
     issues.push(error("unknown_price_license", target, "利用権不明のprice recordをrecommendationへ使えません"));
+  }
+  return issues;
+}
+
+function benchmarkProvenanceIssues(input: {
+  record: RecommendationRecord;
+  context: RecommendationValidationContext;
+  label: "benchmark" | "sectorBenchmark";
+  expectedCode: string;
+  recordHash: string;
+  firstExecutableAt: string;
+}): RecommendationIssue[] {
+  const target = `recommendation:${input.record.recommendationId}`;
+  const price = input.context.priceRecordsByHash.get(input.recordHash);
+  if (!price) {
+    return [error(
+      "missing_benchmark_price_provenance",
+      `${target}.${input.label}PriceRecordHash`,
+      `${input.label}はPIT Price Storeの既知benchmark recordへpinする必要があります`,
+    )];
+  }
+
+  const issues: RecommendationIssue[] = [];
+  if (price.contentHash !== input.recordHash) {
+    issues.push(error("benchmark_price_hash_mismatch", target, `${input.label} record hashがpinと一致しません`));
+  }
+  if (price.seriesKind !== "benchmark" || canonicalBenchmarkCode(price.code) !== canonicalBenchmarkCode(input.expectedCode)) {
+    issues.push(error("benchmark_identity_mismatch", target, `${input.label}のPIT record identityが一致しません`));
+  }
+  if (price.status !== "traded" || !price.ohlcv) {
+    issues.push(error("benchmark_price_not_traded", target, `${input.label}はtraded OHLC recordである必要があります`));
+  }
+  if (price.firstExecutableAt !== input.firstExecutableAt) {
+    issues.push(error("benchmark_execution_pin_mismatch", target, `${input.label}PriceFirstExecutableAtがPIT recordと一致しません`));
+  }
+  if (Date.parse(price.observedAt) > Date.parse(input.record.informationCutoff)) {
+    issues.push(error("future_benchmark_observation", target, `${input.label}がinformationCutoff後に観測されています`));
+  }
+  if (Date.parse(price.firstExecutableAt) > Date.parse(input.record.issuedAt)) {
+    issues.push(error("benchmark_not_yet_executable", target, `${input.label}はissuedAt時点でまだ実行可能ではありません`));
+  }
+  if (price.license === "unknown") {
+    issues.push(error("unknown_benchmark_license", target, `${input.label}の利用権が不明です`));
   }
   return issues;
 }
@@ -339,6 +390,22 @@ export function validateRecommendationRecord(
 
   issues.push(...evidenceSeparationIssues(record.evidenceSummary));
   issues.push(...priceProvenanceIssues(record, context));
+  issues.push(...benchmarkProvenanceIssues({
+    record,
+    context,
+    label: "benchmark",
+    expectedCode: record.benchmark,
+    recordHash: record.benchmarkPriceRecordHash,
+    firstExecutableAt: record.benchmarkPriceFirstExecutableAt,
+  }));
+  issues.push(...benchmarkProvenanceIssues({
+    record,
+    context,
+    label: "sectorBenchmark",
+    expectedCode: record.sectorBenchmark,
+    recordHash: record.sectorBenchmarkPriceRecordHash,
+    firstExecutableAt: record.sectorBenchmarkPriceFirstExecutableAt,
+  }));
   issues.push(...evidenceContextIssues(record, context));
   issues.push(...edgeContextIssues(record, context));
 
