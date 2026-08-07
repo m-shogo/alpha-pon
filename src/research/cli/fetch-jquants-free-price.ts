@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { assertFirstExecutableAtAfterRetrievalStart } from "../jquants-free-cli-boundary.js";
 import {
   JQUANTS_FREE_ENTITLEMENT,
   JQuantsFreePriceProvider,
@@ -111,6 +112,8 @@ async function main(): Promise<void> {
   if (from > to) throw new Error("--from must be on or before --to");
   const firstExecutableAt = timestampArg("first-executable-at");
   const now = new Date();
+  assertFirstExecutableAtAfterRetrievalStart(firstExecutableAt, now);
+
   const provider = new JQuantsFreePriceProvider({
     now: () => now,
     resolveFirstExecutableAt: ({ observedAt }) => {
