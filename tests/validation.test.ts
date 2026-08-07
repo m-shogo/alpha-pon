@@ -44,6 +44,7 @@ import "./research/recommendation-persistence.test.js";
 import "./research/quantitative-outcome.test.js";
 import "./research/corporate-action-clearance.test.js";
 import "./research/outcome-semantic-review.test.js";
+import "./research/outcome-learning-proposal.test.js";
 import "./jquants-v2-date-cap.test.js";
 import { validateWatchlist } from "../src/validation.js";
 import type { WatchlistConfig } from "../src/types.js";
