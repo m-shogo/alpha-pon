@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   withPriceRecordHash,
+  type PitPriceRecord,
   type PitPriceRecordInput,
 } from "../../src/research/price-store.js";
 import {
@@ -116,9 +117,9 @@ function baseInput(): Omit<RecommendationRecord, "contentHash"> {
   };
 }
 
-function context(records = [price, benchmark, sector]): RecommendationValidationContext {
+function context(records: PitPriceRecord[] = [price, benchmark, sector]): RecommendationValidationContext {
   return {
-    priceRecordsByHash: new Map(records.map(record => [record.contentHash, record])),
+    priceRecordsByHash: new Map(records.map(record => [record.contentHash, record] as const)),
     evidenceByRef: new Map([
       ["evidence:ir:001", { tier: "A", observedAt: "2026-08-07T08:30:00+09:00" }],
       ["evidence:market:001", { tier: "B", observedAt: "2026-08-07T08:35:00+09:00" }],
