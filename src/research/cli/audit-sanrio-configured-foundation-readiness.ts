@@ -12,8 +12,8 @@ import {
   renderSanrioConfiguredFoundationReadinessAudit,
 } from "../edinet-sanrio-foundation-readiness-audit.js";
 import {
-  auditSanrioConfiguredFoundationReadinessWithConfiguredDecisionConformance,
-} from "../edinet-sanrio-foundation-readiness-configured-decision.js";
+  auditSanrioConfiguredFoundationReadinessWithConfiguredSourceLineage,
+} from "../edinet-sanrio-foundation-readiness-configured-source-lineage.js";
 
 type JsonObject = Record<string, unknown>;
 const MAX_JSON_BYTES = 30 * 1024 * 1024;
@@ -96,6 +96,17 @@ function directChild(directory: string, value: unknown, field: string): string {
   return path;
 }
 
+function directChildExpected(
+  directory: string,
+  value: unknown,
+  pattern: RegExp,
+  field: string,
+): string {
+  const path = directChild(directory, value, field);
+  if (!pattern.test(basename(path))) throw new Error(`${field} filename is invalid`);
+  return path;
+}
+
 function edinetRelativeFile(value: unknown, expectedDirectory: string, pattern: RegExp, field: string): string {
   const relative = value === null || value === undefined ? "" : String(value).trim().replace(/\\/g, "/");
   if (!relative || relative.startsWith("/") || relative.split("/").some(part => !part || part === "." || part === "..")) {
@@ -141,13 +152,22 @@ function main(): void {
     /^configured-human-comparison-record-v1\.[A-Za-z0-9_-]+\.json$/,
     "source configured review",
   );
+  const configuredReview = object(parseJson(configuredReviewPath, "source configured review"), "source configured review");
+  const comparisonPath = directChildExpected(
+    directory,
+    configuredReview.sourceComparisonFile,
+    /^configured-fidelity-exact-comparison-v1\.[A-Za-z0-9_-]+\.json$/,
+    "source exact comparison report",
+  );
   const generatedAt = new Date();
-  const audit = auditSanrioConfiguredFoundationReadinessWithConfiguredDecisionConformance({
+  const audit = auditSanrioConfiguredFoundationReadinessWithConfiguredSourceLineage({
+    comparisonReport: parseJson(comparisonPath, "source exact comparison report"),
+    sourceComparisonFile: basename(comparisonPath),
     parityReview,
     sourceParityReviewFile: basename(parityReviewPath),
     parityWorkspace: workspace,
     sourceParityWorkspaceFile: basename(workspacePath),
-    configuredReview: parseJson(configuredReviewPath, "source configured review"),
+    configuredReview,
     sourceConfiguredReviewFile: basename(configuredReviewPath),
     generatedAt: generatedAt.toISOString(),
   });
