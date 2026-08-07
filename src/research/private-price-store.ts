@@ -5,23 +5,13 @@ import {
   lstatSync,
   mkdirSync,
   openSync,
-  realpathSync,
 } from "node:fs";
-import { dirname, relative, resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import {
   appendPriceRecords,
   type PitPriceRecord,
 } from "./price-store.js";
 import type { JsonSchema } from "./schema.js";
-
-function assertInsideRoot(path: string, root: string): void {
-  const rootResolved = resolve(root);
-  const pathResolved = resolve(path);
-  const rel = relative(rootResolved, pathResolved);
-  if (rel === "" || rel === ".." || rel.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`) || resolve(rootResolved, rel) !== pathResolved) {
-    throw new Error("private price path must be a file below the configured root");
-  }
-}
 
 function assertRegularNonSymlink(path: string, field: string): void {
   const stat = lstatSync(path);
@@ -30,25 +20,19 @@ function assertRegularNonSymlink(path: string, field: string): void {
   }
 }
 
-function ensurePrivateDirectory(path: string, root: string): void {
-  assertInsideRoot(path, root);
-  mkdirSync(path, { recursive: true, mode: 0o700 });
+function assertRegularNonSymlinkDirectory(path: string, field: string): void {
   const stat = lstatSync(path);
   if (stat.isSymbolicLink() || !stat.isDirectory()) {
-    throw new Error("private price directory must be a regular non-symlink directory");
+    throw new Error(`${field} must be a regular non-symlink directory`);
   }
-  const rootReal = realpathSync(resolve(root));
-  const pathReal = realpathSync(path);
-  const rel = relative(rootReal, pathReal);
-  if (rel === ".." || rel.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`)) {
-    throw new Error("private price directory escaped configured root");
-  }
-  chmodSync(path, 0o700);
 }
 
 /**
  * Append local-only price records while enforcing filesystem privacy at the
  * storage boundary instead of relying solely on the caller's umask.
+ *
+ * The target must be a direct child of a dedicated provider root. Supporting
+ * arbitrary nested paths would make symlink traversal harder to reason about.
  */
 export function appendPrivatePriceRecords(input: {
   root: string;
@@ -60,17 +44,23 @@ export function appendPrivatePriceRecords(input: {
   if (input.records.length === 0) return;
   const root = resolve(input.root);
   const path = resolve(input.path);
-  assertInsideRoot(path, root);
+  if (dirname(path) !== root) {
+    throw new Error("private price path must be a direct child of the configured root");
+  }
 
-  mkdirSync(root, { recursive: true, mode: 0o700 });
-  const rootStat = lstatSync(root);
-  if (rootStat.isSymbolicLink() || !rootStat.isDirectory()) {
-    throw new Error("private price root must be a regular non-symlink directory");
+  const parent = dirname(root);
+  if (!existsSync(parent)) {
+    throw new Error("private price root parent must already exist");
+  }
+  assertRegularNonSymlinkDirectory(parent, "private price root parent");
+
+  if (existsSync(root)) {
+    assertRegularNonSymlinkDirectory(root, "private price root");
+  } else {
+    mkdirSync(root, { mode: 0o700 });
+    assertRegularNonSymlinkDirectory(root, "private price root");
   }
   chmodSync(root, 0o700);
-
-  const directory = dirname(path);
-  ensurePrivateDirectory(directory, root);
 
   if (existsSync(path)) {
     assertRegularNonSymlink(path, "private price file");
