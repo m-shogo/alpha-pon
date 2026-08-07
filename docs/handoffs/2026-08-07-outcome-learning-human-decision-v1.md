@@ -1,33 +1,36 @@
 # Handoff — Outcome Learning Human Decision v1
 
-Status: `IMPLEMENTED_SYNTHETIC_VALIDATION_PENDING`
+Status: `IMPLEMENTED_SYNTHETIC_VALIDATION_GREEN`
 Updated: 2026-08-07 JST
 
 ## Purpose
 
-Add an explicit human decision boundary after a governed Outcome Learning Proposal. This layer decides only whether a proposal should be deferred, rejected, or advanced into shadow evaluation.
+Add an explicit human decision boundary after a governed Outcome Learning Proposal. This layer decides only whether a proposal should be rejected, deferred, or advanced into shadow evaluation.
 
 It does **not** apply research-rule changes, Edge Gate changes, code changes, production changes or brokerage actions.
 
 ## Input boundary
 
-A Human Decision requires:
+Every Human Decision requires:
 
 - an exact Learning Proposal ID and content hash;
 - the proposal to recompute to that hash;
 - an upstream validator witness for the proposal hash;
-- `proposalStage=human_review_ready`;
 - a registered human reviewer;
 - a decision timestamp strictly after proposal creation;
 - Evidence refs selected only from the frozen proposal Evidence refs.
 
-If newer Evidence is required, create a new governed review/proposal revision first. Do not inject it directly into the Human Decision.
+For `defer` or `advance_to_shadow`, the Proposal must be `proposalStage=human_review_ready`.
+
+A `draft_proposal` may be acted on only by a human `reject`. This deliberately gives provisional AI proposals an explicit terminal disposal path without allowing them to enter a defer/advance revision chain.
+
+If newer Evidence is required, create a new governed review/proposal first. Do not inject it directly into the Human Decision.
 
 ## Decisions
 
-- `defer`: no shadow evaluation authorization; may later be revised once into a terminal decision.
-- `advance_to_shadow`: authorizes only shadow evaluation against the proposal's frozen evaluation/falsification/rollback plan.
-- `reject`: terminal rejection of this proposal decision chain.
+- `defer`: human-review-ready Proposal only; no shadow evaluation authorization; may later be revised into a terminal decision.
+- `advance_to_shadow`: human-review-ready Proposal only; authorizes only shadow evaluation against the proposal's frozen evaluation/falsification/rollback plan.
+- `reject`: terminal rejection. It may also be used by a human to close a provisional AI `draft_proposal`.
 
 `advance_to_shadow` and `reject` are terminal at this decision layer.
 
@@ -57,6 +60,12 @@ Every record fixes:
 - proposal ID/hash cannot change across a decision revision;
 - rejected append attempts must not modify existing JSONL bytes.
 
-## Next slice after merge
+## Downstream chain
 
-Add a deterministic Shadow Evaluation record that consumes only a terminal `advance_to_shadow` Human Decision and records preregistered success/failure evidence without automatically mutating the proposal target.
+Merged downstream layers now include:
+
+- governed Shadow Evaluation;
+- Final Human Adoption Decision;
+- Governed Change Preparation Manifest.
+
+No downstream layer converts an AI draft directly into a rule/code/Gate change.
