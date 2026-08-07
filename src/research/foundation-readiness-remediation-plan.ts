@@ -1,5 +1,8 @@
 import { createHash } from "node:crypto";
-import { foundationMappingRemediationDefinition } from "./foundation-mapping-readiness-contract.js";
+import {
+  assertFoundationReadinessGroupsConformToMappingContract,
+  foundationMappingRemediationDefinition,
+} from "./foundation-mapping-readiness-contract.js";
 
 type JsonObject = Record<string, unknown>;
 
@@ -223,6 +226,8 @@ function verifyReadinessAudit(value: unknown): VerifiedReadinessAudit {
       note: required(item.note, `readinessAudit group ${groupId}.note`),
     };
   }).sort((left, right) => left.groupId.localeCompare(right.groupId));
+
+  assertFoundationReadinessGroupsConformToMappingContract(groups);
 
   const topLevelMissing = stringArray(audit.missingFields, "readinessAudit.missingFields");
   const groupMissing = [...new Set(groups.flatMap(item => item.missingFields))].sort();

@@ -48,15 +48,29 @@ sections[].contentHash
 
 The existing mapping workflow may carry an immutable candidate `sourceContentHash` before finalization; final `ReviewedEdinetFoundationInput.sections[].contentHash` is produced from that reviewed source lineage. These are different stages of the same governed mapping path, not interchangeable evidence claims.
 
+## Readiness-audit conformance guard
+
+Before the remediation planner accepts a readiness audit, every canonical remediation group must be present.
+
+For each known group:
+
+- every `missingFields` entry must belong to that group's canonical Foundation field paths;
+- every canonical field path must be accounted for as verified or missing;
+- a complete/derivable group cannot still contain missing fields;
+- a missing/partial group must name at least one missing field;
+- `partial_navigation_only` must include at least one canonically verified field.
+
+Aggregate parents may account for nested requirements. For example, a missing `prior` accounts for the nested reviewed prior-reference fields until that object is explicitly completed.
+
+Unknown future groups remain allowed but fail-safe. They do not gain canonical ordering or specialized actions until this contract is explicitly extended.
+
 ## Planner integration
 
-`foundation-readiness-remediation-plan.ts` reads order, action, and dependency metadata from this contract instead of maintaining a second independent set of constants.
-
-Unknown future readiness groups remain fail-safe in the planner: they receive the generic action and are placed after known groups until this canonical contract explicitly incorporates them.
+`foundation-readiness-remediation-plan.ts` reads order, action, and dependency metadata from this contract instead of maintaining a second independent set of constants. It also rejects a known readiness group that drifts away from the canonical field contract, even when the source audit's outer SHA-256 envelope is internally valid.
 
 ## Safety boundary
 
-This contract does not:
+This contract and conformance guard do not:
 
 - collect EDINET data;
 - infer missing field values;

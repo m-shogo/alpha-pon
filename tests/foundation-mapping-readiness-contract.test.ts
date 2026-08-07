@@ -6,6 +6,7 @@ import {
   FOUNDATION_INPUT_SECTION_CONTRACT_EXHAUSTIVE,
   FOUNDATION_INPUT_SECTION_KEYS,
   FOUNDATION_MAPPING_REMEDIATION_DEFINITIONS,
+  assertFoundationReadinessGroupsConformToMappingContract,
   foundationMappingRemediationDefinition,
   foundationMappingRequiredFieldPaths,
 } from "../src/research/foundation-mapping-readiness-contract.js";
@@ -61,6 +62,64 @@ for (const required of [
   "sections[].contentHash",
 ]) {
   assert.ok(requiredPaths.includes(required), `missing canonical Foundation field path ${required}`);
+}
+
+function allMissingGroups() {
+  return FOUNDATION_MAPPING_REMEDIATION_DEFINITIONS.map(definition => ({
+    groupId: definition.groupId,
+    status: "missing_required_evidence",
+    verifiedFields: [] as string[],
+    missingFields: [...definition.fieldPaths] as string[],
+  }));
+}
+
+assert.doesNotThrow(() => assertFoundationReadinessGroupsConformToMappingContract(allMissingGroups()));
+
+{
+  const groups = allMissingGroups().filter(group => group.groupId !== "rights_and_storage");
+  assert.throws(
+    () => assertFoundationReadinessGroupsConformToMappingContract(groups),
+    /missing canonical Foundation group rights_and_storage/,
+  );
+}
+
+{
+  const groups = allMissingGroups();
+  const metadata = groups.find(group => group.groupId === "document_metadata")!;
+  metadata.missingFields.push("inventedDocumentField");
+  assert.throws(
+    () => assertFoundationReadinessGroupsConformToMappingContract(groups),
+    /non-canonical missing field inventedDocumentField/,
+  );
+}
+
+{
+  const groups = allMissingGroups();
+  const metadata = groups.find(group => group.groupId === "document_metadata")!;
+  metadata.missingFields = metadata.missingFields.filter(field => field !== "title");
+  assert.throws(
+    () => assertFoundationReadinessGroupsConformToMappingContract(groups),
+    /does not account for title/,
+  );
+}
+
+{
+  const groups = allMissingGroups();
+  const sections = groups.find(group => group.groupId === "section_mapping")!;
+  sections.status = "partial_navigation_only";
+  sections.verifiedFields = ["sections[].path", "anchor.structured.textHash"];
+  sections.missingFields = sections.missingFields.filter(field => field !== "sections[].path");
+  assert.doesNotThrow(() => assertFoundationReadinessGroupsConformToMappingContract(groups));
+}
+
+{
+  const groups = allMissingGroups();
+  const security = groups.find(group => group.groupId === "security_master")!;
+  security.status = "verified_present";
+  assert.throws(
+    () => assertFoundationReadinessGroupsConformToMappingContract(groups),
+    /cannot be complete while missing fields remain/,
+  );
 }
 
 console.log("foundation-mapping-readiness-contract.test.ts passed");
