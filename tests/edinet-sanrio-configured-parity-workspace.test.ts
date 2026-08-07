@@ -257,6 +257,8 @@ function build(input: {
   const legacy = legacyReview();
   const anchor = (legacy.anchors as JsonObject[])[0]!;
   anchor.sourceText = "tampered source";
+  const { recordHash: _oldRecordHash, ...recordWithoutHash } = legacy;
+  legacy.recordHash = digest(recordWithoutHash);
   assert.throws(() => build({ legacy }), /anchorDecisionHash mismatch/);
   console.log("edinet-sanrio-configured-parity-workspace: legacy nested tampering blocked OK");
 }
