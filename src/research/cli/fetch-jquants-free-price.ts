@@ -7,8 +7,8 @@ import {
   jquantsFreeCapabilities,
 } from "../providers/jquants-free.js";
 import { jquantsFreeRecordOutput } from "../providers/jquants-free-output.js";
+import { appendPrivatePriceRecords } from "../private-price-store.js";
 import {
-  appendPriceRecords,
   validateProviderBatch,
   withPriceRecordHash,
 } from "../price-store.js";
@@ -54,6 +54,10 @@ function normalizedCode(code: string): string {
 
 function priceRelativePath(code: string): string {
   return `research/prices/jquants-free/${normalizedCode(code)}.jsonl`;
+}
+
+function privatePriceRoot(): string {
+  return resolve(process.cwd(), "research/prices/jquants-free");
 }
 
 function schema(): JsonSchema {
@@ -134,7 +138,13 @@ async function main(): Promise<void> {
   let outputPath: string | null = null;
   if (appendLocal && records.length > 0) {
     outputPath = priceRelativePath(code);
-    appendPriceRecords(resolve(process.cwd(), outputPath), records, schema(), now);
+    appendPrivatePriceRecords({
+      root: privatePriceRoot(),
+      path: resolve(process.cwd(), outputPath),
+      records,
+      schema: schema(),
+      now,
+    });
   }
 
   print({
