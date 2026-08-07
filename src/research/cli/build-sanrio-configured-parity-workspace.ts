@@ -12,6 +12,10 @@ import {
   buildSanrioLegacyConfiguredParityWorkspace,
   renderSanrioLegacyConfiguredParityWorkspace,
 } from "../edinet-sanrio-configured-parity-workspace.js";
+import {
+  canonicalSanrioLegacyHumanReviewFilenameKind,
+  SANRIO_LEGACY_HUMAN_REVIEW_FILENAME_PATTERN,
+} from "../edinet-sanrio-parity-local-paths.js";
 
 const MAX_JSON_BYTES = 30 * 1024 * 1024;
 
@@ -110,7 +114,7 @@ function main(): void {
   const inventoryPath = resolveInventoryAudit(inventoryInput);
   const legacyPath = resolveAcquisitionFile(
     legacyInput,
-    /^revision-human-review-record-v1\.[A-Za-z0-9_-]+\.json$/,
+    SANRIO_LEGACY_HUMAN_REVIEW_FILENAME_PATTERN,
     "legacy review",
   );
   const configuredPath = resolveAcquisitionFile(
@@ -118,6 +122,9 @@ function main(): void {
     /^configured-human-comparison-record-v1\.[A-Za-z0-9_-]+\.json$/,
     "configured review",
   );
+  const legacyFilenameKind = canonicalSanrioLegacyHumanReviewFilenameKind(basename(legacyPath));
+  if (!legacyFilenameKind) throw new Error("legacy review filename kind is unsupported");
+
   const generatedAt = new Date();
   const workspace = buildSanrioLegacyConfiguredParityWorkspace({
     inventoryAudit: parseJson(inventoryPath, "inventory audit"),
@@ -136,6 +143,7 @@ function main(): void {
   writeExclusive(markdownPath, renderSanrioLegacyConfiguredParityWorkspace(workspace));
 
   console.log("Sanrio legacy/configured EDINET parity workspace");
+  console.log(`legacy review filename kind: ${legacyFilenameKind}`);
   console.log(`shared documents: ${workspace.sharedDocumentCount}`);
   console.log(`legacy/configured anchors: ${workspace.legacyAnchorCount}/${workspace.configuredAnchorCount}`);
   console.log(`legacy exact hash matches: ${workspace.legacyAnchorsWithExactHashMatch}`);

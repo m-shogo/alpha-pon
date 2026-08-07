@@ -37,6 +37,7 @@ import "./foundation-pilot-human-replay-proof.test.js";
 import "./edinet-sanrio-review-next-batching.test.js";
 import "./edinet-sanrio-review-next-content-bundle.test.js";
 import "./edinet-sanrio-impact-review-checklist.test.js";
+import "./edinet-sanrio-parity-local-paths.test.js";
 import "./research/jquants-free-provider.test.js";
 import "./research/jquants-free-store-conformance.test.js";
 import "./research/private-price-store.test.js";
