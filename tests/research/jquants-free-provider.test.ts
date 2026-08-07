@@ -51,6 +51,15 @@ const tradedQuote: DailyQuote = {
 }
 
 {
+  assert.equal(jquantsTradingDayCloseJst("2024-02-29"), "2024-02-29T15:00:00+09:00");
+  assert.throws(() => jquantsTradingDayCloseJst("2024-02-31"), /invalid J-Quants trading date/);
+  assert.throws(() => jquantsFreeObservedAt("2023-02-29"), /invalid J-Quants trading date/);
+  assert.throws(() => jquantsFreeObservedAt("2026-13-01"), /invalid J-Quants trading date/);
+  assert.throws(() => jquantsFreeObservedAt("2026-00-10"), /invalid J-Quants trading date/);
+  console.log("jquants-free-provider: impossible Gregorian calendar dates fail closed OK");
+}
+
+{
   const record = mapJQuantsFreeQuote({
     requestedCode: "8136",
     quote: tradedQuote,
@@ -109,7 +118,14 @@ const tradedQuote: DailyQuote = {
     firstExecutableAt: "2026-08-07T09:00:00+09:00",
     ingestionRunId: "fixture-run-4",
   }), /retrievedAt must be at or after/);
-  console.log("jquants-free-provider: source-code and observation boundaries fail closed OK");
+  assert.throws(() => mapJQuantsFreeQuote({
+    requestedCode: "8136",
+    quote: { ...tradedQuote, Date: "20260230" },
+    retrievedAt: "2026-08-07T02:30:00.000Z",
+    firstExecutableAt: "2026-08-07T09:00:00+09:00",
+    ingestionRunId: "fixture-run-invalid-date",
+  }), /invalid J-Quants trading date/);
+  console.log("jquants-free-provider: source-code, calendar-date and observation boundaries fail closed OK");
 }
 
 {
@@ -144,6 +160,49 @@ const tradedQuote: DailyQuote = {
     asOf: "2026-08-07T02:30:00.000Z",
   }), /exactly one security code/);
   console.log("jquants-free-provider: provider batch contract and unsupported surfaces OK");
+}
+
+{
+  let fetchCalls = 0;
+  let lastRange: [string, string] | null = null;
+  const provider = new JQuantsFreePriceProvider({
+    fetchQuotes: async (_code, from, to) => {
+      fetchCalls += 1;
+      lastRange = [from, to];
+      return [];
+    },
+    now: () => new Date("2026-08-07T02:30:00.000Z"),
+    resolveFirstExecutableAt: () => "2026-08-07T09:00:00+09:00",
+  });
+
+  await assert.rejects(() => provider.fetchDaily({
+    seriesKind: "security",
+    codes: ["8136"],
+    from: "2026-02-31",
+    to: "2026-03-01",
+    asOf: "2026-08-07T02:30:00.000Z",
+  }), /invalid J-Quants trading date/);
+  assert.equal(fetchCalls, 0);
+
+  await assert.rejects(() => provider.fetchDaily({
+    seriesKind: "security",
+    codes: ["8136"],
+    from: "2026-05-15",
+    to: "2026-05-14",
+    asOf: "2026-08-07T02:30:00.000Z",
+  }), /invalid J-Quants query range/);
+  assert.equal(fetchCalls, 0);
+
+  await provider.fetchDaily({
+    seriesKind: "security",
+    codes: ["8136"],
+    from: "20260514",
+    to: "20260514",
+    asOf: "2026-08-07T02:30:00.000Z",
+  });
+  assert.equal(fetchCalls, 1);
+  assert.deepEqual(lastRange, ["2026-05-14", "2026-05-14"]);
+  console.log("jquants-free-provider: query calendar/range validation happens before fetch and canonicalizes dates OK");
 }
 
 console.log("jquants-free-provider.test.ts passed");
