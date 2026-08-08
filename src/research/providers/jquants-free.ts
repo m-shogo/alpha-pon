@@ -282,6 +282,18 @@ export class JQuantsFreePriceProvider implements PriceProvider {
       throw new Error(`invalid J-Quants query range: from=${query.from} to=${query.to}`);
     }
 
+    const earliestObservedAt = jquantsFreeObservedAt(from, this.capabilities.delayDays);
+    if (parseExplicitIso8601Instant(earliestObservedAt, "observedAt") > queryAsOfMs) {
+      return {
+        providerId: this.id,
+        sourceVersion: this.sourceVersion,
+        capabilities: this.capabilities,
+        license: this.license,
+        retrievedAt: this.now().toISOString(),
+        records: [],
+      };
+    }
+
     const quotes = await this.fetchQuotes(requestedCode, from, to);
     const retrievedAt = this.now().toISOString();
     const seenDates = new Set<string>();
