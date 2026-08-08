@@ -10,9 +10,11 @@ import {
   type MissingPriceReason,
   type PitPriceRecord,
   type PriceRecordStatus,
-  type PriceStoreIssue,
 } from "./price-store.js";
-import { validateHardenedPriceRecords } from "./price-store-hardening.js";
+import {
+  validateHardenedPriceRecords,
+  type HardenedPriceIssue,
+} from "./price-store-hardening.js";
 import type { JsonSchema } from "./schema.js";
 
 export const JQUANTS_FREE_AUDIT_MAX_FILES = 128;
@@ -125,7 +127,7 @@ function summarizeSeries(records: readonly PitPriceRecord[]): JQuantsFreeSeriesA
 
 export function summarizeJQuantsFreePriceStoreAudit(input: {
   records: readonly PitPriceRecord[];
-  issues: readonly PriceStoreIssue[];
+  issues: readonly HardenedPriceIssue[];
   filesystemIssues?: readonly AuditFilesystemIssue[];
   fileCount: number;
   ignoredEntryCount?: number;
@@ -152,10 +154,10 @@ export function summarizeJQuantsFreePriceStoreAudit(input: {
   for (const item of input.filesystemIssues ?? []) increment(filesystemIssueCounts, item.code);
   errorCount += (input.filesystemIssues ?? []).length;
 
-  const status: JQuantsFreePriceStoreAuditStatus = input.fileCount === 0
-    ? "no_local_price_files"
-    : errorCount > 0
-      ? "issues_found"
+  const status: JQuantsFreePriceStoreAuditStatus = errorCount > 0
+    ? "issues_found"
+    : input.fileCount === 0
+      ? "no_local_price_files"
       : "ok";
 
   const series = summarizeSeries(input.records);
@@ -202,10 +204,23 @@ export function auditJQuantsFreePriceStore(input: {
 
   const entries = readdirSync(input.root, { withFileTypes: true });
   const jsonlEntries = entries.filter((entry) => entry.name.endsWith(".jsonl"));
-  const ignoredEntryCount = entries.length - jsonlEntries.length;
   const filesystemIssues: AuditFilesystemIssue[] = [];
   const records: PitPriceRecord[] = [];
   let fileCount = 0;
+  let ignoredEntryCount = 0;
+
+  for (const entry of entries) {
+    if (entry.name.endsWith(".jsonl")) continue;
+    if (entry.isDirectory()) {
+      filesystemIssues.push({ code: "nested_price_directory", entry: entry.name });
+      continue;
+    }
+    if (entry.isSymbolicLink() || !entry.isFile()) {
+      filesystemIssues.push({ code: "unsafe_non_price_entry", entry: entry.name });
+      continue;
+    }
+    ignoredEntryCount += 1;
+  }
 
   if (jsonlEntries.length > JQUANTS_FREE_AUDIT_MAX_FILES) {
     filesystemIssues.push({ code: "too_many_price_files", entry: "<root>" });
