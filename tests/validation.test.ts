@@ -47,6 +47,7 @@ import "./edinet-sanrio-real-pilot-integrity.test.js";
 import "./edinet-sanrio-real-pilot-readiness-advisory.test.js";
 import "./research/jquants-free-provider.test.js";
 import "./research/jquants-free-cli-retrieval-boundary.test.js";
+import "./research/jquants-free-provider-future-only-no-network.test.js";
 import "./research/jquants-free-price-store-audit.test.js";
 import "./research/jquants-free-store-conformance.test.js";
 import "./research/private-price-store.test.js";
