@@ -5,7 +5,10 @@ import {
   assertFirstExecutableAtAfterRetrievalStart,
   parseExplicitIso8601Instant,
 } from "../../src/research/jquants-free-cli-boundary.js";
-import { JQuantsFreePriceProvider } from "../../src/research/providers/jquants-free.js";
+import {
+  JQuantsFreePriceProvider,
+  mapJQuantsFreeQuote,
+} from "../../src/research/providers/jquants-free.js";
 
 {
   assert.equal(
@@ -124,20 +127,21 @@ import { JQuantsFreePriceProvider } from "../../src/research/providers/jquants-f
   console.log("jquants-free-cli-retrieval-boundary: strict instant parsing and actual retrievedAt stay separated structurally OK");
 }
 
+const quote: DailyQuote = {
+  Code: "81360",
+  Date: "20260514",
+  Open: 7200,
+  High: 7350,
+  Low: 7150,
+  Close: 7300,
+  Volume: 1_234_500,
+  AdjustmentFactor: 1,
+  AdjustmentClose: 7300,
+  AdjustmentVolume: 1_234_500,
+};
+
 {
   const calls: string[] = [];
-  const quote: DailyQuote = {
-    Code: "81360",
-    Date: "20260514",
-    Open: 7200,
-    High: 7350,
-    Low: 7150,
-    Close: 7300,
-    Volume: 1_234_500,
-    AdjustmentFactor: 1,
-    AdjustmentClose: 7300,
-    AdjustmentVolume: 1_234_500,
-  };
   const provider = new JQuantsFreePriceProvider({
     fetchQuotes: async () => {
       calls.push("fetch-start");
@@ -166,6 +170,41 @@ import { JQuantsFreePriceProvider } from "../../src/research/providers/jquants-f
   assert.equal(batch.retrievedAt, "2026-08-07T03:00:00.000Z");
   assert.equal(batch.records[0]?.retrievedAt, batch.retrievedAt);
   console.log("jquants-free-cli-retrieval-boundary: provider samples retrievedAt after fetch completion OK");
+}
+
+{
+  assert.throws(() => mapJQuantsFreeQuote({
+    requestedCode: "8136",
+    quote,
+    retrievedAt: "2026-08-07T03:00:00",
+    firstExecutableAt: "2026-08-07T12:00:01+09:00",
+    ingestionRunId: "direct-map-timezone-less-retrieval",
+  }), /retrievedAt must be an ISO-8601 timestamp with explicit timezone/);
+  assert.throws(() => mapJQuantsFreeQuote({
+    requestedCode: "8136",
+    quote,
+    retrievedAt: "2026-08-07T03:00:00.000Z",
+    firstExecutableAt: "2026-08-07T12:00:01",
+    ingestionRunId: "direct-map-timezone-less-execution",
+  }), /firstExecutableAt must be an ISO-8601 timestamp with explicit timezone/);
+  console.log("jquants-free-cli-retrieval-boundary: direct map rejects implicit timestamp zones OK");
+}
+
+{
+  const provider = new JQuantsFreePriceProvider({
+    fetchQuotes: async () => [quote],
+    now: () => new Date("2026-08-07T03:00:00.000Z"),
+    resolveFirstExecutableAt: () => "2026-08-07T12:00:01",
+  });
+  await assert.rejects(() => provider.fetchDaily({
+    seriesKind: "security",
+    codes: ["8136"],
+    from: "2026-05-14",
+    to: "2026-05-14",
+    asOf: "2026-08-07T02:59:59.000Z",
+    plan: "free",
+  }), /firstExecutableAt must be an ISO-8601 timestamp with explicit timezone/);
+  console.log("jquants-free-cli-retrieval-boundary: direct provider rejects implicit resolver timestamp zones OK");
 }
 
 console.log("jquants-free-cli-retrieval-boundary.test.ts passed");
