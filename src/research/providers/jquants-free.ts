@@ -274,25 +274,34 @@ export class JQuantsFreePriceProvider implements PriceProvider {
       throw new Error("J-Quants Free fetchDaily accepts exactly one security code per call");
     }
 
+    const queryAsOfMs = parseExplicitIso8601Instant(query.asOf, "query.asOf");
     const requestedCode = canonicalStoreCode(query.codes[0]!);
     const from = normalizeDate(query.from);
     const to = normalizeDate(query.to);
     if (from > to) {
       throw new Error(`invalid J-Quants query range: from=${query.from} to=${query.to}`);
     }
+
     const quotes = await this.fetchQuotes(requestedCode, from, to);
     const retrievedAt = this.now().toISOString();
     const seenDates = new Set<string>();
     const ingestionRunId = `jquants-free:${requestedCode}:${from}:${to}:${retrievedAt}`;
-    const records = quotes.map((quote) => {
+    const records: PitPriceRecordInput[] = [];
+
+    for (const quote of quotes) {
       const tradingDate = normalizeDate(quote.Date);
       if (tradingDate < from || tradingDate > to) {
         throw new Error(`J-Quants returned out-of-range row: ${tradingDate}`);
       }
       if (seenDates.has(tradingDate)) throw new Error(`duplicate J-Quants row for ${tradingDate}`);
       seenDates.add(tradingDate);
+
       const dataAsOf = jquantsTradingDayCloseJst(tradingDate);
       const observedAt = jquantsFreeObservedAt(tradingDate, this.capabilities.delayDays);
+      if (parseExplicitIso8601Instant(observedAt, "observedAt") > queryAsOfMs) {
+        continue;
+      }
+
       const firstExecutableAt = this.resolveFirstExecutableAt({
         code: requestedCode,
         tradingDate,
@@ -300,7 +309,7 @@ export class JQuantsFreePriceProvider implements PriceProvider {
         observedAt,
         retrievedAt,
       });
-      return mapJQuantsFreeQuote({
+      records.push(mapJQuantsFreeQuote({
         requestedCode,
         quote,
         retrievedAt,
@@ -309,9 +318,10 @@ export class JQuantsFreePriceProvider implements PriceProvider {
         delayDays: this.capabilities.delayDays,
         license: this.license,
         sourceVersion: this.sourceVersion,
-      });
-    }).sort((left, right) => left.tradingDate.localeCompare(right.tradingDate));
+      }));
+    }
 
+    records.sort((left, right) => left.tradingDate.localeCompare(right.tradingDate));
     return {
       providerId: this.id,
       sourceVersion: this.sourceVersion,

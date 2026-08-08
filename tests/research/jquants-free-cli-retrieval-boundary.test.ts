@@ -193,15 +193,68 @@ const quote: DailyQuote = {
     asOf: "2026-08-07T14:59:58.000Z",
     plan: "free",
   };
+  let resolverCalls = 0;
   const provider = new JQuantsFreePriceProvider({
     fetchQuotes: async () => [cutoffQuote],
     now: () => new Date("2026-08-07T15:00:01.000Z"),
-    resolveFirstExecutableAt: () => "2026-08-08T00:01:00+09:00",
+    resolveFirstExecutableAt: () => {
+      resolverCalls += 1;
+      return "2026-08-08T00:01:00+09:00";
+    },
   });
   const batch = await provider.fetchDaily(query);
-  const issues = validateProviderBatchAgainstQuery(batch, query, { expectedSource: "jquants" });
-  assert.ok(issues.some(issue => issue.includes("observedAt is after query.asOf")));
-  console.log("jquants-free-cli-retrieval-boundary: row becoming observable after retrieval-start cutoff is rejected OK");
+  assert.equal(batch.records.length, 0);
+  assert.equal(resolverCalls, 0, "resolver must not run for rows outside the snapshot cutoff");
+  assert.deepEqual(validateProviderBatchAgainstQuery(batch, query, { expectedSource: "jquants" }), []);
+  console.log("jquants-free-cli-retrieval-boundary: direct provider omits rows observed after query.asOf OK");
+}
+
+{
+  const futureQuote: DailyQuote = { ...quote, Date: "20260515" };
+  const query: PriceProviderQuery = {
+    seriesKind: "security",
+    codes: ["8136"],
+    from: "2026-05-14",
+    to: "2026-05-15",
+    asOf: "2026-08-07T14:59:58.000Z",
+    plan: "free",
+  };
+  let resolverCalls = 0;
+  const provider = new JQuantsFreePriceProvider({
+    fetchQuotes: async () => [quote, futureQuote],
+    now: () => new Date("2026-08-07T15:00:01.000Z"),
+    resolveFirstExecutableAt: () => {
+      resolverCalls += 1;
+      return "2026-08-08T00:01:00+09:00";
+    },
+  });
+  const batch = await provider.fetchDaily(query);
+  assert.deepEqual(batch.records.map(record => record.tradingDate), ["2026-05-14"]);
+  assert.equal(resolverCalls, 1, "resolver must run only for the snapshot-eligible row");
+  assert.deepEqual(validateProviderBatchAgainstQuery(batch, query, { expectedSource: "jquants" }), []);
+  console.log("jquants-free-cli-retrieval-boundary: direct provider preserves eligible rows in partial cutoff range OK");
+}
+
+{
+  let fetchCalls = 0;
+  const provider = new JQuantsFreePriceProvider({
+    fetchQuotes: async () => {
+      fetchCalls += 1;
+      return [quote];
+    },
+    now: () => new Date("2026-08-07T15:00:01.000Z"),
+    resolveFirstExecutableAt: () => "2026-08-08T00:01:00+09:00",
+  });
+  await assert.rejects(() => provider.fetchDaily({
+    seriesKind: "security",
+    codes: ["8136"],
+    from: "2026-05-14",
+    to: "2026-05-14",
+    asOf: "2026-08-07T14:59:58",
+    plan: "free",
+  }), /query\.asOf must be an ISO-8601 timestamp with explicit timezone/);
+  assert.equal(fetchCalls, 0, "invalid query.asOf must fail before network fetch");
+  console.log("jquants-free-cli-retrieval-boundary: direct provider rejects implicit query.asOf before fetch OK");
 }
 
 {
