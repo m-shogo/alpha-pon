@@ -1,6 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { assertFirstExecutableAtAfterRetrievalStart } from "../jquants-free-cli-boundary.js";
+import {
+  assertFirstExecutableAtAfterRetrievalStart,
+  parseExplicitIso8601Instant,
+} from "../jquants-free-cli-boundary.js";
 import {
   JQUANTS_FREE_ENTITLEMENT,
   JQuantsFreePriceProvider,
@@ -41,10 +44,12 @@ function dateArg(name: string): string {
   return value;
 }
 
-function timestampArg(name: string): string {
+function timestampArg(name: string): { value: string; epochMs: number } {
   const value = requiredArg(name);
-  if (!Number.isFinite(Date.parse(value))) throw new Error(`--${name} must be an ISO-8601 timestamp`);
-  return value;
+  return {
+    value,
+    epochMs: parseExplicitIso8601Instant(value, `--${name}`),
+  };
 }
 
 function normalizedCode(code: string): string {
@@ -110,16 +115,19 @@ async function main(): Promise<void> {
   const from = dateArg("from");
   const to = dateArg("to");
   if (from > to) throw new Error("--from must be on or before --to");
-  const firstExecutableAt = timestampArg("first-executable-at");
+  const firstExecutable = timestampArg("first-executable-at");
+  const firstExecutableAt = firstExecutable.value;
   const retrievalStartedAt = new Date();
   assertFirstExecutableAtAfterRetrievalStart(firstExecutableAt, retrievalStartedAt);
 
   const provider = new JQuantsFreePriceProvider({
     resolveFirstExecutableAt: ({ observedAt, retrievedAt }) => {
-      if (Date.parse(firstExecutableAt) < Date.parse(retrievedAt)) {
+      const retrievedMs = parseExplicitIso8601Instant(retrievedAt, "provider retrievedAt");
+      const observedMs = parseExplicitIso8601Instant(observedAt, "provider observedAt");
+      if (firstExecutable.epochMs < retrievedMs) {
         throw new Error("--first-executable-at must be at or after actual retrievedAt");
       }
-      if (Date.parse(firstExecutableAt) < Date.parse(observedAt)) {
+      if (firstExecutable.epochMs < observedMs) {
         throw new Error("--first-executable-at must be at or after every record observedAt");
       }
       return firstExecutableAt;
