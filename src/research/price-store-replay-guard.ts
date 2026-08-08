@@ -5,6 +5,7 @@
 // and immutable content hashes accepted at issue time.
 
 import type { PriceSeries } from "./backtest.js";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 import {
   selectPriceRecordsForReplay,
   validateEventStudyPriceAlignment,
@@ -68,10 +69,6 @@ interface ValidatedManifest {
   signature: string;
 }
 
-function timeMs(value: string): number {
-  return Date.parse(value);
-}
-
 function replayIssue(
   code: PriceReplayGuardIssueCode,
   target: string,
@@ -101,8 +98,10 @@ function normalizedUniqueValues(
 function assertManifest(manifest: PriceReplaySnapshotManifest): ValidatedManifest {
   const snapshotId = manifest.snapshotId.trim();
   if (!snapshotId) throw new Error("snapshotId is required");
-  if (!Number.isFinite(timeMs(manifest.informationCutoff))) {
-    throw new Error(`invalid informationCutoff: ${manifest.informationCutoff}`);
+  try {
+    parseExplicitIso8601Instant(manifest.informationCutoff, "informationCutoff");
+  } catch (error) {
+    throw new Error(`invalid informationCutoff: ${(error as Error).message}`);
   }
   const runIds = normalizedUniqueValues(
     manifest.allowedIngestionRunIds,
