@@ -45,9 +45,22 @@ function testDateFormats() {
   assert.equal(isValidDate("2026-08-04"), true);
   assert.equal(isValidDate("2026-02-31"), false, "存在しない日付は弾く");
   assert.equal(isValidDate("20260804"), false);
+
   assert.equal(isValidDateTime("2026-08-04T15:30:00+09:00"), true);
+  assert.equal(isValidDateTime("2026-08-04T15:30+09:00"), true, "既存の秒省略形式は維持する");
+  assert.equal(isValidDateTime("2024-02-29T15:30:00Z"), true, "実在する閏日は許可する");
+  assert.equal(isValidDateTime("2026-08-04T15:30:00.123456789+09:00"), true);
   assert.equal(isValidDateTime("2026-08-04T15:30:00"), false, "タイムゾーン必須");
   assert.equal(isValidDateTime("2026-08-04"), false);
+
+  assert.equal(isValidDateTime("2026-02-29T12:00:00Z"), false, "非閏年2/29を3/1へ繰り上げない");
+  assert.equal(isValidDateTime("2026-02-31T12:00:00Z"), false, "存在しない月日を繰り上げない");
+  assert.equal(isValidDateTime("2026-08-04T24:00:00Z"), false, "24:00を翌日へ繰り上げない");
+  assert.equal(isValidDateTime("2026-08-04T15:60:00Z"), false, "不正minuteを拒否する");
+  assert.equal(isValidDateTime("2026-08-04T15:30:60Z"), false, "leap secondは現在のcontractでは許可しない");
+  assert.equal(isValidDateTime("2026-08-04T15:30:00+14:00"), true, "UTC offset上限は許可する");
+  assert.equal(isValidDateTime("2026-08-04T15:30:00+14:01"), false, "UTC offset上限超過を拒否する");
+  assert.equal(isValidDateTime("2026-08-04T15:30:00+15:00"), false, "非現実的offsetを拒否する");
   console.log("research/schema: 日付フォーマット OK");
 }
 
