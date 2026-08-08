@@ -20,7 +20,7 @@ function daysInMonth(year: number, month: number): number {
 }
 
 export function parseExplicitIso8601Instant(value: string, label: string): number {
-  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?(Z|[+-]\d{2}:\d{2})$/.exec(value);
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(Z|[+-]\d{2}:\d{2})$/.exec(value);
   if (!match) {
     throw new Error(`${label} must be an ISO-8601 timestamp with explicit timezone`);
   }
@@ -31,6 +31,7 @@ export function parseExplicitIso8601Instant(value: string, label: string): numbe
   const hour = Number(match[4]);
   const minute = Number(match[5]);
   const second = Number(match[6]);
+  const fractional = match[7] ?? "";
   const zone = match[8]!;
 
   if (
@@ -48,6 +49,7 @@ export function parseExplicitIso8601Instant(value: string, label: string): numbe
     throw new Error(`${label} must be a valid Gregorian ISO-8601 timestamp`);
   }
 
+  let offsetMinutes = 0;
   if (zone !== "Z") {
     const offsetHour = Number(zone.slice(1, 3));
     const offsetMinute = Number(zone.slice(4, 6));
@@ -58,13 +60,19 @@ export function parseExplicitIso8601Instant(value: string, label: string): numbe
     ) {
       throw new Error(`${label} must have a valid timezone offset within ±14:00`);
     }
+    const sign = zone.startsWith("+") ? 1 : -1;
+    offsetMinutes = sign * (offsetHour * 60 + offsetMinute);
   }
 
-  const parsed = Date.parse(value);
-  if (!Number.isFinite(parsed)) {
+  const milliseconds = Number((fractional + "000").slice(0, 3));
+  const localClock = new Date(0);
+  localClock.setUTCFullYear(year, month - 1, day);
+  localClock.setUTCHours(hour, minute, second, milliseconds);
+  const instantMs = localClock.getTime() - offsetMinutes * 60_000;
+  if (!Number.isFinite(instantMs)) {
     throw new Error(`${label} must be a valid ISO-8601 timestamp`);
   }
-  return parsed;
+  return instantMs;
 }
 
 export function assertFirstExecutableAtAfterRetrievalStart(
