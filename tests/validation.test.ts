@@ -58,6 +58,7 @@ import "./research/quantitative-outcome.test.js";
 import "./research/quantitative-outcome-price-pit-timing.test.js";
 import "./research/corporate-action-clearance.test.js";
 import "./research/outcome-semantic-review.test.js";
+import "./research/outcome-semantic-review-evidence-instant.test.js";
 import "./research/outcome-review-due.test.js";
 import "./research/outcome-learning-proposal.test.js";
 import "./research/outcome-learning-decision.test.js";
