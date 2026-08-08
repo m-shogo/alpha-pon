@@ -52,7 +52,7 @@ const SUPPORTED_KEYWORDS = new Set([
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const DATE_TIME_PATTERN =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
+  /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(Z|([+-])(\d{2}):(\d{2}))$/;
 
 export function isValidDate(value: string): boolean {
   if (!DATE_PATTERN.test(value)) return false;
@@ -63,8 +63,33 @@ export function isValidDate(value: string): boolean {
 }
 
 export function isValidDateTime(value: string): boolean {
-  if (!DATE_TIME_PATTERN.test(value)) return false;
-  return !Number.isNaN(new Date(value).getTime());
+  const match = DATE_TIME_PATTERN.exec(value);
+  if (!match) return false;
+  if (!isValidDate(match[1]!)) return false;
+
+  const hour = Number(match[2]);
+  const minute = Number(match[3]);
+  const second = match[4] === undefined ? 0 : Number(match[4]);
+  if (
+    hour < 0
+    || hour > 23
+    || minute < 0
+    || minute > 59
+    || second < 0
+    || second > 59
+  ) return false;
+
+  if (match[5] !== "Z") {
+    const offsetHour = Number(match[7]);
+    const offsetMinute = Number(match[8]);
+    if (
+      offsetHour > 14
+      || offsetMinute > 59
+      || (offsetHour === 14 && offsetMinute !== 0)
+    ) return false;
+  }
+
+  return true;
 }
 
 function typeOf(value: unknown): string {
