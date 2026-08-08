@@ -9,6 +9,7 @@ import {
   readFileSync,
 } from "node:fs";
 import { dirname } from "node:path";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 import { stableStringify, validate, type JsonSchema } from "./schema.js";
 
 export type CorporateActionEvidenceTier = "A" | "B";
@@ -104,8 +105,15 @@ export function validateCorporateActionClearanceRecord(
   if (record.fromTradingDate > record.throughTradingDate) {
     issues.push(issue("clearance_window_reversed", target, "fromTradingDate <= throughTradingDate が必要です"));
   }
-  if (!Number.isFinite(Date.parse(record.assessedAt))) {
+
+  let assessedAtMs: number;
+  try {
+    assessedAtMs = parseExplicitIso8601Instant(record.assessedAt, "assessedAt");
+  } catch {
     issues.push(issue("invalid_assessed_at", target, "assessedAtが不正です"));
+    return issues.sort((left, right) =>
+      `${left.code}|${left.target}|${left.message}`.localeCompare(`${right.code}|${right.target}|${right.message}`),
+    );
   }
 
   for (const evidence of record.sourceEvidence) {
@@ -121,7 +129,18 @@ export function validateCorporateActionClearanceRecord(
     if (canonical.tier !== evidence.tier) {
       issues.push(issue("evidence_tier_mismatch", target, `evidence tierが正本と一致しません: ${evidence.ref}`));
     }
-    if (Date.parse(canonical.observedAt) > Date.parse(record.assessedAt)) {
+    let observedAtMs: number;
+    try {
+      observedAtMs = parseExplicitIso8601Instant(canonical.observedAt, `Evidence ${evidence.ref}.observedAt`);
+    } catch {
+      issues.push(issue(
+        "invalid_evidence_observed_at",
+        target,
+        `Evidence observedAtが不正です: ${evidence.ref}`,
+      ));
+      continue;
+    }
+    if (observedAtMs > assessedAtMs) {
       issues.push(issue("future_evidence", target, `assessedAt後のEvidenceを事前clearanceへ使えません: ${evidence.ref}`));
     }
   }
@@ -158,7 +177,7 @@ export function validateCorporateActionClearanceRecords(
       issues.push(issue(
         "clearance_revision_fork",
         parentId,
-        `clearance revisionを分岐できません: ${children.sort().join(", ")}`,
+        `clearance revisionを分岐できません: ${children.sort().join(",")}`,
       ));
     }
   }
