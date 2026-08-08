@@ -73,6 +73,10 @@ function increment(counts: Record<string, number>, key: string): void {
   counts[key] = (counts[key] ?? 0) + 1;
 }
 
+function hasGroupOrOtherPermissions(mode: number): boolean {
+  return (mode & 0o077) !== 0;
+}
+
 function seriesKey(record: PitPriceRecord): string {
   return [
     record.seriesKind,
@@ -209,6 +213,13 @@ export function auditJQuantsFreePriceStore(input: {
   let fileCount = 0;
   let ignoredEntryCount = 0;
 
+  if (hasGroupOrOtherPermissions(rootStat.mode)) {
+    filesystemIssues.push({
+      code: "permissive_root_permissions",
+      entry: basename(input.root),
+    });
+  }
+
   for (const entry of entries) {
     if (entry.name.endsWith(".jsonl")) continue;
     if (entry.isDirectory()) {
@@ -241,6 +252,9 @@ export function auditJQuantsFreePriceStore(input: {
     if (stat.size > JQUANTS_FREE_AUDIT_MAX_FILE_BYTES) {
       filesystemIssues.push({ code: "oversized_price_file", entry: safeName });
       continue;
+    }
+    if (hasGroupOrOtherPermissions(stat.mode)) {
+      filesystemIssues.push({ code: "permissive_price_file_permissions", entry: safeName });
     }
 
     fileCount += 1;
