@@ -10,6 +10,7 @@ import {
   computeRecommendationHash,
   type RecommendationRecord,
 } from "./recommendation-persistence.js";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 
 export type OutcomeReviewDueStateKind =
   | "not_due"
@@ -64,12 +65,22 @@ function daysBetweenDates(from: string, to: string): number {
   return Math.round((toMs - fromMs) / 86_400_000);
 }
 
+function reviewedAtMs(value: string, target: string): number {
+  try {
+    return parseExplicitIso8601Instant(value, target);
+  } catch (error) {
+    throw new Error(`invalid ${target}: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
 function latestByReviewedAt<T extends { reviewedAt: string }>(
   records: T[],
   tieBreaker: (record: T) => string,
+  target: string,
 ): T | null {
   return [...records].sort((left, right) => {
-    const timeDiff = Date.parse(right.reviewedAt) - Date.parse(left.reviewedAt);
+    const timeDiff = reviewedAtMs(right.reviewedAt, `${target}.reviewedAt`)
+      - reviewedAtMs(left.reviewedAt, `${target}.reviewedAt`);
     return timeDiff !== 0 ? timeDiff : tieBreaker(left).localeCompare(tieBreaker(right));
   })[0] ?? null;
 }
@@ -86,6 +97,7 @@ function canonicalQuantitativeOutcomes(input: {
     if (computeQuantitativeOutcomeHash(record) !== record.contentHash) {
       throw new Error(`invalid Quantitative Outcome contentHash: ${record.outcomeId}`);
     }
+    reviewedAtMs(record.reviewedAt, `Quantitative Outcome ${record.outcomeId}.reviewedAt`);
   }
   return matches;
 }
@@ -104,6 +116,7 @@ function canonicalSemanticReviews(input: {
     if (computeOutcomeSemanticReviewHash(record) !== record.contentHash) {
       throw new Error(`invalid Semantic Review contentHash: ${record.reviewId}`);
     }
+    reviewedAtMs(record.reviewedAt, `Semantic Review ${record.reviewId}.reviewedAt`);
     const outcome = outcomeById.get(record.quantitativeOutcomeId);
     if (
       !outcome
@@ -134,7 +147,7 @@ function stateFor(input: {
     quantitativeOutcomes: quant,
     records: input.semanticReviews,
   });
-  const latestQuant = latestByReviewedAt(quant, (record) => record.outcomeId);
+  const latestQuant = latestByReviewedAt(quant, (record) => record.outcomeId, "Quantitative Outcome");
   const reviewsForLatestQuant = latestQuant
     ? reviews.filter((record) =>
       record.quantitativeOutcomeId === latestQuant.outcomeId
@@ -144,6 +157,7 @@ function stateFor(input: {
   const latestReviewForLatestQuant = latestByReviewedAt(
     reviewsForLatestQuant,
     (record) => record.reviewId,
+    "Semantic Review",
   );
 
   const dueDate = input.recommendation.outcomeReviewDate;
