@@ -5,6 +5,8 @@ import {
   assertFirstExecutableAtAfterRetrievalStart,
   parseExplicitIso8601Instant,
 } from "../../src/research/jquants-free-cli-boundary.js";
+import { validateProviderBatchAgainstQuery } from "../../src/research/price-store-hardening.js";
+import type { PriceProviderQuery } from "../../src/research/price-store.js";
 import {
   JQuantsFreePriceProvider,
   mapJQuantsFreeQuote,
@@ -85,9 +87,11 @@ import {
   const preflightIndex = source.indexOf(
     "assertFirstExecutableAtAfterRetrievalStart(firstExecutableAt, retrievalStartedAt)",
   );
-  const fetchIndex = source.indexOf("await provider.fetchDaily(");
+  const fetchIndex = source.indexOf("await provider.fetchDaily(query)");
+  const batchValidationIndex = source.indexOf("validateProviderBatchAgainstQuery(batch, query");
   assert.ok(preflightIndex >= 0, "CLI must invoke retrieval-start timing preflight");
-  assert.ok(fetchIndex >= 0, "CLI must contain provider fetch");
+  assert.ok(fetchIndex >= 0, "CLI must fetch through the preserved PriceProviderQuery object");
+  assert.ok(batchValidationIndex > fetchIndex, "query-aware batch validation must run after provider fetch");
   assert.ok(preflightIndex < fetchIndex, "timing preflight must execute before provider/network fetch");
   assert.equal(
     source.includes("now: () => retrievalStartedAt"),
@@ -98,6 +102,16 @@ import {
     source,
     /parseExplicitIso8601Instant\(value, `--\$\{name\}`\)/,
     "CLI timestampArg must use the strict explicit-timezone parser",
+  );
+  assert.match(
+    source,
+    /const query: PriceProviderQuery = \{[\s\S]*?asOf: retrievalStartedAt\.toISOString\(\)/,
+    "CLI must preserve retrieval start as the query snapshot cutoff",
+  );
+  assert.match(
+    source,
+    /validateProviderBatchAgainstQuery\(batch, query, \{[\s\S]*?expectedSource: "jquants"/,
+    "CLI must validate the returned batch against its exact query and source",
   );
   assert.match(
     source,
@@ -116,15 +130,10 @@ import {
   );
   assert.match(
     source,
-    /asOf: retrievalStartedAt\.toISOString\(\)/,
-    "query cutoff may use retrieval start without rewriting record retrievedAt",
-  );
-  assert.match(
-    source,
     /appendPrivatePriceRecords\([\s\S]*?now: new Date\(\),/,
     "local append validation clock must be sampled after fetch",
   );
-  console.log("jquants-free-cli-retrieval-boundary: strict instant parsing and actual retrievedAt stay separated structurally OK");
+  console.log("jquants-free-cli-retrieval-boundary: query cutoff and actual retrievedAt stay separated structurally OK");
 }
 
 const quote: DailyQuote = {
@@ -170,6 +179,29 @@ const quote: DailyQuote = {
   assert.equal(batch.retrievedAt, "2026-08-07T03:00:00.000Z");
   assert.equal(batch.records[0]?.retrievedAt, batch.retrievedAt);
   console.log("jquants-free-cli-retrieval-boundary: provider samples retrievedAt after fetch completion OK");
+}
+
+{
+  const cutoffQuote: DailyQuote = { ...quote, Date: "20260515" };
+  const query: PriceProviderQuery = {
+    seriesKind: "security",
+    codes: ["8136"],
+    from: "2026-05-15",
+    to: "2026-05-15",
+    // Free observedAt for 2026-05-15 is 2026-08-07T23:59:59+09:00,
+    // one second after this snapshot cutoff.
+    asOf: "2026-08-07T14:59:58.000Z",
+    plan: "free",
+  };
+  const provider = new JQuantsFreePriceProvider({
+    fetchQuotes: async () => [cutoffQuote],
+    now: () => new Date("2026-08-07T15:00:01.000Z"),
+    resolveFirstExecutableAt: () => "2026-08-08T00:01:00+09:00",
+  });
+  const batch = await provider.fetchDaily(query);
+  const issues = validateProviderBatchAgainstQuery(batch, query, { expectedSource: "jquants" });
+  assert.ok(issues.some(issue => issue.includes("observedAt is after query.asOf")));
+  console.log("jquants-free-cli-retrieval-boundary: row becoming observable after retrieval-start cutoff is rejected OK");
 }
 
 {
