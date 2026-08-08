@@ -4,6 +4,7 @@ import {
   assertFirstExecutableAtAfterRetrievalStart,
   parseExplicitIso8601Instant,
 } from "../jquants-free-cli-boundary.js";
+import { validateProviderBatchAgainstQuery } from "../price-store-hardening.js";
 import {
   JQUANTS_FREE_ENTITLEMENT,
   JQuantsFreePriceProvider,
@@ -12,10 +13,7 @@ import {
 } from "../providers/jquants-free.js";
 import { jquantsFreeRecordOutput } from "../providers/jquants-free-output.js";
 import { appendPrivatePriceRecords } from "../private-price-store.js";
-import {
-  validateProviderBatch,
-  withPriceRecordHash,
-} from "../price-store.js";
+import { withPriceRecordHash, type PriceProviderQuery } from "../price-store.js";
 import type { JsonSchema } from "../schema.js";
 
 function argValue(name: string): string | null {
@@ -111,7 +109,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  const code = requiredArg("code");
+  const code = normalizedCode(requiredArg("code"));
   const from = dateArg("from");
   const to = dateArg("to");
   if (from > to) throw new Error("--from must be on or before --to");
@@ -134,15 +132,18 @@ async function main(): Promise<void> {
     },
   });
 
-  const batch = await provider.fetchDaily({
+  const query: PriceProviderQuery = {
     seriesKind: "security",
     codes: [code],
     from,
     to,
     asOf: retrievalStartedAt.toISOString(),
     plan: "free",
+  };
+  const batch = await provider.fetchDaily(query);
+  const batchIssues = validateProviderBatchAgainstQuery(batch, query, {
+    expectedSource: "jquants",
   });
-  const batchIssues = validateProviderBatch(batch);
   if (batchIssues.length > 0) {
     throw new Error(`J-Quants provider batch invalid:\n${batchIssues.join("\n")}`);
   }
