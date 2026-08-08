@@ -204,6 +204,21 @@ const sectorDay = measurement(sectorBaseline, 3020);
 }
 
 {
+  const implicitZoneBaseline = withPriceRecordHash(priceInput({
+    retrievedAt: "2026-08-07T08:45:00",
+  }));
+  assert.throws(() => buildWith({
+    issuerBaseline: implicitZoneBaseline,
+    benchmarkBaseline,
+    sectorBaseline,
+    issuerDay: measurement(implicitZoneBaseline, 1050),
+    benchmarkDay,
+    sectorDay,
+  }), /issuer baseline: invalid price PIT timeline.*explicit timezone/);
+  console.log("quantitative-outcome-price-pit-timing: rehashed baseline with implicit timestamp zone is rejected OK");
+}
+
+{
   const impossibleMeasurement = measurement(issuerBaseline, 1050, {
     retrievedAt: "2026-08-10T09:05:00+09:00",
     firstExecutableAt: "2026-08-10T09:00:00+09:00",
@@ -217,6 +232,21 @@ const sectorDay = measurement(sectorBaseline, 3020);
     sectorDay,
   }), /issuer measurement: invalid price PIT timeline.*execution_before_retrieval/);
   console.log("quantitative-outcome-price-pit-timing: rehashed invalid measurement timeline is rejected OK");
+}
+
+{
+  const implicitZoneMeasurement = measurement(issuerBaseline, 1050, {
+    firstExecutableAt: "2026-08-10T09:00:00",
+  });
+  assert.throws(() => buildWith({
+    issuerBaseline,
+    benchmarkBaseline,
+    sectorBaseline,
+    issuerDay: implicitZoneMeasurement,
+    benchmarkDay,
+    sectorDay,
+  }), /issuer measurement: invalid price PIT timeline.*explicit timezone/);
+  console.log("quantitative-outcome-price-pit-timing: rehashed measurement with implicit timestamp zone is rejected OK");
 }
 
 console.log("quantitative-outcome-price-pit-timing.test.ts passed");
