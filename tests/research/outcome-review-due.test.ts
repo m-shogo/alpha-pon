@@ -294,6 +294,41 @@ const human1 = semanticReview({
 }
 
 {
+  const invalidReviewedAtQuant = withQuantitativeOutcomeHash({
+    ...quant1,
+    reviewedAt: "2026-08-20T10:00:00",
+    measurementCutoff: "2026-08-20T10:00:00",
+  });
+  assert.throws(
+    () => deriveOutcomeReviewDueState({
+      recommendation,
+      quantitativeOutcomes: [invalidReviewedAtQuant],
+      semanticReviews: [],
+      asOf: new Date("2026-08-21T03:00:00.000Z"),
+    }),
+    /invalid Quantitative Outcome .*reviewedAt/,
+  );
+  console.log("outcome-review-due: re-hashed timezone-less quantitative reviewedAt is rejected OK");
+}
+
+{
+  const invalidReviewedAtReview = withOutcomeSemanticReviewHash({
+    ...provisional1,
+    reviewedAt: "2026-02-29T12:00:00+09:00",
+  });
+  assert.throws(
+    () => deriveOutcomeReviewDueState({
+      recommendation,
+      quantitativeOutcomes: [quant1],
+      semanticReviews: [invalidReviewedAtReview],
+      asOf: new Date("2026-08-21T03:00:00.000Z"),
+    }),
+    /invalid Semantic Review .*reviewedAt/,
+  );
+  console.log("outcome-review-due: re-hashed non-Gregorian semantic reviewedAt is rejected OK");
+}
+
+{
   const summary = deriveOutcomeReviewDueSummary({
     recommendations: [recommendation],
     quantitativeOutcomes: [quant1],
