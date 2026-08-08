@@ -9,6 +9,7 @@ import {
   readFileSync,
 } from "node:fs";
 import { dirname } from "node:path";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 import {
   computeQuantitativeOutcomeHash,
   type QuantitativeOutcomeRecord,
@@ -196,6 +197,7 @@ function evidenceIssues(
   const target = `semantic-review:${record.reviewId}`;
   const issues: OutcomeSemanticReviewIssue[] = [];
   const declared = new Set(record.sourceEvidence.map((candidate) => candidate.ref));
+  const evidenceCutoffMs = parseExplicitIso8601Instant(record.evidenceCutoff, "evidenceCutoff");
 
   for (const evidence of record.sourceEvidence) {
     if (secretLikeReference(evidence.ref)) {
@@ -210,7 +212,21 @@ function evidenceIssues(
     if (canonical.tier !== evidence.tier) {
       issues.push(issue("evidence_tier_mismatch", target, `Evidence tierが正本と一致しません: ${evidence.ref}`));
     }
-    if (Date.parse(canonical.observedAt) > Date.parse(record.evidenceCutoff)) {
+    let observedAtMs: number;
+    try {
+      observedAtMs = parseExplicitIso8601Instant(
+        canonical.observedAt,
+        `Evidence ${evidence.ref}.observedAt`,
+      );
+    } catch {
+      issues.push(issue(
+        "invalid_review_evidence_observed_at",
+        target,
+        `Evidence observedAtが不正です: ${evidence.ref}`,
+      ));
+      continue;
+    }
+    if (observedAtMs > evidenceCutoffMs) {
       issues.push(issue("future_review_evidence", target, `evidenceCutoff後のEvidenceです: ${evidence.ref}`));
     }
   }
