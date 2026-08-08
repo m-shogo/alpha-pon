@@ -66,6 +66,24 @@ function input(overrides: Partial<PitPriceRecordInput> = {}): PitPriceRecordInpu
   console.log("price-store-execution-boundary: execution before retrieval is rejected OK");
 }
 
+for (const [label, overrides] of [
+  ["non-leap-feb29", { observedAt: "2026-02-29T12:00:00Z" }],
+  ["24-hour-rollover", { retrievedAt: "2026-08-07T24:00:00Z" }],
+  ["offset-over-14", { firstExecutableAt: "2026-08-07T16:06:00+15:00" }],
+] as const) {
+  const record = withPriceRecordHash(input(overrides));
+  const issues = validatePriceRecord(
+    record,
+    schema,
+    new Date("2026-08-08T12:00:00.000Z"),
+  );
+  assert.ok(
+    issues.some(issue => issue.code === "schema"),
+    `${label} must be rejected by canonical Price Store schema validation`,
+  );
+}
+console.log("price-store-execution-boundary: JavaScript date-time rollover cannot enter canonical store OK");
+
 {
   const record = input({ firstExecutableAt: "2026-08-07T01:04:00.000Z" });
   const batch: PriceProviderBatch = {
