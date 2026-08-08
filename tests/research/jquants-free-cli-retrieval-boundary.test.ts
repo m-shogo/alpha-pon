@@ -13,8 +13,12 @@ import { JQuantsFreePriceProvider } from "../../src/research/providers/jquants-f
     Date.parse("2024-02-29T12:34:56Z"),
   );
   assert.equal(
-    parseExplicitIso8601Instant("2026-08-08T12:34:56.123+09:00", "instant"),
+    parseExplicitIso8601Instant("2026-08-08T12:34:56.123456789+09:00", "instant"),
     Date.parse("2026-08-08T12:34:56.123+09:00"),
+  );
+  assert.equal(
+    parseExplicitIso8601Instant("2026-08-08T12:34:56-05:00", "instant"),
+    Date.parse("2026-08-08T12:34:56-05:00"),
   );
   assert.doesNotThrow(() => parseExplicitIso8601Instant("2026-08-08T12:34:56+14:00", "instant"));
   assert.throws(
