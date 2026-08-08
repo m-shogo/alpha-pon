@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "asOf": "2026-08-07",
+  "asOf": "2026-08-08",
   "weights": {
     "roiNormalizationBps": 300,
     "expectedRoi": 0.25,
