@@ -1,8 +1,52 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import type { DailyQuote } from "../../src/fetcher/jquants.js";
-import { assertFirstExecutableAtAfterRetrievalStart } from "../../src/research/jquants-free-cli-boundary.js";
+import {
+  assertFirstExecutableAtAfterRetrievalStart,
+  parseExplicitIso8601Instant,
+} from "../../src/research/jquants-free-cli-boundary.js";
 import { JQuantsFreePriceProvider } from "../../src/research/providers/jquants-free.js";
+
+{
+  assert.equal(
+    parseExplicitIso8601Instant("2024-02-29T12:34:56Z", "instant"),
+    Date.parse("2024-02-29T12:34:56Z"),
+  );
+  assert.equal(
+    parseExplicitIso8601Instant("2026-08-08T12:34:56.123456789+09:00", "instant"),
+    Date.parse("2026-08-08T12:34:56.123+09:00"),
+  );
+  assert.equal(
+    parseExplicitIso8601Instant("2026-08-08T12:34:56-05:00", "instant"),
+    Date.parse("2026-08-08T12:34:56-05:00"),
+  );
+  assert.doesNotThrow(() => parseExplicitIso8601Instant("2026-08-08T12:34:56+14:00", "instant"));
+  assert.throws(
+    () => parseExplicitIso8601Instant("2026-08-08T12:34:56", "instant"),
+    /explicit timezone/,
+  );
+  assert.throws(
+    () => parseExplicitIso8601Instant("2026-08-08", "instant"),
+    /explicit timezone/,
+  );
+  assert.throws(
+    () => parseExplicitIso8601Instant("2026-02-29T12:34:56Z", "instant"),
+    /valid Gregorian/,
+  );
+  assert.throws(
+    () => parseExplicitIso8601Instant("2026-08-08T24:00:00Z", "instant"),
+    /valid Gregorian/,
+  );
+  assert.throws(
+    () => parseExplicitIso8601Instant("2026-08-08T12:34:56+14:01", "instant"),
+    /timezone offset/,
+  );
+  assert.throws(
+    () => parseExplicitIso8601Instant("2026-08-08T12:34:56+15:00", "instant"),
+    /timezone offset/,
+  );
+  console.log("jquants-free-cli-retrieval-boundary: explicit ISO instant parser fails closed OK");
+}
 
 {
   const startedAt = new Date("2026-08-07T03:00:00.000Z");
@@ -49,8 +93,18 @@ import { JQuantsFreePriceProvider } from "../../src/research/providers/jquants-f
   );
   assert.match(
     source,
+    /parseExplicitIso8601Instant\(value, `--\$\{name\}`\)/,
+    "CLI timestampArg must use the strict explicit-timezone parser",
+  );
+  assert.match(
+    source,
     /resolveFirstExecutableAt: \(\{ observedAt, retrievedAt \}\) =>/,
     "CLI resolver must receive the actual provider retrievedAt",
+  );
+  assert.match(
+    source,
+    /parseExplicitIso8601Instant\(retrievedAt, "provider retrievedAt"\)/,
+    "CLI resolver must parse provider retrievedAt explicitly",
   );
   assert.match(
     source,
@@ -67,7 +121,7 @@ import { JQuantsFreePriceProvider } from "../../src/research/providers/jquants-f
     /appendPrivatePriceRecords\([\s\S]*?now: new Date\(\),/,
     "local append validation clock must be sampled after fetch",
   );
-  console.log("jquants-free-cli-retrieval-boundary: preflight/start cutoff is separated from actual retrievedAt structurally OK");
+  console.log("jquants-free-cli-retrieval-boundary: strict instant parsing and actual retrievedAt stay separated structurally OK");
 }
 
 {
