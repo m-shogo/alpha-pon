@@ -23,6 +23,8 @@ function context(): CorporateActionClearanceContext {
       ["official:exchange:corporate-actions:001", { tier: "A", observedAt: "2026-08-14T09:00:00+09:00" }],
       ["official:issuer:corporate-actions:001", { tier: "B", observedAt: "2026-08-14T09:05:00+09:00" }],
       ["official:future:001", { tier: "A", observedAt: "2026-08-14T11:00:00+09:00" }],
+      ["official:timezone-less:001", { tier: "A", observedAt: "2026-08-14T09:00:00" }],
+      ["official:invalid-date:001", { tier: "A", observedAt: "2026-02-29T09:00:00+09:00" }],
     ]),
   };
 }
@@ -69,6 +71,30 @@ function codes(issues: ReturnType<typeof validateCorporateActionClearanceRecord>
   );
   assert.ok(codes(issues).includes("future_evidence"));
   console.log("corporate-action-clearance: post-assessment Evidence is rejected OK");
+}
+
+{
+  const input = baseInput();
+  input.sourceEvidence = [{ tier: "A", ref: "official:timezone-less:001" }];
+  const issues = validateCorporateActionClearanceRecord(
+    withCorporateActionClearanceHash(input),
+    schema,
+    context(),
+  );
+  assert.ok(codes(issues).includes("invalid_evidence_observed_at"));
+  console.log("corporate-action-clearance: timezone-less context Evidence is rejected OK");
+}
+
+{
+  const input = baseInput();
+  input.sourceEvidence = [{ tier: "A", ref: "official:invalid-date:001" }];
+  const issues = validateCorporateActionClearanceRecord(
+    withCorporateActionClearanceHash(input),
+    schema,
+    context(),
+  );
+  assert.ok(codes(issues).includes("invalid_evidence_observed_at"));
+  console.log("corporate-action-clearance: non-Gregorian context Evidence is rejected OK");
 }
 
 {
