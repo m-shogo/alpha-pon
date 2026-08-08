@@ -141,7 +141,51 @@ function recordInput(overrides: Partial<PitPriceRecordInput> = {}): PitPriceReco
   assert.equal(report.status, "issues_found");
   assert.equal(report.filesystemIssueCounts.unsafe_price_file, 1);
   assert.equal(report.recordCount, 0);
-  console.log("jquants-free-price-store-audit: symlink file rejects before read OK");
+  console.log("jquants-free-price-store-audit: symlink price file rejects before read OK");
+}
+
+{
+  const sandbox = mkdtempSync(join(tmpdir(), "alpha-pon-jquants-audit-nested-"));
+  const root = join(sandbox, "jquants-free");
+  const nested = join(root, "hidden");
+  mkdirSync(nested, { recursive: true });
+  writeFileSync(join(nested, "8136.jsonl"), "licensed-raw-line-that-must-not-be-read\n");
+  const report = auditJQuantsFreePriceStore({ root, schema });
+  assert.equal(report.status, "issues_found");
+  assert.equal(report.filesystemIssueCounts.nested_price_directory, 1);
+  assert.equal(report.recordCount, 0);
+  assert.equal(report.ignoredEntryCount, 0);
+  assert.equal(JSON.stringify(report).includes("licensed-raw-line"), false);
+  console.log("jquants-free-price-store-audit: nested directory cannot hide unaudited price files OK");
+}
+
+{
+  const sandbox = mkdtempSync(join(tmpdir(), "alpha-pon-jquants-audit-nonprice-symlink-"));
+  const root = join(sandbox, "jquants-free");
+  const outside = join(sandbox, "outside.txt");
+  mkdirSync(root);
+  writeFileSync(outside, "licensed-raw-line-that-must-not-be-read\n");
+  symlinkSync(outside, join(root, "helper.txt"));
+  const report = auditJQuantsFreePriceStore({ root, schema });
+  assert.equal(report.status, "issues_found");
+  assert.equal(report.filesystemIssueCounts.unsafe_non_price_entry, 1);
+  assert.equal(report.recordCount, 0);
+  assert.equal(report.ignoredEntryCount, 0);
+  assert.equal(JSON.stringify(report).includes("licensed-raw-line"), false);
+  console.log("jquants-free-price-store-audit: non-price symlink is not silently ignored OK");
+}
+
+{
+  const root = join(mkdtempSync(join(tmpdir(), "alpha-pon-jquants-audit-invalid-")), "jquants-free");
+  mkdirSync(root, { recursive: true });
+  writeFileSync(join(root, "8136.jsonl"), "{not-json}\n");
+  const report = auditJQuantsFreePriceStore({ root, schema });
+  assert.equal(report.status, "issues_found");
+  assert.equal(report.fileCount, 1);
+  assert.equal(report.recordCount, 0);
+  assert.equal(report.filesystemIssueCounts.invalid_price_jsonl, 1);
+  assert.equal(JSON.stringify(report).includes("not-json"), false);
+  console.log("jquants-free-price-store-audit: invalid JSONL fails closed without echoing raw line OK");
 }
 
 console.log("jquants-free-price-store-audit.test.ts passed");
