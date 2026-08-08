@@ -51,8 +51,12 @@ export function parseExplicitIso8601Instant(value: string, label: string): numbe
   if (zone !== "Z") {
     const offsetHour = Number(zone.slice(1, 3));
     const offsetMinute = Number(zone.slice(4, 6));
-    if (offsetHour > 23 || offsetMinute > 59) {
-      throw new Error(`${label} must have a valid timezone offset`);
+    if (
+      offsetHour > 14
+      || offsetMinute > 59
+      || (offsetHour === 14 && offsetMinute !== 0)
+    ) {
+      throw new Error(`${label} must have a valid timezone offset within ±14:00`);
     }
   }
 
