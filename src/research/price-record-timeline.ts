@@ -1,3 +1,4 @@
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 import type { PitPriceRecord } from "./price-store.js";
 
 export type PriceRecordTimelineCode =
@@ -17,22 +18,21 @@ type PriceTimelineRecord = Pick<
   "dataAsOf" | "observedAt" | "retrievedAt" | "firstExecutableAt"
 >;
 
+type PriceTimelineField = keyof PriceTimelineRecord;
+
 export function validatePriceRecordTimeline(
   record: PriceTimelineRecord,
 ): PriceRecordTimelineViolation[] {
-  const timestamps = {
-    dataAsOf: Date.parse(record.dataAsOf),
-    observedAt: Date.parse(record.observedAt),
-    retrievedAt: Date.parse(record.retrievedAt),
-    firstExecutableAt: Date.parse(record.firstExecutableAt),
-  };
   const violations: PriceRecordTimelineViolation[] = [];
+  const timestamps = {} as Record<PriceTimelineField, number>;
 
-  for (const [field, value] of Object.entries(timestamps)) {
-    if (!Number.isFinite(value)) {
+  for (const field of ["dataAsOf", "observedAt", "retrievedAt", "firstExecutableAt"] as const) {
+    try {
+      timestamps[field] = parseExplicitIso8601Instant(record[field], field);
+    } catch (cause) {
       violations.push({
         code: "invalid_timestamp",
-        message: `${field} must be a valid timestamp`,
+        message: cause instanceof Error ? cause.message : `${field} must be a valid timestamp`,
       });
     }
   }

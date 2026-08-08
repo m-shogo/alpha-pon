@@ -153,6 +153,26 @@ function context(records: PitPriceRecord[] = [price, benchmark, sector]): Recomm
 }
 
 {
+  const implicitZoneIssuer = withPriceRecordHash(priceInput({
+    retrievedAt: "2026-08-07T08:45:00",
+  }));
+  const input = baseInput();
+  input.currentPriceRecordHash = implicitZoneIssuer.contentHash;
+  input.currentPriceFirstExecutableAt = implicitZoneIssuer.firstExecutableAt;
+  const issues = validateRecommendationRecord(
+    withRecommendationHash(input),
+    schema,
+    context([implicitZoneIssuer, benchmark, sector]),
+  );
+  assert.ok(issues.some(issue =>
+    issue.code === "invalid_pinned_price_timeline"
+    && issue.message.includes("explicit timezone")
+  ));
+  assert.equal(issues.some(issue => issue.code === "invalid_pinned_price_content_hash"), false);
+  console.log("recommendation-price-pit-timing: rehashed issuer with implicit timestamp zone is rejected OK");
+}
+
+{
   const impossibleBenchmark = withPriceRecordHash(priceInput({
     seriesKind: "benchmark",
     code: "TOPIX",
