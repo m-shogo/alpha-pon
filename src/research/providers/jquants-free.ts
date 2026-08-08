@@ -3,6 +3,7 @@ import {
   isJQuantsConfigured,
   type DailyQuote,
 } from "../../fetcher/jquants.js";
+import { parseExplicitIso8601Instant } from "../iso-instant.js";
 import type {
   MissingPriceReason,
   PitPriceRecordInput,
@@ -174,10 +175,8 @@ function assertTimestampAtOrAfter(
   field: string,
   boundaryField: string,
 ): void {
-  const valueMs = Date.parse(value);
-  const boundaryMs = Date.parse(boundary);
-  if (!Number.isFinite(valueMs)) throw new Error(`${field} must be a valid timestamp`);
-  if (!Number.isFinite(boundaryMs)) throw new Error(`${boundaryField} must be a valid timestamp`);
+  const valueMs = parseExplicitIso8601Instant(value, field);
+  const boundaryMs = parseExplicitIso8601Instant(boundary, boundaryField);
   if (valueMs < boundaryMs) throw new Error(`${field} must be at or after ${boundaryField}`);
 }
 
@@ -196,8 +195,9 @@ export function mapJQuantsFreeQuote(input: {
   const tradingDate = normalizeDate(input.quote.Date);
   const delayDays = input.delayDays ?? JQUANTS_FREE_DELAY_DAYS;
   const observedAt = jquantsFreeObservedAt(tradingDate, delayDays);
-  if (!Number.isFinite(Date.parse(input.retrievedAt))) throw new Error("retrievedAt must be a valid timestamp");
-  if (Date.parse(input.retrievedAt) < Date.parse(observedAt)) {
+  const retrievedMs = parseExplicitIso8601Instant(input.retrievedAt, "retrievedAt");
+  const observedMs = parseExplicitIso8601Instant(observedAt, "observedAt");
+  if (retrievedMs < observedMs) {
     throw new Error("retrievedAt must be at or after the Free-plan observedAt boundary");
   }
   assertTimestampAtOrAfter(input.firstExecutableAt, input.retrievedAt, "firstExecutableAt", "retrievedAt");
