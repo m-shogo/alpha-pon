@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import {
+  chmodSync,
   linkSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -89,9 +91,12 @@ function recordInput(overrides: Partial<PitPriceRecordInput> = {}): PitPriceReco
 
 {
   const root = join(mkdtempSync(join(tmpdir(), "alpha-pon-jquants-audit-valid-")), "jquants-free");
-  mkdirSync(root, { recursive: true });
+  mkdirSync(root, { recursive: true, mode: 0o700 });
+  chmodSync(root, 0o700);
   const record = withPriceRecordHash(recordInput());
-  writeFileSync(join(root, "8136.jsonl"), `${JSON.stringify(record)}\n`);
+  const pricePath = join(root, "8136.jsonl");
+  writeFileSync(pricePath, `${JSON.stringify(record)}\n`, { mode: 0o600 });
+  chmodSync(pricePath, 0o600);
   writeFileSync(join(root, "README.txt"), "ignored metadata helper\n");
   const report = auditJQuantsFreePriceStore({
     root,
@@ -103,7 +108,41 @@ function recordInput(overrides: Partial<PitPriceRecordInput> = {}): PitPriceReco
   assert.equal(report.recordCount, 1);
   assert.equal(report.ignoredEntryCount, 1);
   assert.deepEqual(report.filesystemIssueCounts, {});
-  console.log("jquants-free-price-store-audit: valid local JSONL audits without raw-value output OK");
+  console.log("jquants-free-price-store-audit: valid private local JSONL audits without raw-value output OK");
+}
+
+{
+  const root = join(mkdtempSync(join(tmpdir(), "alpha-pon-jquants-audit-permissions-")), "jquants-free");
+  mkdirSync(root, { recursive: true });
+  const pricePath = join(root, "8136.jsonl");
+  writeFileSync(pricePath, `${JSON.stringify(withPriceRecordHash(recordInput()))}\n`);
+  chmodSync(root, 0o755);
+  chmodSync(pricePath, 0o644);
+  const rootModeBefore = lstatSync(root).mode & 0o777;
+  const fileModeBefore = lstatSync(pricePath).mode & 0o777;
+  const report = auditJQuantsFreePriceStore({
+    root,
+    schema,
+    now: new Date("2026-08-08T12:00:00.000Z"),
+  });
+  assert.equal(report.status, "issues_found");
+  assert.equal(report.filesystemIssueCounts.permissive_root_permissions, 1);
+  assert.equal(report.filesystemIssueCounts.permissive_price_file_permissions, 1);
+  assert.equal(report.recordCount, 1, "permission issue does not require echoing or discarding safe metadata");
+  assert.equal(lstatSync(root).mode & 0o777, rootModeBefore, "audit must not chmod root");
+  assert.equal(lstatSync(pricePath).mode & 0o777, fileModeBefore, "audit must not chmod price file");
+
+  chmodSync(root, 0o700);
+  chmodSync(pricePath, 0o600);
+  const corrected = auditJQuantsFreePriceStore({
+    root,
+    schema,
+    now: new Date("2026-08-08T12:00:00.000Z"),
+  });
+  assert.equal(corrected.status, "ok");
+  assert.equal(corrected.filesystemIssueCounts.permissive_root_permissions, undefined);
+  assert.equal(corrected.filesystemIssueCounts.permissive_price_file_permissions, undefined);
+  console.log("jquants-free-price-store-audit: permissive modes are detected read-only and private modes pass OK");
 }
 
 {
