@@ -9,6 +9,7 @@ import {
   readFileSync,
 } from "node:fs";
 import { dirname } from "node:path";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 import { validatePriceRecordTimeline } from "./price-record-timeline.js";
 import { computePriceRecordHash, type PitPriceRecord } from "./price-store.js";
 import { stableStringify, validate, type JsonSchema } from "./schema.js";
@@ -306,6 +307,7 @@ function evidenceContextIssues(
 ): RecommendationIssue[] {
   const target = `recommendation:${record.recommendationId}`;
   const issues: RecommendationIssue[] = [];
+  const informationCutoffMs = parseExplicitIso8601Instant(record.informationCutoff, "informationCutoff");
   for (const evidence of record.sourceEvidence) {
     if (secretLikeReference(evidence.ref)) {
       issues.push(error("secret_like_evidence_ref", target, "secret/tokenを含む可能性があるevidence refは保存できません"));
@@ -319,7 +321,21 @@ function evidenceContextIssues(
     if (source.tier !== evidence.tier) {
       issues.push(error("evidence_tier_mismatch", target, `evidence tierが正本と一致しません: ${evidence.ref}`));
     }
-    if (Date.parse(source.observedAt) > Date.parse(record.informationCutoff)) {
+    let observedAtMs: number;
+    try {
+      observedAtMs = parseExplicitIso8601Instant(
+        source.observedAt,
+        `Evidence ${evidence.ref}.observedAt`,
+      );
+    } catch {
+      issues.push(error(
+        "invalid_recommendation_evidence_observed_at",
+        target,
+        `Evidence observedAtが不正です: ${evidence.ref}`,
+      ));
+      continue;
+    }
+    if (observedAtMs > informationCutoffMs) {
       issues.push(error("future_evidence", target, `informationCutoff後のevidenceです: ${evidence.ref}`));
     }
   }
