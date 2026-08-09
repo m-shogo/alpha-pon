@@ -6,7 +6,9 @@
 //   ここを緩めると Research OS の存在意義（未検証 Production の禁止）が消える。
 
 import type { Issue } from "./edge-registry.js";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 import { checkPit } from "./pit.js";
+import { isValidDate } from "./schema.js";
 import type { Edge, GateKey, ResearchState } from "./types.js";
 import { GATE_KEYS } from "./types.js";
 
@@ -68,8 +70,21 @@ export function gateLabel(gate: GateKey): string {
   return GATE_LABELS[gate];
 }
 
+const DAY_MS = 86_400_000;
+
+function epochDay(value: string, field: string): number {
+  if (!isValidDate(value)) throw new Error(`${field} must be a real YYYY-MM-DD date`);
+  const [year, month, day] = value.split("-").map(Number) as [number, number, number];
+  return Math.trunc(Date.UTC(year, month - 1, day) / DAY_MS);
+}
+
 function daysBetween(from: string, to: string): number {
-  return Math.round((Date.parse(`${to}T00:00:00+09:00`) - Date.parse(`${from}T00:00:00+09:00`)) / 86_400_000);
+  return epochDay(to, "promotion asOf") - epochDay(from, "edge.decay.lastCheckedAt");
+}
+
+function asOfCutoffMs(asOf: string): number {
+  epochDay(asOf, "promotion asOf");
+  return parseExplicitIso8601Instant(`${asOf}T23:59:59.999+09:00`, "promotion asOf cutoff");
 }
 
 /**
@@ -81,6 +96,7 @@ function verifyPassClaims(
   state: ResearchState,
   accessLog: HoldoutAccessEntry[],
   asOf: string,
+  cutoffMs: number,
 ): Array<{ gate: GateKey; reason: string }> {
   const unsupported: Array<{ gate: GateKey; reason: string }> = [];
   const claim = (gate: GateKey) => edge.promotionGate[gate].state === "pass";
@@ -96,13 +112,38 @@ function verifyPassClaims(
     const opened = accessLog.filter((entry) => entry.edgeId === edge.id && entry.purpose === "production_gate");
     if (opened.length === 0) {
       unsupported.push({ gate: "holdoutPass", reason: "Holdout 開封記録（access_log）がありません" });
-    } else if (opened.every((entry) => entry.result !== "pass")) {
-      unsupported.push({ gate: "holdoutPass", reason: "Holdout 開封記録の結果が pass ではありません" });
+    } else {
+      const eligible: HoldoutAccessEntry[] = [];
+      let invalidTimestamp = false;
+      for (const entry of opened) {
+        let openedAtMs: number;
+        try {
+          openedAtMs = parseExplicitIso8601Instant(entry.openedAt, `holdout access ${entry.id}.openedAt`);
+        } catch {
+          invalidTimestamp = true;
+          continue;
+        }
+        if (openedAtMs <= cutoffMs) eligible.push(entry);
+      }
+
+      if (invalidTimestamp) {
+        unsupported.push({
+          gate: "holdoutPass",
+          reason: "Holdout 開封記録に不正な openedAt があります",
+        });
+      } else if (eligible.length === 0) {
+        unsupported.push({
+          gate: "holdoutPass",
+          reason: `${asOf} 時点で利用可能な Holdout 開封記録がありません`,
+        });
+      } else if (eligible.every((entry) => entry.result !== "pass")) {
+        unsupported.push({ gate: "holdoutPass", reason: "asOf 時点の Holdout 開封記録の結果が pass ではありません" });
+      }
     }
   }
 
   if (claim("pitSafe")) {
-    const pitErrors = checkPit(state, new Date(`${asOf}T23:59:59+09:00`)).filter(
+    const pitErrors = checkPit(state, new Date(cutoffMs)).filter(
       (issue) => issue.severity === "error" && issue.target.startsWith(edge.id),
     );
     if (pitErrors.length > 0) {
@@ -137,11 +178,21 @@ function verifyPassClaims(
   if (claim("decayChecked")) {
     if (!edge.decay.lastCheckedAt) {
       unsupported.push({ gate: "decayChecked", reason: "decay.lastCheckedAt がありません" });
-    } else if (daysBetween(edge.decay.lastCheckedAt, asOf) > edge.decay.reviewIntervalDays) {
-      unsupported.push({
-        gate: "decayChecked",
-        reason: `最終確認から ${daysBetween(edge.decay.lastCheckedAt, asOf)} 日経過（上限 ${edge.decay.reviewIntervalDays} 日）`,
-      });
+    } else if (!isValidDate(edge.decay.lastCheckedAt)) {
+      unsupported.push({ gate: "decayChecked", reason: "decay.lastCheckedAt が実在する YYYY-MM-DD ではありません" });
+    } else {
+      const elapsed = daysBetween(edge.decay.lastCheckedAt, asOf);
+      if (elapsed < 0) {
+        unsupported.push({
+          gate: "decayChecked",
+          reason: `decay.lastCheckedAt(${edge.decay.lastCheckedAt}) が asOf(${asOf}) より未来です`,
+        });
+      } else if (elapsed > edge.decay.reviewIntervalDays) {
+        unsupported.push({
+          gate: "decayChecked",
+          reason: `最終確認から ${elapsed} 日経過（上限 ${edge.decay.reviewIntervalDays} 日）`,
+        });
+      }
     }
   }
 
@@ -170,6 +221,7 @@ export function evaluateGate(
   accessLog: HoldoutAccessEntry[],
   asOf: string,
 ): GateEvaluation {
+  const cutoffMs = asOfCutoffMs(asOf);
   const blockers: GateEvaluation["blockers"] = [];
   for (const gate of GATE_KEYS) {
     const item = edge.promotionGate[gate];
@@ -180,7 +232,7 @@ export function evaluateGate(
     });
   }
 
-  const unsupportedPasses = verifyPassClaims(edge, state, accessLog, asOf);
+  const unsupportedPasses = verifyPassClaims(edge, state, accessLog, asOf, cutoffMs);
   const passCount = GATE_KEYS.filter((gate) => edge.promotionGate[gate].state === "pass").length;
 
   return {

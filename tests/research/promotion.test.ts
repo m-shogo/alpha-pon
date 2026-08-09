@@ -57,6 +57,44 @@ function testHoldoutPassRequiresAccessRecord() {
   console.log("research/promotion: Holdout 開封記録の必須化 OK");
 }
 
+function testHoldoutPassRequiresPastStrictAccessRecord() {
+  const edge = passAllGates(makeEdge());
+  edge.samples.current = 20;
+  const state = makeState({ edges: [edge] });
+
+  const valid = evaluateGate(edge, state, [ACCESS], AS_OF);
+  assert.equal(
+    valid.unsupportedPasses.some((item) => item.gate === "holdoutPass"),
+    false,
+    "asOf 時点で利用可能な strict-timestamp PASS は裏取りに使える",
+  );
+
+  const futureAccess: HoldoutAccessEntry = {
+    ...ACCESS,
+    id: "access-future",
+    openedAt: "2024-02-02T00:00:00+09:00",
+  };
+  const future = evaluateGate(edge, state, [futureAccess], AS_OF);
+  assert.ok(
+    future.unsupportedPasses.some((item) => item.gate === "holdoutPass"),
+    "未来に開封した Holdout 結果で現在の Gate を通してはいけない",
+  );
+
+  const implicitTimestamp: HoldoutAccessEntry = {
+    ...ACCESS,
+    id: "access-implicit-timezone",
+    openedAt: "2024-02-01T10:00:00",
+  };
+  const invalid = evaluateGate(edge, state, [implicitTimestamp], AS_OF);
+  assert.ok(
+    invalid.unsupportedPasses.some(
+      (item) => item.gate === "holdoutPass" && item.reason.includes("不正な openedAt"),
+    ),
+    "timezoneなし openedAt は Holdout PASS 根拠に使わない",
+  );
+  console.log("research/promotion: Holdout access temporal provenance OK");
+}
+
 function testCounterfactualRequired() {
   const edge = passAllGates(makeEdge());
   edge.samples.current = 20;
@@ -94,6 +132,51 @@ function testUnresolvedConfounderBlocks() {
   console.log("research/promotion: 未処理 Confounder の遮断 OK");
 }
 
+function testDecayCheckedRequiresValidPastDate() {
+  const edge = passAllGates(makeEdge());
+  edge.samples.current = 20;
+  const state = makeState({ edges: [edge] });
+
+  edge.decay.lastCheckedAt = "2024-02-31";
+  const invalid = evaluateGate(edge, state, [ACCESS], AS_OF);
+  assert.ok(
+    invalid.unsupportedPasses.some(
+      (item) => item.gate === "decayChecked" && item.reason.includes("実在する YYYY-MM-DD"),
+    ),
+    "非実在 Decay 日付は自己申告PASSを裏取りできない",
+  );
+
+  edge.decay.lastCheckedAt = "2024-02-02";
+  const future = evaluateGate(edge, state, [ACCESS], AS_OF);
+  assert.ok(
+    future.unsupportedPasses.some(
+      (item) => item.gate === "decayChecked" && item.reason.includes("未来"),
+    ),
+    "未来の Decay 確認で現在の Gate を通してはいけない",
+  );
+
+  edge.decay.lastCheckedAt = "2024-01-31";
+  const valid = evaluateGate(edge, state, [ACCESS], AS_OF);
+  assert.equal(
+    valid.unsupportedPasses.some((item) => item.gate === "decayChecked"),
+    false,
+    "asOf以前のfreshなDecay確認は従来どおり裏取りできる",
+  );
+  console.log("research/promotion: decayChecked temporal provenance OK");
+}
+
+function testInvalidAsOfFailsClosed() {
+  assert.throws(
+    () => evaluateGate(makeEdge(), makeState(), [], "2024-02-31"),
+    /promotion asOf must be a real YYYY-MM-DD date/,
+  );
+  assert.throws(
+    () => checkProductionIntegrity(makeState({ edges: [makeEdge({ status: "production" })] }), [], "2024-13-01"),
+    /promotion asOf must be a real YYYY-MM-DD date/,
+  );
+  console.log("research/promotion: invalid Production Gate snapshot date fails closed OK");
+}
+
 function testProductionWithoutGateIsIntegrityError() {
   const edge = makeEdge({ status: "production" });
   const issues = checkProductionIntegrity(makeState({ edges: [edge] }), [], AS_OF);
@@ -123,8 +206,11 @@ function testHoldoutWindowMembership() {
 testUnknownGateBlocksPromotion();
 testSampleShortfallIsCaught();
 testHoldoutPassRequiresAccessRecord();
+testHoldoutPassRequiresPastStrictAccessRecord();
 testCounterfactualRequired();
 testUnresolvedConfounderBlocks();
+testDecayCheckedRequiresValidPastDate();
+testInvalidAsOfFailsClosed();
 testProductionWithoutGateIsIntegrityError();
 testHoldoutWindowMembership();
 
