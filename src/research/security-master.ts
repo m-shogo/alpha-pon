@@ -705,7 +705,9 @@ export function validateSecurityMaster(
   return sortIssues(issues);
 }
 
-function recordsObservedBySnapshotDate<T extends { recordId: string; observedAt: string }>(
+function recordsAvailableBySnapshotDate<
+  T extends { recordId: string; observedAt: string; retrievedAt: string }
+>(
   records: readonly T[],
   asOf: string,
 ): T[] {
@@ -716,12 +718,17 @@ function recordsObservedBySnapshotDate<T extends { recordId: string; observedAt:
     `${asOf}T23:59:59.999+09:00`,
     "security master snapshot cutoff",
   );
-  return records.filter((record) =>
-    parseExplicitIso8601Instant(
+  return records.filter((record) => {
+    const observedEpoch = parseExplicitIso8601Instant(
       record.observedAt,
       `security master revision ${record.recordId}.observedAt`,
-    ) <= cutoffEpoch,
-  );
+    );
+    const retrievedEpoch = parseExplicitIso8601Instant(
+      record.retrievedAt,
+      `security master revision ${record.recordId}.retrievedAt`,
+    );
+    return observedEpoch <= cutoffEpoch && retrievedEpoch <= cutoffEpoch;
+  });
 }
 
 export function buildSecurityMasterSnapshot(
@@ -729,8 +736,8 @@ export function buildSecurityMasterSnapshot(
   relationshipRecords: SecurityMasterRelationshipRecord[],
   asOf: string,
 ): SecurityMasterSnapshot {
-  const availableEntities = recordsObservedBySnapshotDate(entityRecords, asOf);
-  const availableRelationships = recordsObservedBySnapshotDate(relationshipRecords, asOf);
+  const availableEntities = recordsAvailableBySnapshotDate(entityRecords, asOf);
+  const availableRelationships = recordsAvailableBySnapshotDate(relationshipRecords, asOf);
   return {
     asOf,
     entities: activeEntityHeads(availableEntities)
