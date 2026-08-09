@@ -214,8 +214,9 @@ function testPriceBarSemanticsFailClosed() {
 
   const invalidBenchmark = series("TOPIX", [2000, 2010, 2020, 2030, 2040]);
   invalidBenchmark.bars[0]!.close = Number.NaN;
+  const benchmarkSpec: BacktestSpec = { ...BASE_SPEC, benchmark: "TOPIX" };
   assert.throws(
-    () => runBacktest(BASE_SPEC, [], new Map([["9001", validSeries]]), invalidBenchmark),
+    () => runBacktest(benchmarkSpec, [], new Map([["9001", validSeries]]), invalidBenchmark),
     /backtest benchmark TOPIX\.bars\[0\]\.close must be a finite positive price/,
   );
   console.log("research/backtest: malformed OHLC and volume inputs fail closed OK");
@@ -250,6 +251,32 @@ function testSpecConformanceFailsClosed() {
   expectSpecRejected((spec) => { spec.exit.stopLossBps = Number.POSITIVE_INFINITY; }, /stopLossBps/);
 
   console.log("research/backtest: direct spec conformance fails closed OK");
+}
+
+function testBenchmarkProvenanceFailsClosed() {
+  const prices = new Map([["9001", series("9001", [1000, 1010, 1020, 1030, 1040])]]);
+  const signals = [{ id: "s1", code: "9001", observedAt: "2024-01-04T16:00:00+09:00" }];
+  const topix = series("TOPIX", [2000, 2005, 2010, 2015, 2020]);
+  const requiredSpec: BacktestSpec = { ...BASE_SPEC, benchmark: "TOPIX" };
+
+  assert.throws(
+    () => runBacktest(requiredSpec, signals, prices),
+    /spec benchmark TOPIX requires a benchmark PriceSeries/,
+  );
+  assert.throws(
+    () => runBacktest(requiredSpec, signals, prices, { ...topix, code: "OTHER-IDX" }),
+    /benchmark code OTHER-IDX must match spec\.benchmark TOPIX/,
+  );
+  assert.throws(
+    () => runBacktest(BASE_SPEC, signals, prices, topix),
+    /benchmark TOPIX was provided but spec\.benchmark is not declared/,
+  );
+
+  const valid = runBacktest(requiredSpec, signals, prices, topix);
+  assert.equal(valid.executedCount, 1);
+  assert.equal(typeof valid.trades[0]?.benchmarkReturnBps, "number");
+  assert.equal(typeof valid.trades[0]?.grossAlphaBps, "number");
+  console.log("research/backtest: declared benchmark provenance is required and pinned OK");
 }
 
 function testSignalOrderingUsesActualInstant() {
@@ -302,6 +329,7 @@ testEventResolutionCannotPrecedeEntry();
 testTemporalInputsFailClosed();
 testPriceBarSemanticsFailClosed();
 testSpecConformanceFailsClosed();
+testBenchmarkProvenanceFailsClosed();
 testSignalOrderingUsesActualInstant();
 testAggregateAndFalseDiscoveryGuard();
 testFixtureBundleIsReproducible();
