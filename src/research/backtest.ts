@@ -98,21 +98,42 @@ function epochDay(value: string, field: string): number {
   return Math.trunc(Date.UTC(year, month - 1, day) / DAY_MS);
 }
 
-function assertPriceSeriesTemporal(series: PriceSeries, label: string): void {
+function assertFinitePositivePrice(value: number, field: string): void {
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error(`${field} must be a finite positive price`);
+  }
+}
+
+function assertPriceSeriesConformance(series: PriceSeries, label: string): void {
   let previousDate: string | null = null;
   for (let index = 0; index < series.bars.length; index += 1) {
     const bar = series.bars[index]!;
+    const barLabel = `${label}.bars[${index}]`;
     if (!isValidDate(bar.date)) {
-      throw new Error(`${label}.bars[${index}].date must be a real YYYY-MM-DD date`);
+      throw new Error(`${barLabel}.date must be a real YYYY-MM-DD date`);
     }
     if (previousDate !== null && bar.date <= previousDate) {
       throw new Error(`${label}.bars must be strictly increasing by date without duplicates`);
     }
     previousDate = bar.date;
+
+    assertFinitePositivePrice(bar.open, `${barLabel}.open`);
+    assertFinitePositivePrice(bar.high, `${barLabel}.high`);
+    assertFinitePositivePrice(bar.low, `${barLabel}.low`);
+    assertFinitePositivePrice(bar.close, `${barLabel}.close`);
+    if (!Number.isSafeInteger(bar.volume) || bar.volume < 0) {
+      throw new Error(`${barLabel}.volume must be a non-negative safe integer`);
+    }
+    if (bar.high < Math.max(bar.open, bar.low, bar.close)) {
+      throw new Error(`${barLabel}.high must be greater than or equal to open/low/close`);
+    }
+    if (bar.low > Math.min(bar.open, bar.high, bar.close)) {
+      throw new Error(`${barLabel}.low must be less than or equal to open/high/close`);
+    }
   }
 }
 
-function assertBacktestTemporalInputs(
+function assertBacktestInputs(
   signals: readonly BacktestSignal[],
   prices: ReadonlyMap<string, PriceSeries>,
   benchmark?: PriceSeries,
@@ -128,10 +149,10 @@ function assertBacktestTemporalInputs(
     if (mapCode !== series.code) {
       throw new Error(`backtest price map key ${mapCode} must match series.code ${series.code}`);
     }
-    assertPriceSeriesTemporal(series, `backtest price series ${series.code}`);
+    assertPriceSeriesConformance(series, `backtest price series ${series.code}`);
   }
 
-  if (benchmark) assertPriceSeriesTemporal(benchmark, `backtest benchmark ${benchmark.code}`);
+  if (benchmark) assertPriceSeriesConformance(benchmark, `backtest benchmark ${benchmark.code}`);
 }
 
 function indexOfFirstBarOnOrAfter(bars: PriceBar[], date: string): number {
@@ -240,7 +261,7 @@ export function runBacktest(
   prices: Map<string, PriceSeries>,
   benchmark?: PriceSeries,
 ): BacktestReport {
-  assertBacktestTemporalInputs(signals, prices, benchmark);
+  assertBacktestInputs(signals, prices, benchmark);
   const trades: TradeResult[] = [];
   const skipped: BacktestReport["skipped"] = [];
 

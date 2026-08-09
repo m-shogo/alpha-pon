@@ -10,14 +10,17 @@ function series(code: string, closes: number[], volume = 1_000_000): PriceSeries
   ];
   return {
     code,
-    bars: closes.map((close, index) => ({
-      date: dates[index],
-      open: index === 0 ? close : closes[index - 1],
-      high: close + 10,
-      low: close - 10,
-      close,
-      volume,
-    })),
+    bars: closes.map((close, index) => {
+      const open = index === 0 ? close : closes[index - 1];
+      return {
+        date: dates[index],
+        open,
+        high: Math.max(open, close) + 10,
+        low: Math.min(open, close) - 10,
+        close,
+        volume,
+      };
+    }),
   };
 }
 
@@ -161,6 +164,38 @@ function testTemporalInputsFailClosed() {
   console.log("research/backtest: temporal and series identity inputs fail closed OK");
 }
 
+function testPriceBarSemanticsFailClosed() {
+  const validSeries = series("9001", [1000, 1010, 1020, 1030, 1040]);
+  const expectRejected = (
+    mutate: (invalid: PriceSeries) => void,
+    pattern: RegExp,
+  ) => {
+    const invalid = structuredClone(validSeries);
+    mutate(invalid);
+    assert.throws(() => runBacktest(BASE_SPEC, [], new Map([["9001", invalid]])), pattern);
+  };
+
+  expectRejected((invalid) => { invalid.bars[0]!.close = Number.NaN; }, /close must be a finite positive price/);
+  expectRejected((invalid) => { invalid.bars[0]!.open = 0; }, /open must be a finite positive price/);
+  expectRejected((invalid) => { invalid.bars[0]!.high = Number.POSITIVE_INFINITY; }, /high must be a finite positive price/);
+  expectRejected((invalid) => {
+    Object.assign(invalid.bars[0]!, { open: 1000, low: 990, close: 1010, high: 1005 });
+  }, /high must be greater than or equal to open\/low\/close/);
+  expectRejected((invalid) => {
+    Object.assign(invalid.bars[0]!, { open: 1000, close: 1010, high: 1200, low: 1100 });
+  }, /low must be less than or equal to open\/high\/close/);
+  expectRejected((invalid) => { invalid.bars[0]!.volume = -1; }, /volume must be a non-negative safe integer/);
+  expectRejected((invalid) => { invalid.bars[0]!.volume = 1.5; }, /volume must be a non-negative safe integer/);
+
+  const invalidBenchmark = series("TOPIX", [2000, 2010, 2020, 2030, 2040]);
+  invalidBenchmark.bars[0]!.close = Number.NaN;
+  assert.throws(
+    () => runBacktest(BASE_SPEC, [], new Map([["9001", validSeries]]), invalidBenchmark),
+    /backtest benchmark TOPIX\.bars\[0\]\.close must be a finite positive price/,
+  );
+  console.log("research/backtest: malformed OHLC and volume inputs fail closed OK");
+}
+
 function testSignalOrderingUsesActualInstant() {
   const prices = new Map([["9001", series("9001", [1000, 1010, 1020, 1030, 1040])]]);
   const report = runBacktest(BASE_SPEC, [
@@ -208,6 +243,7 @@ testLiquidityLimitBlocksExecution();
 testShortSideFlipsSign();
 testStopLossTriggers();
 testTemporalInputsFailClosed();
+testPriceBarSemanticsFailClosed();
 testSignalOrderingUsesActualInstant();
 testAggregateAndFalseDiscoveryGuard();
 testFixtureBundleIsReproducible();
