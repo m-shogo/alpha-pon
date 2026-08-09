@@ -78,6 +78,33 @@ function verifyEnvelopeHash(record: JsonObject, hashField: string, field: string
   return expected;
 }
 
+function verifyFidelity(record: JsonObject): string {
+  if (
+    record.schemaVersion !== 1
+    || record.source !== "edinet"
+    || record.reviewStatus !== "pending_human_review"
+    || record.appendAuthorized !== false
+  ) {
+    throw new Error("fidelity safety boundary is invalid");
+  }
+  const issuer = object(record.issuer, "fidelity.issuer");
+  if (text(issuer.edinetCode) !== "E02655" || text(issuer.secCode) !== "81360") {
+    throw new Error("fidelity issuer is not Sanrio");
+  }
+  const expected = hash(record.fidelityReportHash, "fidelity.fidelityReportHash");
+  const payload = {
+    schemaVersion: record.schemaVersion,
+    source: record.source,
+    sourceFocusedBundleHash: record.sourceFocusedBundleHash,
+    sourceReviewWorkspaceHash: record.sourceReviewWorkspaceHash,
+    fidelityPlanHash: record.fidelityPlanHash,
+    candidates: record.candidates,
+    appendAuthorized: record.appendAuthorized,
+  };
+  if (digest(payload) !== expected) throw new Error("fidelity.fidelityReportHash mismatch");
+  return expected;
+}
+
 function verifyInspection(record: JsonObject): string {
   if (
     record.schemaVersion !== 1
@@ -143,6 +170,12 @@ export function assertSanrioRealPilotPreflightIntegrity(
 ): void {
   const root = resolve(edinetRoot);
   const selected = result.selectedFiles;
+
+  if (selected.fidelity) {
+    const fidelity = resolveSelected(root, selected.fidelity, "fidelity");
+    verifyFidelity(fidelity.record);
+  }
+
   if (!selected.inspection) return;
 
   const inspection = resolveSelected(root, selected.inspection, "inspection");
@@ -258,7 +291,7 @@ export function inspectSanrioRealPilotPreflightWithIntegrity(
   edinetRoot = resolve(process.cwd(), "data/edinet"),
 ): SanrioRealPilotPreflightResult {
   const result = inspectSanrioRealPilotPreflight(edinetRoot);
-  if (result.stage !== "missing_edinet_root" && result.stage !== "inspection_required") {
+  if (result.stage !== "missing_edinet_root") {
     assertSanrioRealPilotPreflightIntegrity(result, edinetRoot);
   }
   return result;
