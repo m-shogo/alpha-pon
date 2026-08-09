@@ -113,7 +113,7 @@ function verifyPassClaims(
     if (opened.length === 0) {
       unsupported.push({ gate: "holdoutPass", reason: "Holdout 開封記録（access_log）がありません" });
     } else {
-      const eligible: HoldoutAccessEntry[] = [];
+      const eligible: Array<{ entry: HoldoutAccessEntry; openedAtMs: number }> = [];
       let invalidTimestamp = false;
       for (const entry of opened) {
         let openedAtMs: number;
@@ -123,7 +123,7 @@ function verifyPassClaims(
           invalidTimestamp = true;
           continue;
         }
-        if (openedAtMs <= cutoffMs) eligible.push(entry);
+        if (openedAtMs <= cutoffMs) eligible.push({ entry, openedAtMs });
       }
 
       if (invalidTimestamp) {
@@ -136,8 +136,21 @@ function verifyPassClaims(
           gate: "holdoutPass",
           reason: `${asOf} 時点で利用可能な Holdout 開封記録がありません`,
         });
-      } else if (eligible.every((entry) => entry.result !== "pass")) {
-        unsupported.push({ gate: "holdoutPass", reason: "asOf 時点の Holdout 開封記録の結果が pass ではありません" });
+      } else {
+        const latestOpenedAtMs = Math.max(...eligible.map((item) => item.openedAtMs));
+        const latest = eligible.filter((item) => item.openedAtMs === latestOpenedAtMs);
+        const latestResults = new Set(latest.map((item) => item.entry.result));
+        if (latestResults.size !== 1) {
+          unsupported.push({
+            gate: "holdoutPass",
+            reason: "最新の Holdout 開封時刻に pass / fail の競合があります",
+          });
+        } else if (latest[0]!.entry.result !== "pass") {
+          unsupported.push({
+            gate: "holdoutPass",
+            reason: `最新の Holdout 開封記録(${latest[0]!.entry.id})が pass ではありません`,
+          });
+        }
       }
     }
   }
@@ -289,8 +302,27 @@ export function checkProductionIntegrity(
   return issues;
 }
 
+function assertValidHoldoutManifest(manifest: HoldoutManifest): void {
+  if (!isValidDate(manifest.sealedAt)) {
+    throw new Error("holdout manifest sealedAt must be a real YYYY-MM-DD date");
+  }
+  for (const window of manifest.windows) {
+    if (!isValidDate(window.from)) {
+      throw new Error(`holdout window ${window.id}.from must be a real YYYY-MM-DD date`);
+    }
+    if (!isValidDate(window.to)) {
+      throw new Error(`holdout window ${window.id}.to must be a real YYYY-MM-DD date`);
+    }
+    if (window.from > window.to) {
+      throw new Error(`holdout window ${window.id} must have from <= to`);
+    }
+  }
+}
+
 /** Holdout の封印範囲に触れているかの判定。研究中データのフィルタに使う。 */
 export function isInHoldout(manifest: HoldoutManifest, code: string, date: string): boolean {
+  if (!isValidDate(date)) throw new Error("holdout lookup date must be a real YYYY-MM-DD date");
+  assertValidHoldoutManifest(manifest);
   return manifest.windows.some((window) => {
     if (date < window.from || date > window.to) return false;
     if (window.scope === "all_universe") return true;
