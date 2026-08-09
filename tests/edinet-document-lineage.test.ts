@@ -272,6 +272,22 @@ function testLineageRejectsInvalidSubmitInstants(): void {
   ));
 }
 
+function testLineageRejectsNonCanonicalDocIds(): void {
+  const empty = doc({ docID: "   " });
+  const padded = doc({ docID: " S100PADDED " });
+
+  const result = buildEdinetDocumentLineage([empty, padded]);
+
+  assert.equal(result.hasBlockingIssues, true);
+  assert.equal(result.nodes.length, 0);
+  assert.ok(result.issues.some(value =>
+    value.target === "<empty>" && value.code === "invalid_doc_id"
+  ));
+  assert.ok(result.issues.some(value =>
+    value.target === "S100PADDED" && value.code === "invalid_doc_id"
+  ));
+}
+
 async function main(): Promise<void> {
   await testMissingCredentialsStopsBeforeFetch();
   await testAuthenticatedDownloadAndHash();
@@ -283,6 +299,7 @@ async function main(): Promise<void> {
   testLineageProjection();
   testLineageAnomalies();
   testLineageRejectsInvalidSubmitInstants();
+  testLineageRejectsNonCanonicalDocIds();
   console.log("edinet-document-lineage.test.ts passed");
 }
 
