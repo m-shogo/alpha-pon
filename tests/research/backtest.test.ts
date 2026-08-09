@@ -279,6 +279,31 @@ function testBenchmarkProvenanceFailsClosed() {
   console.log("research/backtest: declared benchmark provenance is required and pinned OK");
 }
 
+function testBenchmarkRequiresExactCommonDates() {
+  const prices = new Map([["9001", series("9001", [1000, 1010, 1020, 1030, 1040])]]);
+  const signals = [{ id: "s1", code: "9001", observedAt: "2024-01-04T16:00:00+09:00" }];
+  const requiredSpec: BacktestSpec = { ...BASE_SPEC, benchmark: "TOPIX" };
+  const exact = series("TOPIX", [2000, 2005, 2010, 2015, 2020]);
+
+  const exactReport = runBacktest(requiredSpec, signals, prices, exact);
+  assert.equal(exactReport.executedCount, 1);
+  assert.equal(typeof exactReport.trades[0]?.benchmarkReturnBps, "number");
+
+  const missingEntry = structuredClone(exact);
+  missingEntry.bars = missingEntry.bars.filter((bar) => bar.date !== "2024-01-05");
+  const missingEntryReport = runBacktest(requiredSpec, signals, prices, missingEntry);
+  assert.equal(missingEntryReport.executedCount, 0);
+  assert.equal(missingEntryReport.trades[0]?.skipReason, "benchmark_missing_entry_bar");
+
+  const missingExit = structuredClone(exact);
+  missingExit.bars = missingExit.bars.filter((bar) => bar.date !== "2024-01-10");
+  const missingExitReport = runBacktest(requiredSpec, signals, prices, missingExit);
+  assert.equal(missingExitReport.executedCount, 0);
+  assert.equal(missingExitReport.trades[0]?.skipReason, "benchmark_missing_exit_bar");
+
+  console.log("research/backtest: benchmark requires exact issuer entry/exit dates without forward substitution OK");
+}
+
 function testSignalOrderingUsesActualInstant() {
   const prices = new Map([["9001", series("9001", [1000, 1010, 1020, 1030, 1040])]]);
   const report = runBacktest(BASE_SPEC, [
@@ -330,6 +355,7 @@ testTemporalInputsFailClosed();
 testPriceBarSemanticsFailClosed();
 testSpecConformanceFailsClosed();
 testBenchmarkProvenanceFailsClosed();
+testBenchmarkRequiresExactCommonDates();
 testSignalOrderingUsesActualInstant();
 testAggregateAndFalseDiscoveryGuard();
 testFixtureBundleIsReproducible();
