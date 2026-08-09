@@ -67,6 +67,52 @@ function todayJst(): string {
   }).format(new Date());
 }
 
+function dateInRange(date: string, from: string, to?: string): boolean {
+  return date >= from && (!to || date <= to);
+}
+
+type RevisionRecord = {
+  recordId: string;
+  validFrom: string;
+  validTo?: string;
+  supersedesRecordId?: string;
+};
+
+function historicalRevisionShadowingIssues<T extends RevisionRecord>(
+  records: readonly T[],
+  asOf: string,
+  kind: "entity" | "relationship",
+): SecurityMasterIssue[] {
+  const issues: SecurityMasterIssue[] = [];
+  const byId = new Map(records.map((record) => [record.recordId, record] as const));
+  const superseded = new Set(
+    records.flatMap((record) => record.supersedesRecordId ? [record.supersedesRecordId] : []),
+  );
+  const heads = records.filter((record) => !superseded.has(record.recordId));
+
+  for (const head of heads) {
+    if (dateInRange(asOf, head.validFrom, head.validTo)) continue;
+    const seen = new Set<string>();
+    let current: T | undefined = head;
+    while (current?.supersedesRecordId) {
+      if (seen.has(current.recordId)) break;
+      seen.add(current.recordId);
+      const previous = byId.get(current.supersedesRecordId);
+      if (!previous) break;
+      if (dateInRange(asOf, previous.validFrom, previous.validTo)) {
+        issues.push(issue(
+          `historical_${kind}_revision_shadowed`,
+          head.recordId,
+          `active revision ${head.recordId} is not valid at ${asOf}, but superseded revision ${previous.recordId} is; historical snapshot would silently drop the ${kind}`,
+        ));
+        break;
+      }
+      current = previous;
+    }
+  }
+  return issues;
+}
+
 export function validateSecurityMasterRepository(
   options: SecurityMasterRepositoryOptions = {},
 ): SecurityMasterRepositoryResult {
@@ -96,6 +142,10 @@ export function validateSecurityMasterRepository(
     relationshipRead.records,
     schemas,
   ));
+  issues.push(
+    ...historicalRevisionShadowingIssues(entityRead.records, asOf, "entity"),
+    ...historicalRevisionShadowingIssues(relationshipRead.records, asOf, "relationship"),
+  );
   const snapshot = buildSecurityMasterSnapshot(
     entityRead.records,
     relationshipRead.records,
