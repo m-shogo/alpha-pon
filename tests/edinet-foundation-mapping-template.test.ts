@@ -264,4 +264,52 @@ function editedMappingInput() {
   console.log("edinet-foundation-mapping: incomplete human review source blocked OK");
 }
 
+{
+  assert.throws(
+    () => buildEdinetFoundationMappingTemplate({
+      impactReview: impactReview(),
+      sourceImpactReviewFile: "revision-impact-review-final-v1.fixture.json",
+      generatedAt: "2026-08-06T11:00:00",
+    }),
+    /generatedAt must be an ISO-8601 timestamp with explicit timezone/,
+  );
+  console.log("edinet-foundation-mapping: timezone-less generatedAt blocked OK");
+}
+
+{
+  const edited = editedMappingInput();
+  const fields = ((edited.mappings as JsonObject[])[0]!.fields as JsonObject);
+  fields.retrievedAt = "2026-02-31T07:02:00Z";
+  const { recordHash: _ignored, ...withoutHash } = edited;
+  edited.recordHash = digest(withoutHash);
+  assert.throws(
+    () => finalizeHumanEditedEdinetFoundationMapping({
+      impactReview: impactReview(),
+      sourceImpactReviewFile: "revision-impact-review-final-v1.fixture.json",
+      mappingInput: edited,
+      sourceMappingInputFile: "revision-foundation-mapping-input-v1.fixture.json",
+    }),
+    /retrievedAt must be a valid Gregorian ISO-8601 timestamp/,
+  );
+  console.log("edinet-foundation-mapping: impossible Gregorian timestamp blocked OK");
+}
+
+{
+  const edited = editedMappingInput();
+  const fields = ((edited.mappings as JsonObject[])[0]!.fields as JsonObject);
+  fields.firstExecutableAt = "2026-06-29T07:03:00+15:00";
+  const { recordHash: _ignored, ...withoutHash } = edited;
+  edited.recordHash = digest(withoutHash);
+  assert.throws(
+    () => finalizeHumanEditedEdinetFoundationMapping({
+      impactReview: impactReview(),
+      sourceImpactReviewFile: "revision-impact-review-final-v1.fixture.json",
+      mappingInput: edited,
+      sourceMappingInputFile: "revision-foundation-mapping-input-v1.fixture.json",
+    }),
+    /firstExecutableAt must have a valid timezone offset within ±14:00/,
+  );
+  console.log("edinet-foundation-mapping: invalid timezone offset blocked OK");
+}
+
 console.log("edinet-foundation-mapping-template.test.ts passed");
