@@ -148,6 +148,20 @@ function retryDelayMs(response: Response, attempt: number, retryBaseMs: number):
   return retryBaseMs * attempt;
 }
 
+function isStrictGregorianDate(value: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+
+  return parsed.getUTCFullYear() === year
+    && parsed.getUTCMonth() === month - 1
+    && parsed.getUTCDate() === day;
+}
+
 async function requestEdinetJson<T>(
   path: string,
   params: Record<string, string>,
@@ -219,8 +233,8 @@ export async function fetchEdinetDocList(
   date: string,
   options: EdinetClientOptions = {}
 ): Promise<EdinetDoc[]> {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    throw new Error("EDINET date must be YYYY-MM-DD");
+  if (!isStrictGregorianDate(date)) {
+    throw new Error("EDINET date must be a real Gregorian date in YYYY-MM-DD format");
   }
 
   const data = await requestEdinetJson<EdinetDocListResponse>(
