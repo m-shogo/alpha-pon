@@ -83,6 +83,25 @@ function testDecayUrgencySaturates() {
   console.log("research/queue: Decay 緊急度 OK");
 }
 
+function testInvalidDatesFailClosed() {
+  const edge = makeEdge();
+  edge.decay = { reviewIntervalDays: 30, lastCheckedAt: "2026-01-01" };
+  assert.throws(
+    () => decayUrgency(edge, "2026-02-31"),
+    /invalid research date: 2026-02-31/,
+    "存在しないasOfをNaN→0へ黙って落とさない",
+  );
+
+  const invalidHistory = makeEdge();
+  invalidHistory.decay = { reviewIntervalDays: 30, lastCheckedAt: "2026-13-01" };
+  assert.throws(
+    () => buildQueue(makeState({ edges: [invalidHistory] }), AS_OF),
+    /invalid research date: 2026-13-01/,
+    "不正なlastCheckedAtでDecay優先度を生成しない",
+  );
+  console.log("research/queue: 不正日付はfail-closed OK");
+}
+
 function testHistoricalGapRaisesPriority() {
   const withAnalogs = makeEdge({ id: "edge-filled", analogIds: ["a1", "a2", "a3", "a4", "a5"] });
   const withoutAnalogs = makeEdge({
@@ -107,6 +126,7 @@ testTieBreakByIdIsStable();
 testRejectedAndDeprecatedExcluded();
 testProductionResurfacesOnlyWhenDecayDue();
 testDecayUrgencySaturates();
+testInvalidDatesFailClosed();
 testHistoricalGapRaisesPriority();
 testWeightsAreRecorded();
 
