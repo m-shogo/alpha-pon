@@ -21,6 +21,17 @@ function sandbox(): { root: string; acquisition: string; configuredAcquisition: 
   return { root, acquisition, configuredAcquisition };
 }
 
+function addFidelity(acquisition: string): string {
+  const name = "revision-source-fidelity-v1.20260806T090000Z.json";
+  writeJson(join(acquisition, name), {
+    schemaVersion: 1,
+    source: "edinet",
+    reviewStatus: "pending_human_review",
+    appendAuthorized: false,
+  });
+  return name;
+}
+
 function addInspection(acquisition: string): string {
   const name = "revision-unmatched-anchor-inspection-v1.20260806T092942Z.json";
   writeJson(join(acquisition, name), {
@@ -124,7 +135,22 @@ function addParityRecord(configuredAcquisition: string, workspace: string): stri
   const result = inspectSanrioRealPilotPreflight(root);
   assert.equal(result.stage, "inspection_required");
   assert.equal(result.nextCommand, null);
-  console.log("edinet-sanrio-real-pilot-preflight: missing inspection remains explicit upstream gate OK");
+  assert.deepEqual(result.missingInputs, ["revision-source-fidelity-v1.*.json"]);
+  console.log("edinet-sanrio-real-pilot-preflight: missing fidelity remains explicit upstream gate OK");
+}
+
+{
+  const { root, acquisition } = sandbox();
+  const fidelity = addFidelity(acquisition);
+  const result = inspectSanrioRealPilotPreflight(root);
+  assert.equal(result.stage, "inspection_required");
+  assert.equal(result.requiresHumanAction, false);
+  assert.equal(result.selectedFiles.fidelity, `sanrio-acquisition.20260806T064708Z/${fidelity}`);
+  assert.match(result.nextCommand ?? "", /run-sanrio-edinet-unmatched-anchor-inspection-local\.sh/);
+  assert.match(result.nextCommand ?? "", /--fidelity/);
+  assert.match(result.nextCommand ?? "", new RegExp(fidelity.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.deepEqual(result.missingInputs, ["revision-unmatched-anchor-inspection-v1.*.json"]);
+  console.log("edinet-sanrio-real-pilot-preflight: available fidelity produces exact inspection command OK");
 }
 
 {
