@@ -99,8 +99,8 @@ import {
       sourceRefs: ["source:web:history"],
     }],
     sourceRefs: ["source:entity:history"],
-    observedAt: overrides.observedAt ?? "2025-12-31T15:00:00+09:00",
-    retrievedAt: overrides.retrievedAt ?? "2025-12-31T15:01:00+09:00",
+    observedAt: overrides.observedAt ?? "2025-01-01T15:00:00+09:00",
+    retrievedAt: overrides.retrievedAt ?? "2025-01-01T15:01:00+09:00",
     ...(overrides.supersedesRecordId ? { supersedesRecordId: overrides.supersedesRecordId } : {}),
   });
   const previous = base({ validTo: "2025-12-31" });
