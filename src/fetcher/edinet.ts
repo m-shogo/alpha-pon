@@ -206,14 +206,12 @@ async function requestEdinetJson<T>(
   throw new EdinetApiError(0, true);
 }
 
-// 重要開示の形式コード
 const IMPORTANT_FORM_CODES = new Set([
-  "030000", // 有価証券報告書
-  "043000", // 臨時報告書（重要事象）
-  "050000", // 大量保有報告書
+  "030000",
+  "043000",
+  "050000",
 ]);
 
-// 構造イベントを示すキーワード（臨時報告書の事由欄をチェック）
 export const STRUCTURAL_KEYWORDS = [
   "スピンオフ",
   "パーシャルスピンオフ",
@@ -251,8 +249,6 @@ export async function fetchEdinetDocList(
 }
 
 export function filterBySecCode(docs: EdinetDoc[], secCode: string): EdinetDoc[] {
-  // secCodeは5桁（例: "28500"）、銘柄コードは4桁（例: "285A"）
-  // EDINETのsecCodeは末尾0を含む場合がある
   const normalized = secCode.replace(/[A-Z]/g, "0").padEnd(5, "0");
   return docs.filter(d => d.secCode === normalized || d.secCode === secCode);
 }
@@ -268,12 +264,10 @@ export function findImportantDocs(docs: EdinetDoc[]): EdinetDoc[] {
   return docs.filter(d => IMPORTANT_FORM_CODES.has(d.formCode));
 }
 
-// 有価証券報告書（formCode "030000"）に絞り込む
 export function findAnnualReports(docs: EdinetDoc[]): EdinetDoc[] {
   return docs.filter(d => d.formCode === "030000" && d.pdfFlag === "1");
 }
 
-// secCode（5桁）でフィルタ、複数コード対応
 export function filterBySecCodes(docs: EdinetDoc[], secCodes: string[]): EdinetDoc[] {
   const normalized = new Set(
     secCodes.map(c => c.replace(/[A-Z]/g, "0").padEnd(5, "0"))
@@ -281,29 +275,28 @@ export function filterBySecCodes(docs: EdinetDoc[], secCodes: string[]): EdinetD
   return docs.filter(d => normalized.has(d.secCode));
 }
 
-// PDF取得用の認証前endpoint。EDINET API v2ではtype=2がPDF。
-// APIキーはURLへ埋め込まず、ログにも出さない。
 export function buildPdfUrl(docID: string): string {
   return `${EDINET_API_BASE_URL}/documents/${encodeURIComponent(docID)}?type=2`;
 }
 
-// 企業コード（4桁）→ EDINETのsecCode（5桁）に変換
 export function toSecCode(code: string): string {
   return code.replace(/[A-Z]/g, "0").padEnd(5, "0");
 }
 
-// 過去N日分のEDINET開示を取得してスクリーニング
 export async function scanEdinetDays(
   days: number,
   options: EdinetClientOptions = {}
 ): Promise<Map<string, EdinetDoc[]>> {
+  if (!Number.isSafeInteger(days) || days <= 0) {
+    throw new Error("EDINET scan days must be a positive safe integer");
+  }
+
   const result = new Map<string, EdinetDoc[]>();
   const base = todayJst();
 
   for (let i = 0; i < days; i++) {
     const dateStr = addDaysJst(base, -i);
     const weekday = new Date(`${dateStr}T00:00:00+09:00`).getDay();
-    // 土日スキップ
     if (weekday === 0 || weekday === 6) continue;
 
     try {
@@ -316,12 +309,9 @@ export async function scanEdinetDays(
           result.get(code)!.push(doc);
         }
       }
-      // レートリミット対策
       await new Promise(r => setTimeout(r, 300));
     } catch (error) {
-      // 資格情報不足は日ごとに繰り返さず、EDINETだけを非致命停止する。
       if (isEdinetCredentialsMissingError(error)) break;
-      // 一日分の外部エラーは無視して続行
     }
   }
 
