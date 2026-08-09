@@ -16,6 +16,7 @@ import {
   type DocumentRevisionStatus,
   type DocumentSectionHash,
 } from "./document-revision-diff.js";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 
 export type ReviewedEdinetPriorReference = {
   evidenceId: string;
@@ -95,9 +96,7 @@ function assertCondition(condition: unknown, message: string): asserts condition
 }
 
 function assertDateTime(value: string, field: string): number {
-  const parsed = Date.parse(value);
-  assertCondition(Number.isFinite(parsed), `${field} must be an ISO date-time`);
-  return parsed;
+  return parseExplicitIso8601Instant(value, field);
 }
 
 function assertHash(value: string, field: string): void {
