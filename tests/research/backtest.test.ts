@@ -125,6 +125,31 @@ function testStopLossTriggers() {
   console.log("research/backtest: ストップロス OK");
 }
 
+function testEventResolutionCannotPrecedeEntry() {
+  const prices = new Map([["9001", series("9001", [1000, 1010, 1020, 1030, 1040])]]);
+  const spec: BacktestSpec = { ...BASE_SPEC, exit: { mode: "event_resolution" } };
+
+  const impossible = runBacktest(spec, [{
+    id: "resolved-before-entry",
+    code: "9001",
+    observedAt: "2024-01-09T16:00:00+09:00",
+    resolutionDate: "2024-01-05",
+  }], prices);
+  assert.equal(impossible.executedCount, 0);
+  assert.equal(impossible.trades[0]?.skipReason, "resolution_before_entry");
+  assert.equal(impossible.trades[0]?.holdingDays, undefined);
+
+  const sameDay = runBacktest(spec, [{
+    id: "resolved-on-entry-day",
+    code: "9001",
+    observedAt: "2024-01-09T16:00:00+09:00",
+    resolutionDate: "2024-01-10",
+  }], prices);
+  assert.equal(sameDay.executedCount, 1, "entry当日のresolutionは既存仕様どおり許可する");
+  assert.equal(sameDay.trades[0]?.holdingDays, 0);
+  console.log("research/backtest: event resolution cannot exit before entry OK");
+}
+
 function testTemporalInputsFailClosed() {
   const validSeries = series("9001", [1000, 1010, 1020, 1030, 1040]);
   const validPrices = new Map([["9001", validSeries]]);
@@ -242,6 +267,7 @@ testSameCloseAfterMarketIsPitViolation();
 testLiquidityLimitBlocksExecution();
 testShortSideFlipsSign();
 testStopLossTriggers();
+testEventResolutionCannotPrecedeEntry();
 testTemporalInputsFailClosed();
 testPriceBarSemanticsFailClosed();
 testSignalOrderingUsesActualInstant();
