@@ -191,6 +191,25 @@ function audit(): JsonObject {
 }
 
 {
+  assert.throws(() => buildFoundationReadinessRemediationPlan({
+    readinessAudit: audit(),
+    sourceAuditFile: "configured-foundation-readiness-audit-v1.fixture.json",
+    generatedAt: "2026-08-07T01:21:00",
+  }), /explicit timezone/);
+  assert.throws(() => buildFoundationReadinessRemediationPlan({
+    readinessAudit: audit(),
+    sourceAuditFile: "configured-foundation-readiness-audit-v1.fixture.json",
+    generatedAt: "2026-02-31T01:21:00Z",
+  }), /valid Gregorian ISO-8601 timestamp/);
+  assert.throws(() => buildFoundationReadinessRemediationPlan({
+    readinessAudit: audit(),
+    sourceAuditFile: "configured-foundation-readiness-audit-v1.fixture.json",
+    generatedAt: "2026-08-07T01:21:00+15:00",
+  }), /timezone offset within ±14:00/);
+  console.log("foundation-readiness-remediation-plan: generatedAt requires deterministic explicit instant OK");
+}
+
+{
   const tampered = audit();
   tampered.missingFieldCount = 0;
   const { auditHash: _oldHash, ...withoutHash } = tampered;
