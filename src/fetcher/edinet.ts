@@ -297,6 +297,10 @@ export async function scanEdinetDays(
   days: number,
   options: EdinetClientOptions = {}
 ): Promise<Map<string, EdinetDoc[]>> {
+  if (!Number.isSafeInteger(days) || days <= 0) {
+    throw new Error("EDINET scan days must be a positive safe integer");
+  }
+
   const result = new Map<string, EdinetDoc[]>();
   const base = todayJst();
 
