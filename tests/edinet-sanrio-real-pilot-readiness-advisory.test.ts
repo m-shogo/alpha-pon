@@ -164,6 +164,18 @@ function parityInputsResult(nextCommand = "existing configured-review command"):
 
 {
   const root = inventoryRoot();
+  const impossibleRange = { from: "2026-02-31", to: "2026-03-31" };
+  writeJson(join(root, "sanrio-edinet-inventory.legacy.2026.json"), legacyInventory(impossibleRange, 20));
+  writeJson(join(root, "sanrio-edinet-inventory.configured.2026.json"), configuredInventory(impossibleRange, 20));
+  const original = parityInputsResult();
+  const advised = addSanrioInventoryCompatibilityAdvisory(original, root);
+  assert.equal(advised.nextCommand, original.nextCommand);
+  assert.equal(advised.requiresHumanAction, true);
+  console.log("edinet-sanrio-real-pilot-readiness-advisory: impossible Gregorian inventory dates cannot authorize audit advisory OK");
+}
+
+{
+  const root = inventoryRoot();
   writeJson(join(root, "sanrio-edinet-inventory.legacy.2026.json"), legacyInventory());
   writeJson(join(root, "sanrio-edinet-inventory.configured.2026.json"), {
     ...configuredInventory(),
