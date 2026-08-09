@@ -111,11 +111,11 @@ function directChildExpected(
 }
 
 function edinetRelativeFile(value: unknown, expectedDirectory: string, pattern: RegExp, field: string): string {
-  const relativePath = value === null || value === undefined ? "" : String(value).trim().replace(/\\/g, "/");
-  if (!relativePath || relativePath.startsWith("/") || relativePath.split("/").some(part => !part || part === "." || part === "..")) {
+  const relative = value === null || value === undefined ? "" : String(value).trim().replace(/\\/g, "/");
+  if (!relative || relative.startsWith("/") || relative.split("/").some(part => !part || part === "." || part === "..")) {
     throw new Error(`${field} must be a safe data/edinet-relative path`);
   }
-  const path = resolve(localRoot(), relativePath);
+  const path = resolve(localRoot(), relative);
   if (dirname(path) !== expectedDirectory || !pattern.test(basename(path))) {
     throw new Error(`${field} does not resolve to the expected acquisition file`);
   }
