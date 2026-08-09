@@ -55,7 +55,8 @@ export type SkipReason =
   | "pit_violation_same_close"
   | "liquidity_participation_exceeded"
   | "liquidity_adtv_too_low"
-  | "missing_resolution_date";
+  | "missing_resolution_date"
+  | "resolution_before_entry";
 
 export interface TradeResult {
   signalId: string;
@@ -216,6 +217,7 @@ function resolveExit(
     if (!signal.resolutionDate) return "missing_resolution_date";
     const found = indexOfFirstBarOnOrAfter(bars, signal.resolutionDate);
     if (found < 0) return "no_exit_bar";
+    if (found < entryIndex) return "resolution_before_entry";
     periodExitIndex = found;
   } else {
     if (holdingPeriodDays <= 0) return "no_exit_bar";
