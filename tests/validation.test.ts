@@ -14,6 +14,7 @@ import "./edinet-configured-anchor-finalizer.test.js";
 import "./edinet-configured-exact-comparison.test.js";
 import "./edinet-configured-human-comparison-review.test.js";
 import "./edinet-inventory-compatibility-audit.test.js";
+import "./edinet-inventory-lineage-root-integrity.test.js";
 import "./edinet-local-review-dashboard.test.js";
 import "./edinet-foundation-mapping-template.test.js";
 import "./edinet-sanrio-pilot.test.js";
