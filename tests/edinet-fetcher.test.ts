@@ -128,19 +128,21 @@ async function testSecretIsNotLeakedInError() {
 }
 
 async function testInvalidDateFailsBeforeFetch() {
-  let called = false;
-  await assert.rejects(
-    () =>
-      fetchEdinetDocList("20260806", {
-        apiKey: "test",
-        fetchImpl: (async () => {
-          called = true;
-          return jsonResponse(emptyDocList);
-        }) as typeof fetch,
-      }),
-    /YYYY-MM-DD/
-  );
-  assert.equal(called, false);
+  for (const invalidDate of ["20260806", "2026-02-30", "2026-13-01", "2026-00-10"]) {
+    let called = false;
+    await assert.rejects(
+      () =>
+        fetchEdinetDocList(invalidDate, {
+          apiKey: "test",
+          fetchImpl: (async () => {
+            called = true;
+            return jsonResponse(emptyDocList);
+          }) as typeof fetch,
+        }),
+      /real Gregorian date in YYYY-MM-DD/
+    );
+    assert.equal(called, false, `${invalidDate} must fail before fetch`);
+  }
 }
 
 function testPdfEndpointDoesNotEmbedSecret() {
