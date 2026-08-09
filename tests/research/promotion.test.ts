@@ -95,6 +95,93 @@ function testHoldoutPassRequiresPastStrictAccessRecord() {
   console.log("research/promotion: Holdout access temporal provenance OK");
 }
 
+function testLatestHoldoutResultDominatesStalePass() {
+  const edge = passAllGates(makeEdge());
+  edge.samples.current = 20;
+  const state = makeState({ edges: [edge] });
+
+  const oldPass: HoldoutAccessEntry = {
+    ...ACCESS,
+    id: "holdout-old-pass",
+    openedAt: "2024-02-01T09:00:00+09:00",
+    result: "pass",
+  };
+  const newerFail: HoldoutAccessEntry = {
+    ...ACCESS,
+    id: "holdout-newer-fail",
+    openedAt: "2024-02-01T10:00:00+09:00",
+    result: "fail",
+  };
+  const blocked = evaluateGate(edge, state, [oldPass, newerFail], AS_OF);
+  assert.ok(
+    blocked.unsupportedPasses.some(
+      (item) => item.gate === "holdoutPass" && item.reason.includes("holdout-newer-fail"),
+    ),
+    "新しいFAILがある時に古いPASSを根拠に使ってはいけない",
+  );
+
+  const oldFail: HoldoutAccessEntry = {
+    ...ACCESS,
+    id: "holdout-old-fail",
+    openedAt: "2024-02-01T08:00:00+09:00",
+    result: "fail",
+  };
+  const latestPass: HoldoutAccessEntry = {
+    ...ACCESS,
+    id: "holdout-latest-pass",
+    openedAt: "2024-02-01T11:00:00+09:00",
+    result: "pass",
+  };
+  const supported = evaluateGate(edge, state, [oldFail, latestPass], AS_OF);
+  assert.equal(
+    supported.unsupportedPasses.some((item) => item.gate === "holdoutPass"),
+    false,
+    "最新eligible結果がPASSなら古いFAILは現在のGateを止めない",
+  );
+
+  const currentFail: HoldoutAccessEntry = {
+    ...ACCESS,
+    id: "holdout-current-fail",
+    openedAt: "2024-02-01T12:00:00+09:00",
+    result: "fail",
+  };
+  const futurePass: HoldoutAccessEntry = {
+    ...ACCESS,
+    id: "holdout-future-pass",
+    openedAt: "2024-02-02T09:00:00+09:00",
+    result: "pass",
+  };
+  const futureCannotOverride = evaluateGate(edge, state, [currentFail, futurePass], AS_OF);
+  assert.ok(
+    futureCannotOverride.unsupportedPasses.some(
+      (item) => item.gate === "holdoutPass" && item.reason.includes("holdout-current-fail"),
+    ),
+    "asOfより未来のPASSは現在のFAILを上書きできない",
+  );
+
+  const sameTimePass: HoldoutAccessEntry = {
+    ...ACCESS,
+    id: "holdout-same-time-pass",
+    openedAt: "2024-02-01T13:00:00+09:00",
+    result: "pass",
+  };
+  const sameTimeFail: HoldoutAccessEntry = {
+    ...ACCESS,
+    id: "holdout-same-time-fail",
+    openedAt: "2024-02-01T13:00:00+09:00",
+    result: "fail",
+  };
+  const conflict = evaluateGate(edge, state, [sameTimePass, sameTimeFail], AS_OF);
+  assert.ok(
+    conflict.unsupportedPasses.some(
+      (item) => item.gate === "holdoutPass" && item.reason.includes("競合"),
+    ),
+    "同一latest instantにPASS/FAILが競合する場合はfail closed",
+  );
+
+  console.log("research/promotion: latest Holdout result dominates stale PASS OK");
+}
+
 function testCounterfactualRequired() {
   const edge = passAllGates(makeEdge());
   edge.samples.current = 20;
@@ -187,8 +274,8 @@ function testProductionWithoutGateIsIntegrityError() {
   console.log("research/promotion: 未検証 Production の禁止 OK");
 }
 
-function testHoldoutWindowMembership() {
-  const manifest: HoldoutManifest = {
+function holdoutManifest(overrides: Partial<HoldoutManifest> = {}): HoldoutManifest {
+  return {
     schemaVersion: 1,
     sealedAt: "2026-08-04",
     policy: "テスト用の封印ポリシー",
@@ -196,22 +283,60 @@ function testHoldoutWindowMembership() {
       { id: "w1", from: "2025-07-01", to: "2026-06-30", scope: "all_universe" },
       { id: "w2", from: "2024-01-01", to: "2024-12-31", scope: "named_codes", codes: ["8136"] },
     ],
+    ...overrides,
   };
+}
+
+function testHoldoutWindowMembership() {
+  const manifest = holdoutManifest();
   assert.equal(isInHoldout(manifest, "9999", "2026-01-01"), true, "全銘柄封印の期間内");
   assert.equal(isInHoldout(manifest, "9999", "2024-06-01"), false, "named_codes に含まれない銘柄は対象外");
   assert.equal(isInHoldout(manifest, "8136", "2024-06-01"), true);
+  assert.equal(isInHoldout(manifest, "8136", "2027-01-01"), false);
   console.log("research/promotion: Holdout 範囲判定 OK");
+}
+
+function testHoldoutWindowDatesFailClosed() {
+  assert.throws(
+    () => isInHoldout(holdoutManifest(), "8136", "2026-02-31"),
+    /holdout lookup date must be a real YYYY-MM-DD date/,
+  );
+  assert.throws(
+    () => isInHoldout(holdoutManifest({ sealedAt: "2026-02-31" }), "8136", "2024-06-01"),
+    /holdout manifest sealedAt must be a real YYYY-MM-DD date/,
+  );
+  assert.throws(
+    () => isInHoldout(holdoutManifest({
+      windows: [{ id: "bad-from", from: "2026-02-31", to: "2026-03-31", scope: "all_universe" }],
+    }), "8136", "2026-03-01"),
+    /holdout window bad-from\.from must be a real YYYY-MM-DD date/,
+  );
+  assert.throws(
+    () => isInHoldout(holdoutManifest({
+      windows: [{ id: "bad-to", from: "2026-03-01", to: "2026-13-01", scope: "all_universe" }],
+    }), "8136", "2026-03-01"),
+    /holdout window bad-to\.to must be a real YYYY-MM-DD date/,
+  );
+  assert.throws(
+    () => isInHoldout(holdoutManifest({
+      windows: [{ id: "reversed", from: "2026-04-01", to: "2026-03-01", scope: "all_universe" }],
+    }), "8136", "2026-03-15"),
+    /holdout window reversed must have from <= to/,
+  );
+  console.log("research/promotion: malformed Holdout membership boundaries fail closed OK");
 }
 
 testUnknownGateBlocksPromotion();
 testSampleShortfallIsCaught();
 testHoldoutPassRequiresAccessRecord();
 testHoldoutPassRequiresPastStrictAccessRecord();
+testLatestHoldoutResultDominatesStalePass();
 testCounterfactualRequired();
 testUnresolvedConfounderBlocks();
 testDecayCheckedRequiresValidPastDate();
 testInvalidAsOfFailsClosed();
 testProductionWithoutGateIsIntegrityError();
 testHoldoutWindowMembership();
+testHoldoutWindowDatesFailClosed();
 
 console.log("research/promotion: 全テスト成功");
