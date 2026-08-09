@@ -38,6 +38,7 @@ import {
   type FoundationPilotTarget,
 } from "../foundation-pilot-structural-status.js";
 import { validateFoundationDecisionRepository } from "../foundation-decision-integration-repository.js";
+import { parseExplicitIso8601Instant } from "../iso-instant.js";
 import {
   COUNCIL_REPLAY_PATHS,
   validateCouncilReplayRepository,
@@ -68,7 +69,7 @@ function requiredArg(name: string): string {
 
 function timestampArg(name: string): string {
   const value = requiredArg(name);
-  if (!Number.isFinite(Date.parse(value))) throw new Error(`--${name} must be a date-time`);
+  parseExplicitIso8601Instant(value, `--${name}`);
   return value;
 }
 
