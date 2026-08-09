@@ -5,6 +5,7 @@
 //   - 執行できない取引を「執行できた」ことにしない。Liquidity と PIT で明示的に落とす。
 //   - Gross と Net を必ず分けて返す。Net だけ・Gross だけの報告は禁止。
 
+import { assertBacktestSpecConformance } from "./backtest-spec-conformance.js";
 import { parseExplicitIso8601Instant } from "./iso-instant.js";
 import { aggregate, computeCosts, computeNetAlpha, type AggregateStats, type CostModel } from "./net-alpha.js";
 import { canEnterSameClose, jstDateOf } from "./pit.js";
@@ -263,6 +264,7 @@ export function runBacktest(
   prices: Map<string, PriceSeries>,
   benchmark?: PriceSeries,
 ): BacktestReport {
+  assertBacktestSpecConformance(spec);
   assertBacktestInputs(signals, prices, benchmark);
   const trades: TradeResult[] = [];
   const skipped: BacktestReport["skipped"] = [];
