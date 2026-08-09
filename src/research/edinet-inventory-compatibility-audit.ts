@@ -212,14 +212,6 @@ function lineageRoots(record: JsonObject, field: string): Map<string, string> {
     if (result.has(docID)) throw new Error(`${field}.lineage has duplicate docID ${docID}`);
     result.set(docID, root);
   }
-  for (const [docID, root] of result) {
-    if (!result.has(root)) {
-      throw new Error(`${field}.lineage node ${docID} references missing chain root ${root}`);
-    }
-    if (result.get(root) !== root) {
-      throw new Error(`${field}.lineage chain root ${root} must self-reference`);
-    }
-  }
   return result;
 }
 
@@ -233,6 +225,12 @@ function candidates(record: JsonObject, field: string): Map<string, CandidateSna
     if (result.has(docID)) throw new Error(`${field} has duplicate candidate ${docID}`);
     const chainRootDocID = roots.get(docID);
     if (!chainRootDocID) throw new Error(`${field}.candidates[${index}] has no lineage node`);
+    if (!roots.has(chainRootDocID)) {
+      throw new Error(`${field}.lineage node ${docID} references missing chain root ${chainRootDocID}`);
+    }
+    if (roots.get(chainRootDocID) !== chainRootDocID) {
+      throw new Error(`${field}.lineage chain root ${chainRootDocID} must self-reference`);
+    }
     const edinetCode = str(doc.edinetCode).toUpperCase();
     const secCode = str(doc.secCode);
     if (edinetCode !== "E02655" || secCode !== "81360") {
