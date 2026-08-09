@@ -212,6 +212,14 @@ function lineageRoots(record: JsonObject, field: string): Map<string, string> {
     if (result.has(docID)) throw new Error(`${field}.lineage has duplicate docID ${docID}`);
     result.set(docID, root);
   }
+  for (const [docID, root] of result) {
+    if (!result.has(root)) {
+      throw new Error(`${field}.lineage node ${docID} references missing chain root ${root}`);
+    }
+    if (result.get(root) !== root) {
+      throw new Error(`${field}.lineage chain root ${root} must self-reference`);
+    }
+  }
   return result;
 }
 
