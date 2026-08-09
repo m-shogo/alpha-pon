@@ -13,6 +13,7 @@ import {
   computeCorporateActionClearanceHash,
   type CorporateActionClearanceRecord,
 } from "./corporate-action-clearance.js";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 import { validatePriceRecordTimeline } from "./price-record-timeline.js";
 import {
   computePriceRecordHash,
@@ -340,8 +341,9 @@ export function buildQuantitativeOutcomeRecord(input: {
   issuerCorporateActionClearanceHash: string;
   supersedesOutcomeId?: string;
 }): QuantitativeOutcomeRecord {
-  if (!Number.isFinite(Date.parse(input.reviewedAt))) throw new Error("reviewedAt must be an ISO date-time");
-  if (Date.parse(input.reviewedAt) <= Date.parse(input.recommendation.issuedAt)) {
+  const reviewedMs = parseExplicitIso8601Instant(input.reviewedAt, "reviewedAt");
+  const issuedMs = parseExplicitIso8601Instant(input.recommendation.issuedAt, "recommendation.issuedAt");
+  if (reviewedMs <= issuedMs) {
     throw new Error("reviewedAt must be after recommendation issuedAt");
   }
   if (computeRecommendationHash(input.recommendation) !== input.recommendation.contentHash) {
