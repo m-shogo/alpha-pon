@@ -4,6 +4,7 @@ import {
   assertEdinetDocumentTypeAllowed,
   type EdinetIssuerBoundary,
 } from "../research/edinet-issuer-boundary.js";
+import { parseExplicitIso8601Instant } from "../research/iso-instant.js";
 import {
   EdinetApiError,
   fetchEdinetDocList,
@@ -223,7 +224,7 @@ export function buildConfiguredEdinetInventory(input: {
   assertIsoDate(input.from, "from");
   assertIsoDate(input.to, "to");
   if (input.from > input.to) throw new Error("from must be on or before to");
-  if (!Number.isFinite(Date.parse(input.generatedAt))) throw new Error("generatedAt must be an ISO date-time");
+  parseExplicitIso8601Instant(input.generatedAt, "generatedAt");
   if (!Number.isSafeInteger(input.scannedBusinessDays) || input.scannedBusinessDays < 0) {
     throw new Error("scannedBusinessDays must be a non-negative integer");
   }
