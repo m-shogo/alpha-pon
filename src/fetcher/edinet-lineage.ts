@@ -147,16 +147,6 @@ export function buildEdinetDocumentLineage(docs: EdinetDoc[]): EdinetLineageResu
     } else {
       submitInstantByDocID.set(doc.docID, submit.instant);
     }
-
-    const operation = strictTimestamp(doc.opeDateTime, `${doc.docID}.opeDateTime`);
-    if (operation.instant === null) {
-      issues.push(issue(
-        "error",
-        "invalid_ope_datetime",
-        doc.docID,
-        operation.error ?? "invalid EDINET opeDateTime",
-      ));
-    }
   }
 
   const parentByDocID = new Map<string, string>();
