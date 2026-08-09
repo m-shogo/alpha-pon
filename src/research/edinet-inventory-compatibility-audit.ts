@@ -18,7 +18,7 @@ type CandidateSnapshot = {
   reviewPriority: string;
   reviewReasons: string[];
   documentTypes: string[];
-  chainRootDocID: string | null;
+  chainRootDocID: string;
 };
 
 export type EdinetInventoryCandidateComparison = {
@@ -223,6 +223,8 @@ function candidates(record: JsonObject, field: string): Map<string, CandidateSna
     const doc = obj(candidate.doc, `${field}.candidates[${index}].doc`);
     const docID = requireDocID(doc.docID, `${field}.candidates[${index}].doc.docID`);
     if (result.has(docID)) throw new Error(`${field} has duplicate candidate ${docID}`);
+    const chainRootDocID = roots.get(docID);
+    if (!chainRootDocID) throw new Error(`${field}.candidates[${index}] has no lineage node`);
     const edinetCode = str(doc.edinetCode).toUpperCase();
     const secCode = str(doc.secCode);
     if (edinetCode !== "E02655" || secCode !== "81360") {
@@ -243,7 +245,7 @@ function candidates(record: JsonObject, field: string): Map<string, CandidateSna
       reviewPriority: required(candidate.reviewPriority, `${field}.candidates[${index}].reviewPriority`),
       reviewReasons: strings(candidate.reviewReasons, `${field}.candidates[${index}].reviewReasons`),
       documentTypes: [...new Set(types)].sort(),
-      chainRootDocID: roots.get(docID) ?? null,
+      chainRootDocID,
     });
   }
   return result;

@@ -290,4 +290,25 @@ function rehashConfigured(value: JsonObject): void {
   console.log("edinet-inventory-compatibility: matching non-Sanrio candidate identity cannot become migration-ready OK");
 }
 
+{
+  const { legacy, configured } = inventories();
+  const badLegacy = structuredClone(legacy) as unknown as JsonObject;
+  const badConfigured = structuredClone(configured) as unknown as JsonObject;
+  const legacyLineage = badLegacy.lineage as JsonObject;
+  const configuredLineage = badConfigured.lineage as JsonObject;
+  legacyLineage.nodes = (legacyLineage.nodes as JsonObject[]).filter(node => node.docID !== "S100ROOT");
+  configuredLineage.nodes = (configuredLineage.nodes as JsonObject[]).filter(node => node.docID !== "S100ROOT");
+  rehashConfigured(badConfigured);
+  assert.throws(
+    () => buildEdinetInventoryCompatibilityAudit({
+      legacyInventory: badLegacy,
+      configuredInventory: badConfigured,
+      legacyInventoryFile: "sanrio-edinet-inventory.legacy.json",
+      configuredInventoryFile: "sanrio-edinet-inventory.configured.json",
+    }),
+    /has no lineage node/,
+  );
+  console.log("edinet-inventory-compatibility: matching missing candidate lineage cannot become migration-ready OK");
+}
+
 console.log("edinet-inventory-compatibility-audit.test.ts passed");
