@@ -47,6 +47,7 @@ import "./edinet-sanrio-impact-review-checklist.test.js";
 import "./edinet-sanrio-parity-local-paths.test.js";
 import "./edinet-sanrio-real-pilot-preflight.test.js";
 import "./edinet-sanrio-real-pilot-preflight-configured-review-advisory.test.js";
+import "./edinet-sanrio-configured-advisory-integrity.test.js";
 import "./edinet-sanrio-real-pilot-fidelity-integrity.test.js";
 import "./edinet-sanrio-real-pilot-integrity.test.js";
 import "./edinet-sanrio-real-pilot-readiness-advisory.test.js";
