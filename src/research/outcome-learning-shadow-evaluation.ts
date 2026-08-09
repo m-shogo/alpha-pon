@@ -9,6 +9,7 @@ import {
   readFileSync,
 } from "node:fs";
 import { dirname } from "node:path";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 import {
   computeOutcomeLearningDecisionHash,
   type OutcomeLearningDecisionRecord,
@@ -262,6 +263,7 @@ function evaluationScopeIssues(
     }
   }
 
+  const evidenceCutoffMs = parseExplicitIso8601Instant(record.evidenceCutoff, "shadow evidenceCutoff");
   for (const ref of record.evidenceRefs) {
     if (secretLikeReference(ref)) {
       issues.push(issue("secret_like_shadow_evidence_ref", target, "Shadow Evidence refにsecret/tokenを含められません"));
@@ -281,7 +283,21 @@ function evaluationScopeIssues(
     if (!context.validatedEvidenceRefs.has(ref)) {
       issues.push(issue("shadow_evidence_not_validated", target, `validator通過済みShadow Evidence witnessがありません: ${ref}`));
     }
-    if (Date.parse(evidence.observedAt) > Date.parse(record.evidenceCutoff)) {
+    let observedAtMs: number;
+    try {
+      observedAtMs = parseExplicitIso8601Instant(
+        evidence.observedAt,
+        `Shadow Evidence ${ref}.observedAt`,
+      );
+    } catch {
+      issues.push(issue(
+        "invalid_shadow_evidence_observed_at",
+        target,
+        `Shadow Evidence observedAtが不正です: ${ref}`,
+      ));
+      continue;
+    }
+    if (observedAtMs > evidenceCutoffMs) {
       issues.push(issue("post_cutoff_shadow_evidence", target, `evidenceCutoff後のEvidenceを使えません: ${ref}`));
     }
     if (!nestedEvidence.has(ref)) {
