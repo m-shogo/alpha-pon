@@ -130,22 +130,32 @@ export function buildEdinetDocumentLineage(docs: EdinetDoc[]): EdinetLineageResu
   const submitInstantByDocID = new Map<string, number>();
 
   for (const doc of docs) {
-    if (byDocID.has(doc.docID)) {
-      issues.push(issue("error", "duplicate_doc_id", doc.docID, "duplicate EDINET docID"));
+    const docID = normalized(doc.docID);
+    if (!docID || docID !== doc.docID) {
+      issues.push(issue(
+        "error",
+        "invalid_doc_id",
+        docID || "<empty>",
+        "EDINET docID must be non-empty and free of surrounding whitespace",
+      ));
       continue;
     }
-    byDocID.set(doc.docID, doc);
+    if (byDocID.has(docID)) {
+      issues.push(issue("error", "duplicate_doc_id", docID, "duplicate EDINET docID"));
+      continue;
+    }
+    byDocID.set(docID, doc);
 
-    const submit = strictTimestamp(doc.submitDateTime, `${doc.docID}.submitDateTime`);
+    const submit = strictTimestamp(doc.submitDateTime, `${docID}.submitDateTime`);
     if (submit.instant === null) {
       issues.push(issue(
         "error",
         "invalid_submit_datetime",
-        doc.docID,
+        docID,
         submit.error ?? "invalid EDINET submitDateTime",
       ));
     } else {
-      submitInstantByDocID.set(doc.docID, submit.instant);
+      submitInstantByDocID.set(docID, submit.instant);
     }
   }
 
