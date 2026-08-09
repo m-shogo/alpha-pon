@@ -46,6 +46,7 @@ import "./edinet-sanrio-real-pilot-preflight.test.js";
 import "./edinet-sanrio-real-pilot-integrity.test.js";
 import "./edinet-sanrio-real-pilot-readiness-advisory.test.js";
 import "./research/security-master-repository.test.js";
+import "./research/security-master-repository-pit-revision.test.js";
 import "./research/backtest-exact-benchmark-alignment.test.js";
 import "./research/jquants-free-provider.test.js";
 import "./research/jquants-free-cli-retrieval-boundary.test.js";
