@@ -9,6 +9,7 @@ import { isSanrioLegacyHumanReviewFilename } from "./edinet-sanrio-parity-local-
 
 const MAX_JSON_BYTES = 30 * 1024 * 1024;
 const ACQUISITION_DIR_RE = /^sanrio-acquisition\.[A-Za-z0-9_-]+$/;
+const FIDELITY_RE = /^revision-source-fidelity-v1\.[A-Za-z0-9_-]+\.json$/;
 const INSPECTION_RE = /^revision-unmatched-anchor-inspection-v1\.[A-Za-z0-9_-]+\.json$/;
 const HUMAN_INPUT_RE = /^revision-human-review-input-v1\.[A-Za-z0-9_-]+\.json$/;
 const CONFIGURED_REVIEW_RE = /^configured-human-comparison-record-v1\.[A-Za-z0-9_-]+\.json$/;
@@ -46,6 +47,7 @@ export type SanrioRealPilotPreflightResult = {
   requiresHumanAction: boolean;
   missingInputs: string[];
   selectedFiles: {
+    fidelity?: string;
     inspection?: string;
     humanReviewInput?: string;
     humanReviewDecision?: string;
@@ -293,7 +295,28 @@ export function inspectSanrioRealPilotPreflight(
   );
   const inspection = newest(inspections);
   if (!inspection) {
-    return { ...result, stage: "inspection_required", missingInputs: ["revision-unmatched-anchor-inspection-v1.*.json"], warnings };
+    const fidelity = newest(listAcquisitionFiles(root, FIDELITY_RE, warnings));
+    if (!fidelity) {
+      return {
+        ...result,
+        stage: "inspection_required",
+        nextCommand: null,
+        missingInputs: ["revision-source-fidelity-v1.*.json"],
+        warnings,
+      };
+    }
+    result.selectedFiles.fidelity = fidelity.relativePath;
+    return {
+      ...result,
+      stage: "inspection_required",
+      nextCommand: command("scripts/run-sanrio-edinet-unmatched-anchor-inspection-local.sh", [[
+        "fidelity",
+        `data/edinet/${fidelity.relativePath}`,
+      ]]),
+      missingInputs: ["revision-unmatched-anchor-inspection-v1.*.json"],
+      selectedFiles: { ...result.selectedFiles },
+      warnings,
+    };
   }
   result.selectedFiles.inspection = inspection.relativePath;
 
