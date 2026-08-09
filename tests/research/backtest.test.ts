@@ -279,6 +279,36 @@ function testBenchmarkProvenanceFailsClosed() {
   console.log("research/backtest: declared benchmark provenance is required and pinned OK");
 }
 
+function testBenchmarkRequiresExactCommonDates() {
+  const prices = new Map([["9001", series("9001", [1000, 1010, 1020, 1030, 1040])]]);
+  const signals = [{ id: "s1", code: "9001", observedAt: "2024-01-04T16:00:00+09:00" }];
+  const spec: BacktestSpec = { ...BASE_SPEC, benchmark: "TOPIX" };
+  const topix = series("TOPIX", [2000, 2005, 2010, 2015, 2020]);
+
+  const missingEntry: PriceSeries = {
+    ...topix,
+    bars: topix.bars.filter((bar) => bar.date !== "2024-01-05"),
+  };
+  const entryGap = runBacktest(spec, signals, prices, missingEntry);
+  assert.equal(entryGap.executedCount, 0);
+  assert.equal(entryGap.trades[0]?.skipReason, "benchmark_missing_entry_bar");
+
+  const missingExit: PriceSeries = {
+    ...topix,
+    bars: topix.bars.filter((bar) => bar.date !== "2024-01-10"),
+  };
+  const exitGap = runBacktest(spec, signals, prices, missingExit);
+  assert.equal(exitGap.executedCount, 0);
+  assert.equal(exitGap.trades[0]?.skipReason, "benchmark_missing_exit_bar");
+
+  const valid = runBacktest(spec, signals, prices, topix);
+  assert.equal(valid.executedCount, 1);
+  assert.equal(valid.trades[0]?.entryDate, "2024-01-05");
+  assert.equal(valid.trades[0]?.exitDate, "2024-01-10");
+  assert.equal(typeof valid.trades[0]?.benchmarkReturnBps, "number");
+  console.log("research/backtest: benchmark alpha uses exact common entry/exit dates OK");
+}
+
 function testSignalOrderingUsesActualInstant() {
   const prices = new Map([["9001", series("9001", [1000, 1010, 1020, 1030, 1040])]]);
   const report = runBacktest(BASE_SPEC, [
@@ -330,6 +360,7 @@ testTemporalInputsFailClosed();
 testPriceBarSemanticsFailClosed();
 testSpecConformanceFailsClosed();
 testBenchmarkProvenanceFailsClosed();
+testBenchmarkRequiresExactCommonDates();
 testSignalOrderingUsesActualInstant();
 testAggregateAndFalseDiscoveryGuard();
 testFixtureBundleIsReproducible();
