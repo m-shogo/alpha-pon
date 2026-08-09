@@ -11,6 +11,7 @@ import {
 import {
   validateSecurityMasterGoverned,
 } from "./security-master-hardening.js";
+import { isValidDate } from "./schema.js";
 import { loadCouncilSchema } from "./stock-pro-council-v2-validation.js";
 
 export type SecurityMasterRepositoryOptions = {
@@ -158,12 +159,20 @@ export function validateSecurityMasterRepository(
   const entitiesPath = options.entitiesPath ?? SECURITY_MASTER_PATHS.entities;
   const relationshipsPath = options.relationshipsPath ?? SECURITY_MASTER_PATHS.relationships;
   const asOf = options.asOf ?? todayJst();
+  const validAsOf = isValidDate(asOf);
   const entityRead = readStrictJsonl<SecurityMasterEntityRecord>(entitiesPath);
   const relationshipRead = readStrictJsonl<SecurityMasterRelationshipRecord>(relationshipsPath);
   const issues: SecurityMasterIssue[] = [
     ...entityRead.issues,
     ...relationshipRead.issues,
   ];
+  if (!validAsOf) {
+    issues.push(issue(
+      "invalid_security_master_as_of",
+      "asOf",
+      `${asOf} is not an exact Gregorian YYYY-MM-DD date`,
+    ));
+  }
   const journalPath = `${entitiesPath}.batch-journal.json`;
   if (existsSync(journalPath)) {
     issues.push(issue(
@@ -181,18 +190,23 @@ export function validateSecurityMasterRepository(
     relationshipRead.records,
     schemas,
   ));
-  issues.push(
-    ...historicalRevisionShadowingIssues(entityRead.records, asOf, "entity"),
-    ...historicalRevisionShadowingIssues(relationshipRead.records, asOf, "relationship"),
-  );
-  const rawSnapshot = buildSecurityMasterSnapshot(
-    recordsEffectiveAt(entityRead.records, asOf),
-    recordsEffectiveAt(relationshipRead.records, asOf),
-    asOf,
-  );
-  const endpointIntegrity = enforceSnapshotEndpointIntegrity(rawSnapshot);
-  issues.push(...endpointIntegrity.issues);
-  const snapshot = endpointIntegrity.snapshot;
+
+  let snapshot: SecurityMasterSnapshot = { asOf, entities: [], relationships: [] };
+  if (validAsOf) {
+    issues.push(
+      ...historicalRevisionShadowingIssues(entityRead.records, asOf, "entity"),
+      ...historicalRevisionShadowingIssues(relationshipRead.records, asOf, "relationship"),
+    );
+    const rawSnapshot = buildSecurityMasterSnapshot(
+      recordsEffectiveAt(entityRead.records, asOf),
+      recordsEffectiveAt(relationshipRead.records, asOf),
+      asOf,
+    );
+    const endpointIntegrity = enforceSnapshotEndpointIntegrity(rawSnapshot);
+    issues.push(...endpointIntegrity.issues);
+    snapshot = endpointIntegrity.snapshot;
+  }
+
   return {
     issues: sortIssues(issues),
     entityRecordCount: entityRead.records.length,
