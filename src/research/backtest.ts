@@ -57,7 +57,9 @@ export type SkipReason =
   | "liquidity_participation_exceeded"
   | "liquidity_adtv_too_low"
   | "missing_resolution_date"
-  | "resolution_before_entry";
+  | "resolution_before_entry"
+  | "benchmark_missing_entry_bar"
+  | "benchmark_missing_exit_bar";
 
 export interface TradeResult {
   signalId: string;
@@ -256,19 +258,20 @@ function benchmarkReturnBpsFor(
   benchmark: PriceSeries | undefined,
   entryDate: string,
   exitDate: string,
-): number | undefined {
+): number | SkipReason | undefined {
   if (!benchmark) return undefined;
-  const entryIndex = indexOfFirstBarOnOrAfter(benchmark.bars, entryDate);
-  const exitIndex = indexOfFirstBarOnOrAfter(benchmark.bars, exitDate);
-  if (entryIndex < 0 || exitIndex < 0) return undefined;
-  // ベンチマークは常にロング換算。ショートの超過は「銘柄の逆行 − 指数の逆行」で測る。
+  const entryIndex = benchmark.bars.findIndex((bar) => bar.date === entryDate);
+  if (entryIndex < 0) return "benchmark_missing_entry_bar";
+  const exitIndex = benchmark.bars.findIndex((bar) => bar.date === exitDate);
+  if (exitIndex < 0) return "benchmark_missing_exit_bar";
+  // 比較期間は銘柄と完全に同じ trading date に固定する。provider gap を後日のbarで埋めない。
   const raw = (benchmark.bars[exitIndex].close - benchmark.bars[entryIndex].close) / benchmark.bars[entryIndex].close;
   return raw * 10_000;
 }
 
 /**
  * Backtest 本体。
- * price は code -> PriceSeries。benchmark は spec と一致する場合のみ超過リターン評価に使う。
+ * price は code -> PriceSeries。benchmark は spec と一致し、entry/exitのexact dateが揃う場合のみ超過リターン評価に使う。
  */
 export function runBacktest(
   spec: BacktestSpec,
@@ -329,9 +332,13 @@ export function runBacktest(
     const holdingDays = epochDay(exitDate, "backtest exitDate") - epochDay(entryDate, "backtest entryDate");
 
     const grossReturnBps = returnBps(entry.price, exit.price, spec.side);
-    const rawBenchmarkBps = benchmarkReturnBpsFor(benchmark, entryDate, exitDate);
+    const benchmarkResult = benchmarkReturnBpsFor(benchmark, entryDate, exitDate);
+    if (typeof benchmarkResult === "string") {
+      skip(benchmarkResult);
+      continue;
+    }
     const benchmarkReturnBps =
-      rawBenchmarkBps === undefined ? undefined : spec.side === "long" ? rawBenchmarkBps : -rawBenchmarkBps;
+      benchmarkResult === undefined ? undefined : spec.side === "long" ? benchmarkResult : -benchmarkResult;
 
     const costs = computeCosts(spec.costs, {
       side: spec.side,
