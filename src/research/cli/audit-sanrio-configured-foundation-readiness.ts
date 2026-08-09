@@ -14,6 +14,9 @@ import {
 import {
   auditSanrioConfiguredFoundationReadinessWithConfiguredSourceLineage,
 } from "../edinet-sanrio-foundation-readiness-configured-source-lineage.js";
+import {
+  buildFoundationReadinessReadOnlyFollowUp,
+} from "../foundation-readiness-readonly-advisory.js";
 
 type JsonObject = Record<string, unknown>;
 const MAX_JSON_BYTES = 30 * 1024 * 1024;
@@ -108,11 +111,11 @@ function directChildExpected(
 }
 
 function edinetRelativeFile(value: unknown, expectedDirectory: string, pattern: RegExp, field: string): string {
-  const relative = value === null || value === undefined ? "" : String(value).trim().replace(/\\/g, "/");
-  if (!relative || relative.startsWith("/") || relative.split("/").some(part => !part || part === "." || part === "..")) {
+  const relativePath = value === null || value === undefined ? "" : String(value).trim().replace(/\\/g, "/");
+  if (!relativePath || relativePath.startsWith("/") || relativePath.split("/").some(part => !part || part === "." || part === "..")) {
     throw new Error(`${field} must be a safe data/edinet-relative path`);
   }
-  const path = resolve(localRoot(), relative);
+  const path = resolve(localRoot(), relativePath);
   if (dirname(path) !== expectedDirectory || !pattern.test(basename(path))) {
     throw new Error(`${field} does not resolve to the expected acquisition file`);
   }
@@ -176,6 +179,7 @@ function main(): void {
   const markdownPath = resolve(directory, `configured-foundation-readiness-audit-v1.${token}.md`);
   writeExclusive(jsonPath, `${JSON.stringify(audit, null, 2)}\n`);
   writeExclusive(markdownPath, renderSanrioConfiguredFoundationReadinessAudit(audit));
+  const followUp = buildFoundationReadinessReadOnlyFollowUp(jsonPath);
 
   console.log("Sanrio configured Foundation readiness audit");
   console.log(`documents/anchors: ${audit.documentCount}/${audit.anchorCount}`);
@@ -189,6 +193,10 @@ function main(): void {
   console.log(`replacementAuthorized: ${audit.replacementAuthorized}`);
   console.log(`foundationPreviewEligible: ${audit.foundationPreviewEligible}`);
   console.log(`appendAuthorized: ${audit.appendAuthorized}`);
+  console.log(`readOnlyFollowUpPurpose: ${followUp.purpose}`);
+  console.log("readOnlyFollowUpCommand:");
+  console.log(followUp.command);
+  console.log(`foundationGateStillPending: ${followUp.foundationGateStillPending}`);
 }
 
 try {
