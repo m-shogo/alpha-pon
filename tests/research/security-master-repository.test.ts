@@ -27,6 +27,28 @@ import {
 }
 
 {
+  const dir = mkdtempSync(join(tmpdir(), "security-master-repository-invalid-as-of-"));
+  try {
+    for (const asOf of ["2026-02-31", "2026-8-09", "20260809"]) {
+      const result = validateSecurityMasterRepository({
+        entitiesPath: join(dir, "missing-entities.jsonl"),
+        relationshipsPath: join(dir, "missing-relationships.jsonl"),
+        asOf,
+      });
+      assert.ok(result.issues.some((item) => item.code === "invalid_security_master_as_of"));
+      assert.equal(result.snapshot.asOf, asOf);
+      assert.equal(result.snapshot.entities.length, 0);
+      assert.equal(result.snapshot.relationships.length, 0);
+      assert.equal(result.activeEntityCount, 0);
+      assert.equal(result.activeRelationshipCount, 0);
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  console.log("security-master-repository: malformed as-of dates fail closed before snapshot calculation OK");
+}
+
+{
   const dir = mkdtempSync(join(tmpdir(), "security-master-repository-partial-"));
   const entitiesPath = join(dir, "entities.jsonl");
   try {
