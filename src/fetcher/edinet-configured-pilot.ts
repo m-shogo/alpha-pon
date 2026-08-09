@@ -175,7 +175,7 @@ function dedupeDocuments(docs: EdinetDoc[]): EdinetDoc[] {
   const byId = new Map<string, EdinetDoc>();
   for (const doc of docs) {
     const docID = normalizedText(doc.docID);
-    if (!docID) continue;
+    if (!docID) throw new Error("configured EDINET document docID must be non-empty");
     const existing = byId.get(docID);
     byId.set(docID, existing ? preferLatest(existing, doc) : doc);
   }
