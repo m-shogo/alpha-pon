@@ -117,6 +117,41 @@ function recordsEffectiveAt<T extends RevisionRecord>(records: readonly T[], asO
   return records.filter((record) => dateInRange(asOf, record.validFrom, record.validTo));
 }
 
+function enforceSnapshotEndpointIntegrity(snapshot: SecurityMasterSnapshot): {
+  snapshot: SecurityMasterSnapshot;
+  issues: SecurityMasterIssue[];
+} {
+  const entityIds = new Set(snapshot.entities.map((entity) => entity.entityId));
+  const issues: SecurityMasterIssue[] = [];
+  const relationships: SecurityMasterRelationshipRecord[] = [];
+
+  for (const relationship of snapshot.relationships) {
+    const missingFrom = !entityIds.has(relationship.fromEntityId);
+    const missingTo = !entityIds.has(relationship.toEntityId);
+    const target = `${relationship.relationshipId}:${relationship.recordId}`;
+    if (missingFrom) {
+      issues.push(issue(
+        "snapshot_relationship_missing_from_entity",
+        target,
+        `relationship is effective at ${snapshot.asOf}, but fromEntityId ${relationship.fromEntityId} is not effective in the same snapshot`,
+      ));
+    }
+    if (missingTo) {
+      issues.push(issue(
+        "snapshot_relationship_missing_to_entity",
+        target,
+        `relationship is effective at ${snapshot.asOf}, but toEntityId ${relationship.toEntityId} is not effective in the same snapshot`,
+      ));
+    }
+    if (!missingFrom && !missingTo) relationships.push(relationship);
+  }
+
+  return {
+    snapshot: { ...snapshot, relationships },
+    issues,
+  };
+}
+
 export function validateSecurityMasterRepository(
   options: SecurityMasterRepositoryOptions = {},
 ): SecurityMasterRepositoryResult {
@@ -150,11 +185,14 @@ export function validateSecurityMasterRepository(
     ...historicalRevisionShadowingIssues(entityRead.records, asOf, "entity"),
     ...historicalRevisionShadowingIssues(relationshipRead.records, asOf, "relationship"),
   );
-  const snapshot = buildSecurityMasterSnapshot(
+  const rawSnapshot = buildSecurityMasterSnapshot(
     recordsEffectiveAt(entityRead.records, asOf),
     recordsEffectiveAt(relationshipRead.records, asOf),
     asOf,
   );
+  const endpointIntegrity = enforceSnapshotEndpointIntegrity(rawSnapshot);
+  issues.push(...endpointIntegrity.issues);
+  const snapshot = endpointIntegrity.snapshot;
   return {
     issues: sortIssues(issues),
     entityRecordCount: entityRead.records.length,
