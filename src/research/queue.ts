@@ -3,6 +3,7 @@
 // 毎時 ChatGPT は「思いつき」ではなく、このモジュールが出した 1 位を研究する。
 // すべて純関数。同じ state と同じ asOf なら、常に同じ順位になる（決定論的）。
 
+import { isValidDate } from "./schema.js";
 import type { Edge, EdgeStatus, ResearchState } from "./types.js";
 import { GATE_KEYS } from "./types.js";
 
@@ -82,9 +83,9 @@ function round(value: number): number {
 }
 
 function daysBetween(from: string, to: string): number {
-  const fromMs = Date.parse(`${from}T00:00:00+09:00`);
-  const toMs = Date.parse(`${to}T00:00:00+09:00`);
-  return Math.round((toMs - fromMs) / 86_400_000);
+  if (!isValidDate(from)) throw new Error(`invalid research date: ${from}`);
+  if (!isValidDate(to)) throw new Error(`invalid research date: ${to}`);
+  return Math.round((Date.parse(`${to}T00:00:00+09:00`) - Date.parse(`${from}T00:00:00+09:00`)) / 86_400_000);
 }
 
 export function gatePassCount(edge: Edge): number {
