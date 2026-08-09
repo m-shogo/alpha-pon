@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 
 type JsonObject = Record<string, unknown>;
 
@@ -398,10 +399,8 @@ export function buildFoundationPilotStructuralStatus(input: {
   generatedAt?: string;
 }): FoundationPilotStructuralStatus {
   const generatedAt = input.generatedAt ?? new Date().toISOString();
-  if (!Number.isFinite(Date.parse(generatedAt))) throw new Error("generatedAt must be a date-time");
-  if (!Number.isFinite(Date.parse(input.target.informationCutoff))) {
-    throw new Error("target.informationCutoff must be a date-time");
-  }
+  parseExplicitIso8601Instant(generatedAt, "generatedAt");
+  parseExplicitIso8601Instant(input.target.informationCutoff, "target.informationCutoff");
   for (const [key, value] of Object.entries(input.target)) {
     if (!String(value).trim()) throw new Error(`target.${key} must be non-empty`);
   }
