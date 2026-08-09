@@ -10,14 +10,17 @@ function series(code: string, closes: number[], volume = 1_000_000): PriceSeries
   ];
   return {
     code,
-    bars: closes.map((close, index) => ({
-      date: dates[index],
-      open: index === 0 ? close : closes[index - 1],
-      high: close + 10,
-      low: close - 10,
-      close,
-      volume,
-    })),
+    bars: closes.map((close, index) => {
+      const open = index === 0 ? close : closes[index - 1];
+      return {
+        date: dates[index],
+        open,
+        high: Math.max(open, close) + 10,
+        low: Math.min(open, close) - 10,
+        close,
+        volume,
+      };
+    }),
   };
 }
 
@@ -122,6 +125,174 @@ function testStopLossTriggers() {
   console.log("research/backtest: ストップロス OK");
 }
 
+function testEventResolutionCannotPrecedeEntry() {
+  const prices = new Map([["9001", series("9001", [1000, 1010, 1020, 1030, 1040])]]);
+  const spec: BacktestSpec = { ...BASE_SPEC, exit: { mode: "event_resolution" } };
+
+  const impossible = runBacktest(spec, [{
+    id: "resolved-before-entry",
+    code: "9001",
+    observedAt: "2024-01-09T16:00:00+09:00",
+    resolutionDate: "2024-01-05",
+  }], prices);
+  assert.equal(impossible.executedCount, 0);
+  assert.equal(impossible.trades[0]?.skipReason, "resolution_before_entry");
+  assert.equal(impossible.trades[0]?.holdingDays, undefined);
+
+  const sameDay = runBacktest(spec, [{
+    id: "resolved-on-entry-day",
+    code: "9001",
+    observedAt: "2024-01-09T16:00:00+09:00",
+    resolutionDate: "2024-01-10",
+  }], prices);
+  assert.equal(sameDay.executedCount, 1, "entry当日のresolutionは既存仕様どおり許可する");
+  assert.equal(sameDay.trades[0]?.holdingDays, 0);
+  console.log("research/backtest: event resolution cannot exit before entry OK");
+}
+
+function testTemporalInputsFailClosed() {
+  const validSeries = series("9001", [1000, 1010, 1020, 1030, 1040]);
+  const validPrices = new Map([["9001", validSeries]]);
+
+  assert.throws(
+    () => runBacktest(BASE_SPEC, [{ id: "implicit", code: "9001", observedAt: "2024-01-04T16:00:00" }], validPrices),
+    /explicit timezone/,
+  );
+  assert.throws(
+    () => runBacktest(BASE_SPEC, [{
+      id: "bad-resolution",
+      code: "9001",
+      observedAt: "2024-01-04T16:00:00+09:00",
+      resolutionDate: "2024-02-31",
+    }], validPrices),
+    /resolutionDate must be a real YYYY-MM-DD date/,
+  );
+
+  const invalidDateSeries = structuredClone(validSeries);
+  invalidDateSeries.bars[1]!.date = "2024-02-31";
+  assert.throws(
+    () => runBacktest(BASE_SPEC, [], new Map([["9001", invalidDateSeries]])),
+    /bars\[1\]\.date must be a real YYYY-MM-DD date/,
+  );
+
+  const duplicateDateSeries = structuredClone(validSeries);
+  duplicateDateSeries.bars[1]!.date = duplicateDateSeries.bars[0]!.date;
+  assert.throws(
+    () => runBacktest(BASE_SPEC, [], new Map([["9001", duplicateDateSeries]])),
+    /strictly increasing by date without duplicates/,
+  );
+
+  assert.throws(
+    () => runBacktest(BASE_SPEC, [], new Map([["9999", validSeries]])),
+    /price map key 9999 must match series\.code 9001/,
+  );
+  console.log("research/backtest: temporal and series identity inputs fail closed OK");
+}
+
+function testPriceBarSemanticsFailClosed() {
+  const validSeries = series("9001", [1000, 1010, 1020, 1030, 1040]);
+  const expectRejected = (
+    mutate: (invalid: PriceSeries) => void,
+    pattern: RegExp,
+  ) => {
+    const invalid = structuredClone(validSeries);
+    mutate(invalid);
+    assert.throws(() => runBacktest(BASE_SPEC, [], new Map([["9001", invalid]])), pattern);
+  };
+
+  expectRejected((invalid) => { invalid.bars[0]!.close = Number.NaN; }, /close must be a finite positive price/);
+  expectRejected((invalid) => { invalid.bars[0]!.open = 0; }, /open must be a finite positive price/);
+  expectRejected((invalid) => { invalid.bars[0]!.high = Number.POSITIVE_INFINITY; }, /high must be a finite positive price/);
+  expectRejected((invalid) => {
+    Object.assign(invalid.bars[0]!, { open: 1000, low: 990, close: 1010, high: 1005 });
+  }, /high must be greater than or equal to open\/low\/close/);
+  expectRejected((invalid) => {
+    Object.assign(invalid.bars[0]!, { open: 1000, close: 1010, high: 1200, low: 1100 });
+  }, /low must be less than or equal to open\/high\/close/);
+  expectRejected((invalid) => { invalid.bars[0]!.volume = -1; }, /volume must be a non-negative safe integer/);
+  expectRejected((invalid) => { invalid.bars[0]!.volume = 1.5; }, /volume must be a non-negative safe integer/);
+
+  const invalidBenchmark = series("TOPIX", [2000, 2010, 2020, 2030, 2040]);
+  invalidBenchmark.bars[0]!.close = Number.NaN;
+  const benchmarkSpec: BacktestSpec = { ...BASE_SPEC, benchmark: "TOPIX" };
+  assert.throws(
+    () => runBacktest(benchmarkSpec, [], new Map([["9001", validSeries]]), invalidBenchmark),
+    /backtest benchmark TOPIX\.bars\[0\]\.close must be a finite positive price/,
+  );
+  console.log("research/backtest: malformed OHLC and volume inputs fail closed OK");
+}
+
+function testSpecConformanceFailsClosed() {
+  const prices = new Map([["9001", series("9001", [1000, 1010, 1020, 1030, 1040])]]);
+  const signals = [{ id: "s1", code: "9001", observedAt: "2024-01-04T16:00:00+09:00" }];
+  const expectSpecRejected = (
+    mutate: (invalid: BacktestSpec) => void,
+    pattern: RegExp,
+  ) => {
+    const invalid: BacktestSpec = structuredClone(BASE_SPEC);
+    mutate(invalid);
+    assert.throws(() => runBacktest(invalid, signals, prices), pattern);
+  };
+
+  expectSpecRejected((spec) => { spec.entry.lagDays = -1; }, /lagDays must be a non-negative safe integer/);
+  expectSpecRejected((spec) => { spec.entry.lagDays = 1.5; }, /lagDays must be a non-negative safe integer/);
+  expectSpecRejected((spec) => { spec.notionalJpy = -1; }, /notionalJpy/);
+  expectSpecRejected((spec) => { spec.notionalJpy = Number.NaN; }, /notionalJpy/);
+  expectSpecRejected((spec) => { spec.costs.commissionBps = Number.NaN; }, /commissionBps/);
+  expectSpecRejected((spec) => { spec.costs.spreadBps = -1; }, /spreadBps/);
+  expectSpecRejected((spec) => { spec.costs.marketImpactBpsPerPctAdv = Number.NaN; }, /marketImpactBpsPerPctAdv/);
+  expectSpecRejected((spec) => { spec.costs.borrowCostAnnualBps = -1; }, /borrowCostAnnualBps/);
+  expectSpecRejected((spec) => { spec.costs.shortRebateAnnualBps = Number.POSITIVE_INFINITY; }, /shortRebateAnnualBps/);
+  expectSpecRejected((spec) => { spec.liquidity.participationLimitPct = 0; }, /participationLimitPct/);
+  expectSpecRejected((spec) => { spec.liquidity.participationLimitPct = 101; }, /participationLimitPct/);
+  expectSpecRejected((spec) => { spec.liquidity.participationLimitPct = Number.NaN; }, /participationLimitPct/);
+  expectSpecRejected((spec) => { spec.liquidity.minAdtvJpy = -1; }, /minAdtvJpy/);
+  expectSpecRejected((spec) => { spec.exit.holdingPeriodDays = 0; }, /holdingPeriodDays/);
+  expectSpecRejected((spec) => { spec.exit.stopLossBps = Number.POSITIVE_INFINITY; }, /stopLossBps/);
+
+  console.log("research/backtest: direct spec conformance fails closed OK");
+}
+
+function testBenchmarkProvenanceFailsClosed() {
+  const prices = new Map([["9001", series("9001", [1000, 1010, 1020, 1030, 1040])]]);
+  const signals = [{ id: "s1", code: "9001", observedAt: "2024-01-04T16:00:00+09:00" }];
+  const topix = series("TOPIX", [2000, 2005, 2010, 2015, 2020]);
+  const requiredSpec: BacktestSpec = { ...BASE_SPEC, benchmark: "TOPIX" };
+
+  assert.throws(
+    () => runBacktest(requiredSpec, signals, prices),
+    /spec benchmark TOPIX requires a benchmark PriceSeries/,
+  );
+  assert.throws(
+    () => runBacktest(requiredSpec, signals, prices, { ...topix, code: "OTHER-IDX" }),
+    /benchmark code OTHER-IDX must match spec\.benchmark TOPIX/,
+  );
+  assert.throws(
+    () => runBacktest(BASE_SPEC, signals, prices, topix),
+    /benchmark TOPIX was provided but spec\.benchmark is not declared/,
+  );
+
+  const valid = runBacktest(requiredSpec, signals, prices, topix);
+  assert.equal(valid.executedCount, 1);
+  assert.equal(typeof valid.trades[0]?.benchmarkReturnBps, "number");
+  assert.equal(typeof valid.trades[0]?.grossAlphaBps, "number");
+  console.log("research/backtest: declared benchmark provenance is required and pinned OK");
+}
+
+function testSignalOrderingUsesActualInstant() {
+  const prices = new Map([["9001", series("9001", [1000, 1010, 1020, 1030, 1040])]]);
+  const report = runBacktest(BASE_SPEC, [
+    { id: "later-instant", code: "9001", observedAt: "2024-01-04T08:00:00-05:00" },
+    { id: "earlier-instant", code: "9001", observedAt: "2024-01-04T15:00:00+09:00" },
+  ], prices);
+  assert.deepEqual(
+    report.trades.map((trade) => trade.signalId),
+    ["earlier-instant", "later-instant"],
+    "offset表現の文字列順ではなく実instant順に並べる",
+  );
+  console.log("research/backtest: signal ordering uses actual instant OK");
+}
+
 function testAggregateAndFalseDiscoveryGuard() {
   const stats = aggregate([100, -50, 200, 0]);
   assert.equal(stats.count, 4);
@@ -154,6 +325,12 @@ testSameCloseAfterMarketIsPitViolation();
 testLiquidityLimitBlocksExecution();
 testShortSideFlipsSign();
 testStopLossTriggers();
+testEventResolutionCannotPrecedeEntry();
+testTemporalInputsFailClosed();
+testPriceBarSemanticsFailClosed();
+testSpecConformanceFailsClosed();
+testBenchmarkProvenanceFailsClosed();
+testSignalOrderingUsesActualInstant();
 testAggregateAndFalseDiscoveryGuard();
 testFixtureBundleIsReproducible();
 
