@@ -53,6 +53,8 @@ export type SkipReason =
   | "no_price_series"
   | "no_entry_bar"
   | "no_exit_bar"
+  | "benchmark_missing_entry_bar"
+  | "benchmark_missing_exit_bar"
   | "pit_violation_same_close"
   | "liquidity_participation_exceeded"
   | "liquidity_adtv_too_low"
@@ -256,11 +258,13 @@ function benchmarkReturnBpsFor(
   benchmark: PriceSeries | undefined,
   entryDate: string,
   exitDate: string,
-): number | undefined {
+): number | "benchmark_missing_entry_bar" | "benchmark_missing_exit_bar" | undefined {
   if (!benchmark) return undefined;
-  const entryIndex = indexOfFirstBarOnOrAfter(benchmark.bars, entryDate);
-  const exitIndex = indexOfFirstBarOnOrAfter(benchmark.bars, exitDate);
-  if (entryIndex < 0 || exitIndex < 0) return undefined;
+  const entryIndex = benchmark.bars.findIndex((bar) => bar.date === entryDate);
+  if (entryIndex < 0) return "benchmark_missing_entry_bar";
+  const exitIndex = benchmark.bars.findIndex((bar) => bar.date === exitDate);
+  if (exitIndex < 0) return "benchmark_missing_exit_bar";
+  // ベンチマークは issuer と同じ営業日だけを使う。provider gapを次の営業日で埋めない。
   // ベンチマークは常にロング換算。ショートの超過は「銘柄の逆行 − 指数の逆行」で測る。
   const raw = (benchmark.bars[exitIndex].close - benchmark.bars[entryIndex].close) / benchmark.bars[entryIndex].close;
   return raw * 10_000;
@@ -330,6 +334,10 @@ export function runBacktest(
 
     const grossReturnBps = returnBps(entry.price, exit.price, spec.side);
     const rawBenchmarkBps = benchmarkReturnBpsFor(benchmark, entryDate, exitDate);
+    if (typeof rawBenchmarkBps === "string") {
+      skip(rawBenchmarkBps);
+      continue;
+    }
     const benchmarkReturnBps =
       rawBenchmarkBps === undefined ? undefined : spec.side === "long" ? rawBenchmarkBps : -rawBenchmarkBps;
 
