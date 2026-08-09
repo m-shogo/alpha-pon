@@ -729,13 +729,22 @@ export function resolveEntityByIdentifier(
     provider?: string;
   },
 ): SecurityMasterEntityRecord {
+  const market = query.market?.trim();
+  const provider = query.provider?.trim();
+  if (query.type === "ticker" && !market) {
+    throw new Error(`security_master_market_required:ticker:${query.value}`);
+  }
+  if (query.type === "provider_code" && !provider) {
+    throw new Error(`security_master_provider_required:provider_code:${query.value}`);
+  }
+
   const normalizedValue = query.value.trim().toUpperCase();
   const matches = snapshot.entities.filter((entity) =>
     entity.identifiers.some((identifier) =>
       identifier.type === query.type &&
       identifier.value.trim().toUpperCase() === normalizedValue &&
-      (!query.market || identifier.market?.toUpperCase() === query.market.toUpperCase()) &&
-      (!query.provider || identifier.provider?.toLowerCase() === query.provider.toLowerCase()) &&
+      (!market || identifier.market?.trim().toUpperCase() === market.toUpperCase()) &&
+      (!provider || identifier.provider?.trim().toLowerCase() === provider.toLowerCase()) &&
       identifier.confidence === "verified" &&
       dateInRange(snapshot.asOf, identifier.validFrom, identifier.validTo),
     ),
