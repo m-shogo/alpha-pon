@@ -197,10 +197,10 @@ assert.throws(
 console.log("foundation-pilot-hash-witness-conformance: timezone-less proof capture blocked OK");
 
 {
+  const { contentHash: _ignored, ...decisionWithoutHash } = decision();
   const malformedDecision = withFoundationDecisionHash({
-    ...decision(),
+    ...decisionWithoutHash,
     issuedAt: "2026-08-06T06:05:00+15:00",
-    contentHash: undefined as never,
   });
   assert.throws(
     () => buildFoundationPilotProofRun({
