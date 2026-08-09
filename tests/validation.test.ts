@@ -3,6 +3,7 @@ import "./edinet-fetcher.test.js";
 import "./edinet-document-lineage.test.js";
 import "./edinet-issuer-boundary.test.js";
 import "./edinet-configured-pilot.test.js";
+import "./edinet-configured-pilot-generated-at-instant.test.js";
 import "./edinet-configured-review-plan.test.js";
 import "./edinet-configured-acquisition.test.js";
 import "./edinet-configured-review-workspace.test.js";
