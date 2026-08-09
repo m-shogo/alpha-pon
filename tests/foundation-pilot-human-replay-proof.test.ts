@@ -76,6 +76,13 @@ function conformance(status: "passed" | "failed" = "passed"): FoundationPilotHas
   return { ...base, contentHash: digest(base) };
 }
 
+function conformanceWithGeneratedAt(generatedAt: string): FoundationPilotHashWitnessConformanceAudit {
+  const current = conformance();
+  const { contentHash: _ignored, ...withoutHash } = current;
+  const base = { ...withoutHash, generatedAt };
+  return { ...base, contentHash: digest(base) };
+}
+
 function template() {
   return buildFoundationPilotHumanReplayProofTemplate({
     conformance: conformance(),
@@ -137,6 +144,44 @@ function finalize(input = completeInput(), source = conformance()) {
   assert.match(renderFoundationPilotHumanReplayProof(record), /realEvidenceProven: false/);
   console.log("foundation-pilot-human-replay-proof: human-confirmed replay proofs remain milestone-non-authorizing OK");
 }
+
+assert.throws(
+  () => buildFoundationPilotHumanReplayProofTemplate({
+    conformance: conformance(),
+    sourceConformanceFile: "foundation-pilot-hash-witness-conformance-v1.20260807T020000Z.json",
+    generatedAt: "2026-08-07T02:01:00",
+  }),
+  /explicit timezone/,
+);
+console.log("foundation-pilot-human-replay-proof: timezone-less template generatedAt blocked OK");
+
+assert.throws(
+  () => buildFoundationPilotHumanReplayProofTemplate({
+    conformance: conformanceWithGeneratedAt("2026-02-31T02:00:00Z"),
+    sourceConformanceFile: "foundation-pilot-hash-witness-conformance-v1.20260807T020000Z.json",
+    generatedAt: "2026-08-07T02:01:00Z",
+  }),
+  /valid Gregorian ISO-8601 timestamp/,
+);
+console.log("foundation-pilot-human-replay-proof: impossible upstream conformance generatedAt blocked OK");
+
+{
+  const input = completeInput();
+  input.reviewedAt = "2026-08-07T02:05:00+15:00";
+  assert.throws(() => finalize(input), /timezone offset within ±14:00/);
+  console.log("foundation-pilot-human-replay-proof: invalid human reviewedAt offset blocked OK");
+}
+
+assert.throws(
+  () => finalizeFoundationPilotHumanReplayProof({
+    conformance: conformance(),
+    sourceConformanceFile: "foundation-pilot-hash-witness-conformance-v1.20260807T020000Z.json",
+    editedReviewInput: completeInput(),
+    generatedAt: "2026-08-07T02:06:00",
+  }),
+  /explicit timezone/,
+);
+console.log("foundation-pilot-human-replay-proof: timezone-less final generatedAt blocked OK");
 
 {
   const input = completeInput();
