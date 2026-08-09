@@ -221,6 +221,37 @@ function testPriceBarSemanticsFailClosed() {
   console.log("research/backtest: malformed OHLC and volume inputs fail closed OK");
 }
 
+function testSpecConformanceFailsClosed() {
+  const prices = new Map([["9001", series("9001", [1000, 1010, 1020, 1030, 1040])]]);
+  const signals = [{ id: "s1", code: "9001", observedAt: "2024-01-04T16:00:00+09:00" }];
+  const expectSpecRejected = (
+    mutate: (invalid: BacktestSpec) => void,
+    pattern: RegExp,
+  ) => {
+    const invalid: BacktestSpec = structuredClone(BASE_SPEC);
+    mutate(invalid);
+    assert.throws(() => runBacktest(invalid, signals, prices), pattern);
+  };
+
+  expectSpecRejected((spec) => { spec.entry.lagDays = -1; }, /lagDays must be a non-negative safe integer/);
+  expectSpecRejected((spec) => { spec.entry.lagDays = 1.5; }, /lagDays must be a non-negative safe integer/);
+  expectSpecRejected((spec) => { spec.notionalJpy = -1; }, /notionalJpy/);
+  expectSpecRejected((spec) => { spec.notionalJpy = Number.NaN; }, /notionalJpy/);
+  expectSpecRejected((spec) => { spec.costs.commissionBps = Number.NaN; }, /commissionBps/);
+  expectSpecRejected((spec) => { spec.costs.spreadBps = -1; }, /spreadBps/);
+  expectSpecRejected((spec) => { spec.costs.marketImpactBpsPerPctAdv = Number.NaN; }, /marketImpactBpsPerPctAdv/);
+  expectSpecRejected((spec) => { spec.costs.borrowCostAnnualBps = -1; }, /borrowCostAnnualBps/);
+  expectSpecRejected((spec) => { spec.costs.shortRebateAnnualBps = Number.POSITIVE_INFINITY; }, /shortRebateAnnualBps/);
+  expectSpecRejected((spec) => { spec.liquidity.participationLimitPct = 0; }, /participationLimitPct/);
+  expectSpecRejected((spec) => { spec.liquidity.participationLimitPct = 101; }, /participationLimitPct/);
+  expectSpecRejected((spec) => { spec.liquidity.participationLimitPct = Number.NaN; }, /participationLimitPct/);
+  expectSpecRejected((spec) => { spec.liquidity.minAdtvJpy = -1; }, /minAdtvJpy/);
+  expectSpecRejected((spec) => { spec.exit.holdingPeriodDays = 0; }, /holdingPeriodDays/);
+  expectSpecRejected((spec) => { spec.exit.stopLossBps = Number.POSITIVE_INFINITY; }, /stopLossBps/);
+
+  console.log("research/backtest: direct spec conformance fails closed OK");
+}
+
 function testSignalOrderingUsesActualInstant() {
   const prices = new Map([["9001", series("9001", [1000, 1010, 1020, 1030, 1040])]]);
   const report = runBacktest(BASE_SPEC, [
@@ -270,6 +301,7 @@ testStopLossTriggers();
 testEventResolutionCannotPrecedeEntry();
 testTemporalInputsFailClosed();
 testPriceBarSemanticsFailClosed();
+testSpecConformanceFailsClosed();
 testSignalOrderingUsesActualInstant();
 testAggregateAndFalseDiscoveryGuard();
 testFixtureBundleIsReproducible();
