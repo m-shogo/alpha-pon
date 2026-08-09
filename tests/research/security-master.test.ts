@@ -190,6 +190,8 @@ function validMaster() {
     validFrom: "2018-01-01",
     validTo: "2019-12-31",
     status: "inactive",
+    observedAt: "2018-01-01T09:00:00+09:00",
+    retrievedAt: "2018-01-01T09:01:00+09:00",
     identifiers: [{
       type: "ticker",
       value: "ALP",
@@ -205,6 +207,8 @@ function validMaster() {
     entityType: "listed_security",
     canonicalName: "新Alpha普通株式",
     validFrom: "2020-01-01",
+    observedAt: "2020-01-01T09:00:00+09:00",
+    retrievedAt: "2020-01-01T09:01:00+09:00",
     identifiers: [{
       type: "ticker",
       value: "ALP",
@@ -315,6 +319,55 @@ function validMaster() {
   assert.ok(validateSecurityMaster(master.entities, [wrong], schemas)
     .some((issue) => issue.code === "relationship_endpoint_type_mismatch"));
   console.log("security-master: relationship endpoint type guard OK");
+}
+
+{
+  const previousEntity = entity({
+    recordId: "entity:issuer:alpha:record:pit-001",
+    canonicalName: "Known At Cutoff株式会社",
+    observedAt: "2024-01-10T15:00:00+09:00",
+    retrievedAt: "2024-01-10T15:01:00+09:00"
+  });
+  const futureEntityRevision = entity({
+    recordId: "entity:issuer:alpha:record:pit-002",
+    canonicalName: "Future Correction株式会社",
+    observedAt: "2026-01-10T15:00:00+09:00",
+    retrievedAt: "2026-01-10T15:01:00+09:00",
+    supersedesRecordId: previousEntity.recordId
+  });
+  const previousRelationship = relationship({
+    recordId: "relationship:issuer:alpha-security:record:pit-001",
+    observedAt: "2024-01-10T15:00:00+09:00",
+    retrievedAt: "2024-01-10T15:01:00+09:00"
+  });
+  const futureRelationshipRevision = relationship({
+    recordId: "relationship:issuer:alpha-security:record:pit-002",
+    observedAt: "2026-01-10T15:00:00+09:00",
+    retrievedAt: "2026-01-10T15:01:00+09:00",
+    supersedesRecordId: previousRelationship.recordId
+  });
+
+  const pastSnapshot = buildSecurityMasterSnapshot(
+    [previousEntity, futureEntityRevision],
+    [previousRelationship, futureRelationshipRevision],
+    "2025-06-01"
+  );
+  assert.equal(pastSnapshot.entities.length, 1);
+  assert.equal(pastSnapshot.entities[0]?.recordId, previousEntity.recordId);
+  assert.equal(pastSnapshot.entities[0]?.canonicalName, "Known At Cutoff株式会社");
+  assert.equal(pastSnapshot.relationships.length, 1);
+  assert.equal(pastSnapshot.relationships[0]?.recordId, previousRelationship.recordId);
+
+  const futureSnapshot = buildSecurityMasterSnapshot(
+    [previousEntity, futureEntityRevision],
+    [previousRelationship, futureRelationshipRevision],
+    "2026-01-10"
+  );
+  assert.equal(futureSnapshot.entities.length, 1);
+  assert.equal(futureSnapshot.entities[0]?.recordId, futureEntityRevision.recordId);
+  assert.equal(futureSnapshot.relationships.length, 1);
+  assert.equal(futureSnapshot.relationships[0]?.recordId, futureRelationshipRevision.recordId);
+  console.log("security-master: direct snapshot builder excludes future-observed revisions OK");
 }
 
 {

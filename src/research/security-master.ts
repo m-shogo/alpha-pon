@@ -11,7 +11,8 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname } from "node:path";
-import { stableStringify, validate, type JsonSchema } from "./schema.js";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
+import { isValidDate, stableStringify, validate, type JsonSchema } from "./schema.js";
 
 export type SecurityEntityType =
   | "legal_entity"
@@ -704,17 +705,38 @@ export function validateSecurityMaster(
   return sortIssues(issues);
 }
 
+function recordsObservedBySnapshotDate<T extends { recordId: string; observedAt: string }>(
+  records: readonly T[],
+  asOf: string,
+): T[] {
+  if (!isValidDate(asOf)) {
+    throw new Error(`security_master_invalid_as_of:${asOf}`);
+  }
+  const cutoffEpoch = parseExplicitIso8601Instant(
+    `${asOf}T23:59:59.999+09:00`,
+    "security master snapshot cutoff",
+  );
+  return records.filter((record) =>
+    parseExplicitIso8601Instant(
+      record.observedAt,
+      `security master revision ${record.recordId}.observedAt`,
+    ) <= cutoffEpoch,
+  );
+}
+
 export function buildSecurityMasterSnapshot(
   entityRecords: SecurityMasterEntityRecord[],
   relationshipRecords: SecurityMasterRelationshipRecord[],
   asOf: string,
 ): SecurityMasterSnapshot {
+  const availableEntities = recordsObservedBySnapshotDate(entityRecords, asOf);
+  const availableRelationships = recordsObservedBySnapshotDate(relationshipRecords, asOf);
   return {
     asOf,
-    entities: activeEntityHeads(entityRecords)
+    entities: activeEntityHeads(availableEntities)
       .filter((record) => dateInRange(asOf, record.validFrom, record.validTo))
       .sort((a, b) => a.entityId.localeCompare(b.entityId)),
-    relationships: activeRelationshipHeads(relationshipRecords)
+    relationships: activeRelationshipHeads(availableRelationships)
       .filter((record) => dateInRange(asOf, record.validFrom, record.validTo))
       .sort((a, b) => a.relationshipId.localeCompare(b.relationshipId)),
   };
