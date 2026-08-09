@@ -90,6 +90,45 @@ function doc(overrides: Partial<EdinetDoc> = {}): EdinetDoc {
 }
 
 {
+  const registryValue = registry();
+  const boundary = resolveEdinetIssuerBoundary(registryValue, "sanrio");
+  const base = {
+    boundary,
+    registryHash: registryValue.registryHash,
+    from: "2026-08-03",
+    to: "2026-08-04",
+    generatedAt: "2026-08-06T11:00:00.000Z",
+    scannedBusinessDays: 2,
+    docs: [] as EdinetDoc[],
+  };
+  assert.throws(
+    () => buildConfiguredEdinetInventory({
+      ...base,
+      failedDates: [{ date: "2026-08-05", code: "http_500" }],
+    }),
+    /must be a business date inside the configured range/,
+  );
+  assert.throws(
+    () => buildConfiguredEdinetInventory({
+      ...base,
+      failedDates: [
+        { date: "2026-08-03", code: "http_500" },
+        { date: "2026-08-03", code: "network_error" },
+      ],
+    }),
+    /failedDates contains duplicate date: 2026-08-03/,
+  );
+  assert.throws(
+    () => buildConfiguredEdinetInventory({
+      ...base,
+      failedDates: [{ date: "2026-08-03", code: "   " }],
+    }),
+    /failedDates\[0\]\.code must be non-empty/,
+  );
+  console.log("edinet-configured-pilot: failed-date provenance must match configured scan dates OK");
+}
+
+{
   const boundary = sanrioBoundary();
   assert.equal(isConfiguredIssuerPrimaryDisclosure(doc(), boundary), true);
   assert.equal(isConfiguredIssuerPrimaryDisclosure(doc({ edinetCode: "", secCode: "81360" }), boundary), true);
