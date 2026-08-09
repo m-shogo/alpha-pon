@@ -289,8 +289,27 @@ export function checkProductionIntegrity(
   return issues;
 }
 
+function assertValidHoldoutManifest(manifest: HoldoutManifest): void {
+  if (!isValidDate(manifest.sealedAt)) {
+    throw new Error("holdout manifest sealedAt must be a real YYYY-MM-DD date");
+  }
+  for (const window of manifest.windows) {
+    if (!isValidDate(window.from)) {
+      throw new Error(`holdout window ${window.id}.from must be a real YYYY-MM-DD date`);
+    }
+    if (!isValidDate(window.to)) {
+      throw new Error(`holdout window ${window.id}.to must be a real YYYY-MM-DD date`);
+    }
+    if (window.from > window.to) {
+      throw new Error(`holdout window ${window.id} must have from <= to`);
+    }
+  }
+}
+
 /** Holdout の封印範囲に触れているかの判定。研究中データのフィルタに使う。 */
 export function isInHoldout(manifest: HoldoutManifest, code: string, date: string): boolean {
+  if (!isValidDate(date)) throw new Error("holdout lookup date must be a real YYYY-MM-DD date");
+  assertValidHoldoutManifest(manifest);
   return manifest.windows.some((window) => {
     if (date < window.from || date > window.to) return false;
     if (window.scope === "all_universe") return true;
