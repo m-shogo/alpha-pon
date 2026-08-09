@@ -15,6 +15,11 @@ function codes(state: Parameters<typeof checkPit>[0]): string[] {
 function testJstConversion() {
   assert.equal(jstDateOf("2026-08-04T00:30:00+09:00"), "2026-08-04");
   assert.equal(jstDateOf("2026-08-03T16:00:00Z"), "2026-08-04", "UTC 16:00 は JST では翌日");
+  assert.throws(
+    () => jstDateOf("2026-08-04T00:30:00"),
+    /explicit timezone/,
+    "JST変換もtimezoneなし日時を暗黙解釈しない",
+  );
   console.log("research/pit: JST 変換 OK");
 }
 
@@ -22,6 +27,11 @@ function testSameCloseEntryWindow() {
   assert.equal(canEnterSameClose("2026-08-04T14:59:00+09:00"), true);
   assert.equal(canEnterSameClose("2026-08-04T15:30:00+09:00"), false, "引け同時刻は当日約定できない");
   assert.equal(canEnterSameClose("2026-08-04T16:00:00+09:00"), false, "引け後の開示で当日引けは不可");
+  assert.throws(
+    () => canEnterSameClose("2026-08-04T14:59:00"),
+    /explicit timezone/,
+    "same-close判定はtimezoneなし日時を受け入れない",
+  );
   console.log("research/pit: 当日引けエントリの判定 OK");
 }
 
@@ -33,6 +43,40 @@ function testFutureTimestampRejected() {
   });
   assert.ok(codes(makeState({ analogs: [analog] })).includes("future_timestamp"), "未来日付を弾く");
   console.log("research/pit: 未来日付の検出 OK");
+}
+
+function testFutureTimestampUsesInstantOrdering() {
+  const analog = makeAnalog({
+    eventDate: "2026-08-03",
+    observedAt: "2026-08-03T23:30:00-04:00",
+    recordedAt: "2026-08-04",
+  });
+  assert.ok(
+    codes(makeState({ analogs: [analog] })).includes("future_timestamp"),
+    "ISO文字列の辞書順ではなくactual instantで未来判定する",
+  );
+  console.log("research/pit: timezone offsetを跨ぐ未来時刻の検出 OK");
+}
+
+function testImplicitAndImpossibleInstantsRejected() {
+  const implicit = makeAnalog({
+    id: "implicit-timezone",
+    eventDate: "2024-01-04",
+    observedAt: "2024-01-04T15:30:00",
+  });
+  const impossible = makeAnalog({
+    id: "impossible-gregorian",
+    eventDate: "2026-02-01",
+    observedAt: "2026-02-31T15:30:00+09:00",
+    recordedAt: "2026-03-01",
+  });
+  const issues = checkPit(makeState({ analogs: [implicit, impossible] }), NOW);
+  assert.equal(
+    issues.filter((issue) => issue.code === "invalid_timestamp").length,
+    2,
+    "timezoneなし・非実在Gregorian日時をfail-closedにする",
+  );
+  console.log("research/pit: implicit/impossible instantの拒否 OK");
 }
 
 function testObservedBeforeEventRejected() {
@@ -90,6 +134,8 @@ function testCleanStateHasNoErrors() {
 testJstConversion();
 testSameCloseEntryWindow();
 testFutureTimestampRejected();
+testFutureTimestampUsesInstantOrdering();
+testImplicitAndImpossibleInstantsRejected();
 testObservedBeforeEventRejected();
 testOutcomeBeforeEventRejected();
 testHoldoutLeakDetected();
