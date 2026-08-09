@@ -131,6 +131,35 @@ assert.ok(expectedBlockers.includes("missing_replay_result"));
 assert.ok(expectedBlockers.some((value) => value.startsWith("missing_calibration:")));
 assert.ok(expectedBlockers.includes("missing_price_snapshot:issuer_price"));
 
+{
+  const malformedDecision = withFoundationDecisionHash({
+    ...baseDecision,
+    issuedAt: "2026-08-06T06:05:00",
+  });
+  assert.throws(
+    () => assessFoundationDecisionRecord(malformedDecision, emptyContext),
+    /decision\.issuedAt must be an ISO-8601 timestamp with explicit timezone/,
+  );
+  console.log("research/foundation-decision-integration: direct assessor rejects timezone-less Decision instant OK");
+}
+
+{
+  const { contentHash: _ignored, ...priceWithoutHash } = price;
+  const malformedPrice = withFoundationPriceSnapshotHash({
+    ...priceWithoutHash,
+    observedAt: "2026-08-06T05:59:00",
+  });
+  const contextWithMalformedReferencedPrice: FoundationDecisionContext = {
+    ...emptyContext,
+    priceSnapshotsById: new Map([[malformedPrice.snapshotId, malformedPrice]]),
+  };
+  assert.throws(
+    () => assessFoundationDecisionRecord(unresolvedDraft, contextWithMalformedReferencedPrice),
+    /priceSnapshot\.issuerPrice\.observedAt must be an ISO-8601 timestamp with explicit timezone/,
+  );
+  console.log("research/foundation-decision-integration: direct assessor rejects malformed referenced context instant OK");
+}
+
 const blockedDecision = withFoundationDecisionHash({
   ...baseDecision,
   blockers: expectedBlockers,
