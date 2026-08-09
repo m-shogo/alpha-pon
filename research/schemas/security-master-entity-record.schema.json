@@ -107,8 +107,16 @@
             "minLength": 1,
             "pattern": "^\\S(?:.*\\S)?$"
           },
-          "market": { "type": "string", "minLength": 1 },
-          "provider": { "type": "string", "minLength": 1 },
+          "market": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^\\S(?:.*\\S)?$"
+          },
+          "provider": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^\\S(?:.*\\S)?$"
+          },
           "validFrom": { "type": "string", "format": "date" },
           "validTo": { "type": "string", "format": "date" },
           "confidence": {

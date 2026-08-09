@@ -2,13 +2,14 @@ import assert from "node:assert/strict";
 import {
   validateSecurityEntityRecord,
   withSecurityEntityHash,
+  type SecurityIdentifier,
   type SecurityMasterEntityRecordInput,
 } from "../../src/research/security-master.js";
 import { loadCouncilSchema } from "../../src/research/stock-pro-council-v2-validation.js";
 
 const schema = loadCouncilSchema("research/schemas/security-master-entity-record.schema.json");
 
-function listedSecurity(value: string) {
+function listedSecurity(identifier: SecurityIdentifier) {
   const input: SecurityMasterEntityRecordInput = {
     schemaVersion: 1,
     recordId: "entity:security:canonical:record:001",
@@ -25,14 +26,7 @@ function listedSecurity(value: string) {
       validFrom: "2020-01-01",
       sourceRefs: ["source:name:canonical"],
     }],
-    identifiers: [{
-      type: "jpx_code",
-      value,
-      market: "TSE",
-      validFrom: "2020-01-01",
-      confidence: "verified",
-      sourceRefs: ["source:jpx:canonical"],
-    }],
+    identifiers: [identifier],
     officialLinks: [{
       kind: "website",
       url: "https://example.com/canonical",
@@ -47,16 +41,50 @@ function listedSecurity(value: string) {
   return withSecurityEntityHash(input);
 }
 
+function jpxCode(value: string, market = "TSE"): SecurityIdentifier {
+  return {
+    type: "jpx_code",
+    value,
+    market,
+    validFrom: "2020-01-01",
+    confidence: "verified",
+    sourceRefs: ["source:jpx:canonical"],
+  };
+}
+
 for (const value of [" ", " 1234", "1234 "]) {
-  const issues = validateSecurityEntityRecord(listedSecurity(value), schema);
+  const issues = validateSecurityEntityRecord(listedSecurity(jpxCode(value)), schema);
   assert.ok(
     issues.some((issue) => issue.code === "schema_violation" && issue.target.includes("identifiers[0].value")),
     `expected non-canonical identifier value ${JSON.stringify(value)} to fail closed`,
   );
 }
 
+for (const market of [" TSE", "TSE "]) {
+  const issues = validateSecurityEntityRecord(listedSecurity(jpxCode("1234", market)), schema);
+  assert.ok(
+    issues.some((issue) => issue.code === "schema_violation" && issue.target.includes("identifiers[0].market")),
+    `expected non-canonical market namespace ${JSON.stringify(market)} to fail closed`,
+  );
+}
+
+for (const provider of [" example-provider", "example-provider "]) {
+  const issues = validateSecurityEntityRecord(listedSecurity({
+    type: "provider_code",
+    value: "ALPHA-1",
+    provider,
+    validFrom: "2020-01-01",
+    confidence: "verified",
+    sourceRefs: ["source:provider:canonical"],
+  }), schema);
+  assert.ok(
+    issues.some((issue) => issue.code === "schema_violation" && issue.target.includes("identifiers[0].provider")),
+    `expected non-canonical provider namespace ${JSON.stringify(provider)} to fail closed`,
+  );
+}
+
 assert.deepEqual(
-  validateSecurityEntityRecord(listedSecurity("1234"), schema)
+  validateSecurityEntityRecord(listedSecurity(jpxCode("1234")), schema)
     .filter((issue) => issue.severity === "error"),
   [],
 );
