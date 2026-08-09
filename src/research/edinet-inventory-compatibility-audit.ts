@@ -223,6 +223,11 @@ function candidates(record: JsonObject, field: string): Map<string, CandidateSna
     const doc = obj(candidate.doc, `${field}.candidates[${index}].doc`);
     const docID = requireDocID(doc.docID, `${field}.candidates[${index}].doc.docID`);
     if (result.has(docID)) throw new Error(`${field} has duplicate candidate ${docID}`);
+    const edinetCode = str(doc.edinetCode).toUpperCase();
+    const secCode = str(doc.secCode);
+    if (edinetCode !== "E02655" || secCode !== "81360") {
+      throw new Error(`${field}.candidates[${index}].doc issuer identity is not Sanrio`);
+    }
     const types = arr(candidate.documentTypePlan, `${field}.candidates[${index}].documentTypePlan`)
       .map((planValue, planIndex) => {
         const plan = obj(planValue, `${field}.candidates[${index}].documentTypePlan[${planIndex}]`);
@@ -230,8 +235,8 @@ function candidates(record: JsonObject, field: string): Map<string, CandidateSna
       });
     result.set(docID, {
       docID,
-      edinetCode: str(doc.edinetCode).toUpperCase(),
-      secCode: str(doc.secCode),
+      edinetCode,
+      secCode,
       submitDateTime: timestamp(doc.submitDateTime, `${field}.candidates[${index}].doc.submitDateTime`),
       parentDocID: str(doc.parentDocID),
       description: str(doc.docDescription),
