@@ -95,6 +95,93 @@ function testHoldoutPassRequiresPastStrictAccessRecord() {
   console.log("research/promotion: Holdout access temporal provenance OK");
 }
 
+function testLatestHoldoutResultDominatesStalePass() {
+  const edge = passAllGates(makeEdge());
+  edge.samples.current = 20;
+  const state = makeState({ edges: [edge] });
+
+  const oldPass: HoldoutAccessEntry = {
+    ...ACCESS,
+    id: "holdout-old-pass",
+    openedAt: "2024-02-01T09:00:00+09:00",
+    result: "pass",
+  };
+  const newerFail: HoldoutAccessEntry = {
+    ...ACCESS,
+    id: "holdout-newer-fail",
+    openedAt: "2024-02-01T10:00:00+09:00",
+    result: "fail",
+  };
+  const blocked = evaluateGate(edge, state, [oldPass, newerFail], AS_OF);
+  assert.ok(
+    blocked.unsupportedPasses.some(
+      (item) => item.gate === "holdoutPass" && item.reason.includes("holdout-newer-fail"),
+    ),
+    "新しいFAILがある時に古いPASSを根拠に使ってはいけない",
+  );
+
+  const oldFail: HoldoutAccessEntry = {
+    ...ACCESS,
+    id: "holdout-old-fail",
+    openedAt: "2024-02-01T08:00:00+09:00",
+    result: "fail",
+  };
+  const latestPass: HoldoutAccessEntry = {
+    ...ACCESS,
+    id: "holdout-latest-pass",
+    openedAt: "2024-02-01T11:00:00+09:00",
+    result: "pass",
+  };
+  const supported = evaluateGate(edge, state, [oldFail, latestPass], AS_OF);
+  assert.equal(
+    supported.unsupportedPasses.some((item) => item.gate === "holdoutPass"),
+    false,
+    "最新eligible結果がPASSなら古いFAILは現在のGateを止めない",
+  );
+
+  const currentFail: HoldoutAccessEntry = {
+    ...ACCESS,
+    id: "holdout-current-fail",
+    openedAt: "2024-02-01T12:00:00+09:00",
+    result: "fail",
+  };
+  const futurePass: HoldoutAccessEntry = {
+    ...ACCESS,
+    id: "holdout-future-pass",
+    openedAt: "2024-02-02T09:00:00+09:00",
+    result: "pass",
+  };
+  const futureCannotOverride = evaluateGate(edge, state, [currentFail, futurePass], AS_OF);
+  assert.ok(
+    futureCannotOverride.unsupportedPasses.some(
+      (item) => item.gate === "holdoutPass" && item.reason.includes("holdout-current-fail"),
+    ),
+    "asOfより未来のPASSは現在のFAILを上書きできない",
+  );
+
+  const sameTimePass: HoldoutAccessEntry = {
+    ...ACCESS,
+    id: "holdout-same-time-pass",
+    openedAt: "2024-02-01T13:00:00+09:00",
+    result: "pass",
+  };
+  const sameTimeFail: HoldoutAccessEntry = {
+    ...ACCESS,
+    id: "holdout-same-time-fail",
+    openedAt: "2024-02-01T13:00:00+09:00",
+    result: "fail",
+  };
+  const conflict = evaluateGate(edge, state, [sameTimePass, sameTimeFail], AS_OF);
+  assert.ok(
+    conflict.unsupportedPasses.some(
+      (item) => item.gate === "holdoutPass" && item.reason.includes("競合"),
+    ),
+    "同一latest instantにPASS/FAILが競合する場合はfail closed",
+  );
+
+  console.log("research/promotion: latest Holdout result dominates stale PASS OK");
+}
+
 function testCounterfactualRequired() {
   const edge = passAllGates(makeEdge());
   edge.samples.current = 20;
@@ -243,6 +330,7 @@ testUnknownGateBlocksPromotion();
 testSampleShortfallIsCaught();
 testHoldoutPassRequiresAccessRecord();
 testHoldoutPassRequiresPastStrictAccessRecord();
+testLatestHoldoutResultDominatesStalePass();
 testCounterfactualRequired();
 testUnresolvedConfounderBlocks();
 testDecayCheckedRequiresValidPastDate();
