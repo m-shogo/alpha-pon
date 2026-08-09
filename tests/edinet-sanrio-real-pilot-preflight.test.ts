@@ -141,7 +141,29 @@ function addParityRecord(configuredAcquisition: string, workspace: string): stri
 
 {
   const { root, acquisition } = sandbox();
+  writeJson(join(acquisition, "revision-source-fidelity-v1.invalid.json"), {
+    schemaVersion: 1,
+    source: "other",
+    reviewStatus: "pending_human_review",
+    appendAuthorized: false,
+  });
+  const result = inspectSanrioRealPilotPreflight(root);
+  assert.equal(result.stage, "inspection_required");
+  assert.equal(result.nextCommand, null);
+  assert.equal(result.selectedFiles.fidelity, undefined);
+  assert.deepEqual(result.missingInputs, ["revision-source-fidelity-v1.*.json"]);
+  console.log("edinet-sanrio-real-pilot-preflight: unusable fidelity cannot authorize inspection command OK");
+}
+
+{
+  const { root, acquisition } = sandbox();
   const fidelity = addFidelity(acquisition);
+  writeJson(join(acquisition, "revision-source-fidelity-v1.newer-invalid.json"), {
+    schemaVersion: 1,
+    source: "other",
+    reviewStatus: "pending_human_review",
+    appendAuthorized: false,
+  });
   const result = inspectSanrioRealPilotPreflight(root);
   assert.equal(result.stage, "inspection_required");
   assert.equal(result.requiresHumanAction, false);
@@ -149,8 +171,9 @@ function addParityRecord(configuredAcquisition: string, workspace: string): stri
   assert.match(result.nextCommand ?? "", /run-sanrio-edinet-unmatched-anchor-inspection-local\.sh/);
   assert.match(result.nextCommand ?? "", /--fidelity/);
   assert.match(result.nextCommand ?? "", new RegExp(fidelity.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.doesNotMatch(result.nextCommand ?? "", /newer-invalid/);
   assert.deepEqual(result.missingInputs, ["revision-unmatched-anchor-inspection-v1.*.json"]);
-  console.log("edinet-sanrio-real-pilot-preflight: available fidelity produces exact inspection command OK");
+  console.log("edinet-sanrio-real-pilot-preflight: newest unusable fidelity is ignored in favor of usable provenance OK");
 }
 
 {
