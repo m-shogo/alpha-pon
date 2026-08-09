@@ -267,4 +267,27 @@ function rehashConfigured(value: JsonObject): void {
   console.log("edinet-inventory-compatibility: matching timezone-less candidate timestamps cannot become migration-ready OK");
 }
 
+{
+  const { legacy, configured } = inventories();
+  const badLegacy = structuredClone(legacy) as unknown as JsonObject;
+  const badConfigured = structuredClone(configured) as unknown as JsonObject;
+  const legacyFirst = (badLegacy.candidates as JsonObject[])[0]!;
+  const configuredFirst = (badConfigured.candidates as JsonObject[])[0]!;
+  (legacyFirst.doc as JsonObject).edinetCode = "E99999";
+  (legacyFirst.doc as JsonObject).secCode = "99990";
+  (configuredFirst.doc as JsonObject).edinetCode = "E99999";
+  (configuredFirst.doc as JsonObject).secCode = "99990";
+  rehashConfigured(badConfigured);
+  assert.throws(
+    () => buildEdinetInventoryCompatibilityAudit({
+      legacyInventory: badLegacy,
+      configuredInventory: badConfigured,
+      legacyInventoryFile: "sanrio-edinet-inventory.legacy.json",
+      configuredInventoryFile: "sanrio-edinet-inventory.configured.json",
+    }),
+    /issuer identity is not Sanrio/,
+  );
+  console.log("edinet-inventory-compatibility: matching non-Sanrio candidate identity cannot become migration-ready OK");
+}
+
 console.log("edinet-inventory-compatibility-audit.test.ts passed");
