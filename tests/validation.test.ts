@@ -63,6 +63,7 @@ import "./research/outcome-review-due.test.js";
 import "./research/outcome-learning-proposal.test.js";
 import "./research/outcome-learning-decision.test.js";
 import "./research/outcome-learning-shadow-evaluation.test.js";
+import "./research/outcome-learning-shadow-evaluation-evidence-instant.test.js";
 import "./research/outcome-learning-adoption-decision.test.js";
 import "./research/outcome-learning-change-preparation.test.js";
 import "./research/outcome-learning-status.test.js";
