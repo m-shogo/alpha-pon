@@ -71,6 +71,25 @@ function doc(overrides: Partial<EdinetDoc> = {}): EdinetDoc {
 }
 
 {
+  const registryValue = registry();
+  const boundary = resolveEdinetIssuerBoundary(registryValue, "sanrio");
+  assert.throws(
+    () => buildConfiguredEdinetInventory({
+      boundary,
+      registryHash: registryValue.registryHash,
+      from: "2026-08-03",
+      to: "2026-08-04",
+      generatedAt: "2026-08-06T11:00:00.000Z",
+      scannedBusinessDays: 0,
+      failedDates: [],
+      docs: [],
+    }),
+    /scannedBusinessDays must match configured range business days: expected 2/,
+  );
+  console.log("edinet-configured-pilot: complete inventory cannot understate configured scan coverage OK");
+}
+
+{
   const boundary = sanrioBoundary();
   assert.equal(isConfiguredIssuerPrimaryDisclosure(doc(), boundary), true);
   assert.equal(isConfiguredIssuerPrimaryDisclosure(doc({ edinetCode: "", secCode: "81360" }), boundary), true);
