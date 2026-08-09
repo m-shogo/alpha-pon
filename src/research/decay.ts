@@ -2,6 +2,7 @@
 // 「昔は効いた Edge が今も効くか」を、期限管理と劣化スコアの両面で監視する。
 
 import type { Issue } from "./edge-registry.js";
+import { isValidDate } from "./schema.js";
 import type { Edge, ResearchState } from "./types.js";
 
 export type DecayStatus = "never_checked" | "fresh" | "due_soon" | "overdue" | "decayed";
@@ -21,12 +22,30 @@ export interface DecayReportEntry {
 /** score がこれを下回ったら「劣化した」とみなし、Deprecated 検討の対象にする。 */
 export const DECAYED_SCORE_THRESHOLD = 0.3;
 const DUE_SOON_RATIO = 0.8;
+const DAY_MS = 86_400_000;
+
+function epochDay(value: string, field: string): number {
+  if (!isValidDate(value)) {
+    throw new Error(`${field} must be a real YYYY-MM-DD date`);
+  }
+  const [year, month, day] = value.split("-").map(Number) as [number, number, number];
+  return Math.trunc(Date.UTC(year, month - 1, day) / DAY_MS);
+}
 
 function daysBetween(from: string, to: string): number {
-  return Math.round((Date.parse(`${to}T00:00:00+09:00`) - Date.parse(`${from}T00:00:00+09:00`)) / 86_400_000);
+  const fromDay = epochDay(from, "edge.decay.lastCheckedAt");
+  const toDay = epochDay(to, "decay asOf");
+  if (fromDay > toDay) {
+    throw new Error("edge.decay.lastCheckedAt must be on or before decay asOf");
+  }
+  return toDay - fromDay;
 }
 
 export function classifyDecay(edge: Edge, asOf: string): { status: DecayStatus; daysSinceCheck: number | null } {
+  // Validate asOf even when the Edge has never been checked. Otherwise an invalid
+  // snapshot date could silently produce a plausible-looking never_checked state.
+  epochDay(asOf, "decay asOf");
+
   if (typeof edge.decay.score === "number" && edge.decay.score < DECAYED_SCORE_THRESHOLD) {
     return {
       status: "decayed",
