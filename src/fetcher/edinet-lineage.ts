@@ -1,4 +1,5 @@
 import type { EdinetDoc } from "./edinet.js";
+import { parseExplicitIso8601Instant } from "../research/iso-instant.js";
 
 export type EdinetLineageIssue = {
   severity: "error" | "warning";
@@ -73,8 +74,18 @@ function issue(
   return { severity, code, target, message };
 }
 
-function validTimestamp(value: string): boolean {
-  return value.length > 0 && Number.isFinite(Date.parse(value));
+function strictTimestamp(
+  value: string,
+  label: string,
+): { instant: number | null; error: string | null } {
+  try {
+    return { instant: parseExplicitIso8601Instant(value, label), error: null };
+  } catch (error) {
+    return {
+      instant: null,
+      error: error instanceof Error ? error.message : `${label} is invalid`,
+    };
+  }
 }
 
 function findCycle(
@@ -116,6 +127,7 @@ function resolveRoot(
 export function buildEdinetDocumentLineage(docs: EdinetDoc[]): EdinetLineageResult {
   const issues: EdinetLineageIssue[] = [];
   const byDocID = new Map<string, EdinetDoc>();
+  const submitInstantByDocID = new Map<string, number>();
 
   for (const doc of docs) {
     if (byDocID.has(doc.docID)) {
@@ -123,6 +135,18 @@ export function buildEdinetDocumentLineage(docs: EdinetDoc[]): EdinetLineageResu
       continue;
     }
     byDocID.set(doc.docID, doc);
+
+    const submit = strictTimestamp(doc.submitDateTime, `${doc.docID}.submitDateTime`);
+    if (submit.instant === null) {
+      issues.push(issue(
+        "error",
+        "invalid_submit_datetime",
+        doc.docID,
+        submit.error ?? "invalid EDINET submitDateTime",
+      ));
+    } else {
+      submitInstantByDocID.set(doc.docID, submit.instant);
+    }
   }
 
   const parentByDocID = new Map<string, string>();
@@ -147,15 +171,19 @@ export function buildEdinetDocumentLineage(docs: EdinetDoc[]): EdinetLineageResu
       continue;
     }
 
-    if (validTimestamp(doc.submitDateTime) && validTimestamp(parentDoc.submitDateTime)) {
-      if (Date.parse(doc.submitDateTime) < Date.parse(parentDoc.submitDateTime)) {
-        issues.push(issue(
-          "error",
-          "child_precedes_parent",
-          doc.docID,
-          `${doc.submitDateTime} < ${parentDoc.submitDateTime}`,
-        ));
-      }
+    const childSubmitInstant = submitInstantByDocID.get(doc.docID);
+    const parentSubmitInstant = submitInstantByDocID.get(parentDoc.docID);
+    if (
+      childSubmitInstant !== undefined
+      && parentSubmitInstant !== undefined
+      && childSubmitInstant < parentSubmitInstant
+    ) {
+      issues.push(issue(
+        "error",
+        "child_precedes_parent",
+        doc.docID,
+        `${doc.submitDateTime} < ${parentDoc.submitDateTime}`,
+      ));
     }
   }
 

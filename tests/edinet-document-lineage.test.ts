@@ -251,6 +251,27 @@ function testLineageAnomalies(): void {
   assert.equal(missingParentNode?.chainRootDocID, "S100OUTSIDE");
 }
 
+function testLineageRejectsInvalidSubmitInstants(): void {
+  const timezoneLessSubmit = doc({
+    docID: "S100NOZONE",
+    submitDateTime: "2026-06-20T15:00:00",
+  });
+  const impossibleSubmit = doc({
+    docID: "S100BADDATE",
+    submitDateTime: "2026-02-30T15:00:00+09:00",
+  });
+
+  const result = buildEdinetDocumentLineage([timezoneLessSubmit, impossibleSubmit]);
+
+  assert.equal(result.hasBlockingIssues, true);
+  assert.ok(result.issues.some(value =>
+    value.target === "S100NOZONE" && value.code === "invalid_submit_datetime"
+  ));
+  assert.ok(result.issues.some(value =>
+    value.target === "S100BADDATE" && value.code === "invalid_submit_datetime"
+  ));
+}
+
 async function main(): Promise<void> {
   await testMissingCredentialsStopsBeforeFetch();
   await testAuthenticatedDownloadAndHash();
@@ -261,6 +282,7 @@ async function main(): Promise<void> {
   await testInputValidationBeforeFetch();
   testLineageProjection();
   testLineageAnomalies();
+  testLineageRejectsInvalidSubmitInstants();
   console.log("edinet-document-lineage.test.ts passed");
 }
 
