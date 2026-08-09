@@ -212,4 +212,59 @@ function rehashConfigured(value: JsonObject): void {
   console.log("edinet-inventory-compatibility: range mismatch blocks migration OK");
 }
 
+{
+  const { legacy, configured } = inventories();
+  assert.throws(
+    () => buildEdinetInventoryCompatibilityAudit({
+      legacyInventory: legacy,
+      configuredInventory: configured,
+      legacyInventoryFile: "sanrio-edinet-inventory.legacy.json",
+      configuredInventoryFile: "sanrio-edinet-inventory.configured.json",
+      generatedAt: "2026-08-06T12:00:00",
+    }),
+    /generatedAt must be an explicit-timezone ISO instant/,
+  );
+  console.log("edinet-inventory-compatibility: timezone-less generatedAt fails closed OK");
+}
+
+{
+  const { legacy, configured } = inventories();
+  const badLegacy = structuredClone(legacy) as unknown as JsonObject;
+  const badConfigured = structuredClone(configured) as unknown as JsonObject;
+  badLegacy.range = { from: "2026-02-31", to: "2026-08-06" };
+  badConfigured.range = { from: "2026-02-31", to: "2026-08-06" };
+  rehashConfigured(badConfigured);
+  assert.throws(
+    () => buildEdinetInventoryCompatibilityAudit({
+      legacyInventory: badLegacy,
+      configuredInventory: badConfigured,
+      legacyInventoryFile: "sanrio-edinet-inventory.legacy.json",
+      configuredInventoryFile: "sanrio-edinet-inventory.configured.json",
+    }),
+    /legacyInventory\.range\.from must be a real Gregorian date/,
+  );
+  console.log("edinet-inventory-compatibility: matching impossible ranges cannot become migration-ready OK");
+}
+
+{
+  const { legacy, configured } = inventories();
+  const badLegacy = structuredClone(legacy) as unknown as JsonObject;
+  const badConfigured = structuredClone(configured) as unknown as JsonObject;
+  const legacyFirst = (badLegacy.candidates as JsonObject[])[0]!;
+  const configuredFirst = (badConfigured.candidates as JsonObject[])[0]!;
+  (legacyFirst.doc as JsonObject).submitDateTime = "2026-06-20T15:00:00";
+  (configuredFirst.doc as JsonObject).submitDateTime = "2026-06-20T15:00:00";
+  rehashConfigured(badConfigured);
+  assert.throws(
+    () => buildEdinetInventoryCompatibilityAudit({
+      legacyInventory: badLegacy,
+      configuredInventory: badConfigured,
+      legacyInventoryFile: "sanrio-edinet-inventory.legacy.json",
+      configuredInventoryFile: "sanrio-edinet-inventory.configured.json",
+    }),
+    /submitDateTime must be an explicit-timezone ISO instant/,
+  );
+  console.log("edinet-inventory-compatibility: matching timezone-less candidate timestamps cannot become migration-ready OK");
+}
+
 console.log("edinet-inventory-compatibility-audit.test.ts passed");
