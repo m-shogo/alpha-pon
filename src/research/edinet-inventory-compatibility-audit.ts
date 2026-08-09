@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 
 const HASH_RE = /^[a-f0-9]{64}$/;
 const DOC_ID_RE = /^[A-Za-z0-9_-]{4,64}$/;
+const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+const EXPLICIT_INSTANT_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/;
 const CORE_TYPES = new Set(["1", "2"]);
 
 type JsonObject = Record<string, unknown>;
@@ -98,9 +100,36 @@ function requireDocID(value: unknown, field: string): string {
   return result;
 }
 
+function gregorianDate(value: unknown, field: string): string {
+  const result = required(value, field);
+  const match = DATE_RE.exec(result);
+  if (!match) throw new Error(`${field} must be YYYY-MM-DD`);
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (year < 1 || month < 1 || month > 12 || day < 1) throw new Error(`${field} must be a real Gregorian date`);
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  if (day > daysInMonth) throw new Error(`${field} must be a real Gregorian date`);
+  return result;
+}
+
 function timestamp(value: unknown, field: string): string {
   const result = required(value, field);
-  if (!Number.isFinite(Date.parse(result))) throw new Error(`${field} must be a date-time`);
+  if (!EXPLICIT_INSTANT_RE.test(result)) throw new Error(`${field} must be an explicit-timezone ISO instant`);
+  const offset = result.endsWith("Z") ? null : result.slice(-6);
+  if (offset) {
+    const sign = offset[0] === "-" ? -1 : 1;
+    const hour = Number(offset.slice(1, 3));
+    const minute = Number(offset.slice(4, 6));
+    const totalMinutes = sign * (hour * 60 + minute);
+    if (minute > 59 || Math.abs(totalMinutes) > 14 * 60) {
+      throw new Error(`${field} must use a valid UTC offset within ±14:00`);
+    }
+  }
+  const parsed = Date.parse(result);
+  if (!Number.isFinite(parsed)) throw new Error(`${field} must be a real ISO instant`);
+  const datePart = result.slice(0, 10);
+  gregorianDate(datePart, `${field} date`);
   return result;
 }
 
@@ -203,7 +232,7 @@ function candidates(record: JsonObject, field: string): Map<string, CandidateSna
       docID,
       edinetCode: str(doc.edinetCode).toUpperCase(),
       secCode: str(doc.secCode),
-      submitDateTime: required(doc.submitDateTime, `${field}.candidates[${index}].doc.submitDateTime`),
+      submitDateTime: timestamp(doc.submitDateTime, `${field}.candidates[${index}].doc.submitDateTime`),
       parentDocID: str(doc.parentDocID),
       description: str(doc.docDescription),
       reviewPriority: required(candidate.reviewPriority, `${field}.candidates[${index}].reviewPriority`),
@@ -305,8 +334,14 @@ export function buildEdinetInventoryCompatibilityAudit(input: {
 
   const legacyRange = obj(legacy.range, "legacyInventory.range");
   const configuredRange = obj(configured.range, "configuredInventory.range");
-  const rangeMatch = str(legacyRange.from) === str(configuredRange.from)
-    && str(legacyRange.to) === str(configuredRange.to);
+  const legacyRangeFrom = gregorianDate(legacyRange.from, "legacyInventory.range.from");
+  const legacyRangeTo = gregorianDate(legacyRange.to, "legacyInventory.range.to");
+  const configuredRangeFrom = gregorianDate(configuredRange.from, "configuredInventory.range.from");
+  const configuredRangeTo = gregorianDate(configuredRange.to, "configuredInventory.range.to");
+  if (legacyRangeFrom > legacyRangeTo) throw new Error("legacyInventory.range must be ordered");
+  if (configuredRangeFrom > configuredRangeTo) throw new Error("configuredInventory.range must be ordered");
+  const rangeMatch = legacyRangeFrom === configuredRangeFrom
+    && legacyRangeTo === configuredRangeTo;
   const completenessMatch = legacy.completeness === configured.completeness
     && legacy.scannedBusinessDays === configured.scannedBusinessDays;
 
