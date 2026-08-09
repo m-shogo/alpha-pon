@@ -1,5 +1,8 @@
 import { resolve } from "node:path";
 import {
+  assertSanrioConfiguredAdvisoryIntegrity,
+} from "./edinet-sanrio-configured-advisory-integrity.js";
+import {
   inspectSanrioRealPilotPreflightWithIntegrity,
 } from "./edinet-sanrio-real-pilot-integrity.js";
 import {
@@ -45,9 +48,11 @@ export function addSanrioFoundationReadinessAdvisory(
 export function inspectSanrioRealPilotPreflightWithReadinessAdvisory(
   edinetRoot = resolve(process.cwd(), "data/edinet"),
 ): SanrioRealPilotPreflightWithReadinessAdvisory {
-  return addSanrioFoundationReadinessAdvisory(
-    inspectSanrioRealPilotPreflightWithIntegrity(edinetRoot),
-  );
+  const result = inspectSanrioRealPilotPreflightWithIntegrity(edinetRoot);
+  if (result.stage !== "missing_edinet_root") {
+    assertSanrioConfiguredAdvisoryIntegrity(result, edinetRoot);
+  }
+  return addSanrioFoundationReadinessAdvisory(result);
 }
 
 export function renderSanrioRealPilotPreflightWithReadinessAdvisory(
