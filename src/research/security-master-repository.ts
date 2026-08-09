@@ -78,15 +78,21 @@ type RevisionRecord = {
   validFrom: string;
   validTo?: string;
   observedAt: string;
+  retrievedAt: string;
   supersedesRecordId?: string;
 };
 
-function observedBy(record: RevisionRecord, cutoffEpoch: number): boolean {
+function availableBy(record: RevisionRecord, cutoffEpoch: number): boolean {
   try {
-    return parseExplicitIso8601Instant(
+    const observedEpoch = parseExplicitIso8601Instant(
       record.observedAt,
       `security master revision ${record.recordId}.observedAt`,
-    ) <= cutoffEpoch;
+    );
+    const retrievedEpoch = parseExplicitIso8601Instant(
+      record.retrievedAt,
+      `security master revision ${record.recordId}.retrievedAt`,
+    );
+    return observedEpoch <= cutoffEpoch && retrievedEpoch <= cutoffEpoch;
   } catch {
     return false;
   }
@@ -116,12 +122,12 @@ function historicalRevisionShadowingIssues<T extends RevisionRecord>(
       if (!previous) break;
       if (
         dateInRange(asOf, previous.validFrom, previous.validTo) &&
-        observedBy(previous, cutoffEpoch)
+        availableBy(previous, cutoffEpoch)
       ) {
         issues.push(issue(
           `historical_${kind}_revision_shadowed`,
           head.recordId,
-          `active revision ${head.recordId} is not valid at ${asOf}, but superseded revision ${previous.recordId} was already known and valid; historical snapshot would silently drop the ${kind}`,
+          `active revision ${head.recordId} is not valid at ${asOf}, but superseded revision ${previous.recordId} was already available and valid; historical snapshot would silently drop the ${kind}`,
         ));
         break;
       }
@@ -145,7 +151,7 @@ function futureRevisionShadowingIssues<T extends RevisionRecord>(
   const heads = records.filter((record) => !superseded.has(record.recordId));
 
   for (const head of heads) {
-    if (!dateInRange(asOf, head.validFrom, head.validTo) || observedBy(head, cutoffEpoch)) continue;
+    if (!dateInRange(asOf, head.validFrom, head.validTo) || availableBy(head, cutoffEpoch)) continue;
     const seen = new Set<string>();
     let current: T | undefined = head;
     while (current?.supersedesRecordId) {
@@ -155,12 +161,12 @@ function futureRevisionShadowingIssues<T extends RevisionRecord>(
       if (!previous) break;
       if (
         dateInRange(asOf, previous.validFrom, previous.validTo) &&
-        observedBy(previous, cutoffEpoch)
+        availableBy(previous, cutoffEpoch)
       ) {
         issues.push(issue(
           `future_${kind}_revision_shadowed`,
           head.recordId,
-          `revision ${head.recordId} was not observed by ${asOf}, but superseded revision ${previous.recordId} was; past PIT snapshot must not use future identity knowledge`,
+          `revision ${head.recordId} was not fully available by ${asOf}, but superseded revision ${previous.recordId} was; past PIT snapshot must not use future retrieval knowledge`,
         ));
         break;
       }
@@ -176,7 +182,7 @@ function recordsAvailableAt<T extends RevisionRecord>(
   cutoffEpoch: number,
 ): T[] {
   return records.filter((record) =>
-    dateInRange(asOf, record.validFrom, record.validTo) && observedBy(record, cutoffEpoch),
+    dateInRange(asOf, record.validFrom, record.validTo) && availableBy(record, cutoffEpoch),
   );
 }
 
