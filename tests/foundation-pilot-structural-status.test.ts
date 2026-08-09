@@ -162,10 +162,45 @@ function readyObservation(): FoundationPilotStructuralObservation {
   console.log("foundation-pilot-structural-status: deterministic structural status hash OK");
 }
 
+{
+  const offsetStatus = buildFoundationPilotStructuralStatus({
+    target: { ...target, informationCutoff: "2026-07-31T15:00:00+09:00" },
+    observation: readyObservation(),
+    generatedAt: "2026-08-07T10:30:00+09:00",
+  });
+  assert.equal(offsetStatus.target.informationCutoff, "2026-07-31T15:00:00+09:00");
+  console.log("foundation-pilot-structural-status: explicit timezone offsets remain valid OK");
+}
+
 assert.throws(() => buildFoundationPilotStructuralStatus({
   target: { ...target, informationCutoff: "not-a-time" },
   observation: readyObservation(),
   generatedAt: "2026-08-07T01:30:00.000Z",
-}), /informationCutoff must be a date-time/);
+}), /ISO-8601 timestamp with explicit timezone/);
 
+assert.throws(() => buildFoundationPilotStructuralStatus({
+  target: { ...target, informationCutoff: "2026-07-31T06:00:00" },
+  observation: readyObservation(),
+  generatedAt: "2026-08-07T01:30:00.000Z",
+}), /explicit timezone/);
+
+assert.throws(() => buildFoundationPilotStructuralStatus({
+  target: { ...target, informationCutoff: "2026-02-31T06:00:00Z" },
+  observation: readyObservation(),
+  generatedAt: "2026-08-07T01:30:00.000Z",
+}), /valid Gregorian ISO-8601 timestamp/);
+
+assert.throws(() => buildFoundationPilotStructuralStatus({
+  target,
+  observation: readyObservation(),
+  generatedAt: "2026-08-07T01:30:00",
+}), /explicit timezone/);
+
+assert.throws(() => buildFoundationPilotStructuralStatus({
+  target,
+  observation: readyObservation(),
+  generatedAt: "2026-08-07T01:30:00+15:00",
+}), /timezone offset within ±14:00/);
+
+console.log("foundation-pilot-structural-status: implicit and impossible instants fail closed OK");
 console.log("foundation-pilot-structural-status.test.ts passed");
