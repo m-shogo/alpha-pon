@@ -197,6 +197,33 @@ function codes(issues: ReturnType<typeof validateRecommendationRecord>): string[
 }
 
 {
+  const invalidInstantContexts: RecommendationValidationContext[] = [
+    context({
+      evidenceByRef: new Map([
+        ["evidence:ir:001", { tier: "A", observedAt: "2026-08-07T08:30:00" }],
+        ["evidence:market:001", { tier: "B", observedAt: "2026-08-07T08:35:00+09:00" }],
+      ]),
+    }),
+    context({
+      evidenceByRef: new Map([
+        ["evidence:ir:001", { tier: "A", observedAt: "2026-02-30T08:30:00+09:00" }],
+        ["evidence:market:001", { tier: "B", observedAt: "2026-08-07T08:35:00+09:00" }],
+      ]),
+    }),
+  ];
+  for (const invalidContext of invalidInstantContexts) {
+    const issues = validateRecommendationRecord(
+      withRecommendationHash(baseInput()),
+      schema,
+      invalidContext,
+    );
+    assert.ok(codes(issues).includes("invalid_recommendation_evidence_observed_at"));
+    assert.equal(codes(issues).includes("future_evidence"), false);
+  }
+  console.log("recommendation-persistence: implicit/impossible evidence observedAt fails closed OK");
+}
+
+{
   const catalogContext = context({
     edgeStageById: new Map([["known-bad-event-repricing", "catalog"]]),
   });
