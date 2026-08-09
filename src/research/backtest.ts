@@ -136,6 +136,7 @@ function assertPriceSeriesConformance(series: PriceSeries, label: string): void 
 }
 
 function assertBacktestInputs(
+  spec: BacktestSpec,
   signals: readonly BacktestSignal[],
   prices: ReadonlyMap<string, PriceSeries>,
   benchmark?: PriceSeries,
@@ -152,6 +153,17 @@ function assertBacktestInputs(
       throw new Error(`backtest price map key ${mapCode} must match series.code ${series.code}`);
     }
     assertPriceSeriesConformance(series, `backtest price series ${series.code}`);
+  }
+
+  if (spec.benchmark !== undefined) {
+    if (!benchmark) {
+      throw new Error(`backtest spec benchmark ${spec.benchmark} requires a benchmark PriceSeries`);
+    }
+    if (benchmark.code !== spec.benchmark) {
+      throw new Error(`backtest benchmark code ${benchmark.code} must match spec.benchmark ${spec.benchmark}`);
+    }
+  } else if (benchmark) {
+    throw new Error(`backtest benchmark ${benchmark.code} was provided but spec.benchmark is not declared`);
   }
 
   if (benchmark) assertPriceSeriesConformance(benchmark, `backtest benchmark ${benchmark.code}`);
@@ -256,7 +268,7 @@ function benchmarkReturnBpsFor(
 
 /**
  * Backtest 本体。
- * price は code -> PriceSeries。benchmark は任意（あれば超過リターンで評価）。
+ * price は code -> PriceSeries。benchmark は spec と一致する場合のみ超過リターン評価に使う。
  */
 export function runBacktest(
   spec: BacktestSpec,
@@ -265,7 +277,7 @@ export function runBacktest(
   benchmark?: PriceSeries,
 ): BacktestReport {
   assertBacktestSpecConformance(spec);
-  assertBacktestInputs(signals, prices, benchmark);
+  assertBacktestInputs(spec, signals, prices, benchmark);
   const trades: TradeResult[] = [];
   const skipped: BacktestReport["skipped"] = [];
 
