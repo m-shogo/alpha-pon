@@ -17,6 +17,7 @@ import {
   type TestableHypothesisRecord,
 } from "./testable-hypothesis-scenario.js";
 import { computeEvidencePackageHash } from "./evidence-package-manifest.js";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 import { computePersonaCalibrationHash } from "./stock-pro-council-calibration.js";
 import { stableStringify, validate, type JsonSchema } from "./schema.js";
 
@@ -236,6 +237,43 @@ function completenessBlockers(completeness: EvidencePackageCompleteness): string
     .map(([key]) => `evidence_package_incomplete:${key}`);
 }
 
+function assertReferencedTemporalInputs(
+  record: FoundationDecisionIntegrationRecord,
+  context: FoundationDecisionContext,
+): void {
+  parseExplicitIso8601Instant(record.issuedAt, "decision.issuedAt");
+  parseExplicitIso8601Instant(record.informationCutoff, "decision.informationCutoff");
+  parseExplicitIso8601Instant(record.firstExecutableAt, "decision.firstExecutableAt");
+
+  const hypothesis = context.hypothesesById.get(record.hypothesisId);
+  if (hypothesis?.registeredAt) {
+    parseExplicitIso8601Instant(hypothesis.registeredAt, "hypothesis.registeredAt");
+  }
+  const scenarioSet = context.scenarioSetsById.get(record.scenarioSetId);
+  if (scenarioSet?.registeredAt) {
+    parseExplicitIso8601Instant(scenarioSet.registeredAt, "scenarioSet.registeredAt");
+  }
+  for (const [label, pin] of Object.entries(record.scenarios)) {
+    const scenario = context.scenariosById.get(pin.id);
+    if (scenario?.registeredAt) {
+      parseExplicitIso8601Instant(scenario.registeredAt, `scenario.${label}.registeredAt`);
+    }
+  }
+  for (const calibrationHash of record.calibrationHashes) {
+    const calibration = context.calibrationsByHash.get(calibrationHash);
+    if (!calibration) continue;
+    parseExplicitIso8601Instant(calibration.outcomeCutoff, `calibration.${calibrationHash}.outcomeCutoff`);
+    parseExplicitIso8601Instant(calibration.evaluatedAt, `calibration.${calibrationHash}.evaluatedAt`);
+  }
+  for (const [label, pin] of Object.entries(record.priceSnapshots)) {
+    const snapshot = context.priceSnapshotsById.get(pin.id);
+    if (!snapshot) continue;
+    parseExplicitIso8601Instant(snapshot.informationCutoff, `priceSnapshot.${label}.informationCutoff`);
+    parseExplicitIso8601Instant(snapshot.observedAt, `priceSnapshot.${label}.observedAt`);
+    parseExplicitIso8601Instant(snapshot.firstExecutableAt, `priceSnapshot.${label}.firstExecutableAt`);
+  }
+}
+
 function addScenarioBlockers(
   blockers: string[],
   label: keyof FoundationDecisionIntegrationRecord["scenarios"],
@@ -310,6 +348,7 @@ export function assessFoundationDecisionRecord(
   record: FoundationDecisionIntegrationRecord,
   context: FoundationDecisionContext,
 ): string[] {
+  assertReferencedTemporalInputs(record, context);
   recordContext = context;
   const blockers: string[] = [];
   const evidencePackage = context.evidencePackagesById.get(record.evidencePackageId);
