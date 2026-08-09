@@ -5,8 +5,10 @@
 //   - 執行できない取引を「執行できた」ことにしない。Liquidity と PIT で明示的に落とす。
 //   - Gross と Net を必ず分けて返す。Net だけ・Gross だけの報告は禁止。
 
-import { canEnterSameClose, jstDateOf } from "./pit.js";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 import { aggregate, computeCosts, computeNetAlpha, type AggregateStats, type CostModel } from "./net-alpha.js";
+import { canEnterSameClose, jstDateOf } from "./pit.js";
+import { isValidDate } from "./schema.js";
 
 export interface PriceBar {
   date: string; // YYYY-MM-DD（JST の営業日）
@@ -88,6 +90,49 @@ export interface BacktestReport {
 }
 
 const ADTV_LOOKBACK_BARS = 20;
+const DAY_MS = 86_400_000;
+
+function epochDay(value: string, field: string): number {
+  if (!isValidDate(value)) throw new Error(`${field} must be a real YYYY-MM-DD date`);
+  const [year, month, day] = value.split("-").map(Number) as [number, number, number];
+  return Math.trunc(Date.UTC(year, month - 1, day) / DAY_MS);
+}
+
+function assertPriceSeriesTemporal(series: PriceSeries, label: string): void {
+  let previousDate: string | null = null;
+  for (let index = 0; index < series.bars.length; index += 1) {
+    const bar = series.bars[index]!;
+    if (!isValidDate(bar.date)) {
+      throw new Error(`${label}.bars[${index}].date must be a real YYYY-MM-DD date`);
+    }
+    if (previousDate !== null && bar.date <= previousDate) {
+      throw new Error(`${label}.bars must be strictly increasing by date without duplicates`);
+    }
+    previousDate = bar.date;
+  }
+}
+
+function assertBacktestTemporalInputs(
+  signals: readonly BacktestSignal[],
+  prices: ReadonlyMap<string, PriceSeries>,
+  benchmark?: PriceSeries,
+): void {
+  for (const signal of signals) {
+    parseExplicitIso8601Instant(signal.observedAt, `backtest signal ${signal.id}.observedAt`);
+    if (signal.resolutionDate && !isValidDate(signal.resolutionDate)) {
+      throw new Error(`backtest signal ${signal.id}.resolutionDate must be a real YYYY-MM-DD date`);
+    }
+  }
+
+  for (const [mapCode, series] of prices.entries()) {
+    if (mapCode !== series.code) {
+      throw new Error(`backtest price map key ${mapCode} must match series.code ${series.code}`);
+    }
+    assertPriceSeriesTemporal(series, `backtest price series ${series.code}`);
+  }
+
+  if (benchmark) assertPriceSeriesTemporal(benchmark, `backtest benchmark ${benchmark.code}`);
+}
 
 function indexOfFirstBarOnOrAfter(bars: PriceBar[], date: string): number {
   return bars.findIndex((bar) => bar.date >= date);
@@ -195,12 +240,16 @@ export function runBacktest(
   prices: Map<string, PriceSeries>,
   benchmark?: PriceSeries,
 ): BacktestReport {
+  assertBacktestTemporalInputs(signals, prices, benchmark);
   const trades: TradeResult[] = [];
   const skipped: BacktestReport["skipped"] = [];
 
-  const ordered = [...signals].sort((a, b) =>
-    a.observedAt === b.observedAt ? (a.id < b.id ? -1 : 1) : a.observedAt < b.observedAt ? -1 : 1,
-  );
+  const ordered = [...signals].sort((a, b) => {
+    const left = parseExplicitIso8601Instant(a.observedAt, `backtest signal ${a.id}.observedAt`);
+    const right = parseExplicitIso8601Instant(b.observedAt, `backtest signal ${b.id}.observedAt`);
+    if (left !== right) return left - right;
+    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+  });
 
   for (const signal of ordered) {
     const series = prices.get(signal.code);
@@ -240,9 +289,7 @@ export function runBacktest(
 
     const entryDate = series.bars[entry.index].date;
     const exitDate = series.bars[exit.index].date;
-    const holdingDays = Math.round(
-      (Date.parse(`${exitDate}T00:00:00+09:00`) - Date.parse(`${entryDate}T00:00:00+09:00`)) / 86_400_000,
-    );
+    const holdingDays = epochDay(exitDate, "backtest exitDate") - epochDay(entryDate, "backtest entryDate");
 
     const grossReturnBps = returnBps(entry.price, exit.price, spec.side);
     const rawBenchmarkBps = benchmarkReturnBpsFor(benchmark, entryDate, exitDate);
