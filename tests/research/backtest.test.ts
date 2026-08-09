@@ -10,14 +10,17 @@ function series(code: string, closes: number[], volume = 1_000_000): PriceSeries
   ];
   return {
     code,
-    bars: closes.map((close, index) => ({
-      date: dates[index],
-      open: index === 0 ? close : closes[index - 1],
-      high: close + 10,
-      low: close - 10,
-      close,
-      volume,
-    })),
+    bars: closes.map((close, index) => {
+      const open = index === 0 ? close : closes[index - 1];
+      return {
+        date: dates[index],
+        open,
+        high: Math.max(open, close) + 10,
+        low: Math.min(open, close) - 10,
+        close,
+        volume,
+      };
+    }),
   };
 }
 
