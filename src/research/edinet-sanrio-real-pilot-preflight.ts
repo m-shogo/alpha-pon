@@ -200,6 +200,15 @@ function selectedBase(root: string): SanrioRealPilotPreflightResult {
   };
 }
 
+function usableFidelity(records: LocalJson[]): LocalJson | null {
+  return newest(records.filter((candidate) =>
+    candidate.record.schemaVersion === 1
+    && candidate.record.source === "edinet"
+    && candidate.record.reviewStatus === "pending_human_review"
+    && candidate.record.appendAuthorized === false,
+  ));
+}
+
 function finalizedLegacyForInspection(records: LocalJson[], inspection: LocalJson): LocalJson | null {
   const sameInspection = records.filter((candidate) =>
     dirname(candidate.path) === dirname(inspection.path)
@@ -321,7 +330,7 @@ export function inspectSanrioRealPilotPreflight(
   );
   const inspection = newest(inspections);
   if (!inspection) {
-    const fidelity = newest(listAcquisitionFiles(root, FIDELITY_RE, warnings));
+    const fidelity = usableFidelity(listAcquisitionFiles(root, FIDELITY_RE, warnings));
     if (!fidelity) {
       return {
         ...result,
