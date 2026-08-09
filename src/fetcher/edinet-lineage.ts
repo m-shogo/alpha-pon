@@ -161,8 +161,18 @@ export function buildEdinetDocumentLineage(docs: EdinetDoc[]): EdinetLineageResu
 
   const parentByDocID = new Map<string, string>();
   for (const doc of byDocID.values()) {
-    const parent = normalized(doc.parentDocID);
+    const rawParent = doc.parentDocID ?? "";
+    const parent = normalized(rawParent);
     if (!parent) continue;
+    if (parent !== rawParent) {
+      issues.push(issue(
+        "error",
+        "invalid_parent_doc_id",
+        doc.docID,
+        "EDINET parentDocID must be free of surrounding whitespace",
+      ));
+      continue;
+    }
     parentByDocID.set(doc.docID, parent);
 
     if (parent === doc.docID) {
@@ -210,12 +220,14 @@ export function buildEdinetDocumentLineage(docs: EdinetDoc[]): EdinetLineageResu
   const knownDocIDs = new Set(byDocID.keys());
   const nodes = [...byDocID.values()]
     .map((doc): EdinetLineageNode => {
-      const parent = normalized(doc.parentDocID) || null;
+      const rawParent = doc.parentDocID ?? "";
+      const parent = normalized(rawParent);
+      const canonicalParent = parent && parent === rawParent ? parent : null;
       return {
         docID: doc.docID,
-        parentDocID: parent,
+        parentDocID: canonicalParent,
         chainRootDocID: resolveRoot(doc.docID, parentByDocID, knownDocIDs),
-        relation: parent ? "parent_linked" : "root",
+        relation: canonicalParent ? "parent_linked" : "root",
         revisionReviewHint: reviewHint(doc),
         requiresHumanReview: true,
         submitDateTime: doc.submitDateTime,

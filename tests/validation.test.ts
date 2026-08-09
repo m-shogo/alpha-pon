@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import "./edinet-fetcher.test.js";
 import "./edinet-document-lineage.test.js";
+import "./edinet-parent-doc-id-canonicality.test.js";
 import "./edinet-issuer-boundary.test.js";
 import "./edinet-configured-pilot.test.js";
 import "./edinet-configured-pilot-generated-at-instant.test.js";
