@@ -228,6 +228,10 @@ export function buildConfiguredEdinetInventory(input: {
   if (!Number.isSafeInteger(input.scannedBusinessDays) || input.scannedBusinessDays < 0) {
     throw new Error("scannedBusinessDays must be a non-negative integer");
   }
+  const expectedBusinessDays = enumerateConfiguredEdinetBusinessDates(input.from, input.to).length;
+  if (input.scannedBusinessDays !== expectedBusinessDays) {
+    throw new Error(`scannedBusinessDays must match configured range business days: expected ${expectedBusinessDays}`);
+  }
   const docs = dedupeDocuments(
     input.docs.filter(doc => isConfiguredIssuerPrimaryDisclosure(doc, input.boundary)),
   );
