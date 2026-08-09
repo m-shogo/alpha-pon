@@ -63,21 +63,24 @@ Runner/workflow changes were not required.
   - series code must equal `spec.benchmark`,
   - an undeclared benchmark series is rejected,
   - missing benchmark can no longer silently become `0 bps` and inflate gross alpha.
-- **PR #178 — exact benchmark common-date alignment**
-  - intended contract: issuer entry/exit dates must exist exactly in the benchmark series,
-  - no `>= date` forward substitution for provider gaps,
-  - missing exact entry/exit benchmark bars use explicit skip reasons.
+- **PR #189 — exact benchmark common-date alignment**
+  - issuer entry/exit dates must exist exactly in the benchmark series,
+  - no `>= date` forward substitution is allowed for provider gaps,
+  - missing exact entry/exit benchmark bars use `benchmark_missing_entry_bar` / `benchmark_missing_exit_bar`,
+  - a trade with a declared benchmark is not executable unless both exact common-date bars exist.
 
-### Required verification before any new Backtest work
+Historical correction: an earlier version of this handoff incorrectly labeled the exact benchmark common-date task as **PR #178**. PR #178 was a superseded Research OS PIT branch and must not be revived for benchmark alignment. The canonical implementation is PR #189.
 
-Before touching Backtest again, verify current `main` contains both literals:
+### Backtest stop boundary
+
+PR #189 is merged and current `main` contains both final invariants:
 
 - `benchmark_missing_entry_bar`
 - `benchmark_missing_exit_bar`
 
-If either is absent, finish / recreate PR #178 from latest `main` before any additional Backtest changes.
+Treat this Backtest hardening chain as **complete enough**. Do not invent additional Backtest governance unless a newly measured, material defect is reproduced.
 
-If both are present and CI is green, treat this Backtest hardening chain as **complete enough**. Do not invent more Backtest governance without a newly measured, material defect.
+The next implementation work should return to Foundation / Security Master and the real local Sanrio pilot.
 
 ## Generated-main drift procedure
 
