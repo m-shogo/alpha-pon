@@ -124,11 +124,12 @@ import {
       asOf: "2025-06-01",
     });
     assert.ok(result.issues.some((issue) => issue.code === "historical_entity_revision_shadowed"));
-    assert.equal(result.snapshot.entities.length, 0);
+    assert.equal(result.snapshot.entities.length, 1);
+    assert.equal(result.snapshot.entities[0]?.recordId, previous.recordId);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
-  console.log("security-master-repository: future effective head cannot silently erase historical entity snapshot OK");
+  console.log("security-master-repository: future effective head cannot erase historical entity snapshot OK");
 }
 
 console.log("security-master-repository: 全テスト成功");
