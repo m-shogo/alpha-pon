@@ -238,6 +238,31 @@ const exactSelector = {
   console.log("research/price-store: firstExecutable boundary OK");
 }
 
+{
+  const malformed = record({
+    retrievedAt: "2024-01-05T10:00:00+09:00",
+    firstExecutableAt: "2024-01-04T15:45:00+09:00",
+  });
+  assert.equal(selectPriceRecordsAsOf(
+    [malformed],
+    "2024-01-04T16:00:00+09:00",
+    exactSelector,
+    "observed",
+  ).length, 1, "provider-observed availability remains distinct from local retrieval");
+  assert.equal(selectPriceRecordsAsOf(
+    [malformed],
+    "2024-01-04T16:00:00+09:00",
+    exactSelector,
+    "executable",
+  ).length, 0, "direct executable selection must not use a row retrieved after the cutoff");
+  assert.equal(toBacktestPriceSeries(
+    [malformed],
+    "2024-01-04T16:00:00+09:00",
+    exactSelector,
+  ).bars.length, 0, "legacy direct backtest API must fail closed on future retrieval");
+  console.log("research/price-store: direct retrieval cutoff OK");
+}
+
 // Backtestへ渡すprovider/sourceが一意でない場合は黙って混ぜない。
 {
   const sourceA = record({ source: "provider-a" });
