@@ -11,6 +11,8 @@ import {
 import {
   validateSecurityMasterGoverned,
 } from "./security-master-hardening.js";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
+import { isValidDate } from "./schema.js";
 import { loadCouncilSchema } from "./stock-pro-council-v2-validation.js";
 
 export type SecurityMasterRepositoryOptions = {
@@ -75,12 +77,25 @@ type RevisionRecord = {
   recordId: string;
   validFrom: string;
   validTo?: string;
+  observedAt: string;
   supersedesRecordId?: string;
 };
+
+function observedBy(record: RevisionRecord, cutoffEpoch: number): boolean {
+  try {
+    return parseExplicitIso8601Instant(
+      record.observedAt,
+      `security master revision ${record.recordId}.observedAt`,
+    ) <= cutoffEpoch;
+  } catch {
+    return false;
+  }
+}
 
 function historicalRevisionShadowingIssues<T extends RevisionRecord>(
   records: readonly T[],
   asOf: string,
+  cutoffEpoch: number,
   kind: "entity" | "relationship",
 ): SecurityMasterIssue[] {
   const issues: SecurityMasterIssue[] = [];
@@ -99,11 +114,14 @@ function historicalRevisionShadowingIssues<T extends RevisionRecord>(
       seen.add(current.recordId);
       const previous = byId.get(current.supersedesRecordId);
       if (!previous) break;
-      if (dateInRange(asOf, previous.validFrom, previous.validTo)) {
+      if (
+        dateInRange(asOf, previous.validFrom, previous.validTo) &&
+        observedBy(previous, cutoffEpoch)
+      ) {
         issues.push(issue(
           `historical_${kind}_revision_shadowed`,
           head.recordId,
-          `active revision ${head.recordId} is not valid at ${asOf}, but superseded revision ${previous.recordId} is; historical snapshot would silently drop the ${kind}`,
+          `active revision ${head.recordId} is not valid at ${asOf}, but superseded revision ${previous.recordId} was already known and valid; historical snapshot would silently drop the ${kind}`,
         ));
         break;
       }
@@ -113,8 +131,53 @@ function historicalRevisionShadowingIssues<T extends RevisionRecord>(
   return issues;
 }
 
-function recordsEffectiveAt<T extends RevisionRecord>(records: readonly T[], asOf: string): T[] {
-  return records.filter((record) => dateInRange(asOf, record.validFrom, record.validTo));
+function futureRevisionShadowingIssues<T extends RevisionRecord>(
+  records: readonly T[],
+  asOf: string,
+  cutoffEpoch: number,
+  kind: "entity" | "relationship",
+): SecurityMasterIssue[] {
+  const issues: SecurityMasterIssue[] = [];
+  const byId = new Map(records.map((record) => [record.recordId, record] as const));
+  const superseded = new Set(
+    records.flatMap((record) => record.supersedesRecordId ? [record.supersedesRecordId] : []),
+  );
+  const heads = records.filter((record) => !superseded.has(record.recordId));
+
+  for (const head of heads) {
+    if (!dateInRange(asOf, head.validFrom, head.validTo) || observedBy(head, cutoffEpoch)) continue;
+    const seen = new Set<string>();
+    let current: T | undefined = head;
+    while (current?.supersedesRecordId) {
+      if (seen.has(current.recordId)) break;
+      seen.add(current.recordId);
+      const previous = byId.get(current.supersedesRecordId);
+      if (!previous) break;
+      if (
+        dateInRange(asOf, previous.validFrom, previous.validTo) &&
+        observedBy(previous, cutoffEpoch)
+      ) {
+        issues.push(issue(
+          `future_${kind}_revision_shadowed`,
+          head.recordId,
+          `revision ${head.recordId} was not observed by ${asOf}, but superseded revision ${previous.recordId} was; past PIT snapshot must not use future identity knowledge`,
+        ));
+        break;
+      }
+      current = previous;
+    }
+  }
+  return issues;
+}
+
+function recordsAvailableAt<T extends RevisionRecord>(
+  records: readonly T[],
+  asOf: string,
+  cutoffEpoch: number,
+): T[] {
+  return records.filter((record) =>
+    dateInRange(asOf, record.validFrom, record.validTo) && observedBy(record, cutoffEpoch),
+  );
 }
 
 function enforceSnapshotEndpointIntegrity(snapshot: SecurityMasterSnapshot): {
@@ -181,18 +244,36 @@ export function validateSecurityMasterRepository(
     relationshipRead.records,
     schemas,
   ));
-  issues.push(
-    ...historicalRevisionShadowingIssues(entityRead.records, asOf, "entity"),
-    ...historicalRevisionShadowingIssues(relationshipRead.records, asOf, "relationship"),
-  );
-  const rawSnapshot = buildSecurityMasterSnapshot(
-    recordsEffectiveAt(entityRead.records, asOf),
-    recordsEffectiveAt(relationshipRead.records, asOf),
-    asOf,
-  );
-  const endpointIntegrity = enforceSnapshotEndpointIntegrity(rawSnapshot);
-  issues.push(...endpointIntegrity.issues);
-  const snapshot = endpointIntegrity.snapshot;
+
+  let snapshot: SecurityMasterSnapshot;
+  if (!isValidDate(asOf)) {
+    issues.push(issue(
+      "invalid_security_master_as_of",
+      asOf,
+      "asOf must be a real YYYY-MM-DD date",
+    ));
+    snapshot = { asOf, entities: [], relationships: [] };
+  } else {
+    const cutoffEpoch = parseExplicitIso8601Instant(
+      `${asOf}T23:59:59.999+09:00`,
+      "security master snapshot cutoff",
+    );
+    issues.push(
+      ...historicalRevisionShadowingIssues(entityRead.records, asOf, cutoffEpoch, "entity"),
+      ...historicalRevisionShadowingIssues(relationshipRead.records, asOf, cutoffEpoch, "relationship"),
+      ...futureRevisionShadowingIssues(entityRead.records, asOf, cutoffEpoch, "entity"),
+      ...futureRevisionShadowingIssues(relationshipRead.records, asOf, cutoffEpoch, "relationship"),
+    );
+    const rawSnapshot = buildSecurityMasterSnapshot(
+      recordsAvailableAt(entityRead.records, asOf, cutoffEpoch),
+      recordsAvailableAt(relationshipRead.records, asOf, cutoffEpoch),
+      asOf,
+    );
+    const endpointIntegrity = enforceSnapshotEndpointIntegrity(rawSnapshot);
+    issues.push(...endpointIntegrity.issues);
+    snapshot = endpointIntegrity.snapshot;
+  }
+
   return {
     issues: sortIssues(issues),
     entityRecordCount: entityRead.records.length,
