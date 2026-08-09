@@ -36,6 +36,7 @@ import "./edinet-sanrio-foundation-readiness-configured-source-lineage.test.js";
 import "./foundation-mapping-readiness-contract.test.js";
 import "./foundation-readiness-remediation-plan.test.js";
 import "./foundation-pilot-structural-status.test.js";
+import "./foundation-pilot-structural-status-cli-preflight.test.js";
 import "./foundation-pilot-hash-witness-conformance.test.js";
 import "./foundation-pilot-human-replay-proof.test.js";
 import "./edinet-sanrio-review-next-batching.test.js";
