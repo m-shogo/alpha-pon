@@ -1,28 +1,28 @@
 # Handoff — Security Master v1
 
-Status: `IMPLEMENTED_AWAITING_FULL_VALIDATION`
-Updated: 2026-08-06 JST
-Parent branch: `feat/stock-pro-council-v2-contract`
-Branch: `feat/security-master-v1`
+Status: `SOFTWARE_GREEN_REAL_PILOT_PENDING`
+Updated: 2026-08-09 JST
+Canonical branch: `main`
 
 ## Purpose
 
-Prevent company-name, ticker, parent/subsidiary, brand, facility and provider-code
-collisions from attaching evidence or prices to the wrong listed security.
+Prevent company-name, ticker, parent/subsidiary, brand, facility and provider-code collisions from attaching evidence or prices to the wrong listed security.
 
-## Implemented
+A ticker is an identifier of a time-valid listed security, not a company ID. A brand, facility or product is never attached directly to a ticker by fuzzy text.
 
-- entity record schema;
-- relationship record schema;
+## Current implementation
+
+Security Master v1 now includes:
+
+- entity and relationship record schemas;
 - deterministic content hashes;
 - append-only entity and relationship revisions;
 - legal entity / listed security / listing separation;
 - name and identifier validity periods;
 - old-name / old-ticker preservation;
-- exact verified identifier resolver;
-- listed-security -> issuer -> listing resolver;
+- listed-security -> issuer -> listing resolution;
 - official-link verification boundary;
-- endpoint-type validation;
+- relationship endpoint-type validation;
 - verified identifier collision detection;
 - parent-cycle detection;
 - ownership inverse validation;
@@ -30,10 +30,58 @@ collisions from attaching evidence or prices to the wrong listed security.
 - owner-token single-writer lock;
 - cross-file transaction journal;
 - partial-tail and incomplete-journal blocking;
-- local repository scanner;
-- focused validator CLI;
-- synthetic tests;
-- local-only runtime boundary and README.
+- local repository scanner and focused validator CLI;
+- local-only runtime boundary;
+- historical revision preservation;
+- snapshot relationship endpoint integrity;
+- strict historical `asOf` validation;
+- revision knowledge-time filtering for historical PIT snapshots.
+
+## 2026-08-09 hardening chain
+
+### PR #187 — historical revision shadowing detection
+
+Detects when a newer active revision would cause a revision that was business-effective at a historical `asOf` date to disappear silently.
+
+### PR #188 — preserve effective historical revisions
+
+Repository snapshot construction prefilters revisions by business validity before core active-head selection so a future-effective revision cannot erase the historical identity that was effective at the requested date.
+
+### PR #192 — snapshot endpoint integrity
+
+Relationships returned by an `asOf` snapshot must have both endpoints present in that same snapshot. Dangling relationships produce explicit issues and are removed from the returned snapshot rather than silently surviving with missing entities.
+
+Current issue codes include:
+
+```text
+snapshot_relationship_missing_from_entity
+snapshot_relationship_missing_to_entity
+```
+
+### PR #194 — strict `asOf`
+
+Repository `asOf` must be an exact, real Gregorian `YYYY-MM-DD` date. Inputs such as `2026-02-31`, `2026-8-09`, and `20260809` fail closed and return an empty snapshot while the repository still performs record/schema integrity validation.
+
+### PR #197 — revision knowledge-time PIT gate
+
+Business validity alone is not enough for a historical snapshot. A revision must also have been observed by the requested knowledge cutoff.
+
+For valid date-level snapshots the current cutoff is JST end-of-day. A later-observed correction cannot be backdated into an earlier PIT snapshot and hide the revision actually known at that time.
+
+Current diagnostics include:
+
+```text
+future_entity_revision_shadowed
+future_relationship_revision_shadowed
+historical_entity_revision_shadowed
+historical_relationship_revision_shadowed
+```
+
+The repository therefore combines three separate constraints:
+
+1. business-time validity (`validFrom` / `validTo`);
+2. knowledge-time availability (`observedAt <= asOf cutoff`);
+3. endpoint integrity for relationships returned in the same snapshot.
 
 ## Entity types
 
@@ -48,15 +96,12 @@ product
 official_account
 ```
 
-A ticker is an identifier of a time-valid listed security, not a company ID.
-A brand/factory/product is never attached directly to a ticker by fuzzy text.
-
 ## Resolution rule
 
 Only exact identifiers with:
 
 - confidence=`verified`;
-- matching market/provider namespace;
+- matching market/provider namespace where that identifier type requires one;
 - validity covering the requested `asOf` date;
 - exactly one matching entity;
 
@@ -70,10 +115,28 @@ Recommendation-facing listed-security resolution additionally requires:
 - exactly one verified listing relationship in v1;
 - a valid active listing.
 
+### Known concrete resolver gap
+
+Record validation already requires:
+
+- `ticker` identifiers to have `market`;
+- `provider_code` identifiers to have `provider`.
+
+However the low-level identifier resolver currently accepts a query that omits those namespaces and will resolve when the remaining value happens to be unique. This does not match the canonical rule above.
+
+The next safe Security Master code slice is therefore narrowly defined:
+
+- reject ticker resolution when `market` is absent/blank;
+- reject provider-code resolution when `provider` is absent/blank;
+- preserve existing exact `jpx_code` / `isin` behavior;
+- add focused fail-closed regression tests;
+- do not broaden this into fuzzy lookup or automatic alias inference.
+
+Do not create parallel/stacked branches for this gap. Build it from the latest `main` only after confirming no existing active PR already covers it.
+
 ## Official-source rule
 
-`verifiedOfficialLinks()` returns only links marked `verified_official` and valid
-at the requested date. Claimed/unknown SNS accounts cannot become stock facts.
+`verifiedOfficialLinks()` returns only links marked `verified_official` and valid at the requested date. Claimed/unknown SNS accounts cannot become stock facts.
 
 ## Relationship safety
 
@@ -83,12 +146,12 @@ at the requested date. Claimed/unknown SNS accounts cannot become stock facts.
 - verified `subsidiary_of` requires matching inverse `parent_of`;
 - verified issuer periods for one listed security cannot overlap;
 - ownership percentages are accepted only on ownership relationships;
-- unresolved relationships cannot enter Recommendation evidence.
+- unresolved relationships cannot enter Recommendation evidence;
+- historical snapshots exclude relationships whose entity endpoints are absent at the same `asOf`.
 
 ## Persistence safety
 
-Entity and relationship JSONL are append-only but updated as one governed batch.
-A transaction journal records:
+Entity and relationship JSONL are append-only but updated as one governed batch. A transaction journal records:
 
 ```text
 prepared
@@ -96,23 +159,42 @@ entities_appended
 committed
 ```
 
-Any non-committed journal blocks subsequent appends and repository use. The
-system does not automatically delete or guess recovery from an incomplete batch.
+Any non-committed journal blocks subsequent appends and repository use. The system does not automatically delete or guess recovery from an incomplete batch.
+
+## Git hygiene
+
+Security Master hardening has repeatedly overlapped with generated Research OS commits. The safe procedure is:
+
+1. read the latest `main` SHA;
+2. keep only the intended changed-file diff;
+3. if the branch becomes stale/diverged, do not force-push or rewrite history;
+4. close the stale PR without merge;
+5. rebuild the same narrow slice from latest `main`;
+6. keep one normal working PR at a time;
+7. Draft checks -> Ready -> full checks -> squash merge.
+
+Historical stale/superseded Security Master branches/PRs are reference only. Do not revive them merely because the branch still exists remotely.
+
+PR #1 and PR #43 remain intentional DO NOT MERGE Drafts and are unrelated to this hardening chain.
 
 ## Activation gate
 
-`SECURITY_MASTER_V1_GREEN` remains unproven until:
+Software/CI hardening is green, but `SECURITY_MASTER_V1_GREEN` as a real-pilot milestone remains unproven until local evidence validates the full identity chain.
 
-1. exact latest HEAD passes full typecheck and focused tests;
-2. GitHub Actions executes real runner steps and passes;
-3. local synthetic/real pilot records validate;
-4. at least one listed security resolves to issuer and listing at two historical dates;
-5. identifier collision and old-ticker fixtures remain green;
-6. no fuzzy lookup path is used by Recommendation or Evidence Store.
+Still required:
 
-Code and synthetic fixtures alone do not mark the milestone green.
+1. local synthetic/real pilot records validate;
+2. at least one listed security resolves to issuer and listing at two historical dates using real governed records;
+3. identifier collision and old-ticker fixtures remain green;
+4. no fuzzy lookup path is used by Recommendation or Evidence Store;
+5. provider adapters and Foundation pin the intended Security Master identity at the correct PIT cutoff;
+6. the real Sanrio/Foundation pilot reaches its governed local gate without identity ambiguity.
+
+Code and synthetic CI alone do not mark the real milestone green.
 
 ## Validation
+
+Core validation remains available through the repository-wide checks. Focused local commands include:
 
 ```bash
 pnpm exec tsc --noEmit
@@ -121,22 +203,39 @@ node --import tsx/esm src/research/cli/validate-security-master.ts
 node --import tsx/esm tests/research/security-master.test.ts
 node --import tsx/esm tests/research/security-master-hardening.test.ts
 node --import tsx/esm tests/research/security-master-repository.test.ts
+node --import tsx/esm tests/research/security-master-snapshot-endpoint-integrity.test.ts
+node --import tsx/esm tests/research/security-master-repository-pit-revision.test.ts
 ```
 
 ## Protected boundaries
 
 - no real company/security master data committed;
 - no API credentials;
-- no active Edge or Production Gate movement;
-- no Recommendation/BUY integration yet;
+- no automatic Edge or Production Gate movement;
+- no automatic learning adoption;
+- no Recommendation/BUY authority expansion;
 - no automatic order placement;
 - no live LINE send;
-- no Cloudflare/D1/billing changes.
+- no Cloudflare/D1/billing changes;
+- no runner/workflow changes unless a measured workflow defect requires them.
 
-## Next slice
+## Next material milestone
 
-1. PIT Universe / benchmark membership;
-2. Bitemporal Evidence Store entity references use `entityId`, never raw ticker;
-3. EDINET/J-Quants adapters resolve provider codes through Security Master;
-4. document revision graph uses legal-entity and document IDs;
-5. Decision Firewall pins a real Security Master snapshot version.
+After the narrow resolver namespace fix above, stop speculative Security Master hardening unless a new reproducible identity defect is found.
+
+Return to the real Foundation path:
+
+1. real local Sanrio preflight/parity;
+2. Security Master identity pinning;
+3. Bitemporal Evidence Store entity references using `entityId`, never raw ticker;
+4. EDINET/J-Quants/provider-code mapping through governed identity;
+5. real price / benchmark provenance and Corporate Action Clearance;
+6. Decision Firewall pins the actual Security Master/Foundation snapshot.
+
+The canonical local Sanrio entry point remains:
+
+```bash
+bash scripts/run-sanrio-real-pilot-preflight-local.sh
+```
+
+Run only the printed `nextCommand`, rerun preflight after each successful stage, and stop at `parity_complete_foundation_gate_pending`.
