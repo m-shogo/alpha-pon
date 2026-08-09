@@ -122,6 +122,59 @@ function testStopLossTriggers() {
   console.log("research/backtest: ストップロス OK");
 }
 
+function testTemporalInputsFailClosed() {
+  const validSeries = series("9001", [1000, 1010, 1020, 1030, 1040]);
+  const validPrices = new Map([["9001", validSeries]]);
+
+  assert.throws(
+    () => runBacktest(BASE_SPEC, [{ id: "implicit", code: "9001", observedAt: "2024-01-04T16:00:00" }], validPrices),
+    /explicit timezone/,
+  );
+  assert.throws(
+    () => runBacktest(BASE_SPEC, [{
+      id: "bad-resolution",
+      code: "9001",
+      observedAt: "2024-01-04T16:00:00+09:00",
+      resolutionDate: "2024-02-31",
+    }], validPrices),
+    /resolutionDate must be a real YYYY-MM-DD date/,
+  );
+
+  const invalidDateSeries = structuredClone(validSeries);
+  invalidDateSeries.bars[1]!.date = "2024-02-31";
+  assert.throws(
+    () => runBacktest(BASE_SPEC, [], new Map([["9001", invalidDateSeries]])),
+    /bars\[1\]\.date must be a real YYYY-MM-DD date/,
+  );
+
+  const duplicateDateSeries = structuredClone(validSeries);
+  duplicateDateSeries.bars[1]!.date = duplicateDateSeries.bars[0]!.date;
+  assert.throws(
+    () => runBacktest(BASE_SPEC, [], new Map([["9001", duplicateDateSeries]])),
+    /strictly increasing by date without duplicates/,
+  );
+
+  assert.throws(
+    () => runBacktest(BASE_SPEC, [], new Map([["9999", validSeries]])),
+    /price map key 9999 must match series\.code 9001/,
+  );
+  console.log("research/backtest: temporal and series identity inputs fail closed OK");
+}
+
+function testSignalOrderingUsesActualInstant() {
+  const prices = new Map([["9001", series("9001", [1000, 1010, 1020, 1030, 1040])]]);
+  const report = runBacktest(BASE_SPEC, [
+    { id: "later-instant", code: "9001", observedAt: "2024-01-04T08:00:00-05:00" },
+    { id: "earlier-instant", code: "9001", observedAt: "2024-01-04T15:00:00+09:00" },
+  ], prices);
+  assert.deepEqual(
+    report.trades.map((trade) => trade.signalId),
+    ["earlier-instant", "later-instant"],
+    "offset表現の文字列順ではなく実instant順に並べる",
+  );
+  console.log("research/backtest: signal ordering uses actual instant OK");
+}
+
 function testAggregateAndFalseDiscoveryGuard() {
   const stats = aggregate([100, -50, 200, 0]);
   assert.equal(stats.count, 4);
@@ -154,6 +207,8 @@ testSameCloseAfterMarketIsPitViolation();
 testLiquidityLimitBlocksExecution();
 testShortSideFlipsSign();
 testStopLossTriggers();
+testTemporalInputsFailClosed();
+testSignalOrderingUsesActualInstant();
 testAggregateAndFalseDiscoveryGuard();
 testFixtureBundleIsReproducible();
 
