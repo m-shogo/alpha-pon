@@ -113,6 +113,10 @@ function historicalRevisionShadowingIssues<T extends RevisionRecord>(
   return issues;
 }
 
+function recordsEffectiveAt<T extends RevisionRecord>(records: readonly T[], asOf: string): T[] {
+  return records.filter((record) => dateInRange(asOf, record.validFrom, record.validTo));
+}
+
 export function validateSecurityMasterRepository(
   options: SecurityMasterRepositoryOptions = {},
 ): SecurityMasterRepositoryResult {
@@ -147,8 +151,8 @@ export function validateSecurityMasterRepository(
     ...historicalRevisionShadowingIssues(relationshipRead.records, asOf, "relationship"),
   );
   const snapshot = buildSecurityMasterSnapshot(
-    entityRead.records,
-    relationshipRead.records,
+    recordsEffectiveAt(entityRead.records, asOf),
+    recordsEffectiveAt(relationshipRead.records, asOf),
     asOf,
   );
   return {
