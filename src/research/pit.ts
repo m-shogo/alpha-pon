@@ -5,28 +5,30 @@
 // observedAt（情報が公になった時刻）が全データの基準になる。
 
 import type { Issue } from "./edge-registry.js";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 import type { ResearchState } from "./types.js";
 
 /** 東証の当日引け（JST 15:30）。same_close エントリの可否判定に使う。 */
 export const TSE_CLOSE_JST_MINUTES = 15 * 60 + 30;
 
 export function jstDateOf(isoDateTime: string): string {
-  const date = new Date(isoDateTime);
+  const instantMs = parseExplicitIso8601Instant(isoDateTime, "timestamp");
   return new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Asia/Tokyo",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(date);
+  }).format(new Date(instantMs));
 }
 
 export function jstMinutesOf(isoDateTime: string): number {
+  const instantMs = parseExplicitIso8601Instant(isoDateTime, "timestamp");
   const formatted = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Asia/Tokyo",
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
-  }).format(new Date(isoDateTime));
+  }).format(new Date(instantMs));
   const [hour, minute] = formatted.split(":").map(Number);
   return hour * 60 + minute;
 }
@@ -50,8 +52,11 @@ function withinWindow(date: string, window: { from: string; to: string }): boole
  */
 export function checkPit(state: ResearchState, now: Date = new Date()): Issue[] {
   const issues: Issue[] = [];
-  const nowIso = now.toISOString();
-  const today = jstDateOf(nowIso);
+  const nowMs = now.getTime();
+  if (!Number.isFinite(nowMs)) {
+    throw new Error("checkPit now must be a valid Date");
+  }
+  const today = jstDateOf(now.toISOString());
 
   const future = (target: string, field: string, value: string) => {
     issues.push({
@@ -62,14 +67,37 @@ export function checkPit(state: ResearchState, now: Date = new Date()): Issue[] 
     });
   };
 
+  const instant = (target: string, field: string, value: string): number | null => {
+    try {
+      return parseExplicitIso8601Instant(value, field);
+    } catch {
+      issues.push({
+        severity: "error",
+        code: "invalid_timestamp",
+        target,
+        message: `${field} は明示タイムゾーン付きの実在する ISO 8601 日時である必要があります: ${value}`,
+      });
+      return null;
+    }
+  };
+
+  const dateInJst = (instantMs: number): string => new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(instantMs));
+
   for (const edge of state.edges) {
     if (edge.createdAt > today) future(edge.id, "createdAt", edge.createdAt);
     if (edge.lastUpdate > today) future(edge.id, "lastUpdate", edge.lastUpdate);
 
     for (const [index, evidence] of (edge.evidence ?? []).entries()) {
       const target = `${edge.id}.evidence[${index}]`;
-      if (evidence.observedAt > nowIso) future(target, "observedAt", evidence.observedAt);
-      if (evidence.eventDate && jstDateOf(evidence.observedAt) < evidence.eventDate) {
+      const observedMs = instant(target, "observedAt", evidence.observedAt);
+      if (observedMs !== null && observedMs > nowMs) future(target, "observedAt", evidence.observedAt);
+      const observedDate = observedMs === null ? null : dateInJst(observedMs);
+      if (evidence.eventDate && observedDate !== null && observedDate < evidence.eventDate) {
         issues.push({
           severity: "error",
           code: "observed_before_event",
@@ -79,7 +107,6 @@ export function checkPit(state: ResearchState, now: Date = new Date()): Issue[] 
       }
     }
 
-    // Holdout の隔離。研究期間と Holdout 期間が重なっていたら「未使用」を主張できない。
     const researchWindow = edge.holdout?.researchWindow;
     const holdoutWindow = edge.holdout?.holdoutWindow;
     if (researchWindow && holdoutWindow && windowsOverlap(researchWindow, holdoutWindow)) {
@@ -95,11 +122,13 @@ export function checkPit(state: ResearchState, now: Date = new Date()): Issue[] 
   const analogById = new Map(state.analogs.map((analog) => [analog.id, analog]));
 
   for (const analog of state.analogs) {
-    if (analog.observedAt > nowIso) future(analog.id, "observedAt", analog.observedAt);
+    const observedMs = instant(analog.id, "observedAt", analog.observedAt);
+    if (observedMs !== null && observedMs > nowMs) future(analog.id, "observedAt", analog.observedAt);
     if (analog.recordedAt > today) future(analog.id, "recordedAt", analog.recordedAt);
     if (analog.eventDate > today) future(analog.id, "eventDate", analog.eventDate);
 
-    if (jstDateOf(analog.observedAt) < analog.eventDate) {
+    const observedDate = observedMs === null ? null : dateInJst(observedMs);
+    if (observedDate !== null && observedDate < analog.eventDate) {
       issues.push({
         severity: "error",
         code: "observed_before_event",
@@ -150,7 +179,6 @@ export function checkPit(state: ResearchState, now: Date = new Date()): Issue[] 
     }
   }
 
-  // 研究中の Edge が Holdout 期間の事例を参照していないか
   for (const edge of state.edges) {
     const holdoutWindow = edge.holdout?.holdoutWindow;
     if (!holdoutWindow) continue;
@@ -169,14 +197,16 @@ export function checkPit(state: ResearchState, now: Date = new Date()): Issue[] 
   }
 
   for (const cf of state.counterfactuals) {
-    if (cf.observedAt > nowIso) future(cf.id, "observedAt", cf.observedAt);
+    const observedMs = instant(cf.id, "observedAt", cf.observedAt);
+    if (observedMs !== null && observedMs > nowMs) future(cf.id, "observedAt", cf.observedAt);
     if (cf.recordedAt > today) future(cf.id, "recordedAt", cf.recordedAt);
   }
   for (const confounder of state.confounders) {
     if (confounder.recordedAt > today) future(confounder.id, "recordedAt", confounder.recordedAt);
   }
-  if (state.checkpoint && state.checkpoint.savedAt > nowIso) {
-    future("checkpoint", "savedAt", state.checkpoint.savedAt);
+  if (state.checkpoint) {
+    const savedMs = instant("checkpoint", "savedAt", state.checkpoint.savedAt);
+    if (savedMs !== null && savedMs > nowMs) future("checkpoint", "savedAt", state.checkpoint.savedAt);
   }
 
   return issues;
