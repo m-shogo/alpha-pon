@@ -12,6 +12,8 @@ const ACQUISITION_DIR_RE = /^sanrio-acquisition\.[A-Za-z0-9_-]+$/;
 const FIDELITY_RE = /^revision-source-fidelity-v1\.[A-Za-z0-9_-]+\.json$/;
 const INSPECTION_RE = /^revision-unmatched-anchor-inspection-v1\.[A-Za-z0-9_-]+\.json$/;
 const HUMAN_INPUT_RE = /^revision-human-review-input-v1\.[A-Za-z0-9_-]+\.json$/;
+const CONFIGURED_EXACT_COMPARISON_RE = /^configured-fidelity-exact-comparison-v1\.[A-Za-z0-9_-]+\.json$/;
+const CONFIGURED_HUMAN_INPUT_RE = /^configured-human-comparison-input-v1\.[A-Za-z0-9_-]+\.json$/;
 const CONFIGURED_REVIEW_RE = /^configured-human-comparison-record-v1\.[A-Za-z0-9_-]+\.json$/;
 const INVENTORY_AUDIT_RE = /^sanrio-edinet-inventory-compatibility-v1\.[A-Za-z0-9_-]+\.json$/;
 const PARITY_WORKSPACE_RE = /^legacy-configured-parity-workspace-v1\.[A-Za-z0-9_-]+\.json$/;
@@ -52,6 +54,8 @@ export type SanrioRealPilotPreflightResult = {
     humanReviewInput?: string;
     humanReviewDecision?: string;
     inventoryAudit?: string;
+    configuredComparison?: string;
+    configuredHumanReviewInput?: string;
     configuredReview?: string;
     parityWorkspace?: string;
     parityReviewInput?: string;
@@ -74,10 +78,6 @@ function object(value: unknown): JsonObject | null {
 
 function text(value: unknown): string {
   return value === null || value === undefined ? "" : String(value).trim();
-}
-
-function bool(value: unknown): boolean {
-  return value === true;
 }
 
 function inside(root: string, path: string): boolean {
@@ -239,6 +239,32 @@ function completedConfiguredReview(records: LocalJson[]): LocalJson | null {
   ));
 }
 
+function completedConfiguredComparison(records: LocalJson[]): LocalJson | null {
+  return newest(records.filter((candidate) => {
+    const issuer = object(candidate.record.issuer);
+    return candidate.record.schemaVersion === 1
+      && candidate.record.source === "edinet"
+      && text(issuer?.issuerKey) === "sanrio"
+      && candidate.record.comparisonStatus === "complete_exact_normalized_comparison"
+      && candidate.record.reviewStatus === "pending_human_comparison_review"
+      && candidate.record.fuzzyMatchingUsed === false
+      && candidate.record.semanticEquivalenceInferred === false
+      && candidate.record.officialPdfVisualReviewComplete === false
+      && candidate.record.foundationPreviewEligible === false
+      && candidate.record.appendAuthorized === false;
+  }));
+}
+
+function draftConfiguredInputForComparison(records: LocalJson[], comparison: LocalJson): LocalJson | null {
+  return newest(records.filter((candidate) =>
+    dirname(candidate.path) === dirname(comparison.path)
+    && text(candidate.record.sourceComparisonFile) === comparison.basename
+    && candidate.record.reviewStatus === "draft_human_input"
+    && candidate.record.foundationPreviewEligible === false
+    && candidate.record.appendAuthorized === false,
+  ));
+}
+
 function workspaceForInputs(
   records: LocalJson[],
   inventory: LocalJson,
@@ -355,11 +381,38 @@ export function inspectSanrioRealPilotPreflight(
   if (inventory) result.selectedFiles.inventoryAudit = inventory.relativePath;
   if (configured) result.selectedFiles.configuredReview = configured.relativePath;
   if (!inventory || !configured) {
+    let nextCommand: string | null = null;
+    let requiresHumanAction = false;
+    if (!configured) {
+      const configuredComparison = completedConfiguredComparison(
+        listAcquisitionFiles(root, CONFIGURED_EXACT_COMPARISON_RE, warnings),
+      );
+      if (configuredComparison) {
+        result.selectedFiles.configuredComparison = configuredComparison.relativePath;
+        const configuredInput = draftConfiguredInputForComparison(
+          listAcquisitionFiles(root, CONFIGURED_HUMAN_INPUT_RE, warnings),
+          configuredComparison,
+        );
+        requiresHumanAction = true;
+        if (configuredInput) {
+          result.selectedFiles.configuredHumanReviewInput = configuredInput.relativePath;
+          nextCommand = command("scripts/run-configured-edinet-human-comparison-review-local.sh", [[
+            "finalize",
+            `data/edinet/${configuredInput.relativePath}`,
+          ]]);
+        } else {
+          nextCommand = command("scripts/run-configured-edinet-human-comparison-review-local.sh", [[
+            "comparison",
+            `data/edinet/${configuredComparison.relativePath}`,
+          ]]);
+        }
+      }
+    }
     return {
       ...result,
       stage: "parity_inputs_required",
-      requiresHumanAction: false,
-      nextCommand: null,
+      requiresHumanAction,
+      nextCommand,
       missingInputs,
       selectedFiles: { ...result.selectedFiles },
       warnings,
