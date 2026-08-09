@@ -4,6 +4,7 @@ import "./stock-pro-council-ledgers.test.js";
 import "./stock-pro-council-ledger-hardening.test.js";
 import "./stock-pro-council-replay.test.js";
 import "./stock-pro-council-replay-repository.test.js";
+import "./security-master.test.js";
 import "./claim-contradiction-graph.test.js";
 import "./claim-contradiction-graph-hardening.test.js";
 import "./claim-contradiction-graph-repository.test.js";
