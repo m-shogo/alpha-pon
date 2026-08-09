@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 import type { FoundationPilotTarget } from "./foundation-pilot-structural-status.js";
 
 type JsonObject = Record<string, unknown>;
@@ -77,8 +78,8 @@ function text(value: string, field: string): string {
 
 function timestamp(value: string, field: string): string {
   const result = text(value, field);
-  if (!Number.isFinite(Date.parse(result))) throw new Error(`${field} must be a date-time`);
-  return new Date(result).toISOString();
+  const instantMs = parseExplicitIso8601Instant(result, field);
+  return new Date(instantMs).toISOString();
 }
 
 function hash(value: string, field: string): string {

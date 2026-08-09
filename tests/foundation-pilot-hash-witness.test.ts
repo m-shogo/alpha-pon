@@ -59,6 +59,41 @@ function input() {
 
 {
   const value = input();
+  value.target.informationCutoff = "2026-07-31T15:00:00+09:00";
+  value.correctionCutoff.historicalCutoff = "2026-07-31T15:00:00+09:00";
+  value.generatedAt = "2026-08-07T10:40:00+09:00";
+  value.witnessedAt = "2026-08-07T10:39:00+09:00";
+  const record = buildFoundationPilotHashWitness(value);
+  assert.equal(record.target.informationCutoff, "2026-07-31T06:00:00.000Z");
+  assert.equal(record.correctionCutoff.historicalCutoff, "2026-07-31T06:00:00.000Z");
+  assert.equal(record.generatedAt, "2026-08-07T01:40:00.000Z");
+  assert.equal(record.witnessedAt, "2026-08-07T01:39:00.000Z");
+  console.log("foundation-pilot-hash-witness: explicit offsets canonicalize deterministically OK");
+}
+
+{
+  const value = input();
+  value.target.informationCutoff = "2026-07-31T06:00:00";
+  assert.throws(() => buildFoundationPilotHashWitness(value), /explicit timezone/);
+  console.log("foundation-pilot-hash-witness: timezone-less cutoff blocked OK");
+}
+
+{
+  const value = input();
+  value.witnessedAt = "2026-02-31T01:39:00Z";
+  assert.throws(() => buildFoundationPilotHashWitness(value), /valid Gregorian ISO-8601 timestamp/);
+  console.log("foundation-pilot-hash-witness: impossible witness time blocked OK");
+}
+
+{
+  const value = input();
+  value.generatedAt = "2026-08-07T01:40:00+15:00";
+  assert.throws(() => buildFoundationPilotHashWitness(value), /timezone offset within ±14:00/);
+  console.log("foundation-pilot-hash-witness: invalid timezone offset blocked OK");
+}
+
+{
+  const value = input();
   value.sameInputReplay.rerunInputFingerprintHash = "6".repeat(64);
   const record = buildFoundationPilotHashWitness(value);
   assert.equal(record.sameInputReplay.status, "failed_input_fingerprint_mismatch");
