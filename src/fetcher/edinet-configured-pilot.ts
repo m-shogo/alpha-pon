@@ -228,9 +228,26 @@ export function buildConfiguredEdinetInventory(input: {
   if (!Number.isSafeInteger(input.scannedBusinessDays) || input.scannedBusinessDays < 0) {
     throw new Error("scannedBusinessDays must be a non-negative integer");
   }
-  const expectedBusinessDays = enumerateConfiguredEdinetBusinessDates(input.from, input.to).length;
+  const businessDates = enumerateConfiguredEdinetBusinessDates(input.from, input.to);
+  const expectedBusinessDays = businessDates.length;
   if (input.scannedBusinessDays !== expectedBusinessDays) {
     throw new Error(`scannedBusinessDays must match configured range business days: expected ${expectedBusinessDays}`);
+  }
+  const allowedFailureDates = new Set(businessDates);
+  const seenFailureDates = new Set<string>();
+  for (let index = 0; index < input.failedDates.length; index++) {
+    const failure = input.failedDates[index]!;
+    assertIsoDate(failure.date, `failedDates[${index}].date`);
+    if (!allowedFailureDates.has(failure.date)) {
+      throw new Error(`failedDates[${index}].date must be a business date inside the configured range`);
+    }
+    if (seenFailureDates.has(failure.date)) {
+      throw new Error(`failedDates contains duplicate date: ${failure.date}`);
+    }
+    if (!normalizedText(failure.code)) {
+      throw new Error(`failedDates[${index}].code must be non-empty`);
+    }
+    seenFailureDates.add(failure.date);
   }
   const docs = dedupeDocuments(
     input.docs.filter(doc => isConfiguredIssuerPrimaryDisclosure(doc, input.boundary)),
