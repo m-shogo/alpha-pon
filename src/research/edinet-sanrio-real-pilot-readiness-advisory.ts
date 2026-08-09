@@ -13,7 +13,7 @@ import {
 
 const MAX_JSON_BYTES = 30 * 1024 * 1024;
 const HASH_RE = /^[a-f0-9]{64}$/;
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const LEGACY_INVENTORY_RE = /^sanrio-edinet-inventory\.legacy\.[A-Za-z0-9_-]+\.json$/;
 const CONFIGURED_INVENTORY_RE = /^sanrio-edinet-inventory\.configured\.[A-Za-z0-9_-]+\.json$/;
 
@@ -52,6 +52,17 @@ function isHash(value: unknown): boolean {
   return HASH_RE.test(text(value));
 }
 
+function isGregorianDate(value: string): boolean {
+  const match = DATE_RE.exec(value);
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (!Number.isInteger(year) || year < 1 || month < 1 || month > 12 || day < 1) return false;
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return day <= daysInMonth;
+}
+
 function inventoryShape(record: JsonObject): { rangeFrom: string; rangeTo: string; scannedBusinessDays: number } | null {
   const issuer = object(record.issuer);
   const range = object(record.range);
@@ -65,8 +76,8 @@ function inventoryShape(record: JsonObject): { rangeFrom: string; rangeTo: strin
     || text(issuer?.secCode) !== "81360"
     || record.completeness !== "complete"
     || record.appendAuthorized !== false
-    || !DATE_RE.test(rangeFrom)
-    || !DATE_RE.test(rangeTo)
+    || !isGregorianDate(rangeFrom)
+    || !isGregorianDate(rangeTo)
     || rangeFrom > rangeTo
     || !Number.isSafeInteger(scannedBusinessDays)
     || scannedBusinessDays < 0
