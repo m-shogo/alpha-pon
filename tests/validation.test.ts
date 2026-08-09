@@ -45,6 +45,7 @@ import "./edinet-sanrio-parity-local-paths.test.js";
 import "./edinet-sanrio-real-pilot-preflight.test.js";
 import "./edinet-sanrio-real-pilot-integrity.test.js";
 import "./edinet-sanrio-real-pilot-readiness-advisory.test.js";
+import "./research/security-master.test.js";
 import "./research/security-master-repository.test.js";
 import "./research/security-master-repository-pit-revision.test.js";
 import "./research/security-master-snapshot-endpoint-integrity.test.js";
