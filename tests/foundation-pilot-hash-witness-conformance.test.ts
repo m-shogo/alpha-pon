@@ -186,6 +186,54 @@ function setup() {
   console.log("foundation-pilot-hash-witness-conformance: canonical conformance stays non-authorizing OK");
 }
 
+assert.throws(
+  () => buildFoundationPilotProofRun({
+    runId: "timezone-less-capture",
+    capturedAt: "2026-08-06T06:10:00",
+    decision: decision(),
+  }),
+  /explicit timezone/,
+);
+console.log("foundation-pilot-hash-witness-conformance: timezone-less proof capture blocked OK");
+
+{
+  const { contentHash: _ignored, ...decisionWithoutHash } = decision();
+  const malformedDecision = withFoundationDecisionHash({
+    ...decisionWithoutHash,
+    issuedAt: "2026-08-06T06:05:00+15:00",
+  });
+  assert.throws(
+    () => buildFoundationPilotProofRun({
+      runId: "invalid-decision-time",
+      capturedAt: "2026-08-06T06:10:00Z",
+      decision: malformedDecision,
+    }),
+    /timezone offset within ±14:00/,
+  );
+  console.log("foundation-pilot-hash-witness-conformance: invalid Decision instant blocked OK");
+}
+
+{
+  const input = setup();
+  input.generatedAt = "2026-08-06T07:20:00";
+  assert.throws(() => auditFoundationPilotHashWitnessConformance(input), /explicit timezone/);
+  console.log("foundation-pilot-hash-witness-conformance: timezone-less audit generatedAt blocked OK");
+}
+
+{
+  const input = setup();
+  const { contentHash: _ignored, ...prior } = input.priorRevision;
+  input.priorRevision = withDocumentRevisionHash({
+    ...prior,
+    observedAt: "2026-02-31T05:00:00Z",
+  });
+  assert.throws(
+    () => auditFoundationPilotHashWitnessConformance(input),
+    /valid Gregorian ISO-8601 timestamp/,
+  );
+  console.log("foundation-pilot-hash-witness-conformance: impossible revision instant blocked OK");
+}
+
 {
   const input = setup();
   input.witness = buildFoundationPilotHashWitness({
