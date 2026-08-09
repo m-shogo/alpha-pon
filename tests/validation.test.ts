@@ -72,6 +72,7 @@ import "./research/recommendation-persistence.test.js";
 import "./research/recommendation-price-pit-timing.test.js";
 import "./research/quantitative-outcome.test.js";
 import "./research/quantitative-outcome-price-pit-timing.test.js";
+import "./research/quantitative-outcome-reviewed-at-instant.test.js";
 import "./research/corporate-action-clearance.test.js";
 import "./research/outcome-semantic-review.test.js";
 import "./research/outcome-semantic-review-evidence-instant.test.js";
