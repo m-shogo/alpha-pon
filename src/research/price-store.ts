@@ -600,7 +600,10 @@ export function selectPriceRecordsAsOf(
     if (selector.source && record.source !== selector.source) continue;
     if (selector.providerPlan && record.providerPlan !== selector.providerPlan) continue;
     if (timeMs(record.observedAt) > asOfMs) continue;
-    if (boundary === "executable" && timeMs(record.firstExecutableAt) > asOfMs) continue;
+    if (boundary === "executable") {
+      if (timeMs(record.retrievedAt) > asOfMs) continue;
+      if (timeMs(record.firstExecutableAt) > asOfMs) continue;
+    }
 
     const key = `${record.market}:${record.tradingDate}:${record.source}:${record.providerPlan}`;
     const prior = selected.get(key);
