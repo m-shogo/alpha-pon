@@ -197,7 +197,6 @@ function normalizeOccurrenceKey(value: string): string {
 function normalizeIssuerCode(value: string): string {
   return normalizeIdentityText(value).toUpperCase();
 }
-
 function normalizeUrl(value: string): string {
   const url = new URL(value);
   url.hash = "";
@@ -330,9 +329,19 @@ export function assertKnownMarketEventType(value: string): asserts value is Mark
 }
 
 function assertDateOnly(value: string, fieldName: string): void {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error(`${fieldName} must be YYYY-MM-DD`);
-  const parsed = Date.parse(`${value}T00:00:00Z`);
-  if (Number.isNaN(parsed)) throw new Error(`${fieldName} must be a real date`);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) throw new Error(`${fieldName} must be YYYY-MM-DD`);
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const probe = new Date(Date.UTC(year, month - 1, day));
+  if (
+    probe.getUTCFullYear() !== year
+    || probe.getUTCMonth() !== month - 1
+    || probe.getUTCDate() !== day
+  ) {
+    throw new Error(`${fieldName} must be a real date`);
+  }
 }
 
 export function assertIsoTimestamp(value: string, fieldName: string): void {
@@ -466,7 +475,7 @@ export function validateMarketEventBundle(bundle: MarketEventBundle): void {
   const deliveryIds = new Set<string>();
   for (const delivery of deliveries) {
     if (!delivery.deliveryId.startsWith("dlv_")) throw new Error("Invalid deliveryId");
-    if (deliveryIds.has(delivery.deliveryId)) throw new Error(`Duplicate deliveryId in bundle: ${delivery.deliveryId}`);
+    if (deliveryIds.has(delivery.deliveryId)) throw new Error(`Duplicate deliveryId: ${delivery.deliveryId}`);
     deliveryIds.add(delivery.deliveryId);
     if (delivery.eventId !== event.eventId || delivery.revisionId !== revision.revisionId) {
       throw new Error("delivery references the wrong event or revision");
