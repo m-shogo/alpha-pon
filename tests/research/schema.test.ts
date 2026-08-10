@@ -55,6 +55,7 @@ function testDateFormats() {
   assert.equal(isValidDateTime("2026-08-04T15:30+09:00"), true, "既存の秒省略形式は維持する");
   assert.equal(isValidDateTime("2024-02-29T15:30:00Z"), true, "実在する閏日は許可する");
   assert.equal(isValidDateTime("2026-08-04T15:30:00.123456789+09:00"), true);
+  assert.equal(isValidDateTime("2026-08-04T15:30:00.1234567890+09:00"), false, "nanosecondを超えるfractional secondを拒否する");
   assert.equal(isValidDateTime("2026-08-04T15:30:00"), false, "タイムゾーン必須");
   assert.equal(isValidDateTime("2026-08-04"), false);
 
