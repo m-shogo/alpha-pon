@@ -9,7 +9,10 @@ import {
   readFileSync,
 } from "node:fs";
 import { dirname } from "node:path";
-import { parseExplicitIso8601Instant } from "./iso-instant.js";
+import {
+  compareExplicitIso8601Instants,
+  parseExplicitIso8601Instant,
+} from "./iso-instant.js";
 import {
   computeQuantitativeOutcomeHash,
   type QuantitativeOutcomeRecord,
@@ -197,7 +200,7 @@ function evidenceIssues(
   const target = `semantic-review:${record.reviewId}`;
   const issues: OutcomeSemanticReviewIssue[] = [];
   const declared = new Set(record.sourceEvidence.map((candidate) => candidate.ref));
-  const evidenceCutoffMs = parseExplicitIso8601Instant(record.evidenceCutoff, "evidenceCutoff");
+  parseExplicitIso8601Instant(record.evidenceCutoff, "evidenceCutoff");
 
   for (const evidence of record.sourceEvidence) {
     if (secretLikeReference(evidence.ref)) {
@@ -212,12 +215,15 @@ function evidenceIssues(
     if (canonical.tier !== evidence.tier) {
       issues.push(issue("evidence_tier_mismatch", target, `Evidence tierが正本と一致しません: ${evidence.ref}`));
     }
-    let observedAtMs: number;
     try {
-      observedAtMs = parseExplicitIso8601Instant(
+      if (compareExplicitIso8601Instants(
         canonical.observedAt,
+        record.evidenceCutoff,
         `Evidence ${evidence.ref}.observedAt`,
-      );
+        "evidenceCutoff",
+      ) > 0) {
+        issues.push(issue("future_review_evidence", target, `evidenceCutoff後のEvidenceです: ${evidence.ref}`));
+      }
     } catch {
       issues.push(issue(
         "invalid_review_evidence_observed_at",
@@ -225,9 +231,6 @@ function evidenceIssues(
         `Evidence observedAtが不正です: ${evidence.ref}`,
       ));
       continue;
-    }
-    if (observedAtMs > evidenceCutoffMs) {
-      issues.push(issue("future_review_evidence", target, `evidenceCutoff後のEvidenceです: ${evidence.ref}`));
     }
   }
 
@@ -322,15 +325,30 @@ export function validateOutcomeSemanticReviewRecord(
   if (record.contentHash !== computeOutcomeSemanticReviewHash(record)) {
     issues.push(issue("invalid_content_hash", `${target}.contentHash`, "contentHashが一致しません"));
   }
-  if (Date.parse(record.evidenceCutoff) > Date.parse(record.reviewedAt)) {
+  if (compareExplicitIso8601Instants(
+    record.evidenceCutoff,
+    record.reviewedAt,
+    "semanticReview.evidenceCutoff",
+    "semanticReview.reviewedAt",
+  ) > 0) {
     issues.push(issue("evidence_cutoff_after_review", target, "evidenceCutoffはreviewedAt以前である必要があります"));
   }
 
   const lineage = canonicalLineage({ record, context, issues });
-  if (lineage.outcome && Date.parse(record.evidenceCutoff) < Date.parse(lineage.outcome.reviewedAt)) {
+  if (lineage.outcome && compareExplicitIso8601Instants(
+    record.evidenceCutoff,
+    lineage.outcome.reviewedAt,
+    "semanticReview.evidenceCutoff",
+    "quantitativeOutcome.reviewedAt",
+  ) < 0) {
     issues.push(issue("review_cutoff_before_quantitative_outcome", target, "semantic review evidenceCutoffはQuantitative Outcome reviewedAt以降である必要があります"));
   }
-  if (lineage.outcome && Date.parse(record.reviewedAt) < Date.parse(lineage.outcome.reviewedAt)) {
+  if (lineage.outcome && compareExplicitIso8601Instants(
+    record.reviewedAt,
+    lineage.outcome.reviewedAt,
+    "semanticReview.reviewedAt",
+    "quantitativeOutcome.reviewedAt",
+  ) < 0) {
     issues.push(issue("review_before_quantitative_outcome", target, "semantic reviewはQuantitative Outcomeより前に確定できません"));
   }
 
@@ -404,10 +422,20 @@ export function validateOutcomeSemanticReviewRecords(
     ) {
       issues.push(issue("semantic_review_lineage_mismatch", record.reviewId, "revisionでRecommendation lineageを変更できません"));
     }
-    if (Date.parse(record.reviewedAt) <= Date.parse(prior.reviewedAt)) {
+    if (compareExplicitIso8601Instants(
+      record.reviewedAt,
+      prior.reviewedAt,
+      `semanticReview:${record.reviewId}.reviewedAt`,
+      `semanticReview:${prior.reviewId}.reviewedAt`,
+    ) <= 0) {
       issues.push(issue("semantic_review_time_not_monotonic", record.reviewId, "revision reviewedAtは直前reviewより後である必要があります"));
     }
-    if (Date.parse(record.evidenceCutoff) < Date.parse(prior.evidenceCutoff)) {
+    if (compareExplicitIso8601Instants(
+      record.evidenceCutoff,
+      prior.evidenceCutoff,
+      `semanticReview:${record.reviewId}.evidenceCutoff`,
+      `semanticReview:${prior.reviewId}.evidenceCutoff`,
+    ) < 0) {
       issues.push(issue("semantic_review_cutoff_regressed", record.reviewId, "revisionでevidenceCutoffを過去へ戻せません"));
     }
     if (prior.reviewAuthority === "human_confirmed" && record.reviewAuthority !== "human_confirmed") {
@@ -416,7 +444,12 @@ export function validateOutcomeSemanticReviewRecords(
 
     const priorOutcome = context.quantitativeOutcomesById.get(prior.quantitativeOutcomeId);
     const currentOutcome = context.quantitativeOutcomesById.get(record.quantitativeOutcomeId);
-    if (priorOutcome && currentOutcome && Date.parse(currentOutcome.reviewedAt) < Date.parse(priorOutcome.reviewedAt)) {
+    if (priorOutcome && currentOutcome && compareExplicitIso8601Instants(
+      currentOutcome.reviewedAt,
+      priorOutcome.reviewedAt,
+      `quantitativeOutcome:${currentOutcome.outcomeId}.reviewedAt`,
+      `quantitativeOutcome:${priorOutcome.outcomeId}.reviewedAt`,
+    ) < 0) {
       issues.push(issue("quantitative_outcome_lineage_regressed", record.reviewId, "revisionでより古いQuantitative Outcomeへ戻せません"));
     }
   }
