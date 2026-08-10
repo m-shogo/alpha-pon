@@ -66,6 +66,7 @@ function testDateFormats() {
   assert.equal(isValidDateTime("2026-08-04T15:30:00+14:00"), true, "UTC offset上限は許可する");
   assert.equal(isValidDateTime("2026-08-04T15:30:00+14:01"), false, "UTC offset上限超過を拒否する");
   assert.equal(isValidDateTime("2026-08-04T15:30:00+15:00"), false, "非現実的offsetを拒否する");
+  assert.equal(isValidDateTime("2026-08-04T15:30:00-00:00"), false, "unknown offsetを既知のUTC instantとして扱わない");
   console.log("research/schema: 日付フォーマット OK");
 }
 
