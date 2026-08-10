@@ -17,7 +17,7 @@ import {
   type TestableHypothesisRecord,
 } from "./testable-hypothesis-scenario.js";
 import { computeEvidencePackageHash } from "./evidence-package-manifest.js";
-import { parseExplicitIso8601Instant } from "./iso-instant.js";
+import { compareExplicitIso8601Instants, parseExplicitIso8601Instant } from "./iso-instant.js";
 import { computePersonaCalibrationHash } from "./stock-pro-council-calibration.js";
 import { stableStringify, validate, type JsonSchema } from "./schema.js";
 
@@ -219,10 +219,24 @@ export function validateFoundationPriceSnapshotRecord(
   if (record.contentHash !== computeFoundationPriceSnapshotHash(record)) {
     issues.push(issue("invalid_price_snapshot_hash", `${target}.contentHash`, "contentHashが一致しません"));
   }
-  if (Date.parse(record.observedAt) > Date.parse(record.informationCutoff)) {
+  if (
+    compareExplicitIso8601Instants(
+      record.observedAt,
+      record.informationCutoff,
+      `${target}.observedAt`,
+      `${target}.informationCutoff`,
+    ) > 0
+  ) {
     issues.push(issue("future_price_observation", target, "observedAtをinformationCutoffより後にできません"));
   }
-  if (Date.parse(record.firstExecutableAt) < Date.parse(record.observedAt)) {
+  if (
+    compareExplicitIso8601Instants(
+      record.firstExecutableAt,
+      record.observedAt,
+      `${target}.firstExecutableAt`,
+      `${target}.observedAt`,
+    ) < 0
+  ) {
     issues.push(issue("price_executable_before_observed", target, "firstExecutableAtはobservedAt以後が必要です"));
   }
   if (!Number.isFinite(record.value) || record.value < 0) {
@@ -515,10 +529,24 @@ export function validateFoundationDecisionRecord(
   if (record.contentHash !== computeFoundationDecisionHash(record)) {
     issues.push(issue("invalid_decision_hash", `${target}.contentHash`, "contentHashが一致しません"));
   }
-  if (Date.parse(record.issuedAt) < Date.parse(record.informationCutoff)) {
+  if (
+    compareExplicitIso8601Instants(
+      record.issuedAt,
+      record.informationCutoff,
+      `${target}.issuedAt`,
+      `${target}.informationCutoff`,
+    ) < 0
+  ) {
     issues.push(issue("decision_issued_before_cutoff", target, "issuedAtはinformationCutoff以後が必要です"));
   }
-  if (Date.parse(record.firstExecutableAt) < Date.parse(record.informationCutoff)) {
+  if (
+    compareExplicitIso8601Instants(
+      record.firstExecutableAt,
+      record.informationCutoff,
+      `${target}.firstExecutableAt`,
+      `${target}.informationCutoff`,
+    ) < 0
+  ) {
     issues.push(issue("decision_executable_before_cutoff", target, "firstExecutableAtはinformationCutoff以後が必要です"));
   }
   if (!equalStringSets(record.calibrationHashes, sortedUnique(record.calibrationHashes))) {
