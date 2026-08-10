@@ -339,7 +339,12 @@ function validMaster() {
     "https://example.com/ir?token=synthetic",
     "https://example.com/ir?document=123&api_key=synthetic",
     "https://example.com/ir#password=synthetic",
-    "https://example.com/ir#section&subscription-key=synthetic"
+    "https://example.com/ir#section&subscription-key=synthetic",
+    "https://example.com/ir?%74oken=synthetic",
+    "https://example.com/ir?document=123&api%5Fkey=synthetic",
+    "https://example.com/ir#%70assword=synthetic",
+    "https://example.com/ir#section&subscription%2Dkey=synthetic",
+    "https://example.com/ir?token%3Dsynthetic"
   ].entries()) {
     const secretParamLinkEntity = entity({
       recordId: `entity:issuer:alpha:record:credential-param-${index}`,
