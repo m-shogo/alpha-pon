@@ -2,6 +2,7 @@ import "./price-store.test.js";
 import "./price-store-hardening.test.js";
 import "./price-store-replay-guard.test.js";
 import "./price-store-replay-manifest-strict-instant.test.js";
+import "./price-store-validation-subms.test.js";
 import "./document-revision-diff-rejected-fractional-ordering.test.js";
 import "./stock-pro-council-ledger-fractional-ordering.test.js";
 import "./market-event-ledger-subms-projection.test.js";

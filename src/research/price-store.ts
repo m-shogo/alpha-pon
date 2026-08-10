@@ -19,6 +19,7 @@ import {
 } from "node:fs";
 import { dirname } from "node:path";
 import type { PriceSeries } from "./backtest.js";
+import { compareExplicitIso8601Instants } from "./iso-instant.js";
 import { jstDateOf } from "./pit.js";
 import { formatErrors, stableStringify, validate, type JsonSchema } from "./schema.js";
 
@@ -267,7 +268,14 @@ function validateOhlcv(record: PitPriceRecord, issues: PriceStoreIssue[]): void 
 function validateCorporateActions(record: PitPriceRecord, issues: PriceStoreIssue[]): void {
   const target = targetOf(record);
   for (const action of record.corporateActions) {
-    if (timeMs(action.observedAt) > timeMs(record.observedAt)) {
+    if (
+      compareExplicitIso8601Instants(
+        action.observedAt,
+        record.observedAt,
+        "corporateAction.observedAt",
+        "priceRecord.observedAt",
+      ) > 0
+    ) {
       pushIssue(issues, {
         code: "corporate_action_after_record",
         target,
@@ -304,48 +312,86 @@ export function validatePriceRecord(
     return issues;
   }
 
-  const dataMs = timeMs(record.dataAsOf);
-  const observedMs = timeMs(record.observedAt);
-  const retrievedMs = timeMs(record.retrievedAt);
-  const executableMs = timeMs(record.firstExecutableAt);
-  const nowMs = now.getTime();
+  const nowInstant = now.toISOString();
 
-  if (observedMs > nowMs) {
+  if (
+    compareExplicitIso8601Instants(
+      record.observedAt,
+      nowInstant,
+      "priceRecord.observedAt",
+      "now",
+    ) > 0
+  ) {
     pushIssue(issues, {
       code: "future_observation",
       target,
       message: `observedAtが現在より未来です: ${record.observedAt}`,
     });
   }
-  if (retrievedMs > nowMs) {
+  if (
+    compareExplicitIso8601Instants(
+      record.retrievedAt,
+      nowInstant,
+      "priceRecord.retrievedAt",
+      "now",
+    ) > 0
+  ) {
     pushIssue(issues, {
       code: "future_retrieval",
       target,
       message: `retrievedAtが現在より未来です: ${record.retrievedAt}`,
     });
   }
-  if (dataMs > observedMs) {
+  if (
+    compareExplicitIso8601Instants(
+      record.dataAsOf,
+      record.observedAt,
+      "priceRecord.dataAsOf",
+      "priceRecord.observedAt",
+    ) > 0
+  ) {
     pushIssue(issues, {
       code: "data_after_observation",
       target,
       message: `dataAsOf=${record.dataAsOf}より前に観測したことにはできません`,
     });
   }
-  if (retrievedMs < observedMs) {
+  if (
+    compareExplicitIso8601Instants(
+      record.retrievedAt,
+      record.observedAt,
+      "priceRecord.retrievedAt",
+      "priceRecord.observedAt",
+    ) < 0
+  ) {
     pushIssue(issues, {
       code: "retrieval_before_observation",
       target,
       message: `retrievedAt=${record.retrievedAt}がobservedAtより前です`,
     });
   }
-  if (executableMs < observedMs) {
+  if (
+    compareExplicitIso8601Instants(
+      record.firstExecutableAt,
+      record.observedAt,
+      "priceRecord.firstExecutableAt",
+      "priceRecord.observedAt",
+    ) < 0
+  ) {
     pushIssue(issues, {
       code: "execution_before_observation",
       target,
       message: `firstExecutableAt=${record.firstExecutableAt}がobservedAtより前です`,
     });
   }
-  if (executableMs < retrievedMs) {
+  if (
+    compareExplicitIso8601Instants(
+      record.firstExecutableAt,
+      record.retrievedAt,
+      "priceRecord.firstExecutableAt",
+      "priceRecord.retrievedAt",
+    ) < 0
+  ) {
     pushIssue(issues, {
       code: "execution_before_retrieval",
       target,
