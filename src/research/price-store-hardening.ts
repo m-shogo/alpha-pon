@@ -78,10 +78,6 @@ export type HardenedPriceIssue = PriceStoreIssue | PriceHardeningIssue;
 
 const UNKNOWN_SOURCE_VALUES = new Set(["unknown", "unspecified", "n/a", "na", "none"]);
 
-function timeMs(value: string): number {
-  return Date.parse(value);
-}
-
 function basisOf(record: Pick<PitPriceRecord, "adjusted">): PriceBasis {
   return record.adjusted ? "adjusted" : "unadjusted";
 }
@@ -232,11 +228,19 @@ export function validateProviderBatchAgainstQuery(
   options: ProviderBatchValidationOptions = {},
 ): string[] {
   const issues = [...validateProviderBatch(batch)];
-  const asOfMs = timeMs(query.asOf);
-
-  if (!Number.isFinite(asOfMs)) {
+  let asOfValid = true;
+  try {
+    compareExplicitIso8601Instants(
+      query.asOf,
+      query.asOf,
+      "query.asOf",
+      "query.asOf",
+    );
+  } catch {
+    asOfValid = false;
     issues.push(`invalid query.asOf: ${query.asOf}`);
   }
+
   if (batch.capabilities.plan === "unknown") {
     issues.push("batch capabilities.plan may not be unknown");
   }
@@ -277,11 +281,35 @@ export function validateProviderBatchAgainstQuery(
     if (record.tradingDate < query.from || record.tradingDate > query.to) {
       issues.push(`${prefix}.tradingDate is outside query range: ${record.tradingDate}`);
     }
-    if (Number.isFinite(asOfMs) && timeMs(record.dataAsOf) > asOfMs) {
-      issues.push(`${prefix}.dataAsOf is after query.asOf: ${record.dataAsOf}`);
-    }
-    if (Number.isFinite(asOfMs) && timeMs(record.observedAt) > asOfMs) {
-      issues.push(`${prefix}.observedAt is after query.asOf: ${record.observedAt}`);
+    if (asOfValid) {
+      try {
+        if (
+          compareExplicitIso8601Instants(
+            record.dataAsOf,
+            query.asOf,
+            `${prefix}.dataAsOf`,
+            "query.asOf",
+          ) > 0
+        ) {
+          issues.push(`${prefix}.dataAsOf is after query.asOf: ${record.dataAsOf}`);
+        }
+      } catch {
+        issues.push(`${prefix}.dataAsOf is not a valid explicit ISO instant`);
+      }
+      try {
+        if (
+          compareExplicitIso8601Instants(
+            record.observedAt,
+            query.asOf,
+            `${prefix}.observedAt`,
+            "query.asOf",
+          ) > 0
+        ) {
+          issues.push(`${prefix}.observedAt is after query.asOf: ${record.observedAt}`);
+        }
+      } catch {
+        issues.push(`${prefix}.observedAt is not a valid explicit ISO instant`);
+      }
     }
     if (record.providerPlan === "unknown") {
       issues.push(`${prefix}.providerPlan may not be unknown`);
