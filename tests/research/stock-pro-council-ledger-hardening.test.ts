@@ -79,6 +79,24 @@ function veto(overrides: Partial<CouncilVetoRecordInput> = {}): CouncilVetoRecor
 }
 
 {
+  const open = dissent({ informationCutoff: "2026-08-06T00:25:00.000000001+09:00" });
+  const resolved = dissent({
+    dissentId: "dissent-hardening-fractional-001",
+    issuedAt: "2026-08-06T01:00:00.000000001+09:00",
+    informationCutoff: "2026-08-06T00:25:00+09:00",
+    status: "resolved",
+    supersedesDissentId: open.dissentId,
+    resolvedAt: "2026-08-06T01:00:00+09:00",
+    resolutionSummary: "fractional ordering regression",
+    resolutionEvidenceRefs: ["evidence:fractional:dissent"],
+  });
+  const issues = validateCouncilLedgerLifecycle([open, resolved], []);
+  assert.ok(issues.some((issue) => issue.code === "dissent_resolved_before_revision"));
+  assert.ok(issues.some((issue) => issue.code === "dissent_cutoff_regression"));
+  console.log("stock-pro-council-ledger-hardening: dissent fractional ordering guards OK");
+}
+
+{
   const open = dissent();
   const resolved = dissent({
     dissentId: "dissent-hardening-004",
@@ -132,6 +150,25 @@ function veto(overrides: Partial<CouncilVetoRecordInput> = {}): CouncilVetoRecor
   assert.ok(validateCouncilLedgerLifecycle([], [binding, cutoffRegression])
     .some((issue) => issue.code === "veto_cutoff_regression"));
   console.log("stock-pro-council-ledger-hardening: veto time/cutoff guards OK");
+}
+
+{
+  const binding = veto({ informationCutoff: "2026-08-06T00:25:00.000000001+09:00" });
+  const cleared = veto({
+    vetoId: "veto-hardening-fractional-001",
+    issuedAt: "2026-08-06T01:00:00.000000001+09:00",
+    informationCutoff: "2026-08-06T00:25:00+09:00",
+    status: "cleared",
+    supersedesVetoId: binding.vetoId,
+    clearanceMode: "new_evidence",
+    clearedAt: "2026-08-06T01:00:00+09:00",
+    clearanceEvidenceRefs: ["source-contract:fractional:hardening"],
+    ruleVersion: "data-pit-v1",
+  });
+  const issues = validateCouncilLedgerLifecycle([], [binding, cleared]);
+  assert.ok(issues.some((issue) => issue.code === "veto_cleared_before_revision"));
+  assert.ok(issues.some((issue) => issue.code === "veto_cutoff_regression"));
+  console.log("stock-pro-council-ledger-hardening: veto fractional ordering guards OK");
 }
 
 {
