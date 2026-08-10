@@ -191,6 +191,44 @@ assert.ok(expectedBlockers.includes("missing_price_snapshot:issuer_price"));
   console.log("research/foundation-decision-integration: direct assessor rejects malformed referenced context instant OK");
 }
 
+{
+  const { contentHash: _ignored, ...priceWithoutHash } = price;
+  const fractionalFutureReferencedPrice = withFoundationPriceSnapshotHash({
+    ...priceWithoutHash,
+    informationCutoff: "2026-08-06T06:00:00.000000001Z",
+    observedAt: "2026-08-06T06:00:00.000000002Z",
+    firstExecutableAt: "2026-08-06T06:00:00.000000002Z",
+  });
+  const decisionWithFractionalCutoff = withFoundationDecisionHash({
+    ...baseDecision,
+    issuedAt: "2026-08-06T06:00:00.000000003Z",
+    informationCutoff: "2026-08-06T06:00:00.000000001Z",
+    firstExecutableAt: "2026-08-06T06:00:00.000000002Z",
+    priceSnapshots: {
+      ...baseDecision.priceSnapshots,
+      issuerPrice: {
+        id: fractionalFutureReferencedPrice.snapshotId,
+        hash: fractionalFutureReferencedPrice.contentHash,
+      },
+    },
+  });
+  const contextWithFractionalFutureReferencedPrice: FoundationDecisionContext = {
+    ...emptyContext,
+    priceSnapshotsById: new Map([
+      [fractionalFutureReferencedPrice.snapshotId, fractionalFutureReferencedPrice],
+    ]),
+  };
+  const blockers = assessFoundationDecisionRecord(
+    decisionWithFractionalCutoff,
+    contextWithFractionalFutureReferencedPrice,
+  );
+  assert.ok(
+    blockers.includes("future_price_snapshot:issuer_price"),
+    "同一millisecond内でもdecision cutoffより1ns未来の参照priceをfail-closedにする",
+  );
+  console.log("research/foundation-decision-integration: referenced price cutoff preserves sub-millisecond ordering OK");
+}
+
 const blockedDecision = withFoundationDecisionHash({
   ...baseDecision,
   blockers: expectedBlockers,
