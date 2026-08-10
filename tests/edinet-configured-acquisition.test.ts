@@ -298,4 +298,55 @@ function successFor(plan: ConfiguredEdinetAcquisitionPlan): ConfiguredEdinetAcqu
   console.log("edinet-configured-acquisition: acquisition plan tampering blocked OK");
 }
 
+{
+  const { reviewPlan } = setup();
+  assert.throws(
+    () => buildConfiguredEdinetAcquisitionPlan({
+      reviewPlan,
+      registry: registryFixture(),
+      sourceReviewPlanFile: "synthetic-co-edinet-configured-review-plan-v1.fixture.json",
+      generatedAt: "2026-08-06T12:30:00",
+    }),
+    /explicit timezone/,
+  );
+  assert.throws(
+    () => buildConfiguredEdinetAcquisitionPlan({
+      reviewPlan,
+      registry: registryFixture(),
+      sourceReviewPlanFile: "synthetic-co-edinet-configured-review-plan-v1.fixture.json",
+      generatedAt: "2026-02-30T12:30:00Z",
+    }),
+    /valid Gregorian/,
+  );
+  console.log("edinet-configured-acquisition: generatedAt requires strict explicit-timezone instant OK");
+}
+
+{
+  const { acquisitionPlan } = setup();
+  const succeeded = successFor(acquisitionPlan);
+  succeeded[0]!.retrievedAt = "2026-08-06T12:40:00";
+  assert.throws(
+    () => buildConfiguredEdinetAcquisitionManifest({
+      plan: acquisitionPlan,
+      generatedAt: "2026-08-06T13:00:00.000Z",
+      outputDirectory: "synthetic-co-acquisition.fixture",
+      succeeded,
+      failed: [],
+    }),
+    /explicit timezone/,
+  );
+  succeeded[0]!.retrievedAt = "2026-02-30T12:40:00Z";
+  assert.throws(
+    () => buildConfiguredEdinetAcquisitionManifest({
+      plan: acquisitionPlan,
+      generatedAt: "2026-08-06T13:00:00.000Z",
+      outputDirectory: "synthetic-co-acquisition.fixture",
+      succeeded,
+      failed: [],
+    }),
+    /valid Gregorian/,
+  );
+  console.log("edinet-configured-acquisition: retrievedAt requires strict explicit-timezone instant OK");
+}
+
 console.log("edinet-configured-acquisition.test.ts passed");
