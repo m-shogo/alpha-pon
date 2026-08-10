@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 
 const ISSUER_KEY_RE = /^[a-z0-9][a-z0-9_-]{1,63}$/;
 const EDINET_CODE_RE = /^E\d{5}$/;
@@ -65,7 +66,7 @@ function required(value: unknown, field: string): string {
 
 function timestamp(value: unknown, field: string): string {
   const result = required(value, field);
-  if (!Number.isFinite(Date.parse(result))) throw new Error(`${field} must be a date-time`);
+  parseExplicitIso8601Instant(result, field);
   return result;
 }
 
