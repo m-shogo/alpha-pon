@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { compareExplicitIso8601Instants, parseExplicitIso8601Instant } from "../research/iso-instant.js";
 
 export const MARKET_EVENT_SCHEMA_VERSION = 1 as const;
 
@@ -339,9 +340,10 @@ export function assertIsoTimestamp(value: string, fieldName: string): void {
 }
 
 function assertExactTimestamp(value: string, fieldName: string): void {
-  assertIsoTimestamp(value, fieldName);
-  if (!/(?:Z|[+-]\d{2}:\d{2})$/.test(value)) {
-    throw new Error(`${fieldName} must include an explicit timezone offset or Z`);
+  try {
+    parseExplicitIso8601Instant(value, fieldName);
+  } catch {
+    throw new Error(`${fieldName} must be a strict ISO timestamp with an explicit timezone offset or Z`);
   }
 }
 
@@ -385,7 +387,16 @@ export function assertValidEventTime(time: EventTime): void {
   assertExactTimestamp(time.startAt, "startAt");
   if (time.endAt !== null) {
     assertExactTimestamp(time.endAt, "endAt");
-    if (Date.parse(time.endAt) < Date.parse(time.startAt)) throw new Error("endAt must be on or after startAt");
+    if (
+      compareExplicitIso8601Instants(
+        time.endAt,
+        time.startAt,
+        "endAt",
+        "startAt",
+      ) < 0
+    ) {
+      throw new Error("endAt must be on or after startAt");
+    }
   }
   if (time.allDay) throw new Error("EXACT event time cannot be all-day");
 }
