@@ -19,6 +19,7 @@ import {
   type CouncilPersona,
   type StockProCouncilV2Catalog,
 } from "./stock-pro-council-v2-validation.js";
+import { compareExplicitIso8601Instants } from "./iso-instant.js";
 import { stableStringify, validate, type JsonSchema } from "./schema.js";
 
 export type DissentStatus = "open" | "acknowledged" | "resolved" | "superseded";
@@ -155,7 +156,12 @@ function commonPersonaIssues(
       message: `${record.personaId}のjurisdiction外です: ${record.jurisdiction}`,
     });
   }
-  if (Date.parse(record.issuedAt) < Date.parse(record.informationCutoff)) {
+  if (compareExplicitIso8601Instants(
+    record.issuedAt,
+    record.informationCutoff,
+    `${target}.issuedAt`,
+    `${target}.informationCutoff`,
+  ) < 0) {
     issues.push({
       severity: "error",
       code: "issued_before_information_cutoff",
@@ -409,7 +415,12 @@ export function validateDissentLedger(
         message: "dissent revisionはrun/persona/code/jurisdictionを変更できません",
       });
     }
-    if (Date.parse(record.issuedAt) <= Date.parse(previous.issuedAt)) {
+    if (compareExplicitIso8601Instants(
+      record.issuedAt,
+      previous.issuedAt,
+      "dissent revision issuedAt",
+      "previous dissent issuedAt",
+    ) <= 0) {
       issues.push({
         severity: "error",
         code: "dissent_revision_time_not_monotonic",
@@ -417,7 +428,16 @@ export function validateDissentLedger(
         message: "dissent revisionのissuedAtは直前recordより後である必要があります",
       });
     }
-    if (record.status === "resolved" && record.resolvedAt && Date.parse(record.resolvedAt) < Date.parse(previous.issuedAt)) {
+    if (
+      record.status === "resolved"
+      && record.resolvedAt
+      && compareExplicitIso8601Instants(
+        record.resolvedAt,
+        previous.issuedAt,
+        "dissent resolvedAt",
+        "previous dissent issuedAt",
+      ) < 0
+    ) {
       issues.push({
         severity: "error",
         code: "dissent_resolved_before_parent",
@@ -493,7 +513,12 @@ export function validateVetoLedger(
         message: "veto revisionはrun/persona/jurisdiction/code/scopeを変更できません",
       });
     }
-    if (Date.parse(record.issuedAt) <= Date.parse(previous.issuedAt)) {
+    if (compareExplicitIso8601Instants(
+      record.issuedAt,
+      previous.issuedAt,
+      "veto revision issuedAt",
+      "previous veto issuedAt",
+    ) <= 0) {
       issues.push({
         severity: "error",
         code: "veto_revision_time_not_monotonic",
@@ -510,7 +535,15 @@ export function validateVetoLedger(
           message: "cleared vetoはbinding vetoを直接supersedeする必要があります",
         });
       }
-      if (record.clearedAt && Date.parse(record.clearedAt) < Date.parse(previous.issuedAt)) {
+      if (
+        record.clearedAt
+        && compareExplicitIso8601Instants(
+          record.clearedAt,
+          previous.issuedAt,
+          "veto clearedAt",
+          "previous veto issuedAt",
+        ) < 0
+      ) {
         issues.push({
           severity: "error",
           code: "veto_cleared_before_parent",
