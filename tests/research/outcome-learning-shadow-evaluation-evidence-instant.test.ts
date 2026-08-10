@@ -116,14 +116,30 @@ const evaluation = withOutcomeLearningShadowEvaluationHash({
 });
 
 function context(observedAt: string): OutcomeLearningShadowEvaluationContext {
+  return contextFor(shadowEvidenceRef, observedAt);
+}
+
+function contextFor(ref: string, observedAt: string): OutcomeLearningShadowEvaluationContext {
   return {
     decisionsById: new Map([[decision.decisionId, decision]]),
     validatedDecisionHashes: new Set([decision.contentHash]),
     proposalsById: new Map([[proposal.proposalId, proposal]]),
     validatedProposalHashes: new Set([proposal.contentHash]),
-    evidenceByRef: new Map([[shadowEvidenceRef, { observedAt }]]),
-    validatedEvidenceRefs: new Set([shadowEvidenceRef]),
+    evidenceByRef: new Map([[ref, { observedAt }]]),
+    validatedEvidenceRefs: new Set([ref]),
   };
+}
+
+function evaluationForRef(ref: string) {
+  const { contentHash: _contentHash, ...input } = evaluation;
+  return withOutcomeLearningShadowEvaluationHash({
+    ...input,
+    successCriteriaAssessments: input.successCriteriaAssessments.map((item) => ({ ...item, evidenceRefs: [ref] })),
+    failureCriteriaAssessments: input.failureCriteriaAssessments.map((item) => ({ ...item, evidenceRefs: [ref] })),
+    minimumEvidenceAssessments: input.minimumEvidenceAssessments.map((item) => ({ ...item, evidenceRefs: [ref] })),
+    falsificationAssessments: input.falsificationAssessments.map((item) => ({ ...item, evidenceRefs: [ref] })),
+    evidenceRefs: [ref],
+  });
 }
 
 function codes(observedAt: string): string[] {
@@ -134,10 +150,21 @@ function codes(observedAt: string): string[] {
   ).map((candidate) => candidate.code);
 }
 
+function refCodes(ref: string): string[] {
+  return validateOutcomeLearningShadowEvaluationRecord(
+    evaluationForRef(ref),
+    schema,
+    contextFor(ref, "2026-09-15T10:00:00+09:00"),
+  ).map((candidate) => candidate.code);
+}
+
 assert.deepEqual(codes("2026-09-15T10:00:00+09:00"), []);
 assert.ok(codes("2026-09-15T10:00:00").includes("invalid_shadow_evidence_observed_at"));
 assert.ok(codes("2026-02-29T10:00:00+09:00").includes("invalid_shadow_evidence_observed_at"));
 assert.ok(codes("2026-09-15T11:30:00+09:00").includes("post_cutoff_shadow_evidence"));
 assert.ok(codes("2026-09-15T11:00:00.000000001+09:00").includes("post_cutoff_shadow_evidence"));
+assert.ok(refCodes("https://example.invalid/evidence#token=synthetic").includes("secret_like_shadow_evidence_ref"));
+assert.ok(refCodes("https://synthetic:secret@example.invalid/evidence").includes("secret_like_shadow_evidence_ref"));
+assert.deepEqual(refCodes("https://example.invalid/evidence#section-1"), []);
 
 console.log("outcome-learning-shadow-evaluation-evidence-instant.test.ts passed");
