@@ -16,6 +16,7 @@ import {
   withClaimRecordHash,
   type ClaimGraphSchemas,
 } from "../../src/research/claim-contradiction-graph.js";
+import { validateClaimGraphEndpointChronology } from "../../src/research/claim-contradiction-graph-integrity.js";
 import {
   appendClaimGraphRecordsAtCutoffGoverned,
 } from "../../src/research/claim-contradiction-graph-writer.js";
@@ -190,6 +191,27 @@ function edge(observedAt = "2026-08-05T15:05:00+09:00") {
     rmSync(dir, { recursive: true, force: true });
   }
   console.log("claim-contradiction-graph-writer: endpoint chronology blocked OK");
+}
+
+{
+  const fractionalClaim = withClaimRecordHash({
+    ...claim(),
+    observedAt: "2026-08-05T15:03:00.000000002+09:00",
+    retrievedAt: "2026-08-05T15:04:00.000000002+09:00",
+  });
+  const fractionalEdge = withClaimGraphEdgeHash({
+    ...edge(),
+    observedAt: "2026-08-05T15:03:00.000000001+09:00",
+    retrievedAt: "2026-08-05T15:04:00.000000001+09:00",
+  });
+  const issues = validateClaimGraphEndpointChronology(
+    [fractionalClaim],
+    [fractionalEdge],
+    evidenceSnapshot,
+  );
+  assert.ok(issues.some((candidate) => candidate.code === "claim_edge_observed_before_claim_endpoint"));
+  assert.ok(issues.some((candidate) => candidate.code === "claim_edge_retrieved_before_claim_endpoint"));
+  console.log("claim-contradiction-graph-writer: 1ns endpoint chronology is blocked OK");
 }
 
 console.log("claim-contradiction-graph-writer: 全テスト成功");
