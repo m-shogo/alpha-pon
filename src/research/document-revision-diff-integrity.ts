@@ -4,6 +4,7 @@ import {
   type DocumentRevisionDiffIssue,
   type DocumentRevisionRecord,
 } from "./document-revision-diff.js";
+import { compareExplicitIso8601Instants } from "./iso-instant.js";
 
 function issue(
   code: string,
@@ -13,8 +14,8 @@ function issue(
   return { severity: "error", code, target, message };
 }
 
-function timeMs(value: string): number {
-  return Date.parse(value);
+function compareInstants(left: string, right: string, leftField: string, rightField: string): -1 | 0 | 1 {
+  return compareExplicitIso8601Instants(left, right, leftField, rightField);
 }
 
 function sortedUnique(values: readonly string[]): string[] {
@@ -91,8 +92,18 @@ function rejectedRevisionHistoryIssues(
       ));
     }
     if (
-      timeMs(record.observedAt) <= timeMs(previous.observedAt) ||
-      timeMs(record.retrievedAt) <= timeMs(previous.retrievedAt)
+      compareInstants(
+        record.observedAt,
+        previous.observedAt,
+        `${record.recordId}.observedAt`,
+        `${previous.recordId}.observedAt`,
+      ) <= 0 ||
+      compareInstants(
+        record.retrievedAt,
+        previous.retrievedAt,
+        `${record.recordId}.retrievedAt`,
+        `${previous.recordId}.retrievedAt`,
+      ) <= 0
     ) {
       issues.push(issue(
         "rejected_document_revision_time_regression",
@@ -134,8 +145,18 @@ function rejectedRevisionHistoryIssues(
       ));
     }
     if (
-      timeMs(record.observedAt) <= timeMs(previous.observedAt) ||
-      timeMs(record.retrievedAt) <= timeMs(previous.retrievedAt)
+      compareInstants(
+        record.observedAt,
+        previous.observedAt,
+        `${record.recordId}.observedAt`,
+        `${previous.recordId}.observedAt`,
+      ) <= 0 ||
+      compareInstants(
+        record.retrievedAt,
+        previous.retrievedAt,
+        `${record.recordId}.retrievedAt`,
+        `${previous.recordId}.retrievedAt`,
+      ) <= 0
     ) {
       issues.push(issue(
         "rejected_document_diff_time_regression",
