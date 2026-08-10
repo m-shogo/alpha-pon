@@ -308,7 +308,15 @@ function addScenarioBlockers(
   }
   if (scenario.scenarioType !== expectedType) blockers.push(`scenario_type_mismatch:${label}`);
   if (scenario.status !== "registered") blockers.push(`scenario_not_registered:${expectedType}`);
-  if (!scenario.registeredAt || Date.parse(scenario.registeredAt) > Date.parse(record.issuedAt)) {
+  if (
+    !scenario.registeredAt ||
+    compareExplicitIso8601Instants(
+      scenario.registeredAt,
+      record.issuedAt,
+      `scenario.${label}.registeredAt`,
+      "decision.issuedAt",
+    ) > 0
+  ) {
     blockers.push(`scenario_registration_time_invalid:${expectedType}`);
   }
   if (
@@ -442,7 +450,15 @@ export function assessFoundationDecisionRecord(
       blockers.push("scenario_set_hash_mismatch");
     }
     if (scenarioSet.status !== "registered") blockers.push("scenario_set_not_registered");
-    if (!scenarioSet.registeredAt || Date.parse(scenarioSet.registeredAt) > Date.parse(record.issuedAt)) {
+    if (
+      !scenarioSet.registeredAt ||
+      compareExplicitIso8601Instants(
+        scenarioSet.registeredAt,
+        record.issuedAt,
+        "scenarioSet.registeredAt",
+        "decision.issuedAt",
+      ) > 0
+    ) {
       blockers.push("scenario_set_registration_time_invalid");
     }
     if (
@@ -510,8 +526,18 @@ export function assessFoundationDecisionRecord(
       blockers.push(`calibration_not_eligible:${hash}`);
     }
     if (
-      Date.parse(calibration.outcomeCutoff) > Date.parse(record.informationCutoff) ||
-      Date.parse(calibration.evaluatedAt) > Date.parse(record.issuedAt)
+      compareExplicitIso8601Instants(
+        calibration.outcomeCutoff,
+        record.informationCutoff,
+        `calibration.${hash}.outcomeCutoff`,
+        "decision.informationCutoff",
+      ) > 0 ||
+      compareExplicitIso8601Instants(
+        calibration.evaluatedAt,
+        record.issuedAt,
+        `calibration.${hash}.evaluatedAt`,
+        "decision.issuedAt",
+      ) > 0
     ) blockers.push(`future_calibration:${hash}`);
   }
 

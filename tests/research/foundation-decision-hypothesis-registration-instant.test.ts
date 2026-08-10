@@ -5,11 +5,14 @@ import {
   type FoundationDecisionContext,
   type FoundationDecisionIntegrationRecord,
 } from "../../src/research/foundation-decision-integration.js";
-import { testableHypothesis } from "./testable-hypothesis-scenario-fixtures.js";
+import { hypothesisScenario, testableHypothesis } from "./testable-hypothesis-scenario-fixtures.js";
 
 const hash = (character: string): string => character.repeat(64);
 
 const futureHypothesis = testableHypothesis({
+  registeredAt: "2026-08-06T00:36:00.000000002+09:00",
+});
+const futureScenario = hypothesisScenario("downside", {
   registeredAt: "2026-08-06T00:36:00.000000002+09:00",
 });
 
@@ -45,7 +48,7 @@ const decision = withFoundationDecisionHash({
   scenarioSetId: "scenario-set:missing",
   scenarioSetHash: hash("5"),
   scenarios: {
-    downside: { id: "scenario:missing:downside", hash: hash("6") },
+    downside: { id: futureScenario.scenarioId, hash: futureScenario.contentHash },
     base: { id: "scenario:missing:base", hash: hash("7") },
     upside: { id: "scenario:missing:upside", hash: hash("8") },
     nullHypothesis: { id: "scenario:missing:null", hash: hash("9") },
@@ -72,8 +75,8 @@ const context: FoundationDecisionContext = {
   activeEvidencePackageIds: new Set(),
   hypothesesById: new Map([[futureHypothesis.hypothesisId, futureHypothesis]]),
   activeHypothesisIds: new Set([futureHypothesis.hypothesisId]),
-  scenariosById: new Map(),
-  activeScenarioIds: new Set(),
+  scenariosById: new Map([[futureScenario.scenarioId, futureScenario]]),
+  activeScenarioIds: new Set([futureScenario.scenarioId]),
   scenarioSetsById: new Map(),
   activeScenarioSetIds: new Set(),
   replayManifestsById: new Map(),
@@ -88,5 +91,9 @@ assert.ok(
   blockers.includes("hypothesis_registration_time_invalid"),
   "同一millisecond内でもdecision issuedAtより1ns未来のHypothesis登録をfail-closedにする",
 );
+assert.ok(
+  blockers.includes("scenario_registration_time_invalid:downside"),
+  "同一millisecond内でもdecision issuedAtより1ns未来のScenario登録をfail-closedにする",
+);
 
-console.log("research/foundation-decision: hypothesis registration preserves sub-millisecond ordering OK");
+console.log("research/foundation-decision: registration preserves sub-millisecond ordering OK");
