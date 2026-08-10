@@ -14,6 +14,7 @@ import {
   type FoundationDecisionIssue,
   type FoundationPriceSnapshotRecord,
 } from "./foundation-decision-integration.js";
+import { compareExplicitIso8601Instants } from "./iso-instant.js";
 import { type JsonSchema } from "./schema.js";
 import { activePersonaCalibrationHeads } from "./stock-pro-council-calibration.js";
 import { validatePersonaCalibrationRepository } from "./stock-pro-council-calibration-repository.js";
@@ -159,8 +160,18 @@ function validateDecisionLedger(
       previous.listedSecurityEntityId !== record.listedSecurityEntityId
     ) issues.push(issue("decision_supersession_identity_mismatch", record.decisionId, record.supersedesDecisionId));
     if (
-      Date.parse(record.issuedAt) < Date.parse(previous.issuedAt) ||
-      Date.parse(record.informationCutoff) < Date.parse(previous.informationCutoff)
+      compareExplicitIso8601Instants(
+        record.issuedAt,
+        previous.issuedAt,
+        `decision ${record.decisionId}.issuedAt`,
+        `decision ${previous.decisionId}.issuedAt`,
+      ) < 0 ||
+      compareExplicitIso8601Instants(
+        record.informationCutoff,
+        previous.informationCutoff,
+        `decision ${record.decisionId}.informationCutoff`,
+        `decision ${previous.decisionId}.informationCutoff`,
+      ) < 0
     ) issues.push(issue("decision_supersession_time_regression", record.decisionId, record.supersedesDecisionId));
   }
   for (const record of records) {
