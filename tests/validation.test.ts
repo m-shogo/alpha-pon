@@ -14,6 +14,7 @@ import "./edinet-configured-dashboard-generated-at-instant.test.js";
 import "./edinet-configured-synthetic-fixture.test.js";
 import "./edinet-configured-fidelity-plan.test.js";
 import "./edinet-configured-fidelity-extraction.test.js";
+import "./edinet-configured-structured-archive-generated-at-instant.test.js";
 import "./edinet-configured-anchor-finalizer.test.js";
 import "./edinet-configured-exact-comparison.test.js";
 import "./edinet-configured-human-comparison-review.test.js";
