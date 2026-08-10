@@ -13,6 +13,7 @@ import {
   computeOutcomeLearningProposalHash,
   type OutcomeLearningProposalRecord,
 } from "./outcome-learning-proposal.js";
+import { compareExplicitIso8601Instants } from "./iso-instant.js";
 import { stableStringify, validate, type JsonSchema } from "./schema.js";
 
 export type OutcomeLearningDecisionKind = "defer" | "advance_to_shadow" | "reject";
@@ -138,7 +139,14 @@ function decisionScopeIssues(
       "defer/advance_to_shadowにはhuman_review_ready Proposalが必要です。draft_proposalは人間によるrejectのみ許可します",
     ));
   }
-  if (Date.parse(record.decidedAt) <= Date.parse(proposal.createdAt)) {
+  if (
+    compareExplicitIso8601Instants(
+      record.decidedAt,
+      proposal.createdAt,
+      "learningDecision.decidedAt",
+      "learningProposal.createdAt",
+    ) <= 0
+  ) {
     issues.push(issue("decision_time_not_after_proposal", target, "decidedAtはProposal createdAtより後である必要があります"));
   }
 
@@ -271,7 +279,14 @@ export function validateOutcomeLearningDecisionRecords(
         "Human Decision revisionでProposal identity/hashを変更できません",
       ));
     }
-    if (Date.parse(record.decidedAt) <= Date.parse(prior.decidedAt)) {
+    if (
+      compareExplicitIso8601Instants(
+        record.decidedAt,
+        prior.decidedAt,
+        "learningDecision.decidedAt",
+        "priorLearningDecision.decidedAt",
+      ) <= 0
+    ) {
       issues.push(issue("learning_decision_time_not_monotonic", record.decisionId, "revision decidedAtは直前Decisionより後である必要があります"));
     }
     if (prior.decision !== "defer") {
