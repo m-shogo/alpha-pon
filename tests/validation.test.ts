@@ -22,6 +22,7 @@ import "./edinet-inventory-lineage-root-integrity.test.js";
 import "./edinet-local-review-dashboard.test.js";
 import "./edinet-foundation-mapping-template.test.js";
 import "./edinet-sanrio-pilot.test.js";
+import "./edinet-sanrio-pilot-generated-at-instant.test.js";
 import "./edinet-sanrio-acquisition.test.js";
 import "./edinet-sanrio-review-workspace.test.js";
 import "./edinet-sanrio-revision-diff-workspace.test.js";
