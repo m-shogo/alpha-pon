@@ -371,6 +371,58 @@ function validMaster() {
 }
 
 {
+  const futureObservedEntity = entity({
+    recordId: "entity:issuer:alpha:record:fractional-retrieval",
+    observedAt: "2026-08-05T15:00:00.000000002+09:00",
+    retrievedAt: "2026-08-05T15:00:00.000000001+09:00"
+  });
+  assert.ok(validateSecurityMaster([futureObservedEntity], [], schemas)
+    .some((issue) => issue.code === "retrieved_before_observed"));
+
+  const master = validMaster();
+  const futureObservedRelationship = relationship({
+    recordId: "relationship:issuer:alpha-security:record:fractional-retrieval",
+    observedAt: "2026-08-05T15:00:00.000000002+09:00",
+    retrievedAt: "2026-08-05T15:00:00.000000001+09:00"
+  });
+  assert.ok(validateSecurityMaster(master.entities, [futureObservedRelationship], schemas)
+    .some((issue) => issue.code === "retrieved_before_observed"));
+  console.log("security-master: fractional retrieved-before-observed blocked OK");
+}
+
+{
+  const firstEntity = entity({
+    recordId: "entity:issuer:alpha:record:fractional-001",
+    observedAt: "2026-08-05T15:00:00.000000001+09:00",
+    retrievedAt: "2026-08-05T15:00:00.000000001+09:00"
+  });
+  const nextEntity = entity({
+    recordId: "entity:issuer:alpha:record:fractional-002",
+    observedAt: "2026-08-05T15:00:00.000000002+09:00",
+    retrievedAt: "2026-08-05T15:00:00.000000002+09:00",
+    supersedesRecordId: firstEntity.recordId
+  });
+  assert.equal(validateSecurityMaster([firstEntity, nextEntity], [], schemas)
+    .some((issue) => issue.code === "entity_revision_time_not_monotonic"), false);
+
+  const master = validMaster();
+  const firstRelationship = relationship({
+    recordId: "relationship:issuer:alpha-security:record:fractional-001",
+    observedAt: "2026-08-05T15:00:00.000000001+09:00",
+    retrievedAt: "2026-08-05T15:00:00.000000001+09:00"
+  });
+  const nextRelationship = relationship({
+    recordId: "relationship:issuer:alpha-security:record:fractional-002",
+    observedAt: "2026-08-05T15:00:00.000000002+09:00",
+    retrievedAt: "2026-08-05T15:00:00.000000002+09:00",
+    supersedesRecordId: firstRelationship.recordId
+  });
+  assert.equal(validateSecurityMaster(master.entities, [firstRelationship, nextRelationship], schemas)
+    .some((issue) => issue.code === "relationship_revision_time_not_monotonic"), false);
+  console.log("security-master: fractional revision ordering preserved OK");
+}
+
+{
   const dir = mkdtempSync(join(tmpdir(), "security-master-"));
   const paths = {
     entities: join(dir, "entities.jsonl"),
