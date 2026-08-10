@@ -40,4 +40,17 @@ assert.throws(
   /recommendation\.issuedAt must be an ISO-8601 timestamp with explicit timezone/,
 );
 
+assert.throws(
+  () => buildQuantitativeOutcomeRecord({
+    ...minimalInput,
+    recommendation: {
+      ...minimalInput.recommendation,
+      issuedAt: "2026-08-07T09:10:00.000000000+09:00",
+    },
+    reviewedAt: "2026-08-07T09:10:00.000000001+09:00",
+  }),
+  /recommendation contentHash mismatch/,
+  "a reviewedAt one nanosecond after issuedAt must be treated as later, not collapsed to the same millisecond",
+);
+
 console.log("quantitative-outcome-reviewed-at-instant.test.ts passed");
