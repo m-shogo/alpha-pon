@@ -138,5 +138,6 @@ assert.deepEqual(codes("2026-09-15T10:00:00+09:00"), []);
 assert.ok(codes("2026-09-15T10:00:00").includes("invalid_shadow_evidence_observed_at"));
 assert.ok(codes("2026-02-29T10:00:00+09:00").includes("invalid_shadow_evidence_observed_at"));
 assert.ok(codes("2026-09-15T11:30:00+09:00").includes("post_cutoff_shadow_evidence"));
+assert.ok(codes("2026-09-15T11:00:00.000000001+09:00").includes("post_cutoff_shadow_evidence"));
 
 console.log("outcome-learning-shadow-evaluation-evidence-instant.test.ts passed");
