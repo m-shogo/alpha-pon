@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   FOUNDATION_DECISION_PATHS,
   assessFoundationDecisionRecord,
@@ -10,6 +12,7 @@ import {
   type FoundationDecisionContext,
   type FoundationDecisionIntegrationRecord,
 } from "../../src/research/foundation-decision-integration.js";
+import { validateFoundationDecisionRepository } from "../../src/research/foundation-decision-integration-repository.js";
 import type { JsonSchema } from "../../src/research/schema.js";
 
 const decisionSchema = JSON.parse(
@@ -180,5 +183,48 @@ const eligibleIssues = validateFoundationDecisionRecord(falselyEligible, decisio
 assert.ok(eligibleIssues.some((item) => item.code === "decision_blocker_set_mismatch"));
 assert.ok(eligibleIssues.some((item) => item.code === "decision_eligibility_mismatch"));
 assert.ok(eligibleIssues.some((item) => item.code === "decision_status_mismatch"));
+
+{
+  const root = mkdtempSync(join(tmpdir(), "alpha-pon-foundation-decision-ledger-"));
+  const decisionsPath = join(root, "decisions.jsonl");
+  const priceSnapshotsPath = join(root, "price-snapshots.jsonl");
+  const replayManifestDir = join(root, "replay-manifests");
+  mkdirSync(replayManifestDir, { recursive: true });
+  writeFileSync(priceSnapshotsPath, "", "utf-8");
+  try {
+    const previous = withFoundationDecisionHash({
+      ...baseDecision,
+      decisionId: "decision-fractional-previous",
+      issuedAt: "2026-08-06T06:05:00.000000002Z",
+      informationCutoff: "2026-08-06T06:00:00.000000002Z",
+      firstExecutableAt: "2026-08-06T06:00:00.000000002Z",
+    });
+    const regressed = withFoundationDecisionHash({
+      ...baseDecision,
+      decisionId: "decision-fractional-regressed",
+      issuedAt: "2026-08-06T06:05:00.000000001Z",
+      informationCutoff: "2026-08-06T06:00:00.000000001Z",
+      firstExecutableAt: "2026-08-06T06:00:00.000000001Z",
+      supersedesDecisionId: previous.decisionId,
+    });
+    writeFileSync(decisionsPath, `${JSON.stringify(previous)}\n${JSON.stringify(regressed)}\n`, "utf-8");
+    const result = validateFoundationDecisionRepository({
+      decisionsPath,
+      priceSnapshotsPath,
+      replayManifestDir,
+      includeDependencyIssues: false,
+    });
+    assert.ok(
+      result.issues.some((item) =>
+        item.code === "decision_supersession_time_regression"
+        && item.target === regressed.decisionId,
+      ),
+      "同一millisecond内でも1nsのsupersession時刻逆行をfail-closedにする",
+    );
+    console.log("research/foundation-decision-integration: supersession ledger preserves sub-millisecond ordering OK");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
 
 console.log("research/foundation-decision-integration: 全テスト成功");
