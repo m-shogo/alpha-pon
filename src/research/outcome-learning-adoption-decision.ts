@@ -99,7 +99,7 @@ export function withOutcomeLearningAdoptionDecisionHash(
 }
 
 function secretLikeReference(ref: string): boolean {
-  return /(?:[?&](?:subscription-key|api[_-]?key|token|password)=)|(?:bearer\s+)/i.test(ref);
+  return /(?:[?#&](?:subscription-key|api[_-]?key|token|password)=)|(?:bearer\s+)|(?:^|:\/\/)[^/?#\s:@]+:[^/?#\s@]+@/i.test(ref);
 }
 
 function canonicalLineage(input: {
