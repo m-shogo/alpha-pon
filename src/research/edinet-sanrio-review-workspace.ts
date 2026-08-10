@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 
 const SANRIO_EDINET_CODE = "E02655";
 const SANRIO_SEC_CODE = "81360";
@@ -119,7 +120,11 @@ function requireFileName(value: unknown, field: string): string {
 
 function requireTimestamp(value: unknown, field: string): string {
   const result = requireString(value, field);
-  if (!Number.isFinite(Date.parse(result))) throw new Error(`${field} must be a date-time`);
+  try {
+    parseExplicitIso8601Instant(result, field);
+  } catch {
+    throw new Error(`${field} must be an explicit ISO date-time`);
+  }
   return result;
 }
 
