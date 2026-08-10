@@ -80,6 +80,7 @@ export function isValidDateTime(value: string): boolean {
   ) return false;
 
   if (match[5] !== "Z") {
+    if (match[5] === "-00:00") return false;
     const offsetHour = Number(match[7]);
     const offsetMinute = Number(match[8]);
     if (
