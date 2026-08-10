@@ -2,6 +2,7 @@
 // pnpm test で自動実行される
 
 import assert from "node:assert/strict";
+import { daysBetweenJst, formatDueLabel } from "../apps/web/lib/format.js";
 import {
   buildOpsDashboard,
   findForbiddenWording,
@@ -302,6 +303,19 @@ function cleanInputs(): OpsDashboardInputs {
   }
   assert.equal(dashboard.priorityIssues[0].severity, "urgent");
   console.log("ops-dashboard: 優先順位と TOP5 制限 OK");
+}
+
+// ── read-only期限表示: 非実在日付をfail-closed ──────────────
+
+{
+  assert.equal(daysBetweenJst("2026-02-28", "2026-02-30"), null);
+  assert.deepEqual(formatDueLabel("2026-02-30", "2026-02-28"), {
+    label: "期限不明",
+    overdue: false,
+  });
+  assert.equal(daysBetweenJst("2024-02-28", "2024-02-29"), 1);
+  assert.equal(daysBetweenJst("2026-02-28", "2026-02-29"), null);
+  console.log("ops-dashboard: 非実在Gregorian期限をfail-closed / leap-day境界 OK");
 }
 
 console.log("ops-dashboard: 全テスト成功");
