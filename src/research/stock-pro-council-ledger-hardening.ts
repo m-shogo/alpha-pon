@@ -15,6 +15,7 @@ import {
   type CouncilIssue,
   type StockProCouncilV2Catalog,
 } from "./stock-pro-council-v2-validation.js";
+import { compareExplicitIso8601Instants } from "./iso-instant.js";
 
 function sortIssues(issues: CouncilIssue[]): CouncilIssue[] {
   return [...issues].sort((a, b) =>
@@ -86,7 +87,12 @@ export function validateCouncilLedgerLifecycle(
   const dissentById = new Map(dissent.map((record) => [record.dissentId, record]));
   for (const record of dissent) {
     if (record.status === "resolved" && record.resolvedAt) {
-      if (Date.parse(record.resolvedAt) < Date.parse(record.issuedAt)) {
+      if (compareExplicitIso8601Instants(
+        record.resolvedAt,
+        record.issuedAt,
+        "dissent resolvedAt",
+        "dissent issuedAt",
+      ) < 0) {
         issues.push({
           severity: "error",
           code: "dissent_resolved_before_revision",
@@ -106,7 +112,12 @@ export function validateCouncilLedgerLifecycle(
         message: `${previous.status} -> ${record.status} は許可されません`,
       });
     }
-    if (Date.parse(record.informationCutoff) < Date.parse(previous.informationCutoff)) {
+    if (compareExplicitIso8601Instants(
+      record.informationCutoff,
+      previous.informationCutoff,
+      "dissent informationCutoff",
+      "previous dissent informationCutoff",
+    ) < 0) {
       issues.push({
         severity: "error",
         code: "dissent_cutoff_regression",
@@ -119,7 +130,12 @@ export function validateCouncilLedgerLifecycle(
   const vetoById = new Map(veto.map((record) => [record.vetoId, record]));
   for (const record of veto) {
     if (record.status === "cleared" && record.clearedAt) {
-      if (Date.parse(record.clearedAt) < Date.parse(record.issuedAt)) {
+      if (compareExplicitIso8601Instants(
+        record.clearedAt,
+        record.issuedAt,
+        "veto clearedAt",
+        "veto issuedAt",
+      ) < 0) {
         issues.push({
           severity: "error",
           code: "veto_cleared_before_revision",
@@ -139,7 +155,12 @@ export function validateCouncilLedgerLifecycle(
         message: `${previous.status} -> ${record.status} は許可されません`,
       });
     }
-    if (Date.parse(record.informationCutoff) < Date.parse(previous.informationCutoff)) {
+    if (compareExplicitIso8601Instants(
+      record.informationCutoff,
+      previous.informationCutoff,
+      "veto informationCutoff",
+      "previous veto informationCutoff",
+    ) < 0) {
       issues.push({
         severity: "error",
         code: "veto_cutoff_regression",
