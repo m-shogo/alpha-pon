@@ -11,6 +11,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname } from "node:path";
+import { compareExplicitIso8601Instants, parseExplicitIso8601Instant } from "./iso-instant.js";
 import { stableStringify, validate, type JsonSchema } from "./schema.js";
 
 export type EvidenceSourceType =
@@ -194,37 +195,45 @@ function schemaIssues(value: unknown, schema: JsonSchema, target: string): Evide
   ));
 }
 
-function timeMs(value: string): number {
-  return Date.parse(value);
+function compareTime(
+  left: string,
+  right: string,
+  leftLabel = "left timestamp",
+  rightLabel = "right timestamp",
+): -1 | 0 | 1 {
+  return compareExplicitIso8601Instants(left, right, leftLabel, rightLabel);
 }
 
 function validateTimeOrder(record: EvidenceRecord, target: string): EvidenceStoreIssue[] {
   const issues: EvidenceStoreIssue[] = [];
-  if (timeMs(record.observedAt) < timeMs(record.publishedAt)) {
+  if (compareTime(record.observedAt, record.publishedAt, "observedAt", "publishedAt") < 0) {
     issues.push(issue(
       "observed_before_published",
       target,
       `${record.observedAt} < ${record.publishedAt}`,
     ));
   }
-  if (timeMs(record.retrievedAt) < timeMs(record.observedAt)) {
+  if (compareTime(record.retrievedAt, record.observedAt, "retrievedAt", "observedAt") < 0) {
     issues.push(issue(
       "retrieved_before_observed",
       target,
       `${record.retrievedAt} < ${record.observedAt}`,
     ));
   }
-  if (timeMs(record.firstExecutableAt) < Math.max(
-    timeMs(record.observedAt),
-    timeMs(record.retrievedAt),
-  )) {
+  if (
+    compareTime(record.firstExecutableAt, record.observedAt, "firstExecutableAt", "observedAt") < 0 ||
+    compareTime(record.firstExecutableAt, record.retrievedAt, "firstExecutableAt", "retrievedAt") < 0
+  ) {
     issues.push(issue(
       "executable_before_knowledge",
       target,
       "firstExecutableAtはobservedAt/retrievedAt以後が必要です",
     ));
   }
-  if (record.effectiveTo && timeMs(record.effectiveTo) < timeMs(record.effectiveFrom)) {
+  if (
+    record.effectiveTo &&
+    compareTime(record.effectiveTo, record.effectiveFrom, "effectiveTo", "effectiveFrom") < 0
+  ) {
     issues.push(issue(
       "invalid_effective_period",
       target,
@@ -361,14 +370,17 @@ export function validateEvidenceRelationRecord(
   if (record.fromEvidenceId === record.toEvidenceId) {
     issues.push(issue("self_evidence_relation", target, "自己relationは許可されません"));
   }
-  if (timeMs(record.retrievedAt) < timeMs(record.observedAt)) {
+  if (compareTime(record.retrievedAt, record.observedAt, "relation retrievedAt", "relation observedAt") < 0) {
     issues.push(issue(
       "relation_retrieved_before_observed",
       target,
       `${record.retrievedAt} < ${record.observedAt}`,
     ));
   }
-  if (record.effectiveTo && timeMs(record.effectiveTo) < timeMs(record.effectiveFrom)) {
+  if (
+    record.effectiveTo &&
+    compareTime(record.effectiveTo, record.effectiveFrom, "relation effectiveTo", "relation effectiveFrom") < 0
+  ) {
     issues.push(issue("invalid_relation_effective_period", target, "effectiveToがeffectiveFromより前です"));
   }
 
@@ -377,14 +389,14 @@ export function validateEvidenceRelationRecord(
   if (!from) issues.push(issue("missing_from_evidence", target, record.fromEvidenceId));
   if (!to) issues.push(issue("missing_to_evidence", target, record.toEvidenceId));
   if (from && to && BINDING_RELATION_TYPES.has(record.relationType)) {
-    if (timeMs(from.observedAt) < timeMs(to.observedAt)) {
+    if (compareTime(from.observedAt, to.observedAt, "from observedAt", "to observedAt") < 0) {
       issues.push(issue(
         "binding_relation_from_older_evidence",
         target,
         "訂正・撤回・supersession側Evidenceは対象Evidence以後に観測される必要があります",
       ));
     }
-    if (timeMs(record.observedAt) < timeMs(from.observedAt)) {
+    if (compareTime(record.observedAt, from.observedAt, "relation observedAt", "from observedAt") < 0) {
       issues.push(issue(
         "relation_observed_before_source_evidence",
         target,
@@ -457,8 +469,8 @@ function validateRevisionChains<T extends {
       ));
     }
     if (
-      timeMs(record.observedAt) <= timeMs(previous.observedAt) ||
-      timeMs(record.retrievedAt) <= timeMs(previous.retrievedAt)
+      compareTime(record.observedAt, previous.observedAt, "revision observedAt", "previous observedAt") <= 0 ||
+      compareTime(record.retrievedAt, previous.retrievedAt, "revision retrievedAt", "previous retrievedAt") <= 0
     ) {
       issues.push(issue(
         `${prefix}_revision_time_not_monotonic`,
@@ -541,46 +553,46 @@ export function validateBitemporalEvidenceStore(
 
 function recordAvailable(
   record: EvidenceRecord,
-  asOfMs: number,
+  asOf: string,
   mode: EvidenceReplayMode,
   boundary: EvidenceAvailabilityBoundary,
 ): boolean {
-  if (timeMs(record.observedAt) > asOfMs) return false;
-  if (mode === "system_replay" && timeMs(record.retrievedAt) > asOfMs) return false;
-  if (boundary === "executable" && timeMs(record.firstExecutableAt) > asOfMs) return false;
-  if (timeMs(record.effectiveFrom) > asOfMs) return false;
-  if (record.effectiveTo && timeMs(record.effectiveTo) < asOfMs) return false;
+  if (compareTime(record.observedAt, asOf, "observedAt", "asOf") > 0) return false;
+  if (mode === "system_replay" && compareTime(record.retrievedAt, asOf, "retrievedAt", "asOf") > 0) return false;
+  if (boundary === "executable" && compareTime(record.firstExecutableAt, asOf, "firstExecutableAt", "asOf") > 0) return false;
+  if (compareTime(record.effectiveFrom, asOf, "effectiveFrom", "asOf") > 0) return false;
+  if (record.effectiveTo && compareTime(record.effectiveTo, asOf, "effectiveTo", "asOf") < 0) return false;
   return true;
 }
 
 function relationAvailable(
   record: EvidenceRelationRecord,
-  asOfMs: number,
+  asOf: string,
   mode: EvidenceReplayMode,
 ): boolean {
-  if (timeMs(record.observedAt) > asOfMs) return false;
-  if (mode === "system_replay" && timeMs(record.retrievedAt) > asOfMs) return false;
-  if (timeMs(record.effectiveFrom) > asOfMs) return false;
-  if (record.effectiveTo && timeMs(record.effectiveTo) < asOfMs) return false;
+  if (compareTime(record.observedAt, asOf, "relation observedAt", "asOf") > 0) return false;
+  if (mode === "system_replay" && compareTime(record.retrievedAt, asOf, "relation retrievedAt", "asOf") > 0) return false;
+  if (compareTime(record.effectiveFrom, asOf, "relation effectiveFrom", "asOf") > 0) return false;
+  if (record.effectiveTo && compareTime(record.effectiveTo, asOf, "relation effectiveTo", "asOf") < 0) return false;
   return true;
 }
 
 function latestEvidenceAsOf(
   records: EvidenceRecord[],
-  asOfMs: number,
+  asOf: string,
   mode: EvidenceReplayMode,
   boundary: EvidenceAvailabilityBoundary,
 ): EvidenceRecord[] {
   const selected = new Map<string, EvidenceRecord>();
   for (const record of records) {
-    if (!recordAvailable(record, asOfMs, mode, boundary)) continue;
+    if (!recordAvailable(record, asOf, mode, boundary)) continue;
     const prior = selected.get(record.evidenceId);
     if (
       !prior ||
-      timeMs(record.observedAt) > timeMs(prior.observedAt) ||
+      compareTime(record.observedAt, prior.observedAt, "observedAt", "prior observedAt") > 0 ||
       (
-        timeMs(record.observedAt) === timeMs(prior.observedAt) &&
-        timeMs(record.retrievedAt) > timeMs(prior.retrievedAt)
+        compareTime(record.observedAt, prior.observedAt, "observedAt", "prior observedAt") === 0 &&
+        compareTime(record.retrievedAt, prior.retrievedAt, "retrievedAt", "prior retrievedAt") > 0
       )
     ) {
       selected.set(record.evidenceId, record);
@@ -591,19 +603,19 @@ function latestEvidenceAsOf(
 
 function latestRelationsAsOf(
   records: EvidenceRelationRecord[],
-  asOfMs: number,
+  asOf: string,
   mode: EvidenceReplayMode,
 ): EvidenceRelationRecord[] {
   const selected = new Map<string, EvidenceRelationRecord>();
   for (const record of records) {
-    if (!relationAvailable(record, asOfMs, mode)) continue;
+    if (!relationAvailable(record, asOf, mode)) continue;
     const prior = selected.get(record.relationId);
     if (
       !prior ||
-      timeMs(record.observedAt) > timeMs(prior.observedAt) ||
+      compareTime(record.observedAt, prior.observedAt, "relation observedAt", "prior relation observedAt") > 0 ||
       (
-        timeMs(record.observedAt) === timeMs(prior.observedAt) &&
-        timeMs(record.retrievedAt) > timeMs(prior.retrievedAt)
+        compareTime(record.observedAt, prior.observedAt, "relation observedAt", "prior relation observedAt") === 0 &&
+        compareTime(record.retrievedAt, prior.retrievedAt, "relation retrievedAt", "prior relation retrievedAt") > 0
       )
     ) {
       selected.set(record.relationId, record);
@@ -619,16 +631,15 @@ export function buildEvidenceSnapshot(
   mode: EvidenceReplayMode = "system_replay",
   boundary: EvidenceAvailabilityBoundary = "knowledge",
 ): EvidenceSnapshot {
-  const asOfMs = timeMs(asOf);
-  if (!Number.isFinite(asOfMs)) throw new Error(`invalid asOf: ${asOf}`);
-  const selectedEvidence = latestEvidenceAsOf(evidence, asOfMs, mode, boundary);
+  parseExplicitIso8601Instant(asOf, "asOf");
+  const selectedEvidence = latestEvidenceAsOf(evidence, asOf, mode, boundary);
   const evidenceIds = new Set(selectedEvidence.map((record) => record.evidenceId));
   return {
     asOf,
     mode,
     boundary,
     evidence: selectedEvidence,
-    relations: latestRelationsAsOf(relations, asOfMs, mode)
+    relations: latestRelationsAsOf(relations, asOf, mode)
       .filter((record) =>
         evidenceIds.has(record.fromEvidenceId) && evidenceIds.has(record.toEvidenceId),
       ),
