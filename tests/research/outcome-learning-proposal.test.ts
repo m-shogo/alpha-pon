@@ -210,7 +210,31 @@ function codes(issues: ReturnType<typeof validateOutcomeLearningProposalRecord>)
     context(),
   );
   assert.ok(codes(issues).includes("secret_like_target_ref"));
-  console.log("outcome-learning-proposal: secret-like target refs are rejected OK");
+  console.log("outcome-learning-proposal: query secret-like target refs are rejected OK");
+}
+
+{
+  const input = baseProposal();
+  input.targetRef = "https://example.invalid/rule#token=synthetic-secret";
+  const issues = validateOutcomeLearningProposalRecord(
+    withOutcomeLearningProposalHash(input),
+    schema,
+    context(),
+  );
+  assert.ok(codes(issues).includes("secret_like_target_ref"));
+  console.log("outcome-learning-proposal: fragment secret-like target refs are rejected OK");
+}
+
+{
+  const input = baseProposal();
+  input.targetRef = "https://synthetic-user:synthetic-password@example.invalid/rule";
+  const issues = validateOutcomeLearningProposalRecord(
+    withOutcomeLearningProposalHash(input),
+    schema,
+    context(),
+  );
+  assert.ok(codes(issues).includes("secret_like_target_ref"));
+  console.log("outcome-learning-proposal: URL userinfo target refs are rejected OK");
 }
 
 {
