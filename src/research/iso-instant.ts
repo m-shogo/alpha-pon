@@ -54,6 +54,9 @@ export function parseExplicitIso8601Instant(value: string, label: string): numbe
 
   let offsetMinutes = 0;
   if (zone !== "Z") {
+    if (zone === "-00:00") {
+      throw new Error(`${label} must use a known timezone offset; -00:00 denotes an unknown offset`);
+    }
     const offsetHour = Number(zone.slice(1, 3));
     const offsetMinute = Number(zone.slice(4, 6));
     if (
