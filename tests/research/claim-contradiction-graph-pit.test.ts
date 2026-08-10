@@ -4,6 +4,8 @@ import {
   withEvidenceRecordHash,
 } from "../../src/research/bitemporal-evidence-store.js";
 import {
+  validateClaimGraphEdgeRecord,
+  validateClaimRecord,
   withClaimGraphEdgeHash,
   withClaimRecordHash,
   type ClaimGraphSchemas,
@@ -148,6 +150,42 @@ const futureEdge = withClaimGraphEdgeHash({
   assert.ok(issues.some((item) => item.code === "incoming_claim_after_snapshot_cutoff"));
   assert.ok(issues.some((item) => item.code === "incoming_claim_edge_after_snapshot_cutoff"));
   console.log("claim-contradiction-graph-pit: future append against old snapshot blocked OK");
+}
+
+{
+  const { contentHash: _earlyClaimHash, ...earlyClaimInput } = earlyClaim;
+  const oneNanosecondBeforeCutoff = withClaimRecordHash({
+    ...earlyClaimInput,
+    recordId: "claim:pit:subms:record:001",
+    claimId: "claim:pit:subms",
+    informationCutoff: "2026-08-05T15:03:00.000000002+09:00",
+    effectiveFrom: "2026-08-05T15:03:00+09:00",
+    observedAt: "2026-08-05T15:03:00.000000001+09:00",
+    retrievedAt: "2026-08-05T15:03:00.000000003+09:00",
+  });
+  const issues = validateClaimRecord(oneNanosecondBeforeCutoff, schemas.claim, knownEntityIds);
+  assert.ok(issues.some((item) => item.code === "claim_observed_before_information_cutoff"));
+  console.log("claim-contradiction-graph-pit: 1ns claim cutoff inversion blocked OK");
+}
+
+{
+  const { contentHash: _earlyEdgeHash, ...earlyEdgeInput } = earlyEdge;
+  const oneNanosecondRetrievalInversion = withClaimGraphEdgeHash({
+    ...earlyEdgeInput,
+    recordId: "claim-edge:pit:subms:record:001",
+    edgeId: "claim-edge:pit:subms",
+    effectiveFrom: "2026-08-05T15:02:00+09:00",
+    observedAt: "2026-08-05T15:02:00.000000001+09:00",
+    retrievedAt: "2026-08-05T15:02:00.000000000+09:00",
+  });
+  const issues = validateClaimGraphEdgeRecord(
+    oneNanosecondRetrievalInversion,
+    schemas.edge,
+    new Map([[earlyClaim.claimId, earlyClaim]]),
+    new Map([[evidence.evidenceId, evidence]]),
+  );
+  assert.ok(issues.some((item) => item.code === "claim_edge_retrieved_before_observed"));
+  console.log("claim-contradiction-graph-pit: 1ns edge retrieval inversion blocked OK");
 }
 
 console.log("claim-contradiction-graph-pit: 全テスト成功");
