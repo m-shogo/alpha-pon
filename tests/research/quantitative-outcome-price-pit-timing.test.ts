@@ -245,7 +245,7 @@ const sectorDay = measurement(sectorBaseline, 3020);
     issuerDay: implicitZoneMeasurement,
     benchmarkDay,
     sectorDay,
-  }), /issuer measurement: invalid price PIT timeline.*explicit timezone/);
+  }), /issuer measurement\.firstExecutableAt must be an ISO-8601 timestamp with explicit timezone|issuer measurement: invalid price PIT timeline.*explicit timezone/);
   console.log("quantitative-outcome-price-pit-timing: rehashed measurement with implicit timestamp zone is rejected OK");
 }
 
