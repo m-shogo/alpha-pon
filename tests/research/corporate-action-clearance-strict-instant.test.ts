@@ -47,4 +47,28 @@ for (const assessedAt of [
   );
 }
 
+for (const override of [
+  { fromTradingDate: "0000" },
+  { fromTradingDate: "2026-02-30" },
+  { throughTradingDate: "9999" },
+  { throughTradingDate: "2026-02-30" },
+]) {
+  assert.throws(
+    () => withCorporateActionClearanceHash({ ...base, ...override }),
+    /TradingDate/,
+    `withCorporateActionClearanceHash must reject malformed trading window: ${JSON.stringify(override)}`,
+  );
+
+  const forged = {
+    ...base,
+    ...override,
+    contentHash: "0".repeat(64),
+  } satisfies CorporateActionClearanceRecord;
+  assert.throws(
+    () => computeCorporateActionClearanceHash(forged),
+    /TradingDate/,
+    `hash recomputation must reject malformed trading window: ${JSON.stringify(override)}`,
+  );
+}
+
 console.log("corporate-action-clearance-strict-instant.test.ts passed");
