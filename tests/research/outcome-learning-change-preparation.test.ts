@@ -106,6 +106,7 @@ function manifest(input: {
   source?: OutcomeLearningAdoptionDecisionRecord;
   stage?: "draft" | "ready_for_pr";
   createdAt?: string;
+  preparedByRef?: string;
   supersedesManifestId?: string;
   plannedArtifacts?: OutcomeLearningChangePreparationRecord["plannedArtifacts"];
 } = {}): Omit<OutcomeLearningChangePreparationRecord, "contentHash"> {
@@ -114,7 +115,7 @@ function manifest(input: {
     schemaVersion: 1,
     manifestId: input.id ?? "change-preparation:001",
     createdAt: input.createdAt ?? "2026-09-16T11:00:00+09:00",
-    preparedByRef: "agent:chatgpt",
+    preparedByRef: input.preparedByRef ?? "agent:chatgpt",
     preparedByKind: "ai",
     adoptionDecisionId: source.adoptionDecisionId,
     adoptionDecisionContentHash: source.contentHash,
@@ -160,6 +161,25 @@ function codes(issues: ReturnType<typeof validateOutcomeLearningChangePreparatio
   assert.equal(record.codeMutationAuthorized, false);
   console.log("outcome-learning-change-preparation: approved adoption may create non-mutating draft manifest OK");
 }
+
+for (const preparedByRef of [
+  "https://example.invalid/preparer#token=synthetic",
+  "https://synthetic:secret@example.invalid/preparer",
+]) {
+  const record = withOutcomeLearningChangePreparationHash(manifest({
+    id: `change-preparation:secret-preparer:${preparedByRef.includes("#") ? "fragment" : "userinfo"}`,
+    preparedByRef,
+  }));
+  assert.ok(codes(validateOutcomeLearningChangePreparationRecord(record, schema, context())).includes("secret_like_preparer_ref"));
+}
+{
+  const record = withOutcomeLearningChangePreparationHash(manifest({
+    id: "change-preparation:safe-preparer-fragment",
+    preparedByRef: "https://example.invalid/preparer#profile",
+  }));
+  assert.deepEqual(validateOutcomeLearningChangePreparationRecord(record, schema, context()), []);
+}
+console.log("outcome-learning-change-preparation: fragment/userinfo credentials are rejected while ordinary fragments remain valid OK");
 
 {
   const record = withOutcomeLearningChangePreparationHash(manifest({
