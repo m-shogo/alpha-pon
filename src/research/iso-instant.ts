@@ -34,6 +34,10 @@ export function parseExplicitIso8601Instant(value: string, label: string): numbe
   const fractional = match[7] ?? "";
   const zone = match[8]!;
 
+  if (fractional.length > 3) {
+    throw new Error(`${label} must not exceed millisecond precision`);
+  }
+
   if (
     month < 1
     || month > 12
