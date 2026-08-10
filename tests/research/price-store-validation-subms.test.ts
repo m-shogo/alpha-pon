@@ -4,8 +4,10 @@ import {
   selectPriceRecordsAsOf,
   validatePriceRecord,
   validatePriceRecords,
+  validateProviderBatch,
   withPriceRecordHash,
   type PitPriceRecordInput,
+  type PriceProviderBatch,
 } from "../../src/research/price-store.js";
 import type { JsonSchema } from "../../src/research/schema.js";
 
@@ -113,4 +115,30 @@ assert.equal(
   "record observed 1ns after asOf must stay invisible",
 );
 
-console.log("research/price-store: sub-ms validation/revision/as-of ordering OK");
+const batchInput = input({
+  observedAt: "2024-01-04T15:35:00.000000000+09:00",
+  retrievedAt: "2024-01-04T15:36:00.000000001+09:00",
+  firstExecutableAt: "2024-01-04T15:36:00.000000000+09:00",
+});
+const providerBatch: PriceProviderBatch = {
+  providerId: "synthetic-provider",
+  sourceVersion: batchInput.sourceVersion,
+  capabilities: {
+    plan: "synthetic",
+    delayDays: 0,
+    supportsAdjusted: true,
+    supportsUnadjusted: true,
+    supportsCorporateActions: true,
+    supportsBenchmarks: true,
+    supportsSectorBenchmarks: true,
+  },
+  license: "redistributable",
+  retrievedAt: batchInput.retrievedAt,
+  records: [batchInput],
+};
+assert.ok(
+  validateProviderBatch(providerBatch).includes("records[0].firstExecutableAt precedes batch retrievedAt"),
+  "1ns provider-batch execution inversion must fail closed",
+);
+
+console.log("research/price-store: sub-ms validation/revision/as-of/provider-batch ordering OK");
