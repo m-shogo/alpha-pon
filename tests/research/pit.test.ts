@@ -5,6 +5,7 @@ import "./price-store-replay-manifest-strict-instant.test.js";
 import "./document-revision-diff-rejected-fractional-ordering.test.js";
 import "./stock-pro-council-ledger-fractional-ordering.test.js";
 import "./market-event-ledger-subms-projection.test.js";
+import "./market-event-freshness-subms.test.js";
 import assert from "node:assert/strict";
 import { canEnterSameClose, checkPit, jstDateOf } from "../../src/research/pit.js";
 import { makeAnalog, makeEdge, makeState } from "./helpers.js";
