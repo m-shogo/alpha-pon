@@ -6,6 +6,7 @@ import type {
 import {
   recommendationEligibleEvidence,
 } from "./bitemporal-evidence-store.js";
+import { compareExplicitIso8601Instants } from "./iso-instant.js";
 import { stableStringify, validate, type JsonSchema } from "./schema.js";
 
 export type ClaimClass = "fact" | "assumption" | "forecast" | "opinion" | "unknown";
@@ -211,6 +212,14 @@ function timeMs(value: string): number {
   return Date.parse(value);
 }
 
+function instantBefore(left: string, right: string): boolean {
+  return compareExplicitIso8601Instants(left, right) < 0;
+}
+
+function instantNotAfter(left: string, right: string): boolean {
+  return compareExplicitIso8601Instants(left, right) <= 0;
+}
+
 function sortedUnique(values: readonly string[]): string[] {
   return [...new Set(values)].sort();
 }
@@ -233,21 +242,21 @@ export function validateClaimRecord(
   if (record.contentHash !== computeClaimRecordHash(record)) {
     issues.push(issue("invalid_claim_hash", target, "Claim contentHashが一致しません"));
   }
-  if (timeMs(record.observedAt) < timeMs(record.informationCutoff)) {
+  if (instantBefore(record.observedAt, record.informationCutoff)) {
     issues.push(issue(
       "claim_observed_before_information_cutoff",
       target,
       `${record.observedAt} < ${record.informationCutoff}`,
     ));
   }
-  if (timeMs(record.retrievedAt) < timeMs(record.observedAt)) {
+  if (instantBefore(record.retrievedAt, record.observedAt)) {
     issues.push(issue(
       "claim_retrieved_before_observed",
       target,
       `${record.retrievedAt} < ${record.observedAt}`,
     ));
   }
-  if (record.effectiveTo && timeMs(record.effectiveTo) < timeMs(record.effectiveFrom)) {
+  if (record.effectiveTo && instantBefore(record.effectiveTo, record.effectiveFrom)) {
     issues.push(issue(
       "invalid_claim_effective_period",
       target,
@@ -367,14 +376,14 @@ export function validateClaimGraphEdgeRecord(
   if (edge.contentHash !== computeClaimGraphEdgeHash(edge)) {
     issues.push(issue("invalid_claim_edge_hash", target, "Claim edge contentHashが一致しません"));
   }
-  if (timeMs(edge.retrievedAt) < timeMs(edge.observedAt)) {
+  if (instantBefore(edge.retrievedAt, edge.observedAt)) {
     issues.push(issue(
       "claim_edge_retrieved_before_observed",
       target,
       `${edge.retrievedAt} < ${edge.observedAt}`,
     ));
   }
-  if (edge.effectiveTo && timeMs(edge.effectiveTo) < timeMs(edge.effectiveFrom)) {
+  if (edge.effectiveTo && instantBefore(edge.effectiveTo, edge.effectiveFrom)) {
     issues.push(issue(
       "invalid_claim_edge_effective_period",
       target,
@@ -389,14 +398,14 @@ export function validateClaimGraphEdgeRecord(
       issues.push(issue("missing_edge_source_evidence", target, evidenceId));
       continue;
     }
-    if (timeMs(edge.observedAt) < timeMs(evidence.observedAt)) {
+    if (instantBefore(edge.observedAt, evidence.observedAt)) {
       issues.push(issue(
         "edge_observed_before_source_evidence",
         target,
         `${edge.observedAt} < ${evidence.observedAt}`,
       ));
     }
-    if (timeMs(edge.retrievedAt) < timeMs(evidence.retrievedAt)) {
+    if (instantBefore(edge.retrievedAt, evidence.retrievedAt)) {
       issues.push(issue(
         "edge_retrieved_before_source_evidence",
         target,
@@ -549,9 +558,9 @@ function validateRevisionChains(
       ));
     }
     if (
-      timeMs(record.observedAt) <= timeMs(previous.observedAt) ||
-      timeMs(record.retrievedAt) <= timeMs(previous.retrievedAt) ||
-      timeMs(record.informationCutoff) < timeMs(previous.informationCutoff)
+      instantNotAfter(record.observedAt, previous.observedAt) ||
+      instantNotAfter(record.retrievedAt, previous.retrievedAt) ||
+      instantBefore(record.informationCutoff, previous.informationCutoff)
     ) {
       issues.push(issue(
         "claim_revision_time_regression",
@@ -586,8 +595,8 @@ function validateRevisionChains(
       ));
     }
     if (
-      timeMs(record.observedAt) <= timeMs(previous.observedAt) ||
-      timeMs(record.retrievedAt) <= timeMs(previous.retrievedAt)
+      instantNotAfter(record.observedAt, previous.observedAt) ||
+      instantNotAfter(record.retrievedAt, previous.retrievedAt)
     ) {
       issues.push(issue(
         "claim_edge_revision_time_regression",
