@@ -225,6 +225,40 @@ function artifact(input: {
 }
 
 {
+  for (const generatedAt of [
+    "2026-08-06T12:00:00",
+    "2026-02-30T12:00:00Z",
+  ]) {
+    assert.throws(
+      () => buildEdinetLocalReviewDashboard({
+        acquisitionDirectory: "sanrio-acquisition.fixture",
+        generatedAt,
+        artifacts: [],
+      }),
+      /generatedAt/,
+    );
+  }
+  console.log("edinet-local-review-dashboard: dashboard generatedAt requires strict explicit-timezone instant OK");
+}
+
+{
+  const dashboard = buildEdinetLocalReviewDashboard({
+    acquisitionDirectory: "sanrio-acquisition.fixture",
+    generatedAt: "2026-08-06T12:00:00Z",
+    artifacts: [
+      artifact({
+        fileName: "revision-review-next-batches-v1.invalid-time.json",
+        content: batchWorkspace({ generatedAt: "2026-08-06T11:00:00" }),
+        modifiedAt: "2026-08-06T11:00:01.000Z",
+      }),
+    ],
+  });
+  assert.equal(dashboard.stages[0]!.integrity, "verified");
+  assert.equal(dashboard.stages[0]!.generatedAt, null);
+  console.log("edinet-local-review-dashboard: timezone-less artifact generatedAt is not trusted as provenance OK");
+}
+
+{
   assert.throws(
     () => buildEdinetLocalReviewDashboard({
       acquisitionDirectory: "other-acquisition",
