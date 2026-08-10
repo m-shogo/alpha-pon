@@ -19,8 +19,11 @@ function daysInMonth(year: number, month: number): number {
   ][month - 1] ?? 0;
 }
 
+const EXPLICIT_ISO_INSTANT_PATTERN =
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(Z|[+-]\d{2}:\d{2})$/;
+
 export function parseExplicitIso8601Instant(value: string, label: string): number {
-  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(Z|[+-]\d{2}:\d{2})$/.exec(value);
+  const match = EXPLICIT_ISO_INSTANT_PATTERN.exec(value);
   if (!match) {
     throw new Error(`${label} must be an ISO-8601 timestamp with explicit timezone`);
   }
@@ -73,4 +76,26 @@ export function parseExplicitIso8601Instant(value: string, label: string): numbe
     throw new Error(`${label} must be a valid ISO-8601 timestamp`);
   }
   return instantMs;
+}
+
+function subMillisecondNanoseconds(value: string): bigint {
+  const match = EXPLICIT_ISO_INSTANT_PATTERN.exec(value);
+  if (!match) return 0n;
+  const fractional = match[7] ?? "";
+  return BigInt((fractional + "000000000").slice(3, 9));
+}
+
+export function compareExplicitIso8601Instants(
+  left: string,
+  right: string,
+  leftLabel = "left instant",
+  rightLabel = "right instant",
+): -1 | 0 | 1 {
+  const leftMs = parseExplicitIso8601Instant(left, leftLabel);
+  const rightMs = parseExplicitIso8601Instant(right, rightLabel);
+  const leftNs = BigInt(leftMs) * 1_000_000n + subMillisecondNanoseconds(left);
+  const rightNs = BigInt(rightMs) * 1_000_000n + subMillisecondNanoseconds(right);
+  if (leftNs < rightNs) return -1;
+  if (leftNs > rightNs) return 1;
+  return 0;
 }
