@@ -106,7 +106,15 @@ export function withOutcomeLearningShadowEvaluationHash(
 }
 
 function secretLikeReference(ref: string): boolean {
-  return /(?:[?&](?:subscription-key|api[_-]?key|token|password)=)|(?:bearer\s+)/i.test(ref);
+  if (/(?:[?&#](?:subscription-key|api[_-]?key|token|password)=)|(?:bearer\s+)/i.test(ref)) {
+    return true;
+  }
+  try {
+    const url = new URL(ref);
+    return Boolean(url.username || url.password);
+  } catch {
+    return false;
+  }
 }
 
 function canonicalLineage(input: {
