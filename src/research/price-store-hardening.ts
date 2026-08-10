@@ -18,6 +18,7 @@ import {
 } from "node:fs";
 import { dirname } from "node:path";
 import type { PriceSeries } from "./backtest.js";
+import { compareExplicitIso8601Instants } from "./iso-instant.js";
 import { jstDateOf } from "./pit.js";
 import {
   parsePriceJsonl,
@@ -114,13 +115,14 @@ function isUnknownSource(source: string): boolean {
 export function validatePriceRecordHardening(record: PitPriceRecord): PriceHardeningIssue[] {
   const issues: PriceHardeningIssue[] = [];
   const target = targetOf(record);
-  const retrievedMs = timeMs(record.retrievedAt);
-  const executableMs = timeMs(record.firstExecutableAt);
 
   if (
-    Number.isFinite(retrievedMs) &&
-    Number.isFinite(executableMs) &&
-    executableMs < retrievedMs
+    compareExplicitIso8601Instants(
+      record.firstExecutableAt,
+      record.retrievedAt,
+      "priceRecord.firstExecutableAt",
+      "priceRecord.retrievedAt",
+    ) < 0
   ) {
     issues.push(hardeningIssue(
       "execution_before_retrieval",
@@ -303,13 +305,34 @@ export function validateProviderBatchAgainstQuery(
 
 function isRecordAvailable(
   record: PitPriceRecord,
-  asOfMs: number,
+  asOf: string,
   mode: PriceReplayMode,
 ): boolean {
-  if (timeMs(record.observedAt) > asOfMs) return false;
+  if (
+    compareExplicitIso8601Instants(
+      record.observedAt,
+      asOf,
+      "priceRecord.observedAt",
+      "replay.asOf",
+    ) > 0
+  ) return false;
   if (mode === "system_replay") {
-    if (timeMs(record.retrievedAt) > asOfMs) return false;
-    if (timeMs(record.firstExecutableAt) > asOfMs) return false;
+    if (
+      compareExplicitIso8601Instants(
+        record.retrievedAt,
+        asOf,
+        "priceRecord.retrievedAt",
+        "replay.asOf",
+      ) > 0
+    ) return false;
+    if (
+      compareExplicitIso8601Instants(
+        record.firstExecutableAt,
+        asOf,
+        "priceRecord.firstExecutableAt",
+        "replay.asOf",
+      ) > 0
+    ) return false;
   }
   return true;
 }
@@ -369,8 +392,11 @@ export function selectPriceRecordsForReplay(
   selector: HardenedPriceSeriesSelector,
   mode: PriceReplayMode = "system_replay",
 ): PitPriceRecord[] {
-  const asOfMs = timeMs(asOf);
-  if (!Number.isFinite(asOfMs)) throw new Error(`invalid asOf: ${asOf}`);
+  try {
+    compareExplicitIso8601Instants(asOf, asOf, "replay.asOf", "replay.asOf");
+  } catch {
+    throw new Error(`invalid asOf: ${asOf}`);
+  }
   if (selector.priceBasis !== "adjusted" && selector.priceBasis !== "unadjusted") {
     throw new Error("selector.priceBasis must be adjusted or unadjusted");
   }
@@ -381,7 +407,7 @@ export function selectPriceRecordsForReplay(
     if (!matchesSelectorBaseIdentity(record, selector)) continue;
     if (selector.source && record.source !== selector.source) continue;
     if (selector.providerPlan && record.providerPlan !== selector.providerPlan) continue;
-    if (!isRecordAvailable(record, asOfMs, mode)) continue;
+    if (!isRecordAvailable(record, asOf, mode)) continue;
 
     const key = [
       record.market,
@@ -391,16 +417,29 @@ export function selectPriceRecordsForReplay(
       basisOf(record),
     ].join(":");
     const prior = selected.get(key);
+    const observedOrder = prior
+      ? compareExplicitIso8601Instants(
+          prior.observedAt,
+          record.observedAt,
+          "priorPriceRecord.observedAt",
+          "priceRecord.observedAt",
+        )
+      : 0;
+    const retrievedOrder = prior && observedOrder === 0
+      ? compareExplicitIso8601Instants(
+          prior.retrievedAt,
+          record.retrievedAt,
+          "priorPriceRecord.retrievedAt",
+          "priceRecord.retrievedAt",
+        )
+      : 0;
     if (
       !prior ||
-      timeMs(prior.observedAt) < timeMs(record.observedAt) ||
+      observedOrder < 0 ||
+      (observedOrder === 0 && retrievedOrder < 0) ||
       (
-        timeMs(prior.observedAt) === timeMs(record.observedAt) &&
-        timeMs(prior.retrievedAt) < timeMs(record.retrievedAt)
-      ) ||
-      (
-        timeMs(prior.observedAt) === timeMs(record.observedAt) &&
-        timeMs(prior.retrievedAt) === timeMs(record.retrievedAt) &&
+        observedOrder === 0 &&
+        retrievedOrder === 0 &&
         prior.contentHash > record.contentHash
       )
     ) {
