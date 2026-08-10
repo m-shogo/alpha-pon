@@ -173,6 +173,33 @@ function rehashDocument(record: JsonObject): void {
 }
 
 {
+  assert.throws(
+    () => buildConfiguredEdinetExactComparisonReport({
+      anchorFinal: finalRecord(),
+      sourceAnchorFinalFile: "configured-fidelity-anchor-final-v1.fixture.json",
+      generatedAt: "2026-08-06T15:10:00",
+    }),
+    /generatedAt must be a strict ISO timestamp with an explicit timezone offset or Z/,
+  );
+  console.log("edinet-configured-exact-comparison: timezone-less generatedAt blocked OK");
+}
+
+{
+  const invalid = finalRecord();
+  invalid.reviewedAt = "2026-02-31T15:01:00.000Z";
+  rehashRecord(invalid);
+  assert.throws(
+    () => buildConfiguredEdinetExactComparisonReport({
+      anchorFinal: invalid,
+      sourceAnchorFinalFile: "configured-fidelity-anchor-final-v1.fixture.json",
+      generatedAt: "2026-08-06T15:10:00.000Z",
+    }),
+    /anchorFinal\.reviewedAt must be a strict ISO timestamp with an explicit timezone offset or Z/,
+  );
+  console.log("edinet-configured-exact-comparison: impossible reviewedAt blocked OK");
+}
+
+{
   const tampered = finalRecord();
   tampered.anchorCount = 99;
   assert.throws(
