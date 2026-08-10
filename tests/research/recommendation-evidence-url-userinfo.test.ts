@@ -21,6 +21,8 @@ for (const ref of [
   "https://user:password@example.com/evidence",
   "https://token@example.com/evidence",
   "custom+https://user@example.com/evidence",
+  "https://example.com/evidence?token=secret",
+  "https://example.com/evidence?document=123&api_key=secret",
   "https://example.com/evidence#token=secret",
   "https://example.com/evidence#section&api_key=secret",
   "https://example.com/evidence#password=secret",

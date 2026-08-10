@@ -102,7 +102,7 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 512,
-            "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*://[^/?#]*@)(?!.*#.*(?:subscription-key|api[_-]?key|token|password)=).+$"
+            "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*://[^/?#]*@)(?!.*[?&#](?:subscription-key|api[_-]?key|token|password)=).+$"
           }
         }
       }
