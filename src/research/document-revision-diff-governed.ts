@@ -23,6 +23,7 @@ import {
 import {
   validateDocumentIdentityContinuity,
 } from "./document-revision-diff-integrity.js";
+import { compareExplicitIso8601Instants, parseExplicitIso8601Instant } from "./iso-instant.js";
 import { stableStringify } from "./schema.js";
 
 export type GovernedDocumentRevisionDiffSnapshot = {
@@ -40,10 +41,6 @@ function hashValue(value: unknown): string {
   return createHash("sha256").update(stableStringify(value)).digest("hex");
 }
 
-function timeMs(value: string): number {
-  return Date.parse(value);
-}
-
 function availableAtCutoff(
   record: {
     observedAt: string;
@@ -51,12 +48,15 @@ function availableAtCutoff(
     effectiveFrom: string;
     effectiveTo?: string;
   },
-  cutoffMs: number,
+  cutoff: string,
 ): boolean {
-  if (timeMs(record.observedAt) > cutoffMs) return false;
-  if (timeMs(record.retrievedAt) > cutoffMs) return false;
-  if (timeMs(record.effectiveFrom) > cutoffMs) return false;
-  if (record.effectiveTo && timeMs(record.effectiveTo) < cutoffMs) return false;
+  if (compareExplicitIso8601Instants(record.observedAt, cutoff, "record observedAt", "document cutoff") > 0) return false;
+  if (compareExplicitIso8601Instants(record.retrievedAt, cutoff, "record retrievedAt", "document cutoff") > 0) return false;
+  if (compareExplicitIso8601Instants(record.effectiveFrom, cutoff, "record effectiveFrom", "document cutoff") > 0) return false;
+  if (
+    record.effectiveTo
+    && compareExplicitIso8601Instants(record.effectiveTo, cutoff, "record effectiveTo", "document cutoff") < 0
+  ) return false;
   return true;
 }
 
@@ -74,18 +74,16 @@ export function visibleDocumentRevisionsAtCutoff(
   revisions: DocumentRevisionRecord[],
   asOf: string,
 ): DocumentRevisionRecord[] {
-  const cutoffMs = timeMs(asOf);
-  if (!Number.isFinite(cutoffMs)) throw new Error(`invalid document cutoff: ${asOf}`);
-  return revisions.filter((record) => availableAtCutoff(record, cutoffMs));
+  parseExplicitIso8601Instant(asOf, "document cutoff");
+  return revisions.filter((record) => availableAtCutoff(record, asOf));
 }
 
 export function visibleDocumentDiffsAtCutoff(
   diffs: DocumentDiffRecord[],
   asOf: string,
 ): DocumentDiffRecord[] {
-  const cutoffMs = timeMs(asOf);
-  if (!Number.isFinite(cutoffMs)) throw new Error(`invalid document cutoff: ${asOf}`);
-  return diffs.filter((record) => availableAtCutoff(record, cutoffMs));
+  parseExplicitIso8601Instant(asOf, "document cutoff");
+  return diffs.filter((record) => availableAtCutoff(record, asOf));
 }
 
 export function usableDocumentRevisionsAtCutoff(
@@ -184,13 +182,13 @@ export function validateIncomingDocumentRevisionDiffCutoff(
   diffs: DocumentDiffRecord[],
   evidenceSnapshot: EvidenceSnapshot,
 ): DocumentRevisionDiffIssue[] {
-  const cutoffMs = timeMs(evidenceSnapshot.asOf);
+  parseExplicitIso8601Instant(evidenceSnapshot.asOf, "document cutoff");
   const issues: DocumentRevisionDiffIssue[] = [];
   for (const record of revisions) {
     if (
-      timeMs(record.observedAt) > cutoffMs ||
-      timeMs(record.retrievedAt) > cutoffMs ||
-      timeMs(record.effectiveFrom) > cutoffMs
+      compareExplicitIso8601Instants(record.observedAt, evidenceSnapshot.asOf, "revision observedAt", "document cutoff") > 0 ||
+      compareExplicitIso8601Instants(record.retrievedAt, evidenceSnapshot.asOf, "revision retrievedAt", "document cutoff") > 0 ||
+      compareExplicitIso8601Instants(record.effectiveFrom, evidenceSnapshot.asOf, "revision effectiveFrom", "document cutoff") > 0
     ) {
       issues.push({
         severity: "error",
@@ -202,9 +200,9 @@ export function validateIncomingDocumentRevisionDiffCutoff(
   }
   for (const record of diffs) {
     if (
-      timeMs(record.observedAt) > cutoffMs ||
-      timeMs(record.retrievedAt) > cutoffMs ||
-      timeMs(record.effectiveFrom) > cutoffMs
+      compareExplicitIso8601Instants(record.observedAt, evidenceSnapshot.asOf, "diff observedAt", "document cutoff") > 0 ||
+      compareExplicitIso8601Instants(record.retrievedAt, evidenceSnapshot.asOf, "diff retrievedAt", "document cutoff") > 0 ||
+      compareExplicitIso8601Instants(record.effectiveFrom, evidenceSnapshot.asOf, "diff effectiveFrom", "document cutoff") > 0
     ) {
       issues.push({
         severity: "error",
