@@ -138,6 +138,24 @@ function codes(issues: ReturnType<typeof validateOutcomeLearningProposalRecord>)
 }
 
 {
+  const fractionalReview = semanticReview({
+    reviewId: "semantic:learning:fractional",
+    authority: "provisional_ai",
+    reviewedAt: "2026-08-20T12:00:00.000000002+09:00",
+  });
+  const record = withOutcomeLearningProposalHash(baseProposal({
+    semanticReview: fractionalReview,
+    proposalId: "learning-proposal:fractional-before-review",
+    createdAt: "2026-08-20T12:00:00.000000001+09:00",
+  }));
+  assert.ok(
+    codes(validateOutcomeLearningProposalRecord(record, schema, context({ reviews: [fractionalReview] })))
+      .includes("proposal_before_semantic_review"),
+  );
+  console.log("outcome-learning-proposal: proposal 1ns before semantic review is rejected OK");
+}
+
+{
   const input = baseProposal({ stage: "human_review_ready" });
   const issues = validateOutcomeLearningProposalRecord(
     withOutcomeLearningProposalHash(input),
@@ -236,6 +254,26 @@ function codes(issues: ReturnType<typeof validateOutcomeLearningProposalRecord>)
     validateOutcomeLearningProposalRecords([draft, ready], schema, context()),
     [],
   );
+
+  const fractionalDraft = withOutcomeLearningProposalHash(baseProposal({
+    semanticReview: humanReview,
+    proposalId: "learning-proposal:revision:fractional:001",
+    stage: "draft_proposal",
+    createdAt: "2026-08-21T13:00:00.000000001+09:00",
+  }));
+  const fractionalReady = withOutcomeLearningProposalHash(baseProposal({
+    semanticReview: humanReview,
+    proposalId: "learning-proposal:revision:fractional:002",
+    stage: "human_review_ready",
+    createdAt: "2026-08-21T13:00:00.000000002+09:00",
+    supersedesProposalId: fractionalDraft.proposalId,
+  }));
+  assert.equal(
+    validateOutcomeLearningProposalRecords([fractionalDraft, fractionalReady], schema, context())
+      .some((candidate) => candidate.code === "learning_proposal_time_not_monotonic"),
+    false,
+  );
+  console.log("outcome-learning-proposal: proposal revision may advance by 1ns without millisecond collapse OK");
 
   const rejected = withOutcomeLearningProposalHash(baseProposal({
     semanticReview: humanReview,
