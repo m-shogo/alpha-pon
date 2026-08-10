@@ -9,6 +9,7 @@ import "./edinet-configured-review-plan.test.js";
 import "./edinet-configured-acquisition.test.js";
 import "./edinet-configured-review-workspace.test.js";
 import "./edinet-configured-dashboard.test.js";
+import "./edinet-configured-dashboard-generated-at-instant.test.js";
 import "./edinet-configured-synthetic-fixture.test.js";
 import "./edinet-configured-fidelity-plan.test.js";
 import "./edinet-configured-fidelity-extraction.test.js";
