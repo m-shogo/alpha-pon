@@ -9,7 +9,10 @@ import {
   readFileSync,
 } from "node:fs";
 import { dirname } from "node:path";
-import { parseExplicitIso8601Instant } from "./iso-instant.js";
+import {
+  compareExplicitIso8601Instants,
+  parseExplicitIso8601Instant,
+} from "./iso-instant.js";
 import { validatePriceRecordTimeline } from "./price-record-timeline.js";
 import { computePriceRecordHash, type PitPriceRecord } from "./price-store.js";
 import { stableStringify, validate, type JsonSchema } from "./schema.js";
@@ -248,10 +251,20 @@ function priceProvenanceIssues(
   if (price.firstExecutableAt !== record.currentPriceFirstExecutableAt) {
     issues.push(error("price_execution_pin_mismatch", target, "currentPriceFirstExecutableAtがPIT recordと一致しません"));
   }
-  if (Date.parse(price.observedAt) > Date.parse(record.informationCutoff)) {
+  if (compareExplicitIso8601Instants(
+    price.observedAt,
+    record.informationCutoff,
+    "price.observedAt",
+    "recommendation.informationCutoff",
+  ) > 0) {
     issues.push(error("future_price_observation", target, "informationCutoff後に観測された価格を当初判断へ混ぜられません"));
   }
-  if (Date.parse(price.firstExecutableAt) > Date.parse(record.issuedAt)) {
+  if (compareExplicitIso8601Instants(
+    price.firstExecutableAt,
+    record.issuedAt,
+    "price.firstExecutableAt",
+    "recommendation.issuedAt",
+  ) > 0) {
     issues.push(error("price_not_yet_executable", target, "issuedAt時点でまだ実行可能でない価格をcurrentPriceにできません"));
   }
   if (price.license === "unknown") {
@@ -289,10 +302,20 @@ function benchmarkProvenanceIssues(input: {
   if (price.firstExecutableAt !== input.firstExecutableAt) {
     issues.push(error("benchmark_execution_pin_mismatch", target, `${input.label}PriceFirstExecutableAtがPIT recordと一致しません`));
   }
-  if (Date.parse(price.observedAt) > Date.parse(input.record.informationCutoff)) {
+  if (compareExplicitIso8601Instants(
+    price.observedAt,
+    input.record.informationCutoff,
+    `${input.label}.observedAt`,
+    "recommendation.informationCutoff",
+  ) > 0) {
     issues.push(error("future_benchmark_observation", target, `${input.label}がinformationCutoff後に観測されています`));
   }
-  if (Date.parse(price.firstExecutableAt) > Date.parse(input.record.issuedAt)) {
+  if (compareExplicitIso8601Instants(
+    price.firstExecutableAt,
+    input.record.issuedAt,
+    `${input.label}.firstExecutableAt`,
+    "recommendation.issuedAt",
+  ) > 0) {
     issues.push(error("benchmark_not_yet_executable", target, `${input.label}はissuedAt時点でまだ実行可能ではありません`));
   }
   if (price.license === "unknown") {
@@ -307,7 +330,7 @@ function evidenceContextIssues(
 ): RecommendationIssue[] {
   const target = `recommendation:${record.recommendationId}`;
   const issues: RecommendationIssue[] = [];
-  const informationCutoffMs = parseExplicitIso8601Instant(record.informationCutoff, "informationCutoff");
+  parseExplicitIso8601Instant(record.informationCutoff, "informationCutoff");
   for (const evidence of record.sourceEvidence) {
     if (secretLikeReference(evidence.ref)) {
       issues.push(error("secret_like_evidence_ref", target, "secret/tokenを含む可能性があるevidence refは保存できません"));
@@ -321,22 +344,21 @@ function evidenceContextIssues(
     if (source.tier !== evidence.tier) {
       issues.push(error("evidence_tier_mismatch", target, `evidence tierが正本と一致しません: ${evidence.ref}`));
     }
-    let observedAtMs: number;
     try {
-      observedAtMs = parseExplicitIso8601Instant(
+      if (compareExplicitIso8601Instants(
         source.observedAt,
+        record.informationCutoff,
         `Evidence ${evidence.ref}.observedAt`,
-      );
+        "informationCutoff",
+      ) > 0) {
+        issues.push(error("future_evidence", target, `informationCutoff後のevidenceです: ${evidence.ref}`));
+      }
     } catch {
       issues.push(error(
         "invalid_recommendation_evidence_observed_at",
         target,
         `Evidence observedAtが不正です: ${evidence.ref}`,
       ));
-      continue;
-    }
-    if (observedAtMs > informationCutoffMs) {
-      issues.push(error("future_evidence", target, `informationCutoff後のevidenceです: ${evidence.ref}`));
     }
   }
   return issues;
@@ -388,14 +410,29 @@ export function validateRecommendationRecord(
   if (record.contentHash !== computeRecommendationHash(record)) {
     issues.push(error("invalid_content_hash", `${target}.contentHash`, "contentHashが一致しません"));
   }
-  if (Date.parse(record.informationCutoff) > Date.parse(record.issuedAt)) {
+  if (compareExplicitIso8601Instants(
+    record.informationCutoff,
+    record.issuedAt,
+    "recommendation.informationCutoff",
+    "recommendation.issuedAt",
+  ) > 0) {
     issues.push(error("cutoff_after_issue", target, "informationCutoffはissuedAt以前である必要があります"));
   }
-  if (Date.parse(record.currentPriceFirstExecutableAt) > Date.parse(record.issuedAt)) {
+  if (compareExplicitIso8601Instants(
+    record.currentPriceFirstExecutableAt,
+    record.issuedAt,
+    "recommendation.currentPriceFirstExecutableAt",
+    "recommendation.issuedAt",
+  ) > 0) {
     issues.push(error("current_price_after_issue", target, "currentPriceはissuedAt時点で実行可能である必要があります"));
   }
-  const reviewEnd = Date.parse(`${record.outcomeReviewDate}T23:59:59+09:00`);
-  if (reviewEnd < Date.parse(record.issuedAt)) {
+  const reviewEnd = `${record.outcomeReviewDate}T23:59:59+09:00`;
+  if (compareExplicitIso8601Instants(
+    reviewEnd,
+    record.issuedAt,
+    "recommendation.outcomeReviewDate end",
+    "recommendation.issuedAt",
+  ) < 0) {
     issues.push(error("outcome_review_before_issue", target, "outcomeReviewDateをissuedAtより前にできません"));
   }
 
@@ -504,10 +541,20 @@ export function validateRecommendationRecords(
     if (canonicalCode(prior.code) !== canonicalCode(record.code) || prior.companyName !== record.companyName) {
       issues.push(error("revision_identity_mismatch", record.recommendationId, "revisionでsecurity/company identityを変更できません"));
     }
-    if (Date.parse(record.issuedAt) <= Date.parse(prior.issuedAt)) {
+    if (compareExplicitIso8601Instants(
+      record.issuedAt,
+      prior.issuedAt,
+      `recommendation:${record.recommendationId}.issuedAt`,
+      `recommendation:${prior.recommendationId}.issuedAt`,
+    ) <= 0) {
       issues.push(error("revision_issue_time_not_monotonic", record.recommendationId, "revision issuedAtは直前recordより後である必要があります"));
     }
-    if (Date.parse(record.informationCutoff) < Date.parse(prior.informationCutoff)) {
+    if (compareExplicitIso8601Instants(
+      record.informationCutoff,
+      prior.informationCutoff,
+      `recommendation:${record.recommendationId}.informationCutoff`,
+      `recommendation:${prior.recommendationId}.informationCutoff`,
+    ) < 0) {
       issues.push(error("revision_cutoff_regressed", record.recommendationId, "revisionでinformationCutoffを過去へ戻せません"));
     }
   }

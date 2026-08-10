@@ -195,4 +195,61 @@ function context(records: PitPriceRecord[] = [price, benchmark, sector]): Recomm
   console.log("recommendation-price-pit-timing: rehashed benchmark with invalid PIT timeline is rejected OK");
 }
 
+{
+  const subMillisecondFutureIssuer = withPriceRecordHash(priceInput({
+    observedAt: "2026-08-07T09:00:00.000000001+09:00",
+    retrievedAt: "2026-08-07T09:00:00.000000002+09:00",
+    firstExecutableAt: "2026-08-07T09:00:00.000000003+09:00",
+  }));
+  const input = baseInput();
+  input.informationCutoff = "2026-08-07T09:00:00.000000000+09:00";
+  input.currentPriceRecordHash = subMillisecondFutureIssuer.contentHash;
+  input.currentPriceFirstExecutableAt = subMillisecondFutureIssuer.firstExecutableAt;
+  const issues = validateRecommendationRecord(
+    withRecommendationHash(input),
+    schema,
+    context([subMillisecondFutureIssuer, benchmark, sector]),
+  );
+  assert.ok(issues.some(issue => issue.code === "future_price_observation"));
+  console.log("recommendation-price-pit-timing: sub-millisecond future price observation is rejected OK");
+}
+
+{
+  const subMillisecondLateIssuer = withPriceRecordHash(priceInput({
+    observedAt: "2026-08-07T09:09:59.999999998+09:00",
+    retrievedAt: "2026-08-07T09:09:59.999999999+09:00",
+    firstExecutableAt: "2026-08-07T09:10:00.000000001+09:00",
+  }));
+  const input = baseInput();
+  input.issuedAt = "2026-08-07T09:10:00.000000000+09:00";
+  input.informationCutoff = "2026-08-07T09:09:59.999999999+09:00";
+  input.currentPriceRecordHash = subMillisecondLateIssuer.contentHash;
+  input.currentPriceFirstExecutableAt = subMillisecondLateIssuer.firstExecutableAt;
+  const issues = validateRecommendationRecord(
+    withRecommendationHash(input),
+    schema,
+    context([subMillisecondLateIssuer, benchmark, sector]),
+  );
+  assert.ok(issues.some(issue => issue.code === "current_price_after_issue"));
+  assert.ok(issues.some(issue => issue.code === "price_not_yet_executable"));
+  console.log("recommendation-price-pit-timing: sub-millisecond post-issue executable price is rejected OK");
+}
+
+{
+  const input = baseInput();
+  input.informationCutoff = "2026-08-07T09:00:00.000000000+09:00";
+  const evidenceContext = context();
+  evidenceContext.evidenceByRef = new Map([
+    ["evidence:ir:001", { tier: "A", observedAt: "2026-08-07T09:00:00.000000001+09:00" }],
+    ["evidence:market:001", { tier: "B", observedAt: "2026-08-07T08:35:00+09:00" }],
+  ]);
+  const issues = validateRecommendationRecord(
+    withRecommendationHash(input),
+    schema,
+    evidenceContext,
+  );
+  assert.ok(issues.some(issue => issue.code === "future_evidence"));
+  console.log("recommendation-price-pit-timing: sub-millisecond future evidence is rejected OK");
+}
+
 console.log("recommendation-price-pit-timing.test.ts passed");
