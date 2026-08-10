@@ -92,6 +92,7 @@ import "./research/recommendation-runtime-local-only.test.js";
 import "./research/foundation-decision-hypothesis-registration-instant.test.js";
 import "./research/stock-pro-council-calibration-fractional-ordering.test.js";
 import "./research/stock-pro-council-replay-calibration.test.js";
+import "./research/stock-pro-council-ledger-hardening.test.js";
 import "./research/edge-decay-strict-date.test.js";
 import "./jquants-v2-date-cap.test.js";
 import { validateWatchlist } from "../src/validation.js";
