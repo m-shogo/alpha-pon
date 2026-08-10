@@ -126,6 +126,25 @@ function codes(issues: ReturnType<typeof validateOutcomeLearningDecisionRecord>)
 }
 
 {
+  const { contentHash: _contentHash, ...proposalInput } = readyProposal;
+  const fractionalProposal = withOutcomeLearningProposalHash({
+    ...proposalInput,
+    proposalId: "learning-proposal:fractional-ordering:001",
+    createdAt: "2026-08-21T13:00:00.000000001+09:00",
+  });
+  const record = withOutcomeLearningDecisionHash(decision({
+    decisionId: "learning-decision:fractional-ordering:001",
+    proposal: fractionalProposal,
+    decidedAt: "2026-08-21T13:00:00.000000002+09:00",
+  }));
+  assert.deepEqual(
+    validateOutcomeLearningDecisionRecord(record, schema, context({ proposals: [fractionalProposal] })),
+    [],
+  );
+  console.log("outcome-learning-decision: decision may follow proposal by 1ns without millisecond collapse OK");
+}
+
+{
   const record = withOutcomeLearningDecisionHash(decision({ reviewerRef: "reviewer:ai" }));
   assert.ok(codes(validateOutcomeLearningDecisionRecord(record, schema, context())).includes("decision_reviewer_not_human"));
   console.log("outcome-learning-decision: AI cannot create human learning decision OK");
@@ -218,6 +237,24 @@ function codes(issues: ReturnType<typeof validateOutcomeLearningDecisionRecord>)
     [],
   );
   console.log("outcome-learning-decision: defer may be revised once into terminal advance decision OK");
+
+  const fractionalDeferred = withOutcomeLearningDecisionHash(decision({
+    decisionId: "learning-decision:revision:fractional:001",
+    kind: "defer",
+    decidedAt: "2026-08-21T14:00:00.000000001+09:00",
+  }));
+  const fractionalAdvanced = withOutcomeLearningDecisionHash(decision({
+    decisionId: "learning-decision:revision:fractional:002",
+    kind: "advance_to_shadow",
+    decidedAt: "2026-08-21T14:00:00.000000002+09:00",
+    supersedesDecisionId: fractionalDeferred.decisionId,
+  }));
+  assert.equal(
+    validateOutcomeLearningDecisionRecords([fractionalDeferred, fractionalAdvanced], schema, context())
+      .some((candidate) => candidate.code === "learning_decision_time_not_monotonic"),
+    false,
+  );
+  console.log("outcome-learning-decision: defer revision may advance by 1ns without millisecond collapse OK");
 
   const fork = withOutcomeLearningDecisionHash(decision({
     decisionId: "learning-decision:revision:fork",
