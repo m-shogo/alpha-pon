@@ -17,6 +17,7 @@ import {
 import {
   validateGovernedDocumentRevisionDiffSnapshot,
 } from "./document-revision-diff-snapshot.js";
+import { compareExplicitIso8601Instants } from "./iso-instant.js";
 import { stableStringify, validate } from "./schema.js";
 
 export type EvidencePackageExternalPinResolver = {
@@ -319,7 +320,14 @@ export function validateEvidencePackageManifestGoverned(
       "manifest differs from the authoritative governed build",
     ));
   }
-  if (Date.parse(manifest.createdAt) < Date.parse(manifest.informationCutoff)) {
+  if (
+    compareExplicitIso8601Instants(
+      manifest.createdAt,
+      manifest.informationCutoff,
+      "evidence package createdAt",
+      "evidence package informationCutoff",
+    ) < 0
+  ) {
     issues.push(issue(
       "evidence_package_created_before_cutoff",
       manifest.packageId,
