@@ -4,6 +4,7 @@ import {
   type HypothesisScenarioSet,
   type TestableHypothesisRecord,
 } from "./testable-hypothesis-scenario.js";
+import { compareExplicitIso8601Instants } from "./iso-instant.js";
 
 function issue(
   code: string,
@@ -179,17 +180,24 @@ export function validateHypothesisScenarioLedgers(
         previous.hypothesisId,
       ));
     }
-    if (Date.parse(record.createdAt) <= Date.parse(previous.createdAt)) {
+    if (compareExplicitIso8601Instants(
+      record.createdAt,
+      previous.createdAt,
+      `hypothesis:${record.hypothesisId}.createdAt`,
+      `hypothesis:${previous.hypothesisId}.createdAt`,
+    ) <= 0) {
       issues.push(issue(
         "hypothesis_created_at_not_monotonic",
         record.hypothesisId,
         `${record.createdAt} <= ${previous.createdAt}`,
       ));
     }
-    if (
-      Date.parse(record.informationCutoff) <
-      Date.parse(previous.informationCutoff)
-    ) {
+    if (compareExplicitIso8601Instants(
+      record.informationCutoff,
+      previous.informationCutoff,
+      `hypothesis:${record.hypothesisId}.informationCutoff`,
+      `hypothesis:${previous.hypothesisId}.informationCutoff`,
+    ) < 0) {
       issues.push(issue(
         "hypothesis_cutoff_regression",
         record.hypothesisId,
