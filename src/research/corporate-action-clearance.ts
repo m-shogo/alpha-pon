@@ -9,7 +9,7 @@ import {
   readFileSync,
 } from "node:fs";
 import { dirname } from "node:path";
-import { parseExplicitIso8601Instant } from "./iso-instant.js";
+import { compareExplicitIso8601Instants, parseExplicitIso8601Instant } from "./iso-instant.js";
 import { isValidDate, stableStringify, validate, type JsonSchema } from "./schema.js";
 
 export type CorporateActionEvidenceTier = "A" | "B";
@@ -125,9 +125,8 @@ export function validateCorporateActionClearanceRecord(
   const target = `corporate-action-clearance:${record.clearanceId}`;
   const issues: CorporateActionClearanceIssue[] = [];
 
-  let assessedAtMs: number;
   try {
-    assessedAtMs = parseExplicitIso8601Instant(record.assessedAt, "assessedAt");
+    parseExplicitIso8601Instant(record.assessedAt, "assessedAt");
   } catch {
     issues.push(issue("invalid_assessed_at", target, "assessedAtが不正です"));
     return issues.sort((left, right) =>
@@ -155,9 +154,8 @@ export function validateCorporateActionClearanceRecord(
     if (canonical.tier !== evidence.tier) {
       issues.push(issue("evidence_tier_mismatch", target, `evidence tierが正本と一致しません: ${evidence.ref}`));
     }
-    let observedAtMs: number;
     try {
-      observedAtMs = parseExplicitIso8601Instant(canonical.observedAt, `Evidence ${evidence.ref}.observedAt`);
+      parseExplicitIso8601Instant(canonical.observedAt, `Evidence ${evidence.ref}.observedAt`);
     } catch {
       issues.push(issue(
         "invalid_evidence_observed_at",
@@ -166,7 +164,12 @@ export function validateCorporateActionClearanceRecord(
       ));
       continue;
     }
-    if (observedAtMs > assessedAtMs) {
+    if (compareExplicitIso8601Instants(
+      canonical.observedAt,
+      record.assessedAt,
+      `Evidence ${evidence.ref}.observedAt`,
+      `Corporate Action Clearance ${record.clearanceId}.assessedAt`,
+    ) > 0) {
       issues.push(issue("future_evidence", target, `assessedAt後のEvidenceを事前clearanceへ使えません: ${evidence.ref}`));
     }
   }
@@ -223,7 +226,12 @@ export function validateCorporateActionClearanceRecords(
     ) {
       issues.push(issue("clearance_revision_identity_mismatch", record.clearanceId, "revisionでseries identityを変更できません"));
     }
-    if (Date.parse(record.assessedAt) <= Date.parse(prior.assessedAt)) {
+    if (compareExplicitIso8601Instants(
+      record.assessedAt,
+      prior.assessedAt,
+      `Corporate Action Clearance ${record.clearanceId}.assessedAt`,
+      `Corporate Action Clearance ${prior.clearanceId}.assessedAt`,
+    ) <= 0) {
       issues.push(issue("clearance_assessed_at_not_monotonic", record.clearanceId, "revision assessedAtは直前recordより後である必要があります"));
     }
     if (record.fromTradingDate > prior.fromTradingDate) {
