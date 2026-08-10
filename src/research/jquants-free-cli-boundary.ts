@@ -1,6 +1,14 @@
 import { parseExplicitIso8601Instant } from "./iso-instant.js";
+import { isValidDate } from "./schema.js";
 
 export { parseExplicitIso8601Instant } from "./iso-instant.js";
+
+export function assertIsoCalendarDate(value: string, label: string): string {
+  if (!isValidDate(value)) {
+    throw new Error(`${label} must be a valid YYYY-MM-DD Gregorian date`);
+  }
+  return value;
+}
 
 export function assertFirstExecutableAtAfterRetrievalStart(
   firstExecutableAt: string,
