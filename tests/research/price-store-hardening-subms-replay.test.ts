@@ -2,10 +2,12 @@ import assert from "node:assert/strict";
 import {
   selectPriceRecordsForReplay,
   validatePriceRecordHardening,
+  validateProviderBatchAgainstQuery,
 } from "../../src/research/price-store-hardening.js";
 import {
   withPriceRecordHash,
   type PitPriceRecordInput,
+  type PriceProviderBatch,
 } from "../../src/research/price-store.js";
 
 function record(overrides: Partial<PitPriceRecordInput> = {}) {
@@ -82,4 +84,40 @@ assert.throws(
   "hardening replay asOf must require an explicit timezone",
 );
 
-console.log("price-store-hardening: sub-ms replay ordering OK");
+const { contentHash: _futureHash, ...futureInput } = futureByOneNs;
+const batch: PriceProviderBatch = {
+  providerId: "synthetic-provider",
+  sourceVersion: futureInput.sourceVersion,
+  capabilities: {
+    plan: "synthetic",
+    delayDays: 0,
+    supportsAdjusted: true,
+    supportsUnadjusted: true,
+    supportsCorporateActions: true,
+    supportsBenchmarks: true,
+    supportsSectorBenchmarks: true,
+  },
+  license: "redistributable",
+  retrievedAt: futureInput.retrievedAt,
+  records: [futureInput],
+};
+const query = {
+  seriesKind: "security" as const,
+  codes: ["SUBMS-HARD"],
+  from: "2024-01-04",
+  to: "2024-01-04",
+  asOf: "2024-01-04T15:35:00.000000000+09:00",
+  plan: "synthetic" as const,
+};
+assert.ok(
+  validateProviderBatchAgainstQuery(batch, query)
+    .includes(`records[0].observedAt is after query.asOf: ${futureInput.observedAt}`),
+  "provider query cutoff must reject a record observed 1ns after asOf",
+);
+assert.ok(
+  validateProviderBatchAgainstQuery(batch, { ...query, asOf: "2024-01-04T15:35:00" })
+    .includes("invalid query.asOf: 2024-01-04T15:35:00"),
+  "provider query cutoff must require an explicit timezone",
+);
+
+console.log("price-store-hardening: sub-ms replay/query-cutoff ordering OK");
