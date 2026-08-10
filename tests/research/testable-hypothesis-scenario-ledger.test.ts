@@ -7,6 +7,7 @@ import {
   validateHypothesisScenarioLedgers,
 } from "../../src/research/testable-hypothesis-scenario-ledger.js";
 import {
+  computeHypothesisScenarioSetHash,
   withHypothesisScenarioHash,
   withTestableHypothesisHash,
 } from "../../src/research/testable-hypothesis-scenario.js";
@@ -59,6 +60,40 @@ function draftScenario(
     status: "draft",
     ...(supersedesScenarioId ? { supersedesScenarioId } : {}),
   });
+}
+
+function draftScenarioSet(
+  scenarioSetId: string,
+  createdAt: string,
+  supersedesScenarioSetId?: string,
+) {
+  const hypothesis = testableHypothesis();
+  const packageManifest = completeHypothesisEvidencePackage();
+  const scenarios = registeredScenarioSetRecords();
+  const registered = buildHypothesisScenarioSetGoverned(
+    {
+      scenarioSetId: "scenario-set:ledger:fixture",
+      createdAt: "2026-08-06T00:39:00+09:00",
+      registeredAt: "2026-08-06T00:40:00+09:00",
+    },
+    hypothesis,
+    packageManifest,
+    scenarios,
+  );
+  const {
+    contentHash: _contentHash,
+    registeredAt: _registeredAt,
+    supersedesScenarioSetId: _supersedesScenarioSetId,
+    ...input
+  } = registered;
+  const record = {
+    ...input,
+    scenarioSetId,
+    createdAt,
+    status: "draft" as const,
+    ...(supersedesScenarioSetId ? { supersedesScenarioSetId } : {}),
+  };
+  return { ...record, contentHash: computeHypothesisScenarioSetHash(record) };
 }
 
 {
@@ -125,6 +160,25 @@ function draftScenario(
     "scenario createdAt one nanosecond before its parent must not collapse to the same millisecond",
   );
   console.log("testable-hypothesis-scenario-ledger: scenario fractional PIT ordering OK");
+}
+
+{
+  const first = draftScenarioSet(
+    "scenario-set:ledger:fractional-001",
+    "2026-08-06T00:39:00.000000002+09:00",
+  );
+  const second = draftScenarioSet(
+    "scenario-set:ledger:fractional-002",
+    "2026-08-06T00:39:00.000000001+09:00",
+    first.scenarioSetId,
+  );
+  const codes = validateHypothesisScenarioLedgers([], [], [first, second])
+    .map((item) => item.code);
+  assert.ok(
+    codes.includes("scenario_set_created_at_not_monotonic"),
+    "scenario-set createdAt one nanosecond before its parent must not collapse to the same millisecond",
+  );
+  console.log("testable-hypothesis-scenario-ledger: scenario-set fractional PIT ordering OK");
 }
 
 {
