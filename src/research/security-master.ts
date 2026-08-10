@@ -258,7 +258,12 @@ function rangesOverlap(
 function validHttpsUrl(value: string): boolean {
   try {
     const url = new URL(value);
-    return url.protocol === "https:" && Boolean(url.hostname);
+    return (
+      url.protocol === "https:" &&
+      Boolean(url.hostname) &&
+      !url.username &&
+      !url.password
+    );
   } catch {
     return false;
   }
@@ -345,7 +350,11 @@ export function validateSecurityEntityRecord(
     const linkTarget = `${target}.officialLinks[${index}]`;
     issues.push(...validatePeriod(link.validFrom, link.validTo, linkTarget));
     if (!validHttpsUrl(link.url)) {
-      issues.push(issue("invalid_official_url", linkTarget, "official linkはHTTPS URLが必要です"));
+      issues.push(issue(
+        "invalid_official_url",
+        linkTarget,
+        "official linkはcredentialなしのHTTPS URLが必要です",
+      ));
     }
     if (link.kind === "sns" && !link.platform?.trim()) {
       issues.push(issue("sns_without_platform", linkTarget, "SNS linkにはplatformが必要です"));
