@@ -205,10 +205,6 @@ function revisionKey(record: PitPriceRecord): string {
   return targetOf(record);
 }
 
-function timeMs(value: string): number {
-  return Date.parse(value);
-}
-
 function pushIssue(
   issues: PriceStoreIssue[],
   issue: Omit<PriceStoreIssue, "severity"> & { severity?: PriceStoreIssue["severity"] },
@@ -542,10 +538,20 @@ export function validatePriceRecords(
 
 export function validateProviderBatch(batch: PriceProviderBatch): string[] {
   const issues: string[] = [];
-  const retrievedMs = timeMs(batch.retrievedAt);
+  let retrievedAtValid = true;
+  try {
+    compareExplicitIso8601Instants(
+      batch.retrievedAt,
+      batch.retrievedAt,
+      "batch.retrievedAt",
+      "batch.retrievedAt",
+    );
+  } catch {
+    retrievedAtValid = false;
+    issues.push(`invalid batch retrievedAt: ${batch.retrievedAt}`);
+  }
   if (!batch.providerId.trim()) issues.push("providerId is required");
   if (!batch.sourceVersion.trim()) issues.push("sourceVersion is required");
-  if (!Number.isFinite(retrievedMs)) issues.push(`invalid batch retrievedAt: ${batch.retrievedAt}`);
   if (batch.license === "unknown") issues.push("batch license may not be unknown");
 
   batch.records.forEach((record, index) => {
@@ -562,9 +568,21 @@ export function validateProviderBatch(batch: PriceProviderBatch): string[] {
     if (record.retrievedAt !== batch.retrievedAt) {
       issues.push(`${prefix}.retrievedAt does not match batch retrievedAt`);
     }
-    const executableMs = timeMs(record.firstExecutableAt);
-    if (Number.isFinite(retrievedMs) && Number.isFinite(executableMs) && executableMs < retrievedMs) {
-      issues.push(`${prefix}.firstExecutableAt precedes batch retrievedAt`);
+    if (retrievedAtValid) {
+      try {
+        if (
+          compareExplicitIso8601Instants(
+            record.firstExecutableAt,
+            batch.retrievedAt,
+            `${prefix}.firstExecutableAt`,
+            "batch.retrievedAt",
+          ) < 0
+        ) {
+          issues.push(`${prefix}.firstExecutableAt precedes batch retrievedAt`);
+        }
+      } catch {
+        issues.push(`${prefix}.firstExecutableAt is not a valid explicit ISO instant`);
+      }
     }
     if (record.sourceVersion !== batch.sourceVersion) {
       issues.push(`${prefix}.sourceVersion does not match batch.sourceVersion`);
