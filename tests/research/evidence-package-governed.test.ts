@@ -208,4 +208,29 @@ const schemas: EvidencePackageSchemas = {
   console.log("evidence-package-governed: unknown severity spoof block OK");
 }
 
+{
+  const context = governedEvidencePackageContext();
+  const request = governedEvidencePackageRequest({
+    informationCutoff: "2026-08-06T00:25:00.000000002+09:00",
+    createdAt: "2026-08-06T00:25:00.000000001+09:00",
+  });
+  const resolver = governedEvidencePackageResolver();
+  const manifest = buildEvidencePackageManifestGoverned(
+    request,
+    context,
+    resolver,
+  );
+  assert.ok(
+    validateEvidencePackageManifestGoverned(
+      manifest,
+      request,
+      context,
+      resolver,
+      schemas,
+    ).some((item) => item.code === "evidence_package_created_before_cutoff"),
+    "createdAt 1ns before informationCutoff must not collapse to the same millisecond",
+  );
+  console.log("evidence-package-governed: sub-ms createdAt cutoff ordering OK");
+}
+
 console.log("evidence-package-governed: 全テスト成功");
