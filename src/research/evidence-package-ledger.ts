@@ -15,6 +15,7 @@ import {
   type EvidencePackageIssue,
   type EvidencePackageManifest,
 } from "./evidence-package-manifest.js";
+import { compareExplicitIso8601Instants } from "./iso-instant.js";
 
 export type EvidencePackageValidator = (
   manifest: EvidencePackageManifest,
@@ -150,7 +151,12 @@ export function validateEvidencePackageLedger(
         "entityIdsを同一package chain内で変更できません",
       ));
     }
-    if (Date.parse(record.createdAt) <= Date.parse(previous.createdAt)) {
+    if (compareExplicitIso8601Instants(
+      record.createdAt,
+      previous.createdAt,
+      `Evidence Package ${record.packageId}.createdAt`,
+      `Evidence Package ${previous.packageId}.createdAt`,
+    ) <= 0) {
       issues.push(issue(
         "evidence_package_created_at_not_monotonic",
         record.packageId,

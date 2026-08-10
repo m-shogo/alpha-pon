@@ -82,6 +82,25 @@ function manifestFor(
 }
 
 {
+  const first = manifestFor({
+    packageId: "evidence-package:fixture:fractional-first",
+    createdAt: "2026-08-06T00:35:00.000000002+09:00",
+  });
+  const regressed = manifestFor({
+    packageId: "evidence-package:fixture:fractional-regressed",
+    createdAt: "2026-08-06T00:35:00.000000001+09:00",
+    codeVersion: "evidence-package-code-fractional-v2",
+    supersedesPackageId: first.manifest.packageId,
+  });
+  assert.ok(
+    validateEvidencePackageLedger([first.manifest, regressed.manifest])
+      .some((item) => item.code === "evidence_package_created_at_not_monotonic"),
+    "同一millisecond内でも1nsのcreatedAt逆行をfail-closedにする",
+  );
+  console.log("evidence-package-ledger: supersession preserves sub-millisecond createdAt ordering OK");
+}
+
+{
   const first = manifestFor();
   const changedIdentity = manifestFor({
     packageId: "evidence-package:fixture:identity-change",
