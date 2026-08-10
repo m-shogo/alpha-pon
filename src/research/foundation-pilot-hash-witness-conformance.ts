@@ -11,7 +11,7 @@ import {
   buildFoundationPilotHashWitness,
   type FoundationPilotHashWitnessRecord,
 } from "./foundation-pilot-hash-witness.js";
-import { parseExplicitIso8601Instant } from "./iso-instant.js";
+import { compareExplicitIso8601Instants, parseExplicitIso8601Instant } from "./iso-instant.js";
 import { stableStringify } from "./schema.js";
 
 type JsonObject = Record<string, unknown>;
@@ -116,6 +116,10 @@ function timestamp(value: unknown, field: string): string {
   return result;
 }
 
+function compareInstants(left: string, right: string, leftField: string, rightField: string): -1 | 0 | 1 {
+  return compareExplicitIso8601Instants(left, right, leftField, rightField);
+}
+
 function sorted(values: string[]): string[] {
   return [...new Set(values)].sort();
 }
@@ -160,7 +164,7 @@ export function buildFoundationPilotProofRun(input: {
   }
   verifyDecision(input.decision, "decision");
   const capturedAt = input.capturedAt ? timestamp(input.capturedAt, "capturedAt") : new Date().toISOString();
-  if (Date.parse(capturedAt) < Date.parse(input.decision.issuedAt)) {
+  if (compareInstants(capturedAt, input.decision.issuedAt, "capturedAt", "decision.issuedAt") < 0) {
     throw new Error("capturedAt must not precede decision.issuedAt");
   }
   const base = {
@@ -263,7 +267,7 @@ function verifyRevision(record: DocumentRevisionRecord, field: string): void {
   }
   timestamp(record.observedAt, `${field}.observedAt`);
   timestamp(record.retrievedAt, `${field}.retrievedAt`);
-  if (Date.parse(record.retrievedAt) < Date.parse(record.observedAt)) {
+  if (compareInstants(record.retrievedAt, record.observedAt, `${field}.retrievedAt`, `${field}.observedAt`) < 0) {
     throw new Error(`${field}.retrievedAt must not precede observedAt`);
   }
 }
@@ -338,12 +342,24 @@ export function auditFoundationPilotHashWitnessConformance(input: {
   const directRevisionChainVerified = input.correctionRevision.supersedesRecordId === input.priorRevision.recordId
     && input.correctionRevision.documentId === input.priorRevision.documentId
     && input.correctionRevision.revisionSequence === input.priorRevision.revisionSequence + 1;
-  const correctionObservedAfterHistoricalCutoff = Date.parse(input.correctionRevision.observedAt)
-    > Date.parse(target.informationCutoff);
-  const baselineCapturedBeforeCorrectionRetrieval = Date.parse(input.historicalBaseline.capturedAt)
-    < Date.parse(input.correctionRevision.retrievedAt);
-  const postRunCapturedAfterCorrectionRetrieval = Date.parse(input.historicalPostCorrection.capturedAt)
-    >= Date.parse(input.correctionRevision.retrievedAt);
+  const correctionObservedAfterHistoricalCutoff = compareInstants(
+    input.correctionRevision.observedAt,
+    target.informationCutoff,
+    "correctionRevision.observedAt",
+    "target.informationCutoff",
+  ) > 0;
+  const baselineCapturedBeforeCorrectionRetrieval = compareInstants(
+    input.historicalBaseline.capturedAt,
+    input.correctionRevision.retrievedAt,
+    "historicalBaseline.capturedAt",
+    "correctionRevision.retrievedAt",
+  ) < 0;
+  const postRunCapturedAfterCorrectionRetrieval = compareInstants(
+    input.historicalPostCorrection.capturedAt,
+    input.correctionRevision.retrievedAt,
+    "historicalPostCorrection.capturedAt",
+    "correctionRevision.retrievedAt",
+  ) >= 0;
   const canonicalHistoricalDecisionsMatch = stableStringify(input.historicalBaseline.decision)
     === stableStringify(input.historicalPostCorrection.decision);
   const correctionConformant = correctionRunIdsMatchWitness
