@@ -98,7 +98,12 @@
         "required": ["tier", "ref"],
         "properties": {
           "tier": { "type": "string", "enum": ["A", "B", "C", "D"] },
-          "ref": { "type": "string", "minLength": 1, "maxLength": 512 }
+          "ref": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^(?![A-Za-z][A-Za-z0-9+.-]*://[^/?#]*@).+$"
+          }
         }
       }
     },
