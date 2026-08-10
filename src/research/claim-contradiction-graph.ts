@@ -6,7 +6,10 @@ import type {
 import {
   recommendationEligibleEvidence,
 } from "./bitemporal-evidence-store.js";
-import { compareExplicitIso8601Instants } from "./iso-instant.js";
+import {
+  compareExplicitIso8601Instants,
+  parseExplicitIso8601Instant,
+} from "./iso-instant.js";
 import { stableStringify, validate, type JsonSchema } from "./schema.js";
 
 export type ClaimClass = "fact" | "assumption" | "forecast" | "opinion" | "unknown";
@@ -206,10 +209,6 @@ function schemaIssues(
     error.path ? `${target}:${error.path}` : target,
     error.message,
   ));
-}
-
-function timeMs(value: string): number {
-  return Date.parse(value);
 }
 
 function instantBefore(left: string, right: string): boolean {
@@ -746,26 +745,29 @@ export function validateClaimContradictionGraph(
 
 function recordAvailable(
   record: { observedAt: string; retrievedAt: string; effectiveFrom: string; effectiveTo?: string },
-  asOfMs: number,
+  asOf: string,
 ): boolean {
-  if (timeMs(record.observedAt) > asOfMs) return false;
-  if (timeMs(record.retrievedAt) > asOfMs) return false;
-  if (timeMs(record.effectiveFrom) > asOfMs) return false;
-  if (record.effectiveTo && timeMs(record.effectiveTo) < asOfMs) return false;
+  if (compareExplicitIso8601Instants(record.observedAt, asOf) > 0) return false;
+  if (compareExplicitIso8601Instants(record.retrievedAt, asOf) > 0) return false;
+  if (compareExplicitIso8601Instants(record.effectiveFrom, asOf) > 0) return false;
+  if (record.effectiveTo && compareExplicitIso8601Instants(record.effectiveTo, asOf) < 0) return false;
   return true;
 }
 
-function latestClaimsAsOf(records: ClaimRecord[], asOfMs: number): ClaimRecord[] {
+function latestClaimsAsOf(records: ClaimRecord[], asOf: string): ClaimRecord[] {
   const selected = new Map<string, ClaimRecord>();
   for (const record of records) {
-    if (!recordAvailable(record, asOfMs)) continue;
+    if (!recordAvailable(record, asOf)) continue;
     const prior = selected.get(record.claimId);
+    const observedOrder = prior
+      ? compareExplicitIso8601Instants(record.observedAt, prior.observedAt)
+      : 1;
     if (
       !prior ||
-      timeMs(record.observedAt) > timeMs(prior.observedAt) ||
+      observedOrder > 0 ||
       (
-        timeMs(record.observedAt) === timeMs(prior.observedAt) &&
-        timeMs(record.retrievedAt) > timeMs(prior.retrievedAt)
+        observedOrder === 0 &&
+        compareExplicitIso8601Instants(record.retrievedAt, prior.retrievedAt) > 0
       )
     ) selected.set(record.claimId, record);
   }
@@ -774,18 +776,21 @@ function latestClaimsAsOf(records: ClaimRecord[], asOfMs: number): ClaimRecord[]
 
 function latestEdgesAsOf(
   records: ClaimGraphEdgeRecord[],
-  asOfMs: number,
+  asOf: string,
 ): ClaimGraphEdgeRecord[] {
   const selected = new Map<string, ClaimGraphEdgeRecord>();
   for (const record of records) {
-    if (!recordAvailable(record, asOfMs)) continue;
+    if (!recordAvailable(record, asOf)) continue;
     const prior = selected.get(record.edgeId);
+    const observedOrder = prior
+      ? compareExplicitIso8601Instants(record.observedAt, prior.observedAt)
+      : 1;
     if (
       !prior ||
-      timeMs(record.observedAt) > timeMs(prior.observedAt) ||
+      observedOrder > 0 ||
       (
-        timeMs(record.observedAt) === timeMs(prior.observedAt) &&
-        timeMs(record.retrievedAt) > timeMs(prior.retrievedAt)
+        observedOrder === 0 &&
+        compareExplicitIso8601Instants(record.retrievedAt, prior.retrievedAt) > 0
       )
     ) selected.set(record.edgeId, record);
   }
@@ -804,12 +809,11 @@ export function buildClaimGraphSnapshot(
   if (evidenceSnapshot.asOf !== asOf) {
     throw new Error(`Claim/Evidence snapshot cutoff mismatch: ${asOf} != ${evidenceSnapshot.asOf}`);
   }
-  const asOfMs = timeMs(asOf);
-  if (!Number.isFinite(asOfMs)) throw new Error(`invalid asOf: ${asOf}`);
-  const selectedClaims = latestClaimsAsOf(claims, asOfMs);
+  parseExplicitIso8601Instant(asOf, "Claim Graph snapshot asOf");
+  const selectedClaims = latestClaimsAsOf(claims, asOf);
   const claimIds = new Set(selectedClaims.map((record) => record.claimId));
   const evidenceIds = new Set(evidenceSnapshot.evidence.map((record) => record.evidenceId));
-  const selectedEdges = latestEdgesAsOf(edges, asOfMs).filter((edge) => {
+  const selectedEdges = latestEdgesAsOf(edges, asOf).filter((edge) => {
     const fromExists = edge.fromKind === "claim"
       ? claimIds.has(edge.fromId)
       : evidenceIds.has(edge.fromId);
