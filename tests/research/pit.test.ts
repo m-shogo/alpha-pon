@@ -1,6 +1,7 @@
 import "./price-store.test.js";
 import "./price-store-hardening.test.js";
 import "./price-store-hardening-subms-replay.test.js";
+import "./price-store-provider-query-subms-cutoff.test.js";
 import "./price-store-replay-guard.test.js";
 import "./price-store-replay-manifest-strict-instant.test.js";
 import "./price-store-validation-subms.test.js";
