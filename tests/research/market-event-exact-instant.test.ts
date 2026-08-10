@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
-import { assertValidEventTime } from "../../src/market-events/contracts.js";
+import {
+  assertIsoTimestamp,
+  assertValidEventTime,
+} from "../../src/market-events/contracts.js";
 
 function exactTime(startAt: string, endAt: string | null = null) {
   return {
@@ -42,4 +45,21 @@ assert.throws(
   "timezone-less exact timestamps must fail closed",
 );
 
-console.log("research/market-event-contracts: strict sub-ms exact instant ordering OK");
+assert.throws(
+  () => assertIsoTimestamp("2026-08-10T14:00:00", "observedAt"),
+  /strict ISO timestamp/,
+  "timezone-less provenance timestamps must fail closed",
+);
+
+assert.throws(
+  () => assertIsoTimestamp("2026-02-31T14:00:00+09:00", "retrievedAt"),
+  /strict ISO timestamp/,
+  "impossible Gregorian provenance timestamps must fail closed",
+);
+
+assert.doesNotThrow(
+  () => assertIsoTimestamp("2026-08-10T14:00:00.000000001+09:00", "firstExecutableAt"),
+  "strict explicit-timezone provenance timestamps with sub-ms precision must remain valid",
+);
+
+console.log("research/market-event-contracts: strict sub-ms exact and provenance instant ordering OK");

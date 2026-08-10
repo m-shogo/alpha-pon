@@ -336,7 +336,11 @@ function assertDateOnly(value: string, fieldName: string): void {
 }
 
 export function assertIsoTimestamp(value: string, fieldName: string): void {
-  if (!value || Number.isNaN(Date.parse(value))) throw new Error(`${fieldName} must be an ISO timestamp`);
+  try {
+    parseExplicitIso8601Instant(value, fieldName);
+  } catch {
+    throw new Error(`${fieldName} must be a strict ISO timestamp with an explicit timezone offset or Z`);
+  }
 }
 
 function assertExactTimestamp(value: string, fieldName: string): void {
