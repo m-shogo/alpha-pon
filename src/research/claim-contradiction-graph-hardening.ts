@@ -28,6 +28,7 @@ import {
   type ClaimRecord,
   type ClaimRecommendationAssessment,
 } from "./claim-contradiction-graph.js";
+import { compareExplicitIso8601Instants } from "./iso-instant.js";
 import { stableStringify } from "./schema.js";
 
 export type GovernedClaimGraphSnapshot = {
@@ -75,10 +76,6 @@ function sortIssues(issues: ClaimGraphIssue[]): ClaimGraphIssue[] {
       `${b.severity}|${b.code}|${b.target}|${b.message}`,
     ),
   );
-}
-
-function timeMs(value: string): number {
-  return Date.parse(value);
 }
 
 function directEvidenceById(snapshot: EvidenceSnapshot): Map<string, EvidenceRecord> {
@@ -143,7 +140,14 @@ export function validateClaimGraphGovernance(
             `${edge.fromId}と${edge.toId}に共通entityIdがありません`,
           ));
         }
-        if (timeMs(edge.observedAt) < timeMs(from.observedAt)) {
+        if (
+          compareExplicitIso8601Instants(
+            edge.observedAt,
+            from.observedAt,
+            `${target}.observedAt`,
+            `claim:${from.claimId}:${from.recordId}.observedAt`,
+          ) < 0
+        ) {
           issues.push(issue(
             "claim_edge_before_source_claim",
             target,
