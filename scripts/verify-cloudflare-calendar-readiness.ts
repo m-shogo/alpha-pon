@@ -3,6 +3,22 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { buildEventId } from "../src/market-events/contracts.js";
 import { buildMarketEventBundle, type MarketEventRegistrationInput } from "../src/market-events/registration.js";
+import { compareExplicitIso8601Instants } from "../src/research/iso-instant.js";
+
+function atOrBefore(left: string, right: string, leftTarget: string, rightTarget: string): boolean {
+  return compareExplicitIso8601Instants(left, right, leftTarget, rightTarget) <= 0;
+}
+
+assert.equal(
+  atOrBefore(
+    "2026-08-11T00:00:00.000000001Z",
+    "2026-08-11T00:00:00.000000000Z",
+    "synthetic.left",
+    "synthetic.right",
+  ),
+  false,
+  "readiness chronology must preserve 1ns ordering",
+);
 
 const requiredFiles = [
   "apps/web/next.config.ts",
@@ -197,18 +213,33 @@ for (const name of files) {
     eventIds.add(eventRevisionKey);
 
     assert(
-      Date.parse(bundle.event.lastVerifiedAt) <= Date.parse(bundle.revision.observedAt),
+      atOrBefore(
+        bundle.event.lastVerifiedAt,
+        bundle.revision.observedAt,
+        "event.lastVerifiedAt",
+        "revision.observedAt",
+      ),
       `lastVerifiedAt must not be after observedAt: ${path}`,
     );
     for (const source of bundle.sources) {
       assert(/^[a-f0-9]{32,128}$/.test(source.contentHash), `source contentHash must be lowercase hex: ${path}`);
       assert(
-        Date.parse(source.retrievedAt) <= Date.parse(bundle.revision.observedAt),
+        atOrBefore(
+          source.retrievedAt,
+          bundle.revision.observedAt,
+          "source.retrievedAt",
+          "revision.observedAt",
+        ),
         `source retrievedAt must not be after observedAt: ${path}`,
       );
       if (source.publishedAt) {
         assert(
-          Date.parse(source.publishedAt) <= Date.parse(source.retrievedAt),
+          atOrBefore(
+            source.publishedAt,
+            source.retrievedAt,
+            "source.publishedAt",
+            "source.retrievedAt",
+          ),
           `source publishedAt must not be after retrievedAt: ${path}`,
         );
       }
