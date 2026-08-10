@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   assertFirstExecutableAtAfterRetrievalStart,
+  assertIsoCalendarDate,
   parseExplicitIso8601Instant,
 } from "../jquants-free-cli-boundary.js";
 import { validateProviderBatchAgainstQuery } from "../price-store-hardening.js";
@@ -35,11 +36,7 @@ function requiredArg(name: string): string {
 }
 
 function dateArg(name: string): string {
-  const value = requiredArg(name);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(Date.parse(`${value}T00:00:00+09:00`))) {
-    throw new Error(`--${name} must be YYYY-MM-DD`);
-  }
-  return value;
+  return assertIsoCalendarDate(requiredArg(name), `--${name}`);
 }
 
 function timestampArg(name: string): { value: string; epochMs: number } {
