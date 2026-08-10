@@ -322,6 +322,35 @@ function validMaster() {
 }
 
 {
+  const credentialLinkEntity = entity({
+    recordId: "entity:issuer:alpha:record:credential-url",
+    officialLinks: [{
+      kind: "website",
+      url: "https://user:password@example.com/ir",
+      verificationStatus: "verified_official",
+      validFrom: "2020-01-01",
+      sourceRefs: ["source:web:credential-test"]
+    }]
+  });
+  assert.ok(validateSecurityMaster([credentialLinkEntity], [], schemas)
+    .some((issue) => issue.code === "invalid_official_url"));
+
+  const normalLinkEntity = entity({
+    recordId: "entity:issuer:alpha:record:normal-url",
+    officialLinks: [{
+      kind: "website",
+      url: "https://example.com/ir?document=123#results",
+      verificationStatus: "verified_official",
+      validFrom: "2020-01-01",
+      sourceRefs: ["source:web:normal-test"]
+    }]
+  });
+  assert.equal(validateSecurityMaster([normalLinkEntity], [], schemas)
+    .some((issue) => issue.code === "invalid_official_url"), false);
+  console.log("security-master: official URL userinfo credentials blocked OK");
+}
+
+{
   const previousEntity = entity({
     recordId: "entity:issuer:alpha:record:pit-001",
     canonicalName: "Known At Cutoff株式会社",
