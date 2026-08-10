@@ -15,9 +15,14 @@ import {
 import {
   validateClaimGraphEndpointChronology,
 } from "./claim-contradiction-graph-integrity.js";
+import { compareExplicitIso8601Instants, parseExplicitIso8601Instant } from "./iso-instant.js";
 
-function timeMs(value: string): number {
-  return Date.parse(value);
+function after(left: string, right: string, leftTarget: string, rightTarget: string): boolean {
+  return compareExplicitIso8601Instants(left, right, leftTarget, rightTarget) > 0;
+}
+
+function before(left: string, right: string, leftTarget: string, rightTarget: string): boolean {
+  return compareExplicitIso8601Instants(left, right, leftTarget, rightTarget) < 0;
 }
 
 function availableAtCutoff(
@@ -27,12 +32,12 @@ function availableAtCutoff(
     effectiveFrom: string;
     effectiveTo?: string;
   },
-  cutoffMs: number,
+  cutoff: string,
 ): boolean {
-  if (timeMs(record.observedAt) > cutoffMs) return false;
-  if (timeMs(record.retrievedAt) > cutoffMs) return false;
-  if (timeMs(record.effectiveFrom) > cutoffMs) return false;
-  if (record.effectiveTo && timeMs(record.effectiveTo) < cutoffMs) return false;
+  if (after(record.observedAt, cutoff, "record.observedAt", "Claim Graph cutoff")) return false;
+  if (after(record.retrievedAt, cutoff, "record.retrievedAt", "Claim Graph cutoff")) return false;
+  if (after(record.effectiveFrom, cutoff, "record.effectiveFrom", "Claim Graph cutoff")) return false;
+  if (record.effectiveTo && before(record.effectiveTo, cutoff, "record.effectiveTo", "Claim Graph cutoff")) return false;
   return true;
 }
 
@@ -48,18 +53,16 @@ export function visibleClaimRecordsAtCutoff(
   claims: ClaimRecord[],
   asOf: string,
 ): ClaimRecord[] {
-  const cutoffMs = timeMs(asOf);
-  if (!Number.isFinite(cutoffMs)) throw new Error(`invalid Claim Graph cutoff: ${asOf}`);
-  return claims.filter((record) => availableAtCutoff(record, cutoffMs));
+  parseExplicitIso8601Instant(asOf, "Claim Graph cutoff");
+  return claims.filter((record) => availableAtCutoff(record, asOf));
 }
 
 export function visibleClaimEdgeRecordsAtCutoff(
   edges: ClaimGraphEdgeRecord[],
   asOf: string,
 ): ClaimGraphEdgeRecord[] {
-  const cutoffMs = timeMs(asOf);
-  if (!Number.isFinite(cutoffMs)) throw new Error(`invalid Claim Graph cutoff: ${asOf}`);
-  return edges.filter((record) => availableAtCutoff(record, cutoffMs));
+  parseExplicitIso8601Instant(asOf, "Claim Graph cutoff");
+  return edges.filter((record) => availableAtCutoff(record, asOf));
 }
 
 export function validateClaimGraphGovernedAtCutoff(
@@ -154,13 +157,13 @@ export function validateIncomingClaimGraphCutoff(
   edges: ClaimGraphEdgeRecord[],
   evidenceSnapshot: EvidenceSnapshot,
 ): ClaimGraphIssue[] {
-  const cutoffMs = timeMs(evidenceSnapshot.asOf);
+  parseExplicitIso8601Instant(evidenceSnapshot.asOf, "Claim Graph cutoff");
   const issues: ClaimGraphIssue[] = [];
   for (const record of claims) {
     if (
-      timeMs(record.observedAt) > cutoffMs ||
-      timeMs(record.retrievedAt) > cutoffMs ||
-      timeMs(record.effectiveFrom) > cutoffMs
+      after(record.observedAt, evidenceSnapshot.asOf, `claim:${record.claimId}.observedAt`, "Claim Graph cutoff") ||
+      after(record.retrievedAt, evidenceSnapshot.asOf, `claim:${record.claimId}.retrievedAt`, "Claim Graph cutoff") ||
+      after(record.effectiveFrom, evidenceSnapshot.asOf, `claim:${record.claimId}.effectiveFrom`, "Claim Graph cutoff")
     ) {
       issues.push({
         severity: "error",
@@ -172,9 +175,9 @@ export function validateIncomingClaimGraphCutoff(
   }
   for (const record of edges) {
     if (
-      timeMs(record.observedAt) > cutoffMs ||
-      timeMs(record.retrievedAt) > cutoffMs ||
-      timeMs(record.effectiveFrom) > cutoffMs
+      after(record.observedAt, evidenceSnapshot.asOf, `claim-edge:${record.edgeId}.observedAt`, "Claim Graph cutoff") ||
+      after(record.retrievedAt, evidenceSnapshot.asOf, `claim-edge:${record.edgeId}.retrievedAt`, "Claim Graph cutoff") ||
+      after(record.effectiveFrom, evidenceSnapshot.asOf, `claim-edge:${record.edgeId}.effectiveFrom`, "Claim Graph cutoff")
     ) {
       issues.push({
         severity: "error",

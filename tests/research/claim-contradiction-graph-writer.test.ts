@@ -16,6 +16,10 @@ import {
   withClaimRecordHash,
   type ClaimGraphSchemas,
 } from "../../src/research/claim-contradiction-graph.js";
+import {
+  validateIncomingClaimGraphCutoff,
+  visibleClaimRecordsAtCutoff,
+} from "../../src/research/claim-contradiction-graph-governed.js";
 import { validateClaimGraphEndpointChronology } from "../../src/research/claim-contradiction-graph-integrity.js";
 import {
   appendClaimGraphRecordsAtCutoffGoverned,
@@ -212,6 +216,23 @@ function edge(observedAt = "2026-08-05T15:05:00+09:00") {
   assert.ok(issues.some((candidate) => candidate.code === "claim_edge_observed_before_claim_endpoint"));
   assert.ok(issues.some((candidate) => candidate.code === "claim_edge_retrieved_before_claim_endpoint"));
   console.log("claim-contradiction-graph-writer: 1ns endpoint chronology is blocked OK");
+}
+
+{
+  const cutoff = "2026-08-06T10:00:00.000000001+09:00";
+  const fractionalSnapshot = { ...evidenceSnapshot, asOf: cutoff };
+  const future = withClaimRecordHash({
+    ...claim(),
+    recordId: "claim:writer-v2:fractional-future:record:001",
+    claimId: "claim:writer-v2:fractional-future",
+    effectiveFrom: "2026-08-06T10:00:00.000000002+09:00",
+    observedAt: "2026-08-06T10:00:00.000000002+09:00",
+    retrievedAt: "2026-08-06T10:00:00.000000002+09:00",
+  });
+  const issues = validateIncomingClaimGraphCutoff([future], [], fractionalSnapshot);
+  assert.ok(issues.some((candidate) => candidate.code === "incoming_claim_after_snapshot_cutoff"));
+  assert.deepEqual(visibleClaimRecordsAtCutoff([future], cutoff), []);
+  console.log("claim-contradiction-graph-writer: 1ns post-cutoff claim is rejected and hidden OK");
 }
 
 console.log("claim-contradiction-graph-writer: 全テスト成功");
