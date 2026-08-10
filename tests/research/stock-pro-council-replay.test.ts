@@ -285,6 +285,33 @@ function supportedPackage(caseType: CouncilCaseType = "general"): CouncilReplayP
 }
 
 {
+  const fractionalLateVerdicts = requiredPersonaIdsForCase("technology").map((personaId, index) =>
+    verdict(personaId, index === 0
+      ? { issuedAt: "2026-08-06T01:00:00.000000001+09:00" }
+      : {}));
+  const fractionalLatePackage = makePackage(
+    "technology",
+    fractionalLateVerdicts,
+    [],
+    [],
+    CREATED_AT,
+  );
+  assert.ok(validateCouncilReplayPackage(fractionalLatePackage, schemas, catalog)
+    .some((item) => item.code === "replay_record_after_manifest"));
+
+  const beforeCutoffPackage = makePackage(
+    "technology",
+    requiredPersonaIdsForCase("technology").map((personaId) => verdict(personaId)),
+    [],
+    [],
+    "2026-08-06T00:24:59.999999999+09:00",
+  );
+  assert.ok(validateCouncilReplayPackage(beforeCutoffPackage, schemas, catalog)
+    .some((item) => item.code === "replay_created_before_cutoff"));
+  console.log("stock-pro-council-replay: fractional PIT ordering guards OK");
+}
+
+{
   const binding = veto();
   const verdicts = requiredPersonaIdsForCase("general").map((personaId) => verdict(personaId));
   const pkg = makePackage("general", verdicts, [], [binding]);
