@@ -1,5 +1,6 @@
 import { mkdirSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import { compareExplicitIso8601Instants } from "../research/iso-instant.js";
 import type { DecisionState, EventSource, MarketEvent, MarketEventPriority } from "./contracts.js";
 import { buildMarketEventsIcs } from "./ics.js";
 import {
@@ -55,9 +56,17 @@ function revisionNumber(db: MarketEventDatabase, eventId: string): number {
   return row.revisionNumber;
 }
 
-function freshness(event: MarketEvent, generatedAt: string): MarketEventProjectionItem["freshnessState"] {
+export function marketEventFreshness(
+  event: Pick<MarketEvent, "staleAfter">,
+  generatedAt: string,
+): MarketEventProjectionItem["freshnessState"] {
   if (!event.staleAfter) return "UNKNOWN";
-  return Date.parse(generatedAt) > Date.parse(event.staleAfter) ? "STALE" : "FRESH";
+  return compareExplicitIso8601Instants(
+    generatedAt,
+    event.staleAfter,
+    "market event generatedAt",
+    "market event staleAfter",
+  ) > 0 ? "STALE" : "FRESH";
 }
 
 function sortAt(event: MarketEvent): string | null {
@@ -97,7 +106,7 @@ export function buildMarketEventGeneratedData(
       ...event,
       revisionNumber: revisionNumber(db, event.eventId),
       sources: sources.map(projectionSource),
-      freshnessState: freshness(event, generatedAt),
+      freshnessState: marketEventFreshness(event, generatedAt),
       calendarIncluded: event.time.precision !== "UNKNOWN",
       sortAt: sortAt(event),
     } satisfies MarketEventProjectionItem;
