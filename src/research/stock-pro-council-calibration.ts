@@ -19,6 +19,7 @@ import {
   type PersonaVerdict,
   type StockProCouncilV2Catalog,
 } from "./stock-pro-council-v2-validation.js";
+import { compareExplicitIso8601Instants } from "./iso-instant.js";
 import { stableStringify, validate, type JsonSchema } from "./schema.js";
 
 export type PersonaCalibrationStatus = "provisional" | "eligible" | "retired" | "superseded";
@@ -176,7 +177,14 @@ export function validatePersonaCalibrationRecord(
       "periodToをoutcomeCutoffより後にできません",
     ));
   }
-  if (Date.parse(record.evaluatedAt) < Date.parse(record.outcomeCutoff)) {
+  if (
+    compareExplicitIso8601Instants(
+      record.evaluatedAt,
+      record.outcomeCutoff,
+      `${target}.evaluatedAt`,
+      `${target}.outcomeCutoff`,
+    ) < 0
+  ) {
     issues.push(issue(
       "evaluated_before_outcome_cutoff",
       `${target}.evaluatedAt`,
@@ -318,14 +326,28 @@ export function validatePersonaCalibrationLedger(
         "persona/version/jurisdiction/metric/segment/modelをrevisionで変更できません",
       ));
     }
-    if (Date.parse(record.evaluatedAt) <= Date.parse(previous.evaluatedAt)) {
+    if (
+      compareExplicitIso8601Instants(
+        record.evaluatedAt,
+        previous.evaluatedAt,
+        `calibration.${record.calibrationId}.evaluatedAt`,
+        `calibration.${previous.calibrationId}.evaluatedAt`,
+      ) <= 0
+    ) {
       issues.push(issue(
         "calibration_revision_time_not_monotonic",
         record.calibrationId,
         "evaluatedAtは直前recordより後である必要があります",
       ));
     }
-    if (Date.parse(record.outcomeCutoff) < Date.parse(previous.outcomeCutoff)) {
+    if (
+      compareExplicitIso8601Instants(
+        record.outcomeCutoff,
+        previous.outcomeCutoff,
+        `calibration.${record.calibrationId}.outcomeCutoff`,
+        `calibration.${previous.calibrationId}.outcomeCutoff`,
+      ) < 0
+    ) {
       issues.push(issue(
         "calibration_cutoff_regression",
         record.calibrationId,
@@ -415,14 +437,28 @@ export function validateVerdictCalibrationReferences(
         "calibrationのpersona/version/jurisdiction/modelがVerdictと一致しません",
       ));
     }
-    if (Date.parse(calibration.evaluatedAt) > Date.parse(verdict.issuedAt)) {
+    if (
+      compareExplicitIso8601Instants(
+        calibration.evaluatedAt,
+        verdict.issuedAt,
+        `calibration.${calibration.calibrationId}.evaluatedAt`,
+        `verdict.${verdict.personaId}.issuedAt`,
+      ) > 0
+    ) {
       issues.push(issue(
         "future_calibration_reference",
         verdict.personaId,
         "Verdict発行後に計算されたcalibrationを利用できません",
       ));
     }
-    if (Date.parse(calibration.outcomeCutoff) > Date.parse(verdict.informationCutoff)) {
+    if (
+      compareExplicitIso8601Instants(
+        calibration.outcomeCutoff,
+        verdict.informationCutoff,
+        `calibration.${calibration.calibrationId}.outcomeCutoff`,
+        `verdict.${verdict.personaId}.informationCutoff`,
+      ) > 0
+    ) {
       issues.push(issue(
         "calibration_outcome_after_verdict_cutoff",
         verdict.personaId,

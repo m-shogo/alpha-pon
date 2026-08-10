@@ -90,6 +90,7 @@ import "./research/outcome-learning-change-preparation.test.js";
 import "./research/outcome-learning-status.test.js";
 import "./research/recommendation-runtime-local-only.test.js";
 import "./research/foundation-decision-hypothesis-registration-instant.test.js";
+import "./research/stock-pro-council-calibration-fractional-ordering.test.js";
 import "./research/edge-decay-strict-date.test.js";
 import "./jquants-v2-date-cap.test.js";
 import { validateWatchlist } from "../src/validation.js";
