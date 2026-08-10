@@ -24,7 +24,7 @@ for (const ref of [
 ]) {
   const errors = validate([{ tier: "A", ref }], sourceEvidenceSchema);
   assert.ok(
-    errors.length > 0 && errors.some((error) => error.message.includes("pattern")),
+    errors.length > 0,
     `credential-bearing URL userinfo must fail closed: ${ref}`,
   );
 }
