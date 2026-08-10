@@ -483,8 +483,13 @@ export function validatePriceRecords(
 
   for (const group of byRevisionKey.values()) {
     group.sort((a, b) => {
-      const timeDiff = timeMs(a.observedAt) - timeMs(b.observedAt);
-      return timeDiff !== 0 ? timeDiff : a.contentHash.localeCompare(b.contentHash);
+      const instantOrder = compareExplicitIso8601Instants(
+        a.observedAt,
+        b.observedAt,
+        "priceRevision.observedAt",
+        "priceRevision.observedAt",
+      );
+      return instantOrder !== 0 ? instantOrder : a.contentHash.localeCompare(b.contentHash);
     });
     const root = group[0];
     if (root?.supersedesHash) {
@@ -498,7 +503,14 @@ export function validatePriceRecords(
       const previous = group[index - 1];
       const current = group[index];
       const target = targetOf(current);
-      if (timeMs(current.observedAt) <= timeMs(previous.observedAt)) {
+      if (
+        compareExplicitIso8601Instants(
+          current.observedAt,
+          previous.observedAt,
+          "priceRevision.current.observedAt",
+          "priceRevision.previous.observedAt",
+        ) <= 0
+      ) {
         pushIssue(issues, {
           code: "revision_time_not_monotonic",
           target,
@@ -636,8 +648,11 @@ export function selectPriceRecordsAsOf(
   selector: PriceSeriesSelector,
   boundary: PriceAvailabilityBoundary = "executable",
 ): PitPriceRecord[] {
-  const asOfMs = timeMs(asOf);
-  if (!Number.isFinite(asOfMs)) throw new Error(`invalid asOf: ${asOf}`);
+  try {
+    compareExplicitIso8601Instants(asOf, asOf, "asOf", "asOf");
+  } catch {
+    throw new Error(`invalid asOf: ${asOf}`);
+  }
 
   const selected = new Map<string, PitPriceRecord>();
   for (const record of records) {
@@ -645,18 +660,47 @@ export function selectPriceRecordsAsOf(
     if (selector.market && record.market !== selector.market) continue;
     if (selector.source && record.source !== selector.source) continue;
     if (selector.providerPlan && record.providerPlan !== selector.providerPlan) continue;
-    if (timeMs(record.observedAt) > asOfMs) continue;
+    if (
+      compareExplicitIso8601Instants(
+        record.observedAt,
+        asOf,
+        "priceRecord.observedAt",
+        "asOf",
+      ) > 0
+    ) continue;
     if (boundary === "executable") {
-      if (timeMs(record.retrievedAt) > asOfMs) continue;
-      if (timeMs(record.firstExecutableAt) > asOfMs) continue;
+      if (
+        compareExplicitIso8601Instants(
+          record.retrievedAt,
+          asOf,
+          "priceRecord.retrievedAt",
+          "asOf",
+        ) > 0
+      ) continue;
+      if (
+        compareExplicitIso8601Instants(
+          record.firstExecutableAt,
+          asOf,
+          "priceRecord.firstExecutableAt",
+          "asOf",
+        ) > 0
+      ) continue;
     }
 
     const key = `${record.market}:${record.tradingDate}:${record.source}:${record.providerPlan}`;
     const prior = selected.get(key);
+    const revisionOrder = prior
+      ? compareExplicitIso8601Instants(
+          prior.observedAt,
+          record.observedAt,
+          "priorPriceRecord.observedAt",
+          "priceRecord.observedAt",
+        )
+      : 0;
     if (
       !prior ||
-      timeMs(prior.observedAt) < timeMs(record.observedAt) ||
-      (timeMs(prior.observedAt) === timeMs(record.observedAt) && prior.contentHash > record.contentHash)
+      revisionOrder < 0 ||
+      (revisionOrder === 0 && prior.contentHash > record.contentHash)
     ) {
       selected.set(key, record);
     }
