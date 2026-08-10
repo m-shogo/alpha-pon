@@ -350,7 +350,14 @@ function addPriceBlockers(
   ) {
     blockers.push(`price_snapshot_identity_mismatch:${expectedRole}`);
   }
-  if (Date.parse(snapshot.observedAt) > Date.parse(record.informationCutoff)) {
+  if (
+    compareExplicitIso8601Instants(
+      snapshot.observedAt,
+      record.informationCutoff,
+      `priceSnapshot.${label}.observedAt`,
+      "decision.informationCutoff",
+    ) > 0
+  ) {
     blockers.push(`future_price_snapshot:${expectedRole}`);
   }
   return snapshot;
