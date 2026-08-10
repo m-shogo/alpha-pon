@@ -246,7 +246,12 @@ export function validateHypothesisScenarioLedgers(
         previous.scenarioId,
       ));
     }
-    if (Date.parse(record.createdAt) <= Date.parse(previous.createdAt)) {
+    if (compareExplicitIso8601Instants(
+      record.createdAt,
+      previous.createdAt,
+      `scenario:${record.scenarioId}.createdAt`,
+      `scenario:${previous.scenarioId}.createdAt`,
+    ) <= 0) {
       issues.push(issue(
         "scenario_created_at_not_monotonic",
         record.scenarioId,
