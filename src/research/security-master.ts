@@ -255,6 +255,9 @@ function rangesOverlap(
   return leftFrom <= rightEnd && rightFrom <= leftEnd;
 }
 
+const SECRET_LIKE_URL_PARAMETER =
+  /[?&#](?:subscription-key|api[_-]?key|token|password)=/i;
+
 function validHttpsUrl(value: string): boolean {
   try {
     const url = new URL(value);
@@ -262,7 +265,8 @@ function validHttpsUrl(value: string): boolean {
       url.protocol === "https:" &&
       Boolean(url.hostname) &&
       !url.username &&
-      !url.password
+      !url.password &&
+      !SECRET_LIKE_URL_PARAMETER.test(value)
     );
   } catch {
     return false;

@@ -335,6 +335,26 @@ function validMaster() {
   assert.ok(validateSecurityMaster([credentialLinkEntity], [], schemas)
     .some((issue) => issue.code === "invalid_official_url"));
 
+  for (const [index, url] of [
+    "https://example.com/ir?token=synthetic",
+    "https://example.com/ir?document=123&api_key=synthetic",
+    "https://example.com/ir#password=synthetic",
+    "https://example.com/ir#section&subscription-key=synthetic"
+  ].entries()) {
+    const secretParamLinkEntity = entity({
+      recordId: `entity:issuer:alpha:record:credential-param-${index}`,
+      officialLinks: [{
+        kind: "website",
+        url,
+        verificationStatus: "verified_official",
+        validFrom: "2020-01-01",
+        sourceRefs: [`source:web:credential-param-${index}`]
+      }]
+    });
+    assert.ok(validateSecurityMaster([secretParamLinkEntity], [], schemas)
+      .some((issue) => issue.code === "invalid_official_url"));
+  }
+
   const normalLinkEntity = entity({
     recordId: "entity:issuer:alpha:record:normal-url",
     officialLinks: [{
@@ -347,7 +367,7 @@ function validMaster() {
   });
   assert.equal(validateSecurityMaster([normalLinkEntity], [], schemas)
     .some((issue) => issue.code === "invalid_official_url"), false);
-  console.log("security-master: official URL userinfo credentials blocked OK");
+  console.log("security-master: official URL credentials blocked OK");
 }
 
 {
