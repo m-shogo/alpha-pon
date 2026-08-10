@@ -10,7 +10,7 @@ import {
   computeRecommendationHash,
   type RecommendationRecord,
 } from "./recommendation-persistence.js";
-import { parseExplicitIso8601Instant } from "./iso-instant.js";
+import { compareExplicitIso8601Instants, parseExplicitIso8601Instant } from "./iso-instant.js";
 
 export type OutcomeReviewDueStateKind =
   | "not_due"
@@ -73,15 +73,27 @@ function reviewedAtMs(value: string, target: string): number {
   }
 }
 
+function compareReviewedAt(left: string, right: string, target: string): -1 | 0 | 1 {
+  try {
+    return compareExplicitIso8601Instants(
+      left,
+      right,
+      `${target}.reviewedAt`,
+      `${target}.reviewedAt`,
+    );
+  } catch (error) {
+    throw new Error(`invalid ${target}.reviewedAt: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
 function latestByReviewedAt<T extends { reviewedAt: string }>(
   records: T[],
   tieBreaker: (record: T) => string,
   target: string,
 ): T | null {
   return [...records].sort((left, right) => {
-    const timeDiff = reviewedAtMs(right.reviewedAt, `${target}.reviewedAt`)
-      - reviewedAtMs(left.reviewedAt, `${target}.reviewedAt`);
-    return timeDiff !== 0 ? timeDiff : tieBreaker(left).localeCompare(tieBreaker(right));
+    const instantOrder = compareReviewedAt(right.reviewedAt, left.reviewedAt, target);
+    return instantOrder !== 0 ? instantOrder : tieBreaker(left).localeCompare(tieBreaker(right));
   })[0] ?? null;
 }
 
