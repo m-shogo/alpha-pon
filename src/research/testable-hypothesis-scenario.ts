@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { ClaimRecord } from "./claim-contradiction-graph.js";
 import type { EvidencePackageManifest } from "./evidence-package-manifest.js";
+import { compareExplicitIso8601Instants } from "./iso-instant.js";
 import { stableStringify, validate, type JsonSchema } from "./schema.js";
 
 export type HypothesisClass =
@@ -341,6 +342,15 @@ function overlapIssues(
   return issues;
 }
 
+function instantOrder(
+  left: string,
+  right: string,
+  leftField: string,
+  rightField: string,
+): -1 | 0 | 1 {
+  return compareExplicitIso8601Instants(left, right, leftField, rightField);
+}
+
 function validateRegistrationTime(
   status: HypothesisStatus | ScenarioStatus,
   createdAt: string,
@@ -351,7 +361,14 @@ function validateRegistrationTime(
   if (status === "registered") {
     if (!registeredAt) {
       issues.push(issue("registered_record_without_registered_at", target, "registeredAt is required"));
-    } else if (Date.parse(registeredAt) < Date.parse(createdAt)) {
+    } else if (
+      instantOrder(
+        registeredAt,
+        createdAt,
+        `${target}.registeredAt`,
+        `${target}.createdAt`,
+      ) < 0
+    ) {
       issues.push(issue(
         "registered_before_created",
         target,
@@ -381,7 +398,14 @@ export function validateTestableHypothesisRecord(
   if (record.contentHash !== computeTestableHypothesisHash(record)) {
     issues.push(issue("invalid_hypothesis_hash", target, "contentHash mismatch"));
   }
-  if (Date.parse(record.createdAt) < Date.parse(record.informationCutoff)) {
+  if (
+    instantOrder(
+      record.createdAt,
+      record.informationCutoff,
+      `${target}.createdAt`,
+      `${target}.informationCutoff`,
+    ) < 0
+  ) {
     issues.push(issue(
       "hypothesis_created_before_cutoff",
       target,
@@ -503,7 +527,14 @@ export function validateTestableHypothesisRecord(
     ));
   }
   for (const condition of record.falsificationConditions) {
-    if (Date.parse(condition.checkBy) <= Date.parse(record.informationCutoff)) {
+    if (
+      instantOrder(
+        condition.checkBy,
+        record.informationCutoff,
+        `${target}.${condition.conditionId}.checkBy`,
+        `${target}.informationCutoff`,
+      ) <= 0
+    ) {
       issues.push(issue(
         "falsification_deadline_not_after_cutoff",
         `${target}:${condition.conditionId}`,
@@ -512,14 +543,27 @@ export function validateTestableHypothesisRecord(
     }
   }
   if (record.status === "registered" && record.registeredAt) {
-    const earliestCheck = Math.min(
-      ...record.falsificationConditions.map((condition) => Date.parse(condition.checkBy)),
-    );
-    if (Date.parse(record.registeredAt) >= earliestCheck) {
+    const earliestCheck = record.falsificationConditions
+      .map((condition) => condition.checkBy)
+      .sort((left, right) => instantOrder(
+        left,
+        right,
+        `${target}.falsification.checkBy`,
+        `${target}.falsification.checkBy`,
+      ))[0];
+    if (
+      earliestCheck &&
+      instantOrder(
+        record.registeredAt,
+        earliestCheck,
+        `${target}.registeredAt`,
+        `${target}.falsification.checkBy`,
+      ) >= 0
+    ) {
       issues.push(issue(
         "hypothesis_registered_after_falsification_window",
         target,
-        `${record.registeredAt} >= ${new Date(earliestCheck).toISOString()}`,
+        `${record.registeredAt} >= ${earliestCheck}`,
       ));
     }
   }
@@ -569,7 +613,14 @@ export function validateHypothesisScenarioRecord(
       "scenario hypothesis/package/cutoff mismatch",
     ));
   }
-  if (Date.parse(record.createdAt) < Date.parse(record.informationCutoff)) {
+  if (
+    instantOrder(
+      record.createdAt,
+      record.informationCutoff,
+      `${target}.createdAt`,
+      `${target}.informationCutoff`,
+    ) < 0
+  ) {
     issues.push(issue(
       "scenario_created_before_cutoff",
       target,
@@ -617,7 +668,14 @@ export function validateHypothesisScenarioRecord(
     ...record.triggerConditions,
     ...record.invalidationConditions,
   ]) {
-    if (Date.parse(condition.checkBy) <= Date.parse(record.informationCutoff)) {
+    if (
+      instantOrder(
+        condition.checkBy,
+        record.informationCutoff,
+        `${target}.condition.checkBy`,
+        `${target}.informationCutoff`,
+      ) <= 0
+    ) {
       issues.push(issue(
         "scenario_condition_deadline_not_after_cutoff",
         target,
@@ -759,7 +817,14 @@ export function validateHypothesisScenarioSet(
   if (record.status === "registered") {
     if (!record.registeredAt) {
       issues.push(issue("registered_scenario_set_without_registered_at", target, "registeredAt required"));
-    } else if (Date.parse(record.registeredAt) < Date.parse(record.createdAt)) {
+    } else if (
+      instantOrder(
+        record.registeredAt,
+        record.createdAt,
+        `${target}.registeredAt`,
+        `${target}.createdAt`,
+      ) < 0
+    ) {
       issues.push(issue("scenario_set_registered_before_created", target, record.registeredAt));
     }
   } else if (record.registeredAt) {
