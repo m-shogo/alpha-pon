@@ -110,6 +110,18 @@ function codes(issues: ReturnType<typeof validateCorporateActionClearanceRecord>
 }
 
 {
+  const input = baseInput();
+  input.sourceEvidence = [{ tier: "A", ref: "https://user:password@example.invalid/actions" }];
+  const issues = validateCorporateActionClearanceRecord(
+    withCorporateActionClearanceHash(input),
+    schema,
+    context(),
+  );
+  assert.ok(codes(issues).includes("secret_like_evidence_ref"));
+  console.log("corporate-action-clearance: URL userinfo credentials are rejected OK");
+}
+
+{
   const invalidTier = {
     ...baseInput(),
     sourceEvidence: [{ tier: "C", ref: "discovery:news:001" }],
