@@ -74,6 +74,26 @@ function codes(issues: ReturnType<typeof validateCorporateActionClearanceRecord>
 }
 
 {
+  const ref = "official:fractional-future:001";
+  const input = baseInput();
+  input.assessedAt = "2026-08-14T10:00:00.000000001+09:00";
+  input.sourceEvidence = [{ tier: "A", ref }];
+  const fractionalContext: CorporateActionClearanceContext = {
+    evidenceByRef: new Map([
+      ...context().evidenceByRef,
+      [ref, { tier: "A", observedAt: "2026-08-14T10:00:00.000000002+09:00" }],
+    ]),
+  };
+  const issues = validateCorporateActionClearanceRecord(
+    withCorporateActionClearanceHash(input),
+    schema,
+    fractionalContext,
+  );
+  assert.ok(codes(issues).includes("future_evidence"));
+  console.log("corporate-action-clearance: 1ns post-assessment Evidence is rejected OK");
+}
+
+{
   const input = baseInput();
   input.sourceEvidence = [{ tier: "A", ref: "official:timezone-less:001" }];
   const issues = validateCorporateActionClearanceRecord(
@@ -179,6 +199,21 @@ function codes(issues: ReturnType<typeof validateCorporateActionClearanceRecord>
   );
   assert.equal(readFileSync(path, "utf-8"), beforeRejectedAppend);
   console.log("corporate-action-clearance: rejected append keeps prior history byte-for-byte unchanged OK");
+}
+
+{
+  const rootInput = baseInput();
+  rootInput.clearanceId = "ca-clearance:fractional:v1";
+  rootInput.assessedAt = "2026-08-14T10:00:00.000000001+09:00";
+  const root = withCorporateActionClearanceHash(rootInput);
+  const revisionInput = baseInput();
+  revisionInput.clearanceId = "ca-clearance:fractional:v2";
+  revisionInput.assessedAt = "2026-08-14T10:00:00.000000002+09:00";
+  revisionInput.supersedesClearanceId = root.clearanceId;
+  const revision = withCorporateActionClearanceHash(revisionInput);
+  const issues = validateCorporateActionClearanceRecords([root, revision], schema, context());
+  assert.ok(!issues.some((candidate) => candidate.code === "clearance_assessed_at_not_monotonic"));
+  console.log("corporate-action-clearance: 1ns revision progression remains chronologically valid OK");
 }
 
 console.log("corporate-action-clearance.test.ts passed");
