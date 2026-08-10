@@ -10,7 +10,7 @@ const sourceEvidenceSchema = properties.sourceEvidence!;
 
 assert.deepEqual(
   validate(
-    [{ tier: "A", ref: "https://example.com/evidence?document=123" }],
+    [{ tier: "A", ref: "https://example.com/evidence?document=123#section-2" }],
     sourceEvidenceSchema,
   ),
   [],
@@ -21,11 +21,14 @@ for (const ref of [
   "https://user:password@example.com/evidence",
   "https://token@example.com/evidence",
   "custom+https://user@example.com/evidence",
+  "https://example.com/evidence#token=secret",
+  "https://example.com/evidence#section&api_key=secret",
+  "https://example.com/evidence#password=secret",
 ]) {
   const errors = validate([{ tier: "A", ref }], sourceEvidenceSchema);
   assert.ok(
     errors.length > 0,
-    `credential-bearing URL userinfo must fail closed: ${ref}`,
+    `credential-bearing Evidence URL must fail closed: ${ref}`,
   );
 }
 
