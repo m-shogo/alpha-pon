@@ -42,10 +42,31 @@ export function dateOnly(value: string | null | undefined): string | null {
   return value.slice(0, 10)
 }
 
+function calendarDateUtcMs(value: string): number | null {
+  const date = value.slice(0, 10)
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date)
+  if (!match) return null
+
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  if (year < 1 || month < 1 || month > 12 || day < 1) return null
+
+  const utcMs = Date.UTC(year, month - 1, day)
+  const parsed = new Date(utcMs)
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) return null
+
+  return utcMs
+}
+
 export function daysBetweenJst(fromDate: string, toDate: string): number | null {
-  const from = Date.parse(`${fromDate.slice(0, 10)}T00:00:00+09:00`)
-  const to = Date.parse(`${toDate.slice(0, 10)}T00:00:00+09:00`)
-  if (!Number.isFinite(from) || !Number.isFinite(to)) return null
+  const from = calendarDateUtcMs(fromDate)
+  const to = calendarDateUtcMs(toDate)
+  if (from == null || to == null) return null
   return Math.ceil((to - from) / 86400000)
 }
 
