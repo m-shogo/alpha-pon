@@ -154,4 +154,52 @@ import {
   console.log("security-master-repository: future effective head cannot erase historical entity snapshot OK");
 }
 
+{
+  const dir = mkdtempSync(join(tmpdir(), "security-master-repository-end-of-day-"));
+  const entitiesPath = join(dir, "entities.jsonl");
+  const relationshipsPath = join(dir, "relationships.jsonl");
+  const endOfDay = withSecurityEntityHash({
+    schemaVersion: 1,
+    recordId: "entity:issuer:end-of-day:record:001",
+    entityId: "entity:issuer:end-of-day",
+    entityType: "legal_entity",
+    canonicalName: "End Of Day株式会社",
+    jurisdiction: "JP",
+    validFrom: "2020-01-01",
+    status: "active",
+    names: [{
+      name: "End Of Day株式会社",
+      kind: "legal",
+      language: "ja",
+      validFrom: "2020-01-01",
+      sourceRefs: ["source:name:end-of-day"],
+    }],
+    identifiers: [{
+      type: "internal",
+      value: "entity:issuer:end-of-day",
+      validFrom: "2020-01-01",
+      confidence: "verified",
+      sourceRefs: ["source:id:end-of-day"],
+    }],
+    officialLinks: [],
+    sourceRefs: ["source:entity:end-of-day"],
+    observedAt: "2026-08-05T23:59:59.999999998+09:00",
+    retrievedAt: "2026-08-05T23:59:59.999999999+09:00",
+  });
+  try {
+    writeFileSync(entitiesPath, `${JSON.stringify(endOfDay)}\n`, "utf-8");
+    writeFileSync(relationshipsPath, "", "utf-8");
+    const result = validateSecurityMasterRepository({
+      entitiesPath,
+      relationshipsPath,
+      asOf: "2026-08-05",
+    });
+    assert.equal(result.issues.some((issue) => issue.severity === "error"), false);
+    assert.deepEqual(result.snapshot.entities.map((record) => record.recordId), [endOfDay.recordId]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  console.log("security-master-repository: full fractional end-of-day cutoff preserved OK");
+}
+
 console.log("security-master-repository: 全テスト成功");
