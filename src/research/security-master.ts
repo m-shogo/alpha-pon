@@ -11,7 +11,10 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname } from "node:path";
-import { parseExplicitIso8601Instant } from "./iso-instant.js";
+import {
+  compareExplicitIso8601Instants,
+  parseExplicitIso8601Instant,
+} from "./iso-instant.js";
 import { isValidDate, stableStringify, validate, type JsonSchema } from "./schema.js";
 
 export type SecurityEntityType =
@@ -309,7 +312,7 @@ export function validateSecurityEntityRecord(
   if (record.contentHash !== computeSecurityEntityHash(record)) {
     issues.push(issue("invalid_content_hash", target, "entity contentHashが一致しません"));
   }
-  if (Date.parse(record.retrievedAt) < Date.parse(record.observedAt)) {
+  if (compareExplicitIso8601Instants(record.retrievedAt, record.observedAt) < 0) {
     issues.push(issue(
       "retrieved_before_observed",
       target,
@@ -435,7 +438,7 @@ export function validateSecurityRelationshipRecord(
   if (record.contentHash !== computeSecurityRelationshipHash(record)) {
     issues.push(issue("invalid_content_hash", target, "relationship contentHashが一致しません"));
   }
-  if (Date.parse(record.retrievedAt) < Date.parse(record.observedAt)) {
+  if (compareExplicitIso8601Instants(record.retrievedAt, record.observedAt) < 0) {
     issues.push(issue(
       "retrieved_before_observed",
       target,
@@ -524,7 +527,7 @@ function validateEntityRevisions(
         "entityId/entityTypeをrevisionで変更できません",
       ));
     }
-    if (Date.parse(record.observedAt) <= Date.parse(previous.observedAt)) {
+    if (compareExplicitIso8601Instants(record.observedAt, previous.observedAt) <= 0) {
       issues.push(issue(
         "entity_revision_time_not_monotonic",
         record.recordId,
@@ -563,7 +566,7 @@ function validateRelationshipRevisions(
         "relationship identityをrevisionで変更できません",
       ));
     }
-    if (Date.parse(record.observedAt) <= Date.parse(previous.observedAt)) {
+    if (compareExplicitIso8601Instants(record.observedAt, previous.observedAt) <= 0) {
       issues.push(issue(
         "relationship_revision_time_not_monotonic",
         record.recordId,
