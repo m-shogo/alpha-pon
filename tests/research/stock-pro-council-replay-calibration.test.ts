@@ -188,6 +188,18 @@ function supportedVerdicts(confidence = 0.7): PersonaVerdict[] {
 }
 
 {
+  const calibrated = calibration({ evaluatedAt: "2026-08-06T01:00:00.000000001+09:00" });
+  const pkg = makePackage(supportedVerdicts(), [calibrated]);
+  assert.ok(validateCalibrationAwareCouncilReplayPackage(
+    pkg,
+    replaySchemas,
+    calibrationSchema,
+    catalog,
+  ).some((issue) => issue.code === "calibration_after_replay_manifest"));
+  console.log("stock-pro-council-replay-calibration: fractional future calibration block OK");
+}
+
+{
   const calibrated = calibration();
   const verdicts = supportedVerdicts().map((record) =>
     record.personaId === "data_pit_auditor"
