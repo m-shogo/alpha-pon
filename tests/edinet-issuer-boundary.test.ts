@@ -129,4 +129,21 @@ function registryFixture() {
   console.log("edinet-issuer-boundary: automatic promotion and PDF-review weakening blocked OK");
 }
 
+{
+  const missingTimezone = registryFixture();
+  missingTimezone.generatedAt = "2026-08-06T10:45:00";
+  assert.throws(
+    () => buildEdinetIssuerRegistry(missingTimezone),
+    /explicit timezone|timezone offset|ISO/i,
+  );
+
+  const impossibleCalendarInstant = registryFixture();
+  impossibleCalendarInstant.generatedAt = "2026-02-30T10:45:00Z";
+  assert.throws(
+    () => buildEdinetIssuerRegistry(impossibleCalendarInstant),
+    /invalid|ISO|date/i,
+  );
+  console.log("edinet-issuer-boundary: strict generatedAt instant guards OK");
+}
+
 console.log("edinet-issuer-boundary.test.ts passed");
