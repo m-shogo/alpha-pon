@@ -1,5 +1,6 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import { compareExplicitIso8601Instants } from "../research/iso-instant.js";
 import {
   MARKET_EVENT_SCHEMA_VERSION,
   assertIsoTimestamp,
@@ -154,7 +155,15 @@ export function buildLatestEventProjection(records: MarketEventLedgerRecord[]): 
   for (const record of records) {
     if (record.recordType !== "MARKET_EVENT") continue;
     const existing = projection.get(record.payload.eventId);
-    if (!existing || Date.parse(record.payload.updatedAt) >= Date.parse(existing.updatedAt)) {
+    if (
+      !existing ||
+      compareExplicitIso8601Instants(
+        record.payload.updatedAt,
+        existing.updatedAt,
+        "market event updatedAt",
+        "existing market event updatedAt",
+      ) >= 0
+    ) {
       projection.set(record.payload.eventId, record.payload);
     }
   }
