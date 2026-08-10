@@ -144,5 +144,28 @@ assert.deepEqual(codes("2026-08-20T10:00:00+09:00"), []);
 assert.ok(codes("2026-08-20T10:00:00").includes("invalid_review_evidence_observed_at"));
 assert.ok(codes("2026-02-29T10:00:00+09:00").includes("invalid_review_evidence_observed_at"));
 assert.ok(codes("2026-08-20T11:30:00+09:00").includes("future_review_evidence"));
+assert.ok(
+  codes("2026-08-20T11:00:00.000000001+09:00").includes("future_review_evidence"),
+  "Evidence one nanosecond after evidenceCutoff must remain future instead of collapsing to the same millisecond",
+);
+
+{
+  const original = reviewFor("evidence:review:instant");
+  const { contentHash: _contentHash, ...input } = original;
+  const record = withOutcomeSemanticReviewHash({
+    ...input,
+    reviewedAt: "2026-08-20T12:00:00.000000000+09:00",
+    evidenceCutoff: "2026-08-20T12:00:00.000000001+09:00",
+  });
+  const reviewCodes = validateOutcomeSemanticReviewRecord(
+    record,
+    schema,
+    context("2026-08-20T11:00:00+09:00"),
+  ).map((item) => item.code);
+  assert.ok(
+    reviewCodes.includes("evidence_cutoff_after_review"),
+    "evidenceCutoff one nanosecond after reviewedAt must fail closed",
+  );
+}
 
 console.log("outcome-semantic-review-evidence-instant.test.ts passed");
