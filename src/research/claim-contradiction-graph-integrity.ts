@@ -4,9 +4,15 @@ import type {
   ClaimGraphIssue,
   ClaimRecord,
 } from "./claim-contradiction-graph.js";
+import { compareExplicitIso8601Instants } from "./iso-instant.js";
 
-function timeMs(value: string): number {
-  return Date.parse(value);
+function before(
+  left: string,
+  right: string,
+  leftTarget: string,
+  rightTarget: string,
+): boolean {
+  return compareExplicitIso8601Instants(left, right, leftTarget, rightTarget) < 0;
 }
 
 function issue(code: string, target: string, message: string): ClaimGraphIssue {
@@ -34,14 +40,24 @@ export function validateClaimGraphEndpointChronology(
 
     for (const endpoint of [fromClaim, toClaim]) {
       if (!endpoint) continue;
-      if (timeMs(edge.observedAt) < timeMs(endpoint.observedAt)) {
+      if (before(
+        edge.observedAt,
+        endpoint.observedAt,
+        `${target}.observedAt`,
+        `claim:${endpoint.claimId}:${endpoint.recordId}.observedAt`,
+      )) {
         issues.push(issue(
           "claim_edge_observed_before_claim_endpoint",
           target,
           `${edge.observedAt} < ${endpoint.claimId}:${endpoint.observedAt}`,
         ));
       }
-      if (timeMs(edge.retrievedAt) < timeMs(endpoint.retrievedAt)) {
+      if (before(
+        edge.retrievedAt,
+        endpoint.retrievedAt,
+        `${target}.retrievedAt`,
+        `claim:${endpoint.claimId}:${endpoint.recordId}.retrievedAt`,
+      )) {
         issues.push(issue(
           "claim_edge_retrieved_before_claim_endpoint",
           target,
@@ -51,14 +67,24 @@ export function validateClaimGraphEndpointChronology(
     }
 
     if (fromEvidence) {
-      if (timeMs(edge.observedAt) < timeMs(fromEvidence.observedAt)) {
+      if (before(
+        edge.observedAt,
+        fromEvidence.observedAt,
+        `${target}.observedAt`,
+        `evidence:${fromEvidence.evidenceId}:${fromEvidence.recordId}.observedAt`,
+      )) {
         issues.push(issue(
           "claim_edge_observed_before_evidence_endpoint",
           target,
           `${edge.observedAt} < ${fromEvidence.evidenceId}:${fromEvidence.observedAt}`,
         ));
       }
-      if (timeMs(edge.retrievedAt) < timeMs(fromEvidence.retrievedAt)) {
+      if (before(
+        edge.retrievedAt,
+        fromEvidence.retrievedAt,
+        `${target}.retrievedAt`,
+        `evidence:${fromEvidence.evidenceId}:${fromEvidence.recordId}.retrievedAt`,
+      )) {
         issues.push(issue(
           "claim_edge_retrieved_before_evidence_endpoint",
           target,
@@ -82,7 +108,12 @@ export function validateClaimGraphEndpointChronology(
       ["corrects", "supersedes", "invalidates", "expires"].includes(edge.relationType) &&
       fromClaim &&
       toClaim &&
-      timeMs(fromClaim.observedAt) < timeMs(toClaim.observedAt)
+      before(
+        fromClaim.observedAt,
+        toClaim.observedAt,
+        `claim:${fromClaim.claimId}:${fromClaim.recordId}.observedAt`,
+        `claim:${toClaim.claimId}:${toClaim.recordId}.observedAt`,
+      )
     ) {
       issues.push(issue(
         "claim_disposition_from_older_claim",
