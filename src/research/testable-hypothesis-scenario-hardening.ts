@@ -14,6 +14,7 @@ import {
   type TestableHypothesisRecord,
 } from "./testable-hypothesis-scenario.js";
 import type { ClaimRecord } from "./claim-contradiction-graph.js";
+import { compareExplicitIso8601Instants } from "./iso-instant.js";
 import { stableStringify } from "./schema.js";
 
 function issue(
@@ -32,24 +33,56 @@ function sortIssues(issues: HypothesisScenarioIssue[]): HypothesisScenarioIssue[
   );
 }
 
+function compareInstants(
+  left: string,
+  right: string,
+  leftTarget: string,
+  rightTarget: string,
+): -1 | 0 | 1 {
+  return compareExplicitIso8601Instants(left, right, leftTarget, rightTarget);
+}
+
 function earliestScenarioCheck(
   scenarios: HypothesisScenarioRecord[],
-): number {
-  return Math.min(...scenarios.flatMap((scenario) => [
-    ...scenario.triggerConditions.map((condition) => Date.parse(condition.checkBy)),
-    ...scenario.invalidationConditions.map((condition) => Date.parse(condition.checkBy)),
-  ]));
+): { value: string; target: string } {
+  const candidates = scenarios.flatMap((scenario) => [
+    ...scenario.triggerConditions.map((condition) => ({
+      value: condition.checkBy,
+      target: `Scenario ${scenario.scenarioId} trigger ${condition.triggerId}.checkBy`,
+    })),
+    ...scenario.invalidationConditions.map((condition) => ({
+      value: condition.checkBy,
+      target: `Scenario ${scenario.scenarioId} invalidation ${condition.conditionId}.checkBy`,
+    })),
+  ]);
+  if (candidates.length === 0) {
+    throw new Error("scenario check window is empty");
+  }
+  return candidates.reduce((earliest, candidate) =>
+    compareInstants(candidate.value, earliest.value, candidate.target, earliest.target) < 0
+      ? candidate
+      : earliest,
+  );
 }
 
 function latestComponentRegistration(
   hypothesis: TestableHypothesisRecord,
   scenarios: HypothesisScenarioRecord[],
-): number {
-  return Math.max(
-    Date.parse(hypothesis.registeredAt ?? hypothesis.createdAt),
-    ...scenarios.map((scenario) =>
-      Date.parse(scenario.registeredAt ?? scenario.createdAt),
-    ),
+): { value: string; target: string } {
+  const candidates = [
+    {
+      value: hypothesis.registeredAt ?? hypothesis.createdAt,
+      target: `Hypothesis ${hypothesis.hypothesisId}.${hypothesis.registeredAt ? "registeredAt" : "createdAt"}`,
+    },
+    ...scenarios.map((scenario) => ({
+      value: scenario.registeredAt ?? scenario.createdAt,
+      target: `Scenario ${scenario.scenarioId}.${scenario.registeredAt ? "registeredAt" : "createdAt"}`,
+    })),
+  ];
+  return candidates.reduce((latest, candidate) =>
+    compareInstants(candidate.value, latest.value, candidate.target, latest.target) > 0
+      ? candidate
+      : latest,
   );
 }
 
@@ -78,11 +111,16 @@ export function validateHypothesisScenarioRecordGoverned(
   }
   if (record.status === "registered" && record.registeredAt) {
     const earliestCheck = earliestScenarioCheck([record]);
-    if (Date.parse(record.registeredAt) >= earliestCheck) {
+    if (compareInstants(
+      record.registeredAt,
+      earliestCheck.value,
+      `Scenario ${record.scenarioId}.registeredAt`,
+      earliestCheck.target,
+    ) >= 0) {
       issues.push(issue(
         "scenario_registered_after_check_window",
         target,
-        `${record.registeredAt} >= ${new Date(earliestCheck).toISOString()}`,
+        `${record.registeredAt} >= ${earliestCheck.value}`,
       ));
     }
   }
@@ -100,18 +138,39 @@ function governedSetBlockers(
   if (!request.registeredAt) {
     blockers.push("scenario_set_registered_at_missing");
   }
-  if (Date.parse(request.createdAt) < Date.parse(hypothesis.informationCutoff)) {
+  if (compareInstants(
+    request.createdAt,
+    hypothesis.informationCutoff,
+    `Scenario Set ${request.scenarioSetId}.createdAt`,
+    `Hypothesis ${hypothesis.hypothesisId}.informationCutoff`,
+  ) < 0) {
     blockers.push("scenario_set_created_before_cutoff");
   }
   if (request.registeredAt) {
-    const registeredAt = Date.parse(request.registeredAt);
-    if (registeredAt < Date.parse(request.createdAt)) {
+    if (compareInstants(
+      request.registeredAt,
+      request.createdAt,
+      `Scenario Set ${request.scenarioSetId}.registeredAt`,
+      `Scenario Set ${request.scenarioSetId}.createdAt`,
+    ) < 0) {
       blockers.push("scenario_set_registered_before_created");
     }
-    if (registeredAt < latestComponentRegistration(hypothesis, scenarios)) {
+    const latestRegistration = latestComponentRegistration(hypothesis, scenarios);
+    if (compareInstants(
+      request.registeredAt,
+      latestRegistration.value,
+      `Scenario Set ${request.scenarioSetId}.registeredAt`,
+      latestRegistration.target,
+    ) < 0) {
       blockers.push("scenario_set_registered_before_components");
     }
-    if (registeredAt >= earliestScenarioCheck(scenarios)) {
+    const earliestCheck = earliestScenarioCheck(scenarios);
+    if (compareInstants(
+      request.registeredAt,
+      earliestCheck.value,
+      `Scenario Set ${request.scenarioSetId}.registeredAt`,
+      earliestCheck.target,
+    ) >= 0) {
       blockers.push("scenario_set_registered_after_check_window");
     }
   }
