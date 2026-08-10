@@ -43,6 +43,22 @@ function testFutureTimestampUsesInstantOrdering() {
   console.log("research/pit: timezone offsetを跨ぐ未来時刻の検出 OK");
 }
 
+function testSubMillisecondFutureTimestampRejected() {
+  const now = new Date("2026-08-04T03:00:00.000Z");
+  const analog = makeAnalog({
+    id: "sub-ms-future",
+    eventDate: "2026-08-04",
+    observedAt: "2026-08-04T03:00:00.000000001Z",
+    recordedAt: "2026-08-04",
+  });
+  const issues = checkPit(makeState({ analogs: [analog] }), now);
+  assert.ok(
+    issues.some((issue) => issue.code === "future_timestamp" && issue.target === "sub-ms-future"),
+    "same-millisecond future observedAt must not collapse to the Date millisecond cutoff",
+  );
+  console.log("research/pit: sub-millisecond future timestamp rejected OK");
+}
+
 function testImplicitAndImpossibleInstantsRejected() {
   const implicit = makeAnalog({ id: "implicit-timezone", eventDate: "2024-01-04", observedAt: "2024-01-04T15:30:00" });
   const impossible = makeAnalog({
@@ -98,6 +114,7 @@ testJstConversion();
 testSameCloseEntryWindow();
 testFutureTimestampRejected();
 testFutureTimestampUsesInstantOrdering();
+testSubMillisecondFutureTimestampRejected();
 testImplicitAndImpossibleInstantsRejected();
 testObservedBeforeEventRejected();
 testOutcomeBeforeEventRejected();

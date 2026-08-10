@@ -5,7 +5,10 @@
 // observedAt（情報が公になった時刻）が全データの基準になる。
 
 import type { Issue } from "./edge-registry.js";
-import { parseExplicitIso8601Instant } from "./iso-instant.js";
+import {
+  compareExplicitIso8601Instants,
+  parseExplicitIso8601Instant,
+} from "./iso-instant.js";
 import type { ResearchState } from "./types.js";
 
 /** 東証の当日引け（JST 15:30）。same_close エントリの可否判定に使う。 */
@@ -56,7 +59,8 @@ export function checkPit(state: ResearchState, now: Date = new Date()): Issue[] 
   if (!Number.isFinite(nowMs)) {
     throw new Error("checkPit now must be a valid Date");
   }
-  const today = jstDateOf(now.toISOString());
+  const nowInstant = now.toISOString();
+  const today = jstDateOf(nowInstant);
 
   const future = (target: string, field: string, value: string) => {
     issues.push({
@@ -81,6 +85,9 @@ export function checkPit(state: ResearchState, now: Date = new Date()): Issue[] 
     }
   };
 
+  const isFutureInstant = (value: string): boolean =>
+    compareExplicitIso8601Instants(value, nowInstant, "timestamp", "now") > 0;
+
   const dateInJst = (instantMs: number): string => new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Asia/Tokyo",
     year: "numeric",
@@ -95,7 +102,7 @@ export function checkPit(state: ResearchState, now: Date = new Date()): Issue[] 
     for (const [index, evidence] of (edge.evidence ?? []).entries()) {
       const target = `${edge.id}.evidence[${index}]`;
       const observedMs = instant(target, "observedAt", evidence.observedAt);
-      if (observedMs !== null && observedMs > nowMs) future(target, "observedAt", evidence.observedAt);
+      if (observedMs !== null && isFutureInstant(evidence.observedAt)) future(target, "observedAt", evidence.observedAt);
       const observedDate = observedMs === null ? null : dateInJst(observedMs);
       if (evidence.eventDate && observedDate !== null && observedDate < evidence.eventDate) {
         issues.push({
@@ -123,7 +130,7 @@ export function checkPit(state: ResearchState, now: Date = new Date()): Issue[] 
 
   for (const analog of state.analogs) {
     const observedMs = instant(analog.id, "observedAt", analog.observedAt);
-    if (observedMs !== null && observedMs > nowMs) future(analog.id, "observedAt", analog.observedAt);
+    if (observedMs !== null && isFutureInstant(analog.observedAt)) future(analog.id, "observedAt", analog.observedAt);
     if (analog.recordedAt > today) future(analog.id, "recordedAt", analog.recordedAt);
     if (analog.eventDate > today) future(analog.id, "eventDate", analog.eventDate);
 
@@ -198,7 +205,7 @@ export function checkPit(state: ResearchState, now: Date = new Date()): Issue[] 
 
   for (const cf of state.counterfactuals) {
     const observedMs = instant(cf.id, "observedAt", cf.observedAt);
-    if (observedMs !== null && observedMs > nowMs) future(cf.id, "observedAt", cf.observedAt);
+    if (observedMs !== null && isFutureInstant(cf.observedAt)) future(cf.id, "observedAt", cf.observedAt);
     if (cf.recordedAt > today) future(cf.id, "recordedAt", cf.recordedAt);
   }
   for (const confounder of state.confounders) {
@@ -206,7 +213,7 @@ export function checkPit(state: ResearchState, now: Date = new Date()): Issue[] 
   }
   if (state.checkpoint) {
     const savedMs = instant("checkpoint", "savedAt", state.checkpoint.savedAt);
-    if (savedMs !== null && savedMs > nowMs) future("checkpoint", "savedAt", state.checkpoint.savedAt);
+    if (savedMs !== null && isFutureInstant(state.checkpoint.savedAt)) future("checkpoint", "savedAt", state.checkpoint.savedAt);
   }
 
   return issues;
