@@ -413,7 +413,15 @@ export function assessFoundationDecisionRecord(
       blockers.push("hypothesis_hash_mismatch");
     }
     if (hypothesis.status !== "registered") blockers.push("hypothesis_not_registered");
-    if (!hypothesis.registeredAt || Date.parse(hypothesis.registeredAt) > Date.parse(record.issuedAt)) {
+    if (
+      !hypothesis.registeredAt ||
+      compareExplicitIso8601Instants(
+        hypothesis.registeredAt,
+        record.issuedAt,
+        "hypothesis.registeredAt",
+        "decision.issuedAt",
+      ) > 0
+    ) {
       blockers.push("hypothesis_registration_time_invalid");
     }
     if (
