@@ -308,7 +308,15 @@ function addScenarioBlockers(
   }
   if (scenario.scenarioType !== expectedType) blockers.push(`scenario_type_mismatch:${label}`);
   if (scenario.status !== "registered") blockers.push(`scenario_not_registered:${expectedType}`);
-  if (!scenario.registeredAt || Date.parse(scenario.registeredAt) > Date.parse(record.issuedAt)) {
+  if (
+    !scenario.registeredAt ||
+    compareExplicitIso8601Instants(
+      scenario.registeredAt,
+      record.issuedAt,
+      `scenario.${label}.registeredAt`,
+      "decision.issuedAt",
+    ) > 0
+  ) {
     blockers.push(`scenario_registration_time_invalid:${expectedType}`);
   }
   if (
