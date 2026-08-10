@@ -257,6 +257,20 @@ function rangesOverlap(
 
 const SECRET_LIKE_URL_PARAMETER =
   /[?&#](?:subscription-key|api[_-]?key|token|password)=/i;
+const SECRET_LIKE_URL_PARAMETER_KEY =
+  /^(?:subscription-key|api[_-]?key|token|password)(?:=|$)/i;
+
+function hasDecodedSecretLikeUrlParameter(url: URL): boolean {
+  for (const key of url.searchParams.keys()) {
+    if (SECRET_LIKE_URL_PARAMETER_KEY.test(key)) return true;
+  }
+  const fragment = url.hash.startsWith("#") ? url.hash.slice(1) : url.hash;
+  const fragmentParams = new URLSearchParams(fragment.replace(/\?/g, "&"));
+  for (const key of fragmentParams.keys()) {
+    if (SECRET_LIKE_URL_PARAMETER_KEY.test(key)) return true;
+  }
+  return false;
+}
 
 function validHttpsUrl(value: string): boolean {
   try {
@@ -266,7 +280,8 @@ function validHttpsUrl(value: string): boolean {
       Boolean(url.hostname) &&
       !url.username &&
       !url.password &&
-      !SECRET_LIKE_URL_PARAMETER.test(value)
+      !SECRET_LIKE_URL_PARAMETER.test(value) &&
+      !hasDecodedSecretLikeUrlParameter(url)
     );
   } catch {
     return false;
