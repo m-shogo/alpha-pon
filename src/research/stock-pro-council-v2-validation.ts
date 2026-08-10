@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { JSON_SCHEMA, load } from "js-yaml";
+import { compareExplicitIso8601Instants } from "./iso-instant.js";
 import { validate, type JsonSchema } from "./schema.js";
 
 export type CouncilIssue = {
@@ -316,7 +317,12 @@ export function validatePersonaVerdict(
       message: `${verdict.personaId}のjurisdiction外です: ${verdict.jurisdiction}`,
     });
   }
-  if (Date.parse(verdict.issuedAt) < Date.parse(verdict.informationCutoff)) {
+  if (compareExplicitIso8601Instants(
+    verdict.issuedAt,
+    verdict.informationCutoff,
+    `${target}.issuedAt`,
+    `${target}.informationCutoff`,
+  ) < 0) {
     issues.push({
       severity: "error",
       code: "issued_before_information_cutoff",
