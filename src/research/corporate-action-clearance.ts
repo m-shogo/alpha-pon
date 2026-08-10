@@ -10,7 +10,7 @@ import {
 } from "node:fs";
 import { dirname } from "node:path";
 import { parseExplicitIso8601Instant } from "./iso-instant.js";
-import { stableStringify, validate, type JsonSchema } from "./schema.js";
+import { isValidDate, stableStringify, validate, type JsonSchema } from "./schema.js";
 
 export type CorporateActionEvidenceTier = "A" | "B";
 
@@ -69,10 +69,22 @@ function assertCanonicalAssessedAt(record: Pick<CorporateActionClearanceRecord, 
   parseExplicitIso8601Instant(record.assessedAt, "assessedAt");
 }
 
+function assertCanonicalTradingWindow(
+  record: Pick<CorporateActionClearanceRecord, "fromTradingDate" | "throughTradingDate">,
+): void {
+  if (!isValidDate(record.fromTradingDate)) {
+    throw new Error(`fromTradingDate must be a real Gregorian YYYY-MM-DD date: ${record.fromTradingDate}`);
+  }
+  if (!isValidDate(record.throughTradingDate)) {
+    throw new Error(`throughTradingDate must be a real Gregorian YYYY-MM-DD date: ${record.throughTradingDate}`);
+  }
+}
+
 export function computeCorporateActionClearanceHash(
   record: CorporateActionClearanceRecord | Omit<CorporateActionClearanceRecord, "contentHash">,
 ): string {
   assertCanonicalAssessedAt(record);
+  assertCanonicalTradingWindow(record);
   const input = "contentHash" in record ? withoutHash(record) : record;
   return createHash("sha256").update(stableStringify(input)).digest("hex");
 }
