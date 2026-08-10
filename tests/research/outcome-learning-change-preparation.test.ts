@@ -162,6 +162,15 @@ function codes(issues: ReturnType<typeof validateOutcomeLearningChangePreparatio
 }
 
 {
+  const record = withOutcomeLearningChangePreparationHash(manifest({
+    id: "change-preparation:fractional-after-adoption",
+    createdAt: "2026-09-16T10:00:00.000000001+09:00",
+  }));
+  assert.deepEqual(validateOutcomeLearningChangePreparationRecord(record, schema, context()), []);
+  console.log("outcome-learning-change-preparation: 1ns after adoption remains chronologically valid OK");
+}
+
+{
   const record = withOutcomeLearningChangePreparationHash(manifest({ source: deferredAdoption }));
   assert.ok(codes(validateOutcomeLearningChangePreparationRecord(record, schema, context())).includes("change_preparation_not_authorized"));
   console.log("outcome-learning-change-preparation: defer/reject adoption cannot authorize change preparation OK");
@@ -217,6 +226,25 @@ console.log("outcome-learning-change-preparation: traversal/workflow/secret/clou
   const rootReady = withOutcomeLearningChangePreparationHash(manifest({ stage: "ready_for_pr" }));
   assert.ok(codes(validateOutcomeLearningChangePreparationRecord(rootReady, schema, context())).includes("root_preparation_must_be_draft"));
   console.log("outcome-learning-change-preparation: root manifest must start draft OK");
+}
+
+{
+  const fractionalDraft = withOutcomeLearningChangePreparationHash(manifest({
+    id: "change-preparation:fractional-revision:001",
+    stage: "draft",
+    createdAt: "2026-09-16T11:00:00.000000001+09:00",
+  }));
+  const fractionalReady = withOutcomeLearningChangePreparationHash(manifest({
+    id: "change-preparation:fractional-revision:002",
+    stage: "ready_for_pr",
+    createdAt: "2026-09-16T11:00:00.000000002+09:00",
+    supersedesManifestId: fractionalDraft.manifestId,
+  }));
+  assert.deepEqual(
+    validateOutcomeLearningChangePreparationRecords([fractionalDraft, fractionalReady], schema, context()),
+    [],
+  );
+  console.log("outcome-learning-change-preparation: 1ns revision progression remains chronologically valid OK");
 }
 
 {
