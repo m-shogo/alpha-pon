@@ -10,6 +10,7 @@ import {
   validateVerdictCalibrationReferences,
   type PersonaCalibrationRecord,
 } from "./stock-pro-council-calibration.js";
+import { compareExplicitIso8601Instants } from "./iso-instant.js";
 import type {
   CouncilIssue,
   StockProCouncilV2Catalog,
@@ -53,7 +54,12 @@ export function validateCalibrationAwareCouncilReplayPackage(
     ));
   }
   for (const record of pkg.calibrations) {
-    if (Date.parse(record.evaluatedAt) > Date.parse(pkg.manifest.createdAt)) {
+    if (compareExplicitIso8601Instants(
+      record.evaluatedAt,
+      pkg.manifest.createdAt,
+      "calibration evaluatedAt",
+      "replay manifest createdAt",
+    ) > 0) {
       issues.push(issue(
         "calibration_after_replay_manifest",
         record.calibrationId,
