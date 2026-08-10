@@ -746,7 +746,7 @@ function recordsAvailableBySnapshotDate<
     throw new Error(`security_master_invalid_as_of:${asOf}`);
   }
   const cutoffEpoch = parseExplicitIso8601Instant(
-    `${asOf}T23:59:59.999+09:00`,
+    `${asOf}T23:59:59.999999999+09:00`,
     "security master snapshot cutoff",
   );
   return records.filter((record) => {
