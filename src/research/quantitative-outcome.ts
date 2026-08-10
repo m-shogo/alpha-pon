@@ -13,7 +13,10 @@ import {
   computeCorporateActionClearanceHash,
   type CorporateActionClearanceRecord,
 } from "./corporate-action-clearance.js";
-import { parseExplicitIso8601Instant } from "./iso-instant.js";
+import {
+  compareExplicitIso8601Instants,
+  parseExplicitIso8601Instant,
+} from "./iso-instant.js";
 import { validatePriceRecordTimeline } from "./price-record-timeline.js";
 import {
   computePriceRecordHash,
@@ -201,16 +204,29 @@ function selectedSeriesAfterIssue(input: {
   priceRecordsByHash: ReadonlyMap<string, PitPriceRecord>;
   label: string;
 }): PitPriceRecord[] {
-  const reviewedMs = Date.parse(input.reviewedAt);
-  const issuedMs = Date.parse(input.recommendation.issuedAt);
   const selected = new Map<string, PitPriceRecord>();
 
   for (const record of input.priceRecordsByHash.values()) {
     if (!sameSeries(record, input.baseline)) continue;
     if (record.tradingDate <= input.baseline.tradingDate) continue;
-    if (Date.parse(record.firstExecutableAt) <= issuedMs) continue;
-    if (Date.parse(record.firstExecutableAt) > reviewedMs) continue;
-    if (Date.parse(record.observedAt) > reviewedMs) continue;
+    if (compareExplicitIso8601Instants(
+      record.firstExecutableAt,
+      input.recommendation.issuedAt,
+      `${input.label} measurement.firstExecutableAt`,
+      "recommendation.issuedAt",
+    ) <= 0) continue;
+    if (compareExplicitIso8601Instants(
+      record.firstExecutableAt,
+      input.reviewedAt,
+      `${input.label} measurement.firstExecutableAt`,
+      "reviewedAt",
+    ) > 0) continue;
+    if (compareExplicitIso8601Instants(
+      record.observedAt,
+      input.reviewedAt,
+      `${input.label} measurement.observedAt`,
+      "reviewedAt",
+    ) > 0) continue;
     assertCanonicalPriceTimeline(record, `${input.label} measurement`);
     if (record.status !== "traded" || !record.ohlcv) continue;
     if (record.license === "unknown") throw new Error(`${input.label}: unknown price license in measurement path`);
@@ -219,13 +235,18 @@ function selectedSeriesAfterIssue(input: {
     }
 
     const prior = selected.get(record.tradingDate);
+    const observedOrdering = prior
+      ? compareExplicitIso8601Instants(
+        record.observedAt,
+        prior.observedAt,
+        `${input.label} measurement.observedAt`,
+        `${input.label} prior measurement.observedAt`,
+      )
+      : 1;
     if (
       !prior
-      || Date.parse(record.observedAt) > Date.parse(prior.observedAt)
-      || (
-        Date.parse(record.observedAt) === Date.parse(prior.observedAt)
-        && record.contentHash < prior.contentHash
-      )
+      || observedOrdering > 0
+      || (observedOrdering === 0 && record.contentHash < prior.contentHash)
     ) {
       selected.set(record.tradingDate, record);
     }
@@ -292,7 +313,12 @@ function assertCorporateActionClearance(input: {
   if (input.clearance.throughTradingDate < input.terminalTradingDate) {
     throw new Error("corporate action clearance does not cover terminal tradingDate");
   }
-  if (Date.parse(input.clearance.assessedAt) > Date.parse(input.reviewedAt)) {
+  if (compareExplicitIso8601Instants(
+    input.clearance.assessedAt,
+    input.reviewedAt,
+    "corporateActionClearance.assessedAt",
+    "reviewedAt",
+  ) > 0) {
     throw new Error("corporate action clearance was assessed after reviewedAt");
   }
 }
@@ -341,9 +367,14 @@ export function buildQuantitativeOutcomeRecord(input: {
   issuerCorporateActionClearanceHash: string;
   supersedesOutcomeId?: string;
 }): QuantitativeOutcomeRecord {
-  const reviewedMs = parseExplicitIso8601Instant(input.reviewedAt, "reviewedAt");
-  const issuedMs = parseExplicitIso8601Instant(input.recommendation.issuedAt, "recommendation.issuedAt");
-  if (reviewedMs <= issuedMs) {
+  parseExplicitIso8601Instant(input.reviewedAt, "reviewedAt");
+  parseExplicitIso8601Instant(input.recommendation.issuedAt, "recommendation.issuedAt");
+  if (compareExplicitIso8601Instants(
+    input.reviewedAt,
+    input.recommendation.issuedAt,
+    "reviewedAt",
+    "recommendation.issuedAt",
+  ) <= 0) {
     throw new Error("reviewedAt must be after recommendation issuedAt");
   }
   if (computeRecommendationHash(input.recommendation) !== input.recommendation.contentHash) {
@@ -595,7 +626,12 @@ export function validateQuantitativeOutcomeRecords(
       || prior.recommendationContentHash !== record.recommendationContentHash) {
       issues.push(issue("outcome_revision_lineage_mismatch", record.outcomeId, "Outcome revisionでRecommendation lineageを変更できません"));
     }
-    if (Date.parse(record.reviewedAt) <= Date.parse(prior.reviewedAt)) {
+    if (compareExplicitIso8601Instants(
+      record.reviewedAt,
+      prior.reviewedAt,
+      `outcome:${record.outcomeId}.reviewedAt`,
+      `outcome:${prior.outcomeId}.reviewedAt`,
+    ) <= 0) {
       issues.push(issue("outcome_review_time_not_monotonic", record.outcomeId, "revision reviewedAtは直前Outcomeより後である必要があります"));
     }
     if (record.terminalTradingDate < prior.terminalTradingDate) {
