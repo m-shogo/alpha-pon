@@ -1,5 +1,8 @@
 import { createHash } from "node:crypto";
-import { parseExplicitIso8601Instant } from "./iso-instant.js";
+import {
+  compareExplicitIso8601Instants,
+  parseExplicitIso8601Instant,
+} from "./iso-instant.js";
 
 const HASH_RE = /^[a-f0-9]{64}$/;
 const MAX_BLOCKERS = 20;
@@ -528,6 +531,24 @@ function recencyKey(input: EdinetDashboardArtifactInput): string {
   return `${generatedAt ?? input.modifiedAt}|${input.modifiedAt}|${input.fileName}`;
 }
 
+function recencyInstant(input: EdinetDashboardArtifactInput): string | null {
+  const record = object(input.content);
+  return (record ? timestampOrNull(record.generatedAt) : null) ?? timestampOrNull(input.modifiedAt);
+}
+
+function compareRecency(
+  left: EdinetDashboardArtifactInput,
+  right: EdinetDashboardArtifactInput,
+): number {
+  const leftInstant = recencyInstant(left);
+  const rightInstant = recencyInstant(right);
+  if (leftInstant && rightInstant) {
+    const order = compareExplicitIso8601Instants(rightInstant, leftInstant);
+    if (order !== 0) return order;
+  }
+  return recencyKey(right).localeCompare(recencyKey(left));
+}
+
 export function buildEdinetLocalReviewDashboard(input: {
   acquisitionDirectory: string;
   artifacts: EdinetDashboardArtifactInput[];
@@ -557,7 +578,7 @@ export function buildEdinetLocalReviewDashboard(input: {
 
   const stages: EdinetDashboardArtifact[] = [];
   for (const entries of grouped.values()) {
-    entries.sort((left, right) => recencyKey(right.artifact).localeCompare(recencyKey(left.artifact)));
+    entries.sort((left, right) => compareRecency(left.artifact, right.artifact));
     const latest = entries[0]!;
     stages.push(analyzeArtifact(latest.artifact, latest.definition, entries.length));
   }

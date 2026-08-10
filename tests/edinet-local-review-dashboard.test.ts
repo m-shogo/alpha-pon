@@ -182,6 +182,30 @@ function artifact(input: {
 }
 
 {
+  const dashboard = buildEdinetLocalReviewDashboard({
+    acquisitionDirectory: "sanrio-acquisition.fixture",
+    generatedAt: "2026-08-06T12:00:00Z",
+    artifacts: [
+      artifact({
+        fileName: "revision-review-next-batches-v1.offset_older.json",
+        content: batchWorkspace({ generatedAt: "2026-08-06T19:00:00+09:00" }),
+        modifiedAt: "2026-08-06T10:00:01Z",
+      }),
+      artifact({
+        fileName: "revision-review-next-batches-v1.utc_newer.json",
+        content: batchWorkspace({ generatedAt: "2026-08-06T10:30:00Z" }),
+        modifiedAt: "2026-08-06T10:30:01Z",
+      }),
+    ],
+  });
+  assert.equal(
+    dashboard.stages.find(stage => stage.kind === "review_next_batches")!.fileName,
+    "revision-review-next-batches-v1.utc_newer.json",
+  );
+  console.log("edinet-local-review-dashboard: latest stage uses actual instant across timezone offsets OK");
+}
+
+{
   const tampered = batchWorkspace({ generatedAt: "2026-08-06T11:00:00.000Z" });
   tampered.clusters[0]!.logicalRoleKey = "notes/tampered";
   const dashboard = buildEdinetLocalReviewDashboard({
