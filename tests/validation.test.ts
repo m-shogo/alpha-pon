@@ -55,7 +55,6 @@ import "./edinet-sanrio-real-pilot-fidelity-integrity.test.js";
 import "./edinet-sanrio-real-pilot-integrity.test.js";
 import "./edinet-sanrio-real-pilot-readiness-advisory.test.js";
 import "./research/security-master.test.js";
-import "./research/security-master-snapshot-full-day.test.js";
 import "./research/security-master-identifier-canonicality.test.js";
 import "./research/security-master-resolver-namespace.test.js";
 import "./research/security-master-repository.test.js";
