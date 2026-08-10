@@ -170,6 +170,26 @@ function editableRecord() {
 }
 
 {
+  assert.throws(
+    () => buildSanrioEdinetHumanReviewTemplate({
+      inspectionReport: inspectionReport(),
+      sourceInspectionFile: "revision-unmatched-anchor-inspection-v1.fixture.json",
+      generatedAt: "2026-08-06T09:35:00",
+    }),
+    /explicit timezone/,
+  );
+  assert.throws(
+    () => buildSanrioEdinetHumanReviewTemplate({
+      inspectionReport: inspectionReport(),
+      sourceInspectionFile: "revision-unmatched-anchor-inspection-v1.fixture.json",
+      generatedAt: "2026-02-29T09:35:00Z",
+    }),
+    /valid Gregorian/,
+  );
+  console.log("edinet-sanrio-human-review: strict generatedAt provenance boundary OK");
+}
+
+{
   const finalRecord = finalizeSanrioEdinetHumanReviewRecord({
     inspectionReport: inspectionReport(),
     sourceInspectionFile: "revision-unmatched-anchor-inspection-v1.fixture.json",
