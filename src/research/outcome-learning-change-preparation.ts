@@ -17,6 +17,7 @@ import {
   computeOutcomeLearningProposalHash,
   type OutcomeLearningProposalRecord,
 } from "./outcome-learning-proposal.js";
+import { compareExplicitIso8601Instants } from "./iso-instant.js";
 import { stableStringify, validate, type JsonSchema } from "./schema.js";
 
 export type ChangePreparationArtifactKind =
@@ -188,7 +189,12 @@ function scopeIssues(
   const target = `change-preparation:${record.manifestId}`;
   const issues: OutcomeLearningChangePreparationIssue[] = [];
 
-  if (Date.parse(record.createdAt) <= Date.parse(adoption.decidedAt)) {
+  if (compareExplicitIso8601Instants(
+    record.createdAt,
+    adoption.decidedAt,
+    `${target}.createdAt`,
+    `Final Adoption Decision ${adoption.adoptionDecisionId}.decidedAt`,
+  ) <= 0) {
     issues.push(issue("preparation_time_not_after_adoption", target, "createdAtはFinal Adoption decidedAtより後である必要があります"));
   }
   if (secretLikeReference(record.preparedByRef)) {
@@ -346,7 +352,12 @@ export function validateOutcomeLearningChangePreparationRecords(
         "Manifest revisionでAdoption/Proposal/target/change/rollback identityを変更できません",
       ));
     }
-    if (Date.parse(record.createdAt) <= Date.parse(prior.createdAt)) {
+    if (compareExplicitIso8601Instants(
+      record.createdAt,
+      prior.createdAt,
+      `Change Preparation ${record.manifestId}.createdAt`,
+      `Change Preparation ${prior.manifestId}.createdAt`,
+    ) <= 0) {
       issues.push(issue("change_preparation_time_not_monotonic", record.manifestId, "revision createdAtは直前Manifestより後である必要があります"));
     }
     if (prior.preparationStage === "ready_for_pr") {
