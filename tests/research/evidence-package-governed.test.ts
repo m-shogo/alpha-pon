@@ -35,14 +35,31 @@ const schemas: EvidencePackageSchemas = {
   const context = governedEvidencePackageContext();
   const request = governedEvidencePackageRequest();
   const resolver = governedEvidencePackageResolver();
-  const manifest = buildEvidencePackageManifestGoverned(request, context, resolver);
+  const manifest = buildEvidencePackageManifestGoverned(
+    request,
+    context,
+    resolver,
+  );
   assert.equal(manifest.status, "complete");
   assert.equal(manifest.completeness.securityResolved, true);
   assert.equal(manifest.completeness.priceSnapshotComplete, true);
   assert.equal(manifest.completeness.benchmarkComplete, true);
   assert.deepEqual(manifest.blockers, []);
-  assert.deepEqual(validateEvidencePackageManifestGoverned(manifest, request, context, resolver, schemas), []);
-  const replayed = buildEvidencePackageManifestGoverned(request, context, resolver);
+  assert.deepEqual(
+    validateEvidencePackageManifestGoverned(
+      manifest,
+      request,
+      context,
+      resolver,
+      schemas,
+    ),
+    [],
+  );
+  const replayed = buildEvidencePackageManifestGoverned(
+    request,
+    context,
+    resolver,
+  );
   assert.equal(replayed.contentHash, manifest.contentHash);
   console.log("evidence-package-governed: fully resolved package complete OK");
 }
@@ -52,36 +69,78 @@ const schemas: EvidencePackageSchemas = {
   const request = governedEvidencePackageRequest();
   const emptyResolver: EvidencePackageExternalPinResolver = {
     priceSnapshotHashes: new Set(),
-    benchmarkSnapshotHashes: { issuer: new Set(), topix: new Set(), sector: new Set() },
+    benchmarkSnapshotHashes: {
+      issuer: new Set(),
+      topix: new Set(),
+      sector: new Set(),
+    },
   };
-  const manifest = buildEvidencePackageManifestGoverned(request, context, emptyResolver);
+  const manifest = buildEvidencePackageManifestGoverned(
+    request,
+    context,
+    emptyResolver,
+  );
   assert.equal(manifest.status, "draft");
   assert.equal(manifest.completeness.priceSnapshotComplete, false);
   assert.equal(manifest.completeness.benchmarkComplete, false);
   assert.ok(manifest.blockers.includes("incomplete:priceSnapshotComplete"));
   assert.ok(manifest.blockers.includes("incomplete:benchmarkComplete"));
-  assert.deepEqual(validateEvidencePackageManifestGoverned(manifest, request, context, emptyResolver, schemas), []);
+  assert.deepEqual(
+    validateEvidencePackageManifestGoverned(
+      manifest,
+      request,
+      context,
+      emptyResolver,
+      schemas,
+    ),
+    [],
+  );
   console.log("evidence-package-governed: unresolved external pins stay draft OK");
 }
 
 {
   const context = governedEvidencePackageContext();
-  const brokenContext = { ...context, securityMasterSnapshot: { ...context.securityMasterSnapshot, relationships: [] } };
+  const brokenContext = {
+    ...context,
+    securityMasterSnapshot: {
+      ...context.securityMasterSnapshot,
+      relationships: [],
+    },
+  };
   const request = governedEvidencePackageRequest();
   const resolver = governedEvidencePackageResolver();
-  const manifest = buildEvidencePackageManifestGoverned(request, brokenContext, resolver);
+  const manifest = buildEvidencePackageManifestGoverned(
+    request,
+    brokenContext,
+    resolver,
+  );
   assert.equal(manifest.status, "draft");
   assert.equal(manifest.completeness.securityResolved, false);
   assert.ok(manifest.blockers.includes("incomplete:securityResolved"));
-  assert.deepEqual(validateEvidencePackageManifestGoverned(manifest, request, brokenContext, resolver, schemas), []);
+  assert.deepEqual(
+    validateEvidencePackageManifestGoverned(
+      manifest,
+      request,
+      brokenContext,
+      resolver,
+      schemas,
+    ),
+    [],
+  );
   console.log("evidence-package-governed: missing issuer/listing path stays draft OK");
 }
 
 {
   const context = governedEvidencePackageContext();
-  const request = governedEvidencePackageRequest({ entityIds: [EVIDENCE_PACKAGE_ISSUER_ID, EVIDENCE_PACKAGE_SECURITY_ID] });
+  const request = governedEvidencePackageRequest({
+    entityIds: [EVIDENCE_PACKAGE_ISSUER_ID, EVIDENCE_PACKAGE_SECURITY_ID],
+  });
   const resolver = governedEvidencePackageResolver();
-  const manifest = buildEvidencePackageManifestGoverned(request, context, resolver);
+  const manifest = buildEvidencePackageManifestGoverned(
+    request,
+    context,
+    resolver,
+  );
   assert.equal(manifest.completeness.securityResolved, false);
   assert.equal(manifest.status, "draft");
   console.log("evidence-package-governed: incomplete entity closure stays draft OK");
@@ -91,7 +150,10 @@ const schemas: EvidencePackageSchemas = {
   const context = governedEvidencePackageContext();
   const base = governedEvidencePackageRequest();
   const request = governedEvidencePackageRequest({
-    benchmarkSnapshotHashes: { ...base.benchmarkSnapshotHashes, issuer: base.priceSnapshotHash },
+    benchmarkSnapshotHashes: {
+      ...base.benchmarkSnapshotHashes,
+      issuer: base.priceSnapshotHash,
+    },
   });
   const resolver: EvidencePackageExternalPinResolver = {
     priceSnapshotHashes: new Set([request.priceSnapshotHash]),
@@ -101,9 +163,18 @@ const schemas: EvidencePackageSchemas = {
       sector: new Set([request.benchmarkSnapshotHashes.sector]),
     },
   };
-  const manifest = buildEvidencePackageManifestGoverned(request, context, resolver);
-  assert.ok(validateEvidencePackageManifestGoverned(manifest, request, context, resolver, schemas)
-    .some((item) => item.code === "external_snapshot_role_collision"));
+  const manifest = buildEvidencePackageManifestGoverned(
+    request,
+    context,
+    resolver,
+  );
+  assert.ok(validateEvidencePackageManifestGoverned(
+    manifest,
+    request,
+    context,
+    resolver,
+    schemas,
+  ).some((item) => item.code === "external_snapshot_role_collision"));
   console.log("evidence-package-governed: external role collision block OK");
 }
 
@@ -120,11 +191,20 @@ const schemas: EvidencePackageSchemas = {
     }),
   });
   const resolver = governedEvidencePackageResolver();
-  const manifest = buildEvidencePackageManifestGoverned(request, context, resolver);
+  const manifest = buildEvidencePackageManifestGoverned(
+    request,
+    context,
+    resolver,
+  );
   assert.equal(manifest.status, "draft");
   assert.ok(manifest.blockers.includes("blocking_unknown:execution"));
-  assert.ok(validateEvidencePackageManifestGoverned(manifest, request, context, resolver, schemas)
-    .some((item) => item.code === "blocking_unknown_marked_informational"));
+  assert.ok(validateEvidencePackageManifestGoverned(
+    manifest,
+    request,
+    context,
+    resolver,
+    schemas,
+  ).some((item) => item.code === "blocking_unknown_marked_informational"));
   console.log("evidence-package-governed: unknown severity spoof block OK");
 }
 
@@ -135,10 +215,19 @@ const schemas: EvidencePackageSchemas = {
     createdAt: "2026-08-06T00:25:00.000000001+09:00",
   });
   const resolver = governedEvidencePackageResolver();
-  const manifest = buildEvidencePackageManifestGoverned(request, context, resolver);
+  const manifest = buildEvidencePackageManifestGoverned(
+    request,
+    context,
+    resolver,
+  );
   assert.ok(
-    validateEvidencePackageManifestGoverned(manifest, request, context, resolver, schemas)
-      .some((item) => item.code === "evidence_package_created_before_cutoff"),
+    validateEvidencePackageManifestGoverned(
+      manifest,
+      request,
+      context,
+      resolver,
+      schemas,
+    ).some((item) => item.code === "evidence_package_created_before_cutoff"),
     "createdAt 1ns before informationCutoff must not collapse to the same millisecond",
   );
   console.log("evidence-package-governed: sub-ms createdAt cutoff ordering OK");
