@@ -59,9 +59,32 @@ function jstDateOf(date: Date): string {
   }).format(date);
 }
 
+function calendarDateUtcMs(value: string, target: string): number {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) throw new Error(`invalid ${target}: expected YYYY-MM-DD, got ${value}`);
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (year < 1 || month < 1 || month > 12 || day < 1) {
+    throw new Error(`invalid ${target}: non-Gregorian date ${value}`);
+  }
+
+  const utcMs = Date.UTC(year, month - 1, day);
+  const parsed = new Date(utcMs);
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    throw new Error(`invalid ${target}: non-Gregorian date ${value}`);
+  }
+  return utcMs;
+}
+
 function daysBetweenDates(from: string, to: string): number {
-  const fromMs = Date.parse(`${from}T00:00:00Z`);
-  const toMs = Date.parse(`${to}T00:00:00Z`);
+  const fromMs = calendarDateUtcMs(from, "outcomeReviewDate");
+  const toMs = calendarDateUtcMs(to, "asOfJstDate");
   return Math.round((toMs - fromMs) / 86_400_000);
 }
 
@@ -150,6 +173,10 @@ function stateFor(input: {
     throw new Error(`invalid Recommendation contentHash: ${input.recommendation.recommendationId}`);
   }
 
+  const dueDate = input.recommendation.outcomeReviewDate;
+  calendarDateUtcMs(dueDate, "outcomeReviewDate");
+  calendarDateUtcMs(input.asOfJstDate, "asOfJstDate");
+
   const quant = canonicalQuantitativeOutcomes({
     recommendation: input.recommendation,
     records: input.quantitativeOutcomes,
@@ -172,7 +199,6 @@ function stateFor(input: {
     "Semantic Review",
   );
 
-  const dueDate = input.recommendation.outcomeReviewDate;
   const dueToday = input.asOfJstDate === dueDate;
   const isPastDueDate = input.asOfJstDate > dueDate;
   let state: OutcomeReviewDueStateKind;
