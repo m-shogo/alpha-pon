@@ -198,6 +198,24 @@ console.log("foundation-pilot-hash-witness-conformance: timezone-less proof capt
 
 {
   const { contentHash: _ignored, ...decisionWithoutHash } = decision();
+  const issuedAt = "2026-08-06T06:05:00.000000001Z";
+  const subMsDecision = withFoundationDecisionHash({
+    ...decisionWithoutHash,
+    issuedAt,
+  });
+  assert.throws(
+    () => buildFoundationPilotProofRun({
+      runId: "sub-ms-capture-before-decision",
+      capturedAt: "2026-08-06T06:05:00.000000000Z",
+      decision: subMsDecision,
+    }),
+    /capturedAt must not precede decision\.issuedAt/,
+  );
+  console.log("foundation-pilot-hash-witness-conformance: 1ns pre-decision capture blocked OK");
+}
+
+{
+  const { contentHash: _ignored, ...decisionWithoutHash } = decision();
   const malformedDecision = withFoundationDecisionHash({
     ...decisionWithoutHash,
     issuedAt: "2026-08-06T06:05:00+15:00",
@@ -232,6 +250,21 @@ console.log("foundation-pilot-hash-witness-conformance: timezone-less proof capt
     /valid Gregorian ISO-8601 timestamp/,
   );
   console.log("foundation-pilot-hash-witness-conformance: impossible revision instant blocked OK");
+}
+
+{
+  const input = setup();
+  const { contentHash: _ignored, ...correction } = input.correctionRevision;
+  input.correctionRevision = withDocumentRevisionHash({
+    ...correction,
+    observedAt: "2026-08-06T07:00:00.000000001Z",
+    retrievedAt: "2026-08-06T07:00:00.000000000Z",
+  });
+  assert.throws(
+    () => auditFoundationPilotHashWitnessConformance(input),
+    /retrievedAt must not precede observedAt/,
+  );
+  console.log("foundation-pilot-hash-witness-conformance: 1ns revision retrieval inversion blocked OK");
 }
 
 {
