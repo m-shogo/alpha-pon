@@ -65,9 +65,14 @@ function withoutHash(
   return input;
 }
 
+function assertCanonicalAssessedAt(record: Pick<CorporateActionClearanceRecord, "assessedAt">): void {
+  parseExplicitIso8601Instant(record.assessedAt, "assessedAt");
+}
+
 export function computeCorporateActionClearanceHash(
   record: CorporateActionClearanceRecord | Omit<CorporateActionClearanceRecord, "contentHash">,
 ): string {
+  assertCanonicalAssessedAt(record);
   const input = "contentHash" in record ? withoutHash(record) : record;
   return createHash("sha256").update(stableStringify(input)).digest("hex");
 }
@@ -99,12 +104,6 @@ export function validateCorporateActionClearanceRecord(
   const record = value as CorporateActionClearanceRecord;
   const target = `corporate-action-clearance:${record.clearanceId}`;
   const issues: CorporateActionClearanceIssue[] = [];
-  if (record.contentHash !== computeCorporateActionClearanceHash(record)) {
-    issues.push(issue("invalid_content_hash", `${target}.contentHash`, "contentHashが一致しません"));
-  }
-  if (record.fromTradingDate > record.throughTradingDate) {
-    issues.push(issue("clearance_window_reversed", target, "fromTradingDate <= throughTradingDate が必要です"));
-  }
 
   let assessedAtMs: number;
   try {
@@ -114,6 +113,13 @@ export function validateCorporateActionClearanceRecord(
     return issues.sort((left, right) =>
       `${left.code}|${left.target}|${left.message}`.localeCompare(`${right.code}|${right.target}|${right.message}`),
     );
+  }
+
+  if (record.contentHash !== computeCorporateActionClearanceHash(record)) {
+    issues.push(issue("invalid_content_hash", `${target}.contentHash`, "contentHashが一致しません"));
+  }
+  if (record.fromTradingDate > record.throughTradingDate) {
+    issues.push(issue("clearance_window_reversed", target, "fromTradingDate <= throughTradingDate が必要です"));
   }
 
   for (const evidence of record.sourceEvidence) {
