@@ -225,6 +225,29 @@ function testFailClosedInputs(): void {
     }),
     /duplicate acquisition/,
   );
+
+  assert.throws(
+    () => buildSanrioEdinetReviewWorkspace({
+      inventory: inventory(),
+      acquisitionManifest: acquisitionManifest(),
+      acquisitionManifestFile: "acquisition-manifest.json",
+      generatedAt: "2026-08-06T06:50:00.000",
+    }),
+    /generatedAt must be an explicit ISO date-time/,
+  );
+
+  const ambiguousRetrieval = acquisitionManifest() as Record<string, unknown>;
+  const firstSuccess = (ambiguousRetrieval.succeeded as Record<string, unknown>[])[0]!;
+  firstSuccess.retrievedAt = "2026-08-06T06:47:08.000";
+  assert.throws(
+    () => buildSanrioEdinetReviewWorkspace({
+      inventory: inventory(),
+      acquisitionManifest: ambiguousRetrieval,
+      acquisitionManifestFile: "acquisition-manifest.json",
+      generatedAt: "2026-08-06T06:50:00.000Z",
+    }),
+    /retrievedAt must be an explicit ISO date-time/,
+  );
 }
 
 testReviewWorkspace();
