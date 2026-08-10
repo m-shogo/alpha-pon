@@ -9,7 +9,10 @@ import {
   readFileSync,
 } from "node:fs";
 import { dirname } from "node:path";
-import { parseExplicitIso8601Instant } from "./iso-instant.js";
+import {
+  compareExplicitIso8601Instants,
+  parseExplicitIso8601Instant,
+} from "./iso-instant.js";
 import {
   computeOutcomeLearningDecisionHash,
   type OutcomeLearningDecisionRecord,
@@ -207,13 +210,28 @@ function evaluationScopeIssues(
   const target = `shadow-evaluation:${record.evaluationId}`;
   const issues: OutcomeLearningShadowEvaluationIssue[] = [];
 
-  if (Date.parse(record.evaluatedAt) <= Date.parse(decision.decidedAt)) {
+  if (compareExplicitIso8601Instants(
+    record.evaluatedAt,
+    decision.decidedAt,
+    `${target}.evaluatedAt`,
+    `Human Decision ${decision.decisionId}.decidedAt`,
+  ) <= 0) {
     issues.push(issue("shadow_evaluation_not_after_decision", target, "evaluatedAtはHuman Decision decidedAtより後である必要があります"));
   }
-  if (Date.parse(record.evidenceCutoff) < Date.parse(decision.decidedAt)) {
+  if (compareExplicitIso8601Instants(
+    record.evidenceCutoff,
+    decision.decidedAt,
+    `${target}.evidenceCutoff`,
+    `Human Decision ${decision.decisionId}.decidedAt`,
+  ) < 0) {
     issues.push(issue("shadow_cutoff_before_decision", target, "evidenceCutoffはHuman Decision以前に戻せません"));
   }
-  if (Date.parse(record.evidenceCutoff) > Date.parse(record.evaluatedAt)) {
+  if (compareExplicitIso8601Instants(
+    record.evidenceCutoff,
+    record.evaluatedAt,
+    `${target}.evidenceCutoff`,
+    `${target}.evaluatedAt`,
+  ) > 0) {
     issues.push(issue("shadow_cutoff_after_evaluation", target, "evidenceCutoffはevaluatedAtを超えられません"));
   }
   if (record.evaluationMethod !== proposal.evaluationPlan.method) {
@@ -263,7 +281,7 @@ function evaluationScopeIssues(
     }
   }
 
-  const evidenceCutoffMs = parseExplicitIso8601Instant(record.evidenceCutoff, "shadow evidenceCutoff");
+  parseExplicitIso8601Instant(record.evidenceCutoff, "shadow evidenceCutoff");
   for (const ref of record.evidenceRefs) {
     if (secretLikeReference(ref)) {
       issues.push(issue("secret_like_shadow_evidence_ref", target, "Shadow Evidence refにsecret/tokenを含められません"));
@@ -283,9 +301,8 @@ function evaluationScopeIssues(
     if (!context.validatedEvidenceRefs.has(ref)) {
       issues.push(issue("shadow_evidence_not_validated", target, `validator通過済みShadow Evidence witnessがありません: ${ref}`));
     }
-    let observedAtMs: number;
     try {
-      observedAtMs = parseExplicitIso8601Instant(
+      parseExplicitIso8601Instant(
         evidence.observedAt,
         `Shadow Evidence ${ref}.observedAt`,
       );
@@ -297,7 +314,12 @@ function evaluationScopeIssues(
       ));
       continue;
     }
-    if (observedAtMs > evidenceCutoffMs) {
+    if (compareExplicitIso8601Instants(
+      evidence.observedAt,
+      record.evidenceCutoff,
+      `Shadow Evidence ${ref}.observedAt`,
+      `${target}.evidenceCutoff`,
+    ) > 0) {
       issues.push(issue("post_cutoff_shadow_evidence", target, `evidenceCutoff後のEvidenceを使えません: ${ref}`));
     }
     if (!nestedEvidence.has(ref)) {
@@ -409,10 +431,20 @@ export function validateOutcomeLearningShadowEvaluationRecords(
         "Shadow Evaluation revisionでDecision/Proposal identityを変更できません",
       ));
     }
-    if (Date.parse(record.evaluatedAt) <= Date.parse(prior.evaluatedAt)) {
+    if (compareExplicitIso8601Instants(
+      record.evaluatedAt,
+      prior.evaluatedAt,
+      `Shadow Evaluation ${record.evaluationId}.evaluatedAt`,
+      `Shadow Evaluation ${prior.evaluationId}.evaluatedAt`,
+    ) <= 0) {
       issues.push(issue("shadow_evaluation_time_not_monotonic", record.evaluationId, "revision evaluatedAtは直前Evaluationより後である必要があります"));
     }
-    if (Date.parse(record.evidenceCutoff) < Date.parse(prior.evidenceCutoff)) {
+    if (compareExplicitIso8601Instants(
+      record.evidenceCutoff,
+      prior.evidenceCutoff,
+      `Shadow Evaluation ${record.evaluationId}.evidenceCutoff`,
+      `Shadow Evaluation ${prior.evaluationId}.evidenceCutoff`,
+    ) < 0) {
       issues.push(issue("shadow_cutoff_regressed", record.evaluationId, "revision evidenceCutoffを後退できません"));
     }
     if (prior.evaluationStage === "final") {
