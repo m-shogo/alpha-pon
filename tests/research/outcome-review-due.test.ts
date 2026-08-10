@@ -260,6 +260,28 @@ const human1 = semanticReview({
 }
 
 {
+  const fractionalOlder = quantitativeOutcome({
+    outcomeId: "outcome:review-due:fractional-a",
+    reviewedAt: "2026-08-22T10:00:00.000000001+09:00",
+    terminalTradingDate: "2026-08-21",
+  });
+  const fractionalNewer = quantitativeOutcome({
+    outcomeId: "outcome:review-due:fractional-z",
+    reviewedAt: "2026-08-22T10:00:00.000000002+09:00",
+    terminalTradingDate: "2026-08-21",
+    supersedesOutcomeId: fractionalOlder.outcomeId,
+  });
+  const state = deriveOutcomeReviewDueState({
+    recommendation,
+    quantitativeOutcomes: [fractionalOlder, fractionalNewer],
+    semanticReviews: [],
+    asOf: new Date("2026-08-23T03:00:00.000Z"),
+  });
+  assert.equal(state.latestQuantitativeOutcomeId, fractionalNewer.outcomeId);
+  console.log("outcome-review-due: latest quantitative revision preserves sub-millisecond reviewedAt ordering OK");
+}
+
+{
   const mutatedQuant: QuantitativeOutcomeRecord = {
     ...quant1,
     terminalReturn: quant1.terminalReturn + 0.5,
