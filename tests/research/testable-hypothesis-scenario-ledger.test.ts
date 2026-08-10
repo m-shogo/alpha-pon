@@ -7,10 +7,12 @@ import {
   validateHypothesisScenarioLedgers,
 } from "../../src/research/testable-hypothesis-scenario-ledger.js";
 import {
+  withHypothesisScenarioHash,
   withTestableHypothesisHash,
 } from "../../src/research/testable-hypothesis-scenario.js";
 import {
   completeHypothesisEvidencePackage,
+  hypothesisScenario,
   registeredScenarioSetRecords,
   testableHypothesis,
 } from "./testable-hypothesis-scenario-fixtures.js";
@@ -35,6 +37,27 @@ function draftHypothesis(
     ...(informationCutoff ? { informationCutoff } : {}),
     status: "draft",
     ...(supersedesHypothesisId ? { supersedesHypothesisId } : {}),
+  });
+}
+
+function draftScenario(
+  scenarioId: string,
+  createdAt: string,
+  supersedesScenarioId?: string,
+) {
+  const registered = hypothesisScenario("base");
+  const {
+    contentHash: _contentHash,
+    registeredAt: _registeredAt,
+    supersedesScenarioId: _supersedesScenarioId,
+    ...input
+  } = registered;
+  return withHypothesisScenarioHash({
+    ...input,
+    scenarioId,
+    createdAt,
+    status: "draft",
+    ...(supersedesScenarioId ? { supersedesScenarioId } : {}),
   });
 }
 
@@ -83,6 +106,25 @@ function draftHypothesis(
     "informationCutoff one nanosecond before its parent must fail closed",
   );
   console.log("testable-hypothesis-scenario-ledger: fractional PIT ordering OK");
+}
+
+{
+  const first = draftScenario(
+    "scenario:ledger:fractional-001",
+    "2026-08-06T00:37:00.000000002+09:00",
+  );
+  const second = draftScenario(
+    "scenario:ledger:fractional-002",
+    "2026-08-06T00:37:00.000000001+09:00",
+    first.scenarioId,
+  );
+  const codes = validateHypothesisScenarioLedgers([], [first, second], [])
+    .map((item) => item.code);
+  assert.ok(
+    codes.includes("scenario_created_at_not_monotonic"),
+    "scenario createdAt one nanosecond before its parent must not collapse to the same millisecond",
+  );
+  console.log("testable-hypothesis-scenario-ledger: scenario fractional PIT ordering OK");
 }
 
 {
