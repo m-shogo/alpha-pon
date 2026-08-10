@@ -56,7 +56,10 @@ function revisionNumber(db: MarketEventDatabase, eventId: string): number {
   return row.revisionNumber;
 }
 
-function freshness(event: MarketEvent, generatedAt: string): MarketEventProjectionItem["freshnessState"] {
+export function marketEventFreshness(
+  event: Pick<MarketEvent, "staleAfter">,
+  generatedAt: string,
+): MarketEventProjectionItem["freshnessState"] {
   if (!event.staleAfter) return "UNKNOWN";
   return compareExplicitIso8601Instants(
     generatedAt,
@@ -103,7 +106,7 @@ export function buildMarketEventGeneratedData(
       ...event,
       revisionNumber: revisionNumber(db, event.eventId),
       sources: sources.map(projectionSource),
-      freshnessState: freshness(event, generatedAt),
+      freshnessState: marketEventFreshness(event, generatedAt),
       calendarIncluded: event.time.precision !== "UNKNOWN",
       sortAt: sortAt(event),
     } satisfies MarketEventProjectionItem;
