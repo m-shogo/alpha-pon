@@ -22,6 +22,7 @@ function testJstConversion() {
   assert.equal(jstDateOf("2026-08-04T00:30:00+09:00"), "2026-08-04");
   assert.equal(jstDateOf("2026-08-03T16:00:00Z"), "2026-08-04", "UTC 16:00 は JST では翌日");
   assert.throws(() => jstDateOf("2026-08-04T00:30:00"), /explicit timezone/);
+  assert.throws(() => jstDateOf("2026-08-04T00:30:00-00:00"), /known timezone offset/);
   console.log("research/pit: JST 変換 OK");
 }
 
@@ -73,9 +74,14 @@ function testImplicitAndImpossibleInstantsRejected() {
     observedAt: "2026-02-31T15:30:00+09:00",
     recordedAt: "2026-03-01",
   });
-  const issues = checkPit(makeState({ analogs: [implicit, impossible] }), NOW);
-  assert.equal(issues.filter((issue) => issue.code === "invalid_timestamp").length, 2);
-  console.log("research/pit: implicit/impossible instantの拒否 OK");
+  const unknownOffset = makeAnalog({
+    id: "unknown-timezone-offset",
+    eventDate: "2024-01-04",
+    observedAt: "2024-01-04T15:30:00-00:00",
+  });
+  const issues = checkPit(makeState({ analogs: [implicit, impossible, unknownOffset] }), NOW);
+  assert.equal(issues.filter((issue) => issue.code === "invalid_timestamp").length, 3);
+  console.log("research/pit: implicit/impossible/unknown-offset instantの拒否 OK");
 }
 
 function testObservedBeforeEventRejected() {
