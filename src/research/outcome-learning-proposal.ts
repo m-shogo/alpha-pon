@@ -13,6 +13,7 @@ import {
   computeOutcomeSemanticReviewHash,
   type OutcomeSemanticReviewRecord,
 } from "./outcome-semantic-review.js";
+import { compareExplicitIso8601Instants } from "./iso-instant.js";
 import { stableStringify, validate, type JsonSchema } from "./schema.js";
 
 export type OutcomeLearningProposalStage =
@@ -142,7 +143,14 @@ function reviewScopeIssues(
   const target = `learning-proposal:${record.proposalId}`;
   const issues: OutcomeLearningProposalIssue[] = [];
 
-  if (Date.parse(record.createdAt) < Date.parse(review.reviewedAt)) {
+  if (
+    compareExplicitIso8601Instants(
+      record.createdAt,
+      review.reviewedAt,
+      "learningProposal.createdAt",
+      "semanticReview.reviewedAt",
+    ) < 0
+  ) {
     issues.push(issue("proposal_before_semantic_review", target, "Learning ProposalはSemantic Reviewより前に作成できません"));
   }
 
@@ -298,7 +306,14 @@ export function validateOutcomeLearningProposalRecords(
         "revisionでsource review / target / proposedChangeを変更できません",
       ));
     }
-    if (Date.parse(record.createdAt) <= Date.parse(prior.createdAt)) {
+    if (
+      compareExplicitIso8601Instants(
+        record.createdAt,
+        prior.createdAt,
+        "learningProposal.createdAt",
+        "priorLearningProposal.createdAt",
+      ) <= 0
+    ) {
       issues.push(issue("learning_proposal_time_not_monotonic", record.proposalId, "revision createdAtは直前Proposalより後である必要があります"));
     }
     if (STAGE_RANK[record.proposalStage] < STAGE_RANK[prior.proposalStage]) {
