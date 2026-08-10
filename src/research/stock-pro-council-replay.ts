@@ -14,6 +14,7 @@ import {
   type PersonaVerdict,
   type StockProCouncilV2Catalog,
 } from "./stock-pro-council-v2-validation.js";
+import { compareExplicitIso8601Instants } from "./iso-instant.js";
 import { stableStringify, validate, type JsonSchema } from "./schema.js";
 
 export type CouncilCaseType =
@@ -221,7 +222,6 @@ function activeVetoHeads(records: CouncilVetoRecord[]): CouncilVetoRecord[] {
 function packageIdentityIssues(pkg: CouncilReplayPackage): CouncilIssue[] {
   const { manifest } = pkg;
   const issues: CouncilIssue[] = [];
-  const createdAtMs = Date.parse(manifest.createdAt);
   const check = (
     values: Array<{ runId: string; cutoff: string; issuedAt: string; target: string }>,
   ): void => {
@@ -240,7 +240,12 @@ function packageIdentityIssues(pkg: CouncilReplayPackage): CouncilIssue[] {
           `${value.cutoff} != ${manifest.informationCutoff}`,
         ));
       }
-      if (Date.parse(value.issuedAt) > createdAtMs) {
+      if (compareExplicitIso8601Instants(
+        value.issuedAt,
+        manifest.createdAt,
+        "replay record issuedAt",
+        "replay manifest createdAt",
+      ) > 0) {
         issues.push(issue(
           "replay_record_after_manifest",
           value.target,
@@ -332,7 +337,12 @@ export function validateCouncilReplayPackage(
       "CouncilReplayManifest contentHashが一致しません",
     ));
   }
-  if (Date.parse(manifest.createdAt) < Date.parse(manifest.informationCutoff)) {
+  if (compareExplicitIso8601Instants(
+    manifest.createdAt,
+    manifest.informationCutoff,
+    "replay manifest createdAt",
+    "replay informationCutoff",
+  ) < 0) {
     issues.push(issue(
       "replay_created_before_cutoff",
       manifest.replayId,
