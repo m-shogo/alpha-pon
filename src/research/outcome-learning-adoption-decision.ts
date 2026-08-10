@@ -17,6 +17,7 @@ import {
   computeOutcomeLearningShadowEvaluationHash,
   type OutcomeLearningShadowEvaluationRecord,
 } from "./outcome-learning-shadow-evaluation.js";
+import { compareExplicitIso8601Instants } from "./iso-instant.js";
 import { stableStringify, validate, type JsonSchema } from "./schema.js";
 
 export type OutcomeLearningAdoptionDecisionKind =
@@ -156,7 +157,14 @@ function decisionScopeIssues(
   const target = `adoption-decision:${record.adoptionDecisionId}`;
   const issues: OutcomeLearningAdoptionDecisionIssue[] = [];
 
-  if (Date.parse(record.decidedAt) <= Date.parse(shadow.evaluatedAt)) {
+  if (
+    compareExplicitIso8601Instants(
+      record.decidedAt,
+      shadow.evaluatedAt,
+      "adoptionDecision.decidedAt",
+      "shadowEvaluation.evaluatedAt",
+    ) <= 0
+  ) {
     issues.push(issue("adoption_time_not_after_shadow", target, "decidedAtはfinal Shadow Evaluation evaluatedAtより後である必要があります"));
   }
 
@@ -311,7 +319,14 @@ export function validateOutcomeLearningAdoptionDecisionRecords(
         "Adoption Decision revisionでShadow/Proposal identityを変更できません",
       ));
     }
-    if (Date.parse(record.decidedAt) <= Date.parse(prior.decidedAt)) {
+    if (
+      compareExplicitIso8601Instants(
+        record.decidedAt,
+        prior.decidedAt,
+        "adoptionDecision.decidedAt",
+        "priorAdoptionDecision.decidedAt",
+      ) <= 0
+    ) {
       issues.push(issue("adoption_decision_time_not_monotonic", record.adoptionDecisionId, "revision decidedAtは直前Decisionより後である必要があります"));
     }
     if (prior.decision !== "defer") {
