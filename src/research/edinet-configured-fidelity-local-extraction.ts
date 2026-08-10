@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 
 export type ConfiguredStructuredTextEntry = {
   path: string;
@@ -102,7 +103,7 @@ export function buildConfiguredStructuredTextArchive(input: {
   if (!/^[a-f0-9]{64}$/.test(input.sourceBinarySha256)) {
     throw new Error("sourceBinarySha256 is invalid");
   }
-  if (!Number.isFinite(Date.parse(input.generatedAt))) throw new Error("generatedAt is invalid");
+  parseExplicitIso8601Instant(input.generatedAt, "generatedAt");
   if (input.entries.length === 0) throw new Error("structured entries must not be empty");
   const seen = new Set<string>();
   const entries = input.entries.map(entry => {
