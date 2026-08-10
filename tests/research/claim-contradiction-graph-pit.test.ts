@@ -4,6 +4,7 @@ import {
   withEvidenceRecordHash,
 } from "../../src/research/bitemporal-evidence-store.js";
 import {
+  buildClaimGraphSnapshot,
   validateClaimGraphEdgeRecord,
   validateClaimRecord,
   withClaimGraphEdgeHash,
@@ -186,6 +187,38 @@ const futureEdge = withClaimGraphEdgeHash({
   );
   assert.ok(issues.some((item) => item.code === "claim_edge_retrieved_before_observed"));
   console.log("claim-contradiction-graph-pit: 1ns edge retrieval inversion blocked OK");
+}
+
+{
+  const { contentHash: _earlyClaimHash, ...earlyClaimInput } = earlyClaim;
+  const justAfterCutoffClaim = withClaimRecordHash({
+    ...earlyClaimInput,
+    recordId: "claim:pit:replay-future:record:001",
+    claimId: "claim:pit:replay-future",
+    informationCutoff: evidenceSnapshot.asOf,
+    effectiveFrom: "2026-08-05T15:59:00+09:00",
+    observedAt: "2026-08-05T16:00:00.000000001+09:00",
+    retrievedAt: "2026-08-05T16:00:00.000000002+09:00",
+  });
+  const { contentHash: _earlyEdgeHash, ...earlyEdgeInput } = earlyEdge;
+  const justAfterCutoffEdge = withClaimGraphEdgeHash({
+    ...earlyEdgeInput,
+    recordId: "claim-edge:pit:replay-future:record:001",
+    edgeId: "claim-edge:pit:replay-future",
+    toId: earlyClaim.claimId,
+    effectiveFrom: "2026-08-05T15:59:00+09:00",
+    observedAt: "2026-08-05T16:00:00.000000001+09:00",
+    retrievedAt: "2026-08-05T16:00:00.000000002+09:00",
+  });
+  const snapshot = buildClaimGraphSnapshot(
+    [earlyClaim, justAfterCutoffClaim],
+    [earlyEdge, justAfterCutoffEdge],
+    evidenceSnapshot,
+    evidenceSnapshot.asOf,
+  );
+  assert.ok(!snapshot.claims.some((record) => record.claimId === justAfterCutoffClaim.claimId));
+  assert.ok(!snapshot.edges.some((record) => record.edgeId === justAfterCutoffEdge.edgeId));
+  console.log("claim-contradiction-graph-pit: cutoff +1ns records excluded from base replay OK");
 }
 
 console.log("claim-contradiction-graph-pit: 全テスト成功");
