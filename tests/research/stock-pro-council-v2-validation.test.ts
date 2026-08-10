@@ -100,6 +100,15 @@ function verdict(overrides: Partial<PersonaVerdict> = {}): PersonaVerdict {
     verdictSchema,
     catalog,
   ).some((issue) => issue.code === "issued_before_information_cutoff"));
+
+  assert.ok(validatePersonaVerdict(
+    verdict({
+      issuedAt: "2026-08-06T00:15:00.000000000+09:00",
+      informationCutoff: "2026-08-06T00:15:00.000000001+09:00",
+    }),
+    verdictSchema,
+    catalog,
+  ).some((issue) => issue.code === "issued_before_information_cutoff"));
   console.log("stock-pro-council-v2: persona identity/PIT guards OK");
 }
 
