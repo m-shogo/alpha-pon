@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
+  selectPriceRecordsAsOf,
   validatePriceRecord,
+  validatePriceRecords,
   withPriceRecordHash,
   type PitPriceRecordInput,
 } from "../../src/research/price-store.js";
@@ -78,4 +80,37 @@ assert.ok(codes({
   firstExecutableAt: "2024-01-04T15:35:00.000000001+09:00",
 }, new Date("2024-01-04T06:35:00.000Z")).includes("future_observation"), "1ns future observation must not collapse into Date millisecond now");
 
-console.log("research/price-store: sub-ms validation ordering OK");
+const revisionRoot = withPriceRecordHash(input({
+  observedAt: "2024-01-04T15:35:00.000000001+09:00",
+  retrievedAt: "2024-01-04T15:36:00.000000001+09:00",
+  firstExecutableAt: "2024-01-04T15:37:00.000000001+09:00",
+}));
+const revisionNext = withPriceRecordHash(input({
+  observedAt: "2024-01-04T15:35:00.000000002+09:00",
+  retrievedAt: "2024-01-04T15:36:00.000000002+09:00",
+  firstExecutableAt: "2024-01-04T15:37:00.000000002+09:00",
+  supersedesHash: revisionRoot.contentHash,
+}));
+const revisionIssues = validatePriceRecords([revisionRoot, revisionNext], schema, NOW);
+assert.ok(
+  !revisionIssues.some((issue) => issue.code === "revision_time_not_monotonic"),
+  "1ns-forward revision chronology must remain monotonic instead of collapsing to one millisecond",
+);
+
+const futureByOneNs = withPriceRecordHash(input({
+  observedAt: "2024-01-04T15:35:00.000000001+09:00",
+  retrievedAt: "2024-01-04T15:35:00.000000001+09:00",
+  firstExecutableAt: "2024-01-04T15:35:00.000000001+09:00",
+}));
+assert.equal(
+  selectPriceRecordsAsOf(
+    [futureByOneNs],
+    "2024-01-04T15:35:00.000000000+09:00",
+    { seriesKind: "security", code: "SUBMS1" },
+    "observed",
+  ).length,
+  0,
+  "record observed 1ns after asOf must stay invisible",
+);
+
+console.log("research/price-store: sub-ms validation/revision/as-of ordering OK");
