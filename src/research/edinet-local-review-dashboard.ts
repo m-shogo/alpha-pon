@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 
 const HASH_RE = /^[a-f0-9]{64}$/;
 const MAX_BLOCKERS = 20;
@@ -437,7 +438,13 @@ function blockersFor(record: JsonObject): string[] {
 
 function timestampOrNull(value: unknown): string | null {
   const text = stringValue(value);
-  return text && Number.isFinite(Date.parse(text)) ? text : null;
+  if (!text) return null;
+  try {
+    parseExplicitIso8601Instant(text, "generatedAt");
+    return text;
+  } catch {
+    return null;
+  }
 }
 
 function analyzeArtifact(
@@ -530,7 +537,7 @@ export function buildEdinetLocalReviewDashboard(input: {
     throw new Error("acquisitionDirectory must be a Sanrio acquisition basename");
   }
   const generatedAt = input.generatedAt ?? new Date().toISOString();
-  if (!Number.isFinite(Date.parse(generatedAt))) throw new Error("generatedAt must be a date-time");
+  parseExplicitIso8601Instant(generatedAt, "generatedAt");
 
   const recognized = input.artifacts
     .map(artifact => ({ artifact, definition: definitionFor(artifact) }))
