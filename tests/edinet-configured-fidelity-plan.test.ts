@@ -161,4 +161,37 @@ function rehashWorkspace(record: JsonObject): void {
   console.log("edinet-configured-fidelity-plan: cross-issuer workspace blocked OK");
 }
 
+{
+  const fixture = buildConfiguredEdinetSyntheticFixture();
+  assert.throws(
+    () => buildConfiguredEdinetFidelityPlan({
+      registry: fixture.registry,
+      reviewWorkspace: fixture.reviewWorkspace,
+      sourceReviewWorkspaceFile: "configured-review-workspace-v2.json",
+      generatedAt: "2026-08-06T15:10:00.000",
+    }),
+    /generatedAt must be an explicit ISO date-time/,
+  );
+  console.log("edinet-configured-fidelity-plan: timezone-less generatedAt blocked OK");
+}
+
+{
+  const fixture = buildConfiguredEdinetSyntheticFixture();
+  const ambiguous = structuredClone(fixture.reviewWorkspace) as unknown as JsonObject;
+  const groups = ambiguous.groups as JsonObject[];
+  const firstDocument = (groups[0]!.documents as JsonObject[])[0]!;
+  const acquisitions = firstDocument.acquisitions as JsonObject[];
+  acquisitions[0]!.retrievedAt = "2026-08-06T15:00:00.000";
+  rehashWorkspace(ambiguous);
+  assert.throws(
+    () => buildConfiguredEdinetFidelityPlan({
+      registry: fixture.registry,
+      reviewWorkspace: ambiguous,
+      sourceReviewWorkspaceFile: "configured-review-workspace-v2.json",
+    }),
+    /retrievedAt must be an explicit ISO date-time/,
+  );
+  console.log("edinet-configured-fidelity-plan: timezone-less acquisition retrievedAt blocked OK");
+}
+
 console.log("edinet-configured-fidelity-plan.test.ts passed");
