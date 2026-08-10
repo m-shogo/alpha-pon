@@ -68,6 +68,34 @@ const futureIssues = validateFoundationPriceSnapshotRecord(futurePrice, priceSch
 assert.ok(futureIssues.some((item) => item.code === "invalid_price_snapshot_hash"));
 assert.ok(futureIssues.some((item) => item.code === "future_price_observation"));
 
+{
+  const { contentHash: _ignored, ...priceWithoutHash } = price;
+  const fractionalFuturePrice = withFoundationPriceSnapshotHash({
+    ...priceWithoutHash,
+    informationCutoff: "2026-08-06T06:00:00.000000001Z",
+    observedAt: "2026-08-06T06:00:00.000000002Z",
+    firstExecutableAt: "2026-08-06T06:00:00.000000002Z",
+  });
+  const issues = validateFoundationPriceSnapshotRecord(fractionalFuturePrice, priceSchema);
+  assert.ok(
+    issues.some((item) => item.code === "future_price_observation"),
+    "同一millisecond内でも1ns未来の価格観測をfail-closedにする",
+  );
+
+  const fractionalEarlyExecutable = withFoundationPriceSnapshotHash({
+    ...priceWithoutHash,
+    informationCutoff: "2026-08-06T06:00:00.000000003Z",
+    observedAt: "2026-08-06T06:00:00.000000002Z",
+    firstExecutableAt: "2026-08-06T06:00:00.000000001Z",
+  });
+  const executableIssues = validateFoundationPriceSnapshotRecord(fractionalEarlyExecutable, priceSchema);
+  assert.ok(
+    executableIssues.some((item) => item.code === "price_executable_before_observed"),
+    "同一millisecond内でも1ns早いfirstExecutableAtをfail-closedにする",
+  );
+  console.log("research/foundation-decision-integration: price PIT preserves sub-millisecond ordering OK");
+}
+
 const completeness = {
   securityResolved: true,
   normalizedEvidence: true,
@@ -183,6 +211,35 @@ const eligibleIssues = validateFoundationDecisionRecord(falselyEligible, decisio
 assert.ok(eligibleIssues.some((item) => item.code === "decision_blocker_set_mismatch"));
 assert.ok(eligibleIssues.some((item) => item.code === "decision_eligibility_mismatch"));
 assert.ok(eligibleIssues.some((item) => item.code === "decision_status_mismatch"));
+
+{
+  const issuedBeforeCutoff = withFoundationDecisionHash({
+    ...baseDecision,
+    issuedAt: "2026-08-06T06:00:00.000000001Z",
+    informationCutoff: "2026-08-06T06:00:00.000000002Z",
+    firstExecutableAt: "2026-08-06T06:00:00.000000002Z",
+    blockers: expectedBlockers,
+  });
+  const issues = validateFoundationDecisionRecord(issuedBeforeCutoff, decisionSchema, emptyContext);
+  assert.ok(
+    issues.some((item) => item.code === "decision_issued_before_cutoff"),
+    "同一millisecond内でも1ns早いissuedAtをfail-closedにする",
+  );
+
+  const executableBeforeCutoff = withFoundationDecisionHash({
+    ...baseDecision,
+    issuedAt: "2026-08-06T06:00:00.000000003Z",
+    informationCutoff: "2026-08-06T06:00:00.000000002Z",
+    firstExecutableAt: "2026-08-06T06:00:00.000000001Z",
+    blockers: expectedBlockers,
+  });
+  const executableIssues = validateFoundationDecisionRecord(executableBeforeCutoff, decisionSchema, emptyContext);
+  assert.ok(
+    executableIssues.some((item) => item.code === "decision_executable_before_cutoff"),
+    "同一millisecond内でも1ns早いfirstExecutableAtをfail-closedにする",
+  );
+  console.log("research/foundation-decision-integration: Decision PIT preserves sub-millisecond ordering OK");
+}
 
 {
   const root = mkdtempSync(join(tmpdir(), "alpha-pon-foundation-decision-ledger-"));
