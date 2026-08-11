@@ -1,6 +1,6 @@
 import { mkdirSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { compareExplicitIso8601Instants } from "../research/iso-instant.js";
+import { compareExplicitIso8601Instants, parseExplicitIso8601Instant } from "../research/iso-instant.js";
 import type { DecisionState, EventSource, MarketEvent, MarketEventPriority } from "./contracts.js";
 import { buildMarketEventsIcs } from "./ics.js";
 import {
@@ -67,6 +67,11 @@ export function marketEventFreshness(
     "market event generatedAt",
     "market event staleAfter",
   ) > 0 ? "STALE" : "FRESH";
+}
+
+export function japanMarketDate(generatedAt: string): string {
+  const instantMs = parseExplicitIso8601Instant(generatedAt, "market event generatedAt");
+  return new Date(instantMs + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
 function sortAt(event: MarketEvent): string | null {
@@ -153,10 +158,11 @@ export function buildMarketEventGeneratedData(
   if (icsResult.excludedUnknownDate) {
     warnings.push(`${icsResult.excludedUnknownDate}件は日程未確定のためICSから除外しています。`);
   }
+  const today = japanMarketDate(generatedAt);
   const nextEventAt = events
     .filter(event => {
       if (!event.sortAt || event.status === "CANCELLED" || event.status === "COMPLETED") return false;
-      return event.sortAt >= generatedAt.slice(0, 10);
+      return event.sortAt >= today;
     })
     .map(event => event.sortAt as string)
     .sort()[0] ?? null;
