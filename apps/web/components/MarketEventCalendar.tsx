@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { WebMarketEvent, WebMarketEventData } from '@/lib/market-event-data'
-import { marketEventDateLabel } from '@/lib/market-event-data'
+import { compareWebMarketEventsBySortAt, marketEventDateLabel } from '@/lib/market-event-data'
 import { CalendarFeedActions } from './CalendarFeedActions'
 import styles from '@/app/calendar/calendar.module.css'
 
@@ -300,11 +300,7 @@ export function MarketEventCalendar({ data, nowIso }: { data: WebMarketEventData
       result.set(group, events)
     }
     for (const events of result.values()) {
-      events.sort((a, b) => {
-        const date = (a.sortAt ?? '9999-12-31').localeCompare(b.sortAt ?? '9999-12-31')
-        if (date !== 0) return date
-        return a.priority.localeCompare(b.priority)
-      })
+      events.sort(compareWebMarketEventsBySortAt)
     }
     return result
   }, [filtered, today])
@@ -318,19 +314,20 @@ export function MarketEventCalendar({ data, nowIso }: { data: WebMarketEventData
       events.push(event)
       result.set(day, events)
     }
+    for (const events of result.values()) events.sort(compareWebMarketEventsBySortAt)
     return result
   }, [filtered])
 
   const monthEvents = useMemo(() => filtered
     .filter(event => eventDay(event)?.startsWith(calendarMonth))
-    .sort((a, b) => (a.sortAt ?? '').localeCompare(b.sortAt ?? '')), [calendarMonth, filtered])
+    .sort(compareWebMarketEventsBySortAt), [calendarMonth, filtered])
 
   const nextEvent = useMemo(() => data.events
     .filter(event => {
       const day = eventDay(event)
       return day && day >= today && !['COMPLETED', 'CANCELLED'].includes(event.status)
     })
-    .sort((a, b) => (a.sortAt ?? '9999-12-31').localeCompare(b.sortAt ?? '9999-12-31'))[0] ?? null, [data.events, today])
+    .sort(compareWebMarketEventsBySortAt)[0] ?? null, [data.events, today])
 
   const selectedDayEvents = useMemo(
     () => selectedDay ? (eventsByDay.get(selectedDay) ?? []) : [],
