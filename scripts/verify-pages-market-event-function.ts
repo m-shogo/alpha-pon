@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { freshness, onRequest } from "../functions/[[path]].js";
+import { freshness, japanMarketDate, onRequest } from "../functions/[[path]].js";
 
 const eventRows = [
   {
@@ -126,6 +126,9 @@ assert.equal(
   freshness("2026-08-12T09:00:00.000000002+09:00", "2026-08-12T00:00:00.000000001Z"),
   "FRESH",
 );
+assert.equal(japanMarketDate("2026-08-11T14:59:59Z"), "2026-08-11");
+assert.equal(japanMarketDate("2026-08-11T15:00:00Z"), "2026-08-12");
+assert.equal(japanMarketDate("2026-08-12T00:00:00+09:00"), "2026-08-12");
 
 const health = await onRequest(context("https://alpha.example.com/healthz"));
 assert.equal(health.status, 200);
