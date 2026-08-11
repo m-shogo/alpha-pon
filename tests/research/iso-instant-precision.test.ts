@@ -4,7 +4,10 @@ import {
   compareExplicitIso8601Instants,
   parseExplicitIso8601Instant,
 } from "../../src/research/iso-instant.js";
+import { evaluateGate, type HoldoutAccessEntry } from "../../src/research/promotion.js";
 import { validatePriceRecordTimeline } from "../../src/research/price-record-timeline.js";
+import { GATE_KEYS, type Edge } from "../../src/research/types.js";
+import { makeEdge, makeState } from "./helpers.js";
 
 function testNanosecondFractionRemainsAccepted() {
   assert.equal(
@@ -71,9 +74,43 @@ function testDocumentRevisionLineageAvoidsMillisecondCollapse() {
   console.log("research/iso-instant: document revision lineage uses full instant precision");
 }
 
+function testHoldoutLatestResultUsesNanosecondPrecision() {
+  const edge = makeEdge();
+  for (const key of GATE_KEYS) {
+    edge.promotionGate[key] = { state: "pass", evidence: `precision test ${key}`, checkedAt: "2024-02-01" };
+  }
+  edge.samples.current = edge.samples.required;
+
+  const base: HoldoutAccessEntry = {
+    schemaVersion: 1,
+    id: "holdout-base",
+    edgeId: edge.id,
+    windowId: "precision-window",
+    openedAt: "2024-02-01T10:00:00.000000001+09:00",
+    actor: "test",
+    purpose: "production_gate",
+    result: "fail",
+  };
+  const latestPass: HoldoutAccessEntry = {
+    ...base,
+    id: "holdout-latest-pass",
+    openedAt: "2024-02-01T10:00:00.000000002+09:00",
+    result: "pass",
+  };
+
+  const evaluation = evaluateGate(edge as Edge, makeState({ edges: [edge] }), [base, latestPass], "2024-02-01");
+  assert.equal(
+    evaluation.unsupportedPasses.some((item) => item.gate === "holdoutPass"),
+    false,
+    "later +1ns PASS must supersede earlier FAIL instead of collapsing into a same-millisecond conflict",
+  );
+  console.log("research/iso-instant: Holdout latest-result ordering preserves nanosecond precision");
+}
+
 testNanosecondFractionRemainsAccepted();
 testFullFractionalPrecisionComparison();
 testPitTimelineDetectsSubMillisecondInversion();
 testDocumentRevisionLineageAvoidsMillisecondCollapse();
+testHoldoutLatestResultUsesNanosecondPrecision();
 
 console.log("research/iso-instant: precision regression tests passed");
