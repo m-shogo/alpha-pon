@@ -6,7 +6,7 @@
 //   ここを緩めると Research OS の存在意義（未検証 Production の禁止）が消える。
 
 import type { Issue } from "./edge-registry.js";
-import { parseExplicitIso8601Instant } from "./iso-instant.js";
+import { compareExplicitIso8601Instants, parseExplicitIso8601Instant } from "./iso-instant.js";
 import { checkPit } from "./pit.js";
 import { isValidDate } from "./schema.js";
 import type { Edge, GateKey, ResearchState } from "./types.js";
@@ -113,7 +113,7 @@ function verifyPassClaims(
     if (opened.length === 0) {
       unsupported.push({ gate: "holdoutPass", reason: "Holdout 開封記録（access_log）がありません" });
     } else {
-      const eligible: Array<{ entry: HoldoutAccessEntry; openedAtMs: number }> = [];
+      const eligible: HoldoutAccessEntry[] = [];
       let invalidTimestamp = false;
       for (const entry of opened) {
         let openedAtMs: number;
@@ -123,7 +123,7 @@ function verifyPassClaims(
           invalidTimestamp = true;
           continue;
         }
-        if (openedAtMs <= cutoffMs) eligible.push({ entry, openedAtMs });
+        if (openedAtMs <= cutoffMs) eligible.push(entry);
       }
 
       if (invalidTimestamp) {
@@ -137,18 +137,34 @@ function verifyPassClaims(
           reason: `${asOf} 時点で利用可能な Holdout 開封記録がありません`,
         });
       } else {
-        const latestOpenedAtMs = Math.max(...eligible.map((item) => item.openedAtMs));
-        const latest = eligible.filter((item) => item.openedAtMs === latestOpenedAtMs);
-        const latestResults = new Set(latest.map((item) => item.entry.result));
+        eligible.sort((left, right) => {
+          const instantOrder = compareExplicitIso8601Instants(
+            right.openedAt,
+            left.openedAt,
+            `holdout access ${right.id}.openedAt`,
+            `holdout access ${left.id}.openedAt`,
+          );
+          return instantOrder !== 0 ? instantOrder : left.id.localeCompare(right.id);
+        });
+        const latestInstant = eligible[0]!.openedAt;
+        const latest = eligible.filter((entry) =>
+          compareExplicitIso8601Instants(
+            entry.openedAt,
+            latestInstant,
+            `holdout access ${entry.id}.openedAt`,
+            `holdout access ${eligible[0]!.id}.openedAt`,
+          ) === 0,
+        );
+        const latestResults = new Set(latest.map((entry) => entry.result));
         if (latestResults.size !== 1) {
           unsupported.push({
             gate: "holdoutPass",
             reason: "最新の Holdout 開封時刻に pass / fail の競合があります",
           });
-        } else if (latest[0]!.entry.result !== "pass") {
+        } else if (latest[0]!.result !== "pass") {
           unsupported.push({
             gate: "holdoutPass",
-            reason: `最新の Holdout 開封記録(${latest[0]!.entry.id})が pass ではありません`,
+            reason: `最新の Holdout 開封記録(${latest[0]!.id})が pass ではありません`,
           });
         }
       }
