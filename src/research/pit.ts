@@ -59,8 +59,15 @@ export function checkPit(state: ResearchState, now: Date = new Date()): Issue[] 
   if (!Number.isFinite(nowMs)) {
     throw new Error("checkPit now must be a valid Date");
   }
-  const nowInstant = now.toISOString();
-  const today = jstDateOf(nowInstant);
+  const nowIso = now.toISOString();
+  const today = jstDateOf(nowIso);
+  const jstEndOfDayMs = parseExplicitIso8601Instant(
+    `${today}T23:59:59.999+09:00`,
+    "PIT JST end-of-day millisecond cutoff",
+  );
+  const nowInstant = nowMs === jstEndOfDayMs
+    ? `${today}T23:59:59.999999999+09:00`
+    : nowIso;
 
   const future = (target: string, field: string, value: string) => {
     issues.push({
