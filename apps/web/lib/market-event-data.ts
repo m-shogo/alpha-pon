@@ -113,7 +113,7 @@ function sortAtNanoseconds(value: string): bigint {
   if (!Number.isFinite(milliseconds)) throw new Error(`invalid market event sortAt: ${value}`)
   const fractional = match[1] ?? ''
   const subMillisecond = BigInt((fractional + '000000000').slice(3, 9))
-  return BigInt(milliseconds) * 1_000_000n + subMillisecond
+  return BigInt(milliseconds) * BigInt(1_000_000) + subMillisecond
 }
 
 export function compareWebMarketEventSortAt(left: string, right: string): -1 | 0 | 1 {
