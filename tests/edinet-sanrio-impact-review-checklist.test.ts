@@ -190,6 +190,28 @@ function editTemplate() {
 }
 
 {
+  for (const generatedAt of ["2026-08-06T11:00:00", "2026-02-30T11:00:00Z"]) {
+    assert.throws(
+      () => buildSanrioEdinetImpactChecklistTemplate({
+        contentBundle: contentBundle(),
+        sourceContentBundleFile: "revision-review-next-content-v1.fixture.json",
+        generatedAt,
+      }),
+      /generatedAt/,
+    );
+  }
+  assert.equal(
+    buildSanrioEdinetImpactChecklistTemplate({
+      contentBundle: contentBundle(),
+      sourceContentBundleFile: "revision-review-next-content-v1.fixture.json",
+      generatedAt: "2026-08-06T20:00:00+09:00",
+    }).generatedAt,
+    "2026-08-06T20:00:00+09:00",
+  );
+  console.log("edinet-sanrio-impact-review: generatedAt strict explicit-timezone boundary OK");
+}
+
+{
   const final = finalizeSanrioEdinetImpactChecklist({
     contentBundle: contentBundle(),
     sourceContentBundleFile: "revision-review-next-content-v1.fixture.json",
@@ -208,6 +230,30 @@ function editTemplate() {
   ));
   assert.match(final.recordHash, /^[a-f0-9]{64}$/);
   console.log("edinet-sanrio-impact-review: completed checklist remains non-appendable OK");
+}
+
+{
+  for (const reviewedAt of ["2026-08-06T11:30:00", "2026-02-30T11:30:00Z"]) {
+    assert.throws(
+      () => finalizeSanrioEdinetImpactChecklist({
+        contentBundle: contentBundle(),
+        sourceContentBundleFile: "revision-review-next-content-v1.fixture.json",
+        editedRecord: editTemplate(),
+        reviewedAt,
+      }),
+      /reviewedAt/,
+    );
+  }
+  assert.equal(
+    finalizeSanrioEdinetImpactChecklist({
+      contentBundle: contentBundle(),
+      sourceContentBundleFile: "revision-review-next-content-v1.fixture.json",
+      editedRecord: editTemplate(),
+      reviewedAt: "2026-08-06T20:30:00+09:00",
+    }).reviewedAt,
+    "2026-08-06T20:30:00+09:00",
+  );
+  console.log("edinet-sanrio-impact-review: reviewedAt strict explicit-timezone boundary OK");
 }
 
 {
