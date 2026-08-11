@@ -84,4 +84,22 @@ assert.throws(
   /explicit timezone/,
 );
 
+assert.throws(
+  () => buildReviewedEdinetFoundationPreview(validInput({
+    observedAt: "2026-06-20T15:02:00.000000002+09:00",
+    retrievedAt: "2026-06-20T15:02:00.000000001+09:00",
+  })),
+  /retrievedAt must be at or after observedAt/,
+  "a 1ns retrieval regression inside the same millisecond must fail closed",
+);
+
+assert.throws(
+  () => buildReviewedEdinetFoundationPreview(validInput({
+    retrievedAt: "2026-06-20T15:02:00.000000002+09:00",
+    firstExecutableAt: "2026-06-20T15:02:00.000000001+09:00",
+  })),
+  /firstExecutableAt must be at or after retrievedAt/,
+  "a 1ns executable-time regression inside the same millisecond must fail closed",
+);
+
 console.log("edinet-reviewed-foundation-preview-strict-instant.test.ts passed");
