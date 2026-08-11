@@ -82,6 +82,11 @@ function daysBetween(from: string, to: string): number {
   return epochDay(to, "promotion asOf") - epochDay(from, "edge.decay.lastCheckedAt");
 }
 
+function asOfCutoffInstant(asOf: string): string {
+  epochDay(asOf, "promotion asOf");
+  return `${asOf}T23:59:59.999999999+09:00`;
+}
+
 function asOfCutoffMs(asOf: string): number {
   epochDay(asOf, "promotion asOf");
   return parseExplicitIso8601Instant(`${asOf}T23:59:59.999+09:00`, "promotion asOf cutoff");
@@ -96,6 +101,7 @@ function verifyPassClaims(
   state: ResearchState,
   accessLog: HoldoutAccessEntry[],
   asOf: string,
+  cutoffInstant: string,
   cutoffMs: number,
 ): Array<{ gate: GateKey; reason: string }> {
   const unsupported: Array<{ gate: GateKey; reason: string }> = [];
@@ -116,14 +122,21 @@ function verifyPassClaims(
       const eligible: HoldoutAccessEntry[] = [];
       let invalidTimestamp = false;
       for (const entry of opened) {
-        let openedAtMs: number;
         try {
-          openedAtMs = parseExplicitIso8601Instant(entry.openedAt, `holdout access ${entry.id}.openedAt`);
+          parseExplicitIso8601Instant(entry.openedAt, `holdout access ${entry.id}.openedAt`);
+          if (
+            compareExplicitIso8601Instants(
+              entry.openedAt,
+              cutoffInstant,
+              `holdout access ${entry.id}.openedAt`,
+              "promotion asOf cutoff",
+            ) <= 0
+          ) {
+            eligible.push(entry);
+          }
         } catch {
           invalidTimestamp = true;
-          continue;
         }
-        if (openedAtMs <= cutoffMs) eligible.push(entry);
       }
 
       if (invalidTimestamp) {
@@ -250,6 +263,7 @@ export function evaluateGate(
   accessLog: HoldoutAccessEntry[],
   asOf: string,
 ): GateEvaluation {
+  const cutoffInstant = asOfCutoffInstant(asOf);
   const cutoffMs = asOfCutoffMs(asOf);
   const blockers: GateEvaluation["blockers"] = [];
   for (const gate of GATE_KEYS) {
@@ -261,7 +275,14 @@ export function evaluateGate(
     });
   }
 
-  const unsupportedPasses = verifyPassClaims(edge, state, accessLog, asOf, cutoffMs);
+  const unsupportedPasses = verifyPassClaims(
+    edge,
+    state,
+    accessLog,
+    asOf,
+    cutoffInstant,
+    cutoffMs,
+  );
   const passCount = GATE_KEYS.filter((gate) => edge.promotionGate[gate].state === "pass").length;
 
   return {
