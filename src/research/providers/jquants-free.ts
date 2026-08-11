@@ -152,8 +152,6 @@ function classifyQuote(quote: DailyQuote): {
     && quote.Low <= Math.min(quote.Open, quote.Close, quote.High);
 
   if (!traded) {
-    // V2 normalization currently converts null OHLC fields to zero. Until real
-    // Free-plan missing/suspension cases are measured, do not invent a cause.
     return { status: "missing", missingReason: "unknown" };
   }
 
@@ -195,9 +193,7 @@ export function mapJQuantsFreeQuote(input: {
   const tradingDate = normalizeDate(input.quote.Date);
   const delayDays = input.delayDays ?? JQUANTS_FREE_DELAY_DAYS;
   const observedAt = jquantsFreeObservedAt(tradingDate, delayDays);
-  const retrievedMs = parseExplicitIso8601Instant(input.retrievedAt, "retrievedAt");
-  const observedMs = parseExplicitIso8601Instant(observedAt, "observedAt");
-  if (retrievedMs < observedMs) {
+  if (compareExplicitIso8601Instants(input.retrievedAt, observedAt, "retrievedAt", "observedAt") < 0) {
     throw new Error("retrievedAt must be at or after the Free-plan observedAt boundary");
   }
   assertTimestampAtOrAfter(input.firstExecutableAt, input.retrievedAt, "firstExecutableAt", "retrievedAt");
@@ -223,8 +219,6 @@ export function mapJQuantsFreeQuote(input: {
     status: classified.status,
     ...(classified.missingReason ? { missingReason: classified.missingReason } : {}),
     ...(classified.ohlcv ? { ohlcv: classified.ohlcv } : {}),
-    // PIT v1 intentionally stores raw/unadjusted bars only. J-Quants adjusted
-    // values can be retroactively rewritten by later corporate actions.
     adjusted: false,
     adjustmentFactor: 1,
     corporateActions: [],
