@@ -11,10 +11,7 @@ import {
 import {
   validateSecurityMasterGoverned,
 } from "./security-master-hardening.js";
-import {
-  compareExplicitIso8601Instants,
-  parseExplicitIso8601Instant,
-} from "./iso-instant.js";
+import { compareExplicitIso8601Instants } from "./iso-instant.js";
 import { isValidDate } from "./schema.js";
 import { loadCouncilSchema } from "./stock-pro-council-v2-validation.js";
 
@@ -85,16 +82,8 @@ type RevisionRecord = {
   supersedesRecordId?: string;
 };
 
-function availableBy(record: RevisionRecord, cutoffEpoch: number): boolean {
+function availableBy(record: RevisionRecord, cutoffInstant: string): boolean {
   try {
-    const observedEpoch = parseExplicitIso8601Instant(
-      record.observedAt,
-      `security master revision ${record.recordId}.observedAt`,
-    );
-    const retrievedEpoch = parseExplicitIso8601Instant(
-      record.retrievedAt,
-      `security master revision ${record.recordId}.retrievedAt`,
-    );
     if (compareExplicitIso8601Instants(
       record.retrievedAt,
       record.observedAt,
@@ -103,7 +92,17 @@ function availableBy(record: RevisionRecord, cutoffEpoch: number): boolean {
     ) < 0) {
       return false;
     }
-    return observedEpoch <= cutoffEpoch && retrievedEpoch <= cutoffEpoch;
+    return compareExplicitIso8601Instants(
+      record.observedAt,
+      cutoffInstant,
+      `security master revision ${record.recordId}.observedAt`,
+      "security master snapshot cutoff",
+    ) <= 0 && compareExplicitIso8601Instants(
+      record.retrievedAt,
+      cutoffInstant,
+      `security master revision ${record.recordId}.retrievedAt`,
+      "security master snapshot cutoff",
+    ) <= 0;
   } catch {
     return false;
   }
@@ -112,7 +111,7 @@ function availableBy(record: RevisionRecord, cutoffEpoch: number): boolean {
 function historicalRevisionShadowingIssues<T extends RevisionRecord>(
   records: readonly T[],
   asOf: string,
-  cutoffEpoch: number,
+  cutoffInstant: string,
   kind: "entity" | "relationship",
 ): SecurityMasterIssue[] {
   const issues: SecurityMasterIssue[] = [];
@@ -133,7 +132,7 @@ function historicalRevisionShadowingIssues<T extends RevisionRecord>(
       if (!previous) break;
       if (
         dateInRange(asOf, previous.validFrom, previous.validTo) &&
-        availableBy(previous, cutoffEpoch)
+        availableBy(previous, cutoffInstant)
       ) {
         issues.push(issue(
           `historical_${kind}_revision_shadowed`,
@@ -151,7 +150,7 @@ function historicalRevisionShadowingIssues<T extends RevisionRecord>(
 function futureRevisionShadowingIssues<T extends RevisionRecord>(
   records: readonly T[],
   asOf: string,
-  cutoffEpoch: number,
+  cutoffInstant: string,
   kind: "entity" | "relationship",
 ): SecurityMasterIssue[] {
   const issues: SecurityMasterIssue[] = [];
@@ -162,7 +161,7 @@ function futureRevisionShadowingIssues<T extends RevisionRecord>(
   const heads = records.filter((record) => !superseded.has(record.recordId));
 
   for (const head of heads) {
-    if (!dateInRange(asOf, head.validFrom, head.validTo) || availableBy(head, cutoffEpoch)) continue;
+    if (!dateInRange(asOf, head.validFrom, head.validTo) || availableBy(head, cutoffInstant)) continue;
     const seen = new Set<string>();
     let current: T | undefined = head;
     while (current?.supersedesRecordId) {
@@ -172,7 +171,7 @@ function futureRevisionShadowingIssues<T extends RevisionRecord>(
       if (!previous) break;
       if (
         dateInRange(asOf, previous.validFrom, previous.validTo) &&
-        availableBy(previous, cutoffEpoch)
+        availableBy(previous, cutoffInstant)
       ) {
         issues.push(issue(
           `future_${kind}_revision_shadowed`,
@@ -190,10 +189,10 @@ function futureRevisionShadowingIssues<T extends RevisionRecord>(
 function recordsAvailableAt<T extends RevisionRecord>(
   records: readonly T[],
   asOf: string,
-  cutoffEpoch: number,
+  cutoffInstant: string,
 ): T[] {
   return records.filter((record) =>
-    dateInRange(asOf, record.validFrom, record.validTo) && availableBy(record, cutoffEpoch),
+    dateInRange(asOf, record.validFrom, record.validTo) && availableBy(record, cutoffInstant),
   );
 }
 
@@ -272,19 +271,16 @@ export function validateSecurityMasterRepository(
 
   let snapshot: SecurityMasterSnapshot = { asOf, entities: [], relationships: [] };
   if (validAsOf) {
-    const cutoffEpoch = parseExplicitIso8601Instant(
-      `${asOf}T23:59:59.999+09:00`,
-      "security master snapshot cutoff",
-    );
+    const cutoffInstant = `${asOf}T23:59:59.999999999+09:00`;
     issues.push(
-      ...historicalRevisionShadowingIssues(entityRead.records, asOf, cutoffEpoch, "entity"),
-      ...historicalRevisionShadowingIssues(relationshipRead.records, asOf, cutoffEpoch, "relationship"),
-      ...futureRevisionShadowingIssues(entityRead.records, asOf, cutoffEpoch, "entity"),
-      ...futureRevisionShadowingIssues(relationshipRead.records, asOf, cutoffEpoch, "relationship"),
+      ...historicalRevisionShadowingIssues(entityRead.records, asOf, cutoffInstant, "entity"),
+      ...historicalRevisionShadowingIssues(relationshipRead.records, asOf, cutoffInstant, "relationship"),
+      ...futureRevisionShadowingIssues(entityRead.records, asOf, cutoffInstant, "entity"),
+      ...futureRevisionShadowingIssues(relationshipRead.records, asOf, cutoffInstant, "relationship"),
     );
     const rawSnapshot = buildSecurityMasterSnapshot(
-      recordsAvailableAt(entityRead.records, asOf, cutoffEpoch),
-      recordsAvailableAt(relationshipRead.records, asOf, cutoffEpoch),
+      recordsAvailableAt(entityRead.records, asOf, cutoffInstant),
+      recordsAvailableAt(relationshipRead.records, asOf, cutoffInstant),
       asOf,
     );
     const endpointIntegrity = enforceSnapshotEndpointIntegrity(rawSnapshot);

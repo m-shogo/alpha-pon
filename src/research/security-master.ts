@@ -745,21 +745,21 @@ function recordsAvailableBySnapshotDate<
   if (!isValidDate(asOf)) {
     throw new Error(`security_master_invalid_as_of:${asOf}`);
   }
-  const cutoffEpoch = parseExplicitIso8601Instant(
-    `${asOf}T23:59:59.999+09:00`,
-    "security master snapshot cutoff",
-  );
-  return records.filter((record) => {
-    const observedEpoch = parseExplicitIso8601Instant(
+  const cutoffInstant = `${asOf}T23:59:59.999999999+09:00`;
+  return records.filter((record) =>
+    compareExplicitIso8601Instants(
       record.observedAt,
+      cutoffInstant,
       `security master revision ${record.recordId}.observedAt`,
-    );
-    const retrievedEpoch = parseExplicitIso8601Instant(
+      "security master snapshot cutoff",
+    ) <= 0 &&
+    compareExplicitIso8601Instants(
       record.retrievedAt,
+      cutoffInstant,
       `security master revision ${record.recordId}.retrievedAt`,
-    );
-    return observedEpoch <= cutoffEpoch && retrievedEpoch <= cutoffEpoch;
-  });
+      "security master snapshot cutoff",
+    ) <= 0
+  );
 }
 
 export function buildSecurityMasterSnapshot(
