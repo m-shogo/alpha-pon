@@ -250,10 +250,6 @@ function schemaIssues(
   ));
 }
 
-function timeMs(value: string): number {
-  return Date.parse(value);
-}
-
 function sortedUnique(values: readonly string[]): string[] {
   return [...new Set(values)].sort();
 }
@@ -679,8 +675,8 @@ function validateRevisionRowChains(
       ));
     }
     if (
-      timeMs(record.observedAt) <= timeMs(previous.observedAt) ||
-      timeMs(record.retrievedAt) <= timeMs(previous.retrievedAt)
+      compareExplicitIso8601Instants(record.observedAt, previous.observedAt) <= 0 ||
+      compareExplicitIso8601Instants(record.retrievedAt, previous.retrievedAt) <= 0
     ) {
       issues.push(issue(
         "document_revision_row_time_regression",
@@ -721,8 +717,8 @@ function validateRevisionRowChains(
       ));
     }
     if (
-      timeMs(record.observedAt) <= timeMs(previous.observedAt) ||
-      timeMs(record.retrievedAt) <= timeMs(previous.retrievedAt)
+      compareExplicitIso8601Instants(record.observedAt, previous.observedAt) <= 0 ||
+      compareExplicitIso8601Instants(record.retrievedAt, previous.retrievedAt) <= 0
     ) {
       issues.push(issue(
         "document_diff_row_time_regression",
@@ -799,7 +795,12 @@ function validateDocumentSequence(
     }
     const ordered = [...values].sort((a, b) => a.revisionSequence - b.revisionSequence);
     for (let index = 1; index < ordered.length; index += 1) {
-      if (timeMs(ordered[index].publishedAt) < timeMs(ordered[index - 1].publishedAt)) {
+      if (
+        compareExplicitIso8601Instants(
+          ordered[index].publishedAt,
+          ordered[index - 1].publishedAt,
+        ) < 0
+      ) {
         issues.push(issue(
           "document_revision_publication_regression",
           documentId,

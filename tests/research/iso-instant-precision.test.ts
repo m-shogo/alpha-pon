@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   compareExplicitIso8601Instants,
   parseExplicitIso8601Instant,
@@ -49,8 +50,30 @@ function testPitTimelineDetectsSubMillisecondInversion() {
   console.log("research/iso-instant: sub-millisecond PIT inversion detected");
 }
 
+function testDocumentRevisionLineageAvoidsMillisecondCollapse() {
+  const source = readFileSync(
+    new URL("../../src/research/document-revision-diff.ts", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotMatch(
+    source,
+    /Date\.parse\(/,
+    "document revision lineage ordering must not collapse fractional precision through Date.parse",
+  );
+  assert.match(
+    source,
+    /compareExplicitIso8601Instants\(record\.observedAt, previous\.observedAt\) <= 0/,
+  );
+  assert.match(
+    source,
+    /compareExplicitIso8601Instants\(record\.retrievedAt, previous\.retrievedAt\) <= 0/,
+  );
+  console.log("research/iso-instant: document revision lineage uses full instant precision");
+}
+
 testNanosecondFractionRemainsAccepted();
 testFullFractionalPrecisionComparison();
 testPitTimelineDetectsSubMillisecondInversion();
+testDocumentRevisionLineageAvoidsMillisecondCollapse();
 
 console.log("research/iso-instant: precision regression tests passed");
