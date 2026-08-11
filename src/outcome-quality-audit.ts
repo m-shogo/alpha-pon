@@ -70,21 +70,34 @@ export interface OutcomeQualityInputs {
 
 // ── 日付ユーティリティ ───────────────────────────────────────
 
-function addDays(dateStr: string, days: number): string | null {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateStr);
+function calendarDateUtcMs(value: string): number | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!m) return null;
-  const date = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const day = Number(m[3]);
+  if (year < 1 || month < 1 || month > 12 || day < 1) return null;
+  const utcMs = Date.UTC(year, month - 1, day);
+  const parsed = new Date(utcMs);
+  if (
+    parsed.getUTCFullYear() !== year
+    || parsed.getUTCMonth() !== month - 1
+    || parsed.getUTCDate() !== day
+  ) return null;
+  return utcMs;
+}
+
+function addDays(dateStr: string, days: number): string | null {
+  const baseMs = calendarDateUtcMs(dateStr);
+  if (baseMs == null) return null;
+  const date = new Date(baseMs);
   date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
 }
 
 function diffDays(fromStr: string, toStr: string): number | null {
-  const parse = (s: string) => {
-    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
-    return m ? Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
-  };
-  const from = parse(fromStr);
-  const to = parse(toStr);
+  const from = calendarDateUtcMs(fromStr);
+  const to = calendarDateUtcMs(toStr);
   if (from == null || to == null) return null;
   return Math.round((to - from) / 86400000);
 }
@@ -105,6 +118,7 @@ const DUE_TOLERANCE: Record<string, { min: number; max: number }> = {
 function isDue(detectedAt: string, horizon: string, today: string): boolean {
   const days = HORIZON_DAYS[horizon];
   if (days == null) return false;
+  if (calendarDateUtcMs(today) == null) return false;
   const due = addDays(detectedAt, days + GRACE_DAYS);
   return due != null && due <= today;
 }
