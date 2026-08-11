@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 
 const SANRIO_EDINET_CODE = "E02655";
 const SANRIO_SEC_CODE = "81360";
@@ -174,7 +175,7 @@ function requirePositiveInteger(value: unknown, field: string): number {
 function optionalTimestamp(value: unknown, field: string): string | null {
   const result = asString(value);
   if (!result) return null;
-  if (!Number.isFinite(Date.parse(result))) throw new Error(`${field} must be a date-time`);
+  parseExplicitIso8601Instant(result, field);
   return result;
 }
 

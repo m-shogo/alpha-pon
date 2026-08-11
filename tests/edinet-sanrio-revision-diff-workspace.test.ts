@@ -214,4 +214,42 @@ function reviewWorkspace() {
   console.log("edinet-sanrio-revision-diff: unsafe archive entry blocked OK");
 }
 
+{
+  const broken = reviewWorkspace();
+  broken.groups[0]!.documents[0]!.submitDateTime = "2026-08-06T06:47:08";
+  assert.throws(
+    () => buildSanrioEdinetRevisionDiffPlan(broken),
+    /explicit timezone/,
+  );
+  broken.groups[0]!.documents[0]!.submitDateTime = "2026-02-30T06:47:08Z";
+  assert.throws(
+    () => buildSanrioEdinetRevisionDiffPlan(broken),
+    /valid Gregorian ISO-8601 timestamp/,
+  );
+  console.log("edinet-sanrio-revision-diff: strict submitDateTime boundary OK");
+}
+
+{
+  const pair = buildSanrioEdinetRevisionDiffPlan(reviewWorkspace()).pairs[0]!;
+  const result = compareSanrioEdinetRevisionEntries({
+    pair,
+    beforeEntries: [{ path: "XBRL/PublicDoc/a.htm", content: "before" }],
+    afterEntries: [{ path: "XBRL/PublicDoc/a.htm", content: "after" }],
+  });
+  const plan = buildSanrioEdinetRevisionDiffPlan(reviewWorkspace());
+  assert.throws(
+    () => buildSanrioEdinetRevisionDiffWorkspace({ plan, pairs: [result], generatedAt: "2026-08-06T07:00:00" }),
+    /explicit timezone/,
+  );
+  assert.throws(
+    () => buildSanrioEdinetRevisionDiffWorkspace({ plan, pairs: [result], generatedAt: "2026-02-30T07:00:00Z" }),
+    /valid Gregorian ISO-8601 timestamp/,
+  );
+  assert.equal(
+    buildSanrioEdinetRevisionDiffWorkspace({ plan, pairs: [result], generatedAt: "2026-08-06T16:00:00+09:00" }).generatedAt,
+    "2026-08-06T16:00:00+09:00",
+  );
+  console.log("edinet-sanrio-revision-diff: strict generatedAt boundary OK");
+}
+
 console.log("edinet-sanrio-revision-diff-workspace.test.ts passed");
