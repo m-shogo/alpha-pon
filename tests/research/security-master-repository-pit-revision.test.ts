@@ -121,4 +121,42 @@ function entityRecord(overrides: Partial<SecurityMasterEntityRecordInput> = {}) 
   console.log("security-master-repository: late-retrieved revision cannot leak into past PIT snapshot OK");
 }
 
+{
+  const dir = mkdtempSync(join(tmpdir(), "security-master-repository-pit-order-"));
+  const entitiesPath = join(dir, "entities.jsonl");
+  const relationshipsPath = join(dir, "relationships.jsonl");
+  const previous = entityRecord();
+  const invalidChronologyRevision = entityRecord({
+    recordId: "entity:pit:record:004",
+    canonicalName: "Invalid Chronology Correction株式会社",
+    observedAt: "2025-05-01T15:00:00.000000002+09:00",
+    retrievedAt: "2025-05-01T15:00:00.000000001+09:00",
+    supersedesRecordId: previous.recordId,
+  });
+
+  try {
+    writeFileSync(
+      entitiesPath,
+      `${JSON.stringify(previous)}\n${JSON.stringify(invalidChronologyRevision)}\n`,
+      "utf-8",
+    );
+    writeFileSync(relationshipsPath, "", "utf-8");
+
+    const result = validateSecurityMasterRepository({
+      entitiesPath,
+      relationshipsPath,
+      asOf: "2025-06-01",
+    });
+
+    assert.ok(result.issues.some((issue) => issue.code === "retrieved_before_observed"));
+    assert.ok(result.issues.some((issue) => issue.code === "future_entity_revision_shadowed"));
+    assert.equal(result.snapshot.entities.length, 1);
+    assert.equal(result.snapshot.entities[0]?.recordId, previous.recordId);
+    assert.equal(result.snapshot.entities[0]?.canonicalName, "Known At Cutoff株式会社");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  console.log("security-master-repository: invalid observed/retrieved ordering cannot shadow PIT snapshot OK");
+}
+
 console.log("security-master-repository-pit-revision.test.ts passed");
