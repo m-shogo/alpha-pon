@@ -195,9 +195,7 @@ export function mapJQuantsFreeQuote(input: {
   const tradingDate = normalizeDate(input.quote.Date);
   const delayDays = input.delayDays ?? JQUANTS_FREE_DELAY_DAYS;
   const observedAt = jquantsFreeObservedAt(tradingDate, delayDays);
-  const retrievedMs = parseExplicitIso8601Instant(input.retrievedAt, "retrievedAt");
-  const observedMs = parseExplicitIso8601Instant(observedAt, "observedAt");
-  if (retrievedMs < observedMs) {
+  if (compareExplicitIso8601Instants(input.retrievedAt, observedAt, "retrievedAt", "observedAt") < 0) {
     throw new Error("retrievedAt must be at or after the Free-plan observedAt boundary");
   }
   assertTimestampAtOrAfter(input.firstExecutableAt, input.retrievedAt, "firstExecutableAt", "retrievedAt");
