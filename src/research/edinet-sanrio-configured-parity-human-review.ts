@@ -159,7 +159,7 @@ function docID(value: unknown, field: string): string {
 function timestamp(value: unknown, field: string): string {
   const result = required(value, field);
   try {
-    parseExplicitIso8601Instant(result);
+    parseExplicitIso8601Instant(result, field);
   } catch {
     throw new Error(`${field} must be an explicit-timezone ISO instant`);
   }
