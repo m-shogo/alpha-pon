@@ -233,4 +233,56 @@ function extractionSetup() {
   console.log("edinet-configured-fidelity-extraction: comparison cannot be smuggled into anchor template OK");
 }
 
+{
+  const { plan, extractedDocuments } = extractionSetup();
+  assert.throws(
+    () => buildConfiguredEdinetFidelityExtractionBundle({
+      fidelityPlan: plan,
+      sourceFidelityPlanFile: "configured-source-fidelity-plan-v1.fixture.json",
+      extractedDocuments,
+      generatedAt: "2026-08-06T15:30:00",
+    }),
+    /explicit timezone/,
+  );
+  assert.throws(
+    () => buildConfiguredEdinetFidelityExtractionBundle({
+      fidelityPlan: plan,
+      sourceFidelityPlanFile: "configured-source-fidelity-plan-v1.fixture.json",
+      extractedDocuments,
+      generatedAt: "2026-02-30T15:30:00Z",
+    }),
+    /valid Gregorian ISO-8601 timestamp/,
+  );
+  const bundle = buildConfiguredEdinetFidelityExtractionBundle({
+    fidelityPlan: plan,
+    sourceFidelityPlanFile: "configured-source-fidelity-plan-v1.fixture.json",
+    extractedDocuments,
+    generatedAt: "2026-08-07T00:30:00+09:00",
+  });
+  assert.equal(bundle.generatedAt, "2026-08-07T00:30:00+09:00");
+  assert.throws(
+    () => buildConfiguredEdinetAnchorInputTemplate({
+      extractionBundle: bundle,
+      sourceExtractionBundleFile: "configured-fidelity-extraction-v1.fixture.json",
+      generatedAt: "2026-08-06T15:31:00",
+    }),
+    /explicit timezone/,
+  );
+  assert.throws(
+    () => buildConfiguredEdinetAnchorInputTemplate({
+      extractionBundle: bundle,
+      sourceExtractionBundleFile: "configured-fidelity-extraction-v1.fixture.json",
+      generatedAt: "2026-02-30T15:31:00Z",
+    }),
+    /valid Gregorian ISO-8601 timestamp/,
+  );
+  const template = buildConfiguredEdinetAnchorInputTemplate({
+    extractionBundle: bundle,
+    sourceExtractionBundleFile: "configured-fidelity-extraction-v1.fixture.json",
+    generatedAt: "2026-08-07T00:31:00+09:00",
+  });
+  assert.equal(template.generatedAt, "2026-08-07T00:31:00+09:00");
+  console.log("edinet-configured-fidelity-extraction: strict generatedAt boundaries OK");
+}
+
 console.log("edinet-configured-fidelity-extraction.test.ts passed");
