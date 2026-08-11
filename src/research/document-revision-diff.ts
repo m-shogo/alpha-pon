@@ -6,6 +6,7 @@ import type {
 import {
   recommendationEligibleEvidence,
 } from "./bitemporal-evidence-store.js";
+import { compareExplicitIso8601Instants } from "./iso-instant.js";
 import { stableStringify, validate, type JsonSchema } from "./schema.js";
 
 export type DocumentType =
@@ -329,13 +330,13 @@ export function validateDocumentRevisionRecord(
   if (record.contentHash !== computeDocumentRevisionHash(record)) {
     issues.push(issue("invalid_document_revision_hash", target, "contentHashが一致しません"));
   }
-  if (timeMs(record.observedAt) < timeMs(record.publishedAt)) {
+  if (compareExplicitIso8601Instants(record.observedAt, record.publishedAt) < 0) {
     issues.push(issue("revision_observed_before_published", target, `${record.observedAt} < ${record.publishedAt}`));
   }
-  if (timeMs(record.retrievedAt) < timeMs(record.observedAt)) {
+  if (compareExplicitIso8601Instants(record.retrievedAt, record.observedAt) < 0) {
     issues.push(issue("revision_retrieved_before_observed", target, `${record.retrievedAt} < ${record.observedAt}`));
   }
-  if (record.effectiveTo && timeMs(record.effectiveTo) < timeMs(record.effectiveFrom)) {
+  if (record.effectiveTo && compareExplicitIso8601Instants(record.effectiveTo, record.effectiveFrom) < 0) {
     issues.push(issue("invalid_revision_effective_period", target, `${record.effectiveTo} < ${record.effectiveFrom}`));
   }
   if (record.revisionKind === "initial" && record.revisionSequence !== 0) {
@@ -372,8 +373,8 @@ export function validateDocumentRevisionRecord(
       ));
     }
     if (
-      timeMs(record.observedAt) < timeMs(evidence.observedAt) ||
-      timeMs(record.retrievedAt) < timeMs(evidence.retrievedAt)
+      compareExplicitIso8601Instants(record.observedAt, evidence.observedAt) < 0 ||
+      compareExplicitIso8601Instants(record.retrievedAt, evidence.retrievedAt) < 0
     ) {
       issues.push(issue(
         "revision_before_evidence_availability",
