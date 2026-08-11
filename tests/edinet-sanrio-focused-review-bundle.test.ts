@@ -255,6 +255,33 @@ function sourceTriageWorkspace() {
 }
 
 {
+  const plan = buildSanrioEdinetFocusedReviewPlan({
+    triageWorkspace: sourceTriageWorkspace(),
+    sourceTriageWorkspaceFile: "revision-diff-triage-v1.20260806T082452Z.json",
+  });
+  const contents = plan.candidates.map(item => ({
+    candidateId: item.candidateId,
+    beforeText: null,
+    afterText: "text",
+  }));
+  for (const generatedAt of ["2026-08-06T08:30:00", "2026-02-30T08:30:00Z"]) {
+    assert.throws(
+      () => buildSanrioEdinetFocusedReviewBundle({ plan, contents, generatedAt }),
+      /generatedAt/,
+    );
+  }
+  assert.equal(
+    buildSanrioEdinetFocusedReviewBundle({
+      plan,
+      contents,
+      generatedAt: "2026-08-06T17:30:00+09:00",
+    }).generatedAt,
+    "2026-08-06T17:30:00+09:00",
+  );
+  console.log("edinet-sanrio-focused-review: generatedAt strict explicit-timezone boundary OK");
+}
+
+{
   const tampered = sourceTriageWorkspace();
   tampered.clusters[0]!.candidates[0]!.afterPreview = ["tampered source text"];
   assert.throws(
