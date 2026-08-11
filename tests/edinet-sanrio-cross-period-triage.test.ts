@@ -232,6 +232,29 @@ function sourceWorkspace() {
 }
 
 {
+  for (const generatedAt of [
+    "2026-08-06T08:20:00",
+    "2026-02-30T08:20:00Z",
+  ]) {
+    assert.throws(
+      () => buildSanrioEdinetCrossPeriodTriage({
+        diffWorkspace: sourceWorkspace(),
+        sourceDiffWorkspaceFile: "revision-diff-workspace-v2.20260806T080750Z.json",
+        generatedAt,
+      }),
+      /generatedAt/,
+    );
+  }
+  const offset = buildSanrioEdinetCrossPeriodTriage({
+    diffWorkspace: sourceWorkspace(),
+    sourceDiffWorkspaceFile: "revision-diff-workspace-v2.20260806T080750Z.json",
+    generatedAt: "2026-08-06T17:20:00+09:00",
+  });
+  assert.equal(offset.generatedAt, "2026-08-06T17:20:00+09:00");
+  console.log("edinet-sanrio-cross-period-triage: generatedAt requires strict explicit-timezone instant OK");
+}
+
+{
   const tampered = sourceWorkspace();
   (tampered.pairs[0]!.changes[0]! as UnknownRecord).afterPreview = ["tampered"];
   assert.throws(
