@@ -74,8 +74,9 @@ function extractionSetup() {
   assert.equal(hasZipMagic(new TextEncoder().encode("ALPHA PON SYNTHETIC")), false);
   assert.equal(hasPdfMagic(new TextEncoder().encode("%PDF-1.7")), true);
   assert.equal(hasPdfMagic(new TextEncoder().encode("NOT AN OFFICIAL PDF")), false);
-  const normalized = normalizePdfLayoutText("  page one  \r\n\r\n\f page two\t \r\n");
+  const normalized = normalizePdfLayoutText("  page one  \r\n\r\n\f page two\t \r\n\f");
   assert.equal(normalized, "  page one\n\n\f page two");
+  assert.equal(normalizePdfLayoutText("\f\r\n\f\n"), "");
   assert.equal(countPdfPages(normalized), 2);
   assert.equal(countPdfPages("page one\fpage two\f"), 2);
   assert.equal(countPdfPages("page one\fpage two\f\n"), 2);
@@ -204,7 +205,7 @@ function extractionSetup() {
   tampered.anchorCount = 1;
   assert.throws(
     () => buildConfiguredEdinetFidelityExtractionBundle({
-      fidelityPlan: tampered,
+      fidelityPlan: plan,
       sourceFidelityPlanFile: "configured-source-fidelity-plan-v1.fixture.json",
       extractedDocuments,
     }),
