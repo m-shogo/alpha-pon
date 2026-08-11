@@ -1,4 +1,4 @@
-import { compareExplicitIso8601Instants } from '../src/research/iso-instant.js'
+import { compareExplicitIso8601Instants, parseExplicitIso8601Instant } from '../src/research/iso-instant.js'
 
 type D1Result<T> = { results?: T[]; success?: boolean; error?: string }
 
@@ -184,6 +184,11 @@ export function freshness(staleAfter: string | null, generatedAt: string): 'FRES
   ) > 0 ? 'STALE' : 'FRESH'
 }
 
+export function japanMarketDate(generatedAt: string): string {
+  const instantMs = parseExplicitIso8601Instant(generatedAt, 'market event generatedAt')
+  return new Date(instantMs + 9 * 60 * 60 * 1000).toISOString().slice(0, 10)
+}
+
 async function projection(db: D1Database, env: Env): Promise<MarketEventProjection> {
   const generatedAt = new Date().toISOString()
   const [eventResult, sourceResult, revisionResult] = await Promise.all([
@@ -264,7 +269,7 @@ async function projection(db: D1Database, env: Env): Promise<MarketEventProjecti
   }
   const stale = events.filter(event => event.freshnessState === 'STALE').length
   const unknownDate = events.filter(event => event.time.precision === 'UNKNOWN').length
-  const today = generatedAt.slice(0, 10)
+  const today = japanMarketDate(generatedAt)
   const nextEventAt = events
     .filter(event => event.sortAt && !['COMPLETED', 'CANCELLED'].includes(event.status) && event.sortAt >= today)
     .map(event => event.sortAt as string)
