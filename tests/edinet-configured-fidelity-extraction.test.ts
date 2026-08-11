@@ -77,6 +77,8 @@ function extractionSetup() {
   const normalized = normalizePdfLayoutText("  page one  \r\n\r\n\f page two\t \r\n");
   assert.equal(normalized, "  page one\n\n\f page two");
   assert.equal(countPdfPages(normalized), 2);
+  assert.equal(countPdfPages("page one\fpage two\f"), 2);
+  assert.equal(countPdfPages("page one\fpage two\f\n"), 2);
   assert.equal(countTextLines("a\nb"), 2);
   console.log("edinet-configured-fidelity-extraction: ZIP/PDF magic and layout normalization OK");
 }

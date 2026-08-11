@@ -74,7 +74,9 @@ export function normalizePdfLayoutText(value: string): string {
 
 export function countPdfPages(value: string): number {
   if (!value.trim()) return 0;
-  return value.split("\f").length;
+  const pages = value.split("\f");
+  while (pages.length > 1 && pages.at(-1)!.trim() === "") pages.pop();
+  return pages.length;
 }
 
 export function countTextLines(value: string): number {
