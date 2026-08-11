@@ -152,6 +152,8 @@ function classifyQuote(quote: DailyQuote): {
     && quote.Low <= Math.min(quote.Open, quote.Close, quote.High);
 
   if (!traded) {
+    // V2 normalization currently converts null OHLC fields to zero. Until real
+    // Free-plan missing/suspension cases are measured, do not invent a cause.
     return { status: "missing", missingReason: "unknown" };
   }
 
@@ -219,6 +221,8 @@ export function mapJQuantsFreeQuote(input: {
     status: classified.status,
     ...(classified.missingReason ? { missingReason: classified.missingReason } : {}),
     ...(classified.ohlcv ? { ohlcv: classified.ohlcv } : {}),
+    // PIT v1 intentionally stores raw/unadjusted bars only. J-Quants adjusted
+    // values can be retroactively rewritten by later corporate actions.
     adjusted: false,
     adjustmentFactor: 1,
     corporateActions: [],
