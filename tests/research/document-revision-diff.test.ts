@@ -303,4 +303,43 @@ const correctionActive = revision({ revisionSequence: 1 });
   console.log("document-revision-diff: unchanged modified hash block OK");
 }
 
+{
+  const evidenceById = new Map([[initialEvidence.evidenceId, initialEvidence]]);
+  const reversedEffectiveWindow = revision({
+    effectiveFrom: "2026-08-05T15:00:00.000000002+09:00",
+    effectiveTo: "2026-08-05T15:00:00.000000001+09:00",
+  });
+  assert.ok(validateDocumentRevisionRecord(
+    reversedEffectiveWindow,
+    schemas.revision,
+    evidenceById,
+    knownEntityIds,
+  ).some((item) => item.code === "invalid_revision_effective_period"));
+  console.log("document-revision-diff: sub-ms effective period regression block OK");
+}
+
+{
+  const subMsEvidence = evidence({
+    publishedAt: "2026-08-05T15:00:00.000000002+09:00",
+    observedAt: "2026-08-05T15:00:00.000000003+09:00",
+    retrievedAt: "2026-08-05T15:00:00.000000004+09:00",
+    effectiveFrom: "2026-08-05T15:00:00.000000002+09:00",
+  });
+  const subMsRevision = revision({
+    publishedAt: subMsEvidence.publishedAt,
+    observedAt: "2026-08-05T15:00:00.000000001+09:00",
+    retrievedAt: "2026-08-05T15:00:00.000000005+09:00",
+    effectiveFrom: subMsEvidence.effectiveFrom,
+  });
+  const issues = validateDocumentRevisionRecord(
+    subMsRevision,
+    schemas.revision,
+    new Map([[subMsEvidence.evidenceId, subMsEvidence]]),
+    knownEntityIds,
+  );
+  assert.ok(issues.some((item) => item.code === "revision_observed_before_published"));
+  assert.ok(issues.some((item) => item.code === "revision_before_evidence_availability"));
+  console.log("document-revision-diff: sub-ms publication and evidence chronology block OK");
+}
+
 console.log("document-revision-diff: 全テスト成功");
