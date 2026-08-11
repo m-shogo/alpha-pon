@@ -77,6 +77,15 @@ function testStableStringify() {
   console.log("research/schema: stableStringify OK");
 }
 
+function testNonFiniteNumbersRejected() {
+  const numberSchema = { type: "number", minimum: 0 };
+  assert.ok(validate(Number.NaN, numberSchema).length > 0, "NaN is not a JSON number");
+  assert.ok(validate(Number.POSITIVE_INFINITY, numberSchema).length > 0, "Infinity is not a JSON number");
+  assert.ok(validate(Number.NEGATIVE_INFINITY, numberSchema).length > 0, "-Infinity is not a JSON number");
+  assert.deepEqual(validate(1.25, numberSchema), [], "finite JSON number remains valid");
+  console.log("research/schema: 非有限number拒否 OK");
+}
+
 function testValidFixturePasses() {
   const edge = load(readFileSync("research/fixtures/valid/edge-complete.yml", "utf-8"));
   const errors = validate(edge, edgeSchema);
@@ -118,6 +127,7 @@ function testUnsupportedKeywordThrows() {
 
 testDateFormats();
 testStableStringify();
+testNonFiniteNumbersRejected();
 testValidFixturePasses();
 testInvalidFixtureFails();
 testUnknownFieldRejected();

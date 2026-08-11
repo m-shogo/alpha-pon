@@ -102,7 +102,11 @@ function typeOf(value: unknown): string {
 
 function matchesType(value: unknown, expected: string): boolean {
   const actual = typeOf(value);
-  if (expected === "number") return actual === "number" || actual === "integer";
+  if (expected === "number") {
+    return (actual === "number" || actual === "integer")
+      && typeof value === "number"
+      && Number.isFinite(value);
+  }
   if (expected === "object") return actual === "object";
   return actual === expected;
 }
