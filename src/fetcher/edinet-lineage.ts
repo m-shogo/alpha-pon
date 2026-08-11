@@ -1,5 +1,8 @@
 import type { EdinetDoc } from "./edinet.js";
-import { parseExplicitIso8601Instant } from "../research/iso-instant.js";
+import {
+  compareExplicitIso8601Instants,
+  parseExplicitIso8601Instant,
+} from "../research/iso-instant.js";
 
 export type EdinetLineageIssue = {
   severity: "error" | "warning";
@@ -77,12 +80,13 @@ function issue(
 function strictTimestamp(
   value: string,
   label: string,
-): { instant: number | null; error: string | null } {
+): { valid: boolean; error: string | null } {
   try {
-    return { instant: parseExplicitIso8601Instant(value, label), error: null };
+    parseExplicitIso8601Instant(value, label);
+    return { valid: true, error: null };
   } catch (error) {
     return {
-      instant: null,
+      valid: false,
       error: error instanceof Error ? error.message : `${label} is invalid`,
     };
   }
@@ -127,7 +131,7 @@ function resolveRoot(
 export function buildEdinetDocumentLineage(docs: EdinetDoc[]): EdinetLineageResult {
   const issues: EdinetLineageIssue[] = [];
   const byDocID = new Map<string, EdinetDoc>();
-  const submitInstantByDocID = new Map<string, number>();
+  const validSubmitDocIDs = new Set<string>();
 
   for (const doc of docs) {
     const docID = normalized(doc.docID);
@@ -147,7 +151,7 @@ export function buildEdinetDocumentLineage(docs: EdinetDoc[]): EdinetLineageResu
     byDocID.set(docID, doc);
 
     const submit = strictTimestamp(doc.submitDateTime, `${docID}.submitDateTime`);
-    if (submit.instant === null) {
+    if (!submit.valid) {
       issues.push(issue(
         "error",
         "invalid_submit_datetime",
@@ -155,7 +159,7 @@ export function buildEdinetDocumentLineage(docs: EdinetDoc[]): EdinetLineageResu
         submit.error ?? "invalid EDINET submitDateTime",
       ));
     } else {
-      submitInstantByDocID.set(docID, submit.instant);
+      validSubmitDocIDs.add(docID);
     }
   }
 
@@ -191,12 +195,15 @@ export function buildEdinetDocumentLineage(docs: EdinetDoc[]): EdinetLineageResu
       continue;
     }
 
-    const childSubmitInstant = submitInstantByDocID.get(doc.docID);
-    const parentSubmitInstant = submitInstantByDocID.get(parentDoc.docID);
     if (
-      childSubmitInstant !== undefined
-      && parentSubmitInstant !== undefined
-      && childSubmitInstant < parentSubmitInstant
+      validSubmitDocIDs.has(doc.docID)
+      && validSubmitDocIDs.has(parentDoc.docID)
+      && compareExplicitIso8601Instants(
+        doc.submitDateTime,
+        parentDoc.submitDateTime,
+        `${doc.docID}.submitDateTime`,
+        `${parentDoc.docID}.submitDateTime`,
+      ) < 0
     ) {
       issues.push(issue(
         "error",
@@ -246,9 +253,22 @@ export function buildEdinetDocumentLineage(docs: EdinetDoc[]): EdinetLineageResu
         },
       };
     })
-    .sort((a, b) =>
-      `${a.submitDateTime}|${a.docID}`.localeCompare(`${b.submitDateTime}|${b.docID}`),
-    );
+    .sort((a, b) => {
+      const aValid = validSubmitDocIDs.has(a.docID);
+      const bValid = validSubmitDocIDs.has(b.docID);
+      if (aValid && bValid) {
+        const instantOrder = compareExplicitIso8601Instants(
+          a.submitDateTime,
+          b.submitDateTime,
+          `${a.docID}.submitDateTime`,
+          `${b.docID}.submitDateTime`,
+        );
+        if (instantOrder !== 0) return instantOrder;
+      } else if (aValid !== bValid) {
+        return aValid ? -1 : 1;
+      }
+      return a.docID.localeCompare(b.docID);
+    });
 
   issues.sort((a, b) =>
     `${a.severity}|${a.code}|${a.target}|${a.message}`.localeCompare(
