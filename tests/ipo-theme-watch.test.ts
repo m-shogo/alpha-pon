@@ -16,6 +16,11 @@ assert.equal(
   "2026-03-17",
   "JST date-only calendar addition must not shift one day through UTC serialization",
 );
+assert.equal(
+  addDaysJst("2026-07-01", 180),
+  "2026-12-28",
+  "lockup day offsets must remain exact JST calendar dates",
+);
 assert.equal(addDaysJst("2024-02-28", 1), "2024-02-29", "leap-day calendar addition must be exact");
 assert.throws(() => addDaysJst("2026-02-29", 1), /real YYYY-MM-DD/);
 
