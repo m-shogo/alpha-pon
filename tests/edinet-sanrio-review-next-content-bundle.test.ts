@@ -232,6 +232,33 @@ function batchWorkspace() {
 }
 
 {
+  const plan = buildSanrioEdinetReviewNextContentPlan({
+    batchWorkspace: batchWorkspace(),
+    sourceBatchWorkspaceFile: "revision-review-next-batches-v1.fixture.json",
+  });
+  const contents = [
+    { candidateId: "candidate:amount64", beforeText: "売上高 100百万円", afterText: "売上高 120百万円" },
+    { candidateId: "candidate:amount65", beforeText: "内部統制に関する旧記載", afterText: "内部統制に関する新記載" },
+    { candidateId: "candidate:note64", beforeText: "注記なし", afterText: "※ 継続確認" },
+  ];
+  for (const generatedAt of ["2026-08-06T10:30:00", "2026-02-30T10:30:00Z"]) {
+    assert.throws(
+      () => buildSanrioEdinetReviewNextContentBundle({ plan, contents, generatedAt }),
+      /generatedAt/,
+    );
+  }
+  assert.equal(
+    buildSanrioEdinetReviewNextContentBundle({
+      plan,
+      contents,
+      generatedAt: "2026-08-06T19:30:00+09:00",
+    }).generatedAt,
+    "2026-08-06T19:30:00+09:00",
+  );
+  console.log("edinet-sanrio-review-next-content: generatedAt strict explicit-timezone boundary OK");
+}
+
+{
   const tampered = batchWorkspace();
   tampered.clusters[0]!.initialReviewCandidateIds = ["candidate:note65"];
   assert.throws(
