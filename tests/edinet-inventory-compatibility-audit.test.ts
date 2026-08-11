@@ -327,9 +327,30 @@ function rehashConfigured(value: JsonObject): void {
       legacyInventoryFile: "sanrio-edinet-inventory.legacy.json",
       configuredInventoryFile: "sanrio-edinet-inventory.configured.json",
     }),
-    /submitDateTime must use a known timezone offset/,
+    /submitDateTime must be an explicit-timezone ISO instant/,
   );
   console.log("edinet-inventory-compatibility: unknown -00:00 candidate offset fails closed OK");
+}
+
+{
+  const { legacy, configured } = inventories();
+  const badLegacy = structuredClone(legacy) as unknown as JsonObject;
+  const badConfigured = structuredClone(configured) as unknown as JsonObject;
+  const legacyFirst = (badLegacy.candidates as JsonObject[])[0]!;
+  const configuredFirst = (badConfigured.candidates as JsonObject[])[0]!;
+  (legacyFirst.doc as JsonObject).submitDateTime = "2026-06-20T24:00:00Z";
+  (configuredFirst.doc as JsonObject).submitDateTime = "2026-06-20T24:00:00Z";
+  rehashConfigured(badConfigured);
+  assert.throws(
+    () => buildEdinetInventoryCompatibilityAudit({
+      legacyInventory: badLegacy,
+      configuredInventory: badConfigured,
+      legacyInventoryFile: "sanrio-edinet-inventory.legacy.json",
+      configuredInventoryFile: "sanrio-edinet-inventory.configured.json",
+    }),
+    /submitDateTime must be an explicit-timezone ISO instant/,
+  );
+  console.log("edinet-inventory-compatibility: normalized 24:00 candidate timestamps fail closed OK");
 }
 
 console.log("edinet-inventory-compatibility-audit.test.ts passed");
