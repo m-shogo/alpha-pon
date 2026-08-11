@@ -276,7 +276,7 @@ function setup() {
   return { configured, workspace, parity };
 }
 
-function audit(input = setup()) {
+function audit(input = setup(), generatedAt = "2026-08-07T00:25:00.000Z") {
   return auditSanrioConfiguredFoundationReadiness({
     parityReview: input.parity,
     sourceParityReviewFile: "legacy-configured-parity-review-record-v1.fixture.json",
@@ -284,7 +284,7 @@ function audit(input = setup()) {
     sourceParityWorkspaceFile: "legacy-configured-parity-workspace-v1.fixture.json",
     configuredReview: input.configured,
     sourceConfiguredReviewFile: "configured-human-comparison-record-v1.fixture.json",
-    generatedAt: "2026-08-07T00:25:00.000Z",
+    generatedAt,
   });
 }
 
@@ -379,6 +379,32 @@ function audit(input = setup()) {
   input.parity.recordHash = digest(withoutHash);
   assert.throws(() => audit(input), /parityReview safety boundary is invalid/);
   console.log("edinet-sanrio-foundation-readiness-audit: unsafe replacement boundary blocked OK");
+}
+
+{
+  const input = setup();
+  input.configured.reviewedAt = "2026-08-07T24:00:00Z";
+  const { recordHash: _oldHash, ...withoutHash } = input.configured;
+  input.configured.recordHash = digest(withoutHash);
+  assert.throws(
+    () => audit(input),
+    /configuredReview\.reviewedAt must be a valid Gregorian ISO-8601 timestamp/,
+  );
+  console.log("edinet-sanrio-foundation-readiness-audit: normalized 24-hour reviewedAt blocked OK");
+}
+
+{
+  assert.throws(
+    () => audit(setup(), "2026-08-07T00:25:00"),
+    /generatedAt must be an ISO-8601 timestamp with explicit timezone/,
+  );
+  console.log("edinet-sanrio-foundation-readiness-audit: timezone-less generatedAt blocked OK");
+}
+
+{
+  const result = audit(setup(), "2026-08-07T09:25:00+09:00");
+  assert.equal(result.generatedAt, "2026-08-07T09:25:00+09:00");
+  console.log("edinet-sanrio-foundation-readiness-audit: explicit offset generatedAt accepted OK");
 }
 
 console.log("edinet-sanrio-foundation-readiness-audit.test.ts passed");
