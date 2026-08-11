@@ -163,6 +163,8 @@ export function buildQueue(
   asOf: string,
   weights: QueueWeights = DEFAULT_WEIGHTS,
 ): ResearchQueue {
+  if (!isValidDate(asOf)) throw new Error(`invalid research date: ${asOf}`);
+
   const analogCountByEdge = new Map<string, number>();
   for (const edge of state.edges) analogCountByEdge.set(edge.id, (edge.analogIds ?? []).length);
 
