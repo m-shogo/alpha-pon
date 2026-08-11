@@ -142,6 +142,17 @@ function input() {
 
 {
   const value = input();
+  value.target.informationCutoff = "2026-07-31T06:00:00.123456788Z";
+  value.correctionCutoff.historicalCutoff = "2026-07-31T06:00:00.123456789Z";
+  assert.throws(
+    () => buildFoundationPilotHashWitness(value),
+    /must equal target\.informationCutoff/,
+  );
+  console.log("foundation-pilot-hash-witness: sub-millisecond cutoff mismatch blocked OK");
+}
+
+{
+  const value = input();
   value.correctionCutoff.historicalCutoff = "2026-07-30T06:00:00.000Z";
   assert.throws(() => buildFoundationPilotHashWitness(value), /must equal target\.informationCutoff/);
   console.log("foundation-pilot-hash-witness: cutoff target mismatch blocked OK");
