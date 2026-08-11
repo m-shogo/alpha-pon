@@ -189,7 +189,14 @@ export function buildFoundationPilotHashWitness(input: {
       "correctionCutoff.afterCurrentRevisionHeadHash",
     ),
   };
-  if (correction.historicalCutoff !== normalizedTarget.informationCutoff) {
+  if (
+    compareExplicitIso8601Instants(
+      input.correctionCutoff.historicalCutoff,
+      input.target.informationCutoff,
+      "correctionCutoff.historicalCutoff",
+      "target.informationCutoff",
+    ) !== 0
+  ) {
     throw new Error("correctionCutoff.historicalCutoff must equal target.informationCutoff");
   }
   if (correction.beforeCorrectionRunId === correction.afterCorrectionRunId) {
