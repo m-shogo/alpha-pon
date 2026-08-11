@@ -36,6 +36,11 @@ function digest(value: unknown): string {
   return createHash("sha256").update(JSON.stringify(canonical(value))).digest("hex");
 }
 
+function rehash(record: JsonObject, field: string): void {
+  const { [field]: _ignored, ...withoutHash } = record;
+  record[field] = digest(withoutHash);
+}
+
 function registryFixture() {
   return {
     schemaVersion: 1,
@@ -306,8 +311,7 @@ function buildWorkspace() {
   const successes = manifest.succeeded as JsonObject[];
   successes.pop();
   manifest.totalTasks = successes.length;
-  const { manifestHash: _ignored, ...withoutHash } = manifest;
-  manifest.manifestHash = digest(withoutHash);
+  rehash(manifest, "manifestHash");
   assert.throws(
     () => buildConfiguredEdinetReviewWorkspace({
       registry: registryFixture(),
@@ -322,6 +326,82 @@ function buildWorkspace() {
     /does not have exactly type 1 and type 2 acquisitions|document coverage mismatch/,
   );
   console.log("edinet-configured-review-workspace: validly rehashed missing acquisition still blocked OK");
+}
+
+{
+  const setupValue = setup();
+  const reviewPlan = structuredClone(setupValue.reviewPlan) as unknown as JsonObject;
+  const groups = reviewPlan.groups as JsonObject[];
+  const documents = groups[0]!.documents as JsonObject[];
+  documents[0]!.submitDateTime = "2026-06-20T15:00:00";
+  rehash(reviewPlan, "reviewPlanHash");
+  assert.throws(
+    () => buildConfiguredEdinetReviewWorkspace({
+      registry: registryFixture(),
+      reviewPlan,
+      acquisitionPlan: setupValue.acquisitionPlan,
+      acquisitionManifest: setupValue.manifest,
+      verifiedFiles: setupValue.verifiedFiles,
+      sourceReviewPlanFile: "synthetic-co-edinet-configured-review-plan-v1.fixture.json",
+      sourceAcquisitionPlanFile: "acquisition-plan.json",
+      acquisitionManifestFile: "acquisition-manifest.json",
+    }),
+    /explicit timezone/,
+  );
+  console.log("edinet-configured-review-workspace: timezone-less submitDateTime blocked OK");
+}
+
+{
+  const setupValue = setup();
+  const manifest = structuredClone(setupValue.manifest) as unknown as JsonObject;
+  const successes = manifest.succeeded as JsonObject[];
+  successes[0]!.retrievedAt = "2026-02-30T12:40:00Z";
+  rehash(manifest, "manifestHash");
+  assert.throws(
+    () => buildConfiguredEdinetReviewWorkspace({
+      registry: registryFixture(),
+      reviewPlan: setupValue.reviewPlan,
+      acquisitionPlan: setupValue.acquisitionPlan,
+      acquisitionManifest: manifest,
+      verifiedFiles: setupValue.verifiedFiles,
+      sourceReviewPlanFile: "synthetic-co-edinet-configured-review-plan-v1.fixture.json",
+      sourceAcquisitionPlanFile: "acquisition-plan.json",
+      acquisitionManifestFile: "acquisition-manifest.json",
+    }),
+    /valid Gregorian ISO-8601 timestamp/,
+  );
+  console.log("edinet-configured-review-workspace: impossible retrievedAt blocked OK");
+}
+
+{
+  const setupValue = setup();
+  const workspace = buildConfiguredEdinetReviewWorkspace({
+    registry: registryFixture(),
+    reviewPlan: setupValue.reviewPlan,
+    acquisitionPlan: setupValue.acquisitionPlan,
+    acquisitionManifest: setupValue.manifest,
+    verifiedFiles: setupValue.verifiedFiles,
+    sourceReviewPlanFile: "synthetic-co-edinet-configured-review-plan-v1.fixture.json",
+    sourceAcquisitionPlanFile: "acquisition-plan.json",
+    acquisitionManifestFile: "acquisition-manifest.json",
+    generatedAt: "2026-08-06T22:10:00+09:00",
+  });
+  assert.equal(workspace.generatedAt, "2026-08-06T22:10:00+09:00");
+  assert.throws(
+    () => buildConfiguredEdinetReviewWorkspace({
+      registry: registryFixture(),
+      reviewPlan: setupValue.reviewPlan,
+      acquisitionPlan: setupValue.acquisitionPlan,
+      acquisitionManifest: setupValue.manifest,
+      verifiedFiles: setupValue.verifiedFiles,
+      sourceReviewPlanFile: "synthetic-co-edinet-configured-review-plan-v1.fixture.json",
+      sourceAcquisitionPlanFile: "acquisition-plan.json",
+      acquisitionManifestFile: "acquisition-manifest.json",
+      generatedAt: "2026-08-06T13:10:00",
+    }),
+    /explicit timezone/,
+  );
+  console.log("edinet-configured-review-workspace: strict generatedAt with valid offset preserved OK");
 }
 
 console.log("edinet-configured-review-workspace.test.ts passed");
