@@ -99,6 +99,20 @@ function testInvalidDatesFailClosed() {
     /invalid research date: 2026-13-01/,
     "不正なlastCheckedAtでDecay優先度を生成しない",
   );
+
+  const neverChecked = makeEdge();
+  neverChecked.decay = { reviewIntervalDays: 30 };
+  assert.throws(
+    () => buildQueue(makeState({ edges: [neverChecked] }), "2026-02-31"),
+    /invalid research date: 2026-02-31/,
+    "lastCheckedAt未設定でも不正なasOfをResearch Queueへ記録しない",
+  );
+
+  assert.throws(
+    () => buildQueue(makeState({ edges: [] }), "2026-02-31"),
+    /invalid research date: 2026-02-31/,
+    "空Queueでも不正なasOfを監査出力へ残さない",
+  );
   console.log("research/queue: 不正日付はfail-closed OK");
 }
 
