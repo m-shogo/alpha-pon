@@ -262,7 +262,7 @@ export function validateSecurityMasterRepository(
   let snapshot: SecurityMasterSnapshot = { asOf, entities: [], relationships: [] };
   if (validAsOf) {
     const cutoffEpoch = parseExplicitIso8601Instant(
-      `${asOf}T23:59:59.999+09:00`,
+      `${asOf}T23:59:59.999999999+09:00`,
       "security master snapshot cutoff",
     );
     issues.push(
