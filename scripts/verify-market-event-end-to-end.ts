@@ -3,6 +3,7 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildEventId } from "../src/market-events/contracts.js";
+import { japanMarketDate, writeMarketEventArtifacts } from "../src/market-events/projection.js";
 import { buildMarketEventBundle, type MarketEventRegistrationInput } from "../src/market-events/registration.js";
 import {
   auditMarketEventDatabase,
@@ -11,7 +12,6 @@ import {
   openMarketEventDatabase,
   registerMarketEventBundle,
 } from "../src/market-events/sqlite-store.js";
-import { writeMarketEventArtifacts } from "../src/market-events/projection.js";
 
 const directory = mkdtempSync(join(tmpdir(), "alpha-pon-market-events-e2e-"));
 const dbPath = join(directory, "market-events.db");
@@ -109,6 +109,10 @@ const unknownDateInput: MarketEventRegistrationInput = {
   },
 };
 
+assert.equal(japanMarketDate("2026-08-11T14:59:59Z"), "2026-08-11");
+assert.equal(japanMarketDate("2026-08-11T15:00:00Z"), "2026-08-12");
+assert.equal(japanMarketDate("2026-08-12T00:00:00+09:00"), "2026-08-12");
+
 const db = openMarketEventDatabase({ path: dbPath });
 try {
   const eventId = buildEventId(firstInput);
@@ -166,6 +170,18 @@ try {
   assert.equal(generated.summary.total, 2);
   assert.equal(generated.summary.calendarIncluded, 1);
   assert.equal(generated.summary.calendarExcludedUnknownDate, 1);
+
+  const generatedAfterJstMidnight = writeMarketEventArtifacts(db, {
+    jsonPath,
+    icsPath,
+    generatedAt: "2026-08-11T20:00:00Z",
+    databasePath: dbPath,
+  });
+  assert.equal(
+    generatedAfterJstMidnight.summary.nextEventAt,
+    null,
+    "prior-day Japan market events must not remain as nextEventAt after JST midnight",
+  );
 
   const json = JSON.parse(readFileSync(jsonPath, "utf8")) as { events: Array<{ eventId: string }> };
   assert.equal(json.events.length, 2);
