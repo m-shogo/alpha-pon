@@ -53,7 +53,16 @@ function diff(overrides: Partial<DocumentDiffRecordInput> = {}) {
     effectiveFrom: overrides.effectiveFrom ?? "2026-08-06T05:00:00Z",
     reviewStatus: "confirmed",
     sourceEvidenceIds: ["evidence-1"],
-    changes: [],
+    changes: overrides.changes ?? [{
+      path: "/summary",
+      changeType: "modified",
+      semanticType: "text",
+      materiality: "informational",
+      direction: "neutral",
+      beforeHash: "c".repeat(64),
+      afterHash: "d".repeat(64),
+      sourceEvidenceIds: ["evidence-1"],
+    }],
     parserVersion: "parser-v1",
     ruleVersion: "rule-v1",
     ...(overrides.effectiveTo ? { effectiveTo: overrides.effectiveTo } : {}),
@@ -102,6 +111,7 @@ function diff(overrides: Partial<DocumentDiffRecordInput> = {}) {
     new Map(),
     new Map(),
   );
+  assert.ok(!issues.some((item) => item.code === "schema_violation"));
   assert.ok(issues.some((item) => item.code === "diff_retrieved_before_observed"));
   assert.ok(issues.some((item) => item.code === "invalid_diff_effective_period"));
   console.log("document diff validation: 1ns chronology regressions blocked OK");
