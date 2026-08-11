@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 
 const HASH_RE = /^[a-f0-9]{64}$/;
 const DOC_ID_RE = /^[A-Za-z0-9_-]{4,64}$/;
@@ -265,7 +266,7 @@ export function buildSanrioEdinetUnmatchedAnchorReport(input: {
   const fidelity = obj(input.fidelityReport, "fidelityReport");
   const sourceFidelityReportHash = verifyFidelityReport(fidelity);
   const generatedAt = input.generatedAt ?? new Date().toISOString();
-  if (!Number.isFinite(Date.parse(generatedAt))) throw new Error("generatedAt must be a date-time");
+  parseExplicitIso8601Instant(generatedAt, "generatedAt");
   const sourceFidelityReportFile = required(input.sourceFidelityReportFile, "sourceFidelityReportFile");
   if (sourceFidelityReportFile.includes("/") || sourceFidelityReportFile.includes("\\") || !sourceFidelityReportFile.endsWith(".json")) {
     throw new Error("sourceFidelityReportFile must be a local JSON basename");
