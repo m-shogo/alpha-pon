@@ -143,6 +143,13 @@ const tradedQuote: DailyQuote = {
     firstExecutableAt: "2026-08-07T11:00:00+09:00",
     ingestionRunId: "fixture-run-execution-before-retrieval",
   }), /firstExecutableAt must be at or after retrievedAt/);
+  assert.throws(() => mapJQuantsFreeQuote({
+    requestedCode: "8136",
+    quote: tradedQuote,
+    retrievedAt: "2026-08-07T02:30:00.000000001Z",
+    firstExecutableAt: "2026-08-07T02:30:00.000000000Z",
+    ingestionRunId: "fixture-run-nanosecond-execution-regression",
+  }), /firstExecutableAt must be at or after retrievedAt/);
   console.log("jquants-free-provider: source-code, date and PIT timestamp boundaries fail closed OK");
 }
 
