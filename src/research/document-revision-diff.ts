@@ -454,10 +454,10 @@ export function validateDocumentDiffRecord(
   if (record.fromRevisionId === record.toRevisionId) {
     issues.push(issue("self_document_diff", target, "from/to revisionが同一です"));
   }
-  if (timeMs(record.retrievedAt) < timeMs(record.observedAt)) {
+  if (compareExplicitIso8601Instants(record.retrievedAt, record.observedAt) < 0) {
     issues.push(issue("diff_retrieved_before_observed", target, `${record.retrievedAt} < ${record.observedAt}`));
   }
-  if (record.effectiveTo && timeMs(record.effectiveTo) < timeMs(record.effectiveFrom)) {
+  if (record.effectiveTo && compareExplicitIso8601Instants(record.effectiveTo, record.effectiveFrom) < 0) {
     issues.push(issue("invalid_diff_effective_period", target, `${record.effectiveTo} < ${record.effectiveFrom}`));
   }
 
@@ -484,8 +484,8 @@ export function validateDocumentDiffRecord(
       ));
     }
     if (
-      timeMs(record.observedAt) < timeMs(to.observedAt) ||
-      timeMs(record.retrievedAt) < timeMs(to.retrievedAt)
+      compareExplicitIso8601Instants(record.observedAt, to.observedAt) < 0 ||
+      compareExplicitIso8601Instants(record.retrievedAt, to.retrievedAt) < 0
     ) {
       issues.push(issue(
         "diff_before_target_revision",
@@ -520,8 +520,8 @@ export function validateDocumentDiffRecord(
       continue;
     }
     if (
-      timeMs(record.observedAt) < timeMs(evidence.observedAt) ||
-      timeMs(record.retrievedAt) < timeMs(evidence.retrievedAt)
+      compareExplicitIso8601Instants(record.observedAt, evidence.observedAt) < 0 ||
+      compareExplicitIso8601Instants(record.retrievedAt, evidence.retrievedAt) < 0
     ) {
       issues.push(issue(
         "diff_before_source_evidence",

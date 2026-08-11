@@ -1,11 +1,15 @@
 import assert from "node:assert/strict";
 import {
+  validateDocumentDiffRecord,
   withDocumentDiffHash,
   withDocumentRevisionHash,
   type DocumentDiffRecordInput,
   type DocumentRevisionRecordInput,
 } from "../../src/research/document-revision-diff.js";
 import { validateDocumentIdentityContinuity } from "../../src/research/document-revision-diff-integrity.js";
+import { loadCouncilSchema } from "../../src/research/stock-pro-council-v2-validation.js";
+
+const diffSchema = loadCouncilSchema("research/schemas/document-diff-record.schema.json");
 
 function revision(overrides: Partial<DocumentRevisionRecordInput> = {}) {
   return withDocumentRevisionHash({
@@ -46,12 +50,22 @@ function diff(overrides: Partial<DocumentDiffRecordInput> = {}) {
     status: overrides.status ?? "active",
     observedAt: overrides.observedAt ?? "2026-08-06T05:00:00.000000000Z",
     retrievedAt: overrides.retrievedAt ?? "2026-08-06T05:00:00.000000000Z",
-    effectiveFrom: "2026-08-06T05:00:00Z",
+    effectiveFrom: overrides.effectiveFrom ?? "2026-08-06T05:00:00Z",
     reviewStatus: "confirmed",
     sourceEvidenceIds: ["evidence-1"],
-    changes: [],
+    changes: overrides.changes ?? [{
+      path: "/summary",
+      changeType: "modified",
+      semanticType: "text",
+      materiality: "informational",
+      direction: "neutral",
+      beforeHash: "c".repeat(64),
+      afterHash: "d".repeat(64),
+      sourceEvidenceIds: ["evidence-1"],
+    }],
     parserVersion: "parser-v1",
     ruleVersion: "rule-v1",
+    ...(overrides.effectiveTo ? { effectiveTo: overrides.effectiveTo } : {}),
     ...(overrides.supersedesRecordId ? { supersedesRecordId: overrides.supersedesRecordId } : {}),
   });
 }
@@ -82,6 +96,25 @@ function diff(overrides: Partial<DocumentDiffRecordInput> = {}) {
   const issues = validateDocumentIdentityContinuity([], [parent, rejected]);
   assert.ok(!issues.some((item) => item.code === "rejected_document_diff_time_regression"));
   console.log("document revision integrity: 1ns rejected diff advancement accepted OK");
+}
+
+{
+  const badChronology = diff({
+    observedAt: "2026-08-06T05:00:00.000000002Z",
+    retrievedAt: "2026-08-06T05:00:00.000000001Z",
+    effectiveFrom: "2026-08-06T05:00:00.000000002Z",
+    effectiveTo: "2026-08-06T05:00:00.000000001Z",
+  });
+  const issues = validateDocumentDiffRecord(
+    badChronology,
+    diffSchema,
+    new Map(),
+    new Map(),
+  );
+  assert.ok(!issues.some((item) => item.code === "schema_violation"));
+  assert.ok(issues.some((item) => item.code === "diff_retrieved_before_observed"));
+  assert.ok(issues.some((item) => item.code === "invalid_diff_effective_period"));
+  console.log("document diff validation: 1ns chronology regressions blocked OK");
 }
 
 console.log("document-revision-diff-rejected-fractional-ordering.test.ts passed");
