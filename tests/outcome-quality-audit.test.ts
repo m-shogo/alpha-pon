@@ -219,6 +219,42 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
   console.log("outcome-quality: reviewDueAt のズレを検出");
 }
 
+// ── Gregorian 日付を Date.UTC で翌月へ正規化しない ──────────
+
+{
+  const invalidDetectedAt = buildOutcomeQualityAudit(inputs({
+    hypotheses: [hypothesis({ code: "9998", detectedAt: "2026-02-31" })],
+    outcomes: [],
+  }));
+  assert.equal(
+    invalidDetectedAt.checks.reviewMissing.count,
+    0,
+    "存在しない detectedAt を3月へ正規化して overdue 扱いしない",
+  );
+
+  const invalidReviewDueAt = buildOutcomeQualityAudit(inputs({
+    hypotheses: [hypothesis({
+      detectedAt: "2026-02-28",
+      reviewDueAt: "2026-02-31",
+      expectedTimeframe: "1d",
+    })],
+    outcomes: [outcome({ reviewHorizon: "1d" }), outcome({ reviewHorizon: "1w" })],
+  }));
+  assert.equal(
+    invalidReviewDueAt.checks.dueAtMismatch.count,
+    0,
+    "存在しない reviewDueAt を3月へ正規化して虚偽の差分を作らない",
+  );
+
+  const invalidToday = buildOutcomeQualityAudit(inputs({
+    today: "2026-02-31",
+    hypotheses: [hypothesis({ code: "9997", detectedAt: "2026-02-01" })],
+    outcomes: [],
+  }));
+  assert.equal(invalidToday.checks.reviewMissing.count, 0, "存在しない today で期日判定しない");
+  console.log("outcome-quality: 非実在Gregorian日付を正規化せずfail closed OK");
+}
+
 // ── Markdown 出力 ────────────────────────────────────────────
 
 {
