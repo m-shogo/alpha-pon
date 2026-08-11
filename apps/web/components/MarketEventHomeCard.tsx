@@ -2,7 +2,11 @@
 
 import Link from 'next/link'
 import type { WebMarketEventData, WebMarketEvent } from '@/lib/market-event-data'
-import { marketEventDateLabel } from '@/lib/market-event-data'
+import {
+  compareWebMarketEventSortAt,
+  marketEventDateLabel,
+  webMarketEventJapanDate,
+} from '@/lib/market-event-data'
 import { useMarketEventData } from '@/lib/use-market-events'
 
 const PRIORITY_COLOR: Record<WebMarketEvent['priority'], string> = {
@@ -21,9 +25,9 @@ export function MarketEventHomeCard({ data: fallback }: { data: WebMarketEventDa
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tokyo' }).format(new Date())
   const upcoming = data.events
     .filter(event => !['CANCELLED', 'COMPLETED'].includes(event.status))
-    .filter(event => event.sortAt === null || sortValue(event) >= today)
+    .filter(event => event.sortAt === null || webMarketEventJapanDate(event.sortAt) >= today)
     .sort((a, b) => {
-      const date = sortValue(a).localeCompare(sortValue(b))
+      const date = compareWebMarketEventSortAt(sortValue(a), sortValue(b))
       if (date !== 0) return date
       return a.priority.localeCompare(b.priority)
     })

@@ -98,6 +98,46 @@ export const EMPTY_MARKET_EVENT_DATA: WebMarketEventData = {
   },
 }
 
+const WEB_MARKET_EVENT_INSTANT =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.(\d{1,9}))?(?:Z|[+-]\d{2}:\d{2})$/
+
+function sortAtInstant(value: string): string {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00+09:00` : value
+}
+
+function sortAtNanoseconds(value: string): bigint {
+  const instant = sortAtInstant(value)
+  const match = WEB_MARKET_EVENT_INSTANT.exec(instant)
+  if (!match) throw new Error(`invalid market event sortAt: ${value}`)
+  const milliseconds = Date.parse(instant)
+  if (!Number.isFinite(milliseconds)) throw new Error(`invalid market event sortAt: ${value}`)
+  const fractional = match[1] ?? ''
+  const subMillisecond = BigInt((fractional + '000000000').slice(3, 9))
+  return BigInt(milliseconds) * BigInt(1_000_000) + subMillisecond
+}
+
+export function compareWebMarketEventSortAt(left: string, right: string): -1 | 0 | 1 {
+  const leftNs = sortAtNanoseconds(left)
+  const rightNs = sortAtNanoseconds(right)
+  if (leftNs < rightNs) return -1
+  if (leftNs > rightNs) return 1
+  return 0
+}
+
+export function webMarketEventJapanDate(value: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+  const instant = sortAtInstant(value)
+  if (!WEB_MARKET_EVENT_INSTANT.test(instant)) throw new Error(`invalid market event sortAt: ${value}`)
+  const date = new Date(instant)
+  if (!Number.isFinite(date.getTime())) throw new Error(`invalid market event sortAt: ${value}`)
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date)
+}
+
 function array<T>(value: unknown): T[] {
   return Array.isArray(value) ? value as T[] : []
 }
