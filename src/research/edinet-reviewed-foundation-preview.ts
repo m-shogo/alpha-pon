@@ -16,7 +16,10 @@ import {
   type DocumentRevisionStatus,
   type DocumentSectionHash,
 } from "./document-revision-diff.js";
-import { parseExplicitIso8601Instant } from "./iso-instant.js";
+import {
+  compareExplicitIso8601Instants,
+  parseExplicitIso8601Instant,
+} from "./iso-instant.js";
 
 export type ReviewedEdinetPriorReference = {
   evidenceId: string;
@@ -95,8 +98,20 @@ function assertCondition(condition: unknown, message: string): asserts condition
   if (!condition) throw new Error(message);
 }
 
-function assertDateTime(value: string, field: string): number {
-  return parseExplicitIso8601Instant(value, field);
+function assertDateTime(value: string, field: string): void {
+  parseExplicitIso8601Instant(value, field);
+}
+
+function assertInstantAtOrAfter(
+  value: string,
+  boundary: string,
+  valueField: string,
+  boundaryField: string,
+): void {
+  assertCondition(
+    compareExplicitIso8601Instants(value, boundary, valueField, boundaryField) >= 0,
+    `${valueField} must be at or after ${boundaryField}`,
+  );
 }
 
 function assertHash(value: string, field: string): void {
@@ -126,18 +141,23 @@ function uniqueSortedIds(values: string[]): string[] {
 }
 
 function validateTimeBoundary(input: ReviewedEdinetFoundationInput): void {
-  const publishedAt = assertDateTime(input.publishedAt, "publishedAt");
-  const observedAt = assertDateTime(input.observedAt, "observedAt");
-  const retrievedAt = assertDateTime(input.retrievedAt, "retrievedAt");
-  const effectiveFrom = assertDateTime(input.effectiveFrom, "effectiveFrom");
-  const firstExecutableAt = assertDateTime(input.firstExecutableAt, "firstExecutableAt");
-  const reviewedAt = assertDateTime(input.reviewedAt, "reviewedAt");
+  assertDateTime(input.publishedAt, "publishedAt");
+  assertDateTime(input.observedAt, "observedAt");
+  assertDateTime(input.retrievedAt, "retrievedAt");
+  assertDateTime(input.effectiveFrom, "effectiveFrom");
+  assertDateTime(input.firstExecutableAt, "firstExecutableAt");
+  assertDateTime(input.reviewedAt, "reviewedAt");
 
-  assertCondition(observedAt >= publishedAt, "observedAt must be at or after publishedAt");
-  assertCondition(retrievedAt >= observedAt, "retrievedAt must be at or after observedAt");
-  assertCondition(firstExecutableAt >= retrievedAt, "firstExecutableAt must be at or after retrievedAt");
-  assertCondition(reviewedAt >= retrievedAt, "reviewedAt must be at or after retrievedAt");
-  assertCondition(effectiveFrom >= publishedAt, "effectiveFrom must be at or after publishedAt");
+  assertInstantAtOrAfter(input.observedAt, input.publishedAt, "observedAt", "publishedAt");
+  assertInstantAtOrAfter(input.retrievedAt, input.observedAt, "retrievedAt", "observedAt");
+  assertInstantAtOrAfter(
+    input.firstExecutableAt,
+    input.retrievedAt,
+    "firstExecutableAt",
+    "retrievedAt",
+  );
+  assertInstantAtOrAfter(input.reviewedAt, input.retrievedAt, "reviewedAt", "retrievedAt");
+  assertInstantAtOrAfter(input.effectiveFrom, input.publishedAt, "effectiveFrom", "publishedAt");
 
   if (input.eventAtStatus === "known") {
     assertCondition(typeof input.eventAt === "string", "known eventAtStatus requires eventAt");
