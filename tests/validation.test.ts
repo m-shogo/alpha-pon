@@ -103,6 +103,7 @@ import "./research/stock-pro-council-replay-calibration.test.js";
 import "./research/stock-pro-council-ledger-hardening.test.js";
 import "./research/stock-pro-council-replay.test.js";
 import "./research/edge-decay-strict-date.test.js";
+import "./research/promotion-asof-nanosecond.test.js";
 import "./jquants-v2-date-cap.test.js";
 import { validateWatchlist } from "../src/validation.js";
 import type { WatchlistConfig } from "../src/types.js";
