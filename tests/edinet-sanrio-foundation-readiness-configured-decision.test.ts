@@ -66,6 +66,23 @@ function anchor(input: JsonObject): JsonObject {
 
 {
   const input = fixture();
+  input.reviewedAt = "2026-08-07T09:21:00+09:00";
+  assert.doesNotThrow(() => assertSanrioFoundationConfiguredReviewDecisionConformance(input));
+  console.log("edinet-sanrio-foundation-readiness-configured-decision: explicit timezone offset reviewedAt passes OK");
+}
+
+for (const reviewedAt of ["2026-08-07T00:21:00", "2026-02-30T00:21:00Z"]) {
+  const input = fixture();
+  input.reviewedAt = reviewedAt;
+  assert.throws(
+    () => assertSanrioFoundationConfiguredReviewDecisionConformance(input),
+    /configuredReview\.reviewedAt/,
+  );
+}
+console.log("edinet-sanrio-foundation-readiness-configured-decision: permissive reviewedAt values blocked OK");
+
+{
+  const input = fixture();
   anchor(input).visualDecision = "invented_visual_decision";
   assert.throws(
     () => assertSanrioFoundationConfiguredReviewDecisionConformance(input),

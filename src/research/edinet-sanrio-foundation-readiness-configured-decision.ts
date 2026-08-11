@@ -1,3 +1,4 @@
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 import type { SanrioFoundationReadinessAudit } from "./edinet-sanrio-foundation-readiness-audit.js";
 import {
   auditSanrioConfiguredFoundationReadinessWithParityDecisionConformance,
@@ -110,7 +111,7 @@ export function assertSanrioFoundationConfiguredReviewDecisionConformance(
 
   required(review.reviewer, "configuredReview.reviewer");
   const reviewedAt = required(review.reviewedAt, "configuredReview.reviewedAt");
-  if (!Number.isFinite(Date.parse(reviewedAt))) throw new Error("configuredReview.reviewedAt must be a date-time");
+  parseExplicitIso8601Instant(reviewedAt, "configuredReview.reviewedAt");
 
   const documents = array(review.documents, "configuredReview.documents");
   if (documents.length !== nonNegativeInteger(review.documentCount, "configuredReview.documentCount")) {
