@@ -93,23 +93,27 @@ function fidelityReport() {
   };
 }
 
+function pdfInputs() {
+  return [
+    {
+      docID: "S100NEW1",
+      pdfBinaryFile: "S100NEW1.type2.pdf",
+      pdfText: [
+        "【訂正後】",
+        "役員区分      報酬等の総額",
+        "取締役        100 千円",
+        "注記",
+      ].join("\n"),
+    },
+  ];
+}
+
 {
   const report = buildSanrioEdinetUnmatchedAnchorReport({
     fidelityReport: fidelityReport(),
     sourceFidelityReportFile: "revision-source-fidelity-v1.fixture.json",
     generatedAt: "2026-08-06T09:20:00.000Z",
-    pdfInputs: [
-      {
-        docID: "S100NEW1",
-        pdfBinaryFile: "S100NEW1.type2.pdf",
-        pdfText: [
-          "【訂正後】",
-          "役員区分      報酬等の総額",
-          "取締役        100 千円",
-          "注記",
-        ].join("\n"),
-      },
-    ],
+    pdfInputs: pdfInputs(),
   });
   assert.equal(report.candidateCount, 1);
   assert.equal(report.unmatchedAnchorCount, 1);
@@ -124,6 +128,31 @@ function fidelityReport() {
   assert.match(markdown, /100 千円/);
   assert.match(markdown, /not fuzzy equivalence decisions/);
   console.log("edinet-sanrio-unmatched-anchor: deterministic PDF contexts OK");
+}
+
+{
+  for (const generatedAt of [
+    "2026-08-06T09:20:00",
+    "2026-02-30T09:20:00Z",
+  ]) {
+    assert.throws(
+      () => buildSanrioEdinetUnmatchedAnchorReport({
+        fidelityReport: fidelityReport(),
+        sourceFidelityReportFile: "revision-source-fidelity-v1.fixture.json",
+        generatedAt,
+        pdfInputs: pdfInputs(),
+      }),
+      /generatedAt/,
+    );
+  }
+  const offset = buildSanrioEdinetUnmatchedAnchorReport({
+    fidelityReport: fidelityReport(),
+    sourceFidelityReportFile: "revision-source-fidelity-v1.fixture.json",
+    generatedAt: "2026-08-06T18:20:00+09:00",
+    pdfInputs: pdfInputs(),
+  });
+  assert.equal(offset.generatedAt, "2026-08-06T18:20:00+09:00");
+  console.log("edinet-sanrio-unmatched-anchor: generatedAt requires strict explicit-timezone instant OK");
 }
 
 {
