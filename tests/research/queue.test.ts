@@ -92,6 +92,14 @@ function testInvalidDatesFailClosed() {
     "存在しないasOfをNaN→0へ黙って落とさない",
   );
 
+  const neverCheckedDirect = makeEdge();
+  neverCheckedDirect.decay = { reviewIntervalDays: 30 };
+  assert.throws(
+    () => decayUrgency(neverCheckedDirect, "2026-02-31"),
+    /invalid research date: 2026-02-31/,
+    "lastCheckedAt未設定でもdirect decay計算は不正asOfを受理しない",
+  );
+
   const invalidHistory = makeEdge();
   invalidHistory.decay = { reviewIntervalDays: 30, lastCheckedAt: "2026-13-01" };
   assert.throws(
