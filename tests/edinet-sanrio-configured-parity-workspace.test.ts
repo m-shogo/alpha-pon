@@ -186,6 +186,7 @@ function build(input: {
   audit?: unknown;
   legacy?: unknown;
   configured?: unknown;
+  generatedAt?: string;
 } = {}) {
   return buildSanrioLegacyConfiguredParityWorkspace({
     inventoryAudit: input.audit ?? inventoryAudit(),
@@ -194,7 +195,7 @@ function build(input: {
     sourceLegacyReviewPath: "sanrio-acquisition.fixture/revision-human-review-record-v1.fixture.json",
     configuredReview: input.configured ?? configuredReview(),
     sourceConfiguredReviewPath: "sanrio-acquisition.fixture/configured-human-comparison-record-v1.fixture.json",
-    generatedAt: "2026-08-07T00:04:00.000Z",
+    generatedAt: input.generatedAt ?? "2026-08-07T00:04:00.000Z",
   });
 }
 
@@ -218,6 +219,14 @@ function build(input: {
   const markdown = renderSanrioLegacyConfiguredParityWorkspace(workspace);
   assert.match(markdown, /Exact hash matches are navigation evidence only/);
   console.log("edinet-sanrio-configured-parity-workspace: exact hash navigation without semantic inference OK");
+}
+
+{
+  for (const generatedAt of ["2026-08-07T00:04:00", "2026-02-30T00:04:00Z", "2026-08-07T00:04:00-00:00"]) {
+    assert.throws(() => build({ generatedAt }), /generatedAt/);
+  }
+  assert.equal(build({ generatedAt: "2026-08-07T09:04:00+09:00" }).generatedAt, "2026-08-07T09:04:00+09:00");
+  console.log("edinet-sanrio-configured-parity-workspace: generatedAt strict explicit-timezone boundary OK");
 }
 
 {
