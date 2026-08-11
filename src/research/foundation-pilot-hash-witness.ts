@@ -1,5 +1,8 @@
 import { createHash } from "node:crypto";
-import { parseExplicitIso8601Instant } from "./iso-instant.js";
+import {
+  compareExplicitIso8601Instants,
+  parseExplicitIso8601Instant,
+} from "./iso-instant.js";
 import type { FoundationPilotTarget } from "./foundation-pilot-structural-status.js";
 
 type JsonObject = Record<string, unknown>;
@@ -125,11 +128,21 @@ export function buildFoundationPilotHashWitness(input: {
   };
 }): FoundationPilotHashWitnessRecord {
   const normalizedTarget = target(input.target);
-  const generatedAt = input.generatedAt
-    ? timestamp(input.generatedAt, "generatedAt")
-    : new Date().toISOString();
+  const generatedAtSource = input.generatedAt ?? new Date().toISOString();
+  const generatedAt = timestamp(generatedAtSource, "generatedAt");
   const witnessedBy = text(input.witnessedBy, "witnessedBy");
-  const witnessedAt = timestamp(input.witnessedAt, "witnessedAt");
+  const witnessedAtSource = text(input.witnessedAt, "witnessedAt");
+  const witnessedAt = timestamp(witnessedAtSource, "witnessedAt");
+  if (
+    compareExplicitIso8601Instants(
+      witnessedAtSource,
+      generatedAtSource,
+      "witnessedAt",
+      "generatedAt",
+    ) > 0
+  ) {
+    throw new Error("witnessedAt must not be after generatedAt");
+  }
 
   const sameInput = {
     baselineRunId: text(input.sameInputReplay.baselineRunId, "sameInputReplay.baselineRunId"),

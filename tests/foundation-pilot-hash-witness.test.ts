@@ -73,6 +73,17 @@ function input() {
 
 {
   const value = input();
+  value.generatedAt = "2026-08-07T01:40:00.123456788Z";
+  value.witnessedAt = "2026-08-07T01:40:00.123456789Z";
+  assert.throws(
+    () => buildFoundationPilotHashWitness(value),
+    /witnessedAt must not be after generatedAt/,
+  );
+  console.log("foundation-pilot-hash-witness: sub-millisecond witness chronology blocked OK");
+}
+
+{
+  const value = input();
   value.target.informationCutoff = "2026-07-31T06:00:00";
   assert.throws(() => buildFoundationPilotHashWitness(value), /explicit timezone/);
   console.log("foundation-pilot-hash-witness: timezone-less cutoff blocked OK");
