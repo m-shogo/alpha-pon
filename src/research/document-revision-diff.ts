@@ -908,29 +908,29 @@ export function validateDocumentRevisionDiffStore(
 
 function availableAtCutoff(
   record: { observedAt: string; retrievedAt: string; effectiveFrom: string; effectiveTo?: string },
-  cutoffMs: number,
+  cutoff: string,
 ): boolean {
-  if (timeMs(record.observedAt) > cutoffMs) return false;
-  if (timeMs(record.retrievedAt) > cutoffMs) return false;
-  if (timeMs(record.effectiveFrom) > cutoffMs) return false;
-  if (record.effectiveTo && timeMs(record.effectiveTo) < cutoffMs) return false;
+  if (compareExplicitIso8601Instants(record.observedAt, cutoff, "record.observedAt", "snapshot asOf") > 0) return false;
+  if (compareExplicitIso8601Instants(record.retrievedAt, cutoff, "record.retrievedAt", "snapshot asOf") > 0) return false;
+  if (compareExplicitIso8601Instants(record.effectiveFrom, cutoff, "record.effectiveFrom", "snapshot asOf") > 0) return false;
+  if (record.effectiveTo && compareExplicitIso8601Instants(record.effectiveTo, cutoff, "record.effectiveTo", "snapshot asOf") < 0) return false;
   return true;
 }
 
 function latestRevisionsAtCutoff(
   revisions: DocumentRevisionRecord[],
-  cutoffMs: number,
+  cutoff: string,
 ): DocumentRevisionRecord[] {
   const selected = new Map<string, DocumentRevisionRecord>();
   for (const record of revisions) {
-    if (!availableAtCutoff(record, cutoffMs)) continue;
+    if (!availableAtCutoff(record, cutoff)) continue;
     const previous = selected.get(record.documentRevisionId);
     if (
       !previous ||
-      timeMs(record.observedAt) > timeMs(previous.observedAt) ||
+      compareExplicitIso8601Instants(record.observedAt, previous.observedAt) > 0 ||
       (
-        timeMs(record.observedAt) === timeMs(previous.observedAt) &&
-        timeMs(record.retrievedAt) > timeMs(previous.retrievedAt)
+        compareExplicitIso8601Instants(record.observedAt, previous.observedAt) === 0 &&
+        compareExplicitIso8601Instants(record.retrievedAt, previous.retrievedAt) > 0
       )
     ) selected.set(record.documentRevisionId, record);
   }
@@ -943,18 +943,18 @@ function latestRevisionsAtCutoff(
 
 function latestDiffsAtCutoff(
   diffs: DocumentDiffRecord[],
-  cutoffMs: number,
+  cutoff: string,
 ): DocumentDiffRecord[] {
   const selected = new Map<string, DocumentDiffRecord>();
   for (const record of diffs) {
-    if (!availableAtCutoff(record, cutoffMs)) continue;
+    if (!availableAtCutoff(record, cutoff)) continue;
     const previous = selected.get(record.diffId);
     if (
       !previous ||
-      timeMs(record.observedAt) > timeMs(previous.observedAt) ||
+      compareExplicitIso8601Instants(record.observedAt, previous.observedAt) > 0 ||
       (
-        timeMs(record.observedAt) === timeMs(previous.observedAt) &&
-        timeMs(record.retrievedAt) > timeMs(previous.retrievedAt)
+        compareExplicitIso8601Instants(record.observedAt, previous.observedAt) === 0 &&
+        compareExplicitIso8601Instants(record.retrievedAt, previous.retrievedAt) > 0
       )
     ) selected.set(record.diffId, record);
   }
@@ -969,11 +969,15 @@ export function buildDocumentRevisionDiffSnapshot(
   if (evidenceSnapshot.mode !== "system_replay") {
     throw new Error("Document Revision/Diff snapshot requires system_replay Evidence Snapshot");
   }
-  const cutoffMs = timeMs(evidenceSnapshot.asOf);
-  if (!Number.isFinite(cutoffMs)) throw new Error(`invalid asOf: ${evidenceSnapshot.asOf}`);
-  const selectedRevisions = latestRevisionsAtCutoff(revisions, cutoffMs);
+  compareExplicitIso8601Instants(
+    evidenceSnapshot.asOf,
+    evidenceSnapshot.asOf,
+    "snapshot asOf",
+    "snapshot asOf",
+  );
+  const selectedRevisions = latestRevisionsAtCutoff(revisions, evidenceSnapshot.asOf);
   const revisionIds = new Set(selectedRevisions.map((record) => record.documentRevisionId));
-  const selectedDiffs = latestDiffsAtCutoff(diffs, cutoffMs).filter((record) =>
+  const selectedDiffs = latestDiffsAtCutoff(diffs, evidenceSnapshot.asOf).filter((record) =>
     revisionIds.has(record.fromRevisionId) && revisionIds.has(record.toRevisionId),
   );
   const evidenceIds = sortedUnique([

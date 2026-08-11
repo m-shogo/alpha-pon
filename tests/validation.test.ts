@@ -95,6 +95,7 @@ import "./research/outcome-learning-change-preparation.test.js";
 import "./research/outcome-learning-status.test.js";
 import "./research/recommendation-runtime-local-only.test.js";
 import "./research/foundation-decision-hypothesis-registration-instant.test.js";
+import "./research/document-revision-diff-snapshot-nanosecond.test.js";
 import "./research/stock-pro-council-calibration-fractional-ordering.test.js";
 import "./research/stock-pro-council-replay-calibration.test.js";
 import "./research/stock-pro-council-ledger-hardening.test.js";
