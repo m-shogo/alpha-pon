@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, appendFileSync, writeFileSync } from "fs";
-import { todayJst } from "./date.js";
+import { addDaysJst, todayJst } from "./date.js";
 
 type ListingEvent = {
   id: string;
@@ -35,10 +35,11 @@ function keyOf(event: ListingEvent): string {
 }
 
 function addDays(date: string, days: number): string | null {
-  const d = new Date(`${date}T00:00:00+09:00`);
-  if (Number.isNaN(d.getTime())) return null;
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  try {
+    return addDaysJst(date, days);
+  } catch {
+    return null;
+  }
 }
 
 function estimateFirstEarnings(listing: ListingEvent): ListingEvent | null {
