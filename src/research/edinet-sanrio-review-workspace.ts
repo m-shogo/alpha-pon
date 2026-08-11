@@ -1,5 +1,8 @@
 import { createHash } from "node:crypto";
-import { parseExplicitIso8601Instant } from "./iso-instant.js";
+import {
+  compareExplicitIso8601Instants,
+  parseExplicitIso8601Instant,
+} from "./iso-instant.js";
 
 const SANRIO_EDINET_CODE = "E02655";
 const SANRIO_SEC_CODE = "81360";
@@ -273,6 +276,21 @@ function parseAcquisitionManifest(value: unknown): {
     if (identities.has(identity)) throw new Error(`duplicate acquisition ${identity}`);
     identities.add(identity);
 
+    const retrievedAt = requireTimestamp(
+      success.retrievedAt,
+      `acquisitionManifest.succeeded[${index}].retrievedAt`,
+    );
+    if (compareExplicitIso8601Instants(
+      retrievedAt,
+      generatedAt,
+      `acquisitionManifest.succeeded[${index}].retrievedAt`,
+      "acquisitionManifest.generatedAt",
+    ) > 0) {
+      throw new Error(
+        `acquisitionManifest.succeeded[${index}].retrievedAt must not be after acquisitionManifest.generatedAt`,
+      );
+    }
+
     acquisitions.push({
       docID,
       documentType: documentType as AcquisitionView["documentType"],
@@ -296,10 +314,7 @@ function parseAcquisitionManifest(value: unknown): {
         success.byteLength,
         `acquisitionManifest.succeeded[${index}].byteLength`,
       ),
-      retrievedAt: requireTimestamp(
-        success.retrievedAt,
-        `acquisitionManifest.succeeded[${index}].retrievedAt`,
-      ),
+      retrievedAt,
     });
   }
 
@@ -359,6 +374,14 @@ export function buildSanrioEdinetReviewWorkspace(input: {
   const generatedAt = input.generatedAt
     ? requireTimestamp(input.generatedAt, "generatedAt")
     : new Date().toISOString();
+  if (compareExplicitIso8601Instants(
+    generatedAt,
+    acquisition.generatedAt,
+    "generatedAt",
+    "acquisitionManifest.generatedAt",
+  ) < 0) {
+    throw new Error("generatedAt must not precede acquisitionManifest.generatedAt");
+  }
 
   const acquisitionsByDocID = new Map<string, AcquisitionView[]>();
   for (const item of acquisition.acquisitions) {
