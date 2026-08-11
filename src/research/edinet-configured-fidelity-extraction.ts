@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 
 const HASH_RE = /^[a-f0-9]{64}$/;
 const DOC_ID_RE = /^[A-Za-z0-9_-]{4,64}$/;
@@ -165,7 +166,7 @@ function docID(value: unknown, field: string): string {
 
 function timestamp(value: unknown, field: string): string {
   const result = required(value, field);
-  if (!Number.isFinite(Date.parse(result))) throw new Error(`${field} must be a date-time`);
+  parseExplicitIso8601Instant(result, field);
   return result;
 }
 
