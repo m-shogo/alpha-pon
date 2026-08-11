@@ -28,9 +28,26 @@ export function dateNDaysAgoJst(days: number): string {
 }
 
 export function addDaysJst(dateStr: string, days: number): string {
-  const date = new Date(`${dateStr}T00:00:00+09:00`);
-  date.setDate(date.getDate() + days);
-  return formatJstDate(date);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+  if (!match || !Number.isInteger(days)) {
+    throw new Error("addDaysJst requires a real YYYY-MM-DD date and integer day offset");
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const utcMs = Date.UTC(year, month - 1, day);
+  const parsed = new Date(utcMs);
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    throw new Error("addDaysJst requires a real YYYY-MM-DD date and integer day offset");
+  }
+
+  parsed.setUTCDate(parsed.getUTCDate() + days);
+  return parsed.toISOString().slice(0, 10);
 }
 
 export function daysSinceJst(dateStr: string): number | null {
