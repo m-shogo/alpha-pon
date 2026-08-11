@@ -110,7 +110,7 @@ function workspace(): JsonObject {
     configuredCoverage: [coverage],
     globalBlockers: ["human_replacement_decision_required"],
     semanticEquivalenceInferred: false,
-    automaticAnchorMappingAuthorized: false,
+    automaticAnchorMappingDecisionAuthorized: false,
     automaticReplacementDecisionAuthorized: false,
     replacementReviewStatus: "pending_human_review",
     replacementAuthorized: false,
@@ -264,6 +264,56 @@ function finalize(source: JsonObject, edited: JsonObject) {
   edited.replacementAuthorized = true;
   assert.throws(() => finalize(source, edited), /reviewInput safety boundary is invalid/);
   console.log("edinet-sanrio-configured-parity-human-review: unsafe replacement boundary blocked OK");
+}
+
+{
+  const source = workspace();
+  assert.throws(
+    () => buildSanrioParityHumanReviewTemplate({
+      workspace: source,
+      sourceWorkspaceFile: "legacy-configured-parity-workspace-v1.fixture.json",
+      generatedAt: "2026-08-07T00:11:00",
+    }),
+    /explicit-timezone ISO instant/,
+  );
+  assert.throws(
+    () => buildSanrioParityHumanReviewTemplate({
+      workspace: source,
+      sourceWorkspaceFile: "legacy-configured-parity-workspace-v1.fixture.json",
+      generatedAt: "2026-02-30T00:11:00Z",
+    }),
+    /explicit-timezone ISO instant/,
+  );
+  const offsetDraft = buildSanrioParityHumanReviewTemplate({
+    workspace: source,
+    sourceWorkspaceFile: "legacy-configured-parity-workspace-v1.fixture.json",
+    generatedAt: "2026-08-07T09:11:00+09:00",
+  });
+  assert.equal(offsetDraft.generatedAt, "2026-08-07T09:11:00+09:00");
+  console.log("edinet-sanrio-configured-parity-human-review: template generatedAt requires strict explicit-timezone instant OK");
+}
+
+{
+  const source = workspace();
+  const edited = complete(template(source));
+  edited.reviewedAt = "2026-08-07T00:12:00";
+  assert.throws(() => finalize(source, edited), /explicit-timezone ISO instant/);
+
+  const impossible = complete(template(source));
+  impossible.reviewedAt = "2026-02-30T00:12:00Z";
+  assert.throws(() => finalize(source, impossible), /explicit-timezone ISO instant/);
+
+  const validOffset = complete(template(source));
+  validOffset.reviewedAt = "2026-08-07T09:12:00+09:00";
+  const record = finalizeSanrioParityHumanReview({
+    workspace: source,
+    sourceWorkspaceFile: "legacy-configured-parity-workspace-v1.fixture.json",
+    editedReviewInput: validOffset,
+    generatedAt: "2026-08-07T09:13:00+09:00",
+  });
+  assert.equal(record.reviewedAt, "2026-08-07T09:12:00+09:00");
+  assert.equal(record.generatedAt, "2026-08-07T09:13:00+09:00");
+  console.log("edinet-sanrio-configured-parity-human-review: finalized reviewedAt/generatedAt require strict explicit-timezone instants OK");
 }
 
 console.log("edinet-sanrio-configured-parity-human-review.test.ts passed");
