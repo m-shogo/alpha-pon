@@ -296,4 +296,67 @@ function finalize(input = setupEdited()) {
   console.log("edinet-configured-human-comparison-review: unsafe append boundary blocked OK");
 }
 
+{
+  const report = comparisonReport();
+  assert.throws(
+    () => buildConfiguredEdinetHumanComparisonTemplate({
+      comparisonReport: report,
+      sourceComparisonFile: "configured-fidelity-exact-comparison-v1.fixture.json",
+      generatedAt: "2026-08-06T15:20:00",
+    }),
+    /generatedAt must be a strict ISO timestamp with an explicit timezone offset or Z/,
+  );
+  assert.throws(
+    () => buildConfiguredEdinetHumanComparisonTemplate({
+      comparisonReport: report,
+      sourceComparisonFile: "configured-fidelity-exact-comparison-v1.fixture.json",
+      generatedAt: "2026-02-30T15:20:00Z",
+    }),
+    /generatedAt must be a strict ISO timestamp with an explicit timezone offset or Z/,
+  );
+  const offset = buildConfiguredEdinetHumanComparisonTemplate({
+    comparisonReport: report,
+    sourceComparisonFile: "configured-fidelity-exact-comparison-v1.fixture.json",
+    generatedAt: "2026-08-07T00:20:00+09:00",
+  });
+  assert.equal(offset.generatedAt, "2026-08-07T00:20:00+09:00");
+  console.log("edinet-configured-human-comparison-review: template generatedAt strict instant OK");
+}
+
+{
+  const input = setupEdited();
+  input.edited.reviewedAt = "2026-08-06T15:30:00";
+  assert.throws(
+    () => finalize(input),
+    /reviewInput\.reviewedAt must be a strict ISO timestamp with an explicit timezone offset or Z/,
+  );
+  input.edited.reviewedAt = "2026-02-30T15:30:00Z";
+  assert.throws(
+    () => finalize(input),
+    /reviewInput\.reviewedAt must be a strict ISO timestamp with an explicit timezone offset or Z/,
+  );
+  console.log("edinet-configured-human-comparison-review: reviewedAt strict instant OK");
+}
+
+{
+  const input = setupEdited();
+  assert.throws(
+    () => finalizeConfiguredEdinetHumanComparisonReview({
+      comparisonReport: input.report,
+      sourceComparisonFile: "configured-fidelity-exact-comparison-v1.fixture.json",
+      editedReviewInput: input.edited,
+      generatedAt: "2026-08-06T15:40:00",
+    }),
+    /generatedAt must be a strict ISO timestamp with an explicit timezone offset or Z/,
+  );
+  const offset = finalizeConfiguredEdinetHumanComparisonReview({
+    comparisonReport: input.report,
+    sourceComparisonFile: "configured-fidelity-exact-comparison-v1.fixture.json",
+    editedReviewInput: input.edited,
+    generatedAt: "2026-08-07T00:40:00+09:00",
+  });
+  assert.equal(offset.generatedAt, "2026-08-07T00:40:00+09:00");
+  console.log("edinet-configured-human-comparison-review: final generatedAt strict instant OK");
+}
+
 console.log("edinet-configured-human-comparison-review.test.ts passed");
