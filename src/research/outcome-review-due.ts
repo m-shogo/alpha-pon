@@ -109,6 +109,15 @@ function compareReviewedAt(left: string, right: string, target: string): -1 | 0 
   }
 }
 
+function availableByAsOf(value: string, asOfInstant: string, target: string): boolean {
+  return compareExplicitIso8601Instants(
+    value,
+    asOfInstant,
+    `${target}.reviewedAt`,
+    "outcome review due asOf",
+  ) <= 0;
+}
+
 function latestByReviewedAt<T extends { reviewedAt: string }>(
   records: T[],
   tieBreaker: (record: T) => string,
@@ -123,6 +132,7 @@ function latestByReviewedAt<T extends { reviewedAt: string }>(
 function canonicalQuantitativeOutcomes(input: {
   recommendation: RecommendationRecord;
   records: QuantitativeOutcomeRecord[];
+  asOfInstant: string;
 }): QuantitativeOutcomeRecord[] {
   const matches = input.records.filter((record) =>
     record.recommendationId === input.recommendation.recommendationId
@@ -134,13 +144,18 @@ function canonicalQuantitativeOutcomes(input: {
     }
     reviewedAtMs(record.reviewedAt, `Quantitative Outcome ${record.outcomeId}.reviewedAt`);
   }
-  return matches;
+  return matches.filter((record) => availableByAsOf(
+    record.reviewedAt,
+    input.asOfInstant,
+    `Quantitative Outcome ${record.outcomeId}`,
+  ));
 }
 
 function canonicalSemanticReviews(input: {
   recommendation: RecommendationRecord;
   quantitativeOutcomes: QuantitativeOutcomeRecord[];
   records: OutcomeSemanticReviewRecord[];
+  asOfInstant: string;
 }): OutcomeSemanticReviewRecord[] {
   const outcomeById = new Map(input.quantitativeOutcomes.map((record) => [record.outcomeId, record]));
   const matches = input.records.filter((record) =>
@@ -152,6 +167,13 @@ function canonicalSemanticReviews(input: {
       throw new Error(`invalid Semantic Review contentHash: ${record.reviewId}`);
     }
     reviewedAtMs(record.reviewedAt, `Semantic Review ${record.reviewId}.reviewedAt`);
+  }
+  const available = matches.filter((record) => availableByAsOf(
+    record.reviewedAt,
+    input.asOfInstant,
+    `Semantic Review ${record.reviewId}`,
+  ));
+  for (const record of available) {
     const outcome = outcomeById.get(record.quantitativeOutcomeId);
     if (
       !outcome
@@ -160,7 +182,7 @@ function canonicalSemanticReviews(input: {
       throw new Error(`Semantic Review references unknown or mismatched Quantitative Outcome: ${record.reviewId}`);
     }
   }
-  return matches;
+  return available;
 }
 
 function stateFor(input: {
@@ -168,6 +190,7 @@ function stateFor(input: {
   quantitativeOutcomes: QuantitativeOutcomeRecord[];
   semanticReviews: OutcomeSemanticReviewRecord[];
   asOfJstDate: string;
+  asOfInstant: string;
 }): OutcomeReviewDueState {
   if (computeRecommendationHash(input.recommendation) !== input.recommendation.contentHash) {
     throw new Error(`invalid Recommendation contentHash: ${input.recommendation.recommendationId}`);
@@ -180,11 +203,13 @@ function stateFor(input: {
   const quant = canonicalQuantitativeOutcomes({
     recommendation: input.recommendation,
     records: input.quantitativeOutcomes,
+    asOfInstant: input.asOfInstant,
   });
   const reviews = canonicalSemanticReviews({
     recommendation: input.recommendation,
     quantitativeOutcomes: quant,
     records: input.semanticReviews,
+    asOfInstant: input.asOfInstant,
   });
   const latestQuant = latestByReviewedAt(quant, (record) => record.outcomeId, "Quantitative Outcome");
   const reviewsForLatestQuant = latestQuant
@@ -249,11 +274,13 @@ export function deriveOutcomeReviewDueState(input: {
   asOf?: Date;
 }): OutcomeReviewDueState {
   const asOf = input.asOf ?? new Date();
+  const asOfJstDate = jstDateOf(asOf);
   return stateFor({
     recommendation: input.recommendation,
     quantitativeOutcomes: input.quantitativeOutcomes,
     semanticReviews: input.semanticReviews,
-    asOfJstDate: jstDateOf(asOf),
+    asOfJstDate,
+    asOfInstant: asOf.toISOString(),
   });
 }
 
@@ -273,11 +300,13 @@ export function deriveOutcomeReviewDueSummary(input: {
 }): OutcomeReviewDueSummary {
   const asOf = input.asOf ?? new Date();
   const asOfJstDate = jstDateOf(asOf);
+  const asOfInstant = asOf.toISOString();
   const states = input.recommendations.map((recommendation) => stateFor({
     recommendation,
     quantitativeOutcomes: input.quantitativeOutcomes,
     semanticReviews: input.semanticReviews,
     asOfJstDate,
+    asOfInstant,
   })).sort((left, right) => {
     if (left.overdue !== right.overdue) return left.overdue ? -1 : 1;
     const stateDiff = STATE_PRIORITY[left.state] - STATE_PRIORITY[right.state];
