@@ -1,3 +1,5 @@
+import { compareExplicitIso8601Instants } from '../src/research/iso-instant.js'
+
 type D1Result<T> = { results?: T[]; success?: boolean; error?: string }
 
 type D1PreparedStatement = {
@@ -172,9 +174,14 @@ function eventSortAt(row: EventRow): string | null {
   return row.time_precision === 'WINDOW' ? row.window_start : row.start_at
 }
 
-function freshness(row: EventRow, generatedAt: string): 'FRESH' | 'STALE' | 'UNKNOWN' {
-  if (!row.stale_after) return 'UNKNOWN'
-  return Date.parse(generatedAt) > Date.parse(row.stale_after) ? 'STALE' : 'FRESH'
+export function freshness(staleAfter: string | null, generatedAt: string): 'FRESH' | 'STALE' | 'UNKNOWN' {
+  if (!staleAfter) return 'UNKNOWN'
+  return compareExplicitIso8601Instants(
+    generatedAt,
+    staleAfter,
+    'generatedAt',
+    'staleAfter',
+  ) > 0 ? 'STALE' : 'FRESH'
 }
 
 async function projection(db: D1Database, env: Env): Promise<MarketEventProjection> {
@@ -244,7 +251,7 @@ async function projection(db: D1Database, env: Env): Promise<MarketEventProjecti
       retrievedAt: source.retrieved_at,
       contentHash: source.content_hash,
     })),
-    freshnessState: freshness(row, generatedAt),
+    freshnessState: freshness(row.stale_after, generatedAt),
     calendarIncluded: row.time_precision !== 'UNKNOWN',
     sortAt: eventSortAt(row),
   }))
