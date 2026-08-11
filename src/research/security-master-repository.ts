@@ -11,7 +11,10 @@ import {
 import {
   validateSecurityMasterGoverned,
 } from "./security-master-hardening.js";
-import { parseExplicitIso8601Instant } from "./iso-instant.js";
+import {
+  compareExplicitIso8601Instants,
+  parseExplicitIso8601Instant,
+} from "./iso-instant.js";
 import { isValidDate } from "./schema.js";
 import { loadCouncilSchema } from "./stock-pro-council-v2-validation.js";
 
@@ -92,6 +95,14 @@ function availableBy(record: RevisionRecord, cutoffEpoch: number): boolean {
       record.retrievedAt,
       `security master revision ${record.recordId}.retrievedAt`,
     );
+    if (compareExplicitIso8601Instants(
+      record.retrievedAt,
+      record.observedAt,
+      `security master revision ${record.recordId}.retrievedAt`,
+      `security master revision ${record.recordId}.observedAt`,
+    ) < 0) {
+      return false;
+    }
     return observedEpoch <= cutoffEpoch && retrievedEpoch <= cutoffEpoch;
   } catch {
     return false;
