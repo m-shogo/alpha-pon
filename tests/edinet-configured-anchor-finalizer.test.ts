@@ -166,6 +166,58 @@ function finalize(input = setup()) {
 
 {
   const input = setup();
+  input.edited.reviewedAt = "2026-08-06T15:40:00";
+  assert.throws(
+    () => finalize(input),
+    /anchorInput\.reviewedAt must be an ISO-8601 timestamp with explicit timezone/,
+  );
+  console.log("edinet-configured-anchor-finalizer: reviewedAt explicit timezone required OK");
+}
+
+{
+  const input = setup();
+  input.edited.reviewedAt = "2026-02-30T15:40:00Z";
+  assert.throws(
+    () => finalize(input),
+    /anchorInput\.reviewedAt must be a valid Gregorian ISO-8601 timestamp/,
+  );
+  console.log("edinet-configured-anchor-finalizer: reviewedAt Gregorian validity required OK");
+}
+
+{
+  const input = setup();
+  input.edited.reviewedAt = "2026-08-07T00:40:00+09:00";
+  const final = finalizeConfiguredEdinetAnchorInput({
+    extractionBundle: input.bundle,
+    sourceExtractionBundleFile: "configured-fidelity-extraction-v1.fixture.json",
+    editedAnchorInput: input.edited,
+    sourceAnchorInputFile: "configured-fidelity-anchor-input-v1.fixture.json",
+    sourceFiles: input.sourceFiles,
+    generatedAt: "2026-08-07T00:45:00+09:00",
+  });
+  assert.equal(final.reviewedAt, "2026-08-07T00:40:00+09:00");
+  assert.equal(final.generatedAt, "2026-08-07T00:45:00+09:00");
+  console.log("edinet-configured-anchor-finalizer: valid explicit offset instants preserved OK");
+}
+
+{
+  const input = setup();
+  assert.throws(
+    () => finalizeConfiguredEdinetAnchorInput({
+      extractionBundle: input.bundle,
+      sourceExtractionBundleFile: "configured-fidelity-extraction-v1.fixture.json",
+      editedAnchorInput: input.edited,
+      sourceAnchorInputFile: "configured-fidelity-anchor-input-v1.fixture.json",
+      sourceFiles: input.sourceFiles,
+      generatedAt: "2026-02-30T15:45:00Z",
+    }),
+    /generatedAt must be a valid Gregorian ISO-8601 timestamp/,
+  );
+  console.log("edinet-configured-anchor-finalizer: generatedAt Gregorian validity required OK");
+}
+
+{
+  const input = setup();
   const first = (input.edited.documents as JsonObject[])[0]!;
   first.anchorCount = 0;
   first.anchors = [];
