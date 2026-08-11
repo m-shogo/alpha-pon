@@ -110,7 +110,7 @@ function workspace(): JsonObject {
     configuredCoverage: [coverage],
     globalBlockers: ["human_replacement_decision_required"],
     semanticEquivalenceInferred: false,
-    automaticAnchorMappingDecisionAuthorized: false,
+    automaticAnchorMappingAuthorized: false,
     automaticReplacementDecisionAuthorized: false,
     replacementReviewStatus: "pending_human_review",
     replacementAuthorized: false,
