@@ -118,6 +118,9 @@ function timestamp(value: unknown, field: string): string {
   if (!EXPLICIT_INSTANT_RE.test(result)) throw new Error(`${field} must be an explicit-timezone ISO instant`);
   const offset = result.endsWith("Z") ? null : result.slice(-6);
   if (offset) {
+    if (offset === "-00:00") {
+      throw new Error(`${field} must use a known timezone offset; -00:00 denotes an unknown offset`);
+    }
     const sign = offset[0] === "-" ? -1 : 1;
     const hour = Number(offset.slice(1, 3));
     const minute = Number(offset.slice(4, 6));
