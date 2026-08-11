@@ -3,7 +3,7 @@ import {
   isJQuantsConfigured,
   type DailyQuote,
 } from "../../fetcher/jquants.js";
-import { parseExplicitIso8601Instant } from "../iso-instant.js";
+import { compareExplicitIso8601Instants, parseExplicitIso8601Instant } from "../iso-instant.js";
 import type {
   MissingPriceReason,
   PitPriceRecordInput,
@@ -175,9 +175,9 @@ function assertTimestampAtOrAfter(
   field: string,
   boundaryField: string,
 ): void {
-  const valueMs = parseExplicitIso8601Instant(value, field);
-  const boundaryMs = parseExplicitIso8601Instant(boundary, boundaryField);
-  if (valueMs < boundaryMs) throw new Error(`${field} must be at or after ${boundaryField}`);
+  if (compareExplicitIso8601Instants(value, boundary, field, boundaryField) < 0) {
+    throw new Error(`${field} must be at or after ${boundaryField}`);
+  }
 }
 
 export function mapJQuantsFreeQuote(input: {
