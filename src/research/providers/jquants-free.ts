@@ -272,7 +272,7 @@ export class JQuantsFreePriceProvider implements PriceProvider {
       throw new Error("J-Quants Free fetchDaily accepts exactly one security code per call");
     }
 
-    const queryAsOfMs = parseExplicitIso8601Instant(query.asOf, "query.asOf");
+    parseExplicitIso8601Instant(query.asOf, "query.asOf");
     const requestedCode = canonicalStoreCode(query.codes[0]!);
     const from = normalizeDate(query.from);
     const to = normalizeDate(query.to);
@@ -296,7 +296,7 @@ export class JQuantsFreePriceProvider implements PriceProvider {
 
       const dataAsOf = jquantsTradingDayCloseJst(tradingDate);
       const observedAt = jquantsFreeObservedAt(tradingDate, this.capabilities.delayDays);
-      if (parseExplicitIso8601Instant(observedAt, "observedAt") > queryAsOfMs) {
+      if (compareExplicitIso8601Instants(observedAt, query.asOf, "observedAt", "query.asOf") > 0) {
         continue;
       }
 
