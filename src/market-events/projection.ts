@@ -92,6 +92,25 @@ function projectionSource(source: EventSource): MarketEventProjectionSource {
   };
 }
 
+function sortAtInstant(value: string): string {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value)
+    ? `${value}T00:00:00+09:00`
+    : value;
+}
+
+export function compareMarketEventSortAt(left: string, right: string): -1 | 0 | 1 {
+  return compareExplicitIso8601Instants(
+    sortAtInstant(left),
+    sortAtInstant(right),
+    "market event left sortAt",
+    "market event right sortAt",
+  );
+}
+
+export function marketEventOccursOnOrAfterJapanDate(value: string, date: string): boolean {
+  return compareMarketEventSortAt(value, `${date}T00:00:00+09:00`) >= 0;
+}
+
 function chronologicalValue(event: MarketEventProjectionItem): string {
   return event.sortAt ?? "9999-12-31T23:59:59Z";
 }
@@ -120,7 +139,7 @@ export function buildMarketEventGeneratedData(
   events.sort((a, b) => {
     const priority = a.priority.localeCompare(b.priority);
     if (priority !== 0) return priority;
-    const date = chronologicalValue(a).localeCompare(chronologicalValue(b));
+    const date = compareMarketEventSortAt(chronologicalValue(a), chronologicalValue(b));
     if (date !== 0) return date;
     return a.eventId.localeCompare(b.eventId);
   });
@@ -162,10 +181,10 @@ export function buildMarketEventGeneratedData(
   const nextEventAt = events
     .filter(event => {
       if (!event.sortAt || event.status === "CANCELLED" || event.status === "COMPLETED") return false;
-      return event.sortAt >= today;
+      return marketEventOccursOnOrAfterJapanDate(event.sortAt, today);
     })
     .map(event => event.sortAt as string)
-    .sort()[0] ?? null;
+    .sort(compareMarketEventSortAt)[0] ?? null;
 
   return {
     data: {
