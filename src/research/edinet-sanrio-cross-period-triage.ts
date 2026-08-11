@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { edinetPublicDocumentLogicalKey } from "./edinet-sanrio-logical-entry-alignment.js";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 
 const HASH_PATTERN = /^[a-f0-9]{64}$/;
 const DOC_ID_PATTERN = /^[A-Za-z0-9_-]{4,64}$/;
@@ -154,7 +155,7 @@ function requireNonNegativeInteger(value: unknown, field: string): number {
 
 function requireTimestamp(value: unknown, field: string): string {
   const result = requireString(value, field);
-  if (!Number.isFinite(Date.parse(result))) throw new Error(`${field} must be a date-time`);
+  parseExplicitIso8601Instant(result, field);
   return result;
 }
 
