@@ -66,7 +66,20 @@ function normalizeDate(value: string): string {
   const year = Number(compact.slice(0, 4));
   const month = Number(compact.slice(4, 6));
   const day = Number(compact.slice(6, 8));
-  const daysInMonth = [31, isLeapYear(year) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  const daysInMonth = [
+    31,
+    isLeapYear(year) ? 29 : 28,
+    31,
+    30,
+    31,
+    30,
+    31,
+    31,
+    30,
+    31,
+    30,
+    31,
+  ];
   if (month < 1 || month > 12 || day < 1 || day > daysInMonth[month - 1]!) {
     throw new Error(`invalid J-Quants trading date: ${value}`);
   }
