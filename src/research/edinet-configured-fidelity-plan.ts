@@ -4,7 +4,10 @@ import {
   resolveEdinetIssuerBoundary,
   type EdinetIssuerBoundary,
 } from "./edinet-issuer-boundary.js";
-import { parseExplicitIso8601Instant } from "./iso-instant.js";
+import {
+  compareExplicitIso8601Instants,
+  parseExplicitIso8601Instant,
+} from "./iso-instant.js";
 
 const HASH_RE = /^[a-f0-9]{64}$/;
 const DOC_ID_RE = /^[A-Za-z0-9_-]{4,64}$/;
@@ -349,11 +352,17 @@ function parseDocuments(
   if (documents.length !== expectedDocumentCount) {
     throw new Error("reviewWorkspace.documentCount mismatch");
   }
-  return documents.sort((left, right) =>
-    `${left.chainRootDocID}|${left.submitDateTime}|${left.docID}`.localeCompare(
-      `${right.chainRootDocID}|${right.submitDateTime}|${right.docID}`,
-    ),
-  );
+  return documents.sort((left, right) => {
+    const chainOrder = left.chainRootDocID.localeCompare(right.chainRootDocID);
+    if (chainOrder !== 0) return chainOrder;
+    const instantOrder = compareExplicitIso8601Instants(
+      left.submitDateTime,
+      right.submitDateTime,
+      `reviewWorkspace document ${left.docID}.submitDateTime`,
+      `reviewWorkspace document ${right.docID}.submitDateTime`,
+    );
+    return instantOrder !== 0 ? instantOrder : left.docID.localeCompare(right.docID);
+  });
 }
 
 export function buildConfiguredEdinetFidelityPlan(input: {
