@@ -93,6 +93,7 @@ export function gatePassCount(edge: Edge): number {
 }
 
 export function decayUrgency(edge: Edge, asOf: string): number {
+  if (!isValidDate(asOf)) throw new Error(`invalid research date: ${asOf}`);
   if (!edge.decay.lastCheckedAt) return 1;
   const elapsed = daysBetween(edge.decay.lastCheckedAt, asOf);
   return clamp01(elapsed / edge.decay.reviewIntervalDays);
