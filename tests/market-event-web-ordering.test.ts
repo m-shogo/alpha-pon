@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  compareWebMarketEventsBySortAt,
   compareWebMarketEventSortAt,
   webMarketEventJapanDate,
 } from "../apps/web/lib/market-event-data.js";
@@ -26,5 +27,21 @@ assert.equal(
   ),
   1,
 );
+
+const offsetOrdered = [
+  { sortAt: "2026-08-11T15:30:00Z", priority: "S1" as const },
+  { sortAt: "2026-08-12T00:15:00+09:00", priority: "S2" as const },
+].sort(compareWebMarketEventsBySortAt);
+assert.deepEqual(
+  offsetOrdered.map((event) => event.sortAt),
+  ["2026-08-12T00:15:00+09:00", "2026-08-11T15:30:00Z"],
+  "calendar/list ordering must follow the actual instant rather than lexical timezone text",
+);
+
+const nullLast = [
+  { sortAt: null, priority: "S0" as const },
+  { sortAt: "2026-08-12", priority: "S3" as const },
+].sort(compareWebMarketEventsBySortAt);
+assert.equal(nullLast[1].sortAt, null, "unknown dates must remain after scheduled events");
 
 console.log("market-event-web-ordering.test.ts passed");
