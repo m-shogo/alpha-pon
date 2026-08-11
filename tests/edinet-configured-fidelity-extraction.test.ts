@@ -205,7 +205,7 @@ function extractionSetup() {
   tampered.anchorCount = 1;
   assert.throws(
     () => buildConfiguredEdinetFidelityExtractionBundle({
-      fidelityPlan: plan,
+      fidelityPlan: tampered,
       sourceFidelityPlanFile: "configured-source-fidelity-plan-v1.fixture.json",
       extractedDocuments,
     }),
