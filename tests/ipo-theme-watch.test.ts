@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "fs";
+import { addDaysJst } from "../src/date.js";
 
 function readJson(path: string): unknown {
   if (!existsSync(path)) return null;
@@ -9,6 +10,14 @@ function readJson(path: string): unknown {
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
+
+assert.equal(
+  addDaysJst("2026-01-01", 75),
+  "2026-03-17",
+  "JST date-only calendar addition must not shift one day through UTC serialization",
+);
+assert.equal(addDaysJst("2024-02-28", 1), "2024-02-29", "leap-day calendar addition must be exact");
+assert.throws(() => addDaysJst("2026-02-29", 1), /real YYYY-MM-DD/);
 
 const data = readJson("reports/ipo_theme_watch_latest.json");
 assert(data !== null, "reports/ipo_theme_watch_latest.json は必ず生成・保持される必要があります");
