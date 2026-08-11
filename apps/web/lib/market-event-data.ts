@@ -124,6 +124,18 @@ export function compareWebMarketEventSortAt(left: string, right: string): -1 | 0
   return 0
 }
 
+export function compareWebMarketEventsBySortAt(
+  left: Pick<WebMarketEvent, 'sortAt' | 'priority'>,
+  right: Pick<WebMarketEvent, 'sortAt' | 'priority'>,
+): number {
+  if (!left.sortAt && !right.sortAt) return left.priority.localeCompare(right.priority)
+  if (!left.sortAt) return 1
+  if (!right.sortAt) return -1
+  const instantOrder = compareWebMarketEventSortAt(left.sortAt, right.sortAt)
+  if (instantOrder !== 0) return instantOrder
+  return left.priority.localeCompare(right.priority)
+}
+
 export function webMarketEventJapanDate(value: string): string {
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
   const instant = sortAtInstant(value)
