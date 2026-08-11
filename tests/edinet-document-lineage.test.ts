@@ -251,6 +251,42 @@ function testLineageAnomalies(): void {
   assert.equal(missingParentNode?.chainRootDocID, "S100OUTSIDE");
 }
 
+function testLineagePreservesNanosecondParentOrdering(): void {
+  const parent = doc({
+    docID: "S100NSPARENT",
+    submitDateTime: "2026-06-20T06:00:00.000000002Z",
+  });
+  const child = doc({
+    docID: "S100NSCHILD",
+    parentDocID: parent.docID,
+    submitDateTime: "2026-06-20T06:00:00.000000001Z",
+  });
+
+  const result = buildEdinetDocumentLineage([parent, child]);
+
+  assert.ok(result.issues.some(value =>
+    value.target === child.docID && value.code === "child_precedes_parent"
+  ));
+}
+
+function testLineageSortsSubmitInstantsAcrossOffsets(): void {
+  const earlier = doc({
+    docID: "S100OFFSET_EARLY",
+    submitDateTime: "2026-06-20T15:15:00+09:00",
+  });
+  const later = doc({
+    docID: "S100OFFSET_LATE",
+    submitDateTime: "2026-06-20T06:30:00Z",
+  });
+
+  const result = buildEdinetDocumentLineage([later, earlier]);
+
+  assert.deepEqual(
+    result.nodes.map(value => value.docID),
+    [earlier.docID, later.docID],
+  );
+}
+
 function testLineageRejectsInvalidSubmitInstants(): void {
   const timezoneLessSubmit = doc({
     docID: "S100NOZONE",
@@ -298,6 +334,8 @@ async function main(): Promise<void> {
   await testInputValidationBeforeFetch();
   testLineageProjection();
   testLineageAnomalies();
+  testLineagePreservesNanosecondParentOrdering();
+  testLineageSortsSubmitInstantsAcrossOffsets();
   testLineageRejectsInvalidSubmitInstants();
   testLineageRejectsNonCanonicalDocIds();
   console.log("edinet-document-lineage.test.ts passed");
