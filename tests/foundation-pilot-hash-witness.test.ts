@@ -135,7 +135,7 @@ function input() {
   const value = input();
   value.correctionCutoff.afterHistoricalResultHash = "6".repeat(64);
   const record = buildFoundationPilotHashWitness(value);
-  assert.equal(record.correctionCutoff.status, "failed_historical_cutoff_hash_changed");
+  assert.equal(record.correctionCutoff.status, "failed_historical_result_hash_changed");
   assert.equal(record.correctionCutoffHashImmutabilityVerified, false);
   console.log("foundation-pilot-hash-witness: historical cutoff hash mutation blocked OK");
 }
