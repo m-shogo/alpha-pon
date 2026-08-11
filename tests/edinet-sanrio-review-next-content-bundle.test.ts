@@ -174,6 +174,32 @@ function batchWorkspace() {
   };
 }
 
+function contentInputs() {
+  return [
+    {
+      candidateId: "candidate:amount64",
+      beforeText: [
+        "売上高 100百万円",
+        "（注）金額は百万円未満を切り捨てております。",
+      ].join("\n"),
+      afterText: [
+        "売上高 120百万円",
+        "（注）金額は百万円未満を切り捨てております。",
+      ].join("\n"),
+    },
+    {
+      candidateId: "candidate:amount65",
+      beforeText: "内部統制に関する旧記載",
+      afterText: "内部統制に関する新記載",
+    },
+    {
+      candidateId: "candidate:note64",
+      beforeText: "注記なし",
+      afterText: "※ 当該事項は翌期も継続して確認する。",
+    },
+  ];
+}
+
 {
   const plan = buildSanrioEdinetReviewNextContentPlan({
     batchWorkspace: batchWorkspace(),
@@ -190,29 +216,7 @@ function batchWorkspace() {
   const bundle = buildSanrioEdinetReviewNextContentBundle({
     plan,
     generatedAt: "2026-08-06T10:30:00.000Z",
-    contents: [
-      {
-        candidateId: "candidate:amount64",
-        beforeText: [
-          "売上高 100百万円",
-          "（注）金額は百万円未満を切り捨てております。",
-        ].join("\n"),
-        afterText: [
-          "売上高 120百万円",
-          "（注）金額は百万円未満を切り捨てております。",
-        ].join("\n"),
-      },
-      {
-        candidateId: "candidate:amount65",
-        beforeText: "内部統制に関する旧記載",
-        afterText: "内部統制に関する新記載",
-      },
-      {
-        candidateId: "candidate:note64",
-        beforeText: "注記なし",
-        afterText: "※ 当該事項は翌期も継続して確認する。",
-      },
-    ],
+    contents: contentInputs(),
   });
   assert.equal(bundle.candidateCount, 3);
   assert.ok(bundle.numericLineCount >= 2);
@@ -229,6 +233,32 @@ function batchWorkspace() {
   assert.match(markdown, /120百万円/);
   assert.match(bundle.bundleHash, /^[a-f0-9]{64}$/);
   console.log("edinet-sanrio-review-next-content: plan, full text, amounts, footnotes and accounting lines OK");
+}
+
+{
+  const plan = buildSanrioEdinetReviewNextContentPlan({
+    batchWorkspace: batchWorkspace(),
+    sourceBatchWorkspaceFile: "revision-review-next-batches-v1.fixture.json",
+  });
+  for (const generatedAt of ["2026-08-06T10:30:00", "2026-02-30T10:30:00Z"]) {
+    assert.throws(
+      () => buildSanrioEdinetReviewNextContentBundle({
+        plan,
+        contents: contentInputs(),
+        generatedAt,
+      }),
+      /generatedAt/,
+    );
+  }
+  assert.equal(
+    buildSanrioEdinetReviewNextContentBundle({
+      plan,
+      contents: contentInputs(),
+      generatedAt: "2026-08-06T19:30:00+09:00",
+    }).generatedAt,
+    "2026-08-06T19:30:00+09:00",
+  );
+  console.log("edinet-sanrio-review-next-content: generatedAt strict explicit-timezone boundary OK");
 }
 
 {
