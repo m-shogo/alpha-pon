@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { basename } from "node:path";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 
 type JsonObject = Record<string, unknown>;
 
@@ -125,7 +126,7 @@ function docID(value: unknown, field: string): string {
 
 function timestamp(value: unknown, field: string): string {
   const result = required(value, field);
-  if (!Number.isFinite(Date.parse(result))) throw new Error(`${field} must be a date-time`);
+  parseExplicitIso8601Instant(result, field);
   return result;
 }
 
