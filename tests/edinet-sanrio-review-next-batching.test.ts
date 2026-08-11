@@ -209,6 +209,40 @@ function sourceWorkspace() {
 }
 
 {
+  assert.throws(
+    () => buildSanrioEdinetReviewNextBatchWorkspace({
+      triageWorkspace: sourceWorkspace(),
+      sourceTriageWorkspaceFile: "revision-diff-triage-v1.fixture.json",
+      generatedAt: "2026-08-06T10:00:00",
+    }),
+    /generatedAt must be an ISO-8601 timestamp with explicit timezone/,
+  );
+  console.log("edinet-sanrio-review-next-batching: generatedAt explicit timezone required OK");
+}
+
+{
+  assert.throws(
+    () => buildSanrioEdinetReviewNextBatchWorkspace({
+      triageWorkspace: sourceWorkspace(),
+      sourceTriageWorkspaceFile: "revision-diff-triage-v1.fixture.json",
+      generatedAt: "2026-02-30T10:00:00Z",
+    }),
+    /generatedAt must be a valid Gregorian ISO-8601 timestamp/,
+  );
+  console.log("edinet-sanrio-review-next-batching: generatedAt Gregorian validity required OK");
+}
+
+{
+  const workspace = buildSanrioEdinetReviewNextBatchWorkspace({
+    triageWorkspace: sourceWorkspace(),
+    sourceTriageWorkspaceFile: "revision-diff-triage-v1.fixture.json",
+    generatedAt: "2026-08-06T19:00:00+09:00",
+  });
+  assert.equal(workspace.generatedAt, "2026-08-06T19:00:00+09:00");
+  console.log("edinet-sanrio-review-next-batching: valid explicit offset generatedAt preserved OK");
+}
+
+{
   const tampered = sourceWorkspace();
   const firstCandidate = tampered.clusters[0]!.candidates[0] as JsonObject;
   firstCandidate.afterPreview = ["tampered"];
