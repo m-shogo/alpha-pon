@@ -194,4 +194,23 @@ function rehashWorkspace(record: JsonObject): void {
   console.log("edinet-configured-fidelity-plan: timezone-less acquisition retrievedAt blocked OK");
 }
 
+{
+  const fixture = buildConfiguredEdinetSyntheticFixture();
+  const offsetMixed = structuredClone(fixture.reviewWorkspace) as unknown as JsonObject;
+  const groups = offsetMixed.groups as JsonObject[];
+  const documents = groups[0]!.documents as JsonObject[];
+  const root = documents.find(document => document.docID === "S900ROOT")!;
+  const correction = documents.find(document => document.docID === "S900CORR")!;
+  root.submitDateTime = "2026-07-01T19:00:00+09:00";
+  correction.submitDateTime = "2026-07-01T10:30:00Z";
+  rehashWorkspace(offsetMixed);
+  const plan = buildConfiguredEdinetFidelityPlan({
+    registry: fixture.registry,
+    reviewWorkspace: offsetMixed,
+    sourceReviewWorkspaceFile: "configured-review-workspace-v2.json",
+  });
+  assert.deepEqual(plan.documents.map(document => document.docID), ["S900ROOT", "S900CORR"]);
+  console.log("edinet-configured-fidelity-plan: mixed-offset documents sort by actual instant OK");
+}
+
 console.log("edinet-configured-fidelity-plan.test.ts passed");
