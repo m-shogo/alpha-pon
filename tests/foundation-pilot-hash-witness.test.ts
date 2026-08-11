@@ -135,9 +135,20 @@ function input() {
   const value = input();
   value.correctionCutoff.afterHistoricalResultHash = "6".repeat(64);
   const record = buildFoundationPilotHashWitness(value);
-  assert.equal(record.correctionCutoff.status, "failed_historical_result_hash_changed");
+  assert.equal(record.correctionCutoff.status, "failed_historical_cutoff_hash_changed");
   assert.equal(record.correctionCutoffHashImmutabilityVerified, false);
   console.log("foundation-pilot-hash-witness: historical cutoff hash mutation blocked OK");
+}
+
+{
+  const value = input();
+  value.target.informationCutoff = "2026-07-31T06:00:00.123456788Z";
+  value.correctionCutoff.historicalCutoff = "2026-07-31T06:00:00.123456789Z";
+  assert.throws(
+    () => buildFoundationPilotHashWitness(value),
+    /must equal target\.informationCutoff/,
+  );
+  console.log("foundation-pilot-hash-witness: sub-millisecond cutoff mismatch blocked OK");
 }
 
 {
