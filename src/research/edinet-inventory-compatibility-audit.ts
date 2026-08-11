@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 
 const HASH_RE = /^[a-f0-9]{64}$/;
 const DOC_ID_RE = /^[A-Za-z0-9_-]{4,64}$/;
 const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
-const EXPLICIT_INSTANT_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/;
 const CORE_TYPES = new Set(["1", "2"]);
 
 type JsonObject = Record<string, unknown>;
@@ -115,24 +115,11 @@ function gregorianDate(value: unknown, field: string): string {
 
 function timestamp(value: unknown, field: string): string {
   const result = required(value, field);
-  if (!EXPLICIT_INSTANT_RE.test(result)) throw new Error(`${field} must be an explicit-timezone ISO instant`);
-  const offset = result.endsWith("Z") ? null : result.slice(-6);
-  if (offset) {
-    if (offset === "-00:00") {
-      throw new Error(`${field} must use a known timezone offset; -00:00 denotes an unknown offset`);
-    }
-    const sign = offset[0] === "-" ? -1 : 1;
-    const hour = Number(offset.slice(1, 3));
-    const minute = Number(offset.slice(4, 6));
-    const totalMinutes = sign * (hour * 60 + minute);
-    if (minute > 59 || Math.abs(totalMinutes) > 14 * 60) {
-      throw new Error(`${field} must use a valid UTC offset within ±14:00`);
-    }
+  try {
+    parseExplicitIso8601Instant(result, field);
+  } catch {
+    throw new Error(`${field} must be an explicit-timezone ISO instant`);
   }
-  const parsed = Date.parse(result);
-  if (!Number.isFinite(parsed)) throw new Error(`${field} must be a real ISO instant`);
-  const datePart = result.slice(0, 10);
-  gregorianDate(datePart, `${field} date`);
   return result;
 }
 
