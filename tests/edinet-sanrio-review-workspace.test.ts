@@ -81,6 +81,7 @@ function success(
     sourceDocID: string;
     parentOutsideInventory: boolean;
     byteLength: number;
+    retrievedAt: string;
   }> = {},
 ): unknown {
   const format = documentType === "2" ? "pdf" : "zip";
@@ -97,7 +98,7 @@ function success(
     metadataFile: `${docID}.type-${documentType}.${sha256.slice(0, 16)}.metadata.json`,
     sha256,
     byteLength: overrides.byteLength ?? 1234,
-    retrievedAt: "2026-08-06T06:47:08.000Z",
+    retrievedAt: overrides.retrievedAt ?? "2026-08-06T06:47:08.000Z",
   };
 }
 
@@ -224,6 +225,67 @@ function testFailClosedInputs(): void {
       generatedAt: "2026-08-06T06:50:00.000Z",
     }),
     /duplicate acquisition/,
+  );
+
+  for (const generatedAt of [
+    "2026-08-06T06:47:08",
+    "2026-02-30T06:47:08Z",
+  ]) {
+    const badManifest = acquisitionManifest() as Record<string, unknown>;
+    badManifest.generatedAt = generatedAt;
+    assert.throws(
+      () => buildSanrioEdinetReviewWorkspace({
+        inventory: inventory(),
+        acquisitionManifest: badManifest,
+        acquisitionManifestFile: "acquisition-manifest.json",
+        generatedAt: "2026-08-06T06:50:00.000Z",
+      }),
+      /acquisitionManifest.generatedAt/,
+    );
+  }
+
+  for (const retrievedAt of [
+    "2026-08-06T06:47:08",
+    "2026-02-30T06:47:08Z",
+  ]) {
+    const badManifest = acquisitionManifest() as Record<string, unknown>;
+    const succeeded = badManifest.succeeded as unknown[];
+    succeeded[0] = success("S100ROOT", "1", HASH_A, {
+      reason: "external_parent_structured",
+      sourceDocID: "S100CORR",
+      parentOutsideInventory: true,
+      retrievedAt,
+    });
+    assert.throws(
+      () => buildSanrioEdinetReviewWorkspace({
+        inventory: inventory(),
+        acquisitionManifest: badManifest,
+        acquisitionManifestFile: "acquisition-manifest.json",
+        generatedAt: "2026-08-06T06:50:00.000Z",
+      }),
+      /retrievedAt/,
+    );
+  }
+
+  const offsetManifest = acquisitionManifest() as Record<string, unknown>;
+  offsetManifest.generatedAt = "2026-08-06T15:47:08+09:00";
+  const offsetSucceeded = offsetManifest.succeeded as unknown[];
+  offsetSucceeded[0] = success("S100ROOT", "1", HASH_A, {
+    reason: "external_parent_structured",
+    sourceDocID: "S100CORR",
+    parentOutsideInventory: true,
+    retrievedAt: "2026-08-06T15:47:08+09:00",
+  });
+  const offsetWorkspace = buildSanrioEdinetReviewWorkspace({
+    inventory: inventory(),
+    acquisitionManifest: offsetManifest,
+    acquisitionManifestFile: "acquisition-manifest.json",
+    generatedAt: "2026-08-06T15:50:00+09:00",
+  });
+  assert.equal(offsetWorkspace.generatedAt, "2026-08-06T15:50:00+09:00");
+  assert.equal(
+    offsetWorkspace.groups[0]?.documents[0]?.acquisitions[0]?.retrievedAt,
+    "2026-08-06T15:47:08+09:00",
   );
 }
 
