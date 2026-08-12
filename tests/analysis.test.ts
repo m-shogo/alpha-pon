@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { addDaysJst, daysSinceJst } from "../src/date.js";
 import { listingEventDaysBetween, parseListingEventDate } from "../src/listing-event-date.js";
 import { staleHypothesisAgeDays } from "../src/stale-hypothesis-date.js";
@@ -117,6 +118,13 @@ function testAnalogyReviewDueDatesUseJstCalendarDays() {
   assert.throws(() => analogyReviewDueDate("2026-02-30", "1d"), /real YYYY-MM-DD/);
 }
 
+function testAnalogyPredictionReviewUsesStoredDueDateAndTimeframe() {
+  const source = readFileSync(new URL("../src/review-predictions.ts", import.meta.url), "utf-8");
+  assert.match(source, /prediction\.reviewDueAt \|\| addDays\(baseDate, timeframeDays\(prediction\.timeframe\)\)/);
+  assert.match(source, /prediction\.expectedTimeframe \?\? prediction\.timeframe/);
+  assert.doesNotMatch(source, /prediction\.expectedTimeframe \?\? "1w"/);
+}
+
 function testWorldEventReflectionReliabilityGate() {
   const official = classifyWorldEvent({
     title: "Official statement: AI datacenter power grid investment announced",
@@ -210,6 +218,7 @@ function main() {
   testPeriodicReviewUsesJstCalendarWindows();
   testListingPerformanceReviewDatesUseJstCalendarDays();
   testAnalogyReviewDueDatesUseJstCalendarDays();
+  testAnalogyPredictionReviewUsesStoredDueDateAndTimeframe();
   testWorldEventReflectionReliabilityGate();
   testWorldEventReflectionRejectsUnknownSources();
   testWorldEventClustersSuppressSocialOnlyRumors();
