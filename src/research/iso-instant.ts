@@ -38,7 +38,8 @@ export function parseExplicitIso8601Instant(value: string, label: string): numbe
   const zone = match[8]!;
 
   if (
-    month < 1
+    year < 1
+    || month < 1
     || month > 12
     || day < 1
     || day > daysInMonth(year, month)

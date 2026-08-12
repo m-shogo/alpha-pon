@@ -59,6 +59,19 @@ function recommendation(outcomeReviewDate: string) {
 }
 
 {
+  assert.throws(
+    () => deriveOutcomeReviewDueState({
+      recommendation: recommendation("0000-02-28"),
+      quantitativeOutcomes: [],
+      semanticReviews: [],
+      asOf: new Date("2026-03-05T03:00:00Z"),
+    }),
+    /valid Gregorian ISO-8601 timestamp/,
+  );
+  console.log("outcome-review-due: year-zero PIT instant fails closed OK");
+}
+
+{
   const state = deriveOutcomeReviewDueState({
     recommendation: recommendation("2024-02-29"),
     quantitativeOutcomes: [],
