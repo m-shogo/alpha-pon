@@ -10,6 +10,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname } from "node:path";
+import { compareExplicitIso8601Instants } from "./iso-instant.js";
 import {
   parseSecurityMasterJsonl,
   validateSecurityMaster,
@@ -88,6 +89,34 @@ function cycleIssues<T extends { recordId: string; supersedesRecordId?: string }
   return issues;
 }
 
+function revisionRetrievalChronologyIssues<
+  T extends { recordId: string; retrievedAt: string; supersedesRecordId?: string }
+>(
+  records: T[],
+  prefix: "entity" | "relationship",
+): SecurityMasterIssue[] {
+  const issues: SecurityMasterIssue[] = [];
+  const byId = new Map(records.map((record) => [record.recordId, record]));
+  for (const record of records) {
+    if (!record.supersedesRecordId) continue;
+    const previous = byId.get(record.supersedesRecordId);
+    if (!previous) continue;
+    if (compareExplicitIso8601Instants(
+      record.retrievedAt,
+      previous.retrievedAt,
+      `${prefix} revision ${record.recordId}.retrievedAt`,
+      `${prefix} revision ${previous.recordId}.retrievedAt`,
+    ) <= 0) {
+      issues.push(issue(
+        `${prefix}_revision_retrieval_not_monotonic`,
+        record.recordId,
+        "retrievedAtは直前revisionより後である必要があります",
+      ));
+    }
+  }
+  return issues;
+}
+
 function rangesOverlap(
   leftFrom: string,
   leftTo: string | undefined,
@@ -161,6 +190,8 @@ export function validateSecurityMasterLifecycle(
   return sortIssues([
     ...cycleIssues(entities, "entity"),
     ...cycleIssues(relationships, "relationship"),
+    ...revisionRetrievalChronologyIssues(entities, "entity"),
+    ...revisionRetrievalChronologyIssues(relationships, "relationship"),
     ...validateIssuerUniqueness(relationships),
     ...validateOwnershipInverse(relationships),
   ]);
