@@ -426,7 +426,7 @@ export function validateRecommendationRecord(
   ) > 0) {
     issues.push(error("current_price_after_issue", target, "currentPriceはissuedAt時点で実行可能である必要があります"));
   }
-  const reviewEnd = `${record.outcomeReviewDate}T23:59:59+09:00`;
+  const reviewEnd = `${record.outcomeReviewDate}T23:59:59.999999999+09:00`;
   if (compareExplicitIso8601Instants(
     reviewEnd,
     record.issuedAt,
