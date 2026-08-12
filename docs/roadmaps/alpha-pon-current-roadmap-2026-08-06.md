@@ -1,7 +1,7 @@
 # Alpha Pon Current Roadmap — 2026-08-06
 
 Status: `ACTIVE_CANONICAL_ROADMAP`
-Updated: 2026-08-07 JST
+Updated: 2026-08-12 JST
 Canonical repository: `m-shogo/alpha-pon`
 Production trading use: `PROHIBITED_UNTIL_VALIDATED`
 
@@ -65,7 +65,7 @@ The core Foundation stack is merged:
 #52 Foundation Decision Integration
 ```
 
-PR #43 remains a legacy Draft reference and must not be merged. PR #52 is the canonical cross-stack Decision integration.
+PR #43 is a closed/unmerged legacy reference as of 2026-08-10 and must not be merged. PR #52 is the canonical cross-stack Decision integration.
 
 ### EDINET configured / reviewed chain on main
 

@@ -1,7 +1,7 @@
 # Handoff — Security Master v1
 
 Status: `SOFTWARE_GREEN_REAL_PILOT_PENDING`
-Updated: 2026-08-09 JST
+Updated: 2026-08-12 JST
 Canonical branch: `main`
 
 ## Purpose
@@ -115,24 +115,18 @@ Recommendation-facing listed-security resolution additionally requires:
 - exactly one verified listing relationship in v1;
 - a valid active listing.
 
-### Known concrete resolver gap
+### Resolver namespace hardening — resolved
 
-Record validation already requires:
+The previously documented low-level resolver gap is closed on `main` by commit `6d205931d6932f506d9e28e49f12718ea1b66ffd` (`fix: require Security Master resolver namespaces`).
 
-- `ticker` identifiers to have `market`;
-- `provider_code` identifiers to have `provider`.
+Current behavior is fail-closed and regression-covered:
 
-However the low-level identifier resolver currently accepts a query that omits those namespaces and will resolve when the remaining value happens to be unique. This does not match the canonical rule above.
+- ticker resolution rejects absent/blank `market`;
+- provider-code resolution rejects absent/blank `provider`;
+- exact `jpx_code` / `isin` resolution remains supported without inventing namespaces;
+- matching is still exact/normalized only; fuzzy lookup and automatic alias inference remain out of scope.
 
-The next safe Security Master code slice is therefore narrowly defined:
-
-- reject ticker resolution when `market` is absent/blank;
-- reject provider-code resolution when `provider` is absent/blank;
-- preserve existing exact `jpx_code` / `isin` behavior;
-- add focused fail-closed regression tests;
-- do not broaden this into fuzzy lookup or automatic alias inference.
-
-Do not create parallel/stacked branches for this gap. Build it from the latest `main` only after confirming no existing active PR already covers it.
+Do not treat resolver namespace enforcement as pending work or recreate an overlapping PR. New Security Master work should start from latest `main` and target a separately reproducible PIT/provenance/read-only defect.
 
 ## Official-source rule
 
@@ -175,7 +169,7 @@ Security Master hardening has repeatedly overlapped with generated Research OS c
 
 Historical stale/superseded Security Master branches/PRs are reference only. Do not revive them merely because the branch still exists remotely.
 
-PR #1 and PR #43 remain intentional DO NOT MERGE Drafts and are unrelated to this hardening chain.
+PR #1 and PR #43 are both closed/unmerged legacy references as of 2026-08-10. They remain DO NOT MERGE reference material only and are unrelated to this hardening chain.
 
 ## Activation gate
 
@@ -205,6 +199,7 @@ node --import tsx/esm tests/research/security-master-hardening.test.ts
 node --import tsx/esm tests/research/security-master-repository.test.ts
 node --import tsx/esm tests/research/security-master-snapshot-endpoint-integrity.test.ts
 node --import tsx/esm tests/research/security-master-repository-pit-revision.test.ts
+node --import tsx/esm tests/research/security-master-resolver-namespace.test.ts
 ```
 
 ## Protected boundaries
@@ -218,24 +213,3 @@ node --import tsx/esm tests/research/security-master-repository-pit-revision.tes
 - no live LINE send;
 - no Cloudflare/D1/billing changes;
 - no runner/workflow changes unless a measured workflow defect requires them.
-
-## Next material milestone
-
-After the narrow resolver namespace fix above, stop speculative Security Master hardening unless a new reproducible identity defect is found.
-
-Return to the real Foundation path:
-
-1. real local Sanrio preflight/parity;
-2. Security Master identity pinning;
-3. Bitemporal Evidence Store entity references using `entityId`, never raw ticker;
-4. EDINET/J-Quants/provider-code mapping through governed identity;
-5. real price / benchmark provenance and Corporate Action Clearance;
-6. Decision Firewall pins the actual Security Master/Foundation snapshot.
-
-The canonical local Sanrio entry point remains:
-
-```bash
-bash scripts/run-sanrio-real-pilot-preflight-local.sh
-```
-
-Run only the printed `nextCommand`, rerun preflight after each successful stage, and stop at `parity_complete_foundation_gate_pending`.
