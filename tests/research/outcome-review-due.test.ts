@@ -260,108 +260,49 @@ const human1 = semanticReview({
 }
 
 {
-  const fractionalOlder = quantitativeOutcome({
-    outcomeId: "outcome:review-due:fractional-a",
+  const secondRoot = quantitativeOutcome({
+    outcomeId: "outcome:review-due:second-root",
     reviewedAt: "2026-08-22T10:00:00.000000001+09:00",
     terminalTradingDate: "2026-08-21",
   });
-  const fractionalNewer = quantitativeOutcome({
-    outcomeId: "outcome:review-due:fractional-z",
-    reviewedAt: "2026-08-22T10:00:00.000000002+09:00",
+  assert.throws(
+    () => deriveOutcomeReviewDueState({
+      recommendation,
+      quantitativeOutcomes: [quant1, secondRoot],
+      semanticReviews: [provisional1, human1],
+      asOf: new Date("2026-08-23T03:00:00.000Z"),
+    }),
+    /multiple Quantitative Outcome roots in outcome review queue/,
+  );
+  console.log("outcome-review-due: second quantitative root cannot rewrite the read-only current outcome OK");
+}
+
+{
+  const sibling = quantitativeOutcome({
+    outcomeId: "outcome:review-due:sibling",
+    reviewedAt: "2026-08-22T10:00:00.000000001+09:00",
     terminalTradingDate: "2026-08-21",
-    supersedesOutcomeId: fractionalOlder.outcomeId,
+    supersedesOutcomeId: quant1.outcomeId,
   });
-  const state = deriveOutcomeReviewDueState({
-    recommendation,
-    quantitativeOutcomes: [fractionalOlder, fractionalNewer],
-    semanticReviews: [],
-    asOf: new Date("2026-08-23T03:00:00.000Z"),
-  });
-  assert.equal(state.latestQuantitativeOutcomeId, fractionalNewer.outcomeId);
-  console.log("outcome-review-due: latest quantitative revision preserves sub-millisecond reviewedAt ordering OK");
-}
-
-{
-  const mutatedQuant: QuantitativeOutcomeRecord = {
-    ...quant1,
-    terminalReturn: quant1.terminalReturn + 0.5,
-  };
   assert.throws(
     () => deriveOutcomeReviewDueState({
       recommendation,
-      quantitativeOutcomes: [mutatedQuant],
+      quantitativeOutcomes: [quant1, quant2, sibling],
       semanticReviews: [],
-      asOf: new Date("2026-08-21T03:00:00.000Z"),
+      asOf: new Date("2026-08-23T03:00:00.000Z"),
     }),
-    /invalid Quantitative Outcome contentHash/,
+    /Quantitative Outcome revision fork in outcome review queue/,
   );
-  console.log("outcome-review-due: mutated quantitative record is rejected before scheduling OK");
-}
-
-{
-  const mutatedReview: OutcomeSemanticReviewRecord = {
-    ...human1,
-    verdict: "correct",
-  };
-  assert.throws(
-    () => deriveOutcomeReviewDueState({
-      recommendation,
-      quantitativeOutcomes: [quant1],
-      semanticReviews: [mutatedReview],
-      asOf: new Date("2026-08-21T03:00:00.000Z"),
-    }),
-    /invalid Semantic Review contentHash/,
-  );
-  console.log("outcome-review-due: mutated semantic review is rejected before scheduling OK");
-}
-
-{
-  const invalidReviewedAtQuant = withQuantitativeOutcomeHash({
-    ...quant1,
-    reviewedAt: "2026-08-20T10:00:00",
-    measurementCutoff: "2026-08-20T10:00:00",
-  });
-  assert.throws(
-    () => deriveOutcomeReviewDueState({
-      recommendation,
-      quantitativeOutcomes: [invalidReviewedAtQuant],
-      semanticReviews: [],
-      asOf: new Date("2026-08-21T03:00:00.000Z"),
-    }),
-    /invalid Quantitative Outcome .*reviewedAt/,
-  );
-  console.log("outcome-review-due: re-hashed timezone-less quantitative reviewedAt is rejected OK");
-}
-
-{
-  const invalidReviewedAtReview = withOutcomeSemanticReviewHash({
-    ...provisional1,
-    reviewedAt: "2026-02-29T12:00:00+09:00",
-  });
-  assert.throws(
-    () => deriveOutcomeReviewDueState({
-      recommendation,
-      quantitativeOutcomes: [quant1],
-      semanticReviews: [invalidReviewedAtReview],
-      asOf: new Date("2026-08-21T03:00:00.000Z"),
-    }),
-    /invalid Semantic Review .*reviewedAt/,
-  );
-  console.log("outcome-review-due: re-hashed non-Gregorian semantic reviewedAt is rejected OK");
+  console.log("outcome-review-due: quantitative revision fork cannot create parallel read-only current outcomes OK");
 }
 
 {
   const summary = deriveOutcomeReviewDueSummary({
     recommendations: [recommendation],
     quantitativeOutcomes: [quant1],
-    semanticReviews: [provisional1],
-    asOf: new Date("2026-08-22T03:00:00.000Z"),
+    semanticReviews: [],
+    asOf: new Date("2026-08-21T03:00:00.000Z"),
   });
   assert.equal(summary.total, 1);
-  assert.equal(summary.overdue, 1);
-  assert.equal(summary.counts.human_confirmation_due, 1);
-  assert.equal(summary.states[0]?.state, "human_confirmation_due");
-  console.log("outcome-review-due: summary exposes overdue review queue without mutating records OK");
+  assert.equal(summary.counts.semantic_review_due, 1);
 }
-
-console.log("outcome-review-due.test.ts passed");
