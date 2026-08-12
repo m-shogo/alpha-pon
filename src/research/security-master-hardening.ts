@@ -117,6 +117,62 @@ function revisionRetrievalChronologyIssues<
   return issues;
 }
 
+function earliestEntityById(
+  records: SecurityMasterEntityRecord[],
+): Map<string, SecurityMasterEntityRecord> {
+  const selected = new Map<string, SecurityMasterEntityRecord>();
+  for (const record of records) {
+    const prior = selected.get(record.entityId);
+    const observedOrder = prior
+      ? compareExplicitIso8601Instants(record.observedAt, prior.observedAt)
+      : -1;
+    if (
+      !prior ||
+      observedOrder < 0 ||
+      (
+        observedOrder === 0 &&
+        compareExplicitIso8601Instants(record.retrievedAt, prior.retrievedAt) < 0
+      )
+    ) {
+      selected.set(record.entityId, record);
+    }
+  }
+  return selected;
+}
+
+function validateRelationshipEndpointChronology(
+  entities: SecurityMasterEntityRecord[],
+  relationships: SecurityMasterRelationshipRecord[],
+): SecurityMasterIssue[] {
+  const issues: SecurityMasterIssue[] = [];
+  const firstEntityById = earliestEntityById(entities);
+  for (const record of relationships) {
+    const target = `${record.relationshipId}:${record.recordId}`;
+    const endpoints = [
+      ["from", firstEntityById.get(record.fromEntityId)],
+      ["to", firstEntityById.get(record.toEntityId)],
+    ] as const;
+    for (const [side, endpoint] of endpoints) {
+      if (!endpoint) continue;
+      if (compareExplicitIso8601Instants(record.observedAt, endpoint.observedAt) < 0) {
+        issues.push(issue(
+          `relationship_observed_before_${side}_entity`,
+          target,
+          `relationship observedAtを${side} Entity観測前にできません`,
+        ));
+      }
+      if (compareExplicitIso8601Instants(record.retrievedAt, endpoint.retrievedAt) < 0) {
+        issues.push(issue(
+          `relationship_retrieved_before_${side}_entity`,
+          target,
+          `relationship retrievedAtを${side} Entity取得前にできません`,
+        ));
+      }
+    }
+  }
+  return issues;
+}
+
 function rangesOverlap(
   leftFrom: string,
   leftTo: string | undefined,
@@ -192,6 +248,7 @@ export function validateSecurityMasterLifecycle(
     ...cycleIssues(relationships, "relationship"),
     ...revisionRetrievalChronologyIssues(entities, "entity"),
     ...revisionRetrievalChronologyIssues(relationships, "relationship"),
+    ...validateRelationshipEndpointChronology(entities, relationships),
     ...validateIssuerUniqueness(relationships),
     ...validateOwnershipInverse(relationships),
   ]);
