@@ -61,6 +61,7 @@ import "./edinet-sanrio-real-pilot-integrity.test.js";
 import "./edinet-sanrio-real-pilot-readiness-advisory.test.js";
 import "./market-event-projection-instant-ordering.test.js";
 import "./market-event-web-ordering.test.js";
+import "./ops-dashboard-input-time.test.js";
 import "./research/security-master.test.js";
 import "./research/security-master-identifier-canonicality.test.js";
 import "./research/security-master-resolver-namespace.test.js";
