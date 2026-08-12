@@ -108,7 +108,7 @@ function context(input: {
     proposalsById: new Map([[proposal.proposalId, proposal]]),
     validatedProposalHashes: new Set([proposal.contentHash]),
     evidenceByRef: new Map(
-      [...evidenceObservedAt].map(([ref, observedAt]) => [ref, { observedAt }]),
+      [...evidenceObservedAt].map(([ref, observedAt]) => [ref, { observedAt, retrievedAt: observedAt }]),
     ),
     validatedEvidenceRefs: new Set(input.validatedEvidence ?? evidenceRefs),
   };
