@@ -46,7 +46,7 @@ const tradedQuote: DailyQuote = {
 {
   assert.equal(jquantsTradingDayCloseJst("2024-11-01"), "2024-11-01T15:00:00+09:00");
   assert.equal(jquantsTradingDayCloseJst("2024-11-05"), "2024-11-05T15:30:00+09:00");
-  assert.equal(jquantsFreeObservedAt("2026-05-14"), "2026-08-06T23:59:59+09:00");
+  assert.equal(jquantsFreeObservedAt("2026-05-14"), "2026-08-06T23:59:59.999999999+09:00");
   console.log("jquants-free-provider: TSE close and 12-week PIT boundary OK");
 }
 
@@ -74,7 +74,7 @@ const tradedQuote: DailyQuote = {
   assert.equal(record.code, "8136");
   assert.equal(record.tradingDate, "2026-05-14");
   assert.equal(record.dataAsOf, "2026-05-14T15:30:00+09:00");
-  assert.equal(record.observedAt, "2026-08-06T23:59:59+09:00");
+  assert.equal(record.observedAt, "2026-08-06T23:59:59.999999999+09:00");
   assert.equal(record.status, "traded");
   assert.deepEqual(record.ohlcv, {
     open: 7200,
