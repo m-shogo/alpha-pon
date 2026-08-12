@@ -45,6 +45,7 @@ function evidence(overrides: Partial<EvidenceRecordInput>): EvidenceRecord {
     summary: evidenceId,
     retrievalRunId: "synthetic-run",
     parserVersion: "synthetic-v1",
+    ...(overrides.supersedesRecordId ? { supersedesRecordId: overrides.supersedesRecordId } : {}),
   });
 }
 
@@ -113,6 +114,42 @@ function relation(overrides: Partial<EvidenceRelationRecordInput>): EvidenceRela
     KNOWN_ENTITIES,
   );
   assert.ok(issues.some((item) => item.code === "relation_observed_before_target_evidence"));
+}
+
+{
+  const target = evidence({
+    evidenceId: "evidence:alpha:target",
+    sourceContentHash: "f".repeat(64),
+  });
+  const source = evidence({
+    evidenceId: "evidence:alpha:source",
+    sourceContentHash: "1".repeat(64),
+    observedAt: "2026-08-06T10:00:01+09:00",
+    retrievedAt: "2026-08-06T10:00:01.5+09:00",
+    firstExecutableAt: "2026-08-06T10:00:01.5+09:00",
+  });
+  const sourceRevision = evidence({
+    evidenceId: source.evidenceId,
+    recordId: "evidence:alpha:source:record:002",
+    sourceContentHash: "2".repeat(64),
+    observedAt: "2026-08-07T10:00:00+09:00",
+    retrievedAt: "2026-08-07T10:00:01+09:00",
+    firstExecutableAt: "2026-08-07T10:00:01+09:00",
+    supersedesRecordId: source.recordId,
+  });
+  const corrects = relation({
+    relationType: "corrects",
+    observedAt: "2026-08-06T10:00:02+09:00",
+    supersessionStrength: "binding",
+  });
+
+  const issues = validateBitemporalEvidenceStore(
+    [target, source, sourceRevision],
+    [corrects],
+    schemas,
+    KNOWN_ENTITIES,
+  );
+  assert.ok(!issues.some((item) => item.code === "relation_observed_before_source_evidence"));
 }
 
 console.log("evidence-relation-observed-chronology: all tests passed");
