@@ -1,3 +1,5 @@
+import { parseExplicitIso8601Instant } from '../../../src/research/iso-instant.js'
+
 export type WebMarketEventPriority = 'S0' | 'S1' | 'S2' | 'S3'
 export type WebMarketEventDecision = 'BUY_WATCH' | 'WAIT' | 'BLOCK' | 'ABSTAIN' | 'INFO'
 export type WebMarketEventStatus =
@@ -109,8 +111,7 @@ function sortAtNanoseconds(value: string): bigint {
   const instant = sortAtInstant(value)
   const match = WEB_MARKET_EVENT_INSTANT.exec(instant)
   if (!match) throw new Error(`invalid market event sortAt: ${value}`)
-  const milliseconds = Date.parse(instant)
-  if (!Number.isFinite(milliseconds)) throw new Error(`invalid market event sortAt: ${value}`)
+  const milliseconds = parseExplicitIso8601Instant(instant, 'market event sortAt')
   const fractional = match[1] ?? ''
   const subMillisecond = BigInt((fractional + '000000000').slice(3, 9))
   return BigInt(milliseconds) * BigInt(1_000_000) + subMillisecond
@@ -140,14 +141,13 @@ export function webMarketEventJapanDate(value: string): string {
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
   const instant = sortAtInstant(value)
   if (!WEB_MARKET_EVENT_INSTANT.test(instant)) throw new Error(`invalid market event sortAt: ${value}`)
-  const date = new Date(instant)
-  if (!Number.isFinite(date.getTime())) throw new Error(`invalid market event sortAt: ${value}`)
+  const milliseconds = parseExplicitIso8601Instant(instant, 'market event sortAt')
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Tokyo',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-  }).format(date)
+  }).format(new Date(milliseconds))
 }
 
 function array<T>(value: unknown): T[] {
