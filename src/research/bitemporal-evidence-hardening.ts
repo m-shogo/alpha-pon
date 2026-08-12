@@ -1,5 +1,7 @@
+import { existsSync, readFileSync } from "node:fs";
 import {
   appendEvidenceStoreRecords,
+  parseEvidenceJsonl,
   validateBitemporalEvidenceStore,
   type EvidenceRecord,
   type EvidenceRelationRecord,
@@ -212,6 +214,11 @@ export function validateBitemporalEvidenceStoreGoverned(
   ]);
 }
 
+function readExistingJsonl<T>(path: string): T[] {
+  if (!existsSync(path)) return [];
+  return parseEvidenceJsonl<T>(readFileSync(path, "utf-8"), path);
+}
+
 export function appendEvidenceStoreRecordsGoverned(
   paths: { evidence: string; relations: string },
   incoming: { evidence: EvidenceRecord[]; relations: EvidenceRelationRecord[] },
@@ -219,9 +226,11 @@ export function appendEvidenceStoreRecordsGoverned(
   schemas: EvidenceStoreSchemas,
   knownEntityIds?: ReadonlySet<string>,
 ): void {
+  const existingEvidence = readExistingJsonl<EvidenceRecord>(paths.evidence);
+  const existingRelations = readExistingJsonl<EvidenceRelationRecord>(paths.relations);
   const errors = validateBitemporalEvidenceStoreGoverned(
-    incoming.evidence,
-    incoming.relations,
+    [...existingEvidence, ...incoming.evidence],
+    [...existingRelations, ...incoming.relations],
     schemas,
     knownEntityIds,
   ).filter((item) => item.severity === "error");
