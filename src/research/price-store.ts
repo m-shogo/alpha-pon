@@ -171,7 +171,8 @@ export type PriceStoreIssueCode =
   | "orphan_supersedes_hash"
   | "missing_supersedes_hash"
   | "invalid_supersedes_hash"
-  | "revision_time_not_monotonic";
+  | "revision_time_not_monotonic"
+  | "revision_executable_time_regressed";
 
 export interface PriceStoreIssue {
   severity: "error" | "warning";
@@ -511,6 +512,20 @@ export function validatePriceRecords(
           code: "revision_time_not_monotonic",
           target,
           message: `revision observedAtは単調増加が必要です: ${previous.observedAt} -> ${current.observedAt}`,
+        });
+      }
+      if (
+        compareExplicitIso8601Instants(
+          current.firstExecutableAt,
+          previous.firstExecutableAt,
+          "priceRevision.current.firstExecutableAt",
+          "priceRevision.previous.firstExecutableAt",
+        ) < 0
+      ) {
+        pushIssue(issues, {
+          code: "revision_executable_time_regressed",
+          target,
+          message: `revision firstExecutableAtを前倒しできません: ${previous.firstExecutableAt} -> ${current.firstExecutableAt}`,
         });
       }
       if (!current.supersedesHash) {
