@@ -86,6 +86,7 @@ import "./research/corporate-action-clearance.test.js";
 import "./research/outcome-semantic-review.test.js";
 import "./research/outcome-semantic-review-evidence-instant.test.js";
 import "./research/outcome-review-due.test.js";
+import "./research/outcome-review-due-future-poisoning.test.js";
 import "./research/outcome-review-due-recommendation-asof.test.js";
 import "./research/outcome-review-due-recommendation-revision.test.js";
 import "./research/outcome-review-due-semantic-chronology.test.js";
