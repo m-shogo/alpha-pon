@@ -304,6 +304,14 @@ function stateFor(input: {
   if (computeRecommendationHash(input.recommendation) !== input.recommendation.contentHash) {
     throw new Error(`invalid Recommendation contentHash: ${input.recommendation.recommendationId}`);
   }
+  if (compareExplicitIso8601Instants(
+    input.recommendation.issuedAt,
+    input.asOfInstant,
+    `Recommendation ${input.recommendation.recommendationId}.issuedAt`,
+    "outcome review due asOf",
+  ) > 0) {
+    throw new Error(`Recommendation issuedAt is after outcome review due asOf: ${input.recommendation.recommendationId}`);
+  }
 
   const dueDate = input.recommendation.outcomeReviewDate;
   calendarDateUtcMs(dueDate, "outcomeReviewDate");
