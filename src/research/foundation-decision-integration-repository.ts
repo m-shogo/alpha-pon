@@ -285,6 +285,22 @@ export function validateFoundationDecisionRepository(
     if (record.status === "eligible" && expected.length > 0) {
       issues.push(issue("eligible_decision_has_blockers", record.decisionId, expected.join(",")));
     }
+    const replayManifest = context.replayManifestsById.get(record.replayId);
+    if (
+      replayManifest &&
+      compareExplicitIso8601Instants(
+        replayManifest.createdAt,
+        record.issuedAt,
+        `decision ${record.decisionId}.replayManifest.createdAt`,
+        `decision ${record.decisionId}.issuedAt`,
+      ) > 0
+    ) {
+      issues.push(issue(
+        "decision_replay_manifest_after_issue",
+        record.decisionId,
+        `${replayManifest.createdAt} > ${record.issuedAt}`,
+      ));
+    }
     const benchmarkPins = [
       ["issuerBenchmark", record.priceSnapshots.issuerBenchmark],
       ["topixBenchmark", record.priceSnapshots.topixBenchmark],

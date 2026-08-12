@@ -8,6 +8,7 @@ import {
   type FoundationDecisionIntegrationRecord,
 } from "../../src/research/foundation-decision-integration.js";
 import { validateFoundationDecisionRepository } from "../../src/research/foundation-decision-integration-repository.js";
+import { withReplayManifestHash } from "../../src/research/stock-pro-council-replay.js";
 
 const hash = (character: string): string => character.repeat(64);
 const completeness = {
@@ -133,8 +134,54 @@ try {
     ),
     "Foundation Decision must fail closed when a pinned benchmark becomes executable even 1ns after issuedAt",
   );
+
+  const replayManifest = withReplayManifestHash({
+    schemaVersion: 1,
+    replayId: input.replayId,
+    councilRunId: input.councilRunId,
+    caseType: "general",
+    informationCutoff: input.informationCutoff,
+    createdAt: "2026-08-06T06:05:00.000000002Z",
+    evidencePackageHash: input.evidencePackageHash,
+    priceSnapshotHash: input.priceSnapshots.issuerPrice.hash,
+    codeVersion: "synthetic-code",
+    ruleVersion: "synthetic-rule",
+    personaCatalogVersion: "synthetic-persona-catalog",
+    requiredPersonaIds: [],
+    verdictHashes: [],
+    dissentHashes: [],
+    vetoHashes: [],
+    calibrationHashes: input.calibrationHashes,
+    automaticTradingAuthorized: false,
+  });
+  writeFileSync(
+    join(replayManifestDir, `${replayManifest.replayId}.json`),
+    `${JSON.stringify(replayManifest)}\n`,
+    "utf-8",
+  );
+  const replayDecision = withFoundationDecisionHash({
+    ...input,
+    decisionId: "decision-replay-created-after-issue",
+    firstExecutableAt: input.issuedAt,
+    replayManifestHash: replayManifest.contentHash,
+  });
+  writeFileSync(decisionsPath, `${JSON.stringify(replayDecision)}\n`, "utf-8");
+  writeFileSync(priceSnapshotsPath, "", "utf-8");
+  const replayResult = validateFoundationDecisionRepository({
+    decisionsPath,
+    priceSnapshotsPath,
+    replayManifestDir,
+    includeDependencyIssues: false,
+  });
+  assert.ok(
+    replayResult.issues.some((item) =>
+      item.code === "decision_replay_manifest_after_issue"
+      && item.target === replayDecision.decisionId,
+    ),
+    "Foundation Decision must fail closed when its pinned replay manifest is created even 1ns after issuedAt",
+  );
 } finally {
   rmSync(root, { recursive: true, force: true });
 }
 
-console.log("foundation-decision-executable-by-issue: future executable price and benchmarks are blocked");
+console.log("foundation-decision-executable-by-issue: future executable prices, benchmarks, and replay manifests are blocked");
