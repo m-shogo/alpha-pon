@@ -89,6 +89,7 @@ export type RecommendationRecord = {
 export type RecommendationEvidenceContext = {
   tier: RecommendationEvidenceTier;
   observedAt: string;
+  retrievedAt: string;
 };
 
 export type RecommendationValidationContext = {
@@ -347,17 +348,33 @@ function evidenceContextIssues(
     try {
       if (compareExplicitIso8601Instants(
         source.observedAt,
+        source.retrievedAt,
+        `Evidence ${evidence.ref}.observedAt`,
+        `Evidence ${evidence.ref}.retrievedAt`,
+      ) > 0) {
+        issues.push(error("evidence_retrieved_before_observed", target, `Evidence retrievedAtがobservedAtより前です: ${evidence.ref}`));
+      }
+      if (compareExplicitIso8601Instants(
+        source.observedAt,
         record.informationCutoff,
         `Evidence ${evidence.ref}.observedAt`,
         "informationCutoff",
       ) > 0) {
         issues.push(error("future_evidence", target, `informationCutoff後のevidenceです: ${evidence.ref}`));
       }
+      if (compareExplicitIso8601Instants(
+        source.retrievedAt,
+        record.informationCutoff,
+        `Evidence ${evidence.ref}.retrievedAt`,
+        "informationCutoff",
+      ) > 0) {
+        issues.push(error("evidence_not_yet_retrieved", target, `informationCutoff時点で未取得のevidenceです: ${evidence.ref}`));
+      }
     } catch {
       issues.push(error(
-        "invalid_recommendation_evidence_observed_at",
+        "invalid_recommendation_evidence_instant",
         target,
-        `Evidence observedAtが不正です: ${evidence.ref}`,
+        `Evidence observedAt/retrievedAtが不正です: ${evidence.ref}`,
       ));
     }
   }
