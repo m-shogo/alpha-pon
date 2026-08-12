@@ -285,6 +285,29 @@ export function validateFoundationDecisionRepository(
     if (record.status === "eligible" && expected.length > 0) {
       issues.push(issue("eligible_decision_has_blockers", record.decisionId, expected.join(",")));
     }
+    const benchmarkPins = [
+      ["issuerBenchmark", record.priceSnapshots.issuerBenchmark],
+      ["topixBenchmark", record.priceSnapshots.topixBenchmark],
+      ["sectorBenchmark", record.priceSnapshots.sectorBenchmark],
+    ] as const;
+    for (const [label, pin] of benchmarkPins) {
+      const snapshot = priceById.get(pin.id);
+      if (!snapshot) continue;
+      if (
+        compareExplicitIso8601Instants(
+          snapshot.firstExecutableAt,
+          record.issuedAt,
+          `decision ${record.decisionId}.${label}.firstExecutableAt`,
+          `decision ${record.decisionId}.issuedAt`,
+        ) > 0
+      ) {
+        issues.push(issue(
+          "decision_benchmark_not_executable_at_issue",
+          `${record.decisionId}:${label}`,
+          `${snapshot.firstExecutableAt} > ${record.issuedAt}`,
+        ));
+      }
+    }
   }
   issues.push(...validateDecisionLedger(decisionRead.records));
   const heads = activeDecisionHeads(decisionRead.records);
