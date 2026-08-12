@@ -213,3 +213,24 @@ node --import tsx/esm tests/research/security-master-resolver-namespace.test.ts
 - no live LINE send;
 - no Cloudflare/D1/billing changes;
 - no runner/workflow changes unless a measured workflow defect requires them.
+
+## Next material milestone
+
+With resolver namespace hardening already merged, stop speculative Security Master hardening unless a new reproducible identity defect is found.
+
+Return to the real Foundation path:
+
+1. real local Sanrio preflight/parity;
+2. Security Master identity pinning;
+3. Bitemporal Evidence Store entity references using `entityId`, never raw ticker;
+4. EDINET/J-Quants/provider-code mapping through governed identity;
+5. real price / benchmark provenance and Corporate Action Clearance;
+6. Decision Firewall pins the actual Security Master/Foundation snapshot.
+
+The canonical local Sanrio entry point remains:
+
+```bash
+bash scripts/run-sanrio-real-pilot-preflight-local.sh
+```
+
+Run only the printed `nextCommand`, rerun preflight after each successful stage, and stop at `parity_complete_foundation_gate_pending`.
