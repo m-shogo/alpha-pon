@@ -9,6 +9,7 @@ import {
   type ClaimGraphSchemas,
 } from "../../src/research/claim-contradiction-graph.js";
 import { validateClaimGraphGovernance } from "../../src/research/claim-contradiction-graph-hardening.js";
+import { validateClaimGraphEndpointChronology } from "../../src/research/claim-contradiction-graph-integrity.js";
 import { loadCouncilSchema } from "../../src/research/stock-pro-council-v2-validation.js";
 
 const schemas: ClaimGraphSchemas = {
@@ -46,7 +47,7 @@ const evidence = withEvidenceRecordHash({
 const snapshot = buildEvidenceSnapshot(
   [evidence],
   [],
-  "2026-08-06T10:00:00+09:00",
+  "2026-08-08T10:00:00+09:00",
   "system_replay",
   "knowledge",
 );
@@ -110,3 +111,73 @@ const issues = validateClaimGraphGovernance(
 );
 assert.ok(issues.some((item) => item.code === "claim_edge_before_source_claim"));
 console.log("claim-contradiction-graph-hardening-subms: 1ns pre-source disposition edge blocked OK");
+
+const chronologySource = withClaimRecordHash({
+  schemaVersion: 1,
+  recordId: "claim:claim-edge-revision:source:record:001",
+  claimId: "claim:claim-edge-revision:source",
+  entityIds: [entityId],
+  claimClass: "fact",
+  statement: "A later claim corrects the target claim.",
+  status: "active",
+  informationCutoff: "2026-08-05T15:03:30+09:00",
+  effectiveFrom: "2026-08-05T15:03:30+09:00",
+  observedAt: "2026-08-05T15:04:00+09:00",
+  retrievedAt: "2026-08-05T15:04:30+09:00",
+  falsificationConditions: [],
+  unknownRefs: [],
+  modelVersion: "claim-model-v1",
+  ruleVersion: "claim-graph-v1",
+});
+const chronologySourceRevision = withClaimRecordHash({
+  schemaVersion: 1,
+  recordId: "claim:claim-edge-revision:source:record:002",
+  claimId: chronologySource.claimId,
+  entityIds: [entityId],
+  claimClass: "fact",
+  statement: "The correcting claim was reviewed again without changing identity.",
+  status: "active",
+  informationCutoff: "2026-08-06T15:00:00+09:00",
+  effectiveFrom: "2026-08-05T15:03:30+09:00",
+  observedAt: "2026-08-06T15:00:00+09:00",
+  retrievedAt: "2026-08-06T15:00:01+09:00",
+  falsificationConditions: [],
+  unknownRefs: [],
+  modelVersion: "claim-model-v1",
+  ruleVersion: "claim-graph-v1",
+  supersedesRecordId: chronologySource.recordId,
+});
+const chronologyEdge = withClaimGraphEdgeHash({
+  schemaVersion: 1,
+  recordId: "claim-edge:claim-edge-revision:record:001",
+  edgeId: "claim-edge:claim-edge-revision:corrects",
+  fromKind: "claim",
+  fromId: chronologySource.claimId,
+  toKind: "claim",
+  toId: targetClaim.claimId,
+  relationType: "corrects",
+  strength: "material",
+  effectiveFrom: "2026-08-05T15:05:00+09:00",
+  observedAt: "2026-08-05T15:05:00+09:00",
+  retrievedAt: "2026-08-05T15:05:01+09:00",
+  sourceEvidenceIds: [evidenceId],
+});
+const claimsWithRevision = [targetClaim, chronologySource, chronologySourceRevision];
+
+const revisionGovernanceIssues = validateClaimGraphGovernance(
+  claimsWithRevision,
+  [chronologyEdge],
+  schemas,
+  snapshot,
+  new Set([entityId]),
+);
+assert.ok(!revisionGovernanceIssues.some((item) => item.code === "claim_edge_before_source_claim"));
+
+const revisionIntegrityIssues = validateClaimGraphEndpointChronology(
+  claimsWithRevision,
+  [chronologyEdge],
+  snapshot,
+);
+assert.ok(!revisionIntegrityIssues.some((item) => item.code === "claim_edge_observed_before_claim_endpoint"));
+assert.ok(!revisionIntegrityIssues.some((item) => item.code === "claim_edge_retrieved_before_claim_endpoint"));
+console.log("claim-contradiction-graph-hardening-subms: later claim revision preserves historical edge chronology OK");

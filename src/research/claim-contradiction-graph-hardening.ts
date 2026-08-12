@@ -82,6 +82,27 @@ function directEvidenceById(snapshot: EvidenceSnapshot): Map<string, EvidenceRec
   return new Map(snapshot.evidence.map((record) => [record.evidenceId, record]));
 }
 
+function earliestClaimById(claims: ClaimRecord[]): Map<string, ClaimRecord> {
+  const selected = new Map<string, ClaimRecord>();
+  for (const record of claims) {
+    const prior = selected.get(record.claimId);
+    const observedOrder = prior
+      ? compareExplicitIso8601Instants(record.observedAt, prior.observedAt)
+      : -1;
+    if (
+      !prior ||
+      observedOrder < 0 ||
+      (
+        observedOrder === 0 &&
+        compareExplicitIso8601Instants(record.retrievedAt, prior.retrievedAt) < 0
+      )
+    ) {
+      selected.set(record.claimId, record);
+    }
+  }
+  return selected;
+}
+
 export function computeEvidenceSnapshotHash(snapshot: EvidenceSnapshot): string {
   return hashValue({
     asOf: snapshot.asOf,
@@ -107,7 +128,7 @@ export function validateClaimGraphGovernance(
     knownEntityIds,
   );
   const evidenceById = directEvidenceById(evidenceSnapshot);
-  const claimById = new Map(claims.map((record) => [record.claimId, record]));
+  const claimById = earliestClaimById(claims);
 
   for (const edge of edges) {
     const target = `claim-edge:${edge.edgeId}:${edge.recordId}`;
