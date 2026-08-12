@@ -8,6 +8,7 @@ import {
   type EvidenceStoreSchemas,
   type EvidenceTier,
 } from "./bitemporal-evidence-store.js";
+import { compareExplicitIso8601Instants } from "./iso-instant.js";
 
 function issue(
   code: string,
@@ -111,6 +112,20 @@ function validateEvidenceLifecycle(records: EvidenceRecord[]): EvidenceStoreIssu
         "evidence_revision_event_time_changed",
         record.recordId,
         "同一Evidence revisionでevent timeを変更できません。別Evidenceとcorrection relationを使用してください",
+      ));
+    }
+    if (
+      compareExplicitIso8601Instants(
+        record.firstExecutableAt,
+        previous.firstExecutableAt,
+        `Evidence ${record.recordId}.firstExecutableAt`,
+        `Evidence ${previous.recordId}.firstExecutableAt`,
+      ) < 0
+    ) {
+      issues.push(issue(
+        "evidence_revision_executable_time_regressed",
+        record.recordId,
+        "同一Evidence revisionでfirstExecutableAtを前倒しできません",
       ));
     }
   }
