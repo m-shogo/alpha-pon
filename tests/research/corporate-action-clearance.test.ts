@@ -20,11 +20,31 @@ const schema = JSON.parse(
 function context(): CorporateActionClearanceContext {
   return {
     evidenceByRef: new Map([
-      ["official:exchange:corporate-actions:001", { tier: "A", observedAt: "2026-08-14T09:00:00+09:00" }],
-      ["official:issuer:corporate-actions:001", { tier: "B", observedAt: "2026-08-14T09:05:00+09:00" }],
-      ["official:future:001", { tier: "A", observedAt: "2026-08-14T11:00:00+09:00" }],
-      ["official:timezone-less:001", { tier: "A", observedAt: "2026-08-14T09:00:00" }],
-      ["official:invalid-date:001", { tier: "A", observedAt: "2026-02-29T09:00:00+09:00" }],
+      ["official:exchange:corporate-actions:001", {
+        tier: "A",
+        observedAt: "2026-08-14T09:00:00+09:00",
+        retrievedAt: "2026-08-14T09:01:00+09:00",
+      }],
+      ["official:issuer:corporate-actions:001", {
+        tier: "B",
+        observedAt: "2026-08-14T09:05:00+09:00",
+        retrievedAt: "2026-08-14T09:06:00+09:00",
+      }],
+      ["official:future:001", {
+        tier: "A",
+        observedAt: "2026-08-14T11:00:00+09:00",
+        retrievedAt: "2026-08-14T11:01:00+09:00",
+      }],
+      ["official:timezone-less:001", {
+        tier: "A",
+        observedAt: "2026-08-14T09:00:00",
+        retrievedAt: "2026-08-14T09:01:00+09:00",
+      }],
+      ["official:invalid-date:001", {
+        tier: "A",
+        observedAt: "2026-02-29T09:00:00+09:00",
+        retrievedAt: "2026-03-01T09:01:00+09:00",
+      }],
     ]),
   };
 }
@@ -81,7 +101,11 @@ function codes(issues: ReturnType<typeof validateCorporateActionClearanceRecord>
   const fractionalContext: CorporateActionClearanceContext = {
     evidenceByRef: new Map([
       ...context().evidenceByRef,
-      [ref, { tier: "A", observedAt: "2026-08-14T10:00:00.000000002+09:00" }],
+      [ref, {
+        tier: "A",
+        observedAt: "2026-08-14T10:00:00.000000002+09:00",
+        retrievedAt: "2026-08-14T10:00:00.000000003+09:00",
+      }],
     ]),
   };
   const issues = validateCorporateActionClearanceRecord(
@@ -91,6 +115,31 @@ function codes(issues: ReturnType<typeof validateCorporateActionClearanceRecord>
   );
   assert.ok(codes(issues).includes("future_evidence"));
   console.log("corporate-action-clearance: 1ns post-assessment Evidence is rejected OK");
+}
+
+{
+  const ref = "official:fractional-late-retrieval:001";
+  const input = baseInput();
+  input.assessedAt = "2026-08-14T10:00:00.000000001+09:00";
+  input.sourceEvidence = [{ tier: "A", ref }];
+  const lateRetrievalContext: CorporateActionClearanceContext = {
+    evidenceByRef: new Map([
+      ...context().evidenceByRef,
+      [ref, {
+        tier: "A",
+        observedAt: "2026-08-14T09:59:59.999999999+09:00",
+        retrievedAt: "2026-08-14T10:00:00.000000002+09:00",
+      }],
+    ]),
+  };
+  const issues = validateCorporateActionClearanceRecord(
+    withCorporateActionClearanceHash(input),
+    schema,
+    lateRetrievalContext,
+  );
+  assert.ok(!codes(issues).includes("future_evidence"));
+  assert.ok(codes(issues).includes("future_retrieved_evidence"));
+  console.log("corporate-action-clearance: 1ns post-assessment retrieval is rejected OK");
 }
 
 {
