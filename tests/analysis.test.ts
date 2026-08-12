@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { addDaysJst, daysSinceJst } from "../src/date.js";
 import { listingEventDaysBetween, parseListingEventDate } from "../src/listing-event-date.js";
+import { staleHypothesisAgeDays } from "../src/stale-hypothesis-date.js";
 import { buildMarketContext } from "../src/analysis/market-context.js";
 import { buildFinancialQuality } from "../src/analysis/financial-quality.js";
 import { classifyWorldEvent, type ClassifiedWorldEvent } from "../src/analysis/world-event-map.js";
@@ -81,6 +82,13 @@ function testListingEventDateRejectsInvalidGregorianDates() {
   assert.equal(parseListingEventDate("2026-02-29"), null);
   assert.equal(listingEventDaysBetween("2026-02-28", "2026-02-30"), null);
   assert.equal(listingEventDaysBetween("2024-02-29", "2024-03-01"), 1);
+}
+
+function testStaleHypothesisReviewDateRejectsInvalidGregorianDates() {
+  assert.equal(staleHypothesisAgeDays("2026-02-30"), null);
+  assert.equal(staleHypothesisAgeDays("2026-02-29"), null);
+  assert.equal(staleHypothesisAgeDays(undefined), null);
+  assert.notEqual(staleHypothesisAgeDays("2024-02-29"), null);
 }
 
 function testWorldEventReflectionReliabilityGate() {
@@ -172,6 +180,7 @@ function main() {
   testFinancialQuality();
   testJstDateArithmeticRejectsInvalidGregorianDates();
   testListingEventDateRejectsInvalidGregorianDates();
+  testStaleHypothesisReviewDateRejectsInvalidGregorianDates();
   testWorldEventReflectionReliabilityGate();
   testWorldEventReflectionRejectsUnknownSources();
   testWorldEventClustersSuppressSocialOnlyRumors();
