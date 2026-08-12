@@ -169,7 +169,7 @@ Security Master hardening has repeatedly overlapped with generated Research OS c
 
 Historical stale/superseded Security Master branches/PRs are reference only. Do not revive them merely because the branch still exists remotely.
 
-PR #1 and PR #43 remain intentional DO NOT MERGE Drafts and are unrelated to this hardening chain.
+PR #1 and PR #43 are both closed/unmerged legacy references as of 2026-08-10. They remain DO NOT MERGE reference material only and are unrelated to this hardening chain.
 
 ## Activation gate
 
