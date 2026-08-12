@@ -11,14 +11,16 @@ function recommendation(input: {
   informationCutoff: string;
   outcomeReviewDate: string;
   supersedesId?: string;
+  code?: string;
+  companyName?: string;
 }): RecommendationRecord {
   return withRecommendationHash({
     schemaVersion: 1,
     recommendationId: input.recommendationId,
     issuedAt: input.issuedAt,
     informationCutoff: input.informationCutoff,
-    code: "8136",
-    companyName: "株式会社サンリオ",
+    code: input.code ?? "8136",
+    companyName: input.companyName ?? "株式会社サンリオ",
     currentPrice: 1000,
     currentPriceRecordHash: "a".repeat(64),
     currentPriceFirstExecutableAt: input.informationCutoff,
@@ -103,4 +105,46 @@ const revision = recommendation({
   assert.equal(summary.states[0]?.recommendationId, root.recommendationId);
   assert.equal(summary.states[0]?.dueDate, root.outcomeReviewDate);
   console.log("outcome-review-due: future recommendation revision cannot rewrite an earlier PIT review queue OK");
+}
+
+{
+  const wrongIdentity = recommendation({
+    recommendationId: "rec:review-due:wrong-identity",
+    issuedAt: "2026-08-08T09:10:00.000000001+09:00",
+    informationCutoff: "2026-08-08T09:00:00+09:00",
+    outcomeReviewDate: "2026-08-21",
+    supersedesId: root.recommendationId,
+    code: "9999",
+    companyName: "Synthetic Other Issuer",
+  });
+  assert.throws(
+    () => deriveOutcomeReviewDueSummary({
+      recommendations: [root, wrongIdentity],
+      quantitativeOutcomes: [],
+      semanticReviews: [],
+      asOf: new Date("2026-08-22T03:00:00.000Z"),
+    }),
+    /Recommendation revision identity mismatch/,
+  );
+  console.log("outcome-review-due: cross-security revision cannot suppress the valid review queue root OK");
+}
+
+{
+  const siblingRevision = recommendation({
+    recommendationId: "rec:review-due:sibling-revision",
+    issuedAt: "2026-08-08T09:10:00.000000001+09:00",
+    informationCutoff: "2026-08-08T09:00:00+09:00",
+    outcomeReviewDate: "2026-08-22",
+    supersedesId: root.recommendationId,
+  });
+  assert.throws(
+    () => deriveOutcomeReviewDueSummary({
+      recommendations: [root, revision, siblingRevision],
+      quantitativeOutcomes: [],
+      semanticReviews: [],
+      asOf: new Date("2026-08-23T03:00:00.000Z"),
+    }),
+    /Recommendation revision fork in outcome review queue/,
+  );
+  console.log("outcome-review-due: revision fork cannot create two terminal review queue branches OK");
 }
