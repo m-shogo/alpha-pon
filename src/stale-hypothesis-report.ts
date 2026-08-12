@@ -2,19 +2,13 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
+import { staleHypothesisAgeDays } from "./stale-hypothesis-date.js";
 
 type Company = { code: string; name: string; status?: string; lastReviewedAt?: string };
 type Config = { categories: Record<string, { label: string; companies: Company[] }> };
 type NonMoveHistory = { code?: string; nonMoveReasons?: string[]; outcome?: string };
 
 type NonMoveStats = { count: number; reasons: string[]; topReason: string };
-
-function ageDays(dateText?: string): number | null {
-  if (!dateText) return null;
-  const time = new Date(`${dateText}T00:00:00+09:00`).getTime();
-  if (!Number.isFinite(time)) return null;
-  return Math.floor((Date.now() - time) / 86400000);
-}
 
 function readJsonl<T>(path: string): T[] {
   if (!existsSync(path)) return [];
@@ -54,7 +48,7 @@ function nonMoveStatsByCode(): Map<string, NonMoveStats> {
 }
 
 function actionFor(company: Company, stat?: NonMoveStats): string {
-  const age = ageDays(company.lastReviewedAt);
+  const age = staleHypothesisAgeDays(company.lastReviewedAt);
   if (company.status === "retired") return "retired";
   if (company.status === "stale") return "stale";
   if ((stat?.count ?? 0) >= 3) return "retire_or_rewrite_repeated_miss";
@@ -75,7 +69,7 @@ function main() {
     for (const company of category.companies ?? []) {
       const stat = stats.get(company.code);
       const action = actionFor(company, stat);
-      if (action !== "keep") rows.push({ category: category.label, company, action, age: ageDays(company.lastReviewedAt), stat });
+      if (action !== "keep") rows.push({ category: category.label, company, action, age: staleHypothesisAgeDays(company.lastReviewedAt), stat });
     }
   }
 
