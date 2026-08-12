@@ -6,6 +6,7 @@
 
 import { existsSync, readFileSync } from "fs";
 import { appendJsonl, loadResearchLog, loadSchema, paths } from "../io.js";
+import { isFutureResearchLogInstant } from "../research-log-time.js";
 import { formatErrors, validate } from "../schema.js";
 import type { ResearchLogEntry } from "../types.js";
 import { fail, nowJstIso, parseArgs } from "./common.js";
@@ -37,7 +38,7 @@ function main(): void {
     const errors = validate(entry, loadSchema("research-log"));
     if (errors.length > 0) fail(`${index + 1} 件目がスキーマに適合しません:\n${formatErrors(errors)}`);
     if (existingIds.has(entry.id)) fail(`id が既に存在します: ${entry.id}（Append Only のため再利用できません）`);
-    if (entry.at > new Date().toISOString()) fail(`at が未来です: ${entry.at}`);
+    if (isFutureResearchLogInstant(entry.at, new Date().toISOString())) fail(`at が未来です: ${entry.at}`);
     existingIds.add(entry.id);
     entries.push(entry);
   }

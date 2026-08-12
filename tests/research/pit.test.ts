@@ -12,6 +12,7 @@ import "./market-event-freshness-subms.test.js";
 import "./market-event-exact-instant.test.js";
 import "./bitemporal-evidence-subms.test.js";
 import "./outcome-review-due-real-date.test.js";
+import "./research-log-time.test.js";
 import assert from "node:assert/strict";
 import { nowJstIso } from "../../src/research/cli/common.js";
 import { canEnterSameClose, checkPit, jstDateOf } from "../../src/research/pit.js";
