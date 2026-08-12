@@ -2,6 +2,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } fr
 import { dirname, join } from "path";
 import { findRelatedMarketLessonsForScore } from "./market-lesson-links.js";
 import { buildModernAnalogies } from "./modern-analogy.js";
+import { analogyReviewDueDate } from "../analogy-review-date.js";
 import type { ScoreResult } from "../types.js";
 
 export type AnalogyOutcomeDirection = "same" | "opposite" | "mixed" | "unknown";
@@ -102,23 +103,11 @@ export function readJsonl<T>(path: string): T[] {
     .map(line => JSON.parse(line) as T);
 }
 
-function addDays(date: string, days: number): string {
-  const d = new Date(`${date}T00:00:00+09:00`);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
 function directionToExpected(direction: string): AnalogyExpectedDirection {
   if (direction === "up") return "up";
   if (direction === "down") return "down";
   if (direction === "volatile") return "mixed";
   return "unknown";
-}
-
-function timeframeDays(timeframe: AnalogyTimeframe): number {
-  if (timeframe === "1d") return 1;
-  if (timeframe === "1w") return 7;
-  return 30;
 }
 
 function makeEventId(date: string, candidateCode: string | undefined, lessonId: string, timeframe: AnalogyTimeframe): string {
@@ -160,7 +149,7 @@ export function buildAnalogyPredictionRecords(result: ScoreResult, limit = 3): A
     return timeframes.map(timeframe => ({
       schemaVersion: 1,
       createdAt: result.createdAt,
-      reviewDueAt: addDays(result.createdAt, timeframeDays(timeframe)),
+      reviewDueAt: analogyReviewDueDate(result.createdAt, timeframe),
       eventId: makeEventId(result.createdAt, result.candidate.code, match.lesson.id, timeframe),
       timeframe,
       candidateCode: result.candidate.code,
