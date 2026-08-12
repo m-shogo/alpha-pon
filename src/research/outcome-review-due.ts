@@ -143,6 +143,9 @@ function canonicalQuantitativeOutcomes(input: {
       throw new Error(`invalid Quantitative Outcome contentHash: ${record.outcomeId}`);
     }
     reviewedAtMs(record.reviewedAt, `Quantitative Outcome ${record.outcomeId}.reviewedAt`);
+    if (record.measurementCutoff !== record.reviewedAt) {
+      throw new Error(`Quantitative Outcome measurementCutoff must equal reviewedAt: ${record.outcomeId}`);
+    }
   }
   return matches.filter((record) => availableByAsOf(
     record.reviewedAt,
