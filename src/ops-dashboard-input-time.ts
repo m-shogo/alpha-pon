@@ -1,4 +1,5 @@
 import { parseExplicitIso8601Instant } from "./research/iso-instant.js";
+import { isValidDate } from "./research/schema.js";
 
 export function jstDateFromExplicitInstant(value: string, label = "timestamp"): string {
   const instantMs = parseExplicitIso8601Instant(value, label);
@@ -14,6 +15,7 @@ export function normalizeOpsAlphaGeneratedAt<T extends { generatedAt?: string | 
   input: T | null,
 ): T | null {
   if (!input || input.generatedAt == null) return input;
+  if (isValidDate(input.generatedAt)) return input;
   return {
     ...input,
     generatedAt: jstDateFromExplicitInstant(input.generatedAt, "alphaData.generatedAt"),
