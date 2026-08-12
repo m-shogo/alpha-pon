@@ -134,6 +134,81 @@ function validateEvidenceLifecycle(records: EvidenceRecord[]): EvidenceStoreIssu
   return issues;
 }
 
+function earliestEvidenceById(records: EvidenceRecord[]): Map<string, EvidenceRecord> {
+  const selected = new Map<string, EvidenceRecord>();
+  for (const record of records) {
+    const prior = selected.get(record.evidenceId);
+    if (!prior) {
+      selected.set(record.evidenceId, record);
+      continue;
+    }
+    const observedOrder = compareExplicitIso8601Instants(
+      record.observedAt,
+      prior.observedAt,
+      `Evidence ${record.recordId}.observedAt`,
+      `Evidence ${prior.recordId}.observedAt`,
+    );
+    if (
+      observedOrder < 0
+      || (
+        observedOrder === 0
+        && compareExplicitIso8601Instants(
+          record.retrievedAt,
+          prior.retrievedAt,
+          `Evidence ${record.recordId}.retrievedAt`,
+          `Evidence ${prior.recordId}.retrievedAt`,
+        ) < 0
+      )
+    ) {
+      selected.set(record.evidenceId, record);
+    }
+  }
+  return selected;
+}
+
+function validateRelationKnowledgeChronology(
+  evidence: EvidenceRecord[],
+  relations: EvidenceRelationRecord[],
+): EvidenceStoreIssue[] {
+  const issues: EvidenceStoreIssue[] = [];
+  const evidenceById = earliestEvidenceById(evidence);
+  for (const relation of relations) {
+    const from = evidenceById.get(relation.fromEvidenceId);
+    const to = evidenceById.get(relation.toEvidenceId);
+    if (
+      from
+      && compareExplicitIso8601Instants(
+        relation.retrievedAt,
+        from.retrievedAt,
+        `Evidence relation ${relation.recordId}.retrievedAt`,
+        `Evidence ${from.recordId}.retrievedAt`,
+      ) < 0
+    ) {
+      issues.push(issue(
+        "relation_retrieved_before_source_evidence",
+        relation.recordId,
+        "relation retrievedAtをfrom Evidence取得前にできません",
+      ));
+    }
+    if (
+      to
+      && compareExplicitIso8601Instants(
+        relation.retrievedAt,
+        to.retrievedAt,
+        `Evidence relation ${relation.recordId}.retrievedAt`,
+        `Evidence ${to.recordId}.retrievedAt`,
+      ) < 0
+    ) {
+      issues.push(issue(
+        "relation_retrieved_before_target_evidence",
+        relation.recordId,
+        "relation retrievedAtをto Evidence取得前にできません",
+      ));
+    }
+  }
+  return issues;
+}
+
 function validateBindingRelationAuthority(
   evidence: EvidenceRecord[],
   relations: EvidenceRelationRecord[],
@@ -209,6 +284,7 @@ export function validateBitemporalEvidenceStoreGoverned(
     ...validateBitemporalEvidenceStore(evidence, relations, schemas, knownEntityIds),
     ...validateTierMapping(evidence),
     ...validateEvidenceLifecycle(evidence),
+    ...validateRelationKnowledgeChronology(evidence, relations),
     ...validateBindingRelationAuthority(evidence, relations),
     ...validateRelationCycles(relations),
   ]);
