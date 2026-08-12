@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
+import { listingPerformanceReviewDate } from "./listing-performance-date.js";
 
 type ListingEvent = {
   id: string;
@@ -42,14 +43,6 @@ function readJsonl<T>(path: string): T[] {
     .map(line => JSON.parse(line) as T);
 }
 
-function addDays(date: string | null | undefined, days: number): string | null {
-  if (!date) return null;
-  const d = new Date(`${date}T00:00:00+09:00`);
-  if (Number.isNaN(d.getTime())) return null;
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
 function calcReturn(base: number | null | undefined, price: number | null | undefined): number | null {
   if (base == null || price == null || base === 0) return null;
   return (price - base) / base;
@@ -77,7 +70,7 @@ function buildRows(event: ListingEvent): ReviewRow[] {
       eventType: event.eventType,
       eventDate: event.eventDate ?? null,
       horizon,
-      reviewDate: addDays(event.eventDate, days),
+      reviewDate: listingPerformanceReviewDate(event.eventDate, days),
       publicPrice: event.publicPrice ?? null,
       initialPrice: event.initialPrice ?? null,
       reviewPrice: event.reviewPrice ?? null,
