@@ -324,6 +324,14 @@ function evaluationScopeIssues(
     }
     if (compareExplicitIso8601Instants(
       evidence.observedAt,
+      decision.decidedAt,
+      `Shadow Evidence ${ref}.observedAt`,
+      `Human Decision ${decision.decisionId}.decidedAt`,
+    ) < 0) {
+      issues.push(issue("pre_decision_shadow_evidence", target, `Human Decision前のEvidenceをShadow validation Evidenceとして使えません: ${ref}`));
+    }
+    if (compareExplicitIso8601Instants(
+      evidence.observedAt,
       record.evidenceCutoff,
       `Shadow Evidence ${ref}.observedAt`,
       `${target}.evidenceCutoff`,

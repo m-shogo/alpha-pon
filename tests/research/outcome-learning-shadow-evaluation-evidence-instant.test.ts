@@ -159,6 +159,8 @@ function refCodes(ref: string): string[] {
 }
 
 assert.deepEqual(codes("2026-09-15T10:00:00+09:00"), []);
+assert.deepEqual(codes("2026-08-22T10:00:00+09:00"), []);
+assert.ok(codes("2026-08-22T09:59:59.999999999+09:00").includes("pre_decision_shadow_evidence"));
 assert.ok(codes("2026-09-15T10:00:00").includes("invalid_shadow_evidence_observed_at"));
 assert.ok(codes("2026-02-29T10:00:00+09:00").includes("invalid_shadow_evidence_observed_at"));
 assert.ok(codes("2026-09-15T11:30:00+09:00").includes("post_cutoff_shadow_evidence"));
