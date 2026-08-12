@@ -215,6 +215,51 @@ function context(records: PitPriceRecord[] = [price, benchmark, sector]): Recomm
 }
 
 {
+  const postCutoffRetrievedIssuer = withPriceRecordHash(priceInput({
+    observedAt: "2026-08-07T08:59:59.999999999+09:00",
+    retrievedAt: "2026-08-07T09:00:00.000000001+09:00",
+    firstExecutableAt: "2026-08-07T09:00:00.000000002+09:00",
+  }));
+  const input = baseInput();
+  input.informationCutoff = "2026-08-07T09:00:00.000000000+09:00";
+  input.currentPriceRecordHash = postCutoffRetrievedIssuer.contentHash;
+  input.currentPriceFirstExecutableAt = postCutoffRetrievedIssuer.firstExecutableAt;
+  const issues = validateRecommendationRecord(
+    withRecommendationHash(input),
+    schema,
+    context([postCutoffRetrievedIssuer, benchmark, sector]),
+  );
+  assert.ok(issues.some(issue => issue.code === "price_not_yet_retrieved"));
+  assert.equal(issues.some(issue => issue.code === "future_price_observation"), false);
+  console.log("recommendation-price-pit-timing: post-cutoff issuer retrieval is rejected at 1ns precision OK");
+}
+
+{
+  const postCutoffRetrievedBenchmark = withPriceRecordHash(priceInput({
+    seriesKind: "benchmark",
+    code: "TOPIX",
+    ohlcv: { open: 2000, high: 2020, low: 1990, close: 2010, volume: 0 },
+    benchmarkCode: undefined,
+    sectorBenchmarkCode: undefined,
+    observedAt: "2026-08-07T08:59:59.999999999+09:00",
+    retrievedAt: "2026-08-07T09:00:00.000000001+09:00",
+    firstExecutableAt: "2026-08-07T09:00:00.000000002+09:00",
+  }));
+  const input = baseInput();
+  input.informationCutoff = "2026-08-07T09:00:00.000000000+09:00";
+  input.benchmarkPriceRecordHash = postCutoffRetrievedBenchmark.contentHash;
+  input.benchmarkPriceFirstExecutableAt = postCutoffRetrievedBenchmark.firstExecutableAt;
+  const issues = validateRecommendationRecord(
+    withRecommendationHash(input),
+    schema,
+    context([price, postCutoffRetrievedBenchmark, sector]),
+  );
+  assert.ok(issues.some(issue => issue.code === "benchmark_not_yet_retrieved"));
+  assert.equal(issues.some(issue => issue.code === "future_benchmark_observation"), false);
+  console.log("recommendation-price-pit-timing: post-cutoff benchmark retrieval is rejected at 1ns precision OK");
+}
+
+{
   const subMillisecondLateIssuer = withPriceRecordHash(priceInput({
     observedAt: "2026-08-07T09:09:59.999999998+09:00",
     retrievedAt: "2026-08-07T09:09:59.999999999+09:00",

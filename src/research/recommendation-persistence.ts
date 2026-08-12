@@ -252,6 +252,12 @@ function priceProvenanceIssues(
   if (price.firstExecutableAt !== record.currentPriceFirstExecutableAt) {
     issues.push(error("price_execution_pin_mismatch", target, "currentPriceFirstExecutableAtがPIT recordと一致しません"));
   }
+  if (price.license === "unknown") {
+    issues.push(error("unknown_price_license", target, "利用権不明のprice recordをrecommendationへ使えません"));
+  }
+  if (issues.some((issue) => issue.code === "invalid_pinned_price_timeline")) {
+    return issues;
+  }
   if (compareExplicitIso8601Instants(
     price.observedAt,
     record.informationCutoff,
@@ -261,15 +267,20 @@ function priceProvenanceIssues(
     issues.push(error("future_price_observation", target, "informationCutoff後に観測された価格を当初判断へ混ぜられません"));
   }
   if (compareExplicitIso8601Instants(
+    price.retrievedAt,
+    record.informationCutoff,
+    "price.retrievedAt",
+    "recommendation.informationCutoff",
+  ) > 0) {
+    issues.push(error("price_not_yet_retrieved", target, "informationCutoff時点で未取得の価格を当初判断へ混ぜられません"));
+  }
+  if (compareExplicitIso8601Instants(
     price.firstExecutableAt,
     record.issuedAt,
     "price.firstExecutableAt",
     "recommendation.issuedAt",
   ) > 0) {
     issues.push(error("price_not_yet_executable", target, "issuedAt時点でまだ実行可能でない価格をcurrentPriceにできません"));
-  }
-  if (price.license === "unknown") {
-    issues.push(error("unknown_price_license", target, "利用権不明のprice recordをrecommendationへ使えません"));
   }
   return issues;
 }
@@ -303,6 +314,12 @@ function benchmarkProvenanceIssues(input: {
   if (price.firstExecutableAt !== input.firstExecutableAt) {
     issues.push(error("benchmark_execution_pin_mismatch", target, `${input.label}PriceFirstExecutableAtがPIT recordと一致しません`));
   }
+  if (price.license === "unknown") {
+    issues.push(error("unknown_benchmark_license", target, `${input.label}の利用権が不明です`));
+  }
+  if (issues.some((issue) => issue.code === "invalid_pinned_price_timeline")) {
+    return issues;
+  }
   if (compareExplicitIso8601Instants(
     price.observedAt,
     input.record.informationCutoff,
@@ -312,15 +329,20 @@ function benchmarkProvenanceIssues(input: {
     issues.push(error("future_benchmark_observation", target, `${input.label}がinformationCutoff後に観測されています`));
   }
   if (compareExplicitIso8601Instants(
+    price.retrievedAt,
+    input.record.informationCutoff,
+    `${input.label}.retrievedAt`,
+    "recommendation.informationCutoff",
+  ) > 0) {
+    issues.push(error("benchmark_not_yet_retrieved", target, `${input.label}がinformationCutoff時点で未取得です`));
+  }
+  if (compareExplicitIso8601Instants(
     price.firstExecutableAt,
     input.record.issuedAt,
     `${input.label}.firstExecutableAt`,
     "recommendation.issuedAt",
   ) > 0) {
     issues.push(error("benchmark_not_yet_executable", target, `${input.label}はissuedAt時点でまだ実行可能ではありません`));
-  }
-  if (price.license === "unknown") {
-    issues.push(error("unknown_benchmark_license", target, `${input.label}の利用権が不明です`));
   }
   return issues;
 }
