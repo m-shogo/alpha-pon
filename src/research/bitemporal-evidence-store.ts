@@ -538,9 +538,23 @@ export function validateBitemporalEvidenceStore(
   const issues = evidence.flatMap((record) =>
     validateEvidenceRecord(record, schemas.evidence, knownEntityIds),
   );
-  const evidenceById = new Map(
-    activeEvidenceHeads(evidence).map((record) => [record.evidenceId, record]),
-  );
+  const evidenceById = new Map<string, EvidenceRecord>();
+  for (const record of evidence) {
+    const prior = evidenceById.get(record.evidenceId);
+    const observedOrder = prior
+      ? compareTime(record.observedAt, prior.observedAt, "evidence observedAt", "prior evidence observedAt")
+      : -1;
+    if (
+      !prior ||
+      observedOrder < 0 ||
+      (
+        observedOrder === 0 &&
+        compareTime(record.retrievedAt, prior.retrievedAt, "evidence retrievedAt", "prior evidence retrievedAt") < 0
+      )
+    ) {
+      evidenceById.set(record.evidenceId, record);
+    }
+  }
   issues.push(...relations.flatMap((record) =>
     validateEvidenceRelationRecord(record, schemas.relation, evidenceById),
   ));
