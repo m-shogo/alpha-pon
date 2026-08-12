@@ -88,6 +88,7 @@ import "./research/outcome-semantic-review-evidence-instant.test.js";
 import "./research/outcome-review-due.test.js";
 import "./research/outcome-review-due-recommendation-revision.test.js";
 import "./research/outcome-review-due-semantic-chronology.test.js";
+import "./research/outcome-review-due-quantitative-cutoff.test.js";
 import "./research/outcome-learning-proposal.test.js";
 import "./research/outcome-learning-decision.test.js";
 import "./research/outcome-learning-decision-secret-ref.test.js";
