@@ -58,6 +58,7 @@ export type OutcomeLearningShadowEvaluationRecord = {
 
 export type ShadowEvaluationEvidenceContext = {
   observedAt: string;
+  retrievedAt: string;
 };
 
 export type OutcomeLearningShadowEvaluationContext = {
@@ -322,6 +323,27 @@ function evaluationScopeIssues(
       ));
       continue;
     }
+    try {
+      parseExplicitIso8601Instant(
+        evidence.retrievedAt,
+        `Shadow Evidence ${ref}.retrievedAt`,
+      );
+    } catch {
+      issues.push(issue(
+        "invalid_shadow_evidence_retrieved_at",
+        target,
+        `Shadow Evidence retrievedAtが不正です: ${ref}`,
+      ));
+      continue;
+    }
+    if (compareExplicitIso8601Instants(
+      evidence.observedAt,
+      evidence.retrievedAt,
+      `Shadow Evidence ${ref}.observedAt`,
+      `Shadow Evidence ${ref}.retrievedAt`,
+    ) > 0) {
+      issues.push(issue("shadow_evidence_retrieved_before_observed", target, `Shadow Evidence retrievedAtがobservedAtより前です: ${ref}`));
+    }
     if (compareExplicitIso8601Instants(
       evidence.observedAt,
       decision.decidedAt,
@@ -337,6 +359,14 @@ function evaluationScopeIssues(
       `${target}.evidenceCutoff`,
     ) > 0) {
       issues.push(issue("post_cutoff_shadow_evidence", target, `evidenceCutoff後のEvidenceを使えません: ${ref}`));
+    }
+    if (compareExplicitIso8601Instants(
+      evidence.retrievedAt,
+      record.evidenceCutoff,
+      `Shadow Evidence ${ref}.retrievedAt`,
+      `${target}.evidenceCutoff`,
+    ) > 0) {
+      issues.push(issue("shadow_evidence_not_yet_retrieved", target, `evidenceCutoff時点で未取得のEvidenceです: ${ref}`));
     }
     if (!nestedEvidence.has(ref)) {
       issues.push(issue("unused_shadow_evidence", target, `top-level Evidenceは少なくとも1 criterion assessmentで使う必要があります: ${ref}`));
