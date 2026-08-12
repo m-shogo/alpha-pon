@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { activeEvidencePackageHeads } from "./evidence-package-ledger.js";
+import type { EvidencePackageManifest } from "./evidence-package-manifest.js";
 import { validateEvidencePackageRepository } from "./evidence-package-repository.js";
 import type { EvidencePackageExternalPinResolver } from "./evidence-package-governed.js";
 import {
@@ -215,6 +216,28 @@ function dependencyIssue(value: { severity: "error" | "warning"; code: string; t
   return { ...value };
 }
 
+export function validateEvidencePackageAvailableAtDecision(
+  record: Pick<FoundationDecisionIntegrationRecord, "decisionId" | "issuedAt">,
+  evidencePackage: Pick<EvidencePackageManifest, "createdAt"> | undefined,
+): FoundationDecisionIssue[] {
+  if (!evidencePackage) return [];
+  if (
+    compareExplicitIso8601Instants(
+      evidencePackage.createdAt,
+      record.issuedAt,
+      `decision ${record.decisionId}.evidencePackage.createdAt`,
+      `decision ${record.decisionId}.issuedAt`,
+    ) > 0
+  ) {
+    return [issue(
+      "decision_evidence_package_after_issue",
+      record.decisionId,
+      `${evidencePackage.createdAt} > ${record.issuedAt}`,
+    )];
+  }
+  return [];
+}
+
 export function validateFoundationDecisionRepository(
   options: FoundationDecisionRepositoryOptions = {},
 ): FoundationDecisionRepositoryResult {
@@ -285,6 +308,10 @@ export function validateFoundationDecisionRepository(
     if (record.status === "eligible" && expected.length > 0) {
       issues.push(issue("eligible_decision_has_blockers", record.decisionId, expected.join(",")));
     }
+    issues.push(...validateEvidencePackageAvailableAtDecision(
+      record,
+      context.evidencePackagesById.get(record.evidencePackageId),
+    ));
     const replayManifest = context.replayManifestsById.get(record.replayId);
     if (
       replayManifest &&
