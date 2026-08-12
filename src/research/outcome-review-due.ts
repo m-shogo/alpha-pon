@@ -147,11 +147,49 @@ function canonicalQuantitativeOutcomes(input: {
       throw new Error(`Quantitative Outcome measurementCutoff must equal reviewedAt: ${record.outcomeId}`);
     }
   }
-  return matches.filter((record) => availableByAsOf(
+  const available = matches.filter((record) => availableByAsOf(
     record.reviewedAt,
     input.asOfInstant,
     `Quantitative Outcome ${record.outcomeId}`,
   ));
+
+  const byId = new Map(available.map((record) => [record.outcomeId, record]));
+  const roots = available.filter((record) => !record.supersedesOutcomeId);
+  if (roots.length > 1) {
+    throw new Error(`multiple Quantitative Outcome roots in outcome review queue: ${input.recommendation.recommendationId}`);
+  }
+  const childrenByParent = new Map<string, string[]>();
+  for (const record of available) {
+    if (!record.supersedesOutcomeId) continue;
+    const prior = byId.get(record.supersedesOutcomeId);
+    if (!prior) {
+      throw new Error(`Quantitative Outcome revision references unavailable superseded outcome: ${record.outcomeId}`);
+    }
+    if (compareExplicitIso8601Instants(
+      record.reviewedAt,
+      prior.reviewedAt,
+      `Quantitative Outcome ${record.outcomeId}.reviewedAt`,
+      `Quantitative Outcome ${prior.outcomeId}.reviewedAt`,
+    ) <= 0) {
+      throw new Error(`Quantitative Outcome revision reviewedAt is not monotonic: ${record.outcomeId}`);
+    }
+    if (record.terminalTradingDate < prior.terminalTradingDate) {
+      throw new Error(`Quantitative Outcome revision terminalTradingDate regressed: ${record.outcomeId}`);
+    }
+    if (prior.targetAssessment === "reached" && record.targetAssessment !== "reached") {
+      throw new Error(`Quantitative Outcome revision targetAssessment regressed: ${record.outcomeId}`);
+    }
+    const children = childrenByParent.get(record.supersedesOutcomeId) ?? [];
+    children.push(record.outcomeId);
+    childrenByParent.set(record.supersedesOutcomeId, children);
+  }
+  for (const [parentId, children] of childrenByParent) {
+    if (children.length > 1) {
+      throw new Error(`Quantitative Outcome revision fork in outcome review queue: ${parentId}`);
+    }
+  }
+
+  return available;
 }
 
 function canonicalSemanticReviews(input: {
