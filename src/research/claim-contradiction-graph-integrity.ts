@@ -19,13 +19,34 @@ function issue(code: string, target: string, message: string): ClaimGraphIssue {
   return { severity: "error", code, target, message };
 }
 
+function earliestClaimById(claims: ClaimRecord[]): Map<string, ClaimRecord> {
+  const selected = new Map<string, ClaimRecord>();
+  for (const record of claims) {
+    const prior = selected.get(record.claimId);
+    const observedOrder = prior
+      ? compareExplicitIso8601Instants(record.observedAt, prior.observedAt)
+      : -1;
+    if (
+      !prior ||
+      observedOrder < 0 ||
+      (
+        observedOrder === 0 &&
+        compareExplicitIso8601Instants(record.retrievedAt, prior.retrievedAt) < 0
+      )
+    ) {
+      selected.set(record.claimId, record);
+    }
+  }
+  return selected;
+}
+
 export function validateClaimGraphEndpointChronology(
   claims: ClaimRecord[],
   edges: ClaimGraphEdgeRecord[],
   evidenceSnapshot: EvidenceSnapshot,
 ): ClaimGraphIssue[] {
   const issues: ClaimGraphIssue[] = [];
-  const claimById = new Map(claims.map((record) => [record.claimId, record]));
+  const claimById = earliestClaimById(claims);
   const evidenceById = new Map(
     evidenceSnapshot.evidence.map((record) => [record.evidenceId, record]),
   );
