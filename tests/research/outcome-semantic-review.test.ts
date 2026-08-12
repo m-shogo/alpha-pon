@@ -126,9 +126,9 @@ function context(): OutcomeSemanticReviewContext {
     recommendationsById: new Map([[recommendation.recommendationId, recommendation]]),
     quantitativeOutcomesById: new Map([[quantitativeOutcome.outcomeId, quantitativeOutcome]]),
     evidenceByRef: new Map([
-      ["evidence:review:001", { tier: "A", observedAt: "2026-08-20T09:00:00+09:00" }],
-      ["evidence:review:002", { tier: "B", observedAt: "2026-08-20T09:30:00+09:00" }],
-      ["evidence:review:future", { tier: "A", observedAt: "2026-08-20T11:30:00+09:00" }],
+      ["evidence:review:001", { tier: "A", observedAt: "2026-08-20T09:00:00+09:00", retrievedAt: "2026-08-20T09:01:00+09:00" }],
+      ["evidence:review:002", { tier: "B", observedAt: "2026-08-20T09:30:00+09:00", retrievedAt: "2026-08-20T09:31:00+09:00" }],
+      ["evidence:review:future", { tier: "A", observedAt: "2026-08-20T11:30:00+09:00", retrievedAt: "2026-08-20T11:31:00+09:00" }],
     ]),
     reviewersByRef: new Map([
       ["reviewer:ai:alpha-pon", { kind: "ai" }],

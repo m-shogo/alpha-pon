@@ -123,20 +123,20 @@ function reviewFor(ref: string) {
   });
 }
 
-function context(observedAt: string): OutcomeSemanticReviewContext {
+function context(observedAt: string, retrievedAt = observedAt): OutcomeSemanticReviewContext {
   return {
     recommendationsById: new Map([[recommendation.recommendationId, recommendation]]),
     quantitativeOutcomesById: new Map([[outcome.outcomeId, outcome]]),
-    evidenceByRef: new Map([["evidence:review:instant", { tier: "A", observedAt }]]),
+    evidenceByRef: new Map([["evidence:review:instant", { tier: "A", observedAt, retrievedAt }]]),
     reviewersByRef: new Map([["reviewer:ai:alpha-pon", { kind: "ai" }]]),
   };
 }
 
-function codes(observedAt: string): string[] {
+function codes(observedAt: string, retrievedAt = observedAt): string[] {
   return validateOutcomeSemanticReviewRecord(
     reviewFor("evidence:review:instant"),
     schema,
-    context(observedAt),
+    context(observedAt, retrievedAt),
   ).map((item) => item.code);
 }
 
@@ -147,6 +147,20 @@ assert.ok(codes("2026-08-20T11:30:00+09:00").includes("future_review_evidence"))
 assert.ok(
   codes("2026-08-20T11:00:00.000000001+09:00").includes("future_review_evidence"),
   "Evidence one nanosecond after evidenceCutoff must remain future instead of collapsing to the same millisecond",
+);
+assert.ok(
+  codes(
+    "2026-08-20T10:00:00+09:00",
+    "2026-08-20T11:00:00.000000001+09:00",
+  ).includes("review_evidence_not_yet_retrieved"),
+  "Evidence retrieved one nanosecond after evidenceCutoff must fail closed",
+);
+assert.ok(
+  codes(
+    "2026-08-20T10:00:00.000000001+09:00",
+    "2026-08-20T10:00:00.000000000+09:00",
+  ).includes("review_evidence_retrieved_before_observed"),
+  "Evidence retrieval cannot precede observation",
 );
 
 {
