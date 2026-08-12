@@ -197,6 +197,22 @@ export function validateIncomingDocumentRevisionDiffCutoff(
         message: `${record.documentRevisionId} is not available at ${evidenceSnapshot.asOf}`,
       });
     }
+    if (
+      record.effectiveTo
+      && compareExplicitIso8601Instants(
+        record.effectiveTo,
+        evidenceSnapshot.asOf,
+        "revision effectiveTo",
+        "document cutoff",
+      ) < 0
+    ) {
+      issues.push({
+        severity: "error",
+        code: "incoming_document_revision_expired_before_snapshot_cutoff",
+        target: record.recordId,
+        message: `${record.documentRevisionId} expired before ${evidenceSnapshot.asOf}`,
+      });
+    }
   }
   for (const record of diffs) {
     if (
@@ -209,6 +225,22 @@ export function validateIncomingDocumentRevisionDiffCutoff(
         code: "incoming_document_diff_after_snapshot_cutoff",
         target: record.recordId,
         message: `${record.diffId} is not available at ${evidenceSnapshot.asOf}`,
+      });
+    }
+    if (
+      record.effectiveTo
+      && compareExplicitIso8601Instants(
+        record.effectiveTo,
+        evidenceSnapshot.asOf,
+        "diff effectiveTo",
+        "document cutoff",
+      ) < 0
+    ) {
+      issues.push({
+        severity: "error",
+        code: "incoming_document_diff_expired_before_snapshot_cutoff",
+        target: record.recordId,
+        message: `${record.diffId} expired before ${evidenceSnapshot.asOf}`,
       });
     }
   }
