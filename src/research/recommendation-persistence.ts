@@ -252,6 +252,12 @@ function priceProvenanceIssues(
   if (price.firstExecutableAt !== record.currentPriceFirstExecutableAt) {
     issues.push(error("price_execution_pin_mismatch", target, "currentPriceFirstExecutableAtがPIT recordと一致しません"));
   }
+  if (price.license === "unknown") {
+    issues.push(error("unknown_price_license", target, "利用権不明のprice recordをrecommendationへ使えません"));
+  }
+  if (issues.some((issue) => issue.code === "invalid_pinned_price_timeline")) {
+    return issues;
+  }
   if (compareExplicitIso8601Instants(
     price.observedAt,
     record.informationCutoff,
@@ -275,9 +281,6 @@ function priceProvenanceIssues(
     "recommendation.issuedAt",
   ) > 0) {
     issues.push(error("price_not_yet_executable", target, "issuedAt時点でまだ実行可能でない価格をcurrentPriceにできません"));
-  }
-  if (price.license === "unknown") {
-    issues.push(error("unknown_price_license", target, "利用権不明のprice recordをrecommendationへ使えません"));
   }
   return issues;
 }
@@ -311,6 +314,12 @@ function benchmarkProvenanceIssues(input: {
   if (price.firstExecutableAt !== input.firstExecutableAt) {
     issues.push(error("benchmark_execution_pin_mismatch", target, `${input.label}PriceFirstExecutableAtがPIT recordと一致しません`));
   }
+  if (price.license === "unknown") {
+    issues.push(error("unknown_benchmark_license", target, `${input.label}の利用権が不明です`));
+  }
+  if (issues.some((issue) => issue.code === "invalid_pinned_price_timeline")) {
+    return issues;
+  }
   if (compareExplicitIso8601Instants(
     price.observedAt,
     input.record.informationCutoff,
@@ -334,9 +343,6 @@ function benchmarkProvenanceIssues(input: {
     "recommendation.issuedAt",
   ) > 0) {
     issues.push(error("benchmark_not_yet_executable", target, `${input.label}はissuedAt時点でまだ実行可能ではありません`));
-  }
-  if (price.license === "unknown") {
-    issues.push(error("unknown_benchmark_license", target, `${input.label}の利用権が不明です`));
   }
   return issues;
 }
