@@ -14,9 +14,8 @@ At this handoff:
 
 - `main` is the source of truth;
 - this handoff is based on generated main `5e12d0a0071457f7f3530f6d746d5adaaf33caae` after PR #217;
-- normal working PRs are expected to return to zero after this docs PR merges;
-- PR #1 remains an intentional long-running research Draft / DO NOT MERGE;
-- PR #43 remains a legacy Decision Firewall reference Draft / DO NOT MERGE;
+- normal working PRs are expected to return to zero after each completed docs/code PR merges;
+- PR #1 and PR #43 are closed/unmerged legacy DO NOT MERGE references as of 2026-08-10;
 - stale/superseded PRs and old remote branches are reference only and must not be revived merely because they still exist;
 - Research OS generated commits may advance `main`; when that happens, rebuild the narrow functional diff from latest generated `main` rather than force/rebase/rewrite a stale branch.
 
@@ -29,7 +28,7 @@ Preferred working pattern:
 5. full Check / CI / Research OS as applicable;
 6. squash merge with expected head SHA;
 7. wait for the normal generated Research OS commit;
-8. verify open PRs return to the intentional Draft set only.
+8. verify normal working PRs return to zero; closed legacy references remain reference-only.
 
 ## Security Master state
 
