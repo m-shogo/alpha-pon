@@ -22,9 +22,7 @@ export function todayJstCompact(): string {
 }
 
 export function dateNDaysAgoJst(days: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() - days);
-  return toCompactDate(formatJstDate(date));
+  return toCompactDate(addDaysJst(todayJst(), -days));
 }
 
 export function addDaysJst(dateStr: string, days: number): string {
