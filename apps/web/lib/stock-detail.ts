@@ -218,7 +218,7 @@ function resultLabel(outcome: HypothesisOutcome): { label: string; status: Stock
 
 function dueDate(detectedAt: string | null | undefined, horizon: string): string | null {
   if (!detectedAt) return null
-  const date = new Date(`${detectedAt.slice(0, 10)}T00:00:00+09:00`)
+  const date = new Date(`${detectedAt.slice(0, 10)}T00:00:00Z`)
   if (Number.isNaN(date.getTime())) return null
   const days = horizon === '1d' ? 1 : horizon === '1w' ? 7 : horizon === '1m' ? 30 : horizon === '3m' ? 90 : 0
   date.setUTCDate(date.getUTCDate() + days)
