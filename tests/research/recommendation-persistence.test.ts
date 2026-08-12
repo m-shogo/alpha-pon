@@ -329,6 +329,17 @@ function codes(issues: ReturnType<typeof validateRecommendationRecord>): string[
 }
 
 {
+  const input = baseInput();
+  input.issuedAt = "2026-11-07T23:59:59.999999999+09:00";
+  input.informationCutoff = "2026-08-07T09:00:00+09:00";
+  input.currentPriceFirstExecutableAt = "2026-08-07T09:00:00+09:00";
+  input.outcomeReviewDate = "2026-11-07";
+  const issues = validateRecommendationRecord(withRecommendationHash(input), schema, context());
+  assert.equal(codes(issues).includes("outcome_review_before_issue"), false);
+  console.log("recommendation-persistence: review date includes final JST nanosecond OK");
+}
+
+{
   const root = withRecommendationHash(baseInput());
   const revisionInput = baseInput();
   revisionInput.recommendationId = "rec:sanrio:2026-08-07:002";
