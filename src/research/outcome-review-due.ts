@@ -167,6 +167,14 @@ function canonicalSemanticReviews(input: {
       throw new Error(`invalid Semantic Review contentHash: ${record.reviewId}`);
     }
     reviewedAtMs(record.reviewedAt, `Semantic Review ${record.reviewId}.reviewedAt`);
+    if (compareExplicitIso8601Instants(
+      record.evidenceCutoff,
+      record.reviewedAt,
+      `Semantic Review ${record.reviewId}.evidenceCutoff`,
+      `Semantic Review ${record.reviewId}.reviewedAt`,
+    ) > 0) {
+      throw new Error(`Semantic Review evidenceCutoff is after reviewedAt: ${record.reviewId}`);
+    }
   }
   const available = matches.filter((record) => availableByAsOf(
     record.reviewedAt,
@@ -180,6 +188,14 @@ function canonicalSemanticReviews(input: {
       || outcome.contentHash !== record.quantitativeOutcomeContentHash
     ) {
       throw new Error(`Semantic Review references unknown or mismatched Quantitative Outcome: ${record.reviewId}`);
+    }
+    if (compareExplicitIso8601Instants(
+      record.evidenceCutoff,
+      outcome.reviewedAt,
+      `Semantic Review ${record.reviewId}.evidenceCutoff`,
+      `Quantitative Outcome ${outcome.outcomeId}.reviewedAt`,
+    ) < 0) {
+      throw new Error(`Semantic Review evidenceCutoff is before Quantitative Outcome reviewedAt: ${record.reviewId}`);
     }
   }
   return available;
