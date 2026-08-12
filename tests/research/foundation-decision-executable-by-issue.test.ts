@@ -7,7 +7,10 @@ import {
   withFoundationPriceSnapshotHash,
   type FoundationDecisionIntegrationRecord,
 } from "../../src/research/foundation-decision-integration.js";
-import { validateFoundationDecisionRepository } from "../../src/research/foundation-decision-integration-repository.js";
+import {
+  validateEvidencePackageAvailableAtDecision,
+  validateFoundationDecisionRepository,
+} from "../../src/research/foundation-decision-integration-repository.js";
 import { withReplayManifestHash } from "../../src/research/stock-pro-council-replay.js";
 
 const hash = (character: string): string => character.repeat(64);
@@ -180,8 +183,28 @@ try {
     ),
     "Foundation Decision must fail closed when its pinned replay manifest is created even 1ns after issuedAt",
   );
+
+  const evidenceTimingIssues = validateEvidencePackageAvailableAtDecision(
+    replayDecision,
+    { createdAt: "2026-08-06T06:05:00.000000002Z" },
+  );
+  assert.ok(
+    evidenceTimingIssues.some((item) =>
+      item.code === "decision_evidence_package_after_issue"
+      && item.target === replayDecision.decisionId,
+    ),
+    "Foundation Decision must fail closed when its pinned Evidence Package is created even 1ns after issuedAt",
+  );
+  assert.deepEqual(
+    validateEvidencePackageAvailableAtDecision(
+      replayDecision,
+      { createdAt: replayDecision.issuedAt },
+    ),
+    [],
+    "Evidence Package created exactly at decision issue remains valid",
+  );
 } finally {
   rmSync(root, { recursive: true, force: true });
 }
 
-console.log("foundation-decision-executable-by-issue: future executable prices, benchmarks, and replay manifests are blocked");
+console.log("foundation-decision-executable-by-issue: future executable prices, benchmarks, replay manifests, and Evidence Packages are blocked");
