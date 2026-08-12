@@ -235,4 +235,50 @@ function edge(observedAt = "2026-08-05T15:05:00+09:00") {
   console.log("claim-contradiction-graph-writer: 1ns post-cutoff claim is rejected and hidden OK");
 }
 
+{
+  const dir = mkdtempSync(join(tmpdir(), "claim-writer-expired-incoming-"));
+  const paths = {
+    claims: join(dir, "claims.jsonl"),
+    edges: join(dir, "edges.jsonl"),
+  };
+  const expiredClaim = withClaimRecordHash({
+    ...claim(),
+    recordId: "claim:writer-v2:expired:record:001",
+    claimId: "claim:writer-v2:expired",
+    effectiveTo: "2026-08-06T09:59:59.999999999+09:00",
+  });
+  const expiredEdge = withClaimGraphEdgeHash({
+    ...edge(),
+    recordId: "claim-edge:writer-v2:expired:record:001",
+    edgeId: "claim-edge:writer-v2:expired",
+    effectiveTo: "2026-08-06T09:59:59.999999999+09:00",
+  });
+  const directIssues = validateIncomingClaimGraphCutoff(
+    [expiredClaim],
+    [expiredEdge],
+    evidenceSnapshot,
+  );
+  assert.ok(directIssues.some((candidate) => candidate.code === "incoming_claim_expired_before_snapshot_cutoff"));
+  assert.ok(directIssues.some((candidate) => candidate.code === "incoming_claim_edge_expired_before_snapshot_cutoff"));
+  try {
+    assert.throws(
+      () => appendClaimGraphRecordsAtCutoffGoverned(
+        paths,
+        { claims: [expiredClaim], edges: [expiredEdge] },
+        "expired-owner",
+        schemas,
+        evidenceSnapshot,
+        knownEntityIds,
+      ),
+      /incoming_claim_(edge_)?expired_before_snapshot_cutoff/,
+    );
+    assert.equal(existsSync(paths.claims), false);
+    assert.equal(existsSync(paths.edges), false);
+    assert.equal(existsSync(`${paths.claims}.claim-graph.lock`), false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  console.log("claim-contradiction-graph-writer: expired incoming records are rejected before append OK");
+}
+
 console.log("claim-contradiction-graph-writer: 全テスト成功");

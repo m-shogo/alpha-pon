@@ -172,6 +172,17 @@ export function validateIncomingClaimGraphCutoff(
         message: `${record.claimId} is not available at ${evidenceSnapshot.asOf}`,
       });
     }
+    if (
+      record.effectiveTo
+      && before(record.effectiveTo, evidenceSnapshot.asOf, `claim:${record.claimId}.effectiveTo`, "Claim Graph cutoff")
+    ) {
+      issues.push({
+        severity: "error",
+        code: "incoming_claim_expired_before_snapshot_cutoff",
+        target: record.recordId,
+        message: `${record.claimId} expired before ${evidenceSnapshot.asOf}`,
+      });
+    }
   }
   for (const record of edges) {
     if (
@@ -184,6 +195,17 @@ export function validateIncomingClaimGraphCutoff(
         code: "incoming_claim_edge_after_snapshot_cutoff",
         target: record.recordId,
         message: `${record.edgeId} is not available at ${evidenceSnapshot.asOf}`,
+      });
+    }
+    if (
+      record.effectiveTo
+      && before(record.effectiveTo, evidenceSnapshot.asOf, `claim-edge:${record.edgeId}.effectiveTo`, "Claim Graph cutoff")
+    ) {
+      issues.push({
+        severity: "error",
+        code: "incoming_claim_edge_expired_before_snapshot_cutoff",
+        target: record.recordId,
+        message: `${record.edgeId} expired before ${evidenceSnapshot.asOf}`,
       });
     }
   }
