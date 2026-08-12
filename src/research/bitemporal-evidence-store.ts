@@ -388,19 +388,32 @@ export function validateEvidenceRelationRecord(
   const to = evidenceById.get(record.toEvidenceId);
   if (!from) issues.push(issue("missing_from_evidence", target, record.fromEvidenceId));
   if (!to) issues.push(issue("missing_to_evidence", target, record.toEvidenceId));
+  if (
+    from &&
+    compareTime(record.observedAt, from.observedAt, "relation observedAt", "from observedAt") < 0
+  ) {
+    issues.push(issue(
+      "relation_observed_before_source_evidence",
+      target,
+      "relation observedAtをfrom Evidence観測前にできません",
+    ));
+  }
+  if (
+    to &&
+    compareTime(record.observedAt, to.observedAt, "relation observedAt", "to observedAt") < 0
+  ) {
+    issues.push(issue(
+      "relation_observed_before_target_evidence",
+      target,
+      "relation observedAtをto Evidence観測前にできません",
+    ));
+  }
   if (from && to && BINDING_RELATION_TYPES.has(record.relationType)) {
     if (compareTime(from.observedAt, to.observedAt, "from observedAt", "to observedAt") < 0) {
       issues.push(issue(
         "binding_relation_from_older_evidence",
         target,
         "訂正・撤回・supersession側Evidenceは対象Evidence以後に観測される必要があります",
-      ));
-    }
-    if (compareTime(record.observedAt, from.observedAt, "relation observedAt", "from observedAt") < 0) {
-      issues.push(issue(
-        "relation_observed_before_source_evidence",
-        target,
-        "relation observedAtをfrom Evidence観測前にできません",
       ));
     }
   }
