@@ -121,8 +121,8 @@ function context(records: PitPriceRecord[] = [price, benchmark, sector]): Recomm
   return {
     priceRecordsByHash: new Map(records.map(record => [record.contentHash, record] as const)),
     evidenceByRef: new Map([
-      ["evidence:ir:001", { tier: "A", observedAt: "2026-08-07T08:30:00+09:00" }],
-      ["evidence:market:001", { tier: "B", observedAt: "2026-08-07T08:35:00+09:00" }],
+      ["evidence:ir:001", { tier: "A", observedAt: "2026-08-07T08:30:00+09:00", retrievedAt: "2026-08-07T08:31:00+09:00" }],
+      ["evidence:market:001", { tier: "B", observedAt: "2026-08-07T08:35:00+09:00", retrievedAt: "2026-08-07T08:36:00+09:00" }],
     ]),
     edgeStageById: new Map([["known-bad-event-repricing", "active-research"]]),
   };
@@ -240,8 +240,8 @@ function context(records: PitPriceRecord[] = [price, benchmark, sector]): Recomm
   input.informationCutoff = "2026-08-07T09:00:00.000000000+09:00";
   const evidenceContext = context();
   evidenceContext.evidenceByRef = new Map([
-    ["evidence:ir:001", { tier: "A", observedAt: "2026-08-07T09:00:00.000000001+09:00" }],
-    ["evidence:market:001", { tier: "B", observedAt: "2026-08-07T08:35:00+09:00" }],
+    ["evidence:ir:001", { tier: "A", observedAt: "2026-08-07T09:00:00.000000001+09:00", retrievedAt: "2026-08-07T09:00:00.000000002+09:00" }],
+    ["evidence:market:001", { tier: "B", observedAt: "2026-08-07T08:35:00+09:00", retrievedAt: "2026-08-07T08:36:00+09:00" }],
   ]);
   const issues = validateRecommendationRecord(
     withRecommendationHash(input),

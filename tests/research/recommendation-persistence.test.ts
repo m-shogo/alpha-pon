@@ -76,8 +76,8 @@ function context(overrides: Partial<RecommendationValidationContext> = {}): Reco
       [sectorBenchmarkPrice.contentHash, sectorBenchmarkPrice],
     ]),
     evidenceByRef: new Map([
-      ["evidence:ir:001", { tier: "A", observedAt: "2026-08-07T08:30:00+09:00" }],
-      ["evidence:market:001", { tier: "B", observedAt: "2026-08-07T08:35:00+09:00" }],
+      ["evidence:ir:001", { tier: "A", observedAt: "2026-08-07T08:30:00+09:00", retrievedAt: "2026-08-07T08:31:00+09:00" }],
+      ["evidence:market:001", { tier: "B", observedAt: "2026-08-07T08:35:00+09:00", retrievedAt: "2026-08-07T08:36:00+09:00" }],
     ]),
     edgeStageById: new Map([["known-bad-event-repricing", "active-research"]]),
     ...overrides,
@@ -183,8 +183,8 @@ function codes(issues: ReturnType<typeof validateRecommendationRecord>): string[
 {
   const futureEvidenceContext = context({
     evidenceByRef: new Map([
-      ["evidence:ir:001", { tier: "A", observedAt: "2026-08-07T09:05:00+09:00" }],
-      ["evidence:market:001", { tier: "B", observedAt: "2026-08-07T08:35:00+09:00" }],
+      ["evidence:ir:001", { tier: "A", observedAt: "2026-08-07T09:05:00+09:00", retrievedAt: "2026-08-07T09:06:00+09:00" }],
+      ["evidence:market:001", { tier: "B", observedAt: "2026-08-07T08:35:00+09:00", retrievedAt: "2026-08-07T08:36:00+09:00" }],
     ]),
   });
   const issues = validateRecommendationRecord(
@@ -197,17 +197,34 @@ function codes(issues: ReturnType<typeof validateRecommendationRecord>): string[
 }
 
 {
+  const lateRetrievedContext = context({
+    evidenceByRef: new Map([
+      ["evidence:ir:001", { tier: "A", observedAt: "2026-08-07T08:30:00+09:00", retrievedAt: "2026-08-07T09:00:00.000000001+09:00" }],
+      ["evidence:market:001", { tier: "B", observedAt: "2026-08-07T08:35:00+09:00", retrievedAt: "2026-08-07T08:36:00+09:00" }],
+    ]),
+  });
+  const issues = validateRecommendationRecord(
+    withRecommendationHash(baseInput()),
+    schema,
+    lateRetrievedContext,
+  );
+  assert.ok(codes(issues).includes("evidence_not_yet_retrieved"));
+  assert.equal(codes(issues).includes("future_evidence"), false);
+  console.log("recommendation-persistence: evidence retrieved 1ns after cutoff is rejected OK");
+}
+
+{
   const invalidInstantContexts: RecommendationValidationContext[] = [
     context({
       evidenceByRef: new Map([
-        ["evidence:ir:001", { tier: "A", observedAt: "2026-08-07T08:30:00" }],
-        ["evidence:market:001", { tier: "B", observedAt: "2026-08-07T08:35:00+09:00" }],
+        ["evidence:ir:001", { tier: "A", observedAt: "2026-08-07T08:30:00", retrievedAt: "2026-08-07T08:31:00+09:00" }],
+        ["evidence:market:001", { tier: "B", observedAt: "2026-08-07T08:35:00+09:00", retrievedAt: "2026-08-07T08:36:00+09:00" }],
       ]),
     }),
     context({
       evidenceByRef: new Map([
-        ["evidence:ir:001", { tier: "A", observedAt: "2026-02-30T08:30:00+09:00" }],
-        ["evidence:market:001", { tier: "B", observedAt: "2026-08-07T08:35:00+09:00" }],
+        ["evidence:ir:001", { tier: "A", observedAt: "2026-02-30T08:30:00+09:00", retrievedAt: "2026-08-07T08:31:00+09:00" }],
+        ["evidence:market:001", { tier: "B", observedAt: "2026-08-07T08:35:00+09:00", retrievedAt: "2026-08-07T08:36:00+09:00" }],
       ]),
     }),
   ];
@@ -217,10 +234,10 @@ function codes(issues: ReturnType<typeof validateRecommendationRecord>): string[
       schema,
       invalidContext,
     );
-    assert.ok(codes(issues).includes("invalid_recommendation_evidence_observed_at"));
+    assert.ok(codes(issues).includes("invalid_recommendation_evidence_instant"));
     assert.equal(codes(issues).includes("future_evidence"), false);
   }
-  console.log("recommendation-persistence: implicit/impossible evidence observedAt fails closed OK");
+  console.log("recommendation-persistence: implicit/impossible evidence instants fail closed OK");
 }
 
 {
