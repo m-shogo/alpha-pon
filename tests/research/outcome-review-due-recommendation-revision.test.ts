@@ -68,17 +68,39 @@ const revision = recommendation({
   supersedesId: root.recommendationId,
 });
 
-const summary = deriveOutcomeReviewDueSummary({
-  recommendations: [root, revision],
-  quantitativeOutcomes: [],
-  semanticReviews: [],
-  asOf: new Date("2026-08-22T03:00:00.000Z"),
-});
+{
+  const summary = deriveOutcomeReviewDueSummary({
+    recommendations: [root, revision],
+    quantitativeOutcomes: [],
+    semanticReviews: [],
+    asOf: new Date("2026-08-22T03:00:00.000Z"),
+  });
 
-assert.equal(summary.total, 1);
-assert.equal(summary.states.length, 1);
-assert.equal(summary.states[0]?.recommendationId, revision.recommendationId);
-assert.equal(summary.counts.quantitative_due, 1);
-assert.equal(summary.overdue, 1);
+  assert.equal(summary.total, 1);
+  assert.equal(summary.states.length, 1);
+  assert.equal(summary.states[0]?.recommendationId, revision.recommendationId);
+  assert.equal(summary.counts.quantitative_due, 1);
+  assert.equal(summary.overdue, 1);
+  console.log("outcome-review-due: superseded recommendation revisions do not duplicate the current review queue OK");
+}
 
-console.log("outcome-review-due: superseded recommendation revisions do not duplicate the current review queue OK");
+{
+  const futureRevision = recommendation({
+    recommendationId: "rec:review-due:future-revision",
+    issuedAt: "2026-08-23T09:10:00+09:00",
+    informationCutoff: "2026-08-23T09:00:00+09:00",
+    outcomeReviewDate: "2026-08-30",
+    supersedesId: root.recommendationId,
+  });
+  const summary = deriveOutcomeReviewDueSummary({
+    recommendations: [root, futureRevision],
+    quantitativeOutcomes: [],
+    semanticReviews: [],
+    asOf: new Date("2026-08-22T03:00:00.000Z"),
+  });
+
+  assert.equal(summary.total, 1);
+  assert.equal(summary.states[0]?.recommendationId, root.recommendationId);
+  assert.equal(summary.states[0]?.dueDate, root.outcomeReviewDate);
+  console.log("outcome-review-due: future recommendation revision cannot rewrite an earlier PIT review queue OK");
+}
