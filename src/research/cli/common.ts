@@ -32,7 +32,7 @@ export function todayJst(now: Date = new Date()): string {
   }).format(now);
 }
 
-/** JST のタイムゾーン付き ISO 8601（例: 2026-08-04T09:00:00+09:00）。 */
+/** JST のタイムゾーン付き ISO 8601（例: 2026-08-04T09:00:00.123+09:00）。 */
 export function nowJstIso(now: Date = new Date()): string {
   const parts = new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Asia/Tokyo",
@@ -44,7 +44,8 @@ export function nowJstIso(now: Date = new Date()): string {
     second: "2-digit",
     hour12: false,
   }).format(now);
-  return `${parts.replace(" ", "T")}+09:00`;
+  const milliseconds = String(now.getUTCMilliseconds()).padStart(3, "0");
+  return `${parts.replace(" ", "T")}.${milliseconds}+09:00`;
 }
 
 export function printIssues(title: string, issues: Issue[]): { errors: number; warnings: number } {
