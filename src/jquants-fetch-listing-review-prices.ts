@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
+import { listingPerformanceReviewDate } from "./listing-performance-date.js";
 
 type ListingEvent = {
   id: string;
@@ -33,14 +34,6 @@ function readJsonl<T>(path: string): T[] {
     .map(line => line.trim())
     .filter(Boolean)
     .map(line => JSON.parse(line) as T);
-}
-
-function addDays(date: string | null | undefined, days: number): string | null {
-  if (!date) return null;
-  const d = new Date(`${date}T00:00:00+09:00`);
-  if (Number.isNaN(d.getTime())) return null;
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
 }
 
 async function getIdToken(): Promise<string | null> {
@@ -98,8 +91,8 @@ function targetEvents(events: ListingEvent[]): { event: ListingEvent; horizon: "
   const targets: { event: ListingEvent; horizon: "30d" | "90d"; reviewDate: string }[] = [];
   for (const event of events) {
     if (event.eventType !== "listing_day" || !event.code || !event.eventDate) continue;
-    const d30 = addDays(event.eventDate, 30);
-    const d90 = addDays(event.eventDate, 90);
+    const d30 = listingPerformanceReviewDate(event.eventDate, 30);
+    const d90 = listingPerformanceReviewDate(event.eventDate, 90);
     if (d30) targets.push({ event, horizon: "30d", reviewDate: d30 });
     if (d90) targets.push({ event, horizon: "90d", reviewDate: d90 });
   }
