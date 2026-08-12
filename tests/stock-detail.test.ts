@@ -219,6 +219,23 @@ function outcome(overrides: Record<string, unknown> = {}) {
 }
 
 {
+  const detail = normalizeStockDetail({
+    code: "8136",
+    data: baseData({
+      hypothesisOutcomes: [
+        outcome({
+          reviewHorizon: "1d",
+          hypothesis: hypothesis({ detectedAt: "2026-08-07" }),
+        }),
+      ],
+    }),
+  });
+  assert.ok(detail);
+  assert.equal(detail.outcomes[0].dueAt, "2026-08-08");
+  console.log("stock-detail: JST calendar dateの1d期限を1日早く表示しない");
+}
+
+{
   const originalCwd = process.cwd();
   const emptyDir = mkdtempSync(join(tmpdir(), "alpha-pon-stock-detail-"));
   try {
