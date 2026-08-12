@@ -135,6 +135,32 @@ function relation(overrides: Partial<EvidenceRelationRecordInput> = {}) {
 }
 
 {
+  const original = evidence();
+  const correction = evidence({
+    evidenceId: "evidence:hardening:correction",
+    recordId: "evidence:hardening:correction:record:001",
+    sourceContentHash: "e".repeat(64),
+    eventAt: "2026-08-06T10:00:00+09:00",
+    publishedAt: "2026-08-06T10:00:00+09:00",
+    observedAt: "2026-08-06T10:01:00+09:00",
+    retrievedAt: "2026-08-06T10:02:00+09:00",
+    effectiveFrom: "2026-08-06T10:00:00+09:00",
+    firstExecutableAt: "2026-08-06T10:02:00+09:00",
+  });
+  const impossibleKnowledge = relation({
+    observedAt: correction.observedAt,
+    retrievedAt: "2026-08-06T10:01:59.999999999+09:00",
+  });
+  assert.ok(validateBitemporalEvidenceStoreGoverned(
+    [original, correction],
+    [impossibleKnowledge],
+    schemas,
+    ENTITY_IDS,
+  ).some((item) => item.code === "relation_retrieved_before_source_evidence"));
+  console.log("bitemporal-evidence-hardening: relation cannot predate source retrieval by 1ns OK");
+}
+
+{
   const first = evidence();
   const second = evidence({
     evidenceId: "evidence:hardening:second",
