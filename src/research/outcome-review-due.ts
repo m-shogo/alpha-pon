@@ -110,12 +110,16 @@ function compareReviewedAt(left: string, right: string, target: string): -1 | 0 
 }
 
 function availableByAsOf(value: string, asOfInstant: string, target: string): boolean {
-  return compareExplicitIso8601Instants(
-    value,
-    asOfInstant,
-    `${target}.reviewedAt`,
-    "outcome review due asOf",
-  ) <= 0;
+  try {
+    return compareExplicitIso8601Instants(
+      value,
+      asOfInstant,
+      `${target}.reviewedAt`,
+      "outcome review due asOf",
+    ) <= 0;
+  } catch (error) {
+    throw new Error(`invalid ${target}.reviewedAt: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 function latestByReviewedAt<T extends { reviewedAt: string }>(
