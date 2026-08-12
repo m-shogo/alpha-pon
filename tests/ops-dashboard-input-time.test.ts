@@ -17,7 +17,12 @@ assert.equal(
 assert.deepEqual(
   normalizeOpsAlphaGeneratedAt({ generatedAt: "2026-08-11T15:30:00Z", warnings: [] }),
   { generatedAt: "2026-08-12", warnings: [] },
-  "ops dashboard input must compare generatedAt using the Tokyo calendar date",
+  "ops dashboard input must compare timestamp generatedAt using the Tokyo calendar date",
+);
+assert.deepEqual(
+  normalizeOpsAlphaGeneratedAt({ generatedAt: "2026-08-12", warnings: [] }),
+  { generatedAt: "2026-08-12", warnings: [] },
+  "existing date-only generatedAt contract must remain supported",
 );
 assert.throws(
   () => jstDateFromExplicitInstant("2026-08-12T00:30:00"),
