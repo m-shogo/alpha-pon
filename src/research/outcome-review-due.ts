@@ -110,12 +110,16 @@ function compareReviewedAt(left: string, right: string, target: string): -1 | 0 
 }
 
 function availableByAsOf(value: string, asOfInstant: string, target: string): boolean {
-  return compareExplicitIso8601Instants(
-    value,
-    asOfInstant,
-    `${target}.reviewedAt`,
-    "outcome review due asOf",
-  ) <= 0;
+  try {
+    return compareExplicitIso8601Instants(
+      value,
+      asOfInstant,
+      `${target}.reviewedAt`,
+      "outcome review due asOf",
+    ) <= 0;
+  } catch (error) {
+    throw new Error(`invalid ${target}.reviewedAt: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 function latestByReviewedAt<T extends { reviewedAt: string }>(
@@ -138,7 +142,12 @@ function canonicalQuantitativeOutcomes(input: {
     record.recommendationId === input.recommendation.recommendationId
     && record.recommendationContentHash === input.recommendation.contentHash,
   );
-  for (const record of matches) {
+  const available = matches.filter((record) => availableByAsOf(
+    record.reviewedAt,
+    input.asOfInstant,
+    `Quantitative Outcome ${record.outcomeId}`,
+  ));
+  for (const record of available) {
     if (computeQuantitativeOutcomeHash(record) !== record.contentHash) {
       throw new Error(`invalid Quantitative Outcome contentHash: ${record.outcomeId}`);
     }
@@ -147,11 +156,6 @@ function canonicalQuantitativeOutcomes(input: {
       throw new Error(`Quantitative Outcome measurementCutoff must equal reviewedAt: ${record.outcomeId}`);
     }
   }
-  const available = matches.filter((record) => availableByAsOf(
-    record.reviewedAt,
-    input.asOfInstant,
-    `Quantitative Outcome ${record.outcomeId}`,
-  ));
 
   const byId = new Map(available.map((record) => [record.outcomeId, record]));
   const roots = available.filter((record) => !record.supersedesOutcomeId);
@@ -203,7 +207,12 @@ function canonicalSemanticReviews(input: {
     record.recommendationId === input.recommendation.recommendationId
     && record.recommendationContentHash === input.recommendation.contentHash,
   );
-  for (const record of matches) {
+  const available = matches.filter((record) => availableByAsOf(
+    record.reviewedAt,
+    input.asOfInstant,
+    `Semantic Review ${record.reviewId}`,
+  ));
+  for (const record of available) {
     if (computeOutcomeSemanticReviewHash(record) !== record.contentHash) {
       throw new Error(`invalid Semantic Review contentHash: ${record.reviewId}`);
     }
@@ -217,11 +226,6 @@ function canonicalSemanticReviews(input: {
       throw new Error(`Semantic Review evidenceCutoff is after reviewedAt: ${record.reviewId}`);
     }
   }
-  const available = matches.filter((record) => availableByAsOf(
-    record.reviewedAt,
-    input.asOfInstant,
-    `Semantic Review ${record.reviewId}`,
-  ));
   for (const record of available) {
     const outcome = outcomeById.get(record.quantitativeOutcomeId);
     if (
