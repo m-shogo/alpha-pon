@@ -9,6 +9,7 @@
 import { existsSync, readFileSync, readdirSync, writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { getTodayInTokyo } from "../src/jobs/date-utils.js";
+import { normalizeOpsAlphaGeneratedAt } from "../src/ops-dashboard-input-time.js";
 import {
   buildOpsDashboard,
   findForbiddenWording,
@@ -82,11 +83,14 @@ const safeWording = scanSafeWording();
 
 type OutcomesFile = { outcomes?: OpsOutcomeLike[] };
 const outcomesFile = readJson<OutcomesFile>("apps/web/public/generated/outcomes.json");
+const alphaData = normalizeOpsAlphaGeneratedAt(
+  readJson<OpsAlphaDataLike>("apps/web/public/generated/alpha-pon-data.json"),
+);
 
 const dashboard = buildOpsDashboard({
   today,
   pipelineStatus: readJson<OpsPipelineStatusLike>("reports/pipeline_status_latest.json"),
-  alphaData: readJson<OpsAlphaDataLike>("apps/web/public/generated/alpha-pon-data.json"),
+  alphaData,
   outcomes: outcomesFile?.outcomes ?? null,
   specialOps: readJson<OpsSpecialOpsLike>("reports/special_situation_ops_summary_latest.json"),
   integrity: readJson<OpsIntegrityLike>("reports/hypothesis_outcome_integrity_latest.json"),
