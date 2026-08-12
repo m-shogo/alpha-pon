@@ -139,4 +139,39 @@ function humanReview(evidenceCutoff: string) {
   assert.equal(state.state, "reviewed_current");
   assert.equal(state.latestSemanticReviewId, boundaryReview.reviewId);
   console.log("outcome-review-due: semantic evidence cutoff equal to quantitative outcome remains valid OK");
+
+  const secondRoot = withOutcomeSemanticReviewHash({
+    ...boundaryReview,
+    reviewId: "semantic:review-due:second-root",
+    reviewedAt: "2026-08-20T10:00:01.000000001+09:00",
+    reviewAuthority: "provisional_ai",
+    reviewerRef: "reviewer:ai:synthetic",
+    learningUse: "proposal_only",
+  });
+  assert.throws(
+    () => deriveOutcomeReviewDueState({
+      recommendation,
+      quantitativeOutcomes: [outcome],
+      semanticReviews: [boundaryReview, secondRoot],
+      asOf: new Date("2026-08-20T03:00:02.000Z"),
+    }),
+    /multiple Semantic Review roots in outcome review queue/,
+  );
+  console.log("outcome-review-due: second semantic root cannot rewrite a human-confirmed read-only state OK");
+
+  const authorityRegression = withOutcomeSemanticReviewHash({
+    ...secondRoot,
+    reviewId: "semantic:review-due:authority-regression",
+    supersedesReviewId: boundaryReview.reviewId,
+  });
+  assert.throws(
+    () => deriveOutcomeReviewDueState({
+      recommendation,
+      quantitativeOutcomes: [outcome],
+      semanticReviews: [boundaryReview, authorityRegression],
+      asOf: new Date("2026-08-20T03:00:02.000Z"),
+    }),
+    /Semantic Review revision authority regressed/,
+  );
+  console.log("outcome-review-due: human-confirmed semantic authority cannot regress in read-only projection OK");
 }
