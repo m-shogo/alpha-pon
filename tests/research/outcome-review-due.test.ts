@@ -260,6 +260,43 @@ const human1 = semanticReview({
 }
 
 {
+  const secondRoot = quantitativeOutcome({
+    outcomeId: "outcome:review-due:second-root",
+    reviewedAt: "2026-08-22T10:00:00.000000001+09:00",
+    terminalTradingDate: "2026-08-21",
+  });
+  assert.throws(
+    () => deriveOutcomeReviewDueState({
+      recommendation,
+      quantitativeOutcomes: [quant1, secondRoot],
+      semanticReviews: [provisional1, human1],
+      asOf: new Date("2026-08-23T03:00:00.000Z"),
+    }),
+    /multiple Quantitative Outcome roots in outcome review queue/,
+  );
+  console.log("outcome-review-due: second quantitative root cannot rewrite the read-only current outcome OK");
+}
+
+{
+  const sibling = quantitativeOutcome({
+    outcomeId: "outcome:review-due:sibling",
+    reviewedAt: "2026-08-22T10:00:00.000000001+09:00",
+    terminalTradingDate: "2026-08-21",
+    supersedesOutcomeId: quant1.outcomeId,
+  });
+  assert.throws(
+    () => deriveOutcomeReviewDueState({
+      recommendation,
+      quantitativeOutcomes: [quant1, quant2, sibling],
+      semanticReviews: [],
+      asOf: new Date("2026-08-23T03:00:00.000Z"),
+    }),
+    /Quantitative Outcome revision fork in outcome review queue/,
+  );
+  console.log("outcome-review-due: quantitative revision fork cannot create parallel read-only current outcomes OK");
+}
+
+{
   const fractionalOlder = quantitativeOutcome({
     outcomeId: "outcome:review-due:fractional-a",
     reviewedAt: "2026-08-22T10:00:00.000000001+09:00",
