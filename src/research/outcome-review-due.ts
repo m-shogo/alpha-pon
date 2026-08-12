@@ -292,6 +292,24 @@ const STATE_PRIORITY: Record<OutcomeReviewDueStateKind, number> = {
   reviewed_current: 4,
 };
 
+function terminalRecommendations(
+  records: readonly RecommendationRecord[],
+  asOfInstant: string,
+): RecommendationRecord[] {
+  const available = records.filter((record) => compareExplicitIso8601Instants(
+    record.issuedAt,
+    asOfInstant,
+    `Recommendation ${record.recommendationId}.issuedAt`,
+    "outcome review due asOf",
+  ) <= 0);
+  const availableIds = new Set(available.map((record) => record.recommendationId));
+  const supersededIds = new Set(
+    available.flatMap((record) =>
+      record.supersedesId && availableIds.has(record.supersedesId) ? [record.supersedesId] : []),
+  );
+  return available.filter((record) => !supersededIds.has(record.recommendationId));
+}
+
 export function deriveOutcomeReviewDueSummary(input: {
   recommendations: RecommendationRecord[];
   quantitativeOutcomes: QuantitativeOutcomeRecord[];
@@ -301,7 +319,8 @@ export function deriveOutcomeReviewDueSummary(input: {
   const asOf = input.asOf ?? new Date();
   const asOfJstDate = jstDateOf(asOf);
   const asOfInstant = asOf.toISOString();
-  const states = input.recommendations.map((recommendation) => stateFor({
+  const currentRecommendations = terminalRecommendations(input.recommendations, asOfInstant);
+  const states = currentRecommendations.map((recommendation) => stateFor({
     recommendation,
     quantitativeOutcomes: input.quantitativeOutcomes,
     semanticReviews: input.semanticReviews,
