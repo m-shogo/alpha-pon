@@ -72,6 +72,7 @@ export type OutcomeSemanticReviewRecord = {
 export type SemanticReviewEvidenceContext = {
   tier: RecommendationEvidenceTier;
   observedAt: string;
+  retrievedAt: string;
 };
 
 export type SemanticReviewReviewerContext = {
@@ -216,14 +217,7 @@ function evidenceIssues(
       issues.push(issue("evidence_tier_mismatch", target, `Evidence tierが正本と一致しません: ${evidence.ref}`));
     }
     try {
-      if (compareExplicitIso8601Instants(
-        canonical.observedAt,
-        record.evidenceCutoff,
-        `Evidence ${evidence.ref}.observedAt`,
-        "evidenceCutoff",
-      ) > 0) {
-        issues.push(issue("future_review_evidence", target, `evidenceCutoff後のEvidenceです: ${evidence.ref}`));
-      }
+      parseExplicitIso8601Instant(canonical.observedAt, `Evidence ${evidence.ref}.observedAt`);
     } catch {
       issues.push(issue(
         "invalid_review_evidence_observed_at",
@@ -231,6 +225,40 @@ function evidenceIssues(
         `Evidence observedAtが不正です: ${evidence.ref}`,
       ));
       continue;
+    }
+    try {
+      parseExplicitIso8601Instant(canonical.retrievedAt, `Evidence ${evidence.ref}.retrievedAt`);
+    } catch {
+      issues.push(issue(
+        "invalid_review_evidence_retrieved_at",
+        target,
+        `Evidence retrievedAtが不正です: ${evidence.ref}`,
+      ));
+      continue;
+    }
+    if (compareExplicitIso8601Instants(
+      canonical.observedAt,
+      canonical.retrievedAt,
+      `Evidence ${evidence.ref}.observedAt`,
+      `Evidence ${evidence.ref}.retrievedAt`,
+    ) > 0) {
+      issues.push(issue("review_evidence_retrieved_before_observed", target, `Evidence retrievedAtがobservedAtより前です: ${evidence.ref}`));
+    }
+    if (compareExplicitIso8601Instants(
+      canonical.observedAt,
+      record.evidenceCutoff,
+      `Evidence ${evidence.ref}.observedAt`,
+      "evidenceCutoff",
+    ) > 0) {
+      issues.push(issue("future_review_evidence", target, `evidenceCutoff後のEvidenceです: ${evidence.ref}`));
+    }
+    if (compareExplicitIso8601Instants(
+      canonical.retrievedAt,
+      record.evidenceCutoff,
+      `Evidence ${evidence.ref}.retrievedAt`,
+      "evidenceCutoff",
+    ) > 0) {
+      issues.push(issue("review_evidence_not_yet_retrieved", target, `evidenceCutoff時点で未取得のEvidenceです: ${evidence.ref}`));
     }
   }
 
