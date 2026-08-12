@@ -115,17 +115,17 @@ const evaluation = withOutcomeLearningShadowEvaluationHash({
   automaticTradingAuthorized: false,
 });
 
-function context(observedAt: string): OutcomeLearningShadowEvaluationContext {
-  return contextFor(shadowEvidenceRef, observedAt);
+function context(observedAt: string, retrievedAt = observedAt): OutcomeLearningShadowEvaluationContext {
+  return contextFor(shadowEvidenceRef, observedAt, retrievedAt);
 }
 
-function contextFor(ref: string, observedAt: string): OutcomeLearningShadowEvaluationContext {
+function contextFor(ref: string, observedAt: string, retrievedAt = observedAt): OutcomeLearningShadowEvaluationContext {
   return {
     decisionsById: new Map([[decision.decisionId, decision]]),
     validatedDecisionHashes: new Set([decision.contentHash]),
     proposalsById: new Map([[proposal.proposalId, proposal]]),
     validatedProposalHashes: new Set([proposal.contentHash]),
-    evidenceByRef: new Map([[ref, { observedAt }]]),
+    evidenceByRef: new Map([[ref, { observedAt, retrievedAt }]]),
     validatedEvidenceRefs: new Set([ref]),
   };
 }
@@ -142,11 +142,11 @@ function evaluationForRef(ref: string) {
   });
 }
 
-function codes(observedAt: string): string[] {
+function codes(observedAt: string, retrievedAt = observedAt): string[] {
   return validateOutcomeLearningShadowEvaluationRecord(
     evaluation,
     schema,
-    context(observedAt),
+    context(observedAt, retrievedAt),
   ).map((candidate) => candidate.code);
 }
 
@@ -163,8 +163,12 @@ assert.deepEqual(codes("2026-08-22T10:00:00+09:00"), []);
 assert.ok(codes("2026-08-22T09:59:59.999999999+09:00").includes("pre_decision_shadow_evidence"));
 assert.ok(codes("2026-09-15T10:00:00").includes("invalid_shadow_evidence_observed_at"));
 assert.ok(codes("2026-02-29T10:00:00+09:00").includes("invalid_shadow_evidence_observed_at"));
+assert.ok(codes("2026-09-15T10:00:00+09:00", "2026-09-15T10:00:00").includes("invalid_shadow_evidence_retrieved_at"));
+assert.ok(codes("2026-09-15T10:00:00.000000001+09:00", "2026-09-15T10:00:00+09:00").includes("shadow_evidence_retrieved_before_observed"));
 assert.ok(codes("2026-09-15T11:30:00+09:00").includes("post_cutoff_shadow_evidence"));
 assert.ok(codes("2026-09-15T11:00:00.000000001+09:00").includes("post_cutoff_shadow_evidence"));
+assert.ok(codes("2026-09-15T10:00:00+09:00", "2026-09-15T11:00:00.000000001+09:00").includes("shadow_evidence_not_yet_retrieved"));
+assert.deepEqual(codes("2026-09-15T10:00:00+09:00", "2026-09-15T11:00:00+09:00"), []);
 assert.ok(refCodes("https://example.invalid/evidence#token=synthetic").includes("secret_like_shadow_evidence_ref"));
 assert.ok(refCodes("https://synthetic:secret@example.invalid/evidence").includes("secret_like_shadow_evidence_ref"));
 assert.deepEqual(refCodes("https://example.invalid/evidence#section-1"), []);
