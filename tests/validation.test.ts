@@ -76,6 +76,7 @@ import "./research/private-price-store.test.js";
 import "./research/price-store-revision-root.test.js";
 import "./research/price-store-execution-after-retrieval.test.js";
 import "./research/recommendation-persistence.test.js";
+import "./research/recommendation-review-day-end-ns.test.js";
 import "./research/recommendation-evidence-url-userinfo.test.js";
 import "./research/recommendation-price-pit-timing.test.js";
 import "./research/quantitative-outcome.test.js";
