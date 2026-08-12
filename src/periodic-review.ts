@@ -1,9 +1,10 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
+import { periodicReviewStart, type PeriodicReviewPeriod } from "./periodic-review-date.js";
 import { loadAnalogyOutcomeRecords, type AnalogyOutcomeRecord } from "./analysis/analogy-db.js";
 
-type Period = "weekly" | "monthly";
+type Period = PeriodicReviewPeriod;
 
 type ScoreLogEntry = {
   code: string;
@@ -36,16 +37,6 @@ type OutcomeStats = {
 };
 
 const period = (process.argv.includes("--monthly") ? "monthly" : "weekly") as Period;
-
-function addDays(date: string, days: number): string {
-  const d = new Date(`${date}T00:00:00+09:00`);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-function periodStart(date: string, p: Period): string {
-  return addDays(date, p === "weekly" ? -7 : -30);
-}
 
 function increment(map: Map<string, number>, key: string): void {
   map.set(key, (map.get(key) ?? 0) + 1);
@@ -128,7 +119,7 @@ function pushOutcomeTable(lines: string[], title: string, groups: Map<string, An
 
 function main() {
   const today = todayJst();
-  const start = periodStart(today, period);
+  const start = periodicReviewStart(today, period);
   const scores = loadScoreLogs().filter(entry => entry.createdAt >= start && entry.createdAt <= today);
   const outcomes = loadAnalogyOutcomeRecords().filter(outcome => outcome.evaluatedAt >= start && outcome.evaluatedAt <= today);
   const warnings = new Map<string, number>();
