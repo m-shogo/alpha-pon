@@ -98,6 +98,22 @@ assert.ok(
   !revisionIssues.some((issue) => issue.code === "revision_time_not_monotonic"),
   "1ns-forward revision chronology must remain monotonic instead of collapsing to one millisecond",
 );
+assert.ok(
+  !revisionIssues.some((issue) => issue.code === "revision_executable_time_regressed"),
+  "a later execution boundary must remain valid",
+);
+
+const revisionRegressedExecution = withPriceRecordHash(input({
+  observedAt: "2024-01-04T15:35:00.000000002+09:00",
+  retrievedAt: "2024-01-04T15:36:00.000000002+09:00",
+  firstExecutableAt: "2024-01-04T15:37:00.000000000+09:00",
+  supersedesHash: revisionRoot.contentHash,
+}));
+assert.ok(
+  validatePriceRecords([revisionRoot, revisionRegressedExecution], schema, NOW)
+    .some((issue) => issue.code === "revision_executable_time_regressed"),
+  "a later revision must not move firstExecutableAt earlier by 1ns",
+);
 
 const futureByOneNs = withPriceRecordHash(input({
   observedAt: "2024-01-04T15:35:00.000000001+09:00",
