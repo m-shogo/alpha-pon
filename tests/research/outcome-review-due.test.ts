@@ -168,7 +168,12 @@ const human1 = semanticReview({
 });
 
 {
-  const state = deriveOutcomeReviewDueState({ recommendation, quantitativeOutcomes: [], semanticReviews: [], asOf: new Date("2026-08-19T14:59:00.000Z") });
+  const state = deriveOutcomeReviewDueState({
+    recommendation,
+    quantitativeOutcomes: [],
+    semanticReviews: [],
+    asOf: new Date("2026-08-19T14:59:00.000Z"),
+  });
   assert.equal(state.asOfJstDate, "2026-08-19");
   assert.equal(state.state, "not_due");
   assert.equal(state.nextAction, "wait_for_review_date");
@@ -176,7 +181,12 @@ const human1 = semanticReview({
 }
 
 {
-  const state = deriveOutcomeReviewDueState({ recommendation, quantitativeOutcomes: [], semanticReviews: [], asOf: new Date("2026-08-19T15:01:00.000Z") });
+  const state = deriveOutcomeReviewDueState({
+    recommendation,
+    quantitativeOutcomes: [],
+    semanticReviews: [],
+    asOf: new Date("2026-08-19T15:01:00.000Z"),
+  });
   assert.equal(state.asOfJstDate, "2026-08-20");
   assert.equal(state.dueToday, true);
   assert.equal(state.state, "quantitative_due");
@@ -185,7 +195,12 @@ const human1 = semanticReview({
 }
 
 {
-  const state = deriveOutcomeReviewDueState({ recommendation, quantitativeOutcomes: [], semanticReviews: [], asOf: new Date("2026-08-22T03:00:00.000Z") });
+  const state = deriveOutcomeReviewDueState({
+    recommendation,
+    quantitativeOutcomes: [],
+    semanticReviews: [],
+    asOf: new Date("2026-08-22T03:00:00.000Z"),
+  });
   assert.equal(state.state, "quantitative_due");
   assert.equal(state.overdue, true);
   assert.equal(state.daysPastDue, 2);
@@ -193,7 +208,12 @@ const human1 = semanticReview({
 }
 
 {
-  const state = deriveOutcomeReviewDueState({ recommendation, quantitativeOutcomes: [quant1], semanticReviews: [], asOf: new Date("2026-08-21T03:00:00.000Z") });
+  const state = deriveOutcomeReviewDueState({
+    recommendation,
+    quantitativeOutcomes: [quant1],
+    semanticReviews: [],
+    asOf: new Date("2026-08-21T03:00:00.000Z"),
+  });
   assert.equal(state.state, "semantic_review_due");
   assert.equal(state.latestQuantitativeOutcomeId, quant1.outcomeId);
   assert.equal(state.nextAction, "create_semantic_review");
@@ -201,7 +221,12 @@ const human1 = semanticReview({
 }
 
 {
-  const state = deriveOutcomeReviewDueState({ recommendation, quantitativeOutcomes: [quant1], semanticReviews: [provisional1], asOf: new Date("2026-08-21T03:00:00.000Z") });
+  const state = deriveOutcomeReviewDueState({
+    recommendation,
+    quantitativeOutcomes: [quant1],
+    semanticReviews: [provisional1],
+    asOf: new Date("2026-08-21T03:00:00.000Z"),
+  });
   assert.equal(state.state, "human_confirmation_due");
   assert.equal(state.latestReviewAuthority, "provisional_ai");
   assert.equal(state.nextAction, "request_human_confirmation");
@@ -209,7 +234,12 @@ const human1 = semanticReview({
 }
 
 {
-  const state = deriveOutcomeReviewDueState({ recommendation, quantitativeOutcomes: [quant1], semanticReviews: [provisional1, human1], asOf: new Date("2026-08-21T03:00:00.000Z") });
+  const state = deriveOutcomeReviewDueState({
+    recommendation,
+    quantitativeOutcomes: [quant1],
+    semanticReviews: [provisional1, human1],
+    asOf: new Date("2026-08-21T03:00:00.000Z"),
+  });
   assert.equal(state.state, "reviewed_current");
   assert.equal(state.overdue, false);
   assert.equal(state.nextAction, "none");
@@ -217,7 +247,12 @@ const human1 = semanticReview({
 }
 
 {
-  const state = deriveOutcomeReviewDueState({ recommendation, quantitativeOutcomes: [quant1, quant2], semanticReviews: [provisional1, human1], asOf: new Date("2026-08-23T03:00:00.000Z") });
+  const state = deriveOutcomeReviewDueState({
+    recommendation,
+    quantitativeOutcomes: [quant1, quant2],
+    semanticReviews: [provisional1, human1],
+    asOf: new Date("2026-08-23T03:00:00.000Z"),
+  });
   assert.equal(state.latestQuantitativeOutcomeId, quant2.outcomeId);
   assert.equal(state.latestSemanticReviewId, null);
   assert.equal(state.state, "semantic_review_due");
@@ -225,18 +260,37 @@ const human1 = semanticReview({
 }
 
 {
-  const secondRoot = quantitativeOutcome({ outcomeId: "outcome:review-due:second-root", reviewedAt: "2026-08-22T10:00:00.000000001+09:00", terminalTradingDate: "2026-08-21" });
+  const secondRoot = quantitativeOutcome({
+    outcomeId: "outcome:review-due:second-root",
+    reviewedAt: "2026-08-22T10:00:00.000000001+09:00",
+    terminalTradingDate: "2026-08-21",
+  });
   assert.throws(
-    () => deriveOutcomeReviewDueState({ recommendation, quantitativeOutcomes: [quant1, secondRoot], semanticReviews: [provisional1, human1], asOf: new Date("2026-08-23T03:00:00.000Z") }),
+    () => deriveOutcomeReviewDueState({
+      recommendation,
+      quantitativeOutcomes: [quant1, secondRoot],
+      semanticReviews: [provisional1, human1],
+      asOf: new Date("2026-08-23T03:00:00.000Z"),
+    }),
     /multiple Quantitative Outcome roots in outcome review queue/,
   );
   console.log("outcome-review-due: second quantitative root cannot rewrite the read-only current outcome OK");
 }
 
 {
-  const sibling = quantitativeOutcome({ outcomeId: "outcome:review-due:sibling", reviewedAt: "2026-08-22T10:00:00.000000001+09:00", terminalTradingDate: "2026-08-21", supersedesOutcomeId: quant1.outcomeId });
+  const sibling = quantitativeOutcome({
+    outcomeId: "outcome:review-due:sibling",
+    reviewedAt: "2026-08-22T10:00:00.000000001+09:00",
+    terminalTradingDate: "2026-08-21",
+    supersedesOutcomeId: quant1.outcomeId,
+  });
   assert.throws(
-    () => deriveOutcomeReviewDueState({ recommendation, quantitativeOutcomes: [quant1, quant2, sibling], semanticReviews: [], asOf: new Date("2026-08-23T03:00:00.000Z") }),
+    () => deriveOutcomeReviewDueState({
+      recommendation,
+      quantitativeOutcomes: [quant1, quant2, sibling],
+      semanticReviews: [],
+      asOf: new Date("2026-08-23T03:00:00.000Z"),
+    }),
     /Quantitative Outcome revision fork in outcome review queue/,
   );
   console.log("outcome-review-due: quantitative revision fork cannot create parallel read-only current outcomes OK");
@@ -265,36 +319,69 @@ const human1 = semanticReview({
 }
 
 {
-  const mutatedQuant: QuantitativeOutcomeRecord = { ...quant1, terminalReturn: quant1.terminalReturn + 0.5 };
+  const mutatedQuant: QuantitativeOutcomeRecord = {
+    ...quant1,
+    terminalReturn: quant1.terminalReturn + 0.5,
+  };
   assert.throws(
-    () => deriveOutcomeReviewDueState({ recommendation, quantitativeOutcomes: [mutatedQuant], semanticReviews: [], asOf: new Date("2026-08-21T03:00:00.000Z") }),
+    () => deriveOutcomeReviewDueState({
+      recommendation,
+      quantitativeOutcomes: [mutatedQuant],
+      semanticReviews: [],
+      asOf: new Date("2026-08-21T03:00:00.000Z"),
+    }),
     /invalid Quantitative Outcome contentHash/,
   );
   console.log("outcome-review-due: mutated quantitative record is rejected before scheduling OK");
 }
 
 {
-  const mutatedReview: OutcomeSemanticReviewRecord = { ...human1, verdict: "correct" };
+  const mutatedReview: OutcomeSemanticReviewRecord = {
+    ...human1,
+    verdict: "correct",
+  };
   assert.throws(
-    () => deriveOutcomeReviewDueState({ recommendation, quantitativeOutcomes: [quant1], semanticReviews: [mutatedReview], asOf: new Date("2026-08-21T03:00:00.000Z") }),
+    () => deriveOutcomeReviewDueState({
+      recommendation,
+      quantitativeOutcomes: [quant1],
+      semanticReviews: [mutatedReview],
+      asOf: new Date("2026-08-21T03:00:00.000Z"),
+    }),
     /invalid Semantic Review contentHash/,
   );
   console.log("outcome-review-due: mutated semantic review is rejected before scheduling OK");
 }
 
 {
-  const invalidReviewedAtQuant = withQuantitativeOutcomeHash({ ...quant1, reviewedAt: "2026-08-20T10:00:00", measurementCutoff: "2026-08-20T10:00:00" });
+  const invalidReviewedAtQuant = withQuantitativeOutcomeHash({
+    ...quant1,
+    reviewedAt: "2026-08-20T10:00:00",
+    measurementCutoff: "2026-08-20T10:00:00",
+  });
   assert.throws(
-    () => deriveOutcomeReviewDueState({ recommendation, quantitativeOutcomes: [invalidReviewedAtQuant], semanticReviews: [], asOf: new Date("2026-08-21T03:00:00.000Z") }),
+    () => deriveOutcomeReviewDueState({
+      recommendation,
+      quantitativeOutcomes: [invalidReviewedAtQuant],
+      semanticReviews: [],
+      asOf: new Date("2026-08-21T03:00:00.000Z"),
+    }),
     /invalid Quantitative Outcome .*reviewedAt/,
   );
   console.log("outcome-review-due: re-hashed timezone-less quantitative reviewedAt is rejected OK");
 }
 
 {
-  const invalidReviewedAtReview = withOutcomeSemanticReviewHash({ ...provisional1, reviewedAt: "2026-02-29T12:00:00+09:00" });
+  const invalidReviewedAtReview = withOutcomeSemanticReviewHash({
+    ...provisional1,
+    reviewedAt: "2026-02-29T12:00:00+09:00",
+  });
   assert.throws(
-    () => deriveOutcomeReviewDueState({ recommendation, quantitativeOutcomes: [quant1], semanticReviews: [invalidReviewedAtReview], asOf: new Date("2026-08-21T03:00:00.000Z") }),
+    () => deriveOutcomeReviewDueState({
+      recommendation,
+      quantitativeOutcomes: [quant1],
+      semanticReviews: [invalidReviewedAtReview],
+      asOf: new Date("2026-08-21T03:00:00.000Z"),
+    }),
     /invalid Semantic Review .*reviewedAt/,
   );
   console.log("outcome-review-due: re-hashed non-Gregorian semantic reviewedAt is rejected OK");
