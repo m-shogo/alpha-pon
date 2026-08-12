@@ -27,6 +27,16 @@ assert.equal(
   ),
   1,
 );
+assert.throws(
+  () => compareWebMarketEventSortAt("2026-08-11T24:00:00Z", "2026-08-12T00:00:00Z"),
+  /valid Gregorian ISO-8601 timestamp/,
+  "web ordering must reject 24:00 instead of Date.parse-normalizing it into the next day",
+);
+assert.throws(
+  () => webMarketEventJapanDate("2026-08-12T00:00:00-00:00"),
+  /known timezone offset/,
+  "JST projection must reject an explicitly unknown timezone offset",
+);
 
 const offsetOrdered = [
   { sortAt: "2026-08-11T15:30:00Z", priority: "S1" as const },

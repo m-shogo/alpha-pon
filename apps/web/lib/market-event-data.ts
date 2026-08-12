@@ -99,7 +99,50 @@ export const EMPTY_MARKET_EVENT_DATA: WebMarketEventData = {
 }
 
 const WEB_MARKET_EVENT_INSTANT =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.(\d{1,9}))?(?:Z|[+-]\d{2}:\d{2})$/
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(Z|[+-]\d{2}:\d{2})$/
+
+function leapYear(year: number): boolean {
+  return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)
+}
+
+function daysInMonth(year: number, month: number): number {
+  return [31, leapYear(year) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1] ?? 0
+}
+
+function strictMarketEventMilliseconds(value: string): number {
+  const match = WEB_MARKET_EVENT_INSTANT.exec(value)
+  if (!match) throw new Error(`invalid market event sortAt: ${value}`)
+
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  const hour = Number(match[4])
+  const minute = Number(match[5])
+  const second = Number(match[6])
+  const fractional = match[7] ?? ''
+  const zone = match[8]
+
+  if (
+    month < 1 || month > 12 || day < 1 || day > daysInMonth(year, month)
+    || hour > 23 || minute > 59 || second > 59
+  ) throw new Error('market event sortAt must be a valid Gregorian ISO-8601 timestamp')
+
+  let offsetMinutes = 0
+  if (zone !== 'Z') {
+    if (zone === '-00:00') throw new Error('market event sortAt must use a known timezone offset')
+    const offsetHour = Number(zone.slice(1, 3))
+    const offsetMinute = Number(zone.slice(4, 6))
+    if (offsetHour > 14 || offsetMinute > 59 || (offsetHour === 14 && offsetMinute !== 0)) {
+      throw new Error('market event sortAt must have a valid timezone offset within ±14:00')
+    }
+    offsetMinutes = (zone.startsWith('+') ? 1 : -1) * (offsetHour * 60 + offsetMinute)
+  }
+
+  const localClock = new Date(0)
+  localClock.setUTCFullYear(year, month - 1, day)
+  localClock.setUTCHours(hour, minute, second, Number((fractional + '000').slice(0, 3)))
+  return localClock.getTime() - offsetMinutes * 60_000
+}
 
 function sortAtInstant(value: string): string {
   return /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00+09:00` : value
@@ -109,9 +152,8 @@ function sortAtNanoseconds(value: string): bigint {
   const instant = sortAtInstant(value)
   const match = WEB_MARKET_EVENT_INSTANT.exec(instant)
   if (!match) throw new Error(`invalid market event sortAt: ${value}`)
-  const milliseconds = Date.parse(instant)
-  if (!Number.isFinite(milliseconds)) throw new Error(`invalid market event sortAt: ${value}`)
-  const fractional = match[1] ?? ''
+  const milliseconds = strictMarketEventMilliseconds(instant)
+  const fractional = match[7] ?? ''
   const subMillisecond = BigInt((fractional + '000000000').slice(3, 9))
   return BigInt(milliseconds) * BigInt(1_000_000) + subMillisecond
 }
@@ -139,15 +181,13 @@ export function compareWebMarketEventsBySortAt(
 export function webMarketEventJapanDate(value: string): string {
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
   const instant = sortAtInstant(value)
-  if (!WEB_MARKET_EVENT_INSTANT.test(instant)) throw new Error(`invalid market event sortAt: ${value}`)
-  const date = new Date(instant)
-  if (!Number.isFinite(date.getTime())) throw new Error(`invalid market event sortAt: ${value}`)
+  const milliseconds = strictMarketEventMilliseconds(instant)
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Tokyo',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-  }).format(date)
+  }).format(new Date(milliseconds))
 }
 
 function array<T>(value: unknown): T[] {
