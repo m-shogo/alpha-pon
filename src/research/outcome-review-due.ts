@@ -201,6 +201,58 @@ function canonicalSemanticReviews(input: {
       throw new Error(`Semantic Review evidenceCutoff is before Quantitative Outcome reviewedAt: ${record.reviewId}`);
     }
   }
+
+  const byId = new Map(available.map((record) => [record.reviewId, record]));
+  const roots = available.filter((record) => !record.supersedesReviewId);
+  if (roots.length > 1) {
+    throw new Error(`multiple Semantic Review roots in outcome review queue: ${input.recommendation.recommendationId}`);
+  }
+  const childrenByParent = new Map<string, string[]>();
+  for (const record of available) {
+    if (!record.supersedesReviewId) continue;
+    const prior = byId.get(record.supersedesReviewId);
+    if (!prior) {
+      throw new Error(`Semantic Review revision references unavailable superseded review: ${record.reviewId}`);
+    }
+    if (compareExplicitIso8601Instants(
+      record.reviewedAt,
+      prior.reviewedAt,
+      `Semantic Review ${record.reviewId}.reviewedAt`,
+      `Semantic Review ${prior.reviewId}.reviewedAt`,
+    ) <= 0) {
+      throw new Error(`Semantic Review revision reviewedAt is not monotonic: ${record.reviewId}`);
+    }
+    if (compareExplicitIso8601Instants(
+      record.evidenceCutoff,
+      prior.evidenceCutoff,
+      `Semantic Review ${record.reviewId}.evidenceCutoff`,
+      `Semantic Review ${prior.reviewId}.evidenceCutoff`,
+    ) < 0) {
+      throw new Error(`Semantic Review revision evidenceCutoff regressed: ${record.reviewId}`);
+    }
+    if (prior.reviewAuthority === "human_confirmed" && record.reviewAuthority !== "human_confirmed") {
+      throw new Error(`Semantic Review revision authority regressed: ${record.reviewId}`);
+    }
+    const priorOutcome = outcomeById.get(prior.quantitativeOutcomeId);
+    const currentOutcome = outcomeById.get(record.quantitativeOutcomeId);
+    if (priorOutcome && currentOutcome && compareExplicitIso8601Instants(
+      currentOutcome.reviewedAt,
+      priorOutcome.reviewedAt,
+      `Quantitative Outcome ${currentOutcome.outcomeId}.reviewedAt`,
+      `Quantitative Outcome ${priorOutcome.outcomeId}.reviewedAt`,
+    ) < 0) {
+      throw new Error(`Semantic Review revision quantitative outcome regressed: ${record.reviewId}`);
+    }
+    const children = childrenByParent.get(record.supersedesReviewId) ?? [];
+    children.push(record.reviewId);
+    childrenByParent.set(record.supersedesReviewId, children);
+  }
+  for (const [parentId, children] of childrenByParent) {
+    if (children.length > 1) {
+      throw new Error(`Semantic Review revision fork in outcome review queue: ${parentId}`);
+    }
+  }
+
   return available;
 }
 
