@@ -46,15 +46,16 @@ export function validateClaimGraphEndpointChronology(
   evidenceSnapshot: EvidenceSnapshot,
 ): ClaimGraphIssue[] {
   const issues: ClaimGraphIssue[] = [];
-  const claimById = earliestClaimById(claims);
+  const firstClaimById = earliestClaimById(claims);
+  const currentClaimById = new Map(claims.map((record) => [record.claimId, record]));
   const evidenceById = new Map(
     evidenceSnapshot.evidence.map((record) => [record.evidenceId, record]),
   );
 
   for (const edge of edges) {
     const target = `claim-edge:${edge.edgeId}:${edge.recordId}`;
-    const fromClaim = edge.fromKind === "claim" ? claimById.get(edge.fromId) : undefined;
-    const toClaim = edge.toKind === "claim" ? claimById.get(edge.toId) : undefined;
+    const fromClaim = edge.fromKind === "claim" ? firstClaimById.get(edge.fromId) : undefined;
+    const toClaim = edge.toKind === "claim" ? firstClaimById.get(edge.toId) : undefined;
     const fromEvidence = edge.fromKind === "evidence"
       ? evidenceById.get(edge.fromId)
       : undefined;
@@ -125,21 +126,27 @@ export function validateClaimGraphEndpointChronology(
       ));
     }
 
+    const dispositionFromClaim = edge.fromKind === "claim"
+      ? currentClaimById.get(edge.fromId)
+      : undefined;
+    const dispositionToClaim = edge.toKind === "claim"
+      ? currentClaimById.get(edge.toId)
+      : undefined;
     if (
       ["corrects", "supersedes", "invalidates", "expires"].includes(edge.relationType) &&
-      fromClaim &&
-      toClaim &&
+      dispositionFromClaim &&
+      dispositionToClaim &&
       before(
-        fromClaim.observedAt,
-        toClaim.observedAt,
-        `claim:${fromClaim.claimId}:${fromClaim.recordId}.observedAt`,
-        `claim:${toClaim.claimId}:${toClaim.recordId}.observedAt`,
+        dispositionFromClaim.observedAt,
+        dispositionToClaim.observedAt,
+        `claim:${dispositionFromClaim.claimId}:${dispositionFromClaim.recordId}.observedAt`,
+        `claim:${dispositionToClaim.claimId}:${dispositionToClaim.recordId}.observedAt`,
       )
     ) {
       issues.push(issue(
         "claim_disposition_from_older_claim",
         target,
-        `${fromClaim.claimId}は${toClaim.claimId}以後に観測される必要があります`,
+        `${dispositionFromClaim.claimId}は${dispositionToClaim.claimId}以後に観測される必要があります`,
       ));
     }
   }
