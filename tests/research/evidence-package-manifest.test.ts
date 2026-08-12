@@ -170,4 +170,20 @@ const schemas: EvidencePackageSchemas = {
   console.log("evidence-package-manifest: non-canonical arrays block OK");
 }
 
+{
+  const context = evidencePackageContext();
+  const request = evidencePackageBuildRequest({
+    createdAt: "2026-08-06T00:25:00.000000000+09:00",
+    informationCutoff: "2026-08-06T00:25:00.000000001+09:00",
+  });
+  const manifest = buildEvidencePackageManifest(request, context);
+  assert.ok(validateEvidencePackageManifest(
+    manifest,
+    request,
+    context,
+    schemas,
+  ).some((item) => item.code === "evidence_package_created_before_cutoff"));
+  console.log("evidence-package-manifest: sub-millisecond createdAt regression blocks OK");
+}
+
 console.log("evidence-package-manifest: 全テスト成功");
