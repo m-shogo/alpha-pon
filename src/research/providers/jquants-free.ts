@@ -116,7 +116,7 @@ export function jquantsTradingDayCloseJst(tradingDate: string): string {
 export function jquantsFreeObservedAt(tradingDate: string, delayDays = JQUANTS_FREE_DELAY_DAYS): string {
   const date = normalizeDate(tradingDate);
   const delayedDate = addCalendarDaysJst(date, delayDays);
-  return `${delayedDate}T23:59:59+09:00`;
+  return `${delayedDate}T23:59:59.999999999+09:00`;
 }
 
 function canonicalStoreCode(code: string): string {
