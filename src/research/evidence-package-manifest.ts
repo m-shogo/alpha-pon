@@ -24,6 +24,7 @@ import type {
 import {
   validateGovernedDocumentRevisionDiffSnapshot,
 } from "./document-revision-diff-snapshot.js";
+import { compareExplicitIso8601Instants } from "./iso-instant.js";
 import type {
   SecurityMasterSnapshot,
 } from "./security-master.js";
@@ -561,7 +562,12 @@ export function validateEvidencePackageManifest(
       "Evidence Package contentHash mismatch",
     ));
   }
-  if (new Date(manifest.createdAt).getTime() < new Date(manifest.informationCutoff).getTime()) {
+  if (compareExplicitIso8601Instants(
+    manifest.createdAt,
+    manifest.informationCutoff,
+    "Evidence Package createdAt",
+    "Evidence Package informationCutoff",
+  ) < 0) {
     issues.push(issue(
       "evidence_package_created_before_cutoff",
       manifest.packageId,
