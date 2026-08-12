@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
+import { listingEventDaysBetween } from "./listing-event-date.js";
 
 type NotificationLevel = "priority" | "morning_summary" | "log";
 type ListingEventType =
@@ -58,19 +59,6 @@ function readJsonl<T>(path: string): T[] {
     .map(line => JSON.parse(line) as T);
 }
 
-function parseDate(date: string | null | undefined): Date | null {
-  if (!date) return null;
-  const parsed = new Date(`${date}T00:00:00+09:00`);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-function daysBetween(fromDate: string, toDate: string): number | null {
-  const from = parseDate(fromDate);
-  const to = parseDate(toDate);
-  if (!from || !to) return null;
-  return Math.round((to.getTime() - from.getTime()) / 86_400_000);
-}
-
 function windowDays(eventType: string): number {
   if (eventType === "listing_day") return 7;
   if (eventType === "first_earnings") return 14;
@@ -99,7 +87,7 @@ function toAlert(event: ListingEvent, today: string, config: Config): Alert | nu
     };
   }
 
-  const daysUntil = daysBetween(today, eventDate);
+  const daysUntil = listingEventDaysBetween(today, eventDate);
   if (daysUntil === null) {
     return {
       ...event,
