@@ -3,16 +3,17 @@ import { deriveOutcomeReviewDueState } from "../../src/research/outcome-review-d
 import { withRecommendationHash } from "../../src/research/recommendation-persistence.js";
 
 function recommendation(outcomeReviewDate: string) {
+  const year = outcomeReviewDate.slice(0, 4);
   return withRecommendationHash({
     schemaVersion: 1,
     recommendationId: `rec:review-date:${outcomeReviewDate}`,
-    issuedAt: "2026-02-28T09:10:00+09:00",
-    informationCutoff: "2026-02-28T09:00:00+09:00",
+    issuedAt: `${year}-02-28T09:10:00+09:00`,
+    informationCutoff: `${year}-02-28T09:00:00+09:00`,
     code: "TEST1",
     companyName: "Synthetic Fixture",
     currentPrice: 1000,
     currentPriceRecordHash: "a".repeat(64),
-    currentPriceFirstExecutableAt: "2026-02-28T09:00:00+09:00",
+    currentPriceFirstExecutableAt: `${year}-02-28T09:00:00+09:00`,
     decision: "WATCH",
     timeHorizon: "synthetic",
     bullScenario: "synthetic bull",
@@ -34,10 +35,10 @@ function recommendation(outcomeReviewDate: string) {
     edgeIds: ["synthetic-edge"],
     benchmark: "TOPIX",
     benchmarkPriceRecordHash: "b".repeat(64),
-    benchmarkPriceFirstExecutableAt: "2026-02-28T09:00:00+09:00",
+    benchmarkPriceFirstExecutableAt: `${year}-02-28T09:00:00+09:00`,
     sectorBenchmark: "TOPIX-17",
     sectorBenchmarkPriceRecordHash: "c".repeat(64),
-    sectorBenchmarkPriceFirstExecutableAt: "2026-02-28T09:00:00+09:00",
+    sectorBenchmarkPriceFirstExecutableAt: `${year}-02-28T09:00:00+09:00`,
     outcomeReviewDate,
     status: "open",
     automaticTradingAuthorized: false,
