@@ -311,6 +311,13 @@ const STATE_PRIORITY: Record<OutcomeReviewDueStateKind, number> = {
   reviewed_current: 4,
 };
 
+function canonicalRecommendationCode(code: string): string {
+  const normalized = code.trim().toUpperCase().replace(/\.T$/, "");
+  return normalized.length === 5 && normalized.endsWith("0")
+    ? normalized.slice(0, -1)
+    : normalized;
+}
+
 function terminalRecommendations(
   records: readonly RecommendationRecord[],
   asOfInstant: string,
@@ -321,11 +328,49 @@ function terminalRecommendations(
     `Recommendation ${record.recommendationId}.issuedAt`,
     "outcome review due asOf",
   ) <= 0);
-  const availableIds = new Set(available.map((record) => record.recommendationId));
-  const supersededIds = new Set(
-    available.flatMap((record) =>
-      record.supersedesId && availableIds.has(record.supersedesId) ? [record.supersedesId] : []),
-  );
+  const byId = new Map(available.map((record) => [record.recommendationId, record]));
+  const childrenByParent = new Map<string, string[]>();
+
+  for (const record of available) {
+    if (!record.supersedesId) continue;
+    const prior = byId.get(record.supersedesId);
+    if (!prior) {
+      throw new Error(`Recommendation revision references unavailable superseded record: ${record.recommendationId}`);
+    }
+    if (
+      canonicalRecommendationCode(prior.code) !== canonicalRecommendationCode(record.code)
+      || prior.companyName !== record.companyName
+    ) {
+      throw new Error(`Recommendation revision identity mismatch: ${record.recommendationId}`);
+    }
+    if (compareExplicitIso8601Instants(
+      record.issuedAt,
+      prior.issuedAt,
+      `Recommendation ${record.recommendationId}.issuedAt`,
+      `Recommendation ${prior.recommendationId}.issuedAt`,
+    ) <= 0) {
+      throw new Error(`Recommendation revision issuedAt is not monotonic: ${record.recommendationId}`);
+    }
+    if (compareExplicitIso8601Instants(
+      record.informationCutoff,
+      prior.informationCutoff,
+      `Recommendation ${record.recommendationId}.informationCutoff`,
+      `Recommendation ${prior.recommendationId}.informationCutoff`,
+    ) < 0) {
+      throw new Error(`Recommendation revision informationCutoff regressed: ${record.recommendationId}`);
+    }
+    const children = childrenByParent.get(record.supersedesId) ?? [];
+    children.push(record.recommendationId);
+    childrenByParent.set(record.supersedesId, children);
+  }
+
+  for (const [parentId, children] of childrenByParent) {
+    if (children.length > 1) {
+      throw new Error(`Recommendation revision fork in outcome review queue: ${parentId}`);
+    }
+  }
+
+  const supersededIds = new Set(childrenByParent.keys());
   return available.filter((record) => !supersededIds.has(record.recommendationId));
 }
 
