@@ -36,6 +36,7 @@ export type CorporateActionClearanceRecord = {
 export type CorporateActionEvidenceContext = {
   tier: CorporateActionEvidenceTier;
   observedAt: string;
+  retrievedAt: string;
 };
 
 export type CorporateActionClearanceContext = {
@@ -164,6 +165,28 @@ export function validateCorporateActionClearanceRecord(
       ));
       continue;
     }
+    try {
+      parseExplicitIso8601Instant(canonical.retrievedAt, `Evidence ${evidence.ref}.retrievedAt`);
+    } catch {
+      issues.push(issue(
+        "invalid_evidence_retrieved_at",
+        target,
+        `Evidence retrievedAtが不正です: ${evidence.ref}`,
+      ));
+      continue;
+    }
+    if (compareExplicitIso8601Instants(
+      canonical.retrievedAt,
+      canonical.observedAt,
+      `Evidence ${evidence.ref}.retrievedAt`,
+      `Evidence ${evidence.ref}.observedAt`,
+    ) < 0) {
+      issues.push(issue(
+        "evidence_retrieved_before_observed",
+        target,
+        `Evidence retrievedAtはobservedAt以後である必要があります: ${evidence.ref}`,
+      ));
+    }
     if (compareExplicitIso8601Instants(
       canonical.observedAt,
       record.assessedAt,
@@ -171,6 +194,18 @@ export function validateCorporateActionClearanceRecord(
       `Corporate Action Clearance ${record.clearanceId}.assessedAt`,
     ) > 0) {
       issues.push(issue("future_evidence", target, `assessedAt後のEvidenceを事前clearanceへ使えません: ${evidence.ref}`));
+    }
+    if (compareExplicitIso8601Instants(
+      canonical.retrievedAt,
+      record.assessedAt,
+      `Evidence ${evidence.ref}.retrievedAt`,
+      `Corporate Action Clearance ${record.clearanceId}.assessedAt`,
+    ) > 0) {
+      issues.push(issue(
+        "future_retrieved_evidence",
+        target,
+        `assessedAt後に取得したEvidenceを事前clearanceへ使えません: ${evidence.ref}`,
+      ));
     }
   }
 
