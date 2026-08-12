@@ -12,6 +12,9 @@ import {
   withDocumentRevisionHash,
 } from "../../src/research/document-revision-diff.js";
 import {
+  validateIncomingDocumentRevisionDiffCutoff,
+} from "../../src/research/document-revision-diff-governed.js";
+import {
   appendDocumentRevisionDiffRecordsAtCutoffGoverned,
 } from "../../src/research/document-revision-diff-writer.js";
 import {
@@ -175,6 +178,55 @@ import {
   const rehashed = withDocumentRevisionHash(futureInput);
   assert.notEqual(rehashed.contentHash, "0".repeat(64));
   console.log("document-revision-diff-writer: fixture rehash helper OK");
+}
+
+{
+  const dir = mkdtempSync(join(tmpdir(), "document-revision-writer-expired-incoming-"));
+  const paths = {
+    revisions: join(dir, "revisions.jsonl"),
+    diffs: join(dir, "diffs.jsonl"),
+  };
+  const snapshot = correctedDocumentEvidenceSnapshot();
+  const expiredRevision = documentRevision({
+    recordId: "document-revision:document-pilot:expired:row:001",
+    documentRevisionId: "document-revision:document-pilot:expired",
+    effectiveTo: "2026-08-06T09:59:59.999999999+09:00",
+  });
+  const expiredDiff = documentDiff({
+    recordId: "document-diff:document-pilot:expired:row:001",
+    diffId: "document-diff:document-pilot:expired",
+    effectiveTo: "2026-08-06T09:59:59.999999999+09:00",
+  });
+  const directIssues = validateIncomingDocumentRevisionDiffCutoff(
+    [expiredRevision],
+    [expiredDiff],
+    snapshot,
+  );
+  assert.ok(directIssues.some(
+    (candidate) => candidate.code === "incoming_document_revision_expired_before_snapshot_cutoff",
+  ));
+  assert.ok(directIssues.some(
+    (candidate) => candidate.code === "incoming_document_diff_expired_before_snapshot_cutoff",
+  ));
+  try {
+    assert.throws(
+      () => appendDocumentRevisionDiffRecordsAtCutoffGoverned(
+        paths,
+        { revisions: [expiredRevision], diffs: [expiredDiff] },
+        "document-expired-owner",
+        documentRevisionDiffSchemas,
+        snapshot,
+        documentKnownEntityIds,
+      ),
+      /incoming_document_(revision|diff)_expired_before_snapshot_cutoff/,
+    );
+    assert.equal(existsSync(paths.revisions), false);
+    assert.equal(existsSync(paths.diffs), false);
+    assert.equal(existsSync(`${paths.revisions}.document-revision.lock`), false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  console.log("document-revision-diff-writer: expired incoming records are rejected before append OK");
 }
 
 console.log("document-revision-diff-writer: 全テスト成功");
