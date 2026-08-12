@@ -4,6 +4,7 @@ import { listingEventDaysBetween, parseListingEventDate } from "../src/listing-e
 import { staleHypothesisAgeDays } from "../src/stale-hypothesis-date.js";
 import { periodicReviewStart } from "../src/periodic-review-date.js";
 import { listingPerformanceReviewDate } from "../src/listing-performance-date.js";
+import { analogyReviewDueDate } from "../src/analogy-review-date.js";
 import { buildMarketContext } from "../src/analysis/market-context.js";
 import { buildFinancialQuality } from "../src/analysis/financial-quality.js";
 import { classifyWorldEvent, type ClassifiedWorldEvent } from "../src/analysis/world-event-map.js";
@@ -108,6 +109,14 @@ function testListingPerformanceReviewDatesUseJstCalendarDays() {
   assert.equal(listingPerformanceReviewDate(undefined, 30), null);
 }
 
+function testAnalogyReviewDueDatesUseJstCalendarDays() {
+  assert.equal(analogyReviewDueDate("2026-08-12", "1d"), "2026-08-13");
+  assert.equal(analogyReviewDueDate("2026-08-12", "1w"), "2026-08-19");
+  assert.equal(analogyReviewDueDate("2026-08-12", "1m"), "2026-09-11");
+  assert.equal(analogyReviewDueDate("2024-02-29", "1d"), "2024-03-01");
+  assert.throws(() => analogyReviewDueDate("2026-02-30", "1d"), /real YYYY-MM-DD/);
+}
+
 function testWorldEventReflectionReliabilityGate() {
   const official = classifyWorldEvent({
     title: "Official statement: AI datacenter power grid investment announced",
@@ -200,6 +209,7 @@ function main() {
   testStaleHypothesisReviewDateRejectsInvalidGregorianDates();
   testPeriodicReviewUsesJstCalendarWindows();
   testListingPerformanceReviewDatesUseJstCalendarDays();
+  testAnalogyReviewDueDatesUseJstCalendarDays();
   testWorldEventReflectionReliabilityGate();
   testWorldEventReflectionRejectsUnknownSources();
   testWorldEventClustersSuppressSocialOnlyRumors();
