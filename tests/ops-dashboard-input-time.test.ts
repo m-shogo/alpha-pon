@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { dateNDaysAgoJst } from "../src/date.js";
 import {
   jstDateFromExplicitInstant,
   normalizeOpsAlphaGeneratedAt,
@@ -35,4 +36,33 @@ assert.throws(
   "non-Gregorian generatedAt must fail closed",
 );
 
-console.log("ops-dashboard-input-time: JST generatedAt boundary OK");
+{
+  const realDate = Date;
+  const previousTz = process.env.TZ;
+  const fixedNow = "2026-11-01T15:30:00.000Z"; // 2026-11-02 00:30 JST; DST fallback day in New York.
+  const FixedDate = class extends realDate {
+    constructor(...args: [] | [string | number]) {
+      super(args.length === 0 ? fixedNow : args[0]);
+    }
+
+    static now(): number {
+      return realDate.parse(fixedNow);
+    }
+  } as DateConstructor;
+
+  try {
+    process.env.TZ = "America/New_York";
+    globalThis.Date = FixedDate;
+    assert.equal(
+      dateNDaysAgoJst(1),
+      "20261101",
+      "JST relative dates must not shift across a host DST fallback boundary",
+    );
+  } finally {
+    globalThis.Date = realDate;
+    if (previousTz === undefined) delete process.env.TZ;
+    else process.env.TZ = previousTz;
+  }
+}
+
+console.log("ops-dashboard-input-time: JST generatedAt and host-timezone boundaries OK");
