@@ -151,7 +151,7 @@ function classifyQuality(direction: AnalogyOutcomeDirection, scoreDelta: number 
 
 function buildReview(prediction: AnalogyPredictionRecord, points: ScorePoint[], reviewedAt: string): PredictionReviewRecord {
   const baseDate = prediction.createdAt.slice(0, 10);
-  const targetDate = addDays(baseDate, timeframeDays(prediction.expectedTimeframe ?? "1w"));
+  const targetDate = prediction.reviewDueAt || addDays(baseDate, timeframeDays(prediction.timeframe));
   const base = findBasePoint(points, prediction.candidateCode, baseDate);
   const review = findClosestPoint(points, prediction.candidateCode, targetDate);
   const scoreDelta = base && review ? review.score - base.score : null;
@@ -189,7 +189,7 @@ function buildReview(prediction: AnalogyPredictionRecord, points: ScorePoint[], 
     lessonId: prediction.lessonId,
     lessonTitle: prediction.lessonTitle,
     expectedDirection: prediction.expectedDirection,
-    expectedTimeframe: prediction.expectedTimeframe ?? "",
+    expectedTimeframe: prediction.expectedTimeframe ?? prediction.timeframe,
     confidence: prediction.confidence,
     baseDate,
     baseScore: base?.score ?? null,
