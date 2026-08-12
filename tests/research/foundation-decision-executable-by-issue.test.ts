@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   withFoundationDecisionHash,
+  withFoundationPriceSnapshotHash,
   type FoundationDecisionIntegrationRecord,
 } from "../../src/research/foundation-decision-integration.js";
 import { validateFoundationDecisionRepository } from "../../src/research/foundation-decision-integration-repository.js";
@@ -88,8 +89,52 @@ try {
     ),
     "Foundation Decision must fail closed when firstExecutableAt is even 1ns after issuedAt",
   );
+
+  const topixBenchmark = withFoundationPriceSnapshotHash({
+    schemaVersion: 1,
+    snapshotId: "price-topix",
+    candidateId: input.candidateId,
+    listedSecurityEntityId: input.listedSecurityEntityId,
+    role: "topix_benchmark",
+    instrumentId: "TOPIX-synthetic",
+    providerId: "provider-synthetic",
+    providerRecordId: "provider-record-synthetic",
+    tradingDate: "2026-08-06",
+    informationCutoff: input.informationCutoff,
+    observedAt: input.informationCutoff,
+    firstExecutableAt: "2026-08-06T06:05:00.000000002Z",
+    value: 1,
+    currency: "JPY",
+    adjustmentStatus: "raw",
+    licenseClass: "local_only",
+    rawPayloadHash: hash("3"),
+  });
+  const benchmarkDecision = withFoundationDecisionHash({
+    ...input,
+    decisionId: "decision-benchmark-executable-after-issue",
+    firstExecutableAt: input.issuedAt,
+    priceSnapshots: {
+      ...input.priceSnapshots,
+      topixBenchmark: { id: topixBenchmark.snapshotId, hash: topixBenchmark.contentHash },
+    },
+  });
+  writeFileSync(decisionsPath, `${JSON.stringify(benchmarkDecision)}\n`, "utf-8");
+  writeFileSync(priceSnapshotsPath, `${JSON.stringify(topixBenchmark)}\n`, "utf-8");
+  const benchmarkResult = validateFoundationDecisionRepository({
+    decisionsPath,
+    priceSnapshotsPath,
+    replayManifestDir,
+    includeDependencyIssues: false,
+  });
+  assert.ok(
+    benchmarkResult.issues.some((item) =>
+      item.code === "decision_benchmark_not_executable_at_issue"
+      && item.target === `${benchmarkDecision.decisionId}:topixBenchmark`,
+    ),
+    "Foundation Decision must fail closed when a pinned benchmark becomes executable even 1ns after issuedAt",
+  );
 } finally {
   rmSync(root, { recursive: true, force: true });
 }
 
-console.log("foundation-decision-executable-by-issue: future executable price is blocked");
+console.log("foundation-decision-executable-by-issue: future executable price and benchmarks are blocked");
