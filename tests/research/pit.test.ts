@@ -13,6 +13,7 @@ import "./market-event-exact-instant.test.js";
 import "./bitemporal-evidence-subms.test.js";
 import "./outcome-review-due-real-date.test.js";
 import assert from "node:assert/strict";
+import { nowJstIso } from "../../src/research/cli/common.js";
 import { canEnterSameClose, checkPit, jstDateOf } from "../../src/research/pit.js";
 import { makeAnalog, makeEdge, makeState } from "./helpers.js";
 
@@ -28,6 +29,20 @@ function testJstConversion() {
   assert.throws(() => jstDateOf("2026-08-04T00:30:00"), /explicit timezone/);
   assert.throws(() => jstDateOf("2026-08-04T00:30:00-00:00"), /known timezone offset/);
   console.log("research/pit: JST 変換 OK");
+}
+
+function testNowJstIsoPreservesMilliseconds() {
+  assert.equal(
+    nowJstIso(new Date("2026-08-04T00:00:00.999Z")),
+    "2026-08-04T09:00:00.999+09:00",
+    "Research OS provenance timestamps must not move backward by truncating milliseconds",
+  );
+  assert.equal(
+    nowJstIso(new Date("2026-08-03T15:00:00.001Z")),
+    "2026-08-04T00:00:00.001+09:00",
+    "millisecond precision must survive the UTC-to-JST date boundary",
+  );
+  console.log("research/pit: Research OS JST timestamp millisecond precision OK");
 }
 
 function testSameCloseEntryWindow() {
@@ -127,6 +142,7 @@ function testCleanStateHasNoErrors() {
 }
 
 testJstConversion();
+testNowJstIsoPreservesMilliseconds();
 testSameCloseEntryWindow();
 testFutureTimestampRejected();
 testFutureTimestampUsesInstantOrdering();
