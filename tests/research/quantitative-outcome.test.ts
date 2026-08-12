@@ -369,6 +369,41 @@ function approx(actual: number, expected: number, tolerance = 1e-12): void {
 }
 
 {
+  const detectedRevision = withCorporateActionClearanceHash({
+    ...clearance,
+    clearanceId: "ca-clearance:8136:detected-revision",
+    assessedAt: "2026-08-14T11:00:00+09:00",
+    status: "action_detected",
+    supersedesClearanceId: clearance.clearanceId,
+  });
+  const detectedRevisionContext = outcomeContext(allPrices, [earlyClearance, clearance, detectedRevision]);
+  assert.throws(
+    () => build({
+      outcomeId: "outcome:sanrio:stale-clearance-pin",
+      reviewedAt: "2026-08-14T12:00:00+09:00",
+      context: detectedRevisionContext,
+      clearanceHash: clearance.contentHash,
+    }),
+    /clearance was superseded before reviewedAt/,
+  );
+
+  const postReviewRevision = withCorporateActionClearanceHash({
+    ...detectedRevision,
+    clearanceId: "ca-clearance:8136:post-review-revision",
+    assessedAt: "2026-08-14T12:00:00.000000001+09:00",
+  });
+  const postReviewContext = outcomeContext(allPrices, [earlyClearance, clearance, postReviewRevision]);
+  const beforeRevision = build({
+    outcomeId: "outcome:sanrio:clearance-valid-at-review",
+    reviewedAt: "2026-08-14T12:00:00+09:00",
+    context: postReviewContext,
+    clearanceHash: clearance.contentHash,
+  });
+  assert.equal(beforeRevision.issuerCorporateActionClearanceHash, clearance.contentHash);
+  console.log("quantitative-outcome: clearance pin must be latest as-of reviewedAt at nanosecond precision OK");
+}
+
+{
   const short = withCorporateActionClearanceHash({
     ...clearance,
     clearanceId: "ca-clearance:8136:short",
