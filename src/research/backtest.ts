@@ -6,7 +6,10 @@
 //   - Gross と Net を必ず分けて返す。Net だけ・Gross だけの報告は禁止。
 
 import { assertBacktestSpecConformance } from "./backtest-spec-conformance.js";
-import { parseExplicitIso8601Instant } from "./iso-instant.js";
+import {
+  compareExplicitIso8601Instants,
+  parseExplicitIso8601Instant,
+} from "./iso-instant.js";
 import { aggregate, computeCosts, computeNetAlpha, type AggregateStats, type CostModel } from "./net-alpha.js";
 import { canEnterSameClose, jstDateOf } from "./pit.js";
 import { isValidDate } from "./schema.js";
@@ -285,9 +288,13 @@ export function runBacktest(
   const skipped: BacktestReport["skipped"] = [];
 
   const ordered = [...signals].sort((a, b) => {
-    const left = parseExplicitIso8601Instant(a.observedAt, `backtest signal ${a.id}.observedAt`);
-    const right = parseExplicitIso8601Instant(b.observedAt, `backtest signal ${b.id}.observedAt`);
-    if (left !== right) return left - right;
+    const instantOrder = compareExplicitIso8601Instants(
+      a.observedAt,
+      b.observedAt,
+      `backtest signal ${a.id}.observedAt`,
+      `backtest signal ${b.id}.observedAt`,
+    );
+    if (instantOrder !== 0) return instantOrder;
     return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
   });
 
