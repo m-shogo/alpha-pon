@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { addDaysJst, daysSinceJst } from "../src/date.js";
 import { buildMarketContext } from "../src/analysis/market-context.js";
 import { buildFinancialQuality } from "../src/analysis/financial-quality.js";
 import { classifyWorldEvent, type ClassifiedWorldEvent } from "../src/analysis/world-event-map.js";
@@ -65,6 +66,13 @@ function testFinancialQuality() {
   assert.ok(quality.operatingProfitYoY != null && quality.operatingProfitYoY > 0);
   assert.ok(quality.operatingMargin != null && quality.operatingMargin > 0);
   assert.ok(quality.qualityScore > 0);
+}
+
+function testJstDateArithmeticRejectsInvalidGregorianDates() {
+  assert.equal(daysSinceJst("2026-02-30"), null);
+  assert.equal(daysSinceJst("2026-02-29"), null);
+  assert.throws(() => addDaysJst("2026-02-30", 0), /real YYYY-MM-DD/);
+  assert.equal(addDaysJst("2024-02-29", 1), "2024-03-01");
 }
 
 function testWorldEventReflectionReliabilityGate() {
@@ -154,6 +162,7 @@ function testWorldEventClustersAllowTier1ConfirmedCluster() {
 function main() {
   testMarketContext();
   testFinancialQuality();
+  testJstDateArithmeticRejectsInvalidGregorianDates();
   testWorldEventReflectionReliabilityGate();
   testWorldEventReflectionRejectsUnknownSources();
   testWorldEventClustersSuppressSocialOnlyRumors();
