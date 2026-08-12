@@ -295,6 +295,7 @@ function assertUnadjustedIssuerMeasurement(
 
 function assertCorporateActionClearance(input: {
   clearance: CorporateActionClearanceRecord;
+  clearancesByHash: ReadonlyMap<string, CorporateActionClearanceRecord>;
   issuerBaseline: PitPriceRecord;
   terminalTradingDate: string;
   reviewedAt: string;
@@ -320,6 +321,20 @@ function assertCorporateActionClearance(input: {
     "reviewedAt",
   ) > 0) {
     throw new Error("corporate action clearance was assessed after reviewedAt");
+  }
+  const supersedingClearance = [...input.clearancesByHash.values()].find((candidate) =>
+    candidate.supersedesClearanceId === input.clearance.clearanceId
+    && compareExplicitIso8601Instants(
+      candidate.assessedAt,
+      input.reviewedAt,
+      `corporateActionClearance:${candidate.clearanceId}.assessedAt`,
+      "reviewedAt",
+    ) <= 0
+  );
+  if (supersedingClearance) {
+    throw new Error(
+      `corporate action clearance was superseded before reviewedAt: ${supersedingClearance.clearanceId}`,
+    );
   }
 }
 
@@ -435,6 +450,7 @@ export function buildQuantitativeOutcomeRecord(input: {
   );
   assertCorporateActionClearance({
     clearance,
+    clearancesByHash: input.corporateActionClearancesByHash,
     issuerBaseline,
     terminalTradingDate,
     reviewedAt: input.reviewedAt,
@@ -610,7 +626,7 @@ export function validateQuantitativeOutcomeRecords(
       issues.push(issue(
         "outcome_revision_fork",
         parentId,
-        `Outcome revisionを分岐できません: ${children.sort().join(", ")}`,
+        `Outcome revisionを分岐できません: ${children.sort().join(",")}`,
       ));
     }
   }
