@@ -31,6 +31,7 @@ import "./testable-hypothesis-scenario-ledger.test.js";
 import "./testable-hypothesis-scenario-repository.test.js";
 import "./testable-hypothesis-scenario-writer.test.js";
 import "./foundation-decision-integration.test.js";
+import "./foundation-decision-executable-by-issue.test.js";
 import "./corporate-action-clearance-strict-instant.test.js";
 import "./iso-instant-precision.test.js";
 import assert from "node:assert/strict";

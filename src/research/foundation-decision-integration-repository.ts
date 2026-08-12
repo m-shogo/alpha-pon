@@ -145,6 +145,20 @@ function validateDecisionLedger(
   for (const record of records) {
     if (byId.has(record.decisionId)) issues.push(issue("duplicate_decision_id", record.decisionId, "decisionIdが重複しています"));
     if (hashes.has(record.contentHash)) issues.push(issue("duplicate_decision_hash", record.decisionId, record.contentHash));
+    if (
+      compareExplicitIso8601Instants(
+        record.firstExecutableAt,
+        record.issuedAt,
+        `decision ${record.decisionId}.firstExecutableAt`,
+        `decision ${record.decisionId}.issuedAt`,
+      ) > 0
+    ) {
+      issues.push(issue(
+        "decision_price_not_executable_at_issue",
+        record.decisionId,
+        `${record.firstExecutableAt} > ${record.issuedAt}`,
+      ));
+    }
     byId.set(record.decisionId, record);
     hashes.add(record.contentHash);
   }
