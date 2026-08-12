@@ -261,6 +261,14 @@ function priceProvenanceIssues(
     issues.push(error("future_price_observation", target, "informationCutoff後に観測された価格を当初判断へ混ぜられません"));
   }
   if (compareExplicitIso8601Instants(
+    price.retrievedAt,
+    record.informationCutoff,
+    "price.retrievedAt",
+    "recommendation.informationCutoff",
+  ) > 0) {
+    issues.push(error("price_not_yet_retrieved", target, "informationCutoff時点で未取得の価格を当初判断へ混ぜられません"));
+  }
+  if (compareExplicitIso8601Instants(
     price.firstExecutableAt,
     record.issuedAt,
     "price.firstExecutableAt",
@@ -310,6 +318,14 @@ function benchmarkProvenanceIssues(input: {
     "recommendation.informationCutoff",
   ) > 0) {
     issues.push(error("future_benchmark_observation", target, `${input.label}がinformationCutoff後に観測されています`));
+  }
+  if (compareExplicitIso8601Instants(
+    price.retrievedAt,
+    input.record.informationCutoff,
+    `${input.label}.retrievedAt`,
+    "recommendation.informationCutoff",
+  ) > 0) {
+    issues.push(error("benchmark_not_yet_retrieved", target, `${input.label}がinformationCutoff時点で未取得です`));
   }
   if (compareExplicitIso8601Instants(
     price.firstExecutableAt,
