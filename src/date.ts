@@ -51,9 +51,14 @@ export function addDaysJst(dateStr: string, days: number): string {
 }
 
 export function daysSinceJst(dateStr: string): number | null {
-  const base = new Date(`${dateStr}T00:00:00+09:00`);
-  if (Number.isNaN(base.getTime())) return null;
+  let normalizedDate: string;
+  try {
+    normalizedDate = addDaysJst(dateStr, 0);
+  } catch {
+    return null;
+  }
 
+  const base = new Date(`${normalizedDate}T00:00:00+09:00`);
   const today = new Date(`${todayJst()}T00:00:00+09:00`);
   return Math.floor((today.getTime() - base.getTime()) / (1000 * 60 * 60 * 24));
 }
