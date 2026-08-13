@@ -127,16 +127,22 @@ export function validateClaimGraphRepository(
     includeSecurityMasterIssues: false,
   });
 
+  const dependencyIssues: ClaimGraphIssue[] = [
+    ...security.issues.map((item) => ({ ...item })),
+    ...evidence.issues.map((item) => ({ ...item })),
+  ];
   const issues: ClaimGraphIssue[] = [
     ...claimsRead.issues,
     ...edgesRead.issues,
-    ...(options.includeDependencyIssues === false
-      ? []
-      : [
-        ...security.issues.map((item) => ({ ...item })),
-        ...evidence.issues.map((item) => ({ ...item })),
-      ]),
+    ...(options.includeDependencyIssues === false ? [] : dependencyIssues),
   ];
+  if (dependencyIssues.some((item) => item.severity === "error")) {
+    issues.push(issue(
+      "claim_graph_dependency_invalid",
+      asOf,
+      "dependency repository validation failed; Claim Graph snapshot remains unavailable",
+    ));
+  }
 
   const journalPath = `${claimsPath}.batch-journal.json`;
   if (existsSync(journalPath)) {
