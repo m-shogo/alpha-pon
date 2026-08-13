@@ -231,14 +231,28 @@ function dependencyContext(
     includeDependencyIssues: false,
   });
 
+  const allDependencyIssues: EvidencePackageIssue[] = [
+    ...security.issues.map((item) => ({ ...item })),
+    ...evidence.issues.map((item) => ({ ...item })),
+    ...claim.issues.map((item) => ({ ...item })),
+    ...document.issues.map((item) => ({ ...item })),
+  ];
   const dependencyIssues: EvidencePackageIssue[] = options.includeDependencyIssues === false
     ? []
-    : [
-      ...security.issues.map((item) => ({ ...item })),
-      ...evidence.issues.map((item) => ({ ...item })),
-      ...claim.issues.map((item) => ({ ...item })),
-      ...document.issues.map((item) => ({ ...item })),
-    ];
+    : allDependencyIssues;
+  if (allDependencyIssues.some((item) => item.severity === "error")) {
+    return {
+      context: null,
+      issues: [
+        ...dependencyIssues,
+        issue(
+          "evidence_package_dependency_invalid",
+          cutoff,
+          "dependency repository validation failed; Evidence Package remains ineligible",
+        ),
+      ],
+    };
+  }
   if (!claim.snapshot || !document.snapshot) {
     return {
       context: null,
