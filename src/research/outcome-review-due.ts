@@ -430,10 +430,20 @@ function terminalRecommendations(
     `Recommendation ${record.recommendationId}.issuedAt`,
     "outcome review due asOf",
   ) <= 0);
+  const ids = new Set<string>();
+  const hashes = new Set<string>();
   for (const record of available) {
     if (computeRecommendationHash(record) !== record.contentHash) {
       throw new Error(`invalid Recommendation contentHash: ${record.recommendationId}`);
     }
+    if (ids.has(record.recommendationId)) {
+      throw new Error(`duplicate Recommendation recommendationId in outcome review queue: ${record.recommendationId}`);
+    }
+    ids.add(record.recommendationId);
+    if (hashes.has(record.contentHash)) {
+      throw new Error(`duplicate Recommendation contentHash in outcome review queue: ${record.recommendationId}`);
+    }
+    hashes.add(record.contentHash);
   }
   const byId = new Map(available.map((record) => [record.recommendationId, record]));
   const childrenByParent = new Map<string, string[]>();
