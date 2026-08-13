@@ -161,6 +161,8 @@ function writeGovernedDependencies(dir: string): ReturnType<typeof repositoryPat
     assert.ok(result.issues.some((item) =>
       item.code === "governed_evidence_package_mismatch",
     ));
+    assert.equal(result.activeHeadCount, 0);
+    assert.equal(result.completeHeadCount, 0);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
