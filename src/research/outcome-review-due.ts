@@ -430,6 +430,11 @@ function terminalRecommendations(
     `Recommendation ${record.recommendationId}.issuedAt`,
     "outcome review due asOf",
   ) <= 0);
+  for (const record of available) {
+    if (computeRecommendationHash(record) !== record.contentHash) {
+      throw new Error(`invalid Recommendation contentHash: ${record.recommendationId}`);
+    }
+  }
   const byId = new Map(available.map((record) => [record.recommendationId, record]));
   const childrenByParent = new Map<string, string[]>();
 
