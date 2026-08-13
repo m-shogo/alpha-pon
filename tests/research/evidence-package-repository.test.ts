@@ -170,6 +170,35 @@ function writeGovernedDependencies(dir: string): ReturnType<typeof repositoryPat
 }
 
 {
+  const dir = mkdtempSync(join(tmpdir(), "evidence-package-repository-hidden-dependency-error-"));
+  try {
+    const paths = writeGovernedDependencies(dir);
+    const resolver = governedEvidencePackageResolver();
+    const manifest = buildEvidencePackageManifestGoverned(
+      governedEvidencePackageRequest(),
+      governedEvidencePackageContext(),
+      resolver,
+    );
+    writeJsonl(paths.manifestsPath, [manifest]);
+    writeFileSync(`${paths.evidencePath}.batch-journal.json`, "{}\n", "utf-8");
+
+    const result = validateEvidencePackageRepository({
+      ...paths,
+      externalPins: resolver,
+      includeDependencyIssues: false,
+    });
+    assert.ok(result.issues.some((item) =>
+      item.code === "evidence_package_dependency_invalid",
+    ));
+    assert.equal(result.activeHeadCount, 0);
+    assert.equal(result.completeHeadCount, 0);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  console.log("evidence-package-repository: hidden dependency errors still block package eligibility OK");
+}
+
+{
   const dir = mkdtempSync(join(tmpdir(), "evidence-package-repository-partial-"));
   const paths = repositoryPaths(dir);
   try {
@@ -207,6 +236,7 @@ function writeGovernedDependencies(dir: string): ReturnType<typeof repositoryPat
     });
     assert.ok(result.issues.some((item) =>
       item.code === "evidence_package_dependency_snapshot_missing" ||
+      item.code === "evidence_package_dependency_invalid" ||
       item.code === "governed_evidence_package_mismatch" ||
       item.code === "evidence_package_cutoff_mismatch",
     ));
