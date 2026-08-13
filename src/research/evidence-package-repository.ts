@@ -274,6 +274,7 @@ export function validateEvidencePackageRepository(
   const schemas = loadSchemas();
   const resolver = options.externalPins ?? emptyResolver();
   const contexts = new Map<string, DependencyContext>();
+  const schemaValidManifests: EvidencePackageManifest[] = [];
 
   for (const manifest of read.records) {
     const manifestSchemaIssues = validate(manifest, schemas.manifest).map((error) => issue(
@@ -285,6 +286,7 @@ export function validateEvidencePackageRepository(
       issues.push(...manifestSchemaIssues);
       continue;
     }
+    schemaValidManifests.push(manifest);
 
     let dependency = contexts.get(manifest.informationCutoff);
     if (!dependency) {
@@ -301,9 +303,9 @@ export function validateEvidencePackageRepository(
       schemas,
     ));
   }
-  issues.push(...validateEvidencePackageLedger(read.records));
+  issues.push(...validateEvidencePackageLedger(schemaValidManifests));
 
-  const heads = activeEvidencePackageHeads(read.records);
+  const heads = activeEvidencePackageHeads(schemaValidManifests);
   return {
     issues: sortIssues(issues),
     manifestCount: read.records.length,
