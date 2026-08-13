@@ -142,7 +142,13 @@ function issueBlocked(count: number): boolean {
 }
 
 function stage(input: FoundationPilotStage): FoundationPilotStage {
-  return { ...input, blockers: sorted(input.blockers) };
+  return {
+    ...input,
+    blockers: sorted(input.blockers),
+    nextAction: input.status === "blocked_by_validation"
+      ? "fix_governed_validation_errors_before_structural_progress"
+      : input.nextAction,
+  };
 }
 
 function securityStage(obs: FoundationPilotStructuralObservation): FoundationPilotStage {
