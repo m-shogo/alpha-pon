@@ -40,6 +40,7 @@ import {
 import {
   validateSecurityMasterRepository,
 } from "./security-master-repository.js";
+import { validate } from "./schema.js";
 import { loadCouncilSchema } from "./stock-pro-council-v2-validation.js";
 
 export type EvidencePackageRepositoryOptions = {
@@ -275,6 +276,16 @@ export function validateEvidencePackageRepository(
   const contexts = new Map<string, DependencyContext>();
 
   for (const manifest of read.records) {
+    const manifestSchemaIssues = validate(manifest, schemas.manifest).map((error) => issue(
+      "schema_violation",
+      error.path ? `EvidencePackage:${error.path}` : "EvidencePackage",
+      error.message,
+    ));
+    if (manifestSchemaIssues.length > 0) {
+      issues.push(...manifestSchemaIssues);
+      continue;
+    }
+
     let dependency = contexts.get(manifest.informationCutoff);
     if (!dependency) {
       dependency = dependencyContext(manifest.informationCutoff, options);
