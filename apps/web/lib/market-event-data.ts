@@ -179,7 +179,10 @@ export function compareWebMarketEventsBySortAt(
 }
 
 export function webMarketEventJapanDate(value: string): string {
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    strictMarketEventMilliseconds(`${value}T00:00:00+09:00`)
+    return value
+  }
   const instant = sortAtInstant(value)
   const milliseconds = strictMarketEventMilliseconds(instant)
   return new Intl.DateTimeFormat('en-CA', {
