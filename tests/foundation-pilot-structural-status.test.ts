@@ -128,6 +128,8 @@ function readyObservation(): FoundationPilotStructuralObservation {
   const claimStage = status.stages.find(item => item.stageId === "classified_claim_graph")!;
   assert.equal(claimStage.status, "blocked_by_validation");
   assert.ok(claimStage.blockers.includes("claim_graph_validation_errors"));
+  assert.equal(claimStage.nextAction, "fix_governed_validation_errors_before_structural_progress");
+  assert.equal(status.nextAction, "fix_governed_validation_errors_before_structural_progress");
   console.log("foundation-pilot-structural-status: repository validation errors block structural progress OK");
 }
 
