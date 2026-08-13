@@ -238,11 +238,14 @@ export function validateHypothesisScenarioRepository(
     scenario: loadCouncilSchema(HYPOTHESIS_SCENARIO_PATHS.scenarioSchema),
     scenarioSet: loadCouncilSchema(HYPOTHESIS_SCENARIO_PATHS.scenarioSetSchema),
   };
+  const packageDependencies = packageRepository.issues.some((item) => item.severity === "error")
+    ? []
+    : packageRepository.manifests;
   const packageById = new Map(
-    packageRepository.manifests.map((record) => [record.packageId, record]),
+    packageDependencies.map((record) => [record.packageId, record]),
   );
   const packageByHash = new Map(
-    packageRepository.manifests.map((record) => [record.contentHash, record]),
+    packageDependencies.map((record) => [record.contentHash, record]),
   );
   const claimById = new Map(
     claimsRead.records.map((record) => [record.claimId, record]),
