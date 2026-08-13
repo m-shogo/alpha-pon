@@ -13,6 +13,16 @@ assert.equal(
   webMarketEventJapanDate("2026-08-12"),
   "2026-08-12",
 );
+assert.throws(
+  () => webMarketEventJapanDate("2026-02-31"),
+  /valid Gregorian ISO-8601 timestamp/,
+  "date-only JST projection must reject impossible Gregorian dates",
+);
+assert.throws(
+  () => webMarketEventJapanDate("0000-01-01"),
+  /valid Gregorian ISO-8601 timestamp/,
+  "date-only JST projection must reject year zero",
+);
 assert.equal(
   compareWebMarketEventSortAt(
     "2026-08-12T00:15:00+09:00",
