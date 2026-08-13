@@ -123,7 +123,7 @@ function strictMarketEventMilliseconds(value: string): number {
   const zone = match[8]
 
   if (
-    month < 1 || month > 12 || day < 1 || day > daysInMonth(year, month)
+    year < 1 || month < 1 || month > 12 || day < 1 || day > daysInMonth(year, month)
     || hour > 23 || minute > 59 || second > 59
   ) throw new Error('market event sortAt must be a valid Gregorian ISO-8601 timestamp')
 
