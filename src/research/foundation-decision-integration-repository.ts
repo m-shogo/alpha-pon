@@ -273,12 +273,21 @@ export function validateFoundationDecisionRepository(
   const replay = validateCouncilReplayRepository({ manifestDir: replayManifestDir });
   const replayManifests = readReplayManifests(replayManifestDir);
   const calibrations = validatePersonaCalibrationRepository();
-  if (includeDependencyIssues) {
-    issues.push(...packages.issues.map(dependencyIssue));
-    issues.push(...hypotheses.issues.map(dependencyIssue));
-    issues.push(...replay.issues.map(dependencyIssue));
-    issues.push(...calibrations.issues.map(dependencyIssue));
-    issues.push(...replayManifests.issues);
+  const dependencyIssues = [
+    ...packages.issues.map(dependencyIssue),
+    ...hypotheses.issues.map(dependencyIssue),
+    ...replay.issues.map(dependencyIssue),
+    ...calibrations.issues.map(dependencyIssue),
+    ...replayManifests.issues,
+  ];
+  const dependencyInvalid = dependencyIssues.some((item) => item.severity === "error");
+  if (includeDependencyIssues) issues.push(...dependencyIssues);
+  if (dependencyInvalid) {
+    issues.push(issue(
+      "foundation_decision_dependency_invalid",
+      "foundation-decision-dependencies",
+      "dependency repository validation failed; eligible Foundation Decision heads remain unavailable",
+    ));
   }
 
   const activePackages = activeEvidencePackageHeads(packages.manifests);
@@ -359,7 +368,9 @@ export function validateFoundationDecisionRepository(
     issues: sortIssues(issues),
     decisionCount: decisionRead.records.length,
     activeDecisionHeadCount: heads.length,
-    eligibleDecisionHeadCount: heads.filter((record) => record.status === "eligible").length,
+    eligibleDecisionHeadCount: dependencyInvalid
+      ? 0
+      : heads.filter((record) => record.status === "eligible").length,
     blockedDecisionHeadCount: heads.filter((record) => record.status === "blocked").length,
     priceSnapshotCount: priceRead.records.length,
     records: decisionRead.records,
