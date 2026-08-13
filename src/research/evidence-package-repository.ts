@@ -275,6 +275,7 @@ export function validateEvidencePackageRepository(
   const resolver = options.externalPins ?? emptyResolver();
   const contexts = new Map<string, DependencyContext>();
   const schemaValidManifests: EvidencePackageManifest[] = [];
+  const governedValidManifests: EvidencePackageManifest[] = [];
 
   for (const manifest of read.records) {
     const manifestSchemaIssues = validate(manifest, schemas.manifest).map((error) => issue(
@@ -295,17 +296,24 @@ export function validateEvidencePackageRepository(
     }
     issues.push(...dependency.issues);
     if (!dependency.context) continue;
-    issues.push(...validateEvidencePackageManifestGoverned(
+    const governedIssues = validateEvidencePackageManifestGoverned(
       manifest,
       requestFromManifest(manifest),
       dependency.context,
       resolver,
       schemas,
-    ));
+    );
+    issues.push(...governedIssues);
+    if (
+      dependency.issues.every((item) => item.severity !== "error")
+      && governedIssues.every((item) => item.severity !== "error")
+    ) {
+      governedValidManifests.push(manifest);
+    }
   }
   issues.push(...validateEvidencePackageLedger(schemaValidManifests));
 
-  const heads = activeEvidencePackageHeads(schemaValidManifests);
+  const heads = activeEvidencePackageHeads(governedValidManifests);
   return {
     issues: sortIssues(issues),
     manifestCount: read.records.length,
