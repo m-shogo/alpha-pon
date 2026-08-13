@@ -139,16 +139,22 @@ export function validateDocumentRevisionDiffRepository(
     includeSecurityMasterIssues: false,
   });
 
+  const dependencyIssues: DocumentRevisionDiffIssue[] = [
+    ...security.issues.map((item) => ({ ...item })),
+    ...evidence.issues.map((item) => ({ ...item })),
+  ];
   const issues: DocumentRevisionDiffIssue[] = [
     ...revisionsRead.issues,
     ...diffsRead.issues,
-    ...(options.includeDependencyIssues === false
-      ? []
-      : [
-        ...security.issues.map((item) => ({ ...item })),
-        ...evidence.issues.map((item) => ({ ...item })),
-      ]),
+    ...(options.includeDependencyIssues === false ? [] : dependencyIssues),
   ];
+  if (dependencyIssues.some((item) => item.severity === "error")) {
+    issues.push(issue(
+      "document_revision_dependency_invalid",
+      asOf,
+      "dependency repository validation failed; Document Revision snapshot remains unavailable",
+    ));
+  }
   const journalPath = `${revisionsPath}.batch-journal.json`;
   if (existsSync(journalPath)) {
     issues.push(issue(

@@ -27,6 +27,64 @@ function writeJsonl(path: string, records: unknown[]): void {
   );
 }
 
+function writePilot(dir: string) {
+  const paths = {
+    revisions: join(dir, "revisions.jsonl"),
+    diffs: join(dir, "diffs.jsonl"),
+    evidence: join(dir, "evidence.jsonl"),
+    evidenceRelations: join(dir, "evidence-relations.jsonl"),
+    securityEntities: join(dir, "security-entities.jsonl"),
+    securityRelationships: join(dir, "security-relationships.jsonl"),
+  };
+  const entity = withSecurityEntityHash({
+    schemaVersion: 1,
+    recordId: "entity:issuer:document-pilot:record:001",
+    entityId: "entity:issuer:document-pilot",
+    entityType: "legal_entity",
+    canonicalName: "Document Pilot株式会社",
+    jurisdiction: "JP",
+    validFrom: "2020-01-01",
+    status: "active",
+    names: [{
+      name: "Document Pilot株式会社",
+      kind: "legal",
+      language: "ja",
+      validFrom: "2020-01-01",
+      sourceRefs: ["source:security:name:document-pilot"],
+    }],
+    identifiers: [{
+      type: "internal",
+      value: "entity:issuer:document-pilot",
+      validFrom: "2020-01-01",
+      confidence: "verified",
+      sourceRefs: ["source:security:id:document-pilot"],
+    }],
+    officialLinks: [{
+      kind: "ir",
+      url: "https://example.com/document-pilot/ir",
+      verificationStatus: "verified_official",
+      validFrom: "2020-01-01",
+      sourceRefs: ["source:security:ir:document-pilot"],
+    }],
+    sourceRefs: ["source:security:document-pilot"],
+    observedAt: "2026-08-05T14:00:00+09:00",
+    retrievedAt: "2026-08-05T14:01:00+09:00",
+  });
+  const initialEvidence = documentEvidence();
+  const correctionEvidence = documentEvidence({
+    evidenceId: "evidence:document-pilot:correction",
+  });
+  const pilot = documentRevisionPilotRecords();
+
+  writeJsonl(paths.securityEntities, [entity]);
+  writeJsonl(paths.securityRelationships, []);
+  writeJsonl(paths.evidence, [initialEvidence, correctionEvidence]);
+  writeJsonl(paths.evidenceRelations, []);
+  writeJsonl(paths.revisions, pilot.revisions);
+  writeJsonl(paths.diffs, pilot.diffs);
+  return paths;
+}
+
 {
   const dir = mkdtempSync(join(tmpdir(), "document-revision-repository-empty-"));
   try {
@@ -51,62 +109,8 @@ function writeJsonl(path: string, records: unknown[]): void {
 
 {
   const dir = mkdtempSync(join(tmpdir(), "document-revision-repository-pilot-"));
-  const paths = {
-    revisions: join(dir, "revisions.jsonl"),
-    diffs: join(dir, "diffs.jsonl"),
-    evidence: join(dir, "evidence.jsonl"),
-    evidenceRelations: join(dir, "evidence-relations.jsonl"),
-    securityEntities: join(dir, "security-entities.jsonl"),
-    securityRelationships: join(dir, "security-relationships.jsonl"),
-  };
   try {
-    const entity = withSecurityEntityHash({
-      schemaVersion: 1,
-      recordId: "entity:issuer:document-pilot:record:001",
-      entityId: "entity:issuer:document-pilot",
-      entityType: "legal_entity",
-      canonicalName: "Document Pilot株式会社",
-      jurisdiction: "JP",
-      validFrom: "2020-01-01",
-      status: "active",
-      names: [{
-        name: "Document Pilot株式会社",
-        kind: "legal",
-        language: "ja",
-        validFrom: "2020-01-01",
-        sourceRefs: ["source:security:name:document-pilot"],
-      }],
-      identifiers: [{
-        type: "internal",
-        value: "entity:issuer:document-pilot",
-        validFrom: "2020-01-01",
-        confidence: "verified",
-        sourceRefs: ["source:security:id:document-pilot"],
-      }],
-      officialLinks: [{
-        kind: "ir",
-        url: "https://example.com/document-pilot/ir",
-        verificationStatus: "verified_official",
-        validFrom: "2020-01-01",
-        sourceRefs: ["source:security:ir:document-pilot"],
-      }],
-      sourceRefs: ["source:security:document-pilot"],
-      observedAt: "2026-08-05T14:00:00+09:00",
-      retrievedAt: "2026-08-05T14:01:00+09:00",
-    });
-    const initialEvidence = documentEvidence();
-    const correctionEvidence = documentEvidence({
-      evidenceId: "evidence:document-pilot:correction",
-    });
-    const pilot = documentRevisionPilotRecords();
-
-    writeJsonl(paths.securityEntities, [entity]);
-    writeJsonl(paths.securityRelationships, []);
-    writeJsonl(paths.evidence, [initialEvidence, correctionEvidence]);
-    writeJsonl(paths.evidenceRelations, []);
-    writeJsonl(paths.revisions, pilot.revisions);
-    writeJsonl(paths.diffs, pilot.diffs);
-
+    const paths = writePilot(dir);
     const result = validateDocumentRevisionDiffRepository({
       revisionsPath: paths.revisions,
       diffsPath: paths.diffs,
@@ -128,6 +132,32 @@ function writeJsonl(path: string, records: unknown[]): void {
     rmSync(dir, { recursive: true, force: true });
   }
   console.log("document-revision-diff-repository: minimal pilot snapshot OK");
+}
+
+{
+  const dir = mkdtempSync(join(tmpdir(), "document-revision-repository-hidden-dependency-"));
+  try {
+    const paths = writePilot(dir);
+    writeFileSync(`${paths.evidence}.batch-journal.json`, "{}\n", "utf-8");
+    const result = validateDocumentRevisionDiffRepository({
+      revisionsPath: paths.revisions,
+      diffsPath: paths.diffs,
+      evidencePath: paths.evidence,
+      evidenceRelationsPath: paths.evidenceRelations,
+      securityEntitiesPath: paths.securityEntities,
+      securityRelationshipsPath: paths.securityRelationships,
+      asOf: "2026-08-06T10:00:00+09:00",
+      includeDependencyIssues: false,
+    });
+    assert.ok(result.issues.some((item) =>
+      item.code === "document_revision_dependency_invalid",
+    ));
+    assert.equal(result.snapshot, null);
+    assert.equal(result.claimEligibleChangeCount, 0);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  console.log("document-revision-diff-repository: hidden invalid dependency blocks snapshot OK");
 }
 
 {
