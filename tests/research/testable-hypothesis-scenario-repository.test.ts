@@ -134,6 +134,17 @@ function pathsFor(dir: string) {
     assert.equal(result.registeredScenarioHeadCount, 4);
     assert.equal(result.scenarioSetCount, 1);
     assert.equal(result.registeredScenarioSetHeadCount, 1);
+
+    const unresolved = validateHypothesisScenarioRepository({
+      ...paths,
+      includeDependencyIssues: false,
+    });
+    assert.ok(unresolved.issues.some((item) =>
+      item.code === "missing_hypothesis_evidence_package",
+    ));
+    assert.ok(unresolved.issues.some((item) =>
+      item.code === "missing_scenario_evidence_package",
+    ));
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
