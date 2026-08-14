@@ -1,3 +1,4 @@
+import { isValidDate } from "./research/schema.js";
 import type { WatchlistConfig, Candidate, Market, Priority, CandidateStatus } from "./types.js";
 
 const VALID_MARKETS = new Set<Market>(["TSE", "NYSE", "NASDAQ"]);
@@ -53,8 +54,8 @@ function validateCandidate(candidate: Candidate, index: number): string[] {
     errors.push(`${label}: rules が空です`);
   }
 
-  if (candidate.listedAt && !/^\d{4}-\d{2}-\d{2}$/.test(candidate.listedAt)) {
-    errors.push(`${label}: listedAt は YYYY-MM-DD 形式にしてください`);
+  if (candidate.listedAt && !isValidDate(candidate.listedAt)) {
+    errors.push(`${label}: listedAt は YYYY-MM-DD 形式の実在する日付にしてください`);
   }
 
   return errors;

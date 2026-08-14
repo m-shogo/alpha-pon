@@ -114,23 +114,34 @@ import "./jquants-v2-date-cap.test.js";
 import { validateWatchlist } from "../src/validation.js";
 import type { WatchlistConfig } from "../src/types.js";
 
-function testValidWatchlist() {
-  const config: WatchlistConfig = {
-    symbols: [
-      {
-        code: "285A",
-        name: "キオクシア",
-        market: "TSE",
-        status: "research",
-        priority: "S",
-        tags: ["semiconductor"],
-        rules: ["ipo_selling_pressure_done"],
-        listedAt: "2024-12-18",
-      },
-    ],
+function candidate(listedAt: string): WatchlistConfig {
+  return {
+    symbols: [{
+      code: "285A",
+      name: "キオクシア",
+      market: "TSE",
+      status: "research",
+      priority: "S",
+      tags: ["semiconductor"],
+      rules: ["ipo_selling_pressure_done"],
+      listedAt,
+    }],
   };
+}
 
-  assert.deepEqual(validateWatchlist(config), []);
+function testValidWatchlist() {
+  assert.deepEqual(validateWatchlist(candidate("2024-12-18")), []);
+}
+
+function testStrictListingDate() {
+  assert.ok(
+    validateWatchlist(candidate("2026-02-31")).some(e => e.includes("listedAt は YYYY-MM-DD 形式の実在する日付")),
+    "存在しないlistedAtを拒否する",
+  );
+  assert.ok(
+    validateWatchlist(candidate("0000-01-01")).some(e => e.includes("listedAt は YYYY-MM-DD 形式の実在する日付")),
+    "Gregorian year zeroのlistedAtを拒否する",
+  );
 }
 
 function testInvalidWatchlist() {
@@ -167,6 +178,7 @@ function testInvalidWatchlist() {
 
 function main() {
   testValidWatchlist();
+  testStrictListingDate();
   testInvalidWatchlist();
   console.log("validation.test.ts passed");
 }
