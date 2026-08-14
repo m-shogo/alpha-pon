@@ -56,6 +56,7 @@ const DATE_TIME_PATTERN =
 
 export function isValidDate(value: string): boolean {
   if (!DATE_PATTERN.test(value)) return false;
+  if (value.startsWith("0000-")) return false;
   const parsed = new Date(`${value}T00:00:00Z`);
   if (Number.isNaN(parsed.getTime())) return false;
   // 2026-02-31 のような存在しない日付を弾く
