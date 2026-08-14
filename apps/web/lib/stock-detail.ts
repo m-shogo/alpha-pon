@@ -218,8 +218,18 @@ function resultLabel(outcome: HypothesisOutcome): { label: string; status: Stock
 
 function dueDate(detectedAt: string | null | undefined, horizon: string): string | null {
   if (!detectedAt) return null
-  const date = new Date(`${detectedAt.slice(0, 10)}T00:00:00Z`)
-  if (Number.isNaN(date.getTime())) return null
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(detectedAt)
+  if (!match) return null
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  const date = new Date(Date.UTC(year, month - 1, day))
+  if (
+    year < 1 ||
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) return null
   const days = horizon === '1d' ? 1 : horizon === '1w' ? 7 : horizon === '1m' ? 30 : horizon === '3m' ? 90 : 0
   date.setUTCDate(date.getUTCDate() + days)
   return date.toISOString().slice(0, 10)
