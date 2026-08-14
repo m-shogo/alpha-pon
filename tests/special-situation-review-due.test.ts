@@ -3,6 +3,7 @@
 
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "fs";
+import { calcSpecialSituationDueAt } from "../src/special-situation-review-due-date.js";
 
 function readJson(path: string): unknown {
   if (!existsSync(path)) return null;
@@ -23,6 +24,11 @@ const ALLOWED_DUE_STATUS = new Set([
 ]);
 
 const ALLOWED_MISSING_FIELDS = new Set(["result", "return1w", "return1m", "topixRelative1m"]);
+
+assert.equal(calcSpecialSituationDueAt("2026-08-07", "1d"), "2026-08-08");
+assert.equal(calcSpecialSituationDueAt("2026-02-31", "1d"), null);
+assert.equal(calcSpecialSituationDueAt("0000-01-01", "1d"), null);
+assert.equal(calcSpecialSituationDueAt("2026-08-07T00:00:00+09:00", "1d"), null);
 
 // 1) reports/special_situation_review_due_latest.json が生成される
 const reportData = readJson("reports/special_situation_review_due_latest.json");
