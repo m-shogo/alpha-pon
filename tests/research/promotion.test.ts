@@ -179,6 +179,26 @@ function testLatestHoldoutResultDominatesStalePass() {
     "同一latest instantにPASS/FAILが競合する場合はfail closed",
   );
 
+  const validPass: HoldoutAccessEntry = {
+    ...ACCESS,
+    id: "holdout-valid-pass",
+    openedAt: "2024-02-01T09:00:00+09:00",
+    result: "pass",
+  };
+  const invalidTimestamp: HoldoutAccessEntry = {
+    ...ACCESS,
+    id: "holdout-invalid-timestamp",
+    openedAt: "2024-02-01T10:00:00",
+    result: "pass",
+  };
+  const mixedInvalid = evaluateGate(edge, state, [validPass, invalidTimestamp], AS_OF);
+  assert.ok(
+    mixedInvalid.unsupportedPasses.some(
+      (item) => item.gate === "holdoutPass" && item.reason.includes("不正な openedAt"),
+    ),
+    "有効なPASSと不正timestampが混在する場合はfail closed",
+  );
+
   console.log("research/promotion: latest Holdout result dominates stale PASS OK");
 }
 
