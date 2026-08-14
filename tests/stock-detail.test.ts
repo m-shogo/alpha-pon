@@ -236,6 +236,27 @@ function outcome(overrides: Record<string, unknown> = {}) {
 }
 
 {
+  const impossible = normalizeStockDetail({
+    code: "8136",
+    data: baseData({
+      hypothesisOutcomes: [outcome({ hypothesis: hypothesis({ detectedAt: "2026-02-31" }) })],
+    }),
+  });
+  assert.ok(impossible);
+  assert.equal(impossible.outcomes[0].dueAt, null);
+
+  const yearZero = normalizeStockDetail({
+    code: "8136",
+    data: baseData({
+      hypothesisOutcomes: [outcome({ hypothesis: hypothesis({ detectedAt: "0000-01-01" }) })],
+    }),
+  });
+  assert.ok(yearZero);
+  assert.equal(yearZero.outcomes[0].dueAt, null);
+  console.log("stock-detail: 不正detectedAtから偽の期限を生成しない");
+}
+
+{
   const originalCwd = process.cwd();
   const emptyDir = mkdtempSync(join(tmpdir(), "alpha-pon-stock-detail-"));
   try {
