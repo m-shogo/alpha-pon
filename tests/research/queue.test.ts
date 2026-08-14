@@ -108,6 +108,19 @@ function testInvalidDatesFailClosed() {
     "不正なlastCheckedAtでDecay優先度を生成しない",
   );
 
+  const futureHistory = makeEdge();
+  futureHistory.decay = { reviewIntervalDays: 30, lastCheckedAt: "2026-08-05" };
+  assert.throws(
+    () => decayUrgency(futureHistory, AS_OF),
+    /must not be after queue asOf 2026-08-04/,
+    "未来のlastCheckedAtを負値→0へ丸めてDecay urgencyを抑制しない",
+  );
+  assert.throws(
+    () => buildQueue(makeState({ edges: [futureHistory] }), AS_OF),
+    /must not be after queue asOf 2026-08-04/,
+    "未来のDecay確認日を含むResearch Queueを生成しない",
+  );
+
   const neverChecked = makeEdge();
   neverChecked.decay = { reviewIntervalDays: 30 };
   assert.throws(
