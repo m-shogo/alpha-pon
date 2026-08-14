@@ -49,10 +49,12 @@ const edgeSchema = JSON.parse(readFileSync("research/schemas/edge.schema.json", 
 
 function testDateFormats() {
   assert.equal(isValidDate("2026-08-04"), true);
+  assert.equal(isValidDate("0000-01-01"), false, "Gregorian year zeroをdateとして許可しない");
   assert.equal(isValidDate("2026-02-31"), false, "存在しない日付は弾く");
   assert.equal(isValidDate("20260804"), false);
 
   assert.equal(isValidDateTime("2026-08-04T15:30:00+09:00"), true);
+  assert.equal(isValidDateTime("0000-01-01T00:00:00Z"), false, "Gregorian year zeroをdate-timeとして許可しない");
   assert.equal(isValidDateTime("2026-08-04T15:30+09:00"), false, "strict instantでは秒を必須にする");
   assert.equal(isValidDateTime("2024-02-29T15:30:00Z"), true, "実在する閏日は許可する");
   assert.equal(isValidDateTime("2026-08-04T15:30:00.123456789+09:00"), true);
