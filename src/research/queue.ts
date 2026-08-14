@@ -96,6 +96,9 @@ export function decayUrgency(edge: Edge, asOf: string): number {
   if (!isValidDate(asOf)) throw new Error(`invalid research date: ${asOf}`);
   if (!edge.decay.lastCheckedAt) return 1;
   const elapsed = daysBetween(edge.decay.lastCheckedAt, asOf);
+  if (elapsed < 0) {
+    throw new Error(`decay.lastCheckedAt ${edge.decay.lastCheckedAt} must not be after queue asOf ${asOf}`);
+  }
   return clamp01(elapsed / edge.decay.reviewIntervalDays);
 }
 
