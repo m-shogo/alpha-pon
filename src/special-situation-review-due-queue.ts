@@ -10,6 +10,7 @@ import { load } from "js-yaml";
 import { addDaysJst, todayJst } from "./date.js";
 import type { HypothesisOutcome, ReviewHorizon } from "./universe.js";
 import { isSpecialSituationOutcome, detectMixedOutcomes, isHistoricalSeedOverdue } from "./special-situation-outcome-filter.js";
+import { calcSpecialSituationDueAt } from "./special-situation-review-due-date.js";
 
 const REPORT_DIR = "reports";
 
@@ -77,12 +78,6 @@ function readYaml<T>(path: string): T {
   return load(readFileSync(path, "utf-8")) as T;
 }
 
-const HORIZON_DAYS: Record<ReviewHorizon, number> = { "1d": 1, "1w": 7, "1m": 30, "3m": 90 };
-
-function calcDueAt(detectedAt: string, horizon: ReviewHorizon): string {
-  return addDaysJst(detectedAt, HORIZON_DAYS[horizon] ?? 30);
-}
-
 function calcStatus(dueAt: string, today: string): DueStatus {
   const weekLater = addDaysJst(today, 7);
   if (dueAt < today) {
@@ -103,11 +98,11 @@ function calcMissingFields(
   const missing: Array<"result" | "return1w" | "return1m" | "topixRelative1m"> = [];
   if (outcome.result === "unknown") missing.push("result");
   // return1w: horizon=1d の時は +7日後が期限。その期限が過ぎているなら missing
-  const due1w = calcDueAt(outcome.hypothesis.detectedAt, "1w");
-  const due1m = calcDueAt(outcome.hypothesis.detectedAt, "1m");
-  if (outcome.return1w == null && due1w <= today) missing.push("return1w");
-  if (outcome.return1m == null && due1m <= today) missing.push("return1m");
-  if (outcome.relativeToTopix1m == null && due1m <= today) missing.push("topixRelative1m");
+  const due1w = calcSpecialSituationDueAt(outcome.hypothesis.detectedAt, "1w");
+  const due1m = calcSpecialSituationDueAt(outcome.hypothesis.detectedAt, "1m");
+  if (outcome.return1w == null && due1w !== null && due1w <= today) missing.push("return1w");
+  if (outcome.return1m == null && due1m !== null && due1m <= today) missing.push("return1m");
+  if (outcome.relativeToTopix1m == null && due1m !== null && due1m <= today) missing.push("topixRelative1m");
   return missing;
 }
 
@@ -184,9 +179,18 @@ function main(): void {
     for (const outcome of outcomes) {
       const detectedAt = outcome.hypothesis.detectedAt;
       const horizon = outcome.reviewHorizon;
-      const dueAt = detectedAt ? calcDueAt(detectedAt, horizon) : null;
-      const status = dueAt ? calcStatus(dueAt, today) : "no_outcome_record";
-      const missingFields = calcMissingFields(outcome, dueAt ?? today, today);
+      const dueAt = calcSpecialSituationDueAt(detectedAt, horizon);
+      if (dueAt === null) {
+        noOutcomeRecord.push({
+          code,
+          name,
+          reason: `outcome detectedAt が不正: ${detectedAt ?? "missing"}`,
+          nextAction: "不正な outcome detectedAt を修正してから review due queue を再生成",
+        });
+        continue;
+      }
+      const status = calcStatus(dueAt, today);
+      const missingFields = calcMissingFields(outcome, dueAt, today);
       const outcomeKey = `${code}:${detectedAt}:${horizon}`;
 
       const item: ReviewDueItem = {
@@ -237,7 +241,7 @@ function main(): void {
     "overdue は期限が過ぎているが、価格データ未取得の場合は pnpm backfill:special-outcomes で確認する。",
     "historical_seed_overdue は上場日を detectedAt に使った過去日付 seed。急ぎの投資判断ではなく検証用データの補完候補。",
     "not_due_yet は正常。期限後に再確認する。",
-    "no_outcome_record は hypothesis_outcomes.jsonl に記録がない候補。pnpm seed:special-outcomes を実行して seed を作成する。",
+    "no_outcome_record は outcome 未作成または日付不正など、期限計算に使えない候補。内容を確認してから再生成する。",
   ];
   if (mixed.length > 0) {
     notes.push(`[special_prefer] ${mixed.map(m => m.code).join("/")} で special/normal 混在を検出。special outcome を優先しました。`);
