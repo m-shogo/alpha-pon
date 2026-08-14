@@ -3,6 +3,7 @@
 
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "fs";
+import { partitionSpecialSituationOutcomesByDetectedAt } from "../src/special-situation-review-due-date.js";
 
 function readJson(path: string): unknown {
   if (!existsSync(path)) return null;
@@ -11,6 +12,17 @@ function readJson(path: string): unknown {
 
 function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+{
+  const rows = [
+    { id: "valid", hypothesis: { detectedAt: "2026-08-07" }, reviewHorizon: "1d" as const },
+    { id: "impossible", hypothesis: { detectedAt: "2026-02-31" }, reviewHorizon: "1d" as const },
+    { id: "year-zero", hypothesis: { detectedAt: "0000-01-01" }, reviewHorizon: "1d" as const },
+  ];
+  const partitioned = partitionSpecialSituationOutcomesByDetectedAt(rows);
+  assert.deepEqual(partitioned.valid.map(row => row.id), ["valid"]);
+  assert.deepEqual(partitioned.invalid.map(row => row.id), ["impossible", "year-zero"]);
 }
 
 // 1) reports/special_situation_ops_summary_latest.json が生成されている

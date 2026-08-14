@@ -21,12 +21,15 @@ import {
   selectOutcomesForStats,
   isHistoricalSeedOverdue,
 } from "./special-situation-outcome-filter.js";
+import {
+  calcSpecialSituationDueAt,
+  partitionSpecialSituationOutcomesByDetectedAt,
+} from "./special-situation-review-due-date.js";
 
 const REPORT_DIR = "reports";
 const OUTCOME_PATH = "data/hypothesis_outcomes.jsonl";
 const CONFIG_PATH = "config/special-situation-watch-rules.yml";
 const MIN_SAMPLE_SIZE_DEFAULT = 5;
-const HORIZON_DAYS: Record<ReviewHorizon, number> = { "1d": 1, "1w": 7, "1m": 30, "3m": 90 };
 // J-Quants 無料プランのデータ提供遅延（日数）。src/fetcher/jquants.ts の v2DateCapCompact と同じ既定値。
 // 期日がこの遅延期間内にある overdue は、価格データ自体が未提供のため backfill 不可（待機が正常）。
 const JQUANTS_DATA_DELAY_DAYS = Number(process.env.JQUANTS_V2_DATA_DELAY_DAYS ?? "84");
@@ -127,21 +130,17 @@ function readYaml<T>(path: string): T {
   return load(readFileSync(path, "utf-8")) as T;
 }
 
-function dueAt(detectedAt: string, horizon: ReviewHorizon): string {
-  return addDaysJst(detectedAt, HORIZON_DAYS[horizon] ?? 30);
-}
-
 function calcMissingFields(
   outcome: HypothesisOutcome,
   today: string
 ): Array<"result" | "return1w" | "return1m" | "topixRelative1m"> {
   const missing: Array<"result" | "return1w" | "return1m" | "topixRelative1m"> = [];
   if (outcome.result === "unknown") missing.push("result");
-  const due1w = dueAt(outcome.hypothesis.detectedAt, "1w");
-  const due1m = dueAt(outcome.hypothesis.detectedAt, "1m");
-  if (outcome.return1w == null && due1w <= today) missing.push("return1w");
-  if (outcome.return1m == null && due1m <= today) missing.push("return1m");
-  if (outcome.relativeToTopix1m == null && due1m <= today) missing.push("topixRelative1m");
+  const due1w = calcSpecialSituationDueAt(outcome.hypothesis.detectedAt, "1w");
+  const due1m = calcSpecialSituationDueAt(outcome.hypothesis.detectedAt, "1m");
+  if (outcome.return1w == null && due1w !== null && due1w <= today) missing.push("return1w");
+  if (outcome.return1m == null && due1m !== null && due1m <= today) missing.push("return1m");
+  if (outcome.relativeToTopix1m == null && due1m !== null && due1m <= today) missing.push("topixRelative1m");
   return missing;
 }
 
@@ -168,6 +167,9 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
   const matchedOutcomes = allMatched.filter(o =>
     isSpecialSituationOutcome(o) || !specialCodes.has(o.code)
   );
+  const { valid: validOutcomes, invalid: invalidDateOutcomes } =
+    partitionSpecialSituationOutcomesByDetectedAt(matchedOutcomes);
+  const invalidDateCodes = [...new Set(invalidDateOutcomes.map(o => o.code))].sort();
 
   // 混在検出
   const mixed = detectMixedOutcomes(allOutcomes, candidateCodes);
@@ -177,7 +179,7 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
     normalCount: m.normalCount,
   }));
 
-  // outcome があるコード
+  // outcome があるコード。不正日付でも record 自体は存在するため seed 対象には戻さない。
   const outcomeCodes = new Set(matchedOutcomes.map(o => o.code));
 
   // noOutcomeRecord
@@ -195,10 +197,11 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
   const historicalUpdatableItems: BackfillNeedDetail[] = [];
   let notDueYetBackfill = 0;
 
-  for (const outcome of matchedOutcomes) {
+  for (const outcome of validOutcomes) {
     const detectedAt = outcome.hypothesis.detectedAt;
     const horizon = outcome.reviewHorizon;
-    const due = dueAt(detectedAt, horizon);
+    const due = calcSpecialSituationDueAt(detectedAt, horizon);
+    if (due === null) continue;
     const weekLater = addDaysJst(today, 7);
     const name = codeToName.get(outcome.code) ?? outcome.code;
     const missingFields = calcMissingFields(outcome, today);
@@ -230,11 +233,11 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
   }
   const allStructurallyUpdatable = [...recentUpdatableItems, ...historicalUpdatableItems];
 
-  // outcomeStats サンプル不足チェック
+  // outcomeStats サンプル不足チェック。不正 detectedAt の row は時系列根拠に使わない。
   const sampleSmallItems: SampleSmallDetail[] = [];
   let hasStatsCount = 0;
   for (const c of candidates) {
-    const { selected } = selectOutcomesForStats(matchedOutcomes, c.code);
+    const { selected } = selectOutcomesForStats(validOutcomes, c.code);
     if (selected.length === 0) continue;
     hasStatsCount++;
     if (selected.length < minSampleSize) {
@@ -252,6 +255,15 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
       title: `要確認: ${noOutcomeRecordCodes.length}件 outcome 未作成`,
       detail: `以下の銘柄に outcome 記録がありません: ${noOutcomeRecordCodes.join(", ")}`,
       command: "pnpm seed:special-outcomes",
+    });
+  }
+
+  if (invalidDateCodes.length > 0) {
+    actionItems.push({
+      priority: "attention",
+      category: "data",
+      title: `データ不整合: ${invalidDateOutcomes.length}件 detectedAt 不正`,
+      detail: `${invalidDateCodes.join(", ")} の outcome は detectedAt が不正なため、期限分類・backfill候補・outcomeStatsから除外しました。元データを確認してください。`,
     });
   }
 
@@ -401,6 +413,9 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
     "sampleTooSmall は参考値のみ。統計的判断の根拠にしないでください。",
     "期限未到達 (notDueYet) は正常状態です。",
   ];
+  if (invalidDateCodes.length > 0) {
+    notes.push(`detectedAt 不正の outcome (${invalidDateCodes.join("/")}) は期限分類・backfill候補・outcomeStatsから除外しました。`);
+  }
   if (priceDataPendingItems.length > 0) {
     notes.push(`価格データ提供待ち (priceDataPending) は J-Quants 無料プランの提供遅延（${JQUANTS_DATA_DELAY_DAYS}日）によるもので、異常ではありません。`);
   }
