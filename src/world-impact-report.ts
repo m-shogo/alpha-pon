@@ -9,32 +9,42 @@ import {
   buildWorldImpactAudit,
   buildWorldImpactCalibration,
   loadWorldImpactJsonl,
-  normalizeWorldImpactReview,
   renderWorldImpactIntelligenceMarkdown,
-  type WorldEventImpactReview,
 } from "./world-impact.js";
+import {
+  resolveWorldImpactReportInput,
+  type WorldImpactLatestSnapshotInput,
+} from "./world-impact-report-input.js";
 
-function readLatest(today: string): WorldEventImpactReview[] {
+function readLatest(): WorldImpactLatestSnapshotInput {
   const latest = join("data", "world_event_impacts_latest.json");
-  if (!existsSync(latest)) return [];
+  if (!existsSync(latest)) return { present: false };
   try {
-    const parsed = JSON.parse(readFileSync(latest, "utf-8"));
-    return Array.isArray(parsed) ? parsed.map(item => normalizeWorldImpactReview(item, today)) : [];
+    return { present: true, parsed: JSON.parse(readFileSync(latest, "utf-8")) };
   } catch {
-    return [];
+    return { present: true, parseError: true };
   }
 }
 
 function main() {
   const today = todayJst();
   const { reviews: jsonlReviews, parseErrors } = loadWorldImpactJsonl(undefined, today);
-  const latestReviews = readLatest(today);
-  const reviews = latestReviews.length > 0 ? latestReviews : jsonlReviews;
+  const resolved = resolveWorldImpactReportInput(readLatest(), jsonlReviews, today);
+  const reviews = resolved.reviews;
 
   const audit = buildWorldImpactAudit(reviews, today, {
     jsonlParseErrors: parseErrors,
     jsonlKeys: jsonlReviews.map(review => review.reviewKey),
   });
+  if (resolved.latestSnapshotError) {
+    audit.healthStatus = "action_required";
+    audit.priorityIssues.unshift({
+      severity: "urgent",
+      category: "latest_snapshot",
+      title: "world impact latest snapshot が不正です",
+      detail: "data/world_event_impacts_latest.json を修復してから read-only report を正本として扱ってください。JSONL への silent fallback は行いません。",
+    });
+  }
   const calibration = buildWorldImpactCalibration(reviews, today);
   const markdown = renderWorldImpactIntelligenceMarkdown(reviews, audit, calibration, today);
 

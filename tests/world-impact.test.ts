@@ -6,6 +6,7 @@ import {
   mergeExistingReviews,
   type WorldEventImpactReview,
 } from "../src/world-impact.js";
+import { resolveWorldImpactReportInput } from "../src/world-impact-report-input.js";
 import type { WorldEventReflection } from "../src/analysis/world-event-reflection.js";
 
 const TODAY = "2026-06-12";
@@ -208,6 +209,22 @@ function makeReview(overrides: Partial<WorldEventImpactReview> = {}): WorldEvent
   assert.equal(audit.missingCounterArguments, 1);
   assert.equal(audit.overdueReviews, 1);
   console.log("world-impact: 欠落と期限超過を確認対象にする");
+}
+
+{
+  const jsonlReview = makeReview({ reviewKey: "jsonl__5803" });
+  const missingLatest = resolveWorldImpactReportInput({ present: false }, [jsonlReview], TODAY);
+  assert.equal(missingLatest.latestSnapshotError, false);
+  assert.deepEqual(missingLatest.reviews, [jsonlReview], "latest未生成時だけJSONL fallbackを許可する");
+
+  const malformedRoot = resolveWorldImpactReportInput({ present: true, parsed: { reviews: [] } }, [jsonlReview], TODAY);
+  assert.equal(malformedRoot.latestSnapshotError, true);
+  assert.deepEqual(malformedRoot.reviews, [], "壊れたlatest rootではJSONLへsilent fallbackしない");
+
+  const malformedJson = resolveWorldImpactReportInput({ present: true, parseError: true }, [jsonlReview], TODAY);
+  assert.equal(malformedJson.latestSnapshotError, true);
+  assert.deepEqual(malformedJson.reviews, [], "JSON parse失敗でもfail closedにする");
+  console.log("world-impact: malformed latest snapshot をsilent fallbackしない");
 }
 
 console.log("world-impact: 全テスト成功");
