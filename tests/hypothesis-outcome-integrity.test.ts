@@ -3,7 +3,10 @@ import { existsSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { partitionHypothesesByDetectedAt } from "../src/hypothesis-review-date.js";
-import { buildOutcomeIntegrityReport } from "../src/hypothesis-outcome-integrity.js";
+import {
+  buildOutcomeIntegrityReport,
+  isBlockingOutcomeIntegrityStatus,
+} from "../src/hypothesis-outcome-integrity.js";
 import type { HypothesisOutcome } from "../src/universe.js";
 
 function outcome(code: string, detectedAt: string, reviewHorizon: "1d" | "1w" | "1m"): HypothesisOutcome {
@@ -72,6 +75,11 @@ function outcome(code: string, detectedAt: string, reviewHorizon: "1d" | "1w" | 
   assert.deepEqual(partitioned.valid.map(row => row.id), ["valid"]);
   assert.deepEqual(partitioned.invalid.map(row => row.id), ["impossible", "year-zero", "missing"]);
 }
+
+assert.equal(isBlockingOutcomeIntegrityStatus("ok"), false);
+assert.equal(isBlockingOutcomeIntegrityStatus("duplicate_found"), true);
+assert.equal(isBlockingOutcomeIntegrityStatus("parse_error"), true);
+assert.equal(isBlockingOutcomeIntegrityStatus("db_unavailable"), true, "DB監査不能を成功終了させない");
 
 const dir = mkdtempSync(join(tmpdir(), "alpha-pon-outcomes-"));
 try {
