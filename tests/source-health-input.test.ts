@@ -22,15 +22,32 @@ assert.deepEqual(validObject.value, { status: "completed" });
 for (const malformed of [null, [], "completed", 1] as const) {
   const result = normalizeSourceHealthObject<{ status?: string }>(malformed);
   assert.equal(result.valid, false, "non-object pipeline roots must be treated as invalid input");
-  assert.equal(result.value, null, "invalid pipeline roots must not leak into downstream object access");
+  assert.equal(result.value, null, "invalid roots must not leak into downstream object access");
 }
 
 {
   const dir = mkdtempSync(join(tmpdir(), "company-memory-score-input-"));
   try {
-    writeFileSync(join(dir, "scores_2026-08-15.json"), JSON.stringify([{ code: "8136" }]));
-    assert.doesNotThrow(() => assertCompanyMemoryScoreInputs(dir), "array score roots remain valid company-memory input");
+    const scorePath = join(dir, "scores_2026-08-15.json");
+    const validScoreRows = [{ code: "8136", name: "サンリオ", createdAt: "2026-08-15", tags: ["watch"] }];
+    writeFileSync(scorePath, JSON.stringify(validScoreRows));
+    assert.doesNotThrow(() => assertCompanyMemoryScoreInputs(dir), "well-shaped score rows remain valid company-memory input");
 
+    writeFileSync(scorePath, JSON.stringify([{ name: "サンリオ", createdAt: "2026-08-15" }]));
+    assert.throws(
+      () => assertCompanyMemoryScoreInputs(dir),
+      /scores_2026-08-15\.json row 1 code must be a non-empty string/,
+      "missing stable code must fail closed before company-memory paths or derived records are built",
+    );
+
+    writeFileSync(scorePath, JSON.stringify([{ code: "8136", name: "サンリオ", createdAt: "2026-08-15", tags: {} }]));
+    assert.throws(
+      () => assertCompanyMemoryScoreInputs(dir),
+      /scores_2026-08-15\.json row 1 tags must be a string array when present/,
+      "malformed optional arrays must fail closed before company-memory transformations",
+    );
+
+    writeFileSync(scorePath, JSON.stringify(validScoreRows));
     writeFileSync(join(dir, "scores_2026-08-16.json"), JSON.stringify({ code: "8136" }));
     assert.throws(
       () => assertCompanyMemoryScoreInputs(dir),
