@@ -1,5 +1,4 @@
 import { existsSync, readFileSync, writeFileSync } from "fs";
-import { normalizeReadOnlyJsonObjectArrayField } from "./read-only-json.js";
 import { readReadOnlyJsonObjectArrayFile } from "./read-only-json-file.js";
 
 const UI_DATA_PATH = "apps/web/public/generated/alpha-pon-data.json";
@@ -19,9 +18,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function main() {
-  const dataRaw = readJson<unknown>(UI_DATA_PATH, null);
-  const universeCandidatesLoad = normalizeReadOnlyJsonObjectArrayField<Record<string, unknown>>(
-    dataRaw,
+  const universeCandidatesLoad = readReadOnlyJsonObjectArrayFile<Record<string, unknown>>(
+    UI_DATA_PATH,
     "universeCandidates",
   );
   const data = universeCandidatesLoad.object ?? {};
@@ -29,9 +27,8 @@ function main() {
     ? { ...data.universeScan, count: universeCandidatesLoad.rows.length }
     : data.universeScan ?? null;
 
-  const stockCandidatesRaw = readJson<unknown>(STOCK_CANDIDATES_PATH, null);
-  const stockCandidatesLoad = normalizeReadOnlyJsonObjectArrayField<Record<string, unknown>>(
-    stockCandidatesRaw,
+  const stockCandidatesLoad = readReadOnlyJsonObjectArrayFile<Record<string, unknown>>(
+    STOCK_CANDIDATES_PATH,
     "candidates",
   );
   const sanitizedStockCandidates = {
@@ -103,8 +100,10 @@ function main() {
   };
 
   const invalidProInputs = [
+    universeCandidatesLoad.parseError ? `${UI_DATA_PATH}: parse_error` : null,
     universeCandidatesLoad.invalidRoot ? `${UI_DATA_PATH}: invalid_root (expected object)` : null,
     universeCandidatesLoad.invalidField ? `${UI_DATA_PATH}.universeCandidates: invalid_field (expected array)` : null,
+    stockCandidatesLoad.parseError ? `${STOCK_CANDIDATES_PATH}: parse_error` : null,
     stockCandidatesLoad.invalidRoot ? `${STOCK_CANDIDATES_PATH}: invalid_root (expected object)` : null,
     stockCandidatesLoad.invalidField ? `${STOCK_CANDIDATES_PATH}.candidates: invalid_field (expected array)` : null,
     buffettQualityLoad.parseError ? "data/buffett_quality_latest.json: parse_error" : null,
@@ -138,6 +137,8 @@ function main() {
       source: "pro-ui-data-addon",
       generatedAt: new Date().toISOString(),
       missing: [
+        universeCandidatesLoad.missing ? UI_DATA_PATH : null,
+        stockCandidatesLoad.missing ? STOCK_CANDIDATES_PATH : null,
         buffettQualityLoad.missing ? "data/buffett_quality_latest.json" : null,
         valuationSnapshotsLoad.missing ? "data/valuation_snapshot_latest.json" : null,
         irEventEvidenceLoad.missing ? "data/ir_event_evidence_latest.json" : null,
@@ -152,7 +153,7 @@ function main() {
   };
 
   writeFileSync(UI_DATA_PATH, JSON.stringify(merged, null, 2), "utf-8");
-  if (existsSync(STOCK_CANDIDATES_PATH)) {
+  if (!stockCandidatesLoad.missing) {
     writeFileSync(STOCK_CANDIDATES_PATH, JSON.stringify(sanitizedStockCandidates, null, 2), "utf-8");
   }
   console.log("merged stock pro data into apps/web/public/generated/alpha-pon-data.json");
