@@ -1,10 +1,12 @@
-export function normalizeSourceHealthScoreRows<T>(value: unknown): { rows: T[]; valid: boolean } {
-  if (!Array.isArray(value)) return { rows: [], valid: false };
-  return { rows: value as T[], valid: true };
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+export function normalizeSourceHealthScoreRows<T>(value: unknown): { rows: T[]; valid: boolean } {
+  if (!Array.isArray(value) || value.some(row => !isRecord(row))) {
+    return { rows: [], valid: false };
+  }
+  return { rows: value as T[], valid: true };
 }
 
 export function normalizeSourceHealthObject<T extends object>(value: unknown): { value: T | null; valid: boolean } {
