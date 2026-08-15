@@ -19,6 +19,7 @@ import { addDaysJst, toCompactDate, todayJst } from "./date.js";
 import { fetchDailyQuotes, isJQuantsConfigured } from "./fetcher/jquants.js";
 import type { HypothesisOutcome, ReviewHorizon } from "./universe.js";
 import { isSpecialSituationOutcome, detectMixedOutcomes } from "./special-situation-outcome-filter.js";
+import { partitionSpecialSituationOutcomesByDetectedAt } from "./special-situation-review-due-date.js";
 
 const OUTCOME_PATH = "data/hypothesis_outcomes.jsonl";
 const TOPIX_ETF_CODE = "1306";
@@ -37,7 +38,8 @@ type MissingReason =
   | "jquants_not_configured"
   | "no_outcome_record"
   | "already_filled"
-  | "ambiguous_outcome_match";
+  | "ambiguous_outcome_match"
+  | "invalid_detected_at";
 
 type BackfillByCode = {
   code: string;
@@ -135,6 +137,7 @@ function isNotDueYet(detectedAt: string, horizon: ReviewHorizon, today: string):
 
 function nextActionFor(row: BackfillByCode): string {
   if (row.matchedOutcomes === 0) return "仮説を記録してから pnpm review:hypotheses を実行する";
+  if (row.missingReasons.includes("invalid_detected_at")) return "detectedAt が不正な outcome を修正してから再実行";
   if (row.missingReasons.includes("jquants_not_configured")) return "J-Quants API キーを設定して再実行";
   if (row.missingReasons.includes("not_due_yet")) return "reviewHorizon の期限後に pnpm backfill:special-outcomes --write";
   if (row.missingReasons.includes("price_at_detectedAt_missing")) return "J-Quants 価格データが不足。pnpm backfill:special-outcomes --write で再試行";
@@ -176,6 +179,8 @@ async function main(): Promise<void> {
   const matchedOutcomes = allMatched.filter(o =>
     isSpecialSituationOutcome(o) || !specialCodes.has(o.code)
   );
+  const { valid: validOutcomes, invalid: invalidDateOutcomes } =
+    partitionSpecialSituationOutcomesByDetectedAt(matchedOutcomes);
 
   // 混在検出と警告
   const mixed = detectMixedOutcomes(allOutcomes, candidateCodes);
@@ -184,14 +189,14 @@ async function main(): Promise<void> {
     for (const m of mixed) console.log(`  ${m.code}: special=${m.specialCount}, normal=${m.normalCount} → special のみを使用`);
   }
 
-  // TOPIX 価格キャッシュ
+  // TOPIX 価格キャッシュ。不正 detectedAt は価格取得や期限計算へ渡さない。
   let topixQuotes: DailyQuote[] = [];
-  if (jquantsOk && matchedOutcomes.length > 0) {
+  if (jquantsOk && validOutcomes.length > 0) {
     try {
-      const earliest = matchedOutcomes.reduce((min, o) => {
+      const earliest = validOutcomes.reduce((min, o) => {
         const d = o.hypothesis.detectedAt;
         return d < min ? d : min;
-      }, matchedOutcomes[0].hypothesis.detectedAt);
+      }, validOutcomes[0].hypothesis.detectedAt);
       console.log(`[backfill] TOPIX 価格取得: ${earliest} 〜 ${today}`);
       topixQuotes = await fetchDailyQuotes(TOPIX_ETF_CODE, toCompactDate(earliest), toCompactDate(today)) as DailyQuote[];
       await sleep(300);
@@ -221,7 +226,21 @@ async function main(): Promise<void> {
   let notDueYet1w = 0;
   let notDueYet1m = 0;
 
-  for (const outcome of matchedOutcomes) {
+  for (const outcome of invalidDateOutcomes) {
+    const row = byCodeMap.get(outcome.code)!;
+    row.matchedOutcomes++;
+    row.skipped++;
+    row.missingReasons.push("invalid_detected_at");
+    updatesPreview.push({
+      code: outcome.code,
+      outcomeKey: `${outcome.code}:${outcome.hypothesis.detectedAt}:${outcome.reviewHorizon}`,
+      fieldsToFill: [],
+      reason: "invalid_detected_at",
+      willWrite: false,
+    });
+  }
+
+  for (const outcome of validOutcomes) {
     const row = byCodeMap.get(outcome.code)!;
     row.matchedOutcomes++;
     const detectedAt = outcome.hypothesis.detectedAt;
@@ -400,6 +419,10 @@ async function main(): Promise<void> {
   }
   if (mixed.length > 0) {
     notes.push(`[special_prefer] ${mixed.map(m => m.code).join("/")} で special/normal 混在を検出。special outcome を優先しました。`);
+  }
+  if (invalidDateOutcomes.length > 0) {
+    const invalidCodes = [...new Set(invalidDateOutcomes.map(o => o.code))].sort();
+    notes.push(`[invalid_detected_at] ${invalidDateOutcomes.length}件 (${invalidCodes.join("/")}) を期限計算・価格取得・更新候補から除外しました。元データを修正してください。`);
   }
   if (notDueYet1w > 0) {
     notes.push(`return1w は ${notDueYet1w}件が期限未到来 (detectedAt+7日後以降に再実行)。`);
