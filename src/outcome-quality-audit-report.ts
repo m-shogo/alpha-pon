@@ -35,18 +35,20 @@ const outcomesFile = readJson<{ outcomes?: QualityOutcomeLike[] }>(
   "apps/web/public/generated/outcomes.json"
 );
 
-if (!hypothesesFile || !outcomesFile) {
+const hypotheses = hypothesesFile?.hypotheses;
+const outcomes = outcomesFile?.outcomes;
+if (!Array.isArray(hypotheses) || !Array.isArray(outcomes)) {
   console.error(
-    "生成データが見つかりません。先に pnpm ui:data を実行してください。" +
-      `（hypotheses.json: ${hypothesesFile ? "ok" : "なし"} / outcomes.json: ${outcomesFile ? "ok" : "なし"}）`
+    "生成データのshapeが不正です。先に pnpm ui:data を再実行してください。" +
+      `（hypotheses.json: ${Array.isArray(hypotheses) ? "ok" : "invalid"} / outcomes.json: ${Array.isArray(outcomes) ? "ok" : "invalid"}）`
   );
   process.exit(1);
 }
 
 const audit = buildOutcomeQualityAudit({
   today: getTodayInTokyo(),
-  hypotheses: hypothesesFile.hypotheses ?? [],
-  outcomes: outcomesFile.outcomes ?? [],
+  hypotheses,
+  outcomes,
 });
 
 mkdirSync(join(ROOT, "reports"), { recursive: true });
