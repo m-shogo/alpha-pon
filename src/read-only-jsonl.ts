@@ -32,3 +32,13 @@ export function readJsonlWithErrors<T>(path: string): {
 
   return { rows, parseErrors };
 }
+
+export function formatReadOnlyJsonlParseWarning(
+  path: string,
+  parseErrors: ReadOnlyJsonlParseError[],
+): string | null {
+  if (parseErrors.length === 0) return null;
+  const lines = parseErrors.slice(0, 8).map(error => error.lineNumber).join(", ");
+  const suffix = parseErrors.length > 8 ? ", …" : "";
+  return `${path}: parse_error ${parseErrors.length} (lines ${lines}${suffix})`;
+}

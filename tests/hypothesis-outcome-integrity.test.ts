@@ -7,7 +7,7 @@ import {
   buildOutcomeIntegrityReport,
   isBlockingOutcomeIntegrityStatus,
 } from "../src/hypothesis-outcome-integrity.js";
-import { readJsonlWithErrors } from "../src/read-only-jsonl.js";
+import { formatReadOnlyJsonlParseWarning, readJsonlWithErrors } from "../src/read-only-jsonl.js";
 import type { HypothesisOutcome } from "../src/universe.js";
 
 function outcome(code: string, detectedAt: string, reviewHorizon: "1d" | "1w" | "1m"): HypothesisOutcome {
@@ -102,6 +102,12 @@ try {
   assert.equal(history.parseErrors.length, 1, "壊れた履歴行を黙って捨てない");
   assert.equal(history.parseErrors[0].lineNumber, 2);
   assert(history.parseErrors[0].preview.includes("broken history json"));
+  assert.equal(
+    formatReadOnlyJsonlParseWarning("data/hypothesis_predictions.jsonl", history.parseErrors),
+    "data/hypothesis_predictions.jsonl: parse_error 1 (lines 2)",
+    "read-only出力へraw previewを露出せず件数と行番号だけを残す",
+  );
+  assert.equal(formatReadOnlyJsonlParseWarning("data/clean.jsonl", []), null);
 
   writeFileSync(
     jsonlPath,
