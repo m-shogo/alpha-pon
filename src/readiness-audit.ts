@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSy
 import { join } from "path";
 import { todayJst } from "./date.js";
 import { isJQuantsConfigured } from "./fetcher/jquants.js";
-import { normalizeSourceHealthScoreRows } from "./source-health-input.js";
+import { normalizeSourceHealthObject, normalizeSourceHealthScoreRows } from "./source-health-input.js";
 
 type ReadinessStatus = "done" | "partial" | "blocked" | "not_started";
 
@@ -32,6 +32,16 @@ type LatestScoreRow = {
 
 type LatestScoreRows = {
   rows: LatestScoreRow[];
+  state: "missing" | "ok" | "invalid_root";
+};
+
+type PipelineStatusSnapshot = {
+  status?: string;
+  completeWrapperFailedSteps?: string[];
+};
+
+type PipelineInput = {
+  value: PipelineStatusSnapshot | null;
   state: "missing" | "ok" | "invalid_root";
 };
 
@@ -89,6 +99,27 @@ function latestScoreRows(): LatestScoreRows {
   };
 }
 
+function pipelineInput(generatedValue: unknown): PipelineInput {
+  if (generatedValue !== undefined) {
+    const normalized = normalizeSourceHealthObject<PipelineStatusSnapshot>(generatedValue);
+    return {
+      value: normalized.value,
+      state: normalized.valid ? "ok" : "invalid_root",
+    };
+  }
+
+  if (!existsSync("reports/pipeline_status_latest.json")) {
+    return { value: null, state: "missing" };
+  }
+  const raw = readJson<unknown>("reports/pipeline_status_latest.json");
+  if (raw == null) return { value: null, state: "invalid_root" };
+  const normalized = normalizeSourceHealthObject<PipelineStatusSnapshot>(raw);
+  return {
+    value: normalized.value,
+    state: normalized.valid ? "ok" : "invalid_root",
+  };
+}
+
 function readDirSafe(path: string): string[] {
   try {
     return existsSync(path) ? readdirSync(path) : [];
@@ -136,7 +167,8 @@ function buildReport(): ReadinessReport {
     pipelineStatus?: { status?: string; completeWrapperFailedSteps?: string[] };
   }>("apps/web/public/generated/alpha-pon-data.json");
 
-  const pipeline = generated?.pipelineStatus ?? readJson<{ status?: string; completeWrapperFailedSteps?: string[] }>("reports/pipeline_status_latest.json");
+  const pipelineSnapshot = pipelineInput(generated?.pipelineStatus);
+  const pipeline = pipelineSnapshot.value;
   const hypotheses = generated?.hypothesisPredictions ?? readJsonl<unknown>("data/hypothesis_predictions.jsonl");
   const outcomes = generated?.hypothesisOutcomes ?? readJsonl<{ dataSource?: string; dataAvailability?: string }>("data/hypothesis_outcomes.jsonl");
   const companyMemory = generated?.companyMemory ?? readJson<unknown[]>("reports/company_memory_latest.json") ?? [];
@@ -213,11 +245,23 @@ function buildReport(): ReadinessReport {
     item({
       id: "pipeline",
       label: "毎朝pipeline監視",
-      score: pipeline?.status === "completed" && failedSteps.length === 0 ? 95 : pipeline ? 55 : 20,
-      evidence: [`pipeline status: ${pipeline?.status ?? "missing"}`, `failed/skipped: ${failedSteps.join(", ") || "none"}`],
-      nextActions: failedSteps.length > 0
-        ? ["ホームとreportsで失敗ステップを確認する", "J-Quants未設定由来の失敗を実データ設定で解消する"]
-        : ["run-daily-complete.sh と launchd の継続実行を確認する"],
+      score: pipelineSnapshot.state === "invalid_root"
+        ? 20
+        : pipeline?.status === "completed" && failedSteps.length === 0
+          ? 95
+          : pipeline
+            ? 55
+            : 20,
+      evidence: [
+        `pipeline input: ${pipelineSnapshot.state}`,
+        `pipeline status: ${pipeline?.status ?? "missing"}`,
+        `failed/skipped: ${failedSteps.join(", ") || "none"}`,
+      ],
+      nextActions: pipelineSnapshot.state === "invalid_root"
+        ? ["pipeline status JSON のrootをobjectへ修復して readiness:audit を再実行する"]
+        : failedSteps.length > 0
+          ? ["ホームとreportsで失敗ステップを確認する", "J-Quants未設定由来の失敗を実データ設定で解消する"]
+          : ["run-daily-complete.sh と launchd の継続実行を確認する"],
     }),
     item({
       id: "hypothesis-outcomes",
