@@ -5,6 +5,7 @@ import { join } from "node:path";
 import {
   assertReadinessCompanyMemoryInput,
   assertReadinessHypothesisPredictionInput,
+  assertReadinessPrimaryDisclosureReviewInput,
 } from "../src/readiness-company-memory-input.js";
 
 const dir = mkdtempSync(join(tmpdir(), "readiness-company-memory-"));
@@ -57,6 +58,19 @@ try {
   assert.doesNotThrow(
     () => assertReadinessHypothesisPredictionInput(generatedPath),
     "missing generated hypothesis predictions must preserve the JSONL fallback path",
+  );
+
+  writeFileSync(generatedPath, JSON.stringify({ primaryDisclosureReviews: { "8136": { decision: "confirmed" } } }));
+  assert.doesNotThrow(
+    () => assertReadinessPrimaryDisclosureReviewInput(generatedPath),
+    "well-shaped primary disclosure review maps remain valid readiness input",
+  );
+
+  writeFileSync(generatedPath, JSON.stringify({ primaryDisclosureReviews: [{ decision: "confirmed" }, { decision: "confirmed" }, { decision: "confirmed" }] }));
+  assert.throws(
+    () => assertReadinessPrimaryDisclosureReviewInput(generatedPath),
+    /primaryDisclosureReviews must be an object when present/,
+    "array-shaped primary reviews must fail closed instead of inflating readiness counts through Object.keys",
   );
 } finally {
   rmSync(dir, { recursive: true, force: true });
