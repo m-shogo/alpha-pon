@@ -29,11 +29,8 @@ export function assertReadinessCompanyMemoryInput(
   const generated = readGeneratedObject(generatedPath);
   if (generated) {
     const companyMemory = generated.companyMemory;
-    if (companyMemory !== undefined) {
-      if (!normalizeSourceHealthArray(companyMemory).valid) {
-        throw new Error(`${generatedPath}: companyMemory must be an array when present`);
-      }
-      return;
+    if (companyMemory !== undefined && !normalizeSourceHealthArray(companyMemory).valid) {
+      throw new Error(`${generatedPath}: companyMemory must be an array when present`);
     }
   }
 
