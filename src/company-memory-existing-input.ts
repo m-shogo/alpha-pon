@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
+import { addDaysJst } from "./date.js";
 
 const REQUIRED_STRING_ARRAY_FIELDS = [
   "watchReason",
@@ -14,6 +15,18 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
 }
 
+function assertStrictDate(value: unknown, field: string, file: string): string {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new Error(`${file}: ${field} must be a non-empty string`);
+  }
+  try {
+    if (addDaysJst(value, 0) !== value) throw new Error("non-canonical");
+  } catch {
+    throw new Error(`${file}: ${field} must be a real YYYY-MM-DD date`);
+  }
+  return value;
+}
+
 function assertExistingCompanyMemoryShape(value: unknown, file: string): void {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error(`${file}: company-memory root must be an object`);
@@ -24,10 +37,16 @@ function assertExistingCompanyMemoryShape(value: unknown, file: string): void {
     throw new Error(`${file}: schemaVersion must be 1`);
   }
 
-  for (const field of ["code", "name", "firstSeenAt", "lastReviewedAt"] as const) {
+  for (const field of ["code", "name"] as const) {
     if (typeof record[field] !== "string" || record[field].trim() === "") {
       throw new Error(`${file}: ${field} must be a non-empty string`);
     }
+  }
+
+  const firstSeenAt = assertStrictDate(record.firstSeenAt, "firstSeenAt", file);
+  const lastReviewedAt = assertStrictDate(record.lastReviewedAt, "lastReviewedAt", file);
+  if (lastReviewedAt < firstSeenAt) {
+    throw new Error(`${file}: lastReviewedAt must be on or after firstSeenAt`);
   }
 
   const expectedCode = basename(file, ".json");
