@@ -22,7 +22,7 @@ try {
   writeFileSync(reportPath, JSON.stringify({ code: "8136" }));
   assert.throws(
     () => assertReadinessCompanyMemoryInput(generatedPath, reportPath),
-    /company-memory root must be an array/,
+    /company-memory root must be an array of objects/,
     "malformed canonical company-memory report must fail closed even when generated UI memory is well-shaped",
   );
 
@@ -30,18 +30,34 @@ try {
   writeFileSync(generatedPath, JSON.stringify({ companyMemory: {} }));
   assert.throws(
     () => assertReadinessCompanyMemoryInput(generatedPath, reportPath),
-    /companyMemory must be an array when present/,
+    /companyMemory must be an array of objects when present/,
     "malformed generated companyMemory must fail closed instead of becoming a false zero-record readiness state",
   );
+
+  for (const malformedRow of [null, "8136", 7, []] as const) {
+    writeFileSync(generatedPath, JSON.stringify({ companyMemory: [malformedRow] }));
+    assert.throws(
+      () => assertReadinessCompanyMemoryInput(generatedPath, reportPath),
+      /companyMemory must be an array of objects when present/,
+      "primitive company-memory rows must not inflate readiness record counts",
+    );
+  }
 
   writeFileSync(generatedPath, JSON.stringify({}));
   writeFileSync(reportPath, JSON.stringify([{ code: "8136" }]));
   assert.doesNotThrow(() => assertReadinessCompanyMemoryInput(generatedPath, reportPath));
 
+  writeFileSync(reportPath, JSON.stringify([null]));
+  assert.throws(
+    () => assertReadinessCompanyMemoryInput(generatedPath, reportPath),
+    /company-memory root must be an array of objects/,
+    "primitive rows in canonical company-memory must fail closed before readiness scoring",
+  );
+
   writeFileSync(reportPath, JSON.stringify({ code: "8136" }));
   assert.throws(
     () => assertReadinessCompanyMemoryInput(generatedPath, reportPath),
-    /company-memory root must be an array/,
+    /company-memory root must be an array of objects/,
     "malformed fallback company-memory root must fail closed before readiness scoring",
   );
 
@@ -61,9 +77,18 @@ try {
   writeFileSync(generatedPath, JSON.stringify({ hypothesisPredictions: {} }));
   assert.throws(
     () => assertReadinessHypothesisPredictionInput(generatedPath),
-    /hypothesisPredictions must be an array when present/,
+    /hypothesisPredictions must be an array of objects when present/,
     "malformed generated hypothesis predictions must fail closed instead of yielding undefined readiness counts",
   );
+
+  for (const malformedRow of [null, "prediction", 7, []] as const) {
+    writeFileSync(generatedPath, JSON.stringify({ hypothesisPredictions: [malformedRow] }));
+    assert.throws(
+      () => assertReadinessHypothesisPredictionInput(generatedPath),
+      /hypothesisPredictions must be an array of objects when present/,
+      "primitive prediction rows must not inflate readiness hypothesis counts",
+    );
+  }
 
   writeFileSync(generatedPath, JSON.stringify({}));
   assert.doesNotThrow(

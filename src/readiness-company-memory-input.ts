@@ -25,6 +25,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isRecordArray(value: unknown): value is Record<string, unknown>[] {
+  return Array.isArray(value) && value.every(isRecord);
+}
+
 function hasUsableScoreSnapshot(reportsDir: string): boolean {
   if (!existsSync(reportsDir)) return false;
   try {
@@ -47,15 +51,15 @@ export function assertReadinessCompanyMemoryInput(
   const generated = readGeneratedObject(generatedPath);
   if (generated) {
     const companyMemory = generated.companyMemory;
-    if (companyMemory !== undefined && !normalizeSourceHealthArray(companyMemory).valid) {
-      throw new Error(`${generatedPath}: companyMemory must be an array when present`);
+    if (companyMemory !== undefined && !isRecordArray(companyMemory)) {
+      throw new Error(`${generatedPath}: companyMemory must be an array of objects when present`);
     }
   }
 
   if (!existsSync(reportPath)) return;
   const report = readJson(reportPath);
-  if (!normalizeSourceHealthArray(report).valid) {
-    throw new Error(`${reportPath}: company-memory root must be an array`);
+  if (!isRecordArray(report)) {
+    throw new Error(`${reportPath}: company-memory root must be an array of objects`);
   }
 }
 
@@ -64,8 +68,8 @@ export function assertReadinessHypothesisPredictionInput(
 ): void {
   const generated = readGeneratedObject(generatedPath);
   if (!generated || generated.hypothesisPredictions === undefined) return;
-  if (!normalizeSourceHealthArray(generated.hypothesisPredictions).valid) {
-    throw new Error(`${generatedPath}: hypothesisPredictions must be an array when present`);
+  if (!isRecordArray(generated.hypothesisPredictions)) {
+    throw new Error(`${generatedPath}: hypothesisPredictions must be an array of objects when present`);
   }
 }
 
