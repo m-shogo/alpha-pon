@@ -12,6 +12,7 @@ import {
   renderWorldImpactIntelligenceMarkdown,
 } from "./world-impact.js";
 import {
+  applyWorldImpactJsonlFallbackError,
   applyWorldImpactLatestSnapshotError,
   resolveWorldImpactReportInput,
   type WorldImpactLatestSnapshotInput,
@@ -38,6 +39,7 @@ function main() {
     jsonlKeys: jsonlReviews.map(review => review.reviewKey),
   });
   applyWorldImpactLatestSnapshotError(audit, resolved.latestSnapshotError);
+  applyWorldImpactJsonlFallbackError(audit, resolved.jsonlFallbackError);
   const calibration = buildWorldImpactCalibration(reviews, today);
   const markdown = renderWorldImpactIntelligenceMarkdown(reviews, audit, calibration, today);
 
