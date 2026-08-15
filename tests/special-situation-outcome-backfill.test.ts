@@ -4,6 +4,7 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "fs";
 import { statSync } from "fs";
+import { partitionSpecialSituationOutcomesByDetectedAt } from "../src/special-situation-review-due-date.js";
 
 function readJson(path: string): unknown {
   if (!existsSync(path)) return null;
@@ -12,6 +13,18 @@ function readJson(path: string): unknown {
 
 function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+// backfill が期限計算・価格取得へ渡す前に、不正 detectedAt を隔離できることを固定する。
+{
+  const rows = [
+    { id: "valid", hypothesis: { detectedAt: "2026-08-07" }, reviewHorizon: "1d" as const },
+    { id: "impossible", hypothesis: { detectedAt: "2026-02-31" }, reviewHorizon: "1d" as const },
+    { id: "year-zero", hypothesis: { detectedAt: "0000-01-01" }, reviewHorizon: "1d" as const },
+  ];
+  const partitioned = partitionSpecialSituationOutcomesByDetectedAt(rows);
+  assert.deepEqual(partitioned.valid.map(row => row.id), ["valid"]);
+  assert.deepEqual(partitioned.invalid.map(row => row.id), ["impossible", "year-zero"]);
 }
 
 // backfill report が生成されているか
