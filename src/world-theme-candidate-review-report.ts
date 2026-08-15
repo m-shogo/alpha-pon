@@ -3,6 +3,7 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
+import { isValidWorldThemeReviewDueDate } from "./world-theme-review-date.js";
 
 type ReviewDue = { afterDays: 30 | 90 | 180; dueAt: string; status: "open" | "reviewed" };
 
@@ -46,7 +47,7 @@ function readJsonl<T>(path: string): T[] {
 
 function dueItems(rows: PersistedWorldThemeCandidateHypothesis[], today: string): DueItem[] {
   return rows.flatMap(row => row.reviewDueDates
-    .filter(due => due.status === "open" && due.dueAt <= today)
+    .filter(due => due.status === "open" && isValidWorldThemeReviewDueDate(due.dueAt) && due.dueAt <= today)
     .map(due => ({
       hypothesisId: row.hypothesisId,
       dueAt: due.dueAt,
