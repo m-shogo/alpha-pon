@@ -72,6 +72,11 @@ export type SafeOutputScanError = {
 
 export type SafeOutputHealthStatus = "ok" | "needs_attention" | "action_required";
 
+export type SafeOutputInventory = {
+  files: string[];
+  errors: SafeOutputScanError[];
+};
+
 export function safeOutputHealthStatus(findingsCount: number, scanErrorCount: number): SafeOutputHealthStatus {
   if (scanErrorCount > 0) return "action_required";
   return findingsCount > 0 ? "needs_attention" : "ok";
@@ -82,25 +87,42 @@ function maskPattern(pattern: string): string {
   return pattern[0] + "◯".repeat(pattern.length - 1);
 }
 
-function listFiles(dir: string): string[] {
+function scanError(file: string, error: unknown): SafeOutputScanError {
+  return {
+    file,
+    message: error instanceof Error ? error.message : String(error),
+  };
+}
+
+export function collectSafeOutputFiles(dir: string): SafeOutputInventory {
   let entries: string[];
   try {
     entries = readdirSync(dir);
-  } catch {
-    return [];
+  } catch (error) {
+    return { files: [], errors: [scanError(dir, error)] };
   }
+
   const files: string[] = [];
+  const errors: SafeOutputScanError[] = [];
   for (const entry of entries) {
     if (EXCLUDE_DIRS.has(entry)) continue;
     const path = join(dir, entry);
-    const stat = statSync(path);
+    let stat;
+    try {
+      stat = statSync(path);
+    } catch (error) {
+      errors.push(scanError(path, error));
+      continue;
+    }
     if (stat.isDirectory()) {
-      files.push(...listFiles(path));
+      const nested = collectSafeOutputFiles(path);
+      files.push(...nested.files);
+      errors.push(...nested.errors);
     } else if (SCAN_EXTENSIONS.has(path.slice(path.lastIndexOf(".")))) {
       files.push(path);
     }
   }
-  return files;
+  return { files, errors };
 }
 
 export function scanContentForUnsafeOutput(content: string, file: string): SafeOutputFinding[] {
@@ -125,17 +147,18 @@ export function scanContentForUnsafeOutput(content: string, file: string): SafeO
 
 function main(): void {
   const today = todayJst();
-  const files = SCAN_DIRS.flatMap(listFiles);
+  const inventory = SCAN_DIRS.map(collectSafeOutputFiles).reduce<SafeOutputInventory>(
+    (acc, current) => ({ files: [...acc.files, ...current.files], errors: [...acc.errors, ...current.errors] }),
+    { files: [], errors: [] },
+  );
+  const files = inventory.files;
   const findings: SafeOutputFinding[] = [];
-  const scanErrors: SafeOutputScanError[] = [];
+  const scanErrors: SafeOutputScanError[] = [...inventory.errors];
   for (const file of files) {
     try {
       findings.push(...scanContentForUnsafeOutput(readFileSync(file, "utf-8"), file));
     } catch (error) {
-      scanErrors.push({
-        file,
-        message: error instanceof Error ? error.message : String(error),
-      });
+      scanErrors.push(scanError(file, error));
     }
   }
 

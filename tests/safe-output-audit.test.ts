@@ -2,7 +2,11 @@
 // 危険表現の検出と、否定文・禁止説明の許可（false positive 回避）
 
 import assert from "node:assert/strict";
+import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
+  collectSafeOutputFiles,
   scanContentForUnsafeOutput,
   SAFE_OUTPUT_PATTERNS,
   safeOutputHealthStatus,
@@ -44,6 +48,36 @@ const j = (...parts: string[]) => parts.join("");
   assert.equal(safeOutputHealthStatus(0, 1), "action_required", "監査対象を読めない場合は false-green にしない");
   assert.equal(safeOutputHealthStatus(1, 1), "action_required");
   console.log("safe-output: 読み込み失敗は action_required");
+}
+
+{
+  const dir = mkdtempSync(join(tmpdir(), "safe-output-inventory-"));
+  try {
+    const validPath = join(dir, "valid.ts");
+    writeFileSync(validPath, "export const ok = true;\n", "utf-8");
+    symlinkSync(join(dir, "missing-target"), join(dir, "broken.ts"));
+
+    const inventory = collectSafeOutputFiles(dir);
+    assert.deepEqual(inventory.files, [validPath], "読める監査対象はbroken entryがあっても継続列挙する");
+    assert.equal(inventory.errors.length, 1, "stat不能な監査対象をsilent skipしない");
+    assert.equal(inventory.errors[0].file, join(dir, "broken.ts"));
+    assert.equal(
+      safeOutputHealthStatus(0, inventory.errors.length),
+      "action_required",
+      "監査inventoryの欠落はfalse-greenではなくaction_requiredにする",
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  console.log("safe-output: inventory列挙失敗を監査不能として保持");
+}
+
+{
+  const missingDir = join(tmpdir(), "safe-output-missing-dir-does-not-exist");
+  rmSync(missingDir, { recursive: true, force: true });
+  const inventory = collectSafeOutputFiles(missingDir);
+  assert.deepEqual(inventory.files, []);
+  assert.equal(inventory.errors.length, 1, "configured scan directoryを列挙できない場合もsilent skipしない");
 }
 
 console.log("safe-output-audit: 全テスト成功");
