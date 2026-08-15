@@ -233,12 +233,21 @@ export function buildOutcomeQualityAudit(inputs: OutcomeQualityInputs): OutcomeQ
     }
   }
 
-  // 7. reviewDueAt と expectedTimeframe がズレている
+  // 7. reviewDueAt と expectedTimeframe がズレている / 日付自体が不正
   for (const hypothesis of hypotheses) {
     const { code, detectedAt, reviewDueAt, expectedTimeframe } = hypothesis;
     if (!code || !detectedAt || !reviewDueAt || !expectedTimeframe) continue;
     const tolerance = DUE_TOLERANCE[expectedTimeframe];
     if (!tolerance) continue;
+    if (calendarDateUtcMs(detectedAt) == null || calendarDateUtcMs(reviewDueAt) == null) {
+      dueAtMismatch.push({
+        code,
+        name: hypothesis.name,
+        detectedAt,
+        detail: `detectedAt=${detectedAt} / reviewDueAt=${reviewDueAt} のどちらかが実在する YYYY-MM-DD ではありません。`,
+      });
+      continue;
+    }
     const span = diffDays(detectedAt, reviewDueAt);
     if (span == null) continue;
     if (span < tolerance.min || span > tolerance.max) {
