@@ -14,10 +14,12 @@ function isOptionalFiniteNumber(value: unknown): boolean {
   return value === undefined || (typeof value === "number" && Number.isFinite(value));
 }
 
+const PRIMARY_DISCLOSURE_DECISIONS = new Set(["confirmed", "caution", "block", "missing"]);
+
 function hasValidPrimaryDisclosureReview(value: unknown): boolean {
   if (value === undefined) return true;
   if (!isRecord(value)) return false;
-  if (value.decision !== undefined && typeof value.decision !== "string") return false;
+  if (typeof value.decision !== "string" || !PRIMARY_DISCLOSURE_DECISIONS.has(value.decision)) return false;
   if (!isOptionalStringArray(value.warnings) || !isOptionalStringArray(value.blockers)) return false;
   if (value.sourceCoverage === undefined) return true;
   if (!isRecord(value.sourceCoverage)) return false;
