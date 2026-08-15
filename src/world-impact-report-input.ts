@@ -13,6 +13,7 @@ export type WorldImpactLatestSnapshotInput =
 export type WorldImpactReportInputResolution = {
   reviews: WorldEventImpactReview[];
   latestSnapshotError: boolean;
+  jsonlFallbackError: boolean;
 };
 
 function isNonEmptyString(value: unknown): value is string {
@@ -67,20 +68,24 @@ export function resolveWorldImpactReportInput(
   today: string,
 ): WorldImpactReportInputResolution {
   if (!latest.present) {
-    return { reviews: jsonlReviews, latestSnapshotError: false };
+    if (jsonlReviews.some(review => !isWorldImpactReviewRow(review))) {
+      return { reviews: [], latestSnapshotError: false, jsonlFallbackError: true };
+    }
+    return { reviews: jsonlReviews, latestSnapshotError: false, jsonlFallbackError: false };
   }
 
   if ("parseError" in latest || !Array.isArray(latest.parsed)) {
-    return { reviews: [], latestSnapshotError: true };
+    return { reviews: [], latestSnapshotError: true, jsonlFallbackError: false };
   }
 
   if (latest.parsed.some(item => !isWorldImpactReviewRow(item))) {
-    return { reviews: [], latestSnapshotError: true };
+    return { reviews: [], latestSnapshotError: true, jsonlFallbackError: false };
   }
 
   return {
     reviews: latest.parsed.map(item => normalizeWorldImpactReview(item, today)),
     latestSnapshotError: false,
+    jsonlFallbackError: false,
   };
 }
 
@@ -98,6 +103,20 @@ export function applyWorldImpactLatestSnapshotError(
   });
 }
 
+export function applyWorldImpactJsonlFallbackError(
+  audit: WorldImpactAudit,
+  jsonlFallbackError: boolean,
+): void {
+  if (!jsonlFallbackError) return;
+  audit.healthStatus = "action_required";
+  audit.priorityIssues.unshift({
+    severity: "urgent",
+    category: "jsonl_fallback",
+    title: "world impact JSONL fallback が不正です",
+    detail: "canonical latest が存在しない状態で data/world_event_impacts.jsonl に不正rowがあります。修復するまで read-only fallback を正本として扱いません。",
+  });
+}
+
 export function assertWorldImpactLatestSnapshotHealthy(
   latestSnapshotError: boolean,
   consumer: string,
@@ -105,5 +124,15 @@ export function assertWorldImpactLatestSnapshotHealthy(
   if (!latestSnapshotError) return;
   throw new Error(
     `${consumer}: data/world_event_impacts_latest.json is malformed; refusing silent fallback`,
+  );
+}
+
+export function assertWorldImpactJsonlFallbackHealthy(
+  jsonlFallbackError: boolean,
+  consumer: string,
+): void {
+  if (!jsonlFallbackError) return;
+  throw new Error(
+    `${consumer}: data/world_event_impacts.jsonl contains malformed fallback rows; refusing read-only fallback`,
   );
 }
