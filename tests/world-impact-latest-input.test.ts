@@ -35,6 +35,11 @@ assert.throws(
   "rows without stable identity must not participate in latest merge",
 );
 assert.throws(
+  () => parseWorldImpactLatestSnapshot('[{"reviewKey":"event__5803"},{"reviewKey":"event__5803"}]'),
+  /duplicate reviewKey: event__5803/,
+  "duplicate stable identities must not survive canonical latest preflight",
+);
+assert.throws(
   () => parseWorldImpactLatestSnapshot('[{"reviewKey":"event__5803","createdAt":"2026-02-31"}]'),
   /createdAt must be a real YYYY-MM-DD date/,
   "invalid optional provenance dates must block canonical latest writes",
@@ -65,4 +70,4 @@ assert.throws(
   "future evaluation cutoff relative to evaluation date must block canonical latest writes",
 );
 
-console.log("world-impact latest input: invalid canonical snapshots and optional provenance fail closed before write");
+console.log("world-impact latest input: invalid canonical snapshots, duplicate identities, and optional provenance fail closed before write");
