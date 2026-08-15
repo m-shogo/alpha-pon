@@ -3,6 +3,21 @@ import {
   normalizeReadOnlyJsonObjectArrayField,
 } from "./read-only-json.js";
 
+function normalizeObjectRows<T>(
+  rows: T[],
+  path: string,
+  warnings: Set<string>,
+): T[] {
+  const valid = rows.filter(
+    row => typeof row === "object" && row !== null && !Array.isArray(row),
+  );
+  const dropped = rows.length - valid.length;
+  if (dropped > 0) {
+    warnings.add(`${path}: invalid_rows (expected object rows; dropped ${dropped})`);
+  }
+  return valid;
+}
+
 export function normalizeWorldImpactReviewInputs<R, C, U, G>(
   reflectionsRaw: unknown,
   alphaRaw: unknown,
@@ -36,10 +51,26 @@ export function normalizeWorldImpactReviewInputs<R, C, U, G>(
   }
 
   return {
-    reflections: reflections.rows,
-    candidates: candidates.rows,
-    universeCandidates: universeCandidates.rows,
-    generatedCompanyRules: generatedCompanyRules.rows,
+    reflections: normalizeObjectRows(
+      reflections.rows,
+      "data/world_event_reflections_latest.json",
+      warnings,
+    ),
+    candidates: normalizeObjectRows(
+      candidates.rows,
+      "apps/web/public/generated/alpha-pon-data.json.candidates",
+      warnings,
+    ),
+    universeCandidates: normalizeObjectRows(
+      universeCandidates.rows,
+      "apps/web/public/generated/alpha-pon-data.json.universeCandidates",
+      warnings,
+    ),
+    generatedCompanyRules: normalizeObjectRows(
+      generatedCompanyRules.rows,
+      "apps/web/public/generated/alpha-pon-data.json.generatedCompanyRules",
+      warnings,
+    ),
     warnings: [...warnings],
   };
 }
