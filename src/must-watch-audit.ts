@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
+import { mustWatchThemeStatus } from "./must-watch-audit-status.js";
 
 type RequiredJapanLink = {
   code: string;
@@ -55,15 +56,6 @@ function collectDocs(): string[] {
 
 function includesAny(haystack: string, values: string[]): boolean {
   return values.some(value => value && haystack.includes(value));
-}
-
-export function mustWatchThemeStatus(input: Pick<ThemeAudit, "missingEntities" | "missingJapanLinks" | "missingQuestions" | "missingSafetyRules">): ThemeAudit["status"] {
-  return input.missingEntities.length === 0
-    && input.missingJapanLinks.length === 0
-    && input.missingQuestions.length === 0
-    && input.missingSafetyRules.length === 0
-    ? "ok"
-    : "warning";
 }
 
 function auditTheme(themeId: string, theme: MustWatchTheme): ThemeAudit {
