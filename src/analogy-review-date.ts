@@ -6,3 +6,12 @@ export function analogyReviewDueDate(date: string, timeframe: AnalogyReviewTimef
   const days = timeframe === "1d" ? 1 : timeframe === "1w" ? 7 : 30;
   return addDaysJst(date, days);
 }
+
+export function isValidAnalogyReviewDueDate(date: string | null | undefined): date is string {
+  if (!date) return false;
+  try {
+    return addDaysJst(date, 0) === date;
+  } catch {
+    return false;
+  }
+}
