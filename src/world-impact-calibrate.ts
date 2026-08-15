@@ -11,6 +11,7 @@ import {
   type WorldImpactCalibration,
 } from "./world-impact.js";
 import {
+  assertWorldImpactJsonlFallbackHealthy,
   assertWorldImpactLatestSnapshotHealthy,
   resolveWorldImpactReportInput,
   type WorldImpactLatestSnapshotInput,
@@ -111,6 +112,7 @@ function main() {
   const today = todayJst();
   const resolved = resolveWorldImpactReportInput(readLatest(), loadWorldImpactReviews(), today);
   assertWorldImpactLatestSnapshotHealthy(resolved.latestSnapshotError, "calibrate:world-impact");
+  assertWorldImpactJsonlFallbackHealthy(resolved.jsonlFallbackError, "calibrate:world-impact");
   const calibration = buildWorldImpactCalibration(resolved.reviews, today);
 
   mkdirSync("reports", { recursive: true });
