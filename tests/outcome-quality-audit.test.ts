@@ -2,6 +2,7 @@
 // pnpm test で自動実行される
 
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   buildOutcomeQualityAudit,
   renderOutcomeQualityMarkdown,
@@ -50,8 +51,6 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
   };
 }
 
-// ── クリーン状態 ─────────────────────────────────────────────
-
 {
   const audit = buildOutcomeQualityAudit(
     inputs({
@@ -65,8 +64,6 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
   assert.equal(audit.totals.groups, 1);
   console.log("outcome-quality: クリーン状態で healthStatus=ok");
 }
-
-// ── 1. detectedAt があるのに review がない ───────────────────
 
 {
   const audit = buildOutcomeQualityAudit(
@@ -86,8 +83,6 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
   console.log("outcome-quality: 未レビュー仮説を検出（期日前は除外）");
 }
 
-// ── 2. 期日到来 horizon の記録欠け ───────────────────────────
-
 {
   const audit = buildOutcomeQualityAudit(
     inputs({ outcomes: [outcome({ reviewHorizon: "1d" })] })
@@ -97,8 +92,6 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
   assert.ok(!audit.checks.horizonGaps.items[0].detail.includes("1m"), "未到来の 1m は要求しない");
   console.log("outcome-quality: horizon 記録欠けを検出（未到来分は除外）");
 }
-
-// ── 3. データ不足のまま判定済み ──────────────────────────────
 
 {
   const audit = buildOutcomeQualityAudit(
@@ -112,8 +105,6 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
   assert.equal(audit.checks.judgedWithLimitedData.count, 1, "hit/miss のみ対象");
   console.log("outcome-quality: データ不足のまま判定を検出");
 }
-
-// ── 4. unknown 同士の hit 判定 → action_required ─────────────
 
 {
   const audit = buildOutcomeQualityAudit(
@@ -149,8 +140,6 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
   console.log("outcome-quality: unknown 同士の hit を検出 → action_required");
 }
 
-// ── 5. whatMatched ありなのに未評価 ──────────────────────────
-
 {
   const audit = buildOutcomeQualityAudit(
     inputs({
@@ -163,8 +152,6 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
   assert.equal(audit.checks.pendingWithSignals.count, 1);
   console.log("outcome-quality: whatMatched ありの未評価を検出");
 }
-
-// ── 6. 判定済みなのに反省メモ未記入 ──────────────────────────
 
 {
   const audit = buildOutcomeQualityAudit(
@@ -189,8 +176,6 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
   console.log("outcome-quality: 反省メモ未記入を検出");
 }
 
-// ── 7. reviewDueAt と expectedTimeframe のズレ ───────────────
-
 {
   const audit = buildOutcomeQualityAudit(
     inputs({
@@ -213,19 +198,13 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
   console.log("outcome-quality: reviewDueAt のズレを検出");
 }
 
-// ── Gregorian 日付を Date.UTC で翌月へ正規化せず、壊れた日付を品質問題として露出 ──────────
-
 {
   const invalidDetectedAt = buildOutcomeQualityAudit(inputs({
     hypotheses: [hypothesis({ code: "9998", detectedAt: "2026-02-31" })],
     outcomes: [],
   }));
-  assert.equal(
-    invalidDetectedAt.checks.reviewMissing.count,
-    0,
-    "存在しない detectedAt を3月へ正規化して overdue 扱いしない",
-  );
-  assert.equal(invalidDetectedAt.checks.dueAtMismatch.count, 1, "不正 detectedAt を品質問題として露出する");
+  assert.equal(invalidDetectedAt.checks.reviewMissing.count, 0);
+  assert.equal(invalidDetectedAt.checks.dueAtMismatch.count, 1);
   assert.equal(invalidDetectedAt.healthStatus, "needs_attention");
 
   const invalidReviewDueAt = buildOutcomeQualityAudit(inputs({
@@ -236,11 +215,7 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
     })],
     outcomes: [outcome({ reviewHorizon: "1d" }), outcome({ reviewHorizon: "1w" })],
   }));
-  assert.equal(
-    invalidReviewDueAt.checks.dueAtMismatch.count,
-    1,
-    "存在しない reviewDueAt を正常扱いせず品質問題として露出する",
-  );
+  assert.equal(invalidReviewDueAt.checks.dueAtMismatch.count, 1);
   assert.ok(invalidReviewDueAt.checks.dueAtMismatch.items[0].detail.includes("実在する YYYY-MM-DD"));
 
   const invalidToday = buildOutcomeQualityAudit(inputs({
@@ -248,11 +223,9 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
     hypotheses: [hypothesis({ code: "9997", detectedAt: "2026-02-01" })],
     outcomes: [],
   }));
-  assert.equal(invalidToday.checks.reviewMissing.count, 0, "存在しない today で期日判定しない");
+  assert.equal(invalidToday.checks.reviewMissing.count, 0);
   console.log("outcome-quality: 非実在Gregorian日付を正規化せずfail closed / 可視化 OK");
 }
-
-// ── Markdown 出力 ────────────────────────────────────────────
 
 {
   const audit = buildOutcomeQualityAudit(inputs({ outcomes: [] , hypotheses: [hypothesis()] }));
@@ -262,8 +235,6 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
   assert.ok(md.includes("売買を推奨しない"));
   console.log("outcome-quality: Markdown 出力 OK");
 }
-
-// ── ops dashboard への統合 ───────────────────────────────────
 
 {
   const base = {
@@ -293,6 +264,15 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
   assert.equal(withoutQuality.healthStatus, "ok");
   assert.ok(withoutQuality.allIssues.some(issue => issue.category === "outcome_quality" && issue.severity === "info"));
   console.log("outcome-quality: ops dashboard 統合 OK");
+}
+
+{
+  const source = readFileSync(new URL("../src/outcome-quality-audit-report.ts", import.meta.url), "utf-8");
+  assert.match(source, /Array\.isArray\(hypotheses\)/, "hypotheses root shape must fail closed");
+  assert.match(source, /Array\.isArray\(outcomes\)/, "outcomes root shape must fail closed");
+  assert.ok(!source.includes("hypothesesFile.hypotheses ?? []"), "malformed hypotheses shape must not degrade to empty-ok");
+  assert.ok(!source.includes("outcomesFile.outcomes ?? []"), "malformed outcomes shape must not degrade to empty-ok");
+  console.log("outcome-quality: malformed generated input shape fails closed");
 }
 
 console.log("outcome-quality-audit: 全テスト成功");
