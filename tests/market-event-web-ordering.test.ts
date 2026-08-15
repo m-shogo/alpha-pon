@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import {
   compareWebMarketEventsBySortAt,
   compareWebMarketEventSortAt,
+  normalizeMarketEventData,
   webMarketEventJapanDate,
+  type WebMarketEvent,
 } from "../apps/web/lib/market-event-data.js";
 
 assert.equal(
@@ -63,5 +65,68 @@ const nullLast = [
   { sortAt: "2026-08-12", priority: "S3" as const },
 ].sort(compareWebMarketEventsBySortAt);
 assert.equal(nullLast[1].sortAt, null, "unknown dates must remain after scheduled events");
+
+const validEvent: WebMarketEvent = {
+  schemaVersion: 1,
+  eventId: "event-1",
+  occurrenceKey: "event-1@2026-08-12",
+  issuerCode: "8136",
+  issuerName: "サンリオ",
+  eventType: "REVIEW_CHECKPOINT",
+  title: "synthetic review checkpoint",
+  status: "SCHEDULED",
+  priority: "S2",
+  time: {
+    startAt: "2026-08-12",
+    endAt: null,
+    allDay: true,
+    timezone: "Asia/Tokyo",
+    precision: "DATE_ONLY",
+    windowStart: null,
+    windowEnd: null,
+  },
+  edgeTypes: ["KNOWN_BAD_EVENT_REPRICING"],
+  currentDecisionState: "INFO",
+  whyItMatters: "synthetic regression fixture",
+  checksBefore: [],
+  checksAfter: [],
+  relatedEventIds: [],
+  lastVerifiedAt: "2026-08-11T09:00:00+09:00",
+  staleAfter: null,
+  createdAt: "2026-08-11T09:00:00+09:00",
+  updatedAt: "2026-08-11T09:00:00+09:00",
+  revisionNumber: 1,
+  sources: [],
+  freshnessState: "FRESH",
+  calendarIncluded: true,
+  sortAt: "2026-08-12",
+};
+
+const normalized = normalizeMarketEventData({
+  schemaVersion: 1,
+  source: "fallback",
+  events: [validEvent, null, {}],
+  summary: {},
+  meta: { warnings: ["existing warning"] },
+});
+assert.deepEqual(
+  normalized.events.map(event => event.eventId),
+  ["event-1"],
+  "a malformed row must be quarantined instead of crashing the whole read-only calendar",
+);
+assert.deepEqual(
+  normalized.meta.warnings,
+  ["existing warning", "不正なイベント 2 件を表示対象から除外しました。"],
+  "quarantined rows must be observable without hiding existing warnings",
+);
+
+const invalidSortAt = normalizeMarketEventData({
+  schemaVersion: 1,
+  source: "fallback",
+  events: [{ ...validEvent, eventId: "bad-sort", sortAt: "2026-02-31" }],
+  summary: {},
+  meta: { warnings: [] },
+});
+assert.equal(invalidSortAt.events.length, 0, "invalid sortAt rows must be quarantined before rendering");
 
 console.log("market-event-web-ordering.test.ts passed");
