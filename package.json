@@ -69,7 +69,7 @@
     "verify:pro:local": "bash scripts/verify-pro-local.sh",
     "ci:smoke": "NOTIFY_MODE=off pnpm daily:mock && pnpm learn:primary && pnpm health:sources && test -f reports/latest.md && test -f reports/primary_disclosure_learning_latest.md && test -f reports/primary_disclosure_category_learning_latest.md && test -f reports/source_health_latest.md",
     "launchd:install": "mkdir -p logs && cp launchd/com.alpha-pon.daily.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.alpha-pon.daily.plist && echo 'launchd登録完了'",
-    "launchd:uninstall": "launchctl unload ~/Library/LaunchAgents/com.alpha-pon.daily.plist && rm ~/Library/LaunchAgents/com.alpha-pon.daily.plist && echo 'launchd解除完了'",
+    "launchd:uninstall": "launchctl unload ~/Library/LaunchAgents/com.alpha-pon.daily.plist && rm ~/Library/LaunchAgents/com.alpha-pon.daily.plist && echo 'launchd登録解除完了'",
     "launchd:status": "launchctl list | grep alpha-pon || echo '未登録'",
     "scan:universe": "node --env-file=.env --import tsx/esm src/scan-stock-universe.ts",
     "scan:universe:mock": "USE_MOCK=true node --import tsx/esm src/scan-stock-universe.ts --mock",
