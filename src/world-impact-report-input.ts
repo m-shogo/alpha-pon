@@ -31,11 +31,14 @@ function isRealJstDate(value: unknown): value is string {
 function isWorldImpactReviewRow(value: unknown): value is Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const row = value as Record<string, unknown>;
-  return isNonEmptyString(row.reviewKey)
-    && isNonEmptyString(row.eventId)
-    && isRealJstDate(row.eventDate)
-    && isRealJstDate(row.createdAt)
-    && isRealJstDate(row.updatedAt);
+  if (!isNonEmptyString(row.reviewKey)
+    || !isNonEmptyString(row.eventId)
+    || !isRealJstDate(row.eventDate)
+    || !isRealJstDate(row.createdAt)
+    || !isRealJstDate(row.updatedAt)) {
+    return false;
+  }
+  return row.updatedAt >= row.createdAt;
 }
 
 export function resolveWorldImpactReportInput(
