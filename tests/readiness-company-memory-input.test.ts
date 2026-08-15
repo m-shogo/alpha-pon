@@ -16,6 +16,14 @@ try {
   writeFileSync(generatedPath, JSON.stringify({ companyMemory: [] }));
   assert.doesNotThrow(() => assertReadinessCompanyMemoryInput(generatedPath, reportPath));
 
+  writeFileSync(reportPath, JSON.stringify({ code: "8136" }));
+  assert.throws(
+    () => assertReadinessCompanyMemoryInput(generatedPath, reportPath),
+    /company-memory root must be an array/,
+    "malformed canonical company-memory report must fail closed even when generated UI memory is well-shaped",
+  );
+
+  writeFileSync(reportPath, JSON.stringify([]));
   writeFileSync(generatedPath, JSON.stringify({ companyMemory: {} }));
   assert.throws(
     () => assertReadinessCompanyMemoryInput(generatedPath, reportPath),
