@@ -18,8 +18,9 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
-import { todayJst } from "./date.js";
+import { addDaysJst, todayJst } from "./date.js";
 import { fetchDailyQuotes, isJQuantsConfigured } from "./fetcher/jquants.js";
+import { resolveWorldImpactEvaluationAsOf } from "./world-impact-evaluation-input.js";
 import {
   deriveReviewStatus,
   evaluateWorldImpactOutcome,
@@ -52,10 +53,9 @@ function parseArgs(): Args {
   };
   const horizonRaw = get("horizon") ?? "all";
   const horizon = horizonRaw === "1d" || horizonRaw === "1w" || horizonRaw === "1m" ? horizonRaw : "all";
-  const asOfRaw = get("as-of");
   return {
     write: argv.includes("--write"),
-    asOf: asOfRaw && /^\d{4}-\d{2}-\d{2}$/.test(asOfRaw) ? asOfRaw : todayJst(),
+    asOf: resolveWorldImpactEvaluationAsOf(get("as-of"), todayJst()),
     horizon,
     code: get("code"),
   };
@@ -71,9 +71,7 @@ function toCompact(value: string): string {
 }
 
 function addDaysIso(date: string, days: number): string {
-  const d = new Date(`${date}T00:00:00+09:00`);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  return addDaysJst(date, days);
 }
 
 async function fetchQuotes(code: string, from: string, to: string): Promise<WorldImpactQuote[]> {

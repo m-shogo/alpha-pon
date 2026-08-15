@@ -114,6 +114,7 @@ import "./research/edge-decay-strict-date.test.js";
 import "./research/promotion-asof-nanosecond.test.js";
 import "./jquants-v2-date-cap.test.js";
 import { validateWatchlist } from "../src/validation.js";
+import { resolveWorldImpactEvaluationAsOf } from "../src/world-impact-evaluation-input.js";
 import type { WatchlistConfig } from "../src/types.js";
 
 function candidate(listedAt: string): WatchlistConfig {
@@ -143,6 +144,26 @@ function testStrictListingDate() {
   assert.ok(
     validateWatchlist(candidate("0000-01-01")).some(e => e.includes("listedAt は YYYY-MM-DD 形式の実在する日付")),
     "Gregorian year zeroのlistedAtを拒否する",
+  );
+}
+
+function testWorldImpactEvaluationAsOf() {
+  assert.equal(resolveWorldImpactEvaluationAsOf(null, "2026-08-15"), "2026-08-15", "未指定時はJST today fallbackを使う");
+  assert.equal(resolveWorldImpactEvaluationAsOf("2024-02-29", "2026-08-15"), "2024-02-29", "実在leap dayを受理する");
+  assert.throws(
+    () => resolveWorldImpactEvaluationAsOf("2026-02-31", "2026-08-15"),
+    /requires a real YYYY-MM-DD date/,
+    "不存在日をprovider取得やPIT判定へ渡さない",
+  );
+  assert.throws(
+    () => resolveWorldImpactEvaluationAsOf("0000-01-01", "2026-08-15"),
+    /requires a real YYYY-MM-DD date/,
+    "Gregorian year zeroを評価基準日にしない",
+  );
+  assert.throws(
+    () => resolveWorldImpactEvaluationAsOf("20260815", "2026-08-15"),
+    /requires a real YYYY-MM-DD date/,
+    "非canonical date形式を受理しない",
   );
 }
 
@@ -181,6 +202,7 @@ function testInvalidWatchlist() {
 function main() {
   testValidWatchlist();
   testStrictListingDate();
+  testWorldImpactEvaluationAsOf();
   testInvalidWatchlist();
   console.log("validation.test.ts passed");
 }
