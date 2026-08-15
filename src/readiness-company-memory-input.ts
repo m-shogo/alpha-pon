@@ -18,6 +18,10 @@ function readGeneratedObject(path: string): Record<string, unknown> | null {
   return generated as Record<string, unknown>;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 export function assertReadinessCompanyMemoryInput(
   generatedPath = "apps/web/public/generated/alpha-pon-data.json",
   reportPath = "reports/company_memory_latest.json",
@@ -50,7 +54,18 @@ export function assertReadinessHypothesisPredictionInput(
   }
 }
 
+export function assertReadinessPrimaryDisclosureReviewInput(
+  generatedPath = "apps/web/public/generated/alpha-pon-data.json",
+): void {
+  const generated = readGeneratedObject(generatedPath);
+  if (!generated || generated.primaryDisclosureReviews === undefined) return;
+  if (!isRecord(generated.primaryDisclosureReviews)) {
+    throw new Error(`${generatedPath}: primaryDisclosureReviews must be an object when present`);
+  }
+}
+
 if (process.argv[1]?.endsWith("readiness-company-memory-input.ts")) {
   assertReadinessCompanyMemoryInput();
   assertReadinessHypothesisPredictionInput();
+  assertReadinessPrimaryDisclosureReviewInput();
 }
