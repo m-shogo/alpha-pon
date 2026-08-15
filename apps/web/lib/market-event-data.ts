@@ -197,15 +197,94 @@ function array<T>(value: unknown): T[] {
   return Array.isArray(value) ? value as T[] : []
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function isNullableString(value: unknown): value is string | null {
+  return value === null || typeof value === 'string'
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(item => typeof item === 'string')
+}
+
+function isMarketEventSource(value: unknown): value is WebMarketEvent['sources'][number] {
+  if (!isRecord(value)) return false
+  return typeof value.sourceId === 'string'
+    && typeof value.authority === 'string'
+    && typeof value.sourceType === 'string'
+    && typeof value.url === 'string'
+    && typeof value.title === 'string'
+    && isNullableString(value.publishedAt)
+    && typeof value.retrievedAt === 'string'
+    && typeof value.contentHash === 'string'
+}
+
+function isRenderableWebMarketEvent(value: unknown): value is WebMarketEvent {
+  if (!isRecord(value) || value.schemaVersion !== 1) return false
+  if (
+    typeof value.eventId !== 'string'
+    || typeof value.occurrenceKey !== 'string'
+    || !isNullableString(value.issuerCode)
+    || typeof value.issuerName !== 'string'
+    || typeof value.eventType !== 'string'
+    || typeof value.title !== 'string'
+    || !['TENTATIVE', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'POSTPONED', 'CANCELLED', 'UNKNOWN_DATE'].includes(String(value.status))
+    || !['S0', 'S1', 'S2', 'S3'].includes(String(value.priority))
+    || !['BUY_WATCH', 'WAIT', 'BLOCK', 'ABSTAIN', 'INFO'].includes(String(value.currentDecisionState))
+    || typeof value.whyItMatters !== 'string'
+    || !isStringArray(value.edgeTypes)
+    || !isStringArray(value.checksBefore)
+    || !isStringArray(value.checksAfter)
+    || !isStringArray(value.relatedEventIds)
+    || typeof value.lastVerifiedAt !== 'string'
+    || !isNullableString(value.staleAfter)
+    || typeof value.createdAt !== 'string'
+    || typeof value.updatedAt !== 'string'
+    || !Number.isInteger(value.revisionNumber) || Number(value.revisionNumber) < 1
+    || !Array.isArray(value.sources) || !value.sources.every(isMarketEventSource)
+    || !['FRESH', 'STALE', 'UNKNOWN'].includes(String(value.freshnessState))
+    || typeof value.calendarIncluded !== 'boolean'
+    || !isNullableString(value.sortAt)
+  ) return false
+
+  const time = value.time
+  if (!isRecord(time)) return false
+  if (
+    !isNullableString(time.startAt)
+    || !isNullableString(time.endAt)
+    || typeof time.allDay !== 'boolean'
+    || typeof time.timezone !== 'string'
+    || !['EXACT', 'DATE_ONLY', 'WINDOW', 'UNKNOWN'].includes(String(time.precision))
+    || !isNullableString(time.windowStart)
+    || !isNullableString(time.windowEnd)
+  ) return false
+
+  if (typeof value.sortAt === 'string') {
+    try {
+      webMarketEventJapanDate(value.sortAt)
+    } catch {
+      return false
+    }
+  }
+  return true
+}
+
 export function normalizeMarketEventData(value: unknown): WebMarketEventData {
   if (!value || typeof value !== 'object') return EMPTY_MARKET_EVENT_DATA
   const data = value as Partial<WebMarketEventData>
   const summary = data.summary ?? EMPTY_MARKET_EVENT_DATA.summary
+  const rawEvents = array<unknown>(data.events)
+  const events = rawEvents.filter(isRenderableWebMarketEvent)
+  const invalidEventCount = rawEvents.length - events.length
+  const warnings = array<unknown>(data.meta?.warnings).filter((warning): warning is string => typeof warning === 'string')
+  if (invalidEventCount > 0) warnings.push(`不正なイベント ${invalidEventCount} 件を表示対象から除外しました。`)
   return {
     schemaVersion: 1,
     generatedAt: typeof data.generatedAt === 'string' ? data.generatedAt : null,
     source: data.source === 'local-sqlite' || data.source === 'cloudflare-d1' ? data.source : 'fallback',
-    events: array<WebMarketEvent>(data.events),
+    events,
     summary: {
       total: Number(summary.total ?? 0),
       scheduled: Number(summary.scheduled ?? 0),
@@ -218,7 +297,7 @@ export function normalizeMarketEventData(value: unknown): WebMarketEventData {
       nextEventAt: typeof summary.nextEventAt === 'string' ? summary.nextEventAt : null,
     },
     meta: {
-      warnings: array<string>(data.meta?.warnings),
+      warnings,
       databasePath: typeof data.meta?.databasePath === 'string' ? data.meta.databasePath : null,
     },
   }
