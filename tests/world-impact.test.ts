@@ -292,6 +292,29 @@ function makeReview(overrides: Partial<WorldEventImpactReview> = {}): WorldEvent
     "eventDate/createdAt/updatedAtが欠けたrowをtoday補完してread-only正本へ昇格させない",
   );
 
+  const invalidProvenanceDate = resolveWorldImpactReportInput(
+    {
+      present: true,
+      parsed: [
+        jsonlReview,
+        {
+          ...jsonlReview,
+          reviewKey: "invalid-date__5803",
+          eventId: "invalid-date",
+          eventDate: "2026-02-31",
+        },
+      ],
+    },
+    [jsonlReview],
+    TODAY,
+  );
+  assert.equal(invalidProvenanceDate.latestSnapshotError, true);
+  assert.deepEqual(
+    invalidProvenanceDate.reviews,
+    [],
+    "不存在Gregorian日をlatest provenanceとして受理しない",
+  );
+
   const audit = buildWorldImpactAudit([], TODAY);
   assert.equal(audit.healthStatus, "ok", "空データだけなら基礎auditはok");
   applyWorldImpactLatestSnapshotError(audit, malformedRoot.latestSnapshotError);
@@ -304,7 +327,7 @@ function makeReview(overrides: Partial<WorldEventImpactReview> = {}): WorldEvent
     /calibrate:world-impact: data\/world_event_impacts_latest\.json is malformed/,
     "壊れたlatest snapshotではcalibrationを生成しない",
   );
-  console.log("world-impact: malformed latest snapshot/root/row/identity/provenance をreport/audit/calibrationでfail closedにする");
+  console.log("world-impact: malformed latest snapshot/root/row/identity/provenance/date をreport/audit/calibrationでfail closedにする");
 }
 
 console.log("world-impact: 全テスト成功");
