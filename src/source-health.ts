@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
-import { normalizeSourceHealthScoreRows } from "./source-health-input.js";
+import { normalizeSourceHealthObject, normalizeSourceHealthScoreRows } from "./source-health-input.js";
 
 type PipelineStep = {
   name?: string;
@@ -111,7 +111,10 @@ function stepStatus(status: PipelineStatus | null, aliases: string[]): string {
 
 function main() {
   const date = todayJst();
-  const pipeline = readJson<PipelineStatus>("reports/pipeline_status_latest.json");
+  const rawPipeline = readJson<unknown>("reports/pipeline_status_latest.json");
+  const normalizedPipeline = normalizeSourceHealthObject<PipelineStatus>(rawPipeline);
+  const pipeline = normalizedPipeline.value;
+  const pipelineShapeValid = rawPipeline == null ? true : normalizedPipeline.valid;
   const scorePath = latestScoreFile();
   const scoreDate = extractScoreDate(scorePath);
   const rawScores = scorePath ? readJson<unknown>(scorePath) : null;
@@ -149,6 +152,7 @@ function main() {
 
   lines.push("## pipeline status");
   lines.push("");
+  lines.push(`- root shape: ${rawPipeline == null ? "missing" : pipelineShapeValid ? "object" : "invalid"}`);
   lines.push(`- status: ${pipeline?.status ?? "missing"}`);
   lines.push(`- date: ${pipeline?.date ?? "N/A"}`);
   lines.push(`- generatedAt: ${pipeline?.generatedAt ?? "N/A"}`);
@@ -202,7 +206,8 @@ function main() {
 
   const decisions: string[] = [];
   const healthyStatuses = ["ok", "completed", "completed_with_warnings"];
-  if (!pipeline) decisions.push("- 🛑 pipeline_status_latest.json がありません。pnpm daily / pnpm health の実行状態を確認してください。");
+  if (rawPipeline != null && !pipelineShapeValid) decisions.push("- 🛑 pipeline_status_latest.json のroot shapeがobjectではありません。壊れた入力を正常扱いせず、daily出力を再生成してください。");
+  if (!pipeline && rawPipeline == null) decisions.push("- 🛑 pipeline_status_latest.json がありません。pnpm daily / pnpm health の実行状態を確認してください。");
   if (pipeline?.date && pipeline.date !== date) decisions.push(`- ⚠️ pipeline status が本日分ではありません（最終: ${pipeline.date}）。今日の自動実行を確認してください。`);
   if (pipeline?.status && pipeline.status === "partial_failed") decisions.push("- ⚠️ pipeline は一部失敗です。failedSteps と job_runs を確認してください。");
   if (pipeline?.status && !healthyStatuses.includes(pipeline.status) && pipeline.status !== "partial_failed") decisions.push(`- 🛑 pipeline status が ${pipeline.status} です。daily の成否を確認してください。`);
