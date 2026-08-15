@@ -79,22 +79,28 @@ try {
   writeFileSync(generatedPath, JSON.stringify({ hypothesisPredictions: [] }));
   assert.doesNotThrow(
     () => assertReadinessHypothesisPredictionInput(generatedPath),
-    "well-shaped generated hypothesis predictions remain valid readiness input",
+    "empty generated hypothesis predictions remain valid readiness input",
+  );
+
+  writeFileSync(generatedPath, JSON.stringify({ hypothesisPredictions: [{ code: "8136", name: "Sanrio" }] }));
+  assert.doesNotThrow(
+    () => assertReadinessHypothesisPredictionInput(generatedPath),
+    "identified generated hypotheses remain valid readiness input",
   );
 
   writeFileSync(generatedPath, JSON.stringify({ hypothesisPredictions: {} }));
   assert.throws(
     () => assertReadinessHypothesisPredictionInput(generatedPath),
-    /hypothesisPredictions must be an array of objects when present/,
+    /hypothesisPredictions must be an array of objects with non-empty code and name when present/,
     "malformed generated hypothesis predictions must fail closed instead of yielding undefined readiness counts",
   );
 
-  for (const malformedRow of [null, "prediction", 7, []] as const) {
+  for (const malformedRow of [null, "prediction", 7, [], {}, { code: "8136" }, { name: "Sanrio" }] as const) {
     writeFileSync(generatedPath, JSON.stringify({ hypothesisPredictions: [malformedRow] }));
     assert.throws(
       () => assertReadinessHypothesisPredictionInput(generatedPath),
-      /hypothesisPredictions must be an array of objects when present/,
-      "primitive prediction rows must not inflate readiness hypothesis counts",
+      /hypothesisPredictions must be an array of objects with non-empty code and name when present/,
+      "identity-less prediction rows must not inflate readiness hypothesis counts",
     );
   }
 
@@ -176,7 +182,7 @@ try {
     "primitive data-quality fallback entries must fail closed before readiness scoring",
   );
 
-  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": { warnings: { count: 3 } } } }));
+  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": { warnings: { count: 3 } } }));
   assert.throws(
     () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir),
     /warnings must be a string array/,
