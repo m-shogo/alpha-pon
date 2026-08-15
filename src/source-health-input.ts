@@ -16,16 +16,15 @@ function isOptionalFiniteNumber(value: unknown): boolean {
 
 const PRIMARY_DISCLOSURE_DECISIONS = new Set(["confirmed", "caution", "block", "missing"]);
 
-function hasValidPrimaryDisclosureReview(value: unknown): boolean {
+export function hasValidPrimaryDisclosureReview(value: unknown): boolean {
   if (value === undefined) return true;
   if (!isRecord(value)) return false;
   if (typeof value.decision !== "string" || !PRIMARY_DISCLOSURE_DECISIONS.has(value.decision)) return false;
   if (!isOptionalStringArray(value.warnings) || !isOptionalStringArray(value.blockers)) return false;
-  if (value.sourceCoverage === undefined) return true;
   if (!isRecord(value.sourceCoverage)) return false;
-  return isOptionalFiniteNumber(value.sourceCoverage.tdnetCount)
-    && isOptionalFiniteNumber(value.sourceCoverage.edinetCount)
-    && isOptionalFiniteNumber(value.sourceCoverage.fetchErrorCount)
+  if (typeof value.sourceCoverage.tdnetCount !== "number" || !Number.isFinite(value.sourceCoverage.tdnetCount)) return false;
+  if (typeof value.sourceCoverage.edinetCount !== "number" || !Number.isFinite(value.sourceCoverage.edinetCount)) return false;
+  return isOptionalFiniteNumber(value.sourceCoverage.fetchErrorCount)
     && isOptionalStringArray(value.sourceCoverage.scannedEdinetDates);
 }
 
