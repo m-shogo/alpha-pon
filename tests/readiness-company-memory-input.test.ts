@@ -182,7 +182,7 @@ try {
     "primitive data-quality fallback entries must fail closed before readiness scoring",
   );
 
-  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": { warnings: { count: 3 } } } } }));
+  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": { warnings: { count: 3 } } } }));
   assert.throws(
     () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir),
     /warnings must be a string array/,
