@@ -7,6 +7,7 @@ import {
   buildOutcomeIntegrityReport,
   isBlockingOutcomeIntegrityStatus,
 } from "../src/hypothesis-outcome-integrity.js";
+import { normalizeReadOnlyJsonArray } from "../src/read-only-json.js";
 import { formatReadOnlyJsonlParseWarning, readJsonlWithErrors } from "../src/read-only-jsonl.js";
 import type { HypothesisOutcome } from "../src/universe.js";
 
@@ -75,6 +76,20 @@ function outcome(code: string, detectedAt: string, reviewHorizon: "1d" | "1w" | 
   ]);
   assert.deepEqual(partitioned.valid.map(row => row.id), ["valid"]);
   assert.deepEqual(partitioned.invalid.map(row => row.id), ["impossible", "year-zero", "missing"]);
+}
+
+{
+  const validArray = normalizeReadOnlyJsonArray<{ id: string }>([{ id: "ok" }]);
+  assert.deepEqual(validArray.rows, [{ id: "ok" }]);
+  assert.equal(validArray.invalidRoot, false);
+
+  const invalidArray = normalizeReadOnlyJsonArray<{ id: string }>({ rows: [{ id: "wrong-root" }] });
+  assert.deepEqual(invalidArray.rows, [], "壊れたroot objectを配列として扱わない");
+  assert.equal(invalidArray.invalidRoot, true, "read-only出力でroot shape破損を明示できる");
+
+  const missingArray = normalizeReadOnlyJsonArray<{ id: string }>(null);
+  assert.deepEqual(missingArray.rows, []);
+  assert.equal(missingArray.invalidRoot, false, "missingとinvalid rootを区別する");
 }
 
 assert.equal(isBlockingOutcomeIntegrityStatus("ok"), false);
