@@ -270,6 +270,28 @@ function makeReview(overrides: Partial<WorldEventImpactReview> = {}): WorldEvent
   assert.equal(partialIdentity.latestSnapshotError, true);
   assert.deepEqual(partialIdentity.reviews, [], "reviewKeyだけのrowもlatest provenanceとして受理しない");
 
+  const missingProvenance = resolveWorldImpactReportInput(
+    {
+      present: true,
+      parsed: [
+        jsonlReview,
+        {
+          reviewKey: "missing-provenance__5803",
+          eventId: "missing-provenance",
+          topic: "identityだけ残った壊れたlatest row",
+        },
+      ],
+    },
+    [jsonlReview],
+    TODAY,
+  );
+  assert.equal(missingProvenance.latestSnapshotError, true);
+  assert.deepEqual(
+    missingProvenance.reviews,
+    [],
+    "eventDate/createdAt/updatedAtが欠けたrowをtoday補完してread-only正本へ昇格させない",
+  );
+
   const audit = buildWorldImpactAudit([], TODAY);
   assert.equal(audit.healthStatus, "ok", "空データだけなら基礎auditはok");
   applyWorldImpactLatestSnapshotError(audit, malformedRoot.latestSnapshotError);
@@ -282,7 +304,7 @@ function makeReview(overrides: Partial<WorldEventImpactReview> = {}): WorldEvent
     /calibrate:world-impact: data\/world_event_impacts_latest\.json is malformed/,
     "壊れたlatest snapshotではcalibrationを生成しない",
   );
-  console.log("world-impact: malformed latest snapshot/root/row/identity をreport/audit/calibrationでfail closedにする");
+  console.log("world-impact: malformed latest snapshot/root/row/identity/provenance をreport/audit/calibrationでfail closedにする");
 }
 
 console.log("world-impact: 全テスト成功");
