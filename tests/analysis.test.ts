@@ -6,6 +6,7 @@ import { staleHypothesisAgeDays } from "../src/stale-hypothesis-date.js";
 import { periodicReviewStart } from "../src/periodic-review-date.js";
 import { listingPerformanceReviewDate } from "../src/listing-performance-date.js";
 import { analogyReviewDueDate, isValidAnalogyReviewDueDate } from "../src/analogy-review-date.js";
+import { isValidWorldThemeReviewDueDate } from "../src/world-theme-review-date.js";
 import { buildMarketContext } from "../src/analysis/market-context.js";
 import { buildFinancialQuality } from "../src/analysis/financial-quality.js";
 import { classifyWorldEvent, type ClassifiedWorldEvent } from "../src/analysis/world-event-map.js";
@@ -124,6 +125,15 @@ function testAnalogyReviewDueDatesUseJstCalendarDays() {
   assert.equal(isValidAnalogyReviewDueDate(undefined), false);
 }
 
+function testWorldThemeReviewDueDatesRejectInvalidGregorianDates() {
+  assert.equal(isValidWorldThemeReviewDueDate("2026-08-15"), true);
+  assert.equal(isValidWorldThemeReviewDueDate("2024-02-29"), true);
+  assert.equal(isValidWorldThemeReviewDueDate("2026-02-31"), false);
+  assert.equal(isValidWorldThemeReviewDueDate("0000-01-01"), false);
+  assert.equal(isValidWorldThemeReviewDueDate("2026-08-15T00:00:00+09:00"), false);
+  assert.equal(isValidWorldThemeReviewDueDate(undefined), false);
+}
+
 function testAnalogyPredictionReviewUsesStoredDueDateAndTimeframe() {
   const source = readFileSync(new URL("../src/review-predictions.ts", import.meta.url), "utf-8");
   assert.match(source, /prediction\.reviewDueAt \|\| addDays\(baseDate, timeframeDays\(prediction\.timeframe\)\)/);
@@ -224,6 +234,7 @@ function main() {
   testPeriodicReviewUsesJstCalendarWindows();
   testListingPerformanceReviewDatesUseJstCalendarDays();
   testAnalogyReviewDueDatesUseJstCalendarDays();
+  testWorldThemeReviewDueDatesRejectInvalidGregorianDates();
   testAnalogyPredictionReviewUsesStoredDueDateAndTimeframe();
   testWorldEventReflectionReliabilityGate();
   testWorldEventReflectionRejectsUnknownSources();
