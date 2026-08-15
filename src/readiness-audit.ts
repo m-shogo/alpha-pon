@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSy
 import { join } from "path";
 import { todayJst } from "./date.js";
 import { isJQuantsConfigured } from "./fetcher/jquants.js";
+import { normalizeSourceHealthScoreRows } from "./source-health-input.js";
 
 type ReadinessStatus = "done" | "partial" | "blocked" | "not_started";
 
@@ -27,6 +28,11 @@ type LatestScoreRow = {
   dataQuality?: string;
   warnings?: string[];
   primaryDisclosureReview?: unknown;
+};
+
+type LatestScoreRows = {
+  rows: LatestScoreRow[];
+  state: "missing" | "ok" | "invalid_root";
 };
 
 type AccuracySummarySnapshot = {
@@ -67,13 +73,20 @@ function readJsonl<T>(path: string): T[] {
     });
 }
 
-function latestScoreRows(): LatestScoreRow[] {
-  if (!existsSync("reports")) return [];
+function latestScoreRows(): LatestScoreRows {
+  if (!existsSync("reports")) return { rows: [], state: "missing" };
   const scoreFiles = readDirSafe("reports")
     .filter(file => /^scores_\d{4}-\d{2}-\d{2}\.json$/.test(file))
     .sort();
   const latest = scoreFiles.at(-1);
-  return latest ? readJson<LatestScoreRow[]>(join("reports", latest)) ?? [] : [];
+  if (!latest) return { rows: [], state: "missing" };
+  const raw = readJson<unknown>(join("reports", latest));
+  if (raw == null) return { rows: [], state: "invalid_root" };
+  const normalized = normalizeSourceHealthScoreRows<LatestScoreRow>(raw);
+  return {
+    rows: normalized.rows,
+    state: normalized.valid ? "ok" : "invalid_root",
+  };
 }
 
 function readDirSafe(path: string): string[] {
@@ -127,7 +140,8 @@ function buildReport(): ReadinessReport {
   const hypotheses = generated?.hypothesisPredictions ?? readJsonl<unknown>("data/hypothesis_predictions.jsonl");
   const outcomes = generated?.hypothesisOutcomes ?? readJsonl<{ dataSource?: string; dataAvailability?: string }>("data/hypothesis_outcomes.jsonl");
   const companyMemory = generated?.companyMemory ?? readJson<unknown[]>("reports/company_memory_latest.json") ?? [];
-  const scoreRows = latestScoreRows();
+  const scoreSnapshot = latestScoreRows();
+  const scoreRows = scoreSnapshot.rows;
   const primaryReviews = generated?.primaryDisclosureReviews ?? {};
   const primaryCountFromScores = scoreRows.filter(row => row.primaryDisclosureReview).length;
   const primaryCount = Math.max(Object.keys(primaryReviews).length, primaryCountFromScores);
@@ -177,15 +191,24 @@ function buildReport(): ReadinessReport {
     item({
       id: "real-data",
       label: "J-Quants実データ運用",
-      score: jquantsConfigured && mockUniverse === 0 && missingQuality === 0 ? 100 : jquantsConfigured ? 65 : 20,
+      score: scoreSnapshot.state === "invalid_root"
+        ? 20
+        : jquantsConfigured && mockUniverse === 0 && missingQuality === 0
+          ? 100
+          : jquantsConfigured
+            ? 65
+            : 20,
       evidence: [
         `J-Quants設定: ${jquantsConfigured ? "set" : "missing"}`,
+        `latest score input: ${scoreSnapshot.state}`,
         `mock universe: ${mockUniverse}`,
         `dataQuality missing/unknown: ${missingQuality}`,
       ],
-      nextActions: jquantsConfigured
-        ? ["pnpm daily:full を数日連続で実行し、mock と missing が消えるか確認する"]
-        : [".env に JQUANTS_API_KEY を設定する", "pnpm daily:full を実データで再実行する"],
+      nextActions: scoreSnapshot.state === "invalid_root"
+        ? ["最新 scores_YYYY-MM-DD.json のrootを配列へ修復して readiness:audit を再実行する"]
+        : jquantsConfigured
+          ? ["pnpm daily:full を数日連続で実行し、mock と missing が消えるか確認する"]
+          : [".env に JQUANTS_API_KEY を設定する", "pnpm daily:full を実データで再実行する"],
     }),
     item({
       id: "pipeline",
@@ -213,15 +236,26 @@ function buildReport(): ReadinessReport {
     item({
       id: "primary-disclosures",
       label: "一次情報・危険開示連携",
-      score: primaryCount >= 3 && hasPrimaryPipeline ? 85 : primaryCount > 0 ? 65 : hasPrimaryPipeline ? 45 : 25,
+      score: scoreSnapshot.state === "invalid_root"
+        ? 20
+        : primaryCount >= 3 && hasPrimaryPipeline
+          ? 85
+          : primaryCount > 0
+            ? 65
+            : hasPrimaryPipeline
+              ? 45
+              : 25,
       evidence: [
+        `latest score input: ${scoreSnapshot.state}`,
         `primaryDisclosureReviews: ${primaryCount}`,
         `dataQuality warnings: ${qualityWarnings}`,
         `daily:full primary scans: ${hasPrimaryPipeline ? "included" : "missing"}`,
       ],
-      nextActions: primaryCount > 0
-        ? ["個別銘柄ページで block/caution 開示を確認する", "一次情報の本文PDF確認結果を company memory に反映する"]
-        : ["daily を再実行し、score JSON に primaryDisclosureReview を残す", "個別銘柄ページで block/caution 開示を確認する"],
+      nextActions: scoreSnapshot.state === "invalid_root"
+        ? ["最新 scores_YYYY-MM-DD.json のrootを配列へ修復して readiness:audit を再実行する"]
+        : primaryCount > 0
+          ? ["個別銘柄ページで block/caution 開示を確認する", "一次情報の本文PDF確認結果を company memory に反映する"]
+          : ["daily を再実行し、score JSON に primaryDisclosureReview を残す", "個別銘柄ページで block/caution 開示を確認する"],
     }),
     item({
       id: "company-memory",
