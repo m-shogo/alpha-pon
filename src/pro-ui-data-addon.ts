@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from "fs";
+import { normalizeReadOnlyJsonObjectArrayField } from "./read-only-json.js";
 
 const UI_DATA_PATH = "apps/web/public/generated/alpha-pon-data.json";
 
@@ -22,7 +23,18 @@ function main() {
   });
   const specialSituationOps = readJson("reports/special_situation_ops_summary_latest.json", null);
   const hypothesisOutcomeIntegrity = readJson("reports/hypothesis_outcome_integrity_latest.json", null);
-  const stockProCommitteeJson = readJson<{ generatedAt: string | null; decisions: Array<Record<string, unknown>> }>("reports/stock_pro_committee_latest.json", { generatedAt: null, decisions: [] });
+  const stockProCommitteeRaw = readJson<unknown>("reports/stock_pro_committee_latest.json", null);
+  const stockProCommitteeLoad = normalizeReadOnlyJsonObjectArrayField<Record<string, unknown>>(
+    stockProCommitteeRaw,
+    "decisions",
+  );
+  const stockProCommitteeJson = {
+    ...(stockProCommitteeLoad.object ?? {}),
+    generatedAt: typeof stockProCommitteeLoad.object?.generatedAt === "string"
+      ? stockProCommitteeLoad.object.generatedAt
+      : null,
+    decisions: stockProCommitteeLoad.rows,
+  };
   const legendProCommittee = {
     generatedAt: stockProCommitteeJson.generatedAt,
     decisions: stockProCommitteeJson.decisions.map(decision => ({
@@ -40,6 +52,11 @@ function main() {
       legendWarnings: decision.legendWarnings ?? [],
     })),
   };
+
+  const invalidProInputs = [
+    stockProCommitteeLoad.invalidRoot ? "reports/stock_pro_committee_latest.json: invalid_root (expected object)" : null,
+    stockProCommitteeLoad.invalidField ? "reports/stock_pro_committee_latest.json.decisions: invalid_field (expected array)" : null,
+  ].filter((value): value is string => Boolean(value));
 
   const merged = {
     ...data,
@@ -65,6 +82,7 @@ function main() {
         existsSync("reports/hypothesis_outcome_integrity_latest.json") ? null : "reports/hypothesis_outcome_integrity_latest.json",
         existsSync("reports/stock_pro_committee_latest.json") ? null : "reports/stock_pro_committee_latest.json",
       ].filter(Boolean),
+      warnings: invalidProInputs,
     },
   };
 
