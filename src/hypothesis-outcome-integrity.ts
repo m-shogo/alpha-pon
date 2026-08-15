@@ -38,6 +38,10 @@ export type OutcomeIntegrityReport = {
   notes: string[];
 };
 
+export function isBlockingOutcomeIntegrityStatus(status: OutcomeIntegrityReport["status"]): boolean {
+  return status !== "ok";
+}
+
 function readJsonlSafely<T>(path: string): { rows: T[]; parseErrors: JsonlParseError[] } {
   if (!existsSync(path)) return { rows: [], parseErrors: [] };
   const rows: T[] = [];
