@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { assertExistingCompanyMemoryInputs } from "../src/company-memory-existing-input.js";
 import { assertCompanyMemoryScoreInputs } from "../src/company-memory-score-input.js";
 import { normalizeSourceHealthObject, normalizeSourceHealthScoreRows } from "../src/source-health-input.js";
 
@@ -60,6 +61,63 @@ for (const malformed of [null, [], "completed", 1] as const) {
       () => assertCompanyMemoryScoreInputs(dir),
       /scores_2026-08-16\.json: invalid score JSON/,
       "malformed score JSON must fail closed before company-memory output writes",
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+{
+  const dir = mkdtempSync(join(tmpdir(), "company-memory-existing-input-"));
+  try {
+    mkdirSync(dir, { recursive: true });
+    const memoryPath = join(dir, "8136.json");
+    const validMemory = {
+      schemaVersion: 1,
+      code: "8136",
+      name: "サンリオ",
+      firstSeenAt: "2026-08-01",
+      lastReviewedAt: "2026-08-15",
+      watchReason: ["watch"],
+      knownRisks: [],
+      strongRules: [],
+      weakRules: [],
+      recurringWarnings: [],
+      recentOutcomes: [],
+      notes: ["keep"],
+    };
+    writeFileSync(memoryPath, JSON.stringify(validMemory));
+    assert.doesNotThrow(
+      () => assertExistingCompanyMemoryInputs(dir),
+      "valid existing company memory must remain eligible for derived refresh",
+    );
+
+    writeFileSync(memoryPath, "{ broken");
+    assert.throws(
+      () => assertExistingCompanyMemoryInputs(dir),
+      /8136\.json: invalid company-memory JSON/,
+      "malformed existing memory must fail closed before memory:companies can overwrite prior notes or provenance",
+    );
+
+    writeFileSync(memoryPath, JSON.stringify([]));
+    assert.throws(
+      () => assertExistingCompanyMemoryInputs(dir),
+      /8136\.json: company-memory root must be an object/,
+      "non-object existing memory roots must fail closed before derived refresh",
+    );
+
+    writeFileSync(memoryPath, JSON.stringify({ ...validMemory, code: "9999" }));
+    assert.throws(
+      () => assertExistingCompanyMemoryInputs(dir),
+      /8136\.json: code must match filename \(8136\)/,
+      "mismatched stable identity must fail closed before a per-company memory file is overwritten",
+    );
+
+    writeFileSync(memoryPath, JSON.stringify({ ...validMemory, notes: {} }));
+    assert.throws(
+      () => assertExistingCompanyMemoryInputs(dir),
+      /8136\.json: notes must be a string array/,
+      "malformed memory collections must fail closed before derived refresh",
     );
   } finally {
     rmSync(dir, { recursive: true, force: true });
