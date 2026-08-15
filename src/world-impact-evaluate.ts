@@ -21,6 +21,7 @@ import { join } from "path";
 import { addDaysJst, todayJst } from "./date.js";
 import { fetchDailyQuotes, isJQuantsConfigured } from "./fetcher/jquants.js";
 import { resolveWorldImpactEvaluationAsOf } from "./world-impact-evaluation-input.js";
+import { parseWorldImpactLatestSnapshot } from "./world-impact-latest-input.js";
 import {
   deriveReviewStatus,
   evaluateWorldImpactOutcome,
@@ -93,11 +94,9 @@ type LineEntry =
 function readLatestReviewsSafe(path = LATEST_PATH): WorldEventImpactReview[] {
   if (!existsSync(path)) return [];
   try {
-    const parsed = JSON.parse(readFileSync(path, "utf-8"));
-    return Array.isArray(parsed) ? parsed as WorldEventImpactReview[] : [];
+    return parseWorldImpactLatestSnapshot(readFileSync(path, "utf-8"));
   } catch (error) {
-    console.warn(`[WARN] latest JSON を読めませんでした。JSONL更新は継続します: ${error instanceof Error ? error.message : error}`);
-    return [];
+    throw new Error(`World Impact latest snapshot is invalid; refusing write: ${error instanceof Error ? error.message : error}`);
   }
 }
 
@@ -210,6 +209,8 @@ async function main(): Promise<void> {
 
   // 保存（--write のみ）
   if (args.write && updatedKeys.size > 0) {
+    // latestを先に検証し、壊れたcanonical snapshotがある場合はJSONLも含め一切書き換えない。
+    const latest = readLatestReviewsSafe();
     const output = entries.map(entry =>
       entry.kind === "broken" || !updatedKeys.has(entry.review.reviewKey)
         ? entry.raw
@@ -218,7 +219,6 @@ async function main(): Promise<void> {
     writeFileSync(JSONL_PATH, output.join("\n") + "\n", "utf-8");
 
     // latest はマージ更新（dry-run 由来の候補レビューを消さない）
-    const latest = readLatestReviewsSafe();
     const updatedByKey = new Map(reviews.filter(e => updatedKeys.has(e.review.reviewKey)).map(e => [e.review.reviewKey, e.review]));
     const mergedLatest = latest.map(item => updatedByKey.get(item.reviewKey) ?? item);
     for (const [key, review] of updatedByKey) {
