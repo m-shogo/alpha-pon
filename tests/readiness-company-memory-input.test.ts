@@ -80,6 +80,13 @@ try {
     /primaryDisclosureReviews must be an object when present/,
     "array-shaped primary reviews must fail closed instead of inflating readiness counts through Object.keys",
   );
+
+  writeFileSync(generatedPath, JSON.stringify({ primaryDisclosureReviews: { "8136": null, "5803": "confirmed", "6758": 1 } }));
+  assert.throws(
+    () => assertReadinessPrimaryDisclosureReviewInput(generatedPath),
+    /primaryDisclosureReviews\.(?:5803|6758|8136) must be an object/,
+    "primitive primary review entries must fail closed instead of inflating readiness counts",
+  );
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
