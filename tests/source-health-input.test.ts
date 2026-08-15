@@ -29,7 +29,8 @@ for (const malformed of [null, [], "completed", 1] as const) {
   const dir = mkdtempSync(join(tmpdir(), "company-memory-score-input-"));
   try {
     const scorePath = join(dir, "scores_2026-08-15.json");
-    writeFileSync(scorePath, JSON.stringify([{ code: "8136", name: "サンリオ", createdAt: "2026-08-15", tags: ["watch"] }]));
+    const validScoreRows = [{ code: "8136", name: "サンリオ", createdAt: "2026-08-15", tags: ["watch"] }];
+    writeFileSync(scorePath, JSON.stringify(validScoreRows));
     assert.doesNotThrow(() => assertCompanyMemoryScoreInputs(dir), "well-shaped score rows remain valid company-memory input");
 
     writeFileSync(scorePath, JSON.stringify([{ name: "サンリオ", createdAt: "2026-08-15" }]));
@@ -46,6 +47,7 @@ for (const malformed of [null, [], "completed", 1] as const) {
       "malformed optional arrays must fail closed before company-memory transformations",
     );
 
+    writeFileSync(scorePath, JSON.stringify(validScoreRows));
     writeFileSync(join(dir, "scores_2026-08-16.json"), JSON.stringify({ code: "8136" }));
     assert.throws(
       () => assertCompanyMemoryScoreInputs(dir),
