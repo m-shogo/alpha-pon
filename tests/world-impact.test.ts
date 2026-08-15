@@ -11,6 +11,7 @@ import {
   assertWorldImpactLatestSnapshotHealthy,
   resolveWorldImpactReportInput,
 } from "../src/world-impact-report-input.js";
+import { normalizeWorldImpactReviewInputs } from "../src/world-impact-review-input.js";
 import type { WorldEventReflection } from "../src/analysis/world-event-reflection.js";
 
 const TODAY = "2026-06-12";
@@ -97,6 +98,31 @@ function makeReview(overrides: Partial<WorldEventImpactReview> = {}): WorldEvent
   assert.equal(reviews[0].dataAvailability, "priceDataPending");
   assert.ok(reviews[0].outcomes.some(outcome => outcome.horizon === "1d" && outcome.dataAvailability === "priceDataPending"));
   console.log("world-impact: タグ一致から銘柄別レビューを作成");
+}
+
+{
+  const inputs = normalizeWorldImpactReviewInputs<
+    WorldEventReflection,
+    { code: string; name: string; tags?: string[] },
+    { code: string; name: string; sector?: string | null; tags?: string[] },
+    { code?: string; name?: string }
+  >(
+    [reflection(), null, "bad-row"],
+    {
+      candidates: [{ code: "5803", name: "フジクラ", tags: ["AI"] }, null],
+      universeCandidates: [{ code: "7011", name: "三菱重工業", sector: "機械", tags: ["防衛"] }, 42],
+      generatedCompanyRules: [{ code: "5803", name: "フジクラ" }, []],
+    },
+  );
+
+  assert.equal(inputs.reflections.length, 1, "malformed reflection rowsを隔離する");
+  assert.equal(inputs.candidates.length, 1, "malformed candidate rowsを隔離する");
+  assert.equal(inputs.universeCandidates.length, 1, "malformed universe rowsを隔離する");
+  assert.equal(inputs.generatedCompanyRules.length, 1, "malformed company-rule rowsを隔離する");
+  assert.ok(inputs.warnings.some(warning => warning.includes("world_event_reflections_latest.json: invalid_rows") && warning.includes("dropped 2")));
+  assert.ok(inputs.warnings.some(warning => warning.includes("alpha-pon-data.json.candidates: invalid_rows") && warning.includes("dropped 1")));
+  assert.doesNotThrow(() => buildWorldImpactReviews({ ...inputs, today: TODAY }));
+  console.log("world-impact: malformed review input rowsを隔離して正常rowを継続する");
 }
 
 {
