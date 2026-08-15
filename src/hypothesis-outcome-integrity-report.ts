@@ -1,7 +1,11 @@
 import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
-import { buildOutcomeIntegrityReport, type OutcomeIntegrityReport } from "./hypothesis-outcome-integrity.js";
+import {
+  buildOutcomeIntegrityReport,
+  isBlockingOutcomeIntegrityStatus,
+  type OutcomeIntegrityReport,
+} from "./hypothesis-outcome-integrity.js";
 
 function renderMarkdown(report: OutcomeIntegrityReport): string {
   const lines: string[] = [];
@@ -65,7 +69,7 @@ function main(): void {
   console.log(`sqlite unique index: ${report.sqlite.uniqueIndexExists ? "yes" : "no"}`);
   console.log(`sqlite duplicate groups: ${report.sqlite.duplicateGroups.length}`);
   console.log(`nextAction: ${report.nextAction}`);
-  if (report.status === "duplicate_found" || report.status === "parse_error") process.exitCode = 1;
+  if (isBlockingOutcomeIntegrityStatus(report.status)) process.exitCode = 1;
 }
 
 main();
