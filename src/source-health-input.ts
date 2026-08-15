@@ -2,9 +2,18 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(item => typeof item === "string");
+}
+
 export function normalizeSourceHealthScoreRows<T>(value: unknown): { rows: T[]; valid: boolean } {
   if (!Array.isArray(value) || value.some(row => !isRecord(row))) {
     return { rows: [], valid: false };
+  }
+  for (const row of value) {
+    if (row.warnings !== undefined && !isStringArray(row.warnings)) {
+      return { rows: [], valid: false };
+    }
   }
   return { rows: value as T[], valid: true };
 }

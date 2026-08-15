@@ -22,6 +22,12 @@ for (const malformed of [[null], ["8136"], [7], [[]]] as const) {
   assert.deepEqual(result.rows, [], "malformed score rows must not leak into readiness/source-health consumers");
 }
 
+for (const malformedWarnings of [{}, "warning", [7], ["ok", 7]] as const) {
+  const result = normalizeSourceHealthScoreRows<{ code: string; warnings?: string[] }>([{ code: "8136", warnings: malformedWarnings }]);
+  assert.equal(result.valid, false, "malformed score warning collections must fail closed before .some/.length consumers");
+  assert.deepEqual(result.rows, [], "malformed warning collections must not be counted as healthy score input");
+}
+
 const validObject = normalizeSourceHealthObject<{ status?: string }>({ status: "completed" });
 assert.equal(validObject.valid, true);
 assert.deepEqual(validObject.value, { status: "completed" });
