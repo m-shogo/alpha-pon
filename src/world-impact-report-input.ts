@@ -33,6 +33,18 @@ function isNullableRealJstDate(value: unknown): boolean {
   return value == null || isRealJstDate(value);
 }
 
+function hasValidEvaluationChronology(nested: Record<string, unknown>): boolean {
+  const priceStartDate = nested.priceStartDate as string | null | undefined;
+  const priceEndDate = nested.priceEndDate as string | null | undefined;
+  const evaluationAsOf = nested.evaluationAsOf as string | null | undefined;
+  const evaluatedAt = nested.evaluatedAt as string | null | undefined;
+
+  if (priceStartDate != null && priceEndDate != null && priceStartDate > priceEndDate) return false;
+  if (priceEndDate != null && evaluationAsOf != null && priceEndDate > evaluationAsOf) return false;
+  if (evaluationAsOf != null && evaluatedAt != null && evaluationAsOf > evaluatedAt) return false;
+  return true;
+}
+
 function hasValidNestedReviewDates(row: Record<string, unknown>): boolean {
   if (row.reviewDueAt != null && !isRealJstDate(row.reviewDueAt)) return false;
   if (row.outcomes === undefined) return true;
@@ -44,7 +56,8 @@ function hasValidNestedReviewDates(row: Record<string, unknown>): boolean {
       && isNullableRealJstDate(nested.evaluatedAt)
       && isNullableRealJstDate(nested.evaluationAsOf)
       && isNullableRealJstDate(nested.priceStartDate)
-      && isNullableRealJstDate(nested.priceEndDate);
+      && isNullableRealJstDate(nested.priceEndDate)
+      && hasValidEvaluationChronology(nested);
   });
 }
 
