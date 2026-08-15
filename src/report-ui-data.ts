@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
+import { formatReadOnlyJsonlParseWarning, readJsonlWithErrors } from "./read-only-jsonl.js";
 import type { UniverseCandidate, UniverseScanMetadata, UniverseScanOutput, StockCandidateHypothesis, HypothesisOutcome, AccuracySummary, WorldContext } from "./universe.js";
 import type { CompanyMemoryRecord } from "./company-memory.js";
 import type { PrimaryDisclosureReview } from "./types.js";
@@ -169,15 +170,6 @@ function toCandidate(code: string, company: DeepDiveCompany, date: string) {
 
 // ── ユニバース・仮説・検証データ読み込み ────────────────────────
 
-function readJsonl<T>(path: string): T[] {
-  if (!existsSync(path)) return [];
-  return readFileSync(path, "utf-8")
-    .split("\n")
-    .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => JSON.parse(line) as T);
-}
-
 function loadUniverseScanOutput(): UniverseScanOutput | null {
   const path = "data/universe_candidates_latest.json";
   if (!existsSync(path)) return null;
@@ -206,12 +198,12 @@ function toUniverseScanMetadata(output: UniverseScanOutput | null): UniverseScan
   };
 }
 
-function loadHypotheses(): StockCandidateHypothesis[] {
-  return readJsonl<StockCandidateHypothesis>("data/hypothesis_predictions.jsonl");
+function loadHypotheses() {
+  return readJsonlWithErrors<StockCandidateHypothesis>("data/hypothesis_predictions.jsonl");
 }
 
-function loadOutcomes(): HypothesisOutcome[] {
-  return readJsonl<HypothesisOutcome>("data/hypothesis_outcomes.jsonl");
+function loadOutcomes() {
+  return readJsonlWithErrors<HypothesisOutcome>("data/hypothesis_outcomes.jsonl");
 }
 
 function loadAccuracySummary(): AccuracySummary | null {
@@ -327,8 +319,10 @@ function main() {
   const universeScanOutput = loadUniverseScanOutput();
   const universeScan = toUniverseScanMetadata(universeScanOutput);
   const universeCandidates = universeScanOutput?.candidates ?? [];
-  const hypothesisPredictions = loadHypotheses();
-  const hypothesisOutcomes = loadOutcomes();
+  const hypothesisPredictionLoad = loadHypotheses();
+  const hypothesisOutcomeLoad = loadOutcomes();
+  const hypothesisPredictions = hypothesisPredictionLoad.rows;
+  const hypothesisOutcomes = hypothesisOutcomeLoad.rows;
   const accuracySummary = loadAccuracySummary();
   const worldContext = loadWorldContext();
   const personalWatchlist = loadPersonalWatchlist();
@@ -373,8 +367,19 @@ function main() {
     })
   );
 
-  // pipeline_status から completeWrapperFailedSteps を読み、meta.warnings に含める
+  // pipeline_status とread-only JSONLの問題を meta.warnings に含める
   const metaWarnings: string[] = [];
+  const hypothesisPredictionWarning = formatReadOnlyJsonlParseWarning(
+    "data/hypothesis_predictions.jsonl",
+    hypothesisPredictionLoad.parseErrors,
+  );
+  if (hypothesisPredictionWarning) metaWarnings.push(hypothesisPredictionWarning);
+  const hypothesisOutcomeWarning = formatReadOnlyJsonlParseWarning(
+    "data/hypothesis_outcomes.jsonl",
+    hypothesisOutcomeLoad.parseErrors,
+  );
+  if (hypothesisOutcomeWarning) metaWarnings.push(hypothesisOutcomeWarning);
+
   const pipelineStatusPath = "reports/pipeline_status_latest.json";
   let pipelineStatusData: Record<string, unknown> | null = null;
   if (existsSync(pipelineStatusPath)) {
