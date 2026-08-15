@@ -71,6 +71,7 @@ export function parseWorldImpactLatestSnapshot(raw: string): WorldEventImpactRev
     throw new Error("World Impact latest snapshot root must be an array");
   }
 
+  const seenReviewKeys = new Set<string>();
   parsed.forEach((item, index) => {
     if (!item || typeof item !== "object" || Array.isArray(item)) {
       throw new Error(`World Impact latest snapshot row ${index + 1} must be an object`);
@@ -80,6 +81,10 @@ export function parseWorldImpactLatestSnapshot(raw: string): WorldEventImpactRev
     if (typeof reviewKey !== "string" || reviewKey.trim() === "") {
       throw new Error(`World Impact latest snapshot row ${index + 1} requires reviewKey`);
     }
+    if (seenReviewKeys.has(reviewKey)) {
+      throw new Error(`World Impact latest snapshot duplicate reviewKey: ${reviewKey}`);
+    }
+    seenReviewKeys.add(reviewKey);
     assertOptionalEvaluationProvenance(row, `World Impact latest snapshot row ${index + 1}`);
   });
 
