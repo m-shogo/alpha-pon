@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
+import { normalizeSourceHealthScoreRows } from "./source-health-input.js";
 
 type PipelineStep = {
   name?: string;
@@ -113,7 +114,12 @@ function main() {
   const pipeline = readJson<PipelineStatus>("reports/pipeline_status_latest.json");
   const scorePath = latestScoreFile();
   const scoreDate = extractScoreDate(scorePath);
-  const scores = scorePath ? readJson<ScoreLogEntry[]>(scorePath) ?? [] : [];
+  const rawScores = scorePath ? readJson<unknown>(scorePath) : null;
+  const normalizedScores = scorePath
+    ? normalizeSourceHealthScoreRows<ScoreLogEntry>(rawScores)
+    : { rows: [] as ScoreLogEntry[], valid: true };
+  const scores = normalizedScores.rows;
+  const scoreShapeValid = normalizedScores.valid;
   const total = scores.length;
 
   const dataOk = scores.filter(score => score.dataQuality === "ok").length;
@@ -162,6 +168,7 @@ function main() {
   lines.push(`- score file: ${scorePath ?? "missing"}`);
   lines.push(`- score date: ${scoreDate ?? "N/A"}`);
   lines.push(`- isToday: ${scoreDate === date ? "yes" : "no"}`);
+  lines.push(`- root shape: ${scorePath ? (scoreShapeValid ? "array" : "invalid") : "missing"}`);
   lines.push("");
 
   lines.push("## 情報源カバレッジ");
@@ -201,8 +208,9 @@ function main() {
   if (pipeline?.status && !healthyStatuses.includes(pipeline.status) && pipeline.status !== "partial_failed") decisions.push(`- 🛑 pipeline status が ${pipeline.status} です。daily の成否を確認してください。`);
   if (failedSteps.length > 0) decisions.push(`- 🛑 pipeline failedSteps: ${failedSteps.join(", ")}`);
   if (!scorePath) decisions.push("- 🛑 scores JSON がありません。daily がレポートを生成できていない可能性があります。");
+  if (scorePath && !scoreShapeValid) decisions.push("- 🛑 scores JSON のroot shapeが配列ではありません。壊れた入力を空データとして扱わず、daily出力を再生成してください。");
   if (scoreDate && scoreDate !== date) decisions.push(`- ⚠️ score log が本日分ではありません（最新: ${scoreDate}）。古いスコアを今日の判断材料として扱わないでください。`);
-  if (total === 0) decisions.push("- 🛑 scores JSON が空です。daily がスコアを生成できていない可能性があります。");
+  if (scoreShapeValid && total === 0) decisions.push("- 🛑 scores JSON が空です。daily がスコアを生成できていない可能性があります。");
   if (total > 0 && dataMissing / total > 0.5) decisions.push("- ⚠️ dataQuality missing が多いです。J-Quants設定やmock運用状態を確認してください。");
   if (total > 0 && marketContextCount / total < 0.5) decisions.push("- ⚠️ marketContext が少ないです。株価・ベンチマーク取得を確認してください。");
   if (total > 0 && primaryReviewCount / total < 0.8) decisions.push("- ⚠️ primaryDisclosureReview が少ないです。一次情報レビューの接続を確認してください。");
