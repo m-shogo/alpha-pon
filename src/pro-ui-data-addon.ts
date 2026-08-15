@@ -73,9 +73,8 @@ function main() {
   });
   const specialSituationOps = readJson("reports/special_situation_ops_summary_latest.json", null);
   const hypothesisOutcomeIntegrity = readJson("reports/hypothesis_outcome_integrity_latest.json", null);
-  const stockProCommitteeRaw = readJson<unknown>("reports/stock_pro_committee_latest.json", null);
-  const stockProCommitteeLoad = normalizeReadOnlyJsonObjectArrayField<Record<string, unknown>>(
-    stockProCommitteeRaw,
+  const stockProCommitteeLoad = readReadOnlyJsonObjectArrayFile<Record<string, unknown>>(
+    "reports/stock_pro_committee_latest.json",
     "decisions",
   );
   const stockProCommitteeJson = {
@@ -117,6 +116,7 @@ function main() {
     irEventEvidenceLoad.parseError ? "data/ir_event_evidence_latest.json: parse_error" : null,
     irEventEvidenceLoad.invalidRoot ? "data/ir_event_evidence_latest.json: invalid_root (expected object)" : null,
     irEventEvidenceLoad.invalidField ? "data/ir_event_evidence_latest.json.events: invalid_field (expected array)" : null,
+    stockProCommitteeLoad.parseError ? "reports/stock_pro_committee_latest.json: parse_error" : null,
     stockProCommitteeLoad.invalidRoot ? "reports/stock_pro_committee_latest.json: invalid_root (expected object)" : null,
     stockProCommitteeLoad.invalidField ? "reports/stock_pro_committee_latest.json.decisions: invalid_field (expected array)" : null,
   ].filter((value): value is string => Boolean(value));
@@ -145,7 +145,7 @@ function main() {
         existsSync("reports/special_situation_watch_latest.json") ? null : "reports/special_situation_watch_latest.json",
         existsSync("reports/special_situation_ops_summary_latest.json") ? null : "reports/special_situation_ops_summary_latest.json",
         existsSync("reports/hypothesis_outcome_integrity_latest.json") ? null : "reports/hypothesis_outcome_integrity_latest.json",
-        existsSync("reports/stock_pro_committee_latest.json") ? null : "reports/stock_pro_committee_latest.json",
+        stockProCommitteeLoad.missing ? "reports/stock_pro_committee_latest.json" : null,
       ].filter(Boolean),
       warnings: invalidProInputs,
     },
