@@ -27,6 +27,13 @@ function hasValidPrimaryDisclosureReview(value: unknown): boolean {
     && isOptionalStringArray(value.sourceCoverage.scannedEdinetDates);
 }
 
+export function normalizeSourceHealthArray<T>(value: unknown): { rows: T[]; valid: boolean } {
+  if (!Array.isArray(value)) {
+    return { rows: [], valid: false };
+  }
+  return { rows: value as T[], valid: true };
+}
+
 export function normalizeSourceHealthScoreRows<T>(value: unknown): { rows: T[]; valid: boolean } {
   if (!Array.isArray(value) || value.some(row => !isRecord(row))) {
     return { rows: [], valid: false };
