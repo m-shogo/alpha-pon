@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   assertReadinessCompanyMemoryInput,
+  assertReadinessDataQualityFallbackInput,
   assertReadinessHypothesisPredictionInput,
   assertReadinessPrimaryDisclosureReviewInput,
 } from "../src/readiness-company-memory-input.js";
@@ -12,6 +13,8 @@ const dir = mkdtempSync(join(tmpdir(), "readiness-company-memory-"));
 try {
   const generatedPath = join(dir, "alpha-pon-data.json");
   const reportPath = join(dir, "company_memory_latest.json");
+  const reportsDir = join(dir, "reports");
+  mkdirSync(reportsDir);
 
   writeFileSync(generatedPath, JSON.stringify({ companyMemory: [] }));
   assert.doesNotThrow(() => assertReadinessCompanyMemoryInput(generatedPath, reportPath));
@@ -86,6 +89,39 @@ try {
     () => assertReadinessPrimaryDisclosureReviewInput(generatedPath),
     /primaryDisclosureReviews\.(?:5803|6758|8136) must be an object/,
     "primitive primary review entries must fail closed instead of inflating readiness counts",
+  );
+
+  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": { dataQuality: "ok", warnings: [] } } }));
+  assert.doesNotThrow(
+    () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir),
+    "well-shaped generated data-quality fallback remains valid when score snapshots are absent",
+  );
+
+  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: [] }));
+  assert.throws(
+    () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir),
+    /dataQualityByCode must be an object/,
+    "array-shaped data-quality fallback must fail closed before Object.values readiness scoring",
+  );
+
+  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": null } }));
+  assert.throws(
+    () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir),
+    /dataQualityByCode\.8136 must be an object/,
+    "primitive data-quality fallback entries must fail closed before readiness scoring",
+  );
+
+  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": { warnings: { count: 3 } } } }));
+  assert.throws(
+    () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir),
+    /warnings must be a string array/,
+    "malformed fallback warnings must not crash or distort warning counts",
+  );
+
+  writeFileSync(join(reportsDir, "scores_2026-08-16.json"), JSON.stringify([]));
+  assert.doesNotThrow(
+    () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir),
+    "generated dataQualityByCode is inactive when a canonical score snapshot exists",
   );
 } finally {
   rmSync(dir, { recursive: true, force: true });
