@@ -6,12 +6,14 @@ import {
   mergeExistingReviews,
   type WorldEventImpactReview,
 } from "../src/world-impact.js";
-import { resolveWorldImpactReportInput } from "../src/world-impact-report-input.js";
+import {
+  applyWorldImpactLatestSnapshotError,
+  resolveWorldImpactReportInput,
+} from "../src/world-impact-report-input.js";
 import type { WorldEventReflection } from "../src/analysis/world-event-reflection.js";
 
 const TODAY = "2026-06-12";
 
-// v3 で outcome に追加された評価フィールドの既定値（v1 テスト fixture 用）
 const V3_OUTCOME_DEFAULTS = {
   evaluatedAt: null,
   evaluationAsOf: null,
@@ -224,7 +226,13 @@ function makeReview(overrides: Partial<WorldEventImpactReview> = {}): WorldEvent
   const malformedJson = resolveWorldImpactReportInput({ present: true, parseError: true }, [jsonlReview], TODAY);
   assert.equal(malformedJson.latestSnapshotError, true);
   assert.deepEqual(malformedJson.reviews, [], "JSON parse失敗でもfail closedにする");
-  console.log("world-impact: malformed latest snapshot をsilent fallbackしない");
+
+  const audit = buildWorldImpactAudit([], TODAY);
+  assert.equal(audit.healthStatus, "ok", "空データだけなら基礎auditはok");
+  applyWorldImpactLatestSnapshotError(audit, malformedRoot.latestSnapshotError);
+  assert.equal(audit.healthStatus, "action_required", "壊れたlatest snapshotはauditをfail closedにする");
+  assert.ok(audit.priorityIssues.some(issue => issue.category === "latest_snapshot" && issue.severity === "urgent"));
+  console.log("world-impact: malformed latest snapshot をreport/auditでfail closedにする");
 }
 
 console.log("world-impact: 全テスト成功");

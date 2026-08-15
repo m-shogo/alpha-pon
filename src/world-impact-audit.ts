@@ -8,19 +8,21 @@ import { todayJst } from "./date.js";
 import {
   buildWorldImpactAudit,
   loadWorldImpactJsonl,
-  normalizeWorldImpactReview,
   renderWorldImpactAuditMarkdown,
-  type WorldEventImpactReview,
 } from "./world-impact.js";
+import {
+  applyWorldImpactLatestSnapshotError,
+  resolveWorldImpactReportInput,
+  type WorldImpactLatestSnapshotInput,
+} from "./world-impact-report-input.js";
 
-function readLatest(today: string): WorldEventImpactReview[] | null {
+function readLatest(): WorldImpactLatestSnapshotInput {
   const latest = join("data", "world_event_impacts_latest.json");
-  if (!existsSync(latest)) return null;
+  if (!existsSync(latest)) return { present: false };
   try {
-    const parsed = JSON.parse(readFileSync(latest, "utf-8"));
-    return Array.isArray(parsed) ? parsed.map(item => normalizeWorldImpactReview(item, today)) : [];
+    return { present: true, parsed: JSON.parse(readFileSync(latest, "utf-8")) };
   } catch {
-    return [];
+    return { present: true, parseError: true };
   }
 }
 
@@ -43,13 +45,13 @@ function readRawRecords(): unknown[] {
 function main() {
   const today = todayJst();
   const { reviews: jsonlReviews, parseErrors } = loadWorldImpactJsonl(undefined, today);
-  const latestReviews = readLatest(today);
-  const reviews = latestReviews ?? jsonlReviews;
-  const audit = buildWorldImpactAudit(reviews, today, {
+  const resolved = resolveWorldImpactReportInput(readLatest(), jsonlReviews, today);
+  const audit = buildWorldImpactAudit(resolved.reviews, today, {
     jsonlParseErrors: parseErrors,
     jsonlKeys: jsonlReviews.map(review => review.reviewKey),
     rawRecords: readRawRecords(),
   });
+  applyWorldImpactLatestSnapshotError(audit, resolved.latestSnapshotError);
 
   mkdirSync("reports", { recursive: true });
   writeFileSync(join("reports", "world-impact-audit.json"), JSON.stringify(audit, null, 2) + "\n");

@@ -12,6 +12,7 @@ import {
   renderWorldImpactIntelligenceMarkdown,
 } from "./world-impact.js";
 import {
+  applyWorldImpactLatestSnapshotError,
   resolveWorldImpactReportInput,
   type WorldImpactLatestSnapshotInput,
 } from "./world-impact-report-input.js";
@@ -36,15 +37,7 @@ function main() {
     jsonlParseErrors: parseErrors,
     jsonlKeys: jsonlReviews.map(review => review.reviewKey),
   });
-  if (resolved.latestSnapshotError) {
-    audit.healthStatus = "action_required";
-    audit.priorityIssues.unshift({
-      severity: "urgent",
-      category: "latest_snapshot",
-      title: "world impact latest snapshot が不正です",
-      detail: "data/world_event_impacts_latest.json を修復してから read-only report を正本として扱ってください。JSONL への silent fallback は行いません。",
-    });
-  }
+  applyWorldImpactLatestSnapshotError(audit, resolved.latestSnapshotError);
   const calibration = buildWorldImpactCalibration(reviews, today);
   const markdown = renderWorldImpactIntelligenceMarkdown(reviews, audit, calibration, today);
 

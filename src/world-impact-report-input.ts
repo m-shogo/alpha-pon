@@ -1,4 +1,8 @@
-import { normalizeWorldImpactReview, type WorldEventImpactReview } from "./world-impact.js";
+import {
+  normalizeWorldImpactReview,
+  type WorldImpactAudit,
+  type WorldEventImpactReview,
+} from "./world-impact.js";
 
 export type WorldImpactLatestSnapshotInput =
   | { present: false }
@@ -27,4 +31,18 @@ export function resolveWorldImpactReportInput(
     reviews: latest.parsed.map(item => normalizeWorldImpactReview(item, today)),
     latestSnapshotError: false,
   };
+}
+
+export function applyWorldImpactLatestSnapshotError(
+  audit: WorldImpactAudit,
+  latestSnapshotError: boolean,
+): void {
+  if (!latestSnapshotError) return;
+  audit.healthStatus = "action_required";
+  audit.priorityIssues.unshift({
+    severity: "urgent",
+    category: "latest_snapshot",
+    title: "world impact latest snapshot が不正です",
+    detail: "data/world_event_impacts_latest.json を修復してから read-only output を正本として扱ってください。JSONL への silent fallback は行いません。",
+  });
 }
