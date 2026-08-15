@@ -20,10 +20,28 @@ const validObject = normalizeSourceHealthObject<{ status?: string }>({ status: "
 assert.equal(validObject.valid, true);
 assert.deepEqual(validObject.value, { status: "completed" });
 
+const validPipelineCollections = normalizeSourceHealthObject<{
+  status?: string;
+  steps?: unknown[];
+  results?: unknown[];
+  completeWrapperFailedSteps?: unknown[];
+}>({ status: "completed", steps: [], results: [], completeWrapperFailedSteps: [] });
+assert.equal(validPipelineCollections.valid, true, "array-shaped pipeline collections remain valid");
+
 for (const malformed of [null, [], "completed", 1] as const) {
   const result = normalizeSourceHealthObject<{ status?: string }>(malformed);
   assert.equal(result.valid, false, "non-object pipeline roots must be treated as invalid input");
   assert.equal(result.value, null, "invalid roots must not leak into downstream object access");
+}
+
+for (const malformed of [
+  { status: "completed", steps: {} },
+  { status: "completed", results: "ok" },
+  { status: "completed", completeWrapperFailedSteps: {} },
+] as const) {
+  const result = normalizeSourceHealthObject<Record<string, unknown>>(malformed);
+  assert.equal(result.valid, false, "malformed pipeline collection fields must fail closed before array operations");
+  assert.equal(result.value, null, "malformed nested pipeline collections must not reach source-health consumers");
 }
 
 {
