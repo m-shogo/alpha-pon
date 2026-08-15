@@ -10,6 +10,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
+import { parseWorldImpactLatestSnapshot } from "./world-impact-latest-input.js";
 import {
   normalizeWorldImpactReview,
   writeWorldImpactLatest,
@@ -17,10 +18,16 @@ import {
 } from "./world-impact.js";
 
 const JSONL_PATH = join("data", "world_event_impacts.jsonl");
+const LATEST_PATH = join("data", "world_event_impacts_latest.json");
 
 type LineEntry =
   | { kind: "review"; raw: string; before: Record<string, unknown>; after: WorldEventImpactReview }
   | { kind: "broken"; raw: string };
+
+function readLatestForWrite(): WorldEventImpactReview[] {
+  if (!existsSync(LATEST_PATH)) return [];
+  return parseWorldImpactLatestSnapshot(readFileSync(LATEST_PATH, "utf-8"));
+}
 
 function main() {
   const today = todayJst();
@@ -81,18 +88,13 @@ function main() {
   }
 
   if (write && changedRecords > 0) {
+    // canonical latest が壊れている場合、JSONL も含めて何も書き換えない。
+    const latest = readLatestForWrite();
     const output = entries.map(entry =>
       entry.kind === "broken" ? entry.raw : JSON.stringify(entry.after)
     );
     writeFileSync(JSONL_PATH, output.join("\n") + "\n", "utf-8");
     // latest はマージ更新（review:world-impact の dry-run 候補を消さない）
-    const LATEST_PATH = join("data", "world_event_impacts_latest.json");
-    let latest: WorldEventImpactReview[] = [];
-    try {
-      latest = existsSync(LATEST_PATH) ? JSON.parse(readFileSync(LATEST_PATH, "utf-8")) as WorldEventImpactReview[] : [];
-    } catch {
-      latest = [];
-    }
     const updatedByKey = new Map(reviews.map(entry => [entry.after.reviewKey, entry.after]));
     const merged = latest.map(item => updatedByKey.get(item.reviewKey) ?? item);
     for (const [key, review] of updatedByKey) {
