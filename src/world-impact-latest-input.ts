@@ -34,11 +34,19 @@ function assertOptionalEvaluationProvenance(row: Record<string, unknown>, rowLab
     throw new Error(`${rowLabel} outcomes must be an array when present`);
   }
 
+  const seenHorizons = new Set<string>();
   row.outcomes.forEach((value, outcomeIndex) => {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
       throw new Error(`${rowLabel} outcome ${outcomeIndex + 1} must be an object`);
     }
     const outcome = value as Record<string, unknown>;
+    const horizon = outcome.horizon;
+    if (horizon === "1d" || horizon === "1w" || horizon === "1m") {
+      if (seenHorizons.has(horizon)) {
+        throw new Error(`${rowLabel} duplicate outcome horizon: ${horizon}`);
+      }
+      seenHorizons.add(horizon);
+    }
     for (const field of ["dueAt", "evaluatedAt", "evaluationAsOf", "priceStartDate", "priceEndDate"]) {
       assertOptionalRealDate(outcome, field, `${rowLabel} outcome ${outcomeIndex + 1}`);
     }
