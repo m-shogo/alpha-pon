@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
+import { partitionHypothesesByDetectedAt } from "../src/hypothesis-review-date.js";
 import { buildOutcomeIntegrityReport } from "../src/hypothesis-outcome-integrity.js";
 import type { HypothesisOutcome } from "../src/universe.js";
 
@@ -59,6 +60,17 @@ function outcome(code: string, detectedAt: string, reviewHorizon: "1d" | "1w" | 
     notes: "test",
     dataSource: "mock",
   };
+}
+
+{
+  const partitioned = partitionHypothesesByDetectedAt([
+    { id: "valid", detectedAt: "2026-06-01" },
+    { id: "impossible", detectedAt: "2026-02-31" },
+    { id: "year-zero", detectedAt: "0000-01-01" },
+    { id: "missing", detectedAt: undefined },
+  ]);
+  assert.deepEqual(partitioned.valid.map(row => row.id), ["valid"]);
+  assert.deepEqual(partitioned.invalid.map(row => row.id), ["impossible", "year-zero", "missing"]);
 }
 
 const dir = mkdtempSync(join(tmpdir(), "alpha-pon-outcomes-"));
