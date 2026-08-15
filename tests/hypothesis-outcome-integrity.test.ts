@@ -7,7 +7,7 @@ import {
   buildOutcomeIntegrityReport,
   isBlockingOutcomeIntegrityStatus,
 } from "../src/hypothesis-outcome-integrity.js";
-import { normalizeReadOnlyJsonArray } from "../src/read-only-json.js";
+import { normalizeReadOnlyJsonArray, normalizeReadOnlyJsonObjectArrayField } from "../src/read-only-json.js";
 import { formatReadOnlyJsonlParseWarning, readJsonlWithErrors } from "../src/read-only-jsonl.js";
 import type { HypothesisOutcome } from "../src/universe.js";
 
@@ -90,6 +90,25 @@ function outcome(code: string, detectedAt: string, reviewHorizon: "1d" | "1w" | 
   const missingArray = normalizeReadOnlyJsonArray<{ id: string }>(null);
   assert.deepEqual(missingArray.rows, []);
   assert.equal(missingArray.invalidRoot, false, "missingとinvalid rootを区別する");
+
+  const validObjectField = normalizeReadOnlyJsonObjectArrayField<{ id: string }>(
+    { generatedAt: "2026-08-15", decisions: [{ id: "ok" }] },
+    "decisions",
+  );
+  assert.deepEqual(validObjectField.rows, [{ id: "ok" }]);
+  assert.equal(validObjectField.invalidRoot, false);
+  assert.equal(validObjectField.invalidField, false);
+
+  const invalidObjectRoot = normalizeReadOnlyJsonObjectArrayField<{ id: string }>([], "decisions");
+  assert.deepEqual(invalidObjectRoot.rows, []);
+  assert.equal(invalidObjectRoot.invalidRoot, true, "壊れたobject rootをfail closedにする");
+
+  const invalidObjectField = normalizeReadOnlyJsonObjectArrayField<{ id: string }>(
+    { generatedAt: "2026-08-15", decisions: { id: "wrong-shape" } },
+    "decisions",
+  );
+  assert.deepEqual(invalidObjectField.rows, []);
+  assert.equal(invalidObjectField.invalidField, true, "配列でないdecisionsをfail closedにする");
 }
 
 assert.equal(isBlockingOutcomeIntegrityStatus("ok"), false);
