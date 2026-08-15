@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
 import { normalizeSourceHealthObject } from "./source-health-input.js";
+import { readJsonlWithErrors } from "./read-only-jsonl.js";
 
 type SourceHealthRow = {
   date?: string;
@@ -19,22 +20,6 @@ function readJson(path: string): unknown {
   } catch {
     return null;
   }
-}
-
-function readJsonl<T>(path: string): T[] {
-  if (!existsSync(path)) return [];
-  return readFileSync(path, "utf-8")
-    .split("\n")
-    .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => {
-      try {
-        return JSON.parse(line) as T;
-      } catch {
-        return null;
-      }
-    })
-    .filter((item): item is T => item !== null);
 }
 
 function missingReports(rows: SourceHealthRow[], limit: number): Array<[string, number]> {
@@ -58,12 +43,16 @@ function main() {
     : normalizedPipelineStatus.valid
       ? "ok"
       : "invalid_root";
-  const sourceRows = readJsonl<SourceHealthRow>("data/source_health_history.jsonl");
+  const sourceHealthHistory = readJsonlWithErrors<SourceHealthRow>("data/source_health_history.jsonl");
+  const sourceRows = sourceHealthHistory.rows;
   const recentMissing = missingReports(sourceRows, 14);
   const criticalSignals: string[] = [];
 
   if (!sourceHealthText) criticalSignals.push("source_health_latest.md missing");
   if (pipelineStatusState !== "ok") criticalSignals.push(`pipeline_status_latest.json ${pipelineStatusState}`);
+  if (sourceHealthHistory.parseErrors.length > 0) {
+    criticalSignals.push(`source_health_history.jsonl parse_error ${sourceHealthHistory.parseErrors.length}`);
+  }
   for (const [name, count] of recentMissing) {
     if (count >= 3) criticalSignals.push(`${name} missing_or_empty ${count}/14`);
   }
@@ -85,6 +74,7 @@ function main() {
   lines.push(`- source_health_latest.md: ${sourceHealthText ? "ok" : "missing"}`);
   lines.push(`- pipeline_status_latest.json: ${pipelineStatusState}`);
   lines.push(`- source health history rows: ${sourceRows.length}`);
+  lines.push(`- source health history parse errors: ${sourceHealthHistory.parseErrors.length}`);
   lines.push("");
   lines.push("## critical signals");
   lines.push("");

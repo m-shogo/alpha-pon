@@ -7,6 +7,7 @@ import {
   buildOutcomeIntegrityReport,
   isBlockingOutcomeIntegrityStatus,
 } from "../src/hypothesis-outcome-integrity.js";
+import { readJsonlWithErrors } from "../src/read-only-jsonl.js";
 import type { HypothesisOutcome } from "../src/universe.js";
 
 function outcome(code: string, detectedAt: string, reviewHorizon: "1d" | "1w" | "1m"): HypothesisOutcome {
@@ -85,6 +86,22 @@ const dir = mkdtempSync(join(tmpdir(), "alpha-pon-outcomes-"));
 try {
   const jsonlPath = join(dir, "hypothesis_outcomes.jsonl");
   const dbPath = join(dir, "hypothesis_outcomes.db");
+  const historyPath = join(dir, "source_health_history.jsonl");
+
+  writeFileSync(
+    historyPath,
+    [
+      JSON.stringify({ date: "2026-06-01", reports: { latest: { exists: true, size: 10 } } }),
+      "{ broken history json",
+      JSON.stringify({ date: "2026-06-02", reports: { latest: { exists: false, size: 0 } } }),
+    ].join("\n") + "\n",
+    "utf-8"
+  );
+  const history = readJsonlWithErrors<{ date: string }>(historyPath);
+  assert.equal(history.rows.length, 2, "正常な履歴行は読み続ける");
+  assert.equal(history.parseErrors.length, 1, "壊れた履歴行を黙って捨てない");
+  assert.equal(history.parseErrors[0].lineNumber, 2);
+  assert(history.parseErrors[0].preview.includes("broken history json"));
 
   writeFileSync(
     jsonlPath,
