@@ -180,7 +180,9 @@ function buildReport(): ReadinessReport {
   const dataQuality = scoreRows.length > 0
     ? scoreRows.map(row => ({ dataQuality: row.dataQuality, warnings: row.warnings ?? [] }))
     : Object.values(generated?.dataQualityByCode ?? {});
-  const universe = generated?.universeCandidates ?? [];
+  const universeInput = generated?.universeCandidates;
+  const universeState = universeInput === undefined ? "missing" : Array.isArray(universeInput) ? "ok" : "invalid_root";
+  const universe = Array.isArray(universeInput) ? universeInput : [];
   const packageJson = readJson<{ scripts?: Record<string, string> }>("package.json");
   const accuracySummary = readJson<AccuracySummarySnapshot>("data/hypothesis_accuracy_summary.json");
   const runCursors = readJson<Record<string, RunCursorSnapshot>>("data/run-cursors.json") ?? {};
@@ -223,7 +225,7 @@ function buildReport(): ReadinessReport {
     item({
       id: "real-data",
       label: "J-Quants実データ運用",
-      score: scoreSnapshot.state === "invalid_root"
+      score: scoreSnapshot.state === "invalid_root" || universeState === "invalid_root"
         ? 20
         : jquantsConfigured && mockUniverse === 0 && missingQuality === 0
           ? 100
@@ -233,14 +235,17 @@ function buildReport(): ReadinessReport {
       evidence: [
         `J-Quants設定: ${jquantsConfigured ? "set" : "missing"}`,
         `latest score input: ${scoreSnapshot.state}`,
+        `universe input: ${universeState}`,
         `mock universe: ${mockUniverse}`,
         `dataQuality missing/unknown: ${missingQuality}`,
       ],
-      nextActions: scoreSnapshot.state === "invalid_root"
-        ? ["最新 scores_YYYY-MM-DD.json のrootを配列へ修復して readiness:audit を再実行する"]
-        : jquantsConfigured
-          ? ["pnpm daily:full を数日連続で実行し、mock と missing が消えるか確認する"]
-          : [".env に JQUANTS_API_KEY を設定する", "pnpm daily:full を実データで再実行する"],
+      nextActions: universeState === "invalid_root"
+        ? ["generated universeCandidates のrootを配列へ修復して readiness:audit を再実行する"]
+        : scoreSnapshot.state === "invalid_root"
+          ? ["最新 scores_YYYY-MM-DD.json のrootを配列へ修復して readiness:audit を再実行する"]
+          : jquantsConfigured
+            ? ["pnpm daily:full を数日連続で実行し、mock と missing が消えるか確認する"]
+            : [".env に JQUANTS_API_KEY を設定する", "pnpm daily:full を実データで再実行する"],
     }),
     item({
       id: "pipeline",
