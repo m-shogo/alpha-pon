@@ -107,22 +107,43 @@ function makeReview(overrides: Partial<WorldEventImpactReview> = {}): WorldEvent
     { code: string; name: string; sector?: string | null; tags?: string[] },
     { code?: string; name?: string }
   >(
-    [reflection(), null, "bad-row"],
+    [
+      reflection(),
+      null,
+      "bad-row",
+      {},
+      { ...reflection(), createdAt: "2026-02-31" },
+      { ...reflection(), impactedTags: {} },
+    ],
     {
-      candidates: [{ code: "5803", name: "フジクラ", tags: ["AI"] }, null],
-      universeCandidates: [{ code: "7011", name: "三菱重工業", sector: "機械", tags: ["防衛"] }, 42],
-      generatedCompanyRules: [{ code: "5803", name: "フジクラ" }, []],
+      candidates: [
+        { code: "5803", name: "フジクラ", tags: ["AI"] },
+        null,
+        { code: "9999", name: "壊れcandidate", tags: {} },
+      ],
+      universeCandidates: [
+        { code: "7011", name: "三菱重工業", sector: "機械", tags: ["防衛"] },
+        42,
+        { code: "9998", name: "壊れuniverse", tags: {} },
+      ],
+      generatedCompanyRules: [
+        { code: "5803", name: "フジクラ" },
+        [],
+        { code: "9997", thesis: {} },
+      ],
     },
   );
 
-  assert.equal(inputs.reflections.length, 1, "malformed reflection rowsを隔離する");
-  assert.equal(inputs.candidates.length, 1, "malformed candidate rowsを隔離する");
-  assert.equal(inputs.universeCandidates.length, 1, "malformed universe rowsを隔離する");
-  assert.equal(inputs.generatedCompanyRules.length, 1, "malformed company-rule rowsを隔離する");
-  assert.ok(inputs.warnings.some(warning => warning.includes("world_event_reflections_latest.json: invalid_rows") && warning.includes("dropped 2")));
-  assert.ok(inputs.warnings.some(warning => warning.includes("alpha-pon-data.json.candidates: invalid_rows") && warning.includes("dropped 1")));
+  assert.equal(inputs.reflections.length, 1, "object-shaped malformed reflection rowsも隔離する");
+  assert.equal(inputs.candidates.length, 1, "object-shaped malformed candidate rowsも隔離する");
+  assert.equal(inputs.universeCandidates.length, 1, "object-shaped malformed universe rowsも隔離する");
+  assert.equal(inputs.generatedCompanyRules.length, 1, "object-shaped malformed company-rule rowsも隔離する");
+  assert.ok(inputs.warnings.some(warning => warning.includes("world_event_reflections_latest.json: invalid_rows") && warning.includes("dropped 5")));
+  assert.ok(inputs.warnings.some(warning => warning.includes("alpha-pon-data.json.candidates: invalid_rows") && warning.includes("dropped 2")));
+  assert.ok(inputs.warnings.some(warning => warning.includes("alpha-pon-data.json.universeCandidates: invalid_rows") && warning.includes("dropped 2")));
+  assert.ok(inputs.warnings.some(warning => warning.includes("alpha-pon-data.json.generatedCompanyRules: invalid_rows") && warning.includes("dropped 2")));
   assert.doesNotThrow(() => buildWorldImpactReviews({ ...inputs, today: TODAY }));
-  console.log("world-impact: malformed review input rowsを隔離して正常rowを継続する");
+  console.log("world-impact: object-shaped malformed review input rowsを隔離して正常rowを継続する");
 }
 
 {
