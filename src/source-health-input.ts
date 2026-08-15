@@ -6,12 +6,36 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(item => typeof item === "string");
 }
 
+function isOptionalStringArray(value: unknown): boolean {
+  return value === undefined || isStringArray(value);
+}
+
+function isOptionalFiniteNumber(value: unknown): boolean {
+  return value === undefined || (typeof value === "number" && Number.isFinite(value));
+}
+
+function hasValidPrimaryDisclosureReview(value: unknown): boolean {
+  if (value === undefined) return true;
+  if (!isRecord(value)) return false;
+  if (value.decision !== undefined && typeof value.decision !== "string") return false;
+  if (!isOptionalStringArray(value.warnings) || !isOptionalStringArray(value.blockers)) return false;
+  if (value.sourceCoverage === undefined) return true;
+  if (!isRecord(value.sourceCoverage)) return false;
+  return isOptionalFiniteNumber(value.sourceCoverage.tdnetCount)
+    && isOptionalFiniteNumber(value.sourceCoverage.edinetCount)
+    && isOptionalFiniteNumber(value.sourceCoverage.fetchErrorCount)
+    && isOptionalStringArray(value.sourceCoverage.scannedEdinetDates);
+}
+
 export function normalizeSourceHealthScoreRows<T>(value: unknown): { rows: T[]; valid: boolean } {
   if (!Array.isArray(value) || value.some(row => !isRecord(row))) {
     return { rows: [], valid: false };
   }
   for (const row of value) {
     if (row.warnings !== undefined && !isStringArray(row.warnings)) {
+      return { rows: [], valid: false };
+    }
+    if (!hasValidPrimaryDisclosureReview(row.primaryDisclosureReview)) {
       return { rows: [], valid: false };
     }
   }

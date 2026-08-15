@@ -28,6 +28,39 @@ for (const malformedWarnings of [{}, "warning", [7], ["ok", 7]] as const) {
   assert.deepEqual(result.rows, [], "malformed warning collections must not be counted as healthy score input");
 }
 
+for (const malformedPrimary of [
+  "confirmed",
+  { decision: 7 },
+  { warnings: {} },
+  { blockers: [7] },
+  { sourceCoverage: "tdnet" },
+  { sourceCoverage: { tdnetCount: "1" } },
+  { sourceCoverage: { edinetCount: Number.NaN } },
+  { sourceCoverage: { fetchErrorCount: {} } },
+  { sourceCoverage: { scannedEdinetDates: {} } },
+  { sourceCoverage: { scannedEdinetDates: ["2026-08-15", 7] } },
+] as const) {
+  const result = normalizeSourceHealthScoreRows([{ code: "8136", primaryDisclosureReview: malformedPrimary }]);
+  assert.equal(result.valid, false, "malformed primary disclosure metadata must fail closed before source-health aggregation");
+  assert.deepEqual(result.rows, [], "malformed primary review metadata must not corrupt counts or provenance output");
+}
+
+const validPrimary = normalizeSourceHealthScoreRows([{
+  code: "8136",
+  primaryDisclosureReview: {
+    decision: "confirmed",
+    warnings: [],
+    blockers: [],
+    sourceCoverage: {
+      tdnetCount: 1,
+      edinetCount: 2,
+      fetchErrorCount: 0,
+      scannedEdinetDates: ["2026-08-15"],
+    },
+  },
+}]);
+assert.equal(validPrimary.valid, true, "well-shaped primary disclosure metadata remains valid");
+
 const validObject = normalizeSourceHealthObject<{ status?: string }>({ status: "completed" });
 assert.equal(validObject.valid, true);
 assert.deepEqual(validObject.value, { status: "completed" });
