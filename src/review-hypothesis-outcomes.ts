@@ -9,6 +9,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } fr
 import { DatabaseSync } from "node:sqlite";
 import { addDaysJst, toCompactDate, todayJst } from "./date.js";
 import { fetchDailyQuotes, isJQuantsConfigured } from "./fetcher/jquants.js";
+import { partitionHypothesesByDetectedAt } from "./hypothesis-review-date.js";
 import { inferMissReasons } from "./miss-reason.js";
 import { buildOutcomeNotes, resolveActualDirection } from "./outcome-notes.js";
 import type {
@@ -202,19 +203,23 @@ async function main(): Promise<void> {
   migrateJsonlToDb();
   const today = todayJst();
   const hypotheses = readHypotheses();
+  const openHypotheses = hypotheses.filter(h => h.status === "open");
+  const { valid: validOpenHypotheses, invalid: invalidOpenHypotheses } = partitionHypothesesByDetectedAt(openHypotheses);
+  for (const h of invalidOpenHypotheses) {
+    console.warn(`  [skip] ${h.code} ${h.name}: 不正な detectedAt=${String(h.detectedAt)}`);
+  }
   const existingOutcomes = readExistingOutcomes();
   const reviewedKeys = new Set(existingOutcomes.map(o => `${o.code}:${o.hypothesis.detectedAt}:${o.reviewHorizon}`));
   type DueItem = { hypothesis: StockCandidateHypothesis; horizon: ReviewHorizon };
   const dueItems: DueItem[] = [];
-  for (const h of hypotheses) {
-    if (h.status !== "open") continue;
+  for (const h of validOpenHypotheses) {
     for (const { horizon, days } of REVIEW_HORIZONS) {
       const dueAt = addDaysJst(h.detectedAt, days);
       const key = `${h.code}:${h.detectedAt}:${horizon}`;
       if (dueAt <= today && !reviewedKeys.has(key)) dueItems.push({ hypothesis: h, horizon });
     }
   }
-  console.log(`対象: ${dueItems.length}件 (horizon別, today=${today})`);
+  console.log(`対象: ${dueItems.length}件 (horizon別, today=${today}, invalidDetectedAt=${invalidOpenHypotheses.length})`);
   if (dueItems.length === 0) console.log("検証対象なし");
   const useJQuants = isJQuantsConfigured();
   if (!useJQuants) console.log("[warn] J-Quants未設定。リターン計算をスキップします。");
