@@ -65,6 +65,18 @@ export type SafeOutputFinding = {
   context: string;
 };
 
+export type SafeOutputScanError = {
+  file: string;
+  message: string;
+};
+
+export type SafeOutputHealthStatus = "ok" | "needs_attention" | "action_required";
+
+export function safeOutputHealthStatus(findingsCount: number, scanErrorCount: number): SafeOutputHealthStatus {
+  if (scanErrorCount > 0) return "action_required";
+  return findingsCount > 0 ? "needs_attention" : "ok";
+}
+
 function maskPattern(pattern: string): string {
   if (pattern.length <= 1) return pattern;
   return pattern[0] + "◯".repeat(pattern.length - 1);
@@ -115,15 +127,19 @@ function main(): void {
   const today = todayJst();
   const files = SCAN_DIRS.flatMap(listFiles);
   const findings: SafeOutputFinding[] = [];
+  const scanErrors: SafeOutputScanError[] = [];
   for (const file of files) {
     try {
       findings.push(...scanContentForUnsafeOutput(readFileSync(file, "utf-8"), file));
-    } catch {
-      // 読めないファイルはスキップ（監査の継続を優先）
+    } catch (error) {
+      scanErrors.push({
+        file,
+        message: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
-  const healthStatus = findings.length > 0 ? "needs_attention" : "ok";
+  const healthStatus = safeOutputHealthStatus(findings.length, scanErrors.length);
   const report = {
     schemaVersion: 1,
     generatedAt: today,
@@ -131,10 +147,12 @@ function main(): void {
     scannedFiles: files.length,
     findingsCount: findings.length,
     findings,
+    scanErrors,
     notes: [
       "公開出力の危険表現監査です。完全禁止ではなく確認対象として扱います。",
       "否定文・禁止説明・反面教師の文脈は許可リストで除外しています。",
       "検出語はマスク表示。原文は該当ファイルで確認してください。",
+      "読めない監査対象がある場合は監査不能として action_required にします。",
     ],
   };
 
@@ -146,8 +164,15 @@ function main(): void {
   md.push("");
   md.push(`生成日: ${today}`);
   md.push(`healthStatus: ${healthStatus}`);
-  md.push(`スキャン対象: ${files.length}ファイル / 検出: ${findings.length}件`);
+  md.push(`スキャン対象: ${files.length}ファイル / 検出: ${findings.length}件 / 読み込み失敗: ${scanErrors.length}件`);
   md.push("");
+  if (scanErrors.length > 0) {
+    md.push("## 読み込み失敗", "");
+    for (const error of scanErrors.slice(0, 50)) {
+      md.push(`- ${error.file} — ${error.message}`);
+    }
+    md.push("");
+  }
   if (findings.length === 0) {
     md.push("- 危険表現の検出なし");
   } else {
@@ -163,8 +188,12 @@ function main(): void {
   console.log(`healthStatus: ${healthStatus}`);
   console.log(`scannedFiles: ${files.length}`);
   console.log(`findings: ${findings.length}`);
+  console.log(`scanErrors: ${scanErrors.length}`);
   for (const finding of findings.slice(0, 10)) {
     console.log(`  ${finding.file}:${finding.line} (${finding.maskedPattern})`);
+  }
+  for (const error of scanErrors.slice(0, 10)) {
+    console.log(`  unreadable: ${error.file}`);
   }
   console.log("出力: reports/safe-output-audit.md / reports/safe-output-audit.json");
 }
