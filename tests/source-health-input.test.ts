@@ -113,6 +113,27 @@ for (const malformed of [null, [], "completed", 1] as const) {
       "mismatched stable identity must fail closed before a per-company memory file is overwritten",
     );
 
+    writeFileSync(memoryPath, JSON.stringify({ ...validMemory, firstSeenAt: "2026-02-31" }));
+    assert.throws(
+      () => assertExistingCompanyMemoryInputs(dir),
+      /8136\.json: firstSeenAt must be a real YYYY-MM-DD date/,
+      "nonexistent Gregorian dates must not enter company-memory provenance",
+    );
+
+    writeFileSync(memoryPath, JSON.stringify({ ...validMemory, firstSeenAt: "0000-01-01" }));
+    assert.throws(
+      () => assertExistingCompanyMemoryInputs(dir),
+      /8136\.json: firstSeenAt must be a real YYYY-MM-DD date/,
+      "Gregorian year zero must fail closed in company-memory provenance",
+    );
+
+    writeFileSync(memoryPath, JSON.stringify({ ...validMemory, firstSeenAt: "2026-08-16", lastReviewedAt: "2026-08-15" }));
+    assert.throws(
+      () => assertExistingCompanyMemoryInputs(dir),
+      /8136\.json: lastReviewedAt must be on or after firstSeenAt/,
+      "company-memory review chronology must not move before first observation",
+    );
+
     writeFileSync(memoryPath, JSON.stringify({ ...validMemory, notes: {} }));
     assert.throws(
       () => assertExistingCompanyMemoryInputs(dir),
