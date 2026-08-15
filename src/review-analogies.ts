@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
+import { isValidAnalogyReviewDueDate } from "./analogy-review-date.js";
 import { loadAnalogyOutcomeRecords, readJsonl, saveAnalogyOutcomes, type AnalogyOutcomeRecord, type AnalogyPredictionRecord } from "./analysis/analogy-db.js";
 import { reviewPredictionWithPrice, type PriceReviewResult } from "./analysis/analogy-price-review.js";
 import { loadRunCursor, saveRunCursor } from "./run-cursor.js";
@@ -19,6 +20,7 @@ const maxReviewsPerRun = Math.max(1, Number(process.env.ANALOGY_REVIEW_MAX_PER_R
 const explicitAnalogyOffset = process.env.ANALOGY_REVIEW_OFFSET;
 
 function compareDate(a: string, b: string): number {
+  if (!isValidAnalogyReviewDueDate(a)) return Number.POSITIVE_INFINITY;
   return a.localeCompare(b);
 }
 
