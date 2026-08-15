@@ -2,7 +2,11 @@
 // 危険表現の検出と、否定文・禁止説明の許可（false positive 回避）
 
 import assert from "node:assert/strict";
-import { scanContentForUnsafeOutput, SAFE_OUTPUT_PATTERNS } from "../src/safe-output-audit.js";
+import {
+  scanContentForUnsafeOutput,
+  SAFE_OUTPUT_PATTERNS,
+  safeOutputHealthStatus,
+} from "../src/safe-output-audit.js";
 
 const j = (...parts: string[]) => parts.join("");
 
@@ -32,6 +36,14 @@ const j = (...parts: string[]) => parts.join("");
   assert.ok(SAFE_OUTPUT_PATTERNS.length >= 10, "主要な危険表現をカバー");
   assert.equal(new Set(SAFE_OUTPUT_PATTERNS).size, SAFE_OUTPUT_PATTERNS.length, "パターン重複なし");
   console.log("safe-output: パターン定義の健全性");
+}
+
+{
+  assert.equal(safeOutputHealthStatus(0, 0), "ok");
+  assert.equal(safeOutputHealthStatus(1, 0), "needs_attention");
+  assert.equal(safeOutputHealthStatus(0, 1), "action_required", "監査対象を読めない場合は false-green にしない");
+  assert.equal(safeOutputHealthStatus(1, 1), "action_required");
+  console.log("safe-output: 読み込み失敗は action_required");
 }
 
 console.log("safe-output-audit: 全テスト成功");
