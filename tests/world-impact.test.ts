@@ -8,6 +8,7 @@ import {
 } from "../src/world-impact.js";
 import {
   applyWorldImpactLatestSnapshotError,
+  assertWorldImpactLatestSnapshotHealthy,
   resolveWorldImpactReportInput,
 } from "../src/world-impact-report-input.js";
 import type { WorldEventReflection } from "../src/analysis/world-event-reflection.js";
@@ -232,7 +233,14 @@ function makeReview(overrides: Partial<WorldEventImpactReview> = {}): WorldEvent
   applyWorldImpactLatestSnapshotError(audit, malformedRoot.latestSnapshotError);
   assert.equal(audit.healthStatus, "action_required", "壊れたlatest snapshotはauditをfail closedにする");
   assert.ok(audit.priorityIssues.some(issue => issue.category === "latest_snapshot" && issue.severity === "urgent"));
-  console.log("world-impact: malformed latest snapshot をreport/auditでfail closedにする");
+
+  assert.doesNotThrow(() => assertWorldImpactLatestSnapshotHealthy(false, "calibrate:world-impact"));
+  assert.throws(
+    () => assertWorldImpactLatestSnapshotHealthy(true, "calibrate:world-impact"),
+    /calibrate:world-impact: data\/world_event_impacts_latest\.json is malformed/,
+    "壊れたlatest snapshotではcalibrationを生成しない",
+  );
+  console.log("world-impact: malformed latest snapshot をreport/audit/calibrationでfail closedにする");
 }
 
 console.log("world-impact: 全テスト成功");

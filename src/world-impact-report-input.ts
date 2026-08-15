@@ -46,3 +46,13 @@ export function applyWorldImpactLatestSnapshotError(
     detail: "data/world_event_impacts_latest.json を修復してから read-only output を正本として扱ってください。JSONL への silent fallback は行いません。",
   });
 }
+
+export function assertWorldImpactLatestSnapshotHealthy(
+  latestSnapshotError: boolean,
+  consumer: string,
+): void {
+  if (!latestSnapshotError) return;
+  throw new Error(
+    `${consumer}: data/world_event_impacts_latest.json is malformed; refusing silent fallback`,
+  );
+}

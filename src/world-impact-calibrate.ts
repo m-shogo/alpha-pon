@@ -8,19 +8,21 @@ import { todayJst } from "./date.js";
 import {
   buildWorldImpactCalibration,
   loadWorldImpactReviews,
-  normalizeWorldImpactReview,
-  type WorldEventImpactReview,
   type WorldImpactCalibration,
 } from "./world-impact.js";
+import {
+  assertWorldImpactLatestSnapshotHealthy,
+  resolveWorldImpactReportInput,
+  type WorldImpactLatestSnapshotInput,
+} from "./world-impact-report-input.js";
 
-function readLatest(today: string): WorldEventImpactReview[] {
+function readLatest(): WorldImpactLatestSnapshotInput {
   const latest = join("data", "world_event_impacts_latest.json");
-  if (!existsSync(latest)) return loadWorldImpactReviews();
+  if (!existsSync(latest)) return { present: false };
   try {
-    const parsed = JSON.parse(readFileSync(latest, "utf-8"));
-    return Array.isArray(parsed) ? parsed.map(item => normalizeWorldImpactReview(item, today)) : [];
+    return { present: true, parsed: JSON.parse(readFileSync(latest, "utf-8")) };
   } catch {
-    return [];
+    return { present: true, parseError: true };
   }
 }
 
@@ -107,8 +109,9 @@ function renderMarkdown(calibration: WorldImpactCalibration): string {
 
 function main() {
   const today = todayJst();
-  const reviews = readLatest(today);
-  const calibration = buildWorldImpactCalibration(reviews, today);
+  const resolved = resolveWorldImpactReportInput(readLatest(), loadWorldImpactReviews(), today);
+  assertWorldImpactLatestSnapshotHealthy(resolved.latestSnapshotError, "calibrate:world-impact");
+  const calibration = buildWorldImpactCalibration(resolved.reviews, today);
 
   mkdirSync("reports", { recursive: true });
   writeFileSync(join("reports", "world-impact-calibration.json"), JSON.stringify(calibration, null, 2) + "\n");
