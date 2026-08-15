@@ -2,6 +2,8 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { normalizeSourceHealthArray } from "./source-health-input.js";
 
+const READINESS_DATA_QUALITY_VALUES = new Set(["ok", "missing", "unknown"]);
+
 function readJson(path: string): unknown {
   try {
     return JSON.parse(readFileSync(path, "utf-8"));
@@ -96,8 +98,11 @@ export function assertReadinessDataQualityFallbackInput(
     if (!isRecord(quality)) {
       throw new Error(`${generatedPath}: dataQualityByCode.${code} must be an object`);
     }
-    if (quality.dataQuality !== undefined && typeof quality.dataQuality !== "string") {
-      throw new Error(`${generatedPath}: dataQualityByCode.${code}.dataQuality must be a string when present`);
+    if (
+      quality.dataQuality !== undefined
+      && (typeof quality.dataQuality !== "string" || !READINESS_DATA_QUALITY_VALUES.has(quality.dataQuality))
+    ) {
+      throw new Error(`${generatedPath}: dataQualityByCode.${code}.dataQuality must be one of ok, missing, unknown when present`);
     }
     if (
       quality.warnings !== undefined
