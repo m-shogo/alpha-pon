@@ -28,13 +28,22 @@ function isRealJstDate(value: unknown): value is string {
   }
 }
 
+function isNullableRealJstDate(value: unknown): boolean {
+  return value == null || isRealJstDate(value);
+}
+
 function hasValidNestedReviewDates(row: Record<string, unknown>): boolean {
   if (row.reviewDueAt != null && !isRealJstDate(row.reviewDueAt)) return false;
   if (row.outcomes === undefined) return true;
   if (!Array.isArray(row.outcomes)) return false;
   return row.outcomes.every(outcome => {
     if (typeof outcome !== "object" || outcome === null || Array.isArray(outcome)) return false;
-    return isRealJstDate((outcome as Record<string, unknown>).dueAt);
+    const nested = outcome as Record<string, unknown>;
+    return isRealJstDate(nested.dueAt)
+      && isNullableRealJstDate(nested.evaluatedAt)
+      && isNullableRealJstDate(nested.evaluationAsOf)
+      && isNullableRealJstDate(nested.priceStartDate)
+      && isNullableRealJstDate(nested.priceEndDate);
   });
 }
 
