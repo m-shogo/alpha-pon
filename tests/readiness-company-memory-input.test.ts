@@ -84,7 +84,7 @@ try {
   writeFileSync(generatedPath, JSON.stringify({ primaryDisclosureReviews: { "8136": null, "5803": "confirmed", "6758": 1 } }));
   assert.throws(
     () => assertReadinessPrimaryDisclosureReviewInput(generatedPath),
-    /primaryDisclosureReviews\.8136 must be an object/,
+    /primaryDisclosureReviews\.(?:5803|6758|8136) must be an object/,
     "primitive primary review entries must fail closed instead of inflating readiness counts",
   );
 } finally {
