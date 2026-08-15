@@ -25,20 +25,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function isRecordArray(value: unknown): value is Record<string, unknown>[] {
-  return Array.isArray(value) && value.every(isRecord);
-}
-
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim() !== "";
 }
 
-function isCompanyMemoryRow(value: unknown): value is Record<string, unknown> {
+function isIdentifiedRow(value: unknown): value is Record<string, unknown> {
   return isRecord(value) && isNonEmptyString(value.code) && isNonEmptyString(value.name);
 }
 
-function isCompanyMemoryArray(value: unknown): value is Record<string, unknown>[] {
-  return Array.isArray(value) && value.every(isCompanyMemoryRow);
+function isIdentifiedArray(value: unknown): value is Record<string, unknown>[] {
+  return Array.isArray(value) && value.every(isIdentifiedRow);
 }
 
 function hasUsableScoreSnapshot(reportsDir: string): boolean {
@@ -63,14 +59,14 @@ export function assertReadinessCompanyMemoryInput(
   const generated = readGeneratedObject(generatedPath);
   if (generated) {
     const companyMemory = generated.companyMemory;
-    if (companyMemory !== undefined && !isCompanyMemoryArray(companyMemory)) {
+    if (companyMemory !== undefined && !isIdentifiedArray(companyMemory)) {
       throw new Error(`${generatedPath}: companyMemory must be an array of objects with non-empty code and name when present`);
     }
   }
 
   if (!existsSync(reportPath)) return;
   const report = readJson(reportPath);
-  if (!isCompanyMemoryArray(report)) {
+  if (!isIdentifiedArray(report)) {
     throw new Error(`${reportPath}: company-memory root must be an array of objects with non-empty code and name`);
   }
 }
@@ -80,8 +76,8 @@ export function assertReadinessHypothesisPredictionInput(
 ): void {
   const generated = readGeneratedObject(generatedPath);
   if (!generated || generated.hypothesisPredictions === undefined) return;
-  if (!isRecordArray(generated.hypothesisPredictions)) {
-    throw new Error(`${generatedPath}: hypothesisPredictions must be an array of objects when present`);
+  if (!isIdentifiedArray(generated.hypothesisPredictions)) {
+    throw new Error(`${generatedPath}: hypothesisPredictions must be an array of objects with non-empty code and name when present`);
   }
 }
 
