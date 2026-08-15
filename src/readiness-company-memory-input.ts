@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { normalizeSourceHealthArray } from "./source-health-input.js";
 
 function readJson(path: string): unknown {
@@ -20,6 +20,15 @@ function readGeneratedObject(path: string): Record<string, unknown> | null {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function hasScoreSnapshot(reportsDir: string): boolean {
+  if (!existsSync(reportsDir)) return false;
+  try {
+    return readdirSync(reportsDir).some((file) => /^scores_\d{4}-\d{2}-\d{2}\.json$/.test(file));
+  } catch {
+    return false;
+  }
 }
 
 export function assertReadinessCompanyMemoryInput(
@@ -66,8 +75,35 @@ export function assertReadinessPrimaryDisclosureReviewInput(
   }
 }
 
+export function assertReadinessDataQualityFallbackInput(
+  generatedPath = "apps/web/public/generated/alpha-pon-data.json",
+  reportsDir = "reports",
+): void {
+  if (hasScoreSnapshot(reportsDir)) return;
+  const generated = readGeneratedObject(generatedPath);
+  if (!generated || generated.dataQualityByCode === undefined) return;
+  if (!isRecord(generated.dataQualityByCode)) {
+    throw new Error(`${generatedPath}: dataQualityByCode must be an object when score snapshots are absent`);
+  }
+  for (const [code, quality] of Object.entries(generated.dataQualityByCode)) {
+    if (!isRecord(quality)) {
+      throw new Error(`${generatedPath}: dataQualityByCode.${code} must be an object`);
+    }
+    if (quality.dataQuality !== undefined && typeof quality.dataQuality !== "string") {
+      throw new Error(`${generatedPath}: dataQualityByCode.${code}.dataQuality must be a string when present`);
+    }
+    if (
+      quality.warnings !== undefined
+      && (!Array.isArray(quality.warnings) || !quality.warnings.every((warning) => typeof warning === "string"))
+    ) {
+      throw new Error(`${generatedPath}: dataQualityByCode.${code}.warnings must be a string array when present`);
+    }
+  }
+}
+
 if (process.argv[1]?.endsWith("readiness-company-memory-input.ts")) {
   assertReadinessCompanyMemoryInput();
   assertReadinessHypothesisPredictionInput();
   assertReadinessPrimaryDisclosureReviewInput();
+  assertReadinessDataQualityFallbackInput();
 }
