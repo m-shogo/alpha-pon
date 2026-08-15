@@ -5,6 +5,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
+import { countInvalidWorldImpactAuditRows } from "./world-impact-audit-input.js";
 import {
   buildWorldImpactAudit,
   loadWorldImpactJsonl,
@@ -46,12 +47,23 @@ function main() {
   const today = todayJst();
   const { reviews: jsonlReviews, parseErrors } = loadWorldImpactJsonl(undefined, today);
   const resolved = resolveWorldImpactReportInput(readLatest(), jsonlReviews, today);
+  const rawRecords = readRawRecords();
+  const invalidJsonlRows = countInvalidWorldImpactAuditRows(rawRecords, today);
   const audit = buildWorldImpactAudit(resolved.reviews, today, {
     jsonlParseErrors: parseErrors,
     jsonlKeys: jsonlReviews.map(review => review.reviewKey),
-    rawRecords: readRawRecords(),
+    rawRecords,
   });
   applyWorldImpactLatestSnapshotError(audit, resolved.latestSnapshotError);
+  if (invalidJsonlRows > 0) {
+    audit.healthStatus = "action_required";
+    audit.priorityIssues.unshift({
+      severity: "urgent",
+      category: "jsonl_validation",
+      title: `World Impact JSONL に不正row: ${invalidJsonlRows}件`,
+      detail: "data/world_event_impacts.jsonl の日付・identity・outcome shapeを修復してください。壊れたrowを正常なaudit入力として扱いません。",
+    });
+  }
 
   mkdirSync("reports", { recursive: true });
   writeFileSync(join("reports", "world-impact-audit.json"), JSON.stringify(audit, null, 2) + "\n");
@@ -68,6 +80,7 @@ function main() {
   console.log(`falsificationMissing: ${audit.falsificationMissing}`);
   console.log(`confidenceMissing: ${audit.confidenceMissing}`);
   console.log(`jsonlParseErrors: ${audit.jsonlParseErrors}`);
+  console.log(`jsonlValidationErrors: ${invalidJsonlRows}`);
   console.log(`latestMismatch: ${audit.latestMismatch}`);
   console.log(`dueWithoutOutcome: ${audit.dueWithoutOutcome}`);
   console.log(`enum違反: result=${audit.resultEnumViolations} direction=${audit.directionEnumViolations} autoMissReason=${audit.autoMissReasonViolations} confidence範囲外=${audit.confidenceOutOfRange}`);
