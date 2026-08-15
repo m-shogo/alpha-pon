@@ -25,8 +25,13 @@ const validPipelineCollections = normalizeSourceHealthObject<{
   steps?: unknown[];
   results?: unknown[];
   completeWrapperFailedSteps?: unknown[];
-}>({ status: "completed", steps: [], results: [], completeWrapperFailedSteps: [] });
-assert.equal(validPipelineCollections.valid, true, "array-shaped pipeline collections remain valid");
+}>({
+  status: "completed",
+  steps: [{ name: "daily", status: "ok" }],
+  results: [{ name: "health:sources", status: "ok" }],
+  completeWrapperFailedSteps: ["optional_step"],
+});
+assert.equal(validPipelineCollections.valid, true, "well-shaped pipeline collections remain valid");
 
 for (const malformed of [null, [], "completed", 1] as const) {
   const result = normalizeSourceHealthObject<{ status?: string }>(malformed);
@@ -42,6 +47,16 @@ for (const malformed of [
   const result = normalizeSourceHealthObject<Record<string, unknown>>(malformed);
   assert.equal(result.valid, false, "malformed pipeline collection fields must fail closed before array operations");
   assert.equal(result.value, null, "malformed nested pipeline collections must not reach source-health consumers");
+}
+
+for (const malformed of [
+  { status: "completed", steps: [null] },
+  { status: "completed", results: ["ok"] },
+  { status: "completed", completeWrapperFailedSteps: [7] },
+] as const) {
+  const result = normalizeSourceHealthObject<Record<string, unknown>>(malformed);
+  assert.equal(result.valid, false, "malformed pipeline collection entries must fail closed before property access");
+  assert.equal(result.value, null, "malformed pipeline collection entries must not reach source-health consumers");
 }
 
 {
