@@ -1,4 +1,7 @@
-import { existsSync, readFileSync } from "fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
+import { readReadOnlyJsonObjectArrayFile } from "../src/read-only-json-file.js";
 
 function readJson(path: string): unknown {
   if (!existsSync(path)) return null;
@@ -11,6 +14,35 @@ function assert(condition: unknown, message: string): asserts condition {
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+{
+  const dir = mkdtempSync(join(tmpdir(), "alpha-pon-read-only-json-"));
+  try {
+    const valid = join(dir, "valid.json");
+    writeFileSync(valid, JSON.stringify({ generatedAt: "2026-08-16", snapshots: [{ code: "8136" }] }), "utf-8");
+    const validLoad = readReadOnlyJsonObjectArrayFile<Record<string, unknown>>(valid, "snapshots");
+    assert(validLoad.rows.length === 1, "valid object-array input はrowsを保持する必要があります");
+    assert(!validLoad.parseError && !validLoad.invalidRoot && !validLoad.invalidField, "valid input をinvalid扱いしない");
+
+    const malformed = join(dir, "malformed.json");
+    writeFileSync(malformed, "{not-json", "utf-8");
+    const malformedLoad = readReadOnlyJsonObjectArrayFile(malformed, "snapshots");
+    assert(malformedLoad.parseError, "parse不能なread-only JSONを空データと同化しない");
+    assert(!malformedLoad.missing, "存在する壊れたファイルをmissing扱いしない");
+
+    const invalidRoot = join(dir, "invalid-root.json");
+    writeFileSync(invalidRoot, JSON.stringify([]), "utf-8");
+    const invalidRootLoad = readReadOnlyJsonObjectArrayFile(invalidRoot, "snapshots");
+    assert(invalidRootLoad.invalidRoot, "array rootをobjectとして受理しない");
+
+    const invalidField = join(dir, "invalid-field.json");
+    writeFileSync(invalidField, JSON.stringify({ snapshots: {} }), "utf-8");
+    const invalidFieldLoad = readReadOnlyJsonObjectArrayFile(invalidField, "snapshots");
+    assert(invalidFieldLoad.invalidField, "object-shaped snapshotsを空配列と同化しない");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 {
