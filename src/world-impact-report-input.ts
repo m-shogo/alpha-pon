@@ -14,6 +14,10 @@ export type WorldImpactReportInputResolution = {
   latestSnapshotError: boolean;
 };
 
+function isWorldImpactReviewRow(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 export function resolveWorldImpactReportInput(
   latest: WorldImpactLatestSnapshotInput,
   jsonlReviews: WorldEventImpactReview[],
@@ -24,6 +28,10 @@ export function resolveWorldImpactReportInput(
   }
 
   if ("parseError" in latest || !Array.isArray(latest.parsed)) {
+    return { reviews: [], latestSnapshotError: true };
+  }
+
+  if (latest.parsed.some(item => !isWorldImpactReviewRow(item))) {
     return { reviews: [], latestSnapshotError: true };
   }
 
