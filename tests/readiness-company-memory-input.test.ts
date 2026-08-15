@@ -118,10 +118,25 @@ try {
     "malformed fallback warnings must not crash or distort warning counts",
   );
 
-  writeFileSync(join(reportsDir, "scores_2026-08-16.json"), JSON.stringify([]));
+  const scorePath = join(reportsDir, "scores_2026-08-16.json");
+  writeFileSync(scorePath, JSON.stringify([]));
   assert.doesNotThrow(
     () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir),
-    "generated dataQualityByCode is inactive when a canonical score snapshot exists",
+    "generated dataQualityByCode is inactive when the canonical score snapshot is usable",
+  );
+
+  writeFileSync(scorePath, JSON.stringify({ invalid: true }));
+  assert.throws(
+    () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir),
+    /warnings must be a string array/,
+    "an unusable canonical score snapshot must not suppress validation of the generated fallback that readiness still evaluates",
+  );
+
+  writeFileSync(scorePath, "{ broken");
+  assert.throws(
+    () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir),
+    /warnings must be a string array/,
+    "an unparsable canonical score snapshot must not suppress validation of the generated fallback",
   );
 } finally {
   rmSync(dir, { recursive: true, force: true });
