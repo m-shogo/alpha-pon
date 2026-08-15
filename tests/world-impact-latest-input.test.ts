@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import "./world-impact-report-input-date.test.js";
 import { parseWorldImpactLatestSnapshot } from "../src/world-impact-latest-input.js";
 
 assert.deepEqual(parseWorldImpactLatestSnapshot("[]"), [], "empty canonical latest snapshot remains valid");
