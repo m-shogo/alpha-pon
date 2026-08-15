@@ -1,5 +1,6 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
+import { sourceHealthScorePath } from "./source-health-history-path.js";
 
 const HISTORY_PATH = "data/source_health_history.jsonl";
 const MAX_LINES = 1000;
@@ -25,6 +26,7 @@ function readSize(path: string): number {
 
 function main() {
   const date = todayJst();
+  const scorePath = sourceHealthScorePath(date);
   mkdirSync("data", { recursive: true });
 
   const row = {
@@ -32,7 +34,7 @@ function main() {
     reports: {
       sourceHealth: { exists: has("reports/source_health_latest.md"), size: readSize("reports/source_health_latest.md") },
       daily: { exists: has("reports/latest.md"), size: readSize("reports/latest.md") },
-      scores: { exists: has("reports/pipeline_status_latest.json"), size: readSize("reports/pipeline_status_latest.json") },
+      scores: { exists: has(scorePath), size: readSize(scorePath) },
       proposals: { exists: has("reports/proposals_latest.md"), size: readSize("reports/proposals_latest.md") },
       stockPro: { exists: has("reports/stock_pro_agent_latest.md"), size: readSize("reports/stock_pro_agent_latest.md") },
       regime: { exists: has("reports/regime_scenarios_latest.md"), size: readSize("reports/regime_scenarios_latest.md") },
