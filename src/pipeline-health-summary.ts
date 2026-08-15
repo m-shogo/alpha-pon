@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
+import { normalizeSourceHealthObject } from "./source-health-input.js";
 
 type SourceHealthRow = {
   date?: string;
@@ -49,13 +50,20 @@ function missingReports(rows: SourceHealthRow[], limit: number): Array<[string, 
 function main() {
   const date = todayJst();
   const sourceHealthText = readText("reports/source_health_latest.md");
-  const pipelineStatus = readJson("reports/pipeline_status_latest.json");
+  const rawPipelineStatus = readJson("reports/pipeline_status_latest.json");
+  const normalizedPipelineStatus = normalizeSourceHealthObject<Record<string, unknown>>(rawPipelineStatus);
+  const pipelineStatus = normalizedPipelineStatus.value;
+  const pipelineStatusState = rawPipelineStatus == null
+    ? "missing_or_invalid"
+    : normalizedPipelineStatus.valid
+      ? "ok"
+      : "invalid_root";
   const sourceRows = readJsonl<SourceHealthRow>("data/source_health_history.jsonl");
   const recentMissing = missingReports(sourceRows, 14);
   const criticalSignals: string[] = [];
 
   if (!sourceHealthText) criticalSignals.push("source_health_latest.md missing");
-  if (!pipelineStatus) criticalSignals.push("pipeline_status_latest.json missing_or_invalid");
+  if (pipelineStatusState !== "ok") criticalSignals.push(`pipeline_status_latest.json ${pipelineStatusState}`);
   for (const [name, count] of recentMissing) {
     if (count >= 3) criticalSignals.push(`${name} missing_or_empty ${count}/14`);
   }
@@ -75,7 +83,7 @@ function main() {
   lines.push("");
   lines.push(`- report confidence: ${confidence}`);
   lines.push(`- source_health_latest.md: ${sourceHealthText ? "ok" : "missing"}`);
-  lines.push(`- pipeline_status_latest.json: ${pipelineStatus ? "ok" : "missing_or_invalid"}`);
+  lines.push(`- pipeline_status_latest.json: ${pipelineStatusState}`);
   lines.push(`- source health history rows: ${sourceRows.length}`);
   lines.push("");
   lines.push("## critical signals");
