@@ -59,6 +59,11 @@ export function assertReadinessPrimaryDisclosureReviewInput(
   if (!isRecord(generated.primaryDisclosureReviews)) {
     throw new Error(`${generatedPath}: primaryDisclosureReviews must be an object when present`);
   }
+  for (const [code, review] of Object.entries(generated.primaryDisclosureReviews)) {
+    if (!isRecord(review)) {
+      throw new Error(`${generatedPath}: primaryDisclosureReviews.${code} must be an object`);
+    }
+  }
 }
 
 if (process.argv[1]?.endsWith("readiness-company-memory-input.ts")) {
