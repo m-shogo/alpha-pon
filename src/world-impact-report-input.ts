@@ -1,3 +1,4 @@
+import { addDaysJst } from "./date.js";
 import {
   normalizeWorldImpactReview,
   type WorldImpactAudit,
@@ -18,14 +19,23 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+function isRealJstDate(value: unknown): value is string {
+  if (!isNonEmptyString(value)) return false;
+  try {
+    return addDaysJst(value, 0) === value;
+  } catch {
+    return false;
+  }
+}
+
 function isWorldImpactReviewRow(value: unknown): value is Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const row = value as Record<string, unknown>;
   return isNonEmptyString(row.reviewKey)
     && isNonEmptyString(row.eventId)
-    && isNonEmptyString(row.eventDate)
-    && isNonEmptyString(row.createdAt)
-    && isNonEmptyString(row.updatedAt);
+    && isRealJstDate(row.eventDate)
+    && isRealJstDate(row.createdAt)
+    && isRealJstDate(row.updatedAt);
 }
 
 export function resolveWorldImpactReportInput(
