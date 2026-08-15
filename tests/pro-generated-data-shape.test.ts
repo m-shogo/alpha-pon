@@ -48,6 +48,10 @@ function isObject(value: unknown): value is Record<string, unknown> {
     assert("stockProCommitteeJson" in data, "alpha-pon-data.json は stockProCommitteeJson を必ず持つ必要があります");
     assert("specialSituationOps" in data, "alpha-pon-data.json は specialSituationOps を必ず持つ必要があります");
     assert("hypothesisOutcomeIntegrity" in data, "alpha-pon-data.json は hypothesisOutcomeIntegrity を必ず持つ必要があります");
+    assert(Array.isArray(data.universeCandidates), "alpha-pon-data.json.universeCandidates は配列である必要があります");
+    if (isObject(data.universeScan)) {
+      assert(data.universeScan.count === data.universeCandidates.length, "universeScan.count は universeCandidates 件数と一致する必要があります");
+    }
 
     const committee = data.legendProCommittee;
     assert(isObject(committee), "legendProCommittee は object である必要があります");
@@ -84,6 +88,15 @@ function isObject(value: unknown): value is Record<string, unknown> {
       assert(typeof rule.defaultAction === "string", "ipoThemeWatch.rules[].defaultAction は string である必要があります");
       assert(Array.isArray(rule.relatedCompanies), "ipoThemeWatch.rules[].relatedCompanies は配列である必要があります");
     }
+  }
+}
+
+{
+  const stockCandidates = readJson("apps/web/public/generated/stock-candidates.json");
+  if (stockCandidates !== null) {
+    assert(isObject(stockCandidates), "stock-candidates.json は object である必要があります");
+    assert(Array.isArray(stockCandidates.candidates), "stock-candidates.json.candidates は配列である必要があります");
+    assert(stockCandidates.count === stockCandidates.candidates.length, "stock-candidates.json.count は candidates 件数と一致する必要があります");
   }
 }
 
