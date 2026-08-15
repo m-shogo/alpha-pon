@@ -53,7 +53,6 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
 // ── クリーン状態 ─────────────────────────────────────────────
 
 {
-  // 1d 記録があり、1w(6/8+猶予3日=6/11到来)も記録済みなら指摘なし
   const audit = buildOutcomeQualityAudit(
     inputs({
       outcomes: [outcome({ reviewHorizon: "1d" }), outcome({ reviewHorizon: "1w" })],
@@ -80,7 +79,6 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
   assert.equal(audit.checks.reviewMissing.items[0].code, "9999");
   assert.equal(audit.healthStatus, "needs_attention");
 
-  // 期日前（昨日 detect）は正常待機なので指摘しない
   const fresh = buildOutcomeQualityAudit(
     inputs({ hypotheses: [hypothesis({ detectedAt: "2026-06-10" })], outcomes: [] })
   );
@@ -91,7 +89,6 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
 // ── 2. 期日到来 horizon の記録欠け ───────────────────────────
 
 {
-  // detectedAt=6/1 → 1d(6/2)+猶予, 1w(6/8)+猶予 は到来済み。1m は未到来。
   const audit = buildOutcomeQualityAudit(
     inputs({ outcomes: [outcome({ reviewHorizon: "1d" })] })
   );
@@ -135,7 +132,6 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
   assert.equal(audit.checks.unknownMatchedAsHit.count, 1);
   assert.equal(audit.healthStatus, "action_required");
 
-  // 方向が確定している hit は正常
   const valid = buildOutcomeQualityAudit(
     inputs({
       outcomes: [
@@ -196,7 +192,6 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
 // ── 7. reviewDueAt と expectedTimeframe のズレ ───────────────
 
 {
-  // 1w なのに翌日が期限（285A 実例パターン）
   const audit = buildOutcomeQualityAudit(
     inputs({
       hypotheses: [
@@ -208,7 +203,6 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
   assert.equal(audit.checks.dueAtMismatch.count, 1);
   assert.ok(audit.checks.dueAtMismatch.items[0].detail.includes("1日"));
 
-  // 1m で 30日後は正常
   const valid = buildOutcomeQualityAudit(
     inputs({
       hypotheses: [hypothesis({ detectedAt: "2026-06-01", reviewDueAt: "2026-07-01", expectedTimeframe: "1m" })],
@@ -219,7 +213,7 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
   console.log("outcome-quality: reviewDueAt のズレを検出");
 }
 
-// ── Gregorian 日付を Date.UTC で翌月へ正規化しない ──────────
+// ── Gregorian 日付を Date.UTC で翌月へ正規化せず、壊れた日付を品質問題として露出 ──────────
 
 {
   const invalidDetectedAt = buildOutcomeQualityAudit(inputs({
@@ -231,6 +225,8 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
     0,
     "存在しない detectedAt を3月へ正規化して overdue 扱いしない",
   );
+  assert.equal(invalidDetectedAt.checks.dueAtMismatch.count, 1, "不正 detectedAt を品質問題として露出する");
+  assert.equal(invalidDetectedAt.healthStatus, "needs_attention");
 
   const invalidReviewDueAt = buildOutcomeQualityAudit(inputs({
     hypotheses: [hypothesis({
@@ -242,9 +238,10 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
   }));
   assert.equal(
     invalidReviewDueAt.checks.dueAtMismatch.count,
-    0,
-    "存在しない reviewDueAt を3月へ正規化して虚偽の差分を作らない",
+    1,
+    "存在しない reviewDueAt を正常扱いせず品質問題として露出する",
   );
+  assert.ok(invalidReviewDueAt.checks.dueAtMismatch.items[0].detail.includes("実在する YYYY-MM-DD"));
 
   const invalidToday = buildOutcomeQualityAudit(inputs({
     today: "2026-02-31",
@@ -252,7 +249,7 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
     outcomes: [],
   }));
   assert.equal(invalidToday.checks.reviewMissing.count, 0, "存在しない today で期日判定しない");
-  console.log("outcome-quality: 非実在Gregorian日付を正規化せずfail closed OK");
+  console.log("outcome-quality: 非実在Gregorian日付を正規化せずfail closed / 可視化 OK");
 }
 
 // ── Markdown 出力 ────────────────────────────────────────────
@@ -280,7 +277,6 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
     safeWordingFindings: [],
   };
 
-  // unknown hit → urgent / action_required
   const withQuality = buildOpsDashboard({
     ...base,
     outcomeQuality: {
@@ -293,7 +289,6 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
   assert.ok(withQuality.allIssues.some(issue => issue.category === "outcome_quality" && issue.severity === "attention"));
   assert.equal(withQuality.outcomeQualityAudit.checkCounts["unknownMatchedAsHit"], 2);
 
-  // 未生成 → info のみ（healthStatus は ok のまま）
   const withoutQuality = buildOpsDashboard({ ...base, outcomeQuality: null });
   assert.equal(withoutQuality.healthStatus, "ok");
   assert.ok(withoutQuality.allIssues.some(issue => issue.category === "outcome_quality" && issue.severity === "info"));
