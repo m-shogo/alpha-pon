@@ -10,9 +10,9 @@ assert.equal(
   "legacy rows with only stable review identity remain mergeable",
 );
 assert.equal(
-  parseWorldImpactLatestSnapshot('[{"reviewKey":"event__5803","createdAt":"2026-06-10","updatedAt":"2026-06-12","outcomes":[{"priceStartDate":"2026-06-10","priceEndDate":"2026-06-11","evaluationAsOf":"2026-06-12","evaluatedAt":"2026-06-12"}]}]')[0]?.reviewKey,
+  parseWorldImpactLatestSnapshot('[{"reviewKey":"event__5803","createdAt":"2026-06-10","updatedAt":"2026-06-12","outcomes":[{"horizon":"1d","priceStartDate":"2026-06-10","priceEndDate":"2026-06-11","evaluationAsOf":"2026-06-12","evaluatedAt":"2026-06-12"},{"horizon":"1w"}]}]')[0]?.reviewKey,
   "event__5803",
-  "valid optional evaluation provenance remains mergeable",
+  "valid optional evaluation provenance with unique horizons remains mergeable",
 );
 assert.throws(
   () => parseWorldImpactLatestSnapshot("{"),
@@ -38,6 +38,11 @@ assert.throws(
   () => parseWorldImpactLatestSnapshot('[{"reviewKey":"event__5803"},{"reviewKey":"event__5803"}]'),
   /duplicate reviewKey: event__5803/,
   "duplicate stable identities must not survive canonical latest preflight",
+);
+assert.throws(
+  () => parseWorldImpactLatestSnapshot('[{"reviewKey":"event__5803","outcomes":[{"horizon":"1d"},{"horizon":"1d"}]}]'),
+  /duplicate outcome horizon: 1d/,
+  "duplicate outcome horizons must not inflate canonical review/evaluation state",
 );
 assert.throws(
   () => parseWorldImpactLatestSnapshot('[{"reviewKey":"event__5803","createdAt":"2026-02-31"}]'),
@@ -70,4 +75,4 @@ assert.throws(
   "future evaluation cutoff relative to evaluation date must block canonical latest writes",
 );
 
-console.log("world-impact latest input: invalid canonical snapshots, duplicate identities, and optional provenance fail closed before write");
+console.log("world-impact latest input: invalid canonical snapshots, duplicate identities/horizons, and optional provenance fail closed before write");
