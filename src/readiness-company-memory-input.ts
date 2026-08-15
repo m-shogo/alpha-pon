@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { normalizeSourceHealthArray } from "./source-health-input.js";
 
 const READINESS_DATA_QUALITY_VALUES = new Set(["ok", "missing", "unknown"]);
+const PRIMARY_DISCLOSURE_DECISIONS = new Set(["confirmed", "caution", "block", "missing"]);
 
 function readJson(path: string): unknown {
   try {
@@ -84,6 +85,9 @@ export function assertReadinessPrimaryDisclosureReviewInput(
   for (const [code, review] of Object.entries(generated.primaryDisclosureReviews)) {
     if (!isRecord(review)) {
       throw new Error(`${generatedPath}: primaryDisclosureReviews.${code} must be an object`);
+    }
+    if (typeof review.decision !== "string" || !PRIMARY_DISCLOSURE_DECISIONS.has(review.decision)) {
+      throw new Error(`${generatedPath}: primaryDisclosureReviews.${code}.decision must be one of confirmed, caution, block, missing`);
     }
   }
 }
