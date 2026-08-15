@@ -14,13 +14,12 @@ import {
   writeWorldImpactLatest,
   type WorldEventImpactReview,
 } from "./world-impact.js";
+import { normalizeWorldImpactReviewInputs } from "./world-impact-review-input.js";
 import type { WorldEventReflection } from "./analysis/world-event-reflection.js";
 
-type AlphaDataLike = {
-  candidates?: Array<{ code: string; name: string; tags?: string[]; reasons?: string[]; negativeReasons?: string[]; nextToSee?: string[] }>;
-  universeCandidates?: Array<{ code: string; name: string; sector?: string | null; matchedWorldEventTags?: string[]; warnings?: string[] }>;
-  generatedCompanyRules?: Array<{ code?: string; name?: string; thesis?: string[]; reasons?: string[]; risks?: string[]; evidenceNeeded?: string[] }>;
-};
+type AlphaCandidate = { code: string; name: string; tags?: string[]; reasons?: string[]; negativeReasons?: string[]; nextToSee?: string[] };
+type AlphaUniverseCandidate = { code: string; name: string; sector?: string | null; matchedWorldEventTags?: string[]; warnings?: string[] };
+type AlphaCompanyRule = { code?: string; name?: string; thesis?: string[]; reasons?: string[]; risks?: string[]; evidenceNeeded?: string[] };
 
 function readJson<T>(path: string, fallback: T): T {
   if (!existsSync(path)) return fallback;
@@ -34,19 +33,21 @@ function readJson<T>(path: string, fallback: T): T {
 function main() {
   const today = todayJst();
   const write = process.argv.includes("--write");
-  const reflections = readJson<WorldEventReflection[]>("data/world_event_reflections_latest.json", []);
-  const alpha = readJson<AlphaDataLike>("apps/web/public/generated/alpha-pon-data.json", {});
+  const inputs = normalizeWorldImpactReviewInputs<WorldEventReflection, AlphaCandidate, AlphaUniverseCandidate, AlphaCompanyRule>(
+    readJson<unknown>("data/world_event_reflections_latest.json", null),
+    readJson<unknown>("apps/web/public/generated/alpha-pon-data.json", null),
+  );
   const reviews = buildWorldImpactReviews({
-    reflections,
-    candidates: alpha.candidates ?? [],
-    universeCandidates: (alpha.universeCandidates ?? []).map(candidate => ({
+    reflections: inputs.reflections,
+    candidates: inputs.candidates,
+    universeCandidates: inputs.universeCandidates.map(candidate => ({
       code: candidate.code,
       name: candidate.name,
       sector: candidate.sector ?? null,
       tags: candidate.matchedWorldEventTags ?? [],
       reasons: candidate.warnings ?? [],
     })),
-    generatedCompanyRules: alpha.generatedCompanyRules ?? [],
+    generatedCompanyRules: inputs.generatedCompanyRules,
     today,
     limit: 8,
   });
@@ -69,6 +70,7 @@ function main() {
       "世界ニュースを銘柄への影響仮説として保存する研究ログです。",
       "dry-run では JSONL へ追記しません。",
       "価格データ不足は未評価として扱います。",
+      ...inputs.warnings,
     ],
   };
   writeFileSync(join("reports", "world-impact-review.json"), JSON.stringify(report, null, 2) + "\n");
