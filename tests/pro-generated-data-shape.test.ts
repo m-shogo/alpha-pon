@@ -1,7 +1,7 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { readReadOnlyJsonObjectArrayFile } from "../src/read-only-json-file.js";
+import { readReadOnlyJsonObjectArrayFile, readReadOnlyJsonObjectFile } from "../src/read-only-json-file.js";
 
 function readJson(path: string): unknown {
   if (!existsSync(path)) return null;
@@ -40,6 +40,23 @@ function isObject(value: unknown): value is Record<string, unknown> {
     writeFileSync(invalidField, JSON.stringify({ snapshots: {} }), "utf-8");
     const invalidFieldLoad = readReadOnlyJsonObjectArrayFile(invalidField, "snapshots");
     assert(invalidFieldLoad.invalidField, "object-shaped snapshotsを空配列と同化しない");
+
+    const validObject = join(dir, "valid-object.json");
+    writeFileSync(validObject, JSON.stringify({ generatedAt: "2026-08-16", status: "ok" }), "utf-8");
+    const validObjectLoad = readReadOnlyJsonObjectFile<Record<string, unknown>>(validObject);
+    assert(validObjectLoad.object?.status === "ok", "valid object input はobjectを保持する必要があります");
+    assert(!validObjectLoad.parseError && !validObjectLoad.invalidRoot, "valid object input をinvalid扱いしない");
+
+    const malformedObject = join(dir, "malformed-object.json");
+    writeFileSync(malformedObject, "{not-json", "utf-8");
+    const malformedObjectLoad = readReadOnlyJsonObjectFile(malformedObject);
+    assert(malformedObjectLoad.parseError, "parse不能なobject inputを正常な空objectと同化しない");
+    assert(!malformedObjectLoad.missing, "存在する壊れたobject inputをmissing扱いしない");
+
+    const invalidObjectRoot = join(dir, "invalid-object-root.json");
+    writeFileSync(invalidObjectRoot, JSON.stringify([]), "utf-8");
+    const invalidObjectRootLoad = readReadOnlyJsonObjectFile(invalidObjectRoot);
+    assert(invalidObjectRootLoad.invalidRoot, "array rootをread-only objectとして受理しない");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
