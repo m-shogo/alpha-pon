@@ -36,6 +36,17 @@ for (const [field, invalid] of [
   assert.deepEqual(result.reviews, [], "invalid latest must fail closed instead of normalizing malformed dates");
 }
 
+for (const [label, outcome] of [
+  ["price start after price end", { ...base.outcomes[0], priceStartDate: "2026-06-12", priceEndDate: "2026-06-11" }],
+  ["price end after evaluation cutoff", { ...base.outcomes[0], priceEndDate: "2026-06-13", evaluationAsOf: "2026-06-12" }],
+  ["evaluation cutoff after evaluated date", { ...base.outcomes[0], evaluationAsOf: "2026-06-13", evaluatedAt: "2026-06-12" }],
+] as const) {
+  const parsed = [{ ...base, outcomes: [outcome] }];
+  const result = resolveWorldImpactReportInput({ present: true, parsed }, [], "2026-06-13");
+  assert.equal(result.latestSnapshotError, true, `${label} must fail closed in read-only latest`);
+  assert.deepEqual(result.reviews, [], "reversed evaluation chronology must not reach report/calibration inputs");
+}
+
 const invalidFallback = normalizeWorldImpactReview({
   ...base,
   outcomes: [{ ...base.outcomes[0], evaluatedAt: "2026-02-31" }],
@@ -43,6 +54,14 @@ const invalidFallback = normalizeWorldImpactReview({
 const fallback = resolveWorldImpactReportInput({ present: false }, [invalidFallback], "2026-06-12");
 assert.equal(fallback.jsonlFallbackError, true, "latest欠落時も不正JSONL日付をread-only fallbackへ通さない");
 assert.deepEqual(fallback.reviews, [], "invalid JSONL fallback must fail closed instead of becoming report/calibration input");
+
+const reversedFallback = normalizeWorldImpactReview({
+  ...base,
+  outcomes: [{ ...base.outcomes[0], priceStartDate: "2026-06-12", priceEndDate: "2026-06-11" }],
+}, "2026-06-12");
+const reversedFallbackResult = resolveWorldImpactReportInput({ present: false }, [reversedFallback], "2026-06-12");
+assert.equal(reversedFallbackResult.jsonlFallbackError, true, "JSONL fallbackでも逆行した評価日付を通さない");
+assert.deepEqual(reversedFallbackResult.reviews, [], "reversed fallback chronology must fail closed");
 
 const validFallback = resolveWorldImpactReportInput(
   { present: false },
@@ -52,4 +71,4 @@ const validFallback = resolveWorldImpactReportInput(
 assert.equal(validFallback.jsonlFallbackError, false, "valid JSONL fallback remains available when latest is absent");
 assert.equal(validFallback.reviews.length, 1, "valid fallback review remains readable");
 
-console.log("world-impact report input: latest and JSONL fallback dates require real Gregorian JST dates");
+console.log("world-impact report input: latest and JSONL fallback require real Gregorian JST dates and monotonic evaluation chronology");
