@@ -258,6 +258,18 @@ function makeReview(overrides: Partial<WorldEventImpactReview> = {}): WorldEvent
   assert.equal(malformedRow.latestSnapshotError, true);
   assert.deepEqual(malformedRow.reviews, [], "latest配列内のnull/scalar rowを空reviewへ正規化せずfail closedにする");
 
+  const missingIdentity = resolveWorldImpactReportInput({ present: true, parsed: [jsonlReview, {}] }, [jsonlReview], TODAY);
+  assert.equal(missingIdentity.latestSnapshotError, true);
+  assert.deepEqual(missingIdentity.reviews, [], "object-shaped rowでもreviewKey/eventIdがなければ空reviewへ補完せずfail closedにする");
+
+  const partialIdentity = resolveWorldImpactReportInput(
+    { present: true, parsed: [jsonlReview, { reviewKey: "incomplete" }] },
+    [jsonlReview],
+    TODAY,
+  );
+  assert.equal(partialIdentity.latestSnapshotError, true);
+  assert.deepEqual(partialIdentity.reviews, [], "reviewKeyだけのrowもlatest provenanceとして受理しない");
+
   const audit = buildWorldImpactAudit([], TODAY);
   assert.equal(audit.healthStatus, "ok", "空データだけなら基礎auditはok");
   applyWorldImpactLatestSnapshotError(audit, malformedRoot.latestSnapshotError);
@@ -270,7 +282,7 @@ function makeReview(overrides: Partial<WorldEventImpactReview> = {}): WorldEvent
     /calibrate:world-impact: data\/world_event_impacts_latest\.json is malformed/,
     "壊れたlatest snapshotではcalibrationを生成しない",
   );
-  console.log("world-impact: malformed latest snapshot/root/row をreport/audit/calibrationでfail closedにする");
+  console.log("world-impact: malformed latest snapshot/root/row/identity をreport/audit/calibrationでfail closedにする");
 }
 
 console.log("world-impact: 全テスト成功");
