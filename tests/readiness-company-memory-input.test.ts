@@ -102,6 +102,15 @@ try {
     "well-shaped primary disclosure review maps remain valid readiness input",
   );
 
+  for (const malformedReview of [{}, { decision: "perfect" }] as const) {
+    writeFileSync(generatedPath, JSON.stringify({ primaryDisclosureReviews: { "8136": malformedReview } }));
+    assert.throws(
+      () => assertReadinessPrimaryDisclosureReviewInput(generatedPath),
+      /decision must be one of confirmed, caution, block, missing/,
+      "missing or unknown review decisions must not inflate primary disclosure readiness counts",
+    );
+  }
+
   writeFileSync(generatedPath, JSON.stringify({ primaryDisclosureReviews: [{ decision: "confirmed" }, { decision: "confirmed" }, { decision: "confirmed" }] }));
   assert.throws(
     () => assertReadinessPrimaryDisclosureReviewInput(generatedPath),
