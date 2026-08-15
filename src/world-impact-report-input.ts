@@ -21,7 +21,11 @@ function isNonEmptyString(value: unknown): value is string {
 function isWorldImpactReviewRow(value: unknown): value is Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const row = value as Record<string, unknown>;
-  return isNonEmptyString(row.reviewKey) && isNonEmptyString(row.eventId);
+  return isNonEmptyString(row.reviewKey)
+    && isNonEmptyString(row.eventId)
+    && isNonEmptyString(row.eventDate)
+    && isNonEmptyString(row.createdAt)
+    && isNonEmptyString(row.updatedAt);
 }
 
 export function resolveWorldImpactReportInput(
