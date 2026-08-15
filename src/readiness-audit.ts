@@ -170,7 +170,13 @@ function buildReport(): ReadinessReport {
   const pipelineSnapshot = pipelineInput(generated?.pipelineStatus);
   const pipeline = pipelineSnapshot.value;
   const hypotheses = generated?.hypothesisPredictions ?? readJsonl<unknown>("data/hypothesis_predictions.jsonl");
-  const outcomes = generated?.hypothesisOutcomes ?? readJsonl<{ dataSource?: string; dataAvailability?: string }>("data/hypothesis_outcomes.jsonl");
+  const outcomesInput = generated?.hypothesisOutcomes;
+  const outcomesState = outcomesInput === undefined ? "fallback" : Array.isArray(outcomesInput) ? "ok" : "invalid_root";
+  const outcomes = outcomesInput === undefined
+    ? readJsonl<{ dataSource?: string; dataAvailability?: string }>("data/hypothesis_outcomes.jsonl")
+    : Array.isArray(outcomesInput)
+      ? outcomesInput
+      : [];
   const companyMemory = generated?.companyMemory ?? readJson<unknown[]>("reports/company_memory_latest.json") ?? [];
   const scoreSnapshot = latestScoreRows();
   const scoreRows = scoreSnapshot.rows;
@@ -202,17 +208,19 @@ function buildReport(): ReadinessReport {
   const failedSteps = pipeline?.completeWrapperFailedSteps ?? [];
   const realOutcomes = outcomes.filter(outcome => outcome.dataSource === "jquants").length;
   const pricedOutcomes = outcomes.filter(outcome => outcome.dataAvailability === "ok" || outcome.dataAvailability === "partial").length;
-  const outcomeScore = realOutcomes >= 10
-    ? 92
-    : hasOutcomeDb && pricedOutcomes > 0 && accuracySummary?.byActionLabel && accuracySummary.byScoreBand
-      ? 78
-      : hasOutcomeDb && pricedOutcomes > 0
-        ? 72
-        : pricedOutcomes > 0
-          ? 65
-          : hypotheses.length > 0
-            ? 45
-            : 15;
+  const outcomeScore = outcomesState === "invalid_root"
+    ? 15
+    : realOutcomes >= 10
+      ? 92
+      : hasOutcomeDb && pricedOutcomes > 0 && accuracySummary?.byActionLabel && accuracySummary.byScoreBand
+        ? 78
+        : hasOutcomeDb && pricedOutcomes > 0
+          ? 72
+          : pricedOutcomes > 0
+            ? 65
+            : hypotheses.length > 0
+              ? 45
+              : 15;
   const opsScore = hasBackupScript && hasHealthScript && backup.count > 0 && backup.latestAgeDays != null && backup.latestAgeDays <= 7 && hasOutcomeDb && hasJobsDb
     ? 92
     : hasBackupScript && hasHealthScript && backup.count > 0 && hasOutcomeDb
@@ -273,6 +281,7 @@ function buildReport(): ReadinessReport {
       label: "仮説検証の厚み",
       score: outcomeScore,
       evidence: [
+        `outcome input: ${outcomesState}`,
         `hypotheses: ${hypotheses.length}`,
         `outcomes: ${outcomes.length}`,
         `priced outcomes: ${pricedOutcomes}`,
@@ -280,7 +289,9 @@ function buildReport(): ReadinessReport {
         `SQLite outcome DB: ${hasOutcomeDb ? "present" : "missing"}`,
         `score bands: ${accuracySummary?.byScoreBand ? "present" : "missing"}`,
       ],
-      nextActions: ["reviewDueAt を過ぎた仮説を J-Quants 実データで review:hypotheses する", "1w/1m/3m と TOPIX比が入った outcome を蓄積する"],
+      nextActions: outcomesState === "invalid_root"
+        ? ["generated hypothesisOutcomes のrootを配列へ修復して readiness:audit を再実行する"]
+        : ["reviewDueAt を過ぎた仮説を J-Quants 実データで review:hypotheses する", "1w/1m/3m と TOPIX比が入った outcome を蓄積する"],
     }),
     item({
       id: "primary-disclosures",
