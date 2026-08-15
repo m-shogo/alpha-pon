@@ -29,6 +29,18 @@ function isRecordArray(value: unknown): value is Record<string, unknown>[] {
   return Array.isArray(value) && value.every(isRecord);
 }
 
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim() !== "";
+}
+
+function isCompanyMemoryRow(value: unknown): value is Record<string, unknown> {
+  return isRecord(value) && isNonEmptyString(value.code) && isNonEmptyString(value.name);
+}
+
+function isCompanyMemoryArray(value: unknown): value is Record<string, unknown>[] {
+  return Array.isArray(value) && value.every(isCompanyMemoryRow);
+}
+
 function hasUsableScoreSnapshot(reportsDir: string): boolean {
   if (!existsSync(reportsDir)) return false;
   try {
@@ -51,15 +63,15 @@ export function assertReadinessCompanyMemoryInput(
   const generated = readGeneratedObject(generatedPath);
   if (generated) {
     const companyMemory = generated.companyMemory;
-    if (companyMemory !== undefined && !isRecordArray(companyMemory)) {
-      throw new Error(`${generatedPath}: companyMemory must be an array of objects when present`);
+    if (companyMemory !== undefined && !isCompanyMemoryArray(companyMemory)) {
+      throw new Error(`${generatedPath}: companyMemory must be an array of objects with non-empty code and name when present`);
     }
   }
 
   if (!existsSync(reportPath)) return;
   const report = readJson(reportPath);
-  if (!isRecordArray(report)) {
-    throw new Error(`${reportPath}: company-memory root must be an array of objects`);
+  if (!isCompanyMemoryArray(report)) {
+    throw new Error(`${reportPath}: company-memory root must be an array of objects with non-empty code and name`);
   }
 }
 
