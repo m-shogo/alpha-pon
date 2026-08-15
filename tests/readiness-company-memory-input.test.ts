@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { assertReadinessCompanyMemoryInput } from "../src/readiness-company-memory-input.js";
+import {
+  assertReadinessCompanyMemoryInput,
+  assertReadinessHypothesisPredictionInput,
+} from "../src/readiness-company-memory-input.js";
 
 const dir = mkdtempSync(join(tmpdir(), "readiness-company-memory-"));
 try {
@@ -35,6 +38,25 @@ try {
     () => assertReadinessCompanyMemoryInput(generatedPath, reportPath),
     /invalid JSON/,
     "malformed generated readiness JSON must not be treated as missing input",
+  );
+
+  writeFileSync(generatedPath, JSON.stringify({ hypothesisPredictions: [] }));
+  assert.doesNotThrow(
+    () => assertReadinessHypothesisPredictionInput(generatedPath),
+    "well-shaped generated hypothesis predictions remain valid readiness input",
+  );
+
+  writeFileSync(generatedPath, JSON.stringify({ hypothesisPredictions: {} }));
+  assert.throws(
+    () => assertReadinessHypothesisPredictionInput(generatedPath),
+    /hypothesisPredictions must be an array when present/,
+    "malformed generated hypothesis predictions must fail closed instead of yielding undefined readiness counts",
+  );
+
+  writeFileSync(generatedPath, JSON.stringify({}));
+  assert.doesNotThrow(
+    () => assertReadinessHypothesisPredictionInput(generatedPath),
+    "missing generated hypothesis predictions must preserve the JSONL fallback path",
   );
 } finally {
   rmSync(dir, { recursive: true, force: true });

@@ -9,16 +9,22 @@ function readJson(path: string): unknown {
   }
 }
 
+function readGeneratedObject(path: string): Record<string, unknown> | null {
+  if (!existsSync(path)) return null;
+  const generated = readJson(path);
+  if (typeof generated !== "object" || generated === null || Array.isArray(generated)) {
+    throw new Error(`${path}: generated root must be an object`);
+  }
+  return generated as Record<string, unknown>;
+}
+
 export function assertReadinessCompanyMemoryInput(
   generatedPath = "apps/web/public/generated/alpha-pon-data.json",
   reportPath = "reports/company_memory_latest.json",
 ): void {
-  if (existsSync(generatedPath)) {
-    const generated = readJson(generatedPath);
-    if (typeof generated !== "object" || generated === null || Array.isArray(generated)) {
-      throw new Error(`${generatedPath}: generated root must be an object`);
-    }
-    const companyMemory = (generated as Record<string, unknown>).companyMemory;
+  const generated = readGeneratedObject(generatedPath);
+  if (generated) {
+    const companyMemory = generated.companyMemory;
     if (companyMemory !== undefined) {
       if (!normalizeSourceHealthArray(companyMemory).valid) {
         throw new Error(`${generatedPath}: companyMemory must be an array when present`);
@@ -34,6 +40,17 @@ export function assertReadinessCompanyMemoryInput(
   }
 }
 
+export function assertReadinessHypothesisPredictionInput(
+  generatedPath = "apps/web/public/generated/alpha-pon-data.json",
+): void {
+  const generated = readGeneratedObject(generatedPath);
+  if (!generated || generated.hypothesisPredictions === undefined) return;
+  if (!normalizeSourceHealthArray(generated.hypothesisPredictions).valid) {
+    throw new Error(`${generatedPath}: hypothesisPredictions must be an array when present`);
+  }
+}
+
 if (process.argv[1]?.endsWith("readiness-company-memory-input.ts")) {
   assertReadinessCompanyMemoryInput();
+  assertReadinessHypothesisPredictionInput();
 }
