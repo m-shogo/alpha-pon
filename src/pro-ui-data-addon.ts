@@ -1,17 +1,8 @@
-import { existsSync, readFileSync, writeFileSync } from "fs";
-import { readReadOnlyJsonObjectArrayFile } from "./read-only-json-file.js";
+import { writeFileSync } from "fs";
+import { readReadOnlyJsonObjectArrayFile, readReadOnlyJsonObjectFile } from "./read-only-json-file.js";
 
 const UI_DATA_PATH = "apps/web/public/generated/alpha-pon-data.json";
 const STOCK_CANDIDATES_PATH = "apps/web/public/generated/stock-candidates.json";
-
-function readJson<T>(path: string, fallback: T): T {
-  if (!existsSync(path)) return fallback;
-  try {
-    return JSON.parse(readFileSync(path, "utf-8")) as T;
-  } catch {
-    return fallback;
-  }
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -64,12 +55,26 @@ function main() {
     generatedAt: typeof irEventEvidenceLoad.object?.generatedAt === "string" ? irEventEvidenceLoad.object.generatedAt : null,
     events: irEventEvidenceLoad.rows,
   };
-  const ipoThemeWatch = readJson("reports/ipo_theme_watch_latest.json", { generatedAt: null, rules: [], phases: [], neverTreatAs: [], outcomeStats: [] });
-  const specialSituationWatch = readJson("reports/special_situation_watch_latest.json", {
+
+  const ipoThemeWatchLoad = readReadOnlyJsonObjectFile<Record<string, unknown>>(
+    "reports/ipo_theme_watch_latest.json",
+  );
+  const ipoThemeWatch = ipoThemeWatchLoad.object ?? { generatedAt: null, rules: [], phases: [], neverTreatAs: [], outcomeStats: [] };
+  const specialSituationWatchLoad = readReadOnlyJsonObjectFile<Record<string, unknown>>(
+    "reports/special_situation_watch_latest.json",
+  );
+  const specialSituationWatch = specialSituationWatchLoad.object ?? {
     generatedAt: null, patterns: [], candidates: [], topChanceList: [], referenceEvents: []
-  });
-  const specialSituationOps = readJson("reports/special_situation_ops_summary_latest.json", null);
-  const hypothesisOutcomeIntegrity = readJson("reports/hypothesis_outcome_integrity_latest.json", null);
+  };
+  const specialSituationOpsLoad = readReadOnlyJsonObjectFile<Record<string, unknown>>(
+    "reports/special_situation_ops_summary_latest.json",
+  );
+  const specialSituationOps = specialSituationOpsLoad.object;
+  const hypothesisOutcomeIntegrityLoad = readReadOnlyJsonObjectFile<Record<string, unknown>>(
+    "reports/hypothesis_outcome_integrity_latest.json",
+  );
+  const hypothesisOutcomeIntegrity = hypothesisOutcomeIntegrityLoad.object;
+
   const stockProCommitteeLoad = readReadOnlyJsonObjectArrayFile<Record<string, unknown>>(
     "reports/stock_pro_committee_latest.json",
     "decisions",
@@ -115,6 +120,14 @@ function main() {
     irEventEvidenceLoad.parseError ? "data/ir_event_evidence_latest.json: parse_error" : null,
     irEventEvidenceLoad.invalidRoot ? "data/ir_event_evidence_latest.json: invalid_root (expected object)" : null,
     irEventEvidenceLoad.invalidField ? "data/ir_event_evidence_latest.json.events: invalid_field (expected array)" : null,
+    ipoThemeWatchLoad.parseError ? "reports/ipo_theme_watch_latest.json: parse_error" : null,
+    ipoThemeWatchLoad.invalidRoot ? "reports/ipo_theme_watch_latest.json: invalid_root (expected object)" : null,
+    specialSituationWatchLoad.parseError ? "reports/special_situation_watch_latest.json: parse_error" : null,
+    specialSituationWatchLoad.invalidRoot ? "reports/special_situation_watch_latest.json: invalid_root (expected object)" : null,
+    specialSituationOpsLoad.parseError ? "reports/special_situation_ops_summary_latest.json: parse_error" : null,
+    specialSituationOpsLoad.invalidRoot ? "reports/special_situation_ops_summary_latest.json: invalid_root (expected object)" : null,
+    hypothesisOutcomeIntegrityLoad.parseError ? "reports/hypothesis_outcome_integrity_latest.json: parse_error" : null,
+    hypothesisOutcomeIntegrityLoad.invalidRoot ? "reports/hypothesis_outcome_integrity_latest.json: invalid_root (expected object)" : null,
     stockProCommitteeLoad.parseError ? "reports/stock_pro_committee_latest.json: parse_error" : null,
     stockProCommitteeLoad.invalidRoot ? "reports/stock_pro_committee_latest.json: invalid_root (expected object)" : null,
     stockProCommitteeLoad.invalidField ? "reports/stock_pro_committee_latest.json.decisions: invalid_field (expected array)" : null,
@@ -142,10 +155,10 @@ function main() {
         buffettQualityLoad.missing ? "data/buffett_quality_latest.json" : null,
         valuationSnapshotsLoad.missing ? "data/valuation_snapshot_latest.json" : null,
         irEventEvidenceLoad.missing ? "data/ir_event_evidence_latest.json" : null,
-        existsSync("reports/ipo_theme_watch_latest.json") ? null : "reports/ipo_theme_watch_latest.json",
-        existsSync("reports/special_situation_watch_latest.json") ? null : "reports/special_situation_watch_latest.json",
-        existsSync("reports/special_situation_ops_summary_latest.json") ? null : "reports/special_situation_ops_summary_latest.json",
-        existsSync("reports/hypothesis_outcome_integrity_latest.json") ? null : "reports/hypothesis_outcome_integrity_latest.json",
+        ipoThemeWatchLoad.missing ? "reports/ipo_theme_watch_latest.json" : null,
+        specialSituationWatchLoad.missing ? "reports/special_situation_watch_latest.json" : null,
+        specialSituationOpsLoad.missing ? "reports/special_situation_ops_summary_latest.json" : null,
+        hypothesisOutcomeIntegrityLoad.missing ? "reports/hypothesis_outcome_integrity_latest.json" : null,
         stockProCommitteeLoad.missing ? "reports/stock_pro_committee_latest.json" : null,
       ].filter(Boolean),
       warnings: invalidProInputs,
