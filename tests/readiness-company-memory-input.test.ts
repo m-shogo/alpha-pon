@@ -96,18 +96,28 @@ try {
     "missing generated hypothesis predictions must preserve the JSONL fallback path",
   );
 
-  writeFileSync(generatedPath, JSON.stringify({ primaryDisclosureReviews: { "8136": { decision: "confirmed" } } }));
+  writeFileSync(generatedPath, JSON.stringify({
+    primaryDisclosureReviews: {
+      "8136": { decision: "confirmed", sourceCoverage: { tdnetCount: 1, edinetCount: 2 } },
+    },
+  }));
   assert.doesNotThrow(
     () => assertReadinessPrimaryDisclosureReviewInput(generatedPath),
     "well-shaped primary disclosure review maps remain valid readiness input",
   );
 
-  for (const malformedReview of [{}, { decision: "perfect" }] as const) {
+  for (const malformedReview of [
+    {},
+    { decision: "perfect" },
+    { decision: "confirmed" },
+    { decision: "confirmed", sourceCoverage: {} },
+    { decision: "confirmed", sourceCoverage: { tdnetCount: "1", edinetCount: 2 } },
+  ] as const) {
     writeFileSync(generatedPath, JSON.stringify({ primaryDisclosureReviews: { "8136": malformedReview } }));
     assert.throws(
       () => assertReadinessPrimaryDisclosureReviewInput(generatedPath),
-      /decision must be one of confirmed, caution, block, missing/,
-      "missing or unknown review decisions must not inflate primary disclosure readiness counts",
+      /must include a canonical decision and finite source coverage counts/,
+      "incomplete primary review metadata must not inflate primary disclosure readiness counts",
     );
   }
 
