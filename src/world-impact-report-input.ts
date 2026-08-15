@@ -28,6 +28,16 @@ function isRealJstDate(value: unknown): value is string {
   }
 }
 
+function hasValidNestedReviewDates(row: Record<string, unknown>): boolean {
+  if (row.reviewDueAt != null && !isRealJstDate(row.reviewDueAt)) return false;
+  if (row.outcomes === undefined) return true;
+  if (!Array.isArray(row.outcomes)) return false;
+  return row.outcomes.every(outcome => {
+    if (typeof outcome !== "object" || outcome === null || Array.isArray(outcome)) return false;
+    return isRealJstDate((outcome as Record<string, unknown>).dueAt);
+  });
+}
+
 function isWorldImpactReviewRow(value: unknown): value is Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const row = value as Record<string, unknown>;
@@ -35,7 +45,8 @@ function isWorldImpactReviewRow(value: unknown): value is Record<string, unknown
     || !isNonEmptyString(row.eventId)
     || !isRealJstDate(row.eventDate)
     || !isRealJstDate(row.createdAt)
-    || !isRealJstDate(row.updatedAt)) {
+    || !isRealJstDate(row.updatedAt)
+    || !hasValidNestedReviewDates(row)) {
     return false;
   }
   return row.updatedAt >= row.createdAt;

@@ -332,6 +332,38 @@ function makeReview(overrides: Partial<WorldEventImpactReview> = {}): WorldEvent
   assert.equal(regressiveUpdate.latestSnapshotError, true);
   assert.deepEqual(regressiveUpdate.reviews, [], "updatedAtがcreatedAtより前へ逆行するlatest rowを受理しない");
 
+  const invalidOutcomeDueAt = resolveWorldImpactReportInput(
+    {
+      present: true,
+      parsed: [
+        {
+          ...jsonlReview,
+          outcomes: jsonlReview.outcomes.map((outcome, index) => index === 0 ? { ...outcome, dueAt: "2026-02-31" } : outcome),
+        },
+      ],
+    },
+    [jsonlReview],
+    TODAY,
+  );
+  assert.equal(invalidOutcomeDueAt.latestSnapshotError, true);
+  assert.deepEqual(invalidOutcomeDueAt.reviews, [], "不存在Gregorian日をoutcome dueAtとしてread-only正本へ受理しない");
+
+  const invalidReviewDueAt = resolveWorldImpactReportInput(
+    {
+      present: true,
+      parsed: [
+        {
+          ...jsonlReview,
+          reviewDueAt: "0000-01-01",
+        },
+      ],
+    },
+    [jsonlReview],
+    TODAY,
+  );
+  assert.equal(invalidReviewDueAt.latestSnapshotError, true);
+  assert.deepEqual(invalidReviewDueAt.reviews, [], "year-zeroをreviewDueAtとしてread-only正本へ受理しない");
+
   const audit = buildWorldImpactAudit([], TODAY);
   assert.equal(audit.healthStatus, "ok", "空データだけなら基礎auditはok");
   applyWorldImpactLatestSnapshotError(audit, malformedRoot.latestSnapshotError);
@@ -344,7 +376,7 @@ function makeReview(overrides: Partial<WorldEventImpactReview> = {}): WorldEvent
     /calibrate:world-impact: data\/world_event_impacts_latest\.json is malformed/,
     "壊れたlatest snapshotではcalibrationを生成しない",
   );
-  console.log("world-impact: malformed latest snapshot/root/row/identity/provenance/date/chronology をreport/audit/calibrationでfail closedにする");
+  console.log("world-impact: malformed latest snapshot/root/row/identity/provenance/date/chronology/nested dates をreport/audit/calibrationでfail closedにする");
 }
 
 console.log("world-impact: 全テスト成功");
