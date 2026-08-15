@@ -22,7 +22,7 @@ try {
   writeFileSync(reportPath, JSON.stringify({ code: "8136" }));
   assert.throws(
     () => assertReadinessCompanyMemoryInput(generatedPath, reportPath),
-    /company-memory root must be an array of objects/,
+    /company-memory root must be an array of objects with non-empty code and name/,
     "malformed canonical company-memory report must fail closed even when generated UI memory is well-shaped",
   );
 
@@ -30,34 +30,42 @@ try {
   writeFileSync(generatedPath, JSON.stringify({ companyMemory: {} }));
   assert.throws(
     () => assertReadinessCompanyMemoryInput(generatedPath, reportPath),
-    /companyMemory must be an array of objects when present/,
+    /companyMemory must be an array of objects with non-empty code and name when present/,
     "malformed generated companyMemory must fail closed instead of becoming a false zero-record readiness state",
   );
 
-  for (const malformedRow of [null, "8136", 7, []] as const) {
+  for (const malformedRow of [null, "8136", 7, [], {}, { code: "8136" }, { name: "Sanrio" }] as const) {
     writeFileSync(generatedPath, JSON.stringify({ companyMemory: [malformedRow] }));
     assert.throws(
       () => assertReadinessCompanyMemoryInput(generatedPath, reportPath),
-      /companyMemory must be an array of objects when present/,
-      "primitive company-memory rows must not inflate readiness record counts",
+      /companyMemory must be an array of objects with non-empty code and name when present/,
+      "malformed company-memory rows must not inflate readiness record counts",
     );
   }
 
+  writeFileSync(generatedPath, JSON.stringify({ companyMemory: [{ code: "8136", name: "Sanrio" }] }));
+  assert.doesNotThrow(
+    () => assertReadinessCompanyMemoryInput(generatedPath, reportPath),
+    "identified company-memory rows remain valid readiness input",
+  );
+
   writeFileSync(generatedPath, JSON.stringify({}));
-  writeFileSync(reportPath, JSON.stringify([{ code: "8136" }]));
+  writeFileSync(reportPath, JSON.stringify([{ code: "8136", name: "Sanrio" }]));
   assert.doesNotThrow(() => assertReadinessCompanyMemoryInput(generatedPath, reportPath));
 
-  writeFileSync(reportPath, JSON.stringify([null]));
-  assert.throws(
-    () => assertReadinessCompanyMemoryInput(generatedPath, reportPath),
-    /company-memory root must be an array of objects/,
-    "primitive rows in canonical company-memory must fail closed before readiness scoring",
-  );
+  for (const malformedRow of [null, {}, { code: "8136" }, { name: "Sanrio" }] as const) {
+    writeFileSync(reportPath, JSON.stringify([malformedRow]));
+    assert.throws(
+      () => assertReadinessCompanyMemoryInput(generatedPath, reportPath),
+      /company-memory root must be an array of objects with non-empty code and name/,
+      "identity-less canonical company-memory rows must fail closed before readiness scoring",
+    );
+  }
 
   writeFileSync(reportPath, JSON.stringify({ code: "8136" }));
   assert.throws(
     () => assertReadinessCompanyMemoryInput(generatedPath, reportPath),
-    /company-memory root must be an array of objects/,
+    /company-memory root must be an array of objects with non-empty code and name/,
     "malformed fallback company-memory root must fail closed before readiness scoring",
   );
 
