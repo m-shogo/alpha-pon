@@ -16,6 +16,12 @@ for (const malformed of [null, {}, { scores: [] }, "not-an-array"] as const) {
   assert.deepEqual(result.rows, [], "invalid roots must not leak into downstream array operations");
 }
 
+for (const malformed of [[null], ["8136"], [7], [[]]] as const) {
+  const result = normalizeSourceHealthScoreRows<{ code: string }>(malformed);
+  assert.equal(result.valid, false, "non-object score rows must fail closed before downstream property access");
+  assert.deepEqual(result.rows, [], "malformed score rows must not leak into readiness/source-health consumers");
+}
+
 const validObject = normalizeSourceHealthObject<{ status?: string }>({ status: "completed" });
 assert.equal(validObject.valid, true);
 assert.deepEqual(validObject.value, { status: "completed" });
