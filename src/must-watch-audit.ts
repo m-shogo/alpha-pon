@@ -57,6 +57,15 @@ function includesAny(haystack: string, values: string[]): boolean {
   return values.some(value => value && haystack.includes(value));
 }
 
+export function mustWatchThemeStatus(input: Pick<ThemeAudit, "missingEntities" | "missingJapanLinks" | "missingQuestions" | "missingSafetyRules">): ThemeAudit["status"] {
+  return input.missingEntities.length === 0
+    && input.missingJapanLinks.length === 0
+    && input.missingQuestions.length === 0
+    && input.missingSafetyRules.length === 0
+    ? "ok"
+    : "warning";
+}
+
 function auditTheme(themeId: string, theme: MustWatchTheme): ThemeAudit {
   const checkedFiles = [...new Set([...(theme.evidenceFiles ?? []), ...collectDocs()])];
   const haystack = checkedFiles.map(readText).join("\n");
@@ -64,7 +73,7 @@ function auditTheme(themeId: string, theme: MustWatchTheme): ThemeAudit {
   const missingJapanLinks = (theme.requiredJapanLinks ?? []).filter(link => !includesAny(haystack, [link.code, link.name]));
   const missingQuestions = (theme.requiredQuestions ?? []).filter(question => !haystack.includes(question));
   const missingSafetyRules = (theme.safetyRules ?? []).filter(rule => !haystack.includes(rule));
-  const status = missingEntities.length === 0 && missingJapanLinks.length === 0 && missingQuestions.length === 0 ? "ok" : "warning";
+  const status = mustWatchThemeStatus({ missingEntities, missingJapanLinks, missingQuestions, missingSafetyRules });
   return { themeId, label: theme.label, whyRequired: theme.whyRequired, checkedFiles, missingEntities, missingJapanLinks, missingQuestions, missingSafetyRules, status };
 }
 
