@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
+import { normalizeReadOnlyJsonArray } from "./read-only-json.js";
 import { formatReadOnlyJsonlParseWarning, readJsonlWithErrors } from "./read-only-jsonl.js";
 import type { UniverseCandidate, UniverseScanMetadata, UniverseScanOutput, StockCandidateHypothesis, HypothesisOutcome, AccuracySummary, WorldContext } from "./universe.js";
 import type { CompanyMemoryRecord } from "./company-memory.js";
@@ -330,7 +331,9 @@ function main() {
     excludeCodes: personalWatchlist.excludeCodes ?? [],
     priorityWatches: personalWatchlist.priorityWatches ?? [],
   };
-  const worldEventsForHypotheses = readJson<WorldEventForHypothesis[]>("reports/world_events_latest.json") ?? [];
+  const worldEventsRaw = readJson<unknown>("reports/world_events_latest.json");
+  const worldEventsLoad = normalizeReadOnlyJsonArray<WorldEventForHypothesis>(worldEventsRaw);
+  const worldEventsForHypotheses = worldEventsLoad.rows;
   const worldThemeCandidateHypotheses = buildWorldThemeCandidateHypotheses(worldEventsForHypotheses, personalWatchlist);
   const companyMemory = loadCompanyMemory();
   const readiness = loadReadiness();
@@ -367,7 +370,7 @@ function main() {
     })
   );
 
-  // pipeline_status とread-only JSONLの問題を meta.warnings に含める
+  // pipeline_status とread-only inputの問題を meta.warnings に含める
   const metaWarnings: string[] = [];
   const hypothesisPredictionWarning = formatReadOnlyJsonlParseWarning(
     "data/hypothesis_predictions.jsonl",
@@ -379,6 +382,9 @@ function main() {
     hypothesisOutcomeLoad.parseErrors,
   );
   if (hypothesisOutcomeWarning) metaWarnings.push(hypothesisOutcomeWarning);
+  if (worldEventsLoad.invalidRoot) {
+    metaWarnings.push("reports/world_events_latest.json: invalid_root (expected array)");
+  }
 
   const pipelineStatusPath = "reports/pipeline_status_latest.json";
   let pipelineStatusData: Record<string, unknown> | null = null;
