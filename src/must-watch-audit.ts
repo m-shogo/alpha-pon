@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
+import { mustWatchThemeStatus } from "./must-watch-audit-status.js";
 
 type RequiredJapanLink = {
   code: string;
@@ -64,7 +65,7 @@ function auditTheme(themeId: string, theme: MustWatchTheme): ThemeAudit {
   const missingJapanLinks = (theme.requiredJapanLinks ?? []).filter(link => !includesAny(haystack, [link.code, link.name]));
   const missingQuestions = (theme.requiredQuestions ?? []).filter(question => !haystack.includes(question));
   const missingSafetyRules = (theme.safetyRules ?? []).filter(rule => !haystack.includes(rule));
-  const status = missingEntities.length === 0 && missingJapanLinks.length === 0 && missingQuestions.length === 0 ? "ok" : "warning";
+  const status = mustWatchThemeStatus({ missingEntities, missingJapanLinks, missingQuestions, missingSafetyRules });
   return { themeId, label: theme.label, whyRequired: theme.whyRequired, checkedFiles, missingEntities, missingJapanLinks, missingQuestions, missingSafetyRules, status };
 }
 
