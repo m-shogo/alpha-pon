@@ -11,6 +11,7 @@ import { join } from "path";
 import { getTodayInTokyo } from "../src/jobs/date-utils.js";
 import { normalizeOpsAlphaGeneratedAt } from "../src/ops-dashboard-input-time.js";
 import { normalizeOpsPipelineStatusInput } from "../src/ops-dashboard-pipeline-input.js";
+import { normalizeOpsSpecialSituationInput } from "../src/ops-dashboard-special-input.js";
 import {
   buildOpsDashboard,
   findForbiddenWording,
@@ -19,7 +20,6 @@ import {
   type OpsIntegrityLike,
   type OpsOutcomeLike,
   type OpsOutcomeQualityLike,
-  type OpsSpecialOpsLike,
   type OpsWorldImpactAuditLike,
   type OpsSafeOutputLike,
   type SafeWordingFinding,
@@ -89,13 +89,16 @@ const alphaData = normalizeOpsAlphaGeneratedAt(
 const pipelineStatus = normalizeOpsPipelineStatusInput(
   readJson<unknown>("reports/pipeline_status_latest.json"),
 );
+const specialOps = normalizeOpsSpecialSituationInput(
+  readJson<unknown>("reports/special_situation_ops_summary_latest.json"),
+);
 
 const dashboard = buildOpsDashboard({
   today,
   pipelineStatus,
   alphaData,
   outcomes: outcomesFile?.outcomes ?? null,
-  specialOps: readJson<OpsSpecialOpsLike>("reports/special_situation_ops_summary_latest.json"),
+  specialOps,
   integrity: readJson<OpsIntegrityLike>("reports/hypothesis_outcome_integrity_latest.json"),
   outcomeQuality: readJson<OpsOutcomeQualityLike>("reports/outcome-quality-audit.json"),
   worldImpact: readJson<OpsWorldImpactAuditLike>("reports/world-impact-audit.json"),
