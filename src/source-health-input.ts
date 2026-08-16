@@ -1,3 +1,5 @@
+import { addDaysJst } from "./date.js";
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -12,6 +14,18 @@ function isStringArray(value: unknown): value is string[] {
 
 function isOptionalStringArray(value: unknown): boolean {
   return value === undefined || isStringArray(value);
+}
+
+function isStrictJstDate(value: string): boolean {
+  try {
+    return addDaysJst(value, 0) === value;
+  } catch {
+    return false;
+  }
+}
+
+function isOptionalStrictJstDateArray(value: unknown): boolean {
+  return value === undefined || (isStringArray(value) && value.every(isStrictJstDate));
 }
 
 function isNonNegativeInteger(value: unknown): value is number {
@@ -69,7 +83,7 @@ export function hasValidPrimaryDisclosureReview(value: unknown): boolean {
   ) {
     return false;
   }
-  return isOptionalStringArray(value.sourceCoverage.scannedEdinetDates);
+  return isOptionalStrictJstDateArray(value.sourceCoverage.scannedEdinetDates);
 }
 
 export function normalizeSourceHealthArray<T>(value: unknown): { rows: T[]; valid: boolean } {

@@ -41,6 +41,25 @@ const confirmedWithEvidence = normalizeSourceHealthScoreRows([{
 }]);
 assert.equal(confirmedWithEvidence.valid, true, "confirmed primary review with official-source evidence remains valid");
 
+for (const invalidDate of ["2026-02-31", "0000-01-01", "2026-8-16", "2026-08-16T00:00:00+09:00"]) {
+  const result = normalizeSourceHealthScoreRows([{
+    code: "8136",
+    primaryDisclosureReview: {
+      decision: "confirmed",
+      warnings: [],
+      blockers: [],
+      sourceCoverage: {
+        tdnetCount: 1,
+        edinetCount: 0,
+        fetchErrorCount: 0,
+        scannedEdinetDates: [invalidDate],
+      },
+    },
+  }]);
+  assert.equal(result.valid, false, `invalid scannedEdinetDates must fail closed: ${invalidDate}`);
+  assert.deepEqual(result.rows, [], "invalid EDINET coverage provenance must not count as healthy source coverage");
+}
+
 for (const unsupportedConfirmed of [
   {
     code: "8136",
