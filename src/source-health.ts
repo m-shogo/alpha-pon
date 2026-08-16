@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join } from "path";
 import { todayJst } from "./date.js";
 import { normalizeSourceHealthObject, normalizeSourceHealthScoreRows } from "./source-health-input.js";
+import { selectSourceHealthScoreFile } from "./source-health-score-file.js";
 
 type PipelineStep = {
   name?: string;
@@ -55,12 +56,10 @@ function readJson<T>(path: string): T | null {
   }
 }
 
-function latestScoreFile(): string | null {
+function latestScoreFile(asOf: string): string | null {
   if (!existsSync("reports")) return null;
-  const files = readdirSync("reports")
-    .filter(file => /^scores_\d{4}-\d{2}-\d{2}\.json$/.test(file))
-    .sort();
-  return files.at(-1) ? join("reports", files.at(-1)!) : null;
+  const latest = selectSourceHealthScoreFile(readdirSync("reports"), asOf);
+  return latest ? join("reports", latest) : null;
 }
 
 function extractScoreDate(path: string | null): string | null {
@@ -115,7 +114,7 @@ function main() {
   const normalizedPipeline = normalizeSourceHealthObject<PipelineStatus>(rawPipeline);
   const pipeline = normalizedPipeline.value;
   const pipelineShapeValid = rawPipeline == null ? true : normalizedPipeline.valid;
-  const scorePath = latestScoreFile();
+  const scorePath = latestScoreFile(date);
   const scoreDate = extractScoreDate(scorePath);
   const rawScores = scorePath ? readJson<unknown>(scorePath) : null;
   const normalizedScores = scorePath
