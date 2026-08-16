@@ -43,31 +43,21 @@ export function isIpoThemeOutcomeInput(value: unknown): value is HypothesisOutco
   return true;
 }
 
-export function readIpoThemeOutcomeInput<T>(
-  path: string,
-  isRow?: (value: unknown) => value is T,
-): {
+export function readIpoThemeOutcomeInput<T extends HypothesisOutcome = HypothesisOutcome>(path: string): {
   rows: T[];
   warning: string | null;
 } {
   const result = readJsonlWithErrors<unknown>(path);
   const parseWarning = formatReadOnlyJsonlParseWarning(path, result.parseErrors);
-  if (!isRow) {
-    return {
-      rows: result.rows as T[],
-      warning: parseWarning,
-    };
-  }
-
-  const rows = result.rows.filter(isRow);
-  const invalidCount = result.rows.length - rows.length;
+  const validRows = result.rows.filter(isIpoThemeOutcomeInput);
+  const invalidCount = result.rows.length - validRows.length;
   const warnings = [
     parseWarning,
     invalidCount > 0 ? `${path}: invalid_rows ${invalidCount}` : null,
   ].filter((warning): warning is string => warning !== null);
 
   return {
-    rows,
+    rows: validRows as T[],
     warning: warnings.length > 0 ? warnings.join("; ") : null,
   };
 }
