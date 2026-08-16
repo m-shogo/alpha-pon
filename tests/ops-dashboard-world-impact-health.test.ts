@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { buildOpsDashboard, type OpsDashboardInputs } from "../src/ops-dashboard.js";
+import { buildOpsDashboard, type OpsDashboardInputs, type OpsWorldImpactAuditLike } from "../src/ops-dashboard.js";
 import { applyWorldImpactAuditHealth } from "../src/ops-dashboard-world-impact-health.js";
 
 const TODAY = "2026-08-17";
@@ -21,7 +21,7 @@ function cleanInputs(): OpsDashboardInputs {
 }
 
 {
-  const worldImpact = {
+  const worldImpact: OpsWorldImpactAuditLike = {
     healthStatus: "action_required",
     totalReviews: 0,
     pendingReviews: 0,
@@ -35,7 +35,7 @@ function cleanInputs(): OpsDashboardInputs {
     jsonlParseErrors: 0,
     latestMismatch: 0,
     priorityIssues: [{ severity: "urgent", title: "latest snapshot invalid", detail: "repair latest" }],
-  } as const;
+  };
   const inputs = cleanInputs();
   inputs.worldImpact = worldImpact;
   const dashboard = applyWorldImpactAuditHealth(buildOpsDashboard(inputs), worldImpact);
@@ -46,7 +46,7 @@ function cleanInputs(): OpsDashboardInputs {
 }
 
 {
-  const worldImpact = {
+  const worldImpact: OpsWorldImpactAuditLike = {
     healthStatus: "needs_attention",
     totalReviews: 0,
     pendingReviews: 0,
@@ -60,7 +60,7 @@ function cleanInputs(): OpsDashboardInputs {
     jsonlParseErrors: 0,
     latestMismatch: 0,
     priorityIssues: [],
-  } as const;
+  };
   const inputs = cleanInputs();
   inputs.worldImpact = worldImpact;
   const dashboard = applyWorldImpactAuditHealth(buildOpsDashboard(inputs), worldImpact);
