@@ -221,7 +221,7 @@ export function assertReadinessHypothesisPredictionInput(
 ): void {
   const generated = readGeneratedObject(generatedPath);
   if (!generated || generated.hypothesisPredictions === undefined) return;
-  if (!isIdentifiedArray(generated.hypothesisPredictions)) {
+  if (!hasUniqueCanonicalCodes(generated.hypothesisPredictions)) {
     throw new Error(`${generatedPath}: hypothesisPredictions must be an array of objects with non-empty code and name when present`);
   }
 }
