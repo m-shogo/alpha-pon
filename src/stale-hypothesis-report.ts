@@ -1,8 +1,9 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
 import { staleHypothesisAgeDays } from "./stale-hypothesis-date.js";
+import { readStaleHypothesisJsonl } from "./stale-hypothesis-input.js";
 
 type Company = { code: string; name: string; status?: string; lastReviewedAt?: string };
 type Config = { categories: Record<string, { label: string; companies: Company[] }> };
@@ -10,26 +11,10 @@ type NonMoveHistory = { code?: string; nonMoveReasons?: string[]; outcome?: stri
 
 type NonMoveStats = { count: number; reasons: string[]; topReason: string };
 
-function readJsonl<T>(path: string): T[] {
-  if (!existsSync(path)) return [];
-  return readFileSync(path, "utf-8")
-    .split("\n")
-    .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => {
-      try {
-        return JSON.parse(line) as T;
-      } catch {
-        return null;
-      }
-    })
-    .filter((item): item is T => item !== null);
-}
-
-function nonMoveStatsByCode(): Map<string, NonMoveStats> {
-  const rows = readJsonl<NonMoveHistory>("data/company_non_move_history.jsonl");
+function nonMoveStatsByCode(): { stats: Map<string, NonMoveStats>; warning: string | null } {
+  const history = readStaleHypothesisJsonl<NonMoveHistory>("data/company_non_move_history.jsonl");
   const reasonCounts = new Map<string, Map<string, number>>();
-  for (const row of rows) {
+  for (const row of history.rows) {
     if (!row.code || row.code === "template") continue;
     const map = reasonCounts.get(row.code) ?? new Map<string, number>();
     for (const reason of row.nonMoveReasons ?? ["unknown_or_insufficient_data"]) {
@@ -44,7 +29,7 @@ function nonMoveStatsByCode(): Map<string, NonMoveStats> {
     const count = sorted.reduce((sum, [, value]) => sum + value, 0);
     stats.set(code, { count, reasons: sorted.map(([reason]) => reason), topReason: sorted[0]?.[0] ?? "unknown" });
   }
-  return stats;
+  return { stats, warning: history.warning };
 }
 
 function actionFor(company: Company, stat?: NonMoveStats): string {
@@ -62,12 +47,12 @@ function actionFor(company: Company, stat?: NonMoveStats): string {
 function main() {
   const date = todayJst();
   const config = load(readFileSync("config/company-hypotheses.yml", "utf-8")) as Config;
-  const stats = nonMoveStatsByCode();
+  const nonMove = nonMoveStatsByCode();
   const rows: Array<{ category: string; company: Company; action: string; age: number | null; stat?: NonMoveStats }> = [];
 
   for (const category of Object.values(config.categories ?? {})) {
     for (const company of category.companies ?? []) {
-      const stat = stats.get(company.code);
+      const stat = nonMove.stats.get(company.code);
       const action = actionFor(company, stat);
       if (action !== "keep") rows.push({ category: category.label, company, action, age: staleHypothesisAgeDays(company.lastReviewedAt), stat });
     }
@@ -79,6 +64,11 @@ function main() {
   lines.push(`date: ${date}`);
   lines.push("");
   lines.push("DBは増やすだけでは危険です。古い仮説と、同じ理由で外し続ける仮説を review / retire 候補にします。");
+  if (nonMove.warning) {
+    lines.push("");
+    lines.push(`⚠️ ${nonMove.warning}`);
+    lines.push("JSONL破損により外れ回数が過少になる可能性があるため、正常行だけで判定を継続しつつ修復が必要です。");
+  }
   lines.push("");
   lines.push("| action | category | code | name | ageDays | misses | topReason | status |");
   lines.push("|---|---|---|---|---:|---:|---|---|");
