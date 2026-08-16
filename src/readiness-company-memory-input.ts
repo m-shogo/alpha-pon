@@ -97,7 +97,11 @@ export function assertReadinessScoreSnapshotFilenameInput(reportsDir = "reports"
   }
 }
 
-export function assertReadinessBackupDirectoryInput(backupsDir = "backups", asOf = todayJst()): void {
+export function assertReadinessBackupDirectoryInput(
+  backupsDir = "backups",
+  asOf = todayJst(),
+  now = new Date(),
+): void {
   if (!existsSync(backupsDir)) return;
   for (const name of readdirSync(backupsDir)) {
     if (!/^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(name)) continue;
@@ -115,6 +119,12 @@ export function assertReadinessBackupDirectoryInput(backupsDir = "backups", asOf
     }
     if (match[1] > asOf) {
       throw new Error(`${join(backupsDir, name)}: backup directory date must not be later than readiness as-of date ${asOf}`);
+    }
+    if (hour !== null) {
+      const instant = new Date(`${match[1]}T${match[2]}:${match[3]}:${match[4]}+09:00`);
+      if (instant.getTime() > now.getTime()) {
+        throw new Error(`${join(backupsDir, name)}: backup directory timestamp must not be later than current readiness time`);
+      }
     }
     try {
       if (!statSync(join(backupsDir, name)).isDirectory()) {
