@@ -14,12 +14,12 @@ export function sourceHealthHistoryState(fileExists: boolean): "ok" | "missing" 
   return fileExists ? "ok" : "missing";
 }
 
-function hasCanonicalPipelineDate(value: unknown): value is string {
-  if (typeof value !== "string") return false;
+function canonicalPipelineDate(value: unknown): string | null {
+  if (typeof value !== "string") return null;
   try {
-    return addDaysJst(value, 0) === value;
+    return addDaysJst(value, 0) === value ? value : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -62,8 +62,15 @@ function canonicalFailedSteps(value: unknown): string[] | null {
   return failedSteps;
 }
 
-export function hasCanonicalPipelineStatus(value: Record<string, unknown> | null): boolean {
+export function hasCanonicalPipelineStatus(value: Record<string, unknown> | null, asOf?: string): boolean {
   if (!value) return false;
+  const pipelineDate = canonicalPipelineDate(value.date);
+  if (!pipelineDate) return false;
+  if (asOf !== undefined) {
+    const cutoff = canonicalPipelineDate(asOf);
+    if (!cutoff || pipelineDate > cutoff) return false;
+  }
+
   const results = canonicalPipelineResults(value.results);
   const failedSteps = canonicalFailedSteps(value.failedSteps);
   if (!results || !failedSteps) return false;
@@ -75,7 +82,6 @@ export function hasCanonicalPipelineStatus(value: Record<string, unknown> | null
   if (value.status === "partial_failed" && derivedFailedSteps.length === 0) return false;
 
   return value.app === "alpha-pon"
-    && hasCanonicalPipelineDate(value.date)
     && value.runType === "daily"
     && (value.status === "ok" || value.status === "partial_failed")
     && hasCanonicalGeneratedAt(value.generatedAt);

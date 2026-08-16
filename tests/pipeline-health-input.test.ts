@@ -23,6 +23,9 @@ assert.equal(sourceHealthHistoryState(true), "ok", "existing source-health histo
 assert.equal(sourceHealthHistoryState(false), "missing", "missing source-health history must not look healthy");
 assert.equal(hasCanonicalPipelineStatus({}), false, "empty pipeline status objects must fail closed");
 assert.equal(hasCanonicalPipelineStatus(BASE_PIPELINE_STATUS), true, "canonical daily pipeline status remains valid");
+assert.equal(hasCanonicalPipelineStatus(BASE_PIPELINE_STATUS, "2026-08-16"), true, "same-day pipeline status remains visible at the read-only cutoff");
+assert.equal(hasCanonicalPipelineStatus(BASE_PIPELINE_STATUS, "2026-08-15"), false, "future pipeline dates must not leak into a past/current read-only health summary");
+assert.equal(hasCanonicalPipelineStatus(BASE_PIPELINE_STATUS, "2026-02-31"), false, "invalid read-only cutoffs must fail closed");
 assert.equal(hasCanonicalPipelineStatus({ ...BASE_PIPELINE_STATUS, status: "unknown" }), false, "unknown pipeline status must fail closed");
 assert.equal(hasCanonicalPipelineStatus({ ...BASE_PIPELINE_STATUS, date: "2026-02-31" }), false, "impossible Gregorian pipeline dates must fail closed");
 assert.equal(hasCanonicalPipelineStatus({ ...BASE_PIPELINE_STATUS, date: "0000-01-01" }), false, "Gregorian year zero pipeline dates must fail closed");

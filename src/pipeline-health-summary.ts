@@ -40,7 +40,7 @@ function main() {
     ? "missing_or_invalid"
     : !normalizedPipelineStatus.valid
       ? "invalid_root"
-      : hasCanonicalPipelineStatus(pipelineStatus)
+      : hasCanonicalPipelineStatus(pipelineStatus, date)
         ? "ok"
         : "invalid_shape";
   const sourceHealthHistoryPath = "data/source_health_history.jsonl";
