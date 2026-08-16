@@ -97,7 +97,7 @@ function outcome(code: string, detectedAt: string, reviewHorizon: "1d" | "1w" | 
       writeFileSync(generatedPath, JSON.stringify({ hypothesisPredictions }));
       assert.throws(
         () => assertReadinessHypothesisPredictionInput(generatedPath),
-        /canonical unique code and non-empty name/,
+        /hypothesisPredictions must be an array of objects with non-empty code and name when present/,
         "duplicate or padded hypothesis prediction identities must not inflate readiness counts",
       );
     }
