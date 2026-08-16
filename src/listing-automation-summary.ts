@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
-import { parseListingAutomationCheckInput } from "./listing-automation-summary-input.js";
+import { listingAutomationReadinessStatus, parseListingAutomationCheckInput } from "./listing-automation-summary-input.js";
 import { parseListingAutomationJpxInput } from "./listing-automation-jpx-input.js";
 import { parseListingAutomationJquantsInput } from "./listing-automation-jquants-input.js";
 import { parseListingAutomationTopixInput } from "./listing-automation-topix-input.js";
@@ -33,7 +33,7 @@ function readinessItem(): SummaryItem {
   }
   const missing = countBy(input.checks, "status", "missing");
   const warning = countBy(input.checks, "status", "warning");
-  return { id: "readiness", status: missing > 0 ? "warning" : "ok", label: "Readiness", detail: `missing=${missing}, warning=${warning}`, reportPath: path };
+  return { id: "readiness", status: listingAutomationReadinessStatus(input.checks), label: "Readiness", detail: `missing=${missing}, warning=${warning}`, reportPath: path };
 }
 
 function smokeItem(): SummaryItem {

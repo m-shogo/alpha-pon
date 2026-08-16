@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { parseListingAutomationCheckInput } from "../src/listing-automation-summary-input.js";
+import { listingAutomationReadinessStatus, parseListingAutomationCheckInput } from "../src/listing-automation-summary-input.js";
 
 const VALID = { id: "fixture", status: "ok" };
 
@@ -31,6 +31,24 @@ assert.deepEqual(
   parseListingAutomationCheckInput(JSON.stringify({ checks: [VALID, null] })),
   { checks: [VALID], invalid: true, reason: "invalid_rows" },
   "malformed check rows must not crash count-based summary logic",
+);
+
+assert.equal(
+  listingAutomationReadinessStatus([{ id: "ready", status: "ok" }]),
+  "ok",
+  "all-ok readiness checks remain green",
+);
+
+assert.equal(
+  listingAutomationReadinessStatus([{ id: "degraded", status: "warning" }]),
+  "warning",
+  "readiness warnings must surface in the summary status",
+);
+
+assert.equal(
+  listingAutomationReadinessStatus([{ id: "missing", status: "missing" }]),
+  "warning",
+  "missing readiness checks remain warnings",
 );
 
 console.log("listing-automation-summary-input: OK");
