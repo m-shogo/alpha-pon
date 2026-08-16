@@ -2,6 +2,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isOptionalRecord(value: unknown): boolean {
+  return value === undefined || value === null || isRecord(value);
+}
+
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(item => typeof item === "string");
 }
@@ -49,6 +53,9 @@ export function normalizeSourceHealthScoreRows<T>(value: unknown): { rows: T[]; 
       return { rows: [], valid: false };
     }
     if (row.warnings !== undefined && !isStringArray(row.warnings)) {
+      return { rows: [], valid: false };
+    }
+    if (!isOptionalRecord(row.marketContext) || !isOptionalRecord(row.financialQuality)) {
       return { rows: [], valid: false };
     }
     if (!hasValidPrimaryDisclosureReview(row.primaryDisclosureReview)) {
