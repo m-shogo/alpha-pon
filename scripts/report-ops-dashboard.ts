@@ -16,6 +16,7 @@ import { normalizeOpsOutcomesInput } from "../src/ops-dashboard-outcomes-input.j
 import { normalizeOpsPipelineStatusInput } from "../src/ops-dashboard-pipeline-input.js";
 import { applySafeOutputAuditHealth } from "../src/ops-dashboard-safe-output-health.js";
 import { normalizeOpsSpecialSituationInput } from "../src/ops-dashboard-special-input.js";
+import { applyWorldImpactAuditHealth } from "../src/ops-dashboard-world-impact-health.js";
 import {
   buildOpsDashboard,
   findForbiddenWording,
@@ -100,6 +101,7 @@ const integrity = normalizeOpsIntegrityInput(
 const outcomeQuality = normalizeOpsOutcomeQualityInput(
   readJson<unknown>("reports/outcome-quality-audit.json"),
 );
+const worldImpact = readJson<OpsWorldImpactAuditLike>("reports/world-impact-audit.json");
 const safeOutput = readJson<OpsSafeOutputLike & { scanErrors?: unknown[] }>(
   "reports/safe-output-audit.json",
 );
@@ -112,12 +114,13 @@ const baseDashboard = buildOpsDashboard({
   specialOps,
   integrity,
   outcomeQuality,
-  worldImpact: readJson<OpsWorldImpactAuditLike>("reports/world-impact-audit.json"),
+  worldImpact,
   safeOutput,
   safeWordingScannedFiles: safeWording.scannedFiles,
   safeWordingFindings: safeWording.findings,
 });
-const dashboard = applySafeOutputAuditHealth(baseDashboard, safeOutput);
+const worldImpactDashboard = applyWorldImpactAuditHealth(baseDashboard, worldImpact);
+const dashboard = applySafeOutputAuditHealth(worldImpactDashboard, safeOutput);
 
 const json = JSON.stringify(dashboard, null, 2) + "\n";
 const markdown = renderOpsDashboardMarkdown(dashboard);
