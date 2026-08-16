@@ -15,14 +15,20 @@ assert.deepEqual(valid, {
 for (const malformed of [
   [],
   "broken",
+  {},
   { healthStatus: 123 },
-  { actionItems: "urgent" },
-  { actionItems: [null] },
-  { actionItems: [{ priority: 1, title: "broken" }] },
-  { reviewDue: [] },
-  { reviewDue: { overdue: "1" } },
-  { reviewDue: { dueToday: Number.NaN } },
-  { reviewDue: { dueThisWeek: -1 } },
+  { healthStatus: "green", actionItems: [] },
+  { healthStatus: "ok", actionItems: "urgent" },
+  { healthStatus: "ok", actionItems: [null] },
+  { healthStatus: "ok", actionItems: [{ priority: 1, title: "broken" }] },
+  { healthStatus: "ok", actionItems: [{ priority: "mystery", title: "broken" }] },
+  { healthStatus: "ok", actionItems: [{ priority: "urgent", title: "must be action_required" }] },
+  { healthStatus: "ok", actionItems: [{ priority: "attention", title: "must need attention" }] },
+  { healthStatus: "needs_attention", actionItems: [{ priority: "attention", title: "   " }] },
+  { healthStatus: "ok", reviewDue: [] },
+  { healthStatus: "ok", reviewDue: { overdue: "1" } },
+  { healthStatus: "ok", reviewDue: { dueToday: Number.NaN } },
+  { healthStatus: "ok", reviewDue: { dueThisWeek: -1 } },
 ]) {
   const normalized = normalizeOpsSpecialSituationInput(malformed);
   assert.equal(normalized?.healthStatus, "action_required");
@@ -33,4 +39,4 @@ for (const malformed of [
 
 assert.equal(normalizeOpsSpecialSituationInput(null), null, "missing input remains distinguishable from malformed input");
 
-console.log("ops-dashboard special input: malformed shapes fail closed OK");
+console.log("ops-dashboard special input: malformed and inconsistent shapes fail closed OK");
