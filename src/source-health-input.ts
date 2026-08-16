@@ -3,7 +3,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isOptionalRecord(value: unknown): boolean {
-  return value === undefined || value === null || isRecord(value);
+  return value === undefined || value === null || (isRecord(value) && Object.keys(value).length > 0);
 }
 
 function isStringArray(value: unknown): value is string[] {
