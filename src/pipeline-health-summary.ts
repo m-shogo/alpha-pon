@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
-import { hasUsableSourceHealthText, sourceHealthHistoryState } from "./pipeline-health-input.js";
+import { hasCanonicalPipelineStatus, hasUsableSourceHealthText, sourceHealthHistoryState } from "./pipeline-health-input.js";
 import { normalizeSourceHealthObject } from "./source-health-input.js";
 import { normalizeSourceHealthHistoryRows, type SourceHealthHistoryRow } from "./source-health-history-input.js";
 import { readJsonlWithErrors } from "./read-only-jsonl.js";
@@ -38,9 +38,11 @@ function main() {
   const pipelineStatus = normalizedPipelineStatus.value;
   const pipelineStatusState = rawPipelineStatus == null
     ? "missing_or_invalid"
-    : normalizedPipelineStatus.valid
-      ? "ok"
-      : "invalid_root";
+    : !normalizedPipelineStatus.valid
+      ? "invalid_root"
+      : hasCanonicalPipelineStatus(pipelineStatus)
+        ? "ok"
+        : "invalid_shape";
   const sourceHealthHistoryPath = "data/source_health_history.jsonl";
   const sourceHealthHistoryStatus = sourceHealthHistoryState(existsSync(sourceHealthHistoryPath));
   const sourceHealthHistory = readJsonlWithErrors<unknown>(sourceHealthHistoryPath);
