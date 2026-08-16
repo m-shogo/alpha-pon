@@ -151,19 +151,19 @@ try {
     "primitive primary review entries must fail closed instead of inflating readiness counts",
   );
 
-  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": { dataQuality: "ok", warnings: [] } } }));
+  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": { dataQuality: "ok", warnings: [] } }));
   assert.doesNotThrow(
     () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir),
     "well-shaped generated data-quality fallback remains valid when score snapshots are absent",
   );
 
-  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": { dataQuality: "unknown", warnings: [] } } }));
+  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": { dataQuality: "unknown", warnings: [] } }));
   assert.doesNotThrow(
     () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir),
     "unknown remains a valid explicit degraded fallback state",
   );
 
-  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": { dataQuality: "perfect", warnings: [] } } }));
+  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": { dataQuality: "perfect", warnings: [] } }));
   assert.throws(
     () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir),
     /dataQuality must be one of ok, missing, unknown/,
@@ -184,7 +184,7 @@ try {
     "primitive data-quality fallback entries must fail closed before readiness scoring",
   );
 
-  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": { warnings: { count: 3 } } } }));
+  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": { warnings: { count: 3 } } }));
   assert.throws(
     () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir),
     /warnings must be a string array/,
@@ -246,6 +246,41 @@ try {
       () => assertReadinessAccuracySummaryInput(accuracySummaryPath),
       /(accuracy summary root|byActionLabel|byScoreBand|total)/,
       "malformed accuracy summary metadata must not qualify for elevated outcome readiness",
+    );
+  }
+
+  for (const inconsistentSummary of [
+    {
+      ...canonicalAccuracySummary,
+      byActionLabel: {
+        ...canonicalAccuracySummary.byActionLabel,
+        ignore: { total: 0 },
+      },
+    },
+    {
+      ...canonicalAccuracySummary,
+      byScoreBand: {
+        ...canonicalAccuracySummary.byScoreBand,
+        unknown: { total: 1 },
+      },
+    },
+    {
+      ...canonicalAccuracySummary,
+      total: 3.5,
+    },
+    {
+      ...canonicalAccuracySummary,
+      byActionLabel: {
+        ...canonicalAccuracySummary.byActionLabel,
+        watch: { total: 0.5 },
+      },
+    },
+  ] as const) {
+    writeFileSync(accuracySummaryPath, JSON.stringify(inconsistentSummary));
+    assert.throws(
+      () => assertReadinessAccuracySummaryInput(accuracySummaryPath),
+      /(accuracy bucket totals must equal summary total|non-negative integer|non-negative safe integer)/,
+      "accuracy summary count inconsistencies must not qualify for elevated outcome readiness",
     );
   }
 
