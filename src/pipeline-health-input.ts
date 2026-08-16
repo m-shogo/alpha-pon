@@ -1,5 +1,5 @@
 import { addDaysJst } from "./date.js";
-import { parseExplicitIso8601Instant } from "./research/iso-instant.js";
+import { compareExplicitIso8601Instants, parseExplicitIso8601Instant } from "./research/iso-instant.js";
 
 type PipelineResult = {
   name: string;
@@ -62,13 +62,29 @@ function canonicalFailedSteps(value: unknown): string[] | null {
   return failedSteps;
 }
 
-export function hasCanonicalPipelineStatus(value: Record<string, unknown> | null, asOf?: string): boolean {
+export function hasCanonicalPipelineStatus(
+  value: Record<string, unknown> | null,
+  asOf?: string,
+  asOfInstant?: string,
+): boolean {
   if (!value) return false;
   const pipelineDate = canonicalPipelineDate(value.date);
   if (!pipelineDate) return false;
   if (asOf !== undefined) {
     const cutoff = canonicalPipelineDate(asOf);
     if (!cutoff || pipelineDate > cutoff) return false;
+  }
+
+  const generatedAt = value.generatedAt;
+  if (!hasCanonicalGeneratedAt(generatedAt)) return false;
+  if (asOfInstant !== undefined) {
+    try {
+      if (compareExplicitIso8601Instants(generatedAt, asOfInstant, "pipeline generatedAt", "pipeline health asOfInstant") > 0) {
+        return false;
+      }
+    } catch {
+      return false;
+    }
   }
 
   const results = canonicalPipelineResults(value.results);
@@ -83,6 +99,5 @@ export function hasCanonicalPipelineStatus(value: Record<string, unknown> | null
 
   return value.app === "alpha-pon"
     && value.runType === "daily"
-    && (value.status === "ok" || value.status === "partial_failed")
-    && hasCanonicalGeneratedAt(value.generatedAt);
+    && (value.status === "ok" || value.status === "partial_failed");
 }

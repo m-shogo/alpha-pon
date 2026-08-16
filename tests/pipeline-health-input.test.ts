@@ -24,6 +24,26 @@ assert.equal(sourceHealthHistoryState(false), "missing", "missing source-health 
 assert.equal(hasCanonicalPipelineStatus({}), false, "empty pipeline status objects must fail closed");
 assert.equal(hasCanonicalPipelineStatus(BASE_PIPELINE_STATUS), true, "canonical daily pipeline status remains valid");
 assert.equal(hasCanonicalPipelineStatus(BASE_PIPELINE_STATUS, "2026-08-16"), true, "same-day pipeline status remains visible at the read-only cutoff");
+assert.equal(
+  hasCanonicalPipelineStatus(BASE_PIPELINE_STATUS, "2026-08-16", "2026-08-16T11:00:00.000000000Z"),
+  true,
+  "generatedAt exactly at the read-only instant remains visible",
+);
+assert.equal(
+  hasCanonicalPipelineStatus(BASE_PIPELINE_STATUS, "2026-08-16", "2026-08-16T10:59:59.999999999Z"),
+  false,
+  "same-day generatedAt one nanosecond after the read-only instant must fail closed",
+);
+assert.equal(
+  hasCanonicalPipelineStatus(BASE_PIPELINE_STATUS, "2026-08-16", "2026-08-16T20:00:00+09:00"),
+  true,
+  "equivalent explicit-timezone instants remain visible",
+);
+assert.equal(
+  hasCanonicalPipelineStatus(BASE_PIPELINE_STATUS, "2026-08-16", "2026-08-16T11:00:00"),
+  false,
+  "timezone-less read-only instant cutoffs must fail closed",
+);
 assert.equal(hasCanonicalPipelineStatus(BASE_PIPELINE_STATUS, "2026-08-15"), false, "future pipeline dates must not leak into a past/current read-only health summary");
 assert.equal(hasCanonicalPipelineStatus(BASE_PIPELINE_STATUS, "2026-02-31"), false, "invalid read-only cutoffs must fail closed");
 assert.equal(hasCanonicalPipelineStatus({ ...BASE_PIPELINE_STATUS, status: "unknown" }), false, "unknown pipeline status must fail closed");
