@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
-import { hasUsableSourceHealthText } from "./pipeline-health-input.js";
+import { hasUsableSourceHealthText, sourceHealthHistoryState } from "./pipeline-health-input.js";
 import { normalizeSourceHealthObject } from "./source-health-input.js";
 import { normalizeSourceHealthHistoryRows, type SourceHealthHistoryRow } from "./source-health-history-input.js";
 import { readJsonlWithErrors } from "./read-only-jsonl.js";
@@ -41,7 +41,9 @@ function main() {
     : normalizedPipelineStatus.valid
       ? "ok"
       : "invalid_root";
-  const sourceHealthHistory = readJsonlWithErrors<unknown>("data/source_health_history.jsonl");
+  const sourceHealthHistoryPath = "data/source_health_history.jsonl";
+  const sourceHealthHistoryStatus = sourceHealthHistoryState(existsSync(sourceHealthHistoryPath));
+  const sourceHealthHistory = readJsonlWithErrors<unknown>(sourceHealthHistoryPath);
   const normalizedSourceHealthHistory = normalizeSourceHealthHistoryRows(sourceHealthHistory.rows);
   const sourceRows = normalizedSourceHealthHistory.rows;
   const recentMissing = missingReports(sourceRows, 14);
@@ -49,6 +51,7 @@ function main() {
 
   if (!sourceHealthAvailable) criticalSignals.push("source_health_latest.md missing_or_empty");
   if (pipelineStatusState !== "ok") criticalSignals.push(`pipeline_status_latest.json ${pipelineStatusState}`);
+  if (sourceHealthHistoryStatus !== "ok") criticalSignals.push("source_health_history.jsonl missing");
   if (sourceHealthHistory.parseErrors.length > 0) {
     criticalSignals.push(`source_health_history.jsonl parse_error ${sourceHealthHistory.parseErrors.length}`);
   }
@@ -75,6 +78,7 @@ function main() {
   lines.push(`- report confidence: ${confidence}`);
   lines.push(`- source_health_latest.md: ${sourceHealthAvailable ? "ok" : "missing_or_empty"}`);
   lines.push(`- pipeline_status_latest.json: ${pipelineStatusState}`);
+  lines.push(`- source health history file: ${sourceHealthHistoryStatus}`);
   lines.push(`- source health history rows: ${sourceRows.length}`);
   lines.push(`- source health history parse errors: ${sourceHealthHistory.parseErrors.length}`);
   lines.push(`- source health history invalid rows: ${normalizedSourceHealthHistory.invalidRows}`);
