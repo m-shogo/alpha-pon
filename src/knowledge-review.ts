@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
+import { readKnowledgeReviewJsonl } from "./knowledge-review-input.js";
 
 type Mode = "weekly" | "monthly";
 
@@ -21,22 +22,6 @@ function readText(path: string): string {
   return readFileSync(path, "utf-8");
 }
 
-function readJsonl<T>(path: string): T[] {
-  if (!existsSync(path)) return [];
-  return readFileSync(path, "utf-8")
-    .split("\n")
-    .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => {
-      try {
-        return JSON.parse(line) as T;
-      } catch {
-        return null;
-      }
-    })
-    .filter((item): item is T => item !== null);
-}
-
 function countReasons(rows: NonMoveHistory[]): Array<[string, number]> {
   const counts = new Map<string, number>();
   for (const row of rows) {
@@ -50,7 +35,8 @@ function countReasons(rows: NonMoveHistory[]): Array<[string, number]> {
 function main() {
   const mode: Mode = process.argv.includes("--monthly") ? "monthly" : "weekly";
   const date = todayJst();
-  const nonMoveRows = readJsonl<NonMoveHistory>("data/company_non_move_history.jsonl");
+  const nonMove = readKnowledgeReviewJsonl<NonMoveHistory>("data/company_non_move_history.jsonl");
+  const nonMoveRows = nonMove.rows;
   const reasonCounts = countReasons(nonMoveRows);
   const regime = readText("reports/regime_scenarios_latest.md");
   const stockPro = readText("reports/stock_pro_agent_latest.md");
@@ -72,6 +58,7 @@ function main() {
   lines.push(`- proposals_latest.md: ${proposals ? "✅" : "⚠️ missing"}`);
   lines.push(`- source_health_latest.md: ${sourceHealth ? "✅" : "⚠️ missing"}`);
   lines.push(`- company_non_move_history rows: ${nonMoveRows.length}`);
+  if (nonMove.warning) lines.push(`- ⚠️ ${nonMove.warning}`);
   lines.push("");
 
   lines.push("## 上がらなかった理由DB 集計");
