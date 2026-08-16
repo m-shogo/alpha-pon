@@ -191,6 +191,15 @@ try {
     "malformed fallback warnings must not crash or distort warning counts",
   );
 
+  const invalidDateScorePath = join(reportsDir, "scores_9999-99-99.json");
+  writeFileSync(invalidDateScorePath, JSON.stringify([]));
+  assert.throws(
+    () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir),
+    /warnings must be a string array/,
+    "an impossible-date score filename must not suppress validation of the generated fallback",
+  );
+  rmSync(invalidDateScorePath);
+
   const scorePath = join(reportsDir, "scores_2026-08-16.json");
   writeFileSync(scorePath, JSON.stringify([]));
   assert.doesNotThrow(
