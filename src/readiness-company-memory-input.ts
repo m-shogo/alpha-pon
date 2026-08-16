@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { addDaysJst } from "./date.js";
 import { hasValidPrimaryDisclosureReview, normalizeSourceHealthArray } from "./source-health-input.js";
@@ -55,14 +55,17 @@ function canonicalAccuracyBucketTotal(value: unknown, requiredKeys: readonly str
   return total;
 }
 
-function isCanonicalScoreSnapshotFilename(file: string): boolean {
-  const match = /^scores_(\d{4}-\d{2}-\d{2})\.json$/.exec(file);
-  if (!match) return false;
+function isRealJstDate(date: string): boolean {
   try {
-    return addDaysJst(match[1], 0) === match[1];
+    return addDaysJst(date, 0) === date;
   } catch {
     return false;
   }
+}
+
+function isCanonicalScoreSnapshotFilename(file: string): boolean {
+  const match = /^scores_(\d{4}-\d{2}-\d{2})\.json$/.exec(file);
+  return Boolean(match && isRealJstDate(match[1]));
 }
 
 function hasUsableScoreSnapshot(reportsDir: string): boolean {
@@ -77,6 +80,33 @@ function hasUsableScoreSnapshot(reportsDir: string): boolean {
     return normalizeSourceHealthArray(raw).valid;
   } catch {
     return false;
+  }
+}
+
+export function assertReadinessBackupDirectoryInput(backupsDir = "backups"): void {
+  if (!existsSync(backupsDir)) return;
+  for (const name of readdirSync(backupsDir)) {
+    if (!/^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(name)) continue;
+    const match = /^(\d{4}-\d{2}-\d{2})(?:T(\d{2})-(\d{2})-(\d{2}))?$/.exec(name);
+    const hour = match?.[2] === undefined ? null : Number(match[2]);
+    const minute = match?.[3] === undefined ? null : Number(match[3]);
+    const second = match?.[4] === undefined ? null : Number(match[4]);
+    const validTime = hour === null || (
+      Number.isInteger(hour) && hour >= 0 && hour <= 23
+      && Number.isInteger(minute) && minute! >= 0 && minute! <= 59
+      && Number.isInteger(second) && second! >= 0 && second! <= 59
+    );
+    if (!match || !isRealJstDate(match[1]) || !validTime) {
+      throw new Error(`${join(backupsDir, name)}: backup directory name must contain a real Gregorian date and valid HH-mm-ss time`);
+    }
+    try {
+      if (!statSync(join(backupsDir, name)).isDirectory()) {
+        throw new Error(`${join(backupsDir, name)}: backup evidence candidate must be a directory`);
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("backup evidence candidate")) throw error;
+      throw new Error(`${join(backupsDir, name)}: backup evidence candidate cannot be inspected`);
+    }
   }
 }
 
@@ -181,6 +211,7 @@ export function assertReadinessAccuracySummaryInput(
 }
 
 if (process.argv[1]?.endsWith("readiness-company-memory-input.ts")) {
+  assertReadinessBackupDirectoryInput();
   assertReadinessCompanyMemoryInput();
   assertReadinessHypothesisPredictionInput();
   assertReadinessPrimaryDisclosureReviewInput();
