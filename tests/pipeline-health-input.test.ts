@@ -72,6 +72,15 @@ assert.equal(hasCanonicalPipelineStatus({
 assert.equal(hasCanonicalPipelineStatus({ ...BASE_PIPELINE_STATUS, status: "partial_failed" }), false, "partial_failed requires an actual failed result");
 assert.equal(hasCanonicalPipelineStatus({ ...BASE_PIPELINE_STATUS, results: [{ name: " scan_universe", status: "ok" }] }), false, "pipeline result names must be canonical non-empty strings");
 assert.equal(hasCanonicalPipelineStatus({ ...BASE_PIPELINE_STATUS, results: [{ name: "scan_universe", status: "mystery" }] }), false, "pipeline result statuses must use the producer enum");
+assert.equal(hasCanonicalPipelineStatus({
+  ...BASE_PIPELINE_STATUS,
+  status: "partial_failed",
+  results: [
+    { name: "scan_universe", status: "ok" },
+    { name: "scan_universe", status: "fail" },
+  ],
+  failedSteps: ["scan_universe"],
+}), false, "duplicate result identities must not let display order hide a failed step");
 
 const dir = mkdtempSync(join(tmpdir(), "alpha-pon-knowledge-review-"));
 try {
