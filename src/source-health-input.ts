@@ -14,7 +14,7 @@ function isOptionalStringArray(value: unknown): boolean {
   return value === undefined || isStringArray(value);
 }
 
-function isNonNegativeInteger(value: unknown): boolean {
+function isNonNegativeInteger(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= 0;
 }
 
@@ -33,6 +33,9 @@ export function hasValidPrimaryDisclosureReview(value: unknown): boolean {
   if (!isRecord(value.sourceCoverage)) return false;
   if (!isNonNegativeInteger(value.sourceCoverage.tdnetCount)) return false;
   if (!isNonNegativeInteger(value.sourceCoverage.edinetCount)) return false;
+  if (value.decision === "confirmed" && value.sourceCoverage.tdnetCount + value.sourceCoverage.edinetCount === 0) {
+    return false;
+  }
   return isOptionalNonNegativeInteger(value.sourceCoverage.fetchErrorCount)
     && isOptionalStringArray(value.sourceCoverage.scannedEdinetDates);
 }
