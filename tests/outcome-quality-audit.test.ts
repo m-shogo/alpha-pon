@@ -272,7 +272,11 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
   assert.match(source, /Array\.isArray\(outcomes\)/, "outcomes root shape must fail closed");
   assert.ok(!source.includes("hypothesesFile.hypotheses ?? []"), "malformed hypotheses shape must not degrade to empty-ok");
   assert.ok(!source.includes("outcomesFile.outcomes ?? []"), "malformed outcomes shape must not degrade to empty-ok");
-  console.log("outcome-quality: malformed generated input shape fails closed");
+  assert.match(source, /hypotheses\.every\(isQualityHypothesisLike\)/, "malformed hypothesis rows must fail closed before audit logic");
+  assert.match(source, /outcomes\.every\(isQualityOutcomeLike\)/, "malformed outcome rows must fail closed before audit logic");
+  assert.match(source, /isOptionalStringArray\(value\.whatMatched\)/, "whatMatched must be validated as a string array");
+  assert.match(source, /isOptionalStringArray\(value\.missedSignals\)/, "missedSignals must be validated as a string array");
+  console.log("outcome-quality: malformed generated input root/row shape fails closed");
 }
 
 console.log("outcome-quality-audit: 全テスト成功");
