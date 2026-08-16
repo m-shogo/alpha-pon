@@ -14,6 +14,7 @@ import { normalizeOpsIntegrityInput } from "../src/ops-dashboard-integrity-input
 import { normalizeOpsOutcomeQualityInput } from "../src/ops-dashboard-outcome-quality-input.js";
 import { normalizeOpsOutcomesInput } from "../src/ops-dashboard-outcomes-input.js";
 import { normalizeOpsPipelineStatusInput } from "../src/ops-dashboard-pipeline-input.js";
+import { applySafeOutputAuditHealth } from "../src/ops-dashboard-safe-output-health.js";
 import { normalizeOpsSpecialSituationInput } from "../src/ops-dashboard-special-input.js";
 import {
   buildOpsDashboard,
@@ -99,8 +100,11 @@ const integrity = normalizeOpsIntegrityInput(
 const outcomeQuality = normalizeOpsOutcomeQualityInput(
   readJson<unknown>("reports/outcome-quality-audit.json"),
 );
+const safeOutput = readJson<OpsSafeOutputLike & { scanErrors?: unknown[] }>(
+  "reports/safe-output-audit.json",
+);
 
-const dashboard = buildOpsDashboard({
+const baseDashboard = buildOpsDashboard({
   today,
   pipelineStatus,
   alphaData,
@@ -109,10 +113,11 @@ const dashboard = buildOpsDashboard({
   integrity,
   outcomeQuality,
   worldImpact: readJson<OpsWorldImpactAuditLike>("reports/world-impact-audit.json"),
-  safeOutput: readJson<OpsSafeOutputLike>("reports/safe-output-audit.json"),
+  safeOutput,
   safeWordingScannedFiles: safeWording.scannedFiles,
   safeWordingFindings: safeWording.findings,
 });
+const dashboard = applySafeOutputAuditHealth(baseDashboard, safeOutput);
 
 const json = JSON.stringify(dashboard, null, 2) + "\n";
 const markdown = renderOpsDashboardMarkdown(dashboard);
