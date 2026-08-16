@@ -10,6 +10,34 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(item => typeof item === "string");
+}
+
+function isPriceRiskWarningArray(value: unknown): boolean {
+  return Array.isArray(value) && value.every(item => {
+    if (!isRecord(item)) return false;
+    return (item.level === "info" || item.level === "warning" || item.level === "block")
+      && typeof item.reason === "string"
+      && isStringArray(item.evidence);
+  });
+}
+
+function isCompanyRulesCandidateRow(value: unknown): value is Record<string, unknown> {
+  if (!isRecord(value)) return false;
+
+  for (const key of ["matchedWorldEventTags", "warnings"] as const) {
+    const field = value[key];
+    if (field !== undefined && !isStringArray(field)) return false;
+  }
+
+  if (value.priceRiskWarnings !== undefined && !isPriceRiskWarningArray(value.priceRiskWarnings)) {
+    return false;
+  }
+
+  return true;
+}
+
 export function normalizeCompanyRulesUniverseInput(raw: unknown): CompanyRulesUniverseInputResult {
   let candidates: unknown;
 
@@ -28,7 +56,7 @@ export function normalizeCompanyRulesUniverseInput(raw: unknown): CompanyRulesUn
     return { rows: [], status: "invalid_candidates", invalidRowCount: 0 };
   }
 
-  const rows = candidates.filter(isRecord);
+  const rows = candidates.filter(isCompanyRulesCandidateRow);
   return {
     rows,
     status: "ok",
