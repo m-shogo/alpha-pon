@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  parseMorningLiteDedupeFileDate,
   readMorningLiteDedupeCount,
   readMorningLitePipelineInput,
 } from "../src/morning-lite-pipeline-input.js";
@@ -45,6 +46,11 @@ function main(): void {
       "utf-8",
     );
     assert.deepEqual(readMorningLiteDedupeCount(dedupePath), { count: 1, warning: `${dedupePath}: invalid_rows 1` });
+
+    assert.deepEqual(parseMorningLiteDedupeFileDate("2026-08-16.json", "2026-08-16"), { date: "2026-08-16", warning: null });
+    assert.deepEqual(parseMorningLiteDedupeFileDate("2026-02-31.json", "2026-08-16"), { date: null, warning: "2026-02-31.json: invalid_date_filename" });
+    assert.deepEqual(parseMorningLiteDedupeFileDate("0000-01-01.json", "2026-08-16"), { date: null, warning: "0000-01-01.json: invalid_date_filename" });
+    assert.deepEqual(parseMorningLiteDedupeFileDate("2026-08-17.json", "2026-08-16"), { date: null, warning: "2026-08-17.json: future_date_filename" });
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
