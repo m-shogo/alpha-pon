@@ -5,6 +5,7 @@
 import { createHash } from "crypto";
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
+import { formatJstTimestampDir } from "../src/date.js";
 
 const BACKUP_ROOT = "backups";
 const MAX_BACKUPS = 30;
@@ -38,18 +39,6 @@ type BackupManifest = {
   skippedTargets: string[];
   totalBytes: number;
 };
-
-function timestampDir(): string {
-  const now = new Date();
-  const pad = (n: number, d = 2) => String(n).padStart(d, "0");
-  const y   = now.getFullYear();
-  const mo  = pad(now.getMonth() + 1);
-  const d   = pad(now.getDate());
-  const h   = pad(now.getHours());
-  const mi  = pad(now.getMinutes());
-  const s   = pad(now.getSeconds());
-  return `${y}-${mo}-${d}T${h}-${mi}-${s}`;
-}
 
 function sha256(path: string): string {
   return createHash("sha256").update(readFileSync(path)).digest("hex");
@@ -102,7 +91,7 @@ function pruneOldBackups(): void {
   }
 }
 
-const dest = join(BACKUP_ROOT, timestampDir());
+const dest = join(BACKUP_ROOT, formatJstTimestampDir());
 mkdirSync(dest, { recursive: true });
 
 const manifest: BackupManifest = {
