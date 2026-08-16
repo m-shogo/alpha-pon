@@ -27,6 +27,10 @@ function isCanonicalNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.length > 0 && value === value.trim();
 }
 
+function isOptionalFiniteNumberOrNull(value: unknown): boolean {
+  return value === undefined || value === null || (typeof value === "number" && Number.isFinite(value));
+}
+
 function isCompanyRulesCandidateRow(value: unknown): value is Record<string, unknown> {
   if (!isRecord(value)) return false;
 
@@ -36,6 +40,21 @@ function isCompanyRulesCandidateRow(value: unknown): value is Record<string, unk
 
   if (value.dataSource !== "jquants" && value.dataSource !== "mock") {
     return false;
+  }
+
+  for (const key of [
+    "currentPrice",
+    "drawdownPct",
+    "operatingProfitYoY",
+    "change5dPct",
+    "change20dPct",
+    "topixChange5dPct",
+    "topixChange20dPct",
+    "relativeTopix5dPct",
+    "relativeTopix20dPct",
+    "volumeSpikeRatio",
+  ] as const) {
+    if (!isOptionalFiniteNumberOrNull(value[key])) return false;
   }
 
   for (const key of ["matchedWorldEventTags", "warnings"] as const) {
