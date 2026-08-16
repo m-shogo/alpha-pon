@@ -35,7 +35,9 @@ export function hasValidPrimaryDisclosureReview(value: unknown): boolean {
   if (!isNonNegativeInteger(value.sourceCoverage.edinetCount)) return false;
   const evidenceCount = value.sourceCoverage.tdnetCount + value.sourceCoverage.edinetCount;
   if (!isOptionalNonNegativeInteger(value.sourceCoverage.fetchErrorCount)) return false;
-  const fetchErrorCount = value.sourceCoverage.fetchErrorCount ?? 0;
+  const fetchErrorCount = typeof value.sourceCoverage.fetchErrorCount === "number"
+    ? value.sourceCoverage.fetchErrorCount
+    : 0;
   if (
     value.decision === "confirmed"
     && (
