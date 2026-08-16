@@ -63,6 +63,7 @@ import "./market-event-projection-instant-ordering.test.js";
 import "./market-event-web-ordering.test.js";
 import "./must-watch-audit-status.test.js";
 import "./source-health-input.test.js";
+import "./pipeline-health-input.test.js";
 import "./readiness-future-score-snapshot.test.js";
 import "./readiness-future-backup.test.js";
 import "./ops-dashboard-input-time.test.js";
