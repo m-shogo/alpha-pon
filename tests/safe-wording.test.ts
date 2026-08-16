@@ -4,6 +4,8 @@
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync, existsSync } from "fs";
 import { join, extname } from "path";
+import { applySafeWordingScanHealth } from "../src/ops-dashboard-safe-wording-health.js";
+import { buildOpsDashboard, type OpsDashboardInputs } from "../src/ops-dashboard.js";
 
 const ROOT = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
 
@@ -87,6 +89,47 @@ function checkFile(filePath: string, label: string) {
   }
 }
 
+function cleanDashboardInputs(): OpsDashboardInputs {
+  return {
+    today: "2026-08-17",
+    pipelineStatus: {
+      date: "2026-08-17",
+      status: "completed",
+      failedSteps: "",
+      steps: [{ name: "daily", status: "ok" }],
+    },
+    alphaData: {
+      generatedAt: "2026-08-17",
+      meta: { warnings: [] },
+      universeScan: { scanStatus: "ok", fallbackReason: null },
+      dataQualityByCode: {},
+    },
+    outcomes: [],
+    specialOps: {
+      healthStatus: "ok",
+      actionItems: [],
+      reviewDue: { overdue: 0, historicalSeedOverdue: 0, priceDataPending: 0, dueToday: 0, dueThisWeek: 0 },
+    },
+    integrity: { status: "ok", jsonl: { duplicateGroups: [], parseErrors: [] }, sqlite: { duplicateGroups: [] } },
+    outcomeQuality: { healthStatus: "ok", checks: {} },
+    worldImpact: {
+      healthStatus: "ok",
+      totalReviews: 0,
+      pendingReviews: 0,
+      overdueReviews: 0,
+      missingCounterArguments: 0,
+      missingMechanisms: 0,
+      dataUnavailable: 0,
+      priceDataPending: 0,
+      sourceQualityUnknown: 0,
+      unknownMatchedAsHit: 0,
+      priorityIssues: [],
+    },
+    safeWordingScannedFiles: 3,
+    safeWordingFindings: [],
+  };
+}
+
 // ── テスト実行 ──────────────────────────────────────────────────────
 
 const tsxFiles = SCAN_DIRS.flatMap(d => collectFiles(d, [".ts", ".tsx"]));
@@ -99,6 +142,24 @@ for (const f of tsxFiles) {
 for (const f of SCAN_FILES) {
   const rel = f.replace(ROOT + "/", "");
   checkFile(f, rel);
+}
+
+{
+  const base = buildOpsDashboard(cleanDashboardInputs());
+  assert.equal(base.healthStatus, "ok");
+
+  const incomplete = applySafeWordingScanHealth(base, { readErrorCount: 1 });
+  assert.equal(incomplete.healthStatus, "needs_attention");
+  assert.ok(
+    incomplete.allIssues.some(
+      issue => issue.category === "safe_wording" && issue.title.includes("読み込み失敗: 1件"),
+    ),
+    "監査対象の読み込み失敗を正常な0件として扱わない",
+  );
+
+  const complete = applySafeWordingScanHealth(base, { readErrorCount: 0 });
+  assert.equal(complete.healthStatus, "ok");
+  console.log("safe-wording: 読み込み失敗をmetadata-onlyでfail-closed化");
 }
 
 console.log(`safe-wording: ${tsxFiles.length} ソースファイル + ${SCAN_FILES.length} 生成ファイルをスキャン、禁止文言なし`);
