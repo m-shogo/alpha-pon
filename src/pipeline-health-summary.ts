@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
+import { hasUsableSourceHealthText } from "./pipeline-health-input.js";
 import { normalizeSourceHealthObject } from "./source-health-input.js";
 import { normalizeSourceHealthHistoryRows, type SourceHealthHistoryRow } from "./source-health-history-input.js";
 import { readJsonlWithErrors } from "./read-only-jsonl.js";
@@ -31,6 +32,7 @@ function missingReports(rows: SourceHealthHistoryRow[], limit: number): Array<[s
 function main() {
   const date = todayJst();
   const sourceHealthText = readText("reports/source_health_latest.md");
+  const sourceHealthAvailable = hasUsableSourceHealthText(sourceHealthText);
   const rawPipelineStatus = readJson("reports/pipeline_status_latest.json");
   const normalizedPipelineStatus = normalizeSourceHealthObject<Record<string, unknown>>(rawPipelineStatus);
   const pipelineStatus = normalizedPipelineStatus.value;
@@ -45,7 +47,7 @@ function main() {
   const recentMissing = missingReports(sourceRows, 14);
   const criticalSignals: string[] = [];
 
-  if (!sourceHealthText) criticalSignals.push("source_health_latest.md missing");
+  if (!sourceHealthAvailable) criticalSignals.push("source_health_latest.md missing_or_empty");
   if (pipelineStatusState !== "ok") criticalSignals.push(`pipeline_status_latest.json ${pipelineStatusState}`);
   if (sourceHealthHistory.parseErrors.length > 0) {
     criticalSignals.push(`source_health_history.jsonl parse_error ${sourceHealthHistory.parseErrors.length}`);
@@ -71,7 +73,7 @@ function main() {
   lines.push("## confidence");
   lines.push("");
   lines.push(`- report confidence: ${confidence}`);
-  lines.push(`- source_health_latest.md: ${sourceHealthText ? "ok" : "missing"}`);
+  lines.push(`- source_health_latest.md: ${sourceHealthAvailable ? "ok" : "missing_or_empty"}`);
   lines.push(`- pipeline_status_latest.json: ${pipelineStatusState}`);
   lines.push(`- source health history rows: ${sourceRows.length}`);
   lines.push(`- source health history parse errors: ${sourceHealthHistory.parseErrors.length}`);
