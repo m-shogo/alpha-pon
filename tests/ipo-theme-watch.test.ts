@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { addDaysJst } from "../src/date.js";
+import { readIpoThemeOutcomeInput } from "../src/ipo-theme-watch-input.js";
 
 function readJson(path: string): unknown {
   if (!existsSync(path)) return null;
@@ -24,6 +27,18 @@ assert.equal(
 assert.equal(addDaysJst("2024-02-28", 1), "2024-02-29", "leap-day calendar addition must be exact");
 assert.throws(() => addDaysJst("2026-02-29", 1), /real YYYY-MM-DD/);
 
+const tmp = mkdtempSync(join(tmpdir(), "ipo-theme-jsonl-"));
+try {
+  const inputPath = join(tmp, "hypothesis_outcomes.jsonl");
+  writeFileSync(inputPath, '{"code":"8136"}\n{broken\n{"code":"5803"}\n', "utf-8");
+  const input = readIpoThemeOutcomeInput<{ code: string }>(inputPath);
+  assert.deepEqual(input.rows.map(row => row.code), ["8136", "5803"]);
+  assert(input.warning?.includes("line 2"), "malformed outcome rows must surface line-number metadata without stopping valid rows");
+  assert(!input.warning?.includes("{broken"), "parse warnings must not echo raw malformed JSONL content");
+} finally {
+  rmSync(tmp, { recursive: true, force: true });
+}
+
 const data = readJson("reports/ipo_theme_watch_latest.json");
 assert(data !== null, "reports/ipo_theme_watch_latest.json は必ず生成・保持される必要があります");
 assert(isObject(data), "ipo_theme_watch_latest.json は object である必要があります");
@@ -34,6 +49,7 @@ assert(Array.isArray(data.phases), "phases は配列である必要がありま�
 assert(data.phases.length > 0, "phases は1件以上必要です");
 assert(Array.isArray(data.outcomeStats), "outcomeStats は配列である必要があります");
 assert(Array.isArray(data.worldEventHighlights), "worldEventHighlights は配列である必要があります");
+assert(Array.isArray(data.inputWarnings), "inputWarnings は配列である必要があります");
 
 // outcomeStats の各行に必須フィールドが揃っているか確認
 for (const row of data.outcomeStats as Array<Record<string, unknown>>) {
