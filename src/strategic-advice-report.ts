@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
+import { formatReadOnlyJsonlParseWarning, readJsonlWithErrors } from "./read-only-jsonl.js";
 
 type CurrentRegime = {
   asOf?: string;
@@ -16,20 +17,12 @@ function readText(path: string): string {
   return existsSync(path) ? readFileSync(path, "utf-8") : "";
 }
 
-function readJsonl(path: string): JsonlRow[] {
-  if (!existsSync(path)) return [];
-  return readFileSync(path, "utf-8")
-    .split("\n")
-    .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => {
-      try {
-        return JSON.parse(line) as JsonlRow;
-      } catch {
-        return null;
-      }
-    })
-    .filter((row): row is JsonlRow => row !== null);
+function readJsonl(path: string): { rows: JsonlRow[]; warning: string | null } {
+  const result = readJsonlWithErrors<JsonlRow>(path);
+  return {
+    rows: result.rows,
+    warning: formatReadOnlyJsonlParseWarning(path, result.parseErrors),
+  };
 }
 
 function readYaml<T>(path: string): T | null {
@@ -76,9 +69,12 @@ function countMatches(text: string, pattern: RegExp): number {
 function main() {
   const date = todayJst();
   const regime = readYaml<CurrentRegime>("config/current-regime.yml");
-  const nonMove = readJsonl("data/company_non_move_history.jsonl");
-  const regimeHistory = readJsonl("data/regime_history.jsonl");
-  const sourceHealth = readJsonl("data/source_health_history.jsonl");
+  const nonMoveInput = readJsonl("data/company_non_move_history.jsonl");
+  const regimeHistoryInput = readJsonl("data/regime_history.jsonl");
+  const sourceHealthInput = readJsonl("data/source_health_history.jsonl");
+  const nonMove = nonMoveInput.rows;
+  const regimeHistory = regimeHistoryInput.rows;
+  const sourceHealth = sourceHealthInput.rows;
   const staleReport = readText("reports/stale_hypotheses_latest.md");
   const networkReport = readText("reports/company_network_latest.md");
   const stockProReport = readText("reports/stock_pro_agent_latest.md");
@@ -116,6 +112,9 @@ function main() {
   const knowledgeA = countMatches(proKnowledgeRefresh, /\| A \|/g);
 
   const auditWarnings: string[] = [];
+  for (const warning of [nonMoveInput.warning, regimeHistoryInput.warning, sourceHealthInput.warning]) {
+    if (warning) auditWarnings.push(`read-only history parse warning: ${warning}`);
+  }
   if (containsWarning(pipelineHealthSummary, ["report confidence: low", "report confidence: caution", "missing_or_invalid", "missing_or_empty"])) {
     auditWarnings.push("pipeline health に注意があります。データ取得や生成が弱い日は、銘柄考察よりsource/pipeline修復を優先してください。");
   }
