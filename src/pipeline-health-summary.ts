@@ -31,6 +31,7 @@ function missingReports(rows: SourceHealthHistoryRow[], limit: number): Array<[s
 
 function main() {
   const date = todayJst();
+  const now = new Date().toISOString();
   const sourceHealthText = readText("reports/source_health_latest.md");
   const sourceHealthAvailable = hasUsableSourceHealthText(sourceHealthText);
   const rawPipelineStatus = readJson("reports/pipeline_status_latest.json");
@@ -40,7 +41,7 @@ function main() {
     ? "missing_or_invalid"
     : !normalizedPipelineStatus.valid
       ? "invalid_root"
-      : hasCanonicalPipelineStatus(pipelineStatus, date)
+      : hasCanonicalPipelineStatus(pipelineStatus, date, now)
         ? "ok"
         : "invalid_shape";
   const sourceHealthHistoryPath = "data/source_health_history.jsonl";
