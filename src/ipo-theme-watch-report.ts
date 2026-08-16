@@ -1,8 +1,8 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
-import { readIpoThemeOutcomeInput } from "./ipo-theme-watch-input.js";
+import { readIpoThemeOutcomeInput, readIpoThemeWorldEventInput } from "./ipo-theme-watch-input.js";
 import type { HypothesisOutcome } from "./universe.js";
 
 type PhaseRule = {
@@ -228,17 +228,13 @@ function buildOutcomeStats(config: IpoThemeWatchConfig): {
 }
 
 /** world_events_latest.json からテーマ関連イベントを抽出 */
-function loadRelevantWorldEvents(themes: ThemeRule[]): WorldEventHighlight[] {
+function loadRelevantWorldEvents(themes: ThemeRule[]): {
+  highlights: WorldEventHighlight[];
+  warning: string | null;
+} {
   const path = join(process.cwd(), "reports", "world_events_latest.json");
-  if (!existsSync(path)) return [];
-
-  type RawEvent = { title?: string; source?: string; publishedAt?: string; snippet?: string };
-  let events: RawEvent[] = [];
-  try {
-    events = JSON.parse(readFileSync(path, "utf-8")) as RawEvent[];
-  } catch {
-    return [];
-  }
+  const eventInput = readIpoThemeWorldEventInput(path);
+  const events = eventInput.rows;
 
   const themeKeywords: Record<string, string[]> = {};
   for (const theme of themes) {
@@ -297,10 +293,12 @@ function loadRelevantWorldEvents(themes: ThemeRule[]): WorldEventHighlight[] {
     });
   }
 
-  // 直近順に最大20件
-  return highlights
-    .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
-    .slice(0, 20);
+  return {
+    highlights: highlights
+      .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
+      .slice(0, 20),
+    warning: eventInput.warning,
+  };
 }
 
 function buildReport(config: IpoThemeWatchConfig): IpoThemeWatchReport {
@@ -308,6 +306,7 @@ function buildReport(config: IpoThemeWatchConfig): IpoThemeWatchReport {
   const phaseIds = config.phases.map(phase => phase.id);
   const allAvoidReasons = [...new Set(config.phases.flatMap(phase => phase.touchAvoidReasons ?? []))];
   const outcomeStats = buildOutcomeStats(config);
+  const worldEvents = loadRelevantWorldEvents(config.themes);
 
   return {
     generatedAt,
@@ -315,7 +314,7 @@ function buildReport(config: IpoThemeWatchConfig): IpoThemeWatchReport {
     neverTreatAs: config.neverTreatAs,
     globalReferenceEvents: config.globalReferenceEvents ?? [],
     safetyRules: config.safetyRules ?? [],
-    inputWarnings: outcomeStats.warning ? [outcomeStats.warning] : [],
+    inputWarnings: [outcomeStats.warning, worldEvents.warning].filter((warning): warning is string => warning !== null),
     phases: config.phases,
     rules: config.themes.map(theme => ({
       ...theme,
@@ -327,7 +326,7 @@ function buildReport(config: IpoThemeWatchConfig): IpoThemeWatchReport {
       ].filter((value, index, array) => array.indexOf(value) === index),
     })),
     outcomeStats: outcomeStats.stats,
-    worldEventHighlights: loadRelevantWorldEvents(config.themes),
+    worldEventHighlights: worldEvents.highlights,
   };
 }
 

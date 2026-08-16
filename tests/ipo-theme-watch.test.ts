@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { addDaysJst } from "../src/date.js";
-import { readIpoThemeOutcomeInput } from "../src/ipo-theme-watch-input.js";
+import { readIpoThemeOutcomeInput, readIpoThemeWorldEventInput } from "../src/ipo-theme-watch-input.js";
 
 function readJson(path: string): unknown {
   if (!existsSync(path)) return null;
@@ -27,14 +27,38 @@ assert.equal(
 assert.equal(addDaysJst("2024-02-28", 1), "2024-02-29", "leap-day calendar addition must be exact");
 assert.throws(() => addDaysJst("2026-02-29", 1), /real YYYY-MM-DD/);
 
-const tmp = mkdtempSync(join(tmpdir(), "ipo-theme-jsonl-"));
+const tmp = mkdtempSync(join(tmpdir(), "ipo-theme-input-"));
 try {
-  const inputPath = join(tmp, "hypothesis_outcomes.jsonl");
-  writeFileSync(inputPath, '{"code":"8136"}\n{broken\n{"code":"5803"}\n', "utf-8");
-  const input = readIpoThemeOutcomeInput<{ code: string }>(inputPath);
-  assert.deepEqual(input.rows.map(row => row.code), ["8136", "5803"]);
-  assert(input.warning?.includes("lines 2"), "malformed outcome rows must surface line-number metadata without stopping valid rows");
-  assert(!input.warning?.includes("{broken"), "parse warnings must not echo raw malformed JSONL content");
+  const outcomePath = join(tmp, "hypothesis_outcomes.jsonl");
+  writeFileSync(outcomePath, '{"code":"8136"}\n{broken\n{"code":"5803"}\n', "utf-8");
+  const outcomeInput = readIpoThemeOutcomeInput<{ code: string }>(outcomePath);
+  assert.deepEqual(outcomeInput.rows.map(row => row.code), ["8136", "5803"]);
+  assert(outcomeInput.warning?.includes("lines 2"), "malformed outcome rows must surface line-number metadata without stopping valid rows");
+  assert(!outcomeInput.warning?.includes("{broken"), "parse warnings must not echo raw malformed JSONL content");
+
+  const worldEventsPath = join(tmp, "world_events_latest.json");
+  assert.deepEqual(readIpoThemeWorldEventInput(worldEventsPath), { rows: [], warning: null }, "missing world-event snapshots remain a valid empty input");
+
+  writeFileSync(worldEventsPath, "{broken", "utf-8");
+  const parseError = readIpoThemeWorldEventInput(worldEventsPath);
+  assert.deepEqual(parseError.rows, []);
+  assert.equal(parseError.warning, `${worldEventsPath}: parse_error`);
+  assert(!parseError.warning.includes("{broken"), "world-event parse warnings must not echo raw payloads");
+
+  writeFileSync(worldEventsPath, JSON.stringify({ title: "SpaceX" }), "utf-8");
+  const invalidRoot = readIpoThemeWorldEventInput(worldEventsPath);
+  assert.deepEqual(invalidRoot.rows, []);
+  assert.equal(invalidRoot.warning, `${worldEventsPath}: invalid_root expected_array`);
+
+  writeFileSync(worldEventsPath, JSON.stringify([
+    { title: "SpaceX update", source: "official", publishedAt: "2026-08-16", snippet: "launch" },
+    null,
+    { title: 42 },
+    { title: "OpenAI update", source: "official" },
+  ]), "utf-8");
+  const mixedRows = readIpoThemeWorldEventInput(worldEventsPath);
+  assert.deepEqual(mixedRows.rows.map(row => row.title), ["SpaceX update", "OpenAI update"]);
+  assert.equal(mixedRows.warning, `${worldEventsPath}: invalid_rows 2 (rows 2, 3)`);
 } finally {
   rmSync(tmp, { recursive: true, force: true });
 }
