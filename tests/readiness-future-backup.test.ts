@@ -55,6 +55,16 @@ try {
   );
 
   rmSync(emptyBackup, { recursive: true, force: true });
+  const legacyBackup = join(dir, "2026-08-16");
+  mkdirSync(legacyBackup);
+  const legacyMtime = new Date("2026-08-16T00:00:00+09:00");
+  utimesSync(legacyBackup, legacyMtime, legacyMtime);
+  assert.doesNotThrow(
+    () => assertReadinessBackupDirectoryInput(dir, "2026-08-16", new Date("2026-08-16T12:00:00+09:00")),
+    "legacy date-only backup directories remain accepted without a manifest",
+  );
+
+  rmSync(legacyBackup, { recursive: true, force: true });
   const validBackup = join(dir, "2026-08-16T11-59-59");
   mkdirSync(validBackup);
   writeManifest(validBackup);
