@@ -44,7 +44,12 @@ export function normalizeSourceHealthScoreRows<T>(value: unknown): { rows: T[]; 
   if (!Array.isArray(value) || value.some(row => !isRecord(row))) {
     return { rows: [], valid: false };
   }
+  const seenCodes = new Set<string>();
   for (const row of value) {
+    if (typeof row.code !== "string" || row.code.trim().length === 0 || seenCodes.has(row.code)) {
+      return { rows: [], valid: false };
+    }
+    seenCodes.add(row.code);
     if (row.dataQuality !== undefined && (typeof row.dataQuality !== "string" || !DATA_QUALITIES.has(row.dataQuality))) {
       return { rows: [], valid: false };
     }
