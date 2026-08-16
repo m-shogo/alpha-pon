@@ -187,13 +187,13 @@ try {
     "well-shaped generated data-quality fallback remains valid when score snapshots are absent",
   );
 
-  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": { dataQuality: "unknown", warnings: [] } } }));
+  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": { dataQuality: "unknown", warnings: [] } }));
   assert.doesNotThrow(
     () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir),
     "unknown remains a valid explicit degraded fallback state",
   );
 
-  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": { dataQuality: "perfect", warnings: [] } }));
+  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": { dataQuality: "perfect", warnings: [] } } }));
   assert.throws(
     () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir),
     /dataQuality must be one of ok, missing, unknown/,
@@ -214,7 +214,7 @@ try {
     "primitive data-quality fallback entries must fail closed before readiness scoring",
   );
 
-  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": { warnings: { count: 3 } } }));
+  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": { warnings: { count: 3 } } } }));
   assert.throws(
     () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir),
     /warnings must be a string array/,
