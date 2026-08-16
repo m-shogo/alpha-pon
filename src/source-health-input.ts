@@ -36,8 +36,19 @@ export function hasValidPrimaryDisclosureReview(value: unknown): boolean {
   if (value.decision === "confirmed" && value.sourceCoverage.tdnetCount + value.sourceCoverage.edinetCount === 0) {
     return false;
   }
-  return isOptionalNonNegativeInteger(value.sourceCoverage.fetchErrorCount)
-    && isOptionalStringArray(value.sourceCoverage.scannedEdinetDates);
+  if (!isOptionalNonNegativeInteger(value.sourceCoverage.fetchErrorCount)) return false;
+  const fetchErrorCount = value.sourceCoverage.fetchErrorCount ?? 0;
+  if (
+    value.decision === "caution"
+    && (
+      !Array.isArray(value.warnings)
+      || value.warnings.length === 0
+      || (value.sourceCoverage.tdnetCount + value.sourceCoverage.edinetCount === 0 && fetchErrorCount === 0)
+    )
+  ) {
+    return false;
+  }
+  return isOptionalStringArray(value.sourceCoverage.scannedEdinetDates);
 }
 
 export function normalizeSourceHealthArray<T>(value: unknown): { rows: T[]; valid: boolean } {
