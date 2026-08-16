@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
+import { readKnowledgeReviewJsonl } from "./knowledge-review-input.js";
 
 type NonMoveHistory = {
   date?: string;
@@ -28,22 +29,6 @@ type SourceHealthHistory = {
 function readText(path: string): string {
   if (!existsSync(path)) return "";
   return readFileSync(path, "utf-8");
-}
-
-function readJsonl<T>(path: string): T[] {
-  if (!existsSync(path)) return [];
-  return readFileSync(path, "utf-8")
-    .split("\n")
-    .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => {
-      try {
-        return JSON.parse(line) as T;
-      } catch {
-        return null;
-      }
-    })
-    .filter((item): item is T => item !== null);
 }
 
 function countReasons(rows: NonMoveHistory[]): Array<[string, number]> {
@@ -77,9 +62,12 @@ function countMissingReports(rows: SourceHealthHistory[]): Array<[string, number
 
 function main() {
   const date = todayJst();
-  const nonMoveRows = readJsonl<NonMoveHistory>("data/company_non_move_history.jsonl");
-  const regimeRows = readJsonl<RegimeHistory>("data/regime_history.jsonl");
-  const sourceRows = readJsonl<SourceHealthHistory>("data/source_health_history.jsonl");
+  const nonMoveInput = readKnowledgeReviewJsonl<NonMoveHistory>("data/company_non_move_history.jsonl");
+  const regimeInput = readKnowledgeReviewJsonl<RegimeHistory>("data/regime_history.jsonl");
+  const sourceInput = readKnowledgeReviewJsonl<SourceHealthHistory>("data/source_health_history.jsonl");
+  const nonMoveRows = nonMoveInput.rows;
+  const regimeRows = regimeInput.rows;
+  const sourceRows = sourceInput.rows;
   const reasonCounts = countReasons(nonMoveRows);
   const regimeCounts = countRegimes(regimeRows);
   const missingReports = countMissingReports(sourceRows);
@@ -111,6 +99,9 @@ function main() {
   lines.push(`- company_non_move_history rows: ${nonMoveRows.length}`);
   lines.push(`- regime_history rows: ${regimeRows.length}`);
   lines.push(`- source_health_history rows: ${sourceRows.length}`);
+  for (const warning of [nonMoveInput.warning, regimeInput.warning, sourceInput.warning]) {
+    if (warning) lines.push(`- ⚠️ ${warning}`);
+  }
   lines.push("");
 
   lines.push("## 年間の外れ理由トップ");
