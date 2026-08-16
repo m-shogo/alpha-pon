@@ -1,28 +1,34 @@
 // Morning Lite改善レポート。通知量・失敗ステップ・ノイズを見て翌改善に回す。
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
-import { readMorningLitePipelineInput } from "./morning-lite-pipeline-input.js";
+import {
+  readMorningLiteDedupeCount,
+  readMorningLitePipelineInput,
+} from "./morning-lite-pipeline-input.js";
 
-type DedupeRecord = { key: string; sentAt: string; preview: string };
-
-function readJson<T>(path: string, fallback: T): T {
-  if (!existsSync(path)) return fallback;
-  return JSON.parse(readFileSync(path, "utf-8")) as T;
-}
-
-function recentNotificationCounts(): Array<{ date: string; count: number }> {
+function recentNotificationCounts(): {
+  counts: Array<{ date: string; count: number }>;
+  warnings: string[];
+} {
   const dir = "data/notification-dedupe";
-  if (!existsSync(dir)) return [];
-  return readdirSync(dir)
+  if (!existsSync(dir)) return { counts: [], warnings: [] };
+  const warnings: string[] = [];
+  const counts = readdirSync(dir)
     .filter(name => name.endsWith(".json"))
     .sort()
     .slice(-7)
-    .map(name => ({
-      date: name.replace(".json", ""),
-      count: readJson<DedupeRecord[]>(join(dir, name), []).length,
-    }));
+    .map(name => {
+      const path = join(dir, name);
+      const loaded = readMorningLiteDedupeCount(path);
+      if (loaded.warning) warnings.push(loaded.warning);
+      return {
+        date: name.replace(".json", ""),
+        count: loaded.count,
+      };
+    });
+  return { counts, warnings };
 }
 
 function recommendation(count: number, failedSteps: string[]): string[] {
@@ -36,11 +42,14 @@ function recommendation(count: number, failedSteps: string[]): string[] {
 
 function main(): void {
   const today = todayJst();
-  const counts = recentNotificationCounts();
+  const notificationInput = recentNotificationCounts();
+  const counts = notificationInput.counts;
   const todayCount = counts.find(row => row.date === today)?.count ?? 0;
   const pipeline = readMorningLitePipelineInput("reports/pipeline_status_latest.json");
   const failedSteps = pipeline.failedSteps;
   const actions = recommendation(todayCount, failedSteps);
+  const inputWarnings = [pipeline.warning, ...notificationInput.warnings]
+    .filter((warning): warning is string => warning !== null);
 
   const lines = [
     "# Alpha Pon Morning Lite 改善レポート",
@@ -52,7 +61,7 @@ function main(): void {
     `- 今日の通知数: ${todayCount}`,
     `- pipeline: ${pipeline.status}`,
     `- failedSteps: ${failedSteps.length > 0 ? failedSteps.join(" / ") : "なし"}`,
-    ...(pipeline.warning ? ["", "## input warnings", "", `- ${pipeline.warning}`] : []),
+    ...(inputWarnings.length > 0 ? ["", "## input warnings", "", ...inputWarnings.map(warning => `- ${warning}`)] : []),
     "",
     "## recent notification counts",
     "",
