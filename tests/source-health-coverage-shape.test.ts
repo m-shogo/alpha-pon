@@ -23,4 +23,41 @@ for (const malformed of [
   assert.deepEqual(result.rows, [], "malformed coverage rows must fail closed");
 }
 
+const confirmedWithEvidence = normalizeSourceHealthScoreRows([{
+  code: "8136",
+  primaryDisclosureReview: {
+    decision: "confirmed",
+    warnings: [],
+    blockers: [],
+    sourceCoverage: {
+      tdnetCount: 1,
+      edinetCount: 0,
+      fetchErrorCount: 0,
+      scannedEdinetDates: ["2026-08-16"],
+    },
+  },
+}]);
+assert.equal(confirmedWithEvidence.valid, true, "confirmed primary review with official-source evidence remains valid");
+
+const confirmedWithoutEvidence = normalizeSourceHealthScoreRows([{
+  code: "8136",
+  primaryDisclosureReview: {
+    decision: "confirmed",
+    warnings: [],
+    blockers: [],
+    sourceCoverage: {
+      tdnetCount: 0,
+      edinetCount: 0,
+      fetchErrorCount: 0,
+      scannedEdinetDates: ["2026-08-16"],
+    },
+  },
+}]);
+assert.equal(
+  confirmedWithoutEvidence.valid,
+  false,
+  "confirmed primary review must not count as healthy without TDnet/EDINET evidence",
+);
+assert.deepEqual(confirmedWithoutEvidence.rows, [], "unsupported confirmed reviews must fail closed");
+
 console.log("source-health-coverage-shape.test.ts passed");
