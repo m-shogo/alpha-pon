@@ -12,6 +12,7 @@ import { getTodayInTokyo } from "../src/jobs/date-utils.js";
 import { normalizeOpsAlphaGeneratedAt } from "../src/ops-dashboard-input-time.js";
 import { normalizeOpsIntegrityInput } from "../src/ops-dashboard-integrity-input.js";
 import { normalizeOpsOutcomeQualityInput } from "../src/ops-dashboard-outcome-quality-input.js";
+import { normalizeOpsOutcomesInput } from "../src/ops-dashboard-outcomes-input.js";
 import { normalizeOpsPipelineStatusInput } from "../src/ops-dashboard-pipeline-input.js";
 import { normalizeOpsSpecialSituationInput } from "../src/ops-dashboard-special-input.js";
 import {
@@ -19,7 +20,6 @@ import {
   findForbiddenWording,
   renderOpsDashboardMarkdown,
   type OpsAlphaDataLike,
-  type OpsOutcomeLike,
   type OpsWorldImpactAuditLike,
   type OpsSafeOutputLike,
   type SafeWordingFinding,
@@ -81,8 +81,9 @@ function scanSafeWording(): { scannedFiles: number; findings: SafeWordingFinding
 const today = getTodayInTokyo();
 const safeWording = scanSafeWording();
 
-type OutcomesFile = { outcomes?: OpsOutcomeLike[] };
-const outcomesFile = readJson<OutcomesFile>("apps/web/public/generated/outcomes.json");
+const outcomesFile = normalizeOpsOutcomesInput(
+  readJson<unknown>("apps/web/public/generated/outcomes.json"),
+);
 const alphaData = normalizeOpsAlphaGeneratedAt(
   readJson<OpsAlphaDataLike>("apps/web/public/generated/alpha-pon-data.json"),
 );
