@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { addDaysJst } from "./date.js";
+import { addDaysJst, todayJst } from "./date.js";
 import { hasValidPrimaryDisclosureReview, normalizeSourceHealthArray } from "./source-health-input.js";
 
 const READINESS_DATA_QUALITY_VALUES = new Set(["ok", "missing", "unknown"]);
@@ -63,16 +63,16 @@ function isRealJstDate(date: string): boolean {
   }
 }
 
-function isCanonicalScoreSnapshotFilename(file: string): boolean {
+function isCanonicalScoreSnapshotFilename(file: string, asOf = todayJst()): boolean {
   const match = /^scores_(\d{4}-\d{2}-\d{2})\.json$/.exec(file);
-  return Boolean(match && isRealJstDate(match[1]));
+  return Boolean(match && isRealJstDate(match[1]) && match[1] <= asOf);
 }
 
-function hasUsableScoreSnapshot(reportsDir: string): boolean {
+function hasUsableScoreSnapshot(reportsDir: string, asOf = todayJst()): boolean {
   if (!existsSync(reportsDir)) return false;
   try {
     const latest = readdirSync(reportsDir)
-      .filter(isCanonicalScoreSnapshotFilename)
+      .filter((file) => isCanonicalScoreSnapshotFilename(file, asOf))
       .sort()
       .at(-1);
     if (!latest) return false;
@@ -83,13 +83,16 @@ function hasUsableScoreSnapshot(reportsDir: string): boolean {
   }
 }
 
-export function assertReadinessScoreSnapshotFilenameInput(reportsDir = "reports"): void {
+export function assertReadinessScoreSnapshotFilenameInput(reportsDir = "reports", asOf = todayJst()): void {
   if (!existsSync(reportsDir)) return;
   for (const name of readdirSync(reportsDir)) {
     const match = /^scores_(\d{4}-\d{2}-\d{2})\.json$/.exec(name);
     if (!match) continue;
     if (!isRealJstDate(match[1])) {
       throw new Error(`${join(reportsDir, name)}: score snapshot filename must contain a real Gregorian date`);
+    }
+    if (match[1] > asOf) {
+      throw new Error(`${join(reportsDir, name)}: score snapshot filename must not be later than readiness as-of date ${asOf}`);
     }
   }
 }
@@ -171,8 +174,9 @@ export function assertReadinessPrimaryDisclosureReviewInput(
 export function assertReadinessDataQualityFallbackInput(
   generatedPath = "apps/web/public/generated/alpha-pon-data.json",
   reportsDir = "reports",
+  asOf = todayJst(),
 ): void {
-  if (hasUsableScoreSnapshot(reportsDir)) return;
+  if (hasUsableScoreSnapshot(reportsDir, asOf)) return;
   const generated = readGeneratedObject(generatedPath);
   if (!generated || generated.dataQualityByCode === undefined) return;
   if (!isRecord(generated.dataQualityByCode)) {
