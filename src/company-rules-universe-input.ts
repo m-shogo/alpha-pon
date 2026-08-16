@@ -87,7 +87,14 @@ export function normalizeCompanyRulesUniverseInput(raw: unknown): CompanyRulesUn
     return { rows: [], status: "invalid_candidates", invalidRowCount: 0 };
   }
 
-  const rows = candidates.filter(isCompanyRulesCandidateRow);
+  const validRows = candidates.filter(isCompanyRulesCandidateRow);
+  const codeCounts = new Map<string, number>();
+  for (const row of validRows) {
+    const code = row.code as string;
+    codeCounts.set(code, (codeCounts.get(code) ?? 0) + 1);
+  }
+  const rows = validRows.filter(row => codeCounts.get(row.code as string) === 1);
+
   return {
     rows,
     status: "ok",
