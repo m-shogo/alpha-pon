@@ -2,7 +2,14 @@ import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { formatJstTimestampDir } from "../src/date.js";
 import { assertReadinessBackupDirectoryInput } from "../src/readiness-company-memory-input.js";
+
+assert.equal(
+  formatJstTimestampDir(new Date("2026-08-15T15:00:01Z")),
+  "2026-08-16T00-00-01",
+  "backup directory names must use JST regardless of host timezone",
+);
 
 const dir = mkdtempSync(join(tmpdir(), "readiness-future-backup-"));
 try {
