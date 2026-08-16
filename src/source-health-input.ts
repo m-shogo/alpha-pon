@@ -62,7 +62,13 @@ export function hasUniqueSourceHealthScoreIdentities(value: unknown): boolean {
   if (!Array.isArray(value)) return false;
   const seenCodes = new Set<string>();
   for (const row of value) {
-    if (!isRecord(row) || typeof row.code !== "string" || row.code.trim().length === 0 || seenCodes.has(row.code)) {
+    if (
+      !isRecord(row)
+      || typeof row.code !== "string"
+      || row.code.length === 0
+      || row.code !== row.code.trim()
+      || seenCodes.has(row.code)
+    ) {
       return false;
     }
     seenCodes.add(row.code);
