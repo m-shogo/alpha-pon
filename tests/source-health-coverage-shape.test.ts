@@ -113,4 +113,40 @@ for (const unsupportedCaution of [
   assert.deepEqual(result.rows, [], "unsupported caution rows must fail closed");
 }
 
+const supportedBlock = normalizeSourceHealthScoreRows([{
+  code: "8136",
+  primaryDisclosureReview: {
+    decision: "block",
+    warnings: [],
+    blockers: ["TDnet: blocker disclosure"],
+    sourceCoverage: { tdnetCount: 1, edinetCount: 0, fetchErrorCount: 0 },
+  },
+}]);
+assert.equal(supportedBlock.valid, true, "block with blocker disclosure evidence remains valid");
+
+for (const unsupportedBlock of [
+  {
+    code: "8136",
+    primaryDisclosureReview: {
+      decision: "block",
+      warnings: [],
+      blockers: ["synthetic blocker"],
+      sourceCoverage: { tdnetCount: 0, edinetCount: 0, fetchErrorCount: 0 },
+    },
+  },
+  {
+    code: "8136",
+    primaryDisclosureReview: {
+      decision: "block",
+      warnings: [],
+      blockers: [],
+      sourceCoverage: { tdnetCount: 1, edinetCount: 0, fetchErrorCount: 0 },
+    },
+  },
+] as const) {
+  const result = normalizeSourceHealthScoreRows([unsupportedBlock]);
+  assert.equal(result.valid, false, "unsupported block must not count as reviewed primary evidence");
+  assert.deepEqual(result.rows, [], "unsupported block rows must fail closed");
+}
+
 console.log("source-health-coverage-shape.test.ts passed");
