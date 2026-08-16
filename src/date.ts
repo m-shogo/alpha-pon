@@ -9,6 +9,21 @@ export function formatJstDate(date = new Date()): string {
   }).format(date);
 }
 
+export function formatJstTimestampDir(date = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: JST_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}T${values.hour}-${values.minute}-${values.second}`;
+}
+
 export function todayJst(): string {
   return formatJstDate(new Date());
 }
