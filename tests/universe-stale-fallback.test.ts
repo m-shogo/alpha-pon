@@ -74,6 +74,36 @@ assert.deepEqual(
 );
 assert.equal(malformedIdentity.invalidRowCount, 4);
 
+const malformedNumerics = normalizeCompanyRulesUniverseInput({
+  candidates: [
+    { code: "1234", name: "文字列騰落率", dataSource: "jquants", change5dPct: "10" },
+    { code: "2345", name: "無限値", dataSource: "jquants", volumeSpikeRatio: Number.POSITIVE_INFINITY },
+    {
+      code: "3456",
+      name: "正常numeric",
+      dataSource: "jquants",
+      currentPrice: 100,
+      drawdownPct: -20,
+      change5dPct: 10,
+      volumeSpikeRatio: null,
+    },
+  ],
+});
+assert.deepEqual(
+  malformedNumerics.rows,
+  [{
+    code: "3456",
+    name: "正常numeric",
+    dataSource: "jquants",
+    currentPrice: 100,
+    drawdownPct: -20,
+    change5dPct: 10,
+    volumeSpikeRatio: null,
+  }],
+  "価格risk計算で比較/toFixedするnumeric fieldが壊れたrowは company rules へ流さない",
+);
+assert.equal(malformedNumerics.invalidRowCount, 2);
+
 const malformedArrayFields = normalizeCompanyRulesUniverseInput({
   candidates: [
     { code: "1234", name: "warnings不正", dataSource: "jquants", warnings: {} },
