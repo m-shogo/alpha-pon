@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "fs";
+import { addDaysJst } from "./date.js";
 import { readReadOnlyJsonObjectFile } from "./read-only-json-file.js";
 
 export type MorningLitePipelineInput = {
@@ -9,6 +10,11 @@ export type MorningLitePipelineInput = {
 
 export type MorningLiteDedupeCount = {
   count: number;
+  warning: string | null;
+};
+
+export type MorningLiteDedupeFileDate = {
+  date: string | null;
   warning: string | null;
 };
 
@@ -59,4 +65,16 @@ export function readMorningLiteDedupeCount(path: string): MorningLiteDedupeCount
     count: validRows.length,
     warning: invalidCount > 0 ? `${path}: invalid_rows ${invalidCount}` : null,
   };
+}
+
+export function parseMorningLiteDedupeFileDate(name: string, asOf: string): MorningLiteDedupeFileDate {
+  if (!name.endsWith(".json")) return { date: null, warning: null };
+  const date = name.slice(0, -5);
+  try {
+    if (addDaysJst(date, 0) !== date) return { date: null, warning: `${name}: invalid_date_filename` };
+  } catch {
+    return { date: null, warning: `${name}: invalid_date_filename` };
+  }
+  if (date > asOf) return { date: null, warning: `${name}: future_date_filename` };
+  return { date, warning: null };
 }
