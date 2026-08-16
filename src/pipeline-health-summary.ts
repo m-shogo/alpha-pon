@@ -2,12 +2,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
 import { normalizeSourceHealthObject } from "./source-health-input.js";
+import { normalizeSourceHealthHistoryRows, type SourceHealthHistoryRow } from "./source-health-history-input.js";
 import { readJsonlWithErrors } from "./read-only-jsonl.js";
-
-type SourceHealthRow = {
-  date?: string;
-  reports?: Record<string, { exists?: boolean; size?: number }>;
-};
 
 function readText(path: string): string {
   return existsSync(path) ? readFileSync(path, "utf-8") : "";
@@ -22,7 +18,7 @@ function readJson(path: string): unknown {
   }
 }
 
-function missingReports(rows: SourceHealthRow[], limit: number): Array<[string, number]> {
+function missingReports(rows: SourceHealthHistoryRow[], limit: number): Array<[string, number]> {
   const counts = new Map<string, number>();
   for (const row of rows.slice(-limit)) {
     for (const [name, value] of Object.entries(row.reports ?? {})) {
@@ -43,8 +39,9 @@ function main() {
     : normalizedPipelineStatus.valid
       ? "ok"
       : "invalid_root";
-  const sourceHealthHistory = readJsonlWithErrors<SourceHealthRow>("data/source_health_history.jsonl");
-  const sourceRows = sourceHealthHistory.rows;
+  const sourceHealthHistory = readJsonlWithErrors<unknown>("data/source_health_history.jsonl");
+  const normalizedSourceHealthHistory = normalizeSourceHealthHistoryRows(sourceHealthHistory.rows);
+  const sourceRows = normalizedSourceHealthHistory.rows;
   const recentMissing = missingReports(sourceRows, 14);
   const criticalSignals: string[] = [];
 
@@ -52,6 +49,9 @@ function main() {
   if (pipelineStatusState !== "ok") criticalSignals.push(`pipeline_status_latest.json ${pipelineStatusState}`);
   if (sourceHealthHistory.parseErrors.length > 0) {
     criticalSignals.push(`source_health_history.jsonl parse_error ${sourceHealthHistory.parseErrors.length}`);
+  }
+  if (normalizedSourceHealthHistory.invalidRows > 0) {
+    criticalSignals.push(`source_health_history.jsonl invalid_row ${normalizedSourceHealthHistory.invalidRows}`);
   }
   for (const [name, count] of recentMissing) {
     if (count >= 3) criticalSignals.push(`${name} missing_or_empty ${count}/14`);
@@ -75,6 +75,7 @@ function main() {
   lines.push(`- pipeline_status_latest.json: ${pipelineStatusState}`);
   lines.push(`- source health history rows: ${sourceRows.length}`);
   lines.push(`- source health history parse errors: ${sourceHealthHistory.parseErrors.length}`);
+  lines.push(`- source health history invalid rows: ${normalizedSourceHealthHistory.invalidRows}`);
   lines.push("");
   lines.push("## critical signals");
   lines.push("");
