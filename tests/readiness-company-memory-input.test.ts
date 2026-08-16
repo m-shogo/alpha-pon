@@ -9,6 +9,7 @@ import {
   assertReadinessDataQualityFallbackInput,
   assertReadinessHypothesisPredictionInput,
   assertReadinessPrimaryDisclosureReviewInput,
+  assertReadinessScoreSnapshotFilenameInput,
 } from "../src/readiness-company-memory-input.js";
 
 const dir = mkdtempSync(join(tmpdir(), "readiness-company-memory-"));
@@ -212,7 +213,7 @@ try {
     "primitive data-quality fallback entries must fail closed before readiness scoring",
   );
 
-  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": { warnings: { count: 3 } } } }));
+  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": { warnings: { count: 3 } } }));
   assert.throws(
     () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir),
     /warnings must be a string array/,
@@ -222,6 +223,11 @@ try {
   const invalidDateScorePath = join(reportsDir, "scores_9999-99-99.json");
   writeFileSync(invalidDateScorePath, JSON.stringify([]));
   assert.throws(
+    () => assertReadinessScoreSnapshotFilenameInput(reportsDir),
+    /score snapshot filename must contain a real Gregorian date/,
+    "readiness preflight must reject the impossible-date snapshot before readiness-audit can select it",
+  );
+  assert.throws(
     () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir),
     /warnings must be a string array/,
     "an impossible-date score filename must not suppress validation of the generated fallback",
@@ -230,6 +236,10 @@ try {
 
   const scorePath = join(reportsDir, "scores_2026-08-16.json");
   writeFileSync(scorePath, JSON.stringify([]));
+  assert.doesNotThrow(
+    () => assertReadinessScoreSnapshotFilenameInput(reportsDir),
+    "real Gregorian score snapshot filenames remain valid readiness input",
+  );
   assert.doesNotThrow(
     () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir),
     "generated dataQualityByCode is inactive when the canonical score snapshot is usable",
