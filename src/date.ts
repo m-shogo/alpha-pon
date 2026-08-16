@@ -24,6 +24,33 @@ export function formatJstTimestampDir(date = new Date()): string {
   return `${values.year}-${values.month}-${values.day}T${values.hour}-${values.minute}-${values.second}`;
 }
 
+export function backupAgeDaysFromDirectoryName(name: string, now = new Date()): number | null {
+  const match = /^(\d{4}-\d{2}-\d{2})(?:T(\d{2})-(\d{2})-(\d{2}))?$/.exec(name);
+  if (!match) return null;
+
+  try {
+    if (addDaysJst(match[1], 0) !== match[1]) return null;
+  } catch {
+    return null;
+  }
+
+  const hour = match[2] === undefined ? 0 : Number(match[2]);
+  const minute = match[3] === undefined ? 0 : Number(match[3]);
+  const second = match[4] === undefined ? 0 : Number(match[4]);
+  if (
+    !Number.isInteger(hour) || hour < 0 || hour > 23
+    || !Number.isInteger(minute) || minute < 0 || minute > 59
+    || !Number.isInteger(second) || second < 0 || second > 59
+  ) {
+    return null;
+  }
+
+  const backupAt = new Date(`${match[1]}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:${String(second).padStart(2, "0")}+09:00`);
+  const ageMs = now.getTime() - backupAt.getTime();
+  if (!Number.isFinite(ageMs) || ageMs < 0) return null;
+  return Math.floor(ageMs / (24 * 60 * 60 * 1000));
+}
+
 export function todayJst(): string {
   return formatJstDate(new Date());
 }
