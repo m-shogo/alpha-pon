@@ -58,7 +58,22 @@ const j = (...parts: string[]) => parts.join("");
     "scan_failure",
   );
   assert.equal(safeOutputAuditGap({ healthStatus: "ok", findingsCount: 0, scanErrors: [] }), null);
-  console.log("safe-output: Ops Dashboard は監査レポート欠落をfail-closed化");
+  assert.equal(
+    safeOutputAuditGap({ healthStatus: "action_required", findingsCount: 0, scanErrors: [] }),
+    "invalid_report",
+    "action_requiredなのにscan errorが無い矛盾reportをfalse-greenにしない",
+  );
+  assert.equal(
+    safeOutputAuditGap({ healthStatus: "needs_attention", findingsCount: 0, scanErrors: [] }),
+    "invalid_report",
+    "needs_attentionなのにfindingが無い矛盾reportをfalse-greenにしない",
+  );
+  assert.equal(
+    safeOutputAuditGap({ healthStatus: "unexpected", findingsCount: 0, scanErrors: [] }),
+    "invalid_report",
+    "unknown healthStatusを正常扱いしない",
+  );
+  console.log("safe-output: Ops Dashboard は監査レポート欠落・状態矛盾をfail-closed化");
 }
 
 {

@@ -5,17 +5,33 @@ interface SafeOutputReportLike extends OpsSafeOutputLike {
 }
 
 const SEVERITY_RANK = { urgent: 0, attention: 1, info: 2 } as const;
+const HEALTH_STATUSES = new Set(["ok", "needs_attention", "action_required"]);
 
-export type SafeOutputAuditGap = "missing_report" | "scan_failure" | null;
+export type SafeOutputAuditGap = "missing_report" | "scan_failure" | "invalid_report" | null;
 
 export function safeOutputAuditGap(safeOutput: SafeOutputReportLike | null): SafeOutputAuditGap {
   if (safeOutput == null) return "missing_report";
-  const hasScanFailure =
-    safeOutput.healthStatus === "action_required"
-    && (safeOutput.findingsCount ?? safeOutput.findings?.length ?? 0) === 0
-    && Array.isArray(safeOutput.scanErrors)
-    && safeOutput.scanErrors.length > 0;
-  return hasScanFailure ? "scan_failure" : null;
+  if (typeof safeOutput.healthStatus !== "string" || !HEALTH_STATUSES.has(safeOutput.healthStatus)) {
+    return "invalid_report";
+  }
+
+  const findingsCount = typeof safeOutput.findingsCount === "number" && Number.isFinite(safeOutput.findingsCount)
+    ? safeOutput.findingsCount
+    : Array.isArray(safeOutput.findings)
+      ? safeOutput.findings.length
+      : 0;
+  const scanErrorCount = Array.isArray(safeOutput.scanErrors) ? safeOutput.scanErrors.length : 0;
+
+  // findings がある場合は buildOpsDashboard 側の既存危険表現 issue に任せる。
+  // この helper は findings 0件なのに監査完了を証明できないケースだけを補完する。
+  if (findingsCount > 0) return null;
+
+  if (safeOutput.healthStatus === "action_required") {
+    return scanErrorCount > 0 ? "scan_failure" : "invalid_report";
+  }
+  if (safeOutput.healthStatus === "needs_attention") return "invalid_report";
+  if (safeOutput.healthStatus === "ok" && scanErrorCount > 0) return "invalid_report";
+  return null;
 }
 
 export function applySafeOutputAuditHealth(
@@ -31,10 +47,14 @@ export function applySafeOutputAuditHealth(
     category: "safe_wording",
     title: gap === "scan_failure"
       ? `Safe Output 監査の読み込み失敗: ${count}件`
-      : "Safe Output 監査レポートが利用できない",
+      : gap === "invalid_report"
+        ? "Safe Output 監査レポートの状態が不整合"
+        : "Safe Output 監査レポートが利用できない",
     detail: gap === "scan_failure"
       ? "監査対象を読み込めず、安全表現監査が完了していません。reports/safe-output-audit.md を確認してください。"
-      : "reports/safe-output-audit.json がないか壊れているため、安全表現監査の完了を確認できません。",
+      : gap === "invalid_report"
+        ? "reports/safe-output-audit.json のhealthStatusと監査結果が整合しないため、安全表現監査の完了を確認できません。"
+        : "reports/safe-output-audit.json がないか壊れているため、安全表現監査の完了を確認できません。",
     command: "pnpm audit:safe-output",
   };
   const allIssues = [...dashboard.allIssues, issue]
