@@ -57,6 +57,31 @@ assert.deepEqual(mixedRows.rows, [{ code: "1234" }], "object row 以外は隔離
 assert.equal(mixedRows.status, "ok");
 assert.equal(mixedRows.invalidRowCount, 3);
 
+const malformedArrayFields = normalizeCompanyRulesUniverseInput({
+  candidates: [
+    { code: "1234", warnings: {} },
+    { code: "2345", matchedWorldEventTags: "theme" },
+    { code: "3456", priceRiskWarnings: [{ level: "warning", reason: "risk", evidence: {} }] },
+    {
+      code: "4567",
+      warnings: ["warning"],
+      matchedWorldEventTags: ["theme"],
+      priceRiskWarnings: [{ level: "warning", reason: "risk", evidence: ["evidence"] }],
+    },
+  ],
+});
+assert.deepEqual(
+  malformedArrayFields.rows,
+  [{
+    code: "4567",
+    warnings: ["warning"],
+    matchedWorldEventTags: ["theme"],
+    priceRiskWarnings: [{ level: "warning", reason: "risk", evidence: ["evidence"] }],
+  }],
+  "spread/join対象のarray fieldが壊れたrowは company rules へ流さない",
+);
+assert.equal(malformedArrayFields.invalidRowCount, 3);
+
 const validMemory = normalizeCompanyRulesMemoryInput({
   code: "1234",
   watchReason: ["監視理由"],
