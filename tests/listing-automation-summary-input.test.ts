@@ -33,6 +33,18 @@ assert.deepEqual(
   "malformed check rows must not crash count-based summary logic",
 );
 
+assert.deepEqual(
+  parseListingAutomationCheckInput(JSON.stringify({ checks: [{ id: "unknown", status: "passed" }] })),
+  { checks: [{ id: "unknown", status: "passed" }], invalid: true, reason: "invalid_rows" },
+  "unknown statuses must fail closed instead of becoming a false-green summary",
+);
+
+assert.deepEqual(
+  parseListingAutomationCheckInput(JSON.stringify({ checks: [{ id: "missing-status" }] })),
+  { checks: [{ id: "missing-status" }], invalid: true, reason: "invalid_rows" },
+  "missing statuses must fail closed",
+);
+
 assert.equal(
   listingAutomationReadinessStatus([{ id: "ready", status: "ok" }]),
   "ok",
