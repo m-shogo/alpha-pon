@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { addDaysJst, todayJst } from "./date.js";
+import { addDaysJst, backupAgeDaysFromDirectoryName, todayJst } from "./date.js";
 import { hasValidPrimaryDisclosureReview, normalizeSourceHealthArray } from "./source-health-input.js";
 
 const READINESS_DATA_QUALITY_VALUES = new Set(["ok", "missing", "unknown"]);
@@ -127,11 +127,27 @@ export function assertReadinessBackupDirectoryInput(
       }
     }
     try {
-      if (!statSync(join(backupsDir, name)).isDirectory()) {
-        throw new Error(`${join(backupsDir, name)}: backup evidence candidate must be a directory`);
+      const path = join(backupsDir, name);
+      const stat = statSync(path);
+      if (!stat.isDirectory()) {
+        throw new Error(`${path}: backup evidence candidate must be a directory`);
+      }
+      const canonicalAgeDays = backupAgeDaysFromDirectoryName(name, now);
+      const mtimeAgeDays = Math.floor((now.getTime() - stat.mtimeMs) / (24 * 60 * 60 * 1000));
+      if (
+        canonicalAgeDays !== null
+        && Number.isFinite(mtimeAgeDays)
+        && (canonicalAgeDays <= 7) !== (mtimeAgeDays >= 0 && mtimeAgeDays <= 7)
+      ) {
+        throw new Error(`${path}: backup freshness must follow the canonical JST directory timestamp, not filesystem mtime`);
       }
     } catch (error) {
-      if (error instanceof Error && error.message.includes("backup evidence candidate")) throw error;
+      if (
+        error instanceof Error
+        && (error.message.includes("backup evidence candidate") || error.message.includes("backup freshness must follow"))
+      ) {
+        throw error;
+      }
       throw new Error(`${join(backupsDir, name)}: backup evidence candidate cannot be inspected`);
     }
   }
