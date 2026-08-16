@@ -6,23 +6,35 @@ interface SafeOutputReportLike extends OpsSafeOutputLike {
 
 const SEVERITY_RANK = { urgent: 0, attention: 1, info: 2 } as const;
 
+export type SafeOutputAuditGap = "missing_report" | "scan_failure" | null;
+
+export function safeOutputAuditGap(safeOutput: SafeOutputReportLike | null): SafeOutputAuditGap {
+  if (safeOutput == null) return "missing_report";
+  const hasScanFailure =
+    safeOutput.healthStatus === "action_required"
+    && (safeOutput.findingsCount ?? safeOutput.findings?.length ?? 0) === 0
+    && Array.isArray(safeOutput.scanErrors)
+    && safeOutput.scanErrors.length > 0;
+  return hasScanFailure ? "scan_failure" : null;
+}
+
 export function applySafeOutputAuditHealth(
   dashboard: OpsDashboard,
   safeOutput: SafeOutputReportLike | null,
 ): OpsDashboard {
-  const hasScanFailure =
-    safeOutput?.healthStatus === "action_required"
-    && (safeOutput.findingsCount ?? safeOutput.findings?.length ?? 0) === 0
-    && Array.isArray(safeOutput.scanErrors)
-    && safeOutput.scanErrors.length > 0;
+  const gap = safeOutputAuditGap(safeOutput);
+  if (!gap) return dashboard;
 
-  if (!hasScanFailure) return dashboard;
-
+  const count = gap === "scan_failure" ? safeOutput!.scanErrors!.length : 1;
   const issue: OpsIssue = {
     severity: "attention",
     category: "safe_wording",
-    title: `Safe Output 監査の読み込み失敗: ${safeOutput.scanErrors!.length}件`,
-    detail: "監査対象を読み込めず、安全表現監査が完了していません。reports/safe-output-audit.md を確認してください。",
+    title: gap === "scan_failure"
+      ? `Safe Output 監査の読み込み失敗: ${count}件`
+      : "Safe Output 監査レポートが利用できない",
+    detail: gap === "scan_failure"
+      ? "監査対象を読み込めず、安全表現監査が完了していません。reports/safe-output-audit.md を確認してください。"
+      : "reports/safe-output-audit.json がないか壊れているため、安全表現監査の完了を確認できません。",
     command: "pnpm audit:safe-output",
   };
   const allIssues = [...dashboard.allIssues, issue]

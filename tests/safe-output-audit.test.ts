@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { safeOutputAuditGap } from "../src/ops-dashboard-safe-output-health.js";
 import {
   collectSafeOutputFiles,
   scanContentForUnsafeOutput,
@@ -48,6 +49,16 @@ const j = (...parts: string[]) => parts.join("");
   assert.equal(safeOutputHealthStatus(0, 1), "action_required", "監査対象を読めない場合は false-green にしない");
   assert.equal(safeOutputHealthStatus(1, 1), "action_required");
   console.log("safe-output: 読み込み失敗は action_required");
+}
+
+{
+  assert.equal(safeOutputAuditGap(null), "missing_report", "監査レポート欠落/破損を正常扱いしない");
+  assert.equal(
+    safeOutputAuditGap({ healthStatus: "action_required", findingsCount: 0, scanErrors: [{}] }),
+    "scan_failure",
+  );
+  assert.equal(safeOutputAuditGap({ healthStatus: "ok", findingsCount: 0, scanErrors: [] }), null);
+  console.log("safe-output: Ops Dashboard は監査レポート欠落をfail-closed化");
 }
 
 {
