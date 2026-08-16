@@ -5,6 +5,8 @@ for (const rows of [
   [{ dataQuality: "ok" }],
   [{ code: "", dataQuality: "ok" }],
   [{ code: "   ", dataQuality: "ok" }],
+  [{ code: " 8136", dataQuality: "ok" }],
+  [{ code: "8136 ", dataQuality: "ok" }],
   [{ code: 8136, dataQuality: "ok" }],
   [
     { code: "8136", dataQuality: "ok" },
@@ -14,7 +16,7 @@ for (const rows of [
   assert.equal(
     hasUniqueSourceHealthScoreIdentities(rows),
     false,
-    "missing or duplicate stable score identities must not inflate source-health coverage",
+    "missing, padded, or duplicate stable score identities must not inflate source-health coverage",
   );
 }
 
@@ -24,7 +26,7 @@ assert.equal(
     { code: "7974", dataQuality: "partial" },
   ]),
   true,
-  "distinct non-empty score identities remain valid",
+  "distinct canonical score identities remain valid",
 );
 
-console.log("source health score identity: required and unique code contract OK");
+console.log("source health score identity: canonical non-empty unique code contract OK");
