@@ -87,10 +87,12 @@ if (!Array.isArray(hypotheses) || !Array.isArray(outcomes)) {
   process.exit(1);
 }
 
-if (!hypotheses.every(isQualityHypothesisLike) || !outcomes.every(isQualityOutcomeLike)) {
+const hypothesisRowsOk = hypotheses.every(isQualityHypothesisLike);
+const outcomeRowsOk = outcomes.every(isQualityOutcomeLike);
+if (!hypothesisRowsOk || !outcomeRowsOk) {
   console.error(
     "生成データのrow shapeが不正です。先に pnpm ui:data を再実行してください。" +
-      `（hypotheses rows: ${hypotheses.every(isQualityHypothesisLike) ? "ok" : "invalid"} / outcomes rows: ${outcomes.every(isQualityOutcomeLike) ? "ok" : "invalid"}）`
+      `（hypotheses rows: ${hypothesisRowsOk ? "ok" : "invalid"} / outcomes rows: ${outcomeRowsOk ? "ok" : "invalid"}）`
   );
   process.exit(1);
 }
