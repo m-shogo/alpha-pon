@@ -97,7 +97,7 @@ export function assertReadinessScoreSnapshotFilenameInput(reportsDir = "reports"
   }
 }
 
-export function assertReadinessBackupDirectoryInput(backupsDir = "backups"): void {
+export function assertReadinessBackupDirectoryInput(backupsDir = "backups", asOf = todayJst()): void {
   if (!existsSync(backupsDir)) return;
   for (const name of readdirSync(backupsDir)) {
     if (!/^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(name)) continue;
@@ -112,6 +112,9 @@ export function assertReadinessBackupDirectoryInput(backupsDir = "backups"): voi
     );
     if (!match || !isRealJstDate(match[1]) || !validTime) {
       throw new Error(`${join(backupsDir, name)}: backup directory name must contain a real Gregorian date and valid HH-mm-ss time`);
+    }
+    if (match[1] > asOf) {
+      throw new Error(`${join(backupsDir, name)}: backup directory date must not be later than readiness as-of date ${asOf}`);
     }
     try {
       if (!statSync(join(backupsDir, name)).isDirectory()) {
