@@ -13,6 +13,7 @@ import {
   normalizeOpsAlphaDataQualityWarningsInput,
   normalizeOpsAlphaWarningsInput,
 } from "../src/ops-dashboard-alpha-input.js";
+import { applyOutcomeIntegrityAuditHealth } from "../src/ops-dashboard-integrity-health.js";
 import { normalizeOpsAlphaGeneratedAt } from "../src/ops-dashboard-input-time.js";
 import { normalizeOpsIntegrityInput } from "../src/ops-dashboard-integrity-input.js";
 import { normalizeOpsOutcomeQualityInput } from "../src/ops-dashboard-outcome-quality-input.js";
@@ -132,7 +133,8 @@ const baseDashboard = buildOpsDashboard({
   safeWordingScannedFiles: safeWording.scannedFiles,
   safeWordingFindings: safeWording.findings,
 });
-const worldImpactDashboard = applyWorldImpactAuditHealth(baseDashboard, worldImpact);
+const integrityDashboard = applyOutcomeIntegrityAuditHealth(baseDashboard, integrity);
+const worldImpactDashboard = applyWorldImpactAuditHealth(integrityDashboard, worldImpact);
 const safeOutputDashboard = applySafeOutputAuditHealth(worldImpactDashboard, safeOutput);
 const dashboard = applySafeWordingScanHealth(safeOutputDashboard, {
   readErrorCount: safeWording.readErrorCount,
