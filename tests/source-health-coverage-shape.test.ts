@@ -41,26 +41,48 @@ const confirmedWithEvidence = normalizeSourceHealthScoreRows([{
 }]);
 assert.equal(confirmedWithEvidence.valid, true, "confirmed primary review with official-source evidence remains valid");
 
-const confirmedWithoutEvidence = normalizeSourceHealthScoreRows([{
-  code: "8136",
-  primaryDisclosureReview: {
-    decision: "confirmed",
-    warnings: [],
-    blockers: [],
-    sourceCoverage: {
-      tdnetCount: 0,
-      edinetCount: 0,
-      fetchErrorCount: 0,
-      scannedEdinetDates: ["2026-08-16"],
+for (const unsupportedConfirmed of [
+  {
+    code: "8136",
+    primaryDisclosureReview: {
+      decision: "confirmed",
+      warnings: [],
+      blockers: [],
+      sourceCoverage: { tdnetCount: 0, edinetCount: 0, fetchErrorCount: 0 },
     },
   },
-}]);
-assert.equal(
-  confirmedWithoutEvidence.valid,
-  false,
-  "confirmed primary review must not count as healthy without TDnet/EDINET evidence",
-);
-assert.deepEqual(confirmedWithoutEvidence.rows, [], "unsupported confirmed reviews must fail closed");
+  {
+    code: "8136",
+    primaryDisclosureReview: {
+      decision: "confirmed",
+      warnings: ["一次情報取得エラー: timeout"],
+      blockers: [],
+      sourceCoverage: { tdnetCount: 1, edinetCount: 0, fetchErrorCount: 0 },
+    },
+  },
+  {
+    code: "8136",
+    primaryDisclosureReview: {
+      decision: "confirmed",
+      warnings: [],
+      blockers: ["TDnet: blocker disclosure"],
+      sourceCoverage: { tdnetCount: 1, edinetCount: 0, fetchErrorCount: 0 },
+    },
+  },
+  {
+    code: "8136",
+    primaryDisclosureReview: {
+      decision: "confirmed",
+      warnings: [],
+      blockers: [],
+      sourceCoverage: { tdnetCount: 1, edinetCount: 0, fetchErrorCount: 1 },
+    },
+  },
+] as const) {
+  const result = normalizeSourceHealthScoreRows([unsupportedConfirmed]);
+  assert.equal(result.valid, false, "confirmed review must not hide missing evidence, warnings, blockers, or fetch errors");
+  assert.deepEqual(result.rows, [], "inconsistent confirmed reviews must fail closed");
+}
 
 for (const supportedCaution of [
   {
