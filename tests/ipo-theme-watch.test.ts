@@ -59,6 +59,16 @@ try {
   const mixedRows = readIpoThemeWorldEventInput(worldEventsPath);
   assert.deepEqual(mixedRows.rows.map(row => row.title), ["SpaceX update", "OpenAI update"]);
   assert.equal(mixedRows.warning, `${worldEventsPath}: invalid_rows 2 (rows 2, 3)`);
+
+  writeFileSync(worldEventsPath, JSON.stringify([
+    { title: "valid leap day", publishedAt: "2024-02-29" },
+    { title: "impossible date", publishedAt: "2026-02-31" },
+    { title: "year zero", publishedAt: "0000-01-01" },
+    { title: "RFC 822 remains supported", publishedAt: "Sun, 16 Aug 2026 12:00:00 GMT" },
+  ]), "utf-8");
+  const datedRows = readIpoThemeWorldEventInput(worldEventsPath);
+  assert.deepEqual(datedRows.rows.map(row => row.title), ["valid leap day", "RFC 822 remains supported"]);
+  assert.equal(datedRows.warning, `${worldEventsPath}: invalid_rows 2 (rows 2, 3)`);
 } finally {
   rmSync(tmp, { recursive: true, force: true });
 }
@@ -75,7 +85,6 @@ assert(Array.isArray(data.outcomeStats), "outcomeStats は配列である必要�
 assert(Array.isArray(data.worldEventHighlights), "worldEventHighlights は配列である必要があります");
 assert(Array.isArray(data.inputWarnings), "inputWarnings は配列である必要があります");
 
-// outcomeStats の各行に必須フィールドが揃っているか確認
 for (const row of data.outcomeStats as Array<Record<string, unknown>>) {
   assert("finalLabel" in row, "outcomeStats 各行に finalLabel が必要です");
   assert("originalFinalLabel" in row, "outcomeStats 各行に originalFinalLabel が必要です");
@@ -83,7 +92,6 @@ for (const row of data.outcomeStats as Array<Record<string, unknown>>) {
   assert(typeof row["sampleTooSmall"] === "boolean", "sampleTooSmall は boolean である必要があります");
 }
 
-// worldEventHighlights の各行に必須フィールドが揃っているか確認
 for (const ev of data.worldEventHighlights as Array<Record<string, unknown>>) {
   assert(typeof ev["title"] === "string", "worldEventHighlights.title は string である必要があります");
   assert(Array.isArray(ev["relatedThemeIds"]), "worldEventHighlights.relatedThemeIds は配列である必要があります");
