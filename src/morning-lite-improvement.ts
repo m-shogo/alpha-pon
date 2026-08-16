@@ -3,9 +3,9 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
+import { readMorningLitePipelineInput } from "./morning-lite-pipeline-input.js";
 
 type DedupeRecord = { key: string; sentAt: string; preview: string };
-type PipelineStatus = { status?: string; completeWrapperFailedSteps?: string[]; failedSteps?: string };
 
 function readJson<T>(path: string, fallback: T): T {
   if (!existsSync(path)) return fallback;
@@ -38,11 +38,8 @@ function main(): void {
   const today = todayJst();
   const counts = recentNotificationCounts();
   const todayCount = counts.find(row => row.date === today)?.count ?? 0;
-  const pipeline = readJson<PipelineStatus>("reports/pipeline_status_latest.json", {});
-  const failedSteps = [
-    ...(pipeline.completeWrapperFailedSteps ?? []),
-    ...((pipeline.failedSteps ?? "").split(" ").filter(Boolean)),
-  ];
+  const pipeline = readMorningLitePipelineInput("reports/pipeline_status_latest.json");
+  const failedSteps = pipeline.failedSteps;
   const actions = recommendation(todayCount, failedSteps);
 
   const lines = [
@@ -53,8 +50,9 @@ function main(): void {
     "## summary",
     "",
     `- 今日の通知数: ${todayCount}`,
-    `- pipeline: ${pipeline.status ?? "unknown"}`,
+    `- pipeline: ${pipeline.status}`,
     `- failedSteps: ${failedSteps.length > 0 ? failedSteps.join(" / ") : "なし"}`,
+    ...(pipeline.warning ? ["", "## input warnings", "", `- ${pipeline.warning}`] : []),
     "",
     "## recent notification counts",
     "",
