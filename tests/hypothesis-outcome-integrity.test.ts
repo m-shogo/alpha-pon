@@ -3,7 +3,10 @@ import { existsSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { partitionHypothesesByDetectedAt } from "../src/hypothesis-review-date.js";
-import { assertReadinessHypothesisOutcomeInput } from "../src/readiness-company-memory-input.js";
+import {
+  assertReadinessHypothesisOutcomeInput,
+  assertReadinessHypothesisPredictionInput,
+} from "../src/readiness-company-memory-input.js";
 import {
   buildOutcomeIntegrityReport,
   isBlockingOutcomeIntegrityStatus,
@@ -77,6 +80,30 @@ function outcome(code: string, detectedAt: string, reviewHorizon: "1d" | "1w" | 
   ]);
   assert.deepEqual(partitioned.valid.map(row => row.id), ["valid"]);
   assert.deepEqual(partitioned.invalid.map(row => row.id), ["impossible", "year-zero", "missing"]);
+}
+
+{
+  const dir = mkdtempSync(join(tmpdir(), "alpha-pon-readiness-prediction-identity-"));
+  const generatedPath = join(dir, "alpha-pon-data.json");
+  const canonical = { code: "8136", name: "Sanrio" };
+  try {
+    writeFileSync(generatedPath, JSON.stringify({ hypothesisPredictions: [canonical] }));
+    assert.doesNotThrow(() => assertReadinessHypothesisPredictionInput(generatedPath));
+
+    for (const hypothesisPredictions of [
+      [canonical, { code: "8136", name: "Sanrio duplicate" }],
+      [canonical, { code: "8136 ", name: "Sanrio padded" }],
+    ] as const) {
+      writeFileSync(generatedPath, JSON.stringify({ hypothesisPredictions }));
+      assert.throws(
+        () => assertReadinessHypothesisPredictionInput(generatedPath),
+        /canonical unique code and non-empty name/,
+        "duplicate or padded hypothesis prediction identities must not inflate readiness counts",
+      );
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 {
