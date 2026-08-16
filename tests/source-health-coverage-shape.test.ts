@@ -148,6 +148,15 @@ for (const unsupportedCaution of [
       sourceCoverage: { tdnetCount: 0, edinetCount: 0, fetchErrorCount: 0 },
     },
   },
+  {
+    code: "8136",
+    primaryDisclosureReview: {
+      decision: "caution",
+      warnings: ["   "],
+      blockers: [],
+      sourceCoverage: { tdnetCount: 1, edinetCount: 0, fetchErrorCount: 0 },
+    },
+  },
 ] as const) {
   const result = normalizeSourceHealthScoreRows([unsupportedCaution]);
   assert.equal(result.valid, false, "unsupported caution must not suppress missing-primary warnings");
@@ -181,6 +190,15 @@ for (const unsupportedBlock of [
       decision: "block",
       warnings: [],
       blockers: [],
+      sourceCoverage: { tdnetCount: 1, edinetCount: 0, fetchErrorCount: 0 },
+    },
+  },
+  {
+    code: "8136",
+    primaryDisclosureReview: {
+      decision: "block",
+      warnings: [],
+      blockers: [""],
       sourceCoverage: { tdnetCount: 1, edinetCount: 0, fetchErrorCount: 0 },
     },
   },
