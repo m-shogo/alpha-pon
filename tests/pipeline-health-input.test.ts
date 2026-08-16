@@ -14,6 +14,11 @@ assert.equal(sourceHealthHistoryState(false), "missing", "missing source-health 
 assert.equal(hasCanonicalPipelineStatus({}), false, "empty pipeline status objects must fail closed");
 assert.equal(hasCanonicalPipelineStatus({ app: "alpha-pon", date: "2026-08-16", runType: "daily", status: "ok", results: [], failedSteps: [], generatedAt: "2026-08-16T11:00:00.000Z" }), true, "canonical daily pipeline status remains valid");
 assert.equal(hasCanonicalPipelineStatus({ app: "alpha-pon", date: "2026-08-16", runType: "daily", status: "unknown", results: [], failedSteps: [], generatedAt: "2026-08-16T11:00:00.000Z" }), false, "unknown pipeline status must fail closed");
+assert.equal(hasCanonicalPipelineStatus({ app: "alpha-pon", date: "2026-02-31", runType: "daily", status: "ok", results: [], failedSteps: [], generatedAt: "2026-08-16T11:00:00.000Z" }), false, "impossible Gregorian pipeline dates must fail closed");
+assert.equal(hasCanonicalPipelineStatus({ app: "alpha-pon", date: "0000-01-01", runType: "daily", status: "ok", results: [], failedSteps: [], generatedAt: "2026-08-16T11:00:00.000Z" }), false, "Gregorian year zero pipeline dates must fail closed");
+assert.equal(hasCanonicalPipelineStatus({ app: "alpha-pon", date: "2026-08-16", runType: "daily", status: "ok", results: [], failedSteps: [], generatedAt: "2026-08-16T11:00:00" }), false, "timezone-less generatedAt must fail closed");
+assert.equal(hasCanonicalPipelineStatus({ app: "alpha-pon", date: "2026-08-16", runType: "daily", status: "ok", results: [], failedSteps: [], generatedAt: "2026-02-31T11:00:00+09:00" }), false, "impossible Gregorian generatedAt must fail closed");
+assert.equal(hasCanonicalPipelineStatus({ app: "alpha-pon", date: "2026-08-16", runType: "daily", status: "ok", results: [], failedSteps: [], generatedAt: "2026-08-16T11:00:00-00:00" }), false, "unknown timezone offsets must fail closed");
 
 const dir = mkdtempSync(join(tmpdir(), "alpha-pon-knowledge-review-"));
 try {
