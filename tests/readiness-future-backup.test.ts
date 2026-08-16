@@ -35,13 +35,16 @@ try {
   );
 
   rmSync(join(dir, "2026-08-16T23-59-59"), { recursive: true, force: true });
-  mkdirSync(join(dir, "2026-08-16T11-59-59"));
+  const validBackup = join(dir, "2026-08-16T11-59-59");
+  mkdirSync(validBackup);
+  const validMtime = new Date("2026-08-16T11:59:59+09:00");
+  utimesSync(validBackup, validMtime, validMtime);
   assert.doesNotThrow(
     () => assertReadinessBackupDirectoryInput(dir, "2026-08-16", new Date("2026-08-16T12:00:00+09:00")),
     "same-day past backup instants remain valid readiness evidence",
   );
 
-  rmSync(join(dir, "2026-08-16T11-59-59"), { recursive: true, force: true });
+  rmSync(validBackup, { recursive: true, force: true });
   const staleBackup = join(dir, "2026-08-06T12-00-00");
   mkdirSync(staleBackup);
   const touchedNow = new Date("2026-08-16T11:59:00+09:00");
