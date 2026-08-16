@@ -16,6 +16,7 @@ import {
 import { applyOutcomeIntegrityAuditHealth } from "../src/ops-dashboard-integrity-health.js";
 import { normalizeOpsAlphaGeneratedAt } from "../src/ops-dashboard-input-time.js";
 import { normalizeOpsIntegrityInput } from "../src/ops-dashboard-integrity-input.js";
+import { applyOutcomeQualityAuditHealth } from "../src/ops-dashboard-outcome-quality-health.js";
 import { normalizeOpsOutcomeQualityInput } from "../src/ops-dashboard-outcome-quality-input.js";
 import { normalizeOpsOutcomesInput } from "../src/ops-dashboard-outcomes-input.js";
 import { normalizeOpsPipelineStatusInput } from "../src/ops-dashboard-pipeline-input.js";
@@ -134,7 +135,8 @@ const baseDashboard = buildOpsDashboard({
   safeWordingFindings: safeWording.findings,
 });
 const integrityDashboard = applyOutcomeIntegrityAuditHealth(baseDashboard, integrity);
-const worldImpactDashboard = applyWorldImpactAuditHealth(integrityDashboard, worldImpact);
+const outcomeQualityDashboard = applyOutcomeQualityAuditHealth(integrityDashboard, outcomeQuality);
+const worldImpactDashboard = applyWorldImpactAuditHealth(outcomeQualityDashboard, worldImpact);
 const safeOutputDashboard = applySafeOutputAuditHealth(worldImpactDashboard, safeOutput);
 const dashboard = applySafeWordingScanHealth(safeOutputDashboard, {
   readErrorCount: safeWording.readErrorCount,
