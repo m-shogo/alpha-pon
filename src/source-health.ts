@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
-import { normalizeSourceHealthObject, normalizeSourceHealthScoreRows } from "./source-health-input.js";
+import { hasUniqueSourceHealthScoreIdentities, normalizeSourceHealthObject, normalizeSourceHealthScoreRows } from "./source-health-input.js";
 import { selectSourceHealthScoreFile } from "./source-health-score-file.js";
 
 type PipelineStep = {
@@ -120,8 +120,9 @@ function main() {
   const normalizedScores = scorePath
     ? normalizeSourceHealthScoreRows<ScoreLogEntry>(rawScores)
     : { rows: [] as ScoreLogEntry[], valid: true };
-  const scores = normalizedScores.rows;
-  const scoreShapeValid = normalizedScores.valid;
+  const scoreIdentityValid = scorePath ? hasUniqueSourceHealthScoreIdentities(rawScores) : true;
+  const scores = normalizedScores.valid && scoreIdentityValid ? normalizedScores.rows : [];
+  const scoreShapeValid = normalizedScores.valid && scoreIdentityValid;
   const total = scores.length;
 
   const dataOk = scores.filter(score => score.dataQuality === "ok").length;
@@ -212,7 +213,7 @@ function main() {
   if (pipeline?.status && !healthyStatuses.includes(pipeline.status) && pipeline.status !== "partial_failed") decisions.push(`- 🛑 pipeline status が ${pipeline.status} です。daily の成否を確認してください。`);
   if (failedSteps.length > 0) decisions.push(`- 🛑 pipeline failedSteps: ${failedSteps.join(", ")}`);
   if (!scorePath) decisions.push("- 🛑 scores JSON がありません。daily がレポートを生成できていない可能性があります。");
-  if (scorePath && !scoreShapeValid) decisions.push("- 🛑 scores JSON のroot shapeが配列ではありません。壊れた入力を空データとして扱わず、daily出力を再生成してください。");
+  if (scorePath && !scoreShapeValid) decisions.push("- 🛑 scores JSON のrow shapeまたはstable identityが不正です。壊れた入力をcoverageへ数えず、daily出力を再生成してください。");
   if (scoreDate && scoreDate !== date) decisions.push(`- ⚠️ score log が本日分ではありません（最新: ${scoreDate}）。古いスコアを今日の判断材料として扱わないでください。`);
   if (scoreShapeValid && total === 0) decisions.push("- 🛑 scores JSON が空です。daily がスコアを生成できていない可能性があります。");
   if (total > 0 && dataMissing / total > 0.5) decisions.push("- ⚠️ dataQuality missing が多いです。J-Quants設定やmock運用状態を確認してください。");

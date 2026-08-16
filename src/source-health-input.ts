@@ -58,6 +58,18 @@ export function normalizeSourceHealthScoreRows<T>(value: unknown): { rows: T[]; 
   return { rows: value as T[], valid: true };
 }
 
+export function hasUniqueSourceHealthScoreIdentities(value: unknown): boolean {
+  if (!Array.isArray(value)) return false;
+  const seenCodes = new Set<string>();
+  for (const row of value) {
+    if (!isRecord(row) || typeof row.code !== "string" || row.code.trim().length === 0 || seenCodes.has(row.code)) {
+      return false;
+    }
+    seenCodes.add(row.code);
+  }
+  return true;
+}
+
 export function normalizeSourceHealthObject<T extends object>(value: unknown): { value: T | null; valid: boolean } {
   if (!isRecord(value)) {
     return { value: null, valid: false };
