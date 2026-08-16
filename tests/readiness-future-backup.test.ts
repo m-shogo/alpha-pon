@@ -16,6 +16,11 @@ assert.equal(
   10,
   "backup freshness must be derived from the canonical JST directory timestamp",
 );
+assert.equal(
+  backupAgeDaysFromDirectoryName("2026-08-09T12-00-00", new Date("2026-08-16T12:00:00+09:00")),
+  7,
+  "a backup exactly seven days old remains inside the readiness freshness boundary",
+);
 
 const dir = mkdtempSync(join(tmpdir(), "readiness-future-backup-"));
 try {
