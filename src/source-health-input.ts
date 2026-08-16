@@ -18,6 +18,7 @@ function isOptionalNonNegativeInteger(value: unknown): boolean {
   return value === undefined || isNonNegativeInteger(value);
 }
 
+const DATA_QUALITIES = new Set(["ok", "partial", "missing"]);
 const PRIMARY_DISCLOSURE_DECISIONS = new Set(["confirmed", "caution", "block", "missing"]);
 
 export function hasValidPrimaryDisclosureReview(value: unknown): boolean {
@@ -44,6 +45,9 @@ export function normalizeSourceHealthScoreRows<T>(value: unknown): { rows: T[]; 
     return { rows: [], valid: false };
   }
   for (const row of value) {
+    if (row.dataQuality !== undefined && (typeof row.dataQuality !== "string" || !DATA_QUALITIES.has(row.dataQuality))) {
+      return { rows: [], valid: false };
+    }
     if (row.warnings !== undefined && !isStringArray(row.warnings)) {
       return { rows: [], valid: false };
     }
