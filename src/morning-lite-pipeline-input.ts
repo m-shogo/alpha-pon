@@ -1,8 +1,14 @@
+import { existsSync, readFileSync } from "fs";
 import { readReadOnlyJsonObjectFile } from "./read-only-json-file.js";
 
 export type MorningLitePipelineInput = {
   status: string;
   failedSteps: string[];
+  warning: string | null;
+};
+
+export type MorningLiteDedupeCount = {
+  count: number;
   warning: string | null;
 };
 
@@ -28,4 +34,29 @@ export function readMorningLitePipelineInput(path: string): MorningLitePipelineI
     ...((failed as string | undefined) ?? "").split(" ").map(item => item.trim()).filter(Boolean),
   ];
   return { status, failedSteps, warning: null };
+}
+
+function isDedupeRecord(value: unknown): boolean {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  return typeof row.key === "string" && row.key.trim().length > 0
+    && typeof row.sentAt === "string" && row.sentAt.trim().length > 0
+    && typeof row.preview === "string";
+}
+
+export function readMorningLiteDedupeCount(path: string): MorningLiteDedupeCount {
+  if (!existsSync(path)) return { count: 0, warning: null };
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(readFileSync(path, "utf-8")) as unknown;
+  } catch {
+    return { count: 0, warning: `${path}: parse_error` };
+  }
+  if (!Array.isArray(parsed)) return { count: 0, warning: `${path}: invalid_root` };
+  const validRows = parsed.filter(isDedupeRecord);
+  const invalidCount = parsed.length - validRows.length;
+  return {
+    count: validRows.length,
+    warning: invalidCount > 0 ? `${path}: invalid_rows ${invalidCount}` : null,
+  };
 }
