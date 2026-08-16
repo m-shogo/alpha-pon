@@ -16,7 +16,10 @@ assert.equal(
   "explicit JST timestamp must preserve its JST date",
 );
 assert.deepEqual(
-  normalizeOpsAlphaGeneratedAt({ generatedAt: "2026-08-11T15:30:00Z", warnings: [] }),
+  normalizeOpsAlphaGeneratedAt(
+    { generatedAt: "2026-08-11T15:30:00Z", warnings: [] },
+    "2026-08-12T00:30:00+09:00",
+  ),
   { generatedAt: "2026-08-12", warnings: [] },
   "ops dashboard input must compare timestamp generatedAt using the Tokyo calendar date",
 );
@@ -24,6 +27,22 @@ assert.deepEqual(
   normalizeOpsAlphaGeneratedAt({ generatedAt: "2026-08-12", warnings: [] }),
   { generatedAt: "2026-08-12", warnings: [] },
   "existing date-only generatedAt contract must remain supported",
+);
+assert.deepEqual(
+  normalizeOpsAlphaGeneratedAt(
+    { generatedAt: "2026-08-17T05:00:00.123456789+09:00", warnings: [] },
+    "2026-08-17T05:00:00.123456789+09:00",
+  ),
+  { generatedAt: "2026-08-17", warnings: [] },
+  "generatedAt exactly at the current instant remains eligible",
+);
+assert.throws(
+  () => normalizeOpsAlphaGeneratedAt(
+    { generatedAt: "2026-08-17T05:00:00.123456790+09:00", warnings: [] },
+    "2026-08-17T05:00:00.123456789+09:00",
+  ),
+  /must not be in the future/,
+  "generatedAt one nanosecond in the future must fail closed before date-only projection",
 );
 assert.throws(
   () => jstDateFromExplicitInstant("2026-08-12T00:30:00"),
@@ -65,4 +84,4 @@ assert.throws(
   }
 }
 
-console.log("ops-dashboard-input-time: JST generatedAt and host-timezone boundaries OK");
+console.log("ops-dashboard-input-time: JST generatedAt, future PIT, and host-timezone boundaries OK");
