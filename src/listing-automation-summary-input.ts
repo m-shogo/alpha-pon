@@ -6,8 +6,14 @@ export type ListingAutomationCheckInput = {
   reason: "ok" | "parse_error" | "invalid_root" | "invalid_checks" | "invalid_rows";
 };
 
+const CHECK_STATUSES = new Set(["ok", "warning", "missing", "fail"]);
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function hasCanonicalStatus(value: Record<string, unknown>): boolean {
+  return typeof value.status === "string" && CHECK_STATUSES.has(value.status);
 }
 
 export function parseListingAutomationCheckInput(text: string): ListingAutomationCheckInput {
@@ -26,7 +32,7 @@ export function parseListingAutomationCheckInput(text: string): ListingAutomatio
   }
 
   const checks = parsed.checks.filter(isRecord);
-  if (checks.length !== parsed.checks.length) {
+  if (checks.length !== parsed.checks.length || !checks.every(hasCanonicalStatus)) {
     return { checks, invalid: true, reason: "invalid_rows" };
   }
   return { checks, invalid: false, reason: "ok" };
