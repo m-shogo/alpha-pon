@@ -249,6 +249,38 @@ try {
     );
   }
 
+  for (const inconsistentSummary of [
+    {
+      ...canonicalAccuracySummary,
+      byActionLabel: {
+        ...canonicalAccuracySummary.byActionLabel,
+        ignore: { total: 0 },
+      },
+    },
+    {
+      ...canonicalAccuracySummary,
+      byScoreBand: {
+        ...canonicalAccuracySummary.byScoreBand,
+        unknown: { total: 1 },
+      },
+    },
+    { ...canonicalAccuracySummary, total: 3.5 },
+    {
+      ...canonicalAccuracySummary,
+      byActionLabel: {
+        ...canonicalAccuracySummary.byActionLabel,
+        watch: { total: 0.5 },
+      },
+    },
+  ] as const) {
+    writeFileSync(accuracySummaryPath, JSON.stringify(inconsistentSummary));
+    assert.throws(
+      () => assertReadinessAccuracySummaryInput(accuracySummaryPath),
+      /(accuracy bucket totals must equal summary total|non-negative integer|non-negative safe integer)/,
+      "accuracy summary count inconsistencies must not qualify for elevated outcome readiness",
+    );
+  }
+
   writeFileSync(accuracySummaryPath, "{ broken");
   assert.throws(
     () => assertReadinessAccuracySummaryInput(accuracySummaryPath),

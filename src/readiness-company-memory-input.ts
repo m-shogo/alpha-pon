@@ -39,16 +39,19 @@ function isIdentifiedArray(value: unknown): value is Record<string, unknown>[] {
   return Array.isArray(value) && value.every(isIdentifiedRow);
 }
 
-function isNonNegativeFiniteNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+function isNonNegativeInteger(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 }
 
-function hasCanonicalAccuracyBucketMap(value: unknown, requiredKeys: readonly string[]): boolean {
-  if (!isRecord(value)) return false;
-  return requiredKeys.every((key) => {
+function canonicalAccuracyBucketTotal(value: unknown, requiredKeys: readonly string[]): number | null {
+  if (!isRecord(value)) return null;
+  let total = 0;
+  for (const key of requiredKeys) {
     const bucket = value[key];
-    return isRecord(bucket) && isNonNegativeFiniteNumber(bucket.total);
-  });
+    if (!isRecord(bucket) || !isNonNegativeInteger(bucket.total)) return null;
+    total += bucket.total;
+  }
+  return total;
 }
 
 function hasUsableScoreSnapshot(reportsDir: string): boolean {
@@ -150,14 +153,19 @@ export function assertReadinessAccuracySummaryInput(
   if (!isRecord(summary)) {
     throw new Error(`${summaryPath}: accuracy summary root must be an object`);
   }
-  if (summary.total !== undefined && !isNonNegativeFiniteNumber(summary.total)) {
-    throw new Error(`${summaryPath}: total must be a non-negative finite number when present`);
+  if (!isNonNegativeInteger(summary.total)) {
+    throw new Error(`${summaryPath}: total must be a non-negative safe integer`);
   }
-  if (!hasCanonicalAccuracyBucketMap(summary.byActionLabel, ACTION_LABEL_KEYS)) {
-    throw new Error(`${summaryPath}: byActionLabel must contain watch/log/ignore buckets with non-negative finite totals`);
+  const actionTotal = canonicalAccuracyBucketTotal(summary.byActionLabel, ACTION_LABEL_KEYS);
+  if (actionTotal === null) {
+    throw new Error(`${summaryPath}: byActionLabel must contain watch/log/ignore buckets with non-negative integer totals`);
   }
-  if (!hasCanonicalAccuracyBucketMap(summary.byScoreBand, SCORE_BAND_KEYS)) {
-    throw new Error(`${summaryPath}: byScoreBand must contain canonical score-band buckets with non-negative finite totals`);
+  const scoreBandTotal = canonicalAccuracyBucketTotal(summary.byScoreBand, SCORE_BAND_KEYS);
+  if (scoreBandTotal === null) {
+    throw new Error(`${summaryPath}: byScoreBand must contain canonical score-band buckets with non-negative integer totals`);
+  }
+  if (actionTotal !== summary.total || scoreBandTotal !== summary.total) {
+    throw new Error(`${summaryPath}: accuracy bucket totals must equal summary total`);
   }
 }
 
