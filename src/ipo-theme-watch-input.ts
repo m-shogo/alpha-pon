@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "fs";
+import { addDaysJst } from "./date.js";
 import { formatReadOnlyJsonlParseWarning, readJsonlWithErrors } from "./read-only-jsonl.js";
 
 export type IpoThemeWorldEventInput = {
@@ -19,12 +20,23 @@ export function readIpoThemeOutcomeInput<T>(path: string): {
   };
 }
 
+function hasValidPublishedAt(value: unknown): boolean {
+  if (value === undefined) return true;
+  if (typeof value !== "string") return false;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return true;
+  try {
+    return addDaysJst(value, 0) === value;
+  } catch {
+    return false;
+  }
+}
+
 function isWorldEventInput(value: unknown): value is IpoThemeWorldEventInput {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const row = value as Record<string, unknown>;
-  return ["title", "source", "publishedAt", "snippet"].every(
+  return ["title", "source", "snippet"].every(
     key => row[key] === undefined || typeof row[key] === "string",
-  );
+  ) && hasValidPublishedAt(row.publishedAt);
 }
 
 export function readIpoThemeWorldEventInput(path: string): {
