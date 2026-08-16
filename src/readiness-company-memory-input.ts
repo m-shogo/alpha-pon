@@ -132,6 +132,9 @@ export function assertReadinessBackupDirectoryInput(
       if (!stat.isDirectory()) {
         throw new Error(`${path}: backup evidence candidate must be a directory`);
       }
+      if (hour !== null && !existsSync(join(path, "manifest.json"))) {
+        throw new Error(`${path}: timestamped backup evidence must include manifest.json`);
+      }
       const canonicalAgeDays = backupAgeDaysFromDirectoryName(name, now);
       const mtimeAgeDays = Math.floor((now.getTime() - stat.mtimeMs) / (24 * 60 * 60 * 1000));
       if (
@@ -144,7 +147,11 @@ export function assertReadinessBackupDirectoryInput(
     } catch (error) {
       if (
         error instanceof Error
-        && (error.message.includes("backup evidence candidate") || error.message.includes("backup freshness must follow"))
+        && (
+          error.message.includes("backup evidence candidate")
+          || error.message.includes("backup freshness must follow")
+          || error.message.includes("timestamped backup evidence must include manifest.json")
+        )
       ) {
         throw error;
       }
