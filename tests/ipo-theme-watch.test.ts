@@ -30,10 +30,31 @@ assert.throws(() => addDaysJst("2026-02-29", 1), /real YYYY-MM-DD/);
 const tmp = mkdtempSync(join(tmpdir(), "ipo-theme-input-"));
 try {
   const outcomePath = join(tmp, "hypothesis_outcomes.jsonl");
-  writeFileSync(outcomePath, '{"code":"8136"}\n{broken\n{"code":"5803"}\n', "utf-8");
-  const outcomeInput = readIpoThemeOutcomeInput<{ code: string }>(outcomePath);
+  const validOutcome = (code: string) => JSON.stringify({
+    code,
+    name: `Company ${code}`,
+    hypothesis: {
+      reason: "IPO theme",
+      relatedWorldEventIds: [],
+      evidenceNeeded: [],
+      invalidationSignals: [],
+    },
+    actionLabel: "watch",
+    result: "hit",
+    return1w: null,
+    return1m: null,
+    relativeToTopix1m: null,
+    maxDrawdownPct: null,
+  });
+  writeFileSync(
+    outcomePath,
+    `${validOutcome("8136")}\n{broken\n{}\n{"code":"9999"}\n${validOutcome("5803")}\n`,
+    "utf-8",
+  );
+  const outcomeInput = readIpoThemeOutcomeInput(outcomePath);
   assert.deepEqual(outcomeInput.rows.map(row => row.code), ["8136", "5803"]);
   assert(outcomeInput.warning?.includes("lines 2"), "malformed outcome rows must surface line-number metadata without stopping valid rows");
+  assert(outcomeInput.warning?.includes("invalid_rows 2"), "valid JSON rows with unsafe outcome shape must be isolated without stopping valid rows");
   assert(!outcomeInput.warning?.includes("{broken"), "parse warnings must not echo raw malformed JSONL content");
 
   const worldEventsPath = join(tmp, "world_events_latest.json");
