@@ -138,6 +138,20 @@ assert.deepEqual(
 );
 assert.equal(malformedArrayFields.invalidRowCount, 3);
 
+const duplicateCodes = normalizeCompanyRulesUniverseInput({
+  candidates: [
+    { code: "1234", name: "候補A", dataSource: "jquants", currentPrice: 100 },
+    { code: "1234", name: "候補B", dataSource: "jquants", currentPrice: 120 },
+    { code: "2345", name: "一意候補", dataSource: "mock" },
+  ],
+});
+assert.deepEqual(
+  duplicateCodes.rows,
+  [{ code: "2345", name: "一意候補", dataSource: "mock" }],
+  "同一codeの複数候補はどちらを正本にするか決められないため両方を隔離する",
+);
+assert.equal(duplicateCodes.invalidRowCount, 2);
+
 const validMemory = normalizeCompanyRulesMemoryInput({
   code: "1234",
   watchReason: ["監視理由"],
