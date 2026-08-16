@@ -4,30 +4,36 @@ import { existsSync, mkdirSync, readdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
 import {
+  parseMorningLiteDedupeFileDate,
   readMorningLiteDedupeCount,
   readMorningLitePipelineInput,
 } from "./morning-lite-pipeline-input.js";
 
-function recentNotificationCounts(): {
+function recentNotificationCounts(asOf: string): {
   counts: Array<{ date: string; count: number }>;
   warnings: string[];
 } {
   const dir = "data/notification-dedupe";
   if (!existsSync(dir)) return { counts: [], warnings: [] };
   const warnings: string[] = [];
-  const counts = readdirSync(dir)
-    .filter(name => name.endsWith(".json"))
-    .sort()
-    .slice(-7)
-    .map(name => {
-      const path = join(dir, name);
-      const loaded = readMorningLiteDedupeCount(path);
-      if (loaded.warning) warnings.push(loaded.warning);
-      return {
-        date: name.replace(".json", ""),
-        count: loaded.count,
-      };
-    });
+  const datedFiles = readdirSync(dir)
+    .map(name => ({ name, parsed: parseMorningLiteDedupeFileDate(name, asOf) }))
+    .filter(item => {
+      if (item.parsed.warning) warnings.push(item.parsed.warning);
+      return item.parsed.date !== null;
+    })
+    .sort((a, b) => (a.parsed.date ?? "").localeCompare(b.parsed.date ?? ""))
+    .slice(-7);
+
+  const counts = datedFiles.map(item => {
+    const path = join(dir, item.name);
+    const loaded = readMorningLiteDedupeCount(path);
+    if (loaded.warning) warnings.push(loaded.warning);
+    return {
+      date: item.parsed.date as string,
+      count: loaded.count,
+    };
+  });
   return { counts, warnings };
 }
 
@@ -42,7 +48,7 @@ function recommendation(count: number, failedSteps: string[]): string[] {
 
 function main(): void {
   const today = todayJst();
-  const notificationInput = recentNotificationCounts();
+  const notificationInput = recentNotificationCounts(today);
   const counts = notificationInput.counts;
   const todayCount = counts.find(row => row.date === today)?.count ?? 0;
   const pipeline = readMorningLitePipelineInput("reports/pipeline_status_latest.json");
