@@ -3,19 +3,17 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname } from "path";
 import { todayJst } from "./date.js";
+import {
+  readNotificationFeedbackInput,
+  type NotificationFeedbackRecord,
+} from "./notification-feedback-input.js";
 
 const DB_PATH = "data/notification-feedback.jsonl";
 const REPORT_PATH = "reports/notification_feedback_latest.md";
 
 type FeedbackValue = "useful" | "noise";
 
-type FeedbackRecord = {
-  date: string;
-  value: FeedbackValue;
-  topic: string;
-  memo: string;
-  createdAt: string;
-};
+type FeedbackRecord = NotificationFeedbackRecord;
 
 function usage(): string {
   return [
@@ -26,22 +24,13 @@ function usage(): string {
   ].join("\n");
 }
 
-function readRecords(): FeedbackRecord[] {
-  if (!existsSync(DB_PATH)) return [];
-  return readFileSync(DB_PATH, "utf-8")
-    .split("\n")
-    .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => JSON.parse(line) as FeedbackRecord);
-}
-
 function writeRecord(record: FeedbackRecord): void {
   mkdirSync(dirname(DB_PATH), { recursive: true });
   const current = existsSync(DB_PATH) ? readFileSync(DB_PATH, "utf-8") : "";
   writeFileSync(DB_PATH, `${current}${JSON.stringify(record)}\n`, "utf-8");
 }
 
-function renderReport(records: FeedbackRecord[]): string {
+function renderReport(records: FeedbackRecord[], inputWarning: string | null): string {
   const useful = records.filter(record => record.value === "useful").length;
   const noise = records.filter(record => record.value === "noise").length;
   const recent = records.slice(-10).reverse();
@@ -55,6 +44,7 @@ function renderReport(records: FeedbackRecord[]): string {
     `- useful: ${useful}`,
     `- noise: ${noise}`,
     `- total: ${records.length}`,
+    ...(inputWarning ? ["", "## input warnings", "", `- ${inputWarning}`] : []),
     "",
     "## recent",
     "",
@@ -70,10 +60,10 @@ function renderReport(records: FeedbackRecord[]): string {
   ].join("\n");
 }
 
-function writeReport(records: FeedbackRecord[]): void {
+function writeReport(records: FeedbackRecord[], inputWarning: string | null): void {
   mkdirSync(dirname(REPORT_PATH), { recursive: true });
-  writeFileSync(REPORT_PATH, renderReport(records), "utf-8");
-  console.log(`通知フィードバックレポート: ${REPORT_PATH} total=${records.length}`);
+  writeFileSync(REPORT_PATH, renderReport(records, inputWarning), "utf-8");
+  console.log(`通知フィードバックレポート: ${REPORT_PATH} total=${records.length}${inputWarning ? " warnings=1" : ""}`);
 }
 
 function main(): void {
@@ -86,7 +76,8 @@ function main(): void {
   } else if (command !== "report" && command != null) {
     throw new Error(usage());
   }
-  writeReport(readRecords());
+  const input = readNotificationFeedbackInput(DB_PATH);
+  writeReport(input.records, input.warning);
 }
 
 main();
