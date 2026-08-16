@@ -11,6 +11,7 @@ import { join } from "path";
 import { load } from "js-yaml";
 import { addDaysJst, todayJst } from "./date.js";
 import { searchMarketLessons } from "./analysis/market-lessons-db.js";
+import { normalizeCompanyRulesMemoryInput } from "./company-rules-memory-input.js";
 import { normalizeCompanyRulesUniverseInput } from "./company-rules-universe-input.js";
 import {
   buildPriceSignalFromCandidate,
@@ -500,8 +501,13 @@ function loadCompanyMemory(code: string): CompanyMemoryRecord | null {
   const memoryPath = join(process.cwd(), "data", "company_memory", `${code}.json`);
   if (!existsSync(memoryPath)) return null;
   try {
-    return JSON.parse(readFileSync(memoryPath, "utf-8")) as CompanyMemoryRecord;
+    const normalized = normalizeCompanyRulesMemoryInput(JSON.parse(readFileSync(memoryPath, "utf-8")));
+    if (normalized.status !== "ok") {
+      console.warn(`[generate-company-rules] company memory ${code} input ${normalized.status}; memoryを隔離します`);
+    }
+    return normalized.record;
   } catch {
+    console.warn(`[generate-company-rules] company memory ${code} parse error; memoryを隔離します`);
     return null;
   }
 }
