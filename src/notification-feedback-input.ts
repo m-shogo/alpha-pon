@@ -14,11 +14,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 export function isNotificationFeedbackRecord(value: unknown): value is NotificationFeedbackRecord {
   if (!isRecord(value)) return false;
+  const { date, topic, memo, createdAt } = value;
   if (value.value !== "useful" && value.value !== "noise") return false;
-  for (const key of ["date", "topic", "memo", "createdAt"] as const) {
-    if (typeof value[key] !== "string") return false;
+  if (typeof date !== "string" || typeof topic !== "string" || typeof memo !== "string" || typeof createdAt !== "string") {
+    return false;
   }
-  return value.date.trim().length > 0 && value.topic.trim().length > 0 && value.createdAt.trim().length > 0;
+  return date.trim().length > 0 && topic.trim().length > 0 && createdAt.trim().length > 0;
 }
 
 export function readNotificationFeedbackInput(path: string): {
