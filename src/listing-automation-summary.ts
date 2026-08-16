@@ -3,6 +3,7 @@ import { todayJst } from "./date.js";
 import { parseListingAutomationCheckInput } from "./listing-automation-summary-input.js";
 import { parseListingAutomationJpxInput } from "./listing-automation-jpx-input.js";
 import { parseListingAutomationJquantsInput } from "./listing-automation-jquants-input.js";
+import { parseListingAutomationTopixInput } from "./listing-automation-topix-input.js";
 import { parseListingEventMessageInput } from "./listing-event-message-preview-input.js";
 
 type Status = "ok" | "warning" | "fail" | "missing" | "unknown";
@@ -14,11 +15,6 @@ type SummaryItem = {
   detail: string;
   reportPath?: string;
 };
-
-function readJson<T>(path: string, fallback: T): T {
-  if (!existsSync(path)) return fallback;
-  return JSON.parse(readFileSync(path, "utf-8")) as T;
-}
 
 function existsReport(path: string): boolean {
   return existsSync(path);
@@ -96,10 +92,12 @@ function priceItem(): SummaryItem {
 function topixItem(): SummaryItem {
   const path = "reports/listing_topix_relative_latest.json";
   if (!existsReport(path)) return { id: "topix", status: "missing", label: "TOPIX relative", detail: "TOPIX report missing", reportPath: path };
-  const json = readJson<{ rows?: { topixRelativeReturn?: number | null }[] }>(path, {});
-  const rows = json.rows ?? [];
-  const missing = rows.filter(row => row.topixRelativeReturn == null).length;
-  return { id: "topix", status: rows.length === 0 || missing > 0 ? "warning" : "ok", label: "TOPIX relative", detail: `rows=${rows.length}, missing=${missing}`, reportPath: path };
+  const input = parseListingAutomationTopixInput(readFileSync(path, "utf-8"));
+  if (input.invalid) {
+    return { id: "topix", status: "warning", label: "TOPIX relative", detail: `invalid input (${input.reason})`, reportPath: path };
+  }
+  const missing = input.rows.filter(row => row.topixRelativeReturn == null).length;
+  return { id: "topix", status: input.rows.length === 0 || missing > 0 ? "warning" : "ok", label: "TOPIX relative", detail: `rows=${input.rows.length}, missing=${missing}`, reportPath: path };
 }
 
 function main() {
