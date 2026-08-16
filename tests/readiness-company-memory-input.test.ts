@@ -10,6 +10,7 @@ import {
   assertReadinessHypothesisPredictionInput,
   assertReadinessPrimaryDisclosureReviewInput,
   assertReadinessScoreSnapshotFilenameInput,
+  assertReadinessScoreSnapshotIdentityInput,
 } from "../src/readiness-company-memory-input.js";
 
 const dir = mkdtempSync(join(tmpdir(), "readiness-company-memory-"));
@@ -192,7 +193,7 @@ try {
     "unknown remains a valid explicit degraded fallback state",
   );
 
-  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": { dataQuality: "perfect", warnings: [] } } }));
+  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": { dataQuality: "perfect", warnings: [] } }));
   assert.throws(
     () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir),
     /dataQuality must be one of ok, missing, unknown/,
@@ -213,7 +214,7 @@ try {
     "primitive data-quality fallback entries must fail closed before readiness scoring",
   );
 
-  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": { warnings: { count: 3 } } } }));
+  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": { warnings: { count: 3 } } }));
   assert.throws(
     () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir),
     /warnings must be a string array/,
@@ -235,10 +236,29 @@ try {
   rmSync(invalidDateScorePath);
 
   const scorePath = join(reportsDir, "scores_2026-08-16.json");
+  writeFileSync(scorePath, JSON.stringify([
+    { code: "8136", dataQuality: "ok" },
+    { code: "8136", dataQuality: "ok" },
+  ]));
+  assert.throws(
+    () => assertReadinessScoreSnapshotIdentityInput(reportsDir, "2026-08-16"),
+    /canonical non-empty unique code identities/,
+    "duplicate score identities must fail closed before readiness can count the same company twice",
+  );
+  assert.throws(
+    () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir, "2026-08-16"),
+    /warnings must be a string array/,
+    "duplicate score identities must not suppress validation of the generated fallback",
+  );
+
   writeFileSync(scorePath, JSON.stringify([]));
   assert.doesNotThrow(
     () => assertReadinessScoreSnapshotFilenameInput(reportsDir),
     "real Gregorian score snapshot filenames remain valid readiness input",
+  );
+  assert.doesNotThrow(
+    () => assertReadinessScoreSnapshotIdentityInput(reportsDir, "2026-08-16"),
+    "empty canonical score snapshots preserve the existing valid zero-row contract",
   );
   assert.doesNotThrow(
     () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir),
