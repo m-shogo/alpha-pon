@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { hasValidPrimaryDisclosureReview, normalizeSourceHealthArray } from "./source-health-input.js";
 
 const READINESS_DATA_QUALITY_VALUES = new Set(["ok", "missing", "unknown"]);
+const ACTION_LABEL_KEYS = ["watch", "log", "ignore"] as const;
+const SCORE_BAND_KEYS = ["0-49", "50-69", "70-84", "85-100", "unknown"] as const;
 
 function readJson(path: string): unknown {
   try {
@@ -35,6 +37,18 @@ function isIdentifiedRow(value: unknown): value is Record<string, unknown> {
 
 function isIdentifiedArray(value: unknown): value is Record<string, unknown>[] {
   return Array.isArray(value) && value.every(isIdentifiedRow);
+}
+
+function isNonNegativeFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
+function hasCanonicalAccuracyBucketMap(value: unknown, requiredKeys: readonly string[]): boolean {
+  if (!isRecord(value)) return false;
+  return requiredKeys.every((key) => {
+    const bucket = value[key];
+    return isRecord(bucket) && isNonNegativeFiniteNumber(bucket.total);
+  });
 }
 
 function hasUsableScoreSnapshot(reportsDir: string): boolean {
@@ -128,9 +142,29 @@ export function assertReadinessDataQualityFallbackInput(
   }
 }
 
+export function assertReadinessAccuracySummaryInput(
+  summaryPath = "data/hypothesis_accuracy_summary.json",
+): void {
+  if (!existsSync(summaryPath)) return;
+  const summary = readJson(summaryPath);
+  if (!isRecord(summary)) {
+    throw new Error(`${summaryPath}: accuracy summary root must be an object`);
+  }
+  if (summary.total !== undefined && !isNonNegativeFiniteNumber(summary.total)) {
+    throw new Error(`${summaryPath}: total must be a non-negative finite number when present`);
+  }
+  if (!hasCanonicalAccuracyBucketMap(summary.byActionLabel, ACTION_LABEL_KEYS)) {
+    throw new Error(`${summaryPath}: byActionLabel must contain watch/log/ignore buckets with non-negative finite totals`);
+  }
+  if (!hasCanonicalAccuracyBucketMap(summary.byScoreBand, SCORE_BAND_KEYS)) {
+    throw new Error(`${summaryPath}: byScoreBand must contain canonical score-band buckets with non-negative finite totals`);
+  }
+}
+
 if (process.argv[1]?.endsWith("readiness-company-memory-input.ts")) {
   assertReadinessCompanyMemoryInput();
   assertReadinessHypothesisPredictionInput();
   assertReadinessPrimaryDisclosureReviewInput();
   assertReadinessDataQualityFallbackInput();
+  assertReadinessAccuracySummaryInput();
 }
