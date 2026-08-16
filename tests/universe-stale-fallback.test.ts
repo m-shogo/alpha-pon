@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { normalizeCompanyRulesUniverseInput } from "../src/company-rules-universe-input.js";
 import { buildUniverseScanOutput } from "../src/universe-scan-output.js";
 import { carryForwardStaleCandidate, STALE_FALLBACK_WARNING } from "../src/universe-stale-fallback.js";
 import type { UniverseCandidate } from "../src/universe.js";
@@ -43,5 +44,16 @@ const output = buildUniverseScanOutput({
 assert.equal(output.scanStatus, "stale_fallback");
 assert.equal(output.fallbackReason, "jquants_zero_candidates");
 assert.equal(output.candidates[0]?.detectedAt, "2026-06-01", "scan metadata 追加後も detectedAt は保持する");
+
+const malformedContainer = normalizeCompanyRulesUniverseInput({ candidates: {} });
+assert.deepEqual(malformedContainer.rows, [], "object-shaped candidates は company rules へ流さない");
+assert.equal(malformedContainer.status, "invalid_candidates");
+
+const mixedRows = normalizeCompanyRulesUniverseInput({
+  candidates: [{ code: "1234" }, null, "bad-row", ["bad-row"]],
+});
+assert.deepEqual(mixedRows.rows, [{ code: "1234" }], "object row 以外は隔離する");
+assert.equal(mixedRows.status, "ok");
+assert.equal(mixedRows.invalidRowCount, 3);
 
 console.log("universe-stale-fallback.test.ts passed");
