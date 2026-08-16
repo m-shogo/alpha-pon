@@ -24,12 +24,12 @@ import { applySafeOutputAuditHealth } from "../src/ops-dashboard-safe-output-hea
 import { applySafeWordingScanHealth } from "../src/ops-dashboard-safe-wording-health.js";
 import { normalizeOpsSpecialSituationInput } from "../src/ops-dashboard-special-input.js";
 import { applyWorldImpactAuditHealth } from "../src/ops-dashboard-world-impact-health.js";
+import { normalizeOpsWorldImpactInput } from "../src/ops-dashboard-world-impact-input.js";
 import {
   buildOpsDashboard,
   findForbiddenWording,
   renderOpsDashboardMarkdown,
   type OpsAlphaDataLike,
-  type OpsWorldImpactAuditLike,
   type OpsSafeOutputLike,
   type SafeWordingFinding,
 } from "../src/ops-dashboard.js";
@@ -116,7 +116,9 @@ const integrity = normalizeOpsIntegrityInput(
 const outcomeQuality = normalizeOpsOutcomeQualityInput(
   readJson<unknown>("reports/outcome-quality-audit.json"),
 );
-const worldImpact = readJson<OpsWorldImpactAuditLike>("reports/world-impact-audit.json");
+const worldImpact = normalizeOpsWorldImpactInput(
+  readJson<unknown>("reports/world-impact-audit.json"),
+);
 const safeOutput = readJson<OpsSafeOutputLike & { scanErrors?: unknown[] }>(
   "reports/safe-output-audit.json",
 );
