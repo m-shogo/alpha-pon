@@ -3,6 +3,7 @@ import { existsSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { partitionHypothesesByDetectedAt } from "../src/hypothesis-review-date.js";
+import { assertReadinessHypothesisOutcomeInput } from "../src/readiness-company-memory-input.js";
 import {
   buildOutcomeIntegrityReport,
   isBlockingOutcomeIntegrityStatus,
@@ -76,6 +77,35 @@ function outcome(code: string, detectedAt: string, reviewHorizon: "1d" | "1w" | 
   ]);
   assert.deepEqual(partitioned.valid.map(row => row.id), ["valid"]);
   assert.deepEqual(partitioned.invalid.map(row => row.id), ["impossible", "year-zero", "missing"]);
+}
+
+{
+  const dir = mkdtempSync(join(tmpdir(), "alpha-pon-readiness-outcome-date-"));
+  const generatedPath = join(dir, "alpha-pon-data.json");
+  const canonical = {
+    code: "8136",
+    hypothesis: { detectedAt: "2026-08-01" },
+    reviewHorizon: "1m",
+    dataSource: "jquants",
+    dataAvailability: "ok",
+  };
+  try {
+    writeFileSync(generatedPath, JSON.stringify({ hypothesisOutcomes: [canonical] }));
+    assert.doesNotThrow(() => assertReadinessHypothesisOutcomeInput(generatedPath));
+
+    for (const detectedAt of ["2026-02-31", "0000-01-01", "2026-8-1"] as const) {
+      writeFileSync(generatedPath, JSON.stringify({
+        hypothesisOutcomes: [{ ...canonical, hypothesis: { detectedAt } }],
+      }));
+      assert.throws(
+        () => assertReadinessHypothesisOutcomeInput(generatedPath),
+        /canonical score fields and unique code \+ hypothesis\.detectedAt \+ reviewHorizon identities/,
+        `malformed detectedAt=${detectedAt} must not inflate real/priced readiness outcome counts`,
+      );
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 {
