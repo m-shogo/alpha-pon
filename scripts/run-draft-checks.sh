@@ -20,6 +20,7 @@ node --import tsx/esm tests/ops-dashboard-special-input.test.ts
 node --import tsx/esm tests/ops-dashboard-integrity-input.test.ts
 node --import tsx/esm tests/ops-dashboard-outcome-quality-input.test.ts
 node --import tsx/esm tests/ops-dashboard-outcomes-input.test.ts
+node --import tsx/esm tests/ops-dashboard-safe-output-health.test.ts
 node --import tsx/esm tests/line-consolidation.test.ts
 
 echo "draft-checks: ok"
