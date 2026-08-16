@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import "./listing-automation-summary-input.test.js";
 import { parseListingEventMessageInput } from "../src/listing-event-message-preview-input.js";
 
 const VALID_ALERT = {
