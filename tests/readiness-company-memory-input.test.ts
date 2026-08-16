@@ -7,6 +7,7 @@ import {
   assertReadinessBackupDirectoryInput,
   assertReadinessCompanyMemoryInput,
   assertReadinessDataQualityFallbackInput,
+  assertReadinessHypothesisOutcomeInput,
   assertReadinessHypothesisPredictionInput,
   assertReadinessPrimaryDisclosureReviewInput,
   assertReadinessScoreSnapshotFilenameInput,
@@ -163,6 +164,49 @@ try {
     () => assertReadinessHypothesisPredictionInput(generatedPath),
     "missing generated hypothesis predictions must preserve the JSONL fallback path",
   );
+
+  const outcome = {
+    code: "8136",
+    hypothesis: { detectedAt: "2026-08-01" },
+    reviewHorizon: "1m",
+  };
+  writeFileSync(generatedPath, JSON.stringify({ hypothesisOutcomes: [outcome] }));
+  assert.doesNotThrow(
+    () => assertReadinessHypothesisOutcomeInput(generatedPath),
+    "one canonical generated hypothesis outcome remains valid readiness evidence",
+  );
+
+  writeFileSync(generatedPath, JSON.stringify({ hypothesisOutcomes: [outcome, { ...outcome }] }));
+  assert.throws(
+    () => assertReadinessHypothesisOutcomeInput(generatedPath),
+    /unique code \+ hypothesis\.detectedAt \+ reviewHorizon identities/,
+    "duplicate outcomes must not inflate real/priced outcome readiness counts",
+  );
+
+  writeFileSync(generatedPath, JSON.stringify({ hypothesisOutcomes: [
+    outcome,
+    { ...outcome, reviewHorizon: "1w" },
+  ] }));
+  assert.doesNotThrow(
+    () => assertReadinessHypothesisOutcomeInput(generatedPath),
+    "different review horizons remain distinct canonical outcomes",
+  );
+
+  for (const malformedOutcome of [
+    null,
+    {},
+    { code: "8136", reviewHorizon: "1m" },
+    { code: "8136 ", hypothesis: { detectedAt: "2026-08-01" }, reviewHorizon: "1m" },
+    { code: "8136", hypothesis: { detectedAt: "" }, reviewHorizon: "1m" },
+    { code: "8136", hypothesis: { detectedAt: "2026-08-01" }, reviewHorizon: "1y" },
+  ] as const) {
+    writeFileSync(generatedPath, JSON.stringify({ hypothesisOutcomes: [malformedOutcome] }));
+    assert.throws(
+      () => assertReadinessHypothesisOutcomeInput(generatedPath),
+      /unique code \+ hypothesis\.detectedAt \+ reviewHorizon identities/,
+      "malformed outcome identities must fail closed before readiness scoring",
+    );
+  }
 
   writeFileSync(generatedPath, JSON.stringify({
     primaryDisclosureReviews: {

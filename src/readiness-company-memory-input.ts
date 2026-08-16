@@ -6,6 +6,7 @@ import { hasUniqueSourceHealthScoreIdentities, hasValidPrimaryDisclosureReview, 
 const READINESS_DATA_QUALITY_VALUES = new Set(["ok", "missing", "unknown"]);
 const ACTION_LABEL_KEYS = ["watch", "log", "ignore"] as const;
 const SCORE_BAND_KEYS = ["0-49", "50-69", "70-84", "85-100", "unknown"] as const;
+const REVIEW_HORIZONS = new Set(["1d", "1w", "1m", "3m"]);
 
 function readJson(path: string): unknown {
   try {
@@ -47,6 +48,20 @@ function hasUniqueCanonicalCodes(value: unknown): boolean {
     const code = row.code as string;
     if (code !== code.trim() || seen.has(code)) return false;
     seen.add(code);
+  }
+  return true;
+}
+
+function hasUniqueHypothesisOutcomeIdentities(value: unknown): boolean {
+  if (!Array.isArray(value)) return false;
+  const seen = new Set<string>();
+  for (const item of value) {
+    if (!isRecord(item) || !isNonEmptyString(item.code) || item.code !== item.code.trim()) return false;
+    if (!isRecord(item.hypothesis) || !isNonEmptyString(item.hypothesis.detectedAt)) return false;
+    if (typeof item.reviewHorizon !== "string" || !REVIEW_HORIZONS.has(item.reviewHorizon)) return false;
+    const key = `${item.code}:${item.hypothesis.detectedAt}:${item.reviewHorizon}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
   }
   return true;
 }
@@ -207,6 +222,16 @@ export function assertReadinessHypothesisPredictionInput(
   }
 }
 
+export function assertReadinessHypothesisOutcomeInput(
+  generatedPath = "apps/web/public/generated/alpha-pon-data.json",
+): void {
+  const generated = readGeneratedObject(generatedPath);
+  if (!generated || generated.hypothesisOutcomes === undefined) return;
+  if (!hasUniqueHypothesisOutcomeIdentities(generated.hypothesisOutcomes)) {
+    throw new Error(`${generatedPath}: hypothesisOutcomes must have unique code + hypothesis.detectedAt + reviewHorizon identities`);
+  }
+}
+
 export function assertReadinessPrimaryDisclosureReviewInput(
   generatedPath = "apps/web/public/generated/alpha-pon-data.json",
 ): void {
@@ -285,6 +310,7 @@ if (process.argv[1]?.endsWith("readiness-company-memory-input.ts")) {
   assertReadinessBackupDirectoryInput();
   assertReadinessCompanyMemoryInput();
   assertReadinessHypothesisPredictionInput();
+  assertReadinessHypothesisOutcomeInput();
   assertReadinessPrimaryDisclosureReviewInput();
   assertReadinessDataQualityFallbackInput();
   assertReadinessAccuracySummaryInput();
