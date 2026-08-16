@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  assertReadinessAccuracySummaryInput,
   assertReadinessCompanyMemoryInput,
   assertReadinessDataQualityFallbackInput,
   assertReadinessHypothesisPredictionInput,
@@ -14,6 +15,7 @@ try {
   const generatedPath = join(dir, "alpha-pon-data.json");
   const reportPath = join(dir, "company_memory_latest.json");
   const reportsDir = join(dir, "reports");
+  const accuracySummaryPath = join(dir, "hypothesis_accuracy_summary.json");
   mkdirSync(reportsDir);
 
   writeFileSync(generatedPath, JSON.stringify({ companyMemory: [] }));
@@ -208,6 +210,50 @@ try {
     () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir),
     /warnings must be a string array/,
     "an unparsable canonical score snapshot must not suppress validation of the generated fallback",
+  );
+
+  const canonicalAccuracySummary = {
+    total: 3,
+    byActionLabel: {
+      watch: { total: 1 },
+      log: { total: 1 },
+      ignore: { total: 1 },
+    },
+    byScoreBand: {
+      "0-49": { total: 0 },
+      "50-69": { total: 1 },
+      "70-84": { total: 1 },
+      "85-100": { total: 1 },
+      unknown: { total: 0 },
+    },
+  };
+  writeFileSync(accuracySummaryPath, JSON.stringify(canonicalAccuracySummary));
+  assert.doesNotThrow(
+    () => assertReadinessAccuracySummaryInput(accuracySummaryPath),
+    "canonical accuracy summary remains valid readiness evidence",
+  );
+
+  for (const malformedSummary of [
+    [],
+    { byActionLabel: [], byScoreBand: canonicalAccuracySummary.byScoreBand },
+    { byActionLabel: canonicalAccuracySummary.byActionLabel, byScoreBand: "present" },
+    { byActionLabel: { watch: { total: 1 } }, byScoreBand: canonicalAccuracySummary.byScoreBand },
+    { byActionLabel: canonicalAccuracySummary.byActionLabel, byScoreBand: { ...canonicalAccuracySummary.byScoreBand, unknown: { total: -1 } } },
+    { total: Number.POSITIVE_INFINITY, byActionLabel: canonicalAccuracySummary.byActionLabel, byScoreBand: canonicalAccuracySummary.byScoreBand },
+  ] as const) {
+    writeFileSync(accuracySummaryPath, JSON.stringify(malformedSummary));
+    assert.throws(
+      () => assertReadinessAccuracySummaryInput(accuracySummaryPath),
+      /(accuracy summary root|byActionLabel|byScoreBand|total)/,
+      "malformed accuracy summary metadata must not qualify for elevated outcome readiness",
+    );
+  }
+
+  writeFileSync(accuracySummaryPath, "{ broken");
+  assert.throws(
+    () => assertReadinessAccuracySummaryInput(accuracySummaryPath),
+    /invalid JSON/,
+    "unparsable accuracy summary must fail closed before readiness scoring",
   );
 } finally {
   rmSync(dir, { recursive: true, force: true });
