@@ -33,7 +33,7 @@ try {
   writeFileSync(inputPath, '{"code":"8136"}\n{broken\n{"code":"5803"}\n', "utf-8");
   const input = readIpoThemeOutcomeInput<{ code: string }>(inputPath);
   assert.deepEqual(input.rows.map(row => row.code), ["8136", "5803"]);
-  assert(input.warning?.includes("line 2"), "malformed outcome rows must surface line-number metadata without stopping valid rows");
+  assert(input.warning?.includes("lines 2"), "malformed outcome rows must surface line-number metadata without stopping valid rows");
   assert(!input.warning?.includes("{broken"), "parse warnings must not echo raw malformed JSONL content");
 } finally {
   rmSync(tmp, { recursive: true, force: true });
