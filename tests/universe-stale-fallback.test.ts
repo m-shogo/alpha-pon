@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { normalizeCompanyRulesMemoryInput } from "../src/company-rules-memory-input.js";
 import { normalizeCompanyRulesUniverseInput } from "../src/company-rules-universe-input.js";
 import { buildUniverseScanOutput } from "../src/universe-scan-output.js";
 import { carryForwardStaleCandidate, STALE_FALLBACK_WARNING } from "../src/universe-stale-fallback.js";
@@ -55,5 +56,18 @@ const mixedRows = normalizeCompanyRulesUniverseInput({
 assert.deepEqual(mixedRows.rows, [{ code: "1234" }], "object row 以外は隔離する");
 assert.equal(mixedRows.status, "ok");
 assert.equal(mixedRows.invalidRowCount, 3);
+
+const validMemory = normalizeCompanyRulesMemoryInput({
+  code: "1234",
+  watchReason: ["監視理由"],
+  knownRisks: ["既知リスク"],
+  recurringWarnings: ["継続警告"],
+});
+assert.equal(validMemory.status, "ok");
+assert.deepEqual(validMemory.record?.knownRisks, ["既知リスク"]);
+
+const malformedMemory = normalizeCompanyRulesMemoryInput({ knownRisks: {} });
+assert.equal(malformedMemory.status, "invalid_field");
+assert.equal(malformedMemory.record, null, "object-shaped memory arrays は company rules へ流さない");
 
 console.log("universe-stale-fallback.test.ts passed");
