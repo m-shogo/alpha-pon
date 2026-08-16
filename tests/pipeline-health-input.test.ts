@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { readKnowledgeReviewJsonl } from "../src/knowledge-review-input.js";
 import { hasCanonicalPipelineStatus, hasUsableSourceHealthText, sourceHealthHistoryState } from "../src/pipeline-health-input.js";
+import { readStaleHypothesisJsonl } from "../src/stale-hypothesis-input.js";
 
 assert.equal(hasUsableSourceHealthText("# source health\n- ok"), true, "meaningful source health text stays usable");
 assert.equal(hasUsableSourceHealthText(""), false, "empty source health text must fail closed");
@@ -21,6 +22,10 @@ try {
   const result = readKnowledgeReviewJsonl<{ code: string }>(path);
   assert.deepEqual(result.rows.map(row => row.code), ["8136", "6758"], "valid rows continue through a malformed JSONL row");
   assert.match(result.warning ?? "", /parse_error 1 \(lines 2\)/, "malformed JSONL rows remain visible as metadata-only warnings");
+
+  const staleResult = readStaleHypothesisJsonl<{ code: string }>(path);
+  assert.deepEqual(staleResult.rows.map(row => row.code), ["8136", "6758"], "stale-hypothesis aggregation keeps valid rows around a malformed JSONL row");
+  assert.match(staleResult.warning ?? "", /parse_error 1 \(lines 2\)/, "stale-hypothesis report must expose malformed history instead of silently undercounting misses");
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
