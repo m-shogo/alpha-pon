@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
 import { parseListingAutomationCheckInput } from "./listing-automation-summary-input.js";
 import { parseListingAutomationJpxInput } from "./listing-automation-jpx-input.js";
+import { parseListingAutomationJquantsInput } from "./listing-automation-jquants-input.js";
 import { parseListingEventMessageInput } from "./listing-event-message-preview-input.js";
 
 type Status = "ok" | "warning" | "fail" | "missing" | "unknown";
@@ -83,11 +84,13 @@ function alertsItem(): SummaryItem {
 function priceItem(): SummaryItem {
   const path = "reports/jquants_listing_review_prices_latest.json";
   if (!existsReport(path)) return { id: "jquants", status: "missing", label: "J-Quants prices", detail: "J-Quants report missing", reportPath: path };
-  const json = readJson<{ results?: { price?: number | null; source?: string }[]; setupError?: string | null; targets?: unknown[] }>(path, {});
-  const results = json.results ?? [];
-  const missing = results.filter(r => r.price == null).length;
-  const status: Status = json.setupError ? "warning" : results.length === 0 ? "warning" : missing > 0 ? "warning" : "ok";
-  return { id: "jquants", status, label: "J-Quants prices", detail: `targets=${json.targets?.length ?? 0}, results=${results.length}, missing=${missing}${json.setupError ? `, setup=${json.setupError}` : ""}`, reportPath: path };
+  const input = parseListingAutomationJquantsInput(readFileSync(path, "utf-8"));
+  if (input.invalid) {
+    return { id: "jquants", status: "warning", label: "J-Quants prices", detail: `invalid input (${input.reason})`, reportPath: path };
+  }
+  const missing = input.results.filter(r => r.price == null).length;
+  const status: Status = input.setupError ? "warning" : input.results.length === 0 ? "warning" : missing > 0 ? "warning" : "ok";
+  return { id: "jquants", status, label: "J-Quants prices", detail: `targets=${input.targets.length}, results=${input.results.length}, missing=${missing}${input.setupError ? `, setup=${input.setupError}` : ""}`, reportPath: path };
 }
 
 function topixItem(): SummaryItem {
