@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { addDaysJst } from "../src/date.js";
 import { readIpoThemeOutcomeInput, readIpoThemeWorldEventInput } from "../src/ipo-theme-watch-input.js";
+import { readWorldThemeCandidateReviewInput } from "../src/world-theme-candidate-review-input.js";
 
 function readJson(path: string): unknown {
   if (!existsSync(path)) return null;
@@ -56,6 +57,31 @@ try {
   assert(outcomeInput.warning?.includes("lines 2"), "malformed outcome rows must surface line-number metadata without stopping valid rows");
   assert(outcomeInput.warning?.includes("invalid_rows 2"), "valid JSON rows with unsafe outcome shape must be isolated without stopping valid rows");
   assert(!outcomeInput.warning?.includes("{broken"), "parse warnings must not echo raw malformed JSONL content");
+
+  const worldThemeReviewPath = join(tmp, "world_theme_candidate_hypotheses.jsonl");
+  const validWorldThemeHypothesis = JSON.stringify({
+    hypothesisId: "world-theme-1",
+    detectedAt: "2026-08-01",
+    sourceEventTitle: "Space launch",
+    theme: "space",
+    candidateCode: "8136",
+    candidateCompany: "Company 8136",
+    nextPrimaryCheck: "official IR",
+    reviewDueDates: [
+      { afterDays: 30, dueAt: "2026-08-31", status: "open" },
+      { afterDays: 90, dueAt: "2026-10-30", status: "reviewed" },
+    ],
+  });
+  writeFileSync(
+    worldThemeReviewPath,
+    `${validWorldThemeHypothesis}\n{broken\n{}\n{"hypothesisId":"missing-review-dates"}\n`,
+    "utf-8",
+  );
+  const worldThemeReviewInput = readWorldThemeCandidateReviewInput(worldThemeReviewPath);
+  assert.deepEqual(worldThemeReviewInput.rows.map(row => row.hypothesisId), ["world-theme-1"]);
+  assert(worldThemeReviewInput.warning?.includes("lines 2"), "malformed world-theme rows must surface line-number metadata without stopping valid rows");
+  assert(worldThemeReviewInput.warning?.includes("invalid_rows 2"), "JSON-valid unsafe world-theme rows must be isolated without stopping valid rows");
+  assert(!worldThemeReviewInput.warning?.includes("{broken"), "world-theme warnings must not echo raw malformed JSONL content");
 
   const worldEventsPath = join(tmp, "world_events_latest.json");
   assert.deepEqual(readIpoThemeWorldEventInput(worldEventsPath), { rows: [], warning: null }, "missing world-event snapshots remain a valid empty input");
