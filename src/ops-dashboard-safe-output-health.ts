@@ -22,11 +22,15 @@ export function safeOutputAuditGap(safeOutput: SafeOutputReportLike | null): Saf
       : 0;
   const scanErrorCount = Array.isArray(safeOutput.scanErrors) ? safeOutput.scanErrors.length : 0;
 
+  // findings がある場合は buildOpsDashboard 側の既存危険表現 issue に任せる。
+  // この helper は findings 0件なのに監査完了を証明できないケースだけを補完する。
+  if (findingsCount > 0) return null;
+
   if (safeOutput.healthStatus === "action_required") {
     return scanErrorCount > 0 ? "scan_failure" : "invalid_report";
   }
-  if (safeOutput.healthStatus === "needs_attention" && findingsCount <= 0) return "invalid_report";
-  if (safeOutput.healthStatus === "ok" && (findingsCount > 0 || scanErrorCount > 0)) return "invalid_report";
+  if (safeOutput.healthStatus === "needs_attention") return "invalid_report";
+  if (safeOutput.healthStatus === "ok" && scanErrorCount > 0) return "invalid_report";
   return null;
 }
 
