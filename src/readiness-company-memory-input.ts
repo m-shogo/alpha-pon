@@ -40,6 +40,17 @@ function isIdentifiedArray(value: unknown): value is Record<string, unknown>[] {
   return Array.isArray(value) && value.every(isIdentifiedRow);
 }
 
+function hasUniqueCanonicalCodes(value: unknown): boolean {
+  if (!isIdentifiedArray(value)) return false;
+  const seen = new Set<string>();
+  for (const row of value) {
+    const code = row.code as string;
+    if (code !== code.trim() || seen.has(code)) return false;
+    seen.add(code);
+  }
+  return true;
+}
+
 function isNonNegativeInteger(value: unknown): value is number {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 }
@@ -174,15 +185,15 @@ export function assertReadinessCompanyMemoryInput(
   const generated = readGeneratedObject(generatedPath);
   if (generated) {
     const companyMemory = generated.companyMemory;
-    if (companyMemory !== undefined && !isIdentifiedArray(companyMemory)) {
-      throw new Error(`${generatedPath}: companyMemory must be an array of objects with non-empty code and name when present`);
+    if (companyMemory !== undefined && !hasUniqueCanonicalCodes(companyMemory)) {
+      throw new Error(`${generatedPath}: companyMemory must be an array of objects with canonical unique code and non-empty name when present`);
     }
   }
 
   if (!existsSync(reportPath)) return;
   const report = readJson(reportPath);
-  if (!isIdentifiedArray(report)) {
-    throw new Error(`${reportPath}: company-memory root must be an array of objects with non-empty code and name`);
+  if (!hasUniqueCanonicalCodes(report)) {
+    throw new Error(`${reportPath}: company-memory root must be an array of objects with canonical unique code and non-empty name`);
   }
 }
 
