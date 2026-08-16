@@ -19,6 +19,7 @@ import { normalizeOpsOutcomeQualityInput } from "../src/ops-dashboard-outcome-qu
 import { normalizeOpsOutcomesInput } from "../src/ops-dashboard-outcomes-input.js";
 import { normalizeOpsPipelineStatusInput } from "../src/ops-dashboard-pipeline-input.js";
 import { applySafeOutputAuditHealth } from "../src/ops-dashboard-safe-output-health.js";
+import { applySafeWordingScanHealth } from "../src/ops-dashboard-safe-wording-health.js";
 import { normalizeOpsSpecialSituationInput } from "../src/ops-dashboard-special-input.js";
 import { applyWorldImpactAuditHealth } from "../src/ops-dashboard-world-impact-health.js";
 import {
@@ -69,17 +70,21 @@ function collectSafeWordingTargets(): string[] {
   return targets;
 }
 
-function scanSafeWording(): { scannedFiles: number; findings: SafeWordingFinding[] } {
+function scanSafeWording(): { scannedFiles: number; readErrorCount: number; findings: SafeWordingFinding[] } {
   const targets = collectSafeWordingTargets();
   const findings: SafeWordingFinding[] = [];
+  let scannedFiles = 0;
+  let readErrorCount = 0;
   for (const rel of targets) {
     try {
-      findings.push(...findForbiddenWording(readFileSync(join(ROOT, rel), "utf-8"), rel));
+      const content = readFileSync(join(ROOT, rel), "utf-8");
+      scannedFiles += 1;
+      findings.push(...findForbiddenWording(content, rel));
     } catch {
-      // 読めないファイルはスキップ（監査対象外）
+      readErrorCount += 1;
     }
   }
-  return { scannedFiles: targets.length, findings };
+  return { scannedFiles, readErrorCount, findings };
 }
 
 // ── メイン ───────────────────────────────────────────────────
@@ -128,7 +133,10 @@ const baseDashboard = buildOpsDashboard({
   safeWordingFindings: safeWording.findings,
 });
 const worldImpactDashboard = applyWorldImpactAuditHealth(baseDashboard, worldImpact);
-const dashboard = applySafeOutputAuditHealth(worldImpactDashboard, safeOutput);
+const safeOutputDashboard = applySafeOutputAuditHealth(worldImpactDashboard, safeOutput);
+const dashboard = applySafeWordingScanHealth(safeOutputDashboard, {
+  readErrorCount: safeWording.readErrorCount,
+});
 
 const json = JSON.stringify(dashboard, null, 2) + "\n";
 const markdown = renderOpsDashboardMarkdown(dashboard);
