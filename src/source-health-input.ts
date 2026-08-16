@@ -44,12 +44,7 @@ export function normalizeSourceHealthScoreRows<T>(value: unknown): { rows: T[]; 
   if (!Array.isArray(value) || value.some(row => !isRecord(row))) {
     return { rows: [], valid: false };
   }
-  const seenCodes = new Set<string>();
   for (const row of value) {
-    if (typeof row.code !== "string" || row.code.trim().length === 0 || seenCodes.has(row.code)) {
-      return { rows: [], valid: false };
-    }
-    seenCodes.add(row.code);
     if (row.dataQuality !== undefined && (typeof row.dataQuality !== "string" || !DATA_QUALITIES.has(row.dataQuality))) {
       return { rows: [], valid: false };
     }
@@ -61,6 +56,18 @@ export function normalizeSourceHealthScoreRows<T>(value: unknown): { rows: T[]; 
     }
   }
   return { rows: value as T[], valid: true };
+}
+
+export function hasUniqueSourceHealthScoreIdentities(value: unknown): boolean {
+  if (!Array.isArray(value)) return false;
+  const seenCodes = new Set<string>();
+  for (const row of value) {
+    if (!isRecord(row) || typeof row.code !== "string" || row.code.trim().length === 0 || seenCodes.has(row.code)) {
+      return false;
+    }
+    seenCodes.add(row.code);
+  }
+  return true;
 }
 
 export function normalizeSourceHealthObject<T extends object>(value: unknown): { value: T | null; valid: boolean } {
