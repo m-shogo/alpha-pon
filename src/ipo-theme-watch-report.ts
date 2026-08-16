@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
+import { readIpoThemeOutcomeInput } from "./ipo-theme-watch-input.js";
 import type { HypothesisOutcome } from "./universe.js";
 
 type PhaseRule = {
@@ -76,6 +77,7 @@ type IpoThemeWatchReport = {
   neverTreatAs: string[];
   globalReferenceEvents: string[];
   safetyRules: string[];
+  inputWarnings: string[];
   phases: PhaseRule[];
   rules: Array<ThemeRule & {
     phaseIds: string[];
@@ -88,15 +90,6 @@ type IpoThemeWatchReport = {
 
 function readYaml<T>(path: string): T {
   return load(readFileSync(path, "utf-8")) as T;
-}
-
-function readJsonl<T>(path: string): T[] {
-  if (!existsSync(path)) return [];
-  return readFileSync(path, "utf-8")
-    .split("\n")
-    .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => JSON.parse(line) as T);
 }
 
 function avg(values: Array<number | null | undefined>): number | null {
@@ -176,8 +169,12 @@ function companyMatchesTheme(outcome: HypothesisOutcome, theme: ThemeRule): bool
   return companyMatch || nameMatch || themeMatch;
 }
 
-function buildOutcomeStats(config: IpoThemeWatchConfig): IpoThemeWatchOutcomeStats[] {
-  const outcomes = readJsonl<HypothesisOutcome>("data/hypothesis_outcomes.jsonl");
+function buildOutcomeStats(config: IpoThemeWatchConfig): {
+  stats: IpoThemeWatchOutcomeStats[];
+  warning: string | null;
+} {
+  const outcomeInput = readIpoThemeOutcomeInput<HypothesisOutcome>("data/hypothesis_outcomes.jsonl");
+  const outcomes = outcomeInput.rows;
   const minSampleSize = config.outcomeStats?.minSampleSize ?? 5;
   const stats: IpoThemeWatchOutcomeStats[] = [];
 
@@ -227,7 +224,7 @@ function buildOutcomeStats(config: IpoThemeWatchConfig): IpoThemeWatchOutcomeSta
     }
   }
 
-  return stats;
+  return { stats, warning: outcomeInput.warning };
 }
 
 /** world_events_latest.json からテーマ関連イベントを抽出 */
@@ -310,6 +307,7 @@ function buildReport(config: IpoThemeWatchConfig): IpoThemeWatchReport {
   const generatedAt = todayJst();
   const phaseIds = config.phases.map(phase => phase.id);
   const allAvoidReasons = [...new Set(config.phases.flatMap(phase => phase.touchAvoidReasons ?? []))];
+  const outcomeStats = buildOutcomeStats(config);
 
   return {
     generatedAt,
@@ -317,6 +315,7 @@ function buildReport(config: IpoThemeWatchConfig): IpoThemeWatchReport {
     neverTreatAs: config.neverTreatAs,
     globalReferenceEvents: config.globalReferenceEvents ?? [],
     safetyRules: config.safetyRules ?? [],
+    inputWarnings: outcomeStats.warning ? [outcomeStats.warning] : [],
     phases: config.phases,
     rules: config.themes.map(theme => ({
       ...theme,
@@ -327,7 +326,7 @@ function buildReport(config: IpoThemeWatchConfig): IpoThemeWatchReport {
         ...config.phases.flatMap(phase => phase.focus ?? []),
       ].filter((value, index, array) => array.indexOf(value) === index),
     })),
-    outcomeStats: buildOutcomeStats(config),
+    outcomeStats: outcomeStats.stats,
     worldEventHighlights: loadRelevantWorldEvents(config.themes),
   };
 }
@@ -342,6 +341,11 @@ function renderMarkdown(report: IpoThemeWatchReport): string {
   lines.push("# alpha-pon IPO theme watch report", "");
   lines.push(`date: ${report.generatedAt}`, "");
   lines.push("> 大型IPO/AI/宇宙テーマを、監視・証拠確認・待つ理由として扱います。売買推奨ではありません。", "");
+  if (report.inputWarnings.length > 0) {
+    lines.push("## input warnings", "");
+    for (const warning of report.inputWarnings) lines.push(`- ⚠️ ${warning}`);
+    lines.push("");
+  }
   lines.push("## default action", "");
   lines.push(`- ${report.defaultAction}`, "");
   lines.push("## never treat as", "");
@@ -421,7 +425,7 @@ function main() {
   mkdirSync("reports", { recursive: true });
   writeFileSync(join("reports", "ipo_theme_watch_latest.json"), JSON.stringify(report, null, 2), "utf-8");
   writeFileSync(join("reports", "ipo_theme_watch_latest.md"), renderMarkdown(report), "utf-8");
-  console.log(`ipo theme watch report generated: ${report.rules.length} themes, ${report.outcomeStats.length} outcome rows, ${report.worldEventHighlights.length} world event highlights`);
+  console.log(`ipo theme watch report generated: ${report.rules.length} themes, ${report.outcomeStats.length} outcome rows, ${report.worldEventHighlights.length} world event highlights, warnings=${report.inputWarnings.length}`);
 }
 
 main();
