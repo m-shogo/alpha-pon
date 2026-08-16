@@ -23,8 +23,20 @@ function isPriceRiskWarningArray(value: unknown): boolean {
   });
 }
 
+function isCanonicalNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0 && value === value.trim();
+}
+
 function isCompanyRulesCandidateRow(value: unknown): value is Record<string, unknown> {
   if (!isRecord(value)) return false;
+
+  if (!isCanonicalNonEmptyString(value.code) || !isCanonicalNonEmptyString(value.name)) {
+    return false;
+  }
+
+  if (value.dataSource !== "jquants" && value.dataSource !== "mock") {
+    return false;
+  }
 
   for (const key of ["matchedWorldEventTags", "warnings"] as const) {
     const field = value[key];
