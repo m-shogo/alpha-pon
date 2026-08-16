@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { addDaysJst, backupAgeDaysFromDirectoryName, todayJst } from "./date.js";
-import { hasValidPrimaryDisclosureReview, normalizeSourceHealthArray } from "./source-health-input.js";
+import { hasUniqueSourceHealthScoreIdentities, hasValidPrimaryDisclosureReview, normalizeSourceHealthArray } from "./source-health-input.js";
 
 const READINESS_DATA_QUALITY_VALUES = new Set(["ok", "missing", "unknown"]);
 const ACTION_LABEL_KEYS = ["watch", "log", "ignore"] as const;
@@ -68,16 +68,21 @@ function isCanonicalScoreSnapshotFilename(file: string, asOf = todayJst()): bool
   return Boolean(match && isRealJstDate(match[1]) && match[1] <= asOf);
 }
 
+function latestCanonicalScoreSnapshotPath(reportsDir: string, asOf = todayJst()): string | null {
+  if (!existsSync(reportsDir)) return null;
+  const latest = readdirSync(reportsDir)
+    .filter((file) => isCanonicalScoreSnapshotFilename(file, asOf))
+    .sort()
+    .at(-1);
+  return latest ? join(reportsDir, latest) : null;
+}
+
 function hasUsableScoreSnapshot(reportsDir: string, asOf = todayJst()): boolean {
-  if (!existsSync(reportsDir)) return false;
   try {
-    const latest = readdirSync(reportsDir)
-      .filter((file) => isCanonicalScoreSnapshotFilename(file, asOf))
-      .sort()
-      .at(-1);
-    if (!latest) return false;
-    const raw = JSON.parse(readFileSync(join(reportsDir, latest), "utf-8"));
-    return normalizeSourceHealthArray(raw).valid;
+    const latestPath = latestCanonicalScoreSnapshotPath(reportsDir, asOf);
+    if (!latestPath) return false;
+    const raw = JSON.parse(readFileSync(latestPath, "utf-8"));
+    return normalizeSourceHealthArray(raw).valid && hasUniqueSourceHealthScoreIdentities(raw);
   } catch {
     return false;
   }
@@ -94,6 +99,15 @@ export function assertReadinessScoreSnapshotFilenameInput(reportsDir = "reports"
     if (match[1] > asOf) {
       throw new Error(`${join(reportsDir, name)}: score snapshot filename must not be later than readiness as-of date ${asOf}`);
     }
+  }
+}
+
+export function assertReadinessScoreSnapshotIdentityInput(reportsDir = "reports", asOf = todayJst()): void {
+  const latestPath = latestCanonicalScoreSnapshotPath(reportsDir, asOf);
+  if (!latestPath) return;
+  const raw = readJson(latestPath);
+  if (!normalizeSourceHealthArray(raw).valid || !hasUniqueSourceHealthScoreIdentities(raw)) {
+    throw new Error(`${latestPath}: score snapshot rows must have canonical non-empty unique code identities`);
   }
 }
 
@@ -256,6 +270,7 @@ export function assertReadinessAccuracySummaryInput(
 
 if (process.argv[1]?.endsWith("readiness-company-memory-input.ts")) {
   assertReadinessScoreSnapshotFilenameInput();
+  assertReadinessScoreSnapshotIdentityInput();
   assertReadinessBackupDirectoryInput();
   assertReadinessCompanyMemoryInput();
   assertReadinessHypothesisPredictionInput();
