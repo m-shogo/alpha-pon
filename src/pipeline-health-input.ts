@@ -36,6 +36,7 @@ function hasCanonicalGeneratedAt(value: unknown): value is string {
 function canonicalPipelineResults(value: unknown): PipelineResult[] | null {
   if (!Array.isArray(value)) return null;
   const results: PipelineResult[] = [];
+  const seenNames = new Set<string>();
   for (const row of value) {
     if (!row || typeof row !== "object" || Array.isArray(row)) return null;
     const candidate = row as Record<string, unknown>;
@@ -43,10 +44,12 @@ function canonicalPipelineResults(value: unknown): PipelineResult[] | null {
       typeof candidate.name !== "string"
       || candidate.name.trim().length === 0
       || candidate.name !== candidate.name.trim()
+      || seenNames.has(candidate.name)
       || (candidate.status !== "ok" && candidate.status !== "skip" && candidate.status !== "fail")
     ) {
       return null;
     }
+    seenNames.add(candidate.name);
     results.push({ name: candidate.name, status: candidate.status });
   }
   return results;
