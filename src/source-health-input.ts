@@ -10,8 +10,12 @@ function isOptionalStringArray(value: unknown): boolean {
   return value === undefined || isStringArray(value);
 }
 
-function isOptionalFiniteNumber(value: unknown): boolean {
-  return value === undefined || (typeof value === "number" && Number.isFinite(value));
+function isNonNegativeInteger(value: unknown): boolean {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0;
+}
+
+function isOptionalNonNegativeInteger(value: unknown): boolean {
+  return value === undefined || isNonNegativeInteger(value);
 }
 
 const PRIMARY_DISCLOSURE_DECISIONS = new Set(["confirmed", "caution", "block", "missing"]);
@@ -22,9 +26,9 @@ export function hasValidPrimaryDisclosureReview(value: unknown): boolean {
   if (typeof value.decision !== "string" || !PRIMARY_DISCLOSURE_DECISIONS.has(value.decision)) return false;
   if (!isOptionalStringArray(value.warnings) || !isOptionalStringArray(value.blockers)) return false;
   if (!isRecord(value.sourceCoverage)) return false;
-  if (typeof value.sourceCoverage.tdnetCount !== "number" || !Number.isFinite(value.sourceCoverage.tdnetCount)) return false;
-  if (typeof value.sourceCoverage.edinetCount !== "number" || !Number.isFinite(value.sourceCoverage.edinetCount)) return false;
-  return isOptionalFiniteNumber(value.sourceCoverage.fetchErrorCount)
+  if (!isNonNegativeInteger(value.sourceCoverage.tdnetCount)) return false;
+  if (!isNonNegativeInteger(value.sourceCoverage.edinetCount)) return false;
+  return isOptionalNonNegativeInteger(value.sourceCoverage.fetchErrorCount)
     && isOptionalStringArray(value.sourceCoverage.scannedEdinetDates);
 }
 
