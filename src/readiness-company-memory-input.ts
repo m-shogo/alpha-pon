@@ -7,6 +7,8 @@ const READINESS_DATA_QUALITY_VALUES = new Set(["ok", "missing", "unknown"]);
 const ACTION_LABEL_KEYS = ["watch", "log", "ignore"] as const;
 const SCORE_BAND_KEYS = ["0-49", "50-69", "70-84", "85-100", "unknown"] as const;
 const REVIEW_HORIZONS = new Set(["1d", "1w", "1m", "3m"]);
+const OUTCOME_DATA_SOURCES = new Set(["jquants", "mock"]);
+const OUTCOME_DATA_AVAILABILITY = new Set(["ok", "partial", "missing"]);
 
 function readJson(path: string): unknown {
   try {
@@ -59,6 +61,8 @@ function hasUniqueHypothesisOutcomeIdentities(value: unknown): boolean {
     if (!isRecord(item) || !isNonEmptyString(item.code) || item.code !== item.code.trim()) return false;
     if (!isRecord(item.hypothesis) || !isNonEmptyString(item.hypothesis.detectedAt)) return false;
     if (typeof item.reviewHorizon !== "string" || !REVIEW_HORIZONS.has(item.reviewHorizon)) return false;
+    if (typeof item.dataSource !== "string" || !OUTCOME_DATA_SOURCES.has(item.dataSource)) return false;
+    if (typeof item.dataAvailability !== "string" || !OUTCOME_DATA_AVAILABILITY.has(item.dataAvailability)) return false;
     const key = `${item.code}:${item.hypothesis.detectedAt}:${item.reviewHorizon}`;
     if (seen.has(key)) return false;
     seen.add(key);
@@ -228,7 +232,7 @@ export function assertReadinessHypothesisOutcomeInput(
   const generated = readGeneratedObject(generatedPath);
   if (!generated || generated.hypothesisOutcomes === undefined) return;
   if (!hasUniqueHypothesisOutcomeIdentities(generated.hypothesisOutcomes)) {
-    throw new Error(`${generatedPath}: hypothesisOutcomes must have unique code + hypothesis.detectedAt + reviewHorizon identities`);
+    throw new Error(`${generatedPath}: hypothesisOutcomes must have canonical score fields and unique code + hypothesis.detectedAt + reviewHorizon identities`);
   }
 }
 
