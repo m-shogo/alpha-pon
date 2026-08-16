@@ -62,4 +62,55 @@ assert.equal(
 );
 assert.deepEqual(confirmedWithoutEvidence.rows, [], "unsupported confirmed reviews must fail closed");
 
+for (const supportedCaution of [
+  {
+    code: "8136",
+    primaryDisclosureReview: {
+      decision: "caution",
+      warnings: ["TDnet: caution disclosure"],
+      blockers: [],
+      sourceCoverage: { tdnetCount: 1, edinetCount: 0, fetchErrorCount: 0 },
+    },
+  },
+  {
+    code: "8136",
+    primaryDisclosureReview: {
+      decision: "caution",
+      warnings: ["一次情報取得エラー: timeout"],
+      blockers: [],
+      sourceCoverage: { tdnetCount: 0, edinetCount: 0, fetchErrorCount: 1 },
+    },
+  },
+] as const) {
+  assert.equal(
+    normalizeSourceHealthScoreRows([supportedCaution]).valid,
+    true,
+    "caution with disclosure evidence or fetch-error evidence remains valid",
+  );
+}
+
+for (const unsupportedCaution of [
+  {
+    code: "8136",
+    primaryDisclosureReview: {
+      decision: "caution",
+      warnings: [],
+      blockers: [],
+      sourceCoverage: { tdnetCount: 0, edinetCount: 0, fetchErrorCount: 0 },
+    },
+  },
+  {
+    code: "8136",
+    primaryDisclosureReview: {
+      decision: "caution",
+      blockers: [],
+      sourceCoverage: { tdnetCount: 0, edinetCount: 0, fetchErrorCount: 0 },
+    },
+  },
+] as const) {
+  const result = normalizeSourceHealthScoreRows([unsupportedCaution]);
+  assert.equal(result.valid, false, "unsupported caution must not suppress missing-primary warnings");
+  assert.deepEqual(result.rows, [], "unsupported caution rows must fail closed");
+}
+
 console.log("source-health-coverage-shape.test.ts passed");
