@@ -12,6 +12,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isValidReportValue(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  if (value.exists !== undefined && typeof value.exists !== "boolean") return false;
+  if (
+    value.size !== undefined
+    && (typeof value.size !== "number" || !Number.isFinite(value.size) || value.size < 0)
+  ) return false;
+  return true;
+}
+
 export function normalizeSourceHealthHistoryRows(values: unknown[]): NormalizedSourceHealthHistory {
   const rows: SourceHealthHistoryRow[] = [];
   let invalidRows = 0;
@@ -27,7 +37,7 @@ export function normalizeSourceHealthHistoryRows(values: unknown[]): NormalizedS
         invalidRows += 1;
         continue;
       }
-      const malformedReport = Object.values(value.reports).some(report => !isRecord(report));
+      const malformedReport = Object.values(value.reports).some(report => !isValidReportValue(report));
       if (malformedReport) {
         invalidRows += 1;
         continue;
