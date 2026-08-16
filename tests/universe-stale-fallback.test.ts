@@ -50,20 +50,44 @@ const malformedContainer = normalizeCompanyRulesUniverseInput({ candidates: {} }
 assert.deepEqual(malformedContainer.rows, [], "object-shaped candidates は company rules へ流さない");
 assert.equal(malformedContainer.status, "invalid_candidates");
 
+const minimalValidRow = { code: "1234", name: "テスト", dataSource: "jquants" };
 const mixedRows = normalizeCompanyRulesUniverseInput({
-  candidates: [{ code: "1234" }, null, "bad-row", ["bad-row"]],
+  candidates: [minimalValidRow, null, "bad-row", ["bad-row"]],
 });
-assert.deepEqual(mixedRows.rows, [{ code: "1234" }], "object row 以外は隔離する");
+assert.deepEqual(mixedRows.rows, [minimalValidRow], "object row 以外は隔離する");
 assert.equal(mixedRows.status, "ok");
 assert.equal(mixedRows.invalidRowCount, 3);
 
+const malformedIdentity = normalizeCompanyRulesUniverseInput({
+  candidates: [
+    {},
+    { code: "1234", dataSource: "jquants" },
+    { code: "1234 ", name: "空白code", dataSource: "jquants" },
+    { code: "2345", name: "不明source", dataSource: "external" },
+    { code: "3456", name: "mock候補", dataSource: "mock" },
+  ],
+});
+assert.deepEqual(
+  malformedIdentity.rows,
+  [{ code: "3456", name: "mock候補", dataSource: "mock" }],
+  "identity/provenanceが壊れたrowを実データ候補として company rules へ流さない",
+);
+assert.equal(malformedIdentity.invalidRowCount, 4);
+
 const malformedArrayFields = normalizeCompanyRulesUniverseInput({
   candidates: [
-    { code: "1234", warnings: {} },
-    { code: "2345", matchedWorldEventTags: "theme" },
-    { code: "3456", priceRiskWarnings: [{ level: "warning", reason: "risk", evidence: {} }] },
+    { code: "1234", name: "warnings不正", dataSource: "jquants", warnings: {} },
+    { code: "2345", name: "theme不正", dataSource: "jquants", matchedWorldEventTags: "theme" },
+    {
+      code: "3456",
+      name: "price risk不正",
+      dataSource: "jquants",
+      priceRiskWarnings: [{ level: "warning", reason: "risk", evidence: {} }],
+    },
     {
       code: "4567",
+      name: "正常候補",
+      dataSource: "jquants",
       warnings: ["warning"],
       matchedWorldEventTags: ["theme"],
       priceRiskWarnings: [{ level: "warning", reason: "risk", evidence: ["evidence"] }],
@@ -74,6 +98,8 @@ assert.deepEqual(
   malformedArrayFields.rows,
   [{
     code: "4567",
+    name: "正常候補",
+    dataSource: "jquants",
     warnings: ["warning"],
     matchedWorldEventTags: ["theme"],
     priceRiskWarnings: [{ level: "warning", reason: "risk", evidence: ["evidence"] }],
