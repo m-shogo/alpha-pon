@@ -169,6 +169,8 @@ try {
     code: "8136",
     hypothesis: { detectedAt: "2026-08-01" },
     reviewHorizon: "1m",
+    dataSource: "jquants",
+    dataAvailability: "ok",
   };
   writeFileSync(generatedPath, JSON.stringify({ hypothesisOutcomes: [outcome] }));
   assert.doesNotThrow(
@@ -179,7 +181,7 @@ try {
   writeFileSync(generatedPath, JSON.stringify({ hypothesisOutcomes: [outcome, { ...outcome }] }));
   assert.throws(
     () => assertReadinessHypothesisOutcomeInput(generatedPath),
-    /unique code \+ hypothesis\.detectedAt \+ reviewHorizon identities/,
+    /canonical score fields and unique code \+ hypothesis\.detectedAt \+ reviewHorizon identities/,
     "duplicate outcomes must not inflate real/priced outcome readiness counts",
   );
 
@@ -195,16 +197,20 @@ try {
   for (const malformedOutcome of [
     null,
     {},
-    { code: "8136", reviewHorizon: "1m" },
-    { code: "8136 ", hypothesis: { detectedAt: "2026-08-01" }, reviewHorizon: "1m" },
-    { code: "8136", hypothesis: { detectedAt: "" }, reviewHorizon: "1m" },
-    { code: "8136", hypothesis: { detectedAt: "2026-08-01" }, reviewHorizon: "1y" },
+    { code: "8136", reviewHorizon: "1m", dataSource: "jquants", dataAvailability: "ok" },
+    { ...outcome, code: "8136 " },
+    { ...outcome, hypothesis: { detectedAt: "" } },
+    { ...outcome, reviewHorizon: "1y" },
+    { ...outcome, dataSource: "unknown" },
+    { ...outcome, dataAvailability: "complete" },
+    { code: "8136", hypothesis: { detectedAt: "2026-08-01" }, reviewHorizon: "1m", dataAvailability: "ok" },
+    { code: "8136", hypothesis: { detectedAt: "2026-08-01" }, reviewHorizon: "1m", dataSource: "jquants" },
   ] as const) {
     writeFileSync(generatedPath, JSON.stringify({ hypothesisOutcomes: [malformedOutcome] }));
     assert.throws(
       () => assertReadinessHypothesisOutcomeInput(generatedPath),
-      /unique code \+ hypothesis\.detectedAt \+ reviewHorizon identities/,
-      "malformed outcome identities must fail closed before readiness scoring",
+      /canonical score fields and unique code \+ hypothesis\.detectedAt \+ reviewHorizon identities/,
+      "malformed outcome identities or score fields must fail closed before readiness scoring",
     );
   }
 
