@@ -11,6 +11,7 @@ import { join } from "path";
 import { load } from "js-yaml";
 import { addDaysJst, todayJst } from "./date.js";
 import { searchMarketLessons } from "./analysis/market-lessons-db.js";
+import { normalizeCompanyRulesUniverseInput } from "./company-rules-universe-input.js";
 import {
   buildPriceSignalFromCandidate,
   emptyPriceSignal,
@@ -558,9 +559,17 @@ function loadUniverseCandidates(): {
     if (existsSync(p)) {
       try {
         const raw = JSON.parse(readFileSync(p, "utf-8"));
-        const candidates = Array.isArray(raw) ? raw : (raw.candidates ?? []);
-        return candidates;
-      } catch { /* ignore */ }
+        const normalized = normalizeCompanyRulesUniverseInput(raw);
+        if (normalized.status !== "ok") {
+          console.warn(`[generate-company-rules] universe candidates input ${normalized.status}; candidatesを隔離します`);
+        }
+        if (normalized.invalidRowCount > 0) {
+          console.warn(`[generate-company-rules] universe candidates invalid rows: ${normalized.invalidRowCount}`);
+        }
+        return normalized.rows as any;
+      } catch {
+        console.warn("[generate-company-rules] universe candidates parse error; candidatesを隔離します");
+      }
     }
   }
   return [];
