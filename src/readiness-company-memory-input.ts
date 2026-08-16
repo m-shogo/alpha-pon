@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { addDaysJst } from "./date.js";
 import { hasValidPrimaryDisclosureReview, normalizeSourceHealthArray } from "./source-health-input.js";
 
 const READINESS_DATA_QUALITY_VALUES = new Set(["ok", "missing", "unknown"]);
@@ -54,11 +55,21 @@ function canonicalAccuracyBucketTotal(value: unknown, requiredKeys: readonly str
   return total;
 }
 
+function isCanonicalScoreSnapshotFilename(file: string): boolean {
+  const match = /^scores_(\d{4}-\d{2}-\d{2})\.json$/.exec(file);
+  if (!match) return false;
+  try {
+    return addDaysJst(match[1], 0) === match[1];
+  } catch {
+    return false;
+  }
+}
+
 function hasUsableScoreSnapshot(reportsDir: string): boolean {
   if (!existsSync(reportsDir)) return false;
   try {
     const latest = readdirSync(reportsDir)
-      .filter((file) => /^scores_\d{4}-\d{2}-\d{2}\.json$/.test(file))
+      .filter(isCanonicalScoreSnapshotFilename)
       .sort()
       .at(-1);
     if (!latest) return false;
