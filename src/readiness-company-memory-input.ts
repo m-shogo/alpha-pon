@@ -83,6 +83,17 @@ function hasUsableScoreSnapshot(reportsDir: string): boolean {
   }
 }
 
+export function assertReadinessScoreSnapshotFilenameInput(reportsDir = "reports"): void {
+  if (!existsSync(reportsDir)) return;
+  for (const name of readdirSync(reportsDir)) {
+    const match = /^scores_(\d{4}-\d{2}-\d{2})\.json$/.exec(name);
+    if (!match) continue;
+    if (!isRealJstDate(match[1])) {
+      throw new Error(`${join(reportsDir, name)}: score snapshot filename must contain a real Gregorian date`);
+    }
+  }
+}
+
 export function assertReadinessBackupDirectoryInput(backupsDir = "backups"): void {
   if (!existsSync(backupsDir)) return;
   for (const name of readdirSync(backupsDir)) {
@@ -211,6 +222,7 @@ export function assertReadinessAccuracySummaryInput(
 }
 
 if (process.argv[1]?.endsWith("readiness-company-memory-input.ts")) {
+  assertReadinessScoreSnapshotFilenameInput();
   assertReadinessBackupDirectoryInput();
   assertReadinessCompanyMemoryInput();
   assertReadinessHypothesisPredictionInput();
