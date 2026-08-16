@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
 import { parseListingAutomationCheckInput } from "./listing-automation-summary-input.js";
+import { parseListingAutomationJpxInput } from "./listing-automation-jpx-input.js";
 import { parseListingEventMessageInput } from "./listing-event-message-preview-input.js";
 
 type Status = "ok" | "warning" | "fail" | "missing" | "unknown";
@@ -53,11 +54,14 @@ function smokeItem(): SummaryItem {
 function jpxItem(): SummaryItem {
   const path = "reports/jpx_listing_sync_latest.json";
   if (!existsReport(path)) return { id: "jpx", status: "missing", label: "JPX sync", detail: "JPX sync report missing", reportPath: path };
-  const json = readJson<{ parsed?: unknown[]; appendable?: unknown[]; error?: string; sourceUrl?: string }>(path, {});
-  const parsed = json.parsed?.length ?? 0;
-  const appendable = json.appendable?.length ?? 0;
-  const status: Status = json.error ? "warning" : parsed > 0 ? "ok" : json.sourceUrl ? "warning" : "missing";
-  return { id: "jpx", status, label: "JPX sync", detail: `parsed=${parsed}, appendable=${appendable}${json.error ? `, error=${json.error}` : ""}`, reportPath: path };
+  const input = parseListingAutomationJpxInput(readFileSync(path, "utf-8"));
+  if (input.invalid) {
+    return { id: "jpx", status: "warning", label: "JPX sync", detail: `invalid input (${input.reason})`, reportPath: path };
+  }
+  const parsed = input.parsed.length;
+  const appendable = input.appendable.length;
+  const status: Status = input.error ? "warning" : parsed > 0 ? "ok" : input.sourceUrl ? "warning" : "missing";
+  return { id: "jpx", status, label: "JPX sync", detail: `parsed=${parsed}, appendable=${appendable}${input.error ? `, error=${input.error}` : ""}`, reportPath: path };
 }
 
 function alertsItem(): SummaryItem {
