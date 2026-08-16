@@ -14,7 +14,7 @@ function isOptionalStringArray(value: unknown): boolean {
   return value === undefined || isStringArray(value);
 }
 
-function isNonNegativeInteger(value: unknown): boolean {
+function isNonNegativeInteger(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= 0;
 }
 
