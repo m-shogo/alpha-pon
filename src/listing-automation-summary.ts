@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
+import { parseListingAutomationCheckInput } from "./listing-automation-summary-input.js";
 
 type Status = "ok" | "warning" | "fail" | "missing" | "unknown";
 
@@ -27,20 +28,24 @@ function countBy<T extends Record<string, unknown>>(items: T[], key: keyof T, va
 function readinessItem(): SummaryItem {
   const path = "reports/listing_automation_readiness_latest.json";
   if (!existsReport(path)) return { id: "readiness", status: "missing", label: "Readiness", detail: "readiness report missing", reportPath: path };
-  const json = readJson<{ checks?: { status?: string }[] }>(path, {});
-  const checks = json.checks ?? [];
-  const missing = countBy(checks, "status", "missing");
-  const warning = countBy(checks, "status", "warning");
+  const input = parseListingAutomationCheckInput(readFileSync(path, "utf-8"));
+  if (input.invalid) {
+    return { id: "readiness", status: "warning", label: "Readiness", detail: `invalid input (${input.reason})`, reportPath: path };
+  }
+  const missing = countBy(input.checks, "status", "missing");
+  const warning = countBy(input.checks, "status", "warning");
   return { id: "readiness", status: missing > 0 ? "warning" : "ok", label: "Readiness", detail: `missing=${missing}, warning=${warning}`, reportPath: path };
 }
 
 function smokeItem(): SummaryItem {
   const path = "reports/listing_automation_smoke_audit_latest.json";
   if (!existsReport(path)) return { id: "smoke", status: "missing", label: "Smoke audit", detail: "smoke audit report missing", reportPath: path };
-  const json = readJson<{ checks?: { status?: string }[] }>(path, {});
-  const checks = json.checks ?? [];
-  const fail = countBy(checks, "status", "fail");
-  const warning = countBy(checks, "status", "warning");
+  const input = parseListingAutomationCheckInput(readFileSync(path, "utf-8"));
+  if (input.invalid) {
+    return { id: "smoke", status: "warning", label: "Smoke audit", detail: `invalid input (${input.reason})`, reportPath: path };
+  }
+  const fail = countBy(input.checks, "status", "fail");
+  const warning = countBy(input.checks, "status", "warning");
   return { id: "smoke", status: fail > 0 ? "fail" : warning > 0 ? "warning" : "ok", label: "Smoke audit", detail: `fail=${fail}, warning=${warning}`, reportPath: path };
 }
 
