@@ -18,6 +18,7 @@ node --import tsx/esm tests/source-health-coverage-shape.test.ts
 node --import tsx/esm tests/ops-dashboard-pipeline-input.test.ts
 node --import tsx/esm tests/ops-dashboard-special-input.test.ts
 node --import tsx/esm tests/ops-dashboard-integrity-input.test.ts
+node --import tsx/esm tests/ops-dashboard-outcome-quality-input.test.ts
 node --import tsx/esm tests/line-consolidation.test.ts
 
 echo "draft-checks: ok"
