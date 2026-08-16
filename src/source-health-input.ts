@@ -34,11 +34,21 @@ export function hasValidPrimaryDisclosureReview(value: unknown): boolean {
   if (!isNonNegativeInteger(value.sourceCoverage.tdnetCount)) return false;
   if (!isNonNegativeInteger(value.sourceCoverage.edinetCount)) return false;
   const evidenceCount = value.sourceCoverage.tdnetCount + value.sourceCoverage.edinetCount;
-  if (value.decision === "confirmed" && evidenceCount === 0) {
+  if (!isOptionalNonNegativeInteger(value.sourceCoverage.fetchErrorCount)) return false;
+  const fetchErrorCount = typeof value.sourceCoverage.fetchErrorCount === "number"
+    ? value.sourceCoverage.fetchErrorCount
+    : 0;
+  if (
+    value.decision === "confirmed"
+    && (
+      evidenceCount === 0
+      || (Array.isArray(value.warnings) && value.warnings.length > 0)
+      || (Array.isArray(value.blockers) && value.blockers.length > 0)
+      || fetchErrorCount > 0
+    )
+  ) {
     return false;
   }
-  if (!isOptionalNonNegativeInteger(value.sourceCoverage.fetchErrorCount)) return false;
-  const fetchErrorCount = value.sourceCoverage.fetchErrorCount ?? 0;
   if (
     value.decision === "caution"
     && (
