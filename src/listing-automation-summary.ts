@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
 import { parseListingAutomationCheckInput } from "./listing-automation-summary-input.js";
+import { parseListingEventMessageInput } from "./listing-event-message-preview-input.js";
 
 type Status = "ok" | "warning" | "fail" | "missing" | "unknown";
 
@@ -62,11 +63,17 @@ function jpxItem(): SummaryItem {
 function alertsItem(): SummaryItem {
   const path = "reports/listing_event_alerts_latest.json";
   if (!existsReport(path)) return { id: "alerts", status: "missing", label: "Listing alerts", detail: "alerts report missing", reportPath: path };
-  const json = readJson<{ alerts?: { effectiveNotificationLevel?: string; alertType?: string }[]; totalEvents?: number }>(path, {});
-  const alerts = json.alerts ?? [];
-  const priority = countBy(alerts, "effectiveNotificationLevel", "priority");
-  const missingDate = countBy(alerts, "alertType", "missing_date");
-  return { id: "alerts", status: priority > 20 ? "warning" : "ok", label: "Listing alerts", detail: `totalEvents=${json.totalEvents ?? 0}, alerts=${alerts.length}, priority=${priority}, missingDate=${missingDate}`, reportPath: path };
+  const input = parseListingEventMessageInput(readFileSync(path, "utf-8"));
+  const priority = input.alerts.filter(alert => alert.effectiveNotificationLevel === "priority").length;
+  const missingDate = input.alerts.filter(alert => alert.alertType === "missing_date").length;
+  const invalid = input.warnings.length > 0;
+  return {
+    id: "alerts",
+    status: invalid || priority > 20 ? "warning" : "ok",
+    label: "Listing alerts",
+    detail: `alerts=${input.alerts.length}, priority=${priority}, missingDate=${missingDate}${invalid ? `, input=${input.warnings.join(";")}` : ""}`,
+    reportPath: path,
+  };
 }
 
 function priceItem(): SummaryItem {
