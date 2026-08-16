@@ -1,32 +1,18 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
-
-type Alert = {
-  id: string;
-  code?: string;
-  name: string;
-  eventType: string;
-  eventDate?: string | null;
-  alertType: "upcoming" | "review_due" | "missing_date";
-  daysUntil: number | null;
-  effectiveNotificationLevel: "priority" | "morning_summary" | "log";
-  reason: string;
-};
-
-type AlertsPayload = {
-  generatedAt: string;
-  alerts: Alert[];
-  totalEvents: number;
-};
+import {
+  parseListingEventMessageInput,
+  type ListingEventMessageAlert,
+} from "./listing-event-message-preview-input.js";
 
 const ALERTS_PATH = "reports/listing_event_alerts_latest.json";
 
-function readJson<T>(path: string, fallback: T): T {
-  if (!existsSync(path)) return fallback;
-  return JSON.parse(readFileSync(path, "utf-8")) as T;
+function readAlerts(path: string): { alerts: ListingEventMessageAlert[]; warnings: string[] } {
+  if (!existsSync(path)) return { alerts: [], warnings: [] };
+  return parseListingEventMessageInput(readFileSync(path, "utf-8"));
 }
 
-function oneLine(alert: Alert): string {
+function oneLine(alert: ListingEventMessageAlert): string {
   const code = alert.code ? `${alert.code} ` : "";
   const date = alert.eventDate ?? "日付未登録";
   const days = alert.daysUntil == null ? "" : ` / ${alert.daysUntil}日後`;
@@ -35,14 +21,17 @@ function oneLine(alert: Alert): string {
 
 function main() {
   const generatedAt = todayJst();
-  const payload = readJson<AlertsPayload>(ALERTS_PATH, { generatedAt, alerts: [], totalEvents: 0 });
-  const priority = payload.alerts.filter(alert => alert.effectiveNotificationLevel === "priority");
-  const morning = payload.alerts.filter(alert => alert.effectiveNotificationLevel === "morning_summary");
-  const missing = payload.alerts.filter(alert => alert.alertType === "missing_date");
+  const { alerts, warnings } = readAlerts(ALERTS_PATH);
+  const priority = alerts.filter(alert => alert.effectiveNotificationLevel === "priority");
+  const morning = alerts.filter(alert => alert.effectiveNotificationLevel === "morning_summary");
+  const missing = alerts.filter(alert => alert.alertType === "missing_date");
   const messageLines: string[] = [];
 
   messageLines.push("【alpha-pon 上場イベント確認】");
   messageLines.push(`priority: ${priority.length} / morning: ${morning.length} / backfill: ${missing.length}`);
+  if (warnings.length > 0) {
+    messageLines.push(`input warning: ${warnings.join("; ")}`);
+  }
   if (priority.length > 0) {
     messageLines.push("", "■ Priority");
     priority.slice(0, 10).forEach(alert => messageLines.push(oneLine(alert)));
@@ -61,8 +50,8 @@ function main() {
 
   mkdirSync("reports", { recursive: true });
   writeFileSync("reports/listing_event_message_preview_latest.md", md, "utf-8");
-  writeFileSync("reports/listing_event_message_preview_latest.json", JSON.stringify({ generatedAt, message, priority, morning, missing }, null, 2), "utf-8");
-  console.log(`listing event message preview generated: priority=${priority.length}, missing=${missing.length}`);
+  writeFileSync("reports/listing_event_message_preview_latest.json", JSON.stringify({ generatedAt, message, priority, morning, missing, warnings }, null, 2), "utf-8");
+  console.log(`listing event message preview generated: priority=${priority.length}, missing=${missing.length}, warnings=${warnings.length}`);
 }
 
 main();
