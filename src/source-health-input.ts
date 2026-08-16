@@ -9,7 +9,7 @@ function isOptionalRecord(value: unknown): boolean {
 }
 
 function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every(item => typeof item === "string");
+  return Array.isArray(value) && value.every(item => typeof item === "string" && item.trim().length > 0);
 }
 
 function isOptionalStringArray(value: unknown): boolean {
