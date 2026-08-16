@@ -33,7 +33,8 @@ export function hasValidPrimaryDisclosureReview(value: unknown): boolean {
   if (!isRecord(value.sourceCoverage)) return false;
   if (!isNonNegativeInteger(value.sourceCoverage.tdnetCount)) return false;
   if (!isNonNegativeInteger(value.sourceCoverage.edinetCount)) return false;
-  if (value.decision === "confirmed" && value.sourceCoverage.tdnetCount + value.sourceCoverage.edinetCount === 0) {
+  const evidenceCount = value.sourceCoverage.tdnetCount + value.sourceCoverage.edinetCount;
+  if (value.decision === "confirmed" && evidenceCount === 0) {
     return false;
   }
   if (!isOptionalNonNegativeInteger(value.sourceCoverage.fetchErrorCount)) return false;
@@ -43,7 +44,17 @@ export function hasValidPrimaryDisclosureReview(value: unknown): boolean {
     && (
       !Array.isArray(value.warnings)
       || value.warnings.length === 0
-      || (value.sourceCoverage.tdnetCount + value.sourceCoverage.edinetCount === 0 && fetchErrorCount === 0)
+      || (evidenceCount === 0 && fetchErrorCount === 0)
+    )
+  ) {
+    return false;
+  }
+  if (
+    value.decision === "block"
+    && (
+      evidenceCount === 0
+      || !Array.isArray(value.blockers)
+      || value.blockers.length === 0
     )
   ) {
     return false;
