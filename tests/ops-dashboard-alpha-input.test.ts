@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
-import { normalizeOpsAlphaWarningsInput } from "../src/ops-dashboard-alpha-input.js";
+import {
+  normalizeOpsAlphaDataQualityWarningsInput,
+  normalizeOpsAlphaWarningsInput,
+} from "../src/ops-dashboard-alpha-input.js";
 import { buildOpsDashboard, type OpsAlphaDataLike, type OpsDashboardInputs } from "../src/ops-dashboard.js";
 
 const TODAY = "2026-08-17";
@@ -36,12 +39,32 @@ for (const malformedWarnings of ["broken", { length: 1 }]) {
   assert.ok(dashboard.allIssues.some(issue => issue.title.includes("データ品質の注意")));
 }
 
+{
+  const raw = {
+    generatedAt: TODAY,
+    meta: { warnings: [] },
+    universeScan: { scanStatus: "ok", fallbackReason: null },
+    dataQualityByCode: {
+      "8136": { quality: { level: "ok" }, warnings: { corrupted: true } },
+    },
+  } as unknown as OpsAlphaDataLike;
+  const normalized = normalizeOpsAlphaDataQualityWarningsInput(raw);
+  assert.ok(normalized);
+  assert.deepEqual(normalized.dataQualityByCode?.["8136"]?.warnings, []);
+  assert.deepEqual(normalized.meta?.warnings, ["alpha-pon-data.json dataQualityByCode warnings の形式が不正です（1件）"]);
+
+  const dashboard = buildOpsDashboard(cleanInputs(normalized));
+  assert.equal(dashboard.healthStatus, "needs_attention");
+  assert.ok(dashboard.allIssues.some(issue => issue.title.includes("UI 生成データに warning")));
+}
+
 const valid: OpsAlphaDataLike = {
   generatedAt: TODAY,
   meta: { warnings: ["existing warning"] },
   universeScan: { scanStatus: "ok", fallbackReason: null },
-  dataQualityByCode: {},
+  dataQualityByCode: { "8136": { quality: { level: "ok" }, warnings: ["existing warning"] } },
 };
 assert.equal(normalizeOpsAlphaWarningsInput(valid), valid);
+assert.equal(normalizeOpsAlphaDataQualityWarningsInput(valid), valid);
 
 console.log("ops-dashboard-alpha-input: malformed warnings fail closed");

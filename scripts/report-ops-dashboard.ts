@@ -9,7 +9,10 @@
 import { existsSync, readFileSync, readdirSync, writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { getTodayInTokyo } from "../src/jobs/date-utils.js";
-import { normalizeOpsAlphaWarningsInput } from "../src/ops-dashboard-alpha-input.js";
+import {
+  normalizeOpsAlphaDataQualityWarningsInput,
+  normalizeOpsAlphaWarningsInput,
+} from "../src/ops-dashboard-alpha-input.js";
 import { normalizeOpsAlphaGeneratedAt } from "../src/ops-dashboard-input-time.js";
 import { normalizeOpsIntegrityInput } from "../src/ops-dashboard-integrity-input.js";
 import { normalizeOpsOutcomeQualityInput } from "../src/ops-dashboard-outcome-quality-input.js";
@@ -87,9 +90,11 @@ const safeWording = scanSafeWording();
 const outcomesFile = normalizeOpsOutcomesInput(
   readJson<unknown>("apps/web/public/generated/outcomes.json"),
 );
-const alphaData = normalizeOpsAlphaWarningsInput(
-  normalizeOpsAlphaGeneratedAt(
-    readJson<OpsAlphaDataLike>("apps/web/public/generated/alpha-pon-data.json"),
+const alphaData = normalizeOpsAlphaDataQualityWarningsInput(
+  normalizeOpsAlphaWarningsInput(
+    normalizeOpsAlphaGeneratedAt(
+      readJson<OpsAlphaDataLike>("apps/web/public/generated/alpha-pon-data.json"),
+    ),
   ),
 );
 const pipelineStatus = normalizeOpsPipelineStatusInput(
