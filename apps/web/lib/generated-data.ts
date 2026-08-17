@@ -25,6 +25,7 @@ import {
 } from './generated-array-input'
 import { normalizeGeneratedAccuracySummaryInput } from './generated-accuracy-summary-input'
 import { normalizeGeneratedReadinessInput } from './generated-readiness-input'
+import { normalizeGeneratedWorldContextInput } from './generated-world-context-input'
 
 const DATA_PATH = join(process.cwd(), 'public', 'generated', 'alpha-pon-data.json')
 
@@ -203,6 +204,7 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
     isGeneratedWorldThemeCandidateHypothesisInput,
   )
   const accuracySummaryLoad = normalizeGeneratedAccuracySummaryInput(data.accuracySummary)
+  const worldContextLoad = normalizeGeneratedWorldContextInput(data.worldContext)
   const readinessLoad = normalizeGeneratedReadinessInput(data.readiness)
   const hasPipelineStatus = data.pipelineStatus !== undefined && data.pipelineStatus !== null
   const pipelineStatus = hasPipelineStatus && isGeneratedPipelineStatusInput(data.pipelineStatus)
@@ -231,7 +233,7 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
     generatedCompanyRules: Array.isArray(data.generatedCompanyRules) ? data.generatedCompanyRules : [],
     positions: Array.isArray(data.positions) ? data.positions : [],
     accuracySummary: accuracySummaryLoad.value,
-    worldContext: data.worldContext ?? null,
+    worldContext: worldContextLoad.value,
     worldThemeCandidateHypotheses: worldThemeCandidateHypothesisLoad.rows,
     companyMemory: companyMemoryLoad.rows,
     companyMemoryByCode: data.companyMemoryByCode ?? {},
@@ -260,26 +262,29 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
                       normalizeGeneratedMeta(
                         normalizeGeneratedMeta(
                           normalizeGeneratedMeta(
-                            normalizeGeneratedMeta(data.meta, rootLoad.warning),
-                            reportLoad.warning,
+                            normalizeGeneratedMeta(
+                              normalizeGeneratedMeta(data.meta, rootLoad.warning),
+                              reportLoad.warning,
+                            ),
+                            candidateLoad.warning,
                           ),
-                          candidateLoad.warning,
+                          universeCandidateLoad.warning,
                         ),
-                        universeCandidateLoad.warning,
+                        hypothesisPredictionLoad.warning,
                       ),
-                      hypothesisPredictionLoad.warning,
+                      hypothesisOutcomeLoad.warning,
                     ),
-                    hypothesisOutcomeLoad.warning,
+                    companyMemoryLoad.warning,
                   ),
-                  companyMemoryLoad.warning,
+                  dataQualityLoad.warning,
                 ),
-                dataQualityLoad.warning,
+                runCursorLoad.warning,
               ),
-              runCursorLoad.warning,
+              worldThemeCandidateHypothesisLoad.warning,
             ),
-            worldThemeCandidateHypothesisLoad.warning,
+            accuracySummaryLoad.warning,
           ),
-          accuracySummaryLoad.warning,
+          worldContextLoad.warning,
         ),
         pipelineStatusWarning,
       ),
