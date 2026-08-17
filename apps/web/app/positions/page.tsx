@@ -1,4 +1,5 @@
 import { loadGeneratedData } from '@/lib/generated-data'
+import { normalizeGeneratedPositions } from '@/lib/generated-position-input'
 import { Disclaimer } from '@/components/Disclaimer'
 import type { Position } from '@/lib/stock/types'
 
@@ -67,7 +68,8 @@ function PositionCard({ pos }: { pos: Position }) {
 
 export default function PositionsPage() {
   const data = loadGeneratedData()
-  const positions: Position[] = (data as Record<string, unknown>).positions as Position[] ?? []
+  const positionLoad = normalizeGeneratedPositions((data as Record<string, unknown>).positions)
+  const positions = positionLoad.rows
 
   const totalValue = positions.reduce((s, p) => s + (p.marketValue ?? 0), 0)
 
@@ -99,6 +101,11 @@ export default function PositionsPage() {
       </div>
 
       <div style={{ padding: '16px 16px 0' }}>
+        {positionLoad.warning && (
+          <div style={{ marginBottom: 10, fontSize: 11.5, color: 'var(--urgent)', fontWeight: 700 }}>
+            データ警告: {positionLoad.warning}
+          </div>
+        )}
         {positions.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--ink-3)', fontSize: 13, fontWeight: 600 }}>
             <p>保有銘柄なし</p>
