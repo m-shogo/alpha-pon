@@ -23,6 +23,7 @@ import {
   normalizeOptionalGeneratedRecordInput,
   type GeneratedWorldThemeCandidateHypothesisInput,
 } from './generated-array-input'
+import { normalizeGeneratedAccuracySummaryInput } from './generated-accuracy-summary-input'
 import { normalizeGeneratedReadinessInput } from './generated-readiness-input'
 
 const DATA_PATH = join(process.cwd(), 'public', 'generated', 'alpha-pon-data.json')
@@ -201,6 +202,7 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
     'worldThemeCandidateHypotheses',
     isGeneratedWorldThemeCandidateHypothesisInput,
   )
+  const accuracySummaryLoad = normalizeGeneratedAccuracySummaryInput(data.accuracySummary)
   const readinessLoad = normalizeGeneratedReadinessInput(data.readiness)
   const hasPipelineStatus = data.pipelineStatus !== undefined && data.pipelineStatus !== null
   const pipelineStatus = hasPipelineStatus && isGeneratedPipelineStatusInput(data.pipelineStatus)
@@ -228,7 +230,7 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
     hypothesisOutcomes: hypothesisOutcomeLoad.rows,
     generatedCompanyRules: Array.isArray(data.generatedCompanyRules) ? data.generatedCompanyRules : [],
     positions: Array.isArray(data.positions) ? data.positions : [],
-    accuracySummary: data.accuracySummary ?? null,
+    accuracySummary: accuracySummaryLoad.value,
     worldContext: data.worldContext ?? null,
     worldThemeCandidateHypotheses: worldThemeCandidateHypothesisLoad.rows,
     companyMemory: companyMemoryLoad.rows,
@@ -257,24 +259,27 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
                     normalizeGeneratedMeta(
                       normalizeGeneratedMeta(
                         normalizeGeneratedMeta(
-                          normalizeGeneratedMeta(data.meta, rootLoad.warning),
-                          reportLoad.warning,
+                          normalizeGeneratedMeta(
+                            normalizeGeneratedMeta(data.meta, rootLoad.warning),
+                            reportLoad.warning,
+                          ),
+                          candidateLoad.warning,
                         ),
-                        candidateLoad.warning,
+                        universeCandidateLoad.warning,
                       ),
-                      universeCandidateLoad.warning,
+                      hypothesisPredictionLoad.warning,
                     ),
-                    hypothesisPredictionLoad.warning,
+                    hypothesisOutcomeLoad.warning,
                   ),
-                  hypothesisOutcomeLoad.warning,
+                  companyMemoryLoad.warning,
                 ),
-                companyMemoryLoad.warning,
+                dataQualityLoad.warning,
               ),
-              dataQualityLoad.warning,
+              runCursorLoad.warning,
             ),
-            runCursorLoad.warning,
+            worldThemeCandidateHypothesisLoad.warning,
           ),
-          worldThemeCandidateHypothesisLoad.warning,
+          accuracySummaryLoad.warning,
         ),
         pipelineStatusWarning,
       ),
