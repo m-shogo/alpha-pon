@@ -9,6 +9,7 @@
  *   2. マーカーなし + コード一致 → 通常 outcome として区別し、混在注記を付ける
  */
 
+import { addDaysJst } from "./date.js";
 import type { HypothesisOutcome } from "./universe.js";
 
 /** hypothesis.reason に付与される識別マーカー */
@@ -103,9 +104,7 @@ export function isHistoricalSeedOverdue(
   today: string,
   thresholdDays = HISTORICAL_SEED_OVERDUE_THRESHOLD_DAYS
 ): boolean {
-  const d = new Date(today);
-  d.setDate(d.getDate() - thresholdDays);
-  const threshold = d.toISOString().slice(0, 10);
+  const threshold = addDaysJst(today, -thresholdDays);
   return dueAt <= threshold;
 }
 
