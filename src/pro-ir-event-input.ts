@@ -75,7 +75,7 @@ export function normalizeProIrEventInput(raw: unknown): ProIrEventInputLoad {
   let invalidEventCount = 0;
 
   for (const [code, value] of Object.entries(raw.companies)) {
-    if (!code.trim() || !isRecord(value)) {
+    if (!code.trim() || code.trim() !== code || !isRecord(value)) {
       invalidCompanyCount += 1;
       continue;
     }
