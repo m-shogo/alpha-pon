@@ -1,4 +1,5 @@
 import { formatReadOnlyJsonlParseWarning, readJsonlWithErrors } from "./read-only-jsonl.js";
+import { isValidWorldThemeReviewDueDate } from "./world-theme-review-date.js";
 
 export type WorldThemeReviewDue = {
   afterDays: 30 | 90 | 180;
@@ -31,6 +32,7 @@ function isReviewDue(value: unknown): value is WorldThemeReviewDue {
   return (
     (value.afterDays === 30 || value.afterDays === 90 || value.afterDays === 180) &&
     typeof value.dueAt === "string" &&
+    isValidWorldThemeReviewDueDate(value.dueAt) &&
     (value.status === "open" || value.status === "reviewed")
   );
 }
