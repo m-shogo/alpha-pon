@@ -56,6 +56,18 @@ assert.match(outcomeParsed.warnings[0], /2 malformed JSONL row\(s\).*line\(s\) 2
 assert.ok(!outcomeParsed.warnings[0].includes("{ malformed"), "Outcome warningへraw row内容を露出しない");
 assert.match(reviewSource, /readOutcomeJsonl\(OUTCOME_PATH\)/, "review:hypothesesのOutcome migration/readbackもsafe parserを利用する");
 
+const specialReviewDueSource = readFileSync(new URL("../src/special-situation-review-due-queue.ts", import.meta.url), "utf-8");
+assert.match(
+  specialReviewDueSource,
+  /parseHypothesisOutcomesJsonl\(readFileSync\("data\/hypothesis_outcomes\.jsonl", "utf-8"\), "data\/hypothesis_outcomes\.jsonl"\)/,
+  "review:special-dueもtested Outcome JSONL parserを再利用してmalformed rowを隔離する",
+);
+assert.match(
+  specialReviewDueSource,
+  /\.\.\.parsedOutcomes\.warnings/,
+  "review:special-dueはmalformed Outcomeをsilent dropせずmetadata warningをreportへ残す",
+);
+
 const sqliteParsed = parseHypothesisOutcomeSqlitePayloads(
   [JSON.stringify(validOutcome), "{ malformed", JSON.stringify({}), JSON.stringify({ ...validOutcome, code: "7974" })],
   "data/hypothesis_outcomes.db",
