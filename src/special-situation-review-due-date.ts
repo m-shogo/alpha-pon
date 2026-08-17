@@ -13,8 +13,10 @@ export function calcSpecialSituationDueAt(
   horizon: ReviewHorizon,
 ): string | null {
   if (!detectedAt) return null;
+  const horizonDays = HORIZON_DAYS[horizon];
+  if (horizonDays === undefined) return null;
   try {
-    return addDaysJst(detectedAt, HORIZON_DAYS[horizon] ?? 30);
+    return addDaysJst(detectedAt, horizonDays);
   } catch {
     return null;
   }
