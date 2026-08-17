@@ -118,6 +118,7 @@ import "./research/stock-pro-council-replay.test.js";
 import "./research/edge-decay-strict-date.test.js";
 import "./research/promotion-asof-nanosecond.test.js";
 import "./jquants-v2-date-cap.test.js";
+import { normalizeCompanyCoverageRoots, normalizeCompanyCoverageRows } from "../src/company-coverage-input.js";
 import { normalizeCompanyRulesWatchlistRow } from "../src/company-rules-watchlist-input.js";
 import { validateWatchlist } from "../src/validation.js";
 import { resolveWorldImpactEvaluationAsOf } from "../src/world-impact-evaluation-input.js";
@@ -165,6 +166,44 @@ function testCompanyRulesWatchlistRowIsolation() {
     { code: "285A", name: "キオクシア", tags: [], rules: [] },
     "壊れたtags/rulesはrow全体を落とさず空配列へ隔離する",
   );
+}
+
+function testCompanyCoverageRowIsolation() {
+  const roots = normalizeCompanyCoverageRoots(
+    {
+      categories: {
+        healthy: {
+          label: "Healthy",
+          companies: [
+            { code: "8136", name: "サンリオ", status: "active" },
+            null,
+            { code: "", name: "identity missing" },
+          ],
+        },
+        brokenCategory: null,
+        brokenCompanies: { label: "Broken", companies: {} },
+      },
+    },
+    {
+      companies: {
+        "8136": { name: "サンリオ", categoryHints: [" entertainment "] },
+        "4661": null,
+        "7974": { name: "任天堂", categoryHints: {} },
+      },
+    },
+  );
+  const normalized = normalizeCompanyCoverageRows(roots);
+
+  assert.deepEqual(normalized.categories.healthy.companies, [
+    { code: "8136", name: "サンリオ", status: "active" },
+  ], "正常なhypothesis rowは壊れrowの周囲でも保持する");
+  assert.deepEqual(normalized.companies["8136"], {
+    name: "サンリオ",
+    categoryHints: ["entertainment"],
+  }, "正常なnetwork rowは保持してcanonical化する");
+  assert.equal(normalized.companies["4661"], undefined, "null network rowは隔離する");
+  assert.equal(normalized.companies["7974"], undefined, "壊れたcategoryHints rowは隔離する");
+  assert.ok(normalized.warnings.length >= 5, "壊れrowはsilent dropせずmetadata warningへ残す");
 }
 
 function testStrictListingDate() {
@@ -233,6 +272,7 @@ function testInvalidWatchlist() {
 function main() {
   testValidWatchlist();
   testCompanyRulesWatchlistRowIsolation();
+  testCompanyCoverageRowIsolation();
   testStrictListingDate();
   testWorldImpactEvaluationAsOf();
   testInvalidWatchlist();
