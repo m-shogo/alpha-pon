@@ -32,6 +32,18 @@ assert(mixedArray.rows.length === 2, "malformed generated array rows must be iso
 assert(mixedArray.rows[0]?.code === "8136" && mixedArray.rows[1]?.code === "7203", "valid generated array siblings must remain usable");
 assert(mixedArray.warning === "candidates: invalid_entries (2)", "malformed generated array rows must remain visible as metadata-only warnings");
 
+const isObjectRow = (value: unknown): value is Record<string, unknown> => (
+  Boolean(value && typeof value === "object" && !Array.isArray(value))
+);
+const mixedUniverseCandidates = normalizeGeneratedArrayInput(
+  [{ code: "8136", dataSource: "jquants" }, null, "broken"],
+  "universeCandidates",
+  isObjectRow,
+);
+assert(mixedUniverseCandidates.rows.length === 1, "malformed universe candidate rows must be isolated before UI property access");
+assert(mixedUniverseCandidates.rows[0]?.code === "8136", "valid universe candidate siblings must remain usable");
+assert(mixedUniverseCandidates.warning === "universeCandidates: invalid_entries (2)", "malformed universe candidate rows must remain visible as metadata-only warnings");
+
 const validRoot = normalizeGeneratedObjectInput({ generatedAt: "2026-08-18" }, "generatedData");
 assert(validRoot.object.generatedAt === "2026-08-18", "valid generated roots must remain usable");
 assert(validRoot.warning === null, "valid generated roots must not emit warnings");
