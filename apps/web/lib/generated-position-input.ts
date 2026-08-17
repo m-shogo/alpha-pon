@@ -1,5 +1,25 @@
-import type { Position } from './stock/types.js'
 import { normalizeGeneratedArrayInput, type GeneratedArrayInput } from './generated-array-input.js'
+
+export type GeneratedPositionInput = {
+  code: string
+  name: string
+  shares: number
+  averageCost: number
+  currentPrice: number | null
+  marketValue: number | null
+  unrealizedGain: number | null
+  unrealizedGainPct: number | null
+  positionWeightPct: number | null
+  nisaType: 'nisa_growth' | 'nisa_accumulation' | 'taxable' | null
+  boughtReason: string
+  addCondition: string
+  trimCondition: string
+  exitCondition: string
+  thesis: string[]
+  invalidationLine: string
+  nextEvent: string
+  memo: string
+}
 
 const NISA_TYPES = new Set(['nisa_growth', 'nisa_accumulation', 'taxable'])
 
@@ -11,7 +31,7 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string')
 }
 
-export function isGeneratedPositionInput(value: unknown): value is Position {
+export function isGeneratedPositionInput(value: unknown): value is GeneratedPositionInput {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const row = value as Record<string, unknown>
 
@@ -39,6 +59,6 @@ export function isGeneratedPositionInput(value: unknown): value is Position {
     && typeof row.memo === 'string'
 }
 
-export function normalizeGeneratedPositions(value: unknown): GeneratedArrayInput<Position> {
-  return normalizeGeneratedArrayInput<Position>(value, 'positions', isGeneratedPositionInput)
+export function normalizeGeneratedPositions(value: unknown): GeneratedArrayInput<GeneratedPositionInput> {
+  return normalizeGeneratedArrayInput<GeneratedPositionInput>(value, 'positions', isGeneratedPositionInput)
 }
