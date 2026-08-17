@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { scoreHealthyPullback } from "../src/score/pullback.js";
 import { scoreEarningsDrop } from "../src/score/earnings.js";
-import { isGeneratedReportInput, isGeneratedRunCursorState } from "../apps/web/lib/generated-array-input.js";
+import {
+  isGeneratedReportInput,
+  isGeneratedRunCursorState,
+  normalizeGeneratedWarningsInput,
+} from "../apps/web/lib/generated-array-input.js";
 
 function testPullbackMissingFinancials() {
   const result = scoreHealthyPullback({
@@ -48,11 +52,24 @@ function testGeneratedReportShape() {
   assert.equal(isGeneratedReportInput({ ...valid, excerpt: {} }), false);
 }
 
+function testGeneratedWarningsShape() {
+  assert.deepEqual(normalizeGeneratedWarningsInput(["ok"]), { warnings: ["ok"], warning: null });
+  assert.deepEqual(normalizeGeneratedWarningsInput("broken"), {
+    warnings: [],
+    warning: "meta.warnings: invalid_root (expected string array)",
+  });
+  assert.deepEqual(normalizeGeneratedWarningsInput(["ok", null, 42]), {
+    warnings: ["ok"],
+    warning: "meta.warnings: invalid_entries (2)",
+  });
+}
+
 function main() {
   testPullbackMissingFinancials();
   testEarningsDropMissingFinancials();
   testGeneratedRunCursorShape();
   testGeneratedReportShape();
+  testGeneratedWarningsShape();
   console.log("score.test.ts passed");
 }
 

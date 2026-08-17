@@ -17,6 +17,7 @@ import {
   isGeneratedRunCursorState,
   normalizeGeneratedArrayInput,
   normalizeGeneratedObjectInput,
+  normalizeGeneratedWarningsInput,
   normalizeOptionalGeneratedRecordInput,
 } from './generated-array-input'
 
@@ -104,16 +105,17 @@ function isDataQualityRow(value: unknown): value is DataQualityRow {
 }
 
 function normalizeGeneratedMeta(meta: unknown, warning: string | null): ProData['meta'] {
-  if (!warning) return meta as ProData['meta'] ?? null
-  const object = meta && typeof meta === 'object' && !Array.isArray(meta)
-    ? meta as Record<string, unknown>
-    : {}
-  const warnings = Array.isArray(object.warnings)
-    ? object.warnings.filter((item): item is string => typeof item === 'string')
-    : []
+  const isObject = Boolean(meta && typeof meta === 'object' && !Array.isArray(meta))
+  const object = isObject ? meta as Record<string, unknown> : {}
+  const warningLoad = normalizeGeneratedWarningsInput(object.warnings)
+  const warnings = [...warningLoad.warnings]
+  if (warningLoad.warning) warnings.push(warningLoad.warning)
+  if (warning) warnings.push(warning)
+
+  if (!isObject && warnings.length === 0) return null
   return {
     ...object,
-    warnings: [...warnings, warning],
+    warnings,
   } as ProData['meta']
 }
 
