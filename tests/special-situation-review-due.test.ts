@@ -4,7 +4,11 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "fs";
 import { calcSpecialSituationDueAt } from "../src/special-situation-review-due-date.js";
-import type { ReviewHorizon } from "../src/universe.js";
+import {
+  filterOutcomesByCode,
+  selectOutcomesForStats,
+} from "../src/special-situation-outcome-filter.js";
+import type { HypothesisOutcome, ReviewHorizon } from "../src/universe.js";
 
 function readJson(path: string): unknown {
   if (!existsSync(path)) return null;
@@ -31,6 +35,22 @@ assert.equal(calcSpecialSituationDueAt("2026-02-31", "1d"), null);
 assert.equal(calcSpecialSituationDueAt("0000-01-01", "1d"), null);
 assert.equal(calcSpecialSituationDueAt("2026-08-07T00:00:00+09:00", "1d"), null);
 assert.equal(calcSpecialSituationDueAt("2026-08-07", "2w" as ReviewHorizon), null);
+
+const validSpecialOutcome = {
+  code: "8136",
+  hypothesis: { reason: "[special_situation] synthetic regression" },
+} as unknown as HypothesisOutcome;
+const malformedMatchingOutcome = { code: "8136" } as unknown as HypothesisOutcome;
+const runtimeFiltered = filterOutcomesByCode(
+  [malformedMatchingOutcome, validSpecialOutcome],
+  new Set(["8136"]),
+  "all",
+);
+assert.equal(runtimeFiltered.special.length, 1, "正常なspecial outcomeは維持する");
+assert.equal(runtimeFiltered.normal.length, 0, "hypothesis欠落rowをnormal outcomeとして扱わない");
+const runtimeSelected = selectOutcomesForStats([malformedMatchingOutcome, validSpecialOutcome], "8136");
+assert.equal(runtimeSelected.source, "special");
+assert.deepEqual(runtimeSelected.selected, [validSpecialOutcome], "malformed rowを隔離して正常rowだけ集計する");
 
 // 1) reports/special_situation_review_due_latest.json が生成される
 const reportData = readJson("reports/special_situation_review_due_latest.json");

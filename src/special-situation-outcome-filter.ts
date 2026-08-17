@@ -14,9 +14,19 @@ import type { HypothesisOutcome } from "./universe.js";
 /** hypothesis.reason に付与される識別マーカー */
 export const SPECIAL_SITUATION_MARKER = "[special_situation]";
 
+function isRuntimeSpecialSituationOutcome(value: unknown): value is HypothesisOutcome {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  if (typeof row.code !== "string" || row.code.length === 0 || row.code.trim() !== row.code) return false;
+  const hypothesis = row.hypothesis;
+  if (typeof hypothesis !== "object" || hypothesis === null || Array.isArray(hypothesis)) return false;
+  return typeof (hypothesis as Record<string, unknown>).reason === "string";
+}
+
 /** outcome が special_situation 由来かどうか判定 */
 export function isSpecialSituationOutcome(outcome: HypothesisOutcome): boolean {
-  return (outcome.hypothesis.reason ?? "").includes(SPECIAL_SITUATION_MARKER);
+  return isRuntimeSpecialSituationOutcome(outcome)
+    && outcome.hypothesis.reason.includes(SPECIAL_SITUATION_MARKER);
 }
 
 /**
@@ -33,7 +43,7 @@ export function filterOutcomesByCode(
   codes: Set<string>,
   matchMode: "special_only" | "normal_only" | "special_prefer" | "all" = "special_prefer"
 ): { special: HypothesisOutcome[]; normal: HypothesisOutcome[]; mixed: boolean } {
-  const matched = outcomes.filter(o => codes.has(o.code));
+  const matched = outcomes.filter(isRuntimeSpecialSituationOutcome).filter(o => codes.has(o.code));
   const special = matched.filter(isSpecialSituationOutcome);
   const normal = matched.filter(o => !isSpecialSituationOutcome(o));
 
@@ -66,7 +76,7 @@ export function selectOutcomesForStats(
   outcomes: HypothesisOutcome[],
   code: string
 ): { selected: HypothesisOutcome[]; source: "special" | "normal" | "mixed" | "none" } {
-  const forCode = outcomes.filter(o => o.code === code);
+  const forCode = outcomes.filter(isRuntimeSpecialSituationOutcome).filter(o => o.code === code);
   const special = forCode.filter(isSpecialSituationOutcome);
   const normal = forCode.filter(o => !isSpecialSituationOutcome(o));
 
@@ -108,8 +118,9 @@ export function detectMixedOutcomes(
   codes: Set<string>
 ): Array<{ code: string; specialCount: number; normalCount: number }> {
   const result: Array<{ code: string; specialCount: number; normalCount: number }> = [];
+  const usableOutcomes = outcomes.filter(isRuntimeSpecialSituationOutcome);
   for (const code of codes) {
-    const forCode = outcomes.filter(o => o.code === code);
+    const forCode = usableOutcomes.filter(o => o.code === code);
     const specialCount = forCode.filter(isSpecialSituationOutcome).length;
     const normalCount = forCode.filter(o => !isSpecialSituationOutcome(o)).length;
     if (specialCount > 0 && normalCount > 0) {
