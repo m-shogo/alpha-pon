@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   assertReadinessDataQualityFallbackInput,
+  assertReadinessHypothesisOutcomeInput,
   assertReadinessScoreSnapshotFilenameInput,
 } from "../src/readiness-company-memory-input.js";
 
@@ -38,6 +39,29 @@ try {
   assert.doesNotThrow(
     () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir, "2026-08-16"),
     "same-day usable score snapshots continue to supersede the generated fallback",
+  );
+
+  const outcome = {
+    code: "8136",
+    hypothesis: { detectedAt: "2026-08-16" },
+    reviewHorizon: "1m",
+    dataSource: "jquants",
+    dataAvailability: "ok",
+  };
+  writeFileSync(generatedPath, JSON.stringify({ hypothesisOutcomes: [outcome] }));
+  assert.doesNotThrow(
+    () => assertReadinessHypothesisOutcomeInput(generatedPath, "2026-08-16"),
+    "same-day outcome hypotheses remain valid current readiness evidence",
+  );
+
+  writeFileSync(
+    generatedPath,
+    JSON.stringify({ hypothesisOutcomes: [{ ...outcome, hypothesis: { detectedAt: "2026-08-17" } }] }),
+  );
+  assert.throws(
+    () => assertReadinessHypothesisOutcomeInput(generatedPath, "2026-08-16"),
+    /non-future detectedAt/,
+    "future hypothesis detection dates must not inflate current outcome readiness",
   );
 
   console.log("readiness-future-score-snapshot.test.ts passed");
