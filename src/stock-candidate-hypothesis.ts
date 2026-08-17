@@ -9,6 +9,7 @@ import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst, addDaysJst } from "./date.js";
 import {
+  normalizeStockCandidateUniverseRows,
   normalizeStockCandidateWatchlistCodes,
   parseExistingStockCandidateHypothesesJsonl,
 } from "./stock-candidate-hypothesis-input.js";
@@ -188,10 +189,7 @@ function main(): void {
     process.exit(1);
   }
 
-  const rawData = JSON.parse(readFileSync(latestPath, "utf-8")) as {
-    generatedAt?: string;
-    candidates: UniverseCandidate[];
-  };
+  const rawData = JSON.parse(readFileSync(latestPath, "utf-8")) as { generatedAt?: string; candidates?: unknown };
 
   // stale data チェック: generatedAt が今日でなければ古いデータなのでエラー終了
   const today = todayJst();
@@ -204,7 +202,15 @@ function main(): void {
     process.exit(1);
   }
 
-  const candidates = rawData.candidates ?? [];
+  const normalizedCandidates = normalizeStockCandidateUniverseRows(rawData, latestPath);
+  if (!normalizedCandidates.rootValid) {
+    console.error(`[error] ${normalizedCandidates.warnings[0]}`);
+    process.exit(1);
+  }
+  for (const warning of normalizedCandidates.warnings) {
+    console.warn(`[warning] ${warning}`);
+  }
+  const candidates = normalizedCandidates.candidates;
   console.log(`候補数: ${candidates.length} (generatedAt: ${rawData.generatedAt})`);
 
   const existing = readExistingHypotheses();

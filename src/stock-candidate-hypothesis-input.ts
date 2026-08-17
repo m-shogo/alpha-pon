@@ -1,4 +1,4 @@
-import type { StockCandidateHypothesis } from "./universe.js";
+import type { StockCandidateHypothesis, UniverseCandidate } from "./universe.js";
 
 export type StockCandidateHypothesisJsonlRead = {
   rows: StockCandidateHypothesis[];
@@ -9,6 +9,14 @@ type UnknownRecord = Record<string, unknown>;
 
 function isRecord(value: unknown): value is UnknownRecord {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function finiteOrNull(value: unknown): value is number | null {
+  return value === null || (typeof value === "number" && Number.isFinite(value));
+}
+
+function stringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(item => typeof item === "string");
 }
 
 export function parseExistingStockCandidateHypothesesJsonl(
@@ -65,4 +73,35 @@ export function normalizeStockCandidateWatchlistCodes(
     codes.add(code);
   });
   return { codes, warnings };
+}
+
+export function normalizeStockCandidateUniverseRows(
+  input: unknown,
+  sourceLabel = "data/universe_candidates_latest.json",
+): { candidates: UniverseCandidate[]; warnings: string[]; rootValid: boolean } {
+  if (!isRecord(input) || !Array.isArray(input.candidates)) {
+    return { candidates: [], warnings: [`${sourceLabel}: candidates root shape is invalid`], rootValid: false };
+  }
+
+  const candidates: UniverseCandidate[] = [];
+  const warnings: string[] = [];
+  input.candidates.forEach((row, index) => {
+    if (
+      !isRecord(row) ||
+      typeof row.code !== "string" || !row.code.trim() ||
+      typeof row.name !== "string" || !row.name.trim() ||
+      typeof row.detectedAt !== "string" || !row.detectedAt.trim() ||
+      !(row.sector === null || typeof row.sector === "string") ||
+      !finiteOrNull(row.drawdownPct) ||
+      !finiteOrNull(row.operatingProfitYoY) ||
+      typeof row.screeningScore !== "number" || !Number.isFinite(row.screeningScore) ||
+      !stringArray(row.matchedWorldEventTags)
+    ) {
+      warnings.push(`${sourceLabel}: ignored malformed candidate row ${index + 1}`);
+      return;
+    }
+    candidates.push(row as unknown as UniverseCandidate);
+  });
+
+  return { candidates, warnings, rootValid: true };
 }
