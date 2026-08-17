@@ -19,6 +19,7 @@ export type NormalizedProIrCompany = {
 
 export type ProIrEventInputLoad = {
   companies: Record<string, NormalizedProIrCompany>;
+  invalidRoot: boolean;
   invalidCompanyCount: number;
   invalidEventCount: number;
 };
@@ -43,8 +44,17 @@ function normalizeEvent(value: unknown): NormalizedProIrEvent | null {
 }
 
 export function normalizeProIrEventInput(raw: unknown): ProIrEventInputLoad {
-  if (!isRecord(raw) || !isRecord(raw.companies)) {
-    return { companies: {}, invalidCompanyCount: raw == null ? 0 : 1, invalidEventCount: 0 };
+  if (raw == null) {
+    return { companies: {}, invalidRoot: false, invalidCompanyCount: 0, invalidEventCount: 0 };
+  }
+  if (!isRecord(raw)) {
+    return { companies: {}, invalidRoot: true, invalidCompanyCount: 0, invalidEventCount: 0 };
+  }
+  if (raw.companies === undefined) {
+    return { companies: {}, invalidRoot: false, invalidCompanyCount: 0, invalidEventCount: 0 };
+  }
+  if (!isRecord(raw.companies)) {
+    return { companies: {}, invalidRoot: true, invalidCompanyCount: 0, invalidEventCount: 0 };
   }
 
   const companies: Record<string, NormalizedProIrCompany> = {};
@@ -77,5 +87,5 @@ export function normalizeProIrEventInput(raw: unknown): ProIrEventInputLoad {
     companies[code] = { name: value.name as string | undefined, events };
   }
 
-  return { companies, invalidCompanyCount, invalidEventCount };
+  return { companies, invalidRoot: false, invalidCompanyCount, invalidEventCount };
 }
