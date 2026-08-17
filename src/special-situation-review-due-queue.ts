@@ -8,6 +8,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { addDaysJst, todayJst } from "./date.js";
+import { parseHypothesisOutcomesJsonl } from "./hypothesis-outcome-input.js";
 import type { HypothesisOutcome, ReviewHorizon } from "./universe.js";
 import { isSpecialSituationOutcome, detectMixedOutcomes, isHistoricalSeedOverdue } from "./special-situation-outcome-filter.js";
 import { calcSpecialSituationDueAt } from "./special-situation-review-due-date.js";
@@ -66,13 +67,6 @@ type SpecialSituationReviewDueReport = {
 };
 
 // ─────────── ヘルパ ───────────
-
-function readJsonl<T>(path: string): T[] {
-  if (!existsSync(path)) return [];
-  return readFileSync(path, "utf-8")
-    .split("\n").map(l => l.trim()).filter(Boolean)
-    .map(l => JSON.parse(l) as T);
-}
 
 function readYaml<T>(path: string): T {
   return load(readFileSync(path, "utf-8")) as T;
@@ -142,8 +136,12 @@ function main(): void {
   const candidateCodes = new Set(candidates.map(c => c.code));
   const codeToName = new Map(candidates.map(c => [c.code, c.name]));
 
-  // outcome 読み込み
-  const allOutcomes = readJsonl<HypothesisOutcome>("data/hypothesis_outcomes.jsonl");
+  // outcome 読み込み。壊れた1行は隔離し、正常な履歴を維持する。
+  const parsedOutcomes = existsSync("data/hypothesis_outcomes.jsonl")
+    ? parseHypothesisOutcomesJsonl(readFileSync("data/hypothesis_outcomes.jsonl", "utf-8"), "data/hypothesis_outcomes.jsonl")
+    : { rows: [], warnings: [] };
+  for (const warning of parsedOutcomes.warnings) console.warn(`[warn] ${warning}`);
+  const allOutcomes = parsedOutcomes.rows;
   const allMatched = allOutcomes.filter(o => candidateCodes.has(o.code));
 
   // special_prefer: special_situation マーカーがある code はそちらを優先
@@ -242,6 +240,7 @@ function main(): void {
     "historical_seed_overdue は上場日を detectedAt に使った過去日付 seed。急ぎの投資判断ではなく検証用データの補完候補。",
     "not_due_yet は正常。期限後に再確認する。",
     "no_outcome_record は outcome 未作成または日付不正など、期限計算に使えない候補。内容を確認してから再生成する。",
+    ...parsedOutcomes.warnings,
   ];
   if (mixed.length > 0) {
     notes.push(`[special_prefer] ${mixed.map(m => m.code).join("/")} で special/normal 混在を検出。special outcome を優先しました。`);
