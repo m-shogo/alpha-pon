@@ -28,3 +28,11 @@ export function normalizeGeneratedObjectInput(
   }
   return { object: {}, warning: `${field}: invalid_root (expected object)` }
 }
+
+export function normalizeOptionalGeneratedObjectInput(
+  value: unknown,
+  field: string,
+): GeneratedObjectInput {
+  if (value === undefined) return { object: {}, warning: null }
+  return normalizeGeneratedObjectInput(value, field)
+}
