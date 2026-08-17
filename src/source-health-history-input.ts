@@ -1,3 +1,5 @@
+import { addDaysJst } from "./date.js";
+
 export type SourceHealthHistoryRow = {
   date?: string;
   reports?: Record<string, { exists?: boolean; size?: number }>;
@@ -12,6 +14,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function canonicalHistoryDate(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  try {
+    return addDaysJst(value, 0) === value ? value : null;
+  } catch {
+    return null;
+  }
+}
+
 function isValidReportValue(value: unknown): boolean {
   if (!isRecord(value)) return false;
   if (value.exists !== undefined && typeof value.exists !== "boolean") return false;
@@ -22,12 +33,19 @@ function isValidReportValue(value: unknown): boolean {
   return true;
 }
 
-export function normalizeSourceHealthHistoryRows(values: unknown[]): NormalizedSourceHealthHistory {
+export function normalizeSourceHealthHistoryRows(values: unknown[], asOf?: string): NormalizedSourceHealthHistory {
   const rows: SourceHealthHistoryRow[] = [];
   let invalidRows = 0;
+  const cutoff = asOf === undefined ? null : canonicalHistoryDate(asOf);
 
   for (const value of values) {
     if (!isRecord(value)) {
+      invalidRows += 1;
+      continue;
+    }
+
+    const date = canonicalHistoryDate(value.date);
+    if (!date || (asOf !== undefined && (!cutoff || date > cutoff))) {
       invalidRows += 1;
       continue;
     }
