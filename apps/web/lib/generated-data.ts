@@ -10,9 +10,10 @@
 
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
-import type { AlphaPonGeneratedData as ProData, Candidate } from './types'
+import type { AlphaPonGeneratedData as ProData, Candidate, RunCursorState } from './types'
 import type { AlphaPonGeneratedData as StocksData } from '@/types/alpha-pon'
 import {
+  isGeneratedRunCursorState,
   normalizeGeneratedArrayInput,
   normalizeGeneratedObjectInput,
   normalizeOptionalGeneratedRecordInput,
@@ -128,6 +129,11 @@ function normalizeGeneratedData(value: unknown): ProData {
     'dataQualityByCode',
     isDataQualityRow,
   )
+  const runCursorLoad = normalizeOptionalGeneratedRecordInput<RunCursorState>(
+    data.runCursors,
+    'runCursors',
+    isGeneratedRunCursorState,
+  )
   return {
     ...FALLBACK_PRO,
     ...data,
@@ -153,7 +159,7 @@ function normalizeGeneratedData(value: unknown): ProData {
     companyMemoryByCode: data.companyMemoryByCode ?? {},
     primaryDisclosureReviews: data.primaryDisclosureReviews ?? {},
     dataQualityByCode: dataQualityLoad.record,
-    runCursors: data.runCursors ?? {},
+    runCursors: runCursorLoad.record,
     readiness: data.readiness ?? null,
     ipoThemeWatch: data.ipoThemeWatch ?? null,
     specialSituationWatch: data.specialSituationWatch ?? null,
@@ -166,12 +172,15 @@ function normalizeGeneratedData(value: unknown): ProData {
     meta: normalizeGeneratedMeta(
       normalizeGeneratedMeta(
         normalizeGeneratedMeta(
-          normalizeGeneratedMeta(data.meta, rootLoad.warning),
-          candidateLoad.warning,
+          normalizeGeneratedMeta(
+            normalizeGeneratedMeta(data.meta, rootLoad.warning),
+            candidateLoad.warning,
+          ),
+          companyMemoryLoad.warning,
         ),
-        companyMemoryLoad.warning,
+        dataQualityLoad.warning,
       ),
-      dataQualityLoad.warning,
+      runCursorLoad.warning,
     ),
   }
 }
