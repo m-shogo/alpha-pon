@@ -136,7 +136,16 @@ export function normalizeCompanyCoverageRows(roots: CompanyCoverageRootState): C
   const rawCompanies = roots.network && isRecord(roots.network.companies)
     ? roots.network.companies
     : {};
-  for (const [code, rawCompany] of Object.entries(rawCompanies)) {
+  for (const [rawCode, rawCompany] of Object.entries(rawCompanies)) {
+    const code = nonEmptyString(rawCode);
+    if (!code) {
+      warnings.push("company-network.yml company code is invalid");
+      continue;
+    }
+    if (companies[code]) {
+      warnings.push(`company-network.yml company ${code} canonical identity is duplicated`);
+      continue;
+    }
     if (!isRecord(rawCompany)) {
       warnings.push(`company-network.yml company ${code} shape is invalid`);
       continue;

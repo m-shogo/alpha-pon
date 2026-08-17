@@ -186,7 +186,7 @@ function testCompanyCoverageRowIsolation() {
     },
     {
       companies: {
-        "8136": { name: "サンリオ", categoryHints: [" entertainment "] },
+        " 8136 ": { name: "サンリオ", categoryHints: [" entertainment "] },
         "4661": null,
         "7974": { name: "任天堂", categoryHints: {} },
       },
@@ -200,10 +200,26 @@ function testCompanyCoverageRowIsolation() {
   assert.deepEqual(normalized.companies["8136"], {
     name: "サンリオ",
     categoryHints: ["entertainment"],
-  }, "正常なnetwork rowは保持してcanonical化する");
+  }, "network codeもcanonical化して同一company identityを維持する");
   assert.equal(normalized.companies["4661"], undefined, "null network rowは隔離する");
   assert.equal(normalized.companies["7974"], undefined, "壊れたcategoryHints rowは隔離する");
   assert.ok(normalized.warnings.length >= 5, "壊れrowはsilent dropせずmetadata warningへ残す");
+
+  const duplicateRoots = normalizeCompanyCoverageRoots(
+    { categories: {} },
+    {
+      companies: {
+        "8136": { name: "サンリオ", categoryHints: [] },
+        " 8136 ": { name: "duplicate", categoryHints: [] },
+      },
+    },
+  );
+  const duplicateNormalized = normalizeCompanyCoverageRows(duplicateRoots);
+  assert.equal(duplicateNormalized.companies["8136"].name, "サンリオ", "canonical duplicateは先行rowを保持する");
+  assert.ok(
+    duplicateNormalized.warnings.some(warning => warning.includes("canonical identity is duplicated")),
+    "canonical duplicateはsilent overwriteせずwarningへ残す",
+  );
 }
 
 function testStrictListingDate() {
