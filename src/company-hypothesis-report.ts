@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
+import { normalizeCompanyHypothesesRoot } from "./company-coverage-input.js";
 import { todayJst } from "./date.js";
 
 type CompanyHypothesis = {
@@ -24,14 +25,14 @@ type Category = {
   companies: CompanyHypothesis[];
 };
 
-type Config = {
-  categories: Record<string, Category>;
-};
-
-function readConfig(): Config {
+function readConfig(): { categories: Record<string, Category>; warning: string | null } {
   const path = join(process.cwd(), "config", "company-hypotheses.yml");
-  const raw = readFileSync(path, "utf-8");
-  return load(raw) as Config;
+  const raw = load(readFileSync(path, "utf-8"));
+  const input = normalizeCompanyHypothesesRoot(raw);
+  return {
+    categories: (input.categories ?? {}) as Record<string, Category>,
+    warning: input.warning,
+  };
 }
 
 function statusIcon(status: string): string {
@@ -52,8 +53,13 @@ function main() {
   lines.push("");
   lines.push("> テーマ別に、具体銘柄・親会社/関連会社・上がる仮説・上がらない仮説・下がる仮説を蓄積するためのレポートです。買い推奨ではありません。");
   lines.push("");
+  lines.push("## input health");
+  lines.push("");
+  lines.push(`- health status: ${config.warning ? "action_required" : "ok"}`);
+  lines.push(`- warning: ${config.warning ?? "none"}`);
+  lines.push("");
 
-  for (const [categoryId, category] of Object.entries(config.categories ?? {})) {
+  for (const [categoryId, category] of Object.entries(config.categories)) {
     lines.push(`## ${category.label} (${categoryId})`);
     lines.push("");
     lines.push(`- テーマ仮説: ${category.thesis}`);
