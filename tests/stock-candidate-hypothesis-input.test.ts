@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  normalizeStockCandidateUniverseRows,
   normalizeStockCandidateWatchlistCodes,
   parseExistingStockCandidateHypothesesJsonl,
 } from "../src/stock-candidate-hypothesis-input.js";
@@ -47,4 +48,32 @@ const brokenRoot = normalizeStockCandidateWatchlistCodes(["8136"]);
 assert.deepEqual([...brokenRoot.codes], [], "non-object rootを有効watchlistとして扱わない");
 assert.match(brokenRoot.warnings[0], /root shape is invalid/);
 
-console.log("stock-candidate-hypothesis-input: malformed JSONL/watchlist row isolation OK");
+const validCandidate = {
+  code: "8136",
+  name: "サンリオ",
+  sector: "entertainment",
+  detectedAt: "2026-08-17",
+  drawdownPct: -20,
+  operatingProfitYoY: 12,
+  screeningScore: 70,
+  matchedWorldEventTags: ["consumer_ip"],
+};
+const universe = normalizeStockCandidateUniverseRows({
+  generatedAt: "2026-08-17",
+  candidates: [
+    validCandidate,
+    null,
+    { ...validCandidate, code: "7974", matchedWorldEventTags: {} },
+    { ...validCandidate, code: "4661", screeningScore: "70" },
+  ],
+});
+assert.equal(universe.rootValid, true);
+assert.deepEqual(universe.candidates.map(candidate => candidate.code), ["8136"], "malformed candidateだけ隔離して正常candidateを保持する");
+assert.equal(universe.warnings.length, 3, "malformed candidate rowをsilent dropしない");
+assert.ok(universe.warnings.every(warning => !warning.includes("サンリオ")), "candidate warningへraw row内容を露出しない");
+
+const invalidUniverseRoot = normalizeStockCandidateUniverseRows({ candidates: {} });
+assert.equal(invalidUniverseRoot.rootValid, false, "non-array candidates rootを空の正常snapshotへ同化しない");
+assert.match(invalidUniverseRoot.warnings[0], /candidates root shape is invalid/);
+
+console.log("stock-candidate-hypothesis-input: malformed JSONL/watchlist/universe row isolation OK");
