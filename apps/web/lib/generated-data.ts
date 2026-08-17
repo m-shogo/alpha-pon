@@ -12,7 +12,11 @@ import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import type { AlphaPonGeneratedData as ProData } from './types'
 import type { AlphaPonGeneratedData as StocksData } from '@/types/alpha-pon'
-import { normalizeGeneratedArrayInput, normalizeGeneratedObjectInput } from './generated-array-input'
+import {
+  normalizeGeneratedArrayInput,
+  normalizeGeneratedObjectInput,
+  normalizeOptionalGeneratedObjectInput,
+} from './generated-array-input'
 
 const DATA_PATH = join(process.cwd(), 'public', 'generated', 'alpha-pon-data.json')
 
@@ -68,6 +72,7 @@ function normalizeGeneratedData(value: unknown): ProData {
     data.companyMemory,
     'companyMemory',
   )
+  const dataQualityLoad = normalizeOptionalGeneratedObjectInput(data.dataQualityByCode, 'dataQualityByCode')
   return {
     ...FALLBACK_PRO,
     ...data,
@@ -92,7 +97,7 @@ function normalizeGeneratedData(value: unknown): ProData {
     companyMemory: companyMemoryLoad.rows,
     companyMemoryByCode: data.companyMemoryByCode ?? {},
     primaryDisclosureReviews: data.primaryDisclosureReviews ?? {},
-    dataQualityByCode: data.dataQualityByCode ?? {},
+    dataQualityByCode: dataQualityLoad.object as ProData['dataQualityByCode'],
     runCursors: data.runCursors ?? {},
     readiness: data.readiness ?? null,
     ipoThemeWatch: data.ipoThemeWatch ?? null,
@@ -104,8 +109,11 @@ function normalizeGeneratedData(value: unknown): ProData {
       : [],
     worldImpactAudit: (data as { worldImpactAudit?: ProData['worldImpactAudit'] }).worldImpactAudit ?? null,
     meta: normalizeGeneratedMeta(
-      normalizeGeneratedMeta(data.meta, rootLoad.warning),
-      companyMemoryLoad.warning,
+      normalizeGeneratedMeta(
+        normalizeGeneratedMeta(data.meta, rootLoad.warning),
+        companyMemoryLoad.warning,
+      ),
+      dataQualityLoad.warning,
     ),
   }
 }
