@@ -49,6 +49,17 @@ export type GeneratedWorldThemeCandidateHypothesisInput = {
   disclaimer: string
 }
 
+export type GeneratedPipelineStatusInput = {
+  date?: string
+  status?: string
+  startedAt?: string
+  endedAt?: string
+  failedSteps?: string
+  completeWrapperFailedSteps?: string[]
+  completeWrapperRunAt?: string
+  steps?: unknown[]
+}
+
 export function isGeneratedRunCursorState(value: unknown): value is GeneratedRunCursorState {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const row = value as Record<string, unknown>
@@ -92,6 +103,21 @@ export function isGeneratedWorldThemeCandidateHypothesisInput(
     && reviewAfterDays[1] === 90
     && reviewAfterDays[2] === 180
     && typeof row.disclaimer === 'string'
+}
+
+export function isGeneratedPipelineStatusInput(value: unknown): value is GeneratedPipelineStatusInput {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const row = value as Record<string, unknown>
+  return (row.date === undefined || typeof row.date === 'string')
+    && (row.status === undefined || typeof row.status === 'string')
+    && (row.startedAt === undefined || typeof row.startedAt === 'string')
+    && (row.endedAt === undefined || typeof row.endedAt === 'string')
+    && (row.failedSteps === undefined || typeof row.failedSteps === 'string')
+    && (row.completeWrapperFailedSteps === undefined
+      || (Array.isArray(row.completeWrapperFailedSteps)
+        && row.completeWrapperFailedSteps.every((item) => typeof item === 'string')))
+    && (row.completeWrapperRunAt === undefined || typeof row.completeWrapperRunAt === 'string')
+    && (row.steps === undefined || Array.isArray(row.steps))
 }
 
 export function normalizeGeneratedWarningsInput(
