@@ -35,16 +35,23 @@ try {
     ...valid,
     sourceEventTitle: "Duplicate lineage",
   };
+  const invalidDueDate = {
+    ...base,
+    hypothesisId: "world-theme-invalid-date",
+    reviewDueDates: [
+      { afterDays: 30, dueAt: "2026-02-31", status: "open" },
+    ],
+  };
 
   writeFileSync(
     path,
-    `${JSON.stringify(valid)}\n${JSON.stringify(duplicateHorizon)}\n${JSON.stringify(duplicateHypothesisId)}\n`,
+    `${JSON.stringify(valid)}\n${JSON.stringify(duplicateHorizon)}\n${JSON.stringify(duplicateHypothesisId)}\n${JSON.stringify(invalidDueDate)}\n`,
     "utf-8",
   );
   const input = readWorldThemeCandidateReviewInput(path);
 
   assert.deepEqual(input.rows.map(row => row.hypothesisId), ["world-theme-1"]);
-  assert.equal(input.warning, `${path}: invalid_rows 2`);
+  assert.equal(input.warning, `${path}: invalid_rows 3`);
 } finally {
   rmSync(tmp, { recursive: true, force: true });
 }
