@@ -15,10 +15,12 @@ import type { AlphaPonGeneratedData as StocksData } from '@/types/alpha-pon'
 import {
   isGeneratedReportInput,
   isGeneratedRunCursorState,
+  isGeneratedWorldThemeCandidateHypothesisInput,
   normalizeGeneratedArrayInput,
   normalizeGeneratedObjectInput,
   normalizeGeneratedWarningsInput,
   normalizeOptionalGeneratedRecordInput,
+  type GeneratedWorldThemeCandidateHypothesisInput,
 } from './generated-array-input'
 
 const DATA_PATH = join(process.cwd(), 'public', 'generated', 'alpha-pon-data.json')
@@ -55,6 +57,10 @@ const FALLBACK_PRO: ProData = {
 }
 
 type DataQualityRow = NonNullable<ProData['dataQualityByCode']>[string]
+
+type ProDataWithWorldThemeCandidateHypotheses = ProData & {
+  worldThemeCandidateHypotheses?: GeneratedWorldThemeCandidateHypothesisInput[]
+}
 
 const CANDIDATE_STATUSES = new Set(['research', 'watch', 'candidate', 'active', 'ignore', 'expired'])
 const CANDIDATE_PRIORITIES = new Set(['S', 'A', 'B', 'C'])
@@ -119,9 +125,9 @@ function normalizeGeneratedMeta(meta: unknown, warning: string | null): ProData[
   } as ProData['meta']
 }
 
-function normalizeGeneratedData(value: unknown): ProData {
+function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateHypotheses {
   const rootLoad = normalizeGeneratedObjectInput(value, 'generatedData')
-  const data = rootLoad.object as Partial<ProData>
+  const data = rootLoad.object as Partial<ProData> & { worldThemeCandidateHypotheses?: unknown }
   const reportLoad = normalizeGeneratedArrayInput<GeneratedReport>(data.reports, 'reports', isGeneratedReportInput)
   const candidateLoad = normalizeGeneratedArrayInput<Candidate>(data.candidates, 'candidates', isCandidateRow)
   const companyMemoryLoad = normalizeGeneratedArrayInput<NonNullable<ProData['companyMemory']>[number]>(
@@ -137,6 +143,11 @@ function normalizeGeneratedData(value: unknown): ProData {
     data.runCursors,
     'runCursors',
     isGeneratedRunCursorState,
+  )
+  const worldThemeCandidateHypothesisLoad = normalizeGeneratedArrayInput<GeneratedWorldThemeCandidateHypothesisInput>(
+    data.worldThemeCandidateHypotheses,
+    'worldThemeCandidateHypotheses',
+    isGeneratedWorldThemeCandidateHypothesisInput,
   )
   return {
     ...FALLBACK_PRO,
@@ -159,6 +170,7 @@ function normalizeGeneratedData(value: unknown): ProData {
     positions: Array.isArray(data.positions) ? data.positions : [],
     accuracySummary: data.accuracySummary ?? null,
     worldContext: data.worldContext ?? null,
+    worldThemeCandidateHypotheses: worldThemeCandidateHypothesisLoad.rows,
     companyMemory: companyMemoryLoad.rows,
     companyMemoryByCode: data.companyMemoryByCode ?? {},
     primaryDisclosureReviews: data.primaryDisclosureReviews ?? {},
@@ -178,21 +190,24 @@ function normalizeGeneratedData(value: unknown): ProData {
         normalizeGeneratedMeta(
           normalizeGeneratedMeta(
             normalizeGeneratedMeta(
-              normalizeGeneratedMeta(data.meta, rootLoad.warning),
-              reportLoad.warning,
+              normalizeGeneratedMeta(
+                normalizeGeneratedMeta(data.meta, rootLoad.warning),
+                reportLoad.warning,
+              ),
+              candidateLoad.warning,
             ),
-            candidateLoad.warning,
+            companyMemoryLoad.warning,
           ),
-          companyMemoryLoad.warning,
+          dataQualityLoad.warning,
         ),
-        dataQualityLoad.warning,
+        runCursorLoad.warning,
       ),
-      runCursorLoad.warning,
+      worldThemeCandidateHypothesisLoad.warning,
     ),
   }
 }
 
-export function loadGeneratedData(): ProData {
+export function loadGeneratedData(): ProDataWithWorldThemeCandidateHypotheses {
   if (!existsSync(DATA_PATH)) return FALLBACK_PRO
   try {
     return normalizeGeneratedData(JSON.parse(readFileSync(DATA_PATH, 'utf-8')))
