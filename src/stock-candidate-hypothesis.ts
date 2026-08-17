@@ -8,6 +8,7 @@ import { appendFileSync, existsSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst, addDaysJst } from "./date.js";
+import { parseExistingStockCandidateHypothesesJsonl } from "./stock-candidate-hypothesis-input.js";
 import type {
   UniverseCandidate,
   StockCandidateHypothesis,
@@ -21,11 +22,14 @@ const HYPOTHESIS_PATH = "data/hypothesis_predictions.jsonl";
 
 function readExistingHypotheses(): StockCandidateHypothesis[] {
   if (!existsSync(HYPOTHESIS_PATH)) return [];
-  return readFileSync(HYPOTHESIS_PATH, "utf-8")
-    .split("\n")
-    .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => JSON.parse(line) as StockCandidateHypothesis);
+  const parsed = parseExistingStockCandidateHypothesesJsonl(
+    readFileSync(HYPOTHESIS_PATH, "utf-8"),
+    HYPOTHESIS_PATH,
+  );
+  for (const warning of parsed.warnings) {
+    console.warn(`[warning] ${warning}`);
+  }
+  return parsed.rows;
 }
 
 function appendHypothesis(h: StockCandidateHypothesis): void {
