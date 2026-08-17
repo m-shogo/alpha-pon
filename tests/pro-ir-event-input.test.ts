@@ -15,7 +15,7 @@ const validEvent = {
 {
   const normalized = normalizeProIrEventInput({
     companies: {
-      "8136": { name: "Sanrio", events: [validEvent] },
+      "8136": { name: "Sanrio", events: [{ ...validEvent, date: "2026-02-28", eventDate: "2026-03-01" }] },
     },
   });
   assert(normalized.companies["8136"]?.events.length === 1, "valid IR event row must remain usable");
@@ -33,6 +33,16 @@ const validEvent = {
   assert(normalized.companies["8136"]?.events.length === 1, "malformed event rows must be isolated without dropping valid peer rows");
   assert(normalized.companies["7203"]?.events.length === 1, "valid companies must survive malformed events elsewhere");
   assert(normalized.invalidEventCount === 2, "malformed event rows must be counted for metadata warning");
+}
+
+{
+  const normalized = normalizeProIrEventInput({
+    companies: {
+      "8136": { name: "Sanrio", events: [{ ...validEvent, date: "2026-02-31" }, { ...validEvent, eventDate: "0000-01-01" }, validEvent] },
+    },
+  });
+  assert(normalized.companies["8136"]?.events.length === 1, "impossible Gregorian IR dates must be isolated from valid rows");
+  assert(normalized.invalidEventCount === 2, "invalid date rows must be counted for metadata warning");
 }
 
 {
