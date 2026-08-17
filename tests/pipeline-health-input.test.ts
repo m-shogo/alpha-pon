@@ -6,6 +6,7 @@ import { normalizeCompanyCoverageRoots } from "../src/company-coverage-input.js"
 import { readKnowledgeReviewJsonl } from "../src/knowledge-review-input.js";
 import { extractPipelineHealthConfidence, pipelineHealthConfidenceAtDate, shouldNotifyPipelineHealth } from "../src/pipeline-health-alert-input.js";
 import { hasCanonicalPipelineStatus, hasUsableSourceHealthText, sourceHealthHistoryState } from "../src/pipeline-health-input.js";
+import { normalizeSourceHealthHistoryRows } from "../src/source-health-history-input.js";
 import { readStaleHypothesisJsonl } from "../src/stale-hypothesis-input.js";
 
 const BASE_PIPELINE_STATUS = {
@@ -23,6 +24,16 @@ assert.equal(hasUsableSourceHealthText(""), false, "empty source health text mus
 assert.equal(hasUsableSourceHealthText("  \n\t  "), false, "whitespace-only source health text must fail closed");
 assert.equal(sourceHealthHistoryState(true), "ok", "existing source-health history remains usable");
 assert.equal(sourceHealthHistoryState(false), "missing", "missing source-health history must not look healthy");
+
+const normalizedHistory = normalizeSourceHealthHistoryRows([
+  { date: "2026-08-16", reports: { scores: { exists: true, size: 42 } } },
+  { date: "2026-02-31", reports: { scores: { exists: true, size: 42 } } },
+  { date: "2026-08-17", reports: { scores: { exists: true, size: 42 } } },
+  { reports: { scores: { exists: true, size: 42 } } },
+], "2026-08-16");
+assert.deepEqual(normalizedHistory.rows.map(row => row.date), ["2026-08-16"], "only canonical history rows at or before the read-only cutoff remain eligible");
+assert.equal(normalizedHistory.invalidRows, 3, "invalid, future, and missing history dates must fail closed instead of crowding the recent health window");
+
 assert.equal(hasCanonicalPipelineStatus({}), false, "empty pipeline status objects must fail closed");
 assert.equal(hasCanonicalPipelineStatus(BASE_PIPELINE_STATUS), true, "canonical daily pipeline status remains valid");
 assert.equal(hasCanonicalPipelineStatus(BASE_PIPELINE_STATUS, "2026-08-16"), true, "same-day pipeline status remains visible at the read-only cutoff");
