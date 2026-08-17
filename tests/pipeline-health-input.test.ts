@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { readKnowledgeReviewJsonl } from "../src/knowledge-review-input.js";
+import { extractPipelineHealthConfidence, shouldNotifyPipelineHealth } from "../src/pipeline-health-alert-input.js";
 import { hasCanonicalPipelineStatus, hasUsableSourceHealthText, sourceHealthHistoryState } from "../src/pipeline-health-input.js";
 import { readStaleHypothesisJsonl } from "../src/stale-hypothesis-input.js";
 
@@ -81,6 +82,13 @@ assert.equal(hasCanonicalPipelineStatus({
   ],
   failedSteps: ["scan_universe"],
 }), false, "duplicate result identities must not let display order hide a failed step");
+
+assert.equal(extractPipelineHealthConfidence("- report confidence: normal"), "normal", "normal health remains recognizable");
+assert.equal(shouldNotifyPipelineHealth("normal"), false, "normal health must not notify");
+assert.equal(shouldNotifyPipelineHealth("caution"), true, "caution health must notify");
+assert.equal(shouldNotifyPipelineHealth("low"), true, "low health must notify");
+assert.equal(extractPipelineHealthConfidence(""), "unknown", "missing or malformed health summaries remain unknown");
+assert.equal(shouldNotifyPipelineHealth("unknown"), true, "unknown health must fail closed instead of suppressing the alert");
 
 const dir = mkdtempSync(join(tmpdir(), "alpha-pon-knowledge-review-"));
 try {
