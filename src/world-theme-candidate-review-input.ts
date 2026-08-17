@@ -35,6 +35,11 @@ function isReviewDue(value: unknown): value is WorldThemeReviewDue {
   );
 }
 
+function hasUniqueReviewHorizons(reviewDueDates: WorldThemeReviewDue[]): boolean {
+  const horizons = reviewDueDates.map(due => due.afterDays);
+  return new Set(horizons).size === horizons.length;
+}
+
 export function isWorldThemeCandidateReviewInput(value: unknown): value is PersistedWorldThemeCandidateHypothesis {
   if (!isRecord(value)) return false;
   for (const key of [
@@ -48,7 +53,8 @@ export function isWorldThemeCandidateReviewInput(value: unknown): value is Persi
   ] as const) {
     if (typeof value[key] !== "string" || !value[key].trim()) return false;
   }
-  return Array.isArray(value.reviewDueDates) && value.reviewDueDates.every(isReviewDue);
+  if (!Array.isArray(value.reviewDueDates) || !value.reviewDueDates.every(isReviewDue)) return false;
+  return hasUniqueReviewHorizons(value.reviewDueDates);
 }
 
 export function readWorldThemeCandidateReviewInput(path: string): {
