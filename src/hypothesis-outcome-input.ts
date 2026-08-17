@@ -16,59 +16,55 @@ function isUsableOutcome(value: unknown): value is HypothesisOutcome {
   return typeof value.hypothesis.detectedAt === "string" && value.hypothesis.detectedAt.trim().length > 0;
 }
 
-function parseOutcomePayloads(payloads: string[], source: string, unit: string): ParsedHypothesisOutcomes {
-  const rows: HypothesisOutcome[] = [];
-  const malformedIndexes: number[] = [];
-
-  payloads.forEach((payload, index) => {
-    try {
-      const parsed: unknown = JSON.parse(payload);
-      if (!isUsableOutcome(parsed)) {
-        malformedIndexes.push(index + 1);
-        return;
-      }
-      rows.push(parsed);
-    } catch {
-      malformedIndexes.push(index + 1);
-    }
-  });
-
-  const warnings = malformedIndexes.length > 0
-    ? [`${source}: ${malformedIndexes.length} malformed ${unit}(s) isolated at ${unit}(s) ${malformedIndexes.join(", ")}`]
-    : [];
-
-  return { rows, warnings };
-}
-
 export function parseHypothesisOutcomesJsonl(text: string, source = "hypothesis outcomes JSONL"): ParsedHypothesisOutcomes {
-  const payloads: string[] = [];
-  const lineNumbers: number[] = [];
+  const rows: HypothesisOutcome[] = [];
+  const malformedLines: number[] = [];
 
   text.split("\n").forEach((rawLine, index) => {
     const line = rawLine.trim();
     if (!line) return;
-    payloads.push(line);
-    lineNumbers.push(index + 1);
+    try {
+      const parsed: unknown = JSON.parse(line);
+      if (!isUsableOutcome(parsed)) {
+        malformedLines.push(index + 1);
+        return;
+      }
+      rows.push(parsed);
+    } catch {
+      malformedLines.push(index + 1);
+    }
   });
 
-  const parsed = parseOutcomePayloads(payloads, source, "row");
-  if (parsed.warnings.length === 0) return parsed;
+  const warnings = malformedLines.length > 0
+    ? [`${source}: ${malformedLines.length} malformed JSONL row(s) isolated at line(s) ${malformedLines.join(", ")}`]
+    : [];
 
-  const malformedRows = parsed.warnings[0]
-    .match(/row\(s\) ([\d, ]+)$/)?.[1]
-    .split(", ")
-    .map(value => Number(value)) ?? [];
-  const malformedLines = malformedRows.map(rowNumber => lineNumbers[rowNumber - 1]).filter((value): value is number => Number.isInteger(value));
-
-  return {
-    rows: parsed.rows,
-    warnings: [`${source}: ${malformedLines.length} malformed JSONL row(s) isolated at line(s) ${malformedLines.join(", ")}`],
-  };
+  return { rows, warnings };
 }
 
 export function parseHypothesisOutcomeSqlitePayloads(
   payloads: string[],
   source = "hypothesis_outcomes SQLite payload",
 ): ParsedHypothesisOutcomes {
-  return parseOutcomePayloads(payloads, source, "record");
+  const rows: HypothesisOutcome[] = [];
+  const malformedRecords: number[] = [];
+
+  payloads.forEach((payload, index) => {
+    try {
+      const parsed: unknown = JSON.parse(payload);
+      if (!isUsableOutcome(parsed)) {
+        malformedRecords.push(index + 1);
+        return;
+      }
+      rows.push(parsed);
+    } catch {
+      malformedRecords.push(index + 1);
+    }
+  });
+
+  const warnings = malformedRecords.length > 0
+    ? [`${source}: ${malformedRecords.length} malformed record(s) isolated at record(s) ${malformedRecords.join(", ")}`]
+    : [];
+
+  return { rows, warnings };
 }
