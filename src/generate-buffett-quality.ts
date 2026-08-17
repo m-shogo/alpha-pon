@@ -1,7 +1,7 @@
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "fs";
-import { join } from "path";
+import { mkdirSync, readFileSync, writeFileSync } from "fs";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
+import { readLatestProScores } from "./pro-latest-score-input.js";
 import type { BuffettQualitySnapshot } from "./pro-types.js";
 
 type Company = {
@@ -17,19 +17,11 @@ type Hypotheses = { categories?: Record<string, { companies?: Company[] }> };
 type LatestScore = { code: string; name: string; reasons?: string[]; negativeReasons?: string[]; warnings?: string[]; dataQuality?: string };
 
 function readYaml<T>(path: string, fallback: T): T {
-  if (!existsSync(path)) return fallback;
-  return load(readFileSync(path, "utf-8")) as T;
-}
-
-function readLatestScores(): LatestScore[] {
-  if (!existsSync("reports")) return [];
   try {
-    const files = readdirSync("reports").filter(file => /^scores_\d{4}-\d{2}-\d{2}\.json$/.test(file)).sort();
-    const latest = files.at(-1);
-    if (!latest) return [];
-    const parsed = JSON.parse(readFileSync(join("reports", latest), "utf-8"));
-    return Array.isArray(parsed) ? parsed as LatestScore[] : [];
-  } catch { return []; }
+    return load(readFileSync(path, "utf-8")) as T;
+  } catch {
+    return fallback;
+  }
 }
 
 function unique(items: string[]): string[] {
@@ -77,7 +69,8 @@ function classifyQuality(company: Company, score?: LatestScore): BuffettQualityS
 
 function main() {
   const hypotheses = readYaml<Hypotheses>("config/company-hypotheses.yml", {});
-  const scores = new Map(readLatestScores().map(score => [score.code, score]));
+  const scoreLoad = readLatestProScores<LatestScore>("reports", todayJst());
+  const scores = new Map(scoreLoad.rows.map(score => [score.code, score]));
   const companies = Object.values(hypotheses.categories ?? {}).flatMap(category => category.companies ?? []);
   const snapshots = companies.map(company => classifyQuality(company, scores.get(company.code)));
   mkdirSync("data", { recursive: true });
