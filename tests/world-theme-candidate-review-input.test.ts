@@ -25,18 +25,26 @@ try {
   };
   const duplicateHorizon = {
     ...base,
-    hypothesisId: "world-theme-duplicate",
+    hypothesisId: "world-theme-duplicate-horizon",
     reviewDueDates: [
       { afterDays: 30, dueAt: "2026-08-31", status: "open" },
       { afterDays: 30, dueAt: "2026-09-01", status: "open" },
     ],
   };
+  const duplicateHypothesisId = {
+    ...valid,
+    sourceEventTitle: "Duplicate lineage",
+  };
 
-  writeFileSync(path, `${JSON.stringify(valid)}\n${JSON.stringify(duplicateHorizon)}\n`, "utf-8");
+  writeFileSync(
+    path,
+    `${JSON.stringify(valid)}\n${JSON.stringify(duplicateHorizon)}\n${JSON.stringify(duplicateHypothesisId)}\n`,
+    "utf-8",
+  );
   const input = readWorldThemeCandidateReviewInput(path);
 
   assert.deepEqual(input.rows.map(row => row.hypothesisId), ["world-theme-1"]);
-  assert.equal(input.warning, `${path}: invalid_rows 1`);
+  assert.equal(input.warning, `${path}: invalid_rows 2`);
 } finally {
   rmSync(tmp, { recursive: true, force: true });
 }
