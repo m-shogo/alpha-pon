@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
+import { normalizeCompanyNetworkRoot } from "./company-coverage-input.js";
 import { todayJst } from "./date.js";
 
 type Peer = { code: string; name: string; relation: string };
@@ -12,11 +13,12 @@ type Company = {
   betterPeerRisk?: string[];
   evidenceChecks?: string[];
 };
-type Config = { companies: Record<string, Company> };
 
 function main() {
   const date = todayJst();
-  const config = load(readFileSync("config/company-network.yml", "utf-8")) as Config;
+  const raw = load(readFileSync("config/company-network.yml", "utf-8"));
+  const input = normalizeCompanyNetworkRoot(raw);
+  const companies = (input.companies ?? {}) as Record<string, Company>;
   const lines: string[] = [];
   lines.push("# alpha-pon company network report");
   lines.push("");
@@ -24,8 +26,13 @@ function main() {
   lines.push("");
   lines.push("1社だけに拘らず、関連会社・競合・需要ドライバー・better peer riskを確認します。買い推奨ではありません。");
   lines.push("");
+  lines.push("## input health");
+  lines.push("");
+  lines.push(`- health status: ${input.warning ? "action_required" : "ok"}`);
+  lines.push(`- warning: ${input.warning ?? "none"}`);
+  lines.push("");
 
-  for (const [code, company] of Object.entries(config.companies ?? {})) {
+  for (const [code, company] of Object.entries(companies)) {
     lines.push(`## ${code} ${company.name}`);
     lines.push(`- category: ${(company.categoryHints ?? []).join(" / ") || "N/A"}`);
     lines.push("- peers:");
@@ -50,7 +57,7 @@ function main() {
 
   mkdirSync("reports", { recursive: true });
   writeFileSync(join("reports", "company_network_latest.md"), lines.join("\n"), "utf-8");
-  console.log(`company network report: ${Object.keys(config.companies ?? {}).length}`);
+  console.log(`company network report: ${Object.keys(companies).length}`);
 }
 
 main();
