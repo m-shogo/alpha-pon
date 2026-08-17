@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { normalizeGeneratedPositions } from '../apps/web/lib/generated-position-input'
+import { normalizeGeneratedPositions } from '../apps/web/lib/generated-position-input.js'
 
 const validPosition = {
   code: '8136',
