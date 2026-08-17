@@ -1,8 +1,8 @@
 import { loadGeneratedData } from '@/lib/generated-data'
+import { normalizeGeneratedAlertCandidates, type GeneratedAlertCandidateInput } from '@/lib/generated-alert-candidate-input'
 import { SectionLabel } from '@/components/Card'
 import { Icon } from '@/components/Icon'
 import { Disclaimer } from '@/components/Disclaimer'
-import type { UniverseCandidate } from '@/types/universe'
 import Link from 'next/link'
 
 export const metadata = { title: '監視候補 | alpha-pon' }
@@ -18,7 +18,7 @@ function DrawdownBadge({ pct }: { pct: number | null }) {
   )
 }
 
-function CandidateRow({ c }: { c: UniverseCandidate }) {
+function CandidateRow({ c }: { c: GeneratedAlertCandidateInput }) {
   const isMock = c.dataSource === 'mock'
   return (
     <Link href={`/stocks/${c.code}`} style={{ textDecoration: 'none', display: 'block', marginBottom: 10, color: 'inherit' }}>
@@ -81,7 +81,8 @@ function CandidateRow({ c }: { c: UniverseCandidate }) {
 
 export default function AlertsPage() {
   const data = loadGeneratedData()
-  const candidates = data.universeCandidates ?? []
+  const candidateLoad = normalizeGeneratedAlertCandidates(data.universeCandidates)
+  const candidates = candidateLoad.rows
   const isMock = candidates.length > 0 && candidates.every(c => c.dataSource === 'mock')
   const scanDate = data.generatedAt ?? null
   const dataMode = candidates.length === 0 ? null : isMock ? 'MOCK' : '本番'
@@ -128,6 +129,11 @@ export default function AlertsPage() {
       </div>
 
       <div style={{ padding: '16px 16px 0' }}>
+        {candidateLoad.warning && (
+          <div style={{ padding: '10px 14px', marginBottom: 12, background: 'var(--urgent-soft)', borderRadius: 10, fontSize: 12, fontWeight: 700, color: 'var(--urgent)' }}>
+            データ警告: {candidateLoad.warning}
+          </div>
+        )}
         {isMock && (
           <div style={{ padding: '10px 14px', marginBottom: 12, background: 'var(--amber-soft)', borderRadius: 10, fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)', display: 'flex', gap: 8 }}>
             <span style={{ color: 'var(--amber)', flexShrink: 0 }}>⚠</span>
