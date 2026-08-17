@@ -69,6 +69,7 @@ import "./readiness-future-score-snapshot.test.js";
 import "./readiness-future-backup.test.js";
 import "./ops-dashboard-input-time.test.js";
 import "./world-impact-latest-input.test.js";
+import "./company-hypothesis-report-input.test.js";
 import "./research/security-master.test.js";
 import "./research/security-master-identifier-canonicality.test.js";
 import "./research/security-master-resolver-namespace.test.js";

@@ -2,37 +2,13 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { normalizeCompanyHypothesesRoot } from "./company-coverage-input.js";
+import { normalizeCompanyHypothesisReportRows } from "./company-hypothesis-report-input.js";
 import { todayJst } from "./date.js";
 
-type CompanyHypothesis = {
-  code: string;
-  name: string;
-  role: string;
-  status: string;
-  upsideHypothesis: string;
-  noMoveHypothesis: string;
-  downsideHypothesis: string;
-  notGoodWhen?: string[];
-  relatedCompanies?: string[];
-  evidenceToCheck?: string[];
-  nonMoveReasonCandidates?: string[];
-  lastReviewedAt?: string;
-};
-
-type Category = {
-  label: string;
-  thesis: string;
-  companies: CompanyHypothesis[];
-};
-
-function readConfig(): { categories: Record<string, Category>; warning: string | null } {
+function readConfig() {
   const path = join(process.cwd(), "config", "company-hypotheses.yml");
   const raw = load(readFileSync(path, "utf-8"));
-  const input = normalizeCompanyHypothesesRoot(raw);
-  return {
-    categories: (input.categories ?? {}) as Record<string, Category>,
-    warning: input.warning,
-  };
+  return normalizeCompanyHypothesisReportRows(normalizeCompanyHypothesesRoot(raw));
 }
 
 function statusIcon(status: string): string {
@@ -55,8 +31,10 @@ function main() {
   lines.push("");
   lines.push("## input health");
   lines.push("");
-  lines.push(`- health status: ${config.warning ? "action_required" : "ok"}`);
-  lines.push(`- warning: ${config.warning ?? "none"}`);
+  lines.push(`- health status: ${config.warnings.length > 0 ? "action_required" : "ok"}`);
+  lines.push(`- input warnings: ${config.warnings.length}`);
+  if (config.warnings.length === 0) lines.push("- warning: none");
+  for (const warning of config.warnings) lines.push(`- warning: ${warning}`);
   lines.push("");
 
   for (const [categoryId, category] of Object.entries(config.categories)) {
@@ -65,7 +43,7 @@ function main() {
     lines.push(`- テーマ仮説: ${category.thesis}`);
     lines.push("");
 
-    for (const company of category.companies ?? []) {
+    for (const company of category.companies) {
       lines.push(`### ${statusIcon(company.status)} ${company.code} ${company.name}`);
       lines.push(`- 役割: ${company.role}`);
       lines.push(`- status: ${company.status}`);
@@ -74,13 +52,13 @@ function main() {
       lines.push(`- 下がる仮説: ${company.downsideHypothesis}`);
       lines.push(`- 最終確認日: ${company.lastReviewedAt ?? "N/A"}`);
       lines.push("- ダメ条件:");
-      (company.notGoodWhen ?? ["N/A"]).forEach(item => lines.push(`  - ${item}`));
+      (company.notGoodWhen.length > 0 ? company.notGoodWhen : ["N/A"]).forEach(item => lines.push(`  - ${item}`));
       lines.push("- 親会社・関連会社・競合候補:");
-      (company.relatedCompanies ?? ["N/A"]).forEach(item => lines.push(`  - ${item}`));
+      (company.relatedCompanies.length > 0 ? company.relatedCompanies : ["N/A"]).forEach(item => lines.push(`  - ${item}`));
       lines.push("- 一次情報/財務で確認すること:");
-      (company.evidenceToCheck ?? ["N/A"]).forEach(item => lines.push(`  - ${item}`));
+      (company.evidenceToCheck.length > 0 ? company.evidenceToCheck : ["N/A"]).forEach(item => lines.push(`  - ${item}`));
       lines.push("- 外れた時に保存する理由DB候補:");
-      (company.nonMoveReasonCandidates ?? ["unknown_or_insufficient_data"]).forEach(item => lines.push(`  - ${item}`));
+      (company.nonMoveReasonCandidates.length > 0 ? company.nonMoveReasonCandidates : ["unknown_or_insufficient_data"]).forEach(item => lines.push(`  - ${item}`));
       lines.push("");
     }
   }
