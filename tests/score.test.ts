@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { scoreHealthyPullback } from "../src/score/pullback.js";
 import { scoreEarningsDrop } from "../src/score/earnings.js";
-import { isRunCursorState } from "../apps/web/lib/generated-data.js";
+import { isGeneratedRunCursorState } from "../apps/web/lib/generated-array-input.js";
 
 function testPullbackMissingFinancials() {
   const result = scoreHealthyPullback({
@@ -34,10 +34,10 @@ function testEarningsDropMissingFinancials() {
 }
 
 function testGeneratedRunCursorShape() {
-  assert.equal(isRunCursorState({ jobName: "jquants", offset: 3, total: 10 }), true);
-  assert.equal(isRunCursorState(null), false);
-  assert.equal(isRunCursorState({ offset: "3", total: 10 }), false);
-  assert.equal(isRunCursorState({ offset: Number.NaN, total: 10 }), false);
+  assert.equal(isGeneratedRunCursorState({ jobName: "jquants", offset: 3, total: 10 }), true);
+  assert.equal(isGeneratedRunCursorState(null), false);
+  assert.equal(isGeneratedRunCursorState({ offset: "3", total: 10 }), false);
+  assert.equal(isGeneratedRunCursorState({ offset: Number.NaN, total: 10 }), false);
 }
 
 function main() {
