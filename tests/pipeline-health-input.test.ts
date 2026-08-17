@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { readKnowledgeReviewJsonl } from "../src/knowledge-review-input.js";
-import { extractPipelineHealthConfidence, shouldNotifyPipelineHealth } from "../src/pipeline-health-alert-input.js";
+import { extractPipelineHealthConfidence, pipelineHealthConfidenceAtDate, shouldNotifyPipelineHealth } from "../src/pipeline-health-alert-input.js";
 import { hasCanonicalPipelineStatus, hasUsableSourceHealthText, sourceHealthHistoryState } from "../src/pipeline-health-input.js";
 import { readStaleHypothesisJsonl } from "../src/stale-hypothesis-input.js";
 
@@ -89,6 +89,10 @@ assert.equal(shouldNotifyPipelineHealth("caution"), true, "caution health must n
 assert.equal(shouldNotifyPipelineHealth("low"), true, "low health must notify");
 assert.equal(extractPipelineHealthConfidence(""), "unknown", "missing or malformed health summaries remain unknown");
 assert.equal(shouldNotifyPipelineHealth("unknown"), true, "unknown health must fail closed instead of suppressing the alert");
+const CURRENT_PIPELINE_HEALTH = "# alpha-pon pipeline health summary\n\ndate: 2026-08-17\n\n## confidence\n\n- report confidence: normal\n";
+assert.equal(pipelineHealthConfidenceAtDate(CURRENT_PIPELINE_HEALTH, "2026-08-17"), "normal", "current normal health remains suppressible");
+assert.equal(pipelineHealthConfidenceAtDate(CURRENT_PIPELINE_HEALTH, "2026-08-18"), "unknown", "stale normal health must fail closed instead of suppressing the current alert");
+assert.equal(pipelineHealthConfidenceAtDate("- report confidence: normal", "2026-08-17"), "unknown", "health summaries without a canonical current date must fail closed");
 
 const dir = mkdtempSync(join(tmpdir(), "alpha-pon-knowledge-review-"));
 try {
