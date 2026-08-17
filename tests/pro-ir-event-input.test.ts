@@ -19,6 +19,7 @@ const validEvent = {
     },
   });
   assert(normalized.companies["8136"]?.events.length === 1, "valid IR event row must remain usable");
+  assert(!normalized.invalidRoot, "valid IR input must not be flagged invalid root");
   assert(normalized.invalidCompanyCount === 0 && normalized.invalidEventCount === 0, "valid input must not be flagged invalid");
 }
 
@@ -44,6 +45,11 @@ const validEvent = {
   assert(!normalized.companies["8136"], "company with non-array events must be isolated");
   assert(normalized.companies["7203"]?.events.length === 1, "malformed company must not stop valid companies");
   assert(normalized.invalidCompanyCount === 1, "malformed company input must be counted");
+}
+
+{
+  const normalized = normalizeProIrEventInput({ companies: [] });
+  assert(normalized.invalidRoot, "non-object companies root must fail closed instead of becoming an empty event set");
 }
 
 console.log("pro IR event input tests passed");
