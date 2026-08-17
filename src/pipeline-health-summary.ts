@@ -47,7 +47,7 @@ function main() {
   const sourceHealthHistoryPath = "data/source_health_history.jsonl";
   const sourceHealthHistoryStatus = sourceHealthHistoryState(existsSync(sourceHealthHistoryPath));
   const sourceHealthHistory = readJsonlWithErrors<unknown>(sourceHealthHistoryPath);
-  const normalizedSourceHealthHistory = normalizeSourceHealthHistoryRows(sourceHealthHistory.rows);
+  const normalizedSourceHealthHistory = normalizeSourceHealthHistoryRows(sourceHealthHistory.rows, date);
   const sourceRows = normalizedSourceHealthHistory.rows;
   const recentMissing = missingReports(sourceRows, 14);
   const criticalSignals: string[] = [];
