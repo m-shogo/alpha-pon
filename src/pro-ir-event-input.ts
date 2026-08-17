@@ -1,3 +1,5 @@
+import { addDaysJst } from "./date.js";
+
 export type NormalizedProIrEvent = {
   type?: string;
   eventType?: string;
@@ -32,11 +34,22 @@ function isOptionalString(value: unknown): value is string | null | undefined {
   return value === undefined || value === null || typeof value === "string";
 }
 
+function isOptionalRealJstDate(value: unknown): boolean {
+  if (value === undefined || value === null) return true;
+  if (typeof value !== "string") return false;
+  try {
+    return addDaysJst(value, 0) === value;
+  } catch {
+    return false;
+  }
+}
+
 function normalizeEvent(value: unknown): NormalizedProIrEvent | null {
   if (!isRecord(value)) return null;
   for (const field of ["type", "eventType", "label", "title", "date", "eventDate", "publishedAt", "sourceUrl", "sourceStatus", "impact"] as const) {
     if (!isOptionalString(value[field])) return null;
   }
+  if (!isOptionalRealJstDate(value.date) || !isOptionalRealJstDate(value.eventDate)) return null;
   if (value.notes !== undefined && (!Array.isArray(value.notes) || !value.notes.every((item) => typeof item === "string"))) {
     return null;
   }
