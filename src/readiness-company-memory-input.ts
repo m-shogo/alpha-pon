@@ -72,6 +72,7 @@ function hasUniqueHypothesisOutcomeIdentities(value: unknown, asOf: string): boo
     if (item.hypothesis.detectedAt > asOf) return false;
     if (item.evaluatedAt !== undefined) {
       if (!isNonEmptyString(item.evaluatedAt) || !isRealJstDate(item.evaluatedAt) || item.evaluatedAt > asOf) return false;
+      if (item.evaluatedAt < item.hypothesis.detectedAt) return false;
     }
     if (typeof item.reviewHorizon !== "string" || !REVIEW_HORIZONS.has(item.reviewHorizon)) return false;
     if (typeof item.dataSource !== "string" || !OUTCOME_DATA_SOURCES.has(item.dataSource)) return false;
@@ -247,7 +248,7 @@ export function assertReadinessHypothesisOutcomeInput(
   const generated = readGeneratedObject(generatedPath);
   if (!generated || generated.hypothesisOutcomes === undefined) return;
   if (!hasUniqueHypothesisOutcomeIdentities(generated.hypothesisOutcomes, asOf)) {
-    throw new Error(`${generatedPath}: hypothesisOutcomes must have canonical score fields and unique code + hypothesis.detectedAt + reviewHorizon identities; hypothesis.detectedAt and evaluatedAt must not be later than readiness as-of date ${asOf}`);
+    throw new Error(`${generatedPath}: hypothesisOutcomes must have canonical score fields and unique code + hypothesis.detectedAt + reviewHorizon identities; hypothesis.detectedAt and evaluatedAt must not be later than readiness as-of date ${asOf}; evaluatedAt must not be earlier than hypothesis.detectedAt`);
   }
 }
 

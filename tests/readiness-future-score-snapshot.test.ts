@@ -76,6 +76,16 @@ try {
     "future outcome evaluation dates must not inflate current outcome readiness",
   );
 
+  writeFileSync(
+    generatedPath,
+    JSON.stringify({ hypothesisOutcomes: [{ ...outcome, hypothesis: { detectedAt: "2026-08-16" }, evaluatedAt: "2026-08-15" }] }),
+  );
+  assert.throws(
+    () => assertReadinessHypothesisOutcomeInput(generatedPath, "2026-08-16"),
+    /evaluatedAt must not be earlier than hypothesis\.detectedAt/,
+    "outcome evaluations must not predate the hypothesis they evaluate",
+  );
+
   const prediction = {
     code: "8136",
     name: "Sanrio",
