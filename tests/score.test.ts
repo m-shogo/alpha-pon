@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { scoreHealthyPullback } from "../src/score/pullback.js";
 import { scoreEarningsDrop } from "../src/score/earnings.js";
 import {
+  isGeneratedPipelineStatusInput,
   isGeneratedReportInput,
   isGeneratedRunCursorState,
   isGeneratedWorldThemeCandidateHypothesisInput,
@@ -85,6 +86,18 @@ function testGeneratedWorldThemeCandidateHypothesisShape() {
   assert.equal(isGeneratedWorldThemeCandidateHypothesisInput({ ...valid, reviewAfterDays: [30, 90] }), false);
 }
 
+function testGeneratedPipelineStatusShape() {
+  assert.equal(isGeneratedPipelineStatusInput({
+    status: "failed",
+    completeWrapperFailedSteps: ["fetch:jquants"],
+    endedAt: "2026-08-17T19:00:00Z",
+  }), true);
+  assert.equal(isGeneratedPipelineStatusInput(null), false);
+  assert.equal(isGeneratedPipelineStatusInput("failed"), false);
+  assert.equal(isGeneratedPipelineStatusInput({ completeWrapperFailedSteps: "fetch:jquants" }), false);
+  assert.equal(isGeneratedPipelineStatusInput({ completeWrapperFailedSteps: ["ok", null] }), false);
+}
+
 function main() {
   testPullbackMissingFinancials();
   testEarningsDropMissingFinancials();
@@ -92,6 +105,7 @@ function main() {
   testGeneratedReportShape();
   testGeneratedWarningsShape();
   testGeneratedWorldThemeCandidateHypothesisShape();
+  testGeneratedPipelineStatusShape();
   console.log("score.test.ts passed");
 }
 
