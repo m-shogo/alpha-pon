@@ -1,4 +1,8 @@
-import { normalizeGeneratedArrayInput, normalizeGeneratedObjectInput } from "../apps/web/lib/generated-array-input.js";
+import {
+  normalizeGeneratedArrayInput,
+  normalizeGeneratedObjectInput,
+  normalizeOptionalGeneratedObjectInput,
+} from "../apps/web/lib/generated-array-input.js";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -31,6 +35,23 @@ for (const malformed of [null, [], "broken", 1]) {
   assert(
     invalid.warning === "generatedData: invalid_root (expected object)",
     "malformed generated roots must remain visible as metadata-only warnings",
+  );
+}
+
+const missingOptionalObject = normalizeOptionalGeneratedObjectInput(undefined, "dataQualityByCode");
+assert(Object.keys(missingOptionalObject.object).length === 0, "missing optional generated objects may remain empty");
+assert(missingOptionalObject.warning === null, "missing optional generated objects must not be mislabeled as corrupt");
+
+const validOptionalObject = normalizeOptionalGeneratedObjectInput({ "8136": { dataQuality: "ok" } }, "dataQualityByCode");
+assert(Object.keys(validOptionalObject.object).length === 1, "valid optional generated objects must remain usable");
+assert(validOptionalObject.warning === null, "valid optional generated objects must not emit warnings");
+
+for (const malformed of [null, [], "broken", 1]) {
+  const invalid = normalizeOptionalGeneratedObjectInput(malformed, "dataQualityByCode");
+  assert(Object.keys(invalid.object).length === 0, "malformed optional generated objects must be safely isolated");
+  assert(
+    invalid.warning === "dataQualityByCode: invalid_root (expected object)",
+    "malformed data-quality roots must remain visible as metadata-only warnings",
   );
 }
 
