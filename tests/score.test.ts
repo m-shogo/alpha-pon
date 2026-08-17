@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { scoreHealthyPullback } from "../src/score/pullback.js";
 import { scoreEarningsDrop } from "../src/score/earnings.js";
-import { isGeneratedRunCursorState } from "../apps/web/lib/generated-array-input.js";
+import { isGeneratedReportInput, isGeneratedRunCursorState } from "../apps/web/lib/generated-array-input.js";
 
 function testPullbackMissingFinancials() {
   const result = scoreHealthyPullback({
@@ -40,10 +40,19 @@ function testGeneratedRunCursorShape() {
   assert.equal(isGeneratedRunCursorState({ offset: Number.NaN, total: 10 }), false);
 }
 
+function testGeneratedReportShape() {
+  const valid = { key: "daily", label: "Daily", path: "reports/latest.md", available: true, excerpt: ["ok"] };
+  assert.equal(isGeneratedReportInput(valid), true);
+  assert.equal(isGeneratedReportInput(null), false);
+  assert.equal(isGeneratedReportInput({ ...valid, available: "yes" }), false);
+  assert.equal(isGeneratedReportInput({ ...valid, excerpt: {} }), false);
+}
+
 function main() {
   testPullbackMissingFinancials();
   testEarningsDropMissingFinancials();
   testGeneratedRunCursorShape();
+  testGeneratedReportShape();
   console.log("score.test.ts passed");
 }
 
