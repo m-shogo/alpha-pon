@@ -1,4 +1,4 @@
-import { normalizeProIrEventInput } from "../src/pro-ir-event-input.js";
+import { normalizeProIrEventInput, normalizeProIrSourceStatus } from "../src/pro-ir-event-input.js";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -21,6 +21,22 @@ const validEvent = {
   assert(normalized.companies["8136"]?.events.length === 1, "valid IR event row must remain usable");
   assert(!normalized.invalidRoot, "valid IR input must not be flagged invalid root");
   assert(normalized.invalidCompanyCount === 0 && normalized.invalidEventCount === 0, "valid input must not be flagged invalid");
+}
+
+{
+  assert(normalizeProIrSourceStatus(validEvent) === "confirmed", "explicit confirmed source with URL must remain confirmed");
+  assert(
+    normalizeProIrSourceStatus({ sourceUrl: "https://example.test/ir" }) === "official_check_required",
+    "source URL without explicit verification status must not be promoted to confirmed",
+  );
+  assert(
+    normalizeProIrSourceStatus({ sourceUrl: "https://example.test/ir", sourceStatus: "unknown" }) === "official_check_required",
+    "unknown source status must remain verification-required",
+  );
+  assert(
+    normalizeProIrSourceStatus({ sourceStatus: "confirmed" }) === "missing",
+    "confirmed label without source URL must fail closed as missing",
+  );
 }
 
 {
