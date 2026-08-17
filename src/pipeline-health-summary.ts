@@ -45,16 +45,16 @@ function main() {
         ? "ok"
         : "invalid_shape";
   const sourceHealthHistoryPath = "data/source_health_history.jsonl";
-  const sourceHealthHistoryStatus = sourceHealthHistoryState(existsSync(sourceHealthHistoryPath));
   const sourceHealthHistory = readJsonlWithErrors<unknown>(sourceHealthHistoryPath);
   const normalizedSourceHealthHistory = normalizeSourceHealthHistoryRows(sourceHealthHistory.rows, date);
   const sourceRows = normalizedSourceHealthHistory.rows;
+  const sourceHealthHistoryStatus = sourceHealthHistoryState(existsSync(sourceHealthHistoryPath), sourceRows.length);
   const recentMissing = missingReports(sourceRows, 14);
   const criticalSignals: string[] = [];
 
   if (!sourceHealthAvailable) criticalSignals.push("source_health_latest.md missing_or_empty");
   if (pipelineStatusState !== "ok") criticalSignals.push(`pipeline_status_latest.json ${pipelineStatusState}`);
-  if (sourceHealthHistoryStatus !== "ok") criticalSignals.push("source_health_history.jsonl missing");
+  if (sourceHealthHistoryStatus !== "ok") criticalSignals.push(`source_health_history.jsonl ${sourceHealthHistoryStatus}`);
   if (sourceHealthHistory.parseErrors.length > 0) {
     criticalSignals.push(`source_health_history.jsonl parse_error ${sourceHealthHistory.parseErrors.length}`);
   }
