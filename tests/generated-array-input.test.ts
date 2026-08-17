@@ -1,4 +1,4 @@
-import { normalizeGeneratedArrayInput } from "../apps/web/lib/generated-array-input.js";
+import { normalizeGeneratedArrayInput, normalizeGeneratedObjectInput } from "../apps/web/lib/generated-array-input.js";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -18,6 +18,19 @@ for (const malformed of [null, {}, "broken", 1]) {
   assert(
     invalid.warning === "companyMemory: invalid_root (expected array)",
     "malformed company-memory roots must remain visible as metadata-only warnings",
+  );
+}
+
+const validRoot = normalizeGeneratedObjectInput({ generatedAt: "2026-08-18" }, "generatedData");
+assert(validRoot.object.generatedAt === "2026-08-18", "valid generated roots must remain usable");
+assert(validRoot.warning === null, "valid generated roots must not emit warnings");
+
+for (const malformed of [null, [], "broken", 1]) {
+  const invalid = normalizeGeneratedObjectInput(malformed, "generatedData");
+  assert(Object.keys(invalid.object).length === 0, "malformed generated roots must be safely isolated");
+  assert(
+    invalid.warning === "generatedData: invalid_root (expected object)",
+    "malformed generated roots must remain visible as metadata-only warnings",
   );
 }
 
