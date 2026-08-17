@@ -13,6 +13,11 @@ export type GeneratedRecordInput<T> = {
   warning: string | null
 }
 
+export type GeneratedWarningsInput = {
+  warnings: string[]
+  warning: string | null
+}
+
 export type GeneratedRunCursorState = {
   jobName?: string
   offset?: number
@@ -50,6 +55,23 @@ export function isGeneratedReportInput(value: unknown): value is GeneratedReport
     && Array.isArray(row.excerpt)
     && row.excerpt.every((item) => typeof item === 'string')
     && (row.fullContent === undefined || typeof row.fullContent === 'string')
+}
+
+export function normalizeGeneratedWarningsInput(
+  value: unknown,
+  field = 'meta.warnings',
+): GeneratedWarningsInput {
+  if (value === undefined) return { warnings: [], warning: null }
+  if (!Array.isArray(value)) {
+    return { warnings: [], warning: `${field}: invalid_root (expected string array)` }
+  }
+
+  const warnings = value.filter((item): item is string => typeof item === 'string')
+  const invalidEntries = value.length - warnings.length
+  return {
+    warnings,
+    warning: invalidEntries > 0 ? `${field}: invalid_entries (${invalidEntries})` : null,
+  }
 }
 
 export function normalizeGeneratedArrayInput<T>(
