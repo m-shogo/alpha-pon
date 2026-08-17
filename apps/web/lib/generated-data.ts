@@ -58,6 +58,7 @@ const FALLBACK_PRO: ProData = {
 }
 
 type DataQualityRow = NonNullable<ProData['dataQualityByCode']>[string]
+type UniverseCandidateRow = NonNullable<ProData['universeCandidates']>[number]
 
 type ProDataWithWorldThemeCandidateHypotheses = ProData & {
   worldThemeCandidateHypotheses?: GeneratedWorldThemeCandidateHypothesisInput[]
@@ -103,6 +104,10 @@ function isCandidateRow(value: unknown): value is Candidate {
     && (row.sparkline === undefined || (Array.isArray(row.sparkline) && row.sparkline.every((item) => typeof item === 'number' && Number.isFinite(item))))
 }
 
+function isUniverseCandidateRow(value: unknown): value is UniverseCandidateRow {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+}
+
 function isDataQualityRow(value: unknown): value is DataQualityRow {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const row = value as Record<string, unknown>
@@ -131,6 +136,11 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
   const data = rootLoad.object as Partial<ProData> & { worldThemeCandidateHypotheses?: unknown }
   const reportLoad = normalizeGeneratedArrayInput<GeneratedReport>(data.reports, 'reports', isGeneratedReportInput)
   const candidateLoad = normalizeGeneratedArrayInput<Candidate>(data.candidates, 'candidates', isCandidateRow)
+  const universeCandidateLoad = normalizeGeneratedArrayInput<UniverseCandidateRow>(
+    data.universeCandidates,
+    'universeCandidates',
+    isUniverseCandidateRow,
+  )
   const companyMemoryLoad = normalizeGeneratedArrayInput<NonNullable<ProData['companyMemory']>[number]>(
     data.companyMemory,
     'companyMemory',
@@ -170,7 +180,7 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
     },
     reports: reportLoad.rows,
     candidates: candidateLoad.rows,
-    universeCandidates: Array.isArray(data.universeCandidates) ? data.universeCandidates : [],
+    universeCandidates: universeCandidateLoad.rows,
     universeScan: data.universeScan ?? null,
     hypothesisPredictions: Array.isArray(data.hypothesisPredictions) ? data.hypothesisPredictions : [],
     hypothesisOutcomes: Array.isArray(data.hypothesisOutcomes) ? data.hypothesisOutcomes : [],
@@ -201,10 +211,13 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
             normalizeGeneratedMeta(
               normalizeGeneratedMeta(
                 normalizeGeneratedMeta(
-                  normalizeGeneratedMeta(data.meta, rootLoad.warning),
-                  reportLoad.warning,
+                  normalizeGeneratedMeta(
+                    normalizeGeneratedMeta(data.meta, rootLoad.warning),
+                    reportLoad.warning,
+                  ),
+                  candidateLoad.warning,
                 ),
-                candidateLoad.warning,
+                universeCandidateLoad.warning,
               ),
               companyMemoryLoad.warning,
             ),
