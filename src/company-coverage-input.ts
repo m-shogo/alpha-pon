@@ -4,6 +4,21 @@ function isRecord(value: unknown): value is UnknownRecord {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+export type CompanyHypothesesRootState = {
+  categories: UnknownRecord | null;
+  warning: string | null;
+};
+
+export function normalizeCompanyHypothesesRoot(hypothesesRaw: unknown): CompanyHypothesesRootState {
+  if (!isRecord(hypothesesRaw) || !isRecord(hypothesesRaw.categories)) {
+    return {
+      categories: null,
+      warning: "company-hypotheses.yml root/categories shape is invalid",
+    };
+  }
+  return { categories: hypothesesRaw.categories, warning: null };
+}
+
 export type CompanyNetworkRootState = {
   companies: UnknownRecord | null;
   warning: string | null;
@@ -31,12 +46,9 @@ export function normalizeCompanyCoverageRoots(
 ): CompanyCoverageRootState {
   const warnings: string[] = [];
 
-  const hypotheses = isRecord(hypothesesRaw) && isRecord(hypothesesRaw.categories)
-    ? hypothesesRaw
-    : null;
-  if (!hypotheses) {
-    warnings.push("company-hypotheses.yml root/categories shape is invalid");
-  }
+  const hypothesesState = normalizeCompanyHypothesesRoot(hypothesesRaw);
+  const hypotheses = hypothesesState.categories && isRecord(hypothesesRaw) ? hypothesesRaw : null;
+  if (hypothesesState.warning) warnings.push(hypothesesState.warning);
 
   const networkState = normalizeCompanyNetworkRoot(networkRaw);
   const network = networkState.companies && isRecord(networkRaw) ? networkRaw : null;
