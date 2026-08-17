@@ -59,6 +59,7 @@ const FALLBACK_PRO: ProData = {
 
 type DataQualityRow = NonNullable<ProData['dataQualityByCode']>[string]
 type UniverseCandidateRow = NonNullable<ProData['universeCandidates']>[number]
+type HypothesisPredictionRow = NonNullable<ProData['hypothesisPredictions']>[number]
 
 type ProDataWithWorldThemeCandidateHypotheses = ProData & {
   worldThemeCandidateHypotheses?: GeneratedWorldThemeCandidateHypothesisInput[]
@@ -66,6 +67,7 @@ type ProDataWithWorldThemeCandidateHypotheses = ProData & {
 
 const CANDIDATE_STATUSES = new Set(['research', 'watch', 'candidate', 'active', 'ignore', 'expired'])
 const CANDIDATE_PRIORITIES = new Set(['S', 'A', 'B', 'C'])
+const HYPOTHESIS_STATUSES = new Set(['open', 'closed'])
 const SCORE_KEYS = ['structuralEvent', 'supplyDemand', 'valuation', 'theme', 'businessSafety', 'aiReview'] as const
 
 function isStringArray(value: unknown): value is string[] {
@@ -108,6 +110,24 @@ function isUniverseCandidateRow(value: unknown): value is UniverseCandidateRow {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
 }
 
+function isHypothesisPredictionRow(value: unknown): value is HypothesisPredictionRow {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const row = value as Record<string, unknown>
+  return typeof row.code === 'string'
+    && row.code.length > 0
+    && typeof row.name === 'string'
+    && typeof row.detectedAt === 'string'
+    && typeof row.reviewDueAt === 'string'
+    && typeof row.reason === 'string'
+    && typeof row.expectedTimeframe === 'string'
+    && typeof row.expectedDirection === 'string'
+    && typeof row.confidence === 'number'
+    && Number.isFinite(row.confidence)
+    && typeof row.label === 'string'
+    && typeof row.status === 'string'
+    && HYPOTHESIS_STATUSES.has(row.status)
+}
+
 function isDataQualityRow(value: unknown): value is DataQualityRow {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const row = value as Record<string, unknown>
@@ -140,6 +160,11 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
     data.universeCandidates,
     'universeCandidates',
     isUniverseCandidateRow,
+  )
+  const hypothesisPredictionLoad = normalizeGeneratedArrayInput<HypothesisPredictionRow>(
+    data.hypothesisPredictions,
+    'hypothesisPredictions',
+    isHypothesisPredictionRow,
   )
   const companyMemoryLoad = normalizeGeneratedArrayInput<NonNullable<ProData['companyMemory']>[number]>(
     data.companyMemory,
@@ -182,7 +207,7 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
     candidates: candidateLoad.rows,
     universeCandidates: universeCandidateLoad.rows,
     universeScan: data.universeScan ?? null,
-    hypothesisPredictions: Array.isArray(data.hypothesisPredictions) ? data.hypothesisPredictions : [],
+    hypothesisPredictions: hypothesisPredictionLoad.rows,
     hypothesisOutcomes: Array.isArray(data.hypothesisOutcomes) ? data.hypothesisOutcomes : [],
     generatedCompanyRules: Array.isArray(data.generatedCompanyRules) ? data.generatedCompanyRules : [],
     positions: Array.isArray(data.positions) ? data.positions : [],
@@ -212,12 +237,15 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
               normalizeGeneratedMeta(
                 normalizeGeneratedMeta(
                   normalizeGeneratedMeta(
-                    normalizeGeneratedMeta(data.meta, rootLoad.warning),
-                    reportLoad.warning,
+                    normalizeGeneratedMeta(
+                      normalizeGeneratedMeta(data.meta, rootLoad.warning),
+                      reportLoad.warning,
+                    ),
+                    candidateLoad.warning,
                   ),
-                  candidateLoad.warning,
+                  universeCandidateLoad.warning,
                 ),
-                universeCandidateLoad.warning,
+                hypothesisPredictionLoad.warning,
               ),
               companyMemoryLoad.warning,
             ),
