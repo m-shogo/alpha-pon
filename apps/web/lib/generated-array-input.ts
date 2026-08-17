@@ -13,6 +13,24 @@ export type GeneratedRecordInput<T> = {
   warning: string | null
 }
 
+export type GeneratedRunCursorState = {
+  jobName?: string
+  offset?: number
+  maxPerRun?: number
+  total?: number
+  updatedAt?: string
+}
+
+export function isGeneratedRunCursorState(value: unknown): value is GeneratedRunCursorState {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const row = value as Record<string, unknown>
+  return (row.jobName === undefined || typeof row.jobName === 'string')
+    && (row.offset === undefined || (typeof row.offset === 'number' && Number.isFinite(row.offset)))
+    && (row.maxPerRun === undefined || (typeof row.maxPerRun === 'number' && Number.isFinite(row.maxPerRun)))
+    && (row.total === undefined || (typeof row.total === 'number' && Number.isFinite(row.total)))
+    && (row.updatedAt === undefined || typeof row.updatedAt === 'string')
+}
+
 export function normalizeGeneratedArrayInput<T>(
   value: unknown,
   field: string,
