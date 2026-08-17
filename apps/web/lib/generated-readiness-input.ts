@@ -1,4 +1,4 @@
-import type { ReadinessReport } from './types'
+import type { ReadinessReport } from './types.js'
 
 export type GeneratedReadinessInputResult = {
   value: ReadinessReport | null
