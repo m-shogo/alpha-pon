@@ -118,7 +118,12 @@ import "./research/stock-pro-council-replay.test.js";
 import "./research/edge-decay-strict-date.test.js";
 import "./research/promotion-asof-nanosecond.test.js";
 import "./jquants-v2-date-cap.test.js";
-import { normalizeCompanyCoverageRoots, normalizeCompanyCoverageRows } from "../src/company-coverage-input.js";
+import {
+  normalizeCompanyCoverageRoots,
+  normalizeCompanyCoverageRows,
+  normalizeCompanyNetworkReportRows,
+  normalizeCompanyNetworkRoot,
+} from "../src/company-coverage-input.js";
 import { normalizeCompanyRulesWatchlistRow } from "../src/company-rules-watchlist-input.js";
 import { validateWatchlist } from "../src/validation.js";
 import { resolveWorldImpactEvaluationAsOf } from "../src/world-impact-evaluation-input.js";
@@ -222,6 +227,38 @@ function testCompanyCoverageRowIsolation() {
   );
 }
 
+function testCompanyNetworkReportRowIsolation() {
+  const input = normalizeCompanyNetworkRoot({
+    companies: {
+      " 8136 ": {
+        name: " サンリオ ",
+        categoryHints: [" entertainment "],
+        peers: [
+          { code: " 7974 ", name: " 任天堂 ", relation: " peer " },
+          null,
+        ],
+        customerOrDemandDrivers: [" licensing "],
+        betterPeerRisk: {},
+        evidenceChecks: [" IR "],
+      },
+      "4661": null,
+    },
+  });
+  const normalized = normalizeCompanyNetworkReportRows(input);
+  assert.deepEqual(normalized.companies["8136"], {
+    name: "サンリオ",
+    categoryHints: ["entertainment"],
+    peers: [{ code: "7974", name: "任天堂", relation: "peer" }],
+    customerOrDemandDrivers: ["licensing"],
+    betterPeerRisk: [],
+    evidenceChecks: ["IR"],
+  }, "nested malformed rowを隔離しつつ正常companyをread-only reportへ保持する");
+  assert.equal(normalized.companies["4661"], undefined, "null company rowはreport全体を止めず隔離する");
+  assert.ok(normalized.warnings.some(warning => warning.includes("peer row 2")), "壊れたpeer rowをwarningへ残す");
+  assert.ok(normalized.warnings.some(warning => warning.includes("betterPeerRisk")), "壊れたlist fieldをwarningへ残す");
+  assert.ok(normalized.warnings.some(warning => warning.includes("4661")), "壊れたcompany rowをwarningへ残す");
+}
+
 function testStrictListingDate() {
   assert.ok(
     validateWatchlist(candidate("2026-02-31")).some(e => e.includes("listedAt は YYYY-MM-DD 形式の実在する日付")),
@@ -289,6 +326,7 @@ function main() {
   testValidWatchlist();
   testCompanyRulesWatchlistRowIsolation();
   testCompanyCoverageRowIsolation();
+  testCompanyNetworkReportRowIsolation();
   testStrictListingDate();
   testWorldImpactEvaluationAsOf();
   testInvalidWatchlist();
