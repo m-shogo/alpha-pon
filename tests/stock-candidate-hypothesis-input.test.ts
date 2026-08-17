@@ -68,6 +68,18 @@ assert.match(
   "review:special-dueはmalformed Outcomeをsilent dropせずmetadata warningをreportへ残す",
 );
 
+const specialOpsSource = readFileSync(new URL("../src/special-situation-ops-summary.ts", import.meta.url), "utf-8");
+assert.match(
+  specialOpsSource,
+  /parseHypothesisOutcomesJsonl\(readFileSync\(OUTCOME_PATH, "utf-8"\), OUTCOME_PATH\)/,
+  "ops:specialもtested Outcome JSONL parserを再利用してmalformed rowを隔離する",
+);
+assert.match(
+  specialOpsSource,
+  /priority: "attention"[\s\S]*Outcome履歴[\s\S]*\.\.\.parsedOutcomes\.warnings/,
+  "ops:specialはmalformed Outcomeをsilent dropせずneeds_attention相当とmetadata warningへ残す",
+);
+
 const sqliteParsed = parseHypothesisOutcomeSqlitePayloads(
   [JSON.stringify(validOutcome), "{ malformed", JSON.stringify({}), JSON.stringify({ ...validOutcome, code: "7974" })],
   "data/hypothesis_outcomes.db",
