@@ -8,7 +8,10 @@ import { appendFileSync, existsSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst, addDaysJst } from "./date.js";
-import { parseExistingStockCandidateHypothesesJsonl } from "./stock-candidate-hypothesis-input.js";
+import {
+  normalizeStockCandidateWatchlistCodes,
+  parseExistingStockCandidateHypothesesJsonl,
+} from "./stock-candidate-hypothesis-input.js";
 import type {
   UniverseCandidate,
   StockCandidateHypothesis,
@@ -50,15 +53,14 @@ function isDuplicate(
 
 // ── watchlist 読み込み（登録済みかの確認用） ──────────────────
 
-type WatchlistEntry = { code: string; name: string };
-type WatchlistConfig = { symbols: WatchlistEntry[] };
-
 function loadWatchlistCodes(): Set<string> {
   const path = "config/watchlist.yml";
   if (!existsSync(path)) return new Set();
-  const raw = readFileSync(path, "utf-8");
-  const config = load(raw) as WatchlistConfig;
-  return new Set((config.symbols ?? []).map(s => s.code));
+  const normalized = normalizeStockCandidateWatchlistCodes(load(readFileSync(path, "utf-8")), path);
+  for (const warning of normalized.warnings) {
+    console.warn(`[warning] ${warning}`);
+  }
+  return normalized.codes;
 }
 
 // ── 仮説生成 ─────────────────────────────────────────────────
