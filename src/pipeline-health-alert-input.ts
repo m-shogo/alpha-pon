@@ -7,6 +7,12 @@ export function extractPipelineHealthConfidence(text: string): PipelineHealthCon
   return "unknown";
 }
 
+export function pipelineHealthConfidenceAtDate(text: string, expectedDate: string): PipelineHealthConfidence {
+  const reportDate = text.match(/^date:\s*(\d{4}-\d{2}-\d{2})\s*$/m)?.[1];
+  if (reportDate !== expectedDate) return "unknown";
+  return extractPipelineHealthConfidence(text);
+}
+
 export function shouldNotifyPipelineHealth(confidence: PipelineHealthConfidence): boolean {
   return confidence !== "normal";
 }
