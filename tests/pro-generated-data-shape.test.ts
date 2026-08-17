@@ -3,6 +3,7 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { readLatestProScores } from "../src/pro-latest-score-input.js";
 import { readReadOnlyJsonObjectArrayFile, readReadOnlyJsonObjectFile } from "../src/read-only-json-file.js";
+import "./pro-generated-rules-input.test.js";
 
 function readJson(path: string): unknown {
   if (!existsSync(path)) return null;

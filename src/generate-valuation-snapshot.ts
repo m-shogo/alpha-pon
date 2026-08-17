@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
+import { readGeneratedCompanyRules } from "./pro-generated-rules-input.js";
 import type { ValuationSnapshot } from "./pro-types.js";
 
 type Company = { code: string; name: string; evidenceToCheck?: string[]; noMoveHypothesis?: string; downsideHypothesis?: string };
@@ -19,12 +20,8 @@ function readYaml<T>(path: string, fallback: T): T {
 }
 
 function readRules(): Map<string, GeneratedRule> {
-  if (!existsSync("data/generated_company_rules_latest.json")) return new Map();
-  try {
-    const parsed = JSON.parse(readFileSync("data/generated_company_rules_latest.json", "utf-8"));
-    const rules = Array.isArray(parsed.rules) ? parsed.rules as GeneratedRule[] : [];
-    return new Map(rules.map(rule => [rule.code, rule]));
-  } catch { return new Map(); }
+  const load = readGeneratedCompanyRules<GeneratedRule>("data/generated_company_rules_latest.json", todayJst());
+  return new Map(load.rows.map(rule => [rule.code, rule]));
 }
 
 function buildSnapshot(company: Company, rule?: GeneratedRule): ValuationSnapshot {
