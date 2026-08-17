@@ -10,6 +10,49 @@ function isRealJstDate(value: string): boolean {
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isOptionalStringArray(value: unknown): boolean {
+  return value === undefined || (Array.isArray(value) && value.every((item) => typeof item === "string"));
+}
+
+export type ProScoreEvidenceRow = {
+  code: string;
+  name: string;
+  reasons?: string[];
+  negativeReasons?: string[];
+  warnings?: string[];
+  dataQuality?: string;
+};
+
+export type ProScoreRowNormalization = {
+  rows: ProScoreEvidenceRow[];
+  invalidRowCount: number;
+};
+
+export function normalizeProScoreEvidenceRows(rows: unknown[]): ProScoreRowNormalization {
+  const normalized: ProScoreEvidenceRow[] = [];
+  let invalidRowCount = 0;
+  for (const row of rows) {
+    if (
+      !isRecord(row)
+      || typeof row.code !== "string" || !row.code.trim() || row.code !== row.code.trim()
+      || typeof row.name !== "string" || !row.name.trim()
+      || !isOptionalStringArray(row.reasons)
+      || !isOptionalStringArray(row.negativeReasons)
+      || !isOptionalStringArray(row.warnings)
+      || (row.dataQuality !== undefined && typeof row.dataQuality !== "string")
+    ) {
+      invalidRowCount += 1;
+      continue;
+    }
+    normalized.push(row as ProScoreEvidenceRow);
+  }
+  return { rows: normalized, invalidRowCount };
+}
+
 export type LatestProScoreLoad<T> = {
   rows: T[];
   sourceFile: string | null;
