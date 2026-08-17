@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "fs";
+import { todayJst } from "./date.js";
 import { sendPipelineSummaryNotification } from "./notify.js";
-import { extractPipelineHealthConfidence, shouldNotifyPipelineHealth } from "./pipeline-health-alert-input.js";
+import { pipelineHealthConfidenceAtDate, shouldNotifyPipelineHealth } from "./pipeline-health-alert-input.js";
 
 function readText(path: string): string {
   return existsSync(path) ? readFileSync(path, "utf-8") : "";
@@ -23,7 +24,7 @@ function extractSection(text: string, title: string, maxLines = 8): string[] {
 async function main() {
   const dryRun = process.argv.includes("--dry-run") || process.env.ALPHA_PON_NOTIFY_DRY_RUN === "1";
   const report = readText("reports/pipeline_health_summary_latest.md");
-  const confidence = extractPipelineHealthConfidence(report);
+  const confidence = pipelineHealthConfidenceAtDate(report, todayJst());
 
   if (!shouldNotifyPipelineHealth(confidence)) {
     console.log("pipeline health alert: normal, no notification");
