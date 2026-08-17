@@ -2,6 +2,7 @@ import {
   normalizeGeneratedArrayInput,
   normalizeGeneratedObjectInput,
   normalizeOptionalGeneratedObjectInput,
+  normalizeOptionalGeneratedRecordInput,
 } from "../apps/web/lib/generated-array-input.js";
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -54,5 +55,32 @@ for (const malformed of [null, [], "broken", 1]) {
     "malformed data-quality roots must remain visible as metadata-only warnings",
   );
 }
+
+const isQualityRow = (value: unknown): value is { dataQuality: string; warnings: string[] } => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  return typeof row.dataQuality === "string"
+    && Array.isArray(row.warnings)
+    && row.warnings.every((warning) => typeof warning === "string");
+};
+
+const mixedRecord = normalizeOptionalGeneratedRecordInput(
+  {
+    "8136": { dataQuality: "ok", warnings: [] },
+    "9999": { dataQuality: "missing" },
+  },
+  "dataQualityByCode",
+  isQualityRow,
+);
+assert(Object.keys(mixedRecord.record).length === 1, "malformed generated record entries must be isolated individually");
+assert(mixedRecord.record["8136"]?.dataQuality === "ok", "valid generated record entries must remain usable");
+assert(
+  mixedRecord.warning === "dataQualityByCode: invalid_entries (1)",
+  "malformed generated record entries must remain visible as metadata-only warnings",
+);
+
+const missingRecord = normalizeOptionalGeneratedRecordInput(undefined, "dataQualityByCode", isQualityRow);
+assert(Object.keys(missingRecord.record).length === 0, "missing optional generated records may remain empty");
+assert(missingRecord.warning === null, "missing optional generated records must not be mislabeled as corrupt");
 
 console.log("generated array input tests passed");
