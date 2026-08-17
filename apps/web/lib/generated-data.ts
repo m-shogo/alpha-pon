@@ -25,6 +25,7 @@ import {
 } from './generated-array-input'
 import { normalizeGeneratedAccuracySummaryInput } from './generated-accuracy-summary-input'
 import { normalizeGeneratedReadinessInput } from './generated-readiness-input'
+import { normalizeGeneratedStocksInput } from './generated-stock-input'
 import { normalizeGeneratedWorldContextInput } from './generated-world-context-input'
 
 const DATA_PATH = join(process.cwd(), 'public', 'generated', 'alpha-pon-data.json')
@@ -325,10 +326,13 @@ export async function getGeneratedData(): Promise<StocksData> {
       }
     }
 
+    const stockLoad = normalizeGeneratedStocksInput(parsed.stocks)
     return {
       generatedAt: typeof parsed.generatedAt === 'string' ? parsed.generatedAt : FALLBACK_STOCKS.generatedAt,
-      stocks: parsed.stocks as StocksData['stocks'],
-      meta: { source: 'generated-json', version: '1' },
+      stocks: stockLoad.rows as StocksData['stocks'],
+      meta: stockLoad.warning
+        ? { source: 'generated-json', version: '1', warnings: [stockLoad.warning] }
+        : { source: 'generated-json', version: '1' },
     }
   } catch {
     return FALLBACK_STOCKS
