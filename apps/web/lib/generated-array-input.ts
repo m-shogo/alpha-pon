@@ -8,6 +8,11 @@ export type GeneratedObjectInput = {
   warning: string | null
 }
 
+export type GeneratedRecordInput<T> = {
+  record: Record<string, T>
+  warning: string | null
+}
+
 export function normalizeGeneratedArrayInput<T>(
   value: unknown,
   field: string,
@@ -35,4 +40,28 @@ export function normalizeOptionalGeneratedObjectInput(
 ): GeneratedObjectInput {
   if (value === undefined) return { object: {}, warning: null }
   return normalizeGeneratedObjectInput(value, field)
+}
+
+export function normalizeOptionalGeneratedRecordInput<T>(
+  value: unknown,
+  field: string,
+  isValidEntry: (value: unknown) => value is T,
+): GeneratedRecordInput<T> {
+  const root = normalizeOptionalGeneratedObjectInput(value, field)
+  if (root.warning) return { record: {}, warning: root.warning }
+
+  const validEntries: Array<[string, T]> = []
+  let invalidEntries = 0
+  for (const [key, entry] of Object.entries(root.object)) {
+    if (isValidEntry(entry)) {
+      validEntries.push([key, entry])
+    } else {
+      invalidEntries += 1
+    }
+  }
+
+  return {
+    record: Object.fromEntries(validEntries),
+    warning: invalidEntries > 0 ? `${field}: invalid_entries (${invalidEntries})` : null,
+  }
 }
