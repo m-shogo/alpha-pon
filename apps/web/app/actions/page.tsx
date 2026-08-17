@@ -1,4 +1,5 @@
 import { loadGeneratedData } from '@/lib/generated-data'
+import { normalizeGeneratedCompanyRules } from '@/lib/generated-company-rule-input'
 import { SectionLabel } from '@/components/Card'
 import { Icon } from '@/components/Icon'
 import { Disclaimer } from '@/components/Disclaimer'
@@ -93,7 +94,8 @@ function ActionCard({ rule, mode }: { rule: GeneratedStockRule; mode: AppMode })
 export default function ActionsPage() {
   const data = loadGeneratedData()
   const mode = getAppMode()
-  const rules: GeneratedStockRule[] = (data as Record<string, unknown>).generatedCompanyRules as GeneratedStockRule[] ?? []
+  const ruleLoad = normalizeGeneratedCompanyRules((data as Record<string, unknown>).generatedCompanyRules)
+  const rules = ruleLoad.rows as GeneratedStockRule[]
   const bySignal = SIGNAL_ORDER.reduce<Record<string, GeneratedStockRule[]>>((acc, sig) => {
     acc[sig] = rules.filter(r => r.actionSignal === sig)
     return acc
@@ -112,6 +114,11 @@ export default function ActionsPage() {
         </div>
       </div>
       <div style={{ padding: '16px 16px 0' }}>
+        {ruleLoad.warning && (
+          <div style={{ marginBottom: 12, padding: '8px 10px', borderRadius: 8, background: 'var(--amber-soft)', color: 'var(--amber)', fontSize: 11.5, fontWeight: 700 }}>
+            一部の行動候補データを安全のため除外しました（{ruleLoad.warning}）
+          </div>
+        )}
         {rules.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--ink-3)', fontSize: 13, fontWeight: 600 }}>
             <p>行動候補なし</p>
