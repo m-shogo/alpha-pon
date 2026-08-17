@@ -14,6 +14,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { addDaysJst, todayJst } from "./date.js";
+import { parseHypothesisOutcomesJsonl } from "./hypothesis-outcome-input.js";
 import type { HypothesisOutcome, ReviewHorizon } from "./universe.js";
 import {
   isSpecialSituationOutcome,
@@ -119,13 +120,6 @@ type SpecialSituationOpsSummary = {
 
 // ─────────── ヘルパ ───────────
 
-function readJsonl<T>(path: string): T[] {
-  if (!existsSync(path)) return [];
-  return readFileSync(path, "utf-8")
-    .split("\n").map(l => l.trim()).filter(Boolean)
-    .map(l => JSON.parse(l) as T);
-}
-
 function readYaml<T>(path: string): T {
   return load(readFileSync(path, "utf-8")) as T;
 }
@@ -159,7 +153,11 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
   const codeToName = new Map(candidates.map(c => [c.code, c.name]));
   const minSampleSize = config.outcomeStats?.minSampleSize ?? MIN_SAMPLE_SIZE_DEFAULT;
 
-  const allOutcomes = readJsonl<HypothesisOutcome>(OUTCOME_PATH);
+  const parsedOutcomes = existsSync(OUTCOME_PATH)
+    ? parseHypothesisOutcomesJsonl(readFileSync(OUTCOME_PATH, "utf-8"), OUTCOME_PATH)
+    : { rows: [], warnings: [] };
+  for (const warning of parsedOutcomes.warnings) console.warn(`[warn] ${warning}`);
+  const allOutcomes = parsedOutcomes.rows;
 
   // special_prefer: special があるコードは special のみ使う
   const allMatched = allOutcomes.filter(o => candidateCodes.has(o.code));
@@ -247,6 +245,15 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
 
   // アクション生成（優先順）
   const actionItems: ActionItem[] = [];
+
+  if (parsedOutcomes.warnings.length > 0) {
+    actionItems.push({
+      priority: "attention",
+      category: "data",
+      title: `データ不整合: Outcome履歴 ${parsedOutcomes.warnings.length}件 warning`,
+      detail: "壊れたOutcome JSONL rowを隔離し、正常rowだけで運用サマリーを継続しました。元データを確認してください。",
+    });
+  }
 
   if (noOutcomeRecordCodes.length > 0) {
     actionItems.push({
@@ -412,6 +419,7 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
     "backfill の structurallyUpdatable は構造チェックのみ。実際の価格補完には J-Quants が必要です。",
     "sampleTooSmall は参考値のみ。統計的判断の根拠にしないでください。",
     "期限未到達 (notDueYet) は正常状態です。",
+    ...parsedOutcomes.warnings,
   ];
   if (invalidDateCodes.length > 0) {
     notes.push(`detectedAt 不正の outcome (${invalidDateCodes.join("/")}) は期限分類・backfill候補・outcomeStatsから除外しました。`);
