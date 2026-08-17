@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { parseHypothesisOutcomesJsonl } from "../src/hypothesis-outcome-input.js";
 import {
   normalizeStockCandidateUniverseRows,
   normalizeStockCandidateWatchlistCodes,
@@ -39,6 +40,21 @@ assert.match(
   /parseExistingStockCandidateHypothesesJsonl\(readFileSync\(HYPOTHESIS_PATH, "utf-8"\), HYPOTHESIS_PATH\)/,
   "review:hypothesesもtested JSONL parserを再利用してmalformed rowを隔離する",
 );
+
+const validOutcome = {
+  code: "8136",
+  hypothesis: { detectedAt: "2026-08-17" },
+  reviewHorizon: "1m",
+};
+const outcomeParsed = parseHypothesisOutcomesJsonl(
+  `${JSON.stringify(validOutcome)}\n{}\n{ malformed\n${JSON.stringify({ ...validOutcome, code: "7974" })}\n`,
+  "data/hypothesis_outcomes.jsonl",
+);
+assert.deepEqual(outcomeParsed.rows.map(row => row.code), ["8136", "7974"], "malformed outcome rowを隔離して正常な履歴を保持する");
+assert.equal(outcomeParsed.warnings.length, 1, "JSON parse errorとunsafe outcome shapeをmetadata warningへ集約する");
+assert.match(outcomeParsed.warnings[0], /2 malformed JSONL row\(s\).*line\(s\) 2, 3/);
+assert.ok(!outcomeParsed.warnings[0].includes("{ malformed"), "Outcome warningへraw row内容を露出しない");
+assert.match(reviewSource, /readOutcomeJsonl\(OUTCOME_PATH\)/, "review:hypothesesのOutcome migration/readbackもsafe parserを利用する");
 
 const watchlist = normalizeStockCandidateWatchlistCodes({
   symbols: [
@@ -84,4 +100,4 @@ const invalidUniverseRoot = normalizeStockCandidateUniverseRows({ candidates: {}
 assert.equal(invalidUniverseRoot.rootValid, false, "non-array candidates rootを空の正常snapshotへ同化しない");
 assert.match(invalidUniverseRoot.warnings[0], /candidates root shape is invalid/);
 
-console.log("stock-candidate-hypothesis-input: malformed JSONL/watchlist/universe row isolation OK");
+console.log("stock-candidate-hypothesis-input: malformed JSONL/watchlist/universe/outcome row isolation OK");
