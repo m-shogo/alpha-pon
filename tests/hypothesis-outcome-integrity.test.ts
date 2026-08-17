@@ -235,6 +235,24 @@ try {
     jsonlPath,
     [
       JSON.stringify(outcome("2222", "2026-06-01", "1d")),
+      JSON.stringify({}),
+      JSON.stringify(outcome("2222", "2026-06-01", "1w")),
+    ].join("\n") + "\n",
+    "utf-8"
+  );
+
+  const shapeError = buildOutcomeIntegrityReport({ generatedAt: "2026-06-08", jsonlPath, dbPath });
+  assert.equal(shapeError.status, "parse_error", "JSON-validでもunsafe Outcome shapeをintegrity okへ同化しない");
+  assert.equal(shapeError.jsonl.totalRows, 2, "unsafe shapeを隔離して正常Outcomeを保持する");
+  assert.equal(shapeError.jsonl.parseErrors.length, 1);
+  assert.equal(shapeError.jsonl.parseErrors[0].lineNumber, 2);
+  assert.equal(shapeError.jsonl.parseErrors[0].preview, "[invalid outcome shape]", "unsafe rowのraw内容を監査へ露出しない");
+  assert.match(shapeError.jsonl.parseErrors[0].message, /invalid hypothesis outcome shape/);
+
+  writeFileSync(
+    jsonlPath,
+    [
+      JSON.stringify(outcome("2222", "2026-06-01", "1d")),
       "{ broken json",
       JSON.stringify(outcome("2222", "2026-06-01", "1w")),
     ].join("\n") + "\n",

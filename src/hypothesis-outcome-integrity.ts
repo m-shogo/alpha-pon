@@ -1,6 +1,9 @@
 import { existsSync, readFileSync } from "fs";
 import { DatabaseSync } from "node:sqlite";
-import { parseHypothesisOutcomeSqlitePayloads } from "./hypothesis-outcome-input.js";
+import {
+  isUsableHypothesisOutcomeInput,
+  parseHypothesisOutcomeSqlitePayloads,
+} from "./hypothesis-outcome-input.js";
 import type { HypothesisOutcome } from "./universe.js";
 
 export type OutcomeDuplicate = {
@@ -44,7 +47,10 @@ export function isBlockingOutcomeIntegrityStatus(status: OutcomeIntegrityReport[
   return status !== "ok";
 }
 
-function readJsonlSafely<T>(path: string): { rows: T[]; parseErrors: JsonlParseError[] } {
+function readJsonlSafely<T>(
+  path: string,
+  isUsable?: (value: unknown) => value is T,
+): { rows: T[]; parseErrors: JsonlParseError[] } {
   if (!existsSync(path)) return { rows: [], parseErrors: [] };
   const rows: T[] = [];
   const parseErrors: JsonlParseError[] = [];
@@ -53,7 +59,16 @@ function readJsonlSafely<T>(path: string): { rows: T[]; parseErrors: JsonlParseE
     const trimmed = line.trim();
     if (!trimmed) return;
     try {
-      rows.push(JSON.parse(trimmed) as T);
+      const parsed: unknown = JSON.parse(trimmed);
+      if (isUsable && !isUsable(parsed)) {
+        parseErrors.push({
+          lineNumber: index + 1,
+          preview: "[invalid outcome shape]",
+          message: "invalid hypothesis outcome shape",
+        });
+        return;
+      }
+      rows.push(parsed as T);
     } catch (error) {
       parseErrors.push({
         lineNumber: index + 1,
@@ -119,7 +134,10 @@ export function buildOutcomeIntegrityReport(params: {
   const jsonlPath = params.jsonlPath ?? "data/hypothesis_outcomes.jsonl";
   const dbPath = params.dbPath ?? "data/hypothesis_outcomes.db";
   const jsonlExists = existsSync(jsonlPath);
-  const { rows: jsonlOutcomes, parseErrors } = readJsonlSafely<HypothesisOutcome>(jsonlPath);
+  const { rows: jsonlOutcomes, parseErrors } = readJsonlSafely<HypothesisOutcome>(
+    jsonlPath,
+    isUsableHypothesisOutcomeInput,
+  );
   const jsonlDuplicates = duplicateGroupsFromOutcomes(jsonlOutcomes);
 
   let sqlite: OutcomeIntegrityReport["sqlite"] = {

@@ -9,7 +9,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function isUsableOutcome(value: unknown): value is HypothesisOutcome {
+export function isUsableHypothesisOutcomeInput(value: unknown): value is HypothesisOutcome {
   if (!isRecord(value)) return false;
   if (typeof value.code !== "string" || value.code.trim().length === 0) return false;
   if (!isRecord(value.hypothesis)) return false;
@@ -25,7 +25,7 @@ export function parseHypothesisOutcomesJsonl(text: string, source = "hypothesis 
     if (!line) return;
     try {
       const parsed: unknown = JSON.parse(line);
-      if (!isUsableOutcome(parsed)) {
+      if (!isUsableHypothesisOutcomeInput(parsed)) {
         malformedLines.push(index + 1);
         return;
       }
@@ -52,7 +52,7 @@ export function parseHypothesisOutcomeSqlitePayloads(
   payloads.forEach((payload, index) => {
     try {
       const parsed: unknown = JSON.parse(payload);
-      if (!isUsableOutcome(parsed)) {
+      if (!isUsableHypothesisOutcomeInput(parsed)) {
         malformedRecords.push(index + 1);
         return;
       }
