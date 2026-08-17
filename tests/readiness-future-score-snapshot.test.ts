@@ -60,7 +60,7 @@ try {
   );
   assert.throws(
     () => assertReadinessHypothesisOutcomeInput(generatedPath, "2026-08-16"),
-    /non-future detectedAt/,
+    /must not be later than readiness as-of date 2026-08-16/,
     "future hypothesis detection dates must not inflate current outcome readiness",
   );
 
