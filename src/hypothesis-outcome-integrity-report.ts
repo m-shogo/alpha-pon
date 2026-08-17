@@ -14,10 +14,10 @@ function renderMarkdown(report: OutcomeIntegrityReport): string {
   lines.push(`status: **${report.status}**`, "");
   lines.push("> ※売買推奨ではありません。仮説検証データの整合性診断です。", "");
   lines.push("## summary", "");
-  lines.push("| source | rows | duplicate groups | unique index |");
-  lines.push("|---|---:|---:|---|");
-  lines.push(`| jsonl | ${report.jsonl.totalRows} | ${report.jsonl.duplicateGroups.length} | - |`);
-  lines.push(`| sqlite | ${report.sqlite.totalRows ?? "-"} | ${report.sqlite.duplicateGroups.length} | ${report.sqlite.uniqueIndexExists ? "yes" : "no"} |`);
+  lines.push("| source | rows | duplicate groups | invalid payload rows | unique index |");
+  lines.push("|---|---:|---:|---:|---|");
+  lines.push(`| jsonl | ${report.jsonl.totalRows} | ${report.jsonl.duplicateGroups.length} | ${report.jsonl.parseErrors.length} | - |`);
+  lines.push(`| sqlite | ${report.sqlite.totalRows ?? "-"} | ${report.sqlite.duplicateGroups.length} | ${report.sqlite.invalidPayloadRows} | ${report.sqlite.uniqueIndexExists ? "yes" : "no"} |`);
   lines.push("");
 
   if (report.jsonl.parseErrors.length > 0) {
@@ -28,6 +28,12 @@ function renderMarkdown(report: OutcomeIntegrityReport): string {
       lines.push(`| ${error.lineNumber} | ${error.preview.replaceAll("|", "\\|")} | ${error.message.replaceAll("|", "\\|")} |`);
     }
     lines.push("");
+  }
+
+  if (report.sqlite.invalidPayloadRows > 0) {
+    lines.push("## sqlite payload errors", "");
+    lines.push(`- invalid payload rows: ${report.sqlite.invalidPayloadRows}`, "");
+    lines.push("- raw payload はこの監査出力へ露出しません。", "");
   }
 
   const allDuplicates = [...report.jsonl.duplicateGroups, ...report.sqlite.duplicateGroups];
@@ -66,6 +72,7 @@ function main(): void {
   console.log(`jsonl parse errors: ${report.jsonl.parseErrors.length}`);
   console.log(`jsonl duplicate groups: ${report.jsonl.duplicateGroups.length}`);
   console.log(`sqlite rows: ${report.sqlite.totalRows ?? "-"}`);
+  console.log(`sqlite invalid payload rows: ${report.sqlite.invalidPayloadRows}`);
   console.log(`sqlite unique index: ${report.sqlite.uniqueIndexExists ? "yes" : "no"}`);
   console.log(`sqlite duplicate groups: ${report.sqlite.duplicateGroups.length}`);
   console.log(`nextAction: ${report.nextAction}`);
