@@ -45,6 +45,7 @@ try {
   const outcome = {
     code: "8136",
     hypothesis: { detectedAt: "2026-08-16" },
+    evaluatedAt: "2026-08-16",
     reviewHorizon: "1m",
     dataSource: "jquants",
     dataAvailability: "ok",
@@ -52,7 +53,7 @@ try {
   writeFileSync(generatedPath, JSON.stringify({ hypothesisOutcomes: [outcome] }));
   assert.doesNotThrow(
     () => assertReadinessHypothesisOutcomeInput(generatedPath, "2026-08-16"),
-    "same-day outcome hypotheses remain valid current readiness evidence",
+    "same-day evaluated outcomes remain valid current readiness evidence",
   );
 
   writeFileSync(
@@ -63,6 +64,16 @@ try {
     () => assertReadinessHypothesisOutcomeInput(generatedPath, "2026-08-16"),
     /must not be later than readiness as-of date 2026-08-16/,
     "future hypothesis detection dates must not inflate current outcome readiness",
+  );
+
+  writeFileSync(
+    generatedPath,
+    JSON.stringify({ hypothesisOutcomes: [{ ...outcome, evaluatedAt: "2026-08-17" }] }),
+  );
+  assert.throws(
+    () => assertReadinessHypothesisOutcomeInput(generatedPath, "2026-08-16"),
+    /evaluatedAt must not be later than readiness as-of date 2026-08-16/,
+    "future outcome evaluation dates must not inflate current outcome readiness",
   );
 
   const prediction = {
