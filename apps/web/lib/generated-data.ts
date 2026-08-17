@@ -13,6 +13,7 @@ import { join } from 'path'
 import type { AlphaPonGeneratedData as ProData, Candidate, GeneratedReport, RunCursorState } from './types'
 import type { AlphaPonGeneratedData as StocksData } from '@/types/alpha-pon'
 import {
+  isGeneratedPipelineStatusInput,
   isGeneratedReportInput,
   isGeneratedRunCursorState,
   isGeneratedWorldThemeCandidateHypothesisInput,
@@ -149,6 +150,13 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
     'worldThemeCandidateHypotheses',
     isGeneratedWorldThemeCandidateHypothesisInput,
   )
+  const hasPipelineStatus = data.pipelineStatus !== undefined && data.pipelineStatus !== null
+  const pipelineStatus = hasPipelineStatus && isGeneratedPipelineStatusInput(data.pipelineStatus)
+    ? data.pipelineStatus
+    : null
+  const pipelineStatusWarning = hasPipelineStatus && !pipelineStatus
+    ? 'pipelineStatus: invalid_shape'
+    : null
   return {
     ...FALLBACK_PRO,
     ...data,
@@ -185,24 +193,28 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
       ? (data as { worldImpactReviews?: ProData['worldImpactReviews'] }).worldImpactReviews
       : [],
     worldImpactAudit: (data as { worldImpactAudit?: ProData['worldImpactAudit'] }).worldImpactAudit ?? null,
+    pipelineStatus,
     meta: normalizeGeneratedMeta(
       normalizeGeneratedMeta(
         normalizeGeneratedMeta(
           normalizeGeneratedMeta(
             normalizeGeneratedMeta(
               normalizeGeneratedMeta(
-                normalizeGeneratedMeta(data.meta, rootLoad.warning),
-                reportLoad.warning,
+                normalizeGeneratedMeta(
+                  normalizeGeneratedMeta(data.meta, rootLoad.warning),
+                  reportLoad.warning,
+                ),
+                candidateLoad.warning,
               ),
-              candidateLoad.warning,
+              companyMemoryLoad.warning,
             ),
-            companyMemoryLoad.warning,
+            dataQualityLoad.warning,
           ),
-          dataQualityLoad.warning,
+          runCursorLoad.warning,
         ),
-        runCursorLoad.warning,
+        worldThemeCandidateHypothesisLoad.warning,
       ),
-      worldThemeCandidateHypothesisLoad.warning,
+      pipelineStatusWarning,
     ),
   }
 }
