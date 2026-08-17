@@ -13,6 +13,7 @@ import { addDaysJst, todayJst } from "./date.js";
 import { searchMarketLessons } from "./analysis/market-lessons-db.js";
 import { normalizeCompanyRulesMemoryInput } from "./company-rules-memory-input.js";
 import { normalizeCompanyRulesUniverseInput } from "./company-rules-universe-input.js";
+import { normalizeCompanyRulesWatchlistRow } from "./company-rules-watchlist-input.js";
 import {
   buildPriceSignalFromCandidate,
   emptyPriceSignal,
@@ -451,13 +452,13 @@ type WatchlistConfigFile = {
   symbols?: WatchlistConfigEntry[];
 };
 
-function toWatchlistEntry(entry: WatchlistConfigEntry): WatchlistEntry | null {
-  if (!entry.code || !entry.name) return null;
-  const tags = entry.tags ?? [];
-  const rules = entry.rules ?? [];
+function toWatchlistEntry(entry: unknown): WatchlistEntry | null {
+  const normalized = normalizeCompanyRulesWatchlistRow(entry);
+  if (!normalized) return null;
+  const { code, name, tags, rules } = normalized;
   return {
-    code: entry.code,
-    name: entry.name,
+    code,
+    name,
     theme: tags,
     thesis: [
       ...(tags.length > 0 ? [`監視テーマ: ${tags.join(" / ")}`] : []),
