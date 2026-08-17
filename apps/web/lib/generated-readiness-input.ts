@@ -1,7 +1,22 @@
-import type { ReadinessReport } from './types.js'
+export type GeneratedReadinessItem = {
+  id: string
+  label: string
+  status: string
+  score: number
+  evidence: string[]
+  nextActions: string[]
+}
+
+export type GeneratedReadinessReport = {
+  generatedAt: string
+  overallScore: number
+  overallStatus: string
+  blockers: string[]
+  items: GeneratedReadinessItem[]
+}
 
 export type GeneratedReadinessInputResult = {
-  value: ReadinessReport | null
+  value: GeneratedReadinessReport | null
   warning: string | null
 }
 
@@ -9,7 +24,7 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string')
 }
 
-function isReadinessItem(value: unknown): value is ReadinessReport['items'][number] {
+function isReadinessItem(value: unknown): value is GeneratedReadinessItem {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const item = value as Record<string, unknown>
   return typeof item.id === 'string'
@@ -22,7 +37,7 @@ function isReadinessItem(value: unknown): value is ReadinessReport['items'][numb
     && isStringArray(item.nextActions)
 }
 
-export function isGeneratedReadinessInput(value: unknown): value is ReadinessReport {
+export function isGeneratedReadinessInput(value: unknown): value is GeneratedReadinessReport {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const report = value as Record<string, unknown>
   return typeof report.generatedAt === 'string'
