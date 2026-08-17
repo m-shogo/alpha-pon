@@ -54,12 +54,13 @@ function hasUniqueCanonicalCodes(value: unknown): boolean {
   return true;
 }
 
-function hasUniqueHypothesisOutcomeIdentities(value: unknown): boolean {
+function hasUniqueHypothesisOutcomeIdentities(value: unknown, asOf: string): boolean {
   if (!Array.isArray(value)) return false;
   const seen = new Set<string>();
   for (const item of value) {
     if (!isRecord(item) || !isNonEmptyString(item.code) || item.code !== item.code.trim()) return false;
     if (!isRecord(item.hypothesis) || !isNonEmptyString(item.hypothesis.detectedAt) || !isRealJstDate(item.hypothesis.detectedAt)) return false;
+    if (item.hypothesis.detectedAt > asOf) return false;
     if (typeof item.reviewHorizon !== "string" || !REVIEW_HORIZONS.has(item.reviewHorizon)) return false;
     if (typeof item.dataSource !== "string" || !OUTCOME_DATA_SOURCES.has(item.dataSource)) return false;
     if (typeof item.dataAvailability !== "string" || !OUTCOME_DATA_AVAILABILITY.has(item.dataAvailability)) return false;
@@ -228,11 +229,12 @@ export function assertReadinessHypothesisPredictionInput(
 
 export function assertReadinessHypothesisOutcomeInput(
   generatedPath = "apps/web/public/generated/alpha-pon-data.json",
+  asOf = todayJst(),
 ): void {
   const generated = readGeneratedObject(generatedPath);
   if (!generated || generated.hypothesisOutcomes === undefined) return;
-  if (!hasUniqueHypothesisOutcomeIdentities(generated.hypothesisOutcomes)) {
-    throw new Error(`${generatedPath}: hypothesisOutcomes must have canonical score fields and unique code + hypothesis.detectedAt + reviewHorizon identities`);
+  if (!hasUniqueHypothesisOutcomeIdentities(generated.hypothesisOutcomes, asOf)) {
+    throw new Error(`${generatedPath}: hypothesisOutcomes must have canonical score fields and unique code + hypothesis.detectedAt + reviewHorizon identities; hypothesis.detectedAt must not be later than readiness as-of date ${asOf}`);
   }
 }
 
