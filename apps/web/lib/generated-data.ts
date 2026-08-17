@@ -12,6 +12,7 @@ import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import type { AlphaPonGeneratedData as ProData } from './types'
 import type { AlphaPonGeneratedData as StocksData } from '@/types/alpha-pon'
+import { normalizeGeneratedArrayInput } from './generated-array-input'
 
 const DATA_PATH = join(process.cwd(), 'public', 'generated', 'alpha-pon-data.json')
 
@@ -46,8 +47,26 @@ const FALLBACK_PRO: ProData = {
   meta: { warnings: ['データファイルが見つからないか、読み込みに失敗しました。pnpm ui:data を実行してください。'] },
 }
 
+function normalizeGeneratedMeta(meta: unknown, warning: string | null): ProData['meta'] {
+  if (!warning) return meta as ProData['meta'] ?? null
+  const object = meta && typeof meta === 'object' && !Array.isArray(meta)
+    ? meta as Record<string, unknown>
+    : {}
+  const warnings = Array.isArray(object.warnings)
+    ? object.warnings.filter((item): item is string => typeof item === 'string')
+    : []
+  return {
+    ...object,
+    warnings: [...warnings, warning],
+  } as ProData['meta']
+}
+
 function normalizeGeneratedData(value: unknown): ProData {
   const data = value && typeof value === 'object' ? value as Partial<ProData> : {}
+  const companyMemoryLoad = normalizeGeneratedArrayInput<NonNullable<ProData['companyMemory']>[number]>(
+    data.companyMemory,
+    'companyMemory',
+  )
   return {
     ...FALLBACK_PRO,
     ...data,
@@ -69,7 +88,7 @@ function normalizeGeneratedData(value: unknown): ProData {
     positions: Array.isArray(data.positions) ? data.positions : [],
     accuracySummary: data.accuracySummary ?? null,
     worldContext: data.worldContext ?? null,
-    companyMemory: Array.isArray(data.companyMemory) ? data.companyMemory : [],
+    companyMemory: companyMemoryLoad.rows,
     companyMemoryByCode: data.companyMemoryByCode ?? {},
     primaryDisclosureReviews: data.primaryDisclosureReviews ?? {},
     dataQualityByCode: data.dataQualityByCode ?? {},
@@ -83,7 +102,7 @@ function normalizeGeneratedData(value: unknown): ProData {
       ? (data as { worldImpactReviews?: ProData['worldImpactReviews'] }).worldImpactReviews
       : [],
     worldImpactAudit: (data as { worldImpactAudit?: ProData['worldImpactAudit'] }).worldImpactAudit ?? null,
-    meta: data.meta ?? null,
+    meta: normalizeGeneratedMeta(data.meta, companyMemoryLoad.warning),
   }
 }
 
