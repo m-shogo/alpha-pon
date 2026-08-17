@@ -1,28 +1,12 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
+import { normalizeProIrEventInput, type NormalizedProIrCompany, type NormalizedProIrEvent } from "./pro-ir-event-input.js";
 import type { IrEventEvidence } from "./pro-types.js";
 
-type RawEvent = {
-  type?: string;
-  eventType?: string;
-  label?: string;
-  title?: string;
-  date?: string | null;
-  eventDate?: string | null;
-  publishedAt?: string | null;
-  sourceUrl?: string | null;
-  sourceStatus?: string | null;
-  impact?: string | null;
-  notes?: string[];
-};
-
-type RawCompany = { name?: string; events?: RawEvent[] };
-type RawIrEvents = { companies?: Record<string, RawCompany> };
-
-function readYaml<T>(path: string, fallback: T): T {
-  if (!existsSync(path)) return fallback;
-  return load(readFileSync(path, "utf-8")) as T;
+function readYaml(path: string): unknown {
+  if (!existsSync(path)) return {};
+  return load(readFileSync(path, "utf-8")) as unknown;
 }
 
 function normalizeEventType(type: string | undefined): IrEventEvidence["eventType"] {
@@ -40,7 +24,7 @@ function normalizeEventType(type: string | undefined): IrEventEvidence["eventTyp
   return "unknown";
 }
 
-function normalizeSourceStatus(event: RawEvent): IrEventEvidence["sourceStatus"] {
+function normalizeSourceStatus(event: NormalizedProIrEvent): IrEventEvidence["sourceStatus"] {
   const status = String(event.sourceStatus ?? "").toLowerCase();
   if (event.sourceUrl && !/required|missing|unknown|要確認/.test(status)) return "confirmed";
   if (/required|要確認|check/.test(status)) return "official_check_required";
@@ -55,7 +39,7 @@ function normalizeImpact(value: string | null | undefined): IrEventEvidence["imp
   return "unknown";
 }
 
-function toEvidence(code: string, rawCompany: RawCompany, event: RawEvent): IrEventEvidence {
+function toEvidence(code: string, rawCompany: NormalizedProIrCompany, event: NormalizedProIrEvent): IrEventEvidence {
   const sourceStatus = normalizeSourceStatus(event);
   return {
     code,
@@ -73,10 +57,13 @@ function toEvidence(code: string, rawCompany: RawCompany, event: RawEvent): IrEv
 }
 
 function main() {
-  const raw = readYaml<RawIrEvents>("config/company-ir-events.yml", {});
+  const input = normalizeProIrEventInput(readYaml("config/company-ir-events.yml"));
+  if (input.invalidCompanyCount > 0 || input.invalidEventCount > 0) {
+    console.warn(`[pro:ir-events] invalid input isolated: companies=${input.invalidCompanyCount} events=${input.invalidEventCount}`);
+  }
   const events: IrEventEvidence[] = [];
-  for (const [code, company] of Object.entries(raw.companies ?? {})) {
-    for (const event of company.events ?? []) events.push(toEvidence(code, company, event));
+  for (const [code, company] of Object.entries(input.companies)) {
+    for (const event of company.events) events.push(toEvidence(code, company, event));
   }
   mkdirSync("data", { recursive: true });
   writeFileSync("data/ir_event_evidence_latest.json", JSON.stringify({ generatedAt: todayJst(), events }, null, 2), "utf-8");
