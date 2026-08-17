@@ -234,7 +234,7 @@ export function assertReadinessHypothesisOutcomeInput(
   const generated = readGeneratedObject(generatedPath);
   if (!generated || generated.hypothesisOutcomes === undefined) return;
   if (!hasUniqueHypothesisOutcomeIdentities(generated.hypothesisOutcomes, asOf)) {
-    throw new Error(`${generatedPath}: hypothesisOutcomes must have canonical score fields, non-future detectedAt, and unique code + hypothesis.detectedAt + reviewHorizon identities`);
+    throw new Error(`${generatedPath}: hypothesisOutcomes must have canonical score fields and unique code + hypothesis.detectedAt + reviewHorizon identities; hypothesis.detectedAt must not be later than readiness as-of date ${asOf}`);
   }
 }
 
