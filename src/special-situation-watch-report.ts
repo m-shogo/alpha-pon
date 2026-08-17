@@ -9,6 +9,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
+import { parseHypothesisOutcomesJsonl } from "./hypothesis-outcome-input.js";
 import type { HypothesisOutcome } from "./universe.js";
 import { selectOutcomesForStats, detectMixedOutcomes } from "./special-situation-outcome-filter.js";
 
@@ -384,15 +385,6 @@ type SpecialSituationWatchReport = {
 
 function readYaml<T>(path: string): T {
   return load(readFileSync(path, "utf-8")) as T;
-}
-
-function readJsonl<T>(path: string): T[] {
-  if (!existsSync(path)) return [];
-  return readFileSync(path, "utf-8")
-    .split("\n")
-    .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => JSON.parse(line) as T);
 }
 
 function avg(values: Array<number | null | undefined>): number | null {
@@ -889,7 +881,12 @@ function buildSpecialSituationOutcomeStats(
 
 function buildReport(config: SpecialSituationConfig): SpecialSituationWatchReport {
   const minSampleSize = config.outcomeStats?.minSampleSize ?? 5;
-  const outcomes = readJsonl<HypothesisOutcome>("data/hypothesis_outcomes.jsonl");
+  const outcomePath = "data/hypothesis_outcomes.jsonl";
+  const parsedOutcomes = existsSync(outcomePath)
+    ? parseHypothesisOutcomesJsonl(readFileSync(outcomePath, "utf-8"), outcomePath)
+    : { rows: [], warnings: [] };
+  for (const warning of parsedOutcomes.warnings) console.warn(`[warn] ${warning}`);
+  const outcomes = parsedOutcomes.rows;
 
   const candidates = (config.candidates ?? []).map(c =>
     buildCandidate(c, config.patterns, outcomes, minSampleSize)
@@ -910,6 +907,9 @@ function buildReport(config: SpecialSituationConfig): SpecialSituationWatchRepor
     relatedJapaneseCompanies: ev.relatedJapaneseCompanies ?? [],
   }));
 
+  const outcomeCoverageAudit = buildOutcomeCoverageAudit(candidates, outcomes, todayJst());
+  outcomeCoverageAudit.notes.push(...parsedOutcomes.warnings);
+
   return {
     generatedAt: todayJst(),
     defaultAction: config.defaultAction,
@@ -927,7 +927,7 @@ function buildReport(config: SpecialSituationConfig): SpecialSituationWatchRepor
     topChanceList,
     referenceEvents,
     outcomeStats: buildSpecialSituationOutcomeStats(candidates, outcomes, minSampleSize),
-    outcomeCoverageAudit: buildOutcomeCoverageAudit(candidates, outcomes, todayJst()),
+    outcomeCoverageAudit,
   };
 }
 
