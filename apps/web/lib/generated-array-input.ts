@@ -16,12 +16,20 @@ export type GeneratedRecordInput<T> = {
 export function normalizeGeneratedArrayInput<T>(
   value: unknown,
   field: string,
+  isValidEntry?: (value: unknown) => value is T,
 ): GeneratedArrayInput<T> {
   if (value === undefined) return { rows: [], warning: null }
   if (!Array.isArray(value)) {
     return { rows: [], warning: `${field}: invalid_root (expected array)` }
   }
-  return { rows: value as T[], warning: null }
+  if (!isValidEntry) return { rows: value as T[], warning: null }
+
+  const rows = value.filter(isValidEntry)
+  const invalidEntries = value.length - rows.length
+  return {
+    rows,
+    warning: invalidEntries > 0 ? `${field}: invalid_entries (${invalidEntries})` : null,
+  }
 }
 
 export function normalizeGeneratedObjectInput(

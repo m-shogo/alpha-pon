@@ -10,7 +10,7 @@
 
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
-import type { AlphaPonGeneratedData as ProData } from './types'
+import type { AlphaPonGeneratedData as ProData, Candidate } from './types'
 import type { AlphaPonGeneratedData as StocksData } from '@/types/alpha-pon'
 import {
   normalizeGeneratedArrayInput,
@@ -53,6 +53,46 @@ const FALLBACK_PRO: ProData = {
 
 type DataQualityRow = NonNullable<ProData['dataQualityByCode']>[string]
 
+const CANDIDATE_STATUSES = new Set(['research', 'watch', 'candidate', 'active', 'ignore', 'expired'])
+const CANDIDATE_PRIORITIES = new Set(['S', 'A', 'B', 'C'])
+const SCORE_KEYS = ['structuralEvent', 'supplyDemand', 'valuation', 'theme', 'businessSafety', 'aiReview'] as const
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string')
+}
+
+function isFiniteNumberOrNull(value: unknown): value is number | null {
+  return value === null || (typeof value === 'number' && Number.isFinite(value))
+}
+
+function isCandidateRow(value: unknown): value is Candidate {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const row = value as Record<string, unknown>
+  const score = row.score
+  if (!score || typeof score !== 'object' || Array.isArray(score)) return false
+  const scoreRecord = score as Record<string, unknown>
+
+  return typeof row.code === 'string'
+    && row.code.length > 0
+    && typeof row.name === 'string'
+    && typeof row.market === 'string'
+    && typeof row.status === 'string'
+    && CANDIDATE_STATUSES.has(row.status)
+    && typeof row.priority === 'string'
+    && CANDIDATE_PRIORITIES.has(row.priority)
+    && isStringArray(row.tags)
+    && isFiniteNumberOrNull(row.price)
+    && isFiniteNumberOrNull(row.changePct)
+    && isFiniteNumberOrNull(row.drawdownPct)
+    && SCORE_KEYS.every((key) => typeof scoreRecord[key] === 'number' && Number.isFinite(scoreRecord[key]))
+    && isStringArray(row.reasons)
+    && isStringArray(row.negativeReasons)
+    && isStringArray(row.nextToSee)
+    && typeof row.triggeredRule === 'string'
+    && (row.lastNotifiedAt === null || typeof row.lastNotifiedAt === 'string')
+    && (row.sparkline === undefined || (Array.isArray(row.sparkline) && row.sparkline.every((item) => typeof item === 'number' && Number.isFinite(item))))
+}
+
 function isDataQualityRow(value: unknown): value is DataQualityRow {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const row = value as Record<string, unknown>
@@ -78,6 +118,7 @@ function normalizeGeneratedMeta(meta: unknown, warning: string | null): ProData[
 function normalizeGeneratedData(value: unknown): ProData {
   const rootLoad = normalizeGeneratedObjectInput(value, 'generatedData')
   const data = rootLoad.object as Partial<ProData>
+  const candidateLoad = normalizeGeneratedArrayInput<Candidate>(data.candidates, 'candidates', isCandidateRow)
   const companyMemoryLoad = normalizeGeneratedArrayInput<NonNullable<ProData['companyMemory']>[number]>(
     data.companyMemory,
     'companyMemory',
@@ -99,7 +140,7 @@ function normalizeGeneratedData(value: unknown): ProData {
       refresh: Array.isArray(data.summary?.refresh) ? data.summary.refresh : [],
     },
     reports: Array.isArray(data.reports) ? data.reports : [],
-    candidates: Array.isArray(data.candidates) ? data.candidates : [],
+    candidates: candidateLoad.rows,
     universeCandidates: Array.isArray(data.universeCandidates) ? data.universeCandidates : [],
     universeScan: data.universeScan ?? null,
     hypothesisPredictions: Array.isArray(data.hypothesisPredictions) ? data.hypothesisPredictions : [],
@@ -124,7 +165,10 @@ function normalizeGeneratedData(value: unknown): ProData {
     worldImpactAudit: (data as { worldImpactAudit?: ProData['worldImpactAudit'] }).worldImpactAudit ?? null,
     meta: normalizeGeneratedMeta(
       normalizeGeneratedMeta(
-        normalizeGeneratedMeta(data.meta, rootLoad.warning),
+        normalizeGeneratedMeta(
+          normalizeGeneratedMeta(data.meta, rootLoad.warning),
+          candidateLoad.warning,
+        ),
         companyMemoryLoad.warning,
       ),
       dataQualityLoad.warning,
