@@ -1,6 +1,7 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
+import { readLatestProScores } from "../src/pro-latest-score-input.js";
 import { readReadOnlyJsonObjectArrayFile, readReadOnlyJsonObjectFile } from "../src/read-only-json-file.js";
 
 function readJson(path: string): unknown {
@@ -14,6 +15,48 @@ function assert(condition: unknown, message: string): asserts condition {
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+{
+  const dir = mkdtempSync(join(tmpdir(), "alpha-pon-pro-score-input-"));
+  try {
+    writeFileSync(join(dir, "scores_2026-08-17.json"), JSON.stringify([{ code: "8136", name: "Sanrio" }]), "utf-8");
+    const valid = readLatestProScores<Record<string, unknown>>(dir, "2026-08-17");
+    assert(valid.rows.length === 1, "current score snapshot はPro inputとして保持する必要があります");
+    assert(valid.sourceFile === "scores_2026-08-17.json", "latest eligible score snapshot を選ぶ必要があります");
+
+    writeFileSync(join(dir, "scores_2026-08-18.json"), JSON.stringify([]), "utf-8");
+    let futureRejected = false;
+    try { readLatestProScores(dir, "2026-08-17"); } catch (error) {
+      futureRejected = error instanceof Error && /must not be later than pro-score as-of date/.test(error.message);
+    }
+    assert(futureRejected, "future score snapshot をcurrent Pro evidenceとして採用しない");
+    rmSync(join(dir, "scores_2026-08-18.json"));
+
+    writeFileSync(join(dir, "scores_2026-02-31.json"), JSON.stringify([]), "utf-8");
+    let invalidDateRejected = false;
+    try { readLatestProScores(dir, "2026-08-17"); } catch (error) {
+      invalidDateRejected = error instanceof Error && /real Gregorian date/.test(error.message);
+    }
+    assert(invalidDateRejected, "不存在日のscore snapshotをPro evidenceとして採用しない");
+    rmSync(join(dir, "scores_2026-02-31.json"));
+
+    writeFileSync(join(dir, "scores_2026-08-17.json"), "{not-json", "utf-8");
+    let malformedRejected = false;
+    try { readLatestProScores(dir, "2026-08-17"); } catch (error) {
+      malformedRejected = error instanceof Error && /must contain valid JSON/.test(error.message);
+    }
+    assert(malformedRejected, "壊れた最新score snapshotを空配列と同化しない");
+
+    writeFileSync(join(dir, "scores_2026-08-17.json"), JSON.stringify({ rows: [] }), "utf-8");
+    let invalidRootRejected = false;
+    try { readLatestProScores(dir, "2026-08-17"); } catch (error) {
+      invalidRootRejected = error instanceof Error && /root must be an array/.test(error.message);
+    }
+    assert(invalidRootRejected, "非array score rootを空配列と同化しない");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 {
