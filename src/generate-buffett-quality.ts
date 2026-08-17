@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
 import { readLatestProScores } from "./pro-latest-score-input.js";
@@ -17,11 +17,8 @@ type Hypotheses = { categories?: Record<string, { companies?: Company[] }> };
 type LatestScore = { code: string; name: string; reasons?: string[]; negativeReasons?: string[]; warnings?: string[]; dataQuality?: string };
 
 function readYaml<T>(path: string, fallback: T): T {
-  try {
-    return load(readFileSync(path, "utf-8")) as T;
-  } catch {
-    return fallback;
-  }
+  if (!existsSync(path)) return fallback;
+  return load(readFileSync(path, "utf-8")) as T;
 }
 
 function unique(items: string[]): string[] {
