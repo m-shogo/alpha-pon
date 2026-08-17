@@ -10,6 +10,7 @@ import { DatabaseSync } from "node:sqlite";
 import { addDaysJst, toCompactDate, todayJst } from "./date.js";
 import { fetchDailyQuotes, isJQuantsConfigured } from "./fetcher/jquants.js";
 import { partitionHypothesesByDetectedAt } from "./hypothesis-review-date.js";
+import { parseHypothesisOutcomesJsonl } from "./hypothesis-outcome-input.js";
 import { inferMissReasons } from "./miss-reason.js";
 import { buildOutcomeNotes, resolveActualDirection } from "./outcome-notes.js";
 import { parseExistingStockCandidateHypothesesJsonl } from "./stock-candidate-hypothesis-input.js";
@@ -32,9 +33,11 @@ const OUTCOME_DB_PATH = "data/hypothesis_outcomes.db";
 const SUMMARY_PATH = "data/hypothesis_accuracy_summary.json";
 const TOPIX_ETF_CODE = "1306";
 
-function readJsonl<T>(path: string): T[] {
+function readOutcomeJsonl(path: string): HypothesisOutcome[] {
   if (!existsSync(path)) return [];
-  return readFileSync(path, "utf-8").split("\n").map(line => line.trim()).filter(Boolean).map(line => JSON.parse(line) as T);
+  const parsed = parseHypothesisOutcomesJsonl(readFileSync(path, "utf-8"), path);
+  for (const warning of parsed.warnings) console.warn(`[warn] ${warning}`);
+  return parsed.rows;
 }
 function readHypotheses(): StockCandidateHypothesis[] {
   if (!existsSync(HYPOTHESIS_PATH)) return [];
@@ -68,7 +71,7 @@ function readExistingOutcomes(): HypothesisOutcome[] {
     db.close();
     return rows.map(r => JSON.parse(r.payload) as HypothesisOutcome);
   }
-  return readJsonl<HypothesisOutcome>(OUTCOME_PATH);
+  return readOutcomeJsonl(OUTCOME_PATH);
 }
 
 function appendOutcome(o: HypothesisOutcome): void {
@@ -95,7 +98,7 @@ function migrateJsonlToDb(): void {
   const db = openDb();
   const count = (db.prepare("SELECT COUNT(*) as n FROM hypothesis_outcomes").get() as { n: number }).n;
   if (count > 0) { db.close(); return; }
-  const existing = readJsonl<HypothesisOutcome>(OUTCOME_PATH);
+  const existing = readOutcomeJsonl(OUTCOME_PATH);
   if (existing.length === 0) { db.close(); return; }
   const insert = db.prepare(`INSERT OR IGNORE INTO hypothesis_outcomes (code, detected_at, review_horizon, payload) VALUES (?, ?, ?, ?)`);
   db.exec("BEGIN");
