@@ -1,13 +1,13 @@
 import { loadGeneratedData } from '@/lib/generated-data'
+import { normalizeGeneratedRules, type GeneratedRuleDisplayInput } from '@/lib/generated-rule-input'
 import { SectionLabel } from '@/components/Card'
 import { Icon } from '@/components/Icon'
 import { Disclaimer } from '@/components/Disclaimer'
-import type { GeneratedStockRule } from '@/lib/stock/rules/types'
 import type { HypothesisOutcome } from '@/types/universe'
 
 export const metadata = { title: 'ルール | alpha-pon' }
 
-function RuleRow({ rule }: { rule: GeneratedStockRule }) {
+function RuleRow({ rule }: { rule: GeneratedRuleDisplayInput }) {
   return (
     <div style={{
       background: 'var(--surface)', borderRadius: 14, padding: '12px 14px',
@@ -58,7 +58,8 @@ function ImprovementRow({ outcome }: { outcome: HypothesisOutcome }) {
 
 export default function RulesPage() {
   const data = loadGeneratedData()
-  const rules: GeneratedStockRule[] = (data as Record<string, unknown>).generatedCompanyRules as GeneratedStockRule[] ?? []
+  const ruleLoad = normalizeGeneratedRules((data as Record<string, unknown>).generatedCompanyRules)
+  const rules = ruleLoad.rows
   const outcomes: HypothesisOutcome[] = data.hypothesisOutcomes ?? []
 
   const hits = outcomes.filter(o => o.result === 'hit')
@@ -85,6 +86,11 @@ export default function RulesPage() {
       </div>
 
       <div style={{ padding: '16px 16px 0' }}>
+        {ruleLoad.warning && (
+          <div style={{ marginBottom: 10, fontSize: 11.5, color: 'var(--urgent)', fontWeight: 700 }}>
+            データ警告: {ruleLoad.warning}
+          </div>
+        )}
         {/* 勝率サマリー */}
         {outcomes.length > 0 && (
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
