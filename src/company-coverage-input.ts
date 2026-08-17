@@ -161,3 +161,86 @@ export function normalizeCompanyCoverageRows(roots: CompanyCoverageRootState): C
 
   return { categories, companies, warnings };
 }
+
+export type CompanyNetworkReportPeer = {
+  code: string;
+  name: string;
+  relation: string;
+};
+
+export type CompanyNetworkReportCompany = {
+  name: string;
+  categoryHints: string[];
+  peers: CompanyNetworkReportPeer[];
+  customerOrDemandDrivers: string[];
+  betterPeerRisk: string[];
+  evidenceChecks: string[];
+};
+
+export function normalizeCompanyNetworkReportRows(
+  input: CompanyNetworkRootState,
+): { companies: Record<string, CompanyNetworkReportCompany>; warnings: string[] } {
+  const warnings = input.warning ? [input.warning] : [];
+  const companies: Record<string, CompanyNetworkReportCompany> = {};
+  const rawCompanies = input.companies ?? {};
+
+  for (const [rawCode, rawCompany] of Object.entries(rawCompanies)) {
+    const code = nonEmptyString(rawCode);
+    if (!code || !isRecord(rawCompany)) {
+      warnings.push(`company-network.yml company ${code ?? rawCode} shape is invalid`);
+      continue;
+    }
+    if (companies[code]) {
+      warnings.push(`company-network.yml company ${code} canonical identity is duplicated`);
+      continue;
+    }
+    const name = nonEmptyString(rawCompany.name);
+    if (!name) {
+      warnings.push(`company-network.yml company ${code} identity is invalid`);
+      continue;
+    }
+
+    const normalizeList = (field: string): string[] => {
+      const normalized = stringArray(rawCompany[field]);
+      if (normalized !== null) return normalized;
+      warnings.push(`company-network.yml company ${code} ${field} shape is invalid`);
+      return [];
+    };
+
+    const categoryHints = normalizeList("categoryHints");
+    const customerOrDemandDrivers = normalizeList("customerOrDemandDrivers");
+    const betterPeerRisk = normalizeList("betterPeerRisk");
+    const evidenceChecks = normalizeList("evidenceChecks");
+    const peers: CompanyNetworkReportPeer[] = [];
+    const rawPeers = rawCompany.peers;
+    if (rawPeers !== undefined && !Array.isArray(rawPeers)) {
+      warnings.push(`company-network.yml company ${code} peers shape is invalid`);
+    } else if (Array.isArray(rawPeers)) {
+      rawPeers.forEach((rawPeer, index) => {
+        if (!isRecord(rawPeer)) {
+          warnings.push(`company-network.yml company ${code} peer row ${index + 1} shape is invalid`);
+          return;
+        }
+        const peerCode = nonEmptyString(rawPeer.code);
+        const peerName = nonEmptyString(rawPeer.name);
+        const relation = nonEmptyString(rawPeer.relation);
+        if (!peerCode || !peerName || !relation) {
+          warnings.push(`company-network.yml company ${code} peer row ${index + 1} fields are invalid`);
+          return;
+        }
+        peers.push({ code: peerCode, name: peerName, relation });
+      });
+    }
+
+    companies[code] = {
+      name,
+      categoryHints,
+      peers,
+      customerOrDemandDrivers,
+      betterPeerRisk,
+      evidenceChecks,
+    };
+  }
+
+  return { companies, warnings };
+}
