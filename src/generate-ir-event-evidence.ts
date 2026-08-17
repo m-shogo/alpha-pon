@@ -1,7 +1,12 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
-import { normalizeProIrEventInput, type NormalizedProIrCompany, type NormalizedProIrEvent } from "./pro-ir-event-input.js";
+import {
+  normalizeProIrEventInput,
+  normalizeProIrSourceStatus,
+  type NormalizedProIrCompany,
+  type NormalizedProIrEvent,
+} from "./pro-ir-event-input.js";
 import type { IrEventEvidence } from "./pro-types.js";
 
 function readYaml(path: string): unknown {
@@ -24,13 +29,6 @@ function normalizeEventType(type: string | undefined): IrEventEvidence["eventTyp
   return "unknown";
 }
 
-function normalizeSourceStatus(event: NormalizedProIrEvent): IrEventEvidence["sourceStatus"] {
-  const status = String(event.sourceStatus ?? "").toLowerCase();
-  if (event.sourceUrl && !/required|missing|unknown|要確認/.test(status)) return "confirmed";
-  if (/required|要確認|check/.test(status)) return "official_check_required";
-  return event.sourceUrl ? "official_check_required" : "missing";
-}
-
 function normalizeImpact(value: string | null | undefined): IrEventEvidence["impact"] {
   const v = String(value ?? "").toLowerCase();
   if (/positive|good|好|上方|増配|自社株/.test(v)) return "positive";
@@ -40,7 +38,7 @@ function normalizeImpact(value: string | null | undefined): IrEventEvidence["imp
 }
 
 function toEvidence(code: string, rawCompany: NormalizedProIrCompany, event: NormalizedProIrEvent): IrEventEvidence {
-  const sourceStatus = normalizeSourceStatus(event);
+  const sourceStatus = normalizeProIrSourceStatus(event);
   return {
     code,
     name: rawCompany.name ?? code,
