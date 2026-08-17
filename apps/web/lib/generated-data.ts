@@ -12,7 +12,7 @@ import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import type { AlphaPonGeneratedData as ProData } from './types'
 import type { AlphaPonGeneratedData as StocksData } from '@/types/alpha-pon'
-import { normalizeGeneratedArrayInput } from './generated-array-input'
+import { normalizeGeneratedArrayInput, normalizeGeneratedObjectInput } from './generated-array-input'
 
 const DATA_PATH = join(process.cwd(), 'public', 'generated', 'alpha-pon-data.json')
 
@@ -62,7 +62,8 @@ function normalizeGeneratedMeta(meta: unknown, warning: string | null): ProData[
 }
 
 function normalizeGeneratedData(value: unknown): ProData {
-  const data = value && typeof value === 'object' ? value as Partial<ProData> : {}
+  const rootLoad = normalizeGeneratedObjectInput(value, 'generatedData')
+  const data = rootLoad.object as Partial<ProData>
   const companyMemoryLoad = normalizeGeneratedArrayInput<NonNullable<ProData['companyMemory']>[number]>(
     data.companyMemory,
     'companyMemory',
@@ -102,7 +103,10 @@ function normalizeGeneratedData(value: unknown): ProData {
       ? (data as { worldImpactReviews?: ProData['worldImpactReviews'] }).worldImpactReviews
       : [],
     worldImpactAudit: (data as { worldImpactAudit?: ProData['worldImpactAudit'] }).worldImpactAudit ?? null,
-    meta: normalizeGeneratedMeta(data.meta, companyMemoryLoad.warning),
+    meta: normalizeGeneratedMeta(
+      normalizeGeneratedMeta(data.meta, rootLoad.warning),
+      companyMemoryLoad.warning,
+    ),
   }
 }
 
