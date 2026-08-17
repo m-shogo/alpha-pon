@@ -58,6 +58,9 @@ function toEvidence(code: string, rawCompany: NormalizedProIrCompany, event: Nor
 
 function main() {
   const input = normalizeProIrEventInput(readYaml("config/company-ir-events.yml"));
+  if (input.invalidRoot) {
+    throw new Error("config/company-ir-events.yml: companies root must be an object");
+  }
   if (input.invalidCompanyCount > 0 || input.invalidEventCount > 0) {
     console.warn(`[pro:ir-events] invalid input isolated: companies=${input.invalidCompanyCount} events=${input.invalidEventCount}`);
   }
