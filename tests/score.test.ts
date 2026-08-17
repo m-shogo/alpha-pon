@@ -4,6 +4,7 @@ import { scoreEarningsDrop } from "../src/score/earnings.js";
 import {
   isGeneratedReportInput,
   isGeneratedRunCursorState,
+  isGeneratedWorldThemeCandidateHypothesisInput,
   normalizeGeneratedWarningsInput,
 } from "../apps/web/lib/generated-array-input.js";
 
@@ -64,12 +65,33 @@ function testGeneratedWarningsShape() {
   });
 }
 
+function testGeneratedWorldThemeCandidateHypothesisShape() {
+  const valid = {
+    sourceEventTitle: "event",
+    sourceEventPublishedAt: "2026-08-17",
+    theme: "theme",
+    candidateCode: "8136",
+    candidateCompany: "Sanrio",
+    whyThisCompany: "why",
+    upsideHypothesis: "up",
+    downsideRisk: "down",
+    nextPrimaryCheck: "check",
+    reviewAfterDays: [30, 90, 180],
+    disclaimer: "not advice",
+  };
+  assert.equal(isGeneratedWorldThemeCandidateHypothesisInput(valid), true);
+  assert.equal(isGeneratedWorldThemeCandidateHypothesisInput(null), false);
+  assert.equal(isGeneratedWorldThemeCandidateHypothesisInput({ ...valid, candidateCode: undefined }), false);
+  assert.equal(isGeneratedWorldThemeCandidateHypothesisInput({ ...valid, reviewAfterDays: [30, 90] }), false);
+}
+
 function main() {
   testPullbackMissingFinancials();
   testEarningsDropMissingFinancials();
   testGeneratedRunCursorShape();
   testGeneratedReportShape();
   testGeneratedWarningsShape();
+  testGeneratedWorldThemeCandidateHypothesisShape();
   console.log("score.test.ts passed");
 }
 

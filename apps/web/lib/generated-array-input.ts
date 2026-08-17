@@ -35,6 +35,20 @@ export type GeneratedReportInput = {
   fullContent?: string
 }
 
+export type GeneratedWorldThemeCandidateHypothesisInput = {
+  sourceEventTitle: string
+  sourceEventPublishedAt: string | null
+  theme: string
+  candidateCode: string
+  candidateCompany: string
+  whyThisCompany: string
+  upsideHypothesis: string
+  downsideRisk: string
+  nextPrimaryCheck: string
+  reviewAfterDays: [30, 90, 180]
+  disclaimer: string
+}
+
 export function isGeneratedRunCursorState(value: unknown): value is GeneratedRunCursorState {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const row = value as Record<string, unknown>
@@ -55,6 +69,29 @@ export function isGeneratedReportInput(value: unknown): value is GeneratedReport
     && Array.isArray(row.excerpt)
     && row.excerpt.every((item) => typeof item === 'string')
     && (row.fullContent === undefined || typeof row.fullContent === 'string')
+}
+
+export function isGeneratedWorldThemeCandidateHypothesisInput(
+  value: unknown,
+): value is GeneratedWorldThemeCandidateHypothesisInput {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const row = value as Record<string, unknown>
+  const reviewAfterDays = row.reviewAfterDays
+  return typeof row.sourceEventTitle === 'string'
+    && (row.sourceEventPublishedAt === null || typeof row.sourceEventPublishedAt === 'string')
+    && typeof row.theme === 'string'
+    && typeof row.candidateCode === 'string'
+    && typeof row.candidateCompany === 'string'
+    && typeof row.whyThisCompany === 'string'
+    && typeof row.upsideHypothesis === 'string'
+    && typeof row.downsideRisk === 'string'
+    && typeof row.nextPrimaryCheck === 'string'
+    && Array.isArray(reviewAfterDays)
+    && reviewAfterDays.length === 3
+    && reviewAfterDays[0] === 30
+    && reviewAfterDays[1] === 90
+    && reviewAfterDays[2] === 180
+    && typeof row.disclaimer === 'string'
 }
 
 export function normalizeGeneratedWarningsInput(
