@@ -21,6 +21,15 @@ export type GeneratedRunCursorState = {
   updatedAt?: string
 }
 
+export type GeneratedReportInput = {
+  key: string
+  label: string
+  path: string
+  available: boolean
+  excerpt: string[]
+  fullContent?: string
+}
+
 export function isGeneratedRunCursorState(value: unknown): value is GeneratedRunCursorState {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const row = value as Record<string, unknown>
@@ -29,6 +38,18 @@ export function isGeneratedRunCursorState(value: unknown): value is GeneratedRun
     && (row.maxPerRun === undefined || (typeof row.maxPerRun === 'number' && Number.isFinite(row.maxPerRun)))
     && (row.total === undefined || (typeof row.total === 'number' && Number.isFinite(row.total)))
     && (row.updatedAt === undefined || typeof row.updatedAt === 'string')
+}
+
+export function isGeneratedReportInput(value: unknown): value is GeneratedReportInput {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const row = value as Record<string, unknown>
+  return typeof row.key === 'string'
+    && typeof row.label === 'string'
+    && typeof row.path === 'string'
+    && typeof row.available === 'boolean'
+    && Array.isArray(row.excerpt)
+    && row.excerpt.every((item) => typeof item === 'string')
+    && (row.fullContent === undefined || typeof row.fullContent === 'string')
 }
 
 export function normalizeGeneratedArrayInput<T>(
