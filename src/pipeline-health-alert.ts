@@ -1,17 +1,9 @@
 import { existsSync, readFileSync } from "fs";
 import { sendPipelineSummaryNotification } from "./notify.js";
-
-type Confidence = "normal" | "caution" | "low" | "unknown";
+import { extractPipelineHealthConfidence, shouldNotifyPipelineHealth } from "./pipeline-health-alert-input.js";
 
 function readText(path: string): string {
   return existsSync(path) ? readFileSync(path, "utf-8") : "";
-}
-
-function extractConfidence(text: string): Confidence {
-  if (text.includes("report confidence: low")) return "low";
-  if (text.includes("report confidence: caution")) return "caution";
-  if (text.includes("report confidence: normal")) return "normal";
-  return "unknown";
 }
 
 function extractSection(text: string, title: string, maxLines = 8): string[] {
@@ -31,15 +23,10 @@ function extractSection(text: string, title: string, maxLines = 8): string[] {
 async function main() {
   const dryRun = process.argv.includes("--dry-run") || process.env.ALPHA_PON_NOTIFY_DRY_RUN === "1";
   const report = readText("reports/pipeline_health_summary_latest.md");
-  const confidence = extractConfidence(report);
+  const confidence = extractPipelineHealthConfidence(report);
 
-  if (confidence === "normal") {
+  if (!shouldNotifyPipelineHealth(confidence)) {
     console.log("pipeline health alert: normal, no notification");
-    return;
-  }
-
-  if (confidence === "unknown") {
-    console.log("pipeline health alert: unknown, no notification");
     return;
   }
 
