@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { normalizeCompanyCoverageRoots } from "../src/company-coverage-input.js";
 import { readKnowledgeReviewJsonl } from "../src/knowledge-review-input.js";
 import { extractPipelineHealthConfidence, pipelineHealthConfidenceAtDate, shouldNotifyPipelineHealth } from "../src/pipeline-health-alert-input.js";
 import { hasCanonicalPipelineStatus, hasUsableSourceHealthText, sourceHealthHistoryState } from "../src/pipeline-health-input.js";
@@ -93,6 +94,37 @@ const CURRENT_PIPELINE_HEALTH = "# alpha-pon pipeline health summary\n\ndate: 20
 assert.equal(pipelineHealthConfidenceAtDate(CURRENT_PIPELINE_HEALTH, "2026-08-17"), "normal", "current normal health remains suppressible");
 assert.equal(pipelineHealthConfidenceAtDate(CURRENT_PIPELINE_HEALTH, "2026-08-18"), "unknown", "stale normal health must fail closed instead of suppressing the current alert");
 assert.equal(pipelineHealthConfidenceAtDate("- report confidence: normal", "2026-08-17"), "unknown", "health summaries without a canonical current date must fail closed");
+
+const validCoverageRoots = normalizeCompanyCoverageRoots(
+  { categories: { entertainment: { label: "Entertainment", companies: [] } } },
+  { companies: { "8136": { name: "Sanrio" } } },
+);
+assert.deepEqual(validCoverageRoots.warnings, [], "canonical company coverage roots remain usable");
+assert.notEqual(validCoverageRoots.hypotheses, null, "canonical hypothesis roots remain available");
+assert.notEqual(validCoverageRoots.network, null, "canonical network roots remain available");
+
+const malformedCoverageRoots = normalizeCompanyCoverageRoots(
+  [],
+  { companies: { "8136": { name: "Sanrio" } } },
+);
+assert.equal(malformedCoverageRoots.hypotheses, null, "array-shaped hypothesis roots must not look like an empty healthy dataset");
+assert.notEqual(malformedCoverageRoots.network, null, "a valid sibling network root remains available for read-only diagnostics");
+assert.match(
+  malformedCoverageRoots.warnings.join("\n"),
+  /company-hypotheses\.yml root\/categories shape is invalid/,
+  "malformed hypothesis roots stay visible as metadata-only warnings",
+);
+
+const malformedNetworkRoots = normalizeCompanyCoverageRoots(
+  { categories: {} },
+  "not-an-object",
+);
+assert.equal(malformedNetworkRoots.network, null, "non-object network roots must not look like an empty healthy dataset");
+assert.match(
+  malformedNetworkRoots.warnings.join("\n"),
+  /company-network\.yml root\/companies shape is invalid/,
+  "malformed network roots stay visible as metadata-only warnings",
+);
 
 const dir = mkdtempSync(join(tmpdir(), "alpha-pon-knowledge-review-"));
 try {
