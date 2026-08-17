@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
+import { normalizeCompanyCoverageRoots } from "./company-coverage-input.js";
 
 type HypCompany = { code: string; name: string; status?: string };
 type Hypotheses = { categories: Record<string, { label: string; companies?: HypCompany[] }> };
@@ -9,8 +10,11 @@ type Network = { companies: Record<string, { name: string; categoryHints?: strin
 
 function main() {
   const date = todayJst();
-  const hypotheses = load(readFileSync("config/company-hypotheses.yml", "utf-8")) as Hypotheses;
-  const network = load(readFileSync("config/company-network.yml", "utf-8")) as Network;
+  const hypothesesRaw = load(readFileSync("config/company-hypotheses.yml", "utf-8"));
+  const networkRaw = load(readFileSync("config/company-network.yml", "utf-8"));
+  const roots = normalizeCompanyCoverageRoots(hypothesesRaw, networkRaw);
+  const hypotheses = (roots.hypotheses ?? { categories: {} }) as Hypotheses;
+  const network = (roots.network ?? { companies: {} }) as Network;
 
   const hypothesisCodes = new Map<string, { name: string; categories: string[]; status?: string }>();
   for (const [categoryId, category] of Object.entries(hypotheses.categories ?? {})) {
@@ -36,10 +40,18 @@ function main() {
 
   lines.push("## summary");
   lines.push("");
+  lines.push(`- health status: ${roots.warnings.length === 0 ? "ok" : "action_required"}`);
+  lines.push(`- input warnings: ${roots.warnings.length}`);
   lines.push(`- hypothesis companies: ${hypothesisCodes.size}`);
   lines.push(`- network companies: ${networkCodes.size}`);
   lines.push(`- hypothesis missing network: ${hypothesisMissingNetwork.length}`);
   lines.push(`- network missing hypothesis: ${networkMissingHypothesis.length}`);
+  lines.push("");
+
+  lines.push("## input warnings");
+  lines.push("");
+  if (roots.warnings.length === 0) lines.push("- none");
+  for (const warning of roots.warnings) lines.push(`- ${warning}`);
   lines.push("");
 
   lines.push("## warning: hypothesis exists but network is missing");
