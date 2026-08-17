@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "fs";
 import { DatabaseSync } from "node:sqlite";
+import { parseHypothesisOutcomeSqlitePayloads } from "./hypothesis-outcome-input.js";
 import type { HypothesisOutcome } from "./universe.js";
 
 export type OutcomeDuplicate = {
@@ -31,6 +32,7 @@ export type OutcomeIntegrityReport = {
     totalRows: number | null;
     uniqueIndexExists: boolean;
     duplicateGroups: OutcomeDuplicate[];
+    invalidPayloadRows: number;
     error: string | null;
   };
   status: "ok" | "duplicate_found" | "db_unavailable" | "parse_error";
@@ -126,6 +128,7 @@ export function buildOutcomeIntegrityReport(params: {
     totalRows: null,
     uniqueIndexExists: false,
     duplicateGroups: [],
+    invalidPayloadRows: 0,
     error: null,
   };
 
@@ -133,11 +136,15 @@ export function buildOutcomeIntegrityReport(params: {
     let db: DatabaseSync | null = null;
     try {
       db = new DatabaseSync(dbPath);
+      const totalRows = (db.prepare("SELECT COUNT(*) as n FROM hypothesis_outcomes").get() as { n: number }).n;
+      const payloadRows = db.prepare("SELECT payload FROM hypothesis_outcomes ORDER BY id").all() as { payload: string }[];
+      const parsedPayloads = parseHypothesisOutcomeSqlitePayloads(payloadRows.map(row => row.payload), dbPath);
       sqlite = {
         ...sqlite,
-        totalRows: (db.prepare("SELECT COUNT(*) as n FROM hypothesis_outcomes").get() as { n: number }).n,
+        totalRows,
         uniqueIndexExists: hasUniqueIndex(db),
         duplicateGroups: duplicateGroupsFromDb(db),
+        invalidPayloadRows: totalRows - parsedPayloads.rows.length,
       };
     } catch (error) {
       sqlite = {
@@ -150,7 +157,7 @@ export function buildOutcomeIntegrityReport(params: {
   }
 
   const hasDuplicates = jsonlDuplicates.length > 0 || sqlite.duplicateGroups.length > 0;
-  const hasParseErrors = parseErrors.length > 0;
+  const hasParseErrors = parseErrors.length > 0 || sqlite.invalidPayloadRows > 0;
   const dbUnavailable = sqlite.exists && sqlite.error != null;
   const status: OutcomeIntegrityReport["status"] = hasDuplicates
     ? "duplicate_found"
@@ -173,6 +180,8 @@ export function buildOutcomeIntegrityReport(params: {
     status,
     nextAction: hasDuplicates
       ? "重複行を自動削除せず、対象 key を確認して手動整理後に pnpm review:hypotheses を再実行"
+      : sqlite.invalidPayloadRows > 0
+      ? "SQLite payload の破損recordを自動削除せず、DBをローカルで確認して手動修正後に pnpm outcomes:integrity を再実行"
       : hasParseErrors
       ? "JSONL の破損行を自動削除せず、reports/hypothesis_outcome_integrity_latest.json の lineNumber を確認して手動修正"
       : sqlite.exists && !sqlite.uniqueIndexExists
@@ -182,6 +191,7 @@ export function buildOutcomeIntegrityReport(params: {
       "この診断は既存データを削除しません。",
       "1d / 1w / 1m / 3m は reviewHorizon が異なるため別 outcome として扱います。",
       "DB 側 UNIQUE INDEX は code, detected_at, review_horizon の同一組み合わせだけを防止します。",
+      "SQLite payload はreview:hypothesesと同じusable Outcome shapeでread-only検証します。",
     ],
   };
 }
