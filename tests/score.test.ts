@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { scoreHealthyPullback } from "../src/score/pullback.js";
 import { scoreEarningsDrop } from "../src/score/earnings.js";
+import { isRunCursorState } from "../apps/web/lib/generated-data.js";
 
 function testPullbackMissingFinancials() {
   const result = scoreHealthyPullback({
@@ -32,9 +33,17 @@ function testEarningsDropMissingFinancials() {
   assert.ok(result.negativeReasons.includes("営業利益前年比データなし"));
 }
 
+function testGeneratedRunCursorShape() {
+  assert.equal(isRunCursorState({ jobName: "jquants", offset: 3, total: 10 }), true);
+  assert.equal(isRunCursorState(null), false);
+  assert.equal(isRunCursorState({ offset: "3", total: 10 }), false);
+  assert.equal(isRunCursorState({ offset: Number.NaN, total: 10 }), false);
+}
+
 function main() {
   testPullbackMissingFinancials();
   testEarningsDropMissingFinancials();
+  testGeneratedRunCursorShape();
   console.log("score.test.ts passed");
 }
 
