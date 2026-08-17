@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "fs";
+import { DatabaseSync } from "node:sqlite";
 import { tmpdir } from "os";
 import { join } from "path";
 import { partitionHypothesesByDetectedAt } from "../src/hypothesis-review-date.js";
@@ -246,6 +247,36 @@ try {
   assert.equal(parseError.jsonl.parseErrors.length, 1);
   assert.equal(parseError.jsonl.parseErrors[0].lineNumber, 2);
   assert(parseError.jsonl.parseErrors[0].preview.includes("broken json"));
+
+  writeFileSync(
+    jsonlPath,
+    JSON.stringify(outcome("3333", "2026-06-01", "1d")) + "\n",
+    "utf-8",
+  );
+  const db = new DatabaseSync(dbPath);
+  db.exec(`
+    CREATE TABLE hypothesis_outcomes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      code TEXT NOT NULL,
+      detected_at TEXT NOT NULL,
+      review_horizon TEXT NOT NULL,
+      payload TEXT NOT NULL
+    );
+    CREATE UNIQUE INDEX idx_hypothesis_outcomes_unique
+      ON hypothesis_outcomes (code, detected_at, review_horizon);
+  `);
+  const insert = db.prepare("INSERT INTO hypothesis_outcomes (code, detected_at, review_horizon, payload) VALUES (?, ?, ?, ?)");
+  insert.run("3333", "2026-06-01", "1d", JSON.stringify(outcome("3333", "2026-06-01", "1d")));
+  insert.run("4444", "2026-06-01", "1d", "{ malformed");
+  insert.run("5555", "2026-06-01", "1d", "{}");
+  db.close();
+
+  const sqlitePayloadError = buildOutcomeIntegrityReport({ generatedAt: "2026-06-08", jsonlPath, dbPath });
+  assert.equal(sqlitePayloadError.status, "parse_error", "壊れたSQLite payloadをintegrity okへ同化しない");
+  assert.equal(sqlitePayloadError.sqlite.totalRows, 3);
+  assert.equal(sqlitePayloadError.sqlite.invalidPayloadRows, 2, "parse errorとunsafe shapeをmetadata countで明示する");
+  assert.equal(sqlitePayloadError.sqlite.error, null, "payload破損をDB availability errorと混同しない");
+  assert.match(sqlitePayloadError.nextAction, /SQLite payload の破損record/);
 } finally {
   if (existsSync(dir)) rmSync(dir, { recursive: true, force: true });
 }
