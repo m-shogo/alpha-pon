@@ -23,6 +23,7 @@ import {
   normalizeOptionalGeneratedRecordInput,
   type GeneratedWorldThemeCandidateHypothesisInput,
 } from './generated-array-input'
+import { normalizeGeneratedReadinessInput } from './generated-readiness-input'
 
 const DATA_PATH = join(process.cwd(), 'public', 'generated', 'alpha-pon-data.json')
 
@@ -200,6 +201,7 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
     'worldThemeCandidateHypotheses',
     isGeneratedWorldThemeCandidateHypothesisInput,
   )
+  const readinessLoad = normalizeGeneratedReadinessInput(data.readiness)
   const hasPipelineStatus = data.pipelineStatus !== undefined && data.pipelineStatus !== null
   const pipelineStatus = hasPipelineStatus && isGeneratedPipelineStatusInput(data.pipelineStatus)
     ? data.pipelineStatus
@@ -234,7 +236,7 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
     primaryDisclosureReviews: data.primaryDisclosureReviews ?? {},
     dataQualityByCode: dataQualityLoad.record,
     runCursors: runCursorLoad.record,
-    readiness: data.readiness ?? null,
+    readiness: readinessLoad.value,
     ipoThemeWatch: data.ipoThemeWatch ?? null,
     specialSituationWatch: data.specialSituationWatch ?? null,
     specialSituationOps: data.specialSituationOps ?? null,
@@ -254,26 +256,29 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
                   normalizeGeneratedMeta(
                     normalizeGeneratedMeta(
                       normalizeGeneratedMeta(
-                        normalizeGeneratedMeta(data.meta, rootLoad.warning),
-                        reportLoad.warning,
+                        normalizeGeneratedMeta(
+                          normalizeGeneratedMeta(data.meta, rootLoad.warning),
+                          reportLoad.warning,
+                        ),
+                        candidateLoad.warning,
                       ),
-                      candidateLoad.warning,
+                      universeCandidateLoad.warning,
                     ),
-                    universeCandidateLoad.warning,
+                    hypothesisPredictionLoad.warning,
                   ),
-                  hypothesisPredictionLoad.warning,
+                  hypothesisOutcomeLoad.warning,
                 ),
-                hypothesisOutcomeLoad.warning,
+                companyMemoryLoad.warning,
               ),
-              companyMemoryLoad.warning,
+              dataQualityLoad.warning,
             ),
-            dataQualityLoad.warning,
+            runCursorLoad.warning,
           ),
-          runCursorLoad.warning,
+          worldThemeCandidateHypothesisLoad.warning,
         ),
-        worldThemeCandidateHypothesisLoad.warning,
+        pipelineStatusWarning,
       ),
-      pipelineStatusWarning,
+      readinessLoad.warning,
     ),
   }
 }
