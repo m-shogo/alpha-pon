@@ -15,7 +15,7 @@ import type { AlphaPonGeneratedData as StocksData } from '@/types/alpha-pon'
 import {
   normalizeGeneratedArrayInput,
   normalizeGeneratedObjectInput,
-  normalizeOptionalGeneratedObjectInput,
+  normalizeOptionalGeneratedRecordInput,
 } from './generated-array-input'
 
 const DATA_PATH = join(process.cwd(), 'public', 'generated', 'alpha-pon-data.json')
@@ -51,6 +51,16 @@ const FALLBACK_PRO: ProData = {
   meta: { warnings: ['データファイルが見つからないか、読み込みに失敗しました。pnpm ui:data を実行してください。'] },
 }
 
+type DataQualityRow = NonNullable<ProData['dataQualityByCode']>[string]
+
+function isDataQualityRow(value: unknown): value is DataQualityRow {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const row = value as Record<string, unknown>
+  return typeof row.dataQuality === 'string'
+    && Array.isArray(row.warnings)
+    && row.warnings.every((warning) => typeof warning === 'string')
+}
+
 function normalizeGeneratedMeta(meta: unknown, warning: string | null): ProData['meta'] {
   if (!warning) return meta as ProData['meta'] ?? null
   const object = meta && typeof meta === 'object' && !Array.isArray(meta)
@@ -72,7 +82,11 @@ function normalizeGeneratedData(value: unknown): ProData {
     data.companyMemory,
     'companyMemory',
   )
-  const dataQualityLoad = normalizeOptionalGeneratedObjectInput(data.dataQualityByCode, 'dataQualityByCode')
+  const dataQualityLoad = normalizeOptionalGeneratedRecordInput<DataQualityRow>(
+    data.dataQualityByCode,
+    'dataQualityByCode',
+    isDataQualityRow,
+  )
   return {
     ...FALLBACK_PRO,
     ...data,
@@ -97,7 +111,7 @@ function normalizeGeneratedData(value: unknown): ProData {
     companyMemory: companyMemoryLoad.rows,
     companyMemoryByCode: data.companyMemoryByCode ?? {},
     primaryDisclosureReviews: data.primaryDisclosureReviews ?? {},
-    dataQualityByCode: dataQualityLoad.object as ProData['dataQualityByCode'],
+    dataQualityByCode: dataQualityLoad.record,
     runCursors: data.runCursors ?? {},
     readiness: data.readiness ?? null,
     ipoThemeWatch: data.ipoThemeWatch ?? null,
