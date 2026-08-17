@@ -63,7 +63,13 @@ export function readWorldThemeCandidateReviewInput(path: string): {
 } {
   const result = readJsonlWithErrors<unknown>(path);
   const parseWarning = formatReadOnlyJsonlParseWarning(path, result.parseErrors);
-  const rows = result.rows.filter(isWorldThemeCandidateReviewInput);
+  const validRows = result.rows.filter(isWorldThemeCandidateReviewInput);
+  const seenHypothesisIds = new Set<string>();
+  const rows = validRows.filter(row => {
+    if (seenHypothesisIds.has(row.hypothesisId)) return false;
+    seenHypothesisIds.add(row.hypothesisId);
+    return true;
+  });
   const invalidCount = result.rows.length - rows.length;
   const warnings = [
     parseWarning,
