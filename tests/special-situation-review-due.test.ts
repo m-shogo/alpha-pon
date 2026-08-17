@@ -6,6 +6,7 @@ import { existsSync, readFileSync } from "fs";
 import { calcSpecialSituationDueAt } from "../src/special-situation-review-due-date.js";
 import {
   filterOutcomesByCode,
+  isHistoricalSeedOverdue,
   selectOutcomesForStats,
 } from "../src/special-situation-outcome-filter.js";
 import type { HypothesisOutcome, ReviewHorizon } from "../src/universe.js";
@@ -35,6 +36,8 @@ assert.equal(calcSpecialSituationDueAt("2026-02-31", "1d"), null);
 assert.equal(calcSpecialSituationDueAt("0000-01-01", "1d"), null);
 assert.equal(calcSpecialSituationDueAt("2026-08-07T00:00:00+09:00", "1d"), null);
 assert.equal(calcSpecialSituationDueAt("2026-08-07", "2w" as ReviewHorizon), null);
+assert.equal(isHistoricalSeedOverdue("2026-05-19", "2026-08-17"), true, "ちょうど90日前はhistorical seed扱い");
+assert.equal(isHistoricalSeedOverdue("2026-05-20", "2026-08-17"), false, "89日前はrecent overdue扱い");
 
 const validSpecialOutcome = {
   code: "8136",

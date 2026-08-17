@@ -106,7 +106,7 @@ export function isHistoricalSeedOverdue(
   const d = new Date(today);
   d.setDate(d.getDate() - thresholdDays);
   const threshold = d.toISOString().slice(0, 10);
-  return dueAt < threshold;
+  return dueAt <= threshold;
 }
 
 /**
