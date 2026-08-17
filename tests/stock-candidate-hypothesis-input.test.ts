@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { parseHypothesisOutcomesJsonl } from "../src/hypothesis-outcome-input.js";
+import { parseHypothesisOutcomesJsonl, parseHypothesisOutcomeSqlitePayloads } from "../src/hypothesis-outcome-input.js";
 import {
   normalizeStockCandidateUniverseRows,
   normalizeStockCandidateWatchlistCodes,
@@ -56,6 +56,20 @@ assert.match(outcomeParsed.warnings[0], /2 malformed JSONL row\(s\).*line\(s\) 2
 assert.ok(!outcomeParsed.warnings[0].includes("{ malformed"), "Outcome warningへraw row内容を露出しない");
 assert.match(reviewSource, /readOutcomeJsonl\(OUTCOME_PATH\)/, "review:hypothesesのOutcome migration/readbackもsafe parserを利用する");
 
+const sqliteParsed = parseHypothesisOutcomeSqlitePayloads(
+  [JSON.stringify(validOutcome), "{ malformed", JSON.stringify({}), JSON.stringify({ ...validOutcome, code: "7974" })],
+  "data/hypothesis_outcomes.db",
+);
+assert.deepEqual(sqliteParsed.rows.map(row => row.code), ["8136", "7974"], "malformed SQLite payloadをrecord単位で隔離して正常履歴を保持する");
+assert.equal(sqliteParsed.warnings.length, 1, "SQLite payload parse/shape errorをmetadata warningへ集約する");
+assert.match(sqliteParsed.warnings[0], /2 malformed record\(s\).*record\(s\) 2, 3/);
+assert.ok(!sqliteParsed.warnings[0].includes("{ malformed"), "SQLite warningへraw payload内容を露出しない");
+assert.match(
+  reviewSource,
+  /parseHypothesisOutcomeSqlitePayloads\(rows\.map\(row => row\.payload\), OUTCOME_DB_PATH\)/,
+  "review:hypothesesのSQLite readbackもrecord単位のsafe parserを利用する",
+);
+
 const watchlist = normalizeStockCandidateWatchlistCodes({
   symbols: [
     { code: "8136", name: "サンリオ" },
@@ -100,4 +114,4 @@ const invalidUniverseRoot = normalizeStockCandidateUniverseRows({ candidates: {}
 assert.equal(invalidUniverseRoot.rootValid, false, "non-array candidates rootを空の正常snapshotへ同化しない");
 assert.match(invalidUniverseRoot.warnings[0], /candidates root shape is invalid/);
 
-console.log("stock-candidate-hypothesis-input: malformed JSONL/watchlist/universe/outcome row isolation OK");
+console.log("stock-candidate-hypothesis-input: malformed JSONL/watchlist/universe/outcome/SQLite row isolation OK");

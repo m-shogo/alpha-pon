@@ -41,3 +41,30 @@ export function parseHypothesisOutcomesJsonl(text: string, source = "hypothesis 
 
   return { rows, warnings };
 }
+
+export function parseHypothesisOutcomeSqlitePayloads(
+  payloads: string[],
+  source = "hypothesis_outcomes SQLite payload",
+): ParsedHypothesisOutcomes {
+  const rows: HypothesisOutcome[] = [];
+  const malformedRecords: number[] = [];
+
+  payloads.forEach((payload, index) => {
+    try {
+      const parsed: unknown = JSON.parse(payload);
+      if (!isUsableOutcome(parsed)) {
+        malformedRecords.push(index + 1);
+        return;
+      }
+      rows.push(parsed);
+    } catch {
+      malformedRecords.push(index + 1);
+    }
+  });
+
+  const warnings = malformedRecords.length > 0
+    ? [`${source}: ${malformedRecords.length} malformed record(s) isolated at record(s) ${malformedRecords.join(", ")}`]
+    : [];
+
+  return { rows, warnings };
+}
