@@ -2,31 +2,26 @@ import { mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
-import { normalizeCompanyCoverageRoots } from "./company-coverage-input.js";
-
-type HypCompany = { code: string; name: string; status?: string };
-type Hypotheses = { categories: Record<string, { label: string; companies?: HypCompany[] }> };
-type Network = { companies: Record<string, { name: string; categoryHints?: string[] }> };
+import { normalizeCompanyCoverageRoots, normalizeCompanyCoverageRows } from "./company-coverage-input.js";
 
 function main() {
   const date = todayJst();
   const hypothesesRaw = load(readFileSync("config/company-hypotheses.yml", "utf-8"));
   const networkRaw = load(readFileSync("config/company-network.yml", "utf-8"));
   const roots = normalizeCompanyCoverageRoots(hypothesesRaw, networkRaw);
-  const hypotheses = (roots.hypotheses ?? { categories: {} }) as Hypotheses;
-  const network = (roots.network ?? { companies: {} }) as Network;
+  const normalized = normalizeCompanyCoverageRows(roots);
 
   const hypothesisCodes = new Map<string, { name: string; categories: string[]; status?: string }>();
-  for (const [categoryId, category] of Object.entries(hypotheses.categories ?? {})) {
-    for (const company of category.companies ?? []) {
-      if (!company.code || company.code === "generic") continue;
+  for (const [categoryId, category] of Object.entries(normalized.categories)) {
+    for (const company of category.companies) {
+      if (company.code === "generic") continue;
       const current = hypothesisCodes.get(company.code) ?? { name: company.name, categories: [], status: company.status };
       current.categories.push(categoryId);
       hypothesisCodes.set(company.code, current);
     }
   }
 
-  const networkCodes = new Map(Object.entries(network.companies ?? {}));
+  const networkCodes = new Map(Object.entries(normalized.companies));
   const hypothesisMissingNetwork = [...hypothesisCodes.entries()].filter(([code]) => !networkCodes.has(code));
   const networkMissingHypothesis = [...networkCodes.entries()].filter(([code]) => !hypothesisCodes.has(code));
 
@@ -40,8 +35,8 @@ function main() {
 
   lines.push("## summary");
   lines.push("");
-  lines.push(`- health status: ${roots.warnings.length === 0 ? "ok" : "action_required"}`);
-  lines.push(`- input warnings: ${roots.warnings.length}`);
+  lines.push(`- health status: ${normalized.warnings.length === 0 ? "ok" : "action_required"}`);
+  lines.push(`- input warnings: ${normalized.warnings.length}`);
   lines.push(`- hypothesis companies: ${hypothesisCodes.size}`);
   lines.push(`- network companies: ${networkCodes.size}`);
   lines.push(`- hypothesis missing network: ${hypothesisMissingNetwork.length}`);
@@ -50,8 +45,8 @@ function main() {
 
   lines.push("## input warnings");
   lines.push("");
-  if (roots.warnings.length === 0) lines.push("- none");
-  for (const warning of roots.warnings) lines.push(`- ${warning}`);
+  if (normalized.warnings.length === 0) lines.push("- none");
+  for (const warning of normalized.warnings) lines.push(`- ${warning}`);
   lines.push("");
 
   lines.push("## warning: hypothesis exists but network is missing");
@@ -66,7 +61,7 @@ function main() {
   lines.push("");
   if (networkMissingHypothesis.length === 0) lines.push("- none");
   for (const [code, item] of networkMissingHypothesis) {
-    lines.push(`- ${code} ${item.name}: categoryHints=${(item.categoryHints ?? []).join("/") || "N/A"}`);
+    lines.push(`- ${code} ${item.name}: categoryHints=${item.categoryHints.join("/") || "N/A"}`);
   }
   lines.push("");
 
