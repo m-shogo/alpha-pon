@@ -1,4 +1,4 @@
-import { addDaysJst } from "./date.js";
+import { addDaysJst, formatJstDate } from "./date.js";
 import { compareExplicitIso8601Instants, parseExplicitIso8601Instant } from "./research/iso-instant.js";
 
 type PipelineResult = {
@@ -80,6 +80,7 @@ export function hasCanonicalPipelineStatus(
 
   const generatedAt = value.generatedAt;
   if (!hasCanonicalGeneratedAt(generatedAt)) return false;
+  if (formatJstDate(new Date(generatedAt)) !== pipelineDate) return false;
   if (asOfInstant !== undefined) {
     try {
       if (compareExplicitIso8601Instants(generatedAt, asOfInstant, "pipeline generatedAt", "pipeline health asOfInstant") > 0) {

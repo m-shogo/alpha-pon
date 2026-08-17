@@ -54,6 +54,16 @@ assert.equal(hasCanonicalPipelineStatus({ ...BASE_PIPELINE_STATUS, date: "0000-0
 assert.equal(hasCanonicalPipelineStatus({ ...BASE_PIPELINE_STATUS, generatedAt: "2026-08-16T11:00:00" }), false, "timezone-less generatedAt must fail closed");
 assert.equal(hasCanonicalPipelineStatus({ ...BASE_PIPELINE_STATUS, generatedAt: "2026-02-31T11:00:00+09:00" }), false, "impossible Gregorian generatedAt must fail closed");
 assert.equal(hasCanonicalPipelineStatus({ ...BASE_PIPELINE_STATUS, generatedAt: "2026-08-16T11:00:00-00:00" }), false, "unknown timezone offsets must fail closed");
+assert.equal(
+  hasCanonicalPipelineStatus({ ...BASE_PIPELINE_STATUS, generatedAt: "2026-08-15T23:59:59.999999999+09:00" }),
+  false,
+  "previous-JST-day generatedAt must not masquerade as current pipeline evidence",
+);
+assert.equal(
+  hasCanonicalPipelineStatus({ ...BASE_PIPELINE_STATUS, generatedAt: "2026-08-16T00:00:00+09:00" }),
+  true,
+  "JST midnight generatedAt remains valid for the matching pipeline date",
+);
 assert.equal(hasCanonicalPipelineStatus({
   ...BASE_PIPELINE_STATUS,
   status: "partial_failed",
