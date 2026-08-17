@@ -26,6 +26,8 @@ export type ProIrEventInputLoad = {
   invalidEventCount: number;
 };
 
+export type NormalizedProIrSourceStatus = "confirmed" | "official_check_required" | "missing";
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -54,6 +56,13 @@ function normalizeEvent(value: unknown): NormalizedProIrEvent | null {
     return null;
   }
   return value as NormalizedProIrEvent;
+}
+
+export function normalizeProIrSourceStatus(event: NormalizedProIrEvent): NormalizedProIrSourceStatus {
+  const status = String(event.sourceStatus ?? "").trim().toLowerCase();
+  if (!event.sourceUrl) return "missing";
+  if (!status || /required|missing|unknown|要確認|check/.test(status)) return "official_check_required";
+  return "confirmed";
 }
 
 export function normalizeProIrEventInput(raw: unknown): ProIrEventInputLoad {
