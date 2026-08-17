@@ -48,6 +48,19 @@ const validEvent = {
 {
   const normalized = normalizeProIrEventInput({
     companies: {
+      "8136": { name: "Sanrio", events: [validEvent] },
+      " 8136": { name: "Padded Sanrio", events: [validEvent] },
+      "7203 ": { name: "Padded Toyota", events: [validEvent] },
+    },
+  });
+  assert(normalized.companies["8136"]?.events.length === 1, "canonical company code must remain usable");
+  assert(!normalized.companies[" 8136"] && !normalized.companies["7203 "], "padded company codes must be isolated instead of creating ambiguous identities");
+  assert(normalized.invalidCompanyCount === 2, "padded company codes must be counted for metadata warning");
+}
+
+{
+  const normalized = normalizeProIrEventInput({
+    companies: {
       "8136": { name: "Sanrio", events: {} },
       "7203": { name: "Toyota", events: [validEvent] },
     },
