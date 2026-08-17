@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   normalizeStockCandidateUniverseRows,
   normalizeStockCandidateWatchlistCodes,
@@ -31,6 +32,13 @@ assert.deepEqual(parsed.rows.map(row => row.code), ["8136", "7974"], "malformed 
 assert.equal(parsed.warnings.length, 1, "malformed JSONLをsilent dropしない");
 assert.match(parsed.warnings[0], /1 malformed JSONL row\(s\).*line\(s\) 2/, "raw内容ではなく件数と行番号だけを警告する");
 assert.ok(!parsed.warnings[0].includes("{ malformed"), "metadata warningへraw row内容を露出しない");
+
+const reviewSource = readFileSync(new URL("../src/review-hypothesis-outcomes.ts", import.meta.url), "utf-8");
+assert.match(
+  reviewSource,
+  /parseExistingStockCandidateHypothesesJsonl\(readFileSync\(HYPOTHESIS_PATH, "utf-8"\), HYPOTHESIS_PATH\)/,
+  "review:hypothesesもtested JSONL parserを再利用してmalformed rowを隔離する",
+);
 
 const watchlist = normalizeStockCandidateWatchlistCodes({
   symbols: [
