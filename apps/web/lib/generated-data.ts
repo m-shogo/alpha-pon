@@ -10,9 +10,10 @@
 
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
-import type { AlphaPonGeneratedData as ProData, Candidate, RunCursorState } from './types'
+import type { AlphaPonGeneratedData as ProData, Candidate, GeneratedReport, RunCursorState } from './types'
 import type { AlphaPonGeneratedData as StocksData } from '@/types/alpha-pon'
 import {
+  isGeneratedReportInput,
   isGeneratedRunCursorState,
   normalizeGeneratedArrayInput,
   normalizeGeneratedObjectInput,
@@ -119,6 +120,7 @@ function normalizeGeneratedMeta(meta: unknown, warning: string | null): ProData[
 function normalizeGeneratedData(value: unknown): ProData {
   const rootLoad = normalizeGeneratedObjectInput(value, 'generatedData')
   const data = rootLoad.object as Partial<ProData>
+  const reportLoad = normalizeGeneratedArrayInput<GeneratedReport>(data.reports, 'reports', isGeneratedReportInput)
   const candidateLoad = normalizeGeneratedArrayInput<Candidate>(data.candidates, 'candidates', isCandidateRow)
   const companyMemoryLoad = normalizeGeneratedArrayInput<NonNullable<ProData['companyMemory']>[number]>(
     data.companyMemory,
@@ -145,7 +147,7 @@ function normalizeGeneratedData(value: unknown): ProData {
       roadmap: Array.isArray(data.summary?.roadmap) ? data.summary.roadmap : [],
       refresh: Array.isArray(data.summary?.refresh) ? data.summary.refresh : [],
     },
-    reports: Array.isArray(data.reports) ? data.reports : [],
+    reports: reportLoad.rows,
     candidates: candidateLoad.rows,
     universeCandidates: Array.isArray(data.universeCandidates) ? data.universeCandidates : [],
     universeScan: data.universeScan ?? null,
@@ -173,7 +175,10 @@ function normalizeGeneratedData(value: unknown): ProData {
       normalizeGeneratedMeta(
         normalizeGeneratedMeta(
           normalizeGeneratedMeta(
-            normalizeGeneratedMeta(data.meta, rootLoad.warning),
+            normalizeGeneratedMeta(
+              normalizeGeneratedMeta(data.meta, rootLoad.warning),
+              reportLoad.warning,
+            ),
             candidateLoad.warning,
           ),
           companyMemoryLoad.warning,
