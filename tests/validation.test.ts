@@ -118,6 +118,7 @@ import "./research/stock-pro-council-replay.test.js";
 import "./research/edge-decay-strict-date.test.js";
 import "./research/promotion-asof-nanosecond.test.js";
 import "./jquants-v2-date-cap.test.js";
+import { normalizeCompanyRulesWatchlistRow } from "../src/company-rules-watchlist-input.js";
 import { validateWatchlist } from "../src/validation.js";
 import { resolveWorldImpactEvaluationAsOf } from "../src/world-impact-evaluation-input.js";
 import type { WatchlistConfig } from "../src/types.js";
@@ -139,6 +140,31 @@ function candidate(listedAt: string): WatchlistConfig {
 
 function testValidWatchlist() {
   assert.deepEqual(validateWatchlist(candidate("2024-12-18")), []);
+}
+
+function testCompanyRulesWatchlistRowIsolation() {
+  assert.deepEqual(
+    normalizeCompanyRulesWatchlistRow({
+      code: " 285A ",
+      name: " キオクシア ",
+      tags: [" semiconductor ", 123, ""],
+      rules: [" ipo_selling_pressure_done ", null],
+    }),
+    {
+      code: "285A",
+      name: "キオクシア",
+      tags: ["semiconductor"],
+      rules: ["ipo_selling_pressure_done"],
+    },
+    "正常rowはcanonical化して保持する",
+  );
+  assert.equal(normalizeCompanyRulesWatchlistRow(null), null, "null rowは全watchlistを落とさず隔離できる");
+  assert.equal(normalizeCompanyRulesWatchlistRow("broken"), null, "primitive rowは隔離できる");
+  assert.deepEqual(
+    normalizeCompanyRulesWatchlistRow({ code: "285A", name: "キオクシア", tags: "broken", rules: {} }),
+    { code: "285A", name: "キオクシア", tags: [], rules: [] },
+    "壊れたtags/rulesはrow全体を落とさず空配列へ隔離する",
+  );
 }
 
 function testStrictListingDate() {
@@ -206,6 +232,7 @@ function testInvalidWatchlist() {
 
 function main() {
   testValidWatchlist();
+  testCompanyRulesWatchlistRowIsolation();
   testStrictListingDate();
   testWorldImpactEvaluationAsOf();
   testInvalidWatchlist();
