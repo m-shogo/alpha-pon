@@ -24,6 +24,7 @@ import {
   type GeneratedWorldThemeCandidateHypothesisInput,
 } from './generated-array-input'
 import { normalizeGeneratedAccuracySummaryInput } from './generated-accuracy-summary-input'
+import { normalizeGeneratedIpoThemeWatchInput } from './generated-ipo-theme-watch-input'
 import { normalizeGeneratedReadinessInput } from './generated-readiness-input'
 import { normalizeGeneratedStocksInput } from './generated-stock-input'
 import { normalizeGeneratedWorldContextInput } from './generated-world-context-input'
@@ -206,6 +207,7 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
   )
   const accuracySummaryLoad = normalizeGeneratedAccuracySummaryInput(data.accuracySummary)
   const worldContextLoad = normalizeGeneratedWorldContextInput(data.worldContext)
+  const ipoThemeWatchLoad = normalizeGeneratedIpoThemeWatchInput(data.ipoThemeWatch)
   const readinessLoad = normalizeGeneratedReadinessInput(data.readiness)
   const hasPipelineStatus = data.pipelineStatus !== undefined && data.pipelineStatus !== null
   const pipelineStatus = hasPipelineStatus && isGeneratedPipelineStatusInput(data.pipelineStatus)
@@ -242,7 +244,7 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
     dataQualityByCode: dataQualityLoad.record,
     runCursors: runCursorLoad.record,
     readiness: readinessLoad.value,
-    ipoThemeWatch: data.ipoThemeWatch ?? null,
+    ipoThemeWatch: ipoThemeWatchLoad.value as ProData['ipoThemeWatch'],
     specialSituationWatch: data.specialSituationWatch ?? null,
     specialSituationOps: data.specialSituationOps ?? null,
     hypothesisOutcomeIntegrity: data.hypothesisOutcomeIntegrity ?? null,
@@ -264,28 +266,31 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
                         normalizeGeneratedMeta(
                           normalizeGeneratedMeta(
                             normalizeGeneratedMeta(
-                              normalizeGeneratedMeta(data.meta, rootLoad.warning),
-                              reportLoad.warning,
+                              normalizeGeneratedMeta(
+                                normalizeGeneratedMeta(data.meta, rootLoad.warning),
+                                reportLoad.warning,
+                              ),
+                              candidateLoad.warning,
                             ),
-                            candidateLoad.warning,
+                            universeCandidateLoad.warning,
                           ),
-                          universeCandidateLoad.warning,
+                          hypothesisPredictionLoad.warning,
                         ),
-                        hypothesisPredictionLoad.warning,
+                        hypothesisOutcomeLoad.warning,
                       ),
-                      hypothesisOutcomeLoad.warning,
+                      companyMemoryLoad.warning,
                     ),
-                    companyMemoryLoad.warning,
+                    dataQualityLoad.warning,
                   ),
-                  dataQualityLoad.warning,
+                  runCursorLoad.warning,
                 ),
-                runCursorLoad.warning,
+                worldThemeCandidateHypothesisLoad.warning,
               ),
-              worldThemeCandidateHypothesisLoad.warning,
+              accuracySummaryLoad.warning,
             ),
-            accuracySummaryLoad.warning,
+            worldContextLoad.warning,
           ),
-          worldContextLoad.warning,
+          ipoThemeWatchLoad.warning,
         ),
         pipelineStatusWarning,
       ),
