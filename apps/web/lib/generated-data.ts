@@ -60,6 +60,7 @@ const FALLBACK_PRO: ProData = {
 type DataQualityRow = NonNullable<ProData['dataQualityByCode']>[string]
 type UniverseCandidateRow = NonNullable<ProData['universeCandidates']>[number]
 type HypothesisPredictionRow = NonNullable<ProData['hypothesisPredictions']>[number]
+type HypothesisOutcomeRow = NonNullable<ProData['hypothesisOutcomes']>[number]
 
 type ProDataWithWorldThemeCandidateHypotheses = ProData & {
   worldThemeCandidateHypotheses?: GeneratedWorldThemeCandidateHypothesisInput[]
@@ -128,6 +129,15 @@ function isHypothesisPredictionRow(value: unknown): value is HypothesisPredictio
     && HYPOTHESIS_STATUSES.has(row.status)
 }
 
+function isHypothesisOutcomeRow(value: unknown): value is HypothesisOutcomeRow {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const row = value as Record<string, unknown>
+  return typeof row.evaluatedAt === 'string'
+    && typeof row.reviewHorizon === 'string'
+    && typeof row.actionLabel === 'string'
+    && typeof row.result === 'string'
+}
+
 function isDataQualityRow(value: unknown): value is DataQualityRow {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const row = value as Record<string, unknown>
@@ -165,6 +175,11 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
     data.hypothesisPredictions,
     'hypothesisPredictions',
     isHypothesisPredictionRow,
+  )
+  const hypothesisOutcomeLoad = normalizeGeneratedArrayInput<HypothesisOutcomeRow>(
+    data.hypothesisOutcomes,
+    'hypothesisOutcomes',
+    isHypothesisOutcomeRow,
   )
   const companyMemoryLoad = normalizeGeneratedArrayInput<NonNullable<ProData['companyMemory']>[number]>(
     data.companyMemory,
@@ -208,7 +223,7 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
     universeCandidates: universeCandidateLoad.rows,
     universeScan: data.universeScan ?? null,
     hypothesisPredictions: hypothesisPredictionLoad.rows,
-    hypothesisOutcomes: Array.isArray(data.hypothesisOutcomes) ? data.hypothesisOutcomes : [],
+    hypothesisOutcomes: hypothesisOutcomeLoad.rows,
     generatedCompanyRules: Array.isArray(data.generatedCompanyRules) ? data.generatedCompanyRules : [],
     positions: Array.isArray(data.positions) ? data.positions : [],
     accuracySummary: data.accuracySummary ?? null,
@@ -238,14 +253,17 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
                 normalizeGeneratedMeta(
                   normalizeGeneratedMeta(
                     normalizeGeneratedMeta(
-                      normalizeGeneratedMeta(data.meta, rootLoad.warning),
-                      reportLoad.warning,
+                      normalizeGeneratedMeta(
+                        normalizeGeneratedMeta(data.meta, rootLoad.warning),
+                        reportLoad.warning,
+                      ),
+                      candidateLoad.warning,
                     ),
-                    candidateLoad.warning,
+                    universeCandidateLoad.warning,
                   ),
-                  universeCandidateLoad.warning,
+                  hypothesisPredictionLoad.warning,
                 ),
-                hypothesisPredictionLoad.warning,
+                hypothesisOutcomeLoad.warning,
               ),
               companyMemoryLoad.warning,
             ),
