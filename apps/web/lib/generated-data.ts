@@ -13,6 +13,7 @@ import { join } from 'path'
 import type { AlphaPonGeneratedData as ProData, Candidate, RunCursorState } from './types'
 import type { AlphaPonGeneratedData as StocksData } from '@/types/alpha-pon'
 import {
+  isGeneratedRunCursorState,
   normalizeGeneratedArrayInput,
   normalizeGeneratedObjectInput,
   normalizeOptionalGeneratedRecordInput,
@@ -101,16 +102,6 @@ function isDataQualityRow(value: unknown): value is DataQualityRow {
     && row.warnings.every((warning) => typeof warning === 'string')
 }
 
-export function isRunCursorState(value: unknown): value is RunCursorState {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
-  const row = value as Record<string, unknown>
-  return (row.jobName === undefined || typeof row.jobName === 'string')
-    && (row.offset === undefined || (typeof row.offset === 'number' && Number.isFinite(row.offset)))
-    && (row.maxPerRun === undefined || (typeof row.maxPerRun === 'number' && Number.isFinite(row.maxPerRun)))
-    && (row.total === undefined || (typeof row.total === 'number' && Number.isFinite(row.total)))
-    && (row.updatedAt === undefined || typeof row.updatedAt === 'string')
-}
-
 function normalizeGeneratedMeta(meta: unknown, warning: string | null): ProData['meta'] {
   if (!warning) return meta as ProData['meta'] ?? null
   const object = meta && typeof meta === 'object' && !Array.isArray(meta)
@@ -141,7 +132,7 @@ function normalizeGeneratedData(value: unknown): ProData {
   const runCursorLoad = normalizeOptionalGeneratedRecordInput<RunCursorState>(
     data.runCursors,
     'runCursors',
-    isRunCursorState,
+    isGeneratedRunCursorState,
   )
   return {
     ...FALLBACK_PRO,
