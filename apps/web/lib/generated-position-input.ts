@@ -1,5 +1,3 @@
-import { normalizeGeneratedArrayInput, type GeneratedArrayInput } from './generated-array-input.js'
-
 export type GeneratedPositionInput = {
   code: string
   name: string
@@ -19,6 +17,11 @@ export type GeneratedPositionInput = {
   invalidationLine: string
   nextEvent: string
   memo: string
+}
+
+export type GeneratedPositionInputResult = {
+  rows: GeneratedPositionInput[]
+  warning: string | null
 }
 
 const NISA_TYPES = new Set(['nisa_growth', 'nisa_accumulation', 'taxable'])
@@ -59,6 +62,19 @@ export function isGeneratedPositionInput(value: unknown): value is GeneratedPosi
     && typeof row.memo === 'string'
 }
 
-export function normalizeGeneratedPositions(value: unknown): GeneratedArrayInput<GeneratedPositionInput> {
-  return normalizeGeneratedArrayInput<GeneratedPositionInput>(value, 'positions', isGeneratedPositionInput)
+export function normalizeGeneratedPositions(value: unknown): GeneratedPositionInputResult {
+  if (!Array.isArray(value)) {
+    return {
+      rows: [],
+      warning: value === undefined ? null : 'positions: invalid_root (expected array)',
+    }
+  }
+
+  const rows = value.filter(isGeneratedPositionInput)
+  const invalidCount = value.length - rows.length
+
+  return {
+    rows,
+    warning: invalidCount > 0 ? `positions: invalid_entries (${invalidCount})` : null,
+  }
 }
