@@ -10,7 +10,7 @@ import { DatabaseSync } from "node:sqlite";
 import { addDaysJst, toCompactDate, todayJst } from "./date.js";
 import { fetchDailyQuotes, isJQuantsConfigured } from "./fetcher/jquants.js";
 import { partitionHypothesesByDetectedAt } from "./hypothesis-review-date.js";
-import { parseHypothesisOutcomesJsonl } from "./hypothesis-outcome-input.js";
+import { parseHypothesisOutcomesJsonl, parseHypothesisOutcomeSqlitePayloads } from "./hypothesis-outcome-input.js";
 import { inferMissReasons } from "./miss-reason.js";
 import { buildOutcomeNotes, resolveActualDirection } from "./outcome-notes.js";
 import { parseExistingStockCandidateHypothesesJsonl } from "./stock-candidate-hypothesis-input.js";
@@ -69,7 +69,9 @@ function readExistingOutcomes(): HypothesisOutcome[] {
     const db = openDb();
     const rows = db.prepare("SELECT payload FROM hypothesis_outcomes ORDER BY id").all() as { payload: string }[];
     db.close();
-    return rows.map(r => JSON.parse(r.payload) as HypothesisOutcome);
+    const parsed = parseHypothesisOutcomeSqlitePayloads(rows.map(row => row.payload), OUTCOME_DB_PATH);
+    for (const warning of parsed.warnings) console.warn(`[warn] ${warning}`);
+    return parsed.rows;
   }
   return readOutcomeJsonl(OUTCOME_PATH);
 }
