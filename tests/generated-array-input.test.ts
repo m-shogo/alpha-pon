@@ -68,6 +68,27 @@ assert(mixedHypotheses.rows.length === 1, "malformed hypothesis rows must be iso
 assert(mixedHypotheses.rows[0]?.code === "8136", "valid hypothesis siblings must remain usable");
 assert(mixedHypotheses.warning === "hypothesisPredictions: invalid_entries (2)", "malformed hypothesis rows must remain visible as metadata-only warnings");
 
+const isOutcomeRow = (value: unknown): value is Record<string, unknown> => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  return typeof row.evaluatedAt === "string"
+    && typeof row.reviewHorizon === "string"
+    && typeof row.actionLabel === "string"
+    && typeof row.result === "string";
+};
+const mixedOutcomes = normalizeGeneratedArrayInput(
+  [
+    { evaluatedAt: "2026-08-18", reviewHorizon: "1m", actionLabel: "watch", result: "hit" },
+    null,
+    {},
+  ],
+  "hypothesisOutcomes",
+  isOutcomeRow,
+);
+assert(mixedOutcomes.rows.length === 1, "malformed outcome rows must be isolated before outcome-list sorting and grouping");
+assert(mixedOutcomes.rows[0]?.evaluatedAt === "2026-08-18", "valid outcome siblings must remain usable");
+assert(mixedOutcomes.warning === "hypothesisOutcomes: invalid_entries (2)", "malformed outcome rows must remain visible as metadata-only warnings");
+
 const validRoot = normalizeGeneratedObjectInput({ generatedAt: "2026-08-18" }, "generatedData");
 assert(validRoot.object.generatedAt === "2026-08-18", "valid generated roots must remain usable");
 assert(validRoot.warning === null, "valid generated roots must not emit warnings");
