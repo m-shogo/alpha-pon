@@ -42,16 +42,33 @@ try {
       { afterDays: 30, dueAt: "2026-02-31", status: "open" },
     ],
   };
+  const invalidDetectedAt = {
+    ...base,
+    hypothesisId: "world-theme-invalid-detected-at",
+    detectedAt: "2026-02-31",
+    reviewDueDates: [
+      { afterDays: 30, dueAt: "2026-03-31", status: "open" },
+    ],
+  };
+  const misalignedSchedule = {
+    ...base,
+    hypothesisId: "world-theme-misaligned-schedule",
+    reviewDueDates: [
+      { afterDays: 30, dueAt: "2026-09-01", status: "open" },
+    ],
+  };
 
   writeFileSync(
     path,
-    `${JSON.stringify(valid)}\n${JSON.stringify(duplicateHorizon)}\n${JSON.stringify(duplicateHypothesisId)}\n${JSON.stringify(invalidDueDate)}\n`,
+    [valid, duplicateHorizon, duplicateHypothesisId, invalidDueDate, invalidDetectedAt, misalignedSchedule]
+      .map(row => JSON.stringify(row))
+      .join("\n") + "\n",
     "utf-8",
   );
   const input = readWorldThemeCandidateReviewInput(path);
 
   assert.deepEqual(input.rows.map(row => row.hypothesisId), ["world-theme-1"]);
-  assert.equal(input.warning, `${path}: invalid_rows 3`);
+  assert.equal(input.warning, `${path}: invalid_rows 5`);
 } finally {
   rmSync(tmp, { recursive: true, force: true });
 }

@@ -1,3 +1,4 @@
+import { addDaysJst } from "./date.js";
 import { formatReadOnlyJsonlParseWarning, readJsonlWithErrors } from "./read-only-jsonl.js";
 import { isValidWorldThemeReviewDueDate } from "./world-theme-review-date.js";
 
@@ -42,6 +43,10 @@ function hasUniqueReviewHorizons(reviewDueDates: WorldThemeReviewDue[]): boolean
   return new Set(horizons).size === horizons.length;
 }
 
+function hasCanonicalReviewSchedule(detectedAt: string, reviewDueDates: WorldThemeReviewDue[]): boolean {
+  return reviewDueDates.every(due => due.dueAt === addDaysJst(detectedAt, due.afterDays));
+}
+
 export function isWorldThemeCandidateReviewInput(value: unknown): value is PersistedWorldThemeCandidateHypothesis {
   if (!isRecord(value)) return false;
   for (const key of [
@@ -55,8 +60,11 @@ export function isWorldThemeCandidateReviewInput(value: unknown): value is Persi
   ] as const) {
     if (typeof value[key] !== "string" || !value[key].trim()) return false;
   }
+  const detectedAt = value.detectedAt as string;
+  if (!isValidWorldThemeReviewDueDate(detectedAt)) return false;
   if (!Array.isArray(value.reviewDueDates) || !value.reviewDueDates.every(isReviewDue)) return false;
-  return hasUniqueReviewHorizons(value.reviewDueDates);
+  const reviewDueDates = value.reviewDueDates as WorldThemeReviewDue[];
+  return hasUniqueReviewHorizons(reviewDueDates) && hasCanonicalReviewSchedule(detectedAt, reviewDueDates);
 }
 
 export function readWorldThemeCandidateReviewInput(path: string): {
