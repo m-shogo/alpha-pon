@@ -5,6 +5,7 @@ import { join } from "node:path";
 import {
   assertReadinessDataQualityFallbackInput,
   assertReadinessHypothesisOutcomeInput,
+  assertReadinessHypothesisPredictionInput,
   assertReadinessScoreSnapshotFilenameInput,
 } from "../src/readiness-company-memory-input.js";
 
@@ -62,6 +63,27 @@ try {
     () => assertReadinessHypothesisOutcomeInput(generatedPath, "2026-08-16"),
     /must not be later than readiness as-of date 2026-08-16/,
     "future hypothesis detection dates must not inflate current outcome readiness",
+  );
+
+  const prediction = {
+    code: "8136",
+    name: "Sanrio",
+    detectedAt: "2026-08-16",
+  };
+  writeFileSync(generatedPath, JSON.stringify({ hypothesisPredictions: [prediction] }));
+  assert.doesNotThrow(
+    () => assertReadinessHypothesisPredictionInput(generatedPath, "2026-08-16"),
+    "same-day hypothesis predictions remain valid current readiness evidence",
+  );
+
+  writeFileSync(
+    generatedPath,
+    JSON.stringify({ hypothesisPredictions: [{ ...prediction, detectedAt: "2026-08-17" }] }),
+  );
+  assert.throws(
+    () => assertReadinessHypothesisPredictionInput(generatedPath, "2026-08-16"),
+    /detectedAt must be a real date not later than readiness as-of date 2026-08-16/,
+    "future hypothesis predictions must not inflate current readiness hypothesis counts",
   );
 
   console.log("readiness-future-score-snapshot.test.ts passed");

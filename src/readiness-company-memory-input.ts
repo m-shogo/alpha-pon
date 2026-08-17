@@ -54,6 +54,15 @@ function hasUniqueCanonicalCodes(value: unknown): boolean {
   return true;
 }
 
+function hasCurrentHypothesisPredictionIdentities(value: unknown, asOf: string): boolean {
+  if (!hasUniqueCanonicalCodes(value)) return false;
+  for (const row of value as Record<string, unknown>[]) {
+    if (row.detectedAt === undefined) continue;
+    if (!isNonEmptyString(row.detectedAt) || !isRealJstDate(row.detectedAt) || row.detectedAt > asOf) return false;
+  }
+  return true;
+}
+
 function hasUniqueHypothesisOutcomeIdentities(value: unknown, asOf: string): boolean {
   if (!Array.isArray(value)) return false;
   const seen = new Set<string>();
@@ -219,11 +228,12 @@ export function assertReadinessCompanyMemoryInput(
 
 export function assertReadinessHypothesisPredictionInput(
   generatedPath = "apps/web/public/generated/alpha-pon-data.json",
+  asOf = todayJst(),
 ): void {
   const generated = readGeneratedObject(generatedPath);
   if (!generated || generated.hypothesisPredictions === undefined) return;
-  if (!hasUniqueCanonicalCodes(generated.hypothesisPredictions)) {
-    throw new Error(`${generatedPath}: hypothesisPredictions must be an array of objects with non-empty code and name when present`);
+  if (!hasCurrentHypothesisPredictionIdentities(generated.hypothesisPredictions, asOf)) {
+    throw new Error(`${generatedPath}: hypothesisPredictions must be an array of objects with non-empty code and name when present; detectedAt must be a real date not later than readiness as-of date ${asOf} when present`);
   }
 }
 
