@@ -12,6 +12,7 @@ import { fetchDailyQuotes, isJQuantsConfigured } from "./fetcher/jquants.js";
 import { partitionHypothesesByDetectedAt } from "./hypothesis-review-date.js";
 import { inferMissReasons } from "./miss-reason.js";
 import { buildOutcomeNotes, resolveActualDirection } from "./outcome-notes.js";
+import { parseExistingStockCandidateHypothesesJsonl } from "./stock-candidate-hypothesis-input.js";
 import type {
   StockCandidateHypothesis,
   HypothesisOutcome,
@@ -35,7 +36,12 @@ function readJsonl<T>(path: string): T[] {
   if (!existsSync(path)) return [];
   return readFileSync(path, "utf-8").split("\n").map(line => line.trim()).filter(Boolean).map(line => JSON.parse(line) as T);
 }
-function readHypotheses(): StockCandidateHypothesis[] { return readJsonl<StockCandidateHypothesis>(HYPOTHESIS_PATH); }
+function readHypotheses(): StockCandidateHypothesis[] {
+  if (!existsSync(HYPOTHESIS_PATH)) return [];
+  const parsed = parseExistingStockCandidateHypothesesJsonl(readFileSync(HYPOTHESIS_PATH, "utf-8"), HYPOTHESIS_PATH);
+  for (const warning of parsed.warnings) console.warn(`[warn] ${warning}`);
+  return parsed.rows;
+}
 
 function openDb(): DatabaseSync {
   mkdirSync("data", { recursive: true });
