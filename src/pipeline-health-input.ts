@@ -10,8 +10,10 @@ export function hasUsableSourceHealthText(value: string): boolean {
   return value.trim().length > 0;
 }
 
-export function sourceHealthHistoryState(fileExists: boolean): "ok" | "missing" {
-  return fileExists ? "ok" : "missing";
+export function sourceHealthHistoryState(fileExists: boolean, usableRows?: number): "ok" | "missing" | "empty" {
+  if (!fileExists) return "missing";
+  if (usableRows !== undefined && usableRows === 0) return "empty";
+  return "ok";
 }
 
 function canonicalPipelineDate(value: unknown): string | null {
