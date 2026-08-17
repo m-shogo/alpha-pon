@@ -1,5 +1,5 @@
-import type { Position } from './stock/types'
-import { normalizeGeneratedArrayInput, type GeneratedArrayInput } from './generated-array-input'
+import type { Position } from './stock/types.js'
+import { normalizeGeneratedArrayInput, type GeneratedArrayInput } from './generated-array-input.js'
 
 const NISA_TYPES = new Set(['nisa_growth', 'nisa_accumulation', 'taxable'])
 
