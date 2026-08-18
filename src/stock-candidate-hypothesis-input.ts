@@ -19,13 +19,33 @@ function stringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(item => typeof item === "string");
 }
 
+function hasCanonicalDuplicateIdentity(value: unknown): value is StockCandidateHypothesis {
+  if (!isRecord(value)) return false;
+  return (
+    value.schemaVersion === 1 &&
+    typeof value.code === "string" &&
+    value.code.length > 0 &&
+    value.code === value.code.trim() &&
+    typeof value.name === "string" &&
+    value.name.trim().length > 0 &&
+    typeof value.detectedAt === "string" &&
+    value.detectedAt.trim().length > 0 &&
+    typeof value.reviewDueAt === "string" &&
+    value.reviewDueAt.trim().length > 0 &&
+    value.status === "open"
+  );
+}
+
 export function hasExistingOpenStockCandidateHypothesis(
   existing: StockCandidateHypothesis[],
   code: string,
   detectedAt: string,
 ): boolean {
   return existing.some(
-    hypothesis => hypothesis.code === code && hypothesis.detectedAt === detectedAt && hypothesis.status === "open",
+    hypothesis =>
+      hasCanonicalDuplicateIdentity(hypothesis) &&
+      hypothesis.code === code &&
+      hypothesis.detectedAt === detectedAt,
   );
 }
 
