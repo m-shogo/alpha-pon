@@ -24,9 +24,20 @@ assert.deepEqual(
   "ops dashboard input must compare timestamp generatedAt using the Tokyo calendar date",
 );
 assert.deepEqual(
-  normalizeOpsAlphaGeneratedAt({ generatedAt: "2026-08-12", warnings: [] }),
+  normalizeOpsAlphaGeneratedAt(
+    { generatedAt: "2026-08-12", warnings: [] },
+    "2026-08-12T23:59:59.999999999+09:00",
+  ),
   { generatedAt: "2026-08-12", warnings: [] },
-  "existing date-only generatedAt contract must remain supported",
+  "existing date-only generatedAt contract must remain supported on the current JST date",
+);
+assert.throws(
+  () => normalizeOpsAlphaGeneratedAt(
+    { generatedAt: "2026-08-13", warnings: [] },
+    "2026-08-12T23:59:59.999999999+09:00",
+  ),
+  /must not be in the future/,
+  "future date-only generatedAt must fail closed instead of bypassing the instant cutoff",
 );
 assert.deepEqual(
   normalizeOpsAlphaGeneratedAt(
@@ -84,4 +95,4 @@ assert.throws(
   }
 }
 
-console.log("ops-dashboard-input-time: JST generatedAt, future PIT, and host-timezone boundaries OK");
+console.log("ops-dashboard-input-time: JST generatedAt, future date/instant PIT, and host-timezone boundaries OK");
