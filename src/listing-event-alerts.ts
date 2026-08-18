@@ -1,7 +1,10 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
-import { load } from "js-yaml";
+import { mkdirSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
 import { readListingEventRows } from "./listing-event-alert-input.js";
+import {
+  readListingEventAlertConfig,
+  type ListingEventAlertConfig,
+} from "./listing-event-alert-config.js";
 import { readListingEventSyncConfig } from "./listing-event-sync-config.js";
 import { listingEventDaysBetween } from "./listing-event-date.js";
 
@@ -32,11 +35,6 @@ type ListingEvent = {
   evidenceToBackfill?: string[];
 };
 
-type Config = {
-  requiredMilestones?: Record<string, { notificationLevel?: NotificationLevel }>;
-  manualSeedEvents?: ListingEvent[];
-};
-
 type Alert = ListingEvent & {
   alertType: "upcoming" | "review_due" | "missing_date";
   daysUntil: number | null;
@@ -46,11 +44,6 @@ type Alert = ListingEvent & {
 
 const CONFIG_PATH = "config/listing-event-watch.yml";
 const DATA_PATH = "data/listing_events.jsonl";
-
-function readYaml<T>(path: string, fallback: T): T {
-  if (!existsSync(path)) return fallback;
-  return load(readFileSync(path, "utf-8")) as T;
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -97,11 +90,11 @@ function windowDays(eventType: string): number {
   return 14;
 }
 
-function defaultLevel(eventType: string, config: Config): NotificationLevel {
+function defaultLevel(eventType: string, config: ListingEventAlertConfig): NotificationLevel {
   return config.requiredMilestones?.[eventType]?.notificationLevel ?? "morning_summary";
 }
 
-function toAlert(event: ListingEvent, today: string, config: Config): Alert | null {
+function toAlert(event: ListingEvent, today: string, config: ListingEventAlertConfig): Alert | null {
   const level = event.notificationLevel ?? defaultLevel(event.eventType, config);
   const eventDate = event.eventDate ?? null;
   if (!eventDate) {
@@ -168,12 +161,12 @@ function list(lines: string[], items: string[] | undefined, indent = "  - ") {
 
 function main() {
   const today = todayJst();
-  const config = readYaml<Config>(CONFIG_PATH, {});
+  const policyInput = readListingEventAlertConfig(CONFIG_PATH);
   const configInput = readListingEventSyncConfig(CONFIG_PATH);
   const input = readListingEventRows<ListingEvent>(DATA_PATH, isListingEvent);
-  const warnings = [...configInput.warnings, ...input.warnings];
+  const warnings = [...policyInput.warnings, ...configInput.warnings, ...input.warnings];
   const events = uniqueEvents([...configInput.rows, ...input.rows]);
-  const alerts = events.map(event => toAlert(event, today, config)).filter((alert): alert is Alert => alert !== null);
+  const alerts = events.map(event => toAlert(event, today, policyInput.config)).filter((alert): alert is Alert => alert !== null);
   const priority = alerts.filter(alert => alert.effectiveNotificationLevel === "priority");
   const missingDate = alerts.filter(alert => alert.alertType === "missing_date");
   const lines: string[] = [];
