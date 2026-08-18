@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import "./world-impact-report-input-date.test.js";
 import "./world-impact-audit-input.test.js";
+import { readReadOnlyJsonArrayFile } from "../src/read-only-json-file.js";
 import { parseWorldImpactLatestSnapshot } from "../src/world-impact-latest-input.js";
 
 assert.deepEqual(parseWorldImpactLatestSnapshot("[]"), [], "empty canonical latest snapshot remains valid");
@@ -75,4 +79,31 @@ assert.throws(
   "future evaluation cutoff relative to evaluation date must block canonical latest writes",
 );
 
-console.log("world-impact latest input: invalid canonical snapshots, duplicate identities/horizons, and optional provenance fail closed before write");
+{
+  const dir = mkdtempSync(join(tmpdir(), "alpha-pon-readonly-array-"));
+  try {
+    const validPath = join(dir, "valid.json");
+    const invalidRootPath = join(dir, "invalid-root.json");
+    const parseErrorPath = join(dir, "parse-error.json");
+    writeFileSync(validPath, '[{"reviewKey":"event__5803"}]', "utf-8");
+    writeFileSync(invalidRootPath, "null", "utf-8");
+    writeFileSync(parseErrorPath, "{", "utf-8");
+
+    const valid = readReadOnlyJsonArrayFile<{ reviewKey: string }>(validPath);
+    assert.equal(valid.rows[0]?.reviewKey, "event__5803", "valid read-only array file remains usable");
+    assert.equal(valid.parseError, false);
+    assert.equal(valid.invalidRoot, false);
+
+    const invalidRoot = readReadOnlyJsonArrayFile(invalidRootPath);
+    assert.deepEqual(invalidRoot.rows, []);
+    assert.equal(invalidRoot.invalidRoot, true, "literal null must not be silently treated as a valid empty array file");
+
+    const parseError = readReadOnlyJsonArrayFile(parseErrorPath);
+    assert.deepEqual(parseError.rows, []);
+    assert.equal(parseError.parseError, true, "malformed JSON must remain distinguishable from a legitimate empty array");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+console.log("world-impact latest input: invalid canonical snapshots, duplicate identities/horizons, optional provenance, and read-only file failures fail closed before write");
