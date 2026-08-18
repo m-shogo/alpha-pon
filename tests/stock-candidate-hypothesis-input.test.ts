@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import "./company-memory-score-input.test.js";
 import "./run-cursor-input.test.js";
+import "./valuation-range-input.test.js";
 import { parseHypothesisOutcomesJsonl, parseHypothesisOutcomeSqlitePayloads } from "../src/hypothesis-outcome-input.js";
 import {
   normalizeStockCandidateUniverseRows,
