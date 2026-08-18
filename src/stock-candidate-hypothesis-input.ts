@@ -19,7 +19,7 @@ function stringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(item => typeof item === "string");
 }
 
-function hasCanonicalDuplicateIdentity(value: unknown): value is StockCandidateHypothesis {
+function isUsableStockCandidateHypothesis(value: unknown): value is StockCandidateHypothesis {
   if (!isRecord(value)) return false;
   return (
     value.schemaVersion === 1 &&
@@ -32,8 +32,22 @@ function hasCanonicalDuplicateIdentity(value: unknown): value is StockCandidateH
     value.detectedAt.trim().length > 0 &&
     typeof value.reviewDueAt === "string" &&
     value.reviewDueAt.trim().length > 0 &&
-    value.status === "open"
+    typeof value.reason === "string" &&
+    (value.expectedTimeframe === "1w" || value.expectedTimeframe === "1m" || value.expectedTimeframe === "3m") &&
+    (value.expectedDirection === "up" || value.expectedDirection === "down" || value.expectedDirection === "sideways" || value.expectedDirection === "unknown") &&
+    typeof value.confidence === "number" &&
+    Number.isFinite(value.confidence) &&
+    stringArray(value.invalidationSignals) &&
+    stringArray(value.evidenceNeeded) &&
+    stringArray(value.relatedWorldEventIds) &&
+    stringArray(value.relatedDisclosureIds) &&
+    (value.status === "open" || value.status === "closed") &&
+    (value.label === "監視候補" || value.label === "検証候補" || value.label === "反証待ち")
   );
+}
+
+function hasCanonicalDuplicateIdentity(value: unknown): value is StockCandidateHypothesis {
+  return isUsableStockCandidateHypothesis(value) && value.status === "open";
 }
 
 export function hasExistingOpenStockCandidateHypothesis(
@@ -60,7 +74,12 @@ export function parseExistingStockCandidateHypothesesJsonl(
     const line = rawLine.trim();
     if (!line) return;
     try {
-      rows.push(JSON.parse(line) as StockCandidateHypothesis);
+      const parsed = JSON.parse(line) as unknown;
+      if (!isUsableStockCandidateHypothesis(parsed)) {
+        malformedLineNumbers.push(index + 1);
+        return;
+      }
+      rows.push(parsed);
     } catch {
       malformedLineNumbers.push(index + 1);
     }
