@@ -217,6 +217,7 @@ function main(): void {
     }
 
     appendHypothesis(hypothesis);
+    existing.push(hypothesis);
     console.log(`  [add] ${candidate.code} ${candidate.name} (${hypothesis.label})`);
     added++;
   }
