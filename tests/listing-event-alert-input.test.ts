@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import "./first-earnings-input.test.js";
 import "./jpx-listing-existing-input.test.js";
+import "./jpx-listing-source-date.test.js";
 import "./listing-event-review-input.test.js";
 import "./listing-event-sync-config.test.js";
 import "./listing-event-sync-input.test.js";
