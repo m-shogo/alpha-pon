@@ -24,6 +24,14 @@ function isCanonicalOptionalCode(value: unknown): boolean {
     || (typeof value === "string" && value.trim().length > 0 && value === value.trim());
 }
 
+function hasConsistentDaysUntil(value: Record<string, unknown>): boolean {
+  if (value.alertType === "missing_date") return value.daysUntil === null;
+  if (typeof value.daysUntil !== "number" || !Number.isInteger(value.daysUntil)) return false;
+  if (value.alertType === "upcoming") return value.daysUntil >= 0;
+  if (value.alertType === "review_due") return value.daysUntil <= 0;
+  return false;
+}
+
 function isListingEventMessageAlert(value: unknown): value is ListingEventMessageAlert {
   if (!isRecord(value)) return false;
   return typeof value.id === "string"
@@ -35,7 +43,7 @@ function isListingEventMessageAlert(value: unknown): value is ListingEventMessag
     && isCanonicalOptionalCode(value.code)
     && (value.eventDate === undefined || value.eventDate === null || typeof value.eventDate === "string")
     && (value.alertType === "upcoming" || value.alertType === "review_due" || value.alertType === "missing_date")
-    && (value.daysUntil === null || (typeof value.daysUntil === "number" && Number.isInteger(value.daysUntil)))
+    && hasConsistentDaysUntil(value)
     && (value.effectiveNotificationLevel === "priority"
       || value.effectiveNotificationLevel === "morning_summary"
       || value.effectiveNotificationLevel === "log")
