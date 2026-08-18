@@ -27,7 +27,7 @@ export function parseListingAutomationCheckInput(text: string): ListingAutomatio
   if (!isRecord(parsed)) {
     return { checks: [], invalid: true, reason: "invalid_root" };
   }
-  if (!Array.isArray(parsed.checks)) {
+  if (!Array.isArray(parsed.checks) || parsed.checks.length === 0) {
     return { checks: [], invalid: true, reason: "invalid_checks" };
   }
 
