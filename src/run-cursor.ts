@@ -14,10 +14,15 @@ export type RunCursor = {
 
 const CURSOR_PATH = "data/run-cursors.json";
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function readCursors(): Record<string, RunCursor> {
   if (!existsSync(CURSOR_PATH)) return {};
   try {
-    return JSON.parse(readFileSync(CURSOR_PATH, "utf-8")) as Record<string, RunCursor>;
+    const parsed = JSON.parse(readFileSync(CURSOR_PATH, "utf-8")) as unknown;
+    return isRecord(parsed) ? parsed as Record<string, RunCursor> : {};
   } catch {
     return {};
   }
@@ -37,13 +42,18 @@ export function nextOffset(current: number, maxPerRun: number, total: number): n
 export function loadRunCursor(jobName: RunCursorJobName, maxPerRun: number, total: number): RunCursor {
   const cursors = readCursors();
   const existing = cursors[jobName];
-  const offset = typeof existing?.offset === "number" && existing.offset < total ? existing.offset : 0;
+  const offset = existing
+    && Number.isSafeInteger(existing.offset)
+    && existing.offset >= 0
+    && existing.offset < total
+      ? existing.offset
+      : 0;
   return {
     jobName,
     offset,
     maxPerRun,
     total,
-    updatedAt: existing?.updatedAt ?? todayJst(),
+    updatedAt: typeof existing?.updatedAt === "string" ? existing.updatedAt : todayJst(),
   };
 }
 
