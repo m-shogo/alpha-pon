@@ -155,4 +155,15 @@ const invalidSortAt = normalizeMarketEventData({
 assert.equal(invalidSortAt.events.length, 0, "invalid sortAt rows must be quarantined before rendering");
 assert.equal(invalidSortAt.summary.total, 0, "quarantined rows must not remain in the read-only summary total");
 
+for (const invalidRoot of [[], {}, { schemaVersion: 1, events: [] }, "broken"] as unknown[]) {
+  const normalizedRoot = normalizeMarketEventData(invalidRoot);
+  assert.equal(normalizedRoot.source, "fallback");
+  assert.deepEqual(normalizedRoot.events, []);
+  assert.deepEqual(
+    normalizedRoot.meta.warnings,
+    ["イベントJSONの形式が不正です。"],
+    "invalid dataset roots must be distinguishable from a legitimate empty fallback",
+  );
+}
+
 console.log("market-event-web-ordering.test.ts passed");
