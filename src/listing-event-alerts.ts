@@ -51,6 +51,41 @@ function readYaml<T>(path: string, fallback: T): T {
   return load(readFileSync(path, "utf-8")) as T;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isOptionalString(value: unknown): boolean {
+  return value === undefined || typeof value === "string";
+}
+
+function isOptionalStringArray(value: unknown): boolean {
+  return value === undefined || (Array.isArray(value) && value.every(item => typeof item === "string"));
+}
+
+function isListingEvent(value: unknown): value is ListingEvent {
+  if (!isRecord(value)) return false;
+  return typeof value.id === "string"
+    && value.id.trim().length > 0
+    && typeof value.name === "string"
+    && value.name.trim().length > 0
+    && typeof value.eventType === "string"
+    && value.eventType.trim().length > 0
+    && isOptionalString(value.code)
+    && isOptionalString(value.market)
+    && (value.eventDate === undefined || value.eventDate === null || typeof value.eventDate === "string")
+    && isOptionalString(value.source)
+    && isOptionalString(value.status)
+    && (value.notificationLevel === undefined
+      || value.notificationLevel === "priority"
+      || value.notificationLevel === "morning_summary"
+      || value.notificationLevel === "log")
+    && isOptionalString(value.whyWatch)
+    && isOptionalString(value.relatedPattern)
+    && isOptionalStringArray(value.notes)
+    && isOptionalStringArray(value.evidenceToBackfill);
+}
+
 function windowDays(eventType: string): number {
   if (eventType === "listing_day") return 7;
   if (eventType === "first_earnings") return 14;
@@ -133,7 +168,7 @@ function list(lines: string[], items: string[] | undefined, indent = "  - ") {
 function main() {
   const today = todayJst();
   const config = readYaml<Config>(CONFIG_PATH, {});
-  const input = readListingEventRows<ListingEvent>(DATA_PATH);
+  const input = readListingEventRows<ListingEvent>(DATA_PATH, isListingEvent);
   const events = uniqueEvents([...(config.manualSeedEvents ?? []), ...input.rows]);
   const alerts = events.map(event => toAlert(event, today, config)).filter((alert): alert is Alert => alert !== null);
   const priority = alerts.filter(alert => alert.effectiveNotificationLevel === "priority");
