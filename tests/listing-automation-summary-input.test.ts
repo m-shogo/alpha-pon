@@ -28,6 +28,12 @@ assert.deepEqual(
 );
 
 assert.deepEqual(
+  parseListingAutomationCheckInput(JSON.stringify({ checks: [] })),
+  { checks: [], invalid: true, reason: "invalid_checks" },
+  "empty check arrays must not become a false-green readiness or smoke summary",
+);
+
+assert.deepEqual(
   parseListingAutomationCheckInput(JSON.stringify({ checks: [VALID, null] })),
   { checks: [VALID], invalid: true, reason: "invalid_rows" },
   "malformed check rows must not crash count-based summary logic",
