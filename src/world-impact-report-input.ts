@@ -45,7 +45,11 @@ function hasValidEvaluationChronology(nested: Record<string, unknown>): boolean 
   return true;
 }
 
-function hasValidNestedReviewDates(row: Record<string, unknown>): boolean {
+function isNullableDateAtOrBefore(value: unknown, today: string): boolean {
+  return value == null || (isRealJstDate(value) && value <= today);
+}
+
+function hasValidNestedReviewDates(row: Record<string, unknown>, today: string): boolean {
   if (row.reviewDueAt != null && !isRealJstDate(row.reviewDueAt)) return false;
   if (row.outcomes === undefined) return true;
   if (!Array.isArray(row.outcomes)) return false;
@@ -53,10 +57,10 @@ function hasValidNestedReviewDates(row: Record<string, unknown>): boolean {
     if (typeof outcome !== "object" || outcome === null || Array.isArray(outcome)) return false;
     const nested = outcome as Record<string, unknown>;
     return isRealJstDate(nested.dueAt)
-      && isNullableRealJstDate(nested.evaluatedAt)
-      && isNullableRealJstDate(nested.evaluationAsOf)
+      && isNullableDateAtOrBefore(nested.evaluatedAt, today)
+      && isNullableDateAtOrBefore(nested.evaluationAsOf, today)
       && isNullableRealJstDate(nested.priceStartDate)
-      && isNullableRealJstDate(nested.priceEndDate)
+      && isNullableDateAtOrBefore(nested.priceEndDate, today)
       && hasValidEvaluationChronology(nested);
   });
 }
@@ -71,7 +75,7 @@ function isWorldImpactReviewRow(value: unknown, today: string): value is Record<
     || !isRealJstDate(row.updatedAt)
     || row.createdAt > today
     || row.updatedAt > today
-    || !hasValidNestedReviewDates(row)) {
+    || !hasValidNestedReviewDates(row, today)) {
     return false;
   }
   return row.updatedAt >= row.createdAt;
