@@ -57,6 +57,16 @@ for (const [field, futureDate] of [
   assert.deepEqual(result.reviews, [], "future provenance must fail closed");
 }
 
+for (const field of ["evaluatedAt", "evaluationAsOf", "priceEndDate"] as const) {
+  const parsed = [{
+    ...base,
+    outcomes: [{ ...base.outcomes[0], [field]: "2026-06-13" }],
+  }];
+  const result = resolveWorldImpactReportInput({ present: true, parsed }, [], "2026-06-12");
+  assert.equal(result.latestSnapshotError, true, `future ${field} must not become current outcome evidence`);
+  assert.deepEqual(result.reviews, [], "future outcome evidence must fail closed");
+}
+
 const invalidFallback = normalizeWorldImpactReview({
   ...base,
   outcomes: [{ ...base.outcomes[0], evaluatedAt: "2026-02-31" }],
@@ -78,6 +88,14 @@ const futureFallbackResult = resolveWorldImpactReportInput({ present: false }, [
 assert.equal(futureFallbackResult.jsonlFallbackError, true, "future JSONL provenance must not become current read-only fallback evidence");
 assert.deepEqual(futureFallbackResult.reviews, [], "future fallback provenance must fail closed");
 
+const futureOutcomeFallback = normalizeWorldImpactReview({
+  ...base,
+  outcomes: [{ ...base.outcomes[0], evaluatedAt: "2026-06-13", evaluationAsOf: "2026-06-13", priceEndDate: "2026-06-13" }],
+}, "2026-06-12");
+const futureOutcomeFallbackResult = resolveWorldImpactReportInput({ present: false }, [futureOutcomeFallback], "2026-06-12");
+assert.equal(futureOutcomeFallbackResult.jsonlFallbackError, true, "future JSONL outcome evidence must not become current fallback evidence");
+assert.deepEqual(futureOutcomeFallbackResult.reviews, [], "future fallback outcome evidence must fail closed");
+
 const validFallback = resolveWorldImpactReportInput(
   { present: false },
   [normalizeWorldImpactReview(base, "2026-06-12")],
@@ -86,4 +104,4 @@ const validFallback = resolveWorldImpactReportInput(
 assert.equal(validFallback.jsonlFallbackError, false, "valid JSONL fallback remains available when latest is absent");
 assert.equal(validFallback.reviews.length, 1, "valid fallback review remains readable");
 
-console.log("world-impact report input: latest and JSONL fallback require real Gregorian JST dates, current provenance, and monotonic evaluation chronology");
+console.log("world-impact report input: latest and JSONL fallback require real Gregorian JST dates, current provenance/outcome evidence, and monotonic evaluation chronology");
