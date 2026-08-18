@@ -60,7 +60,8 @@ function normalizeEvent(value: unknown): NormalizedProIrEvent | null {
 
 export function normalizeProIrSourceStatus(event: NormalizedProIrEvent): NormalizedProIrSourceStatus {
   const status = String(event.sourceStatus ?? "").trim().toLowerCase();
-  if (!event.sourceUrl) return "missing";
+  const sourceUrl = typeof event.sourceUrl === "string" ? event.sourceUrl.trim() : "";
+  if (!sourceUrl) return "missing";
   return status === "confirmed" ? "confirmed" : "official_check_required";
 }
 
