@@ -1,3 +1,4 @@
+import { addDaysJst } from "./date.js";
 import { readListingEventRows } from "./listing-event-alert-input.js";
 
 export type FirstEarningsListingEvent = {
@@ -30,6 +31,16 @@ function isOptionalStringArray(value: unknown): boolean {
   return value === undefined || (Array.isArray(value) && value.every(item => typeof item === "string"));
 }
 
+function isOptionalRealDate(value: unknown): boolean {
+  if (value === undefined || value === null) return true;
+  if (typeof value !== "string") return false;
+  try {
+    return addDaysJst(value, 0) === value;
+  } catch {
+    return false;
+  }
+}
+
 export function isFirstEarningsListingEvent(value: unknown): value is FirstEarningsListingEvent {
   if (!isRecord(value)) return false;
   return typeof value.id === "string"
@@ -40,7 +51,7 @@ export function isFirstEarningsListingEvent(value: unknown): value is FirstEarni
     && value.eventType.trim().length > 0
     && isOptionalString(value.code)
     && isOptionalString(value.market)
-    && (value.eventDate === undefined || value.eventDate === null || typeof value.eventDate === "string")
+    && isOptionalRealDate(value.eventDate)
     && isOptionalString(value.source)
     && isOptionalString(value.status)
     && (value.notificationLevel === undefined
