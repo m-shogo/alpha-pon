@@ -50,6 +50,18 @@ const validEvent = {
     "dated explicitly confirmed source must remain usable as confirmed IR evidence",
   );
   assert(
+    hasConfirmedProIrSource({ eventDate: "2026-08-19", sourceUrl: "https://example.test/ir", sourceStatus: "confirmed" }),
+    "valid eventDate alone must remain usable as confirmed IR evidence",
+  );
+  assert(
+    !hasConfirmedProIrSource({ date: "2026-02-31", sourceUrl: "https://example.test/ir", sourceStatus: "confirmed" }),
+    "impossible Gregorian date must not satisfy confirmed IR gates",
+  );
+  assert(
+    !hasConfirmedProIrSource({ eventDate: "0000-01-01", sourceUrl: "https://example.test/ir", sourceStatus: "confirmed" }),
+    "year-zero eventDate must not satisfy confirmed IR gates",
+  );
+  assert(
     !hasConfirmedProIrSource({ date: "2026-08-19", sourceUrl: "https://example.test/ir" }),
     "dated source URL without explicit verification must not satisfy confirmed IR gates",
   );
