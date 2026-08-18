@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "fs";
 import { join } from "path";
+import { addDaysJst, todayJst } from "./date.js";
 
 export type PeriodicScoreLogEntry = {
   code: string;
@@ -29,6 +30,14 @@ export type PeriodicScoreInput = {
 
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(item => typeof item === "string");
+}
+
+function isRealDate(value: string): boolean {
+  try {
+    return addDaysJst(value, 0) === value;
+  } catch {
+    return false;
+  }
 }
 
 function normalizePeriodicScoreRow(value: unknown): PeriodicScoreLogEntry | null {
@@ -95,7 +104,7 @@ export function parsePeriodicScoreLog(raw: string): ParsedPeriodicScoreLog | nul
   }
 }
 
-export function loadPeriodicScoreLogs(reportDir = "reports"): PeriodicScoreInput {
+export function loadPeriodicScoreLogs(reportDir = "reports", asOf = todayJst()): PeriodicScoreInput {
   if (!existsSync(reportDir)) return { entries: [], invalidFiles: [], invalidRows: [] };
 
   const entries: PeriodicScoreLogEntry[] = [];
@@ -106,6 +115,12 @@ export function loadPeriodicScoreLogs(reportDir = "reports"): PeriodicScoreInput
     .sort();
 
   for (const file of files) {
+    const snapshotDate = file.slice("scores_".length, -".json".length);
+    if (!isRealDate(snapshotDate) || snapshotDate > asOf) {
+      invalidFiles.push(file);
+      continue;
+    }
+
     let raw: string;
     try {
       raw = readFileSync(join(reportDir, file), "utf-8");
