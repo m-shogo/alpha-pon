@@ -1,3 +1,5 @@
+import { todayJst } from "./date.js";
+
 export type ListingAutomationJquantsResult = {
   price: number | null;
   source?: "jquants" | "missing" | "error";
@@ -8,18 +10,35 @@ export type ListingAutomationJquantsInput = {
   results: ListingAutomationJquantsResult[];
   setupError: string | null;
   invalid: boolean;
-  reason: "ok" | "parse_error" | "invalid_root" | "invalid_targets" | "invalid_results" | "invalid_rows" | "invalid_setup_error";
+  reason:
+    | "ok"
+    | "parse_error"
+    | "invalid_root"
+    | "invalid_generated_at"
+    | "stale_generated_at"
+    | "invalid_targets"
+    | "invalid_results"
+    | "invalid_rows"
+    | "invalid_setup_error";
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isStrictGregorianDate(value: unknown): value is string {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  if (year < 1 || month < 1 || month > 12 || day < 1) return false;
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return day <= daysInMonth;
+}
+
 function isListingAutomationJquantsSource(value: unknown): value is NonNullable<ListingAutomationJquantsResult["source"]> {
   return value === "jquants" || value === "missing" || value === "error";
 }
 
-export function parseListingAutomationJquantsInput(text: string): ListingAutomationJquantsInput {
+export function parseListingAutomationJquantsInput(text: string, asOf = todayJst()): ListingAutomationJquantsInput {
   let root: unknown;
   try {
     root = JSON.parse(text);
@@ -29,6 +48,13 @@ export function parseListingAutomationJquantsInput(text: string): ListingAutomat
 
   if (!isRecord(root)) {
     return { targets: [], results: [], setupError: null, invalid: true, reason: "invalid_root" };
+  }
+
+  if (!isStrictGregorianDate(root.generatedAt)) {
+    return { targets: [], results: [], setupError: null, invalid: true, reason: "invalid_generated_at" };
+  }
+  if (root.generatedAt !== asOf) {
+    return { targets: [], results: [], setupError: null, invalid: true, reason: "stale_generated_at" };
   }
 
   const targets = root.targets ?? [];
