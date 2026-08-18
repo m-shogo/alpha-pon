@@ -1,5 +1,5 @@
 import { isValidDate } from "./research/schema.js";
-import type { WatchlistConfig, Candidate, Market, Priority, CandidateStatus } from "./types.js";
+import type { WatchlistConfig, Market, Priority, CandidateStatus } from "./types.js";
 
 const VALID_MARKETS = new Set<Market>(["TSE", "NYSE", "NASDAQ"]);
 const VALID_PRIORITIES = new Set<Priority>(["S", "A", "B", "C"]);
@@ -12,13 +12,21 @@ const VALID_STATUSES = new Set<CandidateStatus>([
   "expired",
 ]);
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-function validateCandidate(candidate: Candidate, index: number): string[] {
+function validateCandidate(candidate: unknown, index: number): string[] {
+  if (!isRecord(candidate)) {
+    return [`symbols[${index}]: 銘柄rowはobjectにしてください`];
+  }
+
   const errors: string[] = [];
-  const label = candidate.code && candidate.name
+  const label = isNonEmptyString(candidate.code) && isNonEmptyString(candidate.name)
     ? `${candidate.code} ${candidate.name}`
     : `symbols[${index}]`;
 
@@ -30,16 +38,16 @@ function validateCandidate(candidate: Candidate, index: number): string[] {
     errors.push(`${label}: name が空です`);
   }
 
-  if (!VALID_MARKETS.has(candidate.market)) {
-    errors.push(`${label}: market が不正です (${candidate.market})`);
+  if (!VALID_MARKETS.has(candidate.market as Market)) {
+    errors.push(`${label}: market が不正です (${String(candidate.market)})`);
   }
 
-  if (!VALID_PRIORITIES.has(candidate.priority)) {
-    errors.push(`${label}: priority が不正です (${candidate.priority})`);
+  if (!VALID_PRIORITIES.has(candidate.priority as Priority)) {
+    errors.push(`${label}: priority が不正です (${String(candidate.priority)})`);
   }
 
-  if (!VALID_STATUSES.has(candidate.status)) {
-    errors.push(`${label}: status が不正です (${candidate.status})`);
+  if (!VALID_STATUSES.has(candidate.status as CandidateStatus)) {
+    errors.push(`${label}: status が不正です (${String(candidate.status)})`);
   }
 
   if (!Array.isArray(candidate.tags)) {
@@ -54,7 +62,9 @@ function validateCandidate(candidate: Candidate, index: number): string[] {
     errors.push(`${label}: rules が空です`);
   }
 
-  if (candidate.listedAt && !isValidDate(candidate.listedAt)) {
+  if (candidate.listedAt !== undefined && (
+    typeof candidate.listedAt !== "string" || !isValidDate(candidate.listedAt)
+  )) {
     errors.push(`${label}: listedAt は YYYY-MM-DD 形式の実在する日付にしてください`);
   }
 
@@ -73,7 +83,7 @@ export function validateWatchlist(config: WatchlistConfig): string[] {
   config.symbols.forEach((candidate, index) => {
     errors.push(...validateCandidate(candidate, index));
 
-    if (candidate.code) {
+    if (isRecord(candidate) && isNonEmptyString(candidate.code)) {
       if (seen.has(candidate.code)) {
         errors.push(`銘柄コード重複: ${candidate.code}`);
       }
