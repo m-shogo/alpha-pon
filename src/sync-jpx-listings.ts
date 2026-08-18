@@ -1,6 +1,7 @@
 import { mkdirSync, appendFileSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
 import { readJpxListingExistingInput } from "./jpx-listing-existing-input.js";
+import { normalizeJpxListingSourceDate } from "./jpx-listing-source-date.js";
 
 type ListingEvent = {
   id: string;
@@ -49,14 +50,6 @@ function stripHtml(input: string): string {
     .trim();
 }
 
-function normalizeDate(value: string | undefined): string | null {
-  if (!value) return null;
-  const trimmed = value.trim();
-  const m = trimmed.match(/(20\d{2})[年\/.-]\s*(\d{1,2})[月\/.-]\s*(\d{1,2})日?/);
-  if (!m) return null;
-  return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
-}
-
 function looksLikeCode(value: string): boolean {
   return /^(\d{4}|\d{3}[A-Z])$/.test(value.trim());
 }
@@ -68,7 +61,7 @@ function cleanCell(value: string): string {
 function pickName(cols: string[], code: string | undefined): string | undefined {
   return cols.find(col => {
     if (!col || col === code) return false;
-    if (normalizeDate(col)) return false;
+    if (normalizeJpxListingSourceDate(col)) return false;
     if (/市場|コード|上場|承認|日付|会社名|銘柄名|公募|売出|仮条件|公開価格/.test(col)) return false;
     if (looksLikeCode(col)) return false;
     return /[一-龥ぁ-んァ-ヶA-Za-z]/.test(col);
@@ -84,7 +77,7 @@ function parseCsvLike(text: string, sourceUrl: string): ParsedListing[] {
   for (const row of rows) {
     const cols = row.split(/,|\t/).map(cleanCell).filter(Boolean);
     const joined = cols.join(" ");
-    const date = normalizeDate(joined);
+    const date = normalizeJpxListingSourceDate(joined);
     const code = cols.find(looksLikeCode);
     const name = pickName(cols, code);
     if (!name || !date) continue;
@@ -100,7 +93,7 @@ function parseHtmlTables(text: string, sourceUrl: string): ParsedListing[] {
     const cells = [...row.matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi)].map(match => cleanCell(match[1])).filter(Boolean);
     if (cells.length < 2) continue;
     const joined = cells.join(" ");
-    const date = normalizeDate(joined);
+    const date = normalizeJpxListingSourceDate(joined);
     const code = cells.find(looksLikeCode);
     const name = pickName(cells, code);
     if (!name || !date) continue;
@@ -114,7 +107,7 @@ function parseRegexFallback(text: string, sourceUrl: string): ParsedListing[] {
   const chunks = plain.split(/(?=20\d{2}[年\/.-]\s*\d{1,2}[月\/.-]\s*\d{1,2}日?)/g);
   const results: ParsedListing[] = [];
   for (const chunk of chunks) {
-    const date = normalizeDate(chunk);
+    const date = normalizeJpxListingSourceDate(chunk);
     if (!date) continue;
     const code = chunk.match(/\b(\d{4}|\d{3}[A-Z])\b/)?.[1];
     const name = chunk
