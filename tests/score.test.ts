@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { scoreHealthyPullback } from "../src/score/pullback.js";
 import { scoreEarningsDrop } from "../src/score/earnings.js";
+import { validateWatchlist } from "../src/validation.js";
+import type { WatchlistConfig } from "../src/types.js";
 import {
   isGeneratedPipelineStatusInput,
   isGeneratedReportInput,
@@ -37,6 +39,29 @@ function testEarningsDropMissingFinancials() {
   assert.ok(result.negativeReasons.includes("決算翌日の株価変化データなし"));
   assert.ok(result.negativeReasons.includes("売上前年比データなし"));
   assert.ok(result.negativeReasons.includes("営業利益前年比データなし"));
+}
+
+function testMalformedWatchlistRowsFailClosed() {
+  const config = {
+    symbols: [
+      null,
+      "broken",
+      {
+        code: "8136",
+        name: "サンリオ",
+        market: "TSE",
+        status: "research",
+        priority: "S",
+        tags: ["entertainment"],
+        rules: ["healthy_pullback"],
+      },
+    ],
+  } as unknown as WatchlistConfig;
+
+  const errors = validateWatchlist(config);
+  assert.ok(errors.some(error => error.includes("symbols[0]: 銘柄rowはobjectにしてください")));
+  assert.ok(errors.some(error => error.includes("symbols[1]: 銘柄rowはobjectにしてください")));
+  assert.equal(errors.some(error => error.includes("8136 サンリオ")), false, "正常rowは壊れrowの周囲でも維持する");
 }
 
 function testGeneratedRunCursorShape() {
@@ -101,6 +126,7 @@ function testGeneratedPipelineStatusShape() {
 function main() {
   testPullbackMissingFinancials();
   testEarningsDropMissingFinancials();
+  testMalformedWatchlistRowsFailClosed();
   testGeneratedRunCursorShape();
   testGeneratedReportShape();
   testGeneratedWarningsShape();
