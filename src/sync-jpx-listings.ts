@@ -1,5 +1,6 @@
-import { existsSync, mkdirSync, readFileSync, appendFileSync, writeFileSync } from "fs";
+import { mkdirSync, appendFileSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
+import { readJpxListingExistingInput } from "./jpx-listing-existing-input.js";
 
 type ListingEvent = {
   id: string;
@@ -30,15 +31,6 @@ type ParsedListing = {
 
 const DATA_PATH = "data/listing_events.jsonl";
 const DEFAULT_SOURCE_URL = process.env.JPX_LISTINGS_URL ?? "";
-
-function readJsonl<T>(path: string): T[] {
-  if (!existsSync(path)) return [];
-  return readFileSync(path, "utf-8")
-    .split("\n")
-    .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => JSON.parse(line) as T);
-}
 
 function keyOf(event: ListingEvent): string {
   return `${event.id}:${event.eventType}:${event.eventDate ?? "missing"}`;
@@ -186,6 +178,7 @@ function writeReport(params: {
   parsed: ParsedListing[];
   appendable: ListingEvent[];
   duplicates: ListingEvent[];
+  warnings: string[];
   error?: string;
 }) {
   const lines: string[] = [];
@@ -196,6 +189,8 @@ function writeReport(params: {
   lines.push(`- parsed: ${params.parsed.length}`);
   lines.push(`- appendable: ${params.appendable.length}`);
   lines.push(`- duplicates: ${params.duplicates.length}`);
+  lines.push(`- inputWarnings: ${params.warnings.length}`);
+  for (const warning of params.warnings) lines.push(`- warning: ${warning}`);
   if (params.error) lines.push(`- error: ${params.error}`);
   lines.push("");
 
@@ -240,8 +235,8 @@ async function main() {
     error = e instanceof Error ? e.message : String(e);
   }
 
-  const existing = readJsonl<ListingEvent>(DATA_PATH);
-  const existingKeys = new Set(existing.map(keyOf));
+  const existingInput = readJpxListingExistingInput(DATA_PATH);
+  const existingKeys = new Set(existingInput.rows.map(keyOf));
   const events = parsed.map(toEvent);
   const appendable = events.filter(event => !existingKeys.has(keyOf(event)));
   const duplicates = events.filter(event => existingKeys.has(keyOf(event)));
@@ -251,8 +246,8 @@ async function main() {
     for (const event of appendable) appendFileSync(DATA_PATH, `${JSON.stringify(event)}\n`, "utf-8");
   }
 
-  writeReport({ generatedAt, sourceUrl, write, parsed, appendable, duplicates, error });
-  console.log(`jpx listing sync generated: parsed=${parsed.length}, appendable=${appendable.length}, write=${write}`);
+  writeReport({ generatedAt, sourceUrl, write, parsed, appendable, duplicates, warnings: existingInput.warnings, error });
+  console.log(`jpx listing sync generated: parsed=${parsed.length}, appendable=${appendable.length}, write=${write}, warnings=${existingInput.warnings.length}`);
 }
 
 main();
