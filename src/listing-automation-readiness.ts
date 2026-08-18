@@ -1,5 +1,6 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
+import { listingReadinessFileStatus } from "./listing-automation-readiness-file.js";
 
 type CheckStatus = "ok" | "warning" | "missing";
 
@@ -10,15 +11,6 @@ type Check = {
   reason: string;
   nextAction: string;
 };
-
-function fileExists(path: string): boolean {
-  return existsSync(path);
-}
-
-function nonEmptyFile(path: string): boolean {
-  if (!existsSync(path)) return false;
-  return readFileSync(path, "utf-8").trim().length > 0;
-}
 
 function envExists(name: string): boolean {
   return Boolean(process.env[name]?.trim());
@@ -35,27 +27,44 @@ function checkAll(): Check[] {
     nextAction: "export JPX_LISTINGS_URL=\"JPX新規上場情報のURL\" を設定して sync-jpx-listings.ts をdry-runしてください。",
   });
 
+  const listingEventsStatus = listingReadinessFileStatus("data/listing_events.jsonl");
   checks.push({
     id: "listing_events_jsonl",
     label: "上場イベントDB",
-    status: fileExists("data/listing_events.jsonl") ? (nonEmptyFile("data/listing_events.jsonl") ? "ok" : "warning") : "missing",
-    reason: fileExists("data/listing_events.jsonl") ? "data/listing_events.jsonl は存在します。" : "data/listing_events.jsonl がまだありません。manualSeedEventsのsync --write または JPX sync --write が必要です。",
+    status: listingEventsStatus,
+    reason: listingEventsStatus === "ok"
+      ? "data/listing_events.jsonl は利用可能です。"
+      : listingEventsStatus === "warning"
+        ? "data/listing_events.jsonl は存在しますが、空または通常ファイルとして利用できません。"
+        : "data/listing_events.jsonl がまだありません。manualSeedEventsのsync --write または JPX sync --write が必要です。",
     nextAction: "node --import tsx/esm src/sync-listing-events.ts --write を実行し、manualSeedEventsをDB化してください。",
   });
 
+  const reviewPricePath = process.env.LISTING_REVIEW_PRICE_CSV ?? "data/listing_review_prices.csv";
+  const reviewPriceStatus = listingReadinessFileStatus(reviewPricePath);
   checks.push({
     id: "review_price_csv",
     label: "上場レビュー価格CSV",
-    status: fileExists(process.env.LISTING_REVIEW_PRICE_CSV ?? "data/listing_review_prices.csv") ? "ok" : "missing",
-    reason: "J-Quants/TOPIX実データを取り込むためのCSVを確認します。",
+    status: reviewPriceStatus,
+    reason: reviewPriceStatus === "ok"
+      ? "J-Quants/TOPIX実データ用CSVは利用可能です。"
+      : reviewPriceStatus === "warning"
+        ? "上場レビュー価格CSVは存在しますが、空または通常ファイルとして利用できません。"
+        : "上場レビュー価格CSVがありません。",
     nextAction: "data/listing_review_prices.csv を code,publicPrice,initialPrice,reviewPrice,topixRelativeReturn 形式で作ってください。",
   });
 
+  const prospectusPath = process.env.PROSPECTUS_TEXT_PATH ?? "data/prospectus_text.txt";
+  const prospectusStatus = listingReadinessFileStatus(prospectusPath);
   checks.push({
     id: "prospectus_text",
     label: "目論見書テキスト",
-    status: fileExists(process.env.PROSPECTUS_TEXT_PATH ?? "data/prospectus_text.txt") ? "ok" : "missing",
-    reason: "ロックアップPDF完全自動の前段として、テキスト化済み目論見書を確認します。",
+    status: prospectusStatus,
+    reason: prospectusStatus === "ok"
+      ? "テキスト化済み目論見書は利用可能です。"
+      : prospectusStatus === "warning"
+        ? "目論見書テキストは存在しますが、空または通常ファイルとして利用できません。"
+        : "目論見書テキストがありません。",
     nextAction: "PDFからテキストを抽出して data/prospectus_text.txt に置き、extract-lockup-from-prospectus.ts を実行してください。",
   });
 
