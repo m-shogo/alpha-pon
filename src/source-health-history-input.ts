@@ -34,7 +34,7 @@ function isValidReportValue(value: unknown): boolean {
 }
 
 export function normalizeSourceHealthHistoryRows(values: unknown[], asOf?: string): NormalizedSourceHealthHistory {
-  const rows: SourceHealthHistoryRow[] = [];
+  const latestByDate = new Map<string, SourceHealthHistoryRow>();
   let invalidRows = 0;
   const cutoff = asOf === undefined ? null : canonicalHistoryDate(asOf);
 
@@ -62,8 +62,11 @@ export function normalizeSourceHealthHistoryRows(values: unknown[], asOf?: strin
       }
     }
 
-    rows.push(value as SourceHealthHistoryRow);
+    latestByDate.set(date, value as SourceHealthHistoryRow);
   }
 
+  const rows = [...latestByDate.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([, row]) => row);
   return { rows, invalidRows };
 }
