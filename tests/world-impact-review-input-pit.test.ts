@@ -18,7 +18,15 @@ const reflection = {
 
 const inputs = normalizeWorldImpactReviewInputs(
   [reflection, { ...reflection, eventId: "2026-08-18_current-event", createdAt: "2026-08-18" }],
-  { candidates: [], universeCandidates: [], generatedCompanyRules: [] },
+  {
+    candidates: [
+      { code: "8136", name: "Sanrio" },
+      { code: " 8136", name: "Sanrio padded" },
+      { code: "8136 ", name: "Sanrio padded trailing" },
+    ],
+    universeCandidates: [],
+    generatedCompanyRules: [],
+  },
   "2026-08-18",
 );
 
@@ -26,4 +34,8 @@ assert.equal(inputs.reflections.length, 1, "asOfより未来のreflectionをcurr
 assert.equal((inputs.reflections[0] as typeof reflection).createdAt, "2026-08-18", "asOf当日のreflectionは維持する");
 assert.ok(inputs.warnings.some(warning => warning.includes("world_event_reflections_latest.json: invalid_rows") && warning.includes("dropped 1")));
 
-console.log("world-impact review input: future reflectionをPIT cutoffで隔離する");
+assert.equal(inputs.candidates.length, 1, "前後空白付きcandidate codeを別identityとしてreviewへ混入させない");
+assert.equal((inputs.candidates[0] as { code: string }).code, "8136", "canonical codeは維持する");
+assert.ok(inputs.warnings.some(warning => warning.includes("alpha-pon-data.json.candidates: invalid_rows") && warning.includes("dropped 2")));
+
+console.log("world-impact review input: future reflectionとpadded candidate identityを隔離する");
