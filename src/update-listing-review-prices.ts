@@ -1,18 +1,9 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
-
-type ListingEvent = {
-  id: string;
-  code?: string;
-  name: string;
-  eventType: string;
-  eventDate?: string | null;
-  publicPrice?: number | null;
-  initialPrice?: number | null;
-  reviewPrice?: number | null;
-  topixRelativeReturn?: number | null;
-  notes?: string[];
-};
+import {
+  readListingEventReviewInput,
+  type ListingEventReviewInputRow as ListingEvent,
+} from "./listing-event-review-input.js";
 
 type PriceRow = {
   code?: string;
@@ -26,15 +17,6 @@ type PriceRow = {
 
 const DATA_PATH = "data/listing_events.jsonl";
 const CSV_PATH = process.env.LISTING_REVIEW_PRICE_CSV ?? "data/listing_review_prices.csv";
-
-function readJsonl<T>(path: string): T[] {
-  if (!existsSync(path)) return [];
-  return readFileSync(path, "utf-8")
-    .split("\n")
-    .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => JSON.parse(line) as T);
-}
 
 function parseNumber(value: string | undefined): number | null {
   if (!value) return null;
@@ -83,7 +65,8 @@ function mergeEvent(event: ListingEvent, row: PriceRow | undefined): ListingEven
 function main() {
   const write = process.argv.includes("--write");
   const generatedAt = todayJst();
-  const events = readJsonl<ListingEvent>(DATA_PATH);
+  const input = readListingEventReviewInput(DATA_PATH);
+  const events = input.rows;
   const rows = parseCsv(CSV_PATH);
   const updated = events.map(event => mergeEvent(event, matchRow(event, rows)));
   const changed = updated.filter((event, i) => JSON.stringify(event) !== JSON.stringify(events[i]));
@@ -95,7 +78,10 @@ function main() {
   lines.push(`- write: ${write}`);
   lines.push(`- events: ${events.length}`);
   lines.push(`- csvRows: ${rows.length}`);
-  lines.push(`- changed: ${changed.length}`, "");
+  lines.push(`- changed: ${changed.length}`);
+  lines.push(`- inputWarnings: ${input.warnings.length}`, "");
+  for (const warning of input.warnings) lines.push(`- warning: ${warning}`);
+  if (input.warnings.length > 0) lines.push("");
 
   if (!existsSync(CSV_PATH)) {
     lines.push("## setup needed", "");
@@ -109,6 +95,9 @@ function main() {
   lines.push("## changed", "");
   for (const event of changed) lines.push(`- ${event.code ?? "no-code"} ${event.name} / public=${event.publicPrice ?? "missing"} / initial=${event.initialPrice ?? "missing"} / review=${event.reviewPrice ?? "missing"} / topix=${event.topixRelativeReturn ?? "missing"}`);
 
+  if (write && input.warnings.length > 0) {
+    throw new Error(`refusing to update listing review prices while listing input has warnings=${input.warnings.length}`);
+  }
   if (write) {
     mkdirSync("data", { recursive: true });
     writeFileSync(DATA_PATH, updated.map(event => JSON.stringify(event)).join("\n") + (updated.length ? "\n" : ""), "utf-8");
@@ -116,8 +105,8 @@ function main() {
 
   mkdirSync("reports", { recursive: true });
   writeFileSync("reports/listing_review_price_import_latest.md", lines.join("\n"), "utf-8");
-  writeFileSync("reports/listing_review_price_import_latest.json", JSON.stringify({ generatedAt, csvPath: CSV_PATH, write, changed }, null, 2), "utf-8");
-  console.log(`listing review price import generated: changed=${changed.length}, write=${write}`);
+  writeFileSync("reports/listing_review_price_import_latest.json", JSON.stringify({ generatedAt, csvPath: CSV_PATH, write, changed, warnings: input.warnings }, null, 2), "utf-8");
+  console.log(`listing review price import generated: changed=${changed.length}, write=${write}, warnings=${input.warnings.length}`);
 }
 
 main();
