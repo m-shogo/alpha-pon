@@ -1,4 +1,4 @@
-import { normalizeProIrEventInput, normalizeProIrSourceStatus } from "../src/pro-ir-event-input.js";
+import { hasConfirmedProIrSource, normalizeProIrEventInput, normalizeProIrSourceStatus } from "../src/pro-ir-event-input.js";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -36,6 +36,14 @@ const validEvent = {
   assert(
     normalizeProIrSourceStatus({ sourceStatus: "confirmed" }) === "missing",
     "confirmed label without source URL must fail closed as missing",
+  );
+  assert(
+    hasConfirmedProIrSource({ date: "2026-08-19", sourceUrl: "https://example.test/ir", sourceStatus: "confirmed" }),
+    "dated explicitly confirmed source must remain usable as confirmed IR evidence",
+  );
+  assert(
+    !hasConfirmedProIrSource({ date: "2026-08-19", sourceUrl: "https://example.test/ir" }),
+    "dated source URL without explicit verification must not satisfy confirmed IR gates",
   );
 }
 
