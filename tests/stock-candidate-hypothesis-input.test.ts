@@ -143,11 +143,12 @@ const universe = normalizeStockCandidateUniverseRows({
     null,
     { ...validCandidate, code: "7974", matchedWorldEventTags: {} },
     { ...validCandidate, code: "4661", screeningScore: "70" },
+    { ...validCandidate, code: " 7974" },
   ],
 });
 assert.equal(universe.rootValid, true);
-assert.deepEqual(universe.candidates.map(candidate => candidate.code), ["8136"], "malformed candidateだけ隔離して正常candidateを保持する");
-assert.equal(universe.warnings.length, 3, "malformed candidate rowをsilent dropしない");
+assert.deepEqual(universe.candidates.map(candidate => candidate.code), ["8136"], "malformed/non-canonical candidate identityだけ隔離して正常candidateを保持する");
+assert.equal(universe.warnings.length, 4, "malformed/non-canonical candidate rowをsilent dropしない");
 assert.ok(universe.warnings.every(warning => !warning.includes("サンリオ")), "candidate warningへraw row内容を露出しない");
 
 const invalidUniverseRoot = normalizeStockCandidateUniverseRows({ candidates: {} });
