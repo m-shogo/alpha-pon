@@ -61,8 +61,7 @@ function normalizeEvent(value: unknown): NormalizedProIrEvent | null {
 export function normalizeProIrSourceStatus(event: NormalizedProIrEvent): NormalizedProIrSourceStatus {
   const status = String(event.sourceStatus ?? "").trim().toLowerCase();
   if (!event.sourceUrl) return "missing";
-  if (!status || /required|missing|unknown|要確認|check/.test(status)) return "official_check_required";
-  return "confirmed";
+  return status === "confirmed" ? "confirmed" : "official_check_required";
 }
 
 export function hasConfirmedProIrSource(event: NormalizedProIrEvent): boolean {
