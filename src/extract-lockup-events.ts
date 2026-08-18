@@ -25,7 +25,7 @@ type ListingEvent = {
 const DATA_PATH = "data/listing_events.jsonl";
 const MANUAL_MEMO_PATH = "data/lockup_memos.jsonl";
 
-type LockupMemo = {
+export type LockupMemo = {
   id: string;
   code?: string;
   name: string;
@@ -45,7 +45,7 @@ function isOptionalString(value: unknown): boolean {
   return value === undefined || typeof value === "string";
 }
 
-function isLockupMemo(value: unknown): value is LockupMemo {
+export function isLockupMemo(value: unknown): value is LockupMemo {
   if (!isRecord(value)) return false;
   return typeof value.id === "string"
     && value.id.trim().length > 0
