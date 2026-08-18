@@ -1,9 +1,10 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
+import { normalizeCurrentDatedReportText } from "./current-dated-report.js";
 
-function readText(path: string): string {
-  return existsSync(path) ? readFileSync(path, "utf-8") : "";
+function readCurrentText(path: string, date: string): string {
+  return existsSync(path) ? normalizeCurrentDatedReportText(readFileSync(path, "utf-8"), date) : "";
 }
 
 function count(text: string, pattern: RegExp): number {
@@ -22,11 +23,21 @@ function extractBlockedCompanies(text: string): string[] {
 
 function main() {
   const date = todayJst();
-  const quality = readText("reports/stock_pro_quality_audit_latest.md");
-  const onboarding = readText("reports/company_onboarding_audit_latest.md");
-  const coverage = readText("reports/company_coverage_audit_latest.md");
-  const alignment = readText("reports/regime_hypothesis_alignment_latest.md");
-  const stale = readText("reports/stale_hypotheses_latest.md");
+  const inputPaths = {
+    quality: "reports/stock_pro_quality_audit_latest.md",
+    onboarding: "reports/company_onboarding_audit_latest.md",
+    coverage: "reports/company_coverage_audit_latest.md",
+    alignment: "reports/regime_hypothesis_alignment_latest.md",
+    stale: "reports/stale_hypotheses_latest.md",
+  } as const;
+  const quality = readCurrentText(inputPaths.quality, date);
+  const onboarding = readCurrentText(inputPaths.onboarding, date);
+  const coverage = readCurrentText(inputPaths.coverage, date);
+  const alignment = readCurrentText(inputPaths.alignment, date);
+  const stale = readCurrentText(inputPaths.stale, date);
+  const unavailableCurrentInputs = Object.entries({ quality, onboarding, coverage, alignment, stale })
+    .filter(([, text]) => !text)
+    .map(([key]) => inputPaths[key as keyof typeof inputPaths]);
 
   const blocked = count(quality, /\| blocked \|/g);
   const provisional = count(quality, /\| provisional \|/g);
@@ -53,10 +64,18 @@ function main() {
   lines.push(`- network coverage warnings: ${networkMissing}`);
   lines.push(`- regime mismatch warnings: ${regimeMismatch}`);
   lines.push(`- stale/review warnings: ${staleWarnings}`);
+  lines.push(`- unavailable current inputs: ${unavailableCurrentInputs.length}`);
+  for (const path of unavailableCurrentInputs) lines.push(`  - ${path}`);
   lines.push("");
 
   lines.push("## priority improvements");
   lines.push("");
+  if (unavailableCurrentInputs.length > 0) {
+    lines.push("### S: current audit inputs unavailable");
+    lines.push("- 当日生成されていない監査レポートを前日の正常値で代用しない");
+    lines.push("- upstream optional stepを確認し、当日レポートを再生成してから品質ロードマップを読む");
+    lines.push("");
+  }
   if (blocked > 0 || unknownThin > 0) {
     lines.push("### S: 初回銘柄調査の不足を潰す");
     lines.push("- 公式IRページ、決算日、株主総会/招集通知/議案、配当/資本政策を最優先で埋める");
