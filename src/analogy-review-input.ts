@@ -1,6 +1,7 @@
 import { existsSync, readdirSync } from "fs";
 import { join } from "path";
 import type { AnalogyOutcomeRecord, AnalogyPredictionRecord } from "./analysis/analogy-db.js";
+import { analogyReviewDueDate } from "./analogy-review-date.js";
 import { addDaysJst, todayJst } from "./date.js";
 import { formatReadOnlyJsonlParseWarning, readJsonlWithErrors } from "./read-only-jsonl.js";
 
@@ -30,12 +31,12 @@ function isRealJstDate(value: unknown): value is string {
 function isUsableAnalogyPredictionRecord(value: unknown): value is AnalogyPredictionRecord {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const row = value as Record<string, unknown>;
+  if (!isRealJstDate(row.createdAt) || !isRealJstDate(row.reviewDueAt)) return false;
+  if (row.timeframe !== "1d" && row.timeframe !== "1w" && row.timeframe !== "1m") return false;
+  if (row.reviewDueAt !== analogyReviewDueDate(row.createdAt, row.timeframe)) return false;
   return (
     row.schemaVersion === 1 &&
-    typeof row.createdAt === "string" &&
-    typeof row.reviewDueAt === "string" &&
     typeof row.eventId === "string" && row.eventId.trim().length > 0 &&
-    (row.timeframe === "1d" || row.timeframe === "1w" || row.timeframe === "1m") &&
     (row.candidateCode === undefined || typeof row.candidateCode === "string") &&
     (row.candidateName === undefined || typeof row.candidateName === "string") &&
     typeof row.lessonId === "string" &&
