@@ -89,6 +89,9 @@ export function parseWorldImpactLatestSnapshot(raw: string): WorldEventImpactRev
     if (typeof reviewKey !== "string" || reviewKey.trim() === "") {
       throw new Error(`World Impact latest snapshot row ${index + 1} requires reviewKey`);
     }
+    if (reviewKey !== reviewKey.trim()) {
+      throw new Error(`World Impact latest snapshot row ${index + 1} reviewKey must not contain surrounding whitespace`);
+    }
     if (seenReviewKeys.has(reviewKey)) {
       throw new Error(`World Impact latest snapshot duplicate reviewKey: ${reviewKey}`);
     }
