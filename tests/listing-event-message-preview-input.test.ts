@@ -59,4 +59,22 @@ assert.deepEqual(
   "JSON-valid malformed rows must not create undefined preview text or false alert counts",
 );
 
+assert.deepEqual(
+  parseListingEventMessageInput(JSON.stringify({
+    alerts: [
+      VALID_ALERT,
+      { ...VALID_ALERT, alertType: "missing_date", daysUntil: 0 },
+      { ...VALID_ALERT, alertType: "upcoming", daysUntil: null },
+      { ...VALID_ALERT, alertType: "upcoming", daysUntil: -1 },
+      { ...VALID_ALERT, alertType: "review_due", daysUntil: 1 },
+      { ...VALID_ALERT, alertType: "review_due", daysUntil: 0 },
+    ],
+  })),
+  {
+    alerts: [VALID_ALERT, { ...VALID_ALERT, alertType: "review_due", daysUntil: 0 }],
+    warnings: ["listing_event_alerts_latest.json: invalid_rows=2,3,4,5"],
+  },
+  "alertType and daysUntil must preserve producer chronology before preview counts are trusted",
+);
+
 console.log("listing-event-message-preview-input: OK");
