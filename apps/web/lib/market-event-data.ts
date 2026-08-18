@@ -98,6 +98,14 @@ export const EMPTY_MARKET_EVENT_DATA: WebMarketEventData = {
   },
 }
 
+const INVALID_MARKET_EVENT_DATA: WebMarketEventData = {
+  ...EMPTY_MARKET_EVENT_DATA,
+  meta: {
+    ...EMPTY_MARKET_EVENT_DATA.meta,
+    warnings: ['イベントJSONの形式が不正です。'],
+  },
+}
+
 const WEB_MARKET_EVENT_INSTANT =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(Z|[+-]\d{2}:\d{2})$/
 
@@ -305,7 +313,13 @@ function quarantinedSummary(
 }
 
 export function normalizeMarketEventData(value: unknown): WebMarketEventData {
-  if (!value || typeof value !== 'object') return EMPTY_MARKET_EVENT_DATA
+  if (
+    !isRecord(value)
+    || value.schemaVersion !== 1
+    || !Array.isArray(value.events)
+    || !isRecord(value.summary)
+    || !isRecord(value.meta)
+  ) return INVALID_MARKET_EVENT_DATA
   const data = value as Partial<WebMarketEventData>
   const summary = data.summary ?? EMPTY_MARKET_EVENT_DATA.summary
   const rawEvents = array<unknown>(data.events)
