@@ -114,6 +114,7 @@ function main() {
   }
 
   const s = outcomeStats(outcomes);
+  const scoreInputWarningCount = scoreInput.invalidFiles.length + scoreInput.invalidRows.length;
   const lines: string[] = [];
   lines.push(`# alpha-pon ${period === "weekly" ? "週次" : "月次"}レビュー`);
   lines.push("");
@@ -124,7 +125,7 @@ function main() {
   lines.push("## サマリー");
   lines.push("");
   lines.push(`- スコアログ: ${scores.length}件`);
-  lines.push(`- スコア入力警告: ${scoreInput.invalidFiles.length}ファイル`);
+  lines.push(`- スコア入力警告: ${scoreInputWarningCount}件`);
   lines.push(`- 類推レビュー: ${s.count}件`);
   lines.push(`- 価格レビュー: ${s.pricedCount}件`);
   lines.push(`- same/opposite/mixed/unknown: ${s.same}/${s.opposite}/${s.mixed}/${s.unknown}`);
@@ -138,11 +139,17 @@ function main() {
   lines.push(`- expert block: ${scores.filter(x => x.expertReview?.finalVerdict === "block").length}件`);
   lines.push("");
 
-  if (scoreInput.invalidFiles.length > 0) {
+  if (scoreInputWarningCount > 0) {
     lines.push("## 入力整合性警告");
     lines.push("");
-    lines.push("- 以下のscore snapshotは読み込みまたはroot shape検証に失敗したため集計から隔離した。件数を正常な0件とは扱わない。");
-    for (const file of scoreInput.invalidFiles) lines.push(`  - ${file}`);
+    if (scoreInput.invalidFiles.length > 0) {
+      lines.push("- 以下のscore snapshotは読み込みまたはroot shape検証に失敗したため集計から隔離した。件数を正常な0件とは扱わない。");
+      for (const file of scoreInput.invalidFiles) lines.push(`  - ${file}`);
+    }
+    if (scoreInput.invalidRows.length > 0) {
+      lines.push("- 以下のscore rowはruntime shape検証に失敗したため隔離した。正常rowの集計は継続する。");
+      for (const row of scoreInput.invalidRows) lines.push(`  - ${row}`);
+    }
     lines.push("");
   }
 
