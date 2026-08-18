@@ -9,6 +9,7 @@ import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst, addDaysJst } from "./date.js";
 import {
+  hasExistingOpenStockCandidateHypothesis,
   normalizeStockCandidateUniverseRows,
   normalizeStockCandidateWatchlistCodes,
   parseExistingStockCandidateHypothesesJsonl,
@@ -38,18 +39,6 @@ function readExistingHypotheses(): StockCandidateHypothesis[] {
 
 function appendHypothesis(h: StockCandidateHypothesis): void {
   appendFileSync(HYPOTHESIS_PATH, JSON.stringify(h) + "\n", "utf-8");
-}
-
-// ── 重複チェック ──────────────────────────────────────────────
-
-function isDuplicate(
-  existing: StockCandidateHypothesis[],
-  code: string,
-  detectedAt: string
-): boolean {
-  return existing.some(
-    h => h.code === code && h.detectedAt === detectedAt && h.status === "open"
-  );
 }
 
 // ── watchlist 読み込み（登録済みかの確認用） ──────────────────
@@ -220,13 +209,13 @@ function main(): void {
   let skipped = 0;
 
   for (const candidate of candidates) {
-    if (isDuplicate(existing, candidate.code, candidate.detectedAt)) {
+    const hypothesis = generateHypothesis(candidate, watchlistCodes);
+    if (hasExistingOpenStockCandidateHypothesis(existing, hypothesis.code, hypothesis.detectedAt)) {
       console.log(`  [skip] ${candidate.code} ${candidate.name}: 同日の仮説が既存`);
       skipped++;
       continue;
     }
 
-    const hypothesis = generateHypothesis(candidate, watchlistCodes);
     appendHypothesis(hypothesis);
     console.log(`  [add] ${candidate.code} ${candidate.name} (${hypothesis.label})`);
     added++;
