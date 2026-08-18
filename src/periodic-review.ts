@@ -1,25 +1,11 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
 import { periodicReviewStart, type PeriodicReviewPeriod } from "./periodic-review-date.js";
 import { loadAnalogyOutcomeRecords, type AnalogyOutcomeRecord } from "./analysis/analogy-db.js";
+import { loadPeriodicScoreLogs } from "./periodic-review-score-input.js";
 
 type Period = PeriodicReviewPeriod;
-
-type ScoreLogEntry = {
-  code: string;
-  name: string;
-  priority?: string;
-  tags?: string[];
-  rules?: string[];
-  score: number;
-  alertLevel: string;
-  warnings?: string[];
-  negativeReasons?: string[];
-  createdAt: string;
-  expertReview?: { finalVerdict: string; consensusScore: number };
-  riskReview?: { decision: string; blockers: string[] };
-};
 
 type OutcomeStats = {
   count: number;
@@ -56,20 +42,6 @@ function fmtPct(value: number | null | undefined): string {
   if (value == null) return "N/A";
   const sign = value >= 0 ? "+" : "";
   return `${sign}${value.toFixed(2)}%`;
-}
-
-function loadScoreLogs(): ScoreLogEntry[] {
-  if (!existsSync("reports")) return [];
-  return readdirSync("reports")
-    .filter(file => /^scores_\d{4}-\d{2}-\d{2}\.json$/.test(file))
-    .sort()
-    .flatMap(file => {
-      try {
-        return JSON.parse(readFileSync(join("reports", file), "utf-8")) as ScoreLogEntry[];
-      } catch {
-        return [];
-      }
-    });
 }
 
 function outcomeStats(outcomes: AnalogyOutcomeRecord[]): OutcomeStats {
@@ -120,7 +92,8 @@ function pushOutcomeTable(lines: string[], title: string, groups: Map<string, An
 function main() {
   const today = todayJst();
   const start = periodicReviewStart(today, period);
-  const scores = loadScoreLogs().filter(entry => entry.createdAt >= start && entry.createdAt <= today);
+  const scoreInput = loadPeriodicScoreLogs();
+  const scores = scoreInput.entries.filter(entry => entry.createdAt >= start && entry.createdAt <= today);
   const outcomes = loadAnalogyOutcomeRecords().filter(outcome => outcome.evaluatedAt >= start && outcome.evaluatedAt <= today);
   const warnings = new Map<string, number>();
   const blockers = new Map<string, number>();
@@ -151,6 +124,7 @@ function main() {
   lines.push("## サマリー");
   lines.push("");
   lines.push(`- スコアログ: ${scores.length}件`);
+  lines.push(`- スコア入力警告: ${scoreInput.invalidFiles.length}ファイル`);
   lines.push(`- 類推レビュー: ${s.count}件`);
   lines.push(`- 価格レビュー: ${s.pricedCount}件`);
   lines.push(`- same/opposite/mixed/unknown: ${s.same}/${s.opposite}/${s.mixed}/${s.unknown}`);
@@ -163,6 +137,14 @@ function main() {
   lines.push(`- expert strong: ${scores.filter(x => x.expertReview?.finalVerdict === "strong").length}件`);
   lines.push(`- expert block: ${scores.filter(x => x.expertReview?.finalVerdict === "block").length}件`);
   lines.push("");
+
+  if (scoreInput.invalidFiles.length > 0) {
+    lines.push("## 入力整合性警告");
+    lines.push("");
+    lines.push("- 以下のscore snapshotは読み込みまたはroot shape検証に失敗したため集計から隔離した。件数を正常な0件とは扱わない。");
+    for (const file of scoreInput.invalidFiles) lines.push(`  - ${file}`);
+    lines.push("");
+  }
 
   if (outcomes.length > 0) {
     pushOutcomeTable(lines, "時間軸別レビュー成績", groupOutcomes(outcomes, outcome => outcome.timeframe ?? "unknown"));
