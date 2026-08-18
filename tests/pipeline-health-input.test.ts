@@ -36,6 +36,20 @@ const normalizedHistory = normalizeSourceHealthHistoryRows([
 assert.deepEqual(normalizedHistory.rows.map(row => row.date), ["2026-08-16"], "only canonical history rows at or before the read-only cutoff remain eligible");
 assert.equal(normalizedHistory.invalidRows, 3, "invalid, future, and missing history dates must fail closed instead of crowding the recent health window");
 
+const retriedDailyHistory = normalizeSourceHealthHistoryRows([
+  { date: "2026-08-15", reports: { scores: { exists: false, size: 0 } } },
+  { date: "2026-08-16", reports: { scores: { exists: false, size: 0 } } },
+  { date: "2026-08-16", reports: { scores: { exists: true, size: 42 } } },
+], "2026-08-16");
+assert.deepEqual(
+  retriedDailyHistory.rows,
+  [
+    { date: "2026-08-15", reports: { scores: { exists: false, size: 0 } } },
+    { date: "2026-08-16", reports: { scores: { exists: true, size: 42 } } },
+  ],
+  "retries on one calendar date must resolve to the latest daily row instead of crowding the 14-day health window",
+);
+
 assert.equal(hasCanonicalPipelineStatus({}), false, "empty pipeline status objects must fail closed");
 assert.equal(hasCanonicalPipelineStatus(BASE_PIPELINE_STATUS), true, "canonical daily pipeline status remains valid");
 assert.equal(hasCanonicalPipelineStatus(BASE_PIPELINE_STATUS, "2026-08-16"), true, "same-day pipeline status remains visible at the read-only cutoff");
