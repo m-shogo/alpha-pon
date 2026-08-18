@@ -1,6 +1,7 @@
 import { existsSync, readdirSync } from "fs";
 import { join } from "path";
 import type { AnalogyOutcomeRecord, AnalogyPredictionRecord } from "./analysis/analogy-db.js";
+import { addDaysJst } from "./date.js";
 import { formatReadOnlyJsonlParseWarning, readJsonlWithErrors } from "./read-only-jsonl.js";
 
 export type AnalogyReviewPredictionInput = {
@@ -15,6 +16,15 @@ export type AnalogyReviewOutcomeInput = {
 
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(item => typeof item === "string");
+}
+
+function isRealJstDate(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  try {
+    return addDaysJst(value, 0) === value;
+  } catch {
+    return false;
+  }
 }
 
 function isUsableAnalogyPredictionRecord(value: unknown): value is AnalogyPredictionRecord {
@@ -42,13 +52,15 @@ function isUsableAnalogyPredictionRecord(value: unknown): value is AnalogyPredic
   );
 }
 
-function isUsableAnalogyOutcomeRecord(value: unknown): value is AnalogyOutcomeRecord {
+function isUsableAnalogyOutcomeRecord(value: unknown, asOf: string): value is AnalogyOutcomeRecord {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const row = value as Record<string, unknown>;
   return (
     row.schemaVersion === 1 &&
-    typeof row.createdAt === "string" &&
-    typeof row.evaluatedAt === "string" &&
+    isRealJstDate(row.createdAt) &&
+    isRealJstDate(row.evaluatedAt) &&
+    row.createdAt <= row.evaluatedAt &&
+    row.evaluatedAt <= asOf &&
     typeof row.eventId === "string" && row.eventId.trim().length > 0 &&
     (row.timeframe === "1d" || row.timeframe === "1w" || row.timeframe === "1m") &&
     typeof row.lessonId === "string" &&
@@ -83,9 +95,12 @@ export function loadAnalogyPredictionsForReview(dir: string): AnalogyReviewPredi
   return { rows, warnings };
 }
 
-export function loadAnalogyOutcomesForReview(path: string): AnalogyReviewOutcomeInput {
+export function loadAnalogyOutcomesForReview(path: string, asOf: string): AnalogyReviewOutcomeInput {
+  if (!isRealJstDate(asOf)) {
+    throw new Error("analogy review asOf must be a real YYYY-MM-DD date");
+  }
   const parsed = readJsonlWithErrors<unknown>(path);
-  const validRows = parsed.rows.filter(isUsableAnalogyOutcomeRecord);
+  const validRows = parsed.rows.filter(row => isUsableAnalogyOutcomeRecord(row, asOf));
   const warnings: string[] = [];
   const warning = formatReadOnlyJsonlParseWarning(path, parsed.parseErrors);
   if (warning) warnings.push(warning);
