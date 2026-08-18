@@ -271,6 +271,39 @@ function isRenderableWebMarketEvent(value: unknown): value is WebMarketEvent {
   return true
 }
 
+function quarantinedSummary(
+  events: WebMarketEvent[],
+  nextEventAt: unknown,
+): WebMarketEventData['summary'] {
+  const priorityCounts: Record<WebMarketEventPriority, number> = { S0: 0, S1: 0, S2: 0, S3: 0 }
+  const decisionCounts: Record<WebMarketEventDecision, number> = {
+    BUY_WATCH: 0,
+    WAIT: 0,
+    BLOCK: 0,
+    ABSTAIN: 0,
+    INFO: 0,
+  }
+  for (const event of events) {
+    priorityCounts[event.priority] += 1
+    decisionCounts[event.currentDecisionState] += 1
+  }
+  const survivingNextEventAt = typeof nextEventAt === 'string'
+    && events.some(event => event.sortAt === nextEventAt && !['CANCELLED', 'COMPLETED'].includes(event.status))
+      ? nextEventAt
+      : null
+  return {
+    total: events.length,
+    scheduled: events.filter(event => !['CANCELLED', 'COMPLETED', 'UNKNOWN_DATE'].includes(event.status)).length,
+    unknownDate: events.filter(event => event.time.precision === 'UNKNOWN').length,
+    stale: events.filter(event => event.freshnessState === 'STALE').length,
+    calendarIncluded: events.filter(event => event.calendarIncluded).length,
+    calendarExcludedUnknownDate: events.filter(event => event.time.precision === 'UNKNOWN').length,
+    priorityCounts,
+    decisionCounts,
+    nextEventAt: survivingNextEventAt,
+  }
+}
+
 export function normalizeMarketEventData(value: unknown): WebMarketEventData {
   if (!value || typeof value !== 'object') return EMPTY_MARKET_EVENT_DATA
   const data = value as Partial<WebMarketEventData>
@@ -280,22 +313,25 @@ export function normalizeMarketEventData(value: unknown): WebMarketEventData {
   const invalidEventCount = rawEvents.length - events.length
   const warnings = array<unknown>(data.meta?.warnings).filter((warning): warning is string => typeof warning === 'string')
   if (invalidEventCount > 0) warnings.push(`不正なイベント ${invalidEventCount} 件を表示対象から除外しました。`)
+  const normalizedSummary = invalidEventCount > 0
+    ? quarantinedSummary(events, summary.nextEventAt)
+    : {
+        total: Number(summary.total ?? 0),
+        scheduled: Number(summary.scheduled ?? 0),
+        unknownDate: Number(summary.unknownDate ?? 0),
+        stale: Number(summary.stale ?? 0),
+        calendarIncluded: Number(summary.calendarIncluded ?? 0),
+        calendarExcludedUnknownDate: Number(summary.calendarExcludedUnknownDate ?? 0),
+        priorityCounts: { ...EMPTY_MARKET_EVENT_DATA.summary.priorityCounts, ...(summary.priorityCounts ?? {}) },
+        decisionCounts: { ...EMPTY_MARKET_EVENT_DATA.summary.decisionCounts, ...(summary.decisionCounts ?? {}) },
+        nextEventAt: typeof summary.nextEventAt === 'string' ? summary.nextEventAt : null,
+      }
   return {
     schemaVersion: 1,
     generatedAt: typeof data.generatedAt === 'string' ? data.generatedAt : null,
     source: data.source === 'local-sqlite' || data.source === 'cloudflare-d1' ? data.source : 'fallback',
     events,
-    summary: {
-      total: Number(summary.total ?? 0),
-      scheduled: Number(summary.scheduled ?? 0),
-      unknownDate: Number(summary.unknownDate ?? 0),
-      stale: Number(summary.stale ?? 0),
-      calendarIncluded: Number(summary.calendarIncluded ?? 0),
-      calendarExcludedUnknownDate: Number(summary.calendarExcludedUnknownDate ?? 0),
-      priorityCounts: { ...EMPTY_MARKET_EVENT_DATA.summary.priorityCounts, ...(summary.priorityCounts ?? {}) },
-      decisionCounts: { ...EMPTY_MARKET_EVENT_DATA.summary.decisionCounts, ...(summary.decisionCounts ?? {}) },
-      nextEventAt: typeof summary.nextEventAt === 'string' ? summary.nextEventAt : null,
-    },
+    summary: normalizedSummary,
     meta: {
       warnings,
       databasePath: typeof data.meta?.databasePath === 'string' ? data.meta.databasePath : null,
