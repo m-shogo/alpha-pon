@@ -1,34 +1,11 @@
-import { existsSync, mkdirSync, readFileSync, appendFileSync, writeFileSync } from "fs";
+import { mkdirSync, appendFileSync, writeFileSync } from "fs";
 import { addDaysJst, todayJst } from "./date.js";
-
-type ListingEvent = {
-  id: string;
-  code?: string;
-  name: string;
-  market?: string;
-  eventType: string;
-  eventDate?: string | null;
-  source?: string;
-  status?: string;
-  notificationLevel?: "priority" | "morning_summary" | "log";
-  whyWatch?: string;
-  relatedPattern?: string;
-  notes?: string[];
-  evidenceToBackfill?: string[];
-  estimated?: boolean;
-  confidence?: "low" | "medium" | "high";
-};
+import {
+  readFirstEarningsListingEvents,
+  type FirstEarningsListingEvent as ListingEvent,
+} from "./first-earnings-input.js";
 
 const DATA_PATH = "data/listing_events.jsonl";
-
-function readJsonl<T>(path: string): T[] {
-  if (!existsSync(path)) return [];
-  return readFileSync(path, "utf-8")
-    .split("\n")
-    .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => JSON.parse(line) as T);
-}
 
 function keyOf(event: ListingEvent): string {
   return `${event.id}:${event.eventType}:${event.eventDate ?? "missing"}`;
@@ -71,6 +48,7 @@ function writeReport(params: {
   estimated: ListingEvent[];
   appendable: ListingEvent[];
   duplicates: ListingEvent[];
+  warnings: string[];
 }) {
   const lines: string[] = [];
   lines.push("# 初回決算予定日 推定レポート", "", `date: ${params.generatedAt}`, "");
@@ -78,7 +56,10 @@ function writeReport(params: {
   lines.push(`- write: ${params.write}`);
   lines.push(`- estimated: ${params.estimated.length}`);
   lines.push(`- appendable: ${params.appendable.length}`);
-  lines.push(`- duplicates: ${params.duplicates.length}`, "");
+  lines.push(`- duplicates: ${params.duplicates.length}`);
+  lines.push(`- inputWarnings: ${params.warnings.length}`, "");
+  for (const warning of params.warnings) lines.push(`- warning: ${warning}`);
+  if (params.warnings.length > 0) lines.push("");
   lines.push("## appendable estimates", "");
   for (const event of params.appendable) {
     lines.push(`- ${event.code ?? "no-code"} ${event.name} / ${event.eventDate} / confidence=${event.confidence}`);
@@ -95,17 +76,21 @@ function writeReport(params: {
 function main() {
   const write = process.argv.includes("--write");
   const generatedAt = todayJst();
-  const events = readJsonl<ListingEvent>(DATA_PATH);
+  const input = readFirstEarningsListingEvents(DATA_PATH);
+  const events = input.rows;
   const existingKeys = new Set(events.map(keyOf));
   const estimated = events.map(estimateFirstEarnings).filter((event): event is ListingEvent => event !== null);
   const appendable = estimated.filter(event => !existingKeys.has(keyOf(event)));
   const duplicates = estimated.filter(event => existingKeys.has(keyOf(event)));
+  if (write && input.warnings.length > 0) {
+    throw new Error(`refusing to append first earnings estimates while listing input has warnings=${input.warnings.length}`);
+  }
   if (write && appendable.length > 0) {
     mkdirSync("data", { recursive: true });
     for (const event of appendable) appendFileSync(DATA_PATH, `${JSON.stringify(event)}\n`, "utf-8");
   }
-  writeReport({ generatedAt, write, estimated, appendable, duplicates });
-  console.log(`first earnings estimates generated: appendable=${appendable.length}, write=${write}`);
+  writeReport({ generatedAt, write, estimated, appendable, duplicates, warnings: input.warnings });
+  console.log(`first earnings estimates generated: appendable=${appendable.length}, write=${write}, warnings=${input.warnings.length}`);
 }
 
 main();
