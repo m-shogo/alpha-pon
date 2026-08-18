@@ -88,7 +88,7 @@ export function normalizeStockCandidateUniverseRows(
   input.candidates.forEach((row, index) => {
     if (
       !isRecord(row) ||
-      typeof row.code !== "string" || !row.code.trim() ||
+      typeof row.code !== "string" || !row.code.trim() || row.code !== row.code.trim() ||
       typeof row.name !== "string" || !row.name.trim() ||
       typeof row.detectedAt !== "string" || !row.detectedAt.trim() ||
       !(row.sector === null || typeof row.sector === "string") ||
