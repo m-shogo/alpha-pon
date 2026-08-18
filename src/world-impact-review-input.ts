@@ -1,4 +1,4 @@
-import { addDaysJst } from "./date.js";
+import { addDaysJst, todayJst } from "./date.js";
 import {
   normalizeReadOnlyJsonArray,
   normalizeReadOnlyJsonObjectArrayField,
@@ -29,10 +29,11 @@ function isRealJstDate(value: unknown): value is string {
   }
 }
 
-function isReflectionRow(value: unknown): boolean {
+function isReflectionRow(value: unknown, asOf: string): boolean {
   if (!isRecord(value)) return false;
   return isNonEmptyString(value.eventId)
     && isRealJstDate(value.createdAt)
+    && value.createdAt <= asOf
     && isNonEmptyString(value.title)
     && typeof value.urgencyScore === "number"
     && Number.isFinite(value.urgencyScore)
@@ -86,6 +87,7 @@ function normalizeRows<T>(
 export function normalizeWorldImpactReviewInputs<R, C, U, G>(
   reflectionsRaw: unknown,
   alphaRaw: unknown,
+  asOf = todayJst(),
 ): {
   reflections: R[];
   candidates: C[];
@@ -120,7 +122,7 @@ export function normalizeWorldImpactReviewInputs<R, C, U, G>(
       reflections.rows,
       "data/world_event_reflections_latest.json",
       warnings,
-      isReflectionRow,
+      row => isReflectionRow(row, asOf),
     ),
     candidates: normalizeRows(
       candidates.rows,
