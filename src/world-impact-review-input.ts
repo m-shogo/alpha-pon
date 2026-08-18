@@ -88,6 +88,28 @@ function normalizeRows<T>(
   return valid;
 }
 
+function dedupeCandidateRows<T>(
+  rows: T[],
+  path: string,
+  warnings: Set<string>,
+  seenCodes: Set<string>,
+): T[] {
+  const unique: T[] = [];
+  let dropped = 0;
+  for (const row of rows) {
+    if (!isRecord(row) || !isCanonicalIdentityString(row.code) || seenCodes.has(row.code)) {
+      dropped += 1;
+      continue;
+    }
+    seenCodes.add(row.code);
+    unique.push(row);
+  }
+  if (dropped > 0) {
+    warnings.add(`${path}: duplicate_identity (expected unique candidate code; dropped ${dropped})`);
+  }
+  return unique;
+}
+
 export function normalizeWorldImpactReviewInputs<R, C, U, G>(
   reflectionsRaw: unknown,
   alphaRaw: unknown,
@@ -121,6 +143,20 @@ export function normalizeWorldImpactReviewInputs<R, C, U, G>(
     warnings.add("apps/web/public/generated/alpha-pon-data.json.generatedCompanyRules: invalid_field (expected array)");
   }
 
+  const normalizedCandidates = normalizeRows(
+    candidates.rows,
+    "apps/web/public/generated/alpha-pon-data.json.candidates",
+    warnings,
+    isCandidateRow,
+  );
+  const normalizedUniverseCandidates = normalizeRows(
+    universeCandidates.rows,
+    "apps/web/public/generated/alpha-pon-data.json.universeCandidates",
+    warnings,
+    isCandidateRow,
+  );
+  const seenCandidateCodes = new Set<string>();
+
   return {
     reflections: normalizeRows(
       reflections.rows,
@@ -128,17 +164,17 @@ export function normalizeWorldImpactReviewInputs<R, C, U, G>(
       warnings,
       row => isReflectionRow(row, asOf),
     ),
-    candidates: normalizeRows(
-      candidates.rows,
+    candidates: dedupeCandidateRows(
+      normalizedCandidates,
       "apps/web/public/generated/alpha-pon-data.json.candidates",
       warnings,
-      isCandidateRow,
+      seenCandidateCodes,
     ),
-    universeCandidates: normalizeRows(
-      universeCandidates.rows,
+    universeCandidates: dedupeCandidateRows(
+      normalizedUniverseCandidates,
       "apps/web/public/generated/alpha-pon-data.json.universeCandidates",
       warnings,
-      isCandidateRow,
+      seenCandidateCodes,
     ),
     generatedCompanyRules: normalizeRows(
       generatedCompanyRules.rows,
