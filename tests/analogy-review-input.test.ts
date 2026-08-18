@@ -65,20 +65,26 @@ try {
     timeframe: "1d",
     quality: "useful",
   };
+  const impossibleDate = { ...validOutcome, evaluatedAt: "2026-02-31" };
+  const reversedChronology = { ...validOutcome, createdAt: "2026-08-03", evaluatedAt: "2026-08-02" };
+  const futureOutcome = { ...validOutcome, evaluatedAt: "2026-08-19" };
   writeFileSync(
     outcomePath,
-    `${JSON.stringify(validOutcome)}\n${JSON.stringify(unsafeSuppressor)}\n{broken-outcome\n`,
+    [validOutcome, unsafeSuppressor, impossibleDate, reversedChronology, futureOutcome]
+      .map(row => JSON.stringify(row))
+      .join("\n") + "\n{broken-outcome\n",
     "utf-8",
   );
 
-  const outcomeResult = loadAnalogyOutcomesForReview(outcomePath);
+  const outcomeResult = loadAnalogyOutcomesForReview(outcomePath, "2026-08-18");
   assert.equal(outcomeResult.rows.length, 1);
   assert.equal(outcomeResult.rows[0]?.eventId, valid.eventId);
   assert.equal(outcomeResult.warnings.length, 2);
   assert.match(outcomeResult.warnings[0] ?? "", /parse_error 1/);
-  assert.match(outcomeResult.warnings[0] ?? "", /lines 3/);
+  assert.match(outcomeResult.warnings[0] ?? "", /lines 6/);
   assert.doesNotMatch(outcomeResult.warnings[0] ?? "", /broken-outcome/);
-  assert.match(outcomeResult.warnings[1] ?? "", /invalid_shape 1/);
+  assert.match(outcomeResult.warnings[1] ?? "", /invalid_shape 4/);
+  assert.throws(() => loadAnalogyOutcomesForReview(outcomePath, "2026-02-31"), /real YYYY-MM-DD/);
 
   console.log("analogy-review-input.test.ts passed");
 } finally {
