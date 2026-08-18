@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "fs";
 import { join } from "path";
-import { addDaysJst } from "./date.js";
+import { addDaysJst, todayJst } from "./date.js";
 
 export type PeriodicScoreLogEntry = {
   code: string;
@@ -104,7 +104,7 @@ export function parsePeriodicScoreLog(raw: string): ParsedPeriodicScoreLog | nul
   }
 }
 
-export function loadPeriodicScoreLogs(reportDir = "reports", asOf?: string): PeriodicScoreInput {
+export function loadPeriodicScoreLogs(reportDir = "reports", asOf = todayJst()): PeriodicScoreInput {
   if (!existsSync(reportDir)) return { entries: [], invalidFiles: [], invalidRows: [] };
 
   const entries: PeriodicScoreLogEntry[] = [];
@@ -116,7 +116,7 @@ export function loadPeriodicScoreLogs(reportDir = "reports", asOf?: string): Per
 
   for (const file of files) {
     const snapshotDate = file.slice("scores_".length, -".json".length);
-    if (!isRealDate(snapshotDate) || (asOf != null && snapshotDate > asOf)) {
+    if (!isRealDate(snapshotDate) || snapshotDate > asOf) {
       invalidFiles.push(file);
       continue;
     }
