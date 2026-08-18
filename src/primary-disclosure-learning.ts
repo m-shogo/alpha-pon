@@ -3,28 +3,11 @@ import { join } from "path";
 import { todayJst } from "./date.js";
 import { loadAnalogyOutcomeRecords, type AnalogyOutcomeRecord } from "./analysis/analogy-db.js";
 import { generatePrimaryDisclosureCategoryLearningReport } from "./primary-disclosure-category-learning.js";
-
-type PrimaryDecision = "confirmed" | "caution" | "block" | "missing" | "unknown_or_legacy";
-
-type ScoreLogEntry = {
-  code: string;
-  name: string;
-  score: number;
-  alertLevel: string;
-  createdAt: string;
-  primaryDisclosureReview?: {
-    decision?: PrimaryDecision;
-    sourceCoverage?: {
-      tdnetCount?: number;
-      edinetCount?: number;
-      scannedEdinetDates?: string[];
-      fetchErrorCount?: number;
-    };
-    positives?: string[];
-    warnings?: string[];
-    blockers?: string[];
-  };
-};
+import {
+  normalizePrimaryDisclosureLearningScoreInput,
+  type PrimaryDecision,
+  type PrimaryDisclosureLearningScore as ScoreLogEntry,
+} from "./primary-disclosure-learning-input.js";
 
 type Stats = {
   count: number;
@@ -49,18 +32,23 @@ function fmtPct(value: number | null | undefined): string {
   return `${sign}${value.toFixed(2)}%`;
 }
 
-function loadScoreLogs(): ScoreLogEntry[] {
-  if (!existsSync("reports")) return [];
-  return readdirSync("reports")
-    .filter(file => /^scores_\d{4}-\d{2}-\d{2}\.json$/.test(file))
-    .sort()
-    .flatMap(file => {
-      try {
-        return JSON.parse(readFileSync(join("reports", file), "utf-8")) as ScoreLogEntry[];
-      } catch {
-        return [];
-      }
-    });
+function loadScoreLogs(): { rows: ScoreLogEntry[]; warnings: string[] } {
+  if (!existsSync("reports")) return { rows: [], warnings: [] };
+  const rows: ScoreLogEntry[] = [];
+  const warnings: string[] = [];
+  for (const file of readdirSync("reports").filter(file => /^scores_\d{4}-\d{2}-\d{2}\.json$/.test(file)).sort()) {
+    try {
+      const normalized = normalizePrimaryDisclosureLearningScoreInput(
+        JSON.parse(readFileSync(join("reports", file), "utf-8")),
+        file,
+      );
+      rows.push(...normalized.rows);
+      warnings.push(...normalized.warnings);
+    } catch {
+      warnings.push(`${file}: invalid_json`);
+    }
+  }
+  return { rows, warnings };
 }
 
 function scoreByCodeDate(entries: ScoreLogEntry[]): Map<string, ScoreLogEntry> {
@@ -114,7 +102,8 @@ function top(map: Map<string, number>, limit = 12): [string, number][] {
 
 function main() {
   const date = todayJst();
-  const scores = loadScoreLogs();
+  const scoreInput = loadScoreLogs();
+  const scores = scoreInput.rows;
   const outcomes = loadAnalogyOutcomeRecords();
   const scoreMap = scoreByCodeDate(scores);
   const groups = groupOutcomes(outcomes, scoreMap);
@@ -146,6 +135,7 @@ function main() {
   lines.push(`- caution: ${scores.filter(s => s.primaryDisclosureReview?.decision === "caution").length}件`);
   lines.push(`- block: ${scores.filter(s => s.primaryDisclosureReview?.decision === "block").length}件`);
   lines.push(`- missing/legacy: ${scores.filter(s => !s.primaryDisclosureReview || s.primaryDisclosureReview.decision === "missing").length}件`);
+  if (scoreInput.warnings.length > 0) lines.push(`- 入力警告: ${scoreInput.warnings.length}件（malformed score metadataを隔離）`);
   const scannedDates = [...new Set(scores.flatMap(s => s.primaryDisclosureReview?.sourceCoverage?.scannedEdinetDates ?? []))];
   if (scannedDates.length > 0) lines.push(`- EDINET確認日: ${scannedDates.join(" / ")}`);
   lines.push(`- カテゴリ別レポート: ${categoryReport}`);
