@@ -67,6 +67,7 @@ function classifyQuality(company: Company, score?: LatestScore): BuffettQualityS
 function main() {
   const hypotheses = readYaml<Hypotheses>("config/company-hypotheses.yml", {});
   const scoreLoad = readLatestProScores<LatestScore>("reports", todayJst());
+  scoreLoad.warnings.forEach(warning => console.warn(warning));
   const scores = new Map(scoreLoad.rows.map(score => [score.code, score]));
   const companies = Object.values(hypotheses.categories ?? {}).flatMap(category => category.companies ?? []);
   const snapshots = companies.map(company => classifyQuality(company, scores.get(company.code)));

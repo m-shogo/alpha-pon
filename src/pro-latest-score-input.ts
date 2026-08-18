@@ -10,13 +10,31 @@ function isRealJstDate(value: string): boolean {
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isOptionalStringArray(value: unknown): boolean {
+  return value === undefined || (Array.isArray(value) && value.every(item => typeof item === "string"));
+}
+
+function isUsableProScoreRow(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  if (typeof value.code !== "string" || value.code.length === 0 || value.code !== value.code.trim()) return false;
+  if (typeof value.name !== "string" || value.name.trim().length === 0) return false;
+  return isOptionalStringArray(value.reasons)
+    && isOptionalStringArray(value.negativeReasons)
+    && isOptionalStringArray(value.warnings);
+}
+
 export type LatestProScoreLoad<T> = {
   rows: T[];
   sourceFile: string | null;
+  warnings: string[];
 };
 
 export function readLatestProScores<T>(reportsDir = "reports", asOf = todayJst()): LatestProScoreLoad<T> {
-  if (!existsSync(reportsDir)) return { rows: [], sourceFile: null };
+  if (!existsSync(reportsDir)) return { rows: [], sourceFile: null, warnings: [] };
 
   const scoreFiles = readdirSync(reportsDir)
     .filter((file) => /^scores_\d{4}-\d{2}-\d{2}\.json$/.test(file))
@@ -33,7 +51,7 @@ export function readLatestProScores<T>(reportsDir = "reports", asOf = todayJst()
   }
 
   const latest = scoreFiles.at(-1);
-  if (!latest) return { rows: [], sourceFile: null };
+  if (!latest) return { rows: [], sourceFile: null, warnings: [] };
 
   let parsed: unknown;
   try {
@@ -45,5 +63,15 @@ export function readLatestProScores<T>(reportsDir = "reports", asOf = todayJst()
     throw new Error(`${latest}: score snapshot root must be an array`);
   }
 
-  return { rows: parsed as T[], sourceFile: latest };
+  const rows: T[] = [];
+  const invalidRows: number[] = [];
+  parsed.forEach((row, index) => {
+    if (isUsableProScoreRow(row)) rows.push(row as T);
+    else invalidRows.push(index + 1);
+  });
+  const warnings = invalidRows.length > 0
+    ? [`${latest}: ${invalidRows.length} malformed score row(s) isolated at row(s) ${invalidRows.join(", ")}`]
+    : [];
+
+  return { rows, sourceFile: latest, warnings };
 }
