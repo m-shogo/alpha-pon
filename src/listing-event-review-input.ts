@@ -29,6 +29,10 @@ function isOptionalString(value: unknown): boolean {
   return value === undefined || typeof value === "string";
 }
 
+function isOptionalCanonicalCode(value: unknown): boolean {
+  return value === undefined || (typeof value === "string" && value.length > 0 && value.trim() === value);
+}
+
 function isOptionalStringArray(value: unknown): boolean {
   return value === undefined || (Array.isArray(value) && value.every(item => typeof item === "string"));
 }
@@ -59,7 +63,7 @@ export function isListingEventReviewInputRow(value: unknown): value is ListingEv
     && value.name.trim().length > 0
     && typeof value.eventType === "string"
     && value.eventType.trim().length > 0
-    && isOptionalString(value.code)
+    && isOptionalCanonicalCode(value.code)
     && isOptionalString(value.market)
     && isOptionalRealDate(value.eventDate)
     && isOptionalString(value.source)
