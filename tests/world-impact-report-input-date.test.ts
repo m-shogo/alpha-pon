@@ -47,6 +47,16 @@ for (const [label, outcome] of [
   assert.deepEqual(result.reviews, [], "reversed evaluation chronology must not reach report/calibration inputs");
 }
 
+for (const [field, futureDate] of [
+  ["createdAt", "2026-06-13"],
+  ["updatedAt", "2026-06-13"],
+] as const) {
+  const parsed = [{ ...base, [field]: futureDate }];
+  const result = resolveWorldImpactReportInput({ present: true, parsed }, [], "2026-06-12");
+  assert.equal(result.latestSnapshotError, true, `${field} in the future must not become current read-only provenance`);
+  assert.deepEqual(result.reviews, [], "future provenance must fail closed");
+}
+
 const invalidFallback = normalizeWorldImpactReview({
   ...base,
   outcomes: [{ ...base.outcomes[0], evaluatedAt: "2026-02-31" }],
@@ -63,6 +73,11 @@ const reversedFallbackResult = resolveWorldImpactReportInput({ present: false },
 assert.equal(reversedFallbackResult.jsonlFallbackError, true, "JSONL fallbackでも逆行した評価日付を通さない");
 assert.deepEqual(reversedFallbackResult.reviews, [], "reversed fallback chronology must fail closed");
 
+const futureFallback = normalizeWorldImpactReview({ ...base, updatedAt: "2026-06-13" }, "2026-06-12");
+const futureFallbackResult = resolveWorldImpactReportInput({ present: false }, [futureFallback], "2026-06-12");
+assert.equal(futureFallbackResult.jsonlFallbackError, true, "future JSONL provenance must not become current read-only fallback evidence");
+assert.deepEqual(futureFallbackResult.reviews, [], "future fallback provenance must fail closed");
+
 const validFallback = resolveWorldImpactReportInput(
   { present: false },
   [normalizeWorldImpactReview(base, "2026-06-12")],
@@ -71,4 +86,4 @@ const validFallback = resolveWorldImpactReportInput(
 assert.equal(validFallback.jsonlFallbackError, false, "valid JSONL fallback remains available when latest is absent");
 assert.equal(validFallback.reviews.length, 1, "valid fallback review remains readable");
 
-console.log("world-impact report input: latest and JSONL fallback require real Gregorian JST dates and monotonic evaluation chronology");
+console.log("world-impact report input: latest and JSONL fallback require real Gregorian JST dates, current provenance, and monotonic evaluation chronology");
