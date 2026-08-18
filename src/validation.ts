@@ -32,6 +32,8 @@ function validateCandidate(candidate: unknown, index: number): string[] {
 
   if (!isNonEmptyString(candidate.code)) {
     errors.push(`${label}: code が空です`);
+  } else if (candidate.code !== candidate.code.trim()) {
+    errors.push(`${label}: code は前後空白なしのcanonical identityにしてください`);
   }
 
   if (!isNonEmptyString(candidate.name)) {
@@ -84,10 +86,11 @@ export function validateWatchlist(config: WatchlistConfig): string[] {
     errors.push(...validateCandidate(candidate, index));
 
     if (isRecord(candidate) && isNonEmptyString(candidate.code)) {
-      if (seen.has(candidate.code)) {
-        errors.push(`銘柄コード重複: ${candidate.code}`);
+      const canonicalCode = candidate.code.trim();
+      if (seen.has(canonicalCode)) {
+        errors.push(`銘柄コード重複: ${canonicalCode}`);
       }
-      seen.add(candidate.code);
+      seen.add(canonicalCode);
     }
   });
 
