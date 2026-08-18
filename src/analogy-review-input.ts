@@ -8,6 +8,35 @@ export type AnalogyReviewPredictionInput = {
   warnings: string[];
 };
 
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(item => typeof item === "string");
+}
+
+function isUsableAnalogyPredictionRecord(value: unknown): value is AnalogyPredictionRecord {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  return (
+    row.schemaVersion === 1 &&
+    typeof row.createdAt === "string" &&
+    typeof row.reviewDueAt === "string" &&
+    typeof row.eventId === "string" && row.eventId.trim().length > 0 &&
+    (row.timeframe === "1d" || row.timeframe === "1w" || row.timeframe === "1m") &&
+    (row.candidateCode === undefined || typeof row.candidateCode === "string") &&
+    (row.candidateName === undefined || typeof row.candidateName === "string") &&
+    typeof row.lessonId === "string" &&
+    typeof row.lessonTitle === "string" &&
+    typeof row.thesis === "string" &&
+    (row.expectedDirection === "up" || row.expectedDirection === "down" || row.expectedDirection === "mixed" || row.expectedDirection === "risk_off" || row.expectedDirection === "unknown") &&
+    typeof row.confidence === "number" && Number.isFinite(row.confidence) && row.confidence >= 0 && row.confidence <= 1 &&
+    isStringArray(row.conditions) &&
+    isStringArray(row.invalidationSignals) &&
+    isStringArray(row.evidenceNeeded) &&
+    isStringArray(row.similarPoints) &&
+    isStringArray(row.differentPoints) &&
+    (row.status === "open" || row.status === "reviewed")
+  );
+}
+
 export function loadAnalogyPredictionsForReview(dir: string): AnalogyReviewPredictionInput {
   if (!existsSync(dir)) return { rows: [], warnings: [] };
 
@@ -16,10 +45,13 @@ export function loadAnalogyPredictionsForReview(dir: string): AnalogyReviewPredi
 
   for (const file of readdirSync(dir).filter(name => name.endsWith(".jsonl")).sort()) {
     const path = join(dir, file);
-    const parsed = readJsonlWithErrors<AnalogyPredictionRecord>(path);
-    rows.push(...parsed.rows);
+    const parsed = readJsonlWithErrors<unknown>(path);
+    const validRows = parsed.rows.filter(isUsableAnalogyPredictionRecord);
+    rows.push(...validRows);
     const warning = formatReadOnlyJsonlParseWarning(path, parsed.parseErrors);
     if (warning) warnings.push(warning);
+    const invalidRows = parsed.rows.length - validRows.length;
+    if (invalidRows > 0) warnings.push(`${path}: invalid_shape ${invalidRows}`);
   }
 
   return { rows, warnings };
