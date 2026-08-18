@@ -65,6 +65,10 @@ export function normalizeProIrSourceStatus(event: NormalizedProIrEvent): Normali
   return "confirmed";
 }
 
+export function hasConfirmedProIrSource(event: NormalizedProIrEvent): boolean {
+  return Boolean(event.date || event.eventDate) && normalizeProIrSourceStatus(event) === "confirmed";
+}
+
 export function normalizeProIrEventInput(raw: unknown): ProIrEventInputLoad {
   if (raw == null) {
     return { companies: {}, invalidRoot: false, invalidCompanyCount: 0, invalidEventCount: 0 };
