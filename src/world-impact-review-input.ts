@@ -110,6 +110,32 @@ function dedupeCandidateRows<T>(
   return unique;
 }
 
+function dedupeCompanyRuleRows<T>(
+  rows: T[],
+  path: string,
+  warnings: Set<string>,
+): T[] {
+  const unique: T[] = [];
+  const seenCodes = new Set<string>();
+  let dropped = 0;
+  for (const row of rows) {
+    if (!isRecord(row) || row.code === undefined) {
+      unique.push(row);
+      continue;
+    }
+    if (!isCanonicalIdentityString(row.code) || seenCodes.has(row.code)) {
+      dropped += 1;
+      continue;
+    }
+    seenCodes.add(row.code);
+    unique.push(row);
+  }
+  if (dropped > 0) {
+    warnings.add(`${path}: duplicate_identity (expected canonical unique company rule code; dropped ${dropped})`);
+  }
+  return unique;
+}
+
 export function normalizeWorldImpactReviewInputs<R, C, U, G>(
   reflectionsRaw: unknown,
   alphaRaw: unknown,
@@ -155,6 +181,12 @@ export function normalizeWorldImpactReviewInputs<R, C, U, G>(
     warnings,
     isCandidateRow,
   );
+  const normalizedCompanyRules = normalizeRows(
+    generatedCompanyRules.rows,
+    "apps/web/public/generated/alpha-pon-data.json.generatedCompanyRules",
+    warnings,
+    isCompanyRuleRow,
+  );
   const seenCandidateCodes = new Set<string>();
 
   return {
@@ -176,11 +208,10 @@ export function normalizeWorldImpactReviewInputs<R, C, U, G>(
       warnings,
       seenCandidateCodes,
     ),
-    generatedCompanyRules: normalizeRows(
-      generatedCompanyRules.rows,
+    generatedCompanyRules: dedupeCompanyRuleRows(
+      normalizedCompanyRules,
       "apps/web/public/generated/alpha-pon-data.json.generatedCompanyRules",
       warnings,
-      isCompanyRuleRow,
     ),
     warnings: [...warnings],
   };
