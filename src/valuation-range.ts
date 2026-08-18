@@ -1,7 +1,7 @@
-import { mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
-import { latestValuationScoreFile } from "./valuation-range-input.js";
+import { loadLatestValuationScoreRows } from "./valuation-range-input.js";
 
 type MarketContext = {
   return5d?: number | null;
@@ -33,17 +33,6 @@ type ScoreLogEntry = {
   financialQuality?: FinancialQuality;
   warnings?: string[];
 };
-
-function readScores(): ScoreLogEntry[] {
-  const path = latestValuationScoreFile();
-  if (!path) return [];
-  try {
-    const value = JSON.parse(readFileSync(path, "utf-8")) as unknown;
-    return Array.isArray(value) ? value as ScoreLogEntry[] : [];
-  } catch {
-    return [];
-  }
-}
 
 function fmt(value: number | null | undefined, suffix = "%"): string {
   if (value == null || !Number.isFinite(value)) return "N/A";
@@ -80,7 +69,7 @@ function valuationBand(entry: ScoreLogEntry): { band: string; reasons: string[] 
 
 function main() {
   const date = todayJst();
-  const scores = readScores();
+  const scores = loadLatestValuationScoreRows<ScoreLogEntry>("reports", date);
   const lines: string[] = [];
   lines.push("# alpha-pon バリュエーション過去レンジ補助レポート");
   lines.push("");
