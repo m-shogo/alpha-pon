@@ -39,6 +39,21 @@ function hasValidLockupChronology(value: Record<string, unknown>): boolean {
   return value.lockupExpiryDate >= value.listingDate;
 }
 
+function hasConsistentDerivedExpiry(value: Record<string, unknown>): boolean {
+  if (
+    typeof value.listingDate !== "string"
+    || typeof value.lockupDays !== "number"
+    || typeof value.lockupExpiryDate !== "string"
+  ) {
+    return true;
+  }
+  try {
+    return addDaysJst(value.listingDate, value.lockupDays) === value.lockupExpiryDate;
+  } catch {
+    return false;
+  }
+}
+
 export function isLockupMemo(value: unknown): value is LockupMemo {
   if (!isRecord(value)) return false;
   return typeof value.id === "string"
@@ -51,6 +66,7 @@ export function isLockupMemo(value: unknown): value is LockupMemo {
     && isOptionalPositiveInteger(value.lockupDays)
     && isOptionalRealDate(value.lockupExpiryDate)
     && hasValidLockupChronology(value)
+    && hasConsistentDerivedExpiry(value)
     && isOptionalString(value.source)
     && isOptionalString(value.memo);
 }
