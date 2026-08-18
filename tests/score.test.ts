@@ -65,6 +65,35 @@ function testMalformedWatchlistRowsFailClosed() {
   assert.equal(errors.some(error => error.includes("8136 サンリオ")), false, "正常rowは壊れrowの周囲でも維持する");
 }
 
+function testCanonicalWatchlistCodeIdentity() {
+  const config = {
+    symbols: [
+      {
+        code: "8136",
+        name: "サンリオ",
+        market: "TSE",
+        status: "research",
+        priority: "S",
+        tags: ["entertainment"],
+        rules: ["healthy_pullback"],
+      },
+      {
+        code: " 8136 ",
+        name: "duplicate",
+        market: "TSE",
+        status: "watch",
+        priority: "A",
+        tags: ["entertainment"],
+        rules: ["healthy_pullback"],
+      },
+    ],
+  } as unknown as WatchlistConfig;
+
+  const errors = validateWatchlist(config);
+  assert.ok(errors.some(error => error.includes("canonical identity")), "padded codeは拒否する");
+  assert.ok(errors.some(error => error.includes("銘柄コード重複: 8136")), "trim後の同一identityを重複として検出する");
+}
+
 function testMalformedThemeConfigFailsClosed() {
   assert.throws(() => validateThemesConfig({ themes: null }), /themes object is required/);
   assert.throws(() => validateThemesConfig({ themes: { ai: "broken" } }), /ai must be an object/);
@@ -140,6 +169,7 @@ function main() {
   testPullbackMissingFinancials();
   testEarningsDropMissingFinancials();
   testMalformedWatchlistRowsFailClosed();
+  testCanonicalWatchlistCodeIdentity();
   testMalformedThemeConfigFailsClosed();
   testGeneratedRunCursorShape();
   testGeneratedReportShape();
