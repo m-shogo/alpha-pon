@@ -19,6 +19,10 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(item => typeof item === "string");
 }
 
+function isOptionalFiniteNumber(value: unknown): boolean {
+  return value === undefined || (typeof value === "number" && Number.isFinite(value));
+}
+
 function isRealJstDate(value: unknown): value is string {
   if (typeof value !== "string") return false;
   try {
@@ -69,6 +73,13 @@ function isUsableAnalogyOutcomeRecord(value: unknown, asOf: string): value is An
     (row.direction === "same" || row.direction === "opposite" || row.direction === "mixed" || row.direction === "unknown") &&
     (row.quality === "useful" || row.quality === "misleading" || row.quality === "too_early" || row.quality === "unknown") &&
     typeof row.actualOutcome === "string" &&
+    isOptionalFiniteNumber(row.startClose) &&
+    isOptionalFiniteNumber(row.endClose) &&
+    isOptionalFiniteNumber(row.returnPct) &&
+    isOptionalFiniteNumber(row.benchmarkReturnPct) &&
+    isOptionalFiniteNumber(row.relativeReturnPct) &&
+    isOptionalFiniteNumber(row.maxDrawdownPct) &&
+    isOptionalFiniteNumber(row.benchmarkMaxDrawdownPct) &&
     isStringArray(row.whatMatched) &&
     isStringArray(row.whatDiffered) &&
     isStringArray(row.missedSignals) &&
