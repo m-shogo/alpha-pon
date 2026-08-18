@@ -5,6 +5,7 @@ import {
   readListingEventSyncExistingInput,
   type ListingEventSyncExistingRow as ListingEvent,
 } from "./listing-event-sync-input.js";
+import { partitionListingSyncRows } from "./listing-event-sync-preview.js";
 
 type SyncResult = {
   generatedAt: string;
@@ -22,10 +23,6 @@ type SyncResult = {
 
 const CONFIG_PATH = "config/listing-event-watch.yml";
 const DATA_PATH = "data/listing_events.jsonl";
-
-function keyOf(event: ListingEvent): string {
-  return `${event.id}:${event.eventType}:${event.eventDate ?? "missing"}`;
-}
 
 function normalize(event: ListingEvent): ListingEvent {
   return {
@@ -87,9 +84,7 @@ function main() {
   const existingInput = readListingEventSyncExistingInput(DATA_PATH);
   const existingEvents = existingInput.rows.map(normalize);
   const warnings = [...configInput.warnings, ...existingInput.warnings];
-  const existingKeys = new Set(existingEvents.map(keyOf));
-  const appendable = sourceEvents.filter(event => !existingKeys.has(keyOf(event)));
-  const duplicates = sourceEvents.filter(event => existingKeys.has(keyOf(event)));
+  const { appendable, duplicates } = partitionListingSyncRows(sourceEvents, existingEvents);
   const backfillRequired = sourceEvents.filter(event => !event.eventDate);
 
   if (write && warnings.length > 0) {

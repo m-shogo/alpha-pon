@@ -8,6 +8,7 @@ import "./jpx-listing-source-date.test.js";
 import "./listing-event-review-input.test.js";
 import "./listing-event-sync-config.test.js";
 import "./listing-event-sync-input.test.js";
+import "./listing-event-sync-preview.test.js";
 import { readListingEventRows } from "../src/listing-event-alert-input.js";
 
 const dir = mkdtempSync(join(tmpdir(), "alpha-pon-listing-event-alert-input-"));
