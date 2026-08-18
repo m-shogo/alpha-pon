@@ -27,10 +27,15 @@ try {
     differentPoints: [],
     status: "open",
   };
+  const impossibleCreatedAt = { ...valid, createdAt: "2026-02-31" };
+  const impossibleReviewDueAt = { ...valid, reviewDueAt: "2026-02-31" };
+  const mismatchedReviewDueAt = { ...valid, reviewDueAt: "2026-08-03" };
 
   writeFileSync(
     join(dir, "2026-08-01.jsonl"),
-    `${JSON.stringify(valid)}\n{}\n{broken-json\n`,
+    [valid, {}, impossibleCreatedAt, impossibleReviewDueAt, mismatchedReviewDueAt]
+      .map(row => JSON.stringify(row))
+      .join("\n") + "\n{broken-json\n",
     "utf-8",
   );
 
@@ -39,9 +44,9 @@ try {
   assert.equal(result.rows[0]?.eventId, valid.eventId);
   assert.equal(result.warnings.length, 2);
   assert.match(result.warnings[0] ?? "", /parse_error 1/);
-  assert.match(result.warnings[0] ?? "", /lines 3/);
+  assert.match(result.warnings[0] ?? "", /lines 6/);
   assert.doesNotMatch(result.warnings[0] ?? "", /broken-json/);
-  assert.match(result.warnings[1] ?? "", /invalid_shape 1/);
+  assert.match(result.warnings[1] ?? "", /invalid_shape 4/);
 
   const outcomePath = join(dir, "outcomes.jsonl");
   const validOutcome = {
