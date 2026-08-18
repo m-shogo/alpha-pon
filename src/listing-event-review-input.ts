@@ -37,6 +37,10 @@ function isOptionalFiniteNumberOrNull(value: unknown): boolean {
   return value === undefined || value === null || (typeof value === "number" && Number.isFinite(value));
 }
 
+function isOptionalPositivePriceOrNull(value: unknown): boolean {
+  return value === undefined || value === null || (typeof value === "number" && Number.isFinite(value) && value > 0);
+}
+
 function isOptionalRealDate(value: unknown): boolean {
   if (value === undefined || value === null) return true;
   if (typeof value !== "string") return false;
@@ -68,9 +72,9 @@ export function isListingEventReviewInputRow(value: unknown): value is ListingEv
     && isOptionalString(value.relatedPattern)
     && isOptionalStringArray(value.notes)
     && isOptionalStringArray(value.evidenceToBackfill)
-    && isOptionalFiniteNumberOrNull(value.publicPrice)
-    && isOptionalFiniteNumberOrNull(value.initialPrice)
-    && isOptionalFiniteNumberOrNull(value.reviewPrice)
+    && isOptionalPositivePriceOrNull(value.publicPrice)
+    && isOptionalPositivePriceOrNull(value.initialPrice)
+    && isOptionalPositivePriceOrNull(value.reviewPrice)
     && isOptionalFiniteNumberOrNull(value.topixRelativeReturn);
 }
 
