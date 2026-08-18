@@ -38,6 +38,7 @@ export function parseListingAutomationCheckInput(text: string): ListingAutomatio
   return { checks, invalid: false, reason: "ok" };
 }
 
-export function listingAutomationReadinessStatus(checks: ListingAutomationCheckRow[]): "ok" | "warning" {
+export function listingAutomationReadinessStatus(checks: ListingAutomationCheckRow[]): "ok" | "warning" | "fail" {
+  if (checks.some(check => check.status === "fail")) return "fail";
   return checks.some(check => check.status === "missing" || check.status === "warning") ? "warning" : "ok";
 }
