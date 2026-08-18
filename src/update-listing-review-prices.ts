@@ -1,9 +1,10 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
 import {
   readListingEventReviewInput,
   type ListingEventReviewInputRow as ListingEvent,
 } from "./listing-event-review-input.js";
+import { readListingCsvRows } from "./listing-csv-input.js";
 
 type PriceRow = {
   code?: string;
@@ -27,23 +28,15 @@ function parseNumber(value: string | undefined): number | null {
 }
 
 function parseCsv(path: string): PriceRow[] {
-  if (!existsSync(path)) return [];
-  const [headerLine, ...rows] = readFileSync(path, "utf-8").split("\n").filter(Boolean);
-  const headers = headerLine.split(",").map(h => h.trim());
-  return rows.map(row => {
-    const cols = row.split(",").map(v => v.trim());
-    const obj: Record<string, string> = {};
-    headers.forEach((h, i) => (obj[h] = cols[i] ?? ""));
-    return {
-      id: obj.id || undefined,
-      code: obj.code || undefined,
-      reviewDate: obj.reviewDate || undefined,
-      publicPrice: parseNumber(obj.publicPrice),
-      initialPrice: parseNumber(obj.initialPrice),
-      reviewPrice: parseNumber(obj.reviewPrice),
-      topixRelativeReturn: parseNumber(obj.topixRelativeReturn),
-    };
-  });
+  return readListingCsvRows(path).map(obj => ({
+    id: obj.id || undefined,
+    code: obj.code || undefined,
+    reviewDate: obj.reviewDate || undefined,
+    publicPrice: parseNumber(obj.publicPrice),
+    initialPrice: parseNumber(obj.initialPrice),
+    reviewPrice: parseNumber(obj.reviewPrice),
+    topixRelativeReturn: parseNumber(obj.topixRelativeReturn),
+  }));
 }
 
 function matchRow(event: ListingEvent, rows: PriceRow[]): PriceRow | undefined {
