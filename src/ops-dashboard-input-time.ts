@@ -19,7 +19,13 @@ export function normalizeOpsAlphaGeneratedAt<T extends { generatedAt?: string | 
   nowInstant = new Date().toISOString(),
 ): T | null {
   if (!input || input.generatedAt == null) return input;
-  if (isValidDate(input.generatedAt)) return input;
+  if (isValidDate(input.generatedAt)) {
+    const currentJstDate = jstDateFromExplicitInstant(nowInstant, "ops dashboard current instant");
+    if (input.generatedAt > currentJstDate) {
+      throw new Error("alphaData.generatedAt must not be in the future");
+    }
+    return input;
+  }
   if (
     compareExplicitIso8601Instants(
       input.generatedAt,
