@@ -63,4 +63,10 @@ assert.equal(
   "missing readiness checks remain warnings",
 );
 
+assert.equal(
+  listingAutomationReadinessStatus([{ id: "failed", status: "fail" }]),
+  "fail",
+  "failed readiness checks must not become a false-green summary",
+);
+
 console.log("listing-automation-summary-input: OK");
