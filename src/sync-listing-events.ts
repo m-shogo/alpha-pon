@@ -1,22 +1,10 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from "fs";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
-
-type ListingEvent = {
-  id: string;
-  code?: string;
-  name: string;
-  market?: string;
-  eventType: string;
-  eventDate?: string | null;
-  source?: string;
-  status?: string;
-  notificationLevel?: "priority" | "morning_summary" | "log";
-  whyWatch?: string;
-  relatedPattern?: string;
-  notes?: string[];
-  evidenceToBackfill?: string[];
-};
+import {
+  readListingEventSyncExistingInput,
+  type ListingEventSyncExistingRow as ListingEvent,
+} from "./listing-event-sync-input.js";
 
 type Config = {
   manualSeedEvents?: ListingEvent[];
@@ -33,6 +21,7 @@ type SyncResult = {
   appendable: ListingEvent[];
   duplicates: ListingEvent[];
   backfillRequired: ListingEvent[];
+  warnings: string[];
 };
 
 const CONFIG_PATH = "config/listing-event-watch.yml";
@@ -41,15 +30,6 @@ const DATA_PATH = "data/listing_events.jsonl";
 function readYaml<T>(path: string, fallback: T): T {
   if (!existsSync(path)) return fallback;
   return load(readFileSync(path, "utf-8")) as T;
-}
-
-function readJsonl<T>(path: string): T[] {
-  if (!existsSync(path)) return [];
-  return readFileSync(path, "utf-8")
-    .split("\n")
-    .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => JSON.parse(line) as T);
 }
 
 function keyOf(event: ListingEvent): string {
@@ -76,7 +56,10 @@ function writeReport(result: SyncResult) {
   lines.push(`- existingCount: ${result.existingCount}`);
   lines.push(`- appendableCount: ${result.appendableCount}`);
   lines.push(`- duplicateCount: ${result.duplicateCount}`);
-  lines.push(`- backfillRequiredCount: ${result.backfillRequiredCount}`, "");
+  lines.push(`- backfillRequiredCount: ${result.backfillRequiredCount}`);
+  lines.push(`- inputWarnings: ${result.warnings.length}`, "");
+  for (const warning of result.warnings) lines.push(`- warning: ${warning}`);
+  if (result.warnings.length > 0) lines.push("");
 
   lines.push("## appendable", "");
   for (const event of result.appendable) {
@@ -110,12 +93,16 @@ function main() {
   const generatedAt = todayJst();
   const config = readYaml<Config>(CONFIG_PATH, { manualSeedEvents: [] });
   const sourceEvents = (config.manualSeedEvents ?? []).map(normalize);
-  const existingEvents = readJsonl<ListingEvent>(DATA_PATH).map(normalize);
+  const existingInput = readListingEventSyncExistingInput(DATA_PATH);
+  const existingEvents = existingInput.rows.map(normalize);
   const existingKeys = new Set(existingEvents.map(keyOf));
   const appendable = sourceEvents.filter(event => !existingKeys.has(keyOf(event)));
   const duplicates = sourceEvents.filter(event => existingKeys.has(keyOf(event)));
   const backfillRequired = sourceEvents.filter(event => !event.eventDate);
 
+  if (write && existingInput.warnings.length > 0) {
+    throw new Error(`refusing to sync listing events while existing input has warnings=${existingInput.warnings.length}`);
+  }
   if (write && appendable.length > 0) {
     mkdirSync("data", { recursive: true });
     for (const event of appendable) {
@@ -134,9 +121,10 @@ function main() {
     appendable,
     duplicates,
     backfillRequired,
+    warnings: existingInput.warnings,
   };
   writeReport(result);
-  console.log(`listing event sync preview generated: appendable=${appendable.length}, write=${write}`);
+  console.log(`listing event sync preview generated: appendable=${appendable.length}, write=${write}, warnings=${existingInput.warnings.length}`);
 }
 
 main();
