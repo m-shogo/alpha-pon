@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { validateThemesConfig } from "../src/config.js";
 import { scoreHealthyPullback } from "../src/score/pullback.js";
 import { scoreEarningsDrop } from "../src/score/earnings.js";
 import { validateWatchlist } from "../src/validation.js";
@@ -64,6 +65,18 @@ function testMalformedWatchlistRowsFailClosed() {
   assert.equal(errors.some(error => error.includes("8136 サンリオ")), false, "正常rowは壊れrowの周囲でも維持する");
 }
 
+function testMalformedThemeConfigFailsClosed() {
+  assert.throws(() => validateThemesConfig({ themes: null }), /themes object is required/);
+  assert.throws(() => validateThemesConfig({ themes: { ai: "broken" } }), /ai must be an object/);
+  assert.throws(
+    () => validateThemesConfig({ themes: { ai: { label: "AI", score: "5" } } }),
+    /ai\.score must be a finite number/,
+  );
+  assert.deepEqual(validateThemesConfig({ themes: { ai: { label: "AI", score: 5 } } }), {
+    themes: { ai: { label: "AI", score: 5 } },
+  });
+}
+
 function testGeneratedRunCursorShape() {
   assert.equal(isGeneratedRunCursorState({ jobName: "jquants", offset: 3, total: 10 }), true);
   assert.equal(isGeneratedRunCursorState(null), false);
@@ -127,6 +140,7 @@ function main() {
   testPullbackMissingFinancials();
   testEarningsDropMissingFinancials();
   testMalformedWatchlistRowsFailClosed();
+  testMalformedThemeConfigFailsClosed();
   testGeneratedRunCursorShape();
   testGeneratedReportShape();
   testGeneratedWarningsShape();
