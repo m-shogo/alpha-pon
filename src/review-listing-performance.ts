@@ -1,18 +1,10 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
 import { listingPerformanceReviewDate } from "./listing-performance-date.js";
-
-type ListingEvent = {
-  id: string;
-  code?: string;
-  name: string;
-  eventType: string;
-  eventDate?: string | null;
-  publicPrice?: number | null;
-  initialPrice?: number | null;
-  reviewPrice?: number | null;
-  topixRelativeReturn?: number | null;
-};
+import {
+  readListingEventReviewInput,
+  type ListingEventReviewInputRow as ListingEvent,
+} from "./listing-event-review-input.js";
 
 type ReviewRow = {
   id: string;
@@ -33,15 +25,6 @@ type ReviewRow = {
 };
 
 const DATA_PATH = "data/listing_events.jsonl";
-
-function readJsonl<T>(path: string): T[] {
-  if (!existsSync(path)) return [];
-  return readFileSync(path, "utf-8")
-    .split("\n")
-    .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => JSON.parse(line) as T);
-}
 
 function calcReturn(base: number | null | undefined, price: number | null | undefined): number | null {
   if (base == null || price == null || base === 0) return null;
@@ -88,15 +71,18 @@ function pct(value: number | null): string {
 
 function main() {
   const today = todayJst();
-  const events = readJsonl<ListingEvent>(DATA_PATH);
-  const rows = events.flatMap(buildRows);
+  const input = readListingEventReviewInput(DATA_PATH);
+  const rows = input.rows.flatMap(buildRows);
   const missing = rows.filter(row => row.dataQuality !== "ready");
   const lines: string[] = [];
 
   lines.push("# 上場後30日/90日レビュー", "", `date: ${today}`, "");
   lines.push("> 買い推奨ではありません。J-Quants/TOPIX連携前後で、上場後30日/90日の公開価格比・初値比・TOPIX比を確認する入口です。", "");
   lines.push(`- rows: ${rows.length}`);
-  lines.push(`- missingOrPartial: ${missing.length}`, "");
+  lines.push(`- missingOrPartial: ${missing.length}`);
+  lines.push(`- inputWarnings: ${input.warnings.length}`, "");
+  for (const warning of input.warnings) lines.push(`- warning: ${warning}`);
+  if (input.warnings.length > 0) lines.push("");
 
   lines.push("## rows", "");
   for (const row of rows) {
@@ -106,8 +92,8 @@ function main() {
 
   mkdirSync("reports", { recursive: true });
   writeFileSync("reports/listing_performance_review_latest.md", lines.join("\n"), "utf-8");
-  writeFileSync("reports/listing_performance_review_latest.json", JSON.stringify({ generatedAt: today, rows }, null, 2), "utf-8");
-  console.log(`listing performance review generated: rows=${rows.length}`);
+  writeFileSync("reports/listing_performance_review_latest.json", JSON.stringify({ generatedAt: today, rows, warnings: input.warnings }, null, 2), "utf-8");
+  console.log(`listing performance review generated: rows=${rows.length}, warnings=${input.warnings.length}`);
 }
 
 main();
