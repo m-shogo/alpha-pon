@@ -1,7 +1,11 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
+import {
+  loadRegimeScenarioReflections,
+  type RegimeScenarioReflection,
+} from "./regime-scenario-input.js";
 
 type ScenarioConfig = {
   scenarios: Record<string, {
@@ -12,14 +16,6 @@ type ScenarioConfig = {
     non_move_reasons: string[];
     evidence_checks: string[];
   }>;
-};
-
-type WorldReflection = {
-  date?: string;
-  title?: string;
-  category?: string;
-  tags?: string[];
-  riskLevel?: string;
 };
 
 const scenarioKeywords: Record<string, string[]> = {
@@ -36,18 +32,7 @@ function readYaml<T>(path: string): T {
   return load(readFileSync(path, "utf-8")) as T;
 }
 
-function readReflections(): WorldReflection[] {
-  const path = "data/world_event_reflections.json";
-  if (!existsSync(path)) return [];
-  try {
-    const value = JSON.parse(readFileSync(path, "utf-8")) as unknown;
-    return Array.isArray(value) ? value as WorldReflection[] : [];
-  } catch {
-    return [];
-  }
-}
-
-function scoreScenario(id: string, reflections: WorldReflection[]): { score: number; hits: string[] } {
+function scoreScenario(id: string, reflections: RegimeScenarioReflection[]): { score: number; hits: string[] } {
   const keywords = scenarioKeywords[id] ?? [];
   const hits: string[] = [];
   for (const reflection of reflections.slice(-80)) {
@@ -62,7 +47,7 @@ function scoreScenario(id: string, reflections: WorldReflection[]): { score: num
 function main() {
   const date = todayJst();
   const config = readYaml<ScenarioConfig>("config/regime-scenarios.yml");
-  const reflections = readReflections();
+  const reflections = loadRegimeScenarioReflections();
   const ranked = Object.entries(config.scenarios)
     .map(([id, scenario]) => ({ id, scenario, ...scoreScenario(id, reflections) }))
     .sort((a, b) => b.score - a.score);
