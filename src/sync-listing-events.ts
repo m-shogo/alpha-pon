@@ -1,14 +1,10 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from "fs";
-import { load } from "js-yaml";
+import { mkdirSync, writeFileSync, appendFileSync } from "fs";
 import { todayJst } from "./date.js";
+import { readListingEventSyncConfig } from "./listing-event-sync-config.js";
 import {
   readListingEventSyncExistingInput,
   type ListingEventSyncExistingRow as ListingEvent,
 } from "./listing-event-sync-input.js";
-
-type Config = {
-  manualSeedEvents?: ListingEvent[];
-};
 
 type SyncResult = {
   generatedAt: string;
@@ -26,11 +22,6 @@ type SyncResult = {
 
 const CONFIG_PATH = "config/listing-event-watch.yml";
 const DATA_PATH = "data/listing_events.jsonl";
-
-function readYaml<T>(path: string, fallback: T): T {
-  if (!existsSync(path)) return fallback;
-  return load(readFileSync(path, "utf-8")) as T;
-}
 
 function keyOf(event: ListingEvent): string {
   return `${event.id}:${event.eventType}:${event.eventDate ?? "missing"}`;
@@ -91,17 +82,18 @@ function writeReport(result: SyncResult) {
 function main() {
   const write = process.argv.includes("--write");
   const generatedAt = todayJst();
-  const config = readYaml<Config>(CONFIG_PATH, { manualSeedEvents: [] });
-  const sourceEvents = (config.manualSeedEvents ?? []).map(normalize);
+  const configInput = readListingEventSyncConfig(CONFIG_PATH);
+  const sourceEvents = configInput.rows.map(normalize);
   const existingInput = readListingEventSyncExistingInput(DATA_PATH);
   const existingEvents = existingInput.rows.map(normalize);
+  const warnings = [...configInput.warnings, ...existingInput.warnings];
   const existingKeys = new Set(existingEvents.map(keyOf));
   const appendable = sourceEvents.filter(event => !existingKeys.has(keyOf(event)));
   const duplicates = sourceEvents.filter(event => existingKeys.has(keyOf(event)));
   const backfillRequired = sourceEvents.filter(event => !event.eventDate);
 
-  if (write && existingInput.warnings.length > 0) {
-    throw new Error(`refusing to sync listing events while existing input has warnings=${existingInput.warnings.length}`);
+  if (write && warnings.length > 0) {
+    throw new Error(`refusing to sync listing events while input has warnings=${warnings.length}`);
   }
   if (write && appendable.length > 0) {
     mkdirSync("data", { recursive: true });
@@ -121,10 +113,10 @@ function main() {
     appendable,
     duplicates,
     backfillRequired,
-    warnings: existingInput.warnings,
+    warnings,
   };
   writeReport(result);
-  console.log(`listing event sync preview generated: appendable=${appendable.length}, write=${write}, warnings=${existingInput.warnings.length}`);
+  console.log(`listing event sync preview generated: appendable=${appendable.length}, write=${write}, warnings=${warnings.length}`);
 }
 
 main();
