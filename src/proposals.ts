@@ -1,6 +1,7 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
+import { readProposalScores } from "./proposals-score-input.js";
 
 type Priority = "S" | "A" | "B" | "Hold";
 type Proposal = {
@@ -75,14 +76,6 @@ function readJson<T>(path: string): T | null {
   } catch {
     return null;
   }
-}
-
-function latestScoreFile(): string | null {
-  if (!existsSync("reports")) return null;
-  const files = readdirSync("reports")
-    .filter(file => /^scores_\d{4}-\d{2}-\d{2}\.json$/.test(file))
-    .sort();
-  return files.at(-1) ? join("reports", files.at(-1)!) : null;
 }
 
 function pct(numerator: number, denominator: number): string {
@@ -310,8 +303,7 @@ function renderMarkdown(date: string, proposals: Proposal[]): string {
 
 function main() {
   const date = todayJst();
-  const scorePath = latestScoreFile();
-  const scores = scorePath ? readJson<ScoreLogEntry[]>(scorePath) ?? [] : [];
+  const scores = readProposalScores<ScoreLogEntry>("reports", date).rows;
   const pipeline = readJson<PipelineStatus>("reports/pipeline_status_latest.json");
   const ruleDiagnostics = readJson<RuleDiagnostic[]>("reports/rule_diagnostics_latest.json") ?? [];
   const proposals = buildProposals({ pipeline, scores, ruleDiagnostics });
