@@ -34,6 +34,10 @@ const validEvent = {
     "unknown source status must remain verification-required",
   );
   assert(
+    normalizeProIrSourceStatus({ sourceUrl: "https://example.test/ir", sourceStatus: "pending_review" }) === "official_check_required",
+    "unrecognized source status must fail closed instead of becoming confirmed",
+  );
+  assert(
     normalizeProIrSourceStatus({ sourceStatus: "confirmed" }) === "missing",
     "confirmed label without source URL must fail closed as missing",
   );
