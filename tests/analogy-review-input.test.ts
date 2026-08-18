@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadAnalogyPredictionsForReview } from "../src/analogy-review-input.js";
+import { loadAnalogyOutcomesForReview, loadAnalogyPredictionsForReview } from "../src/analogy-review-input.js";
 
 const dir = mkdtempSync(join(tmpdir(), "alpha-pon-analogy-review-"));
 
@@ -42,6 +42,33 @@ try {
   assert.match(result.warnings[0] ?? "", /lines 3/);
   assert.doesNotMatch(result.warnings[0] ?? "", /broken-json/);
   assert.match(result.warnings[1] ?? "", /invalid_shape 1/);
+
+  const outcomePath = join(dir, "outcomes.jsonl");
+  const validOutcome = {
+    schemaVersion: 1,
+    createdAt: "2026-08-01",
+    evaluatedAt: "2026-08-02",
+    eventId: valid.eventId,
+    timeframe: "1d",
+    lessonId: "lesson-1",
+    lessonTitle: "Example lesson",
+    direction: "same",
+    quality: "useful",
+    actualOutcome: "matched",
+    whatMatched: [],
+    whatDiffered: [],
+    missedSignals: [],
+    improvedRuleIdeas: [],
+  };
+  writeFileSync(outcomePath, `${JSON.stringify(validOutcome)}\n{broken-outcome\n`, "utf-8");
+
+  const outcomeResult = loadAnalogyOutcomesForReview(outcomePath);
+  assert.equal(outcomeResult.rows.length, 1);
+  assert.equal(outcomeResult.rows[0]?.eventId, valid.eventId);
+  assert.equal(outcomeResult.warnings.length, 1);
+  assert.match(outcomeResult.warnings[0] ?? "", /parse_error 1/);
+  assert.match(outcomeResult.warnings[0] ?? "", /lines 2/);
+  assert.doesNotMatch(outcomeResult.warnings[0] ?? "", /broken-outcome/);
 
   console.log("analogy-review-input.test.ts passed");
 } finally {
