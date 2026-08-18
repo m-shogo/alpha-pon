@@ -19,6 +19,16 @@ function stringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(item => typeof item === "string");
 }
 
+export function hasExistingOpenStockCandidateHypothesis(
+  existing: StockCandidateHypothesis[],
+  code: string,
+  detectedAt: string,
+): boolean {
+  return existing.some(
+    hypothesis => hypothesis.code === code && hypothesis.detectedAt === detectedAt && hypothesis.status === "open",
+  );
+}
+
 export function parseExistingStockCandidateHypothesesJsonl(
   text: string,
   sourceLabel = "data/hypothesis_predictions.jsonl",

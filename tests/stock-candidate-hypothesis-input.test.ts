@@ -6,6 +6,7 @@ import "./valuation-range-input.test.js";
 import "./proposals-score-input.test.js";
 import { parseHypothesisOutcomesJsonl, parseHypothesisOutcomeSqlitePayloads } from "../src/hypothesis-outcome-input.js";
 import {
+  hasExistingOpenStockCandidateHypothesis,
   normalizeStockCandidateUniverseRows,
   normalizeStockCandidateWatchlistCodes,
   parseExistingStockCandidateHypothesesJsonl,
@@ -37,6 +38,29 @@ assert.deepEqual(parsed.rows.map(row => row.code), ["8136", "7974"], "malformed 
 assert.equal(parsed.warnings.length, 1, "malformed JSONLをsilent dropしない");
 assert.match(parsed.warnings[0], /1 malformed JSONL row\(s\).*line\(s\) 2/, "raw内容ではなく件数と行番号だけを警告する");
 assert.ok(!parsed.warnings[0].includes("{ malformed"), "metadata warningへraw row内容を露出しない");
+
+const existingToday = [{ ...valid, detectedAt: "2026-08-18" }] as typeof parsed.rows;
+assert.equal(
+  hasExistingOpenStockCandidateHypothesis(existingToday, "8136", "2026-08-18"),
+  true,
+  "保存する仮説のdetectedAtが同日ならstale candidate由来でも重複として扱う",
+);
+assert.equal(
+  hasExistingOpenStockCandidateHypothesis(existingToday, "8136", "2026-08-17"),
+  false,
+  "元candidateの古いdetectedAtを重複キーへ流用しない",
+);
+const candidateHypothesisSource = readFileSync(new URL("../src/stock-candidate-hypothesis.ts", import.meta.url), "utf-8");
+assert.match(
+  candidateHypothesisSource,
+  /hasExistingOpenStockCandidateHypothesis\(existing, hypothesis\.code, hypothesis\.detectedAt\)/,
+  "candidate:hypothesisは実際にappendする仮説のdetectedAtで重複判定する",
+);
+assert.doesNotMatch(
+  candidateHypothesisSource,
+  /hasExistingOpenStockCandidateHypothesis\(existing, candidate\.code, candidate\.detectedAt\)/,
+  "stale fallbackで保持した元candidate detectedAtを重複判定に使わない",
+);
 
 const reviewSource = readFileSync(new URL("../src/review-hypothesis-outcomes.ts", import.meta.url), "utf-8");
 assert.match(
