@@ -1,23 +1,11 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
-
-type PrimaryItem = {
-  source: string;
-  title: string;
-  category: string;
-  severity: string;
-  publishedAt: string;
-};
-
-type ScoreLogEntry = {
-  code: string;
-  name: string;
-  primaryDisclosureReview?: {
-    decision?: string;
-    items?: PrimaryItem[];
-  };
-};
+import {
+  normalizePrimaryDisclosureLearningScoreInput,
+  type PrimaryDisclosureLearningItem as PrimaryItem,
+  type PrimaryDisclosureLearningScore as ScoreLogEntry,
+} from "./primary-disclosure-learning-input.js";
 
 type Subtype = {
   subtype: string;
@@ -33,14 +21,13 @@ function latestScoreFile(): string | null {
   return files.at(-1) ? join("reports", files.at(-1)!) : null;
 }
 
-function readScores(): ScoreLogEntry[] {
+function readScores(): { rows: ScoreLogEntry[]; warnings: string[] } {
   const path = latestScoreFile();
-  if (!path) return [];
+  if (!path) return { rows: [], warnings: [] };
   try {
-    const value = JSON.parse(readFileSync(path, "utf-8")) as unknown;
-    return Array.isArray(value) ? value as ScoreLogEntry[] : [];
+    return normalizePrimaryDisclosureLearningScoreInput(JSON.parse(readFileSync(path, "utf-8")), path);
   } catch {
-    return [];
+    return { rows: [], warnings: [`${path}: invalid_json`] };
   }
 }
 
@@ -97,7 +84,8 @@ function classifySubtype(item: PrimaryItem): Subtype {
 
 function main() {
   const date = todayJst();
-  const scores = readScores();
+  const scoreInput = readScores();
+  const scores = scoreInput.rows;
   const rows: Array<{ code: string; name: string; title: string; category: string; severity: string; subtype: Subtype }> = [];
 
   for (const score of scores) {
@@ -123,6 +111,10 @@ function main() {
   lines.push("");
   lines.push("> TDnet/EDINETタイトルから、一次情報カテゴリをさらに細かいサブタイプに分けます。買い推奨ではなく、誤判定防止と学習改善用です。");
   lines.push("");
+  if (scoreInput.warnings.length > 0) {
+    lines.push(`> 入力警告: ${scoreInput.warnings.length}件のmalformed score metadataを隔離しました。`);
+    lines.push("");
+  }
   lines.push("## サブタイプ出現数");
   lines.push("");
   for (const [key, count] of [...counts.entries()].sort((a, b) => b[1] - a[1])) {
