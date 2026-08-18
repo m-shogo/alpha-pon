@@ -66,10 +66,10 @@ export function normalizeProIrSourceStatus(event: NormalizedProIrEvent): Normali
 }
 
 export function hasConfirmedProIrSource(event: NormalizedProIrEvent): boolean {
-  const hasRealDate = [event.date, event.eventDate].some(
-    (value) => typeof value === "string" && isOptionalRealJstDate(value),
-  );
-  return hasRealDate && normalizeProIrSourceStatus(event) === "confirmed";
+  const dateFields = [event.date, event.eventDate];
+  const hasDate = dateFields.some((value) => typeof value === "string");
+  const allPresentDatesAreReal = dateFields.every((value) => isOptionalRealJstDate(value));
+  return hasDate && allPresentDatesAreReal && normalizeProIrSourceStatus(event) === "confirmed";
 }
 
 export function normalizeProIrEventInput(raw: unknown): ProIrEventInputLoad {
