@@ -1,3 +1,5 @@
+import { addDaysJst } from "./date.js";
+
 export type LockupMemo = {
   id: string;
   code?: string;
@@ -18,6 +20,16 @@ function isOptionalString(value: unknown): boolean {
   return value === undefined || typeof value === "string";
 }
 
+function isOptionalRealDate(value: unknown): boolean {
+  if (value === undefined) return true;
+  if (typeof value !== "string") return false;
+  try {
+    return addDaysJst(value, 0) === value;
+  } catch {
+    return false;
+  }
+}
+
 export function isLockupMemo(value: unknown): value is LockupMemo {
   if (!isRecord(value)) return false;
   return typeof value.id === "string"
@@ -26,9 +38,9 @@ export function isLockupMemo(value: unknown): value is LockupMemo {
     && value.name.trim().length > 0
     && isOptionalString(value.code)
     && isOptionalString(value.listingEventId)
-    && isOptionalString(value.listingDate)
+    && isOptionalRealDate(value.listingDate)
     && (value.lockupDays === undefined || (typeof value.lockupDays === "number" && Number.isFinite(value.lockupDays)))
-    && isOptionalString(value.lockupExpiryDate)
+    && isOptionalRealDate(value.lockupExpiryDate)
     && isOptionalString(value.source)
     && isOptionalString(value.memo);
 }
