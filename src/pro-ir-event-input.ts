@@ -46,6 +46,18 @@ function isOptionalRealJstDate(value: unknown): boolean {
   }
 }
 
+function isWebSourceUrl(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  try {
+    const url = new URL(trimmed);
+    return (url.protocol === "https:" || url.protocol === "http:") && Boolean(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
 function normalizeEvent(value: unknown): NormalizedProIrEvent | null {
   if (!isRecord(value)) return null;
   for (const field of ["type", "eventType", "label", "title", "date", "eventDate", "publishedAt", "sourceUrl", "sourceStatus", "impact"] as const) {
@@ -60,8 +72,7 @@ function normalizeEvent(value: unknown): NormalizedProIrEvent | null {
 
 export function normalizeProIrSourceStatus(event: NormalizedProIrEvent): NormalizedProIrSourceStatus {
   const status = String(event.sourceStatus ?? "").trim().toLowerCase();
-  const sourceUrl = typeof event.sourceUrl === "string" ? event.sourceUrl.trim() : "";
-  if (!sourceUrl) return "missing";
+  if (!isWebSourceUrl(event.sourceUrl)) return "missing";
   return status === "confirmed" ? "confirmed" : "official_check_required";
 }
 
