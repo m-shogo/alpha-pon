@@ -1,6 +1,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { addDaysJst, todayJst } from "./date.js";
+import { readReadOnlyJsonArrayFile } from "./read-only-json-file.js";
 
 function isRealJstDate(value: string): boolean {
   try {
@@ -24,4 +25,20 @@ export function latestValuationScoreFile(
     .sort((a, b) => a.date.localeCompare(b.date));
   const latest = files.at(-1);
   return latest ? join(reportsDir, latest.file) : null;
+}
+
+export function loadLatestValuationScoreRows<T>(
+  reportsDir = "reports",
+  asOf = todayJst(),
+): T[] {
+  const path = latestValuationScoreFile(reportsDir, asOf);
+  if (!path) return [];
+  const loaded = readReadOnlyJsonArrayFile<T>(path);
+  if (loaded.parseError) {
+    throw new Error(`${path}: parse_error`);
+  }
+  if (loaded.invalidRoot) {
+    throw new Error(`${path}: invalid_root (expected array)`);
+  }
+  return loaded.rows;
 }
