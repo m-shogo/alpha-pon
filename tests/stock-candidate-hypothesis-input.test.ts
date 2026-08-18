@@ -31,13 +31,13 @@ const valid = {
 };
 
 const parsed = parseExistingStockCandidateHypothesesJsonl(
-  `${JSON.stringify(valid)}\n{ malformed\n\n${JSON.stringify({ ...valid, code: "7974", name: "任天堂" })}\n`,
+  `${JSON.stringify(valid)}\n{ malformed\n{}\n${JSON.stringify({ ...valid, code: "7974", name: "任天堂" })}\n`,
 );
 
-assert.deepEqual(parsed.rows.map(row => row.code), ["8136", "7974"], "malformed rowの前後にある正常仮説を保持する");
-assert.equal(parsed.warnings.length, 1, "malformed JSONLをsilent dropしない");
-assert.match(parsed.warnings[0], /1 malformed JSONL row\(s\).*line\(s\) 2/, "raw内容ではなく件数と行番号だけを警告する");
-assert.ok(!parsed.warnings[0].includes("{ malformed"), "metadata warningへraw row内容を露出しない");
+assert.deepEqual(parsed.rows.map(row => row.code), ["8136", "7974"], "parse error/unsafe shapeの前後にある正常仮説を保持する");
+assert.equal(parsed.warnings.length, 1, "malformed/unsafe Hypothesis JSONLをsilent dropしない");
+assert.match(parsed.warnings[0], /2 malformed JSONL row\(s\).*line\(s\) 2, 3/, "parse errorとJSON-valid unsafe shapeをmetadata warningへ集約する");
+assert.ok(!parsed.warnings[0].includes("{ malformed"), "metadata warningへraw内容を露出しない");
 
 const existingToday = [{ ...valid, detectedAt: "2026-08-18" }] as typeof parsed.rows;
 assert.equal(
