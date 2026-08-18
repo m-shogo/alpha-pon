@@ -50,6 +50,15 @@ assert.equal(
   false,
   "元candidateの古いdetectedAtを重複キーへ流用しない",
 );
+assert.equal(
+  hasExistingOpenStockCandidateHypothesis(
+    [{ code: "8136", detectedAt: "2026-08-18", status: "open" } as typeof existingToday[number]],
+    "8136",
+    "2026-08-18",
+  ),
+  false,
+  "JSON-validでもcanonical Hypothesis identityを満たさない既存rowは正しい新規仮説を抑止しない",
+);
 const candidateHypothesisSource = readFileSync(new URL("../src/stock-candidate-hypothesis.ts", import.meta.url), "utf-8");
 assert.match(
   candidateHypothesisSource,
