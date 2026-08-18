@@ -62,6 +62,14 @@ const validEvent = {
     "year-zero eventDate must not satisfy confirmed IR gates",
   );
   assert(
+    !hasConfirmedProIrSource({ date: "2026-08-19", eventDate: "2026-02-31", sourceUrl: "https://example.test/ir", sourceStatus: "confirmed" }),
+    "one valid date must not hide a malformed second confirmed IR date field",
+  );
+  assert(
+    !hasConfirmedProIrSource({ date: "", eventDate: "2026-08-19", sourceUrl: "https://example.test/ir", sourceStatus: "confirmed" }),
+    "blank explicit date must fail closed even when eventDate is valid",
+  );
+  assert(
     !hasConfirmedProIrSource({ date: "2026-08-19", sourceUrl: "https://example.test/ir" }),
     "dated source URL without explicit verification must not satisfy confirmed IR gates",
   );
