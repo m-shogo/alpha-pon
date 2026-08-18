@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import "./listing-event-review-input.test.js";
 import { readListingEventRows } from "../src/listing-event-alert-input.js";
 
 const dir = mkdtempSync(join(tmpdir(), "alpha-pon-listing-event-alert-input-"));

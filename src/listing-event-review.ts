@@ -1,25 +1,9 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
-
-type ListingEvent = {
-  id: string;
-  code?: string;
-  name: string;
-  market?: string;
-  eventType: string;
-  eventDate?: string | null;
-  source?: string;
-  status?: string;
-  notificationLevel?: "priority" | "morning_summary" | "log";
-  whyWatch?: string;
-  relatedPattern?: string;
-  notes?: string[];
-  evidenceToBackfill?: string[];
-  publicPrice?: number | null;
-  initialPrice?: number | null;
-  reviewPrice?: number | null;
-  topixRelativeReturn?: number | null;
-};
+import {
+  readListingEventReviewInput,
+  type ListingEventReviewInputRow as ListingEvent,
+} from "./listing-event-review-input.js";
 
 type Review = {
   id: string;
@@ -38,15 +22,6 @@ type Review = {
 };
 
 const DATA_PATH = "data/listing_events.jsonl";
-
-function readJsonl<T>(path: string): T[] {
-  if (!existsSync(path)) return [];
-  return readFileSync(path, "utf-8")
-    .split("\n")
-    .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => JSON.parse(line) as T);
-}
 
 function calcReturn(base: number | null | undefined, price: number | null | undefined): number | null {
   if (base == null || price == null || base === 0) return null;
@@ -86,15 +61,18 @@ function formatPct(value: number | null): string {
 
 function main() {
   const today = todayJst();
-  const events = readJsonl<ListingEvent>(DATA_PATH);
-  const reviews = events.map(buildReview);
+  const input = readListingEventReviewInput(DATA_PATH);
+  const reviews = input.rows.map(buildReview);
   const missing = reviews.filter(review => review.dataQuality !== "ok");
   const lines: string[] = [];
 
   lines.push("# 上場イベントレビュー", "", `date: ${today}`, "");
   lines.push("> 買い推奨ではありません。上場イベント後の公開価格比・初値比・TOPIX比を答え合わせするためのレポートです。", "");
   lines.push(`- totalReviews: ${reviews.length}`);
-  lines.push(`- missingOrPartial: ${missing.length}`, "");
+  lines.push(`- missingOrPartial: ${missing.length}`);
+  lines.push(`- inputWarnings: ${input.warnings.length}`, "");
+  for (const warning of input.warnings) lines.push(`- warning: ${warning}`);
+  if (input.warnings.length > 0) lines.push("");
 
   lines.push("## reviews", "");
   for (const review of reviews) {
@@ -118,8 +96,8 @@ function main() {
 
   mkdirSync("reports", { recursive: true });
   writeFileSync("reports/listing_event_review_latest.md", lines.join("\n"), "utf-8");
-  writeFileSync("reports/listing_event_review_latest.json", JSON.stringify({ generatedAt: today, reviews }, null, 2), "utf-8");
-  console.log(`listing event review generated: ${reviews.length}`);
+  writeFileSync("reports/listing_event_review_latest.json", JSON.stringify({ generatedAt: today, reviews, warnings: input.warnings }, null, 2), "utf-8");
+  console.log(`listing event review generated: ${reviews.length}, warnings=${input.warnings.length}`);
 }
 
 main();
