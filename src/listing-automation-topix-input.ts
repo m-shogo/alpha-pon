@@ -1,4 +1,5 @@
 export type ListingAutomationTopixRow = {
+  code: string;
   topixRelativeReturn: number | null;
 };
 
@@ -29,11 +30,15 @@ export function parseListingAutomationTopixInput(text: string): ListingAutomatio
     if (!isRecord(row)) {
       return { rows, invalid: true, reason: "invalid_rows" };
     }
+    const code = row.code;
+    if (typeof code !== "string" || code.length === 0 || code !== code.trim()) {
+      return { rows, invalid: true, reason: "invalid_rows" };
+    }
     const value = row.topixRelativeReturn;
     if (value !== null && value !== undefined && (typeof value !== "number" || !Number.isFinite(value))) {
       return { rows, invalid: true, reason: "invalid_rows" };
     }
-    rows.push({ topixRelativeReturn: value ?? null });
+    rows.push({ code, topixRelativeReturn: value ?? null });
   }
 
   return { rows, invalid: false, reason: "ok" };
