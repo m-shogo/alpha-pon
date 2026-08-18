@@ -61,7 +61,7 @@ function hasValidNestedReviewDates(row: Record<string, unknown>): boolean {
   });
 }
 
-function isWorldImpactReviewRow(value: unknown): value is Record<string, unknown> {
+function isWorldImpactReviewRow(value: unknown, today: string): value is Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const row = value as Record<string, unknown>;
   if (!isNonEmptyString(row.reviewKey)
@@ -69,6 +69,8 @@ function isWorldImpactReviewRow(value: unknown): value is Record<string, unknown
     || !isRealJstDate(row.eventDate)
     || !isRealJstDate(row.createdAt)
     || !isRealJstDate(row.updatedAt)
+    || row.createdAt > today
+    || row.updatedAt > today
     || !hasValidNestedReviewDates(row)) {
     return false;
   }
@@ -81,7 +83,7 @@ export function resolveWorldImpactReportInput(
   today: string,
 ): WorldImpactReportInputResolution {
   if (!latest.present) {
-    if (jsonlReviews.some(review => !isWorldImpactReviewRow(review))) {
+    if (jsonlReviews.some(review => !isWorldImpactReviewRow(review, today))) {
       return { reviews: [], latestSnapshotError: false, jsonlFallbackError: true };
     }
     return { reviews: jsonlReviews, latestSnapshotError: false, jsonlFallbackError: false };
@@ -91,7 +93,7 @@ export function resolveWorldImpactReportInput(
     return { reviews: [], latestSnapshotError: true, jsonlFallbackError: false };
   }
 
-  if (latest.parsed.some(item => !isWorldImpactReviewRow(item))) {
+  if (latest.parsed.some(item => !isWorldImpactReviewRow(item, today))) {
     return { reviews: [], latestSnapshotError: true, jsonlFallbackError: false };
   }
 
