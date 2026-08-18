@@ -42,6 +42,27 @@ function isUsableAnalogyPredictionRecord(value: unknown): value is AnalogyPredic
   );
 }
 
+function isUsableAnalogyOutcomeRecord(value: unknown): value is AnalogyOutcomeRecord {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  return (
+    row.schemaVersion === 1 &&
+    typeof row.createdAt === "string" &&
+    typeof row.evaluatedAt === "string" &&
+    typeof row.eventId === "string" && row.eventId.trim().length > 0 &&
+    (row.timeframe === "1d" || row.timeframe === "1w" || row.timeframe === "1m") &&
+    typeof row.lessonId === "string" &&
+    typeof row.lessonTitle === "string" &&
+    (row.direction === "same" || row.direction === "opposite" || row.direction === "mixed" || row.direction === "unknown") &&
+    (row.quality === "useful" || row.quality === "misleading" || row.quality === "too_early" || row.quality === "unknown") &&
+    typeof row.actualOutcome === "string" &&
+    isStringArray(row.whatMatched) &&
+    isStringArray(row.whatDiffered) &&
+    isStringArray(row.missedSignals) &&
+    isStringArray(row.improvedRuleIdeas)
+  );
+}
+
 export function loadAnalogyPredictionsForReview(dir: string): AnalogyReviewPredictionInput {
   if (!existsSync(dir)) return { rows: [], warnings: [] };
 
@@ -63,10 +84,15 @@ export function loadAnalogyPredictionsForReview(dir: string): AnalogyReviewPredi
 }
 
 export function loadAnalogyOutcomesForReview(path: string): AnalogyReviewOutcomeInput {
-  const parsed = readJsonlWithErrors<AnalogyOutcomeRecord>(path);
+  const parsed = readJsonlWithErrors<unknown>(path);
+  const validRows = parsed.rows.filter(isUsableAnalogyOutcomeRecord);
+  const warnings: string[] = [];
   const warning = formatReadOnlyJsonlParseWarning(path, parsed.parseErrors);
+  if (warning) warnings.push(warning);
+  const invalidRows = parsed.rows.length - validRows.length;
+  if (invalidRows > 0) warnings.push(`${path}: invalid_shape ${invalidRows}`);
   return {
-    rows: parsed.rows,
-    warnings: warning ? [warning] : [],
+    rows: validRows,
+    warnings,
   };
 }
