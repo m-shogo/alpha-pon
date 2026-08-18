@@ -29,7 +29,12 @@ const inputs = normalizeWorldImpactReviewInputs(
       { code: "8136", name: "Sanrio universe duplicate" },
       { code: "7203", name: "Toyota" },
     ],
-    generatedCompanyRules: [],
+    generatedCompanyRules: [
+      { code: "8136", name: "Sanrio", reasons: ["first canonical rule"] },
+      { code: "8136", name: "Sanrio duplicate", reasons: ["later duplicate must not win"] },
+      { code: " 8136", name: "Sanrio padded", reasons: ["noncanonical identity"] },
+      { name: "legacy code-less rule", reasons: ["ignored by rule map"] },
+    ],
   },
   "2026-08-18",
 );
@@ -46,4 +51,10 @@ assert.ok(inputs.warnings.some(warning => warning.includes("alpha-pon-data.json.
 assert.ok(inputs.warnings.some(warning => warning.includes("alpha-pon-data.json.candidates: duplicate_identity") && warning.includes("dropped 1")));
 assert.ok(inputs.warnings.some(warning => warning.includes("alpha-pon-data.json.universeCandidates: duplicate_identity") && warning.includes("dropped 1")));
 
-console.log("world-impact review input: future reflectionとduplicate/padded candidate identityを隔離する");
+assert.equal(inputs.generatedCompanyRules.length, 2, "重複・非canonical company rule codeを後勝ちMapへ渡さない");
+assert.equal((inputs.generatedCompanyRules[0] as { code?: string; reasons?: string[] }).code, "8136", "最初のcanonical company ruleを維持する");
+assert.deepEqual((inputs.generatedCompanyRules[0] as { reasons?: string[] }).reasons, ["first canonical rule"], "後続duplicate ruleでprovenanceを上書きしない");
+assert.equal((inputs.generatedCompanyRules[1] as { code?: string }).code, undefined, "code-less legacy ruleは既存互換で維持する");
+assert.ok(inputs.warnings.some(warning => warning.includes("alpha-pon-data.json.generatedCompanyRules: duplicate_identity") && warning.includes("dropped 2")));
+
+console.log("world-impact review input: future reflectionとduplicate/padded candidate/company-rule identityを隔離する");
