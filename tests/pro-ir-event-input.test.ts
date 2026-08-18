@@ -46,12 +46,20 @@ const validEvent = {
     "blank source URL must fail closed instead of satisfying confirmed provenance",
   );
   assert(
+    normalizeProIrSourceStatus({ sourceUrl: "not-a-url", sourceStatus: "confirmed" }) === "missing",
+    "non-URL source text must not satisfy confirmed provenance",
+  );
+  assert(
+    normalizeProIrSourceStatus({ sourceUrl: "javascript:alert(1)", sourceStatus: "confirmed" }) === "missing",
+    "non-web URL schemes must not satisfy confirmed provenance",
+  );
+  assert(
     hasConfirmedProIrSource({ date: "2026-08-19", sourceUrl: "https://example.test/ir", sourceStatus: "confirmed" }),
     "dated explicitly confirmed source must remain usable as confirmed IR evidence",
   );
   assert(
-    hasConfirmedProIrSource({ eventDate: "2026-08-19", sourceUrl: "https://example.test/ir", sourceStatus: "confirmed" }),
-    "valid eventDate alone must remain usable as confirmed IR evidence",
+    hasConfirmedProIrSource({ eventDate: "2026-08-19", sourceUrl: "http://example.test/ir", sourceStatus: "confirmed" }),
+    "http web source must remain usable as confirmed IR evidence",
   );
   assert(
     !hasConfirmedProIrSource({ date: "2026-02-31", sourceUrl: "https://example.test/ir", sourceStatus: "confirmed" }),
@@ -76,6 +84,10 @@ const validEvent = {
   assert(
     !hasConfirmedProIrSource({ date: "2026-08-19", sourceUrl: "   ", sourceStatus: "confirmed" }),
     "blank source URL must not satisfy confirmed IR gates",
+  );
+  assert(
+    !hasConfirmedProIrSource({ date: "2026-08-19", sourceUrl: "not-a-url", sourceStatus: "confirmed" }),
+    "non-web source URL must not satisfy confirmed IR gates",
   );
 }
 
