@@ -8,6 +8,12 @@ function hasSafeWarnings(value: unknown): boolean {
   return warnings == null || (Array.isArray(warnings) && warnings.every(item => typeof item === "string"));
 }
 
+function stableCode(value: unknown): string | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  const code = (value as Record<string, unknown>).code;
+  return typeof code === "string" && code.length > 0 && code === code.trim() ? code : null;
+}
+
 export type ProposalScoreLoad<T> = {
   rows: T[];
   sourceFile: string | null;
@@ -31,9 +37,25 @@ export function readProposalScores<T>(
       throw new Error(`${sourceFile}: proposal score warning shape is invalid at row(s) ${unsafeRows.join(", ")}`);
     }
 
+    const codeRows = new Map<string, number[]>();
+    parsed.forEach((row, index) => {
+      const code = stableCode(row);
+      if (code === null) return;
+      const rows = codeRows.get(code) ?? [];
+      rows.push(index + 1);
+      codeRows.set(code, rows);
+    });
+    const duplicateRows = [...codeRows.values()]
+      .filter(rows => rows.length > 1)
+      .flat()
+      .sort((a, b) => a - b);
+    if (duplicateRows.length > 0) {
+      throw new Error(`${sourceFile}: proposal score identity is duplicated at row(s) ${duplicateRows.join(", ")}`);
+    }
+
     return { rows: parsed as T[], sourceFile };
   } catch (error) {
-    if (error instanceof Error && error.message.includes("proposal score warning shape is invalid")) throw error;
+    if (error instanceof Error && error.message.includes(": proposal score ")) throw error;
     return { rows: [], sourceFile };
   }
 }
