@@ -1,5 +1,13 @@
 export type PrimaryDecision = "confirmed" | "caution" | "block" | "missing" | "unknown_or_legacy";
 
+export type PrimaryDisclosureLearningItem = {
+  source: string;
+  title: string;
+  category: string;
+  severity: string;
+  publishedAt: string;
+};
+
 export type PrimaryDisclosureLearningScore = {
   code: string;
   name: string;
@@ -8,6 +16,7 @@ export type PrimaryDisclosureLearningScore = {
   createdAt: string;
   primaryDisclosureReview?: {
     decision?: PrimaryDecision;
+    items?: PrimaryDisclosureLearningItem[];
     sourceCoverage?: {
       tdnetCount?: number;
       edinetCount?: number;
@@ -44,6 +53,41 @@ function stringList(value: unknown, label: string, warnings: string[]): string[]
     if (!valid) warnings.push(`${label}: invalid_item`);
     return valid;
   });
+}
+
+function disclosureItems(value: unknown, label: string, warnings: string[]): PrimaryDisclosureLearningItem[] {
+  if (value == null) return [];
+  if (!Array.isArray(value)) {
+    warnings.push(`${label}: invalid_list`);
+    return [];
+  }
+  const items: PrimaryDisclosureLearningItem[] = [];
+  value.forEach((item, index) => {
+    const itemLabel = `${label} item ${index + 1}`;
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      warnings.push(`${itemLabel}: invalid_row`);
+      return;
+    }
+    const row = item as Record<string, unknown>;
+    if (
+      typeof row.source !== "string" || row.source.trim() === "" ||
+      typeof row.title !== "string" || row.title.trim() === "" ||
+      typeof row.category !== "string" || row.category.trim() === "" ||
+      typeof row.severity !== "string" || row.severity.trim() === "" ||
+      typeof row.publishedAt !== "string" || row.publishedAt.trim() === ""
+    ) {
+      warnings.push(`${itemLabel}: invalid_fields`);
+      return;
+    }
+    items.push({
+      source: row.source,
+      title: row.title,
+      category: row.category,
+      severity: row.severity,
+      publishedAt: row.publishedAt,
+    });
+  });
+  return items;
 }
 
 export function normalizePrimaryDisclosureLearningScoreInput(
@@ -112,6 +156,7 @@ export function normalizePrimaryDisclosureLearningScoreInput(
 
         primaryDisclosureReview = {
           decision,
+          items: disclosureItems(review.items, `${label}.primaryDisclosureReview.items`, warnings),
           sourceCoverage,
           positives: stringList(review.positives, `${label}.primaryDisclosureReview.positives`, warnings),
           warnings: stringList(review.warnings, `${label}.primaryDisclosureReview.warnings`, warnings),
