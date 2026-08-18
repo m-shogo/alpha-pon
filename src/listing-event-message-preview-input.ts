@@ -1,3 +1,4 @@
+import { todayJst } from "./date.js";
 import { parseListingEventDate } from "./listing-event-date.js";
 
 export type ListingEventMessageAlert = {
@@ -19,6 +20,13 @@ export type ListingEventMessageInput = {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isStrictGregorianDate(value: unknown): value is string {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  if (year < 1 || month < 1 || month > 12 || day < 1) return false;
+  return day <= new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
 function isCanonicalOptionalCode(value: unknown): boolean {
@@ -62,7 +70,7 @@ function isListingEventMessageAlert(value: unknown): value is ListingEventMessag
     && value.reason.trim().length > 0;
 }
 
-export function parseListingEventMessageInput(text: string): ListingEventMessageInput {
+export function parseListingEventMessageInput(text: string, asOf = todayJst()): ListingEventMessageInput {
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
@@ -72,6 +80,12 @@ export function parseListingEventMessageInput(text: string): ListingEventMessage
 
   if (!isRecord(parsed) || !Array.isArray(parsed.alerts)) {
     return { alerts: [], warnings: ["listing_event_alerts_latest.json: invalid_alerts_root"] };
+  }
+  if (!isStrictGregorianDate(parsed.generatedAt)) {
+    return { alerts: [], warnings: ["listing_event_alerts_latest.json: invalid_generated_at"] };
+  }
+  if (parsed.generatedAt !== asOf) {
+    return { alerts: [], warnings: ["listing_event_alerts_latest.json: stale_generated_at"] };
   }
 
   const alerts: ListingEventMessageAlert[] = [];
