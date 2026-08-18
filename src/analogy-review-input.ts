@@ -1,10 +1,15 @@
 import { existsSync, readdirSync } from "fs";
 import { join } from "path";
-import type { AnalogyPredictionRecord } from "./analysis/analogy-db.js";
+import type { AnalogyOutcomeRecord, AnalogyPredictionRecord } from "./analysis/analogy-db.js";
 import { formatReadOnlyJsonlParseWarning, readJsonlWithErrors } from "./read-only-jsonl.js";
 
 export type AnalogyReviewPredictionInput = {
   rows: AnalogyPredictionRecord[];
+  warnings: string[];
+};
+
+export type AnalogyReviewOutcomeInput = {
+  rows: AnalogyOutcomeRecord[];
   warnings: string[];
 };
 
@@ -55,4 +60,13 @@ export function loadAnalogyPredictionsForReview(dir: string): AnalogyReviewPredi
   }
 
   return { rows, warnings };
+}
+
+export function loadAnalogyOutcomesForReview(path: string): AnalogyReviewOutcomeInput {
+  const parsed = readJsonlWithErrors<AnalogyOutcomeRecord>(path);
+  const warning = formatReadOnlyJsonlParseWarning(path, parsed.parseErrors);
+  return {
+    rows: parsed.rows,
+    warnings: warning ? [warning] : [],
+  };
 }
