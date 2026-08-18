@@ -2,7 +2,8 @@ import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
 import { periodicReviewStart, type PeriodicReviewPeriod } from "./periodic-review-date.js";
-import { loadAnalogyOutcomeRecords, type AnalogyOutcomeRecord } from "./analysis/analogy-db.js";
+import type { AnalogyOutcomeRecord } from "./analysis/analogy-db.js";
+import { loadAnalogyOutcomesForReview } from "./analogy-review-input.js";
 import { loadPeriodicScoreLogs } from "./periodic-review-score-input.js";
 
 type Period = PeriodicReviewPeriod;
@@ -94,7 +95,8 @@ function main() {
   const start = periodicReviewStart(today, period);
   const scoreInput = loadPeriodicScoreLogs();
   const scores = scoreInput.entries.filter(entry => entry.createdAt >= start && entry.createdAt <= today);
-  const outcomes = loadAnalogyOutcomeRecords().filter(outcome => outcome.evaluatedAt >= start && outcome.evaluatedAt <= today);
+  const outcomeInput = loadAnalogyOutcomesForReview(join("data", "analogy_outcomes.jsonl"), today);
+  const outcomes = outcomeInput.rows.filter(outcome => outcome.evaluatedAt >= start && outcome.evaluatedAt <= today);
   const warnings = new Map<string, number>();
   const blockers = new Map<string, number>();
   const rules = new Map<string, number>();
@@ -126,6 +128,7 @@ function main() {
   lines.push("");
   lines.push(`- スコアログ: ${scores.length}件`);
   lines.push(`- スコア入力警告: ${scoreInputWarningCount}件`);
+  lines.push(`- Outcome入力警告: ${outcomeInput.warnings.length}件`);
   lines.push(`- 類推レビュー: ${s.count}件`);
   lines.push(`- 価格レビュー: ${s.pricedCount}件`);
   lines.push(`- same/opposite/mixed/unknown: ${s.same}/${s.opposite}/${s.mixed}/${s.unknown}`);
@@ -139,7 +142,7 @@ function main() {
   lines.push(`- expert block: ${scores.filter(x => x.expertReview?.finalVerdict === "block").length}件`);
   lines.push("");
 
-  if (scoreInputWarningCount > 0) {
+  if (scoreInputWarningCount > 0 || outcomeInput.warnings.length > 0) {
     lines.push("## 入力整合性警告");
     lines.push("");
     if (scoreInput.invalidFiles.length > 0) {
@@ -149,6 +152,10 @@ function main() {
     if (scoreInput.invalidRows.length > 0) {
       lines.push("- 以下のscore rowはruntime shape検証に失敗したため隔離した。正常rowの集計は継続する。");
       for (const row of scoreInput.invalidRows) lines.push(`  - ${row}`);
+    }
+    if (outcomeInput.warnings.length > 0) {
+      lines.push("- Analogy Outcome JSONLの破損・shape/PIT不整合rowを隔離した。正常Outcomeの集計は継続する。");
+      for (const warning of outcomeInput.warnings) lines.push(`  - ${warning}`);
     }
     lines.push("");
   }
