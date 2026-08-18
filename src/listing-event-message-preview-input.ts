@@ -19,6 +19,30 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isCanonicalOptionalCode(value: unknown): boolean {
+  return value === undefined
+    || (typeof value === "string" && value.trim().length > 0 && value === value.trim());
+}
+
+function isListingEventMessageAlert(value: unknown): value is ListingEventMessageAlert {
+  if (!isRecord(value)) return false;
+  return typeof value.id === "string"
+    && value.id.trim().length > 0
+    && typeof value.name === "string"
+    && value.name.trim().length > 0
+    && typeof value.eventType === "string"
+    && value.eventType.trim().length > 0
+    && isCanonicalOptionalCode(value.code)
+    && (value.eventDate === undefined || value.eventDate === null || typeof value.eventDate === "string")
+    && (value.alertType === "upcoming" || value.alertType === "review_due" || value.alertType === "missing_date")
+    && (value.daysUntil === null || (typeof value.daysUntil === "number" && Number.isInteger(value.daysUntil)))
+    && (value.effectiveNotificationLevel === "priority"
+      || value.effectiveNotificationLevel === "morning_summary"
+      || value.effectiveNotificationLevel === "log")
+    && typeof value.reason === "string"
+    && value.reason.trim().length > 0;
+}
+
 export function parseListingEventMessageInput(text: string): ListingEventMessageInput {
   let parsed: unknown;
   try {
@@ -34,11 +58,11 @@ export function parseListingEventMessageInput(text: string): ListingEventMessage
   const alerts: ListingEventMessageAlert[] = [];
   const invalidRows: number[] = [];
   parsed.alerts.forEach((value, index) => {
-    if (!isRecord(value)) {
+    if (!isListingEventMessageAlert(value)) {
       invalidRows.push(index + 1);
       return;
     }
-    alerts.push(value as ListingEventMessageAlert);
+    alerts.push(value);
   });
 
   return {
