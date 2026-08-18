@@ -1,6 +1,7 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
 import { listingPerformanceReviewDate } from "./listing-performance-date.js";
+import { readListingReviewSourceInput } from "./listing-review-source-input.js";
 
 type ListingEvent = {
   id: string;
@@ -26,15 +27,6 @@ type QuoteResult = {
 const DATA_PATH = "data/listing_events.jsonl";
 const OUT_CSV_PATH = process.env.LISTING_REVIEW_PRICE_CSV ?? "data/listing_review_prices.csv";
 const BASE_URL = process.env.JQUANTS_BASE_URL ?? "https://api.jquants.com/v1";
-
-function readJsonl<T>(path: string): T[] {
-  if (!existsSync(path)) return [];
-  return readFileSync(path, "utf-8")
-    .split("\n")
-    .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => JSON.parse(line) as T);
-}
 
 async function getIdToken(): Promise<string | null> {
   const mailaddress = process.env.JQUANTS_EMAIL;
@@ -108,7 +100,7 @@ function csvEscape(value: string | number | null | undefined): string {
 async function main() {
   const writeCsv = process.argv.includes("--write-csv");
   const generatedAt = todayJst();
-  const events = readJsonl<ListingEvent>(DATA_PATH);
+  const { events, warnings: sourceWarnings } = readListingReviewSourceInput(DATA_PATH);
   const targets = targetEvents(events);
   const lines: string[] = [];
   let idToken: string | null = null;
@@ -134,6 +126,7 @@ async function main() {
   lines.push(`- writeCsv: ${writeCsv}`);
   lines.push(`- targets: ${targets.length}`);
   lines.push(`- results: ${results.length}`);
+  for (const warning of sourceWarnings) lines.push(`- inputWarning: ${warning}`);
   if (setupError) lines.push(`- setupError: ${setupError}`);
   if (!process.env.JQUANTS_EMAIL || !process.env.JQUANTS_PASSWORD) {
     lines.push("", "## setup needed", "");
@@ -150,7 +143,7 @@ async function main() {
 
   mkdirSync("reports", { recursive: true });
   writeFileSync("reports/jquants_listing_review_prices_latest.md", lines.join("\n"), "utf-8");
-  writeFileSync("reports/jquants_listing_review_prices_latest.json", JSON.stringify({ generatedAt, targets, results, setupError }, null, 2), "utf-8");
+  writeFileSync("reports/jquants_listing_review_prices_latest.json", JSON.stringify({ generatedAt, targets, results, setupError, inputWarnings: sourceWarnings }, null, 2), "utf-8");
   console.log(`jquants listing review prices generated: results=${results.length}, writeCsv=${writeCsv}`);
 }
 
