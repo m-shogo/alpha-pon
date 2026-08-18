@@ -37,10 +37,16 @@ export function readProposalScores<T>(
       throw new Error(`${sourceFile}: proposal score warning shape is invalid at row(s) ${unsafeRows.join(", ")}`);
     }
 
+    const invalidIdentityRows = parsed
+      .map((row, index) => stableCode(row) === null ? index + 1 : null)
+      .filter((row): row is number => row !== null);
+    if (invalidIdentityRows.length > 0) {
+      throw new Error(`${sourceFile}: proposal score identity is invalid at row(s) ${invalidIdentityRows.join(", ")}`);
+    }
+
     const codeRows = new Map<string, number[]>();
     parsed.forEach((row, index) => {
-      const code = stableCode(row);
-      if (code === null) return;
+      const code = stableCode(row)!;
       const rows = codeRows.get(code) ?? [];
       rows.push(index + 1);
       codeRows.set(code, rows);
