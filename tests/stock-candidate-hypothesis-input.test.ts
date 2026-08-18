@@ -61,6 +61,11 @@ assert.doesNotMatch(
   /hasExistingOpenStockCandidateHypothesis\(existing, candidate\.code, candidate\.detectedAt\)/,
   "stale fallbackで保持した元candidate detectedAtを重複判定に使わない",
 );
+assert.match(
+  candidateHypothesisSource,
+  /appendHypothesis\(hypothesis\);\s*existing\.push\(hypothesis\);/,
+  "同一runでappendした仮説も直後から重複判定対象へ含める",
+);
 
 const reviewSource = readFileSync(new URL("../src/review-hypothesis-outcomes.ts", import.meta.url), "utf-8");
 assert.match(
