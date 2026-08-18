@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import "./pro-latest-score-row.test.js";
 import { latestValuationScoreFile } from "../src/valuation-range-input.js";
 
 const dir = mkdtempSync(join(tmpdir(), "valuation-range-input-"));
