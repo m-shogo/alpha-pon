@@ -63,7 +63,8 @@ assert.deepEqual(
   parseListingEventMessageInput(JSON.stringify({
     alerts: [
       VALID_ALERT,
-      { ...VALID_ALERT, alertType: "missing_date", daysUntil: 0 },
+      { ...VALID_ALERT, alertType: "missing_date", eventDate: null, daysUntil: null },
+      { ...VALID_ALERT, alertType: "missing_date", eventDate: "2026-02-31", daysUntil: null },
       { ...VALID_ALERT, alertType: "upcoming", daysUntil: null },
       { ...VALID_ALERT, alertType: "upcoming", daysUntil: -1 },
       { ...VALID_ALERT, alertType: "review_due", daysUntil: 1 },
@@ -71,10 +72,33 @@ assert.deepEqual(
     ],
   })),
   {
-    alerts: [VALID_ALERT, { ...VALID_ALERT, alertType: "review_due", daysUntil: 0 }],
-    warnings: ["listing_event_alerts_latest.json: invalid_rows=2,3,4,5"],
+    alerts: [
+      VALID_ALERT,
+      { ...VALID_ALERT, alertType: "missing_date", eventDate: null, daysUntil: null },
+      { ...VALID_ALERT, alertType: "missing_date", eventDate: "2026-02-31", daysUntil: null },
+      { ...VALID_ALERT, alertType: "review_due", daysUntil: 0 },
+    ],
+    warnings: ["listing_event_alerts_latest.json: invalid_rows=4,5,6"],
   },
   "alertType and daysUntil must preserve producer chronology before preview counts are trusted",
+);
+
+assert.deepEqual(
+  parseListingEventMessageInput(JSON.stringify({
+    alerts: [
+      VALID_ALERT,
+      { ...VALID_ALERT, eventDate: undefined },
+      { ...VALID_ALERT, eventDate: null },
+      { ...VALID_ALERT, eventDate: "2026-02-31" },
+      { ...VALID_ALERT, eventDate: "0000-01-01" },
+      { ...VALID_ALERT, alertType: "review_due", daysUntil: 0, eventDate: "2026-02-31" },
+    ],
+  })),
+  {
+    alerts: [VALID_ALERT],
+    warnings: ["listing_event_alerts_latest.json: invalid_rows=2,3,4,5,6"],
+  },
+  "dated alert states must carry a real Gregorian eventDate before preview counts are trusted",
 );
 
 console.log("listing-event-message-preview-input: OK");
