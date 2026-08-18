@@ -40,6 +40,11 @@ assert.throws(
   "rows without stable identity must not participate in latest merge",
 );
 assert.throws(
+  () => parseWorldImpactLatestSnapshot('[{"reviewKey":" event__5803"}]'),
+  /reviewKey must not contain surrounding whitespace/,
+  "stable review identities must remain canonical instead of creating whitespace variants",
+);
+assert.throws(
   () => parseWorldImpactLatestSnapshot('[{"reviewKey":"event__5803"},{"reviewKey":"event__5803"}]'),
   /duplicate reviewKey: event__5803/,
   "duplicate stable identities must not survive canonical latest preflight",
@@ -127,4 +132,4 @@ assert.throws(
   }
 }
 
-console.log("world-impact latest input: invalid canonical snapshots, duplicate identities/horizons, optional provenance, and read-only file failures fail closed before write");
+console.log("world-impact latest input: invalid canonical snapshots, canonical/duplicate identities, duplicate horizons, optional provenance, and read-only file failures fail closed before write");
