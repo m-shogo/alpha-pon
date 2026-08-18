@@ -106,7 +106,17 @@ const normalized = normalizeMarketEventData({
   schemaVersion: 1,
   source: "fallback",
   events: [validEvent, null, {}],
-  summary: {},
+  summary: {
+    total: 3,
+    scheduled: 3,
+    unknownDate: 2,
+    stale: 2,
+    calendarIncluded: 3,
+    calendarExcludedUnknownDate: 2,
+    priorityCounts: { S0: 2, S1: 0, S2: 1, S3: 0 },
+    decisionCounts: { BUY_WATCH: 2, WAIT: 0, BLOCK: 0, ABSTAIN: 0, INFO: 1 },
+    nextEventAt: "2026-02-31",
+  },
   meta: { warnings: ["existing warning"] },
 });
 assert.deepEqual(
@@ -119,6 +129,21 @@ assert.deepEqual(
   ["existing warning", "不正なイベント 2 件を表示対象から除外しました。"],
   "quarantined rows must be observable without hiding existing warnings",
 );
+assert.deepEqual(
+  normalized.summary,
+  {
+    total: 1,
+    scheduled: 1,
+    unknownDate: 0,
+    stale: 0,
+    calendarIncluded: 1,
+    calendarExcludedUnknownDate: 0,
+    priorityCounts: { S0: 0, S1: 0, S2: 1, S3: 0 },
+    decisionCounts: { BUY_WATCH: 0, WAIT: 0, BLOCK: 0, ABSTAIN: 0, INFO: 1 },
+    nextEventAt: null,
+  },
+  "summary counts must be rebuilt from surviving rows instead of preserving quarantined false-green counts",
+);
 
 const invalidSortAt = normalizeMarketEventData({
   schemaVersion: 1,
@@ -128,5 +153,6 @@ const invalidSortAt = normalizeMarketEventData({
   meta: { warnings: [] },
 });
 assert.equal(invalidSortAt.events.length, 0, "invalid sortAt rows must be quarantined before rendering");
+assert.equal(invalidSortAt.summary.total, 0, "quarantined rows must not remain in the read-only summary total");
 
 console.log("market-event-web-ordering.test.ts passed");
