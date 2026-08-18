@@ -2,7 +2,7 @@
 // world event reflection を銘柄別の影響仮説レビューへ変換する。
 // 既定は dry-run。--write の時だけ data/world_event_impacts.jsonl に追記する。
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
 import {
@@ -15,27 +15,36 @@ import {
   type WorldEventImpactReview,
 } from "./world-impact.js";
 import { normalizeWorldImpactReviewInputs } from "./world-impact-review-input.js";
+import {
+  readReadOnlyJsonArrayFile,
+  readReadOnlyJsonObjectFile,
+} from "./read-only-json-file.js";
 import type { WorldEventReflection } from "./analysis/world-event-reflection.js";
 
 type AlphaCandidate = { code: string; name: string; tags?: string[]; reasons?: string[]; negativeReasons?: string[]; nextToSee?: string[] };
 type AlphaUniverseCandidate = { code: string; name: string; sector?: string | null; matchedWorldEventTags?: string[]; warnings?: string[] };
 type AlphaCompanyRule = { code?: string; name?: string; thesis?: string[]; reasons?: string[]; risks?: string[]; evidenceNeeded?: string[] };
 
-function readJson<T>(path: string, fallback: T): T {
-  if (!existsSync(path)) return fallback;
-  try {
-    return JSON.parse(readFileSync(path, "utf-8")) as T;
-  } catch {
-    return fallback;
-  }
-}
-
 function main() {
   const today = todayJst();
   const write = process.argv.includes("--write");
+  const reflectionInput = readReadOnlyJsonArrayFile<WorldEventReflection>("data/world_event_reflections_latest.json");
+  const alphaInput = readReadOnlyJsonObjectFile<Record<string, unknown>>("apps/web/public/generated/alpha-pon-data.json");
+  const fileWarnings: string[] = [];
+  if (reflectionInput.parseError) {
+    fileWarnings.push("data/world_event_reflections_latest.json: parse_error");
+  } else if (reflectionInput.invalidRoot) {
+    fileWarnings.push("data/world_event_reflections_latest.json: invalid_root (expected array)");
+  }
+  if (alphaInput.parseError) {
+    fileWarnings.push("apps/web/public/generated/alpha-pon-data.json: parse_error");
+  } else if (alphaInput.invalidRoot) {
+    fileWarnings.push("apps/web/public/generated/alpha-pon-data.json: invalid_root (expected object)");
+  }
+
   const inputs = normalizeWorldImpactReviewInputs<WorldEventReflection, AlphaCandidate, AlphaUniverseCandidate, AlphaCompanyRule>(
-    readJson<unknown>("data/world_event_reflections_latest.json", null),
-    readJson<unknown>("apps/web/public/generated/alpha-pon-data.json", null),
+    reflectionInput.rows,
+    alphaInput.object,
   );
   const reviews = buildWorldImpactReviews({
     reflections: inputs.reflections,
@@ -70,6 +79,7 @@ function main() {
       "世界ニュースを銘柄への影響仮説として保存する研究ログです。",
       "dry-run では JSONL へ追記しません。",
       "価格データ不足は未評価として扱います。",
+      ...fileWarnings,
       ...inputs.warnings,
     ],
   };
