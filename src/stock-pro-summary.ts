@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
+import { normalizeStockProAgentReportText } from "./stock-pro-summary-input.js";
 
 function countMatches(text: string, pattern: RegExp): number {
   return [...text.matchAll(pattern)].length;
@@ -19,7 +20,7 @@ function uniqueLines(text: string, marker: string): string[] {
 function main() {
   const date = todayJst();
   const sourcePath = "reports/stock_pro_agent_latest.md";
-  const text = existsSync(sourcePath) ? readFileSync(sourcePath, "utf-8") : "";
+  const text = normalizeStockProAgentReportText(existsSync(sourcePath) ? readFileSync(sourcePath, "utf-8") : "");
 
   const labels = {
     research: countMatches(text, /final label: \*\*調査候補\*\*/g),
