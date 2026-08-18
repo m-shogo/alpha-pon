@@ -1,3 +1,4 @@
+import "./periodic-review-score-input.test.js";
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
