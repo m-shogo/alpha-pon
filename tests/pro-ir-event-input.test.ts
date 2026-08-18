@@ -42,12 +42,20 @@ const validEvent = {
     "confirmed label without source URL must fail closed as missing",
   );
   assert(
+    normalizeProIrSourceStatus({ sourceUrl: "   ", sourceStatus: "confirmed" }) === "missing",
+    "blank source URL must fail closed instead of satisfying confirmed provenance",
+  );
+  assert(
     hasConfirmedProIrSource({ date: "2026-08-19", sourceUrl: "https://example.test/ir", sourceStatus: "confirmed" }),
     "dated explicitly confirmed source must remain usable as confirmed IR evidence",
   );
   assert(
     !hasConfirmedProIrSource({ date: "2026-08-19", sourceUrl: "https://example.test/ir" }),
     "dated source URL without explicit verification must not satisfy confirmed IR gates",
+  );
+  assert(
+    !hasConfirmedProIrSource({ date: "2026-08-19", sourceUrl: "   ", sourceStatus: "confirmed" }),
+    "blank source URL must not satisfy confirmed IR gates",
   );
 }
 
