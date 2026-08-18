@@ -30,6 +30,11 @@ function isOptionalRealDate(value: unknown): boolean {
   }
 }
 
+function hasValidLockupChronology(value: Record<string, unknown>): boolean {
+  if (typeof value.listingDate !== "string" || typeof value.lockupExpiryDate !== "string") return true;
+  return value.lockupExpiryDate >= value.listingDate;
+}
+
 export function isLockupMemo(value: unknown): value is LockupMemo {
   if (!isRecord(value)) return false;
   return typeof value.id === "string"
@@ -41,6 +46,7 @@ export function isLockupMemo(value: unknown): value is LockupMemo {
     && isOptionalRealDate(value.listingDate)
     && (value.lockupDays === undefined || (typeof value.lockupDays === "number" && Number.isFinite(value.lockupDays)))
     && isOptionalRealDate(value.lockupExpiryDate)
+    && hasValidLockupChronology(value)
     && isOptionalString(value.source)
     && isOptionalString(value.memo);
 }
