@@ -25,6 +25,17 @@ try {
     "unsafe warning shapes must fail closed before proposal consumers call Array.some",
   );
 
+  writeFileSync(join(dir, "scores_2026-08-18.json"), JSON.stringify([
+    { code: "8136", warnings: [] },
+    { code: "7974", warnings: [] },
+    { code: "8136", warnings: [] },
+  ]), "utf-8");
+  assert.throws(
+    () => readProposalScores<{ code: string; warnings?: string[] }>(dir, "2026-08-18"),
+    /proposal score identity is duplicated at row\(s\) 1, 3/,
+    "duplicate stable score identities must not inflate proposal counts or ratios",
+  );
+
   const historical = readProposalScores<{ code: string }>(dir, "2026-08-17");
   assert.deepEqual(historical.rows, [{ code: "previous" }]);
   assert.equal(historical.sourceFile, join(dir, "scores_2026-08-17.json"));
@@ -38,4 +49,4 @@ try {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("proposals-score-input: PIT cutoff and unsafe warning-shape regression OK");
+console.log("proposals-score-input: PIT, warning-shape, and duplicate-identity regressions OK");
