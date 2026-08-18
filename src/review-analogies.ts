@@ -1,8 +1,9 @@
-import { existsSync, mkdirSync, readdirSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
 import { isValidAnalogyReviewDueDate } from "./analogy-review-date.js";
-import { loadAnalogyOutcomeRecords, readJsonl, saveAnalogyOutcomes, type AnalogyOutcomeRecord, type AnalogyPredictionRecord } from "./analysis/analogy-db.js";
+import { loadAnalogyOutcomeRecords, saveAnalogyOutcomes, type AnalogyOutcomeRecord, type AnalogyPredictionRecord } from "./analysis/analogy-db.js";
+import { loadAnalogyPredictionsForReview } from "./analogy-review-input.js";
 import { reviewPredictionWithPrice, type PriceReviewResult } from "./analysis/analogy-price-review.js";
 import { loadRunCursor, saveRunCursor } from "./run-cursor.js";
 
@@ -44,16 +45,6 @@ function dedupePredictions(predictions: AnalogyPredictionRecord[]): AnalogyPredi
 
 function shouldPersistOutcome(review: GeneratedReview): boolean {
   return review.priceReview.available && review.outcome.quality !== "too_early" && review.outcome.direction !== "unknown";
-}
-
-function loadAllPredictions(): AnalogyPredictionRecord[] {
-  const dir = join("data", "analogy_predictions");
-  if (!existsSync(dir)) return [];
-
-  return readdirSync(dir)
-    .filter(file => file.endsWith(".jsonl"))
-    .sort()
-    .flatMap(file => readJsonl<AnalogyPredictionRecord>(join(dir, file)));
 }
 
 function isAlreadyReviewed(prediction: AnalogyPredictionRecord, outcomes: AnalogyOutcomeRecord[]): boolean {
@@ -192,7 +183,8 @@ function renderReviewReport(reviews: GeneratedReview[], date: string): string {
 
 async function main() {
   const date = todayJst();
-  const predictions = dedupePredictions(loadAllPredictions());
+  const predictionInput = loadAnalogyPredictionsForReview(join("data", "analogy_predictions"));
+  const predictions = dedupePredictions(predictionInput.rows);
   const outcomes = loadAnalogyOutcomeRecords();
   const due = predictions
     .filter(prediction => compareDate(prediction.reviewDueAt, date) <= 0)
@@ -229,13 +221,14 @@ async function main() {
     });
   }
 
-  writeFileSync(join("reports", `analogy_review_${date}.json`), JSON.stringify({ due, reviewTargets, generated, saved: writable, retryLater, reviews, maxReviewsPerRun, cursor }, null, 2), "utf-8");
-  writeFileSync(join("reports", "analogy_review_latest.json"), JSON.stringify({ due, reviewTargets, generated, saved: writable, retryLater, reviews, maxReviewsPerRun, cursor }, null, 2), "utf-8");
+  writeFileSync(join("reports", `analogy_review_${date}.json`), JSON.stringify({ due, reviewTargets, generated, saved: writable, retryLater, reviews, maxReviewsPerRun, cursor, inputWarnings: predictionInput.warnings }, null, 2), "utf-8");
+  writeFileSync(join("reports", "analogy_review_latest.json"), JSON.stringify({ due, reviewTargets, generated, saved: writable, retryLater, reviews, maxReviewsPerRun, cursor, inputWarnings: predictionInput.warnings }, null, 2), "utf-8");
 
   if (mode === "write") {
     saveAnalogyOutcomes(writable);
   }
 
+  predictionInput.warnings.forEach(warning => console.warn(`入力警告: ${warning}`));
   console.log(`レビュー候補: ${due.length}件 / 今回処理: ${reviewTargets.length}件 (offset=${cursor.offset}, max=${maxReviewsPerRun}${autoCursor ? ", auto" : ", env"})`);
   console.log(`outcome保存対象: ${writable.length}件 / 次回再確認: ${retryLater.length}件`);
   console.log(`レポート: reports/analogy_review_${date}.md`);
