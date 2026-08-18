@@ -63,15 +63,31 @@ export function readLatestProScores<T>(reportsDir = "reports", asOf = todayJst()
     throw new Error(`${latest}: score snapshot root must be an array`);
   }
 
-  const rows: T[] = [];
+  const usableRows: Array<{ row: T; index: number; code: string }> = [];
   const invalidRows: number[] = [];
   parsed.forEach((row, index) => {
-    if (isUsableProScoreRow(row)) rows.push(row as T);
+    if (isUsableProScoreRow(row)) usableRows.push({ row: row as T, index: index + 1, code: row.code });
     else invalidRows.push(index + 1);
   });
-  const warnings = invalidRows.length > 0
-    ? [`${latest}: ${invalidRows.length} malformed score row(s) isolated at row(s) ${invalidRows.join(", ")}`]
-    : [];
+
+  const codeCounts = new Map<string, number>();
+  for (const item of usableRows) {
+    codeCounts.set(item.code, (codeCounts.get(item.code) ?? 0) + 1);
+  }
+  const duplicateRows = usableRows
+    .filter(item => (codeCounts.get(item.code) ?? 0) > 1)
+    .map(item => item.index);
+  const rows = usableRows
+    .filter(item => (codeCounts.get(item.code) ?? 0) === 1)
+    .map(item => item.row);
+
+  const warnings: string[] = [];
+  if (invalidRows.length > 0) {
+    warnings.push(`${latest}: ${invalidRows.length} malformed score row(s) isolated at row(s) ${invalidRows.join(", ")}`);
+  }
+  if (duplicateRows.length > 0) {
+    warnings.push(`${latest}: ${duplicateRows.length} duplicate-identity score row(s) isolated at row(s) ${duplicateRows.join(", ")}`);
+  }
 
   return { rows, sourceFile: latest, warnings };
 }
