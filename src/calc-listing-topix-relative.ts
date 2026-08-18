@@ -1,5 +1,6 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
+import { readListingCsvRows } from "./listing-csv-input.js";
 
 type PriceRow = {
   code?: string;
@@ -25,20 +26,8 @@ function parseNumber(value: string | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-function parseCsvRows(path: string): Record<string, string>[] {
-  if (!existsSync(path)) return [];
-  const [headerLine, ...rows] = readFileSync(path, "utf-8").split("\n").filter(Boolean);
-  const headers = headerLine.split(",").map(h => h.trim());
-  return rows.map(row => {
-    const cols = row.split(",").map(v => v.trim());
-    const obj: Record<string, string> = {};
-    headers.forEach((h, i) => (obj[h] = cols[i] ?? ""));
-    return obj;
-  });
-}
-
 function readPrices(): PriceRow[] {
-  return parseCsvRows(PRICE_CSV).map(row => ({
+  return readListingCsvRows(PRICE_CSV).map(row => ({
     code: row.code,
     publicPrice: parseNumber(row.publicPrice),
     initialPrice: parseNumber(row.initialPrice),
@@ -48,7 +37,7 @@ function readPrices(): PriceRow[] {
 }
 
 function readTopix(): TopixRow[] {
-  return parseCsvRows(TOPIX_CSV).map(row => ({ code: row.code, listingTopix: parseNumber(row.listingTopix), reviewTopix: parseNumber(row.reviewTopix) }));
+  return readListingCsvRows(TOPIX_CSV).map(row => ({ code: row.code, listingTopix: parseNumber(row.listingTopix), reviewTopix: parseNumber(row.reviewTopix) }));
 }
 
 function stockReturn(row: PriceRow): number | null {
