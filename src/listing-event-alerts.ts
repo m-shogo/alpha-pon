@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
 import { readListingEventRows } from "./listing-event-alert-input.js";
+import { readListingEventSyncConfig } from "./listing-event-sync-config.js";
 import { listingEventDaysBetween } from "./listing-event-date.js";
 
 type NotificationLevel = "priority" | "morning_summary" | "log";
@@ -168,8 +169,10 @@ function list(lines: string[], items: string[] | undefined, indent = "  - ") {
 function main() {
   const today = todayJst();
   const config = readYaml<Config>(CONFIG_PATH, {});
+  const configInput = readListingEventSyncConfig(CONFIG_PATH);
   const input = readListingEventRows<ListingEvent>(DATA_PATH, isListingEvent);
-  const events = uniqueEvents([...(config.manualSeedEvents ?? []), ...input.rows]);
+  const warnings = [...configInput.warnings, ...input.warnings];
+  const events = uniqueEvents([...configInput.rows, ...input.rows]);
   const alerts = events.map(event => toAlert(event, today, config)).filter((alert): alert is Alert => alert !== null);
   const priority = alerts.filter(alert => alert.effectiveNotificationLevel === "priority");
   const missingDate = alerts.filter(alert => alert.alertType === "missing_date");
@@ -181,9 +184,9 @@ function main() {
   lines.push(`- alerts: ${alerts.length}`);
   lines.push(`- priority: ${priority.length}`);
   lines.push(`- missingDate: ${missingDate.length}`);
-  lines.push(`- inputWarnings: ${input.warnings.length}`, "");
-  for (const warning of input.warnings) lines.push(`- warning: ${warning}`);
-  if (input.warnings.length > 0) lines.push("");
+  lines.push(`- inputWarnings: ${warnings.length}`, "");
+  for (const warning of warnings) lines.push(`- warning: ${warning}`);
+  if (warnings.length > 0) lines.push("");
 
   lines.push("## priority", "");
   for (const alert of priority) {
@@ -219,8 +222,8 @@ function main() {
 
   mkdirSync("reports", { recursive: true });
   writeFileSync("reports/listing_event_alerts_latest.md", lines.join("\n"), "utf-8");
-  writeFileSync("reports/listing_event_alerts_latest.json", JSON.stringify({ generatedAt: today, alerts, totalEvents: events.length, warnings: input.warnings }, null, 2), "utf-8");
-  console.log(`listing event alerts generated: ${alerts.length}, warnings=${input.warnings.length}`);
+  writeFileSync("reports/listing_event_alerts_latest.json", JSON.stringify({ generatedAt: today, alerts, totalEvents: events.length, warnings }, null, 2), "utf-8");
+  console.log(`listing event alerts generated: ${alerts.length}, warnings=${warnings.length}`);
 }
 
 main();
