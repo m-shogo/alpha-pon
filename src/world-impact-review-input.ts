@@ -12,6 +12,10 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+function isCanonicalIdentityString(value: unknown): value is string {
+  return isNonEmptyString(value) && value === value.trim();
+}
+
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(item => typeof item === "string");
 }
@@ -49,7 +53,7 @@ function isReflectionRow(value: unknown, asOf: string): boolean {
 
 function isCandidateRow(value: unknown): boolean {
   if (!isRecord(value)) return false;
-  return isNonEmptyString(value.code)
+  return isCanonicalIdentityString(value.code)
     && isNonEmptyString(value.name)
     && isOptionalStringArray(value.tags)
     && isOptionalStringArray(value.reasons)
