@@ -1,7 +1,7 @@
 import { existsSync, readdirSync } from "fs";
 import { join } from "path";
 import type { AnalogyOutcomeRecord, AnalogyPredictionRecord } from "./analysis/analogy-db.js";
-import { addDaysJst } from "./date.js";
+import { addDaysJst, todayJst } from "./date.js";
 import { formatReadOnlyJsonlParseWarning, readJsonlWithErrors } from "./read-only-jsonl.js";
 
 export type AnalogyReviewPredictionInput = {
@@ -95,7 +95,7 @@ export function loadAnalogyPredictionsForReview(dir: string): AnalogyReviewPredi
   return { rows, warnings };
 }
 
-export function loadAnalogyOutcomesForReview(path: string, asOf: string): AnalogyReviewOutcomeInput {
+export function loadAnalogyOutcomesForReview(path: string, asOf = todayJst()): AnalogyReviewOutcomeInput {
   if (!isRealJstDate(asOf)) {
     throw new Error("analogy review asOf must be a real YYYY-MM-DD date");
   }
