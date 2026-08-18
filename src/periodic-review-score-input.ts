@@ -16,25 +16,91 @@ export type PeriodicScoreLogEntry = {
   riskReview?: { decision: string; blockers: string[] };
 };
 
+export type ParsedPeriodicScoreLog = {
+  entries: PeriodicScoreLogEntry[];
+  invalidRows: number[];
+};
+
 export type PeriodicScoreInput = {
   entries: PeriodicScoreLogEntry[];
   invalidFiles: string[];
+  invalidRows: string[];
 };
 
-export function parsePeriodicScoreLog(raw: string): PeriodicScoreLogEntry[] | null {
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(item => typeof item === "string");
+}
+
+function normalizePeriodicScoreRow(value: unknown): PeriodicScoreLogEntry | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const row = value as Record<string, unknown>;
+  if (typeof row.code !== "string" || row.code.trim() === "") return null;
+  if (typeof row.name !== "string" || row.name.trim() === "") return null;
+  if (typeof row.score !== "number" || !Number.isFinite(row.score)) return null;
+  if (typeof row.alertLevel !== "string" || row.alertLevel.trim() === "") return null;
+  if (typeof row.createdAt !== "string" || row.createdAt.trim() === "") return null;
+
+  for (const field of ["tags", "rules", "warnings", "negativeReasons"] as const) {
+    if (row[field] != null && !isStringArray(row[field])) return null;
+  }
+
+  let expertReview: PeriodicScoreLogEntry["expertReview"];
+  if (row.expertReview != null) {
+    if (!row.expertReview || typeof row.expertReview !== "object" || Array.isArray(row.expertReview)) return null;
+    const expert = row.expertReview as Record<string, unknown>;
+    if (typeof expert.finalVerdict !== "string") return null;
+    if (typeof expert.consensusScore !== "number" || !Number.isFinite(expert.consensusScore)) return null;
+    expertReview = { finalVerdict: expert.finalVerdict, consensusScore: expert.consensusScore };
+  }
+
+  let riskReview: PeriodicScoreLogEntry["riskReview"];
+  if (row.riskReview != null) {
+    if (!row.riskReview || typeof row.riskReview !== "object" || Array.isArray(row.riskReview)) return null;
+    const risk = row.riskReview as Record<string, unknown>;
+    if (typeof risk.decision !== "string" || !isStringArray(risk.blockers)) return null;
+    riskReview = { decision: risk.decision, blockers: risk.blockers };
+  }
+
+  return {
+    code: row.code,
+    name: row.name,
+    priority: typeof row.priority === "string" ? row.priority : undefined,
+    tags: row.tags as string[] | undefined,
+    rules: row.rules as string[] | undefined,
+    score: row.score,
+    alertLevel: row.alertLevel,
+    warnings: row.warnings as string[] | undefined,
+    negativeReasons: row.negativeReasons as string[] | undefined,
+    createdAt: row.createdAt,
+    expertReview,
+    riskReview,
+  };
+}
+
+export function parsePeriodicScoreLog(raw: string): ParsedPeriodicScoreLog | null {
   try {
     const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed as PeriodicScoreLogEntry[] : null;
+    if (!Array.isArray(parsed)) return null;
+
+    const entries: PeriodicScoreLogEntry[] = [];
+    const invalidRows: number[] = [];
+    parsed.forEach((value, index) => {
+      const normalized = normalizePeriodicScoreRow(value);
+      if (normalized) entries.push(normalized);
+      else invalidRows.push(index + 1);
+    });
+    return { entries, invalidRows };
   } catch {
     return null;
   }
 }
 
 export function loadPeriodicScoreLogs(reportDir = "reports"): PeriodicScoreInput {
-  if (!existsSync(reportDir)) return { entries: [], invalidFiles: [] };
+  if (!existsSync(reportDir)) return { entries: [], invalidFiles: [], invalidRows: [] };
 
   const entries: PeriodicScoreLogEntry[] = [];
   const invalidFiles: string[] = [];
+  const invalidRows: string[] = [];
   const files = readdirSync(reportDir)
     .filter(file => /^scores_\d{4}-\d{2}-\d{2}\.json$/.test(file))
     .sort();
@@ -53,8 +119,9 @@ export function loadPeriodicScoreLogs(reportDir = "reports"): PeriodicScoreInput
       invalidFiles.push(file);
       continue;
     }
-    entries.push(...parsed);
+    entries.push(...parsed.entries);
+    invalidRows.push(...parsed.invalidRows.map(row => `${file}#row-${row}`));
   }
 
-  return { entries, invalidFiles };
+  return { entries, invalidFiles, invalidRows };
 }
