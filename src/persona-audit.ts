@@ -1,6 +1,7 @@
-import { existsSync, mkdirSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
+import { isUsablePersonaAuditReport } from "./persona-audit-input.js";
 
 type Check = {
   persona: string;
@@ -11,15 +12,15 @@ type Check = {
 };
 
 const checks: Check[] = [
-  { persona: "毎朝見る自分", item: "pipeline status", path: "reports/pipeline_status_latest.json", ok: existsSync("reports/pipeline_status_latest.json"), action: "run-daily.sh の実行状態を確認する" },
-  { persona: "データ運用者", item: "source health", path: "reports/source_health_latest.md", ok: existsSync("reports/source_health_latest.md"), action: "health:sources を実行する" },
-  { persona: "改善担当", item: "proposals", path: "reports/proposals_latest.md", ok: existsSync("reports/proposals_latest.md"), action: "src/proposals.ts を実行する" },
-  { persona: "改善担当", item: "proposal streaks", path: "reports/proposal_streaks_latest.json", ok: existsSync("reports/proposal_streaks_latest.json"), action: "scripts/run-proposal-history.sh を実行する" },
-  { persona: "検証・学習担当", item: "learning report", path: "reports/learning_latest.md", ok: existsSync("reports/learning_latest.md"), action: "src/learn.ts を実行する" },
-  { persona: "一次情報管理者", item: "primary disclosure learning", path: "reports/primary_disclosure_learning_latest.md", ok: existsSync("reports/primary_disclosure_learning_latest.md"), action: "src/primary-disclosure-learning.ts を実行する" },
-  { persona: "一次情報管理者", item: "primary disclosure category learning", path: "reports/primary_disclosure_category_learning_latest.md", ok: existsSync("reports/primary_disclosure_category_learning_latest.md"), action: "src/primary-disclosure-category-learning.ts を実行する" },
-  { persona: "ルール管理者", item: "rule diagnostics", path: "reports/rule_diagnostics_latest.md", ok: existsSync("reports/rule_diagnostics_latest.md"), action: "src/rule-diagnostics.ts を実行する" },
-  { persona: "銘柄記憶担当", item: "company memory", path: "reports/company_memory_latest.md", ok: existsSync("reports/company_memory_latest.md"), action: "src/update-company-memory.ts を実行する" },
+  { persona: "毎朝見る自分", item: "pipeline status", path: "reports/pipeline_status_latest.json", ok: isUsablePersonaAuditReport("reports/pipeline_status_latest.json"), action: "run-daily.sh の実行状態を確認する" },
+  { persona: "データ運用者", item: "source health", path: "reports/source_health_latest.md", ok: isUsablePersonaAuditReport("reports/source_health_latest.md"), action: "health:sources を実行する" },
+  { persona: "改善担当", item: "proposals", path: "reports/proposals_latest.md", ok: isUsablePersonaAuditReport("reports/proposals_latest.md"), action: "src/proposals.ts を実行する" },
+  { persona: "改善担当", item: "proposal streaks", path: "reports/proposal_streaks_latest.json", ok: isUsablePersonaAuditReport("reports/proposal_streaks_latest.json"), action: "scripts/run-proposal-history.sh を実行する" },
+  { persona: "検証・学習担当", item: "learning report", path: "reports/learning_latest.md", ok: isUsablePersonaAuditReport("reports/learning_latest.md"), action: "src/learn.ts を実行する" },
+  { persona: "一次情報管理者", item: "primary disclosure learning", path: "reports/primary_disclosure_learning_latest.md", ok: isUsablePersonaAuditReport("reports/primary_disclosure_learning_latest.md"), action: "src/primary-disclosure-learning.ts を実行する" },
+  { persona: "一次情報管理者", item: "primary disclosure category learning", path: "reports/primary_disclosure_category_learning_latest.md", ok: isUsablePersonaAuditReport("reports/primary_disclosure_category_learning_latest.md"), action: "src/primary-disclosure-category-learning.ts を実行する" },
+  { persona: "ルール管理者", item: "rule diagnostics", path: "reports/rule_diagnostics_latest.md", ok: isUsablePersonaAuditReport("reports/rule_diagnostics_latest.md"), action: "src/rule-diagnostics.ts を実行する" },
+  { persona: "銘柄記憶担当", item: "company memory", path: "reports/company_memory_latest.md", ok: isUsablePersonaAuditReport("reports/company_memory_latest.md"), action: "src/update-company-memory.ts を実行する" },
 ];
 
 function main() {
