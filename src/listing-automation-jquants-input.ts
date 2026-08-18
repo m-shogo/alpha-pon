@@ -1,6 +1,6 @@
 export type ListingAutomationJquantsResult = {
   price: number | null;
-  source?: string;
+  source?: "jquants" | "missing" | "error";
 };
 
 export type ListingAutomationJquantsInput = {
@@ -13,6 +13,10 @@ export type ListingAutomationJquantsInput = {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isListingAutomationJquantsSource(value: unknown): value is NonNullable<ListingAutomationJquantsResult["source"]> {
+  return value === "jquants" || value === "missing" || value === "error";
 }
 
 export function parseListingAutomationJquantsInput(text: string): ListingAutomationJquantsInput {
@@ -45,10 +49,10 @@ export function parseListingAutomationJquantsInput(text: string): ListingAutomat
     if (price !== null && price !== undefined && (typeof price !== "number" || !Number.isFinite(price))) {
       return { targets, results, setupError: null, invalid: true, reason: "invalid_rows" };
     }
-    if (row.source !== undefined && typeof row.source !== "string") {
+    if (row.source !== undefined && !isListingAutomationJquantsSource(row.source)) {
       return { targets, results, setupError: null, invalid: true, reason: "invalid_rows" };
     }
-    results.push({ price: price ?? null, source: row.source as string | undefined });
+    results.push({ price: price ?? null, source: row.source as ListingAutomationJquantsResult["source"] });
   }
 
   const setupError = root.setupError ?? null;

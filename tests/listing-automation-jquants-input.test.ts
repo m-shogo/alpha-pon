@@ -50,6 +50,12 @@ assert.deepEqual(
 );
 
 assert.deepEqual(
+  parseListingAutomationJquantsInput(JSON.stringify({ targets: [], results: [{ price: 1234, source: "synthetic" }] })),
+  { targets: [], results: [], setupError: null, invalid: true, reason: "invalid_rows" },
+  "unknown source provenance must fail closed instead of being treated as J-Quants price evidence",
+);
+
+assert.deepEqual(
   parseListingAutomationJquantsInput(JSON.stringify({ targets: [], results: [], setupError: {} })),
   { targets: [], results: [], setupError: null, invalid: true, reason: "invalid_setup_error" },
   "malformed setupError must fail closed",
