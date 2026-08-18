@@ -40,14 +40,15 @@ function isRealDate(value: string): boolean {
   }
 }
 
-function normalizePeriodicScoreRow(value: unknown): PeriodicScoreLogEntry | null {
+function normalizePeriodicScoreRow(value: unknown, expectedDate?: string): PeriodicScoreLogEntry | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const row = value as Record<string, unknown>;
   if (typeof row.code !== "string" || row.code.trim() === "") return null;
   if (typeof row.name !== "string" || row.name.trim() === "") return null;
   if (typeof row.score !== "number" || !Number.isFinite(row.score)) return null;
   if (typeof row.alertLevel !== "string" || row.alertLevel.trim() === "") return null;
-  if (typeof row.createdAt !== "string" || row.createdAt.trim() === "") return null;
+  if (typeof row.createdAt !== "string" || !isRealDate(row.createdAt)) return null;
+  if (expectedDate != null && row.createdAt !== expectedDate) return null;
 
   for (const field of ["tags", "rules", "warnings", "negativeReasons"] as const) {
     if (row[field] != null && !isStringArray(row[field])) return null;
@@ -86,7 +87,7 @@ function normalizePeriodicScoreRow(value: unknown): PeriodicScoreLogEntry | null
   };
 }
 
-export function parsePeriodicScoreLog(raw: string): ParsedPeriodicScoreLog | null {
+export function parsePeriodicScoreLog(raw: string, expectedDate?: string): ParsedPeriodicScoreLog | null {
   try {
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return null;
@@ -94,7 +95,7 @@ export function parsePeriodicScoreLog(raw: string): ParsedPeriodicScoreLog | nul
     const entries: PeriodicScoreLogEntry[] = [];
     const invalidRows: number[] = [];
     parsed.forEach((value, index) => {
-      const normalized = normalizePeriodicScoreRow(value);
+      const normalized = normalizePeriodicScoreRow(value, expectedDate);
       if (normalized) entries.push(normalized);
       else invalidRows.push(index + 1);
     });
@@ -129,7 +130,7 @@ export function loadPeriodicScoreLogs(reportDir = "reports", asOf = todayJst()):
       continue;
     }
 
-    const parsed = parsePeriodicScoreLog(raw);
+    const parsed = parsePeriodicScoreLog(raw, snapshotDate);
     if (!parsed) {
       invalidFiles.push(file);
       continue;
