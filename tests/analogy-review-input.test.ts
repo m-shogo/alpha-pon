@@ -60,15 +60,25 @@ try {
     missedSignals: [],
     improvedRuleIdeas: [],
   };
-  writeFileSync(outcomePath, `${JSON.stringify(validOutcome)}\n{broken-outcome\n`, "utf-8");
+  const unsafeSuppressor = {
+    eventId: valid.eventId,
+    timeframe: "1d",
+    quality: "useful",
+  };
+  writeFileSync(
+    outcomePath,
+    `${JSON.stringify(validOutcome)}\n${JSON.stringify(unsafeSuppressor)}\n{broken-outcome\n`,
+    "utf-8",
+  );
 
   const outcomeResult = loadAnalogyOutcomesForReview(outcomePath);
   assert.equal(outcomeResult.rows.length, 1);
   assert.equal(outcomeResult.rows[0]?.eventId, valid.eventId);
-  assert.equal(outcomeResult.warnings.length, 1);
+  assert.equal(outcomeResult.warnings.length, 2);
   assert.match(outcomeResult.warnings[0] ?? "", /parse_error 1/);
-  assert.match(outcomeResult.warnings[0] ?? "", /lines 2/);
+  assert.match(outcomeResult.warnings[0] ?? "", /lines 3/);
   assert.doesNotMatch(outcomeResult.warnings[0] ?? "", /broken-outcome/);
+  assert.match(outcomeResult.warnings[1] ?? "", /invalid_shape 1/);
 
   console.log("analogy-review-input.test.ts passed");
 } finally {
