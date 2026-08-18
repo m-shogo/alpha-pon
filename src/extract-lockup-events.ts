@@ -1,5 +1,8 @@
-import { existsSync, mkdirSync, readFileSync, appendFileSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, appendFileSync, writeFileSync } from "fs";
 import { addDaysJst, todayJst } from "./date.js";
+import { readListingEventRows } from "./listing-event-alert-input.js";
+import { isListingEventReviewInputRow } from "./listing-event-review-input.js";
+import { isLockupMemo, type LockupMemo } from "./lockup-event-input.js";
 
 type ListingEvent = {
   id: string;
@@ -23,25 +26,8 @@ type ListingEvent = {
 const DATA_PATH = "data/listing_events.jsonl";
 const MANUAL_MEMO_PATH = "data/lockup_memos.jsonl";
 
-type LockupMemo = {
-  id: string;
-  code?: string;
-  name: string;
-  listingEventId?: string;
-  listingDate?: string;
-  lockupDays?: number;
-  lockupExpiryDate?: string;
-  source?: string;
-  memo?: string;
-};
-
-function readJsonl<T>(path: string): T[] {
-  if (!existsSync(path)) return [];
-  return readFileSync(path, "utf-8")
-    .split("\n")
-    .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => JSON.parse(line) as T);
+function isListingEvent(value: unknown): value is ListingEvent {
+  return isListingEventReviewInputRow(value);
 }
 
 function keyOf(event: ListingEvent): string {
@@ -83,6 +69,7 @@ function writeReport(params: {
   appendable: ListingEvent[];
   duplicates: ListingEvent[];
   backfillRequired: ListingEvent[];
+  warnings: string[];
 }) {
   const lines: string[] = [];
   lines.push("# ロックアップ解除イベント抽出", "", `date: ${params.generatedAt}`, "");
@@ -91,7 +78,10 @@ function writeReport(params: {
   lines.push(`- memoCount: ${params.memoCount}`);
   lines.push(`- appendable: ${params.appendable.length}`);
   lines.push(`- duplicates: ${params.duplicates.length}`);
-  lines.push(`- backfillRequired: ${params.backfillRequired.length}`, "");
+  lines.push(`- backfillRequired: ${params.backfillRequired.length}`);
+  lines.push(`- inputWarnings: ${params.warnings.length}`, "");
+  for (const warning of params.warnings) lines.push(`- warning: ${warning}`);
+  if (params.warnings.length > 0) lines.push("");
 
   if (!existsSync(MANUAL_MEMO_PATH)) {
     lines.push("## setup needed", "");
@@ -115,10 +105,11 @@ function writeReport(params: {
 function main() {
   const write = process.argv.includes("--write");
   const generatedAt = todayJst();
-  const memos = readJsonl<LockupMemo>(MANUAL_MEMO_PATH);
-  const existing = readJsonl<ListingEvent>(DATA_PATH);
-  const existingKeys = new Set(existing.map(keyOf));
-  const events = memos.map(fromMemo).filter((event): event is ListingEvent => event !== null);
+  const memoInput = readListingEventRows<LockupMemo>(MANUAL_MEMO_PATH, isLockupMemo);
+  const existingInput = readListingEventRows<ListingEvent>(DATA_PATH, isListingEvent);
+  const warnings = [...memoInput.warnings, ...existingInput.warnings];
+  const existingKeys = new Set(existingInput.rows.map(keyOf));
+  const events = memoInput.rows.map(fromMemo).filter((event): event is ListingEvent => event !== null);
   const appendable = events.filter(event => !existingKeys.has(keyOf(event)));
   const duplicates = events.filter(event => existingKeys.has(keyOf(event)));
   const backfillRequired = events.filter(event => !event.eventDate);
@@ -126,8 +117,16 @@ function main() {
     mkdirSync("data", { recursive: true });
     for (const event of appendable) appendFileSync(DATA_PATH, `${JSON.stringify(event)}\n`, "utf-8");
   }
-  writeReport({ generatedAt, write, memoCount: memos.length, appendable, duplicates, backfillRequired });
-  console.log(`lockup event extraction generated: appendable=${appendable.length}, write=${write}`);
+  writeReport({
+    generatedAt,
+    write,
+    memoCount: memoInput.rows.length,
+    appendable,
+    duplicates,
+    backfillRequired,
+    warnings,
+  });
+  console.log(`lockup event extraction generated: appendable=${appendable.length}, write=${write}, warnings=${warnings.length}`);
 }
 
 main();
