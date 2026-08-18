@@ -1,3 +1,5 @@
+import { parseListingEventDate } from "./listing-event-date.js";
+
 export type ListingEventMessageAlert = {
   id: string;
   code?: string;
@@ -32,6 +34,15 @@ function hasConsistentDaysUntil(value: Record<string, unknown>): boolean {
   return false;
 }
 
+function hasConsistentEventDate(value: Record<string, unknown>): boolean {
+  if (value.alertType === "missing_date") {
+    return value.eventDate === undefined
+      || value.eventDate === null
+      || (typeof value.eventDate === "string" && parseListingEventDate(value.eventDate) === null);
+  }
+  return typeof value.eventDate === "string" && parseListingEventDate(value.eventDate) !== null;
+}
+
 function isListingEventMessageAlert(value: unknown): value is ListingEventMessageAlert {
   if (!isRecord(value)) return false;
   return typeof value.id === "string"
@@ -41,8 +52,8 @@ function isListingEventMessageAlert(value: unknown): value is ListingEventMessag
     && typeof value.eventType === "string"
     && value.eventType.trim().length > 0
     && isCanonicalOptionalCode(value.code)
-    && (value.eventDate === undefined || value.eventDate === null || typeof value.eventDate === "string")
     && (value.alertType === "upcoming" || value.alertType === "review_due" || value.alertType === "missing_date")
+    && hasConsistentEventDate(value)
     && hasConsistentDaysUntil(value)
     && (value.effectiveNotificationLevel === "priority"
       || value.effectiveNotificationLevel === "morning_summary"
