@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import "./primary-disclosure-learning-input.test.js";
 import { normalizeSourceHealthScoreRows } from "../src/source-health-input.js";
 
 const valid = normalizeSourceHealthScoreRows([{
