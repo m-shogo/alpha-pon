@@ -2,11 +2,12 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
+import { hasConfirmedProIrSource } from "./pro-ir-event-input.js";
 
 type Company = { code: string; name: string; status?: string; evidenceToCheck?: string[]; relatedCompanies?: string[] };
 type Hypotheses = { categories?: Record<string, { label: string; companies?: Company[] }> };
 type Network = { companies?: Record<string, unknown> };
-type IrEvents = { companies?: Record<string, { events?: Array<{ type: string; date?: string | null; sourceUrl?: string | null; sourceStatus?: string }> }> };
+type IrEvents = { companies?: Record<string, { events?: Array<{ type: string; date?: string | null; eventDate?: string | null; sourceUrl?: string | null; sourceStatus?: string | null }> }> };
 type Policy = { mandatoryChecks?: Array<{ id: string; label: string; why: string }> };
 
 function readYaml<T>(path: string, fallback: T): T {
@@ -29,7 +30,7 @@ function main() {
       const hasNetwork = Boolean(network.companies?.[company.code]);
       const events = irEvents.companies?.[company.code]?.events ?? [];
       const hasIr = events.length > 0;
-      const hasConfirmedIr = events.some(event => event.date && event.sourceUrl && event.sourceStatus !== "official_check_required");
+      const hasConfirmedIr = events.some(event => hasConfirmedProIrSource(event));
       const hasEvidence = (company.evidenceToCheck ?? []).length >= 3;
       const hasPeers = hasNetwork || (company.relatedCompanies ?? []).length >= 2;
 
