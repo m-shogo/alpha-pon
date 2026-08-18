@@ -14,6 +14,9 @@ try {
     "null",
     "{}",
     JSON.stringify({ id: "bad-number", name: "Bad", eventType: "listing_day", reviewPrice: "1100" }),
+    JSON.stringify({ id: "bad-zero-public", name: "Zero Public", eventType: "listing_day", publicPrice: 0 }),
+    JSON.stringify({ id: "bad-negative-initial", name: "Negative Initial", eventType: "listing_day", initialPrice: -1 }),
+    JSON.stringify({ id: "bad-zero-review", name: "Zero Review", eventType: "listing_day", reviewPrice: 0 }),
     JSON.stringify({ id: "bad-notes", name: "Bad Notes", eventType: "listing_day", notes: {} }),
     JSON.stringify({ id: "bad-date", name: "Bad Date", eventType: "listing_day", eventDate: "2026-02-31" }),
     JSON.stringify({ id: "bad-year-zero", name: "Bad Year", eventType: "listing_day", eventDate: "0000-01-01" }),
@@ -25,7 +28,7 @@ try {
   assert.equal(result.warnings.length, 2);
   assert.match(result.warnings[0] ?? "", /parse_error 1/);
   assert.match(result.warnings[0] ?? "", /lines 2/);
-  assert.equal(result.warnings[1], `${path}: invalid_rows=6`);
+  assert.equal(result.warnings[1], `${path}: invalid_rows=9`);
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
