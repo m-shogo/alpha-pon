@@ -64,6 +64,13 @@ try {
     "impossible row provenance dates must fail closed",
   );
 
+  writeFileSync(join(dir, "scores_2026-08-17.json"), JSON.stringify([{ ...validRow, createdAt: "2026-08-16" }]));
+  assert.throws(
+    () => assertCompanyMemoryScoreInputs(dir, "2026-08-17"),
+    /createdAt must match score snapshot date 2026-08-17/,
+    "score row provenance must remain bound to the daily snapshot that contains it",
+  );
+
   const memoryDir = join(dir, "existing");
   mkdirSync(memoryDir);
   const validMemory = {
