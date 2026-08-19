@@ -27,14 +27,14 @@ function main(): void {
     assert.deepEqual(parseBroken.failedSteps, []);
     assert.equal(parseBroken.warning, `${pipelinePath}: parse_error`);
 
-    writeFileSync(pipelinePath, JSON.stringify({ date: "2026-02-31", status: "ok", failedSteps: "" }), "utf-8");
+    writeFileSync(pipelinePath, JSON.stringify({ date: "2026-02-31", status: "completed", failedSteps: "" }), "utf-8");
     assert.deepEqual(readMorningLitePipelineInput(pipelinePath, AS_OF), {
       status: "unknown",
       failedSteps: [],
       warning: `${pipelinePath}: invalid_date`,
     });
 
-    writeFileSync(pipelinePath, JSON.stringify({ date: "2026-08-15", status: "ok", failedSteps: "" }), "utf-8");
+    writeFileSync(pipelinePath, JSON.stringify({ date: "2026-08-15", status: "completed", failedSteps: "" }), "utf-8");
     assert.deepEqual(readMorningLitePipelineInput(pipelinePath, AS_OF), {
       status: "unknown",
       failedSteps: [],
@@ -51,6 +51,34 @@ function main(): void {
     const valid = readMorningLitePipelineInput(pipelinePath, AS_OF);
     assert.deepEqual(valid.failedSteps, ["step-a", "step-b(1)"]);
     assert.equal(valid.warning, null);
+
+    writeFileSync(pipelinePath, JSON.stringify({ date: AS_OF, status: "completed", failedSteps: "" }), "utf-8");
+    assert.deepEqual(readMorningLitePipelineInput(pipelinePath, AS_OF), {
+      status: "completed",
+      failedSteps: [],
+      warning: null,
+    });
+
+    writeFileSync(pipelinePath, JSON.stringify({ date: AS_OF, status: "running", failedSteps: "" }), "utf-8");
+    assert.deepEqual(readMorningLitePipelineInput(pipelinePath, AS_OF), {
+      status: "running",
+      failedSteps: [],
+      warning: `${pipelinePath}: invalid_status`,
+    });
+
+    writeFileSync(pipelinePath, JSON.stringify({ date: AS_OF, status: "completed_with_warnings", failedSteps: "" }), "utf-8");
+    assert.deepEqual(readMorningLitePipelineInput(pipelinePath, AS_OF), {
+      status: "completed_with_warnings",
+      failedSteps: [],
+      warning: `${pipelinePath}: inconsistent_status`,
+    });
+
+    writeFileSync(pipelinePath, JSON.stringify({ date: AS_OF, status: "completed", failedSteps: "step-b(1)" }), "utf-8");
+    assert.deepEqual(readMorningLitePipelineInput(pipelinePath, AS_OF), {
+      status: "completed",
+      failedSteps: ["step-b(1)"],
+      warning: `${pipelinePath}: inconsistent_status`,
+    });
 
     writeFileSync(pipelinePath, JSON.stringify({ date: AS_OF, failedSteps: "step-b(1)" }), "utf-8");
     assert.deepEqual(readMorningLitePipelineInput(pipelinePath, AS_OF), {
