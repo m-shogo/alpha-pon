@@ -1,45 +1,17 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
-import { readGeneratedCompanyRules } from "./pro-generated-rules-input.js";
+import {
+  isProValuationGeneratedRule,
+  readGeneratedCompanyRules,
+  type ProValuationGeneratedRule,
+} from "./pro-generated-rules-input.js";
 import type { ValuationSnapshot } from "./pro-types.js";
 
 type Company = { code: string; name: string; evidenceToCheck?: string[]; noMoveHypothesis?: string; downsideHypothesis?: string };
 type Hypotheses = { categories?: Record<string, { companies?: Company[] }> };
-type GeneratedRule = {
-  code: string;
-  name: string;
-  risks?: string[];
-  evidenceNeeded?: string[];
-  priceSignal?: { relativeTopix20dPct?: number | null; change20dPct?: number | null; volumeSpikeRatio?: number | null };
-};
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isCanonicalText(value: unknown): value is string {
-  return typeof value === "string" && value.length > 0 && value.trim() === value;
-}
-
-function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every(item => typeof item === "string");
-}
-
-function isOptionalFiniteNumber(value: unknown): value is number | null | undefined {
-  return value === undefined || value === null || (typeof value === "number" && Number.isFinite(value));
-}
-
-function isGeneratedRule(value: unknown): value is GeneratedRule {
-  if (!isRecord(value) || !isCanonicalText(value.code) || !isCanonicalText(value.name)) return false;
-  if (value.risks !== undefined && !isStringArray(value.risks)) return false;
-  if (value.evidenceNeeded !== undefined && !isStringArray(value.evidenceNeeded)) return false;
-  if (value.priceSignal === undefined) return true;
-  if (!isRecord(value.priceSignal)) return false;
-  return isOptionalFiniteNumber(value.priceSignal.relativeTopix20dPct)
-    && isOptionalFiniteNumber(value.priceSignal.change20dPct)
-    && isOptionalFiniteNumber(value.priceSignal.volumeSpikeRatio);
-}
+type GeneratedRule = ProValuationGeneratedRule;
 
 function readYaml<T>(path: string, fallback: T): T {
   if (!existsSync(path)) return fallback;
@@ -47,7 +19,11 @@ function readYaml<T>(path: string, fallback: T): T {
 }
 
 function readRules(): Map<string, GeneratedRule> {
-  const load = readGeneratedCompanyRules<GeneratedRule>("data/generated_company_rules_latest.json", todayJst(), isGeneratedRule);
+  const load = readGeneratedCompanyRules<GeneratedRule>(
+    "data/generated_company_rules_latest.json",
+    todayJst(),
+    isProValuationGeneratedRule,
+  );
   return new Map(load.rows.map(rule => [rule.code, rule]));
 }
 
