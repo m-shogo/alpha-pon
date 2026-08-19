@@ -74,25 +74,27 @@ export function readMorningLitePipelineInput(
   return { status, failedSteps, warning: null };
 }
 
-function hasCanonicalSentAt(value: unknown): boolean {
-  if (typeof value !== "string") return false;
+function sentAtJstDate(value: unknown): string | null {
+  if (typeof value !== "string") return null;
   try {
-    parseExplicitIso8601Instant(value, "notification dedupe sentAt");
-    return true;
+    const instantMs = parseExplicitIso8601Instant(value, "notification dedupe sentAt");
+    return new Date(instantMs + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
   } catch {
-    return false;
+    return null;
   }
 }
 
-function isDedupeRecord(value: unknown): boolean {
+function isDedupeRecord(value: unknown, expectedDate?: string): boolean {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const row = value as Record<string, unknown>;
+  const sentDate = sentAtJstDate(row.sentAt);
   return typeof row.key === "string" && row.key.trim().length > 0
-    && hasCanonicalSentAt(row.sentAt)
+    && sentDate !== null
+    && (expectedDate === undefined || sentDate === expectedDate)
     && typeof row.preview === "string";
 }
 
-export function readMorningLiteDedupeCount(path: string): MorningLiteDedupeCount {
+export function readMorningLiteDedupeCount(path: string, expectedDate?: string): MorningLiteDedupeCount {
   if (!existsSync(path)) return { count: 0, warning: null };
   let parsed: unknown;
   try {
@@ -101,7 +103,7 @@ export function readMorningLiteDedupeCount(path: string): MorningLiteDedupeCount
     return { count: 0, warning: `${path}: parse_error` };
   }
   if (!Array.isArray(parsed)) return { count: 0, warning: `${path}: invalid_root` };
-  const validRows = parsed.filter(isDedupeRecord);
+  const validRows = parsed.filter(row => isDedupeRecord(row, expectedDate));
   const invalidCount = parsed.length - validRows.length;
   return {
     count: validRows.length,
