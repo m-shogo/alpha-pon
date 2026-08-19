@@ -59,5 +59,6 @@ export function isQualityOutcomeLike(value: unknown): value is QualityOutcomeLik
     "notes",
   ])) return false;
   if (!isOptionalStringArray(value.whatMatched) || !isOptionalStringArray(value.missedSignals)) return false;
-  return value.hypothesis == null || isQualityHypothesisLike(value.hypothesis);
+  if (!isQualityHypothesisLike(value.hypothesis)) return false;
+  return value.hypothesis.code === value.code;
 }

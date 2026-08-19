@@ -277,9 +277,11 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
   assert.equal(isQualityOutcomeLike(outcome({ code: "8136 " })), false, "trailing-space outcome code must fail closed");
   assert.equal(isQualityHypothesisLike(hypothesis({ detectedAt: undefined })), false, "missing detectedAt must fail closed");
   assert.equal(isQualityHypothesisLike(hypothesis({ detectedAt: "2026-02-31" })), false, "nonexistent detectedAt must fail closed");
+  assert.equal(isQualityOutcomeLike(outcome({ hypothesis: null })), false, "missing outcome hypothesis lineage must fail closed");
+  assert.equal(isQualityOutcomeLike(outcome({ hypothesis: hypothesis({ code: "7011" }) })), false, "cross-company outcome lineage must fail closed");
   assert.equal(isQualityHypothesisLike(hypothesis()), true, "canonical hypothesis row must remain accepted");
   assert.equal(isQualityOutcomeLike(outcome()), true, "canonical outcome row must remain accepted");
-  console.log("outcome-quality: identity and detectedAt provenance fail closed");
+  console.log("outcome-quality: identity, detectedAt, and outcome lineage provenance fail closed");
 }
 
 {
