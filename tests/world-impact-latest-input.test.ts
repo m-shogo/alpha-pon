@@ -5,8 +5,18 @@ import { join } from "node:path";
 import "./world-impact-report-input-date.test.js";
 import "./world-impact-audit-input.test.js";
 import { readReadOnlyJsonArrayFile } from "../src/read-only-json-file.js";
-import { loadRegimeScenarioReflectionState, loadRegimeScenarioReflections } from "../src/regime-scenario-input.js";
+import {
+  DEFAULT_REGIME_SCENARIO_REFLECTION_PATH,
+  loadRegimeScenarioReflectionState,
+  loadRegimeScenarioReflections,
+} from "../src/regime-scenario-input.js";
 import { parseWorldImpactLatestSnapshot } from "../src/world-impact-latest-input.js";
+
+assert.equal(
+  DEFAULT_REGIME_SCENARIO_REFLECTION_PATH,
+  "data/world_event_reflections_latest.json",
+  "regime scenario must consume the canonical latest reflection snapshot produced by world-event reflection",
+);
 
 assert.deepEqual(parseWorldImpactLatestSnapshot("[]"), [], "empty canonical latest snapshot remains valid");
 assert.equal(
