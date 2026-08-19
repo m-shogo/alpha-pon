@@ -53,6 +53,30 @@ assert.equal(malformedItems.rows.length, 1, "malformed items must not stop the w
 assert.deepEqual(malformedItems.rows[0].primaryDisclosureReview?.items, []);
 assert.ok(malformedItems.warnings.some(warning => warning.includes("items: invalid_list")));
 
+const scanDates = normalizePrimaryDisclosureLearningScoreInput([{
+  code: "8136",
+  name: "サンリオ",
+  score: 80,
+  alertLevel: "watch",
+  createdAt: "2026-08-18",
+  primaryDisclosureReview: {
+    decision: "confirmed",
+    sourceCoverage: {
+      scannedEdinetDates: ["2026-08-18", "2026-02-31", "0000-01-01"],
+    },
+  },
+}]);
+assert.deepEqual(
+  scanDates.rows[0].primaryDisclosureReview?.sourceCoverage?.scannedEdinetDates,
+  ["2026-08-18"],
+  "only real Gregorian JST dates may be exposed as EDINET scan provenance",
+);
+assert.equal(
+  scanDates.warnings.filter(warning => warning.includes("scannedEdinetDates: invalid_date")).length,
+  2,
+  "each invalid EDINET scan date must be surfaced as metadata warning",
+);
+
 const invalidRoot = normalizePrimaryDisclosureLearningScoreInput({ rows: [] }, "scores_2026-08-18.json");
 assert.deepEqual(invalidRoot.rows, []);
 assert.deepEqual(invalidRoot.warnings, ["scores_2026-08-18.json: invalid_root"]);
