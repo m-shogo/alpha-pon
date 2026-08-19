@@ -36,23 +36,34 @@ assert.deepEqual(canonicalEmptyArray, {
   failedSteps: "",
 });
 
+for (const status of ["running", "skipped_locked", "failed", "completed_with_warnings"]) {
+  assert.equal(
+    normalizeOpsPipelineStatusInput({ status, failedSteps: "" })?.status,
+    status,
+    `legacy producer status ${status} remains accepted`,
+  );
+}
+
 for (const malformed of [
   [],
   "broken",
-  { failedSteps: [123] },
-  { failedSteps: ["   "] },
-  { steps: "daily" },
-  { steps: [null] },
-  { steps: [{ name: 123, status: "ok" }] },
-  { steps: [{ name: "daily", status: { value: "ok" } }] },
+  {},
+  { status: "green", failedSteps: "" },
+  { status: 200, failedSteps: "" },
+  { status: "completed", failedSteps: [123] },
+  { status: "completed", failedSteps: ["   "] },
+  { status: "completed", steps: "daily" },
+  { status: "completed", steps: [null] },
+  { status: "completed", steps: [{ name: 123, status: "ok" }] },
+  { status: "completed", steps: [{ name: "daily", status: { value: "ok" } }] },
 ]) {
   assert.deepEqual(
     normalizeOpsPipelineStatusInput(malformed),
     { status: "failed", failedSteps: "invalid_pipeline_status_input", steps: [] },
-    "malformed pipeline input must fail closed instead of crashing the ops dashboard",
+    "malformed pipeline input must fail closed instead of crashing or false-greening the ops dashboard",
   );
 }
 
 assert.equal(normalizeOpsPipelineStatusInput(null), null, "missing input remains distinguishable from malformed input");
 
-console.log("ops-dashboard pipeline input: canonical failed-step shapes normalize and malformed shapes fail closed OK");
+console.log("ops-dashboard pipeline input: producer statuses and canonical failed-step shapes normalize while malformed shapes fail closed OK");
