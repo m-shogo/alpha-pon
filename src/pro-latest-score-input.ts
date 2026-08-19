@@ -34,23 +34,23 @@ export type LatestProScoreLoad<T> = {
 };
 
 export function readLatestProScores<T>(reportsDir = "reports", asOf = todayJst()): LatestProScoreLoad<T> {
+  if (!isRealJstDate(asOf)) {
+    throw new Error(`pro-score as-of date must be a real Gregorian date: ${asOf}`);
+  }
   if (!existsSync(reportsDir)) return { rows: [], sourceFile: null, warnings: [] };
 
   const scoreFiles = readdirSync(reportsDir)
-    .filter((file) => /^scores_\d{4}-\d{2}-\d{2}\.json$/.test(file))
-    .sort();
+    .flatMap((file) => {
+      const date = /^scores_(\d{4}-\d{2}-\d{2})\.json$/.exec(file)?.[1] ?? "";
+      if (!date) return [];
+      if (!isRealJstDate(date)) {
+        throw new Error(`${file}: score snapshot filename must contain a real Gregorian date`);
+      }
+      return date <= asOf ? [{ file, date }] : [];
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
 
-  for (const file of scoreFiles) {
-    const date = /^scores_(\d{4}-\d{2}-\d{2})\.json$/.exec(file)?.[1] ?? "";
-    if (!isRealJstDate(date)) {
-      throw new Error(`${file}: score snapshot filename must contain a real Gregorian date`);
-    }
-    if (date > asOf) {
-      throw new Error(`${file}: score snapshot filename must not be later than pro-score as-of date ${asOf}`);
-    }
-  }
-
-  const latest = scoreFiles.at(-1);
+  const latest = scoreFiles.at(-1)?.file;
   if (!latest) return { rows: [], sourceFile: null, warnings: [] };
 
   let parsed: unknown;
