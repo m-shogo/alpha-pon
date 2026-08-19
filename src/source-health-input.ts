@@ -172,6 +172,20 @@ export function normalizeSourceHealthObject<T extends object>(value: unknown): {
     }
   }
 
+  const steps = value.steps;
+  if (
+    Array.isArray(steps)
+    && steps.some(row => (
+      !isRecord(row)
+      || typeof row.name !== "string"
+      || row.name.trim().length === 0
+      || typeof row.status !== "string"
+      || row.status.trim().length === 0
+    ))
+  ) {
+    return { value: null, valid: false };
+  }
+
   const results = value.results;
   if (
     Array.isArray(results)
