@@ -10,7 +10,13 @@ try {
   writeFileSync(path, JSON.stringify([
     {},
     { title: "legacy signal", tags: ["災害"] },
-    { createdAt: "2026-08-20", title: "canonical signal", categories: ["金融不安"], impactedTags: ["銀行"] },
+    {
+      eventId: "2026-08-20-canonical-signal",
+      createdAt: "2026-08-20",
+      title: "canonical signal",
+      categories: ["金融不安"],
+      impactedTags: ["銀行"],
+    },
   ]), "utf-8");
 
   const state = loadRegimeScenarioReflectionState(path, "2026-08-20");
