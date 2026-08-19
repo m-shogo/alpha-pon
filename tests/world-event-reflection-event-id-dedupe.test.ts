@@ -21,4 +21,23 @@ const reflections = buildWorldEventReflections([first, duplicateIdentity], "2026
 assert.equal(reflections.length, 1, "producer must not emit duplicate canonical reflection eventIds");
 assert.equal(new Set(reflections.map(row => row.eventId)).size, reflections.length);
 
-console.log("world-event reflection event id dedupe: canonical producer emits each event identity once");
+const japaneseRate = classifyWorldEvent({
+  title: "政策金利の変更を発表",
+  url: "https://www.gov.example/rate",
+  source: "Government",
+  publishedAt: "2026-08-20T02:00:00Z",
+  snippet: "公式発表 金利 銀行 信用",
+});
+const japaneseDisaster = classifyWorldEvent({
+  title: "大規模地震への復旧支援を発表",
+  url: "https://www.gov.example/disaster",
+  source: "Government",
+  publishedAt: "2026-08-20T03:00:00Z",
+  snippet: "公式発表 地震 災害 復旧",
+});
+const japaneseReflections = buildWorldEventReflections([japaneseRate, japaneseDisaster], "2026-08-20", 8);
+assert.equal(japaneseReflections.length, 2, "distinct non-ASCII titles must not collapse to the same world-event identity");
+assert.equal(new Set(japaneseReflections.map(row => row.eventId)).size, 2);
+assert.ok(japaneseReflections.every(row => row.eventId !== "2026-08-20_world-event"));
+
+console.log("world-event reflection event id dedupe: canonical producer preserves duplicate and unicode identities safely");
