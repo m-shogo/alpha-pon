@@ -14,10 +14,33 @@ assert.deepEqual(valid, {
   steps: [{ name: "daily", status: "ok" }],
 });
 
+const canonicalArray = normalizeOpsPipelineStatusInput({
+  date: "2026-08-17",
+  status: "partial_failed",
+  failedSteps: ["daily_company_score", "ui_data_generate"],
+});
+assert.deepEqual(canonicalArray, {
+  date: "2026-08-17",
+  status: "partial_failed",
+  failedSteps: "daily_company_score,ui_data_generate",
+});
+
+const canonicalEmptyArray = normalizeOpsPipelineStatusInput({
+  date: "2026-08-17",
+  status: "ok",
+  failedSteps: [],
+});
+assert.deepEqual(canonicalEmptyArray, {
+  date: "2026-08-17",
+  status: "ok",
+  failedSteps: "",
+});
+
 for (const malformed of [
   [],
   "broken",
-  { failedSteps: ["daily"] },
+  { failedSteps: [123] },
+  { failedSteps: ["   "] },
   { steps: "daily" },
   { steps: [null] },
   { steps: [{ name: 123, status: "ok" }] },
@@ -32,4 +55,4 @@ for (const malformed of [
 
 assert.equal(normalizeOpsPipelineStatusInput(null), null, "missing input remains distinguishable from malformed input");
 
-console.log("ops-dashboard pipeline input: malformed shapes fail closed OK");
+console.log("ops-dashboard pipeline input: canonical failed-step shapes normalize and malformed shapes fail closed OK");
