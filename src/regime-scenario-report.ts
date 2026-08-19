@@ -3,7 +3,7 @@ import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
 import {
-  loadRegimeScenarioReflections,
+  loadRegimeScenarioReflectionState,
   type RegimeScenarioReflection,
 } from "./regime-scenario-input.js";
 
@@ -47,7 +47,9 @@ function scoreScenario(id: string, reflections: RegimeScenarioReflection[]): { s
 function main() {
   const date = todayJst();
   const config = readYaml<ScenarioConfig>("config/regime-scenarios.yml");
-  const reflections = loadRegimeScenarioReflections();
+  const reflectionLoad = loadRegimeScenarioReflectionState();
+  reflectionLoad.warnings.forEach(warning => console.warn(warning));
+  const reflections = reflectionLoad.rows;
   const ranked = Object.entries(config.scenarios)
     .map(([id, scenario]) => ({ id, scenario, ...scoreScenario(id, reflections) }))
     .sort((a, b) => b.score - a.score);

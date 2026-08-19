@@ -5,7 +5,7 @@ import { join } from "node:path";
 import "./world-impact-report-input-date.test.js";
 import "./world-impact-audit-input.test.js";
 import { readReadOnlyJsonArrayFile } from "../src/read-only-json-file.js";
-import { loadRegimeScenarioReflections } from "../src/regime-scenario-input.js";
+import { loadRegimeScenarioReflectionState, loadRegimeScenarioReflections } from "../src/regime-scenario-input.js";
 import { parseWorldImpactLatestSnapshot } from "../src/world-impact-latest-input.js";
 
 assert.deepEqual(parseWorldImpactLatestSnapshot("[]"), [], "empty canonical latest snapshot remains valid");
@@ -118,15 +118,27 @@ assert.throws(
     const validPath = join(dir, "valid.json");
     const invalidRootPath = join(dir, "invalid-root.json");
     const parseErrorPath = join(dir, "parse-error.json");
+    const mixedRowsPath = join(dir, "mixed-rows.json");
     const missingPath = join(dir, "missing.json");
     writeFileSync(validPath, '[{"title":"地震対応","tags":["災害"]}]', "utf-8");
     writeFileSync(invalidRootPath, "{}", "utf-8");
     writeFileSync(parseErrorPath, "{", "utf-8");
+    writeFileSync(mixedRowsPath, '[{"title":"地震対応","tags":["災害"]},{"title":"broken","tags":{}},{"category":"金融不安","tags":["銀行"]}]', "utf-8");
 
     assert.equal(loadRegimeScenarioReflections(validPath)[0]?.title, "地震対応", "valid reflection snapshot remains usable");
     assert.deepEqual(loadRegimeScenarioReflections(missingPath), [], "missing optional reflection history remains a legitimate empty input");
     assert.throws(() => loadRegimeScenarioReflections(invalidRootPath), /invalid_root/, "object root must not silently become a zero-signal regime report");
     assert.throws(() => loadRegimeScenarioReflections(parseErrorPath), /parse_error/, "malformed JSON must not silently become a zero-signal regime report");
+
+    const mixed = loadRegimeScenarioReflectionState(mixedRowsPath);
+    assert.deepEqual(
+      mixed.rows.map(row => row.title ?? row.category),
+      ["地震対応", "金融不安"],
+      "one malformed reflection row must not stop valid regime-scenario evidence",
+    );
+    assert.equal(mixed.warnings.length, 1, "isolated malformed reflection rows must remain visible as metadata warnings");
+    assert.match(mixed.warnings[0], /1 malformed reflection row\(s\).*row\(s\) 2/);
+    assert.ok(!mixed.warnings[0].includes("broken"), "metadata warning must not expose raw malformed row content");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
