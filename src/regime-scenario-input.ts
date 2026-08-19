@@ -4,6 +4,7 @@ import { readReadOnlyJsonArrayFile } from "./read-only-json-file.js";
 export const DEFAULT_REGIME_SCENARIO_REFLECTION_PATH = "data/world_event_reflections_latest.json";
 
 export type RegimeScenarioReflection = {
+  eventId?: string;
   date?: string;
   createdAt?: string;
   title?: string;
@@ -53,7 +54,8 @@ function hasRegimeSignal(value: Record<string, unknown>): boolean {
 
 function isUsableRegimeScenarioReflection(value: unknown, asOf: string): value is RegimeScenarioReflection {
   if (!isRecord(value)) return false;
-  if (!isOptionalString(value.date)
+  if (!isOptionalString(value.eventId)
+    || !isOptionalString(value.date)
     || !isOptionalString(value.createdAt)
     || !isOptionalString(value.title)
     || !isOptionalString(value.category)
@@ -69,13 +71,18 @@ function isUsableRegimeScenarioReflection(value: unknown, asOf: string): value i
     || value.categories !== undefined
     || value.impactedTags !== undefined;
   if (isCanonicalReflection) {
-    return isRealJstDate(value.createdAt) && value.createdAt <= asOf;
+    return typeof value.eventId === "string"
+      && value.eventId.trim().length > 0
+      && value.eventId === value.eventId.trim()
+      && isRealJstDate(value.createdAt)
+      && value.createdAt <= asOf;
   }
   return true;
 }
 
 function normalizeRegimeScenarioReflection(value: RegimeScenarioReflection): RegimeScenarioReflection {
   return {
+    eventId: value.eventId,
     date: value.date ?? value.createdAt,
     createdAt: value.createdAt,
     title: value.title,
@@ -103,16 +110,37 @@ export function loadRegimeScenarioReflectionState(
     throw new Error(`${path}: invalid_root (expected array)`);
   }
 
-  const rows: RegimeScenarioReflection[] = [];
+  const usable: Array<{ row: RegimeScenarioReflection; rowNumber: number }> = [];
   const invalidRows: number[] = [];
   loaded.rows.forEach((row, index) => {
-    if (isUsableRegimeScenarioReflection(row, asOf)) rows.push(normalizeRegimeScenarioReflection(row));
-    else invalidRows.push(index + 1);
+    if (isUsableRegimeScenarioReflection(row, asOf)) {
+      usable.push({ row: normalizeRegimeScenarioReflection(row), rowNumber: index + 1 });
+    } else {
+      invalidRows.push(index + 1);
+    }
   });
 
-  const warnings = invalidRows.length > 0
-    ? [`${path}: ${invalidRows.length} malformed reflection row(s) isolated at row(s) ${invalidRows.join(", ")}`]
-    : [];
+  const eventIdCounts = new Map<string, number>();
+  usable.forEach(({ row }) => {
+    if (row.eventId) eventIdCounts.set(row.eventId, (eventIdCounts.get(row.eventId) ?? 0) + 1);
+  });
+  const duplicateEventIds = new Set(
+    [...eventIdCounts.entries()].filter(([, count]) => count > 1).map(([eventId]) => eventId),
+  );
+  const duplicateRows = usable
+    .filter(({ row }) => row.eventId && duplicateEventIds.has(row.eventId))
+    .map(({ rowNumber }) => rowNumber);
+  const rows = usable
+    .filter(({ row }) => !row.eventId || !duplicateEventIds.has(row.eventId))
+    .map(({ row }) => row);
+
+  const warnings: string[] = [];
+  if (invalidRows.length > 0) {
+    warnings.push(`${path}: ${invalidRows.length} malformed reflection row(s) isolated at row(s) ${invalidRows.join(", ")}`);
+  }
+  if (duplicateRows.length > 0) {
+    warnings.push(`${path}: ${duplicateEventIds.size} duplicate eventId(s) isolated at row(s) ${duplicateRows.join(", ")}`);
+  }
   return { rows, warnings };
 }
 
