@@ -49,7 +49,7 @@ export function normalizeOpsOutcomeQualityInput(
     const check = value.checks[key];
     if (!isRecord(check)) return invalidOutcomeQualityInput();
     const count = check.count;
-    if (typeof count !== "number" || !Number.isInteger(count) || count < 0) {
+    if (typeof count !== "number" || !Number.isSafeInteger(count) || count < 0) {
       return invalidOutcomeQualityInput();
     }
     counts.set(key, count);

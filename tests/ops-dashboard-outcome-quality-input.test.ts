@@ -28,6 +28,7 @@ for (const malformed of [
   { generatedAt: asOf, healthStatus: "ok", checks: { ...valid.checks, reviewMissing: {} } },
   { generatedAt: asOf, healthStatus: "ok", checks: { ...valid.checks, reviewMissing: { count: -1 } } },
   { generatedAt: asOf, healthStatus: "ok", checks: { ...valid.checks, reviewMissing: { count: 1.5 } } },
+  { generatedAt: asOf, healthStatus: "ok", checks: { ...valid.checks, reviewMissing: { count: Number.MAX_SAFE_INTEGER + 1 } } },
   { generatedAt: asOf, healthStatus: "ok", checks: { ...valid.checks, reviewMissing: { count: "1" } } },
   { healthStatus: "ok", checks: valid.checks },
   { generatedAt: "2026-08-18", healthStatus: "ok", checks: valid.checks },
