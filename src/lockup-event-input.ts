@@ -31,12 +31,27 @@ function isOptionalRealDate(value: unknown): boolean {
 }
 
 function isOptionalPositiveInteger(value: unknown): boolean {
-  return value === undefined || (typeof value === "number" && Number.isInteger(value) && value > 0);
+  return value === undefined || (typeof value === "number" && Number.isSafeInteger(value) && value > 0);
 }
 
 function hasValidLockupChronology(value: Record<string, unknown>): boolean {
   if (typeof value.listingDate !== "string" || typeof value.lockupExpiryDate !== "string") return true;
   return value.lockupExpiryDate >= value.listingDate;
+}
+
+function hasConsistentLockupTerm(value: Record<string, unknown>): boolean {
+  if (
+    typeof value.listingDate !== "string"
+    || typeof value.lockupDays !== "number"
+    || typeof value.lockupExpiryDate !== "string"
+  ) {
+    return true;
+  }
+  try {
+    return addDaysJst(value.listingDate, value.lockupDays) === value.lockupExpiryDate;
+  } catch {
+    return false;
+  }
 }
 
 export function isLockupMemo(value: unknown): value is LockupMemo {
@@ -51,6 +66,7 @@ export function isLockupMemo(value: unknown): value is LockupMemo {
     && isOptionalPositiveInteger(value.lockupDays)
     && isOptionalRealDate(value.lockupExpiryDate)
     && hasValidLockupChronology(value)
+    && hasConsistentLockupTerm(value)
     && isOptionalString(value.source)
     && isOptionalString(value.memo);
 }
