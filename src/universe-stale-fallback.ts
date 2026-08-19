@@ -45,3 +45,23 @@ export function carryForwardStaleCandidate(candidate: UniverseCandidate, fallbac
     warnings: appendUniqueWarning(candidate.warnings, STALE_FALLBACK_WARNING),
   };
 }
+
+export function carryForwardValidStaleCandidates(
+  input: unknown,
+  fallbackAsOf: string,
+): { candidates: UniverseCandidate[]; invalidRowCount: number } {
+  if (!Array.isArray(input)) {
+    return { candidates: [], invalidRowCount: input == null ? 0 : 1 };
+  }
+
+  const candidates: UniverseCandidate[] = [];
+  let invalidRowCount = 0;
+  for (const candidate of input) {
+    try {
+      candidates.push(carryForwardStaleCandidate(candidate as UniverseCandidate, fallbackAsOf));
+    } catch {
+      invalidRowCount += 1;
+    }
+  }
+  return { candidates, invalidRowCount };
+}
