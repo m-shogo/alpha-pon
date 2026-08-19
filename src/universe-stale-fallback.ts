@@ -65,14 +65,27 @@ export function carryForwardValidStaleCandidates(
     return { candidates: [], invalidRowCount: input == null ? 0 : 1 };
   }
 
-  const candidates: UniverseCandidate[] = [];
+  const carriedCandidates: UniverseCandidate[] = [];
   let invalidRowCount = 0;
   for (const candidate of input) {
     try {
-      candidates.push(carryForwardStaleCandidate(candidate as UniverseCandidate, fallbackAsOf));
+      carriedCandidates.push(carryForwardStaleCandidate(candidate as UniverseCandidate, fallbackAsOf));
     } catch {
       invalidRowCount += 1;
     }
   }
+
+  const codeCounts = new Map<string, number>();
+  for (const candidate of carriedCandidates) {
+    codeCounts.set(candidate.code, (codeCounts.get(candidate.code) ?? 0) + 1);
+  }
+  const duplicateCodes = new Set(
+    [...codeCounts.entries()]
+      .filter(([, count]) => count > 1)
+      .map(([code]) => code),
+  );
+  const candidates = carriedCandidates.filter(candidate => !duplicateCodes.has(candidate.code));
+  invalidRowCount += carriedCandidates.length - candidates.length;
+
   return { candidates, invalidRowCount };
 }

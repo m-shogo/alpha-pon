@@ -38,6 +38,21 @@ assert.equal(mixed.candidates[0]?.code, "1234");
 assert.equal(mixed.candidates[0]?.staleAsOf, "2026-08-20");
 assert.equal(mixed.invalidRowCount, 5);
 
+const duplicateIdentity = carryForwardValidStaleCandidates(
+  [
+    { ...valid, code: "1234", name: "first" },
+    { ...valid, code: "1234", name: "second" },
+    { ...valid, code: "2345", name: "unique" },
+  ],
+  "2026-08-20",
+);
+assert.deepEqual(
+  duplicateIdentity.candidates.map(candidate => candidate.code),
+  ["2345"],
+  "ambiguous duplicate stale identities must both be isolated instead of using input order",
+);
+assert.equal(duplicateIdentity.invalidRowCount, 2);
+
 const invalidRoot = carryForwardValidStaleCandidates({ candidates: [valid] }, "2026-08-20");
 assert.deepEqual(invalidRoot.candidates, []);
 assert.equal(invalidRoot.invalidRowCount, 1, "object-shaped candidate root must fail closed without throwing");
