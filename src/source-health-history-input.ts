@@ -28,7 +28,7 @@ function isValidReportValue(value: unknown): boolean {
   if (value.exists !== undefined && typeof value.exists !== "boolean") return false;
   if (
     value.size !== undefined
-    && (typeof value.size !== "number" || !Number.isFinite(value.size) || value.size < 0)
+    && (typeof value.size !== "number" || !Number.isSafeInteger(value.size) || value.size < 0)
   ) return false;
   return true;
 }

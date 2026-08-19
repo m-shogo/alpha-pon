@@ -20,10 +20,16 @@ const malformedReportValues = normalizeSourceHealthHistoryRows([
   { date: "2026-08-16", reports: { scores: { exists: "yes", size: 42 } } },
   { date: "2026-08-16", reports: { scores: { exists: true, size: "0" } } },
   { date: "2026-08-16", reports: { scores: { exists: true, size: -1 } } },
+  { date: "2026-08-16", reports: { scores: { exists: true, size: 0.5 } } },
+  { date: "2026-08-16", reports: { scores: { exists: true, size: Number.MAX_SAFE_INTEGER + 1 } } },
   { date: "2026-08-16", reports: { scores: { exists: false, size: 0 } } },
 ]);
 assert.equal(malformedReportValues.rows.length, 1, "only typed report health values may affect missing-report counts");
-assert.equal(malformedReportValues.invalidRows, 3, "truthy strings and invalid sizes must not create false-healthy history rows");
+assert.equal(malformedReportValues.invalidRows, 5, "invalid, fractional, and unsafe byte sizes must not create false-healthy history rows");
+assert.deepEqual(malformedReportValues.rows[0], {
+  date: "2026-08-16",
+  reports: { scores: { exists: false, size: 0 } },
+});
 
 const optionalReports = normalizeSourceHealthHistoryRows([{ date: "2026-08-16" }]);
 assert.equal(optionalReports.rows.length, 1, "rows without reports remain compatible with existing history data");
