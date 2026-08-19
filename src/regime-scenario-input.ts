@@ -8,13 +8,56 @@ export type RegimeScenarioReflection = {
   riskLevel?: string;
 };
 
-export function loadRegimeScenarioReflections(path = "data/world_event_reflections.json"): RegimeScenarioReflection[] {
-  const loaded = readReadOnlyJsonArrayFile<RegimeScenarioReflection>(path);
+export type RegimeScenarioReflectionLoad = {
+  rows: RegimeScenarioReflection[];
+  warnings: string[];
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isOptionalString(value: unknown): boolean {
+  return value === undefined || typeof value === "string";
+}
+
+function isOptionalStringArray(value: unknown): boolean {
+  return value === undefined || (Array.isArray(value) && value.every(item => typeof item === "string"));
+}
+
+function isUsableRegimeScenarioReflection(value: unknown): value is RegimeScenarioReflection {
+  if (!isRecord(value)) return false;
+  return isOptionalString(value.date)
+    && isOptionalString(value.title)
+    && isOptionalString(value.category)
+    && isOptionalStringArray(value.tags)
+    && isOptionalString(value.riskLevel);
+}
+
+export function loadRegimeScenarioReflectionState(
+  path = "data/world_event_reflections.json",
+): RegimeScenarioReflectionLoad {
+  const loaded = readReadOnlyJsonArrayFile<unknown>(path);
   if (loaded.parseError) {
     throw new Error(`${path}: parse_error`);
   }
   if (loaded.invalidRoot) {
     throw new Error(`${path}: invalid_root (expected array)`);
   }
-  return loaded.rows;
+
+  const rows: RegimeScenarioReflection[] = [];
+  const invalidRows: number[] = [];
+  loaded.rows.forEach((row, index) => {
+    if (isUsableRegimeScenarioReflection(row)) rows.push(row);
+    else invalidRows.push(index + 1);
+  });
+
+  const warnings = invalidRows.length > 0
+    ? [`${path}: ${invalidRows.length} malformed reflection row(s) isolated at row(s) ${invalidRows.join(", ")}`]
+    : [];
+  return { rows, warnings };
+}
+
+export function loadRegimeScenarioReflections(path = "data/world_event_reflections.json"): RegimeScenarioReflection[] {
+  return loadRegimeScenarioReflectionState(path).rows;
 }
