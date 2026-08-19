@@ -54,6 +54,16 @@ assert.throws(
   /stale fallback chronology is invalid/,
   "nonexistent fallback as-of date must fail closed",
 );
+assert.throws(
+  () => carryForwardStaleCandidate({ ...base, fallbackAsOf: "2026-06-09" }, "2026-06-08"),
+  /stale fallback chronology is invalid/,
+  "a prior fallback timestamp must not be rolled backward",
+);
+assert.throws(
+  () => carryForwardStaleCandidate({ ...base, carriedForwardAt: "2026-02-31" }, "2026-06-08"),
+  /stale fallback chronology is invalid/,
+  "malformed prior stale lineage must fail closed",
+);
 
 const output = buildUniverseScanOutput({
   generatedAt: "2026-06-08",

@@ -14,6 +14,12 @@ function isStrictGregorianDate(value: string): boolean {
   return day <= new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
+function hasFutureStaleLineage(candidate: UniverseCandidate, fallbackAsOf: string): boolean {
+  return [candidate.staleAsOf, candidate.carriedForwardAt, candidate.fallbackAsOf].some(
+    value => value != null && (!isStrictGregorianDate(value) || value > fallbackAsOf),
+  );
+}
+
 export function carryForwardStaleCandidate(candidate: UniverseCandidate, fallbackAsOf: string): UniverseCandidate {
   if (candidate.dataSource !== "jquants") {
     throw new RangeError("stale fallback source provenance is invalid");
@@ -22,6 +28,7 @@ export function carryForwardStaleCandidate(candidate: UniverseCandidate, fallbac
     !isStrictGregorianDate(candidate.detectedAt)
     || !isStrictGregorianDate(fallbackAsOf)
     || candidate.detectedAt > fallbackAsOf
+    || hasFutureStaleLineage(candidate, fallbackAsOf)
   ) {
     throw new RangeError("stale fallback chronology is invalid");
   }
