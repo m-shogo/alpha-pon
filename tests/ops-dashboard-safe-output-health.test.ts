@@ -71,6 +71,19 @@ for (const { findingsCount, findings } of [
   assert.equal(after.allIssues.some(issue => issue.title === "Safe Output 監査レポートの状態が不整合"), true);
 }
 
+for (const findings of [{ file: "unsafe.md" }, "unsafe.md"]) {
+  const before = baseDashboard();
+  const after = applySafeOutputAuditHealth(before, {
+    healthStatus: "ok",
+    scannedFiles: 10,
+    findingsCount: 0,
+    findings: findings as unknown as [],
+    scanErrors: [],
+  });
+  assert.equal(after.healthStatus, "needs_attention");
+  assert.equal(after.allIssues.some(issue => issue.title === "Safe Output 監査レポートの状態が不整合"), true);
+}
+
 for (const scanErrors of [{ file: "broken.md" }, "broken.md"]) {
   const before = baseDashboard();
   const after = applySafeOutputAuditHealth(before, {
