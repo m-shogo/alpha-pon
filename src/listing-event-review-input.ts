@@ -59,6 +59,7 @@ export function isListingEventReviewInputRow(value: unknown): value is ListingEv
   if (!isRecord(value)) return false;
   return typeof value.id === "string"
     && value.id.trim().length > 0
+    && value.id.trim() === value.id
     && typeof value.name === "string"
     && value.name.trim().length > 0
     && typeof value.eventType === "string"
