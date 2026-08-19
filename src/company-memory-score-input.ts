@@ -69,6 +69,15 @@ export function assertCompanyMemoryScoreInputs(reportsDir = "reports", asOf = to
       throw new Error(`${file}: score root must be an array`);
     }
 
-    normalized.rows.forEach((row, index) => assertCompanyMemoryScoreRow(row, `${file} row ${index + 1}`, asOf));
+    const seenCodes = new Set<string>();
+    normalized.rows.forEach((row, index) => {
+      const rowLabel = `${file} row ${index + 1}`;
+      assertCompanyMemoryScoreRow(row, rowLabel, asOf);
+      const code = (row as Record<string, unknown>).code as string;
+      if (seenCodes.has(code)) {
+        throw new Error(`${file}: duplicate company code ${code}`);
+      }
+      seenCodes.add(code);
+    });
   }
 }
