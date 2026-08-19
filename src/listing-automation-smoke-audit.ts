@@ -1,6 +1,6 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
-import { inspectRequiredFile } from "./listing-automation-smoke-input.js";
+import { inspectRequiredFile, readSmokeText } from "./listing-automation-smoke-input.js";
 
 type SmokeCheck = {
   id: string;
@@ -32,10 +32,6 @@ const SAFE_WORD_FILES = [
   "docs/ipo-listing-operations.md",
 ];
 
-function read(path: string): string {
-  return existsSync(path) ? readFileSync(path, "utf-8") : "";
-}
-
 function checkRequiredFiles(): SmokeCheck[] {
   return REQUIRED_FILES.map(path => {
     const state = inspectRequiredFile(path);
@@ -49,7 +45,7 @@ function checkRequiredFiles(): SmokeCheck[] {
 
 function checkSafeWording(): SmokeCheck[] {
   return SAFE_WORD_FILES.map(path => {
-    const text = read(path);
+    const text = readSmokeText(path);
     if (!text) return { id: `safe-wording:${path}`, status: "fail", reason: "file missing" };
     const hasSafety = text.includes("買い推奨ではありません") || text.includes("買い指示ではありません") || text.includes("買い推奨ではなく");
     return { id: `safe-wording:${path}`, status: hasSafety ? "ok" : "warning", reason: hasSafety ? "safe wording present" : "safe wording missing" };
@@ -59,7 +55,7 @@ function checkSafeWording(): SmokeCheck[] {
 function checkNoZeroFill(): SmokeCheck[] {
   const files = ["src/update-listing-review-prices.ts", "src/review-listing-performance.ts", "src/calc-listing-topix-relative.ts"];
   return files.map(path => {
-    const text = read(path);
+    const text = readSmokeText(path);
     if (!text) return { id: `zero-fill:${path}`, status: "fail", reason: "file missing" };
     const suspicious = /reviewPrice\s*:\s*0|topixRelativeReturn\s*:\s*0|publicPrice\s*:\s*0|initialPrice\s*:\s*0/.test(text);
     return { id: `zero-fill:${path}`, status: suspicious ? "fail" : "ok", reason: suspicious ? "suspicious zero fill found" : "no obvious zero fill" };
@@ -67,20 +63,20 @@ function checkNoZeroFill(): SmokeCheck[] {
 }
 
 function checkDangerousDefaults(): SmokeCheck[] {
-  const sender = read("src/listing-event-alert-sender-policy.ts");
+  const sender = readSmokeText("src/listing-event-alert-sender-policy.ts");
   const checks: SmokeCheck[] = [];
   checks.push({
     id: "send-requires-flag",
     status: sender.includes('process.argv.includes("--send")') ? "ok" : "fail",
     reason: sender.includes('process.argv.includes("--send")') ? "--send guard found" : "--send guard missing",
   });
-  const sync = read("src/sync-jpx-listings.ts");
+  const sync = readSmokeText("src/sync-jpx-listings.ts");
   checks.push({
     id: "write-requires-flag:jpx",
     status: sync.includes('process.argv.includes("--write")') ? "ok" : "fail",
     reason: sync.includes('process.argv.includes("--write")') ? "--write guard found" : "--write guard missing",
   });
-  const jquants = read("src/jquants-fetch-listing-review-prices.ts");
+  const jquants = readSmokeText("src/jquants-fetch-listing-review-prices.ts");
   checks.push({
     id: "write-csv-requires-flag:jquants",
     status: jquants.includes('process.argv.includes("--write-csv")') ? "ok" : "fail",
