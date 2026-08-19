@@ -22,6 +22,7 @@ export type GeneratedCompanyRulesLoad<T> = {
 export function readGeneratedCompanyRules<T>(
   path = "data/generated_company_rules_latest.json",
   asOf = todayJst(),
+  isRow?: (value: unknown) => value is T,
 ): GeneratedCompanyRulesLoad<T> {
   if (!existsSync(path)) return { rows: [], generatedAt: null, missing: true };
 
@@ -42,6 +43,9 @@ export function readGeneratedCompanyRules<T>(
   }
   if (parsed.generatedAt > asOf) {
     throw new Error(`${path}: generated company rules.generatedAt must not be later than Pro valuation as-of date ${asOf}`);
+  }
+  if (isRow && parsed.rules.some(rule => !isRow(rule))) {
+    throw new Error(`${path}: generated company rules.rules contains an invalid row`);
   }
 
   return { rows: parsed.rules as T[], generatedAt: parsed.generatedAt, missing: false };
