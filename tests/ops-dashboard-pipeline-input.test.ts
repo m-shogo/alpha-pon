@@ -50,6 +50,10 @@ for (const malformed of [
   {},
   { status: "green", failedSteps: "" },
   { status: 200, failedSteps: "" },
+  { date: "2026-02-31", status: "completed", failedSteps: "" },
+  { date: "0000-01-01", status: "completed", failedSteps: "" },
+  { date: "2026-08-17junk", status: "completed", failedSteps: "" },
+  { date: "2026-08-17T00:00:00+09:00", status: "completed", failedSteps: "" },
   { status: "completed", failedSteps: [123] },
   { status: "completed", failedSteps: ["   "] },
   { status: "completed", steps: "daily" },
@@ -66,4 +70,4 @@ for (const malformed of [
 
 assert.equal(normalizeOpsPipelineStatusInput(null), null, "missing input remains distinguishable from malformed input");
 
-console.log("ops-dashboard pipeline input: producer statuses and canonical failed-step shapes normalize while malformed shapes fail closed OK");
+console.log("ops-dashboard pipeline input: producer statuses, dates, and failed-step shapes normalize while malformed inputs fail closed OK");
