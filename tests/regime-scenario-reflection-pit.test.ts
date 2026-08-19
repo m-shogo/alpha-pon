@@ -9,18 +9,21 @@ try {
   const path = join(dir, "world_event_reflections_latest.json");
   writeFileSync(path, JSON.stringify([
     {
+      eventId: "2026-08-20-current",
       createdAt: "2026-08-20",
       title: "current",
       categories: ["金融不安"],
       impactedTags: ["銀行"],
     },
     {
+      eventId: "2026-08-21-future",
       createdAt: "2026-08-21",
       title: "future",
       categories: ["金利"],
       impactedTags: ["信用"],
     },
     {
+      eventId: "2026-02-31-invalid-date",
       createdAt: "2026-02-31",
       title: "invalid-date",
       categories: ["金融不安"],
