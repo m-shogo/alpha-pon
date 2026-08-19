@@ -17,11 +17,28 @@ assert.deepEqual(valid, {
   sqlite: { duplicateGroups: [] },
 });
 
+for (const status of ["duplicate_found", "db_unavailable", "parse_error"]) {
+  const canonical = {
+    generatedAt: asOf,
+    status,
+    jsonl: { duplicateGroups: [], parseErrors: [] },
+    sqlite: { duplicateGroups: [] },
+  };
+  assert.deepEqual(
+    normalizeOpsIntegrityInput(canonical, asOf),
+    canonical,
+    `canonical producer status ${status} must remain available to the dashboard`,
+  );
+}
+
 for (const malformed of [
   [],
   "broken",
   {},
   { generatedAt: asOf, status: "green" },
+  { generatedAt: asOf, status: "warning", jsonl: { duplicateGroups: [], parseErrors: [] }, sqlite: { duplicateGroups: [] } },
+  { generatedAt: asOf, status: "action_required", jsonl: { duplicateGroups: [], parseErrors: [] }, sqlite: { duplicateGroups: [] } },
+  { generatedAt: asOf, status: "unknown", jsonl: { duplicateGroups: [], parseErrors: [] }, sqlite: { duplicateGroups: [] } },
   { generatedAt: asOf, status: "ok" },
   { generatedAt: asOf, status: "ok", jsonl: [], sqlite: { duplicateGroups: [] } },
   { generatedAt: asOf, status: "ok", jsonl: {}, sqlite: { duplicateGroups: [] } },
@@ -43,7 +60,7 @@ for (const malformed of [
       jsonl: { duplicateGroups: [], parseErrors: [{}] },
       sqlite: { duplicateGroups: [] },
     },
-    "malformed, truncated, or stale integrity input must fail closed instead of producing false-green counts",
+    "malformed, truncated, stale, or non-canonical integrity input must fail closed instead of producing false-green counts",
   );
 }
 
@@ -75,4 +92,4 @@ assert.equal(normalizeOpsIntegrityInput(null, asOf), null, "missing input remain
   assert.equal(applyOutcomeIntegrityAuditHealth(base, valid), base, "available integrity audit keeps existing dashboard handling");
 }
 
-console.log("ops-dashboard integrity input: malformed, truncated, stale, and missing audits fail closed OK");
+console.log("ops-dashboard integrity input: canonical statuses, malformed, truncated, stale, and missing audits validated OK");
