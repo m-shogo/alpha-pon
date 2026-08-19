@@ -1,3 +1,5 @@
+import { addDaysJst } from "./date.js";
+
 export type PrimaryDecision = "confirmed" | "caution" | "block" | "missing" | "unknown_or_legacy";
 
 export type PrimaryDisclosureLearningItem = {
@@ -51,6 +53,23 @@ function stringList(value: unknown, label: string, warnings: string[]): string[]
   return value.filter((item): item is string => {
     const valid = typeof item === "string" && item.trim().length > 0;
     if (!valid) warnings.push(`${label}: invalid_item`);
+    return valid;
+  });
+}
+
+function isRealJstDate(value: string): boolean {
+  try {
+    return addDaysJst(value, 0) === value;
+  } catch {
+    return false;
+  }
+}
+
+function jstDateList(value: unknown, label: string, warnings: string[]): string[] {
+  const values = stringList(value, label, warnings);
+  return values.filter((item) => {
+    const valid = isRealJstDate(item);
+    if (!valid) warnings.push(`${label}: invalid_date`);
     return valid;
   });
 }
@@ -149,7 +168,7 @@ export function normalizePrimaryDisclosureLearningScoreInput(
               tdnetCount: typeof coverage.tdnetCount === "number" && Number.isFinite(coverage.tdnetCount) ? coverage.tdnetCount : undefined,
               edinetCount: typeof coverage.edinetCount === "number" && Number.isFinite(coverage.edinetCount) ? coverage.edinetCount : undefined,
               fetchErrorCount: typeof coverage.fetchErrorCount === "number" && Number.isFinite(coverage.fetchErrorCount) ? coverage.fetchErrorCount : undefined,
-              scannedEdinetDates: stringList(coverage.scannedEdinetDates, `${label}.primaryDisclosureReview.sourceCoverage.scannedEdinetDates`, warnings),
+              scannedEdinetDates: jstDateList(coverage.scannedEdinetDates, `${label}.primaryDisclosureReview.sourceCoverage.scannedEdinetDates`, warnings),
             };
           }
         }
