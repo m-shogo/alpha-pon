@@ -1,4 +1,4 @@
-import { existsSync, statSync } from "fs";
+import { existsSync, readFileSync, statSync } from "fs";
 
 export type RequiredFileState = "ok" | "missing" | "not_file" | "empty";
 
@@ -11,5 +11,14 @@ export function inspectRequiredFile(path: string): RequiredFileState {
     return "ok";
   } catch {
     return "missing";
+  }
+}
+
+export function readSmokeText(path: string): string {
+  if (inspectRequiredFile(path) !== "ok") return "";
+  try {
+    return readFileSync(path, "utf-8");
+  } catch {
+    return "";
   }
 }
