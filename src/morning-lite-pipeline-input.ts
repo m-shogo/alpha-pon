@@ -38,7 +38,7 @@ export function readMorningLitePipelineInput(
   asOf = todayJst(),
 ): MorningLitePipelineInput {
   const loaded = readReadOnlyJsonObjectFile<Record<string, unknown>>(path);
-  if (loaded.missing) return { status: "unknown", failedSteps: [], warning: null };
+  if (loaded.missing) return { status: "unknown", failedSteps: [], warning: `${path}: missing` };
   if (loaded.parseError) return { status: "unknown", failedSteps: [], warning: `${path}: parse_error` };
   if (loaded.invalidRoot || !loaded.object) return { status: "unknown", failedSteps: [], warning: `${path}: invalid_root` };
 

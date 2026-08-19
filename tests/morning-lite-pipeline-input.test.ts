@@ -15,6 +15,12 @@ function main(): void {
   try {
     const pipelinePath = join(dir, "pipeline_status_latest.json");
 
+    assert.deepEqual(readMorningLitePipelineInput(pipelinePath, AS_OF), {
+      status: "unknown",
+      failedSteps: [],
+      warning: `${pipelinePath}: missing`,
+    });
+
     writeFileSync(pipelinePath, "{broken", "utf-8");
     const parseBroken = readMorningLitePipelineInput(pipelinePath, AS_OF);
     assert.equal(parseBroken.status, "unknown");
