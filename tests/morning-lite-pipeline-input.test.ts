@@ -138,6 +138,21 @@ function main(): void {
       "notification timestamps from a different JST day must not inflate a dated dedupe file",
     );
 
+    writeFileSync(
+      dedupePath,
+      JSON.stringify([
+        { key: "same-key", sentAt: "2026-08-15T15:00:00.000Z", preview: "first" },
+        { key: "same-key", sentAt: "2026-08-15T16:00:00.000Z", preview: "duplicate" },
+        { key: "other-key", sentAt: "2026-08-15T17:00:00.000Z", preview: "second notification" },
+      ]),
+      "utf-8",
+    );
+    assert.deepEqual(
+      readMorningLiteDedupeCount(dedupePath, AS_OF),
+      { count: 2, warning: `${dedupePath}: invalid_rows 1` },
+      "duplicate notification keys must not inflate read-only notification counts",
+    );
+
     assert.deepEqual(parseMorningLiteDedupeFileDate("2026-08-16.json", "2026-08-16"), { date: "2026-08-16", warning: null });
     assert.deepEqual(parseMorningLiteDedupeFileDate("2026-02-31.json", "2026-08-16"), { date: null, warning: "2026-02-31.json: invalid_date_filename" });
     assert.deepEqual(parseMorningLiteDedupeFileDate("0000-01-01.json", "2026-08-16"), { date: null, warning: "0000-01-01.json: invalid_date_filename" });
