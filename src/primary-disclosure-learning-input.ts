@@ -69,16 +69,16 @@ function scoreSourceDate(source: string): string | null {
   return /(?:^|\/)scores_(\d{4}-\d{2}-\d{2})\.json$/.exec(source)?.[1] ?? null;
 }
 
-function jstDateList(value: unknown, label: string, warnings: string[]): string[] {
+function jstDateList(value: unknown, label: string, warnings: string[], asOf: string): string[] {
   const values = stringList(value, label, warnings);
   return values.filter((item) => {
-    const valid = isRealJstDate(item);
+    const valid = isRealJstDate(item) && item <= asOf;
     if (!valid) warnings.push(`${label}: invalid_date`);
     return valid;
   });
 }
 
-function disclosureItems(value: unknown, label: string, warnings: string[]): PrimaryDisclosureLearningItem[] {
+function disclosureItems(value: unknown, label: string, warnings: string[], asOf: string): PrimaryDisclosureLearningItem[] {
   if (value == null) return [];
   if (!Array.isArray(value)) {
     warnings.push(`${label}: invalid_list`);
@@ -97,7 +97,7 @@ function disclosureItems(value: unknown, label: string, warnings: string[]): Pri
       typeof row.title !== "string" || row.title.trim() === "" ||
       typeof row.category !== "string" || row.category.trim() === "" ||
       typeof row.severity !== "string" || row.severity.trim() === "" ||
-      typeof row.publishedAt !== "string" || !isRealJstDate(row.publishedAt)
+      typeof row.publishedAt !== "string" || !isRealJstDate(row.publishedAt) || row.publishedAt > asOf
     ) {
       warnings.push(`${itemLabel}: invalid_fields`);
       return;
@@ -183,14 +183,14 @@ export function normalizePrimaryDisclosureLearningScoreInput(
               tdnetCount: typeof coverage.tdnetCount === "number" && Number.isFinite(coverage.tdnetCount) ? coverage.tdnetCount : undefined,
               edinetCount: typeof coverage.edinetCount === "number" && Number.isFinite(coverage.edinetCount) ? coverage.edinetCount : undefined,
               fetchErrorCount: typeof coverage.fetchErrorCount === "number" && Number.isFinite(coverage.fetchErrorCount) ? coverage.fetchErrorCount : undefined,
-              scannedEdinetDates: jstDateList(coverage.scannedEdinetDates, `${label}.primaryDisclosureReview.sourceCoverage.scannedEdinetDates`, warnings),
+              scannedEdinetDates: jstDateList(coverage.scannedEdinetDates, `${label}.primaryDisclosureReview.sourceCoverage.scannedEdinetDates`, warnings, asOf),
             };
           }
         }
 
         primaryDisclosureReview = {
           decision,
-          items: disclosureItems(review.items, `${label}.primaryDisclosureReview.items`, warnings),
+          items: disclosureItems(review.items, `${label}.primaryDisclosureReview.items`, warnings, asOf),
           sourceCoverage,
           positives: stringList(review.positives, `${label}.primaryDisclosureReview.positives`, warnings),
           warnings: stringList(review.warnings, `${label}.primaryDisclosureReview.warnings`, warnings),
