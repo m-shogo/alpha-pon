@@ -115,6 +115,17 @@ const impossibleSnapshot = normalizePrimaryDisclosureLearningScoreInput(validSco
 assert.deepEqual(impossibleSnapshot.rows, [], "impossible score snapshot date must fail closed");
 assert.deepEqual(impossibleSnapshot.warnings, ["scores_2026-02-31.json: invalid_source_date"]);
 
+const invalidCreatedAt = normalizePrimaryDisclosureLearningScoreInput([
+  { ...validScoreRow[0], createdAt: "2026-02-31" },
+  { ...validScoreRow[0], code: "9984", name: "ソフトバンクグループ", createdAt: "2026-08-20" },
+], "scores_2026-08-19.json", "2026-08-19");
+assert.deepEqual(invalidCreatedAt.rows, [], "impossible or future score-row createdAt must not enter current learning evidence");
+assert.equal(
+  invalidCreatedAt.warnings.filter(warning => warning.includes("invalid_metadata")).length,
+  2,
+  "each invalid score-row createdAt must be surfaced as metadata warning",
+);
+
 const invalidRoot = normalizePrimaryDisclosureLearningScoreInput({ rows: [] }, "scores_2026-08-18.json", "2026-08-19");
 assert.deepEqual(invalidRoot.rows, []);
 assert.deepEqual(invalidRoot.warnings, ["scores_2026-08-18.json: invalid_root"]);
