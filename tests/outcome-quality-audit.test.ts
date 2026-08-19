@@ -10,6 +10,10 @@ import {
   type QualityHypothesisLike,
   type QualityOutcomeLike,
 } from "../src/outcome-quality-audit.js";
+import {
+  isQualityHypothesisLike,
+  isQualityOutcomeLike,
+} from "../src/outcome-quality-audit-input.js";
 import { buildOpsDashboard } from "../src/ops-dashboard.js";
 
 const TODAY = "2026-06-11";
@@ -267,6 +271,14 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
 }
 
 {
+  assert.equal(isQualityHypothesisLike({}), false, "identityless hypothesis row must fail closed");
+  assert.equal(isQualityOutcomeLike({}), false, "identityless outcome row must fail closed");
+  assert.equal(isQualityHypothesisLike(hypothesis()), true, "canonical hypothesis row must remain accepted");
+  assert.equal(isQualityOutcomeLike(outcome()), true, "canonical outcome row must remain accepted");
+  console.log("outcome-quality: identityless generated rows fail closed");
+}
+
+{
   const source = readFileSync(new URL("../src/outcome-quality-audit-report.ts", import.meta.url), "utf-8");
   assert.match(source, /Array\.isArray\(hypotheses\)/, "hypotheses root shape must fail closed");
   assert.match(source, /Array\.isArray\(outcomes\)/, "outcomes root shape must fail closed");
@@ -274,8 +286,6 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
   assert.ok(!source.includes("outcomesFile.outcomes ?? []"), "malformed outcomes shape must not degrade to empty-ok");
   assert.match(source, /hypotheses\.every\(isQualityHypothesisLike\)/, "malformed hypothesis rows must fail closed before audit logic");
   assert.match(source, /outcomes\.every\(isQualityOutcomeLike\)/, "malformed outcome rows must fail closed before audit logic");
-  assert.match(source, /isOptionalStringArray\(value\.whatMatched\)/, "whatMatched must be validated as a string array");
-  assert.match(source, /isOptionalStringArray\(value\.missedSignals\)/, "missedSignals must be validated as a string array");
   console.log("outcome-quality: malformed generated input root/row shape fails closed");
 }
 

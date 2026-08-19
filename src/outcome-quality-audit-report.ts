@@ -15,6 +15,10 @@ import {
   type QualityHypothesisLike,
   type QualityOutcomeLike,
 } from "./outcome-quality-audit.js";
+import {
+  isQualityHypothesisLike,
+  isQualityOutcomeLike,
+} from "./outcome-quality-audit-input.js";
 
 const ROOT = process.cwd();
 
@@ -26,48 +30,6 @@ function readJson<T>(path: string): T | null {
   } catch {
     return null;
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function hasOnlyOptionalStringFields(
-  value: Record<string, unknown>,
-  fields: string[],
-): boolean {
-  return fields.every(field => value[field] == null || typeof value[field] === "string");
-}
-
-function isQualityHypothesisLike(value: unknown): value is QualityHypothesisLike {
-  if (!isRecord(value)) return false;
-  return hasOnlyOptionalStringFields(value, [
-    "code",
-    "name",
-    "detectedAt",
-    "reviewDueAt",
-    "expectedTimeframe",
-    "expectedDirection",
-  ]);
-}
-
-function isOptionalStringArray(value: unknown): boolean {
-  return value == null || (Array.isArray(value) && value.every(item => typeof item === "string"));
-}
-
-function isQualityOutcomeLike(value: unknown): value is QualityOutcomeLike {
-  if (!isRecord(value)) return false;
-  if (!hasOnlyOptionalStringFields(value, [
-    "code",
-    "name",
-    "reviewHorizon",
-    "result",
-    "dataAvailability",
-    "actualDirection",
-    "notes",
-  ])) return false;
-  if (!isOptionalStringArray(value.whatMatched) || !isOptionalStringArray(value.missedSignals)) return false;
-  return value.hypothesis == null || isQualityHypothesisLike(value.hypothesis);
 }
 
 const hypothesesFile = readJson<{ hypotheses?: unknown[] }>(
@@ -99,8 +61,8 @@ if (!hypothesisRowsOk || !outcomeRowsOk) {
 
 const audit = buildOutcomeQualityAudit({
   today: getTodayInTokyo(),
-  hypotheses,
-  outcomes,
+  hypotheses: hypotheses as QualityHypothesisLike[],
+  outcomes: outcomes as QualityOutcomeLike[],
 });
 
 mkdirSync(join(ROOT, "reports"), { recursive: true });
