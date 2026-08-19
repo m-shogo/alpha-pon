@@ -1,7 +1,29 @@
 import assert from "node:assert/strict";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import "./listing-automation-summary-input.test.js";
 import "./listing-event-alert-input.test.js";
+import { inspectRequiredFile } from "../src/listing-automation-smoke-input.js";
 import { parseListingEventMessageInput } from "../src/listing-event-message-preview-input.js";
+
+{
+  const root = mkdtempSync(join(tmpdir(), "alpha-pon-listing-smoke-"));
+  try {
+    const valid = join(root, "valid.txt");
+    const empty = join(root, "empty.txt");
+    const directory = join(root, "directory");
+    writeFileSync(valid, "ok", "utf-8");
+    writeFileSync(empty, "", "utf-8");
+    mkdirSync(directory);
+    assert.equal(inspectRequiredFile(valid), "ok", "non-empty regular files remain valid smoke evidence");
+    assert.equal(inspectRequiredFile(empty), "empty", "empty required files must fail closed");
+    assert.equal(inspectRequiredFile(directory), "not_file", "directories must not satisfy required-file smoke checks");
+    assert.equal(inspectRequiredFile(join(root, "missing.txt")), "missing", "missing required files remain failures");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
 
 const AS_OF = "2026-08-18";
 const VALID_ALERT = {
