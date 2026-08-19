@@ -1,18 +1,17 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
-import { readGeneratedCompanyRules } from "./pro-generated-rules-input.js";
+import {
+  isProValuationGeneratedRule,
+  readGeneratedCompanyRules,
+  type ProValuationGeneratedRule,
+} from "./pro-generated-rules-input.js";
 import type { ValuationSnapshot } from "./pro-types.js";
 
 type Company = { code: string; name: string; evidenceToCheck?: string[]; noMoveHypothesis?: string; downsideHypothesis?: string };
 type Hypotheses = { categories?: Record<string, { companies?: Company[] }> };
-type GeneratedRule = {
-  code: string;
-  name: string;
-  risks?: string[];
-  evidenceNeeded?: string[];
-  priceSignal?: { relativeTopix20dPct?: number | null; change20dPct?: number | null; volumeSpikeRatio?: number | null };
-};
+
+type GeneratedRule = ProValuationGeneratedRule;
 
 function readYaml<T>(path: string, fallback: T): T {
   if (!existsSync(path)) return fallback;
@@ -20,7 +19,11 @@ function readYaml<T>(path: string, fallback: T): T {
 }
 
 function readRules(): Map<string, GeneratedRule> {
-  const load = readGeneratedCompanyRules<GeneratedRule>("data/generated_company_rules_latest.json", todayJst());
+  const load = readGeneratedCompanyRules<GeneratedRule>(
+    "data/generated_company_rules_latest.json",
+    todayJst(),
+    isProValuationGeneratedRule,
+  );
   return new Map(load.rows.map(rule => [rule.code, rule]));
 }
 
