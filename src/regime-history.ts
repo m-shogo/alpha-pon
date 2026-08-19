@@ -1,6 +1,7 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
+import { resolveRegimeHistoryAsOf } from "./regime-history-input.js";
 
 type CurrentRegime = {
   asOf?: string;
@@ -35,7 +36,7 @@ function main() {
 
   const row = {
     date,
-    asOf: config.asOf ?? date,
+    asOf: resolveRegimeHistoryAsOf(config.asOf, date),
     mode: config.mode ?? "unknown",
     summary: config.summary ?? "",
     activeRegimes: (config.activeRegimes ?? []).map(item => ({
