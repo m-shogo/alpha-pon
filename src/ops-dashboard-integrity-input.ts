@@ -43,5 +43,11 @@ export function normalizeOpsIntegrityInput(
   if (!isRecord(value.sqlite)) return invalidIntegrityInput();
   if (!Array.isArray(value.sqlite.duplicateGroups)) return invalidIntegrityInput();
 
+  const hasFindings =
+    value.jsonl.duplicateGroups.length > 0 ||
+    value.jsonl.parseErrors.length > 0 ||
+    value.sqlite.duplicateGroups.length > 0;
+  if (value.status === "ok" && hasFindings) return invalidIntegrityInput();
+
   return value as OpsIntegrityLike;
 }
