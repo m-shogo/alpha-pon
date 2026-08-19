@@ -65,18 +65,19 @@ const disclosureDates = normalizePrimaryDisclosureLearningScoreInput([{
       { source: "TDnet", title: "決算", category: "earnings", severity: "positive", publishedAt: "2026-08-18" },
       { source: "TDnet", title: "不存在日", category: "earnings", severity: "positive", publishedAt: "2026-02-31" },
       { source: "EDINET", title: "year zero", category: "earnings", severity: "positive", publishedAt: "0000-01-01" },
+      { source: "TDnet", title: "未来開示", category: "earnings", severity: "positive", publishedAt: "2026-08-20" },
     ],
   },
-}]);
+}], "scores_2026-08-19.json", "2026-08-19");
 assert.deepEqual(
   disclosureDates.rows[0].primaryDisclosureReview?.items,
   [{ source: "TDnet", title: "決算", category: "earnings", severity: "positive", publishedAt: "2026-08-18" }],
-  "disclosure learning must count only items with real Gregorian published dates",
+  "disclosure learning must count only items published on or before the learning cutoff",
 );
 assert.equal(
   disclosureDates.warnings.filter(warning => warning.includes("primaryDisclosureReview.items") && warning.includes("invalid_fields")).length,
-  2,
-  "each invalid disclosure published date must be surfaced as metadata warning",
+  3,
+  "each impossible, year-zero, or future disclosure date must be surfaced as metadata warning",
 );
 
 const scanDates = normalizePrimaryDisclosureLearningScoreInput([{
@@ -88,19 +89,19 @@ const scanDates = normalizePrimaryDisclosureLearningScoreInput([{
   primaryDisclosureReview: {
     decision: "confirmed",
     sourceCoverage: {
-      scannedEdinetDates: ["2026-08-18", "2026-02-31", "0000-01-01"],
+      scannedEdinetDates: ["2026-08-18", "2026-02-31", "0000-01-01", "2026-08-20"],
     },
   },
-}]);
+}], "scores_2026-08-19.json", "2026-08-19");
 assert.deepEqual(
   scanDates.rows[0].primaryDisclosureReview?.sourceCoverage?.scannedEdinetDates,
   ["2026-08-18"],
-  "only real Gregorian JST dates may be exposed as EDINET scan provenance",
+  "only real Gregorian EDINET scan dates on or before the learning cutoff may be exposed as provenance",
 );
 assert.equal(
   scanDates.warnings.filter(warning => warning.includes("scannedEdinetDates: invalid_date")).length,
-  2,
-  "each invalid EDINET scan date must be surfaced as metadata warning",
+  3,
+  "each impossible, year-zero, or future EDINET scan date must be surfaced as metadata warning",
 );
 
 const validScoreRow = [{ code: "8136", name: "サンリオ", score: 80, alertLevel: "watch", createdAt: "2026-08-19" }];
