@@ -25,7 +25,7 @@ import type { DisclosureEvidence, UniverseCandidate, UniverseFallbackReason, Uni
 import { SCREENING_CRITERIA } from "./universe.js";
 import { loadRunCursor, saveRunCursor } from "./run-cursor.js";
 import { buildPriceSignalFromQuotes, evaluatePriceRisk } from "./analysis/price-signal.js";
-import { carryForwardStaleCandidate } from "./universe-stale-fallback.js";
+import { carryForwardValidStaleCandidates } from "./universe-stale-fallback.js";
 import { buildUniverseScanOutput } from "./universe-scan-output.js";
 
 const MARKET_BENCHMARK_CODE = process.env.MARKET_BENCHMARK_CODE ?? "1306";
@@ -204,8 +204,12 @@ function loadPreviousCandidates(date: string): UniverseCandidate[] {
   const latestPath = "data/universe_candidates_latest.json";
   if (!existsSync(latestPath)) return [];
   try {
-    const raw = JSON.parse(readFileSync(latestPath, "utf-8")) as { candidates?: UniverseCandidate[] };
-    return (raw.candidates ?? []).map(candidate => carryForwardStaleCandidate(candidate, date));
+    const raw = JSON.parse(readFileSync(latestPath, "utf-8")) as { candidates?: unknown };
+    const normalized = carryForwardValidStaleCandidates(raw.candidates, date);
+    if (normalized.invalidRowCount > 0) {
+      console.warn(`[warn] stale fallback候補の不正rowを ${normalized.invalidRowCount} 件隔離しました`);
+    }
+    return normalized.candidates;
   } catch { return []; }
 }
 
