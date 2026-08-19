@@ -52,9 +52,8 @@ export function readMorningLitePipelineInput(
   if (!pipelineDate) return { status: "unknown", failedSteps: [], warning: `${path}: invalid_date` };
   if (pipelineDate !== asOf) return { status: "unknown", failedSteps: [], warning: `${path}: not_current_date` };
 
-  const status = typeof loaded.object.status === "string" && loaded.object.status.trim()
-    ? loaded.object.status.trim()
-    : "unknown";
+  const statusValue = typeof loaded.object.status === "string" ? loaded.object.status.trim() : "";
+  const status = statusValue || "unknown";
   const completeSteps = normalizeFailedStepArray(loaded.object.completeWrapperFailedSteps);
   const dailySteps = normalizeDailyFailedSteps(loaded.object.failedSteps);
   if (!completeSteps || !dailySteps) {
@@ -62,6 +61,9 @@ export function readMorningLitePipelineInput(
   }
 
   const failedSteps = Array.from(new Set([...completeSteps, ...dailySteps]));
+  if (!statusValue) {
+    return { status, failedSteps, warning: `${path}: invalid_status` };
+  }
   return { status, failedSteps, warning: null };
 }
 
