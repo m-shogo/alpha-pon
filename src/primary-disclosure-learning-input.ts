@@ -120,6 +120,17 @@ function disclosureItems(value: unknown, label: string, warnings: string[], asOf
   return items;
 }
 
+function duplicateCanonicalCodes(input: unknown[]): Set<string> {
+  const counts = new Map<string, number>();
+  for (const value of input) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+    const code = (value as Record<string, unknown>).code;
+    if (typeof code !== "string" || code.trim() === "" || code !== code.trim()) continue;
+    counts.set(code, (counts.get(code) ?? 0) + 1);
+  }
+  return new Set([...counts.entries()].filter(([, count]) => count > 1).map(([code]) => code));
+}
+
 export function normalizePrimaryDisclosureLearningScoreInput(
   input: unknown,
   source = "scores",
@@ -135,6 +146,7 @@ export function normalizePrimaryDisclosureLearningScoreInput(
 
   const rows: PrimaryDisclosureLearningScore[] = [];
   const warnings: string[] = [];
+  const duplicateCodes = duplicateCanonicalCodes(input);
 
   input.forEach((value, index) => {
     const label = `${source} row ${index + 1}`;
@@ -145,6 +157,10 @@ export function normalizePrimaryDisclosureLearningScoreInput(
     const row = value as Record<string, unknown>;
     if (typeof row.code !== "string" || row.code.trim() === "" || row.code !== row.code.trim()) {
       warnings.push(`${label}: invalid_code`);
+      return;
+    }
+    if (duplicateCodes.has(row.code)) {
+      warnings.push(`${label}: duplicate_code`);
       return;
     }
     if (typeof row.name !== "string" || row.name.trim() === "") {
