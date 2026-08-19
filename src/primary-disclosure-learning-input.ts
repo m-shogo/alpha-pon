@@ -93,7 +93,7 @@ function disclosureItems(value: unknown, label: string, warnings: string[]): Pri
       typeof row.title !== "string" || row.title.trim() === "" ||
       typeof row.category !== "string" || row.category.trim() === "" ||
       typeof row.severity !== "string" || row.severity.trim() === "" ||
-      typeof row.publishedAt !== "string" || row.publishedAt.trim() === ""
+      typeof row.publishedAt !== "string" || !isRealJstDate(row.publishedAt)
     ) {
       warnings.push(`${itemLabel}: invalid_fields`);
       return;
