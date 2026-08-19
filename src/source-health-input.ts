@@ -38,6 +38,15 @@ function isOptionalNonNegativeInteger(value: unknown): boolean {
 
 const DATA_QUALITIES = new Set(["ok", "partial", "missing"]);
 const PRIMARY_DISCLOSURE_DECISIONS = new Set(["confirmed", "caution", "block", "missing"]);
+const PIPELINE_STATUSES = new Set([
+  "ok",
+  "partial_failed",
+  "running",
+  "skipped_locked",
+  "failed",
+  "completed_with_warnings",
+  "completed",
+]);
 
 export function hasValidPrimaryDisclosureReview(value: unknown): boolean {
   if (value === undefined) return true;
@@ -134,6 +143,10 @@ export function hasUniqueSourceHealthScoreIdentities(value: unknown): boolean {
 
 export function normalizeSourceHealthObject<T extends object>(value: unknown): { value: T | null; valid: boolean } {
   if (!isRecord(value)) {
+    return { value: null, valid: false };
+  }
+
+  if (typeof value.status !== "string" || !PIPELINE_STATUSES.has(value.status)) {
     return { value: null, valid: false };
   }
 
