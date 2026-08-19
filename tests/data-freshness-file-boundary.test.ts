@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { freshnessOf } from "../src/data-freshness.js";
@@ -28,6 +28,15 @@ try {
     "whitespace-only file mtime must not count as fresh report evidence",
   );
   assert.match(whitespaceOnlyResult.reason, /空ファイル/);
+
+  const futureFile = join(dir, "future.json");
+  writeFileSync(futureFile, "{}", "utf-8");
+  const future = new Date(Date.now() + 60_000);
+  utimesSync(futureFile, future, future);
+  const futureResult = freshnessOf(futureFile, "future report");
+  assert.equal(futureResult.exists, true);
+  assert.equal(futureResult.isFreshToday, false, "future mtime must not count as current freshness evidence");
+  assert.match(futureResult.reason, /更新時刻が未来/);
 
   const file = join(dir, "pipeline_status_latest.json");
   writeFileSync(file, "{}", "utf-8");
