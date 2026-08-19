@@ -59,8 +59,12 @@ export function normalizeOpsSpecialSituationInput(
     if (item.command !== undefined && typeof item.command !== "string") return invalidSpecialOps();
   }
 
-  if (priorities.includes("urgent") && value.healthStatus !== "action_required") return invalidSpecialOps();
-  if (priorities.includes("attention") && value.healthStatus === "ok") return invalidSpecialOps();
+  const expectedHealth = priorities.includes("urgent")
+    ? "action_required"
+    : priorities.includes("attention")
+      ? "needs_attention"
+      : "ok";
+  if (value.healthStatus !== expectedHealth) return invalidSpecialOps();
 
   if (!isRecord(value.reviewDue)) return invalidSpecialOps();
   for (const key of REVIEW_DUE_KEYS) {
