@@ -11,11 +11,18 @@ try {
   assert.equal(directoryResult.isFreshToday, false, "directory mtime must not count as fresh report evidence");
   assert.match(directoryResult.reason, /regular fileではない/);
 
+  const emptyFile = join(dir, "empty.json");
+  writeFileSync(emptyFile, "", "utf-8");
+  const emptyResult = freshnessOf(emptyFile, "empty report");
+  assert.equal(emptyResult.exists, true, "existing empty file remains distinguishable from a missing path");
+  assert.equal(emptyResult.isFreshToday, false, "empty file mtime must not count as fresh report evidence");
+  assert.match(emptyResult.reason, /空ファイル/);
+
   const file = join(dir, "pipeline_status_latest.json");
   writeFileSync(file, "{}", "utf-8");
   const fileResult = freshnessOf(file, "pipeline status");
   assert.equal(fileResult.exists, true);
-  assert.equal(fileResult.isFreshToday, true, "a regular file created now remains fresh");
+  assert.equal(fileResult.isFreshToday, true, "a non-empty regular file created now remains fresh");
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
