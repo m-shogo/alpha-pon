@@ -1,3 +1,4 @@
+import { addDaysJst } from "./date.js";
 import type { OpsPipelineStatusLike } from "./ops-dashboard.js";
 
 const INVALID_PIPELINE_INPUT = "invalid_pipeline_status_input";
@@ -15,6 +16,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isCanonicalJstDate(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  try {
+    return addDaysJst(value, 0) === value;
+  } catch {
+    return false;
+  }
+}
+
 function invalidPipelineStatus(): OpsPipelineStatusLike {
   return {
     status: "failed",
@@ -28,6 +38,9 @@ export function normalizeOpsPipelineStatusInput(value: unknown): OpsPipelineStat
   if (!isRecord(value)) return invalidPipelineStatus();
 
   if (typeof value.status !== "string" || !PIPELINE_STATUSES.has(value.status)) {
+    return invalidPipelineStatus();
+  }
+  if (value.date !== undefined && !isCanonicalJstDate(value.date)) {
     return invalidPipelineStatus();
   }
 
