@@ -32,6 +32,10 @@ for (const malformed of [
   { generatedAt: asOf, today: asOf, healthStatus: "ok", actionItems: [{ priority: "urgent", title: "must be action_required" }], reviewDue: { overdue: 0, historicalSeedOverdue: 0, priceDataPending: 0, dueToday: 0, dueThisWeek: 0 } },
   { generatedAt: asOf, today: asOf, healthStatus: "ok", actionItems: [{ priority: "attention", title: "must need attention" }], reviewDue: { overdue: 0, historicalSeedOverdue: 0, priceDataPending: 0, dueToday: 0, dueThisWeek: 0 } },
   { generatedAt: asOf, today: asOf, healthStatus: "needs_attention", actionItems: [{ priority: "attention", title: "   " }], reviewDue: { overdue: 0, historicalSeedOverdue: 0, priceDataPending: 0, dueToday: 0, dueThisWeek: 0 } },
+  { generatedAt: asOf, today: asOf, healthStatus: "action_required", actionItems: [{ priority: "attention", title: "wrong escalation" }], reviewDue: { overdue: 0, historicalSeedOverdue: 0, priceDataPending: 0, dueToday: 0, dueThisWeek: 0 } },
+  { generatedAt: asOf, today: asOf, healthStatus: "needs_attention", actionItems: [{ priority: "info", title: "no attention action" }], reviewDue: { overdue: 0, historicalSeedOverdue: 0, priceDataPending: 0, dueToday: 0, dueThisWeek: 0 } },
+  { generatedAt: asOf, today: asOf, healthStatus: "action_required", actionItems: [], reviewDue: { overdue: 0, historicalSeedOverdue: 0, priceDataPending: 0, dueToday: 0, dueThisWeek: 0 } },
+  { generatedAt: asOf, today: asOf, healthStatus: "needs_attention", actionItems: [], reviewDue: { overdue: 0, historicalSeedOverdue: 0, priceDataPending: 0, dueToday: 0, dueThisWeek: 0 } },
   { generatedAt: asOf, today: asOf, healthStatus: "ok", actionItems: [], reviewDue: [] },
   { generatedAt: asOf, today: asOf, healthStatus: "ok", actionItems: [], reviewDue: { overdue: "1", historicalSeedOverdue: 0, priceDataPending: 0, dueToday: 0, dueThisWeek: 0 } },
   { generatedAt: asOf, today: asOf, healthStatus: "ok", actionItems: [], reviewDue: { overdue: 0, historicalSeedOverdue: 0, priceDataPending: 0, dueToday: 0 } },
@@ -52,6 +56,27 @@ for (const malformed of [
   ]);
 }
 
+const validAttention = {
+  generatedAt: asOf,
+  today: asOf,
+  healthStatus: "needs_attention",
+  actionItems: [{ priority: "attention", title: "review due" }],
+  reviewDue: { overdue: 0, historicalSeedOverdue: 0, priceDataPending: 0, dueToday: 1, dueThisWeek: 0 },
+};
+assert.deepEqual(normalizeOpsSpecialSituationInput(validAttention, asOf), validAttention);
+
+const validUrgent = {
+  generatedAt: asOf,
+  today: asOf,
+  healthStatus: "action_required",
+  actionItems: [
+    { priority: "urgent", title: "outcome missing" },
+    { priority: "attention", title: "review due" },
+  ],
+  reviewDue: { overdue: 1, historicalSeedOverdue: 0, priceDataPending: 0, dueToday: 0, dueThisWeek: 0 },
+};
+assert.deepEqual(normalizeOpsSpecialSituationInput(validUrgent, asOf), validUrgent);
+
 assert.equal(normalizeOpsSpecialSituationInput(null, asOf), null, "missing input remains distinguishable from malformed input");
 
-console.log("ops-dashboard special input: malformed, stale, truncated, and inconsistent shapes fail closed OK");
+console.log("ops-dashboard special input: malformed, stale, truncated, and contradictory health evidence fail closed OK");
