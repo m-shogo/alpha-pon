@@ -14,6 +14,12 @@ export function safeOutputAuditGap(safeOutput: SafeOutputReportLike | null): Saf
   if (typeof safeOutput.healthStatus !== "string" || !HEALTH_STATUSES.has(safeOutput.healthStatus)) {
     return "invalid_report";
   }
+  if (
+    safeOutput.findingsCount !== undefined
+    && (!Number.isSafeInteger(safeOutput.findingsCount) || safeOutput.findingsCount < 0)
+  ) {
+    return "invalid_report";
+  }
 
   const findingsCount = typeof safeOutput.findingsCount === "number" && Number.isFinite(safeOutput.findingsCount)
     ? safeOutput.findingsCount
