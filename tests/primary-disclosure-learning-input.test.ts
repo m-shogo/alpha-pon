@@ -68,7 +68,7 @@ const disclosureDates = normalizePrimaryDisclosureLearningScoreInput([{
       { source: "TDnet", title: "未来開示", category: "earnings", severity: "positive", publishedAt: "2026-08-20" },
     ],
   },
-}], "scores_2026-08-19.json", "2026-08-19");
+}], "scores_2026-08-18.json", "2026-08-19");
 assert.deepEqual(
   disclosureDates.rows[0].primaryDisclosureReview?.items,
   [{ source: "TDnet", title: "決算", category: "earnings", severity: "positive", publishedAt: "2026-08-18" }],
@@ -92,7 +92,7 @@ const scanDates = normalizePrimaryDisclosureLearningScoreInput([{
       scannedEdinetDates: ["2026-08-18", "2026-02-31", "0000-01-01", "2026-08-20"],
     },
   },
-}], "scores_2026-08-19.json", "2026-08-19");
+}], "scores_2026-08-18.json", "2026-08-19");
 assert.deepEqual(
   scanDates.rows[0].primaryDisclosureReview?.sourceCoverage?.scannedEdinetDates,
   ["2026-08-18"],
@@ -125,6 +125,20 @@ assert.equal(
   invalidCreatedAt.warnings.filter(warning => warning.includes("invalid_metadata")).length,
   2,
   "each invalid score-row createdAt must be surfaced as metadata warning",
+);
+
+const mismatchedSnapshotDate = normalizePrimaryDisclosureLearningScoreInput([
+  { ...validScoreRow[0], createdAt: "2026-08-18" },
+], "scores_2026-08-19.json", "2026-08-19");
+assert.deepEqual(
+  mismatchedSnapshotDate.rows,
+  [],
+  "a later score snapshot must not inject a row into an earlier learning-date key",
+);
+assert.deepEqual(
+  mismatchedSnapshotDate.warnings,
+  ["scores_2026-08-19.json row 1: invalid_metadata"],
+  "snapshot-date provenance mismatch must be surfaced as metadata warning",
 );
 
 const invalidRoot = normalizePrimaryDisclosureLearningScoreInput({ rows: [] }, "scores_2026-08-18.json", "2026-08-19");
