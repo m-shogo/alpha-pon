@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
+import { requireMustWatchThemes } from "./must-watch-audit-input.js";
 import { mustWatchThemeStatus } from "./must-watch-audit-status.js";
 
 type RequiredJapanLink = {
@@ -18,10 +19,6 @@ type MustWatchTheme = {
   requiredQuestions?: string[];
   evidenceFiles?: string[];
   safetyRules?: string[];
-};
-
-type Config = {
-  mustWatchThemes?: Record<string, MustWatchTheme>;
 };
 
 type ThemeAudit = {
@@ -42,9 +39,9 @@ function readText(path: string): string {
   return existsSync(path) ? readFileSync(path, "utf-8") : "";
 }
 
-function readYaml<T>(path: string, fallback: T): T {
-  if (!existsSync(path)) return fallback;
-  return load(readFileSync(path, "utf-8")) as T;
+function readYaml(path: string): unknown {
+  if (!existsSync(path)) return null;
+  return load(readFileSync(path, "utf-8"));
 }
 
 function collectDocs(): string[] {
@@ -70,8 +67,8 @@ function auditTheme(themeId: string, theme: MustWatchTheme): ThemeAudit {
 }
 
 function main() {
-  const config = readYaml<Config>(CONFIG_PATH, { mustWatchThemes: {} });
-  const audits = Object.entries(config.mustWatchThemes ?? {}).map(([themeId, theme]) => auditTheme(themeId, theme));
+  const themes = requireMustWatchThemes(readYaml(CONFIG_PATH));
+  const audits = Object.entries(themes).map(([themeId, theme]) => auditTheme(themeId, theme as MustWatchTheme));
   const date = todayJst();
   const lines: string[] = [];
 
