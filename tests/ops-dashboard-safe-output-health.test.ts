@@ -55,4 +55,16 @@ for (const findingsCount of [-1, 0.5, Number.MAX_SAFE_INTEGER + 1]) {
   assert.equal(after.allIssues.some(issue => issue.title === "Safe Output 監査レポートの状態が不整合"), true);
 }
 
-console.log("ops-dashboard safe-output health: scan failure and invalid finding counts fail closed OK");
+for (const scanErrors of [{ file: "broken.md" }, "broken.md"]) {
+  const before = baseDashboard();
+  const after = applySafeOutputAuditHealth(before, {
+    healthStatus: "ok",
+    scannedFiles: 10,
+    findingsCount: 0,
+    scanErrors,
+  });
+  assert.equal(after.healthStatus, "needs_attention");
+  assert.equal(after.allIssues.some(issue => issue.title === "Safe Output 監査レポートの状態が不整合"), true);
+}
+
+console.log("ops-dashboard safe-output health: scan failure and malformed audit counts fail closed OK");
