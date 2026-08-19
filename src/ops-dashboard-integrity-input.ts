@@ -1,7 +1,7 @@
 import { todayJst } from "./date.js";
 import type { OpsIntegrityLike } from "./ops-dashboard.js";
 
-const INTEGRITY_STATUSES = new Set(["ok", "warning", "action_required", "unknown"]);
+const INTEGRITY_STATUSES = new Set(["ok", "duplicate_found", "db_unavailable", "parse_error"]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
