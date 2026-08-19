@@ -61,8 +61,14 @@ export function readMorningLitePipelineInput(
   }
 
   const failedSteps = Array.from(new Set([...completeSteps, ...dailySteps]));
-  if (!statusValue) {
+  if (statusValue !== "completed" && statusValue !== "completed_with_warnings") {
     return { status, failedSteps, warning: `${path}: invalid_status` };
+  }
+  if (
+    (statusValue === "completed" && failedSteps.length > 0)
+    || (statusValue === "completed_with_warnings" && failedSteps.length === 0)
+  ) {
+    return { status, failedSteps, warning: `${path}: inconsistent_status` };
   }
   return { status, failedSteps, warning: null };
 }
