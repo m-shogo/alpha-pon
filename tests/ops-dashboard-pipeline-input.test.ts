@@ -25,6 +25,19 @@ assert.deepEqual(canonicalArray, {
   failedSteps: "daily_company_score,ui_data_generate",
 });
 
+const partialFailedStepEvidence = normalizeOpsPipelineStatusInput({
+  date: "2026-08-17",
+  status: "partial_failed",
+  failedSteps: "",
+  steps: [{ name: "daily_company_score", status: "failed" }],
+});
+assert.deepEqual(partialFailedStepEvidence, {
+  date: "2026-08-17",
+  status: "partial_failed",
+  failedSteps: "",
+  steps: [{ name: "daily_company_score", status: "failed" }],
+});
+
 const canonicalEmptyArray = normalizeOpsPipelineStatusInput({
   date: "2026-08-17",
   status: "ok",
@@ -60,6 +73,8 @@ for (const malformed of [
   { status: "completed", steps: [null] },
   { status: "completed", steps: [{ name: 123, status: "ok" }] },
   { status: "completed", steps: [{ name: "daily", status: { value: "ok" } }] },
+  { status: "partial_failed", failedSteps: "", steps: [] },
+  { status: "partial_failed", failedSteps: [], steps: [{ name: "daily", status: "ok" }] },
 ]) {
   assert.deepEqual(
     normalizeOpsPipelineStatusInput(malformed),
@@ -70,4 +85,4 @@ for (const malformed of [
 
 assert.equal(normalizeOpsPipelineStatusInput(null), null, "missing input remains distinguishable from malformed input");
 
-console.log("ops-dashboard pipeline input: producer statuses, dates, and failed-step shapes normalize while malformed inputs fail closed OK");
+console.log("ops-dashboard pipeline input: producer statuses, dates, failed-step evidence, and shapes normalize while malformed inputs fail closed OK");
