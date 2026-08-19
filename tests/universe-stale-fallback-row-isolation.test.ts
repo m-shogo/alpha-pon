@@ -26,6 +26,8 @@ const mixed = carryForwardValidStaleCandidates(
     valid,
     { ...valid, code: "9999", dataSource: "mock" },
     { ...valid, code: "8888", detectedAt: "2026-08-21" },
+    { ...valid, code: " 7777" },
+    { ...valid, code: "6666", name: "   " },
     null,
   ],
   "2026-08-20",
@@ -34,7 +36,7 @@ const mixed = carryForwardValidStaleCandidates(
 assert.equal(mixed.candidates.length, 1, "invalid stale rows must not discard a valid J-Quants fallback row");
 assert.equal(mixed.candidates[0]?.code, "1234");
 assert.equal(mixed.candidates[0]?.staleAsOf, "2026-08-20");
-assert.equal(mixed.invalidRowCount, 3);
+assert.equal(mixed.invalidRowCount, 5);
 
 const invalidRoot = carryForwardValidStaleCandidates({ candidates: [valid] }, "2026-08-20");
 assert.deepEqual(invalidRoot.candidates, []);
