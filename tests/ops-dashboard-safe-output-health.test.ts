@@ -55,6 +55,22 @@ for (const findingsCount of [-1, 0.5, Number.MAX_SAFE_INTEGER + 1]) {
   assert.equal(after.allIssues.some(issue => issue.title === "Safe Output 監査レポートの状態が不整合"), true);
 }
 
+for (const { findingsCount, findings } of [
+  { findingsCount: 0, findings: [{ file: "unsafe.md", line: 1, maskedPattern: "買◯◯" }] },
+  { findingsCount: 1, findings: [] },
+]) {
+  const before = baseDashboard();
+  const after = applySafeOutputAuditHealth(before, {
+    healthStatus: "ok",
+    scannedFiles: 10,
+    findingsCount,
+    findings,
+    scanErrors: [],
+  });
+  assert.equal(after.healthStatus, "needs_attention");
+  assert.equal(after.allIssues.some(issue => issue.title === "Safe Output 監査レポートの状態が不整合"), true);
+}
+
 for (const scanErrors of [{ file: "broken.md" }, "broken.md"]) {
   const before = baseDashboard();
   const after = applySafeOutputAuditHealth(before, {
