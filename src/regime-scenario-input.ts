@@ -1,3 +1,4 @@
+import { addDaysJst, todayJst } from "./date.js";
 import { readReadOnlyJsonArrayFile } from "./read-only-json-file.js";
 
 export const DEFAULT_REGIME_SCENARIO_REFLECTION_PATH = "data/world_event_reflections_latest.json";
@@ -30,16 +31,35 @@ function isOptionalStringArray(value: unknown): boolean {
   return value === undefined || (Array.isArray(value) && value.every(item => typeof item === "string"));
 }
 
-function isUsableRegimeScenarioReflection(value: unknown): value is RegimeScenarioReflection {
+function isRealJstDate(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  try {
+    return addDaysJst(value, 0) === value;
+  } catch {
+    return false;
+  }
+}
+
+function isUsableRegimeScenarioReflection(value: unknown, asOf: string): value is RegimeScenarioReflection {
   if (!isRecord(value)) return false;
-  return isOptionalString(value.date)
-    && isOptionalString(value.createdAt)
-    && isOptionalString(value.title)
-    && isOptionalString(value.category)
-    && isOptionalStringArray(value.categories)
-    && isOptionalStringArray(value.tags)
-    && isOptionalStringArray(value.impactedTags)
-    && isOptionalString(value.riskLevel);
+  if (!isOptionalString(value.date)
+    || !isOptionalString(value.createdAt)
+    || !isOptionalString(value.title)
+    || !isOptionalString(value.category)
+    || !isOptionalStringArray(value.categories)
+    || !isOptionalStringArray(value.tags)
+    || !isOptionalStringArray(value.impactedTags)
+    || !isOptionalString(value.riskLevel)) {
+    return false;
+  }
+
+  const isCanonicalReflection = value.createdAt !== undefined
+    || value.categories !== undefined
+    || value.impactedTags !== undefined;
+  if (isCanonicalReflection) {
+    return isRealJstDate(value.createdAt) && value.createdAt <= asOf;
+  }
+  return true;
 }
 
 function normalizeRegimeScenarioReflection(value: RegimeScenarioReflection): RegimeScenarioReflection {
@@ -57,7 +77,12 @@ function normalizeRegimeScenarioReflection(value: RegimeScenarioReflection): Reg
 
 export function loadRegimeScenarioReflectionState(
   path = DEFAULT_REGIME_SCENARIO_REFLECTION_PATH,
+  asOf = todayJst(),
 ): RegimeScenarioReflectionLoad {
+  if (!isRealJstDate(asOf)) {
+    throw new Error(`regime scenario as-of date must be a real Gregorian date: ${asOf}`);
+  }
+
   const loaded = readReadOnlyJsonArrayFile<unknown>(path);
   if (loaded.parseError) {
     throw new Error(`${path}: parse_error`);
@@ -69,7 +94,7 @@ export function loadRegimeScenarioReflectionState(
   const rows: RegimeScenarioReflection[] = [];
   const invalidRows: number[] = [];
   loaded.rows.forEach((row, index) => {
-    if (isUsableRegimeScenarioReflection(row)) rows.push(normalizeRegimeScenarioReflection(row));
+    if (isUsableRegimeScenarioReflection(row, asOf)) rows.push(normalizeRegimeScenarioReflection(row));
     else invalidRows.push(index + 1);
   });
 
@@ -79,6 +104,9 @@ export function loadRegimeScenarioReflectionState(
   return { rows, warnings };
 }
 
-export function loadRegimeScenarioReflections(path = DEFAULT_REGIME_SCENARIO_REFLECTION_PATH): RegimeScenarioReflection[] {
-  return loadRegimeScenarioReflectionState(path).rows;
+export function loadRegimeScenarioReflections(
+  path = DEFAULT_REGIME_SCENARIO_REFLECTION_PATH,
+  asOf = todayJst(),
+): RegimeScenarioReflection[] {
+  return loadRegimeScenarioReflectionState(path, asOf).rows;
 }
