@@ -103,7 +103,19 @@ assert.equal(
   "each invalid EDINET scan date must be surfaced as metadata warning",
 );
 
-const invalidRoot = normalizePrimaryDisclosureLearningScoreInput({ rows: [] }, "scores_2026-08-18.json");
+const validScoreRow = [{ code: "8136", name: "サンリオ", score: 80, alertLevel: "watch", createdAt: "2026-08-19" }];
+const currentSnapshot = normalizePrimaryDisclosureLearningScoreInput(validScoreRow, "scores_2026-08-19.json", "2026-08-19");
+assert.equal(currentSnapshot.rows.length, 1, "current-day score snapshot must remain usable for learning");
+
+const futureSnapshot = normalizePrimaryDisclosureLearningScoreInput(validScoreRow, "scores_2026-08-20.json", "2026-08-19");
+assert.deepEqual(futureSnapshot.rows, [], "future score snapshot must not enter current learning evidence");
+assert.deepEqual(futureSnapshot.warnings, ["scores_2026-08-20.json: invalid_source_date"]);
+
+const impossibleSnapshot = normalizePrimaryDisclosureLearningScoreInput(validScoreRow, "scores_2026-02-31.json", "2026-08-19");
+assert.deepEqual(impossibleSnapshot.rows, [], "impossible score snapshot date must fail closed");
+assert.deepEqual(impossibleSnapshot.warnings, ["scores_2026-02-31.json: invalid_source_date"]);
+
+const invalidRoot = normalizePrimaryDisclosureLearningScoreInput({ rows: [] }, "scores_2026-08-18.json", "2026-08-19");
 assert.deepEqual(invalidRoot.rows, []);
 assert.deepEqual(invalidRoot.warnings, ["scores_2026-08-18.json: invalid_root"]);
 
