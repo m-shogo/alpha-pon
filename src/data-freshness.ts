@@ -35,7 +35,20 @@ export function freshnessOf(path: string, label = path): FreshnessResult {
     };
   }
 
-  const updatedAt = statSync(path).mtime;
+  const stat = statSync(path);
+  if (!stat.isFile()) {
+    return {
+      path,
+      label,
+      exists: true,
+      updatedAt: stat.mtime.toISOString(),
+      updatedDateJst: jstDate(stat.mtime),
+      isFreshToday: false,
+      reason: `${label} がregular fileではない`,
+    };
+  }
+
+  const updatedAt = stat.mtime;
   const updatedDateJst = jstDate(updatedAt);
   const today = todayJst();
   const isFreshToday = updatedDateJst === today;
