@@ -103,7 +103,14 @@ export function readMorningLiteDedupeCount(path: string, expectedDate?: string):
     return { count: 0, warning: `${path}: parse_error` };
   }
   if (!Array.isArray(parsed)) return { count: 0, warning: `${path}: invalid_root` };
-  const validRows = parsed.filter(row => isDedupeRecord(row, expectedDate));
+  const structurallyValidRows = parsed.filter(row => isDedupeRecord(row, expectedDate)) as Array<Record<string, unknown>>;
+  const seenKeys = new Set<string>();
+  const validRows = structurallyValidRows.filter(row => {
+    const key = row.key as string;
+    if (seenKeys.has(key)) return false;
+    seenKeys.add(key);
+    return true;
+  });
   const invalidCount = parsed.length - validRows.length;
   return {
     count: validRows.length,
