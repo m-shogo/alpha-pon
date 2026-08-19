@@ -19,6 +19,17 @@ const BASE_PIPELINE_STATUS = {
   generatedAt: "2026-08-16T11:00:00.000Z",
 };
 
+function historyReports(scoresExists = true) {
+  return {
+    sourceHealth: { exists: true, size: 42 },
+    daily: { exists: true, size: 42 },
+    scores: { exists: scoresExists, size: scoresExists ? 42 : 0 },
+    proposals: { exists: true, size: 42 },
+    stockPro: { exists: true, size: 42 },
+    regime: { exists: true, size: 42 },
+  };
+}
+
 assert.equal(hasUsableSourceHealthText("# source health\n- ok"), true, "meaningful source health text stays usable");
 assert.equal(hasUsableSourceHealthText(""), false, "empty source health text must fail closed");
 assert.equal(hasUsableSourceHealthText("  \n\t  "), false, "whitespace-only source health text must fail closed");
@@ -28,24 +39,36 @@ assert.equal(sourceHealthHistoryState(true, 0), "empty", "an existing but empty 
 assert.equal(sourceHealthHistoryState(false, 0), "missing", "missing source-health history must not look healthy");
 
 const normalizedHistory = normalizeSourceHealthHistoryRows([
-  { date: "2026-08-16", reports: { scores: { exists: true, size: 42 } } },
-  { date: "2026-02-31", reports: { scores: { exists: true, size: 42 } } },
-  { date: "2026-08-17", reports: { scores: { exists: true, size: 42 } } },
-  { reports: { scores: { exists: true, size: 42 } } },
+  { date: "2026-08-16", reports: historyReports() },
+  { date: "2026-02-31", reports: historyReports() },
+  { date: "2026-08-17", reports: historyReports() },
+  { reports: historyReports() },
 ], "2026-08-16");
 assert.deepEqual(normalizedHistory.rows.map(row => row.date), ["2026-08-16"], "only canonical history rows at or before the read-only cutoff remain eligible");
 assert.equal(normalizedHistory.invalidRows, 3, "invalid, future, and missing history dates must fail closed instead of crowding the recent health window");
 
+const truncatedHistory = normalizeSourceHealthHistoryRows([
+  { date: "2026-08-16", reports: {} },
+  { date: "2026-08-15", reports: { scores: { exists: true, size: 42 } } },
+  { date: "2026-08-14", reports: historyReports() },
+], "2026-08-16");
+assert.deepEqual(
+  truncatedHistory.rows.map(row => row.date),
+  ["2026-08-14"],
+  "history rows missing producer-required report keys must fail closed instead of looking like healthy zero-missing evidence",
+);
+assert.equal(truncatedHistory.invalidRows, 2, "truncated report maps remain visible as invalid history evidence");
+
 const retriedDailyHistory = normalizeSourceHealthHistoryRows([
-  { date: "2026-08-15", reports: { scores: { exists: false, size: 0 } } },
-  { date: "2026-08-16", reports: { scores: { exists: false, size: 0 } } },
-  { date: "2026-08-16", reports: { scores: { exists: true, size: 42 } } },
+  { date: "2026-08-15", reports: historyReports(false) },
+  { date: "2026-08-16", reports: historyReports(false) },
+  { date: "2026-08-16", reports: historyReports(true) },
 ], "2026-08-16");
 assert.deepEqual(
   retriedDailyHistory.rows,
   [
-    { date: "2026-08-15", reports: { scores: { exists: false, size: 0 } } },
-    { date: "2026-08-16", reports: { scores: { exists: true, size: 42 } } },
+    { date: "2026-08-15", reports: historyReports(false) },
+    { date: "2026-08-16", reports: historyReports(true) },
   ],
   "retries on one calendar date must resolve to the latest daily row instead of crowding the 14-day health window",
 );
