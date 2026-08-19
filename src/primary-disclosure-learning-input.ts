@@ -153,7 +153,8 @@ export function normalizePrimaryDisclosureLearningScoreInput(
       typeof row.createdAt !== "string" ||
       !isRealJstDate(row.createdAt) ||
       !isRealJstDate(asOf) ||
-      row.createdAt > asOf
+      row.createdAt > asOf ||
+      (sourceDate != null && row.createdAt !== sourceDate)
     ) {
       warnings.push(`${label}: invalid_metadata`);
       return;
