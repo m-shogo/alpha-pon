@@ -109,6 +109,21 @@ function main(): void {
     );
     assert.deepEqual(readMorningLiteDedupeCount(dedupePath), { count: 1, warning: `${dedupePath}: invalid_rows 1` });
 
+    writeFileSync(
+      dedupePath,
+      JSON.stringify([
+        { key: "a", sentAt: "2026-08-16T00:00:00.000Z", preview: "ok" },
+        { key: "bad", sentAt: "not-a-timestamp", preview: "invalid" },
+        { key: "year-zero", sentAt: "0000-01-01T00:00:00Z", preview: "invalid" },
+      ]),
+      "utf-8",
+    );
+    assert.deepEqual(
+      readMorningLiteDedupeCount(dedupePath),
+      { count: 1, warning: `${dedupePath}: invalid_rows 2` },
+      "malformed notification timestamps must not inflate read-only notification counts",
+    );
+
     assert.deepEqual(parseMorningLiteDedupeFileDate("2026-08-16.json", "2026-08-16"), { date: "2026-08-16", warning: null });
     assert.deepEqual(parseMorningLiteDedupeFileDate("2026-02-31.json", "2026-08-16"), { date: null, warning: "2026-02-31.json: invalid_date_filename" });
     assert.deepEqual(parseMorningLiteDedupeFileDate("0000-01-01.json", "2026-08-16"), { date: null, warning: "0000-01-01.json: invalid_date_filename" });

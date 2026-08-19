@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "fs";
 import { addDaysJst, todayJst } from "./date.js";
 import { readReadOnlyJsonObjectFile } from "./read-only-json-file.js";
+import { parseExplicitIso8601Instant } from "./research/iso-instant.js";
 
 export type MorningLitePipelineInput = {
   status: string;
@@ -73,11 +74,21 @@ export function readMorningLitePipelineInput(
   return { status, failedSteps, warning: null };
 }
 
+function hasCanonicalSentAt(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  try {
+    parseExplicitIso8601Instant(value, "notification dedupe sentAt");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function isDedupeRecord(value: unknown): boolean {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const row = value as Record<string, unknown>;
   return typeof row.key === "string" && row.key.trim().length > 0
-    && typeof row.sentAt === "string" && row.sentAt.trim().length > 0
+    && hasCanonicalSentAt(row.sentAt)
     && typeof row.preview === "string";
 }
 
