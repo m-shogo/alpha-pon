@@ -14,9 +14,13 @@ function isStrictGregorianDate(value: string): boolean {
   return day <= new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
-function hasFutureStaleLineage(candidate: UniverseCandidate, fallbackAsOf: string): boolean {
+function hasInvalidStaleLineage(candidate: UniverseCandidate, fallbackAsOf: string): boolean {
   return [candidate.staleAsOf, candidate.carriedForwardAt, candidate.fallbackAsOf].some(
-    value => value != null && (!isStrictGregorianDate(value) || value > fallbackAsOf),
+    value => value != null && (
+      !isStrictGregorianDate(value)
+      || value < candidate.detectedAt
+      || value > fallbackAsOf
+    ),
   );
 }
 
@@ -28,7 +32,7 @@ export function carryForwardStaleCandidate(candidate: UniverseCandidate, fallbac
     !isStrictGregorianDate(candidate.detectedAt)
     || !isStrictGregorianDate(fallbackAsOf)
     || candidate.detectedAt > fallbackAsOf
-    || hasFutureStaleLineage(candidate, fallbackAsOf)
+    || hasInvalidStaleLineage(candidate, fallbackAsOf)
   ) {
     throw new RangeError("stale fallback chronology is invalid");
   }
