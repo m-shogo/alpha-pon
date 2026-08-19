@@ -35,6 +35,20 @@ function baseDashboard() {
 {
   const before = baseDashboard();
   const after = applySafeOutputAuditHealth(before, {
+    generatedAt: "2026-08-16",
+    healthStatus: "ok",
+    scannedFiles: 10,
+    findingsCount: 0,
+    findings: [],
+    scanErrors: [],
+  });
+  assert.equal(after.healthStatus, "needs_attention");
+  assert.equal(after.allIssues.some(issue => issue.title === "Safe Output 監査レポートの状態が不整合"), true);
+}
+
+{
+  const before = baseDashboard();
+  const after = applySafeOutputAuditHealth(before, {
     healthStatus: "action_required",
     scannedFiles: 10,
     findingsCount: 1,
