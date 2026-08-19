@@ -35,22 +35,13 @@ export function normalizeOpsIntegrityInput(
     return invalidIntegrityInput();
   }
 
-  if (value.jsonl !== undefined) {
-    if (!isRecord(value.jsonl)) return invalidIntegrityInput();
-    if (value.jsonl.duplicateGroups !== undefined && !Array.isArray(value.jsonl.duplicateGroups)) {
-      return invalidIntegrityInput();
-    }
-    if (value.jsonl.parseErrors !== undefined && !Array.isArray(value.jsonl.parseErrors)) {
-      return invalidIntegrityInput();
-    }
+  if (!isRecord(value.jsonl)) return invalidIntegrityInput();
+  if (!Array.isArray(value.jsonl.duplicateGroups) || !Array.isArray(value.jsonl.parseErrors)) {
+    return invalidIntegrityInput();
   }
 
-  if (value.sqlite !== undefined) {
-    if (!isRecord(value.sqlite)) return invalidIntegrityInput();
-    if (value.sqlite.duplicateGroups !== undefined && !Array.isArray(value.sqlite.duplicateGroups)) {
-      return invalidIntegrityInput();
-    }
-  }
+  if (!isRecord(value.sqlite)) return invalidIntegrityInput();
+  if (!Array.isArray(value.sqlite.duplicateGroups)) return invalidIntegrityInput();
 
   return value as OpsIntegrityLike;
 }
