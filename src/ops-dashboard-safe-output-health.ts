@@ -1,6 +1,7 @@
 import type { OpsDashboard, OpsIssue, OpsSafeOutputLike } from "./ops-dashboard.js";
 
 interface SafeOutputReportLike extends OpsSafeOutputLike {
+  generatedAt?: unknown;
   scanErrors?: unknown;
 }
 
@@ -9,10 +10,25 @@ const HEALTH_STATUSES = new Set(["ok", "needs_attention", "action_required"]);
 
 export type SafeOutputAuditGap = "missing_report" | "scan_failure" | "invalid_report" | null;
 
-export function safeOutputAuditGap(safeOutput: SafeOutputReportLike | null): SafeOutputAuditGap {
+function isStrictGregorianDate(value: unknown): value is string {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  if (year < 1 || month < 1 || month > 12 || day < 1) return false;
+  return day <= new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+export function safeOutputAuditGap(
+  safeOutput: SafeOutputReportLike | null,
+  expectedDate?: string,
+): SafeOutputAuditGap {
   if (safeOutput == null) return "missing_report";
   if (typeof safeOutput.healthStatus !== "string" || !HEALTH_STATUSES.has(safeOutput.healthStatus)) {
     return "invalid_report";
+  }
+  if (expectedDate !== undefined && safeOutput.generatedAt !== undefined) {
+    if (!isStrictGregorianDate(safeOutput.generatedAt) || safeOutput.generatedAt !== expectedDate) {
+      return "invalid_report";
+    }
   }
   if (
     safeOutput.scannedFiles !== undefined
@@ -63,7 +79,7 @@ export function applySafeOutputAuditHealth(
   dashboard: OpsDashboard,
   safeOutput: SafeOutputReportLike | null,
 ): OpsDashboard {
-  const gap = safeOutputAuditGap(safeOutput);
+  const gap = safeOutputAuditGap(safeOutput, dashboard.generatedAt);
   if (!gap) return dashboard;
 
   const count = gap === "scan_failure" && Array.isArray(safeOutput?.scanErrors)
