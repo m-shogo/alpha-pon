@@ -33,17 +33,30 @@ function isOptionalStringArray(value: unknown): boolean {
   return value == null || (Array.isArray(value) && value.every(item => typeof item === "string"));
 }
 
+function isOptionalEnum(value: unknown, allowed: readonly string[]): boolean {
+  return value == null || (typeof value === "string" && allowed.includes(value));
+}
+
+const REVIEW_HORIZONS = ["1d", "1w", "1m", "3m"] as const;
+const OUTCOME_RESULTS = ["hit", "miss", "too_early", "invalidated", "unknown"] as const;
+const DATA_AVAILABILITY = ["ok", "partial", "missing"] as const;
+const DIRECTIONS = ["up", "down", "sideways", "unknown"] as const;
+const HYPOTHESIS_TIMEFRAMES = ["1w", "1m", "3m"] as const;
+
 export function isQualityHypothesisLike(value: unknown): value is QualityHypothesisLike {
   if (!isRecord(value)) return false;
   if (!isCanonicalCode(value.code) || !isGregorianDate(value.detectedAt)) return false;
-  return hasOnlyOptionalStringFields(value, [
+  if (!hasOnlyOptionalStringFields(value, [
     "code",
     "name",
     "detectedAt",
     "reviewDueAt",
     "expectedTimeframe",
     "expectedDirection",
-  ]);
+  ])) return false;
+  if (!isOptionalEnum(value.expectedTimeframe, HYPOTHESIS_TIMEFRAMES)) return false;
+  if (!isOptionalEnum(value.expectedDirection, DIRECTIONS)) return false;
+  return true;
 }
 
 export function isQualityOutcomeLike(value: unknown): value is QualityOutcomeLike {
@@ -58,6 +71,10 @@ export function isQualityOutcomeLike(value: unknown): value is QualityOutcomeLik
     "actualDirection",
     "notes",
   ])) return false;
+  if (!isOptionalEnum(value.reviewHorizon, REVIEW_HORIZONS)) return false;
+  if (!isOptionalEnum(value.result, OUTCOME_RESULTS)) return false;
+  if (!isOptionalEnum(value.dataAvailability, DATA_AVAILABILITY)) return false;
+  if (!isOptionalEnum(value.actualDirection, DIRECTIONS)) return false;
   if (!isOptionalStringArray(value.whatMatched) || !isOptionalStringArray(value.missedSignals)) return false;
   if (!isQualityHypothesisLike(value.hypothesis)) return false;
   return value.hypothesis.code === value.code;
