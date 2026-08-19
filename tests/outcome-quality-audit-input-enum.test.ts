@@ -42,6 +42,16 @@ for (const [field, value] of [
   );
 }
 
+for (const field of ["reviewHorizon", "result", "dataAvailability", "actualDirection"] as const) {
+  const truncated = { ...outcome } as Record<string, unknown>;
+  delete truncated[field];
+  assert.equal(
+    isQualityOutcomeLike(truncated),
+    false,
+    `missing ${field} must fail closed`,
+  );
+}
+
 assert.equal(
   isQualityHypothesisLike({ ...hypothesis, expectedTimeframe: "2w" }),
   false,
@@ -53,4 +63,4 @@ assert.equal(
   "unknown expectedDirection must fail closed",
 );
 
-console.log("outcome-quality-input: canonical enums fail closed");
+console.log("outcome-quality-input: canonical enums and required outcome fields fail closed");
