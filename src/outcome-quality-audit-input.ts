@@ -37,6 +37,10 @@ function isOptionalEnum(value: unknown, allowed: readonly string[]): boolean {
   return value == null || (typeof value === "string" && allowed.includes(value));
 }
 
+function isRequiredEnum(value: unknown, allowed: readonly string[]): boolean {
+  return typeof value === "string" && allowed.includes(value);
+}
+
 const REVIEW_HORIZONS = ["1d", "1w", "1m", "3m"] as const;
 const OUTCOME_RESULTS = ["hit", "miss", "too_early", "invalidated", "unknown"] as const;
 const DATA_AVAILABILITY = ["ok", "partial", "missing"] as const;
@@ -71,10 +75,10 @@ export function isQualityOutcomeLike(value: unknown): value is QualityOutcomeLik
     "actualDirection",
     "notes",
   ])) return false;
-  if (!isOptionalEnum(value.reviewHorizon, REVIEW_HORIZONS)) return false;
-  if (!isOptionalEnum(value.result, OUTCOME_RESULTS)) return false;
-  if (!isOptionalEnum(value.dataAvailability, DATA_AVAILABILITY)) return false;
-  if (!isOptionalEnum(value.actualDirection, DIRECTIONS)) return false;
+  if (!isRequiredEnum(value.reviewHorizon, REVIEW_HORIZONS)) return false;
+  if (!isRequiredEnum(value.result, OUTCOME_RESULTS)) return false;
+  if (!isRequiredEnum(value.dataAvailability, DATA_AVAILABILITY)) return false;
+  if (!isRequiredEnum(value.actualDirection, DIRECTIONS)) return false;
   if (!isOptionalStringArray(value.whatMatched) || !isOptionalStringArray(value.missedSignals)) return false;
   if (!isQualityHypothesisLike(value.hypothesis)) return false;
   return value.hypothesis.code === value.code;
