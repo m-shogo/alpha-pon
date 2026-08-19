@@ -25,8 +25,18 @@ export function safeOutputAuditGap(
   if (typeof safeOutput.healthStatus !== "string" || !HEALTH_STATUSES.has(safeOutput.healthStatus)) {
     return "invalid_report";
   }
-  if (expectedDate !== undefined && safeOutput.healthStatus === "ok") {
-    if (!isStrictGregorianDate(safeOutput.generatedAt) || safeOutput.generatedAt !== expectedDate) {
+  if (safeOutput.healthStatus === "ok") {
+    if (expectedDate !== undefined) {
+      if (!isStrictGregorianDate(safeOutput.generatedAt) || safeOutput.generatedAt !== expectedDate) {
+        return "invalid_report";
+      }
+    }
+    if (
+      !Number.isSafeInteger(safeOutput.scannedFiles)
+      || !Number.isSafeInteger(safeOutput.findingsCount)
+      || !Array.isArray(safeOutput.findings)
+      || !Array.isArray(safeOutput.scanErrors)
+    ) {
       return "invalid_report";
     }
   }
