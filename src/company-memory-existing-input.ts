@@ -43,6 +43,10 @@ function assertExistingCompanyMemoryShape(value: unknown, file: string): void {
     }
   }
 
+  if ((record.code as string).trim() !== record.code) {
+    throw new Error(`${file}: code must not have surrounding whitespace`);
+  }
+
   const firstSeenAt = assertStrictDate(record.firstSeenAt, "firstSeenAt", file);
   const lastReviewedAt = assertStrictDate(record.lastReviewedAt, "lastReviewedAt", file);
   if (lastReviewedAt < firstSeenAt) {
