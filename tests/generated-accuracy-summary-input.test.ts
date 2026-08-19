@@ -33,6 +33,28 @@ assert.deepEqual(
   { value: null, warning: 'accuracySummary: invalid_shape' },
 )
 assert.deepEqual(
+  normalizeGeneratedAccuracySummaryInput({ ...valid, total: Number.MAX_SAFE_INTEGER + 1 }),
+  { value: null, warning: 'accuracySummary: invalid_shape' },
+)
+assert.deepEqual(
+  normalizeGeneratedAccuracySummaryInput({ ...valid, hit: 4 }),
+  { value: null, warning: 'accuracySummary: invalid_shape' },
+)
+assert.deepEqual(
+  normalizeGeneratedAccuracySummaryInput({
+    ...valid,
+    byActionLabel: { ...valid.byActionLabel, watch: { ...valid.byActionLabel.watch, total: 5 } },
+  }),
+  { value: null, warning: 'accuracySummary: invalid_shape' },
+)
+assert.deepEqual(
+  normalizeGeneratedAccuracySummaryInput({
+    ...valid,
+    byScoreBand: { ...valid.byScoreBand, unknown: { ...valid.byScoreBand.unknown, total: 2 } },
+  }),
+  { value: null, warning: 'accuracySummary: invalid_shape' },
+)
+assert.deepEqual(
   normalizeGeneratedAccuracySummaryInput({
     ...valid,
     byActionLabel: { ...valid.byActionLabel, watch: { ...valid.byActionLabel.watch, avgExcessReturn1m: {} } },
@@ -48,4 +70,4 @@ assert.deepEqual(
 )
 assert.deepEqual(normalizeGeneratedAccuracySummaryInput(valid), { value: valid, warning: null })
 
-console.log('generated accuracy summary input: malformed runtime shape is isolated before Outcomes page access OK')
+console.log('generated accuracy summary input: malformed or inconsistent runtime counts are isolated before Outcomes page access OK')
