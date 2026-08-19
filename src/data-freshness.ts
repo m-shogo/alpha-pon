@@ -47,6 +47,17 @@ export function freshnessOf(path: string, label = path): FreshnessResult {
       reason: `${label} がregular fileではない`,
     };
   }
+  if (stat.size === 0) {
+    return {
+      path,
+      label,
+      exists: true,
+      updatedAt: stat.mtime.toISOString(),
+      updatedDateJst: jstDate(stat.mtime),
+      isFreshToday: false,
+      reason: `${label} が空ファイル`,
+    };
+  }
 
   const updatedAt = stat.mtime;
   const updatedDateJst = jstDate(updatedAt);
