@@ -78,6 +78,18 @@ export function freshnessOf(path: string, label = path): FreshnessResult {
   const updatedAt = stat.mtime;
   const updatedDateJst = jstDate(updatedAt);
   const today = todayJst();
+  if (updatedAt.getTime() > Date.now()) {
+    return {
+      path,
+      label,
+      exists: true,
+      updatedAt: updatedAt.toISOString(),
+      updatedDateJst,
+      isFreshToday: false,
+      reason: `${label} の更新時刻が未来: ${updatedAt.toISOString()}`,
+    };
+  }
+
   const isFreshToday = updatedDateJst === today;
   return {
     path,
