@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { assertCompanyMemoryScoreInputs } from "../src/company-memory-score-input.js";
@@ -13,7 +13,15 @@ try {
     "current canonical score evidence remains valid company-memory input",
   );
 
+  writeFileSync(join(dir, "scores_2026-08-17.json"), JSON.stringify([{ ...validRow, code: "8136 " }]));
+  assert.throws(
+    () => assertCompanyMemoryScoreInputs(dir, "2026-08-17"),
+    /code must be canonical without surrounding whitespace/,
+    "padded company codes must not fork company-memory identity or filesystem provenance",
+  );
+
   const futureSnapshot = join(dir, "scores_2026-08-18.json");
+  writeFileSync(join(dir, "scores_2026-08-17.json"), JSON.stringify([validRow]));
   writeFileSync(futureSnapshot, JSON.stringify([{ ...validRow, createdAt: "2026-08-18" }]));
   assert.throws(
     () => assertCompanyMemoryScoreInputs(dir, "2026-08-17"),

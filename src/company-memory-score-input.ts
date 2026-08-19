@@ -26,6 +26,9 @@ function assertCompanyMemoryScoreRow(value: unknown, rowLabel: string, asOf: str
       throw new Error(`${rowLabel} ${field} must be a non-empty string`);
     }
   }
+  if ((row.code as string).trim() !== row.code) {
+    throw new Error(`${rowLabel} code must be canonical without surrounding whitespace`);
+  }
   if (!isRealJstDate(row.createdAt as string)) {
     throw new Error(`${rowLabel} createdAt must be a real Gregorian JST date`);
   }
