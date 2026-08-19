@@ -35,6 +35,11 @@ assert.equal(
   "[STALE] warning は重複追加しない"
 );
 assert.throws(
+  () => carryForwardStaleCandidate({ ...base, dataSource: "mock" }, "2026-06-08"),
+  /stale fallback source provenance is invalid/,
+  "J-Quants fallback must not carry a mock candidate into a J-Quants output",
+);
+assert.throws(
   () => carryForwardStaleCandidate({ ...base, detectedAt: "2026-06-09" }, "2026-06-08"),
   /stale fallback chronology is invalid/,
   "future-detected candidate must not be carried into an earlier PIT snapshot",
