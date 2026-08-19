@@ -8,8 +8,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function isFiniteNonNegativeNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+function isNonNegativeInteger(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 }
 
 function invalidSpecialOps(): OpsSpecialOpsLike {
@@ -47,7 +47,7 @@ export function normalizeOpsSpecialSituationInput(value: unknown): OpsSpecialOps
     if (!isRecord(value.reviewDue)) return invalidSpecialOps();
     for (const key of ["overdue", "historicalSeedOverdue", "priceDataPending", "dueToday", "dueThisWeek"] as const) {
       const count = value.reviewDue[key];
-      if (count !== undefined && !isFiniteNonNegativeNumber(count)) return invalidSpecialOps();
+      if (count !== undefined && !isNonNegativeInteger(count)) return invalidSpecialOps();
     }
   }
 

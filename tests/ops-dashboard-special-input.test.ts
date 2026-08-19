@@ -29,6 +29,8 @@ for (const malformed of [
   { healthStatus: "ok", reviewDue: { overdue: "1" } },
   { healthStatus: "ok", reviewDue: { dueToday: Number.NaN } },
   { healthStatus: "ok", reviewDue: { dueThisWeek: -1 } },
+  { healthStatus: "ok", reviewDue: { overdue: 0.5 } },
+  { healthStatus: "ok", reviewDue: { priceDataPending: Number.MAX_SAFE_INTEGER + 1 } },
 ]) {
   const normalized = normalizeOpsSpecialSituationInput(malformed);
   assert.equal(normalized?.healthStatus, "action_required");
