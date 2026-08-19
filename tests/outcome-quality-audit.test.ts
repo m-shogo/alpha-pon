@@ -273,9 +273,11 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
 {
   assert.equal(isQualityHypothesisLike({}), false, "identityless hypothesis row must fail closed");
   assert.equal(isQualityOutcomeLike({}), false, "identityless outcome row must fail closed");
+  assert.equal(isQualityHypothesisLike(hypothesis({ code: " 8136" })), false, "leading-space hypothesis code must fail closed");
+  assert.equal(isQualityOutcomeLike(outcome({ code: "8136 " })), false, "trailing-space outcome code must fail closed");
   assert.equal(isQualityHypothesisLike(hypothesis()), true, "canonical hypothesis row must remain accepted");
   assert.equal(isQualityOutcomeLike(outcome()), true, "canonical outcome row must remain accepted");
-  console.log("outcome-quality: identityless generated rows fail closed");
+  console.log("outcome-quality: identityless or padded generated codes fail closed");
 }
 
 {

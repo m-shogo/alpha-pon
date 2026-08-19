@@ -4,8 +4,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function isNonEmptyString(value: unknown): value is string {
-  return typeof value === "string" && value.trim().length > 0;
+function isCanonicalCode(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0 && value === value.trim();
 }
 
 function hasOnlyOptionalStringFields(
@@ -21,7 +21,7 @@ function isOptionalStringArray(value: unknown): boolean {
 
 export function isQualityHypothesisLike(value: unknown): value is QualityHypothesisLike {
   if (!isRecord(value)) return false;
-  if (!isNonEmptyString(value.code)) return false;
+  if (!isCanonicalCode(value.code)) return false;
   return hasOnlyOptionalStringFields(value, [
     "code",
     "name",
@@ -34,7 +34,7 @@ export function isQualityHypothesisLike(value: unknown): value is QualityHypothe
 
 export function isQualityOutcomeLike(value: unknown): value is QualityOutcomeLike {
   if (!isRecord(value)) return false;
-  if (!isNonEmptyString(value.code)) return false;
+  if (!isCanonicalCode(value.code)) return false;
   if (!hasOnlyOptionalStringFields(value, [
     "code",
     "name",
