@@ -33,6 +33,12 @@ function normalizeFailedStepArray(value: unknown): string[] | null {
   return value.map(item => item.trim()).filter(Boolean);
 }
 
+function normalizeDailyFailedSteps(value: unknown): string[] | null {
+  if (value === undefined) return [];
+  if (typeof value !== "string") return null;
+  return value.split(" ").map(item => item.trim()).filter(Boolean);
+}
+
 export function readMorningLitePipelineInput(
   path: string,
   asOf = todayJst(),
@@ -50,7 +56,7 @@ export function readMorningLitePipelineInput(
     ? loaded.object.status.trim()
     : "unknown";
   const completeSteps = normalizeFailedStepArray(loaded.object.completeWrapperFailedSteps);
-  const dailySteps = normalizeFailedStepArray(loaded.object.failedSteps);
+  const dailySteps = normalizeDailyFailedSteps(loaded.object.failedSteps);
   if (!completeSteps || !dailySteps) {
     return { status, failedSteps: [], warning: `${path}: invalid_failed_steps` };
   }
