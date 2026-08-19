@@ -18,8 +18,18 @@ export function normalizeOpsPipelineStatusInput(value: unknown): OpsPipelineStat
   if (value == null) return null;
   if (!isRecord(value)) return invalidPipelineStatus();
 
-  if (value.failedSteps !== undefined && typeof value.failedSteps !== "string") {
-    return invalidPipelineStatus();
+  let failedSteps: string | undefined;
+  if (value.failedSteps !== undefined) {
+    if (typeof value.failedSteps === "string") {
+      failedSteps = value.failedSteps;
+    } else if (Array.isArray(value.failedSteps)) {
+      if (!value.failedSteps.every(step => typeof step === "string" && step.trim().length > 0)) {
+        return invalidPipelineStatus();
+      }
+      failedSteps = value.failedSteps.join(",");
+    } else {
+      return invalidPipelineStatus();
+    }
   }
 
   if (value.steps !== undefined) {
@@ -31,5 +41,8 @@ export function normalizeOpsPipelineStatusInput(value: unknown): OpsPipelineStat
     }
   }
 
-  return value as OpsPipelineStatusLike;
+  return {
+    ...(value as OpsPipelineStatusLike),
+    ...(failedSteps !== undefined ? { failedSteps } : {}),
+  };
 }
