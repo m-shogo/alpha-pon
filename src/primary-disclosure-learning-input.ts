@@ -148,7 +148,13 @@ export function normalizePrimaryDisclosureLearningScoreInput(
       warnings.push(`${label}: invalid_score`);
       return;
     }
-    if (typeof row.alertLevel !== "string" || typeof row.createdAt !== "string") {
+    if (
+      typeof row.alertLevel !== "string" ||
+      typeof row.createdAt !== "string" ||
+      !isRealJstDate(row.createdAt) ||
+      !isRealJstDate(asOf) ||
+      row.createdAt > asOf
+    ) {
       warnings.push(`${label}: invalid_metadata`);
       return;
     }
