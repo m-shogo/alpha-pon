@@ -4,6 +4,8 @@ import { applyWorldImpactAuditHealth } from "../src/ops-dashboard-world-impact-h
 
 const TODAY = "2026-08-17";
 
+type WorldImpactReport = OpsWorldImpactAuditLike & { generatedAt?: string };
+
 function cleanInputs(): OpsDashboardInputs {
   return {
     today: TODAY,
@@ -69,4 +71,37 @@ function cleanInputs(): OpsDashboardInputs {
   assert.ok(dashboard.allIssues.some(issue => issue.category === "world_impact" && issue.severity === "attention"));
 }
 
-console.log("ops-dashboard-world-impact-health: producer health is preserved");
+for (const generatedAt of [undefined, "2026-08-16", "2026-02-31"]) {
+  const worldImpact: WorldImpactReport = {
+    generatedAt,
+    healthStatus: "ok",
+    totalReviews: 0,
+    pendingReviews: 0,
+    overdueReviews: 0,
+    priorityIssues: [],
+  };
+  const inputs = cleanInputs();
+  inputs.worldImpact = worldImpact;
+  const dashboard = applyWorldImpactAuditHealth(buildOpsDashboard(inputs), worldImpact);
+
+  assert.equal(dashboard.healthStatus, "needs_attention");
+  assert.ok(dashboard.allIssues.some(issue => issue.title === "World Impact 監査: current evidence を確認できない"));
+}
+
+{
+  const worldImpact: WorldImpactReport = {
+    generatedAt: TODAY,
+    healthStatus: "ok",
+    totalReviews: 0,
+    pendingReviews: 0,
+    overdueReviews: 0,
+    priorityIssues: [],
+  };
+  const inputs = cleanInputs();
+  inputs.worldImpact = worldImpact;
+  const dashboard = applyWorldImpactAuditHealth(buildOpsDashboard(inputs), worldImpact);
+
+  assert.equal(dashboard.allIssues.some(issue => issue.title === "World Impact 監査: current evidence を確認できない"), false);
+}
+
+console.log("ops-dashboard-world-impact-health: producer health and current-date provenance are preserved");
