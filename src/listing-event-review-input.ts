@@ -64,6 +64,7 @@ export function isListingEventReviewInputRow(value: unknown): value is ListingEv
     && value.name.trim().length > 0
     && typeof value.eventType === "string"
     && value.eventType.trim().length > 0
+    && value.eventType.trim() === value.eventType
     && isOptionalCanonicalCode(value.code)
     && isOptionalString(value.market)
     && isOptionalRealDate(value.eventDate)
