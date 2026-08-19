@@ -20,6 +20,9 @@ export function safeOutputAuditGap(safeOutput: SafeOutputReportLike | null): Saf
   ) {
     return "invalid_report";
   }
+  if (safeOutput.findings !== undefined && !Array.isArray(safeOutput.findings)) {
+    return "invalid_report";
+  }
   if (
     safeOutput.findingsCount !== undefined
     && Array.isArray(safeOutput.findings)
