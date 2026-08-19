@@ -1,7 +1,11 @@
 import { mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { readGeneratedCompanyRules } from "../src/pro-generated-rules-input.js";
+import {
+  isProValuationGeneratedRule,
+  readGeneratedCompanyRules,
+  type ProValuationGeneratedRule,
+} from "../src/pro-generated-rules-input.js";
 import "./pro-ir-event-input.test.js";
 import "./generated-array-input.test.js";
 
@@ -50,6 +54,30 @@ try {
     futureRejected = error instanceof Error && /must not be later than Pro valuation as-of date/.test(error.message);
   }
   assert(futureRejected, "future generated rules must not become current valuation evidence");
+
+  writeFileSync(path, JSON.stringify({
+    generatedAt: "2026-08-17",
+    rules: [{ code: "8136", name: "Sanrio", risks: ["期待先行"], evidenceNeeded: [], priceSignal: { change20dPct: 12 } }],
+  }), "utf-8");
+  const valuationValid = readGeneratedCompanyRules<ProValuationGeneratedRule>(path, "2026-08-17", isProValuationGeneratedRule);
+  assert(valuationValid.rows.length === 1 && valuationValid.rows[0]?.code === "8136", "valid valuation rule rows must remain usable");
+
+  for (const invalidRule of [
+    { code: "8136", name: "Sanrio", risks: {} },
+    { code: "8136", name: "Sanrio", evidenceNeeded: "IR" },
+    { code: "8136", name: "Sanrio", priceSignal: { change20dPct: "12" } },
+    { code: " 8136", name: "Sanrio" },
+    { code: "8136", name: "" },
+  ]) {
+    writeFileSync(path, JSON.stringify({ generatedAt: "2026-08-17", rules: [invalidRule] }), "utf-8");
+    let invalidRowRejected = false;
+    try {
+      readGeneratedCompanyRules<ProValuationGeneratedRule>(path, "2026-08-17", isProValuationGeneratedRule);
+    } catch (error) {
+      invalidRowRejected = error instanceof Error && /contains an invalid row/.test(error.message);
+    }
+    assert(invalidRowRejected, `malformed valuation rule must fail closed: ${JSON.stringify(invalidRule)}`);
+  }
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
