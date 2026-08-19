@@ -43,4 +43,16 @@ function baseDashboard() {
   assert.equal(after, before, "findingsがある場合は既存の危険表現issueに任せる");
 }
 
-console.log("ops-dashboard safe-output health: scan failure fails closed OK");
+for (const findingsCount of [-1, 0.5, Number.MAX_SAFE_INTEGER + 1]) {
+  const before = baseDashboard();
+  const after = applySafeOutputAuditHealth(before, {
+    healthStatus: "ok",
+    scannedFiles: 10,
+    findingsCount,
+    scanErrors: [],
+  });
+  assert.equal(after.healthStatus, "needs_attention");
+  assert.equal(after.allIssues.some(issue => issue.title === "Safe Output 監査レポートの状態が不整合"), true);
+}
+
+console.log("ops-dashboard safe-output health: scan failure and invalid finding counts fail closed OK");
