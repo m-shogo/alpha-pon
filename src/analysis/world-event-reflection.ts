@@ -62,9 +62,16 @@ function isReflectionSafe(event: ClassifiedWorldEvent): boolean {
 }
 
 export function buildWorldEventReflections(events: ClassifiedWorldEvent[], date: string, limit = 8): WorldEventReflection[] {
+  const seenEventIds = new Set<string>();
   return events
     .filter(isReflectionSafe)
     .sort((a, b) => b.urgencyScore - a.urgencyScore)
+    .filter(event => {
+      const id = eventId(date, event);
+      if (seenEventIds.has(id)) return false;
+      seenEventIds.add(id);
+      return true;
+    })
     .slice(0, limit)
     .map(event => {
       const impactedTags = unique(event.impacts.flatMap(impact => impact.impactedTags));
