@@ -27,6 +27,12 @@ function canonicalJstDate(value: unknown): string | null {
   }
 }
 
+function normalizeFailedStepArray(value: unknown): string[] | null {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.some(item => typeof item !== "string")) return null;
+  return value.map(item => item.trim()).filter(Boolean);
+}
+
 export function readMorningLitePipelineInput(
   path: string,
   asOf = todayJst(),
@@ -43,18 +49,13 @@ export function readMorningLitePipelineInput(
   const status = typeof loaded.object.status === "string" && loaded.object.status.trim()
     ? loaded.object.status.trim()
     : "unknown";
-  const complete = loaded.object.completeWrapperFailedSteps;
-  const failed = loaded.object.failedSteps;
-  const invalidComplete = complete !== undefined && (!Array.isArray(complete) || complete.some(item => typeof item !== "string"));
-  const invalidFailed = failed !== undefined && typeof failed !== "string";
-  if (invalidComplete || invalidFailed) {
+  const completeSteps = normalizeFailedStepArray(loaded.object.completeWrapperFailedSteps);
+  const dailySteps = normalizeFailedStepArray(loaded.object.failedSteps);
+  if (!completeSteps || !dailySteps) {
     return { status, failedSteps: [], warning: `${path}: invalid_failed_steps` };
   }
 
-  const failedSteps = [
-    ...((complete as string[] | undefined) ?? []).map(item => item.trim()).filter(Boolean),
-    ...((failed as string | undefined) ?? "").split(" ").map(item => item.trim()).filter(Boolean),
-  ];
+  const failedSteps = Array.from(new Set([...completeSteps, ...dailySteps]));
   return { status, failedSteps, warning: null };
 }
 
