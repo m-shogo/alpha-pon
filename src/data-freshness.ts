@@ -1,6 +1,6 @@
 // レポート/生成データの鮮度チェック。古い情報を新着扱いで通知しないために使う。
 
-import { existsSync, statSync } from "fs";
+import { existsSync, readFileSync, statSync } from "fs";
 import { todayJst } from "./date.js";
 
 export type FreshnessResult = {
@@ -47,7 +47,23 @@ export function freshnessOf(path: string, label = path): FreshnessResult {
       reason: `${label} がregular fileではない`,
     };
   }
-  if (stat.size === 0) {
+
+  let content: string;
+  try {
+    content = readFileSync(path, "utf-8");
+  } catch {
+    return {
+      path,
+      label,
+      exists: true,
+      updatedAt: stat.mtime.toISOString(),
+      updatedDateJst: jstDate(stat.mtime),
+      isFreshToday: false,
+      reason: `${label} を読み取れない`,
+    };
+  }
+
+  if (content.trim().length === 0) {
     return {
       path,
       label,

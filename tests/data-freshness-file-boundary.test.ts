@@ -18,6 +18,17 @@ try {
   assert.equal(emptyResult.isFreshToday, false, "empty file mtime must not count as fresh report evidence");
   assert.match(emptyResult.reason, /空ファイル/);
 
+  const whitespaceOnlyFile = join(dir, "whitespace-only.json");
+  writeFileSync(whitespaceOnlyFile, " \n\t \n", "utf-8");
+  const whitespaceOnlyResult = freshnessOf(whitespaceOnlyFile, "whitespace-only report");
+  assert.equal(whitespaceOnlyResult.exists, true);
+  assert.equal(
+    whitespaceOnlyResult.isFreshToday,
+    false,
+    "whitespace-only file mtime must not count as fresh report evidence",
+  );
+  assert.match(whitespaceOnlyResult.reason, /空ファイル/);
+
   const file = join(dir, "pipeline_status_latest.json");
   writeFileSync(file, "{}", "utf-8");
   const fileResult = freshnessOf(file, "pipeline status");
