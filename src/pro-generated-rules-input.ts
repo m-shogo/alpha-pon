@@ -13,6 +13,37 @@ function isRealJstDate(value: string): boolean {
   }
 }
 
+function isCanonicalText(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0 && value.trim() === value;
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(item => typeof item === "string");
+}
+
+function isOptionalFiniteNumber(value: unknown): value is number | null | undefined {
+  return value === undefined || value === null || (typeof value === "number" && Number.isFinite(value));
+}
+
+export type ProValuationGeneratedRule = {
+  code: string;
+  name: string;
+  risks?: string[];
+  evidenceNeeded?: string[];
+  priceSignal?: { relativeTopix20dPct?: number | null; change20dPct?: number | null; volumeSpikeRatio?: number | null };
+};
+
+export function isProValuationGeneratedRule(value: unknown): value is ProValuationGeneratedRule {
+  if (!isRecord(value) || !isCanonicalText(value.code) || !isCanonicalText(value.name)) return false;
+  if (value.risks !== undefined && !isStringArray(value.risks)) return false;
+  if (value.evidenceNeeded !== undefined && !isStringArray(value.evidenceNeeded)) return false;
+  if (value.priceSignal === undefined) return true;
+  if (!isRecord(value.priceSignal)) return false;
+  return isOptionalFiniteNumber(value.priceSignal.relativeTopix20dPct)
+    && isOptionalFiniteNumber(value.priceSignal.change20dPct)
+    && isOptionalFiniteNumber(value.priceSignal.volumeSpikeRatio);
+}
+
 export type GeneratedCompanyRulesLoad<T> = {
   rows: T[];
   generatedAt: string | null;
