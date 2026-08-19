@@ -15,6 +15,12 @@ export function safeOutputAuditGap(safeOutput: SafeOutputReportLike | null): Saf
     return "invalid_report";
   }
   if (
+    safeOutput.scannedFiles !== undefined
+    && (!Number.isSafeInteger(safeOutput.scannedFiles) || safeOutput.scannedFiles < 0)
+  ) {
+    return "invalid_report";
+  }
+  if (
     safeOutput.findingsCount !== undefined
     && (!Number.isSafeInteger(safeOutput.findingsCount) || safeOutput.findingsCount < 0)
   ) {

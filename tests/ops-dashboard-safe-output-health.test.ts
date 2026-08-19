@@ -43,6 +43,19 @@ function baseDashboard() {
   assert.equal(after, before, "findingsがある場合は既存の危険表現issueに任せる");
 }
 
+for (const scannedFiles of [-1, 0.5, Number.MAX_SAFE_INTEGER + 1]) {
+  const before = baseDashboard();
+  const after = applySafeOutputAuditHealth(before, {
+    healthStatus: "ok",
+    scannedFiles,
+    findingsCount: 0,
+    findings: [],
+    scanErrors: [],
+  });
+  assert.equal(after.healthStatus, "needs_attention");
+  assert.equal(after.allIssues.some(issue => issue.title === "Safe Output 監査レポートの状態が不整合"), true);
+}
+
 for (const findingsCount of [-1, 0.5, Number.MAX_SAFE_INTEGER + 1]) {
   const before = baseDashboard();
   const after = applySafeOutputAuditHealth(before, {
