@@ -1,7 +1,7 @@
 import type { OpsDashboard, OpsIssue, OpsSafeOutputLike } from "./ops-dashboard.js";
 
 interface SafeOutputReportLike extends OpsSafeOutputLike {
-  scanErrors?: unknown[];
+  scanErrors?: unknown;
 }
 
 const SEVERITY_RANK = { urgent: 0, attention: 1, info: 2 } as const;
@@ -18,6 +18,9 @@ export function safeOutputAuditGap(safeOutput: SafeOutputReportLike | null): Saf
     safeOutput.findingsCount !== undefined
     && (!Number.isSafeInteger(safeOutput.findingsCount) || safeOutput.findingsCount < 0)
   ) {
+    return "invalid_report";
+  }
+  if (safeOutput.scanErrors !== undefined && !Array.isArray(safeOutput.scanErrors)) {
     return "invalid_report";
   }
 
@@ -47,7 +50,9 @@ export function applySafeOutputAuditHealth(
   const gap = safeOutputAuditGap(safeOutput);
   if (!gap) return dashboard;
 
-  const count = gap === "scan_failure" ? safeOutput!.scanErrors!.length : 1;
+  const count = gap === "scan_failure" && Array.isArray(safeOutput?.scanErrors)
+    ? safeOutput.scanErrors.length
+    : 1;
   const issue: OpsIssue = {
     severity: "attention",
     category: "safe_wording",
