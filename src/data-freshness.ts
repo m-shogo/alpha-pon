@@ -47,7 +47,23 @@ export function freshnessOf(path: string, label = path): FreshnessResult {
       reason: `${label} がregular fileではない`,
     };
   }
-  if (stat.size === 0 || readFileSync(path, "utf-8").trim().length === 0) {
+
+  let content: string;
+  try {
+    content = readFileSync(path, "utf-8");
+  } catch {
+    return {
+      path,
+      label,
+      exists: true,
+      updatedAt: stat.mtime.toISOString(),
+      updatedDateJst: jstDate(stat.mtime),
+      isFreshToday: false,
+      reason: `${label} を読み取れない`,
+    };
+  }
+
+  if (content.trim().length === 0) {
     return {
       path,
       label,
