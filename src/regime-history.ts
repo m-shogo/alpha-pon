@@ -1,19 +1,13 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
-import { resolveRegimeHistoryAsOf } from "./regime-history-input.js";
+import { normalizeRegimeHistoryActiveRegimes, resolveRegimeHistoryAsOf } from "./regime-history-input.js";
 
 type CurrentRegime = {
   asOf?: string;
   mode?: string;
   summary?: string;
-  activeRegimes?: Array<{
-    id: string;
-    level: string;
-    why: string;
-    watchCategories?: string[];
-    caution?: string[];
-  }>;
+  activeRegimes?: unknown;
 };
 
 const HISTORY_PATH = "data/regime_history.jsonl";
@@ -39,13 +33,7 @@ function main() {
     asOf: resolveRegimeHistoryAsOf(config.asOf, date),
     mode: config.mode ?? "unknown",
     summary: config.summary ?? "",
-    activeRegimes: (config.activeRegimes ?? []).map(item => ({
-      id: item.id,
-      level: item.level,
-      why: item.why,
-      watchCategories: item.watchCategories ?? [],
-      caution: item.caution ?? [],
-    })),
+    activeRegimes: normalizeRegimeHistoryActiveRegimes(config.activeRegimes),
   };
 
   appendFileSync(HISTORY_PATH, `${JSON.stringify(row)}\n`, "utf-8");
