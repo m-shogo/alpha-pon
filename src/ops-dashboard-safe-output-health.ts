@@ -20,6 +20,13 @@ export function safeOutputAuditGap(safeOutput: SafeOutputReportLike | null): Saf
   ) {
     return "invalid_report";
   }
+  if (
+    safeOutput.findingsCount !== undefined
+    && Array.isArray(safeOutput.findings)
+    && safeOutput.findingsCount !== safeOutput.findings.length
+  ) {
+    return "invalid_report";
+  }
   if (safeOutput.scanErrors !== undefined && !Array.isArray(safeOutput.scanErrors)) {
     return "invalid_report";
   }
