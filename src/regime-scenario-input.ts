@@ -4,9 +4,12 @@ export const DEFAULT_REGIME_SCENARIO_REFLECTION_PATH = "data/world_event_reflect
 
 export type RegimeScenarioReflection = {
   date?: string;
+  createdAt?: string;
   title?: string;
   category?: string;
+  categories?: string[];
   tags?: string[];
+  impactedTags?: string[];
   riskLevel?: string;
 };
 
@@ -30,10 +33,26 @@ function isOptionalStringArray(value: unknown): boolean {
 function isUsableRegimeScenarioReflection(value: unknown): value is RegimeScenarioReflection {
   if (!isRecord(value)) return false;
   return isOptionalString(value.date)
+    && isOptionalString(value.createdAt)
     && isOptionalString(value.title)
     && isOptionalString(value.category)
+    && isOptionalStringArray(value.categories)
     && isOptionalStringArray(value.tags)
+    && isOptionalStringArray(value.impactedTags)
     && isOptionalString(value.riskLevel);
+}
+
+function normalizeRegimeScenarioReflection(value: RegimeScenarioReflection): RegimeScenarioReflection {
+  return {
+    date: value.date ?? value.createdAt,
+    createdAt: value.createdAt,
+    title: value.title,
+    category: value.category ?? (value.categories?.join(" ") || undefined),
+    categories: value.categories,
+    tags: value.tags ?? value.impactedTags,
+    impactedTags: value.impactedTags,
+    riskLevel: value.riskLevel,
+  };
 }
 
 export function loadRegimeScenarioReflectionState(
@@ -50,7 +69,7 @@ export function loadRegimeScenarioReflectionState(
   const rows: RegimeScenarioReflection[] = [];
   const invalidRows: number[] = [];
   loaded.rows.forEach((row, index) => {
-    if (isUsableRegimeScenarioReflection(row)) rows.push(row);
+    if (isUsableRegimeScenarioReflection(row)) rows.push(normalizeRegimeScenarioReflection(row));
     else invalidRows.push(index + 1);
   });
 
