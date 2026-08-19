@@ -150,6 +150,14 @@ export function normalizeSourceHealthObject<T extends object>(value: unknown): {
     return { value: null, valid: false };
   }
 
+  if (
+    value.failedSteps !== undefined
+    && typeof value.failedSteps !== "string"
+    && !isStringArray(value.failedSteps)
+  ) {
+    return { value: null, valid: false };
+  }
+
   for (const field of ["steps", "results", "completeWrapperFailedSteps"] as const) {
     if (value[field] !== undefined && !Array.isArray(value[field])) {
       return { value: null, valid: false };
