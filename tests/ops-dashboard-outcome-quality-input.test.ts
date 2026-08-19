@@ -33,6 +33,11 @@ for (const malformed of [
   { generatedAt: "2026-08-18", healthStatus: "ok", checks: valid.checks },
   { generatedAt: "2026-02-31", healthStatus: "ok", checks: valid.checks },
   { generatedAt: "0000-01-01", healthStatus: "ok", checks: valid.checks },
+  { generatedAt: asOf, healthStatus: "ok", checks: { ...valid.checks, reviewMissing: { count: 1 } } },
+  { generatedAt: asOf, healthStatus: "needs_attention", checks: { ...valid.checks, unknownMatchedAsHit: { count: 1 } } },
+  { generatedAt: asOf, healthStatus: "action_required", checks: { ...valid.checks, reviewMissing: { count: 1 } } },
+  { generatedAt: asOf, healthStatus: "action_required", checks: valid.checks },
+  { generatedAt: asOf, healthStatus: "needs_attention", checks: valid.checks },
 ]) {
   const normalized = normalizeOpsOutcomeQualityInput(malformed, asOf);
   assert.equal(normalized?.healthStatus, "action_required");
@@ -56,32 +61,35 @@ function dashboardFor(outcomeQuality: typeof valid | { generatedAt: string; heal
 }
 
 {
-  const producerActionRequired = { ...valid, healthStatus: "action_required" };
+  const producerActionRequired = {
+    ...valid,
+    healthStatus: "action_required",
+    checks: { ...valid.checks, unknownMatchedAsHit: { count: 1 } },
+  };
   const base = dashboardFor(producerActionRequired);
-  assert.equal(
-    base.allIssues.some(issue => issue.category === "outcome_quality" && issue.severity === "urgent"),
-    false,
-    "zero check counts reproduce the producer-health false green before the adapter",
-  );
   const dashboard = applyOutcomeQualityAuditHealth(base, producerActionRequired);
   assert.equal(dashboard.healthStatus, "action_required");
   assert.ok(
     dashboard.allIssues.some(
-      issue => issue.category === "outcome_quality" && issue.severity === "urgent" && issue.title.includes("action_required"),
+      issue => issue.category === "outcome_quality" && issue.severity === "urgent",
     ),
   );
   assert.ok(dashboard.nextSafeCommands.some(item => item.command === "pnpm audit:outcomes"));
 }
 
 {
-  const producerNeedsAttention = { ...valid, healthStatus: "needs_attention" };
+  const producerNeedsAttention = {
+    ...valid,
+    healthStatus: "needs_attention",
+    checks: { ...valid.checks, reviewMissing: { count: 1 } },
+  };
   const dashboard = applyOutcomeQualityAuditHealth(dashboardFor(producerNeedsAttention), producerNeedsAttention);
   assert.equal(dashboard.healthStatus, "needs_attention");
   assert.ok(
     dashboard.allIssues.some(
-      issue => issue.category === "outcome_quality" && issue.severity === "attention" && issue.title.includes("needs_attention"),
+      issue => issue.category === "outcome_quality" && issue.severity === "attention",
     ),
   );
 }
 
-console.log("ops-dashboard outcome-quality input: malformed, stale, and producer health inputs fail closed OK");
+console.log("ops-dashboard outcome-quality input: malformed, stale, and contradictory producer health inputs fail closed OK");
