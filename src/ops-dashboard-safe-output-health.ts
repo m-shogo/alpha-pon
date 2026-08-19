@@ -29,6 +29,14 @@ export function safeOutputAuditGap(
     if (!isStrictGregorianDate(safeOutput.generatedAt) || safeOutput.generatedAt !== expectedDate) {
       return "invalid_report";
     }
+    if (
+      !Number.isSafeInteger(safeOutput.scannedFiles)
+      || !Number.isSafeInteger(safeOutput.findingsCount)
+      || !Array.isArray(safeOutput.findings)
+      || !Array.isArray(safeOutput.scanErrors)
+    ) {
+      return "invalid_report";
+    }
   }
   if (
     safeOutput.scannedFiles !== undefined
