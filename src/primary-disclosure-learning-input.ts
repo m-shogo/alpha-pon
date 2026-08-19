@@ -78,6 +78,13 @@ function jstDateList(value: unknown, label: string, warnings: string[], asOf: st
   });
 }
 
+function provenanceCount(value: unknown, label: string, warnings: string[]): number | undefined {
+  if (value == null) return undefined;
+  if (typeof value === "number" && Number.isSafeInteger(value) && value >= 0) return value;
+  warnings.push(`${label}: invalid_count`);
+  return undefined;
+}
+
 function disclosureItems(value: unknown, label: string, warnings: string[], asOf: string): PrimaryDisclosureLearningItem[] {
   if (value == null) return [];
   if (!Array.isArray(value)) {
@@ -181,9 +188,9 @@ export function normalizePrimaryDisclosureLearningScoreInput(
           } else {
             const coverage = review.sourceCoverage as Record<string, unknown>;
             sourceCoverage = {
-              tdnetCount: typeof coverage.tdnetCount === "number" && Number.isFinite(coverage.tdnetCount) ? coverage.tdnetCount : undefined,
-              edinetCount: typeof coverage.edinetCount === "number" && Number.isFinite(coverage.edinetCount) ? coverage.edinetCount : undefined,
-              fetchErrorCount: typeof coverage.fetchErrorCount === "number" && Number.isFinite(coverage.fetchErrorCount) ? coverage.fetchErrorCount : undefined,
+              tdnetCount: provenanceCount(coverage.tdnetCount, `${label}.primaryDisclosureReview.sourceCoverage.tdnetCount`, warnings),
+              edinetCount: provenanceCount(coverage.edinetCount, `${label}.primaryDisclosureReview.sourceCoverage.edinetCount`, warnings),
+              fetchErrorCount: provenanceCount(coverage.fetchErrorCount, `${label}.primaryDisclosureReview.sourceCoverage.fetchErrorCount`, warnings),
               scannedEdinetDates: jstDateList(coverage.scannedEdinetDates, `${label}.primaryDisclosureReview.sourceCoverage.scannedEdinetDates`, warnings, asOf),
             };
           }
