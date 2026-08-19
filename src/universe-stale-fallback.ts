@@ -14,6 +14,14 @@ function isStrictGregorianDate(value: string): boolean {
   return day <= new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
+function hasCanonicalIdentity(candidate: UniverseCandidate): boolean {
+  return typeof candidate.code === "string"
+    && candidate.code.length > 0
+    && candidate.code === candidate.code.trim()
+    && typeof candidate.name === "string"
+    && candidate.name.trim().length > 0;
+}
+
 function hasInvalidStaleLineage(candidate: UniverseCandidate, fallbackAsOf: string): boolean {
   return [candidate.staleAsOf, candidate.carriedForwardAt, candidate.fallbackAsOf].some(
     value => value != null && (
@@ -25,6 +33,9 @@ function hasInvalidStaleLineage(candidate: UniverseCandidate, fallbackAsOf: stri
 }
 
 export function carryForwardStaleCandidate(candidate: UniverseCandidate, fallbackAsOf: string): UniverseCandidate {
+  if (!hasCanonicalIdentity(candidate)) {
+    throw new RangeError("stale fallback candidate identity is invalid");
+  }
   if (candidate.dataSource !== "jquants") {
     throw new RangeError("stale fallback source provenance is invalid");
   }
