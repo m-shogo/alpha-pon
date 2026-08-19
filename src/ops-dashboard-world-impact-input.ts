@@ -6,6 +6,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isNonNegativeInteger(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+}
+
 function invalidWorldImpactInput(): OpsWorldImpactAuditLike {
   return {
     healthStatus: "action_required",
@@ -25,5 +29,9 @@ export function normalizeOpsWorldImpactInput(value: unknown): OpsWorldImpactAudi
   if (typeof value.healthStatus !== "string" || !HEALTH_STATUSES.has(value.healthStatus)) {
     return invalidWorldImpactInput();
   }
+  if (!isNonNegativeInteger(value.totalReviews) || !isNonNegativeInteger(value.pendingReviews)) {
+    return invalidWorldImpactInput();
+  }
+  if (value.pendingReviews > value.totalReviews) return invalidWorldImpactInput();
   return value as OpsWorldImpactAuditLike;
 }
