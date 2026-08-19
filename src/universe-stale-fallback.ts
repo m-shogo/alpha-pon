@@ -15,6 +15,9 @@ function isStrictGregorianDate(value: string): boolean {
 }
 
 export function carryForwardStaleCandidate(candidate: UniverseCandidate, fallbackAsOf: string): UniverseCandidate {
+  if (candidate.dataSource !== "jquants") {
+    throw new RangeError("stale fallback source provenance is invalid");
+  }
   if (
     !isStrictGregorianDate(candidate.detectedAt)
     || !isStrictGregorianDate(fallbackAsOf)
