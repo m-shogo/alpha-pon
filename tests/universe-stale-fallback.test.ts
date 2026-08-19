@@ -34,6 +34,21 @@ assert.equal(
   1,
   "[STALE] warning は重複追加しない"
 );
+assert.throws(
+  () => carryForwardStaleCandidate({ ...base, detectedAt: "2026-06-09" }, "2026-06-08"),
+  /stale fallback chronology is invalid/,
+  "future-detected candidate must not be carried into an earlier PIT snapshot",
+);
+assert.throws(
+  () => carryForwardStaleCandidate({ ...base, detectedAt: "2026-02-31" }, "2026-06-08"),
+  /stale fallback chronology is invalid/,
+  "nonexistent detectedAt must not enter stale fallback provenance",
+);
+assert.throws(
+  () => carryForwardStaleCandidate(base, "2026-02-31"),
+  /stale fallback chronology is invalid/,
+  "nonexistent fallback as-of date must fail closed",
+);
 
 const output = buildUniverseScanOutput({
   generatedAt: "2026-06-08",
