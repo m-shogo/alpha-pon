@@ -20,6 +20,16 @@ try {
     "padded company codes must not fork company-memory identity or filesystem provenance",
   );
 
+  writeFileSync(join(dir, "scores_2026-08-17.json"), JSON.stringify([
+    validRow,
+    { ...validRow, name: "Conflicting duplicate" },
+  ]));
+  assert.throws(
+    () => assertCompanyMemoryScoreInputs(dir, "2026-08-17"),
+    /duplicate company code 8136/,
+    "duplicate daily score identities must not make company-memory provenance depend on row order",
+  );
+
   const futureSnapshot = join(dir, "scores_2026-08-18.json");
   writeFileSync(join(dir, "scores_2026-08-17.json"), JSON.stringify([validRow]));
   writeFileSync(futureSnapshot, JSON.stringify([{ ...validRow, createdAt: "2026-08-18" }]));
