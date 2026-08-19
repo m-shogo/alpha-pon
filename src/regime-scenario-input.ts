@@ -1,5 +1,7 @@
 import { readReadOnlyJsonArrayFile } from "./read-only-json-file.js";
 
+export const DEFAULT_REGIME_SCENARIO_REFLECTION_PATH = "data/world_event_reflections_latest.json";
+
 export type RegimeScenarioReflection = {
   date?: string;
   title?: string;
@@ -35,7 +37,7 @@ function isUsableRegimeScenarioReflection(value: unknown): value is RegimeScenar
 }
 
 export function loadRegimeScenarioReflectionState(
-  path = "data/world_event_reflections.json",
+  path = DEFAULT_REGIME_SCENARIO_REFLECTION_PATH,
 ): RegimeScenarioReflectionLoad {
   const loaded = readReadOnlyJsonArrayFile<unknown>(path);
   if (loaded.parseError) {
@@ -58,6 +60,6 @@ export function loadRegimeScenarioReflectionState(
   return { rows, warnings };
 }
 
-export function loadRegimeScenarioReflections(path = "data/world_event_reflections.json"): RegimeScenarioReflection[] {
+export function loadRegimeScenarioReflections(path = DEFAULT_REGIME_SCENARIO_REFLECTION_PATH): RegimeScenarioReflection[] {
   return loadRegimeScenarioReflectionState(path).rows;
 }
