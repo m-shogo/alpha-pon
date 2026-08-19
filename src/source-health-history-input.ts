@@ -10,6 +10,15 @@ type NormalizedSourceHealthHistory = {
   invalidRows: number;
 };
 
+const REQUIRED_REPORT_KEYS = [
+  "sourceHealth",
+  "daily",
+  "scores",
+  "proposals",
+  "stockPro",
+  "regime",
+] as const;
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -33,6 +42,11 @@ function isValidReportValue(value: unknown): boolean {
   return true;
 }
 
+function hasCanonicalReports(value: unknown): value is Record<string, unknown> {
+  if (!isRecord(value)) return false;
+  return REQUIRED_REPORT_KEYS.every(key => key in value && isValidReportValue(value[key]));
+}
+
 export function normalizeSourceHealthHistoryRows(values: unknown[], asOf?: string): NormalizedSourceHealthHistory {
   const latestByDate = new Map<string, SourceHealthHistoryRow>();
   let invalidRows = 0;
@@ -50,16 +64,15 @@ export function normalizeSourceHealthHistoryRows(values: unknown[], asOf?: strin
       continue;
     }
 
-    if (value.reports !== undefined) {
-      if (!isRecord(value.reports)) {
-        invalidRows += 1;
-        continue;
-      }
-      const malformedReport = Object.values(value.reports).some(report => !isValidReportValue(report));
-      if (malformedReport) {
-        invalidRows += 1;
-        continue;
-      }
+    if (!hasCanonicalReports(value.reports)) {
+      invalidRows += 1;
+      continue;
+    }
+
+    const malformedReport = Object.values(value.reports).some(report => !isValidReportValue(report));
+    if (malformedReport) {
+      invalidRows += 1;
+      continue;
     }
 
     latestByDate.set(date, value as SourceHealthHistoryRow);
