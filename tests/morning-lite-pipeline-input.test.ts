@@ -52,6 +52,13 @@ function main(): void {
     assert.deepEqual(valid.failedSteps, ["step-a", "step-b(1)"]);
     assert.equal(valid.warning, null);
 
+    writeFileSync(pipelinePath, JSON.stringify({ date: AS_OF, failedSteps: "step-b(1)" }), "utf-8");
+    assert.deepEqual(readMorningLitePipelineInput(pipelinePath, AS_OF), {
+      status: "unknown",
+      failedSteps: ["step-b(1)"],
+      warning: `${pipelinePath}: invalid_status`,
+    });
+
     writeFileSync(pipelinePath, JSON.stringify({ date: AS_OF, status: "completed_with_warnings", failedSteps: ["step-b"] }), "utf-8");
     const wrongDailyShape = readMorningLitePipelineInput(pipelinePath, AS_OF);
     assert.deepEqual(wrongDailyShape.failedSteps, []);
