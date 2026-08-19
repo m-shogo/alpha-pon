@@ -30,7 +30,11 @@ export function normalizeOpsWorldImpactInput(value: unknown): OpsWorldImpactAudi
   if (typeof value.healthStatus !== "string" || !HEALTH_STATUSES.has(value.healthStatus)) {
     return invalidWorldImpactInput();
   }
-  if (!isNonNegativeInteger(value.totalReviews) || !isNonNegativeInteger(value.pendingReviews)) {
+  if (
+    !isNonNegativeInteger(value.totalReviews)
+    || !isNonNegativeInteger(value.pendingReviews)
+    || !isNonNegativeInteger(value.overdueReviews)
+  ) {
     return invalidWorldImpactInput();
   }
   if (value.pendingReviews > value.totalReviews) return invalidWorldImpactInput();
