@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
+import { inspectRequiredFile } from "./listing-automation-smoke-input.js";
 
 type SmokeCheck = {
   id: string;
@@ -36,7 +37,14 @@ function read(path: string): string {
 }
 
 function checkRequiredFiles(): SmokeCheck[] {
-  return REQUIRED_FILES.map(path => ({ id: `file:${path}`, status: existsSync(path) ? "ok" : "fail", reason: existsSync(path) ? "exists" : "missing" }));
+  return REQUIRED_FILES.map(path => {
+    const state = inspectRequiredFile(path);
+    return {
+      id: `file:${path}`,
+      status: state === "ok" ? "ok" : "fail",
+      reason: state === "ok" ? "exists" : state,
+    };
+  });
 }
 
 function checkSafeWording(): SmokeCheck[] {
