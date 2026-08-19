@@ -17,6 +17,14 @@ try {
     "regular report files must retain their readable byte count"
   );
 
+  const blankReportPath = join(root, "blank.md");
+  writeFileSync(blankReportPath, " \n\t", "utf-8");
+  assert.deepEqual(
+    inspectSourceHealthReportFile(blankReportPath),
+    { exists: false, size: 0 },
+    "blank-only report files must fail closed instead of creating false-healthy source history"
+  );
+
   const directoryPath = join(root, "report-directory");
   mkdirSync(directoryPath);
   assert.deepEqual(
@@ -28,4 +36,4 @@ try {
   rmSync(root, { recursive: true, force: true });
 }
 
-console.log("source health report file: unreadable paths fail closed without crashing OK");
+console.log("source health report file: unreadable or blank paths fail closed without crashing OK");
