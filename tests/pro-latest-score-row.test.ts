@@ -11,13 +11,24 @@ try {
     { code: "7974", name: "Nintendo", warnings: {} },
     { code: "4661", name: "OLC", reasons: "broken" },
   ]), "utf-8");
+  writeFileSync(join(dir, "scores_2026-08-19.json"), JSON.stringify([
+    { code: "9999", name: "Future snapshot", warnings: [] },
+  ]), "utf-8");
 
   const result = readLatestProScores<{ code: string; name: string }>(dir, "2026-08-18");
   assert.deepEqual(result.rows.map(row => row.code), ["8136"], "malformed rows must not reach Pro quality consumers");
+  assert.equal(result.sourceFile, "scores_2026-08-18.json", "future score snapshots must not replace the latest PIT-eligible Pro score snapshot");
   assert.equal(result.warnings.length, 1, "malformed rows must remain visible as metadata warnings");
   assert.match(result.warnings[0], /2 malformed score row\(s\).*row\(s\) 2, 3/);
   assert.ok(!result.warnings[0].includes("Nintendo") && !result.warnings[0].includes("OLC"), "warning must not expose raw row content");
 
+  assert.throws(
+    () => readLatestProScores(dir, "2026-02-31"),
+    /as-of date must be a real Gregorian date/,
+    "invalid as-of dates must not weaken PIT snapshot selection",
+  );
+
+  rmSync(join(dir, "scores_2026-08-19.json"));
   writeFileSync(join(dir, "scores_2026-08-18.json"), JSON.stringify([
     { code: "8136", name: "Sanrio old", warnings: [] },
     { code: "7974", name: "Nintendo", warnings: [] },
@@ -33,4 +44,4 @@ try {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("pro-latest-score-row: malformed and duplicate score rows are isolated with metadata warnings OK");
+console.log("pro-latest-score-row: malformed, duplicate, and future score rows are isolated with PIT-safe metadata warnings OK");
