@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "fs";
-import { addDaysJst } from "./date.js";
+import { addDaysJst, todayJst } from "./date.js";
 import { readReadOnlyJsonObjectFile } from "./read-only-json-file.js";
 
 export type MorningLitePipelineInput = {
@@ -18,11 +18,27 @@ export type MorningLiteDedupeFileDate = {
   warning: string | null;
 };
 
-export function readMorningLitePipelineInput(path: string): MorningLitePipelineInput {
+function canonicalJstDate(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  try {
+    return addDaysJst(value, 0) === value ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+export function readMorningLitePipelineInput(
+  path: string,
+  asOf = todayJst(),
+): MorningLitePipelineInput {
   const loaded = readReadOnlyJsonObjectFile<Record<string, unknown>>(path);
   if (loaded.missing) return { status: "unknown", failedSteps: [], warning: null };
   if (loaded.parseError) return { status: "unknown", failedSteps: [], warning: `${path}: parse_error` };
   if (loaded.invalidRoot || !loaded.object) return { status: "unknown", failedSteps: [], warning: `${path}: invalid_root` };
+
+  const pipelineDate = canonicalJstDate(loaded.object.date);
+  if (!pipelineDate) return { status: "unknown", failedSteps: [], warning: `${path}: invalid_date` };
+  if (pipelineDate !== asOf) return { status: "unknown", failedSteps: [], warning: `${path}: not_current_date` };
 
   const status = typeof loaded.object.status === "string" && loaded.object.status.trim()
     ? loaded.object.status.trim()
