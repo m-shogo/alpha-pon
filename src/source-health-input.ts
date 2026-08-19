@@ -47,6 +47,7 @@ const PIPELINE_STATUSES = new Set([
   "completed_with_warnings",
   "completed",
 ]);
+const PIPELINE_RESULT_STATUSES = new Set(["ok", "skip", "fail"]);
 
 export function hasValidPrimaryDisclosureReview(value: unknown): boolean {
   if (value === undefined) return true;
@@ -169,6 +170,20 @@ export function normalizeSourceHealthObject<T extends object>(value: unknown): {
     if (Array.isArray(rows) && rows.some(row => !isRecord(row))) {
       return { value: null, valid: false };
     }
+  }
+
+  const results = value.results;
+  if (
+    Array.isArray(results)
+    && results.some(row => (
+      !isRecord(row)
+      || typeof row.name !== "string"
+      || row.name.trim().length === 0
+      || typeof row.status !== "string"
+      || !PIPELINE_RESULT_STATUSES.has(row.status)
+    ))
+  ) {
+    return { value: null, valid: false };
   }
 
   const failedSteps = value.completeWrapperFailedSteps;
