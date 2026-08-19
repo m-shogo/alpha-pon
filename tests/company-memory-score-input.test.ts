@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { assertExistingCompanyMemoryInputs } from "../src/company-memory-existing-input.js";
 import { assertCompanyMemoryScoreInputs } from "../src/company-memory-score-input.js";
 
 const dir = mkdtempSync(join(tmpdir(), "company-memory-score-input-"));
@@ -61,6 +62,28 @@ try {
     () => assertCompanyMemoryScoreInputs(dir, "2026-08-17"),
     /createdAt must be a real Gregorian JST date/,
     "impossible row provenance dates must fail closed",
+  );
+
+  const memoryDir = join(dir, "existing");
+  mkdirSync(memoryDir);
+  writeFileSync(join(memoryDir, " 8136.json"), JSON.stringify({
+    schemaVersion: 1,
+    code: " 8136",
+    name: "Sanrio",
+    firstSeenAt: "2026-08-01",
+    lastReviewedAt: "2026-08-17",
+    watchReason: [],
+    knownRisks: [],
+    strongRules: [],
+    weakRules: [],
+    recurringWarnings: [],
+    recentOutcomes: [],
+    notes: [],
+  }));
+  assert.throws(
+    () => assertExistingCompanyMemoryInputs(memoryDir),
+    /code must not have surrounding whitespace/,
+    "padded existing-memory filenames and codes must not fork filesystem identity",
   );
 } finally {
   rmSync(dir, { recursive: true, force: true });
