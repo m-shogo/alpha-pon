@@ -1,4 +1,4 @@
-import { addDaysJst } from "./date.js";
+import { addDaysJst, todayJst } from "./date.js";
 
 export type PrimaryDecision = "confirmed" | "caution" | "block" | "missing" | "unknown_or_legacy";
 
@@ -65,6 +65,10 @@ function isRealJstDate(value: string): boolean {
   }
 }
 
+function scoreSourceDate(source: string): string | null {
+  return /(?:^|\/)scores_(\d{4}-\d{2}-\d{2})\.json$/.exec(source)?.[1] ?? null;
+}
+
 function jstDateList(value: unknown, label: string, warnings: string[]): string[] {
   const values = stringList(value, label, warnings);
   return values.filter((item) => {
@@ -112,7 +116,12 @@ function disclosureItems(value: unknown, label: string, warnings: string[]): Pri
 export function normalizePrimaryDisclosureLearningScoreInput(
   input: unknown,
   source = "scores",
+  asOf = todayJst(),
 ): PrimaryDisclosureLearningScoreInput {
+  const sourceDate = scoreSourceDate(source);
+  if (sourceDate && (!isRealJstDate(sourceDate) || !isRealJstDate(asOf) || sourceDate > asOf)) {
+    return { rows: [], warnings: [`${source}: invalid_source_date`] };
+  }
   if (!Array.isArray(input)) {
     return { rows: [], warnings: [`${source}: invalid_root`] };
   }
