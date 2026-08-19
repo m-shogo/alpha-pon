@@ -7,6 +7,7 @@ const valid = {
   healthStatus: "ok",
   totalReviews: 2,
   pendingReviews: 0,
+  overdueReviews: 0,
   priorityIssues: [],
 };
 
@@ -18,20 +19,22 @@ for (const malformed of [
   "broken",
   1,
   {},
-  { healthStatus: "green", totalReviews: 0, pendingReviews: 0, priorityIssues: [] },
+  { healthStatus: "green", totalReviews: 0, pendingReviews: 0, overdueReviews: 0, priorityIssues: [] },
   { healthStatus: "ok" },
   { healthStatus: "ok", totalReviews: 0 },
-  { healthStatus: "ok", totalReviews: "2", pendingReviews: 0, priorityIssues: [] },
-  { healthStatus: "ok", totalReviews: 2, pendingReviews: -1, priorityIssues: [] },
-  { healthStatus: "ok", totalReviews: 2.5, pendingReviews: 0, priorityIssues: [] },
-  { healthStatus: "ok", totalReviews: Number.MAX_SAFE_INTEGER + 1, pendingReviews: 0, priorityIssues: [] },
-  { healthStatus: "ok", totalReviews: 1, pendingReviews: 2, priorityIssues: [] },
-  { healthStatus: "ok", totalReviews: 1, pendingReviews: 0 },
-  { healthStatus: "ok", totalReviews: 1, pendingReviews: 0, priorityIssues: [{}] },
-  { healthStatus: "ok", totalReviews: 1, pendingReviews: 0, priorityIssues: [{ severity: "urgent", title: "broken", detail: "must not be hidden" }] },
-  { healthStatus: "ok", totalReviews: 1, pendingReviews: 0, priorityIssues: [{ severity: "attention", title: "broken", detail: "must not be hidden" }] },
-  { healthStatus: "needs_attention", totalReviews: 1, pendingReviews: 0, priorityIssues: [] },
-  { healthStatus: "action_required", totalReviews: 1, pendingReviews: 0, priorityIssues: [{ severity: "attention", title: "broken", detail: "wrong severity" }] },
+  { healthStatus: "ok", totalReviews: 0, pendingReviews: 0, priorityIssues: [] },
+  { healthStatus: "ok", totalReviews: "2", pendingReviews: 0, overdueReviews: 0, priorityIssues: [] },
+  { healthStatus: "ok", totalReviews: 2, pendingReviews: -1, overdueReviews: 0, priorityIssues: [] },
+  { healthStatus: "ok", totalReviews: 2, pendingReviews: 0, overdueReviews: -1, priorityIssues: [] },
+  { healthStatus: "ok", totalReviews: 2.5, pendingReviews: 0, overdueReviews: 0, priorityIssues: [] },
+  { healthStatus: "ok", totalReviews: Number.MAX_SAFE_INTEGER + 1, pendingReviews: 0, overdueReviews: 0, priorityIssues: [] },
+  { healthStatus: "ok", totalReviews: 1, pendingReviews: 2, overdueReviews: 0, priorityIssues: [] },
+  { healthStatus: "ok", totalReviews: 1, pendingReviews: 0, overdueReviews: 0 },
+  { healthStatus: "ok", totalReviews: 1, pendingReviews: 0, overdueReviews: 0, priorityIssues: [{}] },
+  { healthStatus: "ok", totalReviews: 1, pendingReviews: 0, overdueReviews: 0, priorityIssues: [{ severity: "urgent", title: "broken", detail: "must not be hidden" }] },
+  { healthStatus: "ok", totalReviews: 1, pendingReviews: 0, overdueReviews: 0, priorityIssues: [{ severity: "attention", title: "broken", detail: "must not be hidden" }] },
+  { healthStatus: "needs_attention", totalReviews: 1, pendingReviews: 0, overdueReviews: 0, priorityIssues: [] },
+  { healthStatus: "action_required", totalReviews: 1, pendingReviews: 0, overdueReviews: 0, priorityIssues: [{ severity: "attention", title: "broken", detail: "wrong severity" }] },
 ]) {
   const normalized = normalizeOpsWorldImpactInput(malformed);
   assert.equal(normalized?.healthStatus, "action_required");
@@ -42,6 +45,7 @@ const validAttention = {
   healthStatus: "needs_attention",
   totalReviews: 2,
   pendingReviews: 1,
+  overdueReviews: 1,
   priorityIssues: [{ severity: "attention", title: "review due", detail: "review pending item" }],
 };
 assert.deepEqual(normalizeOpsWorldImpactInput(validAttention), validAttention);
@@ -50,6 +54,7 @@ const validUrgent = {
   healthStatus: "action_required",
   totalReviews: 2,
   pendingReviews: 1,
+  overdueReviews: 0,
   priorityIssues: [{ severity: "urgent", title: "parse error", detail: "repair source data" }],
 };
 assert.deepEqual(normalizeOpsWorldImpactInput(validUrgent), validUrgent);
