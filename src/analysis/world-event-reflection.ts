@@ -49,9 +49,19 @@ function compactImpactText(impact: WorldEventImpact): string {
   return `${impact.category}: ${impact.impactedTags.slice(0, 5).join(", ")} / ${impact.watchQuestions[0]}`;
 }
 
+function titleFingerprint(title: string): string {
+  let hash = 2166136261;
+  for (let index = 0; index < title.length; index += 1) {
+    hash ^= title.charCodeAt(index);
+    hash = Math.imul(hash, 16777619) >>> 0;
+  }
+  return hash.toString(36);
+}
+
 function eventId(date: string, event: ClassifiedWorldEvent): string {
   const safeTitle = event.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
-  return `${date}_${safeTitle || "world-event"}`;
+  const stableTitle = safeTitle || `world-event-${titleFingerprint(event.title)}`;
+  return `${date}_${stableTitle}`;
 }
 
 function isReflectionSafe(event: ClassifiedWorldEvent): boolean {
