@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import "./listing-automation-summary-input.test.js";
 import "./listing-event-alert-input.test.js";
-import { inspectRequiredFile } from "../src/listing-automation-smoke-input.js";
+import { inspectRequiredFile, readSmokeText } from "../src/listing-automation-smoke-input.js";
 import { parseListingEventMessageInput } from "../src/listing-event-message-preview-input.js";
 
 {
@@ -20,6 +20,10 @@ import { parseListingEventMessageInput } from "../src/listing-event-message-prev
     assert.equal(inspectRequiredFile(empty), "empty", "empty required files must fail closed");
     assert.equal(inspectRequiredFile(directory), "not_file", "directories must not satisfy required-file smoke checks");
     assert.equal(inspectRequiredFile(join(root, "missing.txt")), "missing", "missing required files remain failures");
+    assert.equal(readSmokeText(valid), "ok", "valid regular files remain readable by smoke checks");
+    assert.equal(readSmokeText(empty), "", "empty smoke inputs stay fail-closed");
+    assert.equal(readSmokeText(directory), "", "directory paths must be isolated instead of throwing EISDIR");
+    assert.equal(readSmokeText(join(root, "missing.txt")), "", "missing smoke inputs stay fail-closed");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
