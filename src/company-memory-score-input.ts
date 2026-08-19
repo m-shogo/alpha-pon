@@ -15,7 +15,7 @@ function isRealJstDate(value: string): boolean {
   }
 }
 
-function assertCompanyMemoryScoreRow(value: unknown, rowLabel: string, asOf: string): void {
+function assertCompanyMemoryScoreRow(value: unknown, rowLabel: string, asOf: string, snapshotDate: string): void {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error(`${rowLabel} must be an object`);
   }
@@ -34,6 +34,9 @@ function assertCompanyMemoryScoreRow(value: unknown, rowLabel: string, asOf: str
   }
   if ((row.createdAt as string) > asOf) {
     throw new Error(`${rowLabel} createdAt must not be later than company-memory as-of date ${asOf}`);
+  }
+  if (row.createdAt !== snapshotDate) {
+    throw new Error(`${rowLabel} createdAt must match score snapshot date ${snapshotDate}`);
   }
 
   for (const field of ["tags", "rules", "reasons", "negativeReasons", "warnings"] as const) {
@@ -72,7 +75,7 @@ export function assertCompanyMemoryScoreInputs(reportsDir = "reports", asOf = to
     const seenCodes = new Set<string>();
     normalized.rows.forEach((row, index) => {
       const rowLabel = `${file} row ${index + 1}`;
-      assertCompanyMemoryScoreRow(row, rowLabel, asOf);
+      assertCompanyMemoryScoreRow(row, rowLabel, asOf, snapshotDate);
       const code = (row as Record<string, unknown>).code as string;
       if (seenCodes.has(code)) {
         throw new Error(`${file}: duplicate company code ${code}`);
