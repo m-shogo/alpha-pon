@@ -35,7 +35,7 @@ function isFiniteNumberOrNull(value: unknown): value is number | null {
 }
 
 function isCount(value: unknown): value is number {
-  return Number.isInteger(value) && (value as number) >= 0
+  return Number.isSafeInteger(value) && (value as number) >= 0
 }
 
 function isActionLabelStats(value: unknown): value is GeneratedActionLabelStats {
@@ -71,18 +71,32 @@ export function isGeneratedAccuracySummaryInput(value: unknown): value is Genera
   const actionLabels = ['watch', 'log', 'ignore'] as const
   const scoreBands = ['0-49', '50-69', '70-84', '85-100', 'unknown'] as const
 
-  return isCount(summary.total)
-    && isCount(summary.hit)
-    && isCount(summary.miss)
-    && isCount(summary.tooEarly)
-    && isCount(summary.unknown)
-    && isFiniteNumberOrNull(summary.hitRate)
-    && isFiniteNumberOrNull(summary.avgReturn1m)
-    && isFiniteNumberOrNull(summary.avgTopixReturn1m)
-    && isFiniteNumberOrNull(summary.avgRelativeToTopix1m)
-    && isFiniteNumberOrNull(summary.avgMaxDrawdownPct)
-    && hasExactStats(summary.byActionLabel, actionLabels, isActionLabelStats)
-    && hasExactStats(summary.byScoreBand, scoreBands, isScoreBandStats)
+  if (
+    !isCount(summary.total)
+    || !isCount(summary.hit)
+    || !isCount(summary.miss)
+    || !isCount(summary.tooEarly)
+    || !isCount(summary.unknown)
+    || !isFiniteNumberOrNull(summary.hitRate)
+    || !isFiniteNumberOrNull(summary.avgReturn1m)
+    || !isFiniteNumberOrNull(summary.avgTopixReturn1m)
+    || !isFiniteNumberOrNull(summary.avgRelativeToTopix1m)
+    || !isFiniteNumberOrNull(summary.avgMaxDrawdownPct)
+    || !hasExactStats(summary.byActionLabel, actionLabels, isActionLabelStats)
+    || !hasExactStats(summary.byScoreBand, scoreBands, isScoreBandStats)
+  ) {
+    return false
+  }
+
+  const byActionLabel = summary.byActionLabel as Record<typeof actionLabels[number], GeneratedActionLabelStats>
+  const byScoreBand = summary.byScoreBand as Record<typeof scoreBands[number], GeneratedScoreBandStats>
+  const resultTotal = summary.hit + summary.miss + summary.tooEarly + summary.unknown
+  const actionLabelTotal = actionLabels.reduce((sum, key) => sum + byActionLabel[key].total, 0)
+  const scoreBandTotal = scoreBands.reduce((sum, key) => sum + byScoreBand[key].total, 0)
+
+  return resultTotal === summary.total
+    && actionLabelTotal === summary.total
+    && scoreBandTotal === summary.total
 }
 
 export function normalizeGeneratedAccuracySummaryInput(
