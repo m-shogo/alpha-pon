@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
-import { addDaysJst } from "./date.js";
+import { addDaysJst, todayJst } from "./date.js";
 
 const REQUIRED_STRING_ARRAY_FIELDS = [
   "watchReason",
@@ -27,7 +27,7 @@ function assertStrictDate(value: unknown, field: string, file: string): string {
   return value;
 }
 
-function assertExistingCompanyMemoryShape(value: unknown, file: string): void {
+function assertExistingCompanyMemoryShape(value: unknown, file: string, asOf: string): void {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error(`${file}: company-memory root must be an object`);
   }
@@ -52,6 +52,9 @@ function assertExistingCompanyMemoryShape(value: unknown, file: string): void {
   if (lastReviewedAt < firstSeenAt) {
     throw new Error(`${file}: lastReviewedAt must be on or after firstSeenAt`);
   }
+  if (lastReviewedAt > asOf) {
+    throw new Error(`${file}: lastReviewedAt must not be later than company-memory as-of date ${asOf}`);
+  }
 
   const expectedCode = basename(file, ".json");
   if (record.code !== expectedCode) {
@@ -69,7 +72,11 @@ function assertExistingCompanyMemoryShape(value: unknown, file: string): void {
   }
 }
 
-export function assertExistingCompanyMemoryInputs(dir = join("data", "company_memory")): void {
+export function assertExistingCompanyMemoryInputs(
+  dir = join("data", "company_memory"),
+  asOf = todayJst(),
+): void {
+  assertStrictDate(asOf, "asOf", "company-memory input");
   if (!existsSync(dir)) return;
 
   for (const file of readdirSync(dir).filter((name) => name.endsWith(".json")).sort()) {
@@ -81,6 +88,6 @@ export function assertExistingCompanyMemoryInputs(dir = join("data", "company_me
       throw new Error(`${file}: invalid company-memory JSON`);
     }
 
-    assertExistingCompanyMemoryShape(parsed, file);
+    assertExistingCompanyMemoryShape(parsed, file, asOf);
   }
 }

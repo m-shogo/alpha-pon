@@ -66,9 +66,9 @@ try {
 
   const memoryDir = join(dir, "existing");
   mkdirSync(memoryDir);
-  writeFileSync(join(memoryDir, " 8136.json"), JSON.stringify({
+  const validMemory = {
     schemaVersion: 1,
-    code: " 8136",
+    code: "8136",
     name: "Sanrio",
     firstSeenAt: "2026-08-01",
     lastReviewedAt: "2026-08-17",
@@ -79,11 +79,22 @@ try {
     recurringWarnings: [],
     recentOutcomes: [],
     notes: [],
-  }));
+  };
+
+  const paddedMemoryPath = join(memoryDir, " 8136.json");
+  writeFileSync(paddedMemoryPath, JSON.stringify({ ...validMemory, code: " 8136" }));
   assert.throws(
-    () => assertExistingCompanyMemoryInputs(memoryDir),
+    () => assertExistingCompanyMemoryInputs(memoryDir, "2026-08-17"),
     /code must not have surrounding whitespace/,
     "padded existing-memory filenames and codes must not fork filesystem identity",
+  );
+  rmSync(paddedMemoryPath);
+
+  writeFileSync(join(memoryDir, "8136.json"), JSON.stringify({ ...validMemory, lastReviewedAt: "2026-08-18" }));
+  assert.throws(
+    () => assertExistingCompanyMemoryInputs(memoryDir, "2026-08-17"),
+    /lastReviewedAt must not be later than company-memory as-of date 2026-08-17/,
+    "future existing-memory provenance must not outrank the current refresh cutoff",
   );
 } finally {
   rmSync(dir, { recursive: true, force: true });
