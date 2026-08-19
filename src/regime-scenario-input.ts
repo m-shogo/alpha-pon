@@ -40,6 +40,17 @@ function isRealJstDate(value: unknown): value is string {
   }
 }
 
+function hasRegimeSignal(value: Record<string, unknown>): boolean {
+  const nonEmptyString = (candidate: unknown) => typeof candidate === "string" && candidate.trim().length > 0;
+  const nonEmptyStringArray = (candidate: unknown) => Array.isArray(candidate)
+    && candidate.some(item => typeof item === "string" && item.trim().length > 0);
+  return nonEmptyString(value.title)
+    || nonEmptyString(value.category)
+    || nonEmptyStringArray(value.categories)
+    || nonEmptyStringArray(value.tags)
+    || nonEmptyStringArray(value.impactedTags);
+}
+
 function isUsableRegimeScenarioReflection(value: unknown, asOf: string): value is RegimeScenarioReflection {
   if (!isRecord(value)) return false;
   if (!isOptionalString(value.date)
@@ -49,7 +60,8 @@ function isUsableRegimeScenarioReflection(value: unknown, asOf: string): value i
     || !isOptionalStringArray(value.categories)
     || !isOptionalStringArray(value.tags)
     || !isOptionalStringArray(value.impactedTags)
-    || !isOptionalString(value.riskLevel)) {
+    || !isOptionalString(value.riskLevel)
+    || !hasRegimeSignal(value)) {
     return false;
   }
 
