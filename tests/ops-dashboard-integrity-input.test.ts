@@ -3,12 +3,15 @@ import { buildOpsDashboard } from "../src/ops-dashboard.js";
 import { applyOutcomeIntegrityAuditHealth } from "../src/ops-dashboard-integrity-health.js";
 import { normalizeOpsIntegrityInput } from "../src/ops-dashboard-integrity-input.js";
 
+const asOf = "2026-08-19";
 const valid = normalizeOpsIntegrityInput({
+  generatedAt: asOf,
   status: "ok",
   jsonl: { duplicateGroups: [], parseErrors: [] },
   sqlite: { duplicateGroups: [] },
-});
+}, asOf);
 assert.deepEqual(valid, {
+  generatedAt: asOf,
   status: "ok",
   jsonl: { duplicateGroups: [], parseErrors: [] },
   sqlite: { duplicateGroups: [] },
@@ -18,25 +21,29 @@ for (const malformed of [
   [],
   "broken",
   {},
-  { status: "green" },
-  { status: "ok", jsonl: [] },
-  { status: "ok", jsonl: { duplicateGroups: {} } },
-  { status: "ok", jsonl: { parseErrors: "none" } },
-  { status: "ok", sqlite: [] },
-  { status: "ok", sqlite: { duplicateGroups: "none" } },
+  { generatedAt: asOf, status: "green" },
+  { generatedAt: asOf, status: "ok", jsonl: [] },
+  { generatedAt: asOf, status: "ok", jsonl: { duplicateGroups: {} } },
+  { generatedAt: asOf, status: "ok", jsonl: { parseErrors: "none" } },
+  { generatedAt: asOf, status: "ok", sqlite: [] },
+  { generatedAt: asOf, status: "ok", sqlite: { duplicateGroups: "none" } },
+  { status: "ok", jsonl: { duplicateGroups: [], parseErrors: [] }, sqlite: { duplicateGroups: [] } },
+  { generatedAt: "2026-08-18", status: "ok", jsonl: { duplicateGroups: [], parseErrors: [] }, sqlite: { duplicateGroups: [] } },
+  { generatedAt: "2026-02-31", status: "ok", jsonl: { duplicateGroups: [], parseErrors: [] }, sqlite: { duplicateGroups: [] } },
+  { generatedAt: "0000-01-01", status: "ok", jsonl: { duplicateGroups: [], parseErrors: [] }, sqlite: { duplicateGroups: [] } },
 ]) {
   assert.deepEqual(
-    normalizeOpsIntegrityInput(malformed),
+    normalizeOpsIntegrityInput(malformed, asOf),
     {
       status: "invalid_input",
       jsonl: { duplicateGroups: [], parseErrors: [{}] },
       sqlite: { duplicateGroups: [] },
     },
-    "malformed integrity input must fail closed instead of producing false-green counts",
+    "malformed or stale integrity input must fail closed instead of producing false-green counts",
   );
 }
 
-assert.equal(normalizeOpsIntegrityInput(null), null, "missing input remains distinguishable from malformed input");
+assert.equal(normalizeOpsIntegrityInput(null, asOf), null, "missing input remains distinguishable from malformed input");
 
 {
   const base = buildOpsDashboard({
@@ -64,4 +71,4 @@ assert.equal(normalizeOpsIntegrityInput(null), null, "missing input remains dist
   assert.equal(applyOutcomeIntegrityAuditHealth(base, valid), base, "available integrity audit keeps existing dashboard handling");
 }
 
-console.log("ops-dashboard integrity input: malformed and missing audits fail closed OK");
+console.log("ops-dashboard integrity input: malformed, stale, and missing audits fail closed OK");
