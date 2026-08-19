@@ -44,6 +44,7 @@ export function normalizeOpsOutcomeQualityInput(
   }
   if (!isRecord(value.checks)) return invalidOutcomeQualityInput();
 
+  const counts = new Map<string, number>();
   for (const key of CHECK_KEYS) {
     const check = value.checks[key];
     if (!isRecord(check)) return invalidOutcomeQualityInput();
@@ -51,7 +52,15 @@ export function normalizeOpsOutcomeQualityInput(
     if (typeof count !== "number" || !Number.isInteger(count) || count < 0) {
       return invalidOutcomeQualityInput();
     }
+    counts.set(key, count);
   }
+
+  const expectedHealth = (counts.get("unknownMatchedAsHit") ?? 0) > 0
+    ? "action_required"
+    : [...counts.values()].some(count => count > 0)
+      ? "needs_attention"
+      : "ok";
+  if (value.healthStatus !== expectedHealth) return invalidOutcomeQualityInput();
 
   return value as OpsOutcomeQualityLike;
 }
