@@ -27,10 +27,11 @@ function recentNotificationCounts(asOf: string): {
 
   const counts = datedFiles.map(item => {
     const path = join(dir, item.name);
-    const loaded = readMorningLiteDedupeCount(path);
+    const date = item.parsed.date as string;
+    const loaded = readMorningLiteDedupeCount(path, date);
     if (loaded.warning) warnings.push(loaded.warning);
     return {
-      date: item.parsed.date as string,
+      date,
       count: loaded.count,
     };
   });
