@@ -48,6 +48,9 @@ for (const malformed of [
   { generatedAt: asOf, status: "ok", jsonl: { duplicateGroups: [], parseErrors: [] }, sqlite: [] },
   { generatedAt: asOf, status: "ok", jsonl: { duplicateGroups: [], parseErrors: [] }, sqlite: {} },
   { generatedAt: asOf, status: "ok", jsonl: { duplicateGroups: [], parseErrors: [] }, sqlite: { duplicateGroups: "none" } },
+  { generatedAt: asOf, status: "ok", jsonl: { duplicateGroups: [{ key: "dup" }], parseErrors: [] }, sqlite: { duplicateGroups: [] } },
+  { generatedAt: asOf, status: "ok", jsonl: { duplicateGroups: [], parseErrors: [{ lineNumber: 1 }] }, sqlite: { duplicateGroups: [] } },
+  { generatedAt: asOf, status: "ok", jsonl: { duplicateGroups: [], parseErrors: [] }, sqlite: { duplicateGroups: [{ key: "dup" }] } },
   { status: "ok", jsonl: { duplicateGroups: [], parseErrors: [] }, sqlite: { duplicateGroups: [] } },
   { generatedAt: "2026-08-18", status: "ok", jsonl: { duplicateGroups: [], parseErrors: [] }, sqlite: { duplicateGroups: [] } },
   { generatedAt: "2026-02-31", status: "ok", jsonl: { duplicateGroups: [], parseErrors: [] }, sqlite: { duplicateGroups: [] } },
@@ -60,7 +63,7 @@ for (const malformed of [
       jsonl: { duplicateGroups: [], parseErrors: [{}] },
       sqlite: { duplicateGroups: [] },
     },
-    "malformed, truncated, stale, or non-canonical integrity input must fail closed instead of producing false-green counts",
+    "malformed, truncated, stale, non-canonical, or false-green integrity input must fail closed",
   );
 }
 
@@ -92,4 +95,4 @@ assert.equal(normalizeOpsIntegrityInput(null, asOf), null, "missing input remain
   assert.equal(applyOutcomeIntegrityAuditHealth(base, valid), base, "available integrity audit keeps existing dashboard handling");
 }
 
-console.log("ops-dashboard integrity input: canonical statuses, malformed, truncated, stale, and missing audits validated OK");
+console.log("ops-dashboard integrity input: canonical status and finding consistency validated OK");
