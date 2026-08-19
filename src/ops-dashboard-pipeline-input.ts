@@ -1,6 +1,15 @@
 import type { OpsPipelineStatusLike } from "./ops-dashboard.js";
 
 const INVALID_PIPELINE_INPUT = "invalid_pipeline_status_input";
+const PIPELINE_STATUSES = new Set([
+  "ok",
+  "partial_failed",
+  "running",
+  "skipped_locked",
+  "failed",
+  "completed_with_warnings",
+  "completed",
+]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -17,6 +26,10 @@ function invalidPipelineStatus(): OpsPipelineStatusLike {
 export function normalizeOpsPipelineStatusInput(value: unknown): OpsPipelineStatusLike | null {
   if (value == null) return null;
   if (!isRecord(value)) return invalidPipelineStatus();
+
+  if (typeof value.status !== "string" || !PIPELINE_STATUSES.has(value.status)) {
+    return invalidPipelineStatus();
+  }
 
   let failedSteps: string | undefined;
   if (value.failedSteps !== undefined) {
