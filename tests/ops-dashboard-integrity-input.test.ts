@@ -22,11 +22,15 @@ for (const malformed of [
   "broken",
   {},
   { generatedAt: asOf, status: "green" },
-  { generatedAt: asOf, status: "ok", jsonl: [] },
-  { generatedAt: asOf, status: "ok", jsonl: { duplicateGroups: {} } },
-  { generatedAt: asOf, status: "ok", jsonl: { parseErrors: "none" } },
-  { generatedAt: asOf, status: "ok", sqlite: [] },
-  { generatedAt: asOf, status: "ok", sqlite: { duplicateGroups: "none" } },
+  { generatedAt: asOf, status: "ok" },
+  { generatedAt: asOf, status: "ok", jsonl: [], sqlite: { duplicateGroups: [] } },
+  { generatedAt: asOf, status: "ok", jsonl: {}, sqlite: { duplicateGroups: [] } },
+  { generatedAt: asOf, status: "ok", jsonl: { duplicateGroups: [], parseErrors: [] } },
+  { generatedAt: asOf, status: "ok", jsonl: { duplicateGroups: {} }, sqlite: { duplicateGroups: [] } },
+  { generatedAt: asOf, status: "ok", jsonl: { duplicateGroups: [], parseErrors: "none" }, sqlite: { duplicateGroups: [] } },
+  { generatedAt: asOf, status: "ok", jsonl: { duplicateGroups: [], parseErrors: [] }, sqlite: [] },
+  { generatedAt: asOf, status: "ok", jsonl: { duplicateGroups: [], parseErrors: [] }, sqlite: {} },
+  { generatedAt: asOf, status: "ok", jsonl: { duplicateGroups: [], parseErrors: [] }, sqlite: { duplicateGroups: "none" } },
   { status: "ok", jsonl: { duplicateGroups: [], parseErrors: [] }, sqlite: { duplicateGroups: [] } },
   { generatedAt: "2026-08-18", status: "ok", jsonl: { duplicateGroups: [], parseErrors: [] }, sqlite: { duplicateGroups: [] } },
   { generatedAt: "2026-02-31", status: "ok", jsonl: { duplicateGroups: [], parseErrors: [] }, sqlite: { duplicateGroups: [] } },
@@ -39,7 +43,7 @@ for (const malformed of [
       jsonl: { duplicateGroups: [], parseErrors: [{}] },
       sqlite: { duplicateGroups: [] },
     },
-    "malformed or stale integrity input must fail closed instead of producing false-green counts",
+    "malformed, truncated, or stale integrity input must fail closed instead of producing false-green counts",
   );
 }
 
@@ -71,4 +75,4 @@ assert.equal(normalizeOpsIntegrityInput(null, asOf), null, "missing input remain
   assert.equal(applyOutcomeIntegrityAuditHealth(base, valid), base, "available integrity audit keeps existing dashboard handling");
 }
 
-console.log("ops-dashboard integrity input: malformed, stale, and missing audits fail closed OK");
+console.log("ops-dashboard integrity input: malformed, truncated, stale, and missing audits fail closed OK");
