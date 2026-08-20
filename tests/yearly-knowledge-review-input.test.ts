@@ -24,6 +24,12 @@ assert.equal(isUsableYearlyNonMoveHistory({ ...validNonMoveHistory, date: "2026-
 assert.equal(isUsableYearlyNonMoveHistory({ ...validNonMoveHistory, date: "0000-01-01" }, yearlyAsOf), false);
 assert.equal(isUsableYearlyNonMoveHistory({ ...validNonMoveHistory, nonMoveReasons: "broken" }, yearlyAsOf), false);
 assert.equal(
+  isUsableYearlyNonMoveHistory({ ...validNonMoveHistory, nonMoveReasons: ["already_priced_in", "already_priced_in"] }, yearlyAsOf),
+  false,
+);
+assert.equal(isUsableYearlyNonMoveHistory({ ...validNonMoveHistory, nonMoveReasons: [""] }, yearlyAsOf), false);
+assert.equal(isUsableYearlyNonMoveHistory({ ...validNonMoveHistory, nonMoveReasons: [" already_priced_in"] }, yearlyAsOf), false);
+assert.equal(
   isUsableYearlyNonMoveHistory({ date: yearlyAsOf, nonMoveReasons: ["already_priced_in"] }, yearlyAsOf),
   false,
 );
