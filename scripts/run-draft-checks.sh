@@ -24,6 +24,7 @@ node --import tsx/esm tests/ops-dashboard-safe-output-health.test.ts
 node --import tsx/esm tests/yearly-knowledge-review-input.test.ts
 node --import tsx/esm tests/health-success-artifact.test.ts
 node --import tsx/esm tests/pro-knowledge-refresh-input.test.ts
+node --import tsx/esm tests/periodic-review-score-input.test.ts
 node --import tsx/esm tests/line-consolidation.test.ts
 
 echo "draft-checks: ok"

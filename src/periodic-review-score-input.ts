@@ -43,7 +43,7 @@ function isRealDate(value: string): boolean {
 function normalizePeriodicScoreRow(value: unknown, expectedDate?: string): PeriodicScoreLogEntry | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const row = value as Record<string, unknown>;
-  if (typeof row.code !== "string" || row.code.trim() === "") return null;
+  if (typeof row.code !== "string" || row.code.trim() === "" || row.code !== row.code.trim()) return null;
   if (typeof row.name !== "string" || row.name.trim() === "") return null;
   if (typeof row.score !== "number" || !Number.isFinite(row.score)) return null;
   if (typeof row.alertLevel !== "string" || row.alertLevel.trim() === "") return null;
@@ -92,13 +92,26 @@ export function parsePeriodicScoreLog(raw: string, expectedDate?: string): Parse
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return null;
 
-    const entries: PeriodicScoreLogEntry[] = [];
+    const candidates: Array<{ entry: PeriodicScoreLogEntry; row: number }> = [];
     const invalidRows: number[] = [];
     parsed.forEach((value, index) => {
       const normalized = normalizePeriodicScoreRow(value, expectedDate);
-      if (normalized) entries.push(normalized);
+      if (normalized) candidates.push({ entry: normalized, row: index + 1 });
       else invalidRows.push(index + 1);
     });
+
+    const counts = new Map<string, number>();
+    for (const candidate of candidates) {
+      counts.set(candidate.entry.code, (counts.get(candidate.entry.code) ?? 0) + 1);
+    }
+
+    const entries: PeriodicScoreLogEntry[] = [];
+    for (const candidate of candidates) {
+      if ((counts.get(candidate.entry.code) ?? 0) > 1) invalidRows.push(candidate.row);
+      else entries.push(candidate.entry);
+    }
+
+    invalidRows.sort((a, b) => a - b);
     return { entries, invalidRows };
   } catch {
     return null;
