@@ -36,10 +36,23 @@ try {
     "non-array latest score snapshot must not silently produce a zero-row valuation report",
   );
   writeFileSync(join(dir, "scores_2026-08-18.json"), '[{"code":"8136"}]', "utf-8");
+  const isCodeRow = (value: unknown): value is { code: string } => {
+    return typeof value === "object"
+      && value !== null
+      && !Array.isArray(value)
+      && typeof (value as { code?: unknown }).code === "string";
+  };
   assert.equal(
-    (loadLatestValuationScoreRows<{ code: string }>(dir, "2026-08-18")[0]?.code),
+    (loadLatestValuationScoreRows<{ code: string }>(dir, "2026-08-18", isCodeRow)[0]?.code),
     "8136",
     "valid latest score arrays remain usable",
+  );
+
+  writeFileSync(join(dir, "scores_2026-08-18.json"), '[{"code":"8136"},{}]', "utf-8");
+  assert.throws(
+    () => loadLatestValuationScoreRows<{ code: string }>(dir, "2026-08-18", isCodeRow),
+    /invalid_row/,
+    "JSON-valid malformed score rows must not become valuation evidence",
   );
 
   rmSync(join(dir, "scores_2026-08-17.json"));
