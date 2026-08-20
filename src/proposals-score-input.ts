@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import { todayJst } from "./date.js";
 import { latestValuationScoreFile } from "./valuation-range-input.js";
 
+const DATA_QUALITIES = new Set(["ok", "partial", "missing"]);
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -10,6 +12,13 @@ function hasSafeWarnings(value: unknown): boolean {
   if (!isRecord(value)) return true;
   const warnings = value.warnings;
   return warnings == null || (Array.isArray(warnings) && warnings.every(item => typeof item === "string"));
+}
+
+function hasSafeDataQuality(value: unknown): boolean {
+  if (!isRecord(value)) return true;
+  const dataQuality = value.dataQuality;
+  return dataQuality === undefined
+    || (typeof dataQuality === "string" && DATA_QUALITIES.has(dataQuality));
 }
 
 function hasSafePrimaryDisclosureReview(value: unknown): boolean {
@@ -52,6 +61,13 @@ export function readProposalScores<T>(
       .filter((row): row is number => row !== null);
     if (unsafeRows.length > 0) {
       throw new Error(`${sourceFile}: proposal score warning shape is invalid at row(s) ${unsafeRows.join(", ")}`);
+    }
+
+    const unsafeDataQualityRows = parsed
+      .map((row, index) => hasSafeDataQuality(row) ? null : index + 1)
+      .filter((row): row is number => row !== null);
+    if (unsafeDataQualityRows.length > 0) {
+      throw new Error(`${sourceFile}: proposal score data quality is invalid at row(s) ${unsafeDataQualityRows.join(", ")}`);
     }
 
     const unsafePrimaryReviewRows = parsed

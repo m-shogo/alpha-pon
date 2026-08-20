@@ -40,6 +40,16 @@ try {
   );
 
   writeFileSync(join(dir, "scores_2026-08-18.json"), JSON.stringify([
+    { code: "8136", warnings: [], dataQuality: "ok" },
+    { code: "7974", warnings: [], dataQuality: "perfect" },
+  ]), "utf-8");
+  assert.throws(
+    () => readProposalScores<{ code: string; dataQuality?: string }>(dir, "2026-08-18"),
+    /proposal score data quality is invalid at row\(s\) 2/,
+    "producer-outside data quality must not suppress missing or partial proposal ratios",
+  );
+
+  writeFileSync(join(dir, "scores_2026-08-18.json"), JSON.stringify([
     { code: "8136", warnings: [], primaryDisclosureReview: "broken" },
     {
       code: "7974",
@@ -57,13 +67,14 @@ try {
     {
       code: "8136",
       warnings: [],
+      dataQuality: "partial",
       primaryDisclosureReview: { decision: "confirmed", sourceCoverage: { fetchErrorCount: 0 } },
     },
   ]), "utf-8");
   assert.deepEqual(
     readProposalScores<{ code: string }>(dir, "2026-08-18").rows.map(row => row.code),
     ["8136"],
-    "canonical primary review evidence remains usable",
+    "canonical data quality and primary review evidence remain usable",
   );
 
   writeFileSync(join(dir, "scores_2026-08-18.json"), JSON.stringify([
@@ -101,4 +112,4 @@ try {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("proposals-score-input: PIT, parse-error, root-shape, warning-shape, primary-review-shape, required-identity, and duplicate-identity regressions OK");
+console.log("proposals-score-input: PIT, parse-error, root-shape, warning-shape, data-quality, primary-review-shape, required-identity, and duplicate-identity regressions OK");
