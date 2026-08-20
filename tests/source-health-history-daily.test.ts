@@ -6,6 +6,7 @@ import { join, resolve } from "node:path";
 import { addDaysJst, todayJst } from "../src/date.js";
 
 const root = mkdtempSync(join(tmpdir(), "alpha-pon-source-health-history-"));
+const tsxImport = import.meta.resolve("tsx/esm");
 try {
   mkdirSync(join(root, "data"), { recursive: true });
   const today = todayJst();
@@ -24,11 +25,11 @@ try {
   );
 
   const source = resolve("src/source-health-history.ts");
-  execFileSync(process.execPath, ["--import", "tsx/esm", source], {
+  execFileSync(process.execPath, ["--import", tsxImport, source], {
     cwd: root,
     stdio: "pipe",
   });
-  execFileSync(process.execPath, ["--import", "tsx/esm", source], {
+  execFileSync(process.execPath, ["--import", tsxImport, source], {
     cwd: root,
     stdio: "pipe",
   });
