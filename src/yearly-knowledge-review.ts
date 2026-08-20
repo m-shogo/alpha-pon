@@ -2,7 +2,10 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
 import { readKnowledgeReviewJsonl } from "./knowledge-review-input.js";
-import { isUsableYearlyRegimeHistory } from "./yearly-knowledge-review-input.js";
+import {
+  isUsableYearlyRegimeHistory,
+  isUsableYearlySourceHealthHistory,
+} from "./yearly-knowledge-review-input.js";
 
 type NonMoveHistory = {
   date?: string;
@@ -35,6 +38,10 @@ function isNonMoveHistory(value: unknown): value is NonMoveHistory {
 
 function isRegimeHistory(value: unknown): value is RegimeHistory {
   return isUsableYearlyRegimeHistory(value);
+}
+
+function isSourceHealthHistory(value: unknown): value is SourceHealthHistory {
+  return isUsableYearlySourceHealthHistory(value);
 }
 
 function readText(path: string): string {
@@ -75,7 +82,7 @@ function main() {
   const date = todayJst();
   const nonMoveInput = readKnowledgeReviewJsonl<NonMoveHistory>("data/company_non_move_history.jsonl", isNonMoveHistory);
   const regimeInput = readKnowledgeReviewJsonl<RegimeHistory>("data/regime_history.jsonl", isRegimeHistory);
-  const sourceInput = readKnowledgeReviewJsonl<SourceHealthHistory>("data/source_health_history.jsonl");
+  const sourceInput = readKnowledgeReviewJsonl<SourceHealthHistory>("data/source_health_history.jsonl", isSourceHealthHistory);
   const nonMoveRows = nonMoveInput.rows;
   const regimeRows = regimeInput.rows;
   const sourceRows = sourceInput.rows;
