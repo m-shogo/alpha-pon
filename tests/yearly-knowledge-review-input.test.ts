@@ -56,8 +56,12 @@ assert.equal(isUsableYearlyRegimeHistory(null, yearlyAsOf), false);
 const validSourceHealth = {
   date: yearlyAsOf,
   reports: {
+    sourceHealth: { exists: true, size: 256 },
     daily: { exists: true, size: 128 },
     scores: { exists: false, size: 0 },
+    proposals: { exists: true, size: 64 },
+    stockPro: { exists: true, size: 64 },
+    regime: { exists: true, size: 64 },
   },
 };
 assert.equal(isUsableYearlySourceHealthHistory(validSourceHealth, yearlyAsOf), true);
@@ -65,13 +69,27 @@ assert.equal(isUsableYearlySourceHealthHistory({ ...validSourceHealth, date: "20
 assert.equal(isUsableYearlySourceHealthHistory({ ...validSourceHealth, date: "2026-02-31" }, yearlyAsOf), false);
 assert.equal(isUsableYearlySourceHealthHistory({ ...validSourceHealth, date: "0000-01-01" }, yearlyAsOf), false);
 assert.equal(isUsableYearlySourceHealthHistory({ date: yearlyAsOf, reports: null }, yearlyAsOf), false);
+assert.equal(isUsableYearlySourceHealthHistory({ date: yearlyAsOf, reports: {} }, yearlyAsOf), false);
+assert.equal(
+  isUsableYearlySourceHealthHistory({
+    ...validSourceHealth,
+    reports: { ...validSourceHealth.reports, sourceHealth: undefined },
+  }, yearlyAsOf),
+  false,
+);
 assert.equal(isUsableYearlySourceHealthHistory({ date: yearlyAsOf, reports: { daily: null } }, yearlyAsOf), false);
 assert.equal(
-  isUsableYearlySourceHealthHistory({ date: yearlyAsOf, reports: { daily: { exists: true, size: -1 } } }, yearlyAsOf),
+  isUsableYearlySourceHealthHistory({
+    ...validSourceHealth,
+    reports: { ...validSourceHealth.reports, daily: { exists: true, size: -1 } },
+  }, yearlyAsOf),
   false,
 );
 assert.equal(
-  isUsableYearlySourceHealthHistory({ date: yearlyAsOf, reports: { daily: { exists: "yes", size: 1 } } }, yearlyAsOf),
+  isUsableYearlySourceHealthHistory({
+    ...validSourceHealth,
+    reports: { ...validSourceHealth.reports, daily: { exists: "yes", size: 1 } },
+  }, yearlyAsOf),
   false,
 );
 

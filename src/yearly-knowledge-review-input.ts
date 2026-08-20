@@ -51,10 +51,22 @@ export function isUsableYearlyRegimeHistory(value: unknown, asOf = todayJst()): 
   }
 }
 
+const REQUIRED_SOURCE_HEALTH_REPORTS = [
+  "sourceHealth",
+  "daily",
+  "scores",
+  "proposals",
+  "stockPro",
+  "regime",
+] as const;
+
 export function isUsableYearlySourceHealthHistory(value: unknown, asOf: string): boolean {
   if (!isRecord(value)) return false;
   if (!isRealDateOnOrBefore(value.date, asOf)) return false;
   if (!isRecord(value.reports)) return false;
+  if (!REQUIRED_SOURCE_HEALTH_REPORTS.every(name => Object.prototype.hasOwnProperty.call(value.reports, name))) {
+    return false;
+  }
 
   for (const report of Object.values(value.reports)) {
     if (!isRecord(report)) return false;
