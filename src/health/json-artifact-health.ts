@@ -2,7 +2,7 @@ import { existsSync, readFileSync, statSync } from "fs";
 
 export type JsonArtifactHealth =
   | { ok: true }
-  | { ok: false; reason: "missing" | "not_file" | "empty" | "invalid_json" | "invalid_root" };
+  | { ok: false; reason: "missing" | "not_file" | "empty" | "invalid_json" | "invalid_root" | "empty_object" };
 
 export function inspectJsonArtifact(path: string): JsonArtifactHealth {
   if (!existsSync(path)) return { ok: false, reason: "missing" };
@@ -15,6 +15,7 @@ export function inspectJsonArtifact(path: string): JsonArtifactHealth {
     if (value === null || typeof value !== "object" || Array.isArray(value)) {
       return { ok: false, reason: "invalid_root" };
     }
+    if (Object.keys(value).length === 0) return { ok: false, reason: "empty_object" };
     return { ok: true };
   } catch {
     return { ok: false, reason: "invalid_json" };
