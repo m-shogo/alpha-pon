@@ -2,23 +2,11 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
-import { isUsableProKnowledgeRegime } from "./pro-knowledge-refresh-input.js";
-
-type RefreshDomain = {
-  id: string;
-  label: string;
-  reviewCadence: "weekly" | "monthly" | string;
-  why: string;
-  affectedAgents?: string[];
-  watchExamples?: string[];
-  mustUpdateWhen?: string[];
-};
-
-type RefreshConfig = {
-  refreshDomains?: RefreshDomain[];
-  refreshRules?: string[];
-  outputRequirements?: string[];
-};
+import {
+  isUsableProKnowledgeRegime,
+  normalizeProKnowledgeRefreshConfig,
+  type ProKnowledgeRefreshDomain,
+} from "./pro-knowledge-refresh-input.js";
 
 type CurrentRegime = {
   asOf?: string;
@@ -31,7 +19,7 @@ function readYaml<T>(path: string, fallback: T): T {
   return load(readFileSync(path, "utf-8")) as T;
 }
 
-function domainPriority(domain: RefreshDomain, regime: CurrentRegime): "S" | "A" | "B" {
+function domainPriority(domain: ProKnowledgeRefreshDomain, regime: CurrentRegime): "S" | "A" | "B" {
   const text = `${regime.summary ?? ""} ${(regime.activeRegimes ?? []).map(r => r.id).join(" ")}`.toLowerCase();
   const id = domain.id.toLowerCase();
   if (text.includes(id) || (id.includes("ai") && text.includes("ai")) || (id.includes("rates") && text.includes("rate"))) return "S";
@@ -41,11 +29,12 @@ function domainPriority(domain: RefreshDomain, regime: CurrentRegime): "S" | "A"
 
 function main() {
   const date = todayJst();
-  const config = readYaml<RefreshConfig>("config/pro-knowledge-refresh.yml", {});
+  const rawConfig = readYaml<unknown>("config/pro-knowledge-refresh.yml", {});
+  const config = normalizeProKnowledgeRefreshConfig(rawConfig);
   const rawRegime = readYaml<unknown>("config/current-regime.yml", {});
   const regimeUsable = isUsableProKnowledgeRegime(rawRegime, date);
   const regime = regimeUsable ? rawRegime as CurrentRegime : {};
-  const domains = config.refreshDomains ?? [];
+  const domains = config?.refreshDomains ?? [];
 
   const lines: string[] = [];
   lines.push("# alpha-pon Pro知識ブラッシュアップレポート");
@@ -54,6 +43,7 @@ function main() {
   lines.push("");
   lines.push("政治・戦争・AI・宇宙/Starlink・気候・食糧・金利などで、Proエージェントの前提を更新すべき領域を出します。買い推奨ではありません。");
   lines.push("");
+  if (!config) lines.push("- ⚠️ pro-knowledge-refresh config is malformed; refresh inputs were not used");
   lines.push("## current regime context");
   lines.push("");
   if (!regimeUsable) lines.push("- ⚠️ current-regime is missing, invalid, malformed, or future; regime context was not used");
@@ -67,7 +57,7 @@ function main() {
   lines.push("| priority | domain | cadence | affectedAgents | why |");
   lines.push("|---|---|---|---|---|");
   for (const domain of domains) {
-    lines.push(`| ${domainPriority(domain, regime)} | ${domain.id} / ${domain.label} | ${domain.reviewCadence} | ${(domain.affectedAgents ?? []).join(", ")} | ${domain.why} |`);
+    lines.push(`| ${domainPriority(domain, regime)} | ${domain.id} / ${domain.label} | ${domain.reviewCadence} | ${domain.affectedAgents.join(", ")} | ${domain.why} |`);
   }
   lines.push("");
 
@@ -76,11 +66,11 @@ function main() {
     lines.push("");
     lines.push(`- cadence: ${domain.reviewCadence}`);
     lines.push(`- why: ${domain.why}`);
-    lines.push(`- affected agents: ${(domain.affectedAgents ?? []).join(", ") || "N/A"}`);
+    lines.push(`- affected agents: ${domain.affectedAgents.join(", ") || "N/A"}`);
     lines.push("- watch examples:");
-    for (const item of domain.watchExamples ?? []) lines.push(`  - ${item}`);
+    for (const item of domain.watchExamples) lines.push(`  - ${item}`);
     lines.push("- must update when:");
-    for (const item of domain.mustUpdateWhen ?? []) lines.push(`  - ${item}`);
+    for (const item of domain.mustUpdateWhen) lines.push(`  - ${item}`);
     lines.push("- action:");
     lines.push("  - current-regime.yml の前提に反映するべき変化がないか確認");
     lines.push("  - company-hypotheses.yml の対象カテゴリ/銘柄が古くなっていないか確認");
@@ -91,11 +81,11 @@ function main() {
 
   lines.push("## refresh rules");
   lines.push("");
-  for (const rule of config.refreshRules ?? []) lines.push(`- ${rule}`);
+  for (const rule of config?.refreshRules ?? []) lines.push(`- ${rule}`);
   lines.push("");
   lines.push("## output requirements");
   lines.push("");
-  for (const req of config.outputRequirements ?? []) lines.push(`- ${req}`);
+  for (const req of config?.outputRequirements ?? []) lines.push(`- ${req}`);
   lines.push("");
   lines.push("---");
   lines.push(`*alpha-pon pro knowledge refresh | ${date} | ※買い推奨ではありません*`);
