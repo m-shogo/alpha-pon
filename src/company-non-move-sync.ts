@@ -1,5 +1,6 @@
 import { appendFileSync, mkdirSync } from "fs";
 import { join } from "path";
+import { loadAnalogyOutcomesForReview } from "./analogy-review-input.js";
 import { todayJst } from "./date.js";
 import { formatReadOnlyJsonlParseWarning, readJsonlWithErrors } from "./read-only-jsonl.js";
 import type { AnalogyOutcomeRecord } from "./analysis/analogy-db.js";
@@ -47,7 +48,9 @@ function inferReasons(outcome: AnalogyOutcomeRecord): string[] {
 
 function main() {
   const date = todayJst();
-  const outcomes = readJsonl<AnalogyOutcomeRecord>(join("data", "analogy_outcomes.jsonl"));
+  const outcomeInput = loadAnalogyOutcomesForReview(join("data", "analogy_outcomes.jsonl"), date);
+  for (const warning of outcomeInput.warnings) console.warn(warning);
+  const outcomes = outcomeInput.rows;
   const targetPath = join("data", "company_non_move_history.jsonl");
   const keys = existingKeys(targetPath);
   const rows: CompanyNonMoveRow[] = [];
