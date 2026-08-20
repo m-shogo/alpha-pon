@@ -3,7 +3,10 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { readProposalRuleDiagnostics } from "../src/proposals-rule-diagnostics-input.js";
+import {
+  readCurrentProposalRuleDiagnostics,
+  readProposalRuleDiagnostics,
+} from "../src/proposals-rule-diagnostics-input.js";
 
 type Row = {
   rule: string;
@@ -15,17 +18,16 @@ type Row = {
 
 const dir = mkdtempSync(join(tmpdir(), "proposal-rule-diagnostics-"));
 const path = join(dir, "rule_diagnostics_latest.json");
+const canonicalRow: Row = {
+  rule: "official_ir_confirmed",
+  diagnosis: "condition_required",
+  directionExpectation: -0.25,
+  avgRelativeReturnPct: -1.2,
+  avgLossRelativeReturnPct: -3.4,
+};
 
 try {
-  writeFileSync(path, JSON.stringify([
-    {
-      rule: "official_ir_confirmed",
-      diagnosis: "condition_required",
-      directionExpectation: -0.25,
-      avgRelativeReturnPct: -1.2,
-      avgLossRelativeReturnPct: -3.4,
-    },
-  ]), "utf-8");
+  writeFileSync(path, JSON.stringify([canonicalRow]), "utf-8");
   assert.equal(readProposalRuleDiagnostics<Row>(path).length, 1, "canonical diagnostics remain usable");
 
   writeFileSync(path, JSON.stringify({ diagnostics: [] }), "utf-8");
@@ -37,11 +39,9 @@ try {
 
   writeFileSync(path, JSON.stringify([
     {
-      rule: "official_ir_confirmed",
+      ...canonicalRow,
       diagnosis: "weaken_candidate",
       directionExpectation: "broken",
-      avgRelativeReturnPct: -1.2,
-      avgLossRelativeReturnPct: -3.4,
     },
   ]), "utf-8");
   assert.throws(
@@ -56,8 +56,25 @@ try {
     /proposal rule diagnostics must contain valid JSON/,
     "malformed JSON must not be treated as a legitimate zero-diagnostic day",
   );
+
+  writeFileSync(join(dir, "rule_diagnostics_latest.json"), JSON.stringify([
+    { ...canonicalRow, rule: "stale-rule" },
+  ]), "utf-8");
+  writeFileSync(join(dir, "rule_diagnostics_2026-08-20.json"), JSON.stringify([
+    { ...canonicalRow, rule: "current-rule" },
+  ]), "utf-8");
+  assert.deepEqual(
+    readCurrentProposalRuleDiagnostics<Row>(dir, "2026-08-20").map(row => row.rule),
+    ["current-rule"],
+    "proposal generation must use the dated current rule diagnostics snapshot instead of stale latest evidence",
+  );
+  assert.deepEqual(
+    readCurrentProposalRuleDiagnostics<Row>(dir, "2026-08-21"),
+    [],
+    "missing current diagnostics must not fall back to a stale latest snapshot",
+  );
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("proposals-rule-diagnostics-input: malformed rule diagnostics regressions OK");
+console.log("proposals-rule-diagnostics-input: malformed-shape and current-date provenance regressions OK");
