@@ -26,6 +26,7 @@ import {
 import { normalizeGeneratedAccuracySummaryInput } from './generated-accuracy-summary-input'
 import { normalizeGeneratedIpoThemeWatchInput } from './generated-ipo-theme-watch-input'
 import { normalizeGeneratedReadinessInput } from './generated-readiness-input'
+import { normalizeGeneratedSpecialSituationOpsInput } from './generated-special-situation-ops-input'
 import { normalizeGeneratedStocksInput } from './generated-stock-input'
 import { normalizeGeneratedWorldContextInput } from './generated-world-context-input'
 
@@ -209,6 +210,7 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
   const worldContextLoad = normalizeGeneratedWorldContextInput(data.worldContext)
   const ipoThemeWatchLoad = normalizeGeneratedIpoThemeWatchInput(data.ipoThemeWatch)
   const readinessLoad = normalizeGeneratedReadinessInput(data.readiness)
+  const specialSituationOpsLoad = normalizeGeneratedSpecialSituationOpsInput(data.specialSituationOps)
   const hasPipelineStatus = data.pipelineStatus !== undefined && data.pipelineStatus !== null
   const pipelineStatus = hasPipelineStatus && isGeneratedPipelineStatusInput(data.pipelineStatus)
     ? data.pipelineStatus
@@ -246,7 +248,7 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
     readiness: readinessLoad.value,
     ipoThemeWatch: ipoThemeWatchLoad.value as ProData['ipoThemeWatch'],
     specialSituationWatch: data.specialSituationWatch ?? null,
-    specialSituationOps: data.specialSituationOps ?? null,
+    specialSituationOps: specialSituationOpsLoad.value,
     hypothesisOutcomeIntegrity: data.hypothesisOutcomeIntegrity ?? null,
     worldImpactReviews: Array.isArray((data as { worldImpactReviews?: unknown[] }).worldImpactReviews)
       ? (data as { worldImpactReviews?: ProData['worldImpactReviews'] }).worldImpactReviews
@@ -267,34 +269,37 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
                           normalizeGeneratedMeta(
                             normalizeGeneratedMeta(
                               normalizeGeneratedMeta(
-                                normalizeGeneratedMeta(data.meta, rootLoad.warning),
-                                reportLoad.warning,
+                                normalizeGeneratedMeta(
+                                  normalizeGeneratedMeta(data.meta, rootLoad.warning),
+                                  reportLoad.warning,
+                                ),
+                                candidateLoad.warning,
                               ),
-                              candidateLoad.warning,
+                              universeCandidateLoad.warning,
                             ),
-                            universeCandidateLoad.warning,
+                            hypothesisPredictionLoad.warning,
                           ),
-                          hypothesisPredictionLoad.warning,
+                          hypothesisOutcomeLoad.warning,
                         ),
-                        hypothesisOutcomeLoad.warning,
+                        companyMemoryLoad.warning,
                       ),
-                      companyMemoryLoad.warning,
+                      dataQualityLoad.warning,
                     ),
-                    dataQualityLoad.warning,
+                    runCursorLoad.warning,
                   ),
-                  runCursorLoad.warning,
+                  worldThemeCandidateHypothesisLoad.warning,
                 ),
-                worldThemeCandidateHypothesisLoad.warning,
+                accuracySummaryLoad.warning,
               ),
-              accuracySummaryLoad.warning,
+              worldContextLoad.warning,
             ),
-            worldContextLoad.warning,
+            ipoThemeWatchLoad.warning,
           ),
-          ipoThemeWatchLoad.warning,
+          pipelineStatusWarning,
         ),
-        pipelineStatusWarning,
+        readinessLoad.warning,
       ),
-      readinessLoad.warning,
+      specialSituationOpsLoad.warning,
     ),
   }
 }
