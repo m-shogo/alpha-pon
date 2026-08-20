@@ -36,6 +36,12 @@ try {
     eventId: "future-event",
     evaluatedAt: addDaysJst(date, 1),
   };
+  const sourceKey = "analogy:synthetic-event:1w";
+  const malformedHistoricalRow = {
+    date,
+    code: "1001",
+    source: sourceKey,
+  };
   writeFileSync(
     join(root, "data/analogy_outcomes.jsonl"),
     `{malformed source row\n{}\n${JSON.stringify(futureOutcome)}\n${JSON.stringify(outcome)}\n${JSON.stringify(outcome)}\n`,
@@ -43,7 +49,7 @@ try {
   );
   writeFileSync(
     join(root, "data/company_non_move_history.jsonl"),
-    "{malformed historical row\n",
+    `{malformed historical row\n${JSON.stringify(malformedHistoricalRow)}\n`,
     "utf8",
   );
 
@@ -60,14 +66,19 @@ try {
       return [];
     }
   });
+  const completeRows = rows.filter(row => row.name === "Synthetic Co");
 
-  assert.equal(rows.length, 1, "invalid/future outcomes and duplicates must not create extra non-move history rows");
+  assert.equal(completeRows.length, 1, "malformed history keys must not suppress the one valid non-move history row");
   assert.ok(
     lines.includes("{malformed historical row"),
     "malformed existing history must remain visible for downstream audit instead of being rewritten away",
   );
+  assert.ok(
+    rows.some(row => row.date === date && row.code === "1001" && row.source === sourceKey && row.name === undefined),
+    "JSON-valid malformed historical rows must remain visible for downstream audit",
+  );
   assert.deepEqual(
-    rows[0],
+    completeRows[0],
     {
       date,
       code: "1001",
@@ -78,7 +89,7 @@ try {
       nonMoveReasons: ["theme_right_timing_wrong", "unknown_or_insufficient_data"],
       lesson: "外れ方を確認する",
       nextAction: "一次情報・価格・関連会社を再確認する",
-      source: "analogy:synthetic-event:1w",
+      source: sourceKey,
     },
     "the single persisted row must keep the original synthetic provenance",
   );
