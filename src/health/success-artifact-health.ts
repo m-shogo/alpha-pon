@@ -1,0 +1,22 @@
+import { existsSync, statSync } from "fs";
+
+function tokyoDateFromMtime(mtime: Date): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(mtime);
+  const byType = new Map(parts.map(part => [part.type, part.value]));
+  return `${byType.get("year")}-${byType.get("month")}-${byType.get("day")}`;
+}
+
+export function isUsableFreshSuccessArtifact(path: string, today: string): boolean {
+  if (!existsSync(path)) return false;
+  try {
+    const stats = statSync(path);
+    return stats.isFile() && stats.size > 0 && tokyoDateFromMtime(stats.mtime) === today;
+  } catch {
+    return false;
+  }
+}
