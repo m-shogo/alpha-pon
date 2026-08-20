@@ -51,6 +51,21 @@ try {
 
   writeFileSync("data/run-cursors.json", JSON.stringify({
     "universe-scan": {
+      jobName: "analogy-review",
+      offset: 40,
+      maxPerRun: 20,
+      total: 100,
+      updatedAt: todayJst(),
+    },
+  }), "utf-8");
+  assert.equal(
+    loadRunCursor("universe-scan", 20, 100).offset,
+    0,
+    "a cursor stored under the wrong job identity must not skip current scan items",
+  );
+
+  writeFileSync("data/run-cursors.json", JSON.stringify({
+    "universe-scan": {
       jobName: "universe-scan",
       offset: 40,
       maxPerRun: 20,
@@ -104,4 +119,4 @@ try {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("run-cursor-input: malformed roots, invalid offsets, and future provenance fail closed OK");
+console.log("run-cursor-input: malformed roots, identity mismatches, invalid offsets, and future provenance fail closed OK");
