@@ -183,6 +183,7 @@ export function normalizeSourceHealthObject<T extends object>(value: unknown): {
       !isRecord(row)
       || typeof row.name !== "string"
       || row.name.trim().length === 0
+      || row.name !== row.name.trim()
       || typeof row.status !== "string"
       || !PIPELINE_STEP_STATUSES.has(row.status)
     ))
@@ -197,6 +198,7 @@ export function normalizeSourceHealthObject<T extends object>(value: unknown): {
       !isRecord(row)
       || typeof row.name !== "string"
       || row.name.trim().length === 0
+      || row.name !== row.name.trim()
       || typeof row.status !== "string"
       || !PIPELINE_RESULT_STATUSES.has(row.status)
     ))
@@ -205,7 +207,10 @@ export function normalizeSourceHealthObject<T extends object>(value: unknown): {
   }
 
   const completeWrapperFailedSteps = value.completeWrapperFailedSteps;
-  if (Array.isArray(completeWrapperFailedSteps) && completeWrapperFailedSteps.some(step => typeof step !== "string" || step.trim().length === 0)) {
+  if (
+    Array.isArray(completeWrapperFailedSteps)
+    && completeWrapperFailedSteps.some(step => typeof step !== "string" || step.trim().length === 0 || step !== step.trim())
+  ) {
     return { value: null, valid: false };
   }
 

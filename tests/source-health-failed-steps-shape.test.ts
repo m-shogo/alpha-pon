@@ -26,10 +26,13 @@ for (const malformed of [
   { status: "completed", failedSteps: " daily(1)" },
   { status: "completed", steps: [{ name: "health:sources", status: "failed" }] },
   { status: "completed", results: [{ name: "health:sources", status: "fail" }] },
+  { status: "running", steps: [{ name: " health:sources", status: "ok" }] },
+  { status: "running", results: [{ name: "health:sources ", status: "ok" }] },
+  { status: "completed", completeWrapperFailedSteps: [" stock-pro-agent(1)"] },
 ] as const) {
   const result = normalizeSourceHealthObject<Record<string, unknown>>(malformed);
-  assert.equal(result.valid, false, "run-daily completion status must agree with run-daily failure evidence");
-  assert.equal(result.value, null, "contradictory run-daily status must fail closed before Source Health reporting");
+  assert.equal(result.valid, false, "run-daily completion status and canonical step identities must agree with producer evidence");
+  assert.equal(result.value, null, "contradictory or ambiguous pipeline evidence must fail closed before Source Health reporting");
 }
 
 for (const valid of [
