@@ -79,5 +79,14 @@ export function readGeneratedCompanyRules<T>(
     throw new Error(`${path}: generated company rules.rules contains an invalid row`);
   }
 
+  const seenCodes = new Set<string>();
+  for (const rule of parsed.rules) {
+    if (!isRecord(rule) || !isCanonicalText(rule.code)) continue;
+    if (seenCodes.has(rule.code)) {
+      throw new Error(`${path}: generated company rules.rules contains duplicate code ${rule.code}`);
+    }
+    seenCodes.add(rule.code);
+  }
+
   return { rows: parsed.rules as T[], generatedAt: parsed.generatedAt, missing: false };
 }
