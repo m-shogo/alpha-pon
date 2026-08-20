@@ -45,7 +45,11 @@ export function readProposalRuleDiagnostics<T>(path: string): T[] {
 }
 
 export function readCurrentProposalRuleDiagnostics<T>(reportsDir: string, asOf: string): T[] {
-  return readProposalRuleDiagnostics<T>(join(reportsDir, `rule_diagnostics_${asOf}.json`));
+  const path = join(reportsDir, `rule_diagnostics_${asOf}.json`);
+  if (!existsSync(path)) {
+    throw new Error(`${path}: current proposal rule diagnostics snapshot is missing`);
+  }
+  return readProposalRuleDiagnostics<T>(path);
 }
 
 export function isWeakProposalRuleDiagnosis(value: string): boolean {
