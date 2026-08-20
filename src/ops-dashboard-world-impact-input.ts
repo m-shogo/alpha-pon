@@ -37,7 +37,7 @@ export function normalizeOpsWorldImpactInput(value: unknown): OpsWorldImpactAudi
   ) {
     return invalidWorldImpactInput();
   }
-  if (value.pendingReviews > value.totalReviews || value.overdueReviews > value.pendingReviews) {
+  if (value.overdueReviews > value.pendingReviews) {
     return invalidWorldImpactInput();
   }
 

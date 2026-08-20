@@ -28,7 +28,6 @@ for (const malformed of [
   { healthStatus: "ok", totalReviews: 2, pendingReviews: 0, overdueReviews: -1, priorityIssues: [] },
   { healthStatus: "ok", totalReviews: 2.5, pendingReviews: 0, overdueReviews: 0, priorityIssues: [] },
   { healthStatus: "ok", totalReviews: Number.MAX_SAFE_INTEGER + 1, pendingReviews: 0, overdueReviews: 0, priorityIssues: [] },
-  { healthStatus: "ok", totalReviews: 1, pendingReviews: 2, overdueReviews: 0, priorityIssues: [] },
   { healthStatus: "needs_attention", totalReviews: 2, pendingReviews: 0, overdueReviews: 1, priorityIssues: [{ severity: "attention", title: "impossible overdue count", detail: "overdue must be pending" }] },
   { healthStatus: "ok", totalReviews: 2, pendingReviews: 1, overdueReviews: 1, priorityIssues: [] },
   { healthStatus: "ok", totalReviews: 2, pendingReviews: 1, overdueReviews: 1, priorityIssues: [{ severity: "info", title: "overdue hidden as info", detail: "overdue must require attention" }] },
@@ -43,6 +42,15 @@ for (const malformed of [
   assert.equal(normalized?.healthStatus, "action_required");
   assert.equal(normalized?.priorityIssues?.[0]?.severity, "urgent");
 }
+
+const validPendingOutcomeCount = {
+  healthStatus: "ok",
+  totalReviews: 1,
+  pendingReviews: 3,
+  overdueReviews: 0,
+  priorityIssues: [],
+};
+assert.deepEqual(normalizeOpsWorldImpactInput(validPendingOutcomeCount), validPendingOutcomeCount);
 
 const validAttention = {
   healthStatus: "needs_attention",
@@ -80,4 +88,4 @@ const dashboard = applyWorldImpactAuditHealth(base, normalizedMalformed);
 assert.equal(dashboard.healthStatus, "action_required");
 assert.ok(dashboard.allIssues.some(issue => issue.category === "world_impact" && issue.severity === "urgent"));
 
-console.log("ops-dashboard world-impact input: malformed, truncated, impossible counts, overdue acknowledgement, and contradictory health evidence fail closed OK");
+console.log("ops-dashboard world-impact input: malformed, truncated, producer count semantics, overdue acknowledgement, and contradictory health evidence fail closed OK");
