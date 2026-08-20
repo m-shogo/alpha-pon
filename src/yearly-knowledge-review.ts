@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
 import { readKnowledgeReviewJsonl } from "./knowledge-review-input.js";
+import { isUsableYearlyRegimeHistory } from "./yearly-knowledge-review-input.js";
 
 type NonMoveHistory = {
   date?: string;
@@ -30,6 +31,10 @@ function isNonMoveHistory(value: unknown): value is NonMoveHistory {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const reasons = (value as Record<string, unknown>).nonMoveReasons;
   return reasons === undefined || (Array.isArray(reasons) && reasons.every(reason => typeof reason === "string"));
+}
+
+function isRegimeHistory(value: unknown): value is RegimeHistory {
+  return isUsableYearlyRegimeHistory(value);
 }
 
 function readText(path: string): string {
@@ -69,7 +74,7 @@ function countMissingReports(rows: SourceHealthHistory[]): Array<[string, number
 function main() {
   const date = todayJst();
   const nonMoveInput = readKnowledgeReviewJsonl<NonMoveHistory>("data/company_non_move_history.jsonl", isNonMoveHistory);
-  const regimeInput = readKnowledgeReviewJsonl<RegimeHistory>("data/regime_history.jsonl");
+  const regimeInput = readKnowledgeReviewJsonl<RegimeHistory>("data/regime_history.jsonl", isRegimeHistory);
   const sourceInput = readKnowledgeReviewJsonl<SourceHealthHistory>("data/source_health_history.jsonl");
   const nonMoveRows = nonMoveInput.rows;
   const regimeRows = regimeInput.rows;
