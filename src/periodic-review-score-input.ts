@@ -13,7 +13,7 @@ export type PeriodicScoreLogEntry = {
   warnings?: string[];
   negativeReasons?: string[];
   createdAt: string;
-  expertReview?: { finalVerdict: string; consensusScore: number };
+  expertReview?: { finalVerdict: "block" | "caution" | "pass" | "strong"; consensusScore: number };
   riskReview?: { decision: string; blockers: string[] };
 };
 
@@ -34,6 +34,10 @@ function isStringArray(value: unknown): value is string[] {
 
 function isAlertLevel(value: unknown): value is PeriodicScoreLogEntry["alertLevel"] {
   return value === "urgent" || value === "daily" || value === "log" || value === "ignore";
+}
+
+function isExpertVerdict(value: unknown): value is NonNullable<PeriodicScoreLogEntry["expertReview"]>["finalVerdict"] {
+  return value === "block" || value === "caution" || value === "pass" || value === "strong";
 }
 
 function isRealDate(value: string): boolean {
@@ -62,7 +66,7 @@ function normalizePeriodicScoreRow(value: unknown, expectedDate?: string): Perio
   if (row.expertReview != null) {
     if (!row.expertReview || typeof row.expertReview !== "object" || Array.isArray(row.expertReview)) return null;
     const expert = row.expertReview as Record<string, unknown>;
-    if (typeof expert.finalVerdict !== "string") return null;
+    if (!isExpertVerdict(expert.finalVerdict)) return null;
     if (typeof expert.consensusScore !== "number" || !Number.isFinite(expert.consensusScore)) return null;
     expertReview = { finalVerdict: expert.finalVerdict, consensusScore: expert.consensusScore };
   }
