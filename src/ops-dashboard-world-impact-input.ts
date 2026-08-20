@@ -51,6 +51,13 @@ export function normalizeOpsWorldImpactInput(value: unknown): OpsWorldImpactAudi
     severities.push(issue.severity);
   }
 
+  if (
+    value.overdueReviews > 0
+    && !severities.some(severity => severity === "urgent" || severity === "attention")
+  ) {
+    return invalidWorldImpactInput();
+  }
+
   const expectedHealth = severities.includes("urgent")
     ? "action_required"
     : severities.includes("attention")
