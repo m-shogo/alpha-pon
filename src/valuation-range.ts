@@ -34,6 +34,46 @@ type ScoreLogEntry = {
   warnings?: string[];
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isCanonicalText(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0 && value.trim() === value;
+}
+
+function isOptionalStringArray(value: unknown): boolean {
+  return value === undefined || (Array.isArray(value) && value.every((item) => typeof item === "string"));
+}
+
+function isOptionalFiniteNumber(value: unknown): boolean {
+  return value === undefined || value === null || (typeof value === "number" && Number.isFinite(value));
+}
+
+function hasOnlyOptionalFiniteNumbers(value: unknown, fields: string[]): boolean {
+  if (value === undefined) return true;
+  if (!isRecord(value)) return false;
+  return fields.every((field) => isOptionalFiniteNumber(value[field]));
+}
+
+function isScoreLogEntry(value: unknown): value is ScoreLogEntry {
+  if (!isRecord(value)) return false;
+  return isCanonicalText(value.code)
+    && isCanonicalText(value.name)
+    && typeof value.score === "number"
+    && Number.isFinite(value.score)
+    && isCanonicalText(value.alertLevel)
+    && isOptionalStringArray(value.rules)
+    && isOptionalStringArray(value.tags)
+    && isOptionalStringArray(value.warnings)
+    && hasOnlyOptionalFiniteNumbers(value.marketContext, [
+      "return5d", "return20d", "return60d", "relativeToTopix20d", "liquidityYen20d", "volatility20d",
+    ])
+    && hasOnlyOptionalFiniteNumbers(value.financialQuality, [
+      "roic", "roe", "fcfMargin", "operatingMargin", "equityRatio", "moatScore", "qualityScore",
+    ]);
+}
+
 function fmt(value: number | null | undefined, suffix = "%"): string {
   if (value == null || !Number.isFinite(value)) return "N/A";
   const sign = value >= 0 ? "+" : "";
@@ -69,7 +109,7 @@ function valuationBand(entry: ScoreLogEntry): { band: string; reasons: string[] 
 
 function main() {
   const date = todayJst();
-  const scores = loadLatestValuationScoreRows<ScoreLogEntry>("reports", date);
+  const scores = loadLatestValuationScoreRows<ScoreLogEntry>("reports", date, isScoreLogEntry);
   const lines: string[] = [];
   lines.push("# alpha-pon バリュエーション過去レンジ補助レポート");
   lines.push("");
