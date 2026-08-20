@@ -53,6 +53,7 @@ export function loadRunCursor(jobName: RunCursorJobName, maxPerRun: number, tota
   const existing = cursors[jobName];
   const today = todayJst();
   const usableExisting = existing
+    && existing.jobName === jobName
     && Number.isSafeInteger(existing.offset)
     && existing.offset >= 0
     && existing.offset < total
