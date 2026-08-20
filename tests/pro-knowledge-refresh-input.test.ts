@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   isUsableProKnowledgeRegime,
   isUsableProKnowledgeRegimeAsOf,
+  normalizeProKnowledgeRefreshConfig,
 } from "../src/pro-knowledge-refresh-input.js";
 
 const today = "2026-08-21";
@@ -30,5 +31,34 @@ assert.equal(isUsableProKnowledgeRegime({ ...validRegime, activeRegimes: {} }, t
 assert.equal(isUsableProKnowledgeRegime({ ...validRegime, activeRegimes: [null] }, today), false);
 assert.equal(isUsableProKnowledgeRegime({ ...validRegime, summary: 123 }, today), false);
 assert.equal(isUsableProKnowledgeRegime(null, today), false);
+
+const validConfig = {
+  refreshDomains: [{
+    id: "ai_compute",
+    label: "AI",
+    reviewCadence: "weekly",
+    why: "test",
+    affectedAgents: ["growth_agent"],
+    watchExamples: ["GPU"],
+    mustUpdateWhen: ["capex changes"],
+  }],
+  refreshRules: ["keep current"],
+  outputRequirements: ["show sources"],
+};
+const normalizedConfig = normalizeProKnowledgeRefreshConfig(validConfig);
+assert.ok(normalizedConfig);
+assert.deepEqual(normalizedConfig?.refreshDomains[0]?.affectedAgents, ["growth_agent"]);
+assert.deepEqual(normalizeProKnowledgeRefreshConfig({}), {
+  refreshDomains: [],
+  refreshRules: [],
+  outputRequirements: [],
+});
+assert.equal(normalizeProKnowledgeRefreshConfig({ ...validConfig, refreshDomains: {} }), null);
+assert.equal(normalizeProKnowledgeRefreshConfig({ ...validConfig, refreshDomains: [null] }), null);
+assert.equal(normalizeProKnowledgeRefreshConfig({ ...validConfig, refreshDomains: [{ ...validConfig.refreshDomains[0], id: "" }] }), null);
+assert.equal(normalizeProKnowledgeRefreshConfig({ ...validConfig, refreshDomains: [{ ...validConfig.refreshDomains[0], affectedAgents: "broken" }] }), null);
+assert.equal(normalizeProKnowledgeRefreshConfig({ ...validConfig, refreshRules: "broken" }), null);
+assert.equal(normalizeProKnowledgeRefreshConfig({ ...validConfig, outputRequirements: [123] }), null);
+assert.equal(normalizeProKnowledgeRefreshConfig(null), null);
 
 console.log("pro-knowledge-refresh-input.test.ts passed");
