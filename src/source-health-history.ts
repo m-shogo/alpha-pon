@@ -11,6 +11,23 @@ type SourceHealthHistoryRow = {
   reports: Record<string, ReturnType<typeof inspectSourceHealthReportFile>>;
 };
 
+function historyRowDate(line: string): string | null {
+  try {
+    const parsed = JSON.parse(line) as unknown;
+    if (
+      typeof parsed === "object"
+      && parsed !== null
+      && !Array.isArray(parsed)
+      && typeof (parsed as { date?: unknown }).date === "string"
+    ) {
+      return (parsed as { date: string }).date;
+    }
+  } catch {
+    // Preserve malformed historical lines for downstream read-only audit visibility.
+  }
+  return null;
+}
+
 function writeDailyHistoryRow(row: SourceHealthHistoryRow): void {
   const existingLines = existsSync(HISTORY_PATH)
     ? readFileSync(HISTORY_PATH, "utf-8")
@@ -19,30 +36,21 @@ function writeDailyHistoryRow(row: SourceHealthHistoryRow): void {
       .filter(Boolean)
     : [];
 
-  let replaced = false;
-  const nextLines: string[] = [];
-  for (const line of existingLines) {
-    try {
-      const parsed = JSON.parse(line) as unknown;
-      if (
-        typeof parsed === "object"
-        && parsed !== null
-        && !Array.isArray(parsed)
-        && (parsed as { date?: unknown }).date === row.date
-      ) {
-        if (!replaced) {
-          nextLines.push(JSON.stringify(row));
-          replaced = true;
-        }
-        continue;
-      }
-    } catch {
-      // Preserve malformed historical lines for downstream read-only audit visibility.
+  const seenDates = new Set<string>();
+  const dedupedReversed: string[] = [];
+  for (let index = existingLines.length - 1; index >= 0; index -= 1) {
+    const line = existingLines[index];
+    const date = historyRowDate(line);
+    if (date === row.date) continue;
+    if (date !== null) {
+      if (seenDates.has(date)) continue;
+      seenDates.add(date);
     }
-    nextLines.push(line);
+    dedupedReversed.push(line);
   }
 
-  if (!replaced) nextLines.push(JSON.stringify(row));
+  const nextLines = dedupedReversed.reverse();
+  nextLines.push(JSON.stringify(row));
   const compacted = nextLines.slice(-MAX_LINES);
   writeFileSync(HISTORY_PATH, `${compacted.join("\n")}\n`, "utf-8");
 }
