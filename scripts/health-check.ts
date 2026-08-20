@@ -8,6 +8,7 @@ import { getTodayInTokyo } from "../src/jobs/date-utils.js";
 import { getLastSuccessDate, APP_NAME } from "../src/jobs/job-runner.js";
 import { buildOutcomeIntegrityReport } from "../src/hypothesis-outcome-integrity.js";
 import { backupHealthEvidenceFromDirectoryNames } from "../src/health/backup-health.js";
+import { inspectJsonArtifact } from "../src/health/json-artifact-health.js";
 import { normalizeSpecialOpsHealthStatus } from "../src/health/special-ops-health-status.js";
 
 const TODAY = getTodayInTokyo();
@@ -210,9 +211,13 @@ const generatedFiles = [
   "apps/web/public/generated/outcomes.json",
 ];
 for (const f of generatedFiles) {
-  existsSync(f)
+  const artifact = inspectJsonArtifact(f);
+  artifact.ok
     ? ok(`生成データ: ${f.split("/").pop()}`)
-    : warn(`生成データ: ${f.split("/").pop()}`, "ファイルが存在しない（pnpm ui:data を実行してください）");
+    : warn(
+      `生成データ: ${f.split("/").pop()}`,
+      `${artifact.reason}（pnpm ui:data を実行してください）`
+    );
 }
 
 // ── special situation ops ────────────────────────────────────
