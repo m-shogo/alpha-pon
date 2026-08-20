@@ -28,19 +28,34 @@ try {
   };
   writeFileSync(
     join(root, "data/analogy_outcomes.jsonl"),
-    `${JSON.stringify(outcome)}\n${JSON.stringify(outcome)}\n`,
+    `{malformed source row\n${JSON.stringify(outcome)}\n${JSON.stringify(outcome)}\n`,
+    "utf8",
+  );
+  writeFileSync(
+    join(root, "data/company_non_move_history.jsonl"),
+    "{malformed historical row\n",
     "utf8",
   );
 
   execFileSync(process.execPath, ["--import", tsxImport, source], { cwd: root, stdio: "pipe" });
   execFileSync(process.execPath, ["--import", tsxImport, source], { cwd: root, stdio: "pipe" });
 
-  const rows = readFileSync(join(root, "data/company_non_move_history.jsonl"), "utf8")
+  const lines = readFileSync(join(root, "data/company_non_move_history.jsonl"), "utf8")
     .split("\n")
-    .filter(Boolean)
-    .map(line => JSON.parse(line) as { code?: string; date?: string; source?: string });
+    .filter(Boolean);
+  const rows = lines.flatMap(line => {
+    try {
+      return [JSON.parse(line) as Record<string, unknown>];
+    } catch {
+      return [];
+    }
+  });
 
-  assert.equal(rows.length, 1, "duplicate outcomes in one sync and reruns must create one non-move history row");
+  assert.equal(rows.length, 1, "malformed JSONL rows must not block the one valid non-move history row");
+  assert.ok(
+    lines.includes("{malformed historical row"),
+    "malformed existing history must remain visible for downstream audit instead of being rewritten away",
+  );
   assert.deepEqual(
     rows[0],
     {
