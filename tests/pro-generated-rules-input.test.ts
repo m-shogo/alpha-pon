@@ -8,6 +8,7 @@ import {
 } from "../src/pro-generated-rules-input.js";
 import "./pro-ir-event-input.test.js";
 import "./generated-array-input.test.js";
+import "./read-only-json-row-isolation.test.js";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
