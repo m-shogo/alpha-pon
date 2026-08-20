@@ -9,6 +9,8 @@ for (const input of [
   { status: "failed" },
   { status: "completed_with_warnings", failedSteps: " health:sources(1)" },
   { status: "completed", failedSteps: "" },
+  { status: "completed", failedSteps: "", steps: [{ name: "daily", status: "ok" }] },
+  { status: "running", steps: [{ name: "review:weekly", status: "skipped" }] },
 ] as const) {
   const result = normalizeSourceHealthObject<{ status: string }>(input);
   assert.equal(result.valid, true, `canonical pipeline status ${input.status} must remain valid`);
@@ -21,6 +23,8 @@ for (const malformed of [
   { status: "success" },
   { status: "unknown" },
   { status: 1 },
+  { status: "completed", failedSteps: "", steps: [{ name: "daily", status: "healthy" }] },
+  { status: "running", steps: [{ name: "daily", status: "fail" }] },
 ] as const) {
   const result = normalizeSourceHealthObject<Record<string, unknown>>(malformed);
   assert.equal(result.valid, false, "missing or non-canonical pipeline status must fail closed");
