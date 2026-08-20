@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
+import { readProposalPipelineStatus } from "./proposals-pipeline-input.js";
 import { readProposalScores } from "./proposals-score-input.js";
 
 type Priority = "S" | "A" | "B" | "Hold";
@@ -243,7 +244,7 @@ function buildProposals(input: {
       title: "partialデータを前提にした提案の信頼度を下げる",
       reason: "partialが多い日は、改善提案もデータ欠損に引っ張られる可能性があります。",
       evidence: [`dataQuality partial=${dataPartial}/${total} (${pct(dataPartial, total)})`],
-      action: "source_health を見て、欠損が外部API由来か、パース由来か、銘柄設定由来かを分ける。",
+      action: "source_health を見て、欠損が外部API由来か、パース由来か、銘柄設定由来か分ける。",
       safety: "partial日の提案は即実装せず、翌日以降も再発するか確認する。",
     });
   }
@@ -304,7 +305,7 @@ function renderMarkdown(date: string, proposals: Proposal[]): string {
 function main() {
   const date = todayJst();
   const scores = readProposalScores<ScoreLogEntry>("reports", date).rows;
-  const pipeline = readJson<PipelineStatus>("reports/pipeline_status_latest.json");
+  const pipeline = readProposalPipelineStatus<PipelineStatus>("reports/pipeline_status_latest.json");
   const ruleDiagnostics = readJson<RuleDiagnostic[]>("reports/rule_diagnostics_latest.json") ?? [];
   const proposals = buildProposals({ pipeline, scores, ruleDiagnostics });
 
