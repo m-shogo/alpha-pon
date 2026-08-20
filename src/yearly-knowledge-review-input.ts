@@ -14,6 +14,13 @@ function isRealDateOnOrBefore(value: unknown, asOf: string): boolean {
   }
 }
 
+export function isUsableYearlyNonMoveHistory(value: unknown, asOf = todayJst()): boolean {
+  if (!isRecord(value)) return false;
+  if (!isRealDateOnOrBefore(value.date, asOf)) return false;
+  const reasons = value.nonMoveReasons;
+  return reasons === undefined || (Array.isArray(reasons) && reasons.every(reason => typeof reason === "string"));
+}
+
 export function isUsableYearlyRegimeHistory(value: unknown, asOf = todayJst()): boolean {
   if (!isRecord(value)) return false;
   if (!isRealDateOnOrBefore(value.date, asOf)) return false;
