@@ -4,7 +4,14 @@ import { tmpdir } from "os";
 import { join } from "path";
 import test from "node:test";
 
-import { inspectJsonArtifact } from "../src/health/json-artifact-health.js";
+import { asJsonObject, inspectJsonArtifact } from "../src/health/json-artifact-health.js";
+
+test("accepts only object-shaped JSON consumer values", () => {
+  assert.deepEqual(asJsonObject<{ ok: boolean }>({ ok: true }), { ok: true });
+  assert.equal(asJsonObject(null), null);
+  assert.equal(asJsonObject("broken"), null);
+  assert.equal(asJsonObject([]), null);
+});
 
 test("accepts a regular non-empty JSON object artifact", () => {
   const dir = mkdtempSync(join(tmpdir(), "alpha-pon-health-json-"));
