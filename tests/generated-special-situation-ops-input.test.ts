@@ -4,9 +4,10 @@ function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message)
 }
 
+const asOfDate = '2026-08-20'
 const valid = {
-  generatedAt: '2026-08-20',
-  today: '2026-08-20',
+  generatedAt: asOfDate,
+  today: asOfDate,
   healthStatus: 'action_required',
   actionItems: [
     {
@@ -41,21 +42,21 @@ const valid = {
   mixedOutcomes: { count: 0 },
 }
 
-const accepted = normalizeGeneratedSpecialSituationOpsInput(valid)
+const accepted = normalizeGeneratedSpecialSituationOpsInput(valid, asOfDate)
 assert(accepted.value !== null && accepted.warning === null, 'valid special situation ops input must remain usable')
 
 const attentionOnly = normalizeGeneratedSpecialSituationOpsInput({
   ...valid,
   healthStatus: 'needs_attention',
   actionItems: [{ priority: 'attention', category: 'data', title: 'Review data', detail: 'Review data quality.' }],
-})
+}, asOfDate)
 assert(attentionOnly.value !== null, 'attention-only special ops input must remain usable')
 
 const informational = normalizeGeneratedSpecialSituationOpsInput({
   ...valid,
   healthStatus: 'ok',
   actionItems: [{ priority: 'info', category: 'review', title: 'Upcoming review', detail: 'Review is not due yet.' }],
-})
+}, asOfDate)
 assert(informational.value !== null, 'info-only special ops input must remain usable')
 
 for (const invalid of [
@@ -68,6 +69,11 @@ for (const invalid of [
   { ...valid, healthStatus: 'unknown' },
   { ...valid, healthStatus: 'needs_attention' },
   { ...valid, healthStatus: 'ok' },
+  { ...valid, generatedAt: '2026-02-31', today: '2026-02-31' },
+  { ...valid, generatedAt: '0000-01-01', today: '0000-01-01' },
+  { ...valid, generatedAt: '2026-08-19' },
+  { ...valid, generatedAt: '2026-08-19', today: '2026-08-19' },
+  { ...valid, generatedAt: '2026-08-20T00:00:00+09:00', today: '2026-08-20T00:00:00+09:00' },
   {
     ...valid,
     healthStatus: 'ok',
@@ -79,7 +85,7 @@ for (const invalid of [
     actionItems: [{ priority: 'info', category: 'review', title: 'Upcoming review', detail: 'Review is not due yet.' }],
   },
 ]) {
-  const normalized = normalizeGeneratedSpecialSituationOpsInput(invalid)
+  const normalized = normalizeGeneratedSpecialSituationOpsInput(invalid, asOfDate)
   assert(normalized.value === null, `malformed special situation ops input must be isolated: ${JSON.stringify(invalid)}`)
   assert(normalized.warning === 'specialSituationOps: invalid_shape', 'malformed input must emit metadata-only warning')
 }
