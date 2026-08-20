@@ -1,13 +1,14 @@
 // pnpm health — alpha-pon の自動運用可否を確認する
 // OK / WARN / ERROR を出力し、致命的エラーのみ exit(1)
 
-import { existsSync, readdirSync, readFileSync, statSync } from "fs";
+import { existsSync, readdirSync, readFileSync } from "fs";
 import { spawnSync } from "child_process";
 import { openJobsDb } from "../src/jobs/db.js";
 import { getTodayInTokyo } from "../src/jobs/date-utils.js";
 import { getLastSuccessDate, APP_NAME } from "../src/jobs/job-runner.js";
 import { buildOutcomeIntegrityReport } from "../src/hypothesis-outcome-integrity.js";
 import { backupHealthEvidenceFromDirectoryNames } from "../src/health/backup-health.js";
+import { isUsableFreshArtifact } from "../src/health/fresh-artifact-health.js";
 import { inspectJsonArtifact } from "../src/health/json-artifact-health.js";
 import { normalizeSpecialOpsHealthStatus } from "../src/health/special-ops-health-status.js";
 
@@ -19,21 +20,6 @@ const results: { level: Level; item: string; detail: string }[] = [];
 function ok(item: string, detail = "") { results.push({ level: "OK", item, detail }); }
 function warn(item: string, detail = "") { results.push({ level: "WARN", item, detail }); }
 function error(item: string, detail = "") { results.push({ level: "ERROR", item, detail }); }
-
-function tokyoDateFromMtime(path: string): string | null {
-  if (!existsSync(path)) return null;
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Tokyo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(statSync(path).mtime);
-  const byType = new Map(parts.map(part => [part.type, part.value]));
-  const year = byType.get("year");
-  const month = byType.get("month");
-  const day = byType.get("day");
-  return year && month && day ? `${year}-${month}-${day}` : null;
-}
 
 function readJson<T>(path: string): T | null {
   if (!existsSync(path)) return null;
@@ -65,7 +51,7 @@ const successArtifactByJob: Record<string, string[]> = {
 };
 
 function todayFreshArtifacts(jobName: string): string[] {
-  return (successArtifactByJob[jobName] ?? []).filter(path => tokyoDateFromMtime(path) === TODAY);
+  return (successArtifactByJob[jobName] ?? []).filter(path => isUsableFreshArtifact(path, TODAY));
 }
 
 // ── Node / pnpm ──────────────────────────────────────────────
