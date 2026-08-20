@@ -10,6 +10,7 @@ import { buildOutcomeIntegrityReport } from "../src/hypothesis-outcome-integrity
 import { backupHealthEvidenceFromDirectoryNames } from "../src/health/backup-health.js";
 import { inspectJsonArtifact } from "../src/health/json-artifact-health.js";
 import { normalizeSpecialOpsHealthStatus } from "../src/health/special-ops-health-status.js";
+import { isUsableFreshSuccessArtifact } from "../src/health/success-artifact-health.js";
 
 const TODAY = getTodayInTokyo();
 
@@ -65,7 +66,7 @@ const successArtifactByJob: Record<string, string[]> = {
 };
 
 function todayFreshArtifacts(jobName: string): string[] {
-  return (successArtifactByJob[jobName] ?? []).filter(path => tokyoDateFromMtime(path) === TODAY);
+  return (successArtifactByJob[jobName] ?? []).filter(path => isUsableFreshSuccessArtifact(path, TODAY));
 }
 
 // ── Node / pnpm ──────────────────────────────────────────────
