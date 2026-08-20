@@ -23,22 +23,21 @@ for (const malformed of [
   { status: "completed_with_warnings", failedSteps: "   " },
   { status: "completed_with_warnings", failedSteps: [], completeWrapperFailedSteps: [] },
   { status: "completed", failedSteps: " daily(1)" },
-  { status: "completed", completeWrapperFailedSteps: ["stock-pro-agent(1)"] },
   { status: "completed", steps: [{ name: "health:sources", status: "failed" }] },
   { status: "completed", results: [{ name: "health:sources", status: "fail" }] },
 ] as const) {
   const result = normalizeSourceHealthObject<Record<string, unknown>>(malformed);
-  assert.equal(result.valid, false, "completed pipeline status must agree with concrete failure evidence");
-  assert.equal(result.value, null, "contradictory pipeline status must fail closed before Source Health reporting");
+  assert.equal(result.valid, false, "run-daily completion status must agree with run-daily failure evidence");
+  assert.equal(result.value, null, "contradictory run-daily status must fail closed before Source Health reporting");
 }
 
 for (const valid of [
   { status: "completed", failedSteps: "", completeWrapperFailedSteps: [] },
+  { status: "completed", failedSteps: "", completeWrapperFailedSteps: ["stock-pro-agent(1)"] },
   { status: "completed_with_warnings", failedSteps: " health:sources(1)" },
-  { status: "completed_with_warnings", failedSteps: "", completeWrapperFailedSteps: ["stock-pro-agent(1)"] },
 ] as const) {
   const result = normalizeSourceHealthObject<Record<string, unknown>>(valid);
-  assert.equal(result.valid, true, "canonical completed status/failure evidence combinations remain valid");
+  assert.equal(result.valid, true, "canonical run-daily and complete-wrapper status combinations remain valid");
 }
 
 console.log("source-health-failed-steps-shape.test.ts passed");
