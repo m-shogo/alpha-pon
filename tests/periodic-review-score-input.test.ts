@@ -39,6 +39,19 @@ assert.ok(mixed);
 assert.equal(mixed.entries.length, 1, "正常rowは壊れrowの周囲でも保持する");
 assert.deepEqual(mixed.invalidRows, [2], "壊れrowはsilent dropせず行番号を保持する");
 
+const unknownAlertLevel = parsePeriodicScoreLog(JSON.stringify([
+  {
+    code: "8136",
+    name: "sample",
+    score: 60,
+    alertLevel: "later",
+    createdAt: "2026-08-18",
+  },
+]));
+assert.ok(unknownAlertLevel);
+assert.equal(unknownAlertLevel.entries.length, 0, "producer契約外alertLevelを週次/月次集計へ混入させない");
+assert.deepEqual(unknownAlertLevel.invalidRows, [1]);
+
 const paddedCode = parsePeriodicScoreLog(JSON.stringify([
   {
     code: " 8136",
