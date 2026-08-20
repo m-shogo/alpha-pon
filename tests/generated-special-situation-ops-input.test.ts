@@ -7,7 +7,7 @@ function assert(condition: unknown, message: string): asserts condition {
 const valid = {
   generatedAt: '2026-08-20',
   today: '2026-08-20',
-  healthStatus: 'needs_attention',
+  healthStatus: 'action_required',
   actionItems: [
     {
       priority: 'urgent',
@@ -44,6 +44,20 @@ const valid = {
 const accepted = normalizeGeneratedSpecialSituationOpsInput(valid)
 assert(accepted.value !== null && accepted.warning === null, 'valid special situation ops input must remain usable')
 
+const attentionOnly = normalizeGeneratedSpecialSituationOpsInput({
+  ...valid,
+  healthStatus: 'needs_attention',
+  actionItems: [{ priority: 'attention', category: 'data', title: 'Review data', detail: 'Review data quality.' }],
+})
+assert(attentionOnly.value !== null, 'attention-only special ops input must remain usable')
+
+const informational = normalizeGeneratedSpecialSituationOpsInput({
+  ...valid,
+  healthStatus: 'ok',
+  actionItems: [{ priority: 'info', category: 'review', title: 'Upcoming review', detail: 'Review is not due yet.' }],
+})
+assert(informational.value !== null, 'info-only special ops input must remain usable')
+
 for (const invalid of [
   {},
   { ...valid, actionItems: 'broken' },
@@ -52,6 +66,18 @@ for (const invalid of [
   { ...valid, reviewDue: null },
   { ...valid, reviewDue: { ...valid.reviewDue, overdue: -1 } },
   { ...valid, healthStatus: 'unknown' },
+  { ...valid, healthStatus: 'needs_attention' },
+  { ...valid, healthStatus: 'ok' },
+  {
+    ...valid,
+    healthStatus: 'ok',
+    actionItems: [{ priority: 'attention', category: 'data', title: 'Review data', detail: 'Review data quality.' }],
+  },
+  {
+    ...valid,
+    healthStatus: 'needs_attention',
+    actionItems: [{ priority: 'info', category: 'review', title: 'Upcoming review', detail: 'Review is not due yet.' }],
+  },
 ]) {
   const normalized = normalizeGeneratedSpecialSituationOpsInput(invalid)
   assert(normalized.value === null, `malformed special situation ops input must be isolated: ${JSON.stringify(invalid)}`)
