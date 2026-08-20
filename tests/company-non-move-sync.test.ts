@@ -4,7 +4,7 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { todayJst } from "../src/date.js";
+import { addDaysJst, todayJst } from "../src/date.js";
 
 const root = mkdtempSync(join(tmpdir(), "alpha-pon-company-non-move-"));
 const tsxImport = import.meta.resolve("tsx/esm");
@@ -13,22 +13,32 @@ try {
   mkdirSync(join(root, "data"), { recursive: true });
   const date = todayJst();
   const outcome = {
+    schemaVersion: 1,
+    createdAt: date,
+    evaluatedAt: date,
     candidateCode: "1001",
     candidateName: "Synthetic Co",
     direction: "mixed",
+    quality: "useful",
     eventId: "synthetic-event",
     timeframe: "1w",
-    evaluatedAt: date,
+    lessonId: "synthetic-lesson",
     lessonTitle: "synthetic lesson",
     actualOutcome: "synthetic outcome",
     dataAvailability: "missing",
     missedSignals: [],
+    whatMatched: [],
     whatDiffered: [],
     improvedRuleIdeas: [],
   };
+  const futureOutcome = {
+    ...outcome,
+    eventId: "future-event",
+    evaluatedAt: addDaysJst(date, 1),
+  };
   writeFileSync(
     join(root, "data/analogy_outcomes.jsonl"),
-    `{malformed source row\n${JSON.stringify(outcome)}\n${JSON.stringify(outcome)}\n`,
+    `{malformed source row\n{}\n${JSON.stringify(futureOutcome)}\n${JSON.stringify(outcome)}\n${JSON.stringify(outcome)}\n`,
     "utf8",
   );
   writeFileSync(
@@ -51,7 +61,7 @@ try {
     }
   });
 
-  assert.equal(rows.length, 1, "malformed JSONL rows must not block the one valid non-move history row");
+  assert.equal(rows.length, 1, "invalid/future outcomes and duplicates must not create extra non-move history rows");
   assert.ok(
     lines.includes("{malformed historical row"),
     "malformed existing history must remain visible for downstream audit instead of being rewritten away",
