@@ -68,10 +68,10 @@ try {
     ["current-rule"],
     "proposal generation must use the dated current rule diagnostics snapshot instead of stale latest evidence",
   );
-  assert.deepEqual(
-    readCurrentProposalRuleDiagnostics<Row>(dir, "2026-08-21"),
-    [],
-    "missing current diagnostics must not fall back to a stale latest snapshot",
+  assert.throws(
+    () => readCurrentProposalRuleDiagnostics<Row>(dir, "2026-08-21"),
+    /current proposal rule diagnostics snapshot is missing/,
+    "missing current diagnostics must fail closed instead of becoming a legitimate zero-diagnostic day",
   );
 } finally {
   rmSync(dir, { recursive: true, force: true });
