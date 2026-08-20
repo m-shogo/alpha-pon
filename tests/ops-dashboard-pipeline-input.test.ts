@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { buildOpsDashboard } from "../src/ops-dashboard.js";
 import { normalizeOpsPipelineStatusInput } from "../src/ops-dashboard-pipeline-input.js";
 
 const valid = normalizeOpsPipelineStatusInput({
@@ -24,6 +25,31 @@ assert.deepEqual(canonicalArray, {
   status: "partial_failed",
   failedSteps: "daily_company_score,ui_data_generate",
 });
+
+const canonicalRunDailyString = normalizeOpsPipelineStatusInput({
+  date: "2026-08-17",
+  status: "completed_with_warnings",
+  failedSteps: " health:sources(1) proposals(2)",
+});
+assert.deepEqual(canonicalRunDailyString, {
+  date: "2026-08-17",
+  status: "completed_with_warnings",
+  failedSteps: "health:sources(1),proposals(2)",
+});
+assert.deepEqual(
+  buildOpsDashboard({
+    today: "2026-08-17",
+    pipelineStatus: canonicalRunDailyString,
+    alphaData: null,
+    outcomes: null,
+    specialOps: null,
+    integrity: null,
+    safeWordingScannedFiles: 0,
+    safeWordingFindings: [],
+  }).pipelineAudit.failedSteps,
+  ["health:sources(1)", "proposals(2)"],
+  "ops dashboard must expose each run-daily failure independently instead of one whitespace-concatenated step",
+);
 
 const partialFailedStepEvidence = normalizeOpsPipelineStatusInput({
   date: "2026-08-17",
