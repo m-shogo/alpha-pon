@@ -1,6 +1,7 @@
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from "fs";
+import { appendFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
+import { formatReadOnlyJsonlParseWarning, readJsonlWithErrors } from "./read-only-jsonl.js";
 import type { AnalogyOutcomeRecord } from "./analysis/analogy-db.js";
 
 type CompanyNonMoveRow = {
@@ -17,12 +18,10 @@ type CompanyNonMoveRow = {
 };
 
 function readJsonl<T>(path: string): T[] {
-  if (!existsSync(path)) return [];
-  return readFileSync(path, "utf-8")
-    .split("\n")
-    .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => JSON.parse(line) as T);
+  const parsed = readJsonlWithErrors<T>(path);
+  const warning = formatReadOnlyJsonlParseWarning(path, parsed.parseErrors);
+  if (warning) console.warn(warning);
+  return parsed.rows;
 }
 
 function existingKeys(path: string): Set<string> {
