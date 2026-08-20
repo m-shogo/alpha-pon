@@ -40,10 +40,6 @@ function isRegimeHistory(value: unknown): value is RegimeHistory {
   return isUsableYearlyRegimeHistory(value);
 }
 
-function isSourceHealthHistory(value: unknown): value is SourceHealthHistory {
-  return isUsableYearlySourceHealthHistory(value);
-}
-
 function readText(path: string): string {
   if (!existsSync(path)) return "";
   return readFileSync(path, "utf-8");
@@ -82,7 +78,10 @@ function main() {
   const date = todayJst();
   const nonMoveInput = readKnowledgeReviewJsonl<NonMoveHistory>("data/company_non_move_history.jsonl", isNonMoveHistory);
   const regimeInput = readKnowledgeReviewJsonl<RegimeHistory>("data/regime_history.jsonl", isRegimeHistory);
-  const sourceInput = readKnowledgeReviewJsonl<SourceHealthHistory>("data/source_health_history.jsonl", isSourceHealthHistory);
+  const sourceInput = readKnowledgeReviewJsonl<SourceHealthHistory>(
+    "data/source_health_history.jsonl",
+    (value): value is SourceHealthHistory => isUsableYearlySourceHealthHistory(value, date),
+  );
   const nonMoveRows = nonMoveInput.rows;
   const regimeRows = regimeInput.rows;
   const sourceRows = sourceInput.rows;
