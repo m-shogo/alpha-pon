@@ -1,33 +1,46 @@
 import assert from "node:assert/strict";
 import { hasUniqueSourceHealthScoreIdentities } from "../src/source-health-input.js";
 
-const valid = [
-  { code: "8136", name: "サンリオ" },
-  { code: "9984", name: "ソフトバンクグループ" },
-];
-assert.equal(hasUniqueSourceHealthScoreIdentities(valid), true);
-
-for (const malformed of [
-  [{ code: "8136" }],
-  [{ code: "8136", name: "" }],
-  [{ code: "8136", name: "   " }],
-  [{ code: "8136", name: " サンリオ" }],
-  [{ code: "8136", name: "サンリオ " }],
+for (const rows of [
+  [{ dataQuality: "ok" }],
+  [{ code: "", dataQuality: "ok" }],
+  [{ code: "   ", dataQuality: "ok" }],
+  [{ code: " 8136", dataQuality: "ok" }],
+  [{ code: "8136 ", dataQuality: "ok" }],
+  [{ code: 8136, dataQuality: "ok" }],
+  [
+    { code: "8136", name: "サンリオ", dataQuality: "ok" },
+    { code: "8136", name: "サンリオ", dataQuality: "ok" },
+  ],
 ] as const) {
   assert.equal(
-    hasUniqueSourceHealthScoreIdentities(malformed),
+    hasUniqueSourceHealthScoreIdentities(rows),
     false,
-    "source-health coverage must not count score rows without canonical company names",
+    "missing, padded, or duplicate stable score identities must not inflate source-health coverage",
+  );
+}
+
+for (const rows of [
+  [{ code: "8136", dataQuality: "ok" }],
+  [{ code: "8136", name: "", dataQuality: "ok" }],
+  [{ code: "8136", name: "   ", dataQuality: "ok" }],
+  [{ code: "8136", name: " サンリオ", dataQuality: "ok" }],
+  [{ code: "8136", name: "サンリオ ", dataQuality: "ok" }],
+] as const) {
+  assert.equal(
+    hasUniqueSourceHealthScoreIdentities(rows),
+    false,
+    "missing, blank, or padded company names must not inflate source-health coverage",
   );
 }
 
 assert.equal(
   hasUniqueSourceHealthScoreIdentities([
-    { code: "8136", name: "サンリオ" },
-    { code: "8136", name: "別名" },
+    { code: "8136", name: "サンリオ", dataQuality: "ok" },
+    { code: "7974", name: "任天堂", dataQuality: "partial" },
   ]),
-  false,
-  "duplicate company codes remain invalid even when names differ",
+  true,
+  "distinct canonical score identities remain valid",
 );
 
-console.log("source-health-score-identity.test.ts passed");
+console.log("source health score identity: canonical non-empty unique code/name contract OK");
