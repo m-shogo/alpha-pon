@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
-import { isUsableProKnowledgeRegimeAsOf } from "./pro-knowledge-refresh-input.js";
+import { isUsableProKnowledgeRegime } from "./pro-knowledge-refresh-input.js";
 
 type RefreshDomain = {
   id: string;
@@ -42,9 +42,9 @@ function domainPriority(domain: RefreshDomain, regime: CurrentRegime): "S" | "A"
 function main() {
   const date = todayJst();
   const config = readYaml<RefreshConfig>("config/pro-knowledge-refresh.yml", {});
-  const rawRegime = readYaml<CurrentRegime>("config/current-regime.yml", {});
-  const regimeAsOfUsable = isUsableProKnowledgeRegimeAsOf(rawRegime.asOf, date);
-  const regime = regimeAsOfUsable ? rawRegime : {};
+  const rawRegime = readYaml<unknown>("config/current-regime.yml", {});
+  const regimeUsable = isUsableProKnowledgeRegime(rawRegime, date);
+  const regime = regimeUsable ? rawRegime as CurrentRegime : {};
   const domains = config.refreshDomains ?? [];
 
   const lines: string[] = [];
@@ -56,7 +56,7 @@ function main() {
   lines.push("");
   lines.push("## current regime context");
   lines.push("");
-  if (!regimeAsOfUsable) lines.push("- ⚠️ current-regime asOf is missing, invalid, or future; regime context was not used");
+  if (!regimeUsable) lines.push("- ⚠️ current-regime is missing, invalid, malformed, or future; regime context was not used");
   lines.push(`- asOf: ${regime.asOf ?? "N/A"}`);
   lines.push(`- summary: ${regime.summary ?? "N/A"}`);
   for (const item of regime.activeRegimes ?? []) lines.push(`- active: ${item.id} / level=${item.level ?? "N/A"}`);
