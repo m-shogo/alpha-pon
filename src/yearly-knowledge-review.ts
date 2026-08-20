@@ -26,6 +26,12 @@ type SourceHealthHistory = {
   reports?: Record<string, { exists?: boolean; size?: number }>;
 };
 
+function isNonMoveHistory(value: unknown): value is NonMoveHistory {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const reasons = (value as Record<string, unknown>).nonMoveReasons;
+  return reasons === undefined || (Array.isArray(reasons) && reasons.every(reason => typeof reason === "string"));
+}
+
 function readText(path: string): string {
   if (!existsSync(path)) return "";
   return readFileSync(path, "utf-8");
@@ -62,7 +68,7 @@ function countMissingReports(rows: SourceHealthHistory[]): Array<[string, number
 
 function main() {
   const date = todayJst();
-  const nonMoveInput = readKnowledgeReviewJsonl<NonMoveHistory>("data/company_non_move_history.jsonl");
+  const nonMoveInput = readKnowledgeReviewJsonl<NonMoveHistory>("data/company_non_move_history.jsonl", isNonMoveHistory);
   const regimeInput = readKnowledgeReviewJsonl<RegimeHistory>("data/regime_history.jsonl");
   const sourceInput = readKnowledgeReviewJsonl<SourceHealthHistory>("data/source_health_history.jsonl");
   const nonMoveRows = nonMoveInput.rows;
