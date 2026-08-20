@@ -1,4 +1,4 @@
-import { addDaysJst } from "./date.js";
+import { addDaysJst, todayJst } from "./date.js";
 import { normalizeRegimeHistoryActiveRegimes } from "./regime-history-input.js";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -14,7 +14,7 @@ function isRealDateOnOrBefore(value: unknown, asOf: string): boolean {
   }
 }
 
-export function isUsableYearlyRegimeHistory(value: unknown, asOf: string): boolean {
+export function isUsableYearlyRegimeHistory(value: unknown, asOf = todayJst()): boolean {
   if (!isRecord(value)) return false;
   if (!isRealDateOnOrBefore(value.date, asOf)) return false;
   try {
