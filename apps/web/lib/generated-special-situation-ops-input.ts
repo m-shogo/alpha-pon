@@ -57,6 +57,29 @@ function isSafeCount(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
 }
 
+function isRealGregorianDate(value: unknown): value is string {
+  if (typeof value !== 'string') return false
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) return false
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  if (year < 1) return false
+  const parsed = new Date(Date.UTC(year, month - 1, day))
+  return parsed.getUTCFullYear() === year
+    && parsed.getUTCMonth() === month - 1
+    && parsed.getUTCDate() === day
+}
+
+function currentJstDate(now = new Date()): string {
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now)
+}
+
 function isActionItem(value: unknown): boolean {
   if (!isRecord(value)) return false
   return typeof value.priority === 'string'
@@ -116,13 +139,20 @@ function hasValidMixedOutcomes(value: unknown): boolean {
   return isRecord(value) && isSafeCount(value.count)
 }
 
-export function normalizeGeneratedSpecialSituationOpsInput(value: unknown): {
+export function normalizeGeneratedSpecialSituationOpsInput(
+  value: unknown,
+  asOfDate = currentJstDate(),
+): {
   value: SpecialSituationOpsInput | null
   warning: string | null
 } {
   if (value === undefined || value === null) return { value: null, warning: null }
   if (!isRecord(value)) return { value: null, warning: 'specialSituationOps: invalid_shape' }
-  if (!isCanonicalText(value.generatedAt) || !isCanonicalText(value.today)) {
+  if (!isRealGregorianDate(value.generatedAt)
+    || !isRealGregorianDate(value.today)
+    || !isRealGregorianDate(asOfDate)
+    || value.generatedAt !== value.today
+    || value.today !== asOfDate) {
     return { value: null, warning: 'specialSituationOps: invalid_shape' }
   }
   if (typeof value.healthStatus !== 'string' || !HEALTH_STATUSES.has(value.healthStatus)) {
