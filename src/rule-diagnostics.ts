@@ -1,7 +1,8 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
 import { loadAnalogyOutcomeRecords, type AnalogyOutcomeRecord } from "./analysis/analogy-db.js";
+import { readRuleDiagnosticsScoreRows } from "./rule-diagnostics-score-input.js";
 
 type RuleDiagnosis =
   | "delete_candidate"
@@ -47,21 +48,6 @@ function fmtPct(value: number | null | undefined): string {
   if (value == null) return "N/A";
   const sign = value >= 0 ? "+" : "";
   return `${sign}${value.toFixed(2)}%`;
-}
-
-function loadScoreLogs(): ScoreLogEntry[] {
-  if (!existsSync("reports")) return [];
-
-  return readdirSync("reports")
-    .filter(file => /^scores_\d{4}-\d{2}-\d{2}\.json$/.test(file))
-    .sort()
-    .flatMap(file => {
-      try {
-        return JSON.parse(readFileSync(join("reports", file), "utf-8")) as ScoreLogEntry[];
-      } catch {
-        return [];
-      }
-    });
 }
 
 function scoreByCodeDate(entries: ScoreLogEntry[]): Map<string, ScoreLogEntry> {
@@ -242,7 +228,9 @@ function renderMarkdown(date: string, rows: RuleStats[]): string {
 
 function main() {
   const date = todayJst();
-  const scores = loadScoreLogs();
+  const scoreInput = readRuleDiagnosticsScoreRows<ScoreLogEntry>("reports");
+  scoreInput.warnings.forEach(warning => console.warn(`[rule-diagnostics] ${warning}`));
+  const scores = scoreInput.rows;
   const outcomes = loadAnalogyOutcomeRecords();
   const scoreMap = scoreByCodeDate(scores);
   const groups = groupOutcomesByRule(outcomes, scoreMap);
