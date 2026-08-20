@@ -1,7 +1,8 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
 import { readProposalPipelineStatus } from "./proposals-pipeline-input.js";
+import { readProposalRuleDiagnostics } from "./proposals-rule-diagnostics-input.js";
 import { readProposalScores } from "./proposals-score-input.js";
 
 type Priority = "S" | "A" | "B" | "Hold";
@@ -69,15 +70,6 @@ type RuleDiagnostic = {
   reason: string;
   action: string;
 };
-
-function readJson<T>(path: string): T | null {
-  if (!existsSync(path)) return null;
-  try {
-    return JSON.parse(readFileSync(path, "utf-8")) as T;
-  } catch {
-    return null;
-  }
-}
 
 function pct(numerator: number, denominator: number): string {
   if (denominator === 0) return "N/A";
@@ -306,7 +298,7 @@ function main() {
   const date = todayJst();
   const scores = readProposalScores<ScoreLogEntry>("reports", date).rows;
   const pipeline = readProposalPipelineStatus<PipelineStatus>("reports/pipeline_status_latest.json");
-  const ruleDiagnostics = readJson<RuleDiagnostic[]>("reports/rule_diagnostics_latest.json") ?? [];
+  const ruleDiagnostics = readProposalRuleDiagnostics<RuleDiagnostic>("reports/rule_diagnostics_latest.json");
   const proposals = buildProposals({ pipeline, scores, ruleDiagnostics });
 
   mkdirSync("reports", { recursive: true });
