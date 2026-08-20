@@ -52,6 +52,20 @@ assert.ok(unknownAlertLevel);
 assert.equal(unknownAlertLevel.entries.length, 0, "producer契約外alertLevelを週次/月次集計へ混入させない");
 assert.deepEqual(unknownAlertLevel.invalidRows, [1]);
 
+const unknownExpertVerdict = parsePeriodicScoreLog(JSON.stringify([
+  {
+    code: "8136",
+    name: "sample",
+    score: 60,
+    alertLevel: "daily",
+    createdAt: "2026-08-18",
+    expertReview: { finalVerdict: "block ", consensusScore: 0.2 },
+  },
+]));
+assert.ok(unknownExpertVerdict);
+assert.equal(unknownExpertVerdict.entries.length, 0, "producer契約外expert verdictでblock集計をすり抜けさせない");
+assert.deepEqual(unknownExpertVerdict.invalidRows, [1]);
+
 const paddedCode = parsePeriodicScoreLog(JSON.stringify([
   {
     code: " 8136",
