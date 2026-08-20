@@ -5,8 +5,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every(item => typeof item === "string");
+function isUniqueNonBlankStringArray(value: unknown): value is string[] {
+  if (!Array.isArray(value)) return false;
+  const items = value.filter((item): item is string => typeof item === "string");
+  return (
+    items.length === value.length &&
+    items.every(item => item.trim().length > 0 && item === item.trim()) &&
+    new Set(items).size === items.length
+  );
 }
 
 function isRealDateOnOrBefore(value: unknown, asOf: string): boolean {
@@ -27,7 +33,7 @@ export function isUsableYearlyNonMoveHistory(value: unknown, asOf = todayJst()):
     typeof value.category === "string" &&
     typeof value.hypothesis === "string" &&
     typeof value.outcome === "string" &&
-    isStringArray(value.nonMoveReasons) &&
+    isUniqueNonBlankStringArray(value.nonMoveReasons) &&
     typeof value.lesson === "string" &&
     typeof value.nextAction === "string" &&
     typeof value.source === "string"
