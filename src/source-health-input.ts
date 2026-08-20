@@ -218,10 +218,12 @@ export function normalizeSourceHealthObject<T extends object>(value: unknown): {
     && results.some(row => isRecord(row) && row.status === "fail");
   const hasRunDailyFailureEvidence = hasDailyFailure || hasStepFailure || hasResultFailure;
 
-  if (value.status === "completed" && hasRunDailyFailureEvidence) {
-    return { value: null, valid: false };
-  }
-  if (value.status === "completed_with_warnings" && !hasRunDailyFailureEvidence) {
+  if (
+    (value.status === "ok" && hasRunDailyFailureEvidence)
+    || (value.status === "partial_failed" && !hasRunDailyFailureEvidence)
+    || (value.status === "completed" && hasRunDailyFailureEvidence)
+    || (value.status === "completed_with_warnings" && !hasRunDailyFailureEvidence)
+  ) {
     return { value: null, valid: false };
   }
 
