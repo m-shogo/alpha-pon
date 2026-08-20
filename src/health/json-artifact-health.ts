@@ -1,0 +1,22 @@
+import { existsSync, readFileSync, statSync } from "fs";
+
+export type JsonArtifactHealth =
+  | { ok: true }
+  | { ok: false; reason: "missing" | "not_file" | "empty" | "invalid_json" | "invalid_root" };
+
+export function inspectJsonArtifact(path: string): JsonArtifactHealth {
+  if (!existsSync(path)) return { ok: false, reason: "missing" };
+
+  try {
+    if (!statSync(path).isFile()) return { ok: false, reason: "not_file" };
+    const text = readFileSync(path, "utf-8");
+    if (text.trim().length === 0) return { ok: false, reason: "empty" };
+    const value = JSON.parse(text) as unknown;
+    if (value === null || typeof value !== "object" || Array.isArray(value)) {
+      return { ok: false, reason: "invalid_root" };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, reason: "invalid_json" };
+  }
+}
