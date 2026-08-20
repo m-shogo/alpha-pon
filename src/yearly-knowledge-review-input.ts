@@ -14,8 +14,9 @@ function isRealDateOnOrBefore(value: unknown, asOf: string): boolean {
   }
 }
 
-export function isUsableYearlyRegimeHistory(value: unknown): boolean {
+export function isUsableYearlyRegimeHistory(value: unknown, asOf: string): boolean {
   if (!isRecord(value)) return false;
+  if (!isRealDateOnOrBefore(value.date, asOf)) return false;
   try {
     normalizeRegimeHistoryActiveRegimes(value.activeRegimes);
     return true;
