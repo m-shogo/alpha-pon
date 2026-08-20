@@ -3,7 +3,7 @@ import { normalizeSourceHealthObject } from "../src/source-health-input.js";
 
 for (const input of [
   { status: "ok" },
-  { status: "partial_failed" },
+  { status: "partial_failed", failedSteps: ["daily_company_score"] },
   { status: "running" },
   { status: "skipped_locked" },
   { status: "failed" },
@@ -25,9 +25,13 @@ for (const malformed of [
   { status: 1 },
   { status: "completed", failedSteps: "", steps: [{ name: "daily", status: "healthy" }] },
   { status: "running", steps: [{ name: "daily", status: "fail" }] },
+  { status: "ok", failedSteps: ["daily_company_score"] },
+  { status: "ok", results: [{ name: "daily_company_score", status: "fail" }] },
+  { status: "partial_failed", failedSteps: [] },
+  { status: "partial_failed", results: [{ name: "daily_company_score", status: "ok" }] },
 ] as const) {
   const result = normalizeSourceHealthObject<Record<string, unknown>>(malformed);
-  assert.equal(result.valid, false, "missing or non-canonical pipeline status must fail closed");
+  assert.equal(result.valid, false, "missing or inconsistent pipeline status must fail closed");
   assert.equal(result.value, null, "invalid pipeline status must not reach source-health aggregation");
 }
 
