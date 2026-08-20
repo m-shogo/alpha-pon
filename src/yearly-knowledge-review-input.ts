@@ -5,6 +5,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(item => typeof item === "string");
+}
+
 function isRealDateOnOrBefore(value: unknown, asOf: string): boolean {
   if (typeof value !== "string") return false;
   try {
@@ -17,8 +21,17 @@ function isRealDateOnOrBefore(value: unknown, asOf: string): boolean {
 export function isUsableYearlyNonMoveHistory(value: unknown, asOf = todayJst()): boolean {
   if (!isRecord(value)) return false;
   if (!isRealDateOnOrBefore(value.date, asOf)) return false;
-  const reasons = value.nonMoveReasons;
-  return reasons === undefined || (Array.isArray(reasons) && reasons.every(reason => typeof reason === "string"));
+  return (
+    typeof value.code === "string" &&
+    typeof value.name === "string" &&
+    typeof value.category === "string" &&
+    typeof value.hypothesis === "string" &&
+    typeof value.outcome === "string" &&
+    isStringArray(value.nonMoveReasons) &&
+    typeof value.lesson === "string" &&
+    typeof value.nextAction === "string" &&
+    typeof value.source === "string"
+  );
 }
 
 export function isUsableYearlyRegimeHistory(value: unknown, asOf = todayJst()): boolean {
