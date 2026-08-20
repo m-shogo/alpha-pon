@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { collectPipelineFailedStepNames, parseRunDailyFailedSteps } from "../src/pipeline-failed-steps.js";
 import { normalizeSourceHealthObject } from "../src/source-health-input.js";
 
 for (const failedSteps of ["world_scan", ["world_scan", "daily_company_score"]] as const) {
@@ -39,5 +40,20 @@ for (const valid of [
   const result = normalizeSourceHealthObject<Record<string, unknown>>(valid);
   assert.equal(result.valid, true, "canonical run-daily and complete-wrapper status combinations remain valid");
 }
+
+assert.deepEqual(
+  parseRunDailyFailedSteps(" health:sources(1) proposals(2) memory:companies(3)"),
+  ["health:sources(1)", "proposals(2)", "memory:companies(3)"],
+  "run-daily writes failedSteps as whitespace-delimited tokens and each failed step must remain independently actionable",
+);
+assert.deepEqual(
+  collectPipelineFailedStepNames({
+    failedSteps: " health:sources(1) proposals(2)",
+    steps: [{ name: "health:sources", status: "failed" }],
+    completeWrapperFailedSteps: ["stock-pro-agent(4)"],
+  }),
+  ["health:sources(1)", "proposals(2)", "health:sources", "stock-pro-agent(4)"],
+  "Source Health must preserve producer failure tokens while combining step and complete-wrapper evidence",
+);
 
 console.log("source-health-failed-steps-shape.test.ts passed");
