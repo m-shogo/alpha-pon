@@ -6,31 +6,38 @@ import { isUsableFreshSuccessArtifact } from "../src/health/success-artifact-hea
 
 const root = mkdtempSync(join(tmpdir(), "alpha-pon-health-success-artifact-"));
 const today = "2026-08-21";
+const now = new Date("2026-08-20T22:30:00.000Z");
 const todayMtime = new Date("2026-08-20T22:00:00.000Z");
+const futureSameDayMtime = new Date("2026-08-20T23:00:00.000Z");
 const staleMtime = new Date("2026-08-19T22:00:00.000Z");
 
 try {
   const valid = join(root, "valid.json");
   writeFileSync(valid, "{}\n", "utf8");
   utimesSync(valid, todayMtime, todayMtime);
-  assert.equal(isUsableFreshSuccessArtifact(valid, today), true);
+  assert.equal(isUsableFreshSuccessArtifact(valid, today, now.getTime()), true);
+
+  const futureSameDay = join(root, "future-same-day.json");
+  writeFileSync(futureSameDay, "data", "utf8");
+  utimesSync(futureSameDay, futureSameDayMtime, futureSameDayMtime);
+  assert.equal(isUsableFreshSuccessArtifact(futureSameDay, today, now.getTime()), false);
 
   const empty = join(root, "empty.json");
   writeFileSync(empty, "", "utf8");
   utimesSync(empty, todayMtime, todayMtime);
-  assert.equal(isUsableFreshSuccessArtifact(empty, today), false);
+  assert.equal(isUsableFreshSuccessArtifact(empty, today, now.getTime()), false);
 
   const directory = join(root, "artifact.json");
   mkdirSync(directory);
   utimesSync(directory, todayMtime, todayMtime);
-  assert.equal(isUsableFreshSuccessArtifact(directory, today), false);
+  assert.equal(isUsableFreshSuccessArtifact(directory, today, now.getTime()), false);
 
   const stale = join(root, "stale.json");
   writeFileSync(stale, "data", "utf8");
   utimesSync(stale, staleMtime, staleMtime);
-  assert.equal(isUsableFreshSuccessArtifact(stale, today), false);
+  assert.equal(isUsableFreshSuccessArtifact(stale, today, now.getTime()), false);
 
-  assert.equal(isUsableFreshSuccessArtifact(join(root, "missing.json"), today), false);
+  assert.equal(isUsableFreshSuccessArtifact(join(root, "missing.json"), today, now.getTime()), false);
 } finally {
   rmSync(root, { recursive: true, force: true });
 }
