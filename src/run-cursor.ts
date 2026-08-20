@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname } from "path";
-import { todayJst } from "./date.js";
+import { addDaysJst, todayJst } from "./date.js";
 
 export type RunCursorJobName = "universe-scan" | "analogy-review";
 
@@ -33,6 +33,15 @@ function writeCursors(cursors: Record<string, RunCursor>): void {
   writeFileSync(CURSOR_PATH, JSON.stringify(cursors, null, 2), "utf-8");
 }
 
+function isCurrentOrPastJstDate(value: unknown, today: string): value is string {
+  if (typeof value !== "string") return false;
+  try {
+    return addDaysJst(value, 0) === value && value <= today;
+  } catch {
+    return false;
+  }
+}
+
 export function nextOffset(current: number, maxPerRun: number, total: number): number {
   if (total <= 0) return 0;
   const next = current + maxPerRun;
@@ -42,18 +51,19 @@ export function nextOffset(current: number, maxPerRun: number, total: number): n
 export function loadRunCursor(jobName: RunCursorJobName, maxPerRun: number, total: number): RunCursor {
   const cursors = readCursors();
   const existing = cursors[jobName];
-  const offset = existing
+  const today = todayJst();
+  const usableExisting = existing
     && Number.isSafeInteger(existing.offset)
     && existing.offset >= 0
     && existing.offset < total
-      ? existing.offset
-      : 0;
+    && isCurrentOrPastJstDate(existing.updatedAt, today);
+  const offset = usableExisting ? existing.offset : 0;
   return {
     jobName,
     offset,
     maxPerRun,
     total,
-    updatedAt: typeof existing?.updatedAt === "string" ? existing.updatedAt : todayJst(),
+    updatedAt: usableExisting ? existing.updatedAt : today,
   };
 }
 
