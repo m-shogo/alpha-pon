@@ -8,13 +8,25 @@ import {
 const yearlyAsOf = "2026-08-21";
 const validNonMoveHistory = {
   date: yearlyAsOf,
+  code: "8136",
+  name: "sample",
+  category: "theme",
+  hypothesis: "sample hypothesis",
+  outcome: "mixed",
   nonMoveReasons: ["already_priced_in"],
+  lesson: "sample lesson",
+  nextAction: "review primary sources",
+  source: "analogy:event:1m",
 };
 assert.equal(isUsableYearlyNonMoveHistory(validNonMoveHistory, yearlyAsOf), true);
 assert.equal(isUsableYearlyNonMoveHistory({ ...validNonMoveHistory, date: "2026-08-22" }, yearlyAsOf), false);
 assert.equal(isUsableYearlyNonMoveHistory({ ...validNonMoveHistory, date: "2026-02-31" }, yearlyAsOf), false);
 assert.equal(isUsableYearlyNonMoveHistory({ ...validNonMoveHistory, date: "0000-01-01" }, yearlyAsOf), false);
-assert.equal(isUsableYearlyNonMoveHistory({ date: yearlyAsOf, nonMoveReasons: "broken" }, yearlyAsOf), false);
+assert.equal(isUsableYearlyNonMoveHistory({ ...validNonMoveHistory, nonMoveReasons: "broken" }, yearlyAsOf), false);
+assert.equal(
+  isUsableYearlyNonMoveHistory({ date: yearlyAsOf, nonMoveReasons: ["already_priced_in"] }, yearlyAsOf),
+  false,
+);
 assert.equal(isUsableYearlyNonMoveHistory(null, yearlyAsOf), false);
 
 const validRegimeHistory = {
