@@ -13,3 +13,16 @@ export function isUsableYearlyRegimeHistory(value: unknown): boolean {
     return false;
   }
 }
+
+export function isUsableYearlySourceHealthHistory(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  if (!isRecord(value.reports)) return false;
+
+  for (const report of Object.values(value.reports)) {
+    if (!isRecord(report)) return false;
+    if (typeof report.exists !== "boolean") return false;
+    if (!Number.isSafeInteger(report.size) || (report.size as number) < 0) return false;
+  }
+
+  return true;
+}
