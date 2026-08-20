@@ -23,6 +23,7 @@ type PipelineStatus = {
   runType?: string;
   status?: string;
   failedSteps?: string | string[];
+  completeWrapperFailedSteps?: string[];
   steps?: PipelineStep[];
   results?: PipelineResult[];
 };
@@ -76,7 +77,7 @@ function pct(numerator: number, denominator: number): string {
   return `${((numerator / denominator) * 100).toFixed(1)}%`;
 }
 
-function failedStepNames(status: PipelineStatus | null): string[] {
+export function failedStepNames(status: PipelineStatus | null): string[] {
   if (!status) return [];
 
   const fromFailedSteps = Array.isArray(status.failedSteps)
@@ -93,7 +94,9 @@ function failedStepNames(status: PipelineStatus | null): string[] {
     .filter(result => result.status && !["ok", "skip", "skipped"].includes(result.status))
     .map(result => result.name ?? "unknown");
 
-  return [...new Set([...fromFailedSteps, ...fromSteps, ...fromResults])];
+  const fromCompleteWrapper = status.completeWrapperFailedSteps ?? [];
+
+  return [...new Set([...fromFailedSteps, ...fromSteps, ...fromResults, ...fromCompleteWrapper])];
 }
 
 function formatStep(step: PipelineStep | PipelineResult): string {
