@@ -1,6 +1,6 @@
 import { writeFileSync } from "fs";
 import { readReadOnlyJsonObjectArrayFile, readReadOnlyJsonObjectFile } from "./read-only-json-file.js";
-import { isStockProCommitteeDecision } from "./stock-pro-committee-input.js";
+import { isCurrentStockProCommitteeGeneratedAt, isStockProCommitteeDecision } from "./stock-pro-committee-input.js";
 
 const UI_DATA_PATH = "apps/web/public/generated/alpha-pon-data.json";
 const STOCK_CANDIDATES_PATH = "apps/web/public/generated/stock-candidates.json";
@@ -81,12 +81,12 @@ function main() {
     "decisions",
     isStockProCommitteeDecision,
   );
+  const committeeGeneratedAt = stockProCommitteeLoad.object?.generatedAt;
+  const committeeIsCurrent = isCurrentStockProCommitteeGeneratedAt(committeeGeneratedAt);
   const stockProCommitteeJson = {
     ...(stockProCommitteeLoad.object ?? {}),
-    generatedAt: typeof stockProCommitteeLoad.object?.generatedAt === "string"
-      ? stockProCommitteeLoad.object.generatedAt
-      : null,
-    decisions: stockProCommitteeLoad.rows,
+    generatedAt: committeeIsCurrent ? committeeGeneratedAt : null,
+    decisions: committeeIsCurrent ? stockProCommitteeLoad.rows : [],
   };
   const legendProCommittee = {
     generatedAt: stockProCommitteeJson.generatedAt,
@@ -135,6 +135,12 @@ function main() {
     stockProCommitteeLoad.invalidField ? "reports/stock_pro_committee_latest.json.decisions: invalid_field (expected array)" : null,
     stockProCommitteeLoad.invalidRows > 0
       ? `reports/stock_pro_committee_latest.json.decisions: invalid_rows (${stockProCommitteeLoad.invalidRows})`
+      : null,
+    !stockProCommitteeLoad.missing
+      && !stockProCommitteeLoad.parseError
+      && !stockProCommitteeLoad.invalidRoot
+      && !committeeIsCurrent
+      ? "reports/stock_pro_committee_latest.json.generatedAt: invalid_or_stale_date"
       : null,
   ].filter((value): value is string => Boolean(value));
 
