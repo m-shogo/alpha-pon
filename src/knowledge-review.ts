@@ -17,6 +17,12 @@ type NonMoveHistory = {
   nextAction?: string;
 };
 
+function isNonMoveHistory(value: unknown): value is NonMoveHistory {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const reasons = (value as Record<string, unknown>).nonMoveReasons;
+  return reasons === undefined || (Array.isArray(reasons) && reasons.every(reason => typeof reason === "string"));
+}
+
 function readText(path: string): string {
   if (!existsSync(path)) return "";
   return readFileSync(path, "utf-8");
@@ -35,7 +41,7 @@ function countReasons(rows: NonMoveHistory[]): Array<[string, number]> {
 function main() {
   const mode: Mode = process.argv.includes("--monthly") ? "monthly" : "weekly";
   const date = todayJst();
-  const nonMove = readKnowledgeReviewJsonl<NonMoveHistory>("data/company_non_move_history.jsonl");
+  const nonMove = readKnowledgeReviewJsonl<NonMoveHistory>("data/company_non_move_history.jsonl", isNonMoveHistory);
   const nonMoveRows = nonMove.rows;
   const reasonCounts = countReasons(nonMoveRows);
   const regime = readText("reports/regime_scenarios_latest.md");
