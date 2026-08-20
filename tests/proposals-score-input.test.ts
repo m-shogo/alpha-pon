@@ -40,6 +40,33 @@ try {
   );
 
   writeFileSync(join(dir, "scores_2026-08-18.json"), JSON.stringify([
+    { code: "8136", warnings: [], primaryDisclosureReview: "broken" },
+    {
+      code: "7974",
+      warnings: [],
+      primaryDisclosureReview: { decision: "confirmed", sourceCoverage: { fetchErrorCount: "oops" } },
+    },
+  ]), "utf-8");
+  assert.throws(
+    () => readProposalScores<{ code: string }>(dir, "2026-08-18"),
+    /proposal score primary disclosure review shape is invalid at row\(s\) 1, 2/,
+    "malformed primary review evidence must not inflate review coverage or hide fetch errors",
+  );
+
+  writeFileSync(join(dir, "scores_2026-08-18.json"), JSON.stringify([
+    {
+      code: "8136",
+      warnings: [],
+      primaryDisclosureReview: { decision: "confirmed", sourceCoverage: { fetchErrorCount: 0 } },
+    },
+  ]), "utf-8");
+  assert.deepEqual(
+    readProposalScores<{ code: string }>(dir, "2026-08-18").rows.map(row => row.code),
+    ["8136"],
+    "canonical primary review evidence remains usable",
+  );
+
+  writeFileSync(join(dir, "scores_2026-08-18.json"), JSON.stringify([
     { code: "8136", warnings: [] },
     { warnings: [] },
     { code: " 7974", warnings: [] },
@@ -74,4 +101,4 @@ try {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("proposals-score-input: PIT, parse-error, root-shape, warning-shape, required-identity, and duplicate-identity regressions OK");
+console.log("proposals-score-input: PIT, parse-error, root-shape, warning-shape, primary-review-shape, required-identity, and duplicate-identity regressions OK");
