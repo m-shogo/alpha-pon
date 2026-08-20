@@ -133,6 +133,9 @@ export function hasUniqueSourceHealthScoreIdentities(value: unknown): boolean {
       || typeof row.code !== "string"
       || row.code.length === 0
       || row.code !== row.code.trim()
+      || typeof row.name !== "string"
+      || row.name.trim().length === 0
+      || row.name !== row.name.trim()
       || seenCodes.has(row.code)
     ) {
       return false;
