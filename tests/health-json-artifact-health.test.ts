@@ -28,14 +28,15 @@ test("fails closed for unusable generated JSON artifacts", () => {
     writeFileSync(blankPath, "   \n", "utf-8");
     assert.deepEqual(inspectJsonArtifact(blankPath), { ok: false, reason: "empty" });
 
-    for (const [name, value] of [
-      ["null.json", "null"],
-      ["string.json", '"broken"'],
-      ["array.json", "[]"],
+    for (const [name, value, reason] of [
+      ["null.json", "null", "invalid_root"],
+      ["string.json", '"broken"', "invalid_root"],
+      ["array.json", "[]", "invalid_root"],
+      ["empty-object.json", "{}", "empty_object"],
     ] as const) {
       const path = join(dir, name);
       writeFileSync(path, value, "utf-8");
-      assert.deepEqual(inspectJsonArtifact(path), { ok: false, reason: "invalid_root" });
+      assert.deepEqual(inspectJsonArtifact(path), { ok: false, reason });
     }
 
     const malformedPath = join(dir, "malformed.json");
