@@ -211,17 +211,16 @@ export function normalizeSourceHealthObject<T extends object>(value: unknown): {
   const hasDailyFailure = typeof value.failedSteps === "string"
     ? value.failedSteps.trim().length > 0
     : Array.isArray(value.failedSteps) && value.failedSteps.length > 0;
-  const hasWrapperFailure = Array.isArray(completeWrapperFailedSteps) && completeWrapperFailedSteps.length > 0;
   const hasStepFailure = Array.isArray(steps)
     && steps.some(row => isRecord(row) && row.status === "failed");
   const hasResultFailure = Array.isArray(results)
     && results.some(row => isRecord(row) && row.status === "fail");
-  const hasFailureEvidence = hasDailyFailure || hasWrapperFailure || hasStepFailure || hasResultFailure;
+  const hasRunDailyFailureEvidence = hasDailyFailure || hasStepFailure || hasResultFailure;
 
-  if (value.status === "completed" && hasFailureEvidence) {
+  if (value.status === "completed" && hasRunDailyFailureEvidence) {
     return { value: null, valid: false };
   }
-  if (value.status === "completed_with_warnings" && !hasFailureEvidence) {
+  if (value.status === "completed_with_warnings" && !hasRunDailyFailureEvidence) {
     return { value: null, valid: false };
   }
 
