@@ -6,7 +6,7 @@ import test from "node:test";
 
 import { inspectJsonArtifact } from "../src/health/json-artifact-health.js";
 
-test("accepts a regular non-empty JSON artifact", () => {
+test("accepts a regular non-empty JSON object artifact", () => {
   const dir = mkdtempSync(join(tmpdir(), "alpha-pon-health-json-"));
   try {
     const path = join(dir, "artifact.json");
@@ -17,7 +17,7 @@ test("accepts a regular non-empty JSON artifact", () => {
   }
 });
 
-test("fails closed for directory, blank, null, and malformed JSON artifacts", () => {
+test("fails closed for unusable generated JSON artifacts", () => {
   const dir = mkdtempSync(join(tmpdir(), "alpha-pon-health-json-"));
   try {
     const directoryPath = join(dir, "directory.json");
@@ -28,9 +28,15 @@ test("fails closed for directory, blank, null, and malformed JSON artifacts", ()
     writeFileSync(blankPath, "   \n", "utf-8");
     assert.deepEqual(inspectJsonArtifact(blankPath), { ok: false, reason: "empty" });
 
-    const nullPath = join(dir, "null.json");
-    writeFileSync(nullPath, "null", "utf-8");
-    assert.deepEqual(inspectJsonArtifact(nullPath), { ok: false, reason: "invalid_json" });
+    for (const [name, value] of [
+      ["null.json", "null"],
+      ["string.json", '"broken"'],
+      ["array.json", "[]"],
+    ] as const) {
+      const path = join(dir, name);
+      writeFileSync(path, value, "utf-8");
+      assert.deepEqual(inspectJsonArtifact(path), { ok: false, reason: "invalid_root" });
+    }
 
     const malformedPath = join(dir, "malformed.json");
     writeFileSync(malformedPath, "{", "utf-8");
