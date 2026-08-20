@@ -70,6 +70,14 @@ export function normalizeOpsSpecialSituationInput(
   for (const key of REVIEW_DUE_KEYS) {
     if (!isNonNegativeInteger(value.reviewDue[key])) return invalidSpecialOps();
   }
+  const dueToday = value.reviewDue.dueToday;
+  if (!isNonNegativeInteger(dueToday)) return invalidSpecialOps();
+  if (
+    dueToday > 0 &&
+    !priorities.some(priority => priority === "urgent" || priority === "attention")
+  ) {
+    return invalidSpecialOps();
+  }
 
   return value as OpsSpecialOpsLike;
 }
