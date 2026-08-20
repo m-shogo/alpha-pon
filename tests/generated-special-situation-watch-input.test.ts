@@ -1,12 +1,25 @@
 import assert from 'node:assert/strict'
 import { normalizeGeneratedSpecialSituationWatchInput } from '../apps/web/lib/generated-special-situation-watch-input.js'
 
+const validTopChance = {
+  code: '8136',
+  name: 'Sanrio',
+  finalLabel: 'watch',
+  chanceLevel: 'attention',
+  reasonSummary: 'watch reason',
+  mainRisks: ['risk'],
+  nextCheck: ['check'],
+  whyNow: ['now'],
+  whyNotNow: ['wait'],
+}
+
 const valid = {
   generatedAt: '2026-08-20',
   candidates: [
     { code: '8136', name: 'Sanrio' },
     { code: '7203', name: 'Toyota' },
   ],
+  topChanceList: [validTopChance],
 }
 
 assert.deepEqual(normalizeGeneratedSpecialSituationWatchInput(valid), {
@@ -33,6 +46,27 @@ const invalidCandidates = normalizeGeneratedSpecialSituationWatchInput({
 })
 assert.deepEqual(invalidCandidates.value?.candidates, [])
 assert.equal(invalidCandidates.warning, 'specialSituationWatch.candidates: invalid_shape')
+
+const mixedTopChance = normalizeGeneratedSpecialSituationWatchInput({
+  generatedAt: '2026-08-20',
+  topChanceList: [
+    validTopChance,
+    null,
+    { ...validTopChance, mainRisks: {} },
+    { ...validTopChance, nextCheck: 'broken' },
+    { ...validTopChance, code: ' 6758' },
+    { ...validTopChance, code: '6758', name: 'Sony' },
+  ],
+})
+assert.deepEqual(mixedTopChance.value?.topChanceList?.map(candidate => candidate.code), ['8136', '6758'])
+assert.equal(mixedTopChance.warning, 'specialSituationWatch.topChanceList: invalid_rows 4')
+
+const invalidTopChanceRoot = normalizeGeneratedSpecialSituationWatchInput({
+  generatedAt: '2026-08-20',
+  topChanceList: { code: '8136' },
+})
+assert.deepEqual(invalidTopChanceRoot.value?.topChanceList, [])
+assert.equal(invalidTopChanceRoot.warning, 'specialSituationWatch.topChanceList: invalid_shape')
 
 assert.deepEqual(normalizeGeneratedSpecialSituationWatchInput(null), { value: null, warning: null })
 assert.deepEqual(normalizeGeneratedSpecialSituationWatchInput([]), {
