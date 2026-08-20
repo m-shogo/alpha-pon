@@ -1,5 +1,6 @@
 import { writeFileSync } from "fs";
 import { readReadOnlyJsonObjectArrayFile, readReadOnlyJsonObjectFile } from "./read-only-json-file.js";
+import { isStockProCommitteeDecision } from "./stock-pro-committee-input.js";
 
 const UI_DATA_PATH = "apps/web/public/generated/alpha-pon-data.json";
 const STOCK_CANDIDATES_PATH = "apps/web/public/generated/stock-candidates.json";
@@ -78,7 +79,7 @@ function main() {
   const stockProCommitteeLoad = readReadOnlyJsonObjectArrayFile<Record<string, unknown>>(
     "reports/stock_pro_committee_latest.json",
     "decisions",
-    isRecord,
+    isStockProCommitteeDecision,
   );
   const stockProCommitteeJson = {
     ...(stockProCommitteeLoad.object ?? {}),
