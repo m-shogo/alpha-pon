@@ -1,4 +1,5 @@
 import { addDaysJst } from "./date.js";
+import { parseRunDailyFailedSteps } from "./pipeline-failed-steps.js";
 import type { OpsPipelineStatusLike } from "./ops-dashboard.js";
 
 const INVALID_PIPELINE_INPUT = "invalid_pipeline_status_input";
@@ -47,12 +48,12 @@ export function normalizeOpsPipelineStatusInput(value: unknown): OpsPipelineStat
   let failedSteps: string | undefined;
   if (value.failedSteps !== undefined) {
     if (typeof value.failedSteps === "string") {
-      failedSteps = value.failedSteps;
+      failedSteps = parseRunDailyFailedSteps(value.failedSteps).join(",");
     } else if (Array.isArray(value.failedSteps)) {
       if (!value.failedSteps.every(step => typeof step === "string" && step.trim().length > 0)) {
         return invalidPipelineStatus();
       }
-      failedSteps = value.failedSteps.join(",");
+      failedSteps = parseRunDailyFailedSteps(value.failedSteps).join(",");
     } else {
       return invalidPipelineStatus();
     }
