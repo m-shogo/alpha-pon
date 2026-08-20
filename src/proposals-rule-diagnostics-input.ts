@@ -1,6 +1,13 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+const RULE_DIAGNOSES = new Set([
+  "delete_candidate",
+  "weaken_candidate",
+  "condition_required",
+  "needs_more_data",
+  "keep_monitoring",
+]);
 const WEAK_DIAGNOSES = new Set(["delete_candidate", "condition_required", "weaken_candidate"]);
 
 function isFiniteNumberOrNull(value: unknown): boolean {
@@ -14,6 +21,7 @@ function isUsableRuleDiagnostic(value: unknown): boolean {
     && row.rule.length > 0
     && row.rule === row.rule.trim()
     && typeof row.diagnosis === "string"
+    && RULE_DIAGNOSES.has(row.diagnosis)
     && typeof row.directionExpectation === "number"
     && Number.isFinite(row.directionExpectation)
     && isFiniteNumberOrNull(row.avgRelativeReturnPct)
