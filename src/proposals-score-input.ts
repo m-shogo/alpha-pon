@@ -64,6 +64,6 @@ export function readProposalScores<T>(
     return { rows: parsed as T[], sourceFile };
   } catch (error) {
     if (error instanceof Error && error.message.includes(": proposal score ")) throw error;
-    return { rows: [], sourceFile };
+    throw new Error(`${sourceFile}: proposal score snapshot must contain valid JSON`);
   }
 }

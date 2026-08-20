@@ -15,6 +15,13 @@ try {
   assert.deepEqual(current.rows, [{ code: "current" }]);
   assert.equal(current.sourceFile, join(dir, "scores_2026-08-18.json"));
 
+  writeFileSync(join(dir, "scores_2026-08-18.json"), "{", "utf-8");
+  assert.throws(
+    () => readProposalScores<{ code: string }>(dir, "2026-08-18"),
+    /proposal score snapshot must contain valid JSON/,
+    "malformed score JSON must not be treated as a legitimate zero-score day",
+  );
+
   writeFileSync(join(dir, "scores_2026-08-18.json"), JSON.stringify({ code: "8136" }), "utf-8");
   assert.throws(
     () => readProposalScores<{ code: string }>(dir, "2026-08-18"),
@@ -67,4 +74,4 @@ try {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("proposals-score-input: PIT, root-shape, warning-shape, required-identity, and duplicate-identity regressions OK");
+console.log("proposals-score-input: PIT, parse-error, root-shape, warning-shape, required-identity, and duplicate-identity regressions OK");
