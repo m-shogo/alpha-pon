@@ -1,5 +1,5 @@
 import { todayJst } from "./date.js";
-import { parseListingEventDate } from "./listing-event-date.js";
+import { listingEventDaysBetween, parseListingEventDate } from "./listing-event-date.js";
 
 export type ListingEventMessageAlert = {
   id: string;
@@ -34,9 +34,12 @@ function isCanonicalOptionalCode(value: unknown): boolean {
     || (typeof value === "string" && value.trim().length > 0 && value === value.trim());
 }
 
-function hasConsistentDaysUntil(value: Record<string, unknown>): boolean {
+function hasConsistentDaysUntil(value: Record<string, unknown>, asOf: string): boolean {
   if (value.alertType === "missing_date") return value.daysUntil === null;
   if (typeof value.daysUntil !== "number" || !Number.isInteger(value.daysUntil)) return false;
+  if (typeof value.eventDate !== "string") return false;
+  const expectedDaysUntil = listingEventDaysBetween(asOf, value.eventDate);
+  if (expectedDaysUntil === null || value.daysUntil !== expectedDaysUntil) return false;
   if (value.alertType === "upcoming") return value.daysUntil >= 0;
   if (value.alertType === "review_due") return value.daysUntil <= 0;
   return false;
@@ -51,7 +54,7 @@ function hasConsistentEventDate(value: Record<string, unknown>): boolean {
   return typeof value.eventDate === "string" && parseListingEventDate(value.eventDate) !== null;
 }
 
-function isListingEventMessageAlert(value: unknown): value is ListingEventMessageAlert {
+function isListingEventMessageAlert(value: unknown, asOf: string): value is ListingEventMessageAlert {
   if (!isRecord(value)) return false;
   return typeof value.id === "string"
     && value.id.trim().length > 0
@@ -62,7 +65,7 @@ function isListingEventMessageAlert(value: unknown): value is ListingEventMessag
     && isCanonicalOptionalCode(value.code)
     && (value.alertType === "upcoming" || value.alertType === "review_due" || value.alertType === "missing_date")
     && hasConsistentEventDate(value)
-    && hasConsistentDaysUntil(value)
+    && hasConsistentDaysUntil(value, asOf)
     && (value.effectiveNotificationLevel === "priority"
       || value.effectiveNotificationLevel === "morning_summary"
       || value.effectiveNotificationLevel === "log")
@@ -91,7 +94,7 @@ export function parseListingEventMessageInput(text: string, asOf = todayJst()): 
   const alerts: ListingEventMessageAlert[] = [];
   const invalidRows: number[] = [];
   parsed.alerts.forEach((value, index) => {
-    if (!isListingEventMessageAlert(value)) {
+    if (!isListingEventMessageAlert(value, asOf)) {
       invalidRows.push(index + 1);
       return;
     }
