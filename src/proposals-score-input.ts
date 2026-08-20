@@ -28,7 +28,9 @@ export function readProposalScores<T>(
 
   try {
     const parsed = JSON.parse(readFileSync(sourceFile, "utf-8")) as unknown;
-    if (!Array.isArray(parsed)) return { rows: [], sourceFile };
+    if (!Array.isArray(parsed)) {
+      throw new Error(`${sourceFile}: proposal score root must be an array`);
+    }
 
     const unsafeRows = parsed
       .map((row, index) => hasSafeWarnings(row) ? null : index + 1)
