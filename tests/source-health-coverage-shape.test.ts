@@ -4,6 +4,7 @@ import "./source-health-report-file.test.js";
 import "./source-health-complete-wrapper-report.test.js";
 import "./source-health-failed-steps-shape.test.js";
 import "./regime-history-input.test.js";
+import "./company-non-move-sync.test.js";
 import { normalizeSourceHealthScoreRows } from "../src/source-health-input.js";
 
 const valid = normalizeSourceHealthScoreRows([{
