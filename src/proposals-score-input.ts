@@ -2,15 +2,30 @@ import { readFileSync } from "node:fs";
 import { todayJst } from "./date.js";
 import { latestValuationScoreFile } from "./valuation-range-input.js";
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function hasSafeWarnings(value: unknown): boolean {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return true;
-  const warnings = (value as Record<string, unknown>).warnings;
+  if (!isRecord(value)) return true;
+  const warnings = value.warnings;
   return warnings == null || (Array.isArray(warnings) && warnings.every(item => typeof item === "string"));
 }
 
+function hasSafePrimaryDisclosureReview(value: unknown): boolean {
+  if (!isRecord(value)) return true;
+  const review = value.primaryDisclosureReview;
+  if (review === undefined) return true;
+  if (!isRecord(review) || !["confirmed", "caution", "block", "missing"].includes(String(review.decision))) return false;
+  if (!isRecord(review.sourceCoverage)) return false;
+  const fetchErrorCount = review.sourceCoverage.fetchErrorCount;
+  return fetchErrorCount === undefined
+    || (Number.isSafeInteger(fetchErrorCount) && Number(fetchErrorCount) >= 0);
+}
+
 function stableCode(value: unknown): string | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
-  const code = (value as Record<string, unknown>).code;
+  if (!isRecord(value)) return null;
+  const code = value.code;
   return typeof code === "string" && code.length > 0 && code === code.trim() ? code : null;
 }
 
@@ -37,6 +52,13 @@ export function readProposalScores<T>(
       .filter((row): row is number => row !== null);
     if (unsafeRows.length > 0) {
       throw new Error(`${sourceFile}: proposal score warning shape is invalid at row(s) ${unsafeRows.join(", ")}`);
+    }
+
+    const unsafePrimaryReviewRows = parsed
+      .map((row, index) => hasSafePrimaryDisclosureReview(row) ? null : index + 1)
+      .filter((row): row is number => row !== null);
+    if (unsafePrimaryReviewRows.length > 0) {
+      throw new Error(`${sourceFile}: proposal score primary disclosure review shape is invalid at row(s) ${unsafePrimaryReviewRows.join(", ")}`);
     }
 
     const invalidIdentityRows = parsed
