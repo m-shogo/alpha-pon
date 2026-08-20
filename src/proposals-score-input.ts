@@ -26,44 +26,45 @@ export function readProposalScores<T>(
   const sourceFile = latestValuationScoreFile(reportsDir, asOf);
   if (!sourceFile) return { rows: [], sourceFile: null };
 
+  let parsed: unknown;
   try {
-    const parsed = JSON.parse(readFileSync(sourceFile, "utf-8")) as unknown;
-    if (!Array.isArray(parsed)) {
-      throw new Error(`${sourceFile}: proposal score root must be an array`);
-    }
-
-    const unsafeRows = parsed
-      .map((row, index) => hasSafeWarnings(row) ? null : index + 1)
-      .filter((row): row is number => row !== null);
-    if (unsafeRows.length > 0) {
-      throw new Error(`${sourceFile}: proposal score warning shape is invalid at row(s) ${unsafeRows.join(", ")}`);
-    }
-
-    const invalidIdentityRows = parsed
-      .map((row, index) => stableCode(row) === null ? index + 1 : null)
-      .filter((row): row is number => row !== null);
-    if (invalidIdentityRows.length > 0) {
-      throw new Error(`${sourceFile}: proposal score identity is invalid at row(s) ${invalidIdentityRows.join(", ")}`);
-    }
-
-    const codeRows = new Map<string, number[]>();
-    parsed.forEach((row, index) => {
-      const code = stableCode(row)!;
-      const rows = codeRows.get(code) ?? [];
-      rows.push(index + 1);
-      codeRows.set(code, rows);
-    });
-    const duplicateRows = [...codeRows.values()]
-      .filter(rows => rows.length > 1)
-      .flat()
-      .sort((a, b) => a - b);
-    if (duplicateRows.length > 0) {
-      throw new Error(`${sourceFile}: proposal score identity is duplicated at row(s) ${duplicateRows.join(", ")}`);
-    }
-
-    return { rows: parsed as T[], sourceFile };
-  } catch (error) {
-    if (error instanceof Error && error.message.includes(": proposal score ")) throw error;
-    return { rows: [], sourceFile };
+    parsed = JSON.parse(readFileSync(sourceFile, "utf-8")) as unknown;
+  } catch {
+    throw new Error(`${sourceFile}: proposal score snapshot must contain valid JSON`);
   }
+
+  if (!Array.isArray(parsed)) {
+    throw new Error(`${sourceFile}: proposal score root must be an array`);
+  }
+
+  const unsafeRows = parsed
+    .map((row, index) => hasSafeWarnings(row) ? null : index + 1)
+    .filter((row): row is number => row !== null);
+  if (unsafeRows.length > 0) {
+    throw new Error(`${sourceFile}: proposal score warning shape is invalid at row(s) ${unsafeRows.join(", ")}`);
+  }
+
+  const invalidIdentityRows = parsed
+    .map((row, index) => stableCode(row) === null ? index + 1 : null)
+    .filter((row): row is number => row !== null);
+  if (invalidIdentityRows.length > 0) {
+    throw new Error(`${sourceFile}: proposal score identity is invalid at row(s) ${invalidIdentityRows.join(", ")}`);
+  }
+
+  const codeRows = new Map<string, number[]>();
+  parsed.forEach((row, index) => {
+    const code = stableCode(row)!;
+    const rows = codeRows.get(code) ?? [];
+    rows.push(index + 1);
+    codeRows.set(code, rows);
+  });
+  const duplicateRows = [...codeRows.values()]
+    .filter(rows => rows.length > 1)
+    .flat()
+    .sort((a, b) => a - b);
+  if (duplicateRows.length > 0) {
+    throw new Error(`${sourceFile}: proposal score identity is duplicated at row(s) ${duplicateRows.join(", ")}`);
+  }
+
+  return { rows: parsed as T[], sourceFile };
 }
