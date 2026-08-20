@@ -62,6 +62,21 @@ try {
   const valuationValid = readGeneratedCompanyRules<ProValuationGeneratedRule>(path, "2026-08-17", isProValuationGeneratedRule);
   assert(valuationValid.rows.length === 1 && valuationValid.rows[0]?.code === "8136", "valid valuation rule rows must remain usable");
 
+  writeFileSync(path, JSON.stringify({
+    generatedAt: "2026-08-17",
+    rules: [
+      { code: "8136", name: "Sanrio", risks: ["期待先行"] },
+      { code: "8136", name: "Sanrio duplicate", risks: ["出来高急増"] },
+    ],
+  }), "utf-8");
+  let duplicateCodeRejected = false;
+  try {
+    readGeneratedCompanyRules<ProValuationGeneratedRule>(path, "2026-08-17", isProValuationGeneratedRule);
+  } catch (error) {
+    duplicateCodeRejected = error instanceof Error && /contains duplicate code 8136/.test(error.message);
+  }
+  assert(duplicateCodeRejected, "duplicate company rule codes must not make valuation provenance input-order dependent");
+
   for (const invalidRule of [
     { code: "8136", name: "Sanrio", risks: {} },
     { code: "8136", name: "Sanrio", evidenceNeeded: "IR" },
