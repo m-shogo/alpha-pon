@@ -2,12 +2,12 @@
 // OK / WARN / ERROR を出力し、致命的エラーのみ exit(1)
 
 import { existsSync, readdirSync, readFileSync, statSync } from "fs";
-import { join } from "path";
 import { spawnSync } from "child_process";
 import { openJobsDb } from "../src/jobs/db.js";
 import { getTodayInTokyo } from "../src/jobs/date-utils.js";
 import { getLastSuccessDate, APP_NAME } from "../src/jobs/job-runner.js";
 import { buildOutcomeIntegrityReport } from "../src/hypothesis-outcome-integrity.js";
+import { backupHealthEvidenceFromDirectoryNames } from "../src/health/backup-health.js";
 import { normalizeSpecialOpsHealthStatus } from "../src/health/special-ops-health-status.js";
 
 const TODAY = getTodayInTokyo();
@@ -324,24 +324,17 @@ existsSync("data/hypothesis_outcomes.db")
   if (!existsSync(BACKUP_ROOT)) {
     warn("backup:dir", "backups/ 未作成（pnpm backup を実行してください）");
   } else {
-    const dirs = readdirSync(BACKUP_ROOT)
-      .filter(n => /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}$/.test(n))
-      .sort();
-    const count = dirs.length;
-    const latest = dirs[count - 1] ?? null;
-    if (count === 0) {
+    const backup = backupHealthEvidenceFromDirectoryNames(readdirSync(BACKUP_ROOT));
+    if (!backup.latest || backup.latestAgeDays === null) {
       warn("backup:latest", "バックアップ 0 件（pnpm backup を実行してください）");
     } else {
-      const latestPath = join(BACKUP_ROOT, latest);
-      const ageMs = Date.now() - statSync(latestPath).mtime.getTime();
-      const ageDays = Math.floor(ageMs / 86400000);
-      ageDays > 3
-        ? warn("backup:latest", `${latest}（${ageDays}日前 — 古い可能性あり）`)
-        : ok("backup:latest", `${latest}（${ageDays}日前）`);
+      backup.latestAgeDays > 3
+        ? warn("backup:latest", `${backup.latest}（${backup.latestAgeDays}日前 — 古い可能性あり）`)
+        : ok("backup:latest", `${backup.latest}（${backup.latestAgeDays}日前）`);
     }
-    count > 30
-      ? warn("backup:count", `${count} 件（30件超過）`)
-      : ok("backup:count", `${count} 件`);
+    backup.count > 30
+      ? warn("backup:count", `${backup.count} 件（30件超過）`)
+      : ok("backup:count", `${backup.count} 件`);
   }
 }
 
