@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
+import { collectPipelineFailedStepNames } from "./pipeline-failed-steps.js";
 import { hasUniqueSourceHealthScoreIdentities, normalizeSourceHealthObject, normalizeSourceHealthScoreRows } from "./source-health-input.js";
 import { selectSourceHealthScoreFile } from "./source-health-score-file.js";
 
@@ -77,28 +78,6 @@ function pct(numerator: number, denominator: number): string {
   return `${((numerator / denominator) * 100).toFixed(1)}%`;
 }
 
-export function failedStepNames(status: PipelineStatus | null): string[] {
-  if (!status) return [];
-
-  const fromFailedSteps = Array.isArray(status.failedSteps)
-    ? status.failedSteps
-    : typeof status.failedSteps === "string"
-      ? status.failedSteps.split(",").map(step => step.trim()).filter(Boolean)
-      : [];
-
-  const fromSteps = (status.steps ?? [])
-    .filter(step => step.status && !["ok", "skipped"].includes(step.status))
-    .map(step => step.name ?? "unknown");
-
-  const fromResults = (status.results ?? [])
-    .filter(result => result.status && !["ok", "skip", "skipped"].includes(result.status))
-    .map(result => result.name ?? "unknown");
-
-  const fromCompleteWrapper = status.completeWrapperFailedSteps ?? [];
-
-  return [...new Set([...fromFailedSteps, ...fromSteps, ...fromResults, ...fromCompleteWrapper])];
-}
-
 function formatStep(step: PipelineStep | PipelineResult): string {
   const duration = "durationSec" in step && typeof step.durationSec === "number" ? ` (${step.durationSec}s)` : "";
   return `${step.status ?? "unknown"}${duration}`;
@@ -143,7 +122,7 @@ function main() {
   const fetchErrors = scores.reduce((sum, score) => sum + (score.primaryDisclosureReview?.sourceCoverage?.fetchErrorCount ?? 0), 0);
   const jquantsWarnings = countIncludes(scores, "JQUANTS") + countIncludes(scores, "株価データ") + countIncludes(scores, "ベンチマーク");
   const primaryWarnings = countIncludes(scores, "一次情報");
-  const failedSteps = failedStepNames(pipeline);
+  const failedSteps = collectPipelineFailedStepNames(pipeline);
 
   const lines: string[] = [];
   lines.push("# alpha-pon 情報源ヘルスレポート");
