@@ -9,6 +9,7 @@ import {
 import "./pro-ir-event-input.test.js";
 import "./generated-array-input.test.js";
 import "./read-only-json-row-isolation.test.js";
+import "./stock-pro-committee-input.test.js";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
