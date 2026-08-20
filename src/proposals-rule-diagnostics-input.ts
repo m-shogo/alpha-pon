@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
 const WEAK_DIAGNOSES = new Set(["delete_candidate", "condition_required", "weaken_candidate"]);
 
@@ -41,6 +42,10 @@ export function readProposalRuleDiagnostics<T>(path: string): T[] {
   }
 
   return parsed as T[];
+}
+
+export function readCurrentProposalRuleDiagnostics<T>(reportsDir: string, asOf: string): T[] {
+  return readProposalRuleDiagnostics<T>(join(reportsDir, `rule_diagnostics_${asOf}.json`));
 }
 
 export function isWeakProposalRuleDiagnosis(value: string): boolean {
