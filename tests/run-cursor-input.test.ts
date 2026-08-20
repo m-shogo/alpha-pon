@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { addDaysJst, todayJst } from "../src/date.js";
 import { loadRunCursor } from "../src/run-cursor.js";
 
 const originalCwd = process.cwd();
@@ -54,17 +55,53 @@ try {
       offset: 40,
       maxPerRun: 20,
       total: 100,
-      updatedAt: "2026-08-18",
+      updatedAt: "2026-02-31",
+    },
+  }), "utf-8");
+  assert.equal(
+    loadRunCursor("universe-scan", 20, 100).offset,
+    0,
+    "persisted cursors with nonexistent provenance dates must fail closed",
+  );
+
+  writeFileSync("data/run-cursors.json", JSON.stringify({
+    "universe-scan": {
+      jobName: "universe-scan",
+      offset: 40,
+      maxPerRun: 20,
+      total: 100,
+      updatedAt: addDaysJst(todayJst(), 1),
+    },
+  }), "utf-8");
+  const future = loadRunCursor("universe-scan", 20, 100);
+  assert.equal(
+    future.offset,
+    0,
+    "future cursor provenance must not skip current scan items",
+  );
+  assert.equal(
+    future.updatedAt,
+    todayJst(),
+    "rejected future cursor provenance must reset to the current JST date",
+  );
+
+  writeFileSync("data/run-cursors.json", JSON.stringify({
+    "universe-scan": {
+      jobName: "universe-scan",
+      offset: 40,
+      maxPerRun: 20,
+      total: 100,
+      updatedAt: todayJst(),
     },
   }), "utf-8");
   assert.equal(
     loadRunCursor("universe-scan", 20, 100).offset,
     40,
-    "canonical persisted offsets remain usable",
+    "canonical current-date persisted offsets remain usable",
   );
 } finally {
   process.chdir(originalCwd);
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("run-cursor-input: malformed root and invalid persisted offsets fail closed OK");
+console.log("run-cursor-input: malformed roots, invalid offsets, and future provenance fail closed OK");
