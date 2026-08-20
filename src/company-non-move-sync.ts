@@ -25,8 +25,33 @@ function readJsonl<T>(path: string): T[] {
   return parsed.rows;
 }
 
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(item => typeof item === "string");
+}
+
+function isUsableCompanyNonMoveRow(value: unknown): value is CompanyNonMoveRow {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  return (
+    typeof row.date === "string" &&
+    typeof row.code === "string" &&
+    typeof row.name === "string" &&
+    typeof row.category === "string" &&
+    typeof row.hypothesis === "string" &&
+    typeof row.outcome === "string" &&
+    isStringArray(row.nonMoveReasons) &&
+    typeof row.lesson === "string" &&
+    typeof row.nextAction === "string" &&
+    typeof row.source === "string"
+  );
+}
+
 function existingKeys(path: string): Set<string> {
-  return new Set(readJsonl<CompanyNonMoveRow>(path).map(row => `${row.date}:${row.code}:${row.source}`));
+  const rows = readJsonl<unknown>(path);
+  const validRows = rows.filter(isUsableCompanyNonMoveRow);
+  const invalidRows = rows.length - validRows.length;
+  if (invalidRows > 0) console.warn(`${path}: invalid_shape ${invalidRows}`);
+  return new Set(validRows.map(row => `${row.date}:${row.code}:${row.source}`));
 }
 
 function inferReasons(outcome: AnalogyOutcomeRecord): string[] {
