@@ -11,11 +11,14 @@ function tokyoDateFromMtime(mtime: Date): string {
   return `${byType.get("year")}-${byType.get("month")}-${byType.get("day")}`;
 }
 
-export function isUsableFreshSuccessArtifact(path: string, today: string): boolean {
+export function isUsableFreshSuccessArtifact(path: string, today: string, nowMs = Date.now()): boolean {
   if (!existsSync(path)) return false;
   try {
     const stats = statSync(path);
-    return stats.isFile() && stats.size > 0 && tokyoDateFromMtime(stats.mtime) === today;
+    return stats.isFile()
+      && stats.size > 0
+      && stats.mtimeMs <= nowMs
+      && tokyoDateFromMtime(stats.mtime) === today;
   } catch {
     return false;
   }
