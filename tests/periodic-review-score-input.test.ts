@@ -39,6 +39,46 @@ assert.ok(mixed);
 assert.equal(mixed.entries.length, 1, "正常rowは壊れrowの周囲でも保持する");
 assert.deepEqual(mixed.invalidRows, [2], "壊れrowはsilent dropせず行番号を保持する");
 
+const paddedCode = parsePeriodicScoreLog(JSON.stringify([
+  {
+    code: " 8136",
+    name: "sample",
+    score: 60,
+    alertLevel: "daily",
+    createdAt: "2026-08-18",
+  },
+]));
+assert.ok(paddedCode);
+assert.equal(paddedCode.entries.length, 0, "前後空白付きcodeを別identityとして採用しない");
+assert.deepEqual(paddedCode.invalidRows, [1]);
+
+const duplicateCodes = parsePeriodicScoreLog(JSON.stringify([
+  {
+    code: "8136",
+    name: "first",
+    score: 60,
+    alertLevel: "daily",
+    createdAt: "2026-08-18",
+  },
+  {
+    code: "8136",
+    name: "second",
+    score: 70,
+    alertLevel: "urgent",
+    createdAt: "2026-08-18",
+  },
+  {
+    code: "4661",
+    name: "unique",
+    score: 50,
+    alertLevel: "daily",
+    createdAt: "2026-08-18",
+  },
+]));
+assert.ok(duplicateCodes);
+assert.deepEqual(duplicateCodes.entries.map(entry => entry.code), ["4661"], "重複identityは入力順で正本化せず全参加rowを隔離する");
+assert.deepEqual(duplicateCodes.invalidRows, [1, 2]);
+
 const impossibleCreatedAt = parsePeriodicScoreLog(JSON.stringify([
   {
     code: "8136",
