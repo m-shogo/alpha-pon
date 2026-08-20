@@ -9,8 +9,8 @@ for (const rows of [
   [{ code: "8136 ", dataQuality: "ok" }],
   [{ code: 8136, dataQuality: "ok" }],
   [
-    { code: "8136", dataQuality: "ok" },
-    { code: "8136", dataQuality: "ok" },
+    { code: "8136", name: "サンリオ", dataQuality: "ok" },
+    { code: "8136", name: "サンリオ", dataQuality: "ok" },
   ],
 ] as const) {
   assert.equal(
@@ -20,13 +20,27 @@ for (const rows of [
   );
 }
 
+for (const rows of [
+  [{ code: "8136", dataQuality: "ok" }],
+  [{ code: "8136", name: "", dataQuality: "ok" }],
+  [{ code: "8136", name: "   ", dataQuality: "ok" }],
+  [{ code: "8136", name: " サンリオ", dataQuality: "ok" }],
+  [{ code: "8136", name: "サンリオ ", dataQuality: "ok" }],
+] as const) {
+  assert.equal(
+    hasUniqueSourceHealthScoreIdentities(rows),
+    false,
+    "missing, blank, or padded company names must not inflate source-health coverage",
+  );
+}
+
 assert.equal(
   hasUniqueSourceHealthScoreIdentities([
-    { code: "8136", dataQuality: "ok" },
-    { code: "7974", dataQuality: "partial" },
+    { code: "8136", name: "サンリオ", dataQuality: "ok" },
+    { code: "7974", name: "任天堂", dataQuality: "partial" },
   ]),
   true,
   "distinct canonical score identities remain valid",
 );
 
-console.log("source health score identity: canonical non-empty unique code contract OK");
+console.log("source health score identity: canonical non-empty unique code/name contract OK");
