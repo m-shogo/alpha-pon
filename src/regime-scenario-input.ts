@@ -77,6 +77,9 @@ function isUsableRegimeScenarioReflection(value: unknown, asOf: string): value i
       && isRealJstDate(value.createdAt)
       && value.createdAt <= asOf;
   }
+  if (value.date !== undefined && (!isRealJstDate(value.date) || value.date > asOf)) {
+    return false;
+  }
   return true;
 }
 
