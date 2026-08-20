@@ -1,4 +1,4 @@
-import type { SpecialSituationOpsSummary } from './types'
+import type { SpecialSituationOpsSummary } from './types.js'
 
 const HEALTH_STATUSES = new Set(['ok', 'needs_attention', 'action_required'])
 const ACTION_PRIORITIES = new Set(['urgent', 'attention', 'info', 'ok'])
