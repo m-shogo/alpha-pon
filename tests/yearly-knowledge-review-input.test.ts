@@ -1,10 +1,22 @@
 import assert from "node:assert/strict";
 import {
+  isUsableYearlyNonMoveHistory,
   isUsableYearlyRegimeHistory,
   isUsableYearlySourceHealthHistory,
 } from "../src/yearly-knowledge-review-input.js";
 
 const yearlyAsOf = "2026-08-21";
+const validNonMoveHistory = {
+  date: yearlyAsOf,
+  nonMoveReasons: ["already_priced_in"],
+};
+assert.equal(isUsableYearlyNonMoveHistory(validNonMoveHistory, yearlyAsOf), true);
+assert.equal(isUsableYearlyNonMoveHistory({ ...validNonMoveHistory, date: "2026-08-22" }, yearlyAsOf), false);
+assert.equal(isUsableYearlyNonMoveHistory({ ...validNonMoveHistory, date: "2026-02-31" }, yearlyAsOf), false);
+assert.equal(isUsableYearlyNonMoveHistory({ ...validNonMoveHistory, date: "0000-01-01" }, yearlyAsOf), false);
+assert.equal(isUsableYearlyNonMoveHistory({ date: yearlyAsOf, nonMoveReasons: "broken" }, yearlyAsOf), false);
+assert.equal(isUsableYearlyNonMoveHistory(null, yearlyAsOf), false);
+
 const validRegimeHistory = {
   date: yearlyAsOf,
   activeRegimes: [{
