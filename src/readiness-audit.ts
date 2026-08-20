@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSy
 import { join } from "path";
 import { todayJst } from "./date.js";
 import { isJQuantsConfigured } from "./fetcher/jquants.js";
+import { collectPipelineFailedStepNames, type PipelineFailureEvidence } from "./pipeline-failed-steps.js";
 import { normalizeSourceHealthObject, normalizeSourceHealthScoreRows } from "./source-health-input.js";
 
 type ReadinessStatus = "done" | "partial" | "blocked" | "not_started";
@@ -35,9 +36,8 @@ type LatestScoreRows = {
   state: "missing" | "ok" | "invalid_root";
 };
 
-type PipelineStatusSnapshot = {
+type PipelineStatusSnapshot = PipelineFailureEvidence & {
   status?: string;
-  completeWrapperFailedSteps?: string[];
 };
 
 type PipelineInput = {
@@ -164,7 +164,7 @@ function buildReport(): ReadinessReport {
     companyMemory?: unknown[];
     primaryDisclosureReviews?: Record<string, unknown>;
     dataQualityByCode?: Record<string, { dataQuality?: string; warnings?: string[] }>;
-    pipelineStatus?: { status?: string; completeWrapperFailedSteps?: string[] };
+    pipelineStatus?: PipelineStatusSnapshot;
   }>("apps/web/public/generated/alpha-pon-data.json");
 
   const pipelineSnapshot = pipelineInput(generated?.pipelineStatus);
@@ -205,7 +205,7 @@ function buildReport(): ReadinessReport {
   const mockUniverse = universe.filter(candidate => candidate.dataSource === "mock").length;
   const missingQuality = dataQuality.filter(row => row.dataQuality === "missing" || row.dataQuality === "unknown").length;
   const qualityWarnings = dataQuality.reduce((sum, row) => sum + (row.warnings?.length ?? 0), 0);
-  const failedSteps = pipeline?.completeWrapperFailedSteps ?? [];
+  const failedSteps = collectPipelineFailedStepNames(pipeline);
   const realOutcomes = outcomes.filter(outcome => outcome.dataSource === "jquants").length;
   const pricedOutcomes = outcomes.filter(outcome => outcome.dataAvailability === "ok" || outcome.dataAvailability === "partial").length;
   const outcomeScore = outcomesState === "invalid_root"
