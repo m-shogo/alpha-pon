@@ -3,6 +3,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { inspectSourceHealthReportFile } from "../src/source-health-report-file.js";
+import "./source-health-history-daily.test.js";
 
 const root = mkdtempSync(join(tmpdir(), "alpha-pon-source-health-report-"));
 try {
