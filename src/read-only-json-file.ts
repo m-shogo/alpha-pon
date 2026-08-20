@@ -15,6 +15,7 @@ export type ReadOnlyJsonObjectArrayFileLoad<T> = {
   parseError: boolean;
   invalidRoot: boolean;
   invalidField: boolean;
+  invalidRows: number;
 };
 
 export type ReadOnlyJsonObjectFileLoad<T extends Record<string, unknown>> = {
@@ -111,6 +112,7 @@ export function readReadOnlyJsonObjectFile<T extends Record<string, unknown>>(
 export function readReadOnlyJsonObjectArrayFile<T>(
   path: string,
   field: string,
+  isRow?: (value: unknown) => value is T,
 ): ReadOnlyJsonObjectArrayFileLoad<T> {
   if (!existsSync(path)) {
     return {
@@ -120,6 +122,7 @@ export function readReadOnlyJsonObjectArrayFile<T>(
       parseError: false,
       invalidRoot: false,
       invalidField: false,
+      invalidRows: 0,
     };
   }
 
@@ -134,13 +137,31 @@ export function readReadOnlyJsonObjectArrayFile<T>(
       parseError: true,
       invalidRoot: false,
       invalidField: false,
+      invalidRows: 0,
     };
   }
 
-  const normalized = normalizeReadOnlyJsonObjectArrayField<T>(parsed, field);
+  const normalized = normalizeReadOnlyJsonObjectArrayField<unknown>(parsed, field);
+  if (normalized.invalidRoot || normalized.invalidField || !isRow) {
+    return {
+      object: normalized.object,
+      rows: normalized.rows as T[],
+      missing: false,
+      parseError: false,
+      invalidRoot: normalized.invalidRoot,
+      invalidField: normalized.invalidField,
+      invalidRows: 0,
+    };
+  }
+
+  const rows = normalized.rows.filter(isRow);
   return {
-    ...normalized,
+    object: normalized.object,
+    rows,
     missing: false,
     parseError: false,
+    invalidRoot: false,
+    invalidField: false,
+    invalidRows: normalized.rows.length - rows.length,
   };
 }

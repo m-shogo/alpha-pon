@@ -78,6 +78,7 @@ function main() {
   const stockProCommitteeLoad = readReadOnlyJsonObjectArrayFile<Record<string, unknown>>(
     "reports/stock_pro_committee_latest.json",
     "decisions",
+    isRecord,
   );
   const stockProCommitteeJson = {
     ...(stockProCommitteeLoad.object ?? {}),
@@ -131,6 +132,9 @@ function main() {
     stockProCommitteeLoad.parseError ? "reports/stock_pro_committee_latest.json: parse_error" : null,
     stockProCommitteeLoad.invalidRoot ? "reports/stock_pro_committee_latest.json: invalid_root (expected object)" : null,
     stockProCommitteeLoad.invalidField ? "reports/stock_pro_committee_latest.json.decisions: invalid_field (expected array)" : null,
+    stockProCommitteeLoad.invalidRows > 0
+      ? `reports/stock_pro_committee_latest.json.decisions: invalid_rows (${stockProCommitteeLoad.invalidRows})`
+      : null,
   ].filter((value): value is string => Boolean(value));
 
   const merged = {
