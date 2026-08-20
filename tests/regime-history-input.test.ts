@@ -1,4 +1,10 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { addDaysJst, todayJst } from "../src/date.js";
 import { normalizeRegimeHistoryActiveRegimes, resolveRegimeHistoryAsOf } from "../src/regime-history-input.js";
 
 assert.equal(resolveRegimeHistoryAsOf(undefined, "2026-08-20"), "2026-08-20", "missing asOf remains backward-compatible with the current history date");
@@ -55,4 +61,75 @@ for (const invalid of [
   );
 }
 
-console.log("regime history input: invalid or future provenance fails closed OK");
+const root = mkdtempSync(join(tmpdir(), "alpha-pon-regime-history-"));
+const tsxImport = import.meta.resolve("tsx/esm");
+const source = fileURLToPath(new URL("../src/regime-history.ts", import.meta.url));
+try {
+  mkdirSync(join(root, "data"), { recursive: true });
+  mkdirSync(join(root, "config"), { recursive: true });
+  writeFileSync(
+    join(root, "config/current-regime.yml"),
+    [
+      "mode: risk-off",
+      "summary: current test regime",
+      "activeRegimes:",
+      "  - id: risk-off",
+      "    level: high",
+      "    why: macro stress",
+      "",
+    ].join("\n"),
+    "utf8",
+  );
+
+  const today = todayJst();
+  const yesterday = addDaysJst(today, -1);
+  writeFileSync(
+    join(root, "data/regime_history.jsonl"),
+    [
+      JSON.stringify({ date: yesterday, asOf: yesterday, mode: "old-a", summary: "old a", activeRegimes: [{ id: "old-a" }] }),
+      JSON.stringify({ date: today, asOf: today, mode: "old-today", summary: "old today", activeRegimes: [{ id: "old-today" }] }),
+      "{malformed historical row",
+      JSON.stringify({ date: yesterday, asOf: yesterday, mode: "old-b", summary: "old b", activeRegimes: [{ id: "old-b" }] }),
+      "",
+    ].join("\n"),
+    "utf8",
+  );
+
+  execFileSync(process.execPath, ["--import", tsxImport, source], { cwd: root, stdio: "pipe" });
+  execFileSync(process.execPath, ["--import", tsxImport, source], { cwd: root, stdio: "pipe" });
+
+  const lines = readFileSync(join(root, "data/regime_history.jsonl"), "utf8")
+    .split("\n")
+    .filter(Boolean);
+  const validRows = lines.flatMap(line => {
+    try {
+      return [JSON.parse(line) as { date?: string; mode?: string }];
+    } catch {
+      return [];
+    }
+  });
+
+  assert.equal(
+    validRows.filter(row => row.date === today).length,
+    1,
+    "same-day reruns must keep one regime-history row so current regime is not overweighted",
+  );
+  assert.equal(
+    validRows.filter(row => row.date === yesterday).length,
+    1,
+    "existing duplicate regime dates must collapse so historical regime counts stay day-weighted",
+  );
+  assert.equal(
+    validRows.find(row => row.date === yesterday)?.mode,
+    "old-b",
+    "latest row for a duplicated historical date must remain authoritative",
+  );
+  assert.ok(
+    lines.includes("{malformed historical row"),
+    "daily upsert must preserve malformed history for downstream read-only audit visibility",
+  );
+} finally {
+  rmSync(root, { recursive: true, force: true });
+}
+
+console.log("regime history input: invalid or future provenance and duplicate daily history fail closed OK");
