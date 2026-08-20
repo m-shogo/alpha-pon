@@ -67,6 +67,20 @@ function isActionItem(value: unknown): boolean {
     && (value.command === undefined || isCanonicalText(value.command))
 }
 
+function hasConsistentHealthStatus(
+  healthStatus: SpecialSituationOpsInput['healthStatus'],
+  actionItems: SpecialSituationOpsInput['actionItems'],
+): boolean {
+  const hasUrgent = actionItems.some(item => item.priority === 'urgent')
+  const hasAttention = actionItems.some(item => item.priority === 'attention')
+  const expectedStatus = hasUrgent
+    ? 'action_required'
+    : hasAttention
+      ? 'needs_attention'
+      : 'ok'
+  return healthStatus === expectedStatus
+}
+
 function hasValidCoverage(value: unknown): boolean {
   if (!isRecord(value)) return false
   return isSafeCount(value.totalCandidates)
@@ -115,6 +129,10 @@ export function normalizeGeneratedSpecialSituationOpsInput(value: unknown): {
     return { value: null, warning: 'specialSituationOps: invalid_shape' }
   }
   if (!Array.isArray(value.actionItems) || !value.actionItems.every(isActionItem)) {
+    return { value: null, warning: 'specialSituationOps: invalid_shape' }
+  }
+  const actionItems = value.actionItems as SpecialSituationOpsInput['actionItems']
+  if (!hasConsistentHealthStatus(value.healthStatus as SpecialSituationOpsInput['healthStatus'], actionItems)) {
     return { value: null, warning: 'specialSituationOps: invalid_shape' }
   }
   if (!hasValidCoverage(value.coverage)
