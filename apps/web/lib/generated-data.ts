@@ -25,6 +25,7 @@ import {
 } from './generated-array-input'
 import { normalizeGeneratedAccuracySummaryInput } from './generated-accuracy-summary-input'
 import { normalizeGeneratedIpoThemeWatchInput } from './generated-ipo-theme-watch-input'
+import { normalizeGeneratedOutcomeIntegrityInput } from './generated-outcome-integrity-input'
 import { normalizeGeneratedReadinessInput } from './generated-readiness-input'
 import { normalizeGeneratedSpecialSituationOpsInput } from './generated-special-situation-ops-input'
 import { normalizeGeneratedStocksInput } from './generated-stock-input'
@@ -211,6 +212,7 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
   const ipoThemeWatchLoad = normalizeGeneratedIpoThemeWatchInput(data.ipoThemeWatch)
   const readinessLoad = normalizeGeneratedReadinessInput(data.readiness)
   const specialSituationOpsLoad = normalizeGeneratedSpecialSituationOpsInput(data.specialSituationOps)
+  const outcomeIntegrityLoad = normalizeGeneratedOutcomeIntegrityInput(data.hypothesisOutcomeIntegrity)
   const hasPipelineStatus = data.pipelineStatus !== undefined && data.pipelineStatus !== null
   const pipelineStatus = hasPipelineStatus && isGeneratedPipelineStatusInput(data.pipelineStatus)
     ? data.pipelineStatus
@@ -249,7 +251,7 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
     ipoThemeWatch: ipoThemeWatchLoad.value as ProData['ipoThemeWatch'],
     specialSituationWatch: data.specialSituationWatch ?? null,
     specialSituationOps: specialSituationOpsLoad.value,
-    hypothesisOutcomeIntegrity: data.hypothesisOutcomeIntegrity ?? null,
+    hypothesisOutcomeIntegrity: outcomeIntegrityLoad.value as ProData['hypothesisOutcomeIntegrity'],
     worldImpactReviews: Array.isArray((data as { worldImpactReviews?: unknown[] }).worldImpactReviews)
       ? (data as { worldImpactReviews?: ProData['worldImpactReviews'] }).worldImpactReviews
       : [],
@@ -270,36 +272,39 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
                             normalizeGeneratedMeta(
                               normalizeGeneratedMeta(
                                 normalizeGeneratedMeta(
-                                  normalizeGeneratedMeta(data.meta, rootLoad.warning),
-                                  reportLoad.warning,
+                                  normalizeGeneratedMeta(
+                                    normalizeGeneratedMeta(data.meta, rootLoad.warning),
+                                    reportLoad.warning,
+                                  ),
+                                  candidateLoad.warning,
                                 ),
-                                candidateLoad.warning,
+                                universeCandidateLoad.warning,
                               ),
-                              universeCandidateLoad.warning,
+                              hypothesisPredictionLoad.warning,
                             ),
-                            hypothesisPredictionLoad.warning,
+                            hypothesisOutcomeLoad.warning,
                           ),
-                          hypothesisOutcomeLoad.warning,
+                          companyMemoryLoad.warning,
                         ),
-                        companyMemoryLoad.warning,
+                        dataQualityLoad.warning,
                       ),
-                      dataQualityLoad.warning,
+                      runCursorLoad.warning,
                     ),
-                    runCursorLoad.warning,
+                    worldThemeCandidateHypothesisLoad.warning,
                   ),
-                  worldThemeCandidateHypothesisLoad.warning,
+                  accuracySummaryLoad.warning,
                 ),
-                accuracySummaryLoad.warning,
+                worldContextLoad.warning,
               ),
-              worldContextLoad.warning,
+              ipoThemeWatchLoad.warning,
             ),
-            ipoThemeWatchLoad.warning,
+            pipelineStatusWarning,
           ),
-          pipelineStatusWarning,
+          readinessLoad.warning,
         ),
-        readinessLoad.warning,
+        specialSituationOpsLoad.warning,
       ),
-      specialSituationOpsLoad.warning,
+      outcomeIntegrityLoad.warning,
     ),
   }
 }
