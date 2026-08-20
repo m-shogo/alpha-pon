@@ -59,6 +59,7 @@ function main() {
     const source = `analogy:${outcome.eventId ?? outcome.lessonId}:${outcome.timeframe ?? "unknown"}`;
     const key = `${outcome.evaluatedAt ?? date}:${outcome.candidateCode}:${source}`;
     if (keys.has(key)) continue;
+    keys.add(key);
 
     rows.push({
       date: outcome.evaluatedAt ?? date,
