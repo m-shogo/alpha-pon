@@ -9,7 +9,7 @@ export type PeriodicScoreLogEntry = {
   tags?: string[];
   rules?: string[];
   score: number;
-  alertLevel: string;
+  alertLevel: "urgent" | "daily" | "log" | "ignore";
   warnings?: string[];
   negativeReasons?: string[];
   createdAt: string;
@@ -32,6 +32,10 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(item => typeof item === "string");
 }
 
+function isAlertLevel(value: unknown): value is PeriodicScoreLogEntry["alertLevel"] {
+  return value === "urgent" || value === "daily" || value === "log" || value === "ignore";
+}
+
 function isRealDate(value: string): boolean {
   try {
     return addDaysJst(value, 0) === value;
@@ -46,7 +50,7 @@ function normalizePeriodicScoreRow(value: unknown, expectedDate?: string): Perio
   if (typeof row.code !== "string" || row.code.trim() === "" || row.code !== row.code.trim()) return null;
   if (typeof row.name !== "string" || row.name.trim() === "") return null;
   if (typeof row.score !== "number" || !Number.isFinite(row.score)) return null;
-  if (typeof row.alertLevel !== "string" || row.alertLevel.trim() === "") return null;
+  if (!isAlertLevel(row.alertLevel)) return null;
   if (typeof row.createdAt !== "string" || !isRealDate(row.createdAt)) return null;
   if (expectedDate != null && row.createdAt !== expectedDate) return null;
 
