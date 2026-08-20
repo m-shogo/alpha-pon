@@ -37,7 +37,7 @@ const VALID_ALERT = {
   eventType: "listing",
   eventDate: "2026-08-20",
   alertType: "upcoming",
-  daysUntil: 3,
+  daysUntil: 2,
   effectiveNotificationLevel: "priority",
   reason: "fixture",
 };
@@ -94,7 +94,7 @@ assert.deepEqual(
     {},
     { ...VALID_ALERT, id: "" },
     { ...VALID_ALERT, effectiveNotificationLevel: "urgent" },
-    { ...VALID_ALERT, daysUntil: "3" },
+    { ...VALID_ALERT, daysUntil: "2" },
     { ...VALID_ALERT, code: " 1234" },
   ])), AS_OF),
   {
@@ -111,19 +111,31 @@ assert.deepEqual(
     { ...VALID_ALERT, alertType: "missing_date", eventDate: "2026-02-31", daysUntil: null },
     { ...VALID_ALERT, alertType: "upcoming", daysUntil: null },
     { ...VALID_ALERT, alertType: "upcoming", daysUntil: -1 },
-    { ...VALID_ALERT, alertType: "review_due", daysUntil: 1 },
-    { ...VALID_ALERT, alertType: "review_due", daysUntil: 0 },
+    { ...VALID_ALERT, alertType: "review_due", eventDate: AS_OF, daysUntil: 1 },
+    { ...VALID_ALERT, alertType: "review_due", eventDate: AS_OF, daysUntil: 0 },
   ])), AS_OF),
   {
     alerts: [
       VALID_ALERT,
       { ...VALID_ALERT, alertType: "missing_date", eventDate: null, daysUntil: null },
       { ...VALID_ALERT, alertType: "missing_date", eventDate: "2026-02-31", daysUntil: null },
-      { ...VALID_ALERT, alertType: "review_due", daysUntil: 0 },
+      { ...VALID_ALERT, alertType: "review_due", eventDate: AS_OF, daysUntil: 0 },
     ],
     warnings: ["listing_event_alerts_latest.json: invalid_rows=4,5,6"],
   },
   "alertType and daysUntil must preserve producer chronology before preview counts are trusted",
+);
+
+assert.deepEqual(
+  parseListingEventMessageInput(JSON.stringify(payload([
+    VALID_ALERT,
+    { ...VALID_ALERT, daysUntil: 3 },
+  ])), AS_OF),
+  {
+    alerts: [VALID_ALERT],
+    warnings: ["listing_event_alerts_latest.json: invalid_rows=2"],
+  },
+  "daysUntil must equal the eventDate distance from the current generatedAt date",
 );
 
 assert.deepEqual(
