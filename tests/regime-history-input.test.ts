@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { addDaysJst, todayJst } from "../src/date.js";
 import { normalizeRegimeHistoryActiveRegimes, resolveRegimeHistoryAsOf } from "../src/regime-history-input.js";
 
@@ -62,6 +63,7 @@ for (const invalid of [
 
 const root = mkdtempSync(join(tmpdir(), "alpha-pon-regime-history-"));
 const tsxImport = import.meta.resolve("tsx/esm");
+const source = fileURLToPath(new URL("../src/regime-history.ts", import.meta.url));
 try {
   mkdirSync(join(root, "data"), { recursive: true });
   mkdirSync(join(root, "config"), { recursive: true });
@@ -93,7 +95,6 @@ try {
     "utf8",
   );
 
-  const source = resolve("src/regime-history.ts");
   execFileSync(process.execPath, ["--import", tsxImport, source], { cwd: root, stdio: "pipe" });
   execFileSync(process.execPath, ["--import", tsxImport, source], { cwd: root, stdio: "pipe" });
 
