@@ -8,6 +8,7 @@ import { openJobsDb } from "../src/jobs/db.js";
 import { getTodayInTokyo } from "../src/jobs/date-utils.js";
 import { getLastSuccessDate, APP_NAME } from "../src/jobs/job-runner.js";
 import { buildOutcomeIntegrityReport } from "../src/hypothesis-outcome-integrity.js";
+import { normalizeSpecialOpsHealthStatus } from "../src/health/special-ops-health-status.js";
 
 const TODAY = getTodayInTokyo();
 
@@ -223,23 +224,26 @@ type SpecialOpsSummary = {
   outcomeStats?: { sampleTooSmall?: number };
 };
 const specialOps = readJson<SpecialOpsSummary>("reports/special_situation_ops_summary_latest.json");
+const specialOpsHealthStatus = normalizeSpecialOpsHealthStatus(specialOps?.healthStatus);
 if (!specialOps) {
   warn("special situation ops", "未生成（pnpm ops:special を実行してください）");
-} else if (specialOps.healthStatus === "action_required") {
+} else if (specialOpsHealthStatus === "action_required") {
   const urgent = (specialOps.actionItems ?? []).filter(item => item.priority === "urgent");
   const command = urgent.find(item => item.command)?.command ?? "pnpm ops:special";
   warn(
     "special situation ops",
     `action_required: ${urgent.map(item => item.title).join(" / ") || "要対応あり"} / nextAction: ${command}`
   );
-} else if (specialOps.healthStatus === "needs_attention") {
+} else if (specialOpsHealthStatus === "needs_attention") {
   const attention = (specialOps.actionItems ?? []).filter(item => item.priority === "attention");
   warn(
     "special situation ops",
     `needs_attention: ${attention.map(item => item.title).join(" / ") || "確認事項あり"} / nextAction: pnpm ops:special`
   );
-} else {
+} else if (specialOpsHealthStatus === "ok") {
   ok("special situation ops", "ok");
+} else {
+  warn("special situation ops", "invalid healthStatus / nextAction: pnpm ops:special");
 }
 
 // ── hypothesis outcome duplicate / DB unique index ───────────
