@@ -28,6 +28,19 @@ assert.deepEqual(
   normalizeGeneratedReadinessInput({ ...valid, items: [{ ...valid.items[0], nextActions: 'review:hypotheses' }] }),
   { value: null, warning: 'readiness: invalid_shape' },
 )
+for (const malformed of [
+  { ...valid, overallScore: 101 },
+  { ...valid, overallScore: -1 },
+  { ...valid, overallStatus: 'complete' },
+  { ...valid, items: [{ ...valid.items[0], score: 101 }] },
+  { ...valid, items: [{ ...valid.items[0], status: 'healthy' }] },
+] as const) {
+  assert.deepEqual(
+    normalizeGeneratedReadinessInput(malformed),
+    { value: null, warning: 'readiness: invalid_shape' },
+    'impossible readiness scores/statuses must not reach roadmap rendering',
+  )
+}
 assert.deepEqual(normalizeGeneratedReadinessInput(valid), { value: valid, warning: null })
 
 console.log('generated readiness input: malformed runtime shape is isolated before Home page access OK')

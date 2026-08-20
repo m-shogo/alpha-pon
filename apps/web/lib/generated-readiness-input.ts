@@ -20,8 +20,18 @@ export type GeneratedReadinessInputResult = {
   warning: string | null
 }
 
+const READINESS_STATUSES = new Set(['done', 'partial', 'blocked', 'not_started'])
+
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string')
+}
+
+function isReadinessScore(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100
+}
+
+function isReadinessStatus(value: unknown): value is string {
+  return typeof value === 'string' && READINESS_STATUSES.has(value)
 }
 
 function isReadinessItem(value: unknown): value is GeneratedReadinessItem {
@@ -30,9 +40,8 @@ function isReadinessItem(value: unknown): value is GeneratedReadinessItem {
   return typeof item.id === 'string'
     && item.id.trim().length > 0
     && typeof item.label === 'string'
-    && typeof item.status === 'string'
-    && typeof item.score === 'number'
-    && Number.isFinite(item.score)
+    && isReadinessStatus(item.status)
+    && isReadinessScore(item.score)
     && isStringArray(item.evidence)
     && isStringArray(item.nextActions)
 }
@@ -41,9 +50,8 @@ export function isGeneratedReadinessInput(value: unknown): value is GeneratedRea
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const report = value as Record<string, unknown>
   return typeof report.generatedAt === 'string'
-    && typeof report.overallScore === 'number'
-    && Number.isFinite(report.overallScore)
-    && typeof report.overallStatus === 'string'
+    && isReadinessScore(report.overallScore)
+    && isReadinessStatus(report.overallStatus)
     && isStringArray(report.blockers)
     && Array.isArray(report.items)
     && report.items.every(isReadinessItem)
