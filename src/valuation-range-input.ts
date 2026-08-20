@@ -30,6 +30,7 @@ export function latestValuationScoreFile(
 export function loadLatestValuationScoreRows<T>(
   reportsDir = "reports",
   asOf = todayJst(),
+  isRow?: (value: unknown) => value is T,
 ): T[] {
   const path = latestValuationScoreFile(reportsDir, asOf);
   if (!path) return [];
@@ -39,6 +40,9 @@ export function loadLatestValuationScoreRows<T>(
   }
   if (loaded.invalidRoot) {
     throw new Error(`${path}: invalid_root (expected array)`);
+  }
+  if (isRow && loaded.rows.some((row) => !isRow(row))) {
+    throw new Error(`${path}: invalid_row`);
   }
   return loaded.rows;
 }
