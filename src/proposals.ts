@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
 import { readProposalPipelineStatus } from "./proposals-pipeline-input.js";
-import { readProposalRuleDiagnostics } from "./proposals-rule-diagnostics-input.js";
+import { readCurrentProposalRuleDiagnostics } from "./proposals-rule-diagnostics-input.js";
 import { readProposalScores } from "./proposals-score-input.js";
 
 type Priority = "S" | "A" | "B" | "Hold";
@@ -298,7 +298,7 @@ function main() {
   const date = todayJst();
   const scores = readProposalScores<ScoreLogEntry>("reports", date).rows;
   const pipeline = readProposalPipelineStatus<PipelineStatus>("reports/pipeline_status_latest.json");
-  const ruleDiagnostics = readProposalRuleDiagnostics<RuleDiagnostic>("reports/rule_diagnostics_latest.json");
+  const ruleDiagnostics = readCurrentProposalRuleDiagnostics<RuleDiagnostic>("reports", date);
   const proposals = buildProposals({ pipeline, scores, ruleDiagnostics });
 
   mkdirSync("reports", { recursive: true });
