@@ -20,6 +20,14 @@ const valid = {
 assert.deepEqual(normalizeGeneratedWorldContextInput(undefined), { value: null, warning: null })
 assert.deepEqual(normalizeGeneratedWorldContextInput({}), { value: null, warning: 'worldContext: invalid_shape' })
 assert.deepEqual(
+  normalizeGeneratedWorldContextInput({ ...valid, asOf: '2026-02-30' }),
+  { value: null, warning: 'worldContext: invalid_shape' },
+)
+assert.deepEqual(
+  normalizeGeneratedWorldContextInput({ ...valid, asOf: '9999-12-31' }),
+  { value: null, warning: 'worldContext: invalid_shape' },
+)
+assert.deepEqual(
   normalizeGeneratedWorldContextInput({ ...valid, activeRegimes: {} }),
   { value: null, warning: 'worldContext: invalid_shape' },
 )
@@ -50,4 +58,4 @@ assert.deepEqual(
 )
 assert.deepEqual(normalizeGeneratedWorldContextInput(valid), { value: valid, warning: null })
 
-console.log('generated world context input: malformed runtime shape and ambiguous regime identities are isolated before World page access OK')
+console.log('generated world context input: malformed runtime shape, PIT dates, and ambiguous regime identities are isolated before World page access OK')
