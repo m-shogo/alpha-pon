@@ -22,7 +22,9 @@ function isUsableProScoreRow(value: unknown, expectedDate: string): boolean {
   if (!isRecord(value)) return false;
   if (typeof value.code !== "string" || value.code.length === 0 || value.code !== value.code.trim()) return false;
   if (typeof value.name !== "string" || value.name.trim().length === 0) return false;
-  if (typeof value.createdAt !== "string" || !isRealJstDate(value.createdAt) || value.createdAt !== expectedDate) return false;
+  if (value.createdAt !== undefined) {
+    if (typeof value.createdAt !== "string" || !isRealJstDate(value.createdAt) || value.createdAt !== expectedDate) return false;
+  }
   return isOptionalStringArray(value.reasons)
     && isOptionalStringArray(value.negativeReasons)
     && isOptionalStringArray(value.warnings);
