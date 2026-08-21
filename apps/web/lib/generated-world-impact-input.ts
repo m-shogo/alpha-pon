@@ -1,4 +1,4 @@
-import type { WorldImpactAudit, WorldImpactReview } from './types'
+import type { WorldImpactAudit, WorldImpactReview } from './types.js'
 
 const REVIEW_STATUSES = new Set(['pending', 'reviewed', 'skipped', 'insufficient_data'])
 const DIRECTIONS = new Set(['positive', 'negative', 'mixed', 'unclear'])
