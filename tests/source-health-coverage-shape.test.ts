@@ -16,6 +16,35 @@ for (const invalidDate of ["2026-02-31", "0000-01-01", "2026-8-21", "2026-08-21T
   assert.equal(result.value, null, "invalid pipeline provenance must not reach source-health aggregation");
 }
 
+const validGeneratedAt = normalizeSourceHealthObject({
+  status: "completed",
+  date: "2026-08-21",
+  generatedAt: "2026-08-21T12:34:56+09:00",
+});
+assert.equal(validGeneratedAt.valid, true, "explicit generatedAt on the matching JST pipeline date remains valid");
+
+for (const invalidGeneratedAt of [
+  "2026-08-21T12:34:56",
+  "2026-02-31T12:34:56+09:00",
+  "2026-08-21T12:34:56-00:00",
+]) {
+  const result = normalizeSourceHealthObject({
+    status: "completed",
+    date: "2026-08-21",
+    generatedAt: invalidGeneratedAt,
+  });
+  assert.equal(result.valid, false, `malformed pipeline generatedAt must fail closed: ${invalidGeneratedAt}`);
+  assert.equal(result.value, null, "invalid generatedAt provenance must not reach source-health aggregation");
+}
+
+const mismatchedGeneratedAt = normalizeSourceHealthObject({
+  status: "completed",
+  date: "2026-08-21",
+  generatedAt: "2026-08-20T23:59:59+09:00",
+});
+assert.equal(mismatchedGeneratedAt.valid, false, "generatedAt must belong to the same JST day as pipeline date");
+assert.equal(mismatchedGeneratedAt.value, null);
+
 const valid = normalizeSourceHealthScoreRows([{
   code: "8136",
   marketContext: { benchmark: "TOPIX" },
