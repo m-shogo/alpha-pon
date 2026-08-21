@@ -17,8 +17,9 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string')
 }
 
-function isFiniteNumberOrNull(value: unknown): value is number | null {
-  return value === null || (typeof value === 'number' && Number.isFinite(value))
+function isCanonicalDrawdownOrNull(value: unknown): value is number | null {
+  return value === null
+    || (typeof value === 'number' && Number.isFinite(value) && value >= -100 && value <= 0)
 }
 
 export function isGeneratedAlertCandidateInput(value: unknown): value is GeneratedAlertCandidateInput {
@@ -29,7 +30,7 @@ export function isGeneratedAlertCandidateInput(value: unknown): value is Generat
     && row.code === row.code.trim()
     && typeof row.name === 'string'
     && (row.dataSource === 'jquants' || row.dataSource === 'mock')
-    && isFiniteNumberOrNull(row.drawdownPct)
+    && isCanonicalDrawdownOrNull(row.drawdownPct)
     && typeof row.screeningScore === 'number'
     && Number.isFinite(row.screeningScore)
     && row.screeningScore >= 0
