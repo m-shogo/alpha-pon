@@ -3,6 +3,10 @@ import { join } from "node:path";
 import { addDaysJst, todayJst } from "./date.js";
 import { readReadOnlyJsonArrayFile } from "./read-only-json-file.js";
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function isRealJstDate(value: string): boolean {
   try {
     return addDaysJst(value, 0) === value;
@@ -44,5 +48,14 @@ export function loadLatestValuationScoreRows<T>(
   if (isRow && loaded.rows.some((row) => !isRow(row))) {
     throw new Error(`${path}: invalid_row`);
   }
+
+  const codes = loaded.rows.map((row) => isRecord(row) ? row.code : undefined);
+  if (codes.some((code) => typeof code !== "string" || code.length === 0 || code !== code.trim())) {
+    throw new Error(`${path}: invalid_code_identity`);
+  }
+  if (new Set(codes).size !== codes.length) {
+    throw new Error(`${path}: duplicate_code_identity`);
+  }
+
   return loaded.rows;
 }
