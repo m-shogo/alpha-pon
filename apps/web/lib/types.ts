@@ -252,7 +252,6 @@ export type WorldImpactReview = {
     missReason?: WorldImpactMissReason | null
     missedSignals: string[]
     lesson: string | null
-    // v3 自動評価フィールド（v1/v2 レコードでは省略されうる・全て null 安全に扱う）
     evaluatedAt?: string | null
     evaluationAsOf?: string | null
     priceStartDate?: string | null
@@ -280,7 +279,6 @@ export type WorldImpactReview = {
   lesson: string | null
   createdAt: string
   updatedAt: string
-  // v2 検証可能仮説フィールド（v1 レコードでは省略されうる）
   mechanisms?: WorldImpactMechanism[]
   impactPath?: {
     event: string
@@ -313,7 +311,6 @@ export type WorldImpactAudit = {
   priceDataPending: number
   sourceQualityUnknown: number
   unknownMatchedAsHit: number
-  // v2 監査項目（旧 audit JSON では省略されうる）
   insufficientData?: number
   confidenceMissing?: number
   mechanismUnknown?: number
@@ -324,7 +321,6 @@ export type WorldImpactAudit = {
   outcomeResultCounts?: Record<string, number>
   missReasonCounts?: Record<string, number>
   duplicateKeys?: Array<{ key: string; count: number }>
-  // v3 監査項目（省略されうる）
   dueWithoutOutcome?: number
   evaluatedAtMissing?: number
   evaluationAsOfMissing?: number
@@ -387,9 +383,7 @@ export type IpoThemeWatch = {
     themeId: string
     phase: string
     relatedCompanyCode: string
-    /** actionLabel (watch/log/ignore) */
     finalLabel: string
-    /** result (hit/miss/too_early/etc) — sampleTooSmall=true の場合は強い判断に使わない */
     originalFinalLabel: string
     sampleSize: number
     sampleTooSmall: boolean
@@ -446,9 +440,7 @@ export type SpecialSituationWatch = {
     whyDangerous: string[]
     evidenceNeeded: string[]
     waitFor: string[]
-    /** なぜ今見るのか */
     whyNow: string[]
-    /** なぜ今はまだ待つのか */
     whyNotNow: string[]
     sellerPressureProfile?: {
       sellerType: string
@@ -588,7 +580,6 @@ export type AlphaPonGeneratedData = {
   }
   reports: GeneratedReport[]
   candidates: Candidate[]
-  // ユニバース・仮説・検証フィールド（省略可 = データ生成前は空）
   universeCandidates?: UniverseCandidate[]
   universeScan?: UniverseScanMetadata | null
   hypothesisPredictions?: StockCandidateHypothesis[]
@@ -626,7 +617,7 @@ export type AlphaPonGeneratedData = {
     status?: string
     startedAt?: string
     endedAt?: string
-    failedSteps?: string
+    failedSteps?: string[]
     completeWrapperFailedSteps?: string[]
     completeWrapperRunAt?: string
     steps?: Array<{
