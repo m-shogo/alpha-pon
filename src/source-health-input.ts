@@ -36,6 +36,12 @@ function isOptionalNonNegativeInteger(value: unknown): boolean {
   return value === undefined || isNonNegativeInteger(value);
 }
 
+function hasUniqueNamedRows(value: unknown): boolean {
+  if (!Array.isArray(value)) return true;
+  const names = value.map(row => (isRecord(row) && typeof row.name === "string" ? row.name : ""));
+  return names.length === new Set(names).size;
+}
+
 const DATA_QUALITIES = new Set(["ok", "partial", "missing"]);
 const PRIMARY_DISCLOSURE_DECISIONS = new Set(["confirmed", "caution", "block", "missing"]);
 const PIPELINE_STATUSES = new Set([
@@ -202,6 +208,9 @@ export function normalizeSourceHealthObject<T extends object>(value: unknown): {
   ) {
     return { value: null, valid: false };
   }
+  if (!hasUniqueNamedRows(steps)) {
+    return { value: null, valid: false };
+  }
 
   const results = value.results;
   if (
@@ -215,6 +224,9 @@ export function normalizeSourceHealthObject<T extends object>(value: unknown): {
       || !PIPELINE_RESULT_STATUSES.has(row.status)
     ))
   ) {
+    return { value: null, valid: false };
+  }
+  if (!hasUniqueNamedRows(results)) {
     return { value: null, valid: false };
   }
 
