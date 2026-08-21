@@ -323,10 +323,21 @@ export function normalizeMarketEventData(value: unknown): WebMarketEventData {
   const data = value as Partial<WebMarketEventData>
   const summary = data.summary ?? EMPTY_MARKET_EVENT_DATA.summary
   const rawEvents = array<unknown>(data.events)
-  const events = rawEvents.filter(isRenderableWebMarketEvent)
-  const invalidEventCount = rawEvents.length - events.length
+  const renderableEvents = rawEvents.filter(isRenderableWebMarketEvent)
+  const eventIdCounts = new Map<string, number>()
+  for (const event of renderableEvents) {
+    eventIdCounts.set(event.eventId, (eventIdCounts.get(event.eventId) ?? 0) + 1)
+  }
+  const duplicateEventIds = new Set(
+    [...eventIdCounts.entries()]
+      .filter(([, count]) => count > 1)
+      .map(([eventId]) => eventId),
+  )
+  const events = renderableEvents.filter(event => !duplicateEventIds.has(event.eventId))
+  const invalidEventCount = rawEvents.length - renderableEvents.length
   const warnings = array<unknown>(data.meta?.warnings).filter((warning): warning is string => typeof warning === 'string')
   if (invalidEventCount > 0) warnings.push(`不正なイベント ${invalidEventCount} 件を表示対象から除外しました。`)
+  if (duplicateEventIds.size > 0) warnings.push(`重複イベントID ${duplicateEventIds.size} 件を表示対象から除外しました。`)
   const normalizedSummary = canonicalSummary(events, summary.nextEventAt)
   return {
     schemaVersion: 1,

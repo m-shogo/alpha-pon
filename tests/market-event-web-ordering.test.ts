@@ -178,6 +178,30 @@ assert.deepEqual(
   "valid event rows must remain the canonical source of read-only summary counts",
 );
 
+const duplicateIdentity = normalizeMarketEventData({
+  schemaVersion: 1,
+  source: "fallback",
+  events: [
+    validEvent,
+    { ...validEvent, title: "conflicting duplicate", priority: "S0" },
+    { ...validEvent, eventId: "event-2", occurrenceKey: "event-2@2026-08-13", sortAt: "2026-08-13" },
+  ],
+  summary: { nextEventAt: "2026-08-12" },
+  meta: { warnings: [] },
+});
+assert.deepEqual(
+  duplicateIdentity.events.map(event => event.eventId),
+  ["event-2"],
+  "all rows participating in a duplicate event identity must be quarantined instead of choosing an input-order winner",
+);
+assert.deepEqual(
+  duplicateIdentity.meta.warnings,
+  ["重複イベントID 1 件を表示対象から除外しました。"],
+  "duplicate identities must remain observable through metadata-only warnings",
+);
+assert.equal(duplicateIdentity.summary.total, 1, "duplicate identities must not inflate summary counts");
+assert.equal(duplicateIdentity.summary.nextEventAt, null, "nextEventAt must not point at a quarantined duplicate identity");
+
 const invalidSortAt = normalizeMarketEventData({
   schemaVersion: 1,
   source: "fallback",
