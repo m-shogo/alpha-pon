@@ -226,6 +226,19 @@ function testLearningScoreDuplicateIdentity() {
   assert.deepEqual(parsed.invalidRows, [1, 2], "重複identity参加rowは全件隔離する");
 }
 
+function testLearningAlertLevelContract() {
+  const parsed = parseLearningScoreInput(JSON.stringify([{
+    code: "8136",
+    name: "サンリオ",
+    score: 72,
+    alertLevel: "later",
+    createdAt: "2026-08-21",
+  }]), "2026-08-21");
+  assert.ok(parsed);
+  assert.equal(parsed.entries.length, 0, "producer契約外alertLevelを総件数だけ増えるlearning evidenceにしない");
+  assert.deepEqual(parsed.invalidRows, [1]);
+}
+
 function main() {
   testPullbackMissingFinancials();
   testEarningsDropMissingFinancials();
@@ -240,6 +253,7 @@ function main() {
   testLearningScoreInputIsolation();
   testLearningScorePitCutoff();
   testLearningScoreDuplicateIdentity();
+  testLearningAlertLevelContract();
   console.log("score.test.ts passed");
 }
 
