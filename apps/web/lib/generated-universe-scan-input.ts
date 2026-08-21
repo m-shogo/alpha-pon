@@ -1,4 +1,4 @@
-import type { UniverseScanMetadata } from '../types/universe'
+import type { UniverseScanMetadata } from '../types/universe.js'
 
 export type GeneratedUniverseScanInputResult = {
   value: UniverseScanMetadata | null
