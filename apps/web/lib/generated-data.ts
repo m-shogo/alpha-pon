@@ -31,6 +31,10 @@ import { normalizeGeneratedSpecialSituationOpsInput } from './generated-special-
 import { normalizeGeneratedSpecialSituationWatchInput } from './generated-special-situation-watch-input'
 import { normalizeGeneratedStocksInput } from './generated-stock-input'
 import { normalizeGeneratedUniverseScanInput } from './generated-universe-scan-input'
+import {
+  normalizeGeneratedWorldImpactAuditInput,
+  normalizeGeneratedWorldImpactReviewsInput,
+} from './generated-world-impact-input'
 import { normalizeGeneratedWorldContextInput } from './generated-world-context-input'
 
 const DATA_PATH = join(process.cwd(), 'public', 'generated', 'alpha-pon-data.json')
@@ -217,6 +221,8 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
   const specialSituationWatchLoad = normalizeGeneratedSpecialSituationWatchInput(data.specialSituationWatch)
   const outcomeIntegrityLoad = normalizeGeneratedOutcomeIntegrityInput(data.hypothesisOutcomeIntegrity)
   const universeScanLoad = normalizeGeneratedUniverseScanInput(data.universeScan)
+  const worldImpactReviewLoad = normalizeGeneratedWorldImpactReviewsInput(data.worldImpactReviews)
+  const worldImpactAuditLoad = normalizeGeneratedWorldImpactAuditInput(data.worldImpactAudit)
   const hasPipelineStatus = data.pipelineStatus !== undefined && data.pipelineStatus !== null
   const pipelineStatus = hasPipelineStatus && isGeneratedPipelineStatusInput(data.pipelineStatus)
     ? data.pipelineStatus
@@ -256,10 +262,8 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
     specialSituationWatch: specialSituationWatchLoad.value as ProData['specialSituationWatch'],
     specialSituationOps: specialSituationOpsLoad.value,
     hypothesisOutcomeIntegrity: outcomeIntegrityLoad.value as ProData['hypothesisOutcomeIntegrity'],
-    worldImpactReviews: Array.isArray((data as { worldImpactReviews?: unknown[] }).worldImpactReviews)
-      ? (data as { worldImpactReviews?: ProData['worldImpactReviews'] }).worldImpactReviews
-      : [],
-    worldImpactAudit: (data as { worldImpactAudit?: ProData['worldImpactAudit'] }).worldImpactAudit ?? null,
+    worldImpactReviews: worldImpactReviewLoad.rows,
+    worldImpactAudit: worldImpactAuditLoad.value,
     pipelineStatus,
     meta: normalizeGeneratedMeta(
       normalizeGeneratedMeta(
@@ -279,42 +283,48 @@ function normalizeGeneratedData(value: unknown): ProDataWithWorldThemeCandidateH
                                   normalizeGeneratedMeta(
                                     normalizeGeneratedMeta(
                                       normalizeGeneratedMeta(
-                                        normalizeGeneratedMeta(data.meta, rootLoad.warning),
-                                        reportLoad.warning,
+                                        normalizeGeneratedMeta(
+                                          normalizeGeneratedMeta(
+                                            normalizeGeneratedMeta(data.meta, rootLoad.warning),
+                                            reportLoad.warning,
+                                          ),
+                                          candidateLoad.warning,
+                                        ),
+                                        universeCandidateLoad.warning,
                                       ),
-                                      candidateLoad.warning,
+                                      hypothesisPredictionLoad.warning,
                                     ),
-                                    universeCandidateLoad.warning,
+                                    hypothesisOutcomeLoad.warning,
                                   ),
-                                  hypothesisPredictionLoad.warning,
+                                  companyMemoryLoad.warning,
                                 ),
-                                hypothesisOutcomeLoad.warning,
+                                dataQualityLoad.warning,
                               ),
-                              companyMemoryLoad.warning,
+                              runCursorLoad.warning,
                             ),
-                            dataQualityLoad.warning,
+                            worldThemeCandidateHypothesisLoad.warning,
                           ),
-                          runCursorLoad.warning,
+                          accuracySummaryLoad.warning,
                         ),
-                        worldThemeCandidateHypothesisLoad.warning,
+                        worldContextLoad.warning,
                       ),
-                      accuracySummaryLoad.warning,
+                      ipoThemeWatchLoad.warning,
                     ),
-                    worldContextLoad.warning,
+                    pipelineStatusWarning,
                   ),
-                  ipoThemeWatchLoad.warning,
+                  readinessLoad.warning,
                 ),
-                pipelineStatusWarning,
+                specialSituationOpsLoad.warning,
               ),
-              readinessLoad.warning,
+              outcomeIntegrityLoad.warning,
             ),
-            specialSituationOpsLoad.warning,
+            specialSituationWatchLoad.warning,
           ),
-          outcomeIntegrityLoad.warning,
+          universeScanLoad.warning,
         ),
-        specialSituationWatchLoad.warning,
+        worldImpactReviewLoad.warning,
       ),
-      universeScanLoad.warning,
+      worldImpactAuditLoad.warning,
     ),
   }
 }
