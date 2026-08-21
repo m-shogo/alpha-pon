@@ -57,16 +57,24 @@ function hasValidNestedReviewDates(row: Record<string, unknown>, today: string):
   if (row.reviewDueAt != null && !isRealJstDate(row.reviewDueAt)) return false;
   if (row.outcomes === undefined) return true;
   if (!Array.isArray(row.outcomes)) return false;
-  return row.outcomes.every(outcome => {
+
+  const horizons = new Set<string>();
+  for (const outcome of row.outcomes) {
     if (typeof outcome !== "object" || outcome === null || Array.isArray(outcome)) return false;
     const nested = outcome as Record<string, unknown>;
-    return isRealJstDate(nested.dueAt)
-      && isNullableDateAtOrBefore(nested.evaluatedAt, today)
-      && isNullableDateAtOrBefore(nested.evaluationAsOf, today)
-      && isNullableRealJstDate(nested.priceStartDate)
-      && isNullableDateAtOrBefore(nested.priceEndDate, today)
-      && hasValidEvaluationChronology(nested);
-  });
+    if (nested.horizon !== "1d" && nested.horizon !== "1w" && nested.horizon !== "1m") return false;
+    if (horizons.has(nested.horizon)) return false;
+    horizons.add(nested.horizon);
+    if (!isRealJstDate(nested.dueAt)
+      || !isNullableDateAtOrBefore(nested.evaluatedAt, today)
+      || !isNullableDateAtOrBefore(nested.evaluationAsOf, today)
+      || !isNullableRealJstDate(nested.priceStartDate)
+      || !isNullableDateAtOrBefore(nested.priceEndDate, today)
+      || !hasValidEvaluationChronology(nested)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 function isWorldImpactReviewRow(value: unknown, today: string): value is Record<string, unknown> {
