@@ -94,15 +94,33 @@ try {
     afterDays: 30,
     memo: "reviewed",
   });
+  const invalidWorldThemeResult = JSON.stringify({
+    theme: "space",
+    result: "unexpected_bucket",
+    candidateCode: "6758",
+    candidateCompany: "Company 6758",
+    reviewedAt: "2026-08-16",
+    afterDays: 30,
+    memo: "invalid result",
+  });
+  const invalidWorldThemeHorizon = JSON.stringify({
+    theme: "space",
+    result: "miss",
+    candidateCode: "6501",
+    candidateCompany: "Company 6501",
+    reviewedAt: "2026-08-16",
+    afterDays: 31,
+    memo: "invalid horizon",
+  });
   writeFileSync(
     worldThemeStatsPath,
-    `${validWorldThemeResult}\n{broken\n{}\n{"theme":"space"}\n`,
+    `${validWorldThemeResult}\n{broken\n{}\n{"theme":"space"}\n${invalidWorldThemeResult}\n${invalidWorldThemeHorizon}\n`,
     "utf-8",
   );
   const worldThemeStatsInput = readWorldThemeCandidateStatsInput(worldThemeStatsPath);
   assert.deepEqual(worldThemeStatsInput.rows.map(row => row.candidateCode), ["8136"]);
   assert(worldThemeStatsInput.warning?.includes("lines 2"), "malformed stats rows must surface line-number metadata without stopping valid rows");
-  assert(worldThemeStatsInput.warning?.includes("invalid_rows 2"), "JSON-valid unsafe stats rows must be isolated without stopping valid rows");
+  assert(worldThemeStatsInput.warning?.includes("invalid_rows 4"), "producer-contract violations in result or review horizon must be isolated without stopping valid rows");
   assert(!worldThemeStatsInput.warning?.includes("{broken"), "stats warnings must not echo raw malformed JSONL content");
 
   const worldEventsPath = join(tmp, "world_events_latest.json");
