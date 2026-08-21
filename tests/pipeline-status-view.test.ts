@@ -5,6 +5,7 @@ assert.equal(isPipelineStatusHealthy({ status: 'ok', failedSteps: [], completeWr
 assert.equal(isPipelineStatusHealthy({ status: 'ok' }), true)
 assert.equal(isPipelineStatusHealthy({ status: 'partial_failed', failedSteps: [], completeWrapperFailedSteps: [] }), false)
 assert.equal(isPipelineStatusHealthy({ status: 'ok', failedSteps: ['scan:universe(1)'], completeWrapperFailedSteps: [] }), false)
+assert.equal(isPipelineStatusHealthy({ status: 'ok', failedSteps: 'scan:universe(1)', completeWrapperFailedSteps: [] }), false)
 assert.equal(isPipelineStatusHealthy({ status: 'ok', failedSteps: [], completeWrapperFailedSteps: ['scan:universe(1)'] }), false)
 assert.equal(isPipelineStatusHealthy({ status: 'success', failedSteps: [], completeWrapperFailedSteps: [] }), false)
 
