@@ -52,16 +52,21 @@ export function recordProposalHistory(date: string, proposals: ProposalHistoryIt
   mkdirSync(HISTORY_DIR, { recursive: true });
   const history = readHistory();
   const existingKeys = new Set(history.map(item => `${item.date}:${item.priority}:${item.title}`));
-  const lines = proposals
-    .filter(proposal => proposal.priority !== "Hold")
-    .filter(proposal => !existingKeys.has(`${date}:${proposal.priority}:${proposal.title}`))
-    .map(proposal => JSON.stringify({
+  const lines: string[] = [];
+
+  for (const proposal of proposals) {
+    if (proposal.priority === "Hold") continue;
+    const key = `${date}:${proposal.priority}:${proposal.title}`;
+    if (existingKeys.has(key)) continue;
+    existingKeys.add(key);
+    lines.push(JSON.stringify({
       date,
       priority: proposal.priority,
       title: proposal.title,
       reason: proposal.reason,
       action: proposal.action,
     }));
+  }
 
   if (lines.length > 0) {
     appendFileSync(HISTORY_PATH, `${lines.join("\n")}\n`, "utf-8");
