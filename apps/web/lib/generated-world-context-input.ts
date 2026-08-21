@@ -18,6 +18,10 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0
 }
 
+function isCanonicalNonEmptyString(value: unknown): value is string {
+  return isNonEmptyString(value) && value === value.trim()
+}
+
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string')
 }
@@ -25,21 +29,26 @@ function isStringArray(value: unknown): value is string[] {
 function isWorldContextRegime(value: unknown): value is GeneratedWorldContextRegime {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const regime = value as Record<string, unknown>
-  return isNonEmptyString(regime.id)
+  return isCanonicalNonEmptyString(regime.id)
     && isNonEmptyString(regime.level)
     && typeof regime.why === 'string'
     && isStringArray(regime.watchCategories)
     && isStringArray(regime.caution)
 }
 
+function hasUniqueRegimeIds(regimes: GeneratedWorldContextRegime[]): boolean {
+  return new Set(regimes.map((regime) => regime.id)).size === regimes.length
+}
+
 export function isGeneratedWorldContextInput(value: unknown): value is GeneratedWorldContext {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const context = value as Record<string, unknown>
+  if (!Array.isArray(context.activeRegimes) || !context.activeRegimes.every(isWorldContextRegime)) return false
+
   return isNonEmptyString(context.asOf)
     && isNonEmptyString(context.mode)
     && typeof context.summary === 'string'
-    && Array.isArray(context.activeRegimes)
-    && context.activeRegimes.every(isWorldContextRegime)
+    && hasUniqueRegimeIds(context.activeRegimes)
     && isStringArray(context.operatingRules)
 }
 
