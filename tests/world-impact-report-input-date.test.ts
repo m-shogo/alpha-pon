@@ -67,6 +67,23 @@ for (const field of ["evaluatedAt", "evaluationAsOf", "priceEndDate"] as const) 
   assert.deepEqual(result.reviews, [], "future outcome evidence must fail closed");
 }
 
+for (const [field, value] of [
+  ["reviewKey", " event__5803"],
+  ["eventId", "event "],
+] as const) {
+  const result = resolveWorldImpactReportInput({ present: true, parsed: [{ ...base, [field]: value }] }, [], "2026-06-12");
+  assert.equal(result.latestSnapshotError, true, `padded ${field} must not create an ambiguous provenance identity`);
+  assert.deepEqual(result.reviews, [], "non-canonical identities must fail closed");
+}
+
+const duplicateLatest = resolveWorldImpactReportInput(
+  { present: true, parsed: [base, { ...base, topic: "duplicate identity" }] },
+  [],
+  "2026-06-12",
+);
+assert.equal(duplicateLatest.latestSnapshotError, true, "duplicate reviewKey must not be counted twice in canonical latest");
+assert.deepEqual(duplicateLatest.reviews, [], "ambiguous duplicate latest identities must fail closed");
+
 const invalidFallback = normalizeWorldImpactReview({
   ...base,
   outcomes: [{ ...base.outcomes[0], evaluatedAt: "2026-02-31" }],
@@ -96,6 +113,15 @@ const futureOutcomeFallbackResult = resolveWorldImpactReportInput({ present: fal
 assert.equal(futureOutcomeFallbackResult.jsonlFallbackError, true, "future JSONL outcome evidence must not become current fallback evidence");
 assert.deepEqual(futureOutcomeFallbackResult.reviews, [], "future fallback outcome evidence must fail closed");
 
+const duplicateFallbackReview = normalizeWorldImpactReview(base, "2026-06-12");
+const duplicateFallbackResult = resolveWorldImpactReportInput(
+  { present: false },
+  [duplicateFallbackReview, { ...duplicateFallbackReview, topic: "duplicate identity" }],
+  "2026-06-12",
+);
+assert.equal(duplicateFallbackResult.jsonlFallbackError, true, "duplicate fallback reviewKey must not become double-counted evidence");
+assert.deepEqual(duplicateFallbackResult.reviews, [], "ambiguous JSONL fallback identities must fail closed");
+
 const validFallback = resolveWorldImpactReportInput(
   { present: false },
   [normalizeWorldImpactReview(base, "2026-06-12")],
@@ -104,4 +130,4 @@ const validFallback = resolveWorldImpactReportInput(
 assert.equal(validFallback.jsonlFallbackError, false, "valid JSONL fallback remains available when latest is absent");
 assert.equal(validFallback.reviews.length, 1, "valid fallback review remains readable");
 
-console.log("world-impact report input: latest and JSONL fallback require real Gregorian JST dates, current provenance/outcome evidence, and monotonic evaluation chronology");
+console.log("world-impact report input: latest and JSONL fallback require canonical unique identities, real Gregorian JST dates, current provenance/outcome evidence, and monotonic evaluation chronology");
