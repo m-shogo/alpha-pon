@@ -20,6 +20,10 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+function isCanonicalIdentity(value: unknown): value is string {
+  return isNonEmptyString(value) && value.trim() === value;
+}
+
 function isRealJstDate(value: unknown): value is string {
   if (!isNonEmptyString(value)) return false;
   try {
@@ -68,8 +72,8 @@ function hasValidNestedReviewDates(row: Record<string, unknown>, today: string):
 function isWorldImpactReviewRow(value: unknown, today: string): value is Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const row = value as Record<string, unknown>;
-  if (!isNonEmptyString(row.reviewKey)
-    || !isNonEmptyString(row.eventId)
+  if (!isCanonicalIdentity(row.reviewKey)
+    || !isCanonicalIdentity(row.eventId)
     || !isRealJstDate(row.eventDate)
     || !isRealJstDate(row.createdAt)
     || !isRealJstDate(row.updatedAt)
@@ -81,13 +85,19 @@ function isWorldImpactReviewRow(value: unknown, today: string): value is Record<
   return row.updatedAt >= row.createdAt;
 }
 
+function hasDuplicateReviewKeys(rows: ReadonlyArray<Record<string, unknown>>): boolean {
+  const keys = rows.map(row => row.reviewKey as string);
+  return new Set(keys).size !== keys.length;
+}
+
 export function resolveWorldImpactReportInput(
   latest: WorldImpactLatestSnapshotInput,
   jsonlReviews: WorldEventImpactReview[],
   today: string,
 ): WorldImpactReportInputResolution {
   if (!latest.present) {
-    if (jsonlReviews.some(review => !isWorldImpactReviewRow(review, today))) {
+    if (jsonlReviews.some(review => !isWorldImpactReviewRow(review, today))
+      || hasDuplicateReviewKeys(jsonlReviews)) {
       return { reviews: [], latestSnapshotError: false, jsonlFallbackError: true };
     }
     return { reviews: jsonlReviews, latestSnapshotError: false, jsonlFallbackError: false };
@@ -101,8 +111,13 @@ export function resolveWorldImpactReportInput(
     return { reviews: [], latestSnapshotError: true, jsonlFallbackError: false };
   }
 
+  const rows = latest.parsed as Record<string, unknown>[];
+  if (hasDuplicateReviewKeys(rows)) {
+    return { reviews: [], latestSnapshotError: true, jsonlFallbackError: false };
+  }
+
   return {
-    reviews: latest.parsed.map(item => normalizeWorldImpactReview(item, today)),
+    reviews: rows.map(item => normalizeWorldImpactReview(item, today)),
     latestSnapshotError: false,
     jsonlFallbackError: false,
   };
