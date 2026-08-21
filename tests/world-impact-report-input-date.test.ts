@@ -9,6 +9,7 @@ const base = {
   createdAt: "2026-06-10",
   updatedAt: "2026-06-12",
   outcomes: [{
+    horizon: "1w",
     dueAt: "2026-06-11",
     evaluatedAt: "2026-06-12",
     evaluationAsOf: "2026-06-12",
@@ -67,6 +68,31 @@ for (const field of ["evaluatedAt", "evaluationAsOf", "priceEndDate"] as const) 
   assert.deepEqual(result.reviews, [], "future outcome evidence must fail closed");
 }
 
+const invalidHorizon = resolveWorldImpactReportInput(
+  { present: true, parsed: [{ ...base, outcomes: [{ ...base.outcomes[0], horizon: "3m" }] }] },
+  [],
+  "2026-06-12",
+);
+assert.equal(invalidHorizon.latestSnapshotError, true, "unknown outcome horizon must not be normalized into 1m evidence");
+assert.deepEqual(invalidHorizon.reviews, [], "invalid outcome horizon must fail closed");
+
+const duplicateHorizon = resolveWorldImpactReportInput(
+  {
+    present: true,
+    parsed: [{
+      ...base,
+      outcomes: [
+        base.outcomes[0],
+        { ...base.outcomes[0], dueAt: "2026-06-12", evaluatedAt: null, evaluationAsOf: null, priceEndDate: null },
+      ],
+    }],
+  },
+  [],
+  "2026-06-12",
+);
+assert.equal(duplicateHorizon.latestSnapshotError, true, "same review must not carry duplicate horizon evidence");
+assert.deepEqual(duplicateHorizon.reviews, [], "duplicate horizon identity must fail closed");
+
 for (const [field, value] of [
   ["reviewKey", " event__5803"],
   ["eventId", "event "],
@@ -122,6 +148,18 @@ const duplicateFallbackResult = resolveWorldImpactReportInput(
 assert.equal(duplicateFallbackResult.jsonlFallbackError, true, "duplicate fallback reviewKey must not become double-counted evidence");
 assert.deepEqual(duplicateFallbackResult.reviews, [], "ambiguous JSONL fallback identities must fail closed");
 
+const duplicateHorizonFallbackReview = normalizeWorldImpactReview({
+  ...base,
+  outcomes: [base.outcomes[0], { ...base.outcomes[0], dueAt: "2026-06-12" }],
+}, "2026-06-12");
+const duplicateHorizonFallbackResult = resolveWorldImpactReportInput(
+  { present: false },
+  [duplicateHorizonFallbackReview],
+  "2026-06-12",
+);
+assert.equal(duplicateHorizonFallbackResult.jsonlFallbackError, true, "duplicate JSONL outcome horizon must not become double-counted fallback evidence");
+assert.deepEqual(duplicateHorizonFallbackResult.reviews, [], "duplicate fallback horizon identity must fail closed");
+
 const validFallback = resolveWorldImpactReportInput(
   { present: false },
   [normalizeWorldImpactReview(base, "2026-06-12")],
@@ -130,4 +168,4 @@ const validFallback = resolveWorldImpactReportInput(
 assert.equal(validFallback.jsonlFallbackError, false, "valid JSONL fallback remains available when latest is absent");
 assert.equal(validFallback.reviews.length, 1, "valid fallback review remains readable");
 
-console.log("world-impact report input: latest and JSONL fallback require canonical unique identities, real Gregorian JST dates, current provenance/outcome evidence, and monotonic evaluation chronology");
+console.log("world-impact report input: latest and JSONL fallback require canonical unique review/outcome identities, real Gregorian JST dates, current provenance/outcome evidence, and monotonic evaluation chronology");
