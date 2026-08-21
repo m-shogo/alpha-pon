@@ -30,7 +30,10 @@ function hasOnlyOptionalStringFields(
 }
 
 function isOptionalStringArray(value: unknown): boolean {
-  return value == null || (Array.isArray(value) && value.every(item => typeof item === "string"));
+  return value == null || (
+    Array.isArray(value)
+    && value.every(item => typeof item === "string" && item.length > 0 && item === item.trim())
+  );
 }
 
 function isOptionalEnum(value: unknown, allowed: readonly string[]): boolean {
