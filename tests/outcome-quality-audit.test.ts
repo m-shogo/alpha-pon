@@ -279,11 +279,15 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
   assert.equal(isQualityHypothesisLike(hypothesis({ detectedAt: "2026-02-31" })), false, "nonexistent detectedAt must fail closed");
   assert.equal(isQualityHypothesisLike(hypothesis({ reviewDueAt: "2026-02-31", expectedTimeframe: undefined })), false, "nonexistent reviewDueAt must fail closed even without timeframe");
   assert.equal(isQualityOutcomeLike(outcome({ hypothesis: hypothesis({ reviewDueAt: "2026-02-31", expectedTimeframe: undefined }) })), false, "outcome lineage with malformed reviewDueAt must fail closed");
+  assert.equal(isQualityOutcomeLike(outcome({ whatMatched: [""] })), false, "empty matched signal must fail closed");
+  assert.equal(isQualityOutcomeLike(outcome({ whatMatched: [" 反応あり "] })), false, "padded matched signal must fail closed");
+  assert.equal(isQualityOutcomeLike(outcome({ missedSignals: ["   "] })), false, "blank missed signal must fail closed");
   assert.equal(isQualityOutcomeLike(outcome({ hypothesis: null })), false, "missing outcome hypothesis lineage must fail closed");
   assert.equal(isQualityOutcomeLike(outcome({ hypothesis: hypothesis({ code: "7011" }) })), false, "cross-company outcome lineage must fail closed");
   assert.equal(isQualityHypothesisLike(hypothesis()), true, "canonical hypothesis row must remain accepted");
   assert.equal(isQualityOutcomeLike(outcome()), true, "canonical outcome row must remain accepted");
-  console.log("outcome-quality: identity, review dates, and outcome lineage provenance fail closed");
+  assert.equal(isQualityOutcomeLike(outcome({ whatMatched: ["反応あり"], missedSignals: ["見落とし"] })), true, "canonical signal arrays must remain accepted");
+  console.log("outcome-quality: identity, review dates, signal arrays, and outcome lineage provenance fail closed");
 }
 
 {
