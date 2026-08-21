@@ -12,6 +12,19 @@ function assertCanonicalDate(value: string): void {
   }
 }
 
+function assertCandidateChronology(candidates: UniverseCandidate[], generatedAt: string): void {
+  for (const candidate of candidates) {
+    try {
+      if (addDaysJst(candidate.detectedAt, 0) !== candidate.detectedAt) throw new Error();
+    } catch {
+      throw new Error("universe scan candidate detectedAt must be a real YYYY-MM-DD date");
+    }
+    if (candidate.detectedAt > generatedAt) {
+      throw new Error("universe scan candidate detectedAt must not be after generatedAt");
+    }
+  }
+}
+
 function assertUniverseScanMetadata(input: {
   dataSource: "jquants" | "mock";
   scanStatus: UniverseScanStatus;
@@ -48,6 +61,7 @@ export function buildUniverseScanOutput(input: {
 }): UniverseScanOutput {
   assertCanonicalDate(input.generatedAt);
   assertUniverseScanMetadata(input);
+  assertCandidateChronology(input.candidates, input.generatedAt);
   if (input.candidates.some(candidate => candidate.dataSource !== input.dataSource)) {
     throw new Error("universe scan candidate provenance must match output dataSource");
   }
