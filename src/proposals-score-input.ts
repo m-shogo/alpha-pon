@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { basename } from "node:path";
 import { todayJst } from "./date.js";
 import { latestValuationScoreFile } from "./valuation-range-input.js";
 
@@ -38,6 +39,16 @@ function stableCode(value: unknown): string | null {
   return typeof code === "string" && code.length > 0 && code === code.trim() ? code : null;
 }
 
+function snapshotDateFromPath(path: string): string | null {
+  return /^scores_(\d{4}-\d{2}-\d{2})\.json$/.exec(basename(path))?.[1] ?? null;
+}
+
+function hasConsistentCreatedAt(value: unknown, snapshotDate: string): boolean {
+  if (!isRecord(value)) return true;
+  const createdAt = value.createdAt;
+  return createdAt === undefined || createdAt === snapshotDate;
+}
+
 export type ProposalScoreLoad<T> = {
   rows: T[];
   sourceFile: string | null;
@@ -54,6 +65,11 @@ export function readProposalScores<T>(
     const parsed = JSON.parse(readFileSync(sourceFile, "utf-8")) as unknown;
     if (!Array.isArray(parsed)) {
       throw new Error(`${sourceFile}: proposal score root must be an array`);
+    }
+
+    const snapshotDate = snapshotDateFromPath(sourceFile);
+    if (snapshotDate === null) {
+      throw new Error(`${sourceFile}: proposal score snapshot filename is invalid`);
     }
 
     const unsafeRows = parsed
@@ -75,6 +91,13 @@ export function readProposalScores<T>(
       .filter((row): row is number => row !== null);
     if (unsafePrimaryReviewRows.length > 0) {
       throw new Error(`${sourceFile}: proposal score primary disclosure review shape is invalid at row(s) ${unsafePrimaryReviewRows.join(", ")}`);
+    }
+
+    const inconsistentCreatedAtRows = parsed
+      .map((row, index) => hasConsistentCreatedAt(row, snapshotDate) ? null : index + 1)
+      .filter((row): row is number => row !== null);
+    if (inconsistentCreatedAtRows.length > 0) {
+      throw new Error(`${sourceFile}: proposal score createdAt is inconsistent with snapshot at row(s) ${inconsistentCreatedAtRows.join(", ")}`);
     }
 
     const invalidIdentityRows = parsed
