@@ -1,4 +1,4 @@
-import { addDaysJst } from "./date.js";
+import { addDaysJst, todayJst } from "./date.js";
 import type { UniverseCandidate, UniverseFallbackReason, UniverseScanOutput, UniverseScanStatus } from "./universe.js";
 
 function assertCanonicalDate(value: string): void {
@@ -6,6 +6,9 @@ function assertCanonicalDate(value: string): void {
     if (addDaysJst(value, 0) !== value) throw new Error();
   } catch {
     throw new Error("universe scan generatedAt must be a real YYYY-MM-DD date");
+  }
+  if (value > todayJst()) {
+    throw new Error("universe scan generatedAt must not be in the future");
   }
 }
 
