@@ -56,6 +56,14 @@ assert.deepEqual(normalizeProKnowledgeRefreshConfig({}), {
 assert.equal(normalizeProKnowledgeRefreshConfig({ ...validConfig, refreshDomains: {} }), null);
 assert.equal(normalizeProKnowledgeRefreshConfig({ ...validConfig, refreshDomains: [null] }), null);
 assert.equal(normalizeProKnowledgeRefreshConfig({ ...validConfig, refreshDomains: [{ ...validConfig.refreshDomains[0], id: "" }] }), null);
+assert.equal(
+  normalizeProKnowledgeRefreshConfig({
+    ...validConfig,
+    refreshDomains: [validConfig.refreshDomains[0], { ...validConfig.refreshDomains[0], label: "AI duplicate" }],
+  }),
+  null,
+  "duplicate domain ids must not produce duplicate refresh queue identities",
+);
 assert.equal(normalizeProKnowledgeRefreshConfig({ ...validConfig, refreshDomains: [{ ...validConfig.refreshDomains[0], affectedAgents: "broken" }] }), null);
 assert.equal(normalizeProKnowledgeRefreshConfig({ ...validConfig, refreshRules: "broken" }), null);
 assert.equal(normalizeProKnowledgeRefreshConfig({ ...validConfig, outputRequirements: [123] }), null);
