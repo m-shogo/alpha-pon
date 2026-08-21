@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { readNotificationFeedbackInput } from "../src/notification-feedback-input.js";
 import { formatReadOnlyJsonlParseWarning, readJsonlWithErrors } from "../src/read-only-jsonl.js";
 import { readNonMoveHistoryJsonl } from "../src/stale-hypothesis-input.js";
 
@@ -45,4 +46,14 @@ assert.deepEqual(nonMoveHistory.rows, [
 assert.equal(nonMoveHistory.invalidRowCount, 4);
 assert.match(nonMoveHistory.warning ?? "", /invalid_row 4/);
 
-console.log("read-only JSONL file boundary: non-regular and malformed semantic rows fail closed without crashing");
+const feedbackPath = join(dir, "notification-feedback.jsonl");
+writeFileSync(feedbackPath, [
+  JSON.stringify({ date: "2026-08-16", value: "useful", topic: "決算", memo: "役立った", createdAt: "2026-08-16T09:00:00Z" }),
+  JSON.stringify({ date: "2999-01-01", value: "useful", topic: "future", memo: "", createdAt: "2999-01-01T00:00:00+09:00" }),
+  JSON.stringify({ date: "2026-08-16", value: "noise", topic: "no timezone", memo: "", createdAt: "2026-08-16T09:00:00" }),
+].join("\n"));
+const feedback = readNotificationFeedbackInput(feedbackPath);
+assert.deepEqual(feedback.records.map(row => row.topic), ["決算"]);
+assert.match(feedback.warning ?? "", /invalid_rows 2/);
+
+console.log("read-only JSONL file boundary: non-regular, malformed semantic, and future/timezone-invalid rows fail closed without crashing");
