@@ -96,7 +96,8 @@ function isWorldImpactAudit(value: unknown): value is Record<string, unknown> {
 }
 
 export function normalizeGeneratedWorldImpactReviewsInput(value: unknown): {
-  rows: Record<string, unknown>[]
+  // Runtime validation is the authority here; caller owns the Web domain type.
+  rows: any[]
   warning: string | null
 } {
   if (value === undefined || value === null) return { rows: [], warning: null }
@@ -110,7 +111,8 @@ export function normalizeGeneratedWorldImpactReviewsInput(value: unknown): {
 }
 
 export function normalizeGeneratedWorldImpactAuditInput(value: unknown): {
-  value: Record<string, unknown> | null
+  // Runtime validation is the authority here; caller owns the Web domain type.
+  value: any | null
   warning: string | null
 } {
   if (value === undefined || value === null) return { value: null, warning: null }
