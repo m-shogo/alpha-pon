@@ -1,4 +1,5 @@
-import { addDaysJst, todayJst } from "./date.js";
+import { addDaysJst, formatJstDate, todayJst } from "./date.js";
+import { parseExplicitIso8601Instant } from "./research/iso-instant.js";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -40,6 +41,17 @@ function hasUniqueNamedRows(value: unknown): boolean {
   if (!Array.isArray(value)) return true;
   const names = value.map(row => (isRecord(row) && typeof row.name === "string" ? row.name : ""));
   return names.length === new Set(names).size;
+}
+
+function hasValidPipelineGeneratedAt(value: unknown, date: unknown): boolean {
+  if (value === undefined) return true;
+  if (typeof value !== "string") return false;
+  try {
+    parseExplicitIso8601Instant(value, "source health pipeline generatedAt");
+  } catch {
+    return false;
+  }
+  return typeof date !== "string" || formatJstDate(new Date(value)) === date;
 }
 
 const DATA_QUALITIES = new Set(["ok", "partial", "missing"]);
@@ -181,6 +193,10 @@ export function normalizeSourceHealthObject<T extends object>(value: unknown): {
       || value.date > todayJst()
     )
   ) {
+    return { value: null, valid: false };
+  }
+
+  if (!hasValidPipelineGeneratedAt(value.generatedAt, value.date)) {
     return { value: null, valid: false };
   }
 
