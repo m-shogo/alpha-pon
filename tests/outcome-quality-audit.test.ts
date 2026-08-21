@@ -12,7 +12,9 @@ import {
 } from "../src/outcome-quality-audit.js";
 import {
   isQualityHypothesisLike,
+  isQualityHypothesisLikeAsOf,
   isQualityOutcomeLike,
+  isQualityOutcomeLikeAsOf,
 } from "../src/outcome-quality-audit-input.js";
 import { buildOpsDashboard } from "../src/ops-dashboard.js";
 
@@ -291,14 +293,26 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
 }
 
 {
+  const futureHypothesis = hypothesis({ detectedAt: "2026-06-12", reviewDueAt: "2026-07-12" });
+  const futureOutcome = outcome({ hypothesis: futureHypothesis });
+  assert.equal(isQualityHypothesisLike(futureHypothesis), true, "future row remains structurally valid independent of cutoff");
+  assert.equal(isQualityHypothesisLikeAsOf(futureHypothesis, TODAY), false, "future hypothesis must fail current PIT cutoff");
+  assert.equal(isQualityOutcomeLikeAsOf(futureOutcome, TODAY), false, "future outcome lineage must fail current PIT cutoff");
+  assert.equal(isQualityHypothesisLikeAsOf(hypothesis(), TODAY), true, "past hypothesis must remain accepted at cutoff");
+  assert.equal(isQualityOutcomeLikeAsOf(outcome(), TODAY), true, "past outcome must remain accepted at cutoff");
+  assert.equal(isQualityHypothesisLikeAsOf(hypothesis(), "2026-02-31"), false, "invalid cutoff must fail closed");
+  console.log("outcome-quality: future detectedAt rows fail PIT cutoff");
+}
+
+{
   const source = readFileSync(new URL("../src/outcome-quality-audit-report.ts", import.meta.url), "utf-8");
   assert.match(source, /Array\.isArray\(hypotheses\)/, "hypotheses root shape must fail closed");
   assert.match(source, /Array\.isArray\(outcomes\)/, "outcomes root shape must fail closed");
   assert.ok(!source.includes("hypothesesFile.hypotheses ?? []"), "malformed hypotheses shape must not degrade to empty-ok");
   assert.ok(!source.includes("outcomesFile.outcomes ?? []"), "malformed outcomes shape must not degrade to empty-ok");
-  assert.match(source, /hypotheses\.every\(isQualityHypothesisLike\)/, "malformed hypothesis rows must fail closed before audit logic");
-  assert.match(source, /outcomes\.every\(isQualityOutcomeLike\)/, "malformed outcome rows must fail closed before audit logic");
-  console.log("outcome-quality: malformed generated input root/row shape fails closed");
+  assert.match(source, /isQualityHypothesisLikeAsOf\(row, today\)/, "hypothesis rows must apply PIT cutoff before audit logic");
+  assert.match(source, /isQualityOutcomeLikeAsOf\(row, today\)/, "outcome rows must apply PIT cutoff before audit logic");
+  console.log("outcome-quality: malformed/future generated input fails closed");
 }
 
 console.log("outcome-quality-audit: 全テスト成功");

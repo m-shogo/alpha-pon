@@ -87,3 +87,21 @@ export function isQualityOutcomeLike(value: unknown): value is QualityOutcomeLik
   if (!isQualityHypothesisLike(value.hypothesis)) return false;
   return value.hypothesis.code === value.code;
 }
+
+export function isQualityHypothesisLikeAsOf(
+  value: unknown,
+  today: string,
+): value is QualityHypothesisLike {
+  return isGregorianDate(today)
+    && isQualityHypothesisLike(value)
+    && value.detectedAt! <= today;
+}
+
+export function isQualityOutcomeLikeAsOf(
+  value: unknown,
+  today: string,
+): value is QualityOutcomeLike {
+  return isGregorianDate(today)
+    && isQualityOutcomeLike(value)
+    && value.hypothesis!.detectedAt! <= today;
+}

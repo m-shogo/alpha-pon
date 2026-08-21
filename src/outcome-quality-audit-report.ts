@@ -16,8 +16,8 @@ import {
   type QualityOutcomeLike,
 } from "./outcome-quality-audit.js";
 import {
-  isQualityHypothesisLike,
-  isQualityOutcomeLike,
+  isQualityHypothesisLikeAsOf,
+  isQualityOutcomeLikeAsOf,
 } from "./outcome-quality-audit-input.js";
 
 const ROOT = process.cwd();
@@ -49,18 +49,19 @@ if (!Array.isArray(hypotheses) || !Array.isArray(outcomes)) {
   process.exit(1);
 }
 
-const hypothesisRowsOk = hypotheses.every(isQualityHypothesisLike);
-const outcomeRowsOk = outcomes.every(isQualityOutcomeLike);
+const today = getTodayInTokyo();
+const hypothesisRowsOk = hypotheses.every(row => isQualityHypothesisLikeAsOf(row, today));
+const outcomeRowsOk = outcomes.every(row => isQualityOutcomeLikeAsOf(row, today));
 if (!hypothesisRowsOk || !outcomeRowsOk) {
   console.error(
-    "生成データのrow shapeが不正です。先に pnpm ui:data を再実行してください。" +
+    "生成データのrow shapeまたはPIT cutoffが不正です。先に pnpm ui:data を再実行してください。" +
       `（hypotheses rows: ${hypothesisRowsOk ? "ok" : "invalid"} / outcomes rows: ${outcomeRowsOk ? "ok" : "invalid"}）`
   );
   process.exit(1);
 }
 
 const audit = buildOutcomeQualityAudit({
-  today: getTodayInTokyo(),
+  today,
   hypotheses: hypotheses as QualityHypothesisLike[],
   outcomes: outcomes as QualityOutcomeLike[],
 });
