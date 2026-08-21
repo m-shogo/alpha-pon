@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { formatReadOnlyJsonlParseWarning, readJsonlWithErrors } from "../src/read-only-jsonl.js";
+import { readNonMoveHistoryJsonl } from "../src/stale-hypothesis-input.js";
 
 const dir = mkdtempSync(join(tmpdir(), "alpha-pon-read-only-jsonl-"));
 const target = join(dir, "target.jsonl");
@@ -27,4 +28,21 @@ const regular = readJsonlWithErrors<{ id: string }>(target);
 assert.deepEqual(regular.rows, [{ id: "real" }]);
 assert.deepEqual(regular.parseErrors, []);
 
-console.log("read-only JSONL file boundary: non-regular inputs fail closed without crashing");
+const nonMoveHistoryPath = join(dir, "company_non_move_history.jsonl");
+writeFileSync(nonMoveHistoryPath, [
+  JSON.stringify({ code: "8136", nonMoveReasons: ["valuation"] }),
+  "null",
+  JSON.stringify(["bad-row"]),
+  JSON.stringify({ code: "8136", nonMoveReasons: {} }),
+  JSON.stringify({ code: " 8136 ", nonMoveReasons: ["identity"] }),
+  JSON.stringify({ code: "6758", nonMoveReasons: ["earnings"] }),
+].join("\n"));
+const nonMoveHistory = readNonMoveHistoryJsonl(nonMoveHistoryPath);
+assert.deepEqual(nonMoveHistory.rows, [
+  { code: "8136", nonMoveReasons: ["valuation"] },
+  { code: "6758", nonMoveReasons: ["earnings"] },
+]);
+assert.equal(nonMoveHistory.invalidRowCount, 4);
+assert.match(nonMoveHistory.warning ?? "", /invalid_row 4/);
+
+console.log("read-only JSONL file boundary: non-regular and malformed semantic rows fail closed without crashing");
