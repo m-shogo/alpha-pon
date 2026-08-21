@@ -1,4 +1,5 @@
 import {
+  isGeneratedRunCursorState,
   normalizeGeneratedArrayInput,
   normalizeGeneratedObjectInput,
   normalizeOptionalGeneratedObjectInput,
@@ -127,5 +128,18 @@ assert(mixedRecord.warning === "dataQualityByCode: invalid_entries (1)", "malfor
 const missingRecord = normalizeOptionalGeneratedRecordInput(undefined, "dataQualityByCode", isQualityRow);
 assert(Object.keys(missingRecord.record).length === 0, "missing optional generated records may remain empty");
 assert(missingRecord.warning === null, "missing optional generated records must not be mislabeled as corrupt");
+
+assert(
+  isGeneratedRunCursorState({ jobName: "universe-scan", offset: 0, maxPerRun: 8, total: 42, updatedAt: "2026-08-21" }),
+  "canonical generated run cursor state must remain usable",
+);
+for (const invalidCursor of [
+  { jobName: "universe-scan", offset: -1, maxPerRun: 8, total: 42, updatedAt: "2026-08-21" },
+  { jobName: "universe-scan", offset: 1.5, maxPerRun: 8, total: 42, updatedAt: "2026-08-21" },
+  { jobName: "universe-scan", offset: 1, maxPerRun: 0.5, total: 42, updatedAt: "2026-08-21" },
+  { jobName: "universe-scan", offset: 1, maxPerRun: 8, total: Number.MAX_SAFE_INTEGER + 1, updatedAt: "2026-08-21" },
+]) {
+  assert(!isGeneratedRunCursorState(invalidCursor), "negative, fractional, and unsafe run cursor counts must be rejected");
+}
 
 console.log("generated array input tests passed");
