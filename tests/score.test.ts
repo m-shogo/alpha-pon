@@ -14,14 +14,7 @@ import {
 } from "../apps/web/lib/generated-array-input.js";
 
 function testPullbackMissingFinancials() {
-  const result = scoreHealthyPullback({
-    drawdownPct: -20,
-    revenueYoY: null,
-    operatingProfitYoY: null,
-    hasDownwardRevision: null,
-    hasStrategicTheme: true,
-  });
-
+  const result = scoreHealthyPullback({ drawdownPct: -20, revenueYoY: null, operatingProfitYoY: null, hasDownwardRevision: null, hasStrategicTheme: true });
   assert.equal(result.score, 11);
   assert.ok(result.negativeReasons.includes("売上前年比データなし"));
   assert.ok(result.negativeReasons.includes("営業利益前年比データなし"));
@@ -29,14 +22,7 @@ function testPullbackMissingFinancials() {
 }
 
 function testEarningsDropMissingFinancials() {
-  const result = scoreEarningsDrop({
-    nextDayChangePct: null,
-    hasDownwardRevision: null,
-    revenueYoY: null,
-    operatingProfitYoY: null,
-    hasStrategicTheme: true,
-  });
-
+  const result = scoreEarningsDrop({ nextDayChangePct: null, hasDownwardRevision: null, revenueYoY: null, operatingProfitYoY: null, hasStrategicTheme: true });
   assert.equal(result.score, 6);
   assert.ok(result.negativeReasons.includes("決算翌日の株価変化データなし"));
   assert.ok(result.negativeReasons.includes("売上前年比データなし"));
@@ -44,22 +30,7 @@ function testEarningsDropMissingFinancials() {
 }
 
 function testMalformedWatchlistRowsFailClosed() {
-  const config = {
-    symbols: [
-      null,
-      "broken",
-      {
-        code: "8136",
-        name: "サンリオ",
-        market: "TSE",
-        status: "research",
-        priority: "S",
-        tags: ["entertainment"],
-        rules: ["healthy_pullback"],
-      },
-    ],
-  } as unknown as WatchlistConfig;
-
+  const config = { symbols: [null, "broken", { code: "8136", name: "サンリオ", market: "TSE", status: "research", priority: "S", tags: ["entertainment"], rules: ["healthy_pullback"] }] } as unknown as WatchlistConfig;
   const errors = validateWatchlist(config);
   assert.ok(errors.some(error => error.includes("symbols[0]: 銘柄rowはobjectにしてください")));
   assert.ok(errors.some(error => error.includes("symbols[1]: 銘柄rowはobjectにしてください")));
@@ -67,29 +38,10 @@ function testMalformedWatchlistRowsFailClosed() {
 }
 
 function testCanonicalWatchlistCodeIdentity() {
-  const config = {
-    symbols: [
-      {
-        code: "8136",
-        name: "サンリオ",
-        market: "TSE",
-        status: "research",
-        priority: "S",
-        tags: ["entertainment"],
-        rules: ["healthy_pullback"],
-      },
-      {
-        code: " 8136 ",
-        name: "duplicate",
-        market: "TSE",
-        status: "watch",
-        priority: "A",
-        tags: ["entertainment"],
-        rules: ["healthy_pullback"],
-      },
-    ],
-  } as unknown as WatchlistConfig;
-
+  const config = { symbols: [
+    { code: "8136", name: "サンリオ", market: "TSE", status: "research", priority: "S", tags: ["entertainment"], rules: ["healthy_pullback"] },
+    { code: " 8136 ", name: "duplicate", market: "TSE", status: "watch", priority: "A", tags: ["entertainment"], rules: ["healthy_pullback"] },
+  ] } as unknown as WatchlistConfig;
   const errors = validateWatchlist(config);
   assert.ok(errors.some(error => error.includes("canonical identity")), "padded codeは拒否する");
   assert.ok(errors.some(error => error.includes("銘柄コード重複: 8136")), "trim後の同一identityを重複として検出する");
@@ -98,13 +50,8 @@ function testCanonicalWatchlistCodeIdentity() {
 function testMalformedThemeConfigFailsClosed() {
   assert.throws(() => validateThemesConfig({ themes: null }), /themes object is required/);
   assert.throws(() => validateThemesConfig({ themes: { ai: "broken" } }), /ai must be an object/);
-  assert.throws(
-    () => validateThemesConfig({ themes: { ai: { label: "AI", score: "5" } } }),
-    /ai\.score must be a finite number/,
-  );
-  assert.deepEqual(validateThemesConfig({ themes: { ai: { label: "AI", score: 5 } } }), {
-    themes: { ai: { label: "AI", score: 5 } },
-  });
+  assert.throws(() => validateThemesConfig({ themes: { ai: { label: "AI", score: "5" } } }), /ai\.score must be a finite number/);
+  assert.deepEqual(validateThemesConfig({ themes: { ai: { label: "AI", score: 5 } } }), { themes: { ai: { label: "AI", score: 5 } } });
 }
 
 function testGeneratedRunCursorShape() {
@@ -124,30 +71,12 @@ function testGeneratedReportShape() {
 
 function testGeneratedWarningsShape() {
   assert.deepEqual(normalizeGeneratedWarningsInput(["ok"]), { warnings: ["ok"], warning: null });
-  assert.deepEqual(normalizeGeneratedWarningsInput("broken"), {
-    warnings: [],
-    warning: "meta.warnings: invalid_root (expected string array)",
-  });
-  assert.deepEqual(normalizeGeneratedWarningsInput(["ok", null, 42]), {
-    warnings: ["ok"],
-    warning: "meta.warnings: invalid_entries (2)",
-  });
+  assert.deepEqual(normalizeGeneratedWarningsInput("broken"), { warnings: [], warning: "meta.warnings: invalid_root (expected string array)" });
+  assert.deepEqual(normalizeGeneratedWarningsInput(["ok", null, 42]), { warnings: ["ok"], warning: "meta.warnings: invalid_entries (2)" });
 }
 
 function testGeneratedWorldThemeCandidateHypothesisShape() {
-  const valid = {
-    sourceEventTitle: "event",
-    sourceEventPublishedAt: "2026-08-17",
-    theme: "theme",
-    candidateCode: "8136",
-    candidateCompany: "Sanrio",
-    whyThisCompany: "why",
-    upsideHypothesis: "up",
-    downsideRisk: "down",
-    nextPrimaryCheck: "check",
-    reviewAfterDays: [30, 90, 180],
-    disclaimer: "not advice",
-  };
+  const valid = { sourceEventTitle: "event", sourceEventPublishedAt: "2026-08-17", theme: "theme", candidateCode: "8136", candidateCompany: "Sanrio", whyThisCompany: "why", upsideHypothesis: "up", downsideRisk: "down", nextPrimaryCheck: "check", reviewAfterDays: [30, 90, 180], disclaimer: "not advice" };
   assert.equal(isGeneratedWorldThemeCandidateHypothesisInput(valid), true);
   assert.equal(isGeneratedWorldThemeCandidateHypothesisInput(null), false);
   assert.equal(isGeneratedWorldThemeCandidateHypothesisInput({ ...valid, candidateCode: undefined }), false);
@@ -155,11 +84,7 @@ function testGeneratedWorldThemeCandidateHypothesisShape() {
 }
 
 function testGeneratedPipelineStatusShape() {
-  assert.equal(isGeneratedPipelineStatusInput({
-    status: "failed",
-    completeWrapperFailedSteps: ["fetch:jquants"],
-    endedAt: "2026-08-17T19:00:00Z",
-  }), true);
+  assert.equal(isGeneratedPipelineStatusInput({ status: "failed", completeWrapperFailedSteps: ["fetch:jquants"], endedAt: "2026-08-17T19:00:00Z" }), true);
   assert.equal(isGeneratedPipelineStatusInput(null), false);
   assert.equal(isGeneratedPipelineStatusInput("failed"), false);
   assert.equal(isGeneratedPipelineStatusInput({ completeWrapperFailedSteps: "fetch:jquants" }), false);
@@ -168,30 +93,25 @@ function testGeneratedPipelineStatusShape() {
 
 function testLearningScoreInputIsolation() {
   const valid = {
-    code: "8136",
-    name: "サンリオ",
-    score: 72,
-    alertLevel: "daily",
-    createdAt: "2026-08-21",
-    warnings: ["ok"],
+    code: "8136", name: "サンリオ", score: 72, alertLevel: "daily", createdAt: "2026-08-21", warnings: ["ok"],
     riskReview: { decision: "watch", blockers: [] },
-    expertReview: {
-      finalVerdict: "caution",
-      disagreements: ["valuation"],
-      lenses: [{ name: "quality", verdict: "caution", nextChecks: ["IR"] }],
-    },
+    expertReview: { finalVerdict: "caution", disagreements: ["valuation"], lenses: [{ name: "quality", verdict: "caution", nextChecks: ["IR"] }] },
   };
-  const parsed = parseLearningScoreInput(JSON.stringify([
-    valid,
-    null,
-    { ...valid, code: "4661", warnings: {} },
-    { ...valid, code: "7832", score: "72" },
-  ]));
+  const parsed = parseLearningScoreInput(JSON.stringify([valid, null, { ...valid, code: "4661", warnings: {} }, { ...valid, code: "7832", score: "72" }]), "2026-08-21");
   assert.ok(parsed);
   assert.deepEqual(parsed.entries.map(entry => entry.code), ["8136"], "正常rowは壊れrowの周囲でも維持する");
   assert.deepEqual(parsed.invalidRows, [2, 3, 4], "crashし得る壊れrowは行単位で隔離する");
-  assert.equal(parseLearningScoreInput(JSON.stringify({ code: "8136" })), null, "object rootをscore arrayとして扱わない");
-  assert.equal(parseLearningScoreInput("{broken"), null, "壊れJSONをscore arrayとして扱わない");
+  assert.equal(parseLearningScoreInput(JSON.stringify({ code: "8136" }), "2026-08-21"), null, "object rootをscore arrayとして扱わない");
+  assert.equal(parseLearningScoreInput("{broken", "2026-08-21"), null, "壊れJSONをscore arrayとして扱わない");
+}
+
+function testLearningScorePitCutoff() {
+  const row = { code: "8136", name: "サンリオ", score: 72, alertLevel: "daily", createdAt: "2026-08-22" };
+  const parsed = parseLearningScoreInput(JSON.stringify([row]), "2026-08-21");
+  assert.ok(parsed);
+  assert.equal(parsed.entries.length, 0, "未来日のscore rowを現在のlearning evidenceへ混入させない");
+  assert.deepEqual(parsed.invalidRows, [1]);
+  assert.equal(parseLearningScoreInput(JSON.stringify([row]), "2026-02-31"), null, "不存在asOfをPIT cutoffとして使わない");
 }
 
 function main() {
@@ -206,6 +126,7 @@ function main() {
   testGeneratedWorldThemeCandidateHypothesisShape();
   testGeneratedPipelineStatusShape();
   testLearningScoreInputIsolation();
+  testLearningScorePitCutoff();
   console.log("score.test.ts passed");
 }
 
