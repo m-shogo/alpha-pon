@@ -105,6 +105,26 @@ assert.throws(
     generatedAt: "2026-06-08",
     dataSource: "jquants",
     scanStatus: "fresh",
+    candidates: [{ ...base, detectedAt: "2026-02-31" }],
+  }),
+  /candidate detectedAt must be a real YYYY-MM-DD date/,
+  "impossible candidate detection dates must not enter scan provenance",
+);
+assert.throws(
+  () => buildUniverseScanOutput({
+    generatedAt: "2026-06-08",
+    dataSource: "jquants",
+    scanStatus: "fresh",
+    candidates: [{ ...base, detectedAt: "2026-06-09" }],
+  }),
+  /candidate detectedAt must not be after generatedAt/,
+  "candidate detection must respect the scan PIT cutoff",
+);
+assert.throws(
+  () => buildUniverseScanOutput({
+    generatedAt: "2026-06-08",
+    dataSource: "jquants",
+    scanStatus: "fresh",
     fallbackReason: "jquants_zero_candidates",
     candidates: [base],
   }),
