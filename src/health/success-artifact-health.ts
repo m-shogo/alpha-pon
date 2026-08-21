@@ -1,4 +1,4 @@
-import { existsSync, statSync } from "fs";
+import { existsSync, lstatSync, statSync } from "fs";
 
 function tokyoDateFromMtime(mtime: Date): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -14,6 +14,7 @@ function tokyoDateFromMtime(mtime: Date): string {
 export function isUsableFreshSuccessArtifact(path: string, today: string, nowMs = Date.now()): boolean {
   if (!existsSync(path)) return false;
   try {
+    if (lstatSync(path).isSymbolicLink()) return false;
     const stats = statSync(path);
     return stats.isFile()
       && stats.size > 0
