@@ -20,6 +20,27 @@ function main(): void {
         }),
         "{broken",
         JSON.stringify({ value: "useful" }),
+        JSON.stringify({
+          date: "2026-08-16",
+          value: "noise",
+          topic: "timezone missing",
+          memo: "",
+          createdAt: "2026-08-16T09:00:00",
+        }),
+        JSON.stringify({
+          date: "2999-01-01",
+          value: "useful",
+          topic: "future",
+          memo: "",
+          createdAt: "2999-01-01T00:00:00+09:00",
+        }),
+        JSON.stringify({
+          date: "2026-08-17",
+          value: "noise",
+          topic: "date mismatch",
+          memo: "",
+          createdAt: "2026-08-16T09:00:00Z",
+        }),
         "",
       ].join("\n"),
       "utf-8",
@@ -29,13 +50,13 @@ function main(): void {
     assert.equal(input.records.length, 1, "正常rowは破損rowと混在しても継続利用する");
     assert.equal(input.records[0]?.topic, "決算");
     assert.ok(input.warning?.includes("parse_error 1"), "JSON parse破損をmetadata warningへ残す");
-    assert.ok(input.warning?.includes("invalid_rows 1"), "shape破損をmetadata warningへ残す");
+    assert.ok(input.warning?.includes("invalid_rows 4"), "shape/PIT/timezone破損をmetadata warningへ残す");
     assert.ok(input.warning?.includes("lines 2"), "破損行番号だけをwarningへ残す");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 
-  console.log("notification-feedback: malformed JSONL isolation OK");
+  console.log("notification-feedback: malformed JSONL and future/timezone-invalid feedback isolation OK");
 }
 
 main();
