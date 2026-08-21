@@ -18,10 +18,13 @@ function isOptionalStringArray(value: unknown): boolean {
   return value === undefined || (Array.isArray(value) && value.every(item => typeof item === "string"));
 }
 
-function isUsableProScoreRow(value: unknown): boolean {
+function isUsableProScoreRow(value: unknown, expectedDate: string): boolean {
   if (!isRecord(value)) return false;
   if (typeof value.code !== "string" || value.code.length === 0 || value.code !== value.code.trim()) return false;
   if (typeof value.name !== "string" || value.name.trim().length === 0) return false;
+  if (value.createdAt !== undefined) {
+    if (typeof value.createdAt !== "string" || !isRealJstDate(value.createdAt) || value.createdAt !== expectedDate) return false;
+  }
   return isOptionalStringArray(value.reasons)
     && isOptionalStringArray(value.negativeReasons)
     && isOptionalStringArray(value.warnings);
@@ -52,6 +55,7 @@ export function readLatestProScores<T>(reportsDir = "reports", asOf = todayJst()
 
   const latest = scoreFiles.at(-1);
   if (!latest) return { rows: [], sourceFile: null, warnings: [] };
+  const latestDate = /^scores_(\d{4}-\d{2}-\d{2})\.json$/.exec(latest)?.[1] ?? "";
 
   let parsed: unknown;
   try {
@@ -66,7 +70,7 @@ export function readLatestProScores<T>(reportsDir = "reports", asOf = todayJst()
   const usableRows: Array<{ row: T; index: number; code: string }> = [];
   const invalidRows: number[] = [];
   parsed.forEach((row, index) => {
-    if (isUsableProScoreRow(row)) usableRows.push({ row: row as T, index: index + 1, code: row.code });
+    if (isUsableProScoreRow(row, latestDate)) usableRows.push({ row: row as T, index: index + 1, code: row.code });
     else invalidRows.push(index + 1);
   });
 
