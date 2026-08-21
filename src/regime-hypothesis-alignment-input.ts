@@ -59,6 +59,10 @@ export function normalizeAlignmentHypothesisCategories(
   const rawCategories = input.categories ?? {};
 
   for (const [categoryId, rawCategory] of Object.entries(rawCategories)) {
+    if (categoryId.trim() === "" || categoryId !== categoryId.trim()) {
+      warnings.push(`company-hypotheses.yml category ${JSON.stringify(categoryId)} identity is invalid`);
+      continue;
+    }
     if (!isRecord(rawCategory)) {
       warnings.push(`company-hypotheses.yml category ${categoryId} shape is invalid`);
       continue;
