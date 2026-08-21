@@ -1,4 +1,6 @@
+import { todayJst } from "./date.js";
 import { formatReadOnlyJsonlParseWarning, readJsonlWithErrors } from "./read-only-jsonl.js";
+import { isValidWorldThemeReviewDueDate } from "./world-theme-review-date.js";
 
 export type WorldThemeCandidateReviewResult = "hit" | "miss" | "too_early" | "priced_in" | "unclear";
 export type WorldThemeCandidateReviewHorizon = 30 | 90 | 180;
@@ -30,6 +32,7 @@ export function isWorldThemeCandidateResultRecord(value: unknown): value is Worl
   for (const key of ["theme", "candidateCode", "candidateCompany", "reviewedAt", "memo"] as const) {
     if (typeof value[key] !== "string" || !value[key].trim()) return false;
   }
+  if (!isValidWorldThemeReviewDueDate(value.reviewedAt as string) || (value.reviewedAt as string) > todayJst()) return false;
   return isReviewResult(value.result) && isReviewHorizon(value.afterDays);
 }
 
