@@ -1,4 +1,5 @@
 import { addDaysJst, todayJst } from "./date.js";
+import type { AlertLevel } from "./types.js";
 
 export type LearningExpertLens = {
   name: string;
@@ -13,7 +14,7 @@ export type LearningScoreEntry = {
   tags?: string[];
   rules?: string[];
   score: number;
-  alertLevel: string;
+  alertLevel: AlertLevel;
   reasons?: string[];
   negativeReasons?: string[];
   warnings?: string[];
@@ -45,6 +46,10 @@ function isOptionalStringArray(value: unknown): boolean {
   return value === undefined || isStringArray(value);
 }
 
+function isAlertLevel(value: unknown): value is AlertLevel {
+  return value === "urgent" || value === "daily" || value === "log" || value === "ignore";
+}
+
 function isRealJstDate(value: string): boolean {
   try {
     return addDaysJst(value, 0) === value;
@@ -70,7 +75,7 @@ function normalizeRow(value: unknown, asOf: string): LearningScoreEntry | null {
   if (typeof value.code !== "string" || value.code.trim() === "" || value.code !== value.code.trim()) return null;
   if (typeof value.name !== "string" || value.name.trim() === "") return null;
   if (typeof value.score !== "number" || !Number.isFinite(value.score)) return null;
-  if (typeof value.alertLevel !== "string") return null;
+  if (!isAlertLevel(value.alertLevel)) return null;
   if (typeof value.createdAt !== "string" || !isRealJstDate(value.createdAt) || value.createdAt > asOf) return null;
 
   for (const field of ["tags", "rules", "reasons", "negativeReasons", "warnings"] as const) {
