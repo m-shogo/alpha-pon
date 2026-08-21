@@ -70,6 +70,11 @@ export function normalizeOpsSpecialSituationInput(
   for (const key of REVIEW_DUE_KEYS) {
     if (!isNonNegativeInteger(value.reviewDue[key])) return invalidSpecialOps();
   }
+  const overdue = value.reviewDue.overdue;
+  const priceDataPending = value.reviewDue.priceDataPending;
+  if (!isNonNegativeInteger(overdue) || !isNonNegativeInteger(priceDataPending)) return invalidSpecialOps();
+  if (priceDataPending > overdue) return invalidSpecialOps();
+
   const dueToday = value.reviewDue.dueToday;
   if (!isNonNegativeInteger(dueToday)) return invalidSpecialOps();
   if (

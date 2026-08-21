@@ -44,6 +44,7 @@ for (const malformed of [
   { generatedAt: asOf, today: asOf, healthStatus: "ok", actionItems: [], reviewDue: { overdue: 0, historicalSeedOverdue: 0, priceDataPending: 0, dueToday: 0, dueThisWeek: -1 } },
   { generatedAt: asOf, today: asOf, healthStatus: "ok", actionItems: [], reviewDue: { overdue: 0.5, historicalSeedOverdue: 0, priceDataPending: 0, dueToday: 0, dueThisWeek: 0 } },
   { generatedAt: asOf, today: asOf, healthStatus: "ok", actionItems: [], reviewDue: { overdue: 0, historicalSeedOverdue: 0, priceDataPending: Number.MAX_SAFE_INTEGER + 1, dueToday: 0, dueThisWeek: 0 } },
+  { generatedAt: asOf, today: asOf, healthStatus: "ok", actionItems: [], reviewDue: { overdue: 1, historicalSeedOverdue: 0, priceDataPending: 2, dueToday: 0, dueThisWeek: 0 } },
   { generatedAt: "2026-08-18", today: "2026-08-18", healthStatus: "ok", actionItems: [], reviewDue: { overdue: 0, historicalSeedOverdue: 0, priceDataPending: 0, dueToday: 0, dueThisWeek: 0 } },
   { generatedAt: "2026-02-31", today: "2026-02-31", healthStatus: "ok", actionItems: [], reviewDue: { overdue: 0, historicalSeedOverdue: 0, priceDataPending: 0, dueToday: 0, dueThisWeek: 0 } },
   { generatedAt: asOf, today: "2026-08-18", healthStatus: "ok", actionItems: [], reviewDue: { overdue: 0, historicalSeedOverdue: 0, priceDataPending: 0, dueToday: 0, dueThisWeek: 0 } },
@@ -80,4 +81,4 @@ assert.deepEqual(normalizeOpsSpecialSituationInput(validUrgent, asOf), validUrge
 
 assert.equal(normalizeOpsSpecialSituationInput(null, asOf), null, "missing input remains distinguishable from malformed input");
 
-console.log("ops-dashboard special input: malformed, stale, truncated, and contradictory health evidence fail closed OK");
+console.log("ops-dashboard special input: malformed, stale, truncated, contradictory health, and impossible pending counts fail closed OK");
