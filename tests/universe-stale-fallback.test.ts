@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { normalizeCompanyRulesMemoryInput } from "../src/company-rules-memory-input.js";
 import { normalizeCompanyRulesUniverseInput } from "../src/company-rules-universe-input.js";
-import { buildUniverseScanOutput } from "../src/universe-scan-output.js";
+import { buildUniverseScanOutput, parseUniverseScanOutput } from "../src/universe-scan-output.js";
 import { carryForwardStaleCandidate, STALE_FALLBACK_WARNING } from "../src/universe-stale-fallback.js";
 import type { UniverseCandidate } from "../src/universe.js";
 
@@ -80,6 +80,27 @@ const output = buildUniverseScanOutput({
 assert.equal(output.scanStatus, "stale_fallback");
 assert.equal(output.fallbackReason, "jquants_zero_candidates");
 assert.equal(output.candidates[0]?.detectedAt, "2026-06-01", "scan metadata 追加後も detectedAt は保持する");
+assert.deepEqual(parseUniverseScanOutput(output), output, "canonical scan output は UI consumer でも保持する");
+assert.equal(
+  parseUniverseScanOutput({ ...output, count: 0 }),
+  null,
+  "candidate count と矛盾する metadata を UI 正本へ再包装しない",
+);
+assert.equal(
+  parseUniverseScanOutput({ ...output, dataSource: undefined }),
+  null,
+  "欠落 dataSource を mock として補完しない",
+);
+assert.equal(
+  parseUniverseScanOutput({ ...output, scanStatus: undefined }),
+  null,
+  "欠落 scanStatus を fresh として補完しない",
+);
+assert.equal(
+  parseUniverseScanOutput({ ...output, fallbackReason: undefined }),
+  null,
+  "欠落 fallbackReason を canonical null として補完しない",
+);
 assert.throws(
   () => buildUniverseScanOutput({
     generatedAt: "2026-02-31",

@@ -75,3 +75,26 @@ export function buildUniverseScanOutput(input: {
     candidates: input.candidates,
   };
 }
+
+export function parseUniverseScanOutput(input: unknown): UniverseScanOutput | null {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return null;
+  const raw = input as Record<string, unknown>;
+  if (typeof raw.generatedAt !== "string") return null;
+  if (raw.dataSource !== "jquants" && raw.dataSource !== "mock") return null;
+  if (raw.scanStatus !== "fresh" && raw.scanStatus !== "stale_fallback" && raw.scanStatus !== "mock") return null;
+  if (raw.fallbackReason !== null && raw.fallbackReason !== "jquants_zero_candidates") return null;
+  if (!Array.isArray(raw.candidates)) return null;
+  if (!Number.isSafeInteger(raw.count) || (raw.count as number) < 0 || raw.count !== raw.candidates.length) return null;
+
+  try {
+    return buildUniverseScanOutput({
+      generatedAt: raw.generatedAt,
+      dataSource: raw.dataSource,
+      scanStatus: raw.scanStatus,
+      fallbackReason: raw.fallbackReason,
+      candidates: raw.candidates as UniverseCandidate[],
+    });
+  } catch {
+    return null;
+  }
+}
