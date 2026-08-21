@@ -26,6 +26,27 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string')
 }
 
+function todayJstDate(): string {
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date())
+}
+
+function isStrictPastOrPresentDate(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const [year, month, day] = value.split('-').map(Number)
+  const parsed = new Date(Date.UTC(year, month - 1, day))
+  if (
+    parsed.getUTCFullYear() !== year
+    || parsed.getUTCMonth() !== month - 1
+    || parsed.getUTCDate() !== day
+  ) return false
+  return value <= todayJstDate()
+}
+
 function isWorldContextRegime(value: unknown): value is GeneratedWorldContextRegime {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const regime = value as Record<string, unknown>
@@ -45,7 +66,7 @@ export function isGeneratedWorldContextInput(value: unknown): value is Generated
   const context = value as Record<string, unknown>
   if (!Array.isArray(context.activeRegimes) || !context.activeRegimes.every(isWorldContextRegime)) return false
 
-  return isNonEmptyString(context.asOf)
+  return isStrictPastOrPresentDate(context.asOf)
     && isNonEmptyString(context.mode)
     && typeof context.summary === 'string'
     && hasUniqueRegimeIds(context.activeRegimes)
