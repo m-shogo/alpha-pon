@@ -1,16 +1,11 @@
 export type PipelineStatusViewInput = {
   status?: string
-  failedSteps?: string | string[]
+  failedSteps?: string[]
   completeWrapperFailedSteps?: string[]
-}
-
-function hasFailedSteps(value: string | string[] | undefined): boolean {
-  if (Array.isArray(value)) return value.length > 0
-  return typeof value === 'string' && value.length > 0
 }
 
 export function isPipelineStatusHealthy(status: PipelineStatusViewInput): boolean {
   return status.status === 'ok'
-    && !hasFailedSteps(status.failedSteps)
+    && (status.failedSteps?.length ?? 0) === 0
     && (status.completeWrapperFailedSteps?.length ?? 0) === 0
 }
