@@ -34,6 +34,10 @@ function isFiniteNumberOrNull(value: unknown): value is number | null {
   return value === null || isFiniteNumber(value)
 }
 
+function isRateOrNull(value: unknown): value is number | null {
+  return value === null || (isFiniteNumber(value) && value >= 0 && value <= 1)
+}
+
 function isCount(value: unknown): value is number {
   return Number.isSafeInteger(value) && (value as number) >= 0
 }
@@ -50,7 +54,7 @@ function isScoreBandStats(value: unknown): value is GeneratedScoreBandStats {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const stats = value as Record<string, unknown>
   return isCount(stats.total)
-    && isFiniteNumberOrNull(stats.hitRate)
+    && isRateOrNull(stats.hitRate)
     && isFiniteNumberOrNull(stats.avgExcessReturn1w)
     && isFiniteNumberOrNull(stats.avgExcessReturn1m)
 }
@@ -77,7 +81,7 @@ export function isGeneratedAccuracySummaryInput(value: unknown): value is Genera
     || !isCount(summary.miss)
     || !isCount(summary.tooEarly)
     || !isCount(summary.unknown)
-    || !isFiniteNumberOrNull(summary.hitRate)
+    || !isRateOrNull(summary.hitRate)
     || !isFiniteNumberOrNull(summary.avgReturn1m)
     || !isFiniteNumberOrNull(summary.avgTopixReturn1m)
     || !isFiniteNumberOrNull(summary.avgRelativeToTopix1m)
