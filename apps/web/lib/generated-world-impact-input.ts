@@ -1,5 +1,3 @@
-import type { WorldImpactAudit, WorldImpactReview } from './types.js'
-
 const REVIEW_STATUSES = new Set(['pending', 'reviewed', 'skipped', 'insufficient_data'])
 const DIRECTIONS = new Set(['positive', 'negative', 'mixed', 'unclear'])
 const OUTCOME_RESULTS = new Set(['hit', 'miss', 'inverse', 'too_early', 'unclear', 'insufficient_data', 'unknown'])
@@ -29,7 +27,7 @@ function isNonNegativeSafeInteger(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
 }
 
-function isOutcome(value: unknown): boolean {
+function isOutcome(value: unknown): value is Record<string, unknown> {
   if (!isObject(value)) return false
   return typeof value.horizon === 'string'
     && HORIZONS.has(value.horizon)
@@ -51,7 +49,7 @@ function isOutcome(value: unknown): boolean {
     && (value.evidence === undefined || isStringArray(value.evidence))
 }
 
-function isWorldImpactReview(value: unknown): value is WorldImpactReview {
+function isWorldImpactReview(value: unknown): value is Record<string, unknown> {
   if (!isObject(value)) return false
   if (!isCanonicalString(value.reviewKey)
     || !isCanonicalString(value.eventId)
@@ -78,7 +76,7 @@ function isPriorityIssue(value: unknown): boolean {
     && typeof value.detail === 'string'
 }
 
-function isWorldImpactAudit(value: unknown): value is WorldImpactAudit {
+function isWorldImpactAudit(value: unknown): value is Record<string, unknown> {
   if (!isObject(value)) return false
   return value.schemaVersion === 1
     && typeof value.generatedAt === 'string'
@@ -98,7 +96,7 @@ function isWorldImpactAudit(value: unknown): value is WorldImpactAudit {
 }
 
 export function normalizeGeneratedWorldImpactReviewsInput(value: unknown): {
-  rows: WorldImpactReview[]
+  rows: Record<string, unknown>[]
   warning: string | null
 } {
   if (value === undefined || value === null) return { rows: [], warning: null }
@@ -112,7 +110,7 @@ export function normalizeGeneratedWorldImpactReviewsInput(value: unknown): {
 }
 
 export function normalizeGeneratedWorldImpactAuditInput(value: unknown): {
-  value: WorldImpactAudit | null
+  value: Record<string, unknown> | null
   warning: string | null
 } {
   if (value === undefined || value === null) return { value: null, warning: null }
