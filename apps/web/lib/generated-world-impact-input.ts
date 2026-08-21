@@ -5,6 +5,10 @@ type WorldImpactSourceQuality = 'official' | 'tier1' | 'tier2' | 'unknown'
 type WorldImpactReviewStatus = 'pending' | 'reviewed' | 'skipped' | 'insufficient_data'
 type WorldImpactReviewDirection = 'positive' | 'negative' | 'mixed' | 'unclear'
 type WorldImpactIssueSeverity = 'urgent' | 'attention' | 'info'
+type WorldImpactMechanism =
+  | 'demand' | 'supply' | 'cost' | 'fx' | 'rates' | 'regulation' | 'energy' | 'defense'
+  | 'semiconductor' | 'consumer' | 'travel' | 'logistics' | 'ip_brand' | 'geopolitical'
+  | 'climate_disaster' | 'unknown'
 
 type ValidatedWorldImpactOutcome = {
   horizon: '1d' | '1w' | '1m' | string
@@ -47,7 +51,7 @@ type ValidatedWorldImpactReview = {
   lesson: string | null
   createdAt: string
   updatedAt: string
-  mechanisms?: string[]
+  mechanisms?: WorldImpactMechanism[]
   direction?: WorldImpactReviewDirection
   confidence?: number | null
   reviewStatus?: WorldImpactReviewStatus
@@ -81,6 +85,11 @@ const DIRECTIONS = new Set<WorldImpactReviewDirection>(['positive', 'negative', 
 const OUTCOME_RESULTS = new Set<Exclude<WorldImpactResult, null>>(['hit', 'miss', 'inverse', 'too_early', 'unclear', 'insufficient_data', 'unknown'])
 const OUTCOME_DIRECTIONS = new Set<WorldImpactDirection>(['up', 'down', 'sideways', 'mixed', 'unknown'])
 const DATA_AVAILABILITY = new Set<WorldImpactDataAvailability>(['ok', 'partial', 'missing', 'priceDataPending'])
+const MECHANISMS = new Set<WorldImpactMechanism>([
+  'demand', 'supply', 'cost', 'fx', 'rates', 'regulation', 'energy', 'defense',
+  'semiconductor', 'consumer', 'travel', 'logistics', 'ip_brand', 'geopolitical',
+  'climate_disaster', 'unknown',
+])
 const HORIZONS = new Set(['1d', '1w', '1m'])
 const AUDIT_HEALTH = new Set<ValidatedWorldImpactAudit['healthStatus']>(['ok', 'needs_attention', 'action_required'])
 const ISSUE_SEVERITIES = new Set<WorldImpactIssueSeverity>(['urgent', 'attention', 'info'])
@@ -95,6 +104,11 @@ function isCanonicalString(value: unknown): value is string {
 
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(item => typeof item === 'string')
+}
+
+function isMechanismArray(value: unknown): value is WorldImpactMechanism[] {
+  return Array.isArray(value)
+    && value.every(item => typeof item === 'string' && MECHANISMS.has(item as WorldImpactMechanism))
 }
 
 function isFiniteNumberOrNullish(value: unknown): boolean {
@@ -154,7 +168,7 @@ function isWorldImpactReview(value: unknown): value is ValidatedWorldImpactRevie
     || typeof value.createdAt !== 'string'
     || typeof value.updatedAt !== 'string') return false
 
-  if (value.mechanisms !== undefined && !isStringArray(value.mechanisms)) return false
+  if (value.mechanisms !== undefined && !isMechanismArray(value.mechanisms)) return false
   if (value.reviewStatus !== undefined && (typeof value.reviewStatus !== 'string' || !REVIEW_STATUSES.has(value.reviewStatus as WorldImpactReviewStatus))) return false
   if (value.direction !== undefined && (typeof value.direction !== 'string' || !DIRECTIONS.has(value.direction as WorldImpactReviewDirection))) return false
   if (value.confidence !== undefined && value.confidence !== null
