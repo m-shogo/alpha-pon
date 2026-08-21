@@ -32,6 +32,8 @@ export function isGeneratedAlertCandidateInput(value: unknown): value is Generat
     && isFiniteNumberOrNull(row.drawdownPct)
     && typeof row.screeningScore === 'number'
     && Number.isFinite(row.screeningScore)
+    && row.screeningScore >= 0
+    && row.screeningScore <= 100
     && isStringArray(row.matchedWorldEventTags)
     && isStringArray(row.warnings)
 }
