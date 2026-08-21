@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "fs";
 import { join } from "path";
 import { addDaysJst, todayJst } from "./date.js";
+import type { RiskDecision } from "./types.js";
 
 export type PeriodicScoreLogEntry = {
   code: string;
@@ -14,7 +15,7 @@ export type PeriodicScoreLogEntry = {
   negativeReasons?: string[];
   createdAt: string;
   expertReview?: { finalVerdict: "block" | "caution" | "pass" | "strong"; consensusScore: number };
-  riskReview?: { decision: string; blockers: string[] };
+  riskReview?: { decision: RiskDecision; blockers: string[] };
 };
 
 export type ParsedPeriodicScoreLog = {
@@ -38,6 +39,13 @@ function isAlertLevel(value: unknown): value is PeriodicScoreLogEntry["alertLeve
 
 function isExpertVerdict(value: unknown): value is NonNullable<PeriodicScoreLogEntry["expertReview"]>["finalVerdict"] {
   return value === "block" || value === "caution" || value === "pass" || value === "strong";
+}
+
+function isRiskDecision(value: unknown): value is RiskDecision {
+  return value === "reject"
+    || value === "research_only"
+    || value === "watch"
+    || value === "high_quality_candidate";
 }
 
 function isRealDate(value: string): boolean {
@@ -75,7 +83,7 @@ function normalizePeriodicScoreRow(value: unknown, expectedDate?: string): Perio
   if (row.riskReview != null) {
     if (!row.riskReview || typeof row.riskReview !== "object" || Array.isArray(row.riskReview)) return null;
     const risk = row.riskReview as Record<string, unknown>;
-    if (typeof risk.decision !== "string" || !isStringArray(risk.blockers)) return null;
+    if (!isRiskDecision(risk.decision) || !isStringArray(risk.blockers)) return null;
     riskReview = { decision: risk.decision, blockers: risk.blockers };
   }
 

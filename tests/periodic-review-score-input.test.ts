@@ -66,6 +66,20 @@ assert.ok(unknownExpertVerdict);
 assert.equal(unknownExpertVerdict.entries.length, 0, "producer契約外expert verdictでblock集計をすり抜けさせない");
 assert.deepEqual(unknownExpertVerdict.invalidRows, [1]);
 
+const unknownRiskDecision = parsePeriodicScoreLog(JSON.stringify([
+  {
+    code: "8136",
+    name: "sample",
+    score: 60,
+    alertLevel: "daily",
+    createdAt: "2026-08-18",
+    riskReview: { decision: "reject ", blockers: ["insufficient evidence"] },
+  },
+]));
+assert.ok(unknownRiskDecision);
+assert.equal(unknownRiskDecision.entries.length, 0, "producer契約外risk decisionを週次/月次evidenceへ混入させない");
+assert.deepEqual(unknownRiskDecision.invalidRows, [1]);
+
 const paddedCode = parsePeriodicScoreLog(JSON.stringify([
   {
     code: " 8136",
