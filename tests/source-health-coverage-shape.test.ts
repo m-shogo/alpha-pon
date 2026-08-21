@@ -5,7 +5,16 @@ import "./source-health-complete-wrapper-report.test.js";
 import "./source-health-failed-steps-shape.test.js";
 import "./regime-history-input.test.js";
 import "./company-non-move-sync.test.js";
-import { normalizeSourceHealthScoreRows } from "../src/source-health-input.js";
+import { normalizeSourceHealthObject, normalizeSourceHealthScoreRows } from "../src/source-health-input.js";
+
+const validPipelineDate = normalizeSourceHealthObject({ status: "completed", date: "2026-08-21" });
+assert.equal(validPipelineDate.valid, true, "real current-or-past pipeline dates remain valid");
+
+for (const invalidDate of ["2026-02-31", "0000-01-01", "2026-8-21", "2026-08-21T00:00:00+09:00", "2999-01-01"]) {
+  const result = normalizeSourceHealthObject({ status: "completed", date: invalidDate });
+  assert.equal(result.valid, false, `invalid or future pipeline dates must fail closed: ${invalidDate}`);
+  assert.equal(result.value, null, "invalid pipeline provenance must not reach source-health aggregation");
+}
 
 const valid = normalizeSourceHealthScoreRows([{
   code: "8136",
