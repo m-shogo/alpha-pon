@@ -49,6 +49,14 @@ export type GeneratedWorldThemeCandidateHypothesisInput = {
   disclaimer: string
 }
 
+export type GeneratedPipelineStepInput = {
+  name: string
+  criticality: string
+  status: string
+  code: number
+  durationSec: number
+}
+
 export type GeneratedPipelineStatusInput = {
   date?: string
   status?: string
@@ -57,7 +65,7 @@ export type GeneratedPipelineStatusInput = {
   failedSteps?: string
   completeWrapperFailedSteps?: string[]
   completeWrapperRunAt?: string
-  steps?: unknown[]
+  steps?: GeneratedPipelineStepInput[]
 }
 
 function isNonNegativeSafeInteger(value: unknown): value is number {
@@ -109,6 +117,19 @@ export function isGeneratedWorldThemeCandidateHypothesisInput(
     && typeof row.disclaimer === 'string'
 }
 
+function isGeneratedPipelineStepInput(value: unknown): value is GeneratedPipelineStepInput {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const row = value as Record<string, unknown>
+  return typeof row.name === 'string'
+    && typeof row.criticality === 'string'
+    && typeof row.status === 'string'
+    && typeof row.code === 'number'
+    && Number.isFinite(row.code)
+    && typeof row.durationSec === 'number'
+    && Number.isFinite(row.durationSec)
+    && row.durationSec >= 0
+}
+
 export function isGeneratedPipelineStatusInput(value: unknown): value is GeneratedPipelineStatusInput {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const row = value as Record<string, unknown>
@@ -121,7 +142,7 @@ export function isGeneratedPipelineStatusInput(value: unknown): value is Generat
       || (Array.isArray(row.completeWrapperFailedSteps)
         && row.completeWrapperFailedSteps.every((item) => typeof item === 'string')))
     && (row.completeWrapperRunAt === undefined || typeof row.completeWrapperRunAt === 'string')
-    && (row.steps === undefined || Array.isArray(row.steps))
+    && (row.steps === undefined || (Array.isArray(row.steps) && row.steps.every(isGeneratedPipelineStepInput)))
 }
 
 export function normalizeGeneratedWarningsInput(
