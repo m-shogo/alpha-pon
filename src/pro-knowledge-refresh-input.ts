@@ -33,9 +33,12 @@ export function normalizeProKnowledgeRefreshConfig(value: unknown): ProKnowledge
   if (!Array.isArray(rawDomains)) return null;
 
   const refreshDomains: ProKnowledgeRefreshDomain[] = [];
+  const domainIds = new Set<string>();
   for (const rawDomain of rawDomains) {
     if (!isRecord(rawDomain)) return null;
     if (typeof rawDomain.id !== "string" || rawDomain.id.trim().length === 0) return null;
+    if (domainIds.has(rawDomain.id)) return null;
+    domainIds.add(rawDomain.id);
     if (typeof rawDomain.label !== "string" || rawDomain.label.trim().length === 0) return null;
     if (typeof rawDomain.reviewCadence !== "string" || rawDomain.reviewCadence.trim().length === 0) return null;
     if (typeof rawDomain.why !== "string" || rawDomain.why.trim().length === 0) return null;
