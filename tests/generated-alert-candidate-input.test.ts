@@ -18,11 +18,13 @@ const mixed = normalizeGeneratedAlertCandidates([
   { ...validCandidate, matchedWorldEventTags: {} },
   { ...validCandidate, warnings: 'warning' },
   { ...validCandidate, screeningScore: '80' },
+  { ...validCandidate, screeningScore: -1 },
+  { ...validCandidate, screeningScore: 101 },
 ])
 
 assert.equal(mixed.rows.length, 1, 'malformed candidates must be isolated before Alerts page array and numeric access')
 assert.equal(mixed.rows[0]?.code, '8136', 'valid sibling candidates must remain usable')
-assert.equal(mixed.warning, 'universeCandidates: invalid_entries (5)')
+assert.equal(mixed.warning, 'universeCandidates: invalid_entries (7)')
 
 const invalidRoot = normalizeGeneratedAlertCandidates({})
 assert.deepEqual(invalidRoot.rows, [])
