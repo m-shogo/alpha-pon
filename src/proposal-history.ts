@@ -1,5 +1,6 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
+import { normalizeProposalHistoryRecord } from "./proposal-history-input.js";
 
 export type ProposalHistoryPriority = "S" | "A" | "B" | "Hold";
 
@@ -22,7 +23,7 @@ const HISTORY_DIR = "data";
 const HISTORY_PATH = join(HISTORY_DIR, "proposals_history.jsonl");
 const MAX_HISTORY_LINES = 500;
 
-function readHistory(): ProposalHistoryItem[] {
+function readHistory(asOf: string): ProposalHistoryItem[] {
   if (!existsSync(HISTORY_PATH)) return [];
   return readFileSync(HISTORY_PATH, "utf-8")
     .split("\n")
@@ -30,12 +31,12 @@ function readHistory(): ProposalHistoryItem[] {
     .filter(Boolean)
     .map(line => {
       try {
-        return JSON.parse(line) as ProposalHistoryItem;
+        return normalizeProposalHistoryRecord(JSON.parse(line) as unknown, asOf);
       } catch {
         return null;
       }
     })
-    .filter((item): item is ProposalHistoryItem => !!item && !!item.date && !!item.title);
+    .filter((item): item is ProposalHistoryItem => item !== null);
 }
 
 function compactHistory(): void {
@@ -50,7 +51,7 @@ function compactHistory(): void {
 
 export function recordProposalHistory(date: string, proposals: ProposalHistoryItem[]): void {
   mkdirSync(HISTORY_DIR, { recursive: true });
-  const history = readHistory();
+  const history = readHistory(date);
   const existingKeys = new Set(history.map(item => `${item.date}:${item.priority}:${item.title}`));
   const lines: string[] = [];
 
@@ -75,7 +76,7 @@ export function recordProposalHistory(date: string, proposals: ProposalHistoryIt
 }
 
 export function findProposalStreaks(date: string, minCount = 3): ProposalStreak[] {
-  const history = readHistory();
+  const history = readHistory(date);
   const byTitle = new Map<string, ProposalHistoryItem[]>();
 
   for (const item of history) {
