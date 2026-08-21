@@ -37,6 +37,10 @@ export function normalizeOpsAlphaDataQualityWarningsInput(
   let malformedCount = 0;
   const normalizedEntries: NonNullable<OpsAlphaDataLike["dataQualityByCode"]> = {};
   for (const [code, rawEntry] of Object.entries(rawEntries as Record<string, unknown>)) {
+    if (code.trim() === "" || code !== code.trim()) {
+      malformedCount += 1;
+      continue;
+    }
     if (rawEntry === null || typeof rawEntry !== "object" || Array.isArray(rawEntry)) {
       normalizedEntries[code] = {};
       malformedCount += 1;

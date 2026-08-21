@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
+import { normalizeOpsAlphaDataQualityWarningsInput } from "../src/ops-dashboard-alpha-input.js";
 import { normalizeOpsOutcomesInput } from "../src/ops-dashboard-outcomes-input.js";
+import type { OpsAlphaDataLike } from "../src/ops-dashboard.js";
 
 const valid = {
   outcomes: [
@@ -32,5 +34,17 @@ for (const malformed of [
   assert.equal(normalized?.outcomes[0]?.result, "unevaluated");
   assert.equal(normalized?.outcomes[0]?.dataAvailability, "unknown");
 }
+
+const alphaWithAmbiguousCode = {
+  generatedAt: "2026-08-21",
+  meta: { warnings: [] },
+  dataQualityByCode: {
+    "8136": { quality: { level: "ok" }, warnings: [] },
+    " 8136 ": { quality: { level: "missing" }, warnings: ["duplicate logical identity"] },
+  },
+} as OpsAlphaDataLike;
+const normalizedAlpha = normalizeOpsAlphaDataQualityWarningsInput(alphaWithAmbiguousCode);
+assert.deepEqual(Object.keys(normalizedAlpha?.dataQualityByCode ?? {}), ["8136"], "padded code keys must not create a second logical data-quality identity");
+assert.ok(normalizedAlpha?.meta?.warnings?.some(warning => warning.includes("dataQualityByCode")), "invalid code identity must remain visible as metadata warning");
 
 console.log("ops-dashboard outcomes input: malformed input fails closed OK");
