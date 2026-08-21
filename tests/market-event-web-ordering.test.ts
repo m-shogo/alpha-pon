@@ -145,6 +145,39 @@ assert.deepEqual(
   "summary counts must be rebuilt from surviving rows instead of preserving quarantined false-green counts",
 );
 
+const inconsistentValidSummary = normalizeMarketEventData({
+  schemaVersion: 1,
+  source: "fallback",
+  events: [validEvent],
+  summary: {
+    total: 999,
+    scheduled: -1,
+    unknownDate: 42,
+    stale: Number.NaN,
+    calendarIncluded: 777,
+    calendarExcludedUnknownDate: 88,
+    priorityCounts: { S0: 999, S1: 999, S2: 999, S3: 999 },
+    decisionCounts: { BUY_WATCH: 999, WAIT: 999, BLOCK: 999, ABSTAIN: 999, INFO: 999 },
+    nextEventAt: "2026-08-12",
+  },
+  meta: { warnings: [] },
+});
+assert.deepEqual(
+  inconsistentValidSummary.summary,
+  {
+    total: 1,
+    scheduled: 1,
+    unknownDate: 0,
+    stale: 0,
+    calendarIncluded: 1,
+    calendarExcludedUnknownDate: 0,
+    priorityCounts: { S0: 0, S1: 0, S2: 1, S3: 0 },
+    decisionCounts: { BUY_WATCH: 0, WAIT: 0, BLOCK: 0, ABSTAIN: 0, INFO: 1 },
+    nextEventAt: "2026-08-12",
+  },
+  "valid event rows must remain the canonical source of read-only summary counts",
+);
+
 const invalidSortAt = normalizeMarketEventData({
   schemaVersion: 1,
   source: "fallback",
