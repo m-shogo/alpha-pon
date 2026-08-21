@@ -279,7 +279,7 @@ function isRenderableWebMarketEvent(value: unknown): value is WebMarketEvent {
   return true
 }
 
-function quarantinedSummary(
+function canonicalSummary(
   events: WebMarketEvent[],
   nextEventAt: unknown,
 ): WebMarketEventData['summary'] {
@@ -327,19 +327,7 @@ export function normalizeMarketEventData(value: unknown): WebMarketEventData {
   const invalidEventCount = rawEvents.length - events.length
   const warnings = array<unknown>(data.meta?.warnings).filter((warning): warning is string => typeof warning === 'string')
   if (invalidEventCount > 0) warnings.push(`不正なイベント ${invalidEventCount} 件を表示対象から除外しました。`)
-  const normalizedSummary = invalidEventCount > 0
-    ? quarantinedSummary(events, summary.nextEventAt)
-    : {
-        total: Number(summary.total ?? 0),
-        scheduled: Number(summary.scheduled ?? 0),
-        unknownDate: Number(summary.unknownDate ?? 0),
-        stale: Number(summary.stale ?? 0),
-        calendarIncluded: Number(summary.calendarIncluded ?? 0),
-        calendarExcludedUnknownDate: Number(summary.calendarExcludedUnknownDate ?? 0),
-        priorityCounts: { ...EMPTY_MARKET_EVENT_DATA.summary.priorityCounts, ...(summary.priorityCounts ?? {}) },
-        decisionCounts: { ...EMPTY_MARKET_EVENT_DATA.summary.decisionCounts, ...(summary.decisionCounts ?? {}) },
-        nextEventAt: typeof summary.nextEventAt === 'string' ? summary.nextEventAt : null,
-      }
+  const normalizedSummary = canonicalSummary(events, summary.nextEventAt)
   return {
     schemaVersion: 1,
     generatedAt: typeof data.generatedAt === 'string' ? data.generatedAt : null,
