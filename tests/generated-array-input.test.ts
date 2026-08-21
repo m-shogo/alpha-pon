@@ -1,4 +1,5 @@
 import {
+  isGeneratedPipelineStatusInput,
   isGeneratedRunCursorState,
   normalizeGeneratedArrayInput,
   normalizeGeneratedObjectInput,
@@ -140,6 +141,25 @@ for (const invalidCursor of [
   { jobName: "universe-scan", offset: 1, maxPerRun: 8, total: Number.MAX_SAFE_INTEGER + 1, updatedAt: "2026-08-21" },
 ]) {
   assert(!isGeneratedRunCursorState(invalidCursor), "negative, fractional, and unsafe run cursor counts must be rejected");
+}
+
+const validPipelineStatus = {
+  date: "2026-08-21",
+  status: "success",
+  steps: [
+    { name: "source-health", criticality: "critical", status: "ok", code: 0, durationSec: 1.25 },
+  ],
+};
+assert(isGeneratedPipelineStatusInput(validPipelineStatus), "canonical pipeline step rows must remain usable");
+for (const malformedPipelineStatus of [
+  { ...validPipelineStatus, steps: [null] },
+  { ...validPipelineStatus, steps: [{}] },
+  { ...validPipelineStatus, steps: [{ ...validPipelineStatus.steps[0], name: null }] },
+  { ...validPipelineStatus, steps: [{ ...validPipelineStatus.steps[0], code: "0" }] },
+  { ...validPipelineStatus, steps: [{ ...validPipelineStatus.steps[0], durationSec: Number.NaN }] },
+  { ...validPipelineStatus, steps: [{ ...validPipelineStatus.steps[0], durationSec: -1 }] },
+]) {
+  assert(!isGeneratedPipelineStatusInput(malformedPipelineStatus), "malformed pipeline step rows must fail closed before Reports UI property access");
 }
 
 console.log("generated array input tests passed");
