@@ -145,12 +145,21 @@ for (const invalidCursor of [
 
 const validPipelineStatus = {
   date: "2026-08-21",
-  status: "success",
+  status: "ok",
+  failedSteps: [] as string[],
   steps: [
     { name: "source-health", criticality: "critical", status: "ok", code: 0, durationSec: 1.25 },
   ],
 };
-assert(isGeneratedPipelineStatusInput(validPipelineStatus), "canonical pipeline step rows must remain usable");
+assert(isGeneratedPipelineStatusInput(validPipelineStatus), "canonical pipeline status emitted by run-daily must remain usable");
+assert(
+  isGeneratedPipelineStatusInput({ ...validPipelineStatus, status: "partial_failed", failedSteps: ["scan_universe"] }),
+  "canonical failedSteps arrays emitted by run-daily must remain usable",
+);
+assert(
+  !isGeneratedPipelineStatusInput({ ...validPipelineStatus, failedSteps: "scan_universe" }),
+  "noncanonical scalar failedSteps must fail closed",
+);
 for (const malformedPipelineStatus of [
   { ...validPipelineStatus, steps: [null] },
   { ...validPipelineStatus, steps: [{}] },
