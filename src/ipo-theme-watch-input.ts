@@ -22,8 +22,12 @@ function isFiniteNumberOrNull(value: unknown): value is number | null {
   return value === null || (typeof value === "number" && Number.isFinite(value));
 }
 
+function isCanonicalIdentity(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0 && value === value.trim();
+}
+
 export function isIpoThemeOutcomeInput(value: unknown): value is HypothesisOutcome {
-  if (!isRecord(value) || typeof value.code !== "string" || !value.code.trim() || typeof value.name !== "string") {
+  if (!isRecord(value) || !isCanonicalIdentity(value.code) || !isCanonicalIdentity(value.name)) {
     return false;
   }
 
