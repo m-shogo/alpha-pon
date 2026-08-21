@@ -26,7 +26,7 @@ function isStrictJstDate(value: string): boolean {
 }
 
 function isOptionalStrictJstDateArray(value: unknown): boolean {
-  return value === undefined || (isStringArray(value) && value.every(isStrictJstDate));
+  return value === undefined || (isStringArray(value) && value.every(item => isStrictJstDate(item) && item <= todayJst()));
 }
 
 function isNonNegativeInteger(value: unknown): value is number {
