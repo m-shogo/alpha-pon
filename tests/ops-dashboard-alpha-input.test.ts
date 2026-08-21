@@ -45,13 +45,53 @@ for (const malformedWarnings of ["broken", { length: 1 }]) {
     meta: { warnings: [] },
     universeScan: { scanStatus: "fresh", fallbackReason: null },
     dataQualityByCode: {
-      "8136": { quality: { level: "ok" }, warnings: { corrupted: true } },
+      "8136": { quality: { level: "full" }, warnings: { corrupted: true } },
     },
   } as unknown as OpsAlphaDataLike;
   const normalized = normalizeOpsAlphaDataQualityWarningsInput(raw);
   assert.ok(normalized);
   assert.deepEqual(normalized.dataQualityByCode?.["8136"]?.warnings, []);
+  assert.equal(normalized.dataQualityByCode?.["8136"]?.quality?.level, "ok");
   assert.deepEqual(normalized.meta?.warnings, ["alpha-pon-data.json dataQualityByCode warnings の形式が不正です（1件）"]);
+
+  const dashboard = buildOpsDashboard(cleanInputs(normalized));
+  assert.equal(dashboard.healthStatus, "needs_attention");
+  assert.ok(dashboard.allIssues.some(issue => issue.title.includes("UI 生成データに warning")));
+}
+
+{
+  const raw = {
+    generatedAt: TODAY,
+    meta: { warnings: [] },
+    universeScan: { scanStatus: "fresh", fallbackReason: null },
+    dataQualityByCode: {
+      "8136": { quality: { level: "full" }, warnings: [] },
+    },
+  } as unknown as OpsAlphaDataLike;
+  const normalized = normalizeOpsAlphaDataQualityWarningsInput(raw);
+  assert.ok(normalized);
+  assert.equal(normalized.dataQualityByCode?.["8136"]?.quality?.level, "ok");
+  assert.deepEqual(normalized.meta?.warnings, []);
+
+  const dashboard = buildOpsDashboard(cleanInputs(normalized));
+  assert.equal(dashboard.dataAvailabilityAudit.qualityLevelCounts.ok, 1);
+  assert.deepEqual(dashboard.dataAvailabilityAudit.nonOkCodes, []);
+  assert.ok(!dashboard.allIssues.some(issue => issue.title.includes("データ品質 ok 以外")));
+}
+
+{
+  const raw = {
+    generatedAt: TODAY,
+    meta: { warnings: [] },
+    universeScan: { scanStatus: "fresh", fallbackReason: null },
+    dataQualityByCode: {
+      "8136": { quality: { level: "excellent" }, warnings: [] },
+    },
+  } as unknown as OpsAlphaDataLike;
+  const normalized = normalizeOpsAlphaDataQualityWarningsInput(raw);
+  assert.ok(normalized);
+  assert.equal(normalized.dataQualityByCode?.["8136"]?.quality, undefined);
+  assert.deepEqual(normalized.meta?.warnings, ["alpha-pon-data.json dataQualityByCode quality.level の形式が不正です（1件）"]);
 
   const dashboard = buildOpsDashboard(cleanInputs(normalized));
   assert.equal(dashboard.healthStatus, "needs_attention");
@@ -96,9 +136,9 @@ const valid: OpsAlphaDataLike = {
   generatedAt: TODAY,
   meta: { warnings: ["existing warning"] },
   universeScan: { scanStatus: "fresh", fallbackReason: null },
-  dataQualityByCode: { "8136": { quality: { level: "ok" }, warnings: ["existing warning"] } },
+  dataQualityByCode: { "8136": { quality: { level: "partial" }, warnings: ["existing warning"] } },
 };
 assert.equal(normalizeOpsAlphaWarningsInput(valid), valid);
 assert.equal(normalizeOpsAlphaDataQualityWarningsInput(valid), valid);
 
-console.log("ops-dashboard-alpha-input: malformed warnings and universe scan states fail closed");
+console.log("ops-dashboard-alpha-input: malformed warnings, universe scan states, and data-quality levels fail closed");
