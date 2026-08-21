@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { inspectSourceHealthReportFile } from "../src/source-health-report-file.js";
@@ -16,6 +16,14 @@ try {
     inspectSourceHealthReportFile(reportPath),
     { exists: true, size: 8 },
     "regular report files must retain their readable byte count"
+  );
+
+  const linkedReportPath = join(root, "linked-report.md");
+  symlinkSync(reportPath, linkedReportPath);
+  assert.deepEqual(
+    inspectSourceHealthReportFile(linkedReportPath),
+    { exists: false, size: 0 },
+    "symlinked reports must not inherit canonical source-health provenance"
   );
 
   const blankReportPath = join(root, "blank.md");
@@ -37,4 +45,4 @@ try {
   rmSync(root, { recursive: true, force: true });
 }
 
-console.log("source health report file: unreadable or blank paths fail closed without crashing OK");
+console.log("source health report file: unreadable, symlinked, or blank paths fail closed without crashing OK");
