@@ -1,7 +1,7 @@
 export type GeneratedAlertCandidateInput = {
   code: string
   name: string
-  dataSource: string
+  dataSource: 'jquants' | 'mock'
   drawdownPct: number | null
   screeningScore: number
   matchedWorldEventTags: string[]
@@ -28,7 +28,7 @@ export function isGeneratedAlertCandidateInput(value: unknown): value is Generat
     && row.code.trim().length > 0
     && row.code === row.code.trim()
     && typeof row.name === 'string'
-    && typeof row.dataSource === 'string'
+    && (row.dataSource === 'jquants' || row.dataSource === 'mock')
     && isFiniteNumberOrNull(row.drawdownPct)
     && typeof row.screeningScore === 'number'
     && Number.isFinite(row.screeningScore)
