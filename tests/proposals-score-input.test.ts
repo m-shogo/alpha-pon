@@ -64,6 +64,16 @@ try {
   );
 
   writeFileSync(join(dir, "scores_2026-08-18.json"), JSON.stringify([
+    { code: "8136", warnings: [], createdAt: "2026-08-17" },
+    { code: "7974", warnings: [], createdAt: "2026-08-18" },
+  ]), "utf-8");
+  assert.throws(
+    () => readProposalScores<{ code: string; createdAt?: string }>(dir, "2026-08-18"),
+    /proposal score createdAt is inconsistent with snapshot at row\(s\) 1/,
+    "declared score provenance must remain bound to the dated snapshot instead of allowing stale rows to be repackaged",
+  );
+
+  writeFileSync(join(dir, "scores_2026-08-18.json"), JSON.stringify([
     {
       code: "8136",
       warnings: [],
@@ -112,4 +122,4 @@ try {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("proposals-score-input: PIT, parse-error, root-shape, warning-shape, data-quality, primary-review-shape, required-identity, and duplicate-identity regressions OK");
+console.log("proposals-score-input: PIT, parse-error, root-shape, warning-shape, data-quality, primary-review-shape, createdAt-lineage, required-identity, and duplicate-identity regressions OK");
