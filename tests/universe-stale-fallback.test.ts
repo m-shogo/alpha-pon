@@ -92,6 +92,16 @@ assert.throws(
 );
 assert.throws(
   () => buildUniverseScanOutput({
+    generatedAt: "2999-01-01",
+    dataSource: "jquants",
+    scanStatus: "fresh",
+    candidates: [base],
+  }),
+  /generatedAt must not be in the future/,
+  "future scan dates must not enter the current PIT universe snapshot",
+);
+assert.throws(
+  () => buildUniverseScanOutput({
     generatedAt: "2026-06-08",
     dataSource: "jquants",
     scanStatus: "fresh",
