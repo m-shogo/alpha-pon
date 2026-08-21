@@ -62,6 +62,13 @@ try {
     "unknown diagnoses must not bypass weak-rule proposal review",
   );
 
+  writeFileSync(path, JSON.stringify([canonicalRow, { ...canonicalRow }]), "utf-8");
+  assert.throws(
+    () => readProposalRuleDiagnostics<Row>(path),
+    /duplicate proposal rule diagnostic identity at row\(s\) 1, 2/,
+    "duplicate rule identities must not double-count weak-rule evidence in proposals",
+  );
+
   writeFileSync(path, "{", "utf-8");
   assert.throws(
     () => readProposalRuleDiagnostics<Row>(path),
@@ -89,4 +96,4 @@ try {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("proposals-rule-diagnostics-input: malformed-shape, diagnosis-enum, and current-date provenance regressions OK");
+console.log("proposals-rule-diagnostics-input: malformed-shape, diagnosis-enum, unique-identity, and current-date provenance regressions OK");
