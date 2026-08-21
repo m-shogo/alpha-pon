@@ -60,13 +60,17 @@ export type GeneratedPipelineStatusInput = {
   steps?: unknown[]
 }
 
+function isNonNegativeSafeInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
+}
+
 export function isGeneratedRunCursorState(value: unknown): value is GeneratedRunCursorState {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const row = value as Record<string, unknown>
   return (row.jobName === undefined || typeof row.jobName === 'string')
-    && (row.offset === undefined || (typeof row.offset === 'number' && Number.isFinite(row.offset)))
-    && (row.maxPerRun === undefined || (typeof row.maxPerRun === 'number' && Number.isFinite(row.maxPerRun)))
-    && (row.total === undefined || (typeof row.total === 'number' && Number.isFinite(row.total)))
+    && (row.offset === undefined || isNonNegativeSafeInteger(row.offset))
+    && (row.maxPerRun === undefined || isNonNegativeSafeInteger(row.maxPerRun))
+    && (row.total === undefined || isNonNegativeSafeInteger(row.total))
     && (row.updatedAt === undefined || typeof row.updatedAt === 'string')
 }
 
