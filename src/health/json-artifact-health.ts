@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, statSync } from "fs";
+import { existsSync, lstatSync, readFileSync, statSync } from "fs";
 
 export type JsonArtifactHealth =
   | { ok: true }
@@ -8,6 +8,7 @@ export function inspectJsonArtifact(path: string): JsonArtifactHealth {
   if (!existsSync(path)) return { ok: false, reason: "missing" };
 
   try {
+    if (lstatSync(path).isSymbolicLink()) return { ok: false, reason: "not_file" };
     if (!statSync(path).isFile()) return { ok: false, reason: "not_file" };
     const text = readFileSync(path, "utf-8");
     if (text.trim().length === 0) return { ok: false, reason: "empty" };
