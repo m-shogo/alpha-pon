@@ -138,12 +138,27 @@ export function parseLearningScoreInput(raw: string, asOf = todayJst()): ParsedL
   }
   if (!Array.isArray(parsed)) return null;
 
-  const entries: LearningScoreEntry[] = [];
+  const candidates: Array<{ entry: LearningScoreEntry; row: number }> = [];
   const invalidRows: number[] = [];
   parsed.forEach((value, index) => {
     const normalized = normalizeRow(value, asOf);
-    if (normalized) entries.push(normalized);
+    if (normalized) candidates.push({ entry: normalized, row: index + 1 });
     else invalidRows.push(index + 1);
   });
+
+  const counts = new Map<string, number>();
+  for (const candidate of candidates) {
+    const key = `${candidate.entry.createdAt}_${candidate.entry.code}`;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+
+  const entries: LearningScoreEntry[] = [];
+  for (const candidate of candidates) {
+    const key = `${candidate.entry.createdAt}_${candidate.entry.code}`;
+    if ((counts.get(key) ?? 0) > 1) invalidRows.push(candidate.row);
+    else entries.push(candidate.entry);
+  }
+
+  invalidRows.sort((left, right) => left - right);
   return { entries, invalidRows };
 }
