@@ -1,4 +1,4 @@
-import { addDaysJst } from "./date.js";
+import { addDaysJst, todayJst } from "./date.js";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -170,6 +170,17 @@ export function normalizeSourceHealthObject<T extends object>(value: unknown): {
   }
 
   if (typeof value.status !== "string" || !PIPELINE_STATUSES.has(value.status)) {
+    return { value: null, valid: false };
+  }
+
+  if (
+    value.date !== undefined
+    && (
+      typeof value.date !== "string"
+      || !isStrictJstDate(value.date)
+      || value.date > todayJst()
+    )
+  ) {
     return { value: null, valid: false };
   }
 
