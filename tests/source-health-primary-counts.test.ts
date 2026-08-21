@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { normalizeSourceHealthScoreRows } from "../src/source-health-input.js";
+import { hasValidPrimaryDisclosureReview, normalizeSourceHealthScoreRows } from "../src/source-health-input.js";
 
 function scoreWithCoverage(sourceCoverage: Record<string, unknown>) {
   return [{
@@ -34,4 +34,26 @@ const valid = normalizeSourceHealthScoreRows(scoreWithCoverage({
 }));
 assert.equal(valid.valid, true, "ordinary nonnegative integer counts remain eligible");
 
-console.log("source health primary disclosure counts: nonnegative safe-integer contract OK");
+assert.equal(
+  hasValidPrimaryDisclosureReview({
+    decision: "caution",
+    warnings: ["TDnet: caution"],
+    blockers: [],
+    sourceCoverage: { tdnetCount: 1, edinetCount: 0, fetchErrorCount: 0 },
+  }),
+  true,
+  "canonical caution reviews with warnings but no blockers remain valid",
+);
+
+assert.equal(
+  hasValidPrimaryDisclosureReview({
+    decision: "caution",
+    warnings: ["TDnet: caution"],
+    blockers: ["TDnet: blocker"],
+    sourceCoverage: { tdnetCount: 1, edinetCount: 0, fetchErrorCount: 0 },
+  }),
+  false,
+  "caution must not hide blocker evidence that canonical production would classify as block",
+);
+
+console.log("source health primary disclosure counts: nonnegative safe-integer and decision/evidence consistency contract OK");

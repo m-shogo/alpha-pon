@@ -79,6 +79,7 @@ export function hasValidPrimaryDisclosureReview(value: unknown): boolean {
     && (
       !Array.isArray(value.warnings)
       || value.warnings.length === 0
+      || (Array.isArray(value.blockers) && value.blockers.length > 0)
       || (evidenceCount === 0 && fetchErrorCount === 0)
     )
   ) {
