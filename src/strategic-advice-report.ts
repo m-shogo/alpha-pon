@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
+import { isUsableProKnowledgeRegime } from "./pro-knowledge-refresh-input.js";
 import { formatReadOnlyJsonlParseWarning, readJsonlWithErrors } from "./read-only-jsonl.js";
 
 type CurrentRegime = {
@@ -68,7 +69,9 @@ function countMatches(text: string, pattern: RegExp): number {
 
 function main() {
   const date = todayJst();
-  const regime = readYaml<CurrentRegime>("config/current-regime.yml");
+  const rawRegime = readYaml<unknown>("config/current-regime.yml");
+  const regimeUsable = isUsableProKnowledgeRegime(rawRegime, date);
+  const regime = regimeUsable ? rawRegime as CurrentRegime : null;
   const nonMoveInput = readJsonl("data/company_non_move_history.jsonl");
   const regimeHistoryInput = readJsonl("data/regime_history.jsonl");
   const sourceHealthInput = readJsonl("data/source_health_history.jsonl");
@@ -112,6 +115,9 @@ function main() {
   const knowledgeA = countMatches(proKnowledgeRefresh, /\| A \|/g);
 
   const auditWarnings: string[] = [];
+  if (!regimeUsable) {
+    auditWarnings.push("current-regime.yml が未生成・不正・未来日・malformedです。regime contextを使用せず安全側でレポートを継続します。");
+  }
   for (const warning of [nonMoveInput.warning, regimeHistoryInput.warning, sourceHealthInput.warning]) {
     if (warning) auditWarnings.push(`read-only history parse warning: ${warning}`);
   }
