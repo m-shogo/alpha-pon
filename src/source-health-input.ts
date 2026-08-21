@@ -95,6 +95,17 @@ export function hasValidPrimaryDisclosureReview(value: unknown): boolean {
   ) {
     return false;
   }
+  if (
+    value.decision === "missing"
+    && (
+      evidenceCount > 0
+      || fetchErrorCount > 0
+      || (Array.isArray(value.warnings) && value.warnings.length > 0)
+      || (Array.isArray(value.blockers) && value.blockers.length > 0)
+    )
+  ) {
+    return false;
+  }
   return isOptionalStrictJstDateArray(value.sourceCoverage.scannedEdinetDates);
 }
 

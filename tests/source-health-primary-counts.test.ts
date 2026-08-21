@@ -56,4 +56,42 @@ assert.equal(
   "caution must not hide blocker evidence that canonical production would classify as block",
 );
 
+assert.equal(
+  hasValidPrimaryDisclosureReview({
+    decision: "missing",
+    warnings: [],
+    blockers: [],
+    sourceCoverage: { tdnetCount: 0, edinetCount: 0, fetchErrorCount: 0 },
+  }),
+  true,
+  "canonical missing reviews without source evidence or fetch failures remain valid",
+);
+
+for (const contradictoryMissing of [
+  {
+    decision: "missing",
+    warnings: [],
+    blockers: [],
+    sourceCoverage: { tdnetCount: 1, edinetCount: 0, fetchErrorCount: 0 },
+  },
+  {
+    decision: "missing",
+    warnings: ["一次情報取得エラー"],
+    blockers: [],
+    sourceCoverage: { tdnetCount: 0, edinetCount: 0, fetchErrorCount: 1 },
+  },
+  {
+    decision: "missing",
+    warnings: [],
+    blockers: ["TDnet: blocker"],
+    sourceCoverage: { tdnetCount: 1, edinetCount: 0, fetchErrorCount: 0 },
+  },
+] as const) {
+  assert.equal(
+    hasValidPrimaryDisclosureReview(contradictoryMissing),
+    false,
+    "missing must not hide primary evidence, fetch errors, warnings, or blockers",
+  );
+}
+
 console.log("source health primary disclosure counts: nonnegative safe-integer and decision/evidence consistency contract OK");
