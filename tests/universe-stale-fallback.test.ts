@@ -80,6 +80,37 @@ const output = buildUniverseScanOutput({
 assert.equal(output.scanStatus, "stale_fallback");
 assert.equal(output.fallbackReason, "jquants_zero_candidates");
 assert.equal(output.candidates[0]?.detectedAt, "2026-06-01", "scan metadata 追加後も detectedAt は保持する");
+assert.throws(
+  () => buildUniverseScanOutput({
+    generatedAt: "2026-02-31",
+    dataSource: "jquants",
+    scanStatus: "fresh",
+    candidates: [base],
+  }),
+  /generatedAt must be a real YYYY-MM-DD date/,
+  "producer must not emit impossible scan dates",
+);
+assert.throws(
+  () => buildUniverseScanOutput({
+    generatedAt: "2026-06-08",
+    dataSource: "jquants",
+    scanStatus: "fresh",
+    fallbackReason: "jquants_zero_candidates",
+    candidates: [base],
+  }),
+  /fresh universe scan must not carry a fallback reason/,
+  "fresh metadata must not be indistinguishable from stale fallback",
+);
+assert.throws(
+  () => buildUniverseScanOutput({
+    generatedAt: "2026-06-08",
+    dataSource: "mock",
+    scanStatus: "mock",
+    candidates: [base],
+  }),
+  /candidate provenance must match output dataSource/,
+  "scan-level provenance must agree with every candidate",
+);
 
 const malformedContainer = normalizeCompanyRulesUniverseInput({ candidates: {} });
 assert.deepEqual(malformedContainer.rows, [], "object-shaped candidates は company rules へ流さない");
