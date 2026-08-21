@@ -4,7 +4,8 @@ import { load } from "js-yaml";
 import { todayJst } from "./date.js";
 import { normalizeReadOnlyJsonArray } from "./read-only-json.js";
 import { formatReadOnlyJsonlParseWarning, readJsonlWithErrors } from "./read-only-jsonl.js";
-import type { UniverseCandidate, UniverseScanMetadata, UniverseScanOutput, StockCandidateHypothesis, HypothesisOutcome, AccuracySummary, WorldContext } from "./universe.js";
+import type { UniverseScanMetadata, UniverseScanOutput, StockCandidateHypothesis, HypothesisOutcome, AccuracySummary, WorldContext } from "./universe.js";
+import { parseUniverseScanOutput } from "./universe-scan-output.js";
 import type { CompanyMemoryRecord } from "./company-memory.js";
 import type { PrimaryDisclosureReview } from "./types.js";
 import { buildWorldThemeCandidateHypotheses, type WorldEventForHypothesis } from "./world-theme-candidate-hypotheses.js";
@@ -175,16 +176,7 @@ function loadUniverseScanOutput(): UniverseScanOutput | null {
   const path = "data/universe_candidates_latest.json";
   if (!existsSync(path)) return null;
   try {
-    const raw = JSON.parse(readFileSync(path, "utf-8")) as Partial<UniverseScanOutput> & { candidates?: UniverseCandidate[] };
-    const candidates = raw.candidates ?? [];
-    return {
-      generatedAt: raw.generatedAt ?? "",
-      dataSource: raw.dataSource ?? "mock",
-      scanStatus: raw.scanStatus ?? (raw.dataSource === "mock" ? "mock" : "fresh"),
-      fallbackReason: raw.fallbackReason ?? null,
-      count: raw.count ?? candidates.length,
-      candidates,
-    };
+    return parseUniverseScanOutput(JSON.parse(readFileSync(path, "utf-8")));
   } catch { return null; }
 }
 
