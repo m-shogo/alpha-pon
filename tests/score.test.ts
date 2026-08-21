@@ -208,6 +208,24 @@ function testLearningScorePitCutoff() {
   assert.equal(parseLearningScoreInput("[]", "2026-02-31"), null, "不存在asOfをPIT cutoffとして使わない");
 }
 
+function testLearningScoreDuplicateIdentity() {
+  const base = {
+    code: "8136",
+    name: "サンリオ",
+    score: 72,
+    alertLevel: "daily",
+    createdAt: "2026-08-21",
+  };
+  const parsed = parseLearningScoreInput(JSON.stringify([
+    base,
+    { ...base, score: 90 },
+    { ...base, code: "4661", name: "別銘柄" },
+  ]), "2026-08-21");
+  assert.ok(parsed);
+  assert.deepEqual(parsed.entries.map(entry => entry.code), ["4661"], "重複learning identityを入力順で正本化しない");
+  assert.deepEqual(parsed.invalidRows, [1, 2], "重複identity参加rowは全件隔離する");
+}
+
 function main() {
   testPullbackMissingFinancials();
   testEarningsDropMissingFinancials();
@@ -221,6 +239,7 @@ function main() {
   testGeneratedPipelineStatusShape();
   testLearningScoreInputIsolation();
   testLearningScorePitCutoff();
+  testLearningScoreDuplicateIdentity();
   console.log("score.test.ts passed");
 }
 
