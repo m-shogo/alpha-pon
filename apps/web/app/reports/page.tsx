@@ -1,4 +1,5 @@
 import { loadGeneratedData } from '@/lib/generated-data'
+import { isPipelineStatusHealthy } from '@/lib/pipeline-status-view'
 import { ReportViewer } from '@/components/ReportViewer'
 import Link from 'next/link'
 
@@ -13,6 +14,7 @@ function cursorRange(cursor: { offset?: number; maxPerRun?: number; total?: numb
 export default function ReportsPage() {
   const data = loadGeneratedData()
   const runCursors = Object.entries(data.runCursors ?? {})
+  const pipelineHealthy = data.pipelineStatus ? isPipelineStatusHealthy(data.pipelineStatus) : false
 
   return (
     <>
@@ -106,7 +108,7 @@ export default function ReportsPage() {
                 <>
                   <span style={{ color: 'var(--ink-3)', fontWeight: 600 }}>ステータス</span>
                   <span style={{
-                    color: data.pipelineStatus.status === 'success' ? 'var(--mint-deep)' : 'var(--amber)',
+                    color: pipelineHealthy ? 'var(--mint-deep)' : 'var(--amber)',
                     fontWeight: 800,
                   }}>
                     {data.pipelineStatus.status}
@@ -134,7 +136,7 @@ export default function ReportsPage() {
                 ))}
               </div>
             )}
-            {(data.pipelineStatus.completeWrapperFailedSteps ?? []).length === 0 && (
+            {pipelineHealthy && (
               <div style={{ marginTop: 8, fontSize: 11.5, color: 'var(--mint-deep)', fontWeight: 700 }}>✓ 全ステップ正常完了</div>
             )}
             {(data.pipelineStatus.steps ?? []).length > 0 && (
