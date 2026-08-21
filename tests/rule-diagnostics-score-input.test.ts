@@ -17,27 +17,39 @@ try {
   ]), "utf-8");
   writeFileSync(join(dir, "scores_2026-08-20.json"), JSON.stringify([
     { code: "7974", createdAt: "2026-08-20", rules: ["earnings"] },
+    { code: "8136", createdAt: "2026-08-19", rules: ["future_repackaged"] },
+  ]), "utf-8");
+  writeFileSync(join(dir, "scores_2026-08-21.json"), JSON.stringify([
+    { code: "4661", createdAt: "2026-08-21", rules: ["future"] },
+  ]), "utf-8");
+  writeFileSync(join(dir, "scores_2026-02-31.json"), JSON.stringify([
+    { code: "6501", createdAt: "2026-02-31", rules: ["impossible"] },
   ]), "utf-8");
 
-  const isolated = readRuleDiagnosticsScoreRows<Row>(dir);
+  const isolated = readRuleDiagnosticsScoreRows<Row>(dir, "2026-08-20");
   assert.deepEqual(
     isolated.rows.map(row => `${row.createdAt}_${row.code}`),
     ["2026-08-19_8136", "2026-08-20_7974"],
-    "malformed rows must not discard usable historical score evidence",
+    "current/past snapshots must not admit malformed rows, future snapshots, or rows repackaged under another snapshot date",
   );
-  assert.deepEqual(
-    isolated.warnings,
-    ["scores_2026-08-19.json: 2 malformed score row(s) at row(s) 2, 3"],
+  assert.ok(
+    isolated.warnings.includes("scores_2026-08-19.json: 2 malformed score row(s) at row(s) 2, 3"),
     "row isolation must leave metadata-only provenance for malformed rows",
   );
+  assert.ok(
+    isolated.warnings.includes("scores_2026-08-20.json: 1 malformed score row(s) at row(s) 2"),
+    "snapshot/row date mismatch must be isolated before scoreByCodeDate can overwrite historical evidence",
+  );
+  assert.ok(isolated.warnings.includes("scores_2026-08-21.json: future_snapshot"));
+  assert.ok(isolated.warnings.includes("scores_2026-02-31.json: invalid_snapshot_date"));
 
   writeFileSync(join(dir, "scores_2026-08-18.json"), JSON.stringify({ code: "broken" }), "utf-8");
   writeFileSync(join(dir, "scores_2026-08-17.json"), "{", "utf-8");
-  const fileFailures = readRuleDiagnosticsScoreRows<Row>(dir);
+  const fileFailures = readRuleDiagnosticsScoreRows<Row>(dir, "2026-08-20");
   assert.ok(fileFailures.warnings.includes("scores_2026-08-18.json: invalid_root"));
   assert.ok(fileFailures.warnings.includes("scores_2026-08-17.json: invalid_json"));
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("rule-diagnostics-score-input: malformed historical score rows are isolated");
+console.log("rule-diagnostics-score-input: malformed and PIT-inconsistent score evidence is isolated");
