@@ -6,50 +6,9 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join } from "path";
 import { todayJst } from "./date.js";
 import { loadAnalogyOutcomeRecords, type AnalogyOutcomeRecord } from "./analysis/analogy-db.js";
+import { parseLearningScoreInput, type LearningScoreEntry } from "./learning-score-input.js";
 
-type ExpertLensLog = {
-  key: string;
-  name: string;
-  verdict: string;
-  confidence: number;
-  reasons: string[];
-  objections: string[];
-  nextChecks: string[];
-};
-
-type ScoreLogEntry = {
-  code: string;
-  name: string;
-  priority?: string;
-  tags?: string[];
-  rules?: string[];
-  score: number;
-  alertLevel: string;
-  reasons?: string[];
-  negativeReasons?: string[];
-  warnings?: string[];
-  dataQuality?: string;
-  hypeRisk?: { score: number; level: string; reasons: string[]; warnings: string[] };
-  riskReview?: {
-    decision: string;
-    blockers: string[];
-    warnings: string[];
-    strengths: string[];
-    checklist: Record<string, boolean>;
-  };
-  expertReview?: {
-    finalVerdict: string;
-    consensusScore: number;
-    passCount: number;
-    cautionCount: number;
-    blockCount: number;
-    strongCount: number;
-    lenses: ExpertLensLog[];
-    disagreements: string[];
-    requiredBeforeNotification: string[];
-  };
-  createdAt: string;
-};
+type ScoreLogEntry = LearningScoreEntry;
 
 type GroupStats = {
   count: number;
@@ -155,8 +114,8 @@ function loadScoreLogs(): ScoreLogEntry[] {
   const entries: ScoreLogEntry[] = [];
   for (const file of files) {
     try {
-      const parsed = JSON.parse(readFileSync(join(reportsDir, file), "utf-8")) as ScoreLogEntry[];
-      entries.push(...parsed);
+      const parsed = parseLearningScoreInput(readFileSync(join(reportsDir, file), "utf-8"));
+      if (parsed) entries.push(...parsed.entries);
     } catch {
       // 壊れたログはスキップ
     }
