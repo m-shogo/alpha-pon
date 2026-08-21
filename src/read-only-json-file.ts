@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "fs";
+import { existsSync, lstatSync, readFileSync } from "fs";
 import { normalizeReadOnlyJsonObjectArrayField } from "./read-only-json.js";
 
 export type ReadOnlyJsonArrayFileLoad<T> = {
@@ -29,12 +29,28 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isCanonicalRegularFile(path: string): boolean {
+  try {
+    return lstatSync(path).isFile();
+  } catch {
+    return false;
+  }
+}
+
 export function readReadOnlyJsonArrayFile<T>(path: string): ReadOnlyJsonArrayFileLoad<T> {
   if (!existsSync(path)) {
     return {
       rows: [],
       missing: true,
       parseError: false,
+      invalidRoot: false,
+    };
+  }
+  if (!isCanonicalRegularFile(path)) {
+    return {
+      rows: [],
+      missing: false,
+      parseError: true,
       invalidRoot: false,
     };
   }
@@ -79,6 +95,14 @@ export function readReadOnlyJsonObjectFile<T extends Record<string, unknown>>(
       invalidRoot: false,
     };
   }
+  if (!isCanonicalRegularFile(path)) {
+    return {
+      object: null,
+      missing: false,
+      parseError: true,
+      invalidRoot: false,
+    };
+  }
 
   let parsed: unknown;
   try {
@@ -120,6 +144,17 @@ export function readReadOnlyJsonObjectArrayFile<T>(
       rows: [],
       missing: true,
       parseError: false,
+      invalidRoot: false,
+      invalidField: false,
+      invalidRows: 0,
+    };
+  }
+  if (!isCanonicalRegularFile(path)) {
+    return {
+      object: null,
+      rows: [],
+      missing: false,
+      parseError: true,
       invalidRoot: false,
       invalidField: false,
       invalidRows: 0,
