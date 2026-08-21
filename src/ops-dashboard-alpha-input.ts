@@ -2,6 +2,7 @@ import type { OpsAlphaDataLike } from "./ops-dashboard.js";
 
 const INVALID_WARNINGS_MESSAGE = "alpha-pon-data.json meta.warnings の形式が不正です";
 const INVALID_DATA_QUALITY_WARNINGS_MESSAGE = "alpha-pon-data.json dataQualityByCode warnings の形式が不正です";
+const INVALID_DATA_QUALITY_LEVEL_MESSAGE = "alpha-pon-data.json dataQualityByCode quality.level の形式が不正です";
 const INVALID_UNIVERSE_SCAN_MESSAGE = "alpha-pon-data.json universeScan の形式が不正です";
 
 export function normalizeOpsAlphaWarningsInput(
@@ -56,30 +57,52 @@ export function normalizeOpsAlphaDataQualityWarningsInput(
     return { ...normalizedAlpha, meta: { warnings }, dataQualityByCode: {} };
   }
 
-  let malformedCount = 0;
+  let malformedWarningsCount = 0;
+  let malformedLevelCount = 0;
+  let changedCount = 0;
   const normalizedEntries: NonNullable<OpsAlphaDataLike["dataQualityByCode"]> = {};
   for (const [code, rawEntry] of Object.entries(rawEntries as Record<string, unknown>)) {
     if (code.trim() === "" || code !== code.trim()) {
-      malformedCount += 1;
+      malformedWarningsCount += 1;
       continue;
     }
     if (rawEntry === null || typeof rawEntry !== "object" || Array.isArray(rawEntry)) {
       normalizedEntries[code] = {};
-      malformedCount += 1;
+      malformedWarningsCount += 1;
       continue;
     }
 
     const entry = rawEntry as NonNullable<OpsAlphaDataLike["dataQualityByCode"]>[string] & { warnings?: unknown };
-    if (entry.warnings === undefined || (Array.isArray(entry.warnings) && entry.warnings.every(item => typeof item === "string"))) {
-      normalizedEntries[code] = entry as NonNullable<OpsAlphaDataLike["dataQualityByCode"]>[string];
-      continue;
+    let nextEntry = entry as NonNullable<OpsAlphaDataLike["dataQualityByCode"]>[string];
+
+    const rawLevel = entry.quality?.level;
+    if (rawLevel !== undefined) {
+      if (rawLevel === "full") {
+        nextEntry = { ...nextEntry, quality: { ...nextEntry.quality, level: "ok" } };
+        changedCount += 1;
+      } else if (rawLevel !== "partial" && rawLevel !== "low" && rawLevel !== "ok") {
+        nextEntry = { ...nextEntry, quality: undefined };
+        malformedLevelCount += 1;
+        changedCount += 1;
+      }
     }
 
-    normalizedEntries[code] = { ...entry, warnings: [] };
-    malformedCount += 1;
+    if (entry.warnings !== undefined && !(Array.isArray(entry.warnings) && entry.warnings.every(item => typeof item === "string"))) {
+      nextEntry = { ...nextEntry, warnings: [] };
+      malformedWarningsCount += 1;
+      changedCount += 1;
+    }
+
+    normalizedEntries[code] = nextEntry;
   }
 
-  if (malformedCount === 0) return normalizedAlpha;
-  const warnings = [...(normalizedAlpha.meta?.warnings ?? []), `${INVALID_DATA_QUALITY_WARNINGS_MESSAGE}（${malformedCount}件）`];
+  if (malformedWarningsCount === 0 && malformedLevelCount === 0 && changedCount === 0) return normalizedAlpha;
+  const warnings = [...(normalizedAlpha.meta?.warnings ?? [])];
+  if (malformedWarningsCount > 0) {
+    warnings.push(`${INVALID_DATA_QUALITY_WARNINGS_MESSAGE}（${malformedWarningsCount}件）`);
+  }
+  if (malformedLevelCount > 0) {
+    warnings.push(`${INVALID_DATA_QUALITY_LEVEL_MESSAGE}（${malformedLevelCount}件）`);
+  }
   return { ...normalizedAlpha, meta: { warnings }, dataQualityByCode: normalizedEntries };
 }
