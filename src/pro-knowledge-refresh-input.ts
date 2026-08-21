@@ -36,7 +36,11 @@ export function normalizeProKnowledgeRefreshConfig(value: unknown): ProKnowledge
   const domainIds = new Set<string>();
   for (const rawDomain of rawDomains) {
     if (!isRecord(rawDomain)) return null;
-    if (typeof rawDomain.id !== "string" || rawDomain.id.trim().length === 0) return null;
+    if (
+      typeof rawDomain.id !== "string"
+      || rawDomain.id.trim().length === 0
+      || rawDomain.id.trim() !== rawDomain.id
+    ) return null;
     if (domainIds.has(rawDomain.id)) return null;
     domainIds.add(rawDomain.id);
     if (typeof rawDomain.label !== "string" || rawDomain.label.trim().length === 0) return null;
