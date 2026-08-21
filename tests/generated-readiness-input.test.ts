@@ -21,6 +21,14 @@ const valid = {
 assert.deepEqual(normalizeGeneratedReadinessInput(undefined), { value: null, warning: null })
 assert.deepEqual(normalizeGeneratedReadinessInput({}), { value: null, warning: 'readiness: invalid_shape' })
 assert.deepEqual(
+  normalizeGeneratedReadinessInput({ ...valid, generatedAt: '2026-08-18T05:00:00' }),
+  { value: null, warning: 'readiness: invalid_shape' },
+)
+assert.deepEqual(
+  normalizeGeneratedReadinessInput({ ...valid, generatedAt: '9999-12-31T23:59:59+09:00' }),
+  { value: null, warning: 'readiness: invalid_shape' },
+)
+assert.deepEqual(
   normalizeGeneratedReadinessInput({ ...valid, items: {} }),
   { value: null, warning: 'readiness: invalid_shape' },
 )
@@ -51,4 +59,4 @@ for (const malformed of [
 }
 assert.deepEqual(normalizeGeneratedReadinessInput(valid), { value: valid, warning: null })
 
-console.log('generated readiness input: malformed runtime shape and ambiguous item identities are isolated before Home page access OK')
+console.log('generated readiness input: malformed runtime shape, PIT metadata, and ambiguous item identities are isolated before Home page access OK')

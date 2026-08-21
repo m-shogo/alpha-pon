@@ -21,6 +21,7 @@ export type GeneratedReadinessInputResult = {
 }
 
 const READINESS_STATUSES = new Set(['done', 'partial', 'blocked', 'not_started'])
+const EXPLICIT_TIMEZONE_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/
 
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string')
@@ -32,6 +33,12 @@ function isReadinessScore(value: unknown): value is number {
 
 function isReadinessStatus(value: unknown): value is string {
   return typeof value === 'string' && READINESS_STATUSES.has(value)
+}
+
+function isPastOrPresentExplicitTimezoneInstant(value: unknown): value is string {
+  if (typeof value !== 'string' || !EXPLICIT_TIMEZONE_INSTANT.test(value)) return false
+  const timestamp = Date.parse(value)
+  return Number.isFinite(timestamp) && timestamp <= Date.now()
 }
 
 function isReadinessItem(value: unknown): value is GeneratedReadinessItem {
@@ -56,7 +63,7 @@ export function isGeneratedReadinessInput(value: unknown): value is GeneratedRea
   const report = value as Record<string, unknown>
   if (!Array.isArray(report.items) || !report.items.every(isReadinessItem)) return false
 
-  return typeof report.generatedAt === 'string'
+  return isPastOrPresentExplicitTimezoneInstant(report.generatedAt)
     && isReadinessScore(report.overallScore)
     && isReadinessStatus(report.overallStatus)
     && isStringArray(report.blockers)
