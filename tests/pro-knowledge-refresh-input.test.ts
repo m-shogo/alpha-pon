@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
+import { normalizeCompanyHypothesesRoot } from "../src/company-coverage-input.js";
 import {
   isUsableProKnowledgeRegime,
   isUsableProKnowledgeRegimeAsOf,
   normalizeProKnowledgeRefreshConfig,
 } from "../src/pro-knowledge-refresh-input.js";
+import { normalizeAlignmentHypothesisCategories } from "../src/regime-hypothesis-alignment-input.js";
 
 const today = "2026-08-21";
 assert.equal(isUsableProKnowledgeRegimeAsOf(today, today), true);
@@ -76,5 +78,14 @@ assert.equal(normalizeProKnowledgeRefreshConfig({ ...validConfig, refreshDomains
 assert.equal(normalizeProKnowledgeRefreshConfig({ ...validConfig, refreshRules: "broken" }), null);
 assert.equal(normalizeProKnowledgeRefreshConfig({ ...validConfig, outputRequirements: [123] }), null);
 assert.equal(normalizeProKnowledgeRefreshConfig(null), null);
+
+const alignment = normalizeAlignmentHypothesisCategories(normalizeCompanyHypothesesRoot({
+  categories: {
+    healthy: { label: "Healthy", companies: [{ code: "8136", name: "サンリオ" }] },
+    " healthy ": { label: "Padded duplicate", companies: [{ code: "8136", name: "サンリオ" }] },
+  },
+}));
+assert.deepEqual(Object.keys(alignment.categories), ["healthy"], "padded category ids must not create a second logical alignment identity");
+assert.ok(alignment.warnings.some(warning => warning.includes("identity is invalid")), "padded category identity must stay visible as metadata warning");
 
 console.log("pro-knowledge-refresh-input.test.ts passed");
