@@ -28,6 +28,14 @@ assert.deepEqual(
   normalizeGeneratedReadinessInput({ ...valid, items: [{ ...valid.items[0], nextActions: 'review:hypotheses' }] }),
   { value: null, warning: 'readiness: invalid_shape' },
 )
+assert.deepEqual(
+  normalizeGeneratedReadinessInput({ ...valid, items: [{ ...valid.items[0], id: ' hypothesis-outcomes ' }] }),
+  { value: null, warning: 'readiness: invalid_shape' },
+)
+assert.deepEqual(
+  normalizeGeneratedReadinessInput({ ...valid, items: [valid.items[0], { ...valid.items[0] }] }),
+  { value: null, warning: 'readiness: invalid_shape' },
+)
 for (const malformed of [
   { ...valid, overallScore: 101 },
   { ...valid, overallScore: -1 },
@@ -43,4 +51,4 @@ for (const malformed of [
 }
 assert.deepEqual(normalizeGeneratedReadinessInput(valid), { value: valid, warning: null })
 
-console.log('generated readiness input: malformed runtime shape is isolated before Home page access OK')
+console.log('generated readiness input: malformed runtime shape and ambiguous item identities are isolated before Home page access OK')

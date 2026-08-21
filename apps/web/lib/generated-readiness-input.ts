@@ -39,6 +39,7 @@ function isReadinessItem(value: unknown): value is GeneratedReadinessItem {
   const item = value as Record<string, unknown>
   return typeof item.id === 'string'
     && item.id.trim().length > 0
+    && item.id === item.id.trim()
     && typeof item.label === 'string'
     && isReadinessStatus(item.status)
     && isReadinessScore(item.score)
@@ -46,15 +47,20 @@ function isReadinessItem(value: unknown): value is GeneratedReadinessItem {
     && isStringArray(item.nextActions)
 }
 
+function hasUniqueReadinessItemIds(items: GeneratedReadinessItem[]): boolean {
+  return new Set(items.map((item) => item.id)).size === items.length
+}
+
 export function isGeneratedReadinessInput(value: unknown): value is GeneratedReadinessReport {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const report = value as Record<string, unknown>
+  if (!Array.isArray(report.items) || !report.items.every(isReadinessItem)) return false
+
   return typeof report.generatedAt === 'string'
     && isReadinessScore(report.overallScore)
     && isReadinessStatus(report.overallStatus)
     && isStringArray(report.blockers)
-    && Array.isArray(report.items)
-    && report.items.every(isReadinessItem)
+    && hasUniqueReadinessItemIds(report.items)
 }
 
 export function normalizeGeneratedReadinessInput(value: unknown): GeneratedReadinessInputResult {
