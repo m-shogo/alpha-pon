@@ -12,6 +12,14 @@ function isOptionalString(value: unknown): value is string | null | undefined {
   return value == null || typeof value === "string";
 }
 
+function isOptionalEnum(value: unknown, allowed: readonly string[]): boolean {
+  return value == null || (typeof value === "string" && allowed.includes(value));
+}
+
+const REVIEW_HORIZONS = ["1d", "1w", "1m", "3m"] as const;
+const OUTCOME_RESULTS = ["hit", "miss", "too_early", "invalidated", "unknown"] as const;
+const DATA_AVAILABILITY = ["ok", "partial", "missing"] as const;
+
 function invalidOutcomesInput(): OpsOutcomesInput {
   return {
     outcomes: [
@@ -33,9 +41,9 @@ export function normalizeOpsOutcomesInput(value: unknown): OpsOutcomesInput | nu
     if (!isRecord(outcome)) return invalidOutcomesInput();
     if (
       !isOptionalString(outcome.code) ||
-      !isOptionalString(outcome.reviewHorizon) ||
-      !isOptionalString(outcome.result) ||
-      !isOptionalString(outcome.dataAvailability)
+      !isOptionalEnum(outcome.reviewHorizon, REVIEW_HORIZONS) ||
+      !isOptionalEnum(outcome.result, OUTCOME_RESULTS) ||
+      !isOptionalEnum(outcome.dataAvailability, DATA_AVAILABILITY)
     ) {
       return invalidOutcomesInput();
     }
