@@ -186,12 +186,26 @@ function testLearningScoreInputIsolation() {
     null,
     { ...valid, code: "4661", warnings: {} },
     { ...valid, code: "7832", score: "72" },
-  ]));
+  ]), "2026-08-21");
   assert.ok(parsed);
   assert.deepEqual(parsed.entries.map(entry => entry.code), ["8136"], "正常rowは壊れrowの周囲でも維持する");
   assert.deepEqual(parsed.invalidRows, [2, 3, 4], "crashし得る壊れrowは行単位で隔離する");
-  assert.equal(parseLearningScoreInput(JSON.stringify({ code: "8136" })), null, "object rootをscore arrayとして扱わない");
-  assert.equal(parseLearningScoreInput("{broken"), null, "壊れJSONをscore arrayとして扱わない");
+  assert.equal(parseLearningScoreInput(JSON.stringify({ code: "8136" }), "2026-08-21"), null, "object rootをscore arrayとして扱わない");
+  assert.equal(parseLearningScoreInput("{broken", "2026-08-21"), null, "壊れJSONをscore arrayとして扱わない");
+}
+
+function testLearningScorePitCutoff() {
+  const parsed = parseLearningScoreInput(JSON.stringify([{
+    code: "8136",
+    name: "サンリオ",
+    score: 72,
+    alertLevel: "daily",
+    createdAt: "2026-08-22",
+  }]), "2026-08-21");
+  assert.ok(parsed);
+  assert.equal(parsed.entries.length, 0, "未来日のscore rowを現在のlearning evidenceへ混入させない");
+  assert.deepEqual(parsed.invalidRows, [1]);
+  assert.equal(parseLearningScoreInput("[]", "2026-02-31"), null, "不存在asOfをPIT cutoffとして使わない");
 }
 
 function main() {
@@ -206,6 +220,7 @@ function main() {
   testGeneratedWorldThemeCandidateHypothesisShape();
   testGeneratedPipelineStatusShape();
   testLearningScoreInputIsolation();
+  testLearningScorePitCutoff();
   console.log("score.test.ts passed");
 }
 

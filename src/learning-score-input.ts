@@ -1,4 +1,4 @@
-import { addDaysJst } from "./date.js";
+import { addDaysJst, todayJst } from "./date.js";
 
 export type LearningExpertLens = {
   name: string;
@@ -65,13 +65,13 @@ function normalizeLens(value: unknown): LearningExpertLens | null {
   };
 }
 
-function normalizeRow(value: unknown): LearningScoreEntry | null {
+function normalizeRow(value: unknown, asOf: string): LearningScoreEntry | null {
   if (!isRecord(value)) return null;
   if (typeof value.code !== "string" || value.code.trim() === "" || value.code !== value.code.trim()) return null;
   if (typeof value.name !== "string" || value.name.trim() === "") return null;
   if (typeof value.score !== "number" || !Number.isFinite(value.score)) return null;
   if (typeof value.alertLevel !== "string") return null;
-  if (typeof value.createdAt !== "string" || !isRealJstDate(value.createdAt)) return null;
+  if (typeof value.createdAt !== "string" || !isRealJstDate(value.createdAt) || value.createdAt > asOf) return null;
 
   for (const field of ["tags", "rules", "reasons", "negativeReasons", "warnings"] as const) {
     if (!isOptionalStringArray(value[field])) return null;
@@ -127,7 +127,9 @@ function normalizeRow(value: unknown): LearningScoreEntry | null {
   };
 }
 
-export function parseLearningScoreInput(raw: string): ParsedLearningScoreInput | null {
+export function parseLearningScoreInput(raw: string, asOf = todayJst()): ParsedLearningScoreInput | null {
+  if (!isRealJstDate(asOf)) return null;
+
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw) as unknown;
@@ -139,7 +141,7 @@ export function parseLearningScoreInput(raw: string): ParsedLearningScoreInput |
   const entries: LearningScoreEntry[] = [];
   const invalidRows: number[] = [];
   parsed.forEach((value, index) => {
-    const normalized = normalizeRow(value);
+    const normalized = normalizeRow(value, asOf);
     if (normalized) entries.push(normalized);
     else invalidRows.push(index + 1);
   });
