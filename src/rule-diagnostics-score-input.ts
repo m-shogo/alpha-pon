@@ -60,14 +60,27 @@ export function readRuleDiagnosticsScoreRows<T>(
       continue;
     }
 
+    const candidates: Array<{ row: T; rowNumber: number; code: string }> = [];
     const invalidRows: number[] = [];
     parsed.forEach((row, index) => {
       if (isUsableRuleDiagnosticsScoreRow(row, snapshotDate)) {
-        rows.push(row as T);
+        const record = row as Record<string, unknown>;
+        candidates.push({ row: row as T, rowNumber: index + 1, code: record.code as string });
       } else {
         invalidRows.push(index + 1);
       }
     });
+
+    const codeCounts = new Map<string, number>();
+    for (const candidate of candidates) {
+      codeCounts.set(candidate.code, (codeCounts.get(candidate.code) ?? 0) + 1);
+    }
+    for (const candidate of candidates) {
+      if ((codeCounts.get(candidate.code) ?? 0) > 1) invalidRows.push(candidate.rowNumber);
+      else rows.push(candidate.row);
+    }
+
+    invalidRows.sort((a, b) => a - b);
     if (invalidRows.length > 0) {
       warnings.push(`${file}: ${invalidRows.length} malformed score row(s) at row(s) ${invalidRows.join(", ")}`);
     }

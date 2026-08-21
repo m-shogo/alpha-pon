@@ -10,6 +10,10 @@ type Row = { code: string; createdAt: string; rules?: string[] };
 const dir = mkdtempSync(join(tmpdir(), "rule-diagnostics-score-input-"));
 
 try {
+  writeFileSync(join(dir, "scores_2026-08-16.json"), JSON.stringify([
+    { code: "6501", createdAt: "2026-08-16", rules: ["first"] },
+    { code: "6501", createdAt: "2026-08-16", rules: ["second"] },
+  ]), "utf-8");
   writeFileSync(join(dir, "scores_2026-08-19.json"), JSON.stringify([
     { code: "8136", createdAt: "2026-08-19", rules: ["official_ir"] },
     null,
@@ -30,7 +34,11 @@ try {
   assert.deepEqual(
     isolated.rows.map(row => `${row.createdAt}_${row.code}`),
     ["2026-08-19_8136", "2026-08-20_7974"],
-    "current/past snapshots must not admit malformed rows, future snapshots, or rows repackaged under another snapshot date",
+    "current/past snapshots must not admit ambiguous identities, malformed rows, future snapshots, or rows repackaged under another snapshot date",
+  );
+  assert.ok(
+    isolated.warnings.includes("scores_2026-08-16.json: 2 malformed score row(s) at row(s) 1, 2"),
+    "duplicate score identity must not be resolved by input order",
   );
   assert.ok(
     isolated.warnings.includes("scores_2026-08-19.json: 2 malformed score row(s) at row(s) 2, 3"),
@@ -52,4 +60,4 @@ try {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("rule-diagnostics-score-input: malformed and PIT-inconsistent score evidence is isolated");
+console.log("rule-diagnostics-score-input: ambiguous, malformed, and PIT-inconsistent score evidence is isolated");
