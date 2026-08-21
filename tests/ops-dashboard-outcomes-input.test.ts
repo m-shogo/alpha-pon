@@ -23,6 +23,9 @@ for (const malformed of [
   { outcomes: ["broken"] },
   { outcomes: [{ result: 1 }] },
   { outcomes: [{ dataAvailability: [] }] },
+  { outcomes: [{ code: "8136", reviewHorizon: "1y", result: "hit", dataAvailability: "ok" }] },
+  { outcomes: [{ code: "8136", reviewHorizon: "1m", result: "won", dataAvailability: "ok" }] },
+  { outcomes: [{ code: "8136", reviewHorizon: "1m", result: "hit", dataAvailability: "perfect" }] },
 ]) {
   const normalized = normalizeOpsOutcomesInput(malformed);
   assert.equal(normalized?.outcomes.length, 1);
