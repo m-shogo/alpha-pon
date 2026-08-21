@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "fs";
+import { existsSync, lstatSync, readFileSync } from "fs";
 
 export type ReadOnlyJsonlParseError = {
   lineNumber: number;
@@ -6,15 +6,33 @@ export type ReadOnlyJsonlParseError = {
   message: string;
 };
 
+function fileReadError(message: string): ReadOnlyJsonlParseError {
+  return {
+    lineNumber: 0,
+    preview: "",
+    message,
+  };
+}
+
 export function readJsonlWithErrors<T>(path: string): {
   rows: T[];
   parseErrors: ReadOnlyJsonlParseError[];
 } {
   if (!existsSync(path)) return { rows: [], parseErrors: [] };
 
+  let contents: string;
+  try {
+    if (!lstatSync(path).isFile()) {
+      return { rows: [], parseErrors: [fileReadError("non_regular_file")] };
+    }
+    contents = readFileSync(path, "utf-8");
+  } catch {
+    return { rows: [], parseErrors: [fileReadError("read_error")] };
+  }
+
   const rows: T[] = [];
   const parseErrors: ReadOnlyJsonlParseError[] = [];
-  const lines = readFileSync(path, "utf-8").split("\n");
+  const lines = contents.split("\n");
 
   lines.forEach((line, index) => {
     const trimmed = line.trim();
@@ -38,6 +56,10 @@ export function formatReadOnlyJsonlParseWarning(
   parseErrors: ReadOnlyJsonlParseError[],
 ): string | null {
   if (parseErrors.length === 0) return null;
+  const fileErrors = parseErrors.filter(error => error.lineNumber === 0);
+  if (fileErrors.length > 0) {
+    return `${path}: read_error ${fileErrors.length}`;
+  }
   const lines = parseErrors.slice(0, 8).map(error => error.lineNumber).join(", ");
   const suffix = parseErrors.length > 8 ? ", …" : "";
   return `${path}: parse_error ${parseErrors.length} (lines ${lines}${suffix})`;
