@@ -59,6 +59,14 @@ assert.equal(normalizeProKnowledgeRefreshConfig({ ...validConfig, refreshDomains
 assert.equal(
   normalizeProKnowledgeRefreshConfig({
     ...validConfig,
+    refreshDomains: [{ ...validConfig.refreshDomains[0], id: " ai_compute " }],
+  }),
+  null,
+  "padded domain ids must not create a second logical refresh identity",
+);
+assert.equal(
+  normalizeProKnowledgeRefreshConfig({
+    ...validConfig,
     refreshDomains: [validConfig.refreshDomains[0], { ...validConfig.refreshDomains[0], label: "AI duplicate" }],
   }),
   null,
