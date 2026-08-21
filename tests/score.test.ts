@@ -3,6 +3,7 @@ import { validateThemesConfig } from "../src/config.js";
 import { scoreHealthyPullback } from "../src/score/pullback.js";
 import { scoreEarningsDrop } from "../src/score/earnings.js";
 import { validateWatchlist } from "../src/validation.js";
+import { parseLearningScoreInput } from "../src/learning-score-input.js";
 import type { WatchlistConfig } from "../src/types.js";
 import {
   isGeneratedPipelineStatusInput,
@@ -165,6 +166,34 @@ function testGeneratedPipelineStatusShape() {
   assert.equal(isGeneratedPipelineStatusInput({ completeWrapperFailedSteps: ["ok", null] }), false);
 }
 
+function testLearningScoreInputIsolation() {
+  const valid = {
+    code: "8136",
+    name: "サンリオ",
+    score: 72,
+    alertLevel: "daily",
+    createdAt: "2026-08-21",
+    warnings: ["ok"],
+    riskReview: { decision: "watch", blockers: [] },
+    expertReview: {
+      finalVerdict: "caution",
+      disagreements: ["valuation"],
+      lenses: [{ name: "quality", verdict: "caution", nextChecks: ["IR"] }],
+    },
+  };
+  const parsed = parseLearningScoreInput(JSON.stringify([
+    valid,
+    null,
+    { ...valid, code: "4661", warnings: {} },
+    { ...valid, code: "7832", score: "72" },
+  ]));
+  assert.ok(parsed);
+  assert.deepEqual(parsed.entries.map(entry => entry.code), ["8136"], "正常rowは壊れrowの周囲でも維持する");
+  assert.deepEqual(parsed.invalidRows, [2, 3, 4], "crashし得る壊れrowは行単位で隔離する");
+  assert.equal(parseLearningScoreInput(JSON.stringify({ code: "8136" })), null, "object rootをscore arrayとして扱わない");
+  assert.equal(parseLearningScoreInput("{broken"), null, "壊れJSONをscore arrayとして扱わない");
+}
+
 function main() {
   testPullbackMissingFinancials();
   testEarningsDropMissingFinancials();
@@ -176,6 +205,7 @@ function main() {
   testGeneratedWarningsShape();
   testGeneratedWorldThemeCandidateHypothesisShape();
   testGeneratedPipelineStatusShape();
+  testLearningScoreInputIsolation();
   console.log("score.test.ts passed");
 }
 
