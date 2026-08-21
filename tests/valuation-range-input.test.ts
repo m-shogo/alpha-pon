@@ -55,6 +55,13 @@ try {
     "JSON-valid malformed score rows must not become valuation evidence",
   );
 
+  writeFileSync(join(dir, "scores_2026-08-18.json"), '[{"code":"8136"},{"code":"8136"}]', "utf-8");
+  assert.throws(
+    () => loadLatestValuationScoreRows<{ code: string }>(dir, "2026-08-18", isCodeRow),
+    /duplicate_code_identity/,
+    "duplicate company identities must not produce duplicate valuation evidence rows",
+  );
+
   rmSync(join(dir, "scores_2026-08-17.json"));
   rmSync(join(dir, "scores_2026-08-18.json"));
   assert.equal(
@@ -71,4 +78,4 @@ try {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("valuation-range-input: PIT selection and malformed latest score snapshots fail closed OK");
+console.log("valuation-range-input: PIT, row-shape, and unique-identity regressions OK");
