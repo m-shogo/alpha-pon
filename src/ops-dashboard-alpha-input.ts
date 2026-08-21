@@ -2,6 +2,7 @@ import type { OpsAlphaDataLike } from "./ops-dashboard.js";
 
 const INVALID_WARNINGS_MESSAGE = "alpha-pon-data.json meta.warnings の形式が不正です";
 const INVALID_DATA_QUALITY_WARNINGS_MESSAGE = "alpha-pon-data.json dataQualityByCode warnings の形式が不正です";
+const INVALID_UNIVERSE_SCAN_MESSAGE = "alpha-pon-data.json universeScan の形式が不正です";
 
 export function normalizeOpsAlphaWarningsInput(
   alphaData: OpsAlphaDataLike | null,
@@ -26,12 +27,33 @@ export function normalizeOpsAlphaWarningsInput(
 export function normalizeOpsAlphaDataQualityWarningsInput(
   alphaData: OpsAlphaDataLike | null,
 ): OpsAlphaDataLike | null {
-  if (!alphaData || alphaData.dataQualityByCode == null) return alphaData;
+  if (!alphaData) return alphaData;
 
-  const rawEntries = alphaData.dataQualityByCode as unknown;
+  let normalizedAlpha = alphaData;
+  const rawUniverseScan = alphaData.universeScan as unknown;
+  if (rawUniverseScan !== undefined && rawUniverseScan !== null) {
+    let validUniverseScan = false;
+    if (typeof rawUniverseScan === "object" && !Array.isArray(rawUniverseScan)) {
+      const scan = rawUniverseScan as { scanStatus?: unknown; fallbackReason?: unknown };
+      const scanStatus = scan.scanStatus;
+      const fallbackReason = scan.fallbackReason ?? null;
+      validUniverseScan =
+        (scanStatus === "fresh" && fallbackReason === null)
+        || (scanStatus === "mock" && fallbackReason === null)
+        || (scanStatus === "stale_fallback" && fallbackReason === "jquants_zero_candidates");
+    }
+    if (!validUniverseScan) {
+      const warnings = [...(alphaData.meta?.warnings ?? []), INVALID_UNIVERSE_SCAN_MESSAGE];
+      normalizedAlpha = { ...alphaData, meta: { warnings }, universeScan: null };
+    }
+  }
+
+  if (normalizedAlpha.dataQualityByCode == null) return normalizedAlpha;
+
+  const rawEntries = normalizedAlpha.dataQualityByCode as unknown;
   if (typeof rawEntries !== "object" || Array.isArray(rawEntries)) {
-    const warnings = [...(alphaData.meta?.warnings ?? []), INVALID_DATA_QUALITY_WARNINGS_MESSAGE];
-    return { ...alphaData, meta: { warnings }, dataQualityByCode: {} };
+    const warnings = [...(normalizedAlpha.meta?.warnings ?? []), INVALID_DATA_QUALITY_WARNINGS_MESSAGE];
+    return { ...normalizedAlpha, meta: { warnings }, dataQualityByCode: {} };
   }
 
   let malformedCount = 0;
@@ -57,7 +79,7 @@ export function normalizeOpsAlphaDataQualityWarningsInput(
     malformedCount += 1;
   }
 
-  if (malformedCount === 0) return alphaData;
-  const warnings = [...(alphaData.meta?.warnings ?? []), `${INVALID_DATA_QUALITY_WARNINGS_MESSAGE}（${malformedCount}件）`];
-  return { ...alphaData, meta: { warnings }, dataQualityByCode: normalizedEntries };
+  if (malformedCount === 0) return normalizedAlpha;
+  const warnings = [...(normalizedAlpha.meta?.warnings ?? []), `${INVALID_DATA_QUALITY_WARNINGS_MESSAGE}（${malformedCount}件）`];
+  return { ...normalizedAlpha, meta: { warnings }, dataQualityByCode: normalizedEntries };
 }
