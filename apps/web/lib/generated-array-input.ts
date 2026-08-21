@@ -62,7 +62,7 @@ export type GeneratedPipelineStatusInput = {
   status?: string
   startedAt?: string
   endedAt?: string
-  failedSteps?: string
+  failedSteps?: string[]
   completeWrapperFailedSteps?: string[]
   completeWrapperRunAt?: string
   steps?: GeneratedPipelineStepInput[]
@@ -137,7 +137,8 @@ export function isGeneratedPipelineStatusInput(value: unknown): value is Generat
     && (row.status === undefined || typeof row.status === 'string')
     && (row.startedAt === undefined || typeof row.startedAt === 'string')
     && (row.endedAt === undefined || typeof row.endedAt === 'string')
-    && (row.failedSteps === undefined || typeof row.failedSteps === 'string')
+    && (row.failedSteps === undefined
+      || (Array.isArray(row.failedSteps) && row.failedSteps.every((item) => typeof item === 'string')))
     && (row.completeWrapperFailedSteps === undefined
       || (Array.isArray(row.completeWrapperFailedSteps)
         && row.completeWrapperFailedSteps.every((item) => typeof item === 'string')))
