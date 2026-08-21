@@ -58,6 +58,7 @@ export function isQualityHypothesisLike(value: unknown): value is QualityHypothe
     "expectedTimeframe",
     "expectedDirection",
   ])) return false;
+  if (value.reviewDueAt != null && !isGregorianDate(value.reviewDueAt)) return false;
   if (!isOptionalEnum(value.expectedTimeframe, HYPOTHESIS_TIMEFRAMES)) return false;
   if (!isOptionalEnum(value.expectedDirection, DIRECTIONS)) return false;
   return true;
