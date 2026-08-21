@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { isUsableFreshSuccessArtifact } from "../src/health/success-artifact-health.js";
@@ -16,6 +16,17 @@ try {
   writeFileSync(valid, "{}\n", "utf8");
   utimesSync(valid, todayMtime, todayMtime);
   assert.equal(isUsableFreshSuccessArtifact(valid, today, now.getTime()), true);
+
+  const symlinkTarget = join(root, "symlink-target.json");
+  writeFileSync(symlinkTarget, "data", "utf8");
+  utimesSync(symlinkTarget, todayMtime, todayMtime);
+  const symlinkArtifact = join(root, "symlink-artifact.json");
+  symlinkSync(symlinkTarget, symlinkArtifact);
+  assert.equal(
+    isUsableFreshSuccessArtifact(symlinkArtifact, today, now.getTime()),
+    false,
+    "a symlink must not prove success for the canonical artifact path",
+  );
 
   const futureSameDay = join(root, "future-same-day.json");
   writeFileSync(futureSameDay, "data", "utf8");
