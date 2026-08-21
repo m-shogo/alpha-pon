@@ -49,6 +49,21 @@ export function readProposalRuleDiagnostics<T>(path: string): T[] {
     throw new Error(`${path}: proposal rule diagnostic shape is invalid at row(s) ${unsafeRows.join(", ")}`);
   }
 
+  const ruleCounts = new Map<string, number>();
+  for (const row of parsed) {
+    const rule = (row as { rule: string }).rule;
+    ruleCounts.set(rule, (ruleCounts.get(rule) ?? 0) + 1);
+  }
+  const duplicateRules = new Set(
+    [...ruleCounts.entries()].filter(([, count]) => count > 1).map(([rule]) => rule),
+  );
+  if (duplicateRules.size > 0) {
+    const duplicateRows = parsed
+      .map((row, index) => duplicateRules.has((row as { rule: string }).rule) ? index + 1 : null)
+      .filter((row): row is number => row !== null);
+    throw new Error(`${path}: duplicate proposal rule diagnostic identity at row(s) ${duplicateRows.join(", ")}`);
+  }
+
   return parsed as T[];
 }
 
