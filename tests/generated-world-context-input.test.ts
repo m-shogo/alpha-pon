@@ -31,9 +31,23 @@ assert.deepEqual(
   { value: null, warning: 'worldContext: invalid_shape' },
 )
 assert.deepEqual(
+  normalizeGeneratedWorldContextInput({
+    ...valid,
+    activeRegimes: [{ ...valid.activeRegimes[0], id: ' high_rates ' }],
+  }),
+  { value: null, warning: 'worldContext: invalid_shape' },
+)
+assert.deepEqual(
+  normalizeGeneratedWorldContextInput({
+    ...valid,
+    activeRegimes: [valid.activeRegimes[0], { ...valid.activeRegimes[0] }],
+  }),
+  { value: null, warning: 'worldContext: invalid_shape' },
+)
+assert.deepEqual(
   normalizeGeneratedWorldContextInput({ ...valid, operatingRules: {} }),
   { value: null, warning: 'worldContext: invalid_shape' },
 )
 assert.deepEqual(normalizeGeneratedWorldContextInput(valid), { value: valid, warning: null })
 
-console.log('generated world context input: malformed runtime shape is isolated before World page access OK')
+console.log('generated world context input: malformed runtime shape and ambiguous regime identities are isolated before World page access OK')
