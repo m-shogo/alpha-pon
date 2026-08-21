@@ -11,8 +11,20 @@ type NonMoveHistory = { code?: string; nonMoveReasons?: string[]; outcome?: stri
 
 type NonMoveStats = { count: number; reasons: string[]; topReason: string };
 
+function isNonMoveHistory(value: unknown): value is NonMoveHistory {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  if (row.code !== undefined && (typeof row.code !== "string" || row.code.trim() !== row.code || row.code.length === 0)) return false;
+  if (row.outcome !== undefined && typeof row.outcome !== "string") return false;
+  if (row.nonMoveReasons !== undefined) {
+    if (!Array.isArray(row.nonMoveReasons)) return false;
+    if (row.nonMoveReasons.some(reason => typeof reason !== "string" || reason.trim() !== reason || reason.length === 0)) return false;
+  }
+  return true;
+}
+
 function nonMoveStatsByCode(): { stats: Map<string, NonMoveStats>; warning: string | null } {
-  const history = readStaleHypothesisJsonl<NonMoveHistory>("data/company_non_move_history.jsonl");
+  const history = readStaleHypothesisJsonl<NonMoveHistory>("data/company_non_move_history.jsonl", isNonMoveHistory);
   const reasonCounts = new Map<string, Map<string, number>>();
   for (const row of history.rows) {
     if (!row.code || row.code === "template") continue;
