@@ -8,6 +8,7 @@ const base = {
   createdAt: "2026-06-10",
   updatedAt: "2026-06-12",
   outcomes: [{
+    horizon: "1w",
     dueAt: "2026-06-11",
     evaluatedAt: "2026-06-12",
     evaluationAsOf: "2026-06-12",
