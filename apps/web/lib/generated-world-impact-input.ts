@@ -132,6 +132,29 @@ function isGregorianDate(value: unknown): value is string {
   return day <= (days[month - 1] ?? 0)
 }
 
+function parseExplicitTimezoneIsoInstant(value: unknown): number | null {
+  if (typeof value !== 'string') return null
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,3})?(Z|[+-]\d{2}:\d{2})$/.exec(value)
+  if (!match) return null
+  if (!isGregorianDate(`${match[1]}-${match[2]}-${match[3]}`)) return null
+
+  const hour = Number(match[4])
+  const minute = Number(match[5])
+  const second = Number(match[6])
+  if (hour > 23 || minute > 59 || second > 59) return null
+
+  const timezone = match[7]
+  if (timezone !== 'Z') {
+    if (timezone === '-00:00') return null
+    const offsetHours = Number(timezone.slice(1, 3))
+    const offsetMinutes = Number(timezone.slice(4, 6))
+    if (offsetHours > 14 || offsetMinutes > 59 || (offsetHours === 14 && offsetMinutes !== 0)) return null
+  }
+
+  const parsed = Date.parse(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
 function isOutcome(value: unknown): value is ValidatedWorldImpactOutcome {
   if (!isObject(value)) return false
   return typeof value.horizon === 'string'
@@ -200,8 +223,9 @@ function isPriorityIssue(value: unknown): value is ValidatedWorldImpactAudit['pr
 
 function isWorldImpactAudit(value: unknown): value is ValidatedWorldImpactAudit {
   if (!isObject(value)) return false
+  const generatedAt = parseExplicitTimezoneIsoInstant(value.generatedAt)
+  if (generatedAt === null || generatedAt > Date.now()) return false
   return value.schemaVersion === 1
-    && typeof value.generatedAt === 'string'
     && typeof value.healthStatus === 'string'
     && AUDIT_HEALTH.has(value.healthStatus as ValidatedWorldImpactAudit['healthStatus'])
     && isNonNegativeSafeInteger(value.totalReviews)
