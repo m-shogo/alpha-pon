@@ -75,18 +75,30 @@ const isHypothesisRow = (value: unknown): value is Record<string, unknown> => {
     && typeof row.detectedAt === "string"
     && typeof row.reviewDueAt === "string";
 };
+const canonicalHypothesis = {
+  code: "8136",
+  status: "open",
+  confidence: 0.7,
+  detectedAt: "2026-08-18",
+  reviewDueAt: "2026-09-18",
+  invalidationSignals: [] as string[],
+  evidenceNeeded: [] as string[],
+  relatedWorldEventIds: [] as string[],
+  relatedDisclosureIds: [] as string[],
+};
 const mixedHypotheses = normalizeGeneratedArrayInput(
   [
-    { code: "8136", status: "open", confidence: 0.7, detectedAt: "2026-08-18", reviewDueAt: "2026-09-18" },
+    canonicalHypothesis,
+    { ...canonicalHypothesis, invalidationSignals: "broken" },
     null,
     {},
   ],
   "hypothesisPredictions",
   isHypothesisRow,
 );
-assert(mixedHypotheses.rows.length === 1, "malformed hypothesis rows must be isolated before hypothesis-list property access");
+assert(mixedHypotheses.rows.length === 1, "malformed hypothesis rows and collection contracts must be isolated before hypothesis-list property access");
 assert(mixedHypotheses.rows[0]?.code === "8136", "valid hypothesis siblings must remain usable");
-assert(mixedHypotheses.warning === "hypothesisPredictions: invalid_entries (2)", "malformed hypothesis rows must remain visible as metadata-only warnings");
+assert(mixedHypotheses.warning === "hypothesisPredictions: invalid_entries (3)", "malformed hypothesis rows must remain visible as metadata-only warnings");
 
 const isOutcomeRow = (value: unknown): value is Record<string, unknown> => {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;

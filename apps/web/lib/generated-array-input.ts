@@ -89,6 +89,15 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string')
 }
 
+function hasCanonicalHypothesisPredictionCollections(value: unknown): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const row = value as Record<string, unknown>
+  return isStringArray(row.invalidationSignals)
+    && isStringArray(row.evidenceNeeded)
+    && isStringArray(row.relatedWorldEventIds)
+    && isStringArray(row.relatedDisclosureIds)
+}
+
 function isFiniteNumberOrNull(value: unknown): value is number | null {
   return value === null || (typeof value === 'number' && Number.isFinite(value))
 }
@@ -247,6 +256,7 @@ export function normalizeGeneratedArrayInput<T>(
 
   const rows = value.filter((entry): entry is T => (
     isValidEntry(entry)
+    && (field !== 'hypothesisPredictions' || hasCanonicalHypothesisPredictionCollections(entry))
     && (field !== 'hypothesisOutcomes' || isCanonicalHypothesisOutcomeDiscriminators(entry))
     && (field !== 'universeCandidates' || isCanonicalUniverseCandidate(entry))
   ))
