@@ -162,6 +162,22 @@ try {
     loaded.invalidRows.includes("scores_2026-08-19.json#row-1"),
     "snapshot dateとrow.createdAtが一致しないrowはprovenance不整合として隔離する",
   );
+
+  for (const invalidAsOf of ["not-a-date", "2026-02-31", "0000-01-01"] as const) {
+    const invalidCutoff = loadPeriodicScoreLogs(dir, invalidAsOf);
+    assert.deepEqual(invalidCutoff.entries, [], "不正asOfでfuture periodic evidenceをfail-openさせない");
+    assert.deepEqual(
+      invalidCutoff.invalidFiles,
+      [
+        "scores_2026-02-31.json",
+        "scores_2026-08-18.json",
+        "scores_2026-08-19.json",
+        "scores_2026-08-20.json",
+      ],
+      "不正asOfではcandidate snapshot全体をinvalidとして監査可能にする",
+    );
+    assert.deepEqual(invalidCutoff.invalidRows, []);
+  }
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
