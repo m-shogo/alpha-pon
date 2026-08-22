@@ -43,15 +43,17 @@ function hasUniqueNamedRows(value: unknown): boolean {
   return names.length === new Set(names).size;
 }
 
-function hasValidPipelineGeneratedAt(value: unknown, date: unknown): boolean {
-  if (value === undefined) return true;
+function hasValidPipelineGeneratedAt(value: unknown, date: unknown, required = false): boolean {
+  if (value === undefined) return !required;
   if (typeof value !== "string") return false;
+  let instantMs: number;
   try {
-    parseExplicitIso8601Instant(value, "source health pipeline generatedAt");
+    instantMs = parseExplicitIso8601Instant(value, "source health pipeline generatedAt");
   } catch {
     return false;
   }
-  return typeof date !== "string" || formatJstDate(new Date(value)) === date;
+  if (instantMs > Date.now()) return false;
+  return typeof date !== "string" || formatJstDate(new Date(instantMs)) === date;
 }
 
 const DATA_QUALITIES = new Set(["ok", "partial", "missing"]);
@@ -185,18 +187,22 @@ export function normalizeSourceHealthObject<T extends object>(value: unknown): {
     return { value: null, valid: false };
   }
 
+  const requiresDailyProvenance = value.runType === "daily" && (value.status === "ok" || value.status === "partial_failed");
   if (
-    value.date !== undefined
-    && (
-      typeof value.date !== "string"
-      || !isStrictJstDate(value.date)
-      || value.date > todayJst()
+    (requiresDailyProvenance && typeof value.date !== "string")
+    || (
+      value.date !== undefined
+      && (
+        typeof value.date !== "string"
+        || !isStrictJstDate(value.date)
+        || value.date > todayJst()
+      )
     )
   ) {
     return { value: null, valid: false };
   }
 
-  if (!hasValidPipelineGeneratedAt(value.generatedAt, value.date)) {
+  if (!hasValidPipelineGeneratedAt(value.generatedAt, value.date, requiresDailyProvenance)) {
     return { value: null, valid: false };
   }
 

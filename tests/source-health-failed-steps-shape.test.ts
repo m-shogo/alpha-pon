@@ -10,6 +10,20 @@ for (const failedSteps of ["world_scan", ["world_scan", "daily_company_score"]] 
   assert.equal(result.valid, true, "canonical failedSteps string/string[] must remain valid");
 }
 
+const canonicalDaily = {
+  runType: "daily",
+  status: "ok",
+  date: "2026-08-22",
+  generatedAt: "2026-08-22T12:00:00+09:00",
+  results: [] as Array<{ name: string; status: "ok" | "skip" | "fail" }>,
+  failedSteps: [] as string[],
+};
+assert.equal(normalizeSourceHealthObject(canonicalDaily).valid, true, "canonical daily pipeline provenance remains valid");
+assert.equal(normalizeSourceHealthObject({ ...canonicalDaily, date: undefined }).valid, false, "daily pipeline without date must fail closed");
+assert.equal(normalizeSourceHealthObject({ ...canonicalDaily, generatedAt: undefined }).valid, false, "daily pipeline without generatedAt must fail closed");
+assert.equal(normalizeSourceHealthObject({ ...canonicalDaily, generatedAt: "2026-08-21T23:59:59+09:00" }).valid, false, "daily generatedAt must match the pipeline JST date");
+assert.equal(normalizeSourceHealthObject({ ...canonicalDaily, date: "2999-08-22", generatedAt: "2999-08-22T12:00:00+09:00" }).valid, false, "future daily provenance must fail closed");
+
 for (const failedSteps of [{}, 1, ["world_scan", 7], [""], ["   "]] as const) {
   const result = normalizeSourceHealthObject<Record<string, unknown>>({
     status: "ok",
