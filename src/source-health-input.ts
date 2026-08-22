@@ -187,7 +187,7 @@ export function normalizeSourceHealthObject<T extends object>(value: unknown): {
     return { value: null, valid: false };
   }
 
-  const requiresDailyProvenance = value.status === "ok" || value.status === "partial_failed";
+  const requiresDailyProvenance = value.runType === "daily" && (value.status === "ok" || value.status === "partial_failed");
   if (
     (requiresDailyProvenance && typeof value.date !== "string")
     || (
