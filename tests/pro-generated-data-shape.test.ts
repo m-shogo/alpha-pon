@@ -3,6 +3,7 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { readLatestProScores } from "../src/pro-latest-score-input.js";
 import { readReadOnlyJsonObjectArrayFile, readReadOnlyJsonObjectFile } from "../src/read-only-json-file.js";
+import { normalizeGeneratedLegendProDecisionsInput } from "../apps/web/lib/generated-legend-pro-input.js";
 import "./pro-generated-rules-input.test.js";
 import "./generated-hypothesis-outcome-discriminators.test.js";
 
@@ -105,6 +106,21 @@ function isObject(value: unknown): value is Record<string, unknown> {
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+}
+
+{
+  const valid = normalizeGeneratedLegendProDecisionsInput({
+    decisions: [{ finalLabel: "WATCH", disagreements: [], missingEvidence: ["primary source"] }],
+  });
+  assert(valid.length === 1, "valid Legend Pro decision はRoadmap集計へ残す必要があります");
+
+  const malformedRoot = normalizeGeneratedLegendProDecisionsInput({ decisions: { malformed: true } });
+  assert(malformedRoot.length === 0, "非array Legend Pro decisionsをRoadmap集計へ流さない");
+
+  const malformedRow = normalizeGeneratedLegendProDecisionsInput({
+    decisions: [{ finalLabel: "WATCH", disagreements: [], missingEvidence: { malformed: true } }],
+  });
+  assert(malformedRow.length === 0, "malformed Legend Pro decisionをmissingEvidence集計へ流さない");
 }
 
 {
