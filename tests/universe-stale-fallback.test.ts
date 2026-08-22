@@ -146,6 +146,21 @@ assert.throws(
     generatedAt: "2026-06-08",
     dataSource: "jquants",
     scanStatus: "fresh",
+    candidates: [base, { ...base, name: "重複候補" }],
+  }),
+  /candidate code must be unique/,
+  "duplicate candidate identities must not enter canonical universe scan output",
+);
+assert.equal(
+  parseUniverseScanOutput({ ...output, count: 2, candidates: [carried, { ...carried, name: "重複候補" }] }),
+  null,
+  "duplicate candidate identities must fail closed at the canonical parser",
+);
+assert.throws(
+  () => buildUniverseScanOutput({
+    generatedAt: "2026-06-08",
+    dataSource: "jquants",
+    scanStatus: "fresh",
     fallbackReason: "jquants_zero_candidates",
     candidates: [base],
   }),
