@@ -89,6 +89,7 @@ function isDedupeRecord(value: unknown, expectedDate?: string): boolean {
   const row = value as Record<string, unknown>;
   const sentDate = sentAtJstDate(row.sentAt);
   return typeof row.key === "string" && row.key.trim().length > 0
+    && row.key === row.key.trim()
     && sentDate !== null
     && (expectedDate === undefined || sentDate === expectedDate)
     && typeof row.preview === "string";
