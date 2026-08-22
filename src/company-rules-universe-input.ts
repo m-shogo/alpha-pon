@@ -1,3 +1,5 @@
+import { addDaysJst, todayJst } from "./date.js";
+
 export type CompanyRulesUniverseInputStatus = "ok" | "invalid_root" | "invalid_candidates";
 
 export type CompanyRulesUniverseInputResult = {
@@ -35,6 +37,16 @@ function isOptionalBoolean(value: unknown): boolean {
   return value === undefined || typeof value === "boolean";
 }
 
+function isOptionalPastOrTodayDate(value: unknown): boolean {
+  if (value === undefined) return true;
+  if (typeof value !== "string") return false;
+  try {
+    return addDaysJst(value, 0) === value && value <= todayJst();
+  } catch {
+    return false;
+  }
+}
+
 function isCompanyRulesCandidateRow(value: unknown): value is Record<string, unknown> {
   if (!isRecord(value)) return false;
 
@@ -43,6 +55,10 @@ function isCompanyRulesCandidateRow(value: unknown): value is Record<string, unk
   }
 
   if (value.dataSource !== "jquants" && value.dataSource !== "mock") {
+    return false;
+  }
+
+  if (!isOptionalPastOrTodayDate(value.detectedAt)) {
     return false;
   }
 
