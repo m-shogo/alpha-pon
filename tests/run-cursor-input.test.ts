@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import "./hypothesis-open-identity-dedupe.test.js";
+import "./hypothesis-outcome-identity-input.test.js";
 import { addDaysJst, todayJst } from "../src/date.js";
 import { loadRunCursor } from "../src/run-cursor.js";
 
