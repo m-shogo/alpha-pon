@@ -51,6 +51,16 @@ const dateProvenanceParsed = parseExistingStockCandidateHypothesesJsonl(
 assert.deepEqual(dateProvenanceParsed.rows.map(row => row.code), ["8136"], "不存在日・未来detectedAt・detectedAt以前のreviewDueAtを履歴provenanceへ通さない");
 assert.match(dateProvenanceParsed.warnings[0], /4 malformed JSONL row\(s\).*line\(s\) 2, 3, 4, 5/);
 
+const confidenceParsed = parseExistingStockCandidateHypothesesJsonl(
+  [
+    JSON.stringify(valid),
+    JSON.stringify({ ...valid, code: "7974", confidence: -0.01 }),
+    JSON.stringify({ ...valid, code: "4661", confidence: 1.01 }),
+  ].join("\n"),
+);
+assert.deepEqual(confidenceParsed.rows.map(row => row.code), ["8136"], "0〜1外のconfidenceをUI用Hypothesis履歴へ通さない");
+assert.match(confidenceParsed.warnings[0], /2 malformed JSONL row\(s\).*line\(s\) 2, 3/);
+
 const existingToday = [{ ...valid, detectedAt: "2026-08-18" }] as typeof parsed.rows;
 assert.equal(
   hasExistingOpenStockCandidateHypothesis(existingToday, "8136", "2026-08-18"),
