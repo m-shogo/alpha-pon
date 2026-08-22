@@ -40,6 +40,18 @@ const mixed = normalizeGeneratedSpecialSituationWatchInput({
 assert.deepEqual(mixed.value?.candidates?.map(candidate => candidate.code), ['8136', '6758'])
 assert.equal(mixed.warning, 'specialSituationWatch.candidates: invalid_rows 3')
 
+const duplicateCandidates = normalizeGeneratedSpecialSituationWatchInput({
+  generatedAt: '2026-08-20',
+  candidates: [
+    { code: '8136', name: 'Sanrio first' },
+    { code: '8136', name: 'Sanrio duplicate' },
+    { code: '7203', name: 'Toyota' },
+  ],
+})
+assert.deepEqual(duplicateCandidates.value?.candidates?.map(candidate => candidate.code), ['8136', '7203'])
+assert.equal(duplicateCandidates.value?.candidates?.[0]?.name, 'Sanrio first')
+assert.equal(duplicateCandidates.warning, 'specialSituationWatch.candidates: duplicate_codes 1')
+
 const invalidCandidates = normalizeGeneratedSpecialSituationWatchInput({
   generatedAt: '2026-08-20',
   candidates: { code: '8136' },
@@ -61,6 +73,16 @@ const mixedTopChance = normalizeGeneratedSpecialSituationWatchInput({
 assert.deepEqual(mixedTopChance.value?.topChanceList?.map(candidate => candidate.code), ['8136', '6758'])
 assert.equal(mixedTopChance.warning, 'specialSituationWatch.topChanceList: invalid_rows 4')
 
+const duplicateTopChance = normalizeGeneratedSpecialSituationWatchInput({
+  generatedAt: '2026-08-20',
+  topChanceList: [
+    validTopChance,
+    { ...validTopChance, name: 'Sanrio duplicate' },
+  ],
+})
+assert.deepEqual(duplicateTopChance.value?.topChanceList?.map(candidate => candidate.code), ['8136'])
+assert.equal(duplicateTopChance.warning, 'specialSituationWatch.topChanceList: duplicate_codes 1')
+
 const invalidTopChanceRoot = normalizeGeneratedSpecialSituationWatchInput({
   generatedAt: '2026-08-20',
   topChanceList: { code: '8136' },
@@ -74,4 +96,4 @@ assert.deepEqual(normalizeGeneratedSpecialSituationWatchInput([]), {
   warning: 'specialSituationWatch: invalid_shape',
 })
 
-console.log('generated special situation watch input tests passed')
+console.log('generated special situation watch input: malformed and duplicate code identities are isolated before Web consumers OK')
