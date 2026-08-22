@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { normalizeSourceHealthObject } from "../src/source-health-input.js";
 
 const canonical = {
+  runType: "daily",
   status: "ok",
   date: "2026-08-22",
   generatedAt: "2026-08-22T12:00:00+09:00",
