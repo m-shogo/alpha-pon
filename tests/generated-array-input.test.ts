@@ -77,7 +77,17 @@ const isHypothesisRow = (value: unknown): value is Record<string, unknown> => {
 };
 const mixedHypotheses = normalizeGeneratedArrayInput(
   [
-    { code: "8136", status: "open", confidence: 0.7, detectedAt: "2026-08-18", reviewDueAt: "2026-09-18" },
+    {
+      code: "8136",
+      status: "open",
+      confidence: 0.7,
+      detectedAt: "2026-08-18",
+      reviewDueAt: "2026-09-18",
+      invalidationSignals: [],
+      evidenceNeeded: [],
+      relatedWorldEventIds: [],
+      relatedDisclosureIds: [],
+    },
     null,
     {},
   ],
