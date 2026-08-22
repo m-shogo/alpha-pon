@@ -36,6 +36,13 @@ assert.deepEqual(
   normalizeGeneratedCompanyRules([{ ...validRule, priceSignal: { ...validRule.priceSignal, volumeSpikeRatio: '1.1' } }]),
   { rows: [], warning: 'generatedCompanyRules: invalid_rows 1' },
 )
+for (const confidence of [-0.01, 1.01]) {
+  assert.deepEqual(
+    normalizeGeneratedCompanyRules([{ ...validRule, confidence }]),
+    { rows: [], warning: 'generatedCompanyRules: invalid_rows 1' },
+    'confidence outside the canonical 0..1 ratio must not reach percentage rendering',
+  )
+}
 assert.deepEqual(normalizeGeneratedCompanyRules([validRule]), { rows: [validRule], warning: null })
 
 console.log('generated company rules: malformed rows are isolated before Actions page rendering OK')
