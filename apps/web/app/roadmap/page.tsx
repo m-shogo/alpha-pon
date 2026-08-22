@@ -1,4 +1,5 @@
 import { loadGeneratedData } from '@/lib/generated-data'
+import { normalizeGeneratedLegendProDecisionsInput } from '@/lib/generated-legend-pro-input'
 import { SectionLabel, Card } from '@/components/Card'
 import { Icon } from '@/components/Icon'
 import { Disclaimer } from '@/components/Disclaimer'
@@ -67,7 +68,7 @@ export default function RoadmapPage() {
   const runCursors = Object.entries(data.runCursors ?? {})
   const specialOps = data.specialSituationOps
   const integrity = data.hypothesisOutcomeIntegrity
-  const proDecisions = data.legendProCommittee?.decisions ?? []
+  const proDecisions = normalizeGeneratedLegendProDecisionsInput(data.legendProCommittee)
   const outcomes = data.hypothesisOutcomes ?? []
   const disagreementsCount = proDecisions.filter(decision => (decision.disagreements ?? []).length > 0).length
   const missingEvidenceCount = proDecisions.reduce((sum, decision) => sum + (decision.missingEvidence ?? []).length, 0)
