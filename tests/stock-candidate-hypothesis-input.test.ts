@@ -39,6 +39,18 @@ assert.equal(parsed.warnings.length, 1, "malformed/unsafe Hypothesis JSONLをsil
 assert.match(parsed.warnings[0], /2 malformed JSONL row\(s\).*line\(s\) 2, 3/, "parse errorとJSON-valid unsafe shapeをmetadata warningへ集約する");
 assert.ok(!parsed.warnings[0].includes("{ malformed"), "metadata warningへraw内容を露出しない");
 
+const dateProvenanceParsed = parseExistingStockCandidateHypothesesJsonl(
+  [
+    JSON.stringify(valid),
+    JSON.stringify({ ...valid, code: "7974", detectedAt: "2026-02-31" }),
+    JSON.stringify({ ...valid, code: "4661", detectedAt: "2999-01-01", reviewDueAt: "2999-02-01" }),
+    JSON.stringify({ ...valid, code: "6758", reviewDueAt: "2026-02-31" }),
+    JSON.stringify({ ...valid, code: "9432", reviewDueAt: "2026-08-16" }),
+  ].join("\n"),
+);
+assert.deepEqual(dateProvenanceParsed.rows.map(row => row.code), ["8136"], "不存在日・未来detectedAt・detectedAt以前のreviewDueAtを履歴provenanceへ通さない");
+assert.match(dateProvenanceParsed.warnings[0], /4 malformed JSONL row\(s\).*line\(s\) 2, 3, 4, 5/);
+
 const existingToday = [{ ...valid, detectedAt: "2026-08-18" }] as typeof parsed.rows;
 assert.equal(
   hasExistingOpenStockCandidateHypothesis(existingToday, "8136", "2026-08-18"),
