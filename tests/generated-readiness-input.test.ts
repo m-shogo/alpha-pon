@@ -25,6 +25,10 @@ assert.deepEqual(
   { value: null, warning: 'readiness: invalid_shape' },
 )
 assert.deepEqual(
+  normalizeGeneratedReadinessInput({ ...valid, generatedAt: '2026-08-18T05:00:00-00:00' }),
+  { value: null, warning: 'readiness: invalid_shape' },
+)
+assert.deepEqual(
   normalizeGeneratedReadinessInput({ ...valid, generatedAt: '9999-12-31T23:59:59+09:00' }),
   { value: null, warning: 'readiness: invalid_shape' },
 )
