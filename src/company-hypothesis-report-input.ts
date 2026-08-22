@@ -69,6 +69,7 @@ export function normalizeCompanyHypothesisReportRows(
     }
 
     const companies: CompanyHypothesisReportCompany[] = [];
+    const seenCodes = new Set<string>();
     rawCompanies.forEach((rawCompany, index) => {
       if (!isRecord(rawCompany)) {
         warnings.push(`company-hypotheses.yml category ${categoryId} company row ${index + 1} shape is invalid`);
@@ -85,6 +86,11 @@ export function normalizeCompanyHypothesisReportRows(
         warnings.push(`company-hypotheses.yml category ${categoryId} company row ${index + 1} required fields are invalid`);
         return;
       }
+      if (seenCodes.has(code)) {
+        warnings.push(`company-hypotheses.yml category ${categoryId} company ${code} canonical identity is duplicated`);
+        return;
+      }
+      seenCodes.add(code);
 
       const normalizeList = (field: string): string[] => {
         const normalized = stringArray(rawCompany[field]);
