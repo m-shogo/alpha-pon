@@ -1,8 +1,15 @@
-import type { WorldEventForHypothesis } from "./world-theme-candidate-hypotheses.js";
+import type {
+  PersonalWatchlistForHypothesis,
+  WorldEventForHypothesis,
+} from "./world-theme-candidate-hypotheses.js";
 
 export type WorldThemeCandidateEventInputResult =
   | { status: "ok"; events: WorldEventForHypothesis[] }
   | { status: "invalid_root" | "invalid_rows"; events: [] };
+
+export type WorldThemeCandidateWatchlistInputResult =
+  | { status: "ok"; watchlist: PersonalWatchlistForHypothesis }
+  | { status: "invalid_root" | "invalid_rows"; watchlist: { priorityWatches: [] } };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -34,6 +41,23 @@ function isWorldEvent(value: unknown): value is WorldEventForHypothesis {
   return true;
 }
 
+function isCanonicalRequiredString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0 && value === value.trim();
+}
+
+function isOptionalCanonicalString(value: unknown): boolean {
+  return value === undefined || isCanonicalRequiredString(value);
+}
+
+function isPriorityWatch(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  if (!isCanonicalRequiredString(value.code) || !isCanonicalRequiredString(value.name)) return false;
+  for (const key of ["category", "reasonSummary", "nextCheck"] as const) {
+    if (!isOptionalCanonicalString(value[key])) return false;
+  }
+  return true;
+}
+
 /**
  * Fail closed on malformed generated input before the hypothesis runner mutates
  * its latest/history outputs. Rejecting the whole snapshot avoids publishing a
@@ -47,4 +71,23 @@ export function normalizeWorldThemeCandidateEventInput(raw: unknown): WorldTheme
     return { status: "invalid_rows", events: [] };
   }
   return { status: "ok", events: raw };
+}
+
+/**
+ * Validate the tracked personal watchlist before the builder calls array/string
+ * methods on it. A malformed config must not crash the read-only hypothesis run
+ * or be silently reinterpreted as a valid personal priority signal.
+ */
+export function normalizeWorldThemeCandidateWatchlistInput(raw: unknown): WorldThemeCandidateWatchlistInputResult {
+  if (!isRecord(raw)) {
+    return { status: "invalid_root", watchlist: { priorityWatches: [] } };
+  }
+  const priorityWatches = raw.priorityWatches;
+  if (priorityWatches === undefined) {
+    return { status: "ok", watchlist: { priorityWatches: [] } };
+  }
+  if (!Array.isArray(priorityWatches) || !priorityWatches.every(isPriorityWatch)) {
+    return { status: "invalid_rows", watchlist: { priorityWatches: [] } };
+  }
+  return { status: "ok", watchlist: { priorityWatches } };
 }
