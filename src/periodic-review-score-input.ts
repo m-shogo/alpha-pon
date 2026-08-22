@@ -137,12 +137,16 @@ export function parsePeriodicScoreLog(raw: string, expectedDate?: string): Parse
 export function loadPeriodicScoreLogs(reportDir = "reports", asOf = todayJst()): PeriodicScoreInput {
   if (!existsSync(reportDir)) return { entries: [], invalidFiles: [], invalidRows: [] };
 
-  const entries: PeriodicScoreLogEntry[] = [];
-  const invalidFiles: string[] = [];
-  const invalidRows: string[] = [];
   const files = readdirSync(reportDir)
     .filter(file => /^scores_\d{4}-\d{2}-\d{2}\.json$/.test(file))
     .sort();
+  if (!isRealDate(asOf)) {
+    return { entries: [], invalidFiles: files, invalidRows: [] };
+  }
+
+  const entries: PeriodicScoreLogEntry[] = [];
+  const invalidFiles: string[] = [];
+  const invalidRows: string[] = [];
 
   for (const file of files) {
     const snapshotDate = file.slice("scores_".length, -".json".length);
