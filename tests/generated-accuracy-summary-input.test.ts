@@ -49,6 +49,14 @@ assert.deepEqual(
   { value: null, warning: 'accuracySummary: invalid_shape' },
 )
 assert.deepEqual(
+  normalizeGeneratedAccuracySummaryInput({ ...valid, hitRate: 0.8 }),
+  { value: null, warning: 'accuracySummary: invalid_shape' },
+)
+assert.deepEqual(
+  normalizeGeneratedAccuracySummaryInput({ ...valid, total: 3, hit: 0, miss: 0, tooEarly: 2, unknown: 1, hitRate: 0 }),
+  { value: null, warning: 'accuracySummary: invalid_shape' },
+)
+assert.deepEqual(
   normalizeGeneratedAccuracySummaryInput({
     ...valid,
     byActionLabel: { ...valid.byActionLabel, watch: { ...valid.byActionLabel.watch, total: 5 } },
