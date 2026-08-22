@@ -134,6 +134,11 @@ type StockCompanyMemory = {
   notes: string[]
 }
 
+type StockPrimaryDisclosure = {
+  decision: 'confirmed' | 'caution' | 'block' | 'missing'
+  evidenceNeeded: string[]
+}
+
 const HORIZONS = ['1d', '1w', '1m', '3m'] as const
 
 function rootPath(...parts: string[]): string {
@@ -200,6 +205,17 @@ function normalizeCompanyMemoryForStockDetail(value: unknown, code: string): Sto
     knownRisks: row.knownRisks,
     recurringWarnings: row.recurringWarnings,
     notes: row.notes,
+  }
+}
+
+function normalizePrimaryDisclosureForStockDetail(value: unknown): StockPrimaryDisclosure | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const row = value as Record<string, unknown>
+  if (row.decision !== 'confirmed' && row.decision !== 'caution' && row.decision !== 'block' && row.decision !== 'missing') return null
+  if (!isStringArray(row.evidenceNeeded)) return null
+  return {
+    decision: row.decision,
+    evidenceNeeded: row.evidenceNeeded,
   }
 }
 
@@ -362,7 +378,7 @@ export function normalizeStockDetail(raw: {
   const special = findSpecialCandidate(data, code)
   const companyMemory = normalizeCompanyMemoryForStockDetail(data.companyMemoryByCode?.[code], code)
   const dataQuality = data.dataQualityByCode?.[code]
-  const primaryDisclosure = data.primaryDisclosureReviews?.[code]
+  const primaryDisclosure = normalizePrimaryDisclosureForStockDetail(data.primaryDisclosureReviews?.[code])
   const worldImpactReviews = (data.worldImpactReviews ?? []).filter(review => review.affectedCompanyCodes?.includes(code))
 
   if (!candidate && !universeCandidate && hypotheses.length === 0 && outcomes.length === 0 && !special && !companyMemory) {
