@@ -60,6 +60,10 @@ function hasCanonicalDuplicateIdentity(value: unknown): value is StockCandidateH
   return isUsableStockCandidateHypothesis(value) && value.status === "open";
 }
 
+function openHypothesisIdentity(value: StockCandidateHypothesis): string | null {
+  return value.status === "open" ? `${value.code}:${value.detectedAt}` : null;
+}
+
 export function hasExistingOpenStockCandidateHypothesis(
   existing: StockCandidateHypothesis[],
   code: string,
@@ -79,6 +83,8 @@ export function parseExistingStockCandidateHypothesesJsonl(
 ): StockCandidateHypothesisJsonlRead {
   const rows: StockCandidateHypothesis[] = [];
   const malformedLineNumbers: number[] = [];
+  const duplicateOpenLineNumbers: number[] = [];
+  const seenOpenIdentities = new Set<string>();
 
   text.split("\n").forEach((rawLine, index) => {
     const line = rawLine.trim();
@@ -89,21 +95,31 @@ export function parseExistingStockCandidateHypothesesJsonl(
         malformedLineNumbers.push(index + 1);
         return;
       }
+      const identity = openHypothesisIdentity(parsed);
+      if (identity !== null && seenOpenIdentities.has(identity)) {
+        duplicateOpenLineNumbers.push(index + 1);
+        return;
+      }
+      if (identity !== null) seenOpenIdentities.add(identity);
       rows.push(parsed);
     } catch {
       malformedLineNumbers.push(index + 1);
     }
   });
 
-  return {
-    rows,
-    warnings:
-      malformedLineNumbers.length === 0
-        ? []
-        : [
-            `${sourceLabel}: ignored ${malformedLineNumbers.length} malformed JSONL row(s) at line(s) ${malformedLineNumbers.join(", ")}`,
-          ],
-  };
+  const warnings: string[] = [];
+  if (malformedLineNumbers.length > 0) {
+    warnings.push(
+      `${sourceLabel}: ignored ${malformedLineNumbers.length} malformed JSONL row(s) at line(s) ${malformedLineNumbers.join(", ")}`,
+    );
+  }
+  if (duplicateOpenLineNumbers.length > 0) {
+    warnings.push(
+      `${sourceLabel}: ignored ${duplicateOpenLineNumbers.length} duplicate open identity row(s) at line(s) ${duplicateOpenLineNumbers.join(", ")}`,
+    );
+  }
+
+  return { rows, warnings };
 }
 
 export function normalizeStockCandidateWatchlistCodes(
