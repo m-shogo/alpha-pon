@@ -119,11 +119,24 @@ function isNonNegativeSafeInteger(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
 }
 
+function isGregorianDate(value: unknown): value is string {
+  if (typeof value !== 'string') return false
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) return false
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  if (year < 1 || month < 1 || month > 12 || day < 1) return false
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)
+  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+  return day <= (days[month - 1] ?? 0)
+}
+
 function isOutcome(value: unknown): value is ValidatedWorldImpactOutcome {
   if (!isObject(value)) return false
   return typeof value.horizon === 'string'
     && HORIZONS.has(value.horizon)
-    && typeof value.dueAt === 'string'
+    && isGregorianDate(value.dueAt)
     && (value.result === null || (typeof value.result === 'string' && OUTCOME_RESULTS.has(value.result as Exclude<WorldImpactResult, null>)))
     && typeof value.expectedDirection === 'string'
     && OUTCOME_DIRECTIONS.has(value.expectedDirection as WorldImpactDirection)
@@ -147,7 +160,7 @@ function isWorldImpactReview(value: unknown): value is ValidatedWorldImpactRevie
   if ((value.schemaVersion !== 1 && value.schemaVersion !== 2)
     || !isCanonicalString(value.reviewKey)
     || !isCanonicalString(value.eventId)
-    || typeof value.eventDate !== 'string'
+    || !isGregorianDate(value.eventDate)
     || typeof value.topic !== 'string'
     || (value.source !== null && typeof value.source !== 'string')
     || (value.sourceQuality !== 'official' && value.sourceQuality !== 'tier1' && value.sourceQuality !== 'tier2' && value.sourceQuality !== 'unknown')
@@ -165,8 +178,8 @@ function isWorldImpactReview(value: unknown): value is ValidatedWorldImpactRevie
     || !value.outcomes.every(isOutcome)
     || !isStringArray(value.missedSignals)
     || (value.lesson !== null && typeof value.lesson !== 'string')
-    || typeof value.createdAt !== 'string'
-    || typeof value.updatedAt !== 'string') return false
+    || !isGregorianDate(value.createdAt)
+    || !isGregorianDate(value.updatedAt)) return false
 
   if (value.mechanisms !== undefined && !isMechanismArray(value.mechanisms)) return false
   if (value.reviewStatus !== undefined && (typeof value.reviewStatus !== 'string' || !REVIEW_STATUSES.has(value.reviewStatus as WorldImpactReviewStatus))) return false
