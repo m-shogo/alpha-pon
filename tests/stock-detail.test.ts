@@ -277,6 +277,21 @@ function outcome(overrides: Record<string, unknown> = {}) {
 {
   const detail = normalizeStockDetail({
     code: "8136",
+    data: baseData({
+      primaryDisclosureReviews: {
+        "8136": { decision: "confirmed", evidenceNeeded: { malformed: true } },
+      },
+    }),
+  });
+  assert.ok(detail);
+  assert.equal(detail.sourceVerification, "missing");
+  assert.deepEqual(detail.nextChecks, ["決算資料"]);
+  console.log("stock-detail: malformed primary disclosureをfail-closedに扱う");
+}
+
+{
+  const detail = normalizeStockDetail({
+    code: "8136",
     data: baseData(),
     ops: { priorityIssues: {}, allIssues: null },
     outcomeQuality: { checks: { malformed: null } },
