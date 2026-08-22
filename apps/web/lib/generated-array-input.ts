@@ -98,6 +98,15 @@ function hasCanonicalHypothesisPredictionCollections(value: unknown): boolean {
     && isStringArray(row.relatedDisclosureIds)
 }
 
+function hasCanonicalHypothesisPredictionConfidence(value: unknown): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const confidence = (value as Record<string, unknown>).confidence
+  return typeof confidence === 'number'
+    && Number.isFinite(confidence)
+    && confidence >= 0
+    && confidence <= 1
+}
+
 function isFiniteNumberOrNull(value: unknown): value is number | null {
   return value === null || (typeof value === 'number' && Number.isFinite(value))
 }
@@ -257,6 +266,7 @@ export function normalizeGeneratedArrayInput<T>(
   const rows = value.filter((entry): entry is T => (
     isValidEntry(entry)
     && (field !== 'hypothesisPredictions' || hasCanonicalHypothesisPredictionCollections(entry))
+    && (field !== 'hypothesisPredictions' || hasCanonicalHypothesisPredictionConfidence(entry))
     && (field !== 'hypothesisOutcomes' || isCanonicalHypothesisOutcomeDiscriminators(entry))
     && (field !== 'universeCandidates' || isCanonicalUniverseCandidate(entry))
   ))
