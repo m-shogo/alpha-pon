@@ -161,6 +161,26 @@ assert.throws(
     generatedAt: "2026-06-08",
     dataSource: "jquants",
     scanStatus: "fresh",
+    candidates: [{ ...base, code: " 1234" }],
+  }),
+  /candidate code must be canonical/,
+  "padded candidate identities must not enter canonical universe scan output",
+);
+assert.equal(
+  parseUniverseScanOutput({ ...output, candidates: [{ ...carried, code: "1234 " }] }),
+  null,
+  "padded candidate identities must fail closed at the canonical parser",
+);
+assert.equal(
+  parseUniverseScanOutput({ ...output, candidates: [{ ...carried, code: undefined }] }),
+  null,
+  "missing candidate identities must fail closed at the canonical parser",
+);
+assert.throws(
+  () => buildUniverseScanOutput({
+    generatedAt: "2026-06-08",
+    dataSource: "jquants",
+    scanStatus: "fresh",
     fallbackReason: "jquants_zero_candidates",
     candidates: [base],
   }),
