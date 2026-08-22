@@ -45,6 +45,8 @@ function isUsableStockCandidateHypothesis(value: unknown): value is StockCandida
     (value.expectedDirection === "up" || value.expectedDirection === "down" || value.expectedDirection === "sideways" || value.expectedDirection === "unknown") &&
     typeof value.confidence === "number" &&
     Number.isFinite(value.confidence) &&
+    value.confidence >= 0 &&
+    value.confidence <= 1 &&
     stringArray(value.invalidationSignals) &&
     stringArray(value.evidenceNeeded) &&
     stringArray(value.relatedWorldEventIds) &&
