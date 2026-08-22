@@ -1,3 +1,4 @@
+import { addDaysJst, todayJst } from "./date.js";
 import type { StockCandidateHypothesis, UniverseCandidate } from "./universe.js";
 
 export type StockCandidateHypothesisJsonlRead = {
@@ -19,8 +20,19 @@ function stringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(item => typeof item === "string");
 }
 
+function isRealJstDate(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  try {
+    return addDaysJst(value, 0) === value;
+  } catch {
+    return false;
+  }
+}
+
 function isUsableStockCandidateHypothesis(value: unknown): value is StockCandidateHypothesis {
   if (!isRecord(value)) return false;
+  if (!isRealJstDate(value.detectedAt) || value.detectedAt > todayJst()) return false;
+  if (!isRealJstDate(value.reviewDueAt) || value.reviewDueAt < value.detectedAt) return false;
   return (
     value.schemaVersion === 1 &&
     typeof value.code === "string" &&
@@ -28,10 +40,6 @@ function isUsableStockCandidateHypothesis(value: unknown): value is StockCandida
     value.code === value.code.trim() &&
     typeof value.name === "string" &&
     value.name.trim().length > 0 &&
-    typeof value.detectedAt === "string" &&
-    value.detectedAt.trim().length > 0 &&
-    typeof value.reviewDueAt === "string" &&
-    value.reviewDueAt.trim().length > 0 &&
     typeof value.reason === "string" &&
     (value.expectedTimeframe === "1w" || value.expectedTimeframe === "1m" || value.expectedTimeframe === "3m") &&
     (value.expectedDirection === "up" || value.expectedDirection === "down" || value.expectedDirection === "sideways" || value.expectedDirection === "unknown") &&
