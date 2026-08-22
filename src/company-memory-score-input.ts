@@ -47,6 +47,9 @@ function assertCompanyMemoryScoreRow(value: unknown, rowLabel: string, asOf: str
 }
 
 export function assertCompanyMemoryScoreInputs(reportsDir = "reports", asOf = todayJst()): void {
+  if (!isRealJstDate(asOf)) {
+    throw new Error("company-memory score asOf must be a real Gregorian JST date");
+  }
   if (!existsSync(reportsDir)) return;
 
   for (const file of readdirSync(reportsDir).filter((name) => /^scores_\d{4}-\d{2}-\d{2}\.json$/.test(name)).sort()) {
