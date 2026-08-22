@@ -68,6 +68,21 @@ export type GeneratedPipelineStatusInput = {
   steps?: GeneratedPipelineStepInput[]
 }
 
+const HYPOTHESIS_OUTCOME_REVIEW_HORIZONS = new Set(['1d', '1w', '1m', '3m'])
+const HYPOTHESIS_OUTCOME_ACTION_LABELS = new Set(['watch', 'log', 'ignore'])
+const HYPOTHESIS_OUTCOME_RESULTS = new Set(['hit', 'miss', 'too_early', 'invalidated', 'unknown'])
+
+function isCanonicalHypothesisOutcomeDiscriminators(value: unknown): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const row = value as Record<string, unknown>
+  return typeof row.reviewHorizon === 'string'
+    && HYPOTHESIS_OUTCOME_REVIEW_HORIZONS.has(row.reviewHorizon)
+    && typeof row.actionLabel === 'string'
+    && HYPOTHESIS_OUTCOME_ACTION_LABELS.has(row.actionLabel)
+    && typeof row.result === 'string'
+    && HYPOTHESIS_OUTCOME_RESULTS.has(row.result)
+}
+
 function isNonNegativeSafeInteger(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
 }
@@ -174,7 +189,10 @@ export function normalizeGeneratedArrayInput<T>(
   }
   if (!isValidEntry) return { rows: value as T[], warning: null }
 
-  const rows = value.filter(isValidEntry)
+  const rows = value.filter((entry): entry is T => (
+    isValidEntry(entry)
+    && (field !== 'hypothesisOutcomes' || isCanonicalHypothesisOutcomeDiscriminators(entry))
+  ))
   const invalidEntries = value.length - rows.length
   return {
     rows,
