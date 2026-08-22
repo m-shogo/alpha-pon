@@ -157,8 +157,12 @@ for (const invalidCursor of [
   { jobName: "universe-scan", offset: 1.5, maxPerRun: 8, total: 42, updatedAt: "2026-08-21" },
   { jobName: "universe-scan", offset: 1, maxPerRun: 0.5, total: 42, updatedAt: "2026-08-21" },
   { jobName: "universe-scan", offset: 1, maxPerRun: 8, total: Number.MAX_SAFE_INTEGER + 1, updatedAt: "2026-08-21" },
+  { jobName: "universe-scan", offset: 1, maxPerRun: 8, total: 42, updatedAt: "2026-02-31" },
+  { jobName: "universe-scan", offset: 1, maxPerRun: 8, total: 42, updatedAt: "0000-01-01" },
+  { jobName: "universe-scan", offset: 1, maxPerRun: 8, total: 42, updatedAt: "2026-08-21T00:00:00+09:00" },
+  { jobName: "universe-scan", offset: 1, maxPerRun: 8, total: 42, updatedAt: "2999-01-01" },
 ]) {
-  assert(!isGeneratedRunCursorState(invalidCursor), "negative, fractional, and unsafe run cursor counts must be rejected");
+  assert(!isGeneratedRunCursorState(invalidCursor), "malformed counts and noncanonical/future run cursor dates must be rejected");
 }
 
 const validPipelineStatus = {
