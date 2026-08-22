@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
-import { normalizeCompanyHypothesesRoot } from "../src/company-coverage-input.js";
+import {
+  normalizeCompanyCoverageRoots,
+  normalizeCompanyCoverageRows,
+  normalizeCompanyHypothesesRoot,
+} from "../src/company-coverage-input.js";
 import { normalizeCompanyHypothesisReportRows } from "../src/company-hypothesis-report-input.js";
 import {
   normalizeActiveRegimeCategoryIds,
@@ -59,6 +63,30 @@ assert.ok(normalized.warnings.some(warning => warning.includes("notGoodWhen")), 
 assert.ok(normalized.warnings.some(warning => warning.includes("company row 2")), "null company rowをwarningへ残す");
 assert.ok(normalized.warnings.some(warning => warning.includes("brokenCategory")), "null categoryをwarningへ残す");
 assert.ok(normalized.warnings.some(warning => warning.includes("brokenCompanies")), "壊れたcompanies fieldをwarningへ残す");
+
+const coverage = normalizeCompanyCoverageRows(normalizeCompanyCoverageRoots(
+  {
+    categories: {
+      healthy: {
+        label: "Healthy",
+        companies: [
+          { code: "8136", name: "サンリオ", status: "active" },
+          { code: " 8136 ", name: "duplicate", status: "watch" },
+        ],
+      },
+    },
+  },
+  { companies: {} },
+));
+assert.deepEqual(
+  coverage.categories.healthy.companies,
+  [{ code: "8136", name: "サンリオ", status: "active" }],
+  "同一categoryのcanonical company identity重複は先行rowだけを保持する",
+);
+assert.ok(
+  coverage.warnings.some(warning => warning.includes("category healthy company 8136 canonical identity is duplicated")),
+  "canonical company identity重複はsilent dropせずwarningへ残す",
+);
 
 const regime = normalizeActiveRegimeCategoryIds({
   activeRegimes: [
