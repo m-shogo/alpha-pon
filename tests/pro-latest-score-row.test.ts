@@ -13,6 +13,17 @@ try {
     { code: "6501", name: "Hitachi", createdAt: "2026-08-17", warnings: [] },
   ]), "utf-8");
 
+  assert.throws(
+    () => readLatestProScores(dir, "not-a-date"),
+    /pro-score asOf must be a real Gregorian JST date/,
+    "invalid direct-call cutoffs must not bypass future score snapshot checks through lexical comparison",
+  );
+  assert.throws(
+    () => readLatestProScores(dir, "2026-02-31"),
+    /pro-score asOf must be a real Gregorian JST date/,
+    "impossible direct-call cutoffs must fail closed before score selection",
+  );
+
   const result = readLatestProScores<{ code: string; name: string }>(dir, "2026-08-18");
   assert.deepEqual(result.rows.map(row => row.code), ["8136"], "malformed or stale-repackaged rows must not reach Pro quality consumers");
   assert.equal(result.warnings.length, 1, "malformed rows must remain visible as metadata warnings");
@@ -37,4 +48,4 @@ try {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("pro-latest-score-row: malformed, stale, and duplicate score rows are isolated with metadata warnings OK");
+console.log("pro-latest-score-row: malformed, stale, duplicate, and invalid-cutoff score input is fail-closed OK");
