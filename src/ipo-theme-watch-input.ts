@@ -69,12 +69,14 @@ export function readIpoThemeOutcomeInput<T extends HypothesisOutcome = Hypothesi
 function hasValidPublishedAt(value: unknown): boolean {
   if (value === undefined) return true;
   if (typeof value !== "string") return false;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return true;
-  try {
-    return addDaysJst(value, 0) === value;
-  } catch {
-    return false;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    try {
+      return addDaysJst(value, 0) === value;
+    } catch {
+      return false;
+    }
   }
+  return !Number.isNaN(new Date(value).getTime());
 }
 
 function isWorldEventInput(value: unknown): value is IpoThemeWorldEventInput {
