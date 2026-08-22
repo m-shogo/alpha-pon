@@ -1,3 +1,4 @@
+import { addDaysJst, todayJst } from "./date.js";
 import type { HypothesisOutcome } from "./universe.js";
 
 type ParsedHypothesisOutcomes = {
@@ -9,11 +10,20 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isRealJstDate(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  try {
+    return addDaysJst(value, 0) === value;
+  } catch {
+    return false;
+  }
+}
+
 export function isUsableHypothesisOutcomeInput(value: unknown): value is HypothesisOutcome {
   if (!isRecord(value)) return false;
-  if (typeof value.code !== "string" || value.code.trim().length === 0) return false;
+  if (typeof value.code !== "string" || value.code.trim().length === 0 || value.code !== value.code.trim()) return false;
   if (!isRecord(value.hypothesis)) return false;
-  return typeof value.hypothesis.detectedAt === "string" && value.hypothesis.detectedAt.trim().length > 0;
+  return isRealJstDate(value.hypothesis.detectedAt) && value.hypothesis.detectedAt <= todayJst();
 }
 
 export function parseHypothesisOutcomesJsonl(text: string, source = "hypothesis outcomes JSONL"): ParsedHypothesisOutcomes {
