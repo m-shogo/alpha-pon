@@ -36,7 +36,7 @@ function isReadinessStatus(value: unknown): value is string {
 }
 
 function isPastOrPresentExplicitTimezoneInstant(value: unknown): value is string {
-  if (typeof value !== 'string' || !EXPLICIT_TIMEZONE_INSTANT.test(value)) return false
+  if (typeof value !== 'string' || !EXPLICIT_TIMEZONE_INSTANT.test(value) || value.endsWith('-00:00')) return false
   const timestamp = Date.parse(value)
   return Number.isFinite(timestamp) && timestamp <= Date.now()
 }
