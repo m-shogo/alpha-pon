@@ -39,6 +39,10 @@ for (const malformed of [
   { ...canonical, warnings: 'none' },
   { ...canonical, matchedWorldEventTags: null },
   { ...canonical, code: ' 8136 ' },
+  { ...canonical, detectedAt: '2026-02-31' },
+  { ...canonical, detectedAt: '0000-01-01' },
+  { ...canonical, detectedAt: '2026-08-22T00:00:00+09:00' },
+  { ...canonical, detectedAt: '2999-01-01' },
 ]) {
   assert.deepEqual(
     normalizeGeneratedArrayInput([malformed], 'universeCandidates', objectRow),
