@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { loadGeneratedData } from '@/lib/generated-data'
+import { normalizeWorldThemeReviewInput } from '@/lib/world-theme-review-input'
 import { Card, SectionLabel } from '@/components/Card'
 import { Icon } from '@/components/Icon'
 
@@ -31,23 +32,7 @@ type WorldThemeCandidateHypothesis = {
   reviewAfterDays: [30, 90, 180]
 }
 
-type WorldThemeReview = {
-  generatedAt?: string
-  totalHypotheses?: number
-  reviewedResults?: number
-  dueReviews?: Array<{
-    hypothesisId: string
-    dueAt: string
-    afterDays: 30 | 90 | 180
-    sourceEventTitle: string
-    theme: string
-    candidateCode: string
-    candidateCompany: string
-    nextPrimaryCheck: string
-  }>
-}
-
-function loadWorldThemeReview(): WorldThemeReview | null {
+function loadWorldThemeReview() {
   const candidates = [
     join(process.cwd(), '..', '..', 'reports', 'world_theme_candidate_review_latest.json'),
     join(process.cwd(), 'reports', 'world_theme_candidate_review_latest.json'),
@@ -55,7 +40,7 @@ function loadWorldThemeReview(): WorldThemeReview | null {
   const path = candidates.find(p => existsSync(p))
   if (!path) return null
   try {
-    return JSON.parse(readFileSync(path, 'utf-8')) as WorldThemeReview
+    return normalizeWorldThemeReviewInput(JSON.parse(readFileSync(path, 'utf-8')))
   } catch {
     return null
   }
