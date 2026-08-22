@@ -93,6 +93,24 @@ function isFiniteNumberOrNull(value: unknown): value is number | null {
   return value === null || (typeof value === 'number' && Number.isFinite(value))
 }
 
+function isCanonicalPastOrTodayDate(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const [yearText, monthText, dayText] = value.split('-')
+  const year = Number(yearText)
+  const month = Number(monthText)
+  const day = Number(dayText)
+  if (year < 1) return false
+  const instant = new Date(Date.UTC(year, month - 1, day))
+  if (instant.getUTCFullYear() !== year || instant.getUTCMonth() !== month - 1 || instant.getUTCDate() !== day) return false
+  const todayInTokyo = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date())
+  return value <= todayInTokyo
+}
+
 function isCanonicalUniverseCandidate(value: unknown): boolean {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const row = value as Record<string, unknown>
@@ -101,7 +119,7 @@ function isCanonicalUniverseCandidate(value: unknown): boolean {
     && row.code === row.code.trim()
     && typeof row.name === 'string'
     && (row.sector === null || typeof row.sector === 'string')
-    && typeof row.detectedAt === 'string'
+    && isCanonicalPastOrTodayDate(row.detectedAt)
     && isFiniteNumberOrNull(row.currentPrice)
     && isFiniteNumberOrNull(row.high52w)
     && isFiniteNumberOrNull(row.drawdownPct)
