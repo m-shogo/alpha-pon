@@ -281,21 +281,33 @@ function findSpecialCandidate(data: unknown, code: string): SpecialSituationCand
 }
 
 function buildOpsSignals(code: string, ops: OpsDashboardLike | null, audit: OutcomeQualityAuditLike | null): StockOpsSignal[] {
-  const issues = [...(ops?.priorityIssues ?? []), ...(ops?.allIssues ?? [])]
-  const matched = issues.filter(issue => `${issue.title ?? ''} ${issue.detail ?? ''}`.includes(code))
+  const priorityIssues = Array.isArray(ops?.priorityIssues) ? ops.priorityIssues : []
+  const allIssues = Array.isArray(ops?.allIssues) ? ops.allIssues : []
+  const issues = [...priorityIssues, ...allIssues]
+  const matched = issues.filter(issue => issue && typeof issue === 'object' && `${issue.title ?? ''} ${issue.detail ?? ''}`.includes(code))
   const signals = matched.map(issue => ({
     status: statusFromSeverity(issue.severity),
     title: issue.title ?? '運用シグナル',
     detail: issue.detail ?? '詳細未記録',
   }))
 
-  const auditIssues = Object.entries(audit?.checks ?? {})
-    .filter(([, check]) => (check.items ?? []).some(item => item.code === code))
-    .map(([key, check]) => ({
-      status: 'attention' as const,
-      title: `品質監査: ${key}`,
-      detail: (check.items ?? []).filter(item => item.code === code).map(item => item.detail ?? code).join(' / ') || '確認対象',
-    }))
+  const checks = audit?.checks && typeof audit.checks === 'object' && !Array.isArray(audit.checks) ? audit.checks : {}
+  const auditIssues = Object.entries(checks)
+    .filter(([, check]) => {
+      const items = Array.isArray(check?.items) ? check.items : []
+      return items.some(item => item && typeof item === 'object' && item.code === code)
+    })
+    .map(([key, check]) => {
+      const items = Array.isArray(check?.items) ? check.items : []
+      return {
+        status: 'attention' as const,
+        title: `品質監査: ${key}`,
+        detail: items
+          .filter(item => item && typeof item === 'object' && item.code === code)
+          .map(item => item.detail ?? code)
+          .join(' / ') || '確認対象',
+      }
+    })
 
   return [...signals, ...auditIssues]
 }
