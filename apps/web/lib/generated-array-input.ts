@@ -150,7 +150,7 @@ export function isGeneratedRunCursorState(value: unknown): value is GeneratedRun
     && (row.offset === undefined || isNonNegativeSafeInteger(row.offset))
     && (row.maxPerRun === undefined || isNonNegativeSafeInteger(row.maxPerRun))
     && (row.total === undefined || isNonNegativeSafeInteger(row.total))
-    && (row.updatedAt === undefined || typeof row.updatedAt === 'string')
+    && (row.updatedAt === undefined || isCanonicalPastOrTodayDate(row.updatedAt))
 }
 
 export function isGeneratedReportInput(value: unknown): value is GeneratedReportInput {
