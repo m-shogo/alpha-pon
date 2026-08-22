@@ -28,8 +28,20 @@ assert.equal(mixed.rows.length, 1, 'malformed candidates must be isolated before
 assert.equal(mixed.rows[0]?.code, '8136', 'valid sibling candidates must remain usable')
 assert.equal(mixed.warning, 'universeCandidates: invalid_entries (9)')
 
+const duplicateIdentity = normalizeGeneratedAlertCandidates([
+  validCandidate,
+  { ...validCandidate, screeningScore: 75 },
+  { ...validCandidate, code: '7203', name: 'Toyota' },
+])
+assert.deepEqual(
+  duplicateIdentity.rows.map((row) => row.code),
+  ['7203'],
+  'all rows participating in a duplicate candidate identity must be isolated instead of double-counted',
+)
+assert.equal(duplicateIdentity.warning, 'universeCandidates: duplicate_codes (8136)')
+
 const invalidRoot = normalizeGeneratedAlertCandidates({})
 assert.deepEqual(invalidRoot.rows, [])
 assert.equal(invalidRoot.warning, 'universeCandidates: invalid_root (expected array)')
 
-console.log('generated-alert-candidate-input: malformed rows isolated OK')
+console.log('generated-alert-candidate-input: malformed and duplicate rows isolated OK')
