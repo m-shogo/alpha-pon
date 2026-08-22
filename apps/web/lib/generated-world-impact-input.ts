@@ -132,6 +132,19 @@ function isGregorianDate(value: unknown): value is string {
   return day <= (days[month - 1] ?? 0)
 }
 
+function todayInTokyo(): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date())
+}
+
+function isPastOrTodayGregorianDate(value: unknown): value is string {
+  return isGregorianDate(value) && value <= todayInTokyo()
+}
+
 function parseExplicitTimezoneIsoInstant(value: unknown): number | null {
   if (typeof value !== 'string') return null
   const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,3})?(Z|[+-]\d{2}:\d{2})$/.exec(value)
@@ -201,8 +214,9 @@ function isWorldImpactReview(value: unknown): value is ValidatedWorldImpactRevie
     || !value.outcomes.every(isOutcome)
     || !isStringArray(value.missedSignals)
     || (value.lesson !== null && typeof value.lesson !== 'string')
-    || !isGregorianDate(value.createdAt)
-    || !isGregorianDate(value.updatedAt)) return false
+    || !isPastOrTodayGregorianDate(value.createdAt)
+    || !isPastOrTodayGregorianDate(value.updatedAt)
+    || value.createdAt > value.updatedAt) return false
 
   if (value.mechanisms !== undefined && !isMechanismArray(value.mechanisms)) return false
   if (value.reviewStatus !== undefined && (typeof value.reviewStatus !== 'string' || !REVIEW_STATUSES.has(value.reviewStatus as WorldImpactReviewStatus))) return false
