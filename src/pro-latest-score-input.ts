@@ -37,6 +37,9 @@ export type LatestProScoreLoad<T> = {
 };
 
 export function readLatestProScores<T>(reportsDir = "reports", asOf = todayJst()): LatestProScoreLoad<T> {
+  if (!isRealJstDate(asOf)) {
+    throw new Error("pro-score asOf must be a real Gregorian JST date");
+  }
   if (!existsSync(reportsDir)) return { rows: [], sourceFile: null, warnings: [] };
 
   const scoreFiles = readdirSync(reportsDir)
