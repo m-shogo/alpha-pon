@@ -54,6 +54,8 @@ export function isGeneratedCompanyRuleInput(value: unknown): boolean {
     && ACTION_SIGNALS.has(rule.actionSignal)
     && typeof rule.confidence === 'number'
     && Number.isFinite(rule.confidence)
+    && rule.confidence >= 0
+    && rule.confidence <= 1
     && isStringArray(rule.reasons)
     && isStringArray(rule.risks)
     && isStringArray(rule.evidenceNeeded)
