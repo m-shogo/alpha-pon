@@ -4,11 +4,13 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { load } from "js-yaml";
 import { addDaysJst, todayJst } from "./date.js";
-import { normalizeWorldThemeCandidateEventInput } from "./world-theme-candidate-hypothesis-input.js";
+import {
+  normalizeWorldThemeCandidateEventInput,
+  normalizeWorldThemeCandidateWatchlistInput,
+} from "./world-theme-candidate-hypothesis-input.js";
 import { normalizeWorldThemeCandidateHypothesisHistory } from "./world-theme-candidate-hypothesis-history-input.js";
 import {
   buildWorldThemeCandidateHypotheses,
-  type PersonalWatchlistForHypothesis,
   type WorldThemeCandidateHypothesis,
 } from "./world-theme-candidate-hypotheses.js";
 
@@ -67,9 +69,15 @@ function main(): void {
   if (eventInput.status !== "ok") {
     throw new Error("world_events_latest.json must have a valid array snapshot; existing hypothesis outputs were not modified");
   }
-  const events = eventInput.events;
-  const personalWatchlist = readYaml<PersonalWatchlistForHypothesis>("config/personal-watchlist.yml", { priorityWatches: [] });
-  const built = buildWorldThemeCandidateHypotheses(events, personalWatchlist).map(item => persist(item, detectedAt));
+
+  const watchlistInput = normalizeWorldThemeCandidateWatchlistInput(
+    readYaml<unknown>("config/personal-watchlist.yml", { priorityWatches: [] }),
+  );
+  if (watchlistInput.status !== "ok") {
+    throw new Error("personal-watchlist.yml is malformed; existing hypothesis outputs were not modified");
+  }
+
+  const built = buildWorldThemeCandidateHypotheses(eventInput.events, watchlistInput.watchlist).map(item => persist(item, detectedAt));
   const existingIds = readExistingIds();
   const newItems = built.filter(item => !existingIds.has(item.hypothesisId));
 
