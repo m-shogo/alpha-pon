@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { normalizeGeneratedArrayInput } from '../apps/web/lib/generated-array-input.js'
+import './generated-universe-candidate-consumer.test.js'
 
 type OutcomeRow = {
   evaluatedAt: string

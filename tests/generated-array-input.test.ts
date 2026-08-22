@@ -37,13 +37,31 @@ assert(mixedArray.warning === "candidates: invalid_entries (2)", "malformed gene
 const isObjectRow = (value: unknown): value is Record<string, unknown> => (
   Boolean(value && typeof value === "object" && !Array.isArray(value))
 );
+const canonicalUniverseCandidate = {
+  code: "8136",
+  name: "Sanrio",
+  sector: "Services",
+  detectedAt: "2026-08-18",
+  currentPrice: 100,
+  high52w: 120,
+  drawdownPct: -16.7,
+  operatingProfitYoY: 10,
+  hasDownwardRevision: false,
+  hasNegativeFlag: false,
+  hasRecentDisclosure: true,
+  matchedWorldEventTags: [],
+  screeningScore: 72,
+  warnings: [],
+  status: "monitoring",
+  dataSource: "jquants",
+};
 const mixedUniverseCandidates = normalizeGeneratedArrayInput(
-  [{ code: "8136", dataSource: "jquants" }, null, "broken"],
+  [canonicalUniverseCandidate, null, "broken"],
   "universeCandidates",
   isObjectRow,
 );
 assert(mixedUniverseCandidates.rows.length === 1, "malformed universe candidate rows must be isolated before UI property access");
-assert(mixedUniverseCandidates.rows[0]?.code === "8136", "valid universe candidate siblings must remain usable");
+assert(mixedUniverseCandidates.rows[0]?.code === "8136", "valid canonical universe candidate siblings must remain usable");
 assert(mixedUniverseCandidates.warning === "universeCandidates: invalid_entries (2)", "malformed universe candidate rows must remain visible as metadata-only warnings");
 
 const isHypothesisRow = (value: unknown): value is Record<string, unknown> => {
