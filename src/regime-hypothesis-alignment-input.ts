@@ -76,6 +76,7 @@ export function normalizeAlignmentHypothesisCategories(
     }
 
     const companies: AlignmentCompany[] = [];
+    const seenCodes = new Set<string>();
     rawCompanies.forEach((rawCompany, index) => {
       if (!isRecord(rawCompany)) {
         warnings.push(`company-hypotheses.yml category ${categoryId} company row ${index + 1} shape is invalid`);
@@ -87,6 +88,11 @@ export function normalizeAlignmentHypothesisCategories(
         warnings.push(`company-hypotheses.yml category ${categoryId} company row ${index + 1} identity is invalid`);
         return;
       }
+      if (seenCodes.has(code)) {
+        warnings.push(`company-hypotheses.yml category ${categoryId} company ${code} canonical identity is duplicated`);
+        return;
+      }
+      seenCodes.add(code);
       const status = nonEmptyString(rawCompany.status);
       companies.push({ code, name, ...(status ? { status } : {}) });
     });
