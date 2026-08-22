@@ -25,6 +25,10 @@ assert.deepEqual(normalizeGeneratedOutcomeIntegrityInput(canonical), {
 
 for (const malformed of [
   {},
+  { ...canonical, generatedAt: '2026-02-30' },
+  { ...canonical, generatedAt: '0000-01-01' },
+  { ...canonical, generatedAt: '9999-12-31' },
+  { ...canonical, generatedAt: '2026-08-20T00:00:00+09:00' },
   { ...canonical, jsonl: undefined },
   { ...canonical, jsonl: { totalRows: 3 } },
   { ...canonical, sqlite: undefined },
