@@ -53,11 +53,16 @@ for (const invalid of [
   [null],
   [{ id: "risk-off", level: "high", why: "macro stress", watchCategories: "rates" }],
   [{ id: "", level: "high", why: "macro stress" }],
+  [{ id: " risk-off ", level: "high", why: "macro stress" }],
+  [
+    { id: "risk-off", level: "high", why: "macro stress" },
+    { id: "risk-off", level: "medium", why: "duplicate identity" },
+  ],
 ] as const) {
   assert.throws(
     () => normalizeRegimeHistoryActiveRegimes(invalid),
     /current regime activeRegimes/,
-    "malformed active-regime provenance must fail closed before history append",
+    "malformed or duplicate active-regime provenance must fail closed before history append",
   );
 }
 
@@ -132,4 +137,4 @@ try {
   rmSync(root, { recursive: true, force: true });
 }
 
-console.log("regime history input: invalid or future provenance and duplicate daily history fail closed OK");
+console.log("regime history input: invalid, duplicate, or future provenance and duplicate daily history fail closed OK");

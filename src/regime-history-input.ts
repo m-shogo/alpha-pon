@@ -23,11 +23,19 @@ export function normalizeRegimeHistoryActiveRegimes(value: unknown): RegimeHisto
   if (value === undefined) return [];
   if (!Array.isArray(value)) throw new Error("current regime activeRegimes must be an array");
 
+  const seenIds = new Set<string>();
   return value.map((item, index) => {
     if (!isRecord(item)) throw new Error(`current regime activeRegimes[${index}] must be an object`);
     if (typeof item.id !== "string" || item.id.trim().length === 0) {
       throw new Error(`current regime activeRegimes[${index}].id must be a non-empty string`);
     }
+    if (item.id !== item.id.trim()) {
+      throw new Error(`current regime activeRegimes[${index}].id must be canonical without surrounding whitespace`);
+    }
+    if (seenIds.has(item.id)) {
+      throw new Error(`current regime activeRegimes[${index}].id must be unique`);
+    }
+    seenIds.add(item.id);
     if (typeof item.level !== "string" || item.level.trim().length === 0) {
       throw new Error(`current regime activeRegimes[${index}].level must be a non-empty string`);
     }
