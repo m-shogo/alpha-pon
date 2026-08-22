@@ -51,8 +51,12 @@ assert.deepEqual(normalizeGeneratedWorldImpactReviewsInput([validReview]), { row
 
 for (const malformed of [
   { ...validReview, eventDate: 123 },
+  { ...validReview, eventDate: '2026-02-31' },
+  { ...validReview, createdAt: '0000-01-01' },
+  { ...validReview, updatedAt: '2026-13-01' },
   { ...validReview, topic: null },
   { ...validReview, affectedCompanyCodes: null },
+  { ...validReview, outcomes: [{ ...validOutcome, dueAt: '2026-02-31' }] },
   { ...validReview, outcomes: [{ ...validOutcome, returnPct: '1.2' }] },
   { ...validReview, outcomes: [{ ...validOutcome, horizon: '3m' }] },
   { ...validReview, outcomes: [{ ...validOutcome, result: 'success' }] },
