@@ -4,10 +4,10 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { load } from "js-yaml";
 import { addDaysJst, todayJst } from "./date.js";
+import { normalizeWorldThemeCandidateEventInput } from "./world-theme-candidate-hypothesis-input.js";
 import {
   buildWorldThemeCandidateHypotheses,
   type PersonalWatchlistForHypothesis,
-  type WorldEventForHypothesis,
   type WorldThemeCandidateHypothesis,
 } from "./world-theme-candidate-hypotheses.js";
 
@@ -64,7 +64,11 @@ function persist(item: WorldThemeCandidateHypothesis, detectedAt: string): Persi
 
 function main(): void {
   const detectedAt = todayJst();
-  const events = readJson<WorldEventForHypothesis[]>("reports/world_events_latest.json", []);
+  const eventInput = normalizeWorldThemeCandidateEventInput(readJson<unknown>("reports/world_events_latest.json", []));
+  if (eventInput.status !== "ok") {
+    throw new Error("world_events_latest.json must have an array root; existing hypothesis outputs were not modified");
+  }
+  const events = eventInput.events;
   const personalWatchlist = readYaml<PersonalWatchlistForHypothesis>("config/personal-watchlist.yml", { priorityWatches: [] });
   const built = buildWorldThemeCandidateHypotheses(events, personalWatchlist).map(item => persist(item, detectedAt));
   const existingIds = readExistingIds();
@@ -76,7 +80,7 @@ function main(): void {
 
   console.log(`world theme candidate hypotheses: latest=${built.length}, appended=${newItems.length}`);
   console.log(`保存先: ${LATEST_PATH} / ${JSONL_PATH}`);
-  console.log("※買い推奨ではなく、世界情勢からの調査仮説を後で答え合わせするためのDBです。");
+  console.log("※買い推奨ではなく、世界情勢から作った調査仮説を後で答え合わせするためのDBです。");
 }
 
 main();
