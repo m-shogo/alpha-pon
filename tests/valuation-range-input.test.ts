@@ -23,6 +23,19 @@ try {
     "future score snapshots must not leak into historical/current valuation reports",
   );
 
+  for (const invalidAsOf of ["not-a-date", "2026-02-31", "0000-01-01", "2026-8-18", "2026-08-18T00:00:00+09:00"] as const) {
+    assert.throws(
+      () => latestValuationScoreFile(dir, invalidAsOf),
+      /valuation score asOf must be a real canonical YYYY-MM-DD date/,
+      `invalid as-of must not fail open and admit future score evidence: ${invalidAsOf}`,
+    );
+    assert.throws(
+      () => loadLatestValuationScoreRows(dir, invalidAsOf),
+      /valuation score asOf must be a real canonical YYYY-MM-DD date/,
+      `row loader must preserve the same fail-closed PIT cutoff: ${invalidAsOf}`,
+    );
+  }
+
   writeFileSync(join(dir, "scores_2026-08-18.json"), "{", "utf-8");
   assert.throws(
     () => loadLatestValuationScoreRows(dir, "2026-08-18"),
@@ -78,4 +91,4 @@ try {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("valuation-range-input: PIT, row-shape, and unique-identity regressions OK");
+console.log("valuation-range-input: PIT cutoff, row-shape, and unique-identity regressions OK");
