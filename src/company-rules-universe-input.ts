@@ -31,6 +31,10 @@ function isOptionalFiniteNumberOrNull(value: unknown): boolean {
   return value === undefined || value === null || (typeof value === "number" && Number.isFinite(value));
 }
 
+function isOptionalBoolean(value: unknown): boolean {
+  return value === undefined || typeof value === "boolean";
+}
+
 function isCompanyRulesCandidateRow(value: unknown): value is Record<string, unknown> {
   if (!isRecord(value)) return false;
 
@@ -55,6 +59,10 @@ function isCompanyRulesCandidateRow(value: unknown): value is Record<string, unk
     "volumeSpikeRatio",
   ] as const) {
     if (!isOptionalFiniteNumberOrNull(value[key])) return false;
+  }
+
+  for (const key of ["hasNegativeFlag", "hasRecentDisclosure"] as const) {
+    if (!isOptionalBoolean(value[key])) return false;
   }
 
   for (const key of ["matchedWorldEventTags", "warnings"] as const) {

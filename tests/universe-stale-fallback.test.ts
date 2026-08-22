@@ -290,6 +290,32 @@ assert.deepEqual(
 );
 assert.equal(malformedArrayFields.invalidRowCount, 3);
 
+const malformedBooleans = normalizeCompanyRulesUniverseInput({
+  candidates: [
+    { code: "1234", name: "negative flag文字列", dataSource: "jquants", hasNegativeFlag: "false" },
+    { code: "2345", name: "recent disclosure数値", dataSource: "jquants", hasRecentDisclosure: 1 },
+    {
+      code: "3456",
+      name: "正常boolean",
+      dataSource: "jquants",
+      hasNegativeFlag: false,
+      hasRecentDisclosure: true,
+    },
+  ],
+});
+assert.deepEqual(
+  malformedBooleans.rows,
+  [{
+    code: "3456",
+    name: "正常boolean",
+    dataSource: "jquants",
+    hasNegativeFlag: false,
+    hasRecentDisclosure: true,
+  }],
+  "company rule判定に使うboolean provenanceが壊れたrowはtruthy/falsy coercionへ流さない",
+);
+assert.equal(malformedBooleans.invalidRowCount, 2);
+
 const duplicateCodes = normalizeCompanyRulesUniverseInput({
   candidates: [
     { code: "1234", name: "候補A", dataSource: "jquants", currentPrice: 100 },
