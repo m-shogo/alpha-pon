@@ -88,6 +88,10 @@ const validAudit = {
 
 assert.deepEqual(normalizeGeneratedWorldImpactAuditInput(validAudit), { value: validAudit, warning: null })
 for (const malformed of [
+  { ...validAudit, generatedAt: '2026-08-21T12:00:00' },
+  { ...validAudit, generatedAt: '2026-02-31T12:00:00+09:00' },
+  { ...validAudit, generatedAt: '2026-08-21T12:00:00-00:00' },
+  { ...validAudit, generatedAt: '2999-01-01T00:00:00+09:00' },
   { ...validAudit, overdueReviews: -1 },
   { ...validAudit, priceDataPending: 0.5 },
   { ...validAudit, priorityIssues: {} },
