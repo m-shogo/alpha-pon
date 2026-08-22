@@ -25,6 +25,16 @@ function assertCandidateChronology(candidates: UniverseCandidate[], generatedAt:
   }
 }
 
+function assertUniqueCandidateIdentity(candidates: UniverseCandidate[]): void {
+  const seenCodes = new Set<string>();
+  for (const candidate of candidates) {
+    if (seenCodes.has(candidate.code)) {
+      throw new Error("universe scan candidate code must be unique");
+    }
+    seenCodes.add(candidate.code);
+  }
+}
+
 function assertUniverseScanMetadata(input: {
   dataSource: "jquants" | "mock";
   scanStatus: UniverseScanStatus;
@@ -62,6 +72,7 @@ export function buildUniverseScanOutput(input: {
   assertCanonicalDate(input.generatedAt);
   assertUniverseScanMetadata(input);
   assertCandidateChronology(input.candidates, input.generatedAt);
+  assertUniqueCandidateIdentity(input.candidates);
   if (input.candidates.some(candidate => candidate.dataSource !== input.dataSource)) {
     throw new Error("universe scan candidate provenance must match output dataSource");
   }
