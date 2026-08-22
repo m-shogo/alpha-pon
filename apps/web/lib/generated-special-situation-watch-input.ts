@@ -82,17 +82,31 @@ function isTopChanceCandidate(value: unknown): value is TopChanceCandidate {
     && hasValidListingInfo(value.listingInfo)
 }
 
-function normalizeRows<T>(
+function normalizeRows<T extends { code: string }>(
   value: unknown,
   field: string,
   predicate: (row: unknown) => row is T,
 ): { rows: T[] | undefined; warning: string | null } {
   if (value === undefined) return { rows: undefined, warning: null }
   if (!Array.isArray(value)) return { rows: [], warning: `${field}: invalid_shape` }
-  const rows = value.filter(predicate)
+
+  const validRows = value.filter(predicate)
+  const seenCodes = new Set<string>()
+  const rows = validRows.filter((row) => {
+    if (seenCodes.has(row.code)) return false
+    seenCodes.add(row.code)
+    return true
+  })
+  const invalidRows = value.length - validRows.length
+  const duplicateRows = validRows.length - rows.length
+  const warnings = [
+    invalidRows > 0 ? `${field}: invalid_rows ${invalidRows}` : null,
+    duplicateRows > 0 ? `${field}: duplicate_codes ${duplicateRows}` : null,
+  ].filter((warning): warning is string => warning !== null)
+
   return {
     rows,
-    warning: rows.length === value.length ? null : `${field}: invalid_rows ${value.length - rows.length}`,
+    warning: warnings.length > 0 ? warnings.join('; ') : null,
   }
 }
 
