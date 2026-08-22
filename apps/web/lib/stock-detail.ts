@@ -126,6 +126,14 @@ type SpecialSituationCandidate = {
   }
 }
 
+type StockCompanyMemory = {
+  lastReviewedAt: string
+  watchReason: string[]
+  knownRisks: string[]
+  recurringWarnings: string[]
+  notes: string[]
+}
+
 const HORIZONS = ['1d', '1w', '1m', '3m'] as const
 
 function rootPath(...parts: string[]): string {
@@ -175,6 +183,24 @@ function compactStrings(values: Array<string | null | undefined>, limit?: number
     if (limit && result.length >= limit) break
   }
   return result
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(item => typeof item === 'string')
+}
+
+function normalizeCompanyMemoryForStockDetail(value: unknown, code: string): StockCompanyMemory | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const row = value as Record<string, unknown>
+  if (row.schemaVersion !== 1 || row.code !== code || typeof row.lastReviewedAt !== 'string') return null
+  if (!isStringArray(row.watchReason) || !isStringArray(row.knownRisks) || !isStringArray(row.recurringWarnings) || !isStringArray(row.notes)) return null
+  return {
+    lastReviewedAt: row.lastReviewedAt,
+    watchReason: row.watchReason,
+    knownRisks: row.knownRisks,
+    recurringWarnings: row.recurringWarnings,
+    notes: row.notes,
+  }
 }
 
 function numeric(value: unknown): number | null {
@@ -334,7 +360,7 @@ export function normalizeStockDetail(raw: {
   const hypotheses = (data.hypothesisPredictions ?? []).filter(item => item.code === code)
   const outcomes = (data.hypothesisOutcomes ?? []).filter(item => item.code === code)
   const special = findSpecialCandidate(data, code)
-  const companyMemory = data.companyMemoryByCode?.[code]
+  const companyMemory = normalizeCompanyMemoryForStockDetail(data.companyMemoryByCode?.[code], code)
   const dataQuality = data.dataQualityByCode?.[code]
   const primaryDisclosure = data.primaryDisclosureReviews?.[code]
   const worldImpactReviews = (data.worldImpactReviews ?? []).filter(review => review.affectedCompanyCodes?.includes(code))
