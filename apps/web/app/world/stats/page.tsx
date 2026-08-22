@@ -3,39 +3,11 @@ import { join } from 'path'
 import Link from 'next/link'
 import { Card, SectionLabel } from '@/components/Card'
 import { Icon } from '@/components/Icon'
+import { normalizeGeneratedWorldThemeStatsInput, type WorldThemeCandidateStats } from '@/lib/generated-world-theme-stats-input'
 
 export const metadata = { title: '世界情勢候補仮説 集計 | alpha-pon' }
 
-type ThemeStat = {
-  theme: string
-  total: number
-  resultCounts: Record<string, number>
-  recent: Array<{
-    candidateCode: string
-    candidateCompany: string
-    reviewedAt: string
-    afterDays: number
-    result: string
-    memo: string
-  }>
-}
-
-type Stats = {
-  generatedAt?: string
-  total?: number
-  byTheme?: ThemeStat[]
-  recent?: Array<{
-    theme: string
-    candidateCode: string
-    candidateCompany: string
-    reviewedAt: string
-    afterDays: number
-    result: string
-    memo: string
-  }>
-}
-
-function loadStats(): Stats | null {
+function loadStats(): WorldThemeCandidateStats | null {
   const candidates = [
     join(process.cwd(), '..', '..', 'reports', 'world_theme_candidate_stats_latest.json'),
     join(process.cwd(), 'reports', 'world_theme_candidate_stats_latest.json'),
@@ -43,7 +15,7 @@ function loadStats(): Stats | null {
   const path = candidates.find(p => existsSync(p))
   if (!path) return null
   try {
-    return JSON.parse(readFileSync(path, 'utf-8')) as Stats
+    return normalizeGeneratedWorldThemeStatsInput(JSON.parse(readFileSync(path, 'utf-8'))).value
   } catch {
     return null
   }
