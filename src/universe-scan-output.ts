@@ -28,6 +28,9 @@ function assertCandidateChronology(candidates: UniverseCandidate[], generatedAt:
 function assertUniqueCandidateIdentity(candidates: UniverseCandidate[]): void {
   const seenCodes = new Set<string>();
   for (const candidate of candidates) {
+    if (typeof candidate.code !== "string" || candidate.code.length === 0 || candidate.code !== candidate.code.trim()) {
+      throw new Error("universe scan candidate code must be canonical");
+    }
     if (seenCodes.has(candidate.code)) {
       throw new Error("universe scan candidate code must be unique");
     }
