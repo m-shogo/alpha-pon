@@ -38,6 +38,7 @@ function isRule(value: unknown): value is GeneratedIpoThemeWatchRule {
   const rule = value as Record<string, unknown>
   return typeof rule.id === 'string'
     && rule.id.trim().length > 0
+    && rule.id === rule.id.trim()
     && typeof rule.label === 'string'
     && typeof rule.defaultAction === 'string'
     && isOptionalStringArray(rule.names)
@@ -48,13 +49,20 @@ function isRule(value: unknown): value is GeneratedIpoThemeWatchRule {
       || (Array.isArray(rule.relatedCompanies) && rule.relatedCompanies.every(isRelatedCompany)))
 }
 
+function hasUniqueRuleIds(rules: GeneratedIpoThemeWatchRule[]): boolean {
+  return new Set(rules.map((rule) => rule.id)).size === rules.length
+}
+
 export function isGeneratedIpoThemeWatchInput(value: unknown): value is GeneratedIpoThemeWatch {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const watch = value as Record<string, unknown>
+  if (watch.rules !== undefined && (!Array.isArray(watch.rules) || !watch.rules.every(isRule))) return false
+  const rules = (watch.rules ?? []) as GeneratedIpoThemeWatchRule[]
+
   return (watch.generatedAt === null || typeof watch.generatedAt === 'string')
     && (watch.defaultAction === undefined || typeof watch.defaultAction === 'string')
     && isOptionalStringArray(watch.neverTreatAs)
-    && (watch.rules === undefined || (Array.isArray(watch.rules) && watch.rules.every(isRule)))
+    && hasUniqueRuleIds(rules)
 }
 
 export function normalizeGeneratedIpoThemeWatchInput(
