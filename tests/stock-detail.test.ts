@@ -257,6 +257,18 @@ function outcome(overrides: Record<string, unknown> = {}) {
 }
 
 {
+  const detail = normalizeStockDetail({
+    code: "8136",
+    data: baseData(),
+    ops: { priorityIssues: {}, allIssues: null },
+    outcomeQuality: { checks: { malformed: null } },
+  });
+  assert.ok(detail);
+  assert.deepEqual(detail.opsSignals, []);
+  console.log("stock-detail: malformed ops/audit collectionsをfail-closedに扱う");
+}
+
+{
   const originalCwd = process.cwd();
   const emptyDir = mkdtempSync(join(tmpdir(), "alpha-pon-stock-detail-"));
   try {
