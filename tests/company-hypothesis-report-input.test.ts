@@ -116,6 +116,7 @@ const alignment = normalizeAlignmentHypothesisCategories(normalizeCompanyHypothe
       label: " Healthy ",
       companies: [
         { code: " 8136 ", name: " サンリオ ", status: " active " },
+        { code: "8136", name: "duplicate", status: "watch" },
         null,
       ],
     },
@@ -126,9 +127,10 @@ const alignment = normalizeAlignmentHypothesisCategories(normalizeCompanyHypothe
 assert.deepEqual(alignment.categories.healthy, {
   label: "Healthy",
   companies: [{ code: "8136", name: "サンリオ", status: "active" }],
-}, "alignmentは壊れたcompany rowを隔離し正常companyを保持する");
+}, "alignmentはcanonical duplicateと壊れたcompany rowを隔離し先行companyを保持する");
 assert.equal(alignment.categories.brokenCategory, undefined, "alignmentでもnull categoryを隔離する");
 assert.deepEqual(alignment.categories.brokenCompanies.companies, [], "alignmentでもnon-array companiesを隔離する");
-assert.ok(alignment.warnings.some(warning => warning.includes("company row 2")), "alignmentのnull companyをwarningへ残す");
+assert.ok(alignment.warnings.some(warning => warning.includes("canonical identity is duplicated")), "alignmentのcanonical duplicateをwarningへ残す");
+assert.ok(alignment.warnings.some(warning => warning.includes("company row 3")), "alignmentのnull companyをwarningへ残す");
 
 console.log("company-hypothesis-report-input.test.ts passed");
