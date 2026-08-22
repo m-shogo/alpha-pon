@@ -1,4 +1,4 @@
-import type { LegendProCommittee } from './types'
+import type { LegendProCommittee } from './types.js'
 
 type LegendProDecision = LegendProCommittee['decisions'][number]
 
