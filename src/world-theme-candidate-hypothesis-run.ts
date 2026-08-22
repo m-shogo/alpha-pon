@@ -5,6 +5,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } fr
 import { load } from "js-yaml";
 import { addDaysJst, todayJst } from "./date.js";
 import { normalizeWorldThemeCandidateEventInput } from "./world-theme-candidate-hypothesis-input.js";
+import { normalizeWorldThemeCandidateHypothesisHistory } from "./world-theme-candidate-hypothesis-history-input.js";
 import {
   buildWorldThemeCandidateHypotheses,
   type PersonalWatchlistForHypothesis,
@@ -42,13 +43,11 @@ function hypothesisId(item: WorldThemeCandidateHypothesis, detectedAt: string): 
 
 function readExistingIds(): Set<string> {
   if (!existsSync(JSONL_PATH)) return new Set();
-  return new Set(readFileSync(JSONL_PATH, "utf-8")
-    .split("\n")
-    .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => JSON.parse(line) as { hypothesisId?: string })
-    .map(row => row.hypothesisId)
-    .filter((id): id is string => Boolean(id)));
+  const history = normalizeWorldThemeCandidateHypothesisHistory(readFileSync(JSONL_PATH, "utf-8"));
+  if (history.status !== "ok") {
+    throw new Error("world_theme_candidate_hypotheses.jsonl is malformed; existing hypothesis outputs were not modified");
+  }
+  return history.ids;
 }
 
 function persist(item: WorldThemeCandidateHypothesis, detectedAt: string): PersistedWorldThemeCandidateHypothesis {
@@ -66,7 +65,7 @@ function main(): void {
   const detectedAt = todayJst();
   const eventInput = normalizeWorldThemeCandidateEventInput(readJson<unknown>("reports/world_events_latest.json", []));
   if (eventInput.status !== "ok") {
-    throw new Error("world_events_latest.json must have an array root; existing hypothesis outputs were not modified");
+    throw new Error("world_events_latest.json must have a valid array snapshot; existing hypothesis outputs were not modified");
   }
   const events = eventInput.events;
   const personalWatchlist = readYaml<PersonalWatchlistForHypothesis>("config/personal-watchlist.yml", { priorityWatches: [] });
