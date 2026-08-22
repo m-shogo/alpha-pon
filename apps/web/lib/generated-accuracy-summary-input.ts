@@ -97,10 +97,13 @@ export function isGeneratedAccuracySummaryInput(value: unknown): value is Genera
   const resultTotal = summary.hit + summary.miss + summary.tooEarly + summary.unknown
   const actionLabelTotal = actionLabels.reduce((sum, key) => sum + byActionLabel[key].total, 0)
   const scoreBandTotal = scoreBands.reduce((sum, key) => sum + byScoreBand[key].total, 0)
+  const resolvedTotal = summary.hit + summary.miss
+  const expectedHitRate = resolvedTotal > 0 ? summary.hit / resolvedTotal : null
 
   return resultTotal === summary.total
     && actionLabelTotal === summary.total
     && scoreBandTotal === summary.total
+    && summary.hitRate === expectedHitRate
 }
 
 export function normalizeGeneratedAccuracySummaryInput(
