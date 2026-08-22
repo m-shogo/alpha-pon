@@ -257,6 +257,24 @@ function outcome(overrides: Record<string, unknown> = {}) {
 }
 
 {
+  const malformedMemory = {
+    schemaVersion: 1,
+    code: "8136",
+    lastReviewedAt: "2026-06-11",
+    watchReason: ["監視理由"],
+    knownRisks: "broken",
+    recurringWarnings: [],
+    notes: [],
+  };
+  const detail = normalizeStockDetail({
+    code: "8136",
+    data: baseData({ candidates: [], companyMemoryByCode: { "8136": malformedMemory } }),
+  });
+  assert.equal(detail, null);
+  console.log("stock-detail: malformed company memoryをEvidenceとして扱わずfail-closed");
+}
+
+{
   const detail = normalizeStockDetail({
     code: "8136",
     data: baseData(),
