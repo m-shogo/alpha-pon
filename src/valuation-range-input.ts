@@ -15,10 +15,17 @@ function isRealJstDate(value: string): boolean {
   }
 }
 
+function assertCanonicalAsOf(asOf: string): void {
+  if (!isRealJstDate(asOf)) {
+    throw new Error("valuation score asOf must be a real canonical YYYY-MM-DD date");
+  }
+}
+
 export function latestValuationScoreFile(
   reportsDir = "reports",
   asOf = todayJst(),
 ): string | null {
+  assertCanonicalAsOf(asOf);
   if (!existsSync(reportsDir)) return null;
   const files = readdirSync(reportsDir)
     .flatMap((file) => {
