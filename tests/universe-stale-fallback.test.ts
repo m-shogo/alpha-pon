@@ -226,6 +226,21 @@ assert.deepEqual(
 );
 assert.equal(malformedIdentity.invalidRowCount, 4);
 
+const malformedDetectedAt = normalizeCompanyRulesUniverseInput({
+  candidates: [
+    { code: "1234", name: "不存在日", dataSource: "jquants", detectedAt: "2026-02-31", currentPrice: 100 },
+    { code: "2345", name: "未来日", dataSource: "jquants", detectedAt: "2999-01-01", currentPrice: 100 },
+    { code: "3456", name: "timestamp形式", dataSource: "jquants", detectedAt: "2026-06-01T00:00:00+09:00", currentPrice: 100 },
+    { code: "4567", name: "正常日", dataSource: "jquants", detectedAt: "2026-06-01", currentPrice: 100 },
+  ],
+});
+assert.deepEqual(
+  malformedDetectedAt.rows,
+  [{ code: "4567", name: "正常日", dataSource: "jquants", detectedAt: "2026-06-01", currentPrice: 100 }],
+  "priceSignal.asOfへ流れるdetectedAtは実在する当日以前のcanonical日付だけを許可する",
+);
+assert.equal(malformedDetectedAt.invalidRowCount, 3);
+
 const malformedNumerics = normalizeCompanyRulesUniverseInput({
   candidates: [
     { code: "1234", name: "文字列騰落率", dataSource: "jquants", change5dPct: "10" },
