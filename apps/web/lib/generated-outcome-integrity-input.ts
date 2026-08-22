@@ -25,6 +25,7 @@ type OutcomeIntegrityInput = {
 }
 
 const STATUSES = new Set<OutcomeIntegrityStatus>(['ok', 'duplicate_found', 'db_unavailable', 'parse_error'])
+const CANONICAL_DATE = /^\d{4}-\d{2}-\d{2}$/
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -32,6 +33,28 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isCanonicalText(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0 && value.trim() === value
+}
+
+function todayJst(): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date())
+}
+
+function isCanonicalPastOrPresentDate(value: unknown): value is string {
+  if (typeof value !== 'string' || !CANONICAL_DATE.test(value)) return false
+  const [year, month, day] = value.split('-').map(Number)
+  const parsed = new Date(Date.UTC(year, month - 1, day))
+  if (
+    year < 1
+    || parsed.getUTCFullYear() !== year
+    || parsed.getUTCMonth() !== month - 1
+    || parsed.getUTCDate() !== day
+  ) return false
+  return value <= todayJst()
 }
 
 function isSafeCount(value: unknown): value is number {
@@ -100,7 +123,7 @@ export function normalizeGeneratedOutcomeIntegrityInput(value: unknown): {
 } {
   if (value === undefined || value === null) return { value: null, warning: null }
   if (!isRecord(value)) return { value: null, warning: 'hypothesisOutcomeIntegrity: invalid_shape' }
-  if (!isCanonicalText(value.generatedAt)
+  if (!isCanonicalPastOrPresentDate(value.generatedAt)
     || typeof value.status !== 'string'
     || !STATUSES.has(value.status as OutcomeIntegrityStatus)
     || !hasValidJsonl(value.jsonl)
