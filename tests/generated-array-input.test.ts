@@ -90,15 +90,17 @@ const mixedHypotheses = normalizeGeneratedArrayInput(
   [
     canonicalHypothesis,
     { ...canonicalHypothesis, invalidationSignals: "broken" },
+    { ...canonicalHypothesis, confidence: 1.01 },
+    { ...canonicalHypothesis, confidence: -0.01 },
     null,
     {},
   ],
   "hypothesisPredictions",
   isHypothesisRow,
 );
-assert(mixedHypotheses.rows.length === 1, "malformed hypothesis rows and collection contracts must be isolated before hypothesis-list property access");
+assert(mixedHypotheses.rows.length === 1, "malformed hypothesis rows, collections, and confidence ratios must be isolated before hypothesis-list rendering");
 assert(mixedHypotheses.rows[0]?.code === "8136", "valid hypothesis siblings must remain usable");
-assert(mixedHypotheses.warning === "hypothesisPredictions: invalid_entries (3)", "malformed hypothesis rows must remain visible as metadata-only warnings");
+assert(mixedHypotheses.warning === "hypothesisPredictions: invalid_entries (5)", "malformed hypothesis rows must remain visible as metadata-only warnings");
 
 const isOutcomeRow = (value: unknown): value is Record<string, unknown> => {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
