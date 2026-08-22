@@ -31,6 +31,9 @@ export function readRuleDiagnosticsScoreRows<T>(
   reportsDir = "reports",
   asOf = todayJst(),
 ): RuleDiagnosticsScoreLoad<T> {
+  if (!isRealDate(asOf)) {
+    throw new Error("rule-diagnostics score asOf must be a real Gregorian JST date");
+  }
   if (!existsSync(reportsDir)) return { rows: [], warnings: [] };
 
   const rows: T[] = [];

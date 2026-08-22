@@ -30,6 +30,17 @@ try {
     { code: "6501", createdAt: "2026-02-31", rules: ["impossible"] },
   ]), "utf-8");
 
+  assert.throws(
+    () => readRuleDiagnosticsScoreRows<Row>(dir, "not-a-date"),
+    /rule-diagnostics score asOf must be a real Gregorian JST date/,
+    "invalid direct-call cutoffs must not bypass future snapshot isolation through lexical comparison",
+  );
+  assert.throws(
+    () => readRuleDiagnosticsScoreRows<Row>(dir, "2026-02-31"),
+    /rule-diagnostics score asOf must be a real Gregorian JST date/,
+    "impossible direct-call cutoffs must fail closed before score aggregation",
+  );
+
   const isolated = readRuleDiagnosticsScoreRows<Row>(dir, "2026-08-20");
   assert.deepEqual(
     isolated.rows.map(row => `${row.createdAt}_${row.code}`),
@@ -60,4 +71,4 @@ try {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("rule-diagnostics-score-input: ambiguous, malformed, and PIT-inconsistent score evidence is isolated");
+console.log("rule-diagnostics-score-input: ambiguous, malformed, PIT-inconsistent, and invalid-cutoff score evidence is isolated");
