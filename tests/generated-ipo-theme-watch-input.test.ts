@@ -30,9 +30,17 @@ assert.deepEqual(
   { value: null, warning: 'ipoThemeWatch: invalid_shape' },
 )
 assert.deepEqual(
+  normalizeGeneratedIpoThemeWatchInput({ ...valid, rules: [{ ...valid.rules[0], id: ' ipo-ai ' }] }),
+  { value: null, warning: 'ipoThemeWatch: invalid_shape' },
+)
+assert.deepEqual(
+  normalizeGeneratedIpoThemeWatchInput({ ...valid, rules: [valid.rules[0], { ...valid.rules[0] }] }),
+  { value: null, warning: 'ipoThemeWatch: invalid_shape' },
+)
+assert.deepEqual(
   normalizeGeneratedIpoThemeWatchInput({ ...valid, neverTreatAs: {} }),
   { value: null, warning: 'ipoThemeWatch: invalid_shape' },
 )
 assert.deepEqual(normalizeGeneratedIpoThemeWatchInput(valid), { value: valid, warning: null })
 
-console.log('generated IPO theme watch input: malformed list shapes are isolated before World page rendering OK')
+console.log('generated IPO theme watch input: malformed list shapes and ambiguous rule identities are isolated before World page rendering OK')
