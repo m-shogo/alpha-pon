@@ -30,6 +30,15 @@ const input = normalizeCompanyHypothesesRoot({
           nonMoveReasonCandidates: [" already_priced_in "],
           lastReviewedAt: " 2026-05-30 ",
         },
+        {
+          code: "8136",
+          name: "duplicate",
+          role: "duplicate",
+          status: "watch",
+          upsideHypothesis: "duplicate upside",
+          noMoveHypothesis: "duplicate no move",
+          downsideHypothesis: "duplicate downside",
+        },
         null,
       ],
     },
@@ -56,11 +65,12 @@ assert.deepEqual(normalized.categories.healthy, {
     nonMoveReasonCandidates: ["already_priced_in"],
     lastReviewedAt: "2026-05-30",
   }],
-}, "壊れたnested field/company rowを隔離しつつ正常companyを保持する");
+}, "壊れたnested field/company rowとcanonical duplicateを隔離しつつ先行companyを保持する");
 assert.equal(normalized.categories.brokenCategory, undefined, "null categoryを隔離する");
 assert.deepEqual(normalized.categories.brokenCompanies.companies, [], "non-array companiesを空配列へ隔離する");
 assert.ok(normalized.warnings.some(warning => warning.includes("notGoodWhen")), "壊れたlist fieldをwarningへ残す");
-assert.ok(normalized.warnings.some(warning => warning.includes("company row 2")), "null company rowをwarningへ残す");
+assert.ok(normalized.warnings.some(warning => warning.includes("canonical identity is duplicated")), "canonical duplicateをwarningへ残す");
+assert.ok(normalized.warnings.some(warning => warning.includes("company row 3")), "null company rowをwarningへ残す");
 assert.ok(normalized.warnings.some(warning => warning.includes("brokenCategory")), "null categoryをwarningへ残す");
 assert.ok(normalized.warnings.some(warning => warning.includes("brokenCompanies")), "壊れたcompanies fieldをwarningへ残す");
 
