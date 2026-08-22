@@ -47,10 +47,25 @@ export function normalizeGeneratedAlertCandidates(value: unknown): GeneratedAler
     }
   }
 
-  const rows = value.filter(isGeneratedAlertCandidateInput)
-  const invalidCount = value.length - rows.length
+  const validRows = value.filter(isGeneratedAlertCandidateInput)
+  const invalidCount = value.length - validRows.length
+  const codeCounts = new Map<string, number>()
+  for (const row of validRows) {
+    codeCounts.set(row.code, (codeCounts.get(row.code) ?? 0) + 1)
+  }
+  const duplicateCodes = new Set(
+    [...codeCounts.entries()]
+      .filter(([, count]) => count > 1)
+      .map(([code]) => code),
+  )
+  const rows = validRows.filter((row) => !duplicateCodes.has(row.code))
+
+  const warnings: string[] = []
+  if (invalidCount > 0) warnings.push(`invalid_entries (${invalidCount})`)
+  if (duplicateCodes.size > 0) warnings.push(`duplicate_codes (${[...duplicateCodes].sort().join(',')})`)
+
   return {
     rows,
-    warning: invalidCount > 0 ? `universeCandidates: invalid_entries (${invalidCount})` : null,
+    warning: warnings.length > 0 ? `universeCandidates: ${warnings.join('; ')}` : null,
   }
 }
