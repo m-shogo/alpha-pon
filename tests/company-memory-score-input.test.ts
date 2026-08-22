@@ -14,6 +14,18 @@ try {
     "current canonical score evidence remains valid company-memory input",
   );
 
+  assert.throws(
+    () => assertCompanyMemoryScoreInputs(dir, "not-a-date"),
+    /company-memory score asOf must be a real Gregorian JST date/,
+    "invalid direct-call cutoffs must not bypass future score evidence checks through lexical comparison",
+  );
+
+  assert.throws(
+    () => assertCompanyMemoryScoreInputs(dir, "2026-02-31"),
+    /company-memory score asOf must be a real Gregorian JST date/,
+    "impossible direct-call cutoffs must fail closed before scanning score evidence",
+  );
+
   writeFileSync(join(dir, "scores_2026-08-17.json"), JSON.stringify([{ ...validRow, code: "8136 " }]));
   assert.throws(
     () => assertCompanyMemoryScoreInputs(dir, "2026-08-17"),
