@@ -71,6 +71,8 @@ export type GeneratedPipelineStatusInput = {
 const HYPOTHESIS_OUTCOME_REVIEW_HORIZONS = new Set(['1d', '1w', '1m', '3m'])
 const HYPOTHESIS_OUTCOME_ACTION_LABELS = new Set(['watch', 'log', 'ignore'])
 const HYPOTHESIS_OUTCOME_RESULTS = new Set(['hit', 'miss', 'too_early', 'invalidated', 'unknown'])
+const UNIVERSE_CANDIDATE_STATUSES = new Set(['monitoring', 'escalated', 'dismissed'])
+const UNIVERSE_CANDIDATE_DATA_SOURCES = new Set(['jquants', 'mock'])
 
 function isCanonicalHypothesisOutcomeDiscriminators(value: unknown): boolean {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
@@ -81,6 +83,42 @@ function isCanonicalHypothesisOutcomeDiscriminators(value: unknown): boolean {
     && HYPOTHESIS_OUTCOME_ACTION_LABELS.has(row.actionLabel)
     && typeof row.result === 'string'
     && HYPOTHESIS_OUTCOME_RESULTS.has(row.result)
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string')
+}
+
+function isFiniteNumberOrNull(value: unknown): value is number | null {
+  return value === null || (typeof value === 'number' && Number.isFinite(value))
+}
+
+function isCanonicalUniverseCandidate(value: unknown): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const row = value as Record<string, unknown>
+  return typeof row.code === 'string'
+    && row.code.trim().length > 0
+    && row.code === row.code.trim()
+    && typeof row.name === 'string'
+    && (row.sector === null || typeof row.sector === 'string')
+    && typeof row.detectedAt === 'string'
+    && isFiniteNumberOrNull(row.currentPrice)
+    && isFiniteNumberOrNull(row.high52w)
+    && isFiniteNumberOrNull(row.drawdownPct)
+    && isFiniteNumberOrNull(row.operatingProfitYoY)
+    && typeof row.hasDownwardRevision === 'boolean'
+    && typeof row.hasNegativeFlag === 'boolean'
+    && typeof row.hasRecentDisclosure === 'boolean'
+    && isStringArray(row.matchedWorldEventTags)
+    && typeof row.screeningScore === 'number'
+    && Number.isFinite(row.screeningScore)
+    && row.screeningScore >= 0
+    && row.screeningScore <= 100
+    && isStringArray(row.warnings)
+    && typeof row.status === 'string'
+    && UNIVERSE_CANDIDATE_STATUSES.has(row.status)
+    && typeof row.dataSource === 'string'
+    && UNIVERSE_CANDIDATE_DATA_SOURCES.has(row.dataSource)
 }
 
 function isNonNegativeSafeInteger(value: unknown): value is number {
@@ -192,6 +230,7 @@ export function normalizeGeneratedArrayInput<T>(
   const rows = value.filter((entry): entry is T => (
     isValidEntry(entry)
     && (field !== 'hypothesisOutcomes' || isCanonicalHypothesisOutcomeDiscriminators(entry))
+    && (field !== 'universeCandidates' || isCanonicalUniverseCandidate(entry))
   ))
   const invalidEntries = value.length - rows.length
   return {
