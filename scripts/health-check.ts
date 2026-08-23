@@ -9,7 +9,10 @@ import { getLastSuccessDate, APP_NAME } from "../src/jobs/job-runner.js";
 import { buildOutcomeIntegrityReport } from "../src/hypothesis-outcome-integrity.js";
 import { backupHealthEvidenceFromDirectoryNames } from "../src/health/backup-health.js";
 import { inspectJsonArtifact } from "../src/health/json-artifact-health.js";
-import { normalizeSpecialOpsHealthStatus } from "../src/health/special-ops-health-status.js";
+import {
+  normalizeSpecialOpsActionItems,
+  normalizeSpecialOpsHealthStatus,
+} from "../src/health/special-ops-health-status.js";
 import { isUsableFreshSuccessArtifact } from "../src/health/success-artifact-health.js";
 
 const TODAY = getTodayInTokyo();
@@ -224,24 +227,27 @@ for (const f of generatedFiles) {
 // ── special situation ops ────────────────────────────────────
 type SpecialOpsSummary = {
   healthStatus?: "ok" | "needs_attention" | "action_required";
-  actionItems?: Array<{ priority?: string; title?: string; command?: string; detail?: string }>;
+  actionItems?: unknown;
   reviewDue?: { overdue?: number; historicalSeedOverdue?: number; dueToday?: number; dueThisWeek?: number };
   backfill?: { recentUpdatable?: number; historicalUpdatable?: number };
   outcomeStats?: { sampleTooSmall?: number };
 };
 const specialOps = readJson<SpecialOpsSummary>("reports/special_situation_ops_summary_latest.json");
 const specialOpsHealthStatus = normalizeSpecialOpsHealthStatus(specialOps?.healthStatus);
+const specialOpsActionItems = normalizeSpecialOpsActionItems(specialOps?.actionItems);
 if (!specialOps) {
   warn("special situation ops", "未生成（pnpm ops:special を実行してください）");
+} else if (!specialOpsActionItems) {
+  warn("special situation ops", "invalid actionItems / nextAction: pnpm ops:special");
 } else if (specialOpsHealthStatus === "action_required") {
-  const urgent = (specialOps.actionItems ?? []).filter(item => item.priority === "urgent");
+  const urgent = specialOpsActionItems.filter(item => item.priority === "urgent");
   const command = urgent.find(item => item.command)?.command ?? "pnpm ops:special";
   warn(
     "special situation ops",
     `action_required: ${urgent.map(item => item.title).join(" / ") || "要対応あり"} / nextAction: ${command}`
   );
 } else if (specialOpsHealthStatus === "needs_attention") {
-  const attention = (specialOps.actionItems ?? []).filter(item => item.priority === "attention");
+  const attention = specialOpsActionItems.filter(item => item.priority === "attention");
   warn(
     "special situation ops",
     `needs_attention: ${attention.map(item => item.title).join(" / ") || "確認事項あり"} / nextAction: pnpm ops:special`
