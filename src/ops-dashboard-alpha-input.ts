@@ -75,15 +75,22 @@ export function normalizeOpsAlphaDataQualityWarningsInput(
     const entry = rawEntry as NonNullable<OpsAlphaDataLike["dataQualityByCode"]>[string] & { warnings?: unknown };
     let nextEntry = entry as NonNullable<OpsAlphaDataLike["dataQualityByCode"]>[string];
 
-    const rawLevel = entry.quality?.level;
-    if (rawLevel !== undefined) {
-      if (rawLevel === "full") {
-        nextEntry = { ...nextEntry, quality: { ...nextEntry.quality, level: "ok" } };
-        changedCount += 1;
-      } else if (rawLevel !== "partial" && rawLevel !== "low" && rawLevel !== "ok") {
-        nextEntry = { ...nextEntry, quality: undefined };
-        malformedLevelCount += 1;
-        changedCount += 1;
+    const rawQuality = entry.quality as unknown;
+    if (rawQuality !== undefined && (rawQuality === null || typeof rawQuality !== "object" || Array.isArray(rawQuality))) {
+      nextEntry = { ...nextEntry, quality: undefined };
+      malformedLevelCount += 1;
+      changedCount += 1;
+    } else {
+      const rawLevel = (rawQuality as { level?: unknown } | undefined)?.level;
+      if (rawLevel !== undefined) {
+        if (rawLevel === "full") {
+          nextEntry = { ...nextEntry, quality: { ...nextEntry.quality, level: "ok" } };
+          changedCount += 1;
+        } else if (rawLevel !== "partial" && rawLevel !== "low" && rawLevel !== "ok") {
+          nextEntry = { ...nextEntry, quality: undefined };
+          malformedLevelCount += 1;
+          changedCount += 1;
+        }
       }
     }
 
