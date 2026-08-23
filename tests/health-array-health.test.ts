@@ -3,9 +3,16 @@ import test from "node:test";
 
 import { normalizeHealthArray } from "../src/health/array-health.js";
 
-test("accepts only array-shaped health evidence", () => {
+const canonicalDecision = {
+  code: "8136",
+  name: "Sanrio",
+  finalLabel: "HOLD",
+  finalScore: 0.5,
+};
+
+test("accepts only canonical committee decision arrays", () => {
   assert.deepEqual(normalizeHealthArray([]), []);
-  assert.deepEqual(normalizeHealthArray([{ code: "8136" }]), [{ code: "8136" }]);
+  assert.deepEqual(normalizeHealthArray([canonicalDecision]), [canonicalDecision]);
 });
 
 test("fails closed on array-like non-array health evidence", () => {
@@ -19,6 +26,7 @@ test("fails closed when health evidence contains malformed rows", () => {
   assert.equal(normalizeHealthArray([null]), null);
   assert.equal(normalizeHealthArray(["broken"]), null);
   assert.equal(normalizeHealthArray([{}]), null);
-  assert.equal(normalizeHealthArray([{ code: "8136" }, {}]), null);
-  assert.equal(normalizeHealthArray([{ code: "8136" }, null]), null);
+  assert.equal(normalizeHealthArray([{ code: "8136" }]), null);
+  assert.equal(normalizeHealthArray([{ ...canonicalDecision, finalScore: Number.NaN }]), null);
+  assert.equal(normalizeHealthArray([canonicalDecision, { bogus: true }]), null);
 });
