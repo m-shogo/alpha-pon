@@ -18,5 +18,7 @@ test("fails closed on array-like non-array health evidence", () => {
 test("fails closed when health evidence contains malformed rows", () => {
   assert.equal(normalizeHealthArray([null]), null);
   assert.equal(normalizeHealthArray(["broken"]), null);
+  assert.equal(normalizeHealthArray([{}]), null);
+  assert.equal(normalizeHealthArray([{ code: "8136" }, {}]), null);
   assert.equal(normalizeHealthArray([{ code: "8136" }, null]), null);
 });
