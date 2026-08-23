@@ -4,6 +4,7 @@ import { todayJst } from "./date.js";
 import { isJQuantsConfigured } from "./fetcher/jquants.js";
 import { collectPipelineFailedStepNames, type PipelineFailureEvidence } from "./pipeline-failed-steps.js";
 import { normalizeSourceHealthObject, normalizeSourceHealthScoreRows } from "./source-health-input.js";
+import { parseExistingStockCandidateHypothesesJsonl } from "./stock-candidate-hypothesis-input.js";
 
 type ReadinessStatus = "done" | "partial" | "blocked" | "not_started";
 
@@ -169,7 +170,12 @@ function buildReport(): ReadinessReport {
 
   const pipelineSnapshot = pipelineInput(generated?.pipelineStatus);
   const pipeline = pipelineSnapshot.value;
-  const hypotheses = generated?.hypothesisPredictions ?? readJsonl<unknown>("data/hypothesis_predictions.jsonl");
+  const hypothesisFallbackPath = "data/hypothesis_predictions.jsonl";
+  const hypotheses = generated?.hypothesisPredictions ?? (
+    existsSync(hypothesisFallbackPath)
+      ? parseExistingStockCandidateHypothesesJsonl(readFileSync(hypothesisFallbackPath, "utf-8"), hypothesisFallbackPath).rows
+      : []
+  );
   const outcomesInput = generated?.hypothesisOutcomes;
   const outcomesState = outcomesInput === undefined ? "fallback" : Array.isArray(outcomesInput) ? "ok" : "invalid_root";
   const outcomes = outcomesInput === undefined
