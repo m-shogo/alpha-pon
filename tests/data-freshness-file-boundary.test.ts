@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { freshnessOf } from "../src/data-freshness.js";
@@ -43,6 +43,13 @@ try {
   const fileResult = freshnessOf(file, "pipeline status");
   assert.equal(fileResult.exists, true);
   assert.equal(fileResult.isFreshToday, true, "a non-empty regular file created now remains fresh");
+
+  const symlink = join(dir, "pipeline_status_symlink.json");
+  symlinkSync(file, symlink);
+  const symlinkResult = freshnessOf(symlink, "pipeline status symlink");
+  assert.equal(symlinkResult.exists, true, "existing symlink remains distinguishable from a missing path");
+  assert.equal(symlinkResult.isFreshToday, false, "symlink target mtime must not count as canonical freshness evidence");
+  assert.match(symlinkResult.reason, /regular fileではない/);
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
