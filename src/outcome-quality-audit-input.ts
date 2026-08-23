@@ -105,3 +105,18 @@ export function isQualityOutcomeLikeAsOf(
     && isQualityOutcomeLike(value)
     && value.hypothesis!.detectedAt! <= today;
 }
+
+export function hasUniqueQualityOutcomeIdentitiesAsOf(
+  value: unknown,
+  today: string,
+): value is QualityOutcomeLike[] {
+  if (!Array.isArray(value) || !isGregorianDate(today)) return false;
+  const seen = new Set<string>();
+  for (const row of value) {
+    if (!isQualityOutcomeLikeAsOf(row, today)) return false;
+    const key = `${row.code}:${row.hypothesis!.detectedAt}:${row.reviewHorizon}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+  }
+  return true;
+}
