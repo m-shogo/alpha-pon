@@ -4,6 +4,7 @@ import { load } from "js-yaml";
 import { todayJst } from "./date.js";
 import { buildLegendAgentVerdicts, summarizeLegendWarnings } from "./legend-pro-agents.js";
 import { applyDisagreementSafetyLabel, buildProConsensus, buildProDisagreements } from "./pro-disagreement.js";
+import { parseStockProCommitteeIrEventEvidence } from "./stock-pro-committee-input.js";
 import type { AgentVerdict, BuffettQualitySnapshot, CommitteeDecision, IrEventEvidence, ProFinalLabel, StockProScore, ValuationSnapshot } from "./pro-types.js";
 import type { AccuracySummary, HypothesisOutcome, WorldContext } from "./universe.js";
 
@@ -105,14 +106,14 @@ function main() {
   const irEvents = readYaml<IrEvents>("config/company-ir-events.yml", {});
   const buffettQuality = readJson<{ snapshots?: BuffettQualitySnapshot[] }>("data/buffett_quality_latest.json", { snapshots: [] });
   const valuationSnapshots = readJson<{ snapshots?: ValuationSnapshot[] }>("data/valuation_snapshot_latest.json", { snapshots: [] });
-  const irEventEvidence = readJson<{ events?: IrEventEvidence[] }>("data/ir_event_evidence_latest.json", { events: [] });
+  const irEventEvidence = parseStockProCommitteeIrEventEvidence(readJson<unknown>("data/ir_event_evidence_latest.json", { events: [] }));
   const outcomes = readJson<{ outcomes?: HypothesisOutcome[] }>("apps/web/public/generated/outcomes.json", { outcomes: [] }).outcomes ?? [];
   const accuracySummary = readJson<AccuracySummary | null>("data/hypothesis_accuracy_summary.json", null);
   const worldContext = readJson<WorldContext | null>("data/world_context_latest.json", null);
   const qualityByCode = new Map((buffettQuality.snapshots ?? []).map(item => [item.code, item]));
   const valuationByCode = new Map((valuationSnapshots.snapshots ?? []).map(item => [item.code, item]));
   const irEvidenceByCode = new Map<string, IrEventEvidence[]>();
-  for (const event of irEventEvidence.events ?? []) irEvidenceByCode.set(event.code, [...(irEvidenceByCode.get(event.code) ?? []), event]);
+  for (const event of irEventEvidence) irEvidenceByCode.set(event.code, [...(irEvidenceByCode.get(event.code) ?? []), event]);
   const agentById = new Map((agents.agents ?? []).map(agent => [agent.id, agent]));
   const order = agents.agent_order ?? (agents.agents ?? []).map(agent => agent.id);
   const lines: string[] = [];
