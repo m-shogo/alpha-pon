@@ -80,13 +80,16 @@ const j = (...parts: string[]) => parts.join("");
   const dir = mkdtempSync(join(tmpdir(), "safe-output-inventory-"));
   try {
     const validPath = join(dir, "valid.ts");
+    const aliasPath = join(dir, "alias.ts");
     writeFileSync(validPath, "export const ok = true;\n", "utf-8");
+    symlinkSync(validPath, aliasPath);
     symlinkSync(join(dir, "missing-target"), join(dir, "broken.ts"));
 
     const inventory = collectSafeOutputFiles(dir);
-    assert.deepEqual(inventory.files, [validPath], "読める監査対象はbroken entryがあっても継続列挙する");
-    assert.equal(inventory.errors.length, 1, "stat不能な監査対象をsilent skipしない");
-    assert.equal(inventory.errors[0].file, join(dir, "broken.ts"));
+    assert.deepEqual(inventory.files, [validPath], "canonical regular fileだけを監査対象として列挙する");
+    assert.equal(inventory.errors.length, 2, "valid/brokenを問わずsymlink監査対象をsilent followしない");
+    assert.ok(inventory.errors.some(error => error.file === aliasPath), "valid symlinkもcanonical audit targetとして扱わない");
+    assert.ok(inventory.errors.some(error => error.file === join(dir, "broken.ts")), "broken symlinkも監査不能として保持する");
     assert.equal(
       safeOutputHealthStatus(0, inventory.errors.length),
       "action_required",
@@ -95,7 +98,7 @@ const j = (...parts: string[]) => parts.join("");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
-  console.log("safe-output: inventory列挙失敗を監査不能として保持");
+  console.log("safe-output: symlink監査対象をcanonical inventoryから隔離");
 }
 
 {
