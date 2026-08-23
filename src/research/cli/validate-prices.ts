@@ -1,5 +1,4 @@
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync } from "node:fs";
 import {
   parsePriceJsonl,
   type PitPriceRecord,
@@ -8,6 +7,7 @@ import {
   validateHardenedPriceRecords,
   type HardenedPriceIssue,
 } from "../price-store-hardening.js";
+import { listPriceJsonlFiles } from "../price-store-files.js";
 import type { JsonSchema } from "../schema.js";
 
 function argValue(name: string): string | undefined {
@@ -15,22 +15,10 @@ function argValue(name: string): string | undefined {
   return process.argv.slice(2).find((arg) => arg.startsWith(prefix))?.slice(prefix.length);
 }
 
-function listJsonl(root: string): string[] {
-  if (!existsSync(root)) return [];
-  const files: string[] = [];
-  for (const entry of readdirSync(root)) {
-    const path = join(root, entry);
-    const stat = statSync(path);
-    if (stat.isDirectory()) files.push(...listJsonl(path));
-    else if (stat.isFile() && path.endsWith(".jsonl")) files.push(path);
-  }
-  return files.sort();
-}
-
 const root = argValue("root") ?? "research/prices";
 const schemaPath = argValue("schema") ?? "research/schemas/price-record.schema.json";
 const schema = JSON.parse(readFileSync(schemaPath, "utf-8")) as JsonSchema;
-const files = listJsonl(root);
+const files = listPriceJsonlFiles(root);
 const records: PitPriceRecord[] = [];
 const parseIssues: HardenedPriceIssue[] = [];
 
