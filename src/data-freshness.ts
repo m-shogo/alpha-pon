@@ -1,6 +1,6 @@
 // レポート/生成データの鮮度チェック。古い情報を新着扱いで通知しないために使う。
 
-import { existsSync, readFileSync, statSync } from "fs";
+import { existsSync, lstatSync, readFileSync } from "fs";
 import { todayJst } from "./date.js";
 
 export type FreshnessResult = {
@@ -35,7 +35,7 @@ export function freshnessOf(path: string, label = path): FreshnessResult {
     };
   }
 
-  const stat = statSync(path);
+  const stat = lstatSync(path);
   if (!stat.isFile()) {
     return {
       path,
