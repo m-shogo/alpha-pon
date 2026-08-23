@@ -10,6 +10,7 @@ const path = join(dir, "listing_events.jsonl");
 try {
   writeFileSync(path, [
     JSON.stringify({ id: "valid-1", code: "1234", name: "Valid", eventType: "listing_day", eventDate: "2024-02-29", publicPrice: 1000, reviewPrice: 1100, notes: [] }),
+    JSON.stringify({ id: "valid-1", code: "1234", name: "Duplicate", eventType: "listing_day", eventDate: "2024-02-29", publicPrice: 1000, reviewPrice: 1200, notes: [] }),
     "{broken",
     "null",
     "{}",
@@ -29,10 +30,12 @@ try {
 
   const result = readListingEventReviewInput(path);
   assert.deepEqual(result.rows.map(row => row.id), ["valid-1", "valid-2"]);
-  assert.equal(result.warnings.length, 2);
+  assert.equal(result.rows[0]?.reviewPrice, 1100, "duplicate composite identity must not override the first canonical review evidence");
+  assert.equal(result.warnings.length, 3);
   assert.match(result.warnings[0] ?? "", /parse_error 1/);
-  assert.match(result.warnings[0] ?? "", /lines 2/);
+  assert.match(result.warnings[0] ?? "", /lines 3/);
   assert.equal(result.warnings[1], `${path}: invalid_rows=13`);
+  assert.equal(result.warnings[2], `${path}: duplicate_rows=1`);
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
