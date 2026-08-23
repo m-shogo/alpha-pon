@@ -74,6 +74,10 @@ for (const invalid of [
   { ...valid, generatedAt: '2026-08-19' },
   { ...valid, generatedAt: '2026-08-19', today: '2026-08-19' },
   { ...valid, generatedAt: '2026-08-20T00:00:00+09:00', today: '2026-08-20T00:00:00+09:00' },
+  { ...valid, coverage: { ...valid.coverage, withSpecialOutcome: 2 } },
+  { ...valid, coverage: { ...valid.coverage, noOutcomeRecord: 0 } },
+  { ...valid, coverage: { ...valid.coverage, noOutcomeRecordCodes: ['8136', '8136'], noOutcomeRecord: 2, totalCandidates: 2 } },
+  { ...valid, coverage: { ...valid.coverage, needSeed: false } },
   {
     ...valid,
     healthStatus: 'ok',
