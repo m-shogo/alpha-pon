@@ -22,6 +22,21 @@ try {
   const valid = readGeneratedCompanyRules<Record<string, unknown>>(path, "2026-08-17");
   assert(valid.rows.length === 1 && valid.generatedAt === "2026-08-17", "current generated rules evidence must remain usable");
 
+  for (const invalidAsOf of ["not-a-date", "2026-02-31", "2026-08-17T00:00:00+09:00"]) {
+    let asOfRejected = false;
+    try { readGeneratedCompanyRules(path, invalidAsOf); } catch (error) {
+      asOfRejected = error instanceof Error && /asOf must be a real Gregorian JST date/.test(error.message);
+    }
+    assert(asOfRejected, `invalid valuation asOf must fail closed: ${invalidAsOf}`);
+  }
+
+  writeFileSync(path, JSON.stringify({ generatedAt: "2999-01-01", rules: [{ code: "8136" }] }), "utf-8");
+  let invalidCutoffRejected = false;
+  try { readGeneratedCompanyRules(path, "not-a-date"); } catch (error) {
+    invalidCutoffRejected = error instanceof Error && /asOf must be a real Gregorian JST date/.test(error.message);
+  }
+  assert(invalidCutoffRejected, "invalid asOf must not make future generated rules pass lexical PIT comparison");
+
   writeFileSync(path, "{not-json", "utf-8");
   let parseRejected = false;
   try { readGeneratedCompanyRules(path, "2026-08-17"); } catch (error) {
