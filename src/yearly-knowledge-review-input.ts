@@ -5,6 +5,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isCanonicalNonBlankString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0 && value === value.trim();
+}
+
 function isUniqueNonBlankStringArray(value: unknown): value is string[] {
   if (!Array.isArray(value)) return false;
   const items = value.filter((item): item is string => typeof item === "string");
@@ -28,15 +32,15 @@ export function isUsableYearlyNonMoveHistory(value: unknown, asOf = todayJst()):
   if (!isRecord(value)) return false;
   if (!isRealDateOnOrBefore(value.date, asOf)) return false;
   return (
-    typeof value.code === "string" &&
-    typeof value.name === "string" &&
-    typeof value.category === "string" &&
-    typeof value.hypothesis === "string" &&
-    typeof value.outcome === "string" &&
+    isCanonicalNonBlankString(value.code) &&
+    isCanonicalNonBlankString(value.name) &&
+    isCanonicalNonBlankString(value.category) &&
+    isCanonicalNonBlankString(value.hypothesis) &&
+    isCanonicalNonBlankString(value.outcome) &&
     isUniqueNonBlankStringArray(value.nonMoveReasons) &&
-    typeof value.lesson === "string" &&
-    typeof value.nextAction === "string" &&
-    typeof value.source === "string"
+    isCanonicalNonBlankString(value.lesson) &&
+    isCanonicalNonBlankString(value.nextAction) &&
+    isCanonicalNonBlankString(value.source)
   );
 }
 
