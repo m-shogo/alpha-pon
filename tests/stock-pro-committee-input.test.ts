@@ -49,19 +49,47 @@ for (const malformed of [null, [], {}, { events: {} }, { events: [null] }, { eve
   );
 }
 
-const canonicalSnapshot = { code: "8136", name: "Sanrio" };
+const canonicalSnapshot = {
+  code: "8136",
+  name: "Sanrio",
+  asOf: "2026-08-20",
+  growthAdjustedValuation: "reasonable",
+  valuationRisks: [],
+  missingData: [],
+};
 assert(parseStockProCommitteeCodeSnapshots<typeof canonicalSnapshot>({ snapshots: [canonicalSnapshot] }).length === 1, "canonical Stock Pro snapshot must remain usable");
-const uniqueAlongsideDuplicate = parseStockProCommitteeCodeSnapshots<typeof canonicalSnapshot>({
+const canonicalQualitySnapshot = {
+  code: "9984",
+  name: "SoftBank Group",
+  asOf: "2026-08-20",
+  qualityLabel: "good_business",
+  moatEvidence: [],
+  missingData: [],
+};
+assert(parseStockProCommitteeCodeSnapshots<typeof canonicalQualitySnapshot>({ snapshots: [canonicalQualitySnapshot] }).length === 1, "canonical quality snapshot must remain usable");
+const uniqueAlongsideDuplicate = parseStockProCommitteeCodeSnapshots<typeof canonicalSnapshot | typeof canonicalQualitySnapshot>({
   snapshots: [
     canonicalSnapshot,
-    { ...canonicalSnapshot, name: "Sanrio duplicate" },
-    { code: "9984", name: "SoftBank Group" },
+    { ...canonicalSnapshot, valuationRisks: ["duplicate evidence"] },
+    canonicalQualitySnapshot,
   ],
 });
 assert(uniqueAlongsideDuplicate.length === 1 && uniqueAlongsideDuplicate[0]?.code === "9984", "ambiguous duplicate snapshot identities must be isolated while unique snapshots remain usable");
-for (const malformed of [null, [], {}, { snapshots: {} }, { snapshots: [null] }, { snapshots: [{ ...canonicalSnapshot, code: " 8136 " }] }]) {
+for (const malformed of [
+  null,
+  [],
+  {},
+  { snapshots: {} },
+  { snapshots: [null] },
+  { snapshots: [{ ...canonicalSnapshot, code: " 8136 " }] },
+  { snapshots: [{ code: "8136", name: "Sanrio", asOf: "2026-08-20" }] },
+  { snapshots: [{ ...canonicalSnapshot, valuationRisks: "none" }] },
+  { snapshots: [{ ...canonicalQualitySnapshot, moatEvidence: "brand" }] },
+  { snapshots: [{ ...canonicalSnapshot, asOf: "2026-02-31" }] },
+  { snapshots: [{ ...canonicalSnapshot, asOf: "2999-01-01" }] },
+]) {
   assert(
-    parseStockProCommitteeCodeSnapshots<typeof canonicalSnapshot>(malformed).length === 0,
+    parseStockProCommitteeCodeSnapshots(malformed).length === 0,
     `malformed Stock Pro snapshot collection must fail closed: ${JSON.stringify(malformed)}`,
   );
 }

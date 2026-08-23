@@ -2,6 +2,9 @@ import { todayJst } from "./date.js";
 import type { IrEventEvidence } from "./pro-types.js";
 import type { HypothesisOutcome } from "./universe.js";
 
+const QUALITY_LABELS = new Set(["compounder", "good_business", "cyclical_quality", "fragile", "unknown"]);
+const GROWTH_ADJUSTED_VALUATIONS = new Set(["reasonable", "expensive_but_growth", "too_expensive", "cheap_but_reason", "unknown"]);
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -10,11 +13,28 @@ function isCanonicalText(value: unknown): value is string {
   return typeof value === "string" && value.length > 0 && value.trim() === value;
 }
 
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(item => typeof item === "string");
+}
+
 function isStrictGregorianDate(value: unknown): value is string {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const [year, month, day] = value.split("-").map(Number);
   if (year < 1 || month < 1 || month > 12 || day < 1) return false;
   return day <= new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+function isCommitteeCodeSnapshot(value: unknown, asOf = todayJst()): value is Record<string, unknown> & { code: string } {
+  if (!isRecord(value) || !isCanonicalText(value.code) || !isCanonicalText(value.name)) return false;
+  if (!isStrictGregorianDate(value.asOf) || value.asOf > asOf) return false;
+
+  const qualitySnapshot = QUALITY_LABELS.has(String(value.qualityLabel))
+    && isStringArray(value.moatEvidence)
+    && isStringArray(value.missingData);
+  const valuationSnapshot = GROWTH_ADJUSTED_VALUATIONS.has(String(value.growthAdjustedValuation))
+    && isStringArray(value.valuationRisks)
+    && isStringArray(value.missingData);
+  return qualitySnapshot || valuationSnapshot;
 }
 
 export function isCurrentStockProCommitteeGeneratedAt(value: unknown, asOf = todayJst()): value is string {
@@ -38,7 +58,7 @@ export function parseStockProCommitteeIrEventEvidence(value: unknown): IrEventEv
 
 export function parseStockProCommitteeCodeSnapshots<T extends { code: string }>(value: unknown): T[] {
   if (!isRecord(value) || !Array.isArray(value.snapshots)) return [];
-  const snapshots = value.snapshots.filter((snapshot): snapshot is T => isRecord(snapshot) && isCanonicalText(snapshot.code));
+  const snapshots = value.snapshots.filter((snapshot): snapshot is T => isCommitteeCodeSnapshot(snapshot));
   const counts = new Map<string, number>();
   for (const snapshot of snapshots) counts.set(snapshot.code, (counts.get(snapshot.code) ?? 0) + 1);
   return snapshots.filter(snapshot => counts.get(snapshot.code) === 1);
