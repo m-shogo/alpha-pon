@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
+import { normalizeActiveRegimeCategoryIds } from "./regime-hypothesis-alignment-input.js";
 
 type CompanyHypothesis = {
   code: string;
@@ -259,7 +260,7 @@ function main() {
   const regime = readYaml<CurrentRegime>("config/current-regime.yml");
   const scores = readScores();
   const scoreByCode = new Map(scores.map(score => [score.code, score]));
-  const activeCategories = new Set((regime.activeRegimes ?? []).flatMap(item => item.watchCategories ?? []));
+  const activeCategories = new Set(normalizeActiveRegimeCategoryIds(regime).categoryIds);
 
   const lines: string[] = [];
   lines.push("# alpha-pon 株Proエージェント考察レポート");
