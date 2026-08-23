@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { linkSync, mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import "./listing-automation-summary-input.test.js";
@@ -14,19 +14,23 @@ import { parseListingEventMessageInput } from "../src/listing-event-message-prev
     const empty = join(root, "empty.txt");
     const directory = join(root, "directory");
     const symlink = join(root, "symlink.txt");
+    const hardlink = join(root, "hardlink.txt");
     writeFileSync(valid, "ok", "utf-8");
     writeFileSync(empty, "", "utf-8");
     mkdirSync(directory);
     symlinkSync(valid, symlink);
-    assert.equal(inspectRequiredFile(valid), "ok", "non-empty regular files remain valid smoke evidence");
+    linkSync(valid, hardlink);
+    assert.equal(inspectRequiredFile(valid), "not_file", "files with another hard-link alias must not remain canonical smoke evidence");
     assert.equal(inspectRequiredFile(empty), "empty", "empty required files must fail closed");
     assert.equal(inspectRequiredFile(directory), "not_file", "directories must not satisfy required-file smoke checks");
     assert.equal(inspectRequiredFile(symlink), "not_file", "symlinks must not satisfy canonical smoke evidence checks");
+    assert.equal(inspectRequiredFile(hardlink), "not_file", "hard links must not satisfy canonical smoke evidence checks");
     assert.equal(inspectRequiredFile(join(root, "missing.txt")), "missing", "missing required files remain failures");
-    assert.equal(readSmokeText(valid), "ok", "valid regular files remain readable by smoke checks");
+    assert.equal(readSmokeText(valid), "", "a regular-file path with another hard-link alias must be isolated");
     assert.equal(readSmokeText(empty), "", "empty smoke inputs stay fail-closed");
     assert.equal(readSmokeText(directory), "", "directory paths must be isolated instead of throwing EISDIR");
     assert.equal(readSmokeText(symlink), "", "symlink smoke inputs must be isolated instead of reading target content");
+    assert.equal(readSmokeText(hardlink), "", "hard-linked smoke inputs must be isolated instead of aliasing target content");
     assert.equal(readSmokeText(join(root, "missing.txt")), "", "missing smoke inputs stay fail-closed");
   } finally {
     rmSync(root, { recursive: true, force: true });
