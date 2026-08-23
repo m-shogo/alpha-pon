@@ -52,15 +52,17 @@ for (const malformed of [
   { ...valid, overallScore: 101 },
   { ...valid, overallScore: -1 },
   { ...valid, overallStatus: 'complete' },
+  { ...valid, overallStatus: 'done' },
   { ...valid, items: [{ ...valid.items[0], score: 101 }] },
   { ...valid, items: [{ ...valid.items[0], status: 'healthy' }] },
+  { ...valid, items: [{ ...valid.items[0], status: 'done' }] },
 ] as const) {
   assert.deepEqual(
     normalizeGeneratedReadinessInput(malformed),
     { value: null, warning: 'readiness: invalid_shape' },
-    'impossible readiness scores/statuses must not reach roadmap rendering',
+    'impossible or contradictory readiness scores/statuses must not reach roadmap rendering',
   )
 }
 assert.deepEqual(normalizeGeneratedReadinessInput(valid), { value: valid, warning: null })
 
-console.log('generated readiness input: malformed runtime shape, PIT metadata, and ambiguous item identities are isolated before Home page access OK')
+console.log('generated readiness input: malformed runtime shape, PIT metadata, score/status consistency, and ambiguous item identities are isolated before Home page access OK')
