@@ -53,6 +53,10 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(isCanonicalText)
 }
 
+function isUniqueStringArray(value: unknown): value is string[] {
+  return isStringArray(value) && new Set(value).size === value.length
+}
+
 function isSafeCount(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
 }
@@ -106,11 +110,17 @@ function hasConsistentHealthStatus(
 
 function hasValidCoverage(value: unknown): boolean {
   if (!isRecord(value)) return false
-  return isSafeCount(value.totalCandidates)
-    && isSafeCount(value.withSpecialOutcome)
-    && isSafeCount(value.noOutcomeRecord)
-    && isStringArray(value.noOutcomeRecordCodes)
-    && typeof value.needSeed === 'boolean'
+  if (!isSafeCount(value.totalCandidates)
+    || !isSafeCount(value.withSpecialOutcome)
+    || !isSafeCount(value.noOutcomeRecord)
+    || !isUniqueStringArray(value.noOutcomeRecordCodes)
+    || typeof value.needSeed !== 'boolean') {
+    return false
+  }
+  return value.withSpecialOutcome <= value.totalCandidates
+    && value.noOutcomeRecord <= value.totalCandidates
+    && value.noOutcomeRecord === value.noOutcomeRecordCodes.length
+    && value.needSeed === (value.noOutcomeRecord > 0)
 }
 
 function hasValidReviewDue(value: unknown): boolean {
