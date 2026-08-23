@@ -47,7 +47,7 @@ const input = normalizeCompanyHypothesesRoot({
   },
 });
 
-const normalized = normalizeCompanyHypothesisReportRows(input);
+const normalized = normalizeCompanyHypothesisReportRows(input, "2026-06-11");
 assert.deepEqual(normalized.categories.healthy, {
   label: "Healthy",
   thesis: "Thesis",
@@ -73,6 +73,40 @@ assert.ok(normalized.warnings.some(warning => warning.includes("canonical identi
 assert.ok(normalized.warnings.some(warning => warning.includes("company row 3")), "null company rowをwarningへ残す");
 assert.ok(normalized.warnings.some(warning => warning.includes("brokenCategory")), "null categoryをwarningへ残す");
 assert.ok(normalized.warnings.some(warning => warning.includes("brokenCompanies")), "壊れたcompanies fieldをwarningへ残す");
+
+const invalidReviewDates = normalizeCompanyHypothesisReportRows(normalizeCompanyHypothesesRoot({
+  categories: {
+    dates: {
+      label: "Dates",
+      thesis: "Date provenance",
+      companies: [
+        {
+          code: "7974",
+          name: "Nintendo",
+          role: "peer",
+          status: "watch",
+          upsideHypothesis: "upside",
+          noMoveHypothesis: "flat",
+          downsideHypothesis: "downside",
+          lastReviewedAt: "2026-02-31",
+        },
+        {
+          code: "6758",
+          name: "Sony",
+          role: "peer",
+          status: "watch",
+          upsideHypothesis: "upside",
+          noMoveHypothesis: "flat",
+          downsideHypothesis: "downside",
+          lastReviewedAt: "2999-01-01",
+        },
+      ],
+    },
+  },
+}), "2026-06-11");
+assert.equal(invalidReviewDates.categories.dates.companies[0].lastReviewedAt, undefined, "不存在日をreview provenanceへ通さない");
+assert.equal(invalidReviewDates.categories.dates.companies[1].lastReviewedAt, undefined, "未来review日を現在のprovenanceへ通さない");
+assert.equal(invalidReviewDates.warnings.filter(warning => warning.includes("lastReviewedAt is invalid")).length, 2);
 
 const coverage = normalizeCompanyCoverageRows(normalizeCompanyCoverageRoots(
   {
