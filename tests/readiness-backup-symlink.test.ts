@@ -3,7 +3,11 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { backupHealthEvidenceFromDirectoryNames } from "../src/health/backup-health.js";
-import { assertReadinessBackupDirectoryInput } from "../src/readiness-company-memory-input.js";
+import {
+  assertReadinessBackupDirectoryInput,
+  assertReadinessDataQualityFallbackInput,
+  assertReadinessScoreSnapshotIdentityInput,
+} from "../src/readiness-company-memory-input.js";
 
 const dir = mkdtempSync(join(tmpdir(), "readiness-backup-symlink-"));
 try {
@@ -62,6 +66,29 @@ try {
       latestAgeDays: null,
     },
     "a symlinked backup root must not qualify as canonical backup evidence",
+  );
+
+  const reportsDir = join(dir, "reports");
+  const generatedPath = join(dir, "alpha-pon-data.json");
+  mkdirSync(reportsDir);
+  writeFileSync(
+    join(reportsDir, "scores_2026-08-16.json"),
+    JSON.stringify([{ code: "8136", name: "Sanrio", dataQuality: "perfect" }]),
+  );
+  writeFileSync(
+    generatedPath,
+    JSON.stringify({ dataQualityByCode: { "8136": { warnings: { count: 3 } } } }),
+  );
+
+  assert.throws(
+    () => assertReadinessScoreSnapshotIdentityInput(reportsDir, "2026-08-16"),
+    /valid source-health metadata/,
+    "malformed score metadata must fail closed before readiness treats a snapshot as canonical evidence",
+  );
+  assert.throws(
+    () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir, "2026-08-16"),
+    /warnings must be a string array/,
+    "malformed score metadata must not suppress validation of the generated fallback",
   );
 } finally {
   rmSync(dir, { recursive: true, force: true });

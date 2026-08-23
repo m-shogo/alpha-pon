@@ -1,7 +1,7 @@
 import { existsSync, lstatSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { addDaysJst, backupAgeDaysFromDirectoryName, todayJst } from "./date.js";
-import { hasUniqueSourceHealthScoreIdentities, hasValidPrimaryDisclosureReview, normalizeSourceHealthArray } from "./source-health-input.js";
+import { hasUniqueSourceHealthScoreIdentities, hasValidPrimaryDisclosureReview, normalizeSourceHealthScoreRows } from "./source-health-input.js";
 
 const READINESS_DATA_QUALITY_VALUES = new Set(["ok", "missing", "unknown"]);
 const ACTION_LABEL_KEYS = ["watch", "log", "ignore"] as const;
@@ -126,7 +126,7 @@ function hasUsableScoreSnapshot(reportsDir: string, asOf = todayJst()): boolean 
     const latestPath = latestCanonicalScoreSnapshotPath(reportsDir, asOf);
     if (!latestPath) return false;
     const raw = JSON.parse(readFileSync(latestPath, "utf-8"));
-    return normalizeSourceHealthArray(raw).valid && hasUniqueSourceHealthScoreIdentities(raw);
+    return normalizeSourceHealthScoreRows(raw).valid && hasUniqueSourceHealthScoreIdentities(raw);
   } catch {
     return false;
   }
@@ -150,8 +150,8 @@ export function assertReadinessScoreSnapshotIdentityInput(reportsDir = "reports"
   const latestPath = latestCanonicalScoreSnapshotPath(reportsDir, asOf);
   if (!latestPath) return;
   const raw = readJson(latestPath);
-  if (!normalizeSourceHealthArray(raw).valid || !hasUniqueSourceHealthScoreIdentities(raw)) {
-    throw new Error(`${latestPath}: score snapshot rows must have canonical non-empty unique code identities`);
+  if (!normalizeSourceHealthScoreRows(raw).valid || !hasUniqueSourceHealthScoreIdentities(raw)) {
+    throw new Error(`${latestPath}: score snapshot rows must have canonical non-empty unique code identities and valid source-health metadata`);
   }
 }
 
