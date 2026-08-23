@@ -18,6 +18,15 @@ try {
   writeFileSync(outsideFile, "{}\n", "utf-8");
   symlinkSync(outsideFile, join(root, "linked.jsonl"));
   assert.throws(() => listPriceJsonlFiles(root), /price_store_symlink_not_allowed/);
+  rmSync(join(root, "linked.jsonl"));
+
+  const linkedRoot = join(tmpdir(), `price-store-linked-root-${process.pid}-${Date.now()}`);
+  symlinkSync(outside, linkedRoot, "dir");
+  try {
+    assert.throws(() => listPriceJsonlFiles(linkedRoot), /price_store_symlink_not_allowed/);
+  } finally {
+    rmSync(linkedRoot, { force: true });
+  }
 } finally {
   rmSync(root, { recursive: true, force: true });
   rmSync(outside, { recursive: true, force: true });
