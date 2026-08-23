@@ -6,6 +6,7 @@ import { normalizeReadOnlyJsonArray } from "./read-only-json.js";
 import { formatReadOnlyJsonlParseWarning, readJsonlWithErrors } from "./read-only-jsonl.js";
 import type { UniverseScanMetadata, UniverseScanOutput, StockCandidateHypothesis, HypothesisOutcome, AccuracySummary, WorldContext } from "./universe.js";
 import { parseUniverseScanOutput } from "./universe-scan-output.js";
+import { selectSourceHealthScoreFile } from "./source-health-score-file.js";
 import type { CompanyMemoryRecord } from "./company-memory.js";
 import type { PrimaryDisclosureReview } from "./types.js";
 import { buildWorldThemeCandidateHypotheses, type WorldEventForHypothesis } from "./world-theme-candidate-hypotheses.js";
@@ -217,10 +218,7 @@ function loadCompanyMemory(): CompanyMemoryRecord[] {
 function loadLatestScores(): LatestScoreEntry[] {
   if (!existsSync("reports")) return [];
   try {
-    const scoreFiles = readdirSync("reports")
-      .filter((file: string) => /^scores_\d{4}-\d{2}-\d{2}\.json$/.test(file))
-      .sort();
-    const latest = scoreFiles.at(-1);
+    const latest = selectSourceHealthScoreFile(readdirSync("reports"), todayJst());
     if (!latest) return [];
     const parsed = JSON.parse(readFileSync(join("reports", latest), "utf-8"));
     return Array.isArray(parsed) ? parsed as LatestScoreEntry[] : [];
