@@ -4,7 +4,7 @@ import { load } from "js-yaml";
 import { todayJst } from "./date.js";
 import { buildLegendAgentVerdicts, summarizeLegendWarnings } from "./legend-pro-agents.js";
 import { applyDisagreementSafetyLabel, buildProConsensus, buildProDisagreements } from "./pro-disagreement.js";
-import { parseStockProCommitteeCodeSnapshots, parseStockProCommitteeIrEventEvidence } from "./stock-pro-committee-input.js";
+import { parseStockProCommitteeCodeSnapshots, parseStockProCommitteeIrEventEvidence, parseStockProCommitteeOutcomes } from "./stock-pro-committee-input.js";
 import type { AgentVerdict, BuffettQualitySnapshot, CommitteeDecision, IrEventEvidence, ProFinalLabel, StockProScore, ValuationSnapshot } from "./pro-types.js";
 import type { AccuracySummary, HypothesisOutcome, WorldContext } from "./universe.js";
 
@@ -107,7 +107,7 @@ function main() {
   const buffettQualitySnapshots = parseStockProCommitteeCodeSnapshots<BuffettQualitySnapshot>(readJson<unknown>("data/buffett_quality_latest.json", { snapshots: [] }));
   const valuationSnapshotRows = parseStockProCommitteeCodeSnapshots<ValuationSnapshot>(readJson<unknown>("data/valuation_snapshot_latest.json", { snapshots: [] }));
   const irEventEvidence = parseStockProCommitteeIrEventEvidence(readJson<unknown>("data/ir_event_evidence_latest.json", { events: [] }));
-  const outcomes = readJson<{ outcomes?: HypothesisOutcome[] }>("apps/web/public/generated/outcomes.json", { outcomes: [] }).outcomes ?? [];
+  const outcomes = parseStockProCommitteeOutcomes(readJson<unknown>("apps/web/public/generated/outcomes.json", { outcomes: [] }));
   const accuracySummary = readJson<AccuracySummary | null>("data/hypothesis_accuracy_summary.json", null);
   const worldContext = readJson<WorldContext | null>("data/world_context_latest.json", null);
   const qualityByCode = new Map(buffettQualitySnapshots.map(item => [item.code, item]));
