@@ -4,6 +4,7 @@ import { load } from "js-yaml";
 import { todayJst } from "./date.js";
 import { normalizeActiveRegimeCategoryIds } from "./regime-hypothesis-alignment-input.js";
 import { selectSourceHealthScoreFile } from "./source-health-score-file.js";
+import { hasUniqueSourceHealthScoreIdentities, normalizeSourceHealthScoreRows } from "./source-health-input.js";
 
 type CompanyHypothesis = {
   code: string;
@@ -126,7 +127,8 @@ function readScores(asOf: string): ScoreEntry[] {
   if (!path) return [];
   try {
     const value = JSON.parse(readFileSync(path, "utf-8")) as unknown;
-    return Array.isArray(value) ? value as ScoreEntry[] : [];
+    const normalized = normalizeSourceHealthScoreRows<ScoreEntry>(value);
+    return normalized.valid && hasUniqueSourceHealthScoreIdentities(value) ? normalized.rows : [];
   } catch {
     return [];
   }
