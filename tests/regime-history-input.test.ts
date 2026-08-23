@@ -54,6 +54,10 @@ for (const invalid of [
   [{ id: "risk-off", level: "high", why: "macro stress", watchCategories: "rates" }],
   [{ id: "", level: "high", why: "macro stress" }],
   [{ id: " risk-off ", level: "high", why: "macro stress" }],
+  [{ id: "risk-off", level: "high", why: "macro stress", watchCategories: [" rates "] }],
+  [{ id: "risk-off", level: "high", why: "macro stress", caution: [""] }],
+  [{ id: "risk-off", level: "high", why: "macro stress", watchCategories: ["rates", "rates"] }],
+  [{ id: "risk-off", level: "high", why: "macro stress", caution: ["liquidity", "liquidity"] }],
   [
     { id: "risk-off", level: "high", why: "macro stress" },
     { id: "risk-off", level: "medium", why: "duplicate identity" },

@@ -16,7 +16,19 @@ function canonicalStringArray(value: unknown, field: string): string[] {
   if (value === undefined) return [];
   if (!Array.isArray(value)) throw new Error(`${field} must be an array of strings`);
   if (value.some(item => typeof item !== "string")) throw new Error(`${field} must be an array of strings`);
-  return value as string[];
+
+  const items = value as string[];
+  const seen = new Set<string>();
+  for (const [index, item] of items.entries()) {
+    if (item.trim().length === 0 || item !== item.trim()) {
+      throw new Error(`${field}[${index}] must be a canonical non-empty string without surrounding whitespace`);
+    }
+    if (seen.has(item)) {
+      throw new Error(`${field}[${index}] must be unique`);
+    }
+    seen.add(item);
+  }
+  return items;
 }
 
 export function normalizeRegimeHistoryActiveRegimes(value: unknown): RegimeHistoryActiveRegime[] {
