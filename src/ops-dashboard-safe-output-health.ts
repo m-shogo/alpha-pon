@@ -37,6 +37,9 @@ export function safeOutputAuditGap(
     ) {
       return "invalid_report";
     }
+    if (safeOutput.scannedFiles <= 0) {
+      return "invalid_report";
+    }
   }
   if (
     safeOutput.scannedFiles !== undefined
