@@ -11,6 +11,7 @@ import {
   type QualityOutcomeLike,
 } from "../src/outcome-quality-audit.js";
 import {
+  hasUniqueQualityOutcomeIdentitiesAsOf,
   isQualityHypothesisLike,
   isQualityHypothesisLikeAsOf,
   isQualityOutcomeLike,
@@ -293,6 +294,15 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
 }
 
 {
+  const unique = [outcome({ reviewHorizon: "1d" }), outcome({ reviewHorizon: "1w" })];
+  const duplicate = [outcome({ reviewHorizon: "1d" }), outcome({ reviewHorizon: "1d" })];
+  assert.equal(hasUniqueQualityOutcomeIdentitiesAsOf(unique, TODAY), true, "distinct horizons must remain accepted");
+  assert.equal(hasUniqueQualityOutcomeIdentitiesAsOf(duplicate, TODAY), false, "duplicate code + detectedAt + horizon identity must fail closed");
+  assert.equal(hasUniqueQualityOutcomeIdentitiesAsOf([outcome()], "2026-02-31"), false, "invalid identity cutoff must fail closed");
+  console.log("outcome-quality: duplicate outcome identities fail closed before audit totals");
+}
+
+{
   const futureHypothesis = hypothesis({ detectedAt: "2026-06-12", reviewDueAt: "2026-07-12" });
   const futureOutcome = outcome({ hypothesis: futureHypothesis });
   assert.equal(isQualityHypothesisLike(futureHypothesis), true, "future row remains structurally valid independent of cutoff");
@@ -311,8 +321,8 @@ function inputs(overrides: Partial<OutcomeQualityInputs> = {}): OutcomeQualityIn
   assert.ok(!source.includes("hypothesesFile.hypotheses ?? []"), "malformed hypotheses shape must not degrade to empty-ok");
   assert.ok(!source.includes("outcomesFile.outcomes ?? []"), "malformed outcomes shape must not degrade to empty-ok");
   assert.match(source, /isQualityHypothesisLikeAsOf\(row, today\)/, "hypothesis rows must apply PIT cutoff before audit logic");
-  assert.match(source, /isQualityOutcomeLikeAsOf\(row, today\)/, "outcome rows must apply PIT cutoff before audit logic");
-  console.log("outcome-quality: malformed/future generated input fails closed");
+  assert.match(source, /hasUniqueQualityOutcomeIdentitiesAsOf\(outcomes, today\)/, "outcome rows must validate PIT cutoff and unique canonical identity before audit logic");
+  console.log("outcome-quality: malformed/future/duplicate generated input fails closed");
 }
 
 console.log("outcome-quality-audit: 全テスト成功");
