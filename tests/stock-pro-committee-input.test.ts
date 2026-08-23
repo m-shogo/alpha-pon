@@ -60,7 +60,19 @@ for (const malformed of [null, [], {}, { snapshots: {} }, { snapshots: [null] },
 
 const canonicalOutcome = { code: "8136", maxDrawdownPct: -8 };
 assert(parseStockProCommitteeOutcomes({ outcomes: [canonicalOutcome] }).length === 1, "canonical outcome collection must remain usable");
-for (const malformed of [null, [], {}, { outcomes: {} }, { outcomes: [null] }]) {
+assert(parseStockProCommitteeOutcomes({ outcomes: [{ code: "8136", maxDrawdownPct: null }] }).length === 1, "canonical outcome with unavailable drawdown must remain usable");
+for (const malformed of [
+  null,
+  [],
+  {},
+  { outcomes: {} },
+  { outcomes: [null] },
+  { outcomes: [{}] },
+  { outcomes: [{ code: " 8136 ", maxDrawdownPct: -8 }] },
+  { outcomes: [{ code: "8136" }] },
+  { outcomes: [{ code: "8136", maxDrawdownPct: "-8" }] },
+  { outcomes: [{ code: "8136", maxDrawdownPct: Number.NaN }] },
+]) {
   assert(
     parseStockProCommitteeOutcomes(malformed).length === 0,
     `malformed outcome collection must fail closed: ${JSON.stringify(malformed)}`,

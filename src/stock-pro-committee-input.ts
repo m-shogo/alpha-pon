@@ -43,5 +43,9 @@ export function parseStockProCommitteeCodeSnapshots<T extends { code: string }>(
 
 export function parseStockProCommitteeOutcomes(value: unknown): HypothesisOutcome[] {
   if (!isRecord(value) || !Array.isArray(value.outcomes)) return [];
-  return value.outcomes.filter((outcome): outcome is HypothesisOutcome => isRecord(outcome));
+  return value.outcomes.filter((outcome): outcome is HypothesisOutcome => (
+    isRecord(outcome)
+    && isCanonicalText(outcome.code)
+    && (outcome.maxDrawdownPct === null || (typeof outcome.maxDrawdownPct === "number" && Number.isFinite(outcome.maxDrawdownPct)))
+  ));
 }
