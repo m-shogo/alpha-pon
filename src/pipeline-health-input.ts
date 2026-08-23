@@ -6,8 +6,14 @@ type PipelineResult = {
   status: "ok" | "skip" | "fail";
 };
 
-export function hasUsableSourceHealthText(value: string): boolean {
-  return value.trim().length > 0;
+export function hasUsableSourceHealthText(value: string, asOf?: string): boolean {
+  const text = value.trim();
+  if (!text) return false;
+  if (asOf !== undefined) {
+    const generatedAt = text.match(/^生成日: (\d{4}-\d{2}-\d{2})$/m)?.[1];
+    if (generatedAt !== asOf) return false;
+  }
+  return true;
 }
 
 export function sourceHealthHistoryState(fileExists: boolean, usableRows?: number): "ok" | "missing" | "empty" {
