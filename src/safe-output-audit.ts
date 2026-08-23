@@ -6,7 +6,7 @@
 // 対象: src/ apps/web/app/ apps/web/lib/ docs/
 // 出力: reports/safe-output-audit.{json,md} → /ops にも反映される
 
-import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "fs";
+import { lstatSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
 
@@ -109,9 +109,13 @@ export function collectSafeOutputFiles(dir: string): SafeOutputInventory {
     const path = join(dir, entry);
     let stat;
     try {
-      stat = statSync(path);
+      stat = lstatSync(path);
     } catch (error) {
       errors.push(scanError(path, error));
+      continue;
+    }
+    if (stat.isSymbolicLink()) {
+      errors.push({ file: path, message: "symbolic link is not a canonical audit target" });
       continue;
     }
     if (stat.isDirectory()) {
