@@ -261,6 +261,9 @@ export function assertReadinessPrimaryDisclosureReviewInput(
     throw new Error(`${generatedPath}: primaryDisclosureReviews must be an object when present`);
   }
   for (const [code, review] of Object.entries(generated.primaryDisclosureReviews)) {
+    if (code.trim() === "" || code !== code.trim()) {
+      throw new Error(`${generatedPath}: primaryDisclosureReviews keys must be canonical non-empty company codes`);
+    }
     if (!isRecord(review)) {
       throw new Error(`${generatedPath}: primaryDisclosureReviews.${code} must be an object`);
     }
