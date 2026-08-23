@@ -38,7 +38,10 @@ export function parseStockProCommitteeIrEventEvidence(value: unknown): IrEventEv
 
 export function parseStockProCommitteeCodeSnapshots<T extends { code: string }>(value: unknown): T[] {
   if (!isRecord(value) || !Array.isArray(value.snapshots)) return [];
-  return value.snapshots.filter((snapshot): snapshot is T => isRecord(snapshot) && isCanonicalText(snapshot.code));
+  const snapshots = value.snapshots.filter((snapshot): snapshot is T => isRecord(snapshot) && isCanonicalText(snapshot.code));
+  const counts = new Map<string, number>();
+  for (const snapshot of snapshots) counts.set(snapshot.code, (counts.get(snapshot.code) ?? 0) + 1);
+  return snapshots.filter(snapshot => counts.get(snapshot.code) === 1);
 }
 
 export function parseStockProCommitteeOutcomes(value: unknown): HypothesisOutcome[] {
