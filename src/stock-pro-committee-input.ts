@@ -1,5 +1,6 @@
 import { todayJst } from "./date.js";
 import type { IrEventEvidence } from "./pro-types.js";
+import type { HypothesisOutcome } from "./universe.js";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -38,4 +39,9 @@ export function parseStockProCommitteeIrEventEvidence(value: unknown): IrEventEv
 export function parseStockProCommitteeCodeSnapshots<T extends { code: string }>(value: unknown): T[] {
   if (!isRecord(value) || !Array.isArray(value.snapshots)) return [];
   return value.snapshots.filter((snapshot): snapshot is T => isRecord(snapshot) && isCanonicalText(snapshot.code));
+}
+
+export function parseStockProCommitteeOutcomes(value: unknown): HypothesisOutcome[] {
+  if (!isRecord(value) || !Array.isArray(value.outcomes)) return [];
+  return value.outcomes.filter((outcome): outcome is HypothesisOutcome => isRecord(outcome));
 }
