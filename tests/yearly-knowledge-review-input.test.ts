@@ -29,6 +29,18 @@ assert.equal(
 );
 assert.equal(isUsableYearlyNonMoveHistory({ ...validNonMoveHistory, nonMoveReasons: [""] }, yearlyAsOf), false);
 assert.equal(isUsableYearlyNonMoveHistory({ ...validNonMoveHistory, nonMoveReasons: [" already_priced_in"] }, yearlyAsOf), false);
+for (const field of ["code", "name", "category", "hypothesis", "outcome", "lesson", "nextAction", "source"] as const) {
+  assert.equal(
+    isUsableYearlyNonMoveHistory({ ...validNonMoveHistory, [field]: "" }, yearlyAsOf),
+    false,
+    `${field} empty provenance must fail closed`,
+  );
+  assert.equal(
+    isUsableYearlyNonMoveHistory({ ...validNonMoveHistory, [field]: ` ${validNonMoveHistory[field]} ` }, yearlyAsOf),
+    false,
+    `${field} padded provenance must fail closed`,
+  );
+}
 assert.equal(
   isUsableYearlyNonMoveHistory({ date: yearlyAsOf, nonMoveReasons: ["already_priced_in"] }, yearlyAsOf),
   false,
