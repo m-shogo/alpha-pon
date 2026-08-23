@@ -6,6 +6,7 @@ import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { safeOutputAuditGap } from "../src/ops-dashboard-safe-output-health.js";
+import { isUsablePersonaAuditReport } from "../src/persona-audit-input.js";
 import {
   collectSafeOutputFiles,
   scanContentForUnsafeOutput,
@@ -74,6 +75,26 @@ const j = (...parts: string[]) => parts.join("");
     "unknown healthStatusを正常扱いしない",
   );
   console.log("safe-output: Ops Dashboard は監査レポート欠落・状態矛盾をfail-closed化");
+}
+
+{
+  const dir = mkdtempSync(join(tmpdir(), "persona-audit-input-"));
+  try {
+    const targetPath = join(dir, "persona-audit.json");
+    const aliasPath = join(dir, "persona-audit-alias.json");
+    writeFileSync(targetPath, '{"status":"ok"}\n', "utf-8");
+    symlinkSync(targetPath, aliasPath);
+
+    assert.equal(isUsablePersonaAuditReport(targetPath), true, "canonical regular persona audit reportは利用可能");
+    assert.equal(
+      isUsablePersonaAuditReport(aliasPath),
+      false,
+      "symlink先をcanonical persona audit provenanceとしてsilent followしない",
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  console.log("safe-output: persona audit reportのsymlink provenanceをfail-closed化");
 }
 
 {
