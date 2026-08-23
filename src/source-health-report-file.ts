@@ -9,7 +9,8 @@ export function inspectSourceHealthReportFile(path: string): SourceHealthReportF
   if (!existsSync(path)) return { exists: false, size: 0 };
 
   try {
-    if (!lstatSync(path).isFile()) return { exists: false, size: 0 };
+    const stat = lstatSync(path);
+    if (!stat.isFile() || stat.nlink !== 1) return { exists: false, size: 0 };
     const content = readFileSync(path, "utf-8");
     if (content.trim().length === 0) return { exists: false, size: 0 };
     return { exists: true, size: content.length };
