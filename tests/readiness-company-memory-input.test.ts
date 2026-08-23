@@ -323,6 +323,20 @@ try {
     "duplicate score identities must not suppress validation of the generated fallback",
   );
 
+  writeFileSync(scorePath, JSON.stringify([
+    { code: "8136", name: "Sanrio", dataQuality: "perfect" },
+  ]));
+  assert.throws(
+    () => assertReadinessScoreSnapshotIdentityInput(reportsDir, "2026-08-16"),
+    /valid source-health metadata/,
+    "malformed score metadata must fail closed before readiness treats the snapshot as canonical evidence",
+  );
+  assert.throws(
+    () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir, "2026-08-16"),
+    /warnings must be a string array/,
+    "malformed score metadata must not suppress validation of the generated fallback",
+  );
+
   writeFileSync(scorePath, JSON.stringify([]));
   assert.doesNotThrow(
     () => assertReadinessScoreSnapshotFilenameInput(reportsDir),
@@ -412,9 +426,11 @@ try {
       },
     },
   ] as const) {
-    writeFileSync(accuracySummaryPath, JSON.stringify(inconsistentSummary));
     assert.throws(
-      () => assertReadinessAccuracySummaryInput(accuracySummaryPath),
+      () => {
+        writeFileSync(accuracySummaryPath, JSON.stringify(inconsistentSummary));
+        assertReadinessAccuracySummaryInput(accuracySummaryPath);
+      },
       /(accuracy bucket totals must equal summary total|non-negative integer|non-negative safe integer)/,
       "accuracy summary count inconsistencies must not qualify for elevated outcome readiness",
     );
