@@ -30,9 +30,24 @@ function historyReports(scoresExists = true) {
   };
 }
 
-assert.equal(hasUsableSourceHealthText("# source health\n- ok"), true, "meaningful source health text stays usable");
+assert.equal(hasUsableSourceHealthText("# source health\n- ok"), true, "meaningful source health text stays usable without a date cutoff");
 assert.equal(hasUsableSourceHealthText(""), false, "empty source health text must fail closed");
 assert.equal(hasUsableSourceHealthText("  \n\t  "), false, "whitespace-only source health text must fail closed");
+assert.equal(
+  hasUsableSourceHealthText("# source health\n\n生成日: 2026-08-16\n", "2026-08-16"),
+  true,
+  "same-day source health evidence remains usable",
+);
+assert.equal(
+  hasUsableSourceHealthText("# source health\n\n生成日: 2026-08-15\n", "2026-08-16"),
+  false,
+  "stale source health evidence must not masquerade as current health",
+);
+assert.equal(
+  hasUsableSourceHealthText("# source health\n- ok", "2026-08-16"),
+  false,
+  "undated source health evidence must fail closed when current-day provenance is required",
+);
 assert.equal(sourceHealthHistoryState(true), "ok", "existing source-health history remains usable when row count is not yet inspected");
 assert.equal(sourceHealthHistoryState(true, 1), "ok", "history with usable rows remains healthy");
 assert.equal(sourceHealthHistoryState(true, 0), "empty", "an existing but empty history must not look healthy");
