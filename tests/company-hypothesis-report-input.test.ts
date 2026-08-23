@@ -110,6 +110,13 @@ assert.ok(regime.warnings.some(warning => warning.includes("item 2")), "壊れ�
 assert.ok(regime.warnings.some(warning => warning.includes("row 2")), "null regime rowをwarningへ残す");
 assert.ok(regime.warnings.some(warning => warning.includes("watchCategories shape")), "壊れたwatchCategoriesをwarningへ残す");
 
+const malformedRegimeCollection = normalizeActiveRegimeCategoryIds({ activeRegimes: {} });
+assert.deepEqual(malformedRegimeCollection.categoryIds, [], "non-array activeRegimesは空の監視categoryへfail-closedする");
+assert.ok(
+  malformedRegimeCollection.warnings.some(warning => warning.includes("activeRegimes shape is invalid")),
+  "non-array activeRegimesをsilentに正常化せずwarningへ残す",
+);
+
 const alignment = normalizeAlignmentHypothesisCategories(normalizeCompanyHypothesesRoot({
   categories: {
     healthy: {
