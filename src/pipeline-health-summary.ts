@@ -33,7 +33,7 @@ function main() {
   const date = todayJst();
   const now = new Date().toISOString();
   const sourceHealthText = readText("reports/source_health_latest.md");
-  const sourceHealthAvailable = hasUsableSourceHealthText(sourceHealthText);
+  const sourceHealthAvailable = hasUsableSourceHealthText(sourceHealthText, date);
   const rawPipelineStatus = readJson("reports/pipeline_status_latest.json");
   const normalizedPipelineStatus = normalizeSourceHealthObject<Record<string, unknown>>(rawPipelineStatus);
   const pipelineStatus = normalizedPipelineStatus.value;
@@ -52,7 +52,7 @@ function main() {
   const recentMissing = missingReports(sourceRows, 14);
   const criticalSignals: string[] = [];
 
-  if (!sourceHealthAvailable) criticalSignals.push("source_health_latest.md missing_or_empty");
+  if (!sourceHealthAvailable) criticalSignals.push("source_health_latest.md missing_or_empty_or_stale");
   if (pipelineStatusState !== "ok") criticalSignals.push(`pipeline_status_latest.json ${pipelineStatusState}`);
   if (sourceHealthHistoryStatus !== "ok") criticalSignals.push(`source_health_history.jsonl ${sourceHealthHistoryStatus}`);
   if (sourceHealthHistory.parseErrors.length > 0) {
@@ -79,7 +79,7 @@ function main() {
   lines.push("## confidence");
   lines.push("");
   lines.push(`- report confidence: ${confidence}`);
-  lines.push(`- source_health_latest.md: ${sourceHealthAvailable ? "ok" : "missing_or_empty"}`);
+  lines.push(`- source_health_latest.md: ${sourceHealthAvailable ? "ok" : "missing_or_empty_or_stale"}`);
   lines.push(`- pipeline_status_latest.json: ${pipelineStatusState}`);
   lines.push(`- source health history file: ${sourceHealthHistoryStatus}`);
   lines.push(`- source health history rows: ${sourceRows.length}`);
