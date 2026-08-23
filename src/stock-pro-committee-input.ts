@@ -4,6 +4,9 @@ import type { HypothesisOutcome } from "./universe.js";
 
 const QUALITY_LABELS = new Set(["compounder", "good_business", "cyclical_quality", "fragile", "unknown"]);
 const GROWTH_ADJUSTED_VALUATIONS = new Set(["reasonable", "expensive_but_growth", "too_expensive", "cheap_but_reason", "unknown"]);
+const IR_EVENT_TYPES = new Set(["earnings", "guidance_revision", "buyback", "dividend", "capital_policy", "shareholder_meeting", "medium_term_plan", "offering", "tob", "risk_disclosure", "unknown"]);
+const IR_SOURCE_STATUSES = new Set(["confirmed", "official_check_required", "missing"]);
+const IR_IMPACTS = new Set(["positive", "neutral", "negative", "unknown"]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -22,6 +25,27 @@ function isStrictGregorianDate(value: unknown): value is string {
   const [year, month, day] = value.split("-").map(Number);
   if (year < 1 || month < 1 || month > 12 || day < 1) return false;
   return day <= new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+function isNullableDate(value: unknown): value is string | null {
+  return value === null || isStrictGregorianDate(value);
+}
+
+function isNullableCanonicalText(value: unknown): value is string | null {
+  return value === null || isCanonicalText(value);
+}
+
+function isCommitteeIrEventEvidence(value: unknown, asOf = todayJst()): value is IrEventEvidence {
+  if (!isRecord(value)) return false;
+  if (!isCanonicalText(value.code) || !isCanonicalText(value.name) || !isCanonicalText(value.title)) return false;
+  if (typeof value.eventType !== "string" || !IR_EVENT_TYPES.has(value.eventType)) return false;
+  if (!isNullableDate(value.publishedAt) || (value.publishedAt !== null && value.publishedAt > asOf)) return false;
+  if (!isNullableDate(value.eventDate)) return false;
+  if (!isNullableCanonicalText(value.sourceUrl)) return false;
+  if (typeof value.sourceStatus !== "string" || !IR_SOURCE_STATUSES.has(value.sourceStatus)) return false;
+  if (typeof value.impact !== "string" || !IR_IMPACTS.has(value.impact)) return false;
+  if (typeof value.confidence !== "number" || !Number.isFinite(value.confidence) || value.confidence < 0 || value.confidence > 1) return false;
+  return isStringArray(value.notes);
 }
 
 function isCommitteeCodeSnapshot(value: unknown, asOf = todayJst()): value is Record<string, unknown> & { code: string } {
@@ -53,7 +77,7 @@ export function isStockProCommitteeDecision(value: unknown): value is Record<str
 
 export function parseStockProCommitteeIrEventEvidence(value: unknown): IrEventEvidence[] {
   if (!isRecord(value) || !Array.isArray(value.events)) return [];
-  return value.events.filter((event): event is IrEventEvidence => isRecord(event) && isCanonicalText(event.code));
+  return value.events.filter(isCommitteeIrEventEvidence);
 }
 
 export function parseStockProCommitteeCodeSnapshots<T extends { code: string }>(value: unknown): T[] {
