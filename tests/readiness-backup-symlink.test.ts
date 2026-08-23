@@ -43,6 +43,26 @@ try {
     },
     "health backup evidence must ignore timestamp-shaped files and symlinks",
   );
+
+  const linkedRootTarget = join(dir, "linked-backups-target");
+  const linkedRoot = join(dir, "linked-backups");
+  mkdirSync(linkedRootTarget);
+  mkdirSync(join(linkedRootTarget, "2026-08-22T09-30-00"));
+  symlinkSync(linkedRootTarget, linkedRoot, "dir");
+
+  assert.deepEqual(
+    backupHealthEvidenceFromDirectoryNames(
+      ["2026-08-22T09-30-00"],
+      new Date("2026-08-23T06:00:00.000Z"),
+      linkedRoot,
+    ),
+    {
+      count: 0,
+      latest: null,
+      latestAgeDays: null,
+    },
+    "a symlinked backup root must not qualify as canonical backup evidence",
+  );
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
