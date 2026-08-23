@@ -16,8 +16,8 @@ import {
   type QualityOutcomeLike,
 } from "./outcome-quality-audit.js";
 import {
+  hasUniqueQualityOutcomeIdentitiesAsOf,
   isQualityHypothesisLikeAsOf,
-  isQualityOutcomeLikeAsOf,
 } from "./outcome-quality-audit-input.js";
 
 const ROOT = process.cwd();
@@ -51,10 +51,10 @@ if (!Array.isArray(hypotheses) || !Array.isArray(outcomes)) {
 
 const today = getTodayInTokyo();
 const hypothesisRowsOk = hypotheses.every(row => isQualityHypothesisLikeAsOf(row, today));
-const outcomeRowsOk = outcomes.every(row => isQualityOutcomeLikeAsOf(row, today));
+const outcomeRowsOk = hasUniqueQualityOutcomeIdentitiesAsOf(outcomes, today);
 if (!hypothesisRowsOk || !outcomeRowsOk) {
   console.error(
-    "生成データのrow shapeまたはPIT cutoffが不正です。先に pnpm ui:data を再実行してください。" +
+    "生成データのrow shape・PIT cutoff・Outcome identityが不正です。先に pnpm ui:data を再実行してください。" +
       `（hypotheses rows: ${hypothesisRowsOk ? "ok" : "invalid"} / outcomes rows: ${outcomeRowsOk ? "ok" : "invalid"}）`
   );
   process.exit(1);
