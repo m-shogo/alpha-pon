@@ -30,6 +30,41 @@ function isStrictGregorianDate(value: unknown): value is string {
   return day <= new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
+function isCanonicalNonBlankString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0 && value === value.trim();
+}
+
+function isOptionalListingCode(value: unknown): boolean {
+  return value === undefined || (typeof value === "string" && /^(\d{4}|\d{3}[A-Z])$/.test(value));
+}
+
+function isParsedListingRow(value: unknown): value is ListingAutomationJpxRow {
+  if (!isRecord(value)) return false;
+  return (
+    isOptionalListingCode(value.code) &&
+    isCanonicalNonBlankString(value.name) &&
+    isStrictGregorianDate(value.listingDate) &&
+    typeof value.raw === "string" && value.raw.trim().length > 0 &&
+    (value.parser === "csv_like" || value.parser === "html_table" || value.parser === "regex_fallback") &&
+    (value.sourceUrl === undefined || typeof value.sourceUrl === "string")
+  );
+}
+
+function isAppendableListingRow(value: unknown): value is ListingAutomationJpxRow {
+  if (!isRecord(value)) return false;
+  return (
+    isCanonicalNonBlankString(value.id) &&
+    isOptionalListingCode(value.code) &&
+    isCanonicalNonBlankString(value.name) &&
+    value.eventType === "listing_day" &&
+    isStrictGregorianDate(value.eventDate) &&
+    isCanonicalNonBlankString(value.source) &&
+    typeof value.sourceUrl === "string" &&
+    value.status === "watch" &&
+    value.notificationLevel === "priority"
+  );
+}
+
 export function parseListingAutomationJpxInput(text: string, asOf = todayJst()): ListingAutomationJpxInput {
   let root: unknown;
   try {
@@ -57,8 +92,8 @@ export function parseListingAutomationJpxInput(text: string, asOf = todayJst()):
     return { parsed: [], appendable: [], invalid: true, reason: "invalid_appendable" };
   }
 
-  const parsed = parsedRaw.filter(isRecord);
-  const appendable = appendableRaw.filter(isRecord);
+  const parsed = parsedRaw.filter(isParsedListingRow);
+  const appendable = appendableRaw.filter(isAppendableListingRow);
   if (parsed.length !== parsedRaw.length || appendable.length !== appendableRaw.length) {
     return { parsed, appendable, invalid: true, reason: "invalid_rows" };
   }
