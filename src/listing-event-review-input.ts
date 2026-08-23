@@ -55,6 +55,10 @@ function isOptionalRealDate(value: unknown): boolean {
   }
 }
 
+function listingEventIdentity(row: ListingEventReviewInputRow): string {
+  return `${row.id}\u0000${row.eventType}\u0000${row.eventDate ?? "missing"}`;
+}
+
 export function isListingEventReviewInputRow(value: unknown): value is ListingEventReviewInputRow {
   if (!isRecord(value)) return false;
   return typeof value.id === "string"
@@ -88,5 +92,21 @@ export function readListingEventReviewInput(path: string): {
   rows: ListingEventReviewInputRow[];
   warnings: string[];
 } {
-  return readListingEventRows<ListingEventReviewInputRow>(path, isListingEventReviewInputRow);
+  const input = readListingEventRows<ListingEventReviewInputRow>(path, isListingEventReviewInputRow);
+  const seen = new Set<string>();
+  const rows: ListingEventReviewInputRow[] = [];
+  let duplicateRows = 0;
+  for (const row of input.rows) {
+    const identity = listingEventIdentity(row);
+    if (seen.has(identity)) {
+      duplicateRows += 1;
+      continue;
+    }
+    seen.add(identity);
+    rows.push(row);
+  }
+  return {
+    rows,
+    warnings: duplicateRows > 0 ? [...input.warnings, `${path}: duplicate_rows=${duplicateRows}`] : input.warnings,
+  };
 }
