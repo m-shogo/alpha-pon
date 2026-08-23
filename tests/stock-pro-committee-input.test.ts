@@ -42,7 +42,27 @@ const canonicalIrEvent = {
   notes: [],
 };
 assert(parseStockProCommitteeIrEventEvidence({ events: [canonicalIrEvent] }).length === 1, "canonical IR evidence must remain usable");
-for (const malformed of [null, [], {}, { events: {} }, { events: [null] }, { events: [{ ...canonicalIrEvent, code: " 8136 " }] }]) {
+assert(
+  parseStockProCommitteeIrEventEvidence({ events: [{ ...canonicalIrEvent, eventDate: "2027-06-20" }] }).length === 1,
+  "scheduled future event dates must remain usable when publication provenance is current",
+);
+for (const malformed of [
+  null,
+  [],
+  {},
+  { events: {} },
+  { events: [null] },
+  { events: [{ code: "8136" }] },
+  { events: [{ ...canonicalIrEvent, code: " 8136 " }] },
+  { events: [{ ...canonicalIrEvent, eventType: "bogus" }] },
+  { events: [{ ...canonicalIrEvent, publishedAt: "2026-02-31" }] },
+  { events: [{ ...canonicalIrEvent, publishedAt: "2999-01-01" }] },
+  { events: [{ ...canonicalIrEvent, eventDate: "2026-02-31" }] },
+  { events: [{ ...canonicalIrEvent, sourceStatus: "verified" }] },
+  { events: [{ ...canonicalIrEvent, impact: "bullish" }] },
+  { events: [{ ...canonicalIrEvent, confidence: 1.2 }] },
+  { events: [{ ...canonicalIrEvent, notes: "none" }] },
+]) {
   assert(
     parseStockProCommitteeIrEventEvidence(malformed).length === 0,
     `malformed IR evidence collection must fail closed: ${JSON.stringify(malformed)}`,
