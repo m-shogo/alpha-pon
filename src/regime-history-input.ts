@@ -31,6 +31,18 @@ function canonicalStringArray(value: unknown, field: string): string[] {
   return items;
 }
 
+export function normalizeRegimeHistoryMode(value: unknown): string {
+  if (value === undefined) return "unknown";
+  if (typeof value !== "string") throw new Error("current regime mode must be a string");
+  return value;
+}
+
+export function normalizeRegimeHistorySummary(value: unknown): string {
+  if (value === undefined) return "";
+  if (typeof value !== "string") throw new Error("current regime summary must be a string");
+  return value;
+}
+
 export function normalizeRegimeHistoryActiveRegimes(value: unknown): RegimeHistoryActiveRegime[] {
   if (value === undefined) return [];
   if (!Array.isArray(value)) throw new Error("current regime activeRegimes must be an array");
