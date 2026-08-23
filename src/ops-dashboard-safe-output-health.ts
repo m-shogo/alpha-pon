@@ -30,11 +30,15 @@ export function safeOutputAuditGap(
       return "invalid_report";
     }
     if (
-      !Number.isSafeInteger(safeOutput.scannedFiles)
+      typeof safeOutput.scannedFiles !== "number"
+      || !Number.isSafeInteger(safeOutput.scannedFiles)
       || !Number.isSafeInteger(safeOutput.findingsCount)
       || !Array.isArray(safeOutput.findings)
       || !Array.isArray(safeOutput.scanErrors)
     ) {
+      return "invalid_report";
+    }
+    if (safeOutput.scannedFiles <= 0) {
       return "invalid_report";
     }
   }
