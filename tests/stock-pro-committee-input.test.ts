@@ -51,6 +51,14 @@ for (const malformed of [null, [], {}, { events: {} }, { events: [null] }, { eve
 
 const canonicalSnapshot = { code: "8136", name: "Sanrio" };
 assert(parseStockProCommitteeCodeSnapshots<typeof canonicalSnapshot>({ snapshots: [canonicalSnapshot] }).length === 1, "canonical Stock Pro snapshot must remain usable");
+const uniqueAlongsideDuplicate = parseStockProCommitteeCodeSnapshots<typeof canonicalSnapshot>({
+  snapshots: [
+    canonicalSnapshot,
+    { ...canonicalSnapshot, name: "Sanrio duplicate" },
+    { code: "9984", name: "SoftBank Group" },
+  ],
+});
+assert(uniqueAlongsideDuplicate.length === 1 && uniqueAlongsideDuplicate[0]?.code === "9984", "ambiguous duplicate snapshot identities must be isolated while unique snapshots remain usable");
 for (const malformed of [null, [], {}, { snapshots: {} }, { snapshots: [null] }, { snapshots: [{ ...canonicalSnapshot, code: " 8136 " }] }]) {
   assert(
     parseStockProCommitteeCodeSnapshots<typeof canonicalSnapshot>(malformed).length === 0,
