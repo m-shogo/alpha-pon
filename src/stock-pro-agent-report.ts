@@ -3,6 +3,7 @@ import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
 import { normalizeActiveRegimeCategoryIds } from "./regime-hypothesis-alignment-input.js";
+import { selectSourceHealthScoreFile } from "./source-health-score-file.js";
 
 type CompanyHypothesis = {
   code: string;
@@ -114,17 +115,14 @@ function readYamlOr<T>(path: string, fallback: T): T {
   return readYaml<T>(path);
 }
 
-function latestScoreFile(): string | null {
+function latestScoreFile(asOf: string): string | null {
   if (!existsSync("reports")) return null;
-  const files = readdirSync("reports")
-    .filter((file: string) => /^scores_\d{4}-\d{2}-\d{2}\.json$/.test(file))
-    .sort();
-  const last = files.at(-1);
-  return last ? join("reports", last) : null;
+  const latest = selectSourceHealthScoreFile(readdirSync("reports"), asOf);
+  return latest ? join("reports", latest) : null;
 }
 
-function readScores(): ScoreEntry[] {
-  const path = latestScoreFile();
+function readScores(asOf: string): ScoreEntry[] {
+  const path = latestScoreFile(asOf);
   if (!path) return [];
   try {
     const value = JSON.parse(readFileSync(path, "utf-8")) as unknown;
@@ -258,7 +256,7 @@ function main() {
   const irEvents = readYamlOr<CompanyIrEventsConfig>("config/company-ir-events.yml", { companies: {} });
   const agents = readYaml<AgentConfig>("config/stock-pro-agents.yml");
   const regime = readYaml<CurrentRegime>("config/current-regime.yml");
-  const scores = readScores();
+  const scores = readScores(date);
   const scoreByCode = new Map(scores.map(score => [score.code, score]));
   const activeCategories = new Set(normalizeActiveRegimeCategoryIds(regime).categoryIds);
 
