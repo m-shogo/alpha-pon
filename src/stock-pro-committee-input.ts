@@ -1,4 +1,5 @@
 import { todayJst } from "./date.js";
+import type { IrEventEvidence } from "./pro-types.js";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -27,4 +28,9 @@ export function isStockProCommitteeDecision(value: unknown): value is Record<str
     && typeof value.finalScore === "number"
     && Number.isFinite(value.finalScore)
     && (value.originalFinalLabel === undefined || value.originalFinalLabel === null || isCanonicalText(value.originalFinalLabel));
+}
+
+export function parseStockProCommitteeIrEventEvidence(value: unknown): IrEventEvidence[] {
+  if (!isRecord(value) || !Array.isArray(value.events)) return [];
+  return value.events.filter((event): event is IrEventEvidence => isRecord(event) && isCanonicalText(event.code));
 }
