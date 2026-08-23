@@ -5,7 +5,11 @@ export function requirePlainObject(value: unknown, label: string): Record<string
   return value as Record<string, unknown>;
 }
 
-export function requireMustWatchThemes(value: unknown): Record<string, unknown> {
+export function requireMustWatchThemes(value: unknown): Record<string, Record<string, unknown>> {
   const config = requirePlainObject(value, "must-watch config");
-  return requirePlainObject(config.mustWatchThemes, "mustWatchThemes");
+  const themes = requirePlainObject(config.mustWatchThemes, "mustWatchThemes");
+  for (const [themeId, theme] of Object.entries(themes)) {
+    requirePlainObject(theme, `mustWatchThemes.${themeId}`);
+  }
+  return themes as Record<string, Record<string, unknown>>;
 }
