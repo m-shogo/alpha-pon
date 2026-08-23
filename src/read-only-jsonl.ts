@@ -22,7 +22,8 @@ export function readJsonlWithErrors<T>(path: string): {
 
   let contents: string;
   try {
-    if (!lstatSync(path).isFile()) {
+    const stat = lstatSync(path);
+    if (!stat.isFile() || stat.nlink !== 1) {
       return { rows: [], parseErrors: [fileReadError("non_regular_file")] };
     }
     contents = readFileSync(path, "utf-8");
