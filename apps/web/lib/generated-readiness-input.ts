@@ -35,6 +35,13 @@ function isReadinessStatus(value: unknown): value is string {
   return typeof value === 'string' && READINESS_STATUSES.has(value)
 }
 
+function readinessStatusForScore(score: number): string {
+  if (score >= 85) return 'done'
+  if (score >= 45) return 'partial'
+  if (score > 0) return 'blocked'
+  return 'not_started'
+}
+
 function isPastOrPresentExplicitTimezoneInstant(value: unknown): value is string {
   if (typeof value !== 'string' || !EXPLICIT_TIMEZONE_INSTANT.test(value) || value.endsWith('-00:00')) return false
   const timestamp = Date.parse(value)
@@ -50,6 +57,7 @@ function isReadinessItem(value: unknown): value is GeneratedReadinessItem {
     && typeof item.label === 'string'
     && isReadinessStatus(item.status)
     && isReadinessScore(item.score)
+    && item.status === readinessStatusForScore(item.score)
     && isStringArray(item.evidence)
     && isStringArray(item.nextActions)
 }
@@ -66,6 +74,7 @@ export function isGeneratedReadinessInput(value: unknown): value is GeneratedRea
   return isPastOrPresentExplicitTimezoneInstant(report.generatedAt)
     && isReadinessScore(report.overallScore)
     && isReadinessStatus(report.overallStatus)
+    && report.overallStatus === readinessStatusForScore(report.overallScore)
     && isStringArray(report.blockers)
     && hasUniqueReadinessItemIds(report.items)
 }
