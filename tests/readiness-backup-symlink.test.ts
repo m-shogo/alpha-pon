@@ -6,6 +6,7 @@ import { backupHealthEvidenceFromDirectoryNames } from "../src/health/backup-hea
 import {
   assertReadinessBackupDirectoryInput,
   assertReadinessDataQualityFallbackInput,
+  assertReadinessPrimaryDisclosureReviewInput,
   assertReadinessScoreSnapshotIdentityInput,
 } from "../src/readiness-company-memory-input.js";
 
@@ -89,6 +90,26 @@ try {
     () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir, "2026-08-16"),
     /warnings must be a string array/,
     "malformed score metadata must not suppress validation of the generated fallback",
+  );
+
+  const confirmedReview = {
+    decision: "confirmed",
+    sourceCoverage: { tdnetCount: 1, edinetCount: 0 },
+  };
+  writeFileSync(
+    generatedPath,
+    JSON.stringify({
+      primaryDisclosureReviews: {
+        "8136": confirmedReview,
+        " 8136": confirmedReview,
+        "8136 ": confirmedReview,
+      },
+    }),
+  );
+  assert.throws(
+    () => assertReadinessPrimaryDisclosureReviewInput(generatedPath),
+    /keys must be canonical non-empty company codes/,
+    "padded primary-review keys must not inflate the number of companies with primary-disclosure evidence",
   );
 } finally {
   rmSync(dir, { recursive: true, force: true });
