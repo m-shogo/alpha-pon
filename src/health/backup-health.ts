@@ -16,16 +16,26 @@ function isCanonicalBackupDirectory(root: string, name: string): boolean {
   }
 }
 
+function hasCanonicalBackupRoot(root: string): boolean {
+  try {
+    return lstatSync(root).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
 export function backupHealthEvidenceFromDirectoryNames(
   names: string[],
   now = new Date(),
   root = "backups",
 ): BackupHealthEvidence {
-  const valid = names
-    .filter((name) => isCanonicalBackupDirectory(root, name))
-    .map((name) => ({ name, ageDays: backupAgeDaysFromDirectoryName(name, now) }))
-    .filter((entry): entry is { name: string; ageDays: number } => entry.ageDays !== null)
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const valid = hasCanonicalBackupRoot(root)
+    ? names
+      .filter((name) => isCanonicalBackupDirectory(root, name))
+      .map((name) => ({ name, ageDays: backupAgeDaysFromDirectoryName(name, now) }))
+      .filter((entry): entry is { name: string; ageDays: number } => entry.ageDays !== null)
+      .sort((a, b) => a.name.localeCompare(b.name))
+    : [];
 
   const latest = valid.at(-1) ?? null;
   return {
