@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { addDaysJst, backupAgeDaysFromDirectoryName, todayJst } from "./date.js";
 import { hasUniqueSourceHealthScoreIdentities, hasValidPrimaryDisclosureReview, normalizeSourceHealthArray } from "./source-health-input.js";
@@ -186,7 +186,7 @@ export function assertReadinessBackupDirectoryInput(
     }
     try {
       const path = join(backupsDir, name);
-      const stat = statSync(path);
+      const stat = lstatSync(path);
       if (!stat.isDirectory()) {
         throw new Error(`${path}: backup evidence candidate must be a directory`);
       }
