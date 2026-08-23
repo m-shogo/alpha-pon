@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import { linkSync, mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { readNotificationFeedbackInput } from "../src/notification-feedback-input.js";
@@ -18,6 +18,15 @@ assert.equal(linked.parseErrors.length, 1);
 assert.equal(linked.parseErrors[0]?.lineNumber, 0);
 assert.equal(formatReadOnlyJsonlParseWarning(link, linked.parseErrors), `${link}: read_error 1`);
 
+const hardLink = join(dir, "hard-link.jsonl");
+linkSync(target, hardLink);
+const hardLinked = readJsonlWithErrors<{ id: string }>(hardLink);
+assert.deepEqual(hardLinked.rows, []);
+assert.equal(hardLinked.parseErrors.length, 1);
+assert.equal(hardLinked.parseErrors[0]?.lineNumber, 0);
+assert.equal(hardLinked.parseErrors[0]?.message, "non_regular_file");
+assert.equal(formatReadOnlyJsonlParseWarning(hardLink, hardLinked.parseErrors), `${hardLink}: read_error 1`);
+
 const directoryPath = join(dir, "directory.jsonl");
 mkdirSync(directoryPath);
 const directory = readJsonlWithErrors(directoryPath);
@@ -26,8 +35,14 @@ assert.equal(directory.parseErrors.length, 1);
 assert.equal(directory.parseErrors[0]?.message, "non_regular_file");
 
 const regular = readJsonlWithErrors<{ id: string }>(target);
-assert.deepEqual(regular.rows, [{ id: "real" }]);
-assert.deepEqual(regular.parseErrors, []);
+assert.deepEqual(regular.rows, []);
+assert.equal(regular.parseErrors.length, 1);
+assert.equal(regular.parseErrors[0]?.message, "non_regular_file");
+
+const standalone = join(dir, "standalone.jsonl");
+writeFileSync(standalone, `${JSON.stringify({ id: "real" })}\n`);
+assert.deepEqual(readJsonlWithErrors<{ id: string }>(standalone).rows, [{ id: "real" }]);
+assert.deepEqual(readJsonlWithErrors(standalone).parseErrors, []);
 
 const nonMoveHistoryPath = join(dir, "company_non_move_history.jsonl");
 writeFileSync(nonMoveHistoryPath, [
@@ -56,4 +71,4 @@ const feedback = readNotificationFeedbackInput(feedbackPath);
 assert.deepEqual(feedback.records.map(row => row.topic), ["決算"]);
 assert.match(feedback.warning ?? "", /invalid_rows 2/);
 
-console.log("read-only JSONL file boundary: non-regular, malformed semantic, and future/timezone-invalid rows fail closed without crashing");
+console.log("read-only JSONL file boundary: non-regular, hard-linked, malformed semantic, and future/timezone-invalid rows fail closed without crashing");
