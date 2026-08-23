@@ -1,3 +1,4 @@
+import { addDaysJst, todayJst } from "./date.js";
 import type { CompanyHypothesesRootState } from "./company-coverage-input.js";
 
 type UnknownRecord = Record<string, unknown>;
@@ -10,6 +11,14 @@ function nonEmptyString(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const normalized = value.trim();
   return normalized || null;
+}
+
+function isCanonicalPastDate(value: string, asOf: string): boolean {
+  try {
+    return addDaysJst(value, 0) === value && value <= asOf;
+  } catch {
+    return false;
+  }
 }
 
 function stringArray(value: unknown): string[] | null {
@@ -45,6 +54,7 @@ export type CompanyHypothesisReportCategory = {
 
 export function normalizeCompanyHypothesisReportRows(
   input: CompanyHypothesesRootState,
+  asOf = todayJst(),
 ): { categories: Record<string, CompanyHypothesisReportCategory>; warnings: string[] } {
   const warnings = input.warning ? [input.warning] : [];
   const categories: Record<string, CompanyHypothesisReportCategory> = {};
@@ -98,7 +108,10 @@ export function normalizeCompanyHypothesisReportRows(
         warnings.push(`company-hypotheses.yml category ${categoryId} company ${code} ${field} shape is invalid`);
         return [];
       };
-      const lastReviewedAt = nonEmptyString(rawCompany.lastReviewedAt);
+      const candidateLastReviewedAt = nonEmptyString(rawCompany.lastReviewedAt);
+      const lastReviewedAt = candidateLastReviewedAt && isCanonicalPastDate(candidateLastReviewedAt, asOf)
+        ? candidateLastReviewedAt
+        : null;
       if (rawCompany.lastReviewedAt !== undefined && !lastReviewedAt) {
         warnings.push(`company-hypotheses.yml category ${categoryId} company ${code} lastReviewedAt is invalid`);
       }
