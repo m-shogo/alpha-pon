@@ -21,8 +21,16 @@ function isStrictGregorianDate(value: unknown): value is string {
   return day <= new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
-function hasCanonicalStatus(value: Record<string, unknown>): boolean {
-  return typeof value.status === "string" && CHECK_STATUSES.has(value.status);
+function isCanonicalNonBlankString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0 && value === value.trim();
+}
+
+function isCanonicalCheckRow(value: Record<string, unknown>): boolean {
+  return (
+    isCanonicalNonBlankString(value.id) &&
+    typeof value.status === "string" && CHECK_STATUSES.has(value.status) &&
+    isCanonicalNonBlankString(value.reason)
+  );
 }
 
 export function parseListingAutomationCheckInput(text: string, asOf = todayJst()): ListingAutomationCheckInput {
@@ -47,7 +55,7 @@ export function parseListingAutomationCheckInput(text: string, asOf = todayJst()
   }
 
   const checks = parsed.checks.filter(isRecord);
-  if (checks.length !== parsed.checks.length || !checks.every(hasCanonicalStatus)) {
+  if (checks.length !== parsed.checks.length || !checks.every(isCanonicalCheckRow)) {
     return { checks, invalid: true, reason: "invalid_rows" };
   }
   return { checks, invalid: false, reason: "ok" };
