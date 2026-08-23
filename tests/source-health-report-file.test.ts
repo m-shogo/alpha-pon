@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { linkSync, mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { inspectSourceHealthReportFile } from "../src/source-health-report-file.js";
@@ -26,6 +26,15 @@ try {
     "symlinked reports must not inherit canonical source-health provenance"
   );
 
+  const hardLinkedReportPath = join(root, "hard-linked-report.md");
+  linkSync(reportPath, hardLinkedReportPath);
+  assert.deepEqual(
+    inspectSourceHealthReportFile(hardLinkedReportPath),
+    { exists: false, size: 0 },
+    "hard-linked reports must not reuse another path's canonical source-health provenance"
+  );
+  rmSync(hardLinkedReportPath);
+
   const blankReportPath = join(root, "blank.md");
   writeFileSync(blankReportPath, " \n\t", "utf-8");
   assert.deepEqual(
@@ -45,4 +54,4 @@ try {
   rmSync(root, { recursive: true, force: true });
 }
 
-console.log("source health report file: unreadable, symlinked, or blank paths fail closed without crashing OK");
+console.log("source health report file: unreadable, linked, or blank paths fail closed without crashing OK");
