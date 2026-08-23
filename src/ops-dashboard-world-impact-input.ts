@@ -2,6 +2,28 @@ import type { OpsWorldImpactAuditLike } from "./ops-dashboard.js";
 
 const HEALTH_STATUSES = new Set(["ok", "needs_attention", "action_required"]);
 const ISSUE_SEVERITIES = new Set(["urgent", "attention", "info"]);
+const OPTIONAL_COUNTER_KEYS = [
+  "missingCounterArguments",
+  "missingMechanisms",
+  "dataUnavailable",
+  "priceDataPending",
+  "sourceQualityUnknown",
+  "unknownMatchedAsHit",
+  "insufficientData",
+  "confidenceMissing",
+  "mechanismUnknown",
+  "falsificationMissing",
+  "jsonlParseErrors",
+  "latestMismatch",
+  "dueWithoutOutcome",
+  "resultEnumViolations",
+  "directionEnumViolations",
+  "confidenceOutOfRange",
+  "autoMissReasonViolations",
+  "missReasonConflicts",
+  "insufficientDataWithReturn",
+  "judgedWithoutReturn",
+] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -36,6 +58,11 @@ export function normalizeOpsWorldImpactInput(value: unknown): OpsWorldImpactAudi
     || !isNonNegativeInteger(value.overdueReviews)
   ) {
     return invalidWorldImpactInput();
+  }
+  for (const key of OPTIONAL_COUNTER_KEYS) {
+    if (value[key] !== undefined && !isNonNegativeInteger(value[key])) {
+      return invalidWorldImpactInput();
+    }
   }
   if (value.overdueReviews > value.pendingReviews) {
     return invalidWorldImpactInput();
