@@ -36,6 +36,13 @@ assert.throws(
   /mustWatchThemes\.ai must be an object/,
   "null theme rows must fail closed",
 );
+for (const key of ["requiredEntities", "requiredJapanLinks", "requiredQuestions", "evidenceFiles", "safetyRules"] as const) {
+  assert.throws(
+    () => requireMustWatchThemes({ mustWatchThemes: { ai: { label: "AI", whyRequired: "fixture", [key]: {} } } }),
+    new RegExp(`mustWatchThemes\\.ai\\.${key} must be an array`),
+    `${key} must not crash or distort the must-watch audit when malformed`,
+  );
+}
 assert.throws(
   () => requireMustWatchThemes({ mustWatchThemes: [] }),
   /mustWatchThemes must be an object/,
