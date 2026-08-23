@@ -151,6 +151,22 @@ assert.ok(
   "non-array activeRegimesをsilentに正常化せずwarningへ残す",
 );
 
+const futureRegime = normalizeActiveRegimeCategoryIds({
+  asOf: "2999-01-01",
+  activeRegimes: [{ watchCategories: ["healthy"] }],
+}, "2026-06-11");
+assert.deepEqual(futureRegime.categoryIds, [], "未来regimeから現在のactive categoryを採用しない");
+assert.ok(
+  futureRegime.warnings.some(warning => warning.includes("asOf provenance is invalid or future")),
+  "未来regime provenanceをwarningへ残す",
+);
+
+const invalidRegimeDate = normalizeActiveRegimeCategoryIds({
+  asOf: "2026-02-31",
+  activeRegimes: [{ watchCategories: ["healthy"] }],
+}, "2026-06-11");
+assert.deepEqual(invalidRegimeDate.categoryIds, [], "不存在日regimeからactive categoryを採用しない");
+
 const alignment = normalizeAlignmentHypothesisCategories(normalizeCompanyHypothesesRoot({
   categories: {
     healthy: {
