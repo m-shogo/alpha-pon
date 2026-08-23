@@ -77,7 +77,7 @@ export function isStockProCommitteeDecision(value: unknown): value is Record<str
 
 export function parseStockProCommitteeIrEventEvidence(value: unknown): IrEventEvidence[] {
   if (!isRecord(value) || !Array.isArray(value.events)) return [];
-  return value.events.filter(isCommitteeIrEventEvidence);
+  return value.events.filter((event): event is IrEventEvidence => isCommitteeIrEventEvidence(event));
 }
 
 export function parseStockProCommitteeCodeSnapshots<T extends { code: string }>(value: unknown): T[] {
