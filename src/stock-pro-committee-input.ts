@@ -7,6 +7,7 @@ const GROWTH_ADJUSTED_VALUATIONS = new Set(["reasonable", "expensive_but_growth"
 const IR_EVENT_TYPES = new Set(["earnings", "guidance_revision", "buyback", "dividend", "capital_policy", "shareholder_meeting", "medium_term_plan", "offering", "tob", "risk_disclosure", "unknown"]);
 const IR_SOURCE_STATUSES = new Set(["confirmed", "official_check_required", "missing"]);
 const IR_IMPACTS = new Set(["positive", "neutral", "negative", "unknown"]);
+const REVIEW_HORIZONS = new Set(["1d", "1w", "1m", "3m"]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -61,6 +62,18 @@ function isCommitteeCodeSnapshot(value: unknown, asOf = todayJst()): value is Re
   return qualitySnapshot || valuationSnapshot;
 }
 
+function isCommitteeOutcome(value: unknown, asOf = todayJst()): value is HypothesisOutcome {
+  if (!isRecord(value) || !isCanonicalText(value.code) || !isRecord(value.hypothesis)) return false;
+  if (!isStrictGregorianDate(value.hypothesis.detectedAt) || value.hypothesis.detectedAt > asOf) return false;
+  if (typeof value.reviewHorizon !== "string" || !REVIEW_HORIZONS.has(value.reviewHorizon)) return false;
+  return value.maxDrawdownPct === null
+    || (
+      typeof value.maxDrawdownPct === "number"
+      && Number.isFinite(value.maxDrawdownPct)
+      && value.maxDrawdownPct <= 0
+    );
+}
+
 export function isCurrentStockProCommitteeGeneratedAt(value: unknown, asOf = todayJst()): value is string {
   return isStrictGregorianDate(value) && value === asOf;
 }
@@ -90,16 +103,12 @@ export function parseStockProCommitteeCodeSnapshots<T extends { code: string }>(
 
 export function parseStockProCommitteeOutcomes(value: unknown): HypothesisOutcome[] {
   if (!isRecord(value) || !Array.isArray(value.outcomes)) return [];
-  return value.outcomes.filter((outcome): outcome is HypothesisOutcome => (
-    isRecord(outcome)
-    && isCanonicalText(outcome.code)
-    && (
-      outcome.maxDrawdownPct === null
-      || (
-        typeof outcome.maxDrawdownPct === "number"
-        && Number.isFinite(outcome.maxDrawdownPct)
-        && outcome.maxDrawdownPct <= 0
-      )
-    )
-  ));
+  const outcomes = value.outcomes.filter((outcome): outcome is HypothesisOutcome => isCommitteeOutcome(outcome));
+  const counts = new Map<string, number>();
+  const identity = (outcome: HypothesisOutcome) => `${outcome.code}\u0000${outcome.hypothesis.detectedAt}\u0000${outcome.reviewHorizon}`;
+  for (const outcome of outcomes) {
+    const key = identity(outcome);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return outcomes.filter(outcome => counts.get(identity(outcome)) === 1);
 }

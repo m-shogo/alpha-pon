@@ -114,10 +114,23 @@ for (const malformed of [
   );
 }
 
-const canonicalOutcome = { code: "8136", maxDrawdownPct: -8 };
+const canonicalOutcome = {
+  code: "8136",
+  hypothesis: { detectedAt: "2026-08-20" },
+  reviewHorizon: "1w",
+  maxDrawdownPct: -8,
+};
 assert(parseStockProCommitteeOutcomes({ outcomes: [canonicalOutcome] }).length === 1, "canonical outcome collection must remain usable");
-assert(parseStockProCommitteeOutcomes({ outcomes: [{ code: "8136", maxDrawdownPct: null }] }).length === 1, "canonical outcome with unavailable drawdown must remain usable");
-assert(parseStockProCommitteeOutcomes({ outcomes: [{ code: "8136", maxDrawdownPct: 0 }] }).length === 1, "zero max drawdown must remain usable");
+assert(parseStockProCommitteeOutcomes({ outcomes: [{ ...canonicalOutcome, maxDrawdownPct: null }] }).length === 1, "canonical outcome with unavailable drawdown must remain usable");
+assert(parseStockProCommitteeOutcomes({ outcomes: [{ ...canonicalOutcome, maxDrawdownPct: 0 }] }).length === 1, "zero max drawdown must remain usable");
+const uniqueOutcome = { ...canonicalOutcome, reviewHorizon: "1m", maxDrawdownPct: -5 };
+const uniqueAlongsideDuplicateOutcome = parseStockProCommitteeOutcomes({
+  outcomes: [canonicalOutcome, { ...canonicalOutcome, maxDrawdownPct: -12 }, uniqueOutcome],
+});
+assert(
+  uniqueAlongsideDuplicateOutcome.length === 1 && uniqueAlongsideDuplicateOutcome[0]?.reviewHorizon === "1m",
+  "ambiguous duplicate outcome identities must be isolated while unique horizons remain usable",
+);
 for (const malformed of [
   null,
   [],
@@ -125,11 +138,15 @@ for (const malformed of [
   { outcomes: {} },
   { outcomes: [null] },
   { outcomes: [{}] },
-  { outcomes: [{ code: " 8136 ", maxDrawdownPct: -8 }] },
-  { outcomes: [{ code: "8136" }] },
-  { outcomes: [{ code: "8136", maxDrawdownPct: "-8" }] },
-  { outcomes: [{ code: "8136", maxDrawdownPct: Number.NaN }] },
-  { outcomes: [{ code: "8136", maxDrawdownPct: 8 }] },
+  { outcomes: [{ ...canonicalOutcome, code: " 8136 " }] },
+  { outcomes: [{ code: "8136", maxDrawdownPct: -8 }] },
+  { outcomes: [{ ...canonicalOutcome, hypothesis: {} }] },
+  { outcomes: [{ ...canonicalOutcome, hypothesis: { detectedAt: "2026-02-31" } }] },
+  { outcomes: [{ ...canonicalOutcome, hypothesis: { detectedAt: "2999-01-01" } }] },
+  { outcomes: [{ ...canonicalOutcome, reviewHorizon: "2w" }] },
+  { outcomes: [{ ...canonicalOutcome, maxDrawdownPct: "-8" }] },
+  { outcomes: [{ ...canonicalOutcome, maxDrawdownPct: Number.NaN }] },
+  { outcomes: [{ ...canonicalOutcome, maxDrawdownPct: 8 }] },
 ]) {
   assert(
     parseStockProCommitteeOutcomes(malformed).length === 0,
