@@ -117,6 +117,7 @@ for (const malformed of [
 const canonicalOutcome = {
   code: "8136",
   hypothesis: { detectedAt: "2026-08-20" },
+  evaluatedAt: "2026-08-21",
   reviewHorizon: "1w",
   maxDrawdownPct: -8,
 };
@@ -143,6 +144,9 @@ for (const malformed of [
   { outcomes: [{ ...canonicalOutcome, hypothesis: {} }] },
   { outcomes: [{ ...canonicalOutcome, hypothesis: { detectedAt: "2026-02-31" } }] },
   { outcomes: [{ ...canonicalOutcome, hypothesis: { detectedAt: "2999-01-01" } }] },
+  { outcomes: [{ ...canonicalOutcome, evaluatedAt: "2026-02-31" }] },
+  { outcomes: [{ ...canonicalOutcome, evaluatedAt: "2999-01-01" }] },
+  { outcomes: [{ ...canonicalOutcome, evaluatedAt: "2026-08-19" }] },
   { outcomes: [{ ...canonicalOutcome, reviewHorizon: "2w" }] },
   { outcomes: [{ ...canonicalOutcome, maxDrawdownPct: "-8" }] },
   { outcomes: [{ ...canonicalOutcome, maxDrawdownPct: Number.NaN }] },
