@@ -12,8 +12,16 @@ export type GeneratedRuleInputResult = {
   warning: string | null
 }
 
+const EXPLICIT_TIMEZONE_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/
+
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string')
+}
+
+function isPastOrPresentExplicitTimezoneInstant(value: unknown): value is string {
+  if (typeof value !== 'string' || !EXPLICIT_TIMEZONE_INSTANT.test(value) || value.endsWith('-00:00')) return false
+  const timestamp = Date.parse(value)
+  return Number.isFinite(timestamp) && timestamp <= Date.now()
 }
 
 export function isGeneratedRuleDisplayInput(value: unknown): value is GeneratedRuleDisplayInput {
@@ -25,7 +33,7 @@ export function isGeneratedRuleDisplayInput(value: unknown): value is GeneratedR
     && row.code.trim().length > 0
     && row.code === row.code.trim()
     && typeof row.name === 'string'
-    && typeof row.generatedAt === 'string'
+    && isPastOrPresentExplicitTimezoneInstant(row.generatedAt)
     && isStringArray(row.thesis)
     && isStringArray(row.invalidationSignals)
 }
