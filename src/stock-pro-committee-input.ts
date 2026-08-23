@@ -34,3 +34,8 @@ export function parseStockProCommitteeIrEventEvidence(value: unknown): IrEventEv
   if (!isRecord(value) || !Array.isArray(value.events)) return [];
   return value.events.filter((event): event is IrEventEvidence => isRecord(event) && isCanonicalText(event.code));
 }
+
+export function parseStockProCommitteeCodeSnapshots<T extends { code: string }>(value: unknown): T[] {
+  if (!isRecord(value) || !Array.isArray(value.snapshots)) return [];
+  return value.snapshots.filter((snapshot): snapshot is T => isRecord(snapshot) && isCanonicalText(snapshot.code));
+}
