@@ -6,6 +6,7 @@ import {
   type PrimaryDisclosureLearningItem as PrimaryItem,
   type PrimaryDisclosureLearningScore as ScoreLogEntry,
 } from "./primary-disclosure-learning-input.js";
+import { selectSourceHealthScoreFile } from "./source-health-score-file.js";
 
 type Subtype = {
   subtype: string;
@@ -13,12 +14,10 @@ type Subtype = {
   reason: string;
 };
 
-function latestScoreFile(): string | null {
+function latestScoreFile(asOf = todayJst()): string | null {
   if (!existsSync("reports")) return null;
-  const files = readdirSync("reports")
-    .filter(file => /^scores_\d{4}-\d{2}-\d{2}\.json$/.test(file))
-    .sort();
-  return files.at(-1) ? join("reports", files.at(-1)!) : null;
+  const file = selectSourceHealthScoreFile(readdirSync("reports"), asOf);
+  return file ? join("reports", file) : null;
 }
 
 function readScores(): { rows: ScoreLogEntry[]; warnings: string[] } {
