@@ -5,11 +5,22 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { addDaysJst, todayJst } from "../src/date.js";
-import { normalizeRegimeHistoryActiveRegimes, resolveRegimeHistoryAsOf } from "../src/regime-history-input.js";
+import {
+  normalizeRegimeHistoryActiveRegimes,
+  normalizeRegimeHistoryMode,
+  normalizeRegimeHistorySummary,
+  resolveRegimeHistoryAsOf,
+} from "../src/regime-history-input.js";
 
 assert.equal(resolveRegimeHistoryAsOf(undefined, "2026-08-20"), "2026-08-20", "missing asOf remains backward-compatible with the current history date");
 assert.equal(resolveRegimeHistoryAsOf("2026-06-03", "2026-08-20"), "2026-06-03", "historical current-regime provenance remains valid");
 assert.equal(resolveRegimeHistoryAsOf("2026-08-20", "2026-08-20"), "2026-08-20", "same-day regime provenance remains valid");
+assert.equal(normalizeRegimeHistoryMode(undefined), "unknown", "missing mode remains backward-compatible");
+assert.equal(normalizeRegimeHistoryMode("risk-off"), "risk-off", "string mode remains available");
+assert.equal(normalizeRegimeHistorySummary(undefined), "", "missing summary remains backward-compatible");
+assert.equal(normalizeRegimeHistorySummary("macro stress"), "macro stress", "string summary remains available");
+assert.throws(() => normalizeRegimeHistoryMode({ value: "risk-off" }), /mode must be a string/, "object mode must not enter append-only history");
+assert.throws(() => normalizeRegimeHistorySummary(["macro stress"]), /summary must be a string/, "array summary must not enter append-only history");
 
 for (const invalid of ["2026-02-31", "0000-01-01", "2026-8-20", "2026-08-20T00:00:00+09:00"] as const) {
   assert.throws(

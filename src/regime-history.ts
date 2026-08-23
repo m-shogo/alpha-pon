@@ -1,12 +1,17 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
-import { normalizeRegimeHistoryActiveRegimes, resolveRegimeHistoryAsOf } from "./regime-history-input.js";
+import {
+  normalizeRegimeHistoryActiveRegimes,
+  normalizeRegimeHistoryMode,
+  normalizeRegimeHistorySummary,
+  resolveRegimeHistoryAsOf,
+} from "./regime-history-input.js";
 
 type CurrentRegime = {
-  asOf?: string;
-  mode?: string;
-  summary?: string;
+  asOf?: unknown;
+  mode?: unknown;
+  summary?: unknown;
   activeRegimes?: unknown;
 };
 
@@ -73,8 +78,8 @@ function main() {
   const row: RegimeHistoryRow = {
     date,
     asOf: resolveRegimeHistoryAsOf(config.asOf, date),
-    mode: config.mode ?? "unknown",
-    summary: config.summary ?? "",
+    mode: normalizeRegimeHistoryMode(config.mode),
+    summary: normalizeRegimeHistorySummary(config.summary),
     activeRegimes: normalizeRegimeHistoryActiveRegimes(config.activeRegimes),
   };
 
