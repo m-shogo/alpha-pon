@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { listingAutomationReadinessStatus, parseListingAutomationCheckInput } from "../src/listing-automation-summary-input.js";
 
 const AS_OF = "2026-08-18";
-const VALID = { id: "fixture", status: "ok" };
+const VALID = { id: "fixture", status: "ok", reason: "fixture is healthy" };
 const base = { generatedAt: AS_OF, checks: [VALID] };
 
 assert.deepEqual(
@@ -60,15 +60,33 @@ assert.deepEqual(
 );
 
 assert.deepEqual(
-  parseListingAutomationCheckInput(JSON.stringify({ ...base, checks: [{ id: "unknown", status: "passed" }] }), AS_OF),
-  { checks: [{ id: "unknown", status: "passed" }], invalid: true, reason: "invalid_rows" },
+  parseListingAutomationCheckInput(JSON.stringify({ ...base, checks: [{ id: "unknown", status: "passed", reason: "bad status" }] }), AS_OF),
+  { checks: [{ id: "unknown", status: "passed", reason: "bad status" }], invalid: true, reason: "invalid_rows" },
   "unknown statuses must fail closed instead of becoming a false-green summary",
 );
 
 assert.deepEqual(
-  parseListingAutomationCheckInput(JSON.stringify({ ...base, checks: [{ id: "missing-status" }] }), AS_OF),
-  { checks: [{ id: "missing-status" }], invalid: true, reason: "invalid_rows" },
+  parseListingAutomationCheckInput(JSON.stringify({ ...base, checks: [{ id: "missing-status", reason: "missing status" }] }), AS_OF),
+  { checks: [{ id: "missing-status", reason: "missing status" }], invalid: true, reason: "invalid_rows" },
   "missing statuses must fail closed",
+);
+
+assert.deepEqual(
+  parseListingAutomationCheckInput(JSON.stringify({ ...base, checks: [{ status: "ok", reason: "missing identity" }] }), AS_OF),
+  { checks: [{ status: "ok", reason: "missing identity" }], invalid: true, reason: "invalid_rows" },
+  "status-only rows must not manufacture healthy readiness evidence",
+);
+
+assert.deepEqual(
+  parseListingAutomationCheckInput(JSON.stringify({ ...base, checks: [{ id: " padded ", status: "ok", reason: "padded identity" }] }), AS_OF),
+  { checks: [{ id: " padded ", status: "ok", reason: "padded identity" }], invalid: true, reason: "invalid_rows" },
+  "non-canonical check identities must fail closed",
+);
+
+assert.deepEqual(
+  parseListingAutomationCheckInput(JSON.stringify({ ...base, checks: [{ id: "no-reason", status: "ok" }] }), AS_OF),
+  { checks: [{ id: "no-reason", status: "ok" }], invalid: true, reason: "invalid_rows" },
+  "healthy statuses without provenance reasons must fail closed",
 );
 
 assert.equal(
