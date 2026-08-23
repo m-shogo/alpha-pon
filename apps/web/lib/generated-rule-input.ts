@@ -37,6 +37,7 @@ export function isGeneratedRuleDisplayInput(value: unknown): value is GeneratedR
   const row = value as Record<string, unknown>
   return typeof row.generatedRuleId === 'string'
     && row.generatedRuleId.trim().length > 0
+    && row.generatedRuleId === row.generatedRuleId.trim()
     && typeof row.code === 'string'
     && row.code.trim().length > 0
     && row.code === row.code.trim()
@@ -54,7 +55,12 @@ export function normalizeGeneratedRules(value: unknown): GeneratedRuleInputResul
     }
   }
 
-  const rows = value.filter(isGeneratedRuleDisplayInput)
+  const structurallyValidRows = value.filter(isGeneratedRuleDisplayInput)
+  const idCounts = new Map<string, number>()
+  for (const row of structurallyValidRows) {
+    idCounts.set(row.generatedRuleId, (idCounts.get(row.generatedRuleId) ?? 0) + 1)
+  }
+  const rows = structurallyValidRows.filter((row) => idCounts.get(row.generatedRuleId) === 1)
   const invalidCount = value.length - rows.length
   return {
     rows,
