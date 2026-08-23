@@ -16,12 +16,36 @@ export type GeneratedIpoThemeWatch = {
   rules?: GeneratedIpoThemeWatchRule[]
 }
 
+const CANONICAL_DATE = /^(\d{4})-(\d{2})-(\d{2})$/
+
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string')
 }
 
 function isOptionalStringArray(value: unknown): boolean {
   return value === undefined || isStringArray(value)
+}
+
+function currentJstDate(now = new Date()): string {
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now)
+}
+
+function isCanonicalPastOrPresentDate(value: unknown): value is string {
+  if (typeof value !== 'string') return false
+  const match = CANONICAL_DATE.exec(value)
+  if (!match) return false
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  if (year < 1) return false
+  const parsed = new Date(Date.UTC(year, month - 1, day))
+  if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() !== month - 1 || parsed.getUTCDate() !== day) return false
+  return value <= currentJstDate()
 }
 
 function isRelatedCompany(value: unknown): boolean {
@@ -59,7 +83,7 @@ export function isGeneratedIpoThemeWatchInput(value: unknown): value is Generate
   if (watch.rules !== undefined && (!Array.isArray(watch.rules) || !watch.rules.every(isRule))) return false
   const rules = (watch.rules ?? []) as GeneratedIpoThemeWatchRule[]
 
-  return (watch.generatedAt === null || typeof watch.generatedAt === 'string')
+  return (watch.generatedAt === null || isCanonicalPastOrPresentDate(watch.generatedAt))
     && (watch.defaultAction === undefined || typeof watch.defaultAction === 'string')
     && isOptionalStringArray(watch.neverTreatAs)
     && hasUniqueRuleIds(rules)
