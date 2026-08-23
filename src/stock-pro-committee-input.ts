@@ -46,6 +46,13 @@ export function parseStockProCommitteeOutcomes(value: unknown): HypothesisOutcom
   return value.outcomes.filter((outcome): outcome is HypothesisOutcome => (
     isRecord(outcome)
     && isCanonicalText(outcome.code)
-    && (outcome.maxDrawdownPct === null || (typeof outcome.maxDrawdownPct === "number" && Number.isFinite(outcome.maxDrawdownPct)))
+    && (
+      outcome.maxDrawdownPct === null
+      || (
+        typeof outcome.maxDrawdownPct === "number"
+        && Number.isFinite(outcome.maxDrawdownPct)
+        && outcome.maxDrawdownPct <= 0
+      )
+    )
   ));
 }
