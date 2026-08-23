@@ -7,6 +7,7 @@ import { openJobsDb } from "../src/jobs/db.js";
 import { getTodayInTokyo } from "../src/jobs/date-utils.js";
 import { getLastSuccessDate, APP_NAME } from "../src/jobs/job-runner.js";
 import { buildOutcomeIntegrityReport } from "../src/hypothesis-outcome-integrity.js";
+import { normalizeHealthArray } from "../src/health/array-health.js";
 import { backupHealthEvidenceFromDirectoryNames } from "../src/health/backup-health.js";
 import { inspectJsonArtifact } from "../src/health/json-artifact-health.js";
 import {
@@ -282,20 +283,24 @@ if (!specialOps) {
 }
 
 // ── Pro committee / UI generated data consistency ────────────
-type CommitteeJson = { decisions?: Array<Record<string, unknown>> };
+type CommitteeJson = { decisions?: unknown };
 type AlphaPonData = {
-  legendProCommittee?: { decisions?: Array<Record<string, unknown>> };
-  stockProCommitteeJson?: { decisions?: Array<Record<string, unknown>> };
+  legendProCommittee?: { decisions?: unknown };
+  stockProCommitteeJson?: { decisions?: unknown };
   buffettQuality?: unknown;
   valuationSnapshots?: unknown;
   irEventEvidence?: unknown;
 };
 const committeeJson = readJson<CommitteeJson>("reports/stock_pro_committee_latest.json");
 const alphaData = readJson<AlphaPonData>("apps/web/public/generated/alpha-pon-data.json");
-const committeeDecisionCount = committeeJson?.decisions?.length ?? 0;
-const legendDecisionCount = alphaData?.legendProCommittee?.decisions?.length ?? 0;
+const committeeDecisions = normalizeHealthArray<Record<string, unknown>>(committeeJson?.decisions);
+const legendDecisions = normalizeHealthArray<Record<string, unknown>>(alphaData?.legendProCommittee?.decisions);
+const committeeDecisionCount = committeeDecisions?.length ?? 0;
+const legendDecisionCount = legendDecisions?.length ?? 0;
 if (!committeeJson) {
   warn("Pro委員会 JSON", "未生成（pnpm pro:committee を実行してください）");
+} else if (!committeeDecisions) {
+  warn("Pro委員会 decisions", "invalid decisions collection（pnpm pro:committee を確認）");
 } else if (committeeDecisionCount === 0) {
   warn("Pro委員会 decisions", "0件（pnpm pro:committee を確認）");
 } else {
@@ -303,6 +308,8 @@ if (!committeeJson) {
 }
 if (!alphaData) {
   warn("UI generated alpha data", "読み込み不可（pnpm ui:data を実行してください）");
+} else if (!legendDecisions) {
+  warn("legendProCommittee decisions", "invalid decisions collection / nextAction: pnpm ui:data");
 } else if (committeeDecisionCount !== legendDecisionCount) {
   warn(
     "legendProCommittee decisions",
