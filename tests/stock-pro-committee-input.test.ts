@@ -1,4 +1,4 @@
-import { isCurrentStockProCommitteeGeneratedAt, isStockProCommitteeDecision, parseStockProCommitteeIrEventEvidence } from "../src/stock-pro-committee-input.js";
+import { isCurrentStockProCommitteeGeneratedAt, isStockProCommitteeDecision, parseStockProCommitteeCodeSnapshots, parseStockProCommitteeIrEventEvidence } from "../src/stock-pro-committee-input.js";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -46,6 +46,15 @@ for (const malformed of [null, [], {}, { events: {} }, { events: [null] }, { eve
   assert(
     parseStockProCommitteeIrEventEvidence(malformed).length === 0,
     `malformed IR evidence collection must fail closed: ${JSON.stringify(malformed)}`,
+  );
+}
+
+const canonicalSnapshot = { code: "8136", name: "Sanrio" };
+assert(parseStockProCommitteeCodeSnapshots<typeof canonicalSnapshot>({ snapshots: [canonicalSnapshot] }).length === 1, "canonical Stock Pro snapshot must remain usable");
+for (const malformed of [null, [], {}, { snapshots: {} }, { snapshots: [null] }, { snapshots: [{ ...canonicalSnapshot, code: " 8136 " }] }]) {
+  assert(
+    parseStockProCommitteeCodeSnapshots<typeof canonicalSnapshot>(malformed).length === 0,
+    `malformed Stock Pro snapshot collection must fail closed: ${JSON.stringify(malformed)}`,
   );
 }
 
