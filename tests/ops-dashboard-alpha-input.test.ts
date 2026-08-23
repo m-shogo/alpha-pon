@@ -98,6 +98,25 @@ for (const malformedWarnings of ["broken", { length: 1 }]) {
   assert.ok(dashboard.allIssues.some(issue => issue.title.includes("UI 生成データに warning")));
 }
 
+for (const malformedQuality of [null, "full", [], 7] as const) {
+  const raw = {
+    generatedAt: TODAY,
+    meta: { warnings: [] },
+    universeScan: { scanStatus: "fresh", fallbackReason: null },
+    dataQualityByCode: {
+      "8136": { quality: malformedQuality, warnings: [] },
+    },
+  } as unknown as OpsAlphaDataLike;
+  const normalized = normalizeOpsAlphaDataQualityWarningsInput(raw);
+  assert.ok(normalized);
+  assert.equal(normalized.dataQualityByCode?.["8136"]?.quality, undefined);
+  assert.deepEqual(normalized.meta?.warnings, ["alpha-pon-data.json dataQualityByCode quality.level の形式が不正です（1件）"]);
+
+  const dashboard = buildOpsDashboard(cleanInputs(normalized));
+  assert.equal(dashboard.healthStatus, "needs_attention");
+  assert.ok(dashboard.allIssues.some(issue => issue.title.includes("UI 生成データに warning")));
+}
+
 for (const invalidUniverseScan of [
   { scanStatus: "failed", fallbackReason: null },
   { scanStatus: "stale_fallback", fallbackReason: null },
