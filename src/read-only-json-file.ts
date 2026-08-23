@@ -31,7 +31,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isCanonicalRegularFile(path: string): boolean {
   try {
-    return lstatSync(path).isFile();
+    const stat = lstatSync(path);
+    return stat.isFile() && stat.nlink === 1;
   } catch {
     return false;
   }

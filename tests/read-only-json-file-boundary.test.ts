@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import { linkSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -47,8 +47,44 @@ assert.deepEqual(readReadOnlyJsonObjectArrayFile(objectArrayLink, "rows"), {
   invalidRows: 0,
 });
 
-assert.deepEqual(readReadOnlyJsonArrayFile<{ id: string }>(arrayTarget).rows, [{ id: "real" }]);
-assert.equal(readReadOnlyJsonObjectFile<{ id: string }>(objectTarget).object?.id, "real");
-assert.deepEqual(readReadOnlyJsonObjectArrayFile<{ id: string }>(objectArrayTarget, "rows").rows, [{ id: "real" }]);
+const arrayHardLink = join(dir, "array-hard-link.json");
+const objectHardLink = join(dir, "object-hard-link.json");
+const objectArrayHardLink = join(dir, "object-array-hard-link.json");
+linkSync(arrayTarget, arrayHardLink);
+linkSync(objectTarget, objectHardLink);
+linkSync(objectArrayTarget, objectArrayHardLink);
 
-console.log("read-only JSON file boundary: symlink evidence rejected, regular files preserved");
+assert.deepEqual(readReadOnlyJsonArrayFile(arrayHardLink), {
+  rows: [],
+  missing: false,
+  parseError: true,
+  invalidRoot: false,
+});
+assert.deepEqual(readReadOnlyJsonObjectFile(objectHardLink), {
+  object: null,
+  missing: false,
+  parseError: true,
+  invalidRoot: false,
+});
+assert.deepEqual(readReadOnlyJsonObjectArrayFile(objectArrayHardLink, "rows"), {
+  object: null,
+  rows: [],
+  missing: false,
+  parseError: true,
+  invalidRoot: false,
+  invalidField: false,
+  invalidRows: 0,
+});
+
+const standaloneArray = join(dir, "standalone-array.json");
+const standaloneObject = join(dir, "standalone-object.json");
+const standaloneObjectArray = join(dir, "standalone-object-array.json");
+writeFileSync(standaloneArray, JSON.stringify([{ id: "real" }]));
+writeFileSync(standaloneObject, JSON.stringify({ id: "real" }));
+writeFileSync(standaloneObjectArray, JSON.stringify({ rows: [{ id: "real" }] }));
+
+assert.deepEqual(readReadOnlyJsonArrayFile<{ id: string }>(standaloneArray).rows, [{ id: "real" }]);
+assert.equal(readReadOnlyJsonObjectFile<{ id: string }>(standaloneObject).object?.id, "real");
+assert.deepEqual(readReadOnlyJsonObjectArrayFile<{ id: string }>(standaloneObjectArray, "rows").rows, [{ id: "real" }]);
+
+console.log("read-only JSON file boundary: linked evidence rejected, standalone regular files preserved");
