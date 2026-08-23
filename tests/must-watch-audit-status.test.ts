@@ -27,6 +27,16 @@ assert.deepEqual(
   "object-shaped must-watch theme maps remain accepted",
 );
 assert.throws(
+  () => requireMustWatchThemes({ mustWatchThemes: { ai: "broken" } }),
+  /mustWatchThemes\.ai must be an object/,
+  "malformed theme rows must not become false-green empty audits",
+);
+assert.throws(
+  () => requireMustWatchThemes({ mustWatchThemes: { ai: null } }),
+  /mustWatchThemes\.ai must be an object/,
+  "null theme rows must fail closed",
+);
+assert.throws(
   () => requireMustWatchThemes({ mustWatchThemes: [] }),
   /mustWatchThemes must be an object/,
   "array-shaped mustWatchThemes must not become a false-green zero-audit report",
