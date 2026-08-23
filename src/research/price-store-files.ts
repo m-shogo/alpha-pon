@@ -3,6 +3,10 @@ import { join } from "node:path";
 
 export function listPriceJsonlFiles(root: string): string[] {
   if (!existsSync(root)) return [];
+  const rootStat = lstatSync(root);
+  if (rootStat.isSymbolicLink()) {
+    throw new Error(`price_store_symlink_not_allowed: ${root}`);
+  }
   const files: string[] = [];
   for (const entry of readdirSync(root)) {
     const path = join(root, entry);
