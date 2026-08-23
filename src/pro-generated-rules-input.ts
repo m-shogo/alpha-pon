@@ -55,6 +55,9 @@ export function readGeneratedCompanyRules<T>(
   asOf = todayJst(),
   isRow?: (value: unknown) => value is T,
 ): GeneratedCompanyRulesLoad<T> {
+  if (!isRealJstDate(asOf)) {
+    throw new Error("generated company rules asOf must be a real Gregorian JST date");
+  }
   if (!existsSync(path)) return { rows: [], generatedAt: null, missing: true };
 
   let parsed: unknown;
