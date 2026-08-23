@@ -29,6 +29,7 @@ const isListingRow = (value: unknown): value is ListingRow => {
 try {
   writeFileSync(path, [
     JSON.stringify({ id: "valid-1", name: "Valid", eventType: "listing_day" }),
+    JSON.stringify({ id: " valid-1 ", name: "Padded duplicate", eventType: "listing_day" }),
     "{broken",
     "null",
     "{}",
@@ -39,8 +40,8 @@ try {
   assert.deepEqual(result.rows.map(row => row.id), ["valid-1", "valid-2"]);
   assert.equal(result.warnings.length, 2);
   assert.match(result.warnings[0] ?? "", /parse_error 1/);
-  assert.match(result.warnings[0] ?? "", /lines 2/);
-  assert.equal(result.warnings[1], `${path}: invalid_rows=2`);
+  assert.match(result.warnings[0] ?? "", /lines 3/);
+  assert.equal(result.warnings[1], `${path}: invalid_rows=3`);
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
