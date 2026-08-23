@@ -1,4 +1,6 @@
+import { todayJst } from "./date.js";
 import type { CompanyHypothesesRootState } from "./company-coverage-input.js";
+import { isUsableProKnowledgeRegimeAsOf } from "./pro-knowledge-refresh-input.js";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -12,10 +14,16 @@ function nonEmptyString(value: unknown): string | null {
   return normalized || null;
 }
 
-export function normalizeActiveRegimeCategoryIds(value: unknown): { categoryIds: string[]; warnings: string[] } {
+export function normalizeActiveRegimeCategoryIds(
+  value: unknown,
+  asOf = todayJst(),
+): { categoryIds: string[]; warnings: string[] } {
   const warnings: string[] = [];
   if (!isRecord(value)) {
     return { categoryIds: [], warnings: ["current-regime.yml root shape is invalid"] };
+  }
+  if (value.asOf !== undefined && !isUsableProKnowledgeRegimeAsOf(value.asOf, asOf)) {
+    return { categoryIds: [], warnings: ["current-regime.yml asOf provenance is invalid or future"] };
   }
   const rawRegimes = value.activeRegimes;
   if (rawRegimes === undefined) return { categoryIds: [], warnings };
