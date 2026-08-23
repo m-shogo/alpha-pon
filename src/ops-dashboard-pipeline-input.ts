@@ -68,13 +68,18 @@ export function normalizeOpsPipelineStatusInput(value: unknown): OpsPipelineStat
     }
   }
 
-  if (value.status === "partial_failed") {
-    const hasFailedSteps = typeof failedSteps === "string" && failedSteps.trim().length > 0;
-    const hasFailedStepRecord = Array.isArray(value.steps) && value.steps.some(step => {
-      if (!isRecord(step) || typeof step.status !== "string") return false;
-      return step.status !== "ok" && step.status !== "skipped";
-    });
-    if (!hasFailedSteps && !hasFailedStepRecord) return invalidPipelineStatus();
+  const hasFailedSteps = typeof failedSteps === "string" && failedSteps.trim().length > 0;
+  const hasFailedStepRecord = Array.isArray(value.steps) && value.steps.some(step => {
+    if (!isRecord(step) || typeof step.status !== "string") return false;
+    return step.status !== "ok" && step.status !== "skipped";
+  });
+  const hasFailureEvidence = hasFailedSteps || hasFailedStepRecord;
+
+  if (value.status === "ok" && hasFailureEvidence) {
+    return invalidPipelineStatus();
+  }
+  if (value.status === "partial_failed" && !hasFailureEvidence) {
+    return invalidPipelineStatus();
   }
 
   return {

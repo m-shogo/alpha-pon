@@ -99,6 +99,9 @@ for (const malformed of [
   { status: "completed", steps: [null] },
   { status: "completed", steps: [{ name: 123, status: "ok" }] },
   { status: "completed", steps: [{ name: "daily", status: { value: "ok" } }] },
+  { status: "ok", failedSteps: ["daily_company_score"] },
+  { status: "ok", failedSteps: "daily_company_score" },
+  { status: "ok", failedSteps: "", steps: [{ name: "daily_company_score", status: "failed" }] },
   { status: "partial_failed", failedSteps: "", steps: [] },
   { status: "partial_failed", failedSteps: [], steps: [{ name: "daily", status: "ok" }] },
 ]) {
