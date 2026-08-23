@@ -65,6 +65,7 @@ function isCommitteeCodeSnapshot(value: unknown, asOf = todayJst()): value is Re
 function isCommitteeOutcome(value: unknown, asOf = todayJst()): value is HypothesisOutcome {
   if (!isRecord(value) || !isCanonicalText(value.code) || !isRecord(value.hypothesis)) return false;
   if (!isStrictGregorianDate(value.hypothesis.detectedAt) || value.hypothesis.detectedAt > asOf) return false;
+  if (!isStrictGregorianDate(value.evaluatedAt) || value.evaluatedAt > asOf || value.evaluatedAt < value.hypothesis.detectedAt) return false;
   if (typeof value.reviewHorizon !== "string" || !REVIEW_HORIZONS.has(value.reviewHorizon)) return false;
   return value.maxDrawdownPct === null
     || (
