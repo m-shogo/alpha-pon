@@ -1,5 +1,5 @@
 // ジョブ実行・記録ユーティリティ
-// job_runs / missing_jobs テーブルへの読み書きと、pnpm スクリプト実行を担う
+// job_runs / missing_jobs テーブルへの読み書きと pnpm スクリプト実行を担う
 
 import { spawnSync } from "child_process";
 import { openJobsDb } from "./db.js";
@@ -84,14 +84,32 @@ export function getLastSuccessDate(jobName: string): string | null {
   return row?.target_date ?? null;
 }
 
+export function getFirstSuccessDate(jobName: string): string | null {
+  const db = openJobsDb();
+  const row = db.prepare(
+    "SELECT target_date FROM job_runs WHERE app_name=? AND job_name=? AND status='success' ORDER BY target_date ASC LIMIT 1"
+  ).get(APP_NAME, jobName) as { target_date: string } | undefined;
+  db.close();
+  return row?.target_date ?? null;
+}
+
+export function computeMissingTargetDates(
+  today: string,
+  maxDays: number,
+  firstSuccessDate: string | null,
+  succeededOnDate: (date: string) => boolean,
+): string[] {
+  if (!firstSuccessDate) return [];
+  const from = subtractDays(today, maxDays);
+  const start = firstSuccessDate < from ? from : firstSuccessDate;
+  if (start > today) return [];
+  return getDatesBetween(start, today).filter(date => !succeededOnDate(date));
+}
+
 export function getMissingTargetDates(jobName: string, maxDays: number): string[] {
   const today = getTodayInTokyo();
-  const last = getLastSuccessDate(jobName);
-  if (!last) return []; // 一度も成功していない → catchup 対象外（初回 daily で取得する）
-  const from = subtractDays(today, maxDays);
-  const start = last < from ? from : subtractDays(last, -1); // last の翌日から
-  if (start > today) return [];
-  return getDatesBetween(start, today).filter(d => !hasSucceeded(jobName, d));
+  const firstSuccess = getFirstSuccessDate(jobName);
+  return computeMissingTargetDates(today, maxDays, firstSuccess, date => hasSucceeded(jobName, date));
 }
 
 // ── ジョブ実行 ────────────────────────────────────────────────
