@@ -122,13 +122,18 @@ export function loadAnalogyOutcomesForReview(path: string, asOf = todayJst()): A
   }
   const parsed = readJsonlWithErrors<unknown>(path);
   const validRows = parsed.rows.filter(row => isUsableAnalogyOutcomeRecord(row, asOf));
-  const counts = new Map<string, number>();
+  const seen = new Set<string>();
+  const rows: AnalogyOutcomeRecord[] = [];
+  let duplicateRows = 0;
   for (const row of validRows) {
     const key = `${row.eventId}__${row.timeframe}`;
-    counts.set(key, (counts.get(key) ?? 0) + 1);
+    if (seen.has(key)) {
+      duplicateRows += 1;
+      continue;
+    }
+    seen.add(key);
+    rows.push(row);
   }
-  const rows = validRows.filter(row => (counts.get(`${row.eventId}__${row.timeframe}`) ?? 0) === 1);
-  const duplicateRows = validRows.length - rows.length;
   const warnings: string[] = [];
   const warning = formatReadOnlyJsonlParseWarning(path, parsed.parseErrors);
   if (warning) warnings.push(warning);
