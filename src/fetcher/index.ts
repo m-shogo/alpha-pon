@@ -15,6 +15,7 @@ import { addDaysJst, dateNDaysAgoJst, daysSinceJst, todayJst, todayJstCompact, t
 import { buildMarketContext } from "../analysis/market-context.js";
 import { buildFinancialQuality } from "../analysis/financial-quality.js";
 import { buildPrimaryDisclosureReview } from "../analysis/primary-disclosure-review.js";
+import { parsePrimaryDisclosureEdinetDays } from "../primary-disclosure-config.js";
 
 export type FetchResult = {
   data: MockData;
@@ -33,7 +34,7 @@ type PrimaryDisclosureCache = {
 // J-Quantsの指数コードが環境で取れない場合に備え、TOPIX連動ETF等へ差し替え可能にする。
 // 例: MARKET_BENCHMARK_CODE=1306
 const MARKET_BENCHMARK_CODE = process.env.MARKET_BENCHMARK_CODE ?? "1306";
-const PRIMARY_DISCLOSURE_EDINET_DAYS = Math.max(1, Number(process.env.PRIMARY_DISCLOSURE_EDINET_DAYS ?? "5"));
+const PRIMARY_DISCLOSURE_EDINET_DAYS = parsePrimaryDisclosureEdinetDays(process.env.PRIMARY_DISCLOSURE_EDINET_DAYS);
 const primaryDisclosureCache: PrimaryDisclosureCache = {
   loaded: false,
   tdnetDisclosures: [],
