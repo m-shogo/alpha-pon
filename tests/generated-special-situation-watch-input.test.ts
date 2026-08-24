@@ -48,9 +48,12 @@ const duplicateCandidates = normalizeGeneratedSpecialSituationWatchInput({
     { code: '7203', name: 'Toyota' },
   ],
 })
-assert.deepEqual(duplicateCandidates.value?.candidates?.map(candidate => candidate.code), ['8136', '7203'])
-assert.equal(duplicateCandidates.value?.candidates?.[0]?.name, 'Sanrio first')
-assert.equal(duplicateCandidates.warning, 'specialSituationWatch.candidates: duplicate_codes 1')
+assert.deepEqual(
+  duplicateCandidates.value?.candidates?.map(candidate => candidate.code),
+  ['7203'],
+  'ambiguous duplicate candidate identity is isolated instead of choosing an input-order winner',
+)
+assert.equal(duplicateCandidates.warning, 'specialSituationWatch.candidates: duplicate_codes 2')
 
 const invalidCandidates = normalizeGeneratedSpecialSituationWatchInput({
   generatedAt: '2026-08-20',
@@ -91,8 +94,12 @@ const duplicateTopChance = normalizeGeneratedSpecialSituationWatchInput({
     { ...validTopChance, name: 'Sanrio duplicate' },
   ],
 })
-assert.deepEqual(duplicateTopChance.value?.topChanceList?.map(candidate => candidate.code), ['8136'])
-assert.equal(duplicateTopChance.warning, 'specialSituationWatch.topChanceList: duplicate_codes 1')
+assert.deepEqual(
+  duplicateTopChance.value?.topChanceList?.map(candidate => candidate.code),
+  [],
+  'ambiguous duplicate top-chance identity is isolated instead of choosing an input-order winner',
+)
+assert.equal(duplicateTopChance.warning, 'specialSituationWatch.topChanceList: duplicate_codes 2')
 
 const invalidTopChanceRoot = normalizeGeneratedSpecialSituationWatchInput({
   generatedAt: '2026-08-20',

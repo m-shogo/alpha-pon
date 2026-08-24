@@ -108,12 +108,16 @@ function normalizeRows<T extends { code: string }>(
   if (!Array.isArray(value)) return { rows: [], warning: `${field}: invalid_shape` }
 
   const validRows = value.filter(predicate)
-  const seenCodes = new Set<string>()
-  const rows = validRows.filter((row) => {
-    if (seenCodes.has(row.code)) return false
-    seenCodes.add(row.code)
-    return true
-  })
+  const countsByCode = new Map<string, number>()
+  for (const row of validRows) {
+    countsByCode.set(row.code, (countsByCode.get(row.code) ?? 0) + 1)
+  }
+  const duplicateCodes = new Set(
+    [...countsByCode.entries()]
+      .filter(([, count]) => count > 1)
+      .map(([code]) => code),
+  )
+  const rows = validRows.filter((row) => !duplicateCodes.has(row.code))
   const invalidRows = value.length - validRows.length
   const duplicateRows = validRows.length - rows.length
   const warnings = [
