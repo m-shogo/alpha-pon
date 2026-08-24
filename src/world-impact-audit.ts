@@ -2,9 +2,11 @@
 // 世界ニュース影響仮説レビューの品質を監査する。
 // v2: JSONL 破損行・latest との不一致・mechanism unknown・falsification/confidence 未設定も検出する。
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
+import { readReadOnlyJsonArrayFile } from "./read-only-json-file.js";
+import { readJsonlWithErrors } from "./read-only-jsonl.js";
 import { countInvalidWorldImpactAuditRows } from "./world-impact-audit-input.js";
 import {
   buildWorldImpactAudit,
@@ -19,28 +21,14 @@ import {
 
 function readLatest(): WorldImpactLatestSnapshotInput {
   const latest = join("data", "world_event_impacts_latest.json");
-  if (!existsSync(latest)) return { present: false };
-  try {
-    return { present: true, parsed: JSON.parse(readFileSync(latest, "utf-8")) };
-  } catch {
-    return { present: true, parseError: true };
-  }
+  const loaded = readReadOnlyJsonArrayFile<unknown>(latest);
+  if (loaded.missing) return { present: false };
+  if (loaded.parseError || loaded.invalidRoot) return { present: true, parseError: true };
+  return { present: true, parsed: loaded.rows };
 }
 
 function readRawRecords(): unknown[] {
-  const path = join("data", "world_event_impacts.jsonl");
-  if (!existsSync(path)) return [];
-  return readFileSync(path, "utf-8")
-    .split("\n")
-    .map(line => line.trim())
-    .filter(Boolean)
-    .flatMap(line => {
-      try {
-        return [JSON.parse(line) as unknown];
-      } catch {
-        return [];
-      }
-    });
+  return readJsonlWithErrors<unknown>(join("data", "world_event_impacts.jsonl")).rows;
 }
 
 function main() {

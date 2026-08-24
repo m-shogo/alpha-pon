@@ -142,11 +142,14 @@ function testAnalogyPredictionReviewUsesStoredDueDateAndTimeframe() {
 }
 
 function testWorldImpactReadOnlyConsumersUseCanonicalLatestBoundary() {
-  for (const relativePath of ["../src/world-impact-report.ts", "../src/world-impact-calibrate.ts"]) {
+  for (const relativePath of ["../src/world-impact-report.ts", "../src/world-impact-calibrate.ts", "../src/world-impact-audit.ts"]) {
     const source = readFileSync(new URL(relativePath, import.meta.url), "utf-8");
     assert.match(source, /readReadOnlyJsonArrayFile<unknown>\(latest\)/, `${relativePath} must use the canonical read-only JSON boundary`);
     assert.doesNotMatch(source, /JSON\.parse\(readFileSync\(latest/, `${relativePath} must not bypass linked-evidence checks`);
   }
+  const auditSource = readFileSync(new URL("../src/world-impact-audit.ts", import.meta.url), "utf-8");
+  assert.match(auditSource, /readJsonlWithErrors<unknown>\(join\("data", "world_event_impacts\.jsonl"\)\)\.rows/);
+  assert.doesNotMatch(auditSource, /readFileSync\(path, "utf-8"\)/);
 }
 
 function testWorldEventReflectionReliabilityGate() {
