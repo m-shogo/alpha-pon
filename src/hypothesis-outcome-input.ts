@@ -8,6 +8,7 @@ type ParsedHypothesisOutcomes = {
 
 const HYPOTHESIS_RESULTS = new Set(["hit", "miss", "too_early", "invalidated", "unknown"]);
 const REVIEW_HORIZONS = new Set(["1d", "1w", "1m", "3m"]);
+const ACTION_LABELS = new Set(["watch", "log", "ignore"]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -35,6 +36,7 @@ export function isUsableHypothesisOutcomeInput(value: unknown): value is Hypothe
     )
   ) return false;
   if (typeof value.reviewHorizon !== "string" || !REVIEW_HORIZONS.has(value.reviewHorizon)) return false;
+  if (typeof value.actionLabel !== "string" || !ACTION_LABELS.has(value.actionLabel)) return false;
   if (value.result !== undefined && (typeof value.result !== "string" || !HYPOTHESIS_RESULTS.has(value.result))) return false;
   return isRealJstDate(value.hypothesis.detectedAt) && value.hypothesis.detectedAt <= todayJst();
 }
