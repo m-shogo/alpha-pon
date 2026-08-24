@@ -212,6 +212,42 @@ const invalidSortAt = normalizeMarketEventData({
 assert.equal(invalidSortAt.events.length, 0, "invalid sortAt rows must be quarantined before rendering");
 assert.equal(invalidSortAt.summary.total, 0, "quarantined rows must not remain in the read-only summary total");
 
+const validSource = {
+  sourceId: "src_fixture",
+  authority: "JPX",
+  sourceType: "JPX",
+  url: "https://www.jpx.co.jp/example",
+  title: "synthetic primary source",
+  publishedAt: "2026-08-11T08:00:00+09:00",
+  retrievedAt: "2026-08-11T09:00:00+09:00",
+  contentHash: "fixture-hash",
+};
+
+const invalidSourceRows = normalizeMarketEventData({
+  schemaVersion: 1,
+  source: "fallback",
+  events: [
+    { ...validEvent, eventId: "bad-source-id", sources: [{ ...validSource, sourceId: "source-1" }] },
+    { ...validEvent, eventId: "bad-source-type", sources: [{ ...validSource, sourceType: "BLOG" }] },
+    { ...validEvent, eventId: "bad-source-url", sources: [{ ...validSource, url: "javascript:alert(1)" }] },
+    { ...validEvent, eventId: "bad-retrieved-at", sources: [{ ...validSource, retrievedAt: "2026-08-11" }] },
+    { ...validEvent, eventId: "bad-published-at", sources: [{ ...validSource, publishedAt: "2026-02-31T08:00:00+09:00" }] },
+    { ...validEvent, eventId: "valid-source", sources: [validSource] },
+  ],
+  summary: { nextEventAt: null },
+  meta: { warnings: [] },
+});
+assert.deepEqual(
+  invalidSourceRows.events.map(event => event.eventId),
+  ["valid-source"],
+  "market event sources must preserve canonical identity, type, HTTPS URL, and strict timestamp provenance before rendering primary links",
+);
+assert.deepEqual(
+  invalidSourceRows.meta.warnings,
+  ["不正なイベント 5 件を表示対象から除外しました。"],
+  "invalid source provenance must be quarantined observably instead of becoming a primary-information false-green",
+);
+
 for (const invalidRoot of [[], {}, { schemaVersion: 1, events: [] }, "broken"] as unknown[]) {
   const normalizedRoot = normalizeMarketEventData(invalidRoot);
   assert.equal(normalizedRoot.source, "fallback");
