@@ -145,7 +145,8 @@ function hasValidBackfill(value: unknown): boolean {
 
 function hasValidOutcomeStats(value: unknown): boolean {
   if (!isRecord(value)) return false
-  return isSafeCount(value.sampleTooSmall) && isSafeCount(value.hasStats)
+  if (!isSafeCount(value.sampleTooSmall) || !isSafeCount(value.hasStats)) return false
+  return value.sampleTooSmall <= value.hasStats
 }
 
 function hasValidMixedOutcomes(value: unknown): boolean {
