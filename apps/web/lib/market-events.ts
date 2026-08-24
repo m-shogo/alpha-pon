@@ -1,6 +1,7 @@
 import 'server-only'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { readCanonicalGeneratedJsonFile } from './generated-api-file'
 import {
   EMPTY_MARKET_EVENT_DATA,
   normalizeMarketEventData,
@@ -14,7 +15,7 @@ const DATA_PATH = join(process.cwd(), 'public', 'generated', 'alpha-pon-events.j
 export function loadMarketEventData(): WebMarketEventData {
   if (!existsSync(DATA_PATH)) return EMPTY_MARKET_EVENT_DATA
   try {
-    return normalizeMarketEventData(JSON.parse(readFileSync(DATA_PATH, 'utf8')))
+    return normalizeMarketEventData(readCanonicalGeneratedJsonFile(DATA_PATH))
   } catch {
     return {
       ...EMPTY_MARKET_EVENT_DATA,
