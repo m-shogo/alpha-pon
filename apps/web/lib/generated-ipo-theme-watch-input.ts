@@ -58,6 +58,17 @@ function isRelatedCompany(value: unknown): boolean {
     && typeof company.relation === 'string'
 }
 
+function hasUniqueRelatedCompanyCodes(value: unknown): boolean {
+  if (value === undefined) return true
+  if (!Array.isArray(value)) return false
+  const codes = value.map((company) => (
+    company && typeof company === 'object' && !Array.isArray(company)
+      ? (company as Record<string, unknown>).code
+      : undefined
+  ))
+  return codes.every((code) => typeof code === 'string') && new Set(codes).size === codes.length
+}
+
 function isRule(value: unknown): value is GeneratedIpoThemeWatchRule {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const rule = value as Record<string, unknown>
@@ -72,6 +83,7 @@ function isRule(value: unknown): value is GeneratedIpoThemeWatchRule {
     && isOptionalStringArray(rule.japaneseSpilloverThemes)
     && (rule.relatedCompanies === undefined
       || (Array.isArray(rule.relatedCompanies) && rule.relatedCompanies.every(isRelatedCompany)))
+    && hasUniqueRelatedCompanyCodes(rule.relatedCompanies)
 }
 
 function hasUniqueRuleIds(rules: GeneratedIpoThemeWatchRule[]): boolean {
