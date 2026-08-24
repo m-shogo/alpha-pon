@@ -170,6 +170,7 @@ export function normalizeStockCandidateUniverseRows(
       !finiteOrNull(row.drawdownPct) ||
       !finiteOrNull(row.operatingProfitYoY) ||
       typeof row.screeningScore !== "number" || !Number.isFinite(row.screeningScore) ||
+      row.screeningScore < 0 || row.screeningScore > 100 ||
       !stringArray(row.matchedWorldEventTags)
     ) {
       warnings.push(`${sourceLabel}: ignored malformed candidate row ${index + 1}`);
