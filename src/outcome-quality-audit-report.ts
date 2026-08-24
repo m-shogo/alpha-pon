@@ -38,10 +38,10 @@ const outcomes = readGeneratedRows(
   "outcomes",
 );
 
-if (!hypotheses || !outcomes) {
+if (!Array.isArray(hypotheses) || !Array.isArray(outcomes)) {
   console.error(
     "生成データのshapeまたはcanonical file boundaryが不正です。先に pnpm ui:data を再実行してください。" +
-      `（hypotheses.json: ${hypotheses ? "ok" : "invalid"} / outcomes.json: ${outcomes ? "ok" : "invalid"}）`
+      `（hypotheses.json: ${Array.isArray(hypotheses) ? "ok" : "invalid"} / outcomes.json: ${Array.isArray(outcomes) ? "ok" : "invalid"}）`
   );
   process.exit(1);
 }
