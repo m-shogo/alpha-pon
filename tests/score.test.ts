@@ -4,6 +4,7 @@ import { scoreHealthyPullback } from "../src/score/pullback.js";
 import { scoreEarningsDrop } from "../src/score/earnings.js";
 import { validateWatchlist } from "../src/validation.js";
 import { parseLearningScoreInput } from "../src/learning-score-input.js";
+import { parseHypothesisOutcomesJsonl } from "../src/hypothesis-outcome-input.js";
 import type { WatchlistConfig } from "../src/types.js";
 import {
   isGeneratedPipelineStatusInput,
@@ -239,6 +240,24 @@ function testLearningAlertLevelContract() {
   assert.deepEqual(parsed.invalidRows, [1]);
 }
 
+function testHypothesisOutcomeReviewHorizonContract() {
+  const base = {
+    code: "8136",
+    hypothesis: { detectedAt: "2026-08-21" },
+    reviewHorizon: "1w",
+    result: "unknown",
+  };
+  const parsed = parseHypothesisOutcomesJsonl([
+    JSON.stringify(base),
+    JSON.stringify({ ...base, code: "4661", reviewHorizon: "2w" }),
+    JSON.stringify({ ...base, code: "7832", reviewHorizon: " 1w " }),
+    JSON.stringify({ ...base, code: "7974", reviewHorizon: undefined }),
+  ].join("\n"), "synthetic outcomes");
+  assert.deepEqual(parsed.rows.map(row => row.code), ["8136"], "canonical reviewHorizonだけをdue/review evidenceへ残す");
+  assert.equal(parsed.warnings.length, 1);
+  assert.match(parsed.warnings[0], /3 malformed JSONL row\(s\) isolated/);
+}
+
 function main() {
   testPullbackMissingFinancials();
   testEarningsDropMissingFinancials();
@@ -254,6 +273,7 @@ function main() {
   testLearningScorePitCutoff();
   testLearningScoreDuplicateIdentity();
   testLearningAlertLevelContract();
+  testHypothesisOutcomeReviewHorizonContract();
   console.log("score.test.ts passed");
 }
 
