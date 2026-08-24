@@ -27,6 +27,7 @@ import { loadRunCursor, saveRunCursor } from "./run-cursor.js";
 import { buildPriceSignalFromQuotes, evaluatePriceRisk } from "./analysis/price-signal.js";
 import { carryForwardValidStaleCandidates } from "./universe-stale-fallback.js";
 import { buildUniverseScanOutput } from "./universe-scan-output.js";
+import { parseUniverseScanMaxPerRun, parseUniverseScanOffset } from "./universe-scan-config.js";
 
 const MARKET_BENCHMARK_CODE = process.env.MARKET_BENCHMARK_CODE ?? "1306";
 
@@ -48,10 +49,10 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 }
 function isMockEnabled(): boolean { return process.argv.includes("--mock") || process.env.USE_MOCK === "true"; }
 function selectStocksForRun(stocks: UniverseStockEntry[]): { stocks: UniverseStockEntry[]; offset: number; maxPerRun: number; autoCursor: boolean } {
-  const max = Math.max(1, Number(process.env.UNIVERSE_SCAN_MAX_PER_RUN ?? "8"));
+  const max = parseUniverseScanMaxPerRun(process.env.UNIVERSE_SCAN_MAX_PER_RUN);
   const explicitOffset = process.env.UNIVERSE_SCAN_OFFSET;
   const autoCursor = explicitOffset == null || explicitOffset === "";
-  const offset = autoCursor ? loadRunCursor("universe-scan", max, stocks.length).offset : Math.max(0, Number(explicitOffset));
+  const offset = autoCursor ? loadRunCursor("universe-scan", max, stocks.length).offset : parseUniverseScanOffset(explicitOffset);
   return { stocks: stocks.slice(offset, offset + max), offset, maxPerRun: max, autoCursor };
 }
 
