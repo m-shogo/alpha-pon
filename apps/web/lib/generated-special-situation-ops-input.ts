@@ -134,10 +134,13 @@ function hasValidReviewDue(value: unknown): boolean {
 
 function hasValidBackfill(value: unknown): boolean {
   if (!isRecord(value)) return false
-  return isSafeCount(value.structurallyUpdatable)
-    && isSafeCount(value.historicalUpdatable)
-    && isSafeCount(value.recentUpdatable)
-    && isSafeCount(value.notDueYet)
+  if (!isSafeCount(value.structurallyUpdatable)
+    || !isSafeCount(value.historicalUpdatable)
+    || !isSafeCount(value.recentUpdatable)
+    || !isSafeCount(value.notDueYet)) {
+    return false
+  }
+  return value.structurallyUpdatable === value.historicalUpdatable + value.recentUpdatable
 }
 
 function hasValidOutcomeStats(value: unknown): boolean {
