@@ -44,7 +44,7 @@ function isCanonicalPastOrPresentDate(value: unknown): value is string {
   const day = Number(match[3])
   if (year < 1) return false
   const parsed = new Date(Date.UTC(year, month - 1, day))
-  if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() !== month - 1 || parsed.getUTCDate() !== day) return false
+  if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() === month || parsed.getUTCMonth() !== month - 1 || parsed.getUTCDate() !== day) return false
   return value <= currentJstDate()
 }
 
@@ -56,6 +56,17 @@ function isRelatedCompany(value: unknown): boolean {
     && company.code === company.code.trim()
     && typeof company.name === 'string'
     && typeof company.relation === 'string'
+}
+
+function hasUniqueRelatedCompanyCodes(value: unknown): boolean {
+  if (value === undefined) return true
+  if (!Array.isArray(value)) return false
+  const codes = value.map((company) => (
+    company && typeof company === 'object' && !Array.isArray(company)
+      ? (company as Record<string, unknown>).code
+      : undefined
+  ))
+  return codes.every((code) => typeof code === 'string') && new Set(codes).size === codes.length
 }
 
 function isRule(value: unknown): value is GeneratedIpoThemeWatchRule {
@@ -72,6 +83,7 @@ function isRule(value: unknown): value is GeneratedIpoThemeWatchRule {
     && isOptionalStringArray(rule.japaneseSpilloverThemes)
     && (rule.relatedCompanies === undefined
       || (Array.isArray(rule.relatedCompanies) && rule.relatedCompanies.every(isRelatedCompany)))
+    && hasUniqueRelatedCompanyCodes(rule.relatedCompanies)
 }
 
 function hasUniqueRuleIds(rules: GeneratedIpoThemeWatchRule[]): boolean {
