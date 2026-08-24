@@ -95,6 +95,14 @@ const validSpecialOutcome = {
   code: "8136",
   hypothesis: { reason: "[special_situation] synthetic regression" },
 } as unknown as HypothesisOutcome;
+const validNormalOutcome = {
+  code: "8136",
+  hypothesis: { reason: "normal synthetic regression" },
+} as unknown as HypothesisOutcome;
+const fallbackNormalOutcome = {
+  code: "9999",
+  hypothesis: { reason: "normal fallback regression" },
+} as unknown as HypothesisOutcome;
 const malformedMatchingOutcome = { code: "8136" } as unknown as HypothesisOutcome;
 const runtimeFiltered = filterOutcomesByCode(
   [malformedMatchingOutcome, validSpecialOutcome],
@@ -103,6 +111,25 @@ const runtimeFiltered = filterOutcomesByCode(
 );
 assert.equal(runtimeFiltered.special.length, 1, "正常なspecial outcomeは維持する");
 assert.equal(runtimeFiltered.normal.length, 0, "hypothesis欠落rowをnormal outcomeとして扱わない");
+const mixedAll = filterOutcomesByCode(
+  [validSpecialOutcome, validNormalOutcome],
+  new Set(["8136"]),
+  "all",
+);
+assert.equal(mixedAll.mixed, true, "同一codeにspecial/normalが共存する場合だけmixedを立てる");
+const mixedPrefer = filterOutcomesByCode(
+  [validSpecialOutcome, validNormalOutcome, fallbackNormalOutcome],
+  new Set(["8136", "9999"]),
+  "special_prefer",
+);
+assert.equal(mixedPrefer.mixed, true, "special_preferでも元入力の実混在を保持する");
+assert.deepEqual(mixedPrefer.normal, [fallbackNormalOutcome], "specialがないcodeのnormal fallbackは維持する");
+const normalOnlyAcrossCodes = filterOutcomesByCode(
+  [validSpecialOutcome, fallbackNormalOutcome],
+  new Set(["8136", "9999"]),
+  "special_prefer",
+);
+assert.equal(normalOnlyAcrossCodes.mixed, false, "別codeのspecial/normal共存だけではmixedにしない");
 const runtimeSelected = selectOutcomesForStats([malformedMatchingOutcome, validSpecialOutcome], "8136");
 assert.equal(runtimeSelected.source, "special");
 assert.deepEqual(runtimeSelected.selected, [validSpecialOutcome], "malformed rowを隔離して正常rowだけ集計する");
