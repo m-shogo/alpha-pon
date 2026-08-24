@@ -9,6 +9,7 @@ import { join } from "path";
 import { load } from "js-yaml";
 import { addDaysJst, todayJst } from "./date.js";
 import { parseHypothesisOutcomesJsonl } from "./hypothesis-outcome-input.js";
+import { normalizeSpecialSituationCandidates } from "./special-situation-candidate-input.js";
 import type { HypothesisOutcome, ReviewHorizon } from "./universe.js";
 import { isSpecialSituationOutcome, detectMixedOutcomes, isHistoricalSeedOverdue } from "./special-situation-outcome-filter.js";
 import { calcSpecialSituationDueAt } from "./special-situation-review-due-date.js";
@@ -128,11 +129,14 @@ function nextActionFor(status: DueStatus, dueAt: string | null, missingFields: s
 function main(): void {
   const today = todayJst();
 
-  // 候補読み込み
-  type CandidateEntry = { code: string; name: string };
-  type Config = { candidates?: CandidateEntry[] };
-  const config = readYaml<Config>("config/special-situation-watch-rules.yml");
-  const candidates = config.candidates ?? [];
+  // 候補読み込み。canonical identity以外はread-only集計から隔離する。
+  const rawConfig = readYaml<unknown>("config/special-situation-watch-rules.yml");
+  const normalizedCandidates = normalizeSpecialSituationCandidates(
+    rawConfig,
+    "config/special-situation-watch-rules.yml",
+  );
+  for (const warning of normalizedCandidates.warnings) console.warn(`[warn] ${warning}`);
+  const candidates = normalizedCandidates.candidates;
   const candidateCodes = new Set(candidates.map(c => c.code));
   const codeToName = new Map(candidates.map(c => [c.code, c.name]));
 
@@ -240,6 +244,7 @@ function main(): void {
     "historical_seed_overdue は上場日を detectedAt に使った過去日付 seed。急ぎの投資判断ではなく検証用データの補完候補。",
     "not_due_yet は正常。期限後に再確認する。",
     "no_outcome_record は outcome 未作成または日付不正など、期限計算に使えない候補。内容を確認してから再生成する。",
+    ...normalizedCandidates.warnings,
     ...parsedOutcomes.warnings,
   ];
   if (mixed.length > 0) {
