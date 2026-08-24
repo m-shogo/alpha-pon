@@ -64,7 +64,7 @@ assert.deepEqual(normalized.categories.healthy, {
     role: "IP",
     status: "active",
     upsideHypothesis: "upside",
-    noMoveHypothesis: "flat".replace("flat", "no move"),
+    noMoveHypothesis: "no move",
     downsideHypothesis: "downside",
     notGoodWhen: [],
     relatedCompanies: ["7974 任天堂"],
