@@ -95,14 +95,18 @@ try {
   );
 
   const outcomeResult = loadAnalogyOutcomesForReview(outcomePath, "2026-08-18");
-  assert.equal(outcomeResult.rows.length, 1, "重複Outcome identityは週次/月次Evidenceへ二重計上しない");
-  assert.equal(outcomeResult.rows[0]?.eventId, uniqueOutcome.eventId, "重複に参加しないunique Outcomeだけを保持する");
+  assert.equal(outcomeResult.rows.length, 2, "重複Outcome identityはfirst canonical rowだけ保持して二重計上しない");
+  assert.deepEqual(
+    outcomeResult.rows.map(row => row.eventId),
+    [validOutcome.eventId, uniqueOutcome.eventId],
+    "最初のcanonical Outcomeとunrelated unique Outcomeを保持する",
+  );
   assert.equal(outcomeResult.warnings.length, 3);
   assert.match(outcomeResult.warnings[0] ?? "", /parse_error 1/);
   assert.match(outcomeResult.warnings[0] ?? "", /lines 11/);
   assert.doesNotMatch(outcomeResult.warnings[0] ?? "", /broken-outcome/);
   assert.match(outcomeResult.warnings[1] ?? "", /invalid_shape 7/);
-  assert.match(outcomeResult.warnings[2] ?? "", /duplicate_identity 2/);
+  assert.match(outcomeResult.warnings[2] ?? "", /duplicate_identity 1/);
   assert.throws(() => loadAnalogyOutcomesForReview(outcomePath, "2026-02-31"), /real YYYY-MM-DD/);
 
   console.log("analogy-review-input.test.ts passed");
