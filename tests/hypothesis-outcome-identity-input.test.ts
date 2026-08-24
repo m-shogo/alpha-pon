@@ -6,6 +6,7 @@ const valid = {
   code: "8136",
   hypothesis: { detectedAt: todayJst() },
   reviewHorizon: "1m",
+  actionLabel: "log",
 };
 
 const jsonl = parseHypothesisOutcomesJsonl([
@@ -32,4 +33,4 @@ const sqlite = parseHypothesisOutcomeSqlitePayloads([
 assert.deepEqual(sqlite.rows.map(row => row.code), ["8136"], "SQLite payloadでもcanonical Outcome identity/date/result/hypothesis codeだけを保持する");
 assert.match(sqlite.warnings[0], /4 malformed record\(s\).*record\(s\) 2, 3, 4, 5/);
 
-console.log("hypothesis-outcome-identity-input: canonical code, detectedAt, result, and nested hypothesis identity fail closed OK");
+console.log("hypothesis-outcome-identity-input: canonical code, detectedAt, result, action label, and nested hypothesis identity fail closed OK");
