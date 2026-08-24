@@ -5,7 +5,7 @@ import { join } from "node:path";
 import "./hypothesis-open-identity-dedupe.test.js";
 import "./hypothesis-outcome-identity-input.test.js";
 import { addDaysJst, todayJst } from "../src/date.js";
-import { loadRunCursor } from "../src/run-cursor.js";
+import { loadRunCursor, saveRunCursor } from "../src/run-cursor.js";
 
 const originalCwd = process.cwd();
 const dir = mkdtempSync(join(tmpdir(), "run-cursor-input-"));
@@ -13,6 +13,26 @@ const dir = mkdtempSync(join(tmpdir(), "run-cursor-input-"));
 try {
   process.chdir(dir);
   mkdirSync("data", { recursive: true });
+
+  for (const [maxPerRun, total] of [
+    [Number.NaN, 100],
+    [0, 100],
+    [1.5, 100],
+    [20, -1],
+    [20, 1.5],
+    [20, Number.MAX_SAFE_INTEGER + 1],
+  ] as Array<[number, number]>) {
+    assert.throws(
+      () => loadRunCursor("universe-scan", maxPerRun, total),
+      /run cursor (maxPerRun|total) must be/,
+      "invalid caller parameters must fail visibly instead of producing an empty or corrupt cursor run",
+    );
+  }
+  assert.throws(
+    () => saveRunCursor({ jobName: "universe-scan", offset: 0, maxPerRun: Number.NaN, total: 100, updatedAt: todayJst() }),
+    /run cursor maxPerRun must be/,
+    "invalid persisted cursor parameters must not be written",
+  );
 
   writeFileSync("data/run-cursors.json", "null", "utf-8");
   assert.equal(
@@ -121,4 +141,4 @@ try {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("run-cursor-input: malformed roots, identity mismatches, invalid offsets, and future provenance fail closed OK");
+console.log("run-cursor-input: malformed roots, caller parameters, identity mismatches, invalid offsets, and future provenance fail closed OK");
