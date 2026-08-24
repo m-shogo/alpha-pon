@@ -2,7 +2,18 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { parseAnalogyReviewMaxPerRun } from "../src/analogy-review-config.js";
 import { loadAnalogyOutcomesForReview, loadAnalogyPredictionsForReview } from "../src/analogy-review-input.js";
+
+assert.equal(parseAnalogyReviewMaxPerRun(undefined), 12, "未指定は既定12件");
+assert.equal(parseAnalogyReviewMaxPerRun("12"), 12, "正の整数を保持する");
+assert.equal(parseAnalogyReviewMaxPerRun("120"), 120, "上限120件を許可する");
+assert.equal(parseAnalogyReviewMaxPerRun("121"), 120, "上限超過は120件へ丸める");
+assert.equal(parseAnalogyReviewMaxPerRun("0"), 12, "0は既定値へfail-closedする");
+assert.equal(parseAnalogyReviewMaxPerRun("-1"), 12, "負数は既定値へfail-closedする");
+assert.equal(parseAnalogyReviewMaxPerRun("abc"), 12, "非numeric値は既定値へfail-closedする");
+assert.equal(parseAnalogyReviewMaxPerRun("1.5"), 12, "小数は既定値へfail-closedする");
+assert.equal(parseAnalogyReviewMaxPerRun("12reviews"), 12, "部分parse可能な文字列をrejectする");
 
 const dir = mkdtempSync(join(tmpdir(), "alpha-pon-analogy-review-"));
 
