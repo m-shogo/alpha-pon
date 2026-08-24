@@ -13,6 +13,7 @@ try {
     JSON.stringify({ id: "valid-1", name: "Valid", listingDate: "2026-07-01", lockupDays: 180 }),
     "{broken",
     "{}",
+    JSON.stringify({ id: " padded-id ", name: "Padded Identity", listingDate: "2026-07-01", lockupDays: 180 }),
     JSON.stringify({ id: "bad-days", name: "Bad", lockupDays: "180" }),
     JSON.stringify({ id: "negative-days", name: "Negative", listingDate: "2026-07-01", lockupDays: -1 }),
     JSON.stringify({ id: "zero-days", name: "Zero", listingDate: "2026-07-01", lockupDays: 0 }),
@@ -31,7 +32,7 @@ try {
   assert.equal(result.warnings.length, 2);
   assert.match(result.warnings[0] ?? "", /parse_error 1/);
   assert.match(result.warnings[0] ?? "", /lines 2/);
-  assert.equal(result.warnings[1], `${path}: invalid_rows=10`);
+  assert.equal(result.warnings[1], `${path}: invalid_rows=11`);
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
