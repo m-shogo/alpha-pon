@@ -25,6 +25,7 @@ import { applySafeWordingScanHealth } from "../src/ops-dashboard-safe-wording-he
 import { normalizeOpsSpecialSituationInput } from "../src/ops-dashboard-special-input.js";
 import { applyWorldImpactAuditHealth } from "../src/ops-dashboard-world-impact-health.js";
 import { normalizeOpsWorldImpactInput } from "../src/ops-dashboard-world-impact-input.js";
+import { isCanonicalReadOnlyJsonFile } from "../src/read-only-json-file.js";
 import {
   buildOpsDashboard,
   findForbiddenWording,
@@ -38,7 +39,7 @@ const ROOT = process.cwd();
 
 function readJson<T>(path: string): T | null {
   const full = join(ROOT, path);
-  if (!existsSync(full)) return null;
+  if (!existsSync(full) || !isCanonicalReadOnlyJsonFile(full)) return null;
   try {
     return JSON.parse(readFileSync(full, "utf-8")) as T;
   } catch {

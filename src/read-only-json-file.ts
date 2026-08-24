@@ -29,7 +29,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function isCanonicalRegularFile(path: string): boolean {
+export function isCanonicalReadOnlyJsonFile(path: string): boolean {
   try {
     const stat = lstatSync(path);
     return stat.isFile() && stat.nlink === 1;
@@ -47,7 +47,7 @@ export function readReadOnlyJsonArrayFile<T>(path: string): ReadOnlyJsonArrayFil
       invalidRoot: false,
     };
   }
-  if (!isCanonicalRegularFile(path)) {
+  if (!isCanonicalReadOnlyJsonFile(path)) {
     return {
       rows: [],
       missing: false,
@@ -96,7 +96,7 @@ export function readReadOnlyJsonObjectFile<T extends Record<string, unknown>>(
       invalidRoot: false,
     };
   }
-  if (!isCanonicalRegularFile(path)) {
+  if (!isCanonicalReadOnlyJsonFile(path)) {
     return {
       object: null,
       missing: false,
@@ -150,7 +150,7 @@ export function readReadOnlyJsonObjectArrayFile<T>(
       invalidRows: 0,
     };
   }
-  if (!isCanonicalRegularFile(path)) {
+  if (!isCanonicalReadOnlyJsonFile(path)) {
     return {
       object: null,
       rows: [],

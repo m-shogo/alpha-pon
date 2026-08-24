@@ -3,6 +3,7 @@ import { linkSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  isCanonicalReadOnlyJsonFile,
   readReadOnlyJsonArrayFile,
   readReadOnlyJsonObjectArrayFile,
   readReadOnlyJsonObjectFile,
@@ -22,6 +23,10 @@ const objectArrayLink = join(dir, "object-array-link.json");
 symlinkSync(arrayTarget, arrayLink);
 symlinkSync(objectTarget, objectLink);
 symlinkSync(objectArrayTarget, objectArrayLink);
+
+assert.equal(isCanonicalReadOnlyJsonFile(arrayLink), false);
+assert.equal(isCanonicalReadOnlyJsonFile(objectLink), false);
+assert.equal(isCanonicalReadOnlyJsonFile(objectArrayLink), false);
 
 assert.deepEqual(readReadOnlyJsonArrayFile(arrayLink), {
   rows: [],
@@ -54,6 +59,10 @@ linkSync(arrayTarget, arrayHardLink);
 linkSync(objectTarget, objectHardLink);
 linkSync(objectArrayTarget, objectArrayHardLink);
 
+assert.equal(isCanonicalReadOnlyJsonFile(arrayHardLink), false);
+assert.equal(isCanonicalReadOnlyJsonFile(objectHardLink), false);
+assert.equal(isCanonicalReadOnlyJsonFile(objectArrayHardLink), false);
+
 assert.deepEqual(readReadOnlyJsonArrayFile(arrayHardLink), {
   rows: [],
   missing: false,
@@ -83,6 +92,9 @@ writeFileSync(standaloneArray, JSON.stringify([{ id: "real" }]));
 writeFileSync(standaloneObject, JSON.stringify({ id: "real" }));
 writeFileSync(standaloneObjectArray, JSON.stringify({ rows: [{ id: "real" }] }));
 
+assert.equal(isCanonicalReadOnlyJsonFile(standaloneArray), true);
+assert.equal(isCanonicalReadOnlyJsonFile(standaloneObject), true);
+assert.equal(isCanonicalReadOnlyJsonFile(standaloneObjectArray), true);
 assert.deepEqual(readReadOnlyJsonArrayFile<{ id: string }>(standaloneArray).rows, [{ id: "real" }]);
 assert.equal(readReadOnlyJsonObjectFile<{ id: string }>(standaloneObject).object?.id, "real");
 assert.deepEqual(readReadOnlyJsonObjectArrayFile<{ id: string }>(standaloneObjectArray, "rows").rows, [{ id: "real" }]);
