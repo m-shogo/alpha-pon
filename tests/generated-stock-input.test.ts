@@ -27,6 +27,10 @@ assert.deepEqual(
   { rows: [valid], warning: 'stocks: invalid_rows 1' },
 )
 assert.deepEqual(
+  normalizeGeneratedStocksInput([valid, { ...valid, name: 'duplicate stock' }]),
+  { rows: [], warning: 'stocks: invalid_rows 2' },
+)
+assert.deepEqual(
   normalizeGeneratedStocksInput([valid, null, []]),
   { rows: [valid], warning: 'stocks: invalid_rows 2' },
 )

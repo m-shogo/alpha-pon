@@ -53,7 +53,10 @@ export function normalizeGeneratedStocksInput(
   value: unknown,
 ): { rows: GeneratedStockInput[]; warning: string | null } {
   if (!Array.isArray(value)) return { rows: [], warning: 'stocks: invalid_root' }
-  const rows = value.filter(isGeneratedStockInput)
+  const validRows = value.filter(isGeneratedStockInput)
+  const codeCounts = new Map<string, number>()
+  for (const row of validRows) codeCounts.set(row.code, (codeCounts.get(row.code) ?? 0) + 1)
+  const rows = validRows.filter((row) => codeCounts.get(row.code) === 1)
   const invalidCount = value.length - rows.length
   return {
     rows,
