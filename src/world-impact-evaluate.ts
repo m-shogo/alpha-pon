@@ -20,7 +20,10 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { addDaysJst, todayJst } from "./date.js";
 import { fetchDailyQuotes, isJQuantsConfigured } from "./fetcher/jquants.js";
-import { resolveWorldImpactEvaluationAsOf } from "./world-impact-evaluation-input.js";
+import {
+  resolveWorldImpactEvaluationAsOf,
+  resolveWorldImpactJquantsDelayDays,
+} from "./world-impact-evaluation-input.js";
 import { parseWorldImpactLatestSnapshot } from "./world-impact-latest-input.js";
 import {
   deriveReviewStatus,
@@ -34,7 +37,7 @@ import {
 const JSONL_PATH = join("data", "world_event_impacts.jsonl");
 const LATEST_PATH = join("data", "world_event_impacts_latest.json");
 const BENCHMARK_CODE = "1306"; // TOPIX 連動 ETF
-const JQUANTS_DELAY_DAYS = Number(process.env.JQUANTS_V2_DATA_DELAY_DAYS ?? "84");
+const JQUANTS_DELAY_DAYS = resolveWorldImpactJquantsDelayDays(process.env.JQUANTS_V2_DATA_DELAY_DAYS);
 
 type Args = {
   write: boolean;

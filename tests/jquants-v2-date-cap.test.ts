@@ -5,6 +5,7 @@ import {
   normalizeV2QuoteRange,
 } from "../src/fetcher/jquants.js";
 import { parsePrimaryDisclosureEdinetDays } from "../src/primary-disclosure-config.js";
+import { resolveWorldImpactJquantsDelayDays } from "../src/world-impact-evaluation-input.js";
 
 {
   const beforeJstMidnight = new Date("2026-08-07T14:30:00.000Z"); // 23:30 JST Aug 7
@@ -59,6 +60,18 @@ import { parsePrimaryDisclosureEdinetDays } from "../src/primary-disclosure-conf
   assert.equal(parsePrimaryDisclosureEdinetDays("1.5"), 5, "小数は既定値へfail-closedする");
   assert.equal(parsePrimaryDisclosureEdinetDays("5days"), 5, "部分parse可能な値をrejectする");
   console.log("primary-disclosure-config: EDINET scan day config is bounded and fail closed OK");
+}
+
+{
+  assert.equal(resolveWorldImpactJquantsDelayDays(undefined), 84, "World Impact J-Quants delay未指定は84日");
+  assert.equal(resolveWorldImpactJquantsDelayDays("84"), 84, "非負整数delayを保持する");
+  assert.equal(resolveWorldImpactJquantsDelayDays("0"), 0, "0日delayを明示指定できる");
+  assert.equal(resolveWorldImpactJquantsDelayDays("abc"), 84, "非numeric delayは既定値へfail-closedする");
+  assert.equal(resolveWorldImpactJquantsDelayDays("-1"), 84, "負数delayは既定値へfail-closedする");
+  assert.equal(resolveWorldImpactJquantsDelayDays("1.5"), 84, "小数delayは既定値へfail-closedする");
+  assert.equal(resolveWorldImpactJquantsDelayDays("84days"), 84, "部分parse可能なdelayをrejectする");
+  assert.equal(resolveWorldImpactJquantsDelayDays("9007199254740992"), 84, "unsafe integer delayをrejectする");
+  console.log("world-impact-evaluation-input: J-Quants delay config is fail closed OK");
 }
 
 {
