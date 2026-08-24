@@ -68,6 +68,13 @@ try {
     missedSignals: [],
     improvedRuleIdeas: [],
   };
+  const duplicateOutcome = { ...validOutcome, actualOutcome: "duplicate identity" };
+  const uniqueOutcome = {
+    ...validOutcome,
+    eventId: "2026-08-01_8136_lesson-2_1d",
+    lessonId: "lesson-2",
+    lessonTitle: "Unique lesson",
+  };
   const unsafeSuppressor = {
     eventId: valid.eventId,
     timeframe: "1d",
@@ -81,20 +88,21 @@ try {
   const paddedOutcomeCandidateCode = { ...validOutcome, candidateCode: ` ${valid.candidateCode} ` };
   writeFileSync(
     outcomePath,
-    [validOutcome, unsafeSuppressor, impossibleDate, reversedChronology, futureOutcome, malformedNumericOutcome, paddedOutcomeEventId, paddedOutcomeCandidateCode]
+    [validOutcome, duplicateOutcome, uniqueOutcome, unsafeSuppressor, impossibleDate, reversedChronology, futureOutcome, malformedNumericOutcome, paddedOutcomeEventId, paddedOutcomeCandidateCode]
       .map(row => JSON.stringify(row))
       .join("\n") + "\n{broken-outcome\n",
     "utf-8",
   );
 
   const outcomeResult = loadAnalogyOutcomesForReview(outcomePath, "2026-08-18");
-  assert.equal(outcomeResult.rows.length, 1);
-  assert.equal(outcomeResult.rows[0]?.eventId, valid.eventId);
-  assert.equal(outcomeResult.warnings.length, 2);
+  assert.equal(outcomeResult.rows.length, 1, "重複Outcome identityは週次/月次Evidenceへ二重計上しない");
+  assert.equal(outcomeResult.rows[0]?.eventId, uniqueOutcome.eventId, "重複に参加しないunique Outcomeだけを保持する");
+  assert.equal(outcomeResult.warnings.length, 3);
   assert.match(outcomeResult.warnings[0] ?? "", /parse_error 1/);
-  assert.match(outcomeResult.warnings[0] ?? "", /lines 9/);
+  assert.match(outcomeResult.warnings[0] ?? "", /lines 11/);
   assert.doesNotMatch(outcomeResult.warnings[0] ?? "", /broken-outcome/);
   assert.match(outcomeResult.warnings[1] ?? "", /invalid_shape 7/);
+  assert.match(outcomeResult.warnings[2] ?? "", /duplicate_identity 2/);
   assert.throws(() => loadAnalogyOutcomesForReview(outcomePath, "2026-02-31"), /real YYYY-MM-DD/);
 
   console.log("analogy-review-input.test.ts passed");
