@@ -67,6 +67,7 @@ for (const invalid of [
   { ...valid, reviewDue: null },
   { ...valid, reviewDue: { ...valid.reviewDue, overdue: -1 } },
   { ...valid, backfill: { ...valid.backfill, structurallyUpdatable: 2, historicalUpdatable: 0, recentUpdatable: 1 } },
+  { ...valid, outcomeStats: { sampleTooSmall: 1, hasStats: 0 } },
   { ...valid, healthStatus: 'unknown' },
   { ...valid, healthStatus: 'needs_attention' },
   { ...valid, healthStatus: 'ok' },
