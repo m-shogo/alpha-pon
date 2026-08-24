@@ -1,8 +1,10 @@
 import { todayJst } from "./date.js";
 
 export type ListingAutomationJquantsResult = {
+  code: string;
+  date: string;
   price: number | null;
-  source?: "jquants" | "missing" | "error";
+  source: "jquants" | "missing" | "error";
 };
 
 export type ListingAutomationJquantsInput = {
@@ -34,7 +36,11 @@ function isStrictGregorianDate(value: unknown): value is string {
   return day <= daysInMonth;
 }
 
-function isListingAutomationJquantsSource(value: unknown): value is NonNullable<ListingAutomationJquantsResult["source"]> {
+function isCanonicalNonBlankString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0 && value === value.trim();
+}
+
+function isListingAutomationJquantsSource(value: unknown): value is ListingAutomationJquantsResult["source"] {
   return value === "jquants" || value === "missing" || value === "error";
 }
 
@@ -75,10 +81,14 @@ export function parseListingAutomationJquantsInput(text: string, asOf = todayJst
     if (price !== null && price !== undefined && (typeof price !== "number" || !Number.isFinite(price))) {
       return { targets, results, setupError: null, invalid: true, reason: "invalid_rows" };
     }
-    if (row.source !== undefined && !isListingAutomationJquantsSource(row.source)) {
+    if (
+      !isCanonicalNonBlankString(row.code) ||
+      !isStrictGregorianDate(row.date) ||
+      !isListingAutomationJquantsSource(row.source)
+    ) {
       return { targets, results, setupError: null, invalid: true, reason: "invalid_rows" };
     }
-    results.push({ price: price ?? null, source: row.source as ListingAutomationJquantsResult["source"] });
+    results.push({ code: row.code, date: row.date, price: price ?? null, source: row.source });
   }
 
   const setupError = root.setupError ?? null;

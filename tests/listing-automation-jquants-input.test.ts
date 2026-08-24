@@ -2,16 +2,17 @@ import assert from "node:assert/strict";
 import { parseListingAutomationJquantsInput } from "../src/listing-automation-jquants-input.js";
 
 const AS_OF = "2026-08-18";
+const VALID_RESULT = { code: "8136", date: "2026-08-18", price: 1234, source: "jquants" as const };
 const base = { generatedAt: AS_OF, targets: [], results: [], setupError: null };
 
 assert.deepEqual(
   parseListingAutomationJquantsInput(
-    JSON.stringify({ generatedAt: AS_OF, targets: [{ code: "8136" }], results: [{ price: 1234, source: "jquants" }], setupError: null }),
+    JSON.stringify({ generatedAt: AS_OF, targets: [{ code: "8136" }], results: [VALID_RESULT], setupError: null }),
     AS_OF,
   ),
   {
     targets: [{ code: "8136" }],
-    results: [{ price: 1234, source: "jquants" }],
+    results: [VALID_RESULT],
     setupError: null,
     invalid: false,
     reason: "ok",
@@ -68,15 +69,33 @@ assert.deepEqual(
 );
 
 assert.deepEqual(
-  parseListingAutomationJquantsInput(JSON.stringify({ ...base, results: [{ price: "1234", source: "jquants" }] }), AS_OF),
+  parseListingAutomationJquantsInput(JSON.stringify({ ...base, results: [{ ...VALID_RESULT, price: "1234" }] }), AS_OF),
   { targets: [], results: [], setupError: null, invalid: true, reason: "invalid_rows" },
   "non-numeric prices must not be treated as valid read-only price evidence",
 );
 
 assert.deepEqual(
-  parseListingAutomationJquantsInput(JSON.stringify({ ...base, results: [{ price: 1234, source: "synthetic" }] }), AS_OF),
+  parseListingAutomationJquantsInput(JSON.stringify({ ...base, results: [{ ...VALID_RESULT, source: "synthetic" }] }), AS_OF),
   { targets: [], results: [], setupError: null, invalid: true, reason: "invalid_rows" },
   "unknown source provenance must fail closed instead of being treated as J-Quants price evidence",
+);
+
+assert.deepEqual(
+  parseListingAutomationJquantsInput(JSON.stringify({ ...base, results: [{ price: 1234, source: "jquants" }] }), AS_OF),
+  { targets: [], results: [], setupError: null, invalid: true, reason: "invalid_rows" },
+  "price rows without code/date provenance must not manufacture successful listing evidence",
+);
+
+assert.deepEqual(
+  parseListingAutomationJquantsInput(JSON.stringify({ ...base, results: [{ ...VALID_RESULT, code: " 8136 " }] }), AS_OF),
+  { targets: [], results: [], setupError: null, invalid: true, reason: "invalid_rows" },
+  "non-canonical result identities must fail closed",
+);
+
+assert.deepEqual(
+  parseListingAutomationJquantsInput(JSON.stringify({ ...base, results: [{ ...VALID_RESULT, date: "2026-02-31" }] }), AS_OF),
+  { targets: [], results: [], setupError: null, invalid: true, reason: "invalid_rows" },
+  "impossible result dates must fail closed",
 );
 
 assert.deepEqual(
