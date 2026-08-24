@@ -38,6 +38,25 @@ assert.equal(mixed.candidates[0]?.code, "1234");
 assert.equal(mixed.candidates[0]?.staleAsOf, "2026-08-20");
 assert.equal(mixed.invalidRowCount, 5);
 
+const malformedRequiredShape = carryForwardValidStaleCandidates(
+  [
+    valid,
+    { ...valid, code: "2001", screeningScore: undefined },
+    { ...valid, code: "2002", warnings: undefined },
+    { ...valid, code: "2003", matchedWorldEventTags: "ai" },
+    { ...valid, code: "2004", hasNegativeFlag: "false" },
+    { ...valid, code: "2005", currentPrice: Number.POSITIVE_INFINITY },
+    { ...valid, code: "2006", status: "unknown" },
+  ] as unknown[],
+  "2026-08-20",
+);
+assert.deepEqual(
+  malformedRequiredShape.candidates.map(candidate => candidate.code),
+  ["1234"],
+  "partial or malformed prior candidates must not be re-issued as canonical stale fallback evidence",
+);
+assert.equal(malformedRequiredShape.invalidRowCount, 6);
+
 const duplicateIdentity = carryForwardValidStaleCandidates(
   [
     { ...valid, code: "1234", name: "first" },
