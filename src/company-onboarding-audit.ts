@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
+import { hasCanonicalStringItems } from "./company-onboarding-input.js";
 import { hasConfirmedProIrSource } from "./pro-ir-event-input.js";
 
 type Company = { code: string; name: string; status?: string; evidenceToCheck?: string[]; relatedCompanies?: string[] };
@@ -31,8 +32,8 @@ function main() {
       const events = irEvents.companies?.[company.code]?.events ?? [];
       const hasIr = events.length > 0;
       const hasConfirmedIr = events.some(event => hasConfirmedProIrSource(event));
-      const hasEvidence = (company.evidenceToCheck ?? []).length >= 3;
-      const hasPeers = hasNetwork || (company.relatedCompanies ?? []).length >= 2;
+      const hasEvidence = hasCanonicalStringItems(company.evidenceToCheck, 3);
+      const hasPeers = hasNetwork || hasCanonicalStringItems(company.relatedCompanies, 2);
 
       if (!hasIr) missing.push("shareholder_meeting_or_ir_event");
       if (hasIr && !hasConfirmedIr) missing.push("official_ir_event_detail");
