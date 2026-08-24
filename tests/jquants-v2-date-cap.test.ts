@@ -4,6 +4,7 @@ import {
   jquantsV2DateCapCompact,
   normalizeV2QuoteRange,
 } from "../src/fetcher/jquants.js";
+import { parseMaintenanceJsonlMaxBytes } from "../src/maintenance-config.js";
 import { parsePrimaryDisclosureEdinetDays } from "../src/primary-disclosure-config.js";
 import { resolveWorldImpactJquantsDelayDays } from "../src/world-impact-evaluation-input.js";
 
@@ -60,6 +61,18 @@ import { resolveWorldImpactJquantsDelayDays } from "../src/world-impact-evaluati
   assert.equal(parsePrimaryDisclosureEdinetDays("1.5"), 5, "小数は既定値へfail-closedする");
   assert.equal(parsePrimaryDisclosureEdinetDays("5days"), 5, "部分parse可能な値をrejectする");
   console.log("primary-disclosure-config: EDINET scan day config is bounded and fail closed OK");
+}
+
+{
+  assert.equal(parseMaintenanceJsonlMaxBytes(undefined), 10 * 1024 * 1024, "maintenance JSONL上限未指定は10MiB");
+  assert.equal(parseMaintenanceJsonlMaxBytes("1048576"), 1048576, "正の整数上限を保持する");
+  assert.equal(parseMaintenanceJsonlMaxBytes("abc"), 10 * 1024 * 1024, "非numeric上限は既定値へfail-closedする");
+  assert.equal(parseMaintenanceJsonlMaxBytes("0"), 10 * 1024 * 1024, "0 byte上限は既定値へfail-closedする");
+  assert.equal(parseMaintenanceJsonlMaxBytes("-1"), 10 * 1024 * 1024, "負数上限は既定値へfail-closedする");
+  assert.equal(parseMaintenanceJsonlMaxBytes("1.5"), 10 * 1024 * 1024, "小数上限は既定値へfail-closedする");
+  assert.equal(parseMaintenanceJsonlMaxBytes("1048576bytes"), 10 * 1024 * 1024, "部分parse可能な上限をrejectする");
+  assert.equal(parseMaintenanceJsonlMaxBytes("2147483648"), 1024 * 1024 * 1024, "過大上限は1GiBへboundedする");
+  console.log("maintenance-config: JSONL max size config is bounded and fail closed OK");
 }
 
 {
