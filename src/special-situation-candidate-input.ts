@@ -24,7 +24,12 @@ export function normalizeSpecialSituationCandidates(
   }
 
   const rawCandidates = value.candidates;
-  if (rawCandidates === undefined) return { candidates: [], warnings: [] };
+  if (rawCandidates === undefined) {
+    return {
+      candidates: [],
+      warnings: [`${sourceLabel}: candidates is required`],
+    };
+  }
   if (!Array.isArray(rawCandidates)) {
     return {
       candidates: [],
