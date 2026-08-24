@@ -33,6 +33,11 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(item => typeof item === "string");
 }
 
+function isCanonicalIdentityArray(value: unknown): value is string[] {
+  return Array.isArray(value)
+    && value.every(item => typeof item === "string" && item.length > 0 && item === item.trim());
+}
+
 function isAlertLevel(value: unknown): value is PeriodicScoreLogEntry["alertLevel"] {
   return value === "urgent" || value === "daily" || value === "log" || value === "ignore";
 }
@@ -66,8 +71,11 @@ function normalizePeriodicScoreRow(value: unknown, expectedDate?: string): Perio
   if (typeof row.createdAt !== "string" || !isRealDate(row.createdAt)) return null;
   if (expectedDate != null && row.createdAt !== expectedDate) return null;
 
-  for (const field of ["tags", "rules", "warnings", "negativeReasons"] as const) {
+  for (const field of ["warnings", "negativeReasons"] as const) {
     if (row[field] != null && !isStringArray(row[field])) return null;
+  }
+  for (const field of ["tags", "rules"] as const) {
+    if (row[field] != null && !isCanonicalIdentityArray(row[field])) return null;
   }
 
   let expertReview: PeriodicScoreLogEntry["expertReview"];
