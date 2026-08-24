@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "fs";
-import { addDaysJst } from "./date.js";
+import { addDaysJst, todayJst } from "./date.js";
 import { formatReadOnlyJsonlParseWarning, readJsonlWithErrors } from "./read-only-jsonl.js";
 import type { HypothesisOutcome } from "./universe.js";
 
@@ -71,12 +71,13 @@ function hasValidPublishedAt(value: unknown): boolean {
   if (typeof value !== "string") return false;
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     try {
-      return addDaysJst(value, 0) === value;
+      return addDaysJst(value, 0) === value && value <= todayJst();
     } catch {
       return false;
     }
   }
-  return !Number.isNaN(new Date(value).getTime());
+  const publishedAtMs = new Date(value).getTime();
+  return Number.isFinite(publishedAtMs) && publishedAtMs <= Date.now();
 }
 
 function isWorldEventInput(value: unknown): value is IpoThemeWorldEventInput {
