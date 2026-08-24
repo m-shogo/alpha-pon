@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
 import { isValidAnalogyReviewDueDate } from "./analogy-review-date.js";
+import { parseAnalogyReviewMaxPerRun } from "./analogy-review-config.js";
 import { saveAnalogyOutcomes, type AnalogyOutcomeRecord, type AnalogyPredictionRecord } from "./analysis/analogy-db.js";
 import { loadAnalogyOutcomesForReview, loadAnalogyPredictionsForReview } from "./analogy-review-input.js";
 import { reviewPredictionWithPrice, type PriceReviewResult } from "./analysis/analogy-price-review.js";
@@ -17,7 +18,7 @@ type GeneratedReview = {
 
 const mode: ReviewMode = process.argv.includes("--write") ? "write" : "dry-run";
 process.env.JQUANTS_V2_RETRY_ATTEMPTS ??= "1";
-const maxReviewsPerRun = Math.max(1, Number(process.env.ANALOGY_REVIEW_MAX_PER_RUN ?? "12"));
+const maxReviewsPerRun = parseAnalogyReviewMaxPerRun(process.env.ANALOGY_REVIEW_MAX_PER_RUN);
 const explicitAnalogyOffset = process.env.ANALOGY_REVIEW_OFFSET;
 
 function compareDate(a: string, b: string): number {
