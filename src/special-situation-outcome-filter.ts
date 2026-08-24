@@ -47,6 +47,9 @@ export function filterOutcomesByCode(
   const matched = outcomes.filter(isRuntimeSpecialSituationOutcome).filter(o => codes.has(o.code));
   const special = matched.filter(isSpecialSituationOutcome);
   const normal = matched.filter(o => !isSpecialSituationOutcome(o));
+  const specialCodes = new Set(special.map(o => o.code));
+  const normalCodes = new Set(normal.map(o => o.code));
+  const mixed = [...specialCodes].some(code => normalCodes.has(code));
 
   if (matchMode === "special_only") {
     return { special, normal: [], mixed: false };
@@ -56,16 +59,15 @@ export function filterOutcomesByCode(
   }
   if (matchMode === "special_prefer") {
     // special がある code は special のみ使う
-    const specialCodes = new Set(special.map(o => o.code));
     const normalFallback = normal.filter(o => !specialCodes.has(o.code));
     return {
       special,
       normal: normalFallback,
-      mixed: normalFallback.length > 0,
+      mixed,
     };
   }
   // "all"
-  return { special, normal, mixed: normal.length > 0 };
+  return { special, normal, mixed };
 }
 
 /**
