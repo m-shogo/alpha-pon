@@ -115,6 +115,19 @@ assert.deepEqual(
 assert.deepEqual(
   parseListingEventMessageInput(JSON.stringify(payload([
     VALID_ALERT,
+    { ...VALID_ALERT, id: " listing-1 " },
+    { ...VALID_ALERT },
+  ])), AS_OF),
+  {
+    alerts: [VALID_ALERT],
+    warnings: ["listing_event_alerts_latest.json: invalid_rows=2,3"],
+  },
+  "padded and duplicate alert identities must not double-count read-only preview alerts",
+);
+
+assert.deepEqual(
+  parseListingEventMessageInput(JSON.stringify(payload([
+    VALID_ALERT,
     { ...VALID_ALERT, alertType: "missing_date", eventDate: null, daysUntil: null },
     { ...VALID_ALERT, alertType: "missing_date", eventDate: "2026-02-31", daysUntil: null },
     { ...VALID_ALERT, alertType: "upcoming", daysUntil: null },
