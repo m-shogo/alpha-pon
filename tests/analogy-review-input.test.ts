@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parseAnalogyReviewMaxPerRun, parseAnalogyReviewOffset } from "../src/analogy-review-config.js";
 import { loadAnalogyOutcomesForReview, loadAnalogyPredictionsForReview } from "../src/analogy-review-input.js";
+import { parseUniverseScanMaxPerRun, parseUniverseScanOffset } from "../src/universe-scan-config.js";
 
 assert.equal(parseAnalogyReviewMaxPerRun(undefined), 12, "未指定は既定12件");
 assert.equal(parseAnalogyReviewMaxPerRun("12"), 12, "正の整数を保持する");
@@ -20,6 +21,20 @@ assert.equal(parseAnalogyReviewOffset("abc"), 0, "非numeric offsetは0へfail-c
 assert.equal(parseAnalogyReviewOffset("-1"), 0, "負数offsetは0へfail-closedする");
 assert.equal(parseAnalogyReviewOffset("1.5"), 0, "小数offsetは0へfail-closedする");
 assert.equal(parseAnalogyReviewOffset("12reviews"), 0, "部分parse可能なoffsetをrejectする");
+
+assert.equal(parseUniverseScanMaxPerRun(undefined), 8, "universe scan未指定は既定8件");
+assert.equal(parseUniverseScanMaxPerRun("8"), 8, "universe scan正の整数を保持する");
+assert.equal(parseUniverseScanMaxPerRun("120"), 120, "universe scan上限120件を許可する");
+assert.equal(parseUniverseScanMaxPerRun("121"), 120, "universe scan上限超過は120件へ丸める");
+assert.equal(parseUniverseScanMaxPerRun("0"), 8, "universe scan 0は既定値へfail-closedする");
+assert.equal(parseUniverseScanMaxPerRun("-1"), 8, "universe scan負数は既定値へfail-closedする");
+assert.equal(parseUniverseScanMaxPerRun("abc"), 8, "universe scan非numeric値は既定値へfail-closedする");
+assert.equal(parseUniverseScanMaxPerRun("1.5"), 8, "universe scan小数は既定値へfail-closedする");
+assert.equal(parseUniverseScanOffset("0"), 0, "universe scan offset 0を許可する");
+assert.equal(parseUniverseScanOffset("12"), 12, "universe scan正のoffsetを保持する");
+assert.equal(parseUniverseScanOffset("abc"), 0, "universe scan非numeric offsetは0へfail-closedする");
+assert.equal(parseUniverseScanOffset("-1"), 0, "universe scan負数offsetは0へfail-closedする");
+assert.equal(parseUniverseScanOffset("1.5"), 0, "universe scan小数offsetは0へfail-closedする");
 
 const dir = mkdtempSync(join(tmpdir(), "alpha-pon-analogy-review-"));
 
