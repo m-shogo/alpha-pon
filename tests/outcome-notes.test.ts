@@ -24,6 +24,9 @@ function hypothesis(expectedDirection: StockCandidateHypothesis["expectedDirecti
 
 {
   assert.equal(resolveActualDirection(null), "unknown");
+  assert.equal(resolveActualDirection(Number.NaN), "unknown", "NaN を実績方向へ分類しない");
+  assert.equal(resolveActualDirection(Number.POSITIVE_INFINITY), "unknown", "Infinity を上昇実績へ分類しない");
+  assert.equal(resolveActualDirection(Number.NEGATIVE_INFINITY), "unknown", "-Infinity を下落実績へ分類しない");
   assert.equal(resolveActualDirection(3), "up");
   assert.equal(resolveActualDirection(-3), "down");
   assert.equal(resolveActualDirection(2.9), "sideways");
@@ -64,6 +67,23 @@ function hypothesis(expectedDirection: StockCandidateHypothesis["expectedDirecti
   });
   assert(notes.whatMatched.some(match => match.includes("期待方向 up")));
   assert(notes.whatMatched.some(match => match.includes("TOPIX比")));
+}
+
+{
+  const notes = buildOutcomeNotes({
+    hypothesis: hypothesis("up"),
+    returns: { ret1m: Number.POSITIVE_INFINITY, maxDrawdownPct: Number.NEGATIVE_INFINITY, dataAvailability: "ok" },
+    relativeToTopix1m: Number.NaN,
+    result: "hit",
+    dataSource: "jquants",
+  });
+  assert.equal(notes.whatMatched.length, 0, "非finite値を方向一致・TOPIX一致Evidenceへ変換しない");
+  assert.equal(notes.whatDiffered.length, 0, "非finite値を反証Evidenceへ変換しない");
+  assert.equal(notes.missedSignals.length, 0, "非finite drawdownを最大下落Evidenceへ変換しない");
+  assert(!notes.notes.includes("Infinity"), "read-only notesへInfinityを露出しない");
+  assert(!notes.notes.includes("NaN"), "read-only notesへNaNを露出しない");
+  assert(notes.notes.includes("1m=N/A%"));
+  assert(notes.notes.includes("TOPIX比=N/A%"));
 }
 
 console.log("outcome-notes.test.ts passed");
