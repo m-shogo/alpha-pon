@@ -4,6 +4,7 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "fs";
 import { calcSpecialSituationDueAt } from "../src/special-situation-review-due-date.js";
+import { normalizeSpecialSituationCandidates } from "../src/special-situation-candidate-input.js";
 import {
   filterOutcomesByCode,
   isHistoricalSeedOverdue,
@@ -30,6 +31,34 @@ const ALLOWED_DUE_STATUS = new Set([
 ]);
 
 const ALLOWED_MISSING_FIELDS = new Set(["result", "return1w", "return1m", "topixRelative1m"]);
+
+const normalizedCandidateInput = normalizeSpecialSituationCandidates(
+  {
+    candidates: [
+      { code: "8136", name: "Valid" },
+      { code: " 8136 ", name: "Padded alias" },
+      { code: "9999", name: "Duplicate A" },
+      { code: "9999", name: "Duplicate B" },
+      { code: "7777", name: "   " },
+      null,
+    ],
+  },
+  "synthetic-special-config",
+);
+assert.deepEqual(
+  normalizedCandidateInput.candidates,
+  [{ code: "8136", name: "Valid" }],
+  "noncanonical and duplicate candidate identities are isolated from due counts",
+);
+assert(
+  normalizedCandidateInput.warnings.some(warning => warning.includes("duplicate candidate code(s) isolated: 9999")),
+  "duplicate candidate identity is surfaced as metadata warning",
+);
+assert.equal(
+  normalizeSpecialSituationCandidates({ candidates: {} }, "synthetic-special-config").candidates.length,
+  0,
+  "non-array candidates fail closed instead of reaching due queue iteration",
+);
 
 assert.equal(calcSpecialSituationDueAt("2026-08-07", "1d"), "2026-08-08");
 assert.equal(calcSpecialSituationDueAt("2026-02-31", "1d"), null);
