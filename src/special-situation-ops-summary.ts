@@ -15,6 +15,7 @@ import { join } from "path";
 import { load } from "js-yaml";
 import { addDaysJst, todayJst } from "./date.js";
 import { parseHypothesisOutcomesJsonl } from "./hypothesis-outcome-input.js";
+import { normalizeSpecialSituationCandidates } from "./special-situation-candidate-input.js";
 import type { HypothesisOutcome, ReviewHorizon } from "./universe.js";
 import {
   isSpecialSituationOutcome,
@@ -141,14 +142,17 @@ function calcMissingFields(
 // ─────────── 集計ロジック ───────────
 
 function buildOpsSummary(today: string): SpecialSituationOpsSummary {
-  type CandidateEntry = { code: string; name: string };
   type Config = {
-    candidates?: CandidateEntry[];
     outcomeStats?: { minSampleSize?: number };
   };
 
-  const config = readYaml<Config>(CONFIG_PATH);
-  const candidates = config.candidates ?? [];
+  const rawConfig = readYaml<unknown>(CONFIG_PATH);
+  const normalizedCandidates = normalizeSpecialSituationCandidates(rawConfig, CONFIG_PATH);
+  for (const warning of normalizedCandidates.warnings) console.warn(`[warn] ${warning}`);
+  const candidates = normalizedCandidates.candidates;
+  const config = typeof rawConfig === "object" && rawConfig !== null && !Array.isArray(rawConfig)
+    ? rawConfig as Config
+    : {};
   const candidateCodes = new Set(candidates.map(c => c.code));
   const codeToName = new Map(candidates.map(c => [c.code, c.name]));
   const minSampleSize = config.outcomeStats?.minSampleSize ?? MIN_SAMPLE_SIZE_DEFAULT;
@@ -245,6 +249,15 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
 
   // アクション生成（優先順）
   const actionItems: ActionItem[] = [];
+
+  if (normalizedCandidates.warnings.length > 0) {
+    actionItems.push({
+      priority: "attention",
+      category: "data",
+      title: `候補設定不整合: ${normalizedCandidates.warnings.length}件 warning`,
+      detail: "壊れた特殊状況候補を隔離し、canonical candidateだけで運用サマリーを継続しました。設定を確認してください。",
+    });
+  }
 
   if (parsedOutcomes.warnings.length > 0) {
     actionItems.push({
@@ -419,6 +432,7 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
     "backfill の structurallyUpdatable は構造チェックのみ。実際の価格補完には J-Quants が必要です。",
     "sampleTooSmall は参考値のみ。統計的判断の根拠にしないでください。",
     "期限未到達 (notDueYet) は正常状態です。",
+    ...normalizedCandidates.warnings,
     ...parsedOutcomes.warnings,
   ];
   if (invalidDateCodes.length > 0) {
