@@ -37,6 +37,7 @@ const normalizedCandidateInput = normalizeSpecialSituationCandidates(
     candidates: [
       { code: "8136", name: "Valid" },
       { code: " 8136 ", name: "Padded alias" },
+      { code: "5555", name: " Padded display name " },
       { code: "9999", name: "Duplicate A" },
       { code: "9999", name: "Duplicate B" },
       { code: "7777", name: "   " },
@@ -53,6 +54,10 @@ assert.deepEqual(
 assert(
   normalizedCandidateInput.warnings.some(warning => warning.includes("duplicate candidate code(s) isolated: 9999")),
   "duplicate candidate identity is surfaced as metadata warning",
+);
+assert(
+  normalizedCandidateInput.warnings.some(warning => warning.includes("candidates[2] has invalid canonical code/name")),
+  "padded candidate display names are surfaced and isolated instead of becoming read-only provenance",
 );
 assert.equal(
   normalizeSpecialSituationCandidates({ candidates: {} }, "synthetic-special-config").candidates.length,
