@@ -29,7 +29,8 @@ export function isGeneratedStockInput(value: unknown): value is GeneratedStockIn
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const stock = value as Record<string, unknown>
   return typeof stock.code === 'string'
-    && stock.code.trim().length > 0
+    && stock.code.length > 0
+    && stock.code.trim() === stock.code
     && typeof stock.name === 'string'
     && stock.name.trim().length > 0
     && isOptionalStringOrNull(stock.market)
