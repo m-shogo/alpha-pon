@@ -141,6 +141,12 @@ function testAnalogyPredictionReviewUsesStoredDueDateAndTimeframe() {
   assert.doesNotMatch(source, /prediction\.expectedTimeframe \?\? "1w"/);
 }
 
+function testWorldImpactReportUsesCanonicalReadOnlyLatestBoundary() {
+  const source = readFileSync(new URL("../src/world-impact-report.ts", import.meta.url), "utf-8");
+  assert.match(source, /readReadOnlyJsonArrayFile<unknown>\(latest\)/);
+  assert.doesNotMatch(source, /JSON\.parse\(readFileSync\(latest/);
+}
+
 function testWorldEventReflectionReliabilityGate() {
   const official = classifyWorldEvent({
     title: "Official statement: AI datacenter power grid investment announced",
@@ -236,6 +242,7 @@ function main() {
   testAnalogyReviewDueDatesUseJstCalendarDays();
   testWorldThemeReviewDueDatesRejectInvalidGregorianDates();
   testAnalogyPredictionReviewUsesStoredDueDateAndTimeframe();
+  testWorldImpactReportUsesCanonicalReadOnlyLatestBoundary();
   testWorldEventReflectionReliabilityGate();
   testWorldEventReflectionRejectsUnknownSources();
   testWorldEventClustersSuppressSocialOnlyRumors();
