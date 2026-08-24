@@ -4,6 +4,7 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "fs";
 import { statSync } from "fs";
+import { parseHypothesisOutcomesJsonl } from "../src/hypothesis-outcome-input.js";
 import { partitionSpecialSituationOutcomesByDetectedAt } from "../src/special-situation-review-due-date.js";
 
 function readJson(path: string): unknown {
@@ -13,6 +14,26 @@ function readJson(path: string): unknown {
 
 function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+// backfill/review の missing-field 判定へ string 化された数値を「埋まっている」と流さない。
+{
+  const base = {
+    code: "8136",
+    hypothesis: { detectedAt: "2026-08-01" },
+    reviewHorizon: "1m",
+    result: "unknown",
+  };
+  const parsed = parseHypothesisOutcomesJsonl([
+    JSON.stringify({ ...base, return1w: 1.5, return1m: null, relativeToTopix1m: -0.5 }),
+    JSON.stringify({ ...base, code: "8137", return1w: "1.5" }),
+    JSON.stringify({ ...base, code: "8138", return1m: "2.0" }),
+    JSON.stringify({ ...base, code: "8139", relativeToTopix1m: "-0.5" }),
+  ].join("\n"), "test outcomes");
+  assert.deepEqual(parsed.rows.map(row => row.code), ["8136"],
+    "JSON-validでもstring化されたreview metricを正常Outcomeとして扱わない");
+  assert.equal(parsed.warnings.length, 1);
+  assert.match(parsed.warnings[0], /3 malformed JSONL row\(s\)/);
 }
 
 // backfill が期限計算・価格取得へ渡す前に、不正 detectedAt を隔離できることを固定する。

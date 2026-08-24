@@ -23,6 +23,10 @@ function isRealJstDate(value: unknown): value is string {
   }
 }
 
+function isOptionalNullableFiniteNumber(value: unknown): boolean {
+  return value === undefined || value === null || (typeof value === "number" && Number.isFinite(value));
+}
+
 export function isUsableHypothesisOutcomeInput(value: unknown): value is HypothesisOutcome {
   if (!isRecord(value)) return false;
   if (typeof value.code !== "string" || value.code.trim().length === 0 || value.code !== value.code.trim()) return false;
@@ -38,6 +42,9 @@ export function isUsableHypothesisOutcomeInput(value: unknown): value is Hypothe
   if (typeof value.reviewHorizon !== "string" || !REVIEW_HORIZONS.has(value.reviewHorizon)) return false;
   if (value.actionLabel !== undefined && (typeof value.actionLabel !== "string" || !ACTION_LABELS.has(value.actionLabel))) return false;
   if (value.result !== undefined && (typeof value.result !== "string" || !HYPOTHESIS_RESULTS.has(value.result))) return false;
+  if (!isOptionalNullableFiniteNumber(value.return1w)) return false;
+  if (!isOptionalNullableFiniteNumber(value.return1m)) return false;
+  if (!isOptionalNullableFiniteNumber(value.relativeToTopix1m)) return false;
   return isRealJstDate(value.hypothesis.detectedAt) && value.hypothesis.detectedAt <= todayJst();
 }
 
