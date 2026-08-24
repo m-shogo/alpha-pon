@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { linkSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { readCanonicalGeneratedJsonFile } from "../apps/web/lib/generated-api-file.js";
 import { backupHealthEvidenceFromDirectoryNames } from "../src/health/backup-health.js";
 import {
   assertReadinessBackupDirectoryInput,
@@ -110,6 +111,30 @@ try {
     () => assertReadinessPrimaryDisclosureReviewInput(generatedPath),
     /keys must be canonical non-empty company codes/,
     "padded primary-review keys must not inflate the number of companies with primary-disclosure evidence",
+  );
+
+  const canonicalGenerated = join(dir, "canonical-generated.json");
+  writeFileSync(canonicalGenerated, JSON.stringify({ status: "ok" }));
+  assert.deepEqual(
+    readCanonicalGeneratedJsonFile(canonicalGenerated),
+    { status: "ok" },
+    "standalone regular generated JSON must remain readable",
+  );
+
+  const generatedSymlink = join(dir, "generated-symlink.json");
+  symlinkSync(canonicalGenerated, generatedSymlink, "file");
+  assert.throws(
+    () => readCanonicalGeneratedJsonFile(generatedSymlink),
+    /standalone regular file/,
+    "symlinked generated JSON must not qualify as canonical API evidence",
+  );
+
+  const generatedHardlink = join(dir, "generated-hardlink.json");
+  linkSync(canonicalGenerated, generatedHardlink);
+  assert.throws(
+    () => readCanonicalGeneratedJsonFile(generatedHardlink),
+    /standalone regular file/,
+    "hard-linked generated JSON must not qualify as canonical API evidence",
   );
 } finally {
   rmSync(dir, { recursive: true, force: true });
