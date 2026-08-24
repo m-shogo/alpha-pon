@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
 import { isValidAnalogyReviewDueDate } from "./analogy-review-date.js";
-import { parseAnalogyReviewMaxPerRun } from "./analogy-review-config.js";
+import { parseAnalogyReviewMaxPerRun, parseAnalogyReviewOffset } from "./analogy-review-config.js";
 import { saveAnalogyOutcomes, type AnalogyOutcomeRecord, type AnalogyPredictionRecord } from "./analysis/analogy-db.js";
 import { loadAnalogyOutcomesForReview, loadAnalogyPredictionsForReview } from "./analogy-review-input.js";
 import { reviewPredictionWithPrice, type PriceReviewResult } from "./analysis/analogy-price-review.js";
@@ -195,7 +195,7 @@ async function main() {
   const autoCursor = explicitAnalogyOffset == null || explicitAnalogyOffset === "";
   const cursor = autoCursor
     ? loadRunCursor("analogy-review", maxReviewsPerRun, due.length)
-    : { offset: Math.max(0, Number(explicitAnalogyOffset)), maxPerRun: maxReviewsPerRun, total: due.length };
+    : { offset: parseAnalogyReviewOffset(explicitAnalogyOffset), maxPerRun: maxReviewsPerRun, total: due.length };
   const reviewTargets = due.slice(cursor.offset, cursor.offset + maxReviewsPerRun);
 
   const reviews: GeneratedReview[] = [];
