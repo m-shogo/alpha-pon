@@ -57,6 +57,19 @@ assert.deepEqual(
   { value: null, warning: 'ipoThemeWatch: invalid_shape' },
 )
 assert.deepEqual(
+  normalizeGeneratedIpoThemeWatchInput({
+    ...valid,
+    rules: [{
+      ...valid.rules[0],
+      relatedCompanies: [
+        { code: '8136', name: 'サンプル', relation: 'supplier' },
+        { code: '8136', name: '別名', relation: 'customer' },
+      ],
+    }],
+  }),
+  { value: null, warning: 'ipoThemeWatch: invalid_shape' },
+)
+assert.deepEqual(
   normalizeGeneratedIpoThemeWatchInput({ ...valid, rules: [valid.rules[0], { ...valid.rules[0] }] }),
   { value: null, warning: 'ipoThemeWatch: invalid_shape' },
 )
