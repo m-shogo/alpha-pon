@@ -6,12 +6,11 @@ import { acquireLock, releaseLock } from "../src/jobs/job-lock.js";
 import {
   runPnpmJob,
   hasSucceeded,
-  getLastSuccessDate,
   getMissingTargetDates,
   recordMissing,
   markSkipped,
 } from "../src/jobs/job-runner.js";
-import { getTodayInTokyo, getDatesBetween, subtractDays } from "../src/jobs/date-utils.js";
+import { getTodayInTokyo } from "../src/jobs/date-utils.js";
 
 const TODAY = getTodayInTokyo();
 const CATCHUP_DAYS = Math.min(parseInt(process.env.CATCHUP_DAYS ?? "7", 10), 90);
@@ -115,29 +114,28 @@ async function main() {
     const missingDates = getMissingTargetDates(job.name, CATCHUP_DAYS);
 
     // 今日分が未実行なら必ず実行（backfill可否問わず）
-    const todayDue = !hasSucceeded(job.name, TODAY);
+    let todayCovered = hasSucceeded(job.name, TODAY);
+    const todayDue = !todayCovered;
     const pastDates = missingDates.filter(d => d < TODAY);
-    const runToday = todayDue && !missingDates.includes(TODAY);
 
     // 今日の実行
     if (todayDue) {
       const res = runPnpmJob(job.name, TODAY, job.pnpmScript);
+      todayCovered = res.success;
       res.skipped ? summary.skipped++ : res.success ? summary.ran++ : summary.failed++;
     }
 
     // 過去日の処理
     for (const date of pastDates) {
-      if (date === TODAY) continue;
       if (job.canBackfill) {
-        // backfill 可能なジョブは実行を試みる（今日の実行で過去分も拾う設計のものは skip）
-        if (hasSucceeded(job.name, date)) {
-          markSkipped(job.name, date);
-          summary.skipped++;
-        } else {
-          // 過去日付での実行は今日の実行に集約済みなので skipped として記録
-          markSkipped(job.name, date);
-          summary.skipped++;
+        // 今日の実行が過去分を集約する設計。今日の実行が失敗した場合は、
+        // 過去日を skipped にせず未解決のまま残し、次回 catchup で再評価する。
+        if (!todayCovered) {
+          console.log(`  [defer] ${job.name} (${date}) today run failed; keep unresolved`);
+          continue;
         }
+        markSkipped(job.name, date);
+        summary.skipped++;
       } else {
         // backfill 不可 → missing_jobs に記録
         recordMissing(job.name, date, job.missingReason);
