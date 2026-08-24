@@ -93,6 +93,28 @@ assert.ok(paddedCode);
 assert.equal(paddedCode.entries.length, 0, "前後空白付きcodeを別identityとして採用しない");
 assert.deepEqual(paddedCode.invalidRows, [1]);
 
+const malformedBucketIdentities = parsePeriodicScoreLog(JSON.stringify([
+  {
+    code: "8136",
+    name: "padded tag",
+    score: 60,
+    alertLevel: "daily",
+    createdAt: "2026-08-18",
+    tags: [" entertainment "],
+  },
+  {
+    code: "4661",
+    name: "empty rule",
+    score: 50,
+    alertLevel: "daily",
+    createdAt: "2026-08-18",
+    rules: [""],
+  },
+]));
+assert.ok(malformedBucketIdentities);
+assert.equal(malformedBucketIdentities.entries.length, 0, "padded/empty tag・rule identityで週次/月次bucketを分裂させない");
+assert.deepEqual(malformedBucketIdentities.invalidRows, [1, 2]);
+
 const duplicateCodes = parsePeriodicScoreLog(JSON.stringify([
   {
     code: "8136",
