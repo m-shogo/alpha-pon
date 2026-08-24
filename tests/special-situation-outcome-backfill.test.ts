@@ -36,6 +36,26 @@ function isObject(v: unknown): v is Record<string, unknown> {
   assert.match(parsed.warnings[0], /3 malformed JSONL row\(s\)/);
 }
 
+// evaluatedAt は detectedAt 以降・実在する当日以前の日付だけを review provenance として許可する。
+{
+  const base = {
+    code: "8136",
+    hypothesis: { detectedAt: "2026-08-01" },
+    reviewHorizon: "1m",
+    result: "unknown",
+  };
+  const parsed = parseHypothesisOutcomesJsonl([
+    JSON.stringify({ ...base, evaluatedAt: "2026-08-20" }),
+    JSON.stringify({ ...base, code: "8137", evaluatedAt: "2026-02-31" }),
+    JSON.stringify({ ...base, code: "8138", evaluatedAt: "2026-07-31" }),
+    JSON.stringify({ ...base, code: "8139", evaluatedAt: "2999-01-01" }),
+  ].join("\n"), "test evaluated outcomes");
+  assert.deepEqual(parsed.rows.map(row => row.code), ["8136"],
+    "不存在日・detectedAt以前・未来のevaluatedAtを現在のOutcome provenanceへ通さない");
+  assert.equal(parsed.warnings.length, 1);
+  assert.match(parsed.warnings[0], /3 malformed JSONL row\(s\)/);
+}
+
 // backfill が期限計算・価格取得へ渡す前に、不正 detectedAt を隔離できることを固定する。
 {
   const rows = [

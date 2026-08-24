@@ -45,7 +45,16 @@ export function isUsableHypothesisOutcomeInput(value: unknown): value is Hypothe
   if (!isOptionalNullableFiniteNumber(value.return1w)) return false;
   if (!isOptionalNullableFiniteNumber(value.return1m)) return false;
   if (!isOptionalNullableFiniteNumber(value.relativeToTopix1m)) return false;
-  return isRealJstDate(value.hypothesis.detectedAt) && value.hypothesis.detectedAt <= todayJst();
+  if (!isRealJstDate(value.hypothesis.detectedAt) || value.hypothesis.detectedAt > todayJst()) return false;
+  if (
+    value.evaluatedAt !== undefined
+    && (
+      !isRealJstDate(value.evaluatedAt)
+      || value.evaluatedAt < value.hypothesis.detectedAt
+      || value.evaluatedAt > todayJst()
+    )
+  ) return false;
+  return true;
 }
 
 export function parseHypothesisOutcomesJsonl(text: string, source = "hypothesis outcomes JSONL"): ParsedHypothesisOutcomes {
