@@ -165,7 +165,7 @@ export function normalizeStockCandidateUniverseRows(
       !isRecord(row) ||
       typeof row.code !== "string" || !row.code.trim() || row.code !== row.code.trim() ||
       typeof row.name !== "string" || !row.name.trim() ||
-      typeof row.detectedAt !== "string" || !row.detectedAt.trim() ||
+      !isRealJstDate(row.detectedAt) || row.detectedAt > todayJst() ||
       !(row.sector === null || typeof row.sector === "string") ||
       !finiteOrNull(row.drawdownPct) ||
       !finiteOrNull(row.operatingProfitYoY) ||
