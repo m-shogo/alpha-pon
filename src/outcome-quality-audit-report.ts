@@ -6,7 +6,7 @@
 // ops dashboard（pnpm report:ops）がこの JSON を読んで /ops に統合する。
 // このスクリプトは読み取り + レポート出力のみで、データを書き換えない。
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
+import { writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { getTodayInTokyo } from "./jobs/date-utils.js";
 import {
@@ -19,32 +19,29 @@ import {
   hasUniqueQualityOutcomeIdentitiesAsOf,
   isQualityHypothesisLikeAsOf,
 } from "./outcome-quality-audit-input.js";
+import { readReadOnlyJsonObjectArrayFile } from "./read-only-json-file.js";
 
 const ROOT = process.cwd();
 
-function readJson<T>(path: string): T | null {
-  const full = join(ROOT, path);
-  if (!existsSync(full)) return null;
-  try {
-    return JSON.parse(readFileSync(full, "utf-8")) as T;
-  } catch {
-    return null;
-  }
+function readGeneratedRows(path: string, field: string): unknown[] | null {
+  const loaded = readReadOnlyJsonObjectArrayFile<unknown>(join(ROOT, path), field);
+  if (loaded.missing || loaded.parseError || loaded.invalidRoot || loaded.invalidField) return null;
+  return loaded.rows;
 }
 
-const hypothesesFile = readJson<{ hypotheses?: unknown[] }>(
-  "apps/web/public/generated/hypotheses.json"
+const hypotheses = readGeneratedRows(
+  "apps/web/public/generated/hypotheses.json",
+  "hypotheses",
 );
-const outcomesFile = readJson<{ outcomes?: unknown[] }>(
-  "apps/web/public/generated/outcomes.json"
+const outcomes = readGeneratedRows(
+  "apps/web/public/generated/outcomes.json",
+  "outcomes",
 );
 
-const hypotheses = hypothesesFile?.hypotheses;
-const outcomes = outcomesFile?.outcomes;
-if (!Array.isArray(hypotheses) || !Array.isArray(outcomes)) {
+if (!hypotheses || !outcomes) {
   console.error(
-    "生成データのshapeが不正です。先に pnpm ui:data を再実行してください。" +
-      `（hypotheses.json: ${Array.isArray(hypotheses) ? "ok" : "invalid"} / outcomes.json: ${Array.isArray(outcomes) ? "ok" : "invalid"}）`
+    "生成データのshapeまたはcanonical file boundaryが不正です。先に pnpm ui:data を再実行してください。" +
+      `（hypotheses.json: ${hypotheses ? "ok" : "invalid"} / outcomes.json: ${outcomes ? "ok" : "invalid"}）`
   );
   process.exit(1);
 }
