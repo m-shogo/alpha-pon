@@ -36,6 +36,10 @@ function isCanonicalIdentity(value: unknown): value is string {
   return typeof value === "string" && value.length > 0 && value === value.trim();
 }
 
+function isOptionalCanonicalIdentity(value: unknown): boolean {
+  return value === undefined || isCanonicalIdentity(value);
+}
+
 function isUsableAnalogyPredictionRecord(value: unknown): value is AnalogyPredictionRecord {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const row = value as Record<string, unknown>;
@@ -45,7 +49,7 @@ function isUsableAnalogyPredictionRecord(value: unknown): value is AnalogyPredic
   return (
     row.schemaVersion === 1 &&
     isCanonicalIdentity(row.eventId) &&
-    (row.candidateCode === undefined || typeof row.candidateCode === "string") &&
+    isOptionalCanonicalIdentity(row.candidateCode) &&
     (row.candidateName === undefined || typeof row.candidateName === "string") &&
     typeof row.lessonId === "string" &&
     typeof row.lessonTitle === "string" &&
@@ -72,6 +76,7 @@ function isUsableAnalogyOutcomeRecord(value: unknown, asOf: string): value is An
     row.evaluatedAt <= asOf &&
     isCanonicalIdentity(row.eventId) &&
     (row.timeframe === "1d" || row.timeframe === "1w" || row.timeframe === "1m") &&
+    isOptionalCanonicalIdentity(row.candidateCode) &&
     typeof row.lessonId === "string" &&
     typeof row.lessonTitle === "string" &&
     (row.direction === "same" || row.direction === "opposite" || row.direction === "mixed" || row.direction === "unknown") &&
