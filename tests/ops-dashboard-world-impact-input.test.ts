@@ -31,6 +31,8 @@ for (const malformed of [
   { healthStatus: "ok", totalReviews: 2, pendingReviews: 0, overdueReviews: 0, missingCounterArguments: -1, priorityIssues: [] },
   { healthStatus: "ok", totalReviews: 2, pendingReviews: 0, overdueReviews: 0, missingMechanisms: 0.5, priorityIssues: [] },
   { healthStatus: "ok", totalReviews: 2, pendingReviews: 0, overdueReviews: 0, jsonlParseErrors: "0", priorityIssues: [] },
+  { healthStatus: "ok", totalReviews: 2, pendingReviews: 0, overdueReviews: 0, jsonlParseErrors: 1, priorityIssues: [] },
+  { healthStatus: "needs_attention", totalReviews: 2, pendingReviews: 0, overdueReviews: 0, jsonlParseErrors: 1, priorityIssues: [{ severity: "attention", title: "parse error hidden as attention", detail: "producer requires urgent" }] },
   { healthStatus: "needs_attention", totalReviews: 2, pendingReviews: 0, overdueReviews: 1, priorityIssues: [{ severity: "attention", title: "impossible overdue count", detail: "overdue must be pending" }] },
   { healthStatus: "ok", totalReviews: 2, pendingReviews: 1, overdueReviews: 1, priorityIssues: [] },
   { healthStatus: "ok", totalReviews: 2, pendingReviews: 1, overdueReviews: 1, priorityIssues: [{ severity: "info", title: "overdue hidden as info", detail: "overdue must require attention" }] },
@@ -91,4 +93,4 @@ const dashboard = applyWorldImpactAuditHealth(base, normalizedMalformed);
 assert.equal(dashboard.healthStatus, "action_required");
 assert.ok(dashboard.allIssues.some(issue => issue.category === "world_impact" && issue.severity === "urgent"));
 
-console.log("ops-dashboard world-impact input: malformed, truncated, producer count semantics, overdue acknowledgement, contradictory health evidence, and malformed counters fail closed OK");
+console.log("ops-dashboard world-impact input: malformed, truncated, producer count semantics, overdue acknowledgement, contradictory health evidence, hidden JSONL parse errors, and malformed counters fail closed OK");
