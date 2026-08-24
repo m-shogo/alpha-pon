@@ -8,8 +8,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function isOptionalString(value: unknown): value is string | null | undefined {
-  return value == null || typeof value === "string";
+function isOptionalCanonicalString(value: unknown): value is string | null | undefined {
+  return value == null || (typeof value === "string" && value.trim().length > 0 && value === value.trim());
 }
 
 function isOptionalEnum(value: unknown, allowed: readonly string[]): boolean {
@@ -40,7 +40,7 @@ export function normalizeOpsOutcomesInput(value: unknown): OpsOutcomesInput | nu
   for (const outcome of value.outcomes) {
     if (!isRecord(outcome)) return invalidOutcomesInput();
     if (
-      !isOptionalString(outcome.code) ||
+      !isOptionalCanonicalString(outcome.code) ||
       !isOptionalEnum(outcome.reviewHorizon, REVIEW_HORIZONS) ||
       !isOptionalEnum(outcome.result, OUTCOME_RESULTS) ||
       !isOptionalEnum(outcome.dataAvailability, DATA_AVAILABILITY)
