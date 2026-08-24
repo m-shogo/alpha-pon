@@ -1,10 +1,23 @@
 import { existsSync, readFileSync } from "node:fs";
 import { normalizeSourceHealthObject } from "./source-health-input.js";
 
+function isSafePipelineStep(value: unknown): boolean {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const step = value as Record<string, unknown>;
+  return typeof step.name === "string"
+    && step.name.length > 0
+    && step.name.trim() === step.name
+    && typeof step.criticality === "string"
+    && step.criticality.length > 0
+    && typeof step.status === "string"
+    && step.status.length > 0
+    && typeof step.code === "number"
+    && Number.isFinite(step.code);
+}
+
 function hasSafePipelineSteps(value: Record<string, unknown>): boolean {
   if (value.steps === undefined) return true;
-  return Array.isArray(value.steps)
-    && value.steps.every(step => typeof step === "object" && step !== null && !Array.isArray(step));
+  return Array.isArray(value.steps) && value.steps.every(isSafePipelineStep);
 }
 
 export function readProposalPipelineStatus<T extends object>(path: string): T | null {
