@@ -33,6 +33,12 @@ function hasSafePrimaryDisclosureReview(value: unknown): boolean {
     || (Number.isSafeInteger(fetchErrorCount) && Number(fetchErrorCount) >= 0);
 }
 
+function hasSafeProposalContextObjects(value: unknown): boolean {
+  if (!isRecord(value)) return true;
+  return (value.marketContext === undefined || isRecord(value.marketContext))
+    && (value.financialQuality === undefined || isRecord(value.financialQuality));
+}
+
 function stableCode(value: unknown): string | null {
   if (!isRecord(value)) return null;
   const code = value.code;
@@ -91,6 +97,13 @@ export function readProposalScores<T>(
       .filter((row): row is number => row !== null);
     if (unsafePrimaryReviewRows.length > 0) {
       throw new Error(`${sourceFile}: proposal score primary disclosure review shape is invalid at row(s) ${unsafePrimaryReviewRows.join(", ")}`);
+    }
+
+    const unsafeContextRows = parsed
+      .map((row, index) => hasSafeProposalContextObjects(row) ? null : index + 1)
+      .filter((row): row is number => row !== null);
+    if (unsafeContextRows.length > 0) {
+      throw new Error(`${sourceFile}: proposal score context shape is invalid at row(s) ${unsafeContextRows.join(", ")}`);
     }
 
     const inconsistentCreatedAtRows = parsed
