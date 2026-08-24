@@ -53,7 +53,8 @@ export function normalizeSpecialSituationCandidates(
       code.length === 0 ||
       code.trim() !== code ||
       typeof name !== "string" ||
-      name.trim().length === 0
+      name.trim().length === 0 ||
+      name.trim() !== name
     ) {
       warnings.push(`${sourceLabel}: candidates[${index}] has invalid canonical code/name`);
       continue;
