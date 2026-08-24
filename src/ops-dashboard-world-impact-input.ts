@@ -91,6 +91,13 @@ export function normalizeOpsWorldImpactInput(value: unknown): OpsWorldImpactAudi
   ) {
     return invalidWorldImpactInput();
   }
+  if (
+    typeof value.unknownMatchedAsHit === "number"
+    && value.unknownMatchedAsHit > 0
+    && !severities.includes("urgent")
+  ) {
+    return invalidWorldImpactInput();
+  }
 
   const expectedHealth = severities.includes("urgent")
     ? "action_required"
