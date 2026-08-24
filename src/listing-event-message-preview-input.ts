@@ -58,6 +58,7 @@ function isListingEventMessageAlert(value: unknown, asOf: string): value is List
   if (!isRecord(value)) return false;
   return typeof value.id === "string"
     && value.id.trim().length > 0
+    && value.id === value.id.trim()
     && typeof value.name === "string"
     && value.name.trim().length > 0
     && typeof value.eventType === "string"
@@ -93,11 +94,13 @@ export function parseListingEventMessageInput(text: string, asOf = todayJst()): 
 
   const alerts: ListingEventMessageAlert[] = [];
   const invalidRows: number[] = [];
+  const seenIds = new Set<string>();
   parsed.alerts.forEach((value, index) => {
-    if (!isListingEventMessageAlert(value, asOf)) {
+    if (!isListingEventMessageAlert(value, asOf) || seenIds.has(value.id)) {
       invalidRows.push(index + 1);
       return;
     }
+    seenIds.add(value.id);
     alerts.push(value);
   });
 
