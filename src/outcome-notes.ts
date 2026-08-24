@@ -35,9 +35,11 @@ export function buildOutcomeNotes(input: {
   const whatDiffered: string[] = [];
   const missedSignals: string[] = [];
   const improvedRuleIdeas: string[] = [];
+  const hasUsableReturn1m = input.returns.ret1m != null && Number.isFinite(input.returns.ret1m);
   const direction = resolveActualDirection(input.returns.ret1m);
   const canCompareDirection =
     input.returns.dataAvailability === "ok" &&
+    hasUsableReturn1m &&
     input.hypothesis.expectedDirection !== "unknown" &&
     direction !== "unknown";
 
@@ -65,7 +67,10 @@ export function buildOutcomeNotes(input: {
     improvedRuleIdeas.push("仮説保存時に最大許容下落と撤退確認ラインを明示する");
   }
   if (input.result === "miss") improvedRuleIdeas.push("反証条件・一次情報・決算前後イベントを追加確認する");
-  if (input.returns.dataAvailability !== "ok") {
+  if (input.returns.dataAvailability === "ok" && !hasUsableReturn1m) {
+    missedSignals.push("未評価: dataAvailability=ok だが1mリターンが欠落または非finite");
+    improvedRuleIdeas.push("価格データのavailabilityと1mリターンの整合性を確認する");
+  } else if (input.returns.dataAvailability !== "ok") {
     missedSignals.push(`未評価: 価格データ不足 (${input.returns.dataAvailability})`);
     improvedRuleIdeas.push("データ取得期間または市場コードの妥当性を確認する");
   }
@@ -73,8 +78,8 @@ export function buildOutcomeNotes(input: {
   const availabilityNote = input.returns.dataAvailability === "ok"
     ? ""
     : ` / 未評価: 価格データ不足 (${input.returns.dataAvailability})`;
-  const return1m = input.returns.ret1m != null && Number.isFinite(input.returns.ret1m)
-    ? input.returns.ret1m.toFixed(1)
+  const return1m = hasUsableReturn1m
+    ? input.returns.ret1m!.toFixed(1)
     : "N/A";
   const relativeToTopix1m = input.relativeToTopix1m != null && Number.isFinite(input.relativeToTopix1m)
     ? input.relativeToTopix1m.toFixed(1)
