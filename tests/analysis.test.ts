@@ -141,10 +141,12 @@ function testAnalogyPredictionReviewUsesStoredDueDateAndTimeframe() {
   assert.doesNotMatch(source, /prediction\.expectedTimeframe \?\? "1w"/);
 }
 
-function testWorldImpactReportUsesCanonicalReadOnlyLatestBoundary() {
-  const source = readFileSync(new URL("../src/world-impact-report.ts", import.meta.url), "utf-8");
-  assert.match(source, /readReadOnlyJsonArrayFile<unknown>\(latest\)/);
-  assert.doesNotMatch(source, /JSON\.parse\(readFileSync\(latest/);
+function testWorldImpactReadOnlyConsumersUseCanonicalLatestBoundary() {
+  for (const relativePath of ["../src/world-impact-report.ts", "../src/world-impact-calibrate.ts"]) {
+    const source = readFileSync(new URL(relativePath, import.meta.url), "utf-8");
+    assert.match(source, /readReadOnlyJsonArrayFile<unknown>\(latest\)/, `${relativePath} must use the canonical read-only JSON boundary`);
+    assert.doesNotMatch(source, /JSON\.parse\(readFileSync\(latest/, `${relativePath} must not bypass linked-evidence checks`);
+  }
 }
 
 function testWorldEventReflectionReliabilityGate() {
@@ -242,7 +244,7 @@ function main() {
   testAnalogyReviewDueDatesUseJstCalendarDays();
   testWorldThemeReviewDueDatesRejectInvalidGregorianDates();
   testAnalogyPredictionReviewUsesStoredDueDateAndTimeframe();
-  testWorldImpactReportUsesCanonicalReadOnlyLatestBoundary();
+  testWorldImpactReadOnlyConsumersUseCanonicalLatestBoundary();
   testWorldEventReflectionReliabilityGate();
   testWorldEventReflectionRejectsUnknownSources();
   testWorldEventClustersSuppressSocialOnlyRumors();
