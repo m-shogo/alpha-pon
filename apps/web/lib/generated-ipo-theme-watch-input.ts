@@ -53,6 +53,7 @@ function isRelatedCompany(value: unknown): boolean {
   const company = value as Record<string, unknown>
   return typeof company.code === 'string'
     && company.code.trim().length > 0
+    && company.code === company.code.trim()
     && typeof company.name === 'string'
     && typeof company.relation === 'string'
 }
