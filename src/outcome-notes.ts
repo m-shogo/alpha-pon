@@ -8,7 +8,7 @@ export type OutcomeReturnDataForNotes = {
 };
 
 export function resolveActualDirection(ret1m: number | null): "up" | "down" | "sideways" | "unknown" {
-  if (ret1m == null) return "unknown";
+  if (ret1m == null || !Number.isFinite(ret1m)) return "unknown";
   if (ret1m >= 3) return "up";
   if (ret1m <= -3) return "down";
   return "sideways";
@@ -47,12 +47,20 @@ export function buildOutcomeNotes(input: {
     whatDiffered.push(`期待方向 ${input.hypothesis.expectedDirection} に対して実績は ${direction}`);
   }
 
-  if (input.returns.dataAvailability === "ok" && input.relativeToTopix1m != null) {
+  if (
+    input.returns.dataAvailability === "ok"
+    && input.relativeToTopix1m != null
+    && Number.isFinite(input.relativeToTopix1m)
+  ) {
     if (input.relativeToTopix1m >= 0) whatMatched.push(`TOPIX比で+${input.relativeToTopix1m.toFixed(1)}%`);
     else whatDiffered.push(`TOPIX比で${input.relativeToTopix1m.toFixed(1)}%`);
   }
 
-  if (input.returns.maxDrawdownPct != null && input.returns.maxDrawdownPct <= -10) {
+  if (
+    input.returns.maxDrawdownPct != null
+    && Number.isFinite(input.returns.maxDrawdownPct)
+    && input.returns.maxDrawdownPct <= -10
+  ) {
     missedSignals.push(`検証期間中の最大下落が${input.returns.maxDrawdownPct.toFixed(1)}%`);
     improvedRuleIdeas.push("仮説保存時に最大許容下落と撤退確認ラインを明示する");
   }
@@ -65,11 +73,17 @@ export function buildOutcomeNotes(input: {
   const availabilityNote = input.returns.dataAvailability === "ok"
     ? ""
     : ` / 未評価: 価格データ不足 (${input.returns.dataAvailability})`;
+  const return1m = input.returns.ret1m != null && Number.isFinite(input.returns.ret1m)
+    ? input.returns.ret1m.toFixed(1)
+    : "N/A";
+  const relativeToTopix1m = input.relativeToTopix1m != null && Number.isFinite(input.relativeToTopix1m)
+    ? input.relativeToTopix1m.toFixed(1)
+    : "N/A";
   return {
     whatMatched,
     whatDiffered,
     missedSignals,
     improvedRuleIdeas: [...new Set(improvedRuleIdeas)],
-    notes: `${todayJst()}時点で評価。1m=${input.returns.ret1m?.toFixed(1) ?? "N/A"}%, TOPIX比=${input.relativeToTopix1m?.toFixed(1) ?? "N/A"}%${availabilityNote}`,
+    notes: `${todayJst()}時点で評価。1m=${return1m}%, TOPIX比=${relativeToTopix1m}%${availabilityNote}`,
   };
 }
