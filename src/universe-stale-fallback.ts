@@ -63,7 +63,10 @@ function hasInvalidStaleLineage(candidate: UniverseCandidate, fallbackAsOf: stri
 }
 
 export function carryForwardStaleCandidate(candidate: UniverseCandidate, fallbackAsOf: string): UniverseCandidate {
-  if (!hasCanonicalIdentity(candidate) || !hasRequiredCandidateShape(candidate)) {
+  if (!hasCanonicalIdentity(candidate)) {
+    throw new RangeError("stale fallback candidate identity is invalid");
+  }
+  if (!hasRequiredCandidateShape(candidate)) {
     throw new RangeError("stale fallback candidate shape is invalid");
   }
   if (candidate.dataSource !== "jquants") {
