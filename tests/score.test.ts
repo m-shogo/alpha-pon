@@ -245,6 +245,7 @@ function testHypothesisOutcomeReviewHorizonContract() {
     code: "8136",
     hypothesis: { detectedAt: "2026-08-21" },
     reviewHorizon: "1w",
+    actionLabel: "log",
     result: "unknown",
   };
   const parsed = parseHypothesisOutcomesJsonl([
@@ -254,6 +255,25 @@ function testHypothesisOutcomeReviewHorizonContract() {
     JSON.stringify({ ...base, code: "7974", reviewHorizon: undefined }),
   ].join("\n"), "synthetic outcomes");
   assert.deepEqual(parsed.rows.map(row => row.code), ["8136"], "canonical reviewHorizonだけをdue/review evidenceへ残す");
+  assert.equal(parsed.warnings.length, 1);
+  assert.match(parsed.warnings[0], /3 malformed JSONL row\(s\) isolated/);
+}
+
+function testHypothesisOutcomeActionLabelContract() {
+  const base = {
+    code: "8136",
+    hypothesis: { detectedAt: "2026-08-21" },
+    reviewHorizon: "1w",
+    actionLabel: "log",
+    result: "unknown",
+  };
+  const parsed = parseHypothesisOutcomesJsonl([
+    JSON.stringify(base),
+    JSON.stringify({ ...base, code: "4661", actionLabel: "buy" }),
+    JSON.stringify({ ...base, code: "7832", actionLabel: " log " }),
+    JSON.stringify({ ...base, code: "7974", actionLabel: undefined }),
+  ].join("\n"), "synthetic outcomes");
+  assert.deepEqual(parsed.rows.map(row => row.code), ["8136"], "canonical actionLabelだけをaccuracy evidenceへ残す");
   assert.equal(parsed.warnings.length, 1);
   assert.match(parsed.warnings[0], /3 malformed JSONL row\(s\) isolated/);
 }
@@ -274,6 +294,7 @@ function main() {
   testLearningScoreDuplicateIdentity();
   testLearningAlertLevelContract();
   testHypothesisOutcomeReviewHorizonContract();
+  testHypothesisOutcomeActionLabelContract();
   console.log("score.test.ts passed");
 }
 
