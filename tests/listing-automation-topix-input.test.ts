@@ -72,6 +72,15 @@ assert.deepEqual(
 );
 
 assert.deepEqual(
+  parseListingAutomationTopixInput(
+    JSON.stringify({ ...base, rows: [{ code: "8136", topixRelativeReturn: 0.12 }, { code: "8136", topixRelativeReturn: 0.2 }] }),
+    AS_OF,
+  ),
+  { rows: [{ code: "8136", topixRelativeReturn: 0.12 }], invalid: true, reason: "invalid_rows" },
+  "duplicate company identities must not inflate TOPIX coverage evidence",
+);
+
+assert.deepEqual(
   parseListingAutomationTopixInput(JSON.stringify({ ...base, rows: [{ code: "8136", topixRelativeReturn: "0.12" }] }), AS_OF),
   { rows: [], invalid: true, reason: "invalid_rows" },
   "non-numeric relative returns must not be treated as valid read-only evidence",
