@@ -1,10 +1,12 @@
 export type PipelineHealthConfidence = "normal" | "caution" | "low" | "unknown";
 
 export function extractPipelineHealthConfidence(text: string): PipelineHealthConfidence {
-  if (text.includes("report confidence: low")) return "low";
-  if (text.includes("report confidence: caution")) return "caution";
-  if (text.includes("report confidence: normal")) return "normal";
-  return "unknown";
+  const matches = [...text.matchAll(/^- report confidence:\s*(normal|caution|low)\s*$/gm)];
+  if (matches.length !== 1) return "unknown";
+  const confidence = matches[0]?.[1];
+  return confidence === "normal" || confidence === "caution" || confidence === "low"
+    ? confidence
+    : "unknown";
 }
 
 export function pipelineHealthConfidenceAtDate(text: string, expectedDate: string): PipelineHealthConfidence {
