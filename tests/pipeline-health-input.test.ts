@@ -164,6 +164,16 @@ assert.equal(shouldNotifyPipelineHealth("normal"), false, "normal health must no
 assert.equal(shouldNotifyPipelineHealth("caution"), true, "caution health must notify");
 assert.equal(shouldNotifyPipelineHealth("low"), true, "low health must notify");
 assert.equal(extractPipelineHealthConfidence(""), "unknown", "missing or malformed health summaries remain unknown");
+assert.equal(
+  extractPipelineHealthConfidence("note: report confidence: normal"),
+  "unknown",
+  "non-canonical prose must not suppress pipeline health alerts by containing a normal-confidence substring",
+);
+assert.equal(
+  extractPipelineHealthConfidence("- report confidence: normal\n- report confidence: low"),
+  "unknown",
+  "contradictory duplicate confidence lines must fail closed",
+);
 assert.equal(shouldNotifyPipelineHealth("unknown"), true, "unknown health must fail closed instead of suppressing the alert");
 const CURRENT_PIPELINE_HEALTH = "# alpha-pon pipeline health summary\n\ndate: 2026-08-17\n\n## confidence\n\n- report confidence: normal\n";
 assert.equal(pipelineHealthConfidenceAtDate(CURRENT_PIPELINE_HEALTH, "2026-08-17"), "normal", "current normal health remains suppressible");
