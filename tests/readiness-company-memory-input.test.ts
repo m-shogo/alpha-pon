@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -26,7 +26,10 @@ try {
   mkdirSync(reportsDir);
   mkdirSync(backupsDir);
 
-  mkdirSync(join(backupsDir, "2026-08-16T09-30-00"));
+  const validBackupPath = join(backupsDir, "2026-08-16T09-30-00");
+  mkdirSync(validBackupPath);
+  const validBackupMtime = new Date("2026-08-16T09:30:00+09:00");
+  utimesSync(validBackupPath, validBackupMtime, validBackupMtime);
   assert.doesNotThrow(
     () => assertReadinessBackupDirectoryInput(backupsDir, backupAsOf, backupNow),
     "real Gregorian backup directory names remain valid readiness evidence",
@@ -288,7 +291,7 @@ try {
     "primitive data-quality fallback entries must fail closed before readiness scoring",
   );
 
-  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": { warnings: { count: 3 } } } }));
+  writeFileSync(generatedPath, JSON.stringify({ dataQualityByCode: { "8136": { warnings: { count: 3 } } }));
   assert.throws(
     () => assertReadinessDataQualityFallbackInput(generatedPath, reportsDir),
     /warnings must be a string array/,
