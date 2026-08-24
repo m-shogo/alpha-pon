@@ -58,6 +58,7 @@ export function isLockupMemo(value: unknown): value is LockupMemo {
   if (!isRecord(value)) return false;
   return typeof value.id === "string"
     && value.id.trim().length > 0
+    && value.id === value.id.trim()
     && typeof value.name === "string"
     && value.name.trim().length > 0
     && isOptionalString(value.code)
