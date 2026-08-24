@@ -109,6 +109,17 @@ const INVALID_MARKET_EVENT_DATA: WebMarketEventData = {
 const WEB_MARKET_EVENT_INSTANT =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(Z|[+-]\d{2}:\d{2})$/
 
+const WEB_MARKET_EVENT_SOURCE_TYPES = new Set([
+  'IR',
+  'TDNET',
+  'JPX',
+  'EDINET',
+  'REGULATOR',
+  'COURT',
+  'MAJOR_MEDIA',
+  'OTHER',
+])
+
 function leapYear(year: number): boolean {
   return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)
 }
@@ -217,15 +228,38 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(item => typeof item === 'string')
 }
 
+function isStrictMarketEventInstant(value: string): boolean {
+  try {
+    strictMarketEventMilliseconds(value)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function isHttpsMarketEventSourceUrl(value: string): boolean {
+  try {
+    const url = new URL(value)
+    return url.protocol === 'https:' && Boolean(url.hostname)
+  } catch {
+    return false
+  }
+}
+
 function isMarketEventSource(value: unknown): value is WebMarketEvent['sources'][number] {
   if (!isRecord(value)) return false
   return typeof value.sourceId === 'string'
+    && value.sourceId.startsWith('src_')
     && typeof value.authority === 'string'
     && typeof value.sourceType === 'string'
+    && WEB_MARKET_EVENT_SOURCE_TYPES.has(value.sourceType)
     && typeof value.url === 'string'
+    && isHttpsMarketEventSourceUrl(value.url)
     && typeof value.title === 'string'
     && isNullableString(value.publishedAt)
+    && (value.publishedAt === null || isStrictMarketEventInstant(value.publishedAt))
     && typeof value.retrievedAt === 'string'
+    && isStrictMarketEventInstant(value.retrievedAt)
     && typeof value.contentHash === 'string'
 }
 
