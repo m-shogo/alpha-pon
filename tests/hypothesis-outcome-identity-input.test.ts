@@ -20,6 +20,7 @@ const jsonl = parseHypothesisOutcomesJsonl([
 ].join("\n"), "fixture/outcomes.jsonl");
 
 assert.deepEqual(jsonl.rows.map(row => row.code), ["8136"], "non-canonical code・不存在日・未来detectedAt・未知result・矛盾するhypothesis codeをOutcome履歴provenanceへ通さない");
+assert.equal(jsonl.rows[0]?.result, "unknown", "legacy partial Outcomeのresult欠落はreview対象から消えないようcanonical unknownへ正規化する");
 assert.match(jsonl.warnings[0], /6 malformed JSONL row\(s\).*line\(s\) 2, 3, 4, 5, 6, 7/);
 
 const sqlite = parseHypothesisOutcomeSqlitePayloads([
@@ -31,6 +32,7 @@ const sqlite = parseHypothesisOutcomeSqlitePayloads([
 ], "fixture/outcomes.db");
 
 assert.deepEqual(sqlite.rows.map(row => row.code), ["8136"], "SQLite payloadでもcanonical Outcome identity/date/result/hypothesis codeだけを保持する");
+assert.equal(sqlite.rows[0]?.result, "unknown", "SQLite legacy partial Outcomeでもresult欠落をcanonical unknownへ正規化する");
 assert.match(sqlite.warnings[0], /4 malformed record\(s\).*record\(s\) 2, 3, 4, 5/);
 
 console.log("hypothesis-outcome-identity-input: canonical code, detectedAt, result, action label, and nested hypothesis identity fail closed OK");

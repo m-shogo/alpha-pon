@@ -57,6 +57,10 @@ export function isUsableHypothesisOutcomeInput(value: unknown): value is Hypothe
   return true;
 }
 
+function normalizeHypothesisOutcomeInput(value: HypothesisOutcome): HypothesisOutcome {
+  return value.result === undefined ? { ...value, result: "unknown" } : value;
+}
+
 export function parseHypothesisOutcomesJsonl(text: string, source = "hypothesis outcomes JSONL"): ParsedHypothesisOutcomes {
   const rows: HypothesisOutcome[] = [];
   const malformedLines: number[] = [];
@@ -70,7 +74,7 @@ export function parseHypothesisOutcomesJsonl(text: string, source = "hypothesis 
         malformedLines.push(index + 1);
         return;
       }
-      rows.push(parsed);
+      rows.push(normalizeHypothesisOutcomeInput(parsed));
     } catch {
       malformedLines.push(index + 1);
     }
@@ -97,7 +101,7 @@ export function parseHypothesisOutcomeSqlitePayloads(
         malformedRecords.push(index + 1);
         return;
       }
-      rows.push(parsed);
+      rows.push(normalizeHypothesisOutcomeInput(parsed));
     } catch {
       malformedRecords.push(index + 1);
     }
