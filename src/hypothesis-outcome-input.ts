@@ -25,6 +25,14 @@ export function isUsableHypothesisOutcomeInput(value: unknown): value is Hypothe
   if (!isRecord(value)) return false;
   if (typeof value.code !== "string" || value.code.trim().length === 0 || value.code !== value.code.trim()) return false;
   if (!isRecord(value.hypothesis)) return false;
+  if (
+    value.hypothesis.code !== undefined
+    && (
+      typeof value.hypothesis.code !== "string"
+      || value.hypothesis.code !== value.hypothesis.code.trim()
+      || value.hypothesis.code !== value.code
+    )
+  ) return false;
   if (value.result !== undefined && (typeof value.result !== "string" || !HYPOTHESIS_RESULTS.has(value.result))) return false;
   return isRealJstDate(value.hypothesis.detectedAt) && value.hypothesis.detectedAt <= todayJst();
 }
