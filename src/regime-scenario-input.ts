@@ -66,6 +66,10 @@ function isUsableRegimeScenarioReflection(value: unknown, asOf: string): value i
     || !hasRegimeSignal(value)) {
     return false;
   }
+  if (value.eventId !== undefined
+    && (value.eventId.trim().length === 0 || value.eventId !== value.eventId.trim())) {
+    return false;
+  }
 
   const isCanonicalReflection = value.createdAt !== undefined
     || value.categories !== undefined
@@ -73,7 +77,6 @@ function isUsableRegimeScenarioReflection(value: unknown, asOf: string): value i
   if (isCanonicalReflection) {
     return typeof value.eventId === "string"
       && value.eventId.trim().length > 0
-      && value.eventId === value.eventId.trim()
       && isRealJstDate(value.createdAt)
       && value.createdAt <= asOf;
   }
