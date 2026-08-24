@@ -31,10 +31,11 @@ try {
   const impossibleReviewDueAt = { ...valid, reviewDueAt: "2026-02-31" };
   const mismatchedReviewDueAt = { ...valid, reviewDueAt: "2026-08-03" };
   const paddedEventId = { ...valid, eventId: ` ${valid.eventId} ` };
+  const paddedCandidateCode = { ...valid, candidateCode: ` ${valid.candidateCode} ` };
 
   writeFileSync(
     join(dir, "2026-08-01.jsonl"),
-    [valid, {}, impossibleCreatedAt, impossibleReviewDueAt, mismatchedReviewDueAt, paddedEventId]
+    [valid, {}, impossibleCreatedAt, impossibleReviewDueAt, mismatchedReviewDueAt, paddedEventId, paddedCandidateCode]
       .map(row => JSON.stringify(row))
       .join("\n") + "\n{broken-json\n",
     "utf-8",
@@ -45,9 +46,9 @@ try {
   assert.equal(result.rows[0]?.eventId, valid.eventId);
   assert.equal(result.warnings.length, 2);
   assert.match(result.warnings[0] ?? "", /parse_error 1/);
-  assert.match(result.warnings[0] ?? "", /lines 7/);
+  assert.match(result.warnings[0] ?? "", /lines 8/);
   assert.doesNotMatch(result.warnings[0] ?? "", /broken-json/);
-  assert.match(result.warnings[1] ?? "", /invalid_shape 5/);
+  assert.match(result.warnings[1] ?? "", /invalid_shape 6/);
 
   const outcomePath = join(dir, "outcomes.jsonl");
   const validOutcome = {
@@ -56,6 +57,7 @@ try {
     evaluatedAt: "2026-08-02",
     eventId: valid.eventId,
     timeframe: "1d",
+    candidateCode: valid.candidateCode,
     lessonId: "lesson-1",
     lessonTitle: "Example lesson",
     direction: "same",
@@ -76,9 +78,10 @@ try {
   const futureOutcome = { ...validOutcome, evaluatedAt: "2026-08-19" };
   const malformedNumericOutcome = { ...validOutcome, returnPct: "10" };
   const paddedOutcomeEventId = { ...validOutcome, eventId: ` ${valid.eventId} ` };
+  const paddedOutcomeCandidateCode = { ...validOutcome, candidateCode: ` ${valid.candidateCode} ` };
   writeFileSync(
     outcomePath,
-    [validOutcome, unsafeSuppressor, impossibleDate, reversedChronology, futureOutcome, malformedNumericOutcome, paddedOutcomeEventId]
+    [validOutcome, unsafeSuppressor, impossibleDate, reversedChronology, futureOutcome, malformedNumericOutcome, paddedOutcomeEventId, paddedOutcomeCandidateCode]
       .map(row => JSON.stringify(row))
       .join("\n") + "\n{broken-outcome\n",
     "utf-8",
@@ -89,9 +92,9 @@ try {
   assert.equal(outcomeResult.rows[0]?.eventId, valid.eventId);
   assert.equal(outcomeResult.warnings.length, 2);
   assert.match(outcomeResult.warnings[0] ?? "", /parse_error 1/);
-  assert.match(outcomeResult.warnings[0] ?? "", /lines 8/);
+  assert.match(outcomeResult.warnings[0] ?? "", /lines 9/);
   assert.doesNotMatch(outcomeResult.warnings[0] ?? "", /broken-outcome/);
-  assert.match(outcomeResult.warnings[1] ?? "", /invalid_shape 6/);
+  assert.match(outcomeResult.warnings[1] ?? "", /invalid_shape 7/);
   assert.throws(() => loadAnalogyOutcomesForReview(outcomePath, "2026-02-31"), /real YYYY-MM-DD/);
 
   console.log("analogy-review-input.test.ts passed");
