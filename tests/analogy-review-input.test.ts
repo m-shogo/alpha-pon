@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { parseAnalogyReviewMaxPerRun, parseAnalogyReviewOffset } from "../src/analogy-review-config.js";
+import { parseAnalogyReviewMaxPerRun, parseAnalogyReviewOffset, parseAnalogyReviewRelativeThresholdPct } from "../src/analogy-review-config.js";
 import { loadAnalogyOutcomesForReview, loadAnalogyPredictionsForReview } from "../src/analogy-review-input.js";
 import { parseUniverseScanMaxPerRun, parseUniverseScanOffset } from "../src/universe-scan-config.js";
 
@@ -21,6 +21,13 @@ assert.equal(parseAnalogyReviewOffset("abc"), 0, "非numeric offsetは0へfail-c
 assert.equal(parseAnalogyReviewOffset("-1"), 0, "負数offsetは0へfail-closedする");
 assert.equal(parseAnalogyReviewOffset("1.5"), 0, "小数offsetは0へfail-closedする");
 assert.equal(parseAnalogyReviewOffset("12reviews"), 0, "部分parse可能なoffsetをrejectする");
+assert.equal(parseAnalogyReviewRelativeThresholdPct(undefined), 2, "relative threshold未指定は既定2%を使う");
+assert.equal(parseAnalogyReviewRelativeThresholdPct("3.5"), 3.5, "有限の非負thresholdを保持する");
+assert.equal(parseAnalogyReviewRelativeThresholdPct("0"), 0, "0% thresholdを明示指定できる");
+assert.equal(parseAnalogyReviewRelativeThresholdPct("abc"), 2, "非numeric thresholdは既定値へfail-closedする");
+assert.equal(parseAnalogyReviewRelativeThresholdPct("-1"), 2, "負のthresholdは既定値へfail-closedする");
+assert.equal(parseAnalogyReviewRelativeThresholdPct("Infinity"), 2, "非finite thresholdは既定値へfail-closedする");
+assert.equal(parseAnalogyReviewRelativeThresholdPct(""), 2, "空thresholdは既定値へfail-closedする");
 
 assert.equal(parseUniverseScanMaxPerRun(undefined), 8, "universe scan未指定は既定8件");
 assert.equal(parseUniverseScanMaxPerRun("8"), 8, "universe scan正の整数を保持する");
