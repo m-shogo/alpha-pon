@@ -50,6 +50,20 @@ try {
     "unsafe numeric rows must fail closed before proposal evidence calls toFixed",
   );
 
+  for (const directionExpectation of [-1.01, 1.01]) {
+    writeFileSync(path, JSON.stringify([
+      {
+        ...canonicalRow,
+        directionExpectation,
+      },
+    ]), "utf-8");
+    assert.throws(
+      () => readProposalRuleDiagnostics<Row>(path),
+      /proposal rule diagnostic shape is invalid at row\(s\) 1/,
+      "directionExpectation must remain within the producer contract of -1 through 1",
+    );
+  }
+
   writeFileSync(path, JSON.stringify([
     {
       ...canonicalRow,
@@ -96,4 +110,4 @@ try {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("proposals-rule-diagnostics-input: malformed-shape, diagnosis-enum, unique-identity, and current-date provenance regressions OK");
+console.log("proposals-rule-diagnostics-input: malformed-shape, diagnosis-enum, direction-range, unique-identity, and current-date provenance regressions OK");
