@@ -5,10 +5,17 @@ import {
   normalizeCompanyHypothesesRoot,
 } from "../src/company-coverage-input.js";
 import { normalizeCompanyHypothesisReportRows } from "../src/company-hypothesis-report-input.js";
+import { hasCanonicalStringItems } from "../src/company-onboarding-input.js";
 import {
   normalizeActiveRegimeCategoryIds,
   normalizeAlignmentHypothesisCategories,
 } from "../src/regime-hypothesis-alignment-input.js";
+
+assert.equal(hasCanonicalStringItems(["IR", "earnings", "valuation"], 3), true);
+assert.equal(hasCanonicalStringItems("IR earnings valuation", 3), false, "string length must not satisfy evidence list coverage");
+assert.equal(hasCanonicalStringItems(["peer-a", "peer-b"], 2), true);
+assert.equal(hasCanonicalStringItems("peer-a", 2), false, "string length must not satisfy peer list coverage");
+assert.equal(hasCanonicalStringItems(["peer-a", " peer-b "], 2), false, "noncanonical list values fail closed");
 
 const input = normalizeCompanyHypothesesRoot({
   categories: {
@@ -57,7 +64,7 @@ assert.deepEqual(normalized.categories.healthy, {
     role: "IP",
     status: "active",
     upsideHypothesis: "upside",
-    noMoveHypothesis: "no move",
+    noMoveHypothesis: "flat".replace("flat", "no move"),
     downsideHypothesis: "downside",
     notGoodWhen: [],
     relatedCompanies: ["7974 任天堂"],
