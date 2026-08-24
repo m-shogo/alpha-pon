@@ -11,9 +11,10 @@ import {
   markSkipped,
 } from "../src/jobs/job-runner.js";
 import { getTodayInTokyo } from "../src/jobs/date-utils.js";
+import { parseCatchupDays } from "../src/jobs/catchup-config.js";
 
 const TODAY = getTodayInTokyo();
-const CATCHUP_DAYS = Math.min(parseInt(process.env.CATCHUP_DAYS ?? "7", 10), 90);
+const CATCHUP_DAYS = parseCatchupDays(process.env.CATCHUP_DAYS);
 const LOCK_KEY = "alpha-pon:catchup";
 
 // catchup 対象ジョブ定義
