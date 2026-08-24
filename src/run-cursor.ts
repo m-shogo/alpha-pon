@@ -42,6 +42,15 @@ function isCurrentOrPastJstDate(value: unknown, today: string): value is string 
   }
 }
 
+function assertRunCursorParameters(maxPerRun: number, total: number): void {
+  if (!Number.isSafeInteger(maxPerRun) || maxPerRun < 1) {
+    throw new Error("run cursor maxPerRun must be a positive safe integer");
+  }
+  if (!Number.isSafeInteger(total) || total < 0) {
+    throw new Error("run cursor total must be a non-negative safe integer");
+  }
+}
+
 export function nextOffset(current: number, maxPerRun: number, total: number): number {
   if (total <= 0) return 0;
   const next = current + maxPerRun;
@@ -49,6 +58,7 @@ export function nextOffset(current: number, maxPerRun: number, total: number): n
 }
 
 export function loadRunCursor(jobName: RunCursorJobName, maxPerRun: number, total: number): RunCursor {
+  assertRunCursorParameters(maxPerRun, total);
   const cursors = readCursors();
   const existing = cursors[jobName];
   const today = todayJst();
@@ -69,6 +79,7 @@ export function loadRunCursor(jobName: RunCursorJobName, maxPerRun: number, tota
 }
 
 export function saveRunCursor(cursor: RunCursor): RunCursor {
+  assertRunCursorParameters(cursor.maxPerRun, cursor.total);
   const cursors = readCursors();
   const next: RunCursor = {
     ...cursor,
