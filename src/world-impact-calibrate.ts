@@ -2,9 +2,10 @@
 // confidence帯 / mechanism / lag 別に検証結果（hit/miss/inverse）を集計する。
 // 評価サンプルが少ない間は参考値のみ。投資助言ではない。
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
+import { readReadOnlyJsonArrayFile } from "./read-only-json-file.js";
 import {
   buildWorldImpactCalibration,
   loadWorldImpactReviews,
@@ -19,12 +20,10 @@ import {
 
 function readLatest(): WorldImpactLatestSnapshotInput {
   const latest = join("data", "world_event_impacts_latest.json");
-  if (!existsSync(latest)) return { present: false };
-  try {
-    return { present: true, parsed: JSON.parse(readFileSync(latest, "utf-8")) };
-  } catch {
-    return { present: true, parseError: true };
-  }
+  const loaded = readReadOnlyJsonArrayFile<unknown>(latest);
+  if (loaded.missing) return { present: false };
+  if (loaded.parseError || loaded.invalidRoot) return { present: true, parseError: true };
+  return { present: true, parsed: loaded.rows };
 }
 
 const GROUP_LABELS: Record<string, string> = {
