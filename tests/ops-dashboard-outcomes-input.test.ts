@@ -16,6 +16,11 @@ const valid = {
 
 assert.deepEqual(normalizeOpsOutcomesInput(valid), valid);
 assert.equal(normalizeOpsOutcomesInput(null), null);
+assert.deepEqual(
+  normalizeOpsOutcomesInput({ outcomes: [{ reviewHorizon: "1m", result: "unknown", dataAvailability: "missing" }] }),
+  { outcomes: [{ reviewHorizon: "1m", result: "unknown", dataAvailability: "missing" }] },
+  "legacy partial rows without a code remain readable",
+);
 
 for (const malformed of [
   [],
@@ -25,6 +30,8 @@ for (const malformed of [
   { outcomes: ["broken"] },
   { outcomes: [{ result: 1 }] },
   { outcomes: [{ dataAvailability: [] }] },
+  { outcomes: [{ code: "", reviewHorizon: "1m", result: "hit", dataAvailability: "ok" }] },
+  { outcomes: [{ code: " 8136 ", reviewHorizon: "1m", result: "hit", dataAvailability: "ok" }] },
   { outcomes: [{ code: "8136", reviewHorizon: "1y", result: "hit", dataAvailability: "ok" }] },
   { outcomes: [{ code: "8136", reviewHorizon: "1m", result: "won", dataAvailability: "ok" }] },
   { outcomes: [{ code: "8136", reviewHorizon: "1m", result: "hit", dataAvailability: "perfect" }] },
