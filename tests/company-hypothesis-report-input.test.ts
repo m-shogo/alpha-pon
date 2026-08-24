@@ -6,6 +6,7 @@ import {
 } from "../src/company-coverage-input.js";
 import { normalizeCompanyHypothesisReportRows } from "../src/company-hypothesis-report-input.js";
 import { hasCanonicalStringItems } from "../src/company-onboarding-input.js";
+import { normalizeProIrEventInput } from "../src/pro-ir-event-input.js";
 import {
   normalizeActiveRegimeCategoryIds,
   normalizeAlignmentHypothesisCategories,
@@ -16,6 +17,16 @@ assert.equal(hasCanonicalStringItems("IR earnings valuation", 3), false, "string
 assert.equal(hasCanonicalStringItems(["peer-a", "peer-b"], 2), true);
 assert.equal(hasCanonicalStringItems("peer-a", 2), false, "string length must not satisfy peer list coverage");
 assert.equal(hasCanonicalStringItems(["peer-a", " peer-b "], 2), false, "noncanonical list values fail closed");
+
+const malformedOnboardingIr = normalizeProIrEventInput({
+  companies: {
+    "8136": { name: "Sanrio", events: {} },
+    "7203": { name: "Toyota", events: [{ type: "earnings", date: "2026-08-20" }] },
+  },
+});
+assert.equal(malformedOnboardingIr.companies["8136"], undefined, "non-array IR events must not reach onboarding coverage iteration");
+assert.equal(malformedOnboardingIr.companies["7203"]?.events.length, 1, "valid peer IR events remain usable when another company is malformed");
+assert.equal(malformedOnboardingIr.invalidCompanyCount, 1, "malformed IR company input remains visible as metadata warning");
 
 const input = normalizeCompanyHypothesesRoot({
   categories: {

@@ -3,12 +3,11 @@ import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
 import { hasCanonicalStringItems } from "./company-onboarding-input.js";
-import { hasConfirmedProIrSource } from "./pro-ir-event-input.js";
+import { hasConfirmedProIrSource, normalizeProIrEventInput } from "./pro-ir-event-input.js";
 
 type Company = { code: string; name: string; status?: string; evidenceToCheck?: string[]; relatedCompanies?: string[] };
 type Hypotheses = { categories?: Record<string, { label: string; companies?: Company[] }> };
 type Network = { companies?: Record<string, unknown> };
-type IrEvents = { companies?: Record<string, { events?: Array<{ type: string; date?: string | null; eventDate?: string | null; sourceUrl?: string | null; sourceStatus?: string | null }> }> };
 type Policy = { mandatoryChecks?: Array<{ id: string; label: string; why: string }> };
 
 function readYaml<T>(path: string, fallback: T): T {
@@ -20,7 +19,7 @@ function main() {
   const date = todayJst();
   const hypotheses = readYaml<Hypotheses>("config/company-hypotheses.yml", {});
   const network = readYaml<Network>("config/company-network.yml", {});
-  const irEvents = readYaml<IrEvents>("config/company-ir-events.yml", {});
+  const irEvents = normalizeProIrEventInput(readYaml<unknown>("config/company-ir-events.yml", {}));
   const policy = readYaml<Policy>("config/company-onboarding-policy.yml", {});
 
   const rows: Array<{ code: string; name: string; category: string; coverage: string; missing: string[]; advice: string }> = [];
@@ -29,7 +28,7 @@ function main() {
     for (const company of category.companies ?? []) {
       const missing: string[] = [];
       const hasNetwork = Boolean(network.companies?.[company.code]);
-      const events = irEvents.companies?.[company.code]?.events ?? [];
+      const events = irEvents.companies[company.code]?.events ?? [];
       const hasIr = events.length > 0;
       const hasConfirmedIr = events.some(event => hasConfirmedProIrSource(event));
       const hasEvidence = hasCanonicalStringItems(company.evidenceToCheck, 3);
@@ -62,6 +61,9 @@ function main() {
   lines.push(`date: ${date}`);
   lines.push("");
   lines.push("知らない銘柄・薄い銘柄を、賢そうに断言しないための不足監査です。買い推奨ではありません。");
+  if (irEvents.invalidRoot || irEvents.invalidCompanyCount > 0 || irEvents.invalidEventCount > 0) {
+    lines.push(`IR input warnings: root=${irEvents.invalidRoot ? 1 : 0}, companies=${irEvents.invalidCompanyCount}, events=${irEvents.invalidEventCount}`);
+  }
   lines.push("");
   lines.push("## mandatory thinking checks");
   lines.push("");
