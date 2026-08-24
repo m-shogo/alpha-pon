@@ -41,18 +41,20 @@ export function parseListingAutomationTopixInput(text: string, asOf = todayJst()
   }
 
   const rows: ListingAutomationTopixRow[] = [];
+  const seenCodes = new Set<string>();
   for (const row of root.rows) {
     if (!isRecord(row)) {
       return { rows, invalid: true, reason: "invalid_rows" };
     }
     const code = row.code;
-    if (typeof code !== "string" || code.length === 0 || code !== code.trim()) {
+    if (typeof code !== "string" || code.length === 0 || code !== code.trim() || seenCodes.has(code)) {
       return { rows, invalid: true, reason: "invalid_rows" };
     }
     const value = row.topixRelativeReturn;
     if (value !== null && value !== undefined && (typeof value !== "number" || !Number.isFinite(value))) {
       return { rows, invalid: true, reason: "invalid_rows" };
     }
+    seenCodes.add(code);
     rows.push({ code, topixRelativeReturn: value ?? null });
   }
 
