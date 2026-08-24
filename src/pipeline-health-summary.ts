@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
 import { hasCanonicalPipelineStatus, hasUsableSourceHealthText, sourceHealthHistoryState } from "./pipeline-health-input.js";
+import { readReadOnlyJsonObjectFile } from "./read-only-json-file.js";
 import { normalizeSourceHealthObject } from "./source-health-input.js";
 import { normalizeSourceHealthHistoryRows, type SourceHealthHistoryRow } from "./source-health-history-input.js";
 import { readJsonlWithErrors } from "./read-only-jsonl.js";
@@ -11,12 +12,7 @@ function readText(path: string): string {
 }
 
 function readJson(path: string): unknown {
-  if (!existsSync(path)) return null;
-  try {
-    return JSON.parse(readFileSync(path, "utf-8"));
-  } catch {
-    return null;
-  }
+  return readReadOnlyJsonObjectFile<Record<string, unknown>>(path).object;
 }
 
 function missingReports(rows: SourceHealthHistoryRow[], limit: number): Array<[string, number]> {
