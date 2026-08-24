@@ -21,6 +21,21 @@ type SpecialSituationWatchInput = Record<string, unknown> & {
   topChanceList?: TopChanceCandidate[]
 }
 
+const ALLOWED_FINAL_LABELS = new Set([
+  '構造監視候補',
+  'チャンス候補',
+  '調査優先候補',
+  '需給待ち',
+  '市況待ち',
+  '初回決算待ち',
+  'ロックアップ待ち',
+  '証拠不足',
+  '罠注意',
+  '避ける',
+])
+
+const ALLOWED_CHANCE_LEVELS = new Set(['none', 'watch', 'attention', 'high'])
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -71,7 +86,9 @@ function isTopChanceCandidate(value: unknown): value is TopChanceCandidate {
   return isCanonicalCode(value.code)
     && isCanonicalText(value.name)
     && typeof value.finalLabel === 'string'
+    && ALLOWED_FINAL_LABELS.has(value.finalLabel)
     && typeof value.chanceLevel === 'string'
+    && ALLOWED_CHANCE_LEVELS.has(value.chanceLevel)
     && typeof value.reasonSummary === 'string'
     && isStringArray(value.mainRisks)
     && isStringArray(value.nextCheck)

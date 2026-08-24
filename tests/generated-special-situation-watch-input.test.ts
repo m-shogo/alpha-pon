@@ -4,7 +4,7 @@ import { normalizeGeneratedSpecialSituationWatchInput } from '../apps/web/lib/ge
 const validTopChance = {
   code: '8136',
   name: 'Sanrio',
-  finalLabel: 'watch',
+  finalLabel: '調査優先候補',
   chanceLevel: 'attention',
   reasonSummary: 'watch reason',
   mainRisks: ['risk'],
@@ -73,6 +73,17 @@ const mixedTopChance = normalizeGeneratedSpecialSituationWatchInput({
 assert.deepEqual(mixedTopChance.value?.topChanceList?.map(candidate => candidate.code), ['8136', '6758'])
 assert.equal(mixedTopChance.warning, 'specialSituationWatch.topChanceList: invalid_rows 4')
 
+const invalidEnums = normalizeGeneratedSpecialSituationWatchInput({
+  generatedAt: '2026-08-20',
+  topChanceList: [
+    { ...validTopChance, chanceLevel: 'urgent' },
+    { ...validTopChance, code: '6758', name: 'Sony', finalLabel: 'watch' },
+    { ...validTopChance, code: '7203', name: 'Toyota', chanceLevel: 'high' },
+  ],
+})
+assert.deepEqual(invalidEnums.value?.topChanceList?.map(candidate => candidate.code), ['7203'])
+assert.equal(invalidEnums.warning, 'specialSituationWatch.topChanceList: invalid_rows 2')
+
 const duplicateTopChance = normalizeGeneratedSpecialSituationWatchInput({
   generatedAt: '2026-08-20',
   topChanceList: [
@@ -96,4 +107,4 @@ assert.deepEqual(normalizeGeneratedSpecialSituationWatchInput([]), {
   warning: 'specialSituationWatch: invalid_shape',
 })
 
-console.log('generated special situation watch input: malformed and duplicate code identities are isolated before Web consumers OK')
+console.log('generated special situation watch input: malformed, duplicate, and producer-enum violations are isolated before Web consumers OK')
