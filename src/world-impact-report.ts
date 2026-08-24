@@ -2,9 +2,10 @@
 // World Impact Intelligence レポートを生成する。
 // 最新の仮説・pending・検証結果・外れ理由・改善ポイントを一枚の Markdown にまとめる。
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
+import { readReadOnlyJsonArrayFile } from "./read-only-json-file.js";
 import {
   buildWorldImpactAudit,
   buildWorldImpactCalibration,
@@ -20,12 +21,10 @@ import {
 
 function readLatest(): WorldImpactLatestSnapshotInput {
   const latest = join("data", "world_event_impacts_latest.json");
-  if (!existsSync(latest)) return { present: false };
-  try {
-    return { present: true, parsed: JSON.parse(readFileSync(latest, "utf-8")) };
-  } catch {
-    return { present: true, parseError: true };
-  }
+  const loaded = readReadOnlyJsonArrayFile<unknown>(latest);
+  if (loaded.missing) return { present: false };
+  if (loaded.parseError || loaded.invalidRoot) return { present: true, parseError: true };
+  return { present: true, parsed: loaded.rows };
 }
 
 function main() {
