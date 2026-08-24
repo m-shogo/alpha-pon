@@ -44,7 +44,7 @@ function isCanonicalPastOrPresentDate(value: unknown): value is string {
   const day = Number(match[3])
   if (year < 1) return false
   const parsed = new Date(Date.UTC(year, month - 1, day))
-  if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() === month || parsed.getUTCMonth() !== month - 1 || parsed.getUTCDate() !== day) return false
+  if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() !== month - 1 || parsed.getUTCDate() !== day) return false
   return value <= currentJstDate()
 }
 
