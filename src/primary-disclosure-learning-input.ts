@@ -102,8 +102,8 @@ function disclosureItems(value: unknown, label: string, warnings: string[], asOf
     if (
       typeof row.source !== "string" || row.source.trim() === "" ||
       typeof row.title !== "string" || row.title.trim() === "" ||
-      typeof row.category !== "string" || row.category.trim() === "" ||
-      typeof row.severity !== "string" || row.severity.trim() === "" ||
+      typeof row.category !== "string" || row.category.trim() === "" || row.category !== row.category.trim() ||
+      typeof row.severity !== "string" || row.severity.trim() === "" || row.severity !== row.severity.trim() ||
       typeof row.publishedAt !== "string" || !isRealJstDate(row.publishedAt) || row.publishedAt > asOf
     ) {
       warnings.push(`${itemLabel}: invalid_fields`);
