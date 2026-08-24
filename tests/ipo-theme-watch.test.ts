@@ -162,10 +162,12 @@ try {
     { title: "year zero", publishedAt: "0000-01-01" },
     { title: "RFC 822 remains supported", publishedAt: "Sun, 16 Aug 2026 12:00:00 GMT" },
     { title: "unparseable date", publishedAt: "not-a-date" },
+    { title: "future date-only evidence", publishedAt: "2999-01-01" },
+    { title: "future RFC 822 evidence", publishedAt: "Thu, 01 Jan 2999 00:00:00 GMT" },
   ]), "utf-8");
   const datedRows = readIpoThemeWorldEventInput(worldEventsPath);
   assert.deepEqual(datedRows.rows.map(row => row.title), ["valid leap day", "RFC 822 remains supported"]);
-  assert.equal(datedRows.warning, `${worldEventsPath}: invalid_rows 3 (rows 2, 3, 5)`);
+  assert.equal(datedRows.warning, `${worldEventsPath}: invalid_rows 5 (rows 2, 3, 5, 6, 7)`);
 } finally {
   rmSync(tmp, { recursive: true, force: true });
 }
