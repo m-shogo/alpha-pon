@@ -24,6 +24,8 @@ function isUsableRuleDiagnostic(value: unknown): boolean {
     && RULE_DIAGNOSES.has(row.diagnosis)
     && typeof row.directionExpectation === "number"
     && Number.isFinite(row.directionExpectation)
+    && row.directionExpectation >= -1
+    && row.directionExpectation <= 1
     && isFiniteNumberOrNull(row.avgRelativeReturnPct)
     && isFiniteNumberOrNull(row.avgLossRelativeReturnPct);
 }
