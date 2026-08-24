@@ -1,5 +1,6 @@
 import { fetchDailyQuotes, type DailyQuote } from "../fetcher/jquants.js";
 import { toCompactDate } from "../date.js";
+import { parseAnalogyReviewRelativeThresholdPct } from "../analogy-review-config.js";
 import type { AnalogyExpectedDirection, AnalogyOutcomeDirection, AnalogyOutcomeQuality, AnalogyPredictionRecord } from "./analogy-db.js";
 
 const MARKET_BENCHMARK_CODE = process.env.MARKET_BENCHMARK_CODE ?? "1306";
@@ -81,7 +82,7 @@ function calcMaxDrawdownPct(quotes: DailyQuote[]): number | null {
 
 function classifyDirection(expected: AnalogyExpectedDirection, relativeReturnPct: number | null): AnalogyOutcomeDirection {
   if (relativeReturnPct == null) return "unknown";
-  const threshold = Number(process.env.ANALOGY_REVIEW_RELATIVE_THRESHOLD_PCT ?? "2");
+  const threshold = parseAnalogyReviewRelativeThresholdPct(process.env.ANALOGY_REVIEW_RELATIVE_THRESHOLD_PCT);
 
   if (expected === "up") {
     if (relativeReturnPct >= threshold) return "same";
