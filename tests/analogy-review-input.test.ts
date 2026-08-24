@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { parseAnalogyReviewMaxPerRun } from "../src/analogy-review-config.js";
+import { parseAnalogyReviewMaxPerRun, parseAnalogyReviewOffset } from "../src/analogy-review-config.js";
 import { loadAnalogyOutcomesForReview, loadAnalogyPredictionsForReview } from "../src/analogy-review-input.js";
 
 assert.equal(parseAnalogyReviewMaxPerRun(undefined), 12, "未指定は既定12件");
@@ -14,6 +14,12 @@ assert.equal(parseAnalogyReviewMaxPerRun("-1"), 12, "負数は既定値へfail-c
 assert.equal(parseAnalogyReviewMaxPerRun("abc"), 12, "非numeric値は既定値へfail-closedする");
 assert.equal(parseAnalogyReviewMaxPerRun("1.5"), 12, "小数は既定値へfail-closedする");
 assert.equal(parseAnalogyReviewMaxPerRun("12reviews"), 12, "部分parse可能な文字列をrejectする");
+assert.equal(parseAnalogyReviewOffset("0"), 0, "offset 0を許可する");
+assert.equal(parseAnalogyReviewOffset("12"), 12, "正のoffsetを保持する");
+assert.equal(parseAnalogyReviewOffset("abc"), 0, "非numeric offsetは0へfail-closedする");
+assert.equal(parseAnalogyReviewOffset("-1"), 0, "負数offsetは0へfail-closedする");
+assert.equal(parseAnalogyReviewOffset("1.5"), 0, "小数offsetは0へfail-closedする");
+assert.equal(parseAnalogyReviewOffset("12reviews"), 0, "部分parse可能なoffsetをrejectする");
 
 const dir = mkdtempSync(join(tmpdir(), "alpha-pon-analogy-review-"));
 

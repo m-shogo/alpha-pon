@@ -12,3 +12,13 @@ export function parseAnalogyReviewMaxPerRun(raw: string | undefined): number {
 
   return Math.min(parsed, MAX_ANALOGY_REVIEW_MAX_PER_RUN);
 }
+
+export function parseAnalogyReviewOffset(raw: string): number {
+  const value = raw.trim();
+  if (!/^\d+$/.test(value)) return 0;
+
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < 0) return 0;
+
+  return parsed;
+}
