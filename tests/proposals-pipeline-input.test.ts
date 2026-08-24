@@ -44,6 +44,21 @@ try {
     "an unsafe pipeline step row must fail closed instead of crashing proposal generation",
   );
 
+  for (const step of [
+    {},
+    { name: "daily:core", criticality: "critical", status: "fail" },
+    { name: " daily:core ", criticality: "critical", status: "fail", code: 1 },
+    { name: "daily:core", criticality: "critical", status: "", code: 1 },
+    { name: "daily:core", criticality: "critical", status: "fail", code: "1" },
+  ]) {
+    writeFileSync(path, JSON.stringify({ status: "partial_failed", steps: [step] }), "utf-8");
+    assert.equal(
+      readProposalPipelineStatus<PipelineStatus>(path),
+      null,
+      "a partial pipeline step must not disappear from proposal failure evidence",
+    );
+  }
+
   writeFileSync(path, "{", "utf-8");
   assert.equal(
     readProposalPipelineStatus<PipelineStatus>(path),
