@@ -79,11 +79,24 @@ function hypothesis(expectedDirection: StockCandidateHypothesis["expectedDirecti
   });
   assert.equal(notes.whatMatched.length, 0, "非finite値を方向一致・TOPIX一致Evidenceへ変換しない");
   assert.equal(notes.whatDiffered.length, 0, "非finite値を反証Evidenceへ変換しない");
-  assert.equal(notes.missedSignals.length, 0, "非finite drawdownを最大下落Evidenceへ変換しない");
+  assert(notes.missedSignals.some(signal => signal.includes("dataAvailability=ok")), "okなのに1mリターンが非finiteなら不整合を明示する");
+  assert(!notes.missedSignals.some(signal => signal.includes("最大下落")), "非finite drawdownを最大下落Evidenceへ変換しない");
   assert(!notes.notes.includes("Infinity"), "read-only notesへInfinityを露出しない");
   assert(!notes.notes.includes("NaN"), "read-only notesへNaNを露出しない");
   assert(notes.notes.includes("1m=N/A%"));
   assert(notes.notes.includes("TOPIX比=N/A%"));
+}
+
+{
+  const notes = buildOutcomeNotes({
+    hypothesis: hypothesis("down"),
+    returns: { ret1m: null, maxDrawdownPct: null, dataAvailability: "ok" },
+    relativeToTopix1m: null,
+    result: "unknown",
+    dataSource: "jquants",
+  });
+  assert.equal(notes.whatMatched.length, 0, "欠落1mリターンを方向一致Evidenceへ変換しない");
+  assert(notes.missedSignals.some(signal => signal.includes("dataAvailability=ok")), "okなのに1mリターン欠落ならread-only監査へ残す");
 }
 
 console.log("outcome-notes.test.ts passed");
