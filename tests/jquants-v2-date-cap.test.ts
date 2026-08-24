@@ -4,6 +4,7 @@ import {
   jquantsV2DateCapCompact,
   normalizeV2QuoteRange,
 } from "../src/fetcher/jquants.js";
+import { parsePrimaryDisclosureEdinetDays } from "../src/primary-disclosure-config.js";
 
 {
   const beforeJstMidnight = new Date("2026-08-07T14:30:00.000Z"); // 23:30 JST Aug 7
@@ -45,6 +46,19 @@ import {
     /non-negative integer/,
   );
   console.log("jquants-v2-date-cap: invalid range and delay fail closed OK");
+}
+
+{
+  assert.equal(parsePrimaryDisclosureEdinetDays(undefined), 5, "EDINET scan days未指定は既定5営業日");
+  assert.equal(parsePrimaryDisclosureEdinetDays("5"), 5, "正の整数を保持する");
+  assert.equal(parsePrimaryDisclosureEdinetDays("30"), 30, "上限30営業日を許可する");
+  assert.equal(parsePrimaryDisclosureEdinetDays("31"), 30, "上限超過は30営業日へ丸める");
+  assert.equal(parsePrimaryDisclosureEdinetDays("abc"), 5, "非numeric値は既定値へfail-closedする");
+  assert.equal(parsePrimaryDisclosureEdinetDays("0"), 5, "0は既定値へfail-closedする");
+  assert.equal(parsePrimaryDisclosureEdinetDays("-1"), 5, "負数は既定値へfail-closedする");
+  assert.equal(parsePrimaryDisclosureEdinetDays("1.5"), 5, "小数は既定値へfail-closedする");
+  assert.equal(parsePrimaryDisclosureEdinetDays("5days"), 5, "部分parse可能な値をrejectする");
+  console.log("primary-disclosure-config: EDINET scan day config is bounded and fail closed OK");
 }
 
 {
