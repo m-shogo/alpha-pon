@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -21,19 +21,24 @@ try {
   const reportsDir = join(dir, "reports");
   const backupsDir = join(dir, "backups");
   const accuracySummaryPath = join(dir, "hypothesis_accuracy_summary.json");
+  const backupAsOf = "2026-08-16";
+  const backupNow = new Date("2026-08-16T10:00:00+09:00");
   mkdirSync(reportsDir);
   mkdirSync(backupsDir);
 
-  mkdirSync(join(backupsDir, "2026-08-16T09-30-00"));
+  const validBackupPath = join(backupsDir, "2026-08-16T09-30-00");
+  mkdirSync(validBackupPath);
+  const validBackupMtime = new Date("2026-08-16T09:30:00+09:00");
+  utimesSync(validBackupPath, validBackupMtime, validBackupMtime);
   assert.doesNotThrow(
-    () => assertReadinessBackupDirectoryInput(backupsDir),
+    () => assertReadinessBackupDirectoryInput(backupsDir, backupAsOf, backupNow),
     "real Gregorian backup directory names remain valid readiness evidence",
   );
 
   for (const invalidBackupName of ["9999-99-99T09-30-00", "2026-08-16T24-00-00", "2026-08-16T09-60-00"] as const) {
     mkdirSync(join(backupsDir, invalidBackupName));
     assert.throws(
-      () => assertReadinessBackupDirectoryInput(backupsDir),
+      () => assertReadinessBackupDirectoryInput(backupsDir, backupAsOf, backupNow),
       /backup directory name must contain a real Gregorian date and valid HH-mm-ss time/,
       "malformed backup directory names must not inflate operations readiness",
     );
@@ -43,7 +48,7 @@ try {
   const backupFilePath = join(backupsDir, "2026-08-15T09-30-00");
   writeFileSync(backupFilePath, "not a directory");
   assert.throws(
-    () => assertReadinessBackupDirectoryInput(backupsDir),
+    () => assertReadinessBackupDirectoryInput(backupsDir, backupAsOf, backupNow),
     /backup evidence candidate must be a directory/,
     "timestamp-shaped files must not count as backup directories",
   );
@@ -64,7 +69,7 @@ try {
   assert.throws(
     () => assertReadinessCompanyMemoryInput(generatedPath, reportPath),
     /companyMemory must be an array of objects with canonical unique code and non-empty name when present/,
-    "malformed generated companyMemory must fail closed instead of becoming a false zero-record readiness state",
+    "malformed generated companyMemory must fail closed instead of yielding undefined readiness counts",
   );
 
   for (const malformedRow of [null, "8136", 7, [], {}, { code: "8136" }, { name: "Sanrio" }] as const) {
