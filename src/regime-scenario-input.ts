@@ -66,9 +66,12 @@ function isUsableRegimeScenarioReflection(value: unknown, asOf: string): value i
     || !hasRegimeSignal(value)) {
     return false;
   }
-  if (value.eventId !== undefined
-    && (value.eventId.trim().length === 0 || value.eventId !== value.eventId.trim())) {
-    return false;
+  if (value.eventId !== undefined) {
+    if (typeof value.eventId !== "string"
+      || value.eventId.trim().length === 0
+      || value.eventId !== value.eventId.trim()) {
+      return false;
+    }
   }
 
   const isCanonicalReflection = value.createdAt !== undefined
