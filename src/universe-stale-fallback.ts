@@ -1,3 +1,7 @@
+/**
+ * stale fallback候補を、元の検出日を保持したままread-only候補として繰り越す。
+ */
+
 import type { UniverseCandidate } from "./universe.js";
 
 export const STALE_FALLBACK_WARNING = "[STALE] J-Quants取得が全滅したため前回候補を暫定保持";
@@ -14,12 +18,38 @@ function isStrictGregorianDate(value: string): boolean {
   return day <= new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
+function isFiniteNumberOrNull(value: unknown): boolean {
+  return value === null || (typeof value === "number" && Number.isFinite(value));
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(item => typeof item === "string");
+}
+
 function hasCanonicalIdentity(candidate: UniverseCandidate): boolean {
   return typeof candidate.code === "string"
     && candidate.code.length > 0
     && candidate.code === candidate.code.trim()
     && typeof candidate.name === "string"
     && candidate.name.trim().length > 0;
+}
+
+function hasRequiredCandidateShape(candidate: UniverseCandidate): boolean {
+  return (candidate.sector === null || typeof candidate.sector === "string")
+    && isFiniteNumberOrNull(candidate.currentPrice)
+    && isFiniteNumberOrNull(candidate.high52w)
+    && isFiniteNumberOrNull(candidate.drawdownPct)
+    && isFiniteNumberOrNull(candidate.operatingProfitYoY)
+    && typeof candidate.hasDownwardRevision === "boolean"
+    && typeof candidate.hasNegativeFlag === "boolean"
+    && typeof candidate.hasRecentDisclosure === "boolean"
+    && isStringArray(candidate.matchedWorldEventTags)
+    && typeof candidate.screeningScore === "number"
+    && Number.isFinite(candidate.screeningScore)
+    && candidate.screeningScore >= 0
+    && candidate.screeningScore <= 100
+    && isStringArray(candidate.warnings)
+    && (candidate.status === "monitoring" || candidate.status === "escalated" || candidate.status === "dismissed");
 }
 
 function hasInvalidStaleLineage(candidate: UniverseCandidate, fallbackAsOf: string): boolean {
@@ -35,6 +65,9 @@ function hasInvalidStaleLineage(candidate: UniverseCandidate, fallbackAsOf: stri
 export function carryForwardStaleCandidate(candidate: UniverseCandidate, fallbackAsOf: string): UniverseCandidate {
   if (!hasCanonicalIdentity(candidate)) {
     throw new RangeError("stale fallback candidate identity is invalid");
+  }
+  if (!hasRequiredCandidateShape(candidate)) {
+    throw new RangeError("stale fallback candidate shape is invalid");
   }
   if (candidate.dataSource !== "jquants") {
     throw new RangeError("stale fallback source provenance is invalid");
