@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, renameSync, statSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
 import { todayJst } from "./date.js";
+import { parseMaintenanceJsonlMaxBytes } from "./maintenance-config.js";
 
 type MaintenanceItem = {
   path: string;
@@ -9,7 +10,7 @@ type MaintenanceItem = {
   note: string;
 };
 
-const MAX_JSONL_BYTES = Number(process.env.DATA_JSONL_MAX_BYTES ?? String(10 * 1024 * 1024));
+const MAX_JSONL_BYTES = parseMaintenanceJsonlMaxBytes(process.env.DATA_JSONL_MAX_BYTES);
 const WATCH_PATHS = [
   join("data", "analogy_outcomes.jsonl"),
   join("data", "analogy_usage"),
