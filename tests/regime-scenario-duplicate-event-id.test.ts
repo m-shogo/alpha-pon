@@ -32,14 +32,22 @@ try {
       categories: ["地政学"],
       impactedTags: ["防衛"],
     },
+    {
+      date: "2026-08-20",
+      eventId: " 2026-08-20-geopolitics ",
+      title: "legacy形式の同一イベント",
+      category: "地政学",
+      tags: ["防衛"],
+    },
   ]), "utf-8");
 
   const loaded = loadRegimeScenarioReflectionState(path, "2026-08-20");
-  assert.equal(loaded.rows.length, 1, "all rows sharing a duplicate canonical eventId must be isolated");
+  assert.equal(loaded.rows.length, 1, "duplicate and non-canonical event identities must not reach scenario scoring");
   assert.equal(loaded.rows[0]?.eventId, "2026-08-20-geopolitics");
+  assert.match(loaded.warnings.join("\n"), /1 malformed reflection row\(s\) isolated at row\(s\) 4/);
   assert.match(loaded.warnings.join("\n"), /1 duplicate eventId\(s\) isolated at row\(s\) 1, 2/);
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("regime-scenario duplicate event id: duplicate canonical reflections are isolated before scoring");
+console.log("regime-scenario duplicate event id: duplicate and non-canonical event identities are isolated before scoring");
