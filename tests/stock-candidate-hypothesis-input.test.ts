@@ -206,11 +206,13 @@ const universe = normalizeStockCandidateUniverseRows({
     { ...validCandidate, code: "6758", screeningScore: -1 },
     { ...validCandidate, code: "9432", screeningScore: 101 },
     { ...validCandidate, code: " 7974" },
+    { ...validCandidate, code: "7203", detectedAt: "2026-02-31" },
+    { ...validCandidate, code: "9984", detectedAt: "2999-01-01" },
   ],
 });
 assert.equal(universe.rootValid, true);
-assert.deepEqual(universe.candidates.map(candidate => candidate.code), ["8136"], "malformed/non-canonical candidate identityや0〜100外scoreだけ隔離して正常candidateを保持する");
-assert.equal(universe.warnings.length, 6, "malformed/non-canonical/out-of-range candidate rowをsilent dropしない");
+assert.deepEqual(universe.candidates.map(candidate => candidate.code), ["8136"], "malformed/non-canonical/PIT-invalid candidate rowや0〜100外scoreだけ隔離して正常candidateを保持する");
+assert.equal(universe.warnings.length, 8, "malformed/non-canonical/PIT-invalid/out-of-range candidate rowをsilent dropしない");
 assert.ok(universe.warnings.every(warning => !warning.includes("サンリオ")), "candidate warningへraw row内容を露出しない");
 
 const invalidUniverseRoot = normalizeStockCandidateUniverseRows({ candidates: {} });
