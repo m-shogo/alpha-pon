@@ -53,6 +53,32 @@ assert.equal(malformedItems.rows.length, 1, "malformed items must not stop the w
 assert.deepEqual(malformedItems.rows[0].primaryDisclosureReview?.items, []);
 assert.ok(malformedItems.warnings.some(warning => warning.includes("items: invalid_list")));
 
+const canonicalCategoryIdentity = normalizePrimaryDisclosureLearningScoreInput([{
+  code: "8136",
+  name: "サンリオ",
+  score: 80,
+  alertLevel: "watch",
+  createdAt: "2026-08-18",
+  primaryDisclosureReview: {
+    decision: "confirmed",
+    items: [
+      { source: "TDnet", title: "決算", category: "earnings", severity: "positive", publishedAt: "2026-08-18" },
+      { source: "TDnet", title: "padded category", category: " earnings", severity: "positive", publishedAt: "2026-08-18" },
+      { source: "TDnet", title: "padded severity", category: "earnings", severity: "positive ", publishedAt: "2026-08-18" },
+    ],
+  },
+}], "scores_2026-08-18.json", "2026-08-18");
+assert.deepEqual(
+  canonicalCategoryIdentity.rows[0].primaryDisclosureReview?.items,
+  [{ source: "TDnet", title: "決算", category: "earnings", severity: "positive", publishedAt: "2026-08-18" }],
+  "padded category/severity identities must not split learning aggregates",
+);
+assert.equal(
+  canonicalCategoryIdentity.warnings.filter(warning => warning.includes("primaryDisclosureReview.items") && warning.includes("invalid_fields")).length,
+  2,
+  "each padded category/severity identity must be surfaced as metadata warning",
+);
+
 const disclosureDates = normalizePrimaryDisclosureLearningScoreInput([{
   code: "8136",
   name: "サンリオ",
