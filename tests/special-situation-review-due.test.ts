@@ -59,6 +59,12 @@ assert.equal(
   0,
   "non-array candidates fail closed instead of reaching due queue iteration",
 );
+const missingCandidateList = normalizeSpecialSituationCandidates({}, "synthetic-special-config");
+assert.equal(missingCandidateList.candidates.length, 0, "missing candidates fail closed");
+assert(
+  missingCandidateList.warnings.some(warning => warning.includes("candidates is required")),
+  "missing candidates cannot look like a clean zero-candidate config",
+);
 
 assert.equal(calcSpecialSituationDueAt("2026-08-07", "1d"), "2026-08-08");
 assert.equal(calcSpecialSituationDueAt("2026-02-31", "1d"), null);
