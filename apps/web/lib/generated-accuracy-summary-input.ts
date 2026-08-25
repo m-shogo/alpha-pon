@@ -34,6 +34,10 @@ function isFiniteNumberOrNull(value: unknown): value is number | null {
   return value === null || isFiniteNumber(value)
 }
 
+function isDrawdownOrNull(value: unknown): value is number | null {
+  return value === null || (isFiniteNumber(value) && value <= 0)
+}
+
 function isRateOrNull(value: unknown): value is number | null {
   return value === null || (isFiniteNumber(value) && value >= 0 && value <= 1)
 }
@@ -85,7 +89,7 @@ export function isGeneratedAccuracySummaryInput(value: unknown): value is Genera
     || !isFiniteNumberOrNull(summary.avgReturn1m)
     || !isFiniteNumberOrNull(summary.avgTopixReturn1m)
     || !isFiniteNumberOrNull(summary.avgRelativeToTopix1m)
-    || !isFiniteNumberOrNull(summary.avgMaxDrawdownPct)
+    || !isDrawdownOrNull(summary.avgMaxDrawdownPct)
     || !hasExactStats(summary.byActionLabel, actionLabels, isActionLabelStats)
     || !hasExactStats(summary.byScoreBand, scoreBands, isScoreBandStats)
   ) {
