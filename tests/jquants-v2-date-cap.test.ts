@@ -5,6 +5,7 @@ import {
   normalizeV2QuoteRange,
   parseJQuantsRequestTimeoutMs,
   parseJQuantsV2RequestIntervalMs,
+  parseJQuantsV2RetryAttempts,
 } from "../src/fetcher/jquants.js";
 import { parseMaintenanceJsonlMaxBytes } from "../src/maintenance-config.js";
 import { parsePrimaryDisclosureEdinetDays } from "../src/primary-disclosure-config.js";
@@ -78,6 +79,21 @@ import { resolveWorldImpactJquantsDelayDays } from "../src/world-impact-evaluati
   assert.equal(parseJQuantsV2RequestIntervalMs("3000ms"), 3000, "部分parse可能なintervalをrejectする");
   assert.equal(parseJQuantsV2RequestIntervalMs("9007199254740992"), 3000, "unsafe integer intervalをrejectする");
   console.log("jquants-config: V2 request interval is bounded and fail closed OK");
+}
+
+{
+  assert.equal(parseJQuantsV2RetryAttempts(undefined), 5, "V2 retry未指定は5回");
+  assert.equal(parseJQuantsV2RetryAttempts("1"), 1, "read-only reviewの1回retry設定を維持する");
+  assert.equal(parseJQuantsV2RetryAttempts("5"), 5, "既定相当のretry回数を保持する");
+  assert.equal(parseJQuantsV2RetryAttempts("10"), 10, "上限10回を許可する");
+  assert.equal(parseJQuantsV2RetryAttempts("11"), 5, "過大retry回数は既定値へfail-closedする");
+  assert.equal(parseJQuantsV2RetryAttempts("abc"), 5, "非numeric retry回数は既定値へfail-closedする");
+  assert.equal(parseJQuantsV2RetryAttempts("0"), 5, "0回retryでrequest自体を消さない");
+  assert.equal(parseJQuantsV2RetryAttempts("-1"), 5, "負数retry回数は既定値へfail-closedする");
+  assert.equal(parseJQuantsV2RetryAttempts("1.5"), 5, "小数retry回数は既定値へfail-closedする");
+  assert.equal(parseJQuantsV2RetryAttempts("5x"), 5, "部分parse可能なretry回数をrejectする");
+  assert.equal(parseJQuantsV2RetryAttempts("9007199254740992"), 5, "unsafe integer retry回数をrejectする");
+  console.log("jquants-config: V2 retry attempts are bounded and cannot suppress requests OK");
 }
 
 {

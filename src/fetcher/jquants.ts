@@ -22,6 +22,11 @@ export function parseJQuantsV2RequestIntervalMs(value: string | undefined): numb
   return Number.isSafeInteger(parsed) && parsed >= 0 && parsed <= 60_000 ? parsed : 3000;
 }
 
+export function parseJQuantsV2RetryAttempts(value: string | undefined): number {
+  const parsed = Number(value ?? "5");
+  return Number.isSafeInteger(parsed) && parsed >= 1 && parsed <= 10 ? parsed : 5;
+}
+
 function requestTimeoutMs(): number {
   return parseJQuantsRequestTimeoutMs(process.env.JQUANTS_REQUEST_TIMEOUT_MS);
 }
@@ -213,7 +218,7 @@ async function waitForV2RateLimit(): Promise<void> {
 }
 
 async function fetchV2(url: string, apiKey: string): Promise<Response> {
-  const maxAttempts = Number(process.env.JQUANTS_V2_RETRY_ATTEMPTS ?? "5");
+  const maxAttempts = parseJQuantsV2RetryAttempts(process.env.JQUANTS_V2_RETRY_ATTEMPTS);
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     const res = await fetch(url, {
       headers: {
