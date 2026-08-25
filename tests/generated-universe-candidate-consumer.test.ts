@@ -31,6 +31,14 @@ assert.deepEqual(
   { rows: [canonical], warning: null },
 )
 
+assert.deepEqual(
+  normalizeGeneratedArrayInput([
+    canonical,
+    { ...canonical, name: 'Duplicate Sanrio', screeningScore: 99 },
+  ], 'universeCandidates', objectRow),
+  { rows: [canonical], warning: 'universeCandidates: invalid_entries (1)' },
+)
+
 for (const malformed of [
   { code: '8136' },
   { ...canonical, dataSource: 'external' },
