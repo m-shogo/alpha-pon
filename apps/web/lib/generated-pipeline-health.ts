@@ -1,4 +1,4 @@
-import type { GeneratedPipelineStatusInput } from './generated-array-input'
+import type { GeneratedPipelineStatusInput } from './generated-array-input.js'
 
 export type GeneratedPipelineFailureSummary = {
   failed: boolean
