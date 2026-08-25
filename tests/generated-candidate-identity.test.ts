@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { normalizeGeneratedArrayInput } from '../apps/web/lib/generated-array-input.js'
+import './pro-command-summary-input.test.js'
 
 type CandidateIdentityRow = { code: string }
 

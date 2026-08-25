@@ -1,4 +1,5 @@
 import type { AlphaPonGeneratedData } from '@/lib/types'
+import { normalizeProCommandSummaryInput } from '@/lib/pro-command-summary-input'
 import { Card, SectionLabel } from './Card'
 import { Icon } from './Icon'
 import { TagChip } from './Badge'
@@ -8,7 +9,8 @@ type Props = {
 }
 
 export function ProCommandCard({ data }: Props) {
-  const { summary, reports, generatedAt, headline } = data
+  const { reports, generatedAt, headline } = data
+  const summary = normalizeProCommandSummaryInput(data.summary)
 
   const items = [
     { label: '司令塔',      value: summary.strategic },
@@ -16,8 +18,8 @@ export function ProCommandCard({ data }: Props) {
     { label: 'Pro会議',     value: summary.committee },
   ].filter((item) => item.value)
 
-  const roadmap = (summary.roadmap || []).slice(0, 3)
-  const refresh = (summary.refresh || []).slice(0, 2)
+  const roadmap = summary.roadmap.slice(0, 3)
+  const refresh = summary.refresh.slice(0, 2)
 
   if (items.length === 0 && roadmap.length === 0 && refresh.length === 0) return null
 
@@ -80,7 +82,7 @@ export function ProCommandCard({ data }: Props) {
         {refresh.length > 0 && (
           <div style={{ marginTop: 11, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {refresh.map((r, i) => (
-              <TagChip key={i}>{String(r).replace(/^\|\s*/, '').slice(0, 28)}</TagChip>
+              <TagChip key={i}>{r.replace(/^\|\s*/, '').slice(0, 28)}</TagChip>
             ))}
           </div>
         )}
