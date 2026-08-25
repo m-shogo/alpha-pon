@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import "./web-home-generated-date.test.js";
 import {
   fetchDailyQuotes,
   jquantsV2DateCapCompact,
