@@ -28,6 +28,7 @@ for (const malformed of [
   { outcomes: {} },
   { outcomes: [null] },
   { outcomes: ["broken"] },
+  { outcomes: [{}] },
   { outcomes: [{ result: 1 }] },
   { outcomes: [{ dataAvailability: [] }] },
   { outcomes: [{ code: "", reviewHorizon: "1m", result: "hit", dataAvailability: "ok" }] },
