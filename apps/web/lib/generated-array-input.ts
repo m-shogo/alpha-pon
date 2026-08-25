@@ -240,12 +240,15 @@ function isGeneratedPipelineStepInput(value: unknown): value is GeneratedPipelin
 export function isGeneratedPipelineStatusInput(value: unknown): value is GeneratedPipelineStatusInput {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const row = value as Record<string, unknown>
+  const failedSteps = row.failedSteps
+  if (failedSteps !== undefined
+    && (!Array.isArray(failedSteps) || !failedSteps.every((item) => typeof item === 'string'))) return false
+  if (row.status === 'ok' && Array.isArray(failedSteps) && failedSteps.length > 0) return false
+
   return (row.date === undefined || typeof row.date === 'string')
     && (row.status === undefined || typeof row.status === 'string')
     && (row.startedAt === undefined || typeof row.startedAt === 'string')
     && (row.endedAt === undefined || typeof row.endedAt === 'string')
-    && (row.failedSteps === undefined
-      || (Array.isArray(row.failedSteps) && row.failedSteps.every((item) => typeof item === 'string')))
     && (row.completeWrapperFailedSteps === undefined
       || (Array.isArray(row.completeWrapperFailedSteps)
         && row.completeWrapperFailedSteps.every((item) => typeof item === 'string')))
