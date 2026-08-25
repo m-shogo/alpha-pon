@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { linkSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { linkSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import "./hypothesis-open-identity-dedupe.test.js";
@@ -139,14 +139,43 @@ try {
     0,
     "symlinked cursor state must not skip active scan items",
   );
+  const savedFromSymlink = saveRunCursor({
+    jobName: "universe-scan",
+    offset: 0,
+    maxPerRun: 20,
+    total: 100,
+    updatedAt: todayJst(),
+  });
+  assert.equal(savedFromSymlink.offset, 20, "cursor progress remains writable after rejecting a symlink alias");
+  assert.equal(
+    readFileSync("cursor-target.json", "utf-8"),
+    canonicalCursor,
+    "saving cursor state must not follow and overwrite a symlink target",
+  );
+  assert.equal(loadRunCursor("universe-scan", 20, 100).offset, 20, "symlink alias is replaced by canonical cursor state");
 
   rmSync("data/run-cursors.json", { force: true });
-  linkSync("cursor-target.json", "data/run-cursors.json");
+  writeFileSync("hardlink-target.json", canonicalCursor, "utf-8");
+  linkSync("hardlink-target.json", "data/run-cursors.json");
   assert.equal(
     loadRunCursor("universe-scan", 20, 100).offset,
     0,
     "hard-linked cursor state must not be accepted as canonical operational provenance",
   );
+  const savedFromHardlink = saveRunCursor({
+    jobName: "universe-scan",
+    offset: 20,
+    maxPerRun: 20,
+    total: 100,
+    updatedAt: todayJst(),
+  });
+  assert.equal(savedFromHardlink.offset, 40, "cursor progress remains writable after rejecting a hard-link alias");
+  assert.equal(
+    readFileSync("hardlink-target.json", "utf-8"),
+    canonicalCursor,
+    "saving cursor state must not overwrite the aliased hard-link inode",
+  );
+  assert.equal(loadRunCursor("universe-scan", 20, 100).offset, 40, "hard-link alias is replaced by canonical cursor state");
 
   rmSync("data/run-cursors.json", { force: true });
   writeFileSync("data/run-cursors.json", canonicalCursor, "utf-8");
@@ -160,4 +189,4 @@ try {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("run-cursor-input: malformed roots, caller parameters, identity mismatches, invalid offsets, linked files, and future provenance fail closed OK");
+console.log("run-cursor-input: malformed roots, caller parameters, identity mismatches, invalid offsets, linked read/write paths, and future provenance fail closed OK");
