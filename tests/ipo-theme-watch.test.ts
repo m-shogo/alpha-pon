@@ -32,10 +32,11 @@ assert.throws(() => addDaysJst("2026-02-29", 1), /real YYYY-MM-DD/);
 const tmp = mkdtempSync(join(tmpdir(), "ipo-theme-input-"));
 try {
   const outcomePath = join(tmp, "hypothesis_outcomes.jsonl");
-  const validOutcome = (code: string) => JSON.stringify({
+  const validOutcome = (code: string, hypothesisCode?: string) => JSON.stringify({
     code,
     name: `Company ${code}`,
     hypothesis: {
+      ...(hypothesisCode === undefined ? {} : { code: hypothesisCode }),
       reason: "IPO theme",
       relatedWorldEventIds: [],
       evidenceNeeded: [],
@@ -50,13 +51,13 @@ try {
   });
   writeFileSync(
     outcomePath,
-    `${validOutcome("8136")}\n{broken\n{}\n{"code":"9999"}\n${validOutcome("5803 ")}\n${validOutcome("5803")}\n`,
+    `${validOutcome("8136")}\n{broken\n{}\n{"code":"9999"}\n${validOutcome("5803 ")}\n${validOutcome("5803")}\n${validOutcome("7011", "8136")}\n`,
     "utf-8",
   );
   const outcomeInput = readIpoThemeOutcomeInput(outcomePath);
   assert.deepEqual(outcomeInput.rows.map(row => row.code), ["8136", "5803"]);
   assert(outcomeInput.warning?.includes("lines 2"), "malformed outcome rows must surface line-number metadata without stopping valid rows");
-  assert(outcomeInput.warning?.includes("invalid_rows 3"), "valid JSON rows with unsafe or non-canonical outcome identity must be isolated without stopping valid rows");
+  assert(outcomeInput.warning?.includes("invalid_rows 4"), "valid JSON rows with unsafe, non-canonical, or cross-company outcome identity must be isolated without stopping valid rows");
   assert(!outcomeInput.warning?.includes("{broken"), "parse warnings must not echo raw malformed JSONL content");
 
   const worldThemeReviewPath = join(tmp, "world_theme_candidate_hypotheses.jsonl");
