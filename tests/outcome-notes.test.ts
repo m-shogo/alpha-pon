@@ -48,25 +48,29 @@ function hypothesis(expectedDirection: StockCandidateHypothesis["expectedDirecti
 {
   const notes = buildOutcomeNotes({
     hypothesis: hypothesis("up"),
-    returns: { ret1m: 4.2, maxDrawdownPct: null, dataAvailability: "partial" },
+    returns: { ret1m: 4.2, maxDrawdownPct: -12.5, dataAvailability: "partial" },
     relativeToTopix1m: 1.1,
     result: "hit",
     dataSource: "jquants",
   });
   assert.equal(notes.whatMatched.length, 0, "partial data では方向/TOPIXを一致扱いしない");
   assert(notes.missedSignals.some(signal => signal.includes("partial")));
+  assert(!notes.missedSignals.some(signal => signal.includes("最大下落")), "partial data のdrawdownを確定Evidenceとして扱わない");
+  assert(!notes.improvedRuleIdeas.some(idea => idea.includes("最大許容下落")), "partial drawdownから改善ルールを生成しない");
 }
 
 {
   const notes = buildOutcomeNotes({
     hypothesis: hypothesis("up"),
-    returns: { ret1m: 4.2, maxDrawdownPct: null, dataAvailability: "ok" },
+    returns: { ret1m: 4.2, maxDrawdownPct: -12.5, dataAvailability: "ok" },
     relativeToTopix1m: 1.1,
     result: "hit",
     dataSource: "jquants",
   });
   assert(notes.whatMatched.some(match => match.includes("期待方向 up")));
   assert(notes.whatMatched.some(match => match.includes("TOPIX比")));
+  assert(notes.missedSignals.some(signal => signal.includes("最大下落")), "complete data のdrawdown Evidenceは維持する");
+  assert(notes.improvedRuleIdeas.some(idea => idea.includes("最大許容下落")), "complete drawdown Evidenceからの改善ルールは維持する");
 }
 
 {

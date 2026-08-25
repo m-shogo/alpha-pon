@@ -59,7 +59,8 @@ export function buildOutcomeNotes(input: {
   }
 
   if (
-    input.returns.maxDrawdownPct != null
+    input.returns.dataAvailability === "ok"
+    && input.returns.maxDrawdownPct != null
     && Number.isFinite(input.returns.maxDrawdownPct)
     && input.returns.maxDrawdownPct <= -10
   ) {
