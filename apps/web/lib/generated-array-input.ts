@@ -263,13 +263,21 @@ export function normalizeGeneratedArrayInput<T>(
   }
   if (!isValidEntry) return { rows: value as T[], warning: null }
 
-  const rows = value.filter((entry): entry is T => (
+  const validRows = value.filter((entry): entry is T => (
     isValidEntry(entry)
     && (field !== 'hypothesisPredictions' || hasCanonicalHypothesisPredictionCollections(entry))
     && (field !== 'hypothesisPredictions' || hasCanonicalHypothesisPredictionConfidence(entry))
     && (field !== 'hypothesisOutcomes' || isCanonicalHypothesisOutcomeDiscriminators(entry))
     && (field !== 'universeCandidates' || isCanonicalUniverseCandidate(entry))
   ))
+  const seenUniverseCandidateCodes = new Set<string>()
+  const rows = validRows.filter((entry) => {
+    if (field !== 'universeCandidates') return true
+    const code = (entry as Record<string, unknown>).code as string
+    if (seenUniverseCandidateCodes.has(code)) return false
+    seenUniverseCandidateCodes.add(code)
+    return true
+  })
   const invalidEntries = value.length - rows.length
   return {
     rows,
