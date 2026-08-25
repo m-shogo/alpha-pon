@@ -102,6 +102,19 @@ assert(mixedHypotheses.rows.length === 1, "malformed hypothesis rows, collection
 assert(mixedHypotheses.rows[0]?.code === "8136", "valid hypothesis siblings must remain usable");
 assert(mixedHypotheses.warning === "hypothesisPredictions: invalid_entries (5)", "malformed hypothesis rows must remain visible as metadata-only warnings");
 
+const duplicateHypotheses = normalizeGeneratedArrayInput(
+  [
+    canonicalHypothesis,
+    { ...canonicalHypothesis, confidence: 0.9, reviewDueAt: "2026-10-18" },
+    { ...canonicalHypothesis, code: "7203" },
+  ],
+  "hypothesisPredictions",
+  isHypothesisRow,
+);
+assert(duplicateHypotheses.rows.length === 2, "duplicate open hypothesis identities must not render as separate generated Evidence");
+assert(duplicateHypotheses.rows[0]?.code === "8136" && duplicateHypotheses.rows[1]?.code === "7203", "first canonical hypothesis identity and distinct companies must remain usable");
+assert(duplicateHypotheses.warning === "hypothesisPredictions: invalid_entries (1)", "duplicate hypothesis identities must remain visible as metadata-only warnings");
+
 const isOutcomeRow = (value: unknown): value is Record<string, unknown> => {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const row = value as Record<string, unknown>;
