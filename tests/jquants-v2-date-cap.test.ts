@@ -3,6 +3,7 @@ import {
   fetchDailyQuotes,
   jquantsV2DateCapCompact,
   normalizeV2QuoteRange,
+  parseJQuantsRequestTimeoutMs,
 } from "../src/fetcher/jquants.js";
 import { parseMaintenanceJsonlMaxBytes } from "../src/maintenance-config.js";
 import { parsePrimaryDisclosureEdinetDays } from "../src/primary-disclosure-config.js";
@@ -48,6 +49,20 @@ import { resolveWorldImpactJquantsDelayDays } from "../src/world-impact-evaluati
     /non-negative integer/,
   );
   console.log("jquants-v2-date-cap: invalid range and delay fail closed OK");
+}
+
+{
+  assert.equal(parseJQuantsRequestTimeoutMs(undefined), 15000, "timeout未指定は15秒");
+  assert.equal(parseJQuantsRequestTimeoutMs("15000"), 15000, "正のsafe integer timeoutを保持する");
+  assert.equal(parseJQuantsRequestTimeoutMs("1000"), 1000, "最小1秒を許可する");
+  assert.equal(parseJQuantsRequestTimeoutMs("abc"), 15000, "非numeric timeoutは既定値へfail-closedする");
+  assert.equal(parseJQuantsRequestTimeoutMs("0"), 15000, "0 timeoutは既定値へfail-closedする");
+  assert.equal(parseJQuantsRequestTimeoutMs("-1"), 15000, "負数timeoutは既定値へfail-closedする");
+  assert.equal(parseJQuantsRequestTimeoutMs("999"), 15000, "1秒未満timeoutは既定値へfail-closedする");
+  assert.equal(parseJQuantsRequestTimeoutMs("1000.5"), 15000, "小数timeoutは既定値へfail-closedする");
+  assert.equal(parseJQuantsRequestTimeoutMs("15000ms"), 15000, "部分parse可能なtimeoutをrejectする");
+  assert.equal(parseJQuantsRequestTimeoutMs("9007199254740992"), 15000, "unsafe integer timeoutをrejectする");
+  console.log("jquants-config: request timeout is a safe integer and fail closed OK");
 }
 
 {
