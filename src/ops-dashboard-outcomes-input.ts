@@ -39,6 +39,11 @@ export function normalizeOpsOutcomesInput(value: unknown): OpsOutcomesInput | nu
 
   for (const outcome of value.outcomes) {
     if (!isRecord(outcome)) return invalidOutcomesInput();
+    const hasOutcomeEvidence = outcome.code != null
+      || outcome.reviewHorizon != null
+      || outcome.result != null
+      || outcome.dataAvailability != null;
+    if (!hasOutcomeEvidence) return invalidOutcomesInput();
     if (
       !isOptionalCanonicalString(outcome.code) ||
       !isOptionalEnum(outcome.reviewHorizon, REVIEW_HORIZONS) ||
