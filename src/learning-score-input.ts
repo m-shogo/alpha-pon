@@ -54,6 +54,10 @@ function isRiskDecision(value: unknown): value is "reject" | "research_only" | "
   return value === "reject" || value === "research_only" || value === "watch" || value === "high_quality_candidate";
 }
 
+function isExpertVerdict(value: unknown): value is "block" | "caution" | "pass" | "strong" {
+  return value === "block" || value === "caution" || value === "pass" || value === "strong";
+}
+
 function isRealJstDate(value: string): boolean {
   try {
     return addDaysJst(value, 0) === value;
@@ -65,7 +69,7 @@ function isRealJstDate(value: string): boolean {
 function normalizeLens(value: unknown): LearningExpertLens | null {
   if (!isRecord(value)) return null;
   if (typeof value.name !== "string" || value.name.trim() === "") return null;
-  if (typeof value.verdict !== "string") return null;
+  if (!isExpertVerdict(value.verdict)) return null;
   if (!isOptionalStringArray(value.nextChecks)) return null;
   return {
     name: value.name,
@@ -105,7 +109,7 @@ function normalizeRow(value: unknown, asOf: string): LearningScoreEntry | null {
   let expertReview: LearningScoreEntry["expertReview"];
   if (value.expertReview !== undefined) {
     if (!isRecord(value.expertReview)) return null;
-    if (typeof value.expertReview.finalVerdict !== "string") return null;
+    if (!isExpertVerdict(value.expertReview.finalVerdict)) return null;
     if (!isOptionalStringArray(value.expertReview.disagreements)) return null;
     if (!Array.isArray(value.expertReview.lenses)) return null;
     const lenses = value.expertReview.lenses.map(normalizeLens);
