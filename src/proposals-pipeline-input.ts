@@ -1,5 +1,5 @@
-import { existsSync, readFileSync } from "node:fs";
 import { normalizeSourceHealthObject } from "./source-health-input.js";
+import { readReadOnlyJsonObjectFile } from "./read-only-json-file.js";
 
 const PIPELINE_CRITICALITIES = new Set(["critical", "noncritical"]);
 const PIPELINE_STEP_STATUSES = new Set(["ok", "failed", "skipped"]);
@@ -28,16 +28,10 @@ function hasSafePipelineSteps(value: Record<string, unknown>): boolean {
 }
 
 export function readProposalPipelineStatus<T extends object>(path: string): T | null {
-  if (!existsSync(path)) return null;
+  const loaded = readReadOnlyJsonObjectFile<Record<string, unknown>>(path);
+  if (!loaded.object) return null;
 
-  let raw: unknown;
-  try {
-    raw = JSON.parse(readFileSync(path, "utf-8")) as unknown;
-  } catch {
-    return null;
-  }
-
-  const normalized = normalizeSourceHealthObject<T>(raw);
+  const normalized = normalizeSourceHealthObject<T>(loaded.object);
   if (!normalized.value || !hasSafePipelineSteps(normalized.value as Record<string, unknown>)) return null;
   return normalized.value;
 }
