@@ -50,6 +50,10 @@ function isAlertLevel(value: unknown): value is AlertLevel {
   return value === "urgent" || value === "daily" || value === "log" || value === "ignore";
 }
 
+function isRiskDecision(value: unknown): value is "reject" | "research_only" | "watch" | "high_quality_candidate" {
+  return value === "reject" || value === "research_only" || value === "watch" || value === "high_quality_candidate";
+}
+
 function isRealJstDate(value: string): boolean {
   try {
     return addDaysJst(value, 0) === value;
@@ -91,7 +95,7 @@ function normalizeRow(value: unknown, asOf: string): LearningScoreEntry | null {
   let riskReview: LearningScoreEntry["riskReview"];
   if (value.riskReview !== undefined) {
     if (!isRecord(value.riskReview)) return null;
-    if (typeof value.riskReview.decision !== "string" || !isOptionalStringArray(value.riskReview.blockers)) return null;
+    if (!isRiskDecision(value.riskReview.decision) || !isOptionalStringArray(value.riskReview.blockers)) return null;
     riskReview = {
       decision: value.riskReview.decision,
       blockers: (value.riskReview.blockers as string[] | undefined) ?? [],
