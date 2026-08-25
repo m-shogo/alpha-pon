@@ -17,6 +17,11 @@ export function parseJQuantsRequestTimeoutMs(value: string | undefined): number 
   return Number.isSafeInteger(parsed) && parsed >= 1000 ? parsed : 15000;
 }
 
+export function parseJQuantsV2RequestIntervalMs(value: string | undefined): number {
+  const parsed = Number(value ?? "3000");
+  return Number.isSafeInteger(parsed) && parsed >= 0 && parsed <= 60_000 ? parsed : 3000;
+}
+
 function requestTimeoutMs(): number {
   return parseJQuantsRequestTimeoutMs(process.env.JQUANTS_REQUEST_TIMEOUT_MS);
 }
@@ -199,7 +204,7 @@ async function getV2Paginated<T>(path: string, params: Record<string, string> = 
 }
 
 async function waitForV2RateLimit(): Promise<void> {
-  const intervalMs = Number(process.env.JQUANTS_V2_REQUEST_INTERVAL_MS ?? "3000");
+  const intervalMs = parseJQuantsV2RequestIntervalMs(process.env.JQUANTS_V2_REQUEST_INTERVAL_MS);
   const waitMs = Math.max(0, lastV2RequestAt + intervalMs - Date.now());
   if (waitMs > 0) {
     await new Promise(resolve => setTimeout(resolve, waitMs));

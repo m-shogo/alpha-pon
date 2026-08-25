@@ -4,6 +4,7 @@ import {
   jquantsV2DateCapCompact,
   normalizeV2QuoteRange,
   parseJQuantsRequestTimeoutMs,
+  parseJQuantsV2RequestIntervalMs,
 } from "../src/fetcher/jquants.js";
 import { parseMaintenanceJsonlMaxBytes } from "../src/maintenance-config.js";
 import { parsePrimaryDisclosureEdinetDays } from "../src/primary-disclosure-config.js";
@@ -63,6 +64,20 @@ import { resolveWorldImpactJquantsDelayDays } from "../src/world-impact-evaluati
   assert.equal(parseJQuantsRequestTimeoutMs("15000ms"), 15000, "部分parse可能なtimeoutをrejectする");
   assert.equal(parseJQuantsRequestTimeoutMs("9007199254740992"), 15000, "unsafe integer timeoutをrejectする");
   console.log("jquants-config: request timeout is a safe integer and fail closed OK");
+}
+
+{
+  assert.equal(parseJQuantsV2RequestIntervalMs(undefined), 3000, "V2 request interval未指定は3秒");
+  assert.equal(parseJQuantsV2RequestIntervalMs("3000"), 3000, "safe integer intervalを保持する");
+  assert.equal(parseJQuantsV2RequestIntervalMs("0"), 0, "明示的な0ms intervalを許可する");
+  assert.equal(parseJQuantsV2RequestIntervalMs("60000"), 60000, "上限60秒を許可する");
+  assert.equal(parseJQuantsV2RequestIntervalMs("60001"), 3000, "過大intervalは既定値へfail-closedする");
+  assert.equal(parseJQuantsV2RequestIntervalMs("abc"), 3000, "非numeric intervalは既定値へfail-closedする");
+  assert.equal(parseJQuantsV2RequestIntervalMs("-1"), 3000, "負数intervalは既定値へfail-closedする");
+  assert.equal(parseJQuantsV2RequestIntervalMs("1.5"), 3000, "小数intervalは既定値へfail-closedする");
+  assert.equal(parseJQuantsV2RequestIntervalMs("3000ms"), 3000, "部分parse可能なintervalをrejectする");
+  assert.equal(parseJQuantsV2RequestIntervalMs("9007199254740992"), 3000, "unsafe integer intervalをrejectする");
+  console.log("jquants-config: V2 request interval is bounded and fail closed OK");
 }
 
 {
