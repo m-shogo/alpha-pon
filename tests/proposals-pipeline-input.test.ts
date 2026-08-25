@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { linkSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { readProposalPipelineStatus } from "../src/proposals-pipeline-input.js";
@@ -28,6 +28,23 @@ try {
     readProposalPipelineStatus<PipelineStatus>(path)?.steps?.map(step => step.name),
     ["daily:core"],
     "canonical pipeline rows remain usable",
+  );
+
+  const aliasTarget = join(dir, "pipeline_status_alias_target.json");
+  const symlinkPath = join(dir, "pipeline_status_symlink.json");
+  const hardLinkPath = join(dir, "pipeline_status_hardlink.json");
+  writeFileSync(aliasTarget, JSON.stringify({ status: "ok", steps: [] }), "utf-8");
+  symlinkSync(aliasTarget, symlinkPath);
+  linkSync(aliasTarget, hardLinkPath);
+  assert.equal(
+    readProposalPipelineStatus<PipelineStatus>(symlinkPath),
+    null,
+    "a symlink must not become canonical proposal pipeline evidence",
+  );
+  assert.equal(
+    readProposalPipelineStatus<PipelineStatus>(hardLinkPath),
+    null,
+    "a hard link must not become canonical proposal pipeline evidence",
   );
 
   writeFileSync(path, JSON.stringify({ status: "ok", steps: "broken" }), "utf-8");
