@@ -1,7 +1,8 @@
-import {
-  isPipelineStatusHealthy,
-  type PipelineStatusViewInput,
-} from './pipeline-status-view'
+export type PipelineStatusViewInput = {
+  status?: string
+  failedSteps?: unknown
+  completeWrapperFailedSteps?: string[]
+}
 
 export type GeneratedPipelineFailureSummary = {
   failed: boolean
@@ -16,12 +17,15 @@ export function summarizeGeneratedPipelineFailure(
   const dailyFailedSteps = Array.isArray(pipelineStatus.failedSteps)
     ? pipelineStatus.failedSteps.filter((step): step is string => typeof step === 'string')
     : []
+  const completeWrapperFailedSteps = Array.isArray(pipelineStatus.completeWrapperFailedSteps)
+    ? pipelineStatus.completeWrapperFailedSteps.filter((step): step is string => typeof step === 'string')
+    : []
   const failedSteps = [...new Set([
     ...dailyFailedSteps,
-    ...(pipelineStatus.completeWrapperFailedSteps ?? []),
+    ...completeWrapperFailedSteps,
   ])]
   return {
-    failed: !isPipelineStatusHealthy(pipelineStatus),
+    failed: pipelineStatus.status !== 'ok' || failedSteps.length > 0,
     failedSteps,
   }
 }
