@@ -46,6 +46,12 @@ const DEFAULT_RETRY_BASE_MS = 500;
 const DEFAULT_MAX_BYTES = 100 * 1024 * 1024;
 const API_KEY_QUERY_PARAM = "Subscription-Key";
 
+export function resolveEdinetDocumentMaxBytes(value: number | undefined): number {
+  return Number.isSafeInteger(value) && (value ?? 0) >= 1
+    ? value as number
+    : DEFAULT_MAX_BYTES;
+}
+
 function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.replace(/\/+$/, "");
 }
@@ -168,7 +174,7 @@ export async function fetchEdinetDocument(
   const fetchImpl = options.fetchImpl ?? fetch;
   const maxAttempts = Math.max(1, options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS);
   const retryBaseMs = Math.max(0, options.retryBaseMs ?? DEFAULT_RETRY_BASE_MS);
-  const maxBytes = Math.max(1, options.maxBytes ?? DEFAULT_MAX_BYTES);
+  const maxBytes = resolveEdinetDocumentMaxBytes(options.maxBytes);
   const sleep = options.sleep ?? (ms => new Promise(resolve => setTimeout(resolve, ms)));
   const now = options.now ?? (() => new Date());
   const requestUrl = buildRequestUrl(docID, documentType, apiKey, baseUrl);
