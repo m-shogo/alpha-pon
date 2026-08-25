@@ -8,6 +8,7 @@ import {
 import {
   EdinetDocumentTooLargeError,
   fetchEdinetDocument,
+  resolveEdinetDocumentMaxBytes,
 } from "../src/fetcher/edinet-document.js";
 import { buildEdinetDocumentLineage } from "../src/fetcher/edinet-lineage.js";
 
@@ -155,6 +156,19 @@ async function testStreamingSizeLimitWithoutContentLength(): Promise<void> {
       && error.actualBytes === 5
       && error.limitBytes === 4,
   );
+}
+
+function testInvalidDocumentSizeLimitFailsClosed(): void {
+  const defaultLimit = 100 * 1024 * 1024;
+  assert.equal(resolveEdinetDocumentMaxBytes(undefined), defaultLimit);
+  assert.equal(resolveEdinetDocumentMaxBytes(4), 4);
+  for (const invalid of [Number.NaN, Number.POSITIVE_INFINITY, 0, -1, 1.5]) {
+    assert.equal(
+      resolveEdinetDocumentMaxBytes(invalid),
+      defaultLimit,
+      `invalid document size limit must fail closed to the default: ${invalid}`,
+    );
+  }
 }
 
 async function testSecretDoesNotLeakOnError(): Promise<void> {
@@ -330,6 +344,7 @@ async function main(): Promise<void> {
   await testRetryAfter();
   await testAnnouncedSizeLimit();
   await testStreamingSizeLimitWithoutContentLength();
+  testInvalidDocumentSizeLimitFailsClosed();
   await testSecretDoesNotLeakOnError();
   await testInputValidationBeforeFetch();
   testLineageProjection();
