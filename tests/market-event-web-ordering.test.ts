@@ -232,6 +232,7 @@ const invalidSourceRows = normalizeMarketEventData({
     { ...validEvent, eventId: "bad-source-url", sources: [{ ...validSource, url: "javascript:alert(1)" }] },
     { ...validEvent, eventId: "bad-retrieved-at", sources: [{ ...validSource, retrievedAt: "2026-08-11" }] },
     { ...validEvent, eventId: "bad-published-at", sources: [{ ...validSource, publishedAt: "2026-02-31T08:00:00+09:00" }] },
+    { ...validEvent, eventId: "bad-source-order", sources: [{ ...validSource, publishedAt: "2026-08-11T10:00:00+09:00" }] },
     { ...validEvent, eventId: "valid-source", sources: [validSource] },
   ],
   summary: { nextEventAt: null },
@@ -240,11 +241,11 @@ const invalidSourceRows = normalizeMarketEventData({
 assert.deepEqual(
   invalidSourceRows.events.map(event => event.eventId),
   ["valid-source"],
-  "market event sources must preserve canonical identity, type, HTTPS URL, and strict timestamp provenance before rendering primary links",
+  "market event sources must preserve canonical identity, type, HTTPS URL, strict timestamp provenance, and publication-before-retrieval order before rendering primary links",
 );
 assert.deepEqual(
   invalidSourceRows.meta.warnings,
-  ["不正なイベント 5 件を表示対象から除外しました。"],
+  ["不正なイベント 6 件を表示対象から除外しました。"],
   "invalid source provenance must be quarantined observably instead of becoming a primary-information false-green",
 );
 
