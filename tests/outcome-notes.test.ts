@@ -101,12 +101,15 @@ function hypothesis(expectedDirection: StockCandidateHypothesis["expectedDirecti
   const notes = buildOutcomeNotes({
     hypothesis: hypothesis("down"),
     returns: { ret1m: null, maxDrawdownPct: null, dataAvailability: "ok" },
-    relativeToTopix1m: null,
+    relativeToTopix1m: 1.1,
     result: "unknown",
     dataSource: "jquants",
   });
-  assert.equal(notes.whatMatched.length, 0, "欠落1mリターンを方向一致Evidenceへ変換しない");
+  assert.equal(notes.whatMatched.length, 0, "欠落1mリターンを方向/TOPIX一致Evidenceへ変換しない");
+  assert.equal(notes.whatDiffered.length, 0, "欠落1mリターンをTOPIX反証Evidenceへ変換しない");
   assert(notes.missedSignals.some(signal => signal.includes("dataAvailability=ok")), "okなのに1mリターン欠落ならread-only監査へ残す");
+  assert(notes.notes.includes("1m=N/A%"), "欠落1mリターンはN/A表示にする");
+  assert(notes.notes.includes("TOPIX比=N/A%"), "1mリターン欠落時は派生TOPIX比もN/A表示にする");
 }
 
 console.log("outcome-notes.test.ts passed");
