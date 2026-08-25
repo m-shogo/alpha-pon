@@ -1,5 +1,5 @@
 import type { AlphaPonGeneratedData } from '@/lib/types'
-import { normalizeProCommandSummaryInput } from '@/lib/pro-command-summary-input'
+import { normalizeProCommandSummaryInput, normalizeProGeneratedDate } from '@/lib/pro-command-summary-input'
 import { Card, SectionLabel } from './Card'
 import { Icon } from './Icon'
 import { TagChip } from './Badge'
@@ -9,7 +9,8 @@ type Props = {
 }
 
 export function ProCommandCard({ data }: Props) {
-  const { reports, generatedAt, headline } = data
+  const { reports, headline } = data
+  const generatedAt = normalizeProGeneratedDate(data.generatedAt)
   const summary = normalizeProCommandSummaryInput(data.summary)
 
   const items = [
