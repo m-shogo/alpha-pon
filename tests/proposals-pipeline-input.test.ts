@@ -54,6 +54,12 @@ try {
     { name: "daily:core", criticality: "critical", status: " failed", code: 1 },
     { name: "daily:core", criticality: "critical", status: "unknown", code: 1 },
     { name: "daily:core", criticality: "critical", status: "failed", code: "1" },
+    { name: "daily:core", criticality: "critical", status: "failed", code: 0 },
+    { name: "daily:core", criticality: "critical", status: "ok", code: 1 },
+    { name: "daily:core", criticality: "noncritical", status: "skipped", code: 1 },
+    { name: "daily:core", criticality: "critical", status: "failed", code: -1 },
+    { name: "daily:core", criticality: "critical", status: "failed", code: 1.5 },
+    { name: "daily:core", criticality: "critical", status: "failed", code: 256 },
   ]) {
     writeFileSync(path, JSON.stringify({ status: "partial_failed", steps: [step] }), "utf-8");
     assert.equal(
