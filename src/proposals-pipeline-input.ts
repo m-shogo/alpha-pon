@@ -1,6 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import { normalizeSourceHealthObject } from "./source-health-input.js";
 
+const PIPELINE_CRITICALITIES = new Set(["critical", "noncritical"]);
+const PIPELINE_STEP_STATUSES = new Set(["ok", "failed", "skipped"]);
+
 function isSafePipelineStep(value: unknown): boolean {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const step = value as Record<string, unknown>;
@@ -8,9 +11,9 @@ function isSafePipelineStep(value: unknown): boolean {
     && step.name.length > 0
     && step.name.trim() === step.name
     && typeof step.criticality === "string"
-    && step.criticality.length > 0
+    && PIPELINE_CRITICALITIES.has(step.criticality)
     && typeof step.status === "string"
-    && step.status.length > 0
+    && PIPELINE_STEP_STATUSES.has(step.status)
     && typeof step.code === "number"
     && Number.isFinite(step.code);
 }

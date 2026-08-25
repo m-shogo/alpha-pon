@@ -22,7 +22,7 @@ try {
   writeFileSync(path, JSON.stringify({
     status: "partial_failed",
     failedSteps: "daily:core",
-    steps: [{ name: "daily:core", criticality: "critical", status: "fail", code: 1 }],
+    steps: [{ name: "daily:core", criticality: "critical", status: "failed", code: 1 }],
   }), "utf-8");
   assert.deepEqual(
     readProposalPipelineStatus<PipelineStatus>(path)?.steps?.map(step => step.name),
@@ -46,16 +46,20 @@ try {
 
   for (const step of [
     {},
-    { name: "daily:core", criticality: "critical", status: "fail" },
-    { name: " daily:core ", criticality: "critical", status: "fail", code: 1 },
-    { name: "daily:core", criticality: "critical", status: "", code: 1 },
-    { name: "daily:core", criticality: "critical", status: "fail", code: "1" },
+    { name: "daily:core", criticality: "critical", status: "failed" },
+    { name: " daily:core ", criticality: "critical", status: "failed", code: 1 },
+    { name: "daily:core", criticality: " critical", status: "failed", code: 1 },
+    { name: "daily:core", criticality: "critical ", status: "failed", code: 1 },
+    { name: "daily:core", criticality: "unknown", status: "failed", code: 1 },
+    { name: "daily:core", criticality: "critical", status: " failed", code: 1 },
+    { name: "daily:core", criticality: "critical", status: "unknown", code: 1 },
+    { name: "daily:core", criticality: "critical", status: "failed", code: "1" },
   ]) {
     writeFileSync(path, JSON.stringify({ status: "partial_failed", steps: [step] }), "utf-8");
     assert.equal(
       readProposalPipelineStatus<PipelineStatus>(path),
       null,
-      "a partial pipeline step must not disappear from proposal failure evidence",
+      "a noncanonical pipeline step must not disappear from proposal failure evidence",
     );
   }
 
