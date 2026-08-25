@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname } from "path";
 import { addDaysJst, todayJst } from "./date.js";
 
@@ -18,8 +18,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isStandaloneRegularFile(path: string): boolean {
+  try {
+    const stat = lstatSync(path);
+    return stat.isFile() && !stat.isSymbolicLink() && stat.nlink === 1;
+  } catch {
+    return false;
+  }
+}
+
 function readCursors(): Record<string, RunCursor> {
-  if (!existsSync(CURSOR_PATH)) return {};
+  if (!existsSync(CURSOR_PATH) || !isStandaloneRegularFile(CURSOR_PATH)) return {};
   try {
     const parsed = JSON.parse(readFileSync(CURSOR_PATH, "utf-8")) as unknown;
     return isRecord(parsed) ? parsed as Record<string, RunCursor> : {};
