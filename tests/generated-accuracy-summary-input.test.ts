@@ -57,6 +57,14 @@ assert.deepEqual(
   { value: null, warning: 'accuracySummary: invalid_shape' },
 )
 assert.deepEqual(
+  normalizeGeneratedAccuracySummaryInput({ ...valid, avgMaxDrawdownPct: 2.4 }),
+  { value: null, warning: 'accuracySummary: invalid_shape' },
+)
+assert.deepEqual(
+  normalizeGeneratedAccuracySummaryInput({ ...valid, avgMaxDrawdownPct: 0 }),
+  { value: { ...valid, avgMaxDrawdownPct: 0 }, warning: null },
+)
+assert.deepEqual(
   normalizeGeneratedAccuracySummaryInput({
     ...valid,
     byActionLabel: { ...valid.byActionLabel, watch: { ...valid.byActionLabel.watch, total: 5 } },
@@ -93,4 +101,4 @@ assert.deepEqual(
 )
 assert.deepEqual(normalizeGeneratedAccuracySummaryInput(valid), { value: valid, warning: null })
 
-console.log('generated accuracy summary input: malformed or inconsistent runtime counts and rates are isolated before Outcomes page access OK')
+console.log('generated accuracy summary input: malformed or inconsistent runtime counts, rates, and drawdown semantics are isolated before Outcomes page access OK')
