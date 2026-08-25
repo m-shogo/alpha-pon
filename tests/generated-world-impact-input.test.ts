@@ -97,6 +97,8 @@ for (const malformed of [
   { ...validAudit, generatedAt: '2999-01-01T00:00:00+09:00' },
   { ...validAudit, overdueReviews: -1 },
   { ...validAudit, priceDataPending: 0.5 },
+  { ...validAudit, totalReviews: 1, pendingReviews: 2 },
+  { ...validAudit, totalReviews: 2, pendingReviews: 1, overdueReviews: 2 },
   { ...validAudit, priorityIssues: {} },
   { ...validAudit, priorityIssues: [{ severity: 'panic', category: 'x', title: 'x', detail: 'x' }] },
 ] as const) {

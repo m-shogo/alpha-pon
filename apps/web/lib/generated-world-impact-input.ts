@@ -245,6 +245,8 @@ function isWorldImpactAudit(value: unknown): value is ValidatedWorldImpactAudit 
     && isNonNegativeSafeInteger(value.totalReviews)
     && isNonNegativeSafeInteger(value.pendingReviews)
     && isNonNegativeSafeInteger(value.overdueReviews)
+    && value.pendingReviews <= value.totalReviews
+    && value.overdueReviews <= value.pendingReviews
     && isNonNegativeSafeInteger(value.missingCounterArguments)
     && isNonNegativeSafeInteger(value.missingMechanisms)
     && isNonNegativeSafeInteger(value.dataUnavailable)
