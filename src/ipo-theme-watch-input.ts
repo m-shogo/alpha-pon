@@ -33,6 +33,9 @@ export function isIpoThemeOutcomeInput(value: unknown): value is HypothesisOutco
 
   const hypothesis = value.hypothesis;
   if (!isRecord(hypothesis) || typeof hypothesis.reason !== "string") return false;
+  if (hypothesis.code !== undefined) {
+    if (!isCanonicalIdentity(hypothesis.code) || hypothesis.code !== value.code) return false;
+  }
   for (const key of ["relatedWorldEventIds", "evidenceNeeded", "invalidationSignals"] as const) {
     if (!isStringArray(hypothesis[key])) return false;
   }
