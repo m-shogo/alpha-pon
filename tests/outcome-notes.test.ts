@@ -57,6 +57,10 @@ function hypothesis(expectedDirection: StockCandidateHypothesis["expectedDirecti
   assert(notes.missedSignals.some(signal => signal.includes("partial")));
   assert(!notes.missedSignals.some(signal => signal.includes("最大下落")), "partial data のdrawdownを確定Evidenceとして扱わない");
   assert(!notes.improvedRuleIdeas.some(idea => idea.includes("最大許容下落")), "partial drawdownから改善ルールを生成しない");
+  assert(notes.notes.includes("1m=N/A%"), "partial 1m returnをread-only確定値として表示しない");
+  assert(notes.notes.includes("TOPIX比=N/A%"), "partial TOPIX relativeをread-only確定値として表示しない");
+  assert(!notes.notes.includes("1m=4.2%"), "partial 1m raw valueをnotes provenanceへ露出しない");
+  assert(!notes.notes.includes("TOPIX比=1.1%"), "partial TOPIX raw valueをnotes provenanceへ露出しない");
 }
 
 {
@@ -71,6 +75,8 @@ function hypothesis(expectedDirection: StockCandidateHypothesis["expectedDirecti
   assert(notes.whatMatched.some(match => match.includes("TOPIX比")));
   assert(notes.missedSignals.some(signal => signal.includes("最大下落")), "complete data のdrawdown Evidenceは維持する");
   assert(notes.improvedRuleIdeas.some(idea => idea.includes("最大許容下落")), "complete drawdown Evidenceからの改善ルールは維持する");
+  assert(notes.notes.includes("1m=4.2%"), "complete 1m returnは表示を維持する");
+  assert(notes.notes.includes("TOPIX比=1.1%"), "complete TOPIX relativeは表示を維持する");
 }
 
 {

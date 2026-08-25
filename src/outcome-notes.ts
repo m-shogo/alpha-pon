@@ -79,10 +79,13 @@ export function buildOutcomeNotes(input: {
   const availabilityNote = input.returns.dataAvailability === "ok"
     ? ""
     : ` / 未評価: 価格データ不足 (${input.returns.dataAvailability})`;
-  const return1m = hasUsableReturn1m
+  const hasCompleteReturnEvidence = input.returns.dataAvailability === "ok";
+  const return1m = hasCompleteReturnEvidence && hasUsableReturn1m
     ? input.returns.ret1m!.toFixed(1)
     : "N/A";
-  const relativeToTopix1m = input.relativeToTopix1m != null && Number.isFinite(input.relativeToTopix1m)
+  const relativeToTopix1m = hasCompleteReturnEvidence
+    && input.relativeToTopix1m != null
+    && Number.isFinite(input.relativeToTopix1m)
     ? input.relativeToTopix1m.toFixed(1)
     : "N/A";
   return {
