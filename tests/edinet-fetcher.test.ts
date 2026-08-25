@@ -7,6 +7,7 @@ import {
   buildPdfUrl,
   fetchEdinetDocList,
   getEdinetConfigurationStatus,
+  resolveEdinetScanDays,
   scanEdinetDays,
 } from "../src/fetcher/edinet.js";
 
@@ -164,6 +165,15 @@ async function testInvalidScanDaysFailBeforeFetch() {
   }
 }
 
+function testScanDaysConfigFailsClosed() {
+  assert.equal(resolveEdinetScanDays(undefined), 5);
+  assert.equal(resolveEdinetScanDays(""), 5);
+  assert.equal(resolveEdinetScanDays("7"), 7);
+  for (const invalid of ["abc", "0", "-1", "1.5", "31", "5x", "Infinity"]) {
+    assert.equal(resolveEdinetScanDays(invalid), 5, `${invalid} must fall back to the bounded default`);
+  }
+}
+
 function testPdfEndpointDoesNotEmbedSecret() {
   const url = buildPdfUrl("S100TEST");
   assert.equal(url, `${EDINET_API_BASE_URL}/documents/S100TEST?type=2`);
@@ -177,6 +187,7 @@ async function main() {
   await testSecretIsNotLeakedInError();
   await testInvalidDateFailsBeforeFetch();
   await testInvalidScanDaysFailBeforeFetch();
+  testScanDaysConfigFailsClosed();
   testPdfEndpointDoesNotEmbedSecret();
   console.log("edinet-fetcher.test.ts passed");
 }
