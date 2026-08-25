@@ -34,6 +34,7 @@ node --import tsx/esm tests/run-cursor-input.test.ts
 node --import tsx/esm tests/ipo-theme-outcome-date-input.test.ts
 node --import tsx/esm tests/read-only-json-file-boundary.test.ts
 node --import tsx/esm tests/read-only-jsonl-file-boundary.test.ts
+node --import tsx/esm tests/read-only-text-file-boundary.test.ts
 node --import tsx/esm tests/line-consolidation.test.ts
 
 echo "draft-checks: ok"
