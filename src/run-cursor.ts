@@ -1,4 +1,4 @@
-import { existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, lstatSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "fs";
 import { dirname } from "path";
 import { addDaysJst, todayJst } from "./date.js";
 
@@ -37,8 +37,24 @@ function readCursors(): Record<string, RunCursor> {
   }
 }
 
+function prepareCursorPathForWrite(): void {
+  try {
+    const stat = lstatSync(CURSOR_PATH);
+    if (stat.isFile() && !stat.isSymbolicLink() && stat.nlink === 1) return;
+    if (stat.isSymbolicLink() || stat.isFile()) {
+      unlinkSync(CURSOR_PATH);
+      return;
+    }
+    throw new Error("run cursor path must be a standalone regular file");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
+    throw error;
+  }
+}
+
 function writeCursors(cursors: Record<string, RunCursor>): void {
   mkdirSync(dirname(CURSOR_PATH), { recursive: true });
+  prepareCursorPathForWrite();
   writeFileSync(CURSOR_PATH, JSON.stringify(cursors, null, 2), "utf-8");
 }
 
