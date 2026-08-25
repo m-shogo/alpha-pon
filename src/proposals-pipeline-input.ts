@@ -4,6 +4,11 @@ import { normalizeSourceHealthObject } from "./source-health-input.js";
 const PIPELINE_CRITICALITIES = new Set(["critical", "noncritical"]);
 const PIPELINE_STEP_STATUSES = new Set(["ok", "failed", "skipped"]);
 
+function hasCanonicalExitCode(status: string, code: unknown): boolean {
+  if (typeof code !== "number" || !Number.isSafeInteger(code) || code < 0 || code > 255) return false;
+  return status === "failed" ? code > 0 : code === 0;
+}
+
 function isSafePipelineStep(value: unknown): boolean {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const step = value as Record<string, unknown>;
@@ -14,8 +19,7 @@ function isSafePipelineStep(value: unknown): boolean {
     && PIPELINE_CRITICALITIES.has(step.criticality)
     && typeof step.status === "string"
     && PIPELINE_STEP_STATUSES.has(step.status)
-    && typeof step.code === "number"
-    && Number.isFinite(step.code);
+    && hasCanonicalExitCode(step.status, step.code);
 }
 
 function hasSafePipelineSteps(value: Record<string, unknown>): boolean {
