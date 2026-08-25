@@ -255,6 +255,13 @@ function isWorldImpactAudit(value: unknown): value is ValidatedWorldImpactAudit 
     && isNonNegativeSafeInteger(value.unknownMatchedAsHit)
     && Array.isArray(value.priorityIssues)
     && value.priorityIssues.every(isPriorityIssue)
+    && value.healthStatus === (
+      value.priorityIssues.some(issue => isObject(issue) && issue.severity === 'urgent')
+        ? 'action_required'
+        : value.priorityIssues.some(issue => isObject(issue) && issue.severity === 'attention')
+          ? 'needs_attention'
+          : 'ok'
+    )
 }
 
 export function normalizeGeneratedWorldImpactReviewsInput(value: unknown): {
