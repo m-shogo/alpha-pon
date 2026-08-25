@@ -42,8 +42,20 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(item => typeof item === "string");
 }
 
+function isCanonicalBucket(value: unknown): value is string {
+  return typeof value === "string" && value.trim() !== "" && value === value.trim();
+}
+
+function isCanonicalBucketArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(isCanonicalBucket);
+}
+
 function isOptionalStringArray(value: unknown): boolean {
   return value === undefined || isStringArray(value);
+}
+
+function isOptionalCanonicalBucketArray(value: unknown): boolean {
+  return value === undefined || isCanonicalBucketArray(value);
 }
 
 function isAlertLevel(value: unknown): value is AlertLevel {
@@ -85,8 +97,10 @@ function normalizeRow(value: unknown, asOf: string): LearningScoreEntry | null {
   if (typeof value.score !== "number" || !Number.isFinite(value.score)) return null;
   if (!isAlertLevel(value.alertLevel)) return null;
   if (typeof value.createdAt !== "string" || !isRealJstDate(value.createdAt) || value.createdAt > asOf) return null;
+  if (value.priority !== undefined && !isCanonicalBucket(value.priority)) return null;
+  if (!isOptionalCanonicalBucketArray(value.tags) || !isOptionalCanonicalBucketArray(value.rules)) return null;
 
-  for (const field of ["tags", "rules", "reasons", "negativeReasons", "warnings"] as const) {
+  for (const field of ["reasons", "negativeReasons", "warnings"] as const) {
     if (!isOptionalStringArray(value[field])) return null;
   }
 
@@ -124,7 +138,7 @@ function normalizeRow(value: unknown, asOf: string): LearningScoreEntry | null {
   return {
     code: value.code,
     name: value.name,
-    priority: typeof value.priority === "string" ? value.priority : undefined,
+    priority: value.priority as string | undefined,
     tags: value.tags as string[] | undefined,
     rules: value.rules as string[] | undefined,
     score: value.score,
