@@ -16,6 +16,7 @@ import { load } from "js-yaml";
 import { addDaysJst, todayJst } from "./date.js";
 import { parseHypothesisOutcomesJsonl } from "./hypothesis-outcome-input.js";
 import { normalizeSpecialSituationCandidates } from "./special-situation-candidate-input.js";
+import { resolveSpecialSituationMinSampleSize } from "./special-situation-ops-config.js";
 import type { HypothesisOutcome, ReviewHorizon } from "./universe.js";
 import { resolveWorldImpactJquantsDelayDays } from "./world-impact-evaluation-input.js";
 import {
@@ -156,7 +157,7 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
     : {};
   const candidateCodes = new Set(candidates.map(c => c.code));
   const codeToName = new Map(candidates.map(c => [c.code, c.name]));
-  const minSampleSize = config.outcomeStats?.minSampleSize ?? MIN_SAMPLE_SIZE_DEFAULT;
+  const minSampleSize = resolveSpecialSituationMinSampleSize(config.outcomeStats?.minSampleSize);
 
   const parsedOutcomes = existsSync(OUTCOME_PATH)
     ? parseHypothesisOutcomesJsonl(readFileSync(OUTCOME_PATH, "utf-8"), OUTCOME_PATH)
@@ -288,7 +289,6 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
     });
   }
 
-  // recent overdue（90日以内）: 急ぎの採点待ち → urgent
   const recentOverdueWithMissing = recentOverdueItems.filter(o => o.missingFields.length > 0);
   const recentOverdueActionable = recentOverdueWithMissing.filter(o =>
     o.missingFields.some(field => field !== "result")
@@ -307,8 +307,6 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
     });
   }
 
-  // 価格データ提供キャップ: J-Quants 無料プランの遅延により、
-  // この日付より新しい期日の価格はまだ提供されていない（待機が正常状態）
   const priceDataCap = addDaysJst(today, -JQUANTS_DATA_DELAY_DAYS);
   const priceDataPendingItems = recentOverdueResultOnly.filter(o => o.dueAt > priceDataCap);
   const priceDataReadyItems = recentOverdueResultOnly.filter(o => o.dueAt <= priceDataCap);
@@ -337,7 +335,6 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
     });
   }
 
-  // historical seed overdue（90日超・過去日付 seed）: データ補完候補 → info
   const historicalWithMissing = historicalSeedOverdueItems.filter(o => o.missingFields.length > 0);
   if (historicalWithMissing.length > 0) {
     const codes = [...new Set(historicalWithMissing.map(o => o.code))];
@@ -361,7 +358,6 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
     });
   }
 
-  // recent な updatable があれば attention で通知（historical は別途 info で通知済み）
   if (recentUpdatableItems.length > 0 && recentOverdueActionable.length === 0 && recentOverdueResultOnly.length === 0 && dueTodayItems.length === 0) {
     actionItems.push({
       priority: "attention",
@@ -418,7 +414,6 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
     });
   }
 
-  // healthStatus 決定
   const hasUrgent = actionItems.some(a => a.priority === "urgent");
   const hasAttention = actionItems.some(a => a.priority === "attention");
   const healthStatus: "ok" | "needs_attention" | "action_required" = hasUrgent
@@ -492,8 +487,6 @@ function buildOpsSummary(today: string): SpecialSituationOpsSummary {
   };
 }
 
-// ─────────── Markdown レンダリング ───────────
-
 function priorityIcon(p: ActionPriority): string {
   switch (p) {
     case "urgent": return "🔴";
@@ -509,8 +502,6 @@ function renderMarkdown(report: SpecialSituationOpsSummary): string {
   lines.push(`date: ${report.generatedAt}`, "");
   lines.push(`healthStatus: **${report.healthStatus}**`, "");
   lines.push("> ※売買推奨ではありません。運用確認・期限管理のためのレポートです。", "");
-
-  // アクション一覧
   lines.push("## 今日やること（アクション一覧）", "");
   for (const item of report.actionItems) {
     lines.push(`### ${priorityIcon(item.priority)} ${item.title}`);
@@ -518,8 +509,6 @@ function renderMarkdown(report: SpecialSituationOpsSummary): string {
     if (item.command) lines.push(`- コマンド: \`${item.command}\``);
     lines.push("");
   }
-
-  // カバレッジ
   lines.push("## カバレッジ", "");
   lines.push("| item | count |");
   lines.push("|---|---:|");
@@ -530,8 +519,6 @@ function renderMarkdown(report: SpecialSituationOpsSummary): string {
     lines.push(`- 対象: ${report.coverage.noOutcomeRecordCodes.join(", ")}`);
   }
   lines.push("");
-
-  // review due
   lines.push("## review due 状況", "");
   lines.push("| status | count |");
   lines.push("|---|---:|");
@@ -542,7 +529,6 @@ function renderMarkdown(report: SpecialSituationOpsSummary): string {
   lines.push(`| due this week (今週採点) | ${report.reviewDue.dueThisWeek} |`);
   lines.push(`| not due yet (未到達) | ${report.reviewDue.notDueYet} |`);
   lines.push("");
-
   if (report.reviewDue.overdueItems.length > 0) {
     lines.push("### 採点待ち明細（recent overdue）", "");
     lines.push("| code | name | horizon | dueAt | 不足フィールド |");
@@ -553,7 +539,6 @@ function renderMarkdown(report: SpecialSituationOpsSummary): string {
     }
     lines.push("");
   }
-
   if (report.reviewDue.historicalSeedOverdueItems.length > 0) {
     lines.push("### 過去日付seed明細（historical seed overdue）", "");
     lines.push("> ※上場日を detectedAt に使った seed のため overdue 扱い。急ぎの投資判断ではなく検証用データの補完候補。", "");
@@ -565,7 +550,6 @@ function renderMarkdown(report: SpecialSituationOpsSummary): string {
     }
     lines.push("");
   }
-
   if (report.reviewDue.dueTodayItems.length > 0) {
     lines.push("### 本日採点明細", "");
     lines.push("| code | name | horizon | dueAt |");
@@ -575,8 +559,6 @@ function renderMarkdown(report: SpecialSituationOpsSummary): string {
     }
     lines.push("");
   }
-
-  // backfill
   lines.push("## backfill 構造チェック", "");
   lines.push("| item | count |");
   lines.push("|---|---:|");
@@ -587,7 +569,6 @@ function renderMarkdown(report: SpecialSituationOpsSummary): string {
   lines.push("");
   lines.push("> ※実際の価格補完には J-Quants API が必要です。`pnpm backfill:special-outcomes` (dry-run) で確認してください。", "");
   lines.push("");
-
   if (report.backfill.updatableItems.length > 0) {
     lines.push("### 補完可能明細", "");
     lines.push("| code | horizon | dueAt | 不足フィールド |");
@@ -600,8 +581,6 @@ function renderMarkdown(report: SpecialSituationOpsSummary): string {
     }
     lines.push("");
   }
-
-  // outcomeStats
   lines.push("## outcomeStats 状況", "");
   lines.push("| item | count |");
   lines.push("|---|---:|");
@@ -617,8 +596,6 @@ function renderMarkdown(report: SpecialSituationOpsSummary): string {
     }
     lines.push("");
   }
-
-  // 混在
   lines.push("## special/normal 混在チェック", "");
   lines.push(`- 混在検出: ${report.mixedOutcomes.count}件`);
   lines.push(`- ${report.mixedOutcomes.note}`);
@@ -631,15 +608,11 @@ function renderMarkdown(report: SpecialSituationOpsSummary): string {
     }
   }
   lines.push("");
-
-  // notes
   if (report.notes.length > 0) {
     lines.push("## notes", "");
     for (const note of report.notes) lines.push(`- ${note}`);
     lines.push("");
   }
-
-  // 次のアクション
   lines.push("## 次のステップ", "");
   lines.push("```");
   lines.push("# 1. 運用サマリーで全体把握");
@@ -659,8 +632,6 @@ function renderMarkdown(report: SpecialSituationOpsSummary): string {
   lines.push(`*special situation ops summary | ${report.generatedAt} | ※売買推奨ではありません*`);
   return lines.join("\n");
 }
-
-// ─────────── メイン ───────────
 
 function main(): void {
   const today = todayJst();
