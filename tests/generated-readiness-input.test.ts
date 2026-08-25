@@ -57,6 +57,20 @@ assert.deepEqual(
   { value: null, warning: 'readiness: invalid_shape' },
 )
 for (const malformed of [
+  { ...valid, blockers: [''] },
+  { ...valid, blockers: [' pending '] },
+  { ...valid, items: [{ ...valid.items[0], evidence: [''] }] },
+  { ...valid, items: [{ ...valid.items[0], evidence: [' 3/10 '] }] },
+  { ...valid, items: [{ ...valid.items[0], nextActions: [''] }] },
+  { ...valid, items: [{ ...valid.items[0], nextActions: [' review:hypotheses '] }] },
+] as const) {
+  assert.deepEqual(
+    normalizeGeneratedReadinessInput(malformed),
+    { value: null, warning: 'readiness: invalid_shape' },
+    'blank or padded readiness provenance strings must not render phantom blockers, evidence, or next actions',
+  )
+}
+for (const malformed of [
   { ...valid, overallScore: 101 },
   { ...valid, overallScore: -1 },
   { ...valid, overallStatus: 'complete' },
@@ -73,4 +87,4 @@ for (const malformed of [
 }
 assert.deepEqual(normalizeGeneratedReadinessInput(valid), { value: valid, warning: null })
 
-console.log('generated readiness input: malformed runtime shape, PIT metadata, score/status consistency, and ambiguous item identities are isolated before Home page access OK')
+console.log('generated readiness input: malformed runtime shape, PIT metadata, score/status consistency, canonical provenance strings, and ambiguous item identities are isolated before Home page access OK')

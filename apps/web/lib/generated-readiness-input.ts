@@ -23,8 +23,12 @@ export type GeneratedReadinessInputResult = {
 const READINESS_STATUSES = new Set(['done', 'partial', 'blocked', 'not_started'])
 const EXPLICIT_TIMEZONE_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/
 
-function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((item) => typeof item === 'string')
+function isCanonicalStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => (
+    typeof item === 'string'
+    && item.trim().length > 0
+    && item === item.trim()
+  ))
 }
 
 function isReadinessScore(value: unknown): value is number {
@@ -70,8 +74,8 @@ function isReadinessItem(value: unknown): value is GeneratedReadinessItem {
     && isReadinessStatus(item.status)
     && isReadinessScore(item.score)
     && item.status === readinessStatusForScore(item.score)
-    && isStringArray(item.evidence)
-    && isStringArray(item.nextActions)
+    && isCanonicalStringArray(item.evidence)
+    && isCanonicalStringArray(item.nextActions)
 }
 
 function hasUniqueReadinessItemIds(items: GeneratedReadinessItem[]): boolean {
@@ -87,7 +91,7 @@ export function isGeneratedReadinessInput(value: unknown): value is GeneratedRea
     && isReadinessScore(report.overallScore)
     && isReadinessStatus(report.overallStatus)
     && report.overallStatus === readinessStatusForScore(report.overallScore)
-    && isStringArray(report.blockers)
+    && isCanonicalStringArray(report.blockers)
     && hasUniqueReadinessItemIds(report.items)
 }
 
