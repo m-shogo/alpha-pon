@@ -17,6 +17,7 @@ import { addDaysJst, todayJst } from "./date.js";
 import { parseHypothesisOutcomesJsonl } from "./hypothesis-outcome-input.js";
 import { normalizeSpecialSituationCandidates } from "./special-situation-candidate-input.js";
 import type { HypothesisOutcome, ReviewHorizon } from "./universe.js";
+import { resolveWorldImpactJquantsDelayDays } from "./world-impact-evaluation-input.js";
 import {
   isSpecialSituationOutcome,
   detectMixedOutcomes,
@@ -34,7 +35,7 @@ const CONFIG_PATH = "config/special-situation-watch-rules.yml";
 const MIN_SAMPLE_SIZE_DEFAULT = 5;
 // J-Quants 無料プランのデータ提供遅延（日数）。src/fetcher/jquants.ts の v2DateCapCompact と同じ既定値。
 // 期日がこの遅延期間内にある overdue は、価格データ自体が未提供のため backfill 不可（待機が正常）。
-const JQUANTS_DATA_DELAY_DAYS = Number(process.env.JQUANTS_V2_DATA_DELAY_DAYS ?? "84");
+const JQUANTS_DATA_DELAY_DAYS = resolveWorldImpactJquantsDelayDays(process.env.JQUANTS_V2_DATA_DELAY_DAYS);
 
 // ─────────── 型定義 ───────────
 
