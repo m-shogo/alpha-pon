@@ -26,6 +26,15 @@ function isCanonicalIdentity(value: unknown): value is string {
   return typeof value === "string" && value.length > 0 && value === value.trim();
 }
 
+function isRealCurrentOrPastJstDate(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  try {
+    return addDaysJst(value, 0) === value && value <= todayJst();
+  } catch {
+    return false;
+  }
+}
+
 export function isIpoThemeOutcomeInput(value: unknown): value is HypothesisOutcome {
   if (!isRecord(value) || !isCanonicalIdentity(value.code) || !isCanonicalIdentity(value.name)) {
     return false;
@@ -38,6 +47,12 @@ export function isIpoThemeOutcomeInput(value: unknown): value is HypothesisOutco
   }
   for (const key of ["relatedWorldEventIds", "evidenceNeeded", "invalidationSignals"] as const) {
     if (!isStringArray(hypothesis[key])) return false;
+  }
+
+  if (hypothesis.detectedAt !== undefined && !isRealCurrentOrPastJstDate(hypothesis.detectedAt)) return false;
+  if (value.evaluatedAt !== undefined) {
+    if (!isRealCurrentOrPastJstDate(value.evaluatedAt)) return false;
+    if (typeof hypothesis.detectedAt === "string" && hypothesis.detectedAt > value.evaluatedAt) return false;
   }
 
   if (!["watch", "log", "ignore"].includes(String(value.actionLabel))) return false;
