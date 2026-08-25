@@ -1,18 +1,19 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
 import { findProposalStreaks, recordProposalHistory } from "./proposal-history.js";
 import { normalizeProposalHistoryInput } from "./proposal-history-input.js";
+import { readReadOnlyJsonArrayFile } from "./read-only-json-file.js";
 
 function loadProposals(): ReturnType<typeof normalizeProposalHistoryInput> {
-  if (!existsSync("reports/proposals_latest.json")) {
+  const loaded = readReadOnlyJsonArrayFile<unknown>("reports/proposals_latest.json");
+  if (loaded.missing) {
     return { proposals: [], invalidRowCount: 0 };
   }
-  try {
-    return normalizeProposalHistoryInput(JSON.parse(readFileSync("reports/proposals_latest.json", "utf-8")) as unknown);
-  } catch {
+  if (loaded.parseError || loaded.invalidRoot) {
     return { proposals: [], invalidRowCount: 1 };
   }
+  return normalizeProposalHistoryInput(loaded.rows);
 }
 
 const date = todayJst();
