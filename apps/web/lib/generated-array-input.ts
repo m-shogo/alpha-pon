@@ -141,6 +141,12 @@ function hasCanonicalHypothesisPredictionTemporalProvenance(value: unknown): boo
     && row.reviewDueAt >= row.detectedAt
 }
 
+function isCanonicalCandidateIdentity(value: unknown): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const code = (value as Record<string, unknown>).code
+  return typeof code === 'string' && code.length > 0 && code === code.trim()
+}
+
 function isCanonicalUniverseCandidate(value: unknown): boolean {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const row = value as Record<string, unknown>
@@ -277,16 +283,23 @@ export function normalizeGeneratedArrayInput<T>(
 
   const validRows = value.filter((entry): entry is T => (
     isValidEntry(entry)
+    && (field !== 'candidates' || isCanonicalCandidateIdentity(entry))
     && (field !== 'hypothesisPredictions' || hasCanonicalHypothesisPredictionCollections(entry))
     && (field !== 'hypothesisPredictions' || hasCanonicalHypothesisPredictionConfidence(entry))
     && (field !== 'hypothesisPredictions' || hasCanonicalHypothesisPredictionTemporalProvenance(entry))
     && (field !== 'hypothesisOutcomes' || isCanonicalHypothesisOutcomeDiscriminators(entry))
     && (field !== 'universeCandidates' || isCanonicalUniverseCandidate(entry))
   ))
+  const seenCandidateCodes = new Set<string>()
   const seenUniverseCandidateCodes = new Set<string>()
   const seenHypothesisPredictionIdentities = new Set<string>()
   const rows = validRows.filter((entry) => {
     const row = entry as Record<string, unknown>
+    if (field === 'candidates') {
+      const code = row.code as string
+      if (seenCandidateCodes.has(code)) return false
+      seenCandidateCodes.add(code)
+    }
     if (field === 'universeCandidates') {
       const code = row.code as string
       if (seenUniverseCandidateCodes.has(code)) return false
