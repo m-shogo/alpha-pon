@@ -14,6 +14,7 @@ import {
   isGeneratedWorldThemeCandidateHypothesisInput,
   normalizeGeneratedWarningsInput,
 } from "../apps/web/lib/generated-array-input.js";
+import { summarizeGeneratedPipelineFailure } from "../apps/web/lib/generated-pipeline-health.js";
 import { normalizeGeneratedWorldContextInput } from "../apps/web/lib/generated-world-context-input.js";
 
 function testPullbackMissingFinancials() {
@@ -207,6 +208,16 @@ function testGeneratedPipelineStatusShape() {
     isGeneratedPipelineStatusInput({ status: "ok", failedSteps: ["scan_universe"] }),
     false,
     "producer上矛盾するok+failedStepsをHomeへ正常pipeline Evidenceとして渡さない",
+  );
+  assert.deepEqual(
+    summarizeGeneratedPipelineFailure({ status: "partial_failed", failedSteps: ["scan_universe"] }),
+    { failed: true, failedSteps: ["scan_universe"] },
+    "canonical partial_failedをHomeで正常pipelineとして表示しない",
+  );
+  assert.deepEqual(
+    summarizeGeneratedPipelineFailure({ status: "ok", failedSteps: [] }),
+    { failed: false, failedSteps: [] },
+    "canonical ok pipelineを誤警告しない",
   );
   assert.equal(isGeneratedPipelineStatusInput(null), false);
   assert.equal(isGeneratedPipelineStatusInput("failed"), false);
