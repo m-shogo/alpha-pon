@@ -65,6 +65,16 @@ assert.throws(
   "duplicate outcome horizons must not inflate canonical review/evaluation state",
 );
 assert.throws(
+  () => parseWorldImpactLatestSnapshot('[{"reviewKey":"event__5803","outcomes":[{"horizon":"2w"}]}]'),
+  /horizon must be one of 1d, 1w, 1m/,
+  "unsupported outcome horizons must not survive canonical latest preflight",
+);
+assert.throws(
+  () => parseWorldImpactLatestSnapshot('[{"reviewKey":"event__5803","outcomes":[{"horizon":" 1d "}]}]'),
+  /horizon must be one of 1d, 1w, 1m/,
+  "padded outcome horizons must not create alternate evidence identities",
+);
+assert.throws(
   () => parseWorldImpactLatestSnapshot('[{"reviewKey":"event__5803","createdAt":"2026-02-31"}]'),
   /createdAt must be a real YYYY-MM-DD date/,
   "invalid optional provenance dates must block canonical latest writes",
@@ -154,4 +164,4 @@ assert.throws(
   }
 }
 
-console.log("world-impact latest input: invalid canonical snapshots, canonical/duplicate identities, duplicate horizons, optional provenance, and read-only file failures fail closed before write");
+console.log("world-impact latest input: invalid canonical snapshots, canonical/duplicate identities, horizon contract, duplicate horizons, optional provenance, and read-only file failures fail closed before write");
