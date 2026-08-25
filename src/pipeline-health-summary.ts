@@ -1,15 +1,12 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
 import { hasCanonicalPipelineStatus, hasUsableSourceHealthText, sourceHealthHistoryState } from "./pipeline-health-input.js";
 import { readReadOnlyJsonObjectFile } from "./read-only-json-file.js";
+import { readReadOnlyTextFile } from "./read-only-text-file.js";
 import { normalizeSourceHealthObject } from "./source-health-input.js";
 import { normalizeSourceHealthHistoryRows, type SourceHealthHistoryRow } from "./source-health-history-input.js";
 import { readJsonlWithErrors } from "./read-only-jsonl.js";
-
-function readText(path: string): string {
-  return existsSync(path) ? readFileSync(path, "utf-8") : "";
-}
 
 function readJson(path: string): unknown {
   return readReadOnlyJsonObjectFile<Record<string, unknown>>(path).object;
@@ -28,7 +25,7 @@ function missingReports(rows: SourceHealthHistoryRow[], limit: number): Array<[s
 function main() {
   const date = todayJst();
   const now = new Date().toISOString();
-  const sourceHealthText = readText("reports/source_health_latest.md");
+  const sourceHealthText = readReadOnlyTextFile("reports/source_health_latest.md");
   const sourceHealthAvailable = hasUsableSourceHealthText(sourceHealthText, date);
   const rawPipelineStatus = readJson("reports/pipeline_status_latest.json");
   const normalizedPipelineStatus = normalizeSourceHealthObject<Record<string, unknown>>(rawPipelineStatus);
