@@ -46,6 +46,13 @@ import { resolveWorldImpactJquantsDelayDays } from "../src/world-impact-evaluati
     () => normalizeV2QuoteRange("2026\/05\/10", "2026-05-20", now, 84),
     /must be YYYY-MM-DD or YYYYMMDD/,
   );
+  for (const invalidDate of ["2026-02-31", "20260231", "0000-01-01"]) {
+    assert.throws(
+      () => normalizeV2QuoteRange(invalidDate, "2026-05-20", now, 84),
+      /is not a valid date/,
+      `nonexistent Gregorian quote date must fail closed: ${invalidDate}`,
+    );
+  }
   assert.throws(
     () => jquantsV2DateCapCompact(now, -1),
     /non-negative integer/,
