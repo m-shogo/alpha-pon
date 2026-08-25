@@ -245,7 +245,7 @@ export function isGeneratedPipelineStatusInput(value: unknown): value is Generat
     && (!Array.isArray(failedSteps) || !failedSteps.every((item) => typeof item === 'string'))) return false
   if (row.status === 'ok' && Array.isArray(failedSteps) && failedSteps.length > 0) return false
 
-  return (row.date === undefined || typeof row.date === 'string')
+  return (row.date === undefined || isCanonicalPastOrTodayDate(row.date))
     && (row.status === undefined || typeof row.status === 'string')
     && (row.startedAt === undefined || typeof row.startedAt === 'string')
     && (row.endedAt === undefined || typeof row.endedAt === 'string')
