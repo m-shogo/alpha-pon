@@ -15,8 +15,9 @@ import {
 } from "./fetcher/edinet.js";
 import { loadWatchlist } from "./config.js";
 import { addDaysJst, todayJst } from "./date.js";
+import { resolveEdinetAnnualScanDays } from "./edinet-annual-config.js";
 
-const SCAN_DAYS = parseInt(process.env.EDINET_ANNUAL_DAYS ?? "60", 10);
+const SCAN_DAYS = resolveEdinetAnnualScanDays(process.env.EDINET_ANNUAL_DAYS);
 
 async function main() {
   const today = todayJst();

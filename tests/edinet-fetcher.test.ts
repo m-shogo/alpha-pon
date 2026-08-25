@@ -10,6 +10,7 @@ import {
   resolveEdinetScanDays,
   scanEdinetDays,
 } from "../src/fetcher/edinet.js";
+import { resolveEdinetAnnualScanDays } from "../src/edinet-annual-config.js";
 
 function jsonResponse(body: unknown, status = 200, headers?: HeadersInit): Response {
   const responseHeaders = new Headers(headers);
@@ -174,6 +175,15 @@ function testScanDaysConfigFailsClosed() {
   }
 }
 
+function testAnnualScanDaysConfigFailsClosed() {
+  assert.equal(resolveEdinetAnnualScanDays(undefined), 60);
+  assert.equal(resolveEdinetAnnualScanDays(""), 60);
+  assert.equal(resolveEdinetAnnualScanDays("90"), 90);
+  for (const invalid of ["abc", "0", "-1", "1.5", "60x", "Infinity", "9007199254740992"]) {
+    assert.equal(resolveEdinetAnnualScanDays(invalid), 60, `${invalid} must fall back to the annual default`);
+  }
+}
+
 function testPdfEndpointDoesNotEmbedSecret() {
   const url = buildPdfUrl("S100TEST");
   assert.equal(url, `${EDINET_API_BASE_URL}/documents/S100TEST?type=2`);
@@ -188,6 +198,7 @@ async function main() {
   await testInvalidDateFailsBeforeFetch();
   await testInvalidScanDaysFailBeforeFetch();
   testScanDaysConfigFailsClosed();
+  testAnnualScanDaysConfigFailsClosed();
   testPdfEndpointDoesNotEmbedSecret();
   console.log("edinet-fetcher.test.ts passed");
 }
