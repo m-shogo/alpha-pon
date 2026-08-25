@@ -12,8 +12,13 @@ type TokenCache = {
 let tokenCache: TokenCache | null = null;
 let lastV2RequestAt = 0;
 
+export function parseJQuantsRequestTimeoutMs(value: string | undefined): number {
+  const parsed = Number(value ?? "15000");
+  return Number.isSafeInteger(parsed) && parsed >= 1000 ? parsed : 15000;
+}
+
 function requestTimeoutMs(): number {
-  return Math.max(1000, Number(process.env.JQUANTS_REQUEST_TIMEOUT_MS ?? "15000"));
+  return parseJQuantsRequestTimeoutMs(process.env.JQUANTS_REQUEST_TIMEOUT_MS);
 }
 
 function timeoutSignal(): AbortSignal {
