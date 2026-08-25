@@ -49,9 +49,18 @@ function toCompactDate(date: string): string {
 function validatedCompactDate(date: string, field: string): string {
   const compact = toCompactDate(date);
   if (!/^\d{8}$/.test(compact)) throw new Error(`${field} must be YYYY-MM-DD or YYYYMMDD`);
-  const normalized = `${compact.slice(0, 4)}-${compact.slice(4, 6)}-${compact.slice(6, 8)}`;
-  const parsed = new Date(`${normalized}T00:00:00+09:00`);
-  if (Number.isNaN(parsed.getTime())) throw new Error(`${field} is not a valid date`);
+  const year = Number(compact.slice(0, 4));
+  const month = Number(compact.slice(4, 6));
+  const day = Number(compact.slice(6, 8));
+  if (year < 1) throw new Error(`${field} is not a valid date`);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    throw new Error(`${field} is not a valid date`);
+  }
   return compact;
 }
 
