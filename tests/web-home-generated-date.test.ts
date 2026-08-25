@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { dateOnly, daysBetweenJst } from "../apps/web/lib/format.js";
+import "./web-pipeline-date-provenance.test.js";
 
 function homeGeneratedDateState(value: string | null, today: string) {
   const generatedDate = dateOnly(value);
