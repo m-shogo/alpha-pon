@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 import { todayJst } from "./date.js";
+import { isCanonicalReadOnlyJsonFile } from "./read-only-json-file.js";
 import { latestValuationScoreFile } from "./valuation-range-input.js";
 
 const DATA_QUALITIES = new Set(["ok", "partial", "missing"]);
@@ -66,6 +67,9 @@ export function readProposalScores<T>(
 ): ProposalScoreLoad<T> {
   const sourceFile = latestValuationScoreFile(reportsDir, asOf);
   if (!sourceFile) return { rows: [], sourceFile: null };
+  if (!isCanonicalReadOnlyJsonFile(sourceFile)) {
+    throw new Error(`${sourceFile}: proposal score snapshot must be a standalone regular file`);
+  }
 
   try {
     const parsed = JSON.parse(readFileSync(sourceFile, "utf-8")) as unknown;
