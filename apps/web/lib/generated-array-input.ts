@@ -271,11 +271,19 @@ export function normalizeGeneratedArrayInput<T>(
     && (field !== 'universeCandidates' || isCanonicalUniverseCandidate(entry))
   ))
   const seenUniverseCandidateCodes = new Set<string>()
+  const seenHypothesisPredictionIdentities = new Set<string>()
   const rows = validRows.filter((entry) => {
-    if (field !== 'universeCandidates') return true
-    const code = (entry as Record<string, unknown>).code as string
-    if (seenUniverseCandidateCodes.has(code)) return false
-    seenUniverseCandidateCodes.add(code)
+    const row = entry as Record<string, unknown>
+    if (field === 'universeCandidates') {
+      const code = row.code as string
+      if (seenUniverseCandidateCodes.has(code)) return false
+      seenUniverseCandidateCodes.add(code)
+    }
+    if (field === 'hypothesisPredictions') {
+      const identity = `${row.code as string}:${row.detectedAt as string}`
+      if (seenHypothesisPredictionIdentities.has(identity)) return false
+      seenHypothesisPredictionIdentities.add(identity)
+    }
     return true
   })
   const invalidEntries = value.length - rows.length
