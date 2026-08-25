@@ -26,6 +26,16 @@ function isCanonicalJstDate(value: unknown): value is string {
   }
 }
 
+function isCanonicalPipelineStep(value: unknown): value is { name: string; status: string } {
+  if (!isRecord(value)) return false;
+  return typeof value.name === "string"
+    && value.name.length > 0
+    && value.name.trim() === value.name
+    && typeof value.status === "string"
+    && value.status.length > 0
+    && value.status.trim() === value.status;
+}
+
 function invalidPipelineStatus(): OpsPipelineStatusLike {
   return {
     status: "failed",
@@ -61,16 +71,12 @@ export function normalizeOpsPipelineStatusInput(value: unknown): OpsPipelineStat
 
   if (value.steps !== undefined) {
     if (!Array.isArray(value.steps)) return invalidPipelineStatus();
-    for (const step of value.steps) {
-      if (!isRecord(step)) return invalidPipelineStatus();
-      if (step.name !== undefined && typeof step.name !== "string") return invalidPipelineStatus();
-      if (step.status !== undefined && typeof step.status !== "string") return invalidPipelineStatus();
-    }
+    if (!value.steps.every(isCanonicalPipelineStep)) return invalidPipelineStatus();
   }
 
   const hasFailedSteps = typeof failedSteps === "string" && failedSteps.trim().length > 0;
   const hasFailedStepRecord = Array.isArray(value.steps) && value.steps.some(step => {
-    if (!isRecord(step) || typeof step.status !== "string") return false;
+    if (!isCanonicalPipelineStep(step)) return false;
     return step.status !== "ok" && step.status !== "skipped";
   });
   const hasFailureEvidence = hasFailedSteps || hasFailedStepRecord;
