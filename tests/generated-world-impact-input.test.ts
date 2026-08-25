@@ -99,6 +99,12 @@ for (const malformed of [
   { ...validAudit, priceDataPending: 0.5 },
   { ...validAudit, totalReviews: 1, pendingReviews: 2 },
   { ...validAudit, totalReviews: 2, pendingReviews: 1, overdueReviews: 2 },
+  {
+    ...validAudit,
+    healthStatus: 'ok',
+    priorityIssues: [{ severity: 'urgent', category: 'x', title: 'x', detail: 'x' }],
+  },
+  { ...validAudit, healthStatus: 'action_required', priorityIssues: [] },
   { ...validAudit, priorityIssues: {} },
   { ...validAudit, priorityIssues: [{ severity: 'panic', category: 'x', title: 'x', detail: 'x' }] },
 ] as const) {
