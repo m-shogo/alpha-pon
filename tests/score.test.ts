@@ -14,6 +14,7 @@ import {
   isGeneratedWorldThemeCandidateHypothesisInput,
   normalizeGeneratedWarningsInput,
 } from "../apps/web/lib/generated-array-input.js";
+import { normalizeGeneratedWorldContextInput } from "../apps/web/lib/generated-world-context-input.js";
 
 function testPullbackMissingFinancials() {
   const result = scoreHealthyPullback({
@@ -154,6 +155,44 @@ function testGeneratedWorldThemeCandidateHypothesisShape() {
   assert.equal(isGeneratedWorldThemeCandidateHypothesisInput(null), false);
   assert.equal(isGeneratedWorldThemeCandidateHypothesisInput({ ...valid, candidateCode: undefined }), false);
   assert.equal(isGeneratedWorldThemeCandidateHypothesisInput({ ...valid, reviewAfterDays: [30, 90] }), false);
+}
+
+function testGeneratedWorldContextStringIdentity() {
+  const valid = {
+    asOf: "2026-08-18",
+    mode: "research",
+    summary: "Macro context summary",
+    activeRegimes: [{
+      id: "high_rates",
+      level: "watch",
+      why: "Rates remain elevated.",
+      watchCategories: ["rates", "banks"],
+      caution: ["Do not overfit a single print."],
+    }],
+    operatingRules: ["Prefer primary sources."],
+  };
+  assert.deepEqual(normalizeGeneratedWorldContextInput(valid), { value: valid, warning: null });
+  assert.deepEqual(
+    normalizeGeneratedWorldContextInput({
+      ...valid,
+      activeRegimes: [{ ...valid.activeRegimes[0], watchCategories: ["rates", " banks "] }],
+    }),
+    { value: null, warning: "worldContext: invalid_shape" },
+    "padded watch categoryを別World identityとして表示しない",
+  );
+  assert.deepEqual(
+    normalizeGeneratedWorldContextInput({
+      ...valid,
+      activeRegimes: [{ ...valid.activeRegimes[0], caution: [""] }],
+    }),
+    { value: null, warning: "worldContext: invalid_shape" },
+    "blank cautionをWorld Evidenceとして表示しない",
+  );
+  assert.deepEqual(
+    normalizeGeneratedWorldContextInput({ ...valid, operatingRules: [" Prefer primary sources. "] }),
+    { value: null, warning: "worldContext: invalid_shape" },
+    "padded operating ruleをcanonical World ruleとして表示しない",
+  );
 }
 
 function testGeneratedPipelineStatusShape() {
@@ -315,6 +354,7 @@ function main() {
   testGeneratedReportShape();
   testGeneratedWarningsShape();
   testGeneratedWorldThemeCandidateHypothesisShape();
+  testGeneratedWorldContextStringIdentity();
   testGeneratedPipelineStatusShape();
   testLearningScoreInputIsolation();
   testLearningScorePitCutoff();

@@ -22,8 +22,8 @@ function isCanonicalNonEmptyString(value: unknown): value is string {
   return isNonEmptyString(value) && value === value.trim()
 }
 
-function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((item) => typeof item === 'string')
+function isCanonicalStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(isCanonicalNonEmptyString)
 }
 
 function todayJstDate(): string {
@@ -53,8 +53,8 @@ function isWorldContextRegime(value: unknown): value is GeneratedWorldContextReg
   return isCanonicalNonEmptyString(regime.id)
     && isNonEmptyString(regime.level)
     && typeof regime.why === 'string'
-    && isStringArray(regime.watchCategories)
-    && isStringArray(regime.caution)
+    && isCanonicalStringArray(regime.watchCategories)
+    && isCanonicalStringArray(regime.caution)
 }
 
 function hasUniqueRegimeIds(regimes: GeneratedWorldContextRegime[]): boolean {
@@ -70,7 +70,7 @@ export function isGeneratedWorldContextInput(value: unknown): value is Generated
     && isNonEmptyString(context.mode)
     && typeof context.summary === 'string'
     && hasUniqueRegimeIds(context.activeRegimes)
-    && isStringArray(context.operatingRules)
+    && isCanonicalStringArray(context.operatingRules)
 }
 
 export function normalizeGeneratedWorldContextInput(
