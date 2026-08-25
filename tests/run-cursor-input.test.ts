@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { linkSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import "./hypothesis-open-identity-dedupe.test.js";
@@ -122,7 +122,7 @@ try {
     "rejected future cursor provenance must reset to the current JST date",
   );
 
-  writeFileSync("data/run-cursors.json", JSON.stringify({
+  const canonicalCursor = JSON.stringify({
     "universe-scan": {
       jobName: "universe-scan",
       offset: 40,
@@ -130,7 +130,26 @@ try {
       total: 100,
       updatedAt: todayJst(),
     },
-  }), "utf-8");
+  });
+  writeFileSync("cursor-target.json", canonicalCursor, "utf-8");
+  rmSync("data/run-cursors.json", { force: true });
+  symlinkSync("../cursor-target.json", "data/run-cursors.json");
+  assert.equal(
+    loadRunCursor("universe-scan", 20, 100).offset,
+    0,
+    "symlinked cursor state must not skip active scan items",
+  );
+
+  rmSync("data/run-cursors.json", { force: true });
+  linkSync("cursor-target.json", "data/run-cursors.json");
+  assert.equal(
+    loadRunCursor("universe-scan", 20, 100).offset,
+    0,
+    "hard-linked cursor state must not be accepted as canonical operational provenance",
+  );
+
+  rmSync("data/run-cursors.json", { force: true });
+  writeFileSync("data/run-cursors.json", canonicalCursor, "utf-8");
   assert.equal(
     loadRunCursor("universe-scan", 20, 100).offset,
     40,
@@ -141,4 +160,4 @@ try {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("run-cursor-input: malformed roots, caller parameters, identity mismatches, invalid offsets, and future provenance fail closed OK");
+console.log("run-cursor-input: malformed roots, caller parameters, identity mismatches, invalid offsets, linked files, and future provenance fail closed OK");
