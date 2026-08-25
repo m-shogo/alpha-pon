@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { linkSync, mkdtempSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { readProposalScores } from "../src/proposals-score-input.js";
@@ -121,12 +121,30 @@ try {
     "duplicate stable score identities must not inflate proposal counts or ratios",
   );
 
+  const linkedTarget = join(dir, "proposal-score-linked-target.json");
+  const currentPath = join(dir, "scores_2026-08-18.json");
+  writeFileSync(linkedTarget, JSON.stringify([{ code: "linked" }]), "utf-8");
+  unlinkSync(currentPath);
+  symlinkSync(linkedTarget, currentPath);
+  assert.throws(
+    () => readProposalScores<{ code: string }>(dir, "2026-08-18"),
+    /proposal score snapshot must be a standalone regular file/,
+    "symlinked score evidence must not become the canonical proposal snapshot",
+  );
+  unlinkSync(currentPath);
+  linkSync(linkedTarget, currentPath);
+  assert.throws(
+    () => readProposalScores<{ code: string }>(dir, "2026-08-18"),
+    /proposal score snapshot must be a standalone regular file/,
+    "hard-linked score evidence must not become a second canonical proposal snapshot",
+  );
+  unlinkSync(currentPath);
+
   const historical = readProposalScores<{ code: string }>(dir, "2026-08-17");
   assert.deepEqual(historical.rows, [{ code: "previous" }]);
   assert.equal(historical.sourceFile, join(dir, "scores_2026-08-17.json"));
 
   rmSync(join(dir, "scores_2026-08-17.json"));
-  rmSync(join(dir, "scores_2026-08-18.json"));
   const unavailable = readProposalScores<{ code: string }>(dir, "2026-08-18");
   assert.deepEqual(unavailable.rows, []);
   assert.equal(unavailable.sourceFile, null);
@@ -134,4 +152,4 @@ try {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("proposals-score-input: PIT, parse-error, root-shape, warning-shape, data-quality, primary-review-shape, context-shape, createdAt-lineage, required-identity, and duplicate-identity regressions OK");
+console.log("proposals-score-input: PIT, parse-error, root-shape, warning-shape, data-quality, primary-review-shape, context-shape, createdAt-lineage, required-identity, duplicate-identity, and canonical-file regressions OK");
