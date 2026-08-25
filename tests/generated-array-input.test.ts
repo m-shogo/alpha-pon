@@ -115,6 +115,19 @@ assert(duplicateHypotheses.rows.length === 2, "duplicate open hypothesis identit
 assert(duplicateHypotheses.rows[0]?.code === "8136" && duplicateHypotheses.rows[1]?.code === "7203", "first canonical hypothesis identity and distinct companies must remain usable");
 assert(duplicateHypotheses.warning === "hypothesisPredictions: invalid_entries (1)", "duplicate hypothesis identities must remain visible as metadata-only warnings");
 
+for (const malformed of [
+  { ...canonicalHypothesis, detectedAt: "2026-02-31" },
+  { ...canonicalHypothesis, detectedAt: "0000-01-01" },
+  { ...canonicalHypothesis, detectedAt: "2026-08-18T00:00:00+09:00" },
+  { ...canonicalHypothesis, detectedAt: "2999-01-01", reviewDueAt: "2999-02-01" },
+  { ...canonicalHypothesis, reviewDueAt: "2026-02-31" },
+  { ...canonicalHypothesis, reviewDueAt: "2026-08-17" },
+]) {
+  const temporal = normalizeGeneratedArrayInput([malformed], "hypothesisPredictions", isHypothesisRow);
+  assert(temporal.rows.length === 0, "noncanonical, future, or reversed hypothesis chronology must fail closed before Web rendering");
+  assert(temporal.warning === "hypothesisPredictions: invalid_entries (1)", "hypothesis chronology failures must remain visible as metadata-only warnings");
+}
+
 const isOutcomeRow = (value: unknown): value is Record<string, unknown> => {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const row = value as Record<string, unknown>;
