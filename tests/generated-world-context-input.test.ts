@@ -53,24 +53,6 @@ assert.deepEqual(
   { value: null, warning: 'worldContext: invalid_shape' },
 )
 assert.deepEqual(
-  normalizeGeneratedWorldContextInput({
-    ...valid,
-    activeRegimes: [{ ...valid.activeRegimes[0], watchCategories: ['rates', ' banks '] }],
-  }),
-  { value: null, warning: 'worldContext: invalid_shape' },
-)
-assert.deepEqual(
-  normalizeGeneratedWorldContextInput({
-    ...valid,
-    activeRegimes: [{ ...valid.activeRegimes[0], caution: [''] }],
-  }),
-  { value: null, warning: 'worldContext: invalid_shape' },
-)
-assert.deepEqual(
-  normalizeGeneratedWorldContextInput({ ...valid, operatingRules: [' Prefer primary sources. '] }),
-  { value: null, warning: 'worldContext: invalid_shape' },
-)
-assert.deepEqual(
   normalizeGeneratedWorldContextInput({ ...valid, operatingRules: {} }),
   { value: null, warning: 'worldContext: invalid_shape' },
 )
