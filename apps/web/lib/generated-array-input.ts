@@ -111,7 +111,7 @@ function isFiniteNumberOrNull(value: unknown): value is number | null {
   return value === null || (typeof value === 'number' && Number.isFinite(value))
 }
 
-function isCanonicalPastOrTodayDate(value: unknown): value is string {
+function isCanonicalDate(value: unknown): value is string {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
   const [yearText, monthText, dayText] = value.split('-')
   const year = Number(yearText)
@@ -119,7 +119,11 @@ function isCanonicalPastOrTodayDate(value: unknown): value is string {
   const day = Number(dayText)
   if (year < 1) return false
   const instant = new Date(Date.UTC(year, month - 1, day))
-  if (instant.getUTCFullYear() !== year || instant.getUTCMonth() !== month - 1 || instant.getUTCDate() !== day) return false
+  return instant.getUTCFullYear() === year && instant.getUTCMonth() === month - 1 && instant.getUTCDate() === day
+}
+
+function isCanonicalPastOrTodayDate(value: unknown): value is string {
+  if (!isCanonicalDate(value)) return false
   const todayInTokyo = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Tokyo',
     year: 'numeric',
@@ -127,6 +131,14 @@ function isCanonicalPastOrTodayDate(value: unknown): value is string {
     day: '2-digit',
   }).format(new Date())
   return value <= todayInTokyo
+}
+
+function hasCanonicalHypothesisPredictionTemporalProvenance(value: unknown): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const row = value as Record<string, unknown>
+  return isCanonicalPastOrTodayDate(row.detectedAt)
+    && isCanonicalDate(row.reviewDueAt)
+    && row.reviewDueAt >= row.detectedAt
 }
 
 function isCanonicalUniverseCandidate(value: unknown): boolean {
@@ -267,6 +279,7 @@ export function normalizeGeneratedArrayInput<T>(
     isValidEntry(entry)
     && (field !== 'hypothesisPredictions' || hasCanonicalHypothesisPredictionCollections(entry))
     && (field !== 'hypothesisPredictions' || hasCanonicalHypothesisPredictionConfidence(entry))
+    && (field !== 'hypothesisPredictions' || hasCanonicalHypothesisPredictionTemporalProvenance(entry))
     && (field !== 'hypothesisOutcomes' || isCanonicalHypothesisOutcomeDiscriminators(entry))
     && (field !== 'universeCandidates' || isCanonicalUniverseCandidate(entry))
   ))
