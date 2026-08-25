@@ -8,6 +8,7 @@ import { Icon } from '@/components/Icon'
 import { Disclaimer } from '@/components/Disclaimer'
 import Link from 'next/link'
 import { dateOnly, daysBetweenJst, todayJstDate } from '@/lib/format'
+import { summarizeGeneratedPipelineFailure } from '@/lib/generated-pipeline-health'
 
 export const metadata = {
   title: 'alpha-pon — ホーム',
@@ -32,8 +33,9 @@ export default function HomePage() {
   const generatedDate = dateOnly(data.generatedAt)
   const generatedAgeDays = generatedDate ? daysBetweenJst(generatedDate, todayJstDate()) : null
   const hasMockUniverse = (data.universeCandidates ?? []).some((c) => c.dataSource === 'mock')
-  const failedSteps = data.pipelineStatus?.completeWrapperFailedSteps ?? []
-  const pipelineFailed = failedSteps.length > 0 || data.pipelineStatus?.status === 'failed'
+  const pipelineFailure = summarizeGeneratedPipelineFailure(data.pipelineStatus)
+  const failedSteps = pipelineFailure.failedSteps
+  const pipelineFailed = pipelineFailure.failed
   const mockUniverseCount = (data.universeCandidates ?? []).filter((c) => c.dataSource === 'mock').length
   const qualityValues = Object.values(data.dataQualityByCode ?? {})
   const missingQualityCount = qualityValues.filter((q) => q.dataQuality === 'missing' || q.dataQuality === 'unknown').length
