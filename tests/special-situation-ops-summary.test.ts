@@ -3,6 +3,7 @@
 
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "fs";
+import { resolveSpecialSituationMinSampleSize } from "../src/special-situation-ops-config.js";
 import { partitionSpecialSituationOutcomesByDetectedAt } from "../src/special-situation-review-due-date.js";
 
 function readJson(path: string): unknown {
@@ -23,6 +24,14 @@ function isObject(v: unknown): v is Record<string, unknown> {
   const partitioned = partitionSpecialSituationOutcomesByDetectedAt(rows);
   assert.deepEqual(partitioned.valid.map(row => row.id), ["valid"]);
   assert.deepEqual(partitioned.invalid.map(row => row.id), ["impossible", "year-zero"]);
+}
+
+{
+  assert.equal(resolveSpecialSituationMinSampleSize(undefined), 5);
+  assert.equal(resolveSpecialSituationMinSampleSize(12), 12);
+  for (const invalid of ["5", Number.NaN, Number.POSITIVE_INFINITY, 0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+    assert.equal(resolveSpecialSituationMinSampleSize(invalid), 5, `${String(invalid)} must fall back to minSampleSize=5`);
+  }
 }
 
 // 1) reports/special_situation_ops_summary_latest.json が生成されている
@@ -163,7 +172,6 @@ for (const item of reportData.actionItems as Array<Record<string, unknown>>) {
     assert(reportData.healthStatus === "needs_attention" || reportData.healthStatus === "action_required",
       "attention な actionItem があれば healthStatus は needs_attention 以上");
   }
-  // historical_seed_overdue のみ（info 扱い）の場合、action_required にならないことを確認
   const rd = reportData.reviewDue as Record<string, unknown>;
   const recentOverdue = rd.overdue as number;
   const historicalOverdue = rd.historicalSeedOverdue as number;
