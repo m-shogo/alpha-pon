@@ -51,7 +51,7 @@ function stringList(value: unknown, label: string, warnings: string[]): string[]
     return [];
   }
   return value.filter((item): item is string => {
-    const valid = typeof item === "string" && item.trim().length > 0;
+    const valid = typeof item === "string" && item.trim().length > 0 && item === item.trim();
     if (!valid) warnings.push(`${label}: invalid_item`);
     return valid;
   });
