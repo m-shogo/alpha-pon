@@ -228,10 +228,12 @@ function testLearningScoreInputIsolation() {
     { ...valid, code: "4661", warnings: {} },
     { ...valid, code: "7832", score: "72" },
     { ...valid, code: "7974", riskReview: { decision: "bogus", blockers: [] } },
+    { ...valid, code: "7011", expertReview: { ...valid.expertReview, finalVerdict: "bogus" } },
+    { ...valid, code: "6758", expertReview: { ...valid.expertReview, lenses: [{ name: "quality", verdict: "bogus", nextChecks: [] }] } },
   ]), "2026-08-21");
   assert.ok(parsed);
   assert.deepEqual(parsed.entries.map(entry => entry.code), ["8136"], "正常rowは壊れrowの周囲でも維持する");
-  assert.deepEqual(parsed.invalidRows, [2, 3, 4, 5], "crashまたは学習集計を歪める壊れrowは行単位で隔離する");
+  assert.deepEqual(parsed.invalidRows, [2, 3, 4, 5, 6, 7], "crashまたは学習集計を歪める壊れrowは行単位で隔離する");
   assert.equal(parseLearningScoreInput(JSON.stringify({ code: "8136" }), "2026-08-21"), null, "object rootをscore arrayとして扱わない");
   assert.equal(parseLearningScoreInput("{broken", "2026-08-21"), null, "壊れJSONをscore arrayとして扱わない");
 }
