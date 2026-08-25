@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import "./ops-dashboard-outcomes-input.test.js";
 import { dateNDaysAgoJst } from "../src/date.js";
 import {
   jstDateFromExplicitInstant,
