@@ -7,6 +7,7 @@ import { join } from "path";
 import {
   EDINET_API_KEY_ENV,
   getEdinetConfigurationStatus,
+  resolveEdinetScanDays,
   scanEdinetDays,
   STRUCTURAL_KEYWORDS,
 } from "./fetcher/edinet.js";
@@ -14,7 +15,7 @@ import { todayJst } from "./date.js";
 
 async function main() {
   const today = todayJst();
-  const scanDays = parseInt(process.env.EDINET_SCAN_DAYS ?? "5", 10);
+  const scanDays = resolveEdinetScanDays(process.env.EDINET_SCAN_DAYS);
 
   console.log(`\nEDINET構造イベントスキャン: 直近${scanDays}営業日\n`);
 
