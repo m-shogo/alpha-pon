@@ -32,6 +32,7 @@ export default function HomePage() {
   const data = loadGeneratedData()
   const generatedDate = dateOnly(data.generatedAt)
   const generatedAgeDays = generatedDate ? daysBetweenJst(generatedDate, todayJstDate()) : null
+  const hasValidGeneratedDate = data.generatedAt === generatedDate && generatedAgeDays != null && generatedAgeDays >= 0
   const hasMockUniverse = (data.universeCandidates ?? []).some((c) => c.dataSource === 'mock')
   const pipelineFailure = summarizeGeneratedPipelineFailure(data.pipelineStatus)
   const failedSteps = pipelineFailure.failedSteps
@@ -57,6 +58,7 @@ export default function HomePage() {
   const dataWarnings = [
     ...((data.meta?.warnings ?? []).map((w) => `生成データ: ${w}`)),
     ...(pipelineFailed ? [`pipeline に失敗/スキップがあります: ${failedSteps.join(', ') || data.pipelineStatus?.status}`] : []),
+    ...(data.generatedAt && !hasValidGeneratedDate ? ['生成日が不正または未来日です。pnpm ui:data で正本を再生成してください。'] : []),
     ...(generatedAgeDays != null && generatedAgeDays > 0 ? [`生成日が${generatedAgeDays}日前です。pnpm ui:data で最新化してください。`] : []),
     ...(hasMockUniverse ? ['未登録銘柄スクリーニングにモックデータが含まれています。実データ確認前の仮説として扱ってください。'] : []),
     ...(missingQualityCount > 0 ? [`データ品質 missing/unknown が ${missingQualityCount} 件あります。強い判断を避けてください。`] : []),
@@ -127,7 +129,7 @@ export default function HomePage() {
           <div>
             <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-3)' }}>最終生成: </span>
             <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink)' }}>
-              {data.generatedAt ?? '未生成'}
+              {hasValidGeneratedDate ? data.generatedAt : '未生成'}
             </span>
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
