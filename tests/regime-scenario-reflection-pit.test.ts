@@ -47,16 +47,21 @@ try {
       category: "金融不安",
       tags: ["銀行"],
     },
+    {
+      title: "legacy-undated",
+      category: "金融不安",
+      tags: ["銀行"],
+    },
   ]), "utf-8");
 
   const state = loadRegimeScenarioReflectionState(path, "2026-08-20");
   assert.deepEqual(
     state.rows.map(row => row.title),
     ["current", "legacy-current"],
-    "future and impossible canonical or legacy reflection dates must not influence current regime scoring",
+    "future, impossible, or undated canonical or legacy reflections must not influence current regime scoring",
   );
   assert.equal(state.warnings.length, 1);
-  assert.match(state.warnings[0] ?? "", /4 malformed reflection row\(s\).*row\(s\) 2, 3, 5, 6/);
+  assert.match(state.warnings[0] ?? "", /5 malformed reflection row\(s\).*row\(s\) 2, 3, 5, 6, 7/);
   assert.ok(!state.warnings[0]?.includes("future"), "metadata warning must not expose raw reflection content");
 
   assert.throws(
@@ -68,4 +73,4 @@ try {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("regime-scenario reflection PIT: future and impossible canonical or legacy provenance is isolated");
+console.log("regime-scenario reflection PIT: future, impossible, and undated provenance is isolated");
