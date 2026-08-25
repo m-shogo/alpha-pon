@@ -4,6 +4,7 @@ import { scoreHealthyPullback } from "../src/score/pullback.js";
 import { scoreEarningsDrop } from "../src/score/earnings.js";
 import { validateWatchlist } from "../src/validation.js";
 import { parseLearningScoreInput } from "../src/learning-score-input.js";
+import { normalizePrimaryDisclosureLearningScoreInput } from "../src/primary-disclosure-learning-input.js";
 import { parseHypothesisOutcomesJsonl } from "../src/hypothesis-outcome-input.js";
 import type { WatchlistConfig } from "../src/types.js";
 import {
@@ -240,6 +241,32 @@ function testLearningAlertLevelContract() {
   assert.deepEqual(parsed.invalidRows, [1]);
 }
 
+function testPrimaryDisclosureLearningStringIdentity() {
+  const normalized = normalizePrimaryDisclosureLearningScoreInput([{
+    code: "8136",
+    name: "サンリオ",
+    score: 80,
+    alertLevel: "watch",
+    createdAt: "2026-08-21",
+    primaryDisclosureReview: {
+      decision: "confirmed",
+      positives: ["official IR", " official IR "],
+      warnings: ["timing", "timing "],
+      blockers: ["dilution", " dilution"],
+    },
+  }], "scores_2026-08-21.json", "2026-08-21");
+
+  const review = normalized.rows[0]?.primaryDisclosureReview;
+  assert.deepEqual(review?.positives, ["official IR"], "padded positive Evidenceを別frequency bucketにしない");
+  assert.deepEqual(review?.warnings, ["timing"], "padded warning Evidenceを別frequency bucketにしない");
+  assert.deepEqual(review?.blockers, ["dilution"], "padded blocker Evidenceを別frequency bucketにしない");
+  assert.equal(
+    normalized.warnings.filter(warning => warning.endsWith("invalid_item")).length,
+    3,
+    "padded learning Evidenceはmetadata warning付きで隔離する",
+  );
+}
+
 function testHypothesisOutcomeReviewHorizonContract() {
   const base = {
     code: "8136",
@@ -293,6 +320,7 @@ function main() {
   testLearningScorePitCutoff();
   testLearningScoreDuplicateIdentity();
   testLearningAlertLevelContract();
+  testPrimaryDisclosureLearningStringIdentity();
   testHypothesisOutcomeReviewHorizonContract();
   testHypothesisOutcomeActionLabelContract();
   console.log("score.test.ts passed");
