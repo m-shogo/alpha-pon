@@ -1,6 +1,8 @@
 import { addDaysJst } from "./date.js";
 import type { WorldEventImpactReview } from "./world-impact.js";
 
+const WORLD_IMPACT_OUTCOME_HORIZONS = new Set(["1d", "1w", "1m"]);
+
 function isRealJstDate(value: unknown): value is string {
   if (typeof value !== "string" || value.trim() === "") return false;
   try {
@@ -41,7 +43,10 @@ function assertOptionalEvaluationProvenance(row: Record<string, unknown>, rowLab
     }
     const outcome = value as Record<string, unknown>;
     const horizon = outcome.horizon;
-    if (horizon === "1d" || horizon === "1w" || horizon === "1m") {
+    if (horizon !== undefined && horizon !== null) {
+      if (typeof horizon !== "string" || !WORLD_IMPACT_OUTCOME_HORIZONS.has(horizon)) {
+        throw new Error(`${rowLabel} outcome ${outcomeIndex + 1} horizon must be one of 1d, 1w, 1m`);
+      }
       if (seenHorizons.has(horizon)) {
         throw new Error(`${rowLabel} duplicate outcome horizon: ${horizon}`);
       }
