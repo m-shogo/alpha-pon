@@ -51,6 +51,7 @@ export function buildOutcomeNotes(input: {
 
   if (
     input.returns.dataAvailability === "ok"
+    && hasUsableReturn1m
     && input.relativeToTopix1m != null
     && Number.isFinite(input.relativeToTopix1m)
   ) {
@@ -84,6 +85,7 @@ export function buildOutcomeNotes(input: {
     ? input.returns.ret1m!.toFixed(1)
     : "N/A";
   const relativeToTopix1m = hasCompleteReturnEvidence
+    && hasUsableReturn1m
     && input.relativeToTopix1m != null
     && Number.isFinite(input.relativeToTopix1m)
     ? input.relativeToTopix1m.toFixed(1)
