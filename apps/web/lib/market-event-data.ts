@@ -246,6 +246,11 @@ function isHttpsMarketEventSourceUrl(value: string): boolean {
   }
 }
 
+function isMarketEventSourceTimelineValid(publishedAt: string | null, retrievedAt: string): boolean {
+  return publishedAt === null
+    || strictMarketEventMilliseconds(publishedAt) <= strictMarketEventMilliseconds(retrievedAt)
+}
+
 function isMarketEventSource(value: unknown): value is WebMarketEvent['sources'][number] {
   if (!isRecord(value)) return false
   return typeof value.sourceId === 'string'
@@ -260,6 +265,7 @@ function isMarketEventSource(value: unknown): value is WebMarketEvent['sources']
     && (value.publishedAt === null || isStrictMarketEventInstant(value.publishedAt))
     && typeof value.retrievedAt === 'string'
     && isStrictMarketEventInstant(value.retrievedAt)
+    && isMarketEventSourceTimelineValid(value.publishedAt, value.retrievedAt)
     && typeof value.contentHash === 'string'
 }
 
