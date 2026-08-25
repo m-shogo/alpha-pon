@@ -8,6 +8,8 @@ export const EDINET_API_BASE_URL = "https://api.edinet-fsa.go.jp/api/v2";
 const EDINET_API_KEY_QUERY_PARAM = "Subscription-Key";
 const DEFAULT_MAX_ATTEMPTS = 3;
 const DEFAULT_RETRY_BASE_MS = 500;
+const DEFAULT_SCAN_DAYS = 5;
+const MAX_SCAN_DAYS = 30;
 const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 504]);
 
 type EdinetDocListResponse = {
@@ -109,6 +111,15 @@ export function getEdinetConfigurationStatus(
     apiKeyEnv: EDINET_API_KEY_ENV,
     baseUrl: normalizeBaseUrl(options.baseUrl ?? EDINET_API_BASE_URL),
   };
+}
+
+export function resolveEdinetScanDays(value: string | undefined): number {
+  if (value === undefined || value.trim().length === 0) return DEFAULT_SCAN_DAYS;
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0 || parsed > MAX_SCAN_DAYS) {
+    return DEFAULT_SCAN_DAYS;
+  }
+  return parsed;
 }
 
 function normalizeBaseUrl(baseUrl: string): string {
