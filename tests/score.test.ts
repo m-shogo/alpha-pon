@@ -201,6 +201,13 @@ function testGeneratedPipelineStatusShape() {
     completeWrapperFailedSteps: ["fetch:jquants"],
     endedAt: "2026-08-17T19:00:00Z",
   }), true);
+  assert.equal(isGeneratedPipelineStatusInput({ status: "ok", failedSteps: [] }), true);
+  assert.equal(isGeneratedPipelineStatusInput({ status: "partial_failed", failedSteps: ["scan_universe"] }), true);
+  assert.equal(
+    isGeneratedPipelineStatusInput({ status: "ok", failedSteps: ["scan_universe"] }),
+    false,
+    "producer上矛盾するok+failedStepsをHomeへ正常pipeline Evidenceとして渡さない",
+  );
   assert.equal(isGeneratedPipelineStatusInput(null), false);
   assert.equal(isGeneratedPipelineStatusInput("failed"), false);
   assert.equal(isGeneratedPipelineStatusInput({ completeWrapperFailedSteps: "fetch:jquants" }), false);
