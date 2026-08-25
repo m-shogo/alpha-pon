@@ -1,5 +1,6 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync } from "fs";
 import { todayJst } from "./date.js";
+import { readSourceHealthHistoryLines, replaceSourceHealthHistory } from "./source-health-history-file.js";
 import { sourceHealthScorePath } from "./source-health-history-path.js";
 import { inspectSourceHealthReportFile } from "./source-health-report-file.js";
 
@@ -29,12 +30,7 @@ function historyRowDate(line: string): string | null {
 }
 
 function writeDailyHistoryRow(row: SourceHealthHistoryRow): void {
-  const existingLines = existsSync(HISTORY_PATH)
-    ? readFileSync(HISTORY_PATH, "utf-8")
-      .split("\n")
-      .map(line => line.trim())
-      .filter(Boolean)
-    : [];
+  const existingLines = readSourceHealthHistoryLines(HISTORY_PATH);
 
   const seenDates = new Set<string>();
   const dedupedReversed: string[] = [];
@@ -52,7 +48,7 @@ function writeDailyHistoryRow(row: SourceHealthHistoryRow): void {
   const nextLines = dedupedReversed.reverse();
   nextLines.push(JSON.stringify(row));
   const compacted = nextLines.slice(-MAX_LINES);
-  writeFileSync(HISTORY_PATH, `${compacted.join("\n")}\n`, "utf-8");
+  replaceSourceHealthHistory(HISTORY_PATH, `${compacted.join("\n")}\n`);
 }
 
 function main() {
