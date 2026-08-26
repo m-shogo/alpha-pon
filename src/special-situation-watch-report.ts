@@ -12,6 +12,7 @@ import { todayJst } from "./date.js";
 import { parseHypothesisOutcomesJsonl } from "./hypothesis-outcome-input.js";
 import type { HypothesisOutcome } from "./universe.js";
 import { selectOutcomesForStats, detectMixedOutcomes } from "./special-situation-outcome-filter.js";
+import { resolveSpecialSituationMinSampleSize } from "./special-situation-ops-config.js";
 
 // ─────────── 型定義 ───────────
 
@@ -880,7 +881,7 @@ function buildSpecialSituationOutcomeStats(
 }
 
 function buildReport(config: SpecialSituationConfig): SpecialSituationWatchReport {
-  const minSampleSize = config.outcomeStats?.minSampleSize ?? 5;
+  const minSampleSize = resolveSpecialSituationMinSampleSize(config.outcomeStats?.minSampleSize);
   const outcomePath = "data/hypothesis_outcomes.jsonl";
   const parsedOutcomes = existsSync(outcomePath)
     ? parseHypothesisOutcomesJsonl(readFileSync(outcomePath, "utf-8"), outcomePath)
