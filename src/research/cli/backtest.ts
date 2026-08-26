@@ -7,6 +7,7 @@
 // 価格を外部から取りに行かないため、実行は決定論的で CI でも安全に回せる。
 
 import { existsSync, readFileSync } from "fs";
+import { buildUniquePriceSeriesMap } from "../backtest-bundle-input.js";
 import { runBacktest, type BacktestSignal, type BacktestSpec, type PriceSeries } from "../backtest.js";
 import { loadSchema, writeGeneratedJson } from "../io.js";
 import { falseDiscoveryGuard } from "../net-alpha.js";
@@ -36,7 +37,7 @@ function main(): void {
   const errors = validate(bundle.spec, loadSchema("backtest"));
   if (errors.length > 0) fail(`spec がスキーマに適合しません:\n${formatErrors(errors)}`);
 
-  const prices = new Map(bundle.prices.map((series) => [series.code, series]));
+  const prices = buildUniquePriceSeriesMap(bundle.prices);
   const report = runBacktest(bundle.spec, bundle.signals, prices, bundle.benchmark);
   const guard = falseDiscoveryGuard(report.net.tStat, bundle.trials ?? 1);
 
