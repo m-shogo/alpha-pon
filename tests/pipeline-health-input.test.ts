@@ -241,7 +241,8 @@ const writeStatusStart = dailyScript.indexOf("write_status() {");
 const writeStatusEnd = dailyScript.indexOf("\nappend_step_status()", writeStatusStart);
 assert(writeStatusStart >= 0 && writeStatusEnd > writeStatusStart, "daily status writer must remain discoverable");
 const writeStatusBlock = dailyScript.slice(writeStatusStart, writeStatusEnd);
-assert.match(writeStatusBlock, /status_tmp=.*pipeline_status_latest\.json/, "daily status writer must stage output in a temporary file");
+assert.match(writeStatusBlock, /status_path=.*pipeline_status_latest\.json/, "daily status writer must identify the canonical status path explicitly");
+assert.match(writeStatusBlock, /status_tmp=.*status_path.*\.tmp/, "daily status writer must stage output next to the canonical status file");
 assert.match(writeStatusBlock, /mv \"\$status_tmp\" \"\$status_path\"/, "daily status writer must publish through an atomic rename");
 assert.equal(
   writeStatusBlock.includes('cat > "$DIR/reports/pipeline_status_latest.json"'),
