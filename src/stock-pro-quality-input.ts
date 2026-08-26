@@ -21,13 +21,12 @@ export type StockProQualityGate = {
   proQuestion: string;
 };
 
-function normalizeGates(raw: unknown): { gates: StockProQualityGate[]; warnings: string[] } {
+function normalizeGates(raw: unknown): { gates: StockProQualityGate[]; warnings: string[]; valid: boolean } {
   if (!isRecord(raw)) {
-    return { gates: [], warnings: ["stock-pro-quality-gate.yml root shape is invalid"] };
+    return { gates: [], warnings: ["stock-pro-quality-gate.yml root shape is invalid"], valid: false };
   }
-  if (raw.qualityGates === undefined) return { gates: [], warnings: [] };
   if (!Array.isArray(raw.qualityGates)) {
-    return { gates: [], warnings: ["stock-pro-quality-gate.yml qualityGates shape is invalid"] };
+    return { gates: [], warnings: ["stock-pro-quality-gate.yml qualityGates shape is invalid"], valid: false };
   }
 
   const gates: StockProQualityGate[] = [];
@@ -54,7 +53,7 @@ function normalizeGates(raw: unknown): { gates: StockProQualityGate[]; warnings:
     seenIds.add(id);
     gates.push({ id, label, failAction, proQuestion, severity: severity as StockProQualityGate["severity"] });
   });
-  return { gates, warnings };
+  return { gates, warnings, valid: warnings.length === 0 && gates.length > 0 };
 }
 
 export function normalizeStockProQualityInputs(
@@ -82,6 +81,7 @@ export function normalizeStockProQualityInputs(
     networkCompanies: network.companies,
     irCompanies: irEvents.companies,
     gates: gateState.gates,
+    gateConfigValid: gateState.valid,
     warnings,
   };
 }
