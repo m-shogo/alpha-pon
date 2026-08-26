@@ -146,7 +146,12 @@ function assertBacktestInputs(
   prices: ReadonlyMap<string, PriceSeries>,
   benchmark?: PriceSeries,
 ): void {
+  const signalIds = new Set<string>();
   for (const signal of signals) {
+    if (signalIds.has(signal.id)) {
+      throw new Error(`backtest signal id ${signal.id} must be unique`);
+    }
+    signalIds.add(signal.id);
     parseExplicitIso8601Instant(signal.observedAt, `backtest signal ${signal.id}.observedAt`);
     if (signal.resolutionDate && !isValidDate(signal.resolutionDate)) {
       throw new Error(`backtest signal ${signal.id}.resolutionDate must be a real YYYY-MM-DD date`);
