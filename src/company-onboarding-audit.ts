@@ -2,13 +2,16 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
-import { hasCanonicalStringItems } from "./company-onboarding-input.js";
+import {
+  hasCanonicalStringItems,
+  normalizeCompanyOnboardingPolicyChecks,
+} from "./company-onboarding-input.js";
 import { hasConfirmedProIrSource, normalizeProIrEventInput } from "./pro-ir-event-input.js";
 
 type Company = { code: string; name: string; status?: string; evidenceToCheck?: string[]; relatedCompanies?: string[] };
 type Hypotheses = { categories?: Record<string, { label: string; companies?: Company[] }> };
 type Network = { companies?: Record<string, unknown> };
-type Policy = { mandatoryChecks?: Array<{ id: string; label: string; why: string }> };
+type Policy = { mandatoryChecks?: unknown };
 
 function readYaml<T>(path: string, fallback: T): T {
   if (!existsSync(path)) return fallback;
@@ -21,6 +24,7 @@ function main() {
   const network = readYaml<Network>("config/company-network.yml", {});
   const irEvents = normalizeProIrEventInput(readYaml<unknown>("config/company-ir-events.yml", {}));
   const policy = readYaml<Policy>("config/company-onboarding-policy.yml", {});
+  const mandatoryChecks = normalizeCompanyOnboardingPolicyChecks(policy.mandatoryChecks);
 
   const rows: Array<{ code: string; name: string; category: string; coverage: string; missing: string[]; advice: string }> = [];
 
@@ -64,10 +68,11 @@ function main() {
   if (irEvents.invalidRoot || irEvents.invalidCompanyCount > 0 || irEvents.invalidEventCount > 0) {
     lines.push(`IR input warnings: root=${irEvents.invalidRoot ? 1 : 0}, companies=${irEvents.invalidCompanyCount}, events=${irEvents.invalidEventCount}`);
   }
+  for (const warning of mandatoryChecks.warnings) lines.push(`policy input warning: ${warning}`);
   lines.push("");
   lines.push("## mandatory thinking checks");
   lines.push("");
-  for (const check of policy.mandatoryChecks ?? []) lines.push(`- ${check.id}: ${check.label} / ${check.why}`);
+  for (const check of mandatoryChecks.checks) lines.push(`- ${check.id}: ${check.label} / ${check.why}`);
   lines.push("");
   lines.push("## company coverage");
   lines.push("");

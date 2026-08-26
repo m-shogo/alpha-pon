@@ -5,7 +5,10 @@ import {
   normalizeCompanyHypothesesRoot,
 } from "../src/company-coverage-input.js";
 import { normalizeCompanyHypothesisReportRows } from "../src/company-hypothesis-report-input.js";
-import { hasCanonicalStringItems } from "../src/company-onboarding-input.js";
+import {
+  hasCanonicalStringItems,
+  normalizeCompanyOnboardingPolicyChecks,
+} from "../src/company-onboarding-input.js";
 import { normalizeProIrEventInput } from "../src/pro-ir-event-input.js";
 import {
   normalizeActiveRegimeCategoryIds,
@@ -17,6 +20,28 @@ assert.equal(hasCanonicalStringItems("IR earnings valuation", 3), false, "string
 assert.equal(hasCanonicalStringItems(["peer-a", "peer-b"], 2), true);
 assert.equal(hasCanonicalStringItems("peer-a", 2), false, "string length must not satisfy peer list coverage");
 assert.equal(hasCanonicalStringItems(["peer-a", " peer-b "], 2), false, "noncanonical list values fail closed");
+
+const validOnboardingPolicy = normalizeCompanyOnboardingPolicyChecks([
+  { id: "primary_ir", label: "Primary IR", why: "Confirm company evidence" },
+]);
+assert.deepEqual(validOnboardingPolicy.checks, [
+  { id: "primary_ir", label: "Primary IR", why: "Confirm company evidence" },
+], "canonical onboarding policy checks remain usable");
+assert.deepEqual(validOnboardingPolicy.warnings, []);
+assert.deepEqual(
+  normalizeCompanyOnboardingPolicyChecks({ primary_ir: true }),
+  { checks: [], warnings: ["company-onboarding-policy.yml mandatoryChecks shape is invalid"] },
+  "non-array mandatoryChecks must not reach onboarding report iteration",
+);
+const malformedOnboardingPolicy = normalizeCompanyOnboardingPolicyChecks([
+  { id: "primary_ir", label: "Primary IR", why: "Confirm company evidence" },
+  { id: " primary_ir ", label: "duplicate", why: "duplicate" },
+  null,
+]);
+assert.deepEqual(malformedOnboardingPolicy.checks, [
+  { id: "primary_ir", label: "Primary IR", why: "Confirm company evidence" },
+], "malformed onboarding checks are isolated without dropping canonical rows");
+assert.equal(malformedOnboardingPolicy.warnings.length, 2, "malformed onboarding policy rows remain visible as warnings");
 
 const malformedOnboardingIr = normalizeProIrEventInput({
   companies: {
