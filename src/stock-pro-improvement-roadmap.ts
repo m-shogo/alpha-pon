@@ -1,10 +1,12 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
 import { normalizeCurrentDatedReportText } from "./current-dated-report.js";
+import { readReadOnlyTextFile } from "./read-only-text-file.js";
 
 function readCurrentText(path: string, date: string): string {
-  return existsSync(path) ? normalizeCurrentDatedReportText(readFileSync(path, "utf-8"), date) : "";
+  const text = readReadOnlyTextFile(path);
+  return text ? normalizeCurrentDatedReportText(text, date) : "";
 }
 
 function count(text: string, pattern: RegExp): number {
