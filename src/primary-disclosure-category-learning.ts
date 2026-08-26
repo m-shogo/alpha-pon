@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from "fs";
 import { join, resolve } from "path";
 import { todayJst } from "./date.js";
 import { loadAnalogyOutcomeRecords, type AnalogyOutcomeRecord } from "./analysis/analogy-db.js";
@@ -6,6 +6,7 @@ import {
   normalizePrimaryDisclosureLearningScoreInput,
   type PrimaryDisclosureLearningScore as ScoreLogEntry,
 } from "./primary-disclosure-learning-input.js";
+import { readReadOnlyJsonArrayFile } from "./read-only-json-file.js";
 
 type Stats = {
   count: number;
@@ -35,16 +36,18 @@ function loadScoreLogs(): { rows: ScoreLogEntry[]; warnings: string[] } {
   const rows: ScoreLogEntry[] = [];
   const warnings: string[] = [];
   for (const file of readdirSync("reports").filter(file => /^scores_\d{4}-\d{2}-\d{2}\.json$/.test(file)).sort()) {
-    try {
-      const normalized = normalizePrimaryDisclosureLearningScoreInput(
-        JSON.parse(readFileSync(join("reports", file), "utf-8")),
-        file,
-      );
-      rows.push(...normalized.rows);
-      warnings.push(...normalized.warnings);
-    } catch {
-      warnings.push(`${file}: invalid_json`);
+    const input = readReadOnlyJsonArrayFile<ScoreLogEntry>(join("reports", file));
+    if (input.parseError) {
+      warnings.push(`${file}: invalid_json_or_file_boundary`);
+      continue;
     }
+    if (input.invalidRoot) {
+      warnings.push(`${file}: invalid_root`);
+      continue;
+    }
+    const normalized = normalizePrimaryDisclosureLearningScoreInput(input.rows, file);
+    rows.push(...normalized.rows);
+    warnings.push(...normalized.warnings);
   }
   return { rows, warnings };
 }
