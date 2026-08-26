@@ -149,7 +149,7 @@ testJstConversion();
 testNowJstIsoPreservesMilliseconds();
 testSameCloseEntryWindow();
 testFutureTimestampRejected();
-testFutureTimestampUsesActualInstant();
+testFutureTimestampUsesInstantOrdering();
 testSubMillisecondFutureTimestampRejected();
 testImplicitAndImpossibleInstantsRejected();
 testObservedBeforeEventRejected();
