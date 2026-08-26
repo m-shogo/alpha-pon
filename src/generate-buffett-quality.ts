@@ -1,5 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { load } from "js-yaml";
+import { normalizeCompanyHypothesesRoot } from "./company-coverage-input.js";
+import { normalizeCompanyHypothesisReportRows } from "./company-hypothesis-report-input.js";
 import { todayJst } from "./date.js";
 import { readLatestProScores } from "./pro-latest-score-input.js";
 import type { BuffettQualitySnapshot } from "./pro-types.js";
@@ -13,7 +15,6 @@ type Company = {
   noMoveHypothesis?: string;
   downsideHypothesis?: string;
 };
-type Hypotheses = { categories?: Record<string, { companies?: Company[] }> };
 type LatestScore = { code: string; name: string; reasons?: string[]; negativeReasons?: string[]; warnings?: string[]; dataQuality?: string };
 
 function readYaml<T>(path: string, fallback: T): T {
@@ -65,11 +66,16 @@ function classifyQuality(company: Company, score?: LatestScore): BuffettQualityS
 }
 
 function main() {
-  const hypotheses = readYaml<Hypotheses>("config/company-hypotheses.yml", {});
+  const hypothesesRaw = readYaml<unknown>("config/company-hypotheses.yml", {});
+  const hypotheses = normalizeCompanyHypothesisReportRows(
+    normalizeCompanyHypothesesRoot(hypothesesRaw),
+    todayJst(),
+  );
+  hypotheses.warnings.forEach(warning => console.warn(warning));
   const scoreLoad = readLatestProScores<LatestScore>("reports", todayJst());
   scoreLoad.warnings.forEach(warning => console.warn(warning));
   const scores = new Map(scoreLoad.rows.map(score => [score.code, score]));
-  const companies = Object.values(hypotheses.categories ?? {}).flatMap(category => category.companies ?? []);
+  const companies = Object.values(hypotheses.categories).flatMap(category => category.companies);
   const snapshots = companies.map(company => classifyQuality(company, scores.get(company.code)));
   mkdirSync("data", { recursive: true });
   writeFileSync("data/buffett_quality_latest.json", JSON.stringify({ generatedAt: todayJst(), snapshots }, null, 2), "utf-8");
