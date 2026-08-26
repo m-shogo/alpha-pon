@@ -125,9 +125,12 @@ try {
   const malformedNumericOutcome = { ...validOutcome, returnPct: "10" };
   const paddedOutcomeEventId = { ...validOutcome, eventId: ` ${valid.eventId} ` };
   const paddedOutcomeCandidateCode = { ...validOutcome, candidateCode: ` ${valid.candidateCode} ` };
+  const emptyLessonId = { ...validOutcome, lessonId: "" };
+  const blankLessonTitle = { ...validOutcome, lessonTitle: "   " };
+  const blankActualOutcome = { ...validOutcome, actualOutcome: "   " };
   writeFileSync(
     outcomePath,
-    [validOutcome, duplicateOutcome, uniqueOutcome, unsafeSuppressor, impossibleDate, reversedChronology, futureOutcome, malformedNumericOutcome, paddedOutcomeEventId, paddedOutcomeCandidateCode]
+    [validOutcome, duplicateOutcome, uniqueOutcome, unsafeSuppressor, impossibleDate, reversedChronology, futureOutcome, malformedNumericOutcome, paddedOutcomeEventId, paddedOutcomeCandidateCode, emptyLessonId, blankLessonTitle, blankActualOutcome]
       .map(row => JSON.stringify(row))
       .join("\n") + "\n{broken-outcome\n",
     "utf-8",
@@ -142,9 +145,9 @@ try {
   );
   assert.equal(outcomeResult.warnings.length, 3);
   assert.match(outcomeResult.warnings[0] ?? "", /parse_error 1/);
-  assert.match(outcomeResult.warnings[0] ?? "", /lines 11/);
+  assert.match(outcomeResult.warnings[0] ?? "", /lines 14/);
   assert.doesNotMatch(outcomeResult.warnings[0] ?? "", /broken-outcome/);
-  assert.match(outcomeResult.warnings[1] ?? "", /invalid_shape 7/);
+  assert.match(outcomeResult.warnings[1] ?? "", /invalid_shape 10/);
   assert.match(outcomeResult.warnings[2] ?? "", /duplicate_identity 1/);
   assert.throws(() => loadAnalogyOutcomesForReview(outcomePath, "2026-02-31"), /real YYYY-MM-DD/);
 
