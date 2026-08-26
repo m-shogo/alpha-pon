@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { linkSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { readListingCsvRows } from "../src/listing-csv-input.js";
@@ -10,6 +10,9 @@ const headerOnlyPath = join(dir, "header-only.csv");
 const rowsPath = join(dir, "rows.csv");
 const quotedPath = join(dir, "quoted.csv");
 const malformedPath = join(dir, "malformed.csv");
+const linkedTargetPath = join(dir, "linked-target.csv");
+const symlinkPath = join(dir, "symlink.csv");
+const hardlinkPath = join(dir, "hardlink.csv");
 
 try {
   writeFileSync(emptyPath, "\n\n");
@@ -17,6 +20,9 @@ try {
   writeFileSync(rowsPath, "code,reviewPrice\n1234,1500\n5678,\n");
   writeFileSync(quotedPath, 'code,note,source\n1234,"value, with comma","official ""primary"""\n');
   writeFileSync(malformedPath, 'code,note\n1234,"unterminated\n');
+  writeFileSync(linkedTargetPath, "code,reviewPrice\n9999,999\n");
+  symlinkSync(linkedTargetPath, symlinkPath);
+  linkSync(linkedTargetPath, hardlinkPath);
 
   assert.deepEqual(readListingCsvRows(emptyPath), [], "empty existing CSV files must not crash the read-only listing pipeline");
   assert.deepEqual(readListingCsvRows(headerOnlyPath), [], "header-only CSV files must be treated as zero rows");
@@ -32,6 +38,8 @@ try {
     /unterminated quoted field/,
     "malformed quoted CSV must fail closed instead of shifting provenance columns",
   );
+  assert.deepEqual(readListingCsvRows(symlinkPath), [], "symlinked CSV must not be accepted as canonical listing evidence");
+  assert.deepEqual(readListingCsvRows(hardlinkPath), [], "hard-linked CSV must not be accepted as canonical listing evidence");
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
