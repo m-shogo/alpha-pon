@@ -32,6 +32,16 @@ function isObject(v: unknown): v is Record<string, unknown> {
   for (const invalid of ["5", Number.NaN, Number.POSITIVE_INFINITY, 0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
     assert.equal(resolveSpecialSituationMinSampleSize(invalid), 5, `${String(invalid)} must fall back to minSampleSize=5`);
   }
+
+  const watchSource = readFileSync("src/special-situation-watch-report.ts", "utf-8");
+  assert(
+    watchSource.includes('import { resolveSpecialSituationMinSampleSize } from "./special-situation-ops-config.js";'),
+    "special situation watch must reuse the canonical min sample size resolver",
+  );
+  assert(
+    watchSource.includes("const minSampleSize = resolveSpecialSituationMinSampleSize(config.outcomeStats?.minSampleSize);"),
+    "special situation watch must validate minSampleSize before sampleTooSmall/notificationEligible",
+  );
 }
 
 // 1) reports/special_situation_ops_summary_latest.json が生成されている
