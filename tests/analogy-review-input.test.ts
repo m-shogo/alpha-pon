@@ -74,10 +74,12 @@ try {
   const emptyPredictionLessonId = { ...valid, lessonId: "" };
   const blankPredictionLessonTitle = { ...valid, lessonTitle: "   " };
   const blankPredictionThesis = { ...valid, thesis: "   " };
+  const blankPredictionEvidence = { ...valid, evidenceNeeded: ["   "] };
+  const paddedPredictionCondition = { ...valid, conditions: [" market stable "] };
 
   writeFileSync(
     join(dir, "2026-08-01.jsonl"),
-    [valid, {}, impossibleCreatedAt, impossibleReviewDueAt, mismatchedReviewDueAt, paddedEventId, paddedCandidateCode, emptyPredictionLessonId, blankPredictionLessonTitle, blankPredictionThesis]
+    [valid, {}, impossibleCreatedAt, impossibleReviewDueAt, mismatchedReviewDueAt, paddedEventId, paddedCandidateCode, emptyPredictionLessonId, blankPredictionLessonTitle, blankPredictionThesis, blankPredictionEvidence, paddedPredictionCondition]
       .map(row => JSON.stringify(row))
       .join("\n") + "\n{broken-json\n",
     "utf-8",
@@ -88,9 +90,9 @@ try {
   assert.equal(result.rows[0]?.eventId, valid.eventId);
   assert.equal(result.warnings.length, 2);
   assert.match(result.warnings[0] ?? "", /parse_error 1/);
-  assert.match(result.warnings[0] ?? "", /lines 11/);
+  assert.match(result.warnings[0] ?? "", /lines 13/);
   assert.doesNotMatch(result.warnings[0] ?? "", /broken-json/);
-  assert.match(result.warnings[1] ?? "", /invalid_shape 9/);
+  assert.match(result.warnings[1] ?? "", /invalid_shape 11/);
 
   const outcomePath = join(dir, "outcomes.jsonl");
   const validOutcome = {
@@ -131,9 +133,11 @@ try {
   const emptyLessonId = { ...validOutcome, lessonId: "" };
   const blankLessonTitle = { ...validOutcome, lessonTitle: "   " };
   const blankActualOutcome = { ...validOutcome, actualOutcome: "   " };
+  const blankMissedSignal = { ...validOutcome, missedSignals: ["   "] };
+  const paddedImprovedRule = { ...validOutcome, improvedRuleIdeas: [" add a guard "] };
   writeFileSync(
     outcomePath,
-    [validOutcome, duplicateOutcome, uniqueOutcome, unsafeSuppressor, impossibleDate, reversedChronology, futureOutcome, malformedNumericOutcome, paddedOutcomeEventId, paddedOutcomeCandidateCode, emptyLessonId, blankLessonTitle, blankActualOutcome]
+    [validOutcome, duplicateOutcome, uniqueOutcome, unsafeSuppressor, impossibleDate, reversedChronology, futureOutcome, malformedNumericOutcome, paddedOutcomeEventId, paddedOutcomeCandidateCode, emptyLessonId, blankLessonTitle, blankActualOutcome, blankMissedSignal, paddedImprovedRule]
       .map(row => JSON.stringify(row))
       .join("\n") + "\n{broken-outcome\n",
     "utf-8",
@@ -148,9 +152,9 @@ try {
   );
   assert.equal(outcomeResult.warnings.length, 3);
   assert.match(outcomeResult.warnings[0] ?? "", /parse_error 1/);
-  assert.match(outcomeResult.warnings[0] ?? "", /lines 14/);
+  assert.match(outcomeResult.warnings[0] ?? "", /lines 16/);
   assert.doesNotMatch(outcomeResult.warnings[0] ?? "", /broken-outcome/);
-  assert.match(outcomeResult.warnings[1] ?? "", /invalid_shape 10/);
+  assert.match(outcomeResult.warnings[1] ?? "", /invalid_shape 12/);
   assert.match(outcomeResult.warnings[2] ?? "", /duplicate_identity 1/);
   assert.throws(() => loadAnalogyOutcomesForReview(outcomePath, "2026-02-31"), /real YYYY-MM-DD/);
 
