@@ -140,8 +140,11 @@ export function falseDiscoveryGuard(tStat: number | null, trials: number): {
   requiredTStat: number;
   reason: string;
 } {
+  if (!Number.isSafeInteger(trials) || trials < 1) {
+    throw new Error("falseDiscoveryGuard trials must be a positive safe integer");
+  }
   // 試行回数 n に対して概ね必要な |t|（正規近似の Bonferroni 相当）
-  const requiredTStat = 1.96 + Math.log(Math.max(1, trials)) * 0.6;
+  const requiredTStat = 1.96 + Math.log(trials) * 0.6;
   if (tStat === null) {
     return { passed: false, requiredTStat, reason: "サンプル不足で t 統計量が計算できません" };
   }
