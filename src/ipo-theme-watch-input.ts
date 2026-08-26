@@ -1,5 +1,5 @@
-import { existsSync, readFileSync } from "fs";
 import { addDaysJst, todayJst } from "./date.js";
+import { readReadOnlyJsonArrayFile } from "./read-only-json-file.js";
 import { formatReadOnlyJsonlParseWarning, readJsonlWithErrors } from "./read-only-jsonl.js";
 import type { HypothesisOutcome } from "./universe.js";
 
@@ -110,22 +110,14 @@ export function readIpoThemeWorldEventInput(path: string): {
   rows: IpoThemeWorldEventInput[];
   warning: string | null;
 } {
-  if (!existsSync(path)) return { rows: [], warning: null };
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(readFileSync(path, "utf-8")) as unknown;
-  } catch {
-    return { rows: [], warning: `${path}: parse_error` };
-  }
-
-  if (!Array.isArray(parsed)) {
-    return { rows: [], warning: `${path}: invalid_root expected_array` };
-  }
+  const input = readReadOnlyJsonArrayFile<unknown>(path);
+  if (input.missing) return { rows: [], warning: null };
+  if (input.parseError) return { rows: [], warning: `${path}: parse_error` };
+  if (input.invalidRoot) return { rows: [], warning: `${path}: invalid_root expected_array` };
 
   const rows: IpoThemeWorldEventInput[] = [];
   const invalidRows: number[] = [];
-  parsed.forEach((row, index) => {
+  input.rows.forEach((row, index) => {
     if (isWorldEventInput(row)) rows.push(row);
     else invalidRows.push(index + 1);
   });
