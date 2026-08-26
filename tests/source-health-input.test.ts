@@ -127,21 +127,60 @@ for (const malformed of [
     );
 
     writeFileSync(scorePath, JSON.stringify(validScoreRows));
-    writeFileSync(join(dir, "scores_2026-08-16.json"), JSON.stringify({ code: "8136" }));
+    const secondScorePath = join(dir, "scores_2026-08-16.json");
+    writeFileSync(secondScorePath, JSON.stringify({ code: "8136" }));
     assert.throws(
       () => assertCompanyMemoryScoreInputs(dir),
       /scores_2026-08-16\.json: score root must be an array/,
       "object score roots must fail closed before company-memory output writes",
     );
 
-    writeFileSync(join(dir, "scores_2026-08-16.json"), "{ broken");
+    writeFileSync(secondScorePath, "{ broken");
     assert.throws(
       () => assertCompanyMemoryScoreInputs(dir),
       /scores_2026-08-16\.json: invalid score JSON/,
       "malformed score JSON must fail closed before company-memory output writes",
     );
+    rmSync(secondScorePath);
+
+    const symlinkTarget = join(dir, "score-symlink-target.txt");
+    writeFileSync(symlinkTarget, JSON.stringify(validScoreRows));
+    rmSync(scorePath);
+    symlinkSync(symlinkTarget, scorePath);
+    assert.throws(
+      () => assertCompanyMemoryScoreInputs(dir),
+      /scores_2026-08-15\.json: score input must be a standalone regular file/,
+      "symlink aliases must not be accepted as canonical score evidence for company-memory generation",
+    );
+
+    rmSync(scorePath);
+    const hardLinkTarget = join(dir, "score-hard-link-target.txt");
+    writeFileSync(hardLinkTarget, JSON.stringify(validScoreRows));
+    linkSync(hardLinkTarget, scorePath);
+    assert.throws(
+      () => assertCompanyMemoryScoreInputs(dir),
+      /scores_2026-08-15\.json: score input must be a standalone regular file/,
+      "hard-link aliases must not be accepted as canonical score evidence for company-memory generation",
+    );
   } finally {
     rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+{
+  const parent = mkdtempSync(join(tmpdir(), "company-memory-score-root-"));
+  try {
+    const targetDir = join(parent, "target");
+    const linkedDir = join(parent, "linked");
+    mkdirSync(targetDir);
+    symlinkSync(targetDir, linkedDir, "dir");
+    assert.throws(
+      () => assertCompanyMemoryScoreInputs(linkedDir),
+      /company-memory score root must be a real directory/,
+      "symlinked score roots must not redirect company-memory score provenance",
+    );
+  } finally {
+    rmSync(parent, { recursive: true, force: true });
   }
 }
 
