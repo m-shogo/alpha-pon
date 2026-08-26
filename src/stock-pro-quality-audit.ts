@@ -2,51 +2,40 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
+import type { CompanyHypothesisReportCompany } from "./company-hypothesis-report-input.js";
+import type { CompanyNetworkReportCompany } from "./company-coverage-input.js";
 import { hasConfirmedProIrSource } from "./pro-ir-event-input.js";
-
-type Company = {
-  code: string;
-  name: string;
-  evidenceToCheck?: string[];
-  nonMoveReasonCandidates?: string[];
-  downsideHypothesis?: string;
-  noMoveHypothesis?: string;
-  relatedCompanies?: string[];
-};
-type Hypotheses = { categories?: Record<string, { label: string; companies?: Company[] }> };
-type Network = { companies?: Record<string, { betterPeerRisk?: string[]; peers?: unknown[] }> };
-type IrEventEntry = { type: string; date?: string | null; eventDate?: string | null; sourceUrl?: string | null; sourceStatus?: string | null };
-type IrEvents = { companies?: Record<string, { events?: IrEventEntry[] }> };
-type Gate = { id: string; label: string; severity: "critical" | "high" | "medium"; failAction: string; proQuestion: string };
-type GateConfig = { qualityGates?: Gate[] };
+import type { NormalizedProIrCompany } from "./pro-ir-event-input.js";
+import { normalizeStockProQualityInputs } from "./stock-pro-quality-input.js";
 
 function readYaml<T>(path: string, fallback: T): T {
   if (!existsSync(path)) return fallback;
   return load(readFileSync(path, "utf-8")) as T;
 }
 
-function hasConfirmedIr(events: IrEventEntry[] = []): boolean {
-  return events.some(event => hasConfirmedProIrSource(event));
-}
-
-function gatePass(gateId: string, company: Company, network: Network, irEvents: IrEvents): boolean {
-  const events = irEvents.companies?.[company.code]?.events ?? [];
-  const net = network.companies?.[company.code];
+function gatePass(
+  gateId: string,
+  company: CompanyHypothesisReportCompany,
+  networkCompanies: Record<string, CompanyNetworkReportCompany>,
+  irCompanies: Record<string, NormalizedProIrCompany>,
+): boolean {
+  const events = irCompanies[company.code]?.events ?? [];
+  const net = networkCompanies[company.code];
   switch (gateId) {
     case "official_ir_events":
-      return events.length > 0 && hasConfirmedIr(events);
+      return events.length > 0 && events.some(event => hasConfirmedProIrSource(event));
     case "primary_source":
-      return (company.evidenceToCheck ?? []).some(item => item.includes("決算") || item.includes("IR") || item.includes("招集") || item.includes("説明資料"));
+      return company.evidenceToCheck.some(item => item.includes("決算") || item.includes("IR") || item.includes("招集") || item.includes("説明資料"));
     case "financial_quality":
-      return (company.evidenceToCheck ?? []).some(item => item.includes("利益") || item.includes("ROIC") || item.includes("FCF") || item.includes("営業利益率"));
+      return company.evidenceToCheck.some(item => item.includes("利益") || item.includes("ROIC") || item.includes("FCF") || item.includes("営業利益率"));
     case "valuation_context":
-      return (company.evidenceToCheck ?? []).some(item => item.includes("PER") || item.includes("PBR") || item.includes("バリュエーション"));
+      return company.evidenceToCheck.some(item => item.includes("PER") || item.includes("PBR") || item.includes("バリュエーション"));
     case "company_network":
-      return Boolean(net) && ((net?.peers ?? []).length > 0 || (company.relatedCompanies ?? []).length > 0);
+      return Boolean(net) && (net.peers.length > 0 || company.relatedCompanies.length > 0);
     case "regime_alignment":
       return true;
     case "non_move_reason":
-      return Boolean(company.noMoveHypothesis) && (company.nonMoveReasonCandidates ?? []).length > 0;
+      return Boolean(company.noMoveHypothesis) && company.nonMoveReasonCandidates.length > 0;
     case "downside_case":
       return Boolean(company.downsideHypothesis);
     default:
@@ -56,11 +45,13 @@ function gatePass(gateId: string, company: Company, network: Network, irEvents: 
 
 function main() {
   const date = todayJst();
-  const hypotheses = readYaml<Hypotheses>("config/company-hypotheses.yml", {});
-  const network = readYaml<Network>("config/company-network.yml", {});
-  const irEvents = readYaml<IrEvents>("config/company-ir-events.yml", {});
-  const gateConfig = readYaml<GateConfig>("config/stock-pro-quality-gate.yml", {});
-  const gates = gateConfig.qualityGates ?? [];
+  const input = normalizeStockProQualityInputs(
+    readYaml<unknown>("config/company-hypotheses.yml", {}),
+    readYaml<unknown>("config/company-network.yml", {}),
+    readYaml<unknown>("config/company-ir-events.yml", {}),
+    readYaml<unknown>("config/stock-pro-quality-gate.yml", {}),
+    date,
+  );
 
   const lines: string[] = [];
   lines.push("# alpha-pon stock pro quality audit");
@@ -69,13 +60,20 @@ function main() {
   lines.push("");
   lines.push("株Proに見せても恥ずかしくない最低限の確認ができているかを監査します。買い推奨ではありません。");
   lines.push("");
+  lines.push("## input health");
+  lines.push("");
+  lines.push(`- health status: ${input.warnings.length > 0 ? "action_required" : "ok"}`);
+  lines.push(`- input warnings: ${input.warnings.length}`);
+  if (input.warnings.length === 0) lines.push("- warning: none");
+  for (const warning of input.warnings) lines.push(`- warning: ${warning}`);
+  lines.push("");
   lines.push("| label | code | name | category | failedCritical | failedHigh | failedMedium | finalQuality |");
   lines.push("|---|---|---|---|---:|---:|---:|---|");
 
   const details: string[] = [];
-  for (const [categoryId, category] of Object.entries(hypotheses.categories ?? {})) {
-    for (const company of category.companies ?? []) {
-      const failed = gates.filter(gate => !gatePass(gate.id, company, network, irEvents));
+  for (const [categoryId, category] of Object.entries(input.categories)) {
+    for (const company of category.companies) {
+      const failed = input.gates.filter(gate => !gatePass(gate.id, company, input.networkCompanies, input.irCompanies));
       const failedCritical = failed.filter(gate => gate.severity === "critical");
       const failedHigh = failed.filter(gate => gate.severity === "high");
       const failedMedium = failed.filter(gate => gate.severity === "medium");
