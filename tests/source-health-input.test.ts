@@ -244,4 +244,21 @@ for (const malformed of [
   }
 }
 
+{
+  const parent = mkdtempSync(join(tmpdir(), "company-memory-root-input-"));
+  try {
+    const targetDir = join(parent, "target");
+    const linkedDir = join(parent, "linked");
+    mkdirSync(targetDir);
+    symlinkSync(targetDir, linkedDir, "dir");
+    assert.throws(
+      () => assertExistingCompanyMemoryInputs(linkedDir),
+      /company-memory input root must be a real directory/,
+      "symlinked company-memory roots must not redirect canonical existing-memory provenance",
+    );
+  } finally {
+    rmSync(parent, { recursive: true, force: true });
+  }
+}
+
 console.log("source-health-input.test.ts passed");
