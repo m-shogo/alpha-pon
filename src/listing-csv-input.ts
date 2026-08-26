@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "fs";
+import { readReadOnlyTextFile } from "./read-only-text-file.js";
 
 function parseCsvLine(line: string): string[] {
   const values: string[] = [];
@@ -30,8 +30,9 @@ function parseCsvLine(line: string): string[] {
 }
 
 export function readListingCsvRows(path: string): Record<string, string>[] {
-  if (!existsSync(path)) return [];
-  const lines = readFileSync(path, "utf-8")
+  const text = readReadOnlyTextFile(path);
+  if (!text) return [];
+  const lines = text
     .split("\n")
     .map(line => line.trim())
     .filter(Boolean);
