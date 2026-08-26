@@ -237,4 +237,16 @@ assert.equal(
   "a contending daily process must not overwrite the active run's canonical pipeline status",
 );
 
+const writeStatusStart = dailyScript.indexOf("write_status() {");
+const writeStatusEnd = dailyScript.indexOf("\nappend_step_status()", writeStatusStart);
+assert(writeStatusStart >= 0 && writeStatusEnd > writeStatusStart, "daily status writer must remain discoverable");
+const writeStatusBlock = dailyScript.slice(writeStatusStart, writeStatusEnd);
+assert.match(writeStatusBlock, /status_tmp=.*pipeline_status_latest\.json/, "daily status writer must stage output in a temporary file");
+assert.match(writeStatusBlock, /mv \"\$status_tmp\" \"\$status_path\"/, "daily status writer must publish through an atomic rename");
+assert.equal(
+  writeStatusBlock.includes('cat > "$DIR/reports/pipeline_status_latest.json"'),
+  false,
+  "daily status writer must not truncate the canonical status file before a complete replacement is ready",
+);
+
 console.log("pipeline-health-input.test.ts passed");
