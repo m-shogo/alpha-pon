@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { addDaysJst, todayJst } from "./date.js";
 import { normalizeSourceHealthScoreRows } from "./source-health-input.js";
@@ -12,6 +12,30 @@ function isRealJstDate(value: string): boolean {
     return addDaysJst(value, 0) === value;
   } catch {
     return false;
+  }
+}
+
+function assertScoreDirectory(reportsDir: string): void {
+  let stat;
+  try {
+    stat = lstatSync(reportsDir);
+  } catch {
+    throw new Error(`${reportsDir}: company-memory score root must be a readable directory`);
+  }
+  if (!stat.isDirectory()) {
+    throw new Error(`${reportsDir}: company-memory score root must be a real directory`);
+  }
+}
+
+function assertStandaloneScoreFile(path: string, file: string): void {
+  let stat;
+  try {
+    stat = lstatSync(path);
+  } catch {
+    throw new Error(`${file}: score input must be a readable standalone regular file`);
+  }
+  if (!stat.isFile() || stat.nlink !== 1) {
+    throw new Error(`${file}: score input must be a standalone regular file`);
   }
 }
 
@@ -51,6 +75,7 @@ export function assertCompanyMemoryScoreInputs(reportsDir = "reports", asOf = to
     throw new Error("company-memory score asOf must be a real Gregorian JST date");
   }
   if (!existsSync(reportsDir)) return;
+  assertScoreDirectory(reportsDir);
 
   for (const file of readdirSync(reportsDir).filter((name) => /^scores_\d{4}-\d{2}-\d{2}\.json$/.test(name)).sort()) {
     const match = /^scores_(\d{4}-\d{2}-\d{2})\.json$/.exec(file);
@@ -63,6 +88,7 @@ export function assertCompanyMemoryScoreInputs(reportsDir = "reports", asOf = to
     }
 
     const path = join(reportsDir, file);
+    assertStandaloneScoreFile(path, file);
     let parsed: unknown;
     try {
       parsed = JSON.parse(readFileSync(path, "utf-8")) as unknown;
