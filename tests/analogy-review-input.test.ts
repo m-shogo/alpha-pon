@@ -71,10 +71,13 @@ try {
   const mismatchedReviewDueAt = { ...valid, reviewDueAt: "2026-08-03" };
   const paddedEventId = { ...valid, eventId: ` ${valid.eventId} ` };
   const paddedCandidateCode = { ...valid, candidateCode: ` ${valid.candidateCode} ` };
+  const emptyPredictionLessonId = { ...valid, lessonId: "" };
+  const blankPredictionLessonTitle = { ...valid, lessonTitle: "   " };
+  const blankPredictionThesis = { ...valid, thesis: "   " };
 
   writeFileSync(
     join(dir, "2026-08-01.jsonl"),
-    [valid, {}, impossibleCreatedAt, impossibleReviewDueAt, mismatchedReviewDueAt, paddedEventId, paddedCandidateCode]
+    [valid, {}, impossibleCreatedAt, impossibleReviewDueAt, mismatchedReviewDueAt, paddedEventId, paddedCandidateCode, emptyPredictionLessonId, blankPredictionLessonTitle, blankPredictionThesis]
       .map(row => JSON.stringify(row))
       .join("\n") + "\n{broken-json\n",
     "utf-8",
@@ -85,9 +88,9 @@ try {
   assert.equal(result.rows[0]?.eventId, valid.eventId);
   assert.equal(result.warnings.length, 2);
   assert.match(result.warnings[0] ?? "", /parse_error 1/);
-  assert.match(result.warnings[0] ?? "", /lines 8/);
+  assert.match(result.warnings[0] ?? "", /lines 11/);
   assert.doesNotMatch(result.warnings[0] ?? "", /broken-json/);
-  assert.match(result.warnings[1] ?? "", /invalid_shape 6/);
+  assert.match(result.warnings[1] ?? "", /invalid_shape 9/);
 
   const outcomePath = join(dir, "outcomes.jsonl");
   const validOutcome = {

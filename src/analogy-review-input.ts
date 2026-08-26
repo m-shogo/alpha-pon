@@ -55,9 +55,9 @@ function isUsableAnalogyPredictionRecord(value: unknown): value is AnalogyPredic
     isCanonicalIdentity(row.eventId) &&
     isOptionalCanonicalIdentity(row.candidateCode) &&
     (row.candidateName === undefined || typeof row.candidateName === "string") &&
-    typeof row.lessonId === "string" &&
-    typeof row.lessonTitle === "string" &&
-    typeof row.thesis === "string" &&
+    isCanonicalIdentity(row.lessonId) &&
+    isNonBlankString(row.lessonTitle) &&
+    isNonBlankString(row.thesis) &&
     (row.expectedDirection === "up" || row.expectedDirection === "down" || row.expectedDirection === "mixed" || row.expectedDirection === "risk_off" || row.expectedDirection === "unknown") &&
     typeof row.confidence === "number" && Number.isFinite(row.confidence) && row.confidence >= 0 && row.confidence <= 1 &&
     isStringArray(row.conditions) &&
