@@ -85,6 +85,7 @@ export function readIpoThemeOutcomeInput<T extends HypothesisOutcome = Hypothesi
 }
 
 function hasExplicitTimeZone(value: string): boolean {
+  if (/-00:00\s*$/i.test(value)) return false;
   return /(?:Z|[+-]\d{2}:?\d{2}|GMT|UTC)\s*$/i.test(value);
 }
 
