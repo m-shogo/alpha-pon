@@ -84,6 +84,10 @@ export function readIpoThemeOutcomeInput<T extends HypothesisOutcome = Hypothesi
   };
 }
 
+function hasExplicitTimeZone(value: string): boolean {
+  return /(?:Z|[+-]\d{2}:?\d{2}|GMT|UTC)\s*$/i.test(value);
+}
+
 function hasValidPublishedAt(value: unknown): boolean {
   if (value === undefined) return true;
   if (typeof value !== "string") return false;
@@ -94,6 +98,7 @@ function hasValidPublishedAt(value: unknown): boolean {
       return false;
     }
   }
+  if (!hasExplicitTimeZone(value)) return false;
   const publishedAtMs = new Date(value).getTime();
   return Number.isFinite(publishedAtMs) && publishedAtMs <= Date.now();
 }
