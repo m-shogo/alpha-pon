@@ -3,6 +3,7 @@ import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
 import { readIpoThemeOutcomeInput, readIpoThemeWorldEventInput } from "./ipo-theme-watch-input.js";
+import { resolveSpecialSituationMinSampleSize } from "./special-situation-ops-config.js";
 import type { HypothesisOutcome } from "./universe.js";
 
 type PhaseRule = {
@@ -175,7 +176,7 @@ function buildOutcomeStats(config: IpoThemeWatchConfig): {
 } {
   const outcomeInput = readIpoThemeOutcomeInput<HypothesisOutcome>("data/hypothesis_outcomes.jsonl");
   const outcomes = outcomeInput.rows;
-  const minSampleSize = config.outcomeStats?.minSampleSize ?? 5;
+  const minSampleSize = resolveSpecialSituationMinSampleSize(config.outcomeStats?.minSampleSize);
   const stats: IpoThemeWatchOutcomeStats[] = [];
 
   for (const theme of config.themes) {
