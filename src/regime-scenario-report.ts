@@ -6,17 +6,7 @@ import {
   loadRegimeScenarioReflectionState,
   type RegimeScenarioReflection,
 } from "./regime-scenario-input.js";
-
-type ScenarioConfig = {
-  scenarios: Record<string, {
-    label: string;
-    description: string;
-    watch_themes: string[];
-    avoid_or_caution: string[];
-    non_move_reasons: string[];
-    evidence_checks: string[];
-  }>;
-};
+import { normalizeRegimeScenarioConfig } from "./regime-scenario-config-input.js";
 
 const scenarioKeywords: Record<string, string[]> = {
   pandemic: ["感染", "パンデミック", "医療", "ワクチン", "人流", "在宅"],
@@ -28,8 +18,8 @@ const scenarioKeywords: Record<string, string[]> = {
   financial_crisis_rate_shock: ["金利", "金融不安", "銀行", "信用", "為替", "不動産", "債券"],
 };
 
-function readYaml<T>(path: string): T {
-  return load(readFileSync(path, "utf-8")) as T;
+function readYaml(path: string): unknown {
+  return load(readFileSync(path, "utf-8"));
 }
 
 function scoreScenario(id: string, reflections: RegimeScenarioReflection[]): { score: number; hits: string[] } {
@@ -46,8 +36,9 @@ function scoreScenario(id: string, reflections: RegimeScenarioReflection[]): { s
 
 function main() {
   const date = todayJst();
-  const config = readYaml<ScenarioConfig>("config/regime-scenarios.yml");
+  const config = normalizeRegimeScenarioConfig(readYaml("config/regime-scenarios.yml"));
   const reflectionLoad = loadRegimeScenarioReflectionState();
+  config.warnings.forEach(warning => console.warn(warning));
   reflectionLoad.warnings.forEach(warning => console.warn(warning));
   const reflections = reflectionLoad.rows;
   const ranked = Object.entries(config.scenarios)
@@ -60,6 +51,13 @@ function main() {
   lines.push(`生成日: ${date}`);
   lines.push("");
   lines.push("> コロナ、震災、温暖化、戦争、移民、食糧、金融不安など、時代変化に合わせて見るテーマを切り替えるためのレポートです。買い推奨ではありません。");
+  lines.push("");
+  lines.push("## input health");
+  lines.push("");
+  lines.push(`- health status: ${config.warnings.length > 0 ? "action_required" : "ok"}`);
+  lines.push(`- input warnings: ${config.warnings.length}`);
+  if (config.warnings.length === 0) lines.push("- warning: none");
+  for (const warning of config.warnings) lines.push(`- warning: ${warning}`);
   lines.push("");
 
   lines.push("## 優先して見るシナリオ");
