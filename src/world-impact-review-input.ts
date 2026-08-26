@@ -35,7 +35,7 @@ function isRealJstDate(value: unknown): value is string {
 
 function isReflectionRow(value: unknown, asOf: string): boolean {
   if (!isRecord(value)) return false;
-  return isNonEmptyString(value.eventId)
+  return isCanonicalIdentityString(value.eventId)
     && isRealJstDate(value.createdAt)
     && value.createdAt <= asOf
     && isNonEmptyString(value.title)
@@ -86,6 +86,28 @@ function normalizeRows<T>(
     warnings.add(`${path}: invalid_rows (expected compatible object rows; dropped ${dropped})`);
   }
   return valid;
+}
+
+function dedupeReflectionRows<T>(
+  rows: T[],
+  path: string,
+  warnings: Set<string>,
+): T[] {
+  const unique: T[] = [];
+  const seenEventIds = new Set<string>();
+  let dropped = 0;
+  for (const row of rows) {
+    if (!isRecord(row) || !isCanonicalIdentityString(row.eventId) || seenEventIds.has(row.eventId)) {
+      dropped += 1;
+      continue;
+    }
+    seenEventIds.add(row.eventId);
+    unique.push(row);
+  }
+  if (dropped > 0) {
+    warnings.add(`${path}: duplicate_identity (expected unique reflection eventId; dropped ${dropped})`);
+  }
+  return unique;
 }
 
 function dedupeCandidateRows<T>(
@@ -169,6 +191,12 @@ export function normalizeWorldImpactReviewInputs<R, C, U, G>(
     warnings.add("apps/web/public/generated/alpha-pon-data.json.generatedCompanyRules: invalid_field (expected array)");
   }
 
+  const normalizedReflections = normalizeRows(
+    reflections.rows,
+    "data/world_event_reflections_latest.json",
+    warnings,
+    row => isReflectionRow(row, asOf),
+  );
   const normalizedCandidates = normalizeRows(
     candidates.rows,
     "apps/web/public/generated/alpha-pon-data.json.candidates",
@@ -190,11 +218,10 @@ export function normalizeWorldImpactReviewInputs<R, C, U, G>(
   const seenCandidateCodes = new Set<string>();
 
   return {
-    reflections: normalizeRows(
-      reflections.rows,
+    reflections: dedupeReflectionRows(
+      normalizedReflections,
       "data/world_event_reflections_latest.json",
       warnings,
-      row => isReflectionRow(row, asOf),
     ),
     candidates: dedupeCandidateRows(
       normalizedCandidates,
