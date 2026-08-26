@@ -107,6 +107,8 @@ try {
     direction: "same",
     quality: "useful",
     actualOutcome: "matched",
+    maxDrawdownPct: -4.5,
+    benchmarkMaxDrawdownPct: -2.1,
     whatMatched: [],
     whatDiffered: [],
     missedSignals: [],
@@ -128,6 +130,8 @@ try {
   const reversedChronology = { ...validOutcome, createdAt: "2026-08-03", evaluatedAt: "2026-08-02" };
   const futureOutcome = { ...validOutcome, evaluatedAt: "2026-08-19" };
   const malformedNumericOutcome = { ...validOutcome, returnPct: "10" };
+  const positiveDrawdownOutcome = { ...validOutcome, maxDrawdownPct: 4.5 };
+  const positiveBenchmarkDrawdownOutcome = { ...validOutcome, benchmarkMaxDrawdownPct: 2.1 };
   const paddedOutcomeEventId = { ...validOutcome, eventId: ` ${valid.eventId} ` };
   const paddedOutcomeCandidateCode = { ...validOutcome, candidateCode: ` ${valid.candidateCode} ` };
   const emptyLessonId = { ...validOutcome, lessonId: "" };
@@ -137,7 +141,7 @@ try {
   const paddedImprovedRule = { ...validOutcome, improvedRuleIdeas: [" add a guard "] };
   writeFileSync(
     outcomePath,
-    [validOutcome, duplicateOutcome, uniqueOutcome, unsafeSuppressor, impossibleDate, reversedChronology, futureOutcome, malformedNumericOutcome, paddedOutcomeEventId, paddedOutcomeCandidateCode, emptyLessonId, blankLessonTitle, blankActualOutcome, blankMissedSignal, paddedImprovedRule]
+    [validOutcome, duplicateOutcome, uniqueOutcome, unsafeSuppressor, impossibleDate, reversedChronology, futureOutcome, malformedNumericOutcome, positiveDrawdownOutcome, positiveBenchmarkDrawdownOutcome, paddedOutcomeEventId, paddedOutcomeCandidateCode, emptyLessonId, blankLessonTitle, blankActualOutcome, blankMissedSignal, paddedImprovedRule]
       .map(row => JSON.stringify(row))
       .join("\n") + "\n{broken-outcome\n",
     "utf-8",
@@ -152,9 +156,9 @@ try {
   );
   assert.equal(outcomeResult.warnings.length, 3);
   assert.match(outcomeResult.warnings[0] ?? "", /parse_error 1/);
-  assert.match(outcomeResult.warnings[0] ?? "", /lines 16/);
+  assert.match(outcomeResult.warnings[0] ?? "", /lines 18/);
   assert.doesNotMatch(outcomeResult.warnings[0] ?? "", /broken-outcome/);
-  assert.match(outcomeResult.warnings[1] ?? "", /invalid_shape 12/);
+  assert.match(outcomeResult.warnings[1] ?? "", /invalid_shape 14/);
   assert.match(outcomeResult.warnings[2] ?? "", /duplicate_identity 1/);
   assert.throws(() => loadAnalogyOutcomesForReview(outcomePath, "2026-02-31"), /real YYYY-MM-DD/);
 
