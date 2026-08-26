@@ -109,7 +109,6 @@ if mkdir "$LOCK_DIR" 2>/dev/null; then
 else
   echo "another alpha-pon daily pipeline is already running: $LOCK_DIR"
   notify_pipeline "alert" "alpha-pon pipeline skipped" "another run-daily.sh is already running. date=$TODAY lock=$LOCK_DIR"
-  write_status "skipped_locked"
   exit 0
 fi
 
