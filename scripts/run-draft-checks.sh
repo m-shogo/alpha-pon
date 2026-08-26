@@ -32,6 +32,7 @@ node --import tsx/esm tests/pipeline-health-input.test.ts
 node --import tsx/esm tests/proposals-pipeline-input.test.ts
 node --import tsx/esm tests/run-cursor-input.test.ts
 node --import tsx/esm tests/ipo-theme-outcome-date-input.test.ts
+node --import tsx/esm tests/world-impact-review-input-identity.test.ts
 node --import tsx/esm tests/read-only-json-file-boundary.test.ts
 node --import tsx/esm tests/read-only-jsonl-file-boundary.test.ts
 node --import tsx/esm tests/read-only-text-file-boundary.test.ts
