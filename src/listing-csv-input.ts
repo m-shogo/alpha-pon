@@ -40,6 +40,11 @@ export function readListingCsvRows(path: string): Record<string, string>[] {
 
   const [headerLine, ...rows] = lines;
   const headers = parseCsvLine(headerLine);
+  const seenHeaders = new Set<string>();
+  for (const header of headers) {
+    if (seenHeaders.has(header)) throw new Error(`listing CSV contains a duplicate header: ${header}`);
+    seenHeaders.add(header);
+  }
   return rows.map(row => {
     const cols = parseCsvLine(row);
     const result: Record<string, string> = {};
