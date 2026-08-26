@@ -1,5 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { load } from "js-yaml";
+import { normalizeCompanyHypothesesRoot } from "./company-coverage-input.js";
+import { normalizeCompanyHypothesisReportRows } from "./company-hypothesis-report-input.js";
 import { todayJst } from "./date.js";
 import {
   isProValuationGeneratedRule,
@@ -9,7 +11,6 @@ import {
 import type { ValuationSnapshot } from "./pro-types.js";
 
 type Company = { code: string; name: string; evidenceToCheck?: string[]; noMoveHypothesis?: string; downsideHypothesis?: string };
-type Hypotheses = { categories?: Record<string, { companies?: Company[] }> };
 
 type GeneratedRule = ProValuationGeneratedRule;
 
@@ -57,9 +58,14 @@ function buildSnapshot(company: Company, rule?: GeneratedRule): ValuationSnapsho
 }
 
 function main() {
-  const hypotheses = readYaml<Hypotheses>("config/company-hypotheses.yml", {});
+  const hypothesesRaw = readYaml<unknown>("config/company-hypotheses.yml", {});
+  const hypotheses = normalizeCompanyHypothesisReportRows(
+    normalizeCompanyHypothesesRoot(hypothesesRaw),
+    todayJst(),
+  );
+  hypotheses.warnings.forEach(warning => console.warn(warning));
   const rules = readRules();
-  const companies = Object.values(hypotheses.categories ?? {}).flatMap(category => category.companies ?? []);
+  const companies = Object.values(hypotheses.categories).flatMap(category => category.companies);
   const snapshots = companies.map(company => buildSnapshot(company, rules.get(company.code)));
   mkdirSync("data", { recursive: true });
   writeFileSync("data/valuation_snapshot_latest.json", JSON.stringify({ generatedAt: todayJst(), snapshots }, null, 2), "utf-8");
