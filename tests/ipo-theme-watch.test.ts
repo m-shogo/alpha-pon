@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { existsSync, linkSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { addDaysJst } from "../src/date.js";
@@ -169,6 +169,26 @@ try {
   const datedRows = readIpoThemeWorldEventInput(worldEventsPath);
   assert.deepEqual(datedRows.rows.map(row => row.title), ["valid leap day", "RFC 822 remains supported"]);
   assert.equal(datedRows.warning, `${worldEventsPath}: invalid_rows 5 (rows 2, 3, 5, 6, 7)`);
+
+  const symlinkTarget = join(tmp, "world_events_symlink_target.json");
+  const symlinkPath = join(tmp, "world_events_symlink.json");
+  writeFileSync(symlinkTarget, JSON.stringify([{ title: "linked event", publishedAt: "2026-08-16" }]), "utf-8");
+  symlinkSync(symlinkTarget, symlinkPath);
+  assert.deepEqual(
+    readIpoThemeWorldEventInput(symlinkPath),
+    { rows: [], warning: `${symlinkPath}: parse_error` },
+    "symlinked world-event evidence must fail closed",
+  );
+
+  const hardlinkTarget = join(tmp, "world_events_hardlink_target.json");
+  const hardlinkPath = join(tmp, "world_events_hardlink.json");
+  writeFileSync(hardlinkTarget, JSON.stringify([{ title: "linked event", publishedAt: "2026-08-16" }]), "utf-8");
+  linkSync(hardlinkTarget, hardlinkPath);
+  assert.deepEqual(
+    readIpoThemeWorldEventInput(hardlinkPath),
+    { rows: [], warning: `${hardlinkPath}: parse_error` },
+    "hard-linked world-event evidence must fail closed",
+  );
 } finally {
   rmSync(tmp, { recursive: true, force: true });
 }
