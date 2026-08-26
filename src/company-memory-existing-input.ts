@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { addDaysJst, todayJst } from "./date.js";
 
@@ -25,6 +25,18 @@ function assertStrictDate(value: unknown, field: string, file: string): string {
     throw new Error(`${file}: ${field} must be a real YYYY-MM-DD date`);
   }
   return value;
+}
+
+function assertStandaloneCompanyMemoryFile(path: string, file: string): void {
+  let stat;
+  try {
+    stat = lstatSync(path);
+  } catch {
+    throw new Error(`${file}: company-memory input must be a readable standalone regular file`);
+  }
+  if (!stat.isFile() || stat.nlink !== 1) {
+    throw new Error(`${file}: company-memory input must be a standalone regular file`);
+  }
 }
 
 function assertExistingCompanyMemoryShape(value: unknown, file: string, asOf: string): void {
@@ -81,6 +93,7 @@ export function assertExistingCompanyMemoryInputs(
 
   for (const file of readdirSync(dir).filter((name) => name.endsWith(".json")).sort()) {
     const path = join(dir, file);
+    assertStandaloneCompanyMemoryFile(path, file);
     let parsed: unknown;
     try {
       parsed = JSON.parse(readFileSync(path, "utf-8"));
