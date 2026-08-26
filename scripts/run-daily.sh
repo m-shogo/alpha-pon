@@ -34,7 +34,9 @@ write_status() {
   ended_at="$(date '+%Y-%m-%d %H:%M:%S')"
   local failed_json
   failed_json="$(printf '%s' "$FAILED_STEPS" | json_escape)"
-  cat > "$DIR/reports/pipeline_status_latest.json" <<EOF
+  local status_path="$DIR/reports/pipeline_status_latest.json"
+  local status_tmp="${status_path}.tmp.$$"
+  if ! cat > "$status_tmp" <<EOF
 {
   "date": "$TODAY",
   "status": "$status",
@@ -55,6 +57,14 @@ write_status() {
   }
 }
 EOF
+  then
+    rm -f "$status_tmp"
+    return 1
+  fi
+  if ! mv "$status_tmp" "$status_path"; then
+    rm -f "$status_tmp"
+    return 1
+  fi
 }
 
 append_step_status() {
