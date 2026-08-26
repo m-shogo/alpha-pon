@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { linkSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { assertExistingCompanyMemoryInputs } from "../src/company-memory-existing-input.js";
@@ -217,6 +217,27 @@ for (const malformed of [
       () => assertExistingCompanyMemoryInputs(dir),
       /8136\.json: notes must be a string array/,
       "malformed memory collections must fail closed before derived refresh",
+    );
+
+    writeFileSync(memoryPath, JSON.stringify(validMemory));
+    const symlinkTarget = join(dir, "symlink-target.txt");
+    writeFileSync(symlinkTarget, JSON.stringify(validMemory));
+    rmSync(memoryPath);
+    symlinkSync(symlinkTarget, memoryPath);
+    assert.throws(
+      () => assertExistingCompanyMemoryInputs(dir),
+      /8136\.json: company-memory input must be a standalone regular file/,
+      "symlink aliases must not be accepted as canonical existing company-memory evidence",
+    );
+
+    rmSync(memoryPath);
+    const hardLinkTarget = join(dir, "hard-link-target.txt");
+    writeFileSync(hardLinkTarget, JSON.stringify(validMemory));
+    linkSync(hardLinkTarget, memoryPath);
+    assert.throws(
+      () => assertExistingCompanyMemoryInputs(dir),
+      /8136\.json: company-memory input must be a standalone regular file/,
+      "hard-link aliases must not be accepted as canonical existing company-memory evidence",
     );
   } finally {
     rmSync(dir, { recursive: true, force: true });
