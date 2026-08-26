@@ -5,12 +5,10 @@ import { todayJst } from "./date.js";
 import {
   hasCanonicalStringItems,
   normalizeCompanyOnboardingCompanies,
-  normalizeCompanyOnboardingPolicyChecks,
+  normalizeCompanyOnboardingNetworkCompanies,
+  normalizeCompanyOnboardingPolicy,
 } from "./company-onboarding-input.js";
 import { hasConfirmedProIrSource, normalizeProIrEventInput } from "./pro-ir-event-input.js";
-
-type Network = { companies?: Record<string, unknown> };
-type Policy = { mandatoryChecks?: unknown };
 
 function readYaml<T>(path: string, fallback: T): T {
   if (!existsSync(path)) return fallback;
@@ -20,10 +18,9 @@ function readYaml<T>(path: string, fallback: T): T {
 function main() {
   const date = todayJst();
   const hypotheses = readYaml<unknown>("config/company-hypotheses.yml", {});
-  const network = readYaml<Network>("config/company-network.yml", {});
+  const network = normalizeCompanyOnboardingNetworkCompanies(readYaml<unknown>("config/company-network.yml", {}));
   const irEvents = normalizeProIrEventInput(readYaml<unknown>("config/company-ir-events.yml", {}));
-  const policy = readYaml<Policy>("config/company-onboarding-policy.yml", {});
-  const mandatoryChecks = normalizeCompanyOnboardingPolicyChecks(policy.mandatoryChecks);
+  const mandatoryChecks = normalizeCompanyOnboardingPolicy(readYaml<unknown>("config/company-onboarding-policy.yml", {}));
   const onboardingCompanies = normalizeCompanyOnboardingCompanies(
     hypotheses && typeof hypotheses === "object" && !Array.isArray(hypotheses)
       ? (hypotheses as Record<string, unknown>).categories
@@ -34,7 +31,7 @@ function main() {
 
   for (const company of onboardingCompanies.companies) {
     const missing: string[] = [];
-    const hasNetwork = Boolean(network.companies?.[company.code]);
+    const hasNetwork = Boolean(network.companies[company.code]);
     const events = irEvents.companies[company.code]?.events ?? [];
     const hasIr = events.length > 0;
     const hasConfirmedIr = events.some(event => hasConfirmedProIrSource(event));
@@ -71,6 +68,7 @@ function main() {
     lines.push(`IR input warnings: root=${irEvents.invalidRoot ? 1 : 0}, companies=${irEvents.invalidCompanyCount}, events=${irEvents.invalidEventCount}`);
   }
   for (const warning of onboardingCompanies.warnings) lines.push(`hypothesis input warning: ${warning}`);
+  for (const warning of network.warnings) lines.push(`network input warning: ${warning}`);
   for (const warning of mandatoryChecks.warnings) lines.push(`policy input warning: ${warning}`);
   lines.push("");
   lines.push("## mandatory thinking checks");

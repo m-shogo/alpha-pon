@@ -58,6 +58,30 @@ export function normalizeCompanyOnboardingPolicyChecks(value: unknown): {
   return { checks, warnings };
 }
 
+export function normalizeCompanyOnboardingPolicy(value: unknown): {
+  checks: CompanyOnboardingPolicyCheck[];
+  warnings: string[];
+} {
+  if (!isRecord(value)) {
+    return { checks: [], warnings: ["company-onboarding-policy.yml root shape is invalid"] };
+  }
+  return normalizeCompanyOnboardingPolicyChecks(value.mandatoryChecks);
+}
+
+export function normalizeCompanyOnboardingNetworkCompanies(value: unknown): {
+  companies: Record<string, unknown>;
+  warnings: string[];
+} {
+  if (!isRecord(value)) {
+    return { companies: {}, warnings: ["company-network.yml root shape is invalid"] };
+  }
+  if (value.companies === undefined) return { companies: {}, warnings: [] };
+  if (!isRecord(value.companies)) {
+    return { companies: {}, warnings: ["company-network.yml companies shape is invalid"] };
+  }
+  return { companies: value.companies, warnings: [] };
+}
+
 export type CompanyOnboardingCompany = {
   categoryId: string;
   code: string;
