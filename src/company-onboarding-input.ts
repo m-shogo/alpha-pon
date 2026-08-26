@@ -57,3 +57,64 @@ export function normalizeCompanyOnboardingPolicyChecks(value: unknown): {
 
   return { checks, warnings };
 }
+
+export type CompanyOnboardingCompany = {
+  categoryId: string;
+  code: string;
+  name: string;
+  evidenceToCheck?: unknown;
+  relatedCompanies?: unknown;
+};
+
+export function normalizeCompanyOnboardingCompanies(value: unknown): {
+  companies: CompanyOnboardingCompany[];
+  warnings: string[];
+} {
+  if (value === undefined) return { companies: [], warnings: [] };
+  if (!isRecord(value)) {
+    return { companies: [], warnings: ["company-hypotheses.yml categories shape is invalid"] };
+  }
+
+  const companies: CompanyOnboardingCompany[] = [];
+  const warnings: string[] = [];
+  for (const [rawCategoryId, rawCategory] of Object.entries(value)) {
+    const categoryId = canonicalString(rawCategoryId);
+    if (!categoryId || !isRecord(rawCategory)) {
+      warnings.push(`company-hypotheses.yml category ${rawCategoryId} shape or identity is invalid`);
+      continue;
+    }
+    const rawCompanies = rawCategory.companies;
+    if (rawCompanies === undefined) continue;
+    if (!Array.isArray(rawCompanies)) {
+      warnings.push(`company-hypotheses.yml category ${categoryId} companies shape is invalid`);
+      continue;
+    }
+    const seenCodes = new Set<string>();
+    rawCompanies.forEach((rawCompany, index) => {
+      if (!isRecord(rawCompany)) {
+        warnings.push(`company-hypotheses.yml category ${categoryId} company row ${index + 1} shape is invalid`);
+        return;
+      }
+      const code = canonicalString(rawCompany.code);
+      const name = canonicalString(rawCompany.name);
+      if (!code || !name) {
+        warnings.push(`company-hypotheses.yml category ${categoryId} company row ${index + 1} identity is invalid`);
+        return;
+      }
+      if (seenCodes.has(code)) {
+        warnings.push(`company-hypotheses.yml category ${categoryId} company ${code} canonical identity is duplicated`);
+        return;
+      }
+      seenCodes.add(code);
+      companies.push({
+        categoryId,
+        code,
+        name,
+        evidenceToCheck: rawCompany.evidenceToCheck,
+        relatedCompanies: rawCompany.relatedCompanies,
+      });
+    });
+  }
+
+  return { companies, warnings };
+}
