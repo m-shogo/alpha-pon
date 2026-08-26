@@ -7,6 +7,7 @@ import {
 import { normalizeCompanyHypothesisReportRows } from "../src/company-hypothesis-report-input.js";
 import {
   hasCanonicalStringItems,
+  normalizeCompanyOnboardingCompanies,
   normalizeCompanyOnboardingPolicyChecks,
 } from "../src/company-onboarding-input.js";
 import { normalizeProIrEventInput } from "../src/pro-ir-event-input.js";
@@ -42,6 +43,33 @@ assert.deepEqual(malformedOnboardingPolicy.checks, [
   { id: "primary_ir", label: "Primary IR", why: "Confirm company evidence" },
 ], "malformed onboarding checks are isolated without dropping canonical rows");
 assert.equal(malformedOnboardingPolicy.warnings.length, 2, "malformed onboarding policy rows remain visible as warnings");
+
+const malformedOnboardingCompanies = normalizeCompanyOnboardingCompanies({
+  healthy: {
+    companies: [
+      { code: "8136", name: "サンリオ", evidenceToCheck: ["IR"], relatedCompanies: ["7974"] },
+      { code: "8136", name: "duplicate" },
+      null,
+    ],
+  },
+  brokenCategory: null,
+  brokenCompanies: { companies: {} },
+});
+assert.deepEqual(malformedOnboardingCompanies.companies, [{
+  categoryId: "healthy",
+  code: "8136",
+  name: "サンリオ",
+  evidenceToCheck: ["IR"],
+  relatedCompanies: ["7974"],
+}], "malformed onboarding category/company rows must not reach report iteration");
+assert.ok(malformedOnboardingCompanies.warnings.some(warning => warning.includes("canonical identity is duplicated")));
+assert.ok(malformedOnboardingCompanies.warnings.some(warning => warning.includes("brokenCategory")));
+assert.ok(malformedOnboardingCompanies.warnings.some(warning => warning.includes("brokenCompanies")));
+assert.deepEqual(
+  normalizeCompanyOnboardingCompanies([]),
+  { companies: [], warnings: ["company-hypotheses.yml categories shape is invalid"] },
+  "non-object categories must fail closed before onboarding iteration",
+);
 
 const malformedOnboardingIr = normalizeProIrEventInput({
   companies: {
