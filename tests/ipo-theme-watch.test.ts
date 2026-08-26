@@ -162,13 +162,19 @@ try {
     { title: "impossible date", publishedAt: "2026-02-31" },
     { title: "year zero", publishedAt: "0000-01-01" },
     { title: "RFC 822 remains supported", publishedAt: "Sun, 16 Aug 2026 12:00:00 GMT" },
+    { title: "explicit offset remains supported", publishedAt: "2026-08-16T12:00:00+09:00" },
     { title: "unparseable date", publishedAt: "not-a-date" },
     { title: "future date-only evidence", publishedAt: "2999-01-01" },
     { title: "future RFC 822 evidence", publishedAt: "Thu, 01 Jan 2999 00:00:00 GMT" },
+    { title: "timezone-less ISO evidence", publishedAt: "2026-08-16T12:00:00" },
+    { title: "locale timestamp without timezone", publishedAt: "Aug 16 2026 12:00:00" },
   ]), "utf-8");
   const datedRows = readIpoThemeWorldEventInput(worldEventsPath);
-  assert.deepEqual(datedRows.rows.map(row => row.title), ["valid leap day", "RFC 822 remains supported"]);
-  assert.equal(datedRows.warning, `${worldEventsPath}: invalid_rows 5 (rows 2, 3, 5, 6, 7)`);
+  assert.deepEqual(
+    datedRows.rows.map(row => row.title),
+    ["valid leap day", "RFC 822 remains supported", "explicit offset remains supported"],
+  );
+  assert.equal(datedRows.warning, `${worldEventsPath}: invalid_rows 7 (rows 2, 3, 6, 7, 8, 9, 10)`);
 
   const symlinkTarget = join(tmp, "world_events_symlink_target.json");
   const symlinkPath = join(tmp, "world_events_symlink.json");
