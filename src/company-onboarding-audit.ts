@@ -4,12 +4,11 @@ import { load } from "js-yaml";
 import { todayJst } from "./date.js";
 import {
   hasCanonicalStringItems,
+  normalizeCompanyOnboardingCompanies,
   normalizeCompanyOnboardingPolicyChecks,
 } from "./company-onboarding-input.js";
 import { hasConfirmedProIrSource, normalizeProIrEventInput } from "./pro-ir-event-input.js";
 
-type Company = { code: string; name: string; status?: string; evidenceToCheck?: string[]; relatedCompanies?: string[] };
-type Hypotheses = { categories?: Record<string, { label: string; companies?: Company[] }> };
 type Network = { companies?: Record<string, unknown> };
 type Policy = { mandatoryChecks?: unknown };
 
@@ -20,43 +19,46 @@ function readYaml<T>(path: string, fallback: T): T {
 
 function main() {
   const date = todayJst();
-  const hypotheses = readYaml<Hypotheses>("config/company-hypotheses.yml", {});
+  const hypotheses = readYaml<unknown>("config/company-hypotheses.yml", {});
   const network = readYaml<Network>("config/company-network.yml", {});
   const irEvents = normalizeProIrEventInput(readYaml<unknown>("config/company-ir-events.yml", {}));
   const policy = readYaml<Policy>("config/company-onboarding-policy.yml", {});
   const mandatoryChecks = normalizeCompanyOnboardingPolicyChecks(policy.mandatoryChecks);
+  const onboardingCompanies = normalizeCompanyOnboardingCompanies(
+    hypotheses && typeof hypotheses === "object" && !Array.isArray(hypotheses)
+      ? (hypotheses as Record<string, unknown>).categories
+      : hypotheses,
+  );
 
   const rows: Array<{ code: string; name: string; category: string; coverage: string; missing: string[]; advice: string }> = [];
 
-  for (const [categoryId, category] of Object.entries(hypotheses.categories ?? {})) {
-    for (const company of category.companies ?? []) {
-      const missing: string[] = [];
-      const hasNetwork = Boolean(network.companies?.[company.code]);
-      const events = irEvents.companies[company.code]?.events ?? [];
-      const hasIr = events.length > 0;
-      const hasConfirmedIr = events.some(event => hasConfirmedProIrSource(event));
-      const hasEvidence = hasCanonicalStringItems(company.evidenceToCheck, 3);
-      const hasPeers = hasNetwork || hasCanonicalStringItems(company.relatedCompanies, 2);
+  for (const company of onboardingCompanies.companies) {
+    const missing: string[] = [];
+    const hasNetwork = Boolean(network.companies?.[company.code]);
+    const events = irEvents.companies[company.code]?.events ?? [];
+    const hasIr = events.length > 0;
+    const hasConfirmedIr = events.some(event => hasConfirmedProIrSource(event));
+    const hasEvidence = hasCanonicalStringItems(company.evidenceToCheck, 3);
+    const hasPeers = hasNetwork || hasCanonicalStringItems(company.relatedCompanies, 2);
 
-      if (!hasIr) missing.push("shareholder_meeting_or_ir_event");
-      if (hasIr && !hasConfirmedIr) missing.push("official_ir_event_detail");
-      if (!hasNetwork) missing.push("company_network");
-      if (!hasEvidence) missing.push("evidence_to_check");
-      if (!hasPeers) missing.push("peer_candidates");
-      missing.push("valuation_range_check");
-      missing.push("latest_earnings_calendar_check");
-      missing.push("financial_quality_check");
+    if (!hasIr) missing.push("shareholder_meeting_or_ir_event");
+    if (hasIr && !hasConfirmedIr) missing.push("official_ir_event_detail");
+    if (!hasNetwork) missing.push("company_network");
+    if (!hasEvidence) missing.push("evidence_to_check");
+    if (!hasPeers) missing.push("peer_candidates");
+    missing.push("valuation_range_check");
+    missing.push("latest_earnings_calendar_check");
+    missing.push("financial_quality_check");
 
-      let coverage = "covered";
-      if (missing.includes("shareholder_meeting_or_ir_event") || missing.includes("company_network")) coverage = "unknown_or_thin";
-      else if (missing.length >= 3) coverage = "provisional";
+    let coverage = "covered";
+    if (missing.includes("shareholder_meeting_or_ir_event") || missing.includes("company_network")) coverage = "unknown_or_thin";
+    else if (missing.length >= 3) coverage = "provisional";
 
-      const advice = coverage === "covered"
-        ? "考察可能。ただし決算/総会/外れ理由は継続更新する"
-        : "ラベルを上げず、IRイベント・決算・競合・バリュエーションを先に補完する";
+    const advice = coverage === "covered"
+      ? "考察可能。ただし決算/総会/外れ理由は継続更新する"
+      : "ラベルを上げず、IRイベント・決算・競合・バリュエーションを先に補完する";
 
-      rows.push({ code: company.code, name: company.name, category: categoryId, coverage, missing, advice });
-    }
+    rows.push({ code: company.code, name: company.name, category: company.categoryId, coverage, missing, advice });
   }
 
   const lines: string[] = [];
@@ -68,6 +70,7 @@ function main() {
   if (irEvents.invalidRoot || irEvents.invalidCompanyCount > 0 || irEvents.invalidEventCount > 0) {
     lines.push(`IR input warnings: root=${irEvents.invalidRoot ? 1 : 0}, companies=${irEvents.invalidCompanyCount}, events=${irEvents.invalidEventCount}`);
   }
+  for (const warning of onboardingCompanies.warnings) lines.push(`hypothesis input warning: ${warning}`);
   for (const warning of mandatoryChecks.warnings) lines.push(`policy input warning: ${warning}`);
   lines.push("");
   lines.push("## mandatory thinking checks");
