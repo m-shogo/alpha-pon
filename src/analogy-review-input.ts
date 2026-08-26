@@ -36,6 +36,10 @@ function isCanonicalIdentity(value: unknown): value is string {
   return typeof value === "string" && value.length > 0 && value === value.trim();
 }
 
+function isNonBlankString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
 function isOptionalCanonicalIdentity(value: unknown): boolean {
   return value === undefined || isCanonicalIdentity(value);
 }
@@ -77,11 +81,11 @@ function isUsableAnalogyOutcomeRecord(value: unknown, asOf: string): value is An
     isCanonicalIdentity(row.eventId) &&
     (row.timeframe === "1d" || row.timeframe === "1w" || row.timeframe === "1m") &&
     isOptionalCanonicalIdentity(row.candidateCode) &&
-    typeof row.lessonId === "string" &&
-    typeof row.lessonTitle === "string" &&
+    isCanonicalIdentity(row.lessonId) &&
+    isNonBlankString(row.lessonTitle) &&
     (row.direction === "same" || row.direction === "opposite" || row.direction === "mixed" || row.direction === "unknown") &&
     (row.quality === "useful" || row.quality === "misleading" || row.quality === "too_early" || row.quality === "unknown") &&
-    typeof row.actualOutcome === "string" &&
+    isNonBlankString(row.actualOutcome) &&
     isOptionalFiniteNumber(row.startClose) &&
     isOptionalFiniteNumber(row.endClose) &&
     isOptionalFiniteNumber(row.returnPct) &&
