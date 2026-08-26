@@ -27,6 +27,18 @@ function assertStrictDate(value: unknown, field: string, file: string): string {
   return value;
 }
 
+function assertCompanyMemoryDirectory(dir: string): void {
+  let stat;
+  try {
+    stat = lstatSync(dir);
+  } catch {
+    throw new Error(`${dir}: company-memory input root must be a readable directory`);
+  }
+  if (!stat.isDirectory()) {
+    throw new Error(`${dir}: company-memory input root must be a real directory`);
+  }
+}
+
 function assertStandaloneCompanyMemoryFile(path: string, file: string): void {
   let stat;
   try {
@@ -90,6 +102,7 @@ export function assertExistingCompanyMemoryInputs(
 ): void {
   assertStrictDate(asOf, "asOf", "company-memory input");
   if (!existsSync(dir)) return;
+  assertCompanyMemoryDirectory(dir);
 
   for (const file of readdirSync(dir).filter((name) => name.endsWith(".json")).sort()) {
     const path = join(dir, file);
