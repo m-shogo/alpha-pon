@@ -38,6 +38,7 @@ node --import tsx/esm tests/read-only-jsonl-file-boundary.test.ts
 node --import tsx/esm tests/read-only-text-file-boundary.test.ts
 node --import tsx/esm tests/source-health-history-file-boundary.test.ts
 node --import tsx/esm tests/listing-automation-readiness-file.test.ts
+node --import tsx/esm tests/listing-csv-input.test.ts
 node --import tsx/esm tests/line-consolidation.test.ts
 
 echo "draft-checks: ok"
