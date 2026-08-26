@@ -218,6 +218,7 @@ export function normalizeCompanyNetworkReportRows(
     const betterPeerRisk = normalizeList("betterPeerRisk");
     const evidenceChecks = normalizeList("evidenceChecks");
     const peers: CompanyNetworkReportPeer[] = [];
+    const seenPeerCodes = new Set<string>();
     const rawPeers = rawCompany.peers;
     if (rawPeers !== undefined && !Array.isArray(rawPeers)) {
       warnings.push(`company-network.yml company ${code} peers shape is invalid`);
@@ -234,6 +235,11 @@ export function normalizeCompanyNetworkReportRows(
           warnings.push(`company-network.yml company ${code} peer row ${index + 1} fields are invalid`);
           return;
         }
+        if (seenPeerCodes.has(peerCode)) {
+          warnings.push(`company-network.yml company ${code} peer ${peerCode} canonical identity is duplicated`);
+          return;
+        }
+        seenPeerCodes.add(peerCode);
         peers.push({ code: peerCode, name: peerName, relation });
       });
     }
