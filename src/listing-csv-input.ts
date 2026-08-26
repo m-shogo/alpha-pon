@@ -54,3 +54,19 @@ export function readListingCsvRows(path: string): Record<string, string>[] {
     return result;
   });
 }
+
+export function readListingCsvRowsByUniqueCode(path: string): Record<string, string>[] {
+  const rows = readListingCsvRows(path);
+  const seenCodes = new Set<string>();
+  for (const row of rows) {
+    const code = row.code;
+    if (typeof code !== "string" || code.length === 0 || code !== code.trim()) {
+      throw new Error("listing CSV contains a non-canonical code identity");
+    }
+    if (seenCodes.has(code)) {
+      throw new Error(`listing CSV contains a duplicate code identity: ${code}`);
+    }
+    seenCodes.add(code);
+  }
+  return rows;
+}
