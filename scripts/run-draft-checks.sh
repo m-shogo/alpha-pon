@@ -29,6 +29,7 @@ node --import tsx/esm tests/pro-knowledge-refresh-input.test.ts
 node --import tsx/esm tests/periodic-review-score-input.test.ts
 node --import tsx/esm tests/company-hypothesis-report-input.test.ts
 node --import tsx/esm tests/company-onboarding-root-input.test.ts
+node --import tsx/esm tests/stock-pro-quality-input.test.ts
 node --import tsx/esm tests/pipeline-health-input.test.ts
 node --import tsx/esm tests/proposals-pipeline-input.test.ts
 node --import tsx/esm tests/run-cursor-input.test.ts
