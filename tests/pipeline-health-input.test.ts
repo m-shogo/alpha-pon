@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { normalizeCompanyCoverageRoots } from "../src/company-coverage-input.js";
@@ -225,5 +225,16 @@ try {
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
+
+const dailyScript = readFileSync("scripts/run-daily.sh", "utf-8");
+const lockContentionStart = dailyScript.indexOf('else\n  echo "another alpha-pon daily pipeline is already running: $LOCK_DIR"');
+const lockContentionEnd = dailyScript.indexOf("\nfi\n\nrun_step()", lockContentionStart);
+assert(lockContentionStart >= 0 && lockContentionEnd > lockContentionStart, "daily lock contention branch must remain discoverable");
+const lockContentionBlock = dailyScript.slice(lockContentionStart, lockContentionEnd);
+assert.equal(
+  lockContentionBlock.includes("write_status"),
+  false,
+  "a contending daily process must not overwrite the active run's canonical pipeline status",
+);
 
 console.log("pipeline-health-input.test.ts passed");
