@@ -77,19 +77,26 @@ function main() {
       const failedCritical = failed.filter(gate => gate.severity === "critical");
       const failedHigh = failed.filter(gate => gate.severity === "high");
       const failedMedium = failed.filter(gate => gate.severity === "medium");
-      const finalQuality = failedCritical.length > 0 ? "blocked" : failedHigh.length > 0 ? "provisional" : "covered";
+      const finalQuality = !input.gateConfigValid || failedCritical.length > 0
+        ? "blocked"
+        : failedHigh.length > 0
+          ? "provisional"
+          : "covered";
       lines.push(`| ${finalQuality} | ${company.code} | ${company.name} | ${categoryId} | ${failedCritical.length} | ${failedHigh.length} | ${failedMedium.length} | ${finalQuality} |`);
 
-      if (failed.length > 0) {
+      if (failed.length > 0 || !input.gateConfigValid) {
         details.push(`## ${company.code} ${company.name}`);
         details.push("");
         details.push(`- category: ${categoryId}`);
         details.push(`- finalQuality: ${finalQuality}`);
-        details.push("- failed gates:");
-        for (const gate of failed) {
-          details.push(`  - ${gate.severity}: ${gate.id} / ${gate.label}`);
-          details.push(`    - pro question: ${gate.proQuestion}`);
-          details.push(`    - fail action: ${gate.failAction}`);
+        if (!input.gateConfigValid) details.push("- gate config: invalid / assessment blocked");
+        if (failed.length > 0) {
+          details.push("- failed gates:");
+          for (const gate of failed) {
+            details.push(`  - ${gate.severity}: ${gate.id} / ${gate.label}`);
+            details.push(`    - pro question: ${gate.proQuestion}`);
+            details.push(`    - fail action: ${gate.failAction}`);
+          }
         }
         details.push("");
       }
