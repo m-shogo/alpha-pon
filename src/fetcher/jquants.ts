@@ -27,6 +27,11 @@ export function parseJQuantsV2RetryAttempts(value: string | undefined): number {
   return Number.isSafeInteger(parsed) && parsed >= 1 && parsed <= 10 ? parsed : 5;
 }
 
+export function parseJQuantsV2DataDelayDays(value: string | undefined): number {
+  const parsed = Number(value ?? "84");
+  return Number.isSafeInteger(parsed) && parsed >= 0 && parsed <= 3650 ? parsed : 84;
+}
+
 function requestTimeoutMs(): number {
   return parseJQuantsRequestTimeoutMs(process.env.JQUANTS_REQUEST_TIMEOUT_MS);
 }
@@ -79,7 +84,7 @@ function compactJstDate(date: Date): string {
 
 export function jquantsV2DateCapCompact(
   now: Date = new Date(),
-  delayDays = Number(process.env.JQUANTS_V2_DATA_DELAY_DAYS ?? "84"),
+  delayDays = parseJQuantsV2DataDelayDays(process.env.JQUANTS_V2_DATA_DELAY_DAYS),
 ): string {
   if (!Number.isSafeInteger(delayDays) || delayDays < 0) {
     throw new Error(`JQUANTS_V2_DATA_DELAY_DAYS must be a non-negative integer: ${delayDays}`);
@@ -95,7 +100,7 @@ export function normalizeV2QuoteRange(
   from: string,
   to: string,
   now: Date = new Date(),
-  delayDays = Number(process.env.JQUANTS_V2_DATA_DELAY_DAYS ?? "84"),
+  delayDays = parseJQuantsV2DataDelayDays(process.env.JQUANTS_V2_DATA_DELAY_DAYS),
 ): { from: string; to: string } | null {
   const compactFrom = validatedCompactDate(from, "J-Quants quote from");
   const compactTo = validatedCompactDate(to, "J-Quants quote to");
