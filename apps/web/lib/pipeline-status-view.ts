@@ -29,13 +29,13 @@ function isCanonicalPipelineStep(step: PipelineStepViewInput): boolean {
   return code === 0
 }
 
-function hasCanonicalPipelineSteps(steps: PipelineStepViewInput[] | undefined): boolean {
-  return steps === undefined || steps.every(isCanonicalPipelineStep)
+function hasHealthyPipelineSteps(steps: PipelineStepViewInput[] | undefined): boolean {
+  return steps === undefined || steps.every((step) => isCanonicalPipelineStep(step) && step.status !== 'failed')
 }
 
 export function isPipelineStatusHealthy(status: PipelineStatusViewInput): boolean {
   return status.status === 'ok'
     && hasNoFailedSteps(status.failedSteps)
     && (status.completeWrapperFailedSteps?.length ?? 0) === 0
-    && hasCanonicalPipelineSteps(status.steps)
+    && hasHealthyPipelineSteps(status.steps)
 }
