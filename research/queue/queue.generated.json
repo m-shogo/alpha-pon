@@ -43,7 +43,7 @@
       "edgeId": "misconduct-overreaction-recovery",
       "title": "Misconduct Overreaction Recovery Edge",
       "status": "research",
-      "voi": 0.7225,
+      "voi": 0.725,
       "components": {
         "expectedRoi": 0,
         "uncertaintyReduction": 0.95,
@@ -51,31 +51,7 @@
         "historicalGap": 1,
         "productionProximity": 0,
         "decayUrgency": 1,
-        "executionImprovement": 0.65,
-        "priority": 0.75,
-        "researchCost": 0.75
-      },
-      "drivers": [
-        "Decay 再検証の期限が来ている",
-        "1回の研究で不確実性が大きく減る",
-        "Historical Analog が不足している"
-      ],
-      "suggestedAction": "Decay 再検証：直近データで Edge がまだ生きているか確認する"
-    },
-    {
-      "rank": 3,
-      "edgeId": "known-bad-event-repricing",
-      "title": "Known-Bad Event Repricing Edge",
-      "status": "research",
-      "voi": 0.705,
-      "components": {
-        "expectedRoi": 0,
-        "uncertaintyReduction": 0.9,
-        "sampleGap": 1,
-        "historicalGap": 1,
-        "productionProximity": 0,
-        "decayUrgency": 1,
-        "executionImprovement": 0.5,
+        "executionImprovement": 0.7,
         "priority": 0.75,
         "researchCost": 0.75
       },
@@ -87,5 +63,10 @@
       "suggestedAction": "Decay 再検証：直近データで Edge がまだ生きているか確認する"
     }
   ],
-  "excluded": []
+  "excluded": [
+    {
+      "edgeId": "known-bad-event-repricing",
+      "reason": "status=deprecated のため対象外"
+    }
+  ]
 }
