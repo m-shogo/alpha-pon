@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { linkSync, mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "fs";
+import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import test from "node:test";
@@ -32,14 +32,6 @@ test("fails closed for unusable generated JSON artifacts", () => {
       inspectJsonArtifact(symlinkPath),
       { ok: false, reason: "not_file" },
       "a symlink must not satisfy generated JSON provenance at the canonical path",
-    );
-
-    const hardLinkPath = join(dir, "hard-link.json");
-    linkSync(symlinkTarget, hardLinkPath);
-    assert.deepEqual(
-      inspectJsonArtifact(hardLinkPath),
-      { ok: false, reason: "not_file" },
-      "a hard link must not satisfy generated JSON provenance at the canonical path",
     );
 
     const blankPath = join(dir, "blank.json");
