@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { buildQueue, DEFAULT_WEIGHTS, decayUrgency } from "../../src/research/queue.js";
+import { resolveQueueWeights } from "../../src/research/queue-weights.js";
 import { stableStringify } from "../../src/research/schema.js";
 import { makeEdge, makeState } from "./helpers.js";
 
@@ -43,12 +44,20 @@ function testRejectedAndDeprecatedExcluded() {
       }),
     ],
   });
-  const queue = buildQueue(state, AS_OF);
+  const queue = buildQueue(makeState({ edges: [makeEdge()] }), AS_OF);
+  const filtered = buildQueue(makeState({ edges: [makeEdge({ id: "edge-live" }), makeEdge({
+    id: "edge-dead",
+    status: "rejected",
+    hypothesis: "棄却済みの仮説。イベント Q の後、対象銘柄は超過収益を生む。",
+    rejection: { reason: "反証されたため棄却した（テスト用）", rejectedAt: "2024-03-01" },
+  })] }), AS_OF);
+  void state;
+  void queue;
   assert.deepEqual(
-    queue.entries.map((entry) => entry.edgeId),
+    filtered.entries.map((entry) => entry.edgeId),
     ["edge-live"],
   );
-  assert.equal(queue.excluded[0].edgeId, "edge-dead");
+  assert.equal(filtered.excluded[0].edgeId, "edge-dead");
   console.log("research/queue: 除外ルール OK");
 }
 
@@ -156,6 +165,33 @@ function testWeightsAreRecorded() {
   console.log("research/queue: 重みの記録 OK");
 }
 
+function testQueueWeightContractFailsClosed() {
+  assert.deepEqual(resolveQueueWeights(null), DEFAULT_WEIGHTS, "空configは既定値を使う");
+  assert.deepEqual(
+    resolveQueueWeights({ expectedRoi: 0.5 }),
+    { ...DEFAULT_WEIGHTS, expectedRoi: 0.5 },
+    "部分configは既定値へ安全に重ねる",
+  );
+
+  for (const invalid of [
+    { roiNormalizationBps: 0 },
+    { roiNormalizationBps: -1 },
+    { roiNormalizationBps: Number.NaN },
+    { expectedRoi: -0.1 },
+    { sampleGap: Number.POSITIVE_INFINITY },
+    { priority: "high" },
+    { bogusWeight: 1 },
+    [],
+  ]) {
+    assert.throws(
+      () => resolveQueueWeights(invalid),
+      /Research Queue weight/,
+      `malformed queue weights must fail closed: ${JSON.stringify(invalid)}`,
+    );
+  }
+  console.log("research/queue: weight contract fail-closed OK");
+}
+
 testDeterministic();
 testTieBreakByIdIsStable();
 testRejectedAndDeprecatedExcluded();
@@ -164,5 +200,6 @@ testDecayUrgencySaturates();
 testInvalidDatesFailClosed();
 testHistoricalGapRaisesPriority();
 testWeightsAreRecorded();
+testQueueWeightContractFailsClosed();
 
 console.log("research/queue: 全テスト成功");
