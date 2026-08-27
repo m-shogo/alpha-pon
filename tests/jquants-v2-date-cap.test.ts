@@ -5,6 +5,7 @@ import {
   jquantsV2DateCapCompact,
   normalizeV2QuoteRange,
   parseJQuantsRequestTimeoutMs,
+  parseJQuantsV2DataDelayDays,
   parseJQuantsV2RequestIntervalMs,
   parseJQuantsV2RetryAttempts,
 } from "../src/fetcher/jquants.js";
@@ -105,6 +106,20 @@ import { resolveWorldImpactJquantsDelayDays } from "../src/world-impact-evaluati
 }
 
 {
+  assert.equal(parseJQuantsV2DataDelayDays(undefined), 84, "V2 data delay未指定は84日");
+  assert.equal(parseJQuantsV2DataDelayDays("0"), 0, "0日delayを許可する");
+  assert.equal(parseJQuantsV2DataDelayDays("84"), 84, "正のsafe integer delayを保持する");
+  assert.equal(parseJQuantsV2DataDelayDays("3650"), 3650, "上限10年を許可する");
+  assert.equal(parseJQuantsV2DataDelayDays("3651"), 84, "過大delayは既定値へfail-closedする");
+  assert.equal(parseJQuantsV2DataDelayDays("abc"), 84, "非numeric delayは既定値へfail-closedする");
+  assert.equal(parseJQuantsV2DataDelayDays("-1"), 84, "負数delayは既定値へfail-closedする");
+  assert.equal(parseJQuantsV2DataDelayDays("1.5"), 84, "小数delayは既定値へfail-closedする");
+  assert.equal(parseJQuantsV2DataDelayDays("84days"), 84, "部分parse可能なdelayをrejectする");
+  assert.equal(parseJQuantsV2DataDelayDays("9007199254740992"), 84, "unsafe integer delayをrejectする");
+  console.log("jquants-config: V2 data delay is bounded and fail closed OK");
+}
+
+{
   assert.equal(parsePrimaryDisclosureEdinetDays(undefined), 5, "EDINET scan days未指定は既定5営業日");
   assert.equal(parsePrimaryDisclosureEdinetDays("5"), 5, "正の整数を保持する");
   assert.equal(parsePrimaryDisclosureEdinetDays("30"), 30, "上限30営業日を許可する");
@@ -146,10 +161,12 @@ import { resolveWorldImpactJquantsDelayDays } from "../src/world-impact-evaluati
 
 {
   const previousApiKey = process.env.JQUANTS_API_KEY;
+  const previousDelay = process.env.JQUANTS_V2_DATA_DELAY_DAYS;
   const previousFetch = globalThis.fetch;
   let networkCalls = 0;
   try {
     process.env.JQUANTS_API_KEY = "fixture-key";
+    process.env.JQUANTS_V2_DATA_DELAY_DAYS = "abc";
     globalThis.fetch = (async () => {
       networkCalls += 1;
       throw new Error("network must not be called for an ineligible range");
@@ -161,9 +178,11 @@ import { resolveWorldImpactJquantsDelayDays } from "../src/world-impact-evaluati
   } finally {
     if (previousApiKey === undefined) delete process.env.JQUANTS_API_KEY;
     else process.env.JQUANTS_API_KEY = previousApiKey;
+    if (previousDelay === undefined) delete process.env.JQUANTS_V2_DATA_DELAY_DAYS;
+    else process.env.JQUANTS_V2_DATA_DELAY_DAYS = previousDelay;
     globalThis.fetch = previousFetch;
   }
-  console.log("jquants-v2-date-cap: ineligible future-only fetch performs zero network calls OK");
+  console.log("jquants-v2-date-cap: malformed delay config fails closed before network calls OK");
 }
 
 console.log("jquants-v2-date-cap.test.ts passed");
