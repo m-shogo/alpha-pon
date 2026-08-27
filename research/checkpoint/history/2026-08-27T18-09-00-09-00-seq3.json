@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "sequence": 3,
+  "savedAt": "2026-08-27T18:09:00+09:00",
+  "actor": "chatgpt-hourly",
+  "researchedEdgeId": "misconduct-overreaction-recovery",
+  "researchDone": "Known-Bad Event Repricingを独立Research Edgeとしてdeprecatedにし、不祥事・ガバナンスshock後の回復Edgeへ統合した。初期shock後のlong recoveryをprimary route、既知悪材料の正式イベント通過後D+1/D+3/D+5の追加下落をsecondary repricing diagnosticとして同一incident timelineに保存する。これにより同じ不祥事を別Edgeで二重カウントせず、二次下落は買い急ぎ回避・WAIT・false bargain・entry timingの判断材料として研究する。Known-Badは正式sample 0件だったためsample/outcome移行は不要。",
+  "addedAnalogIds": [],
+  "rejections": [
+    {
+      "target": "Known-Bad Event Repricingを独立した現役Research Edgeのまま維持する案",
+      "reason": "不祥事回復Edgeと母集団、PIT時系列、価格、benchmark、confounderが大きく重なり、研究分散・二重カウント・Owner Dashboardの複雑化を招くため。"
+    }
+  ],
+  "dataGaps": [
+    "不祥事case内で初期shock・正式イベント・remediation・回復/非回復を1本に結ぶincident timeline contract",
+    "formal eventのpublicObservedAt/firstExecutableAtとnewFact/knownFact差分をPITで再現するdataset",
+    "初期shock直後・正式イベント通過後・D+1等のentry timing別MAE/MFE/Net Alpha比較",
+    "Sanrio seedを一次資料・価格・benchmark・confounder込みで統合caseとして完成する作業",
+    "旧idiosyncratic-shock 27候補を将来outcomeで選別せずsuccess/non-recovery/controlとしてreplayする作業",
+    "Owner Web /researchでdeprecated Edgeを現役件数へ混ぜず統合先へのprovenanceとして表示するUI"
+  ],
+  "nextCandidates": [
+    {
+      "edgeId": "ex-rights-overreaction-recovery",
+      "why": "現在の独立Research Edgeとして最優先。AEON/J Trustのlive observationと過去権利落ちuniverseをPITで接続し、residual dropと回復率を実測する。"
+    },
+    {
+      "edgeId": "misconduct-overreaction-recovery",
+      "why": "不祥事研究のcanonical Edge。Sanrioから初期shock、正式イベント時の二次下落、remediation、D+120までを同一timelineで再構成する。"
+    },
+    {
+      "edgeId": "external-incident-venue-negative-control",
+      "why": "会社内部責任のある不祥事と、外部犯罪・災害の舞台になっただけの事件を分離するnegative controlが統合Edgeの反証力を高める。"
+    }
+  ],
+  "openQuestions": [
+    "secondary repricingをlong entryのWAIT条件へ使う際、D+1/D+3/D+5のどこまで待つのが実測上最適か。",
+    "同一incident内の複数formal eventを独立観測点として持ちつつsample数を水増ししないcase weightingをどう固定するか。",
+    "actor separability・economic damage・brand damage・remediation qualityを人間間で再現できる分類contractへどこまで構造化するか。",
+    "旧27候補をexploratory cohortとして利用しつつconfirmatory/holdoutへのfuture-return leakageを防ぐ分離方法。"
+  ],
+  "osIssues": [
+    "Owner Web /researchはIssue #1295で追跡中。deprecated/superseded Edgeを現役研究と同列表示せず、統合履歴として辿れる表示が必要。"
+  ]
+}
