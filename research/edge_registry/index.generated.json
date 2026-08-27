@@ -1,5 +1,17 @@
 [
   {
+    "id": "ex-rights-overreaction-recovery",
+    "title": "Ex-Rights Overreaction Recovery Edge",
+    "status": "research",
+    "priority": "A",
+    "confidence": 0.25,
+    "owner": "chatgpt-hourly",
+    "lastUpdate": "2026-08-27",
+    "hypothesisFingerprint": "1de2bcb6",
+    "analogCount": 0,
+    "gatePassCount": 0
+  },
+  {
     "id": "known-bad-event-repricing",
     "title": "Known-Bad Event Repricing Edge",
     "status": "research",

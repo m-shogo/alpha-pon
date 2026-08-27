@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "asOf": "2026-08-26",
+  "asOf": "2026-08-27",
   "weights": {
     "roiNormalizationBps": 300,
     "expectedRoi": 0.25,
@@ -16,6 +16,30 @@
   "entries": [
     {
       "rank": 1,
+      "edgeId": "ex-rights-overreaction-recovery",
+      "title": "Ex-Rights Overreaction Recovery Edge",
+      "status": "research",
+      "voi": 0.7325,
+      "components": {
+        "expectedRoi": 0,
+        "uncertaintyReduction": 0.95,
+        "sampleGap": 1,
+        "historicalGap": 1,
+        "productionProximity": 0,
+        "decayUrgency": 1,
+        "executionImprovement": 0.65,
+        "priority": 0.75,
+        "researchCost": 0.65
+      },
+      "drivers": [
+        "Decay 再検証の期限が来ている",
+        "1回の研究で不確実性が大きく減る",
+        "Historical Analog が不足している"
+      ],
+      "suggestedAction": "Decay 再検証：直近データで Edge がまだ生きているか確認する"
+    },
+    {
+      "rank": 2,
       "edgeId": "known-bad-event-repricing",
       "title": "Known-Bad Event Repricing Edge",
       "status": "research",

@@ -2,9 +2,9 @@
 
 > このファイルは生成物です。直接編集しないでください（`pnpm research:dashboard` で再生成）。
 
-- 基準日 (asOf): 2026-08-26
-- 生成時刻: 2026-08-26T09:19:36.562Z
-- Edge: 1 件 / Historical Analog: 0 件 / Counterfactual: 0 件 / Confounder: 0 件
+- 基準日 (asOf): 2026-08-27
+- 生成時刻: 2026-08-27T08:14:04.593Z
+- Edge: 2 件 / Historical Analog: 0 件 / Counterfactual: 0 件 / Confounder: 0 件
 - 整合性: エラー 0 件 / 警告 0 件
 
 ## ステータス別
@@ -13,7 +13,7 @@
 | --- | --- |
 | Production | 0 |
 | Shadow | 0 |
-| Research | 1 |
+| Research | 2 |
 | Idea | 0 |
 | Rejected | 0 |
 | Deprecated | 0 |
@@ -22,7 +22,8 @@
 
 | # | Edge | Status | VOI | 理由 | 推奨アクション |
 | --- | --- | --- | --- | --- | --- |
-| 1 | known-bad-event-repricing | research | 0.705 | Decay 再検証の期限が来ている / 1回の研究で不確実性が大きく減る / Historical Analog が不足している | Decay 再検証：直近データで Edge がまだ生きているか確認する |
+| 1 | ex-rights-overreaction-recovery | research | 0.733 | Decay 再検証の期限が来ている / 1回の研究で不確実性が大きく減る / Historical Analog が不足している | Decay 再検証：直近データで Edge がまだ生きているか確認する |
+| 2 | known-bad-event-repricing | research | 0.705 | Decay 再検証の期限が来ている / 1回の研究で不確実性が大きく減る / Historical Analog が不足している | Decay 再検証：直近データで Edge がまだ生きているか確認する |
 
 ## Promotion Ready（Gate 全通過・人間の昇格判断待ち）
 
@@ -36,12 +37,14 @@ _該当なし_
 
 | Edge | Status | Priority | Confidence | Gate | Analog | Sample | Last Update |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| ex-rights-overreaction-recovery | Research | A | 0.25 | 0/11 | 0 | 0/120 | 2026-08-27 |
 | known-bad-event-repricing | Research | A | 0.20 | 0/11 | 0 | 0/40 | 2026-08-05 |
 
 ## Edge Decay
 
 | Edge | Status | Decay | 最終確認 | 経過日数 | アクション |
 | --- | --- | --- | --- | --- | --- |
+| ex-rights-overreaction-recovery | research | never_checked | - | - | 初回の Decay 確認を行う |
 | known-bad-event-repricing | research | never_checked | - | - | 初回の Decay 確認を行う |
 
 ## 整合性チェック
