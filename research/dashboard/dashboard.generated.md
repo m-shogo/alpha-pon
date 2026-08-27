@@ -3,7 +3,7 @@
 > このファイルは生成物です。直接編集しないでください（`pnpm research:dashboard` で再生成）。
 
 - 基準日 (asOf): 2026-08-27
-- 生成時刻: 2026-08-27T09:00:14.344Z
+- 生成時刻: 2026-08-27T09:01:00.000Z
 - Edge: 3 件 / Historical Analog: 0 件 / Counterfactual: 0 件 / Confounder: 0 件
 - 整合性: エラー 0 件 / 警告 0 件
 
@@ -56,10 +56,10 @@ _該当なし_
 
 ## Checkpoint（次回はここから）
 
-- sequence: 1（保存: 2026-08-05T03:29:00.000Z / chatgpt-hourly）
-- 今回行った研究: 既存のKnown-Bad Event Repricing研究をResearch OSの最初のEdgeへ移し、機構、対象event、PIT条件、entry/exit候補、交絡、執行制約、反証条件、source policy、hard blockerを固定した。実価格とAnalogが無いため全Promotion Gateはunknownのまま維持した。
-- 不足データ: PIT安全な個別株OHLCV・TOPIX・業種benchmark・corporate action価格ストア / formal eventごとのpublicObservedAtとfirstExecutableAt / 同日決算・業績修正・資本政策・指数・大口売買のconfounder ledger / 貸株可否・逆日歩・borrow cost・spread・liquidity / immutable Historical Analogの初期sample / matched controlとgeneric reversal model
+- sequence: 2（保存: 2026-08-27T18:00:30+09:00 / chatgpt-hourly）
+- 今回行った研究: 権利落ち後の過剰下落回復Edgeと、不祥事・ガバナンスshock後の過剰下落回復EdgeをResearch OSへ登録し、既存Known-Bad short側・Remediation risk-control側との責務を分離した。あわせて研究結果・過程を読むcanonical順序をREADMEへ明記し、Owner向けWeb /research可視化をIssue #1295として起票した。両Edgeとも実sample未登録のため全Promotion Gateはunknownを維持した。
+- 不足データ: 権利落ちEdgeのhistorical優待/配当制度を当時時点で復元した120件以上のsample / 優待cash-equivalent、ex-day first executable price、TOPIX/業種/matched control、信用需給のPIT dataset / 不祥事Edgeの経済実害・会計影響・actor separability・regulatory/litigation・brand damageを一次情報で再現した120件以上のsample / 旧idiosyncratic-shock 27候補をoutcome-blind selection provenanceを維持して現Research OSへ移行するreplay / 両Edgeの成功・非回復・悪化・negative controlとuntouched issuer-level holdout / Owner Web UIでResearch Dashboard / Log / Checkpoint / Analog / Outcomeを統合表示する/read-only research surface
 - 次回研究候補:
-  - `known-bad-event-repricing` — 最初のEdgeとして登録したが、Sanrio calibration timeline、Analog、PIT価格、confounderが未接続で最優先の継続研究が必要。
-  - `exchange-sanction-ladder` — 正式状態遷移という機構が近く、Known-Bad umbrellaへ統合する範囲と独立Edgeにする範囲を先に確定する必要がある。
-  - `external-incident-venue-negative-control` — 会社内部の問題と外部事件の舞台化を分離するnegative controlが、交絡除去と反証力を高める。
+  - `ex-rights-overreaction-recovery` — 現在VOI 1位。AEON/J Trustのlive observationと過去権利落ちuniverseをPITで接続し、residual dropと回復率を実測する必要がある。
+  - `misconduct-overreaction-recovery` — 現在VOI 2位。Sanrioを証明ではなくseedとしてPIT再構成し、旧27候補から勝ち事例だけ選ばずsuccess/non-recovery/controlを移行する必要がある。
+  - `known-bad-event-repricing` — formal event通過時のshort repricing研究としてlong recovery Edgeと混同せず、実価格・confounderを接続して役割差を検証する必要がある。
