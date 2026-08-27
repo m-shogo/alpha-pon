@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import "./company-network-peer-identity.test.js";
+import "./market-event-lifecycle-instant.test.js";
 import { linkSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";

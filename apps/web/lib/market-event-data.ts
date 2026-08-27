@@ -287,9 +287,13 @@ function isRenderableWebMarketEvent(value: unknown): value is WebMarketEvent {
     || !isStringArray(value.checksAfter)
     || !isStringArray(value.relatedEventIds)
     || typeof value.lastVerifiedAt !== 'string'
+    || !isStrictMarketEventInstant(value.lastVerifiedAt)
     || !isNullableString(value.staleAfter)
+    || (value.staleAfter !== null && !isStrictMarketEventInstant(value.staleAfter))
     || typeof value.createdAt !== 'string'
+    || !isStrictMarketEventInstant(value.createdAt)
     || typeof value.updatedAt !== 'string'
+    || !isStrictMarketEventInstant(value.updatedAt)
     || !Number.isInteger(value.revisionNumber) || Number(value.revisionNumber) < 1
     || !Array.isArray(value.sources) || !value.sources.every(isMarketEventSource)
     || !['FRESH', 'STALE', 'UNKNOWN'].includes(String(value.freshnessState))
