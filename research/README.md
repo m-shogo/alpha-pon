@@ -28,7 +28,7 @@
 - `Sample 0/N` = 仮説は登録済みだが、Research OS正本へ正式な実サンプルがまだ入っていない。
 - `Gate 0/11` = 不合格という意味ではなく、未検証のGateが多い状態を含む。
 
-現在はGitHub内のResearch Dashboardが正本。Owner向けWeb UIでも同じ内容を見られるようにすることを別途改善対象とする。
+現在はGitHub内のResearch Dashboardが正本。Owner向けWeb UIでも同じ内容を見られるようにする改善は Issue #1295 で追跡する。
 
 ## ディレクトリ
 
