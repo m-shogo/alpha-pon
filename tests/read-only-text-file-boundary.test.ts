@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { linkSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { linkSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { readReadOnlyTextFile } from "../src/read-only-text-file.js";
@@ -25,6 +25,18 @@ try {
   linkSync(canonical, hardlinkPath);
   assert.equal(readReadOnlyTextFile(canonical), "", "a multiply-linked source must fail closed even through its original path");
   assert.equal(readReadOnlyTextFile(hardlinkPath), "", "hard-linked aliases must fail closed");
+
+  const knowledgeReviewSource = readFileSync("src/knowledge-review.ts", "utf-8");
+  assert.match(
+    knowledgeReviewSource,
+    /readReadOnlyTextFile\("reports\/regime_scenarios_latest\.md"\)/,
+    "weekly/monthly knowledge review must use the canonical text Evidence boundary",
+  );
+  assert.doesNotMatch(
+    knowledgeReviewSource,
+    /function readText\(|readFileSync\(path, "utf-8"\)/,
+    "knowledge review must not bypass the canonical text Evidence boundary",
+  );
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
