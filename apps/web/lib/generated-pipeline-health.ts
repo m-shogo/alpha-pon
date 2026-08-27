@@ -1,4 +1,4 @@
-import { isPipelineStatusHealthy, type PipelineStatusViewInput } from './pipeline-status-view.js'
+import { isPipelineStatusHealthy, type PipelineStatusViewInput } from './pipeline-status-view'
 
 export type GeneratedPipelineFailureSummary = {
   failed: boolean
