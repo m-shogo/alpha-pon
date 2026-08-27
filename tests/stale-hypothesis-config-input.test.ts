@@ -57,6 +57,32 @@ const malformedOptionalFields = normalizeStaleHypothesisConfig({
 assert.deepEqual(malformedOptionalFields.categories[0]?.companies, [{ code: "8136", name: "Sample" }]);
 assert.equal(malformedOptionalFields.warnings.length, 2);
 
+for (const invalidStatus of ["unknown", "WATCH", "retierd", " retired "]) {
+  const normalized = normalizeStaleHypothesisConfig({
+    categories: {
+      theme: {
+        label: "Theme",
+        companies: [{ code: "8136", name: "Sample", status: invalidStatus }],
+      },
+    },
+  }, AS_OF);
+  assert.deepEqual(normalized.categories[0]?.companies, [{ code: "8136", name: "Sample" }]);
+  assert.equal(normalized.warnings.length, 1, `${invalidStatus} must fail closed`);
+}
+
+for (const validStatus of ["active", "watch", "stale", "retired"]) {
+  const normalized = normalizeStaleHypothesisConfig({
+    categories: {
+      theme: {
+        label: "Theme",
+        companies: [{ code: "8136", name: "Sample", status: validStatus }],
+      },
+    },
+  }, AS_OF);
+  assert.equal(normalized.warnings.length, 0);
+  assert.equal(normalized.categories[0]?.companies[0]?.status, validStatus);
+}
+
 for (const invalidReviewDate of ["2026-02-31", "0000-01-01", "2026-08-28", "2026-08-01T00:00:00+09:00"]) {
   const normalized = normalizeStaleHypothesisConfig({
     categories: {

@@ -2,6 +2,8 @@ import { addDaysJst, todayJst } from "./date.js";
 
 type UnknownRecord = Record<string, unknown>;
 
+const STALE_HYPOTHESIS_STATUSES = new Set(["active", "watch", "stale", "retired"]);
+
 function isRecord(value: unknown): value is UnknownRecord {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -10,6 +12,11 @@ function canonicalNonBlankString(value: unknown): string | null {
   if (typeof value !== "string") return null;
   if (value.trim().length === 0 || value !== value.trim()) return null;
   return value;
+}
+
+function canonicalHypothesisStatus(value: unknown): string | null {
+  const candidate = canonicalNonBlankString(value);
+  return candidate && STALE_HYPOTHESIS_STATUSES.has(candidate) ? candidate : null;
 }
 
 function canonicalPastDate(value: unknown, asOf: string): string | null {
@@ -80,7 +87,7 @@ export function normalizeStaleHypothesisConfig(value: unknown, asOf = todayJst()
       }
       seenCodes.add(code);
 
-      const status = rawCompany.status === undefined ? undefined : canonicalNonBlankString(rawCompany.status);
+      const status = rawCompany.status === undefined ? undefined : canonicalHypothesisStatus(rawCompany.status);
       const lastReviewedAt = rawCompany.lastReviewedAt === undefined ? undefined : canonicalPastDate(rawCompany.lastReviewedAt, asOf);
       if (rawCompany.status !== undefined && !status) {
         warnings.push(`company-hypotheses.yml category ${categoryId} company ${code} status is invalid`);
