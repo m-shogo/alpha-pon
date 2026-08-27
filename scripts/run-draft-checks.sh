@@ -38,6 +38,7 @@ node --import tsx/esm tests/run-daily-status-write.test.ts
 node --import tsx/esm tests/job-lock-input.test.ts
 node --import tsx/esm tests/proposals-pipeline-input.test.ts
 node --import tsx/esm tests/proposals-rule-diagnostics-input.test.ts
+node --import tsx/esm tests/proposals-score-input.test.ts
 node --import tsx/esm tests/run-cursor-input.test.ts
 node --import tsx/esm tests/ipo-theme-outcome-date-input.test.ts
 node --import tsx/esm tests/world-impact-review-input-identity.test.ts
