@@ -63,11 +63,19 @@ const REQUIRED_SOURCE_HEALTH_REPORTS = [
   "stockPro",
   "regime",
 ] as const;
+const REQUIRED_SOURCE_HEALTH_REPORT_SET = new Set<string>(REQUIRED_SOURCE_HEALTH_REPORTS);
 
 export function isUsableYearlySourceHealthHistory(value: unknown, asOf: string): boolean {
   if (!isRecord(value)) return false;
   if (!isRealDateOnOrBefore(value.date, asOf)) return false;
   if (!isRecord(value.reports)) return false;
+  const reportNames = Object.keys(value.reports);
+  if (
+    reportNames.length !== REQUIRED_SOURCE_HEALTH_REPORTS.length ||
+    reportNames.some(name => !REQUIRED_SOURCE_HEALTH_REPORT_SET.has(name))
+  ) {
+    return false;
+  }
   if (!REQUIRED_SOURCE_HEALTH_REPORTS.every(name => Object.prototype.hasOwnProperty.call(value.reports, name))) {
     return false;
   }
