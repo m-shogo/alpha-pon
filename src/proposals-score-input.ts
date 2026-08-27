@@ -29,9 +29,23 @@ function hasSafePrimaryDisclosureReview(value: unknown): boolean {
   if (review === undefined) return true;
   if (!isRecord(review) || !["confirmed", "caution", "block", "missing"].includes(String(review.decision))) return false;
   if (!isRecord(review.sourceCoverage)) return false;
+
+  const tdnetCount = review.sourceCoverage.tdnetCount;
+  const edinetCount = review.sourceCoverage.edinetCount;
+  const hasPrimarySource = review.sourceCoverage.hasPrimarySource;
   const fetchErrorCount = review.sourceCoverage.fetchErrorCount;
-  return fetchErrorCount === undefined
-    || (Number.isSafeInteger(fetchErrorCount) && Number(fetchErrorCount) >= 0);
+  if (!Number.isSafeInteger(tdnetCount) || Number(tdnetCount) < 0) return false;
+  if (!Number.isSafeInteger(edinetCount) || Number(edinetCount) < 0) return false;
+  if (typeof hasPrimarySource !== "boolean") return false;
+  if (fetchErrorCount !== undefined && (!Number.isSafeInteger(fetchErrorCount) || Number(fetchErrorCount) < 0)) return false;
+
+  const hasCountedSource = Number(tdnetCount) + Number(edinetCount) > 0;
+  if (hasPrimarySource !== hasCountedSource) return false;
+
+  const fetchErrors = fetchErrorCount === undefined ? 0 : Number(fetchErrorCount);
+  if (review.decision === "confirmed" && (!hasPrimarySource || fetchErrors > 0)) return false;
+  if (review.decision === "missing" && (hasPrimarySource || fetchErrors > 0)) return false;
+  return true;
 }
 
 function hasSafeMarketContext(value: unknown, expectedCode: string | null, snapshotDate: string): boolean {
