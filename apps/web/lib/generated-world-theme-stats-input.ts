@@ -93,11 +93,18 @@ function isThemeStat(value: unknown): value is WorldThemeCandidateThemeStat {
   return value.recent.length <= value.total && isResultCounts(value.resultCounts, value.total)
 }
 
+function rowsAreAtOrBeforeGeneratedAt(rows: WorldThemeCandidateStatsRow[], generatedAt: string): boolean {
+  return rows.every((row) => row.reviewedAt <= generatedAt)
+}
+
 export function isGeneratedWorldThemeStatsInput(value: unknown): value is WorldThemeCandidateStats {
   if (!isRecord(value)) return false
-  if (!isCanonicalPastOrPresentDate(value.generatedAt) || !isNonNegativeInteger(value.total)) return false
+  const generatedAt = value.generatedAt
+  if (!isCanonicalPastOrPresentDate(generatedAt) || !isNonNegativeInteger(value.total)) return false
   if (!Array.isArray(value.byTheme) || !value.byTheme.every(isThemeStat)) return false
   if (!Array.isArray(value.recent) || !value.recent.every(isStatsRow) || value.recent.length > value.total) return false
+  if (!rowsAreAtOrBeforeGeneratedAt(value.recent, generatedAt)) return false
+  if (!value.byTheme.every((stat) => rowsAreAtOrBeforeGeneratedAt(stat.recent, generatedAt))) return false
   if (!Array.isArray(value.inputWarnings) || !value.inputWarnings.every((warning) => typeof warning === 'string')) return false
   if (new Set(value.byTheme.map((stat) => stat.theme)).size !== value.byTheme.length) return false
   return value.byTheme.reduce((sum, stat) => sum + stat.total, 0) === value.total
