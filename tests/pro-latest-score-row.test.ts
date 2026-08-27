@@ -1,17 +1,19 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { linkSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { readLatestProScores } from "../src/pro-latest-score-input.js";
 
 const dir = mkdtempSync(join(tmpdir(), "pro-score-row-"));
 try {
-  writeFileSync(join(dir, "scores_2026-08-18.json"), JSON.stringify([
+  const canonicalRows = JSON.stringify([
     { code: "8136", name: "Sanrio", createdAt: "2026-08-18", warnings: ["valid"] },
     { code: "7974", name: "Nintendo", createdAt: "2026-08-18", warnings: {} },
     { code: "4661", name: "OLC", createdAt: "2026-08-18", reasons: "broken" },
     { code: "6501", name: "Hitachi", createdAt: "2026-08-17", warnings: [] },
-  ]), "utf-8");
+  ]);
+  const scorePath = join(dir, "scores_2026-08-18.json");
+  writeFileSync(scorePath, canonicalRows, "utf-8");
 
   const linkedTarget = join(dir, "linked-score-target");
   const linkedRoot = join(dir, "linked-score-root");
@@ -23,6 +25,25 @@ try {
     /pro-score root must be a real directory/,
     "symlinked score roots must not redirect Pro quality provenance outside the configured reports directory",
   );
+
+  const scoreAliasTarget = join(dir, "score-alias-target.json");
+  writeFileSync(scoreAliasTarget, canonicalRows, "utf-8");
+  rmSync(scorePath);
+  symlinkSync(scoreAliasTarget, scorePath);
+  assert.throws(
+    () => readLatestProScores(dir, "2026-08-18"),
+    /score snapshot must be a standalone regular file/,
+    "symlinked score snapshots must not become canonical Pro quality evidence",
+  );
+  rmSync(scorePath);
+  linkSync(scoreAliasTarget, scorePath);
+  assert.throws(
+    () => readLatestProScores(dir, "2026-08-18"),
+    /score snapshot must be a standalone regular file/,
+    "hard-linked score snapshots must not become canonical Pro quality evidence",
+  );
+  rmSync(scorePath);
+  writeFileSync(scorePath, canonicalRows, "utf-8");
 
   assert.throws(
     () => readLatestProScores(dir, "not-a-date"),
@@ -44,7 +65,7 @@ try {
     "warning must not expose raw row content",
   );
 
-  writeFileSync(join(dir, "scores_2026-08-18.json"), JSON.stringify([
+  writeFileSync(scorePath, JSON.stringify([
     { code: "8136", name: "Sanrio old", createdAt: "2026-08-18", warnings: [] },
     { code: "7974", name: "Nintendo", createdAt: "2026-08-18", warnings: [] },
     { code: "8136", name: "Sanrio new", createdAt: "2026-08-18", warnings: [] },
@@ -59,4 +80,4 @@ try {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("pro-latest-score-row: canonical root, malformed, stale, duplicate, and invalid-cutoff score input is fail-closed OK");
+console.log("pro-latest-score-row: canonical root/file, malformed, stale, duplicate, and invalid-cutoff score input is fail-closed OK");
