@@ -2,11 +2,9 @@ import { mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
+import { normalizeStaleHypothesisConfig, type StaleHypothesisCompany } from "./stale-hypothesis-config-input.js";
 import { staleHypothesisAgeDays } from "./stale-hypothesis-date.js";
 import { readNonMoveHistoryJsonl } from "./stale-hypothesis-input.js";
-
-type Company = { code: string; name: string; status?: string; lastReviewedAt?: string };
-type Config = { categories: Record<string, { label: string; companies: Company[] }> };
 
 type NonMoveStats = { count: number; reasons: string[]; topReason: string };
 
@@ -31,7 +29,7 @@ function nonMoveStatsByCode(): { stats: Map<string, NonMoveStats>; warning: stri
   return { stats, warning: history.warning };
 }
 
-function actionFor(company: Company, stat?: NonMoveStats): string {
+function actionFor(company: StaleHypothesisCompany, stat?: NonMoveStats): string {
   const age = staleHypothesisAgeDays(company.lastReviewedAt);
   if (company.status === "retired") return "retired";
   if (company.status === "stale") return "stale";
@@ -45,12 +43,12 @@ function actionFor(company: Company, stat?: NonMoveStats): string {
 
 function main() {
   const date = todayJst();
-  const config = load(readFileSync("config/company-hypotheses.yml", "utf-8")) as Config;
+  const config = normalizeStaleHypothesisConfig(load(readFileSync("config/company-hypotheses.yml", "utf-8")));
   const nonMove = nonMoveStatsByCode();
-  const rows: Array<{ category: string; company: Company; action: string; age: number | null; stat?: NonMoveStats }> = [];
+  const rows: Array<{ category: string; company: StaleHypothesisCompany; action: string; age: number | null; stat?: NonMoveStats }> = [];
 
-  for (const category of Object.values(config.categories ?? {})) {
-    for (const company of category.companies ?? []) {
+  for (const category of config.categories) {
+    for (const company of category.companies) {
       const stat = nonMove.stats.get(company.code);
       const action = actionFor(company, stat);
       if (action !== "keep") rows.push({ category: category.label, company, action, age: staleHypothesisAgeDays(company.lastReviewedAt), stat });
@@ -63,6 +61,11 @@ function main() {
   lines.push(`date: ${date}`);
   lines.push("");
   lines.push("DBは増やすだけでは危険です。古い仮説と、同じ理由で外し続ける仮説を review / retire 候補にします。");
+  if (config.warnings.length > 0) {
+    lines.push("");
+    for (const warning of config.warnings) lines.push(`⚠️ ${warning}`);
+    lines.push("company-hypotheses.yml の破損行は判定から隔離しています。入力を修復してから完全な stale 判定を行ってください。");
+  }
   if (nonMove.warning) {
     lines.push("");
     lines.push(`⚠️ ${nonMove.warning}`);
