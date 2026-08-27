@@ -58,6 +58,24 @@ for (const generatedAt of [
     'Actions must reject missing, ambiguous, nonexistent, or future generated-rule provenance',
   )
 }
+for (const identityPatch of [
+  { generatedRuleId: ' rule-8136 ' },
+  { code: ' 8136 ' },
+]) {
+  assert.deepEqual(
+    normalizeGeneratedCompanyRules([{ ...validRule, ...identityPatch }]),
+    { rows: [], warning: 'generatedCompanyRules: invalid_rows 1' },
+    'Actions must reject padded generated-rule identities',
+  )
+}
+assert.deepEqual(
+  normalizeGeneratedCompanyRules([
+    validRule,
+    { ...validRule, name: 'Conflicting duplicate' },
+  ]),
+  { rows: [], warning: 'generatedCompanyRules: invalid_rows 2' },
+  'duplicate generatedRuleId rows must not double-count ambiguous action evidence',
+)
 assert.deepEqual(normalizeGeneratedCompanyRules([validRule]), { rows: [validRule], warning: null })
 
 console.log('generated company rules: malformed rows are isolated before Actions page rendering OK')

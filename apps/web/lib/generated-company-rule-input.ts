@@ -62,8 +62,10 @@ export function isGeneratedCompanyRuleInput(value: unknown): boolean {
   const rule = value as Record<string, unknown>
   return typeof rule.generatedRuleId === 'string'
     && rule.generatedRuleId.trim().length > 0
+    && rule.generatedRuleId === rule.generatedRuleId.trim()
     && typeof rule.code === 'string'
     && rule.code.trim().length > 0
+    && rule.code === rule.code.trim()
     && typeof rule.name === 'string'
     && rule.name.trim().length > 0
     && isPastOrPresentExplicitTimezoneInstant(rule.generatedAt)
@@ -84,7 +86,12 @@ export function isGeneratedCompanyRuleInput(value: unknown): boolean {
 export function normalizeGeneratedCompanyRules(value: unknown): { rows: unknown[]; warning: string | null } {
   if (value === undefined || value === null) return { rows: [], warning: null }
   if (!Array.isArray(value)) return { rows: [], warning: 'generatedCompanyRules: invalid_root' }
-  const rows = value.filter(isGeneratedCompanyRuleInput)
+  const structurallyValidRows = value.filter(isGeneratedCompanyRuleInput) as Array<{ generatedRuleId: string }>
+  const idCounts = new Map<string, number>()
+  for (const row of structurallyValidRows) {
+    idCounts.set(row.generatedRuleId, (idCounts.get(row.generatedRuleId) ?? 0) + 1)
+  }
+  const rows = structurallyValidRows.filter((row) => idCounts.get(row.generatedRuleId) === 1)
   const invalidCount = value.length - rows.length
   return {
     rows,
