@@ -19,7 +19,7 @@ test("fails closed on missing or unknown special ops health status", () => {
   assert.equal(normalizeSpecialOpsHealthStatus(""), null);
 });
 
-test("accepts only array-shaped special ops action items", () => {
+test("accepts only canonical special ops action items", () => {
   assert.deepEqual(normalizeSpecialOpsActionItems([]), []);
   assert.deepEqual(
     normalizeSpecialOpsActionItems([
@@ -36,4 +36,9 @@ test("fails closed on malformed special ops action items", () => {
   assert.equal(normalizeSpecialOpsActionItems("broken"), null);
   assert.equal(normalizeSpecialOpsActionItems([null]), null);
   assert.equal(normalizeSpecialOpsActionItems(["urgent"]), null);
+  assert.equal(normalizeSpecialOpsActionItems([{}]), null);
+  assert.equal(normalizeSpecialOpsActionItems([{ priority: "urgent" }]), null);
+  assert.equal(normalizeSpecialOpsActionItems([{ priority: "urgent ", title: "Review" }]), null);
+  assert.equal(normalizeSpecialOpsActionItems([{ priority: "urgent", title: " Review " }]), null);
+  assert.equal(normalizeSpecialOpsActionItems([{ priority: "urgent", title: "Review", command: "" }]), null);
 });
