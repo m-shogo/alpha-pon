@@ -5,6 +5,7 @@ import {
   readListingEventReviewInput,
   type ListingEventReviewInputRow as ListingEvent,
 } from "./listing-event-review-input.js";
+import { listingReviewRowIsCurrent } from "./listing-review-targets.js";
 
 type ReviewRow = {
   id: string;
@@ -72,7 +73,7 @@ function pct(value: number | null): string {
 function main() {
   const today = todayJst();
   const input = readListingEventReviewInput(DATA_PATH);
-  const rows = input.rows.flatMap(buildRows);
+  const rows = input.rows.flatMap(buildRows).filter(row => listingReviewRowIsCurrent(row.reviewDate, today));
   const missing = rows.filter(row => row.dataQuality !== "ready");
   const lines: string[] = [];
 
