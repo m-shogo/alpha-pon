@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { readLatestProScores } from "../src/pro-latest-score-input.js";
@@ -12,6 +12,17 @@ try {
     { code: "4661", name: "OLC", createdAt: "2026-08-18", reasons: "broken" },
     { code: "6501", name: "Hitachi", createdAt: "2026-08-17", warnings: [] },
   ]), "utf-8");
+
+  const linkedTarget = join(dir, "linked-score-target");
+  const linkedRoot = join(dir, "linked-score-root");
+  mkdirSync(linkedTarget);
+  writeFileSync(join(linkedTarget, "scores_2026-08-18.json"), "[]", "utf-8");
+  symlinkSync(linkedTarget, linkedRoot);
+  assert.throws(
+    () => readLatestProScores(linkedRoot, "2026-08-18"),
+    /pro-score root must be a real directory/,
+    "symlinked score roots must not redirect Pro quality provenance outside the configured reports directory",
+  );
 
   assert.throws(
     () => readLatestProScores(dir, "not-a-date"),
@@ -48,4 +59,4 @@ try {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("pro-latest-score-row: malformed, stale, duplicate, and invalid-cutoff score input is fail-closed OK");
+console.log("pro-latest-score-row: canonical root, malformed, stale, duplicate, and invalid-cutoff score input is fail-closed OK");
