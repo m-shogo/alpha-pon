@@ -1,3 +1,5 @@
+import { addDaysJst, todayJst } from "./date.js";
+
 type UnknownRecord = Record<string, unknown>;
 
 function isRecord(value: unknown): value is UnknownRecord {
@@ -8,6 +10,16 @@ function canonicalNonBlankString(value: unknown): string | null {
   if (typeof value !== "string") return null;
   if (value.trim().length === 0 || value !== value.trim()) return null;
   return value;
+}
+
+function canonicalPastDate(value: unknown, asOf: string): string | null {
+  const candidate = canonicalNonBlankString(value);
+  if (!candidate) return null;
+  try {
+    return addDaysJst(candidate, 0) === candidate && candidate <= asOf ? candidate : null;
+  } catch {
+    return null;
+  }
 }
 
 export type StaleHypothesisCompany = {
@@ -27,7 +39,7 @@ export type StaleHypothesisConfigState = {
   warnings: string[];
 };
 
-export function normalizeStaleHypothesisConfig(value: unknown): StaleHypothesisConfigState {
+export function normalizeStaleHypothesisConfig(value: unknown, asOf = todayJst()): StaleHypothesisConfigState {
   const warnings: string[] = [];
   if (!isRecord(value) || !isRecord(value.categories)) {
     return { categories: [], warnings: ["company-hypotheses.yml root/categories shape is invalid"] };
@@ -69,7 +81,7 @@ export function normalizeStaleHypothesisConfig(value: unknown): StaleHypothesisC
       seenCodes.add(code);
 
       const status = rawCompany.status === undefined ? undefined : canonicalNonBlankString(rawCompany.status);
-      const lastReviewedAt = rawCompany.lastReviewedAt === undefined ? undefined : canonicalNonBlankString(rawCompany.lastReviewedAt);
+      const lastReviewedAt = rawCompany.lastReviewedAt === undefined ? undefined : canonicalPastDate(rawCompany.lastReviewedAt, asOf);
       if (rawCompany.status !== undefined && !status) {
         warnings.push(`company-hypotheses.yml category ${categoryId} company ${code} status is invalid`);
       }
