@@ -34,10 +34,26 @@ function hasSafePrimaryDisclosureReview(value: unknown): boolean {
     || (Number.isSafeInteger(fetchErrorCount) && Number(fetchErrorCount) >= 0);
 }
 
+function hasSafeMarketContext(value: unknown): boolean {
+  if (value === undefined) return true;
+  if (!isRecord(value)) return false;
+  return typeof value.code === "string"
+    && value.code.length > 0
+    && value.code === value.code.trim()
+    && typeof value.date === "string"
+    && /^\d{4}-\d{2}-\d{2}$/.test(value.date);
+}
+
+function hasSafeFinancialQuality(value: unknown): boolean {
+  if (value === undefined) return true;
+  if (!isRecord(value)) return false;
+  return typeof value.qualityScore === "number" && Number.isFinite(value.qualityScore);
+}
+
 function hasSafeProposalContextObjects(value: unknown): boolean {
   if (!isRecord(value)) return true;
-  return (value.marketContext === undefined || isRecord(value.marketContext))
-    && (value.financialQuality === undefined || isRecord(value.financialQuality));
+  return hasSafeMarketContext(value.marketContext)
+    && hasSafeFinancialQuality(value.financialQuality);
 }
 
 function stableCode(value: unknown): string | null {
