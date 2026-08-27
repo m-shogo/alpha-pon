@@ -25,6 +25,10 @@ function isOptionalFiniteNumber(value: unknown): boolean {
   return value === undefined || (typeof value === "number" && Number.isFinite(value));
 }
 
+function isOptionalDrawdownPct(value: unknown): boolean {
+  return value === undefined || (typeof value === "number" && Number.isFinite(value) && value <= 0);
+}
+
 function isRealJstDate(value: unknown): value is string {
   if (typeof value !== "string") return false;
   try {
@@ -93,8 +97,8 @@ function isUsableAnalogyOutcomeRecord(value: unknown, asOf: string): value is An
     isOptionalFiniteNumber(row.returnPct) &&
     isOptionalFiniteNumber(row.benchmarkReturnPct) &&
     isOptionalFiniteNumber(row.relativeReturnPct) &&
-    isOptionalFiniteNumber(row.maxDrawdownPct) &&
-    isOptionalFiniteNumber(row.benchmarkMaxDrawdownPct) &&
+    isOptionalDrawdownPct(row.maxDrawdownPct) &&
+    isOptionalDrawdownPct(row.benchmarkMaxDrawdownPct) &&
     isStringArray(row.whatMatched) &&
     isStringArray(row.whatDiffered) &&
     isStringArray(row.missedSignals) &&
