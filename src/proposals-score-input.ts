@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
-import { todayJst } from "./date.js";
+import { addDaysJst, todayJst } from "./date.js";
 import { isCanonicalReadOnlyJsonFile } from "./read-only-json-file.js";
 import { latestValuationScoreFile } from "./valuation-range-input.js";
 
@@ -34,14 +34,16 @@ function hasSafePrimaryDisclosureReview(value: unknown): boolean {
     || (Number.isSafeInteger(fetchErrorCount) && Number(fetchErrorCount) >= 0);
 }
 
-function hasSafeMarketContext(value: unknown): boolean {
+function hasSafeMarketContext(value: unknown, expectedCode: string | null, snapshotDate: string): boolean {
   if (value === undefined) return true;
-  if (!isRecord(value)) return false;
-  return typeof value.code === "string"
-    && value.code.length > 0
-    && value.code === value.code.trim()
-    && typeof value.date === "string"
-    && /^\d{4}-\d{2}-\d{2}$/.test(value.date);
+  if (!isRecord(value) || expectedCode === null) return false;
+  if (value.code !== expectedCode || typeof value.date !== "string") return false;
+
+  try {
+    return addDaysJst(value.date, 0) === value.date && value.date <= snapshotDate;
+  } catch {
+    return false;
+  }
 }
 
 function hasSafeFinancialQuality(value: unknown): boolean {
@@ -50,9 +52,9 @@ function hasSafeFinancialQuality(value: unknown): boolean {
   return typeof value.qualityScore === "number" && Number.isFinite(value.qualityScore);
 }
 
-function hasSafeProposalContextObjects(value: unknown): boolean {
+function hasSafeProposalContextObjects(value: unknown, snapshotDate: string): boolean {
   if (!isRecord(value)) return true;
-  return hasSafeMarketContext(value.marketContext)
+  return hasSafeMarketContext(value.marketContext, stableCode(value), snapshotDate)
     && hasSafeFinancialQuality(value.financialQuality);
 }
 
@@ -120,7 +122,7 @@ export function readProposalScores<T>(
     }
 
     const unsafeContextRows = parsed
-      .map((row, index) => hasSafeProposalContextObjects(row) ? null : index + 1)
+      .map((row, index) => hasSafeProposalContextObjects(row, snapshotDate) ? null : index + 1)
       .filter((row): row is number => row !== null);
     if (unsafeContextRows.length > 0) {
       throw new Error(`${sourceFile}: proposal score context shape is invalid at row(s) ${unsafeContextRows.join(", ")}`);
