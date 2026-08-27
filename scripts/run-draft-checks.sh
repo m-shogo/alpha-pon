@@ -14,6 +14,7 @@ node --import tsx/esm tests/price-signal.test.ts
 node --import tsx/esm tests/safe-wording.test.ts
 node --import tsx/esm tests/pro-disagreement.test.ts
 node --import tsx/esm tests/pro-generated-data-shape.test.ts
+node --import tsx/esm tests/generated-rule-input.test.ts
 node --import tsx/esm tests/source-health-coverage-shape.test.ts
 node --import tsx/esm tests/source-health-report-file.test.ts
 node --import tsx/esm tests/source-health-score-file.test.ts
