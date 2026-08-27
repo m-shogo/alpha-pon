@@ -1,7 +1,8 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
 import { readKnowledgeReviewJsonl } from "./knowledge-review-input.js";
+import { readReadOnlyTextFile } from "./read-only-text-file.js";
 import {
   isUsableYearlyNonMoveHistory,
   isUsableYearlyRegimeHistory,
@@ -36,8 +37,7 @@ function isRegimeHistory(value: unknown): value is RegimeHistory {
 }
 
 function readText(path: string): string {
-  if (!existsSync(path)) return "";
-  return readFileSync(path, "utf-8");
+  return readReadOnlyTextFile(path);
 }
 
 function countReasons(rows: NonMoveHistory[]): Array<[string, number]> {
