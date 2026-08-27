@@ -9,7 +9,9 @@ const STALE_LOCK_MS = 6 * 60 * 60 * 1000; // 6時間以上前のロックは sta
 export function lockAgeMs(lockedAt: string, nowMs = Date.now()): number | null {
   const lockedAtMs = new Date(lockedAt).getTime();
   if (!Number.isFinite(lockedAtMs)) return null;
-  return nowMs - lockedAtMs;
+  const age = nowMs - lockedAtMs;
+  if (age < 0) return null;
+  return age;
 }
 
 export function acquireLock(jobKey: string): boolean {
