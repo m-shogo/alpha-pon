@@ -35,6 +35,16 @@ try {
     ...valid,
     sourceEventTitle: "Duplicate lineage",
   };
+  const paddedHypothesisId = {
+    ...valid,
+    hypothesisId: " world-theme-1 ",
+    sourceEventTitle: "Padded duplicate lineage",
+  };
+  const paddedCandidateCode = {
+    ...valid,
+    hypothesisId: "world-theme-padded-code",
+    candidateCode: " 8136 ",
+  };
   const invalidDueDate = {
     ...base,
     hypothesisId: "world-theme-invalid-date",
@@ -60,7 +70,16 @@ try {
 
   writeFileSync(
     path,
-    [valid, duplicateHorizon, duplicateHypothesisId, invalidDueDate, invalidDetectedAt, misalignedSchedule]
+    [
+      valid,
+      duplicateHorizon,
+      duplicateHypothesisId,
+      paddedHypothesisId,
+      paddedCandidateCode,
+      invalidDueDate,
+      invalidDetectedAt,
+      misalignedSchedule,
+    ]
       .map(row => JSON.stringify(row))
       .join("\n") + "\n",
     "utf-8",
@@ -68,7 +87,7 @@ try {
   const input = readWorldThemeCandidateReviewInput(path);
 
   assert.deepEqual(input.rows.map(row => row.hypothesisId), ["world-theme-1"]);
-  assert.equal(input.warning, `${path}: invalid_rows 5`);
+  assert.equal(input.warning, `${path}: invalid_rows 7`);
 } finally {
   rmSync(tmp, { recursive: true, force: true });
 }
