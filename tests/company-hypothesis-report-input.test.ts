@@ -203,6 +203,30 @@ assert.ok(
   "canonical company identity重複はsilent dropせずwarningへ残す",
 );
 
+const invalidCoverageStatus = normalizeCompanyCoverageRows(normalizeCompanyCoverageRoots(
+  {
+    categories: {
+      healthy: {
+        label: "Healthy",
+        companies: [
+          { code: "8136", name: "サンリオ", status: "retierd" },
+          { code: "7974", name: "任天堂", status: "watch" },
+        ],
+      },
+    },
+  },
+  { companies: {} },
+));
+assert.deepEqual(
+  invalidCoverageStatus.categories.healthy.companies,
+  [{ code: "7974", name: "任天堂", status: "watch" }],
+  "未知statusのcompanyをcoverage Evidenceへ通さない",
+);
+assert.ok(
+  invalidCoverageStatus.warnings.some(warning => warning.includes("company 8136 status is invalid")),
+  "未知statusをsilentに正常化せずwarningへ残す",
+);
+
 const regime = normalizeActiveRegimeCategoryIds({
   activeRegimes: [
     { watchCategories: [" healthy ", null] },
