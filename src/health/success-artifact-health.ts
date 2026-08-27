@@ -17,6 +17,7 @@ export function isUsableFreshSuccessArtifact(path: string, today: string, nowMs 
     if (lstatSync(path).isSymbolicLink()) return false;
     const stats = statSync(path);
     return stats.isFile()
+      && stats.nlink === 1
       && stats.size > 0
       && stats.mtimeMs <= nowMs
       && tokyoDateFromMtime(stats.mtime) === today;
