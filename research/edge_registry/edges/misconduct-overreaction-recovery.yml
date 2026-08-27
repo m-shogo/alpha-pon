@@ -8,11 +8,13 @@ createdAt: "2026-08-27"
 lastUpdate: "2026-08-27"
 hypothesis: "日本の上場企業で不祥事・ガバナンス事件の初期株価下落が大きい一方、PIT時点で会計・利益・財務への実害が限定的で、問題人物・問題部門・原因を企業価値から切り離せると確認できる場合、その初期下落の一部は過剰反応となり、中期にbenchmark-adjustedで平均回帰する。"
 mechanism: >-
-  不祥事発覚直後は、将来損失の不確実性、ブランド毀損懸念、ガバナンス不信、機関投資家の機械的売却、信用買い解消、ニュース見出しへの過剰反応が同時に起こり得る。一方で、事件の経済的実害が限定的で、会計訂正・大規模訴訟・規制停止・事業継続毀損へ波及せず、責任主体を会社から切り離せる場合、初期価格反応が長期キャッシュフロー毀損を過大評価している可能性がある。単なる逆張りではなく、実害、切り離し可能性、再発リスク、remediation、同時悪材料、市場要因を分解して回復余地を検証する。
+  不祥事発覚直後は、将来損失の不確実性、ブランド毀損懸念、ガバナンス不信、機関投資家の機械的売却、信用買い解消、ニュース見出しへの過剰反応が同時に起こり得る。一方で、事件の経済的実害が限定的で、会計訂正・大規模訴訟・規制停止・事業継続毀損へ波及せず、責任主体を会社から切り離せる場合、初期価格反応が長期キャッシュフロー毀損を過大評価している可能性がある。さらに、第三者委員会報告・会見・行政処分・訴訟判断・訂正決算などの正式イベントでは、支配的な新規悪材料がなくても解決期待の剥落やポジション解消で短期の二次下落が起こり得る。この二次リプライシングは独立Edgeにせず、本Edgeのentry timing・risk filter・回復経路の一部として同一時系列で検証する。
 confidence: 0.2
 requiredData:
   - 不祥事・事故・ガバナンス事件の初回publicObservedAtと一次情報
-  - 会社確認、第三者委員会、監査、規制、訴訟等の時系列
+  - 会社確認、第三者委員会、監査、規制、訴訟、会見、株主総会等の正式イベント時系列
+  - 正式イベントで新たに判明した事実と既知事実の差分
+  - event/publication後のfirst executable timestampと売買停止・値幅制限情報
   - 事件前終値、初回反応のfirst executable price、D0 OHLCV、可能なら分足
   - D+1・D+3・D+5・D+10・D+20・D+60・D+120の価格
   - TOPIX、業種benchmark、matched controlのPIT価格系列
@@ -23,23 +25,23 @@ requiredData:
   - 信用残、出来高shock、空売り、流動性、spread proxy
   - 同日決算・下方修正・増資・M&A・指数・macro等のconfounder
 entry:
-  trigger: "初期ショック後、PIT confounder scanで支配的な新規悪材料がなく、実害・会計影響・規制/訴訟・切り離し可能性を最低限分類でき、初期benchmark-adjusted drawdownが研究sampleで事前登録した閾値を超えた最初の執行可能時点"
+  trigger: "初期ショック後、PIT confounder scanで支配的な新規悪材料がなく、実害・会計影響・規制/訴訟・切り離し可能性を最低限分類でき、初期benchmark-adjusted drawdownが研究sampleで事前登録した閾値を超えた最初の執行可能時点。正式イベントが近い場合はsecondary repricing routeを先に評価し、イベント直前の先回りentryを別routeとして分離する。"
   side: long
   decisionLagMinutes: 60
 exit:
-  rule: "事件前終値回復をイベントとして記録し、D+5・D+20・D+60・D+120を独立計測する。主検証の最大保有期間は120営業日。"
+  rule: "事件前終値回復をイベントとして記録し、D+5・D+20・D+60・D+120を独立計測する。途中の正式イベントではevent後D+1・D+3・D+5も別計測し、主検証の最大保有期間は120営業日。"
   holdingPeriodDays: 120
-  invalidation: "会計不正の拡大、支配的な追加悪材料、重大な規制/訴訟リスク、事業停止、継続企業疑義、重大な資金調達懸念、切り離し不能、PIT不明、実価格/benchmark不明、またはfirst executable price不明"
+  invalidation: "会計不正の拡大、支配的な追加悪材料、重大な規制/訴訟リスク、事業停止、継続企業疑義、重大な資金調達懸念、切り離し不能、PIT不明、実価格/benchmark不明、first executable price不明、または正式イベントのknown/new差分を再現できない"
 execution:
   feasibility: unknown
-  notes: "初期gapを後知恵で最安値約定したことにしない。next open、open+60m、D0 close、確認イベント後first executableを別routeで比較する。"
+  notes: "初期gapを後知恵で最安値約定したことにしない。initial shockのnext open/open+60m/D0 closeと、正式イベント後first executable/D+1/D+3/D+5を同一sample内の別routeとして比較する。旧Known-Bad short仮説は独立売買Edgeではなくentry timing・risk診断として継承する。"
   borrowAvailability: unknown
 voiInputs:
   expectedNetAlphaBps: 0
   uncertaintyReduction: 0.95
-  executionImprovement: 0.65
+  executionImprovement: 0.7
   researchCost: 0.75
-  notes: "旧idiosyncratic-shock研究に多数の候補知見があるが、現Research OSでの正式sample/outcomeは未接続。実測前のため期待Net Alphaは0 bpsで仮置き。"
+  notes: "旧idiosyncratic-shock研究と旧Known-Bad formal-event研究の知見を探索provenanceとして統合する。現Research OSの正式sample/outcomeは未接続のため期待Net Alphaは0 bpsで仮置き。"
 samples:
   required: 120
   current: 0
@@ -47,64 +49,71 @@ samples:
 promotionGate:
   sufficientSamples:
     state: unknown
-    evidence: "現Research OSへ登録済みの正式実サンプルは0件。成功・非回復・悪化例を同一基準で120件以上必要。"
+    evidence: "現Research OSへ登録済みの正式実サンプルは0件。初期shock、正式イベント、成功・非回復・悪化例を同一基準で120件以上必要。"
   holdoutPass:
     state: unknown
     evidence: "探索期間、confirmatory期間、untouched issuer-level holdoutを事前固定していない。"
   pitSafe:
     state: unknown
-    evidence: "事件情報、実害判定、first executable price、当時の悪材料状態をPITで再現した正式sampleがない。"
+    evidence: "事件情報、正式イベントのknown/new差分、実害判定、first executable price、当時の悪材料状態をPITで再現した正式sampleがない。"
   netAlphaPositive:
     state: unknown
     evidence: "benchmark、spread/slippage、税・手数料等を控除したNet Alpha実測は0件。"
   executionFeasible:
     state: unknown
-    evidence: "gap、ストップ安、売買停止、流動性、実際のentry timingを正式検証していない。"
+    evidence: "gap、ストップ安、売買停止、流動性、initial/event entry timingを正式検証していない。"
   liquiditySufficient:
     state: unknown
     evidence: "ADTV、spread proxy、出来高shock、参加率制約の実測が未実施。"
   borrowCostCovered:
     state: unknown
-    evidence: "long Edgeのためborrowは主制約ではないが、空売り/信用需給を交絡説明へ使う系列が未接続。"
+    evidence: "主戦略はlongのためborrowは必須ではない。旧Known-Bad short routeは独立昇格対象から外し、空売り/信用需給は交絡・timing診断に利用する。"
   confoundersRemoved:
     state: unknown
     evidence: "決算、業績修正、資本政策、指数、macro、同時訴訟/規制等のPIT confounder ledgerが未構築。"
   counterfactualExplained:
     state: unknown
-    evidence: "matched drawdown、generic reversal、外部事件venue control、同業不祥事controlとの比較が未実施。"
+    evidence: "matched drawdown、generic reversal、外部事件venue control、同業不祥事control、正式イベントなしcaseとの比較が未実施。"
   decayChecked:
     state: unknown
     evidence: "historicalとrecentでEdgeが維持されるか未検証。"
   falseDiscoveryGuard:
     state: unknown
-    evidence: "旧研究27候補は探索知識として扱い、閾値決定とconfirmatory/holdoutを分離する必要がある。"
+    evidence: "旧研究27候補と旧Known-Bad仮説は探索知識として扱い、閾値決定とconfirmatory/holdoutを分離する必要がある。"
 decay:
   reviewIntervalDays: 30
-  notes: "SNS/高速ニュース・機関投資家ルール・開示速度の変化で初期過剰反応と回復速度は変化し得るためrecent/historicalを分離する。"
+  notes: "SNS/高速ニュース・機関投資家ルール・開示速度の変化で初期過剰反応、正式イベントの二次リプライシング、回復速度は変化し得るためrecent/historicalを分離する。"
 notes: |-
   purpose:
     - 不祥事株が下がったから買うEdgeではない
     - 企業価値への実害より株価下落が大きいケースを探す
+    - 初期shockから正式イベント、remediation、回復まで1本の時系列で研究する
     - 戻るケースと戻らないケースの違いを学習し、最終的にBUY/WATCH/WAIT/AVOID候補の根拠へ使う
 
-  coreDimensions:
-    - economicDamage: 売上、利益、CF、資産、罰金、補償、訴訟の実害
-    - accountingImpact: 訂正決算、虚偽記載、監査意見、内部統制
-    - actorSeparability: 問題人物・部門・子会社を切り離せるか
-    - managementDependence: 創業者/CEO/主要人物への事業依存
-    - regulatoryLitigation: 規制、許認可、行政処分、訴訟の継続性
-    - brandDamage: 顧客離反、スポンサー離脱、取引停止、SNS炎上の実売上波及
-    - recurrenceRisk: 同種問題の再発、構造的原因、過去remediation失敗
-    - remediationQuality: 辞任だけでなく、権限・統制・システム・監査証拠まで改善したか
-    - balanceSheetResilience: 損失を吸収できる財務余力
-    - marketOverreaction: benchmark/sector補正後の初期drawdown
+  unifiedPhases:
+    - phase1_initial_shock: 不祥事初報から初期benchmark-adjusted drawdownを測る
+    - phase2_damage_assessment: 会計・利益・CF・ブランド・規制/訴訟・separabilityをPIT判定する
+    - phase3_formal_event_repricing: 会見、第三者委員会、行政処分、訴訟、訂正決算等でknown/new差分とD+1/D+3/D+5を測る
+    - phase4_remediation: 辞任・統制改善・再発防止の質と継続性を評価する
+    - phase5_recovery: 事件前終値回復、overshoot、D+20/D+60/D+120 abnormal returnを測る
 
-  informationState:
-    - fact: 一次資料で確認済み
-    - knownFact: entry時点ですでに市場が知り得た事実
-    - assumption: 未確認だが分析上置いた仮定
-    - opinion: 評価・解釈
-    - postEntryReveal: entry後に初めて公表された追加悪材料は別管理し、entry時点判定へ後知恵で混ぜない
+  formalEventTimingFilter:
+    - 正式イベントが近い場合、新規悪材料なしを即bullishと解釈しない
+    - 解決期待の剥落による二次下落をentry timing riskとして記録する
+    - event直前entry、event後first executable、D+1、D+3、D+5を比較する
+    - 独立short EdgeとしてProduction昇格させず、本long Edgeのrisk/timing診断へ統合する
+
+  coreDimensions:
+    - economicDamage
+    - accountingImpact
+    - actorSeparability
+    - managementDependence
+    - regulatoryLitigation
+    - brandDamage
+    - recurrenceRisk
+    - remediationQuality
+    - balanceSheetResilience
+    - marketOverreaction
 
   incidentClasses:
     - executive_personal_misconduct
@@ -119,39 +128,17 @@ notes: |-
     - subsidiary_localized_issue
     - external_incident_venue_only
 
-  separabilityClasses:
-    - high: 問題主体の除去で主要事業・会計・許認可への波及が限定的
-    - medium: 部分的に切り離せるがブランド/取引/統制への波及が残る
-    - low: 経営中枢、会計、主力製品、許認可、支配株主構造に直結
-    - unknown: 判断材料不足のためABSTAIN
-
   recoveryMetrics:
-    - eventDrawdownBps: event前基準価格からentryまでの下落
-    - abnormalDrawdownBps: TOPIX/業種/matched move控除後の下落
-    - timeToPreEventClose: 事件前終値を初めて回復する営業日数
+    - eventDrawdownBps
+    - abnormalDrawdownBps
+    - formalEventSecondaryMoveD1/D3/D5
+    - timeToPreEventClose
     - reclaimByD20/D60/D120
-    - overshootBps: 事件前終値を超えた最大幅
+    - overshootBps
     - maxAdverseExcursion
     - maxFavorableExcursion
     - D+5/D+20/D+60/D+120 benchmark-adjusted return
-    - permanentImpairment: D+120でも回復せずfundamental deteriorationで説明されるか
-
-  candidateThresholdsForExplorationOnly:
-    - abnormalDrawdownBps >= 500
-    - abnormalDrawdownBps >= 1000
-    - abnormalDrawdownBps >= 1500
-    - abnormalDrawdownBps >= 2000
-    - 閾値は探索sample内だけで評価しconfirmatory/holdoutへ固定する
-
-  likelyPositivePatternCandidates:
-    - 問題人物の迅速な辞任/解任と権限遮断
-    - 過年度会計・連結利益への重大影響なし
-    - 罰金/補償額が企業規模に対して吸収可能
-    - 主力商品/許認可/販売チャネルへの停止影響なし
-    - 問題が局所子会社/個人に限定される
-    - 会社が一次情報を迅速・具体的に開示
-    - 再発防止がpolicy-onlyでなくsystem/workflow/evidence-producing controlsまで含む
-    - 事件後も会社予想・需要・受注・客数等の事業KPIが維持
+    - permanentImpairment
 
   likelyFalseBargainCandidates:
     - 粉飾/会計不正が連結財務へ拡大
@@ -171,38 +158,15 @@ notes: |-
     - earnings-miss drawdown
 
   relationshipToOtherEdges:
-    - known-bad-event-repricing: 正式イベント通過時の追加リプライシングを主にshort側で検証する別Edge
-    - remediation-half-life: 不祥事後の改善が長期に維持されるかを見るrisk-control Edge
-    - ex-rights-overreaction-recovery: 権利落ち需給による過剰下落を扱う別のmean-reversion family
-    - このEdgeは初期不祥事shock後のlong recoveryを主対象にする
+    - known-bad-event-repricing: 2026-08-27に本Edgeのphase3 formal-event repricing/timing filterへ統合し独立研究をdeprecated化
+    - remediation-half-life: remediation durabilityのrisk-control知見をphase4で参照する
+    - ex-rights-overreaction-recovery: 権利落ち需給を扱う別のmean-reversion family
 
   initialSeedCases:
-    - Sanrio: 個人/ガバナンス問題、会計・事業への実害、人物切り離し、株価回復を再検証するseed候補。正式sample化は一次資料/PIT価格確認後のみ
-    - 旧idiosyncratic-shock研究の27候補: outcome-blind selection provenanceを尊重し、現Research OSへ移す際は将来リターンを見て再選別しない
-    - Ootoya 2019 / United Flight 3411 2017等の旧shadow知見は探索資料としてのみ扱い、現Edgeの成功例として自動採用しない
+    - Sanrio: calibration候補。成功例として事前固定しない
+    - 旧idiosyncratic-shock 27候補: outcome-blind replay可能性を確認してから移行
 
-  falsificationConditions:
-    - 回復がgeneric short-term reversalと区別できない
-    - matched control補正後に優位性が消える
-    - accounting/governance impactを除外するとサンプルが極端に少なくなる
-    - separability分類が人によって再現できない
-    - 成功例だけ選んだ時にしか成立しない
-    - D+120回復が市場全体上昇だけで説明される
-    - spread/slippageを考慮するとNet Alphaが非正
-    - confirmatory sampleまたはuntouched holdoutで再現しない
-
-  promotionUse:
-    - Research -> Shadow昇格後も自動BUYにはしない
-    - verified Edge signalはRecommendationのbasis候補としてのみ使う
-    - BUY/WATCH/WAIT/AVOIDはvaluation、earnings revision、liquidity、portfolio risk、Evidence confidenceと統合して決める
-    - 事件のseverityが高くても情報不足ならABSTAINを優先する
-
-  sourcePolicy:
-    allowed: company IR, TDnet, JPX, EDINET, regulators, ministries, courts, administrative records, audit materials, major media, licensed market data, historical DB, academic research
-    prohibited: anonymous SNS, message boards, anonymous posts, influencer recommendations, unverified rumor
-    snsUsed: false
-
-  boundary:
+  safety:
     - 現段階は研究EdgeでありBUY推奨・自動発注・portfolio mutationへ接続しない
     - Sanrio等の少数成功例から勝てる戦略と断定しない
     - non-recovery、delisting、会計悪化、訴訟拡大、優良企業でも戻らない例を同じ重さで保存する
