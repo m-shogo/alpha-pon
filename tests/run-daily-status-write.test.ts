@@ -58,6 +58,11 @@ assert.match(
   /if ! run_if_month_start \"review:monthly\"[\s\S]*?exit 1[\s\S]*?fi/,
   "the daily wrapper must exit unsuccessfully when monthly status persistence fails",
 );
+assert.doesNotMatch(
+  script,
+  /run_step \"[^\"]+\" \"noncritical\"[^\n]*\|\| true/,
+  "top-level noncritical steps must not mask canonical status persistence failures with || true",
+);
 
 const lockOwnerStart = script.indexOf('if mkdir "$LOCK_DIR"');
 const lockOwnerEnd = script.indexOf("\nelse\n  echo \"another alpha-pon daily pipeline", lockOwnerStart);
