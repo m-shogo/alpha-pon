@@ -1,0 +1,150 @@
+schemaVersion: 1
+updatedAt: "2026-08-27"
+policy:
+  mergeWhen:
+    - same issuer/event population
+    - same causal mechanism
+    - same PIT information timeline
+    - same primary outcome and counterfactual
+  keepSeparateWhen:
+    - causal mechanism differs materially
+    - entry information set differs materially
+    - primary outcome or counterfactual differs materially
+    - combining would hide a falsifiable hypothesis
+  rule: "Do not promote a note to a first-class Edge merely because its filename contains edge. Prefer parent Edge + sub-signal/filter/stage when the underlying hypothesis is shared."
+
+families:
+  - id: misconduct-overreaction-recovery
+    canonicalType: parent_edge
+    canonicalRef: research/edge_registry/edges/misconduct-overreaction-recovery.yml
+    rationale: "Misconduct/governance incidents share one PIT incident timeline from initial shock through damage assessment, formal-event repricing, remediation and recovery."
+    members:
+      - ref: research/edge_registry/edges/known-bad-event-repricing.yml
+        classification: merged_deprecated_edge
+        role: phase3_formal_event_repricing
+      - ref: docs/research/known-bad-event-repricing-edge.md
+        classification: merged_research_note
+        role: phase3_formal_event_repricing
+      - ref: docs/research/audit-opinion-state-transition-edge.md
+        classification: subsignal
+        role: audit_state_transition
+      - ref: docs/research/audit-opinion-recovery-ladder-edge.md
+        classification: subsignal
+        role: audit_recovery_ladder
+      - ref: docs/research/edge-organizational-breadth-escalation-2026-08-04.md
+        classification: filter
+        role: organizational_breadth
+      - ref: docs/research/exchange-sanction-ladder-edge.md
+        classification: subsignal
+        role: exchange_sanction_stage
+      - ref: docs/research/filing-deadline-extension-escalation-edge.md
+        classification: subsignal
+        role: filing_delay_escalation
+      - ref: docs/research/regulatory-clock-slippage-edge.md
+        classification: subsignal
+        role: regulatory_clock_slippage
+      - ref: docs/research/regulator-first-disclosure-lag-edge.md
+        classification: subsignal
+        role: regulator_first_information_lag
+      - ref: docs/research/remediation-clock-surprise-edge.md
+        classification: subsignal
+        role: remediation_timing_surprise
+      - ref: docs/research/remediation-failure-recurrence-edge.md
+        classification: subsignal
+        role: remediation_failure_recurrence
+      - ref: docs/research/remediation-half-life-edge.md
+        classification: subsignal
+        role: remediation_half_life
+      - ref: docs/research/remediation-specificity-gap-edge.md
+        classification: filter
+        role: remediation_specificity
+      - ref: docs/research/remediation-team-attrition-edge.md
+        classification: subsignal
+        role: remediation_team_attrition
+      - ref: docs/research/special-attention-anniversary-cliff-edge.md
+        classification: subsignal
+        role: exchange_watch_clock
+      - ref: docs/research/oath-violation-reexamination-edge.md
+        classification: subsignal
+        role: recurrence_or_reexamination
+      - ref: docs/research/subsidiary-concentration-audit-evidence-escalation-edge.md
+        classification: filter
+        role: subsidiary_concentration
+      - ref: docs/research/external-incident-materiality-filter.md
+        classification: filter
+        role: external_vs_internal_materiality
+      - ref: docs/research/sanction-economic-materiality-filter.md
+        classification: filter
+        role: sanction_economic_materiality
+      - ref: docs/research/disclosure-bundle-decomposition-guard.md
+        classification: guard
+        role: known_vs_new_fact_decomposition
+      - ref: docs/research/information-state-verification-protocol.md
+        classification: guard
+        role: pit_information_state
+
+  - id: ex-rights-overreaction-recovery
+    canonicalType: parent_edge
+    canonicalRef: research/edge_registry/edges/ex-rights-overreaction-recovery.yml
+    rationale: "Rights-value mechanical adjustment plus temporary supply/demand overreaction is a distinct causal mechanism from misconduct repricing."
+    members:
+      - ref: docs/research/ex-rights-overreaction-recovery-edge.md
+        classification: canonical_research_note
+        role: design_and_methodology
+
+  - id: overnight-disclosure-gap
+    canonicalType: candidate_edge_family
+    canonicalRef: docs/research/overnight-disclosure-gap-edge.md
+    rationale: "Potential information-timing/execution mechanism. Keep as candidate until overlap with other event families is tested."
+    members:
+      - ref: docs/research/overnight-disclosure-execution-validator.md
+        classification: guard
+        role: executable_price_validation
+      - ref: docs/research/overnight-disclosure-pit-test-matrix.md
+        classification: validation
+        role: pit_test_matrix
+      - ref: docs/research/official-publication-executability-guard.md
+        classification: guard
+        role: publication_to_execution_boundary
+      - ref: docs/research/preopen-official-source-completeness-guard.md
+        classification: guard
+        role: source_completeness
+      - ref: docs/research/weekend-official-source-latency-guard.md
+        classification: guard
+        role: weekend_source_latency
+
+  - id: research-foundation
+    canonicalType: infrastructure
+    canonicalRef: docs/research/research-os-spec.md
+    rationale: "Research infrastructure and data quality controls are not market Edges."
+    members:
+      - ref: docs/research/data-source-and-technology-edge-foundation.md
+        classification: infrastructure
+        role: data_source_foundation
+      - ref: docs/research/pit-price-store.md
+        classification: infrastructure
+        role: pit_price_store
+      - ref: docs/research/jquants-free-adapter-next-slice.md
+        classification: infrastructure
+        role: market_data_adapter
+      - ref: docs/research/recommendation-outcome-contract.md
+        classification: infrastructure
+        role: outcome_contract
+      - ref: docs/research/pre-edge-foundation-hardening-review.md
+        classification: infrastructure
+        role: foundation_review
+
+unresolved:
+  - ref: docs/research/improvement-report-submission-timing-edge-2026-08-04.md
+    reason: "May be a remediation-timing sub-signal, but needs content-level overlap review before classification."
+  - ref: docs/research/improvement-status-clock-cohort.md
+    reason: "Likely supporting cohort rather than an Edge; content-level review required."
+  - ref: docs/research/improvement-status-clock-lag-calibration-2026-08-04.md
+    reason: "Likely calibration artifact; content-level review required."
+  - ref: docs/research/improvement-status-report-calendar.md
+    reason: "Likely calendar/operations artifact; content-level review required."
+
+boundaries:
+  - "Inventory classification never promotes an Edge to shadow/production."
+  - "No BUY/SELL rule, order routing, LINE notification or portfolio mutation is created by this inventory."
+  - "Historical notes remain in place for provenance even when merged into a parent Edge."
