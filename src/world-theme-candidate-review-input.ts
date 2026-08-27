@@ -28,6 +28,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isCanonicalIdentity(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0 && value === value.trim();
+}
+
 function isReviewDue(value: unknown): value is WorldThemeReviewDue {
   if (!isRecord(value)) return false;
   return (
@@ -60,6 +64,7 @@ export function isWorldThemeCandidateReviewInput(value: unknown): value is Persi
   ] as const) {
     if (typeof value[key] !== "string" || !value[key].trim()) return false;
   }
+  if (!isCanonicalIdentity(value.hypothesisId) || !isCanonicalIdentity(value.candidateCode)) return false;
   const detectedAt = value.detectedAt as string;
   if (!isValidWorldThemeReviewDueDate(detectedAt)) return false;
   if (!Array.isArray(value.reviewDueDates) || !value.reviewDueDates.every(isReviewDue)) return false;
