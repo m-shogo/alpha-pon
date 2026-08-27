@@ -74,6 +74,16 @@ try {
   );
 
   writeFileSync(join(dir, "scores_2026-08-18.json"), JSON.stringify([
+    { code: "8136", warnings: [], marketContext: {} },
+    { code: "7974", warnings: [], financialQuality: {} },
+  ]), "utf-8");
+  assert.throws(
+    () => readProposalScores<{ code: string }>(dir, "2026-08-18"),
+    /proposal score context shape is invalid at row\(s\) 1, 2/,
+    "empty context objects must not inflate proposal market or financial coverage",
+  );
+
+  writeFileSync(join(dir, "scores_2026-08-18.json"), JSON.stringify([
     { code: "8136", warnings: [], createdAt: "2026-08-17" },
     { code: "7974", warnings: [], createdAt: "2026-08-18" },
   ]), "utf-8");
@@ -88,15 +98,15 @@ try {
       code: "8136",
       warnings: [],
       dataQuality: "partial",
-      marketContext: {},
-      financialQuality: {},
+      marketContext: { code: "8136", date: "2026-08-18" },
+      financialQuality: { qualityScore: 7 },
       primaryDisclosureReview: { decision: "confirmed", sourceCoverage: { fetchErrorCount: 0 } },
     },
   ]), "utf-8");
   assert.deepEqual(
     readProposalScores<{ code: string }>(dir, "2026-08-18").rows.map(row => row.code),
     ["8136"],
-    "canonical data quality, object context, and primary review evidence remain usable",
+    "substantive market and financial context evidence remains usable",
   );
 
   writeFileSync(join(dir, "scores_2026-08-18.json"), JSON.stringify([
@@ -152,4 +162,4 @@ try {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("proposals-score-input: PIT, parse-error, root-shape, warning-shape, data-quality, primary-review-shape, context-shape, createdAt-lineage, required-identity, duplicate-identity, and canonical-file regressions OK");
+console.log("proposals-score-input: PIT, parse-error, root-shape, warning-shape, data-quality, primary-review-shape, context-evidence, createdAt-lineage, required-identity, duplicate-identity, and canonical-file regressions OK");
