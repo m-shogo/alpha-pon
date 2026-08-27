@@ -3,6 +3,8 @@ import type { CompanyHypothesesRootState } from "./company-coverage-input.js";
 
 type UnknownRecord = Record<string, unknown>;
 
+const COMPANY_HYPOTHESIS_STATUSES = new Set(["active", "watch", "stale", "retired"]);
+
 function isRecord(value: unknown): value is UnknownRecord {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -94,6 +96,10 @@ export function normalizeCompanyHypothesisReportRows(
       const downsideHypothesis = nonEmptyString(rawCompany.downsideHypothesis);
       if (!code || !name || !role || !status || !upsideHypothesis || !noMoveHypothesis || !downsideHypothesis) {
         warnings.push(`company-hypotheses.yml category ${categoryId} company row ${index + 1} required fields are invalid`);
+        return;
+      }
+      if (!COMPANY_HYPOTHESIS_STATUSES.has(status)) {
+        warnings.push(`company-hypotheses.yml category ${categoryId} company ${code} status is invalid`);
         return;
       }
       if (seenCodes.has(code)) {
