@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import "./pro-latest-score-row.test.js";
@@ -21,6 +21,22 @@ try {
     latestValuationScoreFile(dir, "2026-08-17"),
     join(dir, "scores_2026-08-17.json"),
     "future score snapshots must not leak into historical/current valuation reports",
+  );
+
+  const linkedTarget = join(dir, "linked-score-target");
+  const linkedRoot = join(dir, "linked-score-root");
+  mkdirSync(linkedTarget);
+  writeFileSync(join(linkedTarget, "scores_2026-08-18.json"), "[]", "utf-8");
+  symlinkSync(linkedTarget, linkedRoot);
+  assert.throws(
+    () => latestValuationScoreFile(linkedRoot, "2026-08-18"),
+    /valuation score root must be a real directory/,
+    "symlinked score roots must not redirect valuation provenance outside the configured reports directory",
+  );
+  assert.throws(
+    () => loadLatestValuationScoreRows(linkedRoot, "2026-08-18"),
+    /valuation score root must be a real directory/,
+    "row loading must preserve the same canonical score-root boundary",
   );
 
   for (const invalidAsOf of ["not-a-date", "2026-02-31", "0000-01-01", "2026-8-18", "2026-08-18T00:00:00+09:00"] as const) {
@@ -91,4 +107,4 @@ try {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("valuation-range-input: PIT cutoff, row-shape, and unique-identity regressions OK");
+console.log("valuation-range-input: PIT cutoff, canonical root, row-shape, and unique-identity regressions OK");

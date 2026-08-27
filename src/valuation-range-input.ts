@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { addDaysJst, todayJst } from "./date.js";
 import { readReadOnlyJsonArrayFile } from "./read-only-json-file.js";
@@ -21,12 +21,24 @@ function assertCanonicalAsOf(asOf: string): void {
   }
 }
 
+function isCanonicalScoreDirectory(path: string): boolean {
+  try {
+    const stat = lstatSync(path);
+    return stat.isDirectory() && !stat.isSymbolicLink();
+  } catch {
+    return false;
+  }
+}
+
 export function latestValuationScoreFile(
   reportsDir = "reports",
   asOf = todayJst(),
 ): string | null {
   assertCanonicalAsOf(asOf);
   if (!existsSync(reportsDir)) return null;
+  if (!isCanonicalScoreDirectory(reportsDir)) {
+    throw new Error(`${reportsDir}: valuation score root must be a real directory`);
+  }
   const files = readdirSync(reportsDir)
     .flatMap((file) => {
       const match = /^scores_(\d{4}-\d{2}-\d{2})\.json$/.exec(file);
