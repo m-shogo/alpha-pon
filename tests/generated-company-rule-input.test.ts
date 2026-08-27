@@ -5,6 +5,7 @@ const validRule = {
   generatedRuleId: 'rule-8136',
   code: '8136',
   name: 'Sanrio',
+  generatedAt: '2026-06-05T00:00:00+09:00',
   actionSignal: 'ENTRY_WATCH',
   confidence: 0.7,
   reasons: ['reason'],
@@ -41,6 +42,20 @@ for (const confidence of [-0.01, 1.01]) {
     normalizeGeneratedCompanyRules([{ ...validRule, confidence }]),
     { rows: [], warning: 'generatedCompanyRules: invalid_rows 1' },
     'confidence outside the canonical 0..1 ratio must not reach percentage rendering',
+  )
+}
+for (const generatedAt of [
+  undefined,
+  'not-a-date',
+  '2026-06-05T00:00:00',
+  '2026-06-05T00:00:00-00:00',
+  '2026-02-31T00:00:00+09:00',
+  '2999-01-01T00:00:00+09:00',
+]) {
+  assert.deepEqual(
+    normalizeGeneratedCompanyRules([{ ...validRule, generatedAt }]),
+    { rows: [], warning: 'generatedCompanyRules: invalid_rows 1' },
+    'Actions must reject missing, ambiguous, nonexistent, or future generated-rule provenance',
   )
 }
 assert.deepEqual(normalizeGeneratedCompanyRules([validRule]), { rows: [validRule], warning: null })
