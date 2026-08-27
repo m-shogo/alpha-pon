@@ -104,5 +104,13 @@ assert.equal(
   }, yearlyAsOf),
   false,
 );
+assert.equal(
+  isUsableYearlySourceHealthHistory({
+    ...validSourceHealth,
+    reports: { ...validSourceHealth.reports, bogus: { exists: false, size: 0 } },
+  }, yearlyAsOf),
+  false,
+  "unknown report keys must not become yearly missing-report evidence",
+);
 
 console.log("yearly-knowledge-review-input.test.ts passed");
