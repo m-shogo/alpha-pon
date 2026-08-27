@@ -44,20 +44,12 @@ function testRejectedAndDeprecatedExcluded() {
       }),
     ],
   });
-  const queue = buildQueue(makeState({ edges: [makeEdge()] }), AS_OF);
-  const filtered = buildQueue(makeState({ edges: [makeEdge({ id: "edge-live" }), makeEdge({
-    id: "edge-dead",
-    status: "rejected",
-    hypothesis: "棄却済みの仮説。イベント Q の後、対象銘柄は超過収益を生む。",
-    rejection: { reason: "反証されたため棄却した（テスト用）", rejectedAt: "2024-03-01" },
-  })] }), AS_OF);
-  void state;
-  void queue;
+  const queue = buildQueue(state, AS_OF);
   assert.deepEqual(
-    filtered.entries.map((entry) => entry.edgeId),
+    queue.entries.map((entry) => entry.edgeId),
     ["edge-live"],
   );
-  assert.equal(filtered.excluded[0].edgeId, "edge-dead");
+  assert.equal(queue.excluded[0].edgeId, "edge-dead");
   console.log("research/queue: 除外ルール OK");
 }
 
