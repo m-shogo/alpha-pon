@@ -1,5 +1,7 @@
 type UnknownRecord = Record<string, unknown>;
 
+const COMPANY_HYPOTHESIS_STATUSES = new Set(["active", "watch", "stale", "retired"]);
+
 function isRecord(value: unknown): value is UnknownRecord {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -8,6 +10,11 @@ function nonEmptyString(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const normalized = value.trim();
   return normalized || null;
+}
+
+function canonicalHypothesisStatus(value: unknown): string | null {
+  if (typeof value !== "string" || value.trim() !== value) return null;
+  return COMPANY_HYPOTHESIS_STATUSES.has(value) ? value : null;
 }
 
 function stringArray(value: unknown): string[] | null {
@@ -133,7 +140,10 @@ export function normalizeCompanyCoverageRows(roots: CompanyCoverageRootState): C
         return;
       }
       seenCodes.add(code);
-      const status = nonEmptyString(rawCompany.status);
+      const status = rawCompany.status === undefined ? undefined : canonicalHypothesisStatus(rawCompany.status);
+      if (rawCompany.status !== undefined && !status) {
+        warnings.push(`company-hypotheses.yml category ${categoryId} company ${code} status is invalid`);
+      }
       normalizedCompanies.push({ code, name, ...(status ? { status } : {}) });
     });
     categories[categoryId] = { label, companies: normalizedCompanies };
