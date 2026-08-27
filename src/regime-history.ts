@@ -1,6 +1,7 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, readFileSync } from "fs";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
+import { readRegimeHistoryLines, replaceRegimeHistory } from "./regime-history-file.js";
 import {
   normalizeRegimeHistoryActiveRegimes,
   normalizeRegimeHistoryMode,
@@ -44,12 +45,7 @@ function historyRowDate(line: string): string | null {
 }
 
 function writeDailyHistoryRow(row: RegimeHistoryRow): void {
-  const existingLines = existsSync(HISTORY_PATH)
-    ? readFileSync(HISTORY_PATH, "utf-8")
-      .split("\n")
-      .map(line => line.trim())
-      .filter(Boolean)
-    : [];
+  const existingLines = readRegimeHistoryLines(HISTORY_PATH);
 
   const seenDates = new Set<string>();
   const dedupedReversed: string[] = [];
@@ -67,7 +63,7 @@ function writeDailyHistoryRow(row: RegimeHistoryRow): void {
   const nextLines = dedupedReversed.reverse();
   nextLines.push(JSON.stringify(row));
   const compacted = nextLines.slice(-MAX_LINES);
-  writeFileSync(HISTORY_PATH, `${compacted.join("\n")}\n`, "utf-8");
+  replaceRegimeHistory(HISTORY_PATH, `${compacted.join("\n")}\n`);
 }
 
 function main() {
