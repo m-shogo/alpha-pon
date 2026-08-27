@@ -115,7 +115,11 @@ if mkdir "$LOCK_DIR" 2>/dev/null; then
   trap cleanup EXIT INT TERM
   echo $$ > "$LOCK_DIR/pid"
   date '+%Y-%m-%d %H:%M:%S' > "$LOCK_DIR/started_at"
-  write_status "running"
+  if ! write_status "running"; then
+    echo "failed to persist initial pipeline status" >&2
+    notify_pipeline "alert" "alpha-pon pipeline status write failed" "initial status write failed. date=$TODAY"
+    exit 1
+  fi
 else
   echo "another alpha-pon daily pipeline is already running: $LOCK_DIR"
   notify_pipeline "alert" "alpha-pon pipeline skipped" "another run-daily.sh is already running. date=$TODAY lock=$LOCK_DIR"
@@ -234,9 +238,14 @@ run_if_month_start "review:monthly" node --import "tsx/esm" "$DIR/src/periodic-r
 run_step "maintain:data:write" "noncritical" node --import "tsx/esm" "$DIR/src/maintain-data.ts" --write || true
 
 if [ -n "$FAILED_STEPS" ]; then
-  write_status "completed_with_warnings"
+  FINAL_STATUS="completed_with_warnings"
 else
-  write_status "completed"
+  FINAL_STATUS="completed"
+fi
+if ! write_status "$FINAL_STATUS"; then
+  echo "failed to persist final pipeline status: $FINAL_STATUS" >&2
+  notify_pipeline "alert" "alpha-pon pipeline status write failed" "final status=$FINAL_STATUS date=$TODAY"
+  exit 1
 fi
 
 echo ""
