@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from "fs";
+import { existsSync, lstatSync, readdirSync, readFileSync } from "fs";
 import { join } from "path";
 import { addDaysJst, todayJst } from "./date.js";
 
@@ -30,6 +30,15 @@ function isUsableProScoreRow(value: unknown, expectedDate: string): boolean {
     && isOptionalStringArray(value.warnings);
 }
 
+function isCanonicalScoreDirectory(path: string): boolean {
+  try {
+    const stat = lstatSync(path);
+    return stat.isDirectory() && !stat.isSymbolicLink();
+  } catch {
+    return false;
+  }
+}
+
 export type LatestProScoreLoad<T> = {
   rows: T[];
   sourceFile: string | null;
@@ -41,6 +50,9 @@ export function readLatestProScores<T>(reportsDir = "reports", asOf = todayJst()
     throw new Error("pro-score asOf must be a real Gregorian JST date");
   }
   if (!existsSync(reportsDir)) return { rows: [], sourceFile: null, warnings: [] };
+  if (!isCanonicalScoreDirectory(reportsDir)) {
+    throw new Error(`${reportsDir}: pro-score root must be a real directory`);
+  }
 
   const scoreFiles = readdirSync(reportsDir)
     .filter((file) => /^scores_\d{4}-\d{2}-\d{2}\.json$/.test(file))
