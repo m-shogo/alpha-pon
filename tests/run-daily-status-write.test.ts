@@ -18,6 +18,47 @@ assert.match(
   "a failed command must surface pipeline status persistence failure instead of silently continuing",
 );
 
+const mondayStart = script.indexOf("run_if_monday() {");
+const mondayEnd = script.indexOf("\nrun_if_month_start()", mondayStart);
+assert(mondayStart >= 0 && mondayEnd > mondayStart, "weekly wrapper must remain discoverable");
+const mondayBlock = script.slice(mondayStart, mondayEnd);
+assert.match(
+  mondayBlock,
+  /if ! run_step \"\$name\" \"noncritical\" \"\$@\"; then[\s\S]*?pipeline status write failed[\s\S]*?return 1[\s\S]*?fi/,
+  "weekly execution must surface status persistence failure even when the scheduled job itself is noncritical",
+);
+assert.match(
+  mondayBlock,
+  /if ! append_step_status \"\$name\" \"noncritical\" \"skipped\" \"0\"[\s\S]*?pipeline status write failed[\s\S]*?return 1[\s\S]*?fi/,
+  "weekly skip recording must fail closed when canonical status persistence fails",
+);
+
+const monthStart = script.indexOf("run_if_month_start() {");
+const monthEnd = script.indexOf('\necho "========================================"', monthStart);
+assert(monthStart >= 0 && monthEnd > monthStart, "monthly wrapper must remain discoverable");
+const monthBlock = script.slice(monthStart, monthEnd);
+assert.match(
+  monthBlock,
+  /if ! run_step \"\$name\" \"noncritical\" \"\$@\"; then[\s\S]*?pipeline status write failed[\s\S]*?return 1[\s\S]*?fi/,
+  "monthly execution must surface status persistence failure even when the scheduled job itself is noncritical",
+);
+assert.match(
+  monthBlock,
+  /if ! append_step_status \"\$name\" \"noncritical\" \"skipped\" \"0\"[\s\S]*?pipeline status write failed[\s\S]*?return 1[\s\S]*?fi/,
+  "monthly skip recording must fail closed when canonical status persistence fails",
+);
+
+assert.match(
+  script,
+  /if ! run_if_monday \"review:weekly\"[\s\S]*?exit 1[\s\S]*?fi/,
+  "the daily wrapper must exit unsuccessfully when weekly status persistence fails",
+);
+assert.match(
+  script,
+  /if ! run_if_month_start \"review:monthly\"[\s\S]*?exit 1[\s\S]*?fi/,
+  "the daily wrapper must exit unsuccessfully when monthly status persistence fails",
+);
+
 const lockOwnerStart = script.indexOf('if mkdir "$LOCK_DIR"');
 const lockOwnerEnd = script.indexOf("\nelse\n  echo \"another alpha-pon daily pipeline", lockOwnerStart);
 assert(lockOwnerStart >= 0 && lockOwnerEnd > lockOwnerStart, "lock-owner initialization must remain discoverable");
