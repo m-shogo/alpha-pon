@@ -1,46 +1,42 @@
 {
   "schemaVersion": 1,
-  "sequence": 2,
-  "savedAt": "2026-08-27T18:00:30+09:00",
+  "sequence": 3,
+  "savedAt": "2026-08-27T18:12:27+09:00",
   "actor": "chatgpt-hourly",
   "researchedEdgeId": "misconduct-overreaction-recovery",
-  "researchDone": "権利落ち後の過剰下落回復Edgeと、不祥事・ガバナンスshock後の過剰下落回復EdgeをResearch OSへ登録し、既存Known-Bad short側・Remediation risk-control側との責務を分離した。あわせて研究結果・過程を読むcanonical順序をREADMEへ明記し、Owner向けWeb /research可視化をIssue #1295として起票した。両Edgeとも実sample未登録のため全Promotion Gateはunknownを維持した。",
+  "researchDone": "Known-Bad Event Repricingを独立Edgeから外し、Misconduct Overreaction Recovery Edgeの正式イベント後secondary repricing/timing filterへ統合した。初期shock、実害評価、正式イベント、remediation、回復を1本のissuer timelineで研究し、同一不祥事の二重sample化を防ぐ。旧Known-Bad Edgeはprovenance保持のためdeprecatedとし、独立short Promotionを停止した。",
   "addedAnalogIds": [],
   "rejections": [
     {
-      "target": "新しいoverreaction Edgeを登録した時点でBUY候補へ自動接続する案",
-      "reason": "両Edgeとも正式sample、PIT価格、matched control、実行コスト、confirmatory/holdout検証が0件であり、仮説登録と投資有効性を混同するため。"
+      "target": "Known-Bad Event Repricingを独立Research Edgeのまま並行継続する案",
+      "reason": "Misconduct Recoveryと母集団、PIT timestamp、known/new facts、confounder、価格系列が大きく重複し、同一不祥事を分断・二重計上するため。"
     }
   ],
   "dataGaps": [
-    "権利落ちEdgeのhistorical優待/配当制度を当時時点で復元した120件以上のsample",
-    "優待cash-equivalent、ex-day first executable price、TOPIX/業種/matched control、信用需給のPIT dataset",
-    "不祥事Edgeの経済実害・会計影響・actor separability・regulatory/litigation・brand damageを一次情報で再現した120件以上のsample",
-    "旧idiosyncratic-shock 27候補をoutcome-blind selection provenanceを維持して現Research OSへ移行するreplay",
-    "両Edgeの成功・非回復・悪化・negative controlとuntouched issuer-level holdout",
-    "Owner Web UIでResearch Dashboard / Log / Checkpoint / Analog / Outcomeを統合表示する/read-only research surface"
+    "不祥事ごとにinitial shockからformal event、remediation、D+120 outcomeまでを同一sample IDで結ぶincident timeline contract",
+    "formal eventのknown fact/new fact差分、publicObservedAt、firstExecutableAtのPIT復元",
+    "event直前entry、event後first executable、D+1、D+3、D+5のentry timing比較",
+    "旧idiosyncratic-shock 27候補と旧Known-Bad候補の重複除去・outcome-blind replay",
+    "Sanrio calibration timelineと成功・非回復・悪化・negative controlを含む120件以上のsample",
+    "Owner Web UIでResearch Dashboard / Log / Checkpoint / Analog / Outcomeを統合表示するread-only research surface"
   ],
   "nextCandidates": [
     {
       "edgeId": "ex-rights-overreaction-recovery",
-      "why": "現在VOI 1位。AEON/J Trustのlive observationと過去権利落ちuniverseをPITで接続し、residual dropと回復率を実測する必要がある。"
+      "why": "現在の別系統A優先Edge。AEON/J Trust live observationとhistorical権利落ちuniverseをPIT接続してresidual dropと回復率を実測する。"
     },
     {
       "edgeId": "misconduct-overreaction-recovery",
-      "why": "現在VOI 2位。Sanrioを証明ではなくseedとしてPIT再構成し、旧27候補から勝ち事例だけ選ばずsuccess/non-recovery/controlを移行する必要がある。"
-    },
-    {
-      "edgeId": "known-bad-event-repricing",
-      "why": "formal event通過時のshort repricing研究としてlong recovery Edgeと混同せず、実価格・confounderを接続して役割差を検証する必要がある。"
+      "why": "Known-Badを統合した単一不祥事EdgeとしてSanrioをphase1〜phase5へPIT再構成し、旧候補を勝ち事例だけ選ばず移行する。"
     }
   ],
   "openQuestions": [
-    "権利落ちEdgeのprimary entryをopen+30m、D0 close、D+1のどれに事前固定すると最も再現可能か。",
-    "不祥事Edgeでactor separabilityを人間間で再現できる分類contractへどこまで構造化するか。",
-    "旧27候補をexploratory cohortとして使いながら、新しいconfirmatory/holdout selectionへのfuture-return leakageを完全に防ぐ切り分け。",
-    "Owner /researchで仮説、実測結果、未確定、反証、次actionをどの粒度で表示すると誤解が最少か。"
+    "不祥事Edgeのprimary long entryを初期shock open+60m、D0 close、formal event後first executableのどれに事前固定するか。",
+    "formal-event secondary repricingが単なるgeneric reversalではなくentry timing改善に寄与するか。",
+    "actor separabilityとeconomic damageを人間間で再現できる分類contractへどこまで構造化するか。",
+    "旧27候補をexploratory cohortとして使いながらconfirmatory/holdoutへのfuture-return leakageを防ぐ切り分け。"
   ],
   "osIssues": [
-    "Research OS正本にはDashboard/Log/CheckpointがあるがOwner Web UIに統合表示がなく、研究の途中経過を見つけにくい。Issue #1295で/read-only /research surfaceとして追跡する。"
+    "Research OS正本にはDashboard/Log/CheckpointがあるがOwner Web UIに統合表示がなく研究の途中経過を見つけにくい。Issue #1295でread-only /research surfaceとして追跡する。"
   ]
 }
