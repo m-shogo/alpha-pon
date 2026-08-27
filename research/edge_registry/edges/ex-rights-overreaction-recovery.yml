@@ -1,0 +1,173 @@
+schemaVersion: 1
+id: ex-rights-overreaction-recovery
+title: Ex-Rights Overreaction Recovery Edge
+status: research
+priority: A
+owner: chatgpt-hourly
+createdAt: "2026-08-27"
+lastUpdate: "2026-08-27"
+hypothesis: "日本の上場株で、配当・株主優待の権利落ち日に実際の下落がPITで推定した権利価値と市場・業種要因を有意に上回り、entry時点で支配的な新規悪材料が確認されない場合、その過剰下落は短中期に平均回帰し、matched controlより高い確率で権利前終値を回復または超過する。"
+mechanism: >-
+  権利落ちでは配当・優待価値の機械的な価格調整に加えて、権利取りだけを目的とした保有者の売却、信用買いの解消、人気優待銘柄への事前集中、寄り付き流動性の偏りが重なることがある。企業価値を変える新規悪材料がない場合、この需給ショックの一部は一時的で、権利価値とbenchmark要因を控除したresidual dropに平均回帰余地が残る可能性がある。単なる安値拾いではなく、権利価値・同時情報・事前crowding・市場要因を分離して検証する。
+confidence: 0.25
+requiredData:
+  - 権利付最終日・権利落ち日・基準日とPITで確認可能な会社IR/取引所情報
+  - 権利前終値、権利落ち始値・高値・安値・終値、可能なら分足とfirst executable price
+  - 予想配当の権利価値/株と、その時点で公表済みだった配当予想
+  - 株主優待の種類、必要株数、継続保有条件、利用上限、有効期限、今回限定か継続制度か
+  - 優待cash-equivalentのlow/base/high推定値と推定confidence
+  - TOPIX・業種指数・matched control価格系列とPIT beta推定に必要な事前価格
+  - 権利前D-20・D-10・D-5の価格、出来高、turnover、異常収益
+  - 信用買残・信用売残・貸借倍率・逆日歩等の需給系列
+  - 株主数・流動性・時価総額等の人気/混雑proxy
+  - 権利日前後の決算・業績修正・配当変更・増資・自社株買い・M&A・事故・不祥事・訴訟・規制・指数イベント
+  - D+1・D+3・D+5・D+10・D+20・D+60の価格とbenchmark
+  - 株式分割・併合等のcorporate actionと価格調整履歴
+entry:
+  trigger: "権利落ち日の最初の執行可能時点以降、PIT confounder scanで支配的な新規悪材料がないことを確認し、権利価値とbenchmark要因を控除したresidual dropが研究sampleで事前登録した閾値を超えた場合"
+  side: long
+  decisionLagMinutes: 30
+exit:
+  rule: "pre-ex close回復をイベントとして記録しつつ、D+1・D+3・D+5・D+10・D+20・D+60を独立計測する。主検証の最大保有期間は60営業日。"
+  holdingPeriodDays: 60
+  invalidation: "entry時点で支配的な新規悪材料、PIT不明、権利価値を保守的に推定不能、強い同時開示、売買停止、極端な流動性不足、corporate action未調整、またはfirst executable price不明"
+execution:
+  feasibility: unknown
+  notes: "一次研究ではnext open・open+30m・ex-day closeを別routeで測定する。寄り付きの見かけの安値を後知恵でentryに使わない。実売買や自動発注には接続しない。"
+  borrowAvailability: unknown
+voiInputs:
+  expectedNetAlphaBps: 0
+  uncertaintyReduction: 0.95
+  executionImprovement: 0.65
+  researchCost: 0.65
+  notes: "日本株ではサンプル数を確保しやすく、権利日・配当・優待・価格という構造化可能な情報が多い一方、優待価値推定と同時悪材料除去が難所。Net Alpha実測前なので期待値は0 bpsで仮置き。"
+samples:
+  required: 120
+  current: 0
+  requiredAnalogs: 30
+promotionGate:
+  sufficientSamples:
+    state: unknown
+    evidence: "実サンプル未登録。成功例・非回復例を同一基準で120件以上集める。"
+  holdoutPass:
+    state: unknown
+    evidence: "探索期間とuntouched holdoutを事前固定してから検証する。"
+  pitSafe:
+    state: unknown
+    evidence: "権利価値、悪材料判定、first executable priceを当時時点で再現するPIT contractが未実装。"
+  netAlphaPositive:
+    state: unknown
+    evidence: "権利価値・benchmark・spread/slippage控除後の実測Net Alphaは0件。"
+  executionFeasible:
+    state: unknown
+    evidence: "open直後のgap/volatilityと30分待機routeを含む執行可能性が未検証。"
+  liquiditySufficient:
+    state: unknown
+    evidence: "ADTV、spread proxy、出来高shock、参加率制約の実測が未実施。"
+  borrowCostCovered:
+    state: unknown
+    evidence: "long Edgeのためborrowは主制約ではないが、信用需給の交絡説明用系列は未接続。"
+  confoundersRemoved:
+    state: unknown
+    evidence: "決算、業績修正、資本政策、事故、不祥事、規制、指数、macro等のPIT confounder ledgerが未構築。"
+  counterfactualExplained:
+    state: unknown
+    evidence: "matched control、dividend-only、benefit-only、non-popular、generic reversalとの比較が未実施。"
+  decayChecked:
+    state: unknown
+    evidence: "制度変更、優待廃止傾向、アルゴ化によるEdge decayをrecent対historicalで未検証。"
+  falseDiscoveryGuard:
+    state: unknown
+    evidence: "residual-drop閾値は探索sampleのみで選び、confirmatory/holdoutへ固定適用する必要がある。"
+decay:
+  reviewIntervalDays: 30
+  notes: "権利落ち需給は制度・市場参加者構成で変化し得るため、production候補化後はhistorical/recentを分離して監視する。"
+notes: |-
+  primaryMetrics:
+    - grossDropBps = preExCloseからentry priceまでの実下落幅（下落を正）
+    - rightsValueLow/Base/High = 配当 + 優待cash-equivalentの1株当たり価値
+    - mechanicalDropBps = rightsValueBase / preExClose
+    - benchmarkExpectedDropBps = PIT beta × TOPIX/業種/matched move
+    - residualDropBps = grossDropBps - mechanicalDropBps - benchmarkExpectedDropBps
+    - effectivePreRightsCost = preExClose - rightsValueBase
+    - postExDiscountJpy = effectivePreRightsCost - entryPrice
+    - timeToReclaimPreExClose = 権利前終値を初めて回復するまでの営業日
+    - reclaimByD5/D20/D60、overshootBps、maxAdverseExcursion、maxFavorableExcursion
+    - D+1/D+3/D+5/D+10/D+20/D+60 benchmark-adjusted return
+
+  benefitValuation:
+    - fixedValue: デジタルギフト、QUO等は額面を上限とし交換手数料や利用制約を控除
+    - ticketCoupon: 公式通常価格を上限に、利用制約・期限・本人利用性をhaircutしたlow/base/highを持つ
+    - percentageRebate: 想定利用額のlow/base/high × 還元率でscenario化し、上限を超えない
+    - discountBenefit: 通常支出がなければ価値0になり得るため利用額scenarioを必須とする
+    - oneOffSpecial: recurringと混ぜず独立bucketにする
+    - continuityRequirement: 長期保有条件がある優待は新規買いで取得可能な価値と分離する
+    - secondaryMarket: 転売価格を主価値にせず、公式利用価値を基本とする
+
+  informationState:
+    - badNewsAtEntry: none / minor / ambiguous / dominant をPITで分類
+    - postEntryReveal: entry後D+3までに初めて公表された悪材料は別フィールドで保持し、entry時点判定へ後知恵で混ぜない
+    - dominant bad newsがあるsampleはcore Edgeから除外し、negative/control cohortとして保存する
+
+  popularityAndCrowding:
+    - popularityは主観的知名度でなく、株主数percentile、benefit yield、turnover、権利前異常出来高、信用倍率、D-20先回り上昇でPITスコア化する
+    - popular cohortとmatched non-popular cohortを比較し、人気株ほどoverreaction/recoveryが強いか検証する
+    - benefit-only目的のcrowdingと企業成長期待によるmomentumを分離する
+
+  cohorts:
+    - recurring benefit + dividend
+    - recurring benefit only
+    - dividend only
+    - one-off special benefit
+    - fixed cash-like benefit
+    - ticket/coupon benefit
+    - percentage rebate/discount benefit
+    - high popularity/crowding
+    - low popularity/crowding matched control
+    - badNewsAtEntry none vs minor/ambiguous vs dominant
+
+  preRegisteredThresholdCandidates:
+    - residualDropBps >= 50
+    - residualDropBps >= 100
+    - residualDropBps >= 200
+    - residualDropBps >= 300
+    - 閾値選択はresearch sample内でのみ行いconfirmatory/holdoutへ固定する
+
+  qualityGuardCandidates:
+    - 直近会社予想の下方修正なし
+    - going concern/audit/internal-controlの重大警告なし
+    - 大規模希薄化・公募増資なし
+    - 優待廃止/縮小がentry時点で公表されていない
+    - 企業固有の事故・不祥事・行政処分が下落説明力を持たない
+    - 最低流動性基準を満たす
+
+  historicalDesign:
+    - current優待一覧だけから遡らず、当時存在した制度をPITで復元してsurvivorship biasを避ける
+    - 優待廃止・改悪・上場廃止・非回復例も捨てない
+    - split/併合前後をadjusted closeだけで雑に処理せず、権利価値と実価格を同一株数基準へ正規化する
+    - 同一銘柄の反復観測はclusterとして扱い、1社の癖でEdgeを作らない
+
+  initialLiveObservations:
+    - AEON 8267 / 2026-08: recurring rebate/discount系 + dividend。通常優待株のlive cohort候補
+    - J Trust 8508 / 2026-08: one-off high-value digital giftのstress cohort候補
+    - 実サンプル登録は一次資料、PIT時刻、価格、confounder確認後に行い、会話上の数値をそのまま正本化しない
+
+  falsificationConditions:
+    - residual dropがgeneric short-term reversalだけで説明できる
+    - matched control補正後に回復優位性が消える
+    - 権利前momentumの反転を除くとNet Alphaが消える
+    - one-off high-value benefitだけに結果が集中する
+    - success sampleだけで、非回復・優待廃止・悪材料sampleを含めると優位性が消える
+    - openの非執行可能な瞬間安値を使わないと収益が出ない
+    - spread/slippage/税・手数料等の実行コストを考慮するとNet Alphaが非正
+    - confirmatory sampleまたはholdoutで再現しない
+
+  sourcePolicy:
+    allowed: company IR, TDnet, JPX, EDINET, regulators, ministries, courts, administrative records, major media, licensed market data, historical DB, academic research
+    prohibited: SNS, message boards, anonymous posts, influencer commentary, social sentiment
+    snsUsed: false
+
+  boundary:
+    - これは研究Edgeであり、現段階ではBUY推奨、自動発注、portfolio mutationへ接続しない
+    - 悪材料なしという主観だけで買わず、PIT confounder scanを必須にする
+    - 「権利落ち日は必ず戻る」という前提を置かず、戻らないsampleを同じ重さで保存する
