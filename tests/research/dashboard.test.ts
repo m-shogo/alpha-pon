@@ -1,6 +1,18 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import {
+  linkSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { buildDashboard } from "../../src/research/dashboard.js";
+import { loadCheckpoint, ResearchDataError } from "../../src/research/io.js";
 import { buildQueue } from "../../src/research/queue.js";
 import { GATE_KEYS, type Edge } from "../../src/research/types.js";
 import { makeEdge, makeState } from "./helpers.js";
@@ -47,7 +59,10 @@ function testRequiredSectionsRendered() {
 }
 
 function testDeterministicOutput() {
-  const edges = [makeEdge({ id: "edge-a" }), makeEdge({ id: "edge-b", hypothesis: "別の仮説。イベント B の後、対象銘柄は超過収益を生む。" })];
+  const edges = [
+    makeEdge({ id: "edge-a" }),
+    makeEdge({ id: "edge-b", hypothesis: "別の仮説。イベント B の後、対象銘柄は超過収益を生む。" }),
+  ];
   assert.equal(render(edges), render(edges), "同じ入力なら同じ Markdown");
   console.log("research/dashboard: 決定論性 OK");
 }
@@ -59,9 +74,53 @@ function testEmptyRegistryDoesNotCrash() {
   console.log("research/dashboard: 空レジストリ OK");
 }
 
+function testLinkedCheckpointIsRejected() {
+  const originalCwd = process.cwd();
+  const schema = readFileSync(join(originalCwd, "research/schemas/checkpoint.schema.json"), "utf-8");
+  const checkpoint = readFileSync(join(originalCwd, "research/checkpoint/latest.json"), "utf-8");
+  const root = mkdtempSync(join(tmpdir(), "alpha-pon-research-checkpoint-"));
+  const schemaDir = join(root, "research/schemas");
+  const checkpointDir = join(root, "research/checkpoint");
+  const latest = join(checkpointDir, "latest.json");
+  const target = join(checkpointDir, "target.json");
+
+  mkdirSync(schemaDir, { recursive: true });
+  mkdirSync(checkpointDir, { recursive: true });
+  writeFileSync(join(schemaDir, "checkpoint.schema.json"), schema, "utf-8");
+  writeFileSync(target, checkpoint, "utf-8");
+
+  try {
+    process.chdir(root);
+
+    writeFileSync(latest, checkpoint, "utf-8");
+    assert.equal(loadCheckpoint()?.schemaVersion, 1, "standalone checkpointは読み込める");
+
+    unlinkSync(latest);
+    symlinkSync(target, latest);
+    assert.throws(
+      () => loadCheckpoint(),
+      (error: unknown) => error instanceof ResearchDataError && /standalone regular JSON file/.test(error.message),
+      "symlink checkpointをcanonical Evidenceとして追従しない",
+    );
+
+    unlinkSync(latest);
+    linkSync(target, latest);
+    assert.throws(
+      () => loadCheckpoint(),
+      (error: unknown) => error instanceof ResearchDataError && /standalone regular JSON file/.test(error.message),
+      "hard-link checkpointをcanonical Evidenceとして追従しない",
+    );
+  } finally {
+    process.chdir(originalCwd);
+    rmSync(root, { recursive: true, force: true });
+  }
+  console.log("research/dashboard: linked checkpoint rejection OK");
+}
+
 testSchemaAndTypesStayInSync();
 testRequiredSectionsRendered();
 testDeterministicOutput();
 testEmptyRegistryDoesNotCrash();
+testLinkedCheckpointIsRejected();
 
 console.log("research/dashboard: 全テスト成功");
