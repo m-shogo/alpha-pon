@@ -4,6 +4,8 @@ import { isUsableProKnowledgeRegimeAsOf } from "./pro-knowledge-refresh-input.js
 
 type UnknownRecord = Record<string, unknown>;
 
+const COMPANY_HYPOTHESIS_STATUSES = new Set(["active", "watch", "stale", "retired"]);
+
 function isRecord(value: unknown): value is UnknownRecord {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -102,6 +104,10 @@ export function normalizeAlignmentHypothesisCategories(
       }
       seenCodes.add(code);
       const status = nonEmptyString(rawCompany.status);
+      if (rawCompany.status !== undefined && (!status || !COMPANY_HYPOTHESIS_STATUSES.has(status))) {
+        warnings.push(`company-hypotheses.yml category ${categoryId} company ${code} status is invalid`);
+        return;
+      }
       companies.push({ code, name, ...(status ? { status } : {}) });
     });
     categories[categoryId] = { label, companies };
