@@ -7,14 +7,14 @@ import { existsSync, readFileSync } from "fs";
 import { load } from "js-yaml";
 import { loadResearchState, paths, writeGeneratedJson } from "../io.js";
 import { buildQueue, DEFAULT_WEIGHTS, type QueueWeights } from "../queue.js";
+import { resolveQueueWeights } from "../queue-weights.js";
 import { stableStringify } from "../schema.js";
 import { fail, parseArgs, todayJst } from "./common.js";
 
 function loadWeights(): QueueWeights {
   const file = paths.queueWeights();
   if (!existsSync(file)) return DEFAULT_WEIGHTS;
-  const parsed = load(readFileSync(file, "utf-8")) as Partial<QueueWeights> | null;
-  return { ...DEFAULT_WEIGHTS, ...(parsed ?? {}) };
+  return resolveQueueWeights(load(readFileSync(file, "utf-8")));
 }
 
 function main(): void {
