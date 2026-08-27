@@ -82,6 +82,18 @@ families:
       - ref: docs/research/information-state-verification-protocol.md
         classification: guard
         role: pit_information_state
+      - ref: docs/research/improvement-report-submission-timing-edge-2026-08-04.md
+        classification: subsignal
+        role: remediation_submission_timing
+      - ref: docs/research/improvement-status-clock-cohort.md
+        classification: cohort
+        role: scheduled_remediation_verification
+      - ref: docs/research/improvement-status-clock-lag-calibration-2026-08-04.md
+        classification: calibration
+        role: remediation_followup_window
+      - ref: docs/research/improvement-status-report-calendar.md
+        classification: fixture
+        role: remediation_followup_calendar
 
   - id: ex-rights-overreaction-recovery
     canonicalType: parent_edge
@@ -134,15 +146,7 @@ families:
         classification: infrastructure
         role: foundation_review
 
-unresolved:
-  - ref: docs/research/improvement-report-submission-timing-edge-2026-08-04.md
-    reason: "May be a remediation-timing sub-signal, but needs content-level overlap review before classification."
-  - ref: docs/research/improvement-status-clock-cohort.md
-    reason: "Likely supporting cohort rather than an Edge; content-level review required."
-  - ref: docs/research/improvement-status-clock-lag-calibration-2026-08-04.md
-    reason: "Likely calibration artifact; content-level review required."
-  - ref: docs/research/improvement-status-report-calendar.md
-    reason: "Likely calendar/operations artifact; content-level review required."
+unresolved: []
 
 boundaries:
   - "Inventory classification never promotes an Edge to shadow/production."
