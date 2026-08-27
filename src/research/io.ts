@@ -6,6 +6,7 @@ import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, rea
 import { join } from "path";
 import { load } from "js-yaml";
 import { readReadOnlyJsonObjectFile } from "../read-only-json-file.js";
+import { readReadOnlyTextFile } from "../read-only-text-file.js";
 import type {
   Checkpoint,
   Confounder,
@@ -102,7 +103,9 @@ export function readJsonl(file: string): unknown[] {
 export function loadEdges(): Edge[] {
   return listFiles(paths.edges(), ".yml").map((name) => {
     const file = join(paths.edges(), name);
-    const raw = load(readFileSync(file, "utf-8"));
+    const text = readReadOnlyTextFile(file);
+    if (!text) throw new ResearchDataError(file, "  - standalone regular YAML file として読めません");
+    const raw = load(text);
     const edge = parseValidated<Edge>(raw, "edge", file);
     const expected = `${edge.id}.yml`;
     if (name !== expected) {
