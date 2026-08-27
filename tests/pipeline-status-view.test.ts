@@ -11,6 +11,16 @@ assert.equal(isPipelineStatusHealthy({ status: 'ok', failedSteps: ['scan:univers
 assert.equal(isPipelineStatusHealthy({ status: 'ok', failedSteps: 'scan:universe(1)', completeWrapperFailedSteps: [] }), false)
 assert.equal(isPipelineStatusHealthy({ status: 'ok', failedSteps: [], completeWrapperFailedSteps: ['scan:universe(1)'] }), false)
 assert.equal(isPipelineStatusHealthy({ status: 'success', failedSteps: [], completeWrapperFailedSteps: [] }), false)
+assert.equal(
+  isPipelineStatusHealthy({
+    status: 'ok',
+    failedSteps: [],
+    completeWrapperFailedSteps: [],
+    steps: [{ name: 'source-health', criticality: 'critical', status: 'failed', code: 1 }],
+  }),
+  false,
+  'canonical failed step must make top-level ok unhealthy',
+)
 
 for (const malformedStep of [
   { ...canonicalStep, name: ' source-health ' },
