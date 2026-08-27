@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "fs";
 import { todayJst } from "./date.js";
-import { listingPerformanceReviewDate } from "./listing-performance-date.js";
 import { readListingReviewSourceInput } from "./listing-review-source-input.js";
+import { listingReviewTargetsDueBy } from "./listing-review-targets.js";
 
 type ListingEvent = {
   id: string;
@@ -79,18 +79,6 @@ async function fetchQuote(idToken: string, code: string, date: string): Promise<
   }
 }
 
-function targetEvents(events: ListingEvent[]): { event: ListingEvent; horizon: "30d" | "90d"; reviewDate: string }[] {
-  const targets: { event: ListingEvent; horizon: "30d" | "90d"; reviewDate: string }[] = [];
-  for (const event of events) {
-    if (event.eventType !== "listing_day" || !event.code || !event.eventDate) continue;
-    const d30 = listingPerformanceReviewDate(event.eventDate, 30);
-    const d90 = listingPerformanceReviewDate(event.eventDate, 90);
-    if (d30) targets.push({ event, horizon: "30d", reviewDate: d30 });
-    if (d90) targets.push({ event, horizon: "90d", reviewDate: d90 });
-  }
-  return targets;
-}
-
 function csvEscape(value: string | number | null | undefined): string {
   if (value == null) return "";
   const s = String(value);
@@ -101,7 +89,7 @@ async function main() {
   const writeCsv = process.argv.includes("--write-csv");
   const generatedAt = todayJst();
   const { events, warnings: sourceWarnings } = readListingReviewSourceInput(DATA_PATH);
-  const targets = targetEvents(events);
+  const targets = listingReviewTargetsDueBy(events as ListingEvent[], generatedAt);
   const lines: string[] = [];
   let idToken: string | null = null;
   let setupError: string | null = null;
