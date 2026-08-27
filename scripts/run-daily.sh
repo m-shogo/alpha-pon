@@ -137,14 +137,21 @@ run_step() {
     step_ended_at="$(date '+%Y-%m-%d %H:%M:%S')"
     step_ended_epoch="$(date '+%s')"
     duration=$((step_ended_epoch - step_started_epoch))
-    append_step_status "$name" "$critical" "ok" "0" "$step_started_at" "$step_ended_at" "$duration"
+    if ! append_step_status "$name" "$critical" "ok" "0" "$step_started_at" "$step_ended_at" "$duration"; then
+      echo "failed to persist pipeline status after successful step: $name" >&2
+      return 1
+    fi
     echo "---- [$name] ok: $step_ended_at ----"
   else
     local code=$?
     step_ended_at="$(date '+%Y-%m-%d %H:%M:%S')"
     step_ended_epoch="$(date '+%s')"
     duration=$((step_ended_epoch - step_started_epoch))
-    append_step_status "$name" "$critical" "failed" "$code" "$step_started_at" "$step_ended_at" "$duration"
+    if ! append_step_status "$name" "$critical" "failed" "$code" "$step_started_at" "$step_ended_at" "$duration"; then
+      echo "failed to persist pipeline status after failed step: $name" >&2
+      notify_pipeline "alert" "alpha-pon pipeline status write failed" "step=$name code=$code date=$TODAY"
+      return 1
+    fi
     local message="step=$name code=$code date=$TODAY"
     echo "---- [$name] failed($code): $step_ended_at ----"
     FAILED_STEPS="$FAILED_STEPS $name($code)"
