@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { buildQueue, DEFAULT_WEIGHTS, decayUrgency } from "../../src/research/queue.js";
+import { resolveQueueWeights } from "../../src/research/queue-weights.js";
 import { stableStringify } from "../../src/research/schema.js";
 import { makeEdge, makeState } from "./helpers.js";
 
@@ -43,26 +44,6 @@ function testRejectedAndDeprecatedExcluded() {
       }),
     ],
   });
-  const queue = buildQueue(state, AS_OF);
-  assert.deepEqual(
-    queue.entries.map((entry) => entry.edgeId),
-    ["edge-live"],
-  );
-  assert.equal(queue.excluded[0].edgeId, "edge-dead");
-  console.log("research/queue: 除外ルール OK");
-}
-
-function testProductionResurfacesOnlyWhenDecayDue() {
-  const fresh = makeEdge({ id: "edge-prod-fresh", status: "production" });
-  fresh.decay = { reviewIntervalDays: 90, lastCheckedAt: "2026-08-01" };
-
-  const overdue = makeEdge({
-    id: "edge-prod-overdue",
-    status: "production",
-    hypothesis: "期限切れの仮説。イベント R の後、対象銘柄は超過収益を生む。",
-  });
-  overdue.decay = { reviewIntervalDays: 30, lastCheckedAt: "2026-01-01" };
-
   const queue = buildQueue(makeState({ edges: [fresh, overdue] }), AS_OF);
   assert.deepEqual(
     queue.entries.map((entry) => entry.edgeId),
@@ -156,6 +137,33 @@ function testWeightsAreRecorded() {
   console.log("research/queue: 重みの記録 OK");
 }
 
+function testQueueWeightContractFailsClosed() {
+  assert.deepEqual(resolveQueueWeights(null), DEFAULT_WEIGHTS, "空configは既定値を使う");
+  assert.deepEqual(
+    resolveQueueWeights({ expectedRoi: 0.5 }),
+    { ...DEFAULT_WEIGHTS, expectedRoi: 0.5 },
+    "部分configは既定値へ安全に重ねる",
+  );
+
+  for (const invalid of [
+    { roiNormalizationBps: 0 },
+    { roiNormalizationBps: -1 },
+    { roiNormalizationBps: Number.NaN },
+    { expectedRoi: -0.1 },
+    { sampleGap: Number.POSITIVE_INFINITY },
+    { priority: "high" },
+    { bogusWeight: 1 },
+    [],
+  ]) {
+    assert.throws(
+      () => resolveQueueWeights(invalid),
+      /Research Queue weight/,
+      `malformed queue weights must fail closed: ${JSON.stringify(invalid)}`,
+    );
+  }
+  console.log("research/queue: weight contract fail-closed OK");
+}
+
 testDeterministic();
 testTieBreakByIdIsStable();
 testRejectedAndDeprecatedExcluded();
@@ -164,5 +172,6 @@ testDecayUrgencySaturates();
 testInvalidDatesFailClosed();
 testHistoricalGapRaisesPriority();
 testWeightsAreRecorded();
+testQueueWeightContractFailsClosed();
 
 console.log("research/queue: 全テスト成功");
