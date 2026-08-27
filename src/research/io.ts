@@ -5,6 +5,7 @@
 import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, readdirSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
+import { readReadOnlyJsonObjectFile } from "../read-only-json-file.js";
 import type {
   Checkpoint,
   Confounder,
@@ -143,8 +144,12 @@ export function loadResearchLog(): ResearchLogEntry[] {
 
 export function loadCheckpoint(): Checkpoint | null {
   const file = paths.checkpointLatest();
-  if (!existsSync(file)) return null;
-  return parseValidated<Checkpoint>(JSON.parse(readFileSync(file, "utf-8")), "checkpoint", file);
+  const loaded = readReadOnlyJsonObjectFile<Record<string, unknown>>(file);
+  if (loaded.missing) return null;
+  if (loaded.parseError || loaded.invalidRoot || !loaded.object) {
+    throw new ResearchDataError(file, "  - standalone regular JSON file として読めません");
+  }
+  return parseValidated<Checkpoint>(loaded.object, "checkpoint", file);
 }
 
 /** Queue / Dashboard / Gate 判定が使う唯一のスナップショット。 */
