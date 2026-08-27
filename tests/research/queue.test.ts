@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { buildQueue, DEFAULT_WEIGHTS, decayUrgency } from "../../src/research/queue.js";
+import { resolveQueueWeights } from "../../src/research/queue-weights.js";
 import { stableStringify } from "../../src/research/schema.js";
 import { makeEdge, makeState } from "./helpers.js";
 
@@ -156,6 +157,33 @@ function testWeightsAreRecorded() {
   console.log("research/queue: 重みの記録 OK");
 }
 
+function testQueueWeightContractFailsClosed() {
+  assert.deepEqual(resolveQueueWeights(null), DEFAULT_WEIGHTS, "空configは既定値を使う");
+  assert.deepEqual(
+    resolveQueueWeights({ expectedRoi: 0.5 }),
+    { ...DEFAULT_WEIGHTS, expectedRoi: 0.5 },
+    "部分configは既定値へ安全に重ねる",
+  );
+
+  for (const invalid of [
+    { roiNormalizationBps: 0 },
+    { roiNormalizationBps: -1 },
+    { roiNormalizationBps: Number.NaN },
+    { expectedRoi: -0.1 },
+    { sampleGap: Number.POSITIVE_INFINITY },
+    { priority: "high" },
+    { bogusWeight: 1 },
+    [],
+  ]) {
+    assert.throws(
+      () => resolveQueueWeights(invalid),
+      /Research Queue weight/,
+      `malformed queue weights must fail closed: ${JSON.stringify(invalid)}`,
+    );
+  }
+  console.log("research/queue: weight contract fail-closed OK");
+}
+
 testDeterministic();
 testTieBreakByIdIsStable();
 testRejectedAndDeprecatedExcluded();
@@ -164,5 +192,6 @@ testDecayUrgencySaturates();
 testInvalidDatesFailClosed();
 testHistoricalGapRaisesPriority();
 testWeightsAreRecorded();
+testQueueWeightContractFailsClosed();
 
 console.log("research/queue: 全テスト成功");
