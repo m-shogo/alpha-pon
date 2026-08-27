@@ -216,7 +216,9 @@ echo "DIR=$DIR"
 echo "========================================"
 
 # 1. 世界ニュースを取得し、重要トピックを考察DBへ保存。失敗しても銘柄dailyは止めない。
-run_step "scan:world" "noncritical" node --import "tsx/esm" "$DIR/src/scan-world-events.ts" || true
+if ! run_step "scan:world" "noncritical" node --import "tsx/esm" "$DIR/src/scan-world-events.ts"; then
+  exit 1
+fi
 
 # 2. 銘柄スコア・詳細レポート・類推使用DB・予想DBを保存。ここだけは最重要。
 if ! run_step "daily" "critical" node --import "tsx/esm" "$DIR/src/daily.ts"; then
@@ -226,25 +228,39 @@ if ! run_step "daily" "critical" node --import "tsx/esm" "$DIR/src/daily.ts"; th
 fi
 
 # 3. 期限到来した1日/1週/1か月後レビュー候補をoutcome DBへ保存。失敗しても止めない。
-run_step "review:analogies:write" "noncritical" node --import "tsx/esm" "$DIR/src/review-analogies.ts" --write || true
+if ! run_step "review:analogies:write" "noncritical" node --import "tsx/esm" "$DIR/src/review-analogies.ts" --write; then
+  exit 1
+fi
 
 # 4. 学習集計。失敗してもdaily自体は成功扱いにする。
-run_step "learn" "noncritical" node --import "tsx/esm" "$DIR/src/learn.ts" || true
+if ! run_step "learn" "noncritical" node --import "tsx/esm" "$DIR/src/learn.ts"; then
+  exit 1
+fi
 
 # 5. 一次情報学習。TDnet/EDINET判定ごとの成績とカテゴリ別成績を見る。失敗しても止めない。
-run_step "learn:primary" "noncritical" node --import "tsx/esm" "$DIR/src/primary-disclosure-learning.ts" || true
+if ! run_step "learn:primary" "noncritical" node --import "tsx/esm" "$DIR/src/primary-disclosure-learning.ts"; then
+  exit 1
+fi
 
 # 6. 情報源ヘルス。J-Quants/TDnet/EDINET/レポート生成の抜け漏れを見える化する。
-run_step "health:sources" "noncritical" node --import "tsx/esm" "$DIR/src/source-health.ts" || true
+if ! run_step "health:sources" "noncritical" node --import "tsx/esm" "$DIR/src/source-health.ts"; then
+  exit 1
+fi
 
 # 7. ルール診断。自動でrules.ymlは変更せず、改善候補だけ出す。
-run_step "diagnose:rules" "noncritical" node --import "tsx/esm" "$DIR/src/rule-diagnostics.ts" || true
+if ! run_step "diagnose:rules" "noncritical" node --import "tsx/esm" "$DIR/src/rule-diagnostics.ts"; then
+  exit 1
+fi
 
 # 8. 改善提案。source health / rule diagnostics / score logs を統合して優先順位を出す。
-run_step "proposals" "noncritical" node --import "tsx/esm" "$DIR/src/proposals.ts" || true
+if ! run_step "proposals" "noncritical" node --import "tsx/esm" "$DIR/src/proposals.ts"; then
+  exit 1
+fi
 
 # 9. 銘柄ごとの反省ノート。スコア加点には使わず、company memory として保存する。
-run_step "memory:companies" "noncritical" node --import "tsx/esm" "$DIR/src/update-company-memory.ts" || true
+if ! run_step "memory:companies" "noncritical" node --import "tsx/esm" "$DIR/src/update-company-memory.ts"; then
+  exit 1
+fi
 
 # 10. 週次レビュー。月曜だけ実行。
 if ! run_if_monday "review:weekly" node --import "tsx/esm" "$DIR/src/periodic-review.ts" --weekly; then
@@ -257,7 +273,9 @@ if ! run_if_month_start "review:monthly" node --import "tsx/esm" "$DIR/src/perio
 fi
 
 # 12. DB肥大化チェック。実アーカイブは安全側で毎日実行。失敗しても止めない。
-run_step "maintain:data:write" "noncritical" node --import "tsx/esm" "$DIR/src/maintain-data.ts" --write || true
+if ! run_step "maintain:data:write" "noncritical" node --import "tsx/esm" "$DIR/src/maintain-data.ts" --write; then
+  exit 1
+fi
 
 if [ -n "$FAILED_STEPS" ]; then
   FINAL_STATUS="completed_with_warnings"
