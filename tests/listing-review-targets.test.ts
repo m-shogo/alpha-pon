@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { listingReviewTargetsDueBy } from "../src/listing-review-targets.js";
+import { listingReviewRowIsCurrent, listingReviewTargetsDueBy } from "../src/listing-review-targets.js";
 
 const event = {
   id: "listing-8136",
@@ -23,5 +23,11 @@ assert.deepEqual(
   listingReviewTargetsDueBy([{ ...event, eventDate: "2026-02-31" }], "2026-10-30"),
   [],
 );
+
+assert.equal(listingReviewRowIsCurrent("2026-08-31", "2026-08-27"), false);
+assert.equal(listingReviewRowIsCurrent("2026-08-31", "2026-08-31"), true);
+assert.equal(listingReviewRowIsCurrent("2026-08-31", "2026-09-01"), true);
+assert.equal(listingReviewRowIsCurrent(null, "2026-08-27"), true);
+assert.throws(() => listingReviewRowIsCurrent("2026-08-31", "2026-02-31"), /real YYYY-MM-DD/);
 
 console.log("listing review targets tests passed");

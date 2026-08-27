@@ -17,13 +17,17 @@ export type ListingReviewTarget<T extends ListingReviewTargetEvent> = {
   reviewDate: string;
 };
 
+function assertRealAsOf(asOf: string): void {
+  if (addDaysJst(asOf, 0) !== asOf) {
+    throw new Error("listing review asOf must be a real YYYY-MM-DD date");
+  }
+}
+
 export function listingReviewTargetsDueBy<T extends ListingReviewTargetEvent>(
   events: T[],
   asOf: string,
 ): ListingReviewTarget<T>[] {
-  if (addDaysJst(asOf, 0) !== asOf) {
-    throw new Error("listing review asOf must be a real YYYY-MM-DD date");
-  }
+  assertRealAsOf(asOf);
 
   const targets: ListingReviewTarget<T>[] = [];
   for (const event of events) {
@@ -35,4 +39,10 @@ export function listingReviewTargetsDueBy<T extends ListingReviewTargetEvent>(
     }
   }
   return targets;
+}
+
+export function listingReviewRowIsCurrent(reviewDate: string | null, asOf: string): boolean {
+  assertRealAsOf(asOf);
+  // Keep malformed/missing dates visible to the audit; only suppress valid future horizons.
+  return reviewDate === null || reviewDate <= asOf;
 }
