@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "sequence": 2,
+  "savedAt": "2026-08-27T18:00:30+09:00",
+  "actor": "chatgpt-hourly",
+  "researchedEdgeId": "misconduct-overreaction-recovery",
+  "researchDone": "権利落ち後の過剰下落回復Edgeと、不祥事・ガバナンスshock後の過剰下落回復EdgeをResearch OSへ登録し、既存Known-Bad short側・Remediation risk-control側との責務を分離した。あわせて研究結果・過程を読むcanonical順序をREADMEへ明記し、Owner向けWeb /research可視化をIssue #1295として起票した。両Edgeとも実sample未登録のため全Promotion Gateはunknownを維持した。",
+  "addedAnalogIds": [],
+  "rejections": [
+    {
+      "target": "新しいoverreaction Edgeを登録した時点でBUY候補へ自動接続する案",
+      "reason": "両Edgeとも正式sample、PIT価格、matched control、実行コスト、confirmatory/holdout検証が0件であり、仮説登録と投資有効性を混同するため。"
+    }
+  ],
+  "dataGaps": [
+    "権利落ちEdgeのhistorical優待/配当制度を当時時点で復元した120件以上のsample",
+    "優待cash-equivalent、ex-day first executable price、TOPIX/業種/matched control、信用需給のPIT dataset",
+    "不祥事Edgeの経済実害・会計影響・actor separability・regulatory/litigation・brand damageを一次情報で再現した120件以上のsample",
+    "旧idiosyncratic-shock 27候補をoutcome-blind selection provenanceを維持して現Research OSへ移行するreplay",
+    "両Edgeの成功・非回復・悪化・negative controlとuntouched issuer-level holdout",
+    "Owner Web UIでResearch Dashboard / Log / Checkpoint / Analog / Outcomeを統合表示する/read-only research surface"
+  ],
+  "nextCandidates": [
+    {
+      "edgeId": "ex-rights-overreaction-recovery",
+      "why": "現在VOI 1位。AEON/J Trustのlive observationと過去権利落ちuniverseをPITで接続し、residual dropと回復率を実測する必要がある。"
+    },
+    {
+      "edgeId": "misconduct-overreaction-recovery",
+      "why": "現在VOI 2位。Sanrioを証明ではなくseedとしてPIT再構成し、旧27候補から勝ち事例だけ選ばずsuccess/non-recovery/controlを移行する必要がある。"
+    },
+    {
+      "edgeId": "known-bad-event-repricing",
+      "why": "formal event通過時のshort repricing研究としてlong recovery Edgeと混同せず、実価格・confounderを接続して役割差を検証する必要がある。"
+    }
+  ],
+  "openQuestions": [
+    "権利落ちEdgeのprimary entryをopen+30m、D0 close、D+1のどれに事前固定すると最も再現可能か。",
+    "不祥事Edgeでactor separabilityを人間間で再現できる分類contractへどこまで構造化するか。",
+    "旧27候補をexploratory cohortとして使いながら、新しいconfirmatory/holdout selectionへのfuture-return leakageを完全に防ぐ切り分け。",
+    "Owner /researchで仮説、実測結果、未確定、反証、次actionをどの粒度で表示すると誤解が最少か。"
+  ],
+  "osIssues": [
+    "Research OS正本にはDashboard/Log/CheckpointがあるがOwner Web UIに統合表示がなく、研究の途中経過を見つけにくい。Issue #1295で/read-only /research surfaceとして追跡する。"
+  ]
+}
