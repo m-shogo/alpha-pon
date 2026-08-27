@@ -44,6 +44,26 @@ function testRejectedAndDeprecatedExcluded() {
       }),
     ],
   });
+  const queue = buildQueue(state, AS_OF);
+  assert.deepEqual(
+    queue.entries.map((entry) => entry.edgeId),
+    ["edge-live"],
+  );
+  assert.equal(queue.excluded[0].edgeId, "edge-dead");
+  console.log("research/queue: 除外ルール OK");
+}
+
+function testProductionResurfacesOnlyWhenDecayDue() {
+  const fresh = makeEdge({ id: "edge-prod-fresh", status: "production" });
+  fresh.decay = { reviewIntervalDays: 90, lastCheckedAt: "2026-08-01" };
+
+  const overdue = makeEdge({
+    id: "edge-prod-overdue",
+    status: "production",
+    hypothesis: "期限切れの仮説。イベント R の後、対象銘柄は超過収益を生む。",
+  });
+  overdue.decay = { reviewIntervalDays: 30, lastCheckedAt: "2026-01-01" };
+
   const queue = buildQueue(makeState({ edges: [fresh, overdue] }), AS_OF);
   assert.deepEqual(
     queue.entries.map((entry) => entry.edgeId),
