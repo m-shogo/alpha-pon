@@ -1,10 +1,23 @@
 import assert from "node:assert/strict";
 import {
+  linkSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
   buildEdgeIndex,
   checkEdgeRegistry,
   hypothesisFingerprint,
   hypothesisSimilarity,
 } from "../../src/research/edge-registry.js";
+import { loadEdges, ResearchDataError } from "../../src/research/io.js";
 import { makeAnalog, makeEdge, makeState } from "./helpers.js";
 
 function codes(issues: ReturnType<typeof checkEdgeRegistry>): string[] {
@@ -82,6 +95,49 @@ function testIndexIsDeterministic() {
   console.log("research/registry: 索引の決定論性 OK");
 }
 
+function testLinkedEdgeFileIsRejected() {
+  const originalCwd = process.cwd();
+  const schema = readFileSync(join(originalCwd, "research/schemas/edge.schema.json"), "utf-8");
+  const edge = readFileSync(join(originalCwd, "research/edge_registry/edges/known-bad-event-repricing.yml"), "utf-8");
+  const root = mkdtempSync(join(tmpdir(), "alpha-pon-research-edge-"));
+  const schemaDir = join(root, "research/schemas");
+  const edgeDir = join(root, "research/edge_registry/edges");
+  const edgePath = join(edgeDir, "known-bad-event-repricing.yml");
+  const target = join(root, "target-edge.yml");
+
+  mkdirSync(schemaDir, { recursive: true });
+  mkdirSync(edgeDir, { recursive: true });
+  writeFileSync(join(schemaDir, "edge.schema.json"), schema, "utf-8");
+  writeFileSync(target, edge, "utf-8");
+
+  try {
+    process.chdir(root);
+
+    writeFileSync(edgePath, edge, "utf-8");
+    assert.equal(loadEdges().length, 1, "standalone Edge fileは読み込める");
+
+    unlinkSync(edgePath);
+    symlinkSync(target, edgePath);
+    assert.throws(
+      () => loadEdges(),
+      (error: unknown) => error instanceof ResearchDataError && /standalone regular YAML file/.test(error.message),
+      "symlink Edgeをcanonical Evidenceとして追従しない",
+    );
+
+    unlinkSync(edgePath);
+    linkSync(target, edgePath);
+    assert.throws(
+      () => loadEdges(),
+      (error: unknown) => error instanceof ResearchDataError && /standalone regular YAML file/.test(error.message),
+      "hard-link Edgeをcanonical Evidenceとして追従しない",
+    );
+  } finally {
+    process.chdir(originalCwd);
+    rmSync(root, { recursive: true, force: true });
+  }
+  console.log("research/registry: linked Edge rejection OK");
+}
+
 testFingerprintIgnoresFormatting();
 testDuplicateHypothesisIsError();
 testNearDuplicateHypothesis();
@@ -90,5 +146,6 @@ testDanglingReferences();
 testUnevidencedGatePass();
 testRejectedRequiresReason();
 testIndexIsDeterministic();
+testLinkedEdgeFileIsRejected();
 
 console.log("research/registry: 全テスト成功");
