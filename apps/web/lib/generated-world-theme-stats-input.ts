@@ -106,7 +106,9 @@ export function isGeneratedWorldThemeStatsInput(value: unknown): value is WorldT
   if (!rowsAreAtOrBeforeGeneratedAt(value.recent, generatedAt)) return false
   if (!value.byTheme.every((stat) => rowsAreAtOrBeforeGeneratedAt(stat.recent, generatedAt))) return false
   if (!Array.isArray(value.inputWarnings) || !value.inputWarnings.every((warning) => typeof warning === 'string')) return false
-  if (new Set(value.byTheme.map((stat) => stat.theme)).size !== value.byTheme.length) return false
+  const themes = new Set(value.byTheme.map((stat) => stat.theme))
+  if (themes.size !== value.byTheme.length) return false
+  if (!value.recent.every((row) => themes.has(row.theme))) return false
   return value.byTheme.reduce((sum, stat) => sum + stat.total, 0) === value.total
 }
 

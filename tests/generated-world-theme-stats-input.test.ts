@@ -40,6 +40,7 @@ for (const malformed of [
   { ...valid, recent: [{ ...row, reviewedAt: '2026-02-31' }] },
   { ...valid, generatedAt: '2026-08-19' },
   { ...valid, byTheme: [{ ...valid.byTheme[0], recent: [{ ...row, reviewedAt: '2026-08-23' }] }] },
+  { ...valid, recent: [{ ...row, theme: 'untracked_theme' }] },
   { ...valid, generatedAt: '2999-01-01' },
   { ...valid, total: 2 },
 ] as const) {
