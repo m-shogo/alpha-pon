@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   countCompanyCoverageWarnings,
   countOnboardingUnknownThinEvidence,
+  countRegimeAlignmentWarnings,
   countStaleHypothesisWarnings,
 } from "../src/stock-pro-improvement-roadmap-input.js";
 
@@ -82,5 +83,35 @@ assert.deepEqual(
   { valid: false, count: 0 },
 );
 assert.deepEqual(countStaleHypothesisWarnings("review_needed only"), { valid: false, count: 0 });
+
+const alignmentWithOnlyNoWarningText = `# alpha-pon regime / hypothesis alignment report
+
+date: 2026-08-27
+
+## warning: active but thin
+
+- 監視対象なのに銘柄仮説が空のカテゴリはありません。
+
+## caution: inactive categories still carrying active companies
+
+- current regime 外で active companies を持つカテゴリはありません。
+
+## rule
+- current regime 外のカテゴリは、強い一次情報がない限り追わない/保留を優先する
+- active regime なのに銘柄仮説が薄いカテゴリは、無理に銘柄化せずテーマ監視でよい
+`;
+assert.deepEqual(countRegimeAlignmentWarnings(alignmentWithOnlyNoWarningText), { valid: true, count: 0 });
+
+const alignmentWithEvidence = alignmentWithOnlyNoWarningText
+  .replace("- 監視対象なのに銘柄仮説が空のカテゴリはありません。", "- ai AI: companies=0")
+  .replace(
+    "- current regime 外で active companies を持つカテゴリはありません。",
+    "### legacy Legacy\n- caution: 今の情勢DBでは監視対象外です。無理に追わず、保留/追わない判断を検討します。\n- 8136 sample (active)",
+  );
+assert.deepEqual(countRegimeAlignmentWarnings(alignmentWithEvidence), { valid: true, count: 2 });
+assert.deepEqual(
+  countRegimeAlignmentWarnings(alignmentWithOnlyNoWarningText.replace("## rule", "## rules")),
+  { valid: false, count: 0 },
+);
 
 console.log("stock pro improvement roadmap input tests passed");
