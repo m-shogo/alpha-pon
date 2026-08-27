@@ -54,13 +54,48 @@ try {
     {
       code: "7974",
       warnings: [],
-      primaryDisclosureReview: { decision: "confirmed", sourceCoverage: { fetchErrorCount: "oops" } },
+      primaryDisclosureReview: {
+        decision: "confirmed",
+        sourceCoverage: { tdnetCount: 1, edinetCount: 0, hasPrimarySource: true, fetchErrorCount: "oops" },
+      },
     },
   ]), "utf-8");
   assert.throws(
     () => readProposalScores<{ code: string }>(dir, "2026-08-18"),
     /proposal score primary disclosure review shape is invalid at row\(s\) 1, 2/,
     "malformed primary review evidence must not inflate review coverage or hide fetch errors",
+  );
+
+  writeFileSync(join(dir, "scores_2026-08-18.json"), JSON.stringify([
+    {
+      code: "8136",
+      warnings: [],
+      primaryDisclosureReview: {
+        decision: "confirmed",
+        sourceCoverage: { tdnetCount: 0, edinetCount: 0, hasPrimarySource: false, fetchErrorCount: 0 },
+      },
+    },
+    {
+      code: "7974",
+      warnings: [],
+      primaryDisclosureReview: {
+        decision: "missing",
+        sourceCoverage: { tdnetCount: 1, edinetCount: 0, hasPrimarySource: true, fetchErrorCount: 0 },
+      },
+    },
+    {
+      code: "9984",
+      warnings: [],
+      primaryDisclosureReview: {
+        decision: "confirmed",
+        sourceCoverage: { tdnetCount: 1, edinetCount: 0, hasPrimarySource: true, fetchErrorCount: 1 },
+      },
+    },
+  ]), "utf-8");
+  assert.throws(
+    () => readProposalScores<{ code: string }>(dir, "2026-08-18"),
+    /proposal score primary disclosure review shape is invalid at row\(s\) 1, 2, 3/,
+    "decision and source coverage contradictions must not create false primary-review coverage",
   );
 
   writeFileSync(join(dir, "scores_2026-08-18.json"), JSON.stringify([
@@ -119,13 +154,16 @@ try {
       dataQuality: "partial",
       marketContext: { code: "8136", date: "2026-08-17" },
       financialQuality: { qualityScore: 7 },
-      primaryDisclosureReview: { decision: "confirmed", sourceCoverage: { fetchErrorCount: 0 } },
+      primaryDisclosureReview: {
+        decision: "confirmed",
+        sourceCoverage: { tdnetCount: 1, edinetCount: 0, hasPrimarySource: true, fetchErrorCount: 0 },
+      },
     },
   ]), "utf-8");
   assert.deepEqual(
     readProposalScores<{ code: string }>(dir, "2026-08-18").rows.map(row => row.code),
     ["8136"],
-    "same-company market evidence dated no later than the snapshot remains usable",
+    "producer-consistent primary and market evidence remains usable",
   );
 
   writeFileSync(join(dir, "scores_2026-08-18.json"), JSON.stringify([
@@ -181,4 +219,4 @@ try {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("proposals-score-input: PIT, parse-error, root-shape, warning-shape, data-quality, primary-review-shape, context-provenance, createdAt-lineage, required-identity, duplicate-identity, and canonical-file regressions OK");
+console.log("proposals-score-input: PIT, parse-error, root-shape, warning-shape, data-quality, primary-review-consistency, context-provenance, createdAt-lineage, required-identity, duplicate-identity, and canonical-file regressions OK");
