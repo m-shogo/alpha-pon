@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { linkSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { inspectJsonArtifact } from "../src/health/json-artifact-health.js";
 import { isUsableFreshSuccessArtifact } from "../src/health/success-artifact-health.js";
 
 const root = mkdtempSync(join(tmpdir(), "alpha-pon-health-success-artifact-"));
@@ -37,6 +38,16 @@ try {
     isUsableFreshSuccessArtifact(hardLinkArtifact, today, now.getTime()),
     false,
     "a hard link must not prove success for the canonical artifact path",
+  );
+
+  const hardLinkedJsonTarget = join(root, "hard-link-json-target.json");
+  writeFileSync(hardLinkedJsonTarget, JSON.stringify({ ok: true }), "utf8");
+  const hardLinkedJsonArtifact = join(root, "hard-link-json-artifact.json");
+  linkSync(hardLinkedJsonTarget, hardLinkedJsonArtifact);
+  assert.deepEqual(
+    inspectJsonArtifact(hardLinkedJsonArtifact),
+    { ok: false, reason: "not_file" },
+    "a hard link must not satisfy generated JSON provenance at the canonical path",
   );
 
   const futureSameDay = join(root, "future-same-day.json");
