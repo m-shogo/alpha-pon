@@ -3,6 +3,10 @@ import { join } from "path";
 import { todayJst } from "./date.js";
 import { normalizeCurrentDatedReportText } from "./current-dated-report.js";
 import { readReadOnlyTextFile } from "./read-only-text-file.js";
+import {
+  countCompanyCoverageWarnings,
+  countOnboardingUnknownThinEvidence,
+} from "./stock-pro-improvement-roadmap-input.js";
 
 function readCurrentText(path: string, date: string): string {
   const text = readReadOnlyTextFile(path);
@@ -37,15 +41,21 @@ function main() {
   const coverage = readCurrentText(inputPaths.coverage, date);
   const alignment = readCurrentText(inputPaths.alignment, date);
   const stale = readCurrentText(inputPaths.stale, date);
-  const unavailableCurrentInputs = Object.entries({ quality, onboarding, coverage, alignment, stale })
-    .filter(([, text]) => !text)
-    .map(([key]) => inputPaths[key as keyof typeof inputPaths]);
+  const onboardingEvidence = countOnboardingUnknownThinEvidence(onboarding);
+  const coverageEvidence = countCompanyCoverageWarnings(coverage);
+  const unavailableCurrentInputs = new Set(
+    Object.entries({ quality, onboarding, coverage, alignment, stale })
+      .filter(([, text]) => !text)
+      .map(([key]) => inputPaths[key as keyof typeof inputPaths]),
+  );
+  if (onboarding && !onboardingEvidence.valid) unavailableCurrentInputs.add(inputPaths.onboarding);
+  if (coverage && !coverageEvidence.valid) unavailableCurrentInputs.add(inputPaths.coverage);
 
   const blocked = count(quality, /\| blocked \|/g);
   const provisional = count(quality, /\| provisional \|/g);
   const covered = count(quality, /\| covered \|/g);
-  const unknownThin = count(onboarding, /unknown_or_thin/g);
-  const networkMissing = count(coverage, /hypothesis missing network|network missing hypothesis|missing/g);
+  const unknownThin = onboardingEvidence.valid ? onboardingEvidence.count : 0;
+  const networkMissing = coverageEvidence.valid ? coverageEvidence.count : 0;
   const regimeMismatch = count(alignment, /監視対象外|current regime 外|active but thin/g);
   const staleWarnings = count(stale, /review_needed|retire_or_rewrite|review_repeated_miss|missing_review_date/g);
   const blockedCompanies = extractBlockedCompanies(quality);
@@ -66,13 +76,13 @@ function main() {
   lines.push(`- network coverage warnings: ${networkMissing}`);
   lines.push(`- regime mismatch warnings: ${regimeMismatch}`);
   lines.push(`- stale/review warnings: ${staleWarnings}`);
-  lines.push(`- unavailable current inputs: ${unavailableCurrentInputs.length}`);
+  lines.push(`- unavailable current inputs: ${unavailableCurrentInputs.size}`);
   for (const path of unavailableCurrentInputs) lines.push(`  - ${path}`);
   lines.push("");
 
   lines.push("## priority improvements");
   lines.push("");
-  if (unavailableCurrentInputs.length > 0) {
+  if (unavailableCurrentInputs.size > 0) {
     lines.push("### S: current audit inputs unavailable");
     lines.push("- 当日生成されていない監査レポートを前日の正常値で代用しない");
     lines.push("- upstream optional stepを確認し、当日レポートを再生成してから品質ロードマップを読む");
