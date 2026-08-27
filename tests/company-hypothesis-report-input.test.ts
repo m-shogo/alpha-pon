@@ -145,6 +145,26 @@ assert.ok(normalized.warnings.some(warning => warning.includes("company row 3"))
 assert.ok(normalized.warnings.some(warning => warning.includes("brokenCategory")), "null categoryをwarningへ残す");
 assert.ok(normalized.warnings.some(warning => warning.includes("brokenCompanies")), "壊れたcompanies fieldをwarningへ残す");
 
+const invalidReportStatus = normalizeCompanyHypothesisReportRows(normalizeCompanyHypothesesRoot({
+  categories: {
+    healthy: {
+      label: "Healthy",
+      thesis: "Status provenance",
+      companies: [{
+        code: "8136",
+        name: "サンリオ",
+        role: "IP",
+        status: "retierd",
+        upsideHypothesis: "upside",
+        noMoveHypothesis: "flat",
+        downsideHypothesis: "downside",
+      }],
+    },
+  },
+}), "2026-06-11");
+assert.deepEqual(invalidReportStatus.categories.healthy.companies, [], "未知statusをCompany Hypothesis Report Evidenceへ通さない");
+assert.ok(invalidReportStatus.warnings.some(warning => warning.includes("company 8136 status is invalid")), "未知statusをwarningへ残す");
+
 const invalidReviewDates = normalizeCompanyHypothesisReportRows(normalizeCompanyHypothesesRoot({
   categories: {
     dates: {
