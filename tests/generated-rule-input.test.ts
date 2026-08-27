@@ -21,11 +21,13 @@ const mixed = normalizeGeneratedRules([
   { ...validRule, generatedAt: '9999-12-31T23:59:59+09:00' },
   { ...validRule, thesis: {} },
   { ...validRule, invalidationSignals: 'none' },
+  { ...validRule, thesis: ['   '] },
+  { ...validRule, invalidationSignals: [' padded '] },
 ])
 
-assert.equal(mixed.rows.length, 1, 'malformed or future generated rules must be isolated before Rules page property access')
+assert.equal(mixed.rows.length, 1, 'malformed, blank/padded evidence, or future generated rules must be isolated before Rules page property access')
 assert.equal(mixed.rows[0]?.generatedRuleId, validRule.generatedRuleId, 'valid sibling rules must remain usable')
-assert.equal(mixed.warning, 'generatedCompanyRules: invalid_entries (9)')
+assert.equal(mixed.warning, 'generatedCompanyRules: invalid_entries (11)')
 
 const uniqueSibling = {
   ...validRule,
@@ -41,4 +43,4 @@ const invalidRoot = normalizeGeneratedRules({})
 assert.deepEqual(invalidRoot.rows, [])
 assert.equal(invalidRoot.warning, 'generatedCompanyRules: invalid_root (expected array)')
 
-console.log('generated-rule-input: malformed rows, PIT generatedAt provenance, and ambiguous generatedRuleId identities isolated OK')
+console.log('generated-rule-input: malformed rows, canonical evidence strings, PIT generatedAt provenance, and ambiguous generatedRuleId identities isolated OK')
