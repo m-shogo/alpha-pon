@@ -6,6 +6,7 @@ import { readReadOnlyTextFile } from "./read-only-text-file.js";
 import {
   countCompanyCoverageWarnings,
   countOnboardingUnknownThinEvidence,
+  countRegimeAlignmentWarnings,
   countStaleHypothesisWarnings,
 } from "./stock-pro-improvement-roadmap-input.js";
 
@@ -44,6 +45,7 @@ function main() {
   const stale = readCurrentText(inputPaths.stale, date);
   const onboardingEvidence = countOnboardingUnknownThinEvidence(onboarding);
   const coverageEvidence = countCompanyCoverageWarnings(coverage);
+  const alignmentEvidence = countRegimeAlignmentWarnings(alignment);
   const staleEvidence = countStaleHypothesisWarnings(stale);
   const unavailableCurrentInputs = new Set(
     Object.entries({ quality, onboarding, coverage, alignment, stale })
@@ -52,6 +54,7 @@ function main() {
   );
   if (onboarding && !onboardingEvidence.valid) unavailableCurrentInputs.add(inputPaths.onboarding);
   if (coverage && !coverageEvidence.valid) unavailableCurrentInputs.add(inputPaths.coverage);
+  if (alignment && !alignmentEvidence.valid) unavailableCurrentInputs.add(inputPaths.alignment);
   if (stale && !staleEvidence.valid) unavailableCurrentInputs.add(inputPaths.stale);
 
   const blocked = count(quality, /\| blocked \|/g);
@@ -59,7 +62,7 @@ function main() {
   const covered = count(quality, /\| covered \|/g);
   const unknownThin = onboardingEvidence.valid ? onboardingEvidence.count : 0;
   const networkMissing = coverageEvidence.valid ? coverageEvidence.count : 0;
-  const regimeMismatch = count(alignment, /監視対象外|current regime 外|active but thin/g);
+  const regimeMismatch = alignmentEvidence.valid ? alignmentEvidence.count : 0;
   const staleWarnings = staleEvidence.valid ? staleEvidence.count : 0;
   const blockedCompanies = extractBlockedCompanies(quality);
 
