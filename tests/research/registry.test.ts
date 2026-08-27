@@ -11,13 +11,14 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { dump } from "js-yaml";
 import {
   buildEdgeIndex,
   checkEdgeRegistry,
   hypothesisFingerprint,
   hypothesisSimilarity,
 } from "../../src/research/edge-registry.js";
-import { loadEdges, loadSchema, ResearchDataError } from "../../src/research/io.js";
+import { loadAnalogs, loadEdges, loadSchema, ResearchDataError } from "../../src/research/io.js";
 import { makeAnalog, makeEdge, makeState } from "./helpers.js";
 
 function codes(issues: ReturnType<typeof checkEdgeRegistry>): string[] {
@@ -138,6 +139,49 @@ function testLinkedEdgeFileIsRejected() {
   console.log("research/registry: linked Edge rejection OK");
 }
 
+function testLinkedAnalogFileIsRejected() {
+  const originalCwd = process.cwd();
+  const schema = readFileSync(join(originalCwd, "research/schemas/analog.schema.json"), "utf-8");
+  const analog = dump(makeAnalog());
+  const root = mkdtempSync(join(tmpdir(), "alpha-pon-research-analog-"));
+  const schemaDir = join(root, "research/schemas");
+  const analogDir = join(root, "research/historical/analogs");
+  const analogPath = join(analogDir, "fixture-analog.yml");
+  const target = join(root, "target-analog.yml");
+
+  mkdirSync(schemaDir, { recursive: true });
+  mkdirSync(analogDir, { recursive: true });
+  writeFileSync(join(schemaDir, "analog.schema.json"), schema, "utf-8");
+  writeFileSync(target, analog, "utf-8");
+
+  try {
+    process.chdir(root);
+
+    writeFileSync(analogPath, analog, "utf-8");
+    assert.equal(loadAnalogs().length, 1, "standalone Analog fileは読み込める");
+
+    unlinkSync(analogPath);
+    symlinkSync(target, analogPath);
+    assert.throws(
+      () => loadAnalogs(),
+      (error: unknown) => error instanceof ResearchDataError && /standalone regular YAML file/.test(error.message),
+      "symlink Analogをcanonical Evidenceとして追従しない",
+    );
+
+    unlinkSync(analogPath);
+    linkSync(target, analogPath);
+    assert.throws(
+      () => loadAnalogs(),
+      (error: unknown) => error instanceof ResearchDataError && /standalone regular YAML file/.test(error.message),
+      "hard-link Analogをcanonical Evidenceとして追従しない",
+    );
+  } finally {
+    process.chdir(originalCwd);
+    rmSync(root, { recursive: true, force: true });
+  }
+  console.log("research/registry: linked Analog rejection OK");
+}
+
 function testLinkedSchemaFilesAreRejected() {
   const originalCwd = process.cwd();
   const backtestSchema = readFileSync(join(originalCwd, "research/schemas/backtest.schema.json"), "utf-8");
@@ -188,6 +232,7 @@ testUnevidencedGatePass();
 testRejectedRequiresReason();
 testIndexIsDeterministic();
 testLinkedEdgeFileIsRejected();
+testLinkedAnalogFileIsRejected();
 testLinkedSchemaFilesAreRejected();
 
 console.log("research/registry: 全テスト成功");

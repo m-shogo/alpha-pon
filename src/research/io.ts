@@ -122,7 +122,9 @@ export function loadEdges(): Edge[] {
 export function loadAnalogs(): HistoricalAnalog[] {
   return listFiles(paths.analogs(), ".yml").map((name) => {
     const file = join(paths.analogs(), name);
-    const raw = load(readFileSync(file, "utf-8"));
+    const text = readReadOnlyTextFile(file);
+    if (!text) throw new ResearchDataError(file, "  - standalone regular YAML file として読めません");
+    const raw = load(text);
     const analog = parseValidated<HistoricalAnalog>(raw, "analog", file);
     const expected = `${analog.id}.yml`;
     if (name !== expected) {
