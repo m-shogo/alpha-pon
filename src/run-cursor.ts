@@ -76,6 +76,12 @@ function assertRunCursorParameters(maxPerRun: number, total: number): void {
   }
 }
 
+function assertRunCursorOffset(offset: number, total: number): void {
+  if (!Number.isSafeInteger(offset) || offset < 0 || (total > 0 && offset >= total) || (total === 0 && offset !== 0)) {
+    throw new Error("run cursor offset must be a non-negative safe integer within total");
+  }
+}
+
 export function nextOffset(current: number, maxPerRun: number, total: number): number {
   if (total <= 0) return 0;
   const next = current + maxPerRun;
@@ -105,6 +111,7 @@ export function loadRunCursor(jobName: RunCursorJobName, maxPerRun: number, tota
 
 export function saveRunCursor(cursor: RunCursor): RunCursor {
   assertRunCursorParameters(cursor.maxPerRun, cursor.total);
+  assertRunCursorOffset(cursor.offset, cursor.total);
   const cursors = readCursors();
   const next: RunCursor = {
     ...cursor,
