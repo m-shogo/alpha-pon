@@ -305,4 +305,25 @@ assert.deepEqual(alignment.categories.brokenCompanies.companies, [], "alignment�
 assert.ok(alignment.warnings.some(warning => warning.includes("canonical identity is duplicated")), "alignmentのcanonical duplicateをwarningへ残す");
 assert.ok(alignment.warnings.some(warning => warning.includes("company row 3")), "alignmentのnull companyをwarningへ残す");
 
+const invalidAlignmentStatus = normalizeAlignmentHypothesisCategories(normalizeCompanyHypothesesRoot({
+  categories: {
+    inactive: {
+      label: "Inactive",
+      companies: [
+        { code: "8136", name: "サンリオ", status: "retierd" },
+        { code: "7974", name: "任天堂", status: "retired" },
+      ],
+    },
+  },
+}));
+assert.deepEqual(
+  invalidAlignmentStatus.categories.inactive.companies,
+  [{ code: "7974", name: "任天堂", status: "retired" }],
+  "未知statusをalignmentのactive-company Evidenceへ通さない",
+);
+assert.ok(
+  invalidAlignmentStatus.warnings.some(warning => warning.includes("company 8136 status is invalid")),
+  "alignmentでも未知statusをwarningへ残す",
+);
+
 console.log("company-hypothesis-report-input.test.ts passed");
