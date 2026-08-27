@@ -1,5 +1,6 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { readReadOnlyJsonArrayFile } from "./read-only-json-file.js";
 
 const RULE_DIAGNOSES = new Set([
   "delete_candidate",
@@ -31,19 +32,16 @@ function isUsableRuleDiagnostic(value: unknown): boolean {
 }
 
 export function readProposalRuleDiagnostics<T>(path: string): T[] {
-  if (!existsSync(path)) return [];
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(readFileSync(path, "utf-8")) as unknown;
-  } catch {
+  const loaded = readReadOnlyJsonArrayFile<unknown>(path);
+  if (loaded.missing) return [];
+  if (loaded.parseError) {
     throw new Error(`${path}: proposal rule diagnostics must contain valid JSON`);
   }
-
-  if (!Array.isArray(parsed)) {
+  if (loaded.invalidRoot) {
     throw new Error(`${path}: proposal rule diagnostics root must be an array`);
   }
 
+  const parsed = loaded.rows;
   const unsafeRows = parsed
     .map((row, index) => isUsableRuleDiagnostic(row) ? null : index + 1)
     .filter((row): row is number => row !== null);

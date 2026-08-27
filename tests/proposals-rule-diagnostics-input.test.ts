@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { linkSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -90,6 +90,23 @@ try {
     "malformed JSON must not be treated as a legitimate zero-diagnostic day",
   );
 
+  const linkedTarget = join(dir, "linked-target.json");
+  writeFileSync(linkedTarget, JSON.stringify([canonicalRow]), "utf-8");
+  const symlinkPath = join(dir, "symlink.json");
+  symlinkSync(linkedTarget, symlinkPath);
+  assert.throws(
+    () => readProposalRuleDiagnostics<Row>(symlinkPath),
+    /proposal rule diagnostics must contain valid JSON/,
+    "symlink aliases must not become canonical proposal diagnostics evidence",
+  );
+  const hardlinkPath = join(dir, "hardlink.json");
+  linkSync(linkedTarget, hardlinkPath);
+  assert.throws(
+    () => readProposalRuleDiagnostics<Row>(hardlinkPath),
+    /proposal rule diagnostics must contain valid JSON/,
+    "hard-link aliases must not become canonical proposal diagnostics evidence",
+  );
+
   writeFileSync(join(dir, "rule_diagnostics_latest.json"), JSON.stringify([
     { ...canonicalRow, rule: "stale-rule" },
   ]), "utf-8");
@@ -110,4 +127,4 @@ try {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("proposals-rule-diagnostics-input: malformed-shape, diagnosis-enum, direction-range, unique-identity, and current-date provenance regressions OK");
+console.log("proposals-rule-diagnostics-input: malformed-shape, diagnosis-enum, direction-range, unique-identity, linked-file, and current-date provenance regressions OK");
