@@ -39,3 +39,32 @@ export function countCompanyCoverageWarnings(text: string): RoadmapEvidenceCount
     count: hypothesisMissingNetwork + networkMissingHypothesis,
   };
 }
+
+const STALE_WARNING_ACTIONS = new Set([
+  "retired",
+  "stale",
+  "retire_or_rewrite_repeated_miss",
+  "review_repeated_miss",
+  "missing_review_date",
+  "retire_or_rewrite",
+  "review_needed",
+]);
+
+export function countStaleHypothesisWarnings(text: string): RoadmapEvidenceCount {
+  const lines = text.split("\n");
+  const header = "| action | category | code | name | ageDays | misses | topReason | status |";
+  const headerIndex = lines.findIndex(line => line.trim() === header);
+  if (headerIndex < 0) return { valid: false, count: 0 };
+
+  let count = 0;
+  for (const line of lines.slice(headerIndex + 2)) {
+    if (!line.trim() || line.startsWith("## ")) break;
+    if (!line.trim().startsWith("|")) return { valid: false, count: 0 };
+    const cells = line.split("|").map(cell => cell.trim()).filter(Boolean);
+    const action = cells[0];
+    if (action === "ok") continue;
+    if (!action || !STALE_WARNING_ACTIONS.has(action)) return { valid: false, count: 0 };
+    count += 1;
+  }
+  return { valid: true, count };
+}
