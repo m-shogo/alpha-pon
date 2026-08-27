@@ -1,8 +1,4 @@
-export type PipelineStatusViewInput = {
-  status?: string
-  failedSteps?: unknown
-  completeWrapperFailedSteps?: string[]
-}
+import { isPipelineStatusHealthy, type PipelineStatusViewInput } from './pipeline-status-view.js'
 
 export type GeneratedPipelineFailureSummary = {
   failed: boolean
@@ -25,7 +21,7 @@ export function summarizeGeneratedPipelineFailure(
     ...completeWrapperFailedSteps,
   ])]
   return {
-    failed: pipelineStatus.status !== 'ok' || failedSteps.length > 0,
+    failed: !isPipelineStatusHealthy(pipelineStatus),
     failedSteps,
   }
 }
