@@ -6,6 +6,12 @@ import { nowIso } from "./date-utils.js";
 
 const STALE_LOCK_MS = 6 * 60 * 60 * 1000; // 6時間以上前のロックは stale
 
+export function lockAgeMs(lockedAt: string, nowMs = Date.now()): number | null {
+  const lockedAtMs = new Date(lockedAt).getTime();
+  if (!Number.isFinite(lockedAtMs)) return null;
+  return nowMs - lockedAtMs;
+}
+
 export function acquireLock(jobKey: string): boolean {
   const db = openJobsDb();
   try {
@@ -14,7 +20,12 @@ export function acquireLock(jobKey: string): boolean {
     ).get(jobKey) as { locked_at: string } | undefined;
 
     if (existing) {
-      const age = Date.now() - new Date(existing.locked_at).getTime();
+      const age = lockAgeMs(existing.locked_at);
+      if (age === null) {
+        console.warn(`[lock] invalid locked_at; existing lock preserved: ${jobKey}`);
+        db.close();
+        return false;
+      }
       if (age < STALE_LOCK_MS) {
         db.close();
         return false; // 有効なロックが存在する
