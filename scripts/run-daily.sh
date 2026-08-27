@@ -174,22 +174,40 @@ run_if_monday() {
   local name="$1"
   shift
   if [ "$DOW" = "1" ]; then
-    run_step "$name" "noncritical" "$@" || true
+    if ! run_step "$name" "noncritical" "$@"; then
+      echo "failed to persist pipeline status for weekly step: $name" >&2
+      notify_pipeline "alert" "alpha-pon pipeline status write failed" "weekly step=$name date=$TODAY"
+      return 1
+    fi
   else
     echo "skip [$name]: weekly job runs on Monday"
-    append_step_status "$name" "noncritical" "skipped" "0" "$(date '+%Y-%m-%d %H:%M:%S')" "$(date '+%Y-%m-%d %H:%M:%S')" "0"
+    if ! append_step_status "$name" "noncritical" "skipped" "0" "$(date '+%Y-%m-%d %H:%M:%S')" "$(date '+%Y-%m-%d %H:%M:%S')" "0"; then
+      echo "failed to persist pipeline status for skipped weekly step: $name" >&2
+      notify_pipeline "alert" "alpha-pon pipeline status write failed" "weekly skip=$name date=$TODAY"
+      return 1
+    fi
   fi
+  return 0
 }
 
 run_if_month_start() {
   local name="$1"
   shift
   if [ "$DOM" = "01" ]; then
-    run_step "$name" "noncritical" "$@" || true
+    if ! run_step "$name" "noncritical" "$@"; then
+      echo "failed to persist pipeline status for monthly step: $name" >&2
+      notify_pipeline "alert" "alpha-pon pipeline status write failed" "monthly step=$name date=$TODAY"
+      return 1
+    fi
   else
     echo "skip [$name]: monthly job runs on day 01"
-    append_step_status "$name" "noncritical" "skipped" "0" "$(date '+%Y-%m-%d %H:%M:%S')" "$(date '+%Y-%m-%d %H:%M:%S')" "0"
+    if ! append_step_status "$name" "noncritical" "skipped" "0" "$(date '+%Y-%m-%d %H:%M:%S')" "$(date '+%Y-%m-%d %H:%M:%S')" "0"; then
+      echo "failed to persist pipeline status for skipped monthly step: $name" >&2
+      notify_pipeline "alert" "alpha-pon pipeline status write failed" "monthly skip=$name date=$TODAY"
+      return 1
+    fi
   fi
+  return 0
 }
 
 echo "========================================"
@@ -229,10 +247,14 @@ run_step "proposals" "noncritical" node --import "tsx/esm" "$DIR/src/proposals.t
 run_step "memory:companies" "noncritical" node --import "tsx/esm" "$DIR/src/update-company-memory.ts" || true
 
 # 10. 週次レビュー。月曜だけ実行。
-run_if_monday "review:weekly" node --import "tsx/esm" "$DIR/src/periodic-review.ts" --weekly
+if ! run_if_monday "review:weekly" node --import "tsx/esm" "$DIR/src/periodic-review.ts" --weekly; then
+  exit 1
+fi
 
 # 11. 月次レビュー。毎月1日だけ実行。
-run_if_month_start "review:monthly" node --import "tsx/esm" "$DIR/src/periodic-review.ts" --monthly
+if ! run_if_month_start "review:monthly" node --import "tsx/esm" "$DIR/src/periodic-review.ts" --monthly; then
+  exit 1
+fi
 
 # 12. DB肥大化チェック。実アーカイブは安全側で毎日実行。失敗しても止めない。
 run_step "maintain:data:write" "noncritical" node --import "tsx/esm" "$DIR/src/maintain-data.ts" --write || true
