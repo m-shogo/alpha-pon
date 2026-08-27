@@ -33,6 +33,20 @@ try {
     /run cursor maxPerRun must be/,
     "invalid persisted cursor parameters must not be written",
   );
+  for (const [offset, total] of [
+    [Number.NaN, 100],
+    [-1, 100],
+    [1.5, 100],
+    [100, 100],
+    [1, 0],
+    [Number.MAX_SAFE_INTEGER + 1, 100],
+  ] as Array<[number, number]>) {
+    assert.throws(
+      () => saveRunCursor({ jobName: "universe-scan", offset, maxPerRun: 20, total, updatedAt: todayJst() }),
+      /run cursor offset must be/,
+      "invalid caller offsets must fail visibly instead of persisting corrupt cursor state",
+    );
+  }
 
   writeFileSync("data/run-cursors.json", "null", "utf-8");
   assert.equal(
