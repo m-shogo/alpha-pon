@@ -17,7 +17,7 @@ import {
   hypothesisFingerprint,
   hypothesisSimilarity,
 } from "../../src/research/edge-registry.js";
-import { loadEdges, ResearchDataError } from "../../src/research/io.js";
+import { loadEdges, loadSchema, ResearchDataError } from "../../src/research/io.js";
 import { makeAnalog, makeEdge, makeState } from "./helpers.js";
 
 function codes(issues: ReturnType<typeof checkEdgeRegistry>): string[] {
@@ -138,6 +138,47 @@ function testLinkedEdgeFileIsRejected() {
   console.log("research/registry: linked Edge rejection OK");
 }
 
+function testLinkedSchemaFilesAreRejected() {
+  const originalCwd = process.cwd();
+  const backtestSchema = readFileSync(join(originalCwd, "research/schemas/backtest.schema.json"), "utf-8");
+  const holdoutManifestSchema = readFileSync(join(originalCwd, "research/schemas/holdout-manifest.schema.json"), "utf-8");
+  const holdoutAccessSchema = readFileSync(join(originalCwd, "research/schemas/holdout-access.schema.json"), "utf-8");
+  const root = mkdtempSync(join(tmpdir(), "alpha-pon-research-schema-"));
+  const schemaDir = join(root, "research/schemas");
+  mkdirSync(schemaDir, { recursive: true });
+
+  const backtestPath = join(schemaDir, "backtest.schema.json");
+  const backtestTarget = join(root, "backtest-target.json");
+  writeFileSync(backtestTarget, backtestSchema, "utf-8");
+  symlinkSync(backtestTarget, backtestPath);
+
+  const manifestPath = join(schemaDir, "holdout-manifest.schema.json");
+  const manifestTarget = join(root, "holdout-manifest-target.json");
+  writeFileSync(manifestTarget, holdoutManifestSchema, "utf-8");
+  linkSync(manifestTarget, manifestPath);
+
+  writeFileSync(join(schemaDir, "holdout-access.schema.json"), holdoutAccessSchema, "utf-8");
+
+  try {
+    process.chdir(root);
+    assert.throws(
+      () => loadSchema("backtest"),
+      (error: unknown) => error instanceof ResearchDataError && /standalone regular JSON schema file/.test(error.message),
+      "symlink schemaをcanonical validation contractとして追従しない",
+    );
+    assert.throws(
+      () => loadSchema("holdout-manifest"),
+      (error: unknown) => error instanceof ResearchDataError && /standalone regular JSON schema file/.test(error.message),
+      "hard-link schemaをcanonical validation contractとして追従しない",
+    );
+    assert.equal(loadSchema("holdout-access").type, "object", "standalone schemaは読み込める");
+  } finally {
+    process.chdir(originalCwd);
+    rmSync(root, { recursive: true, force: true });
+  }
+  console.log("research/registry: linked schema rejection OK");
+}
+
 testFingerprintIgnoresFormatting();
 testDuplicateHypothesisIsError();
 testNearDuplicateHypothesis();
@@ -147,5 +188,6 @@ testUnevidencedGatePass();
 testRejectedRequiresReason();
 testIndexIsDeterministic();
 testLinkedEdgeFileIsRejected();
+testLinkedSchemaFilesAreRejected();
 
 console.log("research/registry: 全テスト成功");
