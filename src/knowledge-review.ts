@@ -1,7 +1,8 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
 import { readKnowledgeReviewJsonl } from "./knowledge-review-input.js";
+import { readReadOnlyTextFile } from "./read-only-text-file.js";
 import { isUsableYearlyNonMoveHistory } from "./yearly-knowledge-review-input.js";
 
 type Mode = "weekly" | "monthly";
@@ -17,11 +18,6 @@ type NonMoveHistory = {
   lesson?: string;
   nextAction?: string;
 };
-
-function readText(path: string): string {
-  if (!existsSync(path)) return "";
-  return readFileSync(path, "utf-8");
-}
 
 function countReasons(rows: NonMoveHistory[]): Array<[string, number]> {
   const counts = new Map<string, number>();
@@ -42,10 +38,10 @@ function main() {
   );
   const nonMoveRows = nonMove.rows;
   const reasonCounts = countReasons(nonMoveRows);
-  const regime = readText("reports/regime_scenarios_latest.md");
-  const stockPro = readText("reports/stock_pro_agent_latest.md");
-  const proposals = readText("reports/proposals_latest.md");
-  const sourceHealth = readText("reports/source_health_latest.md");
+  const regime = readReadOnlyTextFile("reports/regime_scenarios_latest.md");
+  const stockPro = readReadOnlyTextFile("reports/stock_pro_agent_latest.md");
+  const proposals = readReadOnlyTextFile("reports/proposals_latest.md");
+  const sourceHealth = readReadOnlyTextFile("reports/source_health_latest.md");
 
   const lines: string[] = [];
   lines.push(`# alpha-pon ${mode === "monthly" ? "月次" : "週次"} 知識蓄積レビュー`);
