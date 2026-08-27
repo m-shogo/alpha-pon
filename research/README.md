@@ -9,6 +9,27 @@
 - エージェント役割分担: [../docs/operations/agent-work-routing.md](../docs/operations/agent-work-routing.md)
 - Claude Code / Codex引き継ぎテンプレート: [../docs/prompts/code-agent-handoff-template.md](../docs/prompts/code-agent-handoff-template.md)
 
+## 研究状況を読む場所
+
+研究を「結果だけ」ではなく途中経過から確認したい場合は、次の順で見る。
+
+1. **[dashboard/dashboard.generated.md](dashboard/dashboard.generated.md)** — 全Edgeの現在地、優先順位、Confidence、Gate、Sample数、次に研究するものを一覧で確認する入口。
+2. **[research_log/](research_log/)** — 毎回の研究で何を調べ、何が分かり、何が未確定だったかを時系列で確認する。
+3. **[checkpoint/latest.json](checkpoint/latest.json)** — 最新の停止位置、今回行った研究、不足データ、次候補を確認する。
+4. **[edge_registry/edges/](edge_registry/edges/)** — 各Edgeの仮説、因果機序、entry/exit、反証条件、必要データ、Promotion Gateの詳細を確認する。
+5. **[historical/analogs/](historical/analogs/)** — 過去事例を確認する。成功例だけでなく失敗・非回復例も同じ基準で保存する。
+6. **[reports/](reports/)** — Backtest / Net Alphaなど、生成済みの検証結果を確認する。
+
+### 読み方
+
+- `Research` = 仮説を検証中。まだ売買判断へ使えるとは限らない。
+- `Shadow` = 検証が進み、実運用へ影響させず観察する段階。
+- `Production` = Promotion Gateを通過したEdge。ただし自動売買を意味しない。
+- `Sample 0/N` = 仮説は登録済みだが、Research OS正本へ正式な実サンプルがまだ入っていない。
+- `Gate 0/11` = 不合格という意味ではなく、未検証のGateが多い状態を含む。
+
+現在はGitHub内のResearch Dashboardが正本。Owner向けWeb UIでも同じ内容を見られるようにする改善は Issue #1295 で追跡する。
+
 ## ディレクトリ
 
 | パス | 中身 | 書き込みルール |
