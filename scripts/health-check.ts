@@ -6,6 +6,7 @@ import { spawnSync } from "child_process";
 import { openJobsDb } from "../src/jobs/db.js";
 import { getTodayInTokyo } from "../src/jobs/date-utils.js";
 import { getLastSuccessDate, APP_NAME } from "../src/jobs/job-runner.js";
+import { lockAgeMs } from "../src/jobs/job-lock.js";
 import { buildOutcomeIntegrityReport } from "../src/hypothesis-outcome-integrity.js";
 import { normalizeHealthArray } from "../src/health/array-health.js";
 import { backupHealthEvidenceFromDirectoryNames } from "../src/health/backup-health.js";
@@ -198,8 +199,10 @@ if (dbOk) {
     } else {
       const STALE_MS = 6 * 60 * 60 * 1000;
       for (const lock of locks) {
-        const age = Date.now() - new Date(lock.locked_at).getTime();
-        if (age >= STALE_MS) {
+        const age = lockAgeMs(lock.locked_at);
+        if (age === null) {
+          warn("job_locks", `invalid locked_at: ${lock.job_key} — existing lock is preserved; DB rowを確認してください`);
+        } else if (age >= STALE_MS) {
           warn("job_locks", `stale ロック（${Math.round(age / 3600000)}h前）: ${lock.job_key} — pnpm daily / catchup を再実行すると自動解除されます`);
         } else {
           warn("job_locks", `active ロック（${Math.round(age / 60000)}分前）: ${lock.job_key} — 別プロセスが実行中の可能性があります`);
