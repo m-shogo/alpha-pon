@@ -27,6 +27,20 @@ const onboardingWithEvidence = onboardingWithOnlyRuleMention.replace(
 );
 assert.deepEqual(countOnboardingUnknownThinEvidence(onboardingWithEvidence), { valid: true, count: 1 });
 assert.deepEqual(countOnboardingUnknownThinEvidence("unknown_or_thin only"), { valid: false, count: 0 });
+assert.deepEqual(
+  countOnboardingUnknownThinEvidence(onboardingWithOnlyRuleMention.replace(
+    "| covered | 8136 | sample | test | valuation_range_check | ok |",
+    "| bogus | 8136 | sample | test | valuation_range_check | ok |",
+  )),
+  { valid: false, count: 0 },
+);
+assert.deepEqual(
+  countOnboardingUnknownThinEvidence(onboardingWithOnlyRuleMention.replace(
+    "| covered | 8136 | sample | test | valuation_range_check | ok |",
+    "| unknown_or_thin | 8136 | sample | test | company_network |",
+  )),
+  { valid: false, count: 0 },
+);
 
 const coverageWithOnlyHeadings = `# alpha-pon company coverage audit
 

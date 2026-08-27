@@ -16,15 +16,29 @@ function parseNonNegativeIntegerLine(text: string, label: string): number | null
 }
 
 export function countOnboardingUnknownThinEvidence(text: string): RoadmapEvidenceCount {
+  const lines = text.split("\n");
   const header = "| coverage | code | name | category | missing | advice |";
-  if (!text.split("\n").some(line => line.trim() === header)) {
+  const separator = "|---|---|---|---|---|---|";
+  const headerIndex = lines.findIndex(line => line.trim() === header);
+  if (headerIndex < 0 || lines[headerIndex + 1]?.trim() !== separator) {
     return { valid: false, count: 0 };
   }
 
-  const count = text
-    .split("\n")
-    .filter(line => /^\|\s*unknown_or_thin\s*\|/.test(line))
-    .length;
+  let count = 0;
+  for (const line of lines.slice(headerIndex + 2)) {
+    if (!line.trim() || line.startsWith("## ")) break;
+    const trimmed = line.trim();
+    if (!trimmed.startsWith("|") || !trimmed.endsWith("|")) {
+      return { valid: false, count: 0 };
+    }
+    const cells = trimmed.slice(1, -1).split("|").map(cell => cell.trim());
+    if (cells.length !== 6) return { valid: false, count: 0 };
+    const coverage = cells[0];
+    if (coverage !== "covered" && coverage !== "provisional" && coverage !== "unknown_or_thin") {
+      return { valid: false, count: 0 };
+    }
+    if (coverage === "unknown_or_thin") count += 1;
+  }
   return { valid: true, count };
 }
 
