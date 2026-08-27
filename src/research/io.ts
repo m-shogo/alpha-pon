@@ -57,9 +57,13 @@ const schemaCache = new Map<SchemaName, JsonSchema>();
 export function loadSchema(name: SchemaName): JsonSchema {
   const cached = schemaCache.get(name);
   if (cached) return cached;
-  const parsed = JSON.parse(readFileSync(join(paths.schemas(), `${name}.schema.json`), "utf-8")) as JsonSchema;
-  schemaCache.set(name, parsed);
-  return parsed;
+  const file = join(paths.schemas(), `${name}.schema.json`);
+  const loaded = readReadOnlyJsonObjectFile<JsonSchema>(file);
+  if (loaded.missing || loaded.parseError || loaded.invalidRoot || !loaded.object) {
+    throw new ResearchDataError(file, "  - standalone regular JSON schema file として読めません");
+  }
+  schemaCache.set(name, loaded.object);
+  return loaded.object;
 }
 
 export class ResearchDataError extends Error {
