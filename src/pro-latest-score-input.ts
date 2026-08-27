@@ -1,6 +1,7 @@
 import { existsSync, lstatSync, readdirSync, readFileSync } from "fs";
 import { join } from "path";
 import { addDaysJst, todayJst } from "./date.js";
+import { isCanonicalReadOnlyJsonFile } from "./read-only-json-file.js";
 
 function isRealJstDate(value: string): boolean {
   try {
@@ -71,10 +72,14 @@ export function readLatestProScores<T>(reportsDir = "reports", asOf = todayJst()
   const latest = scoreFiles.at(-1);
   if (!latest) return { rows: [], sourceFile: null, warnings: [] };
   const latestDate = /^scores_(\d{4}-\d{2}-\d{2})\.json$/.exec(latest)?.[1] ?? "";
+  const latestPath = join(reportsDir, latest);
+  if (!isCanonicalReadOnlyJsonFile(latestPath)) {
+    throw new Error(`${latest}: score snapshot must be a standalone regular file`);
+  }
 
   let parsed: unknown;
   try {
-    parsed = JSON.parse(readFileSync(join(reportsDir, latest), "utf-8")) as unknown;
+    parsed = JSON.parse(readFileSync(latestPath, "utf-8")) as unknown;
   } catch {
     throw new Error(`${latest}: score snapshot must contain valid JSON`);
   }
