@@ -68,3 +68,39 @@ export function countStaleHypothesisWarnings(text: string): RoadmapEvidenceCount
   }
   return { valid: true, count };
 }
+
+export function countRegimeAlignmentWarnings(text: string): RoadmapEvidenceCount {
+  const lines = text.split("\n");
+  const thinHeading = "## warning: active but thin";
+  const cautionHeading = "## caution: inactive categories still carrying active companies";
+  const ruleHeading = "## rule";
+  const thinIndex = lines.findIndex(line => line.trim() === thinHeading);
+  const cautionIndex = lines.findIndex(line => line.trim() === cautionHeading);
+  const ruleIndex = lines.findIndex(line => line.trim() === ruleHeading);
+  if (thinIndex < 0 || cautionIndex <= thinIndex || ruleIndex <= cautionIndex) {
+    return { valid: false, count: 0 };
+  }
+
+  const thinLines = lines.slice(thinIndex + 1, cautionIndex).map(line => line.trim()).filter(Boolean);
+  const noThinWarning = "- 監視対象なのに銘柄仮説が空のカテゴリはありません。";
+  const thinEvidence = thinLines.filter(line => line !== noThinWarning);
+  if (thinEvidence.some(line => !/^- .+: companies=0$/.test(line))) {
+    return { valid: false, count: 0 };
+  }
+
+  const cautionLines = lines.slice(cautionIndex + 1, ruleIndex).map(line => line.trim()).filter(Boolean);
+  const noInactiveWarning = "- current regime 外で active companies を持つカテゴリはありません。";
+  const categoryHeadings = cautionLines.filter(line => line.startsWith("### "));
+  if (categoryHeadings.length === 0) {
+    if (cautionLines.length !== 1 || cautionLines[0] !== noInactiveWarning) {
+      return { valid: false, count: 0 };
+    }
+  } else {
+    const cautionEvidence = cautionLines.filter(line => line.startsWith("- caution: "));
+    if (cautionEvidence.length !== categoryHeadings.length || cautionLines.includes(noInactiveWarning)) {
+      return { valid: false, count: 0 };
+    }
+  }
+
+  return { valid: true, count: thinEvidence.length + categoryHeadings.length };
+}
