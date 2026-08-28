@@ -10,7 +10,7 @@ Integrity entry point: `src/research/research-knowledge-integrity.ts`
 
 JSON Schema proves that one record has an allowed local shape. It cannot prove that the repository-wide research knowledge graph makes sense.
 
-This contract defines the deterministic cross-record invariants required before canonical Research Catalog persistence is allowed.
+This contract defines the deterministic cross-record invariants required for canonical Research Catalog persistence.
 
 The validator does **not** decide whether an investment thesis is true, profitable, original, or worthy of Production. It prevents structural and temporal contradictions that would make later research unreliable.
 
@@ -21,7 +21,7 @@ The layers are intentionally separate.
 1. **Schema / Type** — field shape, enum, local format, ontology version.
 2. **Semantic validation** — endpoint matrix, cross-record existence, cardinality, cycles, lifecycle compatibility, PIT cutoffs.
 3. **Integrity hardening** — chronology against node availability, completed-study result preservation, duplicate exclusion/reference guards.
-4. **Repository wiring** — future loader that assembles a snapshot from canonical authorities.
+4. **Repository wiring** — read-only loaders that assemble a snapshot from canonical authorities.
 5. **Read Model** — future generated projection for Dashboard/Agent/Search. Never a source of truth.
 
 Do not push layer 2/3 rules back into misleading JSON Schema conditionals merely to reduce file count.
@@ -39,21 +39,23 @@ It contains Research-owned records plus ID sets supplied by other authorities.
 | Formal Edge | `research/edge_registry/edges/` | Edge `id` |
 | Market Event | Market Event Foundation (`src/market-events/contracts.ts`) | stable `MarketEvent.eventId` |
 | Entity/Security | Security Master | stable `entityId` |
-| ResearchItem / Question / Observation / Mechanism / Family / Component / Case / Study / StudyResult / Opportunity | future Research Catalog | Research Knowledge ID |
+| Document | Research Asset Registry (`research/asset_registry/assets/*.yml`, `assetType: document`) | stable Research Asset `id` |
+| Watch | Research Asset Registry (`research/asset_registry/assets/*.yml`, `assetType: watch`) | stable Research Asset `id` |
+| Implementation | Research Asset Registry (`research/asset_registry/assets/*.yml`, `assetType: implementation`) | stable Research Asset `id` |
+| ResearchItem / Question / Observation / Mechanism / Family / Component / Case / Study / StudyResult / Opportunity | Research Catalog (`research/knowledge_catalog/`) | Research Knowledge ID |
 
-### Deliberately unresolved adapter identities
+### Resolved Asset adapter identities
 
-The first persistence slice must explicitly define how these IDs are supplied before creating canonical relations:
+Document, Watch and Implementation semantic identities are now supplied by the Research Asset Registry. Their stable ID is independent of the physical repository path; the Asset record owns the current path while the original Markdown/config/source file remains the content or runtime truth.
 
-- `document`
-- `watch`
-- `implementation`
+Canonical `documents`, `operationalizes`, or `implements` relations may only use a Research Asset ID when:
 
-Their **content/runtime behavior** already has a source of truth (Markdown/file, watch config/runtime, source code), but a stable cross-file reference ID adapter is not yet declared as canonical.
+- the Asset record exists and validates;
+- the referenced physical target exists within the repository boundary;
+- the Asset has exact canonical-main first-known provenance in `research/asset_registry/provenance.jsonl`;
+- strict authority availability accepts the relation timestamp.
 
-Do not silently make a generated JSON path, temporary output path, display title, or AI-produced slug the permanent identity.
-
-Until the adapter is defined, repository persistence must not write canonical `documents`, `operationalizes`, or `implements` relations that cannot be deterministically resolved.
+A registered Asset without exact provenance may exist as **Pending**, but strict repository relation use must fail closed until provenance is repaired. Never substitute target-file age, filesystem mtime, a generated output timestamp, display title, or AI-produced slug for stable Asset identity or first-known time.
 
 ## 4. Fail-closed external references
 
@@ -103,6 +105,7 @@ The integrity suite enforces:
 - duplicate semantic relations are rejected even when record IDs differ;
 - `informationCutoff <= createdAt`;
 - relation creation cannot predate a Research-owned source/target becoming available;
+- strict external authority endpoints cannot be used before their safe first-known availability;
 - `order` is reserved for `includes_event`;
 - `member_of` requires `primary` or `secondary` role;
 - `used_in` requires an explicit Case-use role;
@@ -126,7 +129,7 @@ For every Case using `includes_event`:
 
 The Research graph stores the Case narrative ordering, not a copied Event body.
 
-v1 intentionally does not yet prove that every `order=N` is chronologically consistent with the current Event revision timestamp. That requires a repository adapter with PIT-aware Event revision access and belongs after persistence wiring.
+v1 intentionally does not yet prove that every `order=N` is chronologically consistent with the current Event revision timestamp. That requires PIT-aware Event revision access beyond the current stable identity/availability checks.
 
 ## 8. Case and Entity boundary
 
@@ -253,29 +256,29 @@ A zero-error snapshot does **not** prove:
 
 Those claims require Evidence/Claim/Study/Outcome/Gate logic in their own authorities.
 
-## 17. Persistence gate
+## 17. Persistence gate and current continuation
 
-Canonical Research Catalog rows must **not** be mass-created immediately after this contract.
+Canonical Research Catalog rows must **not** be mass-created merely because the persistence path is now operational.
 
-Safe order:
+The safe order remains:
 
-1. merge Schema/Type contracts;
-2. merge semantic/integrity validator with green CI;
-3. specify deterministic authority adapters for Edge/Event/Entity and stable refs for Document/Watch/Implementation;
-4. add a read-only repository loader that builds `ResearchKnowledgeSnapshot`;
-5. validate an empty/minimal repository snapshot;
-6. seed a very small set of known research identities;
-7. validate concrete Kioxia / Misconduct / Ex-rights / REVOLUTION representations;
-8. add warning-only orphan discovery;
-9. only then generate Research Read Model and connect Dashboard/Agent.
+1. Schema/Type contracts;
+2. semantic/integrity validator with green CI;
+3. deterministic authority adapters for Edge/Event/Entity and stable Asset refs for Document/Watch/Implementation;
+4. read-only repository loader that builds `ResearchKnowledgeSnapshot`;
+5. empty/minimal repository validation;
+6. a very small set of known research identities;
+7. concrete Kioxia / Misconduct / Ex-rights / REVOLUTION representations and narrowly supported Asset relations;
+8. **next: warning-only orphan discovery**;
+9. only after orphan discovery is safe, generate a Research Read Model and connect Dashboard/Agent.
 
-No bulk migration, auto-merge, auto-Edge promotion or AI-created canonical node is permitted in the persistence gate.
+Steps 1–7 are infrastructure/persistence milestones, not proof of alpha. No bulk migration, auto-merge, auto-Edge promotion or AI-created canonical node is permitted in the persistence gate.
 
 ## 18. Database portability
 
 The semantic validator accepts an in-memory snapshot rather than reading YAML paths itself.
 
-That is intentional. Today a future loader can read Git/YAML; later a DB adapter can construct the same snapshot. Semantic meaning and tests do not depend on storage technology.
+That is intentional. Today repository loaders can read Git/YAML; later a DB adapter can construct the same snapshot. Semantic meaning and tests do not depend on storage technology.
 
 Moving to D1/Postgres/graph storage must not require redefining Research identity, lineage or anti-bias rules.
 
@@ -287,4 +290,4 @@ Moving to D1/Postgres/graph storage must not require redefining Research identit
 - semantic/integrity tests pass;
 - existing Research OS and repository CI remain green.
 
-It must **not** mean that canonical Catalog persistence, orphan migration, Dashboard integration, or any Edge research result is complete.
+It must **not** mean that orphan migration, Dashboard integration, automated research conclusions, or any Edge research result is complete. Canonical Catalog persistence and the first narrow Asset relations now exist, but those are storage/integrity milestones only.
