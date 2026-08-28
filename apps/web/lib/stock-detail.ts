@@ -194,13 +194,32 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(item => typeof item === 'string')
 }
 
-function normalizeCompanyMemoryForStockDetail(value: unknown, code: string): StockCompanyMemory | null {
+function canonicalDate(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) return null
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  const date = new Date(Date.UTC(year, month - 1, day))
+  if (
+    year < 1 ||
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) return null
+  return value
+}
+
+function normalizeCompanyMemoryForStockDetail(value: unknown, code: string, asOf: unknown): StockCompanyMemory | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   const row = value as Record<string, unknown>
-  if (row.schemaVersion !== 1 || row.code !== code || typeof row.lastReviewedAt !== 'string') return null
+  const lastReviewedAt = canonicalDate(row.lastReviewedAt)
+  const canonicalAsOf = canonicalDate(asOf)
+  if (row.schemaVersion !== 1 || row.code !== code || !lastReviewedAt || !canonicalAsOf || lastReviewedAt > canonicalAsOf) return null
   if (!isStringArray(row.watchReason) || !isStringArray(row.knownRisks) || !isStringArray(row.recurringWarnings) || !isStringArray(row.notes)) return null
   return {
-    lastReviewedAt: row.lastReviewedAt,
+    lastReviewedAt,
     watchReason: row.watchReason,
     knownRisks: row.knownRisks,
     recurringWarnings: row.recurringWarnings,
@@ -376,7 +395,7 @@ export function normalizeStockDetail(raw: {
   const hypotheses = (data.hypothesisPredictions ?? []).filter(item => item.code === code)
   const outcomes = (data.hypothesisOutcomes ?? []).filter(item => item.code === code)
   const special = findSpecialCandidate(data, code)
-  const companyMemory = normalizeCompanyMemoryForStockDetail(data.companyMemoryByCode?.[code], code)
+  const companyMemory = normalizeCompanyMemoryForStockDetail(data.companyMemoryByCode?.[code], code, data.generatedAt)
   const dataQuality = data.dataQualityByCode?.[code]
   const primaryDisclosure = normalizePrimaryDisclosureForStockDetail(data.primaryDisclosureReviews?.[code])
   const worldImpactReviews = (data.worldImpactReviews ?? []).filter(review => review.affectedCompanyCodes?.includes(code))
