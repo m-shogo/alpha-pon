@@ -49,7 +49,7 @@ function strictInstant(value: string, label: string): boolean {
 }
 
 export function readMarketEventAuthorityView(
-  databasePath = DEFAULT_MARKET_EVENT_DB_PATH,
+  databasePath: string = DEFAULT_MARKET_EVENT_DB_PATH,
 ): ResearchKnowledgeAuthorityView {
   if (!existsSync(databasePath)) return emptyView("event");
 
@@ -101,7 +101,7 @@ export function readMarketEventAuthorityView(
 }
 
 export function readSecurityEntityAuthorityView(
-  entitiesPath = SECURITY_MASTER_PATHS.entities,
+  entitiesPath: string = SECURITY_MASTER_PATHS.entities,
 ): ResearchKnowledgeAuthorityView {
   if (!existsSync(entitiesPath)) return emptyView("entity");
 
