@@ -1,0 +1,6 @@
+schemaVersion: 1
+id: document-exchange-sanction-remediation-clock-seed
+assetType: document
+path: docs/research/exchange-sanction-remediation-clock-seed.md
+status: active
+description: Research note seeding exchange-sanction remediation-clock analysis and repeatability questions without asserting a formal Edge.
