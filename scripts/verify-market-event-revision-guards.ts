@@ -84,6 +84,42 @@ try {
 
   assert.throws(
     () => db.prepare(`
+      INSERT INTO event_sources (
+        source_id, event_id, schema_version, authority, source_type, url, title,
+        published_at, retrieved_at, content_hash, storage_class, object_key
+      ) VALUES (?, ?, 1, 'TEST', 'IR', ?, 'invalid retrieved instant', ?, ?, ?, 'METADATA_ONLY', NULL)
+    `).run(
+      "src_invalid_retrieved_instant",
+      eventId,
+      "https://example.com/sqlite-invalid-retrieved-instant",
+      "2026-08-03T06:59:00Z",
+      "2026-08-03 07:00:00",
+      "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    ),
+    /retrieved_at must be an explicit-timezone ISO instant/,
+    "SQLite must reject source retrieval timestamps without an explicit timezone",
+  );
+
+  assert.throws(
+    () => db.prepare(`
+      INSERT INTO event_sources (
+        source_id, event_id, schema_version, authority, source_type, url, title,
+        published_at, retrieved_at, content_hash, storage_class, object_key
+      ) VALUES (?, ?, 1, 'TEST', 'IR', ?, 'invalid published instant', ?, ?, ?, 'METADATA_ONLY', NULL)
+    `).run(
+      "src_invalid_published_instant",
+      eventId,
+      "https://example.com/sqlite-invalid-published-instant",
+      "not-an-instant",
+      "2026-08-03T07:00:00Z",
+      "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    ),
+    /published_at must be an explicit-timezone ISO instant/,
+    "SQLite must reject malformed source publication timestamps",
+  );
+
+  assert.throws(
+    () => db.prepare(`
       INSERT INTO event_revisions (
         revision_id, event_id, schema_version, revision_number, observed_at,
         change_type, facts_json, source_ids_json, previous_revision_id
@@ -159,6 +195,7 @@ try {
     "0002_market_event_revision_guards",
     "0011_market_event_revision_publication_chronology",
     "0012_market_event_source_publication_chronology",
+    "0013_market_event_source_instant_guards",
   ]);
 
   console.log("market-event-revision-guards: ok");
