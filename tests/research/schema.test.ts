@@ -4,6 +4,8 @@ import "./research-knowledge-semantics.test.js";
 import "./research-knowledge-integrity.test.js";
 import "./research-knowledge-authority-adapters.test.js";
 import "./research-knowledge-authority-repository.test.js";
+import "./research-knowledge-catalog-repository.test.js";
+import "./research-knowledge-catalog-writer.test.js";
 import "./edge-provenance.test.js";
 import "./edge-provenance-git-audit.test.js";
 import "./catalog-validation.test.js";
