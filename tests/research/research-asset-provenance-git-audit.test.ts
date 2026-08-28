@@ -12,7 +12,7 @@ const record: ResearchAssetProvenanceRecord = {
   basis: "canonical_git_first_presence",
   sourceCommitSha: "a".repeat(40),
   sourceCommitAt: "2026-08-20T10:00:00+09:00",
-  sourcePath: "docs/research/fixture.md",
+  sourcePath: "research/asset_registry/assets/document-fixture.yml",
 };
 
 function facts(overrides: Partial<ResearchAssetProvenanceGitFacts> = {}): ResearchAssetProvenanceGitFacts {
@@ -26,6 +26,14 @@ function facts(overrides: Partial<ResearchAssetProvenanceGitFacts> = {}): Resear
 }
 
 assert.deepEqual(auditResearchAssetProvenanceGitHistory([record], facts()), []);
+
+assert.ok(
+  auditResearchAssetProvenanceGitHistory(
+    [{ ...record, sourcePath: "docs/research/fixture.md" }],
+    facts(),
+  ).some((entry) => entry.code === "research_asset_provenance_source_path_mismatch"),
+  "target document history must not backdate the stable Research Asset identity",
+);
 
 assert.ok(
   auditResearchAssetProvenanceGitHistory([record], facts({ isCanonicalMainAncestor: () => false }))
