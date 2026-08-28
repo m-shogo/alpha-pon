@@ -29,6 +29,23 @@ export interface ResearchKnowledgeIntegritySnapshot extends ResearchKnowledgeSna
   externalAvailability?: ResearchKnowledgeExternalAvailability;
 }
 
+export interface ResearchKnowledgeIntegrityOptions {
+  /**
+   * Repository loaders should enable this once authority adapters exist.
+   * Contract-only/in-memory tests may leave it false while persistence is intentionally absent.
+   */
+  requireExternalAvailability?: boolean;
+}
+
+const EXTERNAL_NODE_TYPES = new Set<ResearchKnowledgeExternalNodeType>([
+  "edge",
+  "event",
+  "entity",
+  "document",
+  "watch",
+  "implementation",
+]);
+
 function issue(code: string, target: string, message: string): ResearchKnowledgeIssue {
   return { severity: "error", code, target, message };
 }
@@ -44,6 +61,10 @@ function isValidInstant(value: string, label: string): boolean {
   } catch {
     return false;
   }
+}
+
+function isExternalType(type: ResearchRelationNodeType | ResearchLineageNodeType): type is ResearchKnowledgeExternalNodeType {
+  return EXTERNAL_NODE_TYPES.has(type as ResearchKnowledgeExternalNodeType);
 }
 
 function externalIdsFor(
@@ -276,12 +297,52 @@ function validateExternalAvailability(snapshot: ResearchKnowledgeIntegritySnapsh
   return issues;
 }
 
+function validateExternalAvailabilityCoverage(
+  snapshot: ResearchKnowledgeIntegritySnapshot,
+  required: boolean,
+): ResearchKnowledgeIssue[] {
+  if (!required) return [];
+  const issues: ResearchKnowledgeIssue[] = [];
+  const seen = new Set<string>();
+
+  const requireEndpoint = (
+    type: ResearchRelationNodeType | ResearchLineageNodeType,
+    id: string,
+    target: string,
+  ): void => {
+    if (!isExternalType(type)) return;
+    const key = `${type}:${id}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    const at = snapshot.externalAvailability?.[type]?.[id];
+    if (!at) {
+      issues.push(issue(
+        "research_external_availability_required",
+        target,
+        `strict external chronology requires availableAt for ${key}`,
+      ));
+    }
+  };
+
+  for (const relation of snapshot.relations) {
+    requireEndpoint(relation.sourceType, relation.sourceId, `relation:${relation.id}`);
+    requireEndpoint(relation.targetType, relation.targetId, `relation:${relation.id}`);
+  }
+  for (const lineage of snapshot.lineages) {
+    requireEndpoint(lineage.sourceType, lineage.sourceId, `lineage:${lineage.id}`);
+    requireEndpoint(lineage.targetType, lineage.targetId, `lineage:${lineage.id}`);
+  }
+  return issues;
+}
+
 export function validateResearchKnowledgeIntegrity(
   snapshot: ResearchKnowledgeIntegritySnapshot,
+  options: ResearchKnowledgeIntegrityOptions = {},
 ): ResearchKnowledgeIssue[] {
   return [
     ...validateResearchKnowledgeSemantics(snapshot),
     ...validateExternalAvailability(snapshot),
+    ...validateExternalAvailabilityCoverage(snapshot, options.requireExternalAvailability === true),
     ...validateRelationChronology(snapshot),
     ...validateLineageChronology(snapshot),
     ...validateStudyResultLifecycle(snapshot),
