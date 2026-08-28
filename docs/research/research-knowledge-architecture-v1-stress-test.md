@@ -5,9 +5,9 @@ Parent design: `docs/research/research-knowledge-architecture-v1.md`
 
 This note records concrete representability checks performed before Research Catalog persistence is authorized. It exists to prevent the abstract ontology from being declared complete before known Alpha Pon research can actually be modeled without collapsing distinct authorities.
 
-## 1. Identity boundary amendment
+## 1. Identity and authority boundary amendment
 
-Research-owned IDs use the Research Catalog ID contract. IDs owned by other authorities remain opaque references.
+Research-owned IDs use the Research Catalog ID contract. IDs owned by other authorities keep their own syntax and identity semantics.
 
 Examples:
 
@@ -18,7 +18,9 @@ Claim ID          claim:kioxia_rerating:structural_discount
 Entity ID         issuer:jp:kioxia_holdings
 ```
 
-A Research Relation must not force Claim, Evidence, Event, Document or Security/Entity Master identifiers into the Research Catalog kebab-case format. Their owning systems remain authoritative for their syntax and identity semantics.
+Research Relation v1 directly references only the external authorities needed for the catalog's structural links, such as Event, Entity, Document, Watch and Implementation. Their endpoint IDs are opaque to Research Catalog and are not forced into Research Catalog kebab-case syntax.
+
+Claim, Evidence and Outcome relationships are **not duplicated into Research Relation v1**. They remain canonical in the existing Claim Graph, Evidence Package/Store and Recommendation/Outcome lineage and are projected into the future Research Read Model. The Read Model must preserve those external IDs unchanged.
 
 ## 2. Case != Company stress test
 
