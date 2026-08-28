@@ -56,6 +56,14 @@ export function buildMarketEventAuthorityView(
       issues.push(issue("research_event_authority_empty_id", target, "MARKET_EVENT record must expose a stable eventId"));
       continue;
     }
+    if (eventId !== eventId.trim()) {
+      issues.push(issue(
+        "research_event_authority_noncanonical_id",
+        target,
+        "MARKET_EVENT eventId must not contain surrounding whitespace",
+      ));
+      continue;
+    }
     ids.add(eventId);
     if (!isStrictInstant(record.recordedAt, `${target}.recordedAt`)) {
       issues.push(issue(

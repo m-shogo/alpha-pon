@@ -97,6 +97,18 @@ function securityEntityRecord(
 }
 
 {
+  const view = buildMarketEventAuthorityView([
+    marketEventRecord(" evt_fixture ", firstKnown),
+  ]);
+  assert.deepEqual(view.ids, []);
+  assert.equal(view.availability[" evt_fixture "], undefined);
+  assert.ok(
+    view.issues.some((entry) => entry.code === "research_event_authority_noncanonical_id"),
+    "padded Market Event IDs must never enter the authority identity set",
+  );
+}
+
+{
   const view = buildSecurityEntityAuthorityView([
     securityEntityRecord("entity:fixture", "2026-08-28T09:50:00+09:00", laterKnown, "record-2"),
     securityEntityRecord("entity:fixture", "2026-08-28T09:40:00+09:00", firstKnown, "record-1"),
