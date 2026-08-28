@@ -29,8 +29,9 @@ export type PeriodicScoreInput = {
   invalidRows: string[];
 };
 
-function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every(item => typeof item === "string");
+function isCanonicalEvidenceArray(value: unknown): value is string[] {
+  return Array.isArray(value)
+    && value.every(item => typeof item === "string" && item.length > 0 && item === item.trim());
 }
 
 function isCanonicalIdentityArray(value: unknown): value is string[] {
@@ -72,7 +73,7 @@ function normalizePeriodicScoreRow(value: unknown, expectedDate?: string): Perio
   if (expectedDate != null && row.createdAt !== expectedDate) return null;
 
   for (const field of ["warnings", "negativeReasons"] as const) {
-    if (row[field] != null && !isStringArray(row[field])) return null;
+    if (row[field] != null && !isCanonicalEvidenceArray(row[field])) return null;
   }
   for (const field of ["tags", "rules"] as const) {
     if (row[field] != null && !isCanonicalIdentityArray(row[field])) return null;
@@ -91,7 +92,7 @@ function normalizePeriodicScoreRow(value: unknown, expectedDate?: string): Perio
   if (row.riskReview != null) {
     if (!row.riskReview || typeof row.riskReview !== "object" || Array.isArray(row.riskReview)) return null;
     const risk = row.riskReview as Record<string, unknown>;
-    if (!isRiskDecision(risk.decision) || !isStringArray(risk.blockers)) return null;
+    if (!isRiskDecision(risk.decision) || !isCanonicalEvidenceArray(risk.blockers)) return null;
     riskReview = { decision: risk.decision, blockers: risk.blockers };
   }
 
