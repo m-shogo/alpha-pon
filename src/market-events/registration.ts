@@ -102,6 +102,7 @@ function validateRegistrationInput(input: MarketEventRegistrationInput): void {
   validateMarketEventRevisionChronology({
     observedAt: input.observedAt,
     publishedAt: input.publishedAt ?? null,
+    firstExecutableAt: input.firstExecutableAt ?? null,
   });
   for (const source of input.sources) {
     if (
