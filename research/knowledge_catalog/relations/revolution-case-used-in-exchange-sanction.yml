@@ -1,0 +1,12 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: revolution-case-used-in-exchange-sanction
+relationType: used_in
+sourceType: case
+sourceId: revolution-8894-special-attention-2026-07
+targetType: research_item
+targetId: exchange-sanction-ladder
+role: candidate
+createdAt: "2026-08-28T13:25:32+09:00"
+notes: >-
+  Candidate analog only. The existing case note explicitly records USEFUL ANALOG / NO SIGNAL and unresolved timestamp, benchmark, execution and distress controls, so this relation must not be interpreted as a validated supporting sample.

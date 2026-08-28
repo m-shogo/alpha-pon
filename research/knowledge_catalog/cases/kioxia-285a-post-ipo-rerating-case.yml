@@ -1,0 +1,8 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: kioxia-285a-post-ipo-rerating-case
+title: Kioxia 285A IPO and Post-IPO Rerating Case
+status: open
+createdAt: "2026-08-28T13:25:32+09:00"
+summary: >-
+  Bounded research case for Kioxia Holdings (285A) covering the IPO and post-IPO repricing episode already tracked by listing-event and special-situation research. The case is retained as a causal-decomposition subject, not as proof of alpha or as a successful seed example.

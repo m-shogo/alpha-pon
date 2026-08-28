@@ -1,0 +1,9 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: exchange-sanction-ladder
+title: Exchange Sanction Ladder Research
+status: investigating
+createdAt: "2026-08-28T13:25:32+09:00"
+origin: migration
+summary: >-
+  Preserve the existing shadow research on whether later JPX enforcement and listing-state milestones produce repeatable abnormal returns or uncertainty-resolution effects after the underlying misconduct is already substantially known. This remains a research candidate only; announcement, effective and first-executable timing, distress controls, liquidity, borrow feasibility and untouched validation are unresolved.

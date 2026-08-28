@@ -1,0 +1,9 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: kioxia-question-addresses-rerating
+relationType: addresses
+sourceType: research_question
+sourceId: kioxia-rerating-causal-decomposition
+targetType: research_item
+targetId: kioxia-post-ipo-rerating
+createdAt: "2026-08-28T13:25:32+09:00"

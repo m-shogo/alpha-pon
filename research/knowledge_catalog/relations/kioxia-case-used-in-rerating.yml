@@ -1,0 +1,12 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: kioxia-case-used-in-rerating
+relationType: used_in
+sourceType: case
+sourceId: kioxia-285a-post-ipo-rerating-case
+targetType: research_item
+targetId: kioxia-post-ipo-rerating
+role: candidate
+createdAt: "2026-08-28T13:25:32+09:00"
+notes: >-
+  Candidate case only. This relation preserves the motivating episode without treating Kioxia as a successful sample or evidence that any one proposed mechanism is causal.
