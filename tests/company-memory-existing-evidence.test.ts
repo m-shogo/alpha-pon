@@ -28,7 +28,7 @@ for (const bad of ["", "   ", " padded "] as const) {
   writeFileSync(path, JSON.stringify({ ...valid, watchReason: [bad] }));
   assert.throws(
     () => assertExistingCompanyMemoryInputs(dir, "2026-08-27"),
-    /watchReason must be an array of canonical non-empty strings/,
+    /watchReason must be a string array of canonical non-empty strings/,
     "blank or padded strings must not count as company-memory evidence",
   );
 }
