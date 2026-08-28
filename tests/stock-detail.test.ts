@@ -275,6 +275,39 @@ function outcome(overrides: Record<string, unknown> = {}) {
 }
 
 {
+  const memory = (lastReviewedAt: string) => ({
+    schemaVersion: 1,
+    code: "8136",
+    lastReviewedAt,
+    watchReason: ["監視理由"],
+    knownRisks: [],
+    recurringWarnings: [],
+    notes: [],
+  });
+
+  const impossible = normalizeStockDetail({
+    code: "8136",
+    data: baseData({ candidates: [], companyMemoryByCode: { "8136": memory("2026-02-31") } }),
+  });
+  assert.equal(impossible, null);
+
+  const future = normalizeStockDetail({
+    code: "8136",
+    data: baseData({ candidates: [], companyMemoryByCode: { "8136": memory("2026-06-12") } }),
+  });
+  assert.equal(future, null);
+
+  const canonical = normalizeStockDetail({
+    code: "8136",
+    data: baseData({ candidates: [], companyMemoryByCode: { "8136": memory("2026-06-11") } }),
+  });
+  assert.ok(canonical);
+  assert.equal(canonical.lastUpdatedAt, "2026-06-11");
+  assert.deepEqual(canonical.sourceKinds, ["company memory"]);
+  console.log("stock-detail: company memory更新日はsnapshot以前の実在日だけEvidenceとして扱う");
+}
+
+{
   const detail = normalizeStockDetail({
     code: "8136",
     data: baseData({
