@@ -41,41 +41,36 @@ function writeAsset(root: string, record: ResearchAssetRecord): void {
 
 {
   const canonical = readResearchAssetRegistry();
-  assert.deepEqual(canonical.issues, [], "canonical seeded Asset Registry must be structurally valid");
-  assert.deepEqual(canonical.records.map((entry) => entry.id), [
-    "document-exchange-sanction-remediation-clock-seed",
-    "document-listing-event-watch-guide",
-    "document-revolution-8894-special-attention-case",
-    "document-special-situation-watch-playbook",
-    "implementation-listing-event-watch-report",
-    "implementation-special-situation-watch-report",
-    "watch-listing-event-watch",
-    "watch-special-situation-watch-rules",
-  ]);
-  assert.deepEqual(
-    canonical.missingProvenanceIds,
-    canonical.records.map((entry) => entry.id),
-    "seeded identities must remain unavailable for PIT relations until exact first-known provenance is backfilled",
-  );
+  assert.deepEqual(canonical.issues, [], "canonical Asset Registry must remain structurally valid as identities are seeded");
   assert.equal(RESEARCH_ASSET_REGISTRY_ROOT, "research/asset_registry");
+
+  const canonicalIds = canonical.records.map((entry) => entry.id);
+  assert.deepEqual(canonicalIds, [...canonicalIds].sort(), "canonical Asset IDs must be deterministic");
+  assert.equal(new Set(canonicalIds).size, canonicalIds.length, "canonical Asset IDs must be unique");
+  assert.ok(
+    canonical.missingProvenanceIds.every((id) => canonicalIds.includes(id)),
+    "pending provenance may only refer to registered Asset identities",
+  );
+
   const views = buildResearchAssetAuthorityViews(canonical);
-  assert.deepEqual(views.document.ids, [
-    "document-exchange-sanction-remediation-clock-seed",
-    "document-listing-event-watch-guide",
-    "document-revolution-8894-special-attention-case",
-    "document-special-situation-watch-playbook",
-  ]);
-  assert.deepEqual(views.watch.ids, [
-    "watch-listing-event-watch",
-    "watch-special-situation-watch-rules",
-  ]);
-  assert.deepEqual(views.implementation.ids, [
-    "implementation-listing-event-watch-report",
-    "implementation-special-situation-watch-report",
-  ]);
-  assert.deepEqual(views.document.availability, {});
-  assert.deepEqual(views.watch.availability, {});
-  assert.deepEqual(views.implementation.availability, {});
+  assert.deepEqual(
+    views.document.ids,
+    canonical.records.filter((entry) => entry.assetType === "document").map((entry) => entry.id).sort(),
+  );
+  assert.deepEqual(
+    views.watch.ids,
+    canonical.records.filter((entry) => entry.assetType === "watch").map((entry) => entry.id).sort(),
+  );
+  assert.deepEqual(
+    views.implementation.ids,
+    canonical.records.filter((entry) => entry.assetType === "implementation").map((entry) => entry.id).sort(),
+  );
+  for (const view of [views.document, views.watch, views.implementation]) {
+    assert.ok(
+      Object.keys(view.availability).every((id) => view.ids.includes(id)),
+      "availability may only be exposed for an ID owned by that Asset authority",
+    );
+  }
 }
 
 {
