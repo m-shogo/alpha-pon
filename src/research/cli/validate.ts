@@ -18,6 +18,7 @@ import { checkDecay } from "../decay.js";
 import { loadResearchState, loadSchema, paths, readJsonl, ResearchDataError } from "../io.js";
 import { checkPit } from "../pit.js";
 import { checkProductionIntegrity, type HoldoutAccessEntry, type HoldoutManifest } from "../promotion.js";
+import { readResearchAssetRegistry } from "../research-asset-registry.js";
 import { readResearchKnowledgeCatalogRepository } from "../research-knowledge-catalog-repository.js";
 import { formatErrors, validate as validateSchema } from "../schema.js";
 import { validateSecurityMasterRepository } from "../security-master-repository.js";
@@ -92,6 +93,7 @@ function main(): void {
 
   const holdout = loadHoldout();
   const edgeProvenance = readEdgeProvenanceRepository(state.edges.map((edge) => edge.id));
+  const researchAssets = readResearchAssetRegistry();
   const knowledgeCatalog = readResearchKnowledgeCatalogRepository();
   const catalogs = validateRepositoryCatalogs();
   const council = validateRepositoryStockProCouncilV2();
@@ -107,6 +109,12 @@ function main(): void {
   const foundationDecisions = validateFoundationDecisionRepository({ includeDependencyIssues: false });
 
   const provenanceIssues: Issue[] = edgeProvenance.issues.map((item) => ({
+    severity: item.severity,
+    code: item.code,
+    target: item.target,
+    message: item.message,
+  }));
+  const researchAssetIssues: Issue[] = researchAssets.issues.map((item) => ({
     severity: item.severity,
     code: item.code,
     target: item.target,
@@ -144,13 +152,19 @@ function main(): void {
     ...checkProductionIntegrity(state, holdout.accessLog, asOf),
     ...checkDecay(state, asOf),
     ...provenanceIssues,
+    ...researchAssetIssues,
     ...knowledgeCatalogIssues,
     ...catalogIssues,
     ...foundationIssues,
   ];
 
+  const documentAssetCount = researchAssets.records.filter((record) => record.assetType === "document").length;
+  const watchAssetCount = researchAssets.records.filter((record) => record.assetType === "watch").length;
+  const implementationAssetCount = researchAssets.records.filter((record) => record.assetType === "implementation").length;
+
   console.log(`Research OS 検査 (asOf=${asOf}): Edge ${state.edges.length} / Analog ${state.analogs.length} / Counterfactual ${state.counterfactuals.length} / Confounder ${state.confounders.length}`);
   console.log(`Formal Edge Provenance: Proven ${edgeProvenance.records.length} / Pending ${edgeProvenance.missingEdgeIds.length}`);
+  console.log(`Research Asset Registry: Total ${researchAssets.records.length} / Document ${documentAssetCount} / Watch ${watchAssetCount} / Implementation ${implementationAssetCount} / Proven ${researchAssets.provenanceRecords.length} / Pending ${researchAssets.missingProvenanceIds.length}`);
   console.log(`Research Knowledge Catalog: Total ${knowledgeCatalog.totalCount} / Item ${knowledgeCatalog.counts.researchItems} / Family ${knowledgeCatalog.counts.researchFamilies} / Component ${knowledgeCatalog.counts.researchComponents} / Case ${knowledgeCatalog.counts.cases} / Study ${knowledgeCatalog.counts.studies} / Relation ${knowledgeCatalog.counts.relations} / Lineage ${knowledgeCatalog.counts.lineages}`);
   console.log(`Technology Research Catalog: Data Source ${catalogs.sourceCount} / Technology Family ${catalogs.familyCount} / Active Edge ${catalogs.activeEdgeCount}`);
   console.log(`Stock Pro Council v2: Persona ${council.personaCount} / Verdict ${council.verdictCount} / Dissent ${ledgers.dissentCount} / Veto ${ledgers.vetoCount} / Binding Veto ${ledgers.bindingVetoCount}`);
@@ -172,6 +186,9 @@ function main(): void {
   console.log(edgeProvenance.missingEdgeIds.length === 0
     ? "✓ FORMAL_EDGE_PROVENANCE_LEDGER_GREEN"
     : `Formal Edge provenance pending: ${edgeProvenance.missingEdgeIds.join(", ")} — these Edge IDs remain unavailable to strict Research Knowledge links until canonical-main provenance is appended.`);
+  console.log(researchAssets.missingProvenanceIds.length === 0
+    ? "✓ RESEARCH_ASSET_AUTHORITY_V1_GREEN"
+    : `Research Asset provenance pending: ${researchAssets.missingProvenanceIds.join(", ")} — registered Assets remain unavailable to strict Research Knowledge relations until canonical-main provenance is appended.`);
   console.log("✓ RESEARCH_KNOWLEDGE_CATALOG_PERSISTENCE_GREEN");
   console.log("✓ DATA_SOURCE_REGISTRY_CONTRACT_GREEN");
   console.log("✓ TECH_EDGE_CANDIDATE_CATALOG_GREEN");
