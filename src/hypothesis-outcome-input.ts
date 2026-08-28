@@ -27,6 +27,11 @@ function isOptionalNullableFiniteNumber(value: unknown): boolean {
   return value === undefined || value === null || (typeof value === "number" && Number.isFinite(value));
 }
 
+function isOptionalNullableDrawdownPct(value: unknown): boolean {
+  return isOptionalNullableFiniteNumber(value)
+    && (value === undefined || value === null || value <= 0);
+}
+
 export function isUsableHypothesisOutcomeInput(value: unknown): value is HypothesisOutcome {
   if (!isRecord(value)) return false;
   if (typeof value.code !== "string" || value.code.trim().length === 0 || value.code !== value.code.trim()) return false;
@@ -45,7 +50,7 @@ export function isUsableHypothesisOutcomeInput(value: unknown): value is Hypothe
   if (!isOptionalNullableFiniteNumber(value.return1w)) return false;
   if (!isOptionalNullableFiniteNumber(value.return1m)) return false;
   if (!isOptionalNullableFiniteNumber(value.relativeToTopix1m)) return false;
-  if (!isOptionalNullableFiniteNumber(value.maxDrawdownPct)) return false;
+  if (!isOptionalNullableDrawdownPct(value.maxDrawdownPct)) return false;
   if (!isRealJstDate(value.hypothesis.detectedAt) || value.hypothesis.detectedAt > todayJst()) return false;
   if (
     value.evaluatedAt !== undefined
