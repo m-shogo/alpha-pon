@@ -41,13 +41,36 @@ function writeAsset(root: string, record: ResearchAssetRecord): void {
 
 {
   const canonical = readResearchAssetRegistry();
-  assert.deepEqual(canonical.issues, [], "canonical empty Asset Registry must be valid before references are seeded");
-  assert.equal(canonical.records.length, 0);
+  assert.deepEqual(canonical.issues, [], "canonical Asset Registry must remain structurally valid as identities are seeded");
   assert.equal(RESEARCH_ASSET_REGISTRY_ROOT, "research/asset_registry");
+
+  const canonicalIds = canonical.records.map((entry) => entry.id);
+  assert.deepEqual(canonicalIds, [...canonicalIds].sort(), "canonical Asset IDs must be deterministic");
+  assert.equal(new Set(canonicalIds).size, canonicalIds.length, "canonical Asset IDs must be unique");
+  assert.ok(
+    canonical.missingProvenanceIds.every((id) => canonicalIds.includes(id)),
+    "pending provenance may only refer to registered Asset identities",
+  );
+
   const views = buildResearchAssetAuthorityViews(canonical);
-  assert.deepEqual(views.document.ids, []);
-  assert.deepEqual(views.watch.ids, []);
-  assert.deepEqual(views.implementation.ids, []);
+  assert.deepEqual(
+    views.document.ids,
+    canonical.records.filter((entry) => entry.assetType === "document").map((entry) => entry.id).sort(),
+  );
+  assert.deepEqual(
+    views.watch.ids,
+    canonical.records.filter((entry) => entry.assetType === "watch").map((entry) => entry.id).sort(),
+  );
+  assert.deepEqual(
+    views.implementation.ids,
+    canonical.records.filter((entry) => entry.assetType === "implementation").map((entry) => entry.id).sort(),
+  );
+  for (const view of [views.document, views.watch, views.implementation]) {
+    assert.ok(
+      Object.keys(view.availability).every((id) => view.ids.includes(id)),
+      "availability may only be exposed for an ID owned by that Asset authority",
+    );
+  }
 }
 
 {
