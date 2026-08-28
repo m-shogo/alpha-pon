@@ -139,7 +139,7 @@ try {
   assert.deepEqual(migrationVersions, [
     "0001_market_event_foundation",
     "0002_market_event_revision_guards",
-    "0003_market_event_revision_publication_chronology",
+    "0011_market_event_revision_publication_chronology",
   ]);
 
   console.log("market-event-revision-guards: ok");
