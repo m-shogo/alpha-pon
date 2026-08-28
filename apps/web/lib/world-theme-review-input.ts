@@ -37,11 +37,17 @@ function isDueItem(value: unknown): value is WorldThemeReviewDueItem {
     && isNonEmptyCanonicalString(row.nextPrimaryCheck)
 }
 
+function hasUniqueDueReviewIdentities(rows: WorldThemeReviewDueItem[]): boolean {
+  const identities = rows.map(row => `${row.hypothesisId}\u0000${row.afterDays}`)
+  return new Set(identities).size === identities.length
+}
+
 export function normalizeWorldThemeReviewInput(value: unknown): WorldThemeReviewInput | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   const input = value as Record<string, unknown>
 
   if (!Array.isArray(input.dueReviews) || !input.dueReviews.every(isDueItem)) return null
+  if (!hasUniqueDueReviewIdentities(input.dueReviews)) return null
   if (input.generatedAt !== undefined && !isNonEmptyCanonicalString(input.generatedAt)) return null
   if (input.totalHypotheses !== undefined && !isNonNegativeInteger(input.totalHypotheses)) return null
   if (input.reviewedResults !== undefined && !isNonNegativeInteger(input.reviewedResults)) return null
