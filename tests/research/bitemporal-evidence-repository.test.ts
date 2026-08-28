@@ -33,16 +33,18 @@ import { withSecurityEntityHash } from "../../src/research/security-master.js";
   const evidencePath = join(dir, "evidence.jsonl");
   try {
     writeFileSync(evidencePath, "{}", "utf-8");
-    const result = validateBitemporalEvidenceRepository({
-      evidencePath,
-      relationsPath: join(dir, "relations.jsonl"),
-      securityEntitiesPath: join(dir, "security-entities.jsonl"),
-      securityRelationshipsPath: join(dir, "security-relationships.jsonl"),
-      asOf: "2026-08-06T12:00:00",
-    });
-    assert.ok(result.issues.some((issue) => issue.code === "invalid_evidence_repository_as_of"));
-    assert.equal(result.evidenceRecordCount, 0);
-    assert.equal(result.snapshotEvidenceCount, 0);
+    for (const invalidAsOf of ["2026-08-06T12:00:00", "2026-02-30T12:00:00+09:00"]) {
+      const result = validateBitemporalEvidenceRepository({
+        evidencePath,
+        relationsPath: join(dir, "relations.jsonl"),
+        securityEntitiesPath: join(dir, "security-entities.jsonl"),
+        securityRelationshipsPath: join(dir, "security-relationships.jsonl"),
+        asOf: invalidAsOf,
+      });
+      assert.ok(result.issues.some((issue) => issue.code === "invalid_evidence_repository_as_of"));
+      assert.equal(result.evidenceRecordCount, 0);
+      assert.equal(result.snapshotEvidenceCount, 0);
+    }
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
