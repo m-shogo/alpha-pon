@@ -19,6 +19,7 @@ import {
   type MarketEventType,
   type StorageClass,
 } from "./contracts.js";
+import { validateMarketEventRevisionChronology } from "./revision-chronology.js";
 
 export type MarketEventSourceInput = {
   authority: string;
@@ -98,6 +99,10 @@ function validateRegistrationInput(input: MarketEventRegistrationInput): void {
   if (input.sources.some(source => !source.contentHash.trim())) {
     throw new Error("Every source requires a contentHash");
   }
+  validateMarketEventRevisionChronology({
+    observedAt: input.observedAt,
+    publishedAt: input.publishedAt ?? null,
+  });
   for (const source of input.sources) {
     if (
       source.publishedAt !== null

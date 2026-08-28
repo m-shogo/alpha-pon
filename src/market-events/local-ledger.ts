@@ -13,6 +13,7 @@ import {
   type MarketEvent,
   type MarketEventBundle,
 } from "./contracts.js";
+import { validateMarketEventRevisionChronology } from "./revision-chronology.js";
 
 export type MarketEventLedgerRecord =
   | { recordType: "MARKET_EVENT"; recordedAt: string; payload: MarketEvent }
@@ -61,6 +62,7 @@ export function validateLedgerRecord(record: MarketEventLedgerRecord): void {
       ] as const) {
         if (value !== null) assertIsoTimestamp(value, fieldName);
       }
+      validateMarketEventRevisionChronology(record.payload);
       break;
 
     case "EVENT_SOURCE":
