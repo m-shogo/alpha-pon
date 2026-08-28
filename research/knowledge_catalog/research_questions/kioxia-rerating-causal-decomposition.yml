@@ -1,0 +1,7 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: kioxia-rerating-causal-decomposition
+question: >-
+  Which causal mechanism or combination of IPO supply-demand, lock-up or shareholder overhang, PE/carve-out structure, NAND and storage cycle recovery, and AI-infrastructure demand best explains the Kioxia post-IPO rerating, and does any effect repeat outside this issuer with PIT-safe executable timing?
+status: open
+createdAt: "2026-08-28T13:25:32+09:00"
