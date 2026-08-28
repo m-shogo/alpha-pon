@@ -70,4 +70,20 @@ validateLedgerRecord({
   payload: validBundle.sources[0]!,
 });
 
+assert.throws(
+  () => validateLedgerRecord({
+    recordType: "EVENT_REVISION",
+    recordedAt: "2026-08-28T09:59:59Z",
+    payload: validBundle.revision,
+  }),
+  /recordedAt must be on or after observedAt/,
+  "revision ledger metadata must not claim persistence before observation",
+);
+
+validateLedgerRecord({
+  recordType: "EVENT_REVISION",
+  recordedAt: "2026-08-28T10:00:00Z",
+  payload: validBundle.revision,
+});
+
 console.log("market event registration executability chronology: fail-closed OK");

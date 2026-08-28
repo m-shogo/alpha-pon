@@ -63,6 +63,16 @@ export function validateLedgerRecord(record: MarketEventLedgerRecord): void {
         if (value !== null) assertIsoTimestamp(value, fieldName);
       }
       validateMarketEventRevisionChronology(record.payload);
+      if (
+        compareExplicitIso8601Instants(
+          record.recordedAt,
+          record.payload.observedAt,
+          "recordedAt",
+          "observedAt",
+        ) < 0
+      ) {
+        throw new Error("recordedAt must be on or after observedAt");
+      }
       break;
 
     case "EVENT_SOURCE":
