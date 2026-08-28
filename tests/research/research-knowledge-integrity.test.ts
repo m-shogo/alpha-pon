@@ -1,3 +1,4 @@
+import "./research-knowledge-semantic-boundaries.test.js";
 import assert from "node:assert/strict";
 import { validateResearchKnowledgeIntegrity } from "../../src/research/research-knowledge-integrity.js";
 import type { ResearchKnowledgeSnapshot } from "../../src/research/research-knowledge-semantics.js";
