@@ -1,0 +1,9 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: misconduct-phase-damage-assessment
+title: Misconduct Phase 2 Damage Assessment
+kind: phase
+status: active
+createdAt: "2026-08-28T13:18:47+09:00"
+description: >-
+  Classify the point-in-time economic damage, accounting and cash-flow impact, brand damage, regulatory and litigation exposure, actor separability, management dependence, recurrence risk, and balance-sheet resilience before interpreting a price decline as overreaction.
