@@ -114,7 +114,7 @@ function writeAsset(root: string, record: ResearchAssetRecord): void {
       basis: "canonical_git_first_presence",
       sourceCommitSha: "a".repeat(40),
       sourceCommitAt: "2026-08-20T10:00:00+09:00",
-      sourcePath: "docs/design.md",
+      sourcePath: "research/asset_registry/assets/document-design.yml",
     };
     writeFileSync(join(registryRoot, "provenance.jsonl"), `${JSON.stringify(provenance)}\n`, "utf-8");
     const proven = readResearchAssetRegistry({ rootPath: registryRoot, repositoryRootPath: repoRoot });

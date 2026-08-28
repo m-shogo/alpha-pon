@@ -24,6 +24,7 @@ import {
   type EdgeProvenanceRepositoryResult,
 } from "./edge-provenance.js";
 import {
+  RESEARCH_ASSET_REGISTRY_ROOT,
   buildResearchAssetAuthorityViews,
   readResearchAssetRegistry,
   type ResearchAssetRegistryResult,
@@ -107,6 +108,23 @@ function researchAssetTargetAliasIssues(
         "research_asset_registry_target_alias_check_failed",
         target,
         error instanceof Error ? error.message : String(error),
+      ));
+    }
+  }
+  return issues;
+}
+
+function researchAssetProvenanceSourcePathIssues(
+  registry: ResearchAssetRegistryResult,
+): ResearchKnowledgeIssue[] {
+  const issues: ResearchKnowledgeIssue[] = [];
+  for (const provenance of registry.provenanceRecords) {
+    const expectedPath = `${RESEARCH_ASSET_REGISTRY_ROOT}/assets/${provenance.assetId}.yml`;
+    if (provenance.sourcePath !== expectedPath) {
+      issues.push(issue(
+        "research_asset_provenance_source_path_mismatch",
+        `research_asset_provenance:${provenance.assetId}`,
+        `sourcePath must identify the stable Research Asset record ${expectedPath}; found ${provenance.sourcePath}`,
       ));
     }
   }
@@ -264,7 +282,9 @@ export function readResearchKnowledgeAuthorityViews(
   });
   const assets = buildResearchAssetAuthorityViews(assetRegistry);
   const assetAliasIssues = researchAssetTargetAliasIssues(assetRegistry, assetRepositoryRootPath);
-  const sharedAssetIssues = [...assetRegistry.issues, ...assetAliasIssues];
+  const assetProvenanceSourcePathIssues = researchAssetProvenanceSourcePathIssues(assetRegistry);
+  const additionalAssetIssues = [...assetAliasIssues, ...assetProvenanceSourcePathIssues];
+  const sharedAssetIssues = [...assetRegistry.issues, ...additionalAssetIssues];
 
   return {
     event: readMarketEventAuthorityView(options.marketEventDatabasePath),
@@ -274,7 +294,7 @@ export function readResearchKnowledgeAuthorityViews(
       provenancePath: options.edgeProvenancePath,
       provenanceSchemaPath: options.edgeProvenanceSchemaPath,
     }),
-    document: mergeAuthorityIssues(assets.document, assetAliasIssues),
+    document: mergeAuthorityIssues(assets.document, additionalAssetIssues),
     watch: mergeAuthorityIssues(assets.watch, sharedAssetIssues),
     implementation: mergeAuthorityIssues(assets.implementation, sharedAssetIssues),
   };
