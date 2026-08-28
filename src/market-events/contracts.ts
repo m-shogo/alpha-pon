@@ -430,6 +430,16 @@ export function validateMarketEventBundle(bundle: MarketEventBundle): void {
   if (event.staleAfter !== null) assertIsoTimestamp(event.staleAfter, "staleAfter");
   assertIsoTimestamp(event.createdAt, "createdAt");
   assertIsoTimestamp(event.updatedAt, "updatedAt");
+  if (
+    compareExplicitIso8601Instants(
+      event.updatedAt,
+      event.createdAt,
+      "updatedAt",
+      "createdAt",
+    ) < 0
+  ) {
+    throw new Error("updatedAt must be on or after createdAt");
+  }
 
   if (revision.eventId !== event.eventId) throw new Error("revision eventId does not match event");
   if (!revision.revisionId.startsWith("rev_")) throw new Error("Invalid revisionId");
