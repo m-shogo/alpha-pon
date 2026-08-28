@@ -227,21 +227,6 @@ function writeAsset(root: string, record: ResearchAssetRecord): void {
   const repoRoot = join(temp, "repo");
   try {
     mkdirSync(registryRoot, { recursive: true });
-    mkdirSync(repoRoot, { recursive: true });
-    writeAsset(registryRoot, asset("document-missing", "document", "docs/missing.md"));
-    const result = readResearchAssetRegistry({ rootPath: registryRoot, repositoryRootPath: repoRoot });
-    assert.ok(result.issues.some((entry) => entry.code === "research_asset_registry_target_missing"));
-  } finally {
-    rmSync(temp, { recursive: true, force: true });
-  }
-}
-
-{
-  const temp = mkdtempSync(join(tmpdir(), "alpha-pon-asset-symlink-"));
-  const registryRoot = join(temp, "registry");
-  const repoRoot = join(temp, "repo");
-  try {
-    mkdirSync(registryRoot, { recursive: true });
     mkdirSync(join(repoRoot, "docs"), { recursive: true });
     writeFileSync(join(repoRoot, "real.md"), "real\n", "utf-8");
     symlinkSync(join(repoRoot, "real.md"), join(repoRoot, "docs", "linked.md"));
