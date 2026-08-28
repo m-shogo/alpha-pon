@@ -11,8 +11,10 @@ const REQUIRED_STRING_ARRAY_FIELDS = [
   "notes",
 ] as const;
 
-function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((item) => typeof item === "string");
+function isCanonicalStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(
+    (item) => typeof item === "string" && item.length > 0 && item.trim() === item,
+  );
 }
 
 function assertStrictDate(value: unknown, field: string, file: string): string {
@@ -86,8 +88,8 @@ function assertExistingCompanyMemoryShape(value: unknown, file: string, asOf: st
   }
 
   for (const field of REQUIRED_STRING_ARRAY_FIELDS) {
-    if (!isStringArray(record[field])) {
-      throw new Error(`${file}: ${field} must be a string array`);
+    if (!isCanonicalStringArray(record[field])) {
+      throw new Error(`${file}: ${field} must be a string array of canonical non-empty strings`);
     }
   }
 
