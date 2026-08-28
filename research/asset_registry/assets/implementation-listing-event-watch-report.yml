@@ -1,0 +1,6 @@
+schemaVersion: 1
+id: implementation-listing-event-watch-report
+assetType: implementation
+path: src/listing-event-watch-report.ts
+status: active
+description: Report implementation that reads the listing-event watch configuration and renders the governed listing-event observation report.

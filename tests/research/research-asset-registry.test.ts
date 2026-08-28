@@ -41,13 +41,41 @@ function writeAsset(root: string, record: ResearchAssetRecord): void {
 
 {
   const canonical = readResearchAssetRegistry();
-  assert.deepEqual(canonical.issues, [], "canonical empty Asset Registry must be valid before references are seeded");
-  assert.equal(canonical.records.length, 0);
+  assert.deepEqual(canonical.issues, [], "canonical seeded Asset Registry must be structurally valid");
+  assert.deepEqual(canonical.records.map((entry) => entry.id), [
+    "document-exchange-sanction-remediation-clock-seed",
+    "document-listing-event-watch-guide",
+    "document-revolution-8894-special-attention-case",
+    "document-special-situation-watch-playbook",
+    "implementation-listing-event-watch-report",
+    "implementation-special-situation-watch-report",
+    "watch-listing-event-watch",
+    "watch-special-situation-watch-rules",
+  ]);
+  assert.deepEqual(
+    canonical.missingProvenanceIds,
+    canonical.records.map((entry) => entry.id),
+    "seeded identities must remain unavailable for PIT relations until exact first-known provenance is backfilled",
+  );
   assert.equal(RESEARCH_ASSET_REGISTRY_ROOT, "research/asset_registry");
   const views = buildResearchAssetAuthorityViews(canonical);
-  assert.deepEqual(views.document.ids, []);
-  assert.deepEqual(views.watch.ids, []);
-  assert.deepEqual(views.implementation.ids, []);
+  assert.deepEqual(views.document.ids, [
+    "document-exchange-sanction-remediation-clock-seed",
+    "document-listing-event-watch-guide",
+    "document-revolution-8894-special-attention-case",
+    "document-special-situation-watch-playbook",
+  ]);
+  assert.deepEqual(views.watch.ids, [
+    "watch-listing-event-watch",
+    "watch-special-situation-watch-rules",
+  ]);
+  assert.deepEqual(views.implementation.ids, [
+    "implementation-listing-event-watch-report",
+    "implementation-special-situation-watch-report",
+  ]);
+  assert.deepEqual(views.document.availability, {});
+  assert.deepEqual(views.watch.availability, {});
+  assert.deepEqual(views.implementation.availability, {});
 }
 
 {

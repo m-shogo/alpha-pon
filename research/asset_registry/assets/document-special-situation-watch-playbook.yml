@@ -1,0 +1,6 @@
+schemaVersion: 1
+id: document-special-situation-watch-playbook
+assetType: document
+path: docs/special-situation-watch-playbook.md
+status: active
+description: Special-situation research playbook describing carve-out, PE exit, lock-up, cycle-recovery, and related watch interpretation boundaries.

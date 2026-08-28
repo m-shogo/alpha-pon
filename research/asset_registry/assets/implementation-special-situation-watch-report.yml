@@ -1,0 +1,6 @@
+schemaVersion: 1
+id: implementation-special-situation-watch-report
+assetType: implementation
+path: src/special-situation-watch-report.ts
+status: active
+description: Report implementation for special-situation watch candidates, phases, evidence state, wait reasons, and non-recommendation labels.
