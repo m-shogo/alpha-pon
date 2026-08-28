@@ -22,6 +22,11 @@ import {
   readEdgeProvenanceRepository,
   type EdgeProvenanceRepositoryResult,
 } from "./edge-provenance.js";
+import {
+  buildResearchAssetAuthorityViews,
+  readResearchAssetRegistry,
+} from "./research-asset-registry.js";
+import type { ResearchKnowledgeExternalNodeType } from "./research-knowledge-integrity.js";
 
 export interface ResearchKnowledgeAuthorityRepositoryOptions {
   marketEventDatabasePath?: string;
@@ -30,19 +35,30 @@ export interface ResearchKnowledgeAuthorityRepositoryOptions {
   edgeFirstKnownAt?: Readonly<Record<string, string>>;
   edgeProvenancePath?: string;
   edgeProvenanceSchemaPath?: string;
+  assetRegistryRootPath?: string;
+  assetRegistryRepositoryRootPath?: string;
+  assetRegistrySchemaPath?: string;
+  assetProvenancePath?: string;
+  assetProvenanceSchemaPath?: string;
 }
 
 export interface ResearchKnowledgeAuthorityRepositoryViews {
   event: ResearchKnowledgeAuthorityView;
   entity: ResearchKnowledgeAuthorityView;
   edge: ResearchKnowledgeAuthorityView;
+  document: ResearchKnowledgeAuthorityView;
+  watch: ResearchKnowledgeAuthorityView;
+  implementation: ResearchKnowledgeAuthorityView;
 }
 
 function issue(code: string, target: string, message: string): ResearchKnowledgeIssue {
   return { severity: "error", code, target, message };
 }
 
-function emptyView(nodeType: "event" | "entity" | "edge", issues: readonly ResearchKnowledgeIssue[] = []): ResearchKnowledgeAuthorityView {
+function emptyView(
+  nodeType: ResearchKnowledgeExternalNodeType,
+  issues: readonly ResearchKnowledgeIssue[] = [],
+): ResearchKnowledgeAuthorityView {
   return { nodeType, ids: [], availability: {}, issues };
 }
 
@@ -200,6 +216,15 @@ export function readEdgeAuthorityView(
 export function readResearchKnowledgeAuthorityViews(
   options: ResearchKnowledgeAuthorityRepositoryOptions = {},
 ): ResearchKnowledgeAuthorityRepositoryViews {
+  const assetRegistry = readResearchAssetRegistry({
+    rootPath: options.assetRegistryRootPath,
+    repositoryRootPath: options.assetRegistryRepositoryRootPath,
+    assetSchemaPath: options.assetRegistrySchemaPath,
+    provenancePath: options.assetProvenancePath,
+    provenanceSchemaPath: options.assetProvenanceSchemaPath,
+  });
+  const assets = buildResearchAssetAuthorityViews(assetRegistry);
+
   return {
     event: readMarketEventAuthorityView(options.marketEventDatabasePath),
     entity: readSecurityEntityAuthorityView(options.securityMasterEntitiesPath),
@@ -208,5 +233,8 @@ export function readResearchKnowledgeAuthorityViews(
       provenancePath: options.edgeProvenancePath,
       provenanceSchemaPath: options.edgeProvenanceSchemaPath,
     }),
+    document: assets.document,
+    watch: assets.watch,
+    implementation: assets.implementation,
   };
 }
