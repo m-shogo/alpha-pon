@@ -120,6 +120,24 @@ try {
 
   assert.throws(
     () => db.prepare(`
+      INSERT INTO event_sources (
+        source_id, event_id, schema_version, authority, source_type, url, title,
+        published_at, retrieved_at, content_hash, storage_class, object_key
+      ) VALUES (?, ?, 1, 'TEST', 'IR', ?, 'invalid offset', ?, ?, ?, 'METADATA_ONLY', NULL)
+    `).run(
+      "src_invalid_timezone_offset",
+      eventId,
+      "https://example.com/sqlite-invalid-offset",
+      "2026-08-03T06:59:00Z",
+      "2026-08-03T07:00:00+14:01",
+      "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    ),
+    /timezone offset must be within \+\/-14:00/,
+    "SQLite must reject source timezone offsets beyond +14:00",
+  );
+
+  assert.throws(
+    () => db.prepare(`
       INSERT INTO event_revisions (
         revision_id, event_id, schema_version, revision_number, observed_at,
         change_type, facts_json, source_ids_json, previous_revision_id
@@ -247,6 +265,7 @@ try {
     "0012_market_event_source_publication_chronology",
     "0013_market_event_source_instant_guards",
     "0014_market_event_revision_instant_guards",
+    "0015_market_event_source_offset_bounds",
   ]);
 
   console.log("market-event-revision-guards: ok");
