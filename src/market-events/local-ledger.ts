@@ -54,6 +54,13 @@ export function validateLedgerRecord(record: MarketEventLedgerRecord): void {
         throw new Error("revisionNumber must be a positive integer");
       }
       assertIsoTimestamp(record.payload.observedAt, "observedAt");
+      for (const [fieldName, value] of [
+        ["publishedAt", record.payload.publishedAt],
+        ["effectiveAt", record.payload.effectiveAt],
+        ["firstExecutableAt", record.payload.firstExecutableAt],
+      ] as const) {
+        if (value !== null) assertIsoTimestamp(value, fieldName);
+      }
       break;
 
     case "EVENT_SOURCE":
