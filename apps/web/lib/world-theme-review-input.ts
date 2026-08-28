@@ -62,9 +62,10 @@ export function normalizeWorldThemeReviewInput(value: unknown): WorldThemeReview
   if (!Array.isArray(input.dueReviews) || !input.dueReviews.every(isDueItem)) return null
   if (!hasUniqueDueReviewIdentities(input.dueReviews)) return null
   if (input.generatedAt !== undefined && !isGregorianDate(input.generatedAt)) return null
+  const generatedAt = input.generatedAt
   if (
-    typeof input.generatedAt === 'string'
-    && input.dueReviews.some(row => row.dueAt > input.generatedAt!)
+    typeof generatedAt === 'string'
+    && input.dueReviews.some(row => row.dueAt > generatedAt)
   ) return null
   if (input.totalHypotheses !== undefined && !isNonNegativeInteger(input.totalHypotheses)) return null
   if (input.reviewedResults !== undefined && !isNonNegativeInteger(input.reviewedResults)) return null
@@ -75,7 +76,7 @@ export function normalizeWorldThemeReviewInput(value: unknown): WorldThemeReview
   ) return null
 
   return {
-    ...(input.generatedAt !== undefined ? { generatedAt: input.generatedAt } : {}),
+    ...(generatedAt !== undefined ? { generatedAt } : {}),
     ...(input.totalHypotheses !== undefined ? { totalHypotheses: input.totalHypotheses } : {}),
     ...(input.reviewedResults !== undefined ? { reviewedResults: input.reviewedResults } : {}),
     dueReviews: input.dueReviews,
