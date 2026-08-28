@@ -11,6 +11,7 @@ import "./research-knowledge-intake-seeds.test.js";
 import "./research-asset-registry.test.js";
 import "./research-asset-provenance-git-audit.test.js";
 import "./research-asset-history-guard.test.js";
+import "./research-asset-filesystem-boundary.test.js";
 import "./edge-provenance.test.js";
 import "./edge-provenance-git-audit.test.js";
 import "./catalog-validation.test.js";
