@@ -1,10 +1,33 @@
-import { compareExplicitIso8601Instants } from "./iso-instant.js";
+import {
+  compareExplicitIso8601Instants,
+  parseExplicitIso8601Instant,
+} from "./iso-instant.js";
 import {
   validateResearchKnowledgeSemantics,
   type ResearchKnowledgeIssue,
   type ResearchKnowledgeSnapshot,
 } from "./research-knowledge-semantics.js";
 import type { ResearchLineageNodeType, ResearchRelationNodeType } from "./research-knowledge-types.js";
+
+export type ResearchKnowledgeExternalNodeType =
+  | "edge"
+  | "event"
+  | "entity"
+  | "document"
+  | "watch"
+  | "implementation";
+
+export type ResearchKnowledgeExternalAvailability = Partial<
+  Record<ResearchKnowledgeExternalNodeType, Readonly<Record<string, string>>>
+>;
+
+export interface ResearchKnowledgeIntegritySnapshot extends ResearchKnowledgeSnapshot {
+  /**
+   * PIT availability from the owning authority. Values mean "first known to Alpha Pon",
+   * not the economic effective date of the underlying entity/event.
+   */
+  externalAvailability?: ResearchKnowledgeExternalAvailability;
+}
 
 function issue(code: string, target: string, message: string): ResearchKnowledgeIssue {
   return { severity: "error", code, target, message };
@@ -14,7 +37,30 @@ function compare(left: string, right: string, leftLabel: string, rightLabel: str
   return compareExplicitIso8601Instants(left, right, leftLabel, rightLabel);
 }
 
-function buildAvailabilityIndex(snapshot: ResearchKnowledgeSnapshot): Map<string, string> {
+function isValidInstant(value: string, label: string): boolean {
+  try {
+    parseExplicitIso8601Instant(value, label);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function externalIdsFor(
+  snapshot: ResearchKnowledgeIntegritySnapshot,
+  type: ResearchKnowledgeExternalNodeType,
+): readonly string[] {
+  switch (type) {
+    case "edge": return snapshot.externalReferences?.edgeIds ?? [];
+    case "event": return snapshot.externalReferences?.eventIds ?? [];
+    case "entity": return snapshot.externalReferences?.entityIds ?? [];
+    case "document": return snapshot.externalReferences?.documentIds ?? [];
+    case "watch": return snapshot.externalReferences?.watchIds ?? [];
+    case "implementation": return snapshot.externalReferences?.implementationIds ?? [];
+  }
+}
+
+function buildAvailabilityIndex(snapshot: ResearchKnowledgeIntegritySnapshot): Map<string, string> {
   const index = new Map<string, string>();
   const put = (type: string, id: string, at: string): void => {
     index.set(`${type}:${id}`, at);
@@ -30,6 +76,16 @@ function buildAvailabilityIndex(snapshot: ResearchKnowledgeSnapshot): Map<string
   snapshot.studies.forEach((record) => put("study", record.id, record.createdAt));
   snapshot.studyResults.forEach((record) => put("study_result", record.id, record.createdAt));
   snapshot.opportunities.forEach((record) => put("opportunity", record.id, record.detectedAt));
+
+  const groups = Object.entries(snapshot.externalAvailability ?? {}) as [
+    ResearchKnowledgeExternalNodeType,
+    Readonly<Record<string, string>>,
+  ][];
+  for (const [type, entries] of groups) {
+    for (const [id, at] of Object.entries(entries)) {
+      if (isValidInstant(at, `externalAvailability.${type}.${id}`)) put(type, id, at);
+    }
+  }
   return index;
 }
 
@@ -41,7 +97,7 @@ function availability(
   return index.get(`${type}:${id}`);
 }
 
-function validateRelationChronology(snapshot: ResearchKnowledgeSnapshot): ResearchKnowledgeIssue[] {
+function validateRelationChronology(snapshot: ResearchKnowledgeIntegritySnapshot): ResearchKnowledgeIssue[] {
   const issues: ResearchKnowledgeIssue[] = [];
   const index = buildAvailabilityIndex(snapshot);
 
@@ -77,7 +133,7 @@ function validateRelationChronology(snapshot: ResearchKnowledgeSnapshot): Resear
   return issues;
 }
 
-function validateLineageChronology(snapshot: ResearchKnowledgeSnapshot): ResearchKnowledgeIssue[] {
+function validateLineageChronology(snapshot: ResearchKnowledgeIntegritySnapshot): ResearchKnowledgeIssue[] {
   const issues: ResearchKnowledgeIssue[] = [];
   const index = buildAvailabilityIndex(snapshot);
 
@@ -190,11 +246,42 @@ function validateExternalReferenceUniqueness(snapshot: ResearchKnowledgeSnapshot
   return issues;
 }
 
+function validateExternalAvailability(snapshot: ResearchKnowledgeIntegritySnapshot): ResearchKnowledgeIssue[] {
+  const issues: ResearchKnowledgeIssue[] = [];
+  const groups = Object.entries(snapshot.externalAvailability ?? {}) as [
+    ResearchKnowledgeExternalNodeType,
+    Readonly<Record<string, string>>,
+  ][];
+
+  for (const [type, entries] of groups) {
+    const declared = new Set(externalIdsFor(snapshot, type));
+    for (const [id, at] of Object.entries(entries)) {
+      const target = `external_availability:${type}:${id}`;
+      if (!declared.has(id)) {
+        issues.push(issue(
+          "research_external_availability_without_reference",
+          target,
+          `availability metadata exists for undeclared ${type} ID ${id}`,
+        ));
+      }
+      if (!isValidInstant(at, target)) {
+        issues.push(issue(
+          "research_external_availability_invalid_timestamp",
+          target,
+          `availableAt must be a strict ISO-8601 instant with explicit timezone`,
+        ));
+      }
+    }
+  }
+  return issues;
+}
+
 export function validateResearchKnowledgeIntegrity(
-  snapshot: ResearchKnowledgeSnapshot,
+  snapshot: ResearchKnowledgeIntegritySnapshot,
 ): ResearchKnowledgeIssue[] {
   return [
     ...validateResearchKnowledgeSemantics(snapshot),
+    ...validateExternalAvailability(snapshot),
     ...validateRelationChronology(snapshot),
     ...validateLineageChronology(snapshot),
     ...validateStudyResultLifecycle(snapshot),
