@@ -1,3 +1,4 @@
+import "./research-orphan-discovery.test.js";
 import "./research-orphan-global-cap.test.js";
 import assert from "node:assert/strict";
 import {
