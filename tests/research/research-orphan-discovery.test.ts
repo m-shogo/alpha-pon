@@ -51,9 +51,8 @@ function catalog(
   relations: readonly ResearchRelationRecord[] = [],
   issues: ResearchKnowledgeCatalogRepositoryResult["issues"] = [],
 ): ResearchKnowledgeCatalogRepositoryResult {
-  const counts = emptyCounts();
   const snapshot = emptyResearchKnowledgeOwnedSnapshot();
-  counts.relations = relations.length;
+  const counts = { ...emptyCounts(), relations: relations.length };
   return {
     snapshot: { ...snapshot, relations: [...relations] },
     issues,
