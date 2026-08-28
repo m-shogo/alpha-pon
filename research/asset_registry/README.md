@@ -19,7 +19,7 @@ A registered asset without provenance is visible to the authority as an ID, but 
 - filename must be `<id>.yml`
 - `id` and `assetType` are identity-bearing and immutable
 - `path`, `status`, and `description` may evolve through reviewed Git changes
-- the current `path` must resolve to a regular repository file, never a symlink
+- the current `path` must resolve to a regular file inside the repository, never through a symlink escape
 - `document`, `watch`, and `implementation` are reference authorities only; they do not become ResearchItems or Formal Edges
 
 ## Provenance lifecycle
@@ -30,7 +30,9 @@ For `basis: canonical_git_first_presence`:
 
 - `sourceCommitSha` must be a canonical-main commit
 - `sourceCommitAt` must equal `firstKnownAt`
-- `sourcePath` is the path whose first canonical-main presence establishes availability
+- `sourcePath` must be the stable identity record path `research/asset_registry/assets/<asset-id>.yml`
+- the first canonical-main presence of that identity record establishes when the Research Asset ID became available to Research Knowledge
+- the original target document/config/source file may predate the Asset ID; that earlier file history must not backdate the Research Asset identity
 
 A new asset may merge before provenance exists. Do not invent branch timestamps to close that gap. Append provenance only after the canonical Git fact is verifiable.
 
