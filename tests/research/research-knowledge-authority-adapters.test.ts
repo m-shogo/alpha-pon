@@ -124,6 +124,18 @@ function securityEntityRecord(
 
 {
   const view = buildSecurityEntityAuthorityView([
+    securityEntityRecord(" entity:fixture ", "2026-08-28T09:55:00+09:00", firstKnown),
+  ]);
+  assert.deepEqual(view.ids, []);
+  assert.equal(view.availability[" entity:fixture "], undefined);
+  assert.ok(
+    view.issues.some((entry) => entry.code === "research_entity_authority_noncanonical_id"),
+    "padded Security Master entity IDs must never enter the authority identity set",
+  );
+}
+
+{
+  const view = buildSecurityEntityAuthorityView([
     securityEntityRecord("entity:bad", laterKnown, firstKnown),
   ]);
   assert.ok(view.issues.some((entry) => entry.code === "research_entity_authority_retrieved_before_observed"));
