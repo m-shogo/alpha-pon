@@ -2,6 +2,7 @@ import {
   compareExplicitIso8601Instants,
   parseExplicitIso8601Instant,
 } from "./iso-instant.js";
+import { validateResearchKnowledgeConflictIntegrity } from "./research-knowledge-conflict-integrity.js";
 import {
   validateResearchKnowledgeSemantics,
   type ResearchKnowledgeIssue,
@@ -341,6 +342,7 @@ export function validateResearchKnowledgeIntegrity(
 ): ResearchKnowledgeIssue[] {
   return [
     ...validateResearchKnowledgeSemantics(snapshot),
+    ...validateResearchKnowledgeConflictIntegrity(snapshot),
     ...validateExternalAvailability(snapshot),
     ...validateExternalAvailabilityCoverage(snapshot, options.requireExternalAvailability === true),
     ...validateRelationChronology(snapshot),
