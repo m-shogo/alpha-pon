@@ -101,6 +101,14 @@ export function buildSecurityEntityAuthorityView(
       issues.push(issue("research_entity_authority_empty_id", target, "Security Master record must expose a stable entityId"));
       continue;
     }
+    if (entityId !== entityId.trim()) {
+      issues.push(issue(
+        "research_entity_authority_noncanonical_id",
+        target,
+        "Security Master entityId must not contain surrounding whitespace",
+      ));
+      continue;
+    }
     ids.add(entityId);
 
     if (!isStrictInstant(record.observedAt, `${target}.observedAt`)) {
