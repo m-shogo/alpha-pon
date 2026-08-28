@@ -242,7 +242,7 @@ export function readResearchKnowledgeAuthorityViews(
       provenanceSchemaPath: options.edgeProvenanceSchemaPath,
     }),
     document: assets.document,
-    watch: assets.watch,
-    implementation: assets.implementation,
+    watch: mergeAuthorityIssues(assets.watch, assetRegistry.issues),
+    implementation: mergeAuthorityIssues(assets.implementation, assetRegistry.issues),
   };
 }
