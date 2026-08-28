@@ -6,6 +6,7 @@ import { join } from "node:path";
 import {
   readEdgeAuthorityView,
   readMarketEventAuthorityView,
+  readResearchKnowledgeAuthorityViews,
   readSecurityEntityAuthorityView,
 } from "../../src/research/research-knowledge-authority-repository.js";
 import { loadResearchKnowledgeRepositorySnapshot } from "../../src/research/research-knowledge-repository-loader.js";
@@ -102,6 +103,23 @@ try {
       (entry) => entry.code === "research_entity_repository_partial_tail",
     ),
   );
+
+  const missingAssetRegistry = join(root, "missing-asset-registry");
+  const brokenAssetAuthorities = readResearchKnowledgeAuthorityViews({
+    marketEventDatabasePath: join(root, "missing-event-authority.db"),
+    securityMasterEntitiesPath: join(root, "missing-entity-authority.jsonl"),
+    assetRegistryRootPath: missingAssetRegistry,
+  });
+  for (const view of [
+    brokenAssetAuthorities.document,
+    brokenAssetAuthorities.watch,
+    brokenAssetAuthorities.implementation,
+  ]) {
+    assert.ok(
+      view.issues.some((entry) => entry.code === "research_asset_registry_root_missing"),
+      `${view.nodeType} authority must fail closed when the shared Research Asset Registry is invalid`,
+    );
+  }
 
   const edgeView = readEdgeAuthorityView();
   assert.deepEqual(edgeView.issues, []);
