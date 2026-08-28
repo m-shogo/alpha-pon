@@ -126,6 +126,19 @@ function securityEntityRecord(
   assert.equal(view.availability["misconduct-overreaction-recovery"], undefined);
 }
 
+{
+  const view = buildEdgeAuthorityView(["", " misconduct-overreaction-recovery ", "misconduct-overreaction-recovery"], {
+    "misconduct-overreaction-recovery": firstKnown,
+  });
+  assert.deepEqual(view.ids, ["misconduct-overreaction-recovery"]);
+  assert.equal(view.availability["misconduct-overreaction-recovery"], firstKnown);
+  assert.equal(
+    view.issues.filter((entry) => entry.code === "research_edge_authority_invalid_id").length,
+    2,
+    "blank or padded Edge IDs must never enter the authority identity set",
+  );
+}
+
 function ownedWithExternalLinks() {
   const owned = emptyResearchKnowledgeOwnedSnapshot();
   owned.researchItems = [{
