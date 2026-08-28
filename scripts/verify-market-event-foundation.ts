@@ -14,6 +14,7 @@ import {
   buildLatestEventProjection,
   buildLatestRevisionProjection,
   readLedger,
+  validateLedgerRecord,
 } from "../src/market-events/local-ledger.js";
 
 const eventId = buildEventId({
@@ -163,6 +164,34 @@ const firstBundle = buildMarketEventBundle(input, {
   previousRevisionId: null,
   existingCreatedAt: null,
 });
+
+const baseRevisionRecord = {
+  recordType: "EVENT_REVISION" as const,
+  recordedAt: "2026-08-03T05:00:00Z",
+  payload: {
+    ...firstBundle.revision,
+    publishedAt: "2026-08-03T04:59:00Z",
+    firstExecutableAt: "2026-08-03T05:01:00Z",
+  },
+};
+validateLedgerRecord(baseRevisionRecord);
+assert.throws(
+  () => validateLedgerRecord({
+    ...baseRevisionRecord,
+    payload: { ...baseRevisionRecord.payload, publishedAt: "2026-08-03T05:01:00Z" },
+  }),
+  /publishedAt must be on or before observedAt/,
+  "ledger must reject revisions that claim publication after Alpha Pon observed them",
+);
+assert.throws(
+  () => validateLedgerRecord({
+    ...baseRevisionRecord,
+    payload: { ...baseRevisionRecord.payload, firstExecutableAt: "2026-08-03T04:59:00Z" },
+  }),
+  /firstExecutableAt must be on or after observedAt/,
+  "ledger must reject executable timestamps that predate Alpha Pon observation",
+);
+
 const secondBundle = buildMarketEventBundle({
   ...input,
   status: "POSTPONED",
