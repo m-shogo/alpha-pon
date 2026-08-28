@@ -146,10 +146,24 @@ export function buildEdgeAuthorityView(
   edgeIds: readonly string[],
   firstKnownAtByEdge: Readonly<Record<string, string>> = {},
 ): ResearchKnowledgeAuthorityView {
-  const ids = [...new Set(edgeIds)].sort();
+  const issues: ResearchKnowledgeIssue[] = [];
+  const canonicalIds: string[] = [];
+  for (const [index, edgeId] of edgeIds.entries()) {
+    const target = `edge_authority:${index}:${edgeId}`;
+    if (!edgeId || edgeId !== edgeId.trim()) {
+      issues.push(issue(
+        "research_edge_authority_invalid_id",
+        target,
+        "Edge authority IDs must be canonical non-empty strings without surrounding whitespace",
+      ));
+      continue;
+    }
+    canonicalIds.push(edgeId);
+  }
+
+  const ids = [...new Set(canonicalIds)].sort();
   const declared = new Set(ids);
   const availability = new Map<string, string>();
-  const issues: ResearchKnowledgeIssue[] = [];
 
   for (const [edgeId, firstKnownAt] of Object.entries(firstKnownAtByEdge).sort(([left], [right]) => left.localeCompare(right))) {
     const target = `edge_authority:${edgeId}`;
