@@ -114,4 +114,39 @@ validateLedgerRecord({
   payload: decisionSnapshot,
 });
 
+const deliveryOutbox = {
+  schemaVersion: validBundle.event.schemaVersion,
+  deliveryId: "dlv_fixture",
+  deliveryKey: "fixture",
+  eventId: validBundle.event.eventId,
+  revisionId: validBundle.revision.revisionId,
+  channel: "LINE" as const,
+  state: "PENDING" as const,
+  payload: { fixture: true },
+  scheduledAt: "2026-08-28T10:00:00Z",
+  attemptCount: 0,
+  lastAttemptAt: null,
+  deliveredAt: null,
+  lastError: null,
+  leaseExpiresAt: null,
+  createdAt: "2026-08-28T10:00:00Z",
+  updatedAt: "2026-08-28T10:00:00Z",
+};
+
+assert.throws(
+  () => validateLedgerRecord({
+    recordType: "DELIVERY_OUTBOX",
+    recordedAt: "2026-08-28T09:59:59Z",
+    payload: deliveryOutbox,
+  }),
+  /recordedAt must be on or after delivery createdAt/,
+  "delivery ledger metadata must not claim persistence before delivery creation",
+);
+
+validateLedgerRecord({
+  recordType: "DELIVERY_OUTBOX",
+  recordedAt: "2026-08-28T10:00:00Z",
+  payload: deliveryOutbox,
+});
+
 console.log("market event registration executability chronology: fail-closed OK");
