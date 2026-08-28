@@ -208,7 +208,7 @@ export function isGeneratedWorldThemeCandidateHypothesisInput(
   const row = value as Record<string, unknown>
   const reviewAfterDays = row.reviewAfterDays
   return typeof row.sourceEventTitle === 'string'
-    && (row.sourceEventPublishedAt === null || typeof row.sourceEventPublishedAt === 'string')
+    && (row.sourceEventPublishedAt === null || isCanonicalPastOrTodayDate(row.sourceEventPublishedAt))
     && typeof row.theme === 'string'
     && typeof row.candidateCode === 'string'
     && typeof row.candidateCompany === 'string'
