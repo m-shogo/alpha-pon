@@ -93,6 +93,7 @@ export function validateBitemporalEvidenceRepository(
     entitiesPath: options.securityEntitiesPath ?? SECURITY_MASTER_PATHS.entities,
     relationshipsPath: options.securityRelationshipsPath ?? SECURITY_MASTER_PATHS.relationships,
     asOf: jstDateOf(asOf),
+    cutoffInstant: asOf,
   });
   const evidenceRead = readStrictJsonl<EvidenceRecord>(evidencePath);
   const relationRead = readStrictJsonl<EvidenceRelationRecord>(relationsPath);

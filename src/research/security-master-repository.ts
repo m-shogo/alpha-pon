@@ -11,7 +11,7 @@ import {
 import {
   validateSecurityMasterGoverned,
 } from "./security-master-hardening.js";
-import { compareExplicitIso8601Instants } from "./iso-instant.js";
+import { compareExplicitIso8601Instants, parseExplicitIso8601Instant } from "./iso-instant.js";
 import { isValidDate } from "./schema.js";
 import { loadCouncilSchema } from "./stock-pro-council-v2-validation.js";
 
@@ -19,6 +19,7 @@ export type SecurityMasterRepositoryOptions = {
   entitiesPath?: string;
   relationshipsPath?: string;
   asOf?: string;
+  cutoffInstant?: string;
 };
 
 export type SecurityMasterRepositoryResult = {
@@ -251,6 +252,31 @@ export function validateSecurityMasterRepository(
       `${asOf} is not an exact Gregorian YYYY-MM-DD date`,
     ));
   }
+
+  let cutoffInstant = validAsOf ? `${asOf}T23:59:59.999999999+09:00` : "";
+  let validCutoffInstant = validAsOf;
+  if (validAsOf && options.cutoffInstant !== undefined) {
+    try {
+      parseExplicitIso8601Instant(options.cutoffInstant, "security master cutoffInstant");
+      const dayStart = `${asOf}T00:00:00+09:00`;
+      const dayEnd = `${asOf}T23:59:59.999999999+09:00`;
+      if (
+        compareExplicitIso8601Instants(options.cutoffInstant, dayStart) < 0 ||
+        compareExplicitIso8601Instants(options.cutoffInstant, dayEnd) > 0
+      ) {
+        throw new Error(`security master cutoffInstant must fall within JST date ${asOf}`);
+      }
+      cutoffInstant = options.cutoffInstant;
+    } catch (error) {
+      validCutoffInstant = false;
+      issues.push(issue(
+        "invalid_security_master_cutoff_instant",
+        "cutoffInstant",
+        (error as Error).message,
+      ));
+    }
+  }
+
   const journalPath = `${entitiesPath}.batch-journal.json`;
   if (existsSync(journalPath)) {
     issues.push(issue(
@@ -270,8 +296,7 @@ export function validateSecurityMasterRepository(
   ));
 
   let snapshot: SecurityMasterSnapshot = { asOf, entities: [], relationships: [] };
-  if (validAsOf) {
-    const cutoffInstant = `${asOf}T23:59:59.999999999+09:00`;
+  if (validAsOf && validCutoffInstant) {
     issues.push(
       ...historicalRevisionShadowingIssues(entityRead.records, asOf, cutoffInstant, "entity"),
       ...historicalRevisionShadowingIssues(relationshipRead.records, asOf, cutoffInstant, "relationship"),
