@@ -7,7 +7,17 @@ WHEN julianday(NEW.observed_at) IS NULL
     OR (
       length(NEW.observed_at) >= 6
       AND substr(NEW.observed_at, -6, 1) IN ('+', '-')
+      AND substr(NEW.observed_at, -5, 2) GLOB '[0-9][0-9]'
       AND substr(NEW.observed_at, -3, 1) = ':'
+      AND substr(NEW.observed_at, -2, 2) GLOB '[0-9][0-9]'
+      AND CAST(substr(NEW.observed_at, -2, 2) AS INTEGER) <= 59
+      AND (
+        CAST(substr(NEW.observed_at, -5, 2) AS INTEGER) < 14
+        OR (
+          CAST(substr(NEW.observed_at, -5, 2) AS INTEGER) = 14
+          AND CAST(substr(NEW.observed_at, -2, 2) AS INTEGER) = 0
+        )
+      )
     )
   )
   OR (
@@ -20,7 +30,17 @@ WHEN julianday(NEW.observed_at) IS NULL
         OR (
           length(NEW.published_at) >= 6
           AND substr(NEW.published_at, -6, 1) IN ('+', '-')
+          AND substr(NEW.published_at, -5, 2) GLOB '[0-9][0-9]'
           AND substr(NEW.published_at, -3, 1) = ':'
+          AND substr(NEW.published_at, -2, 2) GLOB '[0-9][0-9]'
+          AND CAST(substr(NEW.published_at, -2, 2) AS INTEGER) <= 59
+          AND (
+            CAST(substr(NEW.published_at, -5, 2) AS INTEGER) < 14
+            OR (
+              CAST(substr(NEW.published_at, -5, 2) AS INTEGER) = 14
+              AND CAST(substr(NEW.published_at, -2, 2) AS INTEGER) = 0
+            )
+          )
         )
       )
     )
@@ -35,7 +55,17 @@ WHEN julianday(NEW.observed_at) IS NULL
         OR (
           length(NEW.effective_at) >= 6
           AND substr(NEW.effective_at, -6, 1) IN ('+', '-')
+          AND substr(NEW.effective_at, -5, 2) GLOB '[0-9][0-9]'
           AND substr(NEW.effective_at, -3, 1) = ':'
+          AND substr(NEW.effective_at, -2, 2) GLOB '[0-9][0-9]'
+          AND CAST(substr(NEW.effective_at, -2, 2) AS INTEGER) <= 59
+          AND (
+            CAST(substr(NEW.effective_at, -5, 2) AS INTEGER) < 14
+            OR (
+              CAST(substr(NEW.effective_at, -5, 2) AS INTEGER) = 14
+              AND CAST(substr(NEW.effective_at, -2, 2) AS INTEGER) = 0
+            )
+          )
         )
       )
     )
@@ -50,7 +80,17 @@ WHEN julianday(NEW.observed_at) IS NULL
         OR (
           length(NEW.first_executable_at) >= 6
           AND substr(NEW.first_executable_at, -6, 1) IN ('+', '-')
+          AND substr(NEW.first_executable_at, -5, 2) GLOB '[0-9][0-9]'
           AND substr(NEW.first_executable_at, -3, 1) = ':'
+          AND substr(NEW.first_executable_at, -2, 2) GLOB '[0-9][0-9]'
+          AND CAST(substr(NEW.first_executable_at, -2, 2) AS INTEGER) <= 59
+          AND (
+            CAST(substr(NEW.first_executable_at, -5, 2) AS INTEGER) < 14
+            OR (
+              CAST(substr(NEW.first_executable_at, -5, 2) AS INTEGER) = 14
+              AND CAST(substr(NEW.first_executable_at, -2, 2) AS INTEGER) = 0
+            )
+          )
         )
       )
     )
