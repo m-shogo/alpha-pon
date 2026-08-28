@@ -68,7 +68,9 @@ jobs:
         run: pnpm typecheck && pnpm typecheck:tests
 
       - name: Research OS ユニットテスト
-        run: pnpm research:test
+        run: |
+          pnpm research:test
+          node --import tsx/esm tests/research/research-orphan-triage-future-review.test.ts
 
       - name: Schema / 重複 / PIT / Gate / Decay
         if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
