@@ -127,6 +127,17 @@ export function buildMarketEventBundle(
   if (!Number.isInteger(context.revisionNumber) || context.revisionNumber < 1) {
     throw new Error("revisionNumber must be a positive integer");
   }
+  if (
+    context.existingCreatedAt !== null
+    && compareExplicitIso8601Instants(
+      input.observedAt,
+      context.existingCreatedAt,
+      "observedAt",
+      "existingCreatedAt",
+    ) < 0
+  ) {
+    throw new Error("observedAt must be on or after existingCreatedAt");
+  }
 
   const eventId = buildEventId(input);
   const decisionState = input.currentDecisionState ?? "INFO";
