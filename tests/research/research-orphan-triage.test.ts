@@ -150,6 +150,22 @@ withTempRepository((root) => {
 });
 
 withTempRepository((root) => {
+  const key = "unregistered_asset:document:docs/research/blank-rationale.md";
+  const invalid = {
+    ...decision("decision-blank-rationale", key, "not_research", "2026-08-28T07:35:30Z"),
+    rationale: "    ",
+  };
+  writeLedger(root, [invalid]);
+  const ledger = readResearchOrphanTriageLedger(root);
+  assert.ok(
+    ledger.issues.some((entry) => entry.code === "research_orphan_triage_schema_invalid"),
+    "human triage rationale must contain non-whitespace evidence",
+  );
+  assert.deepEqual(ledger.records, [], "blank rationale must not become canonical human-review memory");
+  assert.deepEqual(ledger.latestByCandidateKey, {});
+});
+
+withTempRepository((root) => {
   const firstKey = "unregistered_asset:document:docs/research/one.md";
   const secondKey = "unregistered_asset:document:docs/research/two.md";
   writeLedger(root, [
