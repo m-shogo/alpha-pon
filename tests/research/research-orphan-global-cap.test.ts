@@ -62,6 +62,24 @@ try {
   );
   assert.deepEqual(result.candidates, [], "incomplete scans must remain fail-closed");
   assert.deepEqual(result.scannedDocumentPaths, [], "partial scan paths must not escape fail-closed mode");
+
+  const duplicateRootResult = discoverResearchOrphans({
+    repositoryRootPath: root,
+    documentRoots: ["docs/research", "docs/research"],
+    maxScannedFiles: 2,
+    assetRegistry: emptyRegistry,
+    catalogRepository: emptyCatalog,
+  });
+  assert.deepEqual(
+    duplicateRootResult.issues,
+    [],
+    "duplicate configured roots must not consume the global scan budget twice",
+  );
+  assert.deepEqual(duplicateRootResult.scannedDocumentPaths, [
+    "docs/research/a.md",
+    "docs/research/b.md",
+  ]);
+  assert.equal(duplicateRootResult.stats.unregisteredDocumentCount, 2);
 } finally {
   rmSync(root, { recursive: true, force: true });
 }
