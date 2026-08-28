@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "alpha-pon/research/research-relation.schema.json",
+  "title": "Research Relation",
+  "description": "Canonical semantic relation. Research-owned relation IDs are strict; external endpoint IDs are opaque references because their authorities have independent identity contracts. Claim/Evidence/Outcome epistemic relations remain in their existing authorities and are projected into the Research Read Model rather than duplicated here. Inverse relations are derived, not duplicated.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "ontologyVersion",
+    "id",
+    "relationType",
+    "sourceType",
+    "sourceId",
+    "targetType",
+    "targetId",
+    "createdAt"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "ontologyVersion": { "const": "research-knowledge-v1" },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+      "minLength": 4,
+      "maxLength": 128
+    },
+    "relationType": {
+      "type": "string",
+      "enum": [
+        "observes_event",
+        "includes_event",
+        "involves_entity",
+        "addresses",
+        "member_of",
+        "part_of",
+        "considers_mechanism",
+        "studies",
+        "used_in",
+        "documents",
+        "operationalizes",
+        "implements",
+        "applies_edge",
+        "triggered_by",
+        "depends_on"
+      ]
+    },
+    "sourceType": {
+      "type": "string",
+      "enum": [
+        "research_item",
+        "research_question",
+        "observation",
+        "mechanism",
+        "research_family",
+        "research_component",
+        "case",
+        "study",
+        "study_result",
+        "opportunity",
+        "edge",
+        "event",
+        "entity",
+        "document",
+        "watch",
+        "implementation"
+      ]
+    },
+    "sourceId": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "targetType": {
+      "type": "string",
+      "enum": [
+        "research_item",
+        "research_question",
+        "observation",
+        "mechanism",
+        "research_family",
+        "research_component",
+        "case",
+        "study",
+        "study_result",
+        "opportunity",
+        "edge",
+        "event",
+        "entity",
+        "document",
+        "watch",
+        "implementation"
+      ]
+    },
+    "targetId": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "role": {
+      "type": "string",
+      "enum": [
+        "seed",
+        "supporting_sample",
+        "negative_control",
+        "near_miss",
+        "contradictory",
+        "confounded",
+        "calibration",
+        "holdout",
+        "out_of_sample",
+        "candidate",
+        "primary",
+        "secondary",
+        "competing",
+        "weakened",
+        "rejected",
+        "design",
+        "supporting_note",
+        "guard",
+        "infrastructure"
+      ]
+    },
+    "order": { "type": "integer", "minimum": 0 },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "informationCutoff": { "type": "string", "format": "date-time" },
+    "notes": { "type": "string", "minLength": 1, "maxLength": 2000 }
+  }
+}
