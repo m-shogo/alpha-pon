@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { linkSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -118,6 +118,44 @@ try {
     assert.ok(
       view.issues.some((entry) => entry.code === "research_asset_registry_root_missing"),
       `${view.nodeType} authority must fail closed when the shared Research Asset Registry is invalid`,
+    );
+  }
+
+  const hardlinkRepoRoot = join(root, "hardlink-repo");
+  const hardlinkRegistryRoot = join(root, "hardlink-registry");
+  mkdirSync(join(hardlinkRepoRoot, "config"), { recursive: true });
+  mkdirSync(join(hardlinkRegistryRoot, "assets"), { recursive: true });
+  const originalTarget = join(hardlinkRepoRoot, "original-watch.yml");
+  const linkedTarget = join(hardlinkRepoRoot, "config", "watch.yml");
+  writeFileSync(originalTarget, "enabled: true\n", "utf-8");
+  linkSync(originalTarget, linkedTarget);
+  writeFileSync(
+    join(hardlinkRegistryRoot, "assets", "watch-hardlink-fixture.yml"),
+    [
+      "schemaVersion: 1",
+      "id: watch-hardlink-fixture",
+      "assetType: watch",
+      "path: config/watch.yml",
+      "status: active",
+      "description: Hard link fixture target",
+      "",
+    ].join("\n"),
+    "utf-8",
+  );
+  const hardlinkAuthorities = readResearchKnowledgeAuthorityViews({
+    marketEventDatabasePath: join(root, "missing-hardlink-event.db"),
+    securityMasterEntitiesPath: join(root, "missing-hardlink-entities.jsonl"),
+    assetRegistryRootPath: hardlinkRegistryRoot,
+    assetRegistryRepositoryRootPath: hardlinkRepoRoot,
+  });
+  for (const view of [
+    hardlinkAuthorities.document,
+    hardlinkAuthorities.watch,
+    hardlinkAuthorities.implementation,
+  ]) {
+    assert.ok(
+      view.issues.some((entry) => entry.code === "research_asset_registry_target_hardlink_alias"),
+      `${view.nodeType} authority must fail closed when a registered Asset target is a hard-link alias`,
     );
   }
 

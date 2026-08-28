@@ -1,4 +1,5 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   DEFAULT_MARKET_EVENT_DB_PATH,
   openMarketEventDatabase,
@@ -25,6 +26,7 @@ import {
 import {
   buildResearchAssetAuthorityViews,
   readResearchAssetRegistry,
+  type ResearchAssetRegistryResult,
 } from "./research-asset-registry.js";
 import type { ResearchKnowledgeExternalNodeType } from "./research-knowledge-integrity.js";
 
@@ -81,6 +83,34 @@ function mergeAuthorityIssues(
       `${a.code}|${a.target}|${a.message}`.localeCompare(`${b.code}|${b.target}|${b.message}`),
     ),
   };
+}
+
+function researchAssetTargetAliasIssues(
+  registry: ResearchAssetRegistryResult,
+  repositoryRootPath: string,
+): ResearchKnowledgeIssue[] {
+  const issues: ResearchKnowledgeIssue[] = [];
+  for (const record of registry.records) {
+    const target = `research_asset:${record.id}`;
+    const targetPath = join(repositoryRootPath, record.path);
+    try {
+      const stat = lstatSync(targetPath);
+      if (stat.isFile() && stat.nlink > 1) {
+        issues.push(issue(
+          "research_asset_registry_target_hardlink_alias",
+          target,
+          `registered asset target must have one filesystem identity; hard-link count is ${stat.nlink} for ${record.path}`,
+        ));
+      }
+    } catch (error) {
+      issues.push(issue(
+        "research_asset_registry_target_alias_check_failed",
+        target,
+        error instanceof Error ? error.message : String(error),
+      ));
+    }
+  }
+  return issues;
 }
 
 export function readMarketEventAuthorityView(
@@ -224,14 +254,17 @@ export function readEdgeAuthorityView(
 export function readResearchKnowledgeAuthorityViews(
   options: ResearchKnowledgeAuthorityRepositoryOptions = {},
 ): ResearchKnowledgeAuthorityRepositoryViews {
+  const assetRepositoryRootPath = options.assetRegistryRepositoryRootPath ?? ".";
   const assetRegistry = readResearchAssetRegistry({
     rootPath: options.assetRegistryRootPath,
-    repositoryRootPath: options.assetRegistryRepositoryRootPath,
+    repositoryRootPath: assetRepositoryRootPath,
     assetSchemaPath: options.assetRegistrySchemaPath,
     provenancePath: options.assetProvenancePath,
     provenanceSchemaPath: options.assetProvenanceSchemaPath,
   });
   const assets = buildResearchAssetAuthorityViews(assetRegistry);
+  const assetAliasIssues = researchAssetTargetAliasIssues(assetRegistry, assetRepositoryRootPath);
+  const sharedAssetIssues = [...assetRegistry.issues, ...assetAliasIssues];
 
   return {
     event: readMarketEventAuthorityView(options.marketEventDatabasePath),
@@ -241,8 +274,8 @@ export function readResearchKnowledgeAuthorityViews(
       provenancePath: options.edgeProvenancePath,
       provenanceSchemaPath: options.edgeProvenanceSchemaPath,
     }),
-    document: assets.document,
-    watch: mergeAuthorityIssues(assets.watch, assetRegistry.issues),
-    implementation: mergeAuthorityIssues(assets.implementation, assetRegistry.issues),
+    document: mergeAuthorityIssues(assets.document, assetAliasIssues),
+    watch: mergeAuthorityIssues(assets.watch, sharedAssetIssues),
+    implementation: mergeAuthorityIssues(assets.implementation, sharedAssetIssues),
   };
 }
