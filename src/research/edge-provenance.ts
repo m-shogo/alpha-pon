@@ -19,6 +19,14 @@ export interface EdgeProvenanceRecord {
 export interface EdgeProvenanceRepositoryResult {
   records: readonly EdgeProvenanceRecord[];
   firstKnownAtByEdge: Readonly<Record<string, string>>;
+  /**
+   * Formal Edge IDs that are registered but not yet safe to use in PIT Research Knowledge.
+   * Missing coverage is intentionally not a repository error: a newly merged Edge cannot know
+   * its canonical-main first-presence commit until after that merge exists. Any Research Graph
+   * relation that references one of these IDs still fails closed because availability is absent.
+   */
+  missingEdgeIds: readonly string[];
+  /** Structural or contradictory provenance facts only. */
   issues: readonly ResearchKnowledgeIssue[];
 }
 
@@ -32,6 +40,10 @@ function sortIssues(issues: readonly ResearchKnowledgeIssue[]): ResearchKnowledg
       `${right.code}|${right.target}|${right.message}`,
     ),
   );
+}
+
+function sortedUnique(values: readonly string[]): string[] {
+  return [...new Set(values)].sort();
 }
 
 function expectedEdgePath(edgeId: string): string {
@@ -75,7 +87,8 @@ export function validateEdgeProvenanceRecords(
 ): EdgeProvenanceRepositoryResult {
   const issues: ResearchKnowledgeIssue[] = [];
   const structuralRecords: EdgeProvenanceRecord[] = [];
-  const edgeIdSet = new Set(edgeIds);
+  const canonicalEdgeIds = sortedUnique(edgeIds);
+  const edgeIdSet = new Set(canonicalEdgeIds);
 
   rawRecords.forEach((raw, index) => {
     const errors = validate(raw, schema);
@@ -142,28 +155,25 @@ export function validateEdgeProvenanceRecords(
     if (valid) semanticallyValid.set(record.edgeId, record);
   }
 
-  for (const edgeId of [...edgeIdSet].sort()) {
-    if (!counts.has(edgeId)) {
-      issues.push(issue(
-        "research_edge_provenance_missing_edge",
-        `edge:${edgeId}`,
-        `Formal Edge ${edgeId} has no exact first-known provenance fact; strict Research Knowledge links must remain blocked`,
-      ));
-    }
-  }
-
   const records = [...semanticallyValid.values()].sort((left, right) =>
-    left.firstKnownAt.localeCompare(right.firstKnownAt) || left.edgeId.localeCompare(right.edgeId),
+    compareExplicitIso8601Instants(
+      left.firstKnownAt,
+      right.firstKnownAt,
+      `edge_provenance:${left.edgeId}.firstKnownAt`,
+      `edge_provenance:${right.edgeId}.firstKnownAt`,
+    ) || left.edgeId.localeCompare(right.edgeId),
   );
   const firstKnownAtByEdge = Object.fromEntries(
     [...semanticallyValid.entries()]
       .sort(([left], [right]) => left.localeCompare(right))
       .map(([edgeId, record]) => [edgeId, record.firstKnownAt]),
   );
+  const missingEdgeIds = canonicalEdgeIds.filter((edgeId) => !semanticallyValid.has(edgeId));
 
   return {
     records,
     firstKnownAtByEdge,
+    missingEdgeIds,
     issues: sortIssues(issues),
   };
 }
@@ -174,18 +184,14 @@ export function readEdgeProvenanceRepository(
 ): EdgeProvenanceRepositoryResult {
   const path = options.path ?? EDGE_PROVENANCE_PATH;
   const schemaPath = options.schemaPath ?? EDGE_PROVENANCE_SCHEMA_PATH;
+  const canonicalEdgeIds = sortedUnique(edgeIds);
 
   if (!existsSync(path)) {
     return {
       records: [],
       firstKnownAtByEdge: {},
-      issues: edgeIds.length === 0
-        ? []
-        : sortIssues(edgeIds.map((edgeId) => issue(
-          "research_edge_provenance_missing_edge",
-          `edge:${edgeId}`,
-          `Formal Edge ${edgeId} has no exact first-known provenance fact because ${path} is missing`,
-        ))),
+      missingEdgeIds: canonicalEdgeIds,
+      issues: [],
     };
   }
 
@@ -195,6 +201,7 @@ export function readEdgeProvenanceRepository(
       return {
         records: [],
         firstKnownAtByEdge: {},
+        missingEdgeIds: canonicalEdgeIds,
         issues: [issue(
           "research_edge_provenance_partial_tail",
           path,
@@ -204,18 +211,24 @@ export function readEdgeProvenanceRepository(
     }
     const parsed = parseJsonl(content, path);
     if (parsed.issues.length > 0) {
-      return { records: [], firstKnownAtByEdge: {}, issues: sortIssues(parsed.issues) };
+      return {
+        records: [],
+        firstKnownAtByEdge: {},
+        missingEdgeIds: canonicalEdgeIds,
+        issues: sortIssues(parsed.issues),
+      };
     }
     const schema = loadSchema(schemaPath);
     return validateEdgeProvenanceRecords(
       parsed.rows.map((row) => row.value),
-      edgeIds,
+      canonicalEdgeIds,
       schema,
     );
   } catch (error) {
     return {
       records: [],
       firstKnownAtByEdge: {},
+      missingEdgeIds: canonicalEdgeIds,
       issues: [issue(
         "research_edge_provenance_read_failed",
         path,
