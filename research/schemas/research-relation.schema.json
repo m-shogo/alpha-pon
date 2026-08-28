@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "alpha-pon/research/research-relation.schema.json",
   "title": "Research Relation",
-  "description": "Canonical semantic relation. Research-owned relation IDs are strict; endpoint IDs are opaque references because external authorities have independent identity contracts. Inverse relations are derived, not duplicated.",
+  "description": "Canonical semantic relation. Research-owned relation IDs are strict; external endpoint IDs are opaque references because their authorities have independent identity contracts. Claim/Evidence/Outcome epistemic relations remain in their existing authorities and are projected into the Research Read Model rather than duplicated here. Inverse relations are derived, not duplicated.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -63,10 +63,7 @@
         "entity",
         "document",
         "watch",
-        "implementation",
-        "outcome",
-        "claim",
-        "evidence"
+        "implementation"
       ]
     },
     "sourceId": { "type": "string", "minLength": 1, "maxLength": 512 },
@@ -88,10 +85,7 @@
         "entity",
         "document",
         "watch",
-        "implementation",
-        "outcome",
-        "claim",
-        "evidence"
+        "implementation"
       ]
     },
     "targetId": { "type": "string", "minLength": 1, "maxLength": 512 },
