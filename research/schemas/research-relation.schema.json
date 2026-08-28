@@ -29,6 +29,8 @@
       "type": "string",
       "enum": [
         "observes_event",
+        "includes_event",
+        "involves_entity",
         "addresses",
         "member_of",
         "part_of",
@@ -58,6 +60,7 @@
         "opportunity",
         "edge",
         "event",
+        "entity",
         "document",
         "watch",
         "implementation",
@@ -82,6 +85,7 @@
         "opportunity",
         "edge",
         "event",
+        "entity",
         "document",
         "watch",
         "implementation",
@@ -115,6 +119,7 @@
         "infrastructure"
       ]
     },
+    "order": { "type": "integer", "minimum": 0 },
     "createdAt": { "type": "string", "format": "date-time" },
     "informationCutoff": { "type": "string", "format": "date-time" },
     "notes": { "type": "string", "minLength": 1, "maxLength": 2000 }
