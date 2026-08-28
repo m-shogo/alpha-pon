@@ -123,6 +123,39 @@ try {
       INSERT INTO event_revisions (
         revision_id, event_id, schema_version, revision_number, observed_at,
         change_type, facts_json, source_ids_json, previous_revision_id
+      ) VALUES (?, ?, 1, 2, ?, 'UPDATED', '{}', '[]', ?)
+    `).run(
+      "rev_invalid_observed_instant",
+      eventId,
+      "2026-08-03 07:00:00",
+      revisionOne.revision.revisionId,
+    ),
+    /timestamps must be explicit-timezone ISO instants/,
+    "SQLite must reject revision observation timestamps without an explicit timezone",
+  );
+
+  assert.throws(
+    () => db.prepare(`
+      INSERT INTO event_revisions (
+        revision_id, event_id, schema_version, revision_number, observed_at,
+        first_executable_at, change_type, facts_json, source_ids_json, previous_revision_id
+      ) VALUES (?, ?, 1, 2, ?, ?, 'UPDATED', '{}', '[]', ?)
+    `).run(
+      "rev_invalid_first_executable_instant",
+      eventId,
+      "2026-08-03T07:00:00Z",
+      "2026-08-03 07:01:00",
+      revisionOne.revision.revisionId,
+    ),
+    /timestamps must be explicit-timezone ISO instants/,
+    "SQLite must reject malformed revision first-executable timestamps",
+  );
+
+  assert.throws(
+    () => db.prepare(`
+      INSERT INTO event_revisions (
+        revision_id, event_id, schema_version, revision_number, observed_at,
+        change_type, facts_json, source_ids_json, previous_revision_id
       ) VALUES (?, ?, 1, 3, ?, 'UPDATED', '{}', '[]', ?)
     `).run(
       "rev_333333333333333333333333",
@@ -196,6 +229,7 @@ try {
     "0011_market_event_revision_publication_chronology",
     "0012_market_event_source_publication_chronology",
     "0013_market_event_source_instant_guards",
+    "0014_market_event_revision_instant_guards",
   ]);
 
   console.log("market-event-revision-guards: ok");
