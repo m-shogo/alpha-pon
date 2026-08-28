@@ -1,32 +1,44 @@
 import { discoverResearchOrphans } from "../research-orphan-discovery.js";
+import {
+  buildResearchOrphanTriageView,
+  readResearchOrphanTriageLedger,
+} from "../research-orphan-triage.js";
 
-const result = discoverResearchOrphans();
+const discovery = discoverResearchOrphans();
+const ledger = readResearchOrphanTriageLedger();
+const triage = buildResearchOrphanTriageView(discovery, ledger);
 
-console.log("Research Orphan Discovery v1 (warning-only)");
+console.log("Research Orphan Discovery v1 + Triage Memory v1 (warning-only)");
 console.log(
-  `  scanned documents: ${result.stats.scannedDocumentCount}`
-  + ` / unregistered: ${result.stats.unregisteredDocumentCount}`
-  + ` / proven assets without relation: ${result.stats.unlinkedProvenAssetCount}`
-  + ` / candidates: ${result.stats.totalCandidates}`,
+  `  scanned documents: ${discovery.stats.scannedDocumentCount}`
+  + ` / raw candidates: ${triage.stats.rawCandidateCount}`
+  + ` / review queue: ${triage.stats.unreviewedCount + triage.stats.staleReviewCount}`
+  + ` (unreviewed=${triage.stats.unreviewedCount}, stale=${triage.stats.staleReviewCount})`
+  + ` / actionable: ${triage.stats.actionableCount}`
+  + ` / acknowledged: ${triage.stats.acknowledgedCount}`
+  + ` / historical-only decisions: ${triage.stats.historicalOnlyDecisionCount}`,
 );
 
-if (result.issues.length > 0) {
-  console.error(`  scanner/authority errors: ${result.issues.length}`);
-  for (const entry of result.issues) {
+if (triage.issues.length > 0) {
+  console.error(`  scanner/authority/triage errors: ${triage.issues.length}`);
+  for (const entry of triage.issues) {
     console.error(`  [ERROR] ${entry.code} ${entry.target}: ${entry.message}`);
   }
-  console.error("Orphan discovery failed closed because the scan or an authority was incomplete.");
+  console.error("Orphan triage failed closed because discovery or the append-only review memory was incomplete.");
   process.exitCode = 1;
 } else {
   const displayLimit = 100;
-  for (const candidate of result.candidates.slice(0, displayLimit)) {
-    const identity = candidate.assetId ? ` asset=${candidate.assetId}` : "";
+  const visible = [...triage.reviewQueue, ...triage.actionable]
+    .sort((left, right) => left.candidate.key.localeCompare(right.candidate.key));
+  for (const entry of visible.slice(0, displayLimit)) {
+    const identity = entry.candidate.assetId ? ` asset=${entry.candidate.assetId}` : "";
+    const classification = entry.decision?.classification ?? entry.candidate.classification;
     console.log(
-      `  [WARN] ${candidate.classification} ${candidate.assetType} ${candidate.path}${identity}`,
+      `  [WARN] ${entry.triageState} ${classification} ${entry.candidate.assetType} ${entry.candidate.path}${identity}`,
     );
   }
-  if (result.candidates.length > displayLimit) {
-    console.log(`  ... ${result.candidates.length - displayLimit} more candidates omitted from console output`);
+  if (visible.length > displayLimit) {
+    console.log(`  ... ${visible.length - displayLimit} more review/action candidates omitted from console output`);
   }
-  console.log("  Candidates are triage hints only: no Asset, ResearchItem, Edge, Relation, BUY/SELL rule, or generated authority is written.");
+  console.log("  Human triage memory never creates Asset, ResearchItem, Study, Edge, Relation, BUY/SELL rule, or generated authority; actionable classifications remain visible until the underlying orphan is actually resolved.");
 }

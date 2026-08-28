@@ -104,6 +104,7 @@ export function ruleForPath(path: string): ImmutabilityRule {
   if (path === "research/holdout/access_log.jsonl") return "append_only";
   if (path === "research/edge_registry/provenance.jsonl") return "append_only";
   if (path === "research/asset_registry/provenance.jsonl") return "append_only";
+  if (path === "research/orphan_triage/decisions.jsonl") return "append_only";
   if (path.startsWith("research/historical/analogs/")) return "immutable_file";
   if (path.startsWith("research/checkpoint/history/")) return "immutable_file";
   if (CATALOG_IMMUTABLE_FILE_PREFIXES.some((prefix) => path.startsWith(prefix) && path.endsWith(".yml"))) {

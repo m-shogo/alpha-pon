@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "alpha-pon/research/research-orphan-triage.schema.json",
+  "title": "Research Orphan Triage Decision",
+  "description": "Append-only human review memory for a specific deterministic orphan candidate fingerprint. It never creates or promotes Research Knowledge by itself.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "decisionId",
+    "candidateKey",
+    "candidateFingerprint",
+    "classification",
+    "decisionSource",
+    "reviewedAt",
+    "rationale"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "decisionId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+      "minLength": 8,
+      "maxLength": 160
+    },
+    "candidateKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "candidateFingerprint": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "classification": {
+      "type": "string",
+      "enum": [
+        "existing_research_link_missing",
+        "research_item_candidate",
+        "component_candidate",
+        "study_candidate",
+        "new_edge_candidate",
+        "case_candidate",
+        "infrastructure",
+        "duplicate_candidate",
+        "not_research"
+      ]
+    },
+    "decisionSource": { "const": "human_review" },
+    "reviewedAt": { "type": "string", "format": "date-time" },
+    "rationale": {
+      "type": "string",
+      "minLength": 4,
+      "maxLength": 4000
+    }
+  }
+}
