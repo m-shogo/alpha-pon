@@ -172,7 +172,7 @@ for (const fieldName of ["lastAttemptAt", "deliveredAt", "leaseExpiresAt"] as co
         [fieldName]: "not-a-time",
       },
     }),
-    /must be an ISO-8601 timestamp with explicit timezone/,
+    /must be a strict ISO timestamp with an explicit timezone offset or Z/,
     `delivery ledger must reject malformed ${fieldName}`,
   );
 }
