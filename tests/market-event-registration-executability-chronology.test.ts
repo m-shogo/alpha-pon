@@ -199,6 +199,19 @@ assert.throws(
   "delivery ledger must not accept an update timestamp before creation",
 );
 
+assert.throws(
+  () => validateLedgerRecord({
+    recordType: "DELIVERY_OUTBOX",
+    recordedAt: "2026-08-28T10:00:00Z",
+    payload: {
+      ...deliveryOutbox,
+      updatedAt: "2026-08-28T10:00:01Z",
+    },
+  }),
+  /recordedAt must be on or after delivery updatedAt/,
+  "delivery ledger metadata must not claim persistence before its latest update",
+);
+
 for (const fieldName of ["lastAttemptAt", "deliveredAt", "leaseExpiresAt"] as const) {
   assert.throws(
     () => validateLedgerRecord({
