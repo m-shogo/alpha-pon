@@ -303,10 +303,7 @@ export type ResearchRelationNodeType =
   | "entity"
   | "document"
   | "watch"
-  | "implementation"
-  | "outcome"
-  | "claim"
-  | "evidence";
+  | "implementation";
 
 export type ResearchRelationRole =
   | "seed"
