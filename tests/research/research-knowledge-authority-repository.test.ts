@@ -49,6 +49,24 @@ try {
     ),
   );
 
+  const paddedDbPath = join(root, "market-events-padded-id.db");
+  const paddedDb = new DatabaseSync(paddedDbPath);
+  paddedDb.exec(`CREATE TABLE market_events (event_id TEXT PRIMARY KEY, created_at TEXT NOT NULL);`);
+  paddedDb.prepare("INSERT INTO market_events(event_id, created_at) VALUES (?, ?)").run(
+    " evt_repository_fixture ",
+    "2026-08-28T10:00:00+09:00",
+  );
+  paddedDb.close();
+  const paddedEventView = readMarketEventAuthorityView(paddedDbPath);
+  assert.deepEqual(paddedEventView.ids, []);
+  assert.deepEqual(paddedEventView.availability, {});
+  assert.ok(
+    paddedEventView.issues.some(
+      (entry) => entry.code === "research_event_repository_noncanonical_id",
+    ),
+    "padded Market Event IDs must never become distinct canonical authority identities",
+  );
+
   const entityPath = join(root, "entities.jsonl");
   const entity = withSecurityEntityHash({
     schemaVersion: 1,
