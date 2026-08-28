@@ -1,0 +1,6 @@
+schemaVersion: 1
+id: watch-special-situation-watch-rules
+assetType: watch
+path: config/special-situation-watch-rules.yml
+status: active
+description: Canonical special-situation watch configuration for carve-out, PE exit, spin-off, lock-up, cycle-recovery, and related research candidates.
