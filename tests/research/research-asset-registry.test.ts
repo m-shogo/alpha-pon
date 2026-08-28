@@ -114,7 +114,7 @@ function writeAsset(root: string, record: ResearchAssetRecord): void {
       basis: "canonical_git_first_presence",
       sourceCommitSha: "a".repeat(40),
       sourceCommitAt: "2026-08-20T10:00:00+09:00",
-      sourcePath: "docs/design.md",
+      sourcePath: "research/asset_registry/assets/document-design.yml",
     };
     writeFileSync(join(registryRoot, "provenance.jsonl"), `${JSON.stringify(provenance)}\n`, "utf-8");
     const proven = readResearchAssetRegistry({ rootPath: registryRoot, repositoryRootPath: repoRoot });
@@ -208,6 +208,21 @@ function writeAsset(root: string, record: ResearchAssetRecord): void {
 
 {
   const temp = mkdtempSync(join(tmpdir(), "alpha-pon-asset-target-"));
+  const registryRoot = join(temp, "registry");
+  const repoRoot = join(temp, "repo");
+  try {
+    mkdirSync(registryRoot, { recursive: true });
+    mkdirSync(repoRoot, { recursive: true });
+    writeAsset(registryRoot, asset("document-missing", "document", "docs/missing.md"));
+    const result = readResearchAssetRegistry({ rootPath: registryRoot, repositoryRootPath: repoRoot });
+    assert.ok(result.issues.some((entry) => entry.code === "research_asset_registry_target_missing"));
+  } finally {
+    rmSync(temp, { recursive: true, force: true });
+  }
+}
+
+{
+  const temp = mkdtempSync(join(tmpdir(), "alpha-pon-asset-symlink-"));
   const registryRoot = join(temp, "registry");
   const repoRoot = join(temp, "repo");
   try {
