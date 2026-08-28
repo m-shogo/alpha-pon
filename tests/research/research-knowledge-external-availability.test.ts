@@ -1,3 +1,4 @@
+import "./research-knowledge-conflict-integrity.test.js";
 import assert from "node:assert/strict";
 import {
   validateResearchKnowledgeIntegrity,
