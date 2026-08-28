@@ -8,6 +8,7 @@ import { validateClaimGraphRepository } from "../claim-contradiction-graph-repos
 import type { ClaimGraphIssue } from "../claim-contradiction-graph.js";
 import { validateDocumentRevisionDiffRepository } from "../document-revision-diff-repository.js";
 import type { DocumentRevisionDiffIssue } from "../document-revision-diff.js";
+import { readEdgeProvenanceRepository } from "../edge-provenance.js";
 import { validateEvidencePackageRepository } from "../evidence-package-repository.js";
 import type { EvidencePackageIssue } from "../evidence-package-manifest.js";
 import { validateFoundationDecisionRepository } from "../foundation-decision-integration-repository.js";
@@ -89,6 +90,7 @@ function main(): void {
   }
 
   const holdout = loadHoldout();
+  const edgeProvenance = readEdgeProvenanceRepository(state.edges.map((edge) => edge.id));
   const catalogs = validateRepositoryCatalogs();
   const council = validateRepositoryStockProCouncilV2();
   const ledgers = validateRepositoryCouncilLedgersGoverned();
@@ -102,6 +104,12 @@ function main(): void {
   const hypothesisScenarios = validateHypothesisScenarioRepository({ includeDependencyIssues: false });
   const foundationDecisions = validateFoundationDecisionRepository({ includeDependencyIssues: false });
 
+  const provenanceIssues: Issue[] = edgeProvenance.issues.map((item) => ({
+    severity: item.severity,
+    code: item.code,
+    target: item.target,
+    message: item.message,
+  }));
   const catalogIssues = [...catalogs.dataSourceIssues, ...catalogs.edgeFamilyIssues].map(toResearchIssue);
   const foundationIssues = [
     ...council.catalogIssues,
@@ -127,11 +135,13 @@ function main(): void {
     ...checkPit(state),
     ...checkProductionIntegrity(state, holdout.accessLog, asOf),
     ...checkDecay(state, asOf),
+    ...provenanceIssues,
     ...catalogIssues,
     ...foundationIssues,
   ];
 
   console.log(`Research OS 検査 (asOf=${asOf}): Edge ${state.edges.length} / Analog ${state.analogs.length} / Counterfactual ${state.counterfactuals.length} / Confounder ${state.confounders.length}`);
+  console.log(`Formal Edge Provenance: Proven ${edgeProvenance.records.length} / Pending ${edgeProvenance.missingEdgeIds.length}`);
   console.log(`Research Catalog: Data Source ${catalogs.sourceCount} / Technology Family ${catalogs.familyCount} / Active Edge ${catalogs.activeEdgeCount}`);
   console.log(`Stock Pro Council v2: Persona ${council.personaCount} / Verdict ${council.verdictCount} / Dissent ${ledgers.dissentCount} / Veto ${ledgers.vetoCount} / Binding Veto ${ledgers.bindingVetoCount}`);
   console.log(`Council Replay: Manifest ${replay.replayCount} / Eligible ${replay.eligibleCount} / Blocked ${replay.blockedCount}`);
@@ -149,6 +159,9 @@ function main(): void {
   if (errors > 0) fail(`エラー ${errors} 件。修正するまで研究成果は取り込めません。`);
 
   console.log("\n✓ Research OS の不変条件をすべて満たしています");
+  console.log(edgeProvenance.missingEdgeIds.length === 0
+    ? "✓ FORMAL_EDGE_PROVENANCE_LEDGER_GREEN"
+    : `Formal Edge provenance pending: ${edgeProvenance.missingEdgeIds.join(", ")} — these Edge IDs remain unavailable to strict Research Knowledge links until canonical-main provenance is appended.`);
   console.log("✓ DATA_SOURCE_REGISTRY_CONTRACT_GREEN");
   console.log("✓ TECH_EDGE_CANDIDATE_CATALOG_GREEN");
   console.log("✓ STOCK_PRO_COUNCIL_V2_CONTRACT_GREEN");
