@@ -18,6 +18,7 @@ import { checkDecay } from "../decay.js";
 import { loadResearchState, loadSchema, paths, readJsonl, ResearchDataError } from "../io.js";
 import { checkPit } from "../pit.js";
 import { checkProductionIntegrity, type HoldoutAccessEntry, type HoldoutManifest } from "../promotion.js";
+import { readResearchKnowledgeCatalogRepository } from "../research-knowledge-catalog-repository.js";
 import { formatErrors, validate as validateSchema } from "../schema.js";
 import { validateSecurityMasterRepository } from "../security-master-repository.js";
 import type { SecurityMasterIssue } from "../security-master.js";
@@ -91,6 +92,7 @@ function main(): void {
 
   const holdout = loadHoldout();
   const edgeProvenance = readEdgeProvenanceRepository(state.edges.map((edge) => edge.id));
+  const knowledgeCatalog = readResearchKnowledgeCatalogRepository();
   const catalogs = validateRepositoryCatalogs();
   const council = validateRepositoryStockProCouncilV2();
   const ledgers = validateRepositoryCouncilLedgersGoverned();
@@ -105,6 +107,12 @@ function main(): void {
   const foundationDecisions = validateFoundationDecisionRepository({ includeDependencyIssues: false });
 
   const provenanceIssues: Issue[] = edgeProvenance.issues.map((item) => ({
+    severity: item.severity,
+    code: item.code,
+    target: item.target,
+    message: item.message,
+  }));
+  const knowledgeCatalogIssues: Issue[] = knowledgeCatalog.issues.map((item) => ({
     severity: item.severity,
     code: item.code,
     target: item.target,
@@ -136,13 +144,15 @@ function main(): void {
     ...checkProductionIntegrity(state, holdout.accessLog, asOf),
     ...checkDecay(state, asOf),
     ...provenanceIssues,
+    ...knowledgeCatalogIssues,
     ...catalogIssues,
     ...foundationIssues,
   ];
 
   console.log(`Research OS 検査 (asOf=${asOf}): Edge ${state.edges.length} / Analog ${state.analogs.length} / Counterfactual ${state.counterfactuals.length} / Confounder ${state.confounders.length}`);
   console.log(`Formal Edge Provenance: Proven ${edgeProvenance.records.length} / Pending ${edgeProvenance.missingEdgeIds.length}`);
-  console.log(`Research Catalog: Data Source ${catalogs.sourceCount} / Technology Family ${catalogs.familyCount} / Active Edge ${catalogs.activeEdgeCount}`);
+  console.log(`Research Knowledge Catalog: Total ${knowledgeCatalog.totalCount} / Item ${knowledgeCatalog.counts.researchItems} / Family ${knowledgeCatalog.counts.researchFamilies} / Component ${knowledgeCatalog.counts.researchComponents} / Case ${knowledgeCatalog.counts.cases} / Study ${knowledgeCatalog.counts.studies} / Relation ${knowledgeCatalog.counts.relations} / Lineage ${knowledgeCatalog.counts.lineages}`);
+  console.log(`Technology Research Catalog: Data Source ${catalogs.sourceCount} / Technology Family ${catalogs.familyCount} / Active Edge ${catalogs.activeEdgeCount}`);
   console.log(`Stock Pro Council v2: Persona ${council.personaCount} / Verdict ${council.verdictCount} / Dissent ${ledgers.dissentCount} / Veto ${ledgers.vetoCount} / Binding Veto ${ledgers.bindingVetoCount}`);
   console.log(`Council Replay: Manifest ${replay.replayCount} / Eligible ${replay.eligibleCount} / Blocked ${replay.blockedCount}`);
   console.log(`Council Calibration: Record ${calibration.calibrationCount} / Active Head ${calibration.activeHeadCount} / Eligible Head ${calibration.eligibleHeadCount}`);
@@ -153,7 +163,7 @@ function main(): void {
   console.log(`Evidence Package: Manifest ${evidencePackages.manifestCount} / Active Head ${evidencePackages.activeHeadCount} / Draft Head ${evidencePackages.draftHeadCount} / Complete Head ${evidencePackages.completeHeadCount}`);
   console.log(`Hypothesis Scenario: Hypothesis ${hypothesisScenarios.hypothesisCount} / Registered Head ${hypothesisScenarios.registeredHypothesisHeadCount} / Scenario ${hypothesisScenarios.scenarioCount} / Registered Scenario Head ${hypothesisScenarios.registeredScenarioHeadCount} / Scenario Set ${hypothesisScenarios.scenarioSetCount} / Registered Set Head ${hypothesisScenarios.registeredScenarioSetHeadCount}`);
   console.log(`Foundation Decision: Record ${foundationDecisions.decisionCount} / Active Head ${foundationDecisions.activeDecisionHeadCount} / Eligible Head ${foundationDecisions.eligibleDecisionHeadCount} / Blocked Head ${foundationDecisions.blockedDecisionHeadCount} / Price Snapshot ${foundationDecisions.priceSnapshotCount}`);
-  console.log("Catalog entries and Foundation records are not counted as active Research OS Edges.");
+  console.log("Research Knowledge Catalog identities and Foundation records are not counted as active Research OS Edges.");
 
   const { errors } = printIssues("整合性", issues);
   if (errors > 0) fail(`エラー ${errors} 件。修正するまで研究成果は取り込めません。`);
@@ -162,6 +172,7 @@ function main(): void {
   console.log(edgeProvenance.missingEdgeIds.length === 0
     ? "✓ FORMAL_EDGE_PROVENANCE_LEDGER_GREEN"
     : `Formal Edge provenance pending: ${edgeProvenance.missingEdgeIds.join(", ")} — these Edge IDs remain unavailable to strict Research Knowledge links until canonical-main provenance is appended.`);
+  console.log("✓ RESEARCH_KNOWLEDGE_CATALOG_PERSISTENCE_GREEN");
   console.log("✓ DATA_SOURCE_REGISTRY_CONTRACT_GREEN");
   console.log("✓ TECH_EDGE_CANDIDATE_CATALOG_GREEN");
   console.log("✓ STOCK_PRO_COUNCIL_V2_CONTRACT_GREEN");
