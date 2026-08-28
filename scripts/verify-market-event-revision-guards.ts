@@ -66,6 +66,24 @@ try {
 
   assert.throws(
     () => db.prepare(`
+      INSERT INTO event_sources (
+        source_id, event_id, schema_version, authority, source_type, url, title,
+        published_at, retrieved_at, content_hash, storage_class, object_key
+      ) VALUES (?, ?, 1, 'TEST', 'IR', ?, 'invalid chronology', ?, ?, ?, 'METADATA_ONLY', NULL)
+    `).run(
+      "src_publication_after_retrieval",
+      eventId,
+      "https://example.com/sqlite-invalid-source",
+      "2026-08-03T07:01:00Z",
+      "2026-08-03T07:00:00Z",
+      "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    ),
+    /published_at must be on or before retrieved_at/,
+    "SQLite must reject sources that claim publication after retrieval",
+  );
+
+  assert.throws(
+    () => db.prepare(`
       INSERT INTO event_revisions (
         revision_id, event_id, schema_version, revision_number, observed_at,
         change_type, facts_json, source_ids_json, previous_revision_id
@@ -140,6 +158,7 @@ try {
     "0001_market_event_foundation",
     "0002_market_event_revision_guards",
     "0011_market_event_revision_publication_chronology",
+    "0012_market_event_source_publication_chronology",
   ]);
 
   console.log("market-event-revision-guards: ok");
