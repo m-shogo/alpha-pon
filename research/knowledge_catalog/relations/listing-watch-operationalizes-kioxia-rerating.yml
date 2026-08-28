@@ -1,0 +1,10 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: listing-watch-operationalizes-kioxia-rerating
+relationType: operationalizes
+sourceType: watch
+sourceId: watch-listing-event-watch
+targetType: research_item
+targetId: kioxia-post-ipo-rerating
+createdAt: "2026-08-28T14:35:40+09:00"
+notes: "The listing-event watch carries the Kioxia-like large-IPO pattern and post-listing milestones used to observe this research item. It is an observation mechanism, not a trading signal."

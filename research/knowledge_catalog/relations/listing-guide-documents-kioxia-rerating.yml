@@ -1,0 +1,11 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: listing-guide-documents-kioxia-rerating
+relationType: documents
+sourceType: document
+sourceId: document-listing-event-watch-guide
+targetType: research_item
+targetId: kioxia-post-ipo-rerating
+role: supporting_note
+createdAt: "2026-08-28T14:35:40+09:00"
+notes: "The listing-event guide explicitly defines the Kioxia-type large-IPO, market-cycle, theme-spillover and post-IPO review questions. It documents the research surface but is not evidence of alpha."
