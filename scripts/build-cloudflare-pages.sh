@@ -14,6 +14,7 @@ run_ts() {
 
 echo "[1/10] Verify market event contracts"
 run_ts scripts/verify-market-event-foundation.ts
+run_ts scripts/verify-delivery-ledger-chronology.ts
 run_ts scripts/verify-market-event-schema.ts
 run_ts scripts/verify-market-event-end-to-end.ts
 run_ts scripts/verify-pages-market-event-function.ts
