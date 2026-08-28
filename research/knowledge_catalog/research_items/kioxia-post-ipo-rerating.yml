@@ -1,0 +1,9 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: kioxia-post-ipo-rerating
+title: Kioxia Post-IPO Rerating Causal Decomposition
+status: triage
+createdAt: "2026-08-28T13:25:32+09:00"
+origin: migration
+summary: >-
+  Preserve the existing Kioxia retrospective-learning idea without declaring a formal Edge. The observed post-listing rerating may reflect several overlapping mechanisms already tracked elsewhere: IPO supply-demand, lock-up or shareholder overhang, PE/carve-out structure, NAND and storage cycle recovery, and AI-infrastructure demand. The dominant cause, repeatability outside this issuer, and executable timing remain unresolved.
