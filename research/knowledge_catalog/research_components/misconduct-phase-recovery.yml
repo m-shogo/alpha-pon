@@ -1,0 +1,9 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: misconduct-phase-recovery
+title: Misconduct Phase 5 Recovery
+kind: phase
+status: active
+createdAt: "2026-08-28T13:18:47+09:00"
+description: >-
+  Measure recovery versus permanent impairment using reclaim of the pre-event close, overshoot, D+20, D+60 and D+120 benchmark-adjusted returns, maximum adverse and favorable excursion, and explicit non-recovery outcomes.
