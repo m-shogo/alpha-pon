@@ -74,6 +74,10 @@ function sortIssues(issues: readonly ResearchKnowledgeIssue[]): ResearchKnowledg
 }
 
 function loadSchema(path: string): JsonSchema {
+  const stat = lstatSync(path);
+  if (!stat.isFile() || stat.isSymbolicLink()) {
+    throw new Error(`${path}: schema must be a regular non-symlink file`);
+  }
   const parsed = JSON.parse(readFileSync(path, "utf-8")) as unknown;
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new Error(`${path}: schema root must be an object`);
@@ -96,6 +100,29 @@ function readAssetRecords(
   const issues: ResearchKnowledgeIssue[] = [];
   const assetsPath = join(rootPath, "assets");
   if (!existsSync(assetsPath)) return { records: [], issues };
+
+  try {
+    const stat = lstatSync(assetsPath);
+    if (!stat.isDirectory() || stat.isSymbolicLink()) {
+      return {
+        records: [],
+        issues: [issue(
+          "research_asset_registry_assets_not_directory",
+          assetsPath,
+          "Research Asset assets root must be a regular non-symlink directory",
+        )],
+      };
+    }
+  } catch (error) {
+    return {
+      records: [],
+      issues: [issue(
+        "research_asset_registry_assets_read_failed",
+        assetsPath,
+        error instanceof Error ? error.message : String(error),
+      )],
+    };
+  }
 
   let entries;
   try {
@@ -366,6 +393,19 @@ function readProvenance(
     };
   }
   try {
+    const stat = lstatSync(path);
+    if (!stat.isFile() || stat.isSymbolicLink()) {
+      return {
+        records: [],
+        firstKnownAtById: {},
+        missingProvenanceIds: [...assetIds].sort(),
+        issues: [issue(
+          "research_asset_provenance_not_regular_file",
+          path,
+          "Research Asset provenance must be a regular non-symlink file",
+        )],
+      };
+    }
     const content = readFileSync(path, "utf-8");
     if (content.length > 0 && !content.endsWith("\n")) {
       return {
@@ -428,6 +468,21 @@ export function readResearchAssetRegistry(
   }
 
   try {
+    const rootStat = lstatSync(rootPath);
+    if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) {
+      return {
+        records: [],
+        provenanceRecords: [],
+        firstKnownAtById: {},
+        missingProvenanceIds: [],
+        issues: [issue(
+          "research_asset_registry_root_not_directory",
+          rootPath,
+          "canonical Research Asset Registry root must be a regular non-symlink directory",
+        )],
+      };
+    }
+
     const assetSchema = loadSchema(assetSchemaPath);
     const provenanceSchema = loadSchema(provenanceSchemaPath);
     const assetRead = readAssetRecords(rootPath, repositoryRootPath, assetSchema, maxRecordBytes);
