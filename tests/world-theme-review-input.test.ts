@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { normalizeWorldThemeReviewInput } from '../apps/web/lib/world-theme-review-input.js'
 
 const validReview = {
-  generatedAt: '2026-08-22T00:00:00+09:00',
+  generatedAt: '2026-08-22',
   totalHypotheses: 2,
   reviewedResults: 1,
   dueReviews: [
@@ -24,6 +24,10 @@ assert.equal(normalizeWorldThemeReviewInput({ ...validReview, dueReviews: 'broke
 assert.equal(normalizeWorldThemeReviewInput({ ...validReview, dueReviews: [{}] }), null)
 assert.equal(normalizeWorldThemeReviewInput({ ...validReview, dueReviews: [{ ...validReview.dueReviews[0], afterDays: 45 }] }), null)
 assert.equal(normalizeWorldThemeReviewInput({ ...validReview, dueReviews: [validReview.dueReviews[0], { ...validReview.dueReviews[0], dueAt: '2026-08-23' }] }), null)
+assert.equal(normalizeWorldThemeReviewInput({ ...validReview, dueReviews: [{ ...validReview.dueReviews[0], dueAt: '2026-02-31' }] }), null)
+assert.equal(normalizeWorldThemeReviewInput({ ...validReview, dueReviews: [{ ...validReview.dueReviews[0], dueAt: '2026-08-23' }] }), null)
+assert.equal(normalizeWorldThemeReviewInput({ ...validReview, generatedAt: '2026-08-22T00:00:00+09:00' }), null)
+assert.equal(normalizeWorldThemeReviewInput({ ...validReview, generatedAt: '2026-02-31' }), null)
 assert.equal(normalizeWorldThemeReviewInput({ ...validReview, totalHypotheses: -1 }), null)
 assert.equal(normalizeWorldThemeReviewInput({ ...validReview, totalHypotheses: 1.5 }), null)
 assert.equal(normalizeWorldThemeReviewInput({ ...validReview, reviewedResults: 0.5 }), null)

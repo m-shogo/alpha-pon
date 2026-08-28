@@ -24,11 +24,24 @@ function isNonEmptyCanonicalString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0 && value === value.trim()
 }
 
+function isGregorianDate(value: unknown): value is string {
+  if (typeof value !== 'string') return false
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) return false
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  if (year < 1 || month < 1 || month > 12 || day < 1) return false
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)
+  const daysInMonth = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1]
+  return day <= daysInMonth
+}
+
 function isDueItem(value: unknown): value is WorldThemeReviewDueItem {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const row = value as Record<string, unknown>
   return isNonEmptyCanonicalString(row.hypothesisId)
-    && isNonEmptyCanonicalString(row.dueAt)
+    && isGregorianDate(row.dueAt)
     && (row.afterDays === 30 || row.afterDays === 90 || row.afterDays === 180)
     && isNonEmptyCanonicalString(row.sourceEventTitle)
     && isNonEmptyCanonicalString(row.theme)
@@ -48,7 +61,12 @@ export function normalizeWorldThemeReviewInput(value: unknown): WorldThemeReview
 
   if (!Array.isArray(input.dueReviews) || !input.dueReviews.every(isDueItem)) return null
   if (!hasUniqueDueReviewIdentities(input.dueReviews)) return null
-  if (input.generatedAt !== undefined && !isNonEmptyCanonicalString(input.generatedAt)) return null
+  if (input.generatedAt !== undefined && !isGregorianDate(input.generatedAt)) return null
+  const generatedAt = input.generatedAt
+  if (
+    typeof generatedAt === 'string'
+    && input.dueReviews.some(row => row.dueAt > generatedAt)
+  ) return null
   if (input.totalHypotheses !== undefined && !isNonNegativeInteger(input.totalHypotheses)) return null
   if (input.reviewedResults !== undefined && !isNonNegativeInteger(input.reviewedResults)) return null
   if (
@@ -58,7 +76,7 @@ export function normalizeWorldThemeReviewInput(value: unknown): WorldThemeReview
   ) return null
 
   return {
-    ...(input.generatedAt !== undefined ? { generatedAt: input.generatedAt } : {}),
+    ...(generatedAt !== undefined ? { generatedAt } : {}),
     ...(input.totalHypotheses !== undefined ? { totalHypotheses: input.totalHypotheses } : {}),
     ...(input.reviewedResults !== undefined ? { reviewedResults: input.reviewedResults } : {}),
     dueReviews: input.dueReviews,
