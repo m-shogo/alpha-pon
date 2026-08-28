@@ -6,5 +6,5 @@ sourceType: implementation
 sourceId: implementation-listing-event-watch-report
 targetType: watch
 targetId: watch-listing-event-watch
-createdAt: 2026-08-28T14:35:40+09:00
+createdAt: "2026-08-28T14:35:40+09:00"
 notes: "The listing-event report implementation reads the canonical listing-event watch configuration and renders its monitoring surface."
