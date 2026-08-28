@@ -1,5 +1,8 @@
 import { compareExplicitIso8601Instants } from "./iso-instant.js";
-import type { ResearchAssetProvenanceRecord } from "./research-asset-registry.js";
+import {
+  RESEARCH_ASSET_REGISTRY_ROOT,
+  type ResearchAssetProvenanceRecord,
+} from "./research-asset-registry.js";
 import type { ResearchKnowledgeIssue } from "./research-knowledge-semantics.js";
 
 export interface ResearchAssetProvenanceGitFacts {
@@ -13,6 +16,10 @@ function issue(code: string, target: string, message: string): ResearchKnowledge
   return { severity: "error", code, target, message };
 }
 
+function expectedSourcePath(assetId: string): string {
+  return `${RESEARCH_ASSET_REGISTRY_ROOT}/assets/${assetId}.yml`;
+}
+
 export function auditResearchAssetProvenanceGitHistory(
   records: readonly ResearchAssetProvenanceRecord[],
   facts: ResearchAssetProvenanceGitFacts,
@@ -21,6 +28,16 @@ export function auditResearchAssetProvenanceGitHistory(
 
   for (const record of records) {
     const target = `research_asset_provenance:${record.assetId}`;
+    const expectedPath = expectedSourcePath(record.assetId);
+    if (record.sourcePath !== expectedPath) {
+      issues.push(issue(
+        "research_asset_provenance_source_path_mismatch",
+        target,
+        `sourcePath must identify the stable Research Asset record ${expectedPath}; found ${record.sourcePath}`,
+      ));
+      continue;
+    }
+
     if (!facts.isCanonicalMainAncestor(record.sourceCommitSha)) {
       issues.push(issue(
         "research_asset_provenance_source_not_canonical_main",
