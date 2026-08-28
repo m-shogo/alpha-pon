@@ -7,6 +7,7 @@ import {
   buildDeliveryId,
   buildEventId,
   buildRevisionId,
+  validateMarketEventBundle,
 } from "../src/market-events/contracts.js";
 import { buildMarketEventBundle, type MarketEventRegistrationInput } from "../src/market-events/registration.js";
 import {
@@ -164,6 +165,19 @@ const firstBundle = buildMarketEventBundle(input, {
   previousRevisionId: null,
   existingCreatedAt: null,
 });
+
+assert.throws(
+  () => validateMarketEventBundle({
+    ...firstBundle,
+    event: {
+      ...firstBundle.event,
+      createdAt: "2026-08-03T05:00:01Z",
+      updatedAt: "2026-08-03T05:00:00Z",
+    },
+  }),
+  /updatedAt must be on or after createdAt/,
+  "bundle validation must reject events updated before they were created",
+);
 
 const baseRevisionRecord = {
   recordType: "EVENT_REVISION" as const,
