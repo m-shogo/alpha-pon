@@ -1,14 +1,16 @@
 import "./research-knowledge-semantic-boundaries.test.js";
 import assert from "node:assert/strict";
-import { validateResearchKnowledgeIntegrity } from "../../src/research/research-knowledge-integrity.js";
-import type { ResearchKnowledgeSnapshot } from "../../src/research/research-knowledge-semantics.js";
+import {
+  validateResearchKnowledgeIntegrity,
+  type ResearchKnowledgeIntegritySnapshot,
+} from "../../src/research/research-knowledge-integrity.js";
 
 const ontologyVersion = "research-knowledge-v1" as const;
 const created = "2026-08-28T10:00:00+09:00";
 const later = "2026-08-28T10:10:00+09:00";
 const latest = "2026-08-28T10:20:00+09:00";
 
-function emptySnapshot(): ResearchKnowledgeSnapshot {
+function emptySnapshot(): ResearchKnowledgeIntegritySnapshot {
   return {
     researchItems: [],
     researchQuestions: [],
@@ -40,11 +42,11 @@ function item(id: string, at = created) {
   };
 }
 
-function codes(snapshot: ResearchKnowledgeSnapshot): Set<string> {
+function codes(snapshot: ResearchKnowledgeIntegritySnapshot): Set<string> {
   return new Set(validateResearchKnowledgeIntegrity(snapshot).map((entry) => entry.code));
 }
 
-function requireCode(snapshot: ResearchKnowledgeSnapshot, code: string): void {
+function requireCode(snapshot: ResearchKnowledgeIntegritySnapshot, code: string): void {
   const issues = validateResearchKnowledgeIntegrity(snapshot);
   assert.ok(issues.some((entry) => entry.code === code), `${code} missing: ${JSON.stringify(issues)}`);
 }
@@ -123,7 +125,7 @@ function requireCode(snapshot: ResearchKnowledgeSnapshot, code: string): void {
   requireCode(snapshot, "research_lineage_before_target_available");
 }
 
-function completedStudySnapshot(): ResearchKnowledgeSnapshot {
+function completedStudySnapshot(): ResearchKnowledgeIntegritySnapshot {
   const snapshot = emptySnapshot();
   snapshot.researchItems = [item("research-study-target")];
   snapshot.studies = [{
@@ -232,6 +234,54 @@ function completedStudySnapshot(): ResearchKnowledgeSnapshot {
     edgeIds: ["edge-one", "edge-one"],
   };
   requireCode(snapshot, "research_external_reference_duplicate");
+}
+
+{
+  const snapshot = emptySnapshot();
+  snapshot.cases = [{
+    schemaVersion: 1,
+    ontologyVersion,
+    id: "case-external-pit",
+    title: "External PIT fixture",
+    status: "open",
+    createdAt: created,
+    summary: "Relation must not use an Event before Alpha Pon knew the Event identity.",
+  }];
+  snapshot.externalReferences = { eventIds: ["evt_pit"] };
+  snapshot.externalAvailability = {
+    event: { evt_pit: later },
+  };
+  snapshot.relations = [{
+    schemaVersion: 1,
+    ontologyVersion,
+    id: "relation-before-event-known",
+    relationType: "includes_event",
+    sourceType: "case",
+    sourceId: "case-external-pit",
+    targetType: "event",
+    targetId: "evt_pit",
+    order: 0,
+    createdAt: "2026-08-28T10:05:00+09:00",
+  }];
+  requireCode(snapshot, "research_relation_before_target_available");
+}
+
+{
+  const snapshot = emptySnapshot();
+  snapshot.externalReferences = { eventIds: ["evt_valid"] };
+  snapshot.externalAvailability = {
+    event: { evt_missing: later },
+  };
+  requireCode(snapshot, "research_external_availability_without_reference");
+}
+
+{
+  const snapshot = emptySnapshot();
+  snapshot.externalReferences = { entityIds: ["entity:one"] };
+  snapshot.externalAvailability = {
+    entity: { "entity:one": "2026-08-28T10:00:00" },
+  };
+  requireCode(snapshot, "research_external_availability_invalid_timestamp");
 }
 
 console.log("research knowledge integrity hardening: all tests passed");
