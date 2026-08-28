@@ -1,0 +1,6 @@
+schemaVersion: 1
+id: watch-listing-event-watch
+assetType: watch
+path: config/listing-event-watch.yml
+status: active
+description: Canonical listing-event watch configuration for IPO milestones, listing-day observation, first earnings, lock-up timing, and pattern-learning candidates.
