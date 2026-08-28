@@ -179,6 +179,20 @@ assert.throws(
   "bundle validation must reject events updated before they were created",
 );
 
+assert.throws(
+  () => validateLedgerRecord({
+    recordType: "MARKET_EVENT",
+    recordedAt: "2026-08-03T05:00:00Z",
+    payload: {
+      ...firstBundle.event,
+      createdAt: "2026-08-03T04:59:00Z",
+      updatedAt: "2026-08-03T05:00:01Z",
+    },
+  }),
+  /recordedAt must be on or after updatedAt/,
+  "ledger must reject an event persisted before its claimed latest update",
+);
+
 const baseRevisionRecord = {
   recordType: "EVENT_REVISION" as const,
   recordedAt: "2026-08-03T05:00:00Z",
