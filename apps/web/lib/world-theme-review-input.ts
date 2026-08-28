@@ -16,8 +16,8 @@ export type WorldThemeReviewInput = {
   dueReviews: WorldThemeReviewDueItem[]
 }
 
-function isFiniteNonNegativeNumber(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+function isNonNegativeInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
 }
 
 function isNonEmptyCanonicalString(value: unknown): value is string {
@@ -43,8 +43,13 @@ export function normalizeWorldThemeReviewInput(value: unknown): WorldThemeReview
 
   if (!Array.isArray(input.dueReviews) || !input.dueReviews.every(isDueItem)) return null
   if (input.generatedAt !== undefined && !isNonEmptyCanonicalString(input.generatedAt)) return null
-  if (input.totalHypotheses !== undefined && !isFiniteNonNegativeNumber(input.totalHypotheses)) return null
-  if (input.reviewedResults !== undefined && !isFiniteNonNegativeNumber(input.reviewedResults)) return null
+  if (input.totalHypotheses !== undefined && !isNonNegativeInteger(input.totalHypotheses)) return null
+  if (input.reviewedResults !== undefined && !isNonNegativeInteger(input.reviewedResults)) return null
+  if (
+    typeof input.totalHypotheses === 'number'
+    && typeof input.reviewedResults === 'number'
+    && input.reviewedResults > input.totalHypotheses
+  ) return null
 
   return {
     ...(input.generatedAt !== undefined ? { generatedAt: input.generatedAt } : {}),
