@@ -6,6 +6,7 @@
 
 - 仕様: [../docs/research/research-os-spec.md](../docs/research/research-os-spec.md)
 - Research Knowledge Architecture: [../docs/research/research-knowledge-architecture-v1.md](../docs/research/research-knowledge-architecture-v1.md)
+- Research Knowledge Semantic Contract: [../docs/research/research-knowledge-semantic-contract-v1.md](../docs/research/research-knowledge-semantic-contract-v1.md)
 - 毎時プロンプト: [../docs/prompts/hourly-research.md](../docs/prompts/hourly-research.md)
 - 現在の全体ロードマップ: [../docs/roadmaps/alpha-pon-current-roadmap-2026-08-05.md](../docs/roadmaps/alpha-pon-current-roadmap-2026-08-05.md)
 - Research OSロードマップ: [../docs/roadmaps/research-os-roadmap.md](../docs/roadmaps/research-os-roadmap.md)
@@ -61,4 +62,6 @@ pnpm research:check
 ```
 
 CI（`.github/workflows/research-os.yml`）でも同じものが走ります。
-CI が落ちる主な原因は「Append Only 違反」「根拠のない Gate pass」「PIT 違反」「重複 Edge」です。Research Catalog導入後は、relation endpoint、lineage cycle、ontology version、orphan/dangling reference等の検証も段階的に追加します。
+CI が落ちる主な原因は「Append Only 違反」「根拠のない Gate pass」「PIT 違反」「重複 Edge」です。Research Knowledge v1のSchema/semantic/integrity contract testでは、relation endpoint matrix、dangling reference、lineage/dependency cycle、Event Chain ordering、Study/Sample/Result整合、PIT chronology等も検証します。
+
+ただし、現時点では canonical Research Catalog persistence はまだ導入していません。repository全体の実データに対するdangling reference検査は、既存Authorityから`ResearchKnowledgeSnapshot`を構築するread-only loader導入後に有効化します。生成物やAI推定を穴埋めしてgreenにすることは禁止です。
