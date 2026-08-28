@@ -1,0 +1,12 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: misconduct-edge-primary-family
+relationType: member_of
+sourceType: edge
+sourceId: misconduct-overreaction-recovery
+targetType: research_family
+targetId: misconduct-and-remediation-repricing
+role: primary
+createdAt: "2026-08-28T13:18:47+09:00"
+notes: >-
+  Canonical family classification for the existing formal Misconduct Overreaction Recovery Edge. This relation describes causal research organization only and does not change the Edge promotion state or trading behavior.
