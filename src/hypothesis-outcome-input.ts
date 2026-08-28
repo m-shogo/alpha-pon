@@ -28,8 +28,9 @@ function isOptionalNullableFiniteNumber(value: unknown): boolean {
 }
 
 function isOptionalNullableDrawdownPct(value: unknown): boolean {
-  return isOptionalNullableFiniteNumber(value)
-    && (value === undefined || value === null || value <= 0);
+  return value === undefined
+    || value === null
+    || (typeof value === "number" && Number.isFinite(value) && value <= 0);
 }
 
 export function isUsableHypothesisOutcomeInput(value: unknown): value is HypothesisOutcome {
