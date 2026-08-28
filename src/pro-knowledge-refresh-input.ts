@@ -14,7 +14,7 @@ function stringArray(value: unknown): string[] | null {
 export type ProKnowledgeRefreshDomain = {
   id: string;
   label: string;
-  reviewCadence: string;
+  reviewCadence: "weekly" | "monthly";
   why: string;
   affectedAgents: string[];
   watchExamples: string[];
@@ -26,6 +26,10 @@ export type ProKnowledgeRefreshConfig = {
   refreshRules: string[];
   outputRequirements: string[];
 };
+
+function isRefreshCadence(value: unknown): value is ProKnowledgeRefreshDomain["reviewCadence"] {
+  return value === "weekly" || value === "monthly";
+}
 
 export function normalizeProKnowledgeRefreshConfig(value: unknown): ProKnowledgeRefreshConfig | null {
   if (!isRecord(value)) return null;
@@ -44,7 +48,7 @@ export function normalizeProKnowledgeRefreshConfig(value: unknown): ProKnowledge
     if (domainIds.has(rawDomain.id)) return null;
     domainIds.add(rawDomain.id);
     if (typeof rawDomain.label !== "string" || rawDomain.label.trim().length === 0) return null;
-    if (typeof rawDomain.reviewCadence !== "string" || rawDomain.reviewCadence.trim().length === 0) return null;
+    if (!isRefreshCadence(rawDomain.reviewCadence)) return null;
     if (typeof rawDomain.why !== "string" || rawDomain.why.trim().length === 0) return null;
     const affectedAgents = stringArray(rawDomain.affectedAgents);
     const watchExamples = stringArray(rawDomain.watchExamples);
