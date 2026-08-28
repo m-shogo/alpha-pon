@@ -231,6 +231,15 @@ export function discoverResearchOrphans(
 
   const authorityIssues = [...assetRegistry.issues, ...catalogRepository.issues];
   if (authorityIssues.length > 0) return emptyResult(authorityIssues);
+  if (!Number.isSafeInteger(maxScannedFiles) || maxScannedFiles < 1) {
+    return emptyResult([
+      issue(
+        "research_orphan_scan_file_limit_invalid",
+        "maxScannedFiles",
+        "maxScannedFiles must be a positive safe integer",
+      ),
+    ]);
+  }
 
   const scan = scanDocumentPaths(repositoryRootPath, documentRoots, maxScannedFiles);
   if (scan.issues.length > 0) return emptyResult(scan.issues);
