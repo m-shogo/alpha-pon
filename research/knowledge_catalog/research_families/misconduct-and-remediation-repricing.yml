@@ -1,0 +1,8 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: misconduct-and-remediation-repricing
+title: Misconduct and Remediation Repricing
+description: >-
+  Causal-mechanism family for market repricing after listed-company misconduct or governance failures, spanning the initial shock, point-in-time damage assessment, later formal-event repricing, remediation credibility, and recovery or permanent impairment. This is a mechanism family, not a sector or theme bucket.
+status: active
+createdAt: "2026-08-28T13:18:47+09:00"
