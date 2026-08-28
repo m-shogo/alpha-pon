@@ -162,4 +162,19 @@ assert.throws(
   "delivery ledger must not accept an update timestamp before creation",
 );
 
+for (const fieldName of ["lastAttemptAt", "deliveredAt", "leaseExpiresAt"] as const) {
+  assert.throws(
+    () => validateLedgerRecord({
+      recordType: "DELIVERY_OUTBOX",
+      recordedAt: "2026-08-28T10:00:00Z",
+      payload: {
+        ...deliveryOutbox,
+        [fieldName]: "not-a-time",
+      },
+    }),
+    /must be an ISO-8601 timestamp with explicit timezone/,
+    `delivery ledger must reject malformed ${fieldName}`,
+  );
+}
+
 console.log("market event registration executability chronology: fail-closed OK");
