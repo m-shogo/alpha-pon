@@ -74,6 +74,10 @@ jobs:
         if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
         run: pnpm research:validate
 
+      - name: Orphan Discovery（警告のみ・自動登録なし）
+        if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+        run: pnpm research:orphans
+
       - name: Append Only・不変性ガード
         if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
         run: pnpm research:check:history
