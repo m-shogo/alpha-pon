@@ -1,3 +1,4 @@
+import "./research-knowledge-external-ref.test.js";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { validate } from "../../src/research/schema.js";
