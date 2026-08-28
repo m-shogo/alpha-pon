@@ -131,6 +131,16 @@ export function validateLedgerRecord(record: MarketEventLedgerRecord): void {
       assertIsoTimestamp(record.payload.updatedAt, "delivery updatedAt");
       if (
         compareExplicitIso8601Instants(
+          record.payload.updatedAt,
+          record.payload.createdAt,
+          "delivery updatedAt",
+          "delivery createdAt",
+        ) < 0
+      ) {
+        throw new Error("delivery updatedAt must be on or after delivery createdAt");
+      }
+      if (
+        compareExplicitIso8601Instants(
           record.recordedAt,
           record.payload.createdAt,
           "recordedAt",
