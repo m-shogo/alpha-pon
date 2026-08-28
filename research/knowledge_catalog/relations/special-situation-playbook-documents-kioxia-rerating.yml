@@ -1,0 +1,11 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: special-situation-playbook-documents-kioxia-rerating
+relationType: documents
+sourceType: document
+sourceId: document-special-situation-watch-playbook
+targetType: research_item
+targetId: kioxia-post-ipo-rerating
+role: supporting_note
+createdAt: 2026-08-28T14:35:40+09:00
+notes: "The special-situation playbook explicitly uses Kioxia as a multi-factor carve-out, PE-exit, lockup-overhang and NAND-cycle example. This is supporting research documentation, not a successful sample claim."
