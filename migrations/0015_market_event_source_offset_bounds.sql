@@ -2,6 +2,8 @@ CREATE TRIGGER IF NOT EXISTS trg_event_source_offset_bounds
 BEFORE INSERT ON event_sources
 WHEN (
     substr(NEW.retrieved_at, -1) != 'Z'
+    AND substr(NEW.retrieved_at, -6, 1) IN ('+', '-')
+    AND substr(NEW.retrieved_at, -3, 1) = ':'
     AND (
       substr(NEW.retrieved_at, -5, 2) NOT GLOB '[0-9][0-9]'
       OR substr(NEW.retrieved_at, -2, 2) NOT GLOB '[0-9][0-9]'
@@ -16,6 +18,8 @@ WHEN (
   OR (
     NEW.published_at IS NOT NULL
     AND substr(NEW.published_at, -1) != 'Z'
+    AND substr(NEW.published_at, -6, 1) IN ('+', '-')
+    AND substr(NEW.published_at, -3, 1) = ':'
     AND (
       substr(NEW.published_at, -5, 2) NOT GLOB '[0-9][0-9]'
       OR substr(NEW.published_at, -2, 2) NOT GLOB '[0-9][0-9]'
