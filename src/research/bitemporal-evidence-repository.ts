@@ -19,6 +19,7 @@ import {
 import {
   validateSecurityMasterRepository,
 } from "./security-master-repository.js";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 import { loadCouncilSchema } from "./stock-pro-council-v2-validation.js";
 
 export type BitemporalEvidenceRepositoryOptions = {
@@ -83,12 +84,37 @@ function jstDateOf(value: string): string {
   }).format(new Date(value));
 }
 
+function invalidAsOfResult(asOf: string, message: string): BitemporalEvidenceRepositoryResult {
+  return {
+    issues: [issue("invalid_evidence_repository_as_of", "asOf", message)],
+    evidenceRecordCount: 0,
+    relationRecordCount: 0,
+    snapshotEvidenceCount: 0,
+    snapshotRelationCount: 0,
+    recommendationEligibleCount: 0,
+    correctedOrRetractedCount: 0,
+    discoveryOnlyCount: 0,
+    snapshot: {
+      asOf,
+      mode: "system_replay",
+      boundary: "knowledge",
+      evidence: [],
+      relations: [],
+    },
+  };
+}
+
 export function validateBitemporalEvidenceRepository(
   options: BitemporalEvidenceRepositoryOptions = {},
 ): BitemporalEvidenceRepositoryResult {
   const evidencePath = options.evidencePath ?? EVIDENCE_STORE_PATHS.evidence;
   const relationsPath = options.relationsPath ?? EVIDENCE_STORE_PATHS.relations;
   const asOf = options.asOf ?? nowIso();
+  try {
+    parseExplicitIso8601Instant(asOf, "bitemporal evidence repository asOf");
+  } catch (error) {
+    return invalidAsOfResult(asOf, (error as Error).message);
+  }
   const security = validateSecurityMasterRepository({
     entitiesPath: options.securityEntitiesPath ?? SECURITY_MASTER_PATHS.entities,
     relationshipsPath: options.securityRelationshipsPath ?? SECURITY_MASTER_PATHS.relationships,
