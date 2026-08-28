@@ -122,6 +122,7 @@ function parseJsonl(text: string, target: string): { rows: ParsedRow[]; issues: 
 
 export function readResearchOrphanTriageLedger(
   repositoryRootPath = ".",
+  asOf = new Date().toISOString(),
 ): ResearchOrphanTriageLedgerResult {
   const schemaResult = loadTriageSchema(repositoryRootPath);
   if (!schemaResult.schema) {
@@ -185,6 +186,27 @@ export function readResearchOrphanTriageLedger(
       ));
     }
     decisionIds.add(record.decisionId);
+
+    try {
+      if (compareExplicitIso8601Instants(
+        record.reviewedAt,
+        asOf,
+        `${record.decisionId}.reviewedAt`,
+        "research_orphan_triage.asOf",
+      ) > 0) {
+        issues.push(issue(
+          "research_orphan_triage_review_time_in_future",
+          record.decisionId,
+          `reviewedAt must not be later than the read boundary ${asOf}`,
+        ));
+      }
+    } catch (error) {
+      issues.push(issue(
+        "research_orphan_triage_review_time_invalid",
+        record.decisionId,
+        error instanceof Error ? error.message : String(error),
+      ));
+    }
 
     const previous = latestByCandidateKey[record.candidateKey];
     if (previous) {
