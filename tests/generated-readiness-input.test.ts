@@ -28,6 +28,17 @@ assert.deepEqual(
   normalizeGeneratedReadinessInput({ ...valid, generatedAt: '2026-08-18T05:00:00-00:00' }),
   { value: null, warning: 'readiness: invalid_shape' },
 )
+for (const generatedAt of [
+  '2026-08-18T05:00:00+14:01',
+  '2026-08-18T05:00:00+15:00',
+  '2026-08-18T05:00:00.1234567890+09:00',
+] as const) {
+  assert.deepEqual(
+    normalizeGeneratedReadinessInput({ ...valid, generatedAt }),
+    { value: null, warning: 'readiness: invalid_shape' },
+    'readiness generatedAt must use the shared strict explicit-timezone instant bounds',
+  )
+}
 assert.deepEqual(
   normalizeGeneratedReadinessInput({ ...valid, generatedAt: '2026-02-31T05:00:00+09:00' }),
   { value: null, warning: 'readiness: invalid_shape' },
