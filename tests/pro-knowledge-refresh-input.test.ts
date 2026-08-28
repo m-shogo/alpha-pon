@@ -74,6 +74,22 @@ assert.equal(
   null,
   "duplicate domain ids must not produce duplicate refresh queue identities",
 );
+assert.equal(
+  normalizeProKnowledgeRefreshConfig({
+    ...validConfig,
+    refreshDomains: [{ ...validConfig.refreshDomains[0], reviewCadence: " weekly " }],
+  }),
+  null,
+  "padded cadence must not silently downgrade a weekly refresh domain to B priority",
+);
+assert.equal(
+  normalizeProKnowledgeRefreshConfig({
+    ...validConfig,
+    refreshDomains: [{ ...validConfig.refreshDomains[0], reviewCadence: "daily" }],
+  }),
+  null,
+  "unknown cadence must fail closed instead of silently using fallback priority semantics",
+);
 assert.equal(normalizeProKnowledgeRefreshConfig({ ...validConfig, refreshDomains: [{ ...validConfig.refreshDomains[0], affectedAgents: "broken" }] }), null);
 assert.equal(normalizeProKnowledgeRefreshConfig({ ...validConfig, refreshRules: "broken" }), null);
 assert.equal(normalizeProKnowledgeRefreshConfig({ ...validConfig, outputRequirements: [123] }), null);
