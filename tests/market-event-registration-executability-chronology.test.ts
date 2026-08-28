@@ -86,4 +86,32 @@ validateLedgerRecord({
   payload: validBundle.revision,
 });
 
+const decisionSnapshot = {
+  schemaVersion: validBundle.event.schemaVersion,
+  decisionSnapshotId: "dec_fixture",
+  eventId: validBundle.event.eventId,
+  revisionId: validBundle.revision.revisionId,
+  decisionState: "INFO" as const,
+  confidenceState: "CONFIRMED" as const,
+  reasons: ["fixture"],
+  invalidationConditions: [],
+  createdAt: "2026-08-28T10:00:00Z",
+};
+
+assert.throws(
+  () => validateLedgerRecord({
+    recordType: "DECISION_SNAPSHOT",
+    recordedAt: "2026-08-28T09:59:59Z",
+    payload: decisionSnapshot,
+  }),
+  /recordedAt must be on or after decision createdAt/,
+  "decision ledger metadata must not claim persistence before decision creation",
+);
+
+validateLedgerRecord({
+  recordType: "DECISION_SNAPSHOT",
+  recordedAt: "2026-08-28T10:00:00Z",
+  payload: decisionSnapshot,
+});
+
 console.log("market event registration executability chronology: fail-closed OK");
