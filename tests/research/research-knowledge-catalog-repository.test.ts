@@ -55,8 +55,12 @@ function researchCase(id: string) {
 
 {
   const canonical = readResearchKnowledgeCatalogRepository();
-  assert.deepEqual(canonical.issues, [], "canonical empty Catalog root must be readable before real seeds exist");
-  assert.equal(canonical.totalCount, 0);
+  assert.deepEqual(canonical.issues, [], "canonical Catalog must remain structurally valid as real records are added");
+  assert.equal(
+    canonical.totalCount,
+    Object.values(canonical.counts).reduce((sum, count) => sum + count, 0),
+    "canonical Catalog count contract must remain correct at zero or any future record count",
+  );
   assert.equal(RESEARCH_KNOWLEDGE_CATALOG_ROOT, "research/knowledge_catalog");
 }
 
