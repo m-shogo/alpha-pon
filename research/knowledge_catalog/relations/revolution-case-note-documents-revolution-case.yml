@@ -1,0 +1,11 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: revolution-case-note-documents-revolution-case
+relationType: documents
+sourceType: document
+sourceId: document-revolution-8894-special-attention-case
+targetType: case
+targetId: revolution-8894-special-attention-2026-07
+role: supporting_note
+createdAt: 2026-08-28T14:35:40+09:00
+notes: "The repository case note records the REVOLUTION Special Attention chronology, execution-timing caveats, confounders and current USEFUL ANALOG / NO SIGNAL verdict for this Case."
