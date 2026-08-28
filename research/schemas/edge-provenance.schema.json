@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "alpha-pon/research/edge-provenance.schema.json",
+  "title": "Formal Edge Provenance",
+  "description": "Append-only proof of the exact first time a Formal Edge identity was present on canonical main. Runtime must not derive this instant from date-only Edge.createdAt.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "edgeId",
+    "firstKnownAt",
+    "basis",
+    "sourceCommitSha",
+    "sourceCommitAt",
+    "sourcePath"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "edgeId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "minLength": 4,
+      "maxLength": 64
+    },
+    "firstKnownAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Exact earliest canonical-main knowledge availability used by PIT Research Knowledge."
+    },
+    "basis": {
+      "const": "canonical_git_first_presence"
+    },
+    "sourceCommitSha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "sourceCommitAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sourcePath": {
+      "type": "string",
+      "pattern": "^research/edge_registry/edges/[a-z0-9]+(-[a-z0-9]+)*\\.yml$"
+    }
+  }
+}
