@@ -1,0 +1,9 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: misconduct-formal-event-repricing-part-of
+relationType: part_of
+sourceType: research_component
+sourceId: misconduct-phase-formal-event-repricing
+targetType: edge
+targetId: misconduct-overreaction-recovery
+createdAt: "2026-08-28T13:18:47+09:00"
