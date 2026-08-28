@@ -129,6 +129,16 @@ export function validateLedgerRecord(record: MarketEventLedgerRecord): void {
       assertIsoTimestamp(record.payload.scheduledAt, "scheduledAt");
       assertIsoTimestamp(record.payload.createdAt, "delivery createdAt");
       assertIsoTimestamp(record.payload.updatedAt, "delivery updatedAt");
+      if (
+        compareExplicitIso8601Instants(
+          record.recordedAt,
+          record.payload.createdAt,
+          "recordedAt",
+          "delivery createdAt",
+        ) < 0
+      ) {
+        throw new Error("recordedAt must be on or after delivery createdAt");
+      }
       if (!Number.isInteger(record.payload.attemptCount) || record.payload.attemptCount < 0) {
         throw new Error("attemptCount must be a non-negative integer");
       }
