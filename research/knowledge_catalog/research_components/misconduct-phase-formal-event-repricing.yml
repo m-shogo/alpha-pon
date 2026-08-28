@@ -1,0 +1,9 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: misconduct-phase-formal-event-repricing
+title: Misconduct Phase 3 Formal Event Repricing
+kind: phase
+status: active
+createdAt: "2026-08-28T13:18:47+09:00"
+description: >-
+  Evaluate press conferences, third-party reports, administrative measures, litigation decisions, corrected filings and other formal events by separating previously known facts from genuinely new information and measuring the first executable reaction plus D+1, D+3 and D+5 paths.

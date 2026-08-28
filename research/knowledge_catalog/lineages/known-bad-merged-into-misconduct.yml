@@ -1,0 +1,12 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: known-bad-merged-into-misconduct
+lineageType: merged_into
+sourceType: edge
+sourceId: known-bad-event-repricing
+targetType: edge
+targetId: misconduct-overreaction-recovery
+decidedAt: "2026-08-27T09:23:28Z"
+reason: >-
+  The standalone Known-Bad Event Repricing Edge was deprecated and its formal-event repricing hypothesis was absorbed into Misconduct Overreaction Recovery as the phase 3 timing and risk diagnostic, avoiding duplicate issuer-event counting across one misconduct timeline.
+actor: m-shogo

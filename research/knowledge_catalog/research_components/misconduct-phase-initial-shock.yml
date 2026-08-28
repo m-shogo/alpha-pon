@@ -1,0 +1,9 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: misconduct-phase-initial-shock
+title: Misconduct Phase 1 Initial Shock
+kind: phase
+status: active
+createdAt: "2026-08-28T13:18:47+09:00"
+description: >-
+  Measure the first public misconduct disclosure through the initial benchmark-adjusted drawdown, preserving publication timing and first-executable-price alignment instead of assuming prior-close execution.

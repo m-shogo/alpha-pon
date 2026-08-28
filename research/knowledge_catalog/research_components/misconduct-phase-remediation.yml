@@ -1,0 +1,9 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: misconduct-phase-remediation
+title: Misconduct Phase 4 Remediation
+kind: phase
+status: active
+createdAt: "2026-08-28T13:18:47+09:00"
+description: >-
+  Evaluate the credibility, specificity and durability of remediation, including resignations or removals, control improvements, recurrence prevention, audit and internal-control state, and whether governance repair is operational rather than merely formal.
