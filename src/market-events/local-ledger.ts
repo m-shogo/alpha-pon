@@ -110,6 +110,16 @@ export function validateLedgerRecord(record: MarketEventLedgerRecord): void {
       if (!record.payload.eventId.startsWith("evt_")) throw new Error("Invalid eventId");
       if (!record.payload.revisionId.startsWith("rev_")) throw new Error("Invalid revisionId");
       assertIsoTimestamp(record.payload.createdAt, "decision createdAt");
+      if (
+        compareExplicitIso8601Instants(
+          record.recordedAt,
+          record.payload.createdAt,
+          "recordedAt",
+          "decision createdAt",
+        ) < 0
+      ) {
+        throw new Error("recordedAt must be on or after decision createdAt");
+      }
       break;
 
     case "DELIVERY_OUTBOX":
