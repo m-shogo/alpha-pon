@@ -42,7 +42,7 @@ const firstInput: MarketEventRegistrationInput = {
   checksAfter: ["追加問題", "翌営業日の相対株価"],
   observedAt: "2026-08-03T06:00:00Z",
   publishedAt: "2026-08-01T06:00:00Z",
-  firstExecutableAt: "2026-08-03T00:00:00Z",
+  firstExecutableAt: "2026-08-03T06:00:00Z",
   changeType: "CREATED",
   sources: [
     {
@@ -136,6 +136,7 @@ try {
     },
     observedAt: "2026-08-03T07:00:00Z",
     publishedAt: "2026-08-03T06:55:00Z",
+    firstExecutableAt: "2026-08-03T07:00:00Z",
     changeType: "POSTPONED",
     sources: [
       {
