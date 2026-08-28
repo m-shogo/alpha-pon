@@ -129,6 +129,13 @@ export function validateLedgerRecord(record: MarketEventLedgerRecord): void {
       assertIsoTimestamp(record.payload.scheduledAt, "scheduledAt");
       assertIsoTimestamp(record.payload.createdAt, "delivery createdAt");
       assertIsoTimestamp(record.payload.updatedAt, "delivery updatedAt");
+      for (const [fieldName, value] of [
+        ["delivery lastAttemptAt", record.payload.lastAttemptAt],
+        ["delivery deliveredAt", record.payload.deliveredAt],
+        ["delivery leaseExpiresAt", record.payload.leaseExpiresAt],
+      ] as const) {
+        if (value !== null) assertIsoTimestamp(value, fieldName);
+      }
       if (
         compareExplicitIso8601Instants(
           record.payload.updatedAt,
