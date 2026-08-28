@@ -1,3 +1,4 @@
+import { compareExplicitIso8601Instants } from "../research/iso-instant.js";
 import {
   MARKET_EVENT_SCHEMA_VERSION,
   buildDecisionSnapshotId,
@@ -96,6 +97,19 @@ function validateRegistrationInput(input: MarketEventRegistrationInput): void {
   }
   if (input.sources.some(source => !source.contentHash.trim())) {
     throw new Error("Every source requires a contentHash");
+  }
+  for (const source of input.sources) {
+    if (
+      source.publishedAt !== null
+      && compareExplicitIso8601Instants(
+        source.publishedAt,
+        source.retrievedAt,
+        "source.publishedAt",
+        "source.retrievedAt",
+      ) > 0
+    ) {
+      throw new Error("source.publishedAt must be on or before source.retrievedAt");
+    }
   }
 }
 
