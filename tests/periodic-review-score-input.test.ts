@@ -115,6 +115,36 @@ assert.ok(malformedBucketIdentities);
 assert.equal(malformedBucketIdentities.entries.length, 0, "padded/empty tag・rule identityで週次/月次bucketを分裂させない");
 assert.deepEqual(malformedBucketIdentities.invalidRows, [1, 2]);
 
+const malformedReviewEvidence = parsePeriodicScoreLog(JSON.stringify([
+  {
+    code: "8136",
+    name: "padded warning",
+    score: 60,
+    alertLevel: "daily",
+    createdAt: "2026-08-18",
+    warnings: [" data gap "],
+  },
+  {
+    code: "4661",
+    name: "empty negative reason",
+    score: 50,
+    alertLevel: "daily",
+    createdAt: "2026-08-18",
+    negativeReasons: [""],
+  },
+  {
+    code: "7974",
+    name: "padded blocker",
+    score: 45,
+    alertLevel: "daily",
+    createdAt: "2026-08-18",
+    riskReview: { decision: "watch", blockers: [" liquidity "] },
+  },
+]));
+assert.ok(malformedReviewEvidence);
+assert.equal(malformedReviewEvidence.entries.length, 0, "blank/padded warning・negative reason・blockerを別Evidence bucketとして採用しない");
+assert.deepEqual(malformedReviewEvidence.invalidRows, [1, 2, 3]);
+
 const duplicateCodes = parsePeriodicScoreLog(JSON.stringify([
   {
     code: "8136",
