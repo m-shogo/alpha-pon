@@ -1,0 +1,9 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: exchange-sanction-question-addresses-item
+relationType: addresses
+sourceType: research_question
+sourceId: exchange-sanction-ladder-repeatability
+targetType: research_item
+targetId: exchange-sanction-ladder
+createdAt: "2026-08-28T13:25:32+09:00"
