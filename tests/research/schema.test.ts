@@ -1,4 +1,5 @@
 import "./research-knowledge-schema-core.test.js";
+import "./research-knowledge-entity-schemas.test.js";
 import "./catalog-validation.test.js";
 import "./stock-pro-council-v2-validation.test.js";
 import "./stock-pro-council-ledgers.test.js";
