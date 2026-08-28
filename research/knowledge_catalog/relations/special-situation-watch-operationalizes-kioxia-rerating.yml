@@ -6,5 +6,5 @@ sourceType: watch
 sourceId: watch-special-situation-watch-rules
 targetType: research_item
 targetId: kioxia-post-ipo-rerating
-createdAt: 2026-08-28T14:35:40+09:00
+createdAt: "2026-08-28T14:35:40+09:00"
 notes: "The special-situation watch explicitly models the carve-out, PE-exit, lockup-overhang and cycle-recovery factors under investigation for Kioxia. It operationalizes research monitoring without asserting causal proof."
