@@ -41,6 +41,7 @@ function splitLines(content: string): string[] {
 
 /** Edge のうち、作成後に変えてはいけないフィールド。 */
 export const EDGE_IMMUTABLE_FIELDS = ["id", "hypothesis", "createdAt"] as const;
+export const RESEARCH_ASSET_IMMUTABLE_FIELDS = ["schemaVersion", "id", "assetType"] as const;
 
 const CATALOG_IMMUTABLE_FIELDS: Readonly<Record<string, readonly string[]>> = {
   "research/knowledge_catalog/research_items/": ["schemaVersion", "ontologyVersion", "id", "createdAt", "origin"],
@@ -86,6 +87,9 @@ export type ImmutabilityRule = "append_only" | "immutable_file" | "immutable_fie
 
 export function immutableFieldsForPath(path: string): readonly string[] {
   if (path.startsWith("research/edge_registry/edges/")) return EDGE_IMMUTABLE_FIELDS;
+  if (path.startsWith("research/asset_registry/assets/") && path.endsWith(".yml")) {
+    return RESEARCH_ASSET_IMMUTABLE_FIELDS;
+  }
   for (const [prefix, fields] of Object.entries(CATALOG_IMMUTABLE_FIELDS)) {
     if (path.startsWith(prefix) && path.endsWith(".yml")) return fields;
   }
@@ -99,6 +103,7 @@ export function ruleForPath(path: string): ImmutabilityRule {
   if (path === "research/confounder/confounders.jsonl") return "append_only";
   if (path === "research/holdout/access_log.jsonl") return "append_only";
   if (path === "research/edge_registry/provenance.jsonl") return "append_only";
+  if (path === "research/asset_registry/provenance.jsonl") return "append_only";
   if (path.startsWith("research/historical/analogs/")) return "immutable_file";
   if (path.startsWith("research/checkpoint/history/")) return "immutable_file";
   if (CATALOG_IMMUTABLE_FILE_PREFIXES.some((prefix) => path.startsWith(prefix) && path.endsWith(".yml"))) {
@@ -162,7 +167,9 @@ export function checkChanges(
       if (changed.length > 0) {
         const edgeHint = change.path.startsWith("research/edge_registry/edges/")
           ? "（仮説を変えたい場合は新しい Edge を作ってください）"
-          : "（identity変更は新しいResearch identity + Lineageで表現してください）";
+          : change.path.startsWith("research/asset_registry/assets/")
+            ? "（Asset identity/typeの変更は新しいAsset IDを作ってください。path変更は同一identityのrenameとして許可されます）"
+            : "（identity変更は新しいResearch identity + Lineageで表現してください）";
         violations.push({
           file: change.path,
           code: "immutable_field_changed",
