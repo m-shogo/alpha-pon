@@ -6,5 +6,5 @@ sourceType: implementation
 sourceId: implementation-special-situation-watch-report
 targetType: watch
 targetId: watch-special-situation-watch-rules
-createdAt: 2026-08-28T14:35:40+09:00
+createdAt: "2026-08-28T14:35:40+09:00"
 notes: "The special-situation report implementation consumes the special-situation watch rules to render the monitored candidate surface."
