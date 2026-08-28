@@ -12,7 +12,7 @@ export type GeneratedRuleInputResult = {
   warning: string | null
 }
 
-const EXPLICIT_TIMEZONE_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/
+const EXPLICIT_TIMEZONE_INSTANT = /^(\d{4})-(\d{2})-(\d{2})T\d{2}:\d{2}:\d{2}(?:\.(\d{1,9}))?(Z|[+-]\d{2}:\d{2})$/
 
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => (
@@ -29,9 +29,15 @@ function isPastOrPresentExplicitTimezoneInstant(value: unknown): value is string
   const year = Number(match[1])
   const month = Number(match[2])
   const day = Number(match[3])
+  const zone = match[5]
   if (year < 1) return false
   const calendarDate = new Date(Date.UTC(year, month - 1, day))
   if (calendarDate.getUTCFullYear() !== year || calendarDate.getUTCMonth() !== month - 1 || calendarDate.getUTCDate() !== day) return false
+  if (zone !== 'Z') {
+    const offsetHour = Number(zone.slice(1, 3))
+    const offsetMinute = Number(zone.slice(4, 6))
+    if (offsetHour > 14 || offsetMinute > 59 || (offsetHour === 14 && offsetMinute !== 0)) return false
+  }
   const timestamp = Date.parse(value)
   return Number.isFinite(timestamp) && timestamp <= Date.now()
 }
