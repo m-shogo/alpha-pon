@@ -171,7 +171,7 @@ const baseRevisionRecord = {
   payload: {
     ...firstBundle.revision,
     publishedAt: "2026-08-03T04:59:00Z",
-    firstExecutableAt: "2026-08-03T04:58:00Z",
+    firstExecutableAt: "2026-08-03T05:00:00Z",
   },
 };
 validateLedgerRecord(baseRevisionRecord);
@@ -182,6 +182,14 @@ assert.throws(
   }),
   /publishedAt must be on or before observedAt/,
   "ledger must reject revisions that claim publication after Alpha Pon observed them",
+);
+assert.throws(
+  () => validateLedgerRecord({
+    ...baseRevisionRecord,
+    payload: { ...baseRevisionRecord.payload, firstExecutableAt: "2026-08-03T04:59:59Z" },
+  }),
+  /firstExecutableAt must be on or after observedAt/,
+  "ledger must reject revisions that claim executability before Alpha Pon observed them",
 );
 
 const secondBundle = buildMarketEventBundle({
