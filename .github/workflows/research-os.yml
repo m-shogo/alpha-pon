@@ -70,6 +70,9 @@ jobs:
       - name: Research OS ユニットテスト
         run: |
           pnpm research:test
+          node --import tsx/esm tests/research/research-orphan-fingerprint.test.ts
+          node --import tsx/esm tests/research/research-orphan-triage-history.test.ts
+          node --import tsx/esm tests/research/research-orphan-triage.test.ts
           node --import tsx/esm tests/research/research-orphan-triage-future-review.test.ts
 
       - name: Schema / 重複 / PIT / Gate / Decay
