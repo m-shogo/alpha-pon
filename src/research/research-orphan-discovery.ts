@@ -241,7 +241,7 @@ export function discoverResearchOrphans(
     ]);
   }
 
-  const scan = scanDocumentPaths(repositoryRootPath, documentRoots, maxScannedFiles);
+  const scan = scanDocumentPaths(repositoryRootPath, [...new Set(documentRoots)], maxScannedFiles);
   if (scan.issues.length > 0) return emptyResult(scan.issues);
 
   const registeredPaths = new Set(assetRegistry.records.map((record) => record.path));
