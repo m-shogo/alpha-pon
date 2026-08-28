@@ -46,63 +46,21 @@ export function validateLedgerRecord(record: MarketEventLedgerRecord): void {
       if (record.payload.staleAfter !== null) assertIsoTimestamp(record.payload.staleAfter, "staleAfter");
       assertIsoTimestamp(record.payload.createdAt, "createdAt");
       assertIsoTimestamp(record.payload.updatedAt, "updatedAt");
-      if (
-        compareExplicitIso8601Instants(
-          record.payload.updatedAt,
-          record.payload.createdAt,
-          "updatedAt",
-          "createdAt",
-        ) < 0
-      ) {
-        throw new Error("updatedAt must be on or after createdAt");
-      }
-      if (
-        compareExplicitIso8601Instants(
-          record.recordedAt,
-          record.payload.createdAt,
-          "recordedAt",
-          "createdAt",
-        ) < 0
-      ) {
-        throw new Error("recordedAt must be on or after createdAt");
-      }
-      if (
-        compareExplicitIso8601Instants(
-          record.recordedAt,
-          record.payload.updatedAt,
-          "recordedAt",
-          "updatedAt",
-        ) < 0
-      ) {
-        throw new Error("recordedAt must be on or after updatedAt");
-      }
+      if (compareExplicitIso8601Instants(record.payload.updatedAt, record.payload.createdAt, "updatedAt", "createdAt") < 0) throw new Error("updatedAt must be on or after createdAt");
+      if (compareExplicitIso8601Instants(record.recordedAt, record.payload.createdAt, "recordedAt", "createdAt") < 0) throw new Error("recordedAt must be on or after createdAt");
+      if (compareExplicitIso8601Instants(record.recordedAt, record.payload.updatedAt, "recordedAt", "updatedAt") < 0) throw new Error("recordedAt must be on or after updatedAt");
       break;
 
     case "EVENT_REVISION":
       if (!record.payload.revisionId.startsWith("rev_")) throw new Error("Invalid revisionId");
       if (!record.payload.eventId.startsWith("evt_")) throw new Error("Invalid eventId");
-      if (!Number.isInteger(record.payload.revisionNumber) || record.payload.revisionNumber < 1) {
-        throw new Error("revisionNumber must be a positive integer");
-      }
+      if (!Number.isInteger(record.payload.revisionNumber) || record.payload.revisionNumber < 1) throw new Error("revisionNumber must be a positive integer");
       assertIsoTimestamp(record.payload.observedAt, "observedAt");
-      for (const [fieldName, value] of [
-        ["publishedAt", record.payload.publishedAt],
-        ["effectiveAt", record.payload.effectiveAt],
-        ["firstExecutableAt", record.payload.firstExecutableAt],
-      ] as const) {
+      for (const [fieldName, value] of [["publishedAt", record.payload.publishedAt], ["effectiveAt", record.payload.effectiveAt], ["firstExecutableAt", record.payload.firstExecutableAt]] as const) {
         if (value !== null) assertIsoTimestamp(value, fieldName);
       }
       validateMarketEventRevisionChronology(record.payload);
-      if (
-        compareExplicitIso8601Instants(
-          record.recordedAt,
-          record.payload.observedAt,
-          "recordedAt",
-          "observedAt",
-        ) < 0
-      ) {
-        throw new Error("recordedAt must be on or after observedAt");
-      }
+      if (compareExplicitIso8601Instants(record.recordedAt, record.payload.observedAt, "recordedAt", "observedAt") < 0) throw new Error("recordedAt must be on or after observedAt");
       break;
 
     case "EVENT_SOURCE":
@@ -110,28 +68,10 @@ export function validateLedgerRecord(record: MarketEventLedgerRecord): void {
       if (!record.payload.eventId.startsWith("evt_")) throw new Error("Invalid eventId");
       if (!record.payload.url.startsWith("https://")) throw new Error("Source URL must use https");
       assertIsoTimestamp(record.payload.retrievedAt, "retrievedAt");
-      if (
-        compareExplicitIso8601Instants(
-          record.recordedAt,
-          record.payload.retrievedAt,
-          "recordedAt",
-          "retrievedAt",
-        ) < 0
-      ) {
-        throw new Error("recordedAt must be on or after retrievedAt");
-      }
+      if (compareExplicitIso8601Instants(record.recordedAt, record.payload.retrievedAt, "recordedAt", "retrievedAt") < 0) throw new Error("recordedAt must be on or after retrievedAt");
       if (record.payload.publishedAt !== null) {
         assertIsoTimestamp(record.payload.publishedAt, "publishedAt");
-        if (
-          compareExplicitIso8601Instants(
-            record.payload.publishedAt,
-            record.payload.retrievedAt,
-            "publishedAt",
-            "retrievedAt",
-          ) > 0
-        ) {
-          throw new Error("publishedAt must be on or before retrievedAt");
-        }
+        if (compareExplicitIso8601Instants(record.payload.publishedAt, record.payload.retrievedAt, "publishedAt", "retrievedAt") > 0) throw new Error("publishedAt must be on or before retrievedAt");
       }
       break;
 
@@ -140,16 +80,7 @@ export function validateLedgerRecord(record: MarketEventLedgerRecord): void {
       if (!record.payload.eventId.startsWith("evt_")) throw new Error("Invalid eventId");
       if (!record.payload.revisionId.startsWith("rev_")) throw new Error("Invalid revisionId");
       assertIsoTimestamp(record.payload.createdAt, "decision createdAt");
-      if (
-        compareExplicitIso8601Instants(
-          record.recordedAt,
-          record.payload.createdAt,
-          "recordedAt",
-          "decision createdAt",
-        ) < 0
-      ) {
-        throw new Error("recordedAt must be on or after decision createdAt");
-      }
+      if (compareExplicitIso8601Instants(record.recordedAt, record.payload.createdAt, "recordedAt", "decision createdAt") < 0) throw new Error("recordedAt must be on or after decision createdAt");
       break;
 
     case "DELIVERY_OUTBOX":
@@ -159,36 +90,13 @@ export function validateLedgerRecord(record: MarketEventLedgerRecord): void {
       assertIsoTimestamp(record.payload.scheduledAt, "scheduledAt");
       assertIsoTimestamp(record.payload.createdAt, "delivery createdAt");
       assertIsoTimestamp(record.payload.updatedAt, "delivery updatedAt");
-      for (const [fieldName, value] of [
-        ["delivery lastAttemptAt", record.payload.lastAttemptAt],
-        ["delivery deliveredAt", record.payload.deliveredAt],
-        ["delivery leaseExpiresAt", record.payload.leaseExpiresAt],
-      ] as const) {
+      for (const [fieldName, value] of [["delivery lastAttemptAt", record.payload.lastAttemptAt], ["delivery deliveredAt", record.payload.deliveredAt], ["delivery leaseExpiresAt", record.payload.leaseExpiresAt]] as const) {
         if (value !== null) assertIsoTimestamp(value, fieldName);
       }
-      if (
-        compareExplicitIso8601Instants(
-          record.payload.updatedAt,
-          record.payload.createdAt,
-          "delivery updatedAt",
-          "delivery createdAt",
-        ) < 0
-      ) {
-        throw new Error("delivery updatedAt must be on or after delivery createdAt");
-      }
-      if (
-        compareExplicitIso8601Instants(
-          record.recordedAt,
-          record.payload.createdAt,
-          "recordedAt",
-          "delivery createdAt",
-        ) < 0
-      ) {
-        throw new Error("recordedAt must be on or after delivery createdAt");
-      }
-      if (!Number.isInteger(record.payload.attemptCount) || record.payload.attemptCount < 0) {
-        throw new Error("attemptCount must be a non-negative integer");
-      }
+      if (compareExplicitIso8601Instants(record.payload.updatedAt, record.payload.createdAt, "delivery updatedAt", "delivery createdAt") < 0) throw new Error("delivery updatedAt must be on or after delivery createdAt");
+      if (compareExplicitIso8601Instants(record.recordedAt, record.payload.createdAt, "recordedAt", "delivery createdAt") < 0) throw new Error("recordedAt must be on or after delivery createdAt");
+      if (compareExplicitIso8601Instants(record.recordedAt, record.payload.updatedAt, "recordedAt", "delivery updatedAt") < 0) throw new Error("recordedAt must be on or after delivery updatedAt");
+      if (!Number.isInteger(record.payload.attemptCount) || record.payload.attemptCount < 0) throw new Error("attemptCount must be a non-negative integer");
       break;
   }
 }
@@ -200,9 +108,7 @@ export function recordsFromBundle(bundle: MarketEventBundle, recordedAt: string)
     { recordType: "MARKET_EVENT", recordedAt, payload: bundle.event },
     ...bundle.sources.map((payload): MarketEventLedgerRecord => ({ recordType: "EVENT_SOURCE", recordedAt, payload })),
     { recordType: "EVENT_REVISION", recordedAt, payload: bundle.revision },
-    ...(bundle.decisionSnapshot
-      ? [{ recordType: "DECISION_SNAPSHOT", recordedAt, payload: bundle.decisionSnapshot } as MarketEventLedgerRecord]
-      : []),
+    ...(bundle.decisionSnapshot ? [{ recordType: "DECISION_SNAPSHOT", recordedAt, payload: bundle.decisionSnapshot } as MarketEventLedgerRecord] : []),
     ...bundle.deliveries.map((payload): MarketEventLedgerRecord => ({ recordType: "DELIVERY_OUTBOX", recordedAt, payload })),
   ];
 }
@@ -213,11 +119,6 @@ export function appendLedgerRecord(path: string, record: MarketEventLedgerRecord
   appendFileSync(path, `${JSON.stringify(record)}\n`, "utf8");
 }
 
-/**
- * Appends a complete event bundle with one filesystem write. This is not a
- * substitute for a database transaction, but it prevents half-written bundles
- * caused by calling appendFileSync separately for each record.
- */
 export function appendLedgerBundle(path: string, bundle: MarketEventBundle, recordedAt: string): void {
   const records = recordsFromBundle(bundle, recordedAt);
   for (const record of records) validateLedgerRecord(record);
@@ -227,11 +128,9 @@ export function appendLedgerBundle(path: string, bundle: MarketEventBundle, reco
 
 export function readLedger(path: string): LedgerReadResult {
   if (!existsSync(path)) return { records: [], parseErrors: [] };
-
   const records: MarketEventLedgerRecord[] = [];
   const parseErrors: LedgerReadResult["parseErrors"] = [];
   const lines = readFileSync(path, "utf8").split("\n");
-
   lines.forEach((line, index) => {
     const trimmed = line.trim();
     if (!trimmed) return;
@@ -240,14 +139,9 @@ export function readLedger(path: string): LedgerReadResult {
       validateLedgerRecord(parsed);
       records.push(parsed);
     } catch (error) {
-      parseErrors.push({
-        lineNumber: index + 1,
-        message: error instanceof Error ? error.message : String(error),
-        preview: trimmed.slice(0, 160),
-      });
+      parseErrors.push({ lineNumber: index + 1, message: error instanceof Error ? error.message : String(error), preview: trimmed.slice(0, 160) });
     }
   });
-
   return { records, parseErrors };
 }
 
@@ -264,17 +158,7 @@ export function buildLatestEventProjection(records: MarketEventLedgerRecord[]): 
   for (const record of records) {
     if (record.recordType !== "MARKET_EVENT") continue;
     const existing = projection.get(record.payload.eventId);
-    if (
-      !existing ||
-      compareExplicitIso8601Instants(
-        record.payload.updatedAt,
-        existing.updatedAt,
-        "market event updatedAt",
-        "existing market event updatedAt",
-      ) >= 0
-    ) {
-      projection.set(record.payload.eventId, record.payload);
-    }
+    if (!existing || compareExplicitIso8601Instants(record.payload.updatedAt, existing.updatedAt, "market event updatedAt", "existing market event updatedAt") >= 0) projection.set(record.payload.eventId, record.payload);
   }
   return projection;
 }
@@ -284,9 +168,7 @@ export function buildLatestRevisionProjection(records: MarketEventLedgerRecord[]
   for (const record of records) {
     if (record.recordType !== "EVENT_REVISION") continue;
     const existing = projection.get(record.payload.eventId);
-    if (!existing || record.payload.revisionNumber > existing.revisionNumber) {
-      projection.set(record.payload.eventId, record.payload);
-    }
+    if (!existing || record.payload.revisionNumber > existing.revisionNumber) projection.set(record.payload.eventId, record.payload);
   }
   return projection;
 }
@@ -295,15 +177,7 @@ export function findLedgerDuplicates(records: MarketEventLedgerRecord[]): string
   const seen = new Set<string>();
   const duplicates = new Set<string>();
   for (const record of records) {
-    const id = record.recordType === "MARKET_EVENT"
-      ? record.payload.eventId
-      : record.recordType === "EVENT_REVISION"
-        ? record.payload.revisionId
-        : record.recordType === "EVENT_SOURCE"
-          ? record.payload.sourceId
-          : record.recordType === "DECISION_SNAPSHOT"
-            ? record.payload.decisionSnapshotId
-            : record.payload.deliveryId;
+    const id = record.recordType === "MARKET_EVENT" ? record.payload.eventId : record.recordType === "EVENT_REVISION" ? record.payload.revisionId : record.recordType === "EVENT_SOURCE" ? record.payload.sourceId : record.recordType === "DECISION_SNAPSHOT" ? record.payload.decisionSnapshotId : record.payload.deliveryId;
     const key = `${record.recordType}:${id}`;
     if (seen.has(key)) duplicates.add(key);
     seen.add(key);
