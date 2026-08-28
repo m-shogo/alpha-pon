@@ -155,6 +155,23 @@ try {
     () => db.prepare(`
       INSERT INTO event_revisions (
         revision_id, event_id, schema_version, revision_number, observed_at,
+        effective_at, change_type, facts_json, source_ids_json, previous_revision_id
+      ) VALUES (?, ?, 1, 2, ?, ?, 'UPDATED', '{}', '[]', ?)
+    `).run(
+      "rev_invalid_timezone_offset",
+      eventId,
+      "2026-08-03T07:00:00Z",
+      "2026-08-03T07:00:00+14:01",
+      revisionOne.revision.revisionId,
+    ),
+    /timestamps must be explicit-timezone ISO instants/,
+    "SQLite must reject revision timezone offsets beyond +14:00",
+  );
+
+  assert.throws(
+    () => db.prepare(`
+      INSERT INTO event_revisions (
+        revision_id, event_id, schema_version, revision_number, observed_at,
         change_type, facts_json, source_ids_json, previous_revision_id
       ) VALUES (?, ?, 1, 3, ?, 'UPDATED', '{}', '[]', ?)
     `).run(
