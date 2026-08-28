@@ -46,6 +46,26 @@ export function validateLedgerRecord(record: MarketEventLedgerRecord): void {
       if (record.payload.staleAfter !== null) assertIsoTimestamp(record.payload.staleAfter, "staleAfter");
       assertIsoTimestamp(record.payload.createdAt, "createdAt");
       assertIsoTimestamp(record.payload.updatedAt, "updatedAt");
+      if (
+        compareExplicitIso8601Instants(
+          record.payload.updatedAt,
+          record.payload.createdAt,
+          "updatedAt",
+          "createdAt",
+        ) < 0
+      ) {
+        throw new Error("updatedAt must be on or after createdAt");
+      }
+      if (
+        compareExplicitIso8601Instants(
+          record.recordedAt,
+          record.payload.createdAt,
+          "recordedAt",
+          "createdAt",
+        ) < 0
+      ) {
+        throw new Error("recordedAt must be on or after createdAt");
+      }
       break;
 
     case "EVENT_REVISION":

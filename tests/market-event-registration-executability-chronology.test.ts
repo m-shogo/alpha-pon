@@ -56,6 +56,30 @@ const validBundle = buildMarketEventBundle({
 
 assert.throws(
   () => validateLedgerRecord({
+    recordType: "MARKET_EVENT",
+    recordedAt: "2026-08-28T09:59:59Z",
+    payload: validBundle.event,
+  }),
+  /recordedAt must be on or after createdAt/,
+  "market event ledger metadata must not claim persistence before event creation",
+);
+
+assert.throws(
+  () => validateLedgerRecord({
+    recordType: "MARKET_EVENT",
+    recordedAt: "2026-08-28T10:00:00Z",
+    payload: {
+      ...validBundle.event,
+      createdAt: "2026-08-28T10:00:00Z",
+      updatedAt: "2026-08-28T09:59:59Z",
+    },
+  }),
+  /updatedAt must be on or after createdAt/,
+  "market event ledger must not accept an update timestamp before creation",
+);
+
+assert.throws(
+  () => validateLedgerRecord({
     recordType: "EVENT_SOURCE",
     recordedAt: "2026-08-28T09:29:59Z",
     payload: validBundle.sources[0]!,
