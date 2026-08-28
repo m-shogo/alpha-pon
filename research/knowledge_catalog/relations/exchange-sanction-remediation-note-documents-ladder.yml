@@ -7,5 +7,5 @@ sourceId: document-exchange-sanction-remediation-clock-seed
 targetType: research_item
 targetId: exchange-sanction-ladder
 role: supporting_note
-createdAt: 2026-08-28T14:35:40+09:00
+createdAt: "2026-08-28T14:35:40+09:00"
 notes: "The remediation-clock note explicitly extends Exchange Sanction Ladder shadow research while keeping the follow-up stage merged and prohibiting production promotion until incremental net alpha is validated."
