@@ -1,16 +1,17 @@
 # Research Knowledge Authority Adapter Contract v1
 
-Status: `ADAPTER_CONTRACT_ONLY`
+Status: `ADAPTER_CONTRACT_V1_WITH_ASSET_AUTHORITY`
 Parent architecture: `docs/research/research-knowledge-architecture-v1.md`
 Semantic contract: `docs/research/research-knowledge-semantic-contract-v1.md`
+Asset authority: `research/asset_registry/README.md`
 
 ## 1. Purpose
 
-Research Knowledge relations may point to identities owned outside the future Research Catalog. Those identities must remain owned by their existing systems.
+Research Knowledge relations may point to identities owned outside the Research Catalog. Those identities must remain owned by their existing systems.
 
 The adapter layer has one job:
 
-> Convert existing authoritative records into a deterministic, read-only set of external IDs and conservative `availableAt` timestamps for `ResearchKnowledgeIntegritySnapshot`.
+> Convert authoritative records into a deterministic, read-only set of external IDs and conservative `availableAt` timestamps for `ResearchKnowledgeIntegritySnapshot`.
 
 It must not copy external records into Research Catalog, invent identities, infer missing timestamps, or mutate the owning authority.
 
@@ -27,15 +28,16 @@ Examples:
 
 - a company can legally exist before Alpha Pon retrieves its Security Master record;
 - an event can occur before an official disclosure is observable;
-- an Edge idea can conceptually describe old history even though the Edge record was created much later.
+- an Edge idea can conceptually describe old history even though the Edge record was created much later;
+- a Markdown document can be old while its stable Research Asset identity is newly registered.
 
-Using effective time as `availableAt` can create future leakage.
+Using effective time or target-file age as `availableAt` can create future leakage.
 
 ## 3. `externalReferences` vs `externalAvailability`
 
 `externalReferences` contains the IDs visible from the owning authorities.
 
-`externalAvailability` optionally maps those same IDs to strict timezone-aware ISO-8601 instants representing the earliest **safe first-known timestamp**.
+`externalAvailability` maps those same IDs, when strict repository mode requires them, to timezone-aware ISO-8601 instants representing the earliest **safe first-known timestamp**.
 
 Example shape:
 
@@ -49,7 +51,7 @@ The integrity validator supports two modes:
 - contract/in-memory mode: `requireExternalAvailability = false`;
 - repository mode: `requireExternalAvailability = true`.
 
-Once a real repository loader is introduced, it must use repository mode. An external endpoint without a safe `availableAt` must fail closed rather than silently disabling chronology checks.
+Repository loaders use strict mode. An external endpoint without a safe `availableAt` must fail closed rather than silently disabling chronology checks.
 
 ## 4. Formal Edge adapter
 
@@ -77,10 +79,10 @@ That would falsely claim hour/minute precision that the source record never pres
 
 ### Safe v1 availability strategy
 
-Before strict repository mode can expose Edge endpoints, choose a deterministic authoritative timestamp with true instant precision. Preferred candidates, in order:
+Use deterministic canonical provenance with true instant precision. Preferred sources, in order:
 
-1. earliest Git commit timestamp that introduced the immutable Edge identity on the canonical history;
-2. an explicit future immutable `observedAt`/`registeredAt` instant added through a separately reviewed Edge schema evolution;
+1. earliest Git commit timestamp that introduced the immutable Edge identity on canonical history;
+2. an explicit immutable `observedAt`/`registeredAt` instant added through a separately reviewed Edge schema evolution;
 3. another provenance record that demonstrably captures first availability.
 
 Do not use filesystem mtime, generated index timestamp, Dashboard timestamp, current checkout time, or AI inference.
@@ -97,7 +99,7 @@ Market Event Foundation, `MarketEvent.eventId` from `src/market-events/contracts
 
 The adapter must choose the earliest repository value that actually represents Alpha Pon knowing the Event identity.
 
-Candidate fields/records include the canonical Market Event registration/ledger provenance and `createdAt`, subject to confirming their write semantics.
+Candidate fields/records include canonical Market Event registration/ledger provenance and `createdAt`, subject to their write semantics.
 
 Do not use:
 
@@ -116,52 +118,93 @@ Security Master, `SecurityMasterEntityRecord.entityId`.
 
 ### Availability
 
-Use a conservative first-known instant from the Security Master record history, such as the earliest safe retrieval/observation timestamp supported by repository semantics.
+Use a conservative first-known instant from Security Master record history, such as the earliest safe retrieval/observation timestamp supported by repository semantics.
 
 Do not use `validFrom` as Research Knowledge availability. `validFrom` describes entity validity, not when Alpha Pon knew the identity.
 
 When multiple revisions exist, availability is based on the earliest authoritative record that establishes the same stable `entityId`, not the newest revision.
 
-## 7. Document adapter — intentionally unresolved
+## 7. Document adapter — resolved through Research Asset Registry
 
-Markdown content remains authoritative at its original file location, but a stable cross-file Document identity contract is not yet declared.
+Markdown content remains authoritative at its original file location. Cross-file semantic identity is owned by a Research Asset record under:
 
-Before canonical `documents` relations are persisted, decide whether identity is based on:
+`research/asset_registry/assets/*.yml`
 
-- a durable explicit document ID embedded in metadata;
-- a registry-owned ID independent of path;
-- another deterministic migration-safe identity.
+with:
 
-A repository path alone is currently **not approved** as permanent semantic identity because files may move or be renamed.
+```text
+assetType: document
+```
+
+The stable Asset `id` is the Research Relation endpoint. The physical `path` is mutable repository location metadata and is **not** the permanent semantic identity.
+
+Before a canonical `documents` relation may use a Document Asset:
+
+1. the Asset record must validate;
+2. its target path must resolve to a regular repository file without symlink/path-boundary escape;
+3. the Asset must have exact canonical-main first-known provenance;
+4. the relation timestamp must not predate that availability.
 
 Generated output paths and report titles must never become canonical Document IDs accidentally.
 
-## 8. Watch adapter — intentionally unresolved
+## 8. Watch adapter — resolved through Research Asset Registry
 
-Watch runtime/configuration remains authoritative in its existing config/code system.
+Watch runtime/configuration remains authoritative in its existing config/runtime system. Research-semantic identity is owned by a Research Asset record with:
 
-Before canonical `operationalizes` relations are persisted, define a stable Watch ID that survives:
+```text
+assetType: watch
+```
 
-- file moves;
-- implementation refactors;
-- multiple watch rules in one config file;
-- one watch operationalizing multiple research concepts.
+The stable Asset ID is independent of the current config path. This permits:
 
-Do not equate one config filename with one Research Edge.
+- file moves without changing Research identity;
+- one Watch to operationalize multiple research concepts;
+- multiple distinct Watch identities to coexist even when implementation code is shared;
+- research concepts to change without rewriting runtime configuration.
 
-## 9. Implementation adapter — intentionally unresolved
+A Watch Asset is an observation/operationalization reference. It does **not** imply one config file equals one Edge and it does not turn monitoring output into a trading signal.
 
-Source code remains the implementation truth, but source path alone is not yet approved as permanent semantic identity.
+Canonical `operationalizes` relations require exact Asset provenance and strict availability just like Document relations.
 
-Before canonical `implements` relations are persisted, define whether the durable reference is:
+## 9. Implementation adapter — resolved through Research Asset Registry
 
-- an explicit implementation capability ID;
-- module + exported contract identity;
-- another migration-safe identifier.
+Source code remains implementation truth. Research-semantic implementation identity is owned by a Research Asset record with:
 
-Implementation identity must not force Research identity to change when code is reorganized.
+```text
+assetType: implementation
+```
 
-## 10. Adapter determinism
+The stable ID survives source-file reorganization; the Asset `path` records the current implementation location.
+
+Canonical `implements` relations require:
+
+- a valid Implementation Asset;
+- a regular repository target file;
+- exact canonical-main first-known provenance;
+- relation creation at or after safe availability.
+
+Implementation identity must not force Research identity to change when code is reorganized. An implementation can point to a Watch rather than redundantly claiming direct causal proof for a ResearchItem or Edge.
+
+## 10. Research Asset provenance
+
+Document, Watch and Implementation Assets use:
+
+`research/asset_registry/provenance.jsonl`
+
+The canonical first-known record is append-only and binds:
+
+- `assetId`;
+- `firstKnownAt`;
+- `basis: canonical_git_first_presence`;
+- exact `sourceCommitSha`;
+- exact `sourceCommitAt`;
+- `sourcePath` of the stable Asset identity YAML itself.
+
+`sourcePath` is intentionally **not** the target Markdown/config/source path. Otherwise an old physical file could make a newly-created stable Asset identity appear to have existed historically.
+
+A registered Asset may exist without provenance as **Pending**, but strict Research relation use must fail closed until canonical provenance exists.
+
+## 11. Adapter determinism
 
 For the same repository state and the same as-of boundary, an adapter must return the same:
 
@@ -171,7 +214,7 @@ For the same repository state and the same as-of boundary, an adapter must retur
 
 No network discovery, LLM classification, random IDs, current wall clock, generated Dashboard data, or mutable cache may affect the adapter output used by integrity validation.
 
-## 11. Fail-closed rules
+## 12. Fail-closed rules
 
 Repository mode must fail when:
 
@@ -179,11 +222,13 @@ Repository mode must fail when:
 - strict mode requires `availableAt` and no safe timestamp exists;
 - availability metadata exists for an undeclared ID;
 - `availableAt` lacks an explicit timezone;
-- a Research Relation/Lineage claims creation before an endpoint was available.
+- a Research Relation/Lineage claims creation before an endpoint was available;
+- an Asset target escapes repository boundaries, is missing, duplicates another active semantic target, or is not a regular file;
+- Asset provenance disagrees with canonical Git first presence.
 
 The fix is to repair provenance or remove/defer the relation. The fix is **not** to synthesize a convenient timestamp.
 
-## 12. Read-only rule
+## 13. Read-only rule
 
 Adapters are read-only projections.
 
@@ -194,33 +239,33 @@ They may not:
 - create a Security Master entity because prose names a company;
 - rewrite Watch config;
 - move documents;
+- infer Research Asset identities from filenames automatically;
 - write generated IDs back into source systems automatically.
 
 Any write into another authority requires that authority's own explicit workflow.
 
-## 13. Persistence gate implications
+## 14. Persistence gate implications
 
-The first Research Catalog persistence PR must not attempt to solve all adapters at once.
+The stable sequence for external references is:
 
-Recommended order:
+1. define or reuse the owning authority's stable identity;
+2. construct a read-only authority projection;
+3. establish a conservative `availableAt` with exact provenance;
+4. validate repository mode with `requireExternalAvailability: true`;
+5. only then persist Research relations using that endpoint.
 
-1. implement and test Edge/Event/Entity read-only adapters;
-2. construct an empty/minimal `ResearchKnowledgeIntegritySnapshot`;
-3. call `validateResearchKnowledgeIntegrity(snapshot, { requireExternalAvailability: true })`;
-4. prove deterministic output across repeated loads;
-5. separately design stable Document/Watch/Implementation identities;
-6. only then persist relations using those node types.
+For Document/Watch/Implementation this sequence is now implemented through Research Asset Registry. New Assets must repeat the same identity → canonical provenance → relation order; do not batch all three concepts into one speculative migration.
 
-If an adapter is unresolved, omit that relation type from the first seed. Do not weaken strict validation to make the seed pass.
+If any adapter or Asset provenance is unresolved, omit/defer that relation. Do not weaken strict validation to make a seed pass.
 
-## 14. Milestone wording
+## 15. Milestone wording
 
-`RESEARCH_KNOWLEDGE_AUTHORITY_ADAPTER_CONTRACT_V1` means only that the boundary is specified.
+`RESEARCH_KNOWLEDGE_AUTHORITY_ADAPTER_CONTRACT_V1` means the authority boundary is specified.
 
-It does not mean:
+Current repository state additionally includes implemented read-only adapters and stable Research Asset Authority for Document/Watch/Implementation. That still does **not** mean:
 
-- adapters are implemented;
-- repository data is migrated;
-- orphan detection is enabled;
+- every repository document/watch/implementation has been registered;
+- orphan detection is complete;
 - Dashboard reads Research Knowledge;
-- any research conclusion or Edge is validated.
+- any research conclusion or Edge is validated;
+- a Watch or implementation proves alpha.
