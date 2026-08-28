@@ -51,6 +51,23 @@ try {
     () => db.prepare(`
       INSERT INTO event_revisions (
         revision_id, event_id, schema_version, revision_number, observed_at,
+        published_at, change_type, facts_json, source_ids_json, previous_revision_id
+      ) VALUES (?, ?, 1, 2, ?, ?, 'UPDATED', '{}', '[]', ?)
+    `).run(
+      "rev_publication_after_observation",
+      eventId,
+      "2026-08-03T07:00:00Z",
+      "2026-08-03T07:01:00Z",
+      revisionOne.revision.revisionId,
+    ),
+    /published_at must be on or before observed_at/,
+    "SQLite must reject revisions that claim publication after Alpha Pon observed them",
+  );
+
+  assert.throws(
+    () => db.prepare(`
+      INSERT INTO event_revisions (
+        revision_id, event_id, schema_version, revision_number, observed_at,
         change_type, facts_json, source_ids_json, previous_revision_id
       ) VALUES (?, ?, 1, 3, ?, 'UPDATED', '{}', '[]', ?)
     `).run(
@@ -122,6 +139,7 @@ try {
   assert.deepEqual(migrationVersions, [
     "0001_market_event_foundation",
     "0002_market_event_revision_guards",
+    "0003_market_event_revision_publication_chronology",
   ]);
 
   console.log("market-event-revision-guards: ok");
