@@ -55,6 +55,19 @@ const validBundle = buildMarketEventBundle({
 });
 
 assert.throws(
+  () => buildMarketEventBundle({
+    ...input,
+    firstExecutableAt: "2026-08-28T10:00:00Z",
+  }, {
+    revisionNumber: 2,
+    previousRevisionId: validBundle.revision.revisionId,
+    existingCreatedAt: "2026-08-28T10:00:01Z",
+  }),
+  /observedAt must be on or after existingCreatedAt/,
+  "registration must fail closed when an update observation predates the existing event creation time",
+);
+
+assert.throws(
   () => validateLedgerRecord({
     recordType: "MARKET_EVENT",
     recordedAt: "2026-08-28T09:59:59Z",
