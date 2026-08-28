@@ -89,7 +89,7 @@ function assertExistingCompanyMemoryShape(value: unknown, file: string, asOf: st
 
   for (const field of REQUIRED_STRING_ARRAY_FIELDS) {
     if (!isCanonicalStringArray(record[field])) {
-      throw new Error(`${file}: ${field} must be an array of canonical non-empty strings`);
+      throw new Error(`${file}: ${field} must be a string array of canonical non-empty strings`);
     }
   }
 
