@@ -70,6 +70,16 @@ export function validateLedgerRecord(record: MarketEventLedgerRecord): void {
       if (!record.payload.eventId.startsWith("evt_")) throw new Error("Invalid eventId");
       if (!record.payload.url.startsWith("https://")) throw new Error("Source URL must use https");
       assertIsoTimestamp(record.payload.retrievedAt, "retrievedAt");
+      if (
+        compareExplicitIso8601Instants(
+          record.recordedAt,
+          record.payload.retrievedAt,
+          "recordedAt",
+          "retrievedAt",
+        ) < 0
+      ) {
+        throw new Error("recordedAt must be on or after retrievedAt");
+      }
       if (record.payload.publishedAt !== null) {
         assertIsoTimestamp(record.payload.publishedAt, "publishedAt");
         if (

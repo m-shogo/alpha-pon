@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { buildMarketEventBundle, type MarketEventRegistrationInput } from "../src/market-events/registration.js";
+import { validateLedgerRecord } from "../src/market-events/local-ledger.js";
 
 const input: MarketEventRegistrationInput = {
   issuerCode: "8136",
@@ -43,5 +44,30 @@ assert.throws(
   /firstExecutableAt must be on or after observedAt/,
   "registration must fail closed when executability predates observation",
 );
+
+const validBundle = buildMarketEventBundle({
+  ...input,
+  firstExecutableAt: "2026-08-28T10:00:00Z",
+}, {
+  revisionNumber: 1,
+  previousRevisionId: null,
+  existingCreatedAt: null,
+});
+
+assert.throws(
+  () => validateLedgerRecord({
+    recordType: "EVENT_SOURCE",
+    recordedAt: "2026-08-28T09:29:59Z",
+    payload: validBundle.sources[0]!,
+  }),
+  /recordedAt must be on or after retrievedAt/,
+  "source ledger metadata must not claim persistence before retrieval",
+);
+
+validateLedgerRecord({
+  recordType: "EVENT_SOURCE",
+  recordedAt: "2026-08-28T09:30:00Z",
+  payload: validBundle.sources[0]!,
+});
 
 console.log("market event registration executability chronology: fail-closed OK");
