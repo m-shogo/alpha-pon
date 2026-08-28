@@ -226,6 +226,21 @@ function testInvalidScanBoundaryFailsClosed(): void {
     assert.deepEqual(invalidRoot.candidates, []);
     assert.ok(invalidRoot.issues.some((entry) => entry.code === "research_orphan_scan_root_noncanonical"));
 
+    for (const invalidLimit of [0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1]) {
+      const invalid = discoverResearchOrphans({
+        repositoryRootPath: root,
+        maxScannedFiles: invalidLimit,
+        assetRegistry: registry(),
+        catalogRepository: catalog(),
+      });
+      assert.deepEqual(invalid.candidates, []);
+      assert.deepEqual(invalid.scannedDocumentPaths, []);
+      assert.ok(
+        invalid.issues.some((entry) => entry.code === "research_orphan_scan_file_limit_invalid"),
+        `invalid maxScannedFiles=${String(invalidLimit)} must fail closed before scanning`,
+      );
+    }
+
     writeFileSync(join(root, "docs/research/a.md"), "# A\n");
     writeFileSync(join(root, "docs/research/b.md"), "# B\n");
     const bounded = discoverResearchOrphans({
