@@ -106,6 +106,14 @@ export function readMarketEventAuthorityView(
         issues.push(issue("research_event_repository_empty_id", target, "market_events.event_id must not be empty"));
         continue;
       }
+      if (row.eventId !== row.eventId.trim()) {
+        issues.push(issue(
+          "research_event_repository_noncanonical_id",
+          target,
+          "market_events.event_id must not contain surrounding whitespace",
+        ));
+        continue;
+      }
       ids.push(row.eventId);
       if (!strictInstant(row.createdAt, `${target}.createdAt`)) {
         issues.push(issue(
