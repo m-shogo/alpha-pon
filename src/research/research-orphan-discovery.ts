@@ -93,8 +93,11 @@ function scanDocumentPaths(
   const paths: string[] = [];
   const issues: ResearchKnowledgeIssue[] = [];
   let visitedFiles = 0;
+  let fileLimitExceeded = false;
 
   const walk = (absoluteDirectory: string, repoDirectory: string): void => {
+    if (fileLimitExceeded) return;
+
     let entries;
     try {
       entries = readdirSync(absoluteDirectory, { withFileTypes: true });
@@ -108,6 +111,8 @@ function scanDocumentPaths(
     }
 
     for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+      if (fileLimitExceeded) return;
+
       const absolutePath = join(absoluteDirectory, entry.name);
       const repoPath = toRepositoryPath(repositoryRootPath, absolutePath);
 
@@ -139,6 +144,7 @@ function scanDocumentPaths(
 
       visitedFiles += 1;
       if (visitedFiles > maxScannedFiles) {
+        fileLimitExceeded = true;
         issues.push(issue(
           "research_orphan_scan_file_limit_exceeded",
           repoDirectory,
@@ -154,6 +160,8 @@ function scanDocumentPaths(
   };
 
   for (const root of [...roots].sort()) {
+    if (fileLimitExceeded) break;
+
     if (!isCanonicalRepositoryPath(root)) {
       issues.push(issue(
         "research_orphan_scan_root_noncanonical",
