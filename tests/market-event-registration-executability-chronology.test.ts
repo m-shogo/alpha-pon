@@ -149,4 +149,17 @@ validateLedgerRecord({
   payload: deliveryOutbox,
 });
 
+assert.throws(
+  () => validateLedgerRecord({
+    recordType: "DELIVERY_OUTBOX",
+    recordedAt: "2026-08-28T10:00:00Z",
+    payload: {
+      ...deliveryOutbox,
+      updatedAt: "2026-08-28T09:59:59Z",
+    },
+  }),
+  /delivery updatedAt must be on or after delivery createdAt/,
+  "delivery ledger must not accept an update timestamp before creation",
+);
+
 console.log("market event registration executability chronology: fail-closed OK");
