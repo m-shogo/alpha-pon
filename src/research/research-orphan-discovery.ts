@@ -1,4 +1,5 @@
-import { existsSync, lstatSync, readdirSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, lstatSync, readFileSync, readdirSync } from "node:fs";
 import { basename, extname, isAbsolute, join, relative, sep } from "node:path";
 import {
   readResearchAssetRegistry,
@@ -13,6 +14,7 @@ import type { ResearchKnowledgeIssue } from "./research-knowledge-semantics.js";
 
 export const RESEARCH_ORPHAN_DOCUMENT_ROOTS = ["docs/research"] as const;
 export const RESEARCH_ORPHAN_MAX_SCANNED_FILES = 10_000;
+export const RESEARCH_ORPHAN_CANDIDATE_FINGERPRINT_VERSION = "research-orphan-candidate-v1" as const;
 
 export type ResearchOrphanDiscoveryStage =
   | "structured_scan"
@@ -28,6 +30,7 @@ export type ResearchOrphanCandidateKind =
 
 export interface ResearchOrphanCandidate {
   key: string;
+  fingerprint: string;
   kind: ResearchOrphanCandidateKind;
   discoveryStage: ResearchOrphanDiscoveryStage;
   classification: ResearchOrphanClassification;
@@ -69,6 +72,18 @@ function sortIssues(issues: readonly ResearchKnowledgeIssue[]): ResearchKnowledg
   );
 }
 
+function fingerprint(parts: readonly string[]): string {
+  const hash = createHash("sha256");
+  hash.update(RESEARCH_ORPHAN_CANDIDATE_FINGERPRINT_VERSION);
+  for (const part of parts) {
+    hash.update("\0");
+    hash.update(String(Buffer.byteLength(part, "utf8")));
+    hash.update(":");
+    hash.update(part);
+  }
+  return hash.digest("hex");
+}
+
 function isCanonicalRepositoryPath(path: string): boolean {
   if (!path || isAbsolute(path) || path.includes("\\")) return false;
   return path.split("/").every((part) => part.length > 0 && part !== "." && part !== "..");
@@ -89,8 +104,13 @@ function scanDocumentPaths(
   repositoryRootPath: string,
   roots: readonly string[],
   maxScannedFiles: number,
-): { paths: string[]; issues: ResearchKnowledgeIssue[] } {
+): {
+  paths: string[];
+  contentHashByPath: Readonly<Record<string, string>>;
+  issues: ResearchKnowledgeIssue[];
+} {
   const paths: string[] = [];
+  const contentHashByPath: Record<string, string> = {};
   const issues: ResearchKnowledgeIssue[] = [];
   let visitedFiles = 0;
   let fileLimitExceeded = false;
@@ -155,11 +175,30 @@ function scanDocumentPaths(
 
       if (extname(entry.name).toLowerCase() !== ".md") continue;
       if (isGeneratedDiscoveryPath(repoPath)) continue;
-      paths.push(repoPath);
+      if (stat.nlink !== 1) {
+        issues.push(issue(
+          "research_orphan_scan_hard_link_rejected",
+          repoPath,
+          "orphan discovery refuses hard-linked Markdown because a triage fingerprint must identify one physical file",
+        ));
+        continue;
+      }
+
+      try {
+        const bytes = readFileSync(absolutePath);
+        contentHashByPath[repoPath] = createHash("sha256").update(bytes).digest("hex");
+        paths.push(repoPath);
+      } catch (error) {
+        issues.push(issue(
+          "research_orphan_scan_file_read_failed",
+          repoPath,
+          error instanceof Error ? error.message : String(error),
+        ));
+      }
     }
   };
 
-  for (const root of [...roots].sort()) {
+  for (const root of [...new Set(roots)].sort()) {
     if (fileLimitExceeded) break;
 
     if (!isCanonicalRepositoryPath(root)) {
@@ -191,7 +230,11 @@ function scanDocumentPaths(
     walk(absoluteRoot, root);
   }
 
-  return { paths: [...new Set(paths)].sort(), issues: sortIssues(issues) };
+  return {
+    paths: [...new Set(paths)].sort(),
+    contentHashByPath,
+    issues: sortIssues(issues),
+  };
 }
 
 function relationReferencedAssetIds(
@@ -249,8 +292,20 @@ export function discoverResearchOrphans(
 
   for (const path of scan.paths) {
     if (registeredPaths.has(path)) continue;
+    const contentHash = scan.contentHashByPath[path];
+    if (!contentHash) {
+      return emptyResult([
+        issue(
+          "research_orphan_scan_content_hash_missing",
+          path,
+          "scanned Markdown must have a deterministic content hash before it can become a triage candidate",
+        ),
+      ]);
+    }
+    const key = `unregistered_asset:document:${path}`;
     candidates.push({
-      key: `unregistered_asset:document:${path}`,
+      key,
+      fingerprint: fingerprint([key, "document", path, contentHash]),
       kind: "unregistered_asset",
       discoveryStage: "structured_scan",
       classification: "unclassified",
@@ -266,8 +321,19 @@ export function discoverResearchOrphans(
     if (record.status !== "active") continue;
     if (!provenIds.has(record.id)) continue;
     if (referencedAssetIds.has(record.id)) continue;
+    const key = `registered_asset_without_relation:${record.assetType}:${record.id}`;
+    const firstKnownAt = assetRegistry.firstKnownAtById[record.id] ?? "";
     candidates.push({
-      key: `registered_asset_without_relation:${record.assetType}:${record.id}`,
+      key,
+      fingerprint: fingerprint([
+        key,
+        record.assetType,
+        record.id,
+        record.path,
+        record.status,
+        record.description,
+        firstKnownAt,
+      ]),
       kind: "registered_asset_without_relation",
       discoveryStage: "explicit_reference_resolution",
       classification: "existing_research_link_missing",
