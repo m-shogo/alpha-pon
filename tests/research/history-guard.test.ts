@@ -4,6 +4,7 @@ import {
   changedImmutableFields,
   checkChanges,
   EDGE_IMMUTABLE_FIELDS,
+  immutableFieldsForPath,
   isAppendOnly,
   isUnchanged,
   ruleForPath,
@@ -39,6 +40,14 @@ function testRuleMapping() {
   assert.equal(ruleForPath("research/historical/analogs/foo.yml"), "immutable_file");
   assert.equal(ruleForPath("research/checkpoint/history/x.json"), "immutable_file");
   assert.equal(ruleForPath("research/edge_registry/edges/foo.yml"), "immutable_fields");
+  assert.equal(ruleForPath("research/knowledge_catalog/research_items/foo.yml"), "immutable_fields");
+  assert.equal(ruleForPath("research/knowledge_catalog/cases/foo.yml"), "immutable_fields");
+  assert.equal(ruleForPath("research/knowledge_catalog/observations/foo.yml"), "immutable_file");
+  assert.equal(ruleForPath("research/knowledge_catalog/sample_manifests/foo.yml"), "immutable_file");
+  assert.equal(ruleForPath("research/knowledge_catalog/study_results/foo.yml"), "immutable_file");
+  assert.equal(ruleForPath("research/knowledge_catalog/relations/foo.yml"), "immutable_file");
+  assert.equal(ruleForPath("research/knowledge_catalog/lineages/foo.yml"), "immutable_file");
+  assert.equal(ruleForPath("research/knowledge_catalog/README.md"), "mutable");
   assert.equal(ruleForPath("research/checkpoint/latest.json"), "mutable", "latest.json だけは上書き可");
   assert.equal(ruleForPath("research/dashboard/dashboard.generated.md"), "mutable", "生成物は再生成される");
   console.log("research/history-guard: ルール対応表 OK");
@@ -112,6 +121,87 @@ function testEdgeProvenanceRewriteIsRejected() {
   console.log("research/history-guard: Edge provenance append-only OK");
 }
 
+function testCatalogMutableIdentityFields() {
+  const path = "research/knowledge_catalog/research_items/catalog-item.yml";
+  assert.deepEqual(
+    immutableFieldsForPath(path),
+    ["schemaVersion", "ontologyVersion", "id", "createdAt", "origin"],
+  );
+  const before = [
+    "schemaVersion: 1",
+    "ontologyVersion: research-knowledge-v1",
+    "id: catalog-item",
+    "title: Original title",
+    "status: captured",
+    "createdAt: 2026-08-28T10:00:00+09:00",
+    "origin: user",
+    "summary: Original summary",
+    "",
+  ].join("\n");
+  const progressed = before
+    .replace("status: captured", "status: investigating")
+    .replace("Original summary", "Updated summary after research");
+  assert.deepEqual(checkChanges([
+    { path, changeType: "modified", oldContent: before, newContent: progressed },
+  ], parseYaml), [], "status/summary may evolve without rewriting identity");
+
+  const changedOrigin = before.replace("origin: user", "origin: agent_discovery");
+  const violations = checkChanges([
+    { path, changeType: "modified", oldContent: before, newContent: changedOrigin },
+  ], parseYaml);
+  assert.equal(violations[0]?.code, "immutable_field_changed");
+  assert.match(violations[0]?.message ?? "", /origin/);
+  console.log("research/history-guard: Catalog mutable identity fields OK");
+}
+
+function testCatalogComponentKindIsIdentityBearing() {
+  const path = "research/knowledge_catalog/research_components/component-a.yml";
+  const before = [
+    "schemaVersion: 1",
+    "ontologyVersion: research-knowledge-v1",
+    "id: component-a",
+    "title: Component A",
+    "kind: filter",
+    "status: active",
+    "createdAt: 2026-08-28T10:00:00+09:00",
+    "description: Filter description",
+    "",
+  ].join("\n");
+  const rewritten = before.replace("kind: filter", "kind: phase");
+  const violations = checkChanges([
+    { path, changeType: "modified", oldContent: before, newContent: rewritten },
+  ], parseYaml);
+  assert.equal(violations[0]?.code, "immutable_field_changed");
+  assert.match(violations[0]?.message ?? "", /kind/);
+  console.log("research/history-guard: Component kind immutable OK");
+}
+
+function testCatalogHistoricalFactsAreImmutable() {
+  const paths = [
+    "research/knowledge_catalog/observations/observation-a.yml",
+    "research/knowledge_catalog/sample_manifests/manifest-a.yml",
+    "research/knowledge_catalog/study_results/result-a.yml",
+    "research/knowledge_catalog/relations/relation-a.yml",
+    "research/knowledge_catalog/lineages/lineage-a.yml",
+  ];
+  for (const path of paths) {
+    const violations = checkChanges([
+      { path, changeType: "modified", oldContent: "id: old\n", newContent: "id: changed\n" },
+    ], parseYaml);
+    assert.equal(violations[0]?.code, "immutable_file_modified", `${path} must be immutable`);
+  }
+  console.log("research/history-guard: Catalog historical fact immutability OK");
+}
+
+function testCatalogRecordDeletionIsRejected() {
+  const path = "research/knowledge_catalog/cases/case-a.yml";
+  const violations = checkChanges([
+    { path, changeType: "deleted", oldContent: "id: case-a\n", newContent: null },
+  ], parseYaml);
+  assert.equal(violations[0]?.code, "record_removed");
+  console.log("research/history-guard: Catalog record deletion rejection OK");
+}
+
 testAppendOnlyAcceptsAppends();
 testAppendOnlyRejectsRewrite();
 testAppendOnlyRejectsDeletion();
@@ -121,5 +211,9 @@ testAnalogFileIsImmutable();
 testDeletionIsAlwaysViolation();
 testEdgeStatusChangeIsAllowed();
 testEdgeProvenanceRewriteIsRejected();
+testCatalogMutableIdentityFields();
+testCatalogComponentKindIsIdentityBearing();
+testCatalogHistoricalFactsAreImmutable();
+testCatalogRecordDeletionIsRejected();
 
 console.log("research/history-guard: 全テスト成功");
