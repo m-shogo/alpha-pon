@@ -3,6 +3,7 @@ import { normalizeGeneratedArrayInput } from '../apps/web/lib/generated-array-in
 import './generated-universe-candidate-consumer.test.js'
 import './generated-candidate-identity.test.js'
 import './stock-pro-committee-input.test.js'
+import './generated-world-theme-source-date.test.js'
 
 type OutcomeRow = {
   evaluatedAt: string
