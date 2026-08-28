@@ -13,6 +13,8 @@ import { auditEdgeProvenanceGitHistory, type EdgeProvenanceGitFacts } from "../e
 import { readEdgeProvenanceRepository } from "../edge-provenance.js";
 import { checkChanges, type FileChange } from "../history-guard.js";
 import { loadEdges } from "../io.js";
+import { auditResearchAssetProvenanceGitHistory } from "../research-asset-provenance-git-audit.js";
+import { readResearchAssetRegistry } from "../research-asset-registry.js";
 import { fail, parseArgs } from "./common.js";
 
 function git(args: string[]): string {
@@ -61,24 +63,8 @@ function collectChanges(base: string): FileChange[] {
   return changes;
 }
 
-function auditCanonicalEdgeProvenance(): void {
-  const canonicalMain = tryGit(["rev-parse", "--verify", "origin/main"])?.trim();
-  if (!canonicalMain) {
-    console.log("Formal Edge provenance Git audit: origin/main が無いためローカルではスキップします（CI は全履歴で検証します）");
-    return;
-  }
-
-  const edgeIds = loadEdges().map((edge) => edge.id);
-  const provenance = readEdgeProvenanceRepository(edgeIds);
-  if (provenance.issues.length > 0) {
-    console.error(`\nFormal Edge provenance 構造違反 ${provenance.issues.length} 件:`);
-    for (const item of provenance.issues) {
-      console.error(`  ERROR ${item.code} — ${item.target}: ${item.message}`);
-    }
-    fail("Formal Edge provenance Ledger が壊れています。Git履歴監査を続行できません。");
-  }
-
-  const facts: EdgeProvenanceGitFacts = {
+function canonicalGitFacts(): EdgeProvenanceGitFacts {
+  return {
     isCanonicalMainAncestor(commitSha) {
       return tryGit(["merge-base", "--is-ancestor", commitSha, "origin/main"]) !== null;
     },
@@ -101,8 +87,26 @@ function auditCanonicalEdgeProvenance(): void {
       return output?.split("\n").map((line) => line.trim()).find(Boolean) ?? null;
     },
   };
+}
 
-  const issues = auditEdgeProvenanceGitHistory(provenance.records, facts);
+function auditCanonicalEdgeProvenance(): void {
+  const canonicalMain = tryGit(["rev-parse", "--verify", "origin/main"])?.trim();
+  if (!canonicalMain) {
+    console.log("Formal Edge provenance Git audit: origin/main が無いためローカルではスキップします（CI は全履歴で検証します）");
+    return;
+  }
+
+  const edgeIds = loadEdges().map((edge) => edge.id);
+  const provenance = readEdgeProvenanceRepository(edgeIds);
+  if (provenance.issues.length > 0) {
+    console.error(`\nFormal Edge provenance 構造違反 ${provenance.issues.length} 件:`);
+    for (const item of provenance.issues) {
+      console.error(`  ERROR ${item.code} — ${item.target}: ${item.message}`);
+    }
+    fail("Formal Edge provenance Ledger が壊れています。Git履歴監査を続行できません。");
+  }
+
+  const issues = auditEdgeProvenanceGitHistory(provenance.records, canonicalGitFacts());
   if (issues.length > 0) {
     console.error(`\nFormal Edge provenance Git履歴違反 ${issues.length} 件:`);
     for (const item of issues) {
@@ -117,6 +121,39 @@ function auditCanonicalEdgeProvenance(): void {
     console.log("  pending Edge は登録自体は許可されますが、exact provenance追記まで strict Research Knowledge から利用できません");
   }
   console.log("✓ Formal Edge provenance は canonical origin/main の実履歴と一致しています");
+}
+
+function auditCanonicalResearchAssetProvenance(): void {
+  const canonicalMain = tryGit(["rev-parse", "--verify", "origin/main"])?.trim();
+  if (!canonicalMain) {
+    console.log("Research Asset provenance Git audit: origin/main が無いためローカルではスキップします（CI は全履歴で検証します）");
+    return;
+  }
+
+  const registry = readResearchAssetRegistry();
+  if (registry.issues.length > 0) {
+    console.error(`\nResearch Asset Registry / provenance 構造違反 ${registry.issues.length} 件:`);
+    for (const item of registry.issues) {
+      console.error(`  ERROR ${item.code} — ${item.target}: ${item.message}`);
+    }
+    fail("Research Asset Registry が壊れています。Git履歴監査を続行できません。");
+  }
+
+  const issues = auditResearchAssetProvenanceGitHistory(registry.provenanceRecords, canonicalGitFacts());
+  if (issues.length > 0) {
+    console.error(`\nResearch Asset provenance Git履歴違反 ${issues.length} 件:`);
+    for (const item of issues) {
+      console.error(`  ERROR ${item.code} — ${item.target}: ${item.message}`);
+    }
+    fail("Research Asset provenance が canonical origin/main の実履歴と一致しません。");
+  }
+
+  console.log(`\nResearch Asset provenance Git audit: Proven ${registry.provenanceRecords.length} / Pending ${registry.missingProvenanceIds.length}`);
+  if (registry.missingProvenanceIds.length > 0) {
+    console.log(`  pending: ${registry.missingProvenanceIds.join(", ")}`);
+    console.log("  pending Asset は登録自体は許可されますが、exact provenance追記まで strict Research Knowledge relation から利用できません");
+  }
+  console.log("✓ Research Asset provenance は canonical origin/main の実履歴と一致しています");
 }
 
 function main(): void {
@@ -149,6 +186,7 @@ function main(): void {
   }
 
   auditCanonicalEdgeProvenance();
+  auditCanonicalResearchAssetProvenance();
 }
 
 main();
