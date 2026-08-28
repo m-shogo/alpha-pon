@@ -89,7 +89,18 @@ try {
   assert.deepEqual(edgeView.issues, []);
   assert.ok(edgeView.ids.length > 0, "existing Formal Edge Registry must be discoverable read-only");
   assert.deepEqual(edgeView.ids, [...edgeView.ids].sort(), "Edge IDs must be deterministic");
-  assert.deepEqual(edgeView.availability, {}, "date-only Edge createdAt must not be promoted to exact first-known time");
+  assert.equal(
+    Object.keys(edgeView.availability).length,
+    edgeView.ids.length,
+    "all currently backfilled Formal Edges must have exact canonical-main availability",
+  );
+  for (const edgeId of edgeView.ids) {
+    assert.match(
+      edgeView.availability[edgeId] ?? "",
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/,
+      `Edge ${edgeId} must use an exact timestamp, never date-only createdAt`,
+    );
+  }
 
   const missingEventDb = join(root, "missing-market-events.db");
   const missingEntities = join(root, "missing-entities.jsonl");
@@ -114,8 +125,8 @@ try {
     id: "opportunity-repository-fixture",
     title: "Repository opportunity fixture",
     status: "screening",
-    detectedAt: "2026-08-28T12:00:00+09:00",
-    summary: "Proves Edge provenance is required before use.",
+    detectedAt: "2026-08-28T20:00:00+09:00",
+    summary: "Proves exact Edge provenance is required before use.",
   }];
   owned.relations = [{
     schemaVersion: 1,
@@ -126,24 +137,47 @@ try {
     sourceId: "opportunity-repository-fixture",
     targetType: "edge",
     targetId: edgeId,
-    createdAt: "2026-08-28T12:00:00+09:00",
+    createdAt: "2026-08-28T20:05:00+09:00",
   }];
 
-  const blocked = loadResearchKnowledgeRepositorySnapshot(owned, {
+  const safeFromCanonicalLedger = loadResearchKnowledgeRepositorySnapshot(owned, {
     marketEventDatabasePath: missingEventDb,
     securityMasterEntitiesPath: missingEntities,
   });
-  assert.ok(
-    blocked.issues.some((entry) => entry.code === "research_external_availability_required"),
-    "referenced Edge must remain blocked until exact provenance is supplied",
+  assert.deepEqual(
+    safeFromCanonicalLedger.issues,
+    [],
+    "a relation created after canonical first-known provenance may use the Formal Edge",
   );
 
-  const safe = loadResearchKnowledgeRepositorySnapshot(owned, {
+  const blockedPendingProvenance = loadResearchKnowledgeRepositorySnapshot(owned, {
     marketEventDatabasePath: missingEventDb,
     securityMasterEntitiesPath: missingEntities,
-    edgeFirstKnownAt: { [edgeId]: "2026-08-28T11:00:00+09:00" },
+    edgeFirstKnownAt: {},
   });
-  assert.deepEqual(safe.issues, []);
+  assert.ok(
+    blockedPendingProvenance.issues.some((entry) => entry.code === "research_external_availability_required"),
+    "a registered Edge with pending provenance may exist, but strict Research Knowledge links must fail closed",
+  );
+
+  const safeOverride = loadResearchKnowledgeRepositorySnapshot(owned, {
+    marketEventDatabasePath: missingEventDb,
+    securityMasterEntitiesPath: missingEntities,
+    edgeFirstKnownAt: { [edgeId]: "2026-08-28T19:00:00+09:00" },
+  });
+  assert.deepEqual(safeOverride.issues, []);
+
+  const corruptedProvenancePath = join(root, "corrupted-provenance.jsonl");
+  writeFileSync(corruptedProvenancePath, "{not-json}\n", "utf-8");
+  const corrupted = loadResearchKnowledgeRepositorySnapshot(undefined, {
+    marketEventDatabasePath: missingEventDb,
+    securityMasterEntitiesPath: missingEntities,
+    edgeProvenancePath: corruptedProvenancePath,
+  });
+  assert.ok(
+    corrupted.issues.some((entry) => entry.code === "research_edge_provenance_invalid_json"),
+    "structurally corrupted provenance must fail the repository snapshot globally",
+  );
 } finally {
   rmSync(root, { recursive: true, force: true });
 }

@@ -18,11 +18,18 @@ import {
 } from "./security-master.js";
 import { loadCouncilSchema } from "./stock-pro-council-v2-validation.js";
 import { loadEdges } from "./io.js";
+import {
+  readEdgeProvenanceRepository,
+  type EdgeProvenanceRepositoryResult,
+} from "./edge-provenance.js";
 
 export interface ResearchKnowledgeAuthorityRepositoryOptions {
   marketEventDatabasePath?: string;
   securityMasterEntitiesPath?: string;
+  /** Explicit override is retained for isolated tests only. Repository mode uses canonical provenance by default. */
   edgeFirstKnownAt?: Readonly<Record<string, string>>;
+  edgeProvenancePath?: string;
+  edgeProvenanceSchemaPath?: string;
 }
 
 export interface ResearchKnowledgeAuthorityRepositoryViews {
@@ -46,6 +53,18 @@ function strictInstant(value: string, label: string): boolean {
   } catch {
     return false;
   }
+}
+
+function mergeAuthorityIssues(
+  view: ResearchKnowledgeAuthorityView,
+  additional: readonly ResearchKnowledgeIssue[],
+): ResearchKnowledgeAuthorityView {
+  return {
+    ...view,
+    issues: [...additional, ...view.issues].sort((a, b) =>
+      `${a.code}|${a.target}|${a.message}`.localeCompare(`${b.code}|${b.target}|${b.message}`),
+    ),
+  };
 }
 
 export function readMarketEventAuthorityView(
@@ -136,12 +155,7 @@ export function readSecurityEntityAuthorityView(
     }
 
     const view = buildSecurityEntityAuthorityView(valid);
-    return {
-      ...view,
-      issues: [...issues, ...view.issues].sort((a, b) =>
-        `${a.code}|${a.target}|${a.message}`.localeCompare(`${b.code}|${b.target}|${b.message}`),
-      ),
-    };
+    return mergeAuthorityIssues(view, issues);
   } catch (error) {
     return emptyView("entity", [issue(
       "research_entity_repository_read_failed",
@@ -152,11 +166,28 @@ export function readSecurityEntityAuthorityView(
 }
 
 export function readEdgeAuthorityView(
-  firstKnownAtByEdge: Readonly<Record<string, string>> = {},
+  options: {
+    firstKnownAtByEdge?: Readonly<Record<string, string>>;
+    provenancePath?: string;
+    provenanceSchemaPath?: string;
+  } = {},
 ): ResearchKnowledgeAuthorityView {
   try {
     const edges = loadEdges();
-    return buildEdgeAuthorityView(edges.map((edge) => edge.id), firstKnownAtByEdge);
+    const edgeIds = edges.map((edge) => edge.id);
+
+    if (options.firstKnownAtByEdge !== undefined) {
+      return buildEdgeAuthorityView(edgeIds, options.firstKnownAtByEdge);
+    }
+
+    const provenance: EdgeProvenanceRepositoryResult = readEdgeProvenanceRepository(edgeIds, {
+      path: options.provenancePath,
+      schemaPath: options.provenanceSchemaPath,
+    });
+    return mergeAuthorityIssues(
+      buildEdgeAuthorityView(edgeIds, provenance.firstKnownAtByEdge),
+      provenance.issues,
+    );
   } catch (error) {
     return emptyView("edge", [issue(
       "research_edge_repository_read_failed",
@@ -172,6 +203,10 @@ export function readResearchKnowledgeAuthorityViews(
   return {
     event: readMarketEventAuthorityView(options.marketEventDatabasePath),
     entity: readSecurityEntityAuthorityView(options.securityMasterEntitiesPath),
-    edge: readEdgeAuthorityView(options.edgeFirstKnownAt),
+    edge: readEdgeAuthorityView({
+      firstKnownAtByEdge: options.edgeFirstKnownAt,
+      provenancePath: options.edgeProvenancePath,
+      provenanceSchemaPath: options.edgeProvenanceSchemaPath,
+    }),
   };
 }

@@ -35,6 +35,7 @@ function testAppendOnlyRejectsDeletion() {
 function testRuleMapping() {
   assert.equal(ruleForPath("research/research_log/2026-08.jsonl"), "append_only");
   assert.equal(ruleForPath("research/holdout/access_log.jsonl"), "append_only");
+  assert.equal(ruleForPath("research/edge_registry/provenance.jsonl"), "append_only");
   assert.equal(ruleForPath("research/historical/analogs/foo.yml"), "immutable_file");
   assert.equal(ruleForPath("research/checkpoint/history/x.json"), "immutable_file");
   assert.equal(ruleForPath("research/edge_registry/edges/foo.yml"), "immutable_fields");
@@ -84,6 +85,33 @@ function testEdgeStatusChangeIsAllowed() {
   console.log("research/history-guard: Edge の更新許可 OK");
 }
 
+function testEdgeProvenanceRewriteIsRejected() {
+  const before = '{"edgeId":"edge-a","firstKnownAt":"2026-08-01T00:00:00Z"}\n';
+  const rewritten = '{"edgeId":"edge-a","firstKnownAt":"2026-08-02T00:00:00Z"}\n';
+  const violations = checkChanges(
+    [{
+      path: "research/edge_registry/provenance.jsonl",
+      changeType: "modified",
+      oldContent: before,
+      newContent: rewritten,
+    }],
+    parseYaml,
+  );
+  assert.equal(violations[0]?.code, "not_append_only", "first-known provenance must never be rewritten in place");
+
+  const appended = `${before}{"edgeId":"edge-b","firstKnownAt":"2026-08-03T00:00:00Z"}\n`;
+  assert.deepEqual(checkChanges(
+    [{
+      path: "research/edge_registry/provenance.jsonl",
+      changeType: "modified",
+      oldContent: before,
+      newContent: appended,
+    }],
+    parseYaml,
+  ), [], "new provenance facts may only be appended");
+  console.log("research/history-guard: Edge provenance append-only OK");
+}
+
 testAppendOnlyAcceptsAppends();
 testAppendOnlyRejectsRewrite();
 testAppendOnlyRejectsDeletion();
@@ -92,5 +120,6 @@ testImmutableEdgeFields();
 testAnalogFileIsImmutable();
 testDeletionIsAlwaysViolation();
 testEdgeStatusChangeIsAllowed();
+testEdgeProvenanceRewriteIsRejected();
 
 console.log("research/history-guard: 全テスト成功");
