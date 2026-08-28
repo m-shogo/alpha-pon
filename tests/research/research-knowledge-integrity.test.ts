@@ -1,4 +1,5 @@
 import "./research-knowledge-semantic-boundaries.test.js";
+import "./research-knowledge-external-availability.test.js";
 import assert from "node:assert/strict";
 import {
   validateResearchKnowledgeIntegrity,
