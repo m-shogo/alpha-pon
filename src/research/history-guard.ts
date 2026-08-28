@@ -42,6 +42,25 @@ function splitLines(content: string): string[] {
 /** Edge のうち、作成後に変えてはいけないフィールド。 */
 export const EDGE_IMMUTABLE_FIELDS = ["id", "hypothesis", "createdAt"] as const;
 
+const CATALOG_IMMUTABLE_FIELDS: Readonly<Record<string, readonly string[]>> = {
+  "research/knowledge_catalog/research_items/": ["schemaVersion", "ontologyVersion", "id", "createdAt", "origin"],
+  "research/knowledge_catalog/research_questions/": ["schemaVersion", "ontologyVersion", "id", "createdAt"],
+  "research/knowledge_catalog/mechanisms/": ["schemaVersion", "ontologyVersion", "id", "createdAt"],
+  "research/knowledge_catalog/research_families/": ["schemaVersion", "ontologyVersion", "id", "createdAt"],
+  "research/knowledge_catalog/research_components/": ["schemaVersion", "ontologyVersion", "id", "kind", "createdAt"],
+  "research/knowledge_catalog/cases/": ["schemaVersion", "ontologyVersion", "id", "createdAt"],
+  "research/knowledge_catalog/studies/": ["schemaVersion", "ontologyVersion", "id", "mode", "createdAt"],
+  "research/knowledge_catalog/opportunities/": ["schemaVersion", "ontologyVersion", "id", "detectedAt"],
+};
+
+const CATALOG_IMMUTABLE_FILE_PREFIXES = [
+  "research/knowledge_catalog/observations/",
+  "research/knowledge_catalog/sample_manifests/",
+  "research/knowledge_catalog/study_results/",
+  "research/knowledge_catalog/relations/",
+  "research/knowledge_catalog/lineages/",
+] as const;
+
 export function changedImmutableFields(
   oldValue: Record<string, unknown>,
   newValue: Record<string, unknown>,
@@ -50,7 +69,7 @@ export function changedImmutableFields(
   return fields.filter((field) => stableStringify(oldValue[field]) !== stableStringify(newValue[field]));
 }
 
-/** Historical Analog / Checkpoint 履歴は「ファイルごと immutable」。中身が1文字でも変わったら違反。 */
+/** Historical facts are immutable. A correction is a new record, never a rewrite. */
 export function isUnchanged(oldContent: string, newContent: string): boolean {
   return oldContent.trimEnd() === newContent.trimEnd();
 }
@@ -65,6 +84,14 @@ export interface FileChange {
 
 export type ImmutabilityRule = "append_only" | "immutable_file" | "immutable_fields" | "mutable";
 
+export function immutableFieldsForPath(path: string): readonly string[] {
+  if (path.startsWith("research/edge_registry/edges/")) return EDGE_IMMUTABLE_FIELDS;
+  for (const [prefix, fields] of Object.entries(CATALOG_IMMUTABLE_FIELDS)) {
+    if (path.startsWith(prefix) && path.endsWith(".yml")) return fields;
+  }
+  return [];
+}
+
 /** パスからルールを決める。ここが Research OS の「何を守るか」の一覧表。 */
 export function ruleForPath(path: string): ImmutabilityRule {
   if (path.startsWith("research/research_log/") && path.endsWith(".jsonl")) return "append_only";
@@ -74,17 +101,21 @@ export function ruleForPath(path: string): ImmutabilityRule {
   if (path === "research/edge_registry/provenance.jsonl") return "append_only";
   if (path.startsWith("research/historical/analogs/")) return "immutable_file";
   if (path.startsWith("research/checkpoint/history/")) return "immutable_file";
-  if (path.startsWith("research/edge_registry/edges/")) return "immutable_fields";
+  if (CATALOG_IMMUTABLE_FILE_PREFIXES.some((prefix) => path.startsWith(prefix) && path.endsWith(".yml"))) {
+    return "immutable_file";
+  }
+  if (path.startsWith("research/edge_registry/edges/") && path.endsWith(".yml")) return "immutable_fields";
+  if (immutableFieldsForPath(path).length > 0) return "immutable_fields";
   return "mutable";
 }
 
 /**
  * 変更一覧を検査して違反を返す。
- * `parseEdge` は YAML パーサの注入（純ロジックに js-yaml を持ち込まないため）。
+ * `parseYamlRecord` は YAML パーサの注入（純ロジックに js-yaml を持ち込まないため）。
  */
 export function checkChanges(
   changes: FileChange[],
-  parseEdge: (content: string) => Record<string, unknown>,
+  parseYamlRecord: (content: string) => Record<string, unknown>,
 ): GuardViolation[] {
   const violations: GuardViolation[] = [];
 
@@ -115,23 +146,27 @@ export function checkChanges(
         violations.push({
           file: change.path,
           code: "immutable_file_modified",
-          message: "作成後に変更できないファイルです。訂正は新しい記録を追加して行ってください",
+          message: "作成後に変更できない記録です。訂正は既存記録を書き換えず、新しい記録・Relation・Lineageで表現してください",
         });
       }
       continue;
     }
 
     if (rule === "immutable_fields") {
+      const fields = immutableFieldsForPath(change.path);
       const changed = changedImmutableFields(
-        parseEdge(change.oldContent),
-        parseEdge(change.newContent),
-        EDGE_IMMUTABLE_FIELDS,
+        parseYamlRecord(change.oldContent),
+        parseYamlRecord(change.newContent),
+        fields,
       );
       if (changed.length > 0) {
+        const edgeHint = change.path.startsWith("research/edge_registry/edges/")
+          ? "（仮説を変えたい場合は新しい Edge を作ってください）"
+          : "（identity変更は新しいResearch identity + Lineageで表現してください）";
         violations.push({
           file: change.path,
           code: "immutable_field_changed",
-          message: `変更できないフィールドです: ${changed.join(", ")}（仮説を変えたい場合は新しい Edge を作ってください）`,
+          message: `変更できないフィールドです: ${changed.join(", ")} ${edgeHint}`,
         });
       }
     }
