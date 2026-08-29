@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { buildOwnerResearchSummary } from "../owner-summary.js";
 import { loadResearchKnowledgeRepositorySnapshot } from "../research-knowledge-repository-loader.js";
-import { writeGeneratedJson } from "../io.js";
+import { loadResearchLog, loadResearchState, writeGeneratedJson } from "../io.js";
 import { fail } from "./common.js";
 
 const OUTPUT_PATH = join(process.cwd(), "apps", "web", "public", "generated", "research-summary.json");
@@ -16,6 +16,8 @@ function main(): void {
   const summary = buildOwnerResearchSummary({
     snapshot: knowledge.snapshot,
     issues: knowledge.issues,
+    researchState: loadResearchState(),
+    researchLog: loadResearchLog(),
     generatedAt: new Date().toISOString(),
   });
 

@@ -17,6 +17,9 @@ export type OwnerResearchQuestionStatus =
   | 'blocked'
   | 'obsolete'
 
+export type OwnerFormalEdgeStatus = 'idea' | 'research' | 'shadow' | 'production' | 'rejected' | 'deprecated'
+export type OwnerGateState = 'pass' | 'fail' | 'unknown'
+
 export interface OwnerResearchQuestionSummary {
   id: string
   question: string
@@ -37,6 +40,55 @@ export interface OwnerResearchItemSummary {
   questions: OwnerResearchQuestionSummary[]
 }
 
+export interface OwnerFormalEdgeSummary {
+  id: string
+  title: string
+  status: OwnerFormalEdgeStatus
+  priority: 'S' | 'A' | 'B' | 'C'
+  confidence: number
+  hypothesis: string
+  lastUpdate: string
+  samples: {
+    current: number
+    required: number
+    analogCurrent: number
+    analogRequired: number
+  }
+  gate: {
+    pass: number
+    fail: number
+    unknown: number
+    total: number
+  }
+  verificationGaps: Array<{
+    key: string
+    state: OwnerGateState
+    explanation: string | null
+  }>
+  requiredData: string[]
+}
+
+export interface OwnerResearchTimelineEntry {
+  id: string
+  at: string
+  type: string
+  edgeId?: string
+  summary: string
+  findings: string[]
+  dataGaps: string[]
+  nextActions: string[]
+}
+
+export interface OwnerResearchCheckpointSummary {
+  sequence: number
+  savedAt: string
+  researchedEdgeId?: string
+  researchDone: string
+  dataGaps: string[]
+  nextCandidates: Array<{ edgeId: string; why: string }>
+  openQuestions: string[]
+}
+
 export interface OwnerResearchSummary {
   schemaVersion: 1
   generatedAt: string | null
@@ -47,8 +99,13 @@ export interface OwnerResearchSummary {
     activeResearchItems: number
     unresolvedQuestions: number
     researchFamilies: number
+    formalEdges: number
+    activeFormalEdges: number
   }
   researchItems: OwnerResearchItemSummary[]
+  formalEdges: OwnerFormalEdgeSummary[]
+  timeline: OwnerResearchTimelineEntry[]
+  checkpoint: OwnerResearchCheckpointSummary | null
   warning: string | null
 }
 
@@ -59,8 +116,18 @@ const FALLBACK: OwnerResearchSummary = {
   generatedAt: null,
   latestResearchAt: null,
   integrity: { status: 'attention', issueCount: 0 },
-  counts: { researchItems: 0, activeResearchItems: 0, unresolvedQuestions: 0, researchFamilies: 0 },
+  counts: {
+    researchItems: 0,
+    activeResearchItems: 0,
+    unresolvedQuestions: 0,
+    researchFamilies: 0,
+    formalEdges: 0,
+    activeFormalEdges: 0,
+  },
   researchItems: [],
+  formalEdges: [],
+  timeline: [],
+  checkpoint: null,
   warning: '研究サマリーを読み込めませんでした。生成データを確認してください。',
 }
 
@@ -70,6 +137,11 @@ const ITEM_STATUSES = new Set<OwnerResearchItemStatus>([
 const QUESTION_STATUSES = new Set<OwnerResearchQuestionStatus>([
   'open', 'partially_answered', 'answered', 'blocked', 'obsolete',
 ])
+const EDGE_STATUSES = new Set<OwnerFormalEdgeStatus>([
+  'idea', 'research', 'shadow', 'production', 'rejected', 'deprecated',
+])
+const EDGE_PRIORITIES = new Set(['S', 'A', 'B', 'C'])
+const GATE_STATES = new Set<OwnerGateState>(['pass', 'fail', 'unknown'])
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
@@ -77,6 +149,10 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 function isNonNegativeInteger(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string')
 }
 
 function isQuestion(value: unknown): value is OwnerResearchQuestionSummary {
@@ -107,6 +183,65 @@ function isItem(value: unknown): value is OwnerResearchItemSummary {
     && value.questions.every(isQuestion)
 }
 
+function isEdge(value: unknown): value is OwnerFormalEdgeSummary {
+  if (!isObject(value) || !isObject(value.samples) || !isObject(value.gate)) return false
+  return typeof value.id === 'string'
+    && value.id.length > 0
+    && typeof value.title === 'string'
+    && typeof value.status === 'string'
+    && EDGE_STATUSES.has(value.status as OwnerFormalEdgeStatus)
+    && typeof value.priority === 'string'
+    && EDGE_PRIORITIES.has(value.priority)
+    && typeof value.confidence === 'number'
+    && Number.isFinite(value.confidence)
+    && value.confidence >= 0
+    && value.confidence <= 1
+    && typeof value.hypothesis === 'string'
+    && typeof value.lastUpdate === 'string'
+    && isNonNegativeInteger(value.samples.current)
+    && isNonNegativeInteger(value.samples.required)
+    && isNonNegativeInteger(value.samples.analogCurrent)
+    && isNonNegativeInteger(value.samples.analogRequired)
+    && isNonNegativeInteger(value.gate.pass)
+    && isNonNegativeInteger(value.gate.fail)
+    && isNonNegativeInteger(value.gate.unknown)
+    && isNonNegativeInteger(value.gate.total)
+    && value.gate.pass + value.gate.fail + value.gate.unknown === value.gate.total
+    && Array.isArray(value.verificationGaps)
+    && value.verificationGaps.every((gap) => isObject(gap)
+      && typeof gap.key === 'string'
+      && typeof gap.state === 'string'
+      && GATE_STATES.has(gap.state as OwnerGateState)
+      && (gap.explanation === null || typeof gap.explanation === 'string'))
+    && isStringArray(value.requiredData)
+}
+
+function isTimelineEntry(value: unknown): value is OwnerResearchTimelineEntry {
+  if (!isObject(value)) return false
+  return typeof value.id === 'string'
+    && typeof value.at === 'string'
+    && typeof value.type === 'string'
+    && (value.edgeId === undefined || typeof value.edgeId === 'string')
+    && typeof value.summary === 'string'
+    && isStringArray(value.findings)
+    && isStringArray(value.dataGaps)
+    && isStringArray(value.nextActions)
+}
+
+function isCheckpoint(value: unknown): value is OwnerResearchCheckpointSummary {
+  if (!isObject(value)) return false
+  return isNonNegativeInteger(value.sequence)
+    && typeof value.savedAt === 'string'
+    && (value.researchedEdgeId === undefined || typeof value.researchedEdgeId === 'string')
+    && typeof value.researchDone === 'string'
+    && isStringArray(value.dataGaps)
+    && Array.isArray(value.nextCandidates)
+    && value.nextCandidates.every((candidate) => isObject(candidate)
+      && typeof candidate.edgeId === 'string'
+      && typeof candidate.why === 'string')
+    && isStringArray(value.openQuestions)
+}
+
 function parseSummary(value: unknown): OwnerResearchSummary | null {
   if (!isObject(value) || value.schemaVersion !== 1) return null
   if (typeof value.generatedAt !== 'string') return null
@@ -117,8 +252,13 @@ function parseSummary(value: unknown): OwnerResearchSummary | null {
   if (!isNonNegativeInteger(value.counts.researchItems)
     || !isNonNegativeInteger(value.counts.activeResearchItems)
     || !isNonNegativeInteger(value.counts.unresolvedQuestions)
-    || !isNonNegativeInteger(value.counts.researchFamilies)) return null
+    || !isNonNegativeInteger(value.counts.researchFamilies)
+    || !isNonNegativeInteger(value.counts.formalEdges)
+    || !isNonNegativeInteger(value.counts.activeFormalEdges)) return null
   if (!Array.isArray(value.researchItems) || !value.researchItems.every(isItem)) return null
+  if (!Array.isArray(value.formalEdges) || !value.formalEdges.every(isEdge)) return null
+  if (!Array.isArray(value.timeline) || !value.timeline.every(isTimelineEntry)) return null
+  if (value.checkpoint !== null && !isCheckpoint(value.checkpoint)) return null
 
   return {
     schemaVersion: 1,
@@ -127,6 +267,9 @@ function parseSummary(value: unknown): OwnerResearchSummary | null {
     integrity: value.integrity as OwnerResearchSummary['integrity'],
     counts: value.counts as OwnerResearchSummary['counts'],
     researchItems: value.researchItems,
+    formalEdges: value.formalEdges,
+    timeline: value.timeline,
+    checkpoint: value.checkpoint,
     warning: null,
   }
 }
