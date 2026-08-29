@@ -1,0 +1,9 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: starlink-value-transfer-signals-address-transition
+relationType: addresses
+sourceType: research_question
+sourceId: starlink-value-transfer-signals
+targetType: research_item
+targetId: starlink-connectivity-transition
+createdAt: "2026-08-29T11:58:10+09:00"

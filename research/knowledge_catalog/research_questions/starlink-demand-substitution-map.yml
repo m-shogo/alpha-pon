@@ -1,0 +1,7 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: starlink-demand-substitution-map
+question: >-
+  As Starlink and direct-to-device satellite connectivity expand beyond terrestrial coverage, which products, services and industries gain demand because remote connectivity becomes cheaper or more reliable, which legacy connectivity, infrastructure, monitoring and safety solutions lose demand through substitution, and which indirect second- or third-order Japanese listed companies develop measurable earnings sensitivity before the value transfer is fully reflected in market expectations?
+status: open
+createdAt: "2026-08-29T11:58:10+09:00"

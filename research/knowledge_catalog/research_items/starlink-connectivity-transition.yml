@@ -1,0 +1,12 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: starlink-connectivity-transition
+title: Starlink Connectivity Transition — Second-Order Demand & Substitution
+aliases:
+  - Starlink second-order demand map
+  - ubiquitous satellite connectivity transition
+status: investigating
+createdAt: "2026-08-29T11:58:10+09:00"
+origin: user
+summary: >-
+  Study Starlink as a broad connectivity shock rather than a telecom-stock proxy. As Direct-to-Cell, IoT, business, maritime, aviation and other satellite connectivity reduce the cost and friction of staying connected outside terrestrial coverage, map both sides of the value transfer: products, services and industries whose demand becomes newly viable or expands; upstream and downstream capacity that gains value; and legacy connectivity, safety, monitoring or infrastructure solutions whose demand may be substituted or structurally reduced. Extend the map to indirect second- and third-order Japanese listed-company exposure, but require a measurable causal transmission path and primary evidence before creating a company hypothesis or Formal Edge. Separate headline adoption from realized revenue, margin, churn, capex and other economic effects.
