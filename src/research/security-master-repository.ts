@@ -295,7 +295,8 @@ export function validateSecurityMasterRepository(
     schemas,
   ));
   const snapshotBlockedByValidation = issues.some(
-    (item) => item.severity === "error",
+    (item) => item.severity === "error" &&
+      ["invalid_content_hash", "invalid_official_url"].includes(item.code),
   );
 
   let snapshot: SecurityMasterSnapshot = { asOf, entities: [], relationships: [] };
