@@ -86,4 +86,63 @@ try {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("security-master revision retrieval projection: impossible superseding retrieval fails closed OK");
+const orphanDir = mkdtempSync(join(tmpdir(), "security-master-orphan-revision-projection-"));
+const orphanEntitiesPath = join(orphanDir, "entities.jsonl");
+const orphanRelationshipsPath = join(orphanDir, "relationships.jsonl");
+
+try {
+  const orphan = withSecurityEntityHash({
+    schemaVersion: 1,
+    recordId: "entity:orphan-revision:record:002",
+    entityId: "entity:orphan-revision",
+    entityType: "legal_entity",
+    canonicalName: "Orphan Revision株式会社",
+    jurisdiction: "JP",
+    validFrom: "2020-01-01",
+    status: "active",
+    names: [{
+      name: "Orphan Revision株式会社",
+      kind: "legal",
+      language: "ja",
+      validFrom: "2020-01-01",
+      sourceRefs: ["source:name:orphan-revision:002"],
+    }],
+    identifiers: [{
+      type: "internal",
+      value: "entity:orphan-revision",
+      validFrom: "2020-01-01",
+      confidence: "verified",
+      sourceRefs: ["source:id:orphan-revision:002"],
+    }],
+    officialLinks: [],
+    sourceRefs: ["source:entity:orphan-revision:002"],
+    observedAt: "2026-08-06T09:00:00+09:00",
+    retrievedAt: "2026-08-06T10:00:00+09:00",
+    supersedesRecordId: "entity:orphan-revision:record:001",
+  });
+
+  writeFileSync(orphanEntitiesPath, `${JSON.stringify(orphan)}\n`, "utf-8");
+  writeFileSync(orphanRelationshipsPath, "", "utf-8");
+
+  const result = validateSecurityMasterRepository({
+    entitiesPath: orphanEntitiesPath,
+    relationshipsPath: orphanRelationshipsPath,
+    asOf: "2026-08-06",
+    cutoffInstant: "2026-08-06T12:00:00+09:00",
+  });
+
+  assert.ok(result.issues.some((item) =>
+    item.code === "missing_entity_revision_parent" && item.target === orphan.recordId,
+  ));
+  assert.equal(result.entityRecordCount, 1, "raw orphan revision remains visible to diagnostics");
+  assert.equal(result.activeEntityCount, 0);
+  assert.deepEqual(
+    result.snapshot.entities,
+    [],
+    "a revision whose declared parent is absent must not become a PIT snapshot head",
+  );
+} finally {
+  rmSync(orphanDir, { recursive: true, force: true });
+}
+
+console.log("security-master revision retrieval projection: invalid superseding revisions fail closed OK");
