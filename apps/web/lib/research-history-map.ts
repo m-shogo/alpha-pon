@@ -19,6 +19,22 @@ export type OwnerHistoricalAnalogSourceType =
 export type OwnerResearchComponentKind = 'phase' | 'subsignal' | 'filter' | 'cohort' | 'calibration' | 'guard' | 'fixture'
 export type OwnerResearchComponentStatus = 'active' | 'resolved' | 'deprecated' | 'archived'
 export type OwnerResearchLineageType = 'derived_from' | 'merged_into' | 'split_into' | 'supersedes' | 'reclassified_as'
+export type OwnerResearchStudyMode = 'exploratory' | 'calibration' | 'confirmatory' | 'holdout' | 'out_of_sample' | 'revalidation'
+export type OwnerResearchStudyStatus = 'draft' | 'registered' | 'running' | 'completed' | 'cancelled' | 'archived'
+export type OwnerResearchIdentificationQuality = 'unidentified' | 'descriptive' | 'correlational' | 'suggestive_causal' | 'strong_causal'
+export type OwnerResearchExploitability = 'unknown' | 'observed_effect_only' | 'statistical_edge' | 'economic_edge' | 'executable_edge' | 'not_executable'
+export type OwnerResearchNegativeFinding =
+  | 'wrong_mechanism'
+  | 'already_priced_in'
+  | 'no_effect'
+  | 'inverse_effect'
+  | 'confounded'
+  | 'not_executable'
+  | 'regime_dependent'
+  | 'data_artifact'
+  | 'false_analogy'
+  | 'selection_bias'
+  | 'insufficient_sample'
 
 export interface OwnerHistoryMapFamilyMember {
   type: 'research_item' | 'edge'
@@ -112,6 +128,30 @@ export interface OwnerHistoryMapLineage {
   reason: string
 }
 
+export interface OwnerHistoryMapStudy {
+  id: string
+  title: string
+  mode: OwnerResearchStudyMode
+  status: OwnerResearchStudyStatus
+  createdAt: string
+  registeredAt?: string
+  informationCutoff?: string
+  purpose: string
+  population?: string
+  primaryMetric?: string
+}
+
+export interface OwnerHistoryMapStudyResult {
+  id: string
+  studyId: string
+  createdAt: string
+  effectSummary: string
+  identificationQuality: OwnerResearchIdentificationQuality
+  exploitability: OwnerResearchExploitability
+  limitations: string[]
+  negativeFindings: OwnerResearchNegativeFinding[]
+}
+
 export interface OwnerResearchHistoryMap {
   schemaVersion: 1
   generatedAt: string | null
@@ -131,6 +171,8 @@ export interface OwnerResearchHistoryMap {
   cases: OwnerHistoryMapCase[]
   researchComponents: OwnerHistoryMapComponent[]
   lineages: OwnerHistoryMapLineage[]
+  studies: OwnerHistoryMapStudy[]
+  studyResults: OwnerHistoryMapStudyResult[]
   warning: string | null
 }
 
@@ -155,6 +197,8 @@ const FALLBACK: OwnerResearchHistoryMap = {
   cases: [],
   researchComponents: [],
   lineages: [],
+  studies: [],
+  studyResults: [],
   warning: '研究マップ・過去事例データを読み込めませんでした。生成データを確認してください。',
 }
 
@@ -169,6 +213,14 @@ const CASE_STATUSES = new Set(['open', 'closed', 'archived'])
 const COMPONENT_KINDS = new Set<OwnerResearchComponentKind>(['phase', 'subsignal', 'filter', 'cohort', 'calibration', 'guard', 'fixture'])
 const COMPONENT_STATUSES = new Set<OwnerResearchComponentStatus>(['active', 'resolved', 'deprecated', 'archived'])
 const LINEAGE_TYPES = new Set<OwnerResearchLineageType>(['derived_from', 'merged_into', 'split_into', 'supersedes', 'reclassified_as'])
+const STUDY_MODES = new Set<OwnerResearchStudyMode>(['exploratory', 'calibration', 'confirmatory', 'holdout', 'out_of_sample', 'revalidation'])
+const STUDY_STATUSES = new Set<OwnerResearchStudyStatus>(['draft', 'registered', 'running', 'completed', 'cancelled', 'archived'])
+const IDENTIFICATION_QUALITIES = new Set<OwnerResearchIdentificationQuality>(['unidentified', 'descriptive', 'correlational', 'suggestive_causal', 'strong_causal'])
+const EXPLOITABILITIES = new Set<OwnerResearchExploitability>(['unknown', 'observed_effect_only', 'statistical_edge', 'economic_edge', 'executable_edge', 'not_executable'])
+const NEGATIVE_FINDINGS = new Set<OwnerResearchNegativeFinding>([
+  'wrong_mechanism', 'already_priced_in', 'no_effect', 'inverse_effect', 'confounded', 'not_executable',
+  'regime_dependent', 'data_artifact', 'false_analogy', 'selection_bias', 'insufficient_sample',
+])
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
@@ -313,6 +365,40 @@ function isLineage(value: unknown): value is OwnerHistoryMapLineage {
     && typeof value.reason === 'string'
 }
 
+function isStudy(value: unknown): value is OwnerHistoryMapStudy {
+  if (!isObject(value)) return false
+  return typeof value.id === 'string'
+    && value.id.length > 0
+    && typeof value.title === 'string'
+    && typeof value.mode === 'string'
+    && STUDY_MODES.has(value.mode as OwnerResearchStudyMode)
+    && typeof value.status === 'string'
+    && STUDY_STATUSES.has(value.status as OwnerResearchStudyStatus)
+    && typeof value.createdAt === 'string'
+    && (value.registeredAt === undefined || typeof value.registeredAt === 'string')
+    && (value.informationCutoff === undefined || typeof value.informationCutoff === 'string')
+    && typeof value.purpose === 'string'
+    && (value.population === undefined || typeof value.population === 'string')
+    && (value.primaryMetric === undefined || typeof value.primaryMetric === 'string')
+}
+
+function isStudyResult(value: unknown): value is OwnerHistoryMapStudyResult {
+  if (!isObject(value)) return false
+  return typeof value.id === 'string'
+    && value.id.length > 0
+    && typeof value.studyId === 'string'
+    && value.studyId.length > 0
+    && typeof value.createdAt === 'string'
+    && typeof value.effectSummary === 'string'
+    && typeof value.identificationQuality === 'string'
+    && IDENTIFICATION_QUALITIES.has(value.identificationQuality as OwnerResearchIdentificationQuality)
+    && typeof value.exploitability === 'string'
+    && EXPLOITABILITIES.has(value.exploitability as OwnerResearchExploitability)
+    && isStringArray(value.limitations)
+    && Array.isArray(value.negativeFindings)
+    && value.negativeFindings.every((finding) => typeof finding === 'string' && NEGATIVE_FINDINGS.has(finding as OwnerResearchNegativeFinding))
+}
+
 function parseHistoryMap(value: unknown): OwnerResearchHistoryMap | null {
   if (!isObject(value) || value.schemaVersion !== 1) return null
   if (typeof value.generatedAt !== 'string') return null
@@ -332,6 +418,9 @@ function parseHistoryMap(value: unknown): OwnerResearchHistoryMap | null {
   if (!Array.isArray(value.cases) || !value.cases.every(isCase)) return null
   if (!Array.isArray(value.researchComponents) || !value.researchComponents.every(isComponent)) return null
   if (!Array.isArray(value.lineages) || !value.lineages.every(isLineage)) return null
+  if (!Array.isArray(value.studies) || !value.studies.every(isStudy)) return null
+  if (!Array.isArray(value.studyResults) || !value.studyResults.every(isStudyResult)) return null
+  if (value.studies.length !== value.counts.studies || value.studyResults.length !== value.counts.studyResults) return null
 
   return {
     schemaVersion: 1,
@@ -342,6 +431,8 @@ function parseHistoryMap(value: unknown): OwnerResearchHistoryMap | null {
     cases: value.cases,
     researchComponents: value.researchComponents,
     lineages: value.lineages,
+    studies: value.studies,
+    studyResults: value.studyResults,
     warning: null,
   }
 }
