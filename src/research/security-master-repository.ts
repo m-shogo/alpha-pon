@@ -325,6 +325,16 @@ export function validateSecurityMasterRepository(
     (item) => item.severity === "error" &&
       ["invalid_content_hash", "invalid_official_url"].includes(item.code),
   );
+  const orphanedEntityRevisionIds = new Set(
+    issues
+      .filter((item) => item.severity === "error" && item.code === "missing_entity_revision_parent")
+      .map((item) => item.target),
+  );
+  const orphanedRelationshipRevisionIds = new Set(
+    issues
+      .filter((item) => item.severity === "error" && item.code === "missing_relationship_revision_parent")
+      .map((item) => item.target),
+  );
   const nonMonotonicEntityRevisionIds = new Set(
     issues
       .filter((item) => item.severity === "error" && item.code === "entity_revision_retrieval_not_monotonic")
@@ -362,10 +372,13 @@ export function validateSecurityMasterRepository(
     if (!snapshotBlockedByValidation) {
       const rawSnapshot = buildSecurityMasterSnapshot(
         recordsAvailableAt(entityRead.records, asOf, cutoffInstant).filter(
-          (record) => !nonMonotonicEntityRevisionIds.has(record.recordId),
+          (record) =>
+            !orphanedEntityRevisionIds.has(record.recordId) &&
+            !nonMonotonicEntityRevisionIds.has(record.recordId),
         ),
         recordsAvailableAt(relationshipRead.records, asOf, cutoffInstant).filter(
           (record) =>
+            !orphanedRelationshipRevisionIds.has(record.recordId) &&
             !nonMonotonicRelationshipRevisionIds.has(record.recordId) &&
             !chronologyBlockedRelationships.has(`${record.relationshipId}:${record.recordId}`) &&
             !(
