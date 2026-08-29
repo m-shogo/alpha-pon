@@ -105,11 +105,11 @@ import { withSecurityEntityHash } from "../../src/research/security-master.js";
 
     assert.ok(result.issues.some((item) => item.code === "invalid_official_url"));
     assert.equal(result.entityRecordCount, 1, "invalid governed records remain visible to diagnostics");
-    assert.equal(result.activeEntityCount, 0, "all governed errors must fail closed from read-only projection");
+    assert.equal(result.activeEntityCount, 0, "credential-like official URL errors must fail closed from read-only projection");
     assert.equal(result.snapshot.entities.length, 0);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 }
 
-console.log("security-master-repository: governed errors fail closed from snapshot OK");
+console.log("security-master-repository: blocked governed errors fail closed from snapshot OK");
