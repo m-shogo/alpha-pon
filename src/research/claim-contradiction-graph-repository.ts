@@ -24,6 +24,7 @@ import {
   CLAIM_GRAPH_SNAPSHOT_SCHEMA_PATH,
   validateGovernedClaimGraphSnapshot,
 } from "./claim-contradiction-graph-snapshot.js";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 import {
   SECURITY_MASTER_PATHS,
 } from "./security-master.js";
@@ -96,6 +97,7 @@ function nowIso(): string {
 }
 
 function jstDateOf(value: string): string {
+  parseExplicitIso8601Instant(value, "claim graph repository asOf");
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Tokyo",
     year: "numeric",
@@ -104,19 +106,40 @@ function jstDateOf(value: string): string {
   }).format(new Date(value));
 }
 
+function invalidAsOfResult(asOf: string, message: string): ClaimGraphRepositoryResult {
+  return {
+    issues: [issue("invalid_claim_graph_as_of", "asOf", message)],
+    claimRecordCount: 0,
+    edgeRecordCount: 0,
+    activeClaimHeadCount: 0,
+    snapshotClaimCount: 0,
+    snapshotEdgeCount: 0,
+    recommendationEligibleClaimCount: 0,
+    blockedClaimCount: 0,
+    assessments: [],
+    snapshot: null,
+  };
+}
+
 export function validateClaimGraphRepository(
   options: ClaimGraphRepositoryOptions = {},
 ): ClaimGraphRepositoryResult {
   const claimsPath = options.claimsPath ?? CLAIM_GRAPH_PATHS.claims;
   const edgesPath = options.edgesPath ?? CLAIM_GRAPH_PATHS.edges;
   const asOf = options.asOf ?? nowIso();
+  let asOfDate: string;
+  try {
+    asOfDate = jstDateOf(asOf);
+  } catch (error) {
+    return invalidAsOfResult(asOf, (error as Error).message);
+  }
   const claimsRead = readStrictJsonl<ClaimRecord>(claimsPath);
   const edgesRead = readStrictJsonl<ClaimGraphEdgeRecord>(edgesPath);
 
   const security = validateSecurityMasterRepository({
     entitiesPath: options.securityEntitiesPath ?? SECURITY_MASTER_PATHS.entities,
     relationshipsPath: options.securityRelationshipsPath ?? SECURITY_MASTER_PATHS.relationships,
-    asOf: jstDateOf(asOf),
+    asOf: asOfDate,
     cutoffInstant: asOf,
   });
   const evidence = validateBitemporalEvidenceRepository({
