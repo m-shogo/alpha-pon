@@ -81,7 +81,7 @@ jobs:
 
       - name: Orphan Discovery（警告のみ・自動登録なし）
         if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
-        run: pnpm research:orphans
+        run: pnpm research:orphans --limit=100
 
       - name: Append Only・不変性ガード
         if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
