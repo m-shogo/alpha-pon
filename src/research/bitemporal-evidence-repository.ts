@@ -84,6 +84,16 @@ function jstDateOf(value: string): string {
   }).format(new Date(value));
 }
 
+function emptySnapshot(asOf: string): EvidenceSnapshot {
+  return {
+    asOf,
+    mode: "system_replay",
+    boundary: "knowledge",
+    evidence: [],
+    relations: [],
+  };
+}
+
 function invalidAsOfResult(asOf: string, message: string): BitemporalEvidenceRepositoryResult {
   return {
     issues: [issue("invalid_evidence_repository_as_of", "asOf", message)],
@@ -94,13 +104,7 @@ function invalidAsOfResult(asOf: string, message: string): BitemporalEvidenceRep
     recommendationEligibleCount: 0,
     correctedOrRetractedCount: 0,
     discoveryOnlyCount: 0,
-    snapshot: {
-      asOf,
-      mode: "system_replay",
-      boundary: "knowledge",
-      evidence: [],
-      relations: [],
-    },
+    snapshot: emptySnapshot(asOf),
   };
 }
 
@@ -149,13 +153,15 @@ export function validateBitemporalEvidenceRepository(
     schemas,
     knownEntityIds,
   ));
-  const snapshot = buildEvidenceSnapshot(
-    evidenceRead.records,
-    relationRead.records,
-    asOf,
-    "system_replay",
-    "knowledge",
-  );
+  const snapshot = issues.some((item) => item.severity === "error")
+    ? emptySnapshot(asOf)
+    : buildEvidenceSnapshot(
+      evidenceRead.records,
+      relationRead.records,
+      asOf,
+      "system_replay",
+      "knowledge",
+    );
   const disposition = bindingDispositionByEvidenceId(snapshot);
   return {
     issues: sortIssues(issues),
