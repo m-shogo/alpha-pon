@@ -94,8 +94,26 @@ try {
   );
   assert.equal(result.snapshot, null);
   assert.equal(result.snapshotClaimCount, 0);
+
+  for (const asOf of ["not-a-time", "2026-08-06T12:00:00", "2026-02-31T12:00:00+09:00"]) {
+    const invalidResult = validateClaimGraphRepository({
+      claimsPath: paths.claims,
+      edgesPath: paths.edges,
+      evidencePath: paths.evidence,
+      evidenceRelationsPath: paths.evidenceRelations,
+      securityEntitiesPath: paths.securityEntities,
+      securityRelationshipsPath: paths.securityRelationships,
+      asOf,
+    });
+    assert.ok(
+      invalidResult.issues.some((item) => item.code === "invalid_claim_graph_as_of"),
+      `Claim Graph must fail closed with a structured issue for invalid asOf: ${asOf}`,
+    );
+    assert.equal(invalidResult.snapshot, null);
+    assert.equal(invalidResult.snapshotClaimCount, 0);
+  }
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("claim-graph-security-master-cutoff: future same-day identity fails closed OK");
+console.log("claim-graph-security-master-cutoff: PIT cutoff and invalid asOf fail closed OK");
