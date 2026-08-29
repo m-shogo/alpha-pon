@@ -98,8 +98,26 @@ try {
   );
   assert.equal(result.snapshot, null);
   assert.equal(result.snapshotRevisionCount, 0);
+
+  for (const asOf of ["not-a-time", "2026-08-06T12:00:00", "2026-02-31T12:00:00+09:00"]) {
+    const invalidResult = validateDocumentRevisionDiffRepository({
+      revisionsPath: paths.revisions,
+      diffsPath: paths.diffs,
+      evidencePath: paths.evidence,
+      evidenceRelationsPath: paths.evidenceRelations,
+      securityEntitiesPath: paths.securityEntities,
+      securityRelationshipsPath: paths.securityRelationships,
+      asOf,
+    });
+    assert.ok(
+      invalidResult.issues.some((item) => item.code === "invalid_document_revision_as_of"),
+      `Document Revision must fail closed with a structured issue for invalid asOf: ${asOf}`,
+    );
+    assert.equal(invalidResult.snapshot, null);
+    assert.equal(invalidResult.snapshotRevisionCount, 0);
+  }
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log("document-revision-security-master-cutoff: future same-day identity fails closed OK");
+console.log("document-revision-security-master-cutoff: PIT cutoff and invalid asOf fail closed OK");
