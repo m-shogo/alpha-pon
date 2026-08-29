@@ -1,0 +1,8 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: constraint-removal-value-transfer
+title: Constraint Removal and Value Transfer
+description: >-
+  Causal research family for technologies, infrastructure shifts, regulation changes or cost collapses that remove a previously binding constraint and reallocate economic value. Trace the chain from the removed constraint to newly viable behavior, demand creation, bottleneck relocation, substitution or obsolescence, capex/opex transfer, measurable listed-company earnings sensitivity and any lag in market expectations. Examples of constraints include connectivity, labor, cognition, energy storage, logistics, transaction friction and access to compute. This is a causal research family, not a sector/theme bucket or a Formal Edge; each member must establish that the constraint was actually binding and identify observable transmission evidence before company or Edge promotion.
+status: active
+createdAt: "2026-08-29T13:00:00+09:00"

@@ -1,0 +1,12 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: starlink-transition-primary-constraint-removal-family
+relationType: member_of
+sourceType: research_item
+sourceId: starlink-connectivity-transition
+targetType: research_family
+targetId: constraint-removal-value-transfer
+role: primary
+createdAt: "2026-08-29T13:00:00+09:00"
+notes: >-
+  Starlink is the first canonical member of the Constraint Removal and Value Transfer family: satellite connectivity reduces a geographic connectivity constraint, so research must trace newly viable activities, relocated bottlenecks, substitution losses and measurable value transfer rather than treating Starlink exposure itself as alpha.

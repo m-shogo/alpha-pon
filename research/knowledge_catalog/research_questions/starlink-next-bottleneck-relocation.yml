@@ -1,0 +1,7 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: starlink-next-bottleneck-relocation
+question: >-
+  When connectivity stops being the binding constraint in remote, mobile or previously unserved environments, which constraint becomes binding next — power, sensors, autonomy, cybersecurity, compute, regulation, maintenance, integration or something else — and which suppliers or legacy providers gain or lose measurable economic value as that bottleneck shifts before market expectations fully adjust?
+status: open
+createdAt: "2026-08-29T13:00:00+09:00"
