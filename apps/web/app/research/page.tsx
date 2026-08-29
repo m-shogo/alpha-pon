@@ -129,7 +129,7 @@ export default function ResearchPage() {
             ['#research-overview', '概要'],
             ['#research-items', '研究テーマ'],
             ['#formal-edges', 'Formal Edge'],
-            ['#checkpoint', '現在地'],
+            ...(data.checkpoint ? [['#checkpoint', '現在地']] : []),
             ['#research-timeline', '履歴'],
             ['#knowledge-map', '知識マップ'],
           ].map(([href, label]) => (
