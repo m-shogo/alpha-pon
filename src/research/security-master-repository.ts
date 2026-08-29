@@ -337,12 +337,18 @@ export function validateSecurityMasterRepository(
   );
   const nonMonotonicEntityRevisionIds = new Set(
     issues
-      .filter((item) => item.severity === "error" && item.code === "entity_revision_retrieval_not_monotonic")
+      .filter((item) => item.severity === "error" && [
+        "entity_revision_time_not_monotonic",
+        "entity_revision_retrieval_not_monotonic",
+      ].includes(item.code))
       .map((item) => item.target),
   );
   const nonMonotonicRelationshipRevisionIds = new Set(
     issues
-      .filter((item) => item.severity === "error" && item.code === "relationship_revision_retrieval_not_monotonic")
+      .filter((item) => item.severity === "error" && [
+        "relationship_revision_time_not_monotonic",
+        "relationship_revision_retrieval_not_monotonic",
+      ].includes(item.code))
       .map((item) => item.target),
   );
   const chronologyBlockedRelationships = new Set(
