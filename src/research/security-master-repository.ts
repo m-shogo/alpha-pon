@@ -297,21 +297,23 @@ export function validateSecurityMasterRepository(
   const snapshotBlockedByValidation = issues.some((item) => item.severity === "error");
 
   let snapshot: SecurityMasterSnapshot = { asOf, entities: [], relationships: [] };
-  if (validAsOf && validCutoffInstant && !snapshotBlockedByValidation) {
+  if (validAsOf && validCutoffInstant) {
     issues.push(
       ...historicalRevisionShadowingIssues(entityRead.records, asOf, cutoffInstant, "entity"),
       ...historicalRevisionShadowingIssues(relationshipRead.records, asOf, cutoffInstant, "relationship"),
       ...futureRevisionShadowingIssues(entityRead.records, asOf, cutoffInstant, "entity"),
       ...futureRevisionShadowingIssues(relationshipRead.records, asOf, cutoffInstant, "relationship"),
     );
-    const rawSnapshot = buildSecurityMasterSnapshot(
-      recordsAvailableAt(entityRead.records, asOf, cutoffInstant),
-      recordsAvailableAt(relationshipRead.records, asOf, cutoffInstant),
-      asOf,
-    );
-    const endpointIntegrity = enforceSnapshotEndpointIntegrity(rawSnapshot);
-    issues.push(...endpointIntegrity.issues);
-    snapshot = endpointIntegrity.snapshot;
+    if (!snapshotBlockedByValidation) {
+      const rawSnapshot = buildSecurityMasterSnapshot(
+        recordsAvailableAt(entityRead.records, asOf, cutoffInstant),
+        recordsAvailableAt(relationshipRead.records, asOf, cutoffInstant),
+        asOf,
+      );
+      const endpointIntegrity = enforceSnapshotEndpointIntegrity(rawSnapshot);
+      issues.push(...endpointIntegrity.issues);
+      snapshot = endpointIntegrity.snapshot;
+    }
   }
 
   return {
