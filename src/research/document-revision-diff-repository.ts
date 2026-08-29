@@ -24,6 +24,7 @@ import {
   DOCUMENT_REVISION_DIFF_SNAPSHOT_SCHEMA_PATH,
   validateGovernedDocumentRevisionDiffSnapshot,
 } from "./document-revision-diff-snapshot.js";
+import { parseExplicitIso8601Instant } from "./iso-instant.js";
 import {
   SECURITY_MASTER_PATHS,
 } from "./security-master.js";
@@ -108,6 +109,7 @@ function nowIso(): string {
 }
 
 function jstDateOf(value: string): string {
+  parseExplicitIso8601Instant(value, "document revision repository asOf");
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Tokyo",
     year: "numeric",
@@ -116,19 +118,40 @@ function jstDateOf(value: string): string {
   }).format(new Date(value));
 }
 
+function invalidAsOfResult(message: string): DocumentRevisionDiffRepositoryResult {
+  return {
+    issues: [issue("invalid_document_revision_as_of", "asOf", message)],
+    revisionRecordCount: 0,
+    diffRecordCount: 0,
+    activeRevisionHeadCount: 0,
+    activeDiffHeadCount: 0,
+    snapshotRevisionCount: 0,
+    snapshotDiffCount: 0,
+    claimEligibleChangeCount: 0,
+    claimEligibleChanges: [],
+    snapshot: null,
+  };
+}
+
 export function validateDocumentRevisionDiffRepository(
   options: DocumentRevisionDiffRepositoryOptions = {},
 ): DocumentRevisionDiffRepositoryResult {
   const revisionsPath = options.revisionsPath ?? DOCUMENT_REVISION_DIFF_PATHS.revisions;
   const diffsPath = options.diffsPath ?? DOCUMENT_REVISION_DIFF_PATHS.diffs;
   const asOf = options.asOf ?? nowIso();
+  let asOfDate: string;
+  try {
+    asOfDate = jstDateOf(asOf);
+  } catch (error) {
+    return invalidAsOfResult((error as Error).message);
+  }
   const revisionsRead = readStrictJsonl<DocumentRevisionRecord>(revisionsPath);
   const diffsRead = readStrictJsonl<DocumentDiffRecord>(diffsPath);
 
   const security = validateSecurityMasterRepository({
     entitiesPath: options.securityEntitiesPath ?? SECURITY_MASTER_PATHS.entities,
     relationshipsPath: options.securityRelationshipsPath ?? SECURITY_MASTER_PATHS.relationships,
-    asOf: jstDateOf(asOf),
+    asOf: asOfDate,
     cutoffInstant: asOf,
   });
   const evidence = validateBitemporalEvidenceRepository({
