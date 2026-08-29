@@ -294,7 +294,9 @@ export function validateSecurityMasterRepository(
     relationshipRead.records,
     schemas,
   ));
-  const snapshotBlockedByValidation = issues.some((item) => item.severity === "error");
+  const snapshotBlockedByValidation = issues.some(
+    (item) => item.severity === "error" && item.code === "invalid_content_hash",
+  );
 
   let snapshot: SecurityMasterSnapshot = { asOf, entities: [], relationships: [] };
   if (validAsOf && validCutoffInstant) {
