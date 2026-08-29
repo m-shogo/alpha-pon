@@ -2,9 +2,14 @@ import type { ResearchKnowledgeIntegritySnapshot } from "./research-knowledge-in
 import type {
   ResearchComponentKind,
   ResearchComponentStatus,
+  ResearchExploitability,
   ResearchFamilyRecord,
+  ResearchIdentificationQuality,
   ResearchItemRecord,
   ResearchLineageType,
+  ResearchNegativeFinding,
+  ResearchStudyMode,
+  ResearchStudyStatus,
 } from "./research-knowledge-types.js";
 import type { HistoricalAnalog, ResearchState } from "./types.js";
 
@@ -102,6 +107,30 @@ export interface OwnerHistoryMapLineage {
   reason: string;
 }
 
+export interface OwnerHistoryMapStudy {
+  id: string;
+  title: string;
+  mode: ResearchStudyMode;
+  status: ResearchStudyStatus;
+  createdAt: string;
+  registeredAt?: string;
+  informationCutoff?: string;
+  purpose: string;
+  population?: string;
+  primaryMetric?: string;
+}
+
+export interface OwnerHistoryMapStudyResult {
+  id: string;
+  studyId: string;
+  createdAt: string;
+  effectSummary: string;
+  identificationQuality: ResearchIdentificationQuality;
+  exploitability: ResearchExploitability;
+  limitations: string[];
+  negativeFindings: ResearchNegativeFinding[];
+}
+
 export interface OwnerResearchHistoryMap {
   schemaVersion: 1;
   generatedAt: string;
@@ -121,6 +150,8 @@ export interface OwnerResearchHistoryMap {
   cases: OwnerHistoryMapCase[];
   researchComponents: OwnerHistoryMapComponent[];
   lineages: OwnerHistoryMapLineage[];
+  studies: OwnerHistoryMapStudy[];
+  studyResults: OwnerHistoryMapStudyResult[];
 }
 
 function familyMembers(
@@ -287,6 +318,44 @@ function summarizeComponents(snapshot: ResearchKnowledgeIntegritySnapshot): Owne
     .sort((left, right) => left.title.localeCompare(right.title));
 }
 
+function summarizeStudies(snapshot: ResearchKnowledgeIntegritySnapshot): OwnerHistoryMapStudy[] {
+  return snapshot.studies
+    .map((study) => ({
+      id: study.id,
+      title: study.title,
+      mode: study.mode,
+      status: study.status,
+      createdAt: study.createdAt,
+      ...(study.registeredAt ? { registeredAt: study.registeredAt } : {}),
+      ...(study.informationCutoff ? { informationCutoff: study.informationCutoff } : {}),
+      purpose: study.purpose,
+      ...(study.population ? { population: study.population } : {}),
+      ...(study.primaryMetric ? { primaryMetric: study.primaryMetric } : {}),
+    }))
+    .sort((left, right) => {
+      const date = (right.registeredAt ?? right.createdAt).localeCompare(left.registeredAt ?? left.createdAt);
+      return date !== 0 ? date : left.id.localeCompare(right.id);
+    });
+}
+
+function summarizeStudyResults(snapshot: ResearchKnowledgeIntegritySnapshot): OwnerHistoryMapStudyResult[] {
+  return snapshot.studyResults
+    .map((result) => ({
+      id: result.id,
+      studyId: result.studyId,
+      createdAt: result.createdAt,
+      effectSummary: result.effectSummary,
+      identificationQuality: result.identificationQuality,
+      exploitability: result.exploitability,
+      limitations: [...result.limitations],
+      negativeFindings: [...(result.negativeFindings ?? [])],
+    }))
+    .sort((left, right) => {
+      const date = right.createdAt.localeCompare(left.createdAt);
+      return date !== 0 ? date : left.id.localeCompare(right.id);
+    });
+}
+
 function nodeTitle(
   type: string,
   id: string,
@@ -358,5 +427,7 @@ export function buildOwnerResearchHistoryMap(input: {
     cases: summarizeCases(snapshot),
     researchComponents: summarizeComponents(snapshot),
     lineages: summarizeLineages(snapshot, researchState),
+    studies: summarizeStudies(snapshot),
+    studyResults: summarizeStudyResults(snapshot),
   };
 }
