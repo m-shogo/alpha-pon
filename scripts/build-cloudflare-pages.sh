@@ -12,22 +12,22 @@ run_ts() {
   node --import tsx/esm "$@"
 }
 
-echo "[1/11] Verify market event contracts"
+echo "[1/12] Verify market event contracts"
 run_ts scripts/verify-market-event-foundation.ts
 run_ts scripts/verify-market-event-schema.ts
 run_ts scripts/verify-market-event-end-to-end.ts
 run_ts scripts/verify-pages-market-event-function.ts
 
-echo "[2/11] Verify append-only revision guards"
+echo "[2/12] Verify append-only revision guards"
 run_ts scripts/verify-market-event-revision-guards.ts
 
-echo "[3/11] Verify deterministic D1 bootstrap"
+echo "[3/12] Verify deterministic D1 bootstrap"
 run_ts scripts/verify-d1-bootstrap-export.ts
 
-echo "[4/11] Verify pre-Cloudflare readiness"
+echo "[4/12] Verify pre-Cloudflare readiness"
 run_ts scripts/verify-cloudflare-calendar-readiness.ts
 
-echo "[5/11] Build isolated market event snapshot"
+echo "[5/12] Build isolated market event snapshot"
 run_ts scripts/market-events.ts init --db "$DB_PATH" --write >/dev/null
 shopt -s nullglob
 EVENT_FILES=(config/market-events/*.json)
@@ -42,22 +42,25 @@ run_ts scripts/market-events.ts generate \
   --ics apps/web/public/generated/alpha-pon-events.ics \
   --write
 
-echo "[6/11] Generate existing Alpha Pon web data"
+echo "[6/12] Generate existing Alpha Pon web data"
 pnpm ui:data
 
-echo "[7/11] Generate Owner Research summary"
+echo "[7/12] Generate Owner Research summary"
 run_ts src/research/cli/owner-summary.ts
 
-echo "[8/11] Typecheck web"
+echo "[8/12] Generate Owner Research history map"
+run_ts src/research/cli/owner-history-map.ts
+
+echo "[9/12] Typecheck web"
 pnpm web:typecheck
 
-echo "[9/11] Lint web"
+echo "[10/12] Lint web"
 pnpm --filter @alpha-pon/web lint
 
-echo "[10/11] Build Next.js static export"
+echo "[11/12] Build Next.js static export"
 pnpm web:build
 
-echo "[11/11] Verify Pages output"
+echo "[12/12] Verify Pages output"
 test -f apps/web/out/index.html
 test -f apps/web/out/calendar/index.html
 test -f apps/web/out/research/index.html
@@ -66,6 +69,7 @@ test -f apps/web/out/_headers
 test -f apps/web/out/generated/alpha-pon-events.json
 test -f apps/web/out/generated/alpha-pon-events.ics
 test -f apps/web/out/generated/research-summary.json
+test -f apps/web/out/generated/research-history-map.json
 test -f apps/web/out/sw.js
 
 echo "cloudflare-pages-build: ok"

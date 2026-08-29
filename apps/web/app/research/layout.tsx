@@ -1,0 +1,11 @@
+import type { ReactNode } from 'react'
+import ResearchHistoryMap from '@/components/ResearchHistoryMap'
+
+export default function ResearchLayout({ children }: Readonly<{ children: ReactNode }>) {
+  return (
+    <>
+      {children}
+      <ResearchHistoryMap />
+    </>
+  )
+}
