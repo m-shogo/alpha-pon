@@ -11,6 +11,7 @@ import { PwaRegistrar } from './PwaRegistrar'
 function shellWidth(pathname: string): number {
   if (pathname.startsWith('/calendar')) return 1180
   if (pathname.startsWith('/ops')) return 760
+  if (pathname.startsWith('/research')) return 760
   return 480
 }
 

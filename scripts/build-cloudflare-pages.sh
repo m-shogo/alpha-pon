@@ -12,22 +12,22 @@ run_ts() {
   node --import tsx/esm "$@"
 }
 
-echo "[1/10] Verify market event contracts"
+echo "[1/11] Verify market event contracts"
 run_ts scripts/verify-market-event-foundation.ts
 run_ts scripts/verify-market-event-schema.ts
 run_ts scripts/verify-market-event-end-to-end.ts
 run_ts scripts/verify-pages-market-event-function.ts
 
-echo "[2/10] Verify append-only revision guards"
+echo "[2/11] Verify append-only revision guards"
 run_ts scripts/verify-market-event-revision-guards.ts
 
-echo "[3/10] Verify deterministic D1 bootstrap"
+echo "[3/11] Verify deterministic D1 bootstrap"
 run_ts scripts/verify-d1-bootstrap-export.ts
 
-echo "[4/10] Verify pre-Cloudflare readiness"
+echo "[4/11] Verify pre-Cloudflare readiness"
 run_ts scripts/verify-cloudflare-calendar-readiness.ts
 
-echo "[5/10] Build isolated market event snapshot"
+echo "[5/11] Build isolated market event snapshot"
 run_ts scripts/market-events.ts init --db "$DB_PATH" --write >/dev/null
 shopt -s nullglob
 EVENT_FILES=(config/market-events/*.json)
@@ -42,25 +42,30 @@ run_ts scripts/market-events.ts generate \
   --ics apps/web/public/generated/alpha-pon-events.ics \
   --write
 
-echo "[6/10] Generate existing Alpha Pon web data"
+echo "[6/11] Generate existing Alpha Pon web data"
 pnpm ui:data
 
-echo "[7/10] Typecheck web"
+echo "[7/11] Generate Owner Research summary"
+run_ts src/research/cli/owner-summary.ts
+
+echo "[8/11] Typecheck web"
 pnpm web:typecheck
 
-echo "[8/10] Lint web"
+echo "[9/11] Lint web"
 pnpm --filter @alpha-pon/web lint
 
-echo "[9/10] Build Next.js static export"
+echo "[10/11] Build Next.js static export"
 pnpm web:build
 
-echo "[10/10] Verify Pages output"
+echo "[11/11] Verify Pages output"
 test -f apps/web/out/index.html
 test -f apps/web/out/calendar/index.html
+test -f apps/web/out/research/index.html
 test -f apps/web/out/_routes.json
 test -f apps/web/out/_headers
 test -f apps/web/out/generated/alpha-pon-events.json
 test -f apps/web/out/generated/alpha-pon-events.ics
+test -f apps/web/out/generated/research-summary.json
 test -f apps/web/out/sw.js
 
 echo "cloudflare-pages-build: ok"

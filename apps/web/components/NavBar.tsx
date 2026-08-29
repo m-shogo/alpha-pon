@@ -10,6 +10,7 @@ const TABS = [
   { key: '/stocks',   label: '銘柄',   icon: 'watch' },
   { key: '/alerts',   label: '候補',   icon: 'bell' },
   { key: '/actions',  label: '行動',   icon: 'spark' },
+  { key: '/research', label: '研究',   icon: 'spark' },
   { key: '/reports',  label: '資料',   icon: 'doc' },
   { key: '/ops',      label: '運用',   icon: 'check' },
 ]
