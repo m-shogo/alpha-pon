@@ -184,4 +184,119 @@ import {
   }
 }
 
-console.log("security-master-repository: blocked governed errors and impossible relationship chronology fail closed from snapshot OK");
+{
+  const dir = mkdtempSync(join(tmpdir(), "security-master-repository-ambiguous-issuer-"));
+  const entitiesPath = join(dir, "entities.jsonl");
+  const relationshipsPath = join(dir, "relationships.jsonl");
+  try {
+    const issuer = (entityId: string, name: string) => withSecurityEntityHash({
+      schemaVersion: 1,
+      recordId: `${entityId}:record:001`,
+      entityId,
+      entityType: "legal_entity",
+      canonicalName: name,
+      jurisdiction: "JP",
+      validFrom: "2020-01-01",
+      status: "active",
+      names: [{
+        name,
+        kind: "legal",
+        language: "ja",
+        validFrom: "2020-01-01",
+        sourceRefs: [`source:name:${entityId}`],
+      }],
+      identifiers: [{
+        type: "internal",
+        value: entityId,
+        validFrom: "2020-01-01",
+        confidence: "verified",
+        sourceRefs: [`source:id:${entityId}`],
+      }],
+      officialLinks: [],
+      sourceRefs: [`source:entity:${entityId}`],
+      observedAt: "2026-08-06T09:00:00+09:00",
+      retrievedAt: "2026-08-06T09:01:00+09:00",
+    });
+    const issuerA = issuer("entity:issuer:a", "Issuer A株式会社");
+    const issuerB = issuer("entity:issuer:b", "Issuer B株式会社");
+    const security = withSecurityEntityHash({
+      schemaVersion: 1,
+      recordId: "entity:security:ambiguous:record:001",
+      entityId: "entity:security:ambiguous",
+      entityType: "listed_security",
+      canonicalName: "Ambiguous Security",
+      jurisdiction: "JP",
+      validFrom: "2020-01-01",
+      status: "active",
+      names: [{
+        name: "Ambiguous Security",
+        kind: "legal",
+        language: "en",
+        validFrom: "2020-01-01",
+        sourceRefs: ["source:name:ambiguous-security"],
+      }],
+      identifiers: [{
+        type: "jpx_code",
+        value: "9999",
+        validFrom: "2020-01-01",
+        confidence: "verified",
+        sourceRefs: ["source:id:ambiguous-security"],
+      }],
+      officialLinks: [],
+      sourceRefs: ["source:entity:ambiguous-security"],
+      observedAt: "2026-08-06T09:00:00+09:00",
+      retrievedAt: "2026-08-06T09:01:00+09:00",
+    });
+    const issuerRelationship = (recordId: string, relationshipId: string, fromEntityId: string) =>
+      withSecurityRelationshipHash({
+        schemaVersion: 1,
+        recordId,
+        relationshipId,
+        relationshipType: "issuer_of",
+        fromEntityId,
+        toEntityId: security.entityId,
+        validFrom: "2020-01-01",
+        confidence: "verified",
+        sourceRefs: [`source:${relationshipId}`],
+        observedAt: "2026-08-06T09:02:00+09:00",
+        retrievedAt: "2026-08-06T09:03:00+09:00",
+      });
+    const relationshipA = issuerRelationship(
+      "relationship:issuer:a:record:001",
+      "relationship:issuer:a",
+      issuerA.entityId,
+    );
+    const relationshipB = issuerRelationship(
+      "relationship:issuer:b:record:001",
+      "relationship:issuer:b",
+      issuerB.entityId,
+    );
+    writeFileSync(
+      entitiesPath,
+      `${JSON.stringify(issuerA)}\n${JSON.stringify(issuerB)}\n${JSON.stringify(security)}\n`,
+      "utf-8",
+    );
+    writeFileSync(
+      relationshipsPath,
+      `${JSON.stringify(relationshipA)}\n${JSON.stringify(relationshipB)}\n`,
+      "utf-8",
+    );
+
+    const result = validateSecurityMasterRepository({
+      entitiesPath,
+      relationshipsPath,
+      asOf: "2026-08-06",
+      cutoffInstant: "2026-08-06T12:00:00+09:00",
+    });
+
+    assert.ok(result.issues.some((item) => item.code === "overlapping_verified_issuers"));
+    assert.equal(result.relationshipRecordCount, 2, "conflicting issuer records remain visible to diagnostics");
+    assert.equal(result.activeEntityCount, 3, "valid entities remain visible in read-only projection");
+    assert.equal(result.activeRelationshipCount, 0, "ambiguous verified issuers must fail closed from snapshot");
+    assert.equal(result.snapshot.relationships.length, 0);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+console.log("security-master-repository: invalid and ambiguous relationships fail closed from snapshot OK");
