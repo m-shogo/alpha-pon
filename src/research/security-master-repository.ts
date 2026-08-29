@@ -391,6 +391,11 @@ export function validateSecurityMasterRepository(
       .filter((item) => item.severity === "error" && item.code === "history_relationship_type_mismatch")
       .map((item) => item.target),
   );
+  const ownershipPctBlockedRelationships = new Set(
+    issues
+      .filter((item) => item.severity === "error" && item.code === "ownership_pct_on_non_ownership_relationship")
+      .map((item) => item.target),
+  );
   const selfRelationshipTargets = new Set(
     issues
       .filter((item) => item.severity === "error" && item.code === "self_relationship")
@@ -433,6 +438,7 @@ export function validateSecurityMasterRepository(
             !chronologyBlockedRelationships.has(`${record.relationshipId}:${record.recordId}`) &&
             !endpointTypeBlockedRelationships.has(`relationship:${record.relationshipId}:${record.recordId}`) &&
             !historyTypeBlockedRelationships.has(`relationship:${record.relationshipId}:${record.recordId}`) &&
+            !ownershipPctBlockedRelationships.has(`relationship:${record.relationshipId}:${record.recordId}`) &&
             !selfRelationshipTargets.has(`relationship:${record.relationshipId}:${record.recordId}`) &&
             !(
               record.relationshipType === "parent_of" &&
