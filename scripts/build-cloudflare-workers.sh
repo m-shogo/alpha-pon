@@ -12,6 +12,7 @@ test -f apps/web/out/404.html
 test -f apps/web/out/_headers
 test -f apps/web/out/generated/alpha-pon-events.json
 test -f apps/web/out/generated/alpha-pon-events.ics
+test -f apps/web/out/generated/research-summary.json
 
 echo "[3/3] Verify Worker routing and configuration"
 node --import tsx/esm scripts/verify-workers-static-assets.ts
