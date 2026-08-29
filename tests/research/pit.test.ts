@@ -14,6 +14,7 @@ import "./market-event-exact-instant.test.js";
 import "./bitemporal-evidence-subms.test.js";
 import "./claim-graph-security-master-cutoff.test.js";
 import "./security-master-repository-fail-closed.test.js";
+import "./security-master-snapshot-ownership-inverse.test.js";
 import "./outcome-review-due-real-date.test.js";
 import "./research-log-time.test.js";
 import "./backtest-signal-identity.test.js";
