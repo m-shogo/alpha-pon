@@ -89,8 +89,8 @@ assert.deepEqual(result.studyResults, [
   },
 ]);
 
-const projectedStudy = result.studies[0] as Record<string, unknown>;
-const projectedResult = result.studyResults[0] as Record<string, unknown>;
+const projectedStudy = result.studies[0] as unknown as Record<string, unknown>;
+const projectedResult = result.studyResults[0] as unknown as Record<string, unknown>;
 assert.equal("benchmarkSpec" in projectedStudy, false, "Study benchmark internals must stay out of Owner projection");
 assert.equal("counterfactualPolicy" in projectedStudy, false, "Study counterfactual policy must stay out of Owner projection");
 assert.equal("confounderPolicy" in projectedStudy, false, "Study confounder policy must stay out of Owner projection");
