@@ -17,6 +17,7 @@ import "./security-master-repository-fail-closed.test.js";
 import "./security-master-snapshot-ownership-inverse.test.js";
 import "./security-master-revision-retrieval-projection.test.js";
 import "./security-master-revision-observed-projection.test.js";
+import "./security-master-revision-identity-projection.test.js";
 import "./outcome-review-due-real-date.test.js";
 import "./research-log-time.test.js";
 import "./backtest-signal-identity.test.js";
