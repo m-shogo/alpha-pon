@@ -294,9 +294,10 @@ export function validateSecurityMasterRepository(
     relationshipRead.records,
     schemas,
   ));
+  const snapshotBlockedByValidation = issues.some((item) => item.severity === "error");
 
   let snapshot: SecurityMasterSnapshot = { asOf, entities: [], relationships: [] };
-  if (validAsOf && validCutoffInstant) {
+  if (validAsOf && validCutoffInstant && !snapshotBlockedByValidation) {
     issues.push(
       ...historicalRevisionShadowingIssues(entityRead.records, asOf, cutoffInstant, "entity"),
       ...historicalRevisionShadowingIssues(relationshipRead.records, asOf, cutoffInstant, "relationship"),
@@ -311,10 +312,6 @@ export function validateSecurityMasterRepository(
     const endpointIntegrity = enforceSnapshotEndpointIntegrity(rawSnapshot);
     issues.push(...endpointIntegrity.issues);
     snapshot = endpointIntegrity.snapshot;
-  }
-
-  if (issues.some((item) => item.severity === "error")) {
-    snapshot = { asOf, entities: [], relationships: [] };
   }
 
   return {
