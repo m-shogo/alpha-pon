@@ -366,6 +366,11 @@ export function validateSecurityMasterRepository(
       .filter((item) => item.severity === "error" && item.code === "multiple_entity_heads")
       .map((item) => item.target),
   );
+  const multipleRelationshipHeadIds = new Set(
+    issues
+      .filter((item) => item.severity === "error" && item.code === "multiple_relationship_heads")
+      .map((item) => item.target),
+  );
   const chronologyBlockedRelationships = new Set(
     issues
       .filter((item) => item.severity === "error" && [
@@ -414,6 +419,7 @@ export function validateSecurityMasterRepository(
             !orphanedRelationshipRevisionIds.has(record.recordId) &&
             !identityMismatchRelationshipRevisionIds.has(record.recordId) &&
             !nonMonotonicRelationshipRevisionIds.has(record.recordId) &&
+            !multipleRelationshipHeadIds.has(record.relationshipId) &&
             !chronologyBlockedRelationships.has(`${record.relationshipId}:${record.recordId}`) &&
             !endpointTypeBlockedRelationships.has(`relationship:${record.relationshipId}:${record.recordId}`) &&
             !selfRelationshipTargets.has(`relationship:${record.relationshipId}:${record.recordId}`) &&
