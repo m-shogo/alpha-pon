@@ -323,6 +323,7 @@ export function validateSecurityMasterRepository(
   ));
   const snapshotBlockedByValidation = issues.some(
     (item) => item.severity === "error" && [
+      "schema_violation",
       "invalid_content_hash",
       "invalid_official_url",
       "duplicate_entity_record_id",
