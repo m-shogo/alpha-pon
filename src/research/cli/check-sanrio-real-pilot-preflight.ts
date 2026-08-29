@@ -1,16 +1,11 @@
-import { existsSync, lstatSync } from "node:fs";
-import { resolve } from "node:path";
 import {
   inspectSanrioRealPilotPreflightWithReadinessAdvisory,
   renderSanrioRealPilotPreflightWithReadinessAdvisory,
 } from "../edinet-sanrio-real-pilot-readiness-advisory.js";
+import { resolveCanonicalEdinetRoot } from "../edinet-local-root-boundary.js";
 
 function main(): void {
-  const dataRoot = resolve(process.cwd(), "data");
-  if (existsSync(dataRoot) && lstatSync(dataRoot).isSymbolicLink()) {
-    throw new Error("data/edinet parent data directory must not be a symlink");
-  }
-  const root = resolve(dataRoot, "edinet");
+  const root = resolveCanonicalEdinetRoot();
   const result = inspectSanrioRealPilotPreflightWithReadinessAdvisory(root);
   process.stdout.write(renderSanrioRealPilotPreflightWithReadinessAdvisory(result));
 
