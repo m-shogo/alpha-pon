@@ -25,18 +25,40 @@ export interface OwnerHistoryMapFamily {
   members: OwnerHistoryMapFamilyMember[];
 }
 
+export interface OwnerHistoryMapAnalogMarketReaction {
+  measuredAt: string;
+  horizonDays: number;
+  rawReturnBps: number;
+  benchmarkReturnBps?: number;
+  excessReturnBps?: number;
+  benchmark?: string;
+}
+
+export interface OwnerHistoryMapAnalogCounterfactual {
+  id: string;
+  method: string;
+  comparator: string;
+  differenceBps?: number;
+}
+
 export interface OwnerHistoryMapAnalog {
   id: string;
   eventType: string;
   companyCode: string;
   companyName: string;
   eventDate: string;
+  observedAt: string;
+  sourceType: HistoricalAnalog["sourceType"];
   summary: string;
   edgeIds: string[];
+  marketReaction: OwnerHistoryMapAnalogMarketReaction | null;
   outcome: {
     verdict: OwnerHistoricalAnalogVerdict;
     measuredAt: string;
+    roiBps?: number;
   } | null;
+  keyEvents: Array<{ date: string; label: string }>;
+  counterfactuals: OwnerHistoryMapAnalogCounterfactual[];
   dataGaps: string[];
 }
 
@@ -174,21 +196,48 @@ function summarizeFamilies(
     .sort((left, right) => left.title.localeCompare(right.title));
 }
 
-function summarizeAnalog(analog: HistoricalAnalog): OwnerHistoryMapAnalog {
+function summarizeAnalog(analog: HistoricalAnalog, researchState: ResearchState): OwnerHistoryMapAnalog {
   return {
     id: analog.id,
     eventType: analog.eventType,
     companyCode: analog.companyCode,
     companyName: analog.companyName,
     eventDate: analog.eventDate,
+    observedAt: analog.observedAt,
+    sourceType: analog.sourceType,
     summary: analog.summary,
     edgeIds: [...(analog.edgeIds ?? [])].sort(),
+    marketReaction: analog.marketReaction
+      ? {
+          measuredAt: analog.marketReaction.measuredAt,
+          horizonDays: analog.marketReaction.horizonDays,
+          rawReturnBps: analog.marketReaction.rawReturnBps,
+          ...(analog.marketReaction.benchmarkReturnBps !== undefined
+            ? { benchmarkReturnBps: analog.marketReaction.benchmarkReturnBps }
+            : {}),
+          ...(analog.marketReaction.excessReturnBps !== undefined
+            ? { excessReturnBps: analog.marketReaction.excessReturnBps }
+            : {}),
+          ...(analog.marketReaction.benchmark ? { benchmark: analog.marketReaction.benchmark } : {}),
+        }
+      : null,
     outcome: analog.outcome
       ? {
           verdict: analog.outcome.verdict,
           measuredAt: analog.outcome.measuredAt,
+          ...(analog.outcome.roiBps !== undefined ? { roiBps: analog.outcome.roiBps } : {}),
         }
       : null,
+    keyEvents: (analog.keyEvents ?? []).map((event) => ({ date: event.date, label: event.label })),
+    counterfactuals: researchState.counterfactuals
+      .filter((counterfactual) => counterfactual.analogId === analog.id)
+      .map((counterfactual) => ({
+        id: counterfactual.id,
+        method: counterfactual.method,
+        comparator: counterfactual.comparator,
+        ...(counterfactual.differenceBps !== undefined ? { differenceBps: counterfactual.differenceBps } : {}),
+      }))
+      .sort((left, right) => left.id.localeCompare(right.id)),
     dataGaps: [...(analog.dataGaps ?? [])],
   };
 }
@@ -280,7 +329,7 @@ export function buildOwnerResearchHistoryMap(input: {
 }): OwnerResearchHistoryMap {
   const { snapshot, researchState, generatedAt } = input;
   const historicalAnalogs = researchState.analogs
-    .map(summarizeAnalog)
+    .map((analog) => summarizeAnalog(analog, researchState))
     .sort((left, right) => {
       const date = right.eventDate.localeCompare(left.eventDate);
       return date !== 0 ? date : left.id.localeCompare(right.id);
