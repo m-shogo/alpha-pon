@@ -322,8 +322,12 @@ export function validateSecurityMasterRepository(
     schemas,
   ));
   const snapshotBlockedByValidation = issues.some(
-    (item) => item.severity === "error" &&
-      ["invalid_content_hash", "invalid_official_url"].includes(item.code),
+    (item) => item.severity === "error" && [
+      "invalid_content_hash",
+      "invalid_official_url",
+      "duplicate_entity_record_id",
+      "duplicate_relationship_record_id",
+    ].includes(item.code),
   );
   const orphanedEntityRevisionIds = new Set(
     issues
