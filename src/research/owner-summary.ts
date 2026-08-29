@@ -1,3 +1,5 @@
+import type { Issue } from "./edge-registry.js";
+import { evaluateGate, type HoldoutAccessEntry } from "./promotion.js";
 import type { ResearchKnowledgeIntegritySnapshot } from "./research-knowledge-integrity.js";
 import type { ResearchKnowledgeIssue } from "./research-knowledge-semantics.js";
 import type {
@@ -56,7 +58,11 @@ export interface OwnerFormalEdgeSummary {
   priority: Edge["priority"];
   confidence: number;
   hypothesis: string;
+  hypothesisPreview: string;
   lastUpdate: string;
+  lastResearchAt: string | null;
+  knownFindings: string[];
+  nextActions: string[];
   samples: {
     current: number;
     required: number;
@@ -82,6 +88,7 @@ export interface OwnerResearchTimelineEntry {
   findings: string[];
   dataGaps: string[];
   nextActions: string[];
+  rejectionReason?: string;
 }
 
 export interface OwnerResearchCheckpointSummary {
@@ -94,6 +101,31 @@ export interface OwnerResearchCheckpointSummary {
   openQuestions: string[];
 }
 
+export interface OwnerResearchOverview {
+  asOf: string;
+  edgeStatus: {
+    research: number;
+    shadow: number;
+    production: number;
+    idea: number;
+    rejected: number;
+    deprecated: number;
+  };
+  recent7d: {
+    from: string;
+    to: string;
+    edgesAdded: number;
+    analogsAdded: number;
+    currentFormalSamples: number;
+    sampleDelta: null;
+    sampleDeltaReason: string;
+  };
+  readiness: {
+    promotionReadyEdgeIds: string[];
+    holdoutReadyEdgeIds: string[];
+  };
+}
+
 export interface OwnerResearchSummary {
   schemaVersion: 1;
   generatedAt: string;
@@ -101,6 +133,9 @@ export interface OwnerResearchSummary {
   integrity: {
     status: "ok" | "attention";
     issueCount: number;
+    errorCount: number;
+    warningCount: number;
+    knowledgeIssueCount: number;
   };
   counts: {
     researchItems: number;
@@ -110,6 +145,7 @@ export interface OwnerResearchSummary {
     formalEdges: number;
     activeFormalEdges: number;
   };
+  overview: OwnerResearchOverview;
   researchItems: OwnerResearchItemSummary[];
   formalEdges: OwnerFormalEdgeSummary[];
   timeline: OwnerResearchTimelineEntry[];
@@ -152,6 +188,8 @@ const QUESTION_STATUS_RANK: Record<ResearchQuestionStatus, number> = {
   obsolete: 4,
 };
 
+const DAY_MS = 86_400_000;
+
 function compareNewest(left: string, right: string): number {
   return right.localeCompare(left);
 }
@@ -160,6 +198,46 @@ function latestTimestamp(values: Array<string | undefined>): string | null {
   const present = values.filter((value): value is string => Boolean(value));
   if (present.length === 0) return null;
   return present.sort(compareNewest)[0] ?? null;
+}
+
+function dateEpoch(value: string): number | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const epoch = Date.UTC(year, month - 1, day);
+  const check = new Date(epoch);
+  if (check.getUTCFullYear() !== year || check.getUTCMonth() !== month - 1 || check.getUTCDate() !== day) return null;
+  return epoch;
+}
+
+function epochDate(epoch: number): string {
+  return new Date(epoch).toISOString().slice(0, 10);
+}
+
+function isWithinWindow(value: string, fromEpoch: number, toEpoch: number): boolean {
+  const epoch = dateEpoch(value);
+  return epoch !== null && epoch >= fromEpoch && epoch <= toEpoch;
+}
+
+function uniqueStrings(values: readonly string[], limit = 5): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const value of values) {
+    const clean = value.trim();
+    if (!clean || seen.has(clean)) continue;
+    seen.add(clean);
+    result.push(clean);
+    if (result.length >= limit) break;
+  }
+  return result;
+}
+
+function hypothesisPreview(text: string): string {
+  const parts = text.match(/[^。！？!?]+[。！？!?]?/g)?.map((part) => part.trim()).filter(Boolean) ?? [text.trim()];
+  const preview = parts.slice(0, 2).join("");
+  return preview.length <= 260 ? preview : `${preview.slice(0, 259)}…`;
 }
 
 function familySummariesForItem(
@@ -213,7 +291,11 @@ function questionSummariesForItem(
     });
 }
 
-function summarizeFormalEdge(edge: Edge, state: ResearchState): OwnerFormalEdgeSummary {
+function summarizeFormalEdge(
+  edge: Edge,
+  state: ResearchState,
+  researchLog: readonly ResearchLogEntry[],
+): OwnerFormalEdgeSummary {
   const gateStates = GATE_KEYS.map((key) => ({ key, item: edge.promotionGate[key] }));
   const gate = gateStates.reduce(
     (counts, entry) => {
@@ -222,6 +304,9 @@ function summarizeFormalEdge(edge: Edge, state: ResearchState): OwnerFormalEdgeS
     },
     { pass: 0, fail: 0, unknown: 0, total: GATE_KEYS.length },
   );
+  const edgeLogs = researchLog
+    .filter((entry) => entry.edgeId === edge.id)
+    .sort((left, right) => compareNewest(left.at, right.at));
 
   return {
     id: edge.id,
@@ -230,7 +315,11 @@ function summarizeFormalEdge(edge: Edge, state: ResearchState): OwnerFormalEdgeS
     priority: edge.priority,
     confidence: edge.confidence,
     hypothesis: edge.hypothesis,
+    hypothesisPreview: hypothesisPreview(edge.hypothesis),
     lastUpdate: edge.lastUpdate,
+    lastResearchAt: edgeLogs[0]?.at ?? null,
+    knownFindings: uniqueStrings(edgeLogs.flatMap((entry) => entry.findings ?? [])),
+    nextActions: uniqueStrings(edgeLogs.flatMap((entry) => entry.nextActions ?? [])),
     samples: {
       current: edge.samples.current,
       required: edge.samples.required,
@@ -262,6 +351,7 @@ function summarizeTimeline(entries: readonly ResearchLogEntry[]): OwnerResearchT
       findings: [...(entry.findings ?? [])],
       dataGaps: [...(entry.dataGaps ?? [])],
       nextActions: [...(entry.nextActions ?? [])],
+      ...(entry.rejectionReason ? { rejectionReason: entry.rejectionReason } : {}),
     }));
 }
 
@@ -278,14 +368,83 @@ function summarizeCheckpoint(checkpoint: Checkpoint | null): OwnerResearchCheckp
   };
 }
 
+function buildOverview(input: {
+  researchState: ResearchState;
+  accessLog: HoldoutAccessEntry[];
+  asOf: string;
+}): OwnerResearchOverview {
+  const { researchState, accessLog, asOf } = input;
+  const toEpoch = dateEpoch(asOf);
+  if (toEpoch === null) throw new Error(`Owner Research Summary asOf must be YYYY-MM-DD: ${asOf}`);
+  const fromEpoch = toEpoch - 6 * DAY_MS;
+  const evaluations = new Map(
+    researchState.edges.map((edge) => [edge.id, evaluateGate(edge, researchState, accessLog, asOf)]),
+  );
+
+  const promotionReadyEdgeIds = researchState.edges
+    .filter((edge) => edge.status === "shadow" && evaluations.get(edge.id)?.promotable)
+    .map((edge) => edge.id)
+    .sort();
+
+  const holdoutReadyEdgeIds = researchState.edges
+    .filter((edge) => {
+      if (edge.status === "production" || edge.status === "rejected" || edge.status === "deprecated") return false;
+      const evaluation = evaluations.get(edge.id);
+      if (!evaluation || evaluation.unsupportedPasses.length > 0) return false;
+      const remaining = evaluation.blockers.filter((blocker) => blocker.gate !== "holdoutPass");
+      return edge.promotionGate.holdoutPass.state === "unknown" && remaining.length === 0;
+    })
+    .map((edge) => edge.id)
+    .sort();
+
+  const countStatus = (status: EdgeStatus) => researchState.edges.filter((edge) => edge.status === status).length;
+
+  return {
+    asOf,
+    edgeStatus: {
+      research: countStatus("research"),
+      shadow: countStatus("shadow"),
+      production: countStatus("production"),
+      idea: countStatus("idea"),
+      rejected: countStatus("rejected"),
+      deprecated: countStatus("deprecated"),
+    },
+    recent7d: {
+      from: epochDate(fromEpoch),
+      to: asOf,
+      edgesAdded: researchState.edges.filter((edge) => isWithinWindow(edge.createdAt, fromEpoch, toEpoch)).length,
+      analogsAdded: researchState.analogs.filter((analog) => isWithinWindow(analog.recordedAt, fromEpoch, toEpoch)).length,
+      currentFormalSamples: researchState.edges.reduce((sum, edge) => sum + edge.samples.current, 0),
+      sampleDelta: null,
+      sampleDeltaReason: "Formal sample current はスナップショット値のみで追加日時を保持していないため、直近7日増分は算出しません。",
+    },
+    readiness: {
+      promotionReadyEdgeIds,
+      holdoutReadyEdgeIds,
+    },
+  };
+}
+
 export function buildOwnerResearchSummary(input: {
   snapshot: ResearchKnowledgeIntegritySnapshot;
   issues: readonly ResearchKnowledgeIssue[];
+  researchOsIssues: readonly Issue[];
   researchState: ResearchState;
   researchLog: readonly ResearchLogEntry[];
+  accessLog: HoldoutAccessEntry[];
+  asOf: string;
   generatedAt: string;
 }): OwnerResearchSummary {
-  const { snapshot, issues, researchState, researchLog, generatedAt } = input;
+  const {
+    snapshot,
+    issues,
+    researchOsIssues,
+    researchState,
+    researchLog,
+    accessLog,
+    asOf,
+    generatedAt,
+  } = input;
   const familyById = new Map(snapshot.researchFamilies.map((family) => [family.id, family]));
   const questionById = new Map(snapshot.researchQuestions.map((question) => [question.id, question]));
 
@@ -307,7 +466,7 @@ export function buildOwnerResearchSummary(input: {
     });
 
   const formalEdges = researchState.edges
-    .map((edge) => summarizeFormalEdge(edge, researchState))
+    .map((edge) => summarizeFormalEdge(edge, researchState, researchLog))
     .sort((left, right) => {
       const rank = EDGE_STATUS_RANK[left.status] - EDGE_STATUS_RANK[right.status];
       if (rank !== 0) return rank;
@@ -330,13 +489,22 @@ export function buildOwnerResearchSummary(input: {
     researchState.checkpoint?.savedAt,
   ]);
 
+  const knowledgeIssueCount = issues.length;
+  const researchErrorCount = researchOsIssues.filter((issue) => issue.severity === "error").length;
+  const researchWarningCount = researchOsIssues.filter((issue) => issue.severity === "warning").length;
+  const errorCount = knowledgeIssueCount + researchErrorCount;
+  const warningCount = researchWarningCount;
+
   return {
     schemaVersion: 1,
     generatedAt,
     latestResearchAt,
     integrity: {
-      status: issues.length === 0 ? "ok" : "attention",
-      issueCount: issues.length,
+      status: errorCount + warningCount === 0 ? "ok" : "attention",
+      issueCount: errorCount + warningCount,
+      errorCount,
+      warningCount,
+      knowledgeIssueCount,
     },
     counts: {
       researchItems: snapshot.researchItems.length,
@@ -346,6 +514,7 @@ export function buildOwnerResearchSummary(input: {
       formalEdges: researchState.edges.length,
       activeFormalEdges: researchState.edges.filter((edge) => ACTIVE_EDGE_STATUSES.has(edge.status)).length,
     },
+    overview: buildOverview({ researchState, accessLog, asOf }),
     researchItems,
     formalEdges,
     timeline,
