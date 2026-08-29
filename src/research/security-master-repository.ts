@@ -313,6 +313,10 @@ export function validateSecurityMasterRepository(
     snapshot = endpointIntegrity.snapshot;
   }
 
+  if (issues.some((item) => item.severity === "error")) {
+    snapshot = { asOf, entities: [], relationships: [] };
+  }
+
   return {
     issues: sortIssues(issues),
     entityRecordCount: entityRead.records.length,
