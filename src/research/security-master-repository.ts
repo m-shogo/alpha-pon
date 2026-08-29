@@ -232,6 +232,33 @@ function enforceSnapshotEndpointIntegrity(snapshot: SecurityMasterSnapshot): {
   };
 }
 
+function enforceSnapshotOwnershipInverse(snapshot: SecurityMasterSnapshot): {
+  snapshot: SecurityMasterSnapshot;
+  issues: SecurityMasterIssue[];
+} {
+  const verifiedParentKeys = new Set(
+    snapshot.relationships
+      .filter((record) => record.relationshipType === "parent_of" && record.confidence === "verified")
+      .map((record) => `${record.fromEntityId}->${record.toEntityId}:${record.validFrom}:${record.validTo ?? "*"}`),
+  );
+  const issues: SecurityMasterIssue[] = [];
+  const relationships = snapshot.relationships.filter((record) => {
+    if (record.relationshipType !== "subsidiary_of" || record.confidence !== "verified") return true;
+    const inverse = `${record.toEntityId}->${record.fromEntityId}:${record.validFrom}:${record.validTo ?? "*"}`;
+    if (verifiedParentKeys.has(inverse)) return true;
+    issues.push(issue(
+      "snapshot_missing_parent_of_inverse",
+      `${record.relationshipId}:${record.recordId}`,
+      `verified subsidiary_of is effective at ${snapshot.asOf}, but matching parent_of inverse is absent from the same PIT snapshot`,
+    ));
+    return false;
+  });
+  return {
+    snapshot: { ...snapshot, relationships },
+    issues,
+  };
+}
+
 export function validateSecurityMasterRepository(
   options: SecurityMasterRepositoryOptions = {},
 ): SecurityMasterRepositoryResult {
@@ -337,8 +364,9 @@ export function validateSecurityMasterRepository(
         asOf,
       );
       const endpointIntegrity = enforceSnapshotEndpointIntegrity(rawSnapshot);
-      issues.push(...endpointIntegrity.issues);
-      snapshot = endpointIntegrity.snapshot;
+      const ownershipIntegrity = enforceSnapshotOwnershipInverse(endpointIntegrity.snapshot);
+      issues.push(...endpointIntegrity.issues, ...ownershipIntegrity.issues);
+      snapshot = ownershipIntegrity.snapshot;
     }
   }
 
