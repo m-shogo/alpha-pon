@@ -1,11 +1,11 @@
-import { resolve } from "node:path";
 import {
   inspectSanrioRealPilotPreflightWithReadinessAdvisory,
   renderSanrioRealPilotPreflightWithReadinessAdvisory,
 } from "../edinet-sanrio-real-pilot-readiness-advisory.js";
+import { resolveCanonicalEdinetRoot } from "../edinet-local-root-boundary.js";
 
 function main(): void {
-  const root = resolve(process.cwd(), "data/edinet");
+  const root = resolveCanonicalEdinetRoot();
   const result = inspectSanrioRealPilotPreflightWithReadinessAdvisory(root);
   process.stdout.write(renderSanrioRealPilotPreflightWithReadinessAdvisory(result));
 
