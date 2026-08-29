@@ -28,6 +28,17 @@ const snapshot = {
       confounderPolicy: "internal confounder policy",
       executionPolicy: "internal execution policy",
     },
+    {
+      schemaVersion: 1,
+      ontologyVersion: "research-knowledge-v1",
+      id: "study-owner-running-001",
+      title: "Owner-running verification study",
+      mode: "confirmatory",
+      status: "running",
+      createdAt: "2026-08-10T09:00:00+09:00",
+      registeredAt: "2026-08-11T09:00:00+09:00",
+      purpose: "Remain non-final while the study is still running.",
+    },
   ],
   studyResults: [
     {
@@ -42,6 +53,45 @@ const snapshot = {
       exploitability: "observed_effect_only",
       limitations: ["Small sample remains."],
       negativeFindings: ["insufficient_sample", "already_priced_in"],
+    },
+    {
+      schemaVersion: 1,
+      ontologyVersion: "research-knowledge-v1",
+      id: "study-result-owner-running-invalid",
+      studyId: "study-owner-running-001",
+      sampleManifestId: "sample-manifest-internal-002",
+      createdAt: "2026-08-25T15:00:00+09:00",
+      effectSummary: "Must not be projected while the Study is still running.",
+      identificationQuality: "descriptive",
+      exploitability: "not_assessed",
+      limitations: [],
+      negativeFindings: [],
+    },
+    {
+      schemaVersion: 1,
+      ontologyVersion: "research-knowledge-v1",
+      id: "study-result-owner-before-registration-invalid",
+      studyId: "study-owner-safe-001",
+      sampleManifestId: "sample-manifest-internal-003",
+      createdAt: "2026-08-01T12:00:00+09:00",
+      effectSummary: "Must not predate the Study registration.",
+      identificationQuality: "descriptive",
+      exploitability: "not_assessed",
+      limitations: [],
+      negativeFindings: [],
+    },
+    {
+      schemaVersion: 1,
+      ontologyVersion: "research-knowledge-v1",
+      id: "study-result-owner-dangling-invalid",
+      studyId: "study-owner-missing-001",
+      sampleManifestId: "sample-manifest-internal-004",
+      createdAt: "2026-08-25T15:00:00+09:00",
+      effectSummary: "Must not project without its owning Study.",
+      identificationQuality: "descriptive",
+      exploitability: "not_assessed",
+      limitations: [],
+      negativeFindings: [],
     },
   ],
 } as unknown as Parameters<typeof buildOwnerResearchHistoryMap>[0]["snapshot"];
@@ -60,9 +110,18 @@ const result = buildOwnerResearchHistoryMap({
   generatedAt: "2026-08-29T06:55:00Z",
 });
 
-assert.equal(result.counts.studies, 1);
-assert.equal(result.counts.studyResults, 1);
+assert.equal(result.counts.studies, 2);
+assert.equal(result.counts.studyResults, 1, "invalid lifecycle StudyResults must stay out of Owner counts");
 assert.deepEqual(result.studies, [
+  {
+    id: "study-owner-running-001",
+    title: "Owner-running verification study",
+    mode: "confirmatory",
+    status: "running",
+    createdAt: "2026-08-10T09:00:00+09:00",
+    registeredAt: "2026-08-11T09:00:00+09:00",
+    purpose: "Remain non-final while the study is still running.",
+  },
   {
     id: "study-owner-safe-001",
     title: "Owner-safe verification study",
@@ -89,7 +148,7 @@ assert.deepEqual(result.studyResults, [
   },
 ]);
 
-const projectedStudy = result.studies[0] as unknown as Record<string, unknown>;
+const projectedStudy = result.studies.find((study) => study.id === "study-owner-safe-001") as unknown as Record<string, unknown>;
 const projectedResult = result.studyResults[0] as unknown as Record<string, unknown>;
 assert.equal("benchmarkSpec" in projectedStudy, false, "Study benchmark internals must stay out of Owner projection");
 assert.equal("counterfactualPolicy" in projectedStudy, false, "Study counterfactual policy must stay out of Owner projection");
