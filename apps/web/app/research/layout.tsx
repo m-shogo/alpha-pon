@@ -5,7 +5,9 @@ export default function ResearchLayout({ children }: Readonly<{ children: ReactN
   return (
     <>
       {children}
-      <ResearchHistoryMap />
+      <div id="knowledge-map" style={{ scrollMarginTop: 118 }}>
+        <ResearchHistoryMap />
+      </div>
     </>
   )
 }
