@@ -64,6 +64,8 @@ import { withSecurityEntityHash } from "../../src/research/security-master.js";
       asOf: "2026-08-06T00:00:00+09:00",
     });
     assert.ok(result.issues.some((issue) => issue.code === "partial_jsonl_tail"));
+    assert.equal(result.snapshotEvidenceCount, 0);
+    assert.equal(result.snapshotRelationCount, 0);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -83,6 +85,8 @@ import { withSecurityEntityHash } from "../../src/research/security-master.js";
       asOf: "2026-08-06T00:00:00+09:00",
     });
     assert.ok(result.issues.some((issue) => issue.code === "incomplete_evidence_batch"));
+    assert.equal(result.snapshotEvidenceCount, 0);
+    assert.equal(result.snapshotRelationCount, 0);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -128,10 +132,13 @@ import { withSecurityEntityHash } from "../../src/research/security-master.js";
       asOf: "2026-08-06T12:00:00+09:00",
     });
     assert.ok(result.issues.some((issue) => issue.code === "unknown_security_master_entity"));
+    assert.equal(result.evidenceRecordCount, 1, "raw record count remains available for diagnostics");
+    assert.equal(result.snapshotEvidenceCount, 0, "invalid governed Evidence must not enter read-only projection");
+    assert.equal(result.recommendationEligibleCount, 0);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
-  console.log("bitemporal-evidence-repository: unresolved Security Master entity block OK");
+  console.log("bitemporal-evidence-repository: unresolved Security Master entity fails closed from snapshot OK");
 }
 
 {
@@ -209,10 +216,11 @@ import { withSecurityEntityHash } from "../../src/research/security-master.js";
       result.issues.some((item) => item.code === "unknown_security_master_entity"),
       "evidence must not borrow an identity first observed and retrieved later on the same JST day",
     );
+    assert.equal(result.snapshotEvidenceCount, 0, "future identity dependency must fail closed from projection");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
-  console.log("bitemporal-evidence-repository: exact Security Master PIT cutoff OK");
+  console.log("bitemporal-evidence-repository: exact Security Master PIT cutoff fails closed from snapshot OK");
 }
 
 console.log("bitemporal-evidence-repository: 全テスト成功");
