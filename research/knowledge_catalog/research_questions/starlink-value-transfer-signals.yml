@@ -1,0 +1,7 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: starlink-value-transfer-signals
+question: >-
+  Which observable milestones best distinguish real Starlink-driven value transfer from headline-only exposure: coverage and active-device growth, usage intensity, enterprise or public-sector contracts, IoT and remote-operation deployments, hardware or component shipments, terrestrial capex displacement, service discontinuations, ARPU, churn, margin, labor substitution or other operating metrics; and which of those indicators become visible early enough to support a repeatable research process?
+status: open
+createdAt: "2026-08-29T11:58:10+09:00"

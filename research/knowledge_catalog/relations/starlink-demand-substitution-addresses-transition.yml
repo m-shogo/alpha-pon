@@ -1,0 +1,9 @@
+schemaVersion: 1
+ontologyVersion: research-knowledge-v1
+id: starlink-demand-substitution-addresses-transition
+relationType: addresses
+sourceType: research_question
+sourceId: starlink-demand-substitution-map
+targetType: research_item
+targetId: starlink-connectivity-transition
+createdAt: "2026-08-29T11:58:10+09:00"
