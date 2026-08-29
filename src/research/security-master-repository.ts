@@ -371,6 +371,11 @@ export function validateSecurityMasterRepository(
       ].includes(item.code))
       .map((item) => item.target),
   );
+  const endpointTypeBlockedRelationships = new Set(
+    issues
+      .filter((item) => item.severity === "error" && item.code === "relationship_endpoint_type_mismatch")
+      .map((item) => item.target),
+  );
   const ambiguousIssuerSecurityIds = new Set(
     issues
       .filter((item) => item.severity === "error" && item.code === "overlapping_verified_issuers")
@@ -399,6 +404,7 @@ export function validateSecurityMasterRepository(
             !identityMismatchRelationshipRevisionIds.has(record.recordId) &&
             !nonMonotonicRelationshipRevisionIds.has(record.recordId) &&
             !chronologyBlockedRelationships.has(`${record.relationshipId}:${record.recordId}`) &&
+            !endpointTypeBlockedRelationships.has(`relationship:${record.relationshipId}:${record.recordId}`) &&
             !(
               record.relationshipType === "issuer_of" &&
               record.confidence === "verified" &&
