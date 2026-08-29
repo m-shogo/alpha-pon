@@ -70,6 +70,7 @@ jobs:
       - name: Research OS ユニットテスト
         run: |
           pnpm research:test
+          for test in tests/research/security-master-*.test.ts; do node --import tsx/esm "$test"; done
           node --import tsx/esm tests/research/owner-history-map-safe-projection.test.ts
           node --import tsx/esm tests/research/owner-history-map-study-projection.test.ts
           node --import tsx/esm tests/research/research-orphan-fingerprint.test.ts
