@@ -1,0 +1,139 @@
+import assert from "node:assert/strict";
+import { buildOwnerResearchHistoryMap } from "../../src/research/owner-history-map.js";
+import type { Counterfactual, HistoricalAnalog, ResearchState } from "../../src/research/types.js";
+
+const analog: HistoricalAnalog = {
+  schemaVersion: 1,
+  id: "analog-owner-safe-001",
+  eventType: "governance_event",
+  companyCode: "1234",
+  companyName: "Example Corp",
+  eventDate: "2026-08-01",
+  observedAt: "2026-08-01T09:15:00+09:00",
+  source: "https://example.invalid/private-source.pdf",
+  sourceType: "company_ir",
+  summary: "Publicly knowable summary at the recorded PIT timestamp.",
+  recordedAt: "2026-08-01T10:00:00+09:00",
+  edgeIds: ["edge-b", "edge-a"],
+  marketReaction: {
+    measuredAt: "2026-08-21T15:00:00+09:00",
+    horizonDays: 20,
+    rawReturnBps: 321,
+    benchmarkReturnBps: 100,
+    excessReturnBps: 221,
+    benchmark: "TOPIX",
+    priceSource: "licensed://private-price-source",
+  },
+  outcome: {
+    measuredAt: "2026-08-21T15:00:00+09:00",
+    verdict: "repriced_up",
+    roiBps: 250,
+    notes: "Internal outcome note that must not be projected.",
+  },
+  keyEvents: [
+    {
+      date: "2026-08-05",
+      label: "Follow-up disclosure",
+      source: "https://example.invalid/private-key-event-source.pdf",
+    },
+  ],
+  dataGaps: ["missing long-horizon observation"],
+};
+
+const linkedCounterfactual: Counterfactual = {
+  schemaVersion: 1,
+  id: "cf-owner-safe-001",
+  analogId: analog.id,
+  method: "market_index",
+  comparator: "TOPIX",
+  observedAt: "2026-08-21T15:00:00+09:00",
+  recordedAt: "2026-08-21T16:00:00+09:00",
+  eventReturnBps: 321,
+  counterfactualReturnBps: 100,
+  differenceBps: 221,
+  explanation: "Internal comparison explanation.",
+  dataGaps: ["internal comparison gap"],
+};
+
+const unrelatedCounterfactual: Counterfactual = {
+  schemaVersion: 1,
+  id: "cf-unrelated",
+  analogId: "another-analog",
+  method: "sector_index",
+  comparator: "Sector Index",
+  observedAt: "2026-08-21T15:00:00+09:00",
+  recordedAt: "2026-08-21T16:00:00+09:00",
+  differenceBps: -50,
+};
+
+const researchState: ResearchState = {
+  edges: [],
+  analogs: [analog],
+  counterfactuals: [unrelatedCounterfactual, linkedCounterfactual],
+  confounders: [],
+  checkpoint: null,
+};
+
+const snapshot = {
+  researchItems: [],
+  researchFamilies: [],
+  relations: [],
+  cases: [],
+  researchComponents: [],
+  lineages: [],
+  studies: [],
+  studyResults: [],
+} as unknown as Parameters<typeof buildOwnerResearchHistoryMap>[0]["snapshot"];
+
+const result = buildOwnerResearchHistoryMap({
+  snapshot,
+  researchState,
+  generatedAt: "2026-08-29T06:45:00Z",
+});
+
+assert.equal(result.counts.historicalAnalogs, 1);
+assert.equal(result.counts.resolvedOutcomes, 1);
+assert.equal(result.counts.unresolvedOutcomes, 0);
+assert.equal(result.historicalAnalogs.length, 1);
+
+const projected = result.historicalAnalogs[0];
+assert.deepEqual(projected, {
+  id: "analog-owner-safe-001",
+  eventType: "governance_event",
+  companyCode: "1234",
+  companyName: "Example Corp",
+  eventDate: "2026-08-01",
+  observedAt: "2026-08-01T09:15:00+09:00",
+  sourceType: "company_ir",
+  summary: "Publicly knowable summary at the recorded PIT timestamp.",
+  edgeIds: ["edge-a", "edge-b"],
+  marketReaction: {
+    measuredAt: "2026-08-21T15:00:00+09:00",
+    horizonDays: 20,
+    rawReturnBps: 321,
+    benchmarkReturnBps: 100,
+    excessReturnBps: 221,
+    benchmark: "TOPIX",
+  },
+  outcome: {
+    verdict: "repriced_up",
+    measuredAt: "2026-08-21T15:00:00+09:00",
+    roiBps: 250,
+  },
+  keyEvents: [{ date: "2026-08-05", label: "Follow-up disclosure" }],
+  counterfactuals: [{
+    id: "cf-owner-safe-001",
+    method: "market_index",
+    comparator: "TOPIX",
+    differenceBps: 221,
+  }],
+  dataGaps: ["missing long-horizon observation"],
+});
+
+assert.equal("source" in projected, false, "raw source URL must stay out of Owner projection");
+assert.equal("priceSource" in (projected.marketReaction ?? {}), false, "licensed priceSource must stay out of Owner projection");
+assert.equal("notes" in (projected.outcome ?? {}), false, "internal outcome notes must stay out of Owner projection");
+assert.equal("observedAt" in projected.counterfactuals[0], false, "Counterfactual PIT internals must not leak into Owner projection");
+assert.equal("explanation" in projected.counterfactuals[0], false, "Counterfactual internal explanation must not leak into Owner projection");
+
+console.log("research/owner history map: canonical analog safe projection OK");
