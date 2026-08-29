@@ -2,6 +2,20 @@ import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 
 export type OwnerHistoricalAnalogVerdict = 'repriced_up' | 'repriced_down' | 'no_move' | 'unresolved'
+export type OwnerHistoricalAnalogSourceType =
+  | 'company_ir'
+  | 'tdnet'
+  | 'jpx'
+  | 'edinet'
+  | 'financial_statement'
+  | 'regulator'
+  | 'ministry'
+  | 'court'
+  | 'administrative'
+  | 'major_media'
+  | 'market_data'
+  | 'historical_db'
+  | 'academic'
 export type OwnerResearchComponentKind = 'phase' | 'subsignal' | 'filter' | 'cohort' | 'calibration' | 'guard' | 'fixture'
 export type OwnerResearchComponentStatus = 'active' | 'resolved' | 'deprecated' | 'archived'
 export type OwnerResearchLineageType = 'derived_from' | 'merged_into' | 'split_into' | 'supersedes' | 'reclassified_as'
@@ -21,18 +35,40 @@ export interface OwnerHistoryMapFamily {
   members: OwnerHistoryMapFamilyMember[]
 }
 
+export interface OwnerHistoryMapAnalogMarketReaction {
+  measuredAt: string
+  horizonDays: number
+  rawReturnBps: number
+  benchmarkReturnBps?: number
+  excessReturnBps?: number
+  benchmark?: string
+}
+
+export interface OwnerHistoryMapAnalogCounterfactual {
+  id: string
+  method: string
+  comparator: string
+  differenceBps?: number
+}
+
 export interface OwnerHistoryMapAnalog {
   id: string
   eventType: string
   companyCode: string
   companyName: string
   eventDate: string
+  observedAt: string
+  sourceType: OwnerHistoricalAnalogSourceType
   summary: string
   edgeIds: string[]
+  marketReaction: OwnerHistoryMapAnalogMarketReaction | null
   outcome: {
     verdict: OwnerHistoricalAnalogVerdict
     measuredAt: string
+    roiBps?: number
   } | null
+  keyEvents: Array<{ date: string; label: string }>
+  counterfactuals: OwnerHistoryMapAnalogCounterfactual[]
   dataGaps: string[]
 }
 
@@ -125,6 +161,10 @@ const FALLBACK: OwnerResearchHistoryMap = {
 const FAMILY_STATUSES = new Set(['active', 'deprecated'])
 const MEMBER_TYPES = new Set(['research_item', 'edge'])
 const VERDICTS = new Set<OwnerHistoricalAnalogVerdict>(['repriced_up', 'repriced_down', 'no_move', 'unresolved'])
+const SOURCE_TYPES = new Set<OwnerHistoricalAnalogSourceType>([
+  'company_ir', 'tdnet', 'jpx', 'edinet', 'financial_statement', 'regulator', 'ministry', 'court',
+  'administrative', 'major_media', 'market_data', 'historical_db', 'academic',
+])
 const CASE_STATUSES = new Set(['open', 'closed', 'archived'])
 const COMPONENT_KINDS = new Set<OwnerResearchComponentKind>(['phase', 'subsignal', 'filter', 'cohort', 'calibration', 'guard', 'fixture'])
 const COMPONENT_STATUSES = new Set<OwnerResearchComponentStatus>(['active', 'resolved', 'deprecated', 'archived'])
@@ -136,6 +176,10 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 function isNonNegativeInteger(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value)
 }
 
 function isStringArray(value: unknown): value is string[] {
@@ -164,11 +208,35 @@ function isFamily(value: unknown): value is OwnerHistoryMapFamily {
     && value.members.every(isFamilyMember)
 }
 
+function isMarketReaction(value: unknown): value is OwnerHistoryMapAnalogMarketReaction {
+  if (!isObject(value)) return false
+  return typeof value.measuredAt === 'string'
+    && isNonNegativeInteger(value.horizonDays)
+    && isFiniteNumber(value.rawReturnBps)
+    && (value.benchmarkReturnBps === undefined || isFiniteNumber(value.benchmarkReturnBps))
+    && (value.excessReturnBps === undefined || isFiniteNumber(value.excessReturnBps))
+    && (value.benchmark === undefined || typeof value.benchmark === 'string')
+}
+
 function isOutcome(value: unknown): value is NonNullable<OwnerHistoryMapAnalog['outcome']> {
   if (!isObject(value)) return false
   return typeof value.verdict === 'string'
     && VERDICTS.has(value.verdict as OwnerHistoricalAnalogVerdict)
     && typeof value.measuredAt === 'string'
+    && (value.roiBps === undefined || isFiniteNumber(value.roiBps))
+}
+
+function isKeyEvent(value: unknown): value is OwnerHistoryMapAnalog['keyEvents'][number] {
+  if (!isObject(value)) return false
+  return typeof value.date === 'string' && typeof value.label === 'string'
+}
+
+function isCounterfactual(value: unknown): value is OwnerHistoryMapAnalogCounterfactual {
+  if (!isObject(value)) return false
+  return typeof value.id === 'string'
+    && typeof value.method === 'string'
+    && typeof value.comparator === 'string'
+    && (value.differenceBps === undefined || isFiniteNumber(value.differenceBps))
 }
 
 function isAnalog(value: unknown): value is OwnerHistoryMapAnalog {
@@ -179,9 +247,17 @@ function isAnalog(value: unknown): value is OwnerHistoryMapAnalog {
     && typeof value.companyCode === 'string'
     && typeof value.companyName === 'string'
     && typeof value.eventDate === 'string'
+    && typeof value.observedAt === 'string'
+    && typeof value.sourceType === 'string'
+    && SOURCE_TYPES.has(value.sourceType as OwnerHistoricalAnalogSourceType)
     && typeof value.summary === 'string'
     && isStringArray(value.edgeIds)
+    && (value.marketReaction === null || isMarketReaction(value.marketReaction))
     && (value.outcome === null || isOutcome(value.outcome))
+    && Array.isArray(value.keyEvents)
+    && value.keyEvents.every(isKeyEvent)
+    && Array.isArray(value.counterfactuals)
+    && value.counterfactuals.every(isCounterfactual)
     && isStringArray(value.dataGaps)
 }
 
