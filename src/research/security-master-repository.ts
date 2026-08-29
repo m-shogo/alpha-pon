@@ -298,6 +298,16 @@ export function validateSecurityMasterRepository(
     (item) => item.severity === "error" &&
       ["invalid_content_hash", "invalid_official_url"].includes(item.code),
   );
+  const chronologyBlockedRelationships = new Set(
+    issues
+      .filter((item) => item.severity === "error" && [
+        "relationship_observed_before_from_entity",
+        "relationship_observed_before_to_entity",
+        "relationship_retrieved_before_from_entity",
+        "relationship_retrieved_before_to_entity",
+      ].includes(item.code))
+      .map((item) => item.target),
+  );
 
   let snapshot: SecurityMasterSnapshot = { asOf, entities: [], relationships: [] };
   if (validAsOf && validCutoffInstant) {
@@ -310,7 +320,9 @@ export function validateSecurityMasterRepository(
     if (!snapshotBlockedByValidation) {
       const rawSnapshot = buildSecurityMasterSnapshot(
         recordsAvailableAt(entityRead.records, asOf, cutoffInstant),
-        recordsAvailableAt(relationshipRead.records, asOf, cutoffInstant),
+        recordsAvailableAt(relationshipRead.records, asOf, cutoffInstant).filter(
+          (record) => !chronologyBlockedRelationships.has(`${record.relationshipId}:${record.recordId}`),
+        ),
         asOf,
       );
       const endpointIntegrity = enforceSnapshotEndpointIntegrity(rawSnapshot);
