@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { lstatSync, readFileSync, statSync } from "node:fs";
+import { lstatSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { basename, dirname, relative, resolve, sep } from "node:path";
 import type { SanrioRealPilotPreflightResult } from "./edinet-sanrio-real-pilot-preflight.js";
 
@@ -52,6 +52,14 @@ function readSelected(root: string, relativePath: string, field: string): LocalR
   if (!rel || rel === ".." || rel.startsWith(`..${sep}`)) {
     throw new Error(`${field} escaped EDINET root`);
   }
+
+  const realRoot = realpathSync(root);
+  const realPath = realpathSync(path);
+  const realRel = relative(realRoot, realPath);
+  if (!realRel || realRel === ".." || realRel.startsWith(`..${sep}`)) {
+    throw new Error(`${field} escaped EDINET root through symlink ancestry`);
+  }
+
   const linkStat = lstatSync(path);
   if (linkStat.isSymbolicLink() || !linkStat.isFile()) {
     throw new Error(`${field} must be a regular non-symlink file`);
