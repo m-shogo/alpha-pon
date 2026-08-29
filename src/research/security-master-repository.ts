@@ -335,6 +335,16 @@ export function validateSecurityMasterRepository(
       .filter((item) => item.severity === "error" && item.code === "missing_relationship_revision_parent")
       .map((item) => item.target),
   );
+  const identityMismatchEntityRevisionIds = new Set(
+    issues
+      .filter((item) => item.severity === "error" && item.code === "entity_revision_identity_mismatch")
+      .map((item) => item.target),
+  );
+  const identityMismatchRelationshipRevisionIds = new Set(
+    issues
+      .filter((item) => item.severity === "error" && item.code === "relationship_revision_identity_mismatch")
+      .map((item) => item.target),
+  );
   const nonMonotonicEntityRevisionIds = new Set(
     issues
       .filter((item) => item.severity === "error" && [
@@ -380,11 +390,13 @@ export function validateSecurityMasterRepository(
         recordsAvailableAt(entityRead.records, asOf, cutoffInstant).filter(
           (record) =>
             !orphanedEntityRevisionIds.has(record.recordId) &&
+            !identityMismatchEntityRevisionIds.has(record.recordId) &&
             !nonMonotonicEntityRevisionIds.has(record.recordId),
         ),
         recordsAvailableAt(relationshipRead.records, asOf, cutoffInstant).filter(
           (record) =>
             !orphanedRelationshipRevisionIds.has(record.recordId) &&
+            !identityMismatchRelationshipRevisionIds.has(record.recordId) &&
             !nonMonotonicRelationshipRevisionIds.has(record.recordId) &&
             !chronologyBlockedRelationships.has(`${record.relationshipId}:${record.recordId}`) &&
             !(
