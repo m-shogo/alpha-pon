@@ -299,19 +299,23 @@ function isCheckpoint(value: unknown): value is OwnerResearchCheckpointSummary {
 }
 
 function isOverview(value: unknown): value is OwnerResearchOverview {
-  if (!isObject(value) || !isObject(value.edgeStatus) || !isObject(value.recent7d) || !isObject(value.readiness)) return false
+  if (!isObject(value)) return false
+  const edgeStatus = value.edgeStatus
+  const recent7d = value.recent7d
+  const readiness = value.readiness
+  if (!isObject(edgeStatus) || !isObject(recent7d) || !isObject(readiness)) return false
   const statusCounts = ['research', 'shadow', 'production', 'idea', 'rejected', 'deprecated']
   return typeof value.asOf === 'string'
-    && statusCounts.every((key) => isNonNegativeInteger(value.edgeStatus[key]))
-    && typeof value.recent7d.from === 'string'
-    && typeof value.recent7d.to === 'string'
-    && isNonNegativeInteger(value.recent7d.edgesAdded)
-    && isNonNegativeInteger(value.recent7d.analogsAdded)
-    && isNonNegativeInteger(value.recent7d.currentFormalSamples)
-    && value.recent7d.sampleDelta === null
-    && typeof value.recent7d.sampleDeltaReason === 'string'
-    && isStringArray(value.readiness.promotionReadyEdgeIds)
-    && isStringArray(value.readiness.holdoutReadyEdgeIds)
+    && statusCounts.every((key) => isNonNegativeInteger(edgeStatus[key]))
+    && typeof recent7d.from === 'string'
+    && typeof recent7d.to === 'string'
+    && isNonNegativeInteger(recent7d.edgesAdded)
+    && isNonNegativeInteger(recent7d.analogsAdded)
+    && isNonNegativeInteger(recent7d.currentFormalSamples)
+    && recent7d.sampleDelta === null
+    && typeof recent7d.sampleDeltaReason === 'string'
+    && isStringArray(readiness.promotionReadyEdgeIds)
+    && isStringArray(readiness.holdoutReadyEdgeIds)
 }
 
 function parseSummary(value: unknown): OwnerResearchSummary | null {
