@@ -396,6 +396,11 @@ export function validateSecurityMasterRepository(
       .filter((item) => item.severity === "error" && item.code === "overlapping_verified_issuers")
       .map((item) => item.target),
   );
+  const parentCycleEntityIds = new Set(
+    issues
+      .filter((item) => item.severity === "error" && item.code === "parent_relationship_cycle")
+      .map((item) => item.target),
+  );
 
   let snapshot: SecurityMasterSnapshot = { asOf, entities: [], relationships: [] };
   if (validAsOf && validCutoffInstant) {
@@ -423,6 +428,11 @@ export function validateSecurityMasterRepository(
             !chronologyBlockedRelationships.has(`${record.relationshipId}:${record.recordId}`) &&
             !endpointTypeBlockedRelationships.has(`relationship:${record.relationshipId}:${record.recordId}`) &&
             !selfRelationshipTargets.has(`relationship:${record.relationshipId}:${record.recordId}`) &&
+            !(
+              record.relationshipType === "parent_of" &&
+              record.confidence === "verified" &&
+              (parentCycleEntityIds.has(record.fromEntityId) || parentCycleEntityIds.has(record.toEntityId))
+            ) &&
             !(
               record.relationshipType === "issuer_of" &&
               record.confidence === "verified" &&
