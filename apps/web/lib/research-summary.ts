@@ -47,7 +47,11 @@ export interface OwnerFormalEdgeSummary {
   priority: 'S' | 'A' | 'B' | 'C'
   confidence: number
   hypothesis: string
+  hypothesisPreview: string
   lastUpdate: string
+  lastResearchAt: string | null
+  knownFindings: string[]
+  nextActions: string[]
   samples: {
     current: number
     required: number
@@ -77,6 +81,7 @@ export interface OwnerResearchTimelineEntry {
   findings: string[]
   dataGaps: string[]
   nextActions: string[]
+  rejectionReason?: string
 }
 
 export interface OwnerResearchCheckpointSummary {
@@ -89,11 +94,42 @@ export interface OwnerResearchCheckpointSummary {
   openQuestions: string[]
 }
 
+export interface OwnerResearchOverview {
+  asOf: string
+  edgeStatus: {
+    research: number
+    shadow: number
+    production: number
+    idea: number
+    rejected: number
+    deprecated: number
+  }
+  recent7d: {
+    from: string
+    to: string
+    edgesAdded: number
+    analogsAdded: number
+    currentFormalSamples: number
+    sampleDelta: null
+    sampleDeltaReason: string
+  }
+  readiness: {
+    promotionReadyEdgeIds: string[]
+    holdoutReadyEdgeIds: string[]
+  }
+}
+
 export interface OwnerResearchSummary {
   schemaVersion: 1
   generatedAt: string | null
   latestResearchAt: string | null
-  integrity: { status: 'ok' | 'attention'; issueCount: number }
+  integrity: {
+    status: 'ok' | 'attention'
+    issueCount: number
+    errorCount: number
+    warningCount: number
+    knowledgeIssueCount: number
+  }
   counts: {
     researchItems: number
     activeResearchItems: number
@@ -102,6 +138,7 @@ export interface OwnerResearchSummary {
     formalEdges: number
     activeFormalEdges: number
   }
+  overview: OwnerResearchOverview
   researchItems: OwnerResearchItemSummary[]
   formalEdges: OwnerFormalEdgeSummary[]
   timeline: OwnerResearchTimelineEntry[]
@@ -115,7 +152,7 @@ const FALLBACK: OwnerResearchSummary = {
   schemaVersion: 1,
   generatedAt: null,
   latestResearchAt: null,
-  integrity: { status: 'attention', issueCount: 0 },
+  integrity: { status: 'attention', issueCount: 0, errorCount: 0, warningCount: 0, knowledgeIssueCount: 0 },
   counts: {
     researchItems: 0,
     activeResearchItems: 0,
@@ -123,6 +160,20 @@ const FALLBACK: OwnerResearchSummary = {
     researchFamilies: 0,
     formalEdges: 0,
     activeFormalEdges: 0,
+  },
+  overview: {
+    asOf: '',
+    edgeStatus: { research: 0, shadow: 0, production: 0, idea: 0, rejected: 0, deprecated: 0 },
+    recent7d: {
+      from: '',
+      to: '',
+      edgesAdded: 0,
+      analogsAdded: 0,
+      currentFormalSamples: 0,
+      sampleDelta: null,
+      sampleDeltaReason: '研究サマリーを読み込めないため増分を表示できません。',
+    },
+    readiness: { promotionReadyEdgeIds: [], holdoutReadyEdgeIds: [] },
   },
   researchItems: [],
   formalEdges: [],
@@ -197,7 +248,11 @@ function isEdge(value: unknown): value is OwnerFormalEdgeSummary {
     && value.confidence >= 0
     && value.confidence <= 1
     && typeof value.hypothesis === 'string'
+    && typeof value.hypothesisPreview === 'string'
     && typeof value.lastUpdate === 'string'
+    && (value.lastResearchAt === null || typeof value.lastResearchAt === 'string')
+    && isStringArray(value.knownFindings)
+    && isStringArray(value.nextActions)
     && isNonNegativeInteger(value.samples.current)
     && isNonNegativeInteger(value.samples.required)
     && isNonNegativeInteger(value.samples.analogCurrent)
@@ -226,6 +281,7 @@ function isTimelineEntry(value: unknown): value is OwnerResearchTimelineEntry {
     && isStringArray(value.findings)
     && isStringArray(value.dataGaps)
     && isStringArray(value.nextActions)
+    && (value.rejectionReason === undefined || typeof value.rejectionReason === 'string')
 }
 
 function isCheckpoint(value: unknown): value is OwnerResearchCheckpointSummary {
@@ -242,12 +298,32 @@ function isCheckpoint(value: unknown): value is OwnerResearchCheckpointSummary {
     && isStringArray(value.openQuestions)
 }
 
+function isOverview(value: unknown): value is OwnerResearchOverview {
+  if (!isObject(value) || !isObject(value.edgeStatus) || !isObject(value.recent7d) || !isObject(value.readiness)) return false
+  const statusCounts = ['research', 'shadow', 'production', 'idea', 'rejected', 'deprecated']
+  return typeof value.asOf === 'string'
+    && statusCounts.every((key) => isNonNegativeInteger(value.edgeStatus[key]))
+    && typeof value.recent7d.from === 'string'
+    && typeof value.recent7d.to === 'string'
+    && isNonNegativeInteger(value.recent7d.edgesAdded)
+    && isNonNegativeInteger(value.recent7d.analogsAdded)
+    && isNonNegativeInteger(value.recent7d.currentFormalSamples)
+    && value.recent7d.sampleDelta === null
+    && typeof value.recent7d.sampleDeltaReason === 'string'
+    && isStringArray(value.readiness.promotionReadyEdgeIds)
+    && isStringArray(value.readiness.holdoutReadyEdgeIds)
+}
+
 function parseSummary(value: unknown): OwnerResearchSummary | null {
   if (!isObject(value) || value.schemaVersion !== 1) return null
   if (typeof value.generatedAt !== 'string') return null
   if (value.latestResearchAt !== null && typeof value.latestResearchAt !== 'string') return null
   if (!isObject(value.integrity) || (value.integrity.status !== 'ok' && value.integrity.status !== 'attention')) return null
-  if (!isNonNegativeInteger(value.integrity.issueCount)) return null
+  if (!isNonNegativeInteger(value.integrity.issueCount)
+    || !isNonNegativeInteger(value.integrity.errorCount)
+    || !isNonNegativeInteger(value.integrity.warningCount)
+    || !isNonNegativeInteger(value.integrity.knowledgeIssueCount)) return null
+  if (value.integrity.errorCount + value.integrity.warningCount !== value.integrity.issueCount) return null
   if (!isObject(value.counts)) return null
   if (!isNonNegativeInteger(value.counts.researchItems)
     || !isNonNegativeInteger(value.counts.activeResearchItems)
@@ -255,6 +331,7 @@ function parseSummary(value: unknown): OwnerResearchSummary | null {
     || !isNonNegativeInteger(value.counts.researchFamilies)
     || !isNonNegativeInteger(value.counts.formalEdges)
     || !isNonNegativeInteger(value.counts.activeFormalEdges)) return null
+  if (!isOverview(value.overview)) return null
   if (!Array.isArray(value.researchItems) || !value.researchItems.every(isItem)) return null
   if (!Array.isArray(value.formalEdges) || !value.formalEdges.every(isEdge)) return null
   if (!Array.isArray(value.timeline) || !value.timeline.every(isTimelineEntry)) return null
@@ -266,6 +343,7 @@ function parseSummary(value: unknown): OwnerResearchSummary | null {
     latestResearchAt: value.latestResearchAt as string | null,
     integrity: value.integrity as OwnerResearchSummary['integrity'],
     counts: value.counts as OwnerResearchSummary['counts'],
+    overview: value.overview,
     researchItems: value.researchItems,
     formalEdges: value.formalEdges,
     timeline: value.timeline,
