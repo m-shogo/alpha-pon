@@ -392,7 +392,7 @@ function buildOverview(input: {
       const evaluation = evaluations.get(edge.id);
       if (!evaluation || evaluation.unsupportedPasses.length > 0) return false;
       const remaining = evaluation.blockers.filter((blocker) => blocker.gate !== "holdoutPass");
-      return edge.promotionGate.holdoutPass.state !== "pass" && remaining.length === 0;
+      return edge.promotionGate.holdoutPass.state === "unknown" && remaining.length === 0;
     })
     .map((edge) => edge.id)
     .sort();
