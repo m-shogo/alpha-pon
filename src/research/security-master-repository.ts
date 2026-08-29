@@ -308,6 +308,11 @@ export function validateSecurityMasterRepository(
       ].includes(item.code))
       .map((item) => item.target),
   );
+  const ambiguousIssuerSecurityIds = new Set(
+    issues
+      .filter((item) => item.severity === "error" && item.code === "overlapping_verified_issuers")
+      .map((item) => item.target),
+  );
 
   let snapshot: SecurityMasterSnapshot = { asOf, entities: [], relationships: [] };
   if (validAsOf && validCutoffInstant) {
@@ -321,7 +326,13 @@ export function validateSecurityMasterRepository(
       const rawSnapshot = buildSecurityMasterSnapshot(
         recordsAvailableAt(entityRead.records, asOf, cutoffInstant),
         recordsAvailableAt(relationshipRead.records, asOf, cutoffInstant).filter(
-          (record) => !chronologyBlockedRelationships.has(`${record.relationshipId}:${record.recordId}`),
+          (record) =>
+            !chronologyBlockedRelationships.has(`${record.relationshipId}:${record.recordId}`) &&
+            !(
+              record.relationshipType === "issuer_of" &&
+              record.confidence === "verified" &&
+              ambiguousIssuerSecurityIds.has(record.toEntityId)
+            ),
         ),
         asOf,
       );
