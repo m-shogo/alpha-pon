@@ -72,6 +72,7 @@ jobs:
           pnpm research:test
           for test in tests/research/security-master-*.test.ts; do node --import tsx/esm "$test"; done
           for test in tests/research/bitemporal-*.test.ts; do node --import tsx/esm "$test"; done
+          for test in tests/research/research-knowledge-*.test.ts; do node --import tsx/esm "$test"; done
           node --import tsx/esm tests/research/claim-graph-security-master-cutoff.test.ts
           node --import tsx/esm tests/research/owner-history-map-safe-projection.test.ts
           node --import tsx/esm tests/research/owner-history-map-study-projection.test.ts
