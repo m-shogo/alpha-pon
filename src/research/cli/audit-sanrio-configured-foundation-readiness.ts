@@ -17,6 +17,7 @@ import {
 import {
   buildFoundationReadinessReadOnlyFollowUp,
 } from "../foundation-readiness-readonly-advisory.js";
+import { resolveCanonicalEdinetRoot } from "../edinet-local-root-boundary.js";
 
 type JsonObject = Record<string, unknown>;
 const MAX_JSON_BYTES = 30 * 1024 * 1024;
@@ -34,7 +35,7 @@ function hasFlag(name: string): boolean {
 }
 
 function localRoot(): string {
-  return resolve(process.cwd(), "data/edinet");
+  return resolveCanonicalEdinetRoot();
 }
 
 function assertRegularNonSymlink(path: string, field: string): void {
