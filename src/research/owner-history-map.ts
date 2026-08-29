@@ -1,3 +1,4 @@
+import { compareExplicitIso8601Instants } from "./iso-instant.js";
 import type { ResearchKnowledgeIntegritySnapshot } from "./research-knowledge-integrity.js";
 import type {
   ResearchComponentKind,
@@ -339,7 +340,26 @@ function summarizeStudies(snapshot: ResearchKnowledgeIntegritySnapshot): OwnerHi
 }
 
 function summarizeStudyResults(snapshot: ResearchKnowledgeIntegritySnapshot): OwnerHistoryMapStudyResult[] {
+  const studyById = new Map(snapshot.studies.map((study) => [study.id, study]));
+
   return snapshot.studyResults
+    .filter((result) => {
+      const study = studyById.get(result.studyId);
+      if (!study) return false;
+      if (study.status !== "completed" && study.status !== "archived") return false;
+      if (
+        study.registeredAt
+        && compareExplicitIso8601Instants(
+          result.createdAt,
+          study.registeredAt,
+          `study_result:${result.id}.createdAt`,
+          `study:${study.id}.registeredAt`,
+        ) < 0
+      ) {
+        return false;
+      }
+      return true;
+    })
     .map((result) => ({
       id: result.id,
       studyId: result.studyId,
@@ -403,6 +423,7 @@ export function buildOwnerResearchHistoryMap(input: {
       const date = right.eventDate.localeCompare(left.eventDate);
       return date !== 0 ? date : left.id.localeCompare(right.id);
     });
+  const studyResults = summarizeStudyResults(snapshot);
 
   const resolvedOutcomes = historicalAnalogs.filter(
     (analog) => analog.outcome && analog.outcome.verdict !== "unresolved",
@@ -420,7 +441,7 @@ export function buildOwnerResearchHistoryMap(input: {
       researchComponents: snapshot.researchComponents.length,
       lineages: snapshot.lineages.length,
       studies: snapshot.studies.length,
-      studyResults: snapshot.studyResults.length,
+      studyResults: studyResults.length,
     },
     families: summarizeFamilies(snapshot, researchState),
     historicalAnalogs,
@@ -428,6 +449,6 @@ export function buildOwnerResearchHistoryMap(input: {
     researchComponents: summarizeComponents(snapshot),
     lineages: summarizeLineages(snapshot, researchState),
     studies: summarizeStudies(snapshot),
-    studyResults: summarizeStudyResults(snapshot),
+    studyResults,
   };
 }
