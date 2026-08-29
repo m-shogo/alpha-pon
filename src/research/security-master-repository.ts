@@ -325,6 +325,16 @@ export function validateSecurityMasterRepository(
     (item) => item.severity === "error" &&
       ["invalid_content_hash", "invalid_official_url"].includes(item.code),
   );
+  const nonMonotonicEntityRevisionIds = new Set(
+    issues
+      .filter((item) => item.severity === "error" && item.code === "entity_revision_retrieval_not_monotonic")
+      .map((item) => item.target),
+  );
+  const nonMonotonicRelationshipRevisionIds = new Set(
+    issues
+      .filter((item) => item.severity === "error" && item.code === "relationship_revision_retrieval_not_monotonic")
+      .map((item) => item.target),
+  );
   const chronologyBlockedRelationships = new Set(
     issues
       .filter((item) => item.severity === "error" && [
@@ -351,9 +361,12 @@ export function validateSecurityMasterRepository(
     );
     if (!snapshotBlockedByValidation) {
       const rawSnapshot = buildSecurityMasterSnapshot(
-        recordsAvailableAt(entityRead.records, asOf, cutoffInstant),
+        recordsAvailableAt(entityRead.records, asOf, cutoffInstant).filter(
+          (record) => !nonMonotonicEntityRevisionIds.has(record.recordId),
+        ),
         recordsAvailableAt(relationshipRead.records, asOf, cutoffInstant).filter(
           (record) =>
+            !nonMonotonicRelationshipRevisionIds.has(record.recordId) &&
             !chronologyBlockedRelationships.has(`${record.relationshipId}:${record.recordId}`) &&
             !(
               record.relationshipType === "issuer_of" &&
