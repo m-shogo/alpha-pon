@@ -117,6 +117,7 @@ export function validateClaimGraphRepository(
     entitiesPath: options.securityEntitiesPath ?? SECURITY_MASTER_PATHS.entities,
     relationshipsPath: options.securityRelationshipsPath ?? SECURITY_MASTER_PATHS.relationships,
     asOf: jstDateOf(asOf),
+    cutoffInstant: asOf,
   });
   const evidence = validateBitemporalEvidenceRepository({
     evidencePath: options.evidencePath,
