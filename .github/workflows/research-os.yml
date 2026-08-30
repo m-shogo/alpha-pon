@@ -79,6 +79,7 @@ jobs:
           node --import tsx/esm tests/research/claim-graph-security-master-cutoff.test.ts
           node --import tsx/esm tests/research/owner-history-map-safe-projection.test.ts
           node --import tsx/esm tests/research/owner-history-map-study-projection.test.ts
+          node --import tsx/esm tests/research/owner-research-summary-timestamp.test.ts
           node --import tsx/esm tests/research/research-orphan-fingerprint.test.ts
           node --import tsx/esm tests/research/research-orphan-triage-history.test.ts
           node --import tsx/esm tests/research/research-orphan-triage.test.ts

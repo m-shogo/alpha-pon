@@ -193,6 +193,13 @@ const EDGE_STATUSES = new Set<OwnerFormalEdgeStatus>([
 ])
 const EDGE_PRIORITIES = new Set(['S', 'A', 'B', 'C'])
 const GATE_STATES = new Set<OwnerGateState>(['pass', 'fail', 'unknown'])
+const OWNER_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?(?:Z|[+-]\d{2}:\d{2})$/
+
+export function isOwnerResearchTimestampSafe(value: string, nowMs = Date.now()): boolean {
+  if (!OWNER_TIMESTAMP_PATTERN.test(value)) return false
+  const timestampMs = Date.parse(value)
+  return Number.isFinite(timestampMs) && timestampMs <= nowMs
+}
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
@@ -320,8 +327,9 @@ function isOverview(value: unknown): value is OwnerResearchOverview {
 
 function parseSummary(value: unknown): OwnerResearchSummary | null {
   if (!isObject(value) || value.schemaVersion !== 1) return null
-  if (typeof value.generatedAt !== 'string') return null
-  if (value.latestResearchAt !== null && typeof value.latestResearchAt !== 'string') return null
+  if (typeof value.generatedAt !== 'string' || !isOwnerResearchTimestampSafe(value.generatedAt)) return null
+  if (value.latestResearchAt !== null
+    && (typeof value.latestResearchAt !== 'string' || !isOwnerResearchTimestampSafe(value.latestResearchAt))) return null
   if (!isObject(value.integrity) || (value.integrity.status !== 'ok' && value.integrity.status !== 'attention')) return null
   if (!isNonNegativeInteger(value.integrity.issueCount)
     || !isNonNegativeInteger(value.integrity.errorCount)
