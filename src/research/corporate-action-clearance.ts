@@ -4,6 +4,7 @@ import {
   closeSync,
   existsSync,
   fsyncSync,
+  lstatSync,
   mkdirSync,
   openSync,
   readFileSync,
@@ -307,8 +308,23 @@ export function parseCorporateActionClearanceJsonl(
     });
 }
 
+function assertSafeCorporateActionClearanceFile(path: string): void {
+  if (!existsSync(path)) return;
+  const stats = lstatSync(path);
+  if (stats.isSymbolicLink()) {
+    throw new Error(`${path}: corporate action clearance path must not be a symbolic link`);
+  }
+  if (!stats.isFile()) {
+    throw new Error(`${path}: corporate action clearance path must be a regular file`);
+  }
+  if (stats.nlink !== 1) {
+    throw new Error(`${path}: corporate action clearance path must not be a hard link`);
+  }
+}
+
 export function readCorporateActionClearanceJsonl(path: string): CorporateActionClearanceRecord[] {
   if (!existsSync(path)) return [];
+  assertSafeCorporateActionClearanceFile(path);
   return parseCorporateActionClearanceJsonl(readFileSync(path, "utf-8"), path);
 }
 
@@ -319,6 +335,7 @@ export function appendCorporateActionClearanceRecords(input: {
   context: CorporateActionClearanceContext;
 }): void {
   if (input.incoming.length === 0) return;
+  assertSafeCorporateActionClearanceFile(input.path);
   const existing = readCorporateActionClearanceJsonl(input.path);
   const errors = validateCorporateActionClearanceRecords(
     [...existing, ...input.incoming],
