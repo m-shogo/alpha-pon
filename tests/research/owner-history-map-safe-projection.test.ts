@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { buildOwnerResearchHistoryMap } from "../../src/research/owner-history-map.js";
 import type { Counterfactual, HistoricalAnalog, ResearchState } from "../../src/research/types.js";
 
@@ -136,4 +139,44 @@ assert.equal("notes" in (projected.outcome ?? {}), false, "internal outcome note
 assert.equal("observedAt" in projected.counterfactuals[0], false, "Counterfactual PIT internals must not leak into Owner projection");
 assert.equal("explanation" in projected.counterfactuals[0], false, "Counterfactual internal explanation must not leak into Owner projection");
 
-console.log("research/owner history map: canonical analog safe projection OK");
+const originalCwd = process.cwd();
+const tempRoot = mkdtempSync(join(tmpdir(), "alpha-pon-owner-history-map-"));
+const generatedDir = join(tempRoot, "public", "generated");
+mkdirSync(generatedDir, { recursive: true });
+
+try {
+  process.chdir(tempRoot);
+  const { loadOwnerResearchHistoryMap } = await import("../../apps/web/lib/research-history-map.js");
+  const historyMapPath = join(generatedDir, "research-history-map.json");
+
+  writeFileSync(historyMapPath, JSON.stringify(result), "utf-8");
+  assert.equal(loadOwnerResearchHistoryMap().warning, null, "a count-consistent generated snapshot must be accepted");
+
+  const inconsistentCounts = [
+    ["families", { families: result.counts.families + 1 }],
+    ["historicalAnalogs", {
+      historicalAnalogs: result.counts.historicalAnalogs + 1,
+      resolvedOutcomes: result.counts.resolvedOutcomes + 1,
+    }],
+    ["cases", { cases: result.counts.cases + 1 }],
+    ["researchComponents", { researchComponents: result.counts.researchComponents + 1 }],
+    ["lineages", { lineages: result.counts.lineages + 1 }],
+  ] as const;
+
+  for (const [label, countPatch] of inconsistentCounts) {
+    writeFileSync(historyMapPath, JSON.stringify({
+      ...result,
+      counts: { ...result.counts, ...countPatch },
+    }), "utf-8");
+    assert.notEqual(
+      loadOwnerResearchHistoryMap().warning,
+      null,
+      `${label} count mismatch must fail closed instead of exposing a contradictory Owner snapshot`,
+    );
+  }
+} finally {
+  process.chdir(originalCwd);
+  rmSync(tempRoot, { recursive: true, force: true });
+}
+
+console.log("research/owner history map: canonical analog safe projection and count consistency OK");
