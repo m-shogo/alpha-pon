@@ -174,6 +174,20 @@ try {
       `${label} count mismatch must fail closed instead of exposing a contradictory Owner snapshot`,
     );
   }
+
+  writeFileSync(historyMapPath, JSON.stringify({
+    ...result,
+    counts: {
+      ...result.counts,
+      resolvedOutcomes: 0,
+      unresolvedOutcomes: result.counts.historicalAnalogs,
+    },
+  }), "utf-8");
+  assert.notEqual(
+    loadOwnerResearchHistoryMap().warning,
+    null,
+    "resolved/unresolved outcome counts must match the projected analog verdicts",
+  );
 } finally {
   process.chdir(originalCwd);
   rmSync(tempRoot, { recursive: true, force: true });
