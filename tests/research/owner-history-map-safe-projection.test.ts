@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { isOwnerResearchHistoryMapTemporalSafe } from "../../apps/web/lib/research-history-map-temporal.js";
 import { buildOwnerResearchHistoryMap } from "../../src/research/owner-history-map.js";
 import type { Counterfactual, HistoricalAnalog, ResearchState } from "../../src/research/types.js";
 
@@ -139,6 +140,50 @@ assert.equal("notes" in (projected.outcome ?? {}), false, "internal outcome note
 assert.equal("observedAt" in projected.counterfactuals[0], false, "Counterfactual PIT internals must not leak into Owner projection");
 assert.equal("explanation" in projected.counterfactuals[0], false, "Counterfactual internal explanation must not leak into Owner projection");
 
+const temporalNow = Date.parse("2026-08-29T06:45:00Z");
+assert.equal(
+  isOwnerResearchHistoryMapTemporalSafe(result, temporalNow),
+  true,
+  "canonical historical analog timestamps at or before generation must be accepted",
+);
+
+for (const contradictory of [
+  {
+    ...result,
+    historicalAnalogs: [{ ...projected, observedAt: "2026-08-29T06:45:00.001Z" }],
+  },
+  {
+    ...result,
+    historicalAnalogs: [{ ...projected, observedAt: "not-a-timestamp" }],
+  },
+  {
+    ...result,
+    historicalAnalogs: [{
+      ...projected,
+      marketReaction: projected.marketReaction && {
+        ...projected.marketReaction,
+        measuredAt: "2026-08-29T06:45:00.001Z",
+      },
+    }],
+  },
+  {
+    ...result,
+    historicalAnalogs: [{
+      ...projected,
+      outcome: projected.outcome && {
+        ...projected.outcome,
+        measuredAt: "2026-08-29",
+      },
+    }],
+  },
+]) {
+  assert.equal(
+    isOwnerResearchHistoryMapTemporalSafe(contradictory, temporalNow),
+    false,
+    "malformed or post-generation historical analog timestamps must fail closed",
+  );
+}
+
 const originalCwd = process.cwd();
 const tempRoot = mkdtempSync(join(tmpdir(), "alpha-pon-owner-history-map-"));
 const generatedDir = join(tempRoot, "public", "generated");
@@ -193,4 +238,4 @@ try {
   rmSync(tempRoot, { recursive: true, force: true });
 }
 
-console.log("research/owner history map: canonical analog safe projection and count consistency OK");
+console.log("research/owner history map: canonical analog safe projection, temporal consistency and count consistency OK");
