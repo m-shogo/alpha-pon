@@ -195,11 +195,15 @@ for (const contradictory of [
       },
     },
   },
+  {
+    ...referenceSafeSummary,
+    formalEdges: [{ id: "EDGE-001" }, { id: "EDGE-001" }, { id: "EDGE-002" }],
+  },
 ]) {
   assert.equal(
     isOwnerResearchSummaryReferenceSafe(contradictory),
     false,
-    "ghost or duplicated readiness edge references must fail closed",
+    "ghost or duplicated readiness/formal-edge identifiers must fail closed",
   );
 }
 
