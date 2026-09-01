@@ -36,6 +36,18 @@ assert.equal(
 const temporallyConsistentSummary = {
   generatedAt: "2026-08-30T12:00:00.000Z",
   latestResearchAt: "2026-08-30T11:45:00.000Z",
+  researchItems: [{
+    createdAt: "2026-08-28T09:00:00.000Z",
+    lastReviewedAt: "2026-08-30T11:30:00.000Z",
+    questions: [{
+      createdAt: "2026-08-28T09:05:00.000Z",
+      lastReviewedAt: "2026-08-30T11:35:00.000Z",
+    }],
+  }],
+  formalEdges: [{
+    lastUpdate: "2026-08-30T11:40:00.000Z",
+    lastResearchAt: "2026-08-30T11:45:00.000Z",
+  }],
   timeline: [{ at: "2026-08-30T11:45:00.000Z" }],
   checkpoint: { savedAt: "2026-08-30T11:50:00.000Z" },
 } as unknown as Parameters<typeof isOwnerResearchSummaryTemporalSafe>[0];
@@ -43,11 +55,41 @@ const temporallyConsistentSummary = {
 assert.equal(
   isOwnerResearchSummaryTemporalSafe(temporallyConsistentSummary, now),
   true,
-  "timeline and checkpoint timestamps at or before generation must be accepted",
+  "nested Owner Summary timestamps at or before generation must be accepted",
 );
 
 for (const contradictory of [
   { ...temporallyConsistentSummary, latestResearchAt: "2026-08-30T12:00:00.001Z" },
+  {
+    ...temporallyConsistentSummary,
+    researchItems: [{ ...temporallyConsistentSummary.researchItems[0], createdAt: "2026-08-30T12:00:00.001Z" }],
+  },
+  {
+    ...temporallyConsistentSummary,
+    researchItems: [{ ...temporallyConsistentSummary.researchItems[0], lastReviewedAt: "2026-08-30" }],
+  },
+  {
+    ...temporallyConsistentSummary,
+    researchItems: [{
+      ...temporallyConsistentSummary.researchItems[0],
+      questions: [{ ...temporallyConsistentSummary.researchItems[0].questions[0], createdAt: "not-a-timestamp" }],
+    }],
+  },
+  {
+    ...temporallyConsistentSummary,
+    researchItems: [{
+      ...temporallyConsistentSummary.researchItems[0],
+      questions: [{ ...temporallyConsistentSummary.researchItems[0].questions[0], lastReviewedAt: "2026-08-30T12:00:00.001Z" }],
+    }],
+  },
+  {
+    ...temporallyConsistentSummary,
+    formalEdges: [{ ...temporallyConsistentSummary.formalEdges[0], lastUpdate: "2026-08-30T12:00:00.001Z" }],
+  },
+  {
+    ...temporallyConsistentSummary,
+    formalEdges: [{ ...temporallyConsistentSummary.formalEdges[0], lastResearchAt: "2026-08-30" }],
+  },
   { ...temporallyConsistentSummary, timeline: [{ at: "2026-08-30T12:00:00.001Z" }] },
   { ...temporallyConsistentSummary, timeline: [{ at: "not-a-timestamp" }] },
   { ...temporallyConsistentSummary, checkpoint: { savedAt: "2026-08-30T12:00:00.001Z" } },
