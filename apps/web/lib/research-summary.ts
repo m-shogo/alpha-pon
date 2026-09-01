@@ -185,12 +185,14 @@ const FALLBACK: OwnerResearchSummary = {
 const ITEM_STATUSES = new Set<OwnerResearchItemStatus>([
   'captured', 'triage', 'investigating', 'synthesized', 'resolved', 'parked', 'archived',
 ])
+const ACTIVE_ITEM_STATUSES = new Set<OwnerResearchItemStatus>(['captured', 'triage', 'investigating', 'synthesized'])
 const QUESTION_STATUSES = new Set<OwnerResearchQuestionStatus>([
   'open', 'partially_answered', 'answered', 'blocked', 'obsolete',
 ])
 const EDGE_STATUSES = new Set<OwnerFormalEdgeStatus>([
   'idea', 'research', 'shadow', 'production', 'rejected', 'deprecated',
 ])
+const ACTIVE_EDGE_STATUSES = new Set<OwnerFormalEdgeStatus>(['research', 'shadow', 'production'])
 const EDGE_PRIORITIES = new Set(['S', 'A', 'B', 'C'])
 const GATE_STATES = new Set<OwnerGateState>(['pass', 'fail', 'unknown'])
 const OWNER_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?(?:Z|[+-]\d{2}:\d{2})$/
@@ -199,6 +201,28 @@ export function isOwnerResearchTimestampSafe(value: string, nowMs = Date.now()):
   if (!OWNER_TIMESTAMP_PATTERN.test(value)) return false
   const timestampMs = Date.parse(value)
   return Number.isFinite(timestampMs) && timestampMs <= nowMs
+}
+
+export function isOwnerResearchSummaryCountConsistent(value: {
+  counts: Pick<OwnerResearchSummary['counts'], 'researchItems' | 'activeResearchItems' | 'formalEdges' | 'activeFormalEdges'>
+  overview: Pick<OwnerResearchOverview, 'edgeStatus'>
+  researchItems: Array<Pick<OwnerResearchItemSummary, 'status'>>
+  formalEdges: Array<Pick<OwnerFormalEdgeSummary, 'status'>>
+}): boolean {
+  const activeResearchItems = value.researchItems.filter((item) => ACTIVE_ITEM_STATUSES.has(item.status)).length
+  const activeFormalEdges = value.formalEdges.filter((edge) => ACTIVE_EDGE_STATUSES.has(edge.status)).length
+  const edgeStatus = (status: OwnerFormalEdgeStatus) => value.formalEdges.filter((edge) => edge.status === status).length
+
+  return value.counts.researchItems === value.researchItems.length
+    && value.counts.activeResearchItems === activeResearchItems
+    && value.counts.formalEdges === value.formalEdges.length
+    && value.counts.activeFormalEdges === activeFormalEdges
+    && value.overview.edgeStatus.research === edgeStatus('research')
+    && value.overview.edgeStatus.shadow === edgeStatus('shadow')
+    && value.overview.edgeStatus.production === edgeStatus('production')
+    && value.overview.edgeStatus.idea === edgeStatus('idea')
+    && value.overview.edgeStatus.rejected === edgeStatus('rejected')
+    && value.overview.edgeStatus.deprecated === edgeStatus('deprecated')
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -348,6 +372,12 @@ function parseSummary(value: unknown): OwnerResearchSummary | null {
   if (!Array.isArray(value.formalEdges) || !value.formalEdges.every(isEdge)) return null
   if (!Array.isArray(value.timeline) || !value.timeline.every(isTimelineEntry)) return null
   if (value.checkpoint !== null && !isCheckpoint(value.checkpoint)) return null
+  if (!isOwnerResearchSummaryCountConsistent({
+    counts: value.counts as OwnerResearchSummary['counts'],
+    overview: value.overview,
+    researchItems: value.researchItems,
+    formalEdges: value.formalEdges,
+  })) return null
 
   return {
     schemaVersion: 1,
