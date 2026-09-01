@@ -5,6 +5,7 @@ import ResearchStudyMap from '@/components/ResearchStudyMap'
 import { loadOwnerResearchHistoryMap } from '@/lib/research-history-map'
 import { isOwnerResearchHistoryMapTemporalSafe } from '@/lib/research-history-map-temporal'
 import { isOwnerResearchSummaryGateSafe } from '@/lib/research-summary-gates'
+import { isOwnerResearchSummaryHypothesisSafe } from '@/lib/research-summary-hypothesis'
 import { isOwnerResearchSummaryIntegritySafe } from '@/lib/research-summary-integrity'
 import { isOwnerResearchSummaryReferenceSafe } from '@/lib/research-summary-references'
 import { isOwnerResearchSummarySampleSafe } from '@/lib/research-summary-samples'
@@ -33,6 +34,7 @@ export default function ResearchLayout({ children }: Readonly<{ children: ReactN
     || !isOwnerResearchSummaryTemporalSafe(summary)
     || !isOwnerResearchSummaryReferenceSafe(summary)
     || !isOwnerResearchSummaryGateSafe(summary)
+    || !isOwnerResearchSummaryHypothesisSafe(summary)
     || !isOwnerResearchSummaryIntegritySafe(summary)
     || !isOwnerResearchSummarySampleSafe(summary)
     || !isOwnerResearchSummaryWindowSafe(summary)
