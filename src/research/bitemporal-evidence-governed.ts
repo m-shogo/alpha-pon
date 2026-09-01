@@ -3,6 +3,7 @@ import {
   closeSync,
   existsSync,
   fsyncSync,
+  lstatSync,
   mkdirSync,
   openSync,
   readFileSync,
@@ -20,8 +21,17 @@ import {
   validateBitemporalEvidenceStoreGoverned,
 } from "./bitemporal-evidence-hardening.js";
 
+function assertSafeEvidenceStoreFile(path: string): void {
+  if (!existsSync(path)) return;
+  const stat = lstatSync(path);
+  if (stat.isSymbolicLink() || !stat.isFile() || stat.nlink !== 1) {
+    throw new Error(`Evidence Store path must be a single-link regular file: ${path}`);
+  }
+}
+
 function readStrictJsonl<T>(path: string): T[] {
   if (!existsSync(path)) return [];
+  assertSafeEvidenceStoreFile(path);
   const content = readFileSync(path, "utf-8");
   if (content.length > 0 && !content.endsWith("\n")) {
     throw new Error(`${path}: final newlineがなくpartial writeの可能性があります`);
@@ -105,6 +115,7 @@ export function appendEvidenceStoreRecordsGovernedStrict(
 
     const append = (path: string, records: unknown[]): void => {
       if (records.length === 0) return;
+      assertSafeEvidenceStoreFile(path);
       const fd = openSync(path, "a");
       try {
         appendFileSync(fd, `${records.map((record) => JSON.stringify(record)).join("\n")}\n`, "utf-8");
