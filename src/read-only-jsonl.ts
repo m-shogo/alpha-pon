@@ -59,7 +59,8 @@ export function formatReadOnlyJsonlParseWarning(
   if (parseErrors.length === 0) return null;
   const fileErrors = parseErrors.filter(error => error.lineNumber === 0);
   if (fileErrors.length > 0) {
-    return `${path}: read_error ${fileErrors.length}`;
+    const cause = fileErrors[0]?.message || "read_error";
+    return `${path}: ${cause} ${fileErrors.length}`;
   }
   const lines = parseErrors.slice(0, 8).map(error => error.lineNumber).join(", ");
   const suffix = parseErrors.length > 8 ? ", …" : "";
