@@ -16,7 +16,8 @@ const linked = readJsonlWithErrors<{ id: string }>(link);
 assert.deepEqual(linked.rows, []);
 assert.equal(linked.parseErrors.length, 1);
 assert.equal(linked.parseErrors[0]?.lineNumber, 0);
-assert.equal(formatReadOnlyJsonlParseWarning(link, linked.parseErrors), `${link}: read_error 1`);
+assert.equal(linked.parseErrors[0]?.message, "non_regular_file");
+assert.equal(formatReadOnlyJsonlParseWarning(link, linked.parseErrors), `${link}: non_regular_file 1`);
 
 const hardLink = join(dir, "hard-link.jsonl");
 linkSync(target, hardLink);
@@ -25,7 +26,7 @@ assert.deepEqual(hardLinked.rows, []);
 assert.equal(hardLinked.parseErrors.length, 1);
 assert.equal(hardLinked.parseErrors[0]?.lineNumber, 0);
 assert.equal(hardLinked.parseErrors[0]?.message, "non_regular_file");
-assert.equal(formatReadOnlyJsonlParseWarning(hardLink, hardLinked.parseErrors), `${hardLink}: read_error 1`);
+assert.equal(formatReadOnlyJsonlParseWarning(hardLink, hardLinked.parseErrors), `${hardLink}: non_regular_file 1`);
 
 const directoryPath = join(dir, "directory.jsonl");
 mkdirSync(directoryPath);
@@ -33,11 +34,13 @@ const directory = readJsonlWithErrors(directoryPath);
 assert.deepEqual(directory.rows, []);
 assert.equal(directory.parseErrors.length, 1);
 assert.equal(directory.parseErrors[0]?.message, "non_regular_file");
+assert.equal(formatReadOnlyJsonlParseWarning(directoryPath, directory.parseErrors), `${directoryPath}: non_regular_file 1`);
 
 const regular = readJsonlWithErrors<{ id: string }>(target);
 assert.deepEqual(regular.rows, []);
 assert.equal(regular.parseErrors.length, 1);
 assert.equal(regular.parseErrors[0]?.message, "non_regular_file");
+assert.equal(formatReadOnlyJsonlParseWarning(target, regular.parseErrors), `${target}: non_regular_file 1`);
 
 const standalone = join(dir, "standalone.jsonl");
 writeFileSync(standalone, `${JSON.stringify({ id: "real" })}\n`);
