@@ -15,7 +15,12 @@ export function listPriceJsonlFiles(root: string): string[] {
       throw new Error(`price_store_symlink_not_allowed: ${path}`);
     }
     if (stat.isDirectory()) files.push(...listPriceJsonlFiles(path));
-    else if (stat.isFile() && path.endsWith(".jsonl")) files.push(path);
+    else if (stat.isFile() && path.endsWith(".jsonl")) {
+      if (stat.nlink !== 1) {
+        throw new Error(`price_store_hardlink_not_allowed: ${path}`);
+      }
+      files.push(path);
+    }
   }
   return files.sort();
 }
