@@ -17,6 +17,7 @@ import {
   compareExplicitIso8601Instants,
   parseExplicitIso8601Instant,
 } from "./iso-instant.js";
+import { jstDateOf } from "./pit.js";
 import { validatePriceRecordTimeline } from "./price-record-timeline.js";
 import {
   computePriceRecordHash,
@@ -313,6 +314,9 @@ function assertCorporateActionClearance(input: {
   }
   if (input.clearance.throughTradingDate < input.terminalTradingDate) {
     throw new Error("corporate action clearance does not cover terminal tradingDate");
+  }
+  if (input.clearance.throughTradingDate > jstDateOf(input.clearance.assessedAt)) {
+    throw new Error("corporate action clearance throughTradingDate is after assessedAt JST date");
   }
   if (compareExplicitIso8601Instants(
     input.clearance.assessedAt,
