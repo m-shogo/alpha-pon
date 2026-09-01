@@ -54,7 +54,10 @@ for (const contradictory of [
   { ...temporallyConsistentSummary, checkpoint: { savedAt: "2026-08-30" } },
 ]) {
   assert.equal(
-    isOwnerResearchSummaryTemporalSafe(contradictory, now),
+    isOwnerResearchSummaryTemporalSafe(
+      contradictory as Parameters<typeof isOwnerResearchSummaryTemporalSafe>[0],
+      now,
+    ),
     false,
     "Owner Summary temporal contradictions must fail closed",
   );
