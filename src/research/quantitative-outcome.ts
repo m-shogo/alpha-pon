@@ -4,6 +4,7 @@ import {
   closeSync,
   existsSync,
   fsyncSync,
+  lstatSync,
   mkdirSync,
   openSync,
   readFileSync,
@@ -684,8 +685,23 @@ export function parseQuantitativeOutcomeJsonl(
     });
 }
 
+function assertSafeQuantitativeOutcomeFile(path: string): void {
+  if (!existsSync(path)) return;
+  const stats = lstatSync(path);
+  if (stats.isSymbolicLink()) {
+    throw new Error(`${path}: quantitative outcome path must not be a symbolic link`);
+  }
+  if (!stats.isFile()) {
+    throw new Error(`${path}: quantitative outcome path must be a regular file`);
+  }
+  if (stats.nlink !== 1) {
+    throw new Error(`${path}: quantitative outcome path must not be a hard link`);
+  }
+}
+
 export function readQuantitativeOutcomeJsonl(path: string): QuantitativeOutcomeRecord[] {
   if (!existsSync(path)) return [];
+  assertSafeQuantitativeOutcomeFile(path);
   return parseQuantitativeOutcomeJsonl(readFileSync(path, "utf-8"), path);
 }
 
@@ -696,6 +712,7 @@ export function appendQuantitativeOutcomeRecords(input: {
   context: QuantitativeOutcomeContext;
 }): void {
   if (input.incoming.length === 0) return;
+  assertSafeQuantitativeOutcomeFile(input.path);
   const existing = readQuantitativeOutcomeJsonl(input.path);
   const errors = validateQuantitativeOutcomeRecords(
     [...existing, ...input.incoming],
