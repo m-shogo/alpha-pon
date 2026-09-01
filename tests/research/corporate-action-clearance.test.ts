@@ -83,6 +83,30 @@ function codes(issues: ReturnType<typeof validateCorporateActionClearanceRecord>
 
 {
   const input = baseInput();
+  input.throughTradingDate = "2026-08-15";
+  const issues = validateCorporateActionClearanceRecord(
+    withCorporateActionClearanceHash(input),
+    schema,
+    context(),
+  );
+  assert.ok(codes(issues).includes("clearance_window_after_assessment"));
+  console.log("corporate-action-clearance: future trading-date clearance window is rejected OK");
+}
+
+{
+  const input = baseInput();
+  input.throughTradingDate = "2026-08-14";
+  const issues = validateCorporateActionClearanceRecord(
+    withCorporateActionClearanceHash(input),
+    schema,
+    context(),
+  );
+  assert.ok(!codes(issues).includes("clearance_window_after_assessment"));
+  console.log("corporate-action-clearance: same-JST-date clearance remains allowed OK");
+}
+
+{
+  const input = baseInput();
   input.sourceEvidence = [{ tier: "A", ref: "official:future:001" }];
   const issues = validateCorporateActionClearanceRecord(
     withCorporateActionClearanceHash(input),
