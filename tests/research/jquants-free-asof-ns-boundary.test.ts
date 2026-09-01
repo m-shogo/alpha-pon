@@ -31,9 +31,9 @@ const beforeObserved = await provider.fetchDaily({
   codes: ["8136"],
   from: "2026-05-14",
   to: "2026-05-14",
-  // observedAt is 2026-05-14T23:59:59+09:00 = 14:59:59Z.
+  // observedAt is 2026-05-14T23:59:59.999999999+09:00.
   // Exactly 1ns before the boundary must remain unavailable.
-  asOf: "2026-05-14T14:59:58.999999999Z",
+  asOf: "2026-05-14T14:59:59.999999998Z",
 });
 assert.equal(beforeObserved.records.length, 0);
 assert.equal(resolverCalls, 0);
@@ -43,7 +43,7 @@ const atObserved = await provider.fetchDaily({
   codes: ["8136"],
   from: "2026-05-14",
   to: "2026-05-14",
-  asOf: "2026-05-14T23:59:59+09:00",
+  asOf: "2026-05-14T23:59:59.999999999+09:00",
 });
 assert.equal(atObserved.records.length, 1);
 assert.equal(resolverCalls, 1);
