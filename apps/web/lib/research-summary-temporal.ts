@@ -1,5 +1,5 @@
-import type { OwnerResearchSummary } from './research-summary.js'
-import { isOwnerResearchTimestampSafe } from './research-summary.js'
+import type { OwnerResearchSummary } from './research-summary'
+import { isOwnerResearchTimestampSafe } from './research-summary'
 
 export function isOwnerResearchSummaryTemporalSafe(
   value: Pick<OwnerResearchSummary, 'generatedAt' | 'latestResearchAt' | 'timeline' | 'checkpoint'>,
