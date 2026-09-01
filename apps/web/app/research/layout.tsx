@@ -7,6 +7,7 @@ import { isOwnerResearchHistoryMapTemporalSafe } from '@/lib/research-history-ma
 import { isOwnerResearchSummaryGateSafe } from '@/lib/research-summary-gates'
 import { isOwnerResearchSummaryIntegritySafe } from '@/lib/research-summary-integrity'
 import { isOwnerResearchSummaryReferenceSafe } from '@/lib/research-summary-references'
+import { isOwnerResearchSummarySampleSafe } from '@/lib/research-summary-samples'
 import { isOwnerResearchTimestampSafe, loadOwnerResearchSummary } from '@/lib/research-summary'
 import { isOwnerResearchSummaryTemporalSafe } from '@/lib/research-summary-temporal'
 import { isOwnerResearchSummaryWindowSafe } from '@/lib/research-summary-window'
@@ -33,6 +34,7 @@ export default function ResearchLayout({ children }: Readonly<{ children: ReactN
     || !isOwnerResearchSummaryReferenceSafe(summary)
     || !isOwnerResearchSummaryGateSafe(summary)
     || !isOwnerResearchSummaryIntegritySafe(summary)
+    || !isOwnerResearchSummarySampleSafe(summary)
     || !isOwnerResearchSummaryWindowSafe(summary)
   const historyMapTimestampSafe = historyMap.generatedAt !== null && isOwnerResearchTimestampSafe(historyMap.generatedAt)
   const historyMapUnavailable = historyMap.warning !== null
