@@ -10,6 +10,7 @@ import {
 } from "node:fs";
 import { dirname } from "node:path";
 import { compareExplicitIso8601Instants, parseExplicitIso8601Instant } from "./iso-instant.js";
+import { jstDateOf } from "./pit.js";
 import { isValidDate, stableStringify, validate, type JsonSchema } from "./schema.js";
 
 export type CorporateActionEvidenceTier = "A" | "B";
@@ -140,6 +141,13 @@ export function validateCorporateActionClearanceRecord(
   }
   if (record.fromTradingDate > record.throughTradingDate) {
     issues.push(issue("clearance_window_reversed", target, "fromTradingDate <= throughTradingDate が必要です"));
+  }
+  if (record.throughTradingDate > jstDateOf(record.assessedAt)) {
+    issues.push(issue(
+      "clearance_window_after_assessment",
+      target,
+      "throughTradingDateはassessedAtのJST日付より未来にできません",
+    ));
   }
 
   for (const evidence of record.sourceEvidence) {
