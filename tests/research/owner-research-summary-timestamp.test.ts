@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { isOwnerResearchSummaryReferenceSafe } from "../../apps/web/lib/research-summary-references.js";
 import {
   isOwnerResearchSummaryCountConsistent,
   isOwnerResearchTimestampSafe,
@@ -158,4 +159,47 @@ for (const contradictory of [
   );
 }
 
-console.log("research/owner summary: timestamp, temporal-consistency and count-consistency contracts OK");
+const referenceSafeSummary = {
+  overview: {
+    readiness: {
+      promotionReadyEdgeIds: ["EDGE-001"],
+      holdoutReadyEdgeIds: ["EDGE-002"],
+    },
+  },
+  formalEdges: [{ id: "EDGE-001" }, { id: "EDGE-002" }],
+};
+
+assert.equal(
+  isOwnerResearchSummaryReferenceSafe(referenceSafeSummary),
+  true,
+  "readiness references produced from canonical formal edges must be accepted",
+);
+
+for (const contradictory of [
+  {
+    ...referenceSafeSummary,
+    overview: {
+      readiness: {
+        ...referenceSafeSummary.overview.readiness,
+        promotionReadyEdgeIds: ["EDGE-GHOST"],
+      },
+    },
+  },
+  {
+    ...referenceSafeSummary,
+    overview: {
+      readiness: {
+        ...referenceSafeSummary.overview.readiness,
+        holdoutReadyEdgeIds: ["EDGE-002", "EDGE-002"],
+      },
+    },
+  },
+]) {
+  assert.equal(
+    isOwnerResearchSummaryReferenceSafe(contradictory),
+    false,
+    "ghost or duplicated readiness edge references must fail closed",
+  );
+}
+
+console.log("research/owner summary: timestamp, temporal, count and reference-consistency contracts OK");
