@@ -3,6 +3,7 @@ import HistoricalAnalogVerification from '@/components/HistoricalAnalogVerificat
 import ResearchHistoryMap from '@/components/ResearchHistoryMap'
 import ResearchStudyMap from '@/components/ResearchStudyMap'
 import { loadOwnerResearchHistoryMap } from '@/lib/research-history-map'
+import { isOwnerResearchHistoryMapTemporalSafe } from '@/lib/research-history-map-temporal'
 import { isOwnerResearchTimestampSafe, loadOwnerResearchSummary } from '@/lib/research-summary'
 import { isOwnerResearchSummaryTemporalSafe } from '@/lib/research-summary-temporal'
 
@@ -25,7 +26,9 @@ export default function ResearchLayout({ children }: Readonly<{ children: ReactN
   const historyMap = loadOwnerResearchHistoryMap()
   const summaryUnavailable = summary.warning !== null || !isOwnerResearchSummaryTemporalSafe(summary)
   const historyMapTimestampSafe = historyMap.generatedAt !== null && isOwnerResearchTimestampSafe(historyMap.generatedAt)
-  const historyMapUnavailable = historyMap.warning !== null || !historyMapTimestampSafe
+  const historyMapUnavailable = historyMap.warning !== null
+    || !historyMapTimestampSafe
+    || !isOwnerResearchHistoryMapTemporalSafe(historyMap)
 
   return (
     <>
@@ -56,7 +59,7 @@ export default function ResearchLayout({ children }: Readonly<{ children: ReactN
           <section style={{ margin: '0 14px 28px', padding: '14px 15px', borderRadius: 14, background: 'var(--amber-soft)', border: '1px solid var(--line)' }}>
             <div style={{ fontSize: 13, fontWeight: 850, color: 'var(--ink)' }}>⚠ Knowledge Mapを利用できません</div>
             <div style={{ marginTop: 6, fontSize: 12, lineHeight: 1.65, color: 'var(--ink-2)', fontWeight: 650 }}>
-              {historyMap.warning ?? 'Knowledge Mapの生成時刻が不正または未来時刻のため、安全のため表示を停止しました。'}
+              {historyMap.warning ?? 'Knowledge Mapの時刻整合性が不正なため、安全のため表示を停止しました。'}
             </div>
             <div style={{ marginTop: 7, fontSize: 10.5, lineHeight: 1.55, color: 'var(--ink-3)' }}>
               Family・Historical Analog・Case・Studyなどの0件表示は実データとして扱いません。
