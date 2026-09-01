@@ -3,7 +3,7 @@ import HistoricalAnalogVerification from '@/components/HistoricalAnalogVerificat
 import ResearchHistoryMap from '@/components/ResearchHistoryMap'
 import ResearchStudyMap from '@/components/ResearchStudyMap'
 import { loadOwnerResearchHistoryMap } from '@/lib/research-history-map'
-import { loadOwnerResearchSummary } from '@/lib/research-summary'
+import { isOwnerResearchTimestampSafe, loadOwnerResearchSummary } from '@/lib/research-summary'
 import { isOwnerResearchSummaryTemporalSafe } from '@/lib/research-summary-temporal'
 
 function formatSnapshotTime(value: string | null): string {
