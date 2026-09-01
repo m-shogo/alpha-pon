@@ -5,7 +5,16 @@ type OwnerResearchSummaryReferenceProjection = {
       holdoutReadyEdgeIds: readonly string[]
     }
   }
+  researchItems: readonly {
+    id: string
+    families: readonly { id: string }[]
+    questions: readonly { id: string }[]
+  }[]
   formalEdges: readonly { id: string }[]
+}
+
+function hasUniqueIds(values: readonly { id: string }[]): boolean {
+  return new Set(values.map((value) => value.id)).size === values.length
 }
 
 function hasUniqueKnownEdgeIds(ids: readonly string[], knownEdgeIds: ReadonlySet<string>): boolean {
@@ -20,6 +29,9 @@ function hasUniqueKnownEdgeIds(ids: readonly string[], knownEdgeIds: ReadonlySet
 export function isOwnerResearchSummaryReferenceSafe(
   value: OwnerResearchSummaryReferenceProjection,
 ): boolean {
+  if (!hasUniqueIds(value.researchItems)) return false
+  if (value.researchItems.some((item) => !hasUniqueIds(item.families) || !hasUniqueIds(item.questions))) return false
+
   const formalEdgeIds = value.formalEdges.map((edge) => edge.id)
   const knownEdgeIds = new Set(formalEdgeIds)
   if (knownEdgeIds.size !== formalEdgeIds.length) return false
