@@ -4,6 +4,7 @@ import {
   closeSync,
   existsSync,
   fsyncSync,
+  lstatSync,
   mkdirSync,
   openSync,
   readFileSync,
@@ -390,8 +391,23 @@ export function parseOutcomeLearningChangePreparationJsonl(
     });
 }
 
+function assertSafeOutcomeLearningChangePreparationFile(path: string): void {
+  if (!existsSync(path)) return;
+  const stats = lstatSync(path);
+  if (stats.isSymbolicLink()) {
+    throw new Error(`${path}: outcome learning change preparation path must not be a symbolic link`);
+  }
+  if (!stats.isFile()) {
+    throw new Error(`${path}: outcome learning change preparation path must be a regular file`);
+  }
+  if (stats.nlink !== 1) {
+    throw new Error(`${path}: outcome learning change preparation path must not be a hard link`);
+  }
+}
+
 export function readOutcomeLearningChangePreparationJsonl(path: string): OutcomeLearningChangePreparationRecord[] {
   if (!existsSync(path)) return [];
+  assertSafeOutcomeLearningChangePreparationFile(path);
   return parseOutcomeLearningChangePreparationJsonl(readFileSync(path, "utf-8"), path);
 }
 
@@ -402,6 +418,7 @@ export function appendOutcomeLearningChangePreparationRecords(input: {
   context: OutcomeLearningChangePreparationContext;
 }): void {
   if (input.incoming.length === 0) return;
+  assertSafeOutcomeLearningChangePreparationFile(input.path);
   const existing = readOutcomeLearningChangePreparationJsonl(input.path);
   const errors = validateOutcomeLearningChangePreparationRecords(
     [...existing, ...input.incoming],
