@@ -3,6 +3,12 @@ import { linkSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  appendOutcomeLearningProposalRecords,
+  readOutcomeLearningProposalJsonl,
+  type OutcomeLearningProposalContext,
+  type OutcomeLearningProposalRecord,
+} from "../../src/research/outcome-learning-proposal.js";
+import {
   appendOutcomeSemanticReviewRecords,
   readOutcomeSemanticReviewJsonl,
   type OutcomeSemanticReviewContext,
@@ -52,6 +58,45 @@ assert.throws(
     incoming: [dummyRecord],
     schema: dummySchema,
     context: dummyContext,
+  }),
+  /must not be a hard link/,
+);
+
+const proposalExternal = join(sandbox, "proposal-external.jsonl");
+writeFileSync(proposalExternal, "sentinel\n", "utf-8");
+const proposalSymlinkPath = join(sandbox, "proposal-symlink.jsonl");
+symlinkSync(proposalExternal, proposalSymlinkPath);
+const proposalHardlinkPath = join(sandbox, "proposal-hardlink.jsonl");
+linkSync(proposalExternal, proposalHardlinkPath);
+const dummyProposal = {} as OutcomeLearningProposalRecord;
+const dummyProposalContext: OutcomeLearningProposalContext = {
+  semanticReviewsById: new Map(),
+  validatedSemanticReviewHashes: new Set(),
+};
+
+assert.throws(
+  () => readOutcomeLearningProposalJsonl(proposalSymlinkPath),
+  /must not be a symbolic link/,
+);
+assert.throws(
+  () => readOutcomeLearningProposalJsonl(proposalHardlinkPath),
+  /must not be a hard link/,
+);
+assert.throws(
+  () => appendOutcomeLearningProposalRecords({
+    path: proposalSymlinkPath,
+    incoming: [dummyProposal],
+    schema: dummySchema,
+    context: dummyProposalContext,
+  }),
+  /must not be a symbolic link/,
+);
+assert.throws(
+  () => appendOutcomeLearningProposalRecords({
+    path: proposalHardlinkPath,
+    incoming: [dummyProposal],
+    schema: dummySchema,
+    context: dummyProposalContext,
   }),
   /must not be a hard link/,
 );
