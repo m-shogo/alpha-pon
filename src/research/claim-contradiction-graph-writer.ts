@@ -3,6 +3,7 @@ import {
   closeSync,
   existsSync,
   fsyncSync,
+  lstatSync,
   mkdirSync,
   openSync,
   readFileSync,
@@ -27,8 +28,17 @@ import {
   validateIncomingClaimGraphCutoff,
 } from "./claim-contradiction-graph-governed.js";
 
+function assertSafeClaimGraphStoreFile(path: string): void {
+  if (!existsSync(path)) return;
+  const stat = lstatSync(path);
+  if (stat.isSymbolicLink() || !stat.isFile() || stat.nlink !== 1) {
+    throw new Error(`Claim Graph store path must be a single-link regular file: ${path}`);
+  }
+}
+
 function readStrictJsonl<T>(path: string): T[] {
   if (!existsSync(path)) return [];
+  assertSafeClaimGraphStoreFile(path);
   const content = readFileSync(path, "utf-8");
   if (content.length > 0 && !content.endsWith("\n")) {
     throw new Error(`${path}: final newlineがなくpartial writeの可能性があります`);
@@ -135,6 +145,7 @@ export function appendClaimGraphRecordsAtCutoffGoverned(
     writeJournal(journalPath, { ...journalBase, state: "prepared" });
 
     if (incoming.claims.length > 0) {
+      assertSafeClaimGraphStoreFile(paths.claims);
       const fd = openSync(paths.claims, "a");
       try {
         appendFileSync(
@@ -150,6 +161,7 @@ export function appendClaimGraphRecordsAtCutoffGoverned(
     writeJournal(journalPath, { ...journalBase, state: "claims_appended" });
 
     if (incoming.edges.length > 0) {
+      assertSafeClaimGraphStoreFile(paths.edges);
       const fd = openSync(paths.edges, "a");
       try {
         appendFileSync(
