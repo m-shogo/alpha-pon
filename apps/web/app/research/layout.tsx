@@ -5,6 +5,7 @@ import ResearchStudyMap from '@/components/ResearchStudyMap'
 import { loadOwnerResearchHistoryMap } from '@/lib/research-history-map'
 import { isOwnerResearchHistoryMapTemporalSafe } from '@/lib/research-history-map-temporal'
 import { isOwnerResearchSummaryGateSafe } from '@/lib/research-summary-gates'
+import { isOwnerResearchSummaryIntegritySafe } from '@/lib/research-summary-integrity'
 import { isOwnerResearchSummaryReferenceSafe } from '@/lib/research-summary-references'
 import { isOwnerResearchTimestampSafe, loadOwnerResearchSummary } from '@/lib/research-summary'
 import { isOwnerResearchSummaryTemporalSafe } from '@/lib/research-summary-temporal'
@@ -31,6 +32,7 @@ export default function ResearchLayout({ children }: Readonly<{ children: ReactN
     || !isOwnerResearchSummaryTemporalSafe(summary)
     || !isOwnerResearchSummaryReferenceSafe(summary)
     || !isOwnerResearchSummaryGateSafe(summary)
+    || !isOwnerResearchSummaryIntegritySafe(summary)
     || !isOwnerResearchSummaryWindowSafe(summary)
   const historyMapTimestampSafe = historyMap.generatedAt !== null && isOwnerResearchTimestampSafe(historyMap.generatedAt)
   const historyMapUnavailable = historyMap.warning !== null
