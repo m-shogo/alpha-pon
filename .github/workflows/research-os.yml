@@ -75,6 +75,7 @@ jobs:
           for test in tests/research/backtest-*.test.ts; do node --import tsx/esm "$test"; done
           for test in tests/research/security-master-*.test.ts; do node --import tsx/esm "$test"; done
           for test in tests/research/bitemporal-*.test.ts; do node --import tsx/esm "$test"; done
+          for test in tests/research/document-revision-diff*.test.ts; do node --import tsx/esm "$test"; done
           for test in tests/research/research-knowledge-*.test.ts; do node --import tsx/esm "$test"; done
           for test in tests/research/*price-store*.test.ts; do node --import tsx/esm "$test"; done
           for test in tests/research/jquants-free-*.test.ts; do node --import tsx/esm "$test"; done
