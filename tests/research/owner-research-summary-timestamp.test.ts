@@ -3,6 +3,7 @@ import {
   isOwnerResearchSummaryCountConsistent,
   isOwnerResearchTimestampSafe,
 } from "../../apps/web/lib/research-summary.js";
+import { isOwnerResearchSummaryTemporalSafe } from "../../apps/web/lib/research-summary-temporal.js";
 
 const now = Date.parse("2026-08-30T12:00:00.000Z");
 
@@ -31,6 +32,36 @@ assert.equal(
   false,
   "a date without an explicit time zone must fail closed",
 );
+
+const temporallyConsistentSummary = {
+  generatedAt: "2026-08-30T12:00:00.000Z",
+  latestResearchAt: "2026-08-30T11:45:00.000Z",
+  timeline: [{ at: "2026-08-30T11:45:00.000Z" }],
+  checkpoint: { savedAt: "2026-08-30T11:50:00.000Z" },
+} as unknown as Parameters<typeof isOwnerResearchSummaryTemporalSafe>[0];
+
+assert.equal(
+  isOwnerResearchSummaryTemporalSafe(temporallyConsistentSummary, now),
+  true,
+  "timeline and checkpoint timestamps at or before generation must be accepted",
+);
+
+for (const contradictory of [
+  { ...temporallyConsistentSummary, latestResearchAt: "2026-08-30T12:00:00.001Z" },
+  { ...temporallyConsistentSummary, timeline: [{ at: "2026-08-30T12:00:00.001Z" }] },
+  { ...temporallyConsistentSummary, timeline: [{ at: "not-a-timestamp" }] },
+  { ...temporallyConsistentSummary, checkpoint: { savedAt: "2026-08-30T12:00:00.001Z" } },
+  { ...temporallyConsistentSummary, checkpoint: { savedAt: "2026-08-30" } },
+]) {
+  assert.equal(
+    isOwnerResearchSummaryTemporalSafe(
+      contradictory as Parameters<typeof isOwnerResearchSummaryTemporalSafe>[0],
+      now,
+    ),
+    false,
+    "Owner Summary temporal contradictions must fail closed",
+  );
+}
 
 const consistentSummaryCounts = {
   counts: {
@@ -85,4 +116,4 @@ for (const contradictory of [
   );
 }
 
-console.log("research/owner summary: timestamp and count-consistency contracts OK");
+console.log("research/owner summary: timestamp, temporal-consistency and count-consistency contracts OK");
