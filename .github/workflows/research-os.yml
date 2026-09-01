@@ -75,6 +75,7 @@ jobs:
           for test in tests/research/security-master-*.test.ts; do node --import tsx/esm "$test"; done
           for test in tests/research/bitemporal-*.test.ts; do node --import tsx/esm "$test"; done
           for test in tests/research/research-knowledge-*.test.ts; do node --import tsx/esm "$test"; done
+          for test in tests/research/recommendation-*.test.ts; do node --import tsx/esm "$test"; done
           for test in tests/edinet-sanrio-real-pilot-*.test.ts; do node --import tsx/esm "$test"; done
           node --import tsx/esm tests/research/claim-graph-security-master-cutoff.test.ts
           node --import tsx/esm tests/research/corporate-action-clearance.test.ts
