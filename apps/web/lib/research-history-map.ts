@@ -420,6 +420,11 @@ function parseHistoryMap(value: unknown): OwnerResearchHistoryMap | null {
   if (!Array.isArray(value.lineages) || !value.lineages.every(isLineage)) return null
   if (!Array.isArray(value.studies) || !value.studies.every(isStudy)) return null
   if (!Array.isArray(value.studyResults) || !value.studyResults.every(isStudyResult)) return null
+  const resolvedOutcomes = value.historicalAnalogs.filter(
+    (analog) => analog.outcome !== null && analog.outcome.verdict !== 'unresolved',
+  ).length
+  if (value.counts.resolvedOutcomes !== resolvedOutcomes
+    || value.counts.unresolvedOutcomes !== value.historicalAnalogs.length - resolvedOutcomes) return null
   if (value.families.length !== value.counts.families
     || value.historicalAnalogs.length !== value.counts.historicalAnalogs
     || value.cases.length !== value.counts.cases
