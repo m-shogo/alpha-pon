@@ -4,6 +4,7 @@ import {
   closeSync,
   existsSync,
   fsyncSync,
+  lstatSync,
   mkdirSync,
   openSync,
   readFileSync,
@@ -477,7 +478,6 @@ export function validateRecommendationRecord(
 
   issues.push(...rangeIssues(record.buyRange, record.buyRangeBasisRefs, "buyRange"));
   issues.push(...rangeIssues(record.targetRange, record.targetRangeBasisRefs, "targetRange"));
-
   if (record.confidence !== undefined && (!record.confidenceBasisRefs || record.confidenceBasisRefs.length === 0)) {
     issues.push(error("confidence_basis_missing", target, "confidenceを保存するには計算根拠refが必要です"));
   }
@@ -617,8 +617,23 @@ export function parseRecommendationJsonl(content: string, path = "<memory>"): Re
     });
 }
 
+function assertSafeRecommendationFile(path: string): void {
+  if (!existsSync(path)) return;
+  const stats = lstatSync(path);
+  if (stats.isSymbolicLink()) {
+    throw new Error(`${path}: recommendation path must not be a symbolic link`);
+  }
+  if (!stats.isFile()) {
+    throw new Error(`${path}: recommendation path must be a regular file`);
+  }
+  if (stats.nlink !== 1) {
+    throw new Error(`${path}: recommendation path must not be a hard link`);
+  }
+}
+
 export function readRecommendationJsonl(path: string): RecommendationRecord[] {
   if (!existsSync(path)) return [];
+  assertSafeRecommendationFile(path);
   return parseRecommendationJsonl(readFileSync(path, "utf-8"), path);
 }
 
@@ -629,6 +644,7 @@ export function appendRecommendationRecords(input: {
   context: RecommendationValidationContext;
 }): void {
   if (input.incoming.length === 0) return;
+  assertSafeRecommendationFile(input.path);
   const existing = readRecommendationJsonl(input.path);
   const issues = validateRecommendationRecords(
     [...existing, ...input.incoming],
