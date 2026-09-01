@@ -3,7 +3,7 @@
 > このファイルは生成物です。直接編集しないでください（`pnpm research:dashboard` で再生成）。
 
 - 基準日 (asOf): 2026-09-01
-- 生成時刻: 2026-09-01T10:18:59.284Z
+- 生成時刻: 2026-09-01T11:16:20.772Z
 - Edge: 3 件 / Historical Analog: 0 件 / Counterfactual: 0 件 / Confounder: 0 件
 - 整合性: エラー 0 件 / 警告 0 件
 
