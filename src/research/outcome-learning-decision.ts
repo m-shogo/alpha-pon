@@ -4,6 +4,7 @@ import {
   closeSync,
   existsSync,
   fsyncSync,
+  lstatSync,
   mkdirSync,
   openSync,
   readFileSync,
@@ -320,8 +321,23 @@ export function parseOutcomeLearningDecisionJsonl(
     });
 }
 
+function assertSafeOutcomeLearningDecisionFile(path: string): void {
+  if (!existsSync(path)) return;
+  const stats = lstatSync(path);
+  if (stats.isSymbolicLink()) {
+    throw new Error(`${path}: outcome learning decision path must not be a symbolic link`);
+  }
+  if (!stats.isFile()) {
+    throw new Error(`${path}: outcome learning decision path must be a regular file`);
+  }
+  if (stats.nlink !== 1) {
+    throw new Error(`${path}: outcome learning decision path must not be a hard link`);
+  }
+}
+
 export function readOutcomeLearningDecisionJsonl(path: string): OutcomeLearningDecisionRecord[] {
   if (!existsSync(path)) return [];
+  assertSafeOutcomeLearningDecisionFile(path);
   return parseOutcomeLearningDecisionJsonl(readFileSync(path, "utf-8"), path);
 }
 
@@ -332,6 +348,7 @@ export function appendOutcomeLearningDecisionRecords(input: {
   context: OutcomeLearningDecisionContext;
 }): void {
   if (input.incoming.length === 0) return;
+  assertSafeOutcomeLearningDecisionFile(input.path);
   const existing = readOutcomeLearningDecisionJsonl(input.path);
   const errors = validateOutcomeLearningDecisionRecords(
     [...existing, ...input.incoming],

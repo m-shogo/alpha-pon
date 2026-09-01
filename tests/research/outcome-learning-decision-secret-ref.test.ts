@@ -1,10 +1,20 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import {
+  linkSync,
+  mkdtempSync,
+  readFileSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   withOutcomeLearningProposalHash,
   type OutcomeLearningProposalRecord,
 } from "../../src/research/outcome-learning-proposal.js";
 import {
+  appendOutcomeLearningDecisionRecords,
+  readOutcomeLearningDecisionJsonl,
   validateOutcomeLearningDecisionRecord,
   withOutcomeLearningDecisionHash,
   type OutcomeLearningDecisionContext,
@@ -91,6 +101,48 @@ for (const evidenceRef of [
   assert.ok(
     issues.some((candidate) => candidate.code === "secret_like_decision_evidence_ref"),
     `secret-bearing evidence ref must fail closed: ${evidenceRef}`,
+  );
+}
+
+{
+  const sandbox = mkdtempSync(join(tmpdir(), "alpha-pon-learning-decision-local-path-"));
+  const external = join(sandbox, "external.jsonl");
+  writeFileSync(external, "sentinel\n", "utf-8");
+
+  const symlinkPath = join(sandbox, "symlink.jsonl");
+  symlinkSync(external, symlinkPath);
+  assert.throws(
+    () => readOutcomeLearningDecisionJsonl(symlinkPath),
+    /must not be a symbolic link/,
+  );
+
+  const hardlinkPath = join(sandbox, "hardlink.jsonl");
+  linkSync(external, hardlinkPath);
+  assert.throws(
+    () => readOutcomeLearningDecisionJsonl(hardlinkPath),
+    /must not be a hard link/,
+  );
+
+  const source = proposal("evidence:review:local-path");
+  const record = decision(source, "evidence:review:local-path");
+  const decisionContext = context(source);
+  assert.throws(
+    () => appendOutcomeLearningDecisionRecords({
+      path: symlinkPath,
+      incoming: [record],
+      schema,
+      context: decisionContext,
+    }),
+    /must not be a symbolic link/,
+  );
+  assert.throws(
+    () => appendOutcomeLearningDecisionRecords({
+      path: hardlinkPath,
+      incoming: [record],
+      schema,
+      context: decisionContext,
+    }),
+    /must not be a hard link/,
   );
 }
 
