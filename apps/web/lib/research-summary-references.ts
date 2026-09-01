@@ -20,7 +20,10 @@ function hasUniqueKnownEdgeIds(ids: readonly string[], knownEdgeIds: ReadonlySet
 export function isOwnerResearchSummaryReferenceSafe(
   value: OwnerResearchSummaryReferenceProjection,
 ): boolean {
-  const knownEdgeIds = new Set(value.formalEdges.map((edge) => edge.id))
+  const formalEdgeIds = value.formalEdges.map((edge) => edge.id)
+  const knownEdgeIds = new Set(formalEdgeIds)
+  if (knownEdgeIds.size !== formalEdgeIds.length) return false
+
   return hasUniqueKnownEdgeIds(value.overview.readiness.promotionReadyEdgeIds, knownEdgeIds)
     && hasUniqueKnownEdgeIds(value.overview.readiness.holdoutReadyEdgeIds, knownEdgeIds)
 }
