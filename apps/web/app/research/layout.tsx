@@ -7,6 +7,7 @@ import { isOwnerResearchHistoryMapTemporalSafe } from '@/lib/research-history-ma
 import { isOwnerResearchSummaryReferenceSafe } from '@/lib/research-summary-references'
 import { isOwnerResearchTimestampSafe, loadOwnerResearchSummary } from '@/lib/research-summary'
 import { isOwnerResearchSummaryTemporalSafe } from '@/lib/research-summary-temporal'
+import { isOwnerResearchSummaryWindowSafe } from '@/lib/research-summary-window'
 
 function formatSnapshotTime(value: string | null): string {
   if (!value) return '未記録'
@@ -28,6 +29,7 @@ export default function ResearchLayout({ children }: Readonly<{ children: ReactN
   const summaryUnavailable = summary.warning !== null
     || !isOwnerResearchSummaryTemporalSafe(summary)
     || !isOwnerResearchSummaryReferenceSafe(summary)
+    || !isOwnerResearchSummaryWindowSafe(summary)
   const historyMapTimestampSafe = historyMap.generatedAt !== null && isOwnerResearchTimestampSafe(historyMap.generatedAt)
   const historyMapUnavailable = historyMap.warning !== null
     || !historyMapTimestampSafe
@@ -42,7 +44,7 @@ export default function ResearchLayout({ children }: Readonly<{ children: ReactN
           <section style={{ marginTop: 14, padding: '14px 15px', borderRadius: 14, background: 'var(--amber-soft)', border: '1px solid var(--line)' }}>
             <div style={{ fontSize: 13, fontWeight: 850, color: 'var(--ink)' }}>⚠ Research Summaryを利用できません</div>
             <div style={{ marginTop: 6, fontSize: 12, lineHeight: 1.65, color: 'var(--ink-2)', fontWeight: 650 }}>
-              {summary.warning ?? 'Research Summaryの時刻または参照整合性が不正なため、安全のため表示を停止しました。'}
+              {summary.warning ?? 'Research Summaryの時刻・期間または参照整合性が不正なため、安全のため表示を停止しました。'}
             </div>
             <div style={{ marginTop: 7, fontSize: 10.5, lineHeight: 1.55, color: 'var(--ink-3)' }}>
               この状態ではEdge数・Sample数・研究テーマ数などの0表示を実データとして扱いません。下のKnowledge Mapは別generated sourceから読み込むため、独立して判定します。

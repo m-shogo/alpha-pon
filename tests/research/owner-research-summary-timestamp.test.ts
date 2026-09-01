@@ -5,6 +5,7 @@ import {
   isOwnerResearchTimestampSafe,
 } from "../../apps/web/lib/research-summary.js";
 import { isOwnerResearchSummaryTemporalSafe } from "../../apps/web/lib/research-summary-temporal.js";
+import { isOwnerResearchSummaryWindowSafe } from "../../apps/web/lib/research-summary-window.js";
 
 const now = Date.parse("2026-08-30T12:00:00.000Z");
 
@@ -202,4 +203,44 @@ for (const contradictory of [
   );
 }
 
-console.log("research/owner summary: timestamp, temporal, count and reference-consistency contracts OK");
+const windowSafeSummary = {
+  overview: {
+    asOf: "2026-08-30",
+    recent7d: {
+      from: "2026-08-24",
+      to: "2026-08-30",
+    },
+  },
+};
+
+assert.equal(
+  isOwnerResearchSummaryWindowSafe(windowSafeSummary),
+  true,
+  "canonical seven-day Owner Summary window must be accepted",
+);
+
+for (const contradictory of [
+  { ...windowSafeSummary, overview: { ...windowSafeSummary.overview, asOf: "2026-02-30" } },
+  {
+    ...windowSafeSummary,
+    overview: {
+      ...windowSafeSummary.overview,
+      recent7d: { ...windowSafeSummary.overview.recent7d, to: "2026-08-29" },
+    },
+  },
+  {
+    ...windowSafeSummary,
+    overview: {
+      ...windowSafeSummary.overview,
+      recent7d: { ...windowSafeSummary.overview.recent7d, from: "2026-08-23" },
+    },
+  },
+]) {
+  assert.equal(
+    isOwnerResearchSummaryWindowSafe(contradictory),
+    false,
+    "malformed or contradictory Owner Summary seven-day windows must fail closed",
+  );
+}
+
+console.log("research/owner summary: timestamp, temporal, count, reference and window-consistency contracts OK");
