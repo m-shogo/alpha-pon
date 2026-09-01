@@ -373,7 +373,7 @@ function parseSummary(value: unknown): OwnerResearchSummary | null {
   if (!Array.isArray(value.timeline) || !value.timeline.every(isTimelineEntry)) return null
   if (value.checkpoint !== null && !isCheckpoint(value.checkpoint)) return null
   if (!isOwnerResearchSummaryCountConsistent({
-    counts: value.counts,
+    counts: value.counts as OwnerResearchSummary['counts'],
     overview: value.overview,
     researchItems: value.researchItems,
     formalEdges: value.formalEdges,
