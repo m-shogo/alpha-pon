@@ -14,6 +14,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { DailyQuote } from "../../src/fetcher/jquants.js";
 import { appendPrivatePriceRecords } from "../../src/research/private-price-store.js";
+import { listPriceJsonlFiles } from "../../src/research/price-store-files.js";
 import { mapJQuantsFreeQuote } from "../../src/research/providers/jquants-free.js";
 import { withPriceRecordHash } from "../../src/research/price-store.js";
 import type { JsonSchema } from "../../src/research/schema.js";
@@ -114,6 +115,24 @@ function mode(path: string): number {
   assert.equal(readFileSync(target, "utf-8"), "outside\n");
   assert.equal(mode(target), originalMode);
   console.log("private-price-store: hard-linked price file is rejected before chmod/append OK");
+}
+
+{
+  const sandbox = mkdtempSync(join(tmpdir(), "alpha-pon-price-store-list-hardlink-"));
+  const root = join(sandbox, "prices");
+  const outside = join(sandbox, "outside.jsonl");
+  const path = join(root, "8136.jsonl");
+  mkdirSync(root, { recursive: true });
+  writeFileSync(outside, "outside\n");
+  linkSync(outside, path);
+  assert.equal(statSync(path).nlink, 2);
+
+  assert.throws(
+    () => listPriceJsonlFiles(root),
+    /price_store_hardlink_not_allowed/,
+    "price discovery must not admit an inode aliased outside the configured local-only root",
+  );
+  console.log("price-store-files: hard-linked jsonl is rejected from local-only discovery OK");
 }
 
 {
