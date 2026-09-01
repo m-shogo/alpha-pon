@@ -4,6 +4,7 @@ import {
   closeSync,
   existsSync,
   fsyncSync,
+  lstatSync,
   mkdirSync,
   openSync,
   readFileSync,
@@ -520,8 +521,23 @@ export function parseOutcomeLearningShadowEvaluationJsonl(
     });
 }
 
+function assertSafeOutcomeLearningShadowEvaluationFile(path: string): void {
+  if (!existsSync(path)) return;
+  const stats = lstatSync(path);
+  if (stats.isSymbolicLink()) {
+    throw new Error(`${path}: outcome learning shadow evaluation path must not be a symbolic link`);
+  }
+  if (!stats.isFile()) {
+    throw new Error(`${path}: outcome learning shadow evaluation path must be a regular file`);
+  }
+  if (stats.nlink !== 1) {
+    throw new Error(`${path}: outcome learning shadow evaluation path must not be a hard link`);
+  }
+}
+
 export function readOutcomeLearningShadowEvaluationJsonl(path: string): OutcomeLearningShadowEvaluationRecord[] {
   if (!existsSync(path)) return [];
+  assertSafeOutcomeLearningShadowEvaluationFile(path);
   return parseOutcomeLearningShadowEvaluationJsonl(readFileSync(path, "utf-8"), path);
 }
 
@@ -532,6 +548,7 @@ export function appendOutcomeLearningShadowEvaluationRecords(input: {
   context: OutcomeLearningShadowEvaluationContext;
 }): void {
   if (input.incoming.length === 0) return;
+  assertSafeOutcomeLearningShadowEvaluationFile(input.path);
   const existing = readOutcomeLearningShadowEvaluationJsonl(input.path);
   const errors = validateOutcomeLearningShadowEvaluationRecords(
     [...existing, ...input.incoming],
