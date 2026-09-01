@@ -3,6 +3,7 @@ import {
   closeSync,
   existsSync,
   fsyncSync,
+  lstatSync,
   mkdirSync,
   openSync,
   readFileSync,
@@ -35,8 +36,17 @@ export type DocumentRevisionDiffAppendBatch = {
   diffs: DocumentDiffRecord[];
 };
 
+function assertSafeDocumentRevisionStoreFile(path: string): void {
+  if (!existsSync(path)) return;
+  const stat = lstatSync(path);
+  if (stat.isSymbolicLink() || !stat.isFile() || stat.nlink !== 1) {
+    throw new Error(`Document Revision store path must be a single-link regular file: ${path}`);
+  }
+}
+
 function readStrictJsonl<T>(path: string): T[] {
   if (!existsSync(path)) return [];
+  assertSafeDocumentRevisionStoreFile(path);
   const content = readFileSync(path, "utf-8");
   if (content.length > 0 && !content.endsWith("\n")) {
     throw new Error(`${path}: final newlineがなくpartial writeの可能性があります`);
@@ -147,6 +157,7 @@ export function appendDocumentRevisionDiffRecordsAtCutoffGoverned(
     writeJournal(journalPath, { ...journalBase, state: "prepared" });
 
     if (incoming.revisions.length > 0) {
+      assertSafeDocumentRevisionStoreFile(paths.revisions);
       const fd = openSync(paths.revisions, "a");
       try {
         appendFileSync(
@@ -162,6 +173,7 @@ export function appendDocumentRevisionDiffRecordsAtCutoffGoverned(
     writeJournal(journalPath, { ...journalBase, state: "revisions_appended" });
 
     if (incoming.diffs.length > 0) {
+      assertSafeDocumentRevisionStoreFile(paths.diffs);
       const fd = openSync(paths.diffs, "a");
       try {
         appendFileSync(
