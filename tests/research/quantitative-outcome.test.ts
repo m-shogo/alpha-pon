@@ -423,6 +423,26 @@ function approx(actual: number, expected: number, tolerance = 1e-12): void {
 }
 
 {
+  const futureWindow = withCorporateActionClearanceHash({
+    ...clearance,
+    clearanceId: "ca-clearance:8136:future-window",
+    assessedAt: "2026-08-12T23:59:59+09:00",
+    throughTradingDate: "2026-08-13",
+  });
+  const futureWindowContext = outcomeContext(allPrices, [futureWindow]);
+  assert.throws(
+    () => build({
+      outcomeId: "outcome:sanrio:future-clearance-window",
+      reviewedAt: "2026-08-14T12:00:00+09:00",
+      context: futureWindowContext,
+      clearanceHash: futureWindow.contentHash,
+    }),
+    /throughTradingDate is after assessedAt JST date/,
+  );
+  console.log("quantitative-outcome: clearance cannot certify a trading date after its assessment JST date OK");
+}
+
+{
   const adjustedIssuerDay1 = futurePrice({
     baseline: issuerBaseline,
     tradingDate: "2026-08-07",
