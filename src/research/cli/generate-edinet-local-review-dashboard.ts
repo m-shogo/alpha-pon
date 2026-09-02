@@ -72,7 +72,7 @@ function parseArtifact(
   location: EdinetDashboardArtifactInput["location"],
 ): { artifact: EdinetDashboardArtifactInput; bytes: number } | null {
   const stat = lstatSync(path);
-  if (stat.isSymbolicLink() || !stat.isFile()) return null;
+  if (stat.isSymbolicLink() || !stat.isFile() || stat.nlink !== 1) return null;
   if (stat.size <= 0 || stat.size > MAX_FILE_BYTES) return null;
   let content: unknown;
   try {
