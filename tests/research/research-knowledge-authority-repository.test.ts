@@ -96,6 +96,17 @@ try {
   assert.deepEqual(entityView.ids, ["entity:repository-fixture"]);
   assert.equal(entityView.availability["entity:repository-fixture"], "2026-08-28T10:00:00+09:00");
 
+  const hardlinkEntityPath = join(root, "entities-hardlink.jsonl");
+  linkSync(entityPath, hardlinkEntityPath);
+  const hardlinkEntityView = readSecurityEntityAuthorityView(hardlinkEntityPath);
+  assert.deepEqual(hardlinkEntityView.ids, []);
+  assert.ok(
+    hardlinkEntityView.issues.some(
+      (entry) => entry.code === "research_entity_repository_non_standalone_file",
+    ),
+    "Security Master authority must not accept a hard-link alias as canonical entity evidence",
+  );
+
   const partialEntityPath = join(root, "entities-partial.jsonl");
   writeFileSync(partialEntityPath, JSON.stringify(entity), "utf-8");
   assert.ok(
