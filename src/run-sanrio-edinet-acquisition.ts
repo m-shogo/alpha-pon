@@ -46,8 +46,8 @@ function resolveInventoryPath(input: string): string {
     throw new Error("inventory must be a direct JSON child of data/edinet");
   }
   const stat = lstatSync(target);
-  if (stat.isSymbolicLink() || !stat.isFile()) {
-    throw new Error("inventory must be a regular non-symlink file");
+  if (stat.isSymbolicLink() || !stat.isFile() || stat.nlink !== 1) {
+    throw new Error("inventory must be a standalone regular non-symlink file");
   }
   return target;
 }
@@ -59,7 +59,7 @@ function latestInventoryPath(): string {
     .map(entry => {
       const path = resolve(root, entry.name);
       const stat = lstatSync(path);
-      if (stat.isSymbolicLink()) return null;
+      if (stat.isSymbolicLink() || !stat.isFile() || stat.nlink !== 1) return null;
       return { path, mtimeMs: statSync(path).mtimeMs };
     })
     .filter((value): value is { path: string; mtimeMs: number } => value !== null)
