@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import {
+  existsSync,
   linkSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -34,22 +36,15 @@ import {
         && error.message.includes("schema must be a standalone regular file"),
       "writer must reject hard-linked schemas before they can authorize a Catalog write",
     );
+    const collectionPath = join(catalogRoot, "research_items");
     assert.equal(
-      readDirectoryEntries(join(catalogRoot, "research_items")),
+      existsSync(collectionPath) ? readdirSync(collectionPath).length : 0,
       0,
       "schema provenance failure must happen before writer creates a collection directory or record",
     );
   } finally {
     process.chdir(previousCwd);
     rmSync(workspace, { recursive: true, force: true });
-  }
-}
-
-function readDirectoryEntries(path: string): number {
-  try {
-    return require("node:fs").readdirSync(path).length;
-  } catch {
-    return 0;
   }
 }
 
