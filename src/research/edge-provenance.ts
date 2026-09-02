@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { compareExplicitIso8601Instants } from "./iso-instant.js";
 import { formatErrors, validate, type JsonSchema } from "./schema.js";
 import type { ResearchKnowledgeIssue } from "./research-knowledge-semantics.js";
@@ -50,8 +50,16 @@ function expectedEdgePath(edgeId: string): string {
   return `research/edge_registry/edges/${edgeId}.yml`;
 }
 
+function readStandaloneTextFile(path: string, label: string): string {
+  const stat = lstatSync(path);
+  if (stat.isSymbolicLink() || !stat.isFile() || stat.nlink !== 1) {
+    throw new Error(`${label} must be a standalone regular file: ${path}`);
+  }
+  return readFileSync(path, "utf-8");
+}
+
 function loadSchema(path: string): JsonSchema {
-  const parsed = JSON.parse(readFileSync(path, "utf-8")) as unknown;
+  const parsed = JSON.parse(readStandaloneTextFile(path, "edge provenance schema")) as unknown;
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new Error(`${path}: schema root must be an object`);
   }
@@ -196,7 +204,7 @@ export function readEdgeProvenanceRepository(
   }
 
   try {
-    const content = readFileSync(path, "utf-8");
+    const content = readStandaloneTextFile(path, "edge provenance JSONL");
     if (content.length > 0 && !content.endsWith("\n")) {
       return {
         records: [],

@@ -18,6 +18,7 @@ import "./research-orphan-triage.test.js";
 import "./research-orphan-triage-history.test.js";
 import "./research-orphan-review-manifest.test.js";
 import "./edge-provenance.test.js";
+import "./edge-provenance-file-boundary.test.js";
 import "./edge-provenance-git-audit.test.js";
 import "./catalog-validation.test.js";
 import "./stock-pro-council-v2-validation.test.js";
