@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { linkSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -153,6 +153,25 @@ function addParityRecord(configuredAcquisition: string, workspace: string): stri
   assert.equal(result.selectedFiles.fidelity, undefined);
   assert.deepEqual(result.missingInputs, ["revision-source-fidelity-v1.*.json"]);
   console.log("edinet-sanrio-real-pilot-preflight: unusable fidelity cannot authorize inspection command OK");
+}
+
+{
+  const { root, acquisition } = sandbox();
+  const source = join(acquisition, "fidelity-source.json");
+  writeJson(source, {
+    schemaVersion: 1,
+    source: "edinet",
+    reviewStatus: "pending_human_review",
+    appendAuthorized: false,
+  });
+  const hardLink = "revision-source-fidelity-v1.hardlink.json";
+  linkSync(source, join(acquisition, hardLink));
+  const result = inspectSanrioRealPilotPreflight(root);
+  assert.equal(result.stage, "inspection_required");
+  assert.equal(result.nextCommand, null);
+  assert.equal(result.selectedFiles.fidelity, undefined);
+  assert.match(result.warnings.join("\n"), new RegExp(`${hardLink}: not a standalone regular file`));
+  console.log("edinet-sanrio-real-pilot-preflight: hard-linked JSON cannot become canonical preflight evidence OK");
 }
 
 {
