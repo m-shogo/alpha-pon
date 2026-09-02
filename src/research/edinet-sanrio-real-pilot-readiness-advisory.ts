@@ -98,7 +98,7 @@ function readInventoryCandidate(
     const rel = relative(root, path);
     if (!rel || rel === ".." || rel.startsWith(`..${sep}`) || rel.includes(sep)) return null;
     const linkStat = lstatSync(path);
-    if (linkStat.isSymbolicLink() || !linkStat.isFile()) return null;
+    if (linkStat.isSymbolicLink() || !linkStat.isFile() || linkStat.nlink !== 1) return null;
     const fileStat = statSync(path);
     if (fileStat.size <= 0 || fileStat.size > MAX_JSON_BYTES) return null;
     const record = object(JSON.parse(readFileSync(path, "utf-8")) as unknown);
