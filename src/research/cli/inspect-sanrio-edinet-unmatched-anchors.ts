@@ -36,8 +36,8 @@ function localRoot(): string {
 
 function assertRegularNonSymlink(path: string, field: string): void {
   const stat = lstatSync(path);
-  if (stat.isSymbolicLink() || !stat.isFile()) {
-    throw new Error(`${field} must be a regular non-symlink file`);
+  if (stat.isSymbolicLink() || !stat.isFile() || stat.nlink !== 1) {
+    throw new Error(`${field} must be a single-link regular non-symlink file`);
   }
 }
 
