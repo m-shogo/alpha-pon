@@ -55,8 +55,9 @@ function defaultOutputPath(inputPath: string): string {
 
 function parseStrictJson(path: string): unknown {
   if (!existsSync(path)) throw new Error(`input file not found: ${path}`);
-  if (lstatSync(path).isSymbolicLink()) {
-    throw new Error("input symlinks are not allowed for local EDINET review manifests");
+  const stat = lstatSync(path);
+  if (stat.isSymbolicLink() || !stat.isFile() || stat.nlink !== 1) {
+    throw new Error("input must be a standalone regular file for local EDINET review manifests");
   }
   const content = readFileSync(path, "utf-8");
   try {
