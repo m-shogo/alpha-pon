@@ -60,6 +60,9 @@ try {
   const hardlinkSource = join(dir, "listing-event-hardlink-source.yml");
   const hardlinkPath = join(dir, "listing-event-hardlink.yml");
   writeFileSync(hardlinkSource, JSON.stringify({
+    requiredMilestones: {
+      listing_day: { notificationLevel: "priority" },
+    },
     manualSeedEvents: [
       { id: "hardlink-seed", name: "Hardlink Seed", eventType: "listing_day", eventDate: "2026-09-03" },
     ],
@@ -67,6 +70,10 @@ try {
   linkSync(hardlinkSource, hardlinkPath);
   assert.deepEqual(readListingEventSyncConfig(hardlinkPath), {
     rows: [],
+    warnings: [`${hardlinkPath}: non_standalone_file`],
+  });
+  assert.deepEqual(readListingEventAlertConfig(hardlinkPath), {
+    config: {},
     warnings: [`${hardlinkPath}: non_standalone_file`],
   });
 } finally {
