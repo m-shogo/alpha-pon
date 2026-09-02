@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { hardLinkSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { linkSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { validateSecurityMasterRepository } from "../../src/research/security-master-repository.js";
@@ -12,8 +12,8 @@ try {
   const relationshipsPath = join(dir, "relationships.jsonl");
   writeFileSync(outsideEntities, "", "utf-8");
   writeFileSync(outsideRelationships, "", "utf-8");
-  hardLinkSync(outsideEntities, entitiesPath);
-  hardLinkSync(outsideRelationships, relationshipsPath);
+  linkSync(outsideEntities, entitiesPath);
+  linkSync(outsideRelationships, relationshipsPath);
 
   const result = validateSecurityMasterRepository({
     entitiesPath,
