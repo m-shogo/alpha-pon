@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  linkSync,
   mkdirSync,
   mkdtempSync,
   rmSync,
@@ -154,6 +155,26 @@ function researchCase(id: string) {
     assert.equal(result.snapshot.researchItems.length, 0);
   } finally {
     rmSync(root, { recursive: true, force: true });
+  }
+}
+
+{
+  const root = createRoot("alpha-pon-catalog-hardlink-");
+  const outside = createRoot("alpha-pon-catalog-hardlink-outside-");
+  try {
+    mkdirSync(join(root, "research_items"));
+    const target = join(outside, "hardlinked-item.yml");
+    writeFileSync(target, dump(researchItem("hardlinked-item")), "utf-8");
+    linkSync(target, join(root, "research_items", "hardlinked-item.yml"));
+    const result = readResearchKnowledgeCatalogRepository({ rootPath: root });
+    assert.ok(
+      result.issues.some((entry) => entry.code === "research_catalog_record_not_regular_file"),
+      "hard-linked Catalog records must fail closed instead of becoming canonical Research OS authority",
+    );
+    assert.equal(result.snapshot.researchItems.length, 0);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+    rmSync(outside, { recursive: true, force: true });
   }
 }
 
