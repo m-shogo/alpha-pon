@@ -46,6 +46,7 @@ import "./document-revision-diff-writer.test.js";
 import "./edinet-reviewed-foundation-preview.test.js";
 import "./edinet-reviewed-foundation-preview-strict-instant.test.js";
 import "./edinet-local-review-preview-cli.test.js";
+import "./edinet-configured-fidelity-plan-hardlink.test.js";
 import "../edinet-sanrio-real-pilot-preflight.test.js";
 import "../edinet-sanrio-real-pilot-integrity.test.js";
 import "../edinet-sanrio-real-pilot-readiness-advisory-hardlink.test.js";
@@ -126,7 +127,7 @@ function testValidFixturePasses() {
 }
 
 function testInvalidFixtureFails() {
-  const edge = load(readFileSync("research/fixtures/invalid/edge-unevidenced-pass.yml", "utf-8"));
+  const edge = load(readFileSync("research/fixtures/invalid/edge-unevidenced-pass.yml", "utf-8")) as Record<string, unknown>;
   const errors = validate(edge, edgeSchema);
   assert.ok(errors.some((error) => error.path === "mechanism"), "mechanism の長さ違反を検出する");
   console.log("research/schema: invalid フィクスチャ OK");
