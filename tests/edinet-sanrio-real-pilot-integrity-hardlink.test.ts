@@ -1,3 +1,4 @@
+import "./edinet-sanrio-real-pilot-integrity-symlink.test.js";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { linkSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
