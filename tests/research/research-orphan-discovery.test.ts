@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -255,9 +255,38 @@ function testInvalidScanBoundaryFailsClosed(): void {
   console.log("research orphan discovery: path/file-count boundary fail-closed OK");
 }
 
+function testScanRootAncestorSymlinkFailsClosed(): void {
+  const root = mkdtempSync(join(tmpdir(), "alpha-pon-orphan-ancestor-"));
+  const outside = mkdtempSync(join(tmpdir(), "alpha-pon-orphan-outside-"));
+  try {
+    mkdirSync(join(outside, "research"), { recursive: true });
+    writeFileSync(join(outside, "research/external.md"), "# outside\n");
+    symlinkSync(outside, join(root, "linked"), "dir");
+
+    const result = discoverResearchOrphans({
+      repositoryRootPath: root,
+      documentRoots: ["linked/research"],
+      assetRegistry: registry(),
+      catalogRepository: catalog(),
+    });
+
+    assert.deepEqual(result.candidates, []);
+    assert.deepEqual(result.scannedDocumentPaths, []);
+    assert.ok(
+      result.issues.some((entry) => entry.code === "research_orphan_scan_root_ancestor_unsafe"),
+      "ancestor symlink must be rejected before orphan discovery can scan outside repositoryRootPath",
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+    rmSync(outside, { recursive: true, force: true });
+  }
+  console.log("research orphan discovery: root ancestor symlink fail-closed OK");
+}
+
 testStructuredDocumentScanIsDeterministicAndExcludesGenerated();
 testRegisteredAndRelatedAssetIsNotOrphaned();
 testOnlyProvenActiveUnlinkedAssetGetsLinkWarning();
 testAuthorityErrorsFailClosedBeforeDiscovery();
 testInvalidScanBoundaryFailsClosed();
+testScanRootAncestorSymlinkFailsClosed();
 console.log("research orphan discovery: all tests passed");

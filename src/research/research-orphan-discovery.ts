@@ -209,6 +209,36 @@ function scanDocumentPaths(
       ));
       continue;
     }
+
+    let ancestorPath = repositoryRootPath;
+    let unsafeAncestor = false;
+    const rootParts = root.split("/");
+    for (const part of rootParts.slice(0, -1)) {
+      ancestorPath = join(ancestorPath, part);
+      if (!existsSync(ancestorPath)) break;
+      try {
+        const ancestorStat = lstatSync(ancestorPath);
+        if (ancestorStat.isSymbolicLink() || !ancestorStat.isDirectory()) {
+          issues.push(issue(
+            "research_orphan_scan_root_ancestor_unsafe",
+            toRepositoryPath(repositoryRootPath, ancestorPath),
+            "configured orphan-discovery root ancestors must be non-symlink directories",
+          ));
+          unsafeAncestor = true;
+          break;
+        }
+      } catch (error) {
+        issues.push(issue(
+          "research_orphan_scan_root_ancestor_stat_failed",
+          toRepositoryPath(repositoryRootPath, ancestorPath),
+          error instanceof Error ? error.message : String(error),
+        ));
+        unsafeAncestor = true;
+        break;
+      }
+    }
+    if (unsafeAncestor) continue;
+
     const absoluteRoot = join(repositoryRootPath, root);
     if (!existsSync(absoluteRoot)) {
       issues.push(issue(
