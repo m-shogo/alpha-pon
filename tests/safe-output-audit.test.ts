@@ -84,14 +84,20 @@ const j = (...parts: string[]) => parts.join("");
     const aliasPath = join(dir, "persona-audit-alias.json");
     const hardlinkPath = join(dir, "persona-audit-hardlink.json");
     writeFileSync(targetPath, '{"status":"ok"}\n', "utf-8");
-    symlinkSync(targetPath, aliasPath);
-    linkSync(targetPath, hardlinkPath);
+    assert.equal(isUsablePersonaAuditReport(targetPath), true, "standalone regular persona audit reportは利用可能");
 
-    assert.equal(isUsablePersonaAuditReport(targetPath), true, "canonical regular persona audit reportは利用可能");
+    symlinkSync(targetPath, aliasPath);
     assert.equal(
       isUsablePersonaAuditReport(aliasPath),
       false,
       "symlink先をcanonical persona audit provenanceとしてsilent followしない",
+    );
+
+    linkSync(targetPath, hardlinkPath);
+    assert.equal(
+      isUsablePersonaAuditReport(targetPath),
+      false,
+      "hard-link作成後は元pathnameもstandalone provenanceではない",
     );
     assert.equal(
       isUsablePersonaAuditReport(hardlinkPath),
