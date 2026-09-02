@@ -97,7 +97,9 @@ function readJsonCandidate(root: string, path: string, warnings: string[]): Loca
   try {
     if (!inside(root, path)) throw new Error("outside EDINET root");
     const linkStat = lstatSync(path);
-    if (linkStat.isSymbolicLink() || !linkStat.isFile()) throw new Error("not a regular non-symlink file");
+    if (linkStat.isSymbolicLink() || !linkStat.isFile() || linkStat.nlink !== 1) {
+      throw new Error("not a standalone regular file");
+    }
     const fileStat = statSync(path);
     if (fileStat.size <= 0 || fileStat.size > MAX_JSON_BYTES) throw new Error("invalid file size");
     const record = object(JSON.parse(readFileSync(path, "utf-8")) as unknown);
