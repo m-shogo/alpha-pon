@@ -219,11 +219,11 @@ function readAssetRecords(
         continue;
       }
       const targetStat = lstatSync(targetPath);
-      if (!targetStat.isFile() || targetStat.isSymbolicLink()) {
+      if (!targetStat.isFile() || targetStat.isSymbolicLink() || targetStat.nlink !== 1) {
         issues.push(issue(
           "research_asset_registry_target_not_regular_file",
           path,
-          `registered asset target must be a regular non-symlink file: ${record.path}`,
+          `registered asset target must be a standalone regular file: ${record.path}`,
         ));
         continue;
       }
