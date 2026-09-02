@@ -48,6 +48,7 @@ import "./edinet-reviewed-foundation-preview-strict-instant.test.js";
 import "./edinet-local-review-preview-cli.test.js";
 import "../edinet-sanrio-real-pilot-preflight.test.js";
 import "../edinet-sanrio-real-pilot-integrity.test.js";
+import "../edinet-sanrio-real-pilot-readiness-advisory-hardlink.test.js";
 import "./evidence-package-manifest.test.js";
 import "./evidence-package-governed.test.js";
 import "./evidence-package-ledger.test.js";
