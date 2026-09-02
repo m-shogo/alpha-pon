@@ -32,7 +32,9 @@ function validateInventoryPath(input: string | null, field: string): string {
     throw new Error(`${field} inventory must be a direct JSON child of data/edinet`);
   }
   const stat = lstatSync(path);
-  if (stat.isSymbolicLink() || !stat.isFile()) throw new Error(`${field} inventory must be a regular non-symlink file`);
+  if (stat.isSymbolicLink() || !stat.isFile() || stat.nlink !== 1) {
+    throw new Error(`${field} inventory must be a standalone regular non-symlink file`);
+  }
   return path;
 }
 
