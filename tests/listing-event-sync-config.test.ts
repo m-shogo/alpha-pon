@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { linkSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { linkSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { readListingEventAlertConfig } from "../src/listing-event-alert-config.js";
@@ -75,6 +75,23 @@ try {
   assert.deepEqual(readListingEventAlertConfig(hardlinkPath), {
     config: {},
     warnings: [`${hardlinkPath}: non_standalone_file`],
+  });
+
+  const trustedRoot = join(dir, "trusted-root");
+  const outsideDir = join(dir, "outside-config");
+  mkdirSync(trustedRoot);
+  mkdirSync(outsideDir);
+  const outsideConfigPath = join(outsideDir, "listing-event-watch.yml");
+  writeFileSync(outsideConfigPath, JSON.stringify({
+    requiredMilestones: {
+      listing_day: { notificationLevel: "priority" },
+    },
+  }));
+  symlinkSync(outsideDir, join(trustedRoot, "config"), "dir");
+  const escapedConfigPath = join(trustedRoot, "config", "listing-event-watch.yml");
+  assert.deepEqual(readListingEventAlertConfig(escapedConfigPath, trustedRoot), {
+    config: {},
+    warnings: [`${escapedConfigPath}: ancestor_symlink`],
   });
 } finally {
   rmSync(dir, { recursive: true, force: true });
