@@ -219,6 +219,14 @@ export function readSecurityEntityAuthorityView(
   if (!existsSync(entitiesPath)) return emptyView("entity");
 
   try {
+    const stat = lstatSync(entitiesPath);
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
+      return emptyView("entity", [issue(
+        "research_entity_repository_non_standalone_file",
+        entitiesPath,
+        "Security Master entity authority must be a standalone regular file with one filesystem identity",
+      )]);
+    }
     const content = readFileSync(entitiesPath, "utf-8");
     if (content.length > 0 && !content.endsWith("\n")) {
       return emptyView("entity", [issue(
