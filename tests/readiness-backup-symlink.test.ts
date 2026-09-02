@@ -5,6 +5,7 @@ import { linkSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { readCanonicalGeneratedJsonFile } from "../apps/web/lib/generated-api-file.js";
+import { freshnessOf } from "../src/data-freshness.js";
 import { backupHealthEvidenceFromDirectoryNames } from "../src/health/backup-health.js";
 import {
   assertReadinessBackupDirectoryInput,
@@ -122,6 +123,29 @@ try {
     { status: "ok" },
     "standalone regular generated JSON must remain readable",
   );
+
+  const freshnessTarget = join(dir, "freshness-target.json");
+  writeFileSync(freshnessTarget, JSON.stringify({ status: "ok" }));
+  const freshnessSymlink = join(dir, "freshness-symlink.json");
+  symlinkSync(freshnessTarget, freshnessSymlink, "file");
+  const freshnessSymlinkResult = freshnessOf(freshnessSymlink, "freshness symlink");
+  assert.equal(freshnessSymlinkResult.exists, true, "existing symlink remains distinguishable from a missing path");
+  assert.equal(
+    freshnessSymlinkResult.isFreshToday,
+    false,
+    "symlinked report mtime must not qualify as canonical fresh evidence",
+  );
+
+  const freshnessHardlink = join(dir, "freshness-hardlink.json");
+  linkSync(freshnessTarget, freshnessHardlink);
+  const freshnessHardlinkResult = freshnessOf(freshnessHardlink, "freshness hardlink");
+  assert.equal(freshnessHardlinkResult.exists, true, "existing hard link remains distinguishable from a missing path");
+  assert.equal(
+    freshnessHardlinkResult.isFreshToday,
+    false,
+    "hard-linked report mtime must not qualify as canonical fresh evidence",
+  );
+  assert.match(freshnessHardlinkResult.reason, /standalone regular fileではない/);
 
   const generatedSymlink = join(dir, "generated-symlink.json");
   symlinkSync(canonicalGenerated, generatedSymlink, "file");
