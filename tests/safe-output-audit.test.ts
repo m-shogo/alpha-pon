@@ -2,7 +2,7 @@
 // 危険表現の検出と、否定文・禁止説明の許可（false positive 回避）
 
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { linkSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { safeOutputAuditGap } from "../src/ops-dashboard-safe-output-health.js";
@@ -82,8 +82,10 @@ const j = (...parts: string[]) => parts.join("");
   try {
     const targetPath = join(dir, "persona-audit.json");
     const aliasPath = join(dir, "persona-audit-alias.json");
+    const hardlinkPath = join(dir, "persona-audit-hardlink.json");
     writeFileSync(targetPath, '{"status":"ok"}\n', "utf-8");
     symlinkSync(targetPath, aliasPath);
+    linkSync(targetPath, hardlinkPath);
 
     assert.equal(isUsablePersonaAuditReport(targetPath), true, "canonical regular persona audit reportは利用可能");
     assert.equal(
@@ -91,10 +93,15 @@ const j = (...parts: string[]) => parts.join("");
       false,
       "symlink先をcanonical persona audit provenanceとしてsilent followしない",
     );
+    assert.equal(
+      isUsablePersonaAuditReport(hardlinkPath),
+      false,
+      "hard-link先をcanonical persona audit provenanceとしてsilent acceptしない",
+    );
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
-  console.log("safe-output: persona audit reportのsymlink provenanceをfail-closed化");
+  console.log("safe-output: persona audit reportのlinked provenanceをfail-closed化");
 }
 
 {
