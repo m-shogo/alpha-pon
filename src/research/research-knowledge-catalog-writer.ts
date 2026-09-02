@@ -48,6 +48,14 @@ function specFor(collection: ResearchKnowledgeCatalogCollection) {
 }
 
 function loadSchema(path: string): JsonSchema {
+  const stat = lstatSync(path);
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
+    throw new ResearchKnowledgeCatalogWriteError(
+      "research_catalog_schema_read_failed",
+      path,
+      "schema must be a standalone regular file",
+    );
+  }
   const raw = JSON.parse(readFileSync(path, "utf-8")) as unknown;
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
     throw new ResearchKnowledgeCatalogWriteError(
