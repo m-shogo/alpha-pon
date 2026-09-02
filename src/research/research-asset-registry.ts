@@ -75,8 +75,8 @@ function sortIssues(issues: readonly ResearchKnowledgeIssue[]): ResearchKnowledg
 
 function loadSchema(path: string): JsonSchema {
   const stat = lstatSync(path);
-  if (!stat.isFile() || stat.isSymbolicLink()) {
-    throw new Error(`${path}: schema must be a regular non-symlink file`);
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
+    throw new Error(`${path}: schema must be a standalone regular file`);
   }
   const parsed = JSON.parse(readFileSync(path, "utf-8")) as unknown;
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
@@ -162,11 +162,11 @@ function readAssetRecords(
 
     try {
       const stat = lstatSync(path);
-      if (!stat.isFile() || stat.isSymbolicLink()) {
+      if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
         issues.push(issue(
           "research_asset_registry_record_not_regular_file",
           path,
-          "Research Asset record must be a regular non-symlink file",
+          "Research Asset record must be a standalone regular file",
         ));
         continue;
       }
@@ -394,7 +394,7 @@ function readProvenance(
   }
   try {
     const stat = lstatSync(path);
-    if (!stat.isFile() || stat.isSymbolicLink()) {
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
       return {
         records: [],
         firstKnownAtById: {},
@@ -402,7 +402,7 @@ function readProvenance(
         issues: [issue(
           "research_asset_provenance_not_regular_file",
           path,
-          "Research Asset provenance must be a regular non-symlink file",
+          "Research Asset provenance must be a standalone regular file",
         )],
       };
     }

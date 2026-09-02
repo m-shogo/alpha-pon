@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import {
+  linkSync,
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -69,6 +71,13 @@ try {
   symlinkSync(provenanceTarget, join(provenanceSymlinkRoot, "provenance.jsonl"), "file");
   expectIssueCode(provenanceSymlinkRoot, "research_asset_provenance_not_regular_file");
 
+  const provenanceHardlinkRoot = join(parent, "provenance-hardlink-root");
+  mkdirSync(provenanceHardlinkRoot);
+  const provenanceHardlinkTarget = join(parent, "provenance-hardlink-target.jsonl");
+  writeFileSync(provenanceHardlinkTarget, "", "utf-8");
+  linkSync(provenanceHardlinkTarget, join(provenanceHardlinkRoot, "provenance.jsonl"));
+  expectIssueCode(provenanceHardlinkRoot, "research_asset_provenance_not_regular_file");
+
   const schemaSymlinkRoot = join(parent, "schema-symlink-root");
   mkdirSync(schemaSymlinkRoot);
   const schemaSymlink = join(parent, "asset-schema-symlink.json");
@@ -81,6 +90,51 @@ try {
   assert.ok(
     schemaSymlinkResult.issues.some((entry) => entry.code === "research_asset_registry_read_failed"),
     "schema symlinks must fail closed instead of becoming authority",
+  );
+
+  const schemaHardlinkRoot = join(parent, "schema-hardlink-root");
+  mkdirSync(schemaHardlinkRoot);
+  const schemaHardlinkSource = join(parent, "asset-schema-hardlink-source.json");
+  writeFileSync(
+    schemaHardlinkSource,
+    readFileSync(join(process.cwd(), "research/schemas/research-asset.schema.json"), "utf-8"),
+    "utf-8",
+  );
+  const schemaHardlink = join(parent, "asset-schema-hardlink.json");
+  linkSync(schemaHardlinkSource, schemaHardlink);
+  const schemaHardlinkResult = readResearchAssetRegistry({
+    rootPath: schemaHardlinkRoot,
+    repositoryRootPath: ".",
+    assetSchemaPath: schemaHardlink,
+  });
+  assert.ok(
+    schemaHardlinkResult.issues.some((entry) => entry.code === "research_asset_registry_read_failed"),
+    "hard-linked schemas must fail closed instead of becoming authority",
+  );
+
+  const recordHardlinkRoot = join(parent, "record-hardlink-root");
+  const recordHardlinkRepo = join(parent, "record-hardlink-repo");
+  mkdirSync(join(recordHardlinkRoot, "assets"), { recursive: true });
+  mkdirSync(join(recordHardlinkRepo, "docs"), { recursive: true });
+  writeFileSync(join(recordHardlinkRepo, "docs", "record.md"), "record\n", "utf-8");
+  const recordHardlinkSource = join(parent, "document-hardlinked.yml");
+  writeFileSync(recordHardlinkSource, [
+    "schemaVersion: 1",
+    "id: document-hardlinked",
+    "assetType: document",
+    "path: docs/record.md",
+    "status: active",
+    "description: Hard-linked registry record fixture",
+    "",
+  ].join("\n"), "utf-8");
+  linkSync(recordHardlinkSource, join(recordHardlinkRoot, "assets", "document-hardlinked.yml"));
+  const recordHardlinkResult = readResearchAssetRegistry({
+    rootPath: recordHardlinkRoot,
+    repositoryRootPath: recordHardlinkRepo,
+  });
+  assert.ok(
+    recordHardlinkResult.issues.some((entry) => entry.code === "research_asset_registry_record_not_regular_file"),
+    "hard-linked registry records must fail closed",
   );
 } finally {
   rmSync(parent, { recursive: true, force: true });
