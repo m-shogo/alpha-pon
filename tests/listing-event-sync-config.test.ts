@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { linkSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { readListingEventAlertConfig } from "../src/listing-event-alert-config.js";
@@ -55,6 +55,19 @@ try {
   assert.deepEqual(readListingEventAlertConfig(path), {
     config: {},
     warnings: [`${path}: parse_error`],
+  });
+
+  const hardlinkSource = join(dir, "listing-event-hardlink-source.yml");
+  const hardlinkPath = join(dir, "listing-event-hardlink.yml");
+  writeFileSync(hardlinkSource, JSON.stringify({
+    manualSeedEvents: [
+      { id: "hardlink-seed", name: "Hardlink Seed", eventType: "listing_day", eventDate: "2026-09-03" },
+    ],
+  }));
+  linkSync(hardlinkSource, hardlinkPath);
+  assert.deepEqual(readListingEventSyncConfig(hardlinkPath), {
+    rows: [],
+    warnings: [`${hardlinkPath}: non_standalone_file`],
   });
 } finally {
   rmSync(dir, { recursive: true, force: true });

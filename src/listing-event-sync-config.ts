@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "fs";
+import { existsSync, lstatSync, readFileSync } from "fs";
 import { load } from "js-yaml";
 import { addDaysJst } from "./date.js";
 import {
@@ -27,6 +27,10 @@ export function readListingEventSyncConfig(path: string): {
 
   let parsed: unknown;
   try {
+    const stat = lstatSync(path);
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
+      return { rows: [], warnings: [`${path}: non_standalone_file`] };
+    }
     parsed = load(readFileSync(path, "utf-8"));
   } catch {
     return { rows: [], warnings: [`${path}: parse_error`] };
