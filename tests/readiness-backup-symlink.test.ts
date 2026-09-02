@@ -126,6 +126,16 @@ try {
 
   const freshnessTarget = join(dir, "freshness-target.json");
   writeFileSync(freshnessTarget, JSON.stringify({ status: "ok" }));
+  const freshnessSymlink = join(dir, "freshness-symlink.json");
+  symlinkSync(freshnessTarget, freshnessSymlink, "file");
+  const freshnessSymlinkResult = freshnessOf(freshnessSymlink, "freshness symlink");
+  assert.equal(freshnessSymlinkResult.exists, true, "existing symlink remains distinguishable from a missing path");
+  assert.equal(
+    freshnessSymlinkResult.isFreshToday,
+    false,
+    "symlinked report mtime must not qualify as canonical fresh evidence",
+  );
+
   const freshnessHardlink = join(dir, "freshness-hardlink.json");
   linkSync(freshnessTarget, freshnessHardlink);
   const freshnessHardlinkResult = freshnessOf(freshnessHardlink, "freshness hardlink");
