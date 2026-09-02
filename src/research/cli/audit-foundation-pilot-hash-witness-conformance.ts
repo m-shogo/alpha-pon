@@ -41,7 +41,9 @@ function requiredArg(name: string): string {
 
 function assertRegularNonSymlink(path: string, field: string): void {
   const stat = lstatSync(path);
-  if (stat.isSymbolicLink() || !stat.isFile()) throw new Error(`${field} must be a regular non-symlink file`);
+  if (stat.isSymbolicLink() || !stat.isFile() || stat.nlink !== 1) {
+    throw new Error(`${field} must be a standalone regular non-symlink file`);
+  }
   if (stat.size <= 0 || stat.size > MAX_FILE_BYTES) throw new Error(`${field} size is invalid`);
 }
 
