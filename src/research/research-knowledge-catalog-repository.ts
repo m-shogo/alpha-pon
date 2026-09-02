@@ -4,7 +4,7 @@ import {
   readFileSync,
   readdirSync,
 } from "node:fs";
-import { basename, join } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { load } from "js-yaml";
 import { formatErrors, validate, type JsonSchema } from "./schema.js";
 import {
@@ -128,12 +128,31 @@ function loadSchema(path: string): JsonSchema {
   return value as JsonSchema;
 }
 
+function symlinkedAncestor(path: string): string | undefined {
+  let current = dirname(resolve(path));
+  while (true) {
+    const stat = lstatSync(current);
+    if (stat.isSymbolicLink()) return current;
+    const parent = dirname(current);
+    if (parent === current) return undefined;
+    current = parent;
+  }
+}
+
 function catalogRootIssue(rootPath: string): ResearchKnowledgeIssue[] {
   if (!existsSync(rootPath)) {
     return [issue(
       "research_catalog_root_missing",
       rootPath,
       "canonical Research Knowledge Catalog root is missing; disappearing research must never be treated as an empty catalog",
+    )];
+  }
+  const symlinkAncestor = symlinkedAncestor(rootPath);
+  if (symlinkAncestor) {
+    return [issue(
+      "research_catalog_root_ancestor_symlink",
+      rootPath,
+      `Research Knowledge Catalog root must not be reached through symlinked ancestor ${symlinkAncestor}`,
     )];
   }
   const root = lstatSync(rootPath);
