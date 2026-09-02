@@ -61,8 +61,8 @@ function readSelected(root: string, relativePath: string, field: string): LocalR
   }
 
   const linkStat = lstatSync(path);
-  if (linkStat.isSymbolicLink() || !linkStat.isFile()) {
-    throw new Error(`${field} must be a regular non-symlink file`);
+  if (linkStat.isSymbolicLink() || !linkStat.isFile() || linkStat.nlink !== 1) {
+    throw new Error(`${field} must be a standalone regular non-symlink file`);
   }
   const fileStat = statSync(path);
   if (fileStat.size <= 0 || fileStat.size > MAX_JSON_BYTES) {
