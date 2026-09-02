@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
   existsSync,
+  linkSync,
   mkdirSync,
   readFileSync,
   rmSync,
@@ -19,6 +20,8 @@ const validOutput = resolve(root, `test-reviewed-${token}.foundation-preview.jso
 const invalidPath = resolve(root, `test-reviewed-invalid-${token}.json`);
 const invalidOutput = resolve(root, `test-reviewed-invalid-${token}.foundation-preview.json`);
 const symlinkPath = resolve(root, `test-reviewed-link-${token}.json`);
+const hardlinkPath = resolve(root, `test-reviewed-hardlink-${token}.json`);
+const hardlinkOutput = resolve(root, `test-reviewed-hardlink-${token}.foundation-preview.json`);
 
 function validManifest(): Record<string, unknown> {
   return {
@@ -114,7 +117,16 @@ try {
   symlinkSync(validPath, symlinkPath);
   const symlink = run(`data/edinet/${symlinkPath.split("/").at(-1)}`);
   assert.equal(symlink.status, 1);
-  assert.match(symlink.stderr, /symlinks are not allowed/);
+  assert.match(symlink.stderr, /standalone regular file/);
+
+  linkSync(validPath, hardlinkPath);
+  const hardlink = run(
+    `data/edinet/${hardlinkPath.split("/").at(-1)}`,
+    `data/edinet/${hardlinkOutput.split("/").at(-1)}`,
+  );
+  assert.equal(hardlink.status, 1);
+  assert.match(hardlink.stderr, /standalone regular file/);
+  assert.equal(existsSync(hardlinkOutput), false);
 
   const outside = run("../outside-reviewed-edinet.json");
   assert.equal(outside.status, 1);
@@ -122,7 +134,15 @@ try {
 
   console.log("edinet-local-review-preview-cli.test.ts passed");
 } finally {
-  for (const path of [validPath, validOutput, invalidPath, invalidOutput, symlinkPath]) {
+  for (const path of [
+    validPath,
+    validOutput,
+    invalidPath,
+    invalidOutput,
+    symlinkPath,
+    hardlinkPath,
+    hardlinkOutput,
+  ]) {
     if (existsSync(path)) rmSync(path, { force: true });
   }
 }
