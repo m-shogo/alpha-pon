@@ -36,7 +36,7 @@ export function freshnessOf(path: string, label = path): FreshnessResult {
   }
 
   const stat = lstatSync(path);
-  if (!stat.isFile()) {
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
     return {
       path,
       label,
@@ -44,7 +44,7 @@ export function freshnessOf(path: string, label = path): FreshnessResult {
       updatedAt: stat.mtime.toISOString(),
       updatedDateJst: jstDate(stat.mtime),
       isFreshToday: false,
-      reason: `${label} がregular fileではない`,
+      reason: `${label} がstandalone regular fileではない`,
     };
   }
 
