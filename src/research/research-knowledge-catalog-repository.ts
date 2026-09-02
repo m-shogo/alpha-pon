@@ -3,7 +3,6 @@ import {
   lstatSync,
   readFileSync,
   readdirSync,
-  statSync,
 } from "node:fs";
 import { basename, join } from "node:path";
 import { load } from "js-yaml";
@@ -228,9 +227,9 @@ function readCollection(
       continue;
     }
 
-    let size: number;
+    let stat;
     try {
-      size = statSync(path).size;
+      stat = lstatSync(path);
     } catch (error) {
       issues.push(issue(
         "research_catalog_record_stat_failed",
@@ -239,11 +238,19 @@ function readCollection(
       ));
       continue;
     }
-    if (size > maxRecordBytes) {
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
+      issues.push(issue(
+        "research_catalog_record_not_regular_file",
+        path,
+        "Catalog record must be a standalone regular file",
+      ));
+      continue;
+    }
+    if (stat.size > maxRecordBytes) {
       issues.push(issue(
         "research_catalog_record_too_large",
         path,
-        `Catalog metadata file is ${size} bytes; maximum is ${maxRecordBytes}. Large evidence/content belongs in its existing authority, not the Catalog`,
+        `Catalog metadata file is ${stat.size} bytes; maximum is ${maxRecordBytes}. Large evidence/content belongs in its existing authority, not the Catalog`,
       ));
       continue;
     }
