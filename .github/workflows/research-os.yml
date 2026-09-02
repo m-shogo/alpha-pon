@@ -85,6 +85,8 @@ jobs:
           for test in tests/research/outcome-semantic-review*.test.ts; do node --import tsx/esm "$test"; done
           for test in tests/research/outcome-learning-*.test.ts; do node --import tsx/esm "$test"; done
           for test in tests/research/stock-pro-council-ledgers*.test.ts; do node --import tsx/esm "$test"; done
+          for test in tests/research/stock-pro-council-calibration*.test.ts; do node --import tsx/esm "$test"; done
+          for test in tests/research/stock-pro-council-replay*.test.ts; do node --import tsx/esm "$test"; done
           for test in tests/edinet-sanrio-real-pilot-*.test.ts; do node --import tsx/esm "$test"; done
           node --import tsx/esm tests/research/claim-graph-security-master-cutoff.test.ts
           for test in tests/research/corporate-action-clearance*.test.ts; do node --import tsx/esm "$test"; done
