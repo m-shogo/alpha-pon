@@ -1,4 +1,5 @@
 import { existsSync, lstatSync, readFileSync } from "fs";
+import { dirname, resolve, sep } from "node:path";
 import { load } from "js-yaml";
 
 type NotificationLevel = "priority" | "morning_summary" | "log";
@@ -15,7 +16,24 @@ function isNotificationLevel(value: unknown): value is NotificationLevel {
   return value === "priority" || value === "morning_summary" || value === "log";
 }
 
-export function readListingEventAlertConfig(path: string): {
+function symlinkedAncestorWithin(path: string, rootPath: string): string | undefined {
+  const root = resolve(rootPath);
+  let current = dirname(resolve(path));
+  if (current !== root && !current.startsWith(`${root}${sep}`)) return undefined;
+
+  while (current !== root) {
+    if (lstatSync(current).isSymbolicLink()) return current;
+    const parent = dirname(current);
+    if (parent === current) return undefined;
+    current = parent;
+  }
+  return undefined;
+}
+
+export function readListingEventAlertConfig(
+  path: string,
+  repositoryRootPath: string = process.cwd(),
+): {
   config: ListingEventAlertConfig;
   warnings: string[];
 } {
@@ -23,6 +41,10 @@ export function readListingEventAlertConfig(path: string): {
 
   let parsed: unknown;
   try {
+    const symlinkAncestor = symlinkedAncestorWithin(path, repositoryRootPath);
+    if (symlinkAncestor) {
+      return { config: {}, warnings: [`${path}: ancestor_symlink`] };
+    }
     const stat = lstatSync(path);
     if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
       return { config: {}, warnings: [`${path}: non_standalone_file`] };
