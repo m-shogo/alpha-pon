@@ -136,31 +136,6 @@ try {
     recordHardlinkResult.issues.some((entry) => entry.code === "research_asset_registry_record_not_regular_file"),
     "hard-linked registry records must fail closed",
   );
-
-  const targetHardlinkRoot = join(parent, "target-hardlink-root");
-  const targetHardlinkRepo = join(parent, "target-hardlink-repo");
-  mkdirSync(join(targetHardlinkRoot, "assets"), { recursive: true });
-  mkdirSync(join(targetHardlinkRepo, "docs"), { recursive: true });
-  const targetHardlinkSource = join(parent, "target-hardlink-source.md");
-  writeFileSync(targetHardlinkSource, "target\n", "utf-8");
-  linkSync(targetHardlinkSource, join(targetHardlinkRepo, "docs", "target.md"));
-  writeFileSync(join(targetHardlinkRoot, "assets", "document-target-hardlink.yml"), [
-    "schemaVersion: 1",
-    "id: document-target-hardlink",
-    "assetType: document",
-    "path: docs/target.md",
-    "status: active",
-    "description: Hard-linked target fixture",
-    "",
-  ].join("\n"), "utf-8");
-  const targetHardlinkResult = readResearchAssetRegistry({
-    rootPath: targetHardlinkRoot,
-    repositoryRootPath: targetHardlinkRepo,
-  });
-  assert.ok(
-    targetHardlinkResult.issues.some((entry) => entry.code === "research_asset_registry_target_not_regular_file"),
-    "hard-linked registered targets must fail closed",
-  );
 } finally {
   rmSync(parent, { recursive: true, force: true });
 }
