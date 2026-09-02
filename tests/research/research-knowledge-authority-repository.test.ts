@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
-import { linkSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { linkSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -156,6 +156,44 @@ try {
     assert.ok(
       view.issues.some((entry) => entry.code === "research_asset_registry_target_hardlink_alias"),
       `${view.nodeType} authority must fail closed when a registered Asset target is a hard-link alias`,
+    );
+  }
+
+  const symlinkRepoRoot = join(root, "symlink-ancestor-repo");
+  const symlinkRegistryRoot = join(root, "symlink-ancestor-registry");
+  const outsideTargetParent = join(root, "outside-target-parent");
+  mkdirSync(symlinkRepoRoot, { recursive: true });
+  mkdirSync(join(symlinkRegistryRoot, "assets"), { recursive: true });
+  mkdirSync(outsideTargetParent, { recursive: true });
+  writeFileSync(join(outsideTargetParent, "watch.yml"), "enabled: true\n", "utf-8");
+  symlinkSync(outsideTargetParent, join(symlinkRepoRoot, "config"), "dir");
+  writeFileSync(
+    join(symlinkRegistryRoot, "assets", "watch-symlink-ancestor-fixture.yml"),
+    [
+      "schemaVersion: 1",
+      "id: watch-symlink-ancestor-fixture",
+      "assetType: watch",
+      "path: config/watch.yml",
+      "status: active",
+      "description: Symlinked ancestor fixture target",
+      "",
+    ].join("\n"),
+    "utf-8",
+  );
+  const symlinkAncestorAuthorities = readResearchKnowledgeAuthorityViews({
+    marketEventDatabasePath: join(root, "missing-symlink-event.db"),
+    securityMasterEntitiesPath: join(root, "missing-symlink-entities.jsonl"),
+    assetRegistryRootPath: symlinkRegistryRoot,
+    assetRegistryRepositoryRootPath: symlinkRepoRoot,
+  });
+  for (const view of [
+    symlinkAncestorAuthorities.document,
+    symlinkAncestorAuthorities.watch,
+    symlinkAncestorAuthorities.implementation,
+  ]) {
+    assert.ok(
+      view.issues.some((entry) => entry.code === "research_asset_registry_target_ancestor_symlink"),
+      `${view.nodeType} authority must fail closed when a registered Asset target is reached through a symlinked ancestor`,
     );
   }
 
