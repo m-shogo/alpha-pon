@@ -5,6 +5,11 @@ const source = readFileSync("src/run-sanrio-edinet-acquisition.ts", "utf-8");
 
 assert.match(
   source,
+  /function localRoot[\s\S]*dataStat\.isSymbolicLink\(\) \|\| !dataStat\.isDirectory\(\)/,
+  "data ancestor must reject symlink and non-directory paths before data/edinet is created",
+);
+assert.match(
+  source,
   /function localRoot[\s\S]*stat\.isSymbolicLink\(\) \|\| !stat\.isDirectory\(\)/,
   "data/edinet root must reject symlink and non-directory paths",
 );

@@ -34,7 +34,14 @@ function argValue(name: string): string | null {
 }
 
 function localRoot(): string {
-  const root = resolve(process.cwd(), "data/edinet");
+  const dataRoot = resolve(process.cwd(), "data");
+  mkdirSync(dataRoot, { recursive: true, mode: 0o700 });
+  const dataStat = lstatSync(dataRoot);
+  if (dataStat.isSymbolicLink() || !dataStat.isDirectory()) {
+    throw new Error("data must be a regular non-symlink directory");
+  }
+
+  const root = resolve(dataRoot, "edinet");
   mkdirSync(root, { recursive: true, mode: 0o700 });
   const stat = lstatSync(root);
   if (stat.isSymbolicLink() || !stat.isDirectory()) {
