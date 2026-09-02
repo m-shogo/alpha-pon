@@ -115,15 +115,20 @@ const j = (...parts: string[]) => parts.join("");
   try {
     const validPath = join(dir, "valid.ts");
     const aliasPath = join(dir, "alias.ts");
+    const hardlinkTarget = join(dir, "hardlink-target.bin");
+    const hardlinkPath = join(dir, "hardlink.ts");
     writeFileSync(validPath, "export const ok = true;\n", "utf-8");
+    writeFileSync(hardlinkTarget, "external provenance\n", "utf-8");
     symlinkSync(validPath, aliasPath);
     symlinkSync(join(dir, "missing-target"), join(dir, "broken.ts"));
+    linkSync(hardlinkTarget, hardlinkPath);
 
     const inventory = collectSafeOutputFiles(dir);
-    assert.deepEqual(inventory.files, [validPath], "canonical regular fileだけを監査対象として列挙する");
-    assert.equal(inventory.errors.length, 2, "valid/brokenを問わずsymlink監査対象をsilent followしない");
+    assert.deepEqual(inventory.files, [validPath], "canonical standalone regular fileだけを監査対象として列挙する");
+    assert.equal(inventory.errors.length, 3, "symlinkとhard-link監査対象をsilent followしない");
     assert.ok(inventory.errors.some(error => error.file === aliasPath), "valid symlinkもcanonical audit targetとして扱わない");
     assert.ok(inventory.errors.some(error => error.file === join(dir, "broken.ts")), "broken symlinkも監査不能として保持する");
+    assert.ok(inventory.errors.some(error => error.file === hardlinkPath), "hard-linkもcanonical audit targetとして扱わない");
     assert.equal(
       safeOutputHealthStatus(0, inventory.errors.length),
       "action_required",
@@ -132,7 +137,7 @@ const j = (...parts: string[]) => parts.join("");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
-  console.log("safe-output: symlink監査対象をcanonical inventoryから隔離");
+  console.log("safe-output: linked監査対象をcanonical inventoryから隔離");
 }
 
 {

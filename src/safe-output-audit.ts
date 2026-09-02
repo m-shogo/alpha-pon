@@ -122,9 +122,15 @@ export function collectSafeOutputFiles(dir: string): SafeOutputInventory {
       const nested = collectSafeOutputFiles(path);
       files.push(...nested.files);
       errors.push(...nested.errors);
-    } else if (SCAN_EXTENSIONS.has(path.slice(path.lastIndexOf(".")))) {
-      files.push(path);
+      continue;
     }
+
+    if (!SCAN_EXTENSIONS.has(path.slice(path.lastIndexOf(".")))) continue;
+    if (!stat.isFile() || stat.nlink !== 1) {
+      errors.push({ file: path, message: "audit target must be a standalone regular file" });
+      continue;
+    }
+    files.push(path);
   }
   return { files, errors };
 }
