@@ -86,11 +86,18 @@ try {
     requiredMilestones: {
       listing_day: { notificationLevel: "priority" },
     },
+    manualSeedEvents: [
+      { id: "escaped-seed", name: "Escaped Seed", eventType: "listing_day", eventDate: "2026-09-03" },
+    ],
   }));
   symlinkSync(outsideDir, join(trustedRoot, "config"), "dir");
   const escapedConfigPath = join(trustedRoot, "config", "listing-event-watch.yml");
   assert.deepEqual(readListingEventAlertConfig(escapedConfigPath, trustedRoot), {
     config: {},
+    warnings: [`${escapedConfigPath}: ancestor_symlink`],
+  });
+  assert.deepEqual(readListingEventSyncConfig(escapedConfigPath, trustedRoot), {
+    rows: [],
     warnings: [`${escapedConfigPath}: ancestor_symlink`],
   });
 } finally {
