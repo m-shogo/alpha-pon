@@ -117,6 +117,10 @@ function emptyCounts(): Record<ResearchKnowledgeCatalogCollection, number> {
 }
 
 function loadSchema(path: string): JsonSchema {
+  const stat = lstatSync(path);
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
+    throw new Error(`${path}: schema must be a standalone regular file`);
+  }
   const value = JSON.parse(readFileSync(path, "utf-8")) as unknown;
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error(`${path}: schema root must be an object`);
