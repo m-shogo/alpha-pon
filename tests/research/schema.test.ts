@@ -5,6 +5,7 @@ import "./research-knowledge-integrity.test.js";
 import "./research-knowledge-authority-adapters.test.js";
 import "./research-knowledge-authority-repository.test.js";
 import "./research-knowledge-catalog-repository.test.js";
+import "./research-knowledge-catalog-schema-file-boundary.test.js";
 import "./research-knowledge-catalog-writer.test.js";
 import "./research-knowledge-catalog-seed-overlay.test.js";
 import "./research-knowledge-intake-seeds.test.js";
