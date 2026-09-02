@@ -127,7 +127,7 @@ function testValidFixturePasses() {
 }
 
 function testInvalidFixtureFails() {
-  const edge = load(readFileSync("research/fixtures/invalid/edge-unevidenced-pass.yml", "utf-8")) as Record<string, unknown>;
+  const edge = load(readFileSync("research/fixtures/invalid/edge-unevidenced-pass.yml", "utf-8"));
   const errors = validate(edge, edgeSchema);
   assert.ok(errors.some((error) => error.path === "mechanism"), "mechanism の長さ違反を検出する");
   console.log("research/schema: invalid フィクスチャ OK");
