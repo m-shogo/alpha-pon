@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 import {
   linkSync,
   mkdirSync,
+  readFileSync,
   readdirSync,
   rmSync,
   writeFileSync,
@@ -48,4 +49,50 @@ try {
   console.log("edinet-configured-fidelity-plan-hardlink.test.ts passed");
 } finally {
   rmSync(directory, { recursive: true, force: true });
+}
+
+const anchorToken = `${process.pid}_${Date.now()}_anchor`;
+const anchorDirectory = resolve(root, `testissuer-acquisition.${anchorToken}`);
+const anchorSourcePath = resolve(anchorDirectory, "anchor-source.json");
+const anchorHardlinkPath = resolve(anchorDirectory, `configured-fidelity-anchor-input-v1.${anchorToken}.json`);
+
+mkdirSync(anchorDirectory, { recursive: true });
+
+try {
+  writeFileSync(anchorSourcePath, "{}\n", "utf-8");
+  linkSync(anchorSourcePath, anchorHardlinkPath);
+  const original = readFileSync(anchorSourcePath, "utf-8");
+
+  const result = spawnSync(
+    process.execPath,
+    [
+      "--import",
+      "tsx/esm",
+      "src/research/cli/finalize-configured-edinet-anchor-input.ts",
+      "--anchor-input",
+      `data/edinet/${basename(anchorDirectory)}/${basename(anchorHardlinkPath)}`,
+    ],
+    {
+      cwd: process.cwd(),
+      encoding: "utf-8",
+      env: { ...process.env },
+    },
+  );
+
+  assert.equal(result.status, 1, `${result.stdout}\n${result.stderr}`);
+  assert.match(result.stderr, /anchor input must be a standalone regular non-symlink file/);
+  assert.equal(
+    readdirSync(anchorDirectory).some((name) => name.startsWith("configured-fidelity-anchor-final-v1.")),
+    false,
+    "hard-linked anchor input must be rejected before any final review output is created",
+  );
+  assert.equal(
+    readFileSync(anchorSourcePath, "utf-8"),
+    original,
+    "rejecting a hard-linked anchor input must not mutate its external link target",
+  );
+
+  console.log("configured-edinet-anchor-finalizer-hardlink.test.ts passed");
+} finally {
+  rmSync(anchorDirectory, { recursive: true, force: true });
 }
