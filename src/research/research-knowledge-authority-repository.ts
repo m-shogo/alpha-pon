@@ -1,5 +1,5 @@
 import { existsSync, lstatSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import {
   DEFAULT_MARKET_EVENT_DB_PATH,
   openMarketEventDatabase,
@@ -86,6 +86,19 @@ function mergeAuthorityIssues(
   };
 }
 
+function symlinkedAncestorWithin(path: string, rootPath: string): string | undefined {
+  const root = resolve(rootPath);
+  let current = dirname(resolve(path));
+  while (true) {
+    const stat = lstatSync(current);
+    if (stat.isSymbolicLink()) return current;
+    if (current === root) return undefined;
+    const parent = dirname(current);
+    if (parent === current) return undefined;
+    current = parent;
+  }
+}
+
 function researchAssetTargetAliasIssues(
   registry: ResearchAssetRegistryResult,
   repositoryRootPath: string,
@@ -95,6 +108,15 @@ function researchAssetTargetAliasIssues(
     const target = `research_asset:${record.id}`;
     const targetPath = join(repositoryRootPath, record.path);
     try {
+      const symlinkAncestor = symlinkedAncestorWithin(targetPath, repositoryRootPath);
+      if (symlinkAncestor) {
+        issues.push(issue(
+          "research_asset_registry_target_ancestor_symlink",
+          target,
+          `registered asset target must not be reached through symlinked ancestor ${symlinkAncestor}`,
+        ));
+        continue;
+      }
       const stat = lstatSync(targetPath);
       if (stat.isFile() && stat.nlink > 1) {
         issues.push(issue(
