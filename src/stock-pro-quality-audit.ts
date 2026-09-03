@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
@@ -7,10 +7,11 @@ import type { CompanyNetworkReportCompany } from "./company-coverage-input.js";
 import { hasConfirmedProIrSource } from "./pro-ir-event-input.js";
 import type { NormalizedProIrCompany } from "./pro-ir-event-input.js";
 import { normalizeStockProQualityInputs } from "./stock-pro-quality-input.js";
+import { readReadOnlyTextFile } from "./read-only-text-file.js";
 
 function readYaml<T>(path: string, fallback: T): T {
-  if (!existsSync(path)) return fallback;
-  return load(readFileSync(path, "utf-8")) as T;
+  const text = readReadOnlyTextFile(path);
+  return text ? load(text) as T : fallback;
 }
 
 function gatePass(
