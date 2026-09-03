@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { lstatSync, readFileSync } from "node:fs";
 import {
   parsePriceJsonl,
   type PitPriceRecord,
@@ -15,9 +15,17 @@ function argValue(name: string): string | undefined {
   return process.argv.slice(2).find((arg) => arg.startsWith(prefix))?.slice(prefix.length);
 }
 
+function readPriceSchema(path: string): JsonSchema {
+  const stat = lstatSync(path);
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
+    throw new Error(`price_store_schema_must_be_standalone_regular_file: ${path}`);
+  }
+  return JSON.parse(readFileSync(path, "utf-8")) as JsonSchema;
+}
+
 const root = argValue("root") ?? "research/prices";
 const schemaPath = argValue("schema") ?? "research/schemas/price-record.schema.json";
-const schema = JSON.parse(readFileSync(schemaPath, "utf-8")) as JsonSchema;
+const schema = readPriceSchema(schemaPath);
 const files = listPriceJsonlFiles(root);
 const records: PitPriceRecord[] = [];
 const parseIssues: HardenedPriceIssue[] = [];
