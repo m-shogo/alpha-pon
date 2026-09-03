@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
+import { linkSync, mkdtempSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { buildQueue, DEFAULT_WEIGHTS, decayUrgency } from "../../src/research/queue.js";
-import { resolveQueueWeights } from "../../src/research/queue-weights.js";
+import { loadQueueWeightsFromFile, resolveQueueWeights } from "../../src/research/queue-weights.js";
 import { stableStringify } from "../../src/research/schema.js";
 import { makeEdge, makeState } from "./helpers.js";
 
@@ -184,6 +187,30 @@ function testQueueWeightContractFailsClosed() {
   console.log("research/queue: weight contract fail-closed OK");
 }
 
+function testLinkedQueueWeightsAreRejected() {
+  const root = mkdtempSync(join(tmpdir(), "alpha-pon-queue-weights-"));
+  const input = join(root, "weights.yml");
+  const target = join(root, "target.yml");
+  const yaml = "expectedRoi: 0.5\n";
+  writeFileSync(target, yaml, "utf-8");
+
+  try {
+    writeFileSync(input, yaml, "utf-8");
+    assert.equal(loadQueueWeightsFromFile(input).expectedRoi, 0.5, "standalone queue weightsは読み込める");
+
+    unlinkSync(input);
+    symlinkSync(target, input);
+    assert.deepEqual(loadQueueWeightsFromFile(input), DEFAULT_WEIGHTS, "symlink queue weightsをResearch Queue入力として追従しない");
+
+    unlinkSync(input);
+    linkSync(target, input);
+    assert.deepEqual(loadQueueWeightsFromFile(input), DEFAULT_WEIGHTS, "hard-link queue weightsをResearch Queue入力として追従しない");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+  console.log("research/queue: linked weight rejection OK");
+}
+
 testDeterministic();
 testTieBreakByIdIsStable();
 testRejectedAndDeprecatedExcluded();
@@ -193,5 +220,6 @@ testInvalidDatesFailClosed();
 testHistoricalGapRaisesPriority();
 testWeightsAreRecorded();
 testQueueWeightContractFailsClosed();
+testLinkedQueueWeightsAreRejected();
 
 console.log("research/queue: 全テスト成功");
