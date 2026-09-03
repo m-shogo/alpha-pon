@@ -141,6 +141,12 @@ function testAnalogyPredictionReviewUsesStoredDueDateAndTimeframe() {
   assert.doesNotMatch(source, /prediction\.expectedTimeframe \?\? "1w"/);
 }
 
+function testAnalogyPredictionReviewRejectsRepackagedScoreSnapshots() {
+  const source = readFileSync(new URL("../src/review-predictions.ts", import.meta.url), "utf-8");
+  assert.match(source, /if \(!isRealScoreSnapshotDate\(date\)\) continue;/);
+  assert.match(source, /if \(entry\.createdAt !== date\) continue;/);
+}
+
 function testWorldImpactReadOnlyConsumersUseCanonicalLatestBoundary() {
   for (const relativePath of ["../src/world-impact-report.ts", "../src/world-impact-calibrate.ts", "../src/world-impact-audit.ts"]) {
     const source = readFileSync(new URL(relativePath, import.meta.url), "utf-8");
@@ -247,6 +253,7 @@ function main() {
   testAnalogyReviewDueDatesUseJstCalendarDays();
   testWorldThemeReviewDueDatesRejectInvalidGregorianDates();
   testAnalogyPredictionReviewUsesStoredDueDateAndTimeframe();
+  testAnalogyPredictionReviewRejectsRepackagedScoreSnapshots();
   testWorldImpactReadOnlyConsumersUseCanonicalLatestBoundary();
   testWorldEventReflectionReliabilityGate();
   testWorldEventReflectionRejectsUnknownSources();
