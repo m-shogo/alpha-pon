@@ -4,6 +4,7 @@ import {
   isUsableHypothesisOutcomeInput,
   parseHypothesisOutcomeSqlitePayloads,
 } from "./hypothesis-outcome-input.js";
+import { isCanonicalReadOnlyJsonFile } from "./read-only-json-file.js";
 import type { HypothesisOutcome } from "./universe.js";
 
 export type OutcomeDuplicate = {
@@ -52,6 +53,12 @@ function readJsonlSafely<T>(
   isUsable?: (value: unknown) => value is T,
 ): { rows: T[]; parseErrors: JsonlParseError[] } {
   if (!existsSync(path)) return { rows: [], parseErrors: [] };
+  if (!isCanonicalReadOnlyJsonFile(path)) {
+    return {
+      rows: [],
+      parseErrors: [{ lineNumber: 0, preview: "", message: "non_regular_file" }],
+    };
+  }
   const rows: T[] = [];
   const parseErrors: JsonlParseError[] = [];
   const lines = readFileSync(path, "utf-8").split("\n");
