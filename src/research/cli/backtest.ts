@@ -7,6 +7,7 @@
 // 価格を外部から取りに行かないため、実行は決定論的で CI でも安全に回せる。
 
 import { existsSync, readFileSync } from "fs";
+import { isCanonicalReadOnlyJsonFile } from "../../read-only-json-file.js";
 import { buildUniquePriceSeriesMap } from "../backtest-bundle-input.js";
 import { runBacktest, type BacktestSignal, type BacktestSpec, type PriceSeries } from "../backtest.js";
 import { loadSchema, writeGeneratedJson } from "../io.js";
@@ -32,6 +33,9 @@ function main(): void {
   const bundlePath = options.get("bundle");
   if (!bundlePath) fail("--bundle=<file.json> を指定してください");
   if (!existsSync(bundlePath)) fail(`ファイルがありません: ${bundlePath}`);
+  if (!isCanonicalReadOnlyJsonFile(bundlePath)) {
+    fail(`backtest bundle must be a standalone regular file: ${bundlePath}`);
+  }
 
   const bundle = JSON.parse(readFileSync(bundlePath, "utf-8")) as Bundle;
   const errors = validate(bundle.spec, loadSchema("backtest"));
