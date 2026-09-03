@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  linkSync,
   mkdtempSync,
   rmSync,
   writeFileSync,
@@ -67,6 +68,25 @@ function pathsFor(dir: string) {
     rmSync(dir, { recursive: true, force: true });
   }
   console.log("testable-hypothesis-scenario-repository: absent local data OK");
+}
+
+{
+  const dir = mkdtempSync(join(tmpdir(), "hypothesis-scenario-repository-hardlink-"));
+  const paths = pathsFor(dir);
+  try {
+    const sourcePath = join(dir, "source.jsonl");
+    writeFileSync(sourcePath, "", "utf-8");
+    linkSync(sourcePath, paths.hypothesesPath);
+    const result = validateHypothesisScenarioRepository(paths);
+    assert.equal(result.hypothesisCount, 0);
+    assert.ok(result.issues.some((item) =>
+      item.code === "non_standalone_hypothesis_scenario_file" &&
+      item.target === paths.hypothesesPath
+    ));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  console.log("testable-hypothesis-scenario-repository: hard-link JSONL block OK");
 }
 
 {
