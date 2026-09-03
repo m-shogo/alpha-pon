@@ -1,0 +1,8 @@
+/* Owner UI v2 QA overrides.
+ * Keep only cross-page interaction rules that are easier to audit centrally.
+ */
+@media (max-width: 767px) {
+  .ap-research-section-nav a {
+    min-height: 44px;
+  }
+}
