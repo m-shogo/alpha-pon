@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { auditJQuantsFreePriceStore } from "../jquants-free-price-store-audit.js";
 import type { JsonSchema } from "../schema.js";
@@ -14,6 +14,10 @@ function argValue(name: string): string | null {
 function priceSchema(): JsonSchema {
   const path = resolve(process.cwd(), "research/schemas/price-record.schema.json");
   if (!existsSync(path)) throw new Error("canonical price schema is missing");
+  const stat = lstatSync(path);
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
+    throw new Error("canonical price schema must be a standalone regular file");
+  }
   return JSON.parse(readFileSync(path, "utf-8")) as JsonSchema;
 }
 
