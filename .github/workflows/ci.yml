@@ -62,6 +62,9 @@ jobs:
       - name: Verify calendar feed UI boundary
         run: node --import tsx/esm scripts/verify-calendar-feed-ui-contract.ts
 
+      - name: Verify Owner UI v2 contract
+        run: node --import tsx/esm scripts/verify-owner-ui-v2-contract.ts
+
       - name: Build and verify Workers Static Assets artifact
         run: bash scripts/build-cloudflare-workers.sh
 
