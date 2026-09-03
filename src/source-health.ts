@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join } from "path";
 import { todayJst } from "./date.js";
 import { collectPipelineFailedStepNames } from "./pipeline-failed-steps.js";
+import { isCanonicalReadOnlyJsonFile } from "./read-only-json-file.js";
 import { hasUniqueSourceHealthScoreIdentities, normalizeSourceHealthObject, normalizeSourceHealthScoreRows } from "./source-health-input.js";
 import { selectSourceHealthScoreFile } from "./source-health-score-file.js";
 
@@ -50,7 +51,7 @@ type ScoreLogEntry = {
 };
 
 function readJson<T>(path: string): T | null {
-  if (!existsSync(path)) return null;
+  if (!existsSync(path) || !isCanonicalReadOnlyJsonFile(path)) return null;
   try {
     return JSON.parse(readFileSync(path, "utf-8")) as T;
   } catch {
