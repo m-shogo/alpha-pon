@@ -183,9 +183,11 @@ for (const [path, pattern, message] of primaryCopyChecks) {
 
 const activeStyleFiles = [
   "apps/web/app/globals.css",
+  "apps/web/app/owner-ui-qa.css",
   "apps/web/app/calendar/CalendarV2.module.css",
   "apps/web/app/home.module.css",
   "apps/web/app/stocks/StocksPage.module.css",
+  "apps/web/app/stocks/[code]/StockDetailV2.module.css",
   "apps/web/app/alerts/AlertsV2.module.css",
   "apps/web/app/actions/ActionsPage.module.css",
   "apps/web/app/reports/ReportsPage.module.css",
@@ -193,6 +195,16 @@ const activeStyleFiles = [
   "apps/web/app/world/world.module.css",
   "apps/web/app/world-impact/world-impact.module.css",
   "apps/web/app/feed/feed.module.css",
+  "apps/web/app/ops/OpsV2.module.css",
+  "apps/web/app/hypotheses/HypothesesV2.module.css",
+  "apps/web/components/CandidateCard.module.css",
+  "apps/web/components/ProCommandCard.module.css",
+  "apps/web/components/DataStatus.module.css",
+  "apps/web/components/StockList.module.css",
+  "apps/web/components/StockCard.module.css",
+  "apps/web/components/ResearchHistoryMap.module.css",
+  "apps/web/components/ResearchVerification.module.css",
+  "apps/web/components/ReportViewer.module.css",
 ];
 for (const path of activeStyleFiles) {
   const source = read(path);
