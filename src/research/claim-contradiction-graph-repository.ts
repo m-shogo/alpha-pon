@@ -1,4 +1,5 @@
 import { existsSync, lstatSync, readFileSync } from "node:fs";
+import { dirname } from "node:path";
 import {
   validateBitemporalEvidenceRepository,
 } from "./bitemporal-evidence-repository.js";
@@ -71,6 +72,17 @@ function sortIssues(issues: ClaimGraphIssue[]): ClaimGraphIssue[] {
 
 function readStrictJsonl<T>(path: string): { records: T[]; issues: ClaimGraphIssue[] } {
   if (!existsSync(path)) return { records: [], issues: [] };
+  const parent = dirname(path);
+  if (existsSync(parent) && lstatSync(parent).isSymbolicLink()) {
+    return {
+      records: [],
+      issues: [issue(
+        "non_standalone_claim_graph_repository_file",
+        path,
+        "Claim Graph JSONL parent directory must not be a symbolic link",
+      )],
+    };
+  }
   const stat = lstatSync(path);
   if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
     return {

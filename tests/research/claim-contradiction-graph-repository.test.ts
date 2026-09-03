@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import {
   linkSync,
+  mkdirSync,
   mkdtempSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -254,6 +256,35 @@ for (const aliasedField of ["claims", "edges"] as const) {
     rmSync(dir, { recursive: true, force: true });
   }
   console.log(`claim-contradiction-graph-repository: ${aliasedField} hard-link alias block OK`);
+}
+
+{
+  const root = mkdtempSync(join(tmpdir(), "claim-graph-repository-parent-symlink-"));
+  try {
+    const realDir = join(root, "real");
+    const aliasDir = join(root, "alias");
+    mkdirSync(realDir);
+    const paths = writePilot(realDir);
+    symlinkSync(realDir, aliasDir, "dir");
+    const aliasedClaimsPath = join(aliasDir, "claims.jsonl");
+    const result = validateClaimGraphRepository({
+      claimsPath: aliasedClaimsPath,
+      edgesPath: paths.edges,
+      evidencePath: paths.evidence,
+      evidenceRelationsPath: paths.evidenceRelations,
+      securityEntitiesPath: paths.securityEntities,
+      securityRelationshipsPath: paths.securityRelationships,
+      asOf: "2026-08-06T10:00:00+09:00",
+    });
+    assert.ok(result.issues.some((item) =>
+      item.code === "non_standalone_claim_graph_repository_file"
+      && item.target === aliasedClaimsPath
+    ));
+    assert.equal(result.snapshot, null);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+  console.log("claim-contradiction-graph-repository: symlinked parent directory block OK");
 }
 
 console.log("claim-contradiction-graph-repository: 全テスト成功");
