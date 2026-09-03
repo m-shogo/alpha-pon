@@ -2,67 +2,41 @@ import { getGeneratedData } from '@/lib/generated-data'
 import { StockList } from '@/components/StockList'
 import { DataStatus } from '@/components/DataStatus'
 import { Disclaimer } from '@/components/Disclaimer'
-import { Icon } from '@/components/Icon'
+import styles from './StocksPage.module.css'
 
 export default async function StocksPage() {
   const data = await getGeneratedData()
 
   return (
-    <>
-      {/* header */}
-      <div
-        style={{
-          position: 'sticky', top: 0, zIndex: 8,
-          padding: '52px 20px 12px',
-          background: 'var(--header-bg)',
-          backdropFilter: 'blur(14px)',
-          WebkitBackdropFilter: 'blur(14px)',
-          borderBottom: '1px solid var(--line)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
-          <div>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-2)', letterSpacing: 0.3, marginBottom: 2 }}>
-              スコア順 ・ 価格未取得は「未取得」表示
-            </div>
-            <h1 style={{ margin: 0, fontFamily: 'var(--display)', fontWeight: 700, fontSize: 27, color: 'var(--ink)', letterSpacing: 0.2 }}>
-              銘柄一覧
-            </h1>
-          </div>
-          <div style={{ width: 38, height: 38, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--card-line)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-2)' }}>
-            <Icon name="filter" size={19} />
-          </div>
+    <main className={styles.page}>
+      <header className={styles.header}>
+        <div>
+          <div className={styles.eyebrow}>監視銘柄</div>
+          <h1 className={styles.title}>銘柄一覧</h1>
+          <p className={styles.subtitle}>
+            スコアの高い順に、価格・騰落率・主要指標を比較します。価格を取得できていない項目は推測せず「未取得」と表示します。
+          </p>
         </div>
+      </header>
+
+      <DataStatus generatedAt={data.generatedAt} stocks={data.stocks} />
+
+      {(data.meta?.warnings?.length ?? 0) > 0 && (
+        <ul className={styles.warningList}>
+          {data.meta?.warnings?.map((warning, index) => (
+            <li key={`${index}-${warning.slice(0, 24)}`}>⚠ {warning}</li>
+          ))}
+        </ul>
+      )}
+
+      <div className={styles.sectionHeader}>
+        <h2 className={styles.sectionTitle}>比較する</h2>
+        <span className={styles.sectionMeta}>{data.stocks.length}銘柄 · スコア順</span>
       </div>
 
-      <div style={{ padding: '16px 16px 0' }}>
-        {/* data status */}
-        <DataStatus generatedAt={data.generatedAt} stocks={data.stocks} />
+      <StockList stocks={data.stocks} />
 
-        {/* warnings */}
-        {data.meta?.warnings?.map((w, i) => (
-          <div
-            key={i}
-            style={{
-              padding: '10px 14px', marginBottom: 10,
-              background: 'var(--amber-soft)', borderRadius: 10,
-              fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)',
-              display: 'flex', gap: 8,
-            }}
-          >
-            <span style={{ color: 'var(--amber)', flexShrink: 0 }}>⚠</span>
-            {w}
-          </div>
-        ))}
-
-        {/* stock list */}
-        <StockList stocks={data.stocks} />
-
-        {/* disclaimer */}
-        <Disclaimer />
-
-        <div style={{ height: 24 }} />
-      </div>
-    </>
+      <Disclaimer />
+    </main>
   )
 }
