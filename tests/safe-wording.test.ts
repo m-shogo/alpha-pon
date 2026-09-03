@@ -2,8 +2,10 @@
 // pnpm test で自動実行される
 
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync, statSync, existsSync } from "fs";
+import { existsSync, linkSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "fs";
+import { tmpdir } from "os";
 import { join, extname } from "path";
+import { readSafeWordingAuditFile } from "../src/ops-dashboard-safe-wording-file.js";
 import { applySafeWordingScanHealth } from "../src/ops-dashboard-safe-wording-health.js";
 import { buildOpsDashboard, type OpsDashboardInputs } from "../src/ops-dashboard.js";
 
@@ -160,6 +162,35 @@ for (const f of SCAN_FILES) {
   const complete = applySafeWordingScanHealth(base, { readErrorCount: 0 });
   assert.equal(complete.healthStatus, "ok");
   console.log("safe-wording: 読み込み失敗をmetadata-onlyでfail-closed化");
+}
+
+{
+  const dir = mkdtempSync(join(tmpdir(), "alpha-pon-safe-wording-"));
+  try {
+    const canonical = join(dir, "canonical.md");
+    const symlink = join(dir, "symlink.md");
+    const hardlink = join(dir, "hardlink.md");
+    writeFileSync(canonical, "safe audit content\n");
+
+    const regular = readSafeWordingAuditFile(canonical);
+    assert.equal(regular.ok, true, "standalone regular file は監査入力として読める");
+
+    symlinkSync(canonical, symlink);
+    const linked = readSafeWordingAuditFile(symlink);
+    assert.deepEqual(linked, { ok: false, reason: "linked_or_non_regular" });
+
+    linkSync(canonical, hardlink);
+    const hardLinked = readSafeWordingAuditFile(hardlink);
+    assert.deepEqual(hardLinked, { ok: false, reason: "linked_or_non_regular" });
+    assert.deepEqual(
+      readSafeWordingAuditFile(canonical),
+      { ok: false, reason: "linked_or_non_regular" },
+      "hard-link作成後は元pathもstandalone authorityではない",
+    );
+    console.log("safe-wording: symlink / hard-link audit inputをfail-closed化");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 console.log(`safe-wording: ${tsxFiles.length} ソースファイル + ${SCAN_FILES.length} 生成ファイルをスキャン、禁止文言なし`);

@@ -21,6 +21,7 @@ import { normalizeOpsOutcomeQualityInput } from "../src/ops-dashboard-outcome-qu
 import { normalizeOpsOutcomesInput } from "../src/ops-dashboard-outcomes-input.js";
 import { normalizeOpsPipelineStatusInput } from "../src/ops-dashboard-pipeline-input.js";
 import { applySafeOutputAuditHealth } from "../src/ops-dashboard-safe-output-health.js";
+import { readSafeWordingAuditFile } from "../src/ops-dashboard-safe-wording-file.js";
 import { applySafeWordingScanHealth } from "../src/ops-dashboard-safe-wording-health.js";
 import { normalizeOpsSpecialSituationInput } from "../src/ops-dashboard-special-input.js";
 import { applyWorldImpactAuditHealth } from "../src/ops-dashboard-world-impact-health.js";
@@ -79,13 +80,13 @@ function scanSafeWording(): { scannedFiles: number; readErrorCount: number; find
   let scannedFiles = 0;
   let readErrorCount = 0;
   for (const rel of targets) {
-    try {
-      const content = readFileSync(join(ROOT, rel), "utf-8");
-      scannedFiles += 1;
-      findings.push(...findForbiddenWording(content, rel));
-    } catch {
+    const loaded = readSafeWordingAuditFile(join(ROOT, rel));
+    if (!loaded.ok) {
       readErrorCount += 1;
+      continue;
     }
+    scannedFiles += 1;
+    findings.push(...findForbiddenWording(loaded.content, rel));
   }
   return { scannedFiles, readErrorCount, findings };
 }
