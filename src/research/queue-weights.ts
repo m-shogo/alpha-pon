@@ -1,3 +1,5 @@
+import { load } from "js-yaml";
+import { readReadOnlyTextFile } from "../read-only-text-file.js";
 import { DEFAULT_WEIGHTS, type QueueWeights } from "./queue.js";
 
 const WEIGHT_KEYS = Object.keys(DEFAULT_WEIGHTS) as Array<keyof QueueWeights>;
@@ -32,4 +34,10 @@ export function resolveQueueWeights(value: unknown): QueueWeights {
   }
 
   return resolved;
+}
+
+export function loadQueueWeightsFromFile(path: string): QueueWeights {
+  const text = readReadOnlyTextFile(path);
+  if (!text) return { ...DEFAULT_WEIGHTS };
+  return resolveQueueWeights(load(text));
 }
