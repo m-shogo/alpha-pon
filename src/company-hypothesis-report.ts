@@ -1,13 +1,15 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { normalizeCompanyHypothesesRoot } from "./company-coverage-input.js";
 import { normalizeCompanyHypothesisReportRows } from "./company-hypothesis-report-input.js";
 import { todayJst } from "./date.js";
+import { readReadOnlyTextFile } from "./read-only-text-file.js";
 
 function readConfig() {
   const path = join(process.cwd(), "config", "company-hypotheses.yml");
-  const raw = load(readFileSync(path, "utf-8"));
+  const rawText = readReadOnlyTextFile(path);
+  const raw = rawText ? load(rawText) : {};
   return normalizeCompanyHypothesisReportRows(normalizeCompanyHypothesesRoot(raw));
 }
 
