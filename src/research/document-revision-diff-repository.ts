@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync } from "node:fs";
 import {
   validateBitemporalEvidenceRepository,
 } from "./bitemporal-evidence-repository.js";
@@ -80,6 +80,17 @@ function readStrictJsonl<T>(path: string): {
   issues: DocumentRevisionDiffIssue[];
 } {
   if (!existsSync(path)) return { records: [], issues: [] };
+  const stat = lstatSync(path);
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
+    return {
+      records: [],
+      issues: [issue(
+        "non_standalone_document_revision_repository_file",
+        path,
+        "Document Revision Diff JSONL must be a standalone regular file",
+      )],
+    };
+  }
   const content = readFileSync(path, "utf-8");
   if (content.length > 0 && !content.endsWith("\n")) {
     return {
