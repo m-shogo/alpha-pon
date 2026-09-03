@@ -1,0 +1,250 @@
+.viewer {
+  padding-top: 26px;
+}
+
+.headingRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.heading {
+  margin: 0;
+  color: var(--ink);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.count {
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.reportList {
+  display: grid;
+  border-top: 1px solid var(--line);
+}
+
+.reportButton {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 13px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--ui);
+}
+
+.reportButton:disabled {
+  cursor: default;
+}
+
+.reportButton[aria-current='true'] .reportLabel {
+  color: var(--accent);
+}
+
+.reportLabel {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 680;
+}
+
+.reportPath {
+  margin-top: 3px;
+  color: var(--ink-3);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.reportState {
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.contentSection {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.tab {
+  min-height: 36px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-3);
+  font-family: var(--ui);
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.tabActive {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.copy {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--ui);
+  font-size: 12.5px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.content {
+  max-width: 840px;
+  color: var(--ink);
+}
+
+.raw {
+  margin: 0;
+  padding: 16px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-2);
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.mdH1 {
+  margin: 4px 0 12px;
+  color: var(--ink);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.mdH2 {
+  margin: 22px 0 8px;
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.quote {
+  margin: 10px 0;
+  padding: 10px 0 10px 13px;
+  border-left: 3px solid var(--accent);
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.rule {
+  margin: 20px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.list {
+  display: grid;
+  gap: 7px;
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.listItem {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr);
+  gap: 8px;
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.bullet {
+  color: var(--ink-3);
+}
+
+.tableWrap {
+  overflow-x: auto;
+  margin: 12px 0;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-2);
+}
+
+.table tr:first-child td {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.paragraph {
+  margin: 8px 0;
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.note {
+  margin: 12px 0 0;
+  color: var(--ink-3);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+@media (max-width: 767px) {
+  .toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .copy {
+    width: 100%;
+  }
+
+  .reportButton {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  .reportState {
+    white-space: normal;
+  }
+}

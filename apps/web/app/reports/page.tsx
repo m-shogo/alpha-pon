@@ -1,7 +1,8 @@
+import Link from 'next/link'
 import { loadGeneratedData } from '@/lib/generated-data'
 import { isPipelineStatusHealthy } from '@/lib/pipeline-status-view'
 import { ReportViewer } from '@/components/ReportViewer'
-import Link from 'next/link'
+import styles from './ReportsPage.module.css'
 
 function cursorRange(cursor: { offset?: number; maxPerRun?: number; total?: number }) {
   const offset = cursor.offset ?? 0
@@ -15,160 +16,108 @@ export default function ReportsPage() {
   const data = loadGeneratedData()
   const runCursors = Object.entries(data.runCursors ?? {})
   const pipelineHealthy = data.pipelineStatus ? isPipelineStatusHealthy(data.pipelineStatus) : false
+  const availableReports = data.reports.filter(report => report.available).length
 
   return (
-    <>
-      {/* header */}
-      <div style={{
-        position: 'sticky', top: 0, zIndex: 8,
-        padding: '52px 20px 12px',
-        background: 'var(--header-bg)',
-        backdropFilter: 'blur(14px)',
-        WebkitBackdropFilter: 'blur(14px)',
-        borderBottom: '1px solid var(--line)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
-          <div>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--accent)', letterSpacing: 0.3, marginBottom: 2 }}>
-              reports / generated
-            </div>
-            <h1 style={{ margin: 0, fontFamily: 'var(--display)', fontWeight: 700, fontSize: 27, color: 'var(--ink)', letterSpacing: 0.2 }}>
-              レポート
-            </h1>
-          </div>
-        </div>
-      </div>
+    <main className={styles.page}>
+      <header className={styles.header}>
+        <div className={styles.eyebrow}>調査結果と運用レポート</div>
+        <h1 className={styles.title}>レポート</h1>
+        <p className={styles.subtitle}>
+          生成済みレポートを読み、必要なときだけ生成状況やパイプラインの詳細を確認します。
+        </p>
+      </header>
 
-      <div style={{ padding: '16px 16px 0' }}>
+      <section className={styles.summary}>
+        <div>
+          <div className={styles.summaryLabel}>読めるレポート</div>
+          <div className={styles.summaryValue}>{availableReports} / {data.reports.length} 件</div>
+          <div className={styles.summaryMeta}>利用できないレポートは一覧で「未生成」と表示します。</div>
+        </div>
         {data.readiness && (
-          <Link href="/roadmap" style={{ display: 'block', textDecoration: 'none', marginBottom: 12 }}>
-            <div style={{ padding: '12px 14px', background: 'var(--lavender-soft)', borderRadius: 14, border: '1px solid var(--card-line)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                <div>
-                  <div style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--lavender-deep)', marginBottom: 2 }}>完成ロードマップ</div>
-                  <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink)' }}>
-                    総合完成度 {Math.round(data.readiness.overallScore)}%
-                  </div>
-                </div>
-                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--lavender-deep)' }}>見る →</span>
-              </div>
-            </div>
+          <Link href="/roadmap" className={styles.roadmap}>
+            <div className={styles.summaryLabel}>完成ロードマップ</div>
+            <div className={styles.summaryValue}>総合完成度 {Math.round(data.readiness.overallScore)}%</div>
+            <div className={styles.summaryMeta}>改善状況を見る →</div>
           </Link>
         )}
-        {runCursors.length > 0 && (
-          <div style={{ marginBottom: 12, padding: '12px 14px', background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--card-line)', boxShadow: 'var(--shadow)' }}>
-            <div style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--ink-3)', marginBottom: 8, letterSpacing: 0.3 }}>
-              RUN CURSORS
-            </div>
-            <div style={{ display: 'grid', gap: 7 }}>
-              {runCursors.map(([key, cursor]) => (
-                <div key={key} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 12 }}>
-                  <span style={{ color: 'var(--ink)', fontWeight: 800, minWidth: 0 }}>{cursor.jobName ?? key}</span>
-                  <span style={{ color: 'var(--sky-deep)', fontWeight: 800, whiteSpace: 'nowrap' }}>
-                    次 {cursorRange(cursor)}
-                  </span>
-                </div>
-              ))}
-            </div>
+      </section>
+
+      {runCursors.length > 0 && (
+        <section className={styles.summary}>
+          <div>
+            <div className={styles.summaryLabel}>次回のデータ取得範囲</div>
+            <div className={styles.summaryMeta}>大量取得を一度に行わず、続きを安全に進めるための位置です。</div>
           </div>
-        )}
-        {(data.meta?.warnings ?? []).length > 0 && (
-          <div style={{ padding: '10px 14px', marginBottom: 12, background: 'var(--amber-soft)', borderRadius: 10, fontSize: 12, fontWeight: 600, color: 'var(--ink-2)' }}>
-            <div style={{ fontWeight: 800, color: 'var(--amber)', marginBottom: 4 }}>⚠ データ更新に問題が発生しました</div>
-            {(data.meta?.warnings ?? []).map((w: string, i: number) => (
-              <div key={i} style={{ marginTop: 2 }}>• {w}</div>
+          <div className={styles.cursorList}>
+            {runCursors.map(([key, cursor]) => (
+              <div key={key} className={styles.cursorRow}>
+                <span className={styles.cursorName}>{cursor.jobName ?? key}</span>
+                <span className={styles.cursorRange}>次 {cursorRange(cursor)}</span>
+              </div>
             ))}
           </div>
-        )}
-        {data.reports.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--ink-3)', fontSize: 13, fontWeight: 600 }}>
-            <p>レポートがありません</p>
-            <p style={{ marginTop: 8, fontSize: 12 }}>
-              ルートで <code style={{ background: 'var(--surface-2)', padding: '2px 6px', borderRadius: 4 }}>pnpm daily</code> を実行してください
-            </p>
-          </div>
-        ) : (
-          <ReportViewer reports={data.reports} />
-        )}
+        </section>
+      )}
 
-        {/* pipeline status */}
-        {data.pipelineStatus && (
-          <div style={{ marginTop: 16, padding: '12px 14px', background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--card-line)', boxShadow: 'var(--shadow)' }}>
-            <div style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--ink-3)', marginBottom: 8, letterSpacing: 0.3 }}>
-              PIPELINE STATUS
+      {(data.meta?.warnings ?? []).length > 0 && (
+        <div className={styles.warning}>
+          <div className={styles.warningTitle}>⚠ データ更新に確認事項があります</div>
+          {(data.meta?.warnings ?? []).map((warning: string, index: number) => (
+            <div key={index}>• {warning}</div>
+          ))}
+        </div>
+      )}
+
+      {data.reports.length === 0 ? (
+        <div className={styles.empty}>まだ表示できるレポートがありません。</div>
+      ) : (
+        <ReportViewer reports={data.reports} />
+      )}
+
+      {data.pipelineStatus && (
+        <details className={styles.pipeline}>
+          <summary>
+            <span>生成パイプラインの技術状態</span>
+            <span className={styles.pipelineState}>{pipelineHealthy ? '正常' : '要確認'}</span>
+          </summary>
+          <div className={styles.pipelineBody}>
+            <div className={styles.pipelineGrid}>
+              {data.pipelineStatus.date && <><span className={styles.pipelineKey}>日付</span><span>{data.pipelineStatus.date}</span></>}
+              {data.pipelineStatus.status && <><span className={styles.pipelineKey}>状態</span><span>{data.pipelineStatus.status}</span></>}
+              {data.pipelineStatus.startedAt && <><span className={styles.pipelineKey}>開始</span><span>{data.pipelineStatus.startedAt}</span></>}
+              {data.pipelineStatus.endedAt && <><span className={styles.pipelineKey}>終了</span><span>{data.pipelineStatus.endedAt}</span></>}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', fontSize: 12 }}>
-              {data.pipelineStatus.date && (
-                <>
-                  <span style={{ color: 'var(--ink-3)', fontWeight: 600 }}>日付</span>
-                  <span style={{ color: 'var(--ink)', fontWeight: 700 }}>{data.pipelineStatus.date}</span>
-                </>
-              )}
-              {data.pipelineStatus.status && (
-                <>
-                  <span style={{ color: 'var(--ink-3)', fontWeight: 600 }}>ステータス</span>
-                  <span style={{
-                    color: pipelineHealthy ? 'var(--mint-deep)' : 'var(--amber)',
-                    fontWeight: 800,
-                  }}>
-                    {data.pipelineStatus.status}
-                  </span>
-                </>
-              )}
-              {data.pipelineStatus.startedAt && (
-                <>
-                  <span style={{ color: 'var(--ink-3)', fontWeight: 600 }}>開始</span>
-                  <span style={{ color: 'var(--ink-2)', fontWeight: 600 }}>{data.pipelineStatus.startedAt}</span>
-                </>
-              )}
-              {data.pipelineStatus.endedAt && (
-                <>
-                  <span style={{ color: 'var(--ink-3)', fontWeight: 600 }}>終了</span>
-                  <span style={{ color: 'var(--ink-2)', fontWeight: 600 }}>{data.pipelineStatus.endedAt}</span>
-                </>
-              )}
-            </div>
+
             {(data.pipelineStatus.completeWrapperFailedSteps ?? []).length > 0 && (
-              <div style={{ marginTop: 8, padding: '7px 10px', background: 'var(--amber-soft)', borderRadius: 8, fontSize: 11.5 }}>
-                <div style={{ fontWeight: 800, color: 'var(--amber)', marginBottom: 3 }}>失敗したステップ</div>
-                {(data.pipelineStatus.completeWrapperFailedSteps ?? []).map((s: string, i: number) => (
-                  <div key={i} style={{ color: 'var(--ink-2)', fontWeight: 600 }}>• {s}</div>
+              <div className={styles.warning}>
+                <div className={styles.warningTitle}>失敗したステップ</div>
+                {(data.pipelineStatus.completeWrapperFailedSteps ?? []).map((step: string, index: number) => (
+                  <div key={index}>• {step}</div>
                 ))}
               </div>
             )}
-            {pipelineHealthy && (
-              <div style={{ marginTop: 8, fontSize: 11.5, color: 'var(--mint-deep)', fontWeight: 700 }}>✓ 全ステップ正常完了</div>
-            )}
+
             {(data.pipelineStatus.steps ?? []).length > 0 && (
-              <div style={{ marginTop: 10 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-3)', marginBottom: 5 }}>ステップ詳細</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                  {(data.pipelineStatus.steps ?? []).map((s, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5 }}>
-                      <span style={{
-                        width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-                        background: s.status === 'ok' ? 'var(--mint-deep)' : s.status === 'skipped' ? 'var(--ink-3)' : 'var(--amber)',
-                      }} />
-                      <span style={{ color: 'var(--ink)', fontWeight: 600, flex: 1 }}>{s.name}</span>
-                      <span style={{
-                        fontSize: 10.5, fontWeight: 700,
-                        color: s.status === 'ok' ? 'var(--mint-deep)' : s.status === 'skipped' ? 'var(--ink-3)' : 'var(--amber)',
-                      }}>
-                        {s.status}
-                      </span>
-                      {s.durationSec > 0 && (
-                        <span style={{ fontSize: 10.5, color: 'var(--ink-3)' }}>{s.durationSec}s</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
+              <div className={styles.stepList}>
+                {(data.pipelineStatus.steps ?? []).map((step, index) => (
+                  <div key={index} className={styles.stepRow}>
+                    <span
+                      className={styles.stepDot}
+                      style={{ background: step.status === 'ok' ? 'var(--mint-deep)' : step.status === 'skipped' ? 'var(--ink-3)' : 'var(--amber)' }}
+                    />
+                    <span className={styles.stepName}>{step.name}</span>
+                    <span>{step.status === 'ok' ? '正常' : step.status === 'skipped' ? '省略' : '要確認'}</span>
+                    <span>{step.durationSec > 0 ? `${step.durationSec}s` : ''}</span>
+                  </div>
+                ))}
               </div>
             )}
           </div>
-        )}
+        </details>
+      )}
 
-        <div style={{ height: 24 }} />
-      </div>
-    </>
+      <div className={styles.footerSpace} />
+    </main>
   )
 }
