@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
@@ -9,10 +9,11 @@ import {
   normalizeCompanyOnboardingPolicy,
 } from "./company-onboarding-input.js";
 import { hasConfirmedProIrSource, normalizeProIrEventInput } from "./pro-ir-event-input.js";
+import { readReadOnlyTextFile } from "./read-only-text-file.js";
 
 function readYaml<T>(path: string, fallback: T): T {
-  if (!existsSync(path)) return fallback;
-  return load(readFileSync(path, "utf-8")) as T;
+  const text = readReadOnlyTextFile(path);
+  return text ? load(text) as T : fallback;
 }
 
 function main() {
