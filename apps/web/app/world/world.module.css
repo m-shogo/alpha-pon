@@ -1,0 +1,455 @@
+.page {
+  padding: 28px 20px 36px;
+}
+
+.header,
+.content {
+  max-width: 1080px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.header {
+  margin-bottom: 26px;
+}
+
+.eyebrow {
+  margin: 0 0 5px;
+  color: var(--ink-3);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.title {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--display);
+  font-size: clamp(28px, 4vw, 34px);
+  font-weight: 720;
+  letter-spacing: -0.025em;
+}
+
+.lead {
+  max-width: 760px;
+  margin: 9px 0 0;
+  color: var(--ink-2);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.content {
+  display: grid;
+  gap: 30px;
+}
+
+.overview {
+  padding: 19px 0 18px;
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line);
+}
+
+.overviewText {
+  max-width: 820px;
+  margin: 0;
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 580;
+  line-height: 1.7;
+}
+
+.overviewMetrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.overviewMetric {
+  padding: 13px 16px 0 0;
+}
+
+.overviewMetric + .overviewMetric {
+  padding-left: 16px;
+  border-left: 1px solid var(--line);
+}
+
+.metricLabel {
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.metricValue {
+  margin-top: 4px;
+  color: var(--ink);
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.sectionTitle {
+  margin: 0;
+  color: var(--ink);
+  font-size: 20px;
+  font-weight: 680;
+  letter-spacing: -0.015em;
+}
+
+.sectionMeta {
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.notice {
+  padding: 13px 15px;
+  border-left: 3px solid var(--sky-deep);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.list {
+  border-top: 1px solid var(--line-strong);
+}
+
+.dueRow,
+.candidateRow,
+.regimeRow {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.rowTop {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+}
+
+.identity {
+  min-width: 0;
+}
+
+.nameLine {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.company {
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 680;
+}
+
+.code,
+.meta {
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 620;
+}
+
+.meta {
+  margin-top: 5px;
+  line-height: 1.6;
+}
+
+.state {
+  min-width: 92px;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 720;
+}
+
+.bodyText {
+  margin: 10px 0 0;
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.thesisGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.thesisItem {
+  min-width: 0;
+  padding: 11px 12px 0 0;
+}
+
+.thesisItem + .thesisItem {
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
+}
+
+.thesisLabel {
+  color: var(--ink-3);
+  font-size: 11.5px;
+  font-weight: 650;
+}
+
+.thesisText {
+  margin-top: 5px;
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.deadline {
+  margin-top: 10px;
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 620;
+}
+
+.reviewDue {
+  color: var(--amber);
+  font-weight: 720;
+}
+
+.regimeLevel {
+  min-width: 70px;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 720;
+}
+
+.watchList,
+.cautionList,
+.simpleList {
+  display: grid;
+  gap: 6px;
+  margin: 11px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.watchList li,
+.cautionList li,
+.simpleList li {
+  position: relative;
+  padding-left: 15px;
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.watchList li::before,
+.simpleList li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: var(--sky-deep);
+}
+
+.cautionList li::before {
+  content: '—';
+  position: absolute;
+  left: 0;
+  color: var(--amber);
+}
+
+.details {
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line);
+}
+
+.details summary,
+.ruleDetails summary {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+  color: var(--sky-deep);
+  font-size: 13px;
+  font-weight: 680;
+}
+
+.details summary::-webkit-details-marker,
+.ruleDetails summary::-webkit-details-marker {
+  display: none;
+}
+
+.details summary::after,
+.ruleDetails summary::after {
+  content: '＋';
+  margin-left: auto;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+.details[open] summary::after,
+.ruleDetails[open] summary::after {
+  content: '−';
+}
+
+.detailsBody {
+  display: grid;
+  gap: 22px;
+  padding: 4px 0 22px;
+}
+
+.ruleGroup {
+  border-top: 1px solid var(--line);
+}
+
+.ruleDetails {
+  border-bottom: 1px solid var(--line);
+}
+
+.ruleSummaryMain {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 680;
+}
+
+.ruleId {
+  margin-left: 8px;
+  color: var(--ink-3);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.ruleBody {
+  display: grid;
+  gap: 14px;
+  padding: 0 0 16px;
+}
+
+.ruleAction {
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.ruleColumns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.ruleLabel {
+  margin-bottom: 5px;
+  color: var(--ink-3);
+  font-size: 11.5px;
+  font-weight: 680;
+}
+
+.companyList {
+  display: grid;
+  gap: 5px;
+}
+
+.companyLine {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  gap: 10px;
+  color: var(--ink-2);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.companyLine strong {
+  color: var(--ink-3);
+}
+
+.empty {
+  max-width: 680px;
+  margin: 80px auto;
+  color: var(--ink-2);
+  text-align: center;
+}
+
+.empty h1 {
+  margin: 0 0 8px;
+  color: var(--ink);
+  font-size: 23px;
+}
+
+.empty p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.footerSpace {
+  height: 24px;
+}
+
+@media (max-width: 767px) {
+  .page {
+    padding: 22px 16px 30px;
+  }
+
+  .header {
+    margin-bottom: 22px;
+  }
+
+  .lead,
+  .overviewText {
+    font-size: 14px;
+  }
+
+  .content {
+    gap: 25px;
+  }
+
+  .overviewMetrics {
+    grid-template-columns: 1fr;
+  }
+
+  .overviewMetric,
+  .overviewMetric + .overviewMetric {
+    padding: 10px 0;
+    border-left: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .sectionHead {
+    display: block;
+  }
+
+  .sectionMeta {
+    margin-top: 3px;
+  }
+
+  .rowTop {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  .state,
+  .regimeLevel {
+    min-width: 0;
+    text-align: left;
+  }
+
+  .thesisGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .thesisItem,
+  .thesisItem + .thesisItem {
+    padding: 10px 0;
+    border-left: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .ruleColumns {
+    grid-template-columns: 1fr;
+  }
+}
