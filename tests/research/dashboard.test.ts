@@ -13,6 +13,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { readReadOnlyJsonArrayFile } from "../../src/read-only-json-file.js";
 import { buildDashboard } from "../../src/research/dashboard.js";
 import { loadCheckpoint, readJsonl, ResearchDataError } from "../../src/research/io.js";
 import { buildQueue } from "../../src/research/queue.js";
@@ -150,11 +151,36 @@ function testLinkedJsonlIsRejected() {
   console.log("research/dashboard: linked JSONL rejection OK");
 }
 
+function testLinkedGeneratedEdgeIndexIsRejected() {
+  const root = mkdtempSync(join(tmpdir(), "alpha-pon-research-index-"));
+  const input = join(root, "index.generated.json");
+  const target = join(root, "target.json");
+  const payload = [{ id: "synthetic-edge" }];
+  writeFileSync(target, JSON.stringify(payload), "utf-8");
+
+  try {
+    writeFileSync(input, JSON.stringify(payload), "utf-8");
+    assert.deepEqual(readReadOnlyJsonArrayFile(input).rows, payload, "standalone generated indexは読み込める");
+
+    unlinkSync(input);
+    symlinkSync(target, input);
+    assert.equal(readReadOnlyJsonArrayFile(input).parseError, true, "symlink generated indexをcheck証拠として追従しない");
+
+    unlinkSync(input);
+    linkSync(target, input);
+    assert.equal(readReadOnlyJsonArrayFile(input).parseError, true, "hard-link generated indexをcheck証拠として追従しない");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+  console.log("research/dashboard: linked generated edge index rejection OK");
+}
+
 testSchemaAndTypesStayInSync();
 testRequiredSectionsRendered();
 testDeterministicOutput();
 testEmptyRegistryDoesNotCrash();
 testLinkedCheckpointIsRejected();
 testLinkedJsonlIsRejected();
+testLinkedGeneratedEdgeIndexIsRejected();
 
 console.log("research/dashboard: 全テスト成功");
