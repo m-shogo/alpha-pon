@@ -3,12 +3,11 @@ import { calcTotal, calcLevel } from '@/lib/score'
 import { ALERT_META } from '@/lib/labels'
 import { CandidateCard } from '@/components/CandidateCard'
 import { ProCommandCard } from '@/components/ProCommandCard'
-import { SectionLabel } from '@/components/Card'
-import { Icon } from '@/components/Icon'
 import { Disclaimer } from '@/components/Disclaimer'
 import Link from 'next/link'
 import { dateOnly, daysBetweenJst, todayJstDate } from '@/lib/format'
 import { summarizeGeneratedPipelineFailure } from '@/lib/generated-pipeline-health'
+import styles from './home.module.css'
 
 export const metadata = {
   title: 'alpha-pon — ホーム',
@@ -26,6 +25,12 @@ type WorldThemeCandidateHypothesis = {
   nextPrimaryCheck: string
   reviewAfterDays: [30, 90, 180]
   disclaimer: string
+}
+
+function tagClass(tone: 'neutral' | 'warn' | 'good') {
+  if (tone === 'warn') return `${styles.tag} ${styles.tagWarn}`
+  if (tone === 'good') return `${styles.tag} ${styles.tagGood}`
+  return styles.tag
 }
 
 export default function HomePage() {
@@ -75,414 +80,204 @@ export default function HomePage() {
     if (lv === 'urgent' || lv === 'daily' || lv === 'log') counts[lv]++
   })
 
+  const priorityCount = counts.urgent + counts.daily
+  const statusSentence = priorityCount > 0
+    ? `確認優先は ${priorityCount}件。緊急 ${counts.urgent}件、日次確認 ${counts.daily}件です。`
+    : waitReasons.length > 0
+      ? '急いで判断する候補はありません。いまは条件が揃うのを待ちながら研究を進める局面です。'
+      : '緊急の確認対象はありません。候補と研究の更新を落ち着いて確認できます。'
+
   return (
-    <>
-      {/* sticky header */}
-      <div
-        style={{
-          position: 'sticky', top: 0, zIndex: 8,
-          padding: '52px 20px 12px',
-          background: 'var(--header-bg)',
-          backdropFilter: 'blur(14px)',
-          WebkitBackdropFilter: 'blur(14px)',
-          borderBottom: '1px solid var(--line)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
-          <div>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--accent)', letterSpacing: 0.3, marginBottom: 2 }}>
-              Pro会議・改善ロードマップ連携
-            </div>
-            <h1
-              style={{ margin: 0, fontFamily: 'var(--display)', fontWeight: 700, fontSize: 27, color: 'var(--accent)', letterSpacing: 0.2 }}
-            >
-              alpha-pon
-            </h1>
-          </div>
-          <div
-            style={{ width: 38, height: 38, borderRadius: 12, background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}
-          >
-            <Icon name="spark" size={20} />
-          </div>
+    <main className={styles.page}>
+      <header className={styles.header}>
+        <div>
+          <div className={styles.eyebrow}>オーナー向け研究ホーム</div>
+          <h1 className={styles.title}>ホーム</h1>
+          <p className={styles.subtitle}>今日見るべき候補・待つ理由・研究への導線を、技術情報より先にまとめます。</p>
         </div>
-      </div>
-
-      <div style={{ padding: '16px 16px 0' }}>
-        {/* pipeline warnings */}
-        {dataWarnings.length > 0 && (
-          <div style={{ padding: '10px 14px', marginBottom: 12, background: 'var(--amber-soft)', borderRadius: 10, fontSize: 12, fontWeight: 600, color: 'var(--ink-2)' }}>
-            <div style={{ fontWeight: 800, color: 'var(--amber)', marginBottom: 4 }}>⚠ データ確認メモ</div>
-            {dataWarnings.map((w, i) => (
-              <div key={i} style={{ marginTop: 2 }}>• {w}</div>
-            ))}
-          </div>
-        )}
-        {/* data meta row */}
-        <div
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '8px 12px', marginBottom: 12,
-            background: 'var(--surface)', borderRadius: 12,
-            border: '1px solid var(--card-line)', boxShadow: 'var(--shadow)',
-          }}
-        >
-          <div>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-3)' }}>最終生成: </span>
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink)' }}>
-              {hasValidGeneratedDate ? data.generatedAt : '未生成'}
-            </span>
-          </div>
-          <div style={{ display: 'flex', gap: 12 }}>
-            <div style={{ textAlign: 'right' }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-3)' }}>銘柄数: </span>
-              <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink)' }}>{data.candidates.length}</span>
-            </div>
-          </div>
+        <div className={styles.snapshot}>
+          表示データ<br />
+          {hasValidGeneratedDate ? data.generatedAt : '未生成'}
         </div>
+      </header>
 
-        {waitReasons.length > 0 && (
-          <div style={{ padding: '10px 14px', marginBottom: 12, background: 'var(--sky-soft)', borderRadius: 10, fontSize: 12, fontWeight: 650, color: 'var(--ink-2)' }}>
-            <div style={{ fontWeight: 850, color: 'var(--sky-deep)', marginBottom: 4 }}>今は待ちの理由</div>
-            {waitReasons.map((reason, i) => (
-              <div key={i} style={{ marginTop: 2 }}>• {reason}</div>
-            ))}
-          </div>
-        )}
+      {dataWarnings.length > 0 && (
+        <section className={styles.warningBlock} aria-label="データ確認メモ">
+          <div className={styles.warningTitle}>⚠ データ確認が必要です</div>
+          <div className={styles.warningText}>{dataWarnings[0]}</div>
+          {dataWarnings.length > 1 && <div className={styles.warningText}>ほか {dataWarnings.length - 1}件。下の「データ状態」で確認できます。</div>}
+        </section>
+      )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 9, marginBottom: 12 }}>
-          {[
-            {
-              label: 'Pipeline',
-              value: pipelineFailed ? '要確認' : (data.pipelineStatus?.status ?? '不明'),
-              sub: failedSteps.length > 0 ? failedSteps.slice(0, 2).join(' / ') : (data.pipelineStatus?.endedAt ?? 'status未生成'),
-              color: pipelineFailed ? 'var(--urgent)' : 'var(--mint-deep)',
-              bg: pipelineFailed ? 'var(--urgent-soft)' : 'var(--mint-soft)',
-            },
-            {
-              label: 'Mock / Missing',
-              value: `${mockUniverseCount} / ${missingQualityCount}`,
-              sub: `warnings ${warningCount}件`,
-              color: mockUniverseCount > 0 || missingQualityCount > 0 ? 'var(--amber)' : 'var(--mint-deep)',
-              bg: mockUniverseCount > 0 || missingQualityCount > 0 ? 'var(--amber-soft)' : 'var(--mint-soft)',
-            },
-          ].map((item) => (
-            <div key={item.label} style={{
-              background: 'var(--surface)', borderRadius: 14, padding: '10px 12px',
-              border: '1px solid var(--card-line)', boxShadow: 'var(--shadow)',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                <span style={{ width: 7, height: 7, borderRadius: 99, background: item.color }} />
-                <span style={{ fontSize: 10.5, fontWeight: 800, color: 'var(--ink-3)' }}>{item.label}</span>
-              </div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: item.color }}>{item.value}</div>
-              <div style={{ marginTop: 2, fontSize: 10.5, fontWeight: 700, color: 'var(--ink-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {item.sub}
-              </div>
-            </div>
-          ))}
+      <section className={styles.hero}>
+        <div className={styles.heroMain}>
+          <div className={styles.heroLabel}>今日の確認</div>
+          <p className={styles.heroSentence}>{statusSentence}</p>
         </div>
-
-        {/* alert counts */}
-        <div style={{ display: 'flex', gap: 9 }}>
+        <div className={styles.statusGrid}>
           {(['urgent', 'daily', 'log'] as const).map((lv) => {
-            const a = ALERT_META[lv]
+            const meta = ALERT_META[lv]
             return (
-              <div
-                key={lv}
-                style={{
-                  flex: 1, background: 'var(--surface)', borderRadius: 16, padding: '12px 10px',
-                  border: '1px solid var(--card-line)', boxShadow: 'var(--shadow)',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ width: 7, height: 7, borderRadius: 99, background: a.colorVar }} />
-                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-2)' }}>{a.jp}</span>
+              <div className={styles.statusItem} key={lv}>
+                <div className={styles.statusName}>
+                  <span className={styles.statusDot} style={{ background: meta.colorVar }} />
+                  {meta.jp}
                 </div>
-                <div style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 26, color: a.colorVar, marginTop: 2 }}>
-                  {counts[lv]}<span style={{ fontSize: 12, color: 'var(--ink-3)', fontWeight: 700 }}> 件</span>
+                <div className={styles.statusValue} style={{ color: meta.colorVar }}>
+                  {counts[lv]}<span className={styles.statusUnit}>件</span>
                 </div>
               </div>
             )
           })}
         </div>
+      </section>
 
-        {/* quick links */}
-        <div style={{ display: 'flex', gap: 9, marginTop: 9 }}>
-          <Link
-            href="/stocks"
-            style={{
-              flex: 1, display: 'flex', alignItems: 'center', gap: 9,
-              padding: '12px 13px', borderRadius: 16,
-              border: '1px solid var(--card-line)', background: 'var(--surface)',
-              boxShadow: 'var(--shadow)', textDecoration: 'none',
-            }}
-          >
-            <span style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--mint-soft)', color: 'var(--mint-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Icon name="watch" size={17} />
-            </span>
-            <span>
-              <span style={{ display: 'block', fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>銘柄一覧</span>
-              <span style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--mint-deep)' }}>
-                {data.candidates.length} 銘柄 / スコア順
-              </span>
-            </span>
-          </Link>
-          <Link
-            href="/reports"
-            style={{
-              flex: 1, display: 'flex', alignItems: 'center', gap: 9,
-              padding: '12px 13px', borderRadius: 16,
-              border: '1px solid var(--card-line)', background: 'var(--surface)',
-              boxShadow: 'var(--shadow)', textDecoration: 'none',
-            }}
-          >
-            <span style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--sky-soft)', color: 'var(--sky-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Icon name="doc" size={17} />
-            </span>
-            <span>
-              <span style={{ display: 'block', fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>Pro レポート</span>
-              <span style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--sky-deep)' }}>
-                {data.reports.filter((r) => r.available).length} 件 生成済み
-              </span>
-            </span>
-          </Link>
+      <section className={styles.priorityGrid}>
+        <div className={styles.panel}>
+          <div className={styles.sectionHead}>
+            <h2 className={styles.sectionTitle}>いま見ること</h2>
+            <span className={styles.sectionMeta}>{waitReasons.length > 0 ? '待ち理由あり' : '通常'}</span>
+          </div>
+          {waitReasons.length > 0 ? waitReasons.slice(0, 4).map((reason) => (
+            <div className={styles.notice} key={reason}><strong>待つ理由</strong><br />{reason}</div>
+          )) : (
+            <div className={styles.notice}><strong>急ぎの確認なし</strong><br />候補一覧と研究の更新を通常優先度で確認できます。</div>
+          )}
         </div>
 
-        {/* 世界情勢からの候補仮説 */}
-        {worldThemeCandidateHypotheses.length > 0 && (
-          <section style={{ marginTop: 12, marginBottom: 12 }}>
-            <SectionLabel icon={<Icon name="spark" size={15} />}>
-              世界情勢からの調査候補仮説
-            </SectionLabel>
-            <div style={{ padding: '8px 12px 6px', background: 'var(--sky-soft)', borderRadius: 10, fontSize: 11.5, fontWeight: 700, color: 'var(--sky-deep)', marginBottom: 8 }}>
-              ※買い推奨ではありません。世界情勢・テーマ変化から作った仮説を、30/90/180日後に答え合わせします。
-            </div>
-            {worldThemeCandidateHypotheses.map((item, index) => (
-              <div key={`${item.sourceEventTitle}-${item.candidateCode}-${index}`} style={{ padding: '12px 14px', marginBottom: 8, background: 'var(--surface)', border: '1px solid var(--card-line)', borderRadius: 14, boxShadow: 'var(--shadow)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
-                  <span style={{ fontSize: 10.5, fontWeight: 850, color: 'var(--sky-deep)', background: 'var(--sky-soft)', padding: '2px 7px', borderRadius: 6 }}>
-                    {item.theme}
-                  </span>
-                  <span style={{ fontSize: 13, fontWeight: 850, color: 'var(--ink)' }}>
-                    {item.candidateCode} {item.candidateCompany}
-                  </span>
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 5, lineHeight: 1.45 }}>
-                  情勢イベント: {item.sourceEventTitle}
-                </div>
-                <p style={{ fontSize: 12, color: 'var(--ink-2)', margin: '0 0 6px', lineHeight: 1.55 }}>
-                  {item.whyThisCompany}
-                </p>
-                <div style={{ fontSize: 11.5, color: 'var(--ink-2)', marginBottom: 4 }}>
-                  <span style={{ fontWeight: 800, color: 'var(--accent)' }}>評価される可能性: </span>
-                  {item.upsideHypothesis}
-                </div>
-                <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginBottom: 4 }}>
-                  <span style={{ fontWeight: 800, color: 'var(--amber)' }}>上がらない/下がる理由: </span>
-                  {item.downsideRisk}
-                </div>
-                <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginBottom: 4 }}>
-                  <span style={{ fontWeight: 800 }}>次に確認する一次情報: </span>
-                  {item.nextPrimaryCheck}
-                </div>
-                <div style={{ fontSize: 10.5, color: 'var(--ink-3)', fontWeight: 700 }}>
-                  答え合わせ予定: {item.reviewAfterDays.join(' / ')}日後
-                </div>
-              </div>
-            ))}
-          </section>
-        )}
+        <div className={styles.panel}>
+          <div className={styles.sectionHead}>
+            <h2 className={styles.sectionTitle}>すぐ見る</h2>
+          </div>
+          <div className={styles.quickLinks}>
+            <Link href="/research" className={styles.quickLink}>
+              <span><span className={styles.quickLabel}>研究</span><span className={styles.quickMeta}>分かったこと・未確定・次を確認</span></span>
+              <span className={styles.arrow}>›</span>
+            </Link>
+            <Link href="/stocks" className={styles.quickLink}>
+              <span><span className={styles.quickLabel}>銘柄</span><span className={styles.quickMeta}>{data.candidates.length}銘柄を確認</span></span>
+              <span className={styles.arrow}>›</span>
+            </Link>
+            <Link href="/reports" className={styles.quickLink}>
+              <span><span className={styles.quickLabel}>資料</span><span className={styles.quickMeta}>{data.reports.filter((r) => r.available).length}件生成済み</span></span>
+              <span className={styles.arrow}>›</span>
+            </Link>
+          </div>
+        </div>
+      </section>
 
-        {/* 特殊状況・チャンス候補 */}
-        {(data.specialSituationWatch?.topChanceList ?? []).length > 0 && (
-          <section style={{ marginBottom: 12 }}>
-            <SectionLabel icon={<Icon name="spark" size={15} />}>
-              特殊状況・調査優先候補
-            </SectionLabel>
-            <div
-              style={{
-                padding: '8px 12px 6px',
-                background: 'var(--amber-soft)',
-                borderRadius: 10,
-                fontSize: 11.5,
-                fontWeight: 700,
-                color: 'var(--amber)',
-                marginBottom: 8,
-              }}
-            >
-              ※買い推奨ではありません。調査候補です。証拠確認が必要です。
-            </div>
+      <details className={styles.dataDetails}>
+        <summary><span>データ状態</span><span>{pipelineFailed || missingQualityCount > 0 || mockUniverseCount > 0 ? '要確認' : '正常'}</span></summary>
+        <div className={styles.dataBody}>
+          <div>Pipeline: {pipelineFailed ? `要確認 — ${failedSteps.join(' / ') || data.pipelineStatus?.status}` : (data.pipelineStatus?.status ?? '不明')}</div>
+          <div>Mock / Missing: {mockUniverseCount} / {missingQualityCount} · warnings {warningCount}件</div>
+          <div>最終生成: {hasValidGeneratedDate ? data.generatedAt : '未生成'}</div>
+          {dataWarnings.map((warning) => <div key={warning}>• {warning}</div>)}
+        </div>
+      </details>
+
+      {worldThemeCandidateHypotheses.length > 0 && (
+        <section className={styles.contentSection}>
+          <div className={styles.sectionHead}>
+            <h2 className={styles.sectionTitle}>世界情勢からの調査候補</h2>
+            <span className={styles.sectionMeta}>{worldThemeCandidateHypotheses.length}件</span>
+          </div>
+          <p className={styles.contentIntro}>買い推奨ではありません。世界情勢・テーマ変化から作った仮説を30 / 90 / 180日後に答え合わせします。</p>
+          <div className={styles.list}>
+            {worldThemeCandidateHypotheses.map((item, index) => (
+              <article className={styles.row} key={`${item.sourceEventTitle}-${item.candidateCode}-${index}`}>
+                <div className={styles.rowHead}>
+                  <div>
+                    <div className={styles.rowTitle}>{item.candidateCode} {item.candidateCompany}</div>
+                    <div className={styles.rowMeta}>{item.theme} · 情勢イベント: {item.sourceEventTitle}</div>
+                  </div>
+                  <span className={styles.tag}>調査候補</span>
+                </div>
+                <div className={styles.rowBody}>{item.whyThisCompany}</div>
+                <div className={styles.rowDetails}>
+                  <div><strong>評価される可能性:</strong> {item.upsideHypothesis}</div>
+                  <div><strong>上がらない / 下がる理由:</strong> {item.downsideRisk}</div>
+                  <div><strong>次に確認する一次情報:</strong> {item.nextPrimaryCheck}</div>
+                  <div className={styles.rowMeta}>答え合わせ予定: {item.reviewAfterDays.join(' / ')}日後</div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {(data.specialSituationWatch?.topChanceList ?? []).length > 0 && (
+        <section className={styles.contentSection}>
+          <div className={styles.sectionHead}>
+            <h2 className={styles.sectionTitle}>特殊状況・調査優先候補</h2>
+            <span className={styles.sectionMeta}>{Math.min((data.specialSituationWatch?.topChanceList ?? []).length, 5)}件表示</span>
+          </div>
+          <p className={styles.contentIntro}>証拠確認前の調査候補です。「なぜ今見るか」と「なぜまだ待つか」を同じ画面で残します。</p>
+          <div className={styles.list}>
             {(data.specialSituationWatch?.topChanceList ?? []).slice(0, 5).map((item) => {
-              const chanceBg =
-                item.chanceLevel === 'high'
-                  ? 'var(--rose-soft, #fff0f0)'
-                  : item.chanceLevel === 'attention'
-                    ? 'var(--amber-soft)'
-                    : 'var(--surface-2)'
-              const chanceFg =
-                item.chanceLevel === 'high'
-                  ? 'var(--rose, #e53e3e)'
-                  : item.chanceLevel === 'attention'
-                    ? 'var(--amber)'
-                    : 'var(--ink-3)'
               const conf = item.listingInfo?.confidence
+              const tone = item.chanceLevel === 'high' ? 'good' : item.chanceLevel === 'attention' ? 'warn' : 'neutral'
               return (
-                <div
-                  key={item.code}
-                  style={{
-                    padding: '12px 14px',
-                    marginBottom: 8,
-                    background: 'var(--surface)',
-                    border: '1px solid var(--card-line)',
-                    borderRadius: 14,
-                    boxShadow: 'var(--shadow)',
-                  }}
-                >
-                  {/* header */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 800,
-                        padding: '2px 7px',
-                        borderRadius: 6,
-                        background: chanceBg,
-                        color: chanceFg,
-                      }}
-                    >
-                      {item.finalLabel}
-                    </span>
-                    <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>
-                      {item.code} {item.name}
-                    </span>
-                    {item.chanceLevel !== 'none' && (
-                      <span
-                        style={{
-                          marginLeft: 'auto',
-                          fontSize: 10.5,
-                          fontWeight: 700,
-                          color: chanceFg,
-                          background: chanceBg,
-                          padding: '1px 6px',
-                          borderRadius: 5,
-                        }}
-                      >
-                        {item.chanceLevel}
-                      </span>
+                <article className={styles.row} key={item.code}>
+                  <div className={styles.rowHead}>
+                    <div>
+                      <div className={styles.rowTitle}>{item.code} {item.name}</div>
+                      <div className={styles.rowMeta}>{item.finalLabel}</div>
+                    </div>
+                    <span className={tagClass(tone)}>{item.chanceLevel === 'none' ? '監視' : item.chanceLevel}</span>
+                  </div>
+                  <div className={styles.rowBody}>{item.reasonSummary}</div>
+                  <div className={styles.rowDetails}>
+                    {(item.whyNow ?? []).length > 0 && <div><strong>なぜ今見る:</strong> {(item.whyNow ?? []).slice(0, 2).join(' / ')}</div>}
+                    {(item.whyNotNow ?? []).length > 0 && <div><strong>まだ待つ理由:</strong> {(item.whyNotNow ?? []).slice(0, 2).join(' / ')}</div>}
+                    {item.themeCompanyFitSummary && (
+                      <div><strong>テーマ適合:</strong> {item.themeCompanyFitSummary.themeLabel} / {item.themeCompanyFitSummary.selectedCompanyFit}{(item.themeCompanyFitSummary.betterCompanyCodes ?? []).length > 0 ? ` · 比較候補 ${item.themeCompanyFitSummary.betterCompanyCodes.slice(0, 2).join(' / ')}` : ''}</div>
+                    )}
+                    {item.sellerPressureSummary && item.sellerPressureSummary.remainingOverhang !== 'low' && (
+                      <div><strong>売り圧:</strong> {[item.sellerPressureSummary.sellerName ?? item.sellerPressureSummary.sellerType, item.sellerPressureSummary.remainingOverhang].filter(Boolean).join(' / ')}</div>
+                    )}
+                    {item.mainRisks.length > 0 && <div><strong>注意:</strong> {item.mainRisks.slice(0, 3).join(' / ')}</div>}
+                    {item.nextCheck.length > 0 && <div><strong>次に確認:</strong> {item.nextCheck.slice(0, 4).join(' / ')}</div>}
+                    {item.listingInfo && (
+                      <div className={styles.rowMeta}>
+                        {[
+                          item.listingInfo.listedAt ? `上場日 ${item.listingInfo.listedAt}` : null,
+                          item.listingInfo.plannedListingAt ? `上場予定 ${item.listingInfo.plannedListingAt}` : null,
+                          item.listingInfo.lockupExpiryAt ? `ロックアップ解除 ${item.listingInfo.lockupExpiryAt}` : null,
+                          item.listingInfo.firstEarningsAt ? `初回決算 ${item.listingInfo.firstEarningsAt}` : null,
+                          conf && conf !== 'official' ? `確認度 ${conf}` : null,
+                        ].filter(Boolean).join(' · ')}
+                      </div>
                     )}
                   </div>
-                  {/* 理由 */}
-                  <p style={{ fontSize: 12, color: 'var(--ink-2)', margin: '0 0 6px', lineHeight: 1.55 }}>
-                    {item.reasonSummary}
-                  </p>
-                  {/* なぜ今見るのか */}
-                  {(item.whyNow ?? []).length > 0 && (
-                    <div style={{ fontSize: 11.5, color: 'var(--ink-2)', marginBottom: 4 }}>
-                      <span style={{ fontWeight: 700, color: 'var(--accent)' }}>なぜ今見る: </span>
-                      {(item.whyNow ?? []).slice(0, 2).join(' / ')}
-                    </div>
-                  )}
-                  {/* なぜまだ待つのか */}
-                  {(item.whyNotNow ?? []).length > 0 && (
-                    <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginBottom: 4 }}>
-                      <span style={{ fontWeight: 700, color: 'var(--amber)' }}>まだ待つ理由: </span>
-                      {(item.whyNotNow ?? []).slice(0, 2).join(' / ')}
-                    </div>
-                  )}
-                  {/* テーマ適合要約 */}
-                  {item.themeCompanyFitSummary && (
-                    <div style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 4 }}>
-                      <span style={{ fontWeight: 700 }}>テーマ適合: </span>
-                      {item.themeCompanyFitSummary.themeLabel} / {item.themeCompanyFitSummary.selectedCompanyFit}
-                      {(item.themeCompanyFitSummary.betterCompanyCodes ?? []).length > 0 && (
-                        <span style={{ marginLeft: 6 }}>
-                          比較候補: {item.themeCompanyFitSummary.betterCompanyCodes.slice(0, 2).join(' / ')}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  {/* 売り圧要約 */}
-                  {item.sellerPressureSummary && item.sellerPressureSummary.remainingOverhang !== 'low' && (
-                    <div style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 4 }}>
-                      <span style={{ fontWeight: 700 }}>売り圧: </span>
-                      {[
-                        item.sellerPressureSummary.sellerName ?? item.sellerPressureSummary.sellerType,
-                        item.sellerPressureSummary.remainingOverhang,
-                      ].filter(Boolean).join(' / ')}
-                    </div>
-                  )}
-                  {/* リスク */}
-                  {item.mainRisks.length > 0 && (
-                    <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginBottom: 5 }}>
-                      <span style={{ fontWeight: 700 }}>⚠ 注意: </span>
-                      {item.mainRisks.slice(0, 3).join(' / ')}
-                    </div>
-                  )}
-                  {/* 次に確認 */}
-                  {item.nextCheck.length > 0 && (
-                    <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginBottom: 5 }}>
-                      <span style={{ fontWeight: 700 }}>次に確認: </span>
-                      {item.nextCheck.slice(0, 4).join(' / ')}
-                    </div>
-                  )}
-                  {/* 日程情報 */}
-                  {item.listingInfo && (
-                    <div style={{ fontSize: 10.5, color: 'var(--ink-3)', marginTop: 5, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {item.listingInfo.listedAt && (
-                        <span>上場日: {item.listingInfo.listedAt}</span>
-                      )}
-                      {item.listingInfo.plannedListingAt && (
-                        <span>上場予定: {item.listingInfo.plannedListingAt}</span>
-                      )}
-                      {item.listingInfo.lockupExpiryAt && (
-                        <span>ロックアップ解除: {item.listingInfo.lockupExpiryAt}</span>
-                      )}
-                      {item.listingInfo.firstEarningsAt && (
-                        <span>初回決算: {item.listingInfo.firstEarningsAt}</span>
-                      )}
-                      {conf && conf !== 'official' && (
-                        <span style={{ color: 'var(--amber)', fontWeight: 700 }}>
-                          [{conf}]
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
+                </article>
               )
             })}
-          </section>
-        )}
-
-        {/* Pro dashboard card */}
-        <ProCommandCard data={data} />
-
-        {/* candidate list */}
-        <SectionLabel icon={<Icon name="spark" size={15} />}>注目候補（スコア順）</SectionLabel>
-
-        {list.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--ink-3)', fontSize: 13, fontWeight: 600 }}>
-            <p>データがありません</p>
-            <p style={{ marginTop: 8, fontSize: 12 }}>
-              ルートで{' '}
-              <code style={{ background: 'var(--surface-2)', padding: '2px 6px', borderRadius: 4 }}>
-                pnpm ui:data
-              </code>{' '}
-              を実行してください
-            </p>
           </div>
+        </section>
+      )}
+
+      <section className={styles.legacySection}>
+        <div className={styles.sectionHead}>
+          <h2 className={styles.sectionTitle}>Pro会議・改善状況</h2>
+        </div>
+        <ProCommandCard data={data} />
+      </section>
+
+      <section className={styles.contentSection}>
+        <div className={styles.sectionHead}>
+          <h2 className={styles.sectionTitle}>注目候補</h2>
+          <span className={styles.sectionMeta}>スコア50以上</span>
+        </div>
+        {list.length === 0 ? (
+          <div className={styles.notice}>表示できる候補がありません。生成データを確認してください。</div>
         ) : (
           list.map(({ c }) => <CandidateCard key={c.code} cand={c} />)
         )}
+        <p className={styles.footerNote}>スコア49点以下は表示しません。重要判断はPro会議・IRイベント・決算/総会確認を優先します。</p>
+      </section>
 
-        <p style={{ textAlign: 'center', fontSize: 11.5, color: 'var(--ink-3)', fontWeight: 600, margin: '14px 0 4px', lineHeight: 1.6 }}>
-          スコア49点以下は表示されません。<br />
-          重要判断はPro会議・IRイベント・決算/総会確認を優先します。
-        </p>
-
-        {/* 免責表示 */}
-        <Disclaimer compact />
-        <div style={{ height: 24 }} />
-      </div>
-    </>
+      <Disclaimer compact />
+    </main>
   )
 }
