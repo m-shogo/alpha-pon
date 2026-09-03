@@ -2,10 +2,10 @@
 //   pnpm research:index          research/edge_registry/index.generated.json を更新
 //   pnpm research:index --check  差分があれば失敗する（CI 用）
 
-import { existsSync, readFileSync } from "fs";
 import { buildEdgeIndex } from "../edge-registry.js";
 import { loadResearchState, paths, writeGeneratedJson } from "../io.js";
 import { stableStringify } from "../schema.js";
+import { readReadOnlyJsonArrayFile } from "../../read-only-json-file.js";
 import { fail, parseArgs } from "./common.js";
 
 function main(): void {
@@ -14,9 +14,12 @@ function main(): void {
   const outputPath = paths.edgeIndex();
 
   if (flags.has("check")) {
-    if (!existsSync(outputPath)) fail(`${outputPath} がありません。pnpm research:index を実行してください。`);
-    const existing = JSON.parse(readFileSync(outputPath, "utf-8")) as unknown;
-    if (stableStringify(existing) !== stableStringify(index)) {
+    const existing = readReadOnlyJsonArrayFile<unknown>(outputPath);
+    if (existing.missing) fail(`${outputPath} がありません。pnpm research:index を実行してください。`);
+    if (existing.parseError || existing.invalidRoot) {
+      fail(`${outputPath} は standalone regular JSON array である必要があります。pnpm research:index で再生成してください。`);
+    }
+    if (stableStringify(existing.rows) !== stableStringify(index)) {
       fail(`${outputPath} が最新ではありません。pnpm research:index で再生成してコミットしてください。`);
     }
     console.log("✓ index.generated.json は最新です");
