@@ -3,59 +3,53 @@
 @tailwind utilities;
 
 :root {
-  /* backgrounds */
-  --bg: #FFF7F2;
-  --surface: #FFFFFF;
-  --surface-2: #FBEFF2;
+  /* Owner UI v2 neutral foundation */
+  --bg: #f5f5f7;
+  --surface: #ffffff;
+  --surface-2: #f2f2f4;
 
-  /* text */
-  --ink: #43303B;
-  --ink-2: #8A7681;
-  --ink-3: #BCABB3;
+  --ink: #1d1d1f;
+  --ink-2: #6e6e73;
+  --ink-3: #86868b;
 
-  /* lines */
-  --line: rgba(67, 48, 59, 0.07);
-  --line-strong: rgba(67, 48, 59, 0.11);
-  --card-line: rgba(67, 48, 59, 0.05);
+  --line: rgba(29, 29, 31, 0.10);
+  --line-strong: rgba(29, 29, 31, 0.16);
+  --card-line: rgba(29, 29, 31, 0.08);
 
-  /* header/shadow */
-  --header-bg: rgba(255, 247, 242, 0.82);
-  --shadow: 0 6px 20px rgba(255, 126, 166, 0.1), 0 1px 4px rgba(67, 48, 59, 0.04);
+  --header-bg: rgba(245, 245, 247, 0.88);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.035), 0 8px 24px rgba(0, 0, 0, 0.04);
 
-  /* disclaimer */
-  --disc-bg: #FFFFFF;
-  --disc-line: rgba(67, 48, 59, 0.08);
-  --disc-ink: #8A7681;
+  --disc-bg: rgba(255, 255, 255, 0.96);
+  --disc-line: rgba(29, 29, 31, 0.09);
+  --disc-ink: #6e6e73;
 
-  /* semantic colors */
-  --mint: #6FD3AC;
-  --mint-deep: #2FA579;
-  --mint-soft: rgba(79, 201, 154, 0.14);
+  --mint: #34c759;
+  --mint-deep: #248a3d;
+  --mint-soft: rgba(52, 199, 89, 0.10);
 
-  --amber: #E0902F;
-  --amber-soft: rgba(224, 144, 47, 0.15);
+  --amber: #b05a00;
+  --amber-soft: rgba(176, 90, 0, 0.10);
 
-  --sky: #7EC8E3;
-  --sky-deep: #2E9AC9;
-  --sky-soft: rgba(126, 200, 227, 0.16);
+  --sky: #5ac8fa;
+  --sky-deep: #0071e3;
+  --sky-soft: rgba(0, 113, 227, 0.09);
 
-  --lavender: #B6A4E6;
-  --lavender-deep: #7A63C9;
-  --lavender-soft: rgba(182, 164, 230, 0.18);
+  --lavender: #8177d9;
+  --lavender-deep: #5856d6;
+  --lavender-soft: rgba(88, 86, 214, 0.09);
 
-  --butter: #F2B945;
+  --butter: #c98b00;
 
-  --urgent: #FF4D86;
-  --urgent-soft: rgba(255, 77, 134, 0.13);
+  --urgent: #d70015;
+  --urgent-soft: rgba(215, 0, 21, 0.08);
 
-  /* accent (pink) */
-  --accent: #FF7EA6;
-  --accent-soft: rgba(255, 126, 166, 0.13);
-  --accent-shadow: rgba(255, 126, 166, 0.32);
+  --accent: #0071e3;
+  --accent-soft: rgba(0, 113, 227, 0.09);
+  --accent-shadow: rgba(0, 113, 227, 0.20);
+  --rose-soft: rgba(0, 113, 227, 0.08);
 
-  /* fonts */
-  --ui: -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
-  --display: "SF Pro Display", "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif;
+  --ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+  --display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
 }
 
 *,
@@ -68,9 +62,12 @@ html,
 body {
   margin: 0;
   padding: 0;
+  min-height: 100%;
   background: var(--bg);
   color: var(--ink);
   font-family: var(--ui);
+  font-size: 15px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -79,6 +76,270 @@ a {
   color: inherit;
 }
 
-button {
+button,
+summary {
   font-family: var(--ui);
+}
+
+:focus-visible {
+  outline: 3px solid rgba(0, 113, 227, 0.32);
+  outline-offset: 2px;
+}
+
+.ap-app-shell {
+  min-height: 100dvh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  background: var(--bg);
+}
+
+.ap-app-content {
+  width: 100%;
+  height: 100dvh;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  transition: max-width 180ms ease;
+}
+
+.ap-main-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  padding-bottom: 8px;
+}
+
+.ap-desktop-sidebar {
+  display: none;
+}
+
+.ap-mobile-nav {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  flex-shrink: 0;
+  min-height: 64px;
+  padding: 5px 6px calc(7px + env(safe-area-inset-bottom));
+  background: rgba(250, 250, 252, 0.92);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  border-top: 1px solid var(--line);
+  z-index: 20;
+}
+
+.ap-mobile-nav-link {
+  min-width: 0;
+  min-height: 50px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 4px 2px;
+  border: 0;
+  background: transparent;
+  color: var(--ink-3);
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.1;
+  cursor: pointer;
+  border-radius: 10px;
+}
+
+.ap-mobile-nav-link.is-active,
+.ap-mobile-more.is-active > .ap-mobile-nav-link {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.ap-mobile-more {
+  position: relative;
+  min-width: 0;
+}
+
+.ap-mobile-more > summary {
+  list-style: none;
+}
+
+.ap-mobile-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.ap-mobile-more-menu {
+  position: absolute;
+  right: 4px;
+  bottom: calc(100% + 10px);
+  width: min(220px, calc(100vw - 24px));
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.ap-mobile-more-title {
+  padding: 6px 10px 8px;
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ap-mobile-more-link {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  color: var(--ink-2);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ap-mobile-more-link.is-active {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .ap-app-shell {
+    padding-inline: 20px;
+  }
+
+  .ap-app-content {
+    max-width: 880px !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .ap-app-shell {
+    justify-content: flex-start;
+    gap: 28px;
+    max-width: 1512px;
+    margin: 0 auto;
+    padding: 0 28px;
+  }
+
+  .ap-app-content {
+    margin: 0 auto;
+  }
+
+  .ap-mobile-nav {
+    display: none;
+  }
+
+  .ap-desktop-sidebar {
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    display: flex;
+    width: 224px;
+    height: 100dvh;
+    flex: 0 0 224px;
+    flex-direction: column;
+    padding: 24px 14px 18px;
+    border-right: 1px solid var(--line);
+    background: rgba(245, 245, 247, 0.72);
+  }
+
+  .ap-sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 3px 8px 22px;
+  }
+
+  .ap-sidebar-brand-mark {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+    background: var(--ink);
+    color: white;
+    font-size: 12px;
+    font-weight: 750;
+    letter-spacing: -0.2px;
+  }
+
+  .ap-sidebar-brand-title {
+    color: var(--ink);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.15px;
+  }
+
+  .ap-sidebar-brand-subtitle {
+    margin-top: 1px;
+    color: var(--ink-3);
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .ap-sidebar-nav {
+    display: grid;
+    gap: 3px;
+  }
+
+  .ap-sidebar-link {
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 9px 10px;
+    border-radius: 10px;
+    color: var(--ink-2);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 560;
+    transition: background-color 160ms ease, color 160ms ease;
+  }
+
+  .ap-sidebar-link:hover {
+    color: var(--ink);
+    background: rgba(29, 29, 31, 0.045);
+  }
+
+  .ap-sidebar-link.is-active {
+    color: var(--ink);
+    background: rgba(29, 29, 31, 0.075);
+    font-weight: 650;
+  }
+
+  .ap-sidebar-link.is-active svg {
+    color: var(--accent);
+  }
+
+  .ap-sidebar-footer {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 10px;
+    color: var(--ink-3);
+    font-size: 12px;
+    font-weight: 550;
+  }
+
+  .ap-readonly-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--mint-deep);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }

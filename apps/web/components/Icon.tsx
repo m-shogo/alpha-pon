@@ -31,6 +31,7 @@ export function Icon({ name, size = 22, color = 'currentColor', strokeWidth = 2 
     down:     <path {...sp} d="m6 10 6 6 6-6" />,
     filter:   <path {...sp} d="M3 5h18M6 12h12M10 19h4" />,
     arc:      <path {...sp} d="M4 18a8 8 0 1 1 16 0" />,
+    more:     <g fill={color}><circle cx="5" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="19" cy="12" r="1.5" /></g>,
   }
   return (
     <svg
