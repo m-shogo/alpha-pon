@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync } from "node:fs";
 import {
   CLAIM_GRAPH_PATHS,
   parseClaimGraphJsonl,
@@ -99,6 +99,17 @@ function readHypothesisFile<T>(path: string): {
   issues: HypothesisScenarioIssue[];
 } {
   if (!existsSync(path)) return { records: [], issues: [] };
+  const stat = lstatSync(path);
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
+    return {
+      records: [],
+      issues: [issue(
+        "non_standalone_hypothesis_scenario_file",
+        path,
+        "Hypothesis Scenario JSONL must be a standalone regular file",
+      )],
+    };
+  }
   const content = readFileSync(path, "utf-8");
   if (content.length > 0 && !content.endsWith("\n")) {
     return {
