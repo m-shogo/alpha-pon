@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
 import {
@@ -7,11 +7,12 @@ import {
   type NormalizedProIrCompany,
   type NormalizedProIrEvent,
 } from "./pro-ir-event-input.js";
+import { readReadOnlyTextFile } from "./read-only-text-file.js";
 import type { IrEventEvidence } from "./pro-types.js";
 
 function readYaml(path: string): unknown {
-  if (!existsSync(path)) return {};
-  return load(readFileSync(path, "utf-8")) as unknown;
+  const text = readReadOnlyTextFile(path);
+  return text ? load(text) as unknown : {};
 }
 
 function normalizeEventType(type: string | undefined): IrEventEvidence["eventType"] {
