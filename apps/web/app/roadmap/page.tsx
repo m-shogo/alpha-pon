@@ -1,16 +1,25 @@
 import { loadGeneratedData } from '@/lib/generated-data'
 import { normalizeGeneratedLegendProDecisionsInput } from '@/lib/generated-legend-pro-input'
-import { SectionLabel, Card } from '@/components/Card'
-import { Icon } from '@/components/Icon'
 import { Disclaimer } from '@/components/Disclaimer'
+import styles from './RoadmapV2.module.css'
 
 export const metadata = { title: '完成ロードマップ | alpha-pon' }
 
-const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
-  done: { label: '完了', color: 'var(--mint-deep)', bg: 'var(--mint-soft)' },
-  partial: { label: '進行中', color: 'var(--sky-deep)', bg: 'var(--sky-soft)' },
-  blocked: { label: '要対応', color: 'var(--amber)', bg: 'var(--amber-soft)' },
-  not_started: { label: '未着手', color: 'var(--ink-3)', bg: 'var(--surface-2)' },
+const STATUS_META: Record<string, { label: string; color: string }> = {
+  done: { label: '完了', color: 'var(--mint-deep)' },
+  partial: { label: '進行中', color: 'var(--sky-deep)' },
+  blocked: { label: '要対応', color: 'var(--amber)' },
+  not_started: { label: '未着手', color: 'var(--ink-3)' },
+}
+
+const HEALTH_LABELS: Record<string, string> = {
+  ok: '通常運用',
+  needs_attention: '確認が必要',
+  action_required: '対応が必要',
+  done: '完了',
+  partial: '進行中',
+  blocked: '要対応',
+  not_started: '未着手',
 }
 
 const ROADMAP = [
@@ -21,25 +30,17 @@ const ROADMAP = [
   { phase: '5', itemId: 'portfolio-mode', title: 'ポートフォリオ仕上げ', goal: 'README・スクショ・デモデータ・portfolio mode の見せ方を整える' },
 ]
 
-function StatusBadge({ status }: { status: string }) {
-  const meta = STATUS_META[status] ?? STATUS_META.not_started
-  return (
-    <span style={{ fontSize: 10.5, fontWeight: 800, color: meta.color, background: meta.bg, borderRadius: 6, padding: '2px 7px' }}>
-      {meta.label}
-    </span>
-  )
+function statusMeta(status: string) {
+  return STATUS_META[status] ?? STATUS_META.not_started
 }
 
-function ScoreBar({ score }: { score: number }) {
-  const color = score >= 85 ? 'var(--mint-deep)' : score >= 45 ? 'var(--sky-deep)' : 'var(--amber)'
-  return (
-    <div style={{ marginTop: 8 }}>
-      <div style={{ height: 8, background: 'var(--surface-2)', borderRadius: 99, overflow: 'hidden' }}>
-        <div style={{ width: `${Math.max(0, Math.min(100, score))}%`, height: '100%', background: color, borderRadius: 99 }} />
-      </div>
-      <div style={{ marginTop: 3, fontSize: 10.5, fontWeight: 800, color }}>{Math.round(score)}%</div>
-    </div>
-  )
+function healthLabel(value: string | undefined) {
+  if (!value) return '未生成'
+  return HEALTH_LABELS[value] ?? value
+}
+
+function scoreColor(score: number) {
+  return score >= 85 ? 'var(--mint-deep)' : score >= 45 ? 'var(--sky-deep)' : 'var(--amber)'
 }
 
 function cursorRange(cursor: { offset?: number; maxPerRun?: number; total?: number }) {
@@ -47,18 +48,7 @@ function cursorRange(cursor: { offset?: number; maxPerRun?: number; total?: numb
   const max = cursor.maxPerRun ?? 0
   const total = cursor.total ?? 0
   if (total <= 0) return '範囲未確定'
-  const nextEnd = Math.min(total, offset + Math.max(1, max))
-  return `${offset + 1}-${nextEnd} / ${total}`
-}
-
-function MetricCard({ label, value, tone = 'default' }: { label: string; value: string; tone?: 'default' | 'ok' | 'warn' | 'alert' }) {
-  const color = tone === 'ok' ? 'var(--mint-deep)' : tone === 'alert' ? 'var(--urgent)' : tone === 'warn' ? 'var(--amber)' : 'var(--ink)'
-  return (
-    <div style={{ background: 'var(--surface)', borderRadius: 14, padding: '10px 12px', border: '1px solid var(--card-line)', boxShadow: 'var(--shadow)', minWidth: 0 }}>
-      <div style={{ fontSize: 10.5, fontWeight: 800, color: 'var(--ink-3)', marginBottom: 3 }}>{label}</div>
-      <div style={{ fontSize: 16, fontWeight: 850, color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
-    </div>
-  )
+  return `${offset + 1}-${Math.min(total, offset + Math.max(1, max))} / ${total}`
 }
 
 export default function RoadmapPage() {
@@ -79,173 +69,160 @@ export default function RoadmapPage() {
   }, {})
   const duplicateWarnings = (integrity?.jsonl.duplicateGroups.length ?? 0) + (integrity?.sqlite.duplicateGroups.length ?? 0)
   const actionRequiredCount = specialOps?.actionItems.filter(item => item.priority === 'urgent').length ?? 0
+  const overdueCount = specialOps?.reviewDue.overdue ?? 0
   const nextCommands = [
     specialOps?.actionItems.find(item => item.priority === 'urgent' && item.command)?.command,
     duplicateWarnings > 0 ? 'pnpm outcomes:integrity' : null,
     !data.legendProCommittee ? 'pnpm ui:data' : null,
   ].filter((command): command is string => Boolean(command))
 
+  const overallScore = readiness?.overallScore ?? 0
+  const overallStatus = readiness?.overallStatus ?? 'not_started'
+  const overallMeta = statusMeta(overallStatus)
+
   return (
-    <>
-      <div style={{
-        position: 'sticky', top: 0, zIndex: 8,
-        padding: '52px 20px 12px',
-        background: 'var(--header-bg)',
-        backdropFilter: 'blur(14px)',
-        WebkitBackdropFilter: 'blur(14px)',
-        borderBottom: '1px solid var(--line)',
-      }}>
+    <main className={styles.page}>
+      <header className={styles.header}>
+        <div className={styles.eyebrow}>Alpha Pon の完成状況</div>
+        <h1 className={styles.title}>完成ロードマップ</h1>
+        <p className={styles.subtitle}>
+          どこまで使える状態になっているか、何がまだ足りないか、次に何を進めるかを一画面で確認します。
+        </p>
+      </header>
+
+      <section className={styles.hero}>
         <div>
-          <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--lavender-deep)', marginBottom: 2 }}>
-            100%完成までの現在地
+          <div className={styles.heroLabel}>総合完成度</div>
+          <div className={styles.heroScore}>{readiness ? `${Math.round(overallScore)}%` : '—'}</div>
+          <div className={styles.heroStatus} style={{ color: overallMeta.color }}>
+            {readiness ? overallMeta.label : '監査データ未生成'}
           </div>
-          <h1 style={{ margin: 0, fontFamily: 'var(--display)', fontWeight: 700, fontSize: 27, color: 'var(--ink)' }}>
-            完成ロードマップ
-          </h1>
-        </div>
-      </div>
-
-      <div style={{ padding: '16px 16px 0' }}>
-        <SectionLabel icon={<Icon name="filter" size={15} />}>毎朝の運用状態</SectionLabel>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 9, marginBottom: 12 }}>
-          <MetricCard
-            label="health status"
-            value={specialOps?.healthStatus ?? readiness?.overallStatus ?? '未生成'}
-            tone={specialOps?.healthStatus === 'action_required' ? 'alert' : specialOps?.healthStatus === 'needs_attention' ? 'warn' : 'ok'}
-          />
-          <MetricCard label="action_required" value={`${actionRequiredCount}件`} tone={actionRequiredCount > 0 ? 'alert' : 'ok'} />
-          <MetricCard label="special overdue" value={`${specialOps?.reviewDue.overdue ?? 0}件`} tone={(specialOps?.reviewDue.overdue ?? 0) > 0 ? 'warn' : 'ok'} />
-          <MetricCard label="missingEvidence" value={`${missingEvidenceCount}件`} tone={missingEvidenceCount > 0 ? 'warn' : 'ok'} />
-          <MetricCard label="generated data" value={data.generatedAt ?? '未生成'} tone={data.generatedAt ? 'ok' : 'alert'} />
-          <MetricCard label="UNIQUE index" value={integrity?.sqlite.uniqueIndexExists ? '有効' : '未確認'} tone={integrity?.sqlite.uniqueIndexExists ? 'ok' : 'warn'} />
-          <MetricCard label="Pro decisions" value={`${proDecisions.length}件`} tone={proDecisions.length > 0 ? 'ok' : 'alert'} />
-          <MetricCard label="disagreements" value={`${disagreementsCount}件`} tone={disagreementsCount > 0 ? 'warn' : 'ok'} />
-          <MetricCard label="outcomes" value={`${outcomes.length}件`} tone={outcomes.length > 0 ? 'ok' : 'warn'} />
-          <MetricCard label="duplicate warning" value={`${duplicateWarnings}件`} tone={duplicateWarnings > 0 ? 'alert' : 'ok'} />
-        </div>
-
-        <Card pad={13} style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 850, color: 'var(--ink)', marginBottom: 6 }}>次に実行すべきコマンド</div>
-          {nextCommands.length > 0 ? (
-            <div style={{ display: 'grid', gap: 6 }}>
-              {nextCommands.slice(0, 3).map(command => (
-                <code key={command} style={{ display: 'block', background: 'var(--surface-2)', borderRadius: 6, padding: '7px 8px', color: 'var(--ink)', fontSize: 12, fontWeight: 750, overflowX: 'auto' }}>
-                  {command}
-                </code>
-              ))}
-            </div>
-          ) : (
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--mint-deep)' }}>
-              追加対応なし。通常の `pnpm health` と `pnpm ui:data` で継続確認。
+          {readiness && (
+            <div className={styles.bar}>
+              <div className={styles.barFill} style={{ width: `${Math.max(0, Math.min(100, overallScore))}%`, background: scoreColor(overallScore) }} />
             </div>
           )}
-          {Object.keys(finalLabelCounts).length > 0 && (
-            <div style={{ marginTop: 10, fontSize: 11.5, fontWeight: 700, color: 'var(--ink-3)', lineHeight: 1.5 }}>
-              finalLabel分布: {Object.entries(finalLabelCounts).map(([label, count]) => `${label} ${count}`).join(' / ')}
-            </div>
-          )}
-        </Card>
+        </div>
+        <div>
+          <div className={styles.heroLabel}>いま止めているもの</div>
+          <div className={styles.blockers}>
+            {readiness?.blockers.length ? readiness.blockers.slice(0, 4).map((blocker, index) => (
+              <div key={`${blocker}-${index}`} className={styles.blocker}>{blocker}</div>
+            )) : <div className={styles.blocker}>大きなブロッカーはありません。</div>}
+          </div>
+        </div>
+      </section>
 
-        <SectionLabel icon={<Icon name="arc" size={15} />}>Readiness</SectionLabel>
-        <Card pad={15}>
-          {readiness ? (
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+      <section className={styles.summary} aria-label="現在の注意事項">
+        {[
+          ['すぐ対応', `${actionRequiredCount}件`, actionRequiredCount > 0 ? 'var(--urgent)' : 'var(--mint-deep)'],
+          ['期限超過', `${overdueCount}件`, overdueCount > 0 ? 'var(--amber)' : 'var(--mint-deep)'],
+          ['不足証拠', `${missingEvidenceCount}件`, missingEvidenceCount > 0 ? 'var(--amber)' : 'var(--mint-deep)'],
+          ['重複警告', `${duplicateWarnings}件`, duplicateWarnings > 0 ? 'var(--urgent)' : 'var(--mint-deep)'],
+        ].map(([label, value, color]) => (
+          <div key={label} className={styles.metric}>
+            <div className={styles.metricLabel}>{label}</div>
+            <div className={styles.metricValue} style={{ color }}>{value}</div>
+          </div>
+        ))}
+      </section>
+
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>残りロードマップ</h2>
+        <p className={styles.sectionIntro}>完成までの5段階を、実際の監査結果と紐づけて表示します。</p>
+        <div className={styles.roadmapList}>
+          {ROADMAP.map(item => {
+            const audit = readinessById.get(item.itemId)
+            const status = audit?.status ?? 'not_started'
+            const meta = statusMeta(status)
+            const score = audit?.score ?? 0
+            return (
+              <div key={item.phase} className={styles.roadmapRow}>
+                <span className={styles.phase}>{item.phase}</span>
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink-3)' }}>総合完成度</div>
-                  <div style={{ fontFamily: 'var(--display)', fontSize: 30, fontWeight: 700, color: 'var(--ink)' }}>
-                    {Math.round(readiness.overallScore)}%
+                  <div className={styles.rowTitle}>{item.title}</div>
+                  <div className={styles.rowBody}>{item.goal}</div>
+                  <div className={styles.progress}>
+                    <div className={styles.progressFill} style={{ width: `${Math.max(0, Math.min(100, score))}%`, background: scoreColor(score) }} />
+                  </div>
+                  <div className={styles.rowMeta}>
+                    現在 {audit ? `${Math.round(score)}%` : '未監査'} ・ 次 {audit?.nextActions[0] ?? '継続確認'}
                   </div>
                 </div>
-                <StatusBadge status={readiness.overallStatus} />
+                <span className={styles.status} style={{ color: meta.color }}>{meta.label}</span>
               </div>
-              <ScoreBar score={readiness.overallScore} />
-              {readiness.blockers.length > 0 && (
-                <div style={{ marginTop: 10, fontSize: 12, fontWeight: 700, color: 'var(--amber)', lineHeight: 1.5 }}>
-                  {readiness.blockers.slice(0, 3).map((blocker, i) => <div key={i}>• {blocker}</div>)}
-                </div>
-              )}
-            </>
-          ) : (
-            <p style={{ margin: 0, fontSize: 12.5, fontWeight: 600, color: 'var(--ink-3)' }}>
-              readiness 未生成です。`pnpm readiness:audit` を実行してください。
-            </p>
-          )}
-        </Card>
+            )
+          })}
+        </div>
+      </section>
 
-        {readiness && (
-          <>
-            <SectionLabel icon={<Icon name="check" size={15} />}>自動監査項目</SectionLabel>
-            {readiness.items.map(item => (
-              <Card key={item.id} pad={13} style={{ marginBottom: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>{item.label}</div>
-                    <div style={{ marginTop: 2, fontSize: 11.5, fontWeight: 700, color: 'var(--ink-3)' }}>
-                      {item.evidence.slice(0, 2).join(' / ')}
-                    </div>
+      {readiness && (
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>自動監査で分かっていること</h2>
+          <p className={styles.sectionIntro}>各項目の証拠と次のアクションを、カードではなく一覧で比較します。</p>
+          <div className={styles.auditList}>
+            {readiness.items.map(item => {
+              const meta = statusMeta(item.status)
+              return (
+                <div key={item.id} className={styles.auditRow}>
+                  <span className={styles.phase}>✓</span>
+                  <div>
+                    <div className={styles.rowTitle}>{item.label}</div>
+                    <div className={styles.rowBody}>{item.evidence.slice(0, 2).join(' / ') || '証拠未記録'}</div>
+                    <div className={styles.rowMeta}>次 {item.nextActions[0] ?? '継続確認'} ・ {Math.round(item.score)}%</div>
                   </div>
-                  <StatusBadge status={item.status} />
+                  <span className={styles.status} style={{ color: meta.color }}>{meta.label}</span>
                 </div>
-                <ScoreBar score={item.score} />
-                {item.nextActions.length > 0 && (
-                  <div style={{ marginTop: 8, fontSize: 12, fontWeight: 600, color: 'var(--ink-2)', lineHeight: 1.5 }}>
-                    次: {item.nextActions[0]}
-                  </div>
-                )}
-              </Card>
-            ))}
-          </>
-        )}
+              )
+            })}
+          </div>
+        </section>
+      )}
 
-        {runCursors.length > 0 && (
-          <>
-            <SectionLabel icon={<Icon name="filter" size={15} />}>Run cursors / 次回処理範囲</SectionLabel>
-            {runCursors.map(([key, cursor]) => (
-              <Card key={key} pad={13} style={{ marginBottom: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 850, color: 'var(--ink)' }}>{cursor.jobName ?? key}</div>
-                    <div style={{ marginTop: 3, fontSize: 11.5, fontWeight: 700, color: 'var(--ink-3)' }}>
-                      offset {cursor.offset ?? 0} / max {cursor.maxPerRun ?? '-'} / updated {cursor.updatedAt ?? '-'}
-                    </div>
-                  </div>
-                  <span style={{ fontSize: 12, fontWeight: 850, color: 'var(--sky-deep)', background: 'var(--sky-soft)', borderRadius: 8, padding: '4px 8px', whiteSpace: 'nowrap' }}>
-                    次 {cursorRange(cursor)}
-                  </span>
-                </div>
-              </Card>
-            ))}
-          </>
-        )}
-
-        <SectionLabel icon={<Icon name="doc" size={15} />}>残りロードマップ</SectionLabel>
-        {ROADMAP.map(item => {
-          const audit = readinessById.get(item.itemId)
-          const status = audit?.status ?? 'not_started'
-          return (
-          <Card key={item.phase} pad={13} style={{ marginBottom: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ width: 24, height: 24, borderRadius: 8, background: 'var(--surface-2)', color: 'var(--ink-2)', fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {item.phase}
-              </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>{item.title}</div>
-                <div style={{ marginTop: 2, fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', lineHeight: 1.5 }}>{item.goal}</div>
-              </div>
-              <StatusBadge status={status} />
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>運用の詳細</h2>
+        <p className={styles.sectionIntro}>普段は見なくてよい技術状態・処理位置・コマンドをここにまとめています。</p>
+        <details className={styles.details}>
+          <summary><span>技術状態と次回処理範囲</span><span>{healthLabel(specialOps?.healthStatus ?? readiness?.overallStatus)}</span></summary>
+          <div className={styles.detailsBody}>
+            <div className={styles.detailGrid}>
+              <div className={styles.detailItem}><span className={styles.detailKey}>運用状態</span><strong>{healthLabel(specialOps?.healthStatus)}</strong></div>
+              <div className={styles.detailItem}><span className={styles.detailKey}>生成データ</span><strong>{data.generatedAt ?? '未生成'}</strong></div>
+              <div className={styles.detailItem}><span className={styles.detailKey}>Outcome一意性</span><strong>{integrity?.sqlite.uniqueIndexExists ? '確認済み' : '未確認'}</strong></div>
+              <div className={styles.detailItem}><span className={styles.detailKey}>Pro判断</span><strong>{proDecisions.length}件</strong></div>
+              <div className={styles.detailItem}><span className={styles.detailKey}>意見相違あり</span><strong>{disagreementsCount}件</strong></div>
+              <div className={styles.detailItem}><span className={styles.detailKey}>Outcome</span><strong>{outcomes.length}件</strong></div>
             </div>
-            {audit && (
-              <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 700, color: 'var(--ink-3)', lineHeight: 1.45 }}>
-                現在: {Math.round(audit.score)}% / 次: {audit.nextActions[0] ?? '継続監視'}
+
+            {Object.keys(finalLabelCounts).length > 0 && (
+              <div className={styles.rowMeta}>最終ラベル分布: {Object.entries(finalLabelCounts).map(([label, count]) => `${label} ${count}`).join(' / ')}</div>
+            )}
+
+            {runCursors.length > 0 && (
+              <div className={styles.cursorList}>
+                {runCursors.map(([key, cursor]) => (
+                  <div key={key} className={styles.cursorRow}>
+                    <span className={styles.phase}>→</span>
+                    <div>
+                      <div className={styles.rowTitle}>{cursor.jobName ?? key}</div>
+                      <div className={styles.rowMeta}>次 {cursorRange(cursor)} ・ 更新 {cursor.updatedAt ?? '未記録'}</div>
+                    </div>
+                    <span className={styles.status}>offset {cursor.offset ?? 0}</span>
+                  </div>
+                ))}
               </div>
             )}
-          </Card>
-        )})}
 
-        <Disclaimer compact />
-        <div style={{ height: 24 }} />
-      </div>
-    </>
+            <div className={styles.commandList}>
+              {nextCommands.length > 0 ? nextCommands.slice(0, 3).map(command => <code key={command} className={styles.command}>{command}</code>) : (
+                <div className={styles.okText}>追加対応コマンドはありません。通常のヘルスチェックで継続確認します。</div>
+              )}
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <div className={styles.footer}><Disclaimer compact /></div>
+    </main>
   )
 }
