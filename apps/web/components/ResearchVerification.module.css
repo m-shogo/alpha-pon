@@ -1,0 +1,408 @@
+.root {
+  padding: 0 28px 48px;
+}
+
+.root :global(.ap-verification-heading) {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 42px 2px 12px;
+}
+
+.root :global(.ap-verification-heading h2) {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.3;
+  letter-spacing: -0.2px;
+  font-weight: 680;
+}
+
+.root :global(.ap-verification-heading span) {
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 560;
+}
+
+.root :global(.ap-verification-note) {
+  margin-bottom: 12px;
+  padding: 13px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.root :global(.ap-verification-group) {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.root :global(.ap-verification-row) {
+  padding: 20px 22px;
+  border-top: 1px solid var(--line);
+}
+
+.root :global(.ap-verification-row:first-child) {
+  border-top: 0;
+}
+
+.root :global(.ap-verification-row-head) {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.root :global(.ap-verification-kicker) {
+  margin-bottom: 4px;
+  color: var(--ink-3);
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 560;
+}
+
+.root :global(.ap-verification-row h3) {
+  margin: 0;
+  color: var(--ink);
+  font-size: 17px;
+  line-height: 1.45;
+  font-weight: 650;
+}
+
+.root :global(.ap-verification-body) {
+  max-width: 900px;
+  margin: 9px 0 0;
+  color: var(--ink-2);
+  font-size: 14.5px;
+  line-height: 1.7;
+}
+
+.root :global(.ap-pit-block) {
+  margin-top: 15px;
+  padding: 13px 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.root :global(.ap-pit-label) {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.root :global(.ap-pit-meta) {
+  margin-top: 4px;
+  color: var(--ink-3);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.root :global(.ap-reaction-grid) {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 16px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.root :global(.ap-reaction-grid > div) {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  padding: 14px 18px;
+  border-left: 1px solid var(--line);
+}
+
+.root :global(.ap-reaction-grid > div:first-child) {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.root :global(.ap-reaction-grid span) {
+  color: var(--ink-3);
+  font-size: 11px;
+  font-weight: 560;
+}
+
+.root :global(.ap-reaction-grid strong) {
+  color: var(--ink);
+  font-size: 17px;
+  line-height: 1.35;
+  font-weight: 680;
+  overflow-wrap: anywhere;
+}
+
+.root :global(.ap-reaction-grid small) {
+  color: var(--ink-3);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.root :global(.ap-reaction-missing) {
+  margin-top: 14px;
+  padding: 11px 13px;
+  border-left: 3px solid var(--amber);
+  background: var(--amber-soft);
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.root :global(.ap-verification-details) {
+  margin-top: 13px;
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
+}
+
+.root :global(.ap-verification-details > summary) {
+  min-height: 40px;
+  width: fit-content;
+  display: flex;
+  align-items: center;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.root :global(.ap-detail-list) {
+  margin-top: 6px;
+}
+
+.root :global(.ap-detail-row) {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: baseline;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+
+.root :global(.ap-detail-row:first-child) {
+  border-top: 0;
+}
+
+.root :global(.ap-detail-row > span) {
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.root :global(.ap-detail-row > strong) {
+  color: var(--ink-2);
+  font-size: 13.5px;
+  line-height: 1.55;
+  font-weight: 600;
+}
+
+.root :global(.ap-detail-row > small) {
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
+.root :global(.ap-study-empty) {
+  padding: 20px 22px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.root :global(.ap-study-empty strong) {
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.root :global(.ap-study-empty p) {
+  margin: 6px 0 0;
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.root :global(.ap-study-meta-grid) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  margin-top: 14px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.root :global(.ap-study-meta-grid > div) {
+  min-width: 0;
+  padding: 11px 14px;
+  border-left: 1px solid var(--line);
+}
+
+.root :global(.ap-study-meta-grid > div:first-child) {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.root :global(.ap-study-meta-grid span) {
+  display: block;
+  color: var(--ink-3);
+  font-size: 11px;
+  font-weight: 560;
+}
+
+.root :global(.ap-study-meta-grid strong) {
+  display: block;
+  margin-top: 3px;
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.55;
+  font-weight: 600;
+}
+
+.root :global(.ap-study-result) {
+  margin-top: 14px;
+  padding: 15px 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.root :global(.ap-study-result-head) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.root :global(.ap-study-result-label) {
+  color: var(--mint-deep);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.root :global(.ap-study-result time) {
+  color: var(--ink-3);
+  font-size: 11px;
+}
+
+.root :global(.ap-study-result > p) {
+  margin: 7px 0 0;
+  color: var(--ink-2);
+  font-size: 14.5px;
+  line-height: 1.7;
+}
+
+.root :global(.ap-study-result-classification) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 12px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.root :global(.ap-study-result-classification > div) {
+  padding: 10px 14px;
+  border-left: 1px solid var(--line);
+}
+
+.root :global(.ap-study-result-classification > div:first-child) {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.root :global(.ap-study-result-classification span) {
+  display: block;
+  color: var(--ink-3);
+  font-size: 11px;
+}
+
+.root :global(.ap-study-result-classification strong) {
+  display: block;
+  margin-top: 2px;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 620;
+}
+
+.root :global(.ap-study-warning) {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-left: 3px solid var(--amber);
+  background: var(--amber-soft);
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+@media (max-width: 767px) {
+  .root {
+    padding: 0 16px 40px;
+  }
+
+  .root :global(.ap-verification-heading) {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 34px;
+  }
+
+  .root :global(.ap-verification-heading h2) {
+    font-size: 19px;
+  }
+
+  .root :global(.ap-verification-row) {
+    padding: 18px 15px;
+  }
+
+  .root :global(.ap-verification-row-head) {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .root :global(.ap-verification-body),
+  .root :global(.ap-study-result > p) {
+    font-size: 15px;
+  }
+
+  .root :global(.ap-reaction-grid) {
+    grid-template-columns: 1fr;
+  }
+
+  .root :global(.ap-reaction-grid > div),
+  .root :global(.ap-reaction-grid > div:first-child) {
+    padding: 12px 0;
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+
+  .root :global(.ap-reaction-grid > div:first-child) {
+    border-top: 0;
+  }
+
+  .root :global(.ap-verification-details > summary) {
+    min-height: 44px;
+    font-size: 14px;
+  }
+
+  .root :global(.ap-detail-row) {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+
+  .root :global(.ap-study-meta-grid),
+  .root :global(.ap-study-result-classification) {
+    grid-template-columns: 1fr;
+  }
+
+  .root :global(.ap-study-meta-grid > div),
+  .root :global(.ap-study-meta-grid > div:first-child),
+  .root :global(.ap-study-result-classification > div),
+  .root :global(.ap-study-result-classification > div:first-child) {
+    padding: 11px 0;
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+
+  .root :global(.ap-study-meta-grid > div:first-child),
+  .root :global(.ap-study-result-classification > div:first-child) {
+    border-top: 0;
+  }
+}
