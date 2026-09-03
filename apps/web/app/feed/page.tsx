@@ -1,102 +1,106 @@
+import Link from 'next/link'
 import { loadGeneratedData } from '@/lib/generated-data'
 import { calcTotal, calcLevel } from '@/lib/score'
 import { ALERT_META } from '@/lib/labels'
-import { Card, SectionLabel } from '@/components/Card'
-import { Icon } from '@/components/Icon'
-import { AlertBadge } from '@/components/Badge'
-import Link from 'next/link'
+import styles from './feed.module.css'
+
+export const metadata = { title: '通知履歴 | alpha-pon' }
+
+function levelLabel(level: string) {
+  if (level === 'urgent') return '重要'
+  if (level === 'daily') return '日次'
+  if (level === 'log') return '記録'
+  if (level === 'ignore') return '対象外'
+  return level
+}
 
 export default function FeedPage() {
   const data = loadGeneratedData()
-
-  // フィードを候補から構築（スコア上位 / 最終通知日付ベース）
   const feedItems = data.candidates
-    .filter((c) => c.lastNotifiedAt)
-    .map((c) => ({
-      code: c.code,
-      name: c.name,
-      total: calcTotal(c.score),
-      level: calcLevel(calcTotal(c.score)),
-      reason: c.triggeredRule || '—',
-      lastNotifiedAt: c.lastNotifiedAt!,
+    .filter(candidate => candidate.lastNotifiedAt)
+    .map(candidate => ({
+      code: candidate.code,
+      name: candidate.name,
+      total: calcTotal(candidate.score),
+      level: calcLevel(calcTotal(candidate.score)),
+      reason: candidate.triggeredRule || '通知理由の記録なし',
+      lastNotifiedAt: candidate.lastNotifiedAt!,
     }))
     .sort((a, b) => b.total - a.total)
 
-  // 日付でグループ化
   const byDate: Record<string, typeof feedItems> = {}
-  feedItems.forEach((f) => {
-    const date = f.lastNotifiedAt.split(' ')[0] ?? f.lastNotifiedAt
-    ;(byDate[date] = byDate[date] ?? []).push(f)
-  })
+  for (const item of feedItems) {
+    const date = item.lastNotifiedAt.split(' ')[0] ?? item.lastNotifiedAt
+    ;(byDate[date] = byDate[date] ?? []).push(item)
+  }
   const dates = Object.keys(byDate).sort((a, b) => b.localeCompare(a))
+  const importantCount = feedItems.filter(item => item.level === 'urgent').length
 
   return (
-    <>
-      {/* header */}
-      <div style={{
-        position: 'sticky', top: 0, zIndex: 8,
-        padding: '52px 20px 12px',
-        background: 'var(--header-bg)',
-        backdropFilter: 'blur(14px)',
-        WebkitBackdropFilter: 'blur(14px)',
-        borderBottom: '1px solid var(--line)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
-          <div>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-2)', letterSpacing: 0.3, marginBottom: 2 }}>
-              urgent / daily / log
-            </div>
-            <h1 style={{ margin: 0, fontFamily: 'var(--display)', fontWeight: 700, fontSize: 27, color: 'var(--ink)', letterSpacing: 0.2 }}>
-              通知フィード
-            </h1>
-          </div>
-          <div style={{ width: 38, height: 38, borderRadius: 12, background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>
-            <Icon name="bell" size={19} />
+    <main className={styles.page}>
+      <header className={styles.header}>
+        <p className={styles.eyebrow}>重要な変化だけ振り返る</p>
+        <h1 className={styles.title}>通知履歴</h1>
+        <p className={styles.lead}>
+          過去に通知対象になった銘柄と、その理由を日付順で確認します。通知履歴は買い推奨の記録ではありません。
+        </p>
+      </header>
+
+      <section className={styles.summary} aria-label="通知履歴の概要">
+        <div className={styles.summaryItem}>
+          <div className={styles.summaryLabel}>通知履歴</div>
+          <div className={styles.summaryValue}>{feedItems.length}件</div>
+        </div>
+        <div className={styles.summaryItem}>
+          <div className={styles.summaryLabel}>重要レベル</div>
+          <div className={styles.summaryValue} style={{ color: importantCount > 0 ? 'var(--urgent)' : 'var(--ink)' }}>
+            {importantCount}件
           </div>
         </div>
-      </div>
+        <div className={styles.summaryItem}>
+          <div className={styles.summaryLabel}>最新通知日</div>
+          <div className={styles.summaryValue}>{dates[0] ?? 'なし'}</div>
+        </div>
+      </section>
 
-      <div style={{ padding: '10px 16px 0' }}>
+      <div className={styles.content}>
         {dates.length === 0 ? (
-          <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--ink-3)', fontWeight: 600, padding: '32px 0' }}>
-            通知がありません
-          </p>
+          <div className={styles.empty}>
+            現在、表示できる通知履歴はありません。意味のある通知が発生したときだけ、ここに履歴が追加されます。
+          </div>
         ) : (
-          dates.map((date) => (
-            <div key={date}>
-              <SectionLabel>{date}</SectionLabel>
-              {byDate[date].map((f) => {
-                const a = ALERT_META[f.level]
-                return (
-                  <Link key={f.code} href={`/companies/${f.code}`} style={{ display: 'block', marginBottom: 10, textDecoration: 'none' }}>
-                    <Card pad={14}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ width: 4, alignSelf: 'stretch', borderRadius: 99, background: a.colorVar, flexShrink: 0 }} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                            <AlertBadge level={f.level} dot />
-                            <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 15, color: 'var(--ink)' }}>
-                              {f.name}
-                            </span>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-3)' }}>{f.code}</span>
-                          </div>
-                          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)', marginTop: 5, lineHeight: 1.4 }}>
-                            {f.reason}
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7 }}>
-                            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>スコア {f.total}</span>
-                          </div>
+          dates.map(date => (
+            <section key={date} className={styles.dayGroup}>
+              <div className={styles.dayHead}>
+                <h2 className={styles.dayTitle}>{date}</h2>
+                <div className={styles.dayCount}>{byDate[date].length}件</div>
+              </div>
+              <div className={styles.list}>
+                {byDate[date].map(item => {
+                  const alert = ALERT_META[item.level]
+                  return (
+                    <Link key={`${date}-${item.code}`} href={`/companies/${item.code}`} className={styles.row}>
+                      <span className={styles.levelBar} style={{ background: alert.colorVar }} aria-hidden="true" />
+                      <div className={styles.identity}>
+                        <div className={styles.nameLine}>
+                          <span className={styles.name}>{item.name}</span>
+                          <span className={styles.code}>{item.code}</span>
                         </div>
+                        <div className={styles.reason}>{item.reason}</div>
+                        <div className={styles.meta}>判定スコア {item.total} ・ 通知 {item.lastNotifiedAt}</div>
                       </div>
-                    </Card>
-                  </Link>
-                )
-              })}
-            </div>
+                      <div className={styles.level} style={{ color: alert.colorVar }}>
+                        {levelLabel(item.level)}
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            </section>
           ))
         )}
-        <div style={{ height: 24 }} />
+        <div className={styles.footerSpace} />
       </div>
-    </>
+    </main>
   )
 }
