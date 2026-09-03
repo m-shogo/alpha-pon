@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
@@ -7,6 +7,7 @@ import {
   normalizeProKnowledgeRefreshConfig,
   type ProKnowledgeRefreshDomain,
 } from "./pro-knowledge-refresh-input.js";
+import { readReadOnlyTextFile } from "./read-only-text-file.js";
 
 type CurrentRegime = {
   asOf?: string;
@@ -15,8 +16,8 @@ type CurrentRegime = {
 };
 
 function readYaml<T>(path: string, fallback: T): T {
-  if (!existsSync(path)) return fallback;
-  return load(readFileSync(path, "utf-8")) as T;
+  const text = readReadOnlyTextFile(path);
+  return text ? load(text) as T : fallback;
 }
 
 function domainPriority(domain: ProKnowledgeRefreshDomain, regime: CurrentRegime): "S" | "A" | "B" {
