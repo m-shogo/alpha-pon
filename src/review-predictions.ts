@@ -4,7 +4,7 @@
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
-import { todayJst } from "./date.js";
+import { addDaysJst, todayJst } from "./date.js";
 import type { AnalogyExpectedDirection, AnalogyOutcomeDirection, AnalogyOutcomeQuality, AnalogyPredictionRecord } from "./analysis/analogy-db.js";
 
 type ScoreLogEntry = {
@@ -71,6 +71,14 @@ function loadPredictions(): AnalogyPredictionRecord[] {
   return files.flatMap(file => readJsonl<AnalogyPredictionRecord>(join(dir, file)));
 }
 
+function isRealScoreSnapshotDate(value: string): boolean {
+  try {
+    return addDaysJst(value, 0) === value;
+  } catch {
+    return false;
+  }
+}
+
 function loadScorePoints(): ScorePoint[] {
   const reportsDir = "reports";
   if (!existsSync(reportsDir)) return [];
@@ -81,9 +89,11 @@ function loadScorePoints(): ScorePoint[] {
 
   for (const file of files) {
     const date = file.replace("scores_", "").replace(".json", "");
+    if (!isRealScoreSnapshotDate(date)) continue;
     try {
       const entries = JSON.parse(readFileSync(join(reportsDir, file), "utf-8")) as ScoreLogEntry[];
       for (const entry of entries) {
+        if (entry.createdAt !== date) continue;
         points.push({
           date,
           code: entry.code,
