@@ -3,6 +3,7 @@ import { dirname, join } from "path";
 import { findRelatedMarketLessonsForScore } from "./market-lesson-links.js";
 import { buildModernAnalogies } from "./modern-analogy.js";
 import { analogyReviewDueDate } from "../analogy-review-date.js";
+import { isCanonicalReadOnlyJsonFile } from "../read-only-json-file.js";
 import type { ScoreResult } from "../types.js";
 
 export type AnalogyOutcomeDirection = "same" | "opposite" | "mixed" | "unknown";
@@ -95,7 +96,7 @@ function appendJsonl(path: string, records: unknown[]): void {
 }
 
 export function readJsonl<T>(path: string): T[] {
-  if (!existsSync(path)) return [];
+  if (!existsSync(path) || !isCanonicalReadOnlyJsonFile(path)) return [];
   return readFileSync(path, "utf-8")
     .split("\n")
     .map(line => line.trim())
@@ -199,7 +200,7 @@ export function saveAnalogyOutcomes(records: AnalogyOutcomeRecord[]): void {
 
 export function loadAnalogyUsageRecords(): AnalogyUsageRecord[] {
   const latestPath = join("data", "analogy_usage_latest.json");
-  if (existsSync(latestPath)) {
+  if (existsSync(latestPath) && isCanonicalReadOnlyJsonFile(latestPath)) {
     return JSON.parse(readFileSync(latestPath, "utf-8")) as AnalogyUsageRecord[];
   }
   return [];
@@ -207,7 +208,7 @@ export function loadAnalogyUsageRecords(): AnalogyUsageRecord[] {
 
 export function loadAnalogyPredictionRecords(): AnalogyPredictionRecord[] {
   const latestPath = join("data", "analogy_predictions_latest.json");
-  if (existsSync(latestPath)) {
+  if (existsSync(latestPath) && isCanonicalReadOnlyJsonFile(latestPath)) {
     return JSON.parse(readFileSync(latestPath, "utf-8")) as AnalogyPredictionRecord[];
   }
   return [];
