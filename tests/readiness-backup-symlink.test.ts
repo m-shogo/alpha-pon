@@ -9,6 +9,7 @@ import { freshnessOf } from "../src/data-freshness.js";
 import { backupHealthEvidenceFromDirectoryNames } from "../src/health/backup-health.js";
 import {
   assertReadinessBackupDirectoryInput,
+  assertReadinessCanonicalFileInputs,
   assertReadinessDataQualityFallbackInput,
   assertReadinessPrimaryDisclosureReviewInput,
   assertReadinessScoreSnapshotIdentityInput,
@@ -161,6 +162,40 @@ try {
     () => readCanonicalGeneratedJsonFile(generatedHardlink),
     /standalone regular file/,
     "hard-linked generated JSON must not qualify as canonical API evidence",
+  );
+
+  const readinessReportsDir = join(dir, "readiness-linked-reports");
+  const readinessDataDir = join(dir, "readiness-linked-data");
+  mkdirSync(readinessReportsDir);
+  mkdirSync(readinessDataDir);
+  const readinessTarget = join(dir, "readiness-target.json");
+  writeFileSync(readinessTarget, JSON.stringify({ status: "completed" }));
+
+  const pipelineLink = join(readinessReportsDir, "pipeline_status_latest.json");
+  symlinkSync(readinessTarget, pipelineLink, "file");
+  assert.throws(
+    () => assertReadinessCanonicalFileInputs(
+      join(dir, "missing-generated.json"),
+      readinessReportsDir,
+      readinessDataDir,
+      "2026-08-16",
+    ),
+    /readiness input must be a standalone regular file/,
+    "symlinked pipeline status must not become readiness audit evidence",
+  );
+  rmSync(pipelineLink);
+
+  const runCursorLink = join(readinessDataDir, "run-cursors.json");
+  linkSync(readinessTarget, runCursorLink);
+  assert.throws(
+    () => assertReadinessCanonicalFileInputs(
+      join(dir, "missing-generated.json"),
+      readinessReportsDir,
+      readinessDataDir,
+      "2026-08-16",
+    ),
+    /readiness input must be a standalone regular file/,
+    "hard-linked run cursors must not become a second canonical readiness input",
   );
 } finally {
   rmSync(dir, { recursive: true, force: true });

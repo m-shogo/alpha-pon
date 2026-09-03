@@ -10,7 +10,23 @@ const REVIEW_HORIZONS = new Set(["1d", "1w", "1m", "3m"]);
 const OUTCOME_DATA_SOURCES = new Set(["jquants", "mock"]);
 const OUTCOME_DATA_AVAILABILITY = new Set(["ok", "partial", "missing"]);
 
+function assertStandaloneReadinessInput(path: string): void {
+  if (!existsSync(path)) return;
+  try {
+    const stat = lstatSync(path);
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
+      throw new Error(`${path}: readiness input must be a standalone regular file`);
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("readiness input must be a standalone regular file")) {
+      throw error;
+    }
+    throw new Error(`${path}: readiness input cannot be inspected`);
+  }
+}
+
 function readJson(path: string): unknown {
+  assertStandaloneReadinessInput(path);
   try {
     return JSON.parse(readFileSync(path, "utf-8"));
   } catch {
@@ -122,14 +138,36 @@ function latestCanonicalScoreSnapshotPath(reportsDir: string, asOf = todayJst())
 }
 
 function hasUsableScoreSnapshot(reportsDir: string, asOf = todayJst()): boolean {
+  const latestPath = latestCanonicalScoreSnapshotPath(reportsDir, asOf);
+  if (!latestPath) return false;
+  assertStandaloneReadinessInput(latestPath);
   try {
-    const latestPath = latestCanonicalScoreSnapshotPath(reportsDir, asOf);
-    if (!latestPath) return false;
     const raw = JSON.parse(readFileSync(latestPath, "utf-8"));
     return normalizeSourceHealthScoreRows(raw).valid && hasUniqueSourceHealthScoreIdentities(raw);
   } catch {
     return false;
   }
+}
+
+export function assertReadinessCanonicalFileInputs(
+  generatedPath = "apps/web/public/generated/alpha-pon-data.json",
+  reportsDir = "reports",
+  dataDir = "data",
+  asOf = todayJst(),
+): void {
+  for (const path of [
+    generatedPath,
+    join(reportsDir, "pipeline_status_latest.json"),
+    join(reportsDir, "company_memory_latest.json"),
+    join(dataDir, "hypothesis_accuracy_summary.json"),
+    join(dataDir, "run-cursors.json"),
+    join(dataDir, "hypothesis_predictions.jsonl"),
+    join(dataDir, "hypothesis_outcomes.jsonl"),
+  ]) {
+    assertStandaloneReadinessInput(path);
+  }
+  const latestScorePath = latestCanonicalScoreSnapshotPath(reportsDir, asOf);
+  if (latestScorePath) assertStandaloneReadinessInput(latestScorePath);
 }
 
 export function assertReadinessScoreSnapshotFilenameInput(reportsDir = "reports", asOf = todayJst()): void {
@@ -328,6 +366,7 @@ export function assertReadinessAccuracySummaryInput(
 }
 
 if (process.argv[1]?.endsWith("readiness-company-memory-input.ts")) {
+  assertReadinessCanonicalFileInputs();
   assertReadinessScoreSnapshotFilenameInput();
   assertReadinessScoreSnapshotIdentityInput();
   assertReadinessBackupDirectoryInput();
