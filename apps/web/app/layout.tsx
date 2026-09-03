@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import './owner-ui-qa.css'
 import { AppShell } from '@/components/AppShell'
 import { loadMarketEventData } from '@/lib/market-events'
 
@@ -31,7 +32,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  themeColor: '#FFF7F2',
+  themeColor: '#F5F5F7',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
