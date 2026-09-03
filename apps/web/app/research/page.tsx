@@ -17,10 +17,10 @@ const ITEM_STATUS: Record<OwnerResearchItemStatus, { label: string; tone: string
 }
 
 const EDGE_STATUS: Record<OwnerFormalEdgeStatus, { label: string; tone: string; background: string }> = {
-  idea: { label: 'Idea', tone: 'var(--sky-deep)', background: 'var(--sky-soft)' },
-  research: { label: 'Research', tone: 'var(--accent)', background: 'var(--rose-soft)' },
-  shadow: { label: 'Shadow', tone: 'var(--lavender-deep)', background: 'var(--lavender-soft)' },
-  production: { label: 'Production', tone: 'var(--mint-deep)', background: 'var(--mint-soft)' },
+  idea: { label: 'アイデア', tone: 'var(--sky-deep)', background: 'var(--sky-soft)' },
+  research: { label: '研究中', tone: 'var(--accent)', background: 'var(--rose-soft)' },
+  shadow: { label: '実運用前の観察', tone: 'var(--lavender-deep)', background: 'var(--lavender-soft)' },
+  production: { label: '実運用', tone: 'var(--mint-deep)', background: 'var(--mint-soft)' },
   rejected: { label: '棄却', tone: 'var(--ink-3)', background: 'var(--surface-2)' },
   deprecated: { label: '統合・終了', tone: 'var(--ink-3)', background: 'var(--surface-2)' },
 }
@@ -35,7 +35,7 @@ const QUESTION_STATUS: Record<OwnerResearchQuestionStatus, string> = {
 
 const GATE_LABELS: Record<string, string> = {
   sufficientSamples: '十分なサンプル',
-  holdoutPass: 'Holdout再現',
+  holdoutPass: '未使用データで再現',
   pitSafe: 'PIT安全性',
   netAlphaPositive: '実測Net Alpha',
   executionFeasible: '執行可能性',
@@ -43,7 +43,7 @@ const GATE_LABELS: Record<string, string> = {
   borrowCostCovered: '借株・コスト',
   confoundersRemoved: '交絡除去',
   counterfactualExplained: '反実仮想比較',
-  decayChecked: 'Edge Decay',
+  decayChecked: 'Edgeの劣化確認',
   falseDiscoveryGuard: '過学習・多重検定防止',
 }
 
@@ -114,7 +114,7 @@ export default function ResearchPage() {
         WebkitBackdropFilter: 'blur(14px)',
         borderBottom: '1px solid var(--line)',
       }}>
-        <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--accent)', letterSpacing: 0.4, marginBottom: 3 }}>RESEARCH / OWNER VIEW</div>
+        <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--accent)', letterSpacing: 0.4, marginBottom: 3 }}>研究状況 / オーナー向け</div>
         <h1 style={{ margin: 0, fontFamily: 'var(--display)', fontSize: 27, color: 'var(--ink)', letterSpacing: 0.1 }}>研究ダッシュボード</h1>
         <div style={{ marginTop: 5, fontSize: 12, color: 'var(--ink-3)', fontWeight: 650 }}>何を研究中か・どこまで分かったか・次に何を見るか</div>
       </div>
@@ -128,7 +128,7 @@ export default function ResearchPage() {
           {[
             ['#research-overview', '概要'],
             ['#research-items', '研究テーマ'],
-            ['#formal-edges', 'Formal Edge'],
+            ['#formal-edges', '正式Edge'],
             ...(data.checkpoint ? [['#checkpoint', '現在地']] : []),
             ['#research-timeline', '履歴'],
             ['#knowledge-map', '知識マップ'],
@@ -138,30 +138,30 @@ export default function ResearchPage() {
         </nav>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
-          <Metric label="Edge status" value={`R ${status.research} / S ${status.shadow} / P ${status.production}`} note={`Idea ${status.idea} · 終了/棄却 ${status.deprecated + status.rejected}`} />
-          <Metric label="直近7日" value={`+Edge ${recent.edgesAdded} / +Analog ${recent.analogsAdded}`} note={`${recent.from}〜${recent.to}`} />
-          <Metric label="正式Sample" value={recent.currentFormalSamples} note="現在値。7日増分は履歴未保持" />
-          <Metric label="Promotion / Holdout Ready" value={`${ready.promotionReadyEdgeIds.length} / ${ready.holdoutReadyEdgeIds.length}`} note="Gateを裏取りした候補数" />
+          <Metric label="Edgeの段階" value={`研究 ${status.research} / 観察 ${status.shadow} / 実運用 ${status.production}`} note={`アイデア ${status.idea} · 終了/棄却 ${status.deprecated + status.rejected}`} />
+          <Metric label="直近7日" value={`+Edge ${recent.edgesAdded} / +類似事例 ${recent.analogsAdded}`} note={`${recent.from}〜${recent.to}`} />
+          <Metric label="正式サンプル" value={recent.currentFormalSamples} note="現在値。7日増分は履歴未保持" />
+          <Metric label="昇格候補 / 未使用データ検証待ち" value={`${ready.promotionReadyEdgeIds.length} / ${ready.holdoutReadyEdgeIds.length}`} note="Gateを裏取りした候補数" />
           <Metric label="研究テーマ" value={data.counts.activeResearchItems} note={`未解決の問い ${data.counts.unresolvedQuestions}`} />
-          <Metric label="Research OS整合性" value={`${data.integrity.errorCount} error / ${data.integrity.warningCount} warn`} note={`Knowledge issue ${data.integrity.knowledgeIssueCount}`} />
+          <Metric label="研究OSの整合性" value={`${data.integrity.errorCount} エラー / ${data.integrity.warningCount} 警告`} note={`知識データの問題 ${data.integrity.knowledgeIssueCount}`} />
         </div>
 
         <div style={{ ...cardStyle, padding: '12px 14px', marginTop: 10, background: 'var(--lavender-soft)' }}>
           <div style={{ fontSize: 11.5, fontWeight: 850, color: 'var(--lavender-deep)' }}>読み方</div>
           <div style={{ marginTop: 4, fontSize: 12, lineHeight: 1.65, color: 'var(--ink-2)', fontWeight: 600 }}>
-            ResearchItemは調べる価値がある問い、Formal Edgeは再現性を検証する段階です。どちらもBUY推奨ではありません。Gate 0/11は0点ではなく「まだ検証が通っていない」の意味です。
+            研究テーマは「調べる価値がある問い」、正式Edgeは「再現性を検証する仮説」です。どちらもBUY推奨ではありません。Gate 0/11は0点ではなく「まだ検証が通っていない」の意味です。
           </div>
           <div style={{ marginTop: 6, fontSize: 10.5, color: 'var(--ink-3)', fontWeight: 650 }}>最終研究更新: {formatDate(data.latestResearchAt)}</div>
           <details style={{ marginTop: 6 }}>
-            <summary style={{ cursor: 'pointer', fontSize: 10.5, color: 'var(--ink-3)', fontWeight: 800 }}>Sample増分を出さない理由</summary>
+            <summary style={{ cursor: 'pointer', fontSize: 10.5, color: 'var(--ink-3)', fontWeight: 800 }}>サンプル増分を出さない理由</summary>
             <div style={{ marginTop: 5, fontSize: 10.5, lineHeight: 1.55, color: 'var(--ink-3)' }}>{recent.sampleDeltaReason}</div>
           </details>
         </div>
 
         {(ready.promotionReadyEdgeIds.length > 0 || ready.holdoutReadyEdgeIds.length > 0) && (
           <div style={{ ...cardStyle, padding: '11px 13px', marginTop: 9 }}>
-            {ready.promotionReadyEdgeIds.length > 0 && <div style={{ fontSize: 10.5, color: 'var(--mint-deep)', fontWeight: 800 }}>Promotion Ready: {ready.promotionReadyEdgeIds.join(' / ')}</div>}
-            {ready.holdoutReadyEdgeIds.length > 0 && <div style={{ marginTop: ready.promotionReadyEdgeIds.length > 0 ? 5 : 0, fontSize: 10.5, color: 'var(--lavender-deep)', fontWeight: 800 }}>Holdout Ready: {ready.holdoutReadyEdgeIds.join(' / ')}</div>}
+            {ready.promotionReadyEdgeIds.length > 0 && <div style={{ fontSize: 10.5, color: 'var(--mint-deep)', fontWeight: 800 }}>本番昇格の条件クリア（Promotion Ready）: {ready.promotionReadyEdgeIds.join(' / ')}</div>}
+            {ready.holdoutReadyEdgeIds.length > 0 && <div style={{ marginTop: ready.promotionReadyEdgeIds.length > 0 ? 5 : 0, fontSize: 10.5, color: 'var(--lavender-deep)', fontWeight: 800 }}>未使用データ検証へ進める（Holdout Ready）: {ready.holdoutReadyEdgeIds.join(' / ')}</div>}
           </div>
         )}
 
@@ -199,7 +199,7 @@ export default function ResearchPage() {
           })}
         </div>
 
-        <SectionTitle id="formal-edges" title="Formal Edge — 検証はどこまで？" meta={`${data.counts.formalEdges}件`} />
+        <SectionTitle id="formal-edges" title="正式Edge — 検証はどこまで？" meta={`${data.counts.formalEdges}件`} />
         <div style={{ display: 'grid', gap: 10 }}>
           {data.formalEdges.map((edge) => {
             const edgeStatus = EDGE_STATUS[edge.status]
@@ -214,9 +214,9 @@ export default function ResearchPage() {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginTop: 10 }}>
-                  <div style={{ padding: '7px 8px', borderRadius: 9, background: 'var(--surface-2)' }}><div style={{ fontSize: 9, color: 'var(--ink-3)', fontWeight: 750 }}>Sample</div><div style={{ marginTop: 2, fontSize: 12, fontWeight: 850 }}>{edge.samples.current}/{edge.samples.required}</div></div>
-                  <div style={{ padding: '7px 8px', borderRadius: 9, background: 'var(--surface-2)' }}><div style={{ fontSize: 9, color: 'var(--ink-3)', fontWeight: 750 }}>Analog</div><div style={{ marginTop: 2, fontSize: 12, fontWeight: 850 }}>{edge.samples.analogCurrent}/{edge.samples.analogRequired}</div></div>
-                  <div style={{ padding: '7px 8px', borderRadius: 9, background: 'var(--surface-2)' }}><div style={{ fontSize: 9, color: 'var(--ink-3)', fontWeight: 750 }}>Gate</div><div style={{ marginTop: 2, fontSize: 12, color: edge.gate.pass === edge.gate.total ? 'var(--mint-deep)' : 'var(--amber)', fontWeight: 850 }}>{edge.gate.pass}/{edge.gate.total}</div></div>
+                  <div style={{ padding: '7px 8px', borderRadius: 9, background: 'var(--surface-2)' }}><div style={{ fontSize: 9, color: 'var(--ink-3)', fontWeight: 750 }}>サンプル</div><div style={{ marginTop: 2, fontSize: 12, fontWeight: 850 }}>{edge.samples.current}/{edge.samples.required}</div></div>
+                  <div style={{ padding: '7px 8px', borderRadius: 9, background: 'var(--surface-2)' }}><div style={{ fontSize: 9, color: 'var(--ink-3)', fontWeight: 750 }}>類似事例</div><div style={{ marginTop: 2, fontSize: 12, fontWeight: 850 }}>{edge.samples.analogCurrent}/{edge.samples.analogRequired}</div></div>
+                  <div style={{ padding: '7px 8px', borderRadius: 9, background: 'var(--surface-2)' }}><div style={{ fontSize: 9, color: 'var(--ink-3)', fontWeight: 750 }}>検証Gate</div><div style={{ marginTop: 2, fontSize: 12, color: edge.gate.pass === edge.gate.total ? 'var(--mint-deep)' : 'var(--amber)', fontWeight: 850 }}>{edge.gate.pass}/{edge.gate.total}</div></div>
                 </div>
 
                 <div style={{ marginTop: 10, padding: '9px 10px', borderRadius: 10, background: 'var(--lavender-soft)' }}>
@@ -228,7 +228,7 @@ export default function ResearchPage() {
                   <div>
                     <div style={{ fontSize: 10.5, color: 'var(--mint-deep)', fontWeight: 850 }}>研究ログに記録されたFinding</div>
                     <div style={{ marginTop: 5 }}><MiniList items={edge.knownFindings} limit={3} /></div>
-                    <div style={{ marginTop: 3, fontSize: 9, color: 'var(--ink-3)' }}>※ Findingは実測結果とは限りません。実測sample / outcomeは別表示です。</div>
+                    <div style={{ marginTop: 3, fontSize: 9, color: 'var(--ink-3)' }}>※ Findingは実測結果とは限りません。実測サンプル / outcomeは別表示です。</div>
                   </div>
                   <div>
                     <div style={{ fontSize: 10.5, color: 'var(--amber)', fontWeight: 850 }}>まだ分からないこと</div>
@@ -247,7 +247,7 @@ export default function ResearchPage() {
                     <div><div style={{ fontSize: 10, color: 'var(--ink-3)', fontWeight: 850, marginBottom: 4 }}>必要データ</div><MiniList items={edge.requiredData} limit={6} /></div>
                   </div>
                 </details>
-                <div style={{ marginTop: 8, fontSize: 9.5, color: 'var(--ink-3)', fontWeight: 650 }}>Priority {edge.priority} · Confidence {Math.round(edge.confidence * 100)}% · 最終研究 {formatDate(edge.lastResearchAt)} · Registry更新 {edge.lastUpdate}</div>
+                <div style={{ marginTop: 8, fontSize: 9.5, color: 'var(--ink-3)', fontWeight: 650 }}>優先度 {edge.priority} · 確信度 {Math.round(edge.confidence * 100)}% · 最終研究 {formatDate(edge.lastResearchAt)} · Registry更新 {edge.lastUpdate}</div>
               </article>
             )
           })}
@@ -298,7 +298,7 @@ export default function ResearchPage() {
         </div>
 
         <div style={{ marginTop: 15, padding: '11px 13px', borderRadius: 13, border: '1px dashed var(--line)', color: 'var(--ink-3)', fontSize: 11, lineHeight: 1.6 }}>
-          この下にResearchFamily / Historical Analog / Case / ResearchComponent / Lineage / StudyのKnowledge Mapが続きます。
+          この下に研究ファミリー / 過去類似事例 / 登録Case / 研究パーツ / 統合履歴 / 検証Studyの知識マップが続きます。
         </div>
       </div>
     </>
