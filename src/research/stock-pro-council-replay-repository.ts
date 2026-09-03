@@ -116,6 +116,15 @@ function readManifests(
   const issues: CouncilIssue[] = [];
   for (const filename of readdirSync(dir).filter((name) => name.endsWith(".json")).sort()) {
     const path = join(dir, filename);
+    const stat = lstatSync(path);
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
+      issues.push(issue(
+        "non_standalone_council_replay_manifest",
+        path,
+        "Council Replay manifest must be a standalone regular file",
+      ));
+      continue;
+    }
     let value: unknown;
     try {
       value = JSON.parse(readFileSync(path, "utf-8")) as unknown;
