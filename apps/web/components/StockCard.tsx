@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import type { AlphaPonStock } from '@/types/alpha-pon'
-import { formatPrice, formatPercent, formatRatio, formatNumber } from '@/lib/format'
+import { formatPrice, formatPercent, formatRatio } from '@/lib/format'
 import styles from './StockCard.module.css'
 
 type Props = {
@@ -36,7 +36,6 @@ export function StockCard({ stock, rank }: Props) {
     { label: 'PER', value: formatRatio(stock.per), color: 'var(--ink)' },
     { label: 'PBR', value: formatRatio(stock.pbr), color: 'var(--ink)' },
     { label: '配当利回り', value: formatPercent(stock.dividendYield), color: 'var(--ink)' },
-    { label: 'スコア', value: formatNumber(stock.score), color: scoreColor },
   ]
 
   return (
