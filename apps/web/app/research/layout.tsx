@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import styles from './ResearchAvailability.module.css'
 import HistoricalAnalogVerification from '@/components/HistoricalAnalogVerification'
 import ResearchHistoryMap from '@/components/ResearchHistoryMap'
 import ResearchStudyMap from '@/components/ResearchStudyMap'
@@ -46,15 +47,15 @@ export default function ResearchLayout({ children }: Readonly<{ children: ReactN
   return (
     <>
       {summaryUnavailable ? (
-        <main style={{ padding: '48px 14px 28px' }}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--accent)', letterSpacing: 0.4, marginBottom: 3 }}>研究状況 / オーナー向け</div>
-          <h1 style={{ margin: 0, fontFamily: 'var(--display)', fontSize: 27, color: 'var(--ink)' }}>研究ダッシュボード</h1>
-          <section style={{ marginTop: 14, padding: '14px 15px', borderRadius: 14, background: 'var(--amber-soft)', border: '1px solid var(--line)' }}>
-            <div style={{ fontSize: 13, fontWeight: 850, color: 'var(--ink)' }}>⚠ 研究サマリーを利用できません</div>
-            <div style={{ marginTop: 6, fontSize: 12, lineHeight: 1.65, color: 'var(--ink-2)', fontWeight: 650 }}>
+        <main className={styles.unavailablePage}>
+          <div className={styles.unavailableEyebrow}>研究状況 / オーナー向け</div>
+          <h1>研究ダッシュボード</h1>
+          <section className={styles.warningPanel}>
+            <div className={styles.warningTitle}>研究サマリーを利用できません</div>
+            <div className={styles.warningReason}>
               {summary.warning ?? '研究サマリーの時刻・期間または参照整合性が不正なため、安全のため表示を停止しました。'}
             </div>
-            <div style={{ marginTop: 7, fontSize: 10.5, lineHeight: 1.55, color: 'var(--ink-3)' }}>
+            <div className={styles.warningSafety}>
               この状態ではEdge数・サンプル数・研究テーマ数などの0表示を実データとして扱いません。下の知識マップは別の生成データから読み込むため、独立して判定します。
             </div>
           </section>
@@ -62,27 +63,23 @@ export default function ResearchLayout({ children }: Readonly<{ children: ReactN
       ) : (
         <>
           {children}
-          <div style={{ padding: '0 14px 12px', fontSize: 10.5, color: 'var(--ink-3)', fontWeight: 650 }}>
-            表示データ生成: {formatSnapshotTime(summary.generatedAt)}
-          </div>
+          <div className={styles.snapshotMeta}>表示データ生成: {formatSnapshotTime(summary.generatedAt)}</div>
         </>
       )}
-      <div id="knowledge-map" style={{ scrollMarginTop: 118 }}>
+      <div id="knowledge-map" className={styles.knowledgeRoot}>
         {historyMapUnavailable ? (
-          <section style={{ margin: '0 14px 28px', padding: '14px 15px', borderRadius: 14, background: 'var(--amber-soft)', border: '1px solid var(--line)' }}>
-            <div style={{ fontSize: 13, fontWeight: 850, color: 'var(--ink)' }}>⚠ 知識マップを利用できません</div>
-            <div style={{ marginTop: 6, fontSize: 12, lineHeight: 1.65, color: 'var(--ink-2)', fontWeight: 650 }}>
+          <section className={`${styles.warningPanel} ${styles.knowledgeWarning}`}>
+            <div className={styles.warningTitle}>知識マップを利用できません</div>
+            <div className={styles.warningReason}>
               {historyMap.warning ?? '知識マップの時刻整合性が不正なため、安全のため表示を停止しました。'}
             </div>
-            <div style={{ marginTop: 7, fontSize: 10.5, lineHeight: 1.55, color: 'var(--ink-3)' }}>
+            <div className={styles.warningSafety}>
               研究ファミリー・過去類似事例・個別事例・検証Studyなどの0件表示は実データとして扱いません。
             </div>
           </section>
         ) : (
           <>
-            <div style={{ padding: '0 14px 4px', fontSize: 10.5, color: 'var(--ink-3)', fontWeight: 650 }}>
-              知識マップ生成: {formatSnapshotTime(historyMap.generatedAt)}
-            </div>
+            <div className={styles.knowledgeTimestamp}>知識マップ生成: {formatSnapshotTime(historyMap.generatedAt)}</div>
             <ResearchHistoryMap />
             <HistoricalAnalogVerification />
             <ResearchStudyMap />
