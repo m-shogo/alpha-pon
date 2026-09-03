@@ -2,7 +2,7 @@
 //   pnpm research:dashboard          research/dashboard/dashboard.generated.md を更新
 //   pnpm research:dashboard --check  再生成して差分があれば失敗する（CI 用）
 
-import { existsSync, readFileSync } from "fs";
+import { readReadOnlyTextFile } from "../../read-only-text-file.js";
 import { buildDashboard } from "../dashboard.js";
 import { checkDecay } from "../decay.js";
 import { checkEdgeRegistry, type Issue } from "../edge-registry.js";
@@ -23,7 +23,7 @@ function main(): void {
   const outputPath = paths.dashboard();
 
   // --check は既存ファイルの asOf で再生成する（日付が変わっただけで失敗させないため）
-  const existingMarkdown = existsSync(outputPath) ? readFileSync(outputPath, "utf-8") : null;
+  const existingMarkdown = readReadOnlyTextFile(outputPath) || null;
   const committedAsOf = existingMarkdown?.match(AS_OF_LINE)?.[1];
   const asOf = options.get("as-of") ?? (flags.has("check") && committedAsOf ? committedAsOf : todayJst());
 
