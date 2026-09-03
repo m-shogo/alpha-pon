@@ -1,59 +1,55 @@
+import Link from 'next/link'
 import { loadGeneratedData } from '@/lib/generated-data'
-import { SectionLabel, Card } from '@/components/Card'
-import { Icon } from '@/components/Icon'
 import { Disclaimer } from '@/components/Disclaimer'
 import type { StockCandidateHypothesis } from '@/types/universe'
-import Link from 'next/link'
 import { formatDueLabel, todayJstDate } from '@/lib/format'
+import styles from './HypothesesV2.module.css'
 
 export const metadata = { title: '仮説一覧 | alpha-pon' }
 
-const LABEL_STYLE: Record<string, { color: string; bg: string }> = {
-  '監視候補':  { color: 'var(--sky-deep)',      bg: 'var(--sky-soft)' },
-  '検証候補':  { color: 'var(--lavender-deep)', bg: 'var(--lavender-soft)' },
-  '反証待ち':  { color: 'var(--amber)',          bg: 'var(--amber-soft)' },
+const LABEL_COLOR: Record<string, string> = {
+  '監視候補': 'var(--sky-deep)',
+  '検証候補': 'var(--lavender-deep)',
+  '反証待ち': 'var(--amber)',
 }
 
-function HypothesisCard({ h }: { h: StockCandidateHypothesis }) {
-  const ls = LABEL_STYLE[h.label] ?? { color: 'var(--ink-3)', bg: 'var(--surface-2)' }
-  const due = formatDueLabel(h.reviewDueAt, todayJstDate())
+function directionLabel(value: string) {
+  if (['positive', 'up', 'bullish'].includes(value)) return '上昇方向'
+  if (['negative', 'down', 'bearish'].includes(value)) return '下落方向'
+  if (['mixed'].includes(value)) return '方向混在'
+  if (['unknown', 'unclear'].includes(value)) return '方向未確定'
+  return value
+}
 
+function HypothesisRow({ hypothesis }: { hypothesis: StockCandidateHypothesis }) {
+  const due = formatDueLabel(hypothesis.reviewDueAt, todayJstDate())
+  const color = LABEL_COLOR[hypothesis.label] ?? 'var(--ink-3)'
   return (
-    <Link href={`/stocks/${h.code}`} style={{ textDecoration: 'none', display: 'block', marginBottom: 10, color: 'inherit' }}>
-      <Card pad={13}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
-              <span style={{
-                fontSize: 11.5, fontWeight: 800, color: ls.color,
-                background: ls.bg, borderRadius: 6, padding: '2px 8px',
-              }}>
-                {h.label}
-              </span>
-              <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-3)' }}>{h.code}</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{h.name}</span>
-            </div>
-            <p style={{ margin: '0 0 6px', fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)', lineHeight: 1.5 }}>
-              {h.reason}
-            </p>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11.5, fontWeight: 700 }}>
-              <span style={{ color: 'var(--ink-3)' }}>検証: {h.expectedTimeframe}</span>
-              <span style={{ color: 'var(--ink-3)' }}>方向: {h.expectedDirection}</span>
-              <span style={{ color: 'var(--ink-3)' }}>確信: {Math.round(h.confidence * 100)}%</span>
-              <span style={{ color: due.overdue ? 'var(--urgent)' : 'var(--ink-3)' }}>
-                {due.label} ({h.reviewDueAt})
-              </span>
-            </div>
-          </div>
-          <span style={{
-            fontSize: 10.5, fontWeight: 800, padding: '2px 6px', borderRadius: 5, flexShrink: 0,
-            color: h.status === 'open' ? 'var(--mint-deep)' : 'var(--ink-3)',
-            background: h.status === 'open' ? 'var(--mint-soft)' : 'var(--surface-2)',
-          }}>
-            {h.status === 'open' ? 'OPEN' : 'CLOSED'}
-          </span>
+    <Link href={`/stocks/${hypothesis.code}`} className={styles.row}>
+      <div className={styles.identity}>
+        <div className={styles.label} style={{ color }}>{hypothesis.label}</div>
+        <div className={styles.name}>{hypothesis.name}<span className={styles.code}>{hypothesis.code}</span></div>
+        <div className={styles.reason}>{hypothesis.reason}</div>
+        <div className={styles.status}>{hypothesis.status === 'open' ? '検証中' : '検証済み'}</div>
+      </div>
+      <div className={styles.metrics}>
+        <div className={styles.metric}>
+          <div className={styles.metricLabel}>想定期間</div>
+          <div className={styles.metricValue}>{hypothesis.expectedTimeframe}</div>
         </div>
-      </Card>
+        <div className={styles.metric}>
+          <div className={styles.metricLabel}>想定方向</div>
+          <div className={styles.metricValue}>{directionLabel(hypothesis.expectedDirection)}</div>
+        </div>
+        <div className={styles.metric}>
+          <div className={styles.metricLabel}>確信度</div>
+          <div className={styles.metricValue}>{Math.round(hypothesis.confidence * 100)}%</div>
+        </div>
+        <div className={styles.metric}>
+          <div className={styles.metricLabel}>次の答え合わせ</div>
+          <div className={`${styles.metricValue} ${due.overdue ? styles.overdue : ''}`}>{due.label} ・ {hypothesis.reviewDueAt}</div>
+        </div>
+      </div>
     </Link>
   )
 }
@@ -61,63 +57,67 @@ function HypothesisCard({ h }: { h: StockCandidateHypothesis }) {
 export default function HypothesesPage() {
   const data = loadGeneratedData()
   const all = data.hypothesisPredictions ?? []
-  const open = all.filter(h => h.status === 'open')
-  const closed = all.filter(h => h.status === 'closed')
+  const open = all.filter(hypothesis => hypothesis.status === 'open')
+  const closed = all.filter(hypothesis => hypothesis.status === 'closed')
+  const today = todayJstDate()
+  const overdue = open.filter(hypothesis => formatDueLabel(hypothesis.reviewDueAt, today).overdue).length
 
   return (
-    <>
-      <div style={{
-        position: 'sticky', top: 0, zIndex: 8,
-        padding: '52px 20px 12px',
-        background: 'var(--header-bg)',
-        backdropFilter: 'blur(14px)',
-        WebkitBackdropFilter: 'blur(14px)',
-        borderBottom: '1px solid var(--line)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--lavender-deep)', marginBottom: 2 }}>
-              監視候補・検証候補・反証待ち
-            </div>
-            <h1 style={{ margin: 0, fontFamily: 'var(--display)', fontWeight: 700, fontSize: 27, color: 'var(--ink)' }}>
-              仮説一覧
-            </h1>
-          </div>
+    <main className={styles.page}>
+      <header className={styles.header}>
+        <div className={styles.eyebrow}>候補を「なぜ？」まで残す</div>
+        <h1 className={styles.title}>仮説一覧</h1>
+        <p className={styles.subtitle}>
+          監視候補について、何が起きると考えたか・いつ答え合わせするか・どれくらい確信しているかを追跡します。仮説はBUY推奨ではありません。
+        </p>
+      </header>
+
+      <section className={styles.summary} aria-label="仮説サマリー">
+        <div className={styles.summaryItem}>
+          <div className={styles.summaryLabel}>検証中</div>
+          <div className={styles.summaryValue}>{open.length}件</div>
         </div>
-      </div>
+        <div className={styles.summaryItem}>
+          <div className={styles.summaryLabel}>期限超過</div>
+          <div className={styles.summaryValue} style={{ color: overdue > 0 ? 'var(--urgent)' : 'var(--mint-deep)' }}>{overdue}件</div>
+        </div>
+        <div className={styles.summaryItem}>
+          <div className={styles.summaryLabel}>検証済み</div>
+          <div className={styles.summaryValue}>{closed.length}件</div>
+        </div>
+      </section>
 
-      <div style={{ padding: '16px 16px 0' }}>
-        {all.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--ink-3)', fontSize: 13, fontWeight: 600 }}>
-            <p>仮説なし</p>
-            <p style={{ marginTop: 8, fontSize: 12 }}>
-              <code style={{ background: 'var(--surface-2)', padding: '2px 6px', borderRadius: 4 }}>pnpm scan:universe</code> → <code style={{ background: 'var(--surface-2)', padding: '2px 6px', borderRadius: 4 }}>pnpm ui:data</code> を実行してください
-            </p>
-          </div>
-        ) : (
-          <>
-            {open.length > 0 && (
-              <>
-                <SectionLabel icon={<Icon name="spark" size={15} />}>オープン ({open.length}件)</SectionLabel>
-                {open
-                  .sort((a, b) => b.confidence - a.confidence)
-                  .map(h => <HypothesisCard key={`${h.code}:${h.detectedAt}`} h={h} />)}
-              </>
-            )}
-            {closed.length > 0 && (
-              <>
-                <SectionLabel icon={<Icon name="check" size={15} />}>検証済み ({closed.length}件)</SectionLabel>
-                {closed
-                  .sort((a, b) => b.detectedAt.localeCompare(a.detectedAt))
-                  .map(h => <HypothesisCard key={`${h.code}:${h.detectedAt}`} h={h} />)}
-              </>
-            )}
-          </>
-        )}
+      {all.length === 0 ? (
+        <div className={styles.empty}>現在、記録されている仮説はありません。0件でも異常ではありません。</div>
+      ) : (
+        <>
+          {open.length > 0 && (
+            <section className={styles.section}>
+              <h2 className={styles.sectionTitle}><span>検証中</span><span className={styles.sectionCount}>{open.length}件</span></h2>
+              <p className={styles.sectionIntro}>確信度の高い順です。期限と反証条件は各銘柄詳細で確認できます。</p>
+              <div className={styles.list}>
+                {[...open].sort((a, b) => b.confidence - a.confidence).map(hypothesis => (
+                  <HypothesisRow key={`${hypothesis.code}:${hypothesis.detectedAt}`} hypothesis={hypothesis} />
+                ))}
+              </div>
+            </section>
+          )}
 
-        <Disclaimer compact />
-        <div style={{ height: 24 }} />
-      </div>
-    </>
+          {closed.length > 0 && (
+            <section className={styles.section}>
+              <h2 className={styles.sectionTitle}><span>検証済み</span><span className={styles.sectionCount}>{closed.length}件</span></h2>
+              <p className={styles.sectionIntro}>新しいものから並べています。結果の詳細は答え合わせ画面と銘柄詳細で確認できます。</p>
+              <div className={styles.list}>
+                {[...closed].sort((a, b) => b.detectedAt.localeCompare(a.detectedAt)).map(hypothesis => (
+                  <HypothesisRow key={`${hypothesis.code}:${hypothesis.detectedAt}`} hypothesis={hypothesis} />
+                ))}
+              </div>
+            </section>
+          )}
+        </>
+      )}
+
+      <div className={styles.footer}><Disclaimer compact /></div>
+    </main>
   )
 }
