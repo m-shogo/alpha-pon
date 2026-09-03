@@ -15,49 +15,96 @@ const TABS = [
   { key: '/ops',      label: '運用',   icon: 'check' },
 ]
 
-export function NavBar() {
+const MOBILE_PRIMARY = TABS.filter((tab) => ['/', '/research', '/stocks', '/alerts'].includes(tab.key))
+const MOBILE_MORE = TABS.filter((tab) => ['/calendar', '/actions', '/reports', '/ops'].includes(tab.key))
+
+function isActive(pathname: string, key: string): boolean {
+  return pathname === key || (key !== '/' && pathname.startsWith(key))
+}
+
+export function DesktopNav() {
   const pathname = usePathname()
 
   return (
-    <nav
-      aria-label="メインナビゲーション"
-      style={{
-        display: 'flex',
-        padding: '7px 5px calc(12px + env(safe-area-inset-bottom))',
-        background: 'var(--header-bg)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        borderTop: '1px solid var(--line)',
-        flexShrink: 0,
-        overflowX: 'auto',
-        scrollbarWidth: 'none',
-      }}
-    >
-      {TABS.map((t) => {
-        const active = pathname === t.key || (t.key !== '/' && pathname.startsWith(t.key))
+    <aside className="ap-desktop-sidebar" aria-label="メインナビゲーション">
+      <div className="ap-sidebar-brand">
+        <div className="ap-sidebar-brand-mark">AP</div>
+        <div>
+          <div className="ap-sidebar-brand-title">Alpha Pon</div>
+          <div className="ap-sidebar-brand-subtitle">Research workspace</div>
+        </div>
+      </div>
+
+      <nav className="ap-sidebar-nav">
+        {TABS.map((tab) => {
+          const active = isActive(pathname, tab.key)
+          return (
+            <Link
+              key={tab.key}
+              href={tab.key}
+              aria-current={active ? 'page' : undefined}
+              className={`ap-sidebar-link${active ? ' is-active' : ''}`}
+            >
+              <Icon name={tab.icon} size={19} strokeWidth={active ? 2.25 : 1.9} />
+              <span>{tab.label}</span>
+            </Link>
+          )
+        })}
+      </nav>
+
+      <div className="ap-sidebar-footer">
+        <span className="ap-readonly-dot" aria-hidden="true" />
+        閲覧専用
+      </div>
+    </aside>
+  )
+}
+
+export function MobileNav() {
+  const pathname = usePathname()
+  const moreActive = MOBILE_MORE.some((tab) => isActive(pathname, tab.key))
+
+  return (
+    <nav className="ap-mobile-nav" aria-label="メインナビゲーション">
+      {MOBILE_PRIMARY.map((tab) => {
+        const active = isActive(pathname, tab.key)
         return (
           <Link
-            key={t.key}
-            href={t.key}
+            key={tab.key}
+            href={tab.key}
             aria-current={active ? 'page' : undefined}
-            style={{
-              flex: '1 0 54px',
-              minWidth: 54,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 2,
-              padding: '4px 0',
-              color: active ? 'var(--accent)' : 'var(--ink-3)',
-              textDecoration: 'none',
-              fontFamily: 'var(--ui)',
-            }}
+            className={`ap-mobile-nav-link${active ? ' is-active' : ''}`}
           >
-            <Icon name={t.icon} size={22} strokeWidth={active ? 2.4 : 2} color="currentColor" />
-            <span style={{ fontSize: 9.5, fontWeight: active ? 850 : 650 }}>{t.label}</span>
+            <Icon name={tab.icon} size={22} strokeWidth={active ? 2.35 : 1.9} />
+            <span>{tab.label}</span>
           </Link>
         )
       })}
+
+      <details className={`ap-mobile-more${moreActive ? ' is-active' : ''}`}>
+        <summary className="ap-mobile-nav-link" aria-label="その他のメニュー">
+          <Icon name="more" size={22} strokeWidth={2} />
+          <span>その他</span>
+        </summary>
+        <div className="ap-mobile-more-menu">
+          <div className="ap-mobile-more-title">その他</div>
+          {MOBILE_MORE.map((tab) => {
+            const active = isActive(pathname, tab.key)
+            return (
+              <Link
+                key={tab.key}
+                href={tab.key}
+                aria-current={active ? 'page' : undefined}
+                className={`ap-mobile-more-link${active ? ' is-active' : ''}`}
+                onClick={(event) => event.currentTarget.closest('details')?.removeAttribute('open')}
+              >
+                <Icon name={tab.icon} size={19} strokeWidth={active ? 2.25 : 1.9} />
+                <span>{tab.label}</span>
+              </Link>
+            )
+          })}
+        </div>
+      </details>
     </nav>
   )
 }
