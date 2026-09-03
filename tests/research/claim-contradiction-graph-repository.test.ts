@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  linkSync,
   mkdtempSync,
   rmSync,
   writeFileSync,
@@ -173,10 +174,7 @@ function writePilot(dir: string) {
       securityRelationshipsPath: paths.securityRelationships,
       asOf: "2026-08-06T10:00:00+09:00",
     });
-    assert.deepEqual(
-      result.issues.filter((item) => item.severity === "error"),
-      [],
-    );
+    assert.deepEqual(result.issues.filter((item) => item.severity === "error"), []);
     assert.equal(result.snapshotClaimCount, 1);
     assert.equal(result.recommendationEligibleClaimCount, 1);
     assert.equal(result.assessments[0].eligible, true);
@@ -230,6 +228,32 @@ function writePilot(dir: string) {
     rmSync(dir, { recursive: true, force: true });
   }
   console.log("claim-contradiction-graph-repository: partial tail block OK");
+}
+
+for (const aliasedField of ["claims", "edges"] as const) {
+  const dir = mkdtempSync(join(tmpdir(), `claim-graph-repository-hardlink-${aliasedField}-`));
+  try {
+    const paths = writePilot(dir);
+    const sourcePath = paths[aliasedField];
+    const aliasPath = join(dir, `${aliasedField}-alias.jsonl`);
+    linkSync(sourcePath, aliasPath);
+    const result = validateClaimGraphRepository({
+      claimsPath: aliasedField === "claims" ? aliasPath : paths.claims,
+      edgesPath: aliasedField === "edges" ? aliasPath : paths.edges,
+      evidencePath: paths.evidence,
+      evidenceRelationsPath: paths.evidenceRelations,
+      securityEntitiesPath: paths.securityEntities,
+      securityRelationshipsPath: paths.securityRelationships,
+      asOf: "2026-08-06T10:00:00+09:00",
+    });
+    assert.ok(result.issues.some((item) =>
+      item.code === "non_standalone_claim_graph_repository_file" && item.target === aliasPath
+    ));
+    assert.equal(result.snapshot, null);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  console.log(`claim-contradiction-graph-repository: ${aliasedField} hard-link alias block OK`);
 }
 
 console.log("claim-contradiction-graph-repository: 全テスト成功");
