@@ -1,4 +1,5 @@
 import type { AlphaPonStock } from '@/types/alpha-pon'
+import styles from './DataStatus.module.css'
 
 type Props = {
   generatedAt: string
@@ -14,43 +15,19 @@ export function DataStatus({ generatedAt, stocks }: Props) {
   const pricedCount = stocks.filter(isValidPrice).length
   const missingPriceCount = total - pricedCount
 
+  const items = [
+    { label: '最終生成', value: generatedAt, tone: '' },
+    { label: '銘柄数', value: `${total} 銘柄`, tone: '' },
+    { label: '価格取得済み', value: `${pricedCount} 件`, tone: pricedCount > 0 ? styles.good : '' },
+    { label: '価格未取得', value: `${missingPriceCount} 件`, tone: missingPriceCount > 0 ? styles.warn : '' },
+  ]
+
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: 9,
-        marginBottom: 16,
-      }}
-    >
-      {[
-        { label: '最終生成', value: generatedAt },
-        { label: '銘柄数', value: `${total} 銘柄` },
-        { label: '価格取得済み', value: `${pricedCount} 件`, ok: pricedCount > 0 },
-        { label: '価格未取得', value: `${missingPriceCount} 件`, warn: missingPriceCount > 0 },
-      ].map(({ label, value, ok, warn }) => (
-        <div
-          key={label}
-          style={{
-            background: 'var(--surface)',
-            borderRadius: 14,
-            padding: '10px 12px',
-            border: '1px solid var(--card-line)',
-            boxShadow: 'var(--shadow)',
-          }}
-        >
-          <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink-3)', marginBottom: 3 }}>
-            {label}
-          </div>
-          <div
-            style={{
-              fontSize: 13.5,
-              fontWeight: 700,
-              color: ok ? 'var(--mint-deep)' : warn ? 'var(--amber)' : 'var(--ink)',
-            }}
-          >
-            {value}
-          </div>
+    <div className={styles.grid}>
+      {items.map((item) => (
+        <div key={item.label} className={styles.item}>
+          <div className={styles.label}>{item.label}</div>
+          <div className={`${styles.value} ${item.tone}`}>{item.value}</div>
         </div>
       ))}
     </div>

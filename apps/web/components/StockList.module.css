@@ -1,0 +1,21 @@
+.list {
+  border-top: 1px solid var(--line);
+}
+
+.empty {
+  padding: 36px 0;
+  color: var(--ink-3);
+  font-size: 14px;
+  line-height: 1.65;
+  text-align: center;
+}
+
+.emptyTitle {
+  color: var(--ink-2);
+  font-weight: 650;
+}
+
+.emptyText {
+  margin-top: 6px;
+  font-size: 13px;
+}
