@@ -1,7 +1,8 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
 import { readListingEventSyncConfig } from "./listing-event-sync-config.js";
+import { readReadOnlyTextFile } from "./read-only-text-file.js";
 
 type Milestone = {
   label: string;
@@ -46,8 +47,8 @@ type Config = {
 const CONFIG_PATH = "config/listing-event-watch.yml";
 
 function readYaml<T>(path: string, fallback: T): T {
-  if (!existsSync(path)) return fallback;
-  return load(readFileSync(path, "utf-8")) as T;
+  const text = readReadOnlyTextFile(path);
+  return text ? load(text) as T : fallback;
 }
 
 function list(lines: string[], items: string[] | undefined, indent = "- ") {
