@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
@@ -7,6 +7,7 @@ import {
   type RegimeScenarioReflection,
 } from "./regime-scenario-input.js";
 import { normalizeRegimeScenarioConfig } from "./regime-scenario-config-input.js";
+import { readReadOnlyTextFile } from "./read-only-text-file.js";
 
 const scenarioKeywords: Record<string, string[]> = {
   pandemic: ["感染", "パンデミック", "医療", "ワクチン", "人流", "在宅"],
@@ -19,7 +20,8 @@ const scenarioKeywords: Record<string, string[]> = {
 };
 
 function readYaml(path: string): unknown {
-  return load(readFileSync(path, "utf-8"));
+  const text = readReadOnlyTextFile(path);
+  return text ? load(text) : {};
 }
 
 function scoreScenario(id: string, reflections: RegimeScenarioReflection[]): { score: number; hits: string[] } {
