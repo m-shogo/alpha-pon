@@ -1,34 +1,60 @@
 import { loadGeneratedData } from '@/lib/generated-data'
-import { SectionLabel, Card } from '@/components/Card'
-import { Icon } from '@/components/Icon'
 import { Disclaimer } from '@/components/Disclaimer'
+import styles from './outcomes.module.css'
 
-export const metadata = { title: '当たり外れ検証 | alpha-pon' }
+export const metadata = { title: '答え合わせ | alpha-pon' }
 
 const RESULT_META = {
-  hit:         { label: '一致',   color: 'var(--mint-deep)',  bg: 'var(--mint-soft)' },
-  miss:        { label: '不一致', color: 'var(--urgent)',     bg: 'var(--urgent-soft)' },
-  too_early:   { label: '時期尚早', color: 'var(--amber)',    bg: 'var(--amber-soft)' },
-  invalidated: { label: '反証',   color: 'var(--lavender-deep)', bg: 'var(--lavender-soft)' },
-  unknown:     { label: '不明',   color: 'var(--ink-3)',      bg: 'var(--surface-2)' },
+  hit: { label: '一致', color: 'var(--mint-deep)' },
+  miss: { label: '不一致', color: 'var(--urgent)' },
+  too_early: { label: 'まだ判断しない', color: 'var(--amber)' },
+  invalidated: { label: '反証', color: 'var(--urgent)' },
+  unknown: { label: '未評価', color: 'var(--ink-3)' },
 } as const
 
-function ReturnCell({ value, prefix = '' }: { value: number | null; prefix?: string }) {
-  if (value == null) return <span style={{ color: 'var(--ink-3)' }}>N/A</span>
-  const color = value >= 0 ? 'var(--mint-deep)' : 'var(--urgent)'
-  return (
-    <span style={{ color, fontWeight: 700 }}>
-      {prefix}{value >= 0 ? '+' : ''}{value.toFixed(1)}%
-    </span>
-  )
-}
+const ACTION_LABEL_DISPLAY = {
+  watch: '監視候補系（watch）',
+  log: '記録保存系（log）',
+  ignore: '対象外系（ignore）',
+} as const
 
-function PercentCell({ value }: { value: number | null | undefined }) {
-  if (value == null) return <span style={{ color: 'var(--ink-3)' }}>N/A</span>
-  return <span style={{ color: 'var(--ink)', fontWeight: 800 }}>{(value * 100).toFixed(0)}%</span>
-}
+const HORIZON_LABEL = {
+  '1d': '1日後',
+  '1w': '1週間後',
+  '1m': '1か月後',
+  '3m': '3か月後',
+} as const
+
+const DATA_QUALITY_LABEL = {
+  ok: '十分',
+  partial: '一部不足',
+  missing: '不足',
+} as const
 
 type Outcome = NonNullable<ReturnType<typeof loadGeneratedData>['hypothesisOutcomes']>[number]
+
+function formatPct(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return '未計測'
+  return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`
+}
+
+function formatRate(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return '未算出'
+  return `${(value * 100).toFixed(0)}%`
+}
+
+function returnClass(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return styles.muted
+  return value >= 0 ? styles.positive : styles.negative
+}
+
+function PercentValue({ value }: { value: number | null | undefined }) {
+  return <span className={value == null ? styles.muted : undefined}>{formatRate(value)}</span>
+}
+
+function ReturnValue({ value }: { value: number | null | undefined }) {
+  return <span className={returnClass(value)}>{formatPct(value)}</span>
+}
 
 function resultLabel(result: Outcome['result']) {
   return RESULT_META[result]?.label ?? '未評価'
@@ -43,6 +69,13 @@ function hitRate(items: Outcome[]) {
 function avg(values: Array<number | null | undefined>) {
   const valid = values.filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
   return valid.length > 0 ? valid.reduce((sum, value) => sum + value, 0) / valid.length : null
+}
+
+function returnForHorizon(outcome: Outcome, horizon: Outcome['reviewHorizon']) {
+  if (horizon === '1d') return outcome.return1d
+  if (horizon === '1w') return outcome.return1w
+  if (horizon === '3m') return outcome.return3m
+  return outcome.return1m
 }
 
 function relativeTopixForHorizon(outcome: Outcome, horizon: Outcome['reviewHorizon']) {
@@ -69,12 +102,6 @@ function groupBy<T extends string>(outcomes: Outcome[], getKey: (outcome: Outcom
   return grouped
 }
 
-const ACTION_LABEL_DISPLAY = {
-  watch: 'actionLabel: 監視候補系 (watch)',
-  log: 'actionLabel: ログ保存系 (log)',
-  ignore: 'actionLabel: 対象外系 (ignore)',
-} as const
-
 function OutcomeStatRow({
   label,
   items,
@@ -90,19 +117,107 @@ function OutcomeStatRow({
     tooEarly: items.filter(item => item.result === 'too_early').length,
     unknown: items.filter(item => item.result === 'unknown').length,
   }
+  const topixValues = items.map(item => topixAxis === 'ownHorizon'
+    ? relativeTopixForOwnHorizon(item)
+    : relativeTopixForHorizon(item, topixAxis))
+
   return (
-    <tr style={{ borderTop: '1px solid var(--line)' }}>
-      <td style={{ padding: '8px 12px', fontWeight: 800, color: 'var(--ink)' }}>{label}</td>
-      <td style={{ padding: '8px 12px', textAlign: 'right', color: 'var(--ink-3)', fontWeight: 700 }}>{items.length}件</td>
-      <td style={{ padding: '8px 12px', textAlign: 'right' }}><PercentCell value={hitRate(items)} /></td>
-      <td style={{ padding: '8px 12px', textAlign: 'right', color: 'var(--mint-deep)', fontWeight: 800 }}>{counts.hit}</td>
-      <td style={{ padding: '8px 12px', textAlign: 'right', color: 'var(--urgent)', fontWeight: 800 }}>{counts.miss}</td>
-      <td style={{ padding: '8px 12px', textAlign: 'right', color: 'var(--amber)', fontWeight: 800 }}>{counts.tooEarly}</td>
-      <td style={{ padding: '8px 12px', textAlign: 'right', color: 'var(--ink-3)', fontWeight: 800 }}>{counts.unknown}</td>
-      <td style={{ padding: '8px 12px', textAlign: 'right' }}>
-        <ReturnCell value={avg(items.map(item => topixAxis === 'ownHorizon' ? relativeTopixForOwnHorizon(item) : relativeTopixForHorizon(item, topixAxis)))} />
-      </td>
+    <tr>
+      <td>{label}</td>
+      <td data-label="件数">{items.length}件</td>
+      <td data-label="一致率"><PercentValue value={hitRate(items)} /></td>
+      <td data-label="一致"><span className={styles.positive}>{counts.hit}</span></td>
+      <td data-label="不一致"><span className={styles.negative}>{counts.miss}</span></td>
+      <td data-label="判断待ち"><span className={styles.warning}>{counts.tooEarly}</span></td>
+      <td data-label="未評価"><span className={styles.muted}>{counts.unknown}</span></td>
+      <td data-label="平均TOPIX比"><ReturnValue value={avg(topixValues)} /></td>
     </tr>
+  )
+}
+
+function OutcomeRow({ outcome }: { outcome: Outcome }) {
+  const result = RESULT_META[outcome.result] ?? RESULT_META.unknown
+  const ownReturn = returnForHorizon(outcome, outcome.reviewHorizon)
+  const ownRelative = relativeTopixForOwnHorizon(outcome)
+  const hasReflection = Boolean(
+    outcome.whatMatched?.length
+    || outcome.whatDiffered?.length
+    || outcome.missedSignals?.length
+    || outcome.improvedRuleIdeas?.length,
+  )
+
+  return (
+    <article className={styles.outcomeRow}>
+      <div className={styles.outcomeTop}>
+        <div className={styles.outcomeIdentity}>
+          <div className={styles.outcomeNameLine}>
+            <span className={styles.outcomeName}>{outcome.name}</span>
+            <span className={styles.outcomeCode}>{outcome.code}</span>
+            {outcome.dataSource === 'mock' && <span className={styles.sampleLabel}>サンプルデータ</span>}
+          </div>
+          <div className={styles.outcomeMeta}>
+            {outcome.evaluatedAt}に検証 ・ {HORIZON_LABEL[outcome.reviewHorizon]} ・ {ACTION_LABEL_DISPLAY[outcome.actionLabel]}
+            {outcome.scoreAtPrediction != null ? ` ・ 予測時スコア ${outcome.scoreAtPrediction}` : ''}
+          </div>
+        </div>
+        <div className={styles.resultState} style={{ color: result.color }}>
+          {resultLabel(outcome.result)}
+        </div>
+      </div>
+
+      <div className={styles.metrics}>
+        <div className={styles.metric}>
+          <div className={styles.metricLabel}>{HORIZON_LABEL[outcome.reviewHorizon]}の値動き</div>
+          <div className={`${styles.metricValue} ${returnClass(ownReturn)}`}>{formatPct(ownReturn)}</div>
+        </div>
+        <div className={styles.metric}>
+          <div className={styles.metricLabel}>同期間のTOPIX比</div>
+          <div className={`${styles.metricValue} ${returnClass(ownRelative)}`}>{formatPct(ownRelative)}</div>
+        </div>
+        <div className={styles.metric}>
+          <div className={styles.metricLabel}>1か月の値動き</div>
+          <div className={`${styles.metricValue} ${returnClass(outcome.return1m)}`}>{formatPct(outcome.return1m)}</div>
+        </div>
+        <div className={styles.metric}>
+          <div className={styles.metricLabel}>最大下落</div>
+          <div className={`${styles.metricValue} ${returnClass(outcome.maxDrawdownPct)}`}>{formatPct(outcome.maxDrawdownPct)}</div>
+        </div>
+      </div>
+
+      <p className={styles.lesson}>
+        仮説: {outcome.hypothesis.reason}
+        {' '}・ データ品質: {DATA_QUALITY_LABEL[outcome.dataAvailability]}
+        {outcome.notes ? ` ・ ${outcome.notes}` : ''}
+      </p>
+
+      {hasReflection && (
+        <details className={styles.reflectionDetails}>
+          <summary>反省と学びを見る</summary>
+          <div className={styles.reflectionBody}>
+            {outcome.whatMatched?.map((item, index) => (
+              <div key={`matched-${index}`} className={styles.reflectionLine}>
+                <span className={styles.reflectionLabel}>一致した点</span>{item}
+              </div>
+            ))}
+            {outcome.whatDiffered?.map((item, index) => (
+              <div key={`differed-${index}`} className={styles.reflectionLine}>
+                <span className={styles.reflectionLabel}>違った点</span>{item}
+              </div>
+            ))}
+            {outcome.missedSignals?.map((item, index) => (
+              <div key={`missed-${index}`} className={styles.reflectionLine}>
+                <span className={styles.reflectionLabel}>見落とし</span>{item}
+              </div>
+            ))}
+            {outcome.improvedRuleIdeas?.map((item, index) => (
+              <div key={`improved-${index}`} className={styles.reflectionLine}>
+                <span className={styles.reflectionLabel}>改善案</span>{item}
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+    </article>
   )
 }
 
@@ -110,119 +225,232 @@ export default function OutcomesPage() {
   const data = loadGeneratedData()
   const outcomes = data.hypothesisOutcomes ?? []
   const summary = data.accuracySummary ?? null
-
   const sorted = [...outcomes].sort((a, b) => b.evaluatedAt.localeCompare(a.evaluatedAt))
   const byHorizon = groupBy(outcomes, outcome => outcome.reviewHorizon)
   const byLabel = groupBy(outcomes, outcome => outcome.actionLabel)
   const specialOutcomes = outcomes.filter(isSpecialOutcome)
   const missingEvidenceOutcomes = outcomes.filter(outcome => (outcome.hypothesis?.evidenceNeeded ?? []).length >= 3)
+  const counts = {
+    hit: outcomes.filter(item => item.result === 'hit').length,
+    miss: outcomes.filter(item => item.result === 'miss').length,
+    invalidated: outcomes.filter(item => item.result === 'invalidated').length,
+    pending: outcomes.filter(item => item.result === 'too_early' || item.result === 'unknown').length,
+  }
+  const allScoreBandsEmpty = summary?.byScoreBand
+    ? Object.values(summary.byScoreBand).every(item => (item?.total ?? 0) === 0)
+    : true
 
   return (
-    <>
-      <div style={{
-        position: 'sticky', top: 0, zIndex: 8,
-        padding: '52px 20px 12px',
-        background: 'var(--header-bg)',
-        backdropFilter: 'blur(14px)',
-        WebkitBackdropFilter: 'blur(14px)',
-        borderBottom: '1px solid var(--line)',
-      }}>
-        <div>
-          <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--mint-deep)', marginBottom: 2 }}>
-            仮説の精度・反省
-          </div>
-          <h1 style={{ margin: 0, fontFamily: 'var(--display)', fontWeight: 700, fontSize: 27, color: 'var(--ink)' }}>
-            当たり外れ検証
-          </h1>
-        </div>
-      </div>
+    <main className={styles.page}>
+      <header className={styles.header}>
+        <p className={styles.eyebrow}>仮説の答え合わせ</p>
+        <h1 className={styles.title}>実際どうだった？</h1>
+        <p className={styles.lead}>
+          過去に立てた仮説が、その後の値動きやTOPIXとの比較でどうだったかを確認します。
+          一致率は買い推奨の成績ではなく、研究仮説の検証結果です。
+        </p>
+      </header>
 
-      <div style={{ padding: '16px 16px 0' }}>
-        {/* サマリー */}
-        {summary && (
-          <>
-            <SectionLabel icon={<Icon name="arc" size={15} />}>精度サマリー</SectionLabel>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 9, marginBottom: 16 }}>
-              {[
-                { label: '総検証数', value: `${summary.total}件` },
-                { label: '一致率', value: summary.hitRate != null ? `${(summary.hitRate * 100).toFixed(0)}%` : 'N/A' },
-                { label: '平均1Mリターン', value: summary.avgReturn1m != null ? `${summary.avgReturn1m >= 0 ? '+' : ''}${summary.avgReturn1m.toFixed(1)}%` : 'N/A' },
-                { label: '平均TOPIX比', value: summary.avgRelativeToTopix1m != null ? `${summary.avgRelativeToTopix1m >= 0 ? '+' : ''}${summary.avgRelativeToTopix1m.toFixed(1)}%` : 'N/A' },
-                { label: '平均最大下落', value: summary.avgMaxDrawdownPct != null ? `${summary.avgMaxDrawdownPct.toFixed(1)}%` : 'N/A' },
-              ].map(({ label, value }) => (
-                <div key={label} style={{ background: 'var(--surface)', borderRadius: 14, padding: '10px 12px', border: '1px solid var(--card-line)', boxShadow: 'var(--shadow)' }}>
-                  <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink-3)', marginBottom: 3 }}>{label}</div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>{value}</div>
-                </div>
+      <div className={styles.content}>
+        <section className={styles.summarySurface} aria-label="答え合わせの概要">
+          <div className={styles.summaryHeading}>
+            <div>
+              <div className={styles.summaryKicker}>現在の検証結果</div>
+              <div className={styles.summaryPrimary}>
+                {summary ? formatRate(summary.hitRate) : '未算出'}
+                <span>一致率</span>
+              </div>
+              <p className={styles.summaryNote}>
+                一致率は「一致 / 不一致」まで判定できた仮説を母数にした既存の集計値です。
+                まだ判断できないものや反証は別に表示します。
+              </p>
+            </div>
+            <div className={styles.summaryCounts}>
+              <div className={styles.summaryCount}>
+                <div className={styles.summaryCountLabel}>一致</div>
+                <div className={`${styles.summaryCountValue} ${styles.positive}`}>{counts.hit}件</div>
+              </div>
+              <div className={styles.summaryCount}>
+                <div className={styles.summaryCountLabel}>不一致</div>
+                <div className={`${styles.summaryCountValue} ${styles.negative}`}>{counts.miss}件</div>
+              </div>
+              <div className={styles.summaryCount}>
+                <div className={styles.summaryCountLabel}>反証</div>
+                <div className={`${styles.summaryCountValue} ${styles.negative}`}>{counts.invalidated}件</div>
+              </div>
+              <div className={styles.summaryCount}>
+                <div className={styles.summaryCountLabel}>判断待ち・未評価</div>
+                <div className={`${styles.summaryCountValue} ${styles.warning}`}>{counts.pending}件</div>
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.supportGrid}>
+            <div className={styles.supportMetric}>
+              <div className={styles.supportMetricLabel}>総検証数</div>
+              <div className={styles.supportMetricValue}>{summary?.total ?? outcomes.length}件</div>
+            </div>
+            <div className={styles.supportMetric}>
+              <div className={styles.supportMetricLabel}>平均1か月リターン</div>
+              <div className={`${styles.supportMetricValue} ${returnClass(summary?.avgReturn1m)}`}>
+                {formatPct(summary?.avgReturn1m)}
+              </div>
+            </div>
+            <div className={styles.supportMetric}>
+              <div className={styles.supportMetricLabel}>平均TOPIX比（1か月）</div>
+              <div className={`${styles.supportMetricValue} ${returnClass(summary?.avgRelativeToTopix1m)}`}>
+                {formatPct(summary?.avgRelativeToTopix1m)}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div className={styles.notice}>
+          価格データ未反映やレビュー母数不足の間は「まだ判断しない / 未評価」として扱います。
+          0件や未算出は失敗ではなく、答え合わせできる時点まで待っている状態です。
+        </div>
+
+        <section className={styles.section}>
+          <div className={styles.sectionHead}>
+            <h2 className={styles.sectionTitle}>検証履歴</h2>
+            <div className={styles.sectionMeta}>{outcomes.length}件 ・ 新しい順</div>
+          </div>
+          {outcomes.length === 0 ? (
+            <div className={styles.empty}>
+              まだ答え合わせできる仮説はありません。レビュー時点に到達した結果が生成されると、ここに履歴が並びます。
+            </div>
+          ) : (
+            <div className={styles.outcomeList}>
+              {sorted.map((outcome, index) => (
+                <OutcomeRow key={`${outcome.code}:${outcome.hypothesis.detectedAt}:${outcome.reviewHorizon}:${index}`} outcome={outcome} />
               ))}
             </div>
+          )}
+        </section>
 
-            {/* watch/log/ignore 別成績 */}
-            {summary.byActionLabel && (
-              <>
-                <SectionLabel icon={<Icon name="filter" size={15} />}>分類別 TOPIX超過リターン</SectionLabel>
-                <div style={{ marginBottom: 16, background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--card-line)', boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+        <section className={styles.section}>
+          <div className={styles.sectionHead}>
+            <h2 className={styles.sectionTitle}>詳しい集計</h2>
+            <div className={styles.sectionMeta}>期間・分類・スコア帯</div>
+          </div>
+          <details className={styles.statsDetails}>
+            <summary>研究用の統計を開く</summary>
+            <div className={styles.statsBody}>
+              <div>
+                <h3 className={styles.statsGroupTitle}>レビュー時点別</h3>
+                <div className={styles.tableWrap}>
+                  <table className={styles.statTable}>
                     <thead>
-                      <tr style={{ background: 'var(--surface-2)' }}>
-                        <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>分類</th>
-                        <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>件数</th>
-                        <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>平均超過1W</th>
-                        <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>平均超過1M</th>
+                      <tr>
+                        <th>時点</th>
+                        <th>件数</th>
+                        <th>一致率</th>
+                        <th>一致</th>
+                        <th>不一致</th>
+                        <th>判断待ち</th>
+                        <th>未評価</th>
+                        <th>平均TOPIX比</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {(['watch', 'log', 'ignore'] as const).map((label, i) => {
-                        const stats = summary.byActionLabel?.[label]
-                        const fmtPct = (v: number | null | undefined) =>
-                          v == null ? <span style={{ color: 'var(--ink-3)' }}>N/A</span>
-                            : <span style={{ color: v >= 0 ? 'var(--mint-deep)' : 'var(--urgent)', fontWeight: 700 }}>{v >= 0 ? '+' : ''}{v.toFixed(1)}%</span>
-                        return (
-                          <tr key={label} style={{ borderTop: i > 0 ? '1px solid var(--line)' : undefined }}>
-                            <td style={{ padding: '8px 12px', fontWeight: 700, color: 'var(--ink)' }}>{label}</td>
-                            <td style={{ padding: '8px 12px', textAlign: 'right', color: 'var(--ink-3)', fontWeight: 600 }}>{stats?.total ?? 0}件</td>
-                            <td style={{ padding: '8px 12px', textAlign: 'right' }}>{fmtPct(stats?.avgExcessReturn1w)}</td>
-                            <td style={{ padding: '8px 12px', textAlign: 'right' }}>{fmtPct(stats?.avgExcessReturn1m)}</td>
-                          </tr>
-                        )
-                      })}
+                      {(['1d', '1w', '1m', '3m'] as const).map(horizon => (
+                        <OutcomeStatRow
+                          key={horizon}
+                          label={HORIZON_LABEL[horizon]}
+                          items={byHorizon.get(horizon) ?? []}
+                          topixAxis={horizon}
+                        />
+                      ))}
                     </tbody>
                   </table>
                 </div>
-              </>
-            )}
+              </div>
 
-            {summary.byScoreBand && (() => {
-              const allZero = Object.values(summary.byScoreBand).every(s => (s?.total ?? 0) === 0)
-              return (
-                <>
-                  <SectionLabel icon={<Icon name="arc" size={15} />}>スコア帯別 outcome</SectionLabel>
-                  {allZero ? (
-                    <div style={{ marginBottom: 16, background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--card-line)', padding: '14px 16px', fontSize: 12.5, color: 'var(--ink-3)', fontWeight: 600 }}>
-                      データ蓄積中 — outcome が蓄積されるとスコア帯別のヒット率が表示されます
-                    </div>
+              <div>
+                <h3 className={styles.statsGroupTitle}>候補の扱い別</h3>
+                <div className={styles.tableWrap}>
+                  <table className={styles.statTable}>
+                    <thead>
+                      <tr>
+                        <th>分類</th>
+                        <th>件数</th>
+                        <th>一致率</th>
+                        <th>一致</th>
+                        <th>不一致</th>
+                        <th>判断待ち</th>
+                        <th>未評価</th>
+                        <th>平均TOPIX比</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(['watch', 'log', 'ignore'] as const).map(label => (
+                        <OutcomeStatRow key={label} label={ACTION_LABEL_DISPLAY[label]} items={byLabel.get(label) ?? []} />
+                      ))}
+                      <OutcomeStatRow label="特殊状況" items={specialOutcomes} />
+                      <OutcomeStatRow label="必要証拠が多い仮説" items={missingEvidenceOutcomes} />
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {summary?.byActionLabel && (
+                <div>
+                  <h3 className={styles.statsGroupTitle}>分類別のTOPIX超過リターン</h3>
+                  <div className={styles.tableWrap}>
+                    <table className={styles.statTable}>
+                      <thead>
+                        <tr>
+                          <th>分類</th>
+                          <th>件数</th>
+                          <th>1週間</th>
+                          <th>1か月</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(['watch', 'log', 'ignore'] as const).map(label => {
+                          const stats = summary.byActionLabel[label]
+                          return (
+                            <tr key={label}>
+                              <td>{ACTION_LABEL_DISPLAY[label]}</td>
+                              <td data-label="件数">{stats.total}件</td>
+                              <td data-label="1週間"><ReturnValue value={stats.avgExcessReturn1w} /></td>
+                              <td data-label="1か月"><ReturnValue value={stats.avgExcessReturn1m} /></td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {summary?.byScoreBand && (
+                <div>
+                  <h3 className={styles.statsGroupTitle}>予測時スコア帯別</h3>
+                  {allScoreBandsEmpty ? (
+                    <div className={styles.empty}>まだスコア帯別に比較できるだけの検証データがありません。</div>
                   ) : (
-                    <div style={{ marginBottom: 16, background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--card-line)', boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+                    <div className={styles.tableWrap}>
+                      <table className={styles.statTable}>
                         <thead>
-                          <tr style={{ background: 'var(--surface-2)' }}>
-                            <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>score</th>
-                            <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>件数</th>
-                            <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>hit率</th>
-                            <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>TOPIX比1W</th>
-                            <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>TOPIX比1M</th>
+                          <tr>
+                            <th>スコア帯</th>
+                            <th>件数</th>
+                            <th>一致率</th>
+                            <th>TOPIX比 1週間</th>
+                            <th>TOPIX比 1か月</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {(['0-49', '50-69', '70-84', '85-100', 'unknown'] as const).map((band, i) => {
-                            const stats = summary.byScoreBand?.[band]
+                          {(['0-49', '50-69', '70-84', '85-100', 'unknown'] as const).map(band => {
+                            const stats = summary.byScoreBand[band]
                             return (
-                              <tr key={band} style={{ borderTop: i > 0 ? '1px solid var(--line)' : undefined }}>
-                                <td style={{ padding: '8px 12px', fontWeight: 800, color: 'var(--ink)' }}>{band}</td>
-                                <td style={{ padding: '8px 12px', textAlign: 'right', color: 'var(--ink-3)', fontWeight: 700 }}>{stats?.total ?? 0}件</td>
-                                <td style={{ padding: '8px 12px', textAlign: 'right' }}><PercentCell value={stats?.hitRate} /></td>
-                                <td style={{ padding: '8px 12px', textAlign: 'right' }}><ReturnCell value={stats?.avgExcessReturn1w ?? null} /></td>
-                                <td style={{ padding: '8px 12px', textAlign: 'right' }}><ReturnCell value={stats?.avgExcessReturn1m ?? null} /></td>
+                              <tr key={band}>
+                                <td>{band === 'unknown' ? 'スコア未記録' : band}</td>
+                                <td data-label="件数">{stats.total}件</td>
+                                <td data-label="一致率"><PercentValue value={stats.hitRate} /></td>
+                                <td data-label="TOPIX比 1週間"><ReturnValue value={stats.avgExcessReturn1w} /></td>
+                                <td data-label="TOPIX比 1か月"><ReturnValue value={stats.avgExcessReturn1m} /></td>
                               </tr>
                             )
                           })}
@@ -230,147 +458,15 @@ export default function OutcomesPage() {
                       </table>
                     </div>
                   )}
-                </>
-              )
-            })()}
-          </>
-        )}
-
-        {/* J-Quants Free プランの遅延説明 */}
-        <div style={{ marginBottom: 12, padding: '10px 14px', background: 'var(--surface-2)', borderRadius: 10, fontSize: 12, color: 'var(--ink-3)', fontWeight: 600, lineHeight: 1.6 }}>
-          ※ この画面は買い推奨ではなく、仮説検証結果の整理です。価格データ未反映やレビュー母数不足の間は「未評価」として扱います。
-        </div>
-
-        <SectionLabel icon={<Icon name="filter" size={15} />}>レビュー軸別の答え合わせ</SectionLabel>
-        {outcomes.length === 0 ? (
-          <div style={{ marginBottom: 16, background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--card-line)', padding: '14px 16px', fontSize: 12.5, color: 'var(--ink-3)', fontWeight: 600 }}>
-            まだレビュー母数が不足しています。次回レビュー予定に到達後、`pnpm review:hypotheses` と `pnpm ui:data` で反映されます。
-          </div>
-        ) : (
-          <div style={{ marginBottom: 16, background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--card-line)', boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
-              <thead>
-                <tr style={{ background: 'var(--surface-2)' }}>
-                  <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>軸</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>件数</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>一致率</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>一致</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>不一致</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>時期尚早</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>未評価</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--ink-3)', fontSize: 11 }}>平均TOPIX比</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(['1d', '1w', '1m', '3m'] as const).map(horizon => (
-                  <OutcomeStatRow key={horizon} label={`${horizon} review`} items={byHorizon.get(horizon) ?? []} topixAxis={horizon} />
-                ))}
-                {(['watch', 'log', 'ignore'] as const).map(label => (
-                  <OutcomeStatRow key={label} label={ACTION_LABEL_DISPLAY[label]} items={byLabel.get(label) ?? []} />
-                ))}
-                <OutcomeStatRow label="special situation" items={specialOutcomes} />
-                <OutcomeStatRow label="missingEvidence 多め" items={missingEvidenceOutcomes} />
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* 検証リスト */}
-        <SectionLabel icon={<Icon name="check" size={15} />}>
-          検証済み仮説 ({outcomes.length}件)
-        </SectionLabel>
-
-        {outcomes.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--ink-3)', fontSize: 13, fontWeight: 600 }}>
-            <p>検証済みデータなし</p>
-            <p style={{ marginTop: 8, fontSize: 12 }}>
-              <code style={{ background: 'var(--surface-2)', padding: '2px 6px', borderRadius: 4 }}>pnpm review:hypotheses</code> を実行してください
-            </p>
-          </div>
-        ) : (
-          sorted.map((o, i) => {
-            const rm = RESULT_META[o.result] ?? RESULT_META.unknown
-            return (
-              <Card key={i} pad={13} style={{ marginBottom: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
-                      <span style={{
-                        fontSize: 11.5, fontWeight: 800, color: rm.color,
-                        background: rm.bg, borderRadius: 6, padding: '2px 8px',
-                      }}>
-                        {resultLabel(o.result)}
-                      </span>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{o.name}</span>
-                      <span style={{ fontSize: 11.5, color: 'var(--ink-3)', fontWeight: 700 }}>{o.code}</span>
-                    </div>
-                    <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 600, color: 'var(--ink-3)' }}>
-                      検証日: {o.evaluatedAt} ・ 仮説日: {o.hypothesis.detectedAt} ({o.hypothesis.label})
-                      {' '}・ 分類: <span style={{ fontWeight: 800, color: 'var(--ink)' }}>{o.actionLabel}</span>
-                      {' '}・ <span style={{ fontWeight: 800, color: 'var(--sky-deep)' }}>{o.reviewHorizon} review</span>
-                      {o.scoreAtPrediction != null && (
-                        <span> ・ 予測時スコア: <span style={{ fontWeight: 800, color: 'var(--ink)' }}>{o.scoreAtPrediction}</span></span>
-                      )}
-                    </p>
-                    <div style={{ display: 'flex', gap: 14, fontSize: 12.5, flexWrap: 'wrap' }}>
-                      <div>
-                        <span style={{ color: 'var(--ink-3)', marginRight: 4 }}>1D</span>
-                        <ReturnCell value={o.return1d} />
-                      </div>
-                      <div>
-                        <span style={{ color: 'var(--ink-3)', marginRight: 4 }}>1W</span>
-                        <ReturnCell value={o.return1w} />
-                      </div>
-                      <div>
-                        <span style={{ color: 'var(--ink-3)', marginRight: 4 }}>1M</span>
-                        <ReturnCell value={o.return1m} />
-                      </div>
-                      <div>
-                        <span style={{ color: 'var(--ink-3)', marginRight: 4 }}>TOPIX比1M</span>
-                        <ReturnCell value={o.relativeToTopix1m} />
-                      </div>
-                      <div>
-                        <span style={{ color: 'var(--ink-3)', marginRight: 4 }}>最大下落</span>
-                        <ReturnCell value={o.maxDrawdownPct} />
-                      </div>
-                      <div>
-                        <span style={{ color: 'var(--ink-3)', marginRight: 4 }}>品質</span>
-                        <span style={{ color: o.dataAvailability === 'ok' ? 'var(--mint-deep)' : 'var(--amber)', fontWeight: 700 }}>{o.dataAvailability}</span>
-                      </div>
-                    </div>
-                  </div>
-                  {o.dataSource === 'mock' && (
-                    <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: 'var(--amber)', borderRadius: 4, padding: '1px 5px', flexShrink: 0 }}>
-                      MOCK
-                    </span>
-                  )}
                 </div>
-                {o.notes && (
-                  <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--ink-3)', fontWeight: 600 }}>
-                    {o.notes}
-                  </p>
-                )}
-                {(o.whatDiffered?.length > 0 || o.missedSignals?.length > 0 || o.improvedRuleIdeas?.length > 0) && (
-                  <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--line)' }}>
-                    {o.whatDiffered?.slice(0, 2).map((item, j) => (
-                      <div key={`d-${j}`} style={{ fontSize: 11.5, color: 'var(--amber)', fontWeight: 700, marginTop: 2 }}>差分: {item}</div>
-                    ))}
-                    {o.missedSignals?.slice(0, 2).map((item, j) => (
-                      <div key={`m-${j}`} style={{ fontSize: 11.5, color: 'var(--urgent)', fontWeight: 700, marginTop: 2 }}>見落とし: {item}</div>
-                    ))}
-                    {o.improvedRuleIdeas?.slice(0, 2).map((item, j) => (
-                      <div key={`i-${j}`} style={{ fontSize: 11.5, color: 'var(--sky-deep)', fontWeight: 700, marginTop: 2 }}>改善案: {item}</div>
-                    ))}
-                  </div>
-                )}
-              </Card>
-            )
-          })
-        )}
+              )}
+            </div>
+          </details>
+        </section>
 
         <Disclaimer compact />
-        <div style={{ height: 24 }} />
+        <div className={styles.footerSpace} />
       </div>
-    </>
+    </main>
   )
 }
