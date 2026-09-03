@@ -1,9 +1,10 @@
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
 import { requireMustWatchThemes } from "./must-watch-audit-input.js";
 import { mustWatchThemeStatus } from "./must-watch-audit-status.js";
+import { readReadOnlyTextFile } from "./read-only-text-file.js";
 
 type RequiredJapanLink = {
   code: string;
@@ -36,12 +37,12 @@ type ThemeAudit = {
 const CONFIG_PATH = "config/must-watch-themes.yml";
 
 function readText(path: string): string {
-  return existsSync(path) ? readFileSync(path, "utf-8") : "";
+  return readReadOnlyTextFile(path);
 }
 
 function readYaml(path: string): unknown {
-  if (!existsSync(path)) return null;
-  return load(readFileSync(path, "utf-8"));
+  const text = readReadOnlyTextFile(path);
+  return text ? load(text) : null;
 }
 
 function collectDocs(): string[] {
