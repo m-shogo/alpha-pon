@@ -1,13 +1,21 @@
-import { mkdirSync, readFileSync, writeFileSync } from "fs";
+import { lstatSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
 import { normalizeCompanyCoverageRoots, normalizeCompanyCoverageRows } from "./company-coverage-input.js";
 
+function readStandaloneYaml(path: string): unknown {
+  const stat = lstatSync(path);
+  if (!stat.isFile() || stat.nlink !== 1) {
+    throw new Error(`${path}: non_standalone_file`);
+  }
+  return load(readFileSync(path, "utf-8"));
+}
+
 function main() {
   const date = todayJst();
-  const hypothesesRaw = load(readFileSync("config/company-hypotheses.yml", "utf-8"));
-  const networkRaw = load(readFileSync("config/company-network.yml", "utf-8"));
+  const hypothesesRaw = readStandaloneYaml("config/company-hypotheses.yml");
+  const networkRaw = readStandaloneYaml("config/company-network.yml");
   const roots = normalizeCompanyCoverageRoots(hypothesesRaw, networkRaw);
   const normalized = normalizeCompanyCoverageRows(roots);
 
