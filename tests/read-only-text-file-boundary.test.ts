@@ -37,6 +37,18 @@ try {
     /function readText\(|readFileSync\(path, "utf-8"\)/,
     "knowledge review must not bypass the canonical text Evidence boundary",
   );
+
+  const alignmentWarningSource = readFileSync("src/alignment-warning-summary.ts", "utf-8");
+  assert.match(
+    alignmentWarningSource,
+    /readReadOnlyTextFile\("reports\/regime_hypothesis_alignment_latest\.md"\)/,
+    "alignment warning summary must use the canonical text Evidence boundary",
+  );
+  assert.doesNotMatch(
+    alignmentWarningSource,
+    /function readText\(|existsSync\(|readFileSync\(path, "utf-8"\)/,
+    "alignment warning summary must not follow linked report aliases",
+  );
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }

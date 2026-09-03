@@ -1,14 +1,11 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { todayJst } from "./date.js";
-
-function readText(path: string): string {
-  return existsSync(path) ? readFileSync(path, "utf-8") : "";
-}
+import { readReadOnlyTextFile } from "./read-only-text-file.js";
 
 function main() {
   const date = todayJst();
-  const report = readText("reports/regime_hypothesis_alignment_latest.md");
+  const report = readReadOnlyTextFile("reports/regime_hypothesis_alignment_latest.md");
   const lines: string[] = [];
   const warnings: string[] = [];
 
