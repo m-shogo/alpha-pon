@@ -35,6 +35,28 @@ That build delegates to `scripts/build-cloudflare-pages.sh` and verifies:
 
 Do not replace this with a bare `next build`; the verified build is the release gate.
 
+## Owner Research snapshot freshness semantics
+
+Owner Research uses two different timestamps and they must not be conflated:
+
+- `generatedAt` means when the owner-safe build snapshot was generated.
+- `latestResearchAt` means the latest research activity represented by that snapshot.
+
+The Owner Research JSON files are regenerated as part of the verified Cloudflare build. Research OS itself has no time-based schedule or canonical Owner Research max-age/TTL contract: its workflow runs on relevant repository changes or manual dispatch. Therefore the Web UI must **not** invent a 24h/48h/etc. age threshold and must not call a snapshot stale solely because elapsed wall-clock time is large.
+
+For v1, freshness fail-closed means:
+
+- missing snapshot → unavailable
+- malformed timestamp → unavailable
+- timestamp without an explicit timezone → unavailable
+- future-dated timestamp → unavailable
+- invalid temporal/reference/integrity semantics → unavailable
+- an old-but-valid `generatedAt` alone → **not** enough evidence to declare the snapshot stale
+
+If Research OS later publishes a canonical expected cadence, expected-next-run, `staleAfter`, or equivalent freshness contract, Owner UI may enforce age-based staleness against that source of truth. Until then, display `generatedAt` and `latestResearchAt` factually and independently.
+
+This rule is specific to Owner Research snapshots. Other datasets may have their own explicit freshness contracts and should continue to use them.
+
 ## Cloudflare Workers Builds
 
 In Cloudflare Dashboard:
@@ -82,7 +104,7 @@ Minimum v1 checks:
 - `/` loads the Alpha Pon dashboard.
 - `/research/` loads Owner Research state.
 - `/calendar/` loads.
-- generated data is not stale/future-dated.
+- Owner Research generated data is missing/malformed/future-dated/semantically invalid only when the UI fails closed; do not infer an age-based stale state without a canonical freshness contract.
 - Pipeline status and Mock/Missing warnings are visible.
 - current research, known/unknown state, and next actions are understandable without opening GitHub.
 - `/healthz` responds successfully.
@@ -96,7 +118,7 @@ Dashboard v1 is public-ready when all of the following are true:
 2. `bash scripts/build-cloudflare-workers.sh` succeeds in Workers Builds.
 3. `npx wrangler deploy` succeeds.
 4. The production `workers.dev` URL renders correctly on mobile and desktop.
-5. Dashboard data warnings accurately fail closed rather than hiding missing/stale data.
+5. Dashboard data warnings accurately fail closed rather than hiding missing, malformed, future-dated, or semantically invalid data.
 
 Visual polish beyond those conditions is post-v1 work and should not block initial publication.
 
