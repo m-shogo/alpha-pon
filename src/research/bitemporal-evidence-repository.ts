@@ -1,4 +1,5 @@
 import { existsSync, lstatSync, readFileSync } from "node:fs";
+import { dirname } from "node:path";
 import {
   EVIDENCE_STORE_PATHS,
   bindingDispositionByEvidenceId,
@@ -57,6 +58,17 @@ function sortIssues(issues: EvidenceStoreIssue[]): EvidenceStoreIssue[] {
 
 function readStrictJsonl<T>(path: string): { records: T[]; issues: EvidenceStoreIssue[] } {
   if (!existsSync(path)) return { records: [], issues: [] };
+  const parent = dirname(path);
+  if (existsSync(parent) && lstatSync(parent).isSymbolicLink()) {
+    return {
+      records: [],
+      issues: [issue(
+        "non_standalone_evidence_repository_file",
+        path,
+        "Bitemporal Evidence JSONL parent directory must not be a symbolic link",
+      )],
+    };
+  }
   const stat = lstatSync(path);
   if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
     return {
