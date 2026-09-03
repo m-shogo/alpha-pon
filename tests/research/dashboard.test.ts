@@ -14,7 +14,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildDashboard } from "../../src/research/dashboard.js";
-import { loadCheckpoint, ResearchDataError } from "../../src/research/io.js";
+import { loadCheckpoint, readJsonl, ResearchDataError } from "../../src/research/io.js";
 import { buildQueue } from "../../src/research/queue.js";
 import { GATE_KEYS, type Edge } from "../../src/research/types.js";
 import { makeEdge, makeState } from "./helpers.js";
@@ -119,10 +119,42 @@ function testLinkedCheckpointIsRejected() {
   console.log("research/dashboard: linked checkpoint rejection OK");
 }
 
+function testLinkedJsonlIsRejected() {
+  const root = mkdtempSync(join(tmpdir(), "alpha-pon-research-jsonl-"));
+  const input = join(root, "counterfactuals.jsonl");
+  const target = join(root, "target.jsonl");
+  writeFileSync(target, `${JSON.stringify({ id: "synthetic" })}\n`, "utf-8");
+
+  try {
+    writeFileSync(input, `${JSON.stringify({ id: "standalone" })}\n`, "utf-8");
+    assert.deepEqual(readJsonl(input), [{ id: "standalone" }], "standalone JSONLは読み込める");
+
+    unlinkSync(input);
+    symlinkSync(target, input);
+    assert.throws(
+      () => readJsonl(input),
+      (error: unknown) => error instanceof ResearchDataError && /standalone regular JSONL file/.test(error.message),
+      "symlink JSONLをResearch OS stateとして追従しない",
+    );
+
+    unlinkSync(input);
+    linkSync(target, input);
+    assert.throws(
+      () => readJsonl(input),
+      (error: unknown) => error instanceof ResearchDataError && /standalone regular JSONL file/.test(error.message),
+      "hard-link JSONLをResearch OS stateとして追従しない",
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+  console.log("research/dashboard: linked JSONL rejection OK");
+}
+
 testSchemaAndTypesStayInSync();
 testRequiredSectionsRendered();
 testDeterministicOutput();
 testEmptyRegistryDoesNotCrash();
 testLinkedCheckpointIsRejected();
+testLinkedJsonlIsRejected();
 
 console.log("research/dashboard: 全テスト成功");

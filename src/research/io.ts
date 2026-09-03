@@ -2,10 +2,11 @@
 // 純ロジック（queue / dashboard / gate など）はここを経由してのみディスクに触る。
 // 既存リポジトリの慣例に合わせて、パスは process.cwd()（= リポジトリルート）基準。
 
-import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync, readdirSync } from "fs";
+import { writeFileSync, appendFileSync, existsSync, mkdirSync, readdirSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { readReadOnlyJsonObjectFile } from "../read-only-json-file.js";
+import { readJsonlWithErrors } from "../read-only-jsonl.js";
 import { readReadOnlyTextFile } from "../read-only-text-file.js";
 import type {
   Checkpoint,
@@ -90,18 +91,14 @@ function listFiles(dir: string, ext: string): string[] {
 }
 
 export function readJsonl(file: string): unknown[] {
-  if (!existsSync(file)) return [];
-  return readFileSync(file, "utf-8")
-    .split("\n")
-    .map((line, index) => ({ line: line.trim(), index }))
-    .filter(({ line }) => line.length > 0)
-    .map(({ line, index }) => {
-      try {
-        return JSON.parse(line) as unknown;
-      } catch {
-        throw new ResearchDataError(file, `  - ${index + 1} 行目: JSON として読めません`);
-      }
-    });
+  const loaded = readJsonlWithErrors<unknown>(file);
+  if (loaded.parseErrors.length === 0) return loaded.rows;
+
+  const first = loaded.parseErrors[0];
+  if (!first || first.lineNumber === 0) {
+    throw new ResearchDataError(file, "  - standalone regular JSONL file として読めません");
+  }
+  throw new ResearchDataError(file, `  - ${first.lineNumber} 行目: JSON として読めません`);
 }
 
 export function loadEdges(): Edge[] {
@@ -189,7 +186,7 @@ export function writeNewFile(file: string, content: string): void {
   writeFileSync(file, content, "utf-8");
 }
 
-/** JSONL への追記。1行1レコード。既存行には触れない。 */
+/** JSONL への追記。1行1レコード。既存行には触らない。 */
 export function appendJsonl(file: string, record: unknown): void {
   ensureDir(join(file, ".."));
   appendFileSync(file, `${JSON.stringify(record)}\n`, "utf-8");
