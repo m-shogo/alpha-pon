@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync } from "node:fs";
 
 const COMMITTEE_PATH = "reports/stock_pro_committee_latest.json";
 const UI_DATA_PATH = "apps/web/public/generated/alpha-pon-data.json";
 
 function readJson(path) {
   if (!existsSync(path)) return null;
+  const stat = lstatSync(path);
+  if (!stat.isFile() || stat.nlink !== 1) return null;
   return JSON.parse(readFileSync(path, "utf-8"));
 }
 
