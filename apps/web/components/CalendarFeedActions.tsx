@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import styles from '@/app/calendar/calendar.module.css'
+import styles from '@/app/calendar/CalendarV2.module.css'
 
 type State = 'idle' | 'loading' | 'copied' | 'failed'
 
@@ -35,10 +35,10 @@ export function CalendarFeedActions() {
   const copyLabel = state === 'loading'
     ? '処理中…'
     : state === 'copied'
-      ? 'SNAPSHOT URLをコピー済み'
+      ? '購読URLをコピーしました'
       : state === 'failed'
-        ? 'コピー失敗'
-        : 'SNAPSHOT URLをコピー'
+        ? 'コピーに失敗しました'
+        : '購読URLをコピー'
 
   return (
     <div>
@@ -47,7 +47,7 @@ export function CalendarFeedActions() {
           {copyLabel}
         </button>
         <button className={styles.actionButton} type="button" onClick={openSnapshotFeed} disabled={state === 'loading'}>
-          SNAPSHOT ICSを開く
+          カレンダーファイルを開く
         </button>
       </div>
       <div className={styles.subtitle}>
