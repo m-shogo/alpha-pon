@@ -51,7 +51,8 @@ export function CalendarFeedActions() {
         </button>
       </div>
       <div className={styles.subtitle}>
-        公開購読は生成時点のスナップショットです。LIVE用の非公開URLはこの画面には表示しません。
+        公開購読は生成時点のSNAPSHOTです。画面の表示元はページ内の状態メッセージで確認できます。
+        Token付きLIVE購読URLはこの画面へ出さず、本人がパスワード管理アプリから手動登録します。
       </div>
     </div>
   )
