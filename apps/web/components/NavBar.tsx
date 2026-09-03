@@ -31,7 +31,7 @@ export function DesktopNav() {
         <div className="ap-sidebar-brand-mark">AP</div>
         <div>
           <div className="ap-sidebar-brand-title">Alpha Pon</div>
-          <div className="ap-sidebar-brand-subtitle">Research workspace</div>
+          <div className="ap-sidebar-brand-subtitle">調査・研究</div>
         </div>
       </div>
 
