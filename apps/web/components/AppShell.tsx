@@ -12,7 +12,15 @@ function shellWidth(pathname: string): number {
   if (pathname.startsWith('/calendar')) return 1180
   if (pathname.startsWith('/research')) return 1180
   if (pathname.startsWith('/ops')) return 960
-  if (pathname === '/') return 760
+  if (pathname.startsWith('/feed')) return 980
+  if (pathname.startsWith('/world-impact')) return 1080
+  if (pathname.startsWith('/world')) return 1080
+  if (pathname.startsWith('/outcomes')) return 1080
+  if (pathname === '/') return 1120
+  if (pathname.startsWith('/stocks')) return 1120
+  if (pathname.startsWith('/alerts')) return 1120
+  if (pathname.startsWith('/actions')) return 1120
+  if (pathname.startsWith('/reports')) return 1120
   return 880
 }
 
