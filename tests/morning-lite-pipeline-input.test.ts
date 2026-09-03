@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { linkSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -95,6 +95,28 @@ function main(): void {
     const dedupePath = join(dir, "2026-08-16.json");
     writeFileSync(dedupePath, "{broken", "utf-8");
     assert.deepEqual(readMorningLiteDedupeCount(dedupePath), { count: 0, warning: `${dedupePath}: parse_error` });
+
+    rmSync(dedupePath);
+    const canonicalTarget = join(dir, "canonical-dedupe.json");
+    writeFileSync(
+      canonicalTarget,
+      JSON.stringify([{ key: "linked", sentAt: "2026-08-15T15:00:00.000Z", preview: "must fail closed" }]),
+      "utf-8",
+    );
+    symlinkSync(canonicalTarget, dedupePath);
+    assert.deepEqual(
+      readMorningLiteDedupeCount(dedupePath, AS_OF),
+      { count: 0, warning: `${dedupePath}: parse_error` },
+      "symlinked dedupe evidence must not inflate read-only notification counts",
+    );
+    rmSync(dedupePath);
+    linkSync(canonicalTarget, dedupePath);
+    assert.deepEqual(
+      readMorningLiteDedupeCount(dedupePath, AS_OF),
+      { count: 0, warning: `${dedupePath}: parse_error` },
+      "hard-linked dedupe evidence must not inflate read-only notification counts",
+    );
+    rmSync(dedupePath);
 
     writeFileSync(dedupePath, JSON.stringify({ key: "not-an-array" }), "utf-8");
     assert.deepEqual(readMorningLiteDedupeCount(dedupePath), { count: 0, warning: `${dedupePath}: invalid_root` });
