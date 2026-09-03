@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import {
   linkSync,
+  mkdirSync,
   mkdtempSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -210,6 +212,35 @@ for (const aliasedField of ["revisions", "diffs"] as const) {
     rmSync(dir, { recursive: true, force: true });
   }
   console.log(`document-revision-diff-repository: ${aliasedField} hard-link alias block OK`);
+}
+
+{
+  const root = mkdtempSync(join(tmpdir(), "document-revision-repository-parent-symlink-"));
+  try {
+    const realDir = join(root, "real");
+    const aliasDir = join(root, "alias");
+    mkdirSync(realDir);
+    const paths = writePilot(realDir);
+    symlinkSync(realDir, aliasDir, "dir");
+    const aliasedRevisionsPath = join(aliasDir, "revisions.jsonl");
+    const result = validateDocumentRevisionDiffRepository({
+      revisionsPath: aliasedRevisionsPath,
+      diffsPath: paths.diffs,
+      evidencePath: paths.evidence,
+      evidenceRelationsPath: paths.evidenceRelations,
+      securityEntitiesPath: paths.securityEntities,
+      securityRelationshipsPath: paths.securityRelationships,
+      asOf: "2026-08-06T10:00:00+09:00",
+    });
+    assert.ok(result.issues.some((item) =>
+      item.code === "non_standalone_document_revision_repository_file"
+      && item.target === aliasedRevisionsPath
+    ));
+    assert.equal(result.snapshot, null);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+  console.log("document-revision-diff-repository: symlinked parent directory block OK");
 }
 
 console.log("document-revision-diff-repository: 全テスト成功");
