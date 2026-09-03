@@ -157,7 +157,9 @@ export function buildOutcomeIntegrityReport(params: {
     error: null,
   };
 
-  if (sqlite.exists) {
+  if (sqlite.exists && !isCanonicalReadOnlyJsonFile(dbPath)) {
+    sqlite = { ...sqlite, error: "non_regular_file" };
+  } else if (sqlite.exists) {
     let db: DatabaseSync | null = null;
     try {
       db = new DatabaseSync(dbPath);
