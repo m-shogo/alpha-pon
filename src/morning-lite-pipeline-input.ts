@@ -1,6 +1,5 @@
-import { existsSync, readFileSync } from "fs";
 import { addDaysJst, todayJst } from "./date.js";
-import { readReadOnlyJsonObjectFile } from "./read-only-json-file.js";
+import { readReadOnlyJsonArrayFile, readReadOnlyJsonObjectFile } from "./read-only-json-file.js";
 import { parseExplicitIso8601Instant } from "./research/iso-instant.js";
 
 export type MorningLitePipelineInput = {
@@ -96,14 +95,12 @@ function isDedupeRecord(value: unknown, expectedDate?: string): boolean {
 }
 
 export function readMorningLiteDedupeCount(path: string, expectedDate?: string): MorningLiteDedupeCount {
-  if (!existsSync(path)) return { count: 0, warning: null };
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(readFileSync(path, "utf-8")) as unknown;
-  } catch {
-    return { count: 0, warning: `${path}: parse_error` };
-  }
-  if (!Array.isArray(parsed)) return { count: 0, warning: `${path}: invalid_root` };
+  const loaded = readReadOnlyJsonArrayFile<unknown>(path);
+  if (loaded.missing) return { count: 0, warning: null };
+  if (loaded.parseError) return { count: 0, warning: `${path}: parse_error` };
+  if (loaded.invalidRoot) return { count: 0, warning: `${path}: invalid_root` };
+
+  const parsed = loaded.rows;
   const structurallyValidRows = parsed.filter(row => isDedupeRecord(row, expectedDate)) as Array<Record<string, unknown>>;
   const seenKeys = new Set<string>();
   const validRows = structurallyValidRows.filter(row => {
