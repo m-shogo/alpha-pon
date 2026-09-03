@@ -15,6 +15,7 @@ pnpm ui:data
 echo "\n[3/5] run pro safety tests"
 node --import tsx/esm tests/pro-disagreement.test.ts
 node --import tsx/esm tests/pro-generated-data-shape.test.ts
+node tests/inspect-pro-output-linked-input.test.mjs
 
 echo "\n[4/5] inspect generated pro output"
 node scripts/inspect-pro-output.mjs
