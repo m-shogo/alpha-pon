@@ -14,6 +14,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { readReadOnlyJsonArrayFile, readReadOnlyJsonObjectFile } from "../../src/read-only-json-file.js";
+import { readReadOnlyTextFile } from "../../src/read-only-text-file.js";
 import { buildDashboard } from "../../src/research/dashboard.js";
 import { loadCheckpoint, readJsonl, ResearchDataError } from "../../src/research/io.js";
 import { buildQueue } from "../../src/research/queue.js";
@@ -199,6 +200,30 @@ function testLinkedGeneratedQueueIsRejected() {
   console.log("research/dashboard: linked generated queue rejection OK");
 }
 
+function testLinkedGeneratedDashboardIsRejected() {
+  const root = mkdtempSync(join(tmpdir(), "alpha-pon-research-dashboard-"));
+  const input = join(root, "dashboard.generated.md");
+  const target = join(root, "target.md");
+  const markdown = "# Research Dashboard\n- 基準日 (asOf): 2024-02-01\n";
+  writeFileSync(target, markdown, "utf-8");
+
+  try {
+    writeFileSync(input, markdown, "utf-8");
+    assert.equal(readReadOnlyTextFile(input), markdown, "standalone generated dashboardは読み込める");
+
+    unlinkSync(input);
+    symlinkSync(target, input);
+    assert.equal(readReadOnlyTextFile(input), "", "symlink generated dashboardをcheck証拠として追従しない");
+
+    unlinkSync(input);
+    linkSync(target, input);
+    assert.equal(readReadOnlyTextFile(input), "", "hard-link generated dashboardをcheck証拠として追従しない");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+  console.log("research/dashboard: linked generated dashboard rejection OK");
+}
+
 testSchemaAndTypesStayInSync();
 testRequiredSectionsRendered();
 testDeterministicOutput();
@@ -207,5 +232,6 @@ testLinkedCheckpointIsRejected();
 testLinkedJsonlIsRejected();
 testLinkedGeneratedEdgeIndexIsRejected();
 testLinkedGeneratedQueueIsRejected();
+testLinkedGeneratedDashboardIsRejected();
 
 console.log("research/dashboard: 全テスト成功");
