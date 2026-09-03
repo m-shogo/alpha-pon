@@ -18,6 +18,7 @@ const shell = read("apps/web/components/AppShell.tsx");
 const layout = read("apps/web/app/layout.tsx");
 const reportViewer = read("apps/web/components/ReportViewer.module.css");
 const calendar = read("apps/web/components/MarketEventCalendar.tsx");
+const calendarCss = read("apps/web/app/calendar/CalendarV2.module.css");
 
 assert(
   nav.includes("['/', '/research', '/stocks', '/alerts']"),
@@ -70,6 +71,45 @@ assertRule(
   /\.copy\s*\{[^}]*\}/s,
   /min-height:\s*44px/,
   "report copy control must remain at least 44px high",
+);
+
+assertRule(
+  calendarCss,
+  /\.actionButton,\s*\.actionLink\s*\{[^}]*\}/s,
+  /min-height:\s*44px/,
+  "calendar header actions must remain at least 44px high",
+);
+assertRule(
+  calendarCss,
+  /\.chip\s*\{[^}]*\}/s,
+  /min-height:\s*44px/,
+  "calendar filter chips must remain at least 44px high",
+);
+assertRule(
+  calendarCss,
+  /\.monthButton,\s*\.nextEventMonth\s*\{[^}]*\}/s,
+  /min-height:\s*44px/,
+  "calendar month controls must remain at least 44px high",
+);
+assertRule(
+  calendarCss,
+  /\.openDetailButton\s*\{[^}]*\}/s,
+  /min-height:\s*44px/,
+  "calendar detail control must remain at least 44px high",
+);
+assertRule(
+  calendarCss,
+  /\.closeButton\s*\{[^}]*\}/s,
+  /width:\s*44px/,
+  "calendar modal close control must remain 44px wide",
+);
+assert(
+  /@media\(max-width:767px\)[\s\S]*?\.subtitle\{[^}]*font-size:15px/.test(calendarCss),
+  "calendar mobile primary copy must remain at least 15px",
+);
+assert(
+  /@media\(max-width:767px\)[\s\S]*?\.calendarToolbar\{[^}]*grid-template-columns:44px minmax\(0,1fr\) 44px/.test(calendarCss),
+  "calendar mobile month buttons must retain 44px columns",
 );
 
 const expectedShellWidths = [
