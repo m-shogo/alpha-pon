@@ -3,20 +3,12 @@
 //   pnpm research:queue --check  再生成して差分があれば失敗する（CI 用）
 //   pnpm research:queue --top    1位だけを表示（毎時の研究テーマ決定用）
 
-import { existsSync, readFileSync } from "fs";
-import { load } from "js-yaml";
 import { readReadOnlyJsonObjectFile } from "../../read-only-json-file.js";
 import { loadResearchState, paths, writeGeneratedJson } from "../io.js";
-import { buildQueue, DEFAULT_WEIGHTS, type QueueWeights } from "../queue.js";
-import { resolveQueueWeights } from "../queue-weights.js";
+import { buildQueue } from "../queue.js";
+import { loadQueueWeightsFromFile } from "../queue-weights.js";
 import { stableStringify } from "../schema.js";
 import { fail, parseArgs, todayJst } from "./common.js";
-
-function loadWeights(): QueueWeights {
-  const file = paths.queueWeights();
-  if (!existsSync(file)) return DEFAULT_WEIGHTS;
-  return resolveQueueWeights(load(readFileSync(file, "utf-8")));
-}
 
 function main(): void {
   const { flags, options } = parseArgs();
@@ -29,7 +21,7 @@ function main(): void {
   const committedAsOf = typeof existing?.asOf === "string" ? existing.asOf : undefined;
   const asOf = options.get("as-of") ?? (flags.has("check") && committedAsOf ? committedAsOf : todayJst());
 
-  const queue = buildQueue(state, asOf, loadWeights());
+  const queue = buildQueue(state, asOf, loadQueueWeightsFromFile(paths.queueWeights()));
 
   if (flags.has("top")) {
     const top = queue.entries[0];
