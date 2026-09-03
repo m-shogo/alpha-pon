@@ -5,6 +5,7 @@
 
 import { existsSync, readFileSync } from "fs";
 import { load } from "js-yaml";
+import { readReadOnlyJsonObjectFile } from "../../read-only-json-file.js";
 import { loadResearchState, paths, writeGeneratedJson } from "../io.js";
 import { buildQueue, DEFAULT_WEIGHTS, type QueueWeights } from "../queue.js";
 import { resolveQueueWeights } from "../queue-weights.js";
@@ -23,10 +24,10 @@ function main(): void {
   const outputPath = paths.queueOutput();
 
   // --check では既存ファイルの asOf で再計算する（日付が動いても差分にしないため）
-  const existing = existsSync(outputPath)
-    ? (JSON.parse(readFileSync(outputPath, "utf-8")) as { asOf?: string })
-    : null;
-  const asOf = options.get("as-of") ?? (flags.has("check") && existing?.asOf ? existing.asOf : todayJst());
+  const existingLoad = readReadOnlyJsonObjectFile<Record<string, unknown>>(outputPath);
+  const existing = existingLoad.object;
+  const committedAsOf = typeof existing?.asOf === "string" ? existing.asOf : undefined;
+  const asOf = options.get("as-of") ?? (flags.has("check") && committedAsOf ? committedAsOf : todayJst());
 
   const queue = buildQueue(state, asOf, loadWeights());
 
@@ -40,7 +41,10 @@ function main(): void {
   }
 
   if (flags.has("check")) {
-    if (!existing) fail(`${outputPath} がありません。pnpm research:queue を実行してコミットしてください。`);
+    if (existingLoad.missing) fail(`${outputPath} がありません。pnpm research:queue を実行してコミットしてください。`);
+    if (existingLoad.parseError || existingLoad.invalidRoot) {
+      fail(`${outputPath} は standalone regular JSON object である必要があります。pnpm research:queue で再生成してください。`);
+    }
     if (stableStringify(existing) !== stableStringify(queue)) {
       fail(`${outputPath} が最新ではありません。pnpm research:queue で再生成してコミットしてください。`);
     }
