@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { linkSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { addDaysJst, daysSinceJst } from "../src/date.js";
 import { listingEventDaysBetween, parseListingEventDate } from "../src/listing-event-date.js";
 import { staleHypothesisAgeDays } from "../src/stale-hypothesis-date.js";
@@ -7,6 +9,7 @@ import { periodicReviewStart } from "../src/periodic-review-date.js";
 import { listingPerformanceReviewDate } from "../src/listing-performance-date.js";
 import { analogyReviewDueDate, isValidAnalogyReviewDueDate } from "../src/analogy-review-date.js";
 import { isValidWorldThemeReviewDueDate } from "../src/world-theme-review-date.js";
+import { readJsonl as readAnalogyJsonl } from "../src/analysis/analogy-db.js";
 import { buildMarketContext } from "../src/analysis/market-context.js";
 import { buildFinancialQuality } from "../src/analysis/financial-quality.js";
 import { classifyWorldEvent, type ClassifiedWorldEvent } from "../src/analysis/world-event-map.js";
@@ -123,6 +126,25 @@ function testAnalogyReviewDueDatesUseJstCalendarDays() {
   assert.equal(isValidAnalogyReviewDueDate("0000-01-01"), false);
   assert.equal(isValidAnalogyReviewDueDate("2026-08-15T00:00:00+09:00"), false);
   assert.equal(isValidAnalogyReviewDueDate(undefined), false);
+}
+
+function testAnalogyDbRejectsLinkedReadInputs() {
+  const dir = mkdtempSync(join(tmpdir(), "alpha-pon-analogy-read-"));
+  const target = join(dir, "target.jsonl");
+  writeFileSync(target, `${JSON.stringify({ id: "linked" })}\n`, "utf-8");
+
+  const symlink = join(dir, "symlink.jsonl");
+  symlinkSync(target, symlink);
+  assert.deepEqual(readAnalogyJsonl<{ id: string }>(symlink), []);
+
+  const hardLink = join(dir, "hard-link.jsonl");
+  linkSync(target, hardLink);
+  assert.deepEqual(readAnalogyJsonl<{ id: string }>(hardLink), []);
+  assert.deepEqual(readAnalogyJsonl<{ id: string }>(target), []);
+
+  const standalone = join(dir, "standalone.jsonl");
+  writeFileSync(standalone, `${JSON.stringify({ id: "standalone" })}\n`, "utf-8");
+  assert.deepEqual(readAnalogyJsonl<{ id: string }>(standalone), [{ id: "standalone" }]);
 }
 
 function testWorldThemeReviewDueDatesRejectInvalidGregorianDates() {
@@ -257,6 +279,7 @@ function main() {
   testPeriodicReviewUsesJstCalendarWindows();
   testListingPerformanceReviewDatesUseJstCalendarDays();
   testAnalogyReviewDueDatesUseJstCalendarDays();
+  testAnalogyDbRejectsLinkedReadInputs();
   testWorldThemeReviewDueDatesRejectInvalidGregorianDates();
   testAnalogyPredictionReviewUsesStoredDueDateAndTimeframe();
   testAnalogyPredictionReviewRejectsRepackagedScoreSnapshots();
