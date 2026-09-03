@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  linkSync,
   mkdtempSync,
   rmSync,
   writeFileSync,
@@ -182,6 +183,33 @@ function writePilot(dir: string) {
     rmSync(dir, { recursive: true, force: true });
   }
   console.log("document-revision-diff-repository: partial tail block OK");
+}
+
+for (const aliasedField of ["revisions", "diffs"] as const) {
+  const dir = mkdtempSync(join(tmpdir(), `document-revision-repository-hardlink-${aliasedField}-`));
+  try {
+    const paths = writePilot(dir);
+    const sourcePath = paths[aliasedField];
+    const aliasPath = join(dir, `${aliasedField}-alias.jsonl`);
+    linkSync(sourcePath, aliasPath);
+    const result = validateDocumentRevisionDiffRepository({
+      revisionsPath: aliasedField === "revisions" ? aliasPath : paths.revisions,
+      diffsPath: aliasedField === "diffs" ? aliasPath : paths.diffs,
+      evidencePath: paths.evidence,
+      evidenceRelationsPath: paths.evidenceRelations,
+      securityEntitiesPath: paths.securityEntities,
+      securityRelationshipsPath: paths.securityRelationships,
+      asOf: "2026-08-06T10:00:00+09:00",
+    });
+    assert.ok(result.issues.some((item) =>
+      item.code === "non_standalone_document_revision_repository_file"
+      && item.target === aliasPath
+    ));
+    assert.equal(result.snapshot, null);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  console.log(`document-revision-diff-repository: ${aliasedField} hard-link alias block OK`);
 }
 
 console.log("document-revision-diff-repository: 全テスト成功");
