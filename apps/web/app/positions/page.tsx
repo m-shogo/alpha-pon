@@ -2,67 +2,62 @@ import { loadGeneratedData } from '@/lib/generated-data'
 import { normalizeGeneratedPositions } from '@/lib/generated-position-input'
 import { Disclaimer } from '@/components/Disclaimer'
 import type { Position } from '@/lib/stock/types'
+import styles from './PositionsPage.module.css'
 
 export const metadata = { title: '保有銘柄 | alpha-pon' }
 
-function PositionCard({ pos }: { pos: Position }) {
+function accountLabel(value: Position['nisaType']) {
+  if (value === 'nisa_growth') return 'NISA成長投資枠'
+  if (value === 'nisa_accumulation') return 'NISAつみたて投資枠'
+  return value ? '特定・一般口座' : null
+}
+
+function PositionRow({ pos }: { pos: Position }) {
   const gainColor = pos.unrealizedGainPct == null ? 'var(--ink-3)'
     : pos.unrealizedGainPct > 0 ? 'var(--mint-deep)'
     : pos.unrealizedGainPct < 0 ? 'var(--urgent)'
     : 'var(--ink-2)'
 
   return (
-    <div style={{
-      background: 'var(--surface)', borderRadius: 16, padding: '14px 15px',
-      border: '1px solid var(--card-line)', boxShadow: 'var(--shadow)', marginBottom: 10,
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 3 }}>
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-3)' }}>{pos.code}</span>
-            {pos.nisaType && (
-              <span style={{ fontSize: 10, fontWeight: 800, padding: '1px 5px', borderRadius: 4, background: 'var(--mint-soft)', color: 'var(--mint-deep)' }}>
-                {pos.nisaType === 'nisa_growth' ? 'NISA成長' : pos.nisaType === 'nisa_accumulation' ? 'NISA積立' : '特定'}
-              </span>
-            )}
-          </div>
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{pos.name}</h3>
+    <article className={styles.row}>
+      <div className={styles.rowTop}>
+        <div>
+          <div className={styles.code}>{pos.code}</div>
+          <h2 className={styles.name}>{pos.name}</h2>
+          {accountLabel(pos.nisaType) && <div className={styles.account}>{accountLabel(pos.nisaType)}</div>}
         </div>
-        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>含み損益</div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: gainColor }}>
+        <div className={styles.gain}>
+          <div className={styles.gainLabel}>含み損益</div>
+          <div className={styles.gainValue} style={{ color: gainColor }}>
             {pos.unrealizedGainPct != null ? `${pos.unrealizedGainPct > 0 ? '+' : ''}${pos.unrealizedGainPct.toFixed(1)}%` : '未取得'}
           </div>
         </div>
       </div>
 
-      <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px 16px', fontSize: 12 }}>
-        <span style={{ color: 'var(--ink-3)' }}>平均取得</span>
-        <span style={{ fontWeight: 700 }}>{pos.averageCost.toLocaleString()} 円</span>
-        <span style={{ color: 'var(--ink-3)' }}>現在価格</span>
-        <span style={{ fontWeight: 700 }}>{pos.currentPrice?.toLocaleString() ?? '未取得'} 円</span>
-        <span style={{ color: 'var(--ink-3)' }}>保有株数</span>
-        <span style={{ fontWeight: 700 }}>{pos.shares.toLocaleString()} 株</span>
-        {pos.positionWeightPct != null && (
-          <>
-            <span style={{ color: 'var(--ink-3)' }}>保有比率</span>
-            <span style={{ fontWeight: 700 }}>{pos.positionWeightPct.toFixed(1)}%</span>
-          </>
-        )}
+      <div className={styles.metrics}>
+        <div className={styles.metric}>
+          <div className={styles.metricLabel}>平均取得</div>
+          <div className={styles.metricValue}>{pos.averageCost.toLocaleString()} 円</div>
+        </div>
+        <div className={styles.metric}>
+          <div className={styles.metricLabel}>現在価格</div>
+          <div className={styles.metricValue}>{pos.currentPrice?.toLocaleString() ?? '未取得'}{pos.currentPrice != null ? ' 円' : ''}</div>
+        </div>
+        <div className={styles.metric}>
+          <div className={styles.metricLabel}>保有株数</div>
+          <div className={styles.metricValue}>{pos.shares.toLocaleString()} 株</div>
+        </div>
+        <div className={styles.metric}>
+          <div className={styles.metricLabel}>保有比率</div>
+          <div className={styles.metricValue}>{pos.positionWeightPct != null ? `${pos.positionWeightPct.toFixed(1)}%` : '未記録'}</div>
+        </div>
       </div>
 
       {pos.thesis.length > 0 && (
-        <div style={{ marginTop: 8, fontSize: 11.5, color: 'var(--ink-2)' }}>
-          <span style={{ fontWeight: 700 }}>仮説: </span>{pos.thesis[0]}
-        </div>
+        <div className={styles.note}><strong>保有仮説:</strong> {pos.thesis[0]}</div>
       )}
-
-      {pos.nextEvent && (
-        <div style={{ marginTop: 6, fontSize: 11.5, color: 'var(--sky-deep)', fontWeight: 600 }}>
-          次のイベント: {pos.nextEvent}
-        </div>
-      )}
-    </div>
+      {pos.nextEvent && <div className={styles.event}>次のイベント: {pos.nextEvent}</div>}
+    </article>
   )
 }
 
@@ -70,55 +65,28 @@ export default function PositionsPage() {
   const data = loadGeneratedData()
   const positionLoad = normalizeGeneratedPositions((data as Record<string, unknown>).positions)
   const positions = positionLoad.rows
-
-  const totalValue = positions.reduce((s, p) => s + (p.marketValue ?? 0), 0)
+  const totalValue = positions.reduce((sum, position) => sum + (position.marketValue ?? 0), 0)
 
   return (
-    <>
-      <div style={{
-        position: 'sticky', top: 0, zIndex: 8,
-        padding: '52px 20px 12px',
-        background: 'var(--header-bg)',
-        backdropFilter: 'blur(14px)',
-        WebkitBackdropFilter: 'blur(14px)',
-        borderBottom: '1px solid var(--line)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--mint-deep)', marginBottom: 2 }}>
-              保有銘柄 · ポジション管理
-            </div>
-            <h1 style={{ margin: 0, fontFamily: 'var(--display)', fontWeight: 700, fontSize: 27, color: 'var(--ink)' }}>
-              保有銘柄
-            </h1>
-          </div>
-          {totalValue > 0 && (
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-2)' }}>
-              評価額 {totalValue.toLocaleString()} 円
-            </span>
-          )}
+    <main className={styles.page}>
+      <header className={styles.header}>
+        <div>
+          <div className={styles.eyebrow}>現在持っている銘柄と次の確認</div>
+          <h1 className={styles.title}>保有銘柄</h1>
+          <p className={styles.subtitle}>取得価格・現在価格・含み損益・保有仮説・次のイベントを一列で比較します。</p>
         </div>
-      </div>
+        <div className={styles.total}>{positions.length}銘柄{totalValue > 0 ? ` ・ 評価額 ${totalValue.toLocaleString()} 円` : ''}</div>
+      </header>
 
-      <div style={{ padding: '16px 16px 0' }}>
-        {positionLoad.warning && (
-          <div style={{ marginBottom: 10, fontSize: 11.5, color: 'var(--urgent)', fontWeight: 700 }}>
-            データ警告: {positionLoad.warning}
-          </div>
-        )}
-        {positions.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--ink-3)', fontSize: 13, fontWeight: 600 }}>
-            <p>保有銘柄なし</p>
-            <p style={{ marginTop: 8, fontSize: 12 }}>
-              <code style={{ background: 'var(--surface-2)', padding: '2px 6px', borderRadius: 4 }}>config/positions.yml</code> を追加すると表示されます
-            </p>
-          </div>
-        ) : (
-          positions.map(p => <PositionCard key={p.code} pos={p} />)
-        )}
-        <Disclaimer compact />
-        <div style={{ height: 24 }} />
-      </div>
-    </>
+      {positionLoad.warning && <div className={styles.warning}>データ確認: {positionLoad.warning}</div>}
+
+      {positions.length === 0 ? (
+        <div className={styles.empty}>現在、表示できる保有銘柄はありません。</div>
+      ) : (
+        <div className={styles.rows}>{positions.map(position => <PositionRow key={position.code} pos={position} />)}</div>
+      )}
+
+      <div className={styles.footer}><Disclaimer compact /></div>
+    </main>
   )
 }
