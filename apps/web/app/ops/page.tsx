@@ -1,14 +1,13 @@
 import { loadOpsDashboard, type OpsHealthStatus, type OpsSeverity } from '@/lib/ops-dashboard'
-import { Card, SectionLabel } from '@/components/Card'
-import { Icon } from '@/components/Icon'
 import { Disclaimer } from '@/components/Disclaimer'
+import styles from './OpsV2.module.css'
 
 export const metadata = { title: '運用ダッシュボード | alpha-pon' }
 
-const HEALTH_META: Record<OpsHealthStatus, { label: string; color: string; bg: string }> = {
-  ok: { label: 'OK — 通常運用', color: 'var(--mint-deep)', bg: 'var(--mint-soft)' },
-  needs_attention: { label: '確認対象あり', color: 'var(--amber)', bg: 'var(--amber-soft)' },
-  action_required: { label: '要対応', color: 'var(--urgent)', bg: 'var(--urgent-soft)' },
+const HEALTH_META: Record<OpsHealthStatus, { label: string; color: string }> = {
+  ok: { label: '通常運用', color: 'var(--mint-deep)' },
+  needs_attention: { label: '確認が必要', color: 'var(--amber)' },
+  action_required: { label: '対応が必要', color: 'var(--urgent)' },
 }
 
 const SEVERITY_META: Record<OpsSeverity, { label: string; color: string }> = {
@@ -19,19 +18,37 @@ const SEVERITY_META: Record<OpsSeverity, { label: string; color: string }> = {
 
 const QUALITY_CHECK_LABELS: Array<[string, string]> = [
   ['reviewMissing', '未レビュー仮説'],
-  ['horizonGaps', 'horizon 記録欠け'],
+  ['horizonGaps', '検証期間の記録欠け'],
   ['judgedWithLimitedData', 'データ不足のまま判定'],
-  ['unknownMatchedAsHit', 'unknown 同士の hit'],
-  ['pendingWithSignals', 'whatMatched ありで未評価'],
+  ['unknownMatchedAsHit', '方向不明同士を一致判定'],
+  ['pendingWithSignals', '一致材料ありで未評価'],
   ['emptyReviewNotes', '反省メモ未記入'],
-  ['dueAtMismatch', 'reviewDueAt ズレ'],
+  ['dueAtMismatch', 'レビュー期限の不一致'],
 ]
 
-function CountRow({ label, value }: { label: string; value: string | number }) {
+const RESULT_LABELS: Record<string, string> = {
+  hit: '仮説と整合',
+  miss: '想定差分あり',
+  inverse: '想定と逆行',
+  unclear: '判定不能',
+  too_early: '時期尚早',
+  insufficient_data: 'データ不足',
+  unknown: '未確定',
+}
+
+function statusLabel(value: string | null | undefined) {
+  if (!value) return '未生成'
+  if (value === 'ok') return '正常'
+  if (value === 'needs_attention') return '確認が必要'
+  if (value === 'action_required') return '対応が必要'
+  return value
+}
+
+function TechnicalRow({ label, value, warn = false }: { label: string; value: string | number; warn?: boolean }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 13 }}>
-      <span style={{ color: 'var(--ink-2)', fontWeight: 600 }}>{label}</span>
-      <span style={{ color: 'var(--ink)', fontWeight: 800 }}>{value}</span>
+    <div className={styles.technicalRow}>
+      <span className={styles.technicalKey}>{label}</span>
+      <strong style={{ color: warn ? 'var(--amber)' : 'var(--ink)' }}>{value}</strong>
     </div>
   )
 }
@@ -41,319 +58,206 @@ export default function OpsPage() {
 
   if (!data) {
     return (
-      <div style={{ padding: '20px 16px' }}>
-        <h1 style={{ fontSize: 20, fontWeight: 900, color: 'var(--ink)', margin: '0 0 12px' }}>
-          運用ダッシュボード
-        </h1>
-        <Card>
-          <p style={{ margin: 0, fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.7 }}>
-            運用データが未生成です。<code>pnpm report:ops</code> を実行すると、
-            ここに今日の運用状態（pipeline・仮説レビュー・データ品質・安全表現チェック）が表示されます。
-          </p>
-        </Card>
-        <Disclaimer />
-      </div>
+      <main className={styles.page}>
+        <header className={styles.header}>
+          <div className={styles.eyebrow}>Alpha Pon の安全運用</div>
+          <h1 className={styles.title}>運用状況</h1>
+          <p className={styles.subtitle}>運用データを読み込めないため、現在の状態を安全に表示できません。</p>
+        </header>
+        <div className={styles.empty}>運用サマリーが利用できる状態になったら、ここに対応事項・期限・データ品質を表示します。</div>
+        <div className={styles.footer}><Disclaimer /></div>
+      </main>
     )
   }
 
   const health = HEALTH_META[data.healthStatus]
   const oa = data.outcomeAudit
+  const overdueReviews = oa.reviewDue?.overdue ?? 0
+  const dataIssueCount = data.dataAvailabilityAudit.nonOkCodes.length
+  const pipelineIssueCount = data.pipelineAudit.failedSteps.length + data.uiDataAudit.metaWarnings.length
+  const worldImpactIssueCount = data.worldImpactAudit.available
+    ? data.worldImpactAudit.overdueReviews + data.worldImpactAudit.inconsistencies + data.worldImpactAudit.duplicateKeys + data.worldImpactAudit.jsonlParseErrors
+    : 0
 
   return (
-    <div style={{ padding: '20px 16px' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 900, color: 'var(--ink)', margin: '0 0 4px' }}>
-        運用ダッシュボード
-      </h1>
-      <p style={{ margin: '0 0 14px', fontSize: 12, color: 'var(--ink-3)', fontWeight: 600 }}>
-        生成日: {data.generatedAt} ／ 投資助言は行いません
-      </p>
+    <main className={styles.page}>
+      <header className={styles.header}>
+        <div className={styles.eyebrow}>Alpha Pon の安全運用</div>
+        <h1 className={styles.title}>運用状況</h1>
+        <p className={styles.subtitle}>今日対応すべきこと、レビュー期限、データ品質を先に確認し、監査の内部値は必要なときだけ開きます。</p>
+      </header>
 
-      {/* healthStatus */}
-      <Card
-        style={{
-          background: health.bg,
-          border: `1px solid ${health.color}`,
-          marginBottom: 8,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Icon name={data.healthStatus === 'ok' ? 'check' : 'alert'} size={22} color={health.color} />
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-3)' }}>healthStatus</div>
-            <div style={{ fontSize: 17, fontWeight: 900, color: health.color }}>
-              {data.healthStatus} ／ {health.label}
-            </div>
+      <section className={styles.health}>
+        <div>
+          <div className={styles.healthLabel}>現在の運用状態</div>
+          <div className={styles.healthValue} style={{ color: health.color }}>{health.label}</div>
+          <div className={styles.healthMeta}>生成 {data.generatedAt} ・ この画面は運用監査であり、投資助言や注文判断ではありません。</div>
+        </div>
+        <div>
+          <div className={styles.healthLabel}>今日の優先対応</div>
+          <div className={styles.healthValue}>{data.priorityIssues.length}件</div>
+          <div className={styles.healthMeta}>{data.priorityIssues.length === 0 ? 'すぐに対応が必要な項目はありません。' : '重要度順に下へ表示しています。'}</div>
+        </div>
+      </section>
+
+      <section className={styles.summary} aria-label="運用サマリー">
+        {[
+          ['優先対応', `${data.priorityIssues.length}件`, data.priorityIssues.length > 0 ? 'var(--urgent)' : 'var(--mint-deep)'],
+          ['レビュー期限超過', `${overdueReviews}件`, overdueReviews > 0 ? 'var(--amber)' : 'var(--mint-deep)'],
+          ['データ不足銘柄', `${dataIssueCount}件`, dataIssueCount > 0 ? 'var(--amber)' : 'var(--mint-deep)'],
+          ['生成・処理の警告', `${pipelineIssueCount}件`, pipelineIssueCount > 0 ? 'var(--urgent)' : 'var(--mint-deep)'],
+        ].map(([label, value, color]) => (
+          <div key={label} className={styles.metric}>
+            <div className={styles.metricLabel}>{label}</div>
+            <div className={styles.metricValue} style={{ color }}>{value}</div>
           </div>
-        </div>
-      </Card>
-
-      {/* 優先対応 */}
-      <SectionLabel icon={<Icon name="alert" size={15} color="currentColor" />}>
-        優先対応 TOP{Math.max(data.priorityIssues.length, 1)}
-      </SectionLabel>
-      {data.priorityIssues.length === 0 ? (
-        <Card>
-          <p style={{ margin: 0, fontSize: 13, color: 'var(--mint-deep)', fontWeight: 700 }}>
-            対応が必要な項目はありません。
-          </p>
-        </Card>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {data.priorityIssues.map((issue, index) => {
-            const sev = SEVERITY_META[issue.severity] ?? SEVERITY_META.info
-            return (
-              <Card key={`${issue.category}-${index}`}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                  <span style={{ fontSize: 15, fontWeight: 900, color: 'var(--ink-3)' }}>
-                    {issue.rank ?? index + 1}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 10.5,
-                      fontWeight: 800,
-                      color: sev.color,
-                      border: `1px solid ${sev.color}`,
-                      borderRadius: 6,
-                      padding: '1px 6px',
-                    }}
-                  >
-                    {sev.label}
-                  </span>
-                  <span style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--ink)' }}>{issue.title}</span>
-                </div>
-                <p style={{ margin: '6px 0 0', fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.6 }}>
-                  {issue.detail}
-                </p>
-                {issue.command && (
-                  <code
-                    style={{
-                      display: 'inline-block',
-                      marginTop: 6,
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: 'var(--accent)',
-                      background: 'var(--surface-2)',
-                      borderRadius: 8,
-                      padding: '2px 8px',
-                    }}
-                  >
-                    {issue.command}
-                  </code>
-                )}
-              </Card>
-            )
-          })}
-        </div>
-      )}
-
-      {/* 仮説レビュー */}
-      <SectionLabel icon={<Icon name="doc" size={15} color="currentColor" />}>仮説レビュー状況</SectionLabel>
-      <Card>
-        <CountRow label="outcome 総数" value={`${oa.total}件`} />
-        {Object.entries(oa.resultCounts).map(([result, count]) => (
-          <CountRow key={result} label={`result: ${result}`} value={`${count}件`} />
         ))}
-        {oa.reviewDue && (
-          <>
-            <CountRow label="採点期限超過" value={`${oa.reviewDue.overdue}件`} />
-            <CountRow label="うち historical seed" value={`${oa.reviewDue.historicalSeedOverdue}件`} />
-            <CountRow label="うち価格データ提供待ち" value={`${oa.reviewDue.priceDataPending ?? 0}件`} />
-            <CountRow label="本日期限" value={`${oa.reviewDue.dueToday}件`} />
-            <CountRow label="今週期限" value={`${oa.reviewDue.dueThisWeek}件`} />
-          </>
-        )}
-        {oa.judgedWithLimitedData.length > 0 && (
-          <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--amber)', fontWeight: 700, lineHeight: 1.6 }}>
-            データ不足のまま判定済み（確認対象）:{' '}
-            {oa.judgedWithLimitedData.map(item => `${item.code}(${item.horizon})`).join(', ')}
-          </p>
-        )}
-        {oa.integrity && (
-          <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--ink-3)', fontWeight: 600 }}>
-            整合性: {oa.integrity.status}（jsonl重複 {oa.integrity.jsonlDuplicateGroups} / sqlite重複{' '}
-            {oa.integrity.sqliteDuplicateGroups} / parse_error {oa.integrity.parseErrors}）
-          </p>
-        )}
-      </Card>
+      </section>
 
-      {/* 仮説レビュー品質監査 */}
-      <SectionLabel icon={<Icon name="filter" size={15} color="currentColor" />}>仮説レビュー品質監査</SectionLabel>
-      <Card>
-        {!data.outcomeQualityAudit.available ? (
-          <p style={{ margin: 0, fontSize: 12.5, color: 'var(--ink-3)', fontWeight: 600 }}>
-            未生成です。<code>pnpm audit:outcomes</code> を実行してください。
-          </p>
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>今日対応すること</h2>
+        <p className={styles.sectionIntro}>運用監査が見つけた問題を、重要度の高い順に表示します。</p>
+        {data.priorityIssues.length === 0 ? (
+          <div className={styles.rowList}><div className={styles.rowBody} style={{ padding: '16px 0' }}>対応が必要な項目はありません。</div></div>
         ) : (
-          <>
-            <CountRow label="監査結果" value={data.outcomeQualityAudit.healthStatus ?? '不明'} />
-            {QUALITY_CHECK_LABELS.map(([key, label]) => {
-              const count = data.outcomeQualityAudit.checkCounts[key] ?? 0
+          <div className={styles.issueList}>
+            {data.priorityIssues.map((issue, index) => {
+              const sev = SEVERITY_META[issue.severity] ?? SEVERITY_META.info
               return (
-                <div key={key} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 13 }}>
-                  <span style={{ color: 'var(--ink-2)', fontWeight: 600 }}>{label}</span>
-                  <span style={{ color: count > 0 ? 'var(--amber)' : 'var(--ink)', fontWeight: 800 }}>{count}件</span>
+                <div key={`${issue.category}-${index}`} className={styles.issueRow}>
+                  <span className={styles.rank}>{issue.rank ?? index + 1}</span>
+                  <div>
+                    <div className={styles.rowTitle}>{issue.title}</div>
+                    <div className={styles.rowBody}>{issue.detail}</div>
+                    {issue.command && <code className={styles.command}>{issue.command}</code>}
+                  </div>
+                  <span className={styles.severity} style={{ color: sev.color }}>{sev.label}</span>
                 </div>
               )
             })}
-          </>
-        )}
-      </Card>
-
-      {/* 世界ニュース影響仮説 */}
-      <SectionLabel icon={<Icon name="arc" size={15} color="currentColor" />}>世界ニュース影響仮説</SectionLabel>
-      <Card>
-        {!data.worldImpactAudit.available ? (
-          <p style={{ margin: 0, fontSize: 12.5, color: 'var(--ink-3)', fontWeight: 600 }}>
-            未生成です。<code>pnpm review:world-impact</code> と <code>pnpm audit:world-impact</code> を実行してください。
-          </p>
-        ) : (
-          <>
-            <CountRow label="監査結果" value={data.worldImpactAudit.healthStatus ?? '不明'} />
-            <CountRow label="影響仮説レビュー" value={`${data.worldImpactAudit.totalReviews}件`} />
-            <CountRow label="未評価 outcome" value={`${data.worldImpactAudit.pendingReviews}件`} />
-            <CountRow label="期限超過の未評価" value={`${data.worldImpactAudit.overdueReviews}件`} />
-            <CountRow label="価格データ提供待ち" value={`${data.worldImpactAudit.priceDataPending}件`} />
-            <CountRow label="価格データ不足" value={`${data.worldImpactAudit.dataUnavailable}件`} />
-            <CountRow label="反証条件未記録" value={`${data.worldImpactAudit.missingCounterArguments}件`} />
-            <CountRow label="影響メカニズム未記録" value={`${data.worldImpactAudit.missingMechanisms}件`} />
-            <CountRow label="sourceQuality 不明" value={`${data.worldImpactAudit.sourceQualityUnknown}件`} />
-            <CountRow label="unknown 同士の hit" value={`${data.worldImpactAudit.unknownMatchedAsHit}件`} />
-            <CountRow label="insufficient_data" value={`${data.worldImpactAudit.insufficientData}件`} />
-            <CountRow label="confidence 未設定" value={`${data.worldImpactAudit.confidenceMissing}件`} />
-            <CountRow label="mechanism 分類 unknown" value={`${data.worldImpactAudit.mechanismUnknown}件`} />
-            <CountRow label="反証条件（falsification）未設定" value={`${data.worldImpactAudit.falsificationMissing}件`} />
-            <CountRow label="重複 event/銘柄/horizon" value={`${data.worldImpactAudit.duplicateKeys}件`} />
-            <CountRow label="JSONL 破損行" value={`${data.worldImpactAudit.jsonlParseErrors}件`} />
-            <CountRow label="latest との不一致" value={`${data.worldImpactAudit.latestMismatch}件`} />
-            <CountRow label="期限超過なのに outcome なし" value={`${data.worldImpactAudit.dueWithoutOutcome ?? 0}件`} />
-            <CountRow label="評価データ不整合（enum外・return矛盾）" value={`${data.worldImpactAudit.inconsistencies ?? 0}件`} />
-            {data.worldImpactAudit.priorityIssues.length > 0 && (
-              <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.6 }}>
-                確認ポイント:{' '}
-                {data.worldImpactAudit.priorityIssues
-                  .slice(0, 3)
-                  .map(issue => issue.title ?? issue.detail ?? '確認対象')
-                  .join(' / ')}
-              </p>
-            )}
-            <p style={{ margin: '8px 0 0', fontSize: 12, fontWeight: 800 }}>
-              <a href="/world-impact" style={{ color: 'var(--mint-deep)' }}>影響仮説の一覧・検証結果を見る →</a>
-            </p>
-          </>
-        )}
-      </Card>
-
-      {/* データ品質 / stale fallback */}
-      <SectionLabel icon={<Icon name="filter" size={15} color="currentColor" />}>データ品質</SectionLabel>
-      <Card>
-        {Object.entries(data.dataAvailabilityAudit.qualityLevelCounts).map(([level, count]) => (
-          <CountRow key={level} label={`品質 ${level}`} value={`${count}銘柄`} />
-        ))}
-        {data.dataAvailabilityAudit.nonOkCodes.length > 0 && (
-          <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.6 }}>
-            データ不足/部分データ: {data.dataAvailabilityAudit.nonOkCodes.join(', ')}
-          </p>
-        )}
-        {data.staleFallbackAudit.universeFallbackReason && (
-          <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--amber)', fontWeight: 700 }}>
-            universe scan fallback: {data.staleFallbackAudit.universeFallbackReason}
-          </p>
-        )}
-        {data.staleFallbackAudit.duplicatedWarningCodes.length > 0 && (
-          <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--amber)', fontWeight: 700 }}>
-            warning 重複: {data.staleFallbackAudit.duplicatedWarningCodes.map(d => d.code).join(', ')}
-          </p>
-        )}
-      </Card>
-
-      {/* pipeline / UI data */}
-      <SectionLabel icon={<Icon name="arc" size={15} color="currentColor" />}>パイプライン / UIデータ</SectionLabel>
-      <Card>
-        <CountRow
-          label="pipeline"
-          value={`${data.pipelineAudit.status ?? '不明'}（${data.pipelineAudit.date ?? '日付不明'}${data.pipelineAudit.isToday ? ' / 本日分' : ''}）`}
-        />
-        {data.pipelineAudit.failedSteps.length > 0 && (
-          <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--urgent)', fontWeight: 700 }}>
-            失敗ステップ: {data.pipelineAudit.failedSteps.join(', ')}
-          </p>
-        )}
-        <CountRow
-          label="UI 生成データ"
-          value={`${data.uiDataAudit.generatedAt ?? '未生成'}${data.uiDataAudit.isToday ? '（本日分）' : '（要更新）'}`}
-        />
-        {data.uiDataAudit.metaWarnings.length > 0 && (
-          <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--amber)', fontWeight: 700, lineHeight: 1.6 }}>
-            meta warnings: {data.uiDataAudit.metaWarnings.join(' / ')}
-          </p>
-        )}
-        <CountRow
-          label="特殊状況ウォッチ"
-          value={data.specialSituationAudit.healthStatus ?? '未生成'}
-        />
-        <CountRow
-          label="安全表現チェック"
-          value={
-            data.safeWordingAudit.violations.length === 0
-              ? `違反なし（${data.safeWordingAudit.scannedFiles}ファイル）`
-              : `違反 ${data.safeWordingAudit.violations.length}件`
-          }
-        />
-        <CountRow
-          label="公開出力 危険表現監査"
-          value={
-            !data.safeOutputAudit?.available
-              ? '未生成（pnpm audit:safe-output）'
-              : data.safeOutputAudit.findingsCount === 0
-                ? `検出なし（${data.safeOutputAudit.scannedFiles}ファイル）`
-                : `確認対象 ${data.safeOutputAudit.findingsCount}件`
-          }
-        />
-      </Card>
-
-      {/* 次の安全コマンド */}
-      <SectionLabel icon={<Icon name="spark" size={15} color="currentColor" />}>次に実行する安全コマンド</SectionLabel>
-      <Card>
-        {data.nextSafeCommands.length === 0 ? (
-          <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-2)' }}>なし</p>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {data.nextSafeCommands.map((cmd, index) => (
-              <div key={`${cmd.command}-${index}`}>
-                <code
-                  style={{
-                    fontSize: 12.5,
-                    fontWeight: 800,
-                    color: 'var(--accent)',
-                    background: 'var(--surface-2)',
-                    borderRadius: 8,
-                    padding: '2px 8px',
-                  }}
-                >
-                  {cmd.command}
-                </code>
-                <span style={{ fontSize: 12, color: 'var(--ink-3)', marginLeft: 8 }}>{cmd.reason}</span>
-              </div>
-            ))}
           </div>
         )}
-      </Card>
+      </section>
 
-      {/* notes */}
-      {data.notes.length > 0 && (
-        <>
-          <SectionLabel>運用メモ</SectionLabel>
-          <Card>
-            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.8 }}>
-              {data.notes.map((note, index) => (
-                <li key={index}>{note}</li>
-              ))}
-            </ul>
-          </Card>
-        </>
-      )}
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>仮説レビューの期限</h2>
+        <p className={styles.sectionIntro}>答え合わせが止まっていないかを確認します。0件は異常ではありません。</p>
+        <div className={styles.statusGrid}>
+          <div className={styles.statusRow}><span className={styles.statusKey}>Outcome総数</span><strong>{oa.total}件</strong></div>
+          <div className={styles.statusRow}><span className={styles.statusKey}>未評価</span><strong>{oa.unevaluated}件</strong></div>
+          <div className={styles.statusRow}><span className={styles.statusKey}>期限超過</span><strong style={{ color: overdueReviews > 0 ? 'var(--amber)' : 'var(--ink)' }}>{overdueReviews}件</strong></div>
+          <div className={styles.statusRow}><span className={styles.statusKey}>本日期限</span><strong>{oa.reviewDue?.dueToday ?? 0}件</strong></div>
+          <div className={styles.statusRow}><span className={styles.statusKey}>今週期限</span><strong>{oa.reviewDue?.dueThisWeek ?? 0}件</strong></div>
+          <div className={styles.statusRow}><span className={styles.statusKey}>価格データ待ち</span><strong>{oa.reviewDue?.priceDataPending ?? 0}件</strong></div>
+        </div>
+        {oa.judgedWithLimitedData.length > 0 && (
+          <div className={styles.notice}>データ不足のまま判定済み: {oa.judgedWithLimitedData.map(item => `${item.code}（${item.horizon}）`).join('、')}</div>
+        )}
+      </section>
 
-      <Disclaimer />
-    </div>
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>データと検証の品質</h2>
+        <p className={styles.sectionIntro}>通常利用で見るべき品質上の問題だけを要約します。</p>
+        <div className={styles.statusGrid}>
+          <div className={styles.statusRow}><span className={styles.statusKey}>データ不足・部分データ</span><strong>{dataIssueCount}銘柄</strong></div>
+          <div className={styles.statusRow}><span className={styles.statusKey}>世界ニュース検証の期限超過</span><strong>{data.worldImpactAudit.overdueReviews}件</strong></div>
+          <div className={styles.statusRow}><span className={styles.statusKey}>世界ニュース検証の不整合</span><strong>{worldImpactIssueCount}件</strong></div>
+          <div className={styles.statusRow}><span className={styles.statusKey}>安全表現の違反</span><strong>{data.safeWordingAudit.violations.length}件</strong></div>
+          <div className={styles.statusRow}><span className={styles.statusKey}>公開出力の確認対象</span><strong>{data.safeOutputAudit?.available ? `${data.safeOutputAudit.findingsCount}件` : '未監査'}</strong></div>
+          <div className={styles.statusRow}><span className={styles.statusKey}>特殊状況ウォッチ</span><strong>{statusLabel(data.specialSituationAudit.healthStatus)}</strong></div>
+        </div>
+        {data.dataAvailabilityAudit.nonOkCodes.length > 0 && <div className={styles.notice}>データ確認対象: {data.dataAvailabilityAudit.nonOkCodes.join('、')}</div>}
+        {data.worldImpactAudit.priorityIssues.length > 0 && (
+          <div className={styles.notice}>世界ニュース側の確認ポイント: {data.worldImpactAudit.priorityIssues.slice(0, 3).map(issue => issue.title ?? issue.detail ?? '確認対象').join(' / ')}</div>
+        )}
+        <div className={styles.rowMeta}><a className={styles.link} href="/world-impact">世界ニュース影響仮説の詳細を見る →</a></div>
+      </section>
+
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>技術監査の詳細</h2>
+        <p className={styles.sectionIntro}>普段は開かなくてよい内部監査値・処理状態・安全コマンドです。</p>
+        <details className={styles.details}>
+          <summary><span>内部監査値を表示</span><span>{data.allIssues.length}件の監査Issue</span></summary>
+          <div className={styles.detailsBody}>
+            <div className={styles.technicalGroup}>
+              <h3 className={styles.technicalTitle}>Outcomeとレビュー品質</h3>
+              {Object.entries(oa.resultCounts).map(([result, count]) => <TechnicalRow key={result} label={`結果: ${RESULT_LABELS[result] ?? result}`} value={`${count}件`} />)}
+              <TechnicalRow label="Historical seedの期限超過" value={`${oa.reviewDue?.historicalSeedOverdue ?? 0}件`} />
+              {oa.integrity && (
+                <>
+                  <TechnicalRow label="Outcome整合性" value={oa.integrity.status} warn={oa.integrity.status !== 'ok'} />
+                  <TechnicalRow label="JSONL重複グループ" value={oa.integrity.jsonlDuplicateGroups} warn={oa.integrity.jsonlDuplicateGroups > 0} />
+                  <TechnicalRow label="SQLite重複グループ" value={oa.integrity.sqliteDuplicateGroups} warn={oa.integrity.sqliteDuplicateGroups > 0} />
+                  <TechnicalRow label="JSON解析エラー" value={oa.integrity.parseErrors} warn={oa.integrity.parseErrors > 0} />
+                </>
+              )}
+              <TechnicalRow label="品質監査" value={data.outcomeQualityAudit.available ? statusLabel(data.outcomeQualityAudit.healthStatus) : '未生成'} />
+              {QUALITY_CHECK_LABELS.map(([key, label]) => {
+                const count = data.outcomeQualityAudit.checkCounts[key] ?? 0
+                return <TechnicalRow key={key} label={label} value={`${count}件`} warn={count > 0} />
+              })}
+            </div>
+
+            <div className={styles.technicalGroup}>
+              <h3 className={styles.technicalTitle}>世界ニュース影響監査</h3>
+              <TechnicalRow label="監査状態" value={data.worldImpactAudit.available ? statusLabel(data.worldImpactAudit.healthStatus) : '未生成'} />
+              <TechnicalRow label="影響仮説レビュー" value={`${data.worldImpactAudit.totalReviews}件`} />
+              <TechnicalRow label="未評価" value={`${data.worldImpactAudit.pendingReviews}件`} warn={data.worldImpactAudit.pendingReviews > 0} />
+              <TechnicalRow label="価格データ待ち" value={`${data.worldImpactAudit.priceDataPending}件`} />
+              <TechnicalRow label="価格データ不足" value={`${data.worldImpactAudit.dataUnavailable}件`} warn={data.worldImpactAudit.dataUnavailable > 0} />
+              <TechnicalRow label="反証条件未記録" value={`${data.worldImpactAudit.missingCounterArguments}件`} warn={data.worldImpactAudit.missingCounterArguments > 0} />
+              <TechnicalRow label="影響メカニズム未記録" value={`${data.worldImpactAudit.missingMechanisms}件`} warn={data.worldImpactAudit.missingMechanisms > 0} />
+              <TechnicalRow label="情報源品質不明" value={`${data.worldImpactAudit.sourceQualityUnknown}件`} warn={data.worldImpactAudit.sourceQualityUnknown > 0} />
+              <TechnicalRow label="方向不明同士の一致判定" value={`${data.worldImpactAudit.unknownMatchedAsHit}件`} warn={data.worldImpactAudit.unknownMatchedAsHit > 0} />
+              <TechnicalRow label="データ不足判定" value={`${data.worldImpactAudit.insufficientData}件`} />
+              <TechnicalRow label="確信度未設定" value={`${data.worldImpactAudit.confidenceMissing}件`} warn={data.worldImpactAudit.confidenceMissing > 0} />
+              <TechnicalRow label="メカニズム分類不明" value={`${data.worldImpactAudit.mechanismUnknown}件`} warn={data.worldImpactAudit.mechanismUnknown > 0} />
+              <TechnicalRow label="反証条件未設定" value={`${data.worldImpactAudit.falsificationMissing}件`} warn={data.worldImpactAudit.falsificationMissing > 0} />
+              <TechnicalRow label="重複キー" value={`${data.worldImpactAudit.duplicateKeys}件`} warn={data.worldImpactAudit.duplicateKeys > 0} />
+              <TechnicalRow label="JSONL破損行" value={`${data.worldImpactAudit.jsonlParseErrors}件`} warn={data.worldImpactAudit.jsonlParseErrors > 0} />
+              <TechnicalRow label="latestとの不一致" value={`${data.worldImpactAudit.latestMismatch}件`} warn={data.worldImpactAudit.latestMismatch > 0} />
+              <TechnicalRow label="期限超過でOutcomeなし" value={`${data.worldImpactAudit.dueWithoutOutcome}件`} warn={data.worldImpactAudit.dueWithoutOutcome > 0} />
+              <TechnicalRow label="評価データ不整合" value={`${data.worldImpactAudit.inconsistencies}件`} warn={data.worldImpactAudit.inconsistencies > 0} />
+            </div>
+
+            <div className={styles.technicalGroup}>
+              <h3 className={styles.technicalTitle}>生成・データ安全性</h3>
+              {Object.entries(data.dataAvailabilityAudit.qualityLevelCounts).map(([level, count]) => <TechnicalRow key={level} label={`品質 ${level}`} value={`${count}銘柄`} />)}
+              <TechnicalRow label="Universe fallback" value={data.staleFallbackAudit.universeFallbackReason ?? 'なし'} warn={Boolean(data.staleFallbackAudit.universeFallbackReason)} />
+              <TechnicalRow label="重複warningコード" value={data.staleFallbackAudit.duplicatedWarningCodes.length} warn={data.staleFallbackAudit.duplicatedWarningCodes.length > 0} />
+              <TechnicalRow label="Pipeline" value={`${data.pipelineAudit.status ?? '不明'}（${data.pipelineAudit.date ?? '日付不明'}${data.pipelineAudit.isToday ? ' / 本日分' : ''}）`} warn={data.pipelineAudit.failedSteps.length > 0} />
+              <TechnicalRow label="Pipeline失敗ステップ" value={data.pipelineAudit.failedSteps.join(', ') || 'なし'} warn={data.pipelineAudit.failedSteps.length > 0} />
+              <TechnicalRow label="UI生成データ" value={`${data.uiDataAudit.generatedAt ?? '未生成'}${data.uiDataAudit.isToday ? '（本日分）' : '（要更新）'}`} warn={!data.uiDataAudit.isToday} />
+              <TechnicalRow label="UIメタ警告" value={data.uiDataAudit.metaWarnings.join(' / ') || 'なし'} warn={data.uiDataAudit.metaWarnings.length > 0} />
+              <TechnicalRow label="安全表現チェック" value={data.safeWordingAudit.violations.length === 0 ? `違反なし（${data.safeWordingAudit.scannedFiles}ファイル）` : `違反 ${data.safeWordingAudit.violations.length}件`} warn={data.safeWordingAudit.violations.length > 0} />
+              <TechnicalRow label="公開出力監査" value={!data.safeOutputAudit?.available ? '未生成' : data.safeOutputAudit.findingsCount === 0 ? `検出なし（${data.safeOutputAudit.scannedFiles}ファイル）` : `確認対象 ${data.safeOutputAudit.findingsCount}件`} warn={!data.safeOutputAudit?.available || data.safeOutputAudit.findingsCount > 0} />
+            </div>
+
+            <div className={styles.technicalGroup}>
+              <h3 className={styles.technicalTitle}>次の安全コマンド</h3>
+              {data.nextSafeCommands.length === 0 ? <div className={styles.rowBody}>追加コマンドはありません。</div> : (
+                <div className={styles.commandList}>
+                  {data.nextSafeCommands.map((cmd, index) => (
+                    <div key={`${cmd.command}-${index}`} className={styles.commandBlock}>
+                      <code className={styles.command}>{cmd.command}</code>
+                      <span className={styles.commandReason}>{cmd.reason}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {data.notes.length > 0 && (
+              <div className={styles.technicalGroup}>
+                <h3 className={styles.technicalTitle}>運用メモ</h3>
+                <ul className={styles.notes}>{data.notes.map((note, index) => <li key={index}>{note}</li>)}</ul>
+              </div>
+            )}
+          </div>
+        </details>
+      </section>
+
+      <div className={styles.footer}><Disclaimer /></div>
+    </main>
   )
 }
