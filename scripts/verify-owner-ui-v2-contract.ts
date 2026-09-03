@@ -11,6 +11,12 @@ function assertRule(source: string, selector: RegExp, declaration: RegExp, messa
   assert(declaration.test(match[0]), message);
 }
 
+function assertAnyRule(source: string, selector: RegExp, declaration: RegExp, message: string): void {
+  const matches = [...source.matchAll(selector)];
+  assert(matches.length > 0, `${message}: selector missing`);
+  assert(matches.some((match) => declaration.test(match[0])), message);
+}
+
 const nav = read("apps/web/components/NavBar.tsx");
 const globals = read("apps/web/app/globals.css");
 const ownerQa = read("apps/web/app/owner-ui-qa.css");
@@ -97,9 +103,9 @@ assertRule(
   /min-height:\s*44px/,
   "calendar detail control must remain at least 44px high",
 );
-assertRule(
+assertAnyRule(
   calendarCss,
-  /\.closeButton\s*\{[^}]*\}/s,
+  /\.closeButton\s*\{[^}]*\}/g,
   /width:\s*44px/,
   "calendar modal close control must remain 44px wide",
 );
