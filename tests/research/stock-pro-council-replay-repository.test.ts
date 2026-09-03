@@ -50,6 +50,31 @@ import {
 }
 
 {
+  const dir = mkdtempSync(join(tmpdir(), "council-replay-manifest-hardlink-"));
+  const manifestDir = join(dir, "manifests");
+  try {
+    mkdirSync(manifestDir, { recursive: true });
+    const sourcePath = join(dir, "source.json");
+    const manifestPath = join(manifestDir, "aliased.json");
+    writeFileSync(sourcePath, "{}\n", "utf-8");
+    linkSync(sourcePath, manifestPath);
+    const result = validateCouncilReplayRepository({
+      manifestDir,
+      verdictDir: join(dir, "verdicts"),
+      dissentPath: join(dir, "dissent.jsonl"),
+      vetoPath: join(dir, "veto.jsonl"),
+    });
+    assert.equal(result.replayCount, 0);
+    assert.ok(result.issues.some((issue) =>
+      issue.code === "non_standalone_council_replay_manifest" && issue.target === manifestPath
+    ));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  console.log("stock-pro-council-replay-repository: hard-link manifest block OK");
+}
+
+{
   const dir = mkdtempSync(join(tmpdir(), "council-replay-invalid-"));
   const manifestDir = join(dir, "manifests");
   try {
