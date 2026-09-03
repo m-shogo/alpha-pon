@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import styles from './ResearchVerification.module.css'
 import {
   loadOwnerResearchHistoryMap,
   type OwnerResearchExploitability,
@@ -8,29 +8,22 @@ import {
   type OwnerResearchStudyStatus,
 } from '@/lib/research-history-map'
 
-const cardStyle: CSSProperties = {
-  background: 'var(--surface)',
-  border: '1px solid var(--card-line)',
-  borderRadius: 18,
-  boxShadow: 'var(--shadow)',
-}
-
 const MODE_LABELS: Record<OwnerResearchStudyMode, string> = {
   exploratory: '探索',
   calibration: '調整',
   confirmatory: '確認',
-  holdout: 'Holdout',
-  out_of_sample: 'Out-of-sample',
+  holdout: '未使用データ検証（Holdout）',
+  out_of_sample: '標本外検証',
   revalidation: '再検証',
 }
 
-const STATUS_LABELS: Record<OwnerResearchStudyStatus, string> = {
-  draft: 'Draft',
-  registered: '登録済み',
-  running: '実行中',
-  completed: '完了',
-  cancelled: '中止',
-  archived: 'Archive',
+const STATUS_LABELS: Record<OwnerResearchStudyStatus, { label: string; tone: string }> = {
+  draft: { label: '下書き', tone: 'gray' },
+  registered: { label: '登録済み', tone: 'blue' },
+  running: { label: '実行中', tone: 'amber' },
+  completed: { label: '完了', tone: 'green' },
+  cancelled: { label: '中止', tone: 'red' },
+  archived: { label: 'アーカイブ', tone: 'gray' },
 }
 
 const IDENTIFICATION_LABELS: Record<OwnerResearchIdentificationQuality, string> = {
@@ -80,105 +73,102 @@ export default function ResearchStudyMap() {
   const unmatchedResults = data.studyResults.filter((result) => !knownStudyIds.has(result.studyId))
 
   return (
-    <section style={{ padding: '0 14px 28px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, margin: '18px 2px 8px' }}>
-        <h2 style={{ margin: 0, fontSize: 17, color: 'var(--ink)', fontWeight: 850 }}>検証Study — どう確かめる？</h2>
-        <span style={{ fontSize: 10.5, color: 'var(--ink-3)', fontWeight: 700 }}>{data.counts.studies} Study / {data.counts.studyResults} Result</span>
+    <section className={styles.root}>
+      <div className="ap-verification-heading">
+        <h2>検証Study — どう確かめるか</h2>
+        <span>{data.counts.studies} Study / {data.counts.studyResults} Result</span>
       </div>
 
-      <div style={{ ...cardStyle, padding: '10px 12px', marginBottom: 9, background: 'var(--surface-2)' }}>
-        <div style={{ fontSize: 10.5, lineHeight: 1.6, color: 'var(--ink-3)', fontWeight: 650 }}>
-          Studyは「どう確かめるか」を固定する検証単位です。結果の因果品質と実用性を分けて表示します。結果が良くても、自動でFormal Edge昇格・BUY推奨・売買判断にはなりません。
-        </div>
+      <div className="ap-verification-note">
+        Studyは「どう確かめるか」を固定する検証単位です。結果では、観測された効果・因果の識別品質・実用性を分けて表示します。良い結果でも、自動で正式Edge昇格やBUY推奨にはなりません。
       </div>
 
       {data.studies.length === 0 ? (
-        <div style={{ ...cardStyle, padding: '18px 16px', textAlign: 'center' }}>
-          <div style={{ fontSize: 22, marginBottom: 7 }}>🔬</div>
-          <div style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 850 }}>正式Studyはまだ0件です</div>
-          <div style={{ marginTop: 6, fontSize: 11.5, lineHeight: 1.65, color: 'var(--ink-3)', fontWeight: 600 }}>
-            0件を隠さず表示します。Catalogへ正式Studyが登録された時だけ、ここに目的・検証モード・結果が現れます。
-          </div>
+        <div className="ap-study-empty">
+          <strong>正式Studyはまだ0件です</strong>
+          <p>0件を隠さず表示します。Catalogへ正式なStudyが登録された時だけ、目的・検証モード・結果がここに現れます。</p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gap: 9 }}>
+        <div className="ap-verification-group">
           {data.studies.map((study) => {
             const results = data.studyResults.filter((result) => result.studyId === study.id)
+            const status = STATUS_LABELS[study.status]
             return (
-              <article key={study.id} style={{ ...cardStyle, padding: '13px 14px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 9.5, color: 'var(--ink-3)', fontWeight: 700 }}>{study.id}</div>
-                    <h3 style={{ margin: '3px 0 0', fontSize: 14.5, lineHeight: 1.35, color: 'var(--ink)', fontWeight: 850 }}>{study.title}</h3>
+              <article className="ap-verification-row" key={study.id}>
+                <div className="ap-verification-row-head">
+                  <div>
+                    <div className="ap-verification-kicker">{study.id} · {MODE_LABELS[study.mode]}</div>
+                    <h3>{study.title}</h3>
                   </div>
-                  <span style={{ flexShrink: 0, padding: '4px 7px', borderRadius: 999, background: 'var(--sky-soft)', color: 'var(--sky-deep)', fontSize: 9.5, fontWeight: 850 }}>
-                    {STATUS_LABELS[study.status]}
-                  </span>
+                  <span className={`ap-status-badge tone-${status.tone}`}>{status.label}</span>
                 </div>
 
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
-                  <span style={{ padding: '3px 6px', borderRadius: 7, background: 'var(--lavender-soft)', color: 'var(--lavender-deep)', fontSize: 9.5, fontWeight: 800 }}>
-                    {MODE_LABELS[study.mode]}
-                  </span>
-                  {study.informationCutoff && (
-                    <span style={{ padding: '3px 6px', borderRadius: 7, background: 'var(--surface-2)', color: 'var(--ink-3)', fontSize: 9.5, fontWeight: 750 }}>
-                      情報cutoff {formatDate(study.informationCutoff)}
-                    </span>
-                  )}
-                </div>
+                <p className="ap-verification-body">{study.purpose}</p>
 
-                <div style={{ marginTop: 9, fontSize: 11.5, lineHeight: 1.6, color: 'var(--ink-2)', fontWeight: 600 }}>{study.purpose}</div>
-
-                {(study.population || study.primaryMetric) && (
-                  <div style={{ marginTop: 8, display: 'grid', gap: 5 }}>
-                    {study.population && <div style={{ fontSize: 10.5, color: 'var(--ink-3)', lineHeight: 1.5 }}><strong>対象:</strong> {study.population}</div>}
-                    {study.primaryMetric && <div style={{ fontSize: 10.5, color: 'var(--ink-3)', lineHeight: 1.5 }}><strong>主要指標:</strong> {study.primaryMetric}</div>}
+                {(study.population || study.primaryMetric || study.informationCutoff) && (
+                  <div className="ap-study-meta-grid">
+                    <div>
+                      <span>対象</span>
+                      <strong>{study.population ?? '未記録'}</strong>
+                    </div>
+                    <div>
+                      <span>主要指標 / 情報cutoff</span>
+                      <strong>
+                        {study.primaryMetric ?? '主要指標未記録'}
+                        {study.informationCutoff ? ` · ${formatDate(study.informationCutoff)}` : ''}
+                      </strong>
+                    </div>
                   </div>
                 )}
 
-                <div style={{ marginTop: 8, fontSize: 9.5, color: 'var(--ink-3)', fontWeight: 650 }}>
+                <div className="ap-pit-meta">
                   作成 {formatDate(study.createdAt)}{study.registeredAt ? ` · 登録 ${formatDate(study.registeredAt)}` : ''}
                 </div>
 
                 {results.length === 0 ? (
-                  <div style={{ marginTop: 9, padding: '8px 9px', borderRadius: 9, background: 'var(--amber-soft)', color: 'var(--amber)', fontSize: 10.5, fontWeight: 750 }}>
-                    StudyResultはまだ登録されていません。
-                  </div>
+                  <div className="ap-reaction-missing">StudyResultはまだ登録されていません。未登録を「効果なし」と解釈しません。</div>
                 ) : (
-                  <div style={{ display: 'grid', gap: 7, marginTop: 10 }}>
-                    {results.map((result) => (
-                      <div key={result.id} style={{ padding: '10px 11px', borderRadius: 11, background: 'var(--mint-soft)' }}>
-                        <div style={{ fontSize: 9.5, color: 'var(--mint-deep)', fontWeight: 900 }}>実測StudyResult</div>
-                        <div style={{ marginTop: 4, fontSize: 11.5, lineHeight: 1.6, color: 'var(--ink-2)', fontWeight: 650 }}>{result.effectSummary}</div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 7 }}>
-                          <span style={{ padding: '3px 6px', borderRadius: 7, background: 'var(--surface)', color: 'var(--ink-2)', fontSize: 9.5, fontWeight: 800 }}>
-                            {IDENTIFICATION_LABELS[result.identificationQuality]}
-                          </span>
-                          <span style={{ padding: '3px 6px', borderRadius: 7, background: 'var(--surface)', color: 'var(--ink-2)', fontSize: 9.5, fontWeight: 800 }}>
-                            {EXPLOITABILITY_LABELS[result.exploitability]}
-                          </span>
-                        </div>
-                        {(result.limitations.length > 0 || result.negativeFindings.length > 0) && (
-                          <details style={{ marginTop: 7 }}>
-                            <summary style={{ cursor: 'pointer', fontSize: 10, color: 'var(--ink-3)', fontWeight: 800 }}>限界・ネガティブ結果</summary>
-                            {result.negativeFindings.length > 0 && (
-                              <div style={{ marginTop: 6, fontSize: 10.5, lineHeight: 1.55, color: 'var(--accent)', fontWeight: 700 }}>
-                                {result.negativeFindings.map((finding) => NEGATIVE_LABELS[finding]).join(' / ')}
-                              </div>
-                            )}
-                            {result.limitations.length > 0 && (
-                              <div style={{ display: 'grid', gap: 4, marginTop: 6 }}>
-                                {result.limitations.map((limitation, index) => (
-                                  <div key={`${index}-${limitation.slice(0, 24)}`} style={{ fontSize: 10.5, lineHeight: 1.5, color: 'var(--ink-3)' }}>• {limitation}</div>
-                                ))}
-                              </div>
-                            )}
-                          </details>
-                        )}
-                        <div style={{ marginTop: 6, fontSize: 9, color: 'var(--ink-3)' }}>結果記録 {formatDate(result.createdAt)}</div>
+                  results.map((result) => (
+                    <section className="ap-study-result" key={result.id}>
+                      <div className="ap-study-result-head">
+                        <span className="ap-study-result-label">実測StudyResult</span>
+                        <time>結果記録 {formatDate(result.createdAt)}</time>
                       </div>
-                    ))}
-                  </div>
+                      <p>{result.effectSummary}</p>
+                      <div className="ap-study-result-classification">
+                        <div>
+                          <span>因果の識別品質</span>
+                          <strong>{IDENTIFICATION_LABELS[result.identificationQuality]}</strong>
+                        </div>
+                        <div>
+                          <span>実用性</span>
+                          <strong>{EXPLOITABILITY_LABELS[result.exploitability]}</strong>
+                        </div>
+                      </div>
+
+                      {(result.limitations.length > 0 || result.negativeFindings.length > 0) && (
+                        <details className="ap-verification-details">
+                          <summary>限界・ネガティブ結果</summary>
+                          <div className="ap-detail-list">
+                            {result.negativeFindings.map((finding) => (
+                              <div className="ap-detail-row" key={finding}>
+                                <span>ネガティブ結果</span>
+                                <strong>{NEGATIVE_LABELS[finding]}</strong>
+                                <small />
+                              </div>
+                            ))}
+                            {result.limitations.map((limitation, index) => (
+                              <div className="ap-detail-row" key={`${index}-${limitation.slice(0, 24)}`}>
+                                <span>限界</span>
+                                <strong>{limitation}</strong>
+                                <small />
+                              </div>
+                            ))}
+                          </div>
+                        </details>
+                      )}
+                    </section>
+                  ))
                 )}
               </article>
             )
@@ -187,9 +177,9 @@ export default function ResearchStudyMap() {
       )}
 
       {unmatchedResults.length > 0 && (
-        <div style={{ ...cardStyle, marginTop: 9, padding: '10px 12px', background: 'var(--amber-soft)' }}>
-          <div style={{ fontSize: 10.5, color: 'var(--amber)', fontWeight: 850 }}>Studyに紐づかないResult {unmatchedResults.length}件</div>
-          <div style={{ marginTop: 4, fontSize: 10.5, lineHeight: 1.55, color: 'var(--ink-3)' }}>整合性確認が必要です。Resultを消したり別Studyへ推測で付け替えたりはしません。</div>
+        <div className="ap-study-warning">
+          <strong>Studyに紐づかないResultが {unmatchedResults.length}件あります。</strong><br />
+          整合性確認が必要です。Resultを消したり、別Studyへ推測で付け替えたりはしません。
         </div>
       )}
     </section>
