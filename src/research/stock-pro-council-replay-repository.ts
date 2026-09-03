@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import {
   COUNCIL_LEDGER_PATHS,
@@ -70,6 +70,17 @@ function schemaIssues(value: unknown, schema: JsonSchema, target: string): Counc
 
 function readStrictJsonl<T>(path: string): { records: T[]; issues: CouncilIssue[] } {
   if (!existsSync(path)) return { records: [], issues: [] };
+  const stat = lstatSync(path);
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
+    return {
+      records: [],
+      issues: [issue(
+        "non_standalone_council_replay_file",
+        path,
+        "Council Replay JSONL must be a standalone regular file",
+      )],
+    };
+  }
   const content = readFileSync(path, "utf-8");
   if (content.length > 0 && !content.endsWith("\n")) {
     return {
