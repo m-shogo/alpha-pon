@@ -1,4 +1,5 @@
 import { existsSync, lstatSync, readFileSync } from "node:fs";
+import { dirname } from "node:path";
 import {
   validateBitemporalEvidenceRepository,
 } from "./bitemporal-evidence-repository.js";
@@ -80,6 +81,17 @@ function readStrictJsonl<T>(path: string): {
   issues: DocumentRevisionDiffIssue[];
 } {
   if (!existsSync(path)) return { records: [], issues: [] };
+  const parent = dirname(path);
+  if (existsSync(parent) && lstatSync(parent).isSymbolicLink()) {
+    return {
+      records: [],
+      issues: [issue(
+        "non_standalone_document_revision_repository_file",
+        path,
+        "Document Revision Diff JSONL parent directory must not be a symbolic link",
+      )],
+    };
+  }
   const stat = lstatSync(path);
   if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
     return {
