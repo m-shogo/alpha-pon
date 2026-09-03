@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { linkSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -25,6 +25,28 @@ import {
     rmSync(dir, { recursive: true, force: true });
   }
   console.log("stock-pro-council-replay-repository: absent local data OK");
+}
+
+{
+  const dir = mkdtempSync(join(tmpdir(), "council-replay-hardlink-"));
+  try {
+    const sourcePath = join(dir, "source.jsonl");
+    const dissentPath = join(dir, "dissent.jsonl");
+    writeFileSync(sourcePath, "", "utf-8");
+    linkSync(sourcePath, dissentPath);
+    const result = validateCouncilReplayRepository({
+      manifestDir: join(dir, "manifests"),
+      verdictDir: join(dir, "verdicts"),
+      dissentPath,
+      vetoPath: join(dir, "veto.jsonl"),
+    });
+    assert.ok(result.issues.some((issue) =>
+      issue.code === "non_standalone_council_replay_file" && issue.target === dissentPath
+    ));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  console.log("stock-pro-council-replay-repository: hard-link JSONL block OK");
 }
 
 {
