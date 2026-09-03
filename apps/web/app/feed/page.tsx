@@ -79,7 +79,7 @@ export default function FeedPage() {
                 {byDate[date].map(item => {
                   const alert = ALERT_META[item.level]
                   return (
-                    <Link key={`${date}-${item.code}`} href={`/companies/${item.code}`} className={styles.row}>
+                    <Link key={`${date}-${item.code}`} href={`/stocks/${item.code}`} className={styles.row}>
                       <span className={styles.levelBar} style={{ background: alert.colorVar }} aria-hidden="true" />
                       <div className={styles.identity}>
                         <div className={styles.nameLine}>
