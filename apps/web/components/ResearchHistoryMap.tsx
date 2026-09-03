@@ -1,3 +1,4 @@
+import styles from './ResearchHistoryMap.module.css'
 import {
   loadOwnerResearchHistoryMap,
   type OwnerHistoricalAnalogVerdict,
@@ -52,7 +53,7 @@ export default function ResearchHistoryMap() {
   const data = loadOwnerResearchHistoryMap()
 
   return (
-    <div className="ap-history-map">
+    <div className={`${styles.root} ap-history-map`}>
       {data.warning && <div className="ap-history-warning">⚠ {data.warning}</div>}
 
       <SectionTitle title="研究のつながり" meta={`${data.counts.families}件`} />
