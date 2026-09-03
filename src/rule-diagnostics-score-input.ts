@@ -1,6 +1,7 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { addDaysJst, todayJst } from "./date.js";
+import { readReadOnlyJsonArrayFile } from "./read-only-json-file.js";
 
 export type RuleDiagnosticsScoreLoad<T> = {
   rows: T[];
@@ -50,18 +51,16 @@ export function readRuleDiagnosticsScoreRows<T>(
     }
 
     const path = join(reportsDir, file);
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(readFileSync(path, "utf-8")) as unknown;
-    } catch {
+    const loaded = readReadOnlyJsonArrayFile<unknown>(path);
+    if (loaded.parseError) {
       warnings.push(`${file}: invalid_json`);
       continue;
     }
-
-    if (!Array.isArray(parsed)) {
+    if (loaded.invalidRoot) {
       warnings.push(`${file}: invalid_root`);
       continue;
     }
+    const parsed = loaded.rows;
 
     const candidates: Array<{ row: T; rowNumber: number; code: string }> = [];
     const invalidRows: number[] = [];
