@@ -1,15 +1,10 @@
-// /world-impact — World Impact Intelligence
-// 世界ニュース → 影響メカニズム → 銘柄 → 検証可能仮説 → レビュー → 学習メモ の一覧。
-// 買い推奨ではなく、影響仮説の検証と学習のための画面。
-
 import Link from 'next/link'
 import { loadGeneratedData } from '@/lib/generated-data'
-import { Card, SectionLabel } from '@/components/Card'
-import { Icon } from '@/components/Icon'
 import { Disclaimer } from '@/components/Disclaimer'
 import type { WorldImpactReview } from '@/lib/types'
+import styles from './world-impact.module.css'
 
-export const metadata = { title: '世界ニュース影響仮説 | alpha-pon' }
+export const metadata = { title: '世界ニュースの影響検証 | alpha-pon' }
 
 const MECHANISM_LABELS: Record<string, string> = {
   demand: '需要', supply: '供給', cost: 'コスト', fx: '為替', rates: '金利',
@@ -36,6 +31,13 @@ const REVIEW_STATUS_LABELS: Record<string, string> = {
   insufficient_data: 'データ不足',
 }
 
+const REVIEW_STATUS_COLORS: Record<string, string> = {
+  pending: 'var(--amber)',
+  reviewed: 'var(--mint-deep)',
+  skipped: 'var(--ink-3)',
+  insufficient_data: 'var(--amber)',
+}
+
 const OUTCOME_LABELS: Record<string, string> = {
   hit: '仮説と整合',
   miss: '想定差分あり',
@@ -47,21 +49,29 @@ const OUTCOME_LABELS: Record<string, string> = {
   unevaluated: '未評価',
 }
 
-function CountRow({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 13 }}>
-      <span style={{ color: 'var(--ink-2)', fontWeight: 600 }}>{label}</span>
-      <span style={{ color: 'var(--ink)', fontWeight: 800 }}>{value}</span>
-    </div>
-  )
+const OUTCOME_COLORS: Record<string, string> = {
+  hit: 'var(--mint-deep)',
+  miss: 'var(--amber)',
+  inverse: 'var(--urgent)',
+  too_early: 'var(--amber)',
+  unclear: 'var(--ink-3)',
+  insufficient_data: 'var(--amber)',
+  unknown: 'var(--ink-3)',
+  unevaluated: 'var(--ink-3)',
 }
 
-function Chip({ children }: { children: React.ReactNode }) {
-  return (
-    <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink-2)', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 999, padding: '2px 9px' }}>
-      {children}
-    </span>
-  )
+const DIRECTION_LABELS: Record<string, string> = {
+  positive: 'プラス方向',
+  negative: 'マイナス方向',
+  mixed: '方向混在',
+  unclear: '方向未確定',
+}
+
+const SOURCE_QUALITY_LABELS: Record<string, string> = {
+  official: '公式',
+  tier1: '主要報道',
+  tier2: '補助情報',
+  unknown: '情報源品質未確定',
 }
 
 function countBy<T>(items: T[], key: (item: T) => string[]): Array<[string, number]> {
@@ -76,13 +86,12 @@ type OutcomeWithReview = { review: WorldImpactReview; outcome: WorldImpactReview
 
 function confidenceBandLabel(confidence: number | null | undefined): string {
   if (confidence == null) return '未設定'
-  if (confidence < 0.34) return '低 (<0.34)'
-  if (confidence < 0.67) return '中 (0.34-0.66)'
-  return '高 (>=0.67)'
+  if (confidence < 0.34) return '低（0.34未満）'
+  if (confidence < 0.67) return '中（0.34〜0.66）'
+  return '高（0.67以上）'
 }
 
-// グループ別の検証成績（整合/差分/逆行のみを評価済みとして数える）
-function performanceBy(items: OutcomeWithReview[], key: (item: OutcomeWithReview) => string[]): Array<[string, { evaluated: number; hit: number; miss: number; inverse: number }]> {
+function performanceBy(items: OutcomeWithReview[], key: (item: OutcomeWithReview) => string[]) {
   const groups = new Map<string, { evaluated: number; hit: number; miss: number; inverse: number }>()
   for (const item of items) {
     const result = item.outcome.result
@@ -99,22 +108,136 @@ function performanceBy(items: OutcomeWithReview[], key: (item: OutcomeWithReview
   return [...groups.entries()].sort((a, b) => b[1].evaluated - a[1].evaluated)
 }
 
-function OutcomeCaseRow({ item, note }: { item: OutcomeWithReview; note?: string }) {
+function outcomeReturn(item: OutcomeWithReview): number | null {
+  return item.outcome.priceReturnPct ?? item.outcome.returnPct ?? null
+}
+
+function relativeReturn(item: OutcomeWithReview): number | null {
+  return item.outcome.relativeReturnPct ?? item.outcome.relativeToTopixPct ?? null
+}
+
+function formatPct(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return '未計測'
+  return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`
+}
+
+function resultLabel(result: string | null | undefined): string {
+  return OUTCOME_LABELS[result ?? 'unevaluated'] ?? result ?? '未評価'
+}
+
+function CaseRow({ item, note }: { item: OutcomeWithReview; note?: string }) {
+  const result = item.outcome.result ?? 'unevaluated'
+  const autoReason = item.outcome.autoMissReason
+  const manualReason = item.outcome.manualMissReason
+
   return (
-    <div style={{ padding: '8px 0', borderBottom: '1px solid var(--line)' }}>
-      <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.4 }}>
-        {item.review.affectedCompanyCodes.join(', ')} {item.outcome.horizon}: {item.review.topic.slice(0, 50)}
+    <div className={styles.caseRow}>
+      <div className={styles.rowTop}>
+        <div className={styles.identity}>
+          <div className={styles.topic}>{item.review.topic}</div>
+          <div className={styles.meta}>
+            {item.review.affectedCompanyCodes.join(', ') || '銘柄未紐付け'} ・ {item.outcome.horizon}
+            {' '}・ 値動き {formatPct(outcomeReturn(item))} ・ TOPIX比 {formatPct(relativeReturn(item))}
+          </div>
+        </div>
+        <div className={styles.state} style={{ color: OUTCOME_COLORS[result] ?? 'var(--ink-3)' }}>
+          {resultLabel(result)}
+        </div>
       </div>
-      <div style={{ fontSize: 11.5, fontWeight: 650, color: 'var(--ink-3)', lineHeight: 1.5 }}>
-        result {OUTCOME_LABELS[item.outcome.result ?? 'unevaluated'] ?? item.outcome.result}
-        {' / '}return {item.outcome.priceReturnPct?.toFixed(2) ?? item.outcome.returnPct?.toFixed(2) ?? '-'}%
-        {' / '}相対 {item.outcome.relativeReturnPct?.toFixed(2) ?? '-'}%
-        {' / '}confidence {item.review.confidence ?? '未設定'}
-        {item.outcome.autoMissReason ? ` / auto: ${item.outcome.autoMissReason}` : ''}
-        {item.outcome.manualMissReason ? ` / manual: ${MISS_REASON_LABELS[item.outcome.manualMissReason] ?? item.outcome.manualMissReason}` : ''}
-        {note ? ` / ${note}` : ''}
+      <div className={styles.bodyText}>
+        confidence {item.review.confidence ?? '未設定'}
+        {autoReason ? ` ・ 自動判定理由: ${autoReason}` : ''}
+        {manualReason ? ` ・ 確認理由: ${MISS_REASON_LABELS[manualReason] ?? manualReason}` : ''}
+        {note ? ` ・ ${note}` : ''}
       </div>
     </div>
+  )
+}
+
+function PerformanceRows({ rows, label }: { rows: ReturnType<typeof performanceBy>; label: (key: string) => string }) {
+  if (rows.length === 0) return <div className={styles.empty}>まだ比較できる評価済みデータがありません。</div>
+  return (
+    <div>
+      {rows.map(([key, perf]) => (
+        <div key={key} className={styles.performanceRow}>
+          <div className={styles.performanceName}>{label(key)}</div>
+          <div className={styles.performanceMetric}><span>評価済み</span>{perf.evaluated}</div>
+          <div className={`${styles.performanceMetric} ${styles.positive}`}><span>整合</span>{perf.hit}</div>
+          <div className={`${styles.performanceMetric} ${styles.warning}`}><span>差分</span>{perf.miss}</div>
+          <div className={`${styles.performanceMetric} ${styles.negative}`}><span>逆行</span>{perf.inverse}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function LatestReviewRow({ review }: { review: WorldImpactReview }) {
+  const status = review.reviewStatus ?? 'pending'
+  const mechanisms = review.mechanisms ?? []
+  const pathThemes = review.impactPath?.themes ?? []
+
+  return (
+    <article className={styles.reviewRow}>
+      <div className={styles.rowTop}>
+        <div className={styles.identity}>
+          <div className={styles.topic}>{review.topic}</div>
+          <div className={styles.meta}>
+            {review.eventDate} ・ {review.affectedCompanyCodes.join(', ') || '銘柄未紐付け'}
+            {' '}・ {SOURCE_QUALITY_LABELS[review.sourceQuality] ?? review.sourceQuality}
+            {review.direction ? ` ・ ${DIRECTION_LABELS[review.direction] ?? review.direction}` : ''}
+          </div>
+        </div>
+        <div className={styles.state} style={{ color: REVIEW_STATUS_COLORS[status] ?? 'var(--ink-3)' }}>
+          {REVIEW_STATUS_LABELS[status] ?? status}
+        </div>
+      </div>
+
+      <div className={styles.hypothesisGrid}>
+        <div className={styles.hypothesisItem}>
+          <div className={styles.itemLabel}>影響経路</div>
+          <div className={styles.itemText}>
+            {mechanisms.length > 0 ? mechanisms.map(item => MECHANISM_LABELS[item] ?? item).join(' → ') : review.expectedMechanism || '未整理'}
+            {pathThemes.length > 0 ? ` → ${pathThemes.slice(0, 4).join('・')}` : ''}
+          </div>
+        </div>
+        <div className={styles.hypothesisItem}>
+          <div className={styles.itemLabel}>検証する仮説</div>
+          <div className={styles.itemText}>{review.thesis || review.expectedMechanism || '未記録'}</div>
+        </div>
+        <div className={styles.hypothesisItem}>
+          <div className={styles.itemLabel}>外れたと判断する条件</div>
+          <div className={styles.itemText}>{review.falsification || review.counterArgument || '未設定'}</div>
+        </div>
+      </div>
+
+      <div className={styles.meta}>
+        confidence {review.confidence ?? '未設定'} ・ 想定ラグ {review.expectedLagDays ?? '-'}日
+        {review.reviewDueAt ? ` ・ レビュー期限 ${review.reviewDueAt}` : ''}
+      </div>
+
+      {review.outcomes.length > 0 && (
+        <div className={styles.outcomes}>
+          {review.outcomes.map(outcome => {
+            const result = outcome.result ?? 'unevaluated'
+            return (
+              <div key={outcome.horizon} className={styles.outcome}>
+                {outcome.horizon}<strong style={{ color: OUTCOME_COLORS[result] ?? 'var(--ink)' }}>{resultLabel(result)}</strong>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {review.lesson && <div className={styles.bodyText}>学習メモ: {review.lesson}</div>}
+
+      {review.affectedCompanyCodes.length > 0 && (
+        <div className={styles.links}>
+          {review.affectedCompanyCodes.map(code => (
+            <Link key={code} href={`/stocks/${code}`} className={styles.stockLink}>{code} の銘柄詳細 →</Link>
+          ))}
+        </div>
+      )}
+    </article>
   )
 }
 
@@ -128,14 +251,12 @@ export default function WorldImpactPage() {
   const outcomeCounts = countBy(reviews.flatMap(review => review.outcomes), outcome => [outcome.result ?? 'unevaluated'])
   const missReasonCounts = countBy(
     reviews.flatMap(review => review.outcomes).filter(outcome => outcome.missReason),
-    outcome => [outcome.missReason as string]
+    outcome => [outcome.missReason as string],
   )
   const pendingReviews = reviews.filter(review => (review.reviewStatus ?? 'pending') === 'pending')
   const sortedReviews = [...reviews].sort((a, b) => (b.eventDate ?? '').localeCompare(a.eventDate ?? ''))
-
-  // v3 評価セクション用データ（全て null 安全）
   const allOutcomes: OutcomeWithReview[] = reviews.flatMap(review =>
-    (review.outcomes ?? []).map(outcome => ({ review, outcome }))
+    (review.outcomes ?? []).map(outcome => ({ review, outcome })),
   )
   const evaluatedOutcomes = allOutcomes
     .filter(({ outcome }) => outcome.evaluatedAt != null)
@@ -147,228 +268,221 @@ export default function WorldImpactPage() {
     review.confidence != null && review.confidence <= 0.4 && outcome.result === 'hit')
   const today = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10)
   const overdueUnevaluated = allOutcomes.filter(({ outcome }) =>
-    outcome.dueAt && outcome.dueAt < today &&
-    (outcome.result == null || outcome.result === 'unknown' || outcome.result === 'too_early'))
+    outcome.dueAt && outcome.dueAt < today
+    && (outcome.result == null || outcome.result === 'unknown' || outcome.result === 'too_early'))
   const confPerformance = performanceBy(allOutcomes, ({ review }) => [confidenceBandLabel(review.confidence)])
   const mechPerformance = performanceBy(allOutcomes, ({ review }) => review.mechanisms ?? ['unknown'])
   const directionPerformance = performanceBy(allOutcomes, ({ review }) => [review.direction ?? 'unclear'])
   const dataQualityIssues = (audit?.priorityIssues ?? []).slice(0, 6)
+  const exceptionCount = overdueUnevaluated.length + highConfMisses.length + inverseCases.length + dataQualityIssues.length
 
   return (
-    <div style={{ padding: '20px 16px 80px' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 900, color: 'var(--ink)', margin: '0 0 4px' }}>世界ニュース影響仮説</h1>
-      <p style={{ margin: '0 0 16px', fontSize: 12, fontWeight: 650, color: 'var(--ink-3)' }}>
-        ニュース → 影響メカニズム → 銘柄 → 検証可能仮説 → 検証結果。売買の推奨は行いません。
-      </p>
+    <main className={styles.page}>
+      <header className={styles.header}>
+        <p className={styles.eyebrow}>世界ニュース → 日本株 → 答え合わせ</p>
+        <h1 className={styles.title}>世界ニュースの影響検証</h1>
+        <p className={styles.lead}>
+          世界の出来事が、どの経路で日本企業へ影響すると考えたか、その後の値動きと照らして検証します。
+          「仮説と整合」は売買の成功を意味するものではありません。
+        </p>
+      </header>
 
-      {reviews.length === 0 ? (
-        <Card>
-          <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.7 }}>
-            影響仮説レビューが未生成です。<code>pnpm review:world-impact</code> → <code>pnpm ui:data</code> を実行してください。
-          </p>
-        </Card>
-      ) : (
-        <>
-          <SectionLabel icon={<Icon name="arc" size={15} color="currentColor" />}>サマリー</SectionLabel>
-          <Card>
-            <CountRow label="影響仮説レビュー総数" value={`${reviews.length}件`} />
-            {statusCounts.map(([status, count]) => (
-              <CountRow key={status} label={REVIEW_STATUS_LABELS[status] ?? status} value={`${count}件`} />
-            ))}
-            {audit && (
-              <>
-                <CountRow label="期限超過の未評価 outcome" value={`${audit.overdueReviews}件`} />
-                <CountRow label="価格データ提供待ち outcome" value={`${audit.priceDataPending}件`} />
-              </>
-            )}
-          </Card>
-
-          <SectionLabel icon={<Icon name="filter" size={15} color="currentColor" />}>影響メカニズム別</SectionLabel>
-          <Card>
-            {mechanismCounts.map(([mechanism, count]) => (
-              <CountRow key={mechanism} label={MECHANISM_LABELS[mechanism] ?? mechanism} value={`${count}件`} />
-            ))}
-          </Card>
-
-          <SectionLabel icon={<Icon name="check" size={15} color="currentColor" />}>検証結果（outcome 別）</SectionLabel>
-          <Card>
-            {outcomeCounts.map(([result, count]) => (
-              <CountRow key={result} label={OUTCOME_LABELS[result] ?? result} value={`${count}件`} />
-            ))}
-          </Card>
-
-          <SectionLabel icon={<Icon name="doc" size={15} color="currentColor" />}>外れ理由ランキング</SectionLabel>
-          <Card>
-            {missReasonCounts.length === 0 ? (
-              <p style={{ margin: 0, fontSize: 12.5, color: 'var(--ink-3)', fontWeight: 600 }}>
-                まだ外れ理由の記録なし。検証済み仮説が増えると蓄積されます。
-              </p>
-            ) : missReasonCounts.map(([reason, count]) => (
-              <CountRow key={reason} label={MISS_REASON_LABELS[reason] ?? reason} value={`${count}件`} />
-            ))}
-          </Card>
-
-          <SectionLabel icon={<Icon name="check" size={15} color="currentColor" />}>検証成績（評価済みのみ・参考値）</SectionLabel>
-          <Card>
-            {confPerformance.length === 0 && mechPerformance.length === 0 ? (
-              <p style={{ margin: 0, fontSize: 12.5, color: 'var(--ink-3)', fontWeight: 600 }}>
-                評価済み outcome がまだありません。レビュー期限到来後に <code>pnpm evaluate:world-impact</code> を実行すると蓄積されます。
-              </p>
-            ) : (
-              <>
-                {confPerformance.map(([band, perf]) => (
-                  <CountRow key={`conf-${band}`} label={`confidence ${band}`} value={`整合${perf.hit} / 差分${perf.miss} / 逆行${perf.inverse}（${perf.evaluated}件）`} />
-                ))}
-                {mechPerformance.slice(0, 6).map(([mechanism, perf]) => (
-                  <CountRow key={`mech-${mechanism}`} label={`mechanism ${MECHANISM_LABELS[mechanism] ?? mechanism}`} value={`整合${perf.hit} / 差分${perf.miss} / 逆行${perf.inverse}`} />
-                ))}
-                {directionPerformance.map(([direction, perf]) => (
-                  <CountRow key={`dir-${direction}`} label={`direction ${direction}`} value={`整合${perf.hit} / 差分${perf.miss} / 逆行${perf.inverse}`} />
-                ))}
-              </>
-            )}
-          </Card>
-
-          {overdueUnevaluated.length > 0 && (
-            <>
-              <SectionLabel icon={<Icon name="bell" size={15} color="currentColor" />}>期限切れ・未評価 outcome</SectionLabel>
-              <Card pad={0}>
-                <div style={{ padding: '4px 14px' }}>
-                  {overdueUnevaluated.slice(0, 10).map(item => (
-                    <OutcomeCaseRow key={`${item.review.reviewKey}-${item.outcome.horizon}`} item={item} note={`期限 ${item.outcome.dueAt}`} />
-                  ))}
-                </div>
-              </Card>
-            </>
-          )}
-
-          {highConfMisses.length > 0 && (
-            <>
-              <SectionLabel icon={<Icon name="bell" size={15} color="currentColor" />}>confidence 過大の候補（高 confidence で差分/逆行）</SectionLabel>
-              <Card pad={0}>
-                <div style={{ padding: '4px 14px' }}>
-                  {highConfMisses.slice(0, 8).map(item => (
-                    <OutcomeCaseRow key={`hcm-${item.review.reviewKey}-${item.outcome.horizon}`} item={item} />
-                  ))}
-                </div>
-              </Card>
-            </>
-          )}
-
-          {lowConfHits.length > 0 && (
-            <>
-              <SectionLabel icon={<Icon name="spark" size={15} color="currentColor" />}>confidence 過小の候補（低 confidence で整合）</SectionLabel>
-              <Card pad={0}>
-                <div style={{ padding: '4px 14px' }}>
-                  {lowConfHits.slice(0, 8).map(item => (
-                    <OutcomeCaseRow key={`lch-${item.review.reviewKey}-${item.outcome.horizon}`} item={item} />
-                  ))}
-                </div>
-              </Card>
-            </>
-          )}
-
-          {inverseCases.length > 0 && (
-            <>
-              <SectionLabel icon={<Icon name="filter" size={15} color="currentColor" />}>想定と逆行した観察（inverse）</SectionLabel>
-              <Card pad={0}>
-                <div style={{ padding: '4px 14px' }}>
-                  {inverseCases.slice(0, 8).map(item => (
-                    <OutcomeCaseRow key={`inv-${item.review.reviewKey}-${item.outcome.horizon}`} item={item} />
-                  ))}
-                </div>
-              </Card>
-            </>
-          )}
-
-          {evaluatedOutcomes.length > 0 && (
-            <>
-              <SectionLabel icon={<Icon name="doc" size={15} color="currentColor" />}>最近の評価済み outcome</SectionLabel>
-              <Card pad={0}>
-                <div style={{ padding: '4px 14px' }}>
-                  {evaluatedOutcomes.slice(0, 10).map(item => (
-                    <OutcomeCaseRow key={`ev-${item.review.reviewKey}-${item.outcome.horizon}`} item={item} note={`評価日 ${item.outcome.evaluatedAt}`} />
-                  ))}
-                </div>
-              </Card>
-            </>
-          )}
-
-          {dataQualityIssues.length > 0 && (
-            <>
-              <SectionLabel icon={<Icon name="bell" size={15} color="currentColor" />}>データ品質の確認対象</SectionLabel>
-              <Card>
-                {dataQualityIssues.map((issue, index) => (
-                  <p key={index} style={{ margin: '4px 0', fontSize: 12, fontWeight: 650, color: 'var(--ink-2)', lineHeight: 1.5 }}>
-                    [{issue.severity}] {issue.title ?? ''} — {issue.detail ?? ''}
-                  </p>
-                ))}
-              </Card>
-            </>
-          )}
-
-          <SectionLabel icon={<Icon name="bell" size={15} color="currentColor" />}>未検証レビュー（pending）</SectionLabel>
-          <Card pad={0}>
-            {pendingReviews.length === 0 ? (
-              <p style={{ margin: 0, padding: 14, fontSize: 12.5, color: 'var(--ink-3)', fontWeight: 600 }}>未検証なし</p>
-            ) : pendingReviews.slice(0, 10).map((review, index) => (
-              <div key={review.reviewKey} style={{ padding: 12, borderBottom: index < Math.min(pendingReviews.length, 10) - 1 ? '1px solid var(--line)' : 'none', display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{review.topic}</div>
-                  <div style={{ fontSize: 11.5, fontWeight: 650, color: 'var(--ink-3)' }}>
-                    {review.affectedCompanyCodes.join(', ')} / 期限 {review.reviewDueAt ?? '未設定'}
-                  </div>
-                </div>
-                <Chip>{REVIEW_STATUS_LABELS[review.reviewStatus ?? 'pending']}</Chip>
-              </div>
-            ))}
-          </Card>
-
-          <SectionLabel icon={<Icon name="spark" size={15} color="currentColor" />}>最新イベント・影響仮説</SectionLabel>
-          <div style={{ display: 'grid', gap: 10 }}>
-            {sortedReviews.slice(0, 12).map(review => (
-              <Card key={review.reviewKey} pad={14}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
-                  <Chip>{REVIEW_STATUS_LABELS[review.reviewStatus ?? 'pending']}</Chip>
-                  {(review.mechanisms ?? []).slice(0, 4).map(mechanism => (
-                    <Chip key={mechanism}>{MECHANISM_LABELS[mechanism] ?? mechanism}</Chip>
-                  ))}
-                  <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-3)' }}>{review.eventDate}</span>
-                </div>
-                <div style={{ fontSize: 13, fontWeight: 850, color: 'var(--ink)', lineHeight: 1.45, marginBottom: 6 }}>{review.topic}</div>
-                {review.impactPath && (
-                  <div style={{ fontSize: 12, fontWeight: 650, color: 'var(--ink-2)', lineHeight: 1.55, marginBottom: 6 }}>
-                    経路: ニュース → {(review.impactPath.mechanisms ?? []).map(m => MECHANISM_LABELS[m] ?? m).join('・') || '分類未確定'} → {(review.impactPath.themes ?? []).slice(0, 4).join('・') || 'テーマ未整理'} → {review.affectedCompanyCodes.join(', ')}
-                  </div>
-                )}
-                <div style={{ fontSize: 12, fontWeight: 650, color: 'var(--ink-2)', lineHeight: 1.55, marginBottom: 6 }}>
-                  仮説: {review.thesis || review.expectedMechanism || '未記録'}
-                </div>
-                <div style={{ fontSize: 11.5, fontWeight: 650, color: 'var(--ink-3)', lineHeight: 1.5, marginBottom: 8 }}>
-                  反証条件: {review.falsification || review.counterArgument || '未設定'} / confidence {review.confidence ?? '未設定'} / 想定ラグ {review.expectedLagDays ?? '-'}日
-                </div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {review.outcomes.map(outcome => (
-                    <Chip key={outcome.horizon}>{outcome.horizon}: {OUTCOME_LABELS[outcome.result ?? 'unevaluated'] ?? outcome.result}</Chip>
-                  ))}
-                </div>
-                {review.lesson && (
-                  <div style={{ marginTop: 8, fontSize: 12, fontWeight: 650, color: 'var(--ink-2)' }}>学習メモ: {review.lesson}</div>
-                )}
-                <div style={{ marginTop: 8 }}>
-                  {review.affectedCompanyCodes.map(code => (
-                    <Link key={code} href={`/stocks/${code}`} style={{ fontSize: 12, fontWeight: 800, color: 'var(--mint-deep)', marginRight: 10 }}>
-                      {code} の考察履歴 →
-                    </Link>
-                  ))}
-                </div>
-              </Card>
-            ))}
+      <div className={styles.content}>
+        <section className={styles.summary} aria-label="世界ニュース影響仮説の概要">
+          <div className={styles.summaryItem}>
+            <div className={styles.summaryLabel}>影響仮説</div>
+            <div className={styles.summaryValue}>{reviews.length}件</div>
           </div>
-        </>
-      )}
+          <div className={styles.summaryItem}>
+            <div className={styles.summaryLabel}>未検証</div>
+            <div className={`${styles.summaryValue} ${pendingReviews.length > 0 ? styles.warning : ''}`}>{pendingReviews.length}件</div>
+          </div>
+          <div className={styles.summaryItem}>
+            <div className={styles.summaryLabel}>評価済みoutcome</div>
+            <div className={styles.summaryValue}>{evaluatedOutcomes.length}件</div>
+          </div>
+          <div className={styles.summaryItem}>
+            <div className={styles.summaryLabel}>期限切れ・未評価</div>
+            <div className={`${styles.summaryValue} ${overdueUnevaluated.length > 0 ? styles.negative : ''}`}>{overdueUnevaluated.length}件</div>
+          </div>
+          <div className={styles.summaryItem}>
+            <div className={styles.summaryLabel}>価格データ待ち</div>
+            <div className={`${styles.summaryValue} ${(audit?.priceDataPending ?? 0) > 0 ? styles.warning : ''}`}>{audit?.priceDataPending ?? 0}件</div>
+          </div>
+        </section>
 
-      <Disclaimer />
-    </div>
+        <div className={styles.notice}>
+          仮説・confidence・メカニズムは予測時点の記録です。結果が未評価やデータ不足のものは、無理に当たり外れへ分類しません。
+        </div>
+
+        {exceptionCount > 0 && (
+          <section className={styles.section}>
+            <div className={styles.sectionHead}>
+              <h2 className={styles.sectionTitle}>今、確認したい例外</h2>
+              <div className={styles.sectionMeta}>{exceptionCount}件の確認材料</div>
+            </div>
+            <div className={styles.issueList}>
+              {overdueUnevaluated.slice(0, 6).map(item => (
+                <CaseRow key={`overdue-${item.review.reviewKey}-${item.outcome.horizon}`} item={item} note={`期限 ${item.outcome.dueAt}`} />
+              ))}
+              {highConfMisses.slice(0, 5).map(item => (
+                <CaseRow key={`high-conf-${item.review.reviewKey}-${item.outcome.horizon}`} item={item} note="高confidenceで想定差分/逆行" />
+              ))}
+              {lowConfHits.slice(0, 4).map(item => (
+                <CaseRow key={`low-conf-${item.review.reviewKey}-${item.outcome.horizon}`} item={item} note="低confidenceで仮説と整合" />
+              ))}
+              {inverseCases.slice(0, 5).map(item => (
+                <CaseRow key={`inverse-${item.review.reviewKey}-${item.outcome.horizon}`} item={item} note="想定と逆方向の値動き" />
+              ))}
+              {dataQualityIssues.map((issue, index) => (
+                <div key={`quality-${index}`} className={styles.issueRow}>
+                  <div className={styles.rowTop}>
+                    <div className={styles.identity}>
+                      <div className={styles.topic}>{issue.title ?? 'データ品質の確認'}</div>
+                      <div className={styles.bodyText}>{issue.detail ?? ''}</div>
+                    </div>
+                    <div className={styles.state} style={{ color: issue.severity === 'urgent' ? 'var(--urgent)' : issue.severity === 'attention' ? 'var(--amber)' : 'var(--ink-3)' }}>
+                      {issue.severity === 'urgent' ? '要対応' : issue.severity === 'attention' ? '確認' : '情報'}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <section className={styles.section}>
+          <div className={styles.sectionHead}>
+            <h2 className={styles.sectionTitle}>最新の影響仮説</h2>
+            <div className={styles.sectionMeta}>{reviews.length}件 ・ 新しいイベント順</div>
+          </div>
+          {reviews.length === 0 ? (
+            <div className={styles.empty}>
+              まだ世界ニュースの影響仮説はありません。生成された仮説が利用できるようになると、影響経路と検証条件がここに表示されます。
+            </div>
+          ) : (
+            <div className={styles.reviewList}>
+              {sortedReviews.slice(0, 12).map(review => <LatestReviewRow key={review.reviewKey} review={review} />)}
+            </div>
+          )}
+        </section>
+
+        {pendingReviews.length > 0 && (
+          <section className={styles.section}>
+            <div className={styles.sectionHead}>
+              <h2 className={styles.sectionTitle}>まだ検証していないもの</h2>
+              <div className={styles.sectionMeta}>{pendingReviews.length}件</div>
+            </div>
+            <div className={styles.caseList}>
+              {pendingReviews.slice(0, 10).map(review => (
+                <div key={review.reviewKey} className={styles.caseRow}>
+                  <div className={styles.rowTop}>
+                    <div className={styles.identity}>
+                      <div className={styles.topic}>{review.topic}</div>
+                      <div className={styles.meta}>
+                        {review.affectedCompanyCodes.join(', ') || '銘柄未紐付け'} ・ レビュー期限 {review.reviewDueAt ?? '未設定'}
+                      </div>
+                    </div>
+                    <div className={`${styles.state} ${styles.warning}`}>未検証</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <section className={styles.section}>
+          <div className={styles.sectionHead}>
+            <h2 className={styles.sectionTitle}>詳しい研究統計</h2>
+            <div className={styles.sectionMeta}>必要なときだけ確認</div>
+          </div>
+          <details className={styles.details}>
+            <summary>メカニズム・結果・confidence別の集計を開く</summary>
+            <div className={styles.detailsBody}>
+              <div>
+                <h3 className={styles.statsGroupTitle}>レビュー状態</h3>
+                <div className={styles.statList}>
+                  {statusCounts.map(([status, count]) => (
+                    <div key={status} className={styles.statRow}>
+                      <div className={styles.statLabel}>{REVIEW_STATUS_LABELS[status] ?? status}</div>
+                      <div className={styles.statValue}>{count}件</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h3 className={styles.statsGroupTitle}>影響メカニズム</h3>
+                <div className={styles.statList}>
+                  {mechanismCounts.map(([mechanism, count]) => (
+                    <div key={mechanism} className={styles.statRow}>
+                      <div className={styles.statLabel}>{MECHANISM_LABELS[mechanism] ?? mechanism}</div>
+                      <div className={styles.statValue}>{count}件</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h3 className={styles.statsGroupTitle}>outcome結果</h3>
+                <div className={styles.statList}>
+                  {outcomeCounts.map(([result, count]) => (
+                    <div key={result} className={styles.statRow}>
+                      <div className={styles.statLabel}>{resultLabel(result)}</div>
+                      <div className={styles.statValue}>{count}件</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h3 className={styles.statsGroupTitle}>想定差分になった理由</h3>
+                {missReasonCounts.length === 0 ? (
+                  <div className={styles.empty}>まだ理由を比較できるだけの記録がありません。</div>
+                ) : (
+                  <div className={styles.statList}>
+                    {missReasonCounts.map(([reason, count]) => (
+                      <div key={reason} className={styles.statRow}>
+                        <div className={styles.statLabel}>{MISS_REASON_LABELS[reason] ?? reason}</div>
+                        <div className={styles.statValue}>{count}件</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <h3 className={styles.statsGroupTitle}>confidence帯別の検証成績</h3>
+                <PerformanceRows rows={confPerformance} label={key => key} />
+              </div>
+
+              <div>
+                <h3 className={styles.statsGroupTitle}>メカニズム別の検証成績</h3>
+                <PerformanceRows rows={mechPerformance.slice(0, 10)} label={key => MECHANISM_LABELS[key] ?? key} />
+              </div>
+
+              <div>
+                <h3 className={styles.statsGroupTitle}>方向別の検証成績</h3>
+                <PerformanceRows rows={directionPerformance} label={key => DIRECTION_LABELS[key] ?? key} />
+              </div>
+
+              {evaluatedOutcomes.length > 0 && (
+                <details className={styles.subDetails}>
+                  <summary>最近の評価済みoutcomeを見る</summary>
+                  <div className={styles.subDetailsBody}>
+                    {evaluatedOutcomes.slice(0, 10).map(item => (
+                      <CaseRow key={`evaluated-${item.review.reviewKey}-${item.outcome.horizon}`} item={item} note={`評価日 ${item.outcome.evaluatedAt}`} />
+                    ))}
+                  </div>
+                </details>
+              )}
+            </div>
+          </details>
+        </section>
+
+        <Disclaimer />
+        <div className={styles.footerSpace} />
+      </div>
+    </main>
   )
 }
