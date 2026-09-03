@@ -4,15 +4,16 @@ import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
 import type { WebMarketEventData } from '@/lib/market-event-data'
 import { MarketEventHomeCard } from './MarketEventHomeCard'
-import { NavBar } from './NavBar'
+import { DesktopNav, MobileNav } from './NavBar'
 import { DisclaimerBar } from './DisclaimerBar'
 import { PwaRegistrar } from './PwaRegistrar'
 
 function shellWidth(pathname: string): number {
   if (pathname.startsWith('/calendar')) return 1180
-  if (pathname.startsWith('/ops')) return 760
-  if (pathname.startsWith('/research')) return 760
-  return 480
+  if (pathname.startsWith('/research')) return 1180
+  if (pathname.startsWith('/ops')) return 960
+  if (pathname === '/') return 760
+  return 880
 }
 
 export function AppShell({ children, marketEvents }: { children: ReactNode; marketEvents: WebMarketEventData }) {
@@ -21,21 +22,15 @@ export function AppShell({ children, marketEvents }: { children: ReactNode; mark
   const maxWidth = shellWidth(pathname)
 
   return (
-    <div style={{ minHeight: '100dvh', display: 'flex', justifyContent: 'center', background: 'var(--bg)' }}>
-      <div style={{
-        width: '100%',
-        maxWidth,
-        display: 'flex',
-        flexDirection: 'column',
-        minHeight: '100dvh',
-        transition: 'max-width 180ms ease',
-      }}>
-        <main style={{ flex: 1, overflowY: 'auto', paddingBottom: 8 }}>
+    <div className="ap-app-shell">
+      <DesktopNav />
+      <div className="ap-app-content" style={{ maxWidth }}>
+        <main className="ap-main-content">
           {isHome && <MarketEventHomeCard data={marketEvents} />}
           {children}
         </main>
         <DisclaimerBar />
-        <NavBar />
+        <MobileNav />
         <PwaRegistrar />
       </div>
     </div>
