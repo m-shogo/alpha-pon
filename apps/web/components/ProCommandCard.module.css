@@ -1,0 +1,136 @@
+.section {
+  padding: 24px 0;
+  border-top: 1px solid var(--line);
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.title {
+  margin: 0;
+  color: var(--ink);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.generated {
+  flex-shrink: 0;
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.headline {
+  margin-bottom: 14px;
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.rows {
+  border-top: 1px solid var(--line);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.28fr) minmax(0, 1fr);
+  gap: 16px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.label {
+  color: var(--ink-3);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.value {
+  color: var(--ink-2);
+  font-size: 14px;
+  font-weight: 550;
+  line-height: 1.6;
+}
+
+.subsection {
+  margin-top: 18px;
+}
+
+.subheading {
+  margin-bottom: 8px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 680;
+}
+
+.list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.listItem {
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.refresh {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 10px;
+  color: var(--ink-3);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.reportList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 18px;
+  margin-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.report {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+@media (max-width: 640px) {
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .reportList {
+    grid-template-columns: 1fr;
+  }
+}

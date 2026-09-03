@@ -1,9 +1,10 @@
 import Link from 'next/link'
 import type { Candidate } from '@/lib/types'
 import { calcTotal, calcLevel } from '@/lib/score'
-import { ALERT_META } from '@/lib/labels'
-import { AlertBadge, PrioBadge, StatusPill, TagChip } from './Badge'
+import { ALERT_META, STATUS_META } from '@/lib/labels'
+import { PrioBadge } from './Badge'
 import { Sparkline } from './Sparkline'
+import styles from './CandidateCard.module.css'
 
 type Props = {
   cand: Candidate
@@ -16,74 +17,60 @@ function safeNum(v: number | null | undefined): v is number {
 export function CandidateCard({ cand }: Props) {
   const total = calcTotal(cand.score)
   const level = calcLevel(total)
-  const a = ALERT_META[level]
+  const alert = ALERT_META[level]
+  const status = STATUS_META[cand.status]
 
   return (
-    <Link
-      href={`/stocks/${cand.code}`}
-      style={{ textDecoration: 'none', display: 'block', marginBottom: 11 }}
-    >
-      <div
-        style={{
-          background: 'var(--surface)',
-          borderRadius: 20,
-          padding: 15,
-          boxShadow: 'var(--shadow)',
-          border: '1px solid var(--card-line)',
-          transition: 'transform .12s ease',
-        }}
-      >
-        {/* Row 1: prio + name + score */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+    <Link href={`/stocks/${cand.code}`} className={styles.link}>
+      <article className={styles.row}>
+        <div className={styles.top}>
           <PrioBadge priority={cand.priority} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-              <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>
-                {cand.name}
-              </span>
-              <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-3)' }}>{cand.code}</span>
+
+          <div className={styles.identity}>
+            <div className={styles.nameRow}>
+              <span className={styles.name}>{cand.name}</span>
+              <span className={styles.code}>{cand.code}</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
-              <StatusPill status={cand.status} />
-              <span style={{
-                fontSize: 11.5, color: 'var(--ink-2)', fontWeight: 600,
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>
-                {cand.triggeredRule}
+            <div className={styles.ruleRow}>
+              <span className={styles.status}>
+                <span className={styles.statusDot} style={{ background: status.colorVar }} />
+                {status.jp}
               </span>
+              <span className={styles.rule}>{cand.triggeredRule}</span>
             </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-              <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 30, lineHeight: 0.9, color: a.colorVar }}>
-                {total}
-              </span>
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-3)' }}>/100</span>
+
+          <div className={styles.score}>
+            <div className={styles.scoreLine}>
+              <span className={styles.scoreValue} style={{ color: alert.colorVar }}>{total}</span>
+              <span className={styles.scoreMax}>/100</span>
             </div>
-            <AlertBadge level={level} dot />
+            <span className={styles.alert}>
+              <span className={styles.alertDot} style={{ background: alert.colorVar }} />
+              {alert.jp}
+            </span>
           </div>
         </div>
 
-        {/* Row 2: tags + sparkline */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, flex: 1 }}>
-            {cand.tags.slice(0, 2).map((t) => <TagChip key={t}>{t}</TagChip>)}
+        <div className={styles.bottom}>
+          <div className={styles.tags}>
+            {cand.tags.length > 0 ? cand.tags.slice(0, 2).join(' · ') : 'タグ未設定'}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div className={styles.market}>
             <Sparkline data={cand.sparkline ?? [100, 100]} color="auto" />
             {safeNum(cand.changePct) ? (
-              <span style={{
-                fontSize: 12, fontWeight: 700,
-                color: cand.changePct! >= 0 ? 'var(--mint-deep)' : 'var(--urgent)',
-              }}>
-                {cand.changePct! >= 0 ? '+' : ''}{cand.changePct}%
+              <span
+                className={styles.change}
+                style={{ color: cand.changePct >= 0 ? 'var(--mint-deep)' : 'var(--urgent)' }}
+              >
+                {cand.changePct >= 0 ? '+' : ''}{cand.changePct}%
               </span>
             ) : (
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-3)' }}>--</span>
+              <span className={styles.change} style={{ color: 'var(--ink-3)' }}>--</span>
             )}
           </div>
         </div>
-      </div>
+      </article>
     </Link>
   )
 }
