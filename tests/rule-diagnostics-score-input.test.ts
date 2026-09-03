@@ -47,9 +47,18 @@ try {
     ["2026-08-19_8136", "2026-08-20_7974"],
     "current/past snapshots must not admit ambiguous identities, malformed rows, future snapshots, or rows repackaged under another snapshot date",
   );
-  assert.ok(isolated.warnings.includes("scores_2026-08-16.json: 2 malformed score row(s) at row(s) 1, 2"));
-  assert.ok(isolated.warnings.includes("scores_2026-08-19.json: 2 malformed score row(s) at row(s) 2, 3"));
-  assert.ok(isolated.warnings.includes("scores_2026-08-20.json: 1 malformed score row(s) at row(s) 2"));
+  assert.ok(
+    isolated.warnings.includes("scores_2026-08-16.json: 2 malformed score row(s) at row(s) 1, 2"),
+    "duplicate score identity must not be resolved by input order",
+  );
+  assert.ok(
+    isolated.warnings.includes("scores_2026-08-19.json: 2 malformed score row(s) at row(s) 2, 3"),
+    "row isolation must leave metadata-only provenance for malformed rows",
+  );
+  assert.ok(
+    isolated.warnings.includes("scores_2026-08-20.json: 1 malformed score row(s) at row(s) 2"),
+    "snapshot/row date mismatch must be isolated before scoreByCodeDate can overwrite historical evidence",
+  );
   assert.ok(isolated.warnings.includes("scores_2026-08-21.json: future_snapshot"));
   assert.ok(isolated.warnings.includes("scores_2026-02-31.json: invalid_snapshot_date"));
 
