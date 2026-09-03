@@ -12,6 +12,7 @@ import "./market-event-ledger-subms-projection.test.js";
 import "./market-event-freshness-subms.test.js";
 import "./market-event-exact-instant.test.js";
 import "./bitemporal-evidence-subms.test.js";
+import "./bitemporal-evidence-repository-file-boundary.test.js";
 import "./claim-graph-security-master-cutoff.test.js";
 import "./security-master-repository-fail-closed.test.js";
 import "./security-master-repository-file-boundary.test.js";
