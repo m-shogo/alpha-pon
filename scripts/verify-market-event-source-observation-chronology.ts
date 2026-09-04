@@ -73,4 +73,16 @@ assert.throws(
   "generic bundle validation must not allow referenced evidence to be retrieved after the revision was observed",
 );
 
+assert.throws(
+  () => validateMarketEventBundle({
+    ...valid,
+    sources: valid.sources.map(source => ({
+      ...source,
+      publishedAt: "2026-09-04T15:06:01+09:00",
+    })),
+  }),
+  /source\.publishedAt must be on or before source\.retrievedAt/,
+  "generic bundle validation must not allow evidence to claim publication after retrieval",
+);
+
 console.log("market-event-source-observation-chronology: ok");
