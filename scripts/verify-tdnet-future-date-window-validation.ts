@@ -11,10 +11,11 @@ const candidate = classifyTdnetDisclosureCandidate({
   url: "https://www.release.tdnet.info/inbs/140120260904000001.pdf",
 });
 if (!candidate) throw new Error("TDnet future-horizon fixture must classify");
+const confirmedCandidate = candidate;
 
 function review(time: TdnetPrimaryReviewDecision["time"]): TdnetPrimaryReviewDecision {
   return {
-    candidateId: candidate.candidateId,
+    candidateId: confirmedCandidate.candidateId,
     reviewedAt: "2026-09-04T16:00:00+09:00",
     outcome: "FUTURE_EVENT_CONFIRMED",
     eventType: "SHAREHOLDER_MEETING",
@@ -27,7 +28,7 @@ function review(time: TdnetPrimaryReviewDecision["time"]): TdnetPrimaryReviewDec
 }
 
 assert.throws(
-  () => assessTdnetPrimaryReview(candidate, review({
+  () => assessTdnetPrimaryReview(confirmedCandidate, review({
     startAt: "2026-09-03",
     endAt: null,
     allDay: true,
@@ -41,7 +42,7 @@ assert.throws(
 );
 
 assert.throws(
-  () => assessTdnetPrimaryReview(candidate, review({
+  () => assessTdnetPrimaryReview(confirmedCandidate, review({
     startAt: null,
     endAt: null,
     allDay: true,
@@ -54,7 +55,7 @@ assert.throws(
   "a fully past WINDOW event must never be registration-preview ready",
 );
 
-const sameDayDateOnly = assessTdnetPrimaryReview(candidate, review({
+const sameDayDateOnly = assessTdnetPrimaryReview(confirmedCandidate, review({
   startAt: "2026-09-04",
   endAt: null,
   allDay: true,
