@@ -1,10 +1,11 @@
-import { mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
 import { normalizeStaleHypothesisConfig, type StaleHypothesisCompany } from "./stale-hypothesis-config-input.js";
 import { staleHypothesisAgeDays } from "./stale-hypothesis-date.js";
 import { readNonMoveHistoryJsonl } from "./stale-hypothesis-input.js";
+import { readReadOnlyTextFile } from "./read-only-text-file.js";
 
 type NonMoveStats = { count: number; reasons: string[]; topReason: string };
 
@@ -43,7 +44,8 @@ function actionFor(company: StaleHypothesisCompany, stat?: NonMoveStats): string
 
 function main() {
   const date = todayJst();
-  const config = normalizeStaleHypothesisConfig(load(readFileSync("config/company-hypotheses.yml", "utf-8")));
+  const configText = readReadOnlyTextFile("config/company-hypotheses.yml");
+  const config = normalizeStaleHypothesisConfig(configText ? load(configText) : {});
   const nonMove = nonMoveStatsByCode();
   const rows: Array<{ category: string; company: StaleHypothesisCompany; action: string; age: number | null; stat?: NonMoveStats }> = [];
 
