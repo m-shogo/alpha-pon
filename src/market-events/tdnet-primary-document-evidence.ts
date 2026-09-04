@@ -90,8 +90,9 @@ export async function acquireTdnetPrimaryDocumentEvidence(
   }
 
   const declaredLengthRaw = response.headers.get("content-length");
+  let declaredLength: number | null = null;
   if (declaredLengthRaw !== null) {
-    const declaredLength = Number(declaredLengthRaw);
+    declaredLength = Number(declaredLengthRaw);
     if (!Number.isSafeInteger(declaredLength) || declaredLength < 0) {
       throw new Error("TDnet primary document content-length must be a non-negative safe integer");
     }
@@ -106,6 +107,9 @@ export async function acquireTdnetPrimaryDocumentEvidence(
   }
   if (bytes.byteLength > maxBytes) {
     throw new Error(`TDnet primary document exceeds maxBytes (${bytes.byteLength} > ${maxBytes})`);
+  }
+  if (declaredLength !== null && declaredLength !== bytes.byteLength) {
+    throw new Error(`TDnet primary document content-length mismatch (${declaredLength} !== ${bytes.byteLength})`);
   }
   assertPdfSignature(bytes);
 
