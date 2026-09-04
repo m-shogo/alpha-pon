@@ -7,6 +7,7 @@ import type {
   MarketEventPriority,
 } from "./contracts.js";
 import type { TdnetMarketEventCandidate } from "./tdnet-event-candidates.js";
+import type { TdnetPrimaryDocumentEvidence } from "./tdnet-primary-document-evidence.js";
 import type { TdnetPrimaryReviewAssessment } from "./tdnet-primary-review.js";
 
 export type TdnetFutureEventStatus = "SCHEDULED" | "TENTATIVE";
@@ -65,10 +66,39 @@ function assertTdnetSourceCodeProvenance(candidate: TdnetMarketEventCandidate): 
   }
 }
 
+function assertPrimaryDocumentEvidenceBinding(
+  candidate: TdnetMarketEventCandidate,
+  assessment: TdnetPrimaryReviewAssessment,
+  evidence: TdnetPrimaryDocumentEvidence | undefined,
+): asserts evidence is TdnetPrimaryDocumentEvidence {
+  if (evidence === undefined) {
+    throw new Error("TDnet registration preview requires bound primary document evidence");
+  }
+  if (evidence.candidateId !== candidate.candidateId) {
+    throw new Error("TDnet primary document evidence candidateId mismatch");
+  }
+  if (evidence.sourceUrl !== candidate.sourceUrl) {
+    throw new Error("TDnet primary document evidence sourceUrl mismatch");
+  }
+  if (evidence.contentType !== "application/pdf") {
+    throw new Error("TDnet primary document evidence must be application/pdf");
+  }
+  if (!Number.isSafeInteger(evidence.byteLength) || evidence.byteLength <= 0) {
+    throw new Error("TDnet primary document evidence byteLength must be a positive safe integer");
+  }
+  if (evidence.contentHash !== assessment.normalized.sourceContentHash) {
+    throw new Error("TDnet primary document evidence contentHash does not match reviewed evidence");
+  }
+  if (evidence.retrievedAt !== assessment.normalized.sourceRetrievedAt) {
+    throw new Error("TDnet primary document evidence retrievedAt does not match reviewed evidence");
+  }
+}
+
 export function prepareTdnetRegistrationPreview(
   candidate: TdnetMarketEventCandidate,
   assessment: TdnetPrimaryReviewAssessment,
   metadata: TdnetRegistrationPreviewMetadata,
+  evidence?: TdnetPrimaryDocumentEvidence,
 ): TdnetRegistrationPreview {
   if (assessment.candidateId !== candidate.candidateId) {
     throw new Error("TDnet registration preview candidateId mismatch");
@@ -94,6 +124,7 @@ export function prepareTdnetRegistrationPreview(
   ) {
     throw new Error("TDnet ready assessment is missing required registration facts");
   }
+  assertPrimaryDocumentEvidenceBinding(candidate, assessment, evidence);
 
   const eventTitle = requiredText(metadata.eventTitle, "eventTitle");
   const whyItMatters = requiredText(metadata.whyItMatters, "whyItMatters");
@@ -129,11 +160,11 @@ export function prepareTdnetRegistrationPreview(
     sources: [{
       authority: "TDNET",
       sourceType: "TDNET",
-      url: candidate.sourceUrl,
+      url: evidence.sourceUrl,
       title: candidate.disclosureTitle,
       publishedAt: candidate.disclosurePublishedAt,
-      retrievedAt: reviewed.sourceRetrievedAt,
-      contentHash: reviewed.sourceContentHash,
+      retrievedAt: evidence.retrievedAt,
+      contentHash: evidence.contentHash,
       storageClass: "METADATA_ONLY",
       objectKey: null,
     }],
