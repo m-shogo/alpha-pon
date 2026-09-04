@@ -173,6 +173,33 @@ const missingRevisionSourcePlan = buildD1SyncPlan(missingRevisionSourceCanonical
 assert.equal(missingRevisionSourcePlan.status, "blocked");
 assert.match(missingRevisionSourcePlan.blockers.join("\n"), /revision rev_alpha references invalid source src_missing/);
 
+const sourceAfterObservationRemote = structuredClone(canonical);
+sourceAfterObservationRemote.event_sources[0].retrieved_at = "2026-08-04T00:00:01.000Z";
+const sourceAfterObservationPlan = buildD1SyncPlan(canonical, sourceAfterObservationRemote);
+assert.equal(sourceAfterObservationPlan.status, "blocked");
+assert.match(
+  sourceAfterObservationPlan.blockers.join("\n"),
+  /revision rev_alpha references source src_alpha retrieved after observed_at/,
+);
+
+const sourcePublishedAfterRetrievalRemote = structuredClone(canonical);
+sourcePublishedAfterRetrievalRemote.event_sources[0].published_at = "2026-08-04T00:00:01.000Z";
+const sourcePublishedAfterRetrievalPlan = buildD1SyncPlan(canonical, sourcePublishedAfterRetrievalRemote);
+assert.equal(sourcePublishedAfterRetrievalPlan.status, "blocked");
+assert.match(sourcePublishedAfterRetrievalPlan.blockers.join("\n"), /published_at must be on or before retrieved_at/);
+
+const revisionPublishedAfterObservationRemote = structuredClone(canonical);
+revisionPublishedAfterObservationRemote.event_revisions[0].published_at = "2026-08-04T00:00:01.000Z";
+const revisionPublishedAfterObservationPlan = buildD1SyncPlan(canonical, revisionPublishedAfterObservationRemote);
+assert.equal(revisionPublishedAfterObservationPlan.status, "blocked");
+assert.match(revisionPublishedAfterObservationPlan.blockers.join("\n"), /publishedAt must be on or before observedAt/);
+
+const revisionExecutableBeforeObservationRemote = structuredClone(canonical);
+revisionExecutableBeforeObservationRemote.event_revisions[0].first_executable_at = "2026-08-03T23:59:59.000Z";
+const revisionExecutableBeforeObservationPlan = buildD1SyncPlan(canonical, revisionExecutableBeforeObservationRemote);
+assert.equal(revisionExecutableBeforeObservationPlan.status, "blocked");
+assert.match(revisionExecutableBeforeObservationPlan.blockers.join("\n"), /firstExecutableAt must be on or after observedAt/);
+
 const stalePointerCanonical = structuredClone(canonical);
 stalePointerCanonical.event_revisions.push({
   ...revisionRow("rev_alpha_v2", "evt_alpha"),
