@@ -171,6 +171,22 @@ export function validateD1SyncSnapshot(snapshot: D1SyncSnapshot, label: string):
     if (!indexes.market_events.has(eventId)) {
       errors.push(`${label}: revision ${revisionId} references missing event ${eventId}`);
     }
+    const sourceIdsValue = revision.source_ids_json;
+    if (typeof sourceIdsValue === "string") {
+      try {
+        const sourceIds: unknown = JSON.parse(sourceIdsValue);
+        if (Array.isArray(sourceIds) && sourceIds.every(sourceId => typeof sourceId === "string")) {
+          for (const sourceId of sourceIds) {
+            const source = indexes.event_sources.get(sourceId);
+            if (!source || String(source.event_id ?? "") !== eventId) {
+              errors.push(`${label}: revision ${revisionId} references invalid source ${sourceId}`);
+            }
+          }
+        }
+      } catch {
+        // JSON syntax/shape diagnostics are reported by validateJsonFields above.
+      }
+    }
     const rows = revisionsByEvent.get(eventId) ?? [];
     rows.push(revision);
     revisionsByEvent.set(eventId, rows);
