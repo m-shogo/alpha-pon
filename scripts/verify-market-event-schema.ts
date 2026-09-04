@@ -158,6 +158,7 @@ try {
       "2026-09-04T01:05:00Z",
       "2026-09-04T01:10:00Z",
       "2026-09-04T01:15:00Z",
+      "2026-09-04T01:20:00Z",
     ];
     let timeIndex = 0;
     const now = () => checkedTimes[timeIndex++]!;
@@ -211,9 +212,25 @@ try {
     assert.equal(collectedCheckpoint.consecutiveFailures, 1);
     assert.equal(collectedCheckpoint.lastError, "network unavailable retry");
 
+    const emptyCollection = await collectTdnetSourceOnce(collectorDb, {
+      now,
+      fetchDisclosures: async () => [],
+    });
+    assert.equal(emptyCollection.status, "failed");
+    assert.equal(emptyCollection.error, "TDnet disclosure fetch returned zero rows");
+    assert.equal(emptyCollection.contentHash, expandedCollection.contentHash);
+
+    const checkpointAfterEmpty = getSourceCheckpoint(collectorDb, firstCollection.sourceKey);
+    assert(checkpointAfterEmpty);
+    assert.equal(checkpointAfterEmpty.lastCheckedAt, "2026-09-04T01:20:00Z");
+    assert.equal(checkpointAfterEmpty.lastSuccessAt, "2026-09-04T01:10:00Z");
+    assert.equal(checkpointAfterEmpty.lastContentHash, expandedCollection.contentHash);
+    assert.equal(checkpointAfterEmpty.consecutiveFailures, 2);
+    assert.equal(checkpointAfterEmpty.lastError, "TDnet disclosure fetch returned zero rows");
+
     await assert.rejects(
       () => collectTdnetSourceOnce(collectorDb, {
-        now: () => "2026-09-04T01:15:00Z",
+        now: () => "2026-09-04T01:20:00Z",
         fetchDisclosures: async () => firstDisclosures,
       }),
       /collision/,
