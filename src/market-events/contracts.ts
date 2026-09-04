@@ -456,12 +456,12 @@ export function validateMarketEventBundle(bundle: MarketEventBundle): void {
     if (value !== null) assertIsoTimestamp(value, fieldName);
   }
 
-  const sourceIds = new Set<string>();
+  const sourcesById = new Map<string, EventSource>();
   for (const source of sources) {
     if (source.eventId !== event.eventId) throw new Error("source eventId does not match event");
     if (!source.sourceId.startsWith("src_")) throw new Error("Invalid sourceId");
-    if (sourceIds.has(source.sourceId)) throw new Error(`Duplicate sourceId in bundle: ${source.sourceId}`);
-    sourceIds.add(source.sourceId);
+    if (sourcesById.has(source.sourceId)) throw new Error(`Duplicate sourceId in bundle: ${source.sourceId}`);
+    sourcesById.set(source.sourceId, source);
     assertKnownValue(SOURCE_TYPES, source.sourceType, "source type");
     assertKnownValue(STORAGE_CLASSES, source.storageClass, "storage class");
     if (!source.url.startsWith("https://")) throw new Error("Source URL must use https");
@@ -469,7 +469,18 @@ export function validateMarketEventBundle(bundle: MarketEventBundle): void {
     if (source.publishedAt !== null) assertIsoTimestamp(source.publishedAt, "publishedAt");
   }
   for (const sourceId of revision.sourceIds) {
-    if (!sourceIds.has(sourceId)) throw new Error(`revision references a missing source: ${sourceId}`);
+    const source = sourcesById.get(sourceId);
+    if (!source) throw new Error(`revision references a missing source: ${sourceId}`);
+    if (
+      compareExplicitIso8601Instants(
+        source.retrievedAt,
+        revision.observedAt,
+        "source.retrievedAt",
+        "observedAt",
+      ) > 0
+    ) {
+      throw new Error("source.retrievedAt must be on or before observedAt");
+    }
   }
 
   if (decisionSnapshot) {
