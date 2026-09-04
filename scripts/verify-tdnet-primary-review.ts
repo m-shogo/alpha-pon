@@ -102,6 +102,26 @@ const exactReady = assessTdnetPrimaryReview(candidate, decision({
 }));
 assert.equal(exactReady.registrationPreviewReady, true);
 
+assert.throws(
+  () => assessTdnetPrimaryReview(candidate, decision({
+    eventType: "PRESS_CONFERENCE",
+    occurrenceKey: "press-conference-2026-09-05",
+    time: {
+      startAt: "2026-09-05T10:00:00+09:00",
+      endAt: null,
+      allDay: false,
+      timezone: "Mars/Olympus",
+      precision: "EXACT",
+      windowStart: null,
+      windowEnd: null,
+    },
+    sourceContentHash: "d".repeat(64),
+    sourceRetrievedAt: "2026-09-04T15:05:00+09:00",
+  })),
+  /Invalid EventTime timezone/,
+  "EXACT review EventTime must reject an invalid timezone before becoming registration-ready",
+);
+
 const mismatch = assessTdnetPrimaryReview(candidate, decision({
   eventType: "CONTINUED_SHAREHOLDER_MEETING",
   occurrenceKey: "continued-meeting-2026",

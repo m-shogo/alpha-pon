@@ -110,6 +110,7 @@ function assertConfirmedEventHasFutureHorizon(decision: TdnetPrimaryReviewDecisi
   if (decision.outcome !== "FUTURE_EVENT_CONFIRMED" || decision.time === null) return;
 
   const time = decision.time;
+  const reviewedDate = dateAtTimezone(decision.reviewedAt, time.timezone);
   if (time.precision === "EXACT" && time.startAt !== null) {
     if (
       compareExplicitIso8601Instants(
@@ -124,7 +125,6 @@ function assertConfirmedEventHasFutureHorizon(decision: TdnetPrimaryReviewDecisi
     return;
   }
 
-  const reviewedDate = dateAtTimezone(decision.reviewedAt, time.timezone);
   if (time.precision === "DATE_ONLY" && time.startAt !== null) {
     if (time.startAt <= reviewedDate) {
       throw new Error("FUTURE_EVENT_CONFIRMED DATE_ONLY EventTime must start after reviewedAt date");
