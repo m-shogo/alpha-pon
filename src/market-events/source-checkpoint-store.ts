@@ -120,7 +120,10 @@ export function getSourceCheckpoint(db: MarketEventDatabase, sourceKey: string):
     WHERE source_key = ?
   `).get(normalizedKey) as SourceCheckpointRow | undefined;
 
-  return row ? mapRow(row) : null;
+  if (!row) return null;
+  const checkpoint = mapRow(row);
+  validateCheckpoint(checkpoint);
+  return checkpoint;
 }
 
 export function upsertSourceCheckpoint(
