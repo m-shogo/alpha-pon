@@ -1,4 +1,5 @@
 import { existsSync, lstatSync, readFileSync } from "fs";
+import { dirname, resolve, sep } from "path";
 
 export type ReadOnlyJsonlParseError = {
   lineNumber: number;
@@ -14,6 +15,21 @@ function fileReadError(message: string): ReadOnlyJsonlParseError {
   };
 }
 
+function hasSymlinkedAncestorWithinCwd(path: string): boolean {
+  const root = resolve(process.cwd());
+  let current = dirname(resolve(path));
+  if (current !== root && !current.startsWith(`${root}${sep}`)) return false;
+
+  while (current !== root) {
+    const stat = lstatSync(current);
+    if (stat.isSymbolicLink()) return true;
+    const parent = dirname(current);
+    if (parent === current) return false;
+    current = parent;
+  }
+  return false;
+}
+
 export function readJsonlWithErrors<T>(path: string): {
   rows: T[];
   parseErrors: ReadOnlyJsonlParseError[];
@@ -22,8 +38,11 @@ export function readJsonlWithErrors<T>(path: string): {
 
   let contents: string;
   try {
+    if (hasSymlinkedAncestorWithinCwd(path)) {
+      return { rows: [], parseErrors: [fileReadError("non_regular_file")] };
+    }
     const stat = lstatSync(path);
-    if (!stat.isFile() || stat.nlink !== 1) {
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) {
       return { rows: [], parseErrors: [fileReadError("non_regular_file")] };
     }
     contents = readFileSync(path, "utf-8");
