@@ -88,6 +88,18 @@ assert.throws(
 assert.throws(
   () => validateMarketEventBundle({
     ...valid,
+    sources: valid.sources.map(source => ({
+      ...source,
+      contentHash: "not-a-sha256",
+    })),
+  }),
+  /source contentHash must be a lowercase SHA-256 hash/,
+  "generic bundle validation must reject source provenance without a canonical SHA-256 content hash",
+);
+
+assert.throws(
+  () => validateMarketEventBundle({
+    ...valid,
     deliveries: [{
       schemaVersion: 1,
       deliveryId: "dlv_delivery_chronology_regression",
