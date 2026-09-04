@@ -8,7 +8,10 @@ import type {
 } from "./contracts.js";
 import type { TdnetMarketEventCandidate } from "./tdnet-event-candidates.js";
 import type { TdnetPrimaryDocumentEvidence } from "./tdnet-primary-document-evidence.js";
-import type { TdnetPrimaryReviewAssessment } from "./tdnet-primary-review.js";
+import {
+  assessTdnetPrimaryReview,
+  type TdnetPrimaryReviewAssessment,
+} from "./tdnet-primary-review.js";
 
 export type TdnetFutureEventStatus = "SCHEDULED" | "TENTATIVE";
 
@@ -100,20 +103,18 @@ export function prepareTdnetRegistrationPreview(
   metadata: TdnetRegistrationPreviewMetadata,
   evidence?: TdnetPrimaryDocumentEvidence,
 ): TdnetRegistrationPreview {
-  if (assessment.candidateId !== candidate.candidateId) {
-    throw new Error("TDnet registration preview candidateId mismatch");
+  const verifiedAssessment = assessTdnetPrimaryReview(candidate, assessment.normalized);
+  if (verifiedAssessment.outcome !== "FUTURE_EVENT_CONFIRMED") {
+    throw new Error(`TDnet registration preview requires FUTURE_EVENT_CONFIRMED, got ${verifiedAssessment.outcome}`);
   }
-  if (assessment.outcome !== "FUTURE_EVENT_CONFIRMED") {
-    throw new Error(`TDnet registration preview requires FUTURE_EVENT_CONFIRMED, got ${assessment.outcome}`);
-  }
-  if (!assessment.registrationPreviewReady || assessment.blockers.length > 0) {
-    throw new Error(`TDnet registration preview is blocked: ${assessment.blockers.join(",") || "review_not_ready"}`);
+  if (!verifiedAssessment.registrationPreviewReady || verifiedAssessment.blockers.length > 0) {
+    throw new Error(`TDnet registration preview is blocked: ${verifiedAssessment.blockers.join(",") || "review_not_ready"}`);
   }
 
   assertOfficialTdnetSourceUrl(candidate.sourceUrl);
   assertTdnetSourceCodeProvenance(candidate);
 
-  const reviewed = assessment.normalized;
+  const reviewed = verifiedAssessment.normalized;
   if (
     reviewed.eventType === null
     || reviewed.occurrenceKey === null
@@ -124,7 +125,7 @@ export function prepareTdnetRegistrationPreview(
   ) {
     throw new Error("TDnet ready assessment is missing required registration facts");
   }
-  assertPrimaryDocumentEvidenceBinding(candidate, assessment, evidence);
+  assertPrimaryDocumentEvidenceBinding(candidate, verifiedAssessment, evidence);
 
   const eventTitle = requiredText(metadata.eventTitle, "eventTitle");
   const whyItMatters = requiredText(metadata.whyItMatters, "whyItMatters");
