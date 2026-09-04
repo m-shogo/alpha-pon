@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync } from "fs";
+import { mkdirSync } from "fs";
 import { load } from "js-yaml";
 import { todayJst } from "./date.js";
 import { readRegimeHistoryLines, replaceRegimeHistory } from "./regime-history-file.js";
@@ -8,6 +8,7 @@ import {
   normalizeRegimeHistorySummary,
   resolveRegimeHistoryAsOf,
 } from "./regime-history-input.js";
+import { readReadOnlyTextFile } from "./read-only-text-file.js";
 
 type CurrentRegime = {
   asOf?: unknown;
@@ -68,7 +69,8 @@ function writeDailyHistoryRow(row: RegimeHistoryRow): void {
 
 function main() {
   const date = todayJst();
-  const config = load(readFileSync("config/current-regime.yml", "utf-8")) as CurrentRegime;
+  const configText = readReadOnlyTextFile("config/current-regime.yml");
+  const config = configText ? load(configText) as CurrentRegime : {};
   mkdirSync("data", { recursive: true });
 
   const row: RegimeHistoryRow = {
