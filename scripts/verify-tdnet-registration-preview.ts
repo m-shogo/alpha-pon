@@ -224,6 +224,22 @@ const legacyWithoutSourceCode = prepareTdnetRegistrationPreview(
 );
 assert.equal(legacyWithoutSourceCode.input.facts?.tdnetSourceCode, null, "missing legacy sourceCode must remain null, not be inferred");
 
+const forgedPastAssessment = {
+  ...assessment,
+  normalized: {
+    ...assessment.normalized,
+    time: {
+      ...assessment.normalized.time!,
+      startAt: "2026-09-03",
+    },
+  },
+};
+assert.throws(
+  () => prepareTdnetRegistrationPreview(candidate, forgedPastAssessment, metadata, evidence),
+  /FUTURE_EVENT_CONFIRMED DATE_ONLY EventTime must start after reviewedAt date/,
+  "registration preview must revalidate the normalized primary review instead of trusting ready flags",
+);
+
 const incompleteAssessment = assessTdnetPrimaryReview(candidate, {
   candidateId: candidate.candidateId,
   reviewedAt: "2026-09-04T16:00:00+09:00",
