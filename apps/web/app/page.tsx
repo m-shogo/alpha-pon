@@ -73,7 +73,7 @@ export default function HomePage() {
   const dataWarnings = [
     ...((data.meta?.warnings ?? []).map((w) => `生成データ: ${w}`)),
     ...(pipelineFailed ? [`生成処理に失敗またはスキップがあります: ${failedSteps.join(', ') || data.pipelineStatus?.status}`] : []),
-    ...(data.generatedAt && !hasValidGeneratedDate ? ['生成日時が不正または未来日です。正本データの再生成が必要です。'] : []),
+    ...(data.generatedAt && !hasValidGeneratedDate ? ['生成日が不正または未来日です。正本データの再生成が必要です。'] : []),
     ...(generatedAgeDays != null && generatedAgeDays > 0 ? [`表示データは${generatedAgeDays}日前のものです。最新データへの更新が必要です。`] : []),
     ...(hasMockUniverse ? ['未登録銘柄スクリーニングにサンプルデータが含まれています。実データ確認前の仮説として扱ってください。'] : []),
     ...(missingQualityCount > 0 ? [`データ品質が未取得または不明な項目が ${missingQualityCount} 件あります。強い判断を避けてください。`] : []),
