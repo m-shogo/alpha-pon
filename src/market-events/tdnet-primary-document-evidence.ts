@@ -68,7 +68,7 @@ export async function acquireTdnetPrimaryDocumentEvidence(
 
   const response = await fetchImpl(requestedUrl.href, {
     method: "GET",
-    redirect: "follow",
+    redirect: "error",
     headers: {
       accept: "application/pdf",
     },
