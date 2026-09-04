@@ -99,6 +99,14 @@ await assert.rejects(
 
 await assert.rejects(
   () => acquireTdnetPrimaryDocumentEvidence(candidate, {
+    fetchImpl: fetchReturning(fakeResponse({ body: "<html>not a PDF</html>" })),
+    now: () => "2026-09-04T15:05:00+09:00",
+  }),
+  /must have a PDF signature/,
+);
+
+await assert.rejects(
+  () => acquireTdnetPrimaryDocumentEvidence(candidate, {
     fetchImpl: fetchReturning(fakeResponse({ contentLength: "100" })),
     now: () => "2026-09-04T15:05:00+09:00",
     maxBytes: 10,
