@@ -33,6 +33,22 @@ function requiredText(value: string, fieldName: string): string {
   return normalized;
 }
 
+function assertOfficialTdnetSourceUrl(value: string): void {
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new Error("TDnet registration preview requires an official TDnet source URL");
+  }
+  if (
+    parsed.protocol !== "https:"
+    || parsed.hostname !== "www.release.tdnet.info"
+    || !parsed.pathname.startsWith("/inbs/")
+  ) {
+    throw new Error("TDnet registration preview requires an official TDnet source URL");
+  }
+}
+
 export function prepareTdnetRegistrationPreview(
   candidate: TdnetMarketEventCandidate,
   assessment: TdnetPrimaryReviewAssessment,
@@ -47,6 +63,8 @@ export function prepareTdnetRegistrationPreview(
   if (!assessment.registrationPreviewReady || assessment.blockers.length > 0) {
     throw new Error(`TDnet registration preview is blocked: ${assessment.blockers.join(",") || "review_not_ready"}`);
   }
+
+  assertOfficialTdnetSourceUrl(candidate.sourceUrl);
 
   const reviewed = assessment.normalized;
   if (
