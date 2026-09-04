@@ -178,6 +178,14 @@ export function validateD1SyncSnapshot(snapshot: D1SyncSnapshot, label: string):
     const revision = indexes.event_revisions.get(revisionId);
     if (!revision || revision.event_id !== eventId) {
       errors.push(`${label}: event ${eventId} current_revision_id ${revisionId} is invalid`);
+      continue;
+    }
+    const revisions = revisionsByEvent.get(eventId) ?? [];
+    const latestRevision = revisions.at(-1);
+    if (latestRevision && latestRevision.revision_id !== revisionId) {
+      errors.push(
+        `${label}: event ${eventId} current_revision_id ${revisionId} is stale; latest is ${String(latestRevision.revision_id)}`,
+      );
     }
   }
 
