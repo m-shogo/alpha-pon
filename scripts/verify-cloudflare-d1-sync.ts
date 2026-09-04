@@ -167,6 +167,12 @@ const wrongArrayItemPlan = buildD1SyncPlan(canonical, wrongArrayItemRemote);
 assert.equal(wrongArrayItemPlan.status, "blocked");
 assert.match(wrongArrayItemPlan.blockers.join("\n"), /reasons_json must contain a JSON string array/);
 
+const missingRevisionSourceCanonical = structuredClone(canonical);
+missingRevisionSourceCanonical.event_revisions[0].source_ids_json = '["src_missing"]';
+const missingRevisionSourcePlan = buildD1SyncPlan(missingRevisionSourceCanonical, emptyD1SyncSnapshot());
+assert.equal(missingRevisionSourcePlan.status, "blocked");
+assert.match(missingRevisionSourcePlan.blockers.join("\n"), /revision rev_alpha references invalid source src_missing/);
+
 const stalePointerCanonical = structuredClone(canonical);
 stalePointerCanonical.event_revisions.push({
   ...revisionRow("rev_alpha_v2", "evt_alpha"),
