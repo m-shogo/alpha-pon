@@ -18,6 +18,7 @@ run_ts scripts/verify-market-event-schema.ts
 run_ts scripts/verify-tdnet-public-viewer.ts
 run_ts scripts/verify-tdnet-source-collector-current-viewer.ts
 run_ts scripts/verify-tdnet-market-event-candidates.ts
+run_ts scripts/verify-tdnet-candidate-collection.ts
 run_ts scripts/verify-market-event-end-to-end.ts
 run_ts scripts/verify-pages-market-event-function.ts
 
