@@ -167,7 +167,7 @@ export async function collectTdnetSourceOnce(
       sourceKey,
       checkedAt,
       existing,
-      new Error("TDnet disclosure fetch returned zero rows without explicit-empty evidence"),
+      new Error("TDnet disclosure fetch returned zero rows"),
     );
   }
 
