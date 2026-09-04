@@ -97,20 +97,9 @@ export async function collectTdnetSourceOnce(
   const now = options.now ?? (() => new Date().toISOString());
   const existing = getSourceCheckpoint(db, sourceKey);
 
+  let disclosures: TdnetDisclosure[];
   try {
-    const disclosures = await fetchDisclosures();
-    const checkedAt = now();
-    const contentHash = hashTdnetDisclosures(disclosures);
-    const status = existing?.lastContentHash === contentHash ? "unchanged" : "changed";
-    upsertSourceCheckpoint(db, buildSuccessCheckpoint(sourceKey, checkedAt, contentHash));
-    return {
-      sourceKey,
-      status,
-      checkedAt,
-      contentHash,
-      disclosures,
-      error: null,
-    };
+    disclosures = await fetchDisclosures();
   } catch (error) {
     const checkedAt = now();
     const message = safeErrorMessage(error);
@@ -124,4 +113,17 @@ export async function collectTdnetSourceOnce(
       error: message,
     };
   }
+
+  const checkedAt = now();
+  const contentHash = hashTdnetDisclosures(disclosures);
+  const status = existing?.lastContentHash === contentHash ? "unchanged" : "changed";
+  upsertSourceCheckpoint(db, buildSuccessCheckpoint(sourceKey, checkedAt, contentHash));
+  return {
+    sourceKey,
+    status,
+    checkedAt,
+    contentHash,
+    disclosures,
+    error: null,
+  };
 }
