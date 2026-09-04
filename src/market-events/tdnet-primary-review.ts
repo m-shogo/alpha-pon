@@ -97,6 +97,16 @@ export function assessTdnetPrimaryReview(
   }
 
   assertIsoTimestamp(candidate.disclosurePublishedAt, "candidate.disclosurePublishedAt");
+  if (
+    compareExplicitIso8601Instants(
+      decision.reviewedAt,
+      candidate.disclosurePublishedAt,
+      "reviewedAt",
+      "candidate.disclosurePublishedAt",
+    ) < 0
+  ) {
+    throw new Error("reviewedAt must be on or after disclosurePublishedAt");
+  }
 
   if (decision.sourceRetrievedAt !== null) {
     if (
