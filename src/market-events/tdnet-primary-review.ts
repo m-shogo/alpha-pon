@@ -87,25 +87,57 @@ function normalizeDecision(decision: TdnetPrimaryReviewDecision): TdnetPrimaryRe
   };
 }
 
-function assertConfirmedExactEventIsFuture(decision: TdnetPrimaryReviewDecision): void {
-  if (
-    decision.outcome !== "FUTURE_EVENT_CONFIRMED"
-    || decision.time === null
-    || decision.time.precision !== "EXACT"
-    || decision.time.startAt === null
-  ) {
+function dateAtTimezone(instant: string, timezone: string): string {
+  let parts: Intl.DateTimeFormatPart[];
+  try {
+    parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(new Date(instant));
+  } catch {
+    throw new Error(`Invalid EventTime timezone: ${timezone}`);
+  }
+  const year = parts.find(part => part.type === "year")?.value;
+  const month = parts.find(part => part.type === "month")?.value;
+  const day = parts.find(part => part.type === "day")?.value;
+  if (!year || !month || !day) throw new Error("Could not derive reviewedAt calendar date");
+  return `${year}-${month}-${day}`;
+}
+
+function assertConfirmedEventHasFutureHorizon(decision: TdnetPrimaryReviewDecision): void {
+  if (decision.outcome !== "FUTURE_EVENT_CONFIRMED" || decision.time === null) return;
+
+  const time = decision.time;
+  if (time.precision === "EXACT" && time.startAt !== null) {
+    if (
+      compareExplicitIso8601Instants(
+        time.startAt,
+        decision.reviewedAt,
+        "time.startAt",
+        "reviewedAt",
+      ) <= 0
+    ) {
+      throw new Error("FUTURE_EVENT_CONFIRMED exact EventTime must be after reviewedAt");
+    }
     return;
   }
 
-  if (
-    compareExplicitIso8601Instants(
-      decision.time.startAt,
-      decision.reviewedAt,
-      "time.startAt",
-      "reviewedAt",
-    ) <= 0
-  ) {
-    throw new Error("FUTURE_EVENT_CONFIRMED exact EventTime must be after reviewedAt");
+  if (time.precision === "DATE_ONLY" && time.startAt !== null) {
+    const reviewedDate = dateAtTimezone(decision.reviewedAt, time.timezone);
+    const latestDate = time.endAt ?? time.startAt;
+    if (latestDate < reviewedDate) {
+      throw new Error("FUTURE_EVENT_CONFIRMED DATE_ONLY EventTime must not end before reviewedAt date");
+    }
+    return;
+  }
+
+  if (time.precision === "WINDOW" && time.windowEnd !== null) {
+    const reviewedDate = dateAtTimezone(decision.reviewedAt, time.timezone);
+    if (time.windowEnd < reviewedDate) {
+      throw new Error("FUTURE_EVENT_CONFIRMED WINDOW EventTime must not end before reviewedAt date");
+    }
   }
 }
 
@@ -167,7 +199,7 @@ export function assessTdnetPrimaryReview(
     };
   }
 
-  assertConfirmedExactEventIsFuture(decision);
+  assertConfirmedEventHasFutureHorizon(decision);
 
   const blockers: TdnetPrimaryReviewBlocker[] = [];
   if (decision.eventType === null) blockers.push("event_type_missing");
