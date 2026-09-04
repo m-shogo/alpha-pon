@@ -472,7 +472,19 @@ export function validateMarketEventBundle(bundle: MarketEventBundle): void {
     assertKnownValue(STORAGE_CLASSES, source.storageClass, "storage class");
     if (!source.url.startsWith("https://")) throw new Error("Source URL must use https");
     assertIsoTimestamp(source.retrievedAt, "retrievedAt");
-    if (source.publishedAt !== null) assertIsoTimestamp(source.publishedAt, "publishedAt");
+    if (source.publishedAt !== null) {
+      assertIsoTimestamp(source.publishedAt, "publishedAt");
+      if (
+        compareExplicitIso8601Instants(
+          source.publishedAt,
+          source.retrievedAt,
+          "source.publishedAt",
+          "source.retrievedAt",
+        ) > 0
+      ) {
+        throw new Error("source.publishedAt must be on or before source.retrievedAt");
+      }
+    }
   }
   for (const sourceId of revision.sourceIds) {
     const source = sourcesById.get(sourceId);
