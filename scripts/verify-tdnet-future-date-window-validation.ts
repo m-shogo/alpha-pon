@@ -27,36 +27,40 @@ function review(time: TdnetPrimaryReviewDecision["time"]): TdnetPrimaryReviewDec
   };
 }
 
-assert.throws(
-  () => assessTdnetPrimaryReview(confirmedCandidate, review({
-    startAt: "2026-09-03",
-    endAt: null,
-    allDay: true,
-    timezone: "Asia/Tokyo",
-    precision: "DATE_ONLY",
-    windowStart: null,
-    windowEnd: null,
-  })),
-  /DATE_ONLY EventTime must not end before reviewedAt date/,
-  "a fully past DATE_ONLY event must never be registration-preview ready",
-);
+for (const startAt of ["2026-09-03", "2026-09-04"]) {
+  assert.throws(
+    () => assessTdnetPrimaryReview(confirmedCandidate, review({
+      startAt,
+      endAt: null,
+      allDay: true,
+      timezone: "Asia/Tokyo",
+      precision: "DATE_ONLY",
+      windowStart: null,
+      windowEnd: null,
+    })),
+    /DATE_ONLY EventTime must start after reviewedAt date/,
+    "DATE_ONLY must be unambiguously after the review date before FUTURE_EVENT_CONFIRMED is allowed",
+  );
+}
 
-assert.throws(
-  () => assessTdnetPrimaryReview(confirmedCandidate, review({
-    startAt: null,
-    endAt: null,
-    allDay: true,
-    timezone: "Asia/Tokyo",
-    precision: "WINDOW",
-    windowStart: "2026-09-01",
-    windowEnd: "2026-09-03",
-  })),
-  /WINDOW EventTime must not end before reviewedAt date/,
-  "a fully past WINDOW event must never be registration-preview ready",
-);
+for (const windowStart of ["2026-09-01", "2026-09-04"]) {
+  assert.throws(
+    () => assessTdnetPrimaryReview(confirmedCandidate, review({
+      startAt: null,
+      endAt: null,
+      allDay: true,
+      timezone: "Asia/Tokyo",
+      precision: "WINDOW",
+      windowStart,
+      windowEnd: "2026-09-06",
+    })),
+    /WINDOW EventTime must start after reviewedAt date/,
+    "WINDOW must be wholly future before FUTURE_EVENT_CONFIRMED is allowed",
+  );
+}
 
-const sameDayDateOnly = assessTdnetPrimaryReview(confirmedCandidate, review({
-  startAt: "2026-09-04",
+const futureDateOnly = assessTdnetPrimaryReview(confirmedCandidate, review({
+  startAt: "2026-09-05",
   endAt: null,
   allDay: true,
   timezone: "Asia/Tokyo",
@@ -64,10 +68,17 @@ const sameDayDateOnly = assessTdnetPrimaryReview(confirmedCandidate, review({
   windowStart: null,
   windowEnd: null,
 }));
-assert.equal(
-  sameDayDateOnly.registrationPreviewReady,
-  true,
-  "DATE_ONLY on the review date remains valid because the unknown intraday time may still be future",
-);
+assert.equal(futureDateOnly.registrationPreviewReady, true);
+
+const futureWindow = assessTdnetPrimaryReview(confirmedCandidate, review({
+  startAt: null,
+  endAt: null,
+  allDay: true,
+  timezone: "Asia/Tokyo",
+  precision: "WINDOW",
+  windowStart: "2026-09-05",
+  windowEnd: "2026-09-06",
+}));
+assert.equal(futureWindow.registrationPreviewReady, true);
 
 console.log("tdnet-future-date-window-validation: ok");
