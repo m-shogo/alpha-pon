@@ -83,6 +83,14 @@ await assert.rejects(
 
 await assert.rejects(
   () => acquireTdnetPrimaryDocumentEvidence(candidate, {
+    fetchImpl: fetchReturning(fakeResponse({ url: "https://www.release.tdnet.info/inbs/140120260904000011.pdf" })),
+    now: () => "2026-09-04T15:05:00+09:00",
+  }),
+  /final URL must match requested sourceUrl/,
+);
+
+await assert.rejects(
+  () => acquireTdnetPrimaryDocumentEvidence(candidate, {
     fetchImpl: fetchReturning(fakeResponse({ status: 404 })),
     now: () => "2026-09-04T15:05:00+09:00",
   }),
