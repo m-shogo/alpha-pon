@@ -243,6 +243,16 @@ try {
     "audit must identify the wrong-shape delivery payload",
   );
 
+  db.prepare("UPDATE delivery_outbox SET payload_json = '{}', created_at = ?, updated_at = ?").run(
+    "2026-08-04T00:00:00Z",
+    "2026-08-03T23:59:59Z",
+  );
+  assert.throws(
+    () => listPendingDeliveries(db, "2026-08-10T00:00:00Z"),
+    /Invalid persisted delivery chronology at delivery_outbox\..*: updated_at must be on or after created_at/,
+    "delivery reads must fail closed when persisted lifecycle chronology is impossible",
+  );
+
   console.log("market-event-end-to-end: ok");
 } finally {
   db.close();
