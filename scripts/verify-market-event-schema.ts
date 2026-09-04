@@ -6,6 +6,7 @@ import {
   upsertSourceCheckpoint,
   type SourceCheckpoint,
 } from "../src/market-events/source-checkpoint-store.js";
+import { collectTdnetSourceOnce } from "../src/market-events/tdnet-source-collector.js";
 
 const migrationPath = "migrations/0001_market_event_foundation.sql";
 const sql = readFileSync(migrationPath, "utf8");
@@ -132,6 +133,91 @@ try {
     /sourceType cannot change/,
     "a source key must not silently change source type",
   );
+
+  const collectorDb = new DatabaseSync(":memory:");
+  try {
+    collectorDb.exec(sql);
+    const firstDisclosures = [
+      {
+        code: "8136",
+        companyName: "サンリオ",
+        title: "第三者委員会に関するお知らせ",
+        publishedAt: "2026-09-04",
+        url: "https://www.jpx.co.jp/example/a.pdf",
+      },
+      {
+        code: "4680",
+        companyName: "ラウンドワン",
+        title: "事業再編に関するお知らせ",
+        publishedAt: "2026-09-04",
+        url: "https://www.jpx.co.jp/example/b.pdf",
+      },
+    ];
+    const checkedTimes = [
+      "2026-09-04T01:00:00Z",
+      "2026-09-04T01:05:00Z",
+      "2026-09-04T01:10:00Z",
+      "2026-09-04T01:15:00Z",
+    ];
+    let timeIndex = 0;
+    const now = () => checkedTimes[timeIndex++]!;
+
+    const firstCollection = await collectTdnetSourceOnce(collectorDb, {
+      now,
+      fetchDisclosures: async () => firstDisclosures,
+    });
+    assert.equal(firstCollection.status, "changed");
+    assert.equal(firstCollection.disclosures.length, 2);
+    assert.match(firstCollection.contentHash ?? "", /^[0-9a-f]{64}$/);
+
+    const sameCollection = await collectTdnetSourceOnce(collectorDb, {
+      now,
+      fetchDisclosures: async () => [firstDisclosures[1]!, firstDisclosures[0]!, firstDisclosures[0]!],
+    });
+    assert.equal(sameCollection.status, "unchanged", "order and exact duplicate rows must not create source churn");
+    assert.equal(sameCollection.contentHash, firstCollection.contentHash);
+
+    const expandedCollection = await collectTdnetSourceOnce(collectorDb, {
+      now,
+      fetchDisclosures: async () => [
+        ...firstDisclosures,
+        {
+          code: "4661",
+          companyName: "オリエンタルランド",
+          title: "決算発表予定日に関するお知らせ",
+          publishedAt: "2026-09-04",
+          url: "https://www.jpx.co.jp/example/c.pdf",
+        },
+      ],
+    });
+    assert.equal(expandedCollection.status, "changed");
+    assert.notEqual(expandedCollection.contentHash, firstCollection.contentHash);
+
+    const failedCollection = await collectTdnetSourceOnce(collectorDb, {
+      now,
+      fetchDisclosures: async () => {
+        throw new Error("network\tunavailable\nretry");
+      },
+    });
+    assert.equal(failedCollection.status, "failed");
+    assert.equal(failedCollection.error, "network unavailable retry");
+    assert.equal(failedCollection.contentHash, expandedCollection.contentHash);
+
+    const collectedCheckpoint = getSourceCheckpoint(collectorDb, firstCollection.sourceKey);
+    assert(collectedCheckpoint);
+    assert.equal(collectedCheckpoint.lastCheckedAt, "2026-09-04T01:15:00Z");
+    assert.equal(collectedCheckpoint.lastSuccessAt, "2026-09-04T01:10:00Z");
+    assert.equal(collectedCheckpoint.lastContentHash, expandedCollection.contentHash);
+    assert.equal(collectedCheckpoint.consecutiveFailures, 1);
+    assert.equal(collectedCheckpoint.lastError, "network unavailable retry");
+    assert.equal(
+      (collectorDb.prepare("SELECT COUNT(*) AS count FROM market_events").get() as { count: number }).count,
+      0,
+      "source collection must not register Market Events before candidate review",
+    );
+  } finally {
+    collectorDb.close();
+  }
 
   const eventId = "evt_0123456789abcdef01234567";
   const revisionId = "rev_0123456789abcdef01234567";
