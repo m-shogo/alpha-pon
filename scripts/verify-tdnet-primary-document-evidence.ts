@@ -43,10 +43,15 @@ function fetchReturning(response: Response): typeof fetch {
 }
 
 const body = "%PDF-1.7 synthetic primary document";
+let observedRedirectMode: RequestRedirect | undefined;
 const evidence = await acquireTdnetPrimaryDocumentEvidence(candidate, {
-  fetchImpl: fetchReturning(fakeResponse({ body })),
+  fetchImpl: (async (_input, init) => {
+    observedRedirectMode = init?.redirect;
+    return fakeResponse({ body });
+  }) as typeof fetch,
   now: () => "2026-09-04T15:05:00+09:00",
 });
+assert.equal(observedRedirectMode, "error", "primary-document acquisition must reject redirects before fetch follows them");
 assert.deepEqual(evidence, {
   candidateId: candidate.candidateId,
   sourceUrl,
