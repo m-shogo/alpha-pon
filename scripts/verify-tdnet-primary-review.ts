@@ -14,10 +14,11 @@ const candidate = classifyTdnetDisclosureCandidate({
   url: "https://www.release.tdnet.info/inbs/140120260904000001.pdf",
 });
 if (!candidate) throw new Error("shareholder meeting disclosure must classify as a TDnet candidate");
+const candidateId = candidate.candidateId;
 
 function decision(overrides: Partial<TdnetPrimaryReviewDecision> = {}): TdnetPrimaryReviewDecision {
   return {
-    candidateId: candidate.candidateId,
+    candidateId,
     reviewedAt: "2026-09-04T16:00:00+09:00",
     outcome: "FUTURE_EVENT_CONFIRMED",
     eventType: null,
