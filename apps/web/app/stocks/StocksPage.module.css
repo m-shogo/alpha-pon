@@ -1,5 +1,5 @@
 .page {
-  padding: 36px 16px 40px;
+  padding: 34px 16px 44px;
 }
 
 .header {
@@ -7,15 +7,8 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 20px;
-  padding: 4px 0 20px;
+  padding: 6px 0 22px;
   border-bottom: 1px solid var(--line);
-}
-
-.eyebrow {
-  margin-bottom: 4px;
-  color: var(--ink-3);
-  font-size: 13px;
-  font-weight: 600;
 }
 
 .title {
@@ -23,27 +16,40 @@
   color: var(--ink);
   font-family: var(--display);
   font-size: 30px;
-  font-weight: 700;
-  letter-spacing: -0.4px;
+  font-weight: 680;
+  line-height: 1.12;
+  letter-spacing: -0.65px;
 }
 
 .subtitle {
-  max-width: 680px;
-  margin: 7px 0 0;
+  max-width: 720px;
+  margin: 8px 0 0;
   color: var(--ink-2);
   font-size: 15px;
-  line-height: 1.65;
+  line-height: 1.7;
 }
 
-.warningList {
-  margin: 18px 0 4px;
-  padding: 0 0 0 18px;
+.warningBlock {
+  margin: 18px 0 2px;
+  padding: 10px 0 10px 14px;
+  border-left: 3px solid var(--amber);
   color: var(--ink-2);
-  font-size: 13px;
+}
+
+.warningBlock strong {
+  color: var(--amber);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.warningBlock ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 13.5px;
   line-height: 1.65;
 }
 
-.warningList li + li {
+.warningBlock li + li {
   margin-top: 4px;
 }
 
@@ -52,25 +58,34 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  margin: 24px 0 10px;
+  margin: 30px 0 11px;
 }
 
 .sectionTitle {
   margin: 0;
   color: var(--ink);
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 660;
+  letter-spacing: -0.15px;
 }
 
 .sectionMeta {
   color: var(--ink-3);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 12.5px;
+  font-weight: 560;
+}
+
+.scoreNote {
+  max-width: 760px;
+  margin: 16px 0 0;
+  color: var(--ink-3);
+  font-size: 13px;
+  line-height: 1.65;
 }
 
 @media (min-width: 768px) {
   .page {
-    padding: 40px 24px 48px;
+    padding: 40px 24px 50px;
   }
 }
 
@@ -78,11 +93,11 @@
   .page {
     max-width: 1120px;
     margin: 0 auto;
-    padding: 44px 28px 56px;
+    padding: 48px 28px 58px;
   }
 
   .title {
-    font-size: 34px;
+    font-size: 35px;
   }
 }
 
@@ -93,10 +108,11 @@
 
   .header {
     align-items: flex-start;
+    padding-bottom: 19px;
   }
 
   .title {
-    font-size: 28px;
+    font-size: 29px;
   }
 
   .subtitle {
@@ -107,5 +123,14 @@
     align-items: flex-start;
     flex-direction: column;
     gap: 3px;
+    margin-top: 26px;
+  }
+
+  .sectionMeta {
+    font-size: 13px;
+  }
+
+  .scoreNote {
+    font-size: 13.5px;
   }
 }
