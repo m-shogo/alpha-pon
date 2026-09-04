@@ -29,21 +29,14 @@ function fakeResponse(options: {
   if (options.contentLength !== null) {
     headers.set("content-length", options.contentLength ?? String(body.byteLength));
   }
-  return {
-    ok: status >= 200 && status < 300,
-    status,
-    url: options.url ?? sourceUrl,
-    headers,
-    body: new ReadableStream<Uint8Array>({
-      start(controller) {
-        controller.enqueue(body);
-        controller.close();
-      },
-    }),
-    arrayBuffer: async () => {
+  const response = new Response(body, { status, headers });
+  Object.defineProperty(response, "url", { value: options.url ?? sourceUrl });
+  Object.defineProperty(response, "arrayBuffer", {
+    value: async () => {
       throw new Error("TDnet primary document acquisition must not buffer the full response body");
     },
-  } as Response;
+  });
+  return response;
 }
 
 function fetchReturning(response: Response): typeof fetch {
