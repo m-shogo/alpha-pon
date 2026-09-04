@@ -51,4 +51,30 @@ assert.throws(
   "read-only ledger validation must reject invalid source content hashes",
 );
 
+assert.throws(
+  () => validateLedgerRecord({
+    ...baseRecord,
+    payload: {
+      ...baseRecord.payload,
+      sourceType: "UNRECOGNIZED_SOURCE" as never,
+      publishedAt: "2026-08-28T08:00:00Z",
+    },
+  }),
+  /Unknown source type: UNRECOGNIZED_SOURCE/,
+  "read-only ledger validation must reject unknown source types",
+);
+
+assert.throws(
+  () => validateLedgerRecord({
+    ...baseRecord,
+    payload: {
+      ...baseRecord.payload,
+      storageClass: "UNRECOGNIZED_STORAGE" as never,
+      publishedAt: "2026-08-28T08:00:00Z",
+    },
+  }),
+  /Unknown storage class: UNRECOGNIZED_STORAGE/,
+  "read-only ledger validation must reject unknown storage classes",
+);
+
 console.log("market event ledger source chronology: fail-closed OK");
