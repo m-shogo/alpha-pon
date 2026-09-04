@@ -1,3 +1,4 @@
+import "./verify-tdnet-registration-replay.js";
 import assert from "node:assert/strict";
 import { classifyTdnetDisclosureCandidate } from "../src/market-events/tdnet-event-candidates.js";
 import { assessTdnetPrimaryReview } from "../src/market-events/tdnet-primary-review.js";
