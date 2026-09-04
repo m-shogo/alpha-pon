@@ -17,10 +17,10 @@ const COMPONENT_KIND_LABELS: Record<OwnerResearchComponentKind, string> = {
   phase: 'フェーズ',
   subsignal: 'サブシグナル',
   filter: 'フィルター',
-  cohort: 'コホート',
-  calibration: 'キャリブレーション',
-  guard: 'ガード',
-  fixture: 'フィクスチャ',
+  cohort: '比較集団',
+  calibration: '調整',
+  guard: '安全条件',
+  fixture: '検証用データ',
 }
 
 const LINEAGE_LABELS: Record<OwnerResearchLineageType, string> = {
@@ -58,7 +58,7 @@ export default function ResearchHistoryMap() {
 
       <SectionTitle title="研究のつながり" meta={`${data.counts.families}件`} />
       <section className="ap-history-group" aria-label="研究ファミリー一覧">
-        {data.families.length === 0 && <EmptyState title="研究ファミリーはまだありません">正式なResearchFamilyが登録されると、関連する研究テーマとEdgeのつながりをここに表示します。</EmptyState>}
+        {data.families.length === 0 && <EmptyState title="研究のまとまりはまだありません">正式な研究ファミリーが登録されると、関連する研究テーマとEdgeのつながりをここに表示します。</EmptyState>}
         {data.families.map((family) => (
           <article className="ap-history-family-row" key={family.id}>
             <div className="ap-history-row-head">
@@ -72,7 +72,7 @@ export default function ResearchHistoryMap() {
             </div>
             <p className="ap-history-description">{family.description}</p>
             <details className="ap-row-disclosure">
-              <summary>この研究ファミリーに属する研究 {family.members.length}件</summary>
+              <summary>このまとまりに属する研究 {family.members.length}件</summary>
               {family.members.length === 0 ? (
                 <p className="ap-research-empty">まだ紐づく研究はありません。</p>
               ) : (
@@ -97,7 +97,7 @@ export default function ResearchHistoryMap() {
       <div className="ap-history-outcome-summary">
         <div><span>結論あり</span><strong>{data.counts.resolvedOutcomes}</strong></div>
         <div><span>未解決・未計測</span><strong>{data.counts.unresolvedOutcomes}</strong></div>
-        <p>Outcomeの方向で表示優先度を変えず、上昇・下落・無反応・未解決を同じ基準で残します。</p>
+        <p>結果の方向で表示優先度を変えず、上昇・下落・無反応・未解決を同じ基準で残します。</p>
       </div>
 
       <section className="ap-history-group" aria-label="過去類似事例一覧">
@@ -142,7 +142,7 @@ export default function ResearchHistoryMap() {
 
       <SectionTitle title="登録済み事例" meta={`${data.counts.cases}件`} />
       <section className="ap-history-group" aria-label="登録済み事例一覧">
-        {data.cases.length === 0 && <EmptyState title="正式Caseはまだ0件です">個別の研究エピソードが正式登録されるとここに表示します。</EmptyState>}
+        {data.cases.length === 0 && <EmptyState title="正式な個別事例はまだ0件です">個別の研究エピソードが正式登録されるとここに表示します。</EmptyState>}
         {data.cases.map((researchCase) => (
           <article className="ap-history-case-row" key={researchCase.id}>
             <div className="ap-history-row-head">
@@ -177,7 +177,7 @@ export default function ResearchHistoryMap() {
 
       <SectionTitle title="研究の分解パーツ" meta={`${data.counts.researchComponents}件`} />
       <section className="ap-history-group" aria-label="研究コンポーネント一覧">
-        {data.researchComponents.length === 0 && <EmptyState title="研究パーツはまだありません">研究を構成するフェーズ・フィルター・コホートなどが正式登録されると表示します。</EmptyState>}
+        {data.researchComponents.length === 0 && <EmptyState title="研究パーツはまだありません">研究を構成するフェーズ・フィルター・比較集団などが正式登録されると表示します。</EmptyState>}
         {data.researchComponents.map((component) => (
           <article className="ap-history-component-row" key={component.id}>
             <span className="ap-history-component-kind">{COMPONENT_KIND_LABELS[component.kind]}</span>
@@ -206,17 +206,17 @@ export default function ResearchHistoryMap() {
         ))}
       </section>
 
-      <SectionTitle title="正式Study / Result" meta={`${data.counts.studies} Study · ${data.counts.studyResults} Result`} />
+      <SectionTitle title="正式な検証設計・結果" meta={`検証設計 ${data.counts.studies}件 · 結果 ${data.counts.studyResults}件`} />
       <section className="ap-history-study-summary">
         {data.counts.studies === 0 && data.counts.studyResults === 0 ? (
           <>
-            <strong>正式なStudy正本はまだありません</strong>
-            <p>提案文書をStudy扱いにはしません。研究設計と結果がCatalogへ正式登録された時だけ、この件数が増えます。</p>
+            <strong>正式な検証設計はまだありません</strong>
+            <p>提案文書を検証設計扱いにはしません。研究設計と結果が研究カタログへ正式登録された時だけ、この件数が増えます。</p>
           </>
         ) : (
           <>
-            <strong>正式登録されたStudy / Resultがあります</strong>
-            <p>下のStudy表示で、研究設計と結果を分けて確認できます。</p>
+            <strong>正式登録された検証設計・結果があります</strong>
+            <p>下の検証表示で、研究設計と実測結果を分けて確認できます。</p>
           </>
         )}
       </section>
