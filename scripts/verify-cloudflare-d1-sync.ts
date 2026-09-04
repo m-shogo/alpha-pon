@@ -149,6 +149,20 @@ const malformedPlan = buildD1SyncPlan(canonical, malformedRemote);
 assert.equal(malformedPlan.status, "blocked");
 assert.match(malformedPlan.blockers.join("\n"), /malformed/);
 
+const stalePointerCanonical = structuredClone(canonical);
+stalePointerCanonical.event_revisions.push({
+  ...revisionRow("rev_alpha_v2", "evt_alpha"),
+  revision_number: 2,
+  previous_revision_id: "rev_alpha",
+});
+const stalePointerPlan = buildD1SyncPlan(stalePointerCanonical, emptyD1SyncSnapshot());
+assert.equal(stalePointerPlan.status, "blocked");
+assert.match(
+  stalePointerPlan.blockers.join("\n"),
+  /current_revision_id rev_alpha is stale; latest is rev_alpha_v2/,
+  "D1 sync must not propagate an older same-event revision as current",
+);
+
 const triggerRemote = structuredClone(canonical);
 triggerRemote.triggers = 1;
 const triggerPlan = buildD1SyncPlan(canonical, triggerRemote);
