@@ -65,13 +65,25 @@ type MarketEventRow = {
   updated_at: string;
 };
 
-function parsePersistedJson<T>(value: string, context: string): T {
+type PersistedJsonShape = "string-array" | "plain-object";
+
+function isPersistedJsonShape(value: unknown, shape: PersistedJsonShape): boolean {
+  if (shape === "string-array") return Array.isArray(value) && value.every(item => typeof item === "string");
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function parsePersistedJson<T>(value: string, context: string, shape: PersistedJsonShape): T {
+  let parsed: unknown;
   try {
-    return JSON.parse(value) as T;
+    parsed = JSON.parse(value) as unknown;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(`Malformed persisted JSON at ${context}: ${message}`);
   }
+  if (!isPersistedJsonShape(parsed, shape)) {
+    throw new Error(`Invalid persisted JSON shape at ${context}: expected ${shape}`);
+  }
+  return parsed as T;
 }
 
 function mapEventRow(row: MarketEventRow): MarketEvent {
@@ -94,14 +106,27 @@ function mapEventRow(row: MarketEventRow): MarketEvent {
       windowStart: row.window_start,
       windowEnd: row.window_end,
     },
-    edgeTypes: parsePersistedJson<string[]>(row.edge_types_json, `market_events.${row.event_id}.edge_types_json`),
+    edgeTypes: parsePersistedJson<string[]>(
+      row.edge_types_json,
+      `market_events.${row.event_id}.edge_types_json`,
+      "string-array",
+    ),
     currentDecisionState: row.current_decision_state,
     whyItMatters: row.why_it_matters,
-    checksBefore: parsePersistedJson<string[]>(row.checks_before_json, `market_events.${row.event_id}.checks_before_json`),
-    checksAfter: parsePersistedJson<string[]>(row.checks_after_json, `market_events.${row.event_id}.checks_after_json`),
+    checksBefore: parsePersistedJson<string[]>(
+      row.checks_before_json,
+      `market_events.${row.event_id}.checks_before_json`,
+      "string-array",
+    ),
+    checksAfter: parsePersistedJson<string[]>(
+      row.checks_after_json,
+      `market_events.${row.event_id}.checks_after_json`,
+      "string-array",
+    ),
     relatedEventIds: parsePersistedJson<string[]>(
       row.related_event_ids_json,
       `market_events.${row.event_id}.related_event_ids_json`,
+      "string-array",
     ),
     lastVerifiedAt: row.last_verified_at,
     staleAfter: row.stale_after,
@@ -468,7 +493,11 @@ export function listPendingDeliveries(db: MarketEventDatabase, now: string, limi
   >;
   return rows.map(({ payloadJson, ...row }) => ({
     ...row,
-    payload: parsePersistedJson(payloadJson, `delivery_outbox.${row.deliveryId}.payload_json`),
+    payload: parsePersistedJson<Record<string, unknown>>(
+      payloadJson,
+      `delivery_outbox.${row.deliveryId}.payload_json`,
+      "plain-object",
+    ),
   }));
 }
 
@@ -489,23 +518,55 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
       AND (r.revision_id IS NULL OR r.event_id != e.event_id)
   `).all().map(row => (row as { eventId: string }).eventId);
   const malformedJsonRows: MarketEventAuditReport["malformedJsonRows"] = [];
-  const jsonChecks = [
-    { table: "market_events", id: "event_id", fields: ["edge_types_json", "checks_before_json", "checks_after_json", "related_event_ids_json"] },
-    { table: "event_revisions", id: "revision_id", fields: ["facts_json", "source_ids_json"] },
-    { table: "decision_snapshots", id: "decision_snapshot_id", fields: ["reasons_json", "invalidation_conditions_json"] },
-    { table: "delivery_outbox", id: "delivery_id", fields: ["payload_json"] },
+  const jsonChecks: Array<{
+    table: string;
+    id: string;
+    fields: Array<{ name: string; shape: PersistedJsonShape }>;
+  }> = [
+    {
+      table: "market_events",
+      id: "event_id",
+      fields: [
+        { name: "edge_types_json", shape: "string-array" },
+        { name: "checks_before_json", shape: "string-array" },
+        { name: "checks_after_json", shape: "string-array" },
+        { name: "related_event_ids_json", shape: "string-array" },
+      ],
+    },
+    {
+      table: "event_revisions",
+      id: "revision_id",
+      fields: [
+        { name: "facts_json", shape: "plain-object" },
+        { name: "source_ids_json", shape: "string-array" },
+      ],
+    },
+    {
+      table: "decision_snapshots",
+      id: "decision_snapshot_id",
+      fields: [
+        { name: "reasons_json", shape: "string-array" },
+        { name: "invalidation_conditions_json", shape: "string-array" },
+      ],
+    },
+    {
+      table: "delivery_outbox",
+      id: "delivery_id",
+      fields: [{ name: "payload_json", shape: "plain-object" }],
+    },
   ];
   for (const check of jsonChecks) {
-    const rows = db.prepare(`SELECT ${check.id} AS id, ${check.fields.join(", ")} FROM ${check.table}`).all() as Array<Record<string, unknown>>;
+    const fieldNames = check.fields.map(field => field.name);
+    const rows = db.prepare(`SELECT ${check.id} AS id, ${fieldNames.join(", ")} FROM ${check.table}`).all() as Array<Record<string, unknown>>;
     for (const row of rows) {
       for (const field of check.fields) {
         try {
-          JSON.parse(String(row[field]));
+          parsePersistedJson(String(row[field.name]), `${check.table}.${String(row.id)}.${field.name}`, field.shape);
         } catch (error) {
           malformedJsonRows.push({
             table: check.table,
             id: String(row.id),
-            field,
+            field: field.name,
             message: error instanceof Error ? error.message : String(error),
           });
         }
