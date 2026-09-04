@@ -12,7 +12,7 @@ const MODE_LABELS: Record<OwnerResearchStudyMode, string> = {
   exploratory: '探索',
   calibration: '調整',
   confirmatory: '確認',
-  holdout: '未使用データ検証（Holdout）',
+  holdout: '未使用データ検証',
   out_of_sample: '標本外検証',
   revalidation: '再検証',
 }
@@ -75,18 +75,18 @@ export default function ResearchStudyMap() {
   return (
     <section className={styles.root}>
       <div className="ap-verification-heading">
-        <h2>検証Study — どう確かめるか</h2>
-        <span>{data.counts.studies} Study / {data.counts.studyResults} Result</span>
+        <h2>検証設計 — どう確かめるか</h2>
+        <span>検証設計 {data.counts.studies}件 / 結果 {data.counts.studyResults}件</span>
       </div>
 
       <div className="ap-verification-note">
-        Studyは「どう確かめるか」を固定する検証単位です。結果では、観測された効果・因果の識別品質・実用性を分けて表示します。良い結果でも、自動で正式Edge昇格やBUY推奨にはなりません。
+        検証設計は「どう確かめるか」を固定する単位です。結果では、観測された効果・因果の識別品質・実用性を分けて表示します。良い結果でも、自動で正式Edge昇格やBUY推奨にはなりません。
       </div>
 
       {data.studies.length === 0 ? (
         <div className="ap-study-empty">
-          <strong>正式Studyはまだ0件です</strong>
-          <p>0件を隠さず表示します。Catalogへ正式なStudyが登録された時だけ、目的・検証モード・結果がここに現れます。</p>
+          <strong>正式な検証設計はまだ0件です</strong>
+          <p>0件を隠さず表示します。研究カタログへ正式な検証設計が登録された時だけ、目的・検証モード・結果がここに現れます。</p>
         </div>
       ) : (
         <div className="ap-verification-group">
@@ -112,7 +112,7 @@ export default function ResearchStudyMap() {
                       <strong>{study.population ?? '未記録'}</strong>
                     </div>
                     <div>
-                      <span>主要指標 / 情報cutoff</span>
+                      <span>主要指標 / 情報の締切</span>
                       <strong>
                         {study.primaryMetric ?? '主要指標未記録'}
                         {study.informationCutoff ? ` · ${formatDate(study.informationCutoff)}` : ''}
@@ -126,12 +126,12 @@ export default function ResearchStudyMap() {
                 </div>
 
                 {results.length === 0 ? (
-                  <div className="ap-reaction-missing">StudyResultはまだ登録されていません。未登録を「効果なし」と解釈しません。</div>
+                  <div className="ap-reaction-missing">検証結果はまだ登録されていません。未登録を「効果なし」と解釈しません。</div>
                 ) : (
                   results.map((result) => (
                     <section className="ap-study-result" key={result.id}>
                       <div className="ap-study-result-head">
-                        <span className="ap-study-result-label">実測StudyResult</span>
+                        <span className="ap-study-result-label">実測結果</span>
                         <time>結果記録 {formatDate(result.createdAt)}</time>
                       </div>
                       <p>{result.effectSummary}</p>
@@ -178,8 +178,8 @@ export default function ResearchStudyMap() {
 
       {unmatchedResults.length > 0 && (
         <div className="ap-study-warning">
-          <strong>Studyに紐づかないResultが {unmatchedResults.length}件あります。</strong><br />
-          整合性確認が必要です。Resultを消したり、別Studyへ推測で付け替えたりはしません。
+          <strong>検証設計に紐づかない結果が {unmatchedResults.length}件あります。</strong><br />
+          整合性確認が必要です。結果を消したり、別の検証設計へ推測で付け替えたりはしません。
         </div>
       )}
     </section>

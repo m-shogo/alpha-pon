@@ -18,7 +18,7 @@ const ITEM_STATUS: Record<OwnerResearchItemStatus, { label: string; tone: string
 const EDGE_STATUS: Record<OwnerFormalEdgeStatus, { label: string; tone: string }> = {
   idea: { label: 'アイデア', tone: 'gray' },
   research: { label: '研究中', tone: 'blue' },
-  shadow: { label: '実運用前の観察', tone: 'purple' },
+  shadow: { label: '実運用前の観察', tone: 'blue' },
   production: { label: '実運用', tone: 'green' },
   rejected: { label: '棄却', tone: 'red' },
   deprecated: { label: '統合・終了', tone: 'gray' },
@@ -34,15 +34,15 @@ const QUESTION_STATUS: Record<OwnerResearchQuestionStatus, string> = {
 
 const GATE_LABELS: Record<string, string> = {
   sufficientSamples: '十分なサンプル',
-  holdoutPass: 'Holdout再現',
-  pitSafe: 'PIT安全性',
-  netAlphaPositive: '実測Net Alpha',
+  holdoutPass: '未使用データで再現',
+  pitSafe: '時点整合性',
+  netAlphaPositive: 'コスト後の超過収益',
   executionFeasible: '執行可能性',
   liquiditySufficient: '流動性',
   borrowCostCovered: '借株・コスト',
   confoundersRemoved: '交絡除去',
   counterfactualExplained: '反実仮想比較',
-  decayChecked: 'Edge Decay',
+  decayChecked: '効果の減衰確認',
   falseDiscoveryGuard: '過学習・多重検定防止',
 }
 
@@ -131,7 +131,7 @@ export default function ResearchPage() {
         <div className="ap-research-current-state">
           <div className="ap-research-state-topline">
             <span className={`ap-status-badge tone-${integrityAttention ? 'amber' : 'green'}`}>
-              {integrityAttention ? '整合性を確認してください' : 'Research OS 整合性OK'}
+              {integrityAttention ? '研究データの整合性を確認してください' : '研究データの整合性に問題なし'}
             </span>
             <span className="ap-research-recency">直近7日: Edge +{recent.edgesAdded} / 類似事例 +{recent.analogsAdded}</span>
           </div>
@@ -154,9 +154,9 @@ export default function ResearchPage() {
         <div className="ap-research-triad">
           <section className="ap-research-triad-section is-known">
             <div className="ap-triad-label">分かったこと</div>
-            <h3>研究ログに記録されたFinding</h3>
+            <h3>研究ログに記録された発見</h3>
             <SummaryList items={recordedFindings} />
-            <p className="ap-triad-note">Findingは実測結果とは限りません。実測sample / outcomeとは分けて扱います。</p>
+            <p className="ap-triad-note">ここにある発見は実測結果とは限りません。実測サンプル・結果とは分けて扱います。</p>
           </section>
           <section className="ap-research-triad-section is-unknown">
             <div className="ap-triad-label">まだ分からないこと</div>
@@ -165,7 +165,7 @@ export default function ResearchPage() {
           </section>
           <section className="ap-research-triad-section is-next">
             <div className="ap-triad-label">次に調べること</div>
-            <h3>Research OSに記録された次アクション</h3>
+            <h3>研究システムに記録された次の確認</h3>
             <SummaryList items={nextActions} />
           </section>
         </div>
@@ -225,11 +225,11 @@ export default function ResearchPage() {
                 <div className="ap-edge-progress" aria-label={`${edge.title}の検証進捗`}>
                   <div><span>サンプル</span><strong>{edge.samples.current}<small> / {edge.samples.required}</small></strong></div>
                   <div><span>類似事例</span><strong>{edge.samples.analogCurrent}<small> / {edge.samples.analogRequired}</small></strong></div>
-                  <div><span>Gate</span><strong>{edge.gate.pass}<small> / {edge.gate.total}</small></strong></div>
+                  <div><span>検証条件</span><strong>{edge.gate.pass}<small> / {edge.gate.total}</small></strong></div>
                 </div>
               </div>
 
-              <div className="ap-edge-meta-line">優先度 {edge.priority} · Confidence {Math.round(edge.confidence * 100)}% · 最終研究 {formatDate(edge.lastResearchAt)}</div>
+              <div className="ap-edge-meta-line">優先度 {edge.priority} · 確信度 {Math.round(edge.confidence * 100)}% · 最終研究 {formatDate(edge.lastResearchAt)}</div>
 
               <details className="ap-row-disclosure ap-edge-details">
                 <summary>検証内容を見る</summary>
@@ -263,7 +263,7 @@ export default function ResearchPage() {
 
       {data.checkpoint && (
         <>
-          <SectionHeading id="checkpoint" title="今の研究メモ" meta={`Checkpoint #${data.checkpoint.sequence}`} />
+          <SectionHeading id="checkpoint" title="今の研究メモ" meta={`記録 #${data.checkpoint.sequence}`} />
           <section className="ap-research-group ap-checkpoint">
             <div className="ap-checkpoint-primary">
               <span>保存 {formatDate(data.checkpoint.savedAt)}</span>
@@ -313,7 +313,7 @@ export default function ResearchPage() {
 
       <section className="ap-research-deeper-note">
         <h2>過去事例・検証結果</h2>
-        <p>この下に研究ファミリー、過去類似事例、個別事例、Study、Lineageなどの深い検証情報が続きます。</p>
+        <p>この下に研究のつながり、過去類似事例、個別事例、検証設計、結果、統合・継承履歴などの深い検証情報が続きます。</p>
       </section>
     </div>
   )

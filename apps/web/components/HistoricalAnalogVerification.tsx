@@ -27,7 +27,7 @@ export default function HistoricalAnalogVerification() {
       </div>
 
       <div className="ap-verification-note">
-        正本にある値だけを表示します。1事例につき登録された marketReaction のみを扱い、D+5 / D+20 / D+60 / D+120を後から補完・推定しません。「明確な動きなし」を自動で比較対象にせず、明示されたCounterfactualだけを表示します。
+        正本にある値だけを表示します。1事例につき登録された市場反応だけを扱い、D+5 / D+20 / D+60 / D+120を後から補完・推定しません。「明確な動きなし」を自動で比較対象にせず、明示された比較対象だけを表示します。
       </div>
 
       <div className="ap-verification-group">
@@ -38,11 +38,11 @@ export default function HistoricalAnalogVerification() {
                 <div className="ap-verification-kicker">{analog.eventDate} · {analog.eventType}</div>
                 <h3>{analog.companyName} {analog.companyCode}</h3>
               </div>
-              <span className="ap-status-badge tone-gray">PIT確認 {formatDate(analog.observedAt)}</span>
+              <span className="ap-status-badge tone-gray">時点確認 {formatDate(analog.observedAt)}</span>
             </div>
 
             <div className="ap-pit-block">
-              <div className="ap-pit-label">その時点で知り得た情報（PIT）</div>
+              <div className="ap-pit-label">その時点で知り得た情報</div>
               <div className="ap-pit-meta">公開確認 {formatDate(analog.observedAt)} · 情報源種別 {analog.sourceType}</div>
               <p className="ap-verification-body">{analog.summary}</p>
             </div>
@@ -60,9 +60,9 @@ export default function HistoricalAnalogVerification() {
                   <small>{analog.marketReaction.benchmark ?? 'ベンチマーク未記録'}</small>
                 </div>
                 <div>
-                  <span>Outcome ROI</span>
+                  <span>結果の収益率</span>
                   <strong>{analog.outcome?.roiBps !== undefined ? formatBps(analog.outcome.roiBps) : '未記録'}</strong>
-                  <small>{analog.outcome ? `計測 ${formatDate(analog.outcome.measuredAt)}` : 'Outcome未記録'}</small>
+                  <small>{analog.outcome ? `計測 ${formatDate(analog.outcome.measuredAt)}` : '結果未記録'}</small>
                 </div>
               </div>
             ) : (
