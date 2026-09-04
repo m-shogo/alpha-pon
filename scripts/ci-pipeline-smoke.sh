@@ -84,3 +84,15 @@ if (!proposals.includes("# alpha-pon 改善提案レポート")) {
 
 console.log(`pipeline smoke status=${status.status} steps=${status.steps.length} daily=${daily.status}`);
 NODE
+
+# TDnet / Market Event Phase 5 verification scripts contain runtime assertions that
+# typechecking alone cannot exercise. Keep them offline and read-only in the full CI smoke gate.
+node --import tsx/esm scripts/verify-tdnet-public-viewer.ts
+node --import tsx/esm scripts/verify-tdnet-source-collector-current-viewer.ts
+node --import tsx/esm scripts/verify-tdnet-candidate-collection.ts
+node --import tsx/esm scripts/verify-tdnet-market-event-candidates.ts
+node --import tsx/esm scripts/verify-tdnet-candidate-preview.ts
+node --import tsx/esm scripts/verify-tdnet-primary-document-evidence.ts
+node --import tsx/esm scripts/verify-tdnet-primary-review.ts
+node --import tsx/esm scripts/verify-tdnet-future-date-window-validation.ts
+node --import tsx/esm scripts/verify-tdnet-registration-preview.ts
