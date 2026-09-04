@@ -11,6 +11,7 @@ import type { TdnetDisclosure } from "../src/fetcher/jpx.js";
 function disclosure(overrides: Partial<TdnetDisclosure> = {}): TdnetDisclosure {
   return {
     code: "8136",
+    sourceCode: "81360",
     companyName: "サンリオ",
     title: "第三者委員会の設置に関するお知らせ",
     publishedAt: "2026-09-04T09:00:00+09:00",
@@ -21,6 +22,8 @@ function disclosure(overrides: Partial<TdnetDisclosure> = {}): TdnetDisclosure {
 
 const setup = classifyTdnetDisclosureCandidate(disclosure());
 assert(setup, "investigation setup must become a review candidate");
+assert.equal(setup.issuerCode, "8136", "candidate must keep canonical issuer code");
+assert.equal(setup.sourceCode, "81360", "candidate must retain raw TDnet source code metadata");
 assert.equal(setup.eventTypeHint, "INVESTIGATION_UPDATE");
 assert.deepEqual(setup.blockers, [...TDNET_CANDIDATE_BLOCKERS]);
 assert.equal(setup.registrationReady, false);
@@ -65,15 +68,25 @@ assert.equal(
 
 const canonical = disclosure({
   code: " 8136 ",
+  sourceCode: " 81360 ",
   companyName: " サンリオ ",
   title: " 第三者委員会の設置に関するお知らせ ",
   publishedAt: " 2026-09-04T09:00:00+09:00 ",
   url: " https://example.invalid/tdnet/8136/1 ",
 });
+const canonicalCandidate = classifyTdnetDisclosureCandidate(canonical);
 assert.equal(
-  classifyTdnetDisclosureCandidate(canonical)?.candidateId,
+  canonicalCandidate?.candidateId,
   setup.candidateId,
   "candidate identity must be stable across harmless surrounding whitespace",
+);
+assert.equal(canonicalCandidate?.sourceCode, "81360");
+
+const legacyWithoutRawSourceCode = classifyTdnetDisclosureCandidate(disclosure({ sourceCode: undefined }));
+assert.equal(
+  legacyWithoutRawSourceCode?.sourceCode,
+  null,
+  "missing raw sourceCode must remain unknown rather than being fabricated from issuerCode",
 );
 
 const duplicate = disclosure();
