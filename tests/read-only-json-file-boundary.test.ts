@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { linkSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import { linkSync, mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -98,5 +98,25 @@ assert.equal(isCanonicalReadOnlyJsonFile(standaloneObjectArray), true);
 assert.deepEqual(readReadOnlyJsonArrayFile<{ id: string }>(standaloneArray).rows, [{ id: "real" }]);
 assert.equal(readReadOnlyJsonObjectFile<{ id: string }>(standaloneObject).object?.id, "real");
 assert.deepEqual(readReadOnlyJsonObjectArrayFile<{ id: string }>(standaloneObjectArray, "rows").rows, [{ id: "real" }]);
+
+const ancestorDir = mkdtempSync(join(process.cwd(), ".alpha-pon-read-only-json-ancestor-"));
+try {
+  const realDir = join(ancestorDir, "real");
+  const linkedDir = join(ancestorDir, "linked");
+  mkdirSync(realDir);
+  writeFileSync(join(realDir, "evidence.json"), JSON.stringify([{ id: "aliased" }]));
+  symlinkSync(realDir, linkedDir, "dir");
+  const aliasedPath = join(linkedDir, "evidence.json");
+
+  assert.equal(isCanonicalReadOnlyJsonFile(aliasedPath), false);
+  assert.deepEqual(readReadOnlyJsonArrayFile(aliasedPath), {
+    rows: [],
+    missing: false,
+    parseError: true,
+    invalidRoot: false,
+  });
+} finally {
+  rmSync(ancestorDir, { recursive: true, force: true });
+}
 
 console.log("read-only JSON file boundary: linked evidence rejected, standalone regular files preserved");
