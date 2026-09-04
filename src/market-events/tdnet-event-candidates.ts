@@ -13,6 +13,7 @@ export type TdnetCandidateBlocker = (typeof TDNET_CANDIDATE_BLOCKERS)[number];
 export type TdnetMarketEventCandidate = {
   candidateId: string;
   issuerCode: string;
+  sourceCode: string | null;
   issuerName: string;
   disclosureTitle: string;
   disclosurePublishedAt: string;
@@ -130,6 +131,7 @@ export function classifyTdnetDisclosureCandidate(
   return {
     candidateId: candidateId(disclosure),
     issuerCode: disclosure.code.trim(),
+    sourceCode: disclosure.sourceCode?.trim() || null,
     issuerName: disclosure.companyName.trim(),
     disclosureTitle: title,
     // This is source publication metadata only. It is deliberately not EventTime.

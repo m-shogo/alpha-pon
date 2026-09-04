@@ -68,6 +68,8 @@ assert.equal(first.bundle.sources[0]!.retrievedAt, "2026-09-04T15:05:00+09:00");
 assert.equal(first.bundle.sources[0]!.contentHash, "d".repeat(64));
 assert.equal(first.bundle.sources[0]!.storageClass, "METADATA_ONLY");
 assert.equal(first.input.facts?.sourcePublicationIsEventTime, false);
+assert.equal(first.input.facts?.tdnetSourceCode, "46610", "raw five-digit TDnet source code must survive into preview provenance");
+assert.equal(first.bundle.revision.facts.tdnetSourceCode, "46610");
 assert.deepEqual(first.input.deliveries, []);
 
 const replayDb = openMarketEventDatabase({ path: ":memory:" });
