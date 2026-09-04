@@ -11,10 +11,9 @@ export default async function StocksPage() {
     <main className={styles.page}>
       <header className={styles.header}>
         <div>
-          <div className={styles.eyebrow}>監視銘柄</div>
-          <h1 className={styles.title}>銘柄一覧</h1>
+          <h1 className={styles.title}>銘柄</h1>
           <p className={styles.subtitle}>
-            スコアの高い順に、価格・騰落率・主要指標を比較します。価格を取得できていない項目は推測せず「未取得」と表示します。
+            監視中の銘柄を調査優先スコア順に比較します。価格・騰落率・主要指標は取得できた値だけを表示し、未取得は推測しません。
           </p>
         </div>
       </header>
@@ -22,20 +21,24 @@ export default async function StocksPage() {
       <DataStatus generatedAt={data.generatedAt} stocks={data.stocks} />
 
       {(data.meta?.warnings?.length ?? 0) > 0 && (
-        <ul className={styles.warningList}>
-          {data.meta?.warnings?.map((warning, index) => (
-            <li key={`${index}-${warning.slice(0, 24)}`}>⚠ {warning}</li>
-          ))}
-        </ul>
+        <section className={styles.warningBlock} aria-label="銘柄データの注意事項">
+          <strong>データ確認が必要です</strong>
+          <ul>
+            {data.meta?.warnings?.map((warning, index) => (
+              <li key={`${index}-${warning.slice(0, 24)}`}>{warning}</li>
+            ))}
+          </ul>
+        </section>
       )}
 
       <div className={styles.sectionHeader}>
-        <h2 className={styles.sectionTitle}>比較する</h2>
-        <span className={styles.sectionMeta}>{data.stocks.length}銘柄 · スコア順</span>
+        <h2 className={styles.sectionTitle}>監視中の銘柄</h2>
+        <span className={styles.sectionMeta}>{data.stocks.length}銘柄 · 調査優先順</span>
       </div>
 
       <StockList stocks={data.stocks} />
 
+      <p className={styles.scoreNote}>調査優先スコアは「次に詳しく見る順番」を整理するための値で、買い推奨度ではありません。</p>
       <Disclaimer />
     </main>
   )
