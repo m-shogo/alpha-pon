@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
+import {
+  getSourceCheckpoint,
+  upsertSourceCheckpoint,
+  type SourceCheckpoint,
+} from "../src/market-events/source-checkpoint-store.js";
 
 const migrationPath = "migrations/0001_market_event_foundation.sql";
 const sql = readFileSync(migrationPath, "utf8");
@@ -27,6 +32,106 @@ try {
   ]) {
     assert(tables.has(table), `missing table: ${table}`);
   }
+
+  const checkpoint: SourceCheckpoint = {
+    sourceKey: "jpx:tdnet",
+    sourceType: "JPX_TDNET",
+    cursorValue: "2026-09-04T00:00:00Z",
+    etag: "\"tdnet-v1\"",
+    lastModified: "Fri, 04 Sep 2026 00:00:00 GMT",
+    lastContentHash: "a".repeat(64),
+    lastCheckedAt: "2026-09-04T00:10:00Z",
+    lastSuccessAt: "2026-09-04T00:10:00Z",
+    consecutiveFailures: 0,
+    nextCheckAt: "2026-09-04T01:10:00Z",
+    lastError: null,
+  };
+
+  assert.equal(upsertSourceCheckpoint(db, checkpoint), "inserted");
+  assert.deepEqual(getSourceCheckpoint(db, checkpoint.sourceKey), checkpoint);
+  assert.equal(upsertSourceCheckpoint(db, checkpoint), "unchanged");
+
+  const failedCheckpoint: SourceCheckpoint = {
+    ...checkpoint,
+    lastCheckedAt: "2026-09-04T00:20:00Z",
+    consecutiveFailures: 1,
+    nextCheckAt: "2026-09-04T01:20:00Z",
+    lastError: "http 503",
+  };
+  assert.equal(upsertSourceCheckpoint(db, failedCheckpoint), "updated");
+  assert.deepEqual(getSourceCheckpoint(db, checkpoint.sourceKey), failedCheckpoint);
+
+  assert.throws(
+    () => upsertSourceCheckpoint(db, {
+      ...failedCheckpoint,
+      lastCheckedAt: "2026-09-04T00:15:00Z",
+      nextCheckAt: "2026-09-04T01:15:00Z",
+    }),
+    /cannot move backwards/,
+    "older collector runs must not roll back a newer checkpoint",
+  );
+
+  assert.throws(
+    () => upsertSourceCheckpoint(db, {
+      ...failedCheckpoint,
+      cursorValue: "different-cursor-at-same-check-time",
+    }),
+    /collision/,
+    "same checked instant with different state must fail closed",
+  );
+
+  assert.throws(
+    () => upsertSourceCheckpoint(db, {
+      ...failedCheckpoint,
+      lastCheckedAt: "2026-09-04T00:30:00Z",
+      lastSuccessAt: null,
+      nextCheckAt: "2026-09-04T01:30:00Z",
+    }),
+    /cannot forget lastSuccessAt/,
+    "later failures must preserve the most recent successful checkpoint time",
+  );
+
+  assert.throws(
+    () => upsertSourceCheckpoint(db, {
+      ...failedCheckpoint,
+      lastCheckedAt: "2026-09-04T00:30:00Z",
+      lastSuccessAt: "2026-09-04T00:05:00Z",
+      nextCheckAt: "2026-09-04T01:30:00Z",
+    }),
+    /cannot regress lastSuccessAt/,
+    "a newer collector run must not regress last successful source time",
+  );
+
+  assert.throws(
+    () => upsertSourceCheckpoint(db, {
+      ...failedCheckpoint,
+      lastCheckedAt: "2026-09-04T00:30:00",
+      nextCheckAt: "2026-09-04T01:30:00Z",
+    }),
+    /explicit timezone/,
+    "checkpoint instants must include an explicit timezone",
+  );
+
+  assert.throws(
+    () => upsertSourceCheckpoint(db, {
+      ...failedCheckpoint,
+      lastCheckedAt: "2026-09-04T00:30:00Z",
+      nextCheckAt: "2026-09-04T00:29:59Z",
+    }),
+    /nextCheckAt must be on or after lastCheckedAt/,
+    "next source check must not be scheduled before the current check",
+  );
+
+  assert.throws(
+    () => upsertSourceCheckpoint(db, {
+      ...failedCheckpoint,
+      sourceType: "EDINET",
+      lastCheckedAt: "2026-09-04T00:30:00Z",
+      nextCheckAt: "2026-09-04T01:30:00Z",
+    }),
+    /sourceType cannot change/,
+    "a source key must not silently change source type",
+  );
 
   const eventId = "evt_0123456789abcdef01234567";
   const revisionId = "rev_0123456789abcdef01234567";
