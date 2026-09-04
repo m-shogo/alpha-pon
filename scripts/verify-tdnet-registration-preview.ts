@@ -208,6 +208,16 @@ assert.throws(
 );
 assert.throws(
   () => prepareTdnetRegistrationPreview(
+    { ...candidate, sourceCode: "4661" },
+    assessment,
+    metadata,
+    evidence,
+  ),
+  /invalid sourceCode provenance/,
+  "non-null TDnet sourceCode must preserve the raw five-digit viewer code",
+);
+assert.throws(
+  () => prepareTdnetRegistrationPreview(
     { ...candidate, sourceCode: "4661-" },
     assessment,
     metadata,
