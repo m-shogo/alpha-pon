@@ -129,6 +129,14 @@ assert.throws(
 );
 assert.throws(
   () => prepareTdnetRegistrationPreview(
+    { ...candidate, sourceUrl: "https://www.release.tdnet.info/inbs/140120260904000010.html" },
+    assessment,
+    metadata,
+  ),
+  /official TDnet source URL/,
+);
+assert.throws(
+  () => prepareTdnetRegistrationPreview(
     { ...candidate, sourceCode: "99990" },
     assessment,
     metadata,
