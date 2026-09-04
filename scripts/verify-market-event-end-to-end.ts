@@ -207,11 +207,40 @@ try {
     eventId,
   );
 
+  db.prepare("UPDATE market_events SET edge_types_json = ? WHERE event_id = ?").run("{}", eventId);
+  assert.throws(
+    () => listMarketEvents(db, { includeCancelled: true }),
+    /Invalid persisted JSON shape at market_events\..*\.edge_types_json: expected string-array/,
+    "market event reads must reject JSON-valid non-array persisted fields",
+  );
+  audit = auditMarketEventDatabase(db, dbPath);
+  assert.equal(audit.status, "error", "audit must reject JSON-valid persisted fields with the wrong shape");
+  assert.ok(
+    audit.malformedJsonRows.some(row => row.table === "market_events" && row.field === "edge_types_json"),
+    "audit must identify the wrong-shape market event JSON field",
+  );
+  db.prepare("UPDATE market_events SET edge_types_json = ? WHERE event_id = ?").run(
+    JSON.stringify(firstInput.edgeTypes),
+    eventId,
+  );
+
   db.prepare("UPDATE delivery_outbox SET payload_json = ?").run("{");
   assert.throws(
     () => listPendingDeliveries(db, "2026-08-10T00:00:00Z"),
     /Malformed persisted JSON at delivery_outbox\..*\.payload_json/,
     "delivery reads must fail closed when persisted JSON is malformed",
+  );
+  db.prepare("UPDATE delivery_outbox SET payload_json = ?").run("[]");
+  assert.throws(
+    () => listPendingDeliveries(db, "2026-08-10T00:00:00Z"),
+    /Invalid persisted JSON shape at delivery_outbox\..*\.payload_json: expected plain-object/,
+    "delivery reads must reject JSON-valid non-object payloads",
+  );
+  audit = auditMarketEventDatabase(db, dbPath);
+  assert.equal(audit.status, "error", "audit must reject JSON-valid delivery payloads with the wrong shape");
+  assert.ok(
+    audit.malformedJsonRows.some(row => row.table === "delivery_outbox" && row.field === "payload_json"),
+    "audit must identify the wrong-shape delivery payload",
   );
 
   console.log("market-event-end-to-end: ok");
