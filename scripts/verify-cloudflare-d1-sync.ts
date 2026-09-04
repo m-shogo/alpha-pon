@@ -200,6 +200,18 @@ const revisionExecutableBeforeObservationPlan = buildD1SyncPlan(canonical, revis
 assert.equal(revisionExecutableBeforeObservationPlan.status, "blocked");
 assert.match(revisionExecutableBeforeObservationPlan.blockers.join("\n"), /firstExecutableAt must be on or after observedAt/);
 
+const decisionBeforeObservationRemote = structuredClone(canonical);
+decisionBeforeObservationRemote.decision_snapshots[0].created_at = "2026-08-03T23:59:59.000Z";
+const decisionBeforeObservationPlan = buildD1SyncPlan(canonical, decisionBeforeObservationRemote);
+assert.equal(decisionBeforeObservationPlan.status, "blocked");
+assert.match(decisionBeforeObservationPlan.blockers.join("\n"), /was created before revision rev_alpha was observed/);
+
+const invalidDecisionTimestampRemote = structuredClone(canonical);
+invalidDecisionTimestampRemote.decision_snapshots[0].created_at = "2026-08-04T00:00:00";
+const invalidDecisionTimestampPlan = buildD1SyncPlan(canonical, invalidDecisionTimestampRemote);
+assert.equal(invalidDecisionTimestampPlan.status, "blocked");
+assert.match(invalidDecisionTimestampPlan.blockers.join("\n"), /decision created_at must be a strict ISO timestamp/);
+
 const stalePointerCanonical = structuredClone(canonical);
 stalePointerCanonical.event_revisions.push({
   ...revisionRow("rev_alpha_v2", "evt_alpha"),
