@@ -1,5 +1,9 @@
 import { createHash } from "node:crypto";
-import { fetchTdnetDisclosures, type TdnetDisclosure } from "../fetcher/jpx.js";
+import {
+  fetchTdnetDisclosureSnapshot,
+  type TdnetDisclosure,
+  type TdnetDisclosureSnapshot,
+} from "../fetcher/jpx.js";
 import {
   getSourceCheckpoint,
   upsertSourceCheckpoint,
@@ -15,11 +19,16 @@ export type TdnetSourceCollectionResult = {
   checkedAt: string;
   contentHash: string | null;
   disclosures: TdnetDisclosure[];
+  explicitEmpty: boolean;
   error: string | null;
 };
 
 export type TdnetSourceCollectorOptions = {
   sourceKey?: string;
+  observationDate?: string;
+  /** Preferred richer boundary used by the official public viewer source. */
+  fetchSnapshot?: () => Promise<Pick<TdnetDisclosureSnapshot, "disclosures" | "explicitEmpty">>;
+  /** Backward-compatible injection for tests/callers that do not know explicit-empty semantics. */
   fetchDisclosures?: () => Promise<TdnetDisclosure[]>;
   now?: () => string;
 };
@@ -27,6 +36,7 @@ export type TdnetSourceCollectorOptions = {
 function canonicalDisclosureRows(disclosures: TdnetDisclosure[]): string[] {
   const rows = disclosures.map(disclosure => JSON.stringify({
     code: disclosure.code,
+    sourceCode: disclosure.sourceCode ?? null,
     companyName: disclosure.companyName,
     title: disclosure.title,
     publishedAt: disclosure.publishedAt,
@@ -104,8 +114,26 @@ function recordFailure(
     checkedAt,
     contentHash: existing?.lastContentHash ?? null,
     disclosures: [],
+    explicitEmpty: false,
     error: message,
   };
+}
+
+async function fetchSourceSnapshot(
+  options: TdnetSourceCollectorOptions,
+): Promise<Pick<TdnetDisclosureSnapshot, "disclosures" | "explicitEmpty">> {
+  if (options.fetchSnapshot && options.fetchDisclosures) {
+    throw new Error("TDnet collector accepts either fetchSnapshot or fetchDisclosures, not both");
+  }
+  if (options.fetchSnapshot) return options.fetchSnapshot();
+  if (options.fetchDisclosures) {
+    return {
+      disclosures: await options.fetchDisclosures(),
+      // Legacy/injected arrays cannot prove that zero rows were explicitly reported by TDnet.
+      explicitEmpty: false,
+    };
+  }
+  return fetchTdnetDisclosureSnapshot({ observationDate: options.observationDate });
 }
 
 export async function collectTdnetSourceOnce(
@@ -113,19 +141,27 @@ export async function collectTdnetSourceOnce(
   options: TdnetSourceCollectorOptions = {},
 ): Promise<TdnetSourceCollectionResult> {
   const sourceKey = options.sourceKey?.trim() || TDNET_MARKET_EVENT_SOURCE_KEY;
-  const fetchDisclosures = options.fetchDisclosures ?? fetchTdnetDisclosures;
   const now = options.now ?? (() => new Date().toISOString());
   const existing = getSourceCheckpoint(db, sourceKey);
 
-  let disclosures: TdnetDisclosure[];
+  let snapshot: Pick<TdnetDisclosureSnapshot, "disclosures" | "explicitEmpty">;
   try {
-    disclosures = await fetchDisclosures();
+    snapshot = await fetchSourceSnapshot(options);
   } catch (error) {
     return recordFailure(db, sourceKey, now(), existing, error);
   }
 
   const checkedAt = now();
-  if (disclosures.length === 0) {
+  if (snapshot.explicitEmpty && snapshot.disclosures.length > 0) {
+    return recordFailure(
+      db,
+      sourceKey,
+      checkedAt,
+      existing,
+      new Error("TDnet snapshot cannot be explicit-empty while containing disclosures"),
+    );
+  }
+  if (snapshot.disclosures.length === 0 && !snapshot.explicitEmpty) {
     return recordFailure(
       db,
       sourceKey,
@@ -135,7 +171,7 @@ export async function collectTdnetSourceOnce(
     );
   }
 
-  const contentHash = hashTdnetDisclosures(disclosures);
+  const contentHash = hashTdnetDisclosures(snapshot.disclosures);
   const status = existing?.lastContentHash === contentHash ? "unchanged" : "changed";
   upsertSourceCheckpoint(db, buildSuccessCheckpoint(sourceKey, checkedAt, contentHash, existing));
   return {
@@ -143,7 +179,8 @@ export async function collectTdnetSourceOnce(
     status,
     checkedAt,
     contentHash,
-    disclosures,
+    disclosures: snapshot.disclosures,
+    explicitEmpty: snapshot.explicitEmpty,
     error: null,
   };
 }
