@@ -192,6 +192,30 @@ assert.throws(
 );
 
 assert.throws(
+  () => validateMarketEventBundle({
+    ...firstBundle,
+    revision: {
+      ...firstBundle.revision,
+      publishedAt: "2026-08-03T05:00:01Z",
+    },
+  }),
+  /publishedAt must be on or before observedAt/,
+  "bundle validation must reject revisions published after they claim to have been observed",
+);
+
+assert.throws(
+  () => validateMarketEventBundle({
+    ...firstBundle,
+    revision: {
+      ...firstBundle.revision,
+      firstExecutableAt: "2026-08-03T04:59:59Z",
+    },
+  }),
+  /firstExecutableAt must be on or after observedAt/,
+  "bundle validation must reject revisions executable before they were observed",
+);
+
+assert.throws(
   () => validateLedgerRecord({
     recordType: "MARKET_EVENT",
     recordedAt: "2026-08-03T05:00:00Z",
