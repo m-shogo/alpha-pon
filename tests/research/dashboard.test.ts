@@ -224,6 +224,36 @@ function testLinkedGeneratedDashboardIsRejected() {
   console.log("research/dashboard: linked generated dashboard rejection OK");
 }
 
+function testSymlinkedGeneratedDashboardParentIsRejected() {
+  const originalCwd = process.cwd();
+  const root = mkdtempSync(join(tmpdir(), "alpha-pon-research-dashboard-parent-"));
+  const realDir = join(root, "real");
+  const aliasDir = join(root, "alias");
+  const markdown = "# Research Dashboard\n- 基準日 (asOf): 2024-02-01\n";
+
+  mkdirSync(realDir, { recursive: true });
+  writeFileSync(join(realDir, "dashboard.generated.md"), markdown, "utf-8");
+  symlinkSync(realDir, aliasDir, "dir");
+
+  try {
+    process.chdir(root);
+    assert.equal(
+      readReadOnlyTextFile("real/dashboard.generated.md"),
+      markdown,
+      "standalone parent directoryのgenerated dashboardは読み込める",
+    );
+    assert.equal(
+      readReadOnlyTextFile("alias/dashboard.generated.md"),
+      "",
+      "symlinked parent directory経由のgenerated dashboardをcanonical Evidenceとして追従しない",
+    );
+  } finally {
+    process.chdir(originalCwd);
+    rmSync(root, { recursive: true, force: true });
+  }
+  console.log("research/dashboard: symlinked generated dashboard parent rejection OK");
+}
+
 testSchemaAndTypesStayInSync();
 testRequiredSectionsRendered();
 testDeterministicOutput();
@@ -233,5 +263,6 @@ testLinkedJsonlIsRejected();
 testLinkedGeneratedEdgeIndexIsRejected();
 testLinkedGeneratedQueueIsRejected();
 testLinkedGeneratedDashboardIsRejected();
+testSymlinkedGeneratedDashboardParentIsRejected();
 
 console.log("research/dashboard: 全テスト成功");
