@@ -180,6 +180,18 @@ assert.throws(
 );
 
 assert.throws(
+  () => validateMarketEventBundle({
+    ...firstBundle,
+    decisionSnapshot: firstBundle.decisionSnapshot ? {
+      ...firstBundle.decisionSnapshot,
+      createdAt: "2026-08-03T04:59:59Z",
+    } : null,
+  }),
+  /decision createdAt must be on or after revision observedAt/,
+  "bundle validation must reject decisions created before the referenced revision was observed",
+);
+
+assert.throws(
   () => validateLedgerRecord({
     recordType: "MARKET_EVENT",
     recordedAt: "2026-08-03T05:00:00Z",
