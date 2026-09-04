@@ -87,6 +87,28 @@ function normalizeDecision(decision: TdnetPrimaryReviewDecision): TdnetPrimaryRe
   };
 }
 
+function assertConfirmedExactEventIsFuture(decision: TdnetPrimaryReviewDecision): void {
+  if (
+    decision.outcome !== "FUTURE_EVENT_CONFIRMED"
+    || decision.time === null
+    || decision.time.precision !== "EXACT"
+    || decision.time.startAt === null
+  ) {
+    return;
+  }
+
+  if (
+    compareExplicitIso8601Instants(
+      decision.time.startAt,
+      decision.reviewedAt,
+      "time.startAt",
+      "reviewedAt",
+    ) <= 0
+  ) {
+    throw new Error("FUTURE_EVENT_CONFIRMED exact EventTime must be after reviewedAt");
+  }
+}
+
 export function assessTdnetPrimaryReview(
   candidate: TdnetMarketEventCandidate,
   input: TdnetPrimaryReviewDecision,
@@ -144,6 +166,8 @@ export function assessTdnetPrimaryReview(
       normalized: decision,
     };
   }
+
+  assertConfirmedExactEventIsFuture(decision);
 
   const blockers: TdnetPrimaryReviewBlocker[] = [];
   if (decision.eventType === null) blockers.push("event_type_missing");

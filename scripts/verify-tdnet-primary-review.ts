@@ -84,6 +84,23 @@ assert.deepEqual(ready.blockers, []);
 assert.deepEqual(ready.warnings, []);
 assert.equal(ready.normalized.occurrenceKey, "annual-general-meeting-2026");
 
+const exactReady = assessTdnetPrimaryReview(candidate, decision({
+  eventType: "PRESS_CONFERENCE",
+  occurrenceKey: "press-conference-2026-09-05",
+  time: {
+    startAt: "2026-09-05T10:00:00+09:00",
+    endAt: null,
+    allDay: false,
+    timezone: "Asia/Tokyo",
+    precision: "EXACT",
+    windowStart: null,
+    windowEnd: null,
+  },
+  sourceContentHash: "d".repeat(64),
+  sourceRetrievedAt: "2026-09-04T15:05:00+09:00",
+}));
+assert.equal(exactReady.registrationPreviewReady, true);
+
 const mismatch = assessTdnetPrimaryReview(candidate, decision({
   eventType: "CONTINUED_SHAREHOLDER_MEETING",
   occurrenceKey: "continued-meeting-2026",
@@ -158,6 +175,30 @@ assert.throws(
   })),
   /reviewedAt must be on or after sourceRetrievedAt/,
 );
+
+for (const startAt of [
+  "2026-09-04T15:59:59+09:00",
+  "2026-09-04T16:00:00+09:00",
+]) {
+  assert.throws(
+    () => assessTdnetPrimaryReview(candidate, decision({
+      eventType: "PRESS_CONFERENCE",
+      occurrenceKey: "press-conference-2026-09-04",
+      time: {
+        startAt,
+        endAt: null,
+        allDay: false,
+        timezone: "Asia/Tokyo",
+        precision: "EXACT",
+        windowStart: null,
+        windowEnd: null,
+      },
+      sourceContentHash: "e".repeat(64),
+      sourceRetrievedAt: "2026-09-04T15:05:00+09:00",
+    })),
+    /exact EventTime must be after reviewedAt/,
+  );
+}
 
 assert.throws(
   () => assessTdnetPrimaryReview(candidate, decision({
