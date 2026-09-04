@@ -6,7 +6,8 @@
   margin: 14px 0 0;
   padding: 12px 14px;
   border: 1px solid rgba(176, 90, 0, 0.14);
-  border-radius: 12px;
+  border-left: 3px solid var(--amber);
+  border-radius: 10px;
   background: var(--amber-soft);
   color: var(--ink-2);
   font-size: 13px;
@@ -32,21 +33,23 @@
 
 .root :global(.ap-history-section-title span) {
   color: var(--ink-3);
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 560;
 }
 
 .root :global(.ap-history-group) {
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  background: var(--surface);
+  overflow: visible;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
 }
 
 .root :global(.ap-history-family-row),
 .root :global(.ap-history-analog-row),
 .root :global(.ap-history-case-row) {
-  padding: 19px 21px;
+  padding: 19px 2px;
   border-top: 1px solid var(--line);
 }
 
@@ -67,7 +70,7 @@
 .root :global(.ap-history-kicker) {
   margin-bottom: 4px;
   color: var(--ink-3);
-  font-size: 12px;
+  font-size: 12.5px;
   line-height: 1.4;
   font-weight: 560;
 }
@@ -76,7 +79,7 @@
 .root :global(.ap-history-analog-main h3) {
   margin: 0;
   color: var(--ink);
-  font-size: 16px;
+  font-size: 17px;
   line-height: 1.45;
   font-weight: 650;
 }
@@ -92,8 +95,13 @@
 .root :global(.ap-history-meta) {
   margin-top: 8px;
   color: var(--ink-3);
-  font-size: 12px;
+  font-size: 12.5px;
   line-height: 1.5;
+}
+
+.root :global(.ap-row-disclosure > summary) {
+  min-height: 44px;
+  font-size: 14px;
 }
 
 .root :global(.ap-history-member-list) {
@@ -102,7 +110,7 @@
 
 .root :global(.ap-history-member-row) {
   display: grid;
-  grid-template-columns: 104px minmax(0, 1fr);
+  grid-template-columns: 112px minmax(0, 1fr);
   gap: 14px;
   padding: 10px 0;
   border-top: 1px solid var(--line);
@@ -114,7 +122,7 @@
 
 .root :global(.ap-history-member-row > span) {
   color: var(--ink-3);
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 650;
 }
 
@@ -126,7 +134,7 @@
 
 .root :global(.ap-history-member-row strong) {
   color: var(--ink);
-  font-size: 14px;
+  font-size: 14.5px;
   line-height: 1.5;
   font-weight: 620;
 }
@@ -162,7 +170,7 @@
 
 .root :global(.ap-history-outcome-summary span) {
   color: var(--ink-3);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 560;
 }
 
@@ -178,7 +186,7 @@
   margin: 0;
   padding: 14px 2px 14px 20px;
   color: var(--ink-3);
-  font-size: 12px;
+  font-size: 12.5px;
   line-height: 1.6;
 }
 
@@ -199,7 +207,7 @@
   margin: 0;
   padding-left: 18px;
   color: var(--ink-2);
-  font-size: 14px;
+  font-size: 14.5px;
   line-height: 1.65;
 }
 
@@ -213,7 +221,7 @@
   padding: 4px 7px;
   border: 1px solid var(--line);
   border-radius: 7px;
-  background: var(--surface-2);
+  background: transparent;
   color: var(--ink-2);
   font-size: 12px;
   font-weight: 600;
@@ -242,16 +250,16 @@
 
 .root :global(.ap-history-relation-list strong) {
   color: var(--ink-2);
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 600;
   overflow-wrap: anywhere;
 }
 
 .root :global(.ap-history-component-row) {
   display: grid;
-  grid-template-columns: 130px minmax(0, 1fr);
+  grid-template-columns: 140px minmax(0, 1fr);
   gap: 18px;
-  padding: 16px 20px;
+  padding: 16px 2px;
   border-top: 1px solid var(--line);
 }
 
@@ -260,15 +268,15 @@
 }
 
 .root :global(.ap-history-component-kind) {
-  color: var(--lavender-deep);
-  font-size: 12px;
+  color: var(--accent);
+  font-size: 12.5px;
   line-height: 1.5;
   font-weight: 650;
 }
 
 .root :global(.ap-history-component-row h3) {
   margin: 0;
-  font-size: 15px;
+  font-size: 15.5px;
   line-height: 1.45;
   font-weight: 650;
 }
@@ -276,7 +284,7 @@
 .root :global(.ap-history-component-row p) {
   margin: 4px 0 0;
   color: var(--ink-2);
-  font-size: 14px;
+  font-size: 14.5px;
   line-height: 1.65;
 }
 
@@ -303,7 +311,7 @@
 
 .root :global(.ap-history-lineage-meta) {
   color: var(--accent);
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 650;
 }
 
@@ -321,18 +329,18 @@
   gap: 2px;
   padding: 10px 12px;
   border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface);
+  border-radius: 8px;
+  background: transparent;
 }
 
 .root :global(.ap-history-lineage-flow strong) {
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 620;
 }
 
 .root :global(.ap-history-lineage-flow small) {
   color: var(--ink-3);
-  font-size: 11px;
+  font-size: 12px;
   overflow-wrap: anywhere;
 }
 
@@ -344,22 +352,24 @@
 .root :global(.ap-history-lineage-row > p) {
   margin: 9px 0 0;
   color: var(--ink-2);
-  font-size: 14px;
+  font-size: 14.5px;
   line-height: 1.65;
 }
 
 .root :global(.ap-history-study-summary),
 .root :global(.ap-history-empty) {
-  padding: 18px 20px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--surface);
+  padding: 18px 2px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
 }
 
 .root :global(.ap-history-study-summary strong),
 .root :global(.ap-history-empty strong) {
   color: var(--ink);
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 650;
 }
 
@@ -367,7 +377,7 @@
 .root :global(.ap-history-empty p) {
   margin: 5px 0 0;
   color: var(--ink-2);
-  font-size: 14px;
+  font-size: 14.5px;
   line-height: 1.65;
 }
 
@@ -387,7 +397,7 @@
   .root :global(.ap-history-family-row),
   .root :global(.ap-history-analog-row),
   .root :global(.ap-history-case-row) {
-    padding: 17px 15px;
+    padding: 17px 0;
   }
 
   .root :global(.ap-history-row-head),
@@ -396,7 +406,12 @@
     gap: 8px;
   }
 
-  .root :global(.ap-history-description) {
+  .root :global(.ap-history-description),
+  .root :global(.ap-history-analog-details ul),
+  .root :global(.ap-history-component-row p),
+  .root :global(.ap-history-lineage-row > p),
+  .root :global(.ap-history-study-summary p),
+  .root :global(.ap-history-empty p) {
     font-size: 15px;
   }
 
@@ -440,6 +455,6 @@
 
   .root :global(.ap-history-study-summary),
   .root :global(.ap-history-empty) {
-    padding: 16px;
+    padding: 16px 0;
   }
 }
