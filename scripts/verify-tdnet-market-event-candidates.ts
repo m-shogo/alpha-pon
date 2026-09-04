@@ -1,3 +1,4 @@
+import "./verify-tdnet-primary-review.js";
 import assert from "node:assert/strict";
 import {
   classifyTdnetDisclosureCandidate,
