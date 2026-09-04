@@ -111,6 +111,29 @@ assert.throws(
   ),
   /official TDnet source URL/,
 );
+assert.throws(
+  () => prepareTdnetRegistrationPreview(
+    { ...candidate, sourceCode: "99990" },
+    assessment,
+    metadata,
+  ),
+  /sourceCode does not match issuerCode/,
+);
+assert.throws(
+  () => prepareTdnetRegistrationPreview(
+    { ...candidate, sourceCode: "4661-" },
+    assessment,
+    metadata,
+  ),
+  /invalid sourceCode provenance/,
+);
+
+const legacyWithoutSourceCode = prepareTdnetRegistrationPreview(
+  { ...candidate, sourceCode: null },
+  assessment,
+  metadata,
+);
+assert.equal(legacyWithoutSourceCode.input.facts?.tdnetSourceCode, null, "missing legacy sourceCode must remain null, not be inferred");
 
 const incompleteAssessment = assessTdnetPrimaryReview(candidate, {
   candidateId: candidate.candidateId,

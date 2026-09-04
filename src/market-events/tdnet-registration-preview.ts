@@ -49,6 +49,18 @@ function assertOfficialTdnetSourceUrl(value: string): void {
   }
 }
 
+function assertTdnetSourceCodeProvenance(candidate: TdnetMarketEventCandidate): void {
+  if (candidate.sourceCode === null) return;
+
+  const sourceCode = candidate.sourceCode.trim().toUpperCase();
+  if (!/^[0-9A-Z]{4,5}$/.test(sourceCode)) {
+    throw new Error("TDnet registration preview has invalid sourceCode provenance");
+  }
+  if (candidate.issuerCode.trim().toUpperCase() !== sourceCode.slice(0, 4)) {
+    throw new Error("TDnet registration preview sourceCode does not match issuerCode");
+  }
+}
+
 export function prepareTdnetRegistrationPreview(
   candidate: TdnetMarketEventCandidate,
   assessment: TdnetPrimaryReviewAssessment,
@@ -65,6 +77,7 @@ export function prepareTdnetRegistrationPreview(
   }
 
   assertOfficialTdnetSourceUrl(candidate.sourceUrl);
+  assertTdnetSourceCodeProvenance(candidate);
 
   const reviewed = assessment.normalized;
   if (
