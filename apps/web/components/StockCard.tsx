@@ -60,16 +60,17 @@ export function StockCard({ stock, rank }: Props) {
           ))}
         </dl>
 
-        <div className={styles.score}>
-          <div className={styles.scoreValue} style={{ color: scoreColor }}>
-            {scoreNum ?? '—'}
+        <div className={styles.score} aria-label={`調査優先スコア ${scoreNum ?? '未計測'}`}>
+          <div className={styles.scoreLabel}>調査優先</div>
+          <div className={styles.scoreLine}>
+            <span className={styles.scoreValue} style={{ color: scoreColor }}>{scoreNum ?? '—'}</span>
+            <span className={styles.scoreMax}>{scoreNum !== null ? '/100' : '未計測'}</span>
           </div>
-          <div className={styles.scoreMax}>{scoreNum !== null ? '/100' : '未計測'}</div>
         </div>
 
         {(stock.reasons?.length ?? 0) > 0 && (
           <div className={styles.reasons}>
-            理由: {stock.reasons?.slice(0, 3).join(' · ')}
+            調査理由: {stock.reasons?.slice(0, 3).join(' · ')}
           </div>
         )}
       </article>
