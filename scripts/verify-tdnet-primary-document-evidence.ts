@@ -157,6 +157,14 @@ await assert.rejects(
 
 await assert.rejects(
   () => acquireTdnetPrimaryDocumentEvidence(candidate, {
+    fetchImpl: fetchReturning(fakeResponse({ contentLength: "1" })),
+    now: () => "2026-09-04T15:05:00+09:00",
+  }),
+  /content-length mismatch/,
+);
+
+await assert.rejects(
+  () => acquireTdnetPrimaryDocumentEvidence(candidate, {
     fetchImpl: fetchReturning(fakeResponse({ body: "" })),
     now: () => "2026-09-04T15:05:00+09:00",
   }),
