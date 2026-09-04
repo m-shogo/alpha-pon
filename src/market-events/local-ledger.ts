@@ -1,5 +1,5 @@
-import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { appendFileSync, existsSync, lstatSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { dirname, resolve, sep } from "node:path";
 import { compareExplicitIso8601Instants } from "../research/iso-instant.js";
 import {
   MARKET_EVENT_SCHEMA_VERSION,
@@ -29,6 +29,25 @@ export type LedgerReadResult = {
 
 function assertSchemaVersion(value: number): void {
   if (value !== MARKET_EVENT_SCHEMA_VERSION) throw new Error(`Unsupported schemaVersion: ${value}`);
+}
+
+function ledgerFileError(message: string): LedgerReadResult {
+  return { records: [], parseErrors: [{ lineNumber: 0, message, preview: "" }] };
+}
+
+function hasSymlinkedAncestorWithinCwd(path: string): boolean {
+  const root = resolve(process.cwd());
+  let current = dirname(resolve(path));
+  if (current !== root && !current.startsWith(`${root}${sep}`)) return false;
+
+  while (current !== root) {
+    const stat = lstatSync(current);
+    if (stat.isSymbolicLink()) return true;
+    const parent = dirname(current);
+    if (parent === current) return false;
+    current = parent;
+  }
+  return false;
 }
 
 export function validateLedgerRecord(record: MarketEventLedgerRecord): void {
@@ -238,9 +257,19 @@ export function appendLedgerBundle(path: string, bundle: MarketEventBundle, reco
 export function readLedger(path: string): LedgerReadResult {
   if (!existsSync(path)) return { records: [], parseErrors: [] };
 
+  let contents: string;
+  try {
+    if (hasSymlinkedAncestorWithinCwd(path)) return ledgerFileError("non_regular_file");
+    const stat = lstatSync(path);
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) return ledgerFileError("non_regular_file");
+    contents = readFileSync(path, "utf8");
+  } catch {
+    return ledgerFileError("read_error");
+  }
+
   const records: MarketEventLedgerRecord[] = [];
   const parseErrors: LedgerReadResult["parseErrors"] = [];
-  const lines = readFileSync(path, "utf8").split("\n");
+  const lines = contents.split("\n");
 
   lines.forEach((line, index) => {
     const trimmed = line.trim();
