@@ -65,6 +65,23 @@ assert.equal(first.bundle.sources[0]!.storageClass, "METADATA_ONLY");
 assert.equal(first.input.facts?.sourcePublicationIsEventTime, false);
 assert.deepEqual(first.input.deliveries, []);
 
+assert.throws(
+  () => prepareTdnetRegistrationPreview(
+    { ...candidate, sourceUrl: "https://example.com/inbs/140120260904000010.pdf" },
+    assessment,
+    metadata,
+  ),
+  /official TDnet source URL/,
+);
+assert.throws(
+  () => prepareTdnetRegistrationPreview(
+    { ...candidate, sourceUrl: "http://www.release.tdnet.info/inbs/140120260904000010.pdf" },
+    assessment,
+    metadata,
+  ),
+  /official TDnet source URL/,
+);
+
 const incompleteAssessment = assessTdnetPrimaryReview(candidate, {
   candidateId: candidate.candidateId,
   reviewedAt: "2026-09-04T16:00:00+09:00",
