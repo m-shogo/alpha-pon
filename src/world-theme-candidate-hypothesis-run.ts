@@ -1,7 +1,7 @@
 // worldThemeCandidateHypotheses を保存する実行スクリプト。
 // UI表示だけでなく、30/90/180日後に答え合わせするためのworld専用仮説DBとして残す。
 
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { appendFileSync, existsSync, mkdirSync, writeFileSync } from "fs";
 import { load } from "js-yaml";
 import { addDaysJst, todayJst } from "./date.js";
 import {
@@ -13,6 +13,7 @@ import {
   buildWorldThemeCandidateHypotheses,
   type WorldThemeCandidateHypothesis,
 } from "./world-theme-candidate-hypotheses.js";
+import { readReadOnlyTextFile } from "./read-only-text-file.js";
 
 const LATEST_PATH = "data/world_theme_candidate_hypotheses_latest.json";
 const JSONL_PATH = "data/world_theme_candidate_hypotheses.jsonl";
@@ -25,14 +26,23 @@ type PersistedWorldThemeCandidateHypothesis = WorldThemeCandidateHypothesis & {
   status: "open";
 };
 
+function readCanonicalText(path: string): string | null {
+  if (!existsSync(path)) return null;
+  const text = readReadOnlyTextFile(path);
+  if (!text) throw new Error(`${path} must be a non-empty standalone regular file`);
+  return text;
+}
+
 function readJson<T>(path: string, fallback: T): T {
-  if (!existsSync(path)) return fallback;
-  return JSON.parse(readFileSync(path, "utf-8")) as T;
+  const text = readCanonicalText(path);
+  if (text === null) return fallback;
+  return JSON.parse(text) as T;
 }
 
 function readYaml<T>(path: string, fallback: T): T {
-  if (!existsSync(path)) return fallback;
-  return load(readFileSync(path, "utf-8")) as T;
+  const text = readCanonicalText(path);
+  if (text === null) return fallback;
+  return load(text) as T;
 }
 
 function normalize(value: string): string {
@@ -44,12 +54,20 @@ function hypothesisId(item: WorldThemeCandidateHypothesis, detectedAt: string): 
 }
 
 function readExistingIds(): Set<string> {
-  if (!existsSync(JSONL_PATH)) return new Set();
-  const history = normalizeWorldThemeCandidateHypothesisHistory(readFileSync(JSONL_PATH, "utf-8"));
+  const text = readCanonicalText(JSONL_PATH);
+  if (text === null) return new Set();
+  const history = normalizeWorldThemeCandidateHypothesisHistory(text);
   if (history.status !== "ok") {
     throw new Error("world_theme_candidate_hypotheses.jsonl is malformed; existing hypothesis outputs were not modified");
   }
   return history.ids;
+}
+
+function assertCanonicalExistingOutput(path: string): void {
+  if (!existsSync(path)) return;
+  if (!readReadOnlyTextFile(path)) {
+    throw new Error(`${path} must be a non-empty standalone regular file before it can be updated`);
+  }
 }
 
 function persist(item: WorldThemeCandidateHypothesis, detectedAt: string): PersistedWorldThemeCandidateHypothesis {
@@ -81,6 +99,8 @@ function main(): void {
   const existingIds = readExistingIds();
   const newItems = built.filter(item => !existingIds.has(item.hypothesisId));
 
+  assertCanonicalExistingOutput(LATEST_PATH);
+  assertCanonicalExistingOutput(JSONL_PATH);
   mkdirSync("data", { recursive: true });
   writeFileSync(LATEST_PATH, JSON.stringify({ generatedAt: detectedAt, count: built.length, hypotheses: built }, null, 2), "utf-8");
   for (const item of newItems) appendFileSync(JSONL_PATH, `${JSON.stringify(item)}\n`, "utf-8");
