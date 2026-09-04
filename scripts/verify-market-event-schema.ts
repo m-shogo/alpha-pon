@@ -210,6 +210,16 @@ try {
     assert.equal(collectedCheckpoint.lastContentHash, expandedCollection.contentHash);
     assert.equal(collectedCheckpoint.consecutiveFailures, 1);
     assert.equal(collectedCheckpoint.lastError, "network unavailable retry");
+
+    await assert.rejects(
+      () => collectTdnetSourceOnce(collectorDb, {
+        now: () => "2026-09-04T01:15:00Z",
+        fetchDisclosures: async () => firstDisclosures,
+      }),
+      /collision/,
+      "checkpoint write failures must propagate instead of being mislabeled as source fetch failures",
+    );
+
     assert.equal(
       (collectorDb.prepare("SELECT COUNT(*) AS count FROM market_events").get() as { count: number }).count,
       0,
