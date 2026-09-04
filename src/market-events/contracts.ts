@@ -361,6 +361,12 @@ function assertExactTimestamp(value: string, fieldName: string): void {
   }
 }
 
+function assertSha256ContentHash(value: string): void {
+  if (!/^[a-f0-9]{64}$/.test(value)) {
+    throw new Error("source contentHash must be a lowercase SHA-256 hash");
+  }
+}
+
 export function assertValidEventTime(time: EventTime): void {
   if (!time.timezone.trim()) throw new Error("event timezone is required");
   assertKnownValue(EVENT_TIME_PRECISIONS, time.precision, "event time precision");
@@ -471,6 +477,7 @@ export function validateMarketEventBundle(bundle: MarketEventBundle): void {
     assertKnownValue(SOURCE_TYPES, source.sourceType, "source type");
     assertKnownValue(STORAGE_CLASSES, source.storageClass, "storage class");
     if (!source.url.startsWith("https://")) throw new Error("Source URL must use https");
+    assertSha256ContentHash(source.contentHash);
     assertIsoTimestamp(source.retrievedAt, "retrievedAt");
     if (source.publishedAt !== null) {
       assertIsoTimestamp(source.publishedAt, "publishedAt");
