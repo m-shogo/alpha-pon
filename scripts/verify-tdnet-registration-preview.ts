@@ -2,6 +2,11 @@ import assert from "node:assert/strict";
 import { classifyTdnetDisclosureCandidate } from "../src/market-events/tdnet-event-candidates.js";
 import { assessTdnetPrimaryReview } from "../src/market-events/tdnet-primary-review.js";
 import { prepareTdnetRegistrationPreview } from "../src/market-events/tdnet-registration-preview.js";
+import {
+  auditMarketEventDatabase,
+  openMarketEventDatabase,
+  registerMarketEventBundle,
+} from "../src/market-events/sqlite-store.js";
 
 const maybeCandidate = classifyTdnetDisclosureCandidate({
   code: "4661",
@@ -64,6 +69,29 @@ assert.equal(first.bundle.sources[0]!.contentHash, "d".repeat(64));
 assert.equal(first.bundle.sources[0]!.storageClass, "METADATA_ONLY");
 assert.equal(first.input.facts?.sourcePublicationIsEventTime, false);
 assert.deepEqual(first.input.deliveries, []);
+
+const replayDb = openMarketEventDatabase({ path: ":memory:" });
+try {
+  registerMarketEventBundle(replayDb, first.bundle);
+  registerMarketEventBundle(replayDb, second.bundle);
+  const replayAudit = auditMarketEventDatabase(replayDb, ":memory:");
+  assert.equal(replayAudit.status, "ok", "TDnet preview replay must preserve SQLite integrity");
+  assert.deepEqual(
+    replayAudit.counts,
+    {
+      events: 1,
+      revisions: 1,
+      sources: 1,
+      decisions: 0,
+      outbox: 0,
+      pendingDeliveries: 0,
+      reviewTasks: 0,
+    },
+    "replaying identical reviewed TDnet evidence must be idempotent and must not create delivery/decision rows",
+  );
+} finally {
+  replayDb.close();
+}
 
 assert.throws(
   () => prepareTdnetRegistrationPreview(
