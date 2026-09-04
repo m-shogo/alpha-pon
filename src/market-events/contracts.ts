@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { compareExplicitIso8601Instants, parseExplicitIso8601Instant } from "../research/iso-instant.js";
+import { validateMarketEventRevisionChronology } from "./revision-chronology.js";
 
 export const MARKET_EVENT_SCHEMA_VERSION = 1 as const;
 
@@ -455,6 +456,11 @@ export function validateMarketEventBundle(bundle: MarketEventBundle): void {
   ] as const) {
     if (value !== null) assertIsoTimestamp(value, fieldName);
   }
+  validateMarketEventRevisionChronology({
+    observedAt: revision.observedAt,
+    publishedAt: revision.publishedAt,
+    firstExecutableAt: revision.firstExecutableAt,
+  });
 
   const sourcesById = new Map<string, EventSource>();
   for (const source of sources) {
