@@ -9,6 +9,7 @@ import {
   auditMarketEventDatabase,
   getNextRevisionContext,
   listMarketEvents,
+  listPendingDeliveries,
   openMarketEventDatabase,
   registerMarketEventBundle,
 } from "../src/market-events/sqlite-store.js";
@@ -194,6 +195,25 @@ try {
   audit = auditMarketEventDatabase(db, dbPath);
   assert.equal(audit.status, "ok");
   assert.equal(audit.counts.revisions, 3);
+
+  db.prepare("UPDATE market_events SET edge_types_json = ? WHERE event_id = ?").run("{", eventId);
+  assert.throws(
+    () => listMarketEvents(db, { includeCancelled: true }),
+    /Malformed persisted JSON at market_events\..*\.edge_types_json/,
+    "market event reads must fail closed when persisted JSON is malformed",
+  );
+  db.prepare("UPDATE market_events SET edge_types_json = ? WHERE event_id = ?").run(
+    JSON.stringify(firstInput.edgeTypes),
+    eventId,
+  );
+
+  db.prepare("UPDATE delivery_outbox SET payload_json = ?").run("{");
+  assert.throws(
+    () => listPendingDeliveries(db, "2026-08-10T00:00:00Z"),
+    /Malformed persisted JSON at delivery_outbox\..*\.payload_json/,
+    "delivery reads must fail closed when persisted JSON is malformed",
+  );
+
   console.log("market-event-end-to-end: ok");
 } finally {
   db.close();

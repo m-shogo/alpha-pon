@@ -65,11 +65,12 @@ type MarketEventRow = {
   updated_at: string;
 };
 
-function parseJson<T>(value: string, fallback: T): T {
+function parsePersistedJson<T>(value: string, context: string): T {
   try {
     return JSON.parse(value) as T;
-  } catch {
-    return fallback;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Malformed persisted JSON at ${context}: ${message}`);
   }
 }
 
@@ -93,12 +94,15 @@ function mapEventRow(row: MarketEventRow): MarketEvent {
       windowStart: row.window_start,
       windowEnd: row.window_end,
     },
-    edgeTypes: parseJson<string[]>(row.edge_types_json, []),
+    edgeTypes: parsePersistedJson<string[]>(row.edge_types_json, `market_events.${row.event_id}.edge_types_json`),
     currentDecisionState: row.current_decision_state,
     whyItMatters: row.why_it_matters,
-    checksBefore: parseJson<string[]>(row.checks_before_json, []),
-    checksAfter: parseJson<string[]>(row.checks_after_json, []),
-    relatedEventIds: parseJson<string[]>(row.related_event_ids_json, []),
+    checksBefore: parsePersistedJson<string[]>(row.checks_before_json, `market_events.${row.event_id}.checks_before_json`),
+    checksAfter: parsePersistedJson<string[]>(row.checks_after_json, `market_events.${row.event_id}.checks_after_json`),
+    relatedEventIds: parsePersistedJson<string[]>(
+      row.related_event_ids_json,
+      `market_events.${row.event_id}.related_event_ids_json`,
+    ),
     lastVerifiedAt: row.last_verified_at,
     staleAfter: row.stale_after,
     createdAt: row.created_at,
@@ -462,7 +466,10 @@ export function listPendingDeliveries(db: MarketEventDatabase, now: string, limi
   `).all(now, now, Math.max(1, Math.min(limit, 1000))) as Array<
     Omit<DeliveryOutboxItem, "payload"> & { payloadJson: string }
   >;
-  return rows.map(({ payloadJson, ...row }) => ({ ...row, payload: parseJson(payloadJson, {}) }));
+  return rows.map(({ payloadJson, ...row }) => ({
+    ...row,
+    payload: parsePersistedJson(payloadJson, `delivery_outbox.${row.deliveryId}.payload_json`),
+  }));
 }
 
 export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: string): MarketEventAuditReport {
