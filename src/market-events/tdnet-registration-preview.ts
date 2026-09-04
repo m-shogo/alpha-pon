@@ -45,6 +45,7 @@ function assertOfficialTdnetSourceUrl(value: string): void {
     || parsed.username !== ""
     || parsed.password !== ""
     || !parsed.pathname.startsWith("/inbs/")
+    || !parsed.pathname.toLowerCase().endsWith(".pdf")
   ) {
     throw new Error("TDnet registration preview requires an official TDnet source URL");
   }
