@@ -5,6 +5,10 @@ import {
   type TdnetDisclosureSnapshot,
 } from "../fetcher/jpx.js";
 import {
+  extractTdnetMarketEventCandidates,
+  type TdnetMarketEventCandidate,
+} from "./tdnet-event-candidates.js";
+import {
   getSourceCheckpoint,
   upsertSourceCheckpoint,
   type SourceCheckpoint,
@@ -19,6 +23,7 @@ export type TdnetSourceCollectionResult = {
   checkedAt: string;
   contentHash: string | null;
   disclosures: TdnetDisclosure[];
+  candidates: TdnetMarketEventCandidate[];
   explicitEmpty: boolean;
   error: string | null;
 };
@@ -114,6 +119,7 @@ function recordFailure(
     checkedAt,
     contentHash: existing?.lastContentHash ?? null,
     disclosures: [],
+    candidates: [],
     explicitEmpty: false,
     error: message,
   };
@@ -173,6 +179,7 @@ export async function collectTdnetSourceOnce(
 
   const contentHash = hashTdnetDisclosures(snapshot.disclosures);
   const status = existing?.lastContentHash === contentHash ? "unchanged" : "changed";
+  const candidates = extractTdnetMarketEventCandidates(snapshot.disclosures);
   upsertSourceCheckpoint(db, buildSuccessCheckpoint(sourceKey, checkedAt, contentHash, existing));
   return {
     sourceKey,
@@ -180,6 +187,7 @@ export async function collectTdnetSourceOnce(
     checkedAt,
     contentHash,
     disclosures: snapshot.disclosures,
+    candidates,
     explicitEmpty: snapshot.explicitEmpty,
     error: null,
   };
