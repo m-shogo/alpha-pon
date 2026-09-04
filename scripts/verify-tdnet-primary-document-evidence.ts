@@ -68,6 +68,19 @@ const failIfFetched = (async () => {
   return fakeResponse();
 }) as typeof fetch;
 
+for (const nonCanonicalUrl of [
+  "https://www.release.tdnet.info/inbs/140120260904000010.pdf?download=1",
+  "https://www.release.tdnet.info/inbs/140120260904000010.pdf#page=1",
+]) {
+  await assert.rejects(
+    () => acquireTdnetPrimaryDocumentEvidence(
+      { ...candidate, sourceUrl: nonCanonicalUrl },
+      { fetchImpl: failIfFetched, now: () => "2026-09-04T15:05:00+09:00" },
+    ),
+    /official TDnet document URL/,
+  );
+}
+
 await assert.rejects(
   () => acquireTdnetPrimaryDocumentEvidence(
     { ...candidate, sourceUrl: "https://example.com/inbs/140120260904000010.pdf" },
@@ -91,7 +104,7 @@ await assert.rejects(
   ),
   /official TDnet document URL/,
 );
-assert.equal(fetchCalls, 0, "non-official TDnet origins and credentialed URLs must fail before network access");
+assert.equal(fetchCalls, 0, "non-canonical TDnet URLs must fail before network access");
 
 await assert.rejects(
   () => acquireTdnetPrimaryDocumentEvidence(candidate, {
