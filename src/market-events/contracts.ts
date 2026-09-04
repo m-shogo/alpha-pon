@@ -480,6 +480,16 @@ export function validateMarketEventBundle(bundle: MarketEventBundle): void {
     assertKnownValue(DECISION_STATES, decisionSnapshot.decisionState, "decision state");
     assertKnownValue(CONFIDENCE_STATES, decisionSnapshot.confidenceState, "confidence state");
     assertIsoTimestamp(decisionSnapshot.createdAt, "decision createdAt");
+    if (
+      compareExplicitIso8601Instants(
+        decisionSnapshot.createdAt,
+        revision.observedAt,
+        "decision createdAt",
+        "observedAt",
+      ) < 0
+    ) {
+      throw new Error("decision createdAt must be on or after revision observedAt");
+    }
   }
 
   const deliveryIds = new Set<string>();
