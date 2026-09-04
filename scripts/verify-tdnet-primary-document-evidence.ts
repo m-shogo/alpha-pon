@@ -34,7 +34,15 @@ function fakeResponse(options: {
     status,
     url: options.url ?? sourceUrl,
     headers,
-    arrayBuffer: async () => Uint8Array.from(body).buffer,
+    body: new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(body);
+        controller.close();
+      },
+    }),
+    arrayBuffer: async () => {
+      throw new Error("TDnet primary document acquisition must not buffer the full response body");
+    },
   } as Response;
 }
 
@@ -149,6 +157,15 @@ await assert.rejects(
 await assert.rejects(
   () => acquireTdnetPrimaryDocumentEvidence(candidate, {
     fetchImpl: fetchReturning(fakeResponse({ contentLength: "100" })),
+    now: () => "2026-09-04T15:05:00+09:00",
+    maxBytes: 10,
+  }),
+  /exceeds maxBytes/,
+);
+
+await assert.rejects(
+  () => acquireTdnetPrimaryDocumentEvidence(candidate, {
+    fetchImpl: fetchReturning(fakeResponse({ contentLength: null })),
     now: () => "2026-09-04T15:05:00+09:00",
     maxBytes: 10,
   }),
