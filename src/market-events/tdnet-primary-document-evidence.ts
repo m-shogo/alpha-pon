@@ -3,6 +3,7 @@ import { compareExplicitIso8601Instants, parseExplicitIso8601Instant } from "../
 import type { TdnetMarketEventCandidate } from "./tdnet-event-candidates.js";
 
 const DEFAULT_MAX_DOCUMENT_BYTES = 25 * 1024 * 1024;
+const PDF_SIGNATURE = new TextEncoder().encode("%PDF-");
 
 export type TdnetPrimaryDocumentEvidence = {
   candidateId: string;
@@ -42,6 +43,17 @@ function parsePositiveMaxBytes(value: number): number {
     throw new Error("TDnet primary document maxBytes must be a positive safe integer");
   }
   return value;
+}
+
+function assertPdfSignature(bytes: Uint8Array): void {
+  if (bytes.byteLength < PDF_SIGNATURE.byteLength) {
+    throw new Error("TDnet primary document body must have a PDF signature");
+  }
+  for (let index = 0; index < PDF_SIGNATURE.byteLength; index += 1) {
+    if (bytes[index] !== PDF_SIGNATURE[index]) {
+      throw new Error("TDnet primary document body must have a PDF signature");
+    }
+  }
 }
 
 export async function acquireTdnetPrimaryDocumentEvidence(
@@ -89,6 +101,7 @@ export async function acquireTdnetPrimaryDocumentEvidence(
   if (bytes.byteLength > maxBytes) {
     throw new Error(`TDnet primary document exceeds maxBytes (${bytes.byteLength} > ${maxBytes})`);
   }
+  assertPdfSignature(bytes);
 
   const retrievedAt = now();
   parseExplicitIso8601Instant(retrievedAt, "TDnet primary document retrievedAt");
