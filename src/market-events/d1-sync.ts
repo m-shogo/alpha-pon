@@ -76,6 +76,23 @@ const JSON_FIELDS: Partial<Record<D1SyncTable, readonly string[]>> = {
   decision_snapshots: ["reasons_json", "invalidation_conditions_json"],
 };
 
+const JSON_FIELD_SHAPES: Partial<Record<D1SyncTable, Record<string, "string-array" | "object">>> = {
+  market_events: {
+    edge_types_json: "string-array",
+    checks_before_json: "string-array",
+    checks_after_json: "string-array",
+    related_event_ids_json: "string-array",
+  },
+  event_revisions: {
+    facts_json: "object",
+    source_ids_json: "string-array",
+  },
+  decision_snapshots: {
+    reasons_json: "string-array",
+    invalidation_conditions_json: "string-array",
+  },
+};
+
 function valueKey(value: unknown): string {
   if (value === undefined || value === null) return "null";
   return typeof value === "number" ? `number:${value}` : `string:${String(value)}`;
@@ -117,7 +134,14 @@ function validateJsonFields(table: D1SyncTable, rows: D1SyncRow[], errors: strin
         continue;
       }
       try {
-        JSON.parse(value);
+        const parsed: unknown = JSON.parse(value);
+        const shape = JSON_FIELD_SHAPES[table]?.[field];
+        if (shape === "string-array" && (!Array.isArray(parsed) || !parsed.every(item => typeof item === "string"))) {
+          errors.push(`${table}.${field} must contain a JSON string array for ${key}`);
+        }
+        if (shape === "object" && (parsed === null || typeof parsed !== "object" || Array.isArray(parsed))) {
+          errors.push(`${table}.${field} must contain a JSON object for ${key}`);
+        }
       } catch (error) {
         errors.push(`${table}.${field} is malformed for ${key}: ${error instanceof Error ? error.message : String(error)}`);
       }
