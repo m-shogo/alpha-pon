@@ -1,7 +1,9 @@
 import { DatabaseSync } from "node:sqlite";
 import { existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { compareExplicitIso8601Instants } from "../research/iso-instant.js";
 import {
+  assertIsoTimestamp,
   validateMarketEventBundle,
   type DecisionSnapshot,
   type DeliveryOutboxItem,
@@ -84,6 +86,34 @@ function parsePersistedJson<T>(value: string, context: string, shape: PersistedJ
     throw new Error(`Invalid persisted JSON shape at ${context}: expected ${shape}`);
   }
   return parsed as T;
+}
+
+function validatePersistedDelivery(delivery: DeliveryOutboxItem): DeliveryOutboxItem {
+  const context = `delivery_outbox.${delivery.deliveryId}`;
+  if (!Number.isInteger(delivery.attemptCount) || delivery.attemptCount < 0) {
+    throw new Error(`Invalid persisted delivery at ${context}: attemptCount must be a non-negative integer`);
+  }
+  assertIsoTimestamp(delivery.scheduledAt, `${context}.scheduled_at`);
+  assertIsoTimestamp(delivery.createdAt, `${context}.created_at`);
+  assertIsoTimestamp(delivery.updatedAt, `${context}.updated_at`);
+  if (
+    compareExplicitIso8601Instants(
+      delivery.updatedAt,
+      delivery.createdAt,
+      `${context}.updated_at`,
+      `${context}.created_at`,
+    ) < 0
+  ) {
+    throw new Error(`Invalid persisted delivery chronology at ${context}: updated_at must be on or after created_at`);
+  }
+  for (const [fieldName, value] of [
+    ["last_attempt_at", delivery.lastAttemptAt],
+    ["delivered_at", delivery.deliveredAt],
+    ["lease_expires_at", delivery.leaseExpiresAt],
+  ] as const) {
+    if (value !== null) assertIsoTimestamp(value, `${context}.${fieldName}`);
+  }
+  return delivery;
 }
 
 function mapEventRow(row: MarketEventRow): MarketEvent {
@@ -491,7 +521,7 @@ export function listPendingDeliveries(db: MarketEventDatabase, now: string, limi
   `).all(now, now, Math.max(1, Math.min(limit, 1000))) as Array<
     Omit<DeliveryOutboxItem, "payload"> & { payloadJson: string }
   >;
-  return rows.map(({ payloadJson, ...row }) => ({
+  return rows.map(({ payloadJson, ...row }) => validatePersistedDelivery({
     ...row,
     payload: parsePersistedJson<Record<string, unknown>>(
       payloadJson,
