@@ -1,3 +1,4 @@
+import "./verify-tdnet-registration-preview.js";
 import assert from "node:assert/strict";
 import { classifyTdnetDisclosureCandidate } from "../src/market-events/tdnet-event-candidates.js";
 import {
