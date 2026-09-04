@@ -3,6 +3,8 @@ import { dirname, resolve, sep } from "node:path";
 import { compareExplicitIso8601Instants } from "../research/iso-instant.js";
 import {
   MARKET_EVENT_SCHEMA_VERSION,
+  SOURCE_TYPES,
+  STORAGE_CLASSES,
   assertIsoTimestamp,
   assertValidEventTime,
   validateMarketEventBundle,
@@ -127,6 +129,8 @@ export function validateLedgerRecord(record: MarketEventLedgerRecord): void {
     case "EVENT_SOURCE":
       if (!record.payload.sourceId.startsWith("src_")) throw new Error("Invalid sourceId");
       if (!record.payload.eventId.startsWith("evt_")) throw new Error("Invalid eventId");
+      if (!(SOURCE_TYPES as readonly string[]).includes(record.payload.sourceType)) throw new Error(`Unknown source type: ${record.payload.sourceType}`);
+      if (!(STORAGE_CLASSES as readonly string[]).includes(record.payload.storageClass)) throw new Error(`Unknown storage class: ${record.payload.storageClass}`);
       if (!record.payload.url.startsWith("https://")) throw new Error("Source URL must use https");
       if (!/^[a-f0-9]{64}$/.test(record.payload.contentHash)) {
         throw new Error("source contentHash must be a lowercase SHA-256 hash");
