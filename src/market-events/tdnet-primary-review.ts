@@ -124,19 +124,17 @@ function assertConfirmedEventHasFutureHorizon(decision: TdnetPrimaryReviewDecisi
     return;
   }
 
+  const reviewedDate = dateAtTimezone(decision.reviewedAt, time.timezone);
   if (time.precision === "DATE_ONLY" && time.startAt !== null) {
-    const reviewedDate = dateAtTimezone(decision.reviewedAt, time.timezone);
-    const latestDate = time.endAt ?? time.startAt;
-    if (latestDate < reviewedDate) {
-      throw new Error("FUTURE_EVENT_CONFIRMED DATE_ONLY EventTime must not end before reviewedAt date");
+    if (time.startAt <= reviewedDate) {
+      throw new Error("FUTURE_EVENT_CONFIRMED DATE_ONLY EventTime must start after reviewedAt date");
     }
     return;
   }
 
-  if (time.precision === "WINDOW" && time.windowEnd !== null) {
-    const reviewedDate = dateAtTimezone(decision.reviewedAt, time.timezone);
-    if (time.windowEnd < reviewedDate) {
-      throw new Error("FUTURE_EVENT_CONFIRMED WINDOW EventTime must not end before reviewedAt date");
+  if (time.precision === "WINDOW" && time.windowStart !== null) {
+    if (time.windowStart <= reviewedDate) {
+      throw new Error("FUTURE_EVENT_CONFIRMED WINDOW EventTime must start after reviewedAt date");
     }
   }
 }
