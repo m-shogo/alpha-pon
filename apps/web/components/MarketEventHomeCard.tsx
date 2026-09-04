@@ -8,12 +8,31 @@ import {
   webMarketEventJapanDate,
 } from '@/lib/market-event-data'
 import { useMarketEventData } from '@/lib/use-market-events'
+import styles from './MarketEventHomeCard.module.css'
 
 const PRIORITY_COLOR: Record<WebMarketEvent['priority'], string> = {
   S0: 'var(--urgent)',
   S1: 'var(--amber)',
   S2: 'var(--sky-deep)',
   S3: 'var(--ink-3)',
+}
+
+const PRIORITY_LABEL: Record<WebMarketEvent['priority'], string> = {
+  S0: '最優先',
+  S1: '重要',
+  S2: '確認',
+  S3: '記録',
+}
+
+function decisionLabel(value: WebMarketEvent['currentDecisionState']): string {
+  const labels: Record<string, string> = {
+    INFO: '情報確認',
+    WAIT: '待ち',
+    BUY_WATCH: '条件監視',
+    RISK_WATCH: '要注意',
+    BLOCKED: '保留',
+  }
+  return labels[value] ?? value
 }
 
 function sortValue(event: WebMarketEvent): string {
@@ -33,68 +52,52 @@ export function MarketEventHomeCard({ data: fallback }: { data: WebMarketEventDa
     })
     .slice(0, 3)
 
-  return (
-    <section style={{ padding: '12px 16px 0' }} aria-label="次の重要イベント">
-      <div style={{
-        padding: '13px 14px',
-        borderRadius: 16,
-        background: 'var(--surface)',
-        border: '1px solid var(--card-line)',
-        boxShadow: 'var(--shadow)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: upcoming.length ? 10 : 0 }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 11, fontWeight: 850, color: 'var(--accent)', letterSpacing: 0.3 }}>MARKET EVENT</span>
-              <span style={{ fontSize: 9.5, fontWeight: 850, color: delivery === 'api' ? 'var(--mint-deep)' : 'var(--ink-3)' }}>
-                {loading ? '更新確認中' : delivery === 'api' ? 'LIVE' : 'SNAPSHOT'}
-              </span>
-            </div>
-            <div style={{ fontSize: 15, fontWeight: 850, color: 'var(--ink)', marginTop: 2 }}>次の重要イベント</div>
-          </div>
-          <Link href="/calendar" style={{ fontSize: 12, fontWeight: 850, color: 'var(--sky-deep)', textDecoration: 'none' }}>
-            全て見る →
-          </Link>
-        </div>
+  const deliveryText = loading
+    ? '更新を確認中'
+    : delivery === 'api'
+      ? '最新データ'
+      : '保存済みデータ'
 
-        {upcoming.length === 0 ? (
-          <div style={{ padding: '9px 10px', borderRadius: 10, background: 'var(--surface-2)', fontSize: 12, fontWeight: 700, color: 'var(--ink-3)' }}>
-            予定はまだ登録されていません。カレンダー基盤は利用可能です。
+  return (
+    <section className={styles.section} aria-labelledby="home-market-events-title">
+      <div className={styles.header}>
+        <div className={styles.headingGroup}>
+          <div className={styles.titleRow}>
+            <h2 id="home-market-events-title" className={styles.title}>次の重要イベント</h2>
+            <span className={`${styles.delivery}${delivery === 'api' && !loading ? ` ${styles.deliveryLive}` : ''}`}>
+              {deliveryText}
+            </span>
           </div>
-        ) : (
-          <div style={{ display: 'grid', gap: 7 }}>
-            {upcoming.map(event => (
-              <Link
-                key={event.eventId}
-                href={`/calendar#${event.eventId}`}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '5px minmax(0, 1fr)',
-                  gap: 10,
-                  alignItems: 'stretch',
-                  padding: '9px 10px',
-                  borderRadius: 11,
-                  background: 'var(--surface-2)',
-                  textDecoration: 'none',
-                }}
-              >
-                <span style={{ borderRadius: 99, background: PRIORITY_COLOR[event.priority] }} />
-                <span style={{ minWidth: 0 }}>
-                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                    <span style={{ fontSize: 11, fontWeight: 850, color: PRIORITY_COLOR[event.priority] }}>
-                      {event.priority} · {marketEventDateLabel(event)}
-                    </span>
-                    <span style={{ fontSize: 10, fontWeight: 850, color: 'var(--ink-3)' }}>{event.currentDecisionState}</span>
-                  </span>
-                  <span style={{ display: 'block', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12.5, fontWeight: 800, color: 'var(--ink)' }}>
-                    {event.issuerCode ? `${event.issuerCode} ` : ''}{event.issuerName} — {event.title}
-                  </span>
-                </span>
-              </Link>
-            ))}
-          </div>
-        )}
+          <p className={styles.description}>日程が近いイベントを3件まで表示します。詳細な確認条件は予定画面で見られます。</p>
+        </div>
+        <Link href="/calendar" className={styles.allLink}>
+          予定を見る <span aria-hidden="true">›</span>
+        </Link>
       </div>
+
+      {upcoming.length === 0 ? (
+        <div className={styles.empty}>直近の重要イベントはまだ登録されていません。</div>
+      ) : (
+        <div className={styles.events}>
+          {upcoming.map(event => (
+            <Link key={event.eventId} href={`/calendar#${event.eventId}`} className={styles.eventLink}>
+              <span className={styles.priorityBar} style={{ background: PRIORITY_COLOR[event.priority] }} aria-hidden="true" />
+              <span className={styles.eventContent}>
+                <span className={styles.eventMeta}>
+                  <span className={styles.eventPriority} style={{ color: PRIORITY_COLOR[event.priority] }}>
+                    {PRIORITY_LABEL[event.priority]}
+                  </span>
+                  <span>{marketEventDateLabel(event)}</span>
+                </span>
+                <span className={styles.eventTitle}>
+                  {event.issuerCode ? `${event.issuerCode} ` : ''}{event.issuerName} — {event.title}
+                </span>
+              </span>
+              <span className={styles.decision}>{decisionLabel(event.currentDecisionState)}</span>
+            </Link>
+          ))}
+        </div>
+      )}
     </section>
   )
 }
