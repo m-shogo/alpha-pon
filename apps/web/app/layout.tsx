@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import './owner-ui-qa.css'
+import './owner-ui-polish.css'
 import { AppShell } from '@/components/AppShell'
-import { loadMarketEventData } from '@/lib/market-events'
 
 export const metadata: Metadata = {
   title: {
@@ -36,11 +36,10 @@ export const viewport: Viewport = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const marketEvents = loadMarketEventData()
   return (
     <html lang="ja">
       <body>
-        <AppShell marketEvents={marketEvents}>{children}</AppShell>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   )

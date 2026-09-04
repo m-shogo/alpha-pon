@@ -1,0 +1,121 @@
+/* Owner UI v2 visual polish.
+ * Shared presentation only: no research, trading, data, or routing semantics.
+ */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: rgba(0, 113, 227, 0.14);
+}
+
+button,
+a,
+summary {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ap-main-content {
+  scrollbar-gutter: stable;
+}
+
+.ap-mobile-nav-link {
+  font-size: 12px;
+  font-weight: 560;
+  letter-spacing: -0.01em;
+}
+
+.ap-mobile-nav-link.is-active,
+.ap-mobile-more.is-active > .ap-mobile-nav-link {
+  font-weight: 650;
+}
+
+.ap-mobile-more-menu {
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.09), 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.ap-mobile-more-title {
+  font-size: 13px;
+  font-weight: 560;
+}
+
+.ap-mobile-more-link {
+  font-size: 15px;
+  font-weight: 560;
+}
+
+@media (max-width: 767px) {
+  .ap-mobile-nav {
+    min-height: 66px;
+    padding-top: 4px;
+    background: rgba(248, 248, 250, 0.94);
+  }
+
+  .ap-main-content {
+    padding-bottom: 12px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .ap-desktop-sidebar {
+    width: 220px;
+    flex-basis: 220px;
+    padding: 26px 12px 20px;
+    background: transparent;
+  }
+
+  .ap-sidebar-brand {
+    padding: 2px 10px 24px;
+  }
+
+  .ap-sidebar-brand-mark {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .ap-sidebar-brand-title {
+    font-size: 15px;
+    font-weight: 650;
+  }
+
+  .ap-sidebar-brand-subtitle {
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .ap-sidebar-nav {
+    gap: 2px;
+  }
+
+  .ap-sidebar-link {
+    min-height: 44px;
+    padding: 10px 11px;
+    border-radius: 9px;
+    font-size: 14.5px;
+    font-weight: 520;
+  }
+
+  .ap-sidebar-link:hover {
+    background: rgba(29, 29, 31, 0.04);
+  }
+
+  .ap-sidebar-link.is-active {
+    background: rgba(29, 29, 31, 0.065);
+    font-weight: 620;
+  }
+
+  .ap-sidebar-footer {
+    font-size: 12px;
+    font-weight: 520;
+  }
+}

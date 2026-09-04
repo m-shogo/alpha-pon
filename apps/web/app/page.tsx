@@ -1,8 +1,10 @@
 import { loadGeneratedData } from '@/lib/generated-data'
+import { loadMarketEventData } from '@/lib/market-events'
 import { calcTotal, calcLevel } from '@/lib/score'
 import { ALERT_META } from '@/lib/labels'
 import { CandidateCard } from '@/components/CandidateCard'
 import { ProCommandCard } from '@/components/ProCommandCard'
+import { MarketEventHomeCard } from '@/components/MarketEventHomeCard'
 import { Disclaimer } from '@/components/Disclaimer'
 import Link from 'next/link'
 import { dateOnly, daysBetweenJst, todayJstDate } from '@/lib/format'
@@ -33,8 +35,16 @@ function tagClass(tone: 'neutral' | 'warn' | 'good') {
   return styles.tag
 }
 
+function chanceLabel(value: string) {
+  if (value === 'high') return '優先確認'
+  if (value === 'attention') return '要確認'
+  if (value === 'none') return '監視'
+  return value
+}
+
 export default function HomePage() {
   const data = loadGeneratedData()
+  const marketEvents = loadMarketEventData()
   const generatedDate = dateOnly(data.generatedAt)
   const generatedAgeDays = generatedDate ? daysBetweenJst(generatedDate, todayJstDate()) : null
   const hasValidGeneratedDate = data.generatedAt === generatedDate && generatedAgeDays != null && generatedAgeDays >= 0
@@ -56,17 +66,17 @@ export default function HomePage() {
   })
   const hypothesisReadiness = data.readiness?.items.find((item) => item.id === 'hypothesis-outcomes')
   const waitReasons = [
-    outcomeCount < 10 ? `outcome蓄積待ち: ${outcomeCount}/10件。1w/1m/3m の実績が増えるまで強い判定は保留。` : null,
-    activeCursors.length > 0 ? `J-Quants cursor進行中: ${activeCursors.map(([name, cursor]) => `${cursor.jobName ?? name} ${cursor.offset ?? 0}/${cursor.total ?? '?'}`).join(' / ')}。無理な連打より次回範囲を進める。` : null,
-    hypothesisReadiness && hypothesisReadiness.status !== 'done' ? `次回レビュー待ち: ${hypothesisReadiness.nextActions[0] ?? 'review:hypotheses の継続実行待ち'}` : null,
+    outcomeCount < 10 ? `答え合わせの蓄積待ち: ${outcomeCount}/10件。1週・1か月・3か月後の実績が増えるまで強い判定は保留します。` : null,
+    activeCursors.length > 0 ? `価格データの取得途中: ${activeCursors.map(([name, cursor]) => `${cursor.jobName ?? name} ${cursor.offset ?? 0}/${cursor.total ?? '?'}`).join(' / ')}。取得範囲を順番に進めています。` : null,
+    hypothesisReadiness && hypothesisReadiness.status !== 'done' ? `次回レビュー待ち: ${hypothesisReadiness.nextActions[0] ?? '仮説レビューの継続待ち'}` : null,
   ].filter((reason): reason is string => Boolean(reason))
   const dataWarnings = [
     ...((data.meta?.warnings ?? []).map((w) => `生成データ: ${w}`)),
-    ...(pipelineFailed ? [`pipeline に失敗/スキップがあります: ${failedSteps.join(', ') || data.pipelineStatus?.status}`] : []),
-    ...(data.generatedAt && !hasValidGeneratedDate ? ['生成日が不正または未来日です。pnpm ui:data で正本を再生成してください。'] : []),
-    ...(generatedAgeDays != null && generatedAgeDays > 0 ? [`生成日が${generatedAgeDays}日前です。pnpm ui:data で最新化してください。`] : []),
-    ...(hasMockUniverse ? ['未登録銘柄スクリーニングにモックデータが含まれています。実データ確認前の仮説として扱ってください。'] : []),
-    ...(missingQualityCount > 0 ? [`データ品質 missing/unknown が ${missingQualityCount} 件あります。強い判断を避けてください。`] : []),
+    ...(pipelineFailed ? [`生成処理に失敗またはスキップがあります: ${failedSteps.join(', ') || data.pipelineStatus?.status}`] : []),
+    ...(data.generatedAt && !hasValidGeneratedDate ? ['生成日が不正または未来日です。正本データの再生成が必要です。'] : []),
+    ...(generatedAgeDays != null && generatedAgeDays > 0 ? [`表示データは${generatedAgeDays}日前のものです。最新データへの更新が必要です。`] : []),
+    ...(hasMockUniverse ? ['未登録銘柄スクリーニングにサンプルデータが含まれています。実データ確認前の仮説として扱ってください。'] : []),
+    ...(missingQualityCount > 0 ? [`データ品質が未取得または不明な項目が ${missingQualityCount} 件あります。強い判断を避けてください。`] : []),
   ]
 
   const list = data.candidates
@@ -91,9 +101,8 @@ export default function HomePage() {
     <main className={styles.page}>
       <header className={styles.header}>
         <div>
-          <div className={styles.eyebrow}>オーナー向け研究ホーム</div>
           <h1 className={styles.title}>ホーム</h1>
-          <p className={styles.subtitle}>今日見るべき候補・待つ理由・研究への導線を、技術情報より先にまとめます。</p>
+          <p className={styles.subtitle}>今日見るべき候補、待つ理由、次の重要イベントを先に確認できます。</p>
         </div>
         <div className={styles.snapshot}>
           表示データ<br />
@@ -132,6 +141,8 @@ export default function HomePage() {
         </div>
       </section>
 
+      <MarketEventHomeCard data={marketEvents} />
+
       <section className={styles.priorityGrid}>
         <div className={styles.panel}>
           <div className={styles.sectionHead}>
@@ -169,8 +180,8 @@ export default function HomePage() {
       <details className={styles.dataDetails}>
         <summary><span>データ状態</span><span>{pipelineFailed || missingQualityCount > 0 || mockUniverseCount > 0 ? '要確認' : '正常'}</span></summary>
         <div className={styles.dataBody}>
-          <div>Pipeline: {pipelineFailed ? `要確認 — ${failedSteps.join(' / ') || data.pipelineStatus?.status}` : (data.pipelineStatus?.status ?? '不明')}</div>
-          <div>Mock / Missing: {mockUniverseCount} / {missingQualityCount} · warnings {warningCount}件</div>
+          <div>生成処理: {pipelineFailed ? `要確認 — ${failedSteps.join(' / ') || data.pipelineStatus?.status}` : (data.pipelineStatus?.status ?? '不明')}</div>
+          <div>サンプルデータ / 未取得: {mockUniverseCount} / {missingQualityCount} · 注意 {warningCount}件</div>
           <div>最終生成: {hasValidGeneratedDate ? data.generatedAt : '未生成'}</div>
           {dataWarnings.map((warning) => <div key={warning}>• {warning}</div>)}
         </div>
@@ -224,7 +235,7 @@ export default function HomePage() {
                       <div className={styles.rowTitle}>{item.code} {item.name}</div>
                       <div className={styles.rowMeta}>{item.finalLabel}</div>
                     </div>
-                    <span className={tagClass(tone)}>{item.chanceLevel === 'none' ? '監視' : item.chanceLevel}</span>
+                    <span className={tagClass(tone)}>{chanceLabel(item.chanceLevel)}</span>
                   </div>
                   <div className={styles.rowBody}>{item.reasonSummary}</div>
                   <div className={styles.rowDetails}>
@@ -259,7 +270,7 @@ export default function HomePage() {
 
       <section className={styles.legacySection}>
         <div className={styles.sectionHead}>
-          <h2 className={styles.sectionTitle}>Pro会議・改善状況</h2>
+          <h2 className={styles.sectionTitle}>分析会議・改善状況</h2>
         </div>
         <ProCommandCard data={data} />
       </section>
@@ -274,7 +285,7 @@ export default function HomePage() {
         ) : (
           list.map(({ c }) => <CandidateCard key={c.code} cand={c} />)
         )}
-        <p className={styles.footerNote}>スコア49点以下は表示しません。重要判断はPro会議・IRイベント・決算/総会確認を優先します。</p>
+        <p className={styles.footerNote}>スコア49点以下は表示しません。重要判断は分析会議・IRイベント・決算/総会確認を優先します。</p>
       </section>
 
       <Disclaimer compact />

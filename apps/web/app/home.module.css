@@ -1,5 +1,5 @@
 .page {
-  padding: 36px 16px 36px;
+  padding: 34px 16px 44px;
 }
 
 .header {
@@ -7,7 +7,7 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 20px;
-  padding: 4px 0 22px;
+  padding: 6px 0 24px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -23,30 +23,32 @@
   color: var(--ink);
   font-family: var(--display);
   font-size: 30px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
+  font-weight: 680;
+  line-height: 1.12;
+  letter-spacing: -0.65px;
 }
 
 .subtitle {
-  max-width: 640px;
-  margin: 7px 0 0;
+  max-width: 620px;
+  margin: 8px 0 0;
   color: var(--ink-2);
   font-size: 15px;
-  line-height: 1.65;
+  line-height: 1.7;
 }
 
 .snapshot {
   flex-shrink: 0;
   color: var(--ink-3);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 560;
+  line-height: 1.5;
   text-align: right;
 }
 
 .hero {
   display: grid;
-  gap: 18px;
-  padding: 24px 0;
+  gap: 20px;
+  padding: 28px 0 26px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -58,17 +60,17 @@
 .heroLabel {
   color: var(--ink-3);
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 620;
 }
 
 .heroSentence {
   max-width: 760px;
   margin: 0;
   color: var(--ink);
-  font-size: 22px;
-  font-weight: 650;
-  line-height: 1.45;
-  letter-spacing: -0.2px;
+  font-size: 23px;
+  font-weight: 620;
+  line-height: 1.48;
+  letter-spacing: -0.35px;
 }
 
 .statusGrid {
@@ -80,7 +82,7 @@
 
 .statusItem {
   min-width: 0;
-  padding: 15px 16px 14px 0;
+  padding: 16px 16px 15px 0;
 }
 
 .statusItem + .statusItem {
@@ -94,7 +96,7 @@
   gap: 7px;
   color: var(--ink-2);
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 620;
 }
 
 .statusDot {
@@ -104,10 +106,10 @@
 }
 
 .statusValue {
-  margin-top: 4px;
+  margin-top: 5px;
   color: var(--ink);
-  font-size: 26px;
-  font-weight: 700;
+  font-size: 27px;
+  font-weight: 680;
   line-height: 1.1;
 }
 
@@ -115,14 +117,14 @@
   margin-left: 3px;
   color: var(--ink-3);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 560;
 }
 
 .priorityGrid {
   display: grid;
   grid-template-columns: 1.2fr 1fr;
-  gap: 20px;
-  padding: 24px 0;
+  gap: 26px;
+  padding: 28px 0 30px;
 }
 
 .panel {
@@ -130,7 +132,7 @@
 }
 
 .panel + .panel {
-  padding-left: 20px;
+  padding-left: 26px;
   border-left: 1px solid var(--line);
 }
 
@@ -139,28 +141,29 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 13px;
 }
 
 .sectionTitle {
   margin: 0;
   color: var(--ink);
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 660;
+  letter-spacing: -0.15px;
 }
 
 .sectionMeta {
   color: var(--ink-3);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 560;
 }
 
 .notice {
-  padding: 13px 0;
+  padding: 14px 0;
   border-top: 1px solid var(--line);
   color: var(--ink-2);
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: 14.5px;
+  line-height: 1.65;
 }
 
 .notice:first-of-type {
@@ -170,7 +173,7 @@
 
 .notice strong {
   color: var(--ink);
-  font-weight: 650;
+  font-weight: 620;
 }
 
 .quickLinks {
@@ -184,8 +187,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 56px;
-  padding: 10px 2px;
+  min-height: 60px;
+  padding: 11px 2px;
   border-bottom: 1px solid var(--line);
   color: var(--ink);
   text-decoration: none;
@@ -196,58 +199,61 @@
 }
 
 .quickLabel {
+  display: block;
   font-size: 15px;
-  font-weight: 650;
+  font-weight: 620;
 }
 
 .quickMeta {
-  margin-top: 2px;
+  display: block;
+  margin-top: 3px;
   color: var(--ink-3);
-  font-size: 12px;
-  font-weight: 550;
+  font-size: 12.5px;
+  font-weight: 520;
+  line-height: 1.45;
 }
 
 .arrow {
   color: var(--ink-3);
-  font-size: 18px;
+  font-size: 20px;
+  font-weight: 400;
 }
 
 .warningBlock {
-  margin: 6px 0 22px;
-  padding: 14px 16px;
-  border: 1px solid rgba(176, 90, 0, 0.20);
-  border-radius: 14px;
-  background: var(--amber-soft);
+  margin: 18px 0 4px;
+  padding: 10px 0 10px 14px;
+  border-left: 3px solid var(--amber);
+  background: transparent;
 }
 
 .warningTitle {
   color: var(--amber);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 650;
 }
 
 .warningText {
   margin-top: 5px;
   color: var(--ink-2);
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 13.5px;
+  line-height: 1.65;
 }
 
 .dataDetails {
-  margin-bottom: 22px;
+  margin-bottom: 28px;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
 }
 
 .dataDetails summary {
-  min-height: 46px;
+  min-height: 48px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
   color: var(--ink-2);
-  font-size: 13px;
-  font-weight: 650;
+  font-size: 13.5px;
+  font-weight: 600;
   list-style: none;
 }
 
@@ -258,22 +264,23 @@
 .dataBody {
   display: grid;
   gap: 8px;
-  padding: 0 0 14px;
+  padding: 0 0 16px;
   color: var(--ink-3);
-  font-size: 12px;
-  line-height: 1.55;
+  font-size: 12.5px;
+  line-height: 1.6;
 }
 
 .contentSection {
-  padding: 24px 0;
+  padding: 30px 0;
   border-top: 1px solid var(--line);
 }
 
 .contentIntro {
-  margin: -2px 0 14px;
+  max-width: 760px;
+  margin: -2px 0 16px;
   color: var(--ink-3);
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 13.5px;
+  line-height: 1.65;
 }
 
 .list {
@@ -283,7 +290,7 @@
 }
 
 .row {
-  padding: 16px 2px;
+  padding: 18px 2px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -297,31 +304,33 @@
 .rowTitle {
   color: var(--ink);
   font-size: 16px;
-  font-weight: 680;
+  font-weight: 650;
   line-height: 1.45;
 }
 
 .rowMeta {
-  margin-top: 3px;
+  margin-top: 4px;
   color: var(--ink-3);
-  font-size: 12px;
+  font-size: 12.5px;
   line-height: 1.5;
 }
 
 .rowBody {
-  margin-top: 9px;
+  max-width: 900px;
+  margin-top: 10px;
   color: var(--ink-2);
-  font-size: 14px;
-  line-height: 1.65;
+  font-size: 14.5px;
+  line-height: 1.7;
 }
 
 .rowDetails {
   display: grid;
-  gap: 5px;
-  margin-top: 10px;
+  gap: 6px;
+  max-width: 960px;
+  margin-top: 11px;
   color: var(--ink-2);
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 13.5px;
+  line-height: 1.65;
 }
 
 .tag {
@@ -331,7 +340,7 @@
   background: var(--surface-2);
   color: var(--ink-2);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 620;
 }
 
 .tagWarn {
@@ -345,21 +354,22 @@
 }
 
 .legacySection {
-  padding-top: 24px;
+  padding: 30px 0;
   border-top: 1px solid var(--line);
 }
 
 .footerNote {
-  margin: 16px 0 8px;
+  max-width: 760px;
+  margin: 18px auto 8px;
   color: var(--ink-3);
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: 12.5px;
+  line-height: 1.65;
   text-align: center;
 }
 
 @media (min-width: 768px) {
   .page {
-    padding: 40px 24px 44px;
+    padding: 40px 24px 52px;
   }
 }
 
@@ -367,15 +377,11 @@
   .page {
     max-width: 1120px;
     margin: 0 auto;
-    padding: 44px 28px 52px;
-  }
-
-  .header {
-    padding-top: 8px;
+    padding: 48px 28px 60px;
   }
 
   .title {
-    font-size: 34px;
+    font-size: 35px;
   }
 
   .hero {
@@ -395,7 +401,7 @@
 
   .header {
     align-items: flex-start;
-    padding-bottom: 18px;
+    padding-bottom: 19px;
   }
 
   .snapshot {
@@ -403,7 +409,7 @@
   }
 
   .title {
-    font-size: 28px;
+    font-size: 29px;
   }
 
   .subtitle {
@@ -411,11 +417,12 @@
   }
 
   .hero {
-    padding: 20px 0;
+    padding: 22px 0;
   }
 
   .heroSentence {
-    font-size: 19px;
+    font-size: 20px;
+    line-height: 1.5;
   }
 
   .statusGrid {
@@ -423,7 +430,7 @@
   }
 
   .statusItem {
-    padding: 13px 10px 13px 0;
+    padding: 14px 10px 14px 0;
   }
 
   .statusItem + .statusItem {
@@ -431,28 +438,33 @@
   }
 
   .statusName {
-    font-size: 12px;
+    font-size: 12.5px;
   }
 
   .statusValue {
-    font-size: 22px;
+    font-size: 23px;
   }
 
   .priorityGrid {
     grid-template-columns: 1fr;
-    gap: 22px;
-    padding: 20px 0;
+    gap: 24px;
+    padding: 24px 0 26px;
   }
 
   .panel + .panel {
+    padding-top: 24px;
     padding-left: 0;
-    border-left: 0;
     border-top: 1px solid var(--line);
-    padding-top: 20px;
+    border-left: 0;
   }
 
   .sectionTitle {
     font-size: 19px;
+  }
+
+  .notice,
+  .rowBody {
+    font-size: 15px;
   }
 
   .rowHead {
@@ -460,10 +472,10 @@
   }
 
   .rowTitle {
-    font-size: 15px;
+    font-size: 16px;
   }
 
-  .rowBody {
+  .rowDetails {
     font-size: 14px;
   }
 }

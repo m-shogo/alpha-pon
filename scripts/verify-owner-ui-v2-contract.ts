@@ -184,6 +184,7 @@ for (const [path, pattern, message] of primaryCopyChecks) {
 const activeStyleFiles = [
   "apps/web/app/globals.css",
   "apps/web/app/owner-ui-qa.css",
+  "apps/web/app/owner-ui-polish.css",
   "apps/web/app/calendar/CalendarV2.module.css",
   "apps/web/app/home.module.css",
   "apps/web/app/stocks/StocksPage.module.css",
@@ -202,6 +203,7 @@ const activeStyleFiles = [
   "apps/web/components/DataStatus.module.css",
   "apps/web/components/StockList.module.css",
   "apps/web/components/StockCard.module.css",
+  "apps/web/components/MarketEventHomeCard.module.css",
   "apps/web/components/ResearchHistoryMap.module.css",
   "apps/web/components/ResearchVerification.module.css",
   "apps/web/components/ReportViewer.module.css",
