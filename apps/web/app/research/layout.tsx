@@ -48,15 +48,15 @@ export default function ResearchLayout({ children }: Readonly<{ children: ReactN
     <>
       {summaryUnavailable ? (
         <main className={styles.unavailablePage}>
-          <div className={styles.unavailableEyebrow}>研究状況 / オーナー向け</div>
-          <h1>研究ダッシュボード</h1>
+          <div className={styles.unavailableEyebrow}>研究状況</div>
+          <h1>研究</h1>
           <section className={styles.warningPanel}>
-            <div className={styles.warningTitle}>研究サマリーを利用できません</div>
+            <div className={styles.warningTitle}>研究サマリーを安全に表示できません</div>
             <div className={styles.warningReason}>
               {summary.warning ?? '研究サマリーの時刻・期間または参照整合性が不正なため、安全のため表示を停止しました。'}
             </div>
             <div className={styles.warningSafety}>
-              この状態ではEdge数・サンプル数・研究テーマ数などの0表示を実データとして扱いません。下の知識マップは別の生成データから読み込むため、独立して判定します。
+              この状態ではEdge数・サンプル数・研究テーマ数などの0表示を実データとして扱いません。下の過去事例・検証データは別の生成データから読み込むため、独立して判定します。
             </div>
           </section>
         </main>
@@ -69,17 +69,17 @@ export default function ResearchLayout({ children }: Readonly<{ children: ReactN
       <div id="knowledge-map" className={styles.knowledgeRoot}>
         {historyMapUnavailable ? (
           <section className={`${styles.warningPanel} ${styles.knowledgeWarning}`}>
-            <div className={styles.warningTitle}>知識マップを利用できません</div>
+            <div className={styles.warningTitle}>過去事例・検証データを安全に表示できません</div>
             <div className={styles.warningReason}>
-              {historyMap.warning ?? '知識マップの時刻整合性が不正なため、安全のため表示を停止しました。'}
+              {historyMap.warning ?? '過去事例・検証データの時刻整合性が不正なため、安全のため表示を停止しました。'}
             </div>
             <div className={styles.warningSafety}>
-              研究ファミリー・過去類似事例・個別事例・検証Studyなどの0件表示は実データとして扱いません。
+              研究のつながり・過去類似事例・個別事例・検証設計などの0件表示は実データとして扱いません。
             </div>
           </section>
         ) : (
           <>
-            <div className={styles.knowledgeTimestamp}>知識マップ生成: {formatSnapshotTime(historyMap.generatedAt)}</div>
+            <div className={styles.knowledgeTimestamp}>過去事例・検証データ生成: {formatSnapshotTime(historyMap.generatedAt)}</div>
             <ResearchHistoryMap />
             <HistoricalAnalogVerification />
             <ResearchStudyMap />
