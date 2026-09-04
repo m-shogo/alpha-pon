@@ -78,6 +78,9 @@ export async function acquireTdnetPrimaryDocumentEvidence(
   }
 
   const finalUrl = assertOfficialTdnetDocumentUrl(response.url, "TDnet primary document final URL");
+  if (finalUrl.href !== requestedUrl.href) {
+    throw new Error("TDnet primary document final URL must match requested sourceUrl");
+  }
   const contentType = (response.headers.get("content-type") ?? "").split(";", 1)[0]!.trim().toLowerCase();
   if (contentType !== "application/pdf") {
     throw new Error(`TDnet primary document must be application/pdf, got ${contentType || "missing content-type"}`);
