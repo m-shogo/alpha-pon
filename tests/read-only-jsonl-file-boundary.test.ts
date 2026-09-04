@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { linkSync, mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import { linkSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { readNotificationFeedbackInput } from "../src/notification-feedback-input.js";
@@ -47,6 +47,24 @@ writeFileSync(standalone, `${JSON.stringify({ id: "real" })}\n`);
 assert.deepEqual(readJsonlWithErrors<{ id: string }>(standalone).rows, [{ id: "real" }]);
 assert.deepEqual(readJsonlWithErrors(standalone).parseErrors, []);
 
+const ancestorDir = mkdtempSync(join(process.cwd(), ".alpha-pon-read-only-jsonl-ancestor-"));
+try {
+  const realDir = join(ancestorDir, "real");
+  const linkedDir = join(ancestorDir, "linked");
+  mkdirSync(realDir);
+  writeFileSync(join(realDir, "evidence.jsonl"), `${JSON.stringify({ id: "aliased" })}\n`);
+  symlinkSync(realDir, linkedDir, "dir");
+  const aliasedPath = join(linkedDir, "evidence.jsonl");
+  const aliased = readJsonlWithErrors<{ id: string }>(aliasedPath);
+
+  assert.deepEqual(aliased.rows, []);
+  assert.equal(aliased.parseErrors.length, 1);
+  assert.equal(aliased.parseErrors[0]?.lineNumber, 0);
+  assert.equal(aliased.parseErrors[0]?.message, "non_regular_file");
+} finally {
+  rmSync(ancestorDir, { recursive: true, force: true });
+}
+
 const nonMoveHistoryPath = join(dir, "company_non_move_history.jsonl");
 writeFileSync(nonMoveHistoryPath, [
   JSON.stringify({ code: "8136", nonMoveReasons: ["valuation"] }),
@@ -74,4 +92,4 @@ const feedback = readNotificationFeedbackInput(feedbackPath);
 assert.deepEqual(feedback.records.map(row => row.topic), ["決算"]);
 assert.match(feedback.warning ?? "", /invalid_rows 2/);
 
-console.log("read-only JSONL file boundary: non-regular, hard-linked, malformed semantic, and future/timezone-invalid rows fail closed without crashing");
+console.log("read-only JSONL file boundary: non-regular, hard-linked, ancestor-linked, malformed semantic, and future/timezone-invalid rows fail closed without crashing");
