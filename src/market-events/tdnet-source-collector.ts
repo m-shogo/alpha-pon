@@ -51,13 +51,14 @@ function buildSuccessCheckpoint(
   sourceKey: string,
   checkedAt: string,
   contentHash: string,
+  existing: SourceCheckpoint | null,
 ): SourceCheckpoint {
   return {
     sourceKey,
     sourceType: "TDNET",
-    cursorValue: null,
-    etag: null,
-    lastModified: null,
+    cursorValue: existing?.cursorValue ?? null,
+    etag: existing?.etag ?? null,
+    lastModified: existing?.lastModified ?? null,
     lastContentHash: contentHash,
     lastCheckedAt: checkedAt,
     lastSuccessAt: checkedAt,
@@ -88,6 +89,25 @@ function buildFailureCheckpoint(
   };
 }
 
+function recordFailure(
+  db: MarketEventDatabase,
+  sourceKey: string,
+  checkedAt: string,
+  existing: SourceCheckpoint | null,
+  error: unknown,
+): TdnetSourceCollectionResult {
+  const message = safeErrorMessage(error);
+  upsertSourceCheckpoint(db, buildFailureCheckpoint(sourceKey, checkedAt, existing, message));
+  return {
+    sourceKey,
+    status: "failed",
+    checkedAt,
+    contentHash: existing?.lastContentHash ?? null,
+    disclosures: [],
+    error: message,
+  };
+}
+
 export async function collectTdnetSourceOnce(
   db: MarketEventDatabase,
   options: TdnetSourceCollectorOptions = {},
@@ -101,23 +121,23 @@ export async function collectTdnetSourceOnce(
   try {
     disclosures = await fetchDisclosures();
   } catch (error) {
-    const checkedAt = now();
-    const message = safeErrorMessage(error);
-    upsertSourceCheckpoint(db, buildFailureCheckpoint(sourceKey, checkedAt, existing, message));
-    return {
-      sourceKey,
-      status: "failed",
-      checkedAt,
-      contentHash: existing?.lastContentHash ?? null,
-      disclosures: [],
-      error: message,
-    };
+    return recordFailure(db, sourceKey, now(), existing, error);
   }
 
   const checkedAt = now();
+  if (disclosures.length === 0) {
+    return recordFailure(
+      db,
+      sourceKey,
+      checkedAt,
+      existing,
+      new Error("TDnet disclosure fetch returned zero rows"),
+    );
+  }
+
   const contentHash = hashTdnetDisclosures(disclosures);
   const status = existing?.lastContentHash === contentHash ? "unchanged" : "changed";
-  upsertSourceCheckpoint(db, buildSuccessCheckpoint(sourceKey, checkedAt, contentHash));
+  upsertSourceCheckpoint(db, buildSuccessCheckpoint(sourceKey, checkedAt, contentHash, existing));
   return {
     sourceKey,
     status,
