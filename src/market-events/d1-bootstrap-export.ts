@@ -65,12 +65,43 @@ function tableRows(
   ).all() as Record<string, SqlValue>[];
 }
 
+function assertCurrentRevisionPointersAreLatest(db: MarketEventDatabase): void {
+  const stalePointers = db.prepare(`
+    SELECT
+      e.event_id AS eventId,
+      e.current_revision_id AS currentRevisionId,
+      latest.revision_id AS latestRevisionId
+    FROM market_events e
+    JOIN event_revisions current
+      ON current.revision_id = e.current_revision_id
+      AND current.event_id = e.event_id
+    JOIN event_revisions latest
+      ON latest.event_id = e.event_id
+    WHERE latest.revision_number = (
+      SELECT MAX(candidate.revision_number)
+      FROM event_revisions candidate
+      WHERE candidate.event_id = e.event_id
+    )
+      AND current.revision_id != latest.revision_id
+    ORDER BY e.event_id
+  `).all() as Array<{
+    eventId: string;
+    currentRevisionId: string;
+    latestRevisionId: string;
+  }>;
+
+  if (stalePointers.length > 0) {
+    throw new Error(`D1 bootstrap requires current_revision_id to reference the latest revision: ${JSON.stringify(stalePointers)}`);
+  }
+}
+
 export function buildD1BootstrapExport(
   db: MarketEventDatabase,
   options: { generatedAt?: string; sourceDatabase?: string } = {},
 ): D1BootstrapExport {
   void options.generatedAt;
   void options.sourceDatabase;
+  assertCurrentRevisionPointersAreLatest(db);
   const rowCounts: Record<string, number> = {};
   const lines: string[] = ["PRAGMA foreign_keys = ON;"];
 

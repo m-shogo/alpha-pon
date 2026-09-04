@@ -114,6 +114,21 @@ try {
   ).get(eventId) as { currentRevisionId: string } | undefined;
   assert.equal(current?.currentRevisionId, second.revision.revisionId, "D1 bootstrap must preserve the latest revision pointer");
 
+  source.prepare("UPDATE market_events SET current_revision_id = ? WHERE event_id = ?").run(
+    firstBundle.revision.revisionId,
+    eventId,
+  );
+  assert.equal(
+    auditMarketEventDatabase(source, ":memory:source").status,
+    "ok",
+    "legacy audit currently treats an older same-event revision pointer as structurally valid",
+  );
+  assert.throws(
+    () => buildD1BootstrapExport(source, options),
+    /D1 bootstrap requires current_revision_id to reference the latest revision/,
+    "bootstrap export must fail closed instead of exporting an older revision as current",
+  );
+
   console.log("d1-bootstrap-export: ok");
 } finally {
   source.close();
