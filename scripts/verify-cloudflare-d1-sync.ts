@@ -149,6 +149,24 @@ const malformedPlan = buildD1SyncPlan(canonical, malformedRemote);
 assert.equal(malformedPlan.status, "blocked");
 assert.match(malformedPlan.blockers.join("\n"), /malformed/);
 
+const wrongArrayShapeRemote = structuredClone(canonical);
+wrongArrayShapeRemote.market_events[0].edge_types_json = "{}";
+const wrongArrayShapePlan = buildD1SyncPlan(canonical, wrongArrayShapeRemote);
+assert.equal(wrongArrayShapePlan.status, "blocked");
+assert.match(wrongArrayShapePlan.blockers.join("\n"), /edge_types_json must contain a JSON string array/);
+
+const wrongObjectShapeCanonical = structuredClone(canonical);
+wrongObjectShapeCanonical.event_revisions[0].facts_json = "[]";
+const wrongObjectShapePlan = buildD1SyncPlan(wrongObjectShapeCanonical, emptyD1SyncSnapshot());
+assert.equal(wrongObjectShapePlan.status, "blocked");
+assert.match(wrongObjectShapePlan.blockers.join("\n"), /facts_json must contain a JSON object/);
+
+const wrongArrayItemRemote = structuredClone(canonical);
+wrongArrayItemRemote.decision_snapshots[0].reasons_json = '["ok",1]';
+const wrongArrayItemPlan = buildD1SyncPlan(canonical, wrongArrayItemRemote);
+assert.equal(wrongArrayItemPlan.status, "blocked");
+assert.match(wrongArrayItemPlan.blockers.join("\n"), /reasons_json must contain a JSON string array/);
+
 const stalePointerCanonical = structuredClone(canonical);
 stalePointerCanonical.event_revisions.push({
   ...revisionRow("rev_alpha_v2", "evt_alpha"),
