@@ -29,13 +29,14 @@ function fakeResponse(options: {
   if (options.contentLength !== null) {
     headers.set("content-length", options.contentLength ?? String(body.byteLength));
   }
-  return {
-    ok: status >= 200 && status < 300,
-    status,
-    url: options.url ?? sourceUrl,
-    headers,
-    arrayBuffer: async () => Uint8Array.from(body).buffer,
-  } as Response;
+  const response = new Response(body, { status, headers });
+  Object.defineProperty(response, "url", { value: options.url ?? sourceUrl });
+  Object.defineProperty(response, "arrayBuffer", {
+    value: async () => {
+      throw new Error("TDnet primary document acquisition must not buffer the full response body");
+    },
+  });
+  return response;
 }
 
 function fetchReturning(response: Response): typeof fetch {
@@ -149,6 +150,15 @@ await assert.rejects(
 await assert.rejects(
   () => acquireTdnetPrimaryDocumentEvidence(candidate, {
     fetchImpl: fetchReturning(fakeResponse({ contentLength: "100" })),
+    now: () => "2026-09-04T15:05:00+09:00",
+    maxBytes: 10,
+  }),
+  /exceeds maxBytes/,
+);
+
+await assert.rejects(
+  () => acquireTdnetPrimaryDocumentEvidence(candidate, {
+    fetchImpl: fetchReturning(fakeResponse({ contentLength: null })),
     now: () => "2026-09-04T15:05:00+09:00",
     maxBytes: 10,
   }),

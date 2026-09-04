@@ -48,15 +48,56 @@ function parsePositiveMaxBytes(value: number): number {
   return value;
 }
 
-function assertPdfSignature(bytes: Uint8Array): void {
-  if (bytes.byteLength < PDF_SIGNATURE.byteLength) {
+async function readPrimaryDocumentBody(response: Response, maxBytes: number): Promise<{
+  byteLength: number;
+  contentHash: string;
+}> {
+  if (response.body === null) {
+    throw new Error("TDnet primary document response body must be stream-readable");
+  }
+
+  const reader = response.body.getReader();
+  const hash = createHash("sha256");
+  let byteLength = 0;
+  let signatureOffset = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value || value.byteLength === 0) continue;
+
+      byteLength += value.byteLength;
+      if (byteLength > maxBytes) {
+        await reader.cancel();
+        throw new Error(`TDnet primary document exceeds maxBytes (${byteLength} > ${maxBytes})`);
+      }
+
+      for (const byte of value) {
+        if (signatureOffset >= PDF_SIGNATURE.byteLength) break;
+        if (byte !== PDF_SIGNATURE[signatureOffset]) {
+          await reader.cancel();
+          throw new Error("TDnet primary document body must have a PDF signature");
+        }
+        signatureOffset += 1;
+      }
+      hash.update(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  if (byteLength === 0) {
+    throw new Error("TDnet primary document body must not be empty");
+  }
+  if (signatureOffset < PDF_SIGNATURE.byteLength) {
     throw new Error("TDnet primary document body must have a PDF signature");
   }
-  for (let index = 0; index < PDF_SIGNATURE.byteLength; index += 1) {
-    if (bytes[index] !== PDF_SIGNATURE[index]) {
-      throw new Error("TDnet primary document body must have a PDF signature");
-    }
-  }
+
+  return {
+    byteLength,
+    contentHash: hash.digest("hex"),
+  };
 }
 
 export async function acquireTdnetPrimaryDocumentEvidence(
@@ -101,17 +142,10 @@ export async function acquireTdnetPrimaryDocumentEvidence(
     }
   }
 
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  if (bytes.byteLength === 0) {
-    throw new Error("TDnet primary document body must not be empty");
+  const body = await readPrimaryDocumentBody(response, maxBytes);
+  if (declaredLength !== null && declaredLength !== body.byteLength) {
+    throw new Error(`TDnet primary document content-length mismatch (${declaredLength} !== ${body.byteLength})`);
   }
-  if (bytes.byteLength > maxBytes) {
-    throw new Error(`TDnet primary document exceeds maxBytes (${bytes.byteLength} > ${maxBytes})`);
-  }
-  if (declaredLength !== null && declaredLength !== bytes.byteLength) {
-    throw new Error(`TDnet primary document content-length mismatch (${declaredLength} !== ${bytes.byteLength})`);
-  }
-  assertPdfSignature(bytes);
 
   const retrievedAt = now();
   parseExplicitIso8601Instant(retrievedAt, "TDnet primary document retrievedAt");
@@ -130,8 +164,8 @@ export async function acquireTdnetPrimaryDocumentEvidence(
     candidateId: candidate.candidateId,
     sourceUrl: finalUrl.href,
     retrievedAt,
-    contentHash: createHash("sha256").update(bytes).digest("hex"),
-    byteLength: bytes.byteLength,
+    contentHash: body.contentHash,
+    byteLength: body.byteLength,
     contentType,
   };
 }
