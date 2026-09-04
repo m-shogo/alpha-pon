@@ -106,6 +106,16 @@ function validateRegistrationInput(input: MarketEventRegistrationInput): void {
   });
   for (const source of input.sources) {
     if (
+      compareExplicitIso8601Instants(
+        source.retrievedAt,
+        input.observedAt,
+        "source.retrievedAt",
+        "observedAt",
+      ) > 0
+    ) {
+      throw new Error("source.retrievedAt must be on or before observedAt");
+    }
+    if (
       source.publishedAt !== null
       && compareExplicitIso8601Instants(
         source.publishedAt,
