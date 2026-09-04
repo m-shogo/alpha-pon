@@ -105,6 +105,7 @@ export function prepareTdnetRegistrationPreview(
     changeType: "CREATED",
     facts: {
       tdnetCandidateId: candidate.candidateId,
+      tdnetSourceCode: candidate.sourceCode,
       tdnetMatchedSignals: [...candidate.matchedSignals],
       sourcePublicationIsEventTime: false,
     },
