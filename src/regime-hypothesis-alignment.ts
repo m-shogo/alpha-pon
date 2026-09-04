@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { load } from "js-yaml";
 import { normalizeCompanyHypothesesRoot } from "./company-coverage-input.js";
@@ -7,11 +7,14 @@ import {
   normalizeAlignmentHypothesisCategories,
 } from "./regime-hypothesis-alignment-input.js";
 import { todayJst } from "./date.js";
+import { readReadOnlyTextFile } from "./read-only-text-file.js";
 
 function main() {
   const date = todayJst();
-  const rawRegime = load(readFileSync("config/current-regime.yml", "utf-8"));
-  const rawHypotheses = load(readFileSync("config/company-hypotheses.yml", "utf-8"));
+  const rawRegimeText = readReadOnlyTextFile("config/current-regime.yml");
+  const rawHypothesesText = readReadOnlyTextFile("config/company-hypotheses.yml");
+  const rawRegime = rawRegimeText ? load(rawRegimeText) : {};
+  const rawHypotheses = rawHypothesesText ? load(rawHypothesesText) : {};
   const regime = normalizeActiveRegimeCategoryIds(rawRegime);
   const hypotheses = normalizeAlignmentHypothesisCategories(normalizeCompanyHypothesesRoot(rawHypotheses));
   const warnings = [...regime.warnings, ...hypotheses.warnings];
