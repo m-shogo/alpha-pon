@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { validateMarketEventBundle } from "../src/market-events/contracts.js";
 import { buildMarketEventBundle, type MarketEventRegistrationInput } from "../src/market-events/registration.js";
 
 const input: MarketEventRegistrationInput = {
@@ -59,5 +60,17 @@ const valid = buildMarketEventBundle({
   existingCreatedAt: null,
 });
 assert.equal(valid.sources[0]?.retrievedAt, "2026-09-04T15:06:00+09:00");
+
+assert.throws(
+  () => validateMarketEventBundle({
+    ...valid,
+    sources: valid.sources.map(source => ({
+      ...source,
+      retrievedAt: "2026-09-04T15:06:01+09:00",
+    })),
+  }),
+  /source\.retrievedAt must be on or before observedAt/,
+  "generic bundle validation must not allow referenced evidence to be retrieved after the revision was observed",
+);
 
 console.log("market-event-source-observation-chronology: ok");
