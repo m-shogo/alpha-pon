@@ -58,20 +58,35 @@ assert.deepEqual(evidence, {
 assert.equal("body" in evidence, false, "raw primary document bytes must not be returned or persisted by the evidence boundary");
 
 let fetchCalls = 0;
+const failIfFetched = (async () => {
+  fetchCalls += 1;
+  return fakeResponse();
+}) as typeof fetch;
+
 await assert.rejects(
   () => acquireTdnetPrimaryDocumentEvidence(
     { ...candidate, sourceUrl: "https://example.com/inbs/140120260904000010.pdf" },
-    {
-      fetchImpl: (async () => {
-        fetchCalls += 1;
-        return fakeResponse();
-      }) as typeof fetch,
-      now: () => "2026-09-04T15:05:00+09:00",
-    },
+    { fetchImpl: failIfFetched, now: () => "2026-09-04T15:05:00+09:00" },
   ),
   /official TDnet document URL/,
 );
-assert.equal(fetchCalls, 0, "off-domain candidate URLs must fail before network access");
+
+await assert.rejects(
+  () => acquireTdnetPrimaryDocumentEvidence(
+    { ...candidate, sourceUrl: "https://www.release.tdnet.info:444/inbs/140120260904000010.pdf" },
+    { fetchImpl: failIfFetched, now: () => "2026-09-04T15:05:00+09:00" },
+  ),
+  /official TDnet document URL/,
+);
+
+await assert.rejects(
+  () => acquireTdnetPrimaryDocumentEvidence(
+    { ...candidate, sourceUrl: "https://user:secret@www.release.tdnet.info/inbs/140120260904000010.pdf" },
+    { fetchImpl: failIfFetched, now: () => "2026-09-04T15:05:00+09:00" },
+  ),
+  /official TDnet document URL/,
+);
+assert.equal(fetchCalls, 0, "non-official TDnet origins and credentialed URLs must fail before network access");
 
 await assert.rejects(
   () => acquireTdnetPrimaryDocumentEvidence(candidate, {
