@@ -1,3 +1,7 @@
+import { compareExplicitIso8601Instants } from "../research/iso-instant.js";
+import { assertIsoTimestamp } from "./contracts.js";
+import { validateMarketEventRevisionChronology } from "./revision-chronology.js";
+
 export const D1_SYNC_TABLES = [
   "market_events",
   "event_sources",
@@ -149,6 +153,52 @@ function validateJsonFields(table: D1SyncTable, rows: D1SyncRow[], errors: strin
   }
 }
 
+function validateSourceChronology(source: D1SyncRow, label: string, errors: string[]): void {
+  const sourceId = String(source.source_id ?? "<missing>");
+  const retrievedAt = source.retrieved_at;
+  const publishedAt = source.published_at;
+  try {
+    if (typeof retrievedAt !== "string") throw new Error("retrieved_at must be a string");
+    assertIsoTimestamp(retrievedAt, "retrieved_at");
+    if (publishedAt !== null) {
+      if (typeof publishedAt !== "string") throw new Error("published_at must be a string or null");
+      assertIsoTimestamp(publishedAt, "published_at");
+      if (compareExplicitIso8601Instants(publishedAt, retrievedAt, "published_at", "retrieved_at") > 0) {
+        throw new Error("published_at must be on or before retrieved_at");
+      }
+    }
+  } catch (error) {
+    errors.push(`${label}: source ${sourceId} chronology invalid: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+function validateRevisionChronology(revision: D1SyncRow, label: string, errors: string[]): void {
+  const revisionId = String(revision.revision_id ?? "<missing>");
+  try {
+    const observedAt = revision.observed_at;
+    const publishedAt = revision.published_at;
+    const effectiveAt = revision.effective_at;
+    const firstExecutableAt = revision.first_executable_at;
+    if (typeof observedAt !== "string") throw new Error("observed_at must be a string");
+    assertIsoTimestamp(observedAt, "observed_at");
+    if (publishedAt !== null && typeof publishedAt !== "string") throw new Error("published_at must be a string or null");
+    if (effectiveAt !== null) {
+      if (typeof effectiveAt !== "string") throw new Error("effective_at must be a string or null");
+      assertIsoTimestamp(effectiveAt, "effective_at");
+    }
+    if (firstExecutableAt !== null && typeof firstExecutableAt !== "string") {
+      throw new Error("first_executable_at must be a string or null");
+    }
+    validateMarketEventRevisionChronology({
+      observedAt,
+      publishedAt: publishedAt as string | null,
+      firstExecutableAt: firstExecutableAt as string | null,
+    });
+  } catch (error) {
+    errors.push(`${label}: revision ${revisionId} chronology invalid: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
 export function validateD1SyncSnapshot(snapshot: D1SyncSnapshot, label: string): string[] {
   const errors: string[] = [];
   const indexes = Object.fromEntries(
@@ -159,6 +209,7 @@ export function validateD1SyncSnapshot(snapshot: D1SyncSnapshot, label: string):
 
   for (const source of snapshot.event_sources) {
     const sourceId = String(source.source_id ?? "<missing>");
+    validateSourceChronology(source, label, errors);
     if (!indexes.market_events.has(String(source.event_id))) {
       errors.push(`${label}: source ${sourceId} references missing event ${String(source.event_id)}`);
     }
@@ -168,6 +219,7 @@ export function validateD1SyncSnapshot(snapshot: D1SyncSnapshot, label: string):
   for (const revision of snapshot.event_revisions) {
     const revisionId = String(revision.revision_id ?? "<missing>");
     const eventId = String(revision.event_id ?? "");
+    validateRevisionChronology(revision, label, errors);
     if (!indexes.market_events.has(eventId)) {
       errors.push(`${label}: revision ${revisionId} references missing event ${eventId}`);
     }
@@ -180,6 +232,23 @@ export function validateD1SyncSnapshot(snapshot: D1SyncSnapshot, label: string):
             const source = indexes.event_sources.get(sourceId);
             if (!source || String(source.event_id ?? "") !== eventId) {
               errors.push(`${label}: revision ${revisionId} references invalid source ${sourceId}`);
+              continue;
+            }
+            if (typeof source.retrieved_at === "string" && typeof revision.observed_at === "string") {
+              try {
+                if (
+                  compareExplicitIso8601Instants(
+                    source.retrieved_at,
+                    revision.observed_at,
+                    "source.retrieved_at",
+                    "revision.observed_at",
+                  ) > 0
+                ) {
+                  errors.push(`${label}: revision ${revisionId} references source ${sourceId} retrieved after observed_at`);
+                }
+              } catch {
+                // Timestamp diagnostics are emitted by the source/revision chronology validators above.
+              }
             }
           }
         }
