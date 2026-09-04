@@ -538,6 +538,16 @@ export function validateMarketEventBundle(bundle: MarketEventBundle): void {
     assertIsoTimestamp(delivery.scheduledAt, "scheduledAt");
     assertIsoTimestamp(delivery.createdAt, "delivery createdAt");
     assertIsoTimestamp(delivery.updatedAt, "delivery updatedAt");
+    if (
+      compareExplicitIso8601Instants(
+        delivery.updatedAt,
+        delivery.createdAt,
+        "delivery updatedAt",
+        "delivery createdAt",
+      ) < 0
+    ) {
+      throw new Error("delivery updatedAt must be on or after delivery createdAt");
+    }
     for (const [fieldName, value] of [
       ["lastAttemptAt", delivery.lastAttemptAt],
       ["deliveredAt", delivery.deliveredAt],

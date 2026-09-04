@@ -85,4 +85,30 @@ assert.throws(
   "generic bundle validation must not allow evidence to claim publication after retrieval",
 );
 
+assert.throws(
+  () => validateMarketEventBundle({
+    ...valid,
+    deliveries: [{
+      schemaVersion: 1,
+      deliveryId: "dlv_delivery_chronology_regression",
+      deliveryKey: "chronology-regression",
+      eventId: valid.event.eventId,
+      revisionId: valid.revision.revisionId,
+      channel: "IN_APP",
+      state: "PENDING",
+      payload: {},
+      scheduledAt: "2026-09-05T10:00:00+09:00",
+      attemptCount: 0,
+      lastAttemptAt: null,
+      deliveredAt: null,
+      lastError: null,
+      leaseExpiresAt: null,
+      createdAt: "2026-09-04T15:06:00+09:00",
+      updatedAt: "2026-09-04T15:05:59+09:00",
+    }],
+  }),
+  /delivery updatedAt must be on or after delivery createdAt/,
+  "generic bundle validation must reject delivery state that predates delivery creation",
+);
+
 console.log("market-event-source-observation-chronology: ok");
