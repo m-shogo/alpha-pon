@@ -1,4 +1,5 @@
 import { existsSync, lstatSync, readFileSync } from "fs";
+import { dirname, resolve, sep } from "path";
 import { normalizeReadOnlyJsonObjectArrayField } from "./read-only-json.js";
 
 export type ReadOnlyJsonArrayFileLoad<T> = {
@@ -29,10 +30,26 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function hasSymlinkedAncestorWithinCwd(path: string): boolean {
+  const root = resolve(process.cwd());
+  let current = dirname(resolve(path));
+  if (current !== root && !current.startsWith(`${root}${sep}`)) return false;
+
+  while (current !== root) {
+    const stat = lstatSync(current);
+    if (stat.isSymbolicLink()) return true;
+    const parent = dirname(current);
+    if (parent === current) return false;
+    current = parent;
+  }
+  return false;
+}
+
 export function isCanonicalReadOnlyJsonFile(path: string): boolean {
   try {
+    if (hasSymlinkedAncestorWithinCwd(path)) return false;
     const stat = lstatSync(path);
-    return stat.isFile() && stat.nlink === 1;
+    return stat.isFile() && !stat.isSymbolicLink() && stat.nlink === 1;
   } catch {
     return false;
   }
