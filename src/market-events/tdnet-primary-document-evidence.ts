@@ -31,6 +31,8 @@ function assertOfficialTdnetDocumentUrl(value: string, label: string): URL {
     parsed.origin !== "https://www.release.tdnet.info"
     || parsed.username !== ""
     || parsed.password !== ""
+    || parsed.search !== ""
+    || parsed.hash !== ""
     || !parsed.pathname.startsWith("/inbs/")
     || !parsed.pathname.toLowerCase().endsWith(".pdf")
   ) {

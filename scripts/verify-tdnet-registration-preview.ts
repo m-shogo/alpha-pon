@@ -95,6 +95,19 @@ try {
   replayDb.close();
 }
 
+for (const nonCanonicalUrl of [
+  "https://www.release.tdnet.info/inbs/140120260904000010.pdf?download=1",
+  "https://www.release.tdnet.info/inbs/140120260904000010.pdf#page=1",
+]) {
+  assert.throws(
+    () => prepareTdnetRegistrationPreview(
+      { ...candidate, sourceUrl: nonCanonicalUrl },
+      assessment,
+      metadata,
+    ),
+    /official TDnet source URL/,
+  );
+}
 assert.throws(
   () => prepareTdnetRegistrationPreview(
     { ...candidate, sourceUrl: "https://example.com/inbs/140120260904000010.pdf" },
