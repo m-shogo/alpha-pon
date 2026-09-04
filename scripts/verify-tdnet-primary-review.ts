@@ -13,7 +13,7 @@ const candidate = classifyTdnetDisclosureCandidate({
   publishedAt: "2026-09-04T15:00:00+09:00",
   url: "https://www.release.tdnet.info/inbs/140120260904000001.pdf",
 });
-assert(candidate);
+if (!candidate) throw new Error("shareholder meeting disclosure must classify as a TDnet candidate");
 
 function decision(overrides: Partial<TdnetPrimaryReviewDecision> = {}): TdnetPrimaryReviewDecision {
   return {
