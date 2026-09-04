@@ -1,8 +1,8 @@
-// TDnet候補自動追加: JPX適時開示ページ → watchlist.yml
-// pnpm sync:tdnet           # 実際に追加
-// pnpm sync:tdnet --dry-run # プレビューのみ
+// TDnet候補自動追加: TDnet公式閲覧サービス → watchlist.yml
+// package.json の sync:tdnet / sync:tdnet:dry は dry-run 固定。
+// このファイルを直接 --dry-run なしで実行した場合だけ addCandidates が書き込み可能。
 
-import { fetchTdnetDisclosures } from "./fetcher/jpx.js";
+import { fetchTdnetDisclosureSnapshot } from "./fetcher/jpx.js";
 import { STRUCTURAL_KEYWORDS } from "./fetcher/edinet.js";
 import { addCandidates, loadWatchlistRaw } from "./watchlist-writer.js";
 import type { Candidate } from "./types.js";
@@ -13,12 +13,12 @@ async function main() {
   console.log(`\nTDnet構造イベントスキャン${dryRun ? " (dry-run)" : ""}\n`);
   console.log(`検索キーワード: ${STRUCTURAL_KEYWORDS.join(" / ")}\n`);
 
-  let disclosures;
+  let snapshot;
   try {
-    disclosures = await fetchTdnetDisclosures();
+    snapshot = await fetchTdnetDisclosureSnapshot();
   } catch (err) {
-    console.error(`JPX適時開示取得失敗: ${err instanceof Error ? err.message : err}`);
-    console.log("JPXページの構造が変わった可能性があります。手動で確認してください。");
+    console.error(`TDnet公式閲覧サービス取得失敗: ${err instanceof Error ? err.message : err}`);
+    console.log("TDnetの公開一覧またはHTML構造が変わった可能性があります。手動で確認してください。");
     if (dryRun) {
       console.log("dry-run のため、TDnet候補追加はスキップして後続pipelineへ進みます。");
       return;
@@ -26,13 +26,16 @@ async function main() {
     process.exit(1);
   }
 
+  const disclosures = snapshot.disclosures;
   if (disclosures.length === 0) {
-    console.log("開示情報が取得できませんでした (JPXページがJS描画の可能性があります)");
-    console.log("代替: pnpm scan:edinet で EDINET 経由のスキャンを試してください");
+    if (!snapshot.explicitEmpty) {
+      throw new Error("TDnet snapshot returned zero rows without explicit-empty proof");
+    }
+    console.log(`TDnet開示なし: ${snapshot.observationDate} は公式一覧で0件と明示されています。`);
     return;
   }
 
-  console.log(`開示取得: ${disclosures.length}件\n`);
+  console.log(`開示取得: ${disclosures.length}件 (${snapshot.pageCount}ページ)\n`);
 
   // 構造イベントキーワードでフィルタ
   const structural = disclosures.filter(d =>
@@ -63,7 +66,7 @@ async function main() {
     console.log(`  ${d.code} ${d.companyName}`);
     console.log(`    タイトル: ${d.title}`);
     console.log(`    キーワード: ${matchedKws.join(", ")}`);
-    console.log(`    日時: ${d.publishedAt}`);
+    console.log(`    公開日時: ${d.publishedAt}`);
     console.log();
   }
 
