@@ -308,6 +308,29 @@ export function validateD1SyncSnapshot(snapshot: D1SyncSnapshot, label: string):
     }
     if (!revision || revision.event_id !== eventId) {
       errors.push(`${label}: decision ${decisionId} references invalid revision ${revisionId}`);
+      continue;
+    }
+    const createdAt = decision.created_at;
+    if (typeof createdAt !== "string") {
+      errors.push(`${label}: decision ${decisionId} created_at must be a string`);
+      continue;
+    }
+    try {
+      assertIsoTimestamp(createdAt, "decision created_at");
+      if (typeof revision.observed_at === "string") {
+        if (
+          compareExplicitIso8601Instants(
+            createdAt,
+            revision.observed_at,
+            "decision.created_at",
+            "revision.observed_at",
+          ) < 0
+        ) {
+          errors.push(`${label}: decision ${decisionId} was created before revision ${revisionId} was observed`);
+        }
+      }
+    } catch (error) {
+      errors.push(`${label}: decision ${decisionId} chronology invalid: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
