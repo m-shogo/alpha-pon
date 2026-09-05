@@ -66,7 +66,7 @@ assert.deepEqual(unknownTime.normalized.notes, ["primary document reviewed"]);
 
 const ready = assessTdnetPrimaryReview(candidate, decision({
   eventType: "SHAREHOLDER_MEETING",
-  occurrenceKey: " annual-general-meeting-2026 ",
+  occurrenceKey: "annual-general-meeting-2026",
   time: {
     startAt: "2026-10-20",
     endAt: null,
@@ -84,6 +84,17 @@ assert.equal(ready.registrationPreviewReady, true);
 assert.deepEqual(ready.blockers, []);
 assert.deepEqual(ready.warnings, []);
 assert.equal(ready.normalized.occurrenceKey, "annual-general-meeting-2026");
+
+for (const nonCanonicalOccurrenceKey of [
+  " annual-general-meeting-2026",
+  "annual-general-meeting-2026 ",
+]) {
+  assert.throws(
+    () => assessTdnetPrimaryReview(candidate, decision({ occurrenceKey: nonCanonicalOccurrenceKey })),
+    /occurrenceKey must be canonical without surrounding whitespace/,
+    "review must reject whitespace-normalized occurrence keys instead of rewriting stable event identity",
+  );
+}
 
 const exactReady = assessTdnetPrimaryReview(candidate, decision({
   eventType: "PRESS_CONFERENCE",
