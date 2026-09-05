@@ -51,15 +51,50 @@ assert.throws(
   "registration must not claim an observation before the source was retrieved",
 );
 
-const valid = buildMarketEventBundle({
+const validInput: MarketEventRegistrationInput = {
   ...input,
   observedAt: "2026-09-04T15:06:00+09:00",
-}, {
+};
+
+assert.throws(
+  () => buildMarketEventBundle({
+    ...validInput,
+    sources: validInput.sources.map(source => ({
+      ...source,
+      contentHash: "A".repeat(64),
+    })),
+  }, {
+    revisionNumber: 1,
+    previousRevisionId: null,
+    existingCreatedAt: null,
+  }),
+  /canonical lowercase SHA-256 contentHash/,
+  "registration must reject uppercase source hashes instead of silently normalizing provenance",
+);
+
+assert.throws(
+  () => buildMarketEventBundle({
+    ...validInput,
+    sources: validInput.sources.map(source => ({
+      ...source,
+      contentHash: ` ${"a".repeat(64)} `,
+    })),
+  }, {
+    revisionNumber: 1,
+    previousRevisionId: null,
+    existingCreatedAt: null,
+  }),
+  /canonical lowercase SHA-256 contentHash/,
+  "registration must reject whitespace-padded source hashes instead of silently trimming provenance",
+);
+
+const valid = buildMarketEventBundle(validInput, {
   revisionNumber: 1,
   previousRevisionId: null,
   existingCreatedAt: null,
 });
 assert.equal(valid.sources[0]?.retrievedAt, "2026-09-04T15:06:00+09:00");
+assert.equal(valid.sources[0]?.contentHash, "a".repeat(64), "registration must preserve canonical source hashes exactly");
 
 assert.throws(
   () => validateMarketEventBundle({
