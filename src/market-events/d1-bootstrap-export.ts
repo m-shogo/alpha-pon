@@ -31,6 +31,14 @@ const TABLE_ROW_ORDER: Record<(typeof TABLE_ORDER)[number], string> = {
   review_tasks: "event_id, due_at, review_task_id",
 };
 
+const SCHEMA_VERSION_TABLES = [
+  { table: "market_events", id: "event_id" },
+  { table: "event_revisions", id: "revision_id" },
+  { table: "event_sources", id: "source_id" },
+  { table: "decision_snapshots", id: "decision_snapshot_id" },
+  { table: "delivery_outbox", id: "delivery_id" },
+] as const;
+
 type SqlValue = string | number | bigint | Uint8Array | null;
 
 function quoteIdentifier(value: string): string {
@@ -63,6 +71,22 @@ function tableRows(
   return db.prepare(
     `SELECT ${select} FROM ${quoteIdentifier(table)} ORDER BY ${TABLE_ROW_ORDER[table]}`,
   ).all() as Record<string, SqlValue>[];
+}
+
+function assertSupportedSchemaVersions(db: MarketEventDatabase): void {
+  const unsupported: Array<{ table: string; id: string; schemaVersion: number }> = [];
+  for (const check of SCHEMA_VERSION_TABLES) {
+    const rows = db.prepare(`
+      SELECT ${check.id} AS id, schema_version AS schemaVersion
+      FROM ${check.table}
+      WHERE schema_version != 1
+      ORDER BY ${check.id}
+    `).all() as Array<{ id: string; schemaVersion: number }>;
+    unsupported.push(...rows.map(row => ({ table: check.table, ...row })));
+  }
+  if (unsupported.length > 0) {
+    throw new Error(`D1 bootstrap rejects unsupported persisted schema versions: ${JSON.stringify(unsupported)}`);
+  }
 }
 
 function assertCurrentRevisionPointersAreLatest(db: MarketEventDatabase): void {
@@ -101,6 +125,7 @@ export function buildD1BootstrapExport(
 ): D1BootstrapExport {
   void options.generatedAt;
   void options.sourceDatabase;
+  assertSupportedSchemaVersions(db);
   assertCurrentRevisionPointersAreLatest(db);
   const rowCounts: Record<string, number> = {};
   const lines: string[] = ["PRAGMA foreign_keys = ON;"];
