@@ -55,7 +55,7 @@ const unknownTime = assessTdnetPrimaryReview(candidate, decision({
     windowStart: null,
     windowEnd: null,
   },
-  sourceContentHash: "A".repeat(64),
+  sourceContentHash: "a".repeat(64),
   sourceRetrievedAt: "2026-09-04T15:05:00+09:00",
   notes: [" primary document reviewed ", "primary document reviewed"],
 }));
@@ -167,6 +167,14 @@ assert.throws(
     sourceContentHash: "not-a-sha256",
   })),
   /sourceContentHash must be a 64-character lowercase hex SHA-256/,
+);
+
+assert.throws(
+  () => assessTdnetPrimaryReview(candidate, decision({
+    sourceContentHash: "A".repeat(64),
+  })),
+  /sourceContentHash must be a 64-character lowercase hex SHA-256/,
+  "review must reject uppercase hashes instead of silently rewriting provenance",
 );
 
 assert.throws(
