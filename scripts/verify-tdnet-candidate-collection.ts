@@ -84,8 +84,26 @@ try {
   assert.equal(empty.explicitEmpty, true);
   assert.deepEqual(empty.candidates, []);
 
-  const failed = await collectTdnetSourceOnce(db, {
+  const malformed = await collectTdnetSourceOnce(db, {
     now: () => "2026-09-04T07:15:00Z",
+    fetchSnapshot: async () => ({
+      disclosures: [{ ...disclosures[0]!, sourceCode: " 81360 " }],
+      explicitEmpty: false,
+    }),
+  });
+  assert.equal(malformed.status, "failed", "candidate classification failures must be recorded as source failures");
+  assert.deepEqual(malformed.candidates, []);
+  assert.match(malformed.error ?? "", /sourceCode must be an exact 5-character uppercase source value/);
+  const malformedCheckpoint = db.prepare(`
+    SELECT consecutive_failures AS consecutiveFailures, last_error AS lastError
+    FROM source_checkpoints
+    WHERE source_key = ?
+  `).get(malformed.sourceKey) as { consecutiveFailures: number; lastError: string | null };
+  assert.equal(malformedCheckpoint.consecutiveFailures, 1);
+  assert.match(malformedCheckpoint.lastError ?? "", /sourceCode must be an exact 5-character uppercase source value/);
+
+  const failed = await collectTdnetSourceOnce(db, {
+    now: () => "2026-09-04T07:20:00Z",
     fetchSnapshot: async () => {
       throw new Error("source unavailable");
     },
