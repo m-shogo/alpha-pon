@@ -65,6 +65,19 @@ for (const candidate of preview.candidates) {
 }
 
 assert.throws(
+  () => buildTdnetCandidatePreview({
+    ...snapshot,
+    disclosures: [
+      { ...snapshot.disclosures[0]!, sourceCode: " 81360" },
+    ],
+    pageCount: 1,
+    pageUrls: [snapshot.pageUrls[0]!],
+  }),
+  /sourceCode must be an exact 5-character uppercase source value/,
+  "candidate projection must reject non-canonical raw TDnet sourceCode instead of trimming provenance",
+);
+
+assert.throws(
   () => buildTdnetCandidatePreview({ ...snapshot, pageCount: 1 }),
   /pageUrls must match pageCount/,
 );

@@ -68,7 +68,7 @@ assert.equal(
 
 const canonical = disclosure({
   code: " 8136 ",
-  sourceCode: " 81360 ",
+  sourceCode: "81360",
   companyName: " サンリオ ",
   title: " 第三者委員会の設置に関するお知らせ ",
   publishedAt: " 2026-09-04T09:00:00+09:00 ",
@@ -78,9 +78,15 @@ const canonicalCandidate = classifyTdnetDisclosureCandidate(canonical);
 assert.equal(
   canonicalCandidate?.candidateId,
   setup.candidateId,
-  "candidate identity must be stable across harmless surrounding whitespace",
+  "candidate identity must be stable across harmless surrounding whitespace outside raw source provenance",
 );
 assert.equal(canonicalCandidate?.sourceCode, "81360");
+
+assert.throws(
+  () => classifyTdnetDisclosureCandidate(disclosure({ sourceCode: " 81360 " })),
+  /sourceCode must be an exact 5-character uppercase source value/,
+  "raw TDnet sourceCode must not be treated as harmless whitespace-normalizable metadata",
+);
 
 const legacyWithoutRawSourceCode = classifyTdnetDisclosureCandidate(disclosure({ sourceCode: undefined }));
 assert.equal(
