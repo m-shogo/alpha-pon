@@ -139,11 +139,12 @@ export function upsertSourceCheckpoint(
   db: MarketEventDatabase,
   checkpoint: SourceCheckpoint,
 ): SourceCheckpointWriteResult {
-  validateCheckpoint(checkpoint);
+  const normalized = checkpoint;
+  validateCheckpoint(normalized);
 
   db.exec("BEGIN IMMEDIATE");
   try {
-    const existing = getSourceCheckpoint(db, checkpoint.sourceKey);
+    const existing = getSourceCheckpoint(db, normalized.sourceKey);
     if (existing === null) {
       db.prepare(`
         INSERT INTO source_checkpoints (
@@ -160,56 +161,56 @@ export function upsertSourceCheckpoint(
           last_error
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
-        checkpoint.sourceKey,
-        checkpoint.sourceType,
-        checkpoint.cursorValue,
-        checkpoint.etag,
-        checkpoint.lastModified,
-        checkpoint.lastContentHash,
-        checkpoint.lastCheckedAt,
-        checkpoint.lastSuccessAt,
-        checkpoint.consecutiveFailures,
-        checkpoint.nextCheckAt,
-        checkpoint.lastError,
+        normalized.sourceKey,
+        normalized.sourceType,
+        normalized.cursorValue,
+        normalized.etag,
+        normalized.lastModified,
+        normalized.lastContentHash,
+        normalized.lastCheckedAt,
+        normalized.lastSuccessAt,
+        normalized.consecutiveFailures,
+        normalized.nextCheckAt,
+        normalized.lastError,
       );
       db.exec("COMMIT");
       return "inserted";
     }
 
-    if (existing.sourceType !== checkpoint.sourceType) {
-      throw new Error(`sourceType cannot change for ${checkpoint.sourceKey}`);
+    if (existing.sourceType !== normalized.sourceType) {
+      throw new Error(`sourceType cannot change for ${normalized.sourceKey}`);
     }
 
     const checkedComparison = compareExplicitIso8601Instants(
-      checkpoint.lastCheckedAt,
+      normalized.lastCheckedAt,
       existing.lastCheckedAt,
       "incoming lastCheckedAt",
       "existing lastCheckedAt",
     );
     if (checkedComparison < 0) {
-      throw new Error(`source checkpoint cannot move backwards for ${checkpoint.sourceKey}`);
+      throw new Error(`source checkpoint cannot move backwards for ${normalized.sourceKey}`);
     }
     if (checkedComparison === 0) {
-      if (!sameCheckpoint(existing, checkpoint)) {
-        throw new Error(`source checkpoint collision at the same lastCheckedAt for ${checkpoint.sourceKey}`);
+      if (!sameCheckpoint(existing, normalized)) {
+        throw new Error(`source checkpoint collision at the same lastCheckedAt for ${normalized.sourceKey}`);
       }
       db.exec("COMMIT");
       return "unchanged";
     }
 
     if (existing.lastSuccessAt !== null) {
-      if (checkpoint.lastSuccessAt === null) {
-        throw new Error(`source checkpoint cannot forget lastSuccessAt for ${checkpoint.sourceKey}`);
+      if (normalized.lastSuccessAt === null) {
+        throw new Error(`source checkpoint cannot forget lastSuccessAt for ${normalized.sourceKey}`);
       }
       if (
         compareExplicitIso8601Instants(
-          checkpoint.lastSuccessAt,
+          normalized.lastSuccessAt,
           existing.lastSuccessAt,
           "incoming lastSuccessAt",
           "existing lastSuccessAt",
         ) < 0
       ) {
-        throw new Error(`source checkpoint cannot regress lastSuccessAt for ${checkpoint.sourceKey}`);
+        throw new Error(`source checkpoint cannot regress lastSuccessAt for ${normalized.sourceKey}`);
       }
     }
 
@@ -227,16 +228,16 @@ export function upsertSourceCheckpoint(
         last_error = ?
       WHERE source_key = ?
     `).run(
-      checkpoint.cursorValue,
-      checkpoint.etag,
-      checkpoint.lastModified,
-      checkpoint.lastContentHash,
-      checkpoint.lastCheckedAt,
-      checkpoint.lastSuccessAt,
-      checkpoint.consecutiveFailures,
-      checkpoint.nextCheckAt,
-      checkpoint.lastError,
-      checkpoint.sourceKey,
+      normalized.cursorValue,
+      normalized.etag,
+      normalized.lastModified,
+      normalized.lastContentHash,
+      normalized.lastCheckedAt,
+      normalized.lastSuccessAt,
+      normalized.consecutiveFailures,
+      normalized.nextCheckAt,
+      normalized.lastError,
+      normalized.sourceKey,
     );
     db.exec("COMMIT");
     return "updated";
