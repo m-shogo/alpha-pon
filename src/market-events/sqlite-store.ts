@@ -221,7 +221,7 @@ export function applyMarketEventMigrations(
   migrationDirectory = DEFAULT_MARKET_EVENT_MIGRATION_DIR,
 ): string[] {
   const applied: string[] = [];
-  for (const path of migrationFiles(directory)) {
+  for (const path of migrationFiles(migrationDirectory)) {
     const sql = readFileSync(path, "utf8");
     db.exec(sql);
     applied.push(path);
