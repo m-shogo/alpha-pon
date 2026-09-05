@@ -130,6 +130,7 @@ try {
   assert.equal(audit.counts.outbox, 1);
 
   const sourceId = first.sources[0].sourceId;
+  db.exec("DROP TRIGGER trg_event_sources_no_update");
   db.prepare("UPDATE event_sources SET content_hash = ? WHERE source_id = ?").run("not-a-sha256", sourceId);
   assert.throws(
     () => listEventSources(db, eventId),
