@@ -73,7 +73,11 @@ function normalizeDecision(decision: TdnetPrimaryReviewDecision): TdnetPrimaryRe
   const eventType = decision.eventType;
   if (eventType !== null) assertKnownMarketEventType(eventType);
 
-  const occurrenceKey = decision.occurrenceKey?.trim() || null;
+  const occurrenceKey = decision.occurrenceKey;
+  if (occurrenceKey !== null && occurrenceKey.trim() !== occurrenceKey) {
+    throw new Error("occurrenceKey must be canonical without surrounding whitespace");
+  }
+  const normalizedOccurrenceKey = occurrenceKey === "" ? null : occurrenceKey;
   const sourceContentHash = decision.sourceContentHash;
   const sourceRetrievedAt = decision.sourceRetrievedAt;
   if (sourceRetrievedAt !== null) assertIsoTimestamp(sourceRetrievedAt, "sourceRetrievedAt");
@@ -83,7 +87,7 @@ function normalizeDecision(decision: TdnetPrimaryReviewDecision): TdnetPrimaryRe
     ...decision,
     candidateId: decision.candidateId,
     eventType,
-    occurrenceKey,
+    occurrenceKey: normalizedOccurrenceKey,
     sourceContentHash,
     sourceRetrievedAt,
     notes: normalizeNotes(decision.notes),
