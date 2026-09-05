@@ -96,8 +96,8 @@ function validateRegistrationInput(input: MarketEventRegistrationInput): void {
   if (input.eventType !== "REVIEW_CHECKPOINT" && input.sources.length === 0) {
     throw new Error("Non-review events require at least one source");
   }
-  if (input.sources.some(source => !source.contentHash.trim())) {
-    throw new Error("Every source requires a contentHash");
+  if (input.sources.some(source => !/^[a-f0-9]{64}$/.test(source.contentHash))) {
+    throw new Error("Every source requires a canonical lowercase SHA-256 contentHash");
   }
   validateMarketEventRevisionChronology({
     observedAt: input.observedAt,
@@ -161,7 +161,7 @@ export function buildMarketEventBundle(
     title: source.title.trim(),
     publishedAt: source.publishedAt,
     retrievedAt: source.retrievedAt,
-    contentHash: source.contentHash.trim().toLowerCase(),
+    contentHash: source.contentHash,
     storageClass: source.storageClass,
     objectKey: source.objectKey ?? null,
   }));
