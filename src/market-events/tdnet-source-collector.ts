@@ -185,9 +185,16 @@ export async function collectTdnetSourceOnce(
     );
   }
 
-  const contentHash = hashTdnetDisclosures(snapshot.disclosures);
+  let contentHash: string;
+  let candidates: TdnetMarketEventCandidate[];
+  try {
+    contentHash = hashTdnetDisclosures(snapshot.disclosures);
+    candidates = extractTdnetMarketEventCandidates(snapshot.disclosures);
+  } catch (error) {
+    return recordFailure(db, sourceKey, checkedAt, existing, error);
+  }
+
   const status = existing?.lastContentHash === contentHash ? "unchanged" : "changed";
-  const candidates = extractTdnetMarketEventCandidates(snapshot.disclosures);
   upsertSourceCheckpoint(db, buildSuccessCheckpoint(sourceKey, checkedAt, contentHash, existing));
   return {
     sourceKey,
