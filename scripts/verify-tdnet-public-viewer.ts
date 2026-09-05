@@ -196,6 +196,20 @@ await assert.rejects(
   /first page not found/,
 );
 
+const redirectedViewerFetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+  assert.equal(init?.redirect, "error", "official TDnet public viewer fetches must reject HTTP redirects");
+  const response = new Response(PAGE_1, { status: 200 });
+  Object.defineProperty(response, "url", {
+    value: "https://example.com/inbs/I_list_001_20260904.html",
+  });
+  return response;
+}) as typeof fetch;
+await assert.rejects(
+  fetchTdnetDisclosureSnapshot({ observationDate: DATE, fetchImpl: redirectedViewerFetch, maxPages: 1 }),
+  /final URL must match requested official URL/,
+  "redirected or substituted viewer responses must not be accepted as official TDnet snapshots",
+);
+
 const endlessPages = (async () => new Response(PAGE_1, { status: 200 })) as typeof fetch;
 await assert.rejects(
   fetchTdnetDisclosureSnapshot({ observationDate: DATE, fetchImpl: endlessPages, maxPages: 1 }),
