@@ -60,7 +60,7 @@ function assertOfficialTdnetSourceUrl(value: string): void {
 function assertTdnetSourceCodeProvenance(candidate: TdnetMarketEventCandidate): void {
   if (candidate.sourceCode === null) return;
 
-  const sourceCode = candidate.sourceCode.trim().toUpperCase();
+  const sourceCode = candidate.sourceCode;
   if (!/^[0-9A-Z]{5}$/.test(sourceCode)) {
     throw new Error("TDnet registration preview has invalid sourceCode provenance");
   }
