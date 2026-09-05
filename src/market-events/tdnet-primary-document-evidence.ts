@@ -48,6 +48,17 @@ function parsePositiveMaxBytes(value: number): number {
   return value;
 }
 
+function parseDeclaredContentLength(value: string): number {
+  if (!/^(?:0|[1-9][0-9]*)$/.test(value)) {
+    throw new Error("TDnet primary document content-length must be canonical decimal digits");
+  }
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed)) {
+    throw new Error("TDnet primary document content-length must be a non-negative safe integer");
+  }
+  return parsed;
+}
+
 async function readPrimaryDocumentBody(response: Response, maxBytes: number): Promise<{
   byteLength: number;
   contentHash: string;
@@ -133,10 +144,7 @@ export async function acquireTdnetPrimaryDocumentEvidence(
   const declaredLengthRaw = response.headers.get("content-length");
   let declaredLength: number | null = null;
   if (declaredLengthRaw !== null) {
-    declaredLength = Number(declaredLengthRaw);
-    if (!Number.isSafeInteger(declaredLength) || declaredLength < 0) {
-      throw new Error("TDnet primary document content-length must be a non-negative safe integer");
-    }
+    declaredLength = parseDeclaredContentLength(declaredLengthRaw);
     if (declaredLength > maxBytes) {
       throw new Error(`TDnet primary document exceeds maxBytes (${declaredLength} > ${maxBytes})`);
     }
