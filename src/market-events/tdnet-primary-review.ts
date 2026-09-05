@@ -61,7 +61,10 @@ function hasRegistrationFacts(decision: TdnetPrimaryReviewDecision): boolean {
 }
 
 function normalizeDecision(decision: TdnetPrimaryReviewDecision): TdnetPrimaryReviewDecision {
-  if (!decision.candidateId.trim()) throw new Error("candidateId is required");
+  if (!decision.candidateId) throw new Error("candidateId is required");
+  if (decision.candidateId.trim() !== decision.candidateId) {
+    throw new Error("candidateId must be canonical without surrounding whitespace");
+  }
   if (!(TDNET_PRIMARY_REVIEW_OUTCOMES as readonly string[]).includes(decision.outcome)) {
     throw new Error(`Unknown TDnet primary review outcome: ${decision.outcome}`);
   }
@@ -78,7 +81,7 @@ function normalizeDecision(decision: TdnetPrimaryReviewDecision): TdnetPrimaryRe
 
   return {
     ...decision,
-    candidateId: decision.candidateId.trim(),
+    candidateId: decision.candidateId,
     eventType,
     occurrenceKey,
     sourceContentHash,
