@@ -105,13 +105,20 @@ const RULES: CandidateRule[] = [
   },
 ];
 
+function canonicalSourceProvenance(value: string, fieldName: string): string {
+  if (!value || value.trim() !== value) {
+    throw new Error(`TDnet candidate ${fieldName} must preserve the exact source value without surrounding whitespace`);
+  }
+  return value;
+}
+
 function candidateId(disclosure: TdnetDisclosure): string {
   const canonical = JSON.stringify({
     code: disclosure.code.trim(),
     companyName: disclosure.companyName.trim(),
     title: disclosure.title.trim(),
-    publishedAt: disclosure.publishedAt.trim(),
-    url: disclosure.url.trim(),
+    publishedAt: canonicalSourceProvenance(disclosure.publishedAt, "publishedAt"),
+    url: canonicalSourceProvenance(disclosure.url, "url"),
   });
   return `tdc_${createHash("sha256").update(canonical).digest("hex").slice(0, 24)}`;
 }
@@ -143,8 +150,8 @@ export function classifyTdnetDisclosureCandidate(
     issuerName: disclosure.companyName.trim(),
     disclosureTitle: title,
     // This is source publication metadata only. It is deliberately not EventTime.
-    disclosurePublishedAt: disclosure.publishedAt.trim(),
-    sourceUrl: disclosure.url.trim(),
+    disclosurePublishedAt: canonicalSourceProvenance(disclosure.publishedAt, "publishedAt"),
+    sourceUrl: canonicalSourceProvenance(disclosure.url, "url"),
     eventTypeHint,
     matchedSignals: [...new Set(matchingRules.map(rule => rule.signal))],
     registrationReady: false,
