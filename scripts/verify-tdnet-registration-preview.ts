@@ -206,25 +206,18 @@ assert.throws(
   ),
   /sourceCode does not match issuerCode/,
 );
-assert.throws(
-  () => prepareTdnetRegistrationPreview(
-    { ...candidate, sourceCode: "4661" },
-    assessment,
-    metadata,
-    evidence,
-  ),
-  /invalid sourceCode provenance/,
-  "non-null TDnet sourceCode must preserve the raw five-digit viewer code",
-);
-assert.throws(
-  () => prepareTdnetRegistrationPreview(
-    { ...candidate, sourceCode: "4661-" },
-    assessment,
-    metadata,
-    evidence,
-  ),
-  /invalid sourceCode provenance/,
-);
+for (const nonCanonicalSourceCode of ["4661", "4661-", "4661a", " 46610"] ) {
+  assert.throws(
+    () => prepareTdnetRegistrationPreview(
+      { ...candidate, sourceCode: nonCanonicalSourceCode },
+      assessment,
+      metadata,
+      evidence,
+    ),
+    /invalid sourceCode provenance/,
+    "non-null TDnet sourceCode must preserve the raw canonical five-character viewer code",
+  );
+}
 
 const legacyWithoutSourceCode = prepareTdnetRegistrationPreview(
   { ...candidate, sourceCode: null },
