@@ -84,7 +84,10 @@ function uniqueStrings(values: string[] | undefined): string[] {
 
 function validateRegistrationInput(input: MarketEventRegistrationInput): void {
   if (!input.issuerName.trim()) throw new Error("issuerName is required");
-  if (!input.occurrenceKey.trim()) throw new Error("occurrenceKey is required");
+  if (!input.occurrenceKey) throw new Error("occurrenceKey is required");
+  if (input.occurrenceKey.trim() !== input.occurrenceKey) {
+    throw new Error("occurrenceKey must be canonical without surrounding whitespace");
+  }
   if (!input.title.trim()) throw new Error("title is required");
   if (!input.whyItMatters.trim()) throw new Error("whyItMatters is required");
   if (input.time.precision === "UNKNOWN" && input.status !== "UNKNOWN_DATE" && input.status !== "TENTATIVE") {
@@ -184,7 +187,7 @@ export function buildMarketEventBundle(
   const event = {
     schemaVersion: MARKET_EVENT_SCHEMA_VERSION,
     eventId,
-    occurrenceKey: input.occurrenceKey.trim(),
+    occurrenceKey: input.occurrenceKey,
     issuerCode: input.issuerCode?.trim() || null,
     issuerName: input.issuerName.trim(),
     eventType: input.eventType,
