@@ -129,23 +129,31 @@ try {
   assert.equal(audit.counts.sources, 1);
   assert.equal(audit.counts.outbox, 1);
 
+  db.exec("PRAGMA ignore_check_constraints = ON");
   db.prepare("UPDATE market_events SET schema_version = 2 WHERE event_id = ?").run(eventId);
+  db.exec("PRAGMA ignore_check_constraints = OFF");
   assert.throws(
     () => listMarketEvents(db, { includeCancelled: true }),
     /Unsupported persisted schemaVersion at market_events\..*: 2/,
     "market event reads must fail closed on unsupported persisted schema versions",
   );
+  db.exec("PRAGMA ignore_check_constraints = ON");
   db.prepare("UPDATE market_events SET schema_version = 1 WHERE event_id = ?").run(eventId);
+  db.exec("PRAGMA ignore_check_constraints = OFF");
 
   const sourceId = first.sources[0].sourceId;
   db.exec("DROP TRIGGER trg_event_sources_no_update");
+  db.exec("PRAGMA ignore_check_constraints = ON");
   db.prepare("UPDATE event_sources SET schema_version = 2 WHERE source_id = ?").run(sourceId);
+  db.exec("PRAGMA ignore_check_constraints = OFF");
   assert.throws(
     () => listEventSources(db, eventId),
     /Unsupported persisted schemaVersion at event_sources\..*: 2/,
     "source reads must fail closed on unsupported persisted schema versions",
   );
+  db.exec("PRAGMA ignore_check_constraints = ON");
   db.prepare("UPDATE event_sources SET schema_version = 1 WHERE source_id = ?").run(sourceId);
+  db.exec("PRAGMA ignore_check_constraints = OFF");
 
   db.prepare("UPDATE event_sources SET content_hash = ? WHERE source_id = ?").run("not-a-sha256", sourceId);
   assert.throws(
@@ -267,13 +275,17 @@ try {
     eventId,
   );
 
+  db.exec("PRAGMA ignore_check_constraints = ON");
   db.prepare("UPDATE delivery_outbox SET schema_version = 2");
+  db.exec("PRAGMA ignore_check_constraints = OFF");
   assert.throws(
     () => listPendingDeliveries(db, "2026-08-10T00:00:00Z"),
     /Unsupported persisted schemaVersion at delivery_outbox\..*: 2/,
     "delivery reads must fail closed on unsupported persisted schema versions",
   );
+  db.exec("PRAGMA ignore_check_constraints = ON");
   db.prepare("UPDATE delivery_outbox SET schema_version = 1");
+  db.exec("PRAGMA ignore_check_constraints = OFF");
 
   db.prepare("UPDATE delivery_outbox SET payload_json = ?").run("{");
   assert.throws(
