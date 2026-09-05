@@ -108,6 +108,15 @@ function validateRegistrationInput(input: MarketEventRegistrationInput): void {
     firstExecutableAt: input.firstExecutableAt ?? null,
   });
   for (const source of input.sources) {
+    let sourceUrl: URL;
+    try {
+      sourceUrl = new URL(source.url);
+    } catch {
+      throw new Error("source.url must be a valid absolute URL");
+    }
+    if (sourceUrl.hash !== "") {
+      throw new Error("source.url must not contain a fragment because source identity ignores URL fragments");
+    }
     if (
       compareExplicitIso8601Instants(
         source.retrievedAt,
