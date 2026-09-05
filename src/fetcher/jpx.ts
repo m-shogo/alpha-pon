@@ -168,12 +168,10 @@ function cellByClass(row: string, className: string): string | null {
 }
 
 function tdnetIssuerCode(sourceCode: string): string {
-  const normalized = sourceCode.replace(/\s+/g, "").toUpperCase();
   // TDnet displays the 4-character solid-name code plus a 1-character reserve code.
-  // Preserve the raw 5-character value separately and use the issuer-level first four
-  // characters for Alpha Pon company identity.
-  if (/^[0-9A-Z]{5}$/.test(normalized)) return normalized.slice(0, 4);
-  if (/^[0-9A-Z]{4}$/.test(normalized)) return normalized;
+  // Preserve that exact 5-character source value separately; only the issuer identity
+  // is derived by dropping the reserve character.
+  if (/^[0-9A-Z]{5}$/.test(sourceCode)) return sourceCode.slice(0, 4);
   throw new Error(`TDnet row has invalid company code: ${sourceCode}`);
 }
 
@@ -221,7 +219,7 @@ export function parseTdnetListHtml(html: string, observationDate: string): Tdnet
     }
 
     const sourceTime = decodeHtmlText(timeCell);
-    const sourceCode = decodeHtmlText(codeCell).replace(/\s+/g, "").toUpperCase();
+    const sourceCode = decodeHtmlText(codeCell);
     const companyName = decodeHtmlText(nameCell);
     const title = decodeHtmlText(titleCell);
     const href = titleCell.match(/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>/i)?.[1]?.trim();
