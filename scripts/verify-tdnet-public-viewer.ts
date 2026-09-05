@@ -83,6 +83,22 @@ assert.equal(
 assert.throws(() => buildTdnetListUrl("2026-02-31", 1), /real YYYY-MM-DD/);
 assert.throws(() => buildTdnetListUrl(DATE, 0), /between 1 and 999/);
 
+for (const nonCanonicalCode of ["123a0", "12 3A0", "123A"]) {
+  assert.throws(
+    () => parseTdnetListHtml(page([
+      row({
+        time: "15:00",
+        code: nonCanonicalCode,
+        name: "コード異常社",
+        title: "決算発表予定日に関するお知らせ",
+        href: "140120260904000099.pdf",
+      }),
+    ]), DATE),
+    /invalid company code/,
+    "TDnet sourceCode must be preserved and validated as the exact canonical 5-character source value",
+  );
+}
+
 assert.throws(
   () => parseTdnetListHtml(page([
     row({
