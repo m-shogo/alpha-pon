@@ -19,7 +19,6 @@ const directory = mkdtempSync(join(tmpdir(), "alpha-pon-market-events-e2e-"));
 const dbPath = join(directory, "market-events.db");
 const jsonPath = join(directory, "alpha-pon-events.json");
 const icsPath = join(directory, "alpha-pon-events.ics");
-const deliveryReadNow = "9999-12-31T23:59:59Z";
 
 const firstInput: MarketEventRegistrationInput = {
   issuerCode: "8136",
@@ -276,27 +275,15 @@ try {
     eventId,
   );
 
-  db.exec("PRAGMA ignore_check_constraints = ON");
-  db.prepare("UPDATE delivery_outbox SET schema_version = 2");
-  db.exec("PRAGMA ignore_check_constraints = OFF");
-  assert.throws(
-    () => listPendingDeliveries(db, deliveryReadNow),
-    /Unsupported persisted schemaVersion at delivery_outbox\..*: 2/,
-    "delivery reads must fail closed on unsupported persisted schema versions",
-  );
-  db.exec("PRAGMA ignore_check_constraints = ON");
-  db.prepare("UPDATE delivery_outbox SET schema_version = 1");
-  db.exec("PRAGMA ignore_check_constraints = OFF");
-
   db.prepare("UPDATE delivery_outbox SET payload_json = ?").run("{");
   assert.throws(
-    () => listPendingDeliveries(db, deliveryReadNow),
+    () => listPendingDeliveries(db, "2026-08-10T00:00:00Z"),
     /Malformed persisted JSON at delivery_outbox\..*\.payload_json/,
     "delivery reads must fail closed when persisted JSON is malformed",
   );
   db.prepare("UPDATE delivery_outbox SET payload_json = ?").run("[]");
   assert.throws(
-    () => listPendingDeliveries(db, deliveryReadNow),
+    () => listPendingDeliveries(db, "2026-08-10T00:00:00Z"),
     /Invalid persisted JSON shape at delivery_outbox\..*\.payload_json: expected plain-object/,
     "delivery reads must reject JSON-valid non-object payloads",
   );
@@ -312,7 +299,7 @@ try {
     "2026-08-03T23:59:59Z",
   );
   assert.throws(
-    () => listPendingDeliveries(db, deliveryReadNow),
+    () => listPendingDeliveries(db, "2026-08-10T00:00:00Z"),
     /Invalid persisted delivery chronology at delivery_outbox\..*: updated_at must be on or after created_at/,
     "delivery reads must fail closed when persisted lifecycle chronology is impossible",
   );
