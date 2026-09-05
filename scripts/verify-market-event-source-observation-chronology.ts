@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { validateMarketEventBundle } from "../src/market-events/contracts.js";
+import { buildSourceId, validateMarketEventBundle } from "../src/market-events/contracts.js";
 import { buildMarketEventBundle, type MarketEventRegistrationInput } from "../src/market-events/registration.js";
 
 const input: MarketEventRegistrationInput = {
@@ -102,6 +102,23 @@ assert.throws(
   }),
   /source\.url must not contain a fragment because source identity ignores URL fragments/,
   "registration must reject URL fragments instead of allowing different persisted source URLs to collapse onto the same sourceId",
+);
+
+const sourceIdentityBase = {
+  authority: "TDNET",
+  publishedAt: "2026-09-04T15:00:00+09:00",
+  contentHash: "a".repeat(64),
+};
+assert.notEqual(
+  buildSourceId({
+    ...sourceIdentityBase,
+    url: "https://www.release.tdnet.info/inbs/example.pdf?first=1&second=2",
+  }),
+  buildSourceId({
+    ...sourceIdentityBase,
+    url: "https://www.release.tdnet.info/inbs/example.pdf?second=2&first=1",
+  }),
+  "source identity must preserve raw query order instead of collapsing potentially order-sensitive URLs",
 );
 
 const valid = buildMarketEventBundle(validInput, {
