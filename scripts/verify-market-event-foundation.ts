@@ -169,6 +169,48 @@ const firstBundle = buildMarketEventBundle(input, {
 assert.throws(
   () => validateMarketEventBundle({
     ...firstBundle,
+    revision: { ...firstBundle.revision, schemaVersion: 2 } as unknown as typeof firstBundle.revision,
+  }),
+  /Unsupported revision schemaVersion/,
+  "bundle validation must reject unsupported revision schema versions",
+);
+
+assert.throws(
+  () => validateMarketEventBundle({
+    ...firstBundle,
+    sources: [
+      { ...firstBundle.sources[0], schemaVersion: 2 } as unknown as typeof firstBundle.sources[number],
+    ],
+  }),
+  /Unsupported source schemaVersion/,
+  "bundle validation must reject unsupported source schema versions",
+);
+
+assert.throws(
+  () => validateMarketEventBundle({
+    ...firstBundle,
+    decisionSnapshot: firstBundle.decisionSnapshot
+      ? { ...firstBundle.decisionSnapshot, schemaVersion: 2 } as unknown as typeof firstBundle.decisionSnapshot
+      : null,
+  }),
+  /Unsupported decision snapshot schemaVersion/,
+  "bundle validation must reject unsupported decision snapshot schema versions",
+);
+
+assert.throws(
+  () => validateMarketEventBundle({
+    ...firstBundle,
+    deliveries: [
+      { ...firstBundle.deliveries[0], schemaVersion: 2 } as unknown as typeof firstBundle.deliveries[number],
+    ],
+  }),
+  /Unsupported delivery schemaVersion/,
+  "bundle validation must reject unsupported delivery schema versions",
+);
+
+assert.throws(
+  () => validateMarketEventBundle({
+    ...firstBundle,
     event: {
       ...firstBundle.event,
       createdAt: "2026-08-03T05:00:01Z",
