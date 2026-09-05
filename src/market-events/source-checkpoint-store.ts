@@ -47,9 +47,16 @@ function mapRow(row: SourceCheckpointRow): SourceCheckpoint {
   };
 }
 
+function validateCanonicalIdentity(value: string, fieldName: "sourceKey" | "sourceType"): void {
+  if (!value) throw new Error(`${fieldName} is required`);
+  if (value.trim() !== value) {
+    throw new Error(`${fieldName} must be canonical without surrounding whitespace`);
+  }
+}
+
 function validateCheckpoint(checkpoint: SourceCheckpoint): void {
-  if (!checkpoint.sourceKey.trim()) throw new Error("sourceKey is required");
-  if (!checkpoint.sourceType.trim()) throw new Error("sourceType is required");
+  validateCanonicalIdentity(checkpoint.sourceKey, "sourceKey");
+  validateCanonicalIdentity(checkpoint.sourceType, "sourceType");
   if (!Number.isInteger(checkpoint.consecutiveFailures) || checkpoint.consecutiveFailures < 0) {
     throw new Error("consecutiveFailures must be a non-negative integer");
   }
@@ -103,8 +110,7 @@ function sameCheckpoint(left: SourceCheckpoint, right: SourceCheckpoint): boolea
 }
 
 export function getSourceCheckpoint(db: MarketEventDatabase, sourceKey: string): SourceCheckpoint | null {
-  const normalizedKey = sourceKey.trim();
-  if (!normalizedKey) throw new Error("sourceKey is required");
+  validateCanonicalIdentity(sourceKey, "sourceKey");
 
   const row = db.prepare(`
     SELECT
@@ -121,7 +127,7 @@ export function getSourceCheckpoint(db: MarketEventDatabase, sourceKey: string):
       last_error
     FROM source_checkpoints
     WHERE source_key = ?
-  `).get(normalizedKey) as SourceCheckpointRow | undefined;
+  `).get(sourceKey) as SourceCheckpointRow | undefined;
 
   if (!row) return null;
   const checkpoint = mapRow(row);
@@ -133,16 +139,11 @@ export function upsertSourceCheckpoint(
   db: MarketEventDatabase,
   checkpoint: SourceCheckpoint,
 ): SourceCheckpointWriteResult {
-  const normalized: SourceCheckpoint = {
-    ...checkpoint,
-    sourceKey: checkpoint.sourceKey.trim(),
-    sourceType: checkpoint.sourceType.trim(),
-  };
-  validateCheckpoint(normalized);
+  validateCheckpoint(checkpoint);
 
   db.exec("BEGIN IMMEDIATE");
   try {
-    const existing = getSourceCheckpoint(db, normalized.sourceKey);
+    const existing = getSourceCheckpoint(db, checkpoint.sourceKey);
     if (existing === null) {
       db.prepare(`
         INSERT INTO source_checkpoints (
@@ -159,56 +160,56 @@ export function upsertSourceCheckpoint(
           last_error
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
-        normalized.sourceKey,
-        normalized.sourceType,
-        normalized.cursorValue,
-        normalized.etag,
-        normalized.lastModified,
-        normalized.lastContentHash,
-        normalized.lastCheckedAt,
-        normalized.lastSuccessAt,
-        normalized.consecutiveFailures,
-        normalized.nextCheckAt,
-        normalized.lastError,
+        checkpoint.sourceKey,
+        checkpoint.sourceType,
+        checkpoint.cursorValue,
+        checkpoint.etag,
+        checkpoint.lastModified,
+        checkpoint.lastContentHash,
+        checkpoint.lastCheckedAt,
+        checkpoint.lastSuccessAt,
+        checkpoint.consecutiveFailures,
+        checkpoint.nextCheckAt,
+        checkpoint.lastError,
       );
       db.exec("COMMIT");
       return "inserted";
     }
 
-    if (existing.sourceType !== normalized.sourceType) {
-      throw new Error(`sourceType cannot change for ${normalized.sourceKey}`);
+    if (existing.sourceType !== checkpoint.sourceType) {
+      throw new Error(`sourceType cannot change for ${checkpoint.sourceKey}`);
     }
 
     const checkedComparison = compareExplicitIso8601Instants(
-      normalized.lastCheckedAt,
+      checkpoint.lastCheckedAt,
       existing.lastCheckedAt,
       "incoming lastCheckedAt",
       "existing lastCheckedAt",
     );
     if (checkedComparison < 0) {
-      throw new Error(`source checkpoint cannot move backwards for ${normalized.sourceKey}`);
+      throw new Error(`source checkpoint cannot move backwards for ${checkpoint.sourceKey}`);
     }
     if (checkedComparison === 0) {
-      if (!sameCheckpoint(existing, normalized)) {
-        throw new Error(`source checkpoint collision at the same lastCheckedAt for ${normalized.sourceKey}`);
+      if (!sameCheckpoint(existing, checkpoint)) {
+        throw new Error(`source checkpoint collision at the same lastCheckedAt for ${checkpoint.sourceKey}`);
       }
       db.exec("COMMIT");
       return "unchanged";
     }
 
     if (existing.lastSuccessAt !== null) {
-      if (normalized.lastSuccessAt === null) {
-        throw new Error(`source checkpoint cannot forget lastSuccessAt for ${normalized.sourceKey}`);
+      if (checkpoint.lastSuccessAt === null) {
+        throw new Error(`source checkpoint cannot forget lastSuccessAt for ${checkpoint.sourceKey}`);
       }
       if (
         compareExplicitIso8601Instants(
-          normalized.lastSuccessAt,
+          checkpoint.lastSuccessAt,
           existing.lastSuccessAt,
           "incoming lastSuccessAt",
           "existing lastSuccessAt",
         ) < 0
       ) {
-        throw new Error(`source checkpoint cannot regress lastSuccessAt for ${normalized.sourceKey}`);
+        throw new Error(`source checkpoint cannot regress lastSuccessAt for ${checkpoint.sourceKey}`);
       }
     }
 
@@ -226,16 +227,16 @@ export function upsertSourceCheckpoint(
         last_error = ?
       WHERE source_key = ?
     `).run(
-      normalized.cursorValue,
-      normalized.etag,
-      normalized.lastModified,
-      normalized.lastContentHash,
-      normalized.lastCheckedAt,
-      normalized.lastSuccessAt,
-      normalized.consecutiveFailures,
-      normalized.nextCheckAt,
-      normalized.lastError,
-      normalized.sourceKey,
+      checkpoint.cursorValue,
+      checkpoint.etag,
+      checkpoint.lastModified,
+      checkpoint.lastContentHash,
+      checkpoint.lastCheckedAt,
+      checkpoint.lastSuccessAt,
+      checkpoint.consecutiveFailures,
+      checkpoint.nextCheckAt,
+      checkpoint.lastError,
+      checkpoint.sourceKey,
     );
     db.exec("COMMIT");
     return "updated";
