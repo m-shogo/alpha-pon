@@ -72,6 +72,17 @@ assert.throws(
   () => buildTdnetCandidatePreview({ ...snapshot, explicitEmpty: true }),
   /explicit-empty while containing disclosures/,
 );
+assert.throws(
+  () => buildTdnetCandidatePreview({
+    observationDate: "2026-09-05",
+    explicitEmpty: false,
+    pageCount: 1,
+    pageUrls: ["https://www.release.tdnet.info/inbs/I_list_001_20260905.html"],
+    disclosures: [],
+  }),
+  /requires explicit-empty proof when disclosure count is zero/,
+  "zero-row previews must not erase the distinction between explicit-empty and an unproven fetch/parser failure",
+);
 
 const emptyPreview = buildTdnetCandidatePreview({
   observationDate: "2026-09-05",
