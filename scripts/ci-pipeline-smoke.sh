@@ -94,6 +94,7 @@ node --import tsx/esm scripts/verify-tdnet-market-event-candidates.ts
 node --import tsx/esm scripts/verify-tdnet-candidate-preview.ts
 node --import tsx/esm scripts/verify-tdnet-primary-document-evidence.ts
 node --import tsx/esm scripts/verify-tdnet-primary-review.ts
+node --import tsx/esm scripts/verify-tdnet-primary-review-hash-provenance.ts
 node --import tsx/esm scripts/verify-tdnet-future-date-window-validation.ts
 node --import tsx/esm scripts/verify-tdnet-registration-preview.ts
 node --import tsx/esm scripts/verify-market-event-source-observation-chronology.ts
