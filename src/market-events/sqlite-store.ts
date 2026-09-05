@@ -36,6 +36,7 @@ export type MarketEventAuditReport = {
   eventsWithoutRevision: string[];
   currentRevisionMismatches: string[];
   malformedJsonRows: Array<{ table: string; id: string; field: string; message: string }>;
+  unsupportedSchemaVersionRows: Array<{ table: string; id: string; schemaVersion: number }>;
   status: "ok" | "error";
 };
 
@@ -220,7 +221,7 @@ export function applyMarketEventMigrations(
   migrationDirectory = DEFAULT_MARKET_EVENT_MIGRATION_DIR,
 ): string[] {
   const applied: string[] = [];
-  for (const path of migrationFiles(migrationDirectory)) {
+  for (const path of migrationFiles(directory)) {
     const sql = readFileSync(path, "utf8");
     db.exec(sql);
     applied.push(path);
@@ -590,6 +591,28 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
       AND (r.revision_id IS NULL OR r.event_id != e.event_id)
   `).all().map(row => (row as { eventId: string }).eventId);
   const malformedJsonRows: MarketEventAuditReport["malformedJsonRows"] = [];
+  const unsupportedSchemaVersionRows: MarketEventAuditReport["unsupportedSchemaVersionRows"] = [];
+  const schemaVersionChecks = [
+    { table: "market_events", id: "event_id" },
+    { table: "event_revisions", id: "revision_id" },
+    { table: "event_sources", id: "source_id" },
+    { table: "decision_snapshots", id: "decision_snapshot_id" },
+    { table: "delivery_outbox", id: "delivery_id" },
+  ];
+  for (const check of schemaVersionChecks) {
+    const rows = db.prepare(`
+      SELECT ${check.id} AS id, schema_version AS schemaVersion
+      FROM ${check.table}
+      WHERE schema_version != 1
+    `).all() as Array<{ id: string; schemaVersion: number }>;
+    for (const row of rows) {
+      unsupportedSchemaVersionRows.push({
+        table: check.table,
+        id: row.id,
+        schemaVersion: row.schemaVersion,
+      });
+    }
+  }
   const jsonChecks: Array<{
     table: string;
     id: string;
@@ -645,7 +668,11 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
       }
     }
   }
-  const status = foreignKeyErrors.length || eventsWithoutRevision.length || currentRevisionMismatches.length || malformedJsonRows.length
+  const status = foreignKeyErrors.length
+    || eventsWithoutRevision.length
+    || currentRevisionMismatches.length
+    || malformedJsonRows.length
+    || unsupportedSchemaVersionRows.length
     ? "error"
     : "ok";
   return {
@@ -664,6 +691,7 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
     eventsWithoutRevision,
     currentRevisionMismatches,
     malformedJsonRows,
+    unsupportedSchemaVersionRows,
     status,
   };
 }
