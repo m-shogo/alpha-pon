@@ -184,6 +184,16 @@ assert.throws(
   /candidateId mismatch/,
 );
 
+for (const nonCanonicalCandidateId of [` ${candidateId}`, `${candidateId} `]) {
+  assert.throws(
+    () => assessTdnetPrimaryReview(candidate, decision({
+      candidateId: nonCanonicalCandidateId,
+    })),
+    /candidateId must be canonical without surrounding whitespace/,
+    "review must reject whitespace-normalized candidate identity instead of silently rewriting provenance binding",
+  );
+}
+
 assert.throws(
   () => assessTdnetPrimaryReview(candidate, decision({
     reviewedAt: "2026-09-04T14:59:59+09:00",
