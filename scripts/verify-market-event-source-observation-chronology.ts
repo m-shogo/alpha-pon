@@ -88,6 +88,24 @@ assert.throws(
   "registration must reject whitespace-padded source hashes instead of silently trimming provenance",
 );
 
+for (const authority of ["tdnet", " TDNET "]) {
+  assert.throws(
+    () => buildMarketEventBundle({
+      ...validInput,
+      sources: validInput.sources.map(source => ({
+        ...source,
+        authority,
+      })),
+    }, {
+      revisionNumber: 1,
+      previousRevisionId: null,
+      existingCreatedAt: null,
+    }),
+    /source\.authority must be canonical uppercase text/,
+    "registration must reject source authority aliases instead of collapsing distinct persisted provenance onto one sourceId",
+  );
+}
+
 assert.throws(
   () => buildMarketEventBundle({
     ...validInput,
@@ -128,6 +146,7 @@ const valid = buildMarketEventBundle(validInput, {
 });
 assert.equal(valid.sources[0]?.retrievedAt, "2026-09-04T15:06:00+09:00");
 assert.equal(valid.sources[0]?.contentHash, "a".repeat(64), "registration must preserve canonical source hashes exactly");
+assert.equal(valid.sources[0]?.authority, "TDNET", "registration must preserve canonical source authority exactly");
 
 assert.throws(
   () => validateMarketEventBundle({
