@@ -129,8 +129,24 @@ try {
   assert.equal(audit.counts.sources, 1);
   assert.equal(audit.counts.outbox, 1);
 
+  db.prepare("UPDATE market_events SET schema_version = 2 WHERE event_id = ?").run(eventId);
+  assert.throws(
+    () => listMarketEvents(db, { includeCancelled: true }),
+    /Unsupported persisted schemaVersion at market_events\..*: 2/,
+    "market event reads must fail closed on unsupported persisted schema versions",
+  );
+  db.prepare("UPDATE market_events SET schema_version = 1 WHERE event_id = ?").run(eventId);
+
   const sourceId = first.sources[0].sourceId;
   db.exec("DROP TRIGGER trg_event_sources_no_update");
+  db.prepare("UPDATE event_sources SET schema_version = 2 WHERE source_id = ?").run(sourceId);
+  assert.throws(
+    () => listEventSources(db, eventId),
+    /Unsupported persisted schemaVersion at event_sources\..*: 2/,
+    "source reads must fail closed on unsupported persisted schema versions",
+  );
+  db.prepare("UPDATE event_sources SET schema_version = 1 WHERE source_id = ?").run(sourceId);
+
   db.prepare("UPDATE event_sources SET content_hash = ? WHERE source_id = ?").run("not-a-sha256", sourceId);
   assert.throws(
     () => listEventSources(db, eventId),
@@ -250,6 +266,14 @@ try {
     JSON.stringify(firstInput.edgeTypes),
     eventId,
   );
+
+  db.prepare("UPDATE delivery_outbox SET schema_version = 2");
+  assert.throws(
+    () => listPendingDeliveries(db, "2026-08-10T00:00:00Z"),
+    /Unsupported persisted schemaVersion at delivery_outbox\..*: 2/,
+    "delivery reads must fail closed on unsupported persisted schema versions",
+  );
+  db.prepare("UPDATE delivery_outbox SET schema_version = 1");
 
   db.prepare("UPDATE delivery_outbox SET payload_json = ?").run("{");
   assert.throws(
