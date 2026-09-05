@@ -262,12 +262,18 @@ export async function fetchTdnetDisclosureSnapshot(
     const url = buildTdnetListUrl(observationDate, page);
     let response: Response;
     try {
-      response = await fetchImpl(url, { headers: { "User-Agent": TDNET_USER_AGENT } });
+      response = await fetchImpl(url, {
+        redirect: "error",
+        headers: { "User-Agent": TDNET_USER_AGENT },
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       throw new Error(`TDnet public viewer request failed: ${message}`);
     }
 
+    if (response.url && response.url !== url) {
+      throw new Error(`TDnet public viewer final URL must match requested official URL: ${response.url}`);
+    }
     if (response.status === 404) {
       if (page === 1) throw new Error(`TDnet public viewer first page not found: ${url}`);
       return {
