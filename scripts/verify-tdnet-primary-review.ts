@@ -205,6 +205,19 @@ assert.throws(
   /reviewedAt must be on or after sourceRetrievedAt/,
 );
 
+for (const nonCanonicalRetrievedAt of [
+  " 2026-09-04T15:05:00+09:00",
+  "2026-09-04T15:05:00+09:00 ",
+]) {
+  assert.throws(
+    () => assessTdnetPrimaryReview(candidate, decision({
+      sourceRetrievedAt: nonCanonicalRetrievedAt,
+    })),
+    /sourceRetrievedAt/,
+    "review must reject whitespace-normalized retrieval timestamps instead of rewriting provenance chronology",
+  );
+}
+
 for (const startAt of [
   "2026-09-04T15:59:59+09:00",
   "2026-09-04T16:00:00+09:00",

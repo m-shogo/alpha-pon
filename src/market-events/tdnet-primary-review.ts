@@ -72,7 +72,7 @@ function normalizeDecision(decision: TdnetPrimaryReviewDecision): TdnetPrimaryRe
 
   const occurrenceKey = decision.occurrenceKey?.trim() || null;
   const sourceContentHash = decision.sourceContentHash;
-  const sourceRetrievedAt = decision.sourceRetrievedAt?.trim() || null;
+  const sourceRetrievedAt = decision.sourceRetrievedAt;
   if (sourceRetrievedAt !== null) assertIsoTimestamp(sourceRetrievedAt, "sourceRetrievedAt");
   if (decision.time !== null) assertValidEventTime(decision.time);
 
