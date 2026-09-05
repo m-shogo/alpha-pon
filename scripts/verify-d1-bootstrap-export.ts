@@ -114,6 +114,18 @@ try {
   ).get(eventId) as { currentRevisionId: string } | undefined;
   assert.equal(current?.currentRevisionId, second.revision.revisionId, "D1 bootstrap must preserve the latest revision pointer");
 
+  source.exec("PRAGMA ignore_check_constraints = ON");
+  source.prepare("UPDATE market_events SET schema_version = 2 WHERE event_id = ?").run(eventId);
+  source.exec("PRAGMA ignore_check_constraints = OFF");
+  assert.throws(
+    () => buildD1BootstrapExport(source, options),
+    /D1 bootstrap rejects unsupported persisted schema versions/,
+    "bootstrap export must fail closed on unsupported persisted schema versions",
+  );
+  source.exec("PRAGMA ignore_check_constraints = ON");
+  source.prepare("UPDATE market_events SET schema_version = 1 WHERE event_id = ?").run(eventId);
+  source.exec("PRAGMA ignore_check_constraints = OFF");
+
   source.prepare("UPDATE market_events SET current_revision_id = ? WHERE event_id = ?").run(
     firstBundle.revision.revisionId,
     eventId,
