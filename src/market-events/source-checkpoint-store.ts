@@ -53,6 +53,9 @@ function validateCheckpoint(checkpoint: SourceCheckpoint): void {
   if (!Number.isInteger(checkpoint.consecutiveFailures) || checkpoint.consecutiveFailures < 0) {
     throw new Error("consecutiveFailures must be a non-negative integer");
   }
+  if (checkpoint.lastContentHash !== null && !/^[a-f0-9]{64}$/.test(checkpoint.lastContentHash)) {
+    throw new Error("lastContentHash must be a lowercase SHA-256 hash");
+  }
 
   parseExplicitIso8601Instant(checkpoint.lastCheckedAt, "lastCheckedAt");
 
