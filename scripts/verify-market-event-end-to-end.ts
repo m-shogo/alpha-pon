@@ -137,6 +137,13 @@ try {
     /Unsupported persisted schemaVersion at market_events\..*: 2/,
     "market event reads must fail closed on unsupported persisted schema versions",
   );
+  audit = auditMarketEventDatabase(db, dbPath);
+  assert.equal(audit.status, "error", "central audit must fail closed on unsupported persisted schema versions");
+  assert.deepEqual(
+    audit.unsupportedSchemaVersionRows,
+    [{ table: "market_events", id: eventId, schemaVersion: 2 }],
+    "central audit must identify the corrupt table, row, and schema version",
+  );
   db.exec("PRAGMA ignore_check_constraints = ON");
   db.prepare("UPDATE market_events SET schema_version = 1 WHERE event_id = ?").run(eventId);
   db.exec("PRAGMA ignore_check_constraints = OFF");
@@ -150,6 +157,14 @@ try {
     () => listEventSources(db, eventId),
     /Unsupported persisted schemaVersion at event_sources\..*: 2/,
     "source reads must fail closed on unsupported persisted schema versions",
+  );
+  audit = auditMarketEventDatabase(db, dbPath);
+  assert.equal(audit.status, "error", "central audit must detect unsupported source schema versions");
+  assert.ok(
+    audit.unsupportedSchemaVersionRows.some(
+      row => row.table === "event_sources" && row.id === sourceId && row.schemaVersion === 2,
+    ),
+    "central audit must identify the corrupt source schema version",
   );
   db.exec("PRAGMA ignore_check_constraints = ON");
   db.prepare("UPDATE event_sources SET schema_version = 1 WHERE source_id = ?").run(sourceId);
