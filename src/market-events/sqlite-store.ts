@@ -90,8 +90,16 @@ function parsePersistedJson<T>(value: string, context: string, shape: PersistedJ
   return parsed as T;
 }
 
+function validatePersistedSchemaVersion(schemaVersion: number, context: string): 1 {
+  if (schemaVersion !== 1) {
+    throw new Error(`Unsupported persisted schemaVersion at ${context}: ${schemaVersion}`);
+  }
+  return 1;
+}
+
 function validatePersistedDelivery(delivery: DeliveryOutboxItem): DeliveryOutboxItem {
   const context = `delivery_outbox.${delivery.deliveryId}`;
+  validatePersistedSchemaVersion(delivery.schemaVersion, context);
   if (!Number.isInteger(delivery.attemptCount) || delivery.attemptCount < 0) {
     throw new Error(`Invalid persisted delivery at ${context}: attemptCount must be a non-negative integer`);
   }
@@ -120,6 +128,7 @@ function validatePersistedDelivery(delivery: DeliveryOutboxItem): DeliveryOutbox
 
 function validatePersistedSource(source: EventSource): EventSource {
   const context = `event_sources.${source.sourceId}`;
+  validatePersistedSchemaVersion(source.schemaVersion, context);
   if (!(SOURCE_TYPES as readonly string[]).includes(source.sourceType)) {
     throw new Error(`Invalid persisted source at ${context}: unknown source_type ${source.sourceType}`);
   }
@@ -151,7 +160,7 @@ function validatePersistedSource(source: EventSource): EventSource {
 
 function mapEventRow(row: MarketEventRow): MarketEvent {
   return {
-    schemaVersion: 1,
+    schemaVersion: validatePersistedSchemaVersion(row.schema_version, `market_events.${row.event_id}`),
     eventId: row.event_id,
     occurrenceKey: row.occurrence_key,
     issuerCode: row.issuer_code,
@@ -211,7 +220,7 @@ export function applyMarketEventMigrations(
   migrationDirectory = DEFAULT_MARKET_EVENT_MIGRATION_DIR,
 ): string[] {
   const applied: string[] = [];
-  for (const path of migrationFiles(migrationDirectory)) {
+  for (const path of migrationFiles(directory)) {
     const sql = readFileSync(path, "utf8");
     db.exec(sql);
     applied.push(path);
