@@ -189,9 +189,13 @@ function tdnetPublishedAt(observationDate: string, sourceTime: string): string {
 function tdnetDocumentUrl(href: string): string {
   const resolved = new URL(href, TDNET_PUBLIC_BASE_URL);
   if (
-    resolved.protocol !== "https:"
-    || resolved.hostname !== "www.release.tdnet.info"
+    resolved.origin !== "https://www.release.tdnet.info"
+    || resolved.username !== ""
+    || resolved.password !== ""
+    || resolved.search !== ""
+    || resolved.hash !== ""
     || !resolved.pathname.startsWith("/inbs/")
+    || !resolved.pathname.toLowerCase().endsWith(".pdf")
   ) {
     throw new Error(`TDnet row has non-official document URL: ${resolved.toString()}`);
   }

@@ -99,19 +99,28 @@ for (const nonCanonicalCode of ["123a0", "12 3A0", "123A"]) {
   );
 }
 
-assert.throws(
-  () => parseTdnetListHtml(page([
-    row({
-      time: "15:00",
-      code: "81360",
-      name: "サンリオ",
-      title: "外部リンク",
-      href: "https://example.com/not-tdnet.pdf",
-    }),
-  ]), DATE),
-  /non-official document URL/,
-  "title documents must stay on the official TDnet public host",
-);
+for (const nonOfficialDocumentUrl of [
+  "https://example.com/not-tdnet.pdf",
+  "https://user:secret@www.release.tdnet.info/inbs/140120260904000099.pdf",
+  "https://www.release.tdnet.info:444/inbs/140120260904000099.pdf",
+  "140120260904000099.pdf?download=1",
+  "140120260904000099.pdf#page=1",
+  "140120260904000099.html",
+]) {
+  assert.throws(
+    () => parseTdnetListHtml(page([
+      row({
+        time: "15:00",
+        code: "81360",
+        name: "サンリオ",
+        title: "外部リンク",
+        href: nonOfficialDocumentUrl,
+      }),
+    ]), DATE),
+    /non-official document URL/,
+    "title documents must stay on the canonical official TDnet PDF boundary",
+  );
+}
 
 assert.throws(
   () => parseTdnetListHtml(
