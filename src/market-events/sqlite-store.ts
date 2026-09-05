@@ -3,6 +3,8 @@ import { existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { compareExplicitIso8601Instants } from "../research/iso-instant.js";
 import {
+  SOURCE_TYPES,
+  STORAGE_CLASSES,
   assertIsoTimestamp,
   validateMarketEventBundle,
   type DecisionSnapshot,
@@ -114,6 +116,37 @@ function validatePersistedDelivery(delivery: DeliveryOutboxItem): DeliveryOutbox
     if (value !== null) assertIsoTimestamp(value, `${context}.${fieldName}`);
   }
   return delivery;
+}
+
+function validatePersistedSource(source: EventSource): EventSource {
+  const context = `event_sources.${source.sourceId}`;
+  if (!(SOURCE_TYPES as readonly string[]).includes(source.sourceType)) {
+    throw new Error(`Invalid persisted source at ${context}: unknown source_type ${source.sourceType}`);
+  }
+  if (!(STORAGE_CLASSES as readonly string[]).includes(source.storageClass)) {
+    throw new Error(`Invalid persisted source at ${context}: unknown storage_class ${source.storageClass}`);
+  }
+  if (!source.url.startsWith("https://")) {
+    throw new Error(`Invalid persisted source at ${context}: url must use https`);
+  }
+  if (!/^[a-f0-9]{64}$/.test(source.contentHash)) {
+    throw new Error(`Invalid persisted source at ${context}: content_hash must be a lowercase SHA-256 hash`);
+  }
+  assertIsoTimestamp(source.retrievedAt, `${context}.retrieved_at`);
+  if (source.publishedAt !== null) {
+    assertIsoTimestamp(source.publishedAt, `${context}.published_at`);
+    if (
+      compareExplicitIso8601Instants(
+        source.publishedAt,
+        source.retrievedAt,
+        `${context}.published_at`,
+        `${context}.retrieved_at`,
+      ) > 0
+    ) {
+      throw new Error(`Invalid persisted source chronology at ${context}: published_at must be on or before retrieved_at`);
+    }
+  }
+  return source;
 }
 
 function mapEventRow(row: MarketEventRow): MarketEvent {
@@ -490,7 +523,7 @@ export function listEventSources(db: MarketEventDatabase, eventId: string): Even
     WHERE event_id = ?
     ORDER BY COALESCE(published_at, retrieved_at), source_id
   `).all(eventId) as EventSource[];
-  return rows;
+  return rows.map(validatePersistedSource);
 }
 
 export function listPendingDeliveries(db: MarketEventDatabase, now: string, limit = 100): DeliveryOutboxItem[] {
