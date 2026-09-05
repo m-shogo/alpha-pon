@@ -13,6 +13,7 @@ import {
   listMarketEvents,
   openMarketEventDatabase,
   registerMarketEventBundle,
+  type MarketEventDatabase,
 } from "../src/market-events/sqlite-store.js";
 import {
   DEFAULT_MARKET_EVENT_ICS_PATH,
@@ -25,6 +26,20 @@ type ParsedArguments = {
   command: string;
   flags: Map<string, string | boolean>;
 };
+
+type UnsupportedSchemaVersion = {
+  table: string;
+  id: string;
+  schemaVersion: number;
+};
+
+const SCHEMA_VERSION_TABLES = [
+  { table: "market_events", id: "event_id" },
+  { table: "event_revisions", id: "revision_id" },
+  { table: "event_sources", id: "source_id" },
+  { table: "decision_snapshots", id: "decision_snapshot_id" },
+  { table: "delivery_outbox", id: "delivery_id" },
+] as const;
 
 function parseArguments(argv: string[]): ParsedArguments {
   const [command = "help", ...rest] = argv;
@@ -80,6 +95,25 @@ function readRegistrationInputs(path: string): MarketEventRegistrationInput[] {
   return inputs as MarketEventRegistrationInput[];
 }
 
+function auditDatabase(db: MarketEventDatabase, path: string) {
+  const report = auditMarketEventDatabase(db, path);
+  const unsupportedSchemaVersions: UnsupportedSchemaVersion[] = [];
+  for (const check of SCHEMA_VERSION_TABLES) {
+    const rows = db.prepare(`
+      SELECT ${check.id} AS id, schema_version AS schemaVersion
+      FROM ${check.table}
+      WHERE schema_version != 1
+      ORDER BY ${check.id}
+    `).all() as Array<{ id: string; schemaVersion: number }>;
+    unsupportedSchemaVersions.push(...rows.map(row => ({ table: check.table, ...row })));
+  }
+  return {
+    ...report,
+    unsupportedSchemaVersions,
+    status: report.status === "error" || unsupportedSchemaVersions.length > 0 ? "error" as const : "ok" as const,
+  };
+}
+
 function help(): void {
   console.log(`Alpha Pon market event CLI
 
@@ -126,7 +160,7 @@ function commandInit(args: ParsedArguments): void {
   }
   const db = openMarketEventDatabase({ path });
   try {
-    console.log(JSON.stringify({ mode: "write", command: "init", databasePath: path, audit: auditMarketEventDatabase(db, path) }, null, 2));
+    console.log(JSON.stringify({ mode: "write", command: "init", databasePath: path, audit: auditDatabase(db, path) }, null, 2));
   } finally {
     db.close();
   }
@@ -176,7 +210,7 @@ function commandAdd(args: ParsedArguments): void {
       command: "add",
       databasePath: path,
       registered,
-      audit: auditMarketEventDatabase(db, path),
+      audit: auditDatabase(db, path),
     }, null, 2));
   } finally {
     db.close();
@@ -241,7 +275,7 @@ function commandAudit(args: ParsedArguments): void {
   if (!existsSync(path)) throw new Error(`Database not found: ${path}. Run init --write first.`);
   const db = openMarketEventDatabase({ path, readonly: true });
   try {
-    const report = auditMarketEventDatabase(db, path);
+    const report = auditDatabase(db, path);
     console.log(JSON.stringify(report, null, 2));
     if (report.status !== "ok") process.exitCode = 2;
   } finally {
