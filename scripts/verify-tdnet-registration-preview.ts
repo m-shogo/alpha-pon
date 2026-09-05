@@ -218,6 +218,18 @@ for (const nonCanonicalSourceCode of ["4661", "4661-", "4661a", " 46610"] ) {
     "non-null TDnet sourceCode must preserve the raw canonical five-character viewer code",
   );
 }
+for (const normalizedIssuerCode of ["4661 ", " 4661", "04661"]) {
+  assert.throws(
+    () => prepareTdnetRegistrationPreview(
+      { ...candidate, issuerCode: normalizedIssuerCode },
+      assessment,
+      metadata,
+      evidence,
+    ),
+    /sourceCode does not match issuerCode/,
+    "registration preview must not normalize issuerCode when binding raw TDnet sourceCode provenance",
+  );
+}
 
 const legacyWithoutSourceCode = prepareTdnetRegistrationPreview(
   { ...candidate, sourceCode: null },

@@ -64,7 +64,7 @@ function assertTdnetSourceCodeProvenance(candidate: TdnetMarketEventCandidate): 
   if (!/^[0-9A-Z]{5}$/.test(sourceCode)) {
     throw new Error("TDnet registration preview has invalid sourceCode provenance");
   }
-  if (candidate.issuerCode.trim().toUpperCase() !== sourceCode.slice(0, 4)) {
+  if (candidate.issuerCode !== sourceCode.slice(0, 4)) {
     throw new Error("TDnet registration preview sourceCode does not match issuerCode");
   }
 }
