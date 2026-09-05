@@ -47,9 +47,16 @@ function mapRow(row: SourceCheckpointRow): SourceCheckpoint {
   };
 }
 
+function validateCanonicalIdentity(value: string, fieldName: "sourceKey" | "sourceType"): void {
+  if (!value) throw new Error(`${fieldName} is required`);
+  if (value.trim() !== value) {
+    throw new Error(`${fieldName} must be canonical without surrounding whitespace`);
+  }
+}
+
 function validateCheckpoint(checkpoint: SourceCheckpoint): void {
-  if (!checkpoint.sourceKey.trim()) throw new Error("sourceKey is required");
-  if (!checkpoint.sourceType.trim()) throw new Error("sourceType is required");
+  validateCanonicalIdentity(checkpoint.sourceKey, "sourceKey");
+  validateCanonicalIdentity(checkpoint.sourceType, "sourceType");
   if (!Number.isInteger(checkpoint.consecutiveFailures) || checkpoint.consecutiveFailures < 0) {
     throw new Error("consecutiveFailures must be a non-negative integer");
   }
@@ -103,8 +110,7 @@ function sameCheckpoint(left: SourceCheckpoint, right: SourceCheckpoint): boolea
 }
 
 export function getSourceCheckpoint(db: MarketEventDatabase, sourceKey: string): SourceCheckpoint | null {
-  const normalizedKey = sourceKey.trim();
-  if (!normalizedKey) throw new Error("sourceKey is required");
+  validateCanonicalIdentity(sourceKey, "sourceKey");
 
   const row = db.prepare(`
     SELECT
@@ -121,7 +127,7 @@ export function getSourceCheckpoint(db: MarketEventDatabase, sourceKey: string):
       last_error
     FROM source_checkpoints
     WHERE source_key = ?
-  `).get(normalizedKey) as SourceCheckpointRow | undefined;
+  `).get(sourceKey) as SourceCheckpointRow | undefined;
 
   if (!row) return null;
   const checkpoint = mapRow(row);
@@ -133,11 +139,7 @@ export function upsertSourceCheckpoint(
   db: MarketEventDatabase,
   checkpoint: SourceCheckpoint,
 ): SourceCheckpointWriteResult {
-  const normalized: SourceCheckpoint = {
-    ...checkpoint,
-    sourceKey: checkpoint.sourceKey.trim(),
-    sourceType: checkpoint.sourceType.trim(),
-  };
+  const normalized = checkpoint;
   validateCheckpoint(normalized);
 
   db.exec("BEGIN IMMEDIATE");

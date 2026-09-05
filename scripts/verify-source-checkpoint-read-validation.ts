@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
-import { getSourceCheckpoint } from "../src/market-events/source-checkpoint-store.js";
+import {
+  getSourceCheckpoint,
+  upsertSourceCheckpoint,
+  type SourceCheckpoint,
+} from "../src/market-events/source-checkpoint-store.js";
+import { collectTdnetSourceOnce } from "../src/market-events/tdnet-source-collector.js";
 
 const db = new DatabaseSync(":memory:");
 try {
@@ -48,6 +53,53 @@ try {
     /lastContentHash must be a lowercase SHA-256 hash/,
     "persisted checkpoint reads must fail closed on invalid provenance hashes",
   );
+
+  const checkpoint: SourceCheckpoint = {
+    sourceKey: "jpx:tdnet:market-events",
+    sourceType: "TDNET",
+    cursorValue: null,
+    etag: null,
+    lastModified: null,
+    lastContentHash: "a".repeat(64),
+    lastCheckedAt: "2026-09-04T13:00:00Z",
+    lastSuccessAt: "2026-09-04T13:00:00Z",
+    consecutiveFailures: 0,
+    nextCheckAt: null,
+    lastError: null,
+  };
+  assert.equal(upsertSourceCheckpoint(db, checkpoint), "inserted");
+
+  assert.throws(
+    () => getSourceCheckpoint(db, ` ${checkpoint.sourceKey}`),
+    /sourceKey must be canonical without surrounding whitespace/,
+    "checkpoint lookup must not silently alias a malformed source identity",
+  );
+  assert.throws(
+    () => upsertSourceCheckpoint(db, { ...checkpoint, sourceKey: `${checkpoint.sourceKey} ` }),
+    /sourceKey must be canonical without surrounding whitespace/,
+    "checkpoint writes must preserve sourceKey identity exactly",
+  );
+  assert.throws(
+    () => upsertSourceCheckpoint(db, { ...checkpoint, sourceType: " TDNET" }),
+    /sourceType must be canonical without surrounding whitespace/,
+    "checkpoint writes must preserve sourceType provenance exactly",
+  );
+
+  let fetchCalls = 0;
+  await assert.rejects(
+    () => collectTdnetSourceOnce(db, {
+      sourceKey: ` ${checkpoint.sourceKey}`,
+      now: () => "2026-09-04T13:05:00Z",
+      fetchDisclosures: async () => {
+        fetchCalls += 1;
+        return [];
+      },
+    }),
+    /sourceKey must be canonical without surrounding whitespace/,
+    "TDnet collection must reject malformed checkpoint identity before source I/O",
+  );
+  assert.equal(fetchCalls, 0);
+  assert.deepEqual(getSourceCheckpoint(db, checkpoint.sourceKey), checkpoint);
 } finally {
   db.close();
 }
