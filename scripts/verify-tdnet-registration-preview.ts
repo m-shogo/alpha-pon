@@ -141,6 +141,9 @@ assert.throws(
 for (const nonCanonicalUrl of [
   "https://www.release.tdnet.info/inbs/140120260904000010.pdf?download=1",
   "https://www.release.tdnet.info/inbs/140120260904000010.pdf#page=1",
+  "https://WWW.RELEASE.TDNET.INFO/inbs/140120260904000010.pdf",
+  "https://www.release.tdnet.info:443/inbs/140120260904000010.pdf",
+  " https://www.release.tdnet.info/inbs/140120260904000010.pdf ",
 ]) {
   assert.throws(
     () => prepareTdnetRegistrationPreview(
