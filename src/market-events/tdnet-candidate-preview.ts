@@ -1,5 +1,6 @@
 import type { TdnetDisclosureSnapshot } from "../fetcher/jpx.js";
 import {
+  classifyTdnetDisclosureCandidate,
   extractTdnetMarketEventCandidates,
   type TdnetCandidateBlocker,
   type TdnetMarketEventCandidate,
@@ -42,6 +43,10 @@ export function buildTdnetCandidatePreview(
     throw new Error("TDnet preview pageUrls must match pageCount");
   }
 
+  const unmatchedDisclosureCount = snapshot.disclosures.reduce(
+    (count, disclosure) => count + (classifyTdnetDisclosureCandidate(disclosure) === null ? 1 : 0),
+    0,
+  );
   const candidates = extractTdnetMarketEventCandidates(snapshot.disclosures);
   const blockerCounts = emptyBlockerCounts();
   for (const candidate of candidates) {
@@ -58,7 +63,7 @@ export function buildTdnetCandidatePreview(
     pageUrls: [...snapshot.pageUrls],
     disclosureCount: snapshot.disclosures.length,
     candidateCount: candidates.length,
-    unmatchedDisclosureCount: snapshot.disclosures.length - candidates.length,
+    unmatchedDisclosureCount,
     registrationReadyCount: 0,
     blockerCounts,
     candidates,
