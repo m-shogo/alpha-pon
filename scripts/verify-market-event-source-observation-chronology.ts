@@ -88,6 +88,22 @@ assert.throws(
   "registration must reject whitespace-padded source hashes instead of silently trimming provenance",
 );
 
+assert.throws(
+  () => buildMarketEventBundle({
+    ...validInput,
+    sources: validInput.sources.map(source => ({
+      ...source,
+      url: `${source.url}#page=1`,
+    })),
+  }, {
+    revisionNumber: 1,
+    previousRevisionId: null,
+    existingCreatedAt: null,
+  }),
+  /source\.url must not contain a fragment because source identity ignores URL fragments/,
+  "registration must reject URL fragments instead of allowing different persisted source URLs to collapse onto the same sourceId",
+);
+
 const valid = buildMarketEventBundle(validInput, {
   revisionNumber: 1,
   previousRevisionId: null,
