@@ -71,14 +71,12 @@ const canonical = disclosure({
   sourceCode: "81360",
   companyName: " サンリオ ",
   title: " 第三者委員会の設置に関するお知らせ ",
-  publishedAt: " 2026-09-04T09:00:00+09:00 ",
-  url: " https://example.invalid/tdnet/8136/1 ",
 });
 const canonicalCandidate = classifyTdnetDisclosureCandidate(canonical);
 assert.equal(
   canonicalCandidate?.candidateId,
   setup.candidateId,
-  "candidate identity must be stable across harmless surrounding whitespace outside raw source provenance",
+  "candidate identity may normalize display/issuer text but not source chronology or source URL provenance",
 );
 assert.equal(canonicalCandidate?.sourceCode, "81360");
 
@@ -86,6 +84,16 @@ assert.throws(
   () => classifyTdnetDisclosureCandidate(disclosure({ sourceCode: " 81360 " })),
   /sourceCode must be an exact 5-character uppercase source value/,
   "raw TDnet sourceCode must not be treated as harmless whitespace-normalizable metadata",
+);
+assert.throws(
+  () => classifyTdnetDisclosureCandidate(disclosure({ publishedAt: " 2026-09-04T09:00:00+09:00 " })),
+  /publishedAt must preserve the exact source value/,
+  "TDnet source publication chronology must not be repaired by candidate classification",
+);
+assert.throws(
+  () => classifyTdnetDisclosureCandidate(disclosure({ url: " https://example.invalid/tdnet/8136/1 " })),
+  /url must preserve the exact source value/,
+  "TDnet source URL provenance must not be repaired by candidate classification",
 );
 
 const legacyWithoutRawSourceCode = classifyTdnetDisclosureCandidate(disclosure({ sourceCode: undefined }));
