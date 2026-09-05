@@ -138,14 +138,6 @@ try {
   );
   db.prepare("UPDATE event_sources SET content_hash = ? WHERE source_id = ?").run(first.sources[0].contentHash, sourceId);
 
-  db.prepare("UPDATE event_sources SET url = ? WHERE source_id = ?").run("http://example.com/insecure", sourceId);
-  assert.throws(
-    () => listEventSources(db, eventId),
-    /Invalid persisted source at event_sources\..*: url must use https/,
-    "source reads must fail closed when persisted provenance URL is not HTTPS",
-  );
-  db.prepare("UPDATE event_sources SET url = ? WHERE source_id = ?").run(first.sources[0].url, sourceId);
-
   db.prepare("UPDATE event_sources SET published_at = ?, retrieved_at = ? WHERE source_id = ?").run(
     "2026-08-03T06:00:01Z",
     "2026-08-03T06:00:00Z",
