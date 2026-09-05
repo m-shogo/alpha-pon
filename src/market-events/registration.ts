@@ -108,6 +108,10 @@ function validateRegistrationInput(input: MarketEventRegistrationInput): void {
     firstExecutableAt: input.firstExecutableAt ?? null,
   });
   for (const source of input.sources) {
+    const canonicalAuthority = source.authority.normalize("NFKC").trim().replace(/\s+/g, " ").toUpperCase();
+    if (!canonicalAuthority || source.authority !== canonicalAuthority) {
+      throw new Error("source.authority must be canonical uppercase text without surrounding or repeated whitespace");
+    }
     let sourceUrl: URL;
     try {
       sourceUrl = new URL(source.url);
@@ -167,7 +171,7 @@ export function buildMarketEventBundle(
     schemaVersion: MARKET_EVENT_SCHEMA_VERSION,
     sourceId: buildSourceId(source),
     eventId,
-    authority: source.authority.trim(),
+    authority: source.authority,
     sourceType: source.sourceType,
     url: source.url,
     title: source.title.trim(),
