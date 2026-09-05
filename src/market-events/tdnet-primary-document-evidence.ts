@@ -49,8 +49,8 @@ function parsePositiveMaxBytes(value: number): number {
 }
 
 function parseDeclaredContentLength(value: string): number {
-  if (!/^(?:0|[1-9][0-9]*)$/.test(value)) {
-    throw new Error("TDnet primary document content-length must be canonical decimal digits");
+  if (!/^[0-9]+$/.test(value)) {
+    throw new Error("TDnet primary document content-length must contain decimal digits only");
   }
   const parsed = Number(value);
   if (!Number.isSafeInteger(parsed)) {
