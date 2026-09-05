@@ -28,7 +28,8 @@ function assertOfficialTdnetDocumentUrl(value: string, label: string): URL {
     throw new Error(`${label} must be an official TDnet document URL`);
   }
   if (
-    parsed.origin !== "https://www.release.tdnet.info"
+    parsed.href !== value
+    || parsed.origin !== "https://www.release.tdnet.info"
     || parsed.username !== ""
     || parsed.password !== ""
     || parsed.search !== ""
