@@ -201,12 +201,6 @@ function normalizeIssuerCode(value: string): string {
 function normalizeUrl(value: string): string {
   const url = new URL(value);
   url.hash = "";
-  const sorted = [...url.searchParams.entries()].sort(([ak, av], [bk, bv]) => {
-    const keyOrder = ak.localeCompare(bk);
-    return keyOrder !== 0 ? keyOrder : av.localeCompare(bv);
-  });
-  url.search = "";
-  for (const [key, child] of sorted) url.searchParams.append(key, child);
   return url.toString();
 }
 
