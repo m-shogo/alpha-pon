@@ -167,6 +167,14 @@ await assert.rejects(
 
 await assert.rejects(
   () => acquireTdnetPrimaryDocumentEvidence(candidate, {
+    fetchImpl: fetchReturning(fakeResponse({ contentLength: "3.5e1" })),
+    now: () => "2026-09-04T15:05:00+09:00",
+  }),
+  /content-length must be canonical decimal digits/,
+);
+
+await assert.rejects(
+  () => acquireTdnetPrimaryDocumentEvidence(candidate, {
     fetchImpl: fetchReturning(fakeResponse({ contentLength: "1" })),
     now: () => "2026-09-04T15:05:00+09:00",
   }),
