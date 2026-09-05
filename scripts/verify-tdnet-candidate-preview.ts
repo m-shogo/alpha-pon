@@ -48,6 +48,18 @@ assert.equal(preview.blockerCounts.stable_occurrence_key_not_established, 2);
 assert.equal(preview.blockerCounts.primary_document_review_required, 2);
 assert.deepEqual(preview.pageUrls, snapshot.pageUrls);
 
+const duplicateMatched = buildTdnetCandidatePreview({
+  ...snapshot,
+  disclosures: [snapshot.disclosures[0]!, ...snapshot.disclosures],
+});
+assert.equal(duplicateMatched.disclosureCount, 4);
+assert.equal(duplicateMatched.candidateCount, 2, "candidate projection may deduplicate identical matched disclosure rows");
+assert.equal(
+  duplicateMatched.unmatchedDisclosureCount,
+  1,
+  "duplicate matched rows must not be misreported as unmatched disclosures",
+);
+
 for (const candidate of preview.candidates) {
   assert.equal(candidate.registrationReady, false);
   assert.deepEqual(
