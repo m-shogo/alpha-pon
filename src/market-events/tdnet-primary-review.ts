@@ -71,7 +71,7 @@ function normalizeDecision(decision: TdnetPrimaryReviewDecision): TdnetPrimaryRe
   if (eventType !== null) assertKnownMarketEventType(eventType);
 
   const occurrenceKey = decision.occurrenceKey?.trim() || null;
-  const sourceContentHash = decision.sourceContentHash?.trim().toLowerCase() || null;
+  const sourceContentHash = decision.sourceContentHash?.trim() || null;
   const sourceRetrievedAt = decision.sourceRetrievedAt?.trim() || null;
   if (sourceRetrievedAt !== null) assertIsoTimestamp(sourceRetrievedAt, "sourceRetrievedAt");
   if (decision.time !== null) assertValidEventTime(decision.time);
