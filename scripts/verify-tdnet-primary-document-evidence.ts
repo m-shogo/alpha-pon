@@ -63,6 +63,16 @@ assert.deepEqual(evidence, {
 });
 assert.equal("body" in evidence, false, "raw primary document bytes must not be returned or persisted by the evidence boundary");
 
+const leadingZeroLengthEvidence = await acquireTdnetPrimaryDocumentEvidence(candidate, {
+  fetchImpl: fetchReturning(fakeResponse({ body, contentLength: "035" })),
+  now: () => "2026-09-04T15:05:00+09:00",
+});
+assert.equal(
+  leadingZeroLengthEvidence.byteLength,
+  new TextEncoder().encode(body).byteLength,
+  "digit-only Content-Length with leading zeros must remain valid HTTP metadata",
+);
+
 let fetchCalls = 0;
 const failIfFetched = (async () => {
   fetchCalls += 1;
@@ -170,7 +180,7 @@ await assert.rejects(
     fetchImpl: fetchReturning(fakeResponse({ contentLength: "3.5e1" })),
     now: () => "2026-09-04T15:05:00+09:00",
   }),
-  /content-length must be canonical decimal digits/,
+  /content-length must contain decimal digits only/,
 );
 
 await assert.rejects(
