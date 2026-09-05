@@ -8,6 +8,7 @@ import { buildMarketEventBundle, type MarketEventRegistrationInput } from "../sr
 import {
   auditMarketEventDatabase,
   getNextRevisionContext,
+  listEventSources,
   listMarketEvents,
   listPendingDeliveries,
   openMarketEventDatabase,
@@ -127,6 +128,39 @@ try {
   assert.equal(audit.counts.revisions, 1);
   assert.equal(audit.counts.sources, 1);
   assert.equal(audit.counts.outbox, 1);
+
+  const sourceId = first.sources[0].sourceId;
+  db.prepare("UPDATE event_sources SET content_hash = ? WHERE source_id = ?").run("not-a-sha256", sourceId);
+  assert.throws(
+    () => listEventSources(db, eventId),
+    /Invalid persisted source at event_sources\..*: content_hash must be a lowercase SHA-256 hash/,
+    "source reads must fail closed when persisted provenance hash is invalid",
+  );
+  db.prepare("UPDATE event_sources SET content_hash = ? WHERE source_id = ?").run(first.sources[0].contentHash, sourceId);
+
+  db.prepare("UPDATE event_sources SET url = ? WHERE source_id = ?").run("http://example.com/insecure", sourceId);
+  assert.throws(
+    () => listEventSources(db, eventId),
+    /Invalid persisted source at event_sources\..*: url must use https/,
+    "source reads must fail closed when persisted provenance URL is not HTTPS",
+  );
+  db.prepare("UPDATE event_sources SET url = ? WHERE source_id = ?").run(first.sources[0].url, sourceId);
+
+  db.prepare("UPDATE event_sources SET published_at = ?, retrieved_at = ? WHERE source_id = ?").run(
+    "2026-08-03T06:00:01Z",
+    "2026-08-03T06:00:00Z",
+    sourceId,
+  );
+  assert.throws(
+    () => listEventSources(db, eventId),
+    /Invalid persisted source chronology at event_sources\..*: published_at must be on or before retrieved_at/,
+    "source reads must fail closed when persisted publication chronology is impossible",
+  );
+  db.prepare("UPDATE event_sources SET published_at = ?, retrieved_at = ? WHERE source_id = ?").run(
+    first.sources[0].publishedAt,
+    first.sources[0].retrievedAt,
+    sourceId,
+  );
 
   const postponedInput: MarketEventRegistrationInput = {
     ...firstInput,
