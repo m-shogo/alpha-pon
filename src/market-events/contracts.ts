@@ -448,6 +448,7 @@ export function validateMarketEventBundle(bundle: MarketEventBundle): void {
     throw new Error("updatedAt must be on or after createdAt");
   }
 
+  if (revision.schemaVersion !== MARKET_EVENT_SCHEMA_VERSION) throw new Error("Unsupported revision schemaVersion");
   if (revision.eventId !== event.eventId) throw new Error("revision eventId does not match event");
   if (!revision.revisionId.startsWith("rev_")) throw new Error("Invalid revisionId");
   if (!Number.isInteger(revision.revisionNumber) || revision.revisionNumber < 1) {
@@ -470,6 +471,7 @@ export function validateMarketEventBundle(bundle: MarketEventBundle): void {
 
   const sourcesById = new Map<string, EventSource>();
   for (const source of sources) {
+    if (source.schemaVersion !== MARKET_EVENT_SCHEMA_VERSION) throw new Error("Unsupported source schemaVersion");
     if (source.eventId !== event.eventId) throw new Error("source eventId does not match event");
     if (!source.sourceId.startsWith("src_")) throw new Error("Invalid sourceId");
     if (sourcesById.has(source.sourceId)) throw new Error(`Duplicate sourceId in bundle: ${source.sourceId}`);
@@ -509,6 +511,7 @@ export function validateMarketEventBundle(bundle: MarketEventBundle): void {
   }
 
   if (decisionSnapshot) {
+    if (decisionSnapshot.schemaVersion !== MARKET_EVENT_SCHEMA_VERSION) throw new Error("Unsupported decision snapshot schemaVersion");
     if (!decisionSnapshot.decisionSnapshotId.startsWith("dec_")) throw new Error("Invalid decisionSnapshotId");
     if (decisionSnapshot.eventId !== event.eventId || decisionSnapshot.revisionId !== revision.revisionId) {
       throw new Error("decision snapshot references the wrong event or revision");
@@ -530,6 +533,7 @@ export function validateMarketEventBundle(bundle: MarketEventBundle): void {
 
   const deliveryIds = new Set<string>();
   for (const delivery of deliveries) {
+    if (delivery.schemaVersion !== MARKET_EVENT_SCHEMA_VERSION) throw new Error("Unsupported delivery schemaVersion");
     if (!delivery.deliveryId.startsWith("dlv_")) throw new Error("Invalid deliveryId");
     if (deliveryIds.has(delivery.deliveryId)) throw new Error(`Duplicate deliveryId: ${delivery.deliveryId}`);
     deliveryIds.add(delivery.deliveryId);
