@@ -116,6 +116,14 @@ function candidateId(disclosure: TdnetDisclosure): string {
   return `tdc_${createHash("sha256").update(canonical).digest("hex").slice(0, 24)}`;
 }
 
+function candidateSourceCode(sourceCode: string | undefined): string | null {
+  if (sourceCode === undefined) return null;
+  if (!/^[0-9A-Z]{5}$/.test(sourceCode)) {
+    throw new Error("TDnet candidate sourceCode must be an exact 5-character uppercase source value");
+  }
+  return sourceCode;
+}
+
 export function classifyTdnetDisclosureCandidate(
   disclosure: TdnetDisclosure,
 ): TdnetMarketEventCandidate | null {
@@ -131,7 +139,7 @@ export function classifyTdnetDisclosureCandidate(
   return {
     candidateId: candidateId(disclosure),
     issuerCode: disclosure.code.trim(),
-    sourceCode: disclosure.sourceCode?.trim() || null,
+    sourceCode: candidateSourceCode(disclosure.sourceCode),
     issuerName: disclosure.companyName.trim(),
     disclosureTitle: title,
     // This is source publication metadata only. It is deliberately not EventTime.
