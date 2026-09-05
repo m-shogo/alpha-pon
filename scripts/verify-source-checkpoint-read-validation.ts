@@ -37,6 +37,17 @@ try {
     /lastSuccessAt must be on or before lastCheckedAt/,
     "persisted checkpoint reads must fail closed on impossible success chronology",
   );
+
+  db.prepare("UPDATE source_checkpoints SET last_success_at = ?, last_content_hash = ? WHERE source_key = ?").run(
+    "2026-09-04T12:00:00Z",
+    "not-a-sha256",
+    "tdnet:corrupt-read",
+  );
+  assert.throws(
+    () => getSourceCheckpoint(db, "tdnet:corrupt-read"),
+    /lastContentHash must be a lowercase SHA-256 hash/,
+    "persisted checkpoint reads must fail closed on invalid provenance hashes",
+  );
 } finally {
   db.close();
 }
