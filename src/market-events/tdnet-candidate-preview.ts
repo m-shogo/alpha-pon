@@ -32,6 +32,9 @@ export function buildTdnetCandidatePreview(
   if (snapshot.explicitEmpty && snapshot.disclosures.length > 0) {
     throw new Error("TDnet preview cannot be explicit-empty while containing disclosures");
   }
+  if (snapshot.disclosures.length === 0 && !snapshot.explicitEmpty) {
+    throw new Error("TDnet preview requires explicit-empty proof when disclosure count is zero");
+  }
   if (!Number.isInteger(snapshot.pageCount) || snapshot.pageCount < 1) {
     throw new Error("TDnet preview requires a positive pageCount");
   }
