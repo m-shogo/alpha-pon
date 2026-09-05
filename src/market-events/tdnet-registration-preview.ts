@@ -45,7 +45,8 @@ function assertOfficialTdnetSourceUrl(value: string): void {
     throw new Error("TDnet registration preview requires an official TDnet source URL");
   }
   if (
-    parsed.origin !== "https://www.release.tdnet.info"
+    parsed.href !== value
+    || parsed.origin !== "https://www.release.tdnet.info"
     || parsed.username !== ""
     || parsed.password !== ""
     || parsed.search !== ""
