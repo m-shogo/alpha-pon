@@ -62,6 +62,14 @@ function safeErrorMessage(error: unknown): string {
   return (singleLine || "unknown TDnet fetch error").slice(0, 500);
 }
 
+function resolveSourceKey(value: string | undefined): string {
+  if (value === undefined) return TDNET_MARKET_EVENT_SOURCE_KEY;
+  if (!value || value.trim() !== value) {
+    throw new Error("TDnet collector sourceKey must be canonical without surrounding whitespace");
+  }
+  return value;
+}
+
 function buildSuccessCheckpoint(
   sourceKey: string,
   checkedAt: string,
@@ -146,7 +154,7 @@ export async function collectTdnetSourceOnce(
   db: MarketEventDatabase,
   options: TdnetSourceCollectorOptions = {},
 ): Promise<TdnetSourceCollectionResult> {
-  const sourceKey = options.sourceKey?.trim() || TDNET_MARKET_EVENT_SOURCE_KEY;
+  const sourceKey = resolveSourceKey(options.sourceKey);
   const now = options.now ?? (() => new Date().toISOString());
   const existing = getSourceCheckpoint(db, sourceKey);
 
