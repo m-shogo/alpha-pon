@@ -104,4 +104,32 @@ assert.throws(
   "an older conflicting revision must not be hidden after a newer revision becomes the projection",
 );
 
+const gapRevisionRecord = {
+  ...revisionRecord,
+  payload: {
+    ...revisionRecord.payload,
+    revisionId: "rev_gap_replay",
+    revisionNumber: 3,
+    previousRevisionId: revisionRecord.payload.revisionId,
+  },
+};
+assert.throws(
+  () => buildLatestRevisionProjection([...records, gapRevisionRecord]),
+  /Revision continuity/,
+  "local replay must reject a revision-number gap that D1 sync would reject",
+);
+
+const wrongPreviousRevisionRecord = {
+  ...newerRevisionRecord,
+  payload: {
+    ...newerRevisionRecord.payload,
+    previousRevisionId: "rev_wrong_previous",
+  },
+};
+assert.throws(
+  () => buildLatestRevisionProjection([...records, wrongPreviousRevisionRecord]),
+  /previousRevisionId mismatch/,
+  "local replay must reject broken append-only revision lineage",
+);
+
 console.log("market-event-ledger-replay: ok");
