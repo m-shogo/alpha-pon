@@ -330,6 +330,15 @@ export function buildLatestRevisionProjection(records: MarketEventLedgerRecord[]
   for (const record of records) {
     if (record.recordType !== "EVENT_REVISION") continue;
     const existing = projection.get(record.payload.eventId);
+    if (
+      existing &&
+      record.payload.revisionNumber === existing.revisionNumber &&
+      record.payload.revisionId !== existing.revisionId
+    ) {
+      throw new Error(
+        `Conflicting revision replay for ${record.payload.eventId} revision ${record.payload.revisionNumber}`,
+      );
+    }
     if (!existing || record.payload.revisionNumber > existing.revisionNumber) {
       projection.set(record.payload.eventId, record.payload);
     }
