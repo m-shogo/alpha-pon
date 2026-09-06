@@ -639,6 +639,7 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
       });
     }
   }
+  const sourceById = new Map(sourceRows.map(source => [source.sourceId, source] as const));
   const deliveryRows = db.prepare(`
     SELECT
       delivery_id AS deliveryId,
@@ -672,13 +673,18 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
   const revisionRows = db.prepare(`
     SELECT
       revision_id AS revisionId,
+      event_id AS eventId,
       observed_at AS observedAt,
       published_at AS publishedAt,
       effective_at AS effectiveAt,
-      first_executable_at AS firstExecutableAt
+      first_executable_at AS firstExecutableAt,
+      source_ids_json AS sourceIdsJson
     FROM event_revisions
     ORDER BY revision_id
-  `).all() as Array<Pick<EventRevision, "revisionId" | "observedAt" | "publishedAt" | "effectiveAt" | "firstExecutableAt">>;
+  `).all() as Array<
+    Pick<EventRevision, "revisionId" | "eventId" | "observedAt" | "publishedAt" | "effectiveAt" | "firstExecutableAt">
+    & { sourceIdsJson: string }
+  >;
   for (const revision of revisionRows) {
     try {
       validatePersistedRevisionChronology(revision);
@@ -687,6 +693,45 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
         revisionId: revision.revisionId,
         message: error instanceof Error ? error.message : String(error),
       });
+    }
+
+    let sourceIds: string[];
+    try {
+      sourceIds = parsePersistedJson<string[]>(
+        revision.sourceIdsJson,
+        `event_revisions.${revision.revisionId}.source_ids_json`,
+        "string-array",
+      );
+    } catch {
+      // The generic JSON audit below owns syntax/shape diagnostics for source_ids_json.
+      continue;
+    }
+    for (const sourceId of sourceIds) {
+      const source = sourceById.get(sourceId);
+      if (!source || source.eventId !== revision.eventId) {
+        invalidRevisionRows.push({
+          revisionId: revision.revisionId,
+          message: `Invalid persisted revision source at event_revisions.${revision.revisionId}: references invalid source ${sourceId}`,
+        });
+        continue;
+      }
+      try {
+        if (
+          compareExplicitIso8601Instants(
+            source.retrievedAt,
+            revision.observedAt,
+            `event_sources.${sourceId}.retrieved_at`,
+            `event_revisions.${revision.revisionId}.observed_at`,
+          ) > 0
+        ) {
+          invalidRevisionRows.push({
+            revisionId: revision.revisionId,
+            message: `Invalid persisted revision source chronology at event_revisions.${revision.revisionId}: source ${sourceId} retrieved after observed_at`,
+          });
+        }
+      } catch {
+        // Source/revision timestamp validators above own malformed timestamp diagnostics.
+      }
     }
   }
   const schemaVersionChecks = [
