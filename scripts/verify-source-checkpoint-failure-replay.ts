@@ -14,9 +14,9 @@ try {
   const successful: SourceCheckpoint = {
     sourceKey: "jpx:tdnet:failure-replay",
     sourceType: "TDNET",
-    cursorValue: null,
-    etag: null,
-    lastModified: null,
+    cursorValue: "page:1",
+    etag: '"tdnet-v1"',
+    lastModified: "Mon, 07 Sep 2026 00:00:00 GMT",
     lastContentHash: "a".repeat(64),
     lastCheckedAt: "2026-09-07T00:00:00Z",
     lastSuccessAt: "2026-09-07T00:00:00Z",
@@ -61,8 +61,31 @@ try {
   );
   assert.deepEqual(getSourceCheckpoint(db, successful.sourceKey), twoFailures);
 
+  for (const forgedFailureProvenance of [
+    { cursorValue: "page:2" },
+    { etag: '"tdnet-v2"' },
+    { lastModified: "Mon, 07 Sep 2026 00:11:00 GMT" },
+  ]) {
+    const forgedFailure: SourceCheckpoint = {
+      ...twoFailures,
+      ...forgedFailureProvenance,
+      lastCheckedAt: "2026-09-07T00:11:00Z",
+      consecutiveFailures: 3,
+      lastError: "third failure",
+    };
+    assert.throws(
+      () => upsertSourceCheckpoint(db, forgedFailure),
+      /cannot change success provenance without a newer success/,
+      "a failure-only update must not advance cursor or HTTP validators from the last successful source observation",
+    );
+    assert.deepEqual(getSourceCheckpoint(db, successful.sourceKey), twoFailures);
+  }
+
   const recovered: SourceCheckpoint = {
     ...twoFailures,
+    cursorValue: "page:2",
+    etag: '"tdnet-v2"',
+    lastModified: "Mon, 07 Sep 2026 00:12:00 GMT",
     lastCheckedAt: "2026-09-07T00:12:00Z",
     lastSuccessAt: "2026-09-07T00:12:00Z",
     lastContentHash: "b".repeat(64),
@@ -72,7 +95,7 @@ try {
   assert.equal(
     upsertSourceCheckpoint(db, recovered),
     "updated",
-    "a genuine newer successful check may reset the failure streak and update content provenance",
+    "a genuine newer successful check may reset the failure streak and update source provenance",
   );
   assert.deepEqual(getSourceCheckpoint(db, successful.sourceKey), recovered);
 } finally {
