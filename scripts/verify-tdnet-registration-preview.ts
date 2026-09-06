@@ -240,7 +240,7 @@ assert.throws(
     metadata,
     evidence,
   ),
-  /requires raw 5-character sourceCode provenance/,
+  /registration preview is blocked: source_code_provenance_missing/,
   "registration preview must fail closed when raw five-character TDnet sourceCode provenance is missing",
 );
 

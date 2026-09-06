@@ -85,6 +85,28 @@ assert.deepEqual(ready.blockers, []);
 assert.deepEqual(ready.warnings, []);
 assert.equal(ready.normalized.occurrenceKey, "annual-general-meeting-2026");
 
+const candidateWithoutSourceCode = classifyTdnetDisclosureCandidate({
+  code: "8136",
+  companyName: "サンリオ",
+  title: "定時株主総会招集ご通知",
+  publishedAt: "2026-09-04T15:00:00+09:00",
+  url: "https://www.release.tdnet.info/inbs/140120260904000001.pdf",
+});
+if (!candidateWithoutSourceCode) throw new Error("legacy disclosure without sourceCode must remain reviewable");
+const missingSourceCode = assessTdnetPrimaryReview(
+  candidateWithoutSourceCode,
+  {
+    ...ready.normalized,
+    candidateId: candidateWithoutSourceCode.candidateId,
+  },
+);
+assert.equal(
+  missingSourceCode.registrationPreviewReady,
+  false,
+  "primary review must not advertise registration readiness without raw TDnet sourceCode provenance",
+);
+assert.deepEqual(missingSourceCode.blockers, ["source_code_provenance_missing"]);
+
 for (const nonCanonicalOccurrenceKey of [
   " annual-general-meeting-2026",
   "annual-general-meeting-2026 ",
