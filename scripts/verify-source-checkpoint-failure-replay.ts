@@ -47,17 +47,32 @@ try {
   );
   assert.deepEqual(getSourceCheckpoint(db, successful.sourceKey), twoFailures);
 
+  const forgedFailureHash: SourceCheckpoint = {
+    ...twoFailures,
+    lastCheckedAt: "2026-09-07T00:11:00Z",
+    consecutiveFailures: 3,
+    lastError: "third failure",
+    lastContentHash: "b".repeat(64),
+  };
+  assert.throws(
+    () => upsertSourceCheckpoint(db, forgedFailureHash),
+    /cannot change lastContentHash without a newer success/,
+    "a failure-only update must not rewrite the hash of the last successfully observed source content",
+  );
+  assert.deepEqual(getSourceCheckpoint(db, successful.sourceKey), twoFailures);
+
   const recovered: SourceCheckpoint = {
     ...twoFailures,
     lastCheckedAt: "2026-09-07T00:12:00Z",
     lastSuccessAt: "2026-09-07T00:12:00Z",
+    lastContentHash: "b".repeat(64),
     consecutiveFailures: 0,
     lastError: null,
   };
   assert.equal(
     upsertSourceCheckpoint(db, recovered),
     "updated",
-    "a genuine newer successful check may reset the failure streak",
+    "a genuine newer successful check may reset the failure streak and update content provenance",
   );
   assert.deepEqual(getSourceCheckpoint(db, successful.sourceKey), recovered);
 } finally {

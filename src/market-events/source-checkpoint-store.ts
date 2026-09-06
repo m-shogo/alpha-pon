@@ -226,6 +226,12 @@ export function upsertSourceCheckpoint(
     ) {
       throw new Error(`source checkpoint cannot regress consecutiveFailures without a newer success for ${normalized.sourceKey}`);
     }
+    if (
+      normalized.lastSuccessAt === existing.lastSuccessAt
+      && normalized.lastContentHash !== existing.lastContentHash
+    ) {
+      throw new Error(`source checkpoint cannot change lastContentHash without a newer success for ${normalized.sourceKey}`);
+    }
 
     db.prepare(`
       UPDATE source_checkpoints
