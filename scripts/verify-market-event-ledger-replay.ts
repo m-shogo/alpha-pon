@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { buildMarketEventBundle, type MarketEventRegistrationInput } from "../src/market-events/registration.js";
-import { buildLatestRevisionProjection, recordsFromBundle } from "../src/market-events/local-ledger.js";
+import {
+  buildLatestEventProjection,
+  buildLatestRevisionProjection,
+  recordsFromBundle,
+} from "../src/market-events/local-ledger.js";
 
 const input: MarketEventRegistrationInput = {
   issuerCode: "8136",
@@ -46,8 +50,35 @@ const bundle = buildMarketEventBundle(input, {
   existingCreatedAt: null,
 });
 const records = recordsFromBundle(bundle, "2026-08-03T05:00:00Z");
+const eventRecord = records.find(record => record.recordType === "MARKET_EVENT");
 const revisionRecord = records.find(record => record.recordType === "EVENT_REVISION");
+assert(eventRecord);
 assert(revisionRecord);
+
+const exactEventReplay = [...records, eventRecord];
+assert.equal(
+  buildLatestEventProjection(exactEventReplay).get(bundle.event.eventId)?.title,
+  bundle.event.title,
+  "an exact market-event replay must remain idempotent",
+);
+
+const conflictingEventRecord = {
+  ...eventRecord,
+  payload: {
+    ...eventRecord.payload,
+    title: "Conflicting same-timestamp title",
+  },
+};
+assert.throws(
+  () => buildLatestEventProjection([...records, conflictingEventRecord]),
+  /Conflicting market event replay/,
+  "the same event/updatedAt must not resolve differently by ledger order",
+);
+assert.throws(
+  () => buildLatestEventProjection([conflictingEventRecord, ...records]),
+  /Conflicting market event replay/,
+  "same-timestamp market-event conflict detection must be independent of ledger order",
+);
 
 const exactReplay = [...records, revisionRecord];
 assert.equal(
