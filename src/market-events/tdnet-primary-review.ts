@@ -5,7 +5,10 @@ import {
   type EventTime,
   type MarketEventType,
 } from "./contracts.js";
-import type { TdnetMarketEventCandidate } from "./tdnet-event-candidates.js";
+import {
+  assertTdnetMarketEventCandidateIdentity,
+  type TdnetMarketEventCandidate,
+} from "./tdnet-event-candidates.js";
 import { compareExplicitIso8601Instants } from "../research/iso-instant.js";
 
 export const TDNET_PRIMARY_REVIEW_OUTCOMES = [
@@ -186,6 +189,7 @@ export function assessTdnetPrimaryReview(
   if (decision.candidateId !== candidate.candidateId) {
     throw new Error(`TDnet review candidateId mismatch: expected ${candidate.candidateId}`);
   }
+  assertTdnetMarketEventCandidateIdentity(candidate);
   assertCandidateSourceUrlProvenance(candidate);
   assertCandidateSourceCodeProvenance(candidate);
 
