@@ -151,7 +151,7 @@ assert.throws(
     sourceContentHash: "d".repeat(64),
     sourceRetrievedAt: "2026-09-04T15:05:00+09:00",
   })),
-  /Invalid EventTime timezone/,
+  /Invalid (?:EventTime|event) timezone/,
   "EXACT review EventTime must reject an invalid timezone before becoming registration-ready",
 );
 

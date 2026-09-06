@@ -361,8 +361,18 @@ function assertSha256ContentHash(value: string): void {
   }
 }
 
+function assertEventTimezone(value: string): void {
+  const timezone = value.trim();
+  if (!timezone) throw new Error("event timezone is required");
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: timezone }).format(new Date(0));
+  } catch {
+    throw new Error(`Invalid event timezone: ${timezone}`);
+  }
+}
+
 export function assertValidEventTime(time: EventTime): void {
-  if (!time.timezone.trim()) throw new Error("event timezone is required");
+  assertEventTimezone(time.timezone);
   assertKnownValue(EVENT_TIME_PRECISIONS, time.precision, "event time precision");
 
   if (time.precision === "UNKNOWN") {
