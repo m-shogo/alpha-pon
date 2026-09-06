@@ -604,8 +604,18 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
     SELECT e.event_id AS eventId
     FROM market_events e
     LEFT JOIN event_revisions r ON r.revision_id = e.current_revision_id
+    LEFT JOIN (
+      SELECT event_id, MAX(revision_number) AS latestRevisionNumber
+      FROM event_revisions
+      GROUP BY event_id
+    ) latest ON latest.event_id = e.event_id
     WHERE e.current_revision_id IS NOT NULL
-      AND (r.revision_id IS NULL OR r.event_id != e.event_id)
+      AND (
+        r.revision_id IS NULL
+        OR r.event_id != e.event_id
+        OR latest.latestRevisionNumber IS NULL
+        OR r.revision_number != latest.latestRevisionNumber
+      )
   `).all().map(row => (row as { eventId: string }).eventId);
   const malformedJsonRows: MarketEventAuditReport["malformedJsonRows"] = [];
   const unsupportedSchemaVersionRows: MarketEventAuditReport["unsupportedSchemaVersionRows"] = [];
