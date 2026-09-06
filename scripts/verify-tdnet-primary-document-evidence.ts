@@ -162,6 +162,15 @@ await assert.rejects(
 
 await assert.rejects(
   () => acquireTdnetPrimaryDocumentEvidence(candidate, {
+    fetchImpl: fetchReturning(fakeResponse({ status: 206, body: "%PDF-1.7 partial primary document" })),
+    now: () => "2026-09-04T15:05:00+09:00",
+  }),
+  /complete evidence requires HTTP 200/,
+  "partial-content responses must not be hashed as if they were the complete primary document",
+);
+
+await assert.rejects(
+  () => acquireTdnetPrimaryDocumentEvidence(candidate, {
     fetchImpl: fetchReturning(fakeResponse({ contentType: "text/html" })),
     now: () => "2026-09-04T15:05:00+09:00",
   }),
