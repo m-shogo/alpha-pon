@@ -152,7 +152,7 @@ try {
   source.exec("PRAGMA ignore_check_constraints = OFF");
   assert.throws(
     () => buildD1BootstrapExport(source, options),
-    /D1 bootstrap rejects invalid persisted EventTime.*Invalid EventTime timezone/,
+    /D1 bootstrap rejects invalid persisted EventTime.*Invalid event timezone/,
     "bootstrap export must fail closed instead of propagating corrupted EventTime provenance into D1 SQL",
   );
 
