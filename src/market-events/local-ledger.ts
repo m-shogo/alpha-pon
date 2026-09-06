@@ -311,16 +311,25 @@ export function buildLatestEventProjection(records: MarketEventLedgerRecord[]): 
   for (const record of records) {
     if (record.recordType !== "MARKET_EVENT") continue;
     const existing = projection.get(record.payload.eventId);
-    if (
-      !existing ||
-      compareExplicitIso8601Instants(
-        record.payload.updatedAt,
-        existing.updatedAt,
-        "market event updatedAt",
-        "existing market event updatedAt",
-      ) >= 0
-    ) {
+    if (!existing) {
       projection.set(record.payload.eventId, record.payload);
+      continue;
+    }
+
+    const updatedAtComparison = compareExplicitIso8601Instants(
+      record.payload.updatedAt,
+      existing.updatedAt,
+      "market event updatedAt",
+      "existing market event updatedAt",
+    );
+    if (updatedAtComparison > 0) {
+      projection.set(record.payload.eventId, record.payload);
+      continue;
+    }
+    if (updatedAtComparison === 0 && !isDeepStrictEqual(existing, record.payload)) {
+      throw new Error(
+        `Conflicting market event replay for ${record.payload.eventId} at ${record.payload.updatedAt}`,
+      );
     }
   }
   return projection;
