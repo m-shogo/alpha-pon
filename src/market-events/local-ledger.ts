@@ -352,6 +352,24 @@ export function buildLatestRevisionProjection(records: MarketEventLedgerRecord[]
       projection.set(record.payload.eventId, record.payload);
     }
   }
+
+  for (const [eventId, revisionsByNumber] of revisionsByEventAndNumber) {
+    const revisions = [...revisionsByNumber.values()].sort((left, right) => left.revisionNumber - right.revisionNumber);
+    for (let index = 0; index < revisions.length; index += 1) {
+      const revision = revisions[index];
+      const expectedNumber = index + 1;
+      if (revision.revisionNumber !== expectedNumber) {
+        throw new Error(
+          `Revision continuity for ${eventId} expected ${expectedNumber}, found ${revision.revisionNumber}`,
+        );
+      }
+      const expectedPrevious = index === 0 ? null : revisions[index - 1].revisionId;
+      if (revision.previousRevisionId !== expectedPrevious) {
+        throw new Error(`Revision ${revision.revisionId} previousRevisionId mismatch`);
+      }
+    }
+  }
+
   return projection;
 }
 
