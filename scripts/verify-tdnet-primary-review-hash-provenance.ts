@@ -50,4 +50,19 @@ const canonical = assessTdnetPrimaryReview(candidate, {
 assert.equal(canonical.registrationPreviewReady, true);
 assert.equal(canonical.normalized.sourceContentHash, "a".repeat(64));
 
+for (const [sourceCode, message] of [
+  ["8136", /sourceCode must be an exact 5-character uppercase source value/],
+  ["8136a", /sourceCode must be an exact 5-character uppercase source value/],
+  ["99990", /sourceCode does not match issuerCode/],
+] as const) {
+  assert.throws(
+    () => assessTdnetPrimaryReview(
+      { ...candidate, sourceCode },
+      { ...base, sourceContentHash: "a".repeat(64) },
+    ),
+    message,
+    "primary review must reject invalid sourceCode provenance before reporting registrationPreviewReady",
+  );
+}
+
 console.log("tdnet-primary-review-hash-provenance: ok");
