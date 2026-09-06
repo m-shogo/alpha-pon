@@ -232,6 +232,16 @@ export function upsertSourceCheckpoint(
     ) {
       throw new Error(`source checkpoint cannot change lastContentHash without a newer success for ${normalized.sourceKey}`);
     }
+    if (
+      normalized.lastSuccessAt === existing.lastSuccessAt
+      && (
+        normalized.cursorValue !== existing.cursorValue
+        || normalized.etag !== existing.etag
+        || normalized.lastModified !== existing.lastModified
+      )
+    ) {
+      throw new Error(`source checkpoint cannot change success provenance without a newer success for ${normalized.sourceKey}`);
+    }
 
     db.prepare(`
       UPDATE source_checkpoints
