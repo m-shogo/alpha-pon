@@ -76,6 +76,17 @@ try {
     "persisted checkpoint reads must reject failure states without diagnostic provenance",
   );
 
+  db.prepare(`
+    UPDATE source_checkpoints
+    SET last_success_at = NULL, cursor_value = ?, consecutive_failures = 1, last_error = ?
+    WHERE source_key = ?
+  `).run("page:2", "fetch failed", "tdnet:corrupt-read");
+  assert.throws(
+    () => getSourceCheckpoint(db, "tdnet:corrupt-read"),
+    /source success provenance requires lastSuccessAt/,
+    "persisted checkpoints must not claim cursor or source validators without success chronology",
+  );
+
   const checkpoint: SourceCheckpoint = {
     sourceKey: "jpx:tdnet:market-events",
     sourceType: "TDNET",
@@ -105,6 +116,19 @@ try {
     () => upsertSourceCheckpoint(db, { ...checkpoint, sourceType: " TDNET" }),
     /sourceType must be canonical without surrounding whitespace/,
     "checkpoint writes must preserve sourceType provenance exactly",
+  );
+
+  const orphanProvenance: SourceCheckpoint = {
+    ...checkpoint,
+    sourceKey: "jpx:tdnet:orphan-provenance",
+    lastSuccessAt: null,
+    consecutiveFailures: 1,
+    lastError: "fetch failed",
+  };
+  assert.throws(
+    () => upsertSourceCheckpoint(db, orphanProvenance),
+    /source success provenance requires lastSuccessAt/,
+    "checkpoint writes must reject success-derived provenance when no successful observation is recorded",
   );
 
   let fetchCalls = 0;
