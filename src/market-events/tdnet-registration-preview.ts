@@ -12,6 +12,7 @@ import {
   assessTdnetPrimaryReview,
   type TdnetPrimaryReviewAssessment,
 } from "./tdnet-primary-review.js";
+import { compareExplicitIso8601Instants } from "../research/iso-instant.js";
 
 export type TdnetFutureEventStatus = "SCHEDULED" | "TENTATIVE";
 
@@ -130,6 +131,18 @@ export function prepareTdnetRegistrationPreview(
 
   const eventTitle = requiredText(metadata.eventTitle, "eventTitle");
   const whyItMatters = requiredText(metadata.whyItMatters, "whyItMatters");
+  const staleAfter = metadata.staleAfter ?? null;
+  if (
+    staleAfter !== null
+    && compareExplicitIso8601Instants(
+      staleAfter,
+      reviewed.reviewedAt,
+      "staleAfter",
+      "reviewedAt",
+    ) < 0
+  ) {
+    throw new Error("TDnet registration preview staleAfter must be on or after reviewedAt");
+  }
 
   const input: MarketEventRegistrationInput = {
     issuerCode: candidate.issuerCode || null,
@@ -147,7 +160,7 @@ export function prepareTdnetRegistrationPreview(
     checksAfter: metadata.checksAfter ?? [],
     relatedEventIds: metadata.relatedEventIds ?? [],
     lastVerifiedAt: reviewed.reviewedAt,
-    staleAfter: metadata.staleAfter ?? null,
+    staleAfter,
     observedAt: reviewed.reviewedAt,
     publishedAt: candidate.disclosurePublishedAt,
     effectiveAt: null,
