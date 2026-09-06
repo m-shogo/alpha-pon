@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { assertValidEventTime } from "./contracts.js";
 import type { MarketEventDatabase } from "./sqlite-store.js";
 
 export type D1BootstrapExport = {
@@ -119,6 +120,48 @@ function assertCurrentRevisionPointersAreLatest(db: MarketEventDatabase): void {
   }
 }
 
+function assertPersistedEventTimesAreValid(db: MarketEventDatabase): void {
+  const rows = db.prepare(`
+    SELECT
+      event_id AS eventId,
+      start_at AS startAt,
+      end_at AS endAt,
+      all_day AS allDay,
+      timezone,
+      time_precision AS precision,
+      window_start AS windowStart,
+      window_end AS windowEnd
+    FROM market_events
+    ORDER BY event_id
+  `).all() as Array<{
+    eventId: string;
+    startAt: string | null;
+    endAt: string | null;
+    allDay: number;
+    timezone: string;
+    precision: "EXACT" | "DATE_ONLY" | "WINDOW" | "UNKNOWN";
+    windowStart: string | null;
+    windowEnd: string | null;
+  }>;
+
+  for (const row of rows) {
+    try {
+      assertValidEventTime({
+        startAt: row.startAt,
+        endAt: row.endAt,
+        allDay: row.allDay === 1,
+        timezone: row.timezone,
+        precision: row.precision,
+        windowStart: row.windowStart,
+        windowEnd: row.windowEnd,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`D1 bootstrap rejects invalid persisted EventTime for ${row.eventId}: ${message}`);
+    }
+  }
+}
+
 export function buildD1BootstrapExport(
   db: MarketEventDatabase,
   options: { generatedAt?: string; sourceDatabase?: string } = {},
@@ -127,6 +170,7 @@ export function buildD1BootstrapExport(
   void options.sourceDatabase;
   assertSupportedSchemaVersions(db);
   assertCurrentRevisionPointersAreLatest(db);
+  assertPersistedEventTimesAreValid(db);
   const rowCounts: Record<string, number> = {};
   const lines: string[] = ["PRAGMA foreign_keys = ON;"];
 

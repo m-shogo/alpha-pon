@@ -143,6 +143,19 @@ try {
     "bootstrap export must fail closed instead of exporting an older revision as current",
   );
 
+  source.prepare("UPDATE market_events SET current_revision_id = ? WHERE event_id = ?").run(
+    second.revision.revisionId,
+    eventId,
+  );
+  source.exec("PRAGMA ignore_check_constraints = ON");
+  source.prepare("UPDATE market_events SET timezone = ? WHERE event_id = ?").run("Mars/Olympus", eventId);
+  source.exec("PRAGMA ignore_check_constraints = OFF");
+  assert.throws(
+    () => buildD1BootstrapExport(source, options),
+    /D1 bootstrap rejects invalid persisted EventTime.*Invalid event timezone/,
+    "bootstrap export must fail closed instead of propagating corrupted EventTime provenance into D1 SQL",
+  );
+
   console.log("d1-bootstrap-export: ok");
 } finally {
   source.close();
