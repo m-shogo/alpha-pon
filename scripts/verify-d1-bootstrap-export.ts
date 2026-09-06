@@ -156,6 +156,15 @@ try {
     "bootstrap export must fail closed instead of propagating corrupted EventTime provenance into D1 SQL",
   );
 
+  source.exec("PRAGMA ignore_check_constraints = ON");
+  source.prepare("UPDATE market_events SET timezone = ?, all_day = 2 WHERE event_id = ?").run("Asia/Tokyo", eventId);
+  source.exec("PRAGMA ignore_check_constraints = OFF");
+  assert.throws(
+    () => buildD1BootstrapExport(source, options),
+    /D1 bootstrap rejects invalid persisted EventTime.*all_day must be stored as 0 or 1, got 2/,
+    "bootstrap export must reject corrupted integer booleans instead of coercing them to false",
+  );
+
   console.log("d1-bootstrap-export: ok");
 } finally {
   source.close();
