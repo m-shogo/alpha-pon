@@ -130,11 +130,13 @@ try {
     firstBundle.revision.revisionId,
     eventId,
   );
+  const stalePointerAudit = auditMarketEventDatabase(source, ":memory:source");
   assert.equal(
-    auditMarketEventDatabase(source, ":memory:source").status,
-    "ok",
-    "legacy audit currently treats an older same-event revision pointer as structurally valid",
+    stalePointerAudit.status,
+    "error",
+    "central audit must fail closed when current_revision_id references an older same-event revision",
   );
+  assert.deepEqual(stalePointerAudit.currentRevisionMismatches, [eventId]);
   assert.throws(
     () => buildD1BootstrapExport(source, options),
     /D1 bootstrap requires current_revision_id to reference the latest revision/,
