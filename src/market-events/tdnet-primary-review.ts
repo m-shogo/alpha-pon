@@ -95,6 +95,16 @@ function normalizeDecision(decision: TdnetPrimaryReviewDecision): TdnetPrimaryRe
   };
 }
 
+function assertCandidateSourceCodeProvenance(candidate: TdnetMarketEventCandidate): void {
+  if (candidate.sourceCode === null) return;
+  if (!/^[0-9A-Z]{5}$/.test(candidate.sourceCode)) {
+    throw new Error("TDnet primary review candidate sourceCode must be an exact 5-character uppercase source value");
+  }
+  if (candidate.sourceCode.slice(0, 4) !== candidate.issuerCode) {
+    throw new Error("TDnet primary review candidate sourceCode does not match issuerCode");
+  }
+}
+
 function dateAtTimezone(instant: string, timezone: string): string {
   let parts: Intl.DateTimeFormatPart[];
   try {
@@ -155,6 +165,7 @@ export function assessTdnetPrimaryReview(
   if (decision.candidateId !== candidate.candidateId) {
     throw new Error(`TDnet review candidateId mismatch: expected ${candidate.candidateId}`);
   }
+  assertCandidateSourceCodeProvenance(candidate);
 
   assertIsoTimestamp(candidate.disclosurePublishedAt, "candidate.disclosurePublishedAt");
   if (
