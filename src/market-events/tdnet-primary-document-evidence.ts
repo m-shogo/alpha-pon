@@ -133,8 +133,8 @@ export async function acquireTdnetPrimaryDocumentEvidence(
     },
   });
 
-  if (!response.ok) {
-    throw new Error(`TDnet primary document fetch failed with HTTP ${response.status}`);
+  if (response.status !== 200) {
+    throw new Error(`TDnet primary document fetch failed with HTTP ${response.status}; complete evidence requires HTTP 200`);
   }
 
   const finalUrl = assertOfficialTdnetDocumentUrl(response.url, "TDnet primary document final URL");
