@@ -1,4 +1,4 @@
-import { assertValidEventTime, type EventSource, type MarketEvent } from "./contracts.js";
+import { assertIsoTimestamp, assertValidEventTime, type EventSource, type MarketEvent } from "./contracts.js";
 
 export type IcsMarketEvent = {
   event: MarketEvent;
@@ -137,11 +137,19 @@ function statusValue(event: MarketEvent): "CANCELLED" | "TENTATIVE" | "CONFIRMED
   return "CONFIRMED";
 }
 
+function assertProjectionMetadataInstants(event: MarketEvent): void {
+  assertIsoTimestamp(event.createdAt, "market event createdAt");
+  assertIsoTimestamp(event.updatedAt, "market event updatedAt");
+  assertIsoTimestamp(event.lastVerifiedAt, "market event lastVerifiedAt");
+  if (event.staleAfter !== null) assertIsoTimestamp(event.staleAfter, "market event staleAfter");
+}
+
 export function buildMarketEventsIcs(items: IcsMarketEvent[], generatedAt: string): {
   content: string;
   included: number;
   excludedUnknownDate: number;
 } {
+  assertIsoTimestamp(generatedAt, "market event generatedAt");
   const lines: string[] = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -158,6 +166,7 @@ export function buildMarketEventsIcs(items: IcsMarketEvent[], generatedAt: strin
 
   for (const item of items) {
     assertValidEventTime(item.event.time);
+    assertProjectionMetadataInstants(item.event);
     const dateLines = eventDateLines(item.event);
     if (!dateLines) {
       excludedUnknownDate += 1;
