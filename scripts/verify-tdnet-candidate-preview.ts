@@ -94,6 +94,24 @@ assert.throws(
   /pageUrls must match pageCount/,
 );
 assert.throws(
+  () => buildTdnetCandidatePreview({
+    ...snapshot,
+    pageCount: 1,
+    pageUrls: ["https://example.com/inbs/I_list_001_20260904.html"],
+  }),
+  /canonical official viewer URL/,
+  "preview provenance must reject off-domain page URLs even when a caller constructs the snapshot manually",
+);
+assert.throws(
+  () => buildTdnetCandidatePreview({
+    ...snapshot,
+    pageCount: 1,
+    pageUrls: ["https://www.release.tdnet.info/inbs/I_list_001_20260905.html"],
+  }),
+  /canonical official viewer URL/,
+  "preview provenance must bind page URLs to the snapshot observationDate",
+);
+assert.throws(
   () => buildTdnetCandidatePreview({ ...snapshot, explicitEmpty: true }),
   /explicit-empty while containing disclosures/,
 );
