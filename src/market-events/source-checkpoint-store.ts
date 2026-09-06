@@ -60,6 +60,12 @@ function validateCheckpoint(checkpoint: SourceCheckpoint): void {
   if (!Number.isInteger(checkpoint.consecutiveFailures) || checkpoint.consecutiveFailures < 0) {
     throw new Error("consecutiveFailures must be a non-negative integer");
   }
+  if (checkpoint.consecutiveFailures === 0 && checkpoint.lastError !== null) {
+    throw new Error("lastError must be null when consecutiveFailures is zero");
+  }
+  if (checkpoint.consecutiveFailures > 0 && (checkpoint.lastError === null || checkpoint.lastError.trim() === "")) {
+    throw new Error("lastError is required when consecutiveFailures is positive");
+  }
   if (checkpoint.lastContentHash !== null && !/^[a-f0-9]{64}$/.test(checkpoint.lastContentHash)) {
     throw new Error("lastContentHash must be a lowercase SHA-256 hash");
   }
