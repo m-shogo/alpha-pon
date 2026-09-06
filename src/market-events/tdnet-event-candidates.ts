@@ -212,7 +212,14 @@ export function extractTdnetMarketEventCandidates(
   const byId = new Map<string, TdnetMarketEventCandidate>();
   for (const disclosure of disclosures) {
     const candidate = classifyTdnetDisclosureCandidate(disclosure);
-    if (candidate !== null) byId.set(candidate.candidateId, candidate);
+    if (candidate === null) continue;
+    const existing = byId.get(candidate.candidateId);
+    if (existing && existing.sourceCode !== candidate.sourceCode) {
+      throw new Error(
+        `TDnet candidate provenance conflict for ${candidate.candidateId}: sourceCode ${existing.sourceCode ?? "unknown"} != ${candidate.sourceCode ?? "unknown"}`,
+      );
+    }
+    if (!existing) byId.set(candidate.candidateId, candidate);
   }
   return [...byId.values()].sort((left, right) => left.candidateId.localeCompare(right.candidateId));
 }
