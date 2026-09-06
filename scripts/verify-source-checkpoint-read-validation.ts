@@ -54,6 +54,28 @@ try {
     "persisted checkpoint reads must fail closed on invalid provenance hashes",
   );
 
+  db.prepare(`
+    UPDATE source_checkpoints
+    SET last_content_hash = NULL, consecutive_failures = 0, last_error = ?
+    WHERE source_key = ?
+  `).run("stale failure error", "tdnet:corrupt-read");
+  assert.throws(
+    () => getSourceCheckpoint(db, "tdnet:corrupt-read"),
+    /lastError must be null when consecutiveFailures is zero/,
+    "persisted checkpoint reads must reject stale error metadata after a successful health state",
+  );
+
+  db.prepare(`
+    UPDATE source_checkpoints
+    SET consecutive_failures = 1, last_error = NULL
+    WHERE source_key = ?
+  `).run("tdnet:corrupt-read");
+  assert.throws(
+    () => getSourceCheckpoint(db, "tdnet:corrupt-read"),
+    /lastError is required when consecutiveFailures is positive/,
+    "persisted checkpoint reads must reject failure states without diagnostic provenance",
+  );
+
   const checkpoint: SourceCheckpoint = {
     sourceKey: "jpx:tdnet:market-events",
     sourceType: "TDNET",
