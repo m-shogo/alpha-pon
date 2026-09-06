@@ -1,4 +1,5 @@
 import { appendFileSync, existsSync, lstatSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { isDeepStrictEqual } from "node:util";
 import { dirname, resolve, sep } from "node:path";
 import { compareExplicitIso8601Instants } from "../research/iso-instant.js";
 import {
@@ -218,6 +219,7 @@ export function validateLedgerRecord(record: MarketEventLedgerRecord): void {
           record.payload.updatedAt,
           "recordedAt",
           "delivery updatedAt",
+          "updatedAt",
         ) < 0
       ) {
         throw new Error("recordedAt must be on or after delivery updatedAt");
@@ -327,23 +329,23 @@ export function buildLatestEventProjection(records: MarketEventLedgerRecord[]): 
 
 export function buildLatestRevisionProjection(records: MarketEventLedgerRecord[]): Map<string, EventRevision> {
   const projection = new Map<string, EventRevision>();
-  const revisionIdsByEventAndNumber = new Map<string, Map<number, string>>();
+  const revisionsByEventAndNumber = new Map<string, Map<number, EventRevision>>();
   for (const record of records) {
     if (record.recordType !== "EVENT_REVISION") continue;
 
-    let revisionIdsByNumber = revisionIdsByEventAndNumber.get(record.payload.eventId);
-    if (!revisionIdsByNumber) {
-      revisionIdsByNumber = new Map<number, string>();
-      revisionIdsByEventAndNumber.set(record.payload.eventId, revisionIdsByNumber);
+    let revisionsByNumber = revisionsByEventAndNumber.get(record.payload.eventId);
+    if (!revisionsByNumber) {
+      revisionsByNumber = new Map<number, EventRevision>();
+      revisionsByEventAndNumber.set(record.payload.eventId, revisionsByNumber);
     }
-    const replayedRevisionId = revisionIdsByNumber.get(record.payload.revisionNumber);
-    if (replayedRevisionId && replayedRevisionId !== record.payload.revisionId) {
+    const replayedRevision = revisionsByNumber.get(record.payload.revisionNumber);
+    if (replayedRevision && !isDeepStrictEqual(replayedRevision, record.payload)) {
       throw new Error(
         `Conflicting revision replay for ${record.payload.eventId} revision ${record.payload.revisionNumber}`,
       );
     }
-    if (!replayedRevisionId) {
-      revisionIdsByNumber.set(record.payload.revisionNumber, record.payload.revisionId);
+    if (!replayedRevision) {
+      revisionsByNumber.set(record.payload.revisionNumber, record.payload);
     }
 
     const existing = projection.get(record.payload.eventId);
