@@ -56,16 +56,14 @@ assert.equal(
   "an exact append-only replay must remain idempotent",
 );
 
-const conflictingReplay = [
-  ...records,
-  {
-    ...revisionRecord,
-    payload: {
-      ...revisionRecord.payload,
-      revisionId: "rev_conflicting_replay",
-    },
+const conflictingRevisionRecord = {
+  ...revisionRecord,
+  payload: {
+    ...revisionRecord.payload,
+    revisionId: "rev_conflicting_replay",
   },
-];
+};
+const conflictingReplay = [...records, conflictingRevisionRecord];
 assert.throws(
   () => buildLatestRevisionProjection(conflictingReplay),
   /Conflicting revision replay/,
@@ -76,6 +74,21 @@ assert.throws(
   () => buildLatestRevisionProjection([...conflictingReplay].reverse()),
   /Conflicting revision replay/,
   "conflicting replay detection must be independent of ledger order",
+);
+
+const newerRevisionRecord = {
+  ...revisionRecord,
+  payload: {
+    ...revisionRecord.payload,
+    revisionId: "rev_newer_replay",
+    revisionNumber: 2,
+    previousRevisionId: revisionRecord.payload.revisionId,
+  },
+};
+assert.throws(
+  () => buildLatestRevisionProjection([...records, newerRevisionRecord, conflictingRevisionRecord]),
+  /Conflicting revision replay/,
+  "an older conflicting revision must not be hidden after a newer revision becomes the projection",
 );
 
 console.log("market-event-ledger-replay: ok");
