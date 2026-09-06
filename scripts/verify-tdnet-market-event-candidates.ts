@@ -119,6 +119,11 @@ assert.throws(
   /official TDnet source URL/,
   "TDnet candidate classification must reject query-bearing source aliases",
 );
+assert.throws(
+  () => classifyTdnetDisclosureCandidate(disclosure({ url: `${tdnetPdf(1)}#fragment` })),
+  /official TDnet source URL/,
+  "TDnet candidate classification must reject fragment-bearing source aliases",
+);
 
 const legacyWithoutRawSourceCode = classifyTdnetDisclosureCandidate(disclosure({ sourceCode: undefined }));
 assert.equal(
