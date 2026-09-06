@@ -189,9 +189,9 @@ export function assessTdnetPrimaryReview(
   if (decision.candidateId !== candidate.candidateId) {
     throw new Error(`TDnet review candidateId mismatch: expected ${candidate.candidateId}`);
   }
-  assertTdnetMarketEventCandidateIdentity(candidate);
   assertCandidateSourceUrlProvenance(candidate);
   assertCandidateSourceCodeProvenance(candidate);
+  assertTdnetMarketEventCandidateIdentity(candidate);
 
   assertIsoTimestamp(candidate.disclosurePublishedAt, "candidate.disclosurePublishedAt");
   if (
