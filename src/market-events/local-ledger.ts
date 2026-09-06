@@ -219,7 +219,6 @@ export function validateLedgerRecord(record: MarketEventLedgerRecord): void {
           record.payload.updatedAt,
           "recordedAt",
           "delivery updatedAt",
-          "updatedAt",
         ) < 0
       ) {
         throw new Error("recordedAt must be on or after delivery updatedAt");
