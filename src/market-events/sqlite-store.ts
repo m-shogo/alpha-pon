@@ -38,6 +38,7 @@ export type MarketEventAuditReport = {
   malformedJsonRows: Array<{ table: string; id: string; field: string; message: string }>;
   unsupportedSchemaVersionRows: Array<{ table: string; id: string; schemaVersion: number }>;
   invalidSourceRows: Array<{ sourceId: string; message: string }>;
+  invalidDeliveryRows: Array<{ deliveryId: string; message: string }>;
   status: "ok" | "error";
 };
 
@@ -594,6 +595,7 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
   const malformedJsonRows: MarketEventAuditReport["malformedJsonRows"] = [];
   const unsupportedSchemaVersionRows: MarketEventAuditReport["unsupportedSchemaVersionRows"] = [];
   const invalidSourceRows: MarketEventAuditReport["invalidSourceRows"] = [];
+  const invalidDeliveryRows: MarketEventAuditReport["invalidDeliveryRows"] = [];
   const sourceRows = db.prepare(`
     SELECT
       source_id AS sourceId,
@@ -617,6 +619,36 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
     } catch (error) {
       invalidSourceRows.push({
         sourceId: source.sourceId,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+  const deliveryRows = db.prepare(`
+    SELECT
+      delivery_id AS deliveryId,
+      delivery_key AS deliveryKey,
+      event_id AS eventId,
+      revision_id AS revisionId,
+      schema_version AS schemaVersion,
+      channel,
+      state,
+      scheduled_at AS scheduledAt,
+      attempt_count AS attemptCount,
+      last_attempt_at AS lastAttemptAt,
+      delivered_at AS deliveredAt,
+      last_error AS lastError,
+      lease_expires_at AS leaseExpiresAt,
+      created_at AS createdAt,
+      updated_at AS updatedAt
+    FROM delivery_outbox
+    ORDER BY delivery_id
+  `).all() as Array<Omit<DeliveryOutboxItem, "payload">>;
+  for (const delivery of deliveryRows) {
+    try {
+      validatePersistedDelivery({ ...delivery, payload: {} });
+    } catch (error) {
+      invalidDeliveryRows.push({
+        deliveryId: delivery.deliveryId,
         message: error instanceof Error ? error.message : String(error),
       });
     }
@@ -703,6 +735,7 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
     || malformedJsonRows.length
     || unsupportedSchemaVersionRows.length
     || invalidSourceRows.length
+    || invalidDeliveryRows.length
     ? "error"
     : "ok";
   return {
@@ -723,6 +756,7 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
     malformedJsonRows,
     unsupportedSchemaVersionRows,
     invalidSourceRows,
+    invalidDeliveryRows,
     status,
   };
 }
