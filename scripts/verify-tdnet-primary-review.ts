@@ -85,6 +85,17 @@ assert.deepEqual(ready.blockers, []);
 assert.deepEqual(ready.warnings, []);
 assert.equal(ready.normalized.occurrenceKey, "annual-general-meeting-2026");
 
+const missingSourceCode = assessTdnetPrimaryReview(
+  { ...candidate, sourceCode: null },
+  ready.normalized,
+);
+assert.equal(
+  missingSourceCode.registrationPreviewReady,
+  false,
+  "primary review must not advertise registration readiness without raw TDnet sourceCode provenance",
+);
+assert.deepEqual(missingSourceCode.blockers, ["source_code_provenance_missing"]);
+
 for (const nonCanonicalOccurrenceKey of [
   " annual-general-meeting-2026",
   "annual-general-meeting-2026 ",
