@@ -140,17 +140,19 @@ try {
     const firstDisclosures = [
       {
         code: "8136",
+        sourceCode: "81360",
         companyName: "サンリオ",
         title: "第三者委員会に関するお知らせ",
-        publishedAt: "2026-09-04",
-        url: "https://www.jpx.co.jp/example/a.pdf",
+        publishedAt: "2026-09-04T09:00:00+09:00",
+        url: "https://www.release.tdnet.info/inbs/140120260904000001.pdf",
       },
       {
         code: "4680",
+        sourceCode: "46800",
         companyName: "ラウンドワン",
         title: "事業再編に関するお知らせ",
-        publishedAt: "2026-09-04",
-        url: "https://www.jpx.co.jp/example/b.pdf",
+        publishedAt: "2026-09-04T09:10:00+09:00",
+        url: "https://www.release.tdnet.info/inbs/140120260904000002.pdf",
       },
     ];
     const checkedTimes = [
@@ -184,10 +186,11 @@ try {
         ...firstDisclosures,
         {
           code: "4661",
+          sourceCode: "46610",
           companyName: "オリエンタルランド",
           title: "決算発表予定日に関するお知らせ",
-          publishedAt: "2026-09-04",
-          url: "https://www.jpx.co.jp/example/c.pdf",
+          publishedAt: "2026-09-04T09:20:00+09:00",
+          url: "https://www.release.tdnet.info/inbs/140120260904000003.pdf",
         },
       ],
     });
