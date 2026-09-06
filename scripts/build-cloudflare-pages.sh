@@ -23,6 +23,7 @@ run_ts scripts/verify-tdnet-candidate-preview.ts
 run_ts scripts/verify-market-event-end-to-end.ts
 run_ts scripts/verify-market-event-audit-source-provenance.ts
 run_ts scripts/verify-market-event-audit-delivery-semantics.ts
+run_ts scripts/verify-market-event-audit-revision-chronology.ts
 run_ts scripts/verify-pages-market-event-function.ts
 
 echo "[2/12] Verify append-only revision guards"
