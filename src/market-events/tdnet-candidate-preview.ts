@@ -1,4 +1,7 @@
-import type { TdnetDisclosureSnapshot } from "../fetcher/jpx.js";
+import {
+  buildTdnetListUrl,
+  type TdnetDisclosureSnapshot,
+} from "../fetcher/jpx.js";
 import {
   classifyTdnetDisclosureCandidate,
   extractTdnetMarketEventCandidates,
@@ -41,6 +44,12 @@ export function buildTdnetCandidatePreview(
   }
   if (snapshot.pageUrls.length !== snapshot.pageCount) {
     throw new Error("TDnet preview pageUrls must match pageCount");
+  }
+  for (const [index, pageUrl] of snapshot.pageUrls.entries()) {
+    const expectedUrl = buildTdnetListUrl(snapshot.observationDate, index + 1);
+    if (pageUrl !== expectedUrl) {
+      throw new Error(`TDnet preview pageUrl must match the canonical official viewer URL: ${pageUrl}`);
+    }
   }
 
   const unmatchedDisclosureCount = snapshot.disclosures.reduce(
