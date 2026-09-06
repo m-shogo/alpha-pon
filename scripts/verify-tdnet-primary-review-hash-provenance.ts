@@ -65,4 +65,20 @@ for (const [sourceCode, message] of [
   );
 }
 
+for (const sourceUrl of [
+  "https://example.com/inbs/140120260904000001.pdf",
+  "http://www.release.tdnet.info/inbs/140120260904000001.pdf",
+  "https://www.release.tdnet.info/inbs/140120260904000001.pdf?download=1",
+  "https://www.release.tdnet.info/inbs/140120260904000001.pdf#page=1",
+]) {
+  assert.throws(
+    () => assessTdnetPrimaryReview(
+      { ...candidate, sourceUrl },
+      { ...base, sourceContentHash: "a".repeat(64) },
+    ),
+    /requires an official TDnet source URL/,
+    "primary review must reject non-canonical or off-domain sourceUrl provenance before reporting registrationPreviewReady",
+  );
+}
+
 console.log("tdnet-primary-review-hash-provenance: ok");
