@@ -144,6 +144,17 @@ const candidatesB = extractTdnetMarketEventCandidates([
 ]);
 assert.deepEqual(candidatesA, candidatesB, "duplicate rows and source ordering must not change candidate output");
 
+for (const provenanceConflict of [
+  [disclosure({ sourceCode: undefined }), disclosure({ sourceCode: "81360" })],
+  [disclosure({ sourceCode: "81360" }), disclosure({ sourceCode: undefined })],
+] as const) {
+  assert.throws(
+    () => extractTdnetMarketEventCandidates([...provenanceConflict]),
+    /TDnet candidate provenance conflict.*sourceCode/,
+    "same candidate identity with conflicting raw sourceCode provenance must fail closed regardless of source ordering",
+  );
+}
+
 for (const candidate of candidatesA) {
   assert.equal(candidate.registrationReady, false);
   assert.deepEqual(candidate.blockers, [...TDNET_CANDIDATE_BLOCKERS]);
