@@ -47,6 +47,19 @@ try {
   registerMarketEventBundle(db, revisionOne);
   registerMarketEventBundle(db, revisionOne);
 
+  const mutatedSameIdReplay = {
+    ...revisionOne,
+    revision: {
+      ...revisionOne.revision,
+      changeType: "UPDATED" as const,
+    },
+  };
+  assert.throws(
+    () => registerMarketEventBundle(db, mutatedSameIdReplay),
+    /event revision replay payload mismatch/,
+    "SQLite exact replay must reject a reused revisionId whose immutable revision payload changed",
+  );
+
   assert.throws(
     () => db.prepare(`
       INSERT INTO event_revisions (
@@ -266,6 +279,7 @@ try {
     "0013_market_event_source_instant_guards",
     "0014_market_event_revision_instant_guards",
     "0015_market_event_source_offset_bounds",
+    "0016_market_event_revision_replay_payload",
   ]);
 
   console.log("market-event-revision-guards: ok");
