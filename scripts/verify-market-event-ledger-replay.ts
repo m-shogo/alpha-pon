@@ -56,6 +56,19 @@ assert.equal(
   "an exact append-only replay must remain idempotent",
 );
 
+const mutatedSameIdReplay = {
+  ...revisionRecord,
+  payload: {
+    ...revisionRecord.payload,
+    changeType: "UPDATED" as const,
+  },
+};
+assert.throws(
+  () => buildLatestRevisionProjection([...records, mutatedSameIdReplay]),
+  /Conflicting revision replay/,
+  "a replay with the same revisionId but different revision metadata must fail closed",
+);
+
 const conflictingRevisionRecord = {
   ...revisionRecord,
   payload: {
