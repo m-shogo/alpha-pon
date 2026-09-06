@@ -17,6 +17,7 @@ run_ts scripts/verify-market-event-foundation.ts
 run_ts scripts/verify-market-event-timezone-validation.ts
 run_ts scripts/verify-market-event-ledger-replay.ts
 run_ts scripts/verify-market-event-schema.ts
+run_ts scripts/verify-source-checkpoint-failure-replay.ts
 run_ts scripts/verify-tdnet-public-viewer.ts
 run_ts scripts/verify-tdnet-source-collector-current-viewer.ts
 run_ts scripts/verify-tdnet-market-event-candidates.ts
