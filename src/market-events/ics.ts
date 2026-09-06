@@ -1,4 +1,4 @@
-import type { EventSource, MarketEvent } from "./contracts.js";
+import { assertValidEventTime, type EventSource, type MarketEvent } from "./contracts.js";
 
 export type IcsMarketEvent = {
   event: MarketEvent;
@@ -157,6 +157,7 @@ export function buildMarketEventsIcs(items: IcsMarketEvent[], generatedAt: strin
   let excludedUnknownDate = 0;
 
   for (const item of items) {
+    assertValidEventTime(item.event.time);
     const dateLines = eventDateLines(item.event);
     if (!dateLines) {
       excludedUnknownDate += 1;
