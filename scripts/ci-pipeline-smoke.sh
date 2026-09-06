@@ -97,6 +97,7 @@ node --import tsx/esm scripts/verify-tdnet-primary-review.ts
 node --import tsx/esm scripts/verify-tdnet-primary-review-hash-provenance.ts
 node --import tsx/esm scripts/verify-tdnet-future-date-window-validation.ts
 node --import tsx/esm scripts/verify-tdnet-registration-preview.ts
+node --import tsx/esm scripts/verify-tdnet-registration-preview-staleness.ts
 node --import tsx/esm scripts/verify-market-event-source-observation-chronology.ts
 node --import tsx/esm scripts/verify-market-event-ledger-read-boundary.ts
 node --import tsx/esm scripts/verify-source-checkpoint-read-validation.ts
