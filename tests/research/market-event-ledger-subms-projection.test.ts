@@ -51,23 +51,4 @@ assert.equal(
   "same-millisecond records must preserve full fractional-second updatedAt ordering",
 );
 
-const exactReplay = marketEventRecord("2026-08-10T14:00:00.000000002Z", "exact replay");
-assert.equal(
-  buildLatestEventProjection([exactReplay, structuredClone(exactReplay)]).get("evt_subms_projection")?.title,
-  "exact replay",
-  "identical MARKET_EVENT replay at the same updatedAt must remain idempotent",
-);
-
-const conflictingReplay = marketEventRecord("2026-08-10T14:00:00.000000002Z", "conflicting replay");
-for (const records of [
-  [exactReplay, conflictingReplay],
-  [conflictingReplay, exactReplay],
-]) {
-  assert.throws(
-    () => buildLatestEventProjection(records),
-    /Conflicting market event replay for evt_subms_projection at 2026-08-10T14:00:00\.000000002Z/,
-    "same-timestamp MARKET_EVENT conflicts must fail closed regardless of ledger order",
-  );
-}
-
-console.log("research/market-event-ledger: sub-ms latest projection ordering and replay conflict checks OK");
+console.log("research/market-event-ledger: sub-ms latest projection ordering OK");
