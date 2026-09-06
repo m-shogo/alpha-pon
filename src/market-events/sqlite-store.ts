@@ -37,6 +37,7 @@ export type MarketEventAuditReport = {
   currentRevisionMismatches: string[];
   malformedJsonRows: Array<{ table: string; id: string; field: string; message: string }>;
   unsupportedSchemaVersionRows: Array<{ table: string; id: string; schemaVersion: number }>;
+  invalidSourceRows: Array<{ sourceId: string; message: string }>;
   status: "ok" | "error";
 };
 
@@ -592,6 +593,34 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
   `).all().map(row => (row as { eventId: string }).eventId);
   const malformedJsonRows: MarketEventAuditReport["malformedJsonRows"] = [];
   const unsupportedSchemaVersionRows: MarketEventAuditReport["unsupportedSchemaVersionRows"] = [];
+  const invalidSourceRows: MarketEventAuditReport["invalidSourceRows"] = [];
+  const sourceRows = db.prepare(`
+    SELECT
+      source_id AS sourceId,
+      event_id AS eventId,
+      schema_version AS schemaVersion,
+      authority,
+      source_type AS sourceType,
+      url,
+      title,
+      published_at AS publishedAt,
+      retrieved_at AS retrievedAt,
+      content_hash AS contentHash,
+      storage_class AS storageClass,
+      object_key AS objectKey
+    FROM event_sources
+    ORDER BY source_id
+  `).all() as EventSource[];
+  for (const source of sourceRows) {
+    try {
+      validatePersistedSource(source);
+    } catch (error) {
+      invalidSourceRows.push({
+        sourceId: source.sourceId,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
   const schemaVersionChecks = [
     { table: "market_events", id: "event_id" },
     { table: "event_revisions", id: "revision_id" },
@@ -673,6 +702,7 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
     || currentRevisionMismatches.length
     || malformedJsonRows.length
     || unsupportedSchemaVersionRows.length
+    || invalidSourceRows.length
     ? "error"
     : "ok";
   return {
@@ -692,6 +722,7 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
     currentRevisionMismatches,
     malformedJsonRows,
     unsupportedSchemaVersionRows,
+    invalidSourceRows,
     status,
   };
 }
