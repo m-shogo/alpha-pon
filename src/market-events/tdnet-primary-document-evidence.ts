@@ -1,6 +1,9 @@
 import { createHash } from "node:crypto";
 import { compareExplicitIso8601Instants, parseExplicitIso8601Instant } from "../research/iso-instant.js";
-import type { TdnetMarketEventCandidate } from "./tdnet-event-candidates.js";
+import {
+  assertTdnetMarketEventCandidateIdentity,
+  type TdnetMarketEventCandidate,
+} from "./tdnet-event-candidates.js";
 
 const DEFAULT_MAX_DOCUMENT_BYTES = 25 * 1024 * 1024;
 const PDF_SIGNATURE = new TextEncoder().encode("%PDF-");
@@ -117,6 +120,7 @@ export async function acquireTdnetPrimaryDocumentEvidence(
   options: AcquireTdnetPrimaryDocumentEvidenceOptions = {},
 ): Promise<TdnetPrimaryDocumentEvidence> {
   const requestedUrl = assertOfficialTdnetDocumentUrl(candidate.sourceUrl, "TDnet primary document sourceUrl");
+  assertTdnetMarketEventCandidateIdentity(candidate);
   const fetchImpl = options.fetchImpl ?? fetch;
   const now = options.now ?? (() => new Date().toISOString());
   const maxBytes = parsePositiveMaxBytes(options.maxBytes ?? DEFAULT_MAX_DOCUMENT_BYTES);

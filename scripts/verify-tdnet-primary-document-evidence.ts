@@ -79,6 +79,22 @@ const failIfFetched = (async () => {
   return fakeResponse();
 }) as typeof fetch;
 
+for (const mutatedCandidate of [
+  { ...candidate, issuerName: `${candidate.issuerName}株式会社` },
+  { ...candidate, disclosureTitle: `${candidate.disclosureTitle}（訂正）` },
+  { ...candidate, disclosurePublishedAt: "2026-09-04T15:01:00+09:00" },
+]) {
+  await assert.rejects(
+    () => acquireTdnetPrimaryDocumentEvidence(
+      mutatedCandidate,
+      { fetchImpl: failIfFetched, now: () => "2026-09-04T15:05:00+09:00" },
+    ),
+    /candidateId does not match canonical candidate provenance/,
+    "primary-document evidence must reject mutated candidate provenance before network access",
+  );
+}
+assert.equal(fetchCalls, 0, "candidate identity mismatch must fail before network access");
+
 for (const nonCanonicalUrl of [
   "https://www.release.tdnet.info/inbs/140120260904000010.pdf?download=1",
   "https://www.release.tdnet.info/inbs/140120260904000010.pdf#page=1",
