@@ -95,6 +95,27 @@ function normalizeDecision(decision: TdnetPrimaryReviewDecision): TdnetPrimaryRe
   };
 }
 
+function assertCandidateSourceUrlProvenance(candidate: TdnetMarketEventCandidate): void {
+  let parsed: URL;
+  try {
+    parsed = new URL(candidate.sourceUrl);
+  } catch {
+    throw new Error("TDnet primary review candidate requires an official TDnet source URL");
+  }
+  if (
+    parsed.href !== candidate.sourceUrl
+    || parsed.origin !== "https://www.release.tdnet.info"
+    || parsed.username !== ""
+    || parsed.password !== ""
+    || parsed.search !== ""
+    || parsed.hash !== ""
+    || !parsed.pathname.startsWith("/inbs/")
+    || !parsed.pathname.toLowerCase().endsWith(".pdf")
+  ) {
+    throw new Error("TDnet primary review candidate requires an official TDnet source URL");
+  }
+}
+
 function assertCandidateSourceCodeProvenance(candidate: TdnetMarketEventCandidate): void {
   if (candidate.sourceCode === null) return;
   if (!/^[0-9A-Z]{5}$/.test(candidate.sourceCode)) {
@@ -165,6 +186,7 @@ export function assessTdnetPrimaryReview(
   if (decision.candidateId !== candidate.candidateId) {
     throw new Error(`TDnet review candidateId mismatch: expected ${candidate.candidateId}`);
   }
+  assertCandidateSourceUrlProvenance(candidate);
   assertCandidateSourceCodeProvenance(candidate);
 
   assertIsoTimestamp(candidate.disclosurePublishedAt, "candidate.disclosurePublishedAt");
