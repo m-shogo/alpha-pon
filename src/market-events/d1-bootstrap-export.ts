@@ -146,6 +146,9 @@ function assertPersistedEventTimesAreValid(db: MarketEventDatabase): void {
 
   for (const row of rows) {
     try {
+      if (row.allDay !== 0 && row.allDay !== 1) {
+        throw new Error(`all_day must be stored as 0 or 1, got ${row.allDay}`);
+      }
       assertValidEventTime({
         startAt: row.startAt,
         endAt: row.endAt,
