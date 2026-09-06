@@ -114,6 +114,19 @@ try {
   );
 
   db.prepare("UPDATE event_revisions SET source_ids_json = ? WHERE revision_id = ?").run(
+    JSON.stringify(["src_missing_revision_audit"]),
+    revisionId,
+  );
+  audit = auditMarketEventDatabase(db, ":memory:");
+  assert.equal(audit.status, "error", "central audit must reject missing revision source references");
+  assert.ok(
+    audit.invalidRevisionRows.some(
+      row => row.revisionId === revisionId && /references invalid source src_missing_revision_audit/.test(row.message),
+    ),
+    "central audit must identify a revision source ID that does not exist",
+  );
+
+  db.prepare("UPDATE event_revisions SET source_ids_json = ? WHERE revision_id = ?").run(
     JSON.stringify(bundle.revision.sourceIds),
     revisionId,
   );
