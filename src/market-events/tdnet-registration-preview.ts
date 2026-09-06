@@ -60,7 +60,9 @@ function assertOfficialTdnetSourceUrl(value: string): void {
 }
 
 function assertTdnetSourceCodeProvenance(candidate: TdnetMarketEventCandidate): void {
-  if (candidate.sourceCode === null) return;
+  if (candidate.sourceCode === null) {
+    throw new Error("TDnet registration preview requires raw 5-character sourceCode provenance");
+  }
 
   const sourceCode = candidate.sourceCode;
   if (!/^[0-9A-Z]{5}$/.test(sourceCode)) {

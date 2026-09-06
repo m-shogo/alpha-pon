@@ -233,14 +233,16 @@ for (const normalizedIssuerCode of ["4661 ", " 4661", "04661"]) {
     "registration preview must not normalize issuerCode when binding raw TDnet sourceCode provenance",
   );
 }
-
-const legacyWithoutSourceCode = prepareTdnetRegistrationPreview(
-  { ...candidate, sourceCode: null },
-  assessment,
-  metadata,
-  evidence,
+assert.throws(
+  () => prepareTdnetRegistrationPreview(
+    { ...candidate, sourceCode: null },
+    assessment,
+    metadata,
+    evidence,
+  ),
+  /requires raw 5-character sourceCode provenance/,
+  "registration preview must fail closed when raw five-character TDnet sourceCode provenance is missing",
 );
-assert.equal(legacyWithoutSourceCode.input.facts?.tdnetSourceCode, null, "missing legacy sourceCode must remain null, not be inferred");
 
 const forgedPastAssessment = {
   ...assessment,
