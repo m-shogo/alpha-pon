@@ -16,6 +16,7 @@ echo "[1/12] Verify market event contracts"
 run_ts scripts/verify-market-event-foundation.ts
 run_ts scripts/verify-market-event-timezone-validation.ts
 run_ts scripts/verify-market-event-projection-time-validation.ts
+run_ts scripts/verify-market-event-projection-metadata-instants.ts
 run_ts scripts/verify-market-event-ledger-replay.ts
 run_ts scripts/verify-market-event-schema.ts
 run_ts scripts/verify-source-checkpoint-failure-replay.ts
