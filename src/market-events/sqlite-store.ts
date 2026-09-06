@@ -2,6 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 import { existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { compareExplicitIso8601Instants } from "../research/iso-instant.js";
+import { validateMarketEventRevisionChronology } from "./revision-chronology.js";
 import {
   SOURCE_TYPES,
   STORAGE_CLASSES,
@@ -39,6 +40,7 @@ export type MarketEventAuditReport = {
   unsupportedSchemaVersionRows: Array<{ table: string; id: string; schemaVersion: number }>;
   invalidSourceRows: Array<{ sourceId: string; message: string }>;
   invalidDeliveryRows: Array<{ deliveryId: string; message: string }>;
+  invalidRevisionRows: Array<{ revisionId: string; message: string }>;
   status: "ok" | "error";
 };
 
@@ -98,6 +100,19 @@ function validatePersistedSchemaVersion(schemaVersion: number, context: string):
     throw new Error(`Unsupported persisted schemaVersion at ${context}: ${schemaVersion}`);
   }
   return 1;
+}
+
+function validatePersistedRevisionChronology(revision: Pick<EventRevision, "revisionId" | "observedAt" | "publishedAt" | "effectiveAt" | "firstExecutableAt">): void {
+  const context = `event_revisions.${revision.revisionId}`;
+  assertIsoTimestamp(revision.observedAt, `${context}.observed_at`);
+  if (revision.publishedAt !== null) assertIsoTimestamp(revision.publishedAt, `${context}.published_at`);
+  if (revision.effectiveAt !== null) assertIsoTimestamp(revision.effectiveAt, `${context}.effective_at`);
+  if (revision.firstExecutableAt !== null) assertIsoTimestamp(revision.firstExecutableAt, `${context}.first_executable_at`);
+  validateMarketEventRevisionChronology({
+    observedAt: revision.observedAt,
+    publishedAt: revision.publishedAt,
+    firstExecutableAt: revision.firstExecutableAt,
+  });
 }
 
 function validatePersistedDelivery(delivery: DeliveryOutboxItem): DeliveryOutboxItem {
@@ -596,6 +611,7 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
   const unsupportedSchemaVersionRows: MarketEventAuditReport["unsupportedSchemaVersionRows"] = [];
   const invalidSourceRows: MarketEventAuditReport["invalidSourceRows"] = [];
   const invalidDeliveryRows: MarketEventAuditReport["invalidDeliveryRows"] = [];
+  const invalidRevisionRows: MarketEventAuditReport["invalidRevisionRows"] = [];
   const sourceRows = db.prepare(`
     SELECT
       source_id AS sourceId,
@@ -649,6 +665,26 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
     } catch (error) {
       invalidDeliveryRows.push({
         deliveryId: delivery.deliveryId,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+  const revisionRows = db.prepare(`
+    SELECT
+      revision_id AS revisionId,
+      observed_at AS observedAt,
+      published_at AS publishedAt,
+      effective_at AS effectiveAt,
+      first_executable_at AS firstExecutableAt
+    FROM event_revisions
+    ORDER BY revision_id
+  `).all() as Array<Pick<EventRevision, "revisionId" | "observedAt" | "publishedAt" | "effectiveAt" | "firstExecutableAt">>;
+  for (const revision of revisionRows) {
+    try {
+      validatePersistedRevisionChronology(revision);
+    } catch (error) {
+      invalidRevisionRows.push({
+        revisionId: revision.revisionId,
         message: error instanceof Error ? error.message : String(error),
       });
     }
@@ -736,6 +772,7 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
     || unsupportedSchemaVersionRows.length
     || invalidSourceRows.length
     || invalidDeliveryRows.length
+    || invalidRevisionRows.length
     ? "error"
     : "ok";
   return {
@@ -757,6 +794,7 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
     unsupportedSchemaVersionRows,
     invalidSourceRows,
     invalidDeliveryRows,
+    invalidRevisionRows,
     status,
   };
 }
