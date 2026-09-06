@@ -8,6 +8,10 @@ import {
 } from "../src/market-events/tdnet-event-candidates.js";
 import type { TdnetDisclosure } from "../src/fetcher/jpx.js";
 
+function tdnetPdf(serial: number): string {
+  return `https://www.release.tdnet.info/inbs/140120260904${String(serial).padStart(6, "0")}.pdf`;
+}
+
 function disclosure(overrides: Partial<TdnetDisclosure> = {}): TdnetDisclosure {
   return {
     code: "8136",
@@ -15,7 +19,7 @@ function disclosure(overrides: Partial<TdnetDisclosure> = {}): TdnetDisclosure {
     companyName: "サンリオ",
     title: "第三者委員会の設置に関するお知らせ",
     publishedAt: "2026-09-04T09:00:00+09:00",
-    url: "https://example.invalid/tdnet/8136/1",
+    url: tdnetPdf(1),
     ...overrides,
   };
 }
@@ -34,7 +38,7 @@ assert.equal("eventId" in setup, false, "candidate classification must not regis
 
 const report = classifyTdnetDisclosureCandidate(disclosure({
   title: "第三者委員会からの調査報告書受領に関するお知らせ",
-  url: "https://example.invalid/tdnet/8136/2",
+  url: tdnetPdf(2),
 }));
 assert(report);
 assert.equal(report.eventTypeHint, "THIRD_PARTY_COMMITTEE_REPORT");
@@ -42,7 +46,7 @@ assert(report.matchedSignals.includes("third_party_committee_report"));
 
 const tob = classifyTdnetDisclosureCandidate(disclosure({
   title: "公開買付けへの応募に関するお知らせ",
-  url: "https://example.invalid/tdnet/8136/3",
+  url: tdnetPdf(3),
 }));
 assert(tob);
 assert.equal(tob.eventTypeHint, null, "TOB wording alone must not invent TOB_DEADLINE");
@@ -51,7 +55,7 @@ assert.equal(tob.registrationReady, false);
 
 const shareholderMeeting = classifyTdnetDisclosureCandidate(disclosure({
   title: "定時株主総会招集ご通知",
-  url: "https://example.invalid/tdnet/8136/4",
+  url: tdnetPdf(4),
 }));
 assert(shareholderMeeting);
 assert.equal(shareholderMeeting.eventTypeHint, "SHAREHOLDER_MEETING");
@@ -60,7 +64,7 @@ assert.equal(shareholderMeeting.registrationReady, false, "title hint is never s
 assert.equal(
   classifyTdnetDisclosureCandidate(disclosure({
     title: "自己株式取得状況に関するお知らせ",
-    url: "https://example.invalid/tdnet/8136/5",
+    url: tdnetPdf(5),
   })),
   null,
   "unrelated disclosure must not become a Market Event candidate",
@@ -86,14 +90,34 @@ assert.throws(
   "raw TDnet sourceCode must not be treated as harmless whitespace-normalizable metadata",
 );
 assert.throws(
+  () => classifyTdnetDisclosureCandidate(disclosure({ sourceCode: "46610" })),
+  /sourceCode does not match issuerCode/,
+  "raw TDnet sourceCode must remain consistent with the normalized issuer code",
+);
+assert.throws(
   () => classifyTdnetDisclosureCandidate(disclosure({ publishedAt: " 2026-09-04T09:00:00+09:00 " })),
   /publishedAt must preserve the exact source value/,
   "TDnet source publication chronology must not be repaired by candidate classification",
 );
 assert.throws(
-  () => classifyTdnetDisclosureCandidate(disclosure({ url: " https://example.invalid/tdnet/8136/1 " })),
+  () => classifyTdnetDisclosureCandidate(disclosure({ publishedAt: "2026-09-04T09:00:00" })),
+  /explicit timezone|ISO-8601/i,
+  "TDnet candidate publication chronology must include an explicit timezone",
+);
+assert.throws(
+  () => classifyTdnetDisclosureCandidate(disclosure({ url: ` ${tdnetPdf(1)} ` })),
   /url must preserve the exact source value/,
   "TDnet source URL provenance must not be repaired by candidate classification",
+);
+assert.throws(
+  () => classifyTdnetDisclosureCandidate(disclosure({ url: "https://example.com/inbs/140120260904000001.pdf" })),
+  /official TDnet source URL/,
+  "TDnet candidate classification must reject off-domain source provenance",
+);
+assert.throws(
+  () => classifyTdnetDisclosureCandidate(disclosure({ url: `${tdnetPdf(1)}?download=1` })),
+  /official TDnet source URL/,
+  "TDnet candidate classification must reject query-bearing source aliases",
 );
 
 const legacyWithoutRawSourceCode = classifyTdnetDisclosureCandidate(disclosure({ sourceCode: undefined }));
@@ -105,13 +129,13 @@ assert.equal(
 
 const duplicate = disclosure();
 const candidatesA = extractTdnetMarketEventCandidates([
-  shareholderMeeting ? disclosure({ title: "定時株主総会招集ご通知", url: "https://example.invalid/tdnet/8136/4" }) : disclosure(),
+  shareholderMeeting ? disclosure({ title: "定時株主総会招集ご通知", url: tdnetPdf(4) }) : disclosure(),
   duplicate,
   duplicate,
 ]);
 const candidatesB = extractTdnetMarketEventCandidates([
   duplicate,
-  disclosure({ title: "定時株主総会招集ご通知", url: "https://example.invalid/tdnet/8136/4" }),
+  disclosure({ title: "定時株主総会招集ご通知", url: tdnetPdf(4) }),
 ]);
 assert.deepEqual(candidatesA, candidatesB, "duplicate rows and source ordering must not change candidate output");
 
