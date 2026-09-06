@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { buildMarketEventBundle, type MarketEventRegistrationInput } from "../src/market-events/registration.js";
 import { validateLedgerRecord } from "../src/market-events/local-ledger.js";
+import {
+  auditMarketEventDatabase,
+  getNextRevisionContext,
+  openMarketEventDatabase,
+  registerMarketEventBundle,
+} from "../src/market-events/sqlite-store.js";
 
 const input: MarketEventRegistrationInput = {
   issuerCode: "8136",
@@ -225,6 +231,40 @@ for (const fieldName of ["lastAttemptAt", "deliveredAt", "leaseExpiresAt"] as co
     /must be a strict ISO timestamp with an explicit timezone offset or Z/,
     `delivery ledger must reject malformed ${fieldName}`,
   );
+}
+
+const auditDb = openMarketEventDatabase({ path: ":memory:" });
+try {
+  const first = buildMarketEventBundle({
+    ...input,
+    firstExecutableAt: "2026-08-28T10:00:00Z",
+  }, getNextRevisionContext(auditDb, validBundle.event.eventId));
+  registerMarketEventBundle(auditDb, first);
+
+  const second = buildMarketEventBundle({
+    ...input,
+    title: "Fixture event updated",
+    observedAt: "2026-08-28T10:05:00Z",
+    firstExecutableAt: "2026-08-28T10:05:00Z",
+    changeType: "UPDATED",
+  }, getNextRevisionContext(auditDb, validBundle.event.eventId));
+  registerMarketEventBundle(auditDb, second);
+
+  assert.equal(auditMarketEventDatabase(auditDb, ":memory:").status, "ok");
+  auditDb.prepare("UPDATE market_events SET current_revision_id = ? WHERE event_id = ?").run(
+    first.revision.revisionId,
+    first.event.eventId,
+  );
+
+  const stalePointerAudit = auditMarketEventDatabase(auditDb, ":memory:");
+  assert.equal(stalePointerAudit.status, "error", "audit must reject a stale same-event current revision pointer");
+  assert.deepEqual(
+    stalePointerAudit.currentRevisionMismatches,
+    [first.event.eventId],
+    "audit must identify the event whose current revision is not the latest revision number",
+  );
+} finally {
+  auditDb.close();
 }
 
 console.log("market event registration executability chronology: fail-closed OK");
