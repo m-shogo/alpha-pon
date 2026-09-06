@@ -88,8 +88,8 @@ try {
       lastSuccessAt: null,
       nextCheckAt: "2026-09-04T01:30:00Z",
     }),
-    /cannot forget lastSuccessAt/,
-    "later failures must preserve the most recent successful checkpoint time",
+    /source success provenance requires lastSuccessAt|cannot forget lastSuccessAt/,
+    "later failures must preserve the most recent successful checkpoint time and its provenance",
   );
 
   assert.throws(

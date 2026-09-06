@@ -69,6 +69,17 @@ function validateCheckpoint(checkpoint: SourceCheckpoint): void {
   if (checkpoint.lastContentHash !== null && !/^[a-f0-9]{64}$/.test(checkpoint.lastContentHash)) {
     throw new Error("lastContentHash must be a lowercase SHA-256 hash");
   }
+  if (
+    checkpoint.lastSuccessAt === null
+    && (
+      checkpoint.cursorValue !== null
+      || checkpoint.etag !== null
+      || checkpoint.lastModified !== null
+      || checkpoint.lastContentHash !== null
+    )
+  ) {
+    throw new Error("source success provenance requires lastSuccessAt");
+  }
 
   parseExplicitIso8601Instant(checkpoint.lastCheckedAt, "lastCheckedAt");
 
