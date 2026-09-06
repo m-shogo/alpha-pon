@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import type { TdnetDisclosure } from "../fetcher/jpx.js";
+import { parseExplicitIso8601Instant } from "../research/iso-instant.js";
 import type { MarketEventType } from "./contracts.js";
 
 export const TDNET_CANDIDATE_BLOCKERS = [
@@ -112,23 +113,64 @@ function canonicalSourceProvenance(value: string, fieldName: string): string {
   return value;
 }
 
-function candidateId(disclosure: TdnetDisclosure): string {
-  const canonical = JSON.stringify({
-    code: disclosure.code.trim(),
-    companyName: disclosure.companyName.trim(),
-    title: disclosure.title.trim(),
-    publishedAt: canonicalSourceProvenance(disclosure.publishedAt, "publishedAt"),
-    url: canonicalSourceProvenance(disclosure.url, "url"),
-  });
-  return `tdc_${createHash("sha256").update(canonical).digest("hex").slice(0, 24)}`;
+function candidateIssuerCode(value: string): string {
+  const issuerCode = value.trim();
+  if (!/^[0-9A-Z]{4}$/.test(issuerCode)) {
+    throw new Error("TDnet candidate issuerCode must be a canonical 4-character issuer code");
+  }
+  return issuerCode;
 }
 
-function candidateSourceCode(sourceCode: string | undefined): string | null {
+function candidatePublishedAt(value: string): string {
+  const publishedAt = canonicalSourceProvenance(value, "publishedAt");
+  parseExplicitIso8601Instant(publishedAt, "TDnet candidate publishedAt");
+  return publishedAt;
+}
+
+function candidateSourceUrl(value: string): string {
+  const sourceUrl = canonicalSourceProvenance(value, "url");
+  let parsed: URL;
+  try {
+    parsed = new URL(sourceUrl);
+  } catch {
+    throw new Error("TDnet candidate requires an official TDnet source URL");
+  }
+  if (
+    parsed.protocol !== "https:"
+    || parsed.hostname !== "www.release.tdnet.info"
+    || parsed.port !== ""
+    || parsed.username !== ""
+    || parsed.password !== ""
+    || !parsed.pathname.startsWith("/inbs/")
+    || !parsed.pathname.toLowerCase().endsWith(".pdf")
+    || parsed.search !== ""
+    || parsed.hash !== ""
+  ) {
+    throw new Error("TDnet candidate requires an official TDnet source URL");
+  }
+  return sourceUrl;
+}
+
+function candidateSourceCode(sourceCode: string | undefined, issuerCode: string): string | null {
   if (sourceCode === undefined) return null;
   if (!/^[0-9A-Z]{5}$/.test(sourceCode)) {
     throw new Error("TDnet candidate sourceCode must be an exact 5-character uppercase source value");
   }
+  if (sourceCode.slice(0, 4) !== issuerCode) {
+    throw new Error("TDnet candidate sourceCode does not match issuerCode");
+  }
   return sourceCode;
+}
+
+function candidateId(disclosure: TdnetDisclosure, issuerCode: string, publishedAt: string, sourceUrl: string): string {
+  const canonical = JSON.stringify({
+    code: issuerCode,
+    companyName: disclosure.companyName.trim(),
+    title: disclosure.title.trim(),
+    publishedAt,
+    url: sourceUrl,
+  });
+  return `tdc_${createHash("sha256").update(canonical).digest("hex").slice(0, 24)}`;
 }
 
 export function classifyTdnetDisclosureCandidate(
@@ -140,18 +182,23 @@ export function classifyTdnetDisclosureCandidate(
   const matchingRules = RULES.filter(rule => rule.test(title));
   if (matchingRules.length === 0) return null;
 
+  const issuerCode = candidateIssuerCode(disclosure.code);
+  const publishedAt = candidatePublishedAt(disclosure.publishedAt);
+  const sourceUrl = candidateSourceUrl(disclosure.url);
+  const sourceCode = candidateSourceCode(disclosure.sourceCode, issuerCode);
+
   // Rules are ordered from more specific to more general. The first non-null
   // type hint is advisory only and must never be treated as registration proof.
   const eventTypeHint = matchingRules.find(rule => rule.eventTypeHint !== null)?.eventTypeHint ?? null;
   return {
-    candidateId: candidateId(disclosure),
-    issuerCode: disclosure.code.trim(),
-    sourceCode: candidateSourceCode(disclosure.sourceCode),
+    candidateId: candidateId(disclosure, issuerCode, publishedAt, sourceUrl),
+    issuerCode,
+    sourceCode,
     issuerName: disclosure.companyName.trim(),
     disclosureTitle: title,
     // This is source publication metadata only. It is deliberately not EventTime.
-    disclosurePublishedAt: canonicalSourceProvenance(disclosure.publishedAt, "publishedAt"),
-    sourceUrl: canonicalSourceProvenance(disclosure.url, "url"),
+    disclosurePublishedAt: publishedAt,
+    sourceUrl,
     eventTypeHint,
     matchedSignals: [...new Set(matchingRules.map(rule => rule.signal))],
     registrationReady: false,
