@@ -217,7 +217,7 @@ for (const nonCanonicalSourceCode of ["4661", "4661-", "4661a", " 46610"] ) {
       metadata,
       evidence,
     ),
-    /invalid sourceCode provenance/,
+    /sourceCode must be an exact 5-character uppercase source value/,
     "non-null TDnet sourceCode must preserve the raw canonical five-character viewer code",
   );
 }
