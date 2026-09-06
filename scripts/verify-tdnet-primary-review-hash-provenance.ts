@@ -81,4 +81,19 @@ for (const sourceUrl of [
   );
 }
 
+for (const mutatedCandidate of [
+  { ...candidate, issuerName: `${candidate.issuerName}株式会社` },
+  { ...candidate, disclosureTitle: `${candidate.disclosureTitle}（訂正）` },
+  { ...candidate, disclosurePublishedAt: "2026-09-04T15:01:00+09:00" },
+]) {
+  assert.throws(
+    () => assessTdnetPrimaryReview(
+      mutatedCandidate,
+      { ...base, sourceContentHash: "a".repeat(64) },
+    ),
+    /candidateId does not match canonical candidate provenance/,
+    "primary review must reject candidate fields mutated without a corresponding canonical candidateId",
+  );
+}
+
 console.log("tdnet-primary-review-hash-provenance: ok");

@@ -162,15 +162,44 @@ function candidateSourceCode(sourceCode: string | undefined, issuerCode: string)
   return sourceCode;
 }
 
-function candidateId(disclosure: TdnetDisclosure, issuerCode: string, publishedAt: string, sourceUrl: string): string {
+function candidateIdFromFields(
+  issuerCode: string,
+  issuerName: string,
+  disclosureTitle: string,
+  publishedAt: string,
+  sourceUrl: string,
+): string {
   const canonical = JSON.stringify({
     code: issuerCode,
-    companyName: disclosure.companyName.trim(),
-    title: disclosure.title.trim(),
+    companyName: issuerName,
+    title: disclosureTitle,
     publishedAt,
     url: sourceUrl,
   });
   return `tdc_${createHash("sha256").update(canonical).digest("hex").slice(0, 24)}`;
+}
+
+function candidateId(disclosure: TdnetDisclosure, issuerCode: string, publishedAt: string, sourceUrl: string): string {
+  return candidateIdFromFields(
+    issuerCode,
+    disclosure.companyName.trim(),
+    disclosure.title.trim(),
+    publishedAt,
+    sourceUrl,
+  );
+}
+
+export function assertTdnetMarketEventCandidateIdentity(candidate: TdnetMarketEventCandidate): void {
+  const expected = candidateIdFromFields(
+    candidate.issuerCode,
+    candidate.issuerName,
+    candidate.disclosureTitle,
+    candidate.disclosurePublishedAt,
+    candidate.sourceUrl,
+  );
+  if (candidate.candidateId !== expected) {
+    throw new Error(`TDnet candidateId does not match canonical candidate provenance: expected ${expected}`);
+  }
 }
 
 export function classifyTdnetDisclosureCandidate(
