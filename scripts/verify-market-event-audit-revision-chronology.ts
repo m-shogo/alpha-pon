@@ -45,11 +45,29 @@ const input: MarketEventRegistrationInput = {
   deliveries: [],
 };
 
+const otherInput: MarketEventRegistrationInput = {
+  ...input,
+  issuerCode: "8136",
+  issuerName: "別検証会社",
+  occurrenceKey: "FY2027-Q2-revision-audit-other",
+  title: "別会社 FY2027 Q2 決算発表",
+  sources: [{
+    ...input.sources[0]!,
+    url: "https://www.release.tdnet.info/inbs/140120260904000013.pdf",
+    contentHash: "d".repeat(64),
+  }],
+};
+
 const db = openMarketEventDatabase({ path: ":memory:" });
 try {
   const eventId = buildEventId(input);
   const bundle = buildMarketEventBundle(input, getNextRevisionContext(db, eventId));
   registerMarketEventBundle(db, bundle);
+
+  const otherEventId = buildEventId(otherInput);
+  const otherBundle = buildMarketEventBundle(otherInput, getNextRevisionContext(db, otherEventId));
+  registerMarketEventBundle(db, otherBundle);
+
   assert.equal(auditMarketEventDatabase(db, ":memory:").status, "ok");
 
   const revisionId = bundle.revision.revisionId;
@@ -79,6 +97,38 @@ try {
       row => row.revisionId === revisionId && /firstExecutableAt must be on or after observedAt/.test(row.message),
     ),
     "central audit must identify revision observation/execution chronology corruption",
+  );
+
+  db.prepare("UPDATE event_revisions SET first_executable_at = ?, source_ids_json = ? WHERE revision_id = ?").run(
+    bundle.revision.firstExecutableAt,
+    JSON.stringify([otherBundle.sources[0]!.sourceId]),
+    revisionId,
+  );
+  audit = auditMarketEventDatabase(db, ":memory:");
+  assert.equal(audit.status, "error", "central audit must reject cross-event revision source references");
+  assert.ok(
+    audit.invalidRevisionRows.some(
+      row => row.revisionId === revisionId && /references invalid source/.test(row.message),
+    ),
+    "central audit must identify a revision source that belongs to another event",
+  );
+
+  db.prepare("UPDATE event_revisions SET source_ids_json = ? WHERE revision_id = ?").run(
+    JSON.stringify(bundle.revision.sourceIds),
+    revisionId,
+  );
+  db.exec("DROP TRIGGER trg_event_sources_no_update");
+  db.prepare("UPDATE event_sources SET retrieved_at = ? WHERE source_id = ?").run(
+    "2026-09-04T07:00:01Z",
+    bundle.sources[0]!.sourceId,
+  );
+  audit = auditMarketEventDatabase(db, ":memory:");
+  assert.equal(audit.status, "error", "central audit must reject source retrieval after revision observation");
+  assert.ok(
+    audit.invalidRevisionRows.some(
+      row => row.revisionId === revisionId && /retrieved after observed_at/.test(row.message),
+    ),
+    "central audit must identify source evidence that was not yet retrieved when the revision was observed",
   );
 } finally {
   db.close();
