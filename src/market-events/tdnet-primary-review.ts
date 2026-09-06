@@ -23,6 +23,7 @@ export const TDNET_PRIMARY_REVIEW_BLOCKERS = [
   "future_event_time_missing",
   "source_content_hash_missing",
   "source_retrieved_at_missing",
+  "source_code_provenance_missing",
 ] as const;
 
 export type TdnetPrimaryReviewBlocker = (typeof TDNET_PRIMARY_REVIEW_BLOCKERS)[number];
@@ -212,6 +213,7 @@ export function assessTdnetPrimaryReview(
   if (decision.time === null || decision.time.precision === "UNKNOWN") blockers.push("future_event_time_missing");
   if (decision.sourceContentHash === null) blockers.push("source_content_hash_missing");
   if (decision.sourceRetrievedAt === null) blockers.push("source_retrieved_at_missing");
+  if (candidate.sourceCode === null) blockers.push("source_code_provenance_missing");
 
   if (decision.sourceContentHash !== null && !/^[0-9a-f]{64}$/.test(decision.sourceContentHash)) {
     throw new Error("sourceContentHash must be a 64-character lowercase hex SHA-256");
