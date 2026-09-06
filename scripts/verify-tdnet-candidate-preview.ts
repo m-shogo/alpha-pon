@@ -112,6 +112,15 @@ assert.throws(
   "preview provenance must bind page URLs to the snapshot observationDate",
 );
 assert.throws(
+  () => buildTdnetCandidatePreview({
+    ...snapshot,
+    pageCount: 1,
+    pageUrls: ["https://www.release.tdnet.info/inbs/I_list_001_20260904.html?download=1"],
+  }),
+  /canonical official viewer URL/,
+  "preview provenance must reject query-bearing aliases of the official viewer page",
+);
+assert.throws(
   () => buildTdnetCandidatePreview({ ...snapshot, explicitEmpty: true }),
   /explicit-empty while containing disclosures/,
 );
