@@ -14,6 +14,7 @@ run_ts() {
 
 echo "[1/12] Verify market event contracts"
 run_ts scripts/verify-market-event-foundation.ts
+run_ts scripts/verify-market-event-ledger-replay.ts
 run_ts scripts/verify-market-event-schema.ts
 run_ts scripts/verify-tdnet-public-viewer.ts
 run_ts scripts/verify-tdnet-source-collector-current-viewer.ts

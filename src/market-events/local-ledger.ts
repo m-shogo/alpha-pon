@@ -327,8 +327,25 @@ export function buildLatestEventProjection(records: MarketEventLedgerRecord[]): 
 
 export function buildLatestRevisionProjection(records: MarketEventLedgerRecord[]): Map<string, EventRevision> {
   const projection = new Map<string, EventRevision>();
+  const revisionIdsByEventAndNumber = new Map<string, Map<number, string>>();
   for (const record of records) {
     if (record.recordType !== "EVENT_REVISION") continue;
+
+    let revisionIdsByNumber = revisionIdsByEventAndNumber.get(record.payload.eventId);
+    if (!revisionIdsByNumber) {
+      revisionIdsByNumber = new Map<number, string>();
+      revisionIdsByEventAndNumber.set(record.payload.eventId, revisionIdsByNumber);
+    }
+    const replayedRevisionId = revisionIdsByNumber.get(record.payload.revisionNumber);
+    if (replayedRevisionId && replayedRevisionId !== record.payload.revisionId) {
+      throw new Error(
+        `Conflicting revision replay for ${record.payload.eventId} revision ${record.payload.revisionNumber}`,
+      );
+    }
+    if (!replayedRevisionId) {
+      revisionIdsByNumber.set(record.payload.revisionNumber, record.payload.revisionId);
+    }
+
     const existing = projection.get(record.payload.eventId);
     if (!existing || record.payload.revisionNumber > existing.revisionNumber) {
       projection.set(record.payload.eventId, record.payload);
