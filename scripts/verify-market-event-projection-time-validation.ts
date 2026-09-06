@@ -35,7 +35,7 @@ const event: MarketEvent = {
 
 assert.throws(
   () => buildMarketEventsIcs([{ event, revisionNumber: 1, sources: [] }], "2026-09-07T00:00:00Z"),
-  /Invalid EventTime timezone: Mars\/Olympus/,
+  /Invalid event timezone: Mars\/Olympus/,
   "calendar/public projection must fail closed even when UNKNOWN precision would otherwise be excluded before timezone validation",
 );
 
