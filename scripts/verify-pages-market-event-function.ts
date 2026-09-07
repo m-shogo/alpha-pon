@@ -74,20 +74,22 @@ const sourceRows = [{
   content_hash: "a".repeat(64),
 }];
 
-const revisionRows = [
-  { event_id: eventRows[0].event_id, revision_number: 1 },
-  { event_id: eventRows[1].event_id, revision_number: 1 },
-];
+const revisionRows = eventRows.map((event, index) => ({
+  event_id: event.event_id,
+  current_revision_id: event.current_revision_id,
+  revision_id: event.current_revision_id,
+  revision_number: index + 1,
+}));
 
-function fakeDbFor(rows: typeof eventRows, sources = sourceRows) {
+function fakeDbFor(rows: typeof eventRows, sources = sourceRows, revisions = revisionRows) {
   return {
     prepare(query: string) {
       return {
         bind() { return this; },
         async all<T>() {
-          if (query.includes("FROM market_events")) return { success: true, results: rows as T[] };
+          if (query.includes("FROM market_events") && !query.includes("LEFT JOIN event_revisions")) return { success: true, results: rows as T[] };
           if (query.includes("FROM event_sources")) return { success: true, results: sources as T[] };
-          if (query.includes("FROM event_revisions")) return { success: true, results: revisionRows as T[] };
+          if (query.includes("LEFT JOIN event_revisions")) return { success: true, results: revisions as T[] };
           throw new Error(`Unexpected query: ${query}`);
         },
         async first<T>() { return null as T | null; },
@@ -159,19 +161,36 @@ const projectionText = await publicProjection.text();
 assert.doesNotMatch(projectionText, new RegExp(feedToken));
 const projection = JSON.parse(projectionText) as {
   source: string;
-  events: Array<{ eventId: string }>;
+  events: Array<{ eventId: string; revisionNumber: number }>;
   summary: { total: number; unknownDate: number; calendarIncluded: number };
 };
 assert.equal(projection.source, "cloudflare-d1");
 assert.equal(projection.events.length, 2);
+assert.equal(projection.events[0].revisionNumber, 1);
+assert.equal(projection.events[1].revisionNumber, 2);
 assert.equal(projection.summary.total, 2);
 assert.equal(projection.summary.unknownDate, 1);
 assert.equal(projection.summary.calendarIncluded, 1);
 
+for (const [label, revisions] of [
+  ["missing current revision", revisionRows.slice(1)],
+  ["zero revision number", [{ ...revisionRows[0], revision_number: 0 }, revisionRows[1]]],
+  ["fractional revision number", [{ ...revisionRows[0], revision_number: 1.5 }, revisionRows[1]]],
+  ["drifted current revision", [{ ...revisionRows[0], revision_id: "rev_aaaaaaaaaaaaaaaaaaaaaaaa" }, revisionRows[1]]],
+] as const) {
+  const response = await onRequest(context(
+    "https://alpha.example.com/api/market-events",
+    {},
+    { ...env, DB: fakeDbFor(eventRows, sourceRows, [...revisions]) },
+  ));
+  assert.equal(response.status, 500, label);
+  assert.deepEqual(await response.json(), { error: "internal error" }, label);
+}
+
 const invalidAllDay = await onRequest(context(
   "https://alpha.example.com/api/market-events",
   {},
-  { ...env, DB: fakeDbFor([{ ...eventRows[0], all_day: 2 }]) },
+  { ...env, DB: fakeDbFor([{ ...eventRows[0], all_day: 2 }], sourceRows, [revisionRows[0]]) },
 ));
 assert.equal(invalidAllDay.status, 500);
 assert.deepEqual(await invalidAllDay.json(), { error: "internal error" });
@@ -179,7 +198,7 @@ assert.deepEqual(await invalidAllDay.json(), { error: "internal error" });
 const invalidTimezone = await onRequest(context(
   "https://alpha.example.com/api/market-events",
   {},
-  { ...env, DB: fakeDbFor([{ ...eventRows[0], timezone: "Mars/Olympus" }]) },
+  { ...env, DB: fakeDbFor([{ ...eventRows[0], timezone: "Mars/Olympus" }], sourceRows, [revisionRows[0]]) },
 ));
 assert.equal(invalidTimezone.status, 500);
 assert.deepEqual(await invalidTimezone.json(), { error: "internal error" });
@@ -187,7 +206,7 @@ assert.deepEqual(await invalidTimezone.json(), { error: "internal error" });
 const invalidMetadataInstant = await onRequest(context(
   "https://alpha.example.com/api/market-events",
   {},
-  { ...env, DB: fakeDbFor([{ ...eventRows[0], updated_at: "2026-08-03T06:00:00" }]) },
+  { ...env, DB: fakeDbFor([{ ...eventRows[0], updated_at: "2026-08-03T06:00:00" }], sourceRows, [revisionRows[0]]) },
 ));
 assert.equal(invalidMetadataInstant.status, 500);
 assert.deepEqual(await invalidMetadataInstant.json(), { error: "internal error" });
@@ -195,7 +214,7 @@ assert.deepEqual(await invalidMetadataInstant.json(), { error: "internal error" 
 const invalidJson = await onRequest(context(
   "https://alpha.example.com/api/market-events",
   {},
-  { ...env, DB: fakeDbFor([{ ...eventRows[0], checks_before_json: "[" }]) },
+  { ...env, DB: fakeDbFor([{ ...eventRows[0], checks_before_json: "[" }], sourceRows, [revisionRows[0]]) },
 ));
 assert.equal(invalidJson.status, 500);
 assert.deepEqual(await invalidJson.json(), { error: "internal error" });
@@ -203,7 +222,7 @@ assert.deepEqual(await invalidJson.json(), { error: "internal error" });
 const invalidJsonShape = await onRequest(context(
   "https://alpha.example.com/api/market-events",
   {},
-  { ...env, DB: fakeDbFor([{ ...eventRows[0], related_event_ids_json: '["evt_ok", 7]' }]) },
+  { ...env, DB: fakeDbFor([{ ...eventRows[0], related_event_ids_json: '["evt_ok", 7]' }], sourceRows, [revisionRows[0]]) },
 ));
 assert.equal(invalidJsonShape.status, 500);
 assert.deepEqual(await invalidJsonShape.json(), { error: "internal error" });
