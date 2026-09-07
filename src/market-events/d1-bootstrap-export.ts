@@ -128,7 +128,7 @@ function assertCurrentRevisionPointersAreLatest(db: MarketEventDatabase): void {
   }>;
 
   if (invalidPointers.length > 0) {
-    throw new Error(`D1 bootstrap requires current_revision_id to reference the latest same-event revision: ${JSON.stringify(invalidPointers)}`);
+    throw new Error(`D1 bootstrap requires current_revision_id to reference the latest revision for the same event: ${JSON.stringify(invalidPointers)}`);
   }
 }
 
