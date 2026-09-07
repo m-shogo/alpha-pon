@@ -310,6 +310,15 @@ export function validateD1SyncSnapshot(snapshot: D1SyncSnapshot, label: string):
 
   for (const source of snapshot.event_sources) {
     const sourceId = String(source.source_id ?? "<missing>");
+    const authority = source.authority;
+    if (typeof authority !== "string") {
+      errors.push(`${label}: source ${sourceId} authority must be a string`);
+    } else {
+      const canonicalAuthority = authority.normalize("NFKC").trim().replace(/\s+/g, " ").toUpperCase();
+      if (!canonicalAuthority || authority !== canonicalAuthority) {
+        errors.push(`${label}: source ${sourceId} authority must be canonical uppercase NFKC text`);
+      }
+    }
     const sourceType = source.source_type;
     if (typeof sourceType !== "string" || !(SOURCE_TYPES as readonly string[]).includes(sourceType)) {
       errors.push(`${label}: source ${sourceId} has invalid source_type ${String(sourceType)}`);
@@ -319,8 +328,20 @@ export function validateD1SyncSnapshot(snapshot: D1SyncSnapshot, label: string):
       errors.push(`${label}: source ${sourceId} has invalid content_hash`);
     }
     const url = source.url;
-    if (typeof url !== "string" || !url.startsWith("https://")) {
-      errors.push(`${label}: source ${sourceId} URL must use https`);
+    if (typeof url !== "string") {
+      errors.push(`${label}: source ${sourceId} URL must be an absolute https URL`);
+    } else {
+      try {
+        const parsedUrl = new URL(url);
+        if (parsedUrl.protocol !== "https:") {
+          errors.push(`${label}: source ${sourceId} URL must use https`);
+        }
+        if (parsedUrl.hash !== "") {
+          errors.push(`${label}: source ${sourceId} URL must not contain a fragment`);
+        }
+      } catch {
+        errors.push(`${label}: source ${sourceId} URL must be an absolute https URL`);
+      }
     }
     const storageClass = source.storage_class;
     if (typeof storageClass !== "string" || !(STORAGE_CLASSES as readonly string[]).includes(storageClass)) {

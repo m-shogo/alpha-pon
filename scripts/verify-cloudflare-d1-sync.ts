@@ -62,7 +62,7 @@ function sourceRow(id = "src_alpha", eventId = "evt_alpha"): D1SyncRow {
     source_id: id,
     event_id: eventId,
     schema_version: 1,
-    authority: "Alpha Pon",
+    authority: "ALPHA PON",
     source_type: "OTHER",
     url: `https://example.com/${id}`,
     title: "Primary source",
@@ -301,6 +301,15 @@ const wrongArrayItemPlan = buildD1SyncPlan(canonical, wrongArrayItemRemote);
 assert.equal(wrongArrayItemPlan.status, "blocked");
 assert.match(wrongArrayItemPlan.blockers.join("\n"), /reasons_json must contain a JSON string array/);
 
+const nonCanonicalAuthorityRemote = structuredClone(canonical);
+nonCanonicalAuthorityRemote.event_sources[0].authority = "Alpha Pon";
+const nonCanonicalAuthorityPlan = buildD1SyncPlan(canonical, nonCanonicalAuthorityRemote);
+assert.equal(nonCanonicalAuthorityPlan.status, "blocked");
+assert.match(
+  nonCanonicalAuthorityPlan.blockers.join("\n"),
+  /source src_alpha authority must be canonical uppercase NFKC text/,
+);
+
 const invalidSourceTypeRemote = structuredClone(canonical);
 invalidSourceTypeRemote.event_sources[0].source_type = "NOT_A_SOURCE";
 const invalidSourceTypePlan = buildD1SyncPlan(canonical, invalidSourceTypeRemote);
@@ -318,6 +327,18 @@ insecureSourceUrlRemote.event_sources[0].url = "http://example.com/src_alpha";
 const insecureSourceUrlPlan = buildD1SyncPlan(canonical, insecureSourceUrlRemote);
 assert.equal(insecureSourceUrlPlan.status, "blocked");
 assert.match(insecureSourceUrlPlan.blockers.join("\n"), /source src_alpha URL must use https/);
+
+const fragmentSourceUrlRemote = structuredClone(canonical);
+fragmentSourceUrlRemote.event_sources[0].url = "https://example.com/src_alpha#section";
+const fragmentSourceUrlPlan = buildD1SyncPlan(canonical, fragmentSourceUrlRemote);
+assert.equal(fragmentSourceUrlPlan.status, "blocked");
+assert.match(fragmentSourceUrlPlan.blockers.join("\n"), /source src_alpha URL must not contain a fragment/);
+
+const malformedSourceUrlRemote = structuredClone(canonical);
+malformedSourceUrlRemote.event_sources[0].url = "https://";
+const malformedSourceUrlPlan = buildD1SyncPlan(canonical, malformedSourceUrlRemote);
+assert.equal(malformedSourceUrlPlan.status, "blocked");
+assert.match(malformedSourceUrlPlan.blockers.join("\n"), /source src_alpha URL must be an absolute https URL/);
 
 const invalidStorageClassRemote = structuredClone(canonical);
 invalidStorageClassRemote.event_sources[0].storage_class = "PUBLIC_UNKNOWN";
