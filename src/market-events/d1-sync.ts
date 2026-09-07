@@ -87,6 +87,13 @@ const PRIMARY_KEYS: Record<D1SyncTable, string> = {
   decision_snapshots: "decision_snapshot_id",
 };
 
+const PRIMARY_KEY_PREFIXES: Record<D1SyncTable, string> = {
+  market_events: "evt_",
+  event_sources: "src_",
+  event_revisions: "rev_",
+  decision_snapshots: "dec_",
+};
+
 const JSON_FIELDS: Partial<Record<D1SyncTable, readonly string[]>> = {
   market_events: ["edge_types_json", "checks_before_json", "checks_after_json", "related_event_ids_json"],
   event_revisions: ["facts_json", "source_ids_json"],
@@ -116,8 +123,12 @@ function valueKey(value: unknown): string {
 }
 
 function rowKey(table: D1SyncTable, row: D1SyncRow): string {
-  const key = row[PRIMARY_KEYS[table]];
-  if (typeof key !== "string" || !key) throw new Error(`${table} row is missing ${PRIMARY_KEYS[table]}`);
+  const keyField = PRIMARY_KEYS[table];
+  const key = row[keyField];
+  if (typeof key !== "string" || !key) throw new Error(`${table} row is missing ${keyField}`);
+  if (!key.startsWith(PRIMARY_KEY_PREFIXES[table])) {
+    throw new Error(`${table} ${keyField} must start with ${PRIMARY_KEY_PREFIXES[table]}`);
+  }
   return key;
 }
 
