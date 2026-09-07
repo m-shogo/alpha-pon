@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { buildSourceId } from "../src/market-events/contracts.js";
 import {
   buildD1SyncApplySql,
   buildD1SyncPlan,
@@ -7,6 +8,22 @@ import {
   type D1SyncRow,
   type D1SyncSnapshot,
 } from "../src/market-events/d1-sync.js";
+
+const SOURCE_AUTHORITY = "ALPHA PON";
+const SOURCE_CONTENT_HASH = "a".repeat(64);
+
+function sourceUrl(suffix: string): string {
+  return `https://example.com/source/${suffix}.pdf`;
+}
+
+function sourceIdForSuffix(suffix: string): string {
+  return buildSourceId({
+    authority: SOURCE_AUTHORITY,
+    url: sourceUrl(suffix),
+    publishedAt: null,
+    contentHash: SOURCE_CONTENT_HASH,
+  });
+}
 
 function eventRow(id = "evt_alpha", updatedAt = "2026-08-04T00:00:00.000Z"): D1SyncRow {
   return {
@@ -40,7 +57,11 @@ function eventRow(id = "evt_alpha", updatedAt = "2026-08-04T00:00:00.000Z"): D1S
   };
 }
 
-function revisionRow(id = "rev_alpha", eventId = "evt_alpha"): D1SyncRow {
+function revisionRow(
+  id = "rev_alpha",
+  eventId = "evt_alpha",
+  sourceId = sourceIdForSuffix(eventId.replace(/^evt_/, "")),
+): D1SyncRow {
   return {
     revision_id: id,
     event_id: eventId,
@@ -52,23 +73,27 @@ function revisionRow(id = "rev_alpha", eventId = "evt_alpha"): D1SyncRow {
     first_executable_at: null,
     change_type: "CREATED",
     facts_json: "{}",
-    source_ids_json: `["${eventId.replace("evt_", "src_")}"]`,
+    source_ids_json: JSON.stringify([sourceId]),
     previous_revision_id: null,
   };
 }
 
-function sourceRow(id = "src_alpha", eventId = "evt_alpha"): D1SyncRow {
+function sourceRow(
+  id = sourceIdForSuffix("alpha"),
+  eventId = "evt_alpha",
+  suffix = eventId.replace(/^evt_/, ""),
+): D1SyncRow {
   return {
     source_id: id,
     event_id: eventId,
     schema_version: 1,
-    authority: "ALPHA PON",
+    authority: SOURCE_AUTHORITY,
     source_type: "OTHER",
-    url: `https://example.com/${id}`,
+    url: sourceUrl(suffix),
     title: "Primary source",
     published_at: null,
     retrieved_at: "2026-08-04T00:00:00.000Z",
-    content_hash: "a".repeat(64),
+    content_hash: SOURCE_CONTENT_HASH,
     storage_class: "METADATA_ONLY",
     object_key: null,
   };
@@ -91,10 +116,11 @@ function decisionRow(id = "dec_alpha", eventId = "evt_alpha", revisionId = "rev_
 function snapshot(suffix = "alpha"): D1SyncSnapshot {
   const eventId = `evt_${suffix}`;
   const revisionId = `rev_${suffix}`;
+  const sourceId = sourceIdForSuffix(suffix);
   return {
     market_events: [eventRow(eventId)],
-    event_sources: [sourceRow(`src_${suffix}`, eventId)],
-    event_revisions: [revisionRow(revisionId, eventId)],
+    event_sources: [sourceRow(sourceId, eventId, suffix)],
+    event_revisions: [revisionRow(revisionId, eventId, sourceId)],
     decision_snapshots: [decisionRow(`dec_${suffix}`, eventId, revisionId)],
     triggers: 0,
     legacyGuardMarker: 0,
@@ -102,6 +128,7 @@ function snapshot(suffix = "alpha"): D1SyncSnapshot {
 }
 
 const canonical = snapshot();
+const canonicalSourceId = String(canonical.event_sources[0].source_id);
 
 const additionPlan = buildD1SyncPlan(canonical, emptyD1SyncSnapshot());
 assert.equal(additionPlan.status, "ready");
@@ -119,7 +146,7 @@ const duplicatePrimaryKeyPlan = buildD1SyncPlan(canonical, duplicatePrimaryKeyRe
 assert.equal(duplicatePrimaryKeyPlan.status, "blocked");
 assert.match(
   duplicatePrimaryKeyPlan.blockers.join("\n"),
-  /event_sources contains duplicate primary key src_alpha/,
+  new RegExp(`event_sources contains duplicate primary key ${canonicalSourceId}`),
   "duplicate remote rows must remain inspectable as a blocked read-only plan instead of throwing",
 );
 
@@ -132,6 +159,18 @@ assert.match(
   invalidSourceIdNamespacePlan.blockers.join("\n"),
   /event_sources source_id must start with src_/,
   "persisted source identities outside the canonical namespace must fail closed",
+);
+
+const mismatchedStableSourceIdRemote = structuredClone(canonical);
+const mismatchedStableSourceId = `src_${"b".repeat(24)}`;
+mismatchedStableSourceIdRemote.event_sources[0].source_id = mismatchedStableSourceId;
+mismatchedStableSourceIdRemote.event_revisions[0].source_ids_json = JSON.stringify([mismatchedStableSourceId]);
+const mismatchedStableSourceIdPlan = buildD1SyncPlan(canonical, mismatchedStableSourceIdRemote);
+assert.equal(mismatchedStableSourceIdPlan.status, "blocked");
+assert.match(
+  mismatchedStableSourceIdPlan.blockers.join("\n"),
+  /does not match canonical source identity/,
+  "persisted source IDs must remain bound to authority, URL, publication time, and content hash",
 );
 
 const unsupportedSchemaVersionRemote = structuredClone(canonical);
@@ -316,49 +355,43 @@ const nonCanonicalAuthorityRemote = structuredClone(canonical);
 nonCanonicalAuthorityRemote.event_sources[0].authority = "Alpha Pon";
 const nonCanonicalAuthorityPlan = buildD1SyncPlan(canonical, nonCanonicalAuthorityRemote);
 assert.equal(nonCanonicalAuthorityPlan.status, "blocked");
-assert.match(
-  nonCanonicalAuthorityPlan.blockers.join("\n"),
-  /source src_alpha authority must be canonical uppercase NFKC text/,
-);
+assert.match(nonCanonicalAuthorityPlan.blockers.join("\n"), /authority must be canonical uppercase NFKC text/);
 
 const invalidSourceTypeRemote = structuredClone(canonical);
 invalidSourceTypeRemote.event_sources[0].source_type = "NOT_A_SOURCE";
 const invalidSourceTypePlan = buildD1SyncPlan(canonical, invalidSourceTypeRemote);
 assert.equal(invalidSourceTypePlan.status, "blocked");
-assert.match(invalidSourceTypePlan.blockers.join("\n"), /source src_alpha has invalid source_type NOT_A_SOURCE/);
+assert.match(invalidSourceTypePlan.blockers.join("\n"), /has invalid source_type NOT_A_SOURCE/);
 
 const invalidSourceHashRemote = structuredClone(canonical);
 invalidSourceHashRemote.event_sources[0].content_hash = "abc123";
 const invalidSourceHashPlan = buildD1SyncPlan(canonical, invalidSourceHashRemote);
 assert.equal(invalidSourceHashPlan.status, "blocked");
-assert.match(invalidSourceHashPlan.blockers.join("\n"), /source src_alpha has invalid content_hash/);
+assert.match(invalidSourceHashPlan.blockers.join("\n"), /has invalid content_hash/);
 
 const insecureSourceUrlRemote = structuredClone(canonical);
 insecureSourceUrlRemote.event_sources[0].url = "http://example.com/src_alpha";
 const insecureSourceUrlPlan = buildD1SyncPlan(canonical, insecureSourceUrlRemote);
 assert.equal(insecureSourceUrlPlan.status, "blocked");
-assert.match(insecureSourceUrlPlan.blockers.join("\n"), /source src_alpha URL must use https/);
+assert.match(insecureSourceUrlPlan.blockers.join("\n"), /URL must use https/);
 
 const fragmentSourceUrlRemote = structuredClone(canonical);
 fragmentSourceUrlRemote.event_sources[0].url = "https://example.com/src_alpha#section";
 const fragmentSourceUrlPlan = buildD1SyncPlan(canonical, fragmentSourceUrlRemote);
 assert.equal(fragmentSourceUrlPlan.status, "blocked");
-assert.match(fragmentSourceUrlPlan.blockers.join("\n"), /source src_alpha URL must not contain a fragment/);
+assert.match(fragmentSourceUrlPlan.blockers.join("\n"), /URL must not contain a fragment/);
 
 const malformedSourceUrlRemote = structuredClone(canonical);
 malformedSourceUrlRemote.event_sources[0].url = "https://";
 const malformedSourceUrlPlan = buildD1SyncPlan(canonical, malformedSourceUrlRemote);
 assert.equal(malformedSourceUrlPlan.status, "blocked");
-assert.match(malformedSourceUrlPlan.blockers.join("\n"), /source src_alpha URL must be an absolute https URL/);
+assert.match(malformedSourceUrlPlan.blockers.join("\n"), /URL must be an absolute https URL/);
 
 const invalidStorageClassRemote = structuredClone(canonical);
 invalidStorageClassRemote.event_sources[0].storage_class = "PUBLIC_UNKNOWN";
 const invalidStorageClassPlan = buildD1SyncPlan(canonical, invalidStorageClassRemote);
 assert.equal(invalidStorageClassPlan.status, "blocked");
-assert.match(
-  invalidStorageClassPlan.blockers.join("\n"),
-  /source src_alpha has invalid storage_class PUBLIC_UNKNOWN/,
-);
+assert.match(invalidStorageClassPlan.blockers.join("\n"), /has invalid storage_class PUBLIC_UNKNOWN/);
 
 const missingRevisionSourceCanonical = structuredClone(canonical);
 missingRevisionSourceCanonical.event_revisions[0].source_ids_json = '["src_missing"]';
@@ -372,7 +405,7 @@ const sourceAfterObservationPlan = buildD1SyncPlan(canonical, sourceAfterObserva
 assert.equal(sourceAfterObservationPlan.status, "blocked");
 assert.match(
   sourceAfterObservationPlan.blockers.join("\n"),
-  /revision rev_alpha references source src_alpha retrieved after observed_at/,
+  /revision rev_alpha references source .* retrieved after observed_at/,
 );
 
 const sourcePublishedAfterRetrievalRemote = structuredClone(canonical);
@@ -407,7 +440,7 @@ assert.match(invalidDecisionTimestampPlan.blockers.join("\n"), /decision created
 
 const stalePointerCanonical = structuredClone(canonical);
 stalePointerCanonical.event_revisions.push({
-  ...revisionRow("rev_alpha_v2", "evt_alpha"),
+  ...revisionRow("rev_alpha_v2", "evt_alpha", canonicalSourceId),
   revision_number: 2,
   previous_revision_id: "rev_alpha",
 });
