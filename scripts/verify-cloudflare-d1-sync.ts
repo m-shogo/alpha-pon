@@ -241,6 +241,18 @@ const invalidCurrentDecisionPlan = buildD1SyncPlan(canonical, invalidCurrentDeci
 assert.equal(invalidCurrentDecisionPlan.status, "blocked");
 assert.match(invalidCurrentDecisionPlan.blockers.join("\n"), /invalid current_decision_state BUY_NOW/);
 
+for (const invalidOccurrenceKey of ["", "   ", " occurrence-evt_alpha "]) {
+  const invalidOccurrenceKeyRemote = structuredClone(canonical);
+  invalidOccurrenceKeyRemote.market_events[0].occurrence_key = invalidOccurrenceKey;
+  const invalidOccurrenceKeyPlan = buildD1SyncPlan(canonical, invalidOccurrenceKeyRemote);
+  assert.equal(invalidOccurrenceKeyPlan.status, "blocked");
+  assert.match(
+    invalidOccurrenceKeyPlan.blockers.join("\n"),
+    /occurrence_key must be non-empty canonical text without surrounding whitespace/,
+    "persisted occurrence keys must remain stable canonical identity text",
+  );
+}
+
 const invalidLastVerifiedAtRemote = structuredClone(canonical);
 invalidLastVerifiedAtRemote.market_events[0].last_verified_at = "2026-08-04T00:00:00";
 const invalidLastVerifiedAtPlan = buildD1SyncPlan(canonical, invalidLastVerifiedAtRemote);

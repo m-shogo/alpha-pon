@@ -311,6 +311,10 @@ export function validateD1SyncSnapshot(snapshot: D1SyncSnapshot, label: string):
 
   for (const event of snapshot.market_events) {
     const eventId = `event ${String(event.event_id ?? "<missing>")}`;
+    const occurrenceKey = event.occurrence_key;
+    if (typeof occurrenceKey !== "string" || !occurrenceKey.trim() || occurrenceKey !== occurrenceKey.trim()) {
+      errors.push(`${label}: ${eventId} occurrence_key must be non-empty canonical text without surrounding whitespace`);
+    }
     validateEnumField(event, eventId, "event_type", MARKET_EVENT_TYPES, label, errors);
     validateEnumField(event, eventId, "status", MARKET_EVENT_STATUSES, label, errors);
     validateEnumField(event, eventId, "priority", MARKET_EVENT_PRIORITIES, label, errors);
