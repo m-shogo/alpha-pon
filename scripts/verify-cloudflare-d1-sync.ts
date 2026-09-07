@@ -185,6 +185,15 @@ const insecureSourceUrlPlan = buildD1SyncPlan(canonical, insecureSourceUrlRemote
 assert.equal(insecureSourceUrlPlan.status, "blocked");
 assert.match(insecureSourceUrlPlan.blockers.join("\n"), /source src_alpha URL must use https/);
 
+const invalidStorageClassRemote = structuredClone(canonical);
+invalidStorageClassRemote.event_sources[0].storage_class = "PUBLIC_UNKNOWN";
+const invalidStorageClassPlan = buildD1SyncPlan(canonical, invalidStorageClassRemote);
+assert.equal(invalidStorageClassPlan.status, "blocked");
+assert.match(
+  invalidStorageClassPlan.blockers.join("\n"),
+  /source src_alpha has invalid storage_class PUBLIC_UNKNOWN/,
+);
+
 const missingRevisionSourceCanonical = structuredClone(canonical);
 missingRevisionSourceCanonical.event_revisions[0].source_ids_json = '["src_missing"]';
 const missingRevisionSourcePlan = buildD1SyncPlan(missingRevisionSourceCanonical, emptyD1SyncSnapshot());
