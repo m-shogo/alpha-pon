@@ -133,6 +133,54 @@ assert.match(
   "unsupported persisted schema versions must block D1 sync preview",
 );
 
+const invalidEventTypeRemote = structuredClone(canonical);
+invalidEventTypeRemote.market_events[0].event_type = "NOT_AN_EVENT_TYPE";
+const invalidEventTypePlan = buildD1SyncPlan(canonical, invalidEventTypeRemote);
+assert.equal(invalidEventTypePlan.status, "blocked");
+assert.match(invalidEventTypePlan.blockers.join("\n"), /invalid event_type NOT_AN_EVENT_TYPE/);
+
+const invalidEventStatusRemote = structuredClone(canonical);
+invalidEventStatusRemote.market_events[0].status = "NOT_A_STATUS";
+const invalidEventStatusPlan = buildD1SyncPlan(canonical, invalidEventStatusRemote);
+assert.equal(invalidEventStatusPlan.status, "blocked");
+assert.match(invalidEventStatusPlan.blockers.join("\n"), /invalid status NOT_A_STATUS/);
+
+const invalidEventPriorityRemote = structuredClone(canonical);
+invalidEventPriorityRemote.market_events[0].priority = "S9";
+const invalidEventPriorityPlan = buildD1SyncPlan(canonical, invalidEventPriorityRemote);
+assert.equal(invalidEventPriorityPlan.status, "blocked");
+assert.match(invalidEventPriorityPlan.blockers.join("\n"), /invalid priority S9/);
+
+const invalidTimePrecisionRemote = structuredClone(canonical);
+invalidTimePrecisionRemote.market_events[0].time_precision = "APPROXIMATE";
+const invalidTimePrecisionPlan = buildD1SyncPlan(canonical, invalidTimePrecisionRemote);
+assert.equal(invalidTimePrecisionPlan.status, "blocked");
+assert.match(invalidTimePrecisionPlan.blockers.join("\n"), /invalid time_precision APPROXIMATE/);
+
+const invalidCurrentDecisionRemote = structuredClone(canonical);
+invalidCurrentDecisionRemote.market_events[0].current_decision_state = "BUY_NOW";
+const invalidCurrentDecisionPlan = buildD1SyncPlan(canonical, invalidCurrentDecisionRemote);
+assert.equal(invalidCurrentDecisionPlan.status, "blocked");
+assert.match(invalidCurrentDecisionPlan.blockers.join("\n"), /invalid current_decision_state BUY_NOW/);
+
+const invalidRevisionChangeTypeRemote = structuredClone(canonical);
+invalidRevisionChangeTypeRemote.event_revisions[0].change_type = "REWRITTEN";
+const invalidRevisionChangeTypePlan = buildD1SyncPlan(canonical, invalidRevisionChangeTypeRemote);
+assert.equal(invalidRevisionChangeTypePlan.status, "blocked");
+assert.match(invalidRevisionChangeTypePlan.blockers.join("\n"), /invalid change_type REWRITTEN/);
+
+const invalidDecisionStateRemote = structuredClone(canonical);
+invalidDecisionStateRemote.decision_snapshots[0].decision_state = "BUY_NOW";
+const invalidDecisionStatePlan = buildD1SyncPlan(canonical, invalidDecisionStateRemote);
+assert.equal(invalidDecisionStatePlan.status, "blocked");
+assert.match(invalidDecisionStatePlan.blockers.join("\n"), /invalid decision_state BUY_NOW/);
+
+const invalidConfidenceStateRemote = structuredClone(canonical);
+invalidConfidenceStateRemote.decision_snapshots[0].confidence_state = "CERTAIN";
+const invalidConfidenceStatePlan = buildD1SyncPlan(canonical, invalidConfidenceStateRemote);
+assert.equal(invalidConfidenceStatePlan.status, "blocked");
+assert.match(invalidConfidenceStatePlan.blockers.join("\n"), /invalid confidence_state CERTAIN/);
+
 const olderRemote = structuredClone(canonical);
 olderRemote.market_events[0].title = "Old title";
 olderRemote.market_events[0].updated_at = "2026-08-03T00:00:00.000Z";
