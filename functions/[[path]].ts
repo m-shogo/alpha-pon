@@ -198,6 +198,29 @@ function assertValidPersistedEventRow(row: EventRow): void {
   assertIsoTimestamp(row.updated_at, `market event ${row.event_id} updatedAt`)
 }
 
+function assertValidPersistedSourceRow(source: SourceRow): void {
+  if (!source.source_id.startsWith('src_')) throw new Error(`Invalid persisted sourceId: ${source.source_id}`)
+  if (!source.event_id.startsWith('evt_')) throw new Error(`Invalid persisted source eventId: ${source.event_id}`)
+  if (!source.url.startsWith('https://')) throw new Error(`Persisted source ${source.source_id} URL must use https`)
+  if (!/^[a-f0-9]{64}$/.test(source.content_hash)) {
+    throw new Error(`Persisted source ${source.source_id} content_hash must be lowercase SHA-256`)
+  }
+  assertIsoTimestamp(source.retrieved_at, `persisted source ${source.source_id} retrievedAt`)
+  if (source.published_at !== null) {
+    assertIsoTimestamp(source.published_at, `persisted source ${source.source_id} publishedAt`)
+    if (
+      compareExplicitIso8601Instants(
+        source.published_at,
+        source.retrieved_at,
+        `persisted source ${source.source_id} publishedAt`,
+        `persisted source ${source.source_id} retrievedAt`,
+      ) > 0
+    ) {
+      throw new Error(`Persisted source ${source.source_id} publishedAt must be on or before retrievedAt`)
+    }
+  }
+}
+
 export function freshness(staleAfter: string | null, generatedAt: string): 'FRESH' | 'STALE' | 'UNKNOWN' {
   if (!staleAfter) return 'UNKNOWN'
   return compareExplicitIso8601Instants(
@@ -238,6 +261,7 @@ async function projection(db: D1Database, env: Env): Promise<MarketEventProjecti
 
   const sourceMap = new Map<string, SourceRow[]>()
   for (const source of sourceResult.results ?? []) {
+    assertValidPersistedSourceRow(source)
     const values = sourceMap.get(source.event_id) ?? []
     values.push(source)
     sourceMap.set(source.event_id, values)
