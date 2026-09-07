@@ -136,7 +136,9 @@ function candidateSourceUrl(value: string): string {
     throw new Error("TDnet candidate requires an official TDnet source URL");
   }
   if (
-    parsed.protocol !== "https:"
+    parsed.href !== sourceUrl
+    || parsed.origin !== "https://www.release.tdnet.info"
+    || parsed.protocol !== "https:"
     || parsed.hostname !== "www.release.tdnet.info"
     || parsed.port !== ""
     || parsed.username !== ""
