@@ -12,6 +12,7 @@ import {
   STORAGE_CLASSES,
   assertIsoTimestamp,
   assertValidEventTime,
+  buildSourceId,
 } from "./contracts.js";
 import { validateMarketEventRevisionChronology } from "./revision-chronology.js";
 
@@ -352,6 +353,22 @@ export function validateD1SyncSnapshot(snapshot: D1SyncSnapshot, label: string):
         }
       } catch {
         errors.push(`${label}: source ${sourceId} URL must be an absolute https URL`);
+      }
+    }
+    const publishedAt = source.published_at;
+    if (
+      typeof authority === "string"
+      && typeof url === "string"
+      && typeof contentHash === "string"
+      && (publishedAt === null || typeof publishedAt === "string")
+    ) {
+      try {
+        const expectedSourceId = buildSourceId({ authority, url, publishedAt, contentHash });
+        if (sourceId !== expectedSourceId) {
+          errors.push(`${label}: source ${sourceId} does not match canonical source identity ${expectedSourceId}`);
+        }
+      } catch {
+        // Field-specific diagnostics are emitted by the source validators above.
       }
     }
     const storageClass = source.storage_class;
