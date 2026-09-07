@@ -68,7 +68,7 @@ function sourceRow(id = "src_alpha", eventId = "evt_alpha"): D1SyncRow {
     title: "Primary source",
     published_at: null,
     retrieved_at: "2026-08-04T00:00:00.000Z",
-    content_hash: id,
+    content_hash: "a".repeat(64),
     storage_class: "METADATA_ONLY",
     object_key: null,
   };
@@ -172,6 +172,12 @@ invalidSourceTypeRemote.event_sources[0].source_type = "NOT_A_SOURCE";
 const invalidSourceTypePlan = buildD1SyncPlan(canonical, invalidSourceTypeRemote);
 assert.equal(invalidSourceTypePlan.status, "blocked");
 assert.match(invalidSourceTypePlan.blockers.join("\n"), /source src_alpha has invalid source_type NOT_A_SOURCE/);
+
+const invalidSourceHashRemote = structuredClone(canonical);
+invalidSourceHashRemote.event_sources[0].content_hash = "abc123";
+const invalidSourceHashPlan = buildD1SyncPlan(canonical, invalidSourceHashRemote);
+assert.equal(invalidSourceHashPlan.status, "blocked");
+assert.match(invalidSourceHashPlan.blockers.join("\n"), /source src_alpha has invalid content_hash/);
 
 const missingRevisionSourceCanonical = structuredClone(canonical);
 missingRevisionSourceCanonical.event_revisions[0].source_ids_json = '["src_missing"]';
