@@ -90,6 +90,19 @@ assert.throws(
 );
 
 assert.throws(
+  () => buildTdnetCandidatePreview({
+    ...snapshot,
+    disclosures: [
+      { ...snapshot.disclosures[0]!, url: "https://www.release.tdnet.info:443/inbs/140120260904000001.pdf" },
+    ],
+    pageCount: 1,
+    pageUrls: [snapshot.pageUrls[0]!],
+  }),
+  /requires an official TDnet source URL/,
+  "candidate projection must reject URL aliases that normalize to a different source identity",
+);
+
+assert.throws(
   () => buildTdnetCandidatePreview({ ...snapshot, pageCount: 1 }),
   /pageUrls must match pageCount/,
 );
