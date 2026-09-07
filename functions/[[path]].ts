@@ -67,7 +67,12 @@ type SourceRow = {
   content_hash: string
 }
 
-type RevisionRow = { event_id: string; revision_number: number }
+type RevisionRow = {
+  event_id: string
+  current_revision_id: string | null
+  revision_id: string | null
+  revision_number: number | null
+}
 
 type ProjectionEvent = {
   schemaVersion: 1
@@ -221,6 +226,29 @@ function assertValidPersistedSourceRow(source: SourceRow): void {
   }
 }
 
+function revisionNumberMap(eventRows: EventRow[], revisionRows: RevisionRow[]): Map<string, number> {
+  const eventMap = new Map(eventRows.map(row => [row.event_id, row]))
+  const revisionMap = new Map<string, number>()
+  for (const revision of revisionRows) {
+    const event = eventMap.get(revision.event_id)
+    if (!event) throw new Error(`Persisted revision references unknown market event ${revision.event_id}`)
+    if (!event.current_revision_id) throw new Error(`Market event ${event.event_id} is missing current_revision_id`)
+    if (revision.current_revision_id !== event.current_revision_id || revision.revision_id !== event.current_revision_id) {
+      throw new Error(`Market event ${event.event_id} current revision pointer does not resolve consistently`)
+    }
+    if (!Number.isSafeInteger(revision.revision_number) || (revision.revision_number as number) < 1) {
+      throw new Error(`Market event ${event.event_id} revision_number must be a positive safe integer`)
+    }
+    if (revisionMap.has(event.event_id)) throw new Error(`Duplicate persisted revision projection for ${event.event_id}`)
+    revisionMap.set(event.event_id, revision.revision_number as number)
+  }
+  for (const event of eventRows) {
+    if (!event.current_revision_id) throw new Error(`Market event ${event.event_id} is missing current_revision_id`)
+    if (!revisionMap.has(event.event_id)) throw new Error(`Market event ${event.event_id} current revision pointer does not resolve`)
+  }
+  return revisionMap
+}
+
 export function freshness(staleAfter: string | null, generatedAt: string): 'FRESH' | 'STALE' | 'UNKNOWN' {
   if (!staleAfter) return 'UNKNOWN'
   return compareExplicitIso8601Instants(
@@ -247,9 +275,12 @@ async function projection(db: D1Database, env: Env): Promise<MarketEventProjecti
       ORDER BY event_id, COALESCE(published_at, retrieved_at), source_id
     `).all<SourceRow>(),
     db.prepare(`
-      SELECT event_id, MAX(revision_number) AS revision_number
-      FROM event_revisions
-      GROUP BY event_id
+      SELECT e.event_id, e.current_revision_id, r.revision_id, r.revision_number
+      FROM market_events e
+      LEFT JOIN event_revisions r
+        ON r.event_id = e.event_id
+       AND r.revision_id = e.current_revision_id
+      ORDER BY e.event_id
     `).all<RevisionRow>(),
   ])
   if (eventResult.success === false || sourceResult.success === false || revisionResult.success === false) {
@@ -266,7 +297,7 @@ async function projection(db: D1Database, env: Env): Promise<MarketEventProjecti
     values.push(source)
     sourceMap.set(source.event_id, values)
   }
-  const revisionMap = new Map((revisionResult.results ?? []).map(row => [row.event_id, row.revision_number]))
+  const revisionMap = revisionNumberMap(eventRows, revisionResult.results ?? [])
   const events: ProjectionEvent[] = eventRows.map(row => ({
     schemaVersion: 1,
     eventId: row.event_id,
@@ -296,7 +327,7 @@ async function projection(db: D1Database, env: Env): Promise<MarketEventProjecti
     staleAfter: row.stale_after,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    revisionNumber: revisionMap.get(row.event_id) ?? 0,
+    revisionNumber: revisionMap.get(row.event_id) as number,
     sources: (sourceMap.get(row.event_id) ?? []).map(source => ({
       sourceId: source.source_id,
       authority: source.authority,
