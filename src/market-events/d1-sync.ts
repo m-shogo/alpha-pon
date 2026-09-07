@@ -213,6 +213,10 @@ export function validateD1SyncSnapshot(snapshot: D1SyncSnapshot, label: string):
     if (typeof sourceType !== "string" || !(SOURCE_TYPES as readonly string[]).includes(sourceType)) {
       errors.push(`${label}: source ${sourceId} has invalid source_type ${String(sourceType)}`);
     }
+    const contentHash = source.content_hash;
+    if (typeof contentHash !== "string" || !/^[a-f0-9]{64}$/.test(contentHash)) {
+      errors.push(`${label}: source ${sourceId} has invalid content_hash`);
+    }
     validateSourceChronology(source, label, errors);
     if (!indexes.market_events.has(String(source.event_id))) {
       errors.push(`${label}: source ${sourceId} references missing event ${String(source.event_id)}`);
