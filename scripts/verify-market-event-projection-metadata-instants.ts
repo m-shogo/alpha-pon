@@ -57,4 +57,12 @@ assert.throws(
   "read-only projection must reject timezone-less verification provenance",
 );
 
+for (const revisionNumber of [0, 1.5, Number.NaN]) {
+  assert.throws(
+    () => buildMarketEventsIcs([{ event: baseEvent(), revisionNumber, sources: [] }], "2026-09-07T01:00:00Z"),
+    /revisionNumber must be a positive safe integer/,
+    `read-only projection must reject invalid revisionNumber ${String(revisionNumber)}`,
+  );
+}
+
 console.log("market-event-projection-metadata-instants: ok");

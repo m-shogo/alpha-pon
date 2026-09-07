@@ -144,6 +144,12 @@ function assertProjectionMetadataInstants(event: MarketEvent): void {
   if (event.staleAfter !== null) assertIsoTimestamp(event.staleAfter, "market event staleAfter");
 }
 
+function assertRevisionNumber(revisionNumber: number, eventId: string): void {
+  if (!Number.isSafeInteger(revisionNumber) || revisionNumber < 1) {
+    throw new Error(`market event ${eventId} revisionNumber must be a positive safe integer, got ${revisionNumber}`);
+  }
+}
+
 export function buildMarketEventsIcs(items: IcsMarketEvent[], generatedAt: string): {
   content: string;
   included: number;
@@ -165,6 +171,7 @@ export function buildMarketEventsIcs(items: IcsMarketEvent[], generatedAt: strin
   let excludedUnknownDate = 0;
 
   for (const item of items) {
+    assertRevisionNumber(item.revisionNumber, item.event.eventId);
     assertValidEventTime(item.event.time);
     assertProjectionMetadataInstants(item.event);
     const dateLines = eventDateLines(item.event);
@@ -177,7 +184,7 @@ export function buildMarketEventsIcs(items: IcsMarketEvent[], generatedAt: strin
     lines.push(
       "BEGIN:VEVENT",
       `UID:${event.eventId}@alpha-pon`,
-      `SEQUENCE:${Math.max(0, item.revisionNumber - 1)}`,
+      `SEQUENCE:${item.revisionNumber - 1}`,
       `DTSTAMP:${formatUtc(generatedAt)}`,
       `LAST-MODIFIED:${formatUtc(event.updatedAt)}`,
       `STATUS:${statusValue(event)}`,
