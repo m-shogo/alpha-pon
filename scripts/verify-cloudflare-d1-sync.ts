@@ -113,6 +113,16 @@ assert.equal(identicalPlan.status, "ready");
 assert.equal(identicalPlan.summary.unchanged, 4);
 assert.equal(identicalPlan.summary.added, 0);
 
+const duplicatePrimaryKeyRemote = structuredClone(canonical);
+duplicatePrimaryKeyRemote.event_sources.push({ ...duplicatePrimaryKeyRemote.event_sources[0] });
+const duplicatePrimaryKeyPlan = buildD1SyncPlan(canonical, duplicatePrimaryKeyRemote);
+assert.equal(duplicatePrimaryKeyPlan.status, "blocked");
+assert.match(
+  duplicatePrimaryKeyPlan.blockers.join("\n"),
+  /event_sources contains duplicate primary key src_alpha/,
+  "duplicate remote rows must remain inspectable as a blocked read-only plan instead of throwing",
+);
+
 const olderRemote = structuredClone(canonical);
 olderRemote.market_events[0].title = "Old title";
 olderRemote.market_events[0].updated_at = "2026-08-03T00:00:00.000Z";
