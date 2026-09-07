@@ -243,6 +243,14 @@ const invalidJsonShape = await onRequest(context(
 assert.equal(invalidJsonShape.status, 500);
 assert.deepEqual(await invalidJsonShape.json(), { error: "internal error" });
 
+const invalidSourceType = await onRequest(context(
+  "https://alpha.example.com/api/market-events",
+  {},
+  { ...env, DB: fakeDbFor(eventRows, [{ ...sourceRows[0], source_type: "NOT_A_SOURCE" }]) },
+));
+assert.equal(invalidSourceType.status, 500);
+assert.deepEqual(await invalidSourceType.json(), { error: "internal error" });
+
 const invalidSourceHash = await onRequest(context(
   "https://alpha.example.com/api/market-events",
   {},
