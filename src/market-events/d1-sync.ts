@@ -367,7 +367,6 @@ function planTable(
   const errors: string[] = [];
   const canonical = indexRows(table, canonicalRows, errors);
   const remote = indexRows(table, remoteRows, errors);
-  if (errors.length) throw new Error(errors.join("; "));
 
   const added: string[] = [];
   const updated: string[] = [];
