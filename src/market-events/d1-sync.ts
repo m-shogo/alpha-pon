@@ -217,6 +217,10 @@ export function validateD1SyncSnapshot(snapshot: D1SyncSnapshot, label: string):
     if (typeof contentHash !== "string" || !/^[a-f0-9]{64}$/.test(contentHash)) {
       errors.push(`${label}: source ${sourceId} has invalid content_hash`);
     }
+    const url = source.url;
+    if (typeof url !== "string" || !url.startsWith("https://")) {
+      errors.push(`${label}: source ${sourceId} URL must use https`);
+    }
     validateSourceChronology(source, label, errors);
     if (!indexes.market_events.has(String(source.event_id))) {
       errors.push(`${label}: source ${sourceId} references missing event ${String(source.event_id)}`);
