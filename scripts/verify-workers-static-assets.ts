@@ -44,6 +44,7 @@ const assets = {
 
 const envWithoutDb = { ASSETS: assets } as unknown as WorkerEnv
 const eventId = 'evt_111111111111111111111111'
+const revisionId = 'rev_111111111111111111111111'
 const privateMarkers = {
   ownerEmail: 'private-owner@example.com',
   privateNote: 'PRIVATE_NOTE_MUST_NOT_LEAK',
@@ -73,7 +74,7 @@ const eventRows = [{
   checks_before_json: '[]',
   checks_after_json: '[]',
   related_event_ids_json: '[]',
-  current_revision_id: 'rev_111111111111111111111111',
+  current_revision_id: revisionId,
   last_verified_at: '2026-08-03T06:00:00Z',
   stale_after: '2099-08-04T06:00:00Z',
   created_at: '2026-08-03T06:00:00Z',
@@ -88,10 +89,20 @@ const fakeDb = {
     return {
       bind() { return this },
       async all<T>() {
-        if (query.includes('FROM market_events')) return { success: true, results: eventRows as T[] }
+        if (query.includes('FROM market_events') && !query.includes('LEFT JOIN event_revisions')) {
+          return { success: true, results: eventRows as T[] }
+        }
         if (query.includes('FROM event_sources')) return { success: true, results: [] as T[] }
-        if (query.includes('FROM event_revisions')) {
-          return { success: true, results: [{ event_id: eventId, revision_number: 1 }] as T[] }
+        if (query.includes('LEFT JOIN event_revisions')) {
+          return {
+            success: true,
+            results: [{
+              event_id: eventId,
+              current_revision_id: revisionId,
+              revision_id: revisionId,
+              revision_number: 1,
+            }] as T[],
+          }
         }
         throw new Error(`Unexpected query: ${query}`)
       },
