@@ -271,6 +271,14 @@ const invalidSourceChronology = await onRequest(context(
 assert.equal(invalidSourceChronology.status, 500);
 assert.deepEqual(await invalidSourceChronology.json(), { error: "internal error" });
 
+const orphanSource = await onRequest(context(
+  "https://alpha.example.com/api/market-events",
+  {},
+  { ...env, DB: fakeDbFor(eventRows, [{ ...sourceRows[0], event_id: "evt_999999999999999999999999" }]) },
+));
+assert.equal(orphanSource.status, 500);
+assert.deepEqual(await orphanSource.json(), { error: "internal error" });
+
 const oneEvent = await onRequest(context(`https://alpha.example.com/api/market-events/${eventRows[0].event_id}`));
 assert.equal(oneEvent.status, 200);
 assert.equal((await oneEvent.json() as { eventId: string }).eventId, eventRows[0].event_id);
