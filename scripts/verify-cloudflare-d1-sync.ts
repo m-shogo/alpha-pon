@@ -163,6 +163,30 @@ const invalidCurrentDecisionPlan = buildD1SyncPlan(canonical, invalidCurrentDeci
 assert.equal(invalidCurrentDecisionPlan.status, "blocked");
 assert.match(invalidCurrentDecisionPlan.blockers.join("\n"), /invalid current_decision_state BUY_NOW/);
 
+const invalidLastVerifiedAtRemote = structuredClone(canonical);
+invalidLastVerifiedAtRemote.market_events[0].last_verified_at = "2026-08-04T00:00:00";
+const invalidLastVerifiedAtPlan = buildD1SyncPlan(canonical, invalidLastVerifiedAtRemote);
+assert.equal(invalidLastVerifiedAtPlan.status, "blocked");
+assert.match(invalidLastVerifiedAtPlan.blockers.join("\n"), /last_verified_at must be a strict ISO timestamp/);
+
+const invalidStaleAfterRemote = structuredClone(canonical);
+invalidStaleAfterRemote.market_events[0].stale_after = "2026-08-05T00:00:00";
+const invalidStaleAfterPlan = buildD1SyncPlan(canonical, invalidStaleAfterRemote);
+assert.equal(invalidStaleAfterPlan.status, "blocked");
+assert.match(invalidStaleAfterPlan.blockers.join("\n"), /stale_after must be a strict ISO timestamp/);
+
+const invalidCreatedAtRemote = structuredClone(canonical);
+invalidCreatedAtRemote.market_events[0].created_at = "2026-08-04T00:00:00";
+const invalidCreatedAtPlan = buildD1SyncPlan(canonical, invalidCreatedAtRemote);
+assert.equal(invalidCreatedAtPlan.status, "blocked");
+assert.match(invalidCreatedAtPlan.blockers.join("\n"), /created_at must be a strict ISO timestamp/);
+
+const updatedBeforeCreatedRemote = structuredClone(canonical);
+updatedBeforeCreatedRemote.market_events[0].created_at = "2026-08-04T00:00:01.000Z";
+const updatedBeforeCreatedPlan = buildD1SyncPlan(canonical, updatedBeforeCreatedRemote);
+assert.equal(updatedBeforeCreatedPlan.status, "blocked");
+assert.match(updatedBeforeCreatedPlan.blockers.join("\n"), /updated_at must be on or after created_at/);
+
 const invalidRevisionChangeTypeRemote = structuredClone(canonical);
 invalidRevisionChangeTypeRemote.event_revisions[0].change_type = "REWRITTEN";
 const invalidRevisionChangeTypePlan = buildD1SyncPlan(canonical, invalidRevisionChangeTypeRemote);
@@ -185,8 +209,8 @@ const olderRemote = structuredClone(canonical);
 olderRemote.market_events[0].title = "Old title";
 olderRemote.market_events[0].updated_at = "2026-08-03T00:00:00.000Z";
 const updatePlan = buildD1SyncPlan(canonical, olderRemote);
-assert.equal(updatePlan.status, "ready");
-assert.deepEqual(updatePlan.tables.market_events.updated, ["evt_alpha"]);
+assert.equal(updatePlan.status, "blocked");
+assert.match(updatePlan.blockers.join("\n"), /updated_at must be on or after created_at/);
 
 const newerRemote = structuredClone(canonical);
 newerRemote.market_events[0].title = "Newer remote title";
