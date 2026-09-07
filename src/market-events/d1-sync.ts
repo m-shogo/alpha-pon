@@ -1,5 +1,5 @@
 import { compareExplicitIso8601Instants } from "../research/iso-instant.js";
-import { assertIsoTimestamp } from "./contracts.js";
+import { SOURCE_TYPES, assertIsoTimestamp } from "./contracts.js";
 import { validateMarketEventRevisionChronology } from "./revision-chronology.js";
 
 export const D1_SYNC_TABLES = [
@@ -209,6 +209,10 @@ export function validateD1SyncSnapshot(snapshot: D1SyncSnapshot, label: string):
 
   for (const source of snapshot.event_sources) {
     const sourceId = String(source.source_id ?? "<missing>");
+    const sourceType = source.source_type;
+    if (typeof sourceType !== "string" || !(SOURCE_TYPES as readonly string[]).includes(sourceType)) {
+      errors.push(`${label}: source ${sourceId} has invalid source_type ${String(sourceType)}`);
+    }
     validateSourceChronology(source, label, errors);
     if (!indexes.market_events.has(String(source.event_id))) {
       errors.push(`${label}: source ${sourceId} references missing event ${String(source.event_id)}`);
