@@ -91,32 +91,44 @@ function assertSupportedSchemaVersions(db: MarketEventDatabase): void {
 }
 
 function assertCurrentRevisionPointersAreLatest(db: MarketEventDatabase): void {
-  const stalePointers = db.prepare(`
+  const invalidPointers = db.prepare(`
     SELECT
       e.event_id AS eventId,
       e.current_revision_id AS currentRevisionId,
-      latest.revision_id AS latestRevisionId
+      current.event_id AS currentRevisionEventId,
+      current.revision_number AS currentRevisionNumber,
+      latest.latest_revision_number AS latestRevisionNumber
     FROM market_events e
-    JOIN event_revisions current
+    LEFT JOIN event_revisions current
       ON current.revision_id = e.current_revision_id
-      AND current.event_id = e.event_id
-    JOIN event_revisions latest
+    LEFT JOIN (
+      SELECT event_id, MAX(revision_number) AS latest_revision_number
+      FROM event_revisions
+      GROUP BY event_id
+    ) latest
       ON latest.event_id = e.event_id
-    WHERE latest.revision_number = (
-      SELECT MAX(candidate.revision_number)
-      FROM event_revisions candidate
-      WHERE candidate.event_id = e.event_id
-    )
-      AND current.revision_id != latest.revision_id
+    WHERE
+      (e.current_revision_id IS NULL AND latest.latest_revision_number IS NOT NULL)
+      OR (
+        e.current_revision_id IS NOT NULL
+        AND (
+          current.revision_id IS NULL
+          OR current.event_id != e.event_id
+          OR latest.latest_revision_number IS NULL
+          OR current.revision_number != latest.latest_revision_number
+        )
+      )
     ORDER BY e.event_id
   `).all() as Array<{
     eventId: string;
-    currentRevisionId: string;
-    latestRevisionId: string;
+    currentRevisionId: string | null;
+    currentRevisionEventId: string | null;
+    currentRevisionNumber: number | null;
+    latestRevisionNumber: number | null;
   }>;
 
-  if (stalePointers.length > 0) {
-    throw new Error(`D1 bootstrap requires current_revision_id to reference the latest revision: ${JSON.stringify(stalePointers)}`);
+  if (invalidPointers.length > 0) {
+    throw new Error(`D1 bootstrap requires current_revision_id to reference the latest same-event revision: ${JSON.stringify(invalidPointers)}`);
   }
 }
 
