@@ -1,4 +1,5 @@
 import { compareExplicitIso8601Instants, parseExplicitIso8601Instant } from '../src/research/iso-instant.js'
+import { assertIsoTimestamp, assertValidEventTime } from '../src/market-events/contracts.js'
 
 type D1Result<T> = { results?: T[]; success?: boolean; error?: string }
 
@@ -174,6 +175,25 @@ function eventSortAt(row: EventRow): string | null {
   return row.time_precision === 'WINDOW' ? row.window_start : row.start_at
 }
 
+function assertValidPersistedEventRow(row: EventRow): void {
+  if (row.all_day !== 0 && row.all_day !== 1) {
+    throw new Error(`market event ${row.event_id} all_day must be stored as 0 or 1, got ${row.all_day}`)
+  }
+  assertValidEventTime({
+    startAt: row.start_at,
+    endAt: row.end_at,
+    allDay: row.all_day === 1,
+    timezone: row.timezone,
+    precision: row.time_precision,
+    windowStart: row.window_start,
+    windowEnd: row.window_end,
+  })
+  assertIsoTimestamp(row.last_verified_at, `market event ${row.event_id} lastVerifiedAt`)
+  if (row.stale_after !== null) assertIsoTimestamp(row.stale_after, `market event ${row.event_id} staleAfter`)
+  assertIsoTimestamp(row.created_at, `market event ${row.event_id} createdAt`)
+  assertIsoTimestamp(row.updated_at, `market event ${row.event_id} updatedAt`)
+}
+
 export function freshness(staleAfter: string | null, generatedAt: string): 'FRESH' | 'STALE' | 'UNKNOWN' {
   if (!staleAfter) return 'UNKNOWN'
   return compareExplicitIso8601Instants(
@@ -209,6 +229,9 @@ async function projection(db: D1Database, env: Env): Promise<MarketEventProjecti
     throw new Error(eventResult.error || sourceResult.error || revisionResult.error || 'D1 query failed')
   }
 
+  const eventRows = eventResult.results ?? []
+  for (const row of eventRows) assertValidPersistedEventRow(row)
+
   const sourceMap = new Map<string, SourceRow[]>()
   for (const source of sourceResult.results ?? []) {
     const values = sourceMap.get(source.event_id) ?? []
@@ -216,7 +239,7 @@ async function projection(db: D1Database, env: Env): Promise<MarketEventProjecti
     sourceMap.set(source.event_id, values)
   }
   const revisionMap = new Map((revisionResult.results ?? []).map(row => [row.event_id, row.revision_number]))
-  const events: ProjectionEvent[] = (eventResult.results ?? []).map(row => ({
+  const events: ProjectionEvent[] = eventRows.map(row => ({
     schemaVersion: 1,
     eventId: row.event_id,
     occurrenceKey: row.occurrence_key,
