@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import { assertValidEventTime } from "./contracts.js";
+import { compareExplicitIso8601Instants } from "../research/iso-instant.js";
+import { assertIsoTimestamp, assertValidEventTime } from "./contracts.js";
 import type { MarketEventDatabase } from "./sqlite-store.js";
 
 export type D1BootstrapExport = {
@@ -177,6 +178,55 @@ function assertPersistedEventTimesAreValid(db: MarketEventDatabase): void {
   }
 }
 
+function assertPersistedSourceProvenanceIsValid(db: MarketEventDatabase): void {
+  const rows = db.prepare(`
+    SELECT
+      source_id AS sourceId,
+      event_id AS eventId,
+      url,
+      published_at AS publishedAt,
+      retrieved_at AS retrievedAt,
+      content_hash AS contentHash
+    FROM event_sources
+    ORDER BY event_id, source_id
+  `).all() as Array<{
+    sourceId: string;
+    eventId: string;
+    url: string;
+    publishedAt: string | null;
+    retrievedAt: string;
+    contentHash: string;
+  }>;
+
+  for (const row of rows) {
+    try {
+      if (!row.sourceId.startsWith("src_")) throw new Error("source_id must start with src_");
+      if (!row.eventId.startsWith("evt_")) throw new Error("event_id must start with evt_");
+      if (!row.url.startsWith("https://")) throw new Error("url must use https");
+      if (!/^[a-f0-9]{64}$/.test(row.contentHash)) {
+        throw new Error("content_hash must be a lowercase SHA-256 hash");
+      }
+      assertIsoTimestamp(row.retrievedAt, `event source ${row.sourceId} retrievedAt`);
+      if (row.publishedAt !== null) {
+        assertIsoTimestamp(row.publishedAt, `event source ${row.sourceId} publishedAt`);
+        if (
+          compareExplicitIso8601Instants(
+            row.publishedAt,
+            row.retrievedAt,
+            `event source ${row.sourceId} publishedAt`,
+            `event source ${row.sourceId} retrievedAt`,
+          ) > 0
+        ) {
+          throw new Error("published_at must be on or before retrieved_at");
+        }
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`D1 bootstrap rejects invalid persisted source provenance for ${row.sourceId}: ${message}`);
+    }
+  }
+}
+
 export function buildD1BootstrapExport(
   db: MarketEventDatabase,
   options: { generatedAt?: string; sourceDatabase?: string } = {},
@@ -186,6 +236,7 @@ export function buildD1BootstrapExport(
   assertSupportedSchemaVersions(db);
   assertCurrentRevisionPointersAreLatest(db);
   assertPersistedEventTimesAreValid(db);
+  assertPersistedSourceProvenanceIsValid(db);
   const rowCounts: Record<string, number> = {};
   const lines: string[] = ["PRAGMA foreign_keys = ON;"];
 
