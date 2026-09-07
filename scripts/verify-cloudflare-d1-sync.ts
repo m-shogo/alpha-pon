@@ -339,6 +339,16 @@ const wrongArrayShapePlan = buildD1SyncPlan(canonical, wrongArrayShapeRemote);
 assert.equal(wrongArrayShapePlan.status, "blocked");
 assert.match(wrongArrayShapePlan.blockers.join("\n"), /edge_types_json must contain a JSON string array/);
 
+const missingRelatedEventRemote = structuredClone(canonical);
+missingRelatedEventRemote.market_events[0].related_event_ids_json = '["evt_missing"]';
+const missingRelatedEventPlan = buildD1SyncPlan(canonical, missingRelatedEventRemote);
+assert.equal(missingRelatedEventPlan.status, "blocked");
+assert.match(
+  missingRelatedEventPlan.blockers.join("\n"),
+  /event evt_alpha references missing related event evt_missing/,
+  "persisted related Market Event references must resolve inside the same validated snapshot",
+);
+
 const wrongObjectShapeCanonical = structuredClone(canonical);
 wrongObjectShapeCanonical.event_revisions[0].facts_json = "[]";
 const wrongObjectShapePlan = buildD1SyncPlan(wrongObjectShapeCanonical, emptyD1SyncSnapshot());

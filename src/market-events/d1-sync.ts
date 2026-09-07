@@ -318,6 +318,21 @@ export function validateD1SyncSnapshot(snapshot: D1SyncSnapshot, label: string):
     validateEnumField(event, eventId, "current_decision_state", DECISION_STATES, label, errors);
     validateEventTime(event, label, errors);
     validateEventChronology(event, label, errors);
+    const relatedEventIdsValue = event.related_event_ids_json;
+    if (typeof relatedEventIdsValue === "string") {
+      try {
+        const relatedEventIds: unknown = JSON.parse(relatedEventIdsValue);
+        if (Array.isArray(relatedEventIds) && relatedEventIds.every(relatedEventId => typeof relatedEventId === "string")) {
+          for (const relatedEventId of relatedEventIds) {
+            if (!indexes.market_events.has(relatedEventId)) {
+              errors.push(`${label}: ${eventId} references missing related event ${relatedEventId}`);
+            }
+          }
+        }
+      } catch {
+        // JSON syntax/shape diagnostics are reported by validateJsonFields above.
+      }
+    }
   }
 
   for (const source of snapshot.event_sources) {
