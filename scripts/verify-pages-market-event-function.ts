@@ -71,7 +71,7 @@ const sourceRows = [{
   title: "決算発表予定",
   published_at: "2026-08-01T06:00:00Z",
   retrieved_at: "2026-08-03T06:00:00Z",
-  content_hash: "aaaaaaaa",
+  content_hash: "a".repeat(64),
 }];
 
 const revisionRows = [
@@ -79,14 +79,14 @@ const revisionRows = [
   { event_id: eventRows[1].event_id, revision_number: 1 },
 ];
 
-function fakeDbFor(rows: typeof eventRows) {
+function fakeDbFor(rows: typeof eventRows, sources = sourceRows) {
   return {
     prepare(query: string) {
       return {
         bind() { return this; },
         async all<T>() {
           if (query.includes("FROM market_events")) return { success: true, results: rows as T[] };
-          if (query.includes("FROM event_sources")) return { success: true, results: sourceRows as T[] };
+          if (query.includes("FROM event_sources")) return { success: true, results: sources as T[] };
           if (query.includes("FROM event_revisions")) return { success: true, results: revisionRows as T[] };
           throw new Error(`Unexpected query: ${query}`);
         },
@@ -207,6 +207,34 @@ const invalidJsonShape = await onRequest(context(
 ));
 assert.equal(invalidJsonShape.status, 500);
 assert.deepEqual(await invalidJsonShape.json(), { error: "internal error" });
+
+const invalidSourceHash = await onRequest(context(
+  "https://alpha.example.com/api/market-events",
+  {},
+  { ...env, DB: fakeDbFor(eventRows, [{ ...sourceRows[0], content_hash: "abc123" }]) },
+));
+assert.equal(invalidSourceHash.status, 500);
+assert.deepEqual(await invalidSourceHash.json(), { error: "internal error" });
+
+const invalidSourceRetrievedAt = await onRequest(context(
+  "https://alpha.example.com/api/market-events",
+  {},
+  { ...env, DB: fakeDbFor(eventRows, [{ ...sourceRows[0], retrieved_at: "2026-08-03T06:00:00" }]) },
+));
+assert.equal(invalidSourceRetrievedAt.status, 500);
+assert.deepEqual(await invalidSourceRetrievedAt.json(), { error: "internal error" });
+
+const invalidSourceChronology = await onRequest(context(
+  "https://alpha.example.com/api/market-events",
+  {},
+  { ...env, DB: fakeDbFor(eventRows, [{
+    ...sourceRows[0],
+    published_at: "2026-08-04T06:00:00Z",
+    retrieved_at: "2026-08-03T06:00:00Z",
+  }]) },
+));
+assert.equal(invalidSourceChronology.status, 500);
+assert.deepEqual(await invalidSourceChronology.json(), { error: "internal error" });
 
 const oneEvent = await onRequest(context(`https://alpha.example.com/api/market-events/${eventRows[0].event_id}`));
 assert.equal(oneEvent.status, 200);
