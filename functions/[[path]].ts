@@ -1,5 +1,13 @@
 import { compareExplicitIso8601Instants, parseExplicitIso8601Instant } from '../src/research/iso-instant.js'
-import { assertIsoTimestamp, assertValidEventTime } from '../src/market-events/contracts.js'
+import {
+  DECISION_STATES,
+  MARKET_EVENT_PRIORITIES,
+  MARKET_EVENT_SCHEMA_VERSION,
+  MARKET_EVENT_STATUSES,
+  MARKET_EVENT_TYPES,
+  assertIsoTimestamp,
+  assertValidEventTime,
+} from '../src/market-events/contracts.js'
 
 type D1Result<T> = { results?: T[]; success?: boolean; error?: string }
 
@@ -185,6 +193,21 @@ function eventSortAt(row: EventRow): string | null {
 }
 
 function assertValidPersistedEventRow(row: EventRow): void {
+  if (row.schema_version !== MARKET_EVENT_SCHEMA_VERSION) {
+    throw new Error(`market event ${row.event_id} schema_version must be ${MARKET_EVENT_SCHEMA_VERSION}, got ${row.schema_version}`)
+  }
+  if (!MARKET_EVENT_TYPES.includes(row.event_type as (typeof MARKET_EVENT_TYPES)[number])) {
+    throw new Error(`market event ${row.event_id} has invalid event_type: ${row.event_type}`)
+  }
+  if (!MARKET_EVENT_STATUSES.includes(row.status as (typeof MARKET_EVENT_STATUSES)[number])) {
+    throw new Error(`market event ${row.event_id} has invalid status: ${row.status}`)
+  }
+  if (!MARKET_EVENT_PRIORITIES.includes(row.priority)) {
+    throw new Error(`market event ${row.event_id} has invalid priority: ${row.priority}`)
+  }
+  if (!DECISION_STATES.includes(row.current_decision_state)) {
+    throw new Error(`market event ${row.event_id} has invalid current_decision_state: ${row.current_decision_state}`)
+  }
   if (row.all_day !== 0 && row.all_day !== 1) {
     throw new Error(`market event ${row.event_id} all_day must be stored as 0 or 1, got ${row.all_day}`)
   }
