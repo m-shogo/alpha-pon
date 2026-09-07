@@ -187,6 +187,22 @@ for (const [label, revisions] of [
   assert.deepEqual(await response.json(), { error: "internal error" }, label);
 }
 
+for (const [label, corruptRow] of [
+  ["schema version", { ...eventRows[0], schema_version: 2 }],
+  ["event type", { ...eventRows[0], event_type: "NOT_A_MARKET_EVENT" }],
+  ["status", { ...eventRows[0], status: "NOT_A_STATUS" }],
+  ["priority", { ...eventRows[0], priority: "S9" }],
+  ["decision state", { ...eventRows[0], current_decision_state: "BUY_NOW" }],
+] as const) {
+  const response = await onRequest(context(
+    "https://alpha.example.com/api/market-events",
+    {},
+    { ...env, DB: fakeDbFor([corruptRow as typeof eventRows[number]], sourceRows, [revisionRows[0]]) },
+  ));
+  assert.equal(response.status, 500, label);
+  assert.deepEqual(await response.json(), { error: "internal error" }, label);
+}
+
 const invalidAllDay = await onRequest(context(
   "https://alpha.example.com/api/market-events",
   {},
