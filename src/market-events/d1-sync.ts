@@ -1,5 +1,17 @@
 import { compareExplicitIso8601Instants } from "../research/iso-instant.js";
-import { MARKET_EVENT_SCHEMA_VERSION, SOURCE_TYPES, STORAGE_CLASSES, assertIsoTimestamp } from "./contracts.js";
+import {
+  CONFIDENCE_STATES,
+  DECISION_STATES,
+  EVENT_CHANGE_TYPES,
+  EVENT_TIME_PRECISIONS,
+  MARKET_EVENT_PRIORITIES,
+  MARKET_EVENT_SCHEMA_VERSION,
+  MARKET_EVENT_STATUSES,
+  MARKET_EVENT_TYPES,
+  SOURCE_TYPES,
+  STORAGE_CLASSES,
+  assertIsoTimestamp,
+} from "./contracts.js";
 import { validateMarketEventRevisionChronology } from "./revision-chronology.js";
 
 export const D1_SYNC_TABLES = [
@@ -153,6 +165,20 @@ function validateJsonFields(table: D1SyncTable, rows: D1SyncRow[], errors: strin
   }
 }
 
+function validateEnumField(
+  row: D1SyncRow,
+  key: string,
+  field: string,
+  allowed: readonly string[],
+  label: string,
+  errors: string[],
+): void {
+  const value = row[field];
+  if (typeof value !== "string" || !allowed.includes(value)) {
+    errors.push(`${label}: ${key} has invalid ${field} ${String(value)}`);
+  }
+}
+
 function validateSourceChronology(source: D1SyncRow, label: string, errors: string[]): void {
   const sourceId = String(source.source_id ?? "<missing>");
   const retrievedAt = source.retrieved_at;
@@ -217,6 +243,15 @@ export function validateD1SyncSnapshot(snapshot: D1SyncSnapshot, label: string):
     }
   }
 
+  for (const event of snapshot.market_events) {
+    const eventId = `event ${String(event.event_id ?? "<missing>")}`;
+    validateEnumField(event, eventId, "event_type", MARKET_EVENT_TYPES, label, errors);
+    validateEnumField(event, eventId, "status", MARKET_EVENT_STATUSES, label, errors);
+    validateEnumField(event, eventId, "priority", MARKET_EVENT_PRIORITIES, label, errors);
+    validateEnumField(event, eventId, "time_precision", EVENT_TIME_PRECISIONS, label, errors);
+    validateEnumField(event, eventId, "current_decision_state", DECISION_STATES, label, errors);
+  }
+
   for (const source of snapshot.event_sources) {
     const sourceId = String(source.source_id ?? "<missing>");
     const sourceType = source.source_type;
@@ -245,6 +280,7 @@ export function validateD1SyncSnapshot(snapshot: D1SyncSnapshot, label: string):
   for (const revision of snapshot.event_revisions) {
     const revisionId = String(revision.revision_id ?? "<missing>");
     const eventId = String(revision.event_id ?? "");
+    validateEnumField(revision, `revision ${revisionId}`, "change_type", EVENT_CHANGE_TYPES, label, errors);
     validateRevisionChronology(revision, label, errors);
     if (!indexes.market_events.has(eventId)) {
       errors.push(`${label}: revision ${revisionId} references missing event ${eventId}`);
@@ -328,6 +364,8 @@ export function validateD1SyncSnapshot(snapshot: D1SyncSnapshot, label: string):
     const decisionId = String(decision.decision_snapshot_id ?? "<missing>");
     const eventId = String(decision.event_id ?? "");
     const revisionId = String(decision.revision_id ?? "");
+    validateEnumField(decision, `decision ${decisionId}`, "decision_state", DECISION_STATES, label, errors);
+    validateEnumField(decision, `decision ${decisionId}`, "confidence_state", CONFIDENCE_STATES, label, errors);
     const revision = indexes.event_revisions.get(revisionId);
     if (!indexes.market_events.has(eventId)) {
       errors.push(`${label}: decision ${decisionId} references missing event ${eventId}`);
