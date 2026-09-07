@@ -123,6 +123,16 @@ assert.match(
   "duplicate remote rows must remain inspectable as a blocked read-only plan instead of throwing",
 );
 
+const unsupportedSchemaVersionRemote = structuredClone(canonical);
+unsupportedSchemaVersionRemote.market_events[0].schema_version = 2;
+const unsupportedSchemaVersionPlan = buildD1SyncPlan(canonical, unsupportedSchemaVersionRemote);
+assert.equal(unsupportedSchemaVersionPlan.status, "blocked");
+assert.match(
+  unsupportedSchemaVersionPlan.blockers.join("\n"),
+  /remote: market_events evt_alpha schema_version must be 1, got 2/,
+  "unsupported persisted schema versions must block D1 sync preview",
+);
+
 const olderRemote = structuredClone(canonical);
 olderRemote.market_events[0].title = "Old title";
 olderRemote.market_events[0].updated_at = "2026-08-03T00:00:00.000Z";
