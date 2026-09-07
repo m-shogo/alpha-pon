@@ -192,6 +192,22 @@ const invalidMetadataInstant = await onRequest(context(
 assert.equal(invalidMetadataInstant.status, 500);
 assert.deepEqual(await invalidMetadataInstant.json(), { error: "internal error" });
 
+const invalidJson = await onRequest(context(
+  "https://alpha.example.com/api/market-events",
+  {},
+  { ...env, DB: fakeDbFor([{ ...eventRows[0], checks_before_json: "[" }]) },
+));
+assert.equal(invalidJson.status, 500);
+assert.deepEqual(await invalidJson.json(), { error: "internal error" });
+
+const invalidJsonShape = await onRequest(context(
+  "https://alpha.example.com/api/market-events",
+  {},
+  { ...env, DB: fakeDbFor([{ ...eventRows[0], related_event_ids_json: '["evt_ok", 7]' }]) },
+));
+assert.equal(invalidJsonShape.status, 500);
+assert.deepEqual(await invalidJsonShape.json(), { error: "internal error" });
+
 const oneEvent = await onRequest(context(`https://alpha.example.com/api/market-events/${eventRows[0].event_id}`));
 assert.equal(oneEvent.status, 200);
 assert.equal((await oneEvent.json() as { eventId: string }).eventId, eventRows[0].event_id);

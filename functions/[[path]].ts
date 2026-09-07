@@ -162,13 +162,17 @@ function databaseUnavailable(): Response {
   return json({ error: 'database unavailable' }, 503)
 }
 
-function safeParseArray(value: string): string[] {
+function parsePersistedStringArray(value: string, label: string): string[] {
+  let parsed: unknown
   try {
-    const parsed = JSON.parse(value) as unknown
-    return Array.isArray(parsed) ? parsed.filter(item => typeof item === 'string') : []
+    parsed = JSON.parse(value) as unknown
   } catch {
-    return []
+    throw new Error(`${label} must be valid JSON`)
   }
+  if (!Array.isArray(parsed) || !parsed.every(item => typeof item === 'string')) {
+    throw new Error(`${label} must be a JSON array of strings`)
+  }
+  return parsed
 }
 
 function eventSortAt(row: EventRow): string | null {
@@ -258,12 +262,12 @@ async function projection(db: D1Database, env: Env): Promise<MarketEventProjecti
       windowStart: row.window_start,
       windowEnd: row.window_end,
     },
-    edgeTypes: safeParseArray(row.edge_types_json),
+    edgeTypes: parsePersistedStringArray(row.edge_types_json, `market event ${row.event_id} edge_types_json`),
     currentDecisionState: row.current_decision_state,
     whyItMatters: row.why_it_matters,
-    checksBefore: safeParseArray(row.checks_before_json),
-    checksAfter: safeParseArray(row.checks_after_json),
-    relatedEventIds: safeParseArray(row.related_event_ids_json),
+    checksBefore: parsePersistedStringArray(row.checks_before_json, `market event ${row.event_id} checks_before_json`),
+    checksAfter: parsePersistedStringArray(row.checks_after_json, `market event ${row.event_id} checks_after_json`),
+    relatedEventIds: parsePersistedStringArray(row.related_event_ids_json, `market event ${row.event_id} related_event_ids_json`),
     lastVerifiedAt: row.last_verified_at,
     staleAfter: row.stale_after,
     createdAt: row.created_at,
