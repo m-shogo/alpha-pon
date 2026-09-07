@@ -463,7 +463,18 @@ export function buildD1SyncPlan(canonical: D1SyncSnapshot, remote: D1SyncSnapsho
   for (const eventId of tables.market_events.updated) {
     const canonicalEvent = canonical.market_events.find(row => row.event_id === eventId);
     const remoteEvent = remote.market_events.find(row => row.event_id === eventId);
-    if (canonicalEvent && remoteEvent && String(canonicalEvent.updated_at) < String(remoteEvent.updated_at)) {
+    if (
+      canonicalEvent
+      && remoteEvent
+      && typeof canonicalEvent.updated_at === "string"
+      && typeof remoteEvent.updated_at === "string"
+      && compareExplicitIso8601Instants(
+        canonicalEvent.updated_at,
+        remoteEvent.updated_at,
+        "canonical.updated_at",
+        "remote.updated_at",
+      ) < 0
+    ) {
       blockers.push(`canonical event ${eventId} is older than remote updated_at`);
     }
   }

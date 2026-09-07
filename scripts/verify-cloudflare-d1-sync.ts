@@ -195,6 +195,20 @@ const staleCanonicalPlan = buildD1SyncPlan(canonical, newerRemote);
 assert.equal(staleCanonicalPlan.status, "blocked");
 assert.match(staleCanonicalPlan.blockers.join("\n"), /older than remote updated_at/);
 
+const offsetCanonical = structuredClone(canonical);
+offsetCanonical.market_events[0].title = "Canonical offset title";
+offsetCanonical.market_events[0].updated_at = "2026-08-04T09:00:00+09:00";
+const offsetRemote = structuredClone(offsetCanonical);
+offsetRemote.market_events[0].title = "Remote later instant";
+offsetRemote.market_events[0].updated_at = "2026-08-04T00:30:00Z";
+const offsetChronologyPlan = buildD1SyncPlan(offsetCanonical, offsetRemote);
+assert.equal(offsetChronologyPlan.status, "blocked");
+assert.match(
+  offsetChronologyPlan.blockers.join("\n"),
+  /older than remote updated_at/,
+  "updated_at ordering must compare instants instead of ISO strings with different offsets",
+);
+
 const remoteWithExtra = structuredClone(canonical);
 const extra = snapshot("extra");
 remoteWithExtra.market_events.push(...extra.market_events);
