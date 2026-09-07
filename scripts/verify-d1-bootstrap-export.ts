@@ -163,6 +163,34 @@ try {
     eventId,
   );
 
+  const sourceId = second.sources[0].sourceId;
+  source.exec("DROP TRIGGER trg_event_sources_no_update");
+  source.prepare("UPDATE event_sources SET content_hash = ? WHERE source_id = ?").run("B".repeat(64), sourceId);
+  assert.throws(
+    () => buildD1BootstrapExport(source, options),
+    /D1 bootstrap rejects invalid persisted source provenance.*content_hash must be a lowercase SHA-256 hash/,
+    "bootstrap export must reject non-canonical persisted source hashes",
+  );
+  source.prepare("UPDATE event_sources SET content_hash = ? WHERE source_id = ?").run(
+    second.sources[0].contentHash,
+    sourceId,
+  );
+  source.prepare("UPDATE event_sources SET published_at = ?, retrieved_at = ? WHERE source_id = ?").run(
+    "2026-08-03T07:00:01Z",
+    "2026-08-03T07:00:00Z",
+    sourceId,
+  );
+  assert.throws(
+    () => buildD1BootstrapExport(source, options),
+    /D1 bootstrap rejects invalid persisted source provenance.*published_at must be on or before retrieved_at/,
+    "bootstrap export must reject impossible persisted source chronology",
+  );
+  source.prepare("UPDATE event_sources SET published_at = ?, retrieved_at = ? WHERE source_id = ?").run(
+    second.sources[0].publishedAt,
+    second.sources[0].retrievedAt,
+    sourceId,
+  );
+
   source.exec("PRAGMA ignore_check_constraints = ON");
   source.prepare("UPDATE market_events SET timezone = ? WHERE event_id = ?").run("Mars/Olympus", eventId);
   source.exec("PRAGMA ignore_check_constraints = OFF");
