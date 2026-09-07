@@ -79,20 +79,24 @@ const revisionRows = [
   { event_id: eventRows[1].event_id, revision_number: 1 },
 ];
 
-const fakeDb = {
-  prepare(query: string) {
-    return {
-      bind() { return this; },
-      async all<T>() {
-        if (query.includes("FROM market_events")) return { success: true, results: eventRows as T[] };
-        if (query.includes("FROM event_sources")) return { success: true, results: sourceRows as T[] };
-        if (query.includes("FROM event_revisions")) return { success: true, results: revisionRows as T[] };
-        throw new Error(`Unexpected query: ${query}`);
-      },
-      async first<T>() { return null as T | null; },
-    };
-  },
-};
+function fakeDbFor(rows: typeof eventRows) {
+  return {
+    prepare(query: string) {
+      return {
+        bind() { return this; },
+        async all<T>() {
+          if (query.includes("FROM market_events")) return { success: true, results: rows as T[] };
+          if (query.includes("FROM event_sources")) return { success: true, results: sourceRows as T[] };
+          if (query.includes("FROM event_revisions")) return { success: true, results: revisionRows as T[] };
+          throw new Error(`Unexpected query: ${query}`);
+        },
+        async first<T>() { return null as T | null; },
+      };
+    },
+  };
+}
+
+const fakeDb = fakeDbFor(eventRows);
 
 const feedToken = "0123456789abcdef0123456789abcdef";
 const env = {
@@ -105,10 +109,16 @@ const envWithoutDb = {
   CALENDAR_FEED_TOKEN: feedToken,
 };
 
+type TestEnv = {
+  DB?: ReturnType<typeof fakeDbFor>;
+  PUBLIC_ORIGIN: string;
+  CALENDAR_FEED_TOKEN: string;
+};
+
 function context(
   url: string,
   options: RequestInit = {},
-  contextEnv: typeof env | typeof envWithoutDb = env,
+  contextEnv: TestEnv = env,
 ) {
   return {
     request: new Request(url, options),
@@ -157,6 +167,30 @@ assert.equal(projection.events.length, 2);
 assert.equal(projection.summary.total, 2);
 assert.equal(projection.summary.unknownDate, 1);
 assert.equal(projection.summary.calendarIncluded, 1);
+
+const invalidAllDay = await onRequest(context(
+  "https://alpha.example.com/api/market-events",
+  {},
+  { ...env, DB: fakeDbFor([{ ...eventRows[0], all_day: 2 }]) },
+));
+assert.equal(invalidAllDay.status, 500);
+assert.deepEqual(await invalidAllDay.json(), { error: "internal error" });
+
+const invalidTimezone = await onRequest(context(
+  "https://alpha.example.com/api/market-events",
+  {},
+  { ...env, DB: fakeDbFor([{ ...eventRows[0], timezone: "Mars/Olympus" }]) },
+));
+assert.equal(invalidTimezone.status, 500);
+assert.deepEqual(await invalidTimezone.json(), { error: "internal error" });
+
+const invalidMetadataInstant = await onRequest(context(
+  "https://alpha.example.com/api/market-events",
+  {},
+  { ...env, DB: fakeDbFor([{ ...eventRows[0], updated_at: "2026-08-03T06:00:00" }]) },
+));
+assert.equal(invalidMetadataInstant.status, 500);
+assert.deepEqual(await invalidMetadataInstant.json(), { error: "internal error" });
 
 const oneEvent = await onRequest(context(`https://alpha.example.com/api/market-events/${eventRows[0].event_id}`));
 assert.equal(oneEvent.status, 200);
