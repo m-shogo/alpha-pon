@@ -179,6 +179,31 @@ function validateEnumField(
   }
 }
 
+function validateEventChronology(event: D1SyncRow, label: string, errors: string[]): void {
+  const eventId = String(event.event_id ?? "<missing>");
+  const lastVerifiedAt = event.last_verified_at;
+  const staleAfter = event.stale_after;
+  const createdAt = event.created_at;
+  const updatedAt = event.updated_at;
+  try {
+    if (typeof lastVerifiedAt !== "string") throw new Error("last_verified_at must be a string");
+    assertIsoTimestamp(lastVerifiedAt, "last_verified_at");
+    if (staleAfter !== null) {
+      if (typeof staleAfter !== "string") throw new Error("stale_after must be a string or null");
+      assertIsoTimestamp(staleAfter, "stale_after");
+    }
+    if (typeof createdAt !== "string") throw new Error("created_at must be a string");
+    if (typeof updatedAt !== "string") throw new Error("updated_at must be a string");
+    assertIsoTimestamp(createdAt, "created_at");
+    assertIsoTimestamp(updatedAt, "updated_at");
+    if (compareExplicitIso8601Instants(updatedAt, createdAt, "updated_at", "created_at") < 0) {
+      throw new Error("updated_at must be on or after created_at");
+    }
+  } catch (error) {
+    errors.push(`${label}: event ${eventId} chronology invalid: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
 function validateSourceChronology(source: D1SyncRow, label: string, errors: string[]): void {
   const sourceId = String(source.source_id ?? "<missing>");
   const retrievedAt = source.retrieved_at;
@@ -250,6 +275,7 @@ export function validateD1SyncSnapshot(snapshot: D1SyncSnapshot, label: string):
     validateEnumField(event, eventId, "priority", MARKET_EVENT_PRIORITIES, label, errors);
     validateEnumField(event, eventId, "time_precision", EVENT_TIME_PRECISIONS, label, errors);
     validateEnumField(event, eventId, "current_decision_state", DECISION_STATES, label, errors);
+    validateEventChronology(event, label, errors);
   }
 
   for (const source of snapshot.event_sources) {
