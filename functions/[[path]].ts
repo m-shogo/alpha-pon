@@ -312,10 +312,14 @@ async function projection(db: D1Database, env: Env): Promise<MarketEventProjecti
 
   const eventRows = eventResult.results ?? []
   for (const row of eventRows) assertValidPersistedEventRow(row)
+  const eventIds = new Set(eventRows.map(row => row.event_id))
 
   const sourceMap = new Map<string, SourceRow[]>()
   for (const source of sourceResult.results ?? []) {
     assertValidPersistedSourceRow(source)
+    if (!eventIds.has(source.event_id)) {
+      throw new Error(`Persisted source ${source.source_id} references unknown market event ${source.event_id}`)
+    }
     const values = sourceMap.get(source.event_id) ?? []
     values.push(source)
     sourceMap.set(source.event_id, values)
