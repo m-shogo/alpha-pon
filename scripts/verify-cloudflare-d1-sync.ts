@@ -179,6 +179,12 @@ const invalidSourceHashPlan = buildD1SyncPlan(canonical, invalidSourceHashRemote
 assert.equal(invalidSourceHashPlan.status, "blocked");
 assert.match(invalidSourceHashPlan.blockers.join("\n"), /source src_alpha has invalid content_hash/);
 
+const insecureSourceUrlRemote = structuredClone(canonical);
+insecureSourceUrlRemote.event_sources[0].url = "http://example.com/src_alpha";
+const insecureSourceUrlPlan = buildD1SyncPlan(canonical, insecureSourceUrlRemote);
+assert.equal(insecureSourceUrlPlan.status, "blocked");
+assert.match(insecureSourceUrlPlan.blockers.join("\n"), /source src_alpha URL must use https/);
+
 const missingRevisionSourceCanonical = structuredClone(canonical);
 missingRevisionSourceCanonical.event_revisions[0].source_ids_json = '["src_missing"]';
 const missingRevisionSourcePlan = buildD1SyncPlan(missingRevisionSourceCanonical, emptyD1SyncSnapshot());
