@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { buildEventId } from "../src/market-events/contracts.js";
 import { buildMarketEventBundle, type MarketEventRegistrationInput } from "../src/market-events/registration.js";
+import { validateMarketEventRevisionChronology } from "../src/market-events/revision-chronology.js";
 import {
   auditMarketEventDatabase,
   getNextRevisionContext,
@@ -57,6 +58,16 @@ const otherInput: MarketEventRegistrationInput = {
     contentHash: "d".repeat(64),
   }],
 };
+
+assert.throws(
+  () => validateMarketEventRevisionChronology({
+    observedAt: "2026-09-04T07:00:00",
+    publishedAt: null,
+    firstExecutableAt: null,
+  }),
+  /observedAt must be an ISO-8601 timestamp with explicit timezone/,
+  "revision chronology must validate observedAt even when optional bounds are absent",
+);
 
 const db = openMarketEventDatabase({ path: ":memory:" });
 try {
