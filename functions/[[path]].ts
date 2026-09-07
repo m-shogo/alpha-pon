@@ -5,6 +5,7 @@ import {
   MARKET_EVENT_SCHEMA_VERSION,
   MARKET_EVENT_STATUSES,
   MARKET_EVENT_TYPES,
+  SOURCE_TYPES,
   assertIsoTimestamp,
   assertValidEventTime,
 } from '../src/market-events/contracts.js'
@@ -229,6 +230,9 @@ function assertValidPersistedEventRow(row: EventRow): void {
 function assertValidPersistedSourceRow(source: SourceRow): void {
   if (!source.source_id.startsWith('src_')) throw new Error(`Invalid persisted sourceId: ${source.source_id}`)
   if (!source.event_id.startsWith('evt_')) throw new Error(`Invalid persisted source eventId: ${source.event_id}`)
+  if (!SOURCE_TYPES.includes(source.source_type as (typeof SOURCE_TYPES)[number])) {
+    throw new Error(`Persisted source ${source.source_id} has invalid source_type: ${source.source_type}`)
+  }
   if (!source.url.startsWith('https://')) throw new Error(`Persisted source ${source.source_id} URL must use https`)
   if (!/^[a-f0-9]{64}$/.test(source.content_hash)) {
     throw new Error(`Persisted source ${source.source_id} content_hash must be lowercase SHA-256`)
