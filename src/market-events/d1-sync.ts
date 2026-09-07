@@ -1,5 +1,5 @@
 import { compareExplicitIso8601Instants } from "../research/iso-instant.js";
-import { SOURCE_TYPES, assertIsoTimestamp } from "./contracts.js";
+import { SOURCE_TYPES, STORAGE_CLASSES, assertIsoTimestamp } from "./contracts.js";
 import { validateMarketEventRevisionChronology } from "./revision-chronology.js";
 
 export const D1_SYNC_TABLES = [
@@ -220,6 +220,10 @@ export function validateD1SyncSnapshot(snapshot: D1SyncSnapshot, label: string):
     const url = source.url;
     if (typeof url !== "string" || !url.startsWith("https://")) {
       errors.push(`${label}: source ${sourceId} URL must use https`);
+    }
+    const storageClass = source.storage_class;
+    if (typeof storageClass !== "string" || !(STORAGE_CLASSES as readonly string[]).includes(storageClass)) {
+      errors.push(`${label}: source ${sourceId} has invalid storage_class ${String(storageClass)}`);
     }
     validateSourceChronology(source, label, errors);
     if (!indexes.market_events.has(String(source.event_id))) {
