@@ -1,5 +1,5 @@
 import { compareExplicitIso8601Instants } from "../research/iso-instant.js";
-import { SOURCE_TYPES, STORAGE_CLASSES, assertIsoTimestamp } from "./contracts.js";
+import { MARKET_EVENT_SCHEMA_VERSION, SOURCE_TYPES, STORAGE_CLASSES, assertIsoTimestamp } from "./contracts.js";
 import { validateMarketEventRevisionChronology } from "./revision-chronology.js";
 
 export const D1_SYNC_TABLES = [
@@ -205,7 +205,17 @@ export function validateD1SyncSnapshot(snapshot: D1SyncSnapshot, label: string):
     D1_SYNC_TABLES.map(table => [table, indexRows(table, snapshot[table], errors)]),
   ) as Record<D1SyncTable, Map<string, D1SyncRow>>;
 
-  for (const table of D1_SYNC_TABLES) validateJsonFields(table, snapshot[table], errors);
+  for (const table of D1_SYNC_TABLES) {
+    validateJsonFields(table, snapshot[table], errors);
+    for (const row of snapshot[table]) {
+      const key = String(row[PRIMARY_KEYS[table]] ?? "<missing>");
+      if (row.schema_version !== MARKET_EVENT_SCHEMA_VERSION) {
+        errors.push(
+          `${label}: ${table} ${key} schema_version must be ${MARKET_EVENT_SCHEMA_VERSION}, got ${String(row.schema_version)}`,
+        );
+      }
+    }
+  }
 
   for (const source of snapshot.event_sources) {
     const sourceId = String(source.source_id ?? "<missing>");
