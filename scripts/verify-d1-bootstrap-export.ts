@@ -147,6 +147,22 @@ try {
     second.revision.revisionId,
     eventId,
   );
+  source.exec("PRAGMA foreign_keys = OFF");
+  source.prepare("UPDATE market_events SET current_revision_id = ? WHERE event_id = ?").run(
+    "rev_missing_revision_pointer",
+    eventId,
+  );
+  source.exec("PRAGMA foreign_keys = ON");
+  assert.throws(
+    () => buildD1BootstrapExport(source, options),
+    /D1 bootstrap requires current_revision_id to reference the latest revision/,
+    "bootstrap export must fail closed when current_revision_id references a missing revision",
+  );
+  source.prepare("UPDATE market_events SET current_revision_id = ? WHERE event_id = ?").run(
+    second.revision.revisionId,
+    eventId,
+  );
+
   source.exec("PRAGMA ignore_check_constraints = ON");
   source.prepare("UPDATE market_events SET timezone = ? WHERE event_id = ?").run("Mars/Olympus", eventId);
   source.exec("PRAGMA ignore_check_constraints = OFF");
