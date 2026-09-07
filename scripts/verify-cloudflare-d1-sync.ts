@@ -123,6 +123,17 @@ assert.match(
   "duplicate remote rows must remain inspectable as a blocked read-only plan instead of throwing",
 );
 
+const invalidSourceIdNamespaceRemote = structuredClone(canonical);
+invalidSourceIdNamespaceRemote.event_sources[0].source_id = "source_alpha";
+invalidSourceIdNamespaceRemote.event_revisions[0].source_ids_json = '["source_alpha"]';
+const invalidSourceIdNamespacePlan = buildD1SyncPlan(canonical, invalidSourceIdNamespaceRemote);
+assert.equal(invalidSourceIdNamespacePlan.status, "blocked");
+assert.match(
+  invalidSourceIdNamespacePlan.blockers.join("\n"),
+  /event_sources source_id must start with src_/,
+  "persisted source identities outside the canonical namespace must fail closed",
+);
+
 const unsupportedSchemaVersionRemote = structuredClone(canonical);
 unsupportedSchemaVersionRemote.market_events[0].schema_version = 2;
 const unsupportedSchemaVersionPlan = buildD1SyncPlan(canonical, unsupportedSchemaVersionRemote);
