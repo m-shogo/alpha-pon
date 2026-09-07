@@ -11,6 +11,7 @@ import {
   SOURCE_TYPES,
   STORAGE_CLASSES,
   assertIsoTimestamp,
+  assertValidEventTime,
 } from "./contracts.js";
 import { validateMarketEventRevisionChronology } from "./revision-chronology.js";
 
@@ -179,6 +180,34 @@ function validateEnumField(
   }
 }
 
+function validateEventTime(event: D1SyncRow, label: string, errors: string[]): void {
+  const eventId = String(event.event_id ?? "<missing>");
+  try {
+    const nullableString = (value: string | number | null, field: string): string | null => {
+      if (value === null) return null;
+      if (typeof value !== "string") throw new Error(`${field} must be a string or null`);
+      return value;
+    };
+    const timezone = event.timezone;
+    const precision = event.time_precision;
+    const allDay = event.all_day;
+    if (typeof timezone !== "string") throw new Error("timezone must be a string");
+    if (typeof precision !== "string") throw new Error("time_precision must be a string");
+    if (allDay !== 0 && allDay !== 1) throw new Error("all_day must be 0 or 1");
+    assertValidEventTime({
+      startAt: nullableString(event.start_at, "start_at"),
+      endAt: nullableString(event.end_at, "end_at"),
+      allDay: allDay === 1,
+      timezone,
+      precision: precision as (typeof EVENT_TIME_PRECISIONS)[number],
+      windowStart: nullableString(event.window_start, "window_start"),
+      windowEnd: nullableString(event.window_end, "window_end"),
+    });
+  } catch (error) {
+    errors.push(`${label}: event ${eventId} time invalid: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
 function validateEventChronology(event: D1SyncRow, label: string, errors: string[]): void {
   const eventId = String(event.event_id ?? "<missing>");
   const lastVerifiedAt = event.last_verified_at;
@@ -275,6 +304,7 @@ export function validateD1SyncSnapshot(snapshot: D1SyncSnapshot, label: string):
     validateEnumField(event, eventId, "priority", MARKET_EVENT_PRIORITIES, label, errors);
     validateEnumField(event, eventId, "time_precision", EVENT_TIME_PRECISIONS, label, errors);
     validateEnumField(event, eventId, "current_decision_state", DECISION_STATES, label, errors);
+    validateEventTime(event, label, errors);
     validateEventChronology(event, label, errors);
   }
 

@@ -19,7 +19,7 @@ function eventRow(id = "evt_alpha", updatedAt = "2026-08-04T00:00:00.000Z"): D1S
     title: "Review checkpoint",
     status: "SCHEDULED",
     priority: "S1",
-    start_at: "2026-12-01T00:00:00.000Z",
+    start_at: "2026-12-01",
     end_at: null,
     all_day: 1,
     timezone: "Asia/Tokyo",
@@ -156,6 +156,34 @@ invalidTimePrecisionRemote.market_events[0].time_precision = "APPROXIMATE";
 const invalidTimePrecisionPlan = buildD1SyncPlan(canonical, invalidTimePrecisionRemote);
 assert.equal(invalidTimePrecisionPlan.status, "blocked");
 assert.match(invalidTimePrecisionPlan.blockers.join("\n"), /invalid time_precision APPROXIMATE/);
+
+const unknownWithInventedDateRemote = structuredClone(canonical);
+unknownWithInventedDateRemote.market_events[0].time_precision = "UNKNOWN";
+unknownWithInventedDateRemote.market_events[0].all_day = 0;
+const unknownWithInventedDatePlan = buildD1SyncPlan(canonical, unknownWithInventedDateRemote);
+assert.equal(unknownWithInventedDatePlan.status, "blocked");
+assert.match(unknownWithInventedDatePlan.blockers.join("\n"), /UNKNOWN event time must not contain invented dates/);
+
+const windowWithExactStartRemote = structuredClone(canonical);
+windowWithExactStartRemote.market_events[0].time_precision = "WINDOW";
+windowWithExactStartRemote.market_events[0].window_start = "2026-12-01";
+windowWithExactStartRemote.market_events[0].window_end = "2026-12-02";
+const windowWithExactStartPlan = buildD1SyncPlan(canonical, windowWithExactStartRemote);
+assert.equal(windowWithExactStartPlan.status, "blocked");
+assert.match(windowWithExactStartPlan.blockers.join("\n"), /WINDOW event time must not pretend to have an exact start\/end/);
+
+const dateOnlyNotAllDayRemote = structuredClone(canonical);
+dateOnlyNotAllDayRemote.market_events[0].all_day = 0;
+const dateOnlyNotAllDayPlan = buildD1SyncPlan(canonical, dateOnlyNotAllDayRemote);
+assert.equal(dateOnlyNotAllDayPlan.status, "blocked");
+assert.match(dateOnlyNotAllDayPlan.blockers.join("\n"), /DATE_ONLY event time must be all-day/);
+
+const exactAllDayRemote = structuredClone(canonical);
+exactAllDayRemote.market_events[0].time_precision = "EXACT";
+exactAllDayRemote.market_events[0].start_at = "2026-12-01T00:00:00.000Z";
+const exactAllDayPlan = buildD1SyncPlan(canonical, exactAllDayRemote);
+assert.equal(exactAllDayPlan.status, "blocked");
+assert.match(exactAllDayPlan.blockers.join("\n"), /EXACT event time cannot be all-day/);
 
 const invalidCurrentDecisionRemote = structuredClone(canonical);
 invalidCurrentDecisionRemote.market_events[0].current_decision_state = "BUY_NOW";
