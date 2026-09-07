@@ -167,6 +167,12 @@ const wrongArrayItemPlan = buildD1SyncPlan(canonical, wrongArrayItemRemote);
 assert.equal(wrongArrayItemPlan.status, "blocked");
 assert.match(wrongArrayItemPlan.blockers.join("\n"), /reasons_json must contain a JSON string array/);
 
+const invalidSourceTypeRemote = structuredClone(canonical);
+invalidSourceTypeRemote.event_sources[0].source_type = "NOT_A_SOURCE";
+const invalidSourceTypePlan = buildD1SyncPlan(canonical, invalidSourceTypeRemote);
+assert.equal(invalidSourceTypePlan.status, "blocked");
+assert.match(invalidSourceTypePlan.blockers.join("\n"), /source src_alpha has invalid source_type NOT_A_SOURCE/);
+
 const missingRevisionSourceCanonical = structuredClone(canonical);
 missingRevisionSourceCanonical.event_revisions[0].source_ids_json = '["src_missing"]';
 const missingRevisionSourcePlan = buildD1SyncPlan(missingRevisionSourceCanonical, emptyD1SyncSnapshot());
