@@ -1,4 +1,7 @@
-import { compareExplicitIso8601Instants } from "../research/iso-instant.js";
+import {
+  compareExplicitIso8601Instants,
+  parseExplicitIso8601Instant,
+} from "../research/iso-instant.js";
 
 export type MarketEventRevisionChronology = {
   observedAt: string;
@@ -7,6 +10,8 @@ export type MarketEventRevisionChronology = {
 };
 
 export function validateMarketEventRevisionChronology(revision: MarketEventRevisionChronology): void {
+  parseExplicitIso8601Instant(revision.observedAt, "observedAt");
+
   if (
     revision.publishedAt !== null
     && compareExplicitIso8601Instants(
