@@ -192,6 +192,28 @@ assert.throws(
   "bundle validation must reject forged revision IDs even when dependent references are rewritten consistently",
 );
 
+const forgedDecisionSnapshotId = "dec_000000000000000000000000";
+assert.throws(
+  () => validateMarketEventBundle({
+    ...firstBundle,
+    decisionSnapshot: firstBundle.decisionSnapshot
+      ? { ...firstBundle.decisionSnapshot, decisionSnapshotId: forgedDecisionSnapshotId }
+      : null,
+  }),
+  /does not match canonical decision identity/,
+  "bundle validation must reject forged decision snapshot IDs even when references remain internally consistent",
+);
+
+const forgedDeliveryId = "dlv_000000000000000000000000";
+assert.throws(
+  () => validateMarketEventBundle({
+    ...firstBundle,
+    deliveries: firstBundle.deliveries.map(delivery => ({ ...delivery, deliveryId: forgedDeliveryId })),
+  }),
+  /does not match canonical delivery identity/,
+  "bundle validation must reject forged delivery IDs even when references remain internally consistent",
+);
+
 assert.throws(
   () => validateMarketEventBundle({
     ...firstBundle,
