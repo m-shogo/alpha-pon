@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   assertValidEventTime,
+  buildDecisionSnapshotId,
   buildDeliveryId,
   buildEventId,
   buildRevisionId,
@@ -192,6 +193,28 @@ assert.throws(
   "bundle validation must reject forged revision IDs even when dependent references are rewritten consistently",
 );
 
+const forgedDecisionSnapshotId = "dec_000000000000000000000000";
+assert.throws(
+  () => validateMarketEventBundle({
+    ...firstBundle,
+    decisionSnapshot: firstBundle.decisionSnapshot
+      ? { ...firstBundle.decisionSnapshot, decisionSnapshotId: forgedDecisionSnapshotId }
+      : null,
+  }),
+  /does not match canonical decision identity/,
+  "bundle validation must reject forged decision snapshot IDs even when references remain internally consistent",
+);
+
+const forgedDeliveryId = "dlv_000000000000000000000000";
+assert.throws(
+  () => validateMarketEventBundle({
+    ...firstBundle,
+    deliveries: firstBundle.deliveries.map(delivery => ({ ...delivery, deliveryId: forgedDeliveryId })),
+  }),
+  /does not match canonical delivery identity/,
+  "bundle validation must reject forged delivery IDs even when references remain internally consistent",
+);
+
 assert.throws(
   () => validateMarketEventBundle({
     ...firstBundle,
@@ -247,12 +270,20 @@ assert.throws(
   "bundle validation must reject events updated before they were created",
 );
 
+const earlyDecisionCreatedAt = "2026-08-03T04:59:59Z";
 assert.throws(
   () => validateMarketEventBundle({
     ...firstBundle,
     decisionSnapshot: firstBundle.decisionSnapshot ? {
       ...firstBundle.decisionSnapshot,
-      createdAt: "2026-08-03T04:59:59Z",
+      createdAt: earlyDecisionCreatedAt,
+      decisionSnapshotId: buildDecisionSnapshotId({
+        eventId: firstBundle.decisionSnapshot.eventId,
+        revisionId: firstBundle.decisionSnapshot.revisionId,
+        decisionState: firstBundle.decisionSnapshot.decisionState,
+        confidenceState: firstBundle.decisionSnapshot.confidenceState,
+        createdAt: earlyDecisionCreatedAt,
+      }),
     } : null,
   }),
   /decision createdAt must be on or after revision observedAt/,

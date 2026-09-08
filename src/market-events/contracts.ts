@@ -563,6 +563,16 @@ export function validateMarketEventBundle(bundle: MarketEventBundle): void {
     assertKnownValue(DECISION_STATES, decisionSnapshot.decisionState, "decision state");
     assertKnownValue(CONFIDENCE_STATES, decisionSnapshot.confidenceState, "confidence state");
     assertIsoTimestamp(decisionSnapshot.createdAt, "decision createdAt");
+    const expectedDecisionSnapshotId = buildDecisionSnapshotId({
+      eventId: decisionSnapshot.eventId,
+      revisionId: decisionSnapshot.revisionId,
+      decisionState: decisionSnapshot.decisionState,
+      confidenceState: decisionSnapshot.confidenceState,
+      createdAt: decisionSnapshot.createdAt,
+    });
+    if (decisionSnapshot.decisionSnapshotId !== expectedDecisionSnapshotId) {
+      throw new Error(`Decision snapshot ${decisionSnapshot.decisionSnapshotId} does not match canonical decision identity ${expectedDecisionSnapshotId}`);
+    }
     if (
       compareExplicitIso8601Instants(
         decisionSnapshot.createdAt,
@@ -591,6 +601,16 @@ export function validateMarketEventBundle(bundle: MarketEventBundle): void {
       throw new Error("attemptCount must be a non-negative integer");
     }
     assertIsoTimestamp(delivery.scheduledAt, "scheduledAt");
+    const expectedDeliveryId = buildDeliveryId({
+      eventId: delivery.eventId,
+      revisionId: delivery.revisionId,
+      channel: delivery.channel,
+      deliveryKey: delivery.deliveryKey,
+      scheduledAt: delivery.scheduledAt,
+    });
+    if (delivery.deliveryId !== expectedDeliveryId) {
+      throw new Error(`Delivery ${delivery.deliveryId} does not match canonical delivery identity ${expectedDeliveryId}`);
+    }
     assertIsoTimestamp(delivery.createdAt, "delivery createdAt");
     assertIsoTimestamp(delivery.updatedAt, "delivery updatedAt");
     if (
