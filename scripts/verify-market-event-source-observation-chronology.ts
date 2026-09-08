@@ -184,6 +184,20 @@ assert.throws(
   "generic bundle validation must reject source provenance without a canonical SHA-256 content hash",
 );
 
+for (const authority of ["tdnet", " TDNET "]) {
+  assert.throws(
+    () => validateMarketEventBundle({
+      ...valid,
+      sources: valid.sources.map(source => ({
+        ...source,
+        authority,
+      })),
+    }),
+    /Source authority must be canonical uppercase text without surrounding or repeated whitespace/,
+    "generic bundle validation must reject source authority aliases before they reach persistence",
+  );
+}
+
 assert.throws(
   () => validateMarketEventBundle({
     ...valid,
