@@ -187,6 +187,30 @@ assert.throws(
 assert.throws(
   () => validateMarketEventBundle({
     ...valid,
+    sources: valid.sources.map(source => ({
+      ...source,
+      url: `${source.url}#page=1`,
+    })),
+  }),
+  /Source URL must not contain a fragment because source identity ignores URL fragments/,
+  "generic bundle validation must reject source URL fragments before they reach persistence",
+);
+
+assert.throws(
+  () => validateMarketEventBundle({
+    ...valid,
+    sources: valid.sources.map(source => ({
+      ...source,
+      url: "https://%",
+    })),
+  }),
+  /Source URL must be a valid absolute URL/,
+  "generic bundle validation must reject malformed HTTPS-looking source URLs before they reach persistence",
+);
+
+assert.throws(
+  () => validateMarketEventBundle({
+    ...valid,
     deliveries: [{
       schemaVersion: 1,
       deliveryId: "dlv_delivery_chronology_regression",
