@@ -202,7 +202,16 @@ function assertPersistedSourceProvenanceIsValid(db: MarketEventDatabase): void {
     try {
       if (!row.sourceId.startsWith("src_")) throw new Error("source_id must start with src_");
       if (!row.eventId.startsWith("evt_")) throw new Error("event_id must start with evt_");
-      if (!row.url.startsWith("https://")) throw new Error("url must use https");
+      let sourceUrl: URL;
+      try {
+        sourceUrl = new URL(row.url);
+      } catch {
+        throw new Error("url must be a valid absolute URL");
+      }
+      if (sourceUrl.protocol !== "https:") throw new Error("url must use https");
+      if (sourceUrl.hash !== "") {
+        throw new Error("url must not contain a fragment because source identity ignores URL fragments");
+      }
       if (!/^[a-f0-9]{64}$/.test(row.contentHash)) {
         throw new Error("content_hash must be a lowercase SHA-256 hash");
       }
