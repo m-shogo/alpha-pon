@@ -198,6 +198,23 @@ for (const authority of ["tdnet", " TDNET "]) {
   );
 }
 
+const mismatchedSourceId = `src_${"b".repeat(24)}`;
+assert.throws(
+  () => validateMarketEventBundle({
+    ...valid,
+    sources: valid.sources.map(source => ({
+      ...source,
+      sourceId: mismatchedSourceId,
+    })),
+    revision: {
+      ...valid.revision,
+      sourceIds: [mismatchedSourceId],
+    },
+  }),
+  /does not match canonical source identity/,
+  "generic bundle validation must keep source IDs bound to canonical source provenance before persistence",
+);
+
 assert.throws(
   () => validateMarketEventBundle({
     ...valid,
