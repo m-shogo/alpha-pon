@@ -51,9 +51,21 @@ for (const occurrenceKey of [
   "fy2026  q1",
   "ｆｙ２０２６-q1",
 ]) {
-  assert.throws(
-    () => buildMarketEventBundle({ ...input, occurrenceKey }, context),
-    /occurrenceKey must be canonical lowercase NFKC text without surrounding or repeated whitespace/,
-    "registration must reject occurrence-key aliases instead of persisting a value that hashes to the same stable event identity",
+  const aliasBundle = buildMarketEventBundle({ ...input, occurrenceKey }, context);
+  assert.equal(
+    aliasBundle.event.occurrenceKey,
+    "fy2026-q1",
+    "registration must persist the same canonical occurrence key used by stable event identity",
+  );
+  assert.equal(
+    aliasBundle.event.eventId,
+    bundle.event.eventId,
+    "occurrence-key aliases must not create a persisted spelling that diverges from stable event identity",
   );
 }
+
+assert.throws(
+  () => buildMarketEventBundle({ ...input, occurrenceKey: " 　 " }, context),
+  /occurrenceKey is required/,
+  "registration must still reject occurrence keys that canonicalize to empty text",
+);
