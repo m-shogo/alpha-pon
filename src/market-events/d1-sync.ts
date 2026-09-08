@@ -315,6 +315,10 @@ export function validateD1SyncSnapshot(snapshot: D1SyncSnapshot, label: string):
     if (typeof occurrenceKey !== "string" || !occurrenceKey.trim() || occurrenceKey !== occurrenceKey.trim()) {
       errors.push(`${label}: ${eventId} occurrence_key must be non-empty canonical text without surrounding whitespace`);
     }
+    const issuerCode = event.issuer_code;
+    if (issuerCode !== null && (typeof issuerCode !== "string" || !issuerCode.trim() || issuerCode !== issuerCode.trim())) {
+      errors.push(`${label}: ${eventId} issuer_code must be null or non-empty text without surrounding whitespace`);
+    }
     for (const field of ["issuer_name", "title", "why_it_matters"] as const) {
       const value = event[field];
       if (typeof value !== "string" || !value.trim() || value !== value.trim()) {
