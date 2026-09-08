@@ -147,6 +147,10 @@ function validatePersistedDelivery(delivery: DeliveryOutboxItem): DeliveryOutbox
 function validatePersistedSource(source: EventSource): EventSource {
   const context = `event_sources.${source.sourceId}`;
   validatePersistedSchemaVersion(source.schemaVersion, context);
+  const canonicalAuthority = source.authority.normalize("NFKC").trim().replace(/\s+/g, " ").toUpperCase();
+  if (!canonicalAuthority || source.authority !== canonicalAuthority) {
+    throw new Error(`Invalid persisted source at ${context}: authority must be canonical uppercase text without surrounding or repeated whitespace`);
+  }
   if (!(SOURCE_TYPES as readonly string[]).includes(source.sourceType)) {
     throw new Error(`Invalid persisted source at ${context}: unknown source_type ${source.sourceType}`);
   }
