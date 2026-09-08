@@ -596,7 +596,11 @@ export function validateMarketEventBundle(bundle: MarketEventBundle): void {
     }
     assertKnownValue(DELIVERY_CHANNELS, delivery.channel, "delivery channel");
     assertKnownValue(DELIVERY_STATES, delivery.state, "delivery state");
-    if (!delivery.deliveryKey.trim()) throw new Error("deliveryKey is required");
+    const canonicalDeliveryKey = normalizeOccurrenceKey(delivery.deliveryKey);
+    if (!canonicalDeliveryKey) throw new Error("deliveryKey is required");
+    if (delivery.deliveryKey !== canonicalDeliveryKey) {
+      throw new Error("deliveryKey must be canonical NFKC lowercase text without surrounding or repeated whitespace");
+    }
     if (!Number.isInteger(delivery.attemptCount) || delivery.attemptCount < 0) {
       throw new Error("attemptCount must be a non-negative integer");
     }

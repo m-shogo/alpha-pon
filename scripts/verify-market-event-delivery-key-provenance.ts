@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { validateMarketEventBundle } from "../src/market-events/contracts.js";
 import { buildMarketEventBundle, type MarketEventRegistrationInput } from "../src/market-events/registration.js";
 
 const input: MarketEventRegistrationInput = {
@@ -48,6 +49,7 @@ const context = {
 
 const canonical = buildMarketEventBundle(input, context);
 assert.equal(canonical.deliveries[0]?.deliveryKey, "day before");
+validateMarketEventBundle(canonical);
 
 for (const deliveryKey of [
   " Day Before ",
@@ -72,6 +74,22 @@ for (const deliveryKey of [
     alias.deliveries[0]?.deliveryId,
     canonical.deliveries[0]?.deliveryId,
     "delivery-key aliases must not create persisted spelling that diverges from stable delivery identity",
+  );
+}
+
+for (const deliveryKey of [
+  " Day Before ",
+  "DAY  BEFORE",
+  "ＤＡＹ ＢＥＦＯＲＥ",
+]) {
+  const forged = structuredClone(canonical);
+  if (!forged.deliveries[0]) throw new Error("delivery fixture is required");
+  forged.deliveries[0].deliveryKey = deliveryKey;
+
+  assert.throws(
+    () => validateMarketEventBundle(forged),
+    /deliveryKey must be canonical/,
+    "standalone bundle validation must reject delivery-key aliases even when stable deliveryId still matches the canonicalized identity",
   );
 }
 
