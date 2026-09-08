@@ -166,6 +166,32 @@ const firstBundle = buildMarketEventBundle(input, {
   existingCreatedAt: null,
 });
 
+const forgedEventId = "evt_000000000000000000000000";
+assert.throws(
+  () => validateMarketEventBundle({
+    ...firstBundle,
+    event: { ...firstBundle.event, eventId: forgedEventId },
+    revision: { ...firstBundle.revision, eventId: forgedEventId },
+    sources: firstBundle.sources.map(source => ({ ...source, eventId: forgedEventId })),
+    decisionSnapshot: firstBundle.decisionSnapshot ? { ...firstBundle.decisionSnapshot, eventId: forgedEventId } : null,
+    deliveries: firstBundle.deliveries.map(delivery => ({ ...delivery, eventId: forgedEventId })),
+  }),
+  /does not match canonical event identity/,
+  "bundle validation must reject forged event IDs even when all internal references are rewritten consistently",
+);
+
+const forgedRevisionId = "rev_000000000000000000000000";
+assert.throws(
+  () => validateMarketEventBundle({
+    ...firstBundle,
+    revision: { ...firstBundle.revision, revisionId: forgedRevisionId },
+    decisionSnapshot: firstBundle.decisionSnapshot ? { ...firstBundle.decisionSnapshot, revisionId: forgedRevisionId } : null,
+    deliveries: firstBundle.deliveries.map(delivery => ({ ...delivery, revisionId: forgedRevisionId })),
+  }),
+  /does not match canonical revision identity/,
+  "bundle validation must reject forged revision IDs even when dependent references are rewritten consistently",
+);
+
 assert.throws(
   () => validateMarketEventBundle({
     ...firstBundle,

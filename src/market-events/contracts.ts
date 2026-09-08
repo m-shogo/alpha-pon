@@ -433,6 +433,15 @@ export function validateMarketEventBundle(bundle: MarketEventBundle): void {
   if (!event.issuerName.trim()) throw new Error("issuerName is required");
   if (!event.title.trim()) throw new Error("title is required");
   assertKnownValue(MARKET_EVENT_TYPES, event.eventType, "eventType");
+  const expectedEventId = buildEventId({
+    issuerCode: event.issuerCode,
+    issuerName: event.issuerName,
+    eventType: event.eventType,
+    occurrenceKey: event.occurrenceKey,
+  });
+  if (event.eventId !== expectedEventId) {
+    throw new Error(`Event ${event.eventId} does not match canonical event identity ${expectedEventId}`);
+  }
   assertKnownValue(MARKET_EVENT_STATUSES, event.status, "event status");
   assertKnownValue(MARKET_EVENT_PRIORITIES, event.priority, "event priority");
   assertKnownValue(DECISION_STATES, event.currentDecisionState, "decision state");
@@ -457,6 +466,15 @@ export function validateMarketEventBundle(bundle: MarketEventBundle): void {
   if (!revision.revisionId.startsWith("rev_")) throw new Error("Invalid revisionId");
   if (!Number.isInteger(revision.revisionNumber) || revision.revisionNumber < 1) {
     throw new Error("revisionNumber must be a positive integer");
+  }
+  const expectedRevisionId = buildRevisionId({
+    eventId: revision.eventId,
+    revisionNumber: revision.revisionNumber,
+    facts: revision.facts,
+    sourceIds: revision.sourceIds,
+  });
+  if (revision.revisionId !== expectedRevisionId) {
+    throw new Error(`Revision ${revision.revisionId} does not match canonical revision identity ${expectedRevisionId}`);
   }
   assertKnownValue(EVENT_CHANGE_TYPES, revision.changeType, "event change type");
   assertIsoTimestamp(revision.observedAt, "observedAt");
