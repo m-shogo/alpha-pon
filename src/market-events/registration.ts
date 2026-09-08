@@ -85,8 +85,9 @@ function uniqueStrings(values: string[] | undefined): string[] {
 function validateRegistrationInput(input: MarketEventRegistrationInput): void {
   if (!input.issuerName.trim()) throw new Error("issuerName is required");
   if (!input.occurrenceKey) throw new Error("occurrenceKey is required");
-  if (input.occurrenceKey.trim() !== input.occurrenceKey) {
-    throw new Error("occurrenceKey must be canonical without surrounding whitespace");
+  const canonicalOccurrenceKey = input.occurrenceKey.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
+  if (input.occurrenceKey !== canonicalOccurrenceKey) {
+    throw new Error("occurrenceKey must be canonical lowercase NFKC text without surrounding or repeated whitespace");
   }
   if (!input.title.trim()) throw new Error("title is required");
   if (!input.whyItMatters.trim()) throw new Error("whyItMatters is required");
