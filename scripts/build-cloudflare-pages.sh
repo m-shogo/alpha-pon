@@ -33,6 +33,7 @@ run_ts scripts/verify-pages-market-event-function.ts
 
 echo "[2/12] Verify append-only revision guards"
 run_ts scripts/verify-market-event-revision-guards.ts
+run_ts scripts/verify-market-event-source-replay.ts
 
 echo "[3/12] Verify deterministic D1 bootstrap"
 run_ts scripts/verify-d1-bootstrap-export.ts
