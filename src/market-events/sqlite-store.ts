@@ -153,8 +153,17 @@ function validatePersistedSource(source: EventSource): EventSource {
   if (!(STORAGE_CLASSES as readonly string[]).includes(source.storageClass)) {
     throw new Error(`Invalid persisted source at ${context}: unknown storage_class ${source.storageClass}`);
   }
-  if (!source.url.startsWith("https://")) {
+  let sourceUrl: URL;
+  try {
+    sourceUrl = new URL(source.url);
+  } catch {
+    throw new Error(`Invalid persisted source at ${context}: url must be a valid absolute URL`);
+  }
+  if (sourceUrl.protocol !== "https:") {
     throw new Error(`Invalid persisted source at ${context}: url must use https`);
+  }
+  if (sourceUrl.hash !== "") {
+    throw new Error(`Invalid persisted source at ${context}: url must not contain a fragment because source identity ignores URL fragments`);
   }
   if (!/^[a-f0-9]{64}$/.test(source.contentHash)) {
     throw new Error(`Invalid persisted source at ${context}: content_hash must be a lowercase SHA-256 hash`);
