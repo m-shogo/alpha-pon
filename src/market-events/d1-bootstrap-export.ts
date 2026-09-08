@@ -183,6 +183,7 @@ function assertPersistedSourceProvenanceIsValid(db: MarketEventDatabase): void {
     SELECT
       source_id AS sourceId,
       event_id AS eventId,
+      authority,
       url,
       published_at AS publishedAt,
       retrieved_at AS retrievedAt,
@@ -192,6 +193,7 @@ function assertPersistedSourceProvenanceIsValid(db: MarketEventDatabase): void {
   `).all() as Array<{
     sourceId: string;
     eventId: string;
+    authority: string;
     url: string;
     publishedAt: string | null;
     retrievedAt: string;
@@ -202,6 +204,10 @@ function assertPersistedSourceProvenanceIsValid(db: MarketEventDatabase): void {
     try {
       if (!row.sourceId.startsWith("src_")) throw new Error("source_id must start with src_");
       if (!row.eventId.startsWith("evt_")) throw new Error("event_id must start with evt_");
+      const canonicalAuthority = row.authority.normalize("NFKC").trim().replace(/\s+/g, " ").toUpperCase();
+      if (!canonicalAuthority || row.authority !== canonicalAuthority) {
+        throw new Error("authority must be canonical uppercase text without surrounding or repeated whitespace");
+      }
       let sourceUrl: URL;
       try {
         sourceUrl = new URL(row.url);
