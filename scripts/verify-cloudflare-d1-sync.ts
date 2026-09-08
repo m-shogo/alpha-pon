@@ -420,9 +420,9 @@ assert.match(
   "persisted source titles must match the registration boundary's trimmed form",
 );
 
-const emptySourceTitleRemote = structuredClone(canonical);
-emptySourceTitleRemote.event_sources[0].title = "";
-const emptySourceTitlePlan = buildD1SyncPlan(canonical, emptySourceTitleRemote);
+const emptySourceTitleCanonical = structuredClone(canonical);
+emptySourceTitleCanonical.event_sources[0].title = "";
+const emptySourceTitlePlan = buildD1SyncPlan(emptySourceTitleCanonical, structuredClone(emptySourceTitleCanonical));
 assert.equal(emptySourceTitlePlan.status, "ready", "registration currently permits an empty canonical source title");
 
 const invalidSourceTypeRemote = structuredClone(canonical);
