@@ -155,9 +155,22 @@ export function validateLedgerRecord(record: MarketEventLedgerRecord): void {
     case "EVENT_SOURCE": {
       if (!record.payload.sourceId.startsWith("src_")) throw new Error("Invalid sourceId");
       if (!record.payload.eventId.startsWith("evt_")) throw new Error("Invalid eventId");
+      const canonicalAuthority = record.payload.authority.normalize("NFKC").trim().replace(/\s+/g, " ").toUpperCase();
+      if (!canonicalAuthority || record.payload.authority !== canonicalAuthority) {
+        throw new Error("Source authority must be canonical uppercase text without surrounding or repeated whitespace");
+      }
       if (!(SOURCE_TYPES as readonly string[]).includes(record.payload.sourceType)) throw new Error(`Unknown source type: ${record.payload.sourceType}`);
       if (!(STORAGE_CLASSES as readonly string[]).includes(record.payload.storageClass)) throw new Error(`Unknown storage class: ${record.payload.storageClass}`);
-      if (!record.payload.url.startsWith("https://")) throw new Error("Source URL must use https");
+      let sourceUrl: URL;
+      try {
+        sourceUrl = new URL(record.payload.url);
+      } catch {
+        throw new Error("Source URL must be a valid absolute URL");
+      }
+      if (sourceUrl.protocol !== "https:") throw new Error("Source URL must use https");
+      if (sourceUrl.hash !== "") {
+        throw new Error("Source URL must not contain a fragment because source identity ignores URL fragments");
+      }
       if (!/^[a-f0-9]{64}$/.test(record.payload.contentHash)) {
         throw new Error("source contentHash must be a lowercase SHA-256 hash");
       }
