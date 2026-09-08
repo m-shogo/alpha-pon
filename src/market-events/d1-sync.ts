@@ -360,6 +360,10 @@ export function validateD1SyncSnapshot(snapshot: D1SyncSnapshot, label: string):
         errors.push(`${label}: source ${sourceId} authority must be canonical uppercase NFKC text`);
       }
     }
+    const title = source.title;
+    if (typeof title !== "string" || title !== title.trim()) {
+      errors.push(`${label}: source ${sourceId} title must be canonical text without surrounding whitespace`);
+    }
     const sourceType = source.source_type;
     if (typeof sourceType !== "string" || !(SOURCE_TYPES as readonly string[]).includes(sourceType)) {
       errors.push(`${label}: source ${sourceId} has invalid source_type ${String(sourceType)}`);
