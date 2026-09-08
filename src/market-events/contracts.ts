@@ -511,6 +511,15 @@ export function validateMarketEventBundle(bundle: MarketEventBundle): void {
         throw new Error("source.publishedAt must be on or before source.retrievedAt");
       }
     }
+    const expectedSourceId = buildSourceId({
+      authority: source.authority,
+      url: source.url,
+      publishedAt: source.publishedAt,
+      contentHash: source.contentHash,
+    });
+    if (source.sourceId !== expectedSourceId) {
+      throw new Error(`Source ${source.sourceId} does not match canonical source identity ${expectedSourceId}`);
+    }
   }
   for (const sourceId of revision.sourceIds) {
     const source = sourcesById.get(sourceId);
