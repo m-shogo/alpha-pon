@@ -193,6 +193,9 @@ function candidateId(disclosure: TdnetDisclosure, issuerCode: string, publishedA
 
 export function assertTdnetMarketEventCandidateIdentity(candidate: TdnetMarketEventCandidate): void {
   const issuerCode = candidateIssuerCode(candidate.issuerCode);
+  if (candidate.issuerCode !== issuerCode) {
+    throw new Error("TDnet candidate issuerCode must be a canonical 4-character issuer code");
+  }
   const issuerName = canonicalSourceProvenance(candidate.issuerName, "companyName");
   const disclosureTitle = canonicalSourceProvenance(candidate.disclosureTitle, "title");
   const publishedAt = candidatePublishedAt(candidate.disclosurePublishedAt);
