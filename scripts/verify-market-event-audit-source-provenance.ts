@@ -68,8 +68,38 @@ try {
     "central audit must identify the source row with invalid hash provenance",
   );
 
-  db.prepare("UPDATE event_sources SET content_hash = ?, published_at = ?, retrieved_at = ? WHERE source_id = ?").run(
+  db.prepare("UPDATE event_sources SET content_hash = ?, url = ? WHERE source_id = ?").run(
     bundle.sources[0].contentHash,
+    `${bundle.sources[0].url}#page=1`,
+    sourceId,
+  );
+  assert.throws(
+    () => listEventSources(db, eventId),
+    /url must not contain a fragment/,
+    "read path must reject persisted source URL fragments that registration forbids",
+  );
+  audit = auditMarketEventDatabase(db, ":memory:");
+  assert.equal(audit.status, "error", "central audit must reject persisted source URL fragments");
+  assert.ok(
+    audit.invalidSourceRows.some(row => row.sourceId === sourceId && /url must not contain a fragment/.test(row.message)),
+    "central audit must identify the source row with fragment-bearing URL provenance",
+  );
+
+  db.prepare("UPDATE event_sources SET url = ? WHERE source_id = ?").run("https://%", sourceId);
+  assert.throws(
+    () => listEventSources(db, eventId),
+    /url must be a valid absolute URL/,
+    "read path must reject malformed persisted source URLs even when they start with https",
+  );
+  audit = auditMarketEventDatabase(db, ":memory:");
+  assert.equal(audit.status, "error", "central audit must reject malformed persisted source URLs");
+  assert.ok(
+    audit.invalidSourceRows.some(row => row.sourceId === sourceId && /valid absolute URL/.test(row.message)),
+    "central audit must identify the source row with malformed URL provenance",
+  );
+
+  db.prepare("UPDATE event_sources SET url = ?, published_at = ?, retrieved_at = ? WHERE source_id = ?").run(
+    bundle.sources[0].url,
     "2026-09-04T06:05:01Z",
     "2026-09-04T06:05:00Z",
     sourceId,
