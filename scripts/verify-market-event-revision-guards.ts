@@ -296,6 +296,7 @@ try {
     "0017_market_event_replay_payload",
     "0018_market_event_source_replay_payload",
     "0019_market_event_decision_replay_payload",
+    "0020_market_event_delivery_replay_payload",
   ]);
 
   console.log("market-event-revision-guards: ok");
