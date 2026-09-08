@@ -315,6 +315,12 @@ export function validateD1SyncSnapshot(snapshot: D1SyncSnapshot, label: string):
     if (typeof occurrenceKey !== "string" || !occurrenceKey.trim() || occurrenceKey !== occurrenceKey.trim()) {
       errors.push(`${label}: ${eventId} occurrence_key must be non-empty canonical text without surrounding whitespace`);
     }
+    for (const field of ["issuer_name", "title"] as const) {
+      const value = event[field];
+      if (typeof value !== "string" || !value.trim() || value !== value.trim()) {
+        errors.push(`${label}: ${eventId} ${field} must be non-empty canonical text without surrounding whitespace`);
+      }
+    }
     validateEnumField(event, eventId, "event_type", MARKET_EVENT_TYPES, label, errors);
     validateEnumField(event, eventId, "status", MARKET_EVENT_STATUSES, label, errors);
     validateEnumField(event, eventId, "priority", MARKET_EVENT_PRIORITIES, label, errors);

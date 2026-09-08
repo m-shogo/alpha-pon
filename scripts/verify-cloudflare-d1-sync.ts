@@ -253,6 +253,20 @@ for (const invalidOccurrenceKey of ["", "   ", " occurrence-evt_alpha "]) {
   );
 }
 
+for (const field of ["issuer_name", "title"] as const) {
+  for (const invalidText of ["", "   ", ` ${String(canonical.market_events[0][field])} `]) {
+    const invalidRequiredTextRemote = structuredClone(canonical);
+    invalidRequiredTextRemote.market_events[0][field] = invalidText;
+    const invalidRequiredTextPlan = buildD1SyncPlan(canonical, invalidRequiredTextRemote);
+    assert.equal(invalidRequiredTextPlan.status, "blocked");
+    assert.match(
+      invalidRequiredTextPlan.blockers.join("\n"),
+      new RegExp(`${field} must be non-empty canonical text without surrounding whitespace`),
+      `persisted ${field} must remain non-empty canonical text`,
+    );
+  }
+}
+
 const invalidLastVerifiedAtRemote = structuredClone(canonical);
 invalidLastVerifiedAtRemote.market_events[0].last_verified_at = "2026-08-04T00:00:00";
 const invalidLastVerifiedAtPlan = buildD1SyncPlan(canonical, invalidLastVerifiedAtRemote);
