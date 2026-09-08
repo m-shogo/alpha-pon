@@ -95,6 +95,22 @@ assert.throws(
 );
 assert.throws(
   () => validateLedgerRecord({
+    ...sourceRecord,
+    payload: { ...sourceRecord.payload, authority: " sanrio_ir " },
+  }),
+  /Source authority must be canonical uppercase text/,
+  "standalone ledger validation must reject source authority aliases that canonicalize to the same stable identity",
+);
+assert.throws(
+  () => validateLedgerRecord({
+    ...sourceRecord,
+    payload: { ...sourceRecord.payload, url: `${sourceRecord.payload.url}#page=1` },
+  }),
+  /Source URL must not contain a fragment/,
+  "standalone ledger validation must reject URL fragments that source identity intentionally ignores",
+);
+assert.throws(
+  () => validateLedgerRecord({
     ...decisionRecord,
     payload: { ...decisionRecord.payload, decisionSnapshotId: "dec_000000000000000000000000" },
   }),
