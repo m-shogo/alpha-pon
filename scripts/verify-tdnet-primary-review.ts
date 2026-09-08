@@ -110,11 +110,14 @@ assert.deepEqual(missingSourceCode.blockers, ["source_code_provenance_missing"])
 for (const nonCanonicalOccurrenceKey of [
   " annual-general-meeting-2026",
   "annual-general-meeting-2026 ",
+  "Annual-General-Meeting-2026",
+  "annual-general  meeting-2026",
+  "ａｎｎｕａｌ-general-meeting-2026",
 ]) {
   assert.throws(
     () => assessTdnetPrimaryReview(candidate, decision({ occurrenceKey: nonCanonicalOccurrenceKey })),
-    /occurrenceKey must be canonical without surrounding whitespace/,
-    "review must reject whitespace-normalized occurrence keys instead of rewriting stable event identity",
+    /occurrenceKey must be canonical lowercase NFKC text without surrounding or repeated whitespace/,
+    "review must reject occurrence-key aliases instead of silently rewriting stable event identity during registration",
   );
 }
 
