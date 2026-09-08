@@ -230,6 +230,10 @@ function assertValidPersistedEventRow(row: EventRow): void {
 function assertValidPersistedSourceRow(source: SourceRow): void {
   if (!source.source_id.startsWith('src_')) throw new Error(`Invalid persisted sourceId: ${source.source_id}`)
   if (!source.event_id.startsWith('evt_')) throw new Error(`Invalid persisted source eventId: ${source.event_id}`)
+  const canonicalAuthority = source.authority.normalize('NFKC').trim().replace(/\s+/g, ' ').toUpperCase()
+  if (!canonicalAuthority || source.authority !== canonicalAuthority) {
+    throw new Error(`Persisted source ${source.source_id} authority must be canonical uppercase text without surrounding or repeated whitespace`)
+  }
   if (!SOURCE_TYPES.includes(source.source_type as (typeof SOURCE_TYPES)[number])) {
     throw new Error(`Persisted source ${source.source_id} has invalid source_type: ${source.source_type}`)
   }
