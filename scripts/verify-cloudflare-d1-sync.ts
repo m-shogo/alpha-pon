@@ -253,6 +253,23 @@ for (const invalidOccurrenceKey of ["", "   ", " occurrence-evt_alpha "]) {
   );
 }
 
+for (const invalidIssuerCode of ["", "   ", " 0000 "]) {
+  const invalidIssuerCodeRemote = structuredClone(canonical);
+  invalidIssuerCodeRemote.market_events[0].issuer_code = invalidIssuerCode;
+  const invalidIssuerCodePlan = buildD1SyncPlan(canonical, invalidIssuerCodeRemote);
+  assert.equal(invalidIssuerCodePlan.status, "blocked");
+  assert.match(
+    invalidIssuerCodePlan.blockers.join("\n"),
+    /issuer_code must be null or non-empty text without surrounding whitespace/,
+    "persisted issuer codes must match the registration boundary's trimmed-or-null form",
+  );
+}
+
+const nullIssuerCodeRemote = structuredClone(canonical);
+nullIssuerCodeRemote.market_events[0].issuer_code = null;
+const nullIssuerCodePlan = buildD1SyncPlan(canonical, nullIssuerCodeRemote);
+assert.equal(nullIssuerCodePlan.status, "ready", "issuer_code remains optional when issuer_name is present");
+
 for (const field of ["issuer_name", "title", "why_it_matters"] as const) {
   for (const invalidText of ["", "   ", ` ${String(canonical.market_events[0][field])} `]) {
     const invalidRequiredTextRemote = structuredClone(canonical);
