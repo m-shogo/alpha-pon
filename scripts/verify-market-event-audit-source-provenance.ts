@@ -68,8 +68,25 @@ try {
     "central audit must identify the source row with invalid hash provenance",
   );
 
-  db.prepare("UPDATE event_sources SET content_hash = ?, url = ? WHERE source_id = ?").run(
+  db.prepare("UPDATE event_sources SET content_hash = ?, authority = ? WHERE source_id = ?").run(
     bundle.sources[0].contentHash,
+    " tdnet ",
+    sourceId,
+  );
+  assert.throws(
+    () => listEventSources(db, eventId),
+    /authority must be canonical uppercase text without surrounding or repeated whitespace/,
+    "read path must reject persisted source authority aliases that registration forbids",
+  );
+  audit = auditMarketEventDatabase(db, ":memory:");
+  assert.equal(audit.status, "error", "central audit must reject non-canonical persisted source authority");
+  assert.ok(
+    audit.invalidSourceRows.some(row => row.sourceId === sourceId && /authority must be canonical uppercase text/.test(row.message)),
+    "central audit must identify the source row with non-canonical authority provenance",
+  );
+
+  db.prepare("UPDATE event_sources SET authority = ?, url = ? WHERE source_id = ?").run(
+    bundle.sources[0].authority,
     `${bundle.sources[0].url}#page=1`,
     sourceId,
   );
