@@ -78,8 +78,11 @@ function normalizeDecision(decision: TdnetPrimaryReviewDecision): TdnetPrimaryRe
   if (eventType !== null) assertKnownMarketEventType(eventType);
 
   const occurrenceKey = decision.occurrenceKey;
-  if (occurrenceKey !== null && occurrenceKey.trim() !== occurrenceKey) {
-    throw new Error("occurrenceKey must be canonical without surrounding whitespace");
+  if (occurrenceKey !== null) {
+    const canonicalOccurrenceKey = occurrenceKey.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
+    if (occurrenceKey !== canonicalOccurrenceKey) {
+      throw new Error("occurrenceKey must be canonical lowercase NFKC text without surrounding or repeated whitespace");
+    }
   }
   const normalizedOccurrenceKey = occurrenceKey === "" ? null : occurrenceKey;
   const sourceContentHash = decision.sourceContentHash;
