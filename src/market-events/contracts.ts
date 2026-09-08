@@ -429,7 +429,11 @@ export function validateMarketEventBundle(bundle: MarketEventBundle): void {
   const { event, revision, sources, decisionSnapshot, deliveries } = bundle;
   if (event.schemaVersion !== MARKET_EVENT_SCHEMA_VERSION) throw new Error("Unsupported event schemaVersion");
   if (!event.eventId.startsWith("evt_")) throw new Error("Invalid eventId");
-  if (!event.occurrenceKey.trim()) throw new Error("occurrenceKey is required");
+  const canonicalOccurrenceKey = normalizeOccurrenceKey(event.occurrenceKey);
+  if (!canonicalOccurrenceKey) throw new Error("occurrenceKey is required");
+  if (event.occurrenceKey !== canonicalOccurrenceKey) {
+    throw new Error("occurrenceKey must be canonical NFKC lowercase text without surrounding or repeated whitespace");
+  }
   if (!event.issuerName.trim()) throw new Error("issuerName is required");
   if (!event.title.trim()) throw new Error("title is required");
   assertKnownValue(MARKET_EVENT_TYPES, event.eventType, "eventType");
