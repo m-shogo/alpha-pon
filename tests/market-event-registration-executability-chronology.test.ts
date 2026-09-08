@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { buildDecisionSnapshotId, buildDeliveryId } from "../src/market-events/contracts.js";
 import { buildMarketEventBundle, type MarketEventRegistrationInput } from "../src/market-events/registration.js";
 import { validateLedgerRecord } from "../src/market-events/local-ledger.js";
 import {
@@ -129,16 +130,23 @@ validateLedgerRecord({
   payload: validBundle.revision,
 });
 
+const decisionCreatedAt = "2026-08-28T10:00:00Z";
 const decisionSnapshot = {
   schemaVersion: validBundle.event.schemaVersion,
-  decisionSnapshotId: "dec_fixture",
+  decisionSnapshotId: buildDecisionSnapshotId({
+    eventId: validBundle.event.eventId,
+    revisionId: validBundle.revision.revisionId,
+    decisionState: "INFO",
+    confidenceState: "CONFIRMED",
+    createdAt: decisionCreatedAt,
+  }),
   eventId: validBundle.event.eventId,
   revisionId: validBundle.revision.revisionId,
   decisionState: "INFO" as const,
   confidenceState: "CONFIRMED" as const,
   reasons: ["fixture"],
   invalidationConditions: [],
-  createdAt: "2026-08-28T10:00:00Z",
+  createdAt: decisionCreatedAt,
 };
 
 assert.throws(
@@ -157,16 +165,23 @@ validateLedgerRecord({
   payload: decisionSnapshot,
 });
 
+const deliveryScheduledAt = "2026-08-28T10:00:00Z";
 const deliveryOutbox = {
   schemaVersion: validBundle.event.schemaVersion,
-  deliveryId: "dlv_fixture",
+  deliveryId: buildDeliveryId({
+    eventId: validBundle.event.eventId,
+    revisionId: validBundle.revision.revisionId,
+    channel: "LINE",
+    deliveryKey: "fixture",
+    scheduledAt: deliveryScheduledAt,
+  }),
   deliveryKey: "fixture",
   eventId: validBundle.event.eventId,
   revisionId: validBundle.revision.revisionId,
   channel: "LINE" as const,
   state: "PENDING" as const,
   payload: { fixture: true },
-  scheduledAt: "2026-08-28T10:00:00Z",
+  scheduledAt: deliveryScheduledAt,
   attemptCount: 0,
   lastAttemptAt: null,
   deliveredAt: null,
