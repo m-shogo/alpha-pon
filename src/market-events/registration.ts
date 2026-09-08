@@ -262,7 +262,7 @@ export function buildMarketEventBundle(
       deliveryKey: delivery.deliveryKey,
       scheduledAt: delivery.scheduledAt,
     }),
-    deliveryKey: delivery.deliveryKey.trim(),
+    deliveryKey: canonicalOccurrenceKey(delivery.deliveryKey),
     eventId,
     revisionId,
     channel: delivery.channel,
