@@ -4,6 +4,7 @@ import {
   buildLatestEventProjection,
   buildLatestRevisionProjection,
   recordsFromBundle,
+  validateLedgerRecord,
 } from "../src/market-events/local-ledger.js";
 
 const input: MarketEventRegistrationInput = {
@@ -40,8 +41,15 @@ const input: MarketEventRegistrationInput = {
     contentHash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     storageClass: "METADATA_ONLY",
   }],
-  decision: null,
-  deliveries: [],
+  decision: {
+    confidenceState: "PARTIAL",
+    reasons: ["ledger stable-id regression"],
+  },
+  deliveries: [{
+    channel: "IN_APP",
+    deliveryKey: "day-before",
+    scheduledAt: "2026-08-09T06:00:00Z",
+  }],
 };
 
 const bundle = buildMarketEventBundle(input, {
@@ -52,8 +60,55 @@ const bundle = buildMarketEventBundle(input, {
 const records = recordsFromBundle(bundle, "2026-08-03T05:00:00Z");
 const eventRecord = records.find(record => record.recordType === "MARKET_EVENT");
 const revisionRecord = records.find(record => record.recordType === "EVENT_REVISION");
+const sourceRecord = records.find(record => record.recordType === "EVENT_SOURCE");
+const decisionRecord = records.find(record => record.recordType === "DECISION_SNAPSHOT");
+const deliveryRecord = records.find(record => record.recordType === "DELIVERY_OUTBOX");
 assert(eventRecord);
 assert(revisionRecord);
+assert(sourceRecord);
+assert(decisionRecord);
+assert(deliveryRecord);
+
+assert.throws(
+  () => validateLedgerRecord({
+    ...eventRecord,
+    payload: { ...eventRecord.payload, eventId: "evt_000000000000000000000000" },
+  }),
+  /does not match canonical event identity/,
+  "standalone ledger validation must reject forged event IDs",
+);
+assert.throws(
+  () => validateLedgerRecord({
+    ...revisionRecord,
+    payload: { ...revisionRecord.payload, revisionId: "rev_000000000000000000000000" },
+  }),
+  /does not match canonical revision identity/,
+  "standalone ledger validation must reject forged revision IDs",
+);
+assert.throws(
+  () => validateLedgerRecord({
+    ...sourceRecord,
+    payload: { ...sourceRecord.payload, sourceId: "src_000000000000000000000000" },
+  }),
+  /does not match canonical source identity/,
+  "standalone ledger validation must reject forged source IDs",
+);
+assert.throws(
+  () => validateLedgerRecord({
+    ...decisionRecord,
+    payload: { ...decisionRecord.payload, decisionSnapshotId: "dec_000000000000000000000000" },
+  }),
+  /does not match canonical decision identity/,
+  "standalone ledger validation must reject forged decision snapshot IDs",
+);
+assert.throws(
+  () => validateLedgerRecord({
+    ...deliveryRecord,
+    payload: { ...deliveryRecord.payload, deliveryId: "dlv_000000000000000000000000" },
+  }),
+  /does not match canonical delivery identity/,
+  "standalone ledger validation must reject forged delivery IDs",
+);
 
 const exactEventReplay = [...records, eventRecord];
 assert.equal(
