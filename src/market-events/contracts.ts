@@ -482,7 +482,16 @@ export function validateMarketEventBundle(bundle: MarketEventBundle): void {
     sourcesById.set(source.sourceId, source);
     assertKnownValue(SOURCE_TYPES, source.sourceType, "source type");
     assertKnownValue(STORAGE_CLASSES, source.storageClass, "storage class");
-    if (!source.url.startsWith("https://")) throw new Error("Source URL must use https");
+    let sourceUrl: URL;
+    try {
+      sourceUrl = new URL(source.url);
+    } catch {
+      throw new Error("Source URL must be a valid absolute URL");
+    }
+    if (sourceUrl.protocol !== "https:") throw new Error("Source URL must use https");
+    if (sourceUrl.hash !== "") {
+      throw new Error("Source URL must not contain a fragment because source identity ignores URL fragments");
+    }
     assertSha256ContentHash(source.contentHash);
     assertIsoTimestamp(source.retrievedAt, "retrievedAt");
     if (source.publishedAt !== null) {
