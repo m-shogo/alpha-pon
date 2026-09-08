@@ -8,6 +8,11 @@ import {
   STORAGE_CLASSES,
   assertIsoTimestamp,
   assertValidEventTime,
+  buildDecisionSnapshotId,
+  buildDeliveryId,
+  buildEventId,
+  buildRevisionId,
+  buildSourceId,
   validateMarketEventBundle,
   type DecisionSnapshot,
   type DeliveryOutboxItem,
@@ -58,11 +63,20 @@ export function validateLedgerRecord(record: MarketEventLedgerRecord): void {
   assertIsoTimestamp(record.recordedAt, "recordedAt");
 
   switch (record.recordType) {
-    case "MARKET_EVENT":
+    case "MARKET_EVENT": {
       if (!record.payload.eventId.startsWith("evt_")) throw new Error("Invalid eventId");
       if (!record.payload.occurrenceKey.trim()) throw new Error("occurrenceKey is required");
       if (!record.payload.issuerName.trim()) throw new Error("issuerName is required");
       if (!record.payload.title.trim()) throw new Error("title is required");
+      const expectedEventId = buildEventId({
+        issuerCode: record.payload.issuerCode,
+        issuerName: record.payload.issuerName,
+        eventType: record.payload.eventType,
+        occurrenceKey: record.payload.occurrenceKey,
+      });
+      if (record.payload.eventId !== expectedEventId) {
+        throw new Error(`Event ${record.payload.eventId} does not match canonical event identity ${expectedEventId}`);
+      }
       assertValidEventTime(record.payload.time);
       assertIsoTimestamp(record.payload.lastVerifiedAt, "lastVerifiedAt");
       if (record.payload.staleAfter !== null) assertIsoTimestamp(record.payload.staleAfter, "staleAfter");
@@ -99,12 +113,22 @@ export function validateLedgerRecord(record: MarketEventLedgerRecord): void {
         throw new Error("recordedAt must be on or after updatedAt");
       }
       break;
+    }
 
-    case "EVENT_REVISION":
+    case "EVENT_REVISION": {
       if (!record.payload.revisionId.startsWith("rev_")) throw new Error("Invalid revisionId");
       if (!record.payload.eventId.startsWith("evt_")) throw new Error("Invalid eventId");
       if (!Number.isInteger(record.payload.revisionNumber) || record.payload.revisionNumber < 1) {
         throw new Error("revisionNumber must be a positive integer");
+      }
+      const expectedRevisionId = buildRevisionId({
+        eventId: record.payload.eventId,
+        revisionNumber: record.payload.revisionNumber,
+        facts: record.payload.facts,
+        sourceIds: record.payload.sourceIds,
+      });
+      if (record.payload.revisionId !== expectedRevisionId) {
+        throw new Error(`Revision ${record.payload.revisionId} does not match canonical revision identity ${expectedRevisionId}`);
       }
       assertIsoTimestamp(record.payload.observedAt, "observedAt");
       for (const [fieldName, value] of [
@@ -126,8 +150,9 @@ export function validateLedgerRecord(record: MarketEventLedgerRecord): void {
         throw new Error("recordedAt must be on or after observedAt");
       }
       break;
+    }
 
-    case "EVENT_SOURCE":
+    case "EVENT_SOURCE": {
       if (!record.payload.sourceId.startsWith("src_")) throw new Error("Invalid sourceId");
       if (!record.payload.eventId.startsWith("evt_")) throw new Error("Invalid eventId");
       if (!(SOURCE_TYPES as readonly string[]).includes(record.payload.sourceType)) throw new Error(`Unknown source type: ${record.payload.sourceType}`);
@@ -135,6 +160,15 @@ export function validateLedgerRecord(record: MarketEventLedgerRecord): void {
       if (!record.payload.url.startsWith("https://")) throw new Error("Source URL must use https");
       if (!/^[a-f0-9]{64}$/.test(record.payload.contentHash)) {
         throw new Error("source contentHash must be a lowercase SHA-256 hash");
+      }
+      const expectedSourceId = buildSourceId({
+        authority: record.payload.authority,
+        url: record.payload.url,
+        publishedAt: record.payload.publishedAt,
+        contentHash: record.payload.contentHash,
+      });
+      if (record.payload.sourceId !== expectedSourceId) {
+        throw new Error(`Source ${record.payload.sourceId} does not match canonical source identity ${expectedSourceId}`);
       }
       assertIsoTimestamp(record.payload.retrievedAt, "retrievedAt");
       if (
@@ -161,12 +195,23 @@ export function validateLedgerRecord(record: MarketEventLedgerRecord): void {
         }
       }
       break;
+    }
 
-    case "DECISION_SNAPSHOT":
+    case "DECISION_SNAPSHOT": {
       if (!record.payload.decisionSnapshotId.startsWith("dec_")) throw new Error("Invalid decisionSnapshotId");
       if (!record.payload.eventId.startsWith("evt_")) throw new Error("Invalid eventId");
       if (!record.payload.revisionId.startsWith("rev_")) throw new Error("Invalid revisionId");
       assertIsoTimestamp(record.payload.createdAt, "decision createdAt");
+      const expectedDecisionSnapshotId = buildDecisionSnapshotId({
+        eventId: record.payload.eventId,
+        revisionId: record.payload.revisionId,
+        decisionState: record.payload.decisionState,
+        confidenceState: record.payload.confidenceState,
+        createdAt: record.payload.createdAt,
+      });
+      if (record.payload.decisionSnapshotId !== expectedDecisionSnapshotId) {
+        throw new Error(`Decision snapshot ${record.payload.decisionSnapshotId} does not match canonical decision identity ${expectedDecisionSnapshotId}`);
+      }
       if (
         compareExplicitIso8601Instants(
           record.recordedAt,
@@ -178,12 +223,23 @@ export function validateLedgerRecord(record: MarketEventLedgerRecord): void {
         throw new Error("recordedAt must be on or after decision createdAt");
       }
       break;
+    }
 
-    case "DELIVERY_OUTBOX":
+    case "DELIVERY_OUTBOX": {
       if (!record.payload.deliveryId.startsWith("dlv_")) throw new Error("Invalid deliveryId");
       if (!record.payload.eventId.startsWith("evt_")) throw new Error("Invalid eventId");
       if (!record.payload.revisionId.startsWith("rev_")) throw new Error("Invalid revisionId");
       assertIsoTimestamp(record.payload.scheduledAt, "scheduledAt");
+      const expectedDeliveryId = buildDeliveryId({
+        eventId: record.payload.eventId,
+        revisionId: record.payload.revisionId,
+        channel: record.payload.channel,
+        deliveryKey: record.payload.deliveryKey,
+        scheduledAt: record.payload.scheduledAt,
+      });
+      if (record.payload.deliveryId !== expectedDeliveryId) {
+        throw new Error(`Delivery ${record.payload.deliveryId} does not match canonical delivery identity ${expectedDeliveryId}`);
+      }
       assertIsoTimestamp(record.payload.createdAt, "delivery createdAt");
       assertIsoTimestamp(record.payload.updatedAt, "delivery updatedAt");
       for (const [fieldName, value] of [
@@ -227,6 +283,7 @@ export function validateLedgerRecord(record: MarketEventLedgerRecord): void {
         throw new Error("attemptCount must be a non-negative integer");
       }
       break;
+    }
   }
 }
 
