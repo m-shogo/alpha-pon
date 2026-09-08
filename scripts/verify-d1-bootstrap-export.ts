@@ -176,6 +176,14 @@ try {
     sourceId,
   );
 
+  source.prepare("UPDATE event_sources SET authority = ? WHERE source_id = ?").run(" sanrio_ir ", sourceId);
+  assert.throws(
+    () => buildD1BootstrapExport(source, options),
+    /D1 bootstrap rejects invalid persisted source provenance.*authority must be canonical uppercase text without surrounding or repeated whitespace/,
+    "bootstrap export must reject persisted source authority aliases that registration forbids",
+  );
+  source.prepare("UPDATE event_sources SET authority = ? WHERE source_id = ?").run(second.sources[0].authority, sourceId);
+
   source.prepare("UPDATE event_sources SET url = ? WHERE source_id = ?").run(
     `${second.sources[0].url}#page=1`,
     sourceId,
