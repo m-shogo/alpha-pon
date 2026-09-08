@@ -251,6 +251,22 @@ const invalidSourceType = await onRequest(context(
 assert.equal(invalidSourceType.status, 500);
 assert.deepEqual(await invalidSourceType.json(), { error: "internal error" });
 
+const invalidSourceUrlFragment = await onRequest(context(
+  "https://alpha.example.com/api/market-events",
+  {},
+  { ...env, DB: fakeDbFor(eventRows, [{ ...sourceRows[0], url: `${sourceRows[0].url}#page=1` }]) },
+));
+assert.equal(invalidSourceUrlFragment.status, 500);
+assert.deepEqual(await invalidSourceUrlFragment.json(), { error: "internal error" });
+
+const malformedSourceUrl = await onRequest(context(
+  "https://alpha.example.com/api/market-events",
+  {},
+  { ...env, DB: fakeDbFor(eventRows, [{ ...sourceRows[0], url: "https://%" }]) },
+));
+assert.equal(malformedSourceUrl.status, 500);
+assert.deepEqual(await malformedSourceUrl.json(), { error: "internal error" });
+
 const invalidSourceHash = await onRequest(context(
   "https://alpha.example.com/api/market-events",
   {},
