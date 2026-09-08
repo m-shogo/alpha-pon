@@ -27,7 +27,7 @@ const input: MarketEventRegistrationInput = {
     storageClass: "METADATA_ONLY",
   }],
   decision: {
-    confidenceState: "MEDIUM",
+    confidenceState: "PARTIAL",
     reasons: ["一次資料の予定時刻を確認済み"],
     invalidationConditions: ["公式日程変更"],
   },
