@@ -321,7 +321,7 @@ assert.throws(
     payload: { ...baseRevisionRecord.payload, firstExecutableAt: "2026-08-03T04:59:59Z" },
   }),
   /firstExecutableAt must be on or after observedAt/,
-  "ledger must reject revisions that claim executability before they were observed",
+  "ledger must reject revisions that claim executability before Alpha Pon observed them",
 );
 
 const secondBundle = buildMarketEventBundle({
