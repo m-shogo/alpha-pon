@@ -5,7 +5,7 @@ const input: MarketEventRegistrationInput = {
   issuerCode: "8136",
   issuerName: "Sanrio",
   eventType: "EARNINGS_RELEASE",
-  occurrenceKey: "FY2026-Q1",
+  occurrenceKey: "fy2026-q1",
   title: "Fixture event",
   status: "SCHEDULED",
   priority: "S1",
@@ -42,12 +42,18 @@ const context = {
 };
 
 const bundle = buildMarketEventBundle(input, context);
-assert.equal(bundle.event.occurrenceKey, "FY2026-Q1");
+assert.equal(bundle.event.occurrenceKey, "fy2026-q1");
 
-for (const occurrenceKey of [" FY2026-Q1", "FY2026-Q1 "]) {
+for (const occurrenceKey of [
+  " FY2026-Q1",
+  "FY2026-Q1 ",
+  "FY2026-Q1",
+  "fy2026  q1",
+  "ｆｙ２０２６-q1",
+]) {
   assert.throws(
     () => buildMarketEventBundle({ ...input, occurrenceKey }, context),
-    /occurrenceKey must be canonical without surrounding whitespace/,
-    "registration must reject whitespace-normalized stable event identity",
+    /occurrenceKey must be canonical lowercase NFKC text without surrounding or repeated whitespace/,
+    "registration must reject occurrence-key aliases instead of persisting a value that hashes to the same stable event identity",
   );
 }
