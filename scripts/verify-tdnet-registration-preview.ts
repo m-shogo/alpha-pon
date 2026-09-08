@@ -25,7 +25,7 @@ const assessment = assessTdnetPrimaryReview(candidate, {
   reviewedAt: "2026-09-04T16:00:00+09:00",
   outcome: "FUTURE_EVENT_CONFIRMED",
   eventType: "EARNINGS_RELEASE",
-  occurrenceKey: "FY2027-Q2",
+  occurrenceKey: "fy2027-q2",
   time: {
     startAt: "2026-10-30",
     endAt: null,
