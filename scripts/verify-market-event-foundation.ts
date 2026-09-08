@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   assertValidEventTime,
+  buildDecisionSnapshotId,
   buildDeliveryId,
   buildEventId,
   buildRevisionId,
@@ -269,12 +270,20 @@ assert.throws(
   "bundle validation must reject events updated before they were created",
 );
 
+const earlyDecisionCreatedAt = "2026-08-03T04:59:59Z";
 assert.throws(
   () => validateMarketEventBundle({
     ...firstBundle,
     decisionSnapshot: firstBundle.decisionSnapshot ? {
       ...firstBundle.decisionSnapshot,
-      createdAt: "2026-08-03T04:59:59Z",
+      createdAt: earlyDecisionCreatedAt,
+      decisionSnapshotId: buildDecisionSnapshotId({
+        eventId: firstBundle.decisionSnapshot.eventId,
+        revisionId: firstBundle.decisionSnapshot.revisionId,
+        decisionState: firstBundle.decisionSnapshot.decisionState,
+        confidenceState: firstBundle.decisionSnapshot.confidenceState,
+        createdAt: earlyDecisionCreatedAt,
+      }),
     } : null,
   }),
   /decision createdAt must be on or after revision observedAt/,
