@@ -480,6 +480,10 @@ export function validateMarketEventBundle(bundle: MarketEventBundle): void {
     if (!source.sourceId.startsWith("src_")) throw new Error("Invalid sourceId");
     if (sourcesById.has(source.sourceId)) throw new Error(`Duplicate sourceId in bundle: ${source.sourceId}`);
     sourcesById.set(source.sourceId, source);
+    const canonicalAuthority = source.authority.normalize("NFKC").trim().replace(/\s+/g, " ").toUpperCase();
+    if (!canonicalAuthority || source.authority !== canonicalAuthority) {
+      throw new Error("Source authority must be canonical uppercase text without surrounding or repeated whitespace");
+    }
     assertKnownValue(SOURCE_TYPES, source.sourceType, "source type");
     assertKnownValue(STORAGE_CLASSES, source.storageClass, "storage class");
     let sourceUrl: URL;
