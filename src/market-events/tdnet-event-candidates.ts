@@ -106,6 +106,18 @@ const RULES: CandidateRule[] = [
   },
 ];
 
+function candidateAdvisory(title: string): {
+  eventTypeHint: MarketEventType | null;
+  matchedSignals: string[];
+} | null {
+  const matchingRules = RULES.filter(rule => rule.test(title));
+  if (matchingRules.length === 0) return null;
+  return {
+    eventTypeHint: matchingRules.find(rule => rule.eventTypeHint !== null)?.eventTypeHint ?? null,
+    matchedSignals: [...new Set(matchingRules.map(rule => rule.signal))],
+  };
+}
+
 function canonicalSourceProvenance(value: string, fieldName: string): string {
   if (!value || value.trim() !== value) {
     throw new Error(`TDnet candidate ${fieldName} must preserve the exact source value without surrounding whitespace`);
@@ -212,6 +224,29 @@ export function assertTdnetMarketEventCandidateIdentity(candidate: TdnetMarketEv
   if (candidate.candidateId !== expected) {
     throw new Error(`TDnet candidateId does not match canonical candidate provenance: expected ${expected}`);
   }
+
+  const advisory = candidateAdvisory(disclosureTitle);
+  if (advisory === null) {
+    throw new Error("TDnet candidate disclosureTitle no longer matches a supported candidate signal");
+  }
+  if (candidate.eventTypeHint !== advisory.eventTypeHint) {
+    throw new Error("TDnet candidate eventTypeHint does not match advisory classification from disclosureTitle");
+  }
+  if (
+    candidate.matchedSignals.length !== advisory.matchedSignals.length
+    || candidate.matchedSignals.some((signal, index) => signal !== advisory.matchedSignals[index])
+  ) {
+    throw new Error("TDnet candidate matchedSignals do not match advisory classification from disclosureTitle");
+  }
+  if (candidate.registrationReady !== false) {
+    throw new Error("TDnet candidate registrationReady must remain false before primary document review");
+  }
+  if (
+    candidate.blockers.length !== TDNET_CANDIDATE_BLOCKERS.length
+    || candidate.blockers.some((blocker, index) => blocker !== TDNET_CANDIDATE_BLOCKERS[index])
+  ) {
+    throw new Error("TDnet candidate blockers must preserve the canonical read-only candidate boundary");
+  }
 }
 
 export function classifyTdnetDisclosureCandidate(
@@ -220,17 +255,14 @@ export function classifyTdnetDisclosureCandidate(
   const title = disclosure.title.trim();
   if (!title) return null;
 
-  const matchingRules = RULES.filter(rule => rule.test(title));
-  if (matchingRules.length === 0) return null;
+  const advisory = candidateAdvisory(title);
+  if (advisory === null) return null;
 
   const issuerCode = candidateIssuerCode(disclosure.code);
   const publishedAt = candidatePublishedAt(disclosure.publishedAt);
   const sourceUrl = candidateSourceUrl(disclosure.url);
   const sourceCode = candidateSourceCode(disclosure.sourceCode, issuerCode);
 
-  // Rules are ordered from more specific to more general. The first non-null
-  // type hint is advisory only and must never be treated as registration proof.
-  const eventTypeHint = matchingRules.find(rule => rule.eventTypeHint !== null)?.eventTypeHint ?? null;
   return {
     candidateId: candidateId(disclosure, issuerCode, publishedAt, sourceUrl),
     issuerCode,
@@ -240,8 +272,8 @@ export function classifyTdnetDisclosureCandidate(
     // This is source publication metadata only. It is deliberately not EventTime.
     disclosurePublishedAt: publishedAt,
     sourceUrl,
-    eventTypeHint,
-    matchedSignals: [...new Set(matchingRules.map(rule => rule.signal))],
+    eventTypeHint: advisory.eventTypeHint,
+    matchedSignals: advisory.matchedSignals,
     registrationReady: false,
     blockers: [...TDNET_CANDIDATE_BLOCKERS],
   };

@@ -64,6 +64,27 @@ for (const mutate of [
   );
 }
 
+for (const mutate of [
+  (candidate: TdnetMarketEventCandidate) => ({ ...candidate, eventTypeHint: "TOB_DEADLINE" as const }),
+  (candidate: TdnetMarketEventCandidate) => ({ ...candidate, matchedSignals: [...candidate.matchedSignals, "tob_or_mbo"] }),
+  (candidate: TdnetMarketEventCandidate) => ({ ...candidate, blockers: [] }),
+]) {
+  const forged = mutate(setup) as TdnetMarketEventCandidate;
+  assert.throws(
+    () => assertTdnetMarketEventCandidateIdentity(forged),
+    /advisory classification|blockers must preserve/,
+    "candidate validation must reject forged advisory or boundary metadata even when stable primary provenance is unchanged",
+  );
+}
+
+const forgedReady = structuredClone(setup);
+(forgedReady as unknown as { registrationReady: boolean }).registrationReady = true;
+assert.throws(
+  () => assertTdnetMarketEventCandidateIdentity(forgedReady),
+  /registrationReady must remain false/,
+  "candidate validation must not allow a title-only discovery candidate to become registration-ready",
+);
+
 const report = classifyTdnetDisclosureCandidate(disclosure({
   title: "第三者委員会からの調査報告書受領に関するお知らせ",
   url: tdnetPdf(2),
