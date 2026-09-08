@@ -233,7 +233,16 @@ function assertValidPersistedSourceRow(source: SourceRow): void {
   if (!SOURCE_TYPES.includes(source.source_type as (typeof SOURCE_TYPES)[number])) {
     throw new Error(`Persisted source ${source.source_id} has invalid source_type: ${source.source_type}`)
   }
-  if (!source.url.startsWith('https://')) throw new Error(`Persisted source ${source.source_id} URL must use https`)
+  let sourceUrl: URL
+  try {
+    sourceUrl = new URL(source.url)
+  } catch {
+    throw new Error(`Persisted source ${source.source_id} URL must be a valid absolute URL`)
+  }
+  if (sourceUrl.protocol !== 'https:') throw new Error(`Persisted source ${source.source_id} URL must use https`)
+  if (sourceUrl.hash !== '') {
+    throw new Error(`Persisted source ${source.source_id} URL must not contain a fragment because source identity ignores URL fragments`)
+  }
   if (!/^[a-f0-9]{64}$/.test(source.content_hash)) {
     throw new Error(`Persisted source ${source.source_id} content_hash must be lowercase SHA-256`)
   }
