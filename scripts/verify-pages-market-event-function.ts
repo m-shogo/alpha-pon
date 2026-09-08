@@ -251,6 +251,14 @@ const invalidSourceType = await onRequest(context(
 assert.equal(invalidSourceType.status, 500);
 assert.deepEqual(await invalidSourceType.json(), { error: "internal error" });
 
+const invalidSourceAuthority = await onRequest(context(
+  "https://alpha.example.com/api/market-events",
+  {},
+  { ...env, DB: fakeDbFor(eventRows, [{ ...sourceRows[0], authority: " sanrio_ir " }]) },
+));
+assert.equal(invalidSourceAuthority.status, 500);
+assert.deepEqual(await invalidSourceAuthority.json(), { error: "internal error" });
+
 const invalidSourceUrlFragment = await onRequest(context(
   "https://alpha.example.com/api/market-events",
   {},
