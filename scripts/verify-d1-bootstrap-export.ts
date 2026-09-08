@@ -175,6 +175,24 @@ try {
     second.sources[0].contentHash,
     sourceId,
   );
+
+  source.prepare("UPDATE event_sources SET url = ? WHERE source_id = ?").run(
+    `${second.sources[0].url}#page=1`,
+    sourceId,
+  );
+  assert.throws(
+    () => buildD1BootstrapExport(source, options),
+    /D1 bootstrap rejects invalid persisted source provenance.*url must not contain a fragment/,
+    "bootstrap export must reject persisted source URL fragments that source identity forbids",
+  );
+  source.prepare("UPDATE event_sources SET url = ? WHERE source_id = ?").run("https://%", sourceId);
+  assert.throws(
+    () => buildD1BootstrapExport(source, options),
+    /D1 bootstrap rejects invalid persisted source provenance.*url must be a valid absolute URL/,
+    "bootstrap export must reject malformed persisted source URLs even when they start with https",
+  );
+  source.prepare("UPDATE event_sources SET url = ? WHERE source_id = ?").run(second.sources[0].url, sourceId);
+
   source.prepare("UPDATE event_sources SET published_at = ?, retrieved_at = ? WHERE source_id = ?").run(
     "2026-08-03T07:00:01Z",
     "2026-08-03T07:00:00Z",
