@@ -315,7 +315,7 @@ export function validateD1SyncSnapshot(snapshot: D1SyncSnapshot, label: string):
     if (typeof occurrenceKey !== "string" || !occurrenceKey.trim() || occurrenceKey !== occurrenceKey.trim()) {
       errors.push(`${label}: ${eventId} occurrence_key must be non-empty canonical text without surrounding whitespace`);
     }
-    for (const field of ["issuer_name", "title"] as const) {
+    for (const field of ["issuer_name", "title", "why_it_matters"] as const) {
       const value = event[field];
       if (typeof value !== "string" || !value.trim() || value !== value.trim()) {
         errors.push(`${label}: ${eventId} ${field} must be non-empty canonical text without surrounding whitespace`);
