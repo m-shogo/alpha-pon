@@ -253,7 +253,7 @@ for (const invalidOccurrenceKey of ["", "   ", " occurrence-evt_alpha "]) {
   );
 }
 
-for (const field of ["issuer_name", "title"] as const) {
+for (const field of ["issuer_name", "title", "why_it_matters"] as const) {
   for (const invalidText of ["", "   ", ` ${String(canonical.market_events[0][field])} `]) {
     const invalidRequiredTextRemote = structuredClone(canonical);
     invalidRequiredTextRemote.market_events[0][field] = invalidText;
