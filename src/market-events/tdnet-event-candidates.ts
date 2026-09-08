@@ -192,12 +192,19 @@ function candidateId(disclosure: TdnetDisclosure, issuerCode: string, publishedA
 }
 
 export function assertTdnetMarketEventCandidateIdentity(candidate: TdnetMarketEventCandidate): void {
+  const issuerCode = candidateIssuerCode(candidate.issuerCode);
+  const issuerName = canonicalSourceProvenance(candidate.issuerName, "companyName");
+  const disclosureTitle = canonicalSourceProvenance(candidate.disclosureTitle, "title");
+  const publishedAt = candidatePublishedAt(candidate.disclosurePublishedAt);
+  const sourceUrl = candidateSourceUrl(candidate.sourceUrl);
+  candidateSourceCode(candidate.sourceCode ?? undefined, issuerCode);
+
   const expected = candidateIdFromFields(
-    candidate.issuerCode,
-    candidate.issuerName,
-    candidate.disclosureTitle,
-    candidate.disclosurePublishedAt,
-    candidate.sourceUrl,
+    issuerCode,
+    issuerName,
+    disclosureTitle,
+    publishedAt,
+    sourceUrl,
   );
   if (candidate.candidateId !== expected) {
     throw new Error(`TDnet candidateId does not match canonical candidate provenance: expected ${expected}`);
