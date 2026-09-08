@@ -410,6 +410,21 @@ const nonCanonicalAuthorityPlan = buildD1SyncPlan(canonical, nonCanonicalAuthori
 assert.equal(nonCanonicalAuthorityPlan.status, "blocked");
 assert.match(nonCanonicalAuthorityPlan.blockers.join("\n"), /authority must be canonical uppercase NFKC text/);
 
+const paddedSourceTitleRemote = structuredClone(canonical);
+paddedSourceTitleRemote.event_sources[0].title = " Primary source ";
+const paddedSourceTitlePlan = buildD1SyncPlan(canonical, paddedSourceTitleRemote);
+assert.equal(paddedSourceTitlePlan.status, "blocked");
+assert.match(
+  paddedSourceTitlePlan.blockers.join("\n"),
+  /title must be canonical text without surrounding whitespace/,
+  "persisted source titles must match the registration boundary's trimmed form",
+);
+
+const emptySourceTitleRemote = structuredClone(canonical);
+emptySourceTitleRemote.event_sources[0].title = "";
+const emptySourceTitlePlan = buildD1SyncPlan(canonical, emptySourceTitleRemote);
+assert.equal(emptySourceTitlePlan.status, "ready", "registration currently permits an empty canonical source title");
+
 const invalidSourceTypeRemote = structuredClone(canonical);
 invalidSourceTypeRemote.event_sources[0].source_type = "NOT_A_SOURCE";
 const invalidSourceTypePlan = buildD1SyncPlan(canonical, invalidSourceTypeRemote);
