@@ -1,10 +1,13 @@
 import "./verify-tdnet-future-date-window-validation.js";
 import "./verify-tdnet-primary-review.js";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import {
+  assertTdnetMarketEventCandidateIdentity,
   classifyTdnetDisclosureCandidate,
   extractTdnetMarketEventCandidates,
   TDNET_CANDIDATE_BLOCKERS,
+  type TdnetMarketEventCandidate,
 } from "../src/market-events/tdnet-event-candidates.js";
 import type { TdnetDisclosure } from "../src/fetcher/jpx.js";
 
@@ -24,6 +27,17 @@ function disclosure(overrides: Partial<TdnetDisclosure> = {}): TdnetDisclosure {
   };
 }
 
+function forgedCandidateId(candidate: TdnetMarketEventCandidate): string {
+  const canonical = JSON.stringify({
+    code: candidate.issuerCode,
+    companyName: candidate.issuerName,
+    title: candidate.disclosureTitle,
+    publishedAt: candidate.disclosurePublishedAt,
+    url: candidate.sourceUrl,
+  });
+  return `tdc_${createHash("sha256").update(canonical).digest("hex").slice(0, 24)}`;
+}
+
 const setup = classifyTdnetDisclosureCandidate(disclosure());
 assert(setup, "investigation setup must become a review candidate");
 assert.equal(setup.issuerCode, "8136", "candidate must keep canonical issuer code");
@@ -35,6 +49,20 @@ assert.equal(setup.disclosurePublishedAt, "2026-09-04T09:00:00+09:00");
 assert.equal("time" in setup, false, "TDnet publication time must never become EventTime");
 assert.equal("occurrenceKey" in setup, false, "candidate classification must not invent a stable occurrence key");
 assert.equal("eventId" in setup, false, "candidate classification must not register a Market Event identity");
+
+for (const mutate of [
+  (candidate: TdnetMarketEventCandidate) => ({ ...candidate, issuerCode: ` ${candidate.issuerCode}` }),
+  (candidate: TdnetMarketEventCandidate) => ({ ...candidate, issuerName: ` ${candidate.issuerName}` }),
+  (candidate: TdnetMarketEventCandidate) => ({ ...candidate, disclosureTitle: `${candidate.disclosureTitle} ` }),
+]) {
+  const forged = mutate(setup);
+  forged.candidateId = forgedCandidateId(forged);
+  assert.throws(
+    () => assertTdnetMarketEventCandidateIdentity(forged),
+    /canonical|preserve the exact source value/,
+    "candidate identity validation must reject non-canonical persisted provenance even when candidateId is recomputed to match it",
+  );
+}
 
 const report = classifyTdnetDisclosureCandidate(disclosure({
   title: "第三者委員会からの調査報告書受領に関するお知らせ",
