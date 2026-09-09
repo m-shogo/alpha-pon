@@ -8,6 +8,7 @@ import {
   STORAGE_CLASSES,
   assertIsoTimestamp,
   buildDeliveryId,
+  buildEventId,
   buildSourceId,
   validateMarketEventBundle,
   type DecisionSnapshot,
@@ -40,6 +41,7 @@ export type MarketEventAuditReport = {
   currentRevisionMismatches: string[];
   malformedJsonRows: Array<{ table: string; id: string; field: string; message: string }>;
   unsupportedSchemaVersionRows: Array<{ table: string; id: string; schemaVersion: number }>;
+  invalidEventRows: Array<{ eventId: string; message: string }>;
   invalidSourceRows: Array<{ sourceId: string; message: string }>;
   invalidDeliveryRows: Array<{ deliveryId: string; message: string }>;
   invalidRevisionRows: Array<{ revisionId: string; message: string }>;
@@ -76,6 +78,11 @@ type MarketEventRow = {
   updated_at: string;
 };
 
+type PersistedEventIdentityRow = Pick<
+  MarketEventRow,
+  "event_id" | "occurrence_key" | "issuer_code" | "issuer_name" | "event_type"
+>;
+
 type PersistedJsonShape = "string-array" | "plain-object";
 
 function isPersistedJsonShape(value: unknown, shape: PersistedJsonShape): boolean {
@@ -102,6 +109,29 @@ function validatePersistedSchemaVersion(schemaVersion: number, context: string):
     throw new Error(`Unsupported persisted schemaVersion at ${context}: ${schemaVersion}`);
   }
   return 1;
+}
+
+function validatePersistedEventIdentity(row: PersistedEventIdentityRow): void {
+  const context = `market_events.${row.event_id}`;
+  const canonicalOccurrenceKey = row.occurrence_key.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
+  if (!canonicalOccurrenceKey || row.occurrence_key !== canonicalOccurrenceKey) {
+    throw new Error(`Invalid persisted event at ${context}: occurrenceKey must be canonical NFKC lowercase text without surrounding or repeated whitespace`);
+  }
+  if (row.issuer_code !== null) {
+    const canonicalIssuerCode = row.issuer_code.normalize("NFKC").trim().replace(/\s+/g, " ").toUpperCase();
+    if (!canonicalIssuerCode || row.issuer_code !== canonicalIssuerCode) {
+      throw new Error(`Invalid persisted event at ${context}: issuerCode must be canonical uppercase text without surrounding or repeated whitespace`);
+    }
+  }
+  const expectedEventId = buildEventId({
+    issuerCode: row.issuer_code,
+    issuerName: row.issuer_name,
+    eventType: row.event_type,
+    occurrenceKey: row.occurrence_key,
+  });
+  if (row.event_id !== expectedEventId) {
+    throw new Error(`Invalid persisted event at ${context}: eventId does not match canonical event identity ${expectedEventId}`);
+  }
 }
 
 function validatePersistedRevisionChronology(revision: Pick<EventRevision, "revisionId" | "observedAt" | "publishedAt" | "effectiveAt" | "firstExecutableAt">): void {
@@ -218,6 +248,7 @@ function validatePersistedSource(source: EventSource): EventSource {
 }
 
 function mapEventRow(row: MarketEventRow): MarketEvent {
+  validatePersistedEventIdentity(row);
   return {
     schemaVersion: validatePersistedSchemaVersion(row.schema_version, `market_events.${row.event_id}`),
     eventId: row.event_id,
@@ -660,9 +691,30 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
   `).all().map(row => (row as { eventId: string }).eventId);
   const malformedJsonRows: MarketEventAuditReport["malformedJsonRows"] = [];
   const unsupportedSchemaVersionRows: MarketEventAuditReport["unsupportedSchemaVersionRows"] = [];
+  const invalidEventRows: MarketEventAuditReport["invalidEventRows"] = [];
   const invalidSourceRows: MarketEventAuditReport["invalidSourceRows"] = [];
   const invalidDeliveryRows: MarketEventAuditReport["invalidDeliveryRows"] = [];
   const invalidRevisionRows: MarketEventAuditReport["invalidRevisionRows"] = [];
+  const eventRows = db.prepare(`
+    SELECT
+      event_id,
+      occurrence_key,
+      issuer_code,
+      issuer_name,
+      event_type
+    FROM market_events
+    ORDER BY event_id
+  `).all() as PersistedEventIdentityRow[];
+  for (const event of eventRows) {
+    try {
+      validatePersistedEventIdentity(event);
+    } catch (error) {
+      invalidEventRows.push({
+        eventId: event.event_id,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
   const sourceRows = db.prepare(`
     SELECT
       source_id AS sourceId,
@@ -864,6 +916,7 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
     || currentRevisionMismatches.length
     || malformedJsonRows.length
     || unsupportedSchemaVersionRows.length
+    || invalidEventRows.length
     || invalidSourceRows.length
     || invalidDeliveryRows.length
     || invalidRevisionRows.length
@@ -886,6 +939,7 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
     currentRevisionMismatches,
     malformedJsonRows,
     unsupportedSchemaVersionRows,
+    invalidEventRows,
     invalidSourceRows,
     invalidDeliveryRows,
     invalidRevisionRows,
