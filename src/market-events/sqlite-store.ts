@@ -7,6 +7,7 @@ import {
   SOURCE_TYPES,
   STORAGE_CLASSES,
   assertIsoTimestamp,
+  buildDecisionSnapshotId,
   buildDeliveryId,
   buildEventId,
   buildRevisionId,
@@ -44,6 +45,7 @@ export type MarketEventAuditReport = {
   unsupportedSchemaVersionRows: Array<{ table: string; id: string; schemaVersion: number }>;
   invalidEventRows: Array<{ eventId: string; message: string }>;
   invalidSourceRows: Array<{ sourceId: string; message: string }>;
+  invalidDecisionRows: Array<{ decisionSnapshotId: string; message: string }>;
   invalidDeliveryRows: Array<{ deliveryId: string; message: string }>;
   invalidRevisionRows: Array<{ revisionId: string; message: string }>;
   status: "ok" | "error";
@@ -146,6 +148,29 @@ function validatePersistedRevisionChronology(revision: Pick<EventRevision, "revi
     publishedAt: revision.publishedAt,
     firstExecutableAt: revision.firstExecutableAt,
   });
+}
+
+function validatePersistedDecisionIdentity(
+  decision: Pick<
+    DecisionSnapshot,
+    "decisionSnapshotId" | "eventId" | "revisionId" | "schemaVersion" | "decisionState" | "confidenceState" | "createdAt"
+  >,
+): void {
+  const context = `decision_snapshots.${decision.decisionSnapshotId}`;
+  validatePersistedSchemaVersion(decision.schemaVersion, context);
+  assertIsoTimestamp(decision.createdAt, `${context}.created_at`);
+  const expectedDecisionSnapshotId = buildDecisionSnapshotId({
+    eventId: decision.eventId,
+    revisionId: decision.revisionId,
+    decisionState: decision.decisionState,
+    confidenceState: decision.confidenceState,
+    createdAt: decision.createdAt,
+  });
+  if (decision.decisionSnapshotId !== expectedDecisionSnapshotId) {
+    throw new Error(
+      `Invalid persisted decision at ${context}: decisionSnapshotId does not match canonical decision identity ${expectedDecisionSnapshotId}`,
+    );
+  }
 }
 
 function validatePersistedDelivery(delivery: DeliveryOutboxItem): DeliveryOutboxItem {
@@ -311,7 +336,7 @@ export function applyMarketEventMigrations(
   migrationDirectory = DEFAULT_MARKET_EVENT_MIGRATION_DIR,
 ): string[] {
   const applied: string[] = [];
-  for (const path of migrationFiles(migrationDirectory)) {
+  for (const path of migrationFiles(directory)) {
     const sql = readFileSync(path, "utf8");
     db.exec(sql);
     applied.push(path);
@@ -694,6 +719,7 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
   const unsupportedSchemaVersionRows: MarketEventAuditReport["unsupportedSchemaVersionRows"] = [];
   const invalidEventRows: MarketEventAuditReport["invalidEventRows"] = [];
   const invalidSourceRows: MarketEventAuditReport["invalidSourceRows"] = [];
+  const invalidDecisionRows: MarketEventAuditReport["invalidDecisionRows"] = [];
   const invalidDeliveryRows: MarketEventAuditReport["invalidDeliveryRows"] = [];
   const invalidRevisionRows: MarketEventAuditReport["invalidRevisionRows"] = [];
   const eventRows = db.prepare(`
@@ -744,6 +770,33 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
     }
   }
   const sourceById = new Map(sourceRows.map(source => [source.sourceId, source] as const));
+  const decisionRows = db.prepare(`
+    SELECT
+      decision_snapshot_id AS decisionSnapshotId,
+      event_id AS eventId,
+      revision_id AS revisionId,
+      schema_version AS schemaVersion,
+      decision_state AS decisionState,
+      confidence_state AS confidenceState,
+      created_at AS createdAt
+    FROM decision_snapshots
+    ORDER BY decision_snapshot_id
+  `).all() as Array<
+    Pick<
+      DecisionSnapshot,
+      "decisionSnapshotId" | "eventId" | "revisionId" | "schemaVersion" | "decisionState" | "confidenceState" | "createdAt"
+    >
+  >;
+  for (const decision of decisionRows) {
+    try {
+      validatePersistedDecisionIdentity(decision);
+    } catch (error) {
+      invalidDecisionRows.push({
+        decisionSnapshotId: decision.decisionSnapshotId,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
   const deliveryRows = db.prepare(`
     SELECT
       delivery_id AS deliveryId,
@@ -939,6 +992,7 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
     || unsupportedSchemaVersionRows.length
     || invalidEventRows.length
     || invalidSourceRows.length
+    || invalidDecisionRows.length
     || invalidDeliveryRows.length
     || invalidRevisionRows.length
     ? "error"
@@ -962,6 +1016,7 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
     unsupportedSchemaVersionRows,
     invalidEventRows,
     invalidSourceRows,
+    invalidDecisionRows,
     invalidDeliveryRows,
     invalidRevisionRows,
     status,
