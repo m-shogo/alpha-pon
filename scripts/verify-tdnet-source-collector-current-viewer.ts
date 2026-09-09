@@ -70,6 +70,38 @@ try {
   assert.match(inconsistent.error ?? "", /cannot be explicit-empty/);
   assert.equal(inconsistent.contentHash, first.contentHash);
 
+  const duplicateDisclosure = {
+    code: "8136",
+    sourceCode: "81360",
+    companyName: "サンリオ",
+    title: "決算発表予定日に関するお知らせ",
+    publishedAt: "2026-09-04T15:00:00+09:00",
+    url: "https://www.release.tdnet.info/inbs/140120260904000002.pdf",
+  };
+  const duplicateSnapshot = await collectTdnetSourceOnce(db, {
+    now: () => "2026-09-04T02:20:00Z",
+    fetchSnapshot: async () => ({
+      explicitEmpty: false,
+      disclosures: [duplicateDisclosure, { ...duplicateDisclosure }],
+    }),
+  });
+  assert.equal(duplicateSnapshot.status, "failed");
+  assert.equal(duplicateSnapshot.explicitEmpty, false);
+  assert.equal(duplicateSnapshot.contentHash, first.contentHash);
+  assert.match(
+    duplicateSnapshot.error ?? "",
+    /duplicate disclosure provenance rows/,
+    "collector must fail closed instead of hashing away duplicate TDnet disclosure rows",
+  );
+
+  const afterDuplicateSnapshot = getSourceCheckpoint(db, first.sourceKey);
+  assert(afterDuplicateSnapshot);
+  assert.equal(afterDuplicateSnapshot.lastCheckedAt, "2026-09-04T02:20:00Z");
+  assert.equal(afterDuplicateSnapshot.lastSuccessAt, "2026-09-04T02:05:00Z");
+  assert.equal(afterDuplicateSnapshot.lastContentHash, first.contentHash);
+  assert.equal(afterDuplicateSnapshot.consecutiveFailures, 3);
+  assert.match(afterDuplicateSnapshot.lastError ?? "", /duplicate disclosure provenance rows/);
+
   assert.equal(
     (db.prepare("SELECT COUNT(*) AS count FROM market_events").get() as { count: number }).count,
     0,
