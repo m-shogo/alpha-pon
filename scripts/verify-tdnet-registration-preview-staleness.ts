@@ -36,6 +36,7 @@ const assessment = assessTdnetPrimaryReview(candidate, {
 
 const evidence: TdnetPrimaryDocumentEvidence = {
   candidateId: candidate.candidateId,
+  sourceCode: candidate.sourceCode,
   sourceUrl: candidate.sourceUrl,
   retrievedAt: "2026-09-04T15:05:00+09:00",
   contentHash: "d".repeat(64),

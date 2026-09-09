@@ -12,6 +12,7 @@ const PDF_EOF_TAIL_BYTES = 1024;
 
 export type TdnetPrimaryDocumentEvidence = {
   candidateId: string;
+  sourceCode: string | null;
   sourceUrl: string;
   retrievedAt: string;
   contentHash: string;
@@ -226,6 +227,7 @@ export async function acquireTdnetPrimaryDocumentEvidence(
 
   return {
     candidateId: candidate.candidateId,
+    sourceCode: candidate.sourceCode,
     sourceUrl: finalUrl.href,
     retrievedAt,
     contentHash: body.contentHash,

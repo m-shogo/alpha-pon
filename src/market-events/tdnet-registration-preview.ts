@@ -84,6 +84,9 @@ function assertPrimaryDocumentEvidenceBinding(
   if (evidence.candidateId !== candidate.candidateId) {
     throw new Error("TDnet primary document evidence candidateId mismatch");
   }
+  if (evidence.sourceCode !== candidate.sourceCode) {
+    throw new Error("TDnet primary document evidence sourceCode mismatch");
+  }
   if (evidence.sourceUrl !== candidate.sourceUrl) {
     throw new Error("TDnet primary document evidence sourceUrl mismatch");
   }
