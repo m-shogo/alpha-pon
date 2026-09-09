@@ -102,6 +102,19 @@ try {
     "central audit must identify the source row with fragment-bearing URL provenance",
   );
 
+  db.prepare("UPDATE event_sources SET url = ? WHERE source_id = ?").run("https://RELEASE.TDNET.INFO/inbs/140120260904000010.pdf", sourceId);
+  assert.throws(
+    () => listEventSources(db, eventId),
+    /url must use canonical URL serialization/,
+    "read path must reject persisted source URL aliases that registration forbids",
+  );
+  audit = auditMarketEventDatabase(db, ":memory:");
+  assert.equal(audit.status, "error", "central audit must reject non-canonical persisted source URLs");
+  assert.ok(
+    audit.invalidSourceRows.some(row => row.sourceId === sourceId && /url must use canonical URL serialization/.test(row.message)),
+    "central audit must identify the source row with non-canonical URL provenance",
+  );
+
   db.prepare("UPDATE event_sources SET url = ? WHERE source_id = ?").run("https://%", sourceId);
   assert.throws(
     () => listEventSources(db, eventId),

@@ -169,6 +169,9 @@ function validatePersistedSource(source: EventSource): EventSource {
   if (sourceUrl.hash !== "") {
     throw new Error(`Invalid persisted source at ${context}: url must not contain a fragment because source identity ignores URL fragments`);
   }
+  if (source.url !== sourceUrl.toString()) {
+    throw new Error(`Invalid persisted source at ${context}: url must use canonical URL serialization`);
+  }
   if (!/^[a-f0-9]{64}$/.test(source.contentHash)) {
     throw new Error(`Invalid persisted source at ${context}: content_hash must be a lowercase SHA-256 hash`);
   }
@@ -726,7 +729,6 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
         "string-array",
       );
     } catch {
-      // The generic JSON audit below owns syntax/shape diagnostics for source_ids_json.
       continue;
     }
     for (const sourceId of sourceIds) {
@@ -753,7 +755,6 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
           });
         }
       } catch {
-        // Source/revision timestamp validators above own malformed timestamp diagnostics.
       }
     }
   }
