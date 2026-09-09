@@ -96,7 +96,6 @@ const RULES: CandidateRule[] = [
   {
     signal: "tob_or_mbo",
     test: title => /公開買付|\bTOB\b|\bMBO\b/i.test(title),
-    // A TOB/MBO disclosure does not establish a TOB_DEADLINE from the title alone.
     eventTypeHint: null,
   },
   {
@@ -123,6 +122,12 @@ function canonicalSourceProvenance(value: string, fieldName: string): string {
     throw new Error(`TDnet candidate ${fieldName} must preserve the exact source value without surrounding whitespace`);
   }
   return value;
+}
+
+function candidateViewerText(value: string, fieldName: string): string {
+  const canonical = value.replace(/\s+/g, " ").trim();
+  if (!canonical) throw new Error(`TDnet candidate ${fieldName} must preserve canonical non-empty viewer text`);
+  return canonical;
 }
 
 function candidateIssuerCode(value: string): string {
@@ -196,8 +201,8 @@ function candidateIdFromFields(
 function candidateId(disclosure: TdnetDisclosure, issuerCode: string, publishedAt: string, sourceUrl: string): string {
   return candidateIdFromFields(
     issuerCode,
-    disclosure.companyName.trim(),
-    disclosure.title.trim(),
+    candidateViewerText(disclosure.companyName, "companyName"),
+    candidateViewerText(disclosure.title, "title"),
     publishedAt,
     sourceUrl,
   );
@@ -208,8 +213,14 @@ export function assertTdnetMarketEventCandidateIdentity(candidate: TdnetMarketEv
   if (candidate.issuerCode !== issuerCode) {
     throw new Error("TDnet candidate issuerCode must be a canonical 4-character issuer code");
   }
-  const issuerName = canonicalSourceProvenance(candidate.issuerName, "companyName");
-  const disclosureTitle = canonicalSourceProvenance(candidate.disclosureTitle, "title");
+  const issuerName = candidateViewerText(candidate.issuerName, "companyName");
+  if (candidate.issuerName !== issuerName) {
+    throw new Error("TDnet candidate companyName must preserve canonical non-empty viewer text");
+  }
+  const disclosureTitle = candidateViewerText(candidate.disclosureTitle, "title");
+  if (candidate.disclosureTitle !== disclosureTitle) {
+    throw new Error("TDnet candidate title must preserve canonical non-empty viewer text");
+  }
   const publishedAt = candidatePublishedAt(candidate.disclosurePublishedAt);
   const sourceUrl = candidateSourceUrl(candidate.sourceUrl);
   candidateSourceCode(candidate.sourceCode ?? undefined, issuerCode);
@@ -252,9 +263,7 @@ export function assertTdnetMarketEventCandidateIdentity(candidate: TdnetMarketEv
 export function classifyTdnetDisclosureCandidate(
   disclosure: TdnetDisclosure,
 ): TdnetMarketEventCandidate | null {
-  const title = disclosure.title.trim();
-  if (!title) return null;
-
+  const title = candidateViewerText(disclosure.title, "title");
   const advisory = candidateAdvisory(title);
   if (advisory === null) return null;
 
@@ -262,14 +271,14 @@ export function classifyTdnetDisclosureCandidate(
   const publishedAt = candidatePublishedAt(disclosure.publishedAt);
   const sourceUrl = candidateSourceUrl(disclosure.url);
   const sourceCode = candidateSourceCode(disclosure.sourceCode, issuerCode);
+  const issuerName = candidateViewerText(disclosure.companyName, "companyName");
 
   return {
     candidateId: candidateId(disclosure, issuerCode, publishedAt, sourceUrl),
     issuerCode,
     sourceCode,
-    issuerName: disclosure.companyName.trim(),
+    issuerName,
     disclosureTitle: title,
-    // This is source publication metadata only. It is deliberately not EventTime.
     disclosurePublishedAt: publishedAt,
     sourceUrl,
     eventTypeHint: advisory.eventTypeHint,
