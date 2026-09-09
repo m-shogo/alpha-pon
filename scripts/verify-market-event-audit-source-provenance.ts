@@ -115,6 +115,22 @@ try {
     "central audit must identify the source row with non-canonical URL provenance",
   );
 
+  db.prepare("UPDATE event_sources SET url = ? WHERE source_id = ?").run(
+    "https://www.release.tdnet.info/inbs/140120260904000011.pdf",
+    sourceId,
+  );
+  assert.throws(
+    () => listEventSources(db, eventId),
+    /sourceId does not match canonical source identity/,
+    "read path must reject persisted source identity fields that drift away from sourceId",
+  );
+  audit = auditMarketEventDatabase(db, ":memory:");
+  assert.equal(audit.status, "error", "central audit must reject stale persisted sourceId bindings");
+  assert.ok(
+    audit.invalidSourceRows.some(row => row.sourceId === sourceId && /sourceId does not match canonical source identity/.test(row.message)),
+    "central audit must identify the source row with stale sourceId provenance",
+  );
+
   db.prepare("UPDATE event_sources SET url = ? WHERE source_id = ?").run("https://%", sourceId);
   assert.throws(
     () => listEventSources(db, eventId),
