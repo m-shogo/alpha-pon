@@ -58,6 +58,53 @@ try {
   assert.equal(auditMarketEventDatabase(db, ":memory:").status, "ok");
 
   const deliveryId = bundle.deliveries[0].deliveryId;
+  const canonicalDeliveryKey = bundle.deliveries[0].deliveryKey;
+  const canonicalScheduledAt = bundle.deliveries[0].scheduledAt;
+
+  db.prepare("UPDATE delivery_outbox SET delivery_key = ? WHERE delivery_id = ?").run(
+    " Delivery Audit ",
+    deliveryId,
+  );
+  assert.throws(
+    () => listPendingDeliveries(db, "2026-09-06T01:00:00Z"),
+    /deliveryKey must be canonical/,
+    "pending-delivery reads must fail closed on non-canonical persisted delivery keys",
+  );
+  let audit = auditMarketEventDatabase(db, ":memory:");
+  assert.equal(audit.status, "error", "central audit must reject non-canonical persisted delivery keys");
+  assert.ok(
+    audit.invalidDeliveryRows.some(
+      row => row.deliveryId === deliveryId && /deliveryKey must be canonical/.test(row.message),
+    ),
+    "central audit must identify the delivery row with a non-canonical delivery key",
+  );
+  db.prepare("UPDATE delivery_outbox SET delivery_key = ? WHERE delivery_id = ?").run(
+    canonicalDeliveryKey,
+    deliveryId,
+  );
+
+  db.prepare("UPDATE delivery_outbox SET scheduled_at = ? WHERE delivery_id = ?").run(
+    "2026-09-05T00:00:01Z",
+    deliveryId,
+  );
+  assert.throws(
+    () => listPendingDeliveries(db, "2026-09-06T01:00:00Z"),
+    /deliveryId does not match canonical delivery identity/,
+    "pending-delivery reads must fail closed when persisted identity inputs drift from deliveryId",
+  );
+  audit = auditMarketEventDatabase(db, ":memory:");
+  assert.equal(audit.status, "error", "central audit must reject stale persisted deliveryId bindings");
+  assert.ok(
+    audit.invalidDeliveryRows.some(
+      row => row.deliveryId === deliveryId && /deliveryId does not match canonical delivery identity/.test(row.message),
+    ),
+    "central audit must identify the delivery row with a stale deliveryId binding",
+  );
+  db.prepare("UPDATE delivery_outbox SET scheduled_at = ? WHERE delivery_id = ?").run(
+    canonicalScheduledAt,
+    deliveryId,
+  );
+
   db.prepare("UPDATE delivery_outbox SET created_at = ?, updated_at = ? WHERE delivery_id = ?").run(
     "2026-09-06T00:00:00Z",
     "2026-09-05T23:59:59Z",
@@ -68,7 +115,7 @@ try {
     /updated_at must be on or after created_at/,
     "pending-delivery reads must fail closed on impossible persisted lifecycle chronology",
   );
-  const audit = auditMarketEventDatabase(db, ":memory:");
+  audit = auditMarketEventDatabase(db, ":memory:");
   assert.equal(audit.status, "error", "central audit must reject impossible delivery chronology");
   assert.ok(
     audit.invalidDeliveryRows.some(
