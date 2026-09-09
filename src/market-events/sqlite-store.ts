@@ -7,6 +7,7 @@ import {
   SOURCE_TYPES,
   STORAGE_CLASSES,
   assertIsoTimestamp,
+  buildDeliveryId,
   buildSourceId,
   validateMarketEventBundle,
   type DecisionSnapshot,
@@ -119,10 +120,24 @@ function validatePersistedRevisionChronology(revision: Pick<EventRevision, "revi
 function validatePersistedDelivery(delivery: DeliveryOutboxItem): DeliveryOutboxItem {
   const context = `delivery_outbox.${delivery.deliveryId}`;
   validatePersistedSchemaVersion(delivery.schemaVersion, context);
+  const canonicalDeliveryKey = delivery.deliveryKey.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
+  if (!canonicalDeliveryKey || delivery.deliveryKey !== canonicalDeliveryKey) {
+    throw new Error(`Invalid persisted delivery at ${context}: deliveryKey must be canonical NFKC lowercase text without surrounding or repeated whitespace`);
+  }
   if (!Number.isInteger(delivery.attemptCount) || delivery.attemptCount < 0) {
     throw new Error(`Invalid persisted delivery at ${context}: attemptCount must be a non-negative integer`);
   }
   assertIsoTimestamp(delivery.scheduledAt, `${context}.scheduled_at`);
+  const expectedDeliveryId = buildDeliveryId({
+    eventId: delivery.eventId,
+    revisionId: delivery.revisionId,
+    channel: delivery.channel,
+    deliveryKey: delivery.deliveryKey,
+    scheduledAt: delivery.scheduledAt,
+  });
+  if (delivery.deliveryId !== expectedDeliveryId) {
+    throw new Error(`Invalid persisted delivery at ${context}: deliveryId does not match canonical delivery identity ${expectedDeliveryId}`);
+  }
   assertIsoTimestamp(delivery.createdAt, `${context}.created_at`);
   assertIsoTimestamp(delivery.updatedAt, `${context}.updated_at`);
   if (
