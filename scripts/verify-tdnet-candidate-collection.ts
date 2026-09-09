@@ -102,6 +102,31 @@ try {
   assert.equal(malformedCheckpoint.consecutiveFailures, 1);
   assert.match(malformedCheckpoint.lastError ?? "", /sourceCode must be an exact 5-character uppercase source value/);
 
+  const unmatchedMalformed = await collectTdnetSourceOnce(db, {
+    now: () => "2026-09-04T07:17:00Z",
+    fetchSnapshot: async () => ({
+      disclosures: [{
+        ...disclosures[1]!,
+        url: "https://example.com/inbs/140120260904000002.pdf",
+      }],
+      explicitEmpty: false,
+    }),
+  });
+  assert.equal(
+    unmatchedMalformed.status,
+    "failed",
+    "unmatched TDnet rows must still pass source provenance validation before checkpoint success",
+  );
+  assert.deepEqual(unmatchedMalformed.candidates, []);
+  assert.match(unmatchedMalformed.error ?? "", /official TDnet source URL/);
+  const unmatchedCheckpoint = db.prepare(`
+    SELECT consecutive_failures AS consecutiveFailures, last_error AS lastError
+    FROM source_checkpoints
+    WHERE source_key = ?
+  `).get(unmatchedMalformed.sourceKey) as { consecutiveFailures: number; lastError: string | null };
+  assert.equal(unmatchedCheckpoint.consecutiveFailures, 2);
+  assert.match(unmatchedCheckpoint.lastError ?? "", /official TDnet source URL/);
+
   const failed = await collectTdnetSourceOnce(db, {
     now: () => "2026-09-04T07:20:00Z",
     fetchSnapshot: async () => {
