@@ -127,6 +127,28 @@ try {
   assert.equal(unmatchedCheckpoint.consecutiveFailures, 2);
   assert.match(unmatchedCheckpoint.lastError ?? "", /official TDnet source URL/);
 
+  const missingSourceCode = await collectTdnetSourceOnce(db, {
+    now: () => "2026-09-04T07:18:00Z",
+    fetchSnapshot: async () => ({
+      disclosures: [{ ...disclosures[1]!, sourceCode: undefined }],
+      explicitEmpty: false,
+    }),
+  });
+  assert.equal(
+    missingSourceCode.status,
+    "failed",
+    "collector provenance must fail closed when the official raw 5-character sourceCode is missing",
+  );
+  assert.deepEqual(missingSourceCode.candidates, []);
+  assert.match(missingSourceCode.error ?? "", /requires raw 5-character sourceCode/);
+  const missingSourceCodeCheckpoint = db.prepare(`
+    SELECT consecutive_failures AS consecutiveFailures, last_error AS lastError
+    FROM source_checkpoints
+    WHERE source_key = ?
+  `).get(missingSourceCode.sourceKey) as { consecutiveFailures: number; lastError: string | null };
+  assert.equal(missingSourceCodeCheckpoint.consecutiveFailures, 3);
+  assert.match(missingSourceCodeCheckpoint.lastError ?? "", /requires raw 5-character sourceCode/);
+
   const failed = await collectTdnetSourceOnce(db, {
     now: () => "2026-09-04T07:20:00Z",
     fetchSnapshot: async () => {
