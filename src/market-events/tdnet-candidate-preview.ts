@@ -75,7 +75,9 @@ function assertDisclosureSourceCodes(snapshot: TdnetDisclosureSnapshot): void {
     if (!/^[0-9A-Z]{4}$/.test(disclosure.code)) {
       throw new Error(`TDnet preview disclosure code must be a canonical 4-character issuer code: ${disclosure.code}`);
     }
-    if (disclosure.sourceCode === undefined) continue;
+    if (disclosure.sourceCode === undefined) {
+      throw new Error(`TDnet preview disclosure requires the raw 5-character sourceCode: ${disclosure.code}`);
+    }
     if (!/^[0-9A-Z]{5}$/.test(disclosure.sourceCode)) {
       throw new Error(`TDnet preview disclosure sourceCode must be an exact 5-character uppercase source value: ${disclosure.sourceCode}`);
     }
