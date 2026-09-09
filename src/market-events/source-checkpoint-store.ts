@@ -52,6 +52,12 @@ function validateCanonicalIdentity(value: string, fieldName: "sourceKey" | "sour
   if (value.trim() !== value) {
     throw new Error(`${fieldName} must be canonical without surrounding whitespace`);
   }
+  if (fieldName === "sourceType") {
+    const canonical = value.normalize("NFKC").replace(/\s+/g, " ").toUpperCase();
+    if (value !== canonical) {
+      throw new Error("sourceType must be canonical NFKC uppercase text without repeated whitespace");
+    }
+  }
 }
 
 function validateCheckpoint(checkpoint: SourceCheckpoint): void {
