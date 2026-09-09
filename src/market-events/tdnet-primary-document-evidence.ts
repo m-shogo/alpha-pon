@@ -173,6 +173,9 @@ export async function acquireTdnetPrimaryDocumentEvidence(
 ): Promise<TdnetPrimaryDocumentEvidence> {
   const requestedUrl = assertOfficialTdnetDocumentUrl(candidate.sourceUrl, "TDnet primary document sourceUrl");
   assertTdnetMarketEventCandidateIdentity(candidate);
+  if (candidate.sourceCode === null) {
+    throw new Error("TDnet primary document evidence requires raw 5-character sourceCode provenance");
+  }
   const fetchImpl = options.fetchImpl ?? fetch;
   const now = options.now ?? (() => new Date().toISOString());
   const maxBytes = parsePositiveMaxBytes(options.maxBytes ?? DEFAULT_MAX_DOCUMENT_BYTES);
