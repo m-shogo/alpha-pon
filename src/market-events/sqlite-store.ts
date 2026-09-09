@@ -7,6 +7,7 @@ import {
   SOURCE_TYPES,
   STORAGE_CLASSES,
   assertIsoTimestamp,
+  buildSourceId,
   validateMarketEventBundle,
   type DecisionSnapshot,
   type DeliveryOutboxItem,
@@ -188,6 +189,15 @@ function validatePersistedSource(source: EventSource): EventSource {
     ) {
       throw new Error(`Invalid persisted source chronology at ${context}: published_at must be on or before retrieved_at`);
     }
+  }
+  const expectedSourceId = buildSourceId({
+    authority: source.authority,
+    url: source.url,
+    publishedAt: source.publishedAt,
+    contentHash: source.contentHash,
+  });
+  if (source.sourceId !== expectedSourceId) {
+    throw new Error(`Invalid persisted source at ${context}: sourceId does not match canonical source identity ${expectedSourceId}`);
   }
   return source;
 }
