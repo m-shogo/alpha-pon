@@ -154,7 +154,7 @@ function validatePersistedDecisionIdentity(
   decision: Pick<
     DecisionSnapshot,
     "decisionSnapshotId" | "eventId" | "revisionId" | "schemaVersion" | "decisionState" | "confidenceState" | "createdAt"
-  >,
+  > & { revisionObservedAt: string | null },
 ): void {
   const context = `decision_snapshots.${decision.decisionSnapshotId}`;
   validatePersistedSchemaVersion(decision.schemaVersion, context);
@@ -170,6 +170,20 @@ function validatePersistedDecisionIdentity(
     throw new Error(
       `Invalid persisted decision at ${context}: decisionSnapshotId does not match canonical decision identity ${expectedDecisionSnapshotId}`,
     );
+  }
+  if (decision.revisionObservedAt === null) {
+    throw new Error(`Invalid persisted decision chronology at ${context}: linked revision is missing`);
+  }
+  assertIsoTimestamp(decision.revisionObservedAt, `${context}.revision_observed_at`);
+  if (
+    compareExplicitIso8601Instants(
+      decision.createdAt,
+      decision.revisionObservedAt,
+      `${context}.created_at`,
+      `${context}.revision_observed_at`,
+    ) < 0
+  ) {
+    throw new Error(`Invalid persisted decision chronology at ${context}: created_at must be on or after linked revision observed_at`);
   }
 }
 
@@ -772,20 +786,22 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
   const sourceById = new Map(sourceRows.map(source => [source.sourceId, source] as const));
   const decisionRows = db.prepare(`
     SELECT
-      decision_snapshot_id AS decisionSnapshotId,
-      event_id AS eventId,
-      revision_id AS revisionId,
-      schema_version AS schemaVersion,
-      decision_state AS decisionState,
-      confidence_state AS confidenceState,
-      created_at AS createdAt
-    FROM decision_snapshots
-    ORDER BY decision_snapshot_id
+      d.decision_snapshot_id AS decisionSnapshotId,
+      d.event_id AS eventId,
+      d.revision_id AS revisionId,
+      d.schema_version AS schemaVersion,
+      d.decision_state AS decisionState,
+      d.confidence_state AS confidenceState,
+      d.created_at AS createdAt,
+      r.observed_at AS revisionObservedAt
+    FROM decision_snapshots d
+    LEFT JOIN event_revisions r ON r.revision_id = d.revision_id
+    ORDER BY d.decision_snapshot_id
   `).all() as Array<
     Pick<
       DecisionSnapshot,
       "decisionSnapshotId" | "eventId" | "revisionId" | "schemaVersion" | "decisionState" | "confidenceState" | "createdAt"
-    >
+    > & { revisionObservedAt: string | null }
   >;
   for (const decision of decisionRows) {
     try {
