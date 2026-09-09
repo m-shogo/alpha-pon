@@ -60,6 +60,7 @@ try {
   const deliveryId = bundle.deliveries[0].deliveryId;
   const canonicalDeliveryKey = bundle.deliveries[0].deliveryKey;
   const canonicalScheduledAt = bundle.deliveries[0].scheduledAt;
+  const canonicalChannel = bundle.deliveries[0].channel;
 
   db.prepare("UPDATE delivery_outbox SET delivery_key = ? WHERE delivery_id = ?").run(
     " Delivery Audit ",
@@ -104,6 +105,24 @@ try {
     canonicalScheduledAt,
     deliveryId,
   );
+
+  db.exec("PRAGMA ignore_check_constraints = ON");
+  db.prepare("UPDATE delivery_outbox SET channel = ? WHERE delivery_id = ?").run("EMAIL", deliveryId);
+  db.exec("PRAGMA ignore_check_constraints = OFF");
+  assert.throws(
+    () => listPendingDeliveries(db, "2026-09-06T01:00:00Z"),
+    /Unknown delivery channel: EMAIL/,
+    "pending-delivery reads must fail closed when persisted channel bypasses the schema enum constraint",
+  );
+  audit = auditMarketEventDatabase(db, ":memory:");
+  assert.equal(audit.status, "error", "central audit must reject unknown persisted delivery channels");
+  assert.ok(
+    audit.invalidDeliveryRows.some(
+      row => row.deliveryId === deliveryId && /Unknown delivery channel: EMAIL/.test(row.message),
+    ),
+    "central audit must identify the delivery row with an unknown channel",
+  );
+  db.prepare("UPDATE delivery_outbox SET channel = ? WHERE delivery_id = ?").run(canonicalChannel, deliveryId);
 
   db.prepare("UPDATE delivery_outbox SET created_at = ?, updated_at = ? WHERE delivery_id = ?").run(
     "2026-09-06T00:00:00Z",
