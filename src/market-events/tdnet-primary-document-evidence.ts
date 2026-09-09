@@ -157,7 +157,7 @@ async function readPrimaryDocumentBody(response: Response, maxBytes: number): Pr
     throw new Error("TDnet primary document body must have a PDF signature");
   }
   if (!hasCanonicalPdfEofTail(pdfTail)) {
-    throw new Error("TDnet primary document body must end after a PDF EOF marker with whitespace only");
+    throw new Error("TDnet primary document body must include a PDF EOF marker near the end and contain only whitespace after it");
   }
 
   return {
