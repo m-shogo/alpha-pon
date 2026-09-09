@@ -92,6 +92,18 @@ assert.throws(
   () => buildTdnetCandidatePreview({
     ...snapshot,
     disclosures: [
+      { ...snapshot.disclosures[2]!, sourceCode: undefined },
+    ],
+    pageCount: 1,
+    pageUrls: [snapshot.pageUrls[0]!],
+  }),
+  /requires the raw 5-character sourceCode/,
+  "preview provenance must fail closed when a disclosure loses the raw TDnet 5-character sourceCode",
+);
+assert.throws(
+  () => buildTdnetCandidatePreview({
+    ...snapshot,
+    disclosures: [
       { ...snapshot.disclosures[2]!, code: "468X", sourceCode: "46800" },
     ],
     pageCount: 1,
