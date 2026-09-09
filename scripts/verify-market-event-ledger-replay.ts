@@ -125,6 +125,14 @@ assert.throws(
   /does not match canonical delivery identity/,
   "standalone ledger validation must reject forged delivery IDs",
 );
+assert.throws(
+  () => validateLedgerRecord({
+    ...deliveryRecord,
+    payload: { ...deliveryRecord.payload, deliveryKey: " Day Before " },
+  }),
+  /deliveryKey must be canonical/,
+  "standalone ledger validation must reject delivery-key aliases that canonicalize to the same stable identity",
+);
 
 const exactEventReplay = [...records, eventRecord];
 assert.equal(

@@ -242,6 +242,10 @@ export function validateLedgerRecord(record: MarketEventLedgerRecord): void {
       if (!record.payload.deliveryId.startsWith("dlv_")) throw new Error("Invalid deliveryId");
       if (!record.payload.eventId.startsWith("evt_")) throw new Error("Invalid eventId");
       if (!record.payload.revisionId.startsWith("rev_")) throw new Error("Invalid revisionId");
+      const canonicalDeliveryKey = record.payload.deliveryKey.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
+      if (!canonicalDeliveryKey || record.payload.deliveryKey !== canonicalDeliveryKey) {
+        throw new Error("deliveryKey must be canonical NFKC lowercase text without surrounding or repeated whitespace");
+      }
       assertIsoTimestamp(record.payload.scheduledAt, "scheduledAt");
       const expectedDeliveryId = buildDeliveryId({
         eventId: record.payload.eventId,
