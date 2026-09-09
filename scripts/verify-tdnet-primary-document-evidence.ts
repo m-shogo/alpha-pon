@@ -22,7 +22,7 @@ function fakeResponse(options: {
   contentType?: string;
   contentLength?: string | null;
 } = {}): Response {
-  const body = new TextEncoder().encode(options.body ?? "%PDF-1.7 synthetic primary document");
+  const body = new TextEncoder().encode(options.body ?? "%PDF-1.7 synthetic primary document\n%%EOF\n");
   const status = options.status ?? 200;
   const headers = new Headers();
   headers.set("content-type", options.contentType ?? "application/pdf");
@@ -43,7 +43,7 @@ function fetchReturning(response: Response): typeof fetch {
   return (async () => response) as typeof fetch;
 }
 
-const body = "%PDF-1.7 synthetic primary document";
+const body = "%PDF-1.7 synthetic primary document\n%%EOF\n";
 let observedRedirectMode: RequestRedirect | undefined;
 const evidence = await acquireTdnetPrimaryDocumentEvidence(candidate, {
   fetchImpl: (async (_input, init) => {
@@ -64,7 +64,7 @@ assert.deepEqual(evidence, {
 assert.equal("body" in evidence, false, "raw primary document bytes must not be returned or persisted by the evidence boundary");
 
 const leadingZeroLengthEvidence = await acquireTdnetPrimaryDocumentEvidence(candidate, {
-  fetchImpl: fetchReturning(fakeResponse({ body, contentLength: "035" })),
+  fetchImpl: fetchReturning(fakeResponse({ body, contentLength: "042" })),
   now: () => "2026-09-04T15:05:00+09:00",
 });
 assert.equal(
@@ -183,6 +183,15 @@ await assert.rejects(
     now: () => "2026-09-04T15:05:00+09:00",
   }),
   /must have a PDF signature/,
+);
+
+await assert.rejects(
+  () => acquireTdnetPrimaryDocumentEvidence(candidate, {
+    fetchImpl: fetchReturning(fakeResponse({ body: "%PDF-1.7 truncated primary document" })),
+    now: () => "2026-09-04T15:05:00+09:00",
+  }),
+  /must include a PDF EOF marker near the end/,
+  "a PDF header alone must not count as complete primary-document evidence",
 );
 
 await assert.rejects(
