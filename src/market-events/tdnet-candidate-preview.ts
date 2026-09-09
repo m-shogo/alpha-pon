@@ -45,6 +45,9 @@ export function buildTdnetCandidatePreview(
   if (snapshot.pageUrls.length !== snapshot.pageCount) {
     throw new Error("TDnet preview pageUrls must match pageCount");
   }
+  if (snapshot.explicitEmpty && snapshot.pageCount !== 1) {
+    throw new Error("TDnet preview explicit-empty proof must come from the first official viewer page only");
+  }
   for (const [index, pageUrl] of snapshot.pageUrls.entries()) {
     const expectedUrl = buildTdnetListUrl(snapshot.observationDate, index + 1);
     if (pageUrl !== expectedUrl) {

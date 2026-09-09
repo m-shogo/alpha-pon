@@ -148,6 +148,20 @@ assert.throws(
   /requires explicit-empty proof when disclosure count is zero/,
   "zero-row previews must not erase the distinction between explicit-empty and an unproven fetch/parser failure",
 );
+assert.throws(
+  () => buildTdnetCandidatePreview({
+    observationDate: "2026-09-05",
+    explicitEmpty: true,
+    pageCount: 2,
+    pageUrls: [
+      "https://www.release.tdnet.info/inbs/I_list_001_20260905.html",
+      "https://www.release.tdnet.info/inbs/I_list_002_20260905.html",
+    ],
+    disclosures: [],
+  }),
+  /explicit-empty proof must come from the first official viewer page only/,
+  "explicit-empty preview provenance must preserve the collector invariant that page 1 alone proves no disclosures",
+);
 
 const emptyPreview = buildTdnetCandidatePreview({
   observationDate: "2026-09-05",
