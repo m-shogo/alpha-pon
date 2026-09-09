@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { buildEventId } from "../src/market-events/contracts.js";
+import { buildDecisionSnapshotId, buildEventId } from "../src/market-events/contracts.js";
 import { buildMarketEventBundle, type MarketEventRegistrationInput } from "../src/market-events/registration.js";
 import {
   auditMarketEventDatabase,
@@ -81,6 +81,34 @@ try {
         && /decisionSnapshotId does not match canonical decision identity/.test(row.message),
     ),
     "central audit must identify the decision row with a stale decisionSnapshotId binding",
+  );
+
+  const tooEarlyCreatedAt = "2026-08-03T05:59:59Z";
+  const tooEarlyDecisionSnapshotId = buildDecisionSnapshotId({
+    eventId: bundle.decisionSnapshot.eventId,
+    revisionId: bundle.decisionSnapshot.revisionId,
+    decisionState: bundle.decisionSnapshot.decisionState,
+    confidenceState: bundle.decisionSnapshot.confidenceState,
+    createdAt: tooEarlyCreatedAt,
+  });
+  db.prepare(`
+    UPDATE decision_snapshots
+    SET decision_snapshot_id = ?, confidence_state = ?, created_at = ?
+    WHERE decision_snapshot_id = ?
+  `).run(
+    tooEarlyDecisionSnapshotId,
+    bundle.decisionSnapshot.confidenceState,
+    tooEarlyCreatedAt,
+    bundle.decisionSnapshot.decisionSnapshotId,
+  );
+  const chronologyAudit = auditMarketEventDatabase(db, ":memory:");
+  assert.equal(chronologyAudit.status, "error", "central audit must reject decisions recorded before their linked revision was observed");
+  assert.ok(
+    chronologyAudit.invalidDecisionRows.some(
+      row => row.decisionSnapshotId === tooEarlyDecisionSnapshotId
+        && /created_at must be on or after linked revision observed_at/.test(row.message),
+    ),
+    "central audit must identify a canonically rebound decision whose created_at predates revision observation",
   );
 } finally {
   db.close();
