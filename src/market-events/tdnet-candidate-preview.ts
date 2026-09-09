@@ -87,6 +87,20 @@ function assertDisclosureSourceCodes(snapshot: TdnetDisclosureSnapshot): void {
   }
 }
 
+function assertDisclosureViewerText(snapshot: TdnetDisclosureSnapshot): void {
+  for (const disclosure of snapshot.disclosures) {
+    for (const [fieldName, value] of [
+      ["companyName", disclosure.companyName],
+      ["title", disclosure.title],
+    ] as const) {
+      const canonicalViewerText = value.replace(/\s+/g, " ").trim();
+      if (!canonicalViewerText || value !== canonicalViewerText) {
+        throw new Error(`TDnet preview disclosure ${fieldName} must preserve canonical non-empty viewer text`);
+      }
+    }
+  }
+}
+
 export function buildTdnetCandidatePreview(
   snapshot: TdnetDisclosureSnapshot,
 ): TdnetCandidatePreview {
@@ -114,6 +128,7 @@ export function buildTdnetCandidatePreview(
   assertDisclosurePublicationDates(snapshot);
   assertDisclosureSourceUrls(snapshot);
   assertDisclosureSourceCodes(snapshot);
+  assertDisclosureViewerText(snapshot);
 
   const unmatchedDisclosureCount = snapshot.disclosures.reduce(
     (count, disclosure) => count + (classifyTdnetDisclosureCandidate(disclosure) === null ? 1 : 0),
