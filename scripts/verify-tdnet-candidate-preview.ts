@@ -124,6 +124,30 @@ assert.throws(
   /sourceCode must be an exact 5-character uppercase source value/,
   "preview provenance must reject malformed raw sourceCode on unmatched disclosures",
 );
+assert.throws(
+  () => buildTdnetCandidatePreview({
+    ...snapshot,
+    disclosures: [
+      { ...snapshot.disclosures[2]!, companyName: " ラウンドワン " },
+    ],
+    pageCount: 1,
+    pageUrls: [snapshot.pageUrls[0]!],
+  }),
+  /companyName must preserve canonical non-empty viewer text/,
+  "preview provenance must reject company-name aliases that the official viewer parser would normalize",
+);
+assert.throws(
+  () => buildTdnetCandidatePreview({
+    ...snapshot,
+    disclosures: [
+      { ...snapshot.disclosures[2]!, title: "" },
+    ],
+    pageCount: 1,
+    pageUrls: [snapshot.pageUrls[0]!],
+  }),
+  /title must preserve canonical non-empty viewer text/,
+  "preview provenance must reject empty disclosure titles even for unmatched rows",
+);
 
 assert.throws(
   () => buildTdnetCandidatePreview({
