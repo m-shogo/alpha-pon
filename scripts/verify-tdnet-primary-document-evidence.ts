@@ -55,6 +55,7 @@ const evidence = await acquireTdnetPrimaryDocumentEvidence(candidate, {
 assert.equal(observedRedirectMode, "error", "primary-document acquisition must reject redirects before fetch follows them");
 assert.deepEqual(evidence, {
   candidateId: candidate.candidateId,
+  sourceCode: candidate.sourceCode,
   sourceUrl,
   retrievedAt: "2026-09-04T15:05:00+09:00",
   contentHash: createHash("sha256").update(new TextEncoder().encode(body)).digest("hex"),
