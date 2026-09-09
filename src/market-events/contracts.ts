@@ -434,6 +434,12 @@ export function validateMarketEventBundle(bundle: MarketEventBundle): void {
   if (event.occurrenceKey !== canonicalOccurrenceKey) {
     throw new Error("occurrenceKey must be canonical NFKC lowercase text without surrounding or repeated whitespace");
   }
+  if (event.issuerCode !== null) {
+    const canonicalIssuerCode = normalizeIssuerCode(event.issuerCode);
+    if (!canonicalIssuerCode || event.issuerCode !== canonicalIssuerCode) {
+      throw new Error("issuerCode must be canonical NFKC uppercase text without surrounding or repeated whitespace");
+    }
+  }
   if (!event.issuerName.trim()) throw new Error("issuerName is required");
   if (!event.title.trim()) throw new Error("title is required");
   assertKnownValue(MARKET_EVENT_TYPES, event.eventType, "eventType");
