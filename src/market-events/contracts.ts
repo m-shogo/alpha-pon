@@ -285,6 +285,8 @@ export function buildDecisionSnapshotId(input: {
   confidenceState: ConfidenceState;
   createdAt: string;
 }): string {
+  assertKnownValue(DECISION_STATES, input.decisionState, "decision state");
+  assertKnownValue(CONFIDENCE_STATES, input.confidenceState, "confidence state");
   return stableId("dec", input);
 }
 
