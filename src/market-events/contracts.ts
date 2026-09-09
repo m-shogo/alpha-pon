@@ -524,6 +524,9 @@ export function validateMarketEventBundle(bundle: MarketEventBundle): void {
     if (sourceUrl.hash !== "") {
       throw new Error("Source URL must not contain a fragment because source identity ignores URL fragments");
     }
+    if (source.url !== sourceUrl.toString()) {
+      throw new Error("Source URL must use the canonical URL serialization used by source identity");
+    }
     assertSha256ContentHash(source.contentHash);
     assertIsoTimestamp(source.retrievedAt, "retrievedAt");
     if (source.publishedAt !== null) {
