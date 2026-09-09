@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { buildEventId } from "../src/market-events/contracts.js";
 import { buildMarketEventBundle, type MarketEventRegistrationInput } from "../src/market-events/registration.js";
-import { getNextRevisionContext, openMarketEventDatabase, registerMarketEventBundle } from "../src/market-events/sqlite-store.js";
+import {
+  auditMarketEventDatabase,
+  getNextRevisionContext,
+  openMarketEventDatabase,
+  registerMarketEventBundle,
+} from "../src/market-events/sqlite-store.js";
 
 const input: MarketEventRegistrationInput = {
   issuerCode: "8136",
@@ -40,6 +45,7 @@ try {
   assert.ok(bundle.decisionSnapshot, "fixture must contain a decision snapshot");
   registerMarketEventBundle(db, bundle);
   registerMarketEventBundle(db, bundle);
+  assert.equal(auditMarketEventDatabase(db, ":memory:").status, "ok");
 
   const changedDecisionReplay = {
     ...bundle,
@@ -60,6 +66,20 @@ try {
     persisted.reasonsJson,
     JSON.stringify(bundle.decisionSnapshot.reasons),
     "failed replay must leave the original decision snapshot payload intact",
+  );
+
+  db.prepare("UPDATE decision_snapshots SET confidence_state = ? WHERE decision_snapshot_id = ?").run(
+    "CONFIRMED",
+    bundle.decisionSnapshot.decisionSnapshotId,
+  );
+  const audit = auditMarketEventDatabase(db, ":memory:");
+  assert.equal(audit.status, "error", "central audit must reject stale persisted decisionSnapshotId bindings");
+  assert.ok(
+    audit.invalidDecisionRows.some(
+      row => row.decisionSnapshotId === bundle.decisionSnapshot?.decisionSnapshotId
+        && /decisionSnapshotId does not match canonical decision identity/.test(row.message),
+    ),
+    "central audit must identify the decision row with a stale decisionSnapshotId binding",
   );
 } finally {
   db.close();
