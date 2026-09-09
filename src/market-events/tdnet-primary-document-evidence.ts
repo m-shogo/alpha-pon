@@ -7,6 +7,8 @@ import {
 
 const DEFAULT_MAX_DOCUMENT_BYTES = 25 * 1024 * 1024;
 const PDF_SIGNATURE = new TextEncoder().encode("%PDF-");
+const PDF_EOF_MARKER = new TextEncoder().encode("%%EOF");
+const PDF_EOF_TAIL_BYTES = 1024;
 
 export type TdnetPrimaryDocumentEvidence = {
   candidateId: string;
@@ -63,6 +65,34 @@ function parseDeclaredContentLength(value: string): number {
   return parsed;
 }
 
+function appendPdfTail(current: Uint8Array, chunk: Uint8Array): Uint8Array {
+  if (chunk.byteLength >= PDF_EOF_TAIL_BYTES) {
+    return chunk.slice(chunk.byteLength - PDF_EOF_TAIL_BYTES);
+  }
+  const combined = new Uint8Array(Math.min(PDF_EOF_TAIL_BYTES, current.byteLength + chunk.byteLength));
+  const currentBytesToKeep = combined.byteLength - chunk.byteLength;
+  if (currentBytesToKeep > 0) {
+    combined.set(current.subarray(current.byteLength - currentBytesToKeep), 0);
+  }
+  combined.set(chunk, currentBytesToKeep);
+  return combined;
+}
+
+function containsByteSequence(haystack: Uint8Array, needle: Uint8Array): boolean {
+  if (needle.byteLength === 0 || haystack.byteLength < needle.byteLength) return false;
+  for (let offset = 0; offset <= haystack.byteLength - needle.byteLength; offset += 1) {
+    let matched = true;
+    for (let index = 0; index < needle.byteLength; index += 1) {
+      if (haystack[offset + index] !== needle[index]) {
+        matched = false;
+        break;
+      }
+    }
+    if (matched) return true;
+  }
+  return false;
+}
+
 async function readPrimaryDocumentBody(response: Response, maxBytes: number): Promise<{
   byteLength: number;
   contentHash: string;
@@ -75,6 +105,7 @@ async function readPrimaryDocumentBody(response: Response, maxBytes: number): Pr
   const hash = createHash("sha256");
   let byteLength = 0;
   let signatureOffset = 0;
+  let pdfTail = new Uint8Array(0);
 
   try {
     while (true) {
@@ -96,6 +127,7 @@ async function readPrimaryDocumentBody(response: Response, maxBytes: number): Pr
         }
         signatureOffset += 1;
       }
+      pdfTail = appendPdfTail(pdfTail, value);
       hash.update(value);
     }
   } finally {
@@ -107,6 +139,9 @@ async function readPrimaryDocumentBody(response: Response, maxBytes: number): Pr
   }
   if (signatureOffset < PDF_SIGNATURE.byteLength) {
     throw new Error("TDnet primary document body must have a PDF signature");
+  }
+  if (!containsByteSequence(pdfTail, PDF_EOF_MARKER)) {
+    throw new Error("TDnet primary document body must include a PDF EOF marker near the end");
   }
 
   return {
