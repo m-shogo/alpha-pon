@@ -150,6 +150,14 @@ async function fetchSourceSnapshot(
   return fetchTdnetDisclosureSnapshot({ observationDate: options.observationDate });
 }
 
+function assertCollectorSourceCodes(disclosures: TdnetDisclosure[]): void {
+  for (const disclosure of disclosures) {
+    if (disclosure.sourceCode === undefined) {
+      throw new Error("TDnet collector provenance requires raw 5-character sourceCode");
+    }
+  }
+}
+
 export async function collectTdnetSourceOnce(
   db: MarketEventDatabase,
   options: TdnetSourceCollectorOptions = {},
@@ -188,6 +196,7 @@ export async function collectTdnetSourceOnce(
   let contentHash: string;
   let candidates: TdnetMarketEventCandidate[];
   try {
+    assertCollectorSourceCodes(snapshot.disclosures);
     contentHash = hashTdnetDisclosures(snapshot.disclosures);
     candidates = extractTdnetMarketEventCandidates(snapshot.disclosures);
   } catch (error) {
