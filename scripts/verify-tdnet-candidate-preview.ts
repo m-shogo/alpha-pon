@@ -98,8 +98,32 @@ assert.throws(
     pageCount: 1,
     pageUrls: [snapshot.pageUrls[0]!],
   }),
-  /requires an official TDnet source URL/,
+  /official canonical PDF source URL/,
   "candidate projection must reject URL aliases that normalize to a different source identity",
+);
+assert.throws(
+  () => buildTdnetCandidatePreview({
+    ...snapshot,
+    disclosures: [
+      { ...snapshot.disclosures[2]!, url: "https://example.com/inbs/140120260904000003.pdf" },
+    ],
+    pageCount: 1,
+    pageUrls: [snapshot.pageUrls[0]!],
+  }),
+  /official canonical PDF source URL/,
+  "preview provenance must reject off-domain source URLs even for disclosures that do not match a candidate rule",
+);
+assert.throws(
+  () => buildTdnetCandidatePreview({
+    ...snapshot,
+    disclosures: [
+      { ...snapshot.disclosures[2]!, url: "https://www.release.tdnet.info/inbs/140120260904000003.pdf?download=1" },
+    ],
+    pageCount: 1,
+    pageUrls: [snapshot.pageUrls[0]!],
+  }),
+  /official canonical PDF source URL/,
+  "preview provenance must reject query-bearing source aliases for unmatched disclosures",
 );
 
 assert.throws(
