@@ -30,6 +30,20 @@ function emptyBlockerCounts(): Record<TdnetCandidateBlocker, number> {
   };
 }
 
+function assertDisclosurePublicationDates(snapshot: TdnetDisclosureSnapshot): void {
+  const escapedObservationDate = snapshot.observationDate.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const canonicalPublishedAt = new RegExp(
+    `^${escapedObservationDate}T(?:[01]\\d|2[0-3]):[0-5]\\d:00\\+09:00$`,
+  );
+  for (const disclosure of snapshot.disclosures) {
+    if (!canonicalPublishedAt.test(disclosure.publishedAt)) {
+      throw new Error(
+        `TDnet preview disclosure publishedAt must match observationDate and canonical JST viewer timestamp: ${disclosure.publishedAt}`,
+      );
+    }
+  }
+}
+
 export function buildTdnetCandidatePreview(
   snapshot: TdnetDisclosureSnapshot,
 ): TdnetCandidatePreview {
@@ -54,6 +68,7 @@ export function buildTdnetCandidatePreview(
       throw new Error(`TDnet preview pageUrl must match the canonical official viewer URL: ${pageUrl}`);
     }
   }
+  assertDisclosurePublicationDates(snapshot);
 
   const unmatchedDisclosureCount = snapshot.disclosures.reduce(
     (count, disclosure) => count + (classifyTdnetDisclosureCandidate(disclosure) === null ? 1 : 0),
