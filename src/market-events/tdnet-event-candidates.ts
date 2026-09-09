@@ -181,6 +181,15 @@ function candidateSourceCode(sourceCode: string | undefined, issuerCode: string)
   return sourceCode;
 }
 
+export function assertTdnetDisclosureSourceProvenance(disclosure: TdnetDisclosure): void {
+  const issuerCode = candidateIssuerCode(disclosure.code);
+  candidateViewerText(disclosure.companyName, "companyName");
+  candidateViewerText(disclosure.title, "title");
+  candidatePublishedAt(disclosure.publishedAt);
+  candidateSourceUrl(disclosure.url);
+  candidateSourceCode(disclosure.sourceCode, issuerCode);
+}
+
 function candidateIdFromFields(
   issuerCode: string,
   issuerName: string,
@@ -293,6 +302,7 @@ export function extractTdnetMarketEventCandidates(
 ): TdnetMarketEventCandidate[] {
   const byId = new Map<string, TdnetMarketEventCandidate>();
   for (const disclosure of disclosures) {
+    assertTdnetDisclosureSourceProvenance(disclosure);
     const candidate = classifyTdnetDisclosureCandidate(disclosure);
     if (candidate === null) continue;
     const existing = byId.get(candidate.candidateId);
