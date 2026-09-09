@@ -39,6 +39,7 @@ run_ts scripts/verify-market-event-delivery-replay.ts
 run_ts scripts/verify-market-event-delivery-key-provenance.ts
 run_ts scripts/verify-market-event-occurrence-key-provenance.ts
 run_ts scripts/verify-market-event-issuer-code-provenance.ts
+run_ts scripts/verify-market-event-source-url-provenance.ts
 
 echo "[3/12] Verify deterministic D1 bootstrap"
 run_ts scripts/verify-d1-bootstrap-export.ts
