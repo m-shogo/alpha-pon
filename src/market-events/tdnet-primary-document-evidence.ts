@@ -78,18 +78,34 @@ function appendPdfTail(current: Uint8Array, chunk: Uint8Array): Uint8Array {
   return combined;
 }
 
-function containsByteSequence(haystack: Uint8Array, needle: Uint8Array): boolean {
-  if (needle.byteLength === 0 || haystack.byteLength < needle.byteLength) return false;
-  for (let offset = 0; offset <= haystack.byteLength - needle.byteLength; offset += 1) {
+function isPdfWhitespace(byte: number): boolean {
+  return byte === 0x00
+    || byte === 0x09
+    || byte === 0x0a
+    || byte === 0x0c
+    || byte === 0x0d
+    || byte === 0x20;
+}
+
+function hasCanonicalPdfEofTail(tail: Uint8Array): boolean {
+  if (tail.byteLength < PDF_EOF_MARKER.byteLength) return false;
+
+  for (let offset = tail.byteLength - PDF_EOF_MARKER.byteLength; offset >= 0; offset -= 1) {
     let matched = true;
-    for (let index = 0; index < needle.byteLength; index += 1) {
-      if (haystack[offset + index] !== needle[index]) {
+    for (let index = 0; index < PDF_EOF_MARKER.byteLength; index += 1) {
+      if (tail[offset + index] !== PDF_EOF_MARKER[index]) {
         matched = false;
         break;
       }
     }
-    if (matched) return true;
+    if (!matched) continue;
+
+    for (let index = offset + PDF_EOF_MARKER.byteLength; index < tail.byteLength; index += 1) {
+      if (!isPdfWhitespace(tail[index]!)) return false;
+    }
+    return true;
   }
+
   return false;
 }
 
@@ -140,8 +156,8 @@ async function readPrimaryDocumentBody(response: Response, maxBytes: number): Pr
   if (signatureOffset < PDF_SIGNATURE.byteLength) {
     throw new Error("TDnet primary document body must have a PDF signature");
   }
-  if (!containsByteSequence(pdfTail, PDF_EOF_MARKER)) {
-    throw new Error("TDnet primary document body must include a PDF EOF marker near the end");
+  if (!hasCanonicalPdfEofTail(pdfTail)) {
+    throw new Error("TDnet primary document body must end after a PDF EOF marker with whitespace only");
   }
 
   return {
