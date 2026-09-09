@@ -295,6 +295,7 @@ export function buildDeliveryId(input: {
   deliveryKey: string;
   scheduledAt: string;
 }): string {
+  assertKnownValue(DELIVERY_CHANNELS, input.channel, "delivery channel");
   return stableId("dlv", {
     ...input,
     deliveryKey: normalizeOccurrenceKey(input.deliveryKey),
