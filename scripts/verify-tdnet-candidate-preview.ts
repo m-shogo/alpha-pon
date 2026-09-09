@@ -103,6 +103,31 @@ assert.throws(
 );
 
 assert.throws(
+  () => buildTdnetCandidatePreview({
+    ...snapshot,
+    disclosures: [
+      { ...snapshot.disclosures[2]!, publishedAt: "2026-09-03T16:30:00+09:00" },
+    ],
+    pageCount: 1,
+    pageUrls: [snapshot.pageUrls[0]!],
+  }),
+  /publishedAt must match observationDate and canonical JST viewer timestamp/,
+  "preview provenance must bind every disclosure publication timestamp to the official viewer observationDate, including unmatched rows",
+);
+assert.throws(
+  () => buildTdnetCandidatePreview({
+    ...snapshot,
+    disclosures: [
+      { ...snapshot.disclosures[2]!, publishedAt: "2026-09-04T07:30:00Z" },
+    ],
+    pageCount: 1,
+    pageUrls: [snapshot.pageUrls[0]!],
+  }),
+  /publishedAt must match observationDate and canonical JST viewer timestamp/,
+  "preview provenance must preserve the canonical +09:00 TDnet viewer timestamp instead of accepting equivalent instant aliases",
+);
+
+assert.throws(
   () => buildTdnetCandidatePreview({ ...snapshot, pageCount: 1 }),
   /pageUrls must match pageCount/,
 );
