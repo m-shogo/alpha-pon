@@ -44,6 +44,32 @@ function assertDisclosurePublicationDates(snapshot: TdnetDisclosureSnapshot): vo
   }
 }
 
+function assertDisclosureSourceUrls(snapshot: TdnetDisclosureSnapshot): void {
+  for (const disclosure of snapshot.disclosures) {
+    let sourceUrl: URL;
+    try {
+      sourceUrl = new URL(disclosure.url);
+    } catch {
+      throw new Error(`TDnet preview disclosure requires an official canonical PDF source URL: ${disclosure.url}`);
+    }
+    if (
+      sourceUrl.href !== disclosure.url
+      || sourceUrl.origin !== "https://www.release.tdnet.info"
+      || sourceUrl.protocol !== "https:"
+      || sourceUrl.hostname !== "www.release.tdnet.info"
+      || sourceUrl.port !== ""
+      || sourceUrl.username !== ""
+      || sourceUrl.password !== ""
+      || !sourceUrl.pathname.startsWith("/inbs/")
+      || !sourceUrl.pathname.toLowerCase().endsWith(".pdf")
+      || sourceUrl.search !== ""
+      || sourceUrl.hash !== ""
+    ) {
+      throw new Error(`TDnet preview disclosure requires an official canonical PDF source URL: ${disclosure.url}`);
+    }
+  }
+}
+
 export function buildTdnetCandidatePreview(
   snapshot: TdnetDisclosureSnapshot,
 ): TdnetCandidatePreview {
@@ -69,6 +95,7 @@ export function buildTdnetCandidatePreview(
     }
   }
   assertDisclosurePublicationDates(snapshot);
+  assertDisclosureSourceUrls(snapshot);
 
   const unmatchedDisclosureCount = snapshot.disclosures.reduce(
     (count, disclosure) => count + (classifyTdnetDisclosureCandidate(disclosure) === null ? 1 : 0),
