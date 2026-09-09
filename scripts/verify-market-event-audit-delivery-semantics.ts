@@ -61,6 +61,7 @@ try {
   const canonicalDeliveryKey = bundle.deliveries[0].deliveryKey;
   const canonicalScheduledAt = bundle.deliveries[0].scheduledAt;
   const canonicalChannel = bundle.deliveries[0].channel;
+  const canonicalState = bundle.deliveries[0].state;
 
   db.prepare("UPDATE delivery_outbox SET delivery_key = ? WHERE delivery_id = ?").run(
     " Delivery Audit ",
@@ -123,6 +124,19 @@ try {
     "central audit must identify the delivery row with an unknown channel",
   );
   db.prepare("UPDATE delivery_outbox SET channel = ? WHERE delivery_id = ?").run(canonicalChannel, deliveryId);
+
+  db.exec("PRAGMA ignore_check_constraints = ON");
+  db.prepare("UPDATE delivery_outbox SET state = ? WHERE delivery_id = ?").run("UNKNOWN_STATE", deliveryId);
+  db.exec("PRAGMA ignore_check_constraints = OFF");
+  audit = auditMarketEventDatabase(db, ":memory:");
+  assert.equal(audit.status, "error", "central audit must reject unknown persisted delivery states");
+  assert.ok(
+    audit.invalidDeliveryRows.some(
+      row => row.deliveryId === deliveryId && /unknown state UNKNOWN_STATE/.test(row.message),
+    ),
+    "central audit must identify the delivery row with an unknown state",
+  );
+  db.prepare("UPDATE delivery_outbox SET state = ? WHERE delivery_id = ?").run(canonicalState, deliveryId);
 
   db.prepare("UPDATE delivery_outbox SET created_at = ?, updated_at = ? WHERE delivery_id = ?").run(
     "2026-09-06T00:00:00Z",
