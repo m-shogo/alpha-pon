@@ -70,6 +70,21 @@ function assertDisclosureSourceUrls(snapshot: TdnetDisclosureSnapshot): void {
   }
 }
 
+function assertDisclosureSourceCodes(snapshot: TdnetDisclosureSnapshot): void {
+  for (const disclosure of snapshot.disclosures) {
+    if (!/^[0-9A-Z]{4}$/.test(disclosure.code)) {
+      throw new Error(`TDnet preview disclosure code must be a canonical 4-character issuer code: ${disclosure.code}`);
+    }
+    if (disclosure.sourceCode === undefined) continue;
+    if (!/^[0-9A-Z]{5}$/.test(disclosure.sourceCode)) {
+      throw new Error(`TDnet preview disclosure sourceCode must be an exact 5-character uppercase source value: ${disclosure.sourceCode}`);
+    }
+    if (disclosure.sourceCode.slice(0, 4) !== disclosure.code) {
+      throw new Error(`TDnet preview disclosure sourceCode does not match issuer code: ${disclosure.sourceCode}`);
+    }
+  }
+}
+
 export function buildTdnetCandidatePreview(
   snapshot: TdnetDisclosureSnapshot,
 ): TdnetCandidatePreview {
@@ -96,6 +111,7 @@ export function buildTdnetCandidatePreview(
   }
   assertDisclosurePublicationDates(snapshot);
   assertDisclosureSourceUrls(snapshot);
+  assertDisclosureSourceCodes(snapshot);
 
   const unmatchedDisclosureCount = snapshot.disclosures.reduce(
     (count, disclosure) => count + (classifyTdnetDisclosureCandidate(disclosure) === null ? 1 : 0),

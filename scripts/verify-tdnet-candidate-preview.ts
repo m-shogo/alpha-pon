@@ -88,6 +88,30 @@ assert.throws(
   /sourceCode must be an exact 5-character uppercase source value/,
   "candidate projection must reject non-canonical raw TDnet sourceCode instead of trimming provenance",
 );
+assert.throws(
+  () => buildTdnetCandidatePreview({
+    ...snapshot,
+    disclosures: [
+      { ...snapshot.disclosures[2]!, code: "468X", sourceCode: "46800" },
+    ],
+    pageCount: 1,
+    pageUrls: [snapshot.pageUrls[0]!],
+  }),
+  /sourceCode does not match issuer code/,
+  "preview provenance must bind sourceCode to issuer code even for disclosures that do not match a candidate rule",
+);
+assert.throws(
+  () => buildTdnetCandidatePreview({
+    ...snapshot,
+    disclosures: [
+      { ...snapshot.disclosures[2]!, sourceCode: "4680a" },
+    ],
+    pageCount: 1,
+    pageUrls: [snapshot.pageUrls[0]!],
+  }),
+  /sourceCode must be an exact 5-character uppercase source value/,
+  "preview provenance must reject malformed raw sourceCode on unmatched disclosures",
+);
 
 assert.throws(
   () => buildTdnetCandidatePreview({
