@@ -80,6 +80,16 @@ const failIfFetched = (async () => {
   return fakeResponse();
 }) as typeof fetch;
 
+await assert.rejects(
+  () => acquireTdnetPrimaryDocumentEvidence(
+    { ...candidate, sourceCode: null },
+    { fetchImpl: failIfFetched, now: () => "2026-09-04T15:05:00+09:00" },
+  ),
+  /requires raw 5-character sourceCode provenance/,
+  "primary-document acquisition must not fetch when raw TDnet sourceCode provenance is absent",
+);
+assert.equal(fetchCalls, 0, "missing raw sourceCode provenance must fail before network access");
+
 for (const mutatedCandidate of [
   { ...candidate, issuerName: `${candidate.issuerName}株式会社` },
   { ...candidate, disclosureTitle: `${candidate.disclosureTitle}（訂正）` },
