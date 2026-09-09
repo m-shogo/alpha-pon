@@ -68,6 +68,7 @@ try {
     "failed replay must leave the original decision snapshot payload intact",
   );
 
+  db.exec("DROP TRIGGER trg_decision_snapshots_no_update");
   db.prepare("UPDATE decision_snapshots SET confidence_state = ? WHERE decision_snapshot_id = ?").run(
     "CONFIRMED",
     bundle.decisionSnapshot.decisionSnapshotId,
