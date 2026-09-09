@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { buildDecisionSnapshotId, buildEventId } from "../src/market-events/contracts.js";
 import { buildMarketEventBundle, type MarketEventRegistrationInput } from "../src/market-events/registration.js";
 import {
@@ -109,6 +110,37 @@ try {
         && /created_at must be on or after linked revision observed_at/.test(row.message),
     ),
     "central audit must identify a canonically rebound decision whose created_at predates revision observation",
+  );
+
+  const invalidConfidenceState = "CERTAIN";
+  const forgedDecisionIdentity = JSON.stringify({
+    confidenceState: invalidConfidenceState,
+    createdAt: bundle.decisionSnapshot.createdAt,
+    decisionState: bundle.decisionSnapshot.decisionState,
+    eventId: bundle.decisionSnapshot.eventId,
+    revisionId: bundle.decisionSnapshot.revisionId,
+  });
+  const forgedDecisionSnapshotId = `dec_${createHash("sha256").update(forgedDecisionIdentity).digest("hex").slice(0, 24)}`;
+  db.exec("PRAGMA ignore_check_constraints = ON");
+  db.prepare(`
+    UPDATE decision_snapshots
+    SET decision_snapshot_id = ?, confidence_state = ?, created_at = ?
+    WHERE decision_snapshot_id = ?
+  `).run(
+    forgedDecisionSnapshotId,
+    invalidConfidenceState,
+    bundle.decisionSnapshot.createdAt,
+    tooEarlyDecisionSnapshotId,
+  );
+  db.exec("PRAGMA ignore_check_constraints = OFF");
+  const invalidEnumAudit = auditMarketEventDatabase(db, ":memory:");
+  assert.equal(invalidEnumAudit.status, "error", "central audit must reject forged decision identities with unknown enum values");
+  assert.ok(
+    invalidEnumAudit.invalidDecisionRows.some(
+      row => row.decisionSnapshotId === forgedDecisionSnapshotId
+        && /Unknown confidence state: CERTAIN/.test(row.message),
+    ),
+    "central audit must independently validate persisted decision enum membership even when the stable ID is forged to match",
   );
 } finally {
   db.close();
