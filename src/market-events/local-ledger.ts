@@ -171,6 +171,9 @@ export function validateLedgerRecord(record: MarketEventLedgerRecord): void {
       if (sourceUrl.hash !== "") {
         throw new Error("Source URL must not contain a fragment because source identity ignores URL fragments");
       }
+      if (record.payload.url !== sourceUrl.toString()) {
+        throw new Error("Source URL must use the canonical URL serialization used by source identity");
+      }
       if (!/^[a-f0-9]{64}$/.test(record.payload.contentHash)) {
         throw new Error("source contentHash must be a lowercase SHA-256 hash");
       }
