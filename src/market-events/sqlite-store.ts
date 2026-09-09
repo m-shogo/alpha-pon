@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { compareExplicitIso8601Instants } from "../research/iso-instant.js";
 import { validateMarketEventRevisionChronology } from "./revision-chronology.js";
 import {
+  DELIVERY_STATES,
   SOURCE_TYPES,
   STORAGE_CLASSES,
   assertIsoTimestamp,
@@ -190,6 +191,9 @@ function validatePersistedDecisionIdentity(
 function validatePersistedDelivery(delivery: DeliveryOutboxItem): DeliveryOutboxItem {
   const context = `delivery_outbox.${delivery.deliveryId}`;
   validatePersistedSchemaVersion(delivery.schemaVersion, context);
+  if (!(DELIVERY_STATES as readonly string[]).includes(delivery.state)) {
+    throw new Error(`Invalid persisted delivery at ${context}: unknown state ${delivery.state}`);
+  }
   const canonicalDeliveryKey = delivery.deliveryKey.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
   if (!canonicalDeliveryKey || delivery.deliveryKey !== canonicalDeliveryKey) {
     throw new Error(`Invalid persisted delivery at ${context}: deliveryKey must be canonical NFKC lowercase text without surrounding or repeated whitespace`);
