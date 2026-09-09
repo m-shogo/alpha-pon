@@ -111,6 +111,14 @@ assert.throws(
 );
 assert.throws(
   () => validateLedgerRecord({
+    ...sourceRecord,
+    payload: { ...sourceRecord.payload, url: "https://EXAMPLE.com/sanrio/fy2026-q1" },
+  }),
+  /Source URL must use the canonical URL serialization/,
+  "standalone ledger validation must reject source URL aliases that canonicalize to the same stable identity",
+);
+assert.throws(
+  () => validateLedgerRecord({
     ...decisionRecord,
     payload: { ...decisionRecord.payload, decisionSnapshotId: "dec_000000000000000000000000" },
   }),
