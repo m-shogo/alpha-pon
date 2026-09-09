@@ -65,7 +65,16 @@ export function validateLedgerRecord(record: MarketEventLedgerRecord): void {
   switch (record.recordType) {
     case "MARKET_EVENT": {
       if (!record.payload.eventId.startsWith("evt_")) throw new Error("Invalid eventId");
-      if (!record.payload.occurrenceKey.trim()) throw new Error("occurrenceKey is required");
+      const canonicalOccurrenceKey = record.payload.occurrenceKey.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
+      if (!canonicalOccurrenceKey || record.payload.occurrenceKey !== canonicalOccurrenceKey) {
+        throw new Error("occurrenceKey must be canonical NFKC lowercase text without surrounding or repeated whitespace");
+      }
+      if (record.payload.issuerCode !== null) {
+        const canonicalIssuerCode = record.payload.issuerCode.normalize("NFKC").trim().replace(/\s+/g, " ").toUpperCase();
+        if (!canonicalIssuerCode || record.payload.issuerCode !== canonicalIssuerCode) {
+          throw new Error("issuerCode must be canonical NFKC uppercase text without surrounding or repeated whitespace");
+        }
+      }
       if (!record.payload.issuerName.trim()) throw new Error("issuerName is required");
       if (!record.payload.title.trim()) throw new Error("title is required");
       const expectedEventId = buildEventId({
