@@ -87,6 +87,17 @@ try {
     "persisted checkpoints must not claim cursor or source validators without success chronology",
   );
 
+  db.prepare(`
+    UPDATE source_checkpoints
+    SET cursor_value = NULL, last_success_at = ?, source_type = ?
+    WHERE source_key = ?
+  `).run("2026-09-04T12:00:00Z", "jpx_tdnet", "tdnet:corrupt-read");
+  assert.throws(
+    () => getSourceCheckpoint(db, "tdnet:corrupt-read"),
+    /sourceType must be canonical NFKC uppercase text/,
+    "persisted checkpoints must reject case aliases in source provenance",
+  );
+
   const checkpoint: SourceCheckpoint = {
     sourceKey: "jpx:tdnet:market-events",
     sourceType: "TDNET",
@@ -116,6 +127,11 @@ try {
     () => upsertSourceCheckpoint(db, { ...checkpoint, sourceType: " TDNET" }),
     /sourceType must be canonical without surrounding whitespace/,
     "checkpoint writes must preserve sourceType provenance exactly",
+  );
+  assert.throws(
+    () => upsertSourceCheckpoint(db, { ...checkpoint, sourceKey: "jpx:tdnet:lowercase-type", sourceType: "tdnet" }),
+    /sourceType must be canonical NFKC uppercase text/,
+    "checkpoint writes must reject sourceType case aliases instead of persisting ambiguous provenance",
   );
 
   const orphanProvenance: SourceCheckpoint = {
