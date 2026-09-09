@@ -53,7 +53,9 @@ assert.equal("eventId" in setup, false, "candidate classification must not regis
 for (const mutate of [
   (candidate: TdnetMarketEventCandidate) => ({ ...candidate, issuerCode: ` ${candidate.issuerCode}` }),
   (candidate: TdnetMarketEventCandidate) => ({ ...candidate, issuerName: ` ${candidate.issuerName}` }),
+  (candidate: TdnetMarketEventCandidate) => ({ ...candidate, issuerName: `${candidate.issuerName}  株式会社` }),
   (candidate: TdnetMarketEventCandidate) => ({ ...candidate, disclosureTitle: `${candidate.disclosureTitle} ` }),
+  (candidate: TdnetMarketEventCandidate) => ({ ...candidate, disclosureTitle: `${candidate.disclosureTitle}  訂正` }),
 ]) {
   const forged = mutate(setup);
   forged.candidateId = forgedCandidateId(forged);
@@ -122,15 +124,21 @@ assert.equal(
 const canonical = disclosure({
   code: " 8136 ",
   sourceCode: "81360",
-  companyName: " サンリオ ",
-  title: " 第三者委員会の設置に関するお知らせ ",
+  companyName: " サンリオ  株式会社 ",
+  title: " 第三者委員会の設置に関する  お知らせ ",
 });
 const canonicalCandidate = classifyTdnetDisclosureCandidate(canonical);
+const canonicalExpected = classifyTdnetDisclosureCandidate(disclosure({
+  companyName: "サンリオ 株式会社",
+  title: "第三者委員会の設置に関する お知らせ",
+}));
 assert.equal(
   canonicalCandidate?.candidateId,
-  setup.candidateId,
-  "candidate identity may normalize display/issuer text but not source chronology or source URL provenance",
+  canonicalExpected?.candidateId,
+  "candidate identity must collapse viewer whitespace exactly as the official TDnet parser does",
 );
+assert.equal(canonicalCandidate?.issuerName, "サンリオ 株式会社");
+assert.equal(canonicalCandidate?.disclosureTitle, "第三者委員会の設置に関する お知らせ");
 assert.equal(canonicalCandidate?.sourceCode, "81360");
 
 assert.throws(
