@@ -148,6 +148,48 @@ try {
   db.prepare("UPDATE market_events SET schema_version = 1 WHERE event_id = ?").run(eventId);
   db.exec("PRAGMA ignore_check_constraints = OFF");
 
+  db.prepare("UPDATE market_events SET occurrence_key = ? WHERE event_id = ?").run(" FY2026-Q1 ", eventId);
+  assert.throws(
+    () => listMarketEvents(db, { includeCancelled: true }),
+    /Invalid persisted event at market_events\..*: occurrenceKey must be canonical/,
+    "market event reads must fail closed on persisted occurrenceKey aliases",
+  );
+  audit = auditMarketEventDatabase(db, dbPath);
+  assert.equal(audit.status, "error", "central audit must reject persisted occurrenceKey aliases");
+  assert.ok(
+    audit.invalidEventRows.some(row => row.eventId === eventId && /occurrenceKey must be canonical/.test(row.message)),
+    "central audit must identify the event identity alias",
+  );
+  db.prepare("UPDATE market_events SET occurrence_key = ? WHERE event_id = ?").run(first.event.occurrenceKey, eventId);
+
+  db.prepare("UPDATE market_events SET occurrence_key = ? WHERE event_id = ?").run("fy2026-q2", eventId);
+  assert.throws(
+    () => listMarketEvents(db, { includeCancelled: true }),
+    /Invalid persisted event at market_events\..*: eventId does not match canonical event identity/,
+    "market event reads must fail closed when persisted identity fields no longer bind to eventId",
+  );
+  audit = auditMarketEventDatabase(db, dbPath);
+  assert.equal(audit.status, "error", "central audit must reject stale persisted eventId bindings");
+  assert.ok(
+    audit.invalidEventRows.some(row => row.eventId === eventId && /eventId does not match canonical event identity/.test(row.message)),
+    "central audit must identify stale eventId identity bindings",
+  );
+  db.prepare("UPDATE market_events SET occurrence_key = ? WHERE event_id = ?").run(first.event.occurrenceKey, eventId);
+
+  db.prepare("UPDATE market_events SET issuer_code = ? WHERE event_id = ?").run(" 8136 ", eventId);
+  assert.throws(
+    () => listMarketEvents(db, { includeCancelled: true }),
+    /Invalid persisted event at market_events\..*: issuerCode must be canonical/,
+    "market event reads must fail closed on persisted issuerCode aliases",
+  );
+  audit = auditMarketEventDatabase(db, dbPath);
+  assert.equal(audit.status, "error", "central audit must reject persisted issuerCode aliases");
+  assert.ok(
+    audit.invalidEventRows.some(row => row.eventId === eventId && /issuerCode must be canonical/.test(row.message)),
+    "central audit must identify the issuer identity alias",
+  );
+  db.prepare("UPDATE market_events SET issuer_code = ? WHERE event_id = ?").run(first.event.issuerCode, eventId);
+
   const sourceId = first.sources[0].sourceId;
   db.exec("DROP TRIGGER trg_event_sources_no_update");
   db.exec("PRAGMA ignore_check_constraints = ON");
