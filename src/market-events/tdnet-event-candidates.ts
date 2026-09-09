@@ -187,9 +187,6 @@ export function assertTdnetDisclosureSourceProvenance(disclosure: TdnetDisclosur
   candidateViewerText(disclosure.title, "title");
   candidatePublishedAt(disclosure.publishedAt);
   candidateSourceUrl(disclosure.url);
-  if (disclosure.sourceCode === undefined) {
-    throw new Error("TDnet candidate provenance requires raw 5-character sourceCode");
-  }
   candidateSourceCode(disclosure.sourceCode, issuerCode);
 }
 
