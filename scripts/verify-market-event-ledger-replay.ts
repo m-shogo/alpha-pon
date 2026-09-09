@@ -79,6 +79,22 @@ assert.throws(
 );
 assert.throws(
   () => validateLedgerRecord({
+    ...eventRecord,
+    payload: { ...eventRecord.payload, occurrenceKey: " FY2026-Q1 " },
+  }),
+  /occurrenceKey must be canonical/,
+  "standalone ledger validation must reject occurrence-key aliases that canonicalize to the same stable event identity",
+);
+assert.throws(
+  () => validateLedgerRecord({
+    ...eventRecord,
+    payload: { ...eventRecord.payload, issuerCode: " 8136 " },
+  }),
+  /issuerCode must be canonical/,
+  "standalone ledger validation must reject issuer-code aliases that canonicalize to the same stable event identity",
+);
+assert.throws(
+  () => validateLedgerRecord({
     ...revisionRecord,
     payload: { ...revisionRecord.payload, revisionId: "rev_000000000000000000000000" },
   }),
