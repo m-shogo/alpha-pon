@@ -43,6 +43,7 @@ assert.equal(assessment.registrationPreviewReady, true);
 
 const evidence: TdnetPrimaryDocumentEvidence = {
   candidateId: candidate.candidateId,
+  sourceCode: candidate.sourceCode,
   sourceUrl: candidate.sourceUrl,
   retrievedAt: "2026-09-04T15:05:00+09:00",
   contentHash: "d".repeat(64),
@@ -115,6 +116,14 @@ assert.throws(
     candidateId: "tdc_other",
   }),
   /evidence candidateId mismatch/,
+);
+assert.throws(
+  () => prepareTdnetRegistrationPreview(candidate, assessment, metadata, {
+    ...evidence,
+    sourceCode: "4661A",
+  }),
+  /evidence sourceCode mismatch/,
+  "primary evidence must bind the raw five-character sourceCode used during acquisition",
 );
 assert.throws(
   () => prepareTdnetRegistrationPreview(candidate, assessment, metadata, {
@@ -208,6 +217,16 @@ assert.throws(
     evidence,
   ),
   /sourceCode does not match issuerCode/,
+);
+assert.throws(
+  () => prepareTdnetRegistrationPreview(
+    { ...candidate, sourceCode: "4661A" },
+    assessment,
+    metadata,
+    evidence,
+  ),
+  /evidence sourceCode mismatch/,
+  "changing only the fifth raw sourceCode character after evidence acquisition must fail closed",
 );
 for (const nonCanonicalSourceCode of ["4661", "4661-", "4661a", " 46610"] ) {
   assert.throws(
