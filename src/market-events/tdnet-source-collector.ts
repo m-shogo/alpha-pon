@@ -47,7 +47,11 @@ function canonicalDisclosureRows(disclosures: TdnetDisclosure[]): string[] {
     publishedAt: disclosure.publishedAt,
     url: disclosure.url,
   }));
-  return [...new Set(rows)].sort();
+  const uniqueRows = new Set(rows);
+  if (uniqueRows.size !== rows.length) {
+    throw new Error("TDnet snapshot contains duplicate disclosure provenance rows");
+  }
+  return [...uniqueRows].sort();
 }
 
 export function hashTdnetDisclosures(disclosures: TdnetDisclosure[]): string {
