@@ -9,6 +9,7 @@ import {
   assertIsoTimestamp,
   buildDeliveryId,
   buildEventId,
+  buildRevisionId,
   buildSourceId,
   validateMarketEventBundle,
   type DecisionSnapshot,
@@ -777,16 +778,18 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
     SELECT
       revision_id AS revisionId,
       event_id AS eventId,
+      revision_number AS revisionNumber,
       observed_at AS observedAt,
       published_at AS publishedAt,
       effective_at AS effectiveAt,
       first_executable_at AS firstExecutableAt,
+      facts_json AS factsJson,
       source_ids_json AS sourceIdsJson
     FROM event_revisions
     ORDER BY revision_id
   `).all() as Array<
-    Pick<EventRevision, "revisionId" | "eventId" | "observedAt" | "publishedAt" | "effectiveAt" | "firstExecutableAt">
-    & { sourceIdsJson: string }
+    Pick<EventRevision, "revisionId" | "eventId" | "revisionNumber" | "observedAt" | "publishedAt" | "effectiveAt" | "firstExecutableAt">
+    & { factsJson: string; sourceIdsJson: string }
   >;
   for (const revision of revisionRows) {
     try {
@@ -799,14 +802,32 @@ export function auditMarketEventDatabase(db: MarketEventDatabase, databasePath: 
     }
 
     let sourceIds: string[];
+    let facts: Record<string, unknown>;
     try {
       sourceIds = parsePersistedJson<string[]>(
         revision.sourceIdsJson,
         `event_revisions.${revision.revisionId}.source_ids_json`,
         "string-array",
       );
+      facts = parsePersistedJson<Record<string, unknown>>(
+        revision.factsJson,
+        `event_revisions.${revision.revisionId}.facts_json`,
+        "plain-object",
+      );
     } catch {
       continue;
+    }
+    const expectedRevisionId = buildRevisionId({
+      eventId: revision.eventId,
+      revisionNumber: revision.revisionNumber,
+      facts,
+      sourceIds,
+    });
+    if (revision.revisionId !== expectedRevisionId) {
+      invalidRevisionRows.push({
+        revisionId: revision.revisionId,
+        message: `Invalid persisted revision at event_revisions.${revision.revisionId}: revisionId does not match canonical revision identity ${expectedRevisionId}`,
+      });
     }
     for (const sourceId of sourceIds) {
       const source = sourceById.get(sourceId);

@@ -83,11 +83,28 @@ try {
 
   const revisionId = bundle.revision.revisionId;
   db.exec("DROP TRIGGER trg_event_revisions_no_update");
+  db.prepare("UPDATE event_revisions SET facts_json = ? WHERE revision_id = ?").run(
+    JSON.stringify({ ...bundle.revision.facts, tampered: true }),
+    revisionId,
+  );
+  let audit = auditMarketEventDatabase(db, ":memory:");
+  assert.equal(audit.status, "error", "central audit must reject stale persisted revisionId bindings");
+  assert.ok(
+    audit.invalidRevisionRows.some(
+      row => row.revisionId === revisionId && /revisionId does not match canonical revision identity/.test(row.message),
+    ),
+    "central audit must identify revision content that no longer binds to revisionId",
+  );
+  db.prepare("UPDATE event_revisions SET facts_json = ? WHERE revision_id = ?").run(
+    JSON.stringify(bundle.revision.facts),
+    revisionId,
+  );
+
   db.prepare("UPDATE event_revisions SET published_at = ? WHERE revision_id = ?").run(
     "2026-09-04T07:00:01Z",
     revisionId,
   );
-  let audit = auditMarketEventDatabase(db, ":memory:");
+  audit = auditMarketEventDatabase(db, ":memory:");
   assert.equal(audit.status, "error", "central audit must reject publication after observation");
   assert.ok(
     audit.invalidRevisionRows.some(
