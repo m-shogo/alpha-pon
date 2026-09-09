@@ -105,7 +105,7 @@ async function readPrimaryDocumentBody(response: Response, maxBytes: number): Pr
   const hash = createHash("sha256");
   let byteLength = 0;
   let signatureOffset = 0;
-  let pdfTail = new Uint8Array(0);
+  let pdfTail: Uint8Array = new Uint8Array(0);
 
   try {
     while (true) {
