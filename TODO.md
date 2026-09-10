@@ -1,26 +1,17 @@
 # alpha-pon TODO
 
-## 必須 / すぐやるべき（ユーザー操作が必要）
+**このファイルは現行の正本ではありません。**
+
+→ [docs/roadmaps/alpha-pon-current-roadmap-2026-09-10.md](docs/roadmaps/alpha-pon-current-roadmap-2026-09-10.md)
+
+## 人間しかできない作業（2026-09-10 時点）
 
 | # | 内容 | 状態 |
 |---|------|------|
-| A | `.env` に `JQUANTS_EMAIL` / `JQUANTS_PASSWORD` を設定 → `pnpm daily` でリアルデータ確認 | .env 作成済み・値未入力 |
-| B | `cloudflared` インストール後 `pnpm setup:line` で LINE User ID 取得 → `.env` に追記 | webhook サーバー実装済み |
-| C | `pnpm launchd:install` を実行（A・B 完了後） | plist・ラッパー準備済み |
+| 1 | **J-Quants の認証復旧** | **未解決・最優先**。`.env` の `JQUANTS_API_KEY` で `/v2/listed/info` が HTTP 403（応答0.23秒なのでネットワークではなくキー側）。キー再発行か `JQUANTS_EMAIL`/`JQUANTS_PASSWORD` の設定が必要。これが解けるまで実データでの Edge 検証に進めない |
+| 2 | GitHub の「Automatically delete head branches」を有効化 | 未対応。squash merge でマージ済みブランチが remote に残り続けている |
+| 3 | `config/company-network.yml` に親子・子会社をコード付きで追加 | 未対応。read-across の C2（キオクシア系）がこれ待ち |
+| 4 | Market Event の schedule 有効化承認 | 未対応。Issue #1777 の Safety により明示承認なしには行わない |
 
-## 機能追加
-
-| # | 内容 | 状態 |
-|---|------|------|
-| D | バックテスト（通知後 30日/90日/180日の株価追跡） | ✅ `pnpm backtest` 実装済み |
-| E | watchlist.yml への IPO 自動追加（JPX スクレイプ） | ✅ `pnpm sync:ipo` 実装済み |
-| F | TDnet キーワード検出から candidate 自動追加 | ✅ `pnpm sync:tdnet` 実装済み |
-| G | EDINET 有報の自動取得・要約レポート生成 | ✅ `pnpm scan:edinet:annual` 実装済み |
-| H | 米国株テーマ監視 | 後回し (v0.4) |
-
-## 後回し（仕様書に明記）
-
-- Claude API 自動要約
-- Codex CLI 連携ボタン
-- TradingView 自動登録
-- SBI 自動登録
+旧 TODO.md にあった A〜H の機能追加は、正本ロードマップの Edge カタログ（A〜F）と
+実装ロードマップ（Phase 0〜6）へ引き継いだ。
