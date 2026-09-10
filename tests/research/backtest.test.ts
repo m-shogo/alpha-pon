@@ -126,6 +126,82 @@ function testShortStopFillsAtGappedOpen() {
   assert.equal(trade.grossReturnBps, -5000);
 }
 
+
+function testMinimumLotConstraint() {
+  // 単元株(既定100株)に丸める。1単元も買えない資金では取引が成立しない。
+  // 5000円の株は1単元50万円。小口座では分散できないという実態を反映する。
+  const flat = (price: number): PriceSeries => ({
+    code: "9201",
+    bars: ["2024-01-04", "2024-01-05", "2024-01-09", "2024-01-10", "2024-01-11"].map((date) => ({
+      date, open: price, high: price + 5, low: price - 5, close: price, volume: 5_000_000,
+    })),
+  });
+  const spec = (notionalJpy: number): BacktestSpec => ({
+    ...BASE_SPEC,
+    id: "lot-size-spec",
+    notionalJpy,
+    exit: { mode: "holding_period", holdingPeriodDays: 2 },
+    liquidity: { participationLimitPct: 50 },
+  });
+  const signals = [{ id: "sig-lot", code: "9201", observedAt: "2024-01-04T15:30:00+09:00" }];
+
+  const tooSmall = runBacktest(spec(300_000), signals, new Map([["9201", flat(5000)]]));
+  assert.equal(tooSmall.trades[0].skipReason, "below_minimum_lot", "1単元50万円を30万円では買えない");
+
+  const oneLot = runBacktest(spec(600_000), signals, new Map([["9201", flat(5000)]]));
+  assert.equal(oneLot.trades[0].lots, 1);
+  assert.equal(oneLot.trades[0].notionalJpy, 500_000, "端数は切り捨て。60万円ではなく50万円が実約定");
+
+  const threeLots = runBacktest(spec(300_000), signals, new Map([["9201", flat(1000)]]));
+  assert.equal(threeLots.trades[0].lots, 3);
+  assert.equal(threeLots.trades[0].notionalJpy, 300_000);
+}
+
+function testParticipationUsesRoundedNotional() {
+  // 参加率は申告額ではなく、実際に建てられる額で測る。
+  const thin: PriceSeries = {
+    code: "9202",
+    bars: ["2024-01-04", "2024-01-05", "2024-01-09", "2024-01-10"].map((date) => ({
+      date, open: 1000, high: 1005, low: 995, close: 1000, volume: 1_000,
+    })),
+  };
+  const spec: BacktestSpec = {
+    ...BASE_SPEC,
+    id: "lot-participation-spec",
+    notionalJpy: 900_000,
+    exit: { mode: "holding_period", holdingPeriodDays: 2 },
+    liquidity: { participationLimitPct: 5 },
+  };
+  const report = runBacktest(
+    spec,
+    [{ id: "sig-part", code: "9202", observedAt: "2024-01-04T15:30:00+09:00" }],
+    new Map([["9202", thin]]),
+  );
+  assert.equal(report.trades[0].skipReason, "liquidity_participation_exceeded", "日商100万円に90万円は入らない");
+}
+
+function testCustomLotSize() {
+  const flat: PriceSeries = {
+    code: "9203",
+    bars: ["2024-01-04", "2024-01-05", "2024-01-09", "2024-01-10"].map((date) => ({
+      date, open: 1000, high: 1005, low: 995, close: 1000, volume: 5_000_000,
+    })),
+  };
+  const spec: BacktestSpec = {
+    ...BASE_SPEC,
+    id: "lot-custom-spec",
+    notionalJpy: 50_000,
+    exit: { mode: "holding_period", holdingPeriodDays: 2 },
+    liquidity: { participationLimitPct: 50, lotSize: 1 },
+  };
+  const report = runBacktest(
+    spec,
+    [{ id: "sig-custom", code: "9203", observedAt: "2024-01-04T15:30:00+09:00" }],
+    new Map([["9203", flat]]),
+  );
+  assert.equal(report.trades[0].lots, 50, "lotSize=1 なら1株単位で建てられる");
+}
+
 function testCostsCountBothLegs() {
   const costs = computeCosts({ commissionBps: 2, spreadBps: 8, slippageBps: 5 }, {
     side: "long",
@@ -412,6 +488,9 @@ function testFixtureBundleIsReproducible() {
 testStopFillsAtGappedOpenNotAtStopLevel();
 testStopFillsAtStopLevelWhenReachedIntraday();
 testShortStopFillsAtGappedOpen();
+testMinimumLotConstraint();
+testParticipationUsesRoundedNotional();
+testCustomLotSize();
 testCostsCountBothLegs();
 testBorrowCostAppliesToShortOnly();
 testNetAlphaSubtractsBenchmarkAndCosts();

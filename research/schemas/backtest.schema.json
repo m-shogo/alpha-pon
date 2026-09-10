@@ -138,6 +138,11 @@
         "minAdtvJpy": {
           "type": "number",
           "minimum": 0
+        },
+        "lotSize": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "売買単位。既定 100（東証は2018年に100株へ統一）。"
         }
       }
     },

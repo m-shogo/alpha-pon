@@ -14,6 +14,9 @@ import { aggregate, computeCosts, computeNetAlpha, type AggregateStats, type Cos
 import { canEnterSameClose, jstDateOf } from "./pit.js";
 import { isValidDate } from "./schema.js";
 
+/** 東証の売買単位。2018年に 100 株へ統一された。 */
+export const DEFAULT_LOT_SIZE = 100;
+
 export interface PriceBar {
   date: string; // YYYY-MM-DD（JST の営業日）
   open: number;
@@ -34,11 +37,20 @@ export interface BacktestSpec {
   id: string;
   edgeId: string;
   side: "long" | "short";
-  notionalJpy?: number;
+  /** 必須。無いと参加率上限も market impact も無効になる（spec conformance で強制）。 */
+  notionalJpy: number;
   entry: { mode: "next_open" | "same_close" | "vwap_next_day"; lagDays?: number };
   exit: { mode: "holding_period" | "event_resolution" | "stop_or_period"; holdingPeriodDays?: number; stopLossBps?: number };
   costs: CostModel;
-  liquidity: { participationLimitPct: number; minAdtvJpy?: number };
+  liquidity: {
+    participationLimitPct: number;
+    minAdtvJpy?: number;
+    /**
+     * 売買単位。東証は 2018 年に 100 株へ統一済みなので既定 100。
+     * 端数で建てられない制約を無視すると、実際には組めない結果が出る。
+     */
+    lotSize?: number;
+  };
   benchmark?: string;
   notes?: string;
 }
@@ -59,6 +71,7 @@ export type SkipReason =
   | "pit_violation_same_close"
   | "liquidity_participation_exceeded"
   | "liquidity_adtv_too_low"
+  | "below_minimum_lot"
   | "missing_resolution_date"
   | "resolution_before_entry"
   | "benchmark_missing_entry_bar"
@@ -80,6 +93,10 @@ export interface TradeResult {
   totalCostBps?: number;
   netAlphaBps?: number;
   participationPct?: number;
+  /** 実際に建てられた単元数。 */
+  lots?: number;
+  /** 単元丸め後の実際の約定金額。 */
+  notionalJpy?: number;
   stopped?: boolean;
 }
 
@@ -331,9 +348,19 @@ export function runBacktest(
       skip("liquidity_adtv_too_low");
       continue;
     }
-    const notional = spec.notionalJpy ?? 0;
+
+    // 単元株に丸める。1単元も買えない資金では、その取引は存在しなかったことにする。
+    const lotSize = spec.liquidity.lotSize ?? DEFAULT_LOT_SIZE;
+    const lotCostJpy = entry.price * lotSize;
+    const lots = lotCostJpy > 0 ? Math.floor(spec.notionalJpy / lotCostJpy) : 0;
+    if (lots < 1) {
+      skip("below_minimum_lot");
+      continue;
+    }
+    // 参加率と market impact は、申告額ではなく実際に建てられる額で測る。
+    const notional = lots * lotCostJpy;
     const participationPct = turnover > 0 ? (notional / turnover) * 100 : Number.POSITIVE_INFINITY;
-    if (notional > 0 && participationPct > spec.liquidity.participationLimitPct) {
+    if (participationPct > spec.liquidity.participationLimitPct) {
       skip("liquidity_participation_exceeded");
       continue;
     }
@@ -379,6 +406,8 @@ export function runBacktest(
       totalCostBps: netAlpha.totalCostBps,
       netAlphaBps: netAlpha.netAlphaBps,
       participationPct: Number.isFinite(participationPct) ? participationPct : undefined,
+      lots,
+      notionalJpy: notional,
       stopped: exit.stopped,
     });
   }
