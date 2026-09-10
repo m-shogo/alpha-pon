@@ -12,14 +12,20 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import {
   codeNeedle,
+  loadBacktestSeriesAsOf,
   listIngestedDates,
   loadSeriesForCodes,
   readDateRecords,
   universeOn,
 } from "../src/research/providers/jquants-daily-store.js";
-import type { PitPriceRecord } from "../src/research/price-store.js";
+import { selectPriceRecordsAsOf, type PitPriceRecord } from "../src/research/price-store.js";
 
-function record(code: string, tradingDate: string, close: number, status: "traded" | "missing" = "traded"): PitPriceRecord {
+function record(
+  code: string,
+  tradingDate: string,
+  close: number,
+  status: PitPriceRecord["status"] = "traded",
+): PitPriceRecord {
   return {
     schemaVersion: 1,
     seriesKind: "security",
@@ -38,9 +44,9 @@ function record(code: string, tradingDate: string, close: number, status: "trade
     ingestionRunId: "test",
     currency: "JPY",
     status,
-    ...(status === "traded"
-      ? { ohlcv: { open: close, high: close, low: close, close, volume: 100 } }
-      : { missingReason: "unknown" as const }),
+    ...(status === "missing"
+      ? { missingReason: "unknown" as const }
+      : { ohlcv: { open: close, high: close, low: close, close, volume: 100 } }),
     adjusted: false,
     adjustmentFactor: 1,
     corporateActions: [],
@@ -207,6 +213,185 @@ function testCorruptLineFailsClosed(): void {
     assert.throws(() => readDateRecords("2025-09-01", root), /JSON を解析できません/);
   } finally { rmSync(root, { recursive: true, force: true }); }
 }
+
+// ── backtest 系列ローダー ────────────────────────────────
+// 4,400銘柄×520日を1銘柄ずつ selectPriceRecordsAsOf に通すと同じデータを
+// 何度も走査することになるので専用の1パス版を持つ。だが PIT のゲートを
+// 独自実装すると、そこだけ先読みが漏れる。ゲートの同一性をここで固定する。
+
+const LATE_AS_OF = "2026-09-01T00:00:00.000Z";
+
+function testLoaderBuildsChronologicalSeries(): void {
+  const root = makeStore({
+    "2025-09-02": [record("13060", "2025-09-02", 102), record("72030", "2025-09-02", 202)],
+    "2025-09-01": [record("13060", "2025-09-01", 101), record("72030", "2025-09-01", 201)],
+  });
+  try {
+    const result = loadBacktestSeriesAsOf({ asOf: LATE_AS_OF, root });
+    assert.deepEqual(result.series.map((value) => value.code), ["13060", "72030"], "code 昇順");
+    assert.deepEqual(
+      result.series[0]!.bars.map((bar) => bar.date),
+      ["2025-09-01", "2025-09-02"],
+      "bars は date 昇順",
+    );
+    assert.deepEqual(result.series[0]!.bars[0], {
+      date: "2025-09-01", open: 101, high: 101, low: 101, close: 101, volume: 100,
+    });
+    assert.equal(result.rowsScanned, 4);
+    assert.equal(result.datesScanned, 2);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+}
+
+function testLoaderAppliesObservedAtGate(): void {
+  // 開示遅延の内側の行を混ぜると、全バックテストが先読みになる。
+  const early = record("13060", "2025-09-01", 100);
+  const root = makeStore({ "2025-09-01": [early] });
+  try {
+    const before = loadBacktestSeriesAsOf({ asOf: "2025-08-31T00:00:00.000Z", root });
+    assert.deepEqual(before.series, [], "observedAt より前の asOf では1本も出さない");
+    assert.equal(before.skipped.observedAtAfterAsOf, 1, "落とした理由を報告する");
+
+    const after = loadBacktestSeriesAsOf({ asOf: LATE_AS_OF, root });
+    assert.equal(after.series.length, 1);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+}
+
+function testLoaderAppliesRetrievedAtAndFirstExecutableGates(): void {
+  // retrievedAt / firstExecutableAt は "executable" 境界の条件。
+  // observedAt だけ見ていると「まだ手元に無かったデータ」で約定できてしまう。
+  const late = record("13060", "2025-09-01", 100);
+  late.retrievedAt = "2026-12-01T00:00:00.000Z";
+  late.firstExecutableAt = "2026-12-01T00:00:00.000Z";
+  const root = makeStore({ "2025-09-01": [late] });
+  try {
+    const result = loadBacktestSeriesAsOf({ asOf: LATE_AS_OF, root });
+    assert.deepEqual(result.series, []);
+    assert.equal(result.skipped.retrievedAtAfterAsOf, 1);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+
+  const notYetExecutable = record("13060", "2025-09-01", 100);
+  notYetExecutable.firstExecutableAt = "2026-12-01T00:00:00.000Z";
+  const root2 = makeStore({ "2025-09-01": [notYetExecutable] });
+  try {
+    const result = loadBacktestSeriesAsOf({ asOf: LATE_AS_OF, root: root2 });
+    assert.deepEqual(result.series, []);
+    assert.equal(result.skipped.firstExecutableAtAfterAsOf, 1);
+  } finally { rmSync(root2, { recursive: true, force: true }); }
+}
+
+function testLoaderMatchesSelectPriceRecordsAsOf(): void {
+  // ゲートの独自実装が正本からずれていないことを、正本と突き合わせて確かめる。
+  const rows = [
+    record("13060", "2025-09-01", 100),
+    record("13060", "2025-09-02", 101),
+  ];
+  rows[1]!.retrievedAt = "2026-12-01T00:00:00.000Z";
+  rows[1]!.firstExecutableAt = "2026-12-01T00:00:00.000Z";
+
+  const root = makeStore({ "2025-09-01": [rows[0]!], "2025-09-02": [rows[1]!] });
+  try {
+    const loader = loadBacktestSeriesAsOf({ asOf: LATE_AS_OF, root });
+    const canonical = selectPriceRecordsAsOf(rows, LATE_AS_OF,
+      { seriesKind: "security", code: "13060" }, "executable");
+    assert.deepEqual(
+      loader.series[0]!.bars.map((bar) => bar.date),
+      canonical.map((value) => value.tradingDate),
+      "1パス版と selectPriceRecordsAsOf が同じ行を選ぶこと",
+    );
+  } finally { rmSync(root, { recursive: true, force: true }); }
+}
+
+function testLoaderExcludesNonTradedRows(): void {
+  const root = makeStore({
+    "2025-09-01": [record("13060", "2025-09-01", 100), record("99999", "2025-09-01", 0, "missing")],
+  });
+  try {
+    const result = loadBacktestSeriesAsOf({ asOf: LATE_AS_OF, root });
+    assert.deepEqual(result.series.map((value) => value.code), ["13060"]);
+    assert.equal(result.skipped.notTraded, 1);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+}
+
+function testLoaderRejectsSuspendedRowsThatStillCarryPrices(): void {
+  // 売買停止・値付かずの日に前日値が残っていることはある。ohlcv の有無だけで
+  // 判定すると、その日に約定できたことにしてしまう。status を見ること。
+  const suspended = record("99999", "2025-09-01", 500, "suspended");
+  assert.ok(suspended.ohlcv, "テスト前提: 停止でも値は入っている");
+
+  const root = makeStore({ "2025-09-01": [record("13060", "2025-09-01", 100), suspended] });
+  try {
+    const result = loadBacktestSeriesAsOf({ asOf: LATE_AS_OF, root });
+    assert.deepEqual(result.series.map((value) => value.code), ["13060"],
+      "status が traded でない行は約定できない");
+    assert.equal(result.skipped.notTraded, 1);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+}
+
+function testLoaderFailsClosedOnDuplicateRevision(): void {
+  // 改訂の解決はこのローダーの責務ではない。黙って片方を採ると再現しなくなる。
+  const root = mkdtempSync(resolve(tmpdir(), "jq-daily-store-"));
+  try {
+    const a = record("13060", "2025-09-01", 100);
+    const b = record("13060", "2025-09-01", 999);
+    b.contentHash = "hash-other";
+    writeFileSync(resolve(root, "2025-09-01.jsonl"),
+      `${JSON.stringify(a)}\n${JSON.stringify(b)}\n`);
+    assert.throws(() => loadBacktestSeriesAsOf({ asOf: LATE_AS_OF, root }),
+      /two records for 13060 on 2025-09-01/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+}
+
+function testLoaderSortsSeriesByCodeRegardlessOfFileOrder(): void {
+  // 取り込み側は code 昇順で書くが、それに依存すると取り込み実装を
+  // 変えた瞬間に出力順が変わり、差分が毎回汚れる。
+  const root = makeStore({
+    "2025-09-01": [
+      record("99840", "2025-09-01", 3),
+      record("13060", "2025-09-01", 1),
+      record("72030", "2025-09-01", 2),
+    ],
+  });
+  try {
+    const result = loadBacktestSeriesAsOf({ asOf: LATE_AS_OF, root });
+    assert.deepEqual(result.series.map((value) => value.code), ["13060", "72030", "99840"]);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+}
+
+function testLoaderCodeFilter(): void {
+  const root = makeStore({
+    "2025-09-01": [record("13060", "2025-09-01", 100), record("72030", "2025-09-01", 200)],
+  });
+  try {
+    const result = loadBacktestSeriesAsOf({ asOf: LATE_AS_OF, codes: ["72030"], root });
+    assert.deepEqual(result.series.map((value) => value.code), ["72030"]);
+    assert.equal(result.skipped.outsideRequestedCodes, 1);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+}
+
+function testLoaderInvalidInputFailsClosed(): void {
+  // 空のストアでも入力検証が走ること。ループの中の比較に検証を任せると
+  // 「1行も無いときだけ不正な asOf が素通り」する（同じ穴を2度踏まないため）。
+  const emptyRoot = mkdtempSync(resolve(tmpdir(), "jq-daily-store-empty-"));
+  try {
+    assert.throws(() => loadBacktestSeriesAsOf({ asOf: "2026-09-01", root: emptyRoot }), /asOf/);
+    assert.throws(() => loadBacktestSeriesAsOf({ asOf: "not-a-timestamp", root: emptyRoot }), /asOf/);
+  } finally { rmSync(emptyRoot, { recursive: true, force: true }); }
+
+  assert.throws(() => loadBacktestSeriesAsOf({ asOf: LATE_AS_OF, from: "2025-09-05", to: "2025-09-01" }),
+    /from must be on or before to/);
+  assert.throws(() => loadBacktestSeriesAsOf({ asOf: LATE_AS_OF, codes: ["abc"] }), /invalid security code/);
+}
+
+testLoaderBuildsChronologicalSeries();
+testLoaderAppliesObservedAtGate();
+testLoaderAppliesRetrievedAtAndFirstExecutableGates();
+testLoaderMatchesSelectPriceRecordsAsOf();
+testLoaderExcludesNonTradedRows();
+testLoaderRejectsSuspendedRowsThatStillCarryPrices();
+testLoaderSortsSeriesByCodeRegardlessOfFileOrder();
+testLoaderFailsClosedOnDuplicateRevision();
+testLoaderCodeFilter();
+testLoaderInvalidInputFailsClosed();
 
 testNeedleDoesNotMatchLongerCode();
 testLoadSeriesPicksOnlyRequestedCodes();

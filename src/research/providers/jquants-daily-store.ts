@@ -13,6 +13,8 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { assertIsoDate } from "./jquants-daily-ingest.js";
+import { compareExplicitIso8601Instants } from "../iso-instant.js";
+import type { PriceBar, PriceSeries } from "../backtest.js";
 import type { PitPriceRecord } from "../price-store.js";
 
 export const JQUANTS_DAILY_STORE_ROOT = "research/prices/jquants-free-daily";
@@ -136,4 +138,123 @@ export function universeOn(tradingDate: string, root = resolveStoreRoot()): stri
     .filter((record) => record.status === "traded")
     .map((record) => record.code)
     .sort();
+}
+
+/**
+ * 日付メジャーのストアから backtest 用の系列を組む。
+ *
+ * `selectPriceRecordsAsOf` は1銘柄ずつの API なので、4,400銘柄×520日を
+ * 通すと同じデータを何度も走査することになる。ここは1パスで全銘柄ぶんを
+ * 組むが、PIT のゲートは同じものを同じ順で掛ける。
+ *
+ * 改訂（同じ code+date に複数レコード）はこのストアでは起こらない
+ * （日付ファイルは一度しか書かれない）。もし起きたら黙って片方を採らずに落ちる。
+ */
+export interface LoadBacktestSeriesResult {
+  series: PriceSeries[];
+  /** PIT ゲートで落ちた行数。内訳を出さないと「データが無い」と区別できない。 */
+  skipped: {
+    observedAtAfterAsOf: number;
+    retrievedAtAfterAsOf: number;
+    firstExecutableAtAfterAsOf: number;
+    notTraded: number;
+    outsideRequestedCodes: number;
+  };
+  datesScanned: number;
+  rowsScanned: number;
+}
+
+export function loadBacktestSeriesAsOf(input: {
+  asOf: string;
+  from?: string;
+  to?: string;
+  /** 未指定なら全銘柄。 */
+  codes?: Iterable<string>;
+  root?: string;
+}): LoadBacktestSeriesResult {
+  const root = input.root ?? resolveStoreRoot();
+  const from = input.from ? assertIsoDate(input.from, "from") : null;
+  const to = input.to ? assertIsoDate(input.to, "to") : null;
+  if (from && to && from > to) throw new Error(`from must be on or before to: ${from} > ${to}`);
+  compareExplicitIso8601Instants(input.asOf, input.asOf, "asOf", "asOf");
+
+  let wanted: Set<string> | null = null;
+  if (input.codes !== undefined) {
+    wanted = new Set<string>();
+    for (const code of input.codes) {
+      const trimmed = code.trim().toUpperCase();
+      if (!/^[0-9A-Z]{4,5}$/.test(trimmed)) throw new Error(`invalid security code: ${code}`);
+      wanted.add(trimmed);
+    }
+  }
+
+  const bars = new Map<string, PriceBar[]>();
+  const seen = new Set<string>();
+  const skipped = {
+    observedAtAfterAsOf: 0,
+    retrievedAtAfterAsOf: 0,
+    firstExecutableAtAfterAsOf: 0,
+    notTraded: 0,
+    outsideRequestedCodes: 0,
+  };
+  let datesScanned = 0;
+  let rowsScanned = 0;
+
+  for (const tradingDate of listIngestedDates(root)) {
+    if (from && tradingDate < from) continue;
+    if (to && tradingDate > to) continue;
+    datesScanned += 1;
+
+    // 同じファイル内の全行が同じ日付。文字列を1本だけ作って共有する
+    // （2.16M 本の別インスタンスを作るとヒープが無駄に膨らむ）。
+    const sharedDate = tradingDate;
+    const content = readFileSync(resolve(root, `${tradingDate}.jsonl`), "utf-8");
+
+    for (const raw of content.split("\n")) {
+      if (!raw) continue;
+      rowsScanned += 1;
+      const record = JSON.parse(raw) as PitPriceRecord;
+
+      if (wanted && !wanted.has(record.code)) { skipped.outsideRequestedCodes += 1; continue; }
+
+      // PIT のゲート。selectPriceRecordsAsOf の "executable" 境界と同じ順序。
+      if (compareExplicitIso8601Instants(record.observedAt, input.asOf, "observedAt", "asOf") > 0) {
+        skipped.observedAtAfterAsOf += 1; continue;
+      }
+      if (compareExplicitIso8601Instants(record.retrievedAt, input.asOf, "retrievedAt", "asOf") > 0) {
+        skipped.retrievedAtAfterAsOf += 1; continue;
+      }
+      if (compareExplicitIso8601Instants(record.firstExecutableAt, input.asOf, "firstExecutableAt", "asOf") > 0) {
+        skipped.firstExecutableAtAfterAsOf += 1; continue;
+      }
+      if (record.status !== "traded" || !record.ohlcv) { skipped.notTraded += 1; continue; }
+
+      const key = `${record.code}|${record.tradingDate}`;
+      if (seen.has(key)) {
+        throw new Error(
+          `price store has two records for ${record.code} on ${record.tradingDate}. `
+          + "改訂の解決はこのローダーの責務ではない。selectPriceRecordsAsOf を使うこと",
+        );
+      }
+      seen.add(key);
+
+      let bucket = bars.get(record.code);
+      if (!bucket) { bucket = []; bars.set(record.code, bucket); }
+      bucket.push({
+        date: sharedDate,
+        open: record.ohlcv.open,
+        high: record.ohlcv.high,
+        low: record.ohlcv.low,
+        close: record.ohlcv.close,
+        volume: record.ohlcv.volume,
+      });
+    }
+  }
+
+  // 日付ファイルは昇順に読むので bars は既に昇順。契約として明示しておく。
+  const series = [...bars.entries()]
+    .map(([code, values]) => ({ code, bars: values }))
+    .sort((left, right) => left.code.localeCompare(right.code));
+
+  return { series, skipped, datesScanned, rowsScanned };
 }

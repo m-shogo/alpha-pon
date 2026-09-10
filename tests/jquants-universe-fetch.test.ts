@@ -32,7 +32,7 @@ const AS_OF = "2026-01-01T00:00:00.000Z";
 const RETRIEVED_AT = "2026-01-01T00:00:00.000Z";
 const FIRST_EXECUTABLE_AT = "2026-01-02T00:00:00.000Z";
 
-function quote(code: string, date = TRADING_DATE, close = 1000): DailyQuote {
+function quote(code: string, date = TRADING_DATE, close = 1000, adjustmentFactor = 1): DailyQuote {
   return {
     Code: code,
     Date: date.replace(/-/g, ""),
@@ -41,7 +41,7 @@ function quote(code: string, date = TRADING_DATE, close = 1000): DailyQuote {
     Low: close - 10,
     Close: close,
     Volume: 1000,
-    AdjustmentFactor: 1,
+    AdjustmentFactor: adjustmentFactor,
     AdjustmentClose: close,
     AdjustmentVolume: 1000,
   };
@@ -120,6 +120,60 @@ async function testAsOfBeforeObservedAtWithholdsEveryRow(): Promise<void> {
   assert.equal(batch.outcome, "entitled_rows", "枠内で行はあった、という事実は保つ");
 }
 
+async function testAdjustmentIsCapturedNotDiscarded(): Promise<void> {
+  // 実測: `15680` は 2024-06-28 に AdjFactor=0.01（1:100分割）で -99%。
+  // これを捨てると F1 の候補が分割だらけになる（189営業日で -25%以下が470件）。
+  const batch = await provider(async () => [
+    quote("13060"),
+    quote("15680", TRADING_DATE, 515, 0.01),
+    quote("28400", TRADING_DATE, 1952, 16),
+  ]).fetchDailyUniverse({ tradingDate: TRADING_DATE, asOf: AS_OF });
+
+  assert.equal(batch.adjustments.length, 2, "factor=1 の銘柄はイベントにしない");
+  assert.deepEqual(
+    batch.adjustments.map((event) => [event.code, event.factor, event.direction]),
+    [["15680", 0.01, "price_decrease"], ["28400", 16, "price_increase"]],
+  );
+  assert.equal(batch.adjustments[0]!.effectiveDate, TRADING_DATE);
+  assert.equal(batch.records.length, 3, "権利落ちの日も価格は保存する");
+}
+
+async function testAdjustmentIsNotWrittenIntoThePriceRecord(): Promise<void> {
+  // 無調整で保存する以上 adjustmentFactor は 1 でなければならず、
+  // corporateActions を入れると無調整前提の測定経路が落ちる。
+  const batch = await provider(async () => [quote("15680", TRADING_DATE, 515, 0.01)])
+    .fetchDailyUniverse({ tradingDate: TRADING_DATE, asOf: AS_OF });
+
+  const record = batch.records[0]!;
+  assert.equal(record.adjustmentFactor, 1);
+  assert.equal(record.adjusted, false);
+  assert.deepEqual(record.corporateActions, []);
+  assert.equal(batch.adjustments.length, 1, "事実は台帳の側に残す");
+}
+
+async function testInvalidAdjustmentFactorFailsClosed(): Promise<void> {
+  // 0 や負の係数が来たら「調整なし」と読まずに落ちる。
+  for (const bad of [0, -1, Number.NaN]) {
+    await assert.rejects(
+      provider(async () => [quote("15680", TRADING_DATE, 515, bad)])
+        .fetchDailyUniverse({ tradingDate: TRADING_DATE, asOf: AS_OF }),
+      /invalid AdjustmentFactor for 15680/,
+    );
+  }
+}
+
+async function testWithheldAndNotEntitledCarryNoAdjustments(): Promise<void> {
+  // asOf の内側なら権利落ちも出してはいけない（それも先読み）。
+  const withheld = await provider(async () => [quote("15680", TRADING_DATE, 515, 0.01)])
+    .fetchDailyUniverse({ tradingDate: TRADING_DATE, asOf: "2025-09-02T00:00:00.000Z" });
+  assert.deepEqual(withheld.adjustments, []);
+  assert.equal(withheld.withheldForAsOf, 1);
+
+  const outside = await provider(async () => null)
+    .fetchDailyUniverse({ tradingDate: TRADING_DATE, asOf: AS_OF });
+  assert.deepEqual(outside.adjustments, []);
+}
+
 async function testRecordsAreValidPitRecords(): Promise<void> {
   const batch = await provider(async () => [quote("13060")])
     .fetchDailyUniverse({ tradingDate: TRADING_DATE, asOf: AS_OF });
@@ -172,6 +226,10 @@ async function main(): Promise<void> {
   await testForeignDateRowFailsClosed();
   await testDuplicateCodeFailsClosed();
   await testAsOfBeforeObservedAtWithholdsEveryRow();
+  await testAdjustmentIsCapturedNotDiscarded();
+  await testAdjustmentIsNotWrittenIntoThePriceRecord();
+  await testInvalidAdjustmentFactorFailsClosed();
+  await testWithheldAndNotEntitledCarryNoAdjustments();
   await testRecordsAreValidPitRecords();
   await testInvalidAsOfFailsClosed();
   await testInvalidTradingDateFailsClosed();

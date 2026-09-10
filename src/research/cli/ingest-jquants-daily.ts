@@ -25,6 +25,12 @@ import {
   isJQuantsFreeConfigured,
 } from "../providers/jquants-free.js";
 import {
+  JQUANTS_ADJUSTMENT_LEDGER_NAME,
+  dedupeAdjustmentEvents,
+  parseAdjustmentLedger,
+  type JQuantsAdjustmentEvent,
+} from "../providers/jquants-adjustment-events.js";
+import {
   assertIsoDate,
   completedDatesFrom,
   estimateIngestSeconds,
@@ -67,6 +73,27 @@ function root(): string {
 
 function ledgerPath(): string {
   return resolve(root(), LEDGER_NAME);
+}
+
+function adjustmentLedgerPath(): string {
+  return resolve(root(), JQUANTS_ADJUSTMENT_LEDGER_NAME);
+}
+
+/**
+ * 権利落ちの観測を追記する。
+ *
+ * 価格ファイルの rename より前に書く。中断で同じ観測が二重に載ることは
+ * あるが、読み出し側が (code, effectiveDate) で畳む。逆順にすると
+ * 「価格はあるのに権利落ちの記録が無い日」ができ、そちらは復旧できない。
+ */
+function appendAdjustments(events: readonly JQuantsAdjustmentEvent[]): void {
+  if (events.length === 0) return;
+  mkdirSync(root(), { recursive: true, mode: 0o700 });
+  appendFileSync(
+    adjustmentLedgerPath(),
+    `${events.map((event) => JSON.stringify(event)).join("\n")}\n`,
+    { mode: 0o600 },
+  );
 }
 
 function datePath(tradingDate: string): string {
@@ -157,6 +184,7 @@ async function main(): Promise<void> {
   const startedAt = Date.now();
   const counts = { entitled_rows: 0, entitled_empty: 0, not_entitled: 0 };
   let rowsWritten = 0;
+  let adjustmentsWritten = 0;
   let failures = 0;
 
   console.log("");
@@ -184,6 +212,10 @@ async function main(): Promise<void> {
       // 失敗した日は台帳に載せない。次回の再開で拾い直す。
       continue;
     }
+
+    // 価格の確定より前に権利落ちを記録する（順序の理由は appendAdjustments）。
+    appendAdjustments(batch.adjustments);
+    adjustmentsWritten += batch.adjustments.length;
 
     if (batch.records.length > 0) {
       const partial = `${datePath(tradingDate)}.partial`;
@@ -221,11 +253,20 @@ async function main(): Promise<void> {
 
   console.log("");
   console.log(`書き込み        ${rowsWritten} 行`);
+  console.log(`権利落ち観測    ${adjustmentsWritten} 件`);
   console.log(`立会あり        ${counts.entitled_rows} 日`);
   console.log(`0件（休場等）   ${counts.entitled_empty} 日`);
   console.log(`枠外            ${counts.not_entitled} 日（84日遅延の内側。完了にはしない）`);
   if (failures > 0) console.log(`失敗            ${failures} 日（次回の再開で拾い直す）`);
   console.log(`総時間          ${formatDuration((Date.now() - startedAt) / 1000)}`);
+
+  // 台帳が読めない状態で終わると、次の工程が黙って「権利落ちなし」で走る。
+  if (existsSync(adjustmentLedgerPath())) {
+    const events = dedupeAdjustmentEvents(
+      parseAdjustmentLedger(readFileSync(adjustmentLedgerPath(), "utf-8")),
+    );
+    console.log(`権利落ち台帳    ${events.length} 件（重複除去後）`);
+  }
   if (failures > 0) process.exitCode = 1;
 }
 
