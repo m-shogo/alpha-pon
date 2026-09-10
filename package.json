@@ -84,6 +84,7 @@
     "backfill:world-impact": "node --import tsx/esm src/world-impact-backfill.ts",
     "evaluate:world-impact": "node --env-file=.env --import tsx/esm src/world-impact-evaluate.ts",
     "audit:safe-output": "node --import tsx/esm src/safe-output-audit.ts",
+    "diagnose:jquants": "node --env-file=.env --import tsx/esm scripts/diagnose-jquants.ts",
     "report:world-impact": "node --import tsx/esm src/world-impact-report.ts",
     "calibrate:world-impact": "node --import tsx/esm src/world-impact-calibrate.ts",
     "outcomes:integrity": "node --import tsx/esm src/hypothesis-outcome-integrity-report.ts",

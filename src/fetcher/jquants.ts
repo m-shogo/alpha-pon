@@ -1,6 +1,15 @@
 // J-Quants API クライアント
 // Docs: https://jpx-jquants.com/
 
+import {
+  DEFAULT_ADAPTIVE_RATE_LIMIT,
+  initialRateLimitState,
+  onRequestSucceeded,
+  onRequestThrottled,
+  waitMsBefore,
+  type AdaptiveRateLimitConfig,
+} from "./adaptive-rate-limit.js";
+
 const V1_BASE_URL = "https://api.jquants.com/v1";
 const V2_BASE_URL = "https://api.jquants.com/v2";
 
@@ -10,7 +19,9 @@ type TokenCache = {
 };
 
 let tokenCache: TokenCache | null = null;
-let lastV2RequestAt = 0;
+// 相手（J-Quants Free）の制限はレートではなくバースト枠。
+// 固定間隔では必ず溢れるため、429 の観測から間隔を学習する。
+let v2RateLimitState = initialRateLimitState();
 
 export function parseJQuantsRequestTimeoutMs(value: string | undefined): number {
   const parsed = Number(value ?? "15000");
@@ -197,7 +208,6 @@ async function getV2Paginated<T>(path: string, params: Record<string, string> = 
   const queryParams = { ...params };
 
   while (true) {
-    await waitForV2RateLimit();
     const query = new URLSearchParams(queryParams).toString();
     const url = `${V2_BASE_URL}${path}${query ? "?" + query : ""}`;
     const res = await fetchV2(url, apiKey);
@@ -222,18 +232,52 @@ async function getV2Paginated<T>(path: string, params: Record<string, string> = 
   return rows;
 }
 
+function v2RateLimitConfig(): AdaptiveRateLimitConfig {
+  return {
+    ...DEFAULT_ADAPTIVE_RATE_LIMIT,
+    baseIntervalMs: parseJQuantsV2RequestIntervalMs(process.env.JQUANTS_V2_REQUEST_INTERVAL_MS),
+  };
+}
+
 async function waitForV2RateLimit(): Promise<void> {
-  const intervalMs = parseJQuantsV2RequestIntervalMs(process.env.JQUANTS_V2_REQUEST_INTERVAL_MS);
-  const waitMs = Math.max(0, lastV2RequestAt + intervalMs - Date.now());
+  const waitMs = waitMsBefore(v2RateLimitState, Date.now());
   if (waitMs > 0) {
     await new Promise(resolve => setTimeout(resolve, waitMs));
   }
-  lastV2RequestAt = Date.now();
+}
+
+/** 現在のスロットル状況。長時間の一括取得で進捗を出すために使う。 */
+export function jquantsV2RateLimitSnapshot(): {
+  currentIntervalMs: number;
+  totalThrottles: number;
+  consecutiveThrottles: number;
+} {
+  return {
+    currentIntervalMs: v2RateLimitState.currentIntervalMs,
+    totalThrottles: v2RateLimitState.totalThrottles,
+    consecutiveThrottles: v2RateLimitState.consecutiveThrottles,
+  };
+}
+
+/** テストと一括取得の開始時に状態を戻す。 */
+export function resetJQuantsV2RateLimit(): void {
+  v2RateLimitState = initialRateLimitState(v2RateLimitConfig());
+}
+
+function parseRetryAfterMs(response: Response): number | undefined {
+  const header = response.headers.get("retry-after");
+  if (!header) return undefined;
+  const seconds = Number(header);
+  if (Number.isFinite(seconds) && seconds > 0) return seconds * 1000;
+  const date = Date.parse(header);
+  return Number.isFinite(date) ? Math.max(0, date - Date.now()) : undefined;
 }
 
 async function fetchV2(url: string, apiKey: string): Promise<Response> {
   const maxAttempts = parseJQuantsV2RetryAttempts(process.env.JQUANTS_V2_RETRY_ATTEMPTS);
+  const config = v2RateLimitConfig();
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    await waitForV2RateLimit();
     const res = await fetch(url, {
       headers: {
         "x-api-key": apiKey,
@@ -241,8 +285,15 @@ async function fetchV2(url: string, apiKey: string): Promise<Response> {
       },
       signal: timeoutSignal(),
     });
-    if (res.status !== 429 || attempt === maxAttempts) return res;
-    await new Promise(resolve => setTimeout(resolve, attempt * 10000));
+    if (res.status !== 429) {
+      v2RateLimitState = onRequestSucceeded(v2RateLimitState, Date.now(), config);
+      return res;
+    }
+    // バースト枠が尽きている。短い間隔で叩き直しても枠を削るだけ。
+    v2RateLimitState = onRequestThrottled(
+      v2RateLimitState, Date.now(), config, parseRetryAfterMs(res),
+    );
+    if (attempt === maxAttempts) return res;
   }
   throw new Error("J-Quants V2 retry failed");
 }
