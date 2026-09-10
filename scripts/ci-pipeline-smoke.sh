@@ -137,6 +137,12 @@ node --import tsx/esm scripts/verify-d1-bootstrap-export.ts
 # 合成 fixture で通す。個々のモジュールが揃っていても繋ぐ層で壊れるため。
 pnpm research:edge-study:fixtures
 
+# 価格の一括取り込み CLI を dry-run で通す。
+# 既定でネットワークを触らないので CI で安全に回せる。取り込み計画と
+# 「取り込み済み判定」が壊れると、再開時に全部取り直すか全部飛ばすかの
+# どちらかになり、どちらも静かに壊れる。
+pnpm ingest:prices -- --from 2025-09-01 --to 2025-09-05 > /dev/null
+
 # verify script が「追記し忘れ」でどこからも起動されない状態を防ぐ。
 node --import tsx/esm scripts/verify-script-reachability.ts
 
