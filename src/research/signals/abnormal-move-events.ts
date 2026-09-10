@@ -25,7 +25,8 @@
 //   「不祥事があったが下がらなかった」ケースは別途 control として持つ必要がある。
 
 import type { PriceSeries } from "../backtest.js";
-import { assertAscendingBars, calendarDaysBetween, positiveDayLimit } from "./trading-calendar.js";
+import { evaluateAbnormalReturn } from "./abnormal-return.js";
+import { assertAscendingBars, positiveDayLimit } from "./trading-calendar.js";
 
 const OBSERVED_TIME_JST = "15:30:00";
 const DEFAULT_IMPLAUSIBLE_SINGLE_DAY_MOVE_PCT = -35;
@@ -135,13 +136,6 @@ function assertParams(params: AbnormalMoveParams): void {
   }
 }
 
-function averageTurnoverJpy(series: PriceSeries, endIndex: number, lookback: number): number {
-  const start = Math.max(0, endIndex - lookback + 1);
-  const window = series.bars.slice(start, endIndex + 1);
-  if (window.length === 0) return 0;
-  return window.reduce((sum, bar) => sum + bar.close * bar.volume, 0) / window.length;
-}
-
 /**
  * benchmark 調整後の異常下落からイベント候補を作る。
  *
@@ -189,63 +183,35 @@ export function detectAbnormalMoveEvents(
       const bar = series.bars[index];
       evaluatedCount += 1;
 
-      if (index === 0) {
-        reject(series.code, bar.date, "no_prior_bar");
-        continue;
-      }
-      const priorBar = series.bars[index - 1];
-
-      if (calendarDaysBetween(priorBar.date, bar.date) > maxPriorGapDays) {
-        reject(series.code, bar.date, "prior_bar_too_far");
-        continue;
-      }
-      if (!(priorBar.close > 0)) {
-        reject(series.code, bar.date, "non_positive_prior_close");
-        continue;
-      }
-
       // 説明のつく日はここで抜く。残りが「業績で説明できないショック」候補になる。
       if (knownEvents?.has(bar.date)) {
         reject(series.code, bar.date, "explained_by_known_event");
         continue;
       }
-      if (actionDates && (actionDates.has(bar.date) || actionDates.has(priorBar.date))) {
-        reject(series.code, bar.date, "corporate_action_in_window");
-        continue;
-      }
 
-      const benchmarkClose = benchmarkCloseByDate.get(bar.date);
-      if (benchmarkClose === undefined) {
-        reject(series.code, bar.date, "benchmark_bar_missing");
+      const evaluation = evaluateAbnormalReturn(series, index, {
+        benchmarkCloseByDate,
+        corporateActionDates: actionDates,
+        implausibleSingleDayMovePct: implausiblePct,
+        maxPriorGapDays,
+        turnoverLookbackBars: lookback,
+      });
+      if (!evaluation.ok) {
+        reject(series.code, bar.date, evaluation.reason);
         continue;
       }
-      const benchmarkPriorClose = benchmarkCloseByDate.get(priorBar.date);
-      if (benchmarkPriorClose === undefined) {
-        reject(series.code, bar.date, "benchmark_prior_bar_missing");
-        continue;
-      }
-      if (!(benchmarkPriorClose > 0)) {
-        reject(series.code, bar.date, "non_positive_benchmark_prior_close");
-        continue;
-      }
+      const metrics = evaluation.metrics;
 
-      const rawReturnPct = ((bar.close - priorBar.close) / priorBar.close) * 100;
-      const benchmarkReturnPct = ((benchmarkClose - benchmarkPriorClose) / benchmarkPriorClose) * 100;
-      const abnormalReturnPct = rawReturnPct - benchmarkReturnPct;
-
-      if (!(abnormalReturnPct <= params.abnormalReturnThresholdPct)) {
+      if (!(metrics.abnormalReturnPct <= params.abnormalReturnThresholdPct)) {
         reject(series.code, bar.date, "move_not_extreme_enough");
         continue;
       }
-      // コーポレートアクション情報が無い場合の保険。値幅制限を超える下落は
-      // 業績反応でも事件でもなく、分割・併合・異常データである。
-      if (rawReturnPct <= implausiblePct) {
-        reject(series.code, bar.date, "implausible_single_day_move");
-        continue;
-      }
-
-      const turnover = averageTurnoverJpy(series, index, lookback);
-      if (params.minAverageTurnoverJpy !== undefined && turnover < params.minAverageTurnoverJpy) {
+      // 流動性は候補相当と判定したあとに適用する。先に落とすと
+      // 「候補相当だが流動性で落ちた件数」が読めなくなる。
+      if (
+        params.minAverageTurnoverJpy !== undefined
+        && metrics.averageTurnoverJpy < params.minAverageTurnoverJpy
+      ) {
         reject(series.code, bar.date, "below_min_turnover");
         continue;
       }
@@ -253,14 +219,7 @@ export function detectAbnormalMoveEvents(
       candidates.push({
         candidateId: `am-${series.code}-${bar.date}`,
         code: series.code,
-        date: bar.date,
-        priorCloseDate: priorBar.date,
-        close: bar.close,
-        priorClose: priorBar.close,
-        rawReturnPct,
-        benchmarkReturnPct,
-        abnormalReturnPct,
-        averageTurnoverJpy: turnover,
+        ...metrics,
         observedAt: `${bar.date}T${OBSERVED_TIME_JST}+09:00`,
         causeLabelled: false,
         blockers: ABNORMAL_MOVE_BLOCKERS,
