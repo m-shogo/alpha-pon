@@ -141,6 +141,17 @@ assert.equal(canonicalCandidate?.issuerName, "サンリオ 株式会社");
 assert.equal(canonicalCandidate?.disclosureTitle, "第三者委員会の設置に関する お知らせ");
 assert.equal(canonicalCandidate?.sourceCode, "81360");
 
+for (const nonCanonicalViewerText of [
+  disclosure({ companyName: " サンリオ " }),
+  disclosure({ title: " 第三者委員会の設置に関する  お知らせ " }),
+]) {
+  assert.throws(
+    () => extractTdnetMarketEventCandidates([nonCanonicalViewerText]),
+    /must preserve canonical non-empty viewer text/,
+    "collector-bound candidate extraction must fail closed on viewer-text aliases instead of silently repairing provenance",
+  );
+}
+
 assert.throws(
   () => classifyTdnetDisclosureCandidate(disclosure({ sourceCode: " 81360 " })),
   /sourceCode must be an exact 5-character uppercase source value/,
