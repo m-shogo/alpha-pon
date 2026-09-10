@@ -14,6 +14,7 @@ import assert from "node:assert/strict";
 import {
   TDNET_RETENTION_DAYS,
   auditDisclosureArchive,
+  formatDisclosureArchiveBanner,
 } from "../src/disclosure-archive-audit.js";
 
 function audit(archivedDates: string[], today: string, retentionDays = TDNET_RETENTION_DAYS) {
@@ -92,6 +93,50 @@ function testRetentionDefaultIsConservative(): void {
   assert.ok(TDNET_RETENTION_DAYS >= 21);
 }
 
+function testBannerIsSilentWhenThereIsNoGap(): void {
+  // 問題が無い朝に余計な文言を出さない。毎朝出ると読まれなくなる。
+  const report = audit(["2026-09-10", "2026-09-11"], "2026-09-11");
+  assert.deepEqual(formatDisclosureArchiveBanner(report), []);
+  assert.deepEqual(formatDisclosureArchiveBanner(audit([], "2026-09-11")), []);
+}
+
+function testBannerShowsTheDeadline(): void {
+  // 「抜けている」だけでは動けない。**あと何日で取り戻せなくなるか**を出す。
+  const report = audit(["2026-09-07", "2026-09-11"], "2026-09-11", 28);
+  const banner = formatDisclosureArchiveBanner(report);
+  assert.ok(banner.length > 0, "欠落があるのに何も出していない");
+  const text = banner.join("\n");
+  assert.ok(/あと \d+ 日で取り戻せなくなります/.test(text), text);
+  assert.ok(text.includes("pnpm archive:tdnet"), "埋め方が書かれていない");
+  assert.ok(text.includes("--execute"), "dry-run のコマンドを案内しても何も起きない");
+  assert.ok(text.includes("2026-09-08"), "最初の欠落日が入っていない");
+}
+
+function testBannerCommandRangeIsNotInverted(): void {
+  // 実際に出した壊れたコマンド。最終保存日を --to にしていたため、
+  // 欠落が最終保存日より後だと from > to になり実行時に落ちる。
+  //   pnpm archive:tdnet -- --from 2026-09-14 --to 2026-09-11 --execute
+  const report = audit(["2026-09-08", "2026-09-09", "2026-09-10", "2026-09-11"], "2026-09-15", 28);
+  const text = formatDisclosureArchiveBanner(report).join("\n");
+  const match = /--from (\d{4}-\d{2}-\d{2}) --to (\d{4}-\d{2}-\d{2})/.exec(text);
+  assert.ok(match, `コマンドの範囲を読み取れない: ${text}`);
+  assert.ok(match[1]! <= match[2]!, `from > to の壊れたコマンド: ${match[0]}`);
+  // 欠落は 09-14 と 09-15（09-12,13 は週末）。
+  assert.equal(match[1], "2026-09-14");
+  assert.equal(match[2], "2026-09-15");
+}
+
+function testBannerReportsUnrecoverableSeparately(): void {
+  // 回収できる欠落と、もう手遅れの欠落を同じ扱いにしない。
+  const report = audit(["2026-08-01", "2026-09-11"], "2026-09-11", 28);
+  const text = formatDisclosureArchiveBanner(report).join("\n");
+  assert.ok(text.includes("取り戻せなくなった日"), text);
+}
+
+testBannerIsSilentWhenThereIsNoGap();
+testBannerShowsTheDeadline();
+testBannerCommandRangeIsNotInverted();
+testBannerReportsUnrecoverableSeparately();
 testNoGapsWhenEveryWeekdayIsArchived();
 testWeekendsAreNotGaps();
 testMissingWeekdayIsAGap();

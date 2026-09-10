@@ -6,6 +6,10 @@ import {
   formatDailyDataHealthBanner,
   type DailyDataHealth,
 } from "./daily-data-health.js";
+import {
+  formatDisclosureArchiveBanner,
+  type ArchiveAuditReport,
+} from "./disclosure-archive-audit.js";
 
 const ALERT_LABELS: Record<AlertLevel, string> = {
   urgent: "🚨 即通知 (URGENT)",
@@ -411,6 +415,8 @@ export function generateSummaryReport(
   results: ScoreResult[],
   date: string,
   dataHealth?: DailyDataHealth,
+  /** 開示保存庫の欠落。回収できなくなる前に気づくために出す。 */
+  disclosureArchive?: ArchiveAuditReport,
 ): string {
   const lines: string[] = [];
 
@@ -424,6 +430,8 @@ export function generateSummaryReport(
   // 「候補がない」と「データが無い」を同じ見た目にしない。
   // サマリーの件数より前に出す。
   if (dataHealth) lines.push(...formatDailyDataHealthBanner(dataHealth));
+  // 開示は約28日で回収できなくなる。気づくのが遅れると永久に埋められない。
+  if (disclosureArchive) lines.push(...formatDisclosureArchiveBanner(disclosureArchive));
 
   const urgent = results.filter(r => r.alertLevel === "urgent");
   const daily = results.filter(r => r.alertLevel === "daily");

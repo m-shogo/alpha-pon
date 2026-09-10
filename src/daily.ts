@@ -1,6 +1,10 @@
 import { writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { loadWatchlist, loadRules, loadThemes } from "./config.js";
+import {
+  auditDisclosureArchive,
+  type ArchiveAuditReport,
+} from "./disclosure-archive-audit.js";
 import { scoreCandidate } from "./score/index.js";
 import { fetchCandidateData } from "./fetcher/index.js";
 import { generateReport, generateSummaryReport } from "./report.js";
@@ -116,7 +120,16 @@ async function main() {
   if (dataHealth.availability !== "ok") {
     console.warn(`[data-health] ${dataHealth.availability}: ${dataHealth.warnings.join(" / ")}`);
   }
-  const summary = generateSummaryReport(results, today, dataHealth);
+  // 開示の保存が抜けていたら朝のレポートで知らせる。
+  // TDnet は約28日で遡れなくなるので、気づくのが遅れると永久に埋められない。
+  // 監査に失敗してもレポート生成は止めない（欠落の通知はレポートの主目的ではない）。
+  let disclosureArchive: ArchiveAuditReport | undefined;
+  try {
+    disclosureArchive = auditDisclosureArchive({ today });
+  } catch (error) {
+    console.warn(`[disclosure-archive] 監査に失敗: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  const summary = generateSummaryReport(results, today, dataHealth, disclosureArchive);
   writeFileSync(join("reports", "latest.md"), summary, "utf-8");
   saveAnalogyUsageDb(results, today);
   saveAnalogyPredictionDb(results, today);

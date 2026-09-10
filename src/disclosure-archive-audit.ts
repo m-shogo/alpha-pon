@@ -106,3 +106,39 @@ export function auditDisclosureArchive(input: {
     daysSinceLastArchive: daysBetween(last, input.today),
   };
 }
+
+/**
+ * 朝のレポートに出す一言。欠落が無ければ何も出さない。
+ *
+ * CI の検査だけでは毎朝は見えない。開示は約28日で回収できなくなるので、
+ * 気づくのが遅れると永久に埋められない。**期限を数字で見せる。**
+ */
+export function formatDisclosureArchiveBanner(report: ArchiveAuditReport): string[] {
+  if (report.archivedDates === 0) return [];
+  if (report.recoverableGaps.length === 0 && report.lostGaps.length === 0) return [];
+
+  const lines: string[] = [];
+  if (report.recoverableGaps.length > 0) {
+    const soonest = report.recoverableGaps
+      .reduce((min, gap) => Math.min(min, gap.daysLeftToRecover), Number.POSITIVE_INFINITY);
+    lines.push(
+      `> ⚠️ **開示の記録が ${report.recoverableGaps.length} 日ぶん抜けています。`
+      + `あと ${soonest} 日で取り戻せなくなります。**`,
+    );
+    lines.push(">");
+    // 範囲は「欠落の最初」から「欠落の最後」。`lastDate`（最後に保存できた日）を
+    // 終端にすると、欠落が最終保存日より後のときに from > to の壊れた
+    // コマンドを出す（実際に出した）。
+    const firstGap = report.recoverableGaps[0]!.date;
+    const lastGap = report.recoverableGaps.at(-1)!.date;
+    lines.push(
+      "> - 埋めるコマンド: `pnpm archive:tdnet"
+      + ` -- --from ${firstGap} --to ${lastGap} --execute\``,
+    );
+  }
+  if (report.lostGaps.length > 0) {
+    lines.push(`> - 取り戻せなくなった日: ${report.lostGaps.length} 日`);
+  }
+  lines.push("");
+  return lines;
+}
