@@ -44,12 +44,15 @@ const context = {
 const bundle = buildMarketEventBundle(input, context);
 assert.equal(bundle.event.occurrenceKey, "fy2026-q1");
 
+// 正規化は NFKC → 前後trim → 連続空白を1つへ → 小文字化。
+// 空白をハイフンへ置換したりはしない（意味の違うキーを併合してしまうため）。
+// ここに並べるのは「同じキーの表記ゆれ」だけ。
 for (const occurrenceKey of [
   " FY2026-Q1",
   "FY2026-Q1 ",
   "FY2026-Q1",
-  "fy2026  q1",
   "ｆｙ２０２６-q1",
+  "FY2026-Q1\u3000",
 ]) {
   const aliasBundle = buildMarketEventBundle({ ...input, occurrenceKey }, context);
   assert.equal(
@@ -63,6 +66,20 @@ for (const occurrenceKey of [
     "occurrence-key aliases must not create a persisted spelling that diverges from stable event identity",
   );
 }
+
+// 空白は畳まれるだけでハイフンにはならないので、"fy2026  q1" は
+// "fy2026-q1" の表記ゆれではなく **別のキー**。過剰に併合しないことを確かめる。
+const spacedBundle = buildMarketEventBundle({ ...input, occurrenceKey: "fy2026  q1" }, context);
+assert.equal(
+  spacedBundle.event.occurrenceKey,
+  "fy2026 q1",
+  "連続空白は1つに畳むが、ハイフンへは置換しない",
+);
+assert.notEqual(
+  spacedBundle.event.eventId,
+  bundle.event.eventId,
+  "空白区切りのキーをハイフン区切りと同一視して併合してはいけない",
+);
 
 assert.throws(
   () => buildMarketEventBundle({ ...input, occurrenceKey: " 　 " }, context),

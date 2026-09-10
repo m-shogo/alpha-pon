@@ -29,7 +29,9 @@ const baseInput = {
       title: "Fixture source",
       publishedAt: "2026-08-28T10:00:00Z",
       retrievedAt: "2026-08-28T09:00:00Z",
-      contentHash: "fixture-content-hash",
+      // contentHash が SHA-256 形式でないと hash 検査が先に発火し、
+      // ここで確かめたい chronology 検査に到達しない。
+      contentHash: "a".repeat(64),
       storageClass: "METADATA_ONLY" as const,
     },
   ],
