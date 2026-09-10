@@ -22,6 +22,16 @@ DOW="$(date '+%u')"   # 1=Mon ... 7=Sun
 DOM="$(date '+%d')"   # 01..31
 FAILED_STEPS=""
 PIPELINE_STEPS_JSON="[]"
+
+# どのコードで動いたかを記録する。
+# launchd は作業コピーをそのまま実行するため、古いブランチに取り残されていると
+# 修正済みのバグが毎朝再現する（2026-09-10 に main から1555 commits 遅れていた実例）。
+# daily は止めない。記録して警告するだけにする。
+# stdout に JSON、stderr に人向けの警告が出る。stderr はそのままログへ流す。
+WORKSPACE_JSON="$(node --import tsx/esm "$DIR/scripts/report-workspace-status.ts" || echo '')"
+if [ -z "$WORKSPACE_JSON" ]; then
+  WORKSPACE_JSON="null"
+fi
 LOCK_DIR="$DIR/tmp/run-daily.lock"
 
 json_escape() {
@@ -43,6 +53,7 @@ write_status() {
   "startedAt": "$STARTED_AT",
   "endedAt": "$ended_at",
   "failedSteps": $failed_json,
+  "workspace": $WORKSPACE_JSON,
   "steps": $PIPELINE_STEPS_JSON,
   "reports": {
     "daily": "reports/latest.md",
