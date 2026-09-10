@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { normalizeSourceHealthObject } from "../src/source-health-input.js";
 
+// fail な result があるのに "ok" と名乗るのは矛盾。契約上 partial_failed になる。
 const valid = normalizeSourceHealthObject({
-  status: "ok",
+  status: "partial_failed",
   results: [
     { name: "world_scan", status: "ok" },
     { name: "daily_company_score", status: "skip" },

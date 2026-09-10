@@ -169,6 +169,27 @@ try {
     }
   }
 
+  function testDuplicateRegistrationRowsDoNotInflateCount() {
+    // registerTrial は read → check → append なので、別プロセスが同時に
+    // 同じ試行を登録すると重複行が出る（実測: 6並行で4行）。
+    // append-only なので行は消せないが、試行回数は trialId の集合で数えるため
+    // 影響しない。False Discovery Guard へ渡す値が水増しされないことを固定する。
+    const path = ledgerPath("dup-rows");
+    const input = trial({ params: { same: 1 } });
+    registerTrial(input, path, NOW);
+    const duplicated = {
+      schemaVersion: 1,
+      kind: "registration",
+      trialId: computeTrialId(input),
+      recordedAt: NOW.toISOString(),
+      ...input,
+    };
+    appendFileSync(path, `${JSON.stringify(duplicated)}\n${JSON.stringify(duplicated)}\n`);
+    const records = readTrialLedger(path);
+    assert.equal(records.length, 3, "重複行はそのまま残る");
+    assert.equal(countTrials(records, input.edgeId), 1, "試行回数は水増しされない");
+  }
+
   function testMalformedLedgerFailsClosed() {
     const path = ledgerPath("malformed");
     registerTrial(trial(), path, NOW);
@@ -186,6 +207,7 @@ try {
   testOutcomeForUnregisteredTrialIsRejected();
   testConflictingOutcomeIsRejected();
   testLedgerIsAppendOnly();
+  testDuplicateRegistrationRowsDoNotInflateCount();
   testEmptyIntentIsRejected();
   testMalformedLedgerFailsClosed();
 
