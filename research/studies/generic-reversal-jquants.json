@@ -1,0 +1,47 @@
+{
+  "edgeId": "generic-reversal",
+  "specId": "generic-reversal-jquants-v1",
+  "_note": "ラベル無しで測れる基準線。個別要因の急落後に何が起きるかを測る。すべてのイベント Edge はこれを超えなければ意味がない。価格は bundle に埋めず --from-store で取り込み済みストアから読む。",
+  "detector": {
+    "kind": "abnormal_move",
+    "params": {
+      "abnormalReturnThresholdPct": -10,
+      "knownEventDates": {},
+      "corporateActionDates": {},
+      "marketModel": {
+        "estimationBars": 120,
+        "gapBars": 5,
+        "minObservations": 60,
+        "maxPriorGapDays": 10
+      },
+      "minAverageTurnoverJpy": 500000000
+    }
+  },
+  "control": {
+    "abnormalReturnTolerancePct": 3,
+    "maxDateOffsetDays": 0,
+    "controlsPerTreatment": 2,
+    "allowReuse": false,
+    "knownEventDates": {},
+    "corporateActionDates": {},
+    "turnoverRatioBand": [0.2, 5]
+  },
+  "eventStudy": {
+    "horizons": [1, 5, 20, 60]
+  },
+  "holdout": {
+    "manifest": {
+      "schemaVersion": 1,
+      "sealedAt": "2026-09-11",
+      "policy": "Production Gate 判定のとき以外は一切参照しない。J-Quants Free の契約範囲 2024-06-19〜2026-06-19 のうち、末尾を封印する。市場モデルの推定窓(120本)が埋まるのは 2024-12 以降なので、探索の実質開始はそこから。",
+      "windows": [
+        {
+          "id": "vault-2026h1",
+          "from": "2026-03-01",
+          "to": "2026-06-19",
+          "scope": "all_universe"
+        }
+      ]
+    }
+  }
+}

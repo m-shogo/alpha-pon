@@ -5,6 +5,10 @@
 //   pnpm research:edge-study --bundle=... --labels=research/event_labels.jsonl
 //   pnpm research:edge-study --bundle=... --no-trial-ledger   （fixture / CI 用）
 //
+//   実データで走らせる（価格は bundle に埋めず、取り込み済みストアから読む）:
+//   pnpm research:edge-study --bundle=... --from-store --from=2024-12-01 --to=2025-06-30 \
+//     --min-turnover-jpy=500000000 --intent="..."
+//
 // 何をするか:
 //   価格から事件候補を検出 → Holdout を除外 → 対照群を作る → イベントスタディ
 //   → 試行回数台帳へ記録、までを1本で通す。
@@ -19,6 +23,7 @@
 //   research:backtest 側で別途行う。
 
 import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { isCanonicalReadOnlyJsonFile } from "../../read-only-json-file.js";
 import type { PriceSeries } from "../backtest.js";
 import { writeGeneratedJson } from "../io.js";
@@ -50,6 +55,19 @@ import {
   buildMatchedControls,
   type MatchedControlParams,
 } from "../signals/matched-controls.js";
+import {
+  JQUANTS_ADJUSTMENT_LEDGER_NAME,
+  parseAdjustmentLedger,
+  toCorporateActionDates,
+} from "../providers/jquants-adjustment-events.js";
+import {
+  loadBacktestSeriesAsOf,
+  resolveStoreRoot,
+} from "../providers/jquants-daily-store.js";
+import {
+  DEFAULT_UNIVERSE_BENCHMARK_PARAMS,
+  buildUniverseBenchmark,
+} from "../signals/universe-benchmark.js";
 import { fail, parseArgs } from "./common.js";
 
 interface StudyBundle {
@@ -64,8 +82,9 @@ interface StudyBundle {
    * 同程度の下落が全部 treatment 扱いになるため対照が作れない。
    */
   treatmentCandidateIds?: string[];
-  prices: PriceSeries[];
-  benchmark: PriceSeries;
+  /** `--from-store` を使うときは省略する（4,400銘柄×500日を JSON に埋められない）。 */
+  prices?: PriceSeries[];
+  benchmark?: PriceSeries;
   holdout?: {
     manifest: HoldoutVaultManifest;
     requestedWindowIds?: string[];
@@ -90,6 +109,92 @@ function toDateMap(source: Record<string, string[]> | undefined): Map<string, Se
   return new Map(Object.entries(source ?? {}).map(([code, dates]) => [code, new Set(dates)]));
 }
 
+function numberOption(options: Map<string, string>, name: string, fallback: number): number {
+  const raw = options.get(name);
+  if (raw === undefined) return fallback;
+  const value = Number(raw);
+  if (!Number.isFinite(value)) fail(`--${name} は数値で指定してください: ${raw}`);
+  return value;
+}
+
+/**
+ * 取り込み済みの価格ストアから走らせる材料を組む。
+ *
+ * bundle に価格を埋め込む形式は fixture 用。実データは 4,400銘柄×500日で
+ * JSON に載らないし、載せても毎回コピーが増えるだけ。
+ *
+ * ここで一緒にやること:
+ *   - 権利落ち台帳の読み込み（無ければ止める。分割を暴落として検出するため）
+ *   - 流動性での絞り込み（非流動銘柄は板が薄く終値が当日の市場変動を
+ *     反映しないので、翌日の追いつきを異常として拾い続ける）
+ *   - benchmark をユニバースから組む（ETF は説明変数の測定誤差になり、
+ *     β を一様に希薄化させる。実測 平均0.59 対 1.00）
+ */
+function loadFromStore(options: Map<string, string>): {
+  prices: PriceSeries[];
+  benchmark: PriceSeries;
+  corporateActionDates: Map<string, Set<string>>;
+} {
+  const root = resolveStoreRoot();
+  const ledgerPath = resolve(root, JQUANTS_ADJUSTMENT_LEDGER_NAME);
+  if (!existsSync(ledgerPath)) {
+    fail(
+      `権利落ち台帳がありません: ${ledgerPath}\n`
+      + "先に pnpm ingest:prices を実行してください。"
+      + "台帳なしで走らせると株式分割を暴落として検出します",
+    );
+  }
+  const corporateActionDates = toCorporateActionDates(
+    parseAdjustmentLedger(readFileSync(ledgerPath, "utf-8")),
+  );
+
+  const from = options.get("from");
+  const to = options.get("to");
+  const minTurnoverJpy = numberOption(options, "min-turnover-jpy", 0);
+
+  const loaded = loadBacktestSeriesAsOf({
+    asOf: new Date().toISOString(),
+    root,
+    ...(from ? { from } : {}),
+    ...(to ? { to } : {}),
+  });
+  if (loaded.series.length === 0) {
+    fail("価格ストアに使える系列がありません。先に pnpm ingest:prices を実行してください");
+  }
+
+  // benchmark はユニバース全体（流動性の足切り前）から組む。
+  const universe = buildUniverseBenchmark(loaded.series, {
+    ...DEFAULT_UNIVERSE_BENCHMARK_PARAMS,
+    ...(minTurnoverJpy > 0 ? { minAverageTurnoverJpy: minTurnoverJpy } : {}),
+  });
+  if (universe.series.bars.length === 0) {
+    fail("ユニバース指数を作れませんでした。構成銘柄が閾値に届いていません");
+  }
+
+  const prices = minTurnoverJpy > 0
+    ? loaded.series.filter((series) => {
+        const window = series.bars.slice(-DEFAULT_UNIVERSE_BENCHMARK_PARAMS.turnoverLookbackBars);
+        if (window.length === 0) return false;
+        const average = window.reduce((sum, bar) => sum + bar.close * bar.volume, 0) / window.length;
+        return average >= minTurnoverJpy;
+      })
+    : loaded.series;
+
+  const actionCount = [...corporateActionDates.values()].reduce((sum, set) => sum + set.size, 0);
+  console.log(
+    `⓪ ストア     : ${prices.length}銘柄`
+    + `${minTurnoverJpy > 0 ? `（全${loaded.series.length}中・売買代金${(minTurnoverJpy / 1e8).toFixed(0)}億円/日以上）` : ""}`
+    + ` / ${loaded.datesScanned}営業日`,
+  );
+  console.log(
+    `   benchmark : ユニバース等加重 ${universe.series.bars.length}本`
+    + `${universe.skippedDates.length > 0 ? ` / 構成不足 ${universe.skippedDates.length}日` : ""}`,
+  );
+  console.log(`   権利落ち   : ${corporateActionDates.size}銘柄 / ${actionCount}件`);
+
+  return { prices, benchmark: universe.series, corporateActionDates };
+}
+
 function bps(value: number): string {
   return `${value >= 0 ? "+" : ""}${value.toFixed(1)}bps`;
 }
@@ -107,15 +212,45 @@ function main(): void {
     fail(`未対応の detector です: ${String(bundle.detector?.kind)}`);
   }
 
-  const securities = new Map(bundle.prices.map((series) => [series.code, series]));
+  const fromStore = flags.has("from-store") ? loadFromStore(options) : null;
+  const prices = fromStore ? fromStore.prices : bundle.prices;
+  const benchmark = fromStore ? fromStore.benchmark : bundle.benchmark;
+  if (!prices || prices.length === 0) {
+    fail("価格がありません。bundle に prices を入れるか --from-store を指定してください");
+  }
+  if (!benchmark) {
+    fail("benchmark がありません。bundle に benchmark を入れるか --from-store を指定してください");
+  }
+  const securities = new Map(prices!.map((series) => [series.code, series]));
 
   // ① 事件候補の検出
-  const detected = detectAbnormalMoveEvents(bundle.prices, bundle.benchmark, {
+  //
+  // ストアから走らせるときは、権利落ちを bundle ではなく台帳から入れる。
+  // bundle 側に書き写すと、取り込みで台帳が伸びても古いまま使われる。
+  const detected = detectAbnormalMoveEvents(prices!, benchmark!, {
     ...bundle.detector.params,
     knownEventDates: toDateMap(bundle.detector.params.knownEventDates),
-    corporateActionDates: toDateMap(bundle.detector.params.corporateActionDates),
+    corporateActionDates: fromStore
+      ? fromStore.corporateActionDates
+      : toDateMap(bundle.detector.params.corporateActionDates),
   });
   console.log(`① 検出      : 評価 ${detected.evaluatedCount} → 候補 ${detected.candidates.length}`);
+  // 却下の内訳を必ず出す。特に market_model_unavailable が多いときは
+  // 「候補が少ない＝異常が無かった」ではなく「測れなかった」なので、
+  // 件数だけ見て結論を出すと必ず誤読する（実際に一度誤読した）。
+  const rejectSummary = Object.entries(detected.rejectedCounts)
+    .filter(([, count]) => count > 0)
+    .sort((left, right) => right[1] - left[1])
+    .map(([reason, count]) => `${reason}=${count}`)
+    .join(" ");
+  if (rejectSummary) console.log(`   却下       : ${rejectSummary}`);
+  const unavailable = detected.rejectedCounts.market_model_unavailable;
+  if (unavailable > detected.evaluatedCount * 0.5) {
+    console.log(
+      `   ⚠ 評価の ${(unavailable / detected.evaluatedCount * 100).toFixed(0)}% で市場モデルを推定できていません。`
+      + "履歴が推定窓に足りていない期間が含まれます。候補の少なさを結論にしないでください",
+    );
+  }
 
   // ② Holdout の除外。封印期間を黙って使わない。
   let usable = detected.candidates;
@@ -207,10 +342,12 @@ function main(): void {
     averageTurnoverJpy: one.averageTurnoverJpy,
   }));
   const { excludedCodes, knownEventDates, corporateActionDates, ...controlRest } = bundle.control;
-  const controls = buildMatchedControls(treatments, securities, bundle.benchmark, {
+  const controls = buildMatchedControls(treatments, securities, benchmark!, {
     ...controlRest,
     knownEventDates: toDateMap(knownEventDates),
-    corporateActionDates: toDateMap(corporateActionDates),
+    corporateActionDates: fromStore
+      ? fromStore.corporateActionDates
+      : toDateMap(corporateActionDates),
     ...(excludedCodes ? { excludedCodes: new Set(excludedCodes) } : {}),
     ...(excludedSampleKeys.size > 0 ? { excludedSampleKeys } : {}),
   });
@@ -243,7 +380,7 @@ function main(): void {
       pairId: match.treatmentId,
     })),
   ];
-  const study = runEventStudy(subjects, securities, bundle.benchmark, bundle.eventStudy);
+  const study = runEventStudy(subjects, securities, benchmark!, bundle.eventStudy);
   console.log(`④ イベントスタディ: 対象 ${study.subjectCount} → 観測 ${study.observations.length}`);
   console.log("");
   console.log("horizon | treatment n / 平均 / clusters / t(補正) | control n / 平均 | 差分 | 回復率 T/C");
@@ -285,8 +422,10 @@ function main(): void {
         },
         datasetFingerprint: computeDatasetFingerprint({
           signalIds: subjects.map((one) => one.id),
-          priceCodes: bundle.prices.map((one) => one.code),
-          benchmarkCode: bundle.benchmark.code,
+          // 走らせた実際の母集団で指紋を取る。bundle 側を見ると
+          // --from-store のとき「価格が無い」ことになって指紋が縮退する。
+          priceCodes: prices!.map((one) => one.code),
+          benchmarkCode: benchmark!.code,
           asOf: subjects.map((one) => one.eventDate).sort().at(-1) ?? "",
         }),
         intent: intent!,
