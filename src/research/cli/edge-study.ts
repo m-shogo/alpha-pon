@@ -56,18 +56,10 @@ import {
   type MatchedControlParams,
 } from "../signals/matched-controls.js";
 import {
-  JQUANTS_ADJUSTMENT_LEDGER_NAME,
-  parseAdjustmentLedger,
-  toCorporateActionDates,
-} from "../providers/jquants-adjustment-events.js";
-import {
-  loadBacktestSeriesAsOf,
-  resolveStoreRoot,
-} from "../providers/jquants-daily-store.js";
-import {
-  DEFAULT_UNIVERSE_BENCHMARK_PARAMS,
-  buildUniverseBenchmark,
-} from "../signals/universe-benchmark.js";
+  StudyInputsError,
+  formatStudyInputs,
+  loadStudyInputsFromStore,
+} from "../study-inputs-from-store.js";
 import { fail, parseArgs } from "./common.js";
 
 interface StudyBundle {
@@ -109,94 +101,16 @@ function toDateMap(source: Record<string, string[]> | undefined): Map<string, Se
   return new Map(Object.entries(source ?? {}).map(([code, dates]) => [code, new Set(dates)]));
 }
 
+function bps(value: number): string {
+  return `${value >= 0 ? "+" : ""}${value.toFixed(1)}bps`;
+}
+
 function numberOption(options: Map<string, string>, name: string, fallback: number): number {
   const raw = options.get(name);
   if (raw === undefined) return fallback;
   const value = Number(raw);
   if (!Number.isFinite(value)) fail(`--${name} は数値で指定してください: ${raw}`);
   return value;
-}
-
-/**
- * 取り込み済みの価格ストアから走らせる材料を組む。
- *
- * bundle に価格を埋め込む形式は fixture 用。実データは 4,400銘柄×500日で
- * JSON に載らないし、載せても毎回コピーが増えるだけ。
- *
- * ここで一緒にやること:
- *   - 権利落ち台帳の読み込み（無ければ止める。分割を暴落として検出するため）
- *   - 流動性での絞り込み（非流動銘柄は板が薄く終値が当日の市場変動を
- *     反映しないので、翌日の追いつきを異常として拾い続ける）
- *   - benchmark をユニバースから組む（ETF は説明変数の測定誤差になり、
- *     β を一様に希薄化させる。実測 平均0.59 対 1.00）
- */
-function loadFromStore(options: Map<string, string>): {
-  prices: PriceSeries[];
-  benchmark: PriceSeries;
-  corporateActionDates: Map<string, Set<string>>;
-} {
-  const root = resolveStoreRoot();
-  const ledgerPath = resolve(root, JQUANTS_ADJUSTMENT_LEDGER_NAME);
-  if (!existsSync(ledgerPath)) {
-    fail(
-      `権利落ち台帳がありません: ${ledgerPath}\n`
-      + "先に pnpm ingest:prices を実行してください。"
-      + "台帳なしで走らせると株式分割を暴落として検出します",
-    );
-  }
-  const corporateActionDates = toCorporateActionDates(
-    parseAdjustmentLedger(readFileSync(ledgerPath, "utf-8")),
-  );
-
-  const from = options.get("from");
-  const to = options.get("to");
-  const minTurnoverJpy = numberOption(options, "min-turnover-jpy", 0);
-
-  const loaded = loadBacktestSeriesAsOf({
-    asOf: new Date().toISOString(),
-    root,
-    ...(from ? { from } : {}),
-    ...(to ? { to } : {}),
-  });
-  if (loaded.series.length === 0) {
-    fail("価格ストアに使える系列がありません。先に pnpm ingest:prices を実行してください");
-  }
-
-  // benchmark はユニバース全体（流動性の足切り前）から組む。
-  const universe = buildUniverseBenchmark(loaded.series, {
-    ...DEFAULT_UNIVERSE_BENCHMARK_PARAMS,
-    ...(minTurnoverJpy > 0 ? { minAverageTurnoverJpy: minTurnoverJpy } : {}),
-  });
-  if (universe.series.bars.length === 0) {
-    fail("ユニバース指数を作れませんでした。構成銘柄が閾値に届いていません");
-  }
-
-  const prices = minTurnoverJpy > 0
-    ? loaded.series.filter((series) => {
-        const window = series.bars.slice(-DEFAULT_UNIVERSE_BENCHMARK_PARAMS.turnoverLookbackBars);
-        if (window.length === 0) return false;
-        const average = window.reduce((sum, bar) => sum + bar.close * bar.volume, 0) / window.length;
-        return average >= minTurnoverJpy;
-      })
-    : loaded.series;
-
-  const actionCount = [...corporateActionDates.values()].reduce((sum, set) => sum + set.size, 0);
-  console.log(
-    `⓪ ストア     : ${prices.length}銘柄`
-    + `${minTurnoverJpy > 0 ? `（全${loaded.series.length}中・売買代金${(minTurnoverJpy / 1e8).toFixed(0)}億円/日以上）` : ""}`
-    + ` / ${loaded.datesScanned}営業日`,
-  );
-  console.log(
-    `   benchmark : ユニバース等加重 ${universe.series.bars.length}本`
-    + `${universe.skippedDates.length > 0 ? ` / 構成不足 ${universe.skippedDates.length}日` : ""}`,
-  );
-  console.log(`   権利落ち   : ${corporateActionDates.size}銘柄 / ${actionCount}件`);
-
-  return { prices, benchmark: universe.series, corporateActionDates };
-}
-
-function bps(value: number): string {
-  return `${value >= 0 ? "+" : ""}${value.toFixed(1)}bps`;
 }
 
 function main(): void {
@@ -212,7 +126,22 @@ function main(): void {
     fail(`未対応の detector です: ${String(bundle.detector?.kind)}`);
   }
 
-  const fromStore = flags.has("from-store") ? loadFromStore(options) : null;
+  let fromStore: ReturnType<typeof loadStudyInputsFromStore> | null = null;
+  if (flags.has("from-store")) {
+    try {
+      fromStore = loadStudyInputsFromStore({
+        ...(options.get("from") ? { from: options.get("from")! } : {}),
+        ...(options.get("to") ? { to: options.get("to")! } : {}),
+        minTurnoverJpy: numberOption(options, "min-turnover-jpy", 0),
+      });
+    } catch (error) {
+      if (error instanceof StudyInputsError) fail(error.message);
+      throw error;
+    }
+    for (const line of formatStudyInputs(fromStore!, numberOption(options, "min-turnover-jpy", 0))) {
+      console.log(`⓪ ${line}`);
+    }
+  }
   const prices = fromStore ? fromStore.prices : bundle.prices;
   const benchmark = fromStore ? fromStore.benchmark : bundle.benchmark;
   if (!prices || prices.length === 0) {
