@@ -35,18 +35,10 @@ import {
   type AbnormalMoveParams,
 } from "../signals/abnormal-move-events.js";
 import {
-  JQUANTS_ADJUSTMENT_LEDGER_NAME,
-  parseAdjustmentLedger,
-  toCorporateActionDates,
-} from "../providers/jquants-adjustment-events.js";
-import {
-  loadBacktestSeriesAsOf,
-  resolveStoreRoot,
-} from "../providers/jquants-daily-store.js";
-import {
-  DEFAULT_UNIVERSE_BENCHMARK_PARAMS,
-  buildUniverseBenchmark,
-} from "../signals/universe-benchmark.js";
+  StudyInputsError,
+  formatStudyInputs,
+  loadStudyInputsFromStore,
+} from "../study-inputs-from-store.js";
 import { fail, parseArgs } from "./common.js";
 
 interface Bundle {
@@ -84,10 +76,10 @@ function numberOption(options: Map<string, string>, name: string, fallback: numb
 /**
  * 取り込み済みの価格ストアからシグナルと価格を作る。
  *
- * edge-study の `--from-store` と同じ材料を同じ作り方で用意する。
- * 片方だけ流動性の足切りや benchmark の作り方が違うと、
- * 「イベントスタディでは出たのに backtest では出ない」の原因が
- * 分からなくなる。
+ * 材料（流動性の足切り・ユニバース benchmark・権利落ち台帳）は
+ * `study-inputs-from-store.ts` に集約している。edge-study と同じものを
+ * 同じ作り方で使わないと、「イベントスタディでは出たのに backtest では
+ * 出ない」の原因が分からなくなる。
  */
 function loadFromStore(
   bundle: Bundle,
@@ -96,57 +88,26 @@ function loadFromStore(
   if (bundle.detector?.kind !== "abnormal_move") {
     fail("--from-store には bundle.detector.kind = \"abnormal_move\" が必要です");
   }
-  const root = resolveStoreRoot();
-  const ledgerPath = resolve(root, JQUANTS_ADJUSTMENT_LEDGER_NAME);
-  if (!existsSync(ledgerPath)) {
-    fail(
-      `権利落ち台帳がありません: ${ledgerPath}\n`
-      + "先に pnpm ingest:prices を実行してください。"
-      + "台帳なしで走らせると株式分割を暴落として検出します",
-    );
-  }
-  const corporateActionDates = toCorporateActionDates(
-    parseAdjustmentLedger(readFileSync(ledgerPath, "utf-8")),
-  );
-
-  const from = options.get("from");
-  const to = options.get("to");
   const minTurnoverJpy = numberOption(options, "min-turnover-jpy", 0);
-
-  const loaded = loadBacktestSeriesAsOf({
-    asOf: new Date().toISOString(),
-    root,
-    ...(from ? { from } : {}),
-    ...(to ? { to } : {}),
-  });
-  if (loaded.series.length === 0) {
-    fail("価格ストアに使える系列がありません。先に pnpm ingest:prices を実行してください");
+  let inputs;
+  try {
+    inputs = loadStudyInputsFromStore({
+      ...(options.get("from") ? { from: options.get("from")! } : {}),
+      ...(options.get("to") ? { to: options.get("to")! } : {}),
+      minTurnoverJpy,
+    });
+  } catch (error) {
+    if (error instanceof StudyInputsError) fail(error.message);
+    throw error;
   }
 
-  const universe = buildUniverseBenchmark(loaded.series, {
-    ...DEFAULT_UNIVERSE_BENCHMARK_PARAMS,
-    ...(minTurnoverJpy > 0 ? { minAverageTurnoverJpy: minTurnoverJpy } : {}),
-  });
-  if (universe.series.bars.length === 0) {
-    fail("ユニバース指数を作れませんでした。構成銘柄が閾値に届いていません");
-  }
-
-  const prices = minTurnoverJpy > 0
-    ? loaded.series.filter((series) => {
-        const window = series.bars.slice(-DEFAULT_UNIVERSE_BENCHMARK_PARAMS.turnoverLookbackBars);
-        if (window.length === 0) return false;
-        const average = window.reduce((sum, bar) => sum + bar.close * bar.volume, 0) / window.length;
-        return average >= minTurnoverJpy;
-      })
-    : loaded.series;
-
-  const detected = detectAbnormalMoveEvents(prices, universe.series, {
+  const detected = detectAbnormalMoveEvents(inputs.prices, inputs.benchmark, {
     ...bundle.detector.params,
     knownEventDates: new Map(
       Object.entries(bundle.detector.params.knownEventDates ?? {})
         .map(([code, dates]) => [code, new Set(dates)]),
     ),
-    corporateActionDates,
+    corporateActionDates: inputs.corporateActionDates,
   });
 
   const rejectSummary = Object.entries(detected.rejectedCounts)
@@ -155,11 +116,7 @@ function loadFromStore(
     .map(([reason, count]) => `${reason}=${count}`)
     .join(" ");
 
-  console.log(
-    `ストア: ${prices.length}銘柄`
-    + `${minTurnoverJpy > 0 ? `（全${loaded.series.length}中）` : ""}`
-    + ` / ${loaded.datesScanned}営業日 / benchmark ユニバース等加重 ${universe.series.bars.length}本`,
-  );
+  for (const line of formatStudyInputs(inputs, minTurnoverJpy)) console.log(line);
   console.log(`検出  : 評価 ${detected.evaluatedCount} → シグナル ${detected.candidates.length}`);
   if (rejectSummary) console.log(`却下  : ${rejectSummary}`);
   const unavailable = detected.rejectedCounts.market_model_unavailable;
@@ -178,7 +135,7 @@ function loadFromStore(
     observedAt: candidate.observedAt,
   }));
 
-  return { signals, prices, benchmark: universe.series };
+  return { signals, prices: inputs.prices, benchmark: inputs.benchmark };
 }
 
 function bps(value: number): string {
