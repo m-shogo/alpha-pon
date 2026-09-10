@@ -2,7 +2,13 @@
 # CI用: 外部通知を止め、モックデータで run-daily.sh 全体を軽く実行する
 # 目的: daily単体ではなく、lock / pipeline_status / レポート導線まで壊れていないか確認する
 
-set -u
+# set -e が無いと、途中のコマンドが失敗しても素通りして exit 0 になる。
+# 2026-09-10 の監査で、ここに並んでいる verify 15本が実質強制されていないこと
+# （verify-market-event-source-observation-chronology が中で落ちていたのに smoke は成功扱い）
+# が判明したため追加した。
+# 注意: run-daily.sh / run-daily-complete.sh は「daily本体以外の失敗で全体を止めない」
+# という設計方針のため意図的に set -e を持たない。ここは CI の検査なので止める。
+set -euo pipefail
 
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$DIR" || exit 1
@@ -102,6 +108,33 @@ node --import tsx/esm scripts/verify-tdnet-registration-preview-staleness.ts
 node --import tsx/esm scripts/verify-market-event-source-observation-chronology.ts
 node --import tsx/esm scripts/verify-market-event-ledger-read-boundary.ts
 node --import tsx/esm scripts/verify-source-checkpoint-read-validation.ts
+
+# market-event コアの検査。2026-09-10 の監査まで、これらはどのチェーンからも
+# 起動されていなかった（set -e が無かったため、仮に並べても強制されていなかった）。
+node --import tsx/esm scripts/verify-market-event-schema.ts
+node --import tsx/esm scripts/verify-market-event-foundation.ts
+node --import tsx/esm scripts/verify-market-event-ledger-replay.ts
+node --import tsx/esm scripts/verify-market-event-revision-guards.ts
+node --import tsx/esm scripts/verify-market-event-decision-replay.ts
+node --import tsx/esm scripts/verify-market-event-delivery-replay.ts
+node --import tsx/esm scripts/verify-market-event-delivery-key-provenance.ts
+node --import tsx/esm scripts/verify-market-event-timezone-validation.ts
+node --import tsx/esm scripts/verify-market-event-end-to-end.ts
+node --import tsx/esm scripts/verify-market-event-event-type-identity.ts
+node --import tsx/esm scripts/verify-market-event-audit-source-provenance.ts
+node --import tsx/esm scripts/verify-market-event-audit-delivery-semantics.ts
+node --import tsx/esm scripts/verify-market-event-audit-revision-chronology.ts
+node --import tsx/esm scripts/verify-market-event-source-replay.ts
+node --import tsx/esm scripts/verify-market-event-source-url-provenance.ts
+node --import tsx/esm scripts/verify-market-event-occurrence-key-provenance.ts
+node --import tsx/esm scripts/verify-market-event-issuer-code-provenance.ts
+node --import tsx/esm scripts/verify-market-event-projection-time-validation.ts
+node --import tsx/esm scripts/verify-market-event-projection-metadata-instants.ts
+node --import tsx/esm scripts/verify-source-checkpoint-failure-replay.ts
+node --import tsx/esm scripts/verify-d1-bootstrap-export.ts
+
+# verify script が「追記し忘れ」でどこからも起動されない状態を防ぐ。
+node --import tsx/esm scripts/verify-script-reachability.ts
 
 # tests/ 配下を漏れなく実行する。
 # 2026-09-10 の監査で 475本中139本がどのチェーンからも実行されておらず、
