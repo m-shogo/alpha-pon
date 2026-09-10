@@ -33,16 +33,33 @@ async function main() {
   // その日の開示は二度と取れない。不祥事・子会社イベントのラベルは
   // これが一次情報なので、貯め始めないと検証そのものが始まらない。
   //
-  // 保存に失敗したら止める。「今日のレポートが1段欠ける」は再実行で
-  // 取り戻せるが、「その日の開示を保存し損ねた」は取り戻せない。
-  const archived = appendDisclosureSnapshot({
-    snapshot,
-    retrievedAt: new Date().toISOString(),
-  });
-  console.log(
-    `保存: ${archived.observationDate} → 新規 ${archived.appended}件`
-    + `${archived.alreadyPresent > 0 ? ` / 保存済み ${archived.alreadyPresent}件` : ""}`,
-  );
+  // 保存に失敗しても**止めない**。
+  //
+  // 当初は「取り戻せない損失だから止める」としたが、`daily:full` は
+  // `&&` の連鎖なのでここで落とすと**朝のレポートが丸ごと出なくなる**。
+  // しかも止めてしまうと、欠落を知らせるバナー（レポート冒頭に出る）自体が
+  // 生成されない。黙って失うのを防ぐ仕組みを、失敗そのもので壊してしまう。
+  //
+  // 欠落は翌朝のレポートに「あと何日で取り戻せなくなるか」つきで出る。
+  // 28日の猶予があるので、レポートが出るほうが気づける。
+  try {
+    const archived = appendDisclosureSnapshot({
+      snapshot,
+      retrievedAt: new Date().toISOString(),
+    });
+    console.log(
+      `保存: ${archived.observationDate} → 新規 ${archived.appended}件`
+      + `${archived.alreadyPresent > 0 ? ` / 保存済み ${archived.alreadyPresent}件` : ""}`,
+    );
+  } catch (error) {
+    console.error(
+      `[disclosure-archive] 保存に失敗: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    console.error(
+      "[disclosure-archive] TDnet は約28日で遡れなくなる。"
+      + "朝のレポートに欠落として出るので、期限内に pnpm archive:tdnet で埋めること",
+    );
+  }
 
   const disclosures = snapshot.disclosures;
   if (disclosures.length === 0) {
