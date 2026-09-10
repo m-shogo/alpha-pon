@@ -85,3 +85,6 @@ data/market-events.db
 data/market-events.db-shm
 data/market-events.db-wal
 data/exports/
+
+# 紙トレード/実売買の記録。個人の売買履歴なのでリポジトリに入れない。
+data/paper_trades.jsonl
