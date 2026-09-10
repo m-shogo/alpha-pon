@@ -184,6 +184,28 @@ export function aggregate(netAlphas: number[], clusterKeys?: readonly string[]):
  * 複数仮説を試した回数 (trials) を考慮した Benjamini-Hochberg 風の粗い閾値。
  * 「t 統計量が単独で有意でも、20個試したうちの1個なら有意ではない」を機械的に示す。
  */
+/** 日本の上場株式等の譲渡益課税（所得税15% + 復興特別所得税0.315% + 住民税5%）。 */
+export const JP_CAPITAL_GAINS_TAX_RATE = 0.20315;
+
+/**
+ * 税引き後の平均 Net Alpha。
+ *
+ * 近似であることを明示する。実際の課税は年間の損益通算後に一度かかるため、
+ * 1取引ごとに課税されるわけではない。ここでは「戦略全体の平均が正なら
+ * その分に課税される」という前提で、平均が負の場合は課税しない。
+ * エッジの有無（t 統計量）は税率の乗算で変わらないので、
+ * この値は「やる価値があるか」の判断だけに使う。
+ */
+export function afterTaxMeanBps(
+  meanNetAlphaBps: number,
+  taxRate: number = JP_CAPITAL_GAINS_TAX_RATE,
+): number {
+  if (!Number.isFinite(taxRate) || taxRate < 0 || taxRate >= 1) {
+    throw new Error(`taxRate must be in [0, 1): ${taxRate}`);
+  }
+  return meanNetAlphaBps > 0 ? meanNetAlphaBps * (1 - taxRate) : meanNetAlphaBps;
+}
+
 export function falseDiscoveryGuard(tStat: number | null, trials: number): {
   passed: boolean;
   requiredTStat: number;

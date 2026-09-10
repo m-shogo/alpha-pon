@@ -16,7 +16,7 @@ import { isCanonicalReadOnlyJsonFile } from "../../read-only-json-file.js";
 import { buildUniquePriceSeriesMap } from "../backtest-bundle-input.js";
 import { runBacktest, type BacktestSignal, type BacktestSpec, type PriceSeries } from "../backtest.js";
 import { loadSchema, writeGeneratedJson } from "../io.js";
-import { falseDiscoveryGuard } from "../net-alpha.js";
+import { afterTaxMeanBps, falseDiscoveryGuard, JP_CAPITAL_GAINS_TAX_RATE } from "../net-alpha.js";
 import { formatErrors, validate } from "../schema.js";
 import {
   computeDatasetFingerprint,
@@ -106,6 +106,10 @@ function main(): void {
   for (const skip of report.skipped) console.log(`  skip: ${skip.signalId} — ${skip.reason}`);
   console.log(`  Gross Alpha 平均: ${bps(report.gross.meanNetAlphaBps)}`);
   console.log(`  Net   Alpha 平均: ${bps(report.net.meanNetAlphaBps)} / 中央値 ${bps(report.net.medianNetAlphaBps)}`);
+  console.log(
+    `  税引後 平均: ${bps(afterTaxMeanBps(report.net.meanNetAlphaBps))}`
+    + ` (譲渡益課税 ${(JP_CAPITAL_GAINS_TAX_RATE * 100).toFixed(3)}% を平均が正の場合のみ控除した近似)`,
+  );
   console.log(`  勝率: ${(report.net.hitRate * 100).toFixed(1)}%`);
   console.log(
     `  t = ${report.net.clusteredTStat?.toFixed(2) ?? "n/a"} (クラスタ補正後 / ${report.net.clusterCount ?? 0}イベント日)`

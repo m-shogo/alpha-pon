@@ -5,7 +5,7 @@
 // これは「損をする」種類の誤りではなく「偽のエッジを生む」種類の誤りなので最も危険。
 
 import assert from "node:assert/strict";
-import { aggregate } from "../../src/research/net-alpha.js";
+import { afterTaxMeanBps, aggregate, JP_CAPITAL_GAINS_TAX_RATE } from "../../src/research/net-alpha.js";
 import { runBacktest, type BacktestSpec, type PriceSeries } from "../../src/research/backtest.js";
 
 function testSameDaySignalsCollapseToOneObservation() {
@@ -126,6 +126,19 @@ function testBacktestClustersByEntryDate() {
   assert.equal(report.net.clusteredTStat, null, "1クラスタでは判定用 t を出さない");
 }
 
+function testAfterTaxOnlyReducesGains() {
+  assert.equal(
+    Math.round(afterTaxMeanBps(100) * 1000) / 1000,
+    Math.round(100 * (1 - JP_CAPITAL_GAINS_TAX_RATE) * 1000) / 1000,
+    "利益には課税する",
+  );
+  assert.equal(afterTaxMeanBps(-100), -100, "損失に課税してはいけない（損益通算があるため）");
+  assert.equal(afterTaxMeanBps(0), 0);
+  assert.throws(() => afterTaxMeanBps(100, 1), /taxRate must be in/);
+  assert.throws(() => afterTaxMeanBps(100, -0.1), /taxRate must be in/);
+}
+
+testAfterTaxOnlyReducesGains();
 testSameDaySignalsCollapseToOneObservation();
 testClusteredTStatIsAlwaysSmaller();
 testOneSignalPerDayLeavesTStatUnchanged();
