@@ -8,18 +8,6 @@
   ],
   "knownFailures": [
     {
-      "path": "tests/catchup-failure-defer.test.ts",
-      "reason": "2026-09-10 監査で判明。today run failure を無視して past date を無条件 skipped 化している。未調査。"
-    },
-    {
-      "path": "tests/knowledge-review-input.test.ts",
-      "reason": "2026-09-10 監査で判明。malformed 入力に対する期待メッセージが一致しない。未調査。"
-    },
-    {
-      "path": "tests/listing-automation-topix-input.test.ts",
-      "reason": "2026-09-10 監査で判明。non-finite な相対リターンが fail closed になっていない。未調査。"
-    },
-    {
       "path": "tests/market-event-ledger-revision-instants.test.ts",
       "reason": "2026-09-10 監査で判明。publishedAt が任意文字列のまま read-only ledger projection に入る。未調査。"
     },
@@ -34,14 +22,6 @@
     {
       "path": "tests/market-event-source-chronology.test.ts",
       "reason": "2026-09-10 監査で判明。公開前に取得された source を拒否しない。未調査。"
-    },
-    {
-      "path": "tests/ops-dashboard-alpha-input.test.ts",
-      "reason": "2026-09-10 監査で判明。ops dashboard の入力検査が falsy。未調査。"
-    },
-    {
-      "path": "tests/readiness-pipeline-failures.test.ts",
-      "reason": "2026-09-10 監査で判明。子プロセス実行が失敗する。未調査。"
     },
     {
       "path": "tests/research/evidence-package-repository-invalid-revision-ledger.test.ts",

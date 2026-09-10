@@ -12,6 +12,7 @@ import {
 } from "../src/jobs/job-runner.js";
 import { getTodayInTokyo } from "../src/jobs/date-utils.js";
 import { parseCatchupDays } from "../src/jobs/catchup-config.js";
+import { decideCatchupPastDateAction } from "../src/catchup-past-date-action.js";
 
 const TODAY = getTodayInTokyo();
 const CATCHUP_DAYS = parseCatchupDays(process.env.CATCHUP_DAYS);
@@ -126,23 +127,22 @@ async function main() {
       res.skipped ? summary.skipped++ : res.success ? summary.ran++ : summary.failed++;
     }
 
-    // 過去日の処理
+    // 過去日の処理。判断は src/catchup-past-date-action.ts の純関数に集約する。
     for (const date of pastDates) {
-      if (job.canBackfill) {
-        // 今日の実行が過去分を集約する設計。今日の実行が失敗した場合は、
-        // 過去日を skipped にせず未解決のまま残し、次回 catchup で再評価する。
-        if (!todayCovered) {
-          console.log(`  [defer] ${job.name} (${date}) today run failed; keep unresolved`);
-          continue;
-        }
+      const action = decideCatchupPastDateAction({ canBackfill: job.canBackfill, todayCovered });
+      if (action === "defer") {
+        console.log(`  [defer] ${job.name} (${date}) today run failed; keep unresolved`);
+        continue;
+      }
+      if (action === "skip") {
         markSkipped(job.name, date);
         summary.skipped++;
-      } else {
-        // backfill 不可 → missing_jobs に記録
-        recordMissing(job.name, date, job.missingReason);
-        summary.missing++;
-        console.log(`  [missing] ${job.name} (${date})`);
+        continue;
       }
+      // backfill 不可 → missing_jobs に記録
+      recordMissing(job.name, date, job.missingReason);
+      summary.missing++;
+      console.log(`  [missing] ${job.name} (${date})`);
     }
   }
 

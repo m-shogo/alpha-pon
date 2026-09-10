@@ -36,7 +36,15 @@ for (const malformedWarnings of ["broken", { length: 1 }]) {
 
   const dashboard = buildOpsDashboard(cleanInputs(normalized));
   assert.equal(dashboard.healthStatus, "needs_attention");
-  assert.ok(dashboard.allIssues.some(issue => issue.title.includes("データ品質の注意")));
+  // 不正な meta.warnings は "UI 生成データに warning 1件" として surface される
+  // (かつては "データ品質の注意" だったが、これは dataQualityByCode 側の見出し)。
+  // 見出しの文言ではなく、正規化したメッセージが運用者に届くことを確かめる。
+  assert.ok(
+    dashboard.allIssues.some(issue =>
+      issue.detail?.includes("alpha-pon-data.json meta.warnings の形式が不正です")
+    ),
+    "正規化した warning が dashboard の issue detail に出ていない",
+  );
 }
 
 {
