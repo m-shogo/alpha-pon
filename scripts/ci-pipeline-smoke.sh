@@ -148,6 +148,11 @@ pnpm ingest:prices -- --from 2025-09-01 --to 2025-09-05 > /dev/null
 # 価格が1日も無い環境（CI）では検査対象なしで正常終了する。
 node --import tsx/esm scripts/verify-price-store-integrity.ts > /dev/null
 
+# TDnet 開示保存庫の欠落。公開ビューアは約1ヶ月しか遡れないので、
+# 欠落に気づくのが遅れると永久に埋められない。
+# 保存庫が空の環境（CI）では検査対象なしで正常終了する。
+node --import tsx/esm scripts/verify-disclosure-archive-gaps.ts > /dev/null
+
 # verify script が「追記し忘れ」でどこからも起動されない状態を防ぐ。
 node --import tsx/esm scripts/verify-script-reachability.ts
 
