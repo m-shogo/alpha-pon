@@ -30,7 +30,9 @@ try {
   const result = readKnowledgeReviewJsonl<NonMoveRow>(path, isNonMoveRow);
   assert.deepEqual(result.rows, [{ nonMoveReasons: ["already_priced_in"] }]);
   assert.match(result.warning ?? "", /invalid_shape 2/);
-  assert.match(result.warning ?? "", /malformed/);
+  // 語彙が malformed から parse_error へ変わり、行番号も出るようになった。
+  // より情報量が増えた側に合わせる。
+  assert.match(result.warning ?? "", /parse_error 1 \(lines 4\)/);
 } finally {
   rmSync(root, { recursive: true, force: true });
 }

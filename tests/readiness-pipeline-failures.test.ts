@@ -1,8 +1,14 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+
+// 子プロセスは cwd を一時ディレクトリへ移すため、そこから "tsx/esm" を解決できない
+// (node_modules が無く ERR_MODULE_NOT_FOUND になる)。リポジトリ側で絶対パスへ解決して渡す。
+const tsxLoader = createRequire(pathToFileURL(resolve("package.json")).href).resolve("tsx/esm");
 
 const root = mkdtempSync(join(tmpdir(), "alpha-pon-readiness-pipeline-"));
 try {
@@ -20,7 +26,7 @@ try {
     "utf8",
   );
 
-  execFileSync(process.execPath, ["--import", "tsx", resolve("src/readiness-audit.ts")], {
+  execFileSync(process.execPath, ["--import", tsxLoader, resolve("src/readiness-audit.ts")], {
     cwd: root,
     env: { ...process.env, JQUANTS_API_KEY: "" },
     stdio: "pipe",

@@ -86,10 +86,19 @@ assert.deepEqual(
   "non-numeric relative returns must not be treated as valid read-only evidence",
 );
 
-assert.deepEqual(
-  parseListingAutomationTopixInput(JSON.stringify({ ...base, rows: [{ code: "8136", topixRelativeReturn: Number.POSITIVE_INFINITY }] }), AS_OF),
-  { rows: [], invalid: true, reason: "invalid_rows" },
-  "non-finite relative returns must fail closed",
-);
+// JSON.stringify(Infinity) は null になるため、この経路で非有限値は到達しない。
+// null は「TOPIX データ無し」として有効（このファイル冒頭の assertion がそう定めている）なので、
+// 元の「Infinity を invalid_rows にする」期待は自己矛盾していた。
+// 実在しうるのは、手編集や破損でテキストに生の Infinity / NaN が書かれた場合。
+for (const token of ["Infinity", "-Infinity", "NaN"]) {
+  assert.deepEqual(
+    parseListingAutomationTopixInput(
+      `{"generatedAt":"${AS_OF}","rows":[{"code":"8136","topixRelativeReturn":${token}}]}`,
+      AS_OF,
+    ),
+    { rows: [], invalid: true, reason: "parse_error" },
+    `JSON として不正な ${token} トークンは fail closed`,
+  );
+}
 
 console.log("listing-automation-topix-input: OK");
