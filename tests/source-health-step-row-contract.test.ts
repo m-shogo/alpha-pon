@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import { normalizeSourceHealthObject } from "../src/source-health-input.js";
 
+// status は steps の実態と整合していなければならない。
+// failed な step があるのに "completed" と名乗るのは矛盾で、契約上 partial_failed になる
+// (PR #1059 で整合性チェックが入った)。
 const valid = normalizeSourceHealthObject({
-  status: "completed",
+  status: "partial_failed",
   steps: [
     { name: "world_scan", status: "ok" },
     { name: "review_due_predictions", status: "skipped" },

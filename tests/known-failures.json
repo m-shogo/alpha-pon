@@ -48,20 +48,8 @@
       "reason": "2026-09-10 監査で判明。不正な revision があると有効な head まで消え activeHeadCount が 0 になる。PR #450 追加時は通っていた regression。"
     },
     {
-      "path": "tests/source-health-history-input.test.ts",
-      "reason": "2026-09-10 監査で判明。妥当な source-health 行まで除外される（fail closed の過剰適用）。未調査。"
-    },
-    {
-      "path": "tests/source-health-result-row-contract.test.ts",
-      "reason": "2026-09-10 監査で判明。正規の run-daily result 行が invalid 扱いになる。未調査。"
-    },
-    {
-      "path": "tests/source-health-step-row-contract.test.ts",
-      "reason": "2026-09-10 監査で判明。明示 status を持つ well-formed な step 行が invalid 扱いになる。未調査。"
-    },
-    {
       "path": "tests/world-event-reflection-event-id-dedupe.test.ts",
-      "reason": "2026-09-10 監査で判明。異なる非ASCIIタイトルが同一 world-event identity に衝突する。日本語タイトルで誤マージの恐れ。未調査。"
+      "reason": "2026-09-10 調査済み。identity 衝突ではなかった。classifyWorldEvent に日本語キーワードが1つも無く、日本語の災害イベントが totalImpactScore 0 になって isReflectionSafe に落ちる。実フィードは全て hl=en-US の英語のみ(実データ0件)のため現時点で実害なし。日本語ソースを追加するときに対応する。"
     }
   ]
 }
