@@ -2,6 +2,10 @@ import type { ScoreResult, AlertLevel, ExpertVerdict } from "./types.js";
 import { findRelatedMarketLessonsForScore } from "./analysis/market-lesson-links.js";
 import { renderModernAnalogiesMarkdown } from "./analysis/modern-analogy.js";
 import { loadCompanyMemory } from "./company-memory.js";
+import {
+  formatDailyDataHealthBanner,
+  type DailyDataHealth,
+} from "./daily-data-health.js";
 
 const ALERT_LABELS: Record<AlertLevel, string> = {
   urgent: "🚨 即通知 (URGENT)",
@@ -403,7 +407,11 @@ export function generateReport(result: ScoreResult): string {
   return lines.join("\n");
 }
 
-export function generateSummaryReport(results: ScoreResult[], date: string): string {
+export function generateSummaryReport(
+  results: ScoreResult[],
+  date: string,
+  dataHealth?: DailyDataHealth,
+): string {
   const lines: string[] = [];
 
   lines.push("# alpha-pon 調査候補レポート");
@@ -412,6 +420,10 @@ export function generateSummaryReport(results: ScoreResult[], date: string): str
   lines.push("");
   lines.push("> ※これは買い推奨ではありません。調査候補のまとめです。");
   lines.push("");
+
+  // 「候補がない」と「データが無い」を同じ見た目にしない。
+  // サマリーの件数より前に出す。
+  if (dataHealth) lines.push(...formatDailyDataHealthBanner(dataHealth));
 
   const urgent = results.filter(r => r.alertLevel === "urgent");
   const daily = results.filter(r => r.alertLevel === "daily");

@@ -10,6 +10,7 @@ import { todayJst } from "./date.js";
 import { validateWatchlist } from "./validation.js";
 import { saveAnalogyPredictionDb, saveAnalogyUsageDb } from "./analysis/analogy-db.js";
 import type { AlertLevel, ScoreResult } from "./types.js";
+import { assessDailyDataHealth } from "./daily-data-health.js";
 
 const ALERT_ICONS: Record<AlertLevel, string> = {
   urgent: "🚨",
@@ -107,7 +108,15 @@ async function main() {
     writeFileSync(join("reports", filename), content, "utf-8");
   }
 
-  const summary = generateSummaryReport(results, today);
+  // 「候補0件」がデータ欠落によるものかを判定してレポート冒頭へ出す。
+  const dataHealth = assessDailyDataHealth({
+    results,
+    attemptedCount: activeSymbols.length,
+  });
+  if (dataHealth.availability !== "ok") {
+    console.warn(`[data-health] ${dataHealth.availability}: ${dataHealth.warnings.join(" / ")}`);
+  }
+  const summary = generateSummaryReport(results, today, dataHealth);
   writeFileSync(join("reports", "latest.md"), summary, "utf-8");
   saveAnalogyUsageDb(results, today);
   saveAnalogyPredictionDb(results, today);
