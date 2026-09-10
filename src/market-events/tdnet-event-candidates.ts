@@ -183,8 +183,14 @@ function candidateSourceCode(sourceCode: string | undefined, issuerCode: string)
 
 export function assertTdnetDisclosureSourceProvenance(disclosure: TdnetDisclosure): void {
   const issuerCode = candidateIssuerCode(disclosure.code);
-  candidateViewerText(disclosure.companyName, "companyName");
-  candidateViewerText(disclosure.title, "title");
+  const companyName = candidateViewerText(disclosure.companyName, "companyName");
+  if (disclosure.companyName !== companyName) {
+    throw new Error("TDnet candidate companyName must preserve canonical non-empty viewer text");
+  }
+  const title = candidateViewerText(disclosure.title, "title");
+  if (disclosure.title !== title) {
+    throw new Error("TDnet candidate title must preserve canonical non-empty viewer text");
+  }
   candidatePublishedAt(disclosure.publishedAt);
   candidateSourceUrl(disclosure.url);
   candidateSourceCode(disclosure.sourceCode, issuerCode);
