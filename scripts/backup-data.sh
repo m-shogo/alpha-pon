@@ -13,6 +13,10 @@ DEST="$BACKUP_ROOT/$TODAY"
 mkdir -p "$DEST"
 
 # data/ 配下の JSONL / JSON を圧縮コピー（reports/ など大きいディレクトリは除く）
+#
+# data/disclosures は TDnet 開示の保存庫。公開閲覧サービスは約1ヶ月しか
+# 遡れない（実測: 2026-08-03 は取れるが 2026-07-31 は not found）ので、
+# 失うと二度と取り戻せない。1年ぶんでも数十MBなのでバックアップに含める。
 tar -czf "$DEST/data.tar.gz" -C "$DIR" \
   data/hypothesis_predictions.jsonl \
   data/hypothesis_outcomes.jsonl \
@@ -25,6 +29,7 @@ tar -czf "$DEST/data.tar.gz" -C "$DIR" \
   data/run-cursors.json \
   data/company_context_registry.jsonl \
   data/company_non_move_history.jsonl \
+  data/disclosures \
   2>/dev/null || true
 
 # 30日より古いバックアップを削除（最新30件を残す）
