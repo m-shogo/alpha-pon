@@ -29,10 +29,19 @@ export interface AdaptiveRateLimitConfig {
   maxIntervalMs: number;
   /** 429 を観測した直後に待つ時間。実測の回復時間より長めに取る。 */
   throttleCooldownMs: number;
-  /** 連続成功がこの回数を超えたら間隔を戻し始める。 */
+  /** 連続成功がこの回数に達したら間隔を戻し始める。 */
   decayAfterSuccesses: number;
-  /** 間隔を広げるときの倍率。 */
+  /** 429 を観測したとき間隔を広げる倍率。 */
   backoffMultiplier: number;
+  /**
+   * 成功1回ごとに間隔を割る値。`backoffMultiplier` より小さくする。
+   *
+   * 上げと下げを同じ倍率にすると、スロットル頻度が
+   * 1/(decayAfterSuccesses+1) を超えた瞬間に単調増加へ転じる。
+   * 下げを小刻みにして「成功が続くほど戻る」形にすると、
+   * 相手の本当の限界の近くで釣り合う。
+   */
+  decayDivisor: number;
 }
 
 export const DEFAULT_ADAPTIVE_RATE_LIMIT: AdaptiveRateLimitConfig = {
@@ -40,9 +49,25 @@ export const DEFAULT_ADAPTIVE_RATE_LIMIT: AdaptiveRateLimitConfig = {
   maxIntervalMs: 120_000,
   // 実測で60秒台の回復だったので、余裕を見て90秒。
   throttleCooldownMs: 90_000,
-  decayAfterSuccesses: 5,
-  backoffMultiplier: 3,
+  // 2026-09-11 の実運用で、5 と ×3 の組合せが上限へ張り付く欠陥を踏んだ。
+  // スロットルが5回に1回入ると連続成功が4で頭打ちになり、減衰条件を
+  // 一度も満たさないまま ×3 だけが効いていた（11秒 → 80〜120秒）。
+  decayAfterSuccesses: 2,
+  backoffMultiplier: 1.5,
+  decayDivisor: 1.2,
 };
+
+/**
+ * 全銘柄日足（`?date=`、1リクエスト約4,400銘柄）で実測した持続可能な間隔。
+ *
+ *   20s : 10/10 成功
+ *   12s : 11回目で429
+ *    8s : 7回目で429
+ *
+ * 容量4〜5・補充およそ1件/20秒 のトークンバケットと整合する。
+ * 銘柄指定（1リクエスト数十行）はこれより短くて済むので、既定値とは分ける。
+ */
+export const MEASURED_DATE_QUERY_INTERVAL_MS = 20_000;
 
 export interface AdaptiveRateLimitState {
   /** 次に許可される最短時刻（epoch ms）。 */
@@ -89,6 +114,15 @@ function assertConfig(config: AdaptiveRateLimitConfig): void {
   if (!Number.isFinite(config.backoffMultiplier) || config.backoffMultiplier <= 1) {
     throw new Error(`backoffMultiplier must be greater than 1: ${config.backoffMultiplier}`);
   }
+  if (!Number.isFinite(config.decayDivisor) || config.decayDivisor <= 1) {
+    throw new Error(`decayDivisor must be greater than 1: ${config.decayDivisor}`);
+  }
+  if (config.decayDivisor >= config.backoffMultiplier) {
+    throw new Error(
+      `decayDivisor (${config.decayDivisor}) must be below backoffMultiplier `
+      + `(${config.backoffMultiplier}); otherwise the interval can never widen`,
+    );
+  }
 }
 
 /** 次のリクエストまで待つべきミリ秒。0 なら即時。 */
@@ -109,17 +143,18 @@ export function onRequestSucceeded(
     consecutiveSuccesses >= config.decayAfterSuccesses
     && currentIntervalMs > config.baseIntervalMs
   ) {
-    // 一気に戻すとまた溢れるので、段階的に戻す。
+    // 一気に戻すとまた溢れるので小刻みに。閾値に達したあとは成功のたびに
+    // 戻す（カウンタを戻さない）。戻してしまうと、スロットルの周期が
+    // 閾値より短い相手に対して二度と減衰しなくなる。
     currentIntervalMs = Math.max(
       config.baseIntervalMs,
-      currentIntervalMs / config.backoffMultiplier,
+      currentIntervalMs / config.decayDivisor,
     );
   }
   return {
     nextAllowedAtMs: nowMs + currentIntervalMs,
     currentIntervalMs,
-    consecutiveSuccesses:
-      consecutiveSuccesses >= config.decayAfterSuccesses ? 0 : consecutiveSuccesses,
+    consecutiveSuccesses,
     consecutiveThrottles: 0,
     totalThrottles: state.totalThrottles,
   };

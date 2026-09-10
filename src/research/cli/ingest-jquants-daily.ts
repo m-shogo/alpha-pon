@@ -39,15 +39,28 @@ import {
   planIngest,
   type IngestLedgerEntry,
 } from "../providers/jquants-daily-ingest.js";
+import { MEASURED_DATE_QUERY_INTERVAL_MS } from "../../fetcher/adaptive-rate-limit.js";
 import type { JsonSchema } from "../schema.js";
 
 const STORE_ROOT = "research/prices/jquants-free-daily";
 const LEDGER_NAME = "_ingest-log.jsonl";
 
-// 2026-09-10 の実測（10リクエスト連続）に基づく。
-const MEASURED_OPTIMISTIC_INTERVAL_SEC = 3;
-const MEASURED_THROTTLE_EVERY_N = 5;
+// 2026-09-11 の実測（`?date=` を固定間隔で叩いた結果）に基づく。
+//   20s : 10/10 成功 / 12s : 11回目で429 / 8s : 7回目で429
+const MEASURED_OPTIMISTIC_INTERVAL_SEC = MEASURED_DATE_QUERY_INTERVAL_MS / 1000;
+const MEASURED_THROTTLE_EVERY_N = 10;
 const MEASURED_THROTTLE_COST_SEC = 90;
+
+/**
+ * 全銘柄クエリは1リクエストで約4,400銘柄・3.3MB を返す。銘柄指定より遥かに
+ * 重く、既定の3秒間隔では枠を食い潰す（実測で間隔が11秒→120秒へ張り付いた）。
+ * 明示指定が無ければ実測値を使う。
+ */
+function applyMeasuredRateLimit(): void {
+  if (process.env.JQUANTS_V2_REQUEST_INTERVAL_MS === undefined) {
+    process.env.JQUANTS_V2_REQUEST_INTERVAL_MS = String(MEASURED_DATE_QUERY_INTERVAL_MS);
+  }
+}
 
 function argValue(name: string): string | null {
   const prefix = `--${name}=`;
@@ -142,6 +155,7 @@ async function main(): Promise<void> {
     throw new Error(`--max-days must be a positive integer: ${maxDaysRaw}`);
   }
 
+  applyMeasuredRateLimit();
   const removedPartials = execute ? clearStalePartials() : 0;
   const plan = planIngest({ from, to, completed: completedDates() });
   const targets = maxDays === null ? plan.pending : plan.pending.slice(0, maxDays);
@@ -157,6 +171,7 @@ async function main(): Promise<void> {
   console.log(`週末で除外      ${plan.skippedWeekends} 日`);
   console.log(`残り            ${plan.pending.length} 日${maxDays === null ? "" : `（今回は ${targets.length} 日）`}`);
   console.log(`所要見込み      ${formatDuration(estimate.optimisticSec)} 〜 ${formatDuration(estimate.expectedSec)}`);
+  console.log(`リクエスト間隔  ${process.env.JQUANTS_V2_REQUEST_INTERVAL_MS}ms（実測ベース）`);
   if (removedPartials > 0) console.log(`書きかけを削除  ${removedPartials} 件`);
 
   if (!execute) {
