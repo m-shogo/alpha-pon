@@ -17,6 +17,7 @@ import {
   governedEvidencePackageRequest,
   governedEvidencePackageResolver,
 } from "./evidence-package-governed-fixtures.js";
+import { writeGovernedDependencies } from "./evidence-package-repository-fixtures.js";
 
 // macOS の tmpdir() は /var/folders/... を返すが /var は /private/var への symlink。
 // Catalog validator は祖先 symlink を正しく拒否するため、テスト側で実体パスへ解決する。
@@ -28,7 +29,12 @@ function canonicalTmpdir(): string {
 
 const dir = mkdtempSync(join(canonicalTmpdir(), "evidence-package-invalid-revision-ledger-"));
 try {
-  const manifestsPath = join(dir, "manifests.jsonl");
+  // 依存パスを渡さないと validateEvidencePackageRepository は実リポジトリの
+  // research/ 配下を読み、fixture と食い違って governed_evidence_package_mismatch
+  // になる（2026-09-10 時点で activeHeadCount が 0 になっていた原因）。
+  // 依存データも一時ディレクトリへ書き出して hermetic に検証する。
+  const paths = writeGovernedDependencies(dir);
+  const manifestsPath = paths.manifestsPath;
   const root = buildEvidencePackageManifestGoverned(
     governedEvidencePackageRequest(),
     governedEvidencePackageContext(),
@@ -51,7 +57,10 @@ try {
     "utf-8",
   );
 
-  const result = validateEvidencePackageRepository({ manifestsPath });
+  const result = validateEvidencePackageRepository({
+    ...paths,
+    externalPins: governedEvidencePackageResolver(),
+  });
   assert.equal(result.manifestCount, 2);
   assert.ok(result.issues.some((item) =>
     item.code === "schema_violation"
