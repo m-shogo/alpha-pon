@@ -393,7 +393,15 @@ export function runBacktest(
     executedCount: executed.length,
     skipped,
     trades,
-    gross: aggregate(executed.map((trade) => trade.grossAlphaBps ?? 0)),
-    net: aggregate(executed.map((trade) => trade.netAlphaBps ?? 0)),
+    // 同日エントリーは同じ出来事への反応であり独立ではない。
+    // エントリー日をクラスタキーにして、相関を無視した過大な t 値を報告しない。
+    gross: aggregate(
+      executed.map((trade) => trade.grossAlphaBps ?? 0),
+      executed.map((trade) => trade.entryDate ?? ""),
+    ),
+    net: aggregate(
+      executed.map((trade) => trade.netAlphaBps ?? 0),
+      executed.map((trade) => trade.entryDate ?? ""),
+    ),
   };
 }

@@ -88,13 +88,58 @@ export interface AggregateStats {
   medianNetAlphaBps: number;
   stdDevBps: number;
   hitRate: number;
-  /** 平均 / (標準偏差 / √n)。サンプルが少ないときの過信を防ぐために必ず併記する。 */
+  /**
+   * 平均 / (標準偏差 / √n)。**観測が独立という仮定に立つ**ため、
+   * 同日に複数シグナルが出る戦略では過大になる。判定には使わない。
+   */
   tStat: number | null;
   worstBps: number;
   bestBps: number;
+  /** クラスタ数（通常はイベント日数）。クラスタキーが無い場合は null。 */
+  clusterCount: number | null;
+  /**
+   * クラスタ内平均どうしの t 統計量（Fama-MacBeth 型）。
+   * 同日のシグナルは同じ出来事に相関しており独立ではない。
+   * 判定にはこちらを使う。tStat より必ず小さくなるのが正常。
+   */
+  clusteredTStat: number | null;
 }
 
-export function aggregate(netAlphas: number[]): AggregateStats {
+function tStatOf(values: number[]): number | null {
+  const count = values.length;
+  if (count <= 1) return null;
+  const mean = values.reduce((sum, value) => sum + value, 0) / count;
+  const variance = values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / (count - 1);
+  const stdDev = Math.sqrt(variance);
+  if (!(stdDev > 0)) return null;
+  return mean / (stdDev / Math.sqrt(count));
+}
+
+/**
+ * クラスタキーごとに平均を取り、その平均どうしで t 統計量を出す。
+ *
+ * 市場全体が下げた日には多数のシグナルが同時に出る。それらは同じ出来事への
+ * 反応であって独立な観測ではない。独立と見なすと t 値が最大 √(1クラスタあたり件数)
+ * 倍に膨らみ、存在しないエッジが有意に見える。
+ */
+function clusteredTStatOf(values: number[], clusterKeys: readonly string[]): number | null {
+  if (values.length !== clusterKeys.length) {
+    throw new Error(
+      `cluster keys must align with values: ${clusterKeys.length} keys for ${values.length} values`,
+    );
+  }
+  const sums = new Map<string, { total: number; count: number }>();
+  for (const [index, key] of clusterKeys.entries()) {
+    const bucket = sums.get(key) ?? { total: 0, count: 0 };
+    bucket.total += values[index];
+    bucket.count += 1;
+    sums.set(key, bucket);
+  }
+  const clusterMeans = [...sums.values()].map((bucket) => bucket.total / bucket.count);
+  return tStatOf(clusterMeans);
+}
+
+export function aggregate(netAlphas: number[], clusterKeys?: readonly string[]): AggregateStats {
   const count = netAlphas.length;
   if (count === 0) {
     return {
@@ -106,6 +151,8 @@ export function aggregate(netAlphas: number[]): AggregateStats {
       tStat: null,
       worstBps: 0,
       bestBps: 0,
+      clusterCount: clusterKeys === undefined ? null : 0,
+      clusteredTStat: null,
     };
   }
   const sorted = [...netAlphas].sort((a, b) => a - b);
@@ -127,6 +174,8 @@ export function aggregate(netAlphas: number[]): AggregateStats {
     tStat,
     worstBps: sorted[0],
     bestBps: sorted[count - 1],
+    clusterCount: clusterKeys === undefined ? null : new Set(clusterKeys).size,
+    clusteredTStat: clusterKeys === undefined ? null : clusteredTStatOf(netAlphas, clusterKeys),
   };
 }
 
