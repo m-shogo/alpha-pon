@@ -270,13 +270,19 @@ function main(): void {
     + ` (譲渡益課税 ${(JP_CAPITAL_GAINS_TAX_RATE * 100).toFixed(3)}% を平均が正の場合のみ控除した近似)`,
   );
   console.log(`  勝率: ${(report.net.hitRate * 100).toFixed(1)}%`);
+  // クラスタ平均を必ず併記する。これを出さないと
+  // 「1件平均はプラスなのに t が負」が矛盾に見える（実測で起きた）。
+  console.log(
+    `  クラスタ平均: ${report.net.clusteredMeanNetAlphaBps === null ? "n/a" : bps(report.net.clusteredMeanNetAlphaBps)}`
+    + `（イベント日を等加重。下の t が検定しているのはこの値）`,
+  );
   console.log(
     `  t = ${report.net.clusteredTStat?.toFixed(2) ?? "n/a"} (クラスタ補正後 / ${report.net.clusterCount ?? 0}イベント日)`
     + ` ← 判定に使う値`,
   );
   console.log(
     `  t = ${report.net.tStat?.toFixed(2) ?? "n/a"} (未補正 / ${report.net.count}件)`
-    + ` ← 同日の相関を無視した参考値。必ずこちらの方が大きく出る`,
+    + ` ← 同日の相関を無視した参考値。判定には使わない`,
   );
   const sign = report.net.meanNetAlphaBps >= 0 ? "" : "（負に有意）";
   console.log(`  試行回数: ${trials} — ${trialSource}`);

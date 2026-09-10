@@ -143,6 +143,55 @@ testSameDaySignalsCollapseToOneObservation();
 testClusteredTStatIsAlwaysSmaller();
 testOneSignalPerDayLeavesTStatUnchanged();
 testClusterKeysAreOptionalAndReportNull();
+
+function testClusteredMeanIsReportedAndCanFlipSign(): void {
+  // 実測（2026-09-11）で「1件平均 +4.1bps・中央値 -50.9bps・
+  // クラスタ補正 t = -0.28」という一見矛盾する出力が出た。
+  // 原因はクラスタの大きさの偏り。**t が検定しているのは1件平均ではなく
+  // クラスタ平均**であり、その値を出さないと読み手が矛盾と受け取る。
+  //
+  // クラスタA: 大きい負が1件 / クラスタB: 小さい正が4件
+  const stats = aggregate([-100, 60, 60, 60, 60], ["A", "B", "B", "B", "B"]);
+
+  assert.equal(stats.clusterCount, 2);
+  // 1件平均 = (-100 + 240) / 5 = 28
+  assert.ok(Math.abs(stats.meanNetAlphaBps - 28) < 1e-9, `1件平均=${stats.meanNetAlphaBps}`);
+  // クラスタ平均 = (-100 + 60) / 2 = -20。**符号が逆になる。**
+  assert.ok(
+    Math.abs((stats.clusteredMeanNetAlphaBps ?? Number.NaN) + 20) < 1e-9,
+    `クラスタ平均=${stats.clusteredMeanNetAlphaBps}`,
+  );
+  assert.ok(
+    stats.meanNetAlphaBps > 0 && (stats.clusteredMeanNetAlphaBps ?? 0) < 0,
+    "クラスタの偏りで符号が変わる例を保てていない",
+  );
+  // この状況では補正後 t のほうが絶対値で大きくなりうる。
+  // 「補正後は必ず小さくなる」と書いてはいけない。
+  assert.ok(stats.clusteredTStat !== null && stats.tStat !== null);
+  assert.ok(
+    Math.sign(stats.clusteredTStat!) !== Math.sign(stats.tStat!),
+    "この例では補正の有無で t の符号が変わるはず",
+  );
+}
+
+function testClusteredMeanIsNullWithoutClusterKeys(): void {
+  // クラスタキーが無いときは null。0 と混同させない。
+  const stats = aggregate([1, 2, 3]);
+  assert.equal(stats.clusteredMeanNetAlphaBps, null);
+  assert.equal(stats.clusteredTStat, null);
+  assert.equal(stats.clusterCount, null);
+}
+
+function testClusteredMeanMatchesPlainMeanWhenOnePerCluster(): void {
+  const stats = aggregate([10, -4, 6], ["a", "b", "c"]);
+  assert.ok(
+    Math.abs((stats.clusteredMeanNetAlphaBps ?? Number.NaN) - stats.meanNetAlphaBps) < 1e-9,
+  );
+}
+
+testClusteredMeanIsReportedAndCanFlipSign();
+testClusteredMeanIsNullWithoutClusterKeys();
+testClusteredMeanMatchesPlainMeanWhenOnePerCluster();
 testMisalignedClusterKeysFailClosed();
 testEmptyInputIsSafe();
 testBacktestClustersByEntryDate();

@@ -98,9 +98,22 @@ export interface AggregateStats {
   /** クラスタ数（通常はイベント日数）。クラスタキーが無い場合は null。 */
   clusterCount: number | null;
   /**
+   * クラスタ内平均を等加重で平均した値。**`clusteredTStat` が検定しているのはこれ。**
+   *
+   * `meanNetAlphaBps`（1件ずつの等加重）とは一致しない。クラスタの大きさが
+   * 揃っていないと、件数の多い日の結果が `meanNetAlphaBps` を引っ張るため。
+   * 実測（2026-09-11）では 1件平均 +4.1bps に対しクラスタ平均は負で、
+   * `clusteredTStat` も -0.28 だった。**この値を出さないと、
+   * 「平均はプラスなのに t が負」が矛盾に見える。**
+   */
+  clusteredMeanNetAlphaBps: number | null;
+  /**
    * クラスタ内平均どうしの t 統計量（Fama-MacBeth 型）。
-   * 同日のシグナルは同じ出来事に相関しており独立ではない。
-   * 判定にはこちらを使う。tStat より必ず小さくなるのが正常。
+   * 同日のシグナルは同じ出来事に相関しており独立ではない。判定にはこちらを使う。
+   *
+   * 注: 「必ず `tStat` より小さい」ではない。相関があるぶん小さくなるのが
+   * 典型だが、クラスタの大きさが偏っていると重み付けが変わり、
+   * 符号すら変わりうる（実測: tStat +0.11 に対し clusteredTStat -0.28）。
    */
   clusteredTStat: number | null;
 }
@@ -122,7 +135,7 @@ function tStatOf(values: number[]): number | null {
  * 反応であって独立な観測ではない。独立と見なすと t 値が最大 √(1クラスタあたり件数)
  * 倍に膨らみ、存在しないエッジが有意に見える。
  */
-function clusteredTStatOf(values: number[], clusterKeys: readonly string[]): number | null {
+function clusterMeansOf(values: number[], clusterKeys: readonly string[]): number[] {
   if (values.length !== clusterKeys.length) {
     throw new Error(
       `cluster keys must align with values: ${clusterKeys.length} keys for ${values.length} values`,
@@ -135,8 +148,7 @@ function clusteredTStatOf(values: number[], clusterKeys: readonly string[]): num
     bucket.count += 1;
     sums.set(key, bucket);
   }
-  const clusterMeans = [...sums.values()].map((bucket) => bucket.total / bucket.count);
-  return tStatOf(clusterMeans);
+  return [...sums.values()].map((bucket) => bucket.total / bucket.count);
 }
 
 export function aggregate(netAlphas: number[], clusterKeys?: readonly string[]): AggregateStats {
@@ -152,6 +164,7 @@ export function aggregate(netAlphas: number[], clusterKeys?: readonly string[]):
       worstBps: 0,
       bestBps: 0,
       clusterCount: clusterKeys === undefined ? null : 0,
+      clusteredMeanNetAlphaBps: null,
       clusteredTStat: null,
     };
   }
@@ -164,6 +177,7 @@ export function aggregate(netAlphas: number[], clusterKeys?: readonly string[]):
   const stdDev = Math.sqrt(variance);
   const hitRate = netAlphas.filter((value) => value > 0).length / count;
   const tStat = count > 1 && stdDev > 0 ? mean / (stdDev / Math.sqrt(count)) : null;
+  const clusterMeans = clusterKeys === undefined ? null : clusterMeansOf(netAlphas, clusterKeys);
 
   return {
     count,
@@ -175,7 +189,10 @@ export function aggregate(netAlphas: number[], clusterKeys?: readonly string[]):
     worstBps: sorted[0],
     bestBps: sorted[count - 1],
     clusterCount: clusterKeys === undefined ? null : new Set(clusterKeys).size,
-    clusteredTStat: clusterKeys === undefined ? null : clusteredTStatOf(netAlphas, clusterKeys),
+    clusteredMeanNetAlphaBps: clusterMeans === null
+      ? null
+      : clusterMeans.reduce((sum, value) => sum + value, 0) / clusterMeans.length,
+    clusteredTStat: clusterMeans === null ? null : tStatOf(clusterMeans),
   };
 }
 
