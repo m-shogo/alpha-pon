@@ -27,17 +27,53 @@
 
 **問題は「核が無い」ではなく「核に一度もデータが流れていない」。**
 
-### 0-2. 2026-09-10 に実装したもの
+### 0-2. 2026-09-10 の作業（branch `feat/earnings-gap-signal-pipeline`）
+
+**実装**
 
 | ファイル | 内容 |
 | --- | --- |
 | `src/research/signals/earnings-gap.ts` | 決算ギャップ Signal Generator |
 | `src/research/signals/backtest-bundle.ts` | Bundle Builder |
 | `scripts/build-earnings-gap-fixture.ts` | 合成 fixture 生成 |
-| テスト3本 41ケース | 変異テストで実効性を確認済み |
+| `scripts/run-all-tests.ts` | 全テストランナー（475本を約4.6秒） |
 
 合成データで end-to-end が通った（signal生成 → bundle → backtest → Net Alpha → FDR）。
-実装中に**株式分割が -50% の偽シグナルになる欠陥**を発見し、2段構えのガードで修正した。
+
+**潰した欠陥（すべて実測で再現 → 修正 → 変異テストで検証）**
+
+| # | 欠陥 | 実測 |
+| --- | --- | --- |
+| S11a | 株式分割が偽シグナルになる | 1:2 分割 → `gapPct = -50` でシグナル生成。2段構えのガードで修正 |
+| **B2** | TDnet の取り下げ開示1行でその日の全件が消える | 2026-09-08 が **0件 → 131件** に回復。原因は `<tr class="hyodaiDel">` のリンク欠落 |
+| **S3** | ストップがギャップを突き抜けた時の約定価格 | 1トレードあたり **3,200bps** の損失過小評価。`min(stopLevel, open)` へ修正 |
+| 新規 | 売買停止明けを決算ギャップとして拾う | 69日の停止で `-15%` のシグナル生成。`maxReactionLagDays` で除外 |
+| 新規 | `notionalJpy` 未指定でコスト・流動性チェックが黙って無効化 | 日商100万円の銘柄に300万円で執行成立、market impact 0、participation 0% と報告。必須化 |
+| **B7** | macOS でテストが実行できない | `/var` symlink。テスト側を `realpathSync` で解決（validator は緩めない）。5本が回復 |
+| **B10** | **テスト475本中139本(29%)がどのチェーンからも実行されていない** | うち**14本が既に失敗**。silent regression |
+| **B11** | フレーキーな未来判定 | 書き込み直後のファイルが 200回中103回(51%) `mtime > Date.now()`。`freshnessOf` が「更新時刻が未来」と誤判定。2秒の許容を追加 |
+
+**B10 の詳細**
+
+`scripts/run-all-tests.ts` で glob 実行し、既知失敗を `tests/known-failures.json` に
+理由付きで明示する方式にした。既知失敗が**通った**場合もエラーにして、リストが縮む方向に力をかける。
+`pnpm test:all` / `ci-pipeline-smoke.sh` に接続済み。
+
+現在の既知失敗14本（未調査・要判断）:
+
+```
+market-event 系 4本   ledger revision instants / ledger source chronology /
+                      occurrence key provenance / source chronology
+source-health 系 3本  history input / result row contract / step row contract
+その他 7本            catchup-failure-defer / knowledge-review-input /
+                      listing-automation-topix-input / ops-dashboard-alpha-input /
+                      readiness-pipeline-failures /
+                      evidence-package-repository-invalid-revision-ledger (PR #450 の regression) /
+                      world-event-reflection-event-id-dedupe (非ASCIIタイトルの identity 衝突)
+```
+
+market-event 系4本は**2000件超の PR を費やした領域**の契約違反である点に注意。
+ただし決算ギャップ配管には影響しないため、凍結方針を維持して別途判断する。
 
 ---
 
@@ -74,7 +110,7 @@ rate limit 既定 3000ms/req（500銘柄の全履歴で約25分）。
 | --- | --- | --- | --- |
 | **S1** | **t統計量がイベント日クラスタリング未補正**。`tStat = mean/(sd/√n)` の i.i.d. 仮定。同じ日に30件シグナルが出れば相関しており、実効nははるかに小さい。t値が最大 √30 ≈ 5.5倍に膨らむ | **偽のエッジを生む**。最も危険 | 未対応 |
 | **S2** | **サバイバーシップバイアス**。`/listed/info` は現在の上場銘柄のみ。決算ギャップ後に倒産・上場廃止した企業が消え、回復率が実態より良く見える | 系統的な過大評価 | 未対応 |
-| **S3** | **ストップがギャップを突き抜けた場合の約定価格**。`resolveExit` は `entryPrice × (1 - stopLossBps/10000)` ちょうどで約定したことにする。実際は寄付がストップ水準を割れば寄付で約定する。**過剰反応戦略はギャップが本体**なので影響が大きい | 損失の過小評価 | 未対応 |
+| ~~S3~~ | ストップがギャップを突き抜けた場合の約定価格 | 1トレード 3,200bps の過小評価 | **2026-09-10 修正済** |
 | **S4** | **ストップ安・売買停止で買えない**。大幅下落の翌日は寄らないことがあるが `next_open` で平然と約定させる。**一番おいしい事例だけ実際には買えない** | 系統的な過大評価 | 未対応 |
 | **S5** | **交絡イベント未除外**。決算と同日の増資・M&A・下方修正を弾いていない。「決算への過剰反応」ではなく「増資への正当な反応」を拾う | 因果の誤帰属 | 未対応 |
 | **S6** | **`trials` が申告制**。`falseDiscoveryGuard(tStat, trials)` の試行回数を呼び出し側が正直に申告する前提。閾値を10通り試しても誰も強制しない。fixture の `trials: 1` を書いたのは私 | 過剰適合の温床 | 未対応 |
@@ -82,7 +118,7 @@ rate limit 既定 3000ms/req（500銘柄の全履歴で約25分）。
 | **S8** | **サイズ・業種中立化なし**。benchmark が 1306 のみ。小型株が系統的に違う動きなら拾うのは size factor | エッジの誤認 | 未対応 |
 | **S9** | **ユニバース選定の look-ahead**。「流動性上位500」を今日の流動性で選ぶと未来情報 | 過大評価 | 未対応 |
 | **S10** | **同時保有・資金制約なし**。全シグナルに同じ notional を独立に当てる。同日に30件出たら30倍の資金が要る | 実装不能な結果 | 未対応 |
-| **S11** | **provider が `adjustmentFactor` を捨てる**。常に 1 で上書き。分割を検出できない。今日入れたのは保険（単日-35%以下を落とす）のみ | 偽シグナル | 保険のみ |
+| **S11** | **provider が `adjustmentFactor` を捨てる**。常に 1 で上書き。分割を検出できない。入れたのは保険（単日-35%以下を落とす）のみ。本丸は provider 修正 | 偽シグナル | 保険のみ |
 | **S12** | **単元株(100株)制約なし**。`notionalJpy` を連続量として扱う。5,000円の株は1単元50万円で、小口座では分散できない | 実装可能性の誤認 | 未対応 |
 | **S13** | **税金なし**。譲渡益約20.315%。符号は変わらないが「やる価値があるか」は変わる | 判断材料の欠落 | 未対応 |
 | **S14** | **レジーム依存を見ない**。強気相場だけで効くエッジを見分けられない | 将来の破綻 | 未対応 |
@@ -93,14 +129,16 @@ rate limit 既定 3000ms/req（500銘柄の全履歴で約25分）。
 | # | 欠陥 | 状態 |
 | --- | --- | --- |
 | **B1** | **J-Quants 403 Forbidden**。`/v2/listed/info` 応答0.23秒。キー無効・期限切れ・権限不足。全銘柄 `timeout 15000ms`（ログ563回）→ 今朝のレポートは全項目0件 | **要人間** |
-| **B2** | **TDnet 行スキップバグ**。2026-09-08 が `TDnet row has no disclosure document link` で落ちる（再現性あり。09-09=127件、09-07=155件は正常）。リンクなし行1つで**その日の全件が失われる** | 未対応 |
+| ~~B2~~ | TDnet の取り下げ開示でその日の全件が失われる | **2026-09-10 修正済**（0件 → 131件） |
 | **B3** | **launchd が古い作業コピーを実行**。pull 前は main から1555 commits 遅れ。`TDnet 404`(62回) と `mapfile: command not found` はどちらも修正済みバグの再現だった | 未対応 |
 | **B4** | **CI未接続の verify 20本**。全部PASS・合計約1.3秒。`ci-pipeline-smoke.sh` へ追加するだけ | 未対応 |
 | **B5** | **PR #1834 / #1836 放置**。MERGEABLE / CLEAN / check緑・2026-09-04から | 未対応 |
 | **B6** | **daily の degraded 検知なし**。「取得0件」と「候補0件」が区別できない | 未対応 |
-| **B7** | **`tests/research/schema.test.ts` が macOS で必ず失敗**。`/var` → `/private/var` の symlink を catalog validator が祖先symlinkとして拒否。CI(Linux)では通るため気づきにくいが、**ローカルで `pnpm research:check` が完走できない** | 未対応 |
+| ~~B7~~ | macOS でテストが実行できない（`/var` symlink） | **2026-09-10 修正済**（5本回復） |
 | **B8** | price store の配置不整合。README は `securities/<market>/<code>.jsonl`、CLI は `research/prices/jquants-free/{CODE}.jsonl` | 未対応 |
 | **B9** | remote branch 2023本。`feat/decision-firewall-v1`（PR #43 CLOSED / DO NOT MERGE明記）削除可 | 未対応 |
+| ~~B10~~ | テスト475本中139本が未実行、うち14本が失敗 | **2026-09-10 対策済**（全件実行＋既知失敗リスト。14本の中身は未調査） |
+| ~~B11~~ | `freshnessOf` が書き込み直後のファイルを「未来」と誤判定（51%） | **2026-09-10 修正済** |
 
 ### 2-3. 未実装の接続部
 
