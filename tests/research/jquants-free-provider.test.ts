@@ -101,10 +101,15 @@ const tradedQuote: DailyQuote = {
     firstExecutableAt: "2026-08-07T12:00:00+09:00",
     ingestionRunId: "fixture-run-2",
   });
-  assert.equal(missing.status, "missing");
-  assert.equal(missing.missingReason, "unknown");
+  // 原因は依然として捏造しない。だが「取引が無かった」ことは確か。
+  // 実 API 計測（2026-09-11）で非取引行は全て OHLCV が null と判明したため、
+  // missing/unknown（hardening が拒否する組合せ）から no_trade/no_execution へ。
+  // 売買停止も no_execution を生むので、これは停止を否定していない。
+  assert.equal(missing.status, "no_trade");
+  assert.equal(missing.missingReason, "no_execution");
+  assert.notEqual(missing.missingReason, "exchange_suspension", "原因は名乗らない");
   assert.equal(missing.ohlcv, undefined);
-  console.log("jquants-free-provider: unknown missing row pattern is not fabricated OK");
+  console.log("jquants-free-provider: no-bar row states no_execution without naming a cause OK");
 }
 
 {

@@ -19,6 +19,7 @@ import {
   jquantsFreeObservedAt,
 } from "../src/research/providers/jquants-free.js";
 import { validatePriceRecord, withPriceRecordHash } from "../src/research/price-store.js";
+import { validatePriceRecordHardening } from "../src/research/price-store-hardening.js";
 import type { JsonSchema } from "../src/research/schema.js";
 import type { DailyQuote } from "../src/fetcher/jquants.js";
 
@@ -187,6 +188,41 @@ async function testRecordsAreValidPitRecords(): Promise<void> {
   assert.equal(record.status, "traded");
 }
 
+async function testEveryRecordPassesHardening(): Promise<void> {
+  // 実際に踏んだ欠陥。provider の出力に validatePriceRecordHardening が
+  // 一度も掛かっておらず、毎日の 3.8%（値の付かない167銘柄）が
+  // `status=missing / missingReason=unknown` という**許容されない組合せ**で
+  // 保存されていた。取り込み4,363行のうち167行が該当。
+  const noBar: DailyQuote = {
+    Code: "131A0", Date: TRADING_DATE.replace(/-/g, ""),
+    Open: 0, High: 0, Low: 0, Close: 0, Volume: 0,
+    AdjustmentFactor: 1, AdjustmentClose: 0, AdjustmentVolume: 0,
+  };
+  const inconsistent: DailyQuote = {
+    ...quote("99840"), High: 10, Low: 900, // 高値が安値を下回る
+  };
+
+  const batch = await provider(async () => [quote("13060"), noBar, inconsistent])
+    .fetchDailyUniverse({ tradingDate: TRADING_DATE, asOf: AS_OF });
+
+  const byCode = new Map(batch.records.map((record) => [record.code, record]));
+  assert.equal(byCode.get("13060")!.status, "traded");
+
+  // 値が付かなかった日。「取引が無かった」は確かだが、原因（値付かずか
+  // 売買停止か）は API から分からないので名乗らない。
+  assert.equal(byCode.get("131A0")!.status, "no_trade");
+  assert.equal(byCode.get("131A0")!.missingReason, "no_execution");
+
+  // 値はあるが整合しない。provider が使えないものを返した。
+  assert.equal(byCode.get("99840")!.status, "missing");
+  assert.equal(byCode.get("99840")!.missingReason, "provider_gap");
+
+  for (const record of batch.records) {
+    const issues = validatePriceRecordHardening(withPriceRecordHash(record));
+    assert.deepEqual(issues, [], `${record.code}: ${JSON.stringify(issues)}`);
+  }
+}
+
 async function testInvalidAsOfFailsClosed(): Promise<void> {
   await assert.rejects(
     provider(async () => [quote("13060")])
@@ -231,6 +267,7 @@ async function main(): Promise<void> {
   await testInvalidAdjustmentFactorFailsClosed();
   await testWithheldAndNotEntitledCarryNoAdjustments();
   await testRecordsAreValidPitRecords();
+  await testEveryRecordPassesHardening();
   await testInvalidAsOfFailsClosed();
   await testInvalidTradingDateFailsClosed();
   console.log("jquants-universe-fetch: 全テスト成功");
