@@ -5,23 +5,74 @@
   "description": "「そのイベントが無かった場合」の比較対象。counterfactuals.jsonl に1行1件（Append Only）。",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "id", "analogId", "method", "comparator", "recordedAt", "observedAt"],
+  "required": [
+    "schemaVersion",
+    "id",
+    "analogId",
+    "method",
+    "comparator",
+    "recordedAt",
+    "observedAt"
+  ],
   "properties": {
-    "schemaVersion": { "const": 1 },
-    "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "minLength": 6 },
-    "analogId": { "type": "string", "minLength": 1 },
-    "edgeId": { "type": "string" },
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "minLength": 6
+    },
+    "analogId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "edgeId": {
+      "type": "string"
+    },
     "method": {
       "type": "string",
-      "enum": ["peer_matched", "sector_index", "market_index", "pre_event_trend", "synthetic_control", "same_company_prior_period"]
+      "enum": [
+        "matched_drawdown",
+        "peer_matched",
+        "sector_index",
+        "market_index",
+        "pre_event_trend",
+        "synthetic_control",
+        "same_company_prior_period"
+      ],
+      "description": "matched_drawdown は「同程度下げたが事件ではない (code,date)」との比較。generic reversal と事件の効果を分離するために使う。"
     },
-    "comparator": { "type": "string", "minLength": 2, "description": "比較対象の具体名（ピア銘柄コード / 指数名など）" },
-    "observedAt": { "type": "string", "format": "date-time" },
-    "recordedAt": { "type": "string", "format": "date" },
-    "eventReturnBps": { "type": "number" },
-    "counterfactualReturnBps": { "type": "number" },
-    "differenceBps": { "type": "number" },
-    "explanation": { "type": "string" },
-    "dataGaps": { "type": "array", "items": { "type": "string" } }
+    "comparator": {
+      "type": "string",
+      "minLength": 2,
+      "description": "比較対象の具体名（ピア銘柄コード / 指数名など）"
+    },
+    "observedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "recordedAt": {
+      "type": "string",
+      "format": "date"
+    },
+    "eventReturnBps": {
+      "type": "number"
+    },
+    "counterfactualReturnBps": {
+      "type": "number"
+    },
+    "differenceBps": {
+      "type": "number"
+    },
+    "explanation": {
+      "type": "string"
+    },
+    "dataGaps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
   }
 }
