@@ -107,8 +107,21 @@ export interface EventStudyHorizonSummary {
   horizonBars: number;
   treatment: AggregateStats;
   control: AggregateStats;
-  /** treatment 平均 − control 平均。対照より良かった分。 */
+  /**
+   * treatment 平均 − control 平均（1件ずつの等加重）。
+   *
+   * 表示している `clusteredTStat` はこの値を検定していない。
+   * 判断には `clusteredDifferenceBps` を使う。
+   */
   differenceBps: number | null;
+  /**
+   * イベント日を等加重にした差。**こちらが `clusteredTStat` と同じ土俵。**
+   *
+   * 1件ずつの等加重だと、シグナルが大量に出た日の結果が平均を引っ張る。
+   * backtest 側で 1件平均 +4.1bps に対しクラスタ平均 -32.1bps と
+   * 符号が逆になった実測があり、同じことがここでも起きる。
+   */
+  clusteredDifferenceBps: number | null;
   treatmentReclaimRate: number | null;
   controlReclaimRate: number | null;
 }
@@ -289,6 +302,11 @@ export function runEventStudy(
         treatment.stats.count === 0 || control.stats.count === 0
           ? null
           : treatment.stats.meanNetAlphaBps - control.stats.meanNetAlphaBps,
+      clusteredDifferenceBps:
+        treatment.stats.clusteredMeanNetAlphaBps === null
+          || control.stats.clusteredMeanNetAlphaBps === null
+          ? null
+          : treatment.stats.clusteredMeanNetAlphaBps - control.stats.clusteredMeanNetAlphaBps,
       treatmentReclaimRate: treatment.reclaimRate,
       controlReclaimRate: control.reclaimRate,
     };
