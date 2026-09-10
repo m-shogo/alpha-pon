@@ -202,6 +202,64 @@ function testOutputIsDeterministic() {
   assert.equal(JSON.stringify(first), JSON.stringify(second));
 }
 
+function testClusteredDifferenceUsesEventDayWeights(): void {
+  // 表示する t(補正) が検定しているのはクラスタ（イベント日）平均。
+  // 差分を1件ずつの等加重で出すと、シグナルが大量に出た日の結果が
+  // 平均を引っ張り、「平均は正なのに t は負」という自己矛盾した表になる。
+  // backtest 側で実際に起きた（1件平均 +4.1bps / クラスタ平均 -32.1bps）。
+  //
+  // treatment: 同じ日に2件（1111 / 2222）、別の日に1件（3333）
+  // control:   同じ日に1件（4444）
+  const flat = [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000];
+  const down = (drop: number) => [1000, 1000, 1000, 1000 - drop, 1000 - drop, 1000 - drop,
+    1000 - drop, 1000 - drop, 1000 - drop, 1000 - drop];
+
+  const prices = new Map<string, PriceSeries>([
+    ["1111", series("1111", down(200))],
+    ["2222", series("2222", down(200))],
+    ["3333", series("3333", flat)],
+    ["4444", series("4444", flat)],
+  ]);
+
+  const result = runEventStudy(
+    [
+      subject({ id: "t-1", code: "1111", eventDate: EVENT_DATE }),
+      subject({ id: "t-2", code: "2222", eventDate: EVENT_DATE }),
+      subject({ id: "t-3", code: "3333", eventDate: "2026-01-08" }),
+      subject({ id: "c-1", code: "4444", eventDate: EVENT_DATE, group: "control", pairId: "t-1" }),
+    ],
+    prices,
+    FLAT_BENCHMARK,
+    params({ horizons: [1] }),
+  );
+
+  const summary = result.summaryByHorizon[0]!;
+  assert.equal(summary.treatment.count, 3);
+  assert.equal(summary.treatment.clusterCount, 2, "イベント日は2日");
+
+  // 1件平均は 2026-01-07 の2件に引っ張られる。クラスタ平均は日ごとに等加重。
+  assert.notEqual(summary.treatment.clusteredMeanNetAlphaBps, null);
+  assert.ok(
+    Math.abs(summary.treatment.clusteredMeanNetAlphaBps! - summary.treatment.meanNetAlphaBps) > 1e-9,
+    "この構成では1件平均とクラスタ平均が一致してはいけない",
+  );
+
+  // 差分もクラスタ基準の値を持つこと。
+  assert.notEqual(summary.clusteredDifferenceBps, null);
+  const expected =
+    summary.treatment.clusteredMeanNetAlphaBps! - summary.control.clusteredMeanNetAlphaBps!;
+  assert.ok(
+    Math.abs(summary.clusteredDifferenceBps! - expected) < 1e-9,
+    `clusteredDifferenceBps=${summary.clusteredDifferenceBps} expected=${expected}`,
+  );
+  // 1件基準の差分も残す（両方見えることに意味がある）。
+  assert.notEqual(summary.differenceBps, null);
+  assert.ok(
+    Math.abs(summary.clusteredDifferenceBps! - summary.differenceBps!) > 1e-9,
+    "2つの差分が同じ値になっている。テストの構成が偏りを作れていない",
+  );
+}
+
 testEntryIsTheDayAfterTheEvent();
 testAbnormalReturnIsBenchmarkAdjusted();
 testTreatmentVersusControlDifference();
@@ -212,5 +270,6 @@ testIntradaySpikeIsNotAReclaim();
 testSkipReasonsAreCounted();
 testInvalidParamsFailClosed();
 testOutputIsDeterministic();
+testClusteredDifferenceUsesEventDayWeights();
 
 console.log("research/event-study: 全テスト成功");

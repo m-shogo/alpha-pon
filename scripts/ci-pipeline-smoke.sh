@@ -153,6 +153,11 @@ node --import tsx/esm scripts/verify-price-store-integrity.ts > /dev/null
 # 保存庫が空の環境（CI）では検査対象なしで正常終了する。
 node --import tsx/esm scripts/verify-disclosure-archive-gaps.ts > /dev/null
 
+# テストファイル内で「定義したが呼んでいない」テスト関数を防ぐ。
+# ファイル単位の未実行は run-all-tests.ts の glob で塞いだが、
+# 1ファイルの中で定義だけして呼ばない関数は拾えない。
+node --import tsx/esm scripts/verify-test-function-reachability.ts > /dev/null
+
 # verify script が「追記し忘れ」でどこからも起動されない状態を防ぐ。
 node --import tsx/esm scripts/verify-script-reachability.ts
 

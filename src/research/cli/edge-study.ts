@@ -383,16 +383,21 @@ function main(): void {
   const study = runEventStudy(subjects, securities, benchmark!, bundle.eventStudy);
   console.log(`④ イベントスタディ: 対象 ${study.subjectCount} → 観測 ${study.observations.length}`);
   console.log("");
-  console.log("horizon | treatment n / 平均 / clusters / t(補正) | control n / 平均 | 差分 | 回復率 T/C");
+  // 表示する平均は**イベント日を等加重**にしたもの。t(補正) が検定しているのが
+  // それであり、1件ずつの等加重を並べると「平均は正なのに t は負」という
+  // 自己矛盾した表になる（backtest 側で実際に起きた）。
+  console.log("horizon | treatment n / クラスタ平均 / clusters / t(補正) | control n / クラスタ平均 | 差分 | 回復率 T/C");
   for (const row of study.summaryByHorizon) {
     const t = row.treatment;
     const c = row.control;
+    const clustered = (stats: typeof t): string =>
+      stats.clusteredMeanNetAlphaBps === null ? "       n/a" : bps(stats.clusteredMeanNetAlphaBps).padStart(10);
     console.log(
       `D+${String(row.horizonBars).padEnd(4)}`
-      + `| ${String(t.count).padStart(4)} / ${bps(t.meanNetAlphaBps).padStart(10)} / ${String(t.clusterCount ?? 0).padStart(3)} / `
+      + `| ${String(t.count).padStart(4)} / ${clustered(t)} / ${String(t.clusterCount ?? 0).padStart(3)} / `
       + `${t.clusteredTStat === null ? "  n/a" : t.clusteredTStat.toFixed(2).padStart(5)} `
-      + `| ${String(c.count).padStart(4)} / ${bps(c.meanNetAlphaBps).padStart(10)} `
-      + `| ${row.differenceBps === null ? "     n/a" : bps(row.differenceBps).padStart(8)} `
+      + `| ${String(c.count).padStart(4)} / ${clustered(c)} `
+      + `| ${row.clusteredDifferenceBps === null ? "     n/a" : bps(row.clusteredDifferenceBps).padStart(8)} `
       + `| ${row.treatmentReclaimRate === null ? "n/a" : `${(row.treatmentReclaimRate * 100).toFixed(0)}%`}`
       + ` / ${row.controlReclaimRate === null ? "n/a" : `${(row.controlReclaimRate * 100).toFixed(0)}%`}`,
     );
