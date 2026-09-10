@@ -8,22 +8,6 @@
   ],
   "knownFailures": [
     {
-      "path": "tests/market-event-ledger-revision-instants.test.ts",
-      "reason": "2026-09-10 監査で判明。publishedAt が任意文字列のまま read-only ledger projection に入る。未調査。"
-    },
-    {
-      "path": "tests/market-event-ledger-source-chronology.test.ts",
-      "reason": "2026-09-10 監査で判明。公開前に取得された source を read-only ledger validation が拒否しない。未調査。"
-    },
-    {
-      "path": "tests/market-event-occurrence-key-provenance.test.ts",
-      "reason": "2026-09-10 監査で判明。registration が stable event identity と同じ canonical occurrence key を保存していない。未調査。"
-    },
-    {
-      "path": "tests/market-event-source-chronology.test.ts",
-      "reason": "2026-09-10 監査で判明。公開前に取得された source を拒否しない。未調査。"
-    },
-    {
       "path": "tests/research/evidence-package-repository-invalid-revision-ledger.test.ts",
       "reason": "2026-09-10 監査で判明。不正な revision があると有効な head まで消え activeHeadCount が 0 になる。PR #450 追加時は通っていた regression。"
     },

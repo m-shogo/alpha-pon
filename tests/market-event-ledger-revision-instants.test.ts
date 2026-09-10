@@ -1,12 +1,24 @@
 import assert from "node:assert/strict";
+import { buildRevisionId } from "../src/market-events/contracts.js";
 import { validateLedgerRecord } from "../src/market-events/local-ledger.js";
+
+// revisionId が正準値でないと revision identity 検査が先に発火し、
+// ここで確かめたい timestamp 検査に到達しない。
+// buildRevisionId は eventId / revisionNumber / facts / sourceIds のみを使うため、
+// publishedAt 等を差し替えても正準 ID は変わらない。
+const canonicalRevisionId = buildRevisionId({
+  eventId: "evt_fixture",
+  revisionNumber: 1,
+  facts: {},
+  sourceIds: [],
+});
 
 const baseRecord = {
   recordType: "EVENT_REVISION" as const,
   recordedAt: "2026-08-28T10:30:00Z",
   payload: {
     schemaVersion: 1 as const,
-    revisionId: "rev_fixture",
+    revisionId: canonicalRevisionId,
     eventId: "evt_fixture",
     revisionNumber: 1,
     observedAt: "2026-08-28T10:00:00Z",
