@@ -1,5 +1,6 @@
 import {
   fetchDailyQuotes,
+  fetchDailyQuotesByDate,
   isJQuantsConfigured,
   type DailyQuote,
 } from "../../fetcher/jquants.js";
@@ -34,6 +35,7 @@ export const JQUANTS_FREE_ENTITLEMENT = {
 } as const;
 
 type QuoteFetcher = (code: string, from: string, to: string) => Promise<DailyQuote[]>;
+type DateQuoteFetcher = (date: string) => Promise<DailyQuote[] | null>;
 
 export type JQuantsFirstExecutableAtResolver = (input: {
   code: string;
@@ -45,6 +47,7 @@ export type JQuantsFirstExecutableAtResolver = (input: {
 
 export interface JQuantsFreeProviderOptions {
   fetchQuotes?: QuoteFetcher;
+  fetchQuotesByDate?: DateQuoteFetcher;
   now?: () => Date;
   resolveFirstExecutableAt: JQuantsFirstExecutableAtResolver;
   delayDays?: number;
@@ -242,18 +245,41 @@ export function jquantsFreeCapabilities(delayDays = JQUANTS_FREE_DELAY_DAYS): Pr
   };
 }
 
+/**
+ * Outcome of one whole-market trading-day fetch.
+ *
+ * `outcome` deliberately separates the three states a caller must not conflate:
+ * - `entitled_rows`   the plan covers the date and the market produced bars
+ * - `entitled_empty`  the plan covers the date and the API returned no bars
+ *                     (market closed, or an upstream gap — this adapter cannot
+ *                     tell those apart and does not guess)
+ * - `not_entitled`    the date is outside the plan window; nothing was asked
+ */
+export type JQuantsUniverseOutcome = "entitled_rows" | "entitled_empty" | "not_entitled";
+
+export interface JQuantsUniverseBatch extends PriceProviderBatch {
+  tradingDate: string;
+  outcome: JQuantsUniverseOutcome;
+  /** Codes the API returned for the date, canonicalized and sorted. */
+  universe: string[];
+  /** Rows dropped because their observedAt is later than `asOf`. */
+  withheldForAsOf: number;
+}
+
 export class JQuantsFreePriceProvider implements PriceProvider {
   readonly id = JQUANTS_FREE_PROVIDER_ID;
   readonly license: PriceDataLicense;
   readonly capabilities: PriceProviderCapabilities;
 
   private readonly fetchQuotes: QuoteFetcher;
+  private readonly fetchQuotesByDate: DateQuoteFetcher;
   private readonly now: () => Date;
   private readonly resolveFirstExecutableAt: JQuantsFirstExecutableAtResolver;
   private readonly sourceVersion: string;
 
   constructor(options: JQuantsFreeProviderOptions) {
     this.fetchQuotes = options.fetchQuotes ?? fetchDailyQuotes;
+    this.fetchQuotesByDate = options.fetchQuotesByDate ?? ((date) => fetchDailyQuotesByDate(date));
     this.now = options.now ?? (() => new Date());
     this.resolveFirstExecutableAt = options.resolveFirstExecutableAt;
     this.license = options.license ?? "local_only";
@@ -327,6 +353,86 @@ export class JQuantsFreePriceProvider implements PriceProvider {
       license: this.license,
       retrievedAt,
       records,
+    };
+  }
+
+  /**
+   * Fetch every security that traded on one date with a single API request.
+   *
+   * This is the ingestion path for building history: the J-Quants burst quota
+   * makes per-code fetching (~4,400 requests per day of history) impossible,
+   * while per-date fetching needs one.
+   */
+  async fetchDailyUniverse(input: { tradingDate: string; asOf: string }): Promise<JQuantsUniverseBatch> {
+    parseExplicitIso8601Instant(input.asOf, "asOf");
+    const tradingDate = normalizeDate(input.tradingDate);
+    const retrievedAt = this.now().toISOString();
+    const ingestionRunId = `jquants-free-universe:${tradingDate}:${retrievedAt}`;
+
+    const base = {
+      providerId: this.id,
+      sourceVersion: this.sourceVersion,
+      capabilities: this.capabilities,
+      license: this.license,
+      retrievedAt,
+      tradingDate,
+    };
+
+    const quotes = await this.fetchQuotesByDate(tradingDate);
+    if (quotes === null) {
+      return { ...base, records: [], outcome: "not_entitled", universe: [], withheldForAsOf: 0 };
+    }
+
+    const observedAt = jquantsFreeObservedAt(tradingDate, this.capabilities.delayDays);
+    if (compareExplicitIso8601Instants(observedAt, input.asOf, "observedAt", "asOf") > 0) {
+      // The whole day is still inside the disclosure delay as of `asOf`.
+      return {
+        ...base,
+        records: [],
+        outcome: quotes.length > 0 ? "entitled_rows" : "entitled_empty",
+        universe: [],
+        withheldForAsOf: quotes.length,
+      };
+    }
+
+    const dataAsOf = jquantsTradingDayCloseJst(tradingDate);
+    const firstExecutableAt = this.resolveFirstExecutableAt({
+      code: "*",
+      tradingDate,
+      dataAsOf,
+      observedAt,
+      retrievedAt,
+    });
+
+    const seenCodes = new Set<string>();
+    const records: PitPriceRecordInput[] = [];
+    for (const quote of quotes) {
+      if (normalizeDate(quote.Date) !== tradingDate) {
+        throw new Error(`J-Quants returned a row for ${quote.Date} while fetching ${tradingDate}`);
+      }
+      const code = canonicalStoreCode(quote.Code);
+      if (seenCodes.has(code)) throw new Error(`duplicate J-Quants row for ${code} on ${tradingDate}`);
+      seenCodes.add(code);
+
+      records.push(mapJQuantsFreeQuote({
+        requestedCode: code,
+        quote,
+        retrievedAt,
+        firstExecutableAt,
+        ingestionRunId,
+        delayDays: this.capabilities.delayDays,
+        license: this.license,
+        sourceVersion: this.sourceVersion,
+      }));
+    }
+
+    records.sort((left, right) => left.code.localeCompare(right.code));
+    return {
+      ...base,
+      records,
+      outcome: records.length > 0 ? "entitled_rows" : "entitled_empty",
+      universe: records.map((record) => record.code),
+      withheldForAsOf: 0,
     };
   }
 }

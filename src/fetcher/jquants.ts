@@ -433,6 +433,30 @@ export async function fetchDailyQuotes(
   return (data.daily_quotes ?? []).map(normalizeV1Quote);
 }
 
+/**
+ * Single-trading-day snapshot of the whole cash market.
+ *
+ * `/equities/bars/daily?date=` returns every code that had a bar on that date
+ * in ONE request, which is ~4,400x cheaper than looping codes and makes the
+ * returned code set the point-in-time universe for that date.
+ *
+ * Returns `null` (not `[]`) when the date is outside the plan entitlement, so
+ * callers can tell "not allowed to ask" apart from "market was closed".
+ */
+export async function fetchDailyQuotesByDate(
+  date: string,
+  now: Date = new Date(),
+): Promise<DailyQuote[] | null> {
+  if (!process.env.JQUANTS_API_KEY) {
+    throw new Error("fetchDailyQuotesByDate requires the V2 API (JQUANTS_API_KEY)");
+  }
+  const compact = validatedCompactDate(date, "J-Quants quote date");
+  if (compact > jquantsV2DateCapCompact(now)) return null;
+
+  const rows = await getV2Paginated<V2DailyQuote>("/equities/bars/daily", { date: compact });
+  return rows.map(normalizeV2Quote);
+}
+
 export async function fetchFinancialStatements(
   code: string
 ): Promise<FinancialStatement[]> {
