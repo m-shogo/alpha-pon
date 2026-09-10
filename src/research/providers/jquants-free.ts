@@ -5,6 +5,10 @@ import {
   type DailyQuote,
 } from "../../fetcher/jquants.js";
 import { compareExplicitIso8601Instants, parseExplicitIso8601Instant } from "../iso-instant.js";
+import {
+  withAdjustmentHash,
+  type JQuantsAdjustmentEvent,
+} from "./jquants-adjustment-events.js";
 import type {
   MissingPriceReason,
   PitPriceRecordInput,
@@ -264,6 +268,14 @@ export interface JQuantsUniverseBatch extends PriceProviderBatch {
   universe: string[];
   /** Rows dropped because their observedAt is later than `asOf`. */
   withheldForAsOf: number;
+  /**
+   * Ex-date adjustments observed on this trading date (`AdjFactor != 1`).
+   *
+   * Kept out of the price records on purpose: an unadjusted row must carry
+   * `adjustmentFactor: 1`, and embedding `corporateActions` breaks the
+   * unadjusted-only measurement path. See `jquants-adjustment-events.ts`.
+   */
+  adjustments: JQuantsAdjustmentEvent[];
 }
 
 export class JQuantsFreePriceProvider implements PriceProvider {
@@ -380,7 +392,14 @@ export class JQuantsFreePriceProvider implements PriceProvider {
 
     const quotes = await this.fetchQuotesByDate(tradingDate);
     if (quotes === null) {
-      return { ...base, records: [], outcome: "not_entitled", universe: [], withheldForAsOf: 0 };
+      return {
+        ...base,
+        records: [],
+        outcome: "not_entitled",
+        universe: [],
+        withheldForAsOf: 0,
+        adjustments: [],
+      };
     }
 
     const observedAt = jquantsFreeObservedAt(tradingDate, this.capabilities.delayDays);
@@ -392,6 +411,7 @@ export class JQuantsFreePriceProvider implements PriceProvider {
         outcome: quotes.length > 0 ? "entitled_rows" : "entitled_empty",
         universe: [],
         withheldForAsOf: quotes.length,
+        adjustments: [],
       };
     }
 
@@ -406,6 +426,7 @@ export class JQuantsFreePriceProvider implements PriceProvider {
 
     const seenCodes = new Set<string>();
     const records: PitPriceRecordInput[] = [];
+    const adjustments: JQuantsAdjustmentEvent[] = [];
     for (const quote of quotes) {
       if (normalizeDate(quote.Date) !== tradingDate) {
         throw new Error(`J-Quants returned a row for ${quote.Date} while fetching ${tradingDate}`);
@@ -413,6 +434,26 @@ export class JQuantsFreePriceProvider implements PriceProvider {
       const code = canonicalStoreCode(quote.Code);
       if (seenCodes.has(code)) throw new Error(`duplicate J-Quants row for ${code} on ${tradingDate}`);
       seenCodes.add(code);
+
+      // 権利落ちの観測。`normalizeV2Quote` は欠損を 1 に畳むため、
+      // 「調整の情報が無い」は「調整が無い」として読まれる。
+      // 実測（2026-09-11、4,371行）では全行に値が入っていた。
+      const factor = quote.AdjustmentFactor;
+      if (!Number.isFinite(factor) || factor <= 0) {
+        throw new Error(`invalid AdjustmentFactor for ${code} on ${tradingDate}: ${factor}`);
+      }
+      if (factor !== 1) {
+        adjustments.push(withAdjustmentHash({
+          schemaVersion: 1,
+          code,
+          effectiveDate: tradingDate,
+          factor,
+          source: "jquants",
+          sourceVersion: this.sourceVersion,
+          observedAt,
+          retrievedAt,
+        }));
+      }
 
       records.push(mapJQuantsFreeQuote({
         requestedCode: code,
@@ -427,12 +468,14 @@ export class JQuantsFreePriceProvider implements PriceProvider {
     }
 
     records.sort((left, right) => left.code.localeCompare(right.code));
+    adjustments.sort((left, right) => left.code.localeCompare(right.code));
     return {
       ...base,
       records,
       outcome: records.length > 0 ? "entitled_rows" : "entitled_empty",
       universe: records.map((record) => record.code),
       withheldForAsOf: 0,
+      adjustments,
     };
   }
 }
