@@ -16,6 +16,12 @@
 //   「候補相当だが流動性で落ちた件数」が読めなくなる。
 
 import type { PriceSeries } from "../backtest.js";
+import {
+  estimateMarketModel,
+  marketModelAbnormalReturnPct,
+  standardizedAbnormalReturn,
+  type MarketModelParams,
+} from "./market-model.js";
 import { calendarDaysBetween } from "./trading-calendar.js";
 
 export const ABNORMAL_RETURN_REJECT_REASONS = [
@@ -27,6 +33,7 @@ export const ABNORMAL_RETURN_REJECT_REASONS = [
   "non_positive_benchmark_prior_close",
   "corporate_action_in_window",
   "implausible_single_day_move",
+  "market_model_unavailable",
 ] as const;
 
 export type AbnormalReturnRejectReason = (typeof ABNORMAL_RETURN_REJECT_REASONS)[number];
@@ -38,8 +45,16 @@ export interface AbnormalReturnMetrics {
   priorClose: number;
   rawReturnPct: number;
   benchmarkReturnPct: number;
+  /**
+   * 市場モデルを渡した場合は `r_i − (α̂ + β̂·r_m)`、
+   * 渡さない場合は `r_i − r_m`（β=1 の仮定）。
+   */
   abnormalReturnPct: number;
   averageTurnoverJpy: number;
+  /** 市場モデルを使ったときのみ。推定した β。 */
+  beta?: number;
+  /** 市場モデルを使ったときのみ。残差σで割った異常収益。σ=0 なら null。 */
+  standardizedAbnormalReturn?: number | null;
 }
 
 export type AbnormalReturnEvaluation =
@@ -55,6 +70,15 @@ export interface AbnormalReturnGuards {
   maxPriorGapDays: number;
   /** averageTurnoverJpy の参照本数。流動性の判定自体は呼び出し側が行う。 */
   turnoverLookbackBars: number;
+  /**
+   * 与えると市場モデル（α+β·r_m）で異常収益を測る。
+   *
+   * 省略すると `r_i − r_m`、つまり**全銘柄 β=1 の仮定**になる。
+   * 実測（2026-09-11、44営業日）では、その仮定のせいで
+   * 市場が -10.8% 下げた 2024-08-05 だけで全候補の38%を占めた。
+   * 高β銘柄が余計に下げただけのものを「異常」と読んでいた。
+   */
+  marketModel?: MarketModelParams;
 }
 
 export function averageTurnoverJpy(series: PriceSeries, endIndex: number, lookback: number): number {
@@ -106,17 +130,40 @@ export function evaluateAbnormalReturn(
   const benchmarkReturnPct = ((benchmarkClose - benchmarkPriorClose) / benchmarkPriorClose) * 100;
   const turnover = averageTurnoverJpy(series, index, guards.turnoverLookbackBars);
 
+  const base = {
+    date: bar.date,
+    priorCloseDate: priorBar.date,
+    close: bar.close,
+    priorClose: priorBar.close,
+    rawReturnPct,
+    benchmarkReturnPct,
+    averageTurnoverJpy: turnover,
+  };
+
+  if (!guards.marketModel) {
+    return {
+      ok: true,
+      metrics: { ...base, abnormalReturnPct: rawReturnPct - benchmarkReturnPct },
+    };
+  }
+
+  const estimate = estimateMarketModel(
+    series, guards.benchmarkCloseByDate, index, guards.marketModel,
+  );
+  // 推定できないなら β=1 で代用しない。それをやると
+  // 「市場モデルで測った」と「素朴に引いた」が混ざり、結果を後から解釈できない。
+  if (!estimate.ok) return { ok: false, reason: "market_model_unavailable" };
+
+  const abnormalReturnPct = marketModelAbnormalReturnPct(
+    estimate.fit, rawReturnPct, benchmarkReturnPct,
+  );
   return {
     ok: true,
     metrics: {
-      date: bar.date,
-      priorCloseDate: priorBar.date,
-      close: bar.close,
-      priorClose: priorBar.close,
-      rawReturnPct,
-      benchmarkReturnPct,
-      abnormalReturnPct: rawReturnPct - benchmarkReturnPct,
-      averageTurnoverJpy: turnover,
+      ...base,
+      abnormalReturnPct,
+      beta: estimate.fit.beta,
+      standardizedAbnormalReturn: standardizedAbnormalReturn(estimate.fit, abnormalReturnPct),
     },
   };
 }

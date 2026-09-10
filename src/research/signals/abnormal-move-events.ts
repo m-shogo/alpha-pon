@@ -26,6 +26,7 @@
 
 import type { PriceSeries } from "../backtest.js";
 import { evaluateAbnormalReturn } from "./abnormal-return.js";
+import { assertMarketModelParams, type MarketModelParams } from "./market-model.js";
 import { assertAscendingBars, positiveDayLimit } from "./trading-calendar.js";
 
 const OBSERVED_TIME_JST = "15:30:00";
@@ -45,6 +46,8 @@ export const ABNORMAL_MOVE_REJECT_REASONS = [
   "corporate_action_in_window",
   "explained_by_known_event",
   "below_min_turnover",
+  "market_model_unavailable",
+  "standardized_move_not_extreme_enough",
 ] as const;
 
 export type AbnormalMoveRejectReason = (typeof ABNORMAL_MOVE_REJECT_REASONS)[number];
@@ -71,6 +74,23 @@ export interface AbnormalMoveParams {
   minAverageTurnoverJpy?: number;
   /** 売買代金平均の参照本数。既定 20。 */
   turnoverLookbackBars?: number;
+  /**
+   * 与えると市場モデル（α+β·r_m）で異常収益を測る。
+   *
+   * 省略時は `r_i − r_m`（全銘柄 β=1 の仮定）。実測では、その仮定のせいで
+   * 市場が -10.8% 下げた日だけで全候補の38%を占めた。
+   *
+   * 有効にすると、推定期間ぶんの履歴が無い期間は
+   * `market_model_unavailable` になる。測れないものを測れたことにしない。
+   */
+  marketModel?: MarketModelParams;
+  /**
+   * 標準化異常収益（AR / 残差σ）の上限。負の値。例: -3 なら「-3σ以下」。
+   *
+   * 値動きの粗い銘柄と静かな銘柄を同じ % で測らずに済む。
+   * `marketModel` を渡していないと使えない（σが無い）。
+   */
+  maxStandardizedAbnormalReturn?: number;
 }
 
 export interface AbnormalMoveCandidate {
@@ -84,6 +104,10 @@ export interface AbnormalMoveCandidate {
   benchmarkReturnPct: number;
   abnormalReturnPct: number;
   averageTurnoverJpy: number;
+  /** 市場モデルを使ったときのみ。推定した β。 */
+  beta?: number;
+  /** 市場モデルを使ったときのみ。残差σで割った異常収益。 */
+  standardizedAbnormalReturn?: number | null;
   /** この候補を使った判断が可能になる時刻。反応日の引け。 */
   observedAt: string;
   /** 原因未特定。true になることはない（ラベリングは別工程）。 */
@@ -129,6 +153,21 @@ function assertParams(params: AbnormalMoveParams): void {
   }
   positiveDayLimit(params.maxPriorGapDays, DEFAULT_MAX_PRIOR_GAP_DAYS, "maxPriorGapDays");
   positiveDayLimit(params.turnoverLookbackBars, DEFAULT_TURNOVER_LOOKBACK_BARS, "turnoverLookbackBars");
+  if (params.marketModel) assertMarketModelParams(params.marketModel);
+  if (params.maxStandardizedAbnormalReturn !== undefined) {
+    if (
+      !Number.isFinite(params.maxStandardizedAbnormalReturn)
+      || params.maxStandardizedAbnormalReturn >= 0
+    ) {
+      throw new Error(
+        "maxStandardizedAbnormalReturn must be a negative finite number: "
+        + `${params.maxStandardizedAbnormalReturn}`,
+      );
+    }
+    if (!params.marketModel) {
+      throw new Error("maxStandardizedAbnormalReturn requires marketModel (残差σが無い)");
+    }
+  }
   if (params.minAverageTurnoverJpy !== undefined) {
     if (!Number.isFinite(params.minAverageTurnoverJpy) || params.minAverageTurnoverJpy < 0) {
       throw new Error(`minAverageTurnoverJpy must be a non-negative finite number`);
@@ -195,6 +234,7 @@ export function detectAbnormalMoveEvents(
         implausibleSingleDayMovePct: implausiblePct,
         maxPriorGapDays,
         turnoverLookbackBars: lookback,
+        ...(params.marketModel ? { marketModel: params.marketModel } : {}),
       });
       if (!evaluation.ok) {
         reject(series.code, bar.date, evaluation.reason);
@@ -205,6 +245,18 @@ export function detectAbnormalMoveEvents(
       if (!(metrics.abnormalReturnPct <= params.abnormalReturnThresholdPct)) {
         reject(series.code, bar.date, "move_not_extreme_enough");
         continue;
+      }
+      // σ の足切りは % の足切りと同じ層。流動性より前に置く。
+      if (params.maxStandardizedAbnormalReturn !== undefined) {
+        const standardized = metrics.standardizedAbnormalReturn;
+        // σ=0（値動きが無い）銘柄を「無限に異常」として通さない。
+        if (
+          standardized === null || standardized === undefined
+          || !(standardized <= params.maxStandardizedAbnormalReturn)
+        ) {
+          reject(series.code, bar.date, "standardized_move_not_extreme_enough");
+          continue;
+        }
       }
       // 流動性は候補相当と判定したあとに適用する。先に落とすと
       // 「候補相当だが流動性で落ちた件数」が読めなくなる。
