@@ -33,6 +33,43 @@ function page(rows: string[]): string {
   return `<!doctype html><html><body><table id="main-list-table">${rows.join("\n")}</table></body></html>`;
 }
 
+
+/** 取り下げ(削除)された開示行。`hyodaiDel` が付き、書類リンクが外れる。 */
+function withdrawnRow(input: {
+  time: string;
+  code: string;
+  name: string;
+  title: string;
+  history?: string;
+  marker?: "class" | "history_only";
+}): string {
+  const marker = input.marker ?? "class";
+  const trClass = marker === "class" ? ' class="hyodaiDel"' : "";
+  const history = input.history ?? "2026/09/05 08:35 削除";
+  return `<tr${trClass}>
+    <td class="evennew-L kjTime" nowrap>${input.time}</td>
+    <td class="evennew-M kjCode" nowrap>${input.code}</td>
+    <td class="evennew-M kjName" nowrap>${input.name}</td>
+    <td align="left" class="evennew-M kjTitle">${input.title}</td>
+    <td class="evennew-M kjXbrl"></td>
+    <td class="evennew-M kjPlace">東</td>
+    <td class="evennew-R kjHistroy" align="left">${history}</td>
+  </tr>`;
+}
+
+/** リンクが無く、取り下げマーカーも無い行。未知の構造なので落とさず例外にする。 */
+function linklessUnknownRow(): string {
+  return `<tr>
+    <td class="oddnew-L kjTime" nowrap>15:00</td>
+    <td class="oddnew-M kjCode" nowrap>99990</td>
+    <td class="oddnew-M kjName" nowrap>未知構造社</td>
+    <td align="left" class="oddnew-M kjTitle">リンクの無い通常行</td>
+    <td class="oddnew-M kjXbrl"></td>
+    <td class="oddnew-M kjPlace">東</td>
+    <td class="oddnew-R kjHistroy"></td>
+  </tr>`;
+}
+
 const PAGE_1 = page([
   row({
     time: "15:30",
@@ -216,5 +253,68 @@ await assert.rejects(
   /exceeded maxPages=1/,
   "max-page exhaustion must fail closed instead of returning a truncated source snapshot",
 );
+
+
+// --- 取り下げ(削除)行の扱い ---
+// 実データ 2026-09-08 の Ｇ－ＳＡＡＦＨＤ 行で、1行の取り下げによりその日の
+// 全開示(131件)が失われていた。取り下げと確認できた行だけを明示的に除外する。
+{
+  const withdrawnOut: Array<{ sourceCode: string; companyName: string; title: string; historyText: string }> = [];
+  const rows = parseTdnetListHtml(
+    page([
+      row({ time: "15:30", code: "81360", name: "サンリオ", title: "通常開示", href: "140120260904000001.pdf" }),
+      withdrawnRow({ time: "15:30", code: "14470", name: "取り下げ社", title: "取り下げられた開示" }),
+    ]),
+    DATE,
+    withdrawnOut,
+  );
+  assert.equal(rows.length, 1, "取り下げ行を除いた残りは取得できる");
+  assert.equal(rows[0].sourceCode, "81360");
+  assert.deepEqual(withdrawnOut, [
+    {
+      sourceCode: "14470",
+      companyName: "取り下げ社",
+      title: "取り下げられた開示",
+      historyText: "2026/09/05 08:35 削除",
+    },
+  ], "取り下げは silent drop せず内容ごと記録する");
+}
+
+// 履歴欄の削除表記だけでも取り下げと判定する（class 名の変更に耐える）
+{
+  const withdrawnOut: Array<{ sourceCode: string }> = [];
+  const rows = parseTdnetListHtml(
+    page([withdrawnRow({ time: "15:30", code: "14470", name: "取り下げ社", title: "取り下げ", marker: "history_only" })]),
+    DATE,
+    withdrawnOut as never[],
+  );
+  assert.equal(rows.length, 0);
+  assert.equal(withdrawnOut.length, 1, "履歴欄の削除表記でも取り下げと判定する");
+}
+
+// 取り下げマーカーが無いリンクなし行は、従来どおり fail closed のまま
+assert.throws(
+  () => parseTdnetListHtml(page([linklessUnknownRow()]), DATE),
+  /TDnet row has no disclosure document link/,
+  "未知の構造まで黙って落としてはいけない",
+);
+
+// 全行が取り下げのページを「構造未認識」と取り違えない
+{
+  const allWithdrawn = page([
+    withdrawnRow({ time: "15:30", code: "14470", name: "取り下げ社A", title: "取り下げA" }),
+    withdrawnRow({ time: "15:31", code: "14480", name: "取り下げ社B", title: "取り下げB" }),
+  ]);
+  const fetchAllWithdrawn = async (url: string | URL): Promise<Response> =>
+    String(url) === buildTdnetListUrl(DATE, 1)
+      ? new Response(allWithdrawn, { status: 200 })
+      : new Response("", { status: 404 });
+  const snapshot = await fetchTdnetDisclosureSnapshot({
+    observationDate: DATE,
+    fetchImpl: fetchAllWithdrawn as typeof fetch,
+  });
+  assert.equal(snapshot.disclosures.length, 0);
+  assert.equal(snapshot.withdrawn.length, 2, "全行取り下げでも例外にせず件数を返す");
+}
 
 console.log("tdnet-public-viewer: ok");

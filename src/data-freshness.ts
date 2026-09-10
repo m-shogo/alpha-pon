@@ -13,6 +13,9 @@ export type FreshnessResult = {
   reason: string;
 };
 
+/** ファイルシステムのタイムスタンプ精度と時刻同期のゆらぎを吸収する許容幅。 */
+const FUTURE_TOLERANCE_MS = 2_000;
+
 function jstDate(value: Date): string {
   return new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Asia/Tokyo",
@@ -78,7 +81,12 @@ export function freshnessOf(path: string, label = path): FreshnessResult {
   const updatedAt = stat.mtime;
   const updatedDateJst = jstDate(updatedAt);
   const today = todayJst();
-  if (updatedAt.getTime() > Date.now()) {
+  // ファイルシステムのタイムスタンプ精度により、書き込み直後の mtime が
+  // Date.now() より僅かに未来になる。実測では 200 回中 103 回、1ms 先行した
+  // (mtimeMs が小数を持つため)。許容ゼロだと、たった今書いた成果物を
+  // 「更新時刻が未来」として本日未更新に落としてしまう。
+  // 捏造された未来日時は分〜時間単位なので、2 秒の許容で取りこぼさない。
+  if (updatedAt.getTime() > Date.now() + FUTURE_TOLERANCE_MS) {
     return {
       path,
       label,

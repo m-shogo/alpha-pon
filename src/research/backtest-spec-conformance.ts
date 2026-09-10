@@ -83,6 +83,21 @@ export function assertBacktestSpecConformance(spec: BacktestSpec): void {
     throw new Error("backtest spec.liquidity.participationLimitPct must be > 0 and <= 100");
   }
   assertOptionalFiniteAtLeast(spec.liquidity.minAdtvJpy, 0, "backtest spec.liquidity.minAdtvJpy");
+  if (spec.liquidity.lotSize !== undefined) {
+    if (!Number.isSafeInteger(spec.liquidity.lotSize) || spec.liquidity.lotSize < 1) {
+      throw new Error("backtest spec.liquidity.lotSize must be a positive safe integer");
+    }
+  }
+
+  // notionalJpy が無いと participationPct が算出できず、
+  // 宣言した参加率上限も market impact も黙って無効になる。
+  // 「宣言したのに効かない」状態を許すとコスト過小評価に直結するため fail closed にする。
+  if (spec.notionalJpy === undefined) {
+    throw new Error(
+      "backtest spec.notionalJpy is required: without it the participation limit never binds "
+      + "and market impact is silently zero",
+    );
+  }
 
   if (spec.benchmark !== undefined && typeof spec.benchmark !== "string") {
     throw new Error("backtest spec.benchmark must be a string when provided");

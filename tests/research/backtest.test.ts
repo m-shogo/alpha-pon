@@ -29,11 +29,178 @@ const BASE_SPEC: BacktestSpec = {
   id: "test-spec",
   edgeId: "test-edge",
   side: "long",
+  // notionalJpy は必須。無いと参加率上限も market impact も無効になる。
+  notionalJpy: 1_000_000,
   entry: { mode: "next_open" },
   exit: { mode: "holding_period", holdingPeriodDays: 2 },
   costs: { commissionBps: 2, spreadBps: 8, slippageBps: 5 },
   liquidity: { participationLimitPct: 5 },
 };
+
+
+function testStopFillsAtGappedOpenNotAtStopLevel() {
+  // 寄付がストップ水準を突き抜けた場合、約定するのは寄値。
+  // ストップ水準で約定したことにすると損失を過小評価し、
+  // ストップが無料の保険に見えてしまう。過剰反応戦略はギャップが本体なので影響が大きい。
+  const gapThrough: PriceSeries = {
+    code: "9101",
+    bars: [
+      { date: "2024-01-04", open: 1000, high: 1010, low: 990, close: 1000, volume: 1_000_000 },
+      { date: "2024-01-05", open: 1000, high: 1010, low: 990, close: 1000, volume: 1_000_000 },
+      { date: "2024-01-09", open: 600, high: 610, low: 580, close: 600, volume: 1_000_000 },
+      { date: "2024-01-10", open: 600, high: 610, low: 580, close: 600, volume: 1_000_000 },
+      { date: "2024-01-11", open: 600, high: 610, low: 580, close: 600, volume: 1_000_000 },
+    ],
+  };
+  const spec: BacktestSpec = {
+    ...BASE_SPEC,
+    id: "stop-gap-spec",
+    exit: { mode: "stop_or_period", holdingPeriodDays: 3, stopLossBps: 800 },
+    costs: { commissionBps: 0, spreadBps: 0, slippageBps: 0 },
+  };
+  const report = runBacktest(
+    spec,
+    [{ id: "sig-gap", code: "9101", observedAt: "2024-01-04T15:30:00+09:00" }],
+    new Map([["9101", gapThrough]]),
+  );
+  const [trade] = report.trades;
+  assert.equal(trade.stopped, true);
+  assert.equal(trade.exitPrice, 600, "寄値で約定する");
+  assert.equal(trade.grossReturnBps, -4000, "ストップ水準の -800bps ではない");
+}
+
+function testStopFillsAtStopLevelWhenReachedIntraday() {
+  // 寄付がストップ上で、日中に到達した場合は従来どおりストップ水準で約定する。
+  const intraday: PriceSeries = {
+    code: "9102",
+    bars: [
+      { date: "2024-01-04", open: 1000, high: 1010, low: 990, close: 1000, volume: 1_000_000 },
+      { date: "2024-01-05", open: 1000, high: 1010, low: 990, close: 1000, volume: 1_000_000 },
+      { date: "2024-01-09", open: 995, high: 1000, low: 900, close: 930, volume: 1_000_000 },
+      { date: "2024-01-10", open: 930, high: 940, low: 920, close: 930, volume: 1_000_000 },
+      { date: "2024-01-11", open: 930, high: 940, low: 920, close: 930, volume: 1_000_000 },
+    ],
+  };
+  const spec: BacktestSpec = {
+    ...BASE_SPEC,
+    id: "stop-intraday-spec",
+    exit: { mode: "stop_or_period", holdingPeriodDays: 3, stopLossBps: 800 },
+    costs: { commissionBps: 0, spreadBps: 0, slippageBps: 0 },
+  };
+  const report = runBacktest(
+    spec,
+    [{ id: "sig-intraday", code: "9102", observedAt: "2024-01-04T15:30:00+09:00" }],
+    new Map([["9102", intraday]]),
+  );
+  const [trade] = report.trades;
+  assert.equal(trade.stopped, true);
+  assert.equal(trade.exitPrice, 920, "日中到達はストップ水準で約定");
+  assert.equal(trade.grossReturnBps, -800);
+}
+
+function testShortStopFillsAtGappedOpen() {
+  const gapUp: PriceSeries = {
+    code: "9103",
+    bars: [
+      { date: "2024-01-04", open: 1000, high: 1010, low: 990, close: 1000, volume: 1_000_000 },
+      { date: "2024-01-05", open: 1000, high: 1010, low: 990, close: 1000, volume: 1_000_000 },
+      { date: "2024-01-09", open: 1500, high: 1520, low: 1490, close: 1500, volume: 1_000_000 },
+      { date: "2024-01-10", open: 1500, high: 1520, low: 1490, close: 1500, volume: 1_000_000 },
+      { date: "2024-01-11", open: 1500, high: 1520, low: 1490, close: 1500, volume: 1_000_000 },
+    ],
+  };
+  const spec: BacktestSpec = {
+    ...BASE_SPEC,
+    id: "stop-short-spec",
+    side: "short",
+    exit: { mode: "stop_or_period", holdingPeriodDays: 3, stopLossBps: 800 },
+    costs: { commissionBps: 0, spreadBps: 0, slippageBps: 0 },
+  };
+  const report = runBacktest(
+    spec,
+    [{ id: "sig-short", code: "9103", observedAt: "2024-01-04T15:30:00+09:00" }],
+    new Map([["9103", gapUp]]),
+  );
+  const [trade] = report.trades;
+  assert.equal(trade.exitPrice, 1500, "ショートも寄値で約定する");
+  assert.equal(trade.grossReturnBps, -5000);
+}
+
+
+function testMinimumLotConstraint() {
+  // 単元株(既定100株)に丸める。1単元も買えない資金では取引が成立しない。
+  // 5000円の株は1単元50万円。小口座では分散できないという実態を反映する。
+  const flat = (price: number): PriceSeries => ({
+    code: "9201",
+    bars: ["2024-01-04", "2024-01-05", "2024-01-09", "2024-01-10", "2024-01-11"].map((date) => ({
+      date, open: price, high: price + 5, low: price - 5, close: price, volume: 5_000_000,
+    })),
+  });
+  const spec = (notionalJpy: number): BacktestSpec => ({
+    ...BASE_SPEC,
+    id: "lot-size-spec",
+    notionalJpy,
+    exit: { mode: "holding_period", holdingPeriodDays: 2 },
+    liquidity: { participationLimitPct: 50 },
+  });
+  const signals = [{ id: "sig-lot", code: "9201", observedAt: "2024-01-04T15:30:00+09:00" }];
+
+  const tooSmall = runBacktest(spec(300_000), signals, new Map([["9201", flat(5000)]]));
+  assert.equal(tooSmall.trades[0].skipReason, "below_minimum_lot", "1単元50万円を30万円では買えない");
+
+  const oneLot = runBacktest(spec(600_000), signals, new Map([["9201", flat(5000)]]));
+  assert.equal(oneLot.trades[0].lots, 1);
+  assert.equal(oneLot.trades[0].notionalJpy, 500_000, "端数は切り捨て。60万円ではなく50万円が実約定");
+
+  const threeLots = runBacktest(spec(300_000), signals, new Map([["9201", flat(1000)]]));
+  assert.equal(threeLots.trades[0].lots, 3);
+  assert.equal(threeLots.trades[0].notionalJpy, 300_000);
+}
+
+function testParticipationUsesRoundedNotional() {
+  // 参加率は申告額ではなく、実際に建てられる額で測る。
+  const thin: PriceSeries = {
+    code: "9202",
+    bars: ["2024-01-04", "2024-01-05", "2024-01-09", "2024-01-10"].map((date) => ({
+      date, open: 1000, high: 1005, low: 995, close: 1000, volume: 1_000,
+    })),
+  };
+  const spec: BacktestSpec = {
+    ...BASE_SPEC,
+    id: "lot-participation-spec",
+    notionalJpy: 900_000,
+    exit: { mode: "holding_period", holdingPeriodDays: 2 },
+    liquidity: { participationLimitPct: 5 },
+  };
+  const report = runBacktest(
+    spec,
+    [{ id: "sig-part", code: "9202", observedAt: "2024-01-04T15:30:00+09:00" }],
+    new Map([["9202", thin]]),
+  );
+  assert.equal(report.trades[0].skipReason, "liquidity_participation_exceeded", "日商100万円に90万円は入らない");
+}
+
+function testCustomLotSize() {
+  const flat: PriceSeries = {
+    code: "9203",
+    bars: ["2024-01-04", "2024-01-05", "2024-01-09", "2024-01-10"].map((date) => ({
+      date, open: 1000, high: 1005, low: 995, close: 1000, volume: 5_000_000,
+    })),
+  };
+  const spec: BacktestSpec = {
+    ...BASE_SPEC,
+    id: "lot-custom-spec",
+    notionalJpy: 50_000,
+    exit: { mode: "holding_period", holdingPeriodDays: 2 },
+    liquidity: { participationLimitPct: 50, lotSize: 1 },
+  };
+  const report = runBacktest(
+    spec,
+    [{ id: "sig-custom", code: "9203", observedAt: "2024-01-04T15:30:00+09:00" }],
+    new Map([["9203", flat]]),
+  );
+  assert.equal(report.trades[0].lots, 50, "lotSize=1 なら1株単位で建てられる");
+}
 
 function testCostsCountBothLegs() {
   const costs = computeCosts({ commissionBps: 2, spreadBps: 8, slippageBps: 5 }, {
@@ -236,6 +403,7 @@ function testSpecConformanceFailsClosed() {
 
   expectSpecRejected((spec) => { spec.entry.lagDays = -1; }, /lagDays must be a non-negative safe integer/);
   expectSpecRejected((spec) => { spec.entry.lagDays = 1.5; }, /lagDays must be a non-negative safe integer/);
+  expectSpecRejected((spec) => { delete (spec as { notionalJpy?: number }).notionalJpy; }, /notionalJpy is required/);
   expectSpecRejected((spec) => { spec.notionalJpy = -1; }, /notionalJpy/);
   expectSpecRejected((spec) => { spec.notionalJpy = Number.NaN; }, /notionalJpy/);
   expectSpecRejected((spec) => { spec.costs.commissionBps = Number.NaN; }, /commissionBps/);
@@ -317,6 +485,12 @@ function testFixtureBundleIsReproducible() {
   console.log("research/backtest: フィクスチャの再現性 OK");
 }
 
+testStopFillsAtGappedOpenNotAtStopLevel();
+testStopFillsAtStopLevelWhenReachedIntraday();
+testShortStopFillsAtGappedOpen();
+testMinimumLotConstraint();
+testParticipationUsesRoundedNotional();
+testCustomLotSize();
 testCostsCountBothLegs();
 testBorrowCostAppliesToShortOnly();
 testNetAlphaSubtractsBenchmarkAndCosts();

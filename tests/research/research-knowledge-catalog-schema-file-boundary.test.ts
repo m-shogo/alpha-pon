@@ -3,6 +3,7 @@ import {
   linkSync,
   mkdirSync,
   mkdtempSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -10,8 +11,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { readResearchKnowledgeCatalogRepository } from "../../src/research/research-knowledge-catalog-repository.js";
 
+// macOS の tmpdir() は /var/folders/... を返すが /var は /private/var への symlink。
+// Catalog validator は祖先 symlink を正しく拒否するため、テスト側で実体パスへ解決する。
+// validator を緩めるのではなく、テストが正規のパスを使う。
+function canonicalTmpdir(): string {
+  return realpathSync(tmpdir());
+}
+
+
 {
-  const workspace = mkdtempSync(join(tmpdir(), "alpha-pon-catalog-schema-hardlink-"));
+  const workspace = mkdtempSync(join(canonicalTmpdir(), "alpha-pon-catalog-schema-hardlink-"));
   const previousCwd = process.cwd();
   try {
     const catalogRoot = join(workspace, "catalog");
