@@ -110,7 +110,8 @@
     "check:all": "pnpm check && pnpm pro:all && pnpm ui:data && pnpm web:typecheck && pnpm --filter @alpha-pon/web lint && pnpm web:build",
     "generate:company-rules": "node --env-file=.env --import tsx/esm src/generate-company-rules.ts",
     "ui:scan:stocks": "pnpm scan:universe && pnpm generate:company-rules && pnpm pro:all && pnpm review:hypotheses && pnpm ui:data",
-    "ingest:prices": "node --env-file-if-exists=.env --import tsx/esm src/research/cli/ingest-jquants-daily.ts"
+    "ingest:prices": "node --env-file-if-exists=.env --import tsx/esm src/research/cli/ingest-jquants-daily.ts",
+    "scan:moves": "node --max-old-space-size=8192 --env-file-if-exists=.env --import tsx/esm src/research/cli/scan-abnormal-moves.ts"
   },
   "dependencies": { "js-yaml": "^4.1.0" },
   "devDependencies": { "@types/js-yaml": "^4.0.9", "@types/node": "^22.0.0", "tsx": "^4.19.0", "typescript": "^5.7.0" }
