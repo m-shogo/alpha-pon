@@ -7,6 +7,7 @@ import {
   validatePriceRecord,
   withPriceRecordHash,
 } from "../../src/research/price-store.js";
+import { validatePriceRecordHardening } from "../../src/research/price-store-hardening.js";
 import type { JsonSchema } from "../../src/research/schema.js";
 
 const schema = JSON.parse(
@@ -46,13 +47,29 @@ function recordFor(source: DailyQuote) {
 }
 
 {
+  // 値が付かなかった日。2026-09-11 に実 API で計測したところ、非取引行は
+  // 全て O/H/L/C/Vo が null（1日あたり ~167件、3.4-4.1%）だった。
+  // 以前はこれを missing/unknown としていたが、その組合せは
+  // validatePriceRecordHardening が拒否する。
   const record = recordFor({ ...quote, Open: 0, High: 0, Low: 0, Close: 0, Volume: 0 });
   const issues = validatePriceRecord(record, schema, new Date("2026-08-07T03:00:00.000Z"));
   assert.deepEqual(issues.filter((issue) => issue.severity === "error"), []);
-  assert.equal(record.status, "missing");
-  assert.equal(record.missingReason, "unknown");
+  assert.equal(record.status, "no_trade");
+  assert.equal(record.missingReason, "no_execution");
   assert.equal(record.ohlcv, undefined);
-  console.log("jquants-free-store-conformance: unknown missing row passes fail-closed schema OK");
+  assert.deepEqual(validatePriceRecordHardening(record), [],
+    "provider の出力は hardening も通ること");
+  console.log("jquants-free-store-conformance: no-bar row passes schema and hardening OK");
+}
+
+{
+  // 値はあるが整合しない行（高値が安値を下回る）。provider が使えないものを
+  // 返した、という別種の事実。取引が無かったのとは違う。
+  const record = recordFor({ ...quote, High: 10, Low: 900 });
+  assert.equal(record.status, "missing");
+  assert.equal(record.missingReason, "provider_gap");
+  assert.deepEqual(validatePriceRecordHardening(record), []);
+  console.log("jquants-free-store-conformance: inconsistent row is provider_gap, not no_trade OK");
 }
 
 {

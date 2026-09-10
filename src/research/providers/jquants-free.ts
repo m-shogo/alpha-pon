@@ -159,9 +159,25 @@ function classifyQuote(quote: DailyQuote): {
     && quote.Low <= Math.min(quote.Open, quote.Close, quote.High);
 
   if (!traded) {
-    // V2 normalization currently converts null OHLC fields to zero. Until real
-    // Free-plan missing/suspension cases are measured, do not invent a cause.
-    return { status: "missing", missingReason: "unknown" };
+    // Measured 2026-09-11 against the live API: every non-traded row came back
+    // with O/H/L/C/Vo all null, at a steady 3.4-4.1% of the ~4,400 codes per
+    // day. `normalizeV2Quote` folds those nulls to zero, so an all-zero bar is
+    // how "the exchange published no bar for this listed security" reaches us.
+    //
+    // `no_execution` states what is certain (nothing traded) without inventing
+    // a cause. A halt also produces no execution, so this does not deny one;
+    // the API cannot distinguish them here, and `exchange_suspension` would be
+    // a claim we cannot support.
+    //
+    // Before this was measured the code returned `missing`/`unknown`, a pairing
+    // `validatePriceRecordHardening` rejects outright.
+    const allZero = quote.Open === 0 && quote.High === 0 && quote.Low === 0 && quote.Close === 0;
+    if (allZero && quote.Volume === 0) {
+      return { status: "no_trade", missingReason: "no_execution" };
+    }
+    // Prices present but internally inconsistent (High below Low, negative
+    // volume, ...). The provider answered with something unusable.
+    return { status: "missing", missingReason: "provider_gap" };
   }
 
   return {
