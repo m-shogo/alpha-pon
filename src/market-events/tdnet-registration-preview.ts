@@ -38,6 +38,12 @@ function requiredText(value: string, fieldName: string): string {
   return normalized;
 }
 
+function assertFutureEventStatus(value: string): asserts value is TdnetFutureEventStatus {
+  if (value !== "SCHEDULED" && value !== "TENTATIVE") {
+    throw new Error(`TDnet registration preview requires a future event status, got ${value}`);
+  }
+}
+
 function assertOfficialTdnetSourceUrl(value: string): void {
   let parsed: URL;
   try {
@@ -136,6 +142,7 @@ export function prepareTdnetRegistrationPreview(
 
   const eventTitle = requiredText(metadata.eventTitle, "eventTitle");
   const whyItMatters = requiredText(metadata.whyItMatters, "whyItMatters");
+  assertFutureEventStatus(metadata.status);
   const staleAfter = metadata.staleAfter ?? null;
   if (
     staleAfter !== null
