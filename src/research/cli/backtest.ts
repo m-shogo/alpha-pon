@@ -4,6 +4,11 @@
 //   pnpm research:backtest --bundle=... --out=research/reports/xxx.generated.json
 //   pnpm research:backtest --bundle=... --no-trial-ledger   （fixture / CI 用）
 //
+//   実データで走らせる（価格とシグナルを bundle に埋めず、取り込み済み
+//   ストアから読み、bundle の detector で候補を作る）:
+//   pnpm research:backtest --bundle=... --from-store --from=... --to=... \
+//     --min-turnover-jpy=500000000 --intent="..."
+//
 // bundle は { spec, signals, prices, benchmark? } を1ファイルにまとめたもの。
 // 価格を外部から取りに行かないため、実行は決定論的で CI でも安全に回せる。
 //
@@ -12,6 +17,7 @@
 // 閾値を変えて再実行すれば試行回数が増え、要求 t 値が自動的に上がる。
 
 import { existsSync, readFileSync } from "fs";
+import { resolve } from "node:path";
 import { isCanonicalReadOnlyJsonFile } from "../../read-only-json-file.js";
 import { buildUniquePriceSeriesMap } from "../backtest-bundle-input.js";
 import { runBacktest, type BacktestSignal, type BacktestSpec, type PriceSeries } from "../backtest.js";
@@ -24,15 +30,155 @@ import {
   recordTrialOutcome,
   registerTrial,
 } from "../trials-ledger.js";
+import {
+  detectAbnormalMoveEvents,
+  type AbnormalMoveParams,
+} from "../signals/abnormal-move-events.js";
+import {
+  JQUANTS_ADJUSTMENT_LEDGER_NAME,
+  parseAdjustmentLedger,
+  toCorporateActionDates,
+} from "../providers/jquants-adjustment-events.js";
+import {
+  loadBacktestSeriesAsOf,
+  resolveStoreRoot,
+} from "../providers/jquants-daily-store.js";
+import {
+  DEFAULT_UNIVERSE_BENCHMARK_PARAMS,
+  buildUniverseBenchmark,
+} from "../signals/universe-benchmark.js";
 import { fail, parseArgs } from "./common.js";
 
 interface Bundle {
   spec: BacktestSpec;
-  signals: BacktestSignal[];
-  prices: PriceSeries[];
+  /** `--from-store` を使うときは省略し、`detector` から生成する。 */
+  signals?: BacktestSignal[];
+  /** `--from-store` を使うときは省略する。 */
+  prices?: PriceSeries[];
   benchmark?: PriceSeries;
+  /**
+   * `--from-store` のとき、シグナルをここから作る。
+   *
+   * シグナルを別ファイルに書き出して受け渡す形にすると、検出パラメータを
+   * 変えたときに古いシグナルで backtest を回せてしまう。同じ bundle に
+   * 置いて同じ実行で作る。
+   */
+  detector?: {
+    kind: "abnormal_move";
+    params: Omit<AbnormalMoveParams, "knownEventDates" | "corporateActionDates">
+      & { knownEventDates?: Record<string, string[]> };
+  };
   /** これまでに試した仮説の数。False Discovery Guard の閾値に使う。 */
   trials?: number;
+}
+
+
+function numberOption(options: Map<string, string>, name: string, fallback: number): number {
+  const raw = options.get(name);
+  if (raw === undefined) return fallback;
+  const value = Number(raw);
+  if (!Number.isFinite(value)) fail(`--${name} は数値で指定してください: ${raw}`);
+  return value;
+}
+
+/**
+ * 取り込み済みの価格ストアからシグナルと価格を作る。
+ *
+ * edge-study の `--from-store` と同じ材料を同じ作り方で用意する。
+ * 片方だけ流動性の足切りや benchmark の作り方が違うと、
+ * 「イベントスタディでは出たのに backtest では出ない」の原因が
+ * 分からなくなる。
+ */
+function loadFromStore(
+  bundle: Bundle,
+  options: Map<string, string>,
+): { signals: BacktestSignal[]; prices: PriceSeries[]; benchmark: PriceSeries } {
+  if (bundle.detector?.kind !== "abnormal_move") {
+    fail("--from-store には bundle.detector.kind = \"abnormal_move\" が必要です");
+  }
+  const root = resolveStoreRoot();
+  const ledgerPath = resolve(root, JQUANTS_ADJUSTMENT_LEDGER_NAME);
+  if (!existsSync(ledgerPath)) {
+    fail(
+      `権利落ち台帳がありません: ${ledgerPath}\n`
+      + "先に pnpm ingest:prices を実行してください。"
+      + "台帳なしで走らせると株式分割を暴落として検出します",
+    );
+  }
+  const corporateActionDates = toCorporateActionDates(
+    parseAdjustmentLedger(readFileSync(ledgerPath, "utf-8")),
+  );
+
+  const from = options.get("from");
+  const to = options.get("to");
+  const minTurnoverJpy = numberOption(options, "min-turnover-jpy", 0);
+
+  const loaded = loadBacktestSeriesAsOf({
+    asOf: new Date().toISOString(),
+    root,
+    ...(from ? { from } : {}),
+    ...(to ? { to } : {}),
+  });
+  if (loaded.series.length === 0) {
+    fail("価格ストアに使える系列がありません。先に pnpm ingest:prices を実行してください");
+  }
+
+  const universe = buildUniverseBenchmark(loaded.series, {
+    ...DEFAULT_UNIVERSE_BENCHMARK_PARAMS,
+    ...(minTurnoverJpy > 0 ? { minAverageTurnoverJpy: minTurnoverJpy } : {}),
+  });
+  if (universe.series.bars.length === 0) {
+    fail("ユニバース指数を作れませんでした。構成銘柄が閾値に届いていません");
+  }
+
+  const prices = minTurnoverJpy > 0
+    ? loaded.series.filter((series) => {
+        const window = series.bars.slice(-DEFAULT_UNIVERSE_BENCHMARK_PARAMS.turnoverLookbackBars);
+        if (window.length === 0) return false;
+        const average = window.reduce((sum, bar) => sum + bar.close * bar.volume, 0) / window.length;
+        return average >= minTurnoverJpy;
+      })
+    : loaded.series;
+
+  const detected = detectAbnormalMoveEvents(prices, universe.series, {
+    ...bundle.detector.params,
+    knownEventDates: new Map(
+      Object.entries(bundle.detector.params.knownEventDates ?? {})
+        .map(([code, dates]) => [code, new Set(dates)]),
+    ),
+    corporateActionDates,
+  });
+
+  const rejectSummary = Object.entries(detected.rejectedCounts)
+    .filter(([, count]) => count > 0)
+    .sort((left, right) => right[1] - left[1])
+    .map(([reason, count]) => `${reason}=${count}`)
+    .join(" ");
+
+  console.log(
+    `ストア: ${prices.length}銘柄`
+    + `${minTurnoverJpy > 0 ? `（全${loaded.series.length}中）` : ""}`
+    + ` / ${loaded.datesScanned}営業日 / benchmark ユニバース等加重 ${universe.series.bars.length}本`,
+  );
+  console.log(`検出  : 評価 ${detected.evaluatedCount} → シグナル ${detected.candidates.length}`);
+  if (rejectSummary) console.log(`却下  : ${rejectSummary}`);
+  const unavailable = detected.rejectedCounts.market_model_unavailable;
+  if (unavailable > detected.evaluatedCount * 0.5) {
+    console.log(
+      `⚠ 評価の ${(unavailable / detected.evaluatedCount * 100).toFixed(0)}% で市場モデルを推定できていません。`
+      + "シグナルの少なさを結論にしないでください",
+    );
+  }
+  console.log("");
+
+  // observedAt は反応日の引け。entry.mode = next_open なら翌営業日の始値で建つ。
+  const signals: BacktestSignal[] = detected.candidates.map((candidate) => ({
+    id: candidate.candidateId,
+    code: candidate.code,
+    observedAt: candidate.observedAt,
+  }));
+
+  return { signals, prices, benchmark: universe.series };
 }
 
 function bps(value: number): string {
@@ -65,8 +211,19 @@ function main(): void {
   const errors = validate(bundle.spec, loadSchema("backtest"));
   if (errors.length > 0) fail(`spec がスキーマに適合しません:\n${formatErrors(errors)}`);
 
-  const prices = buildUniquePriceSeriesMap(bundle.prices);
-  const report = runBacktest(bundle.spec, bundle.signals, prices, bundle.benchmark);
+  const fromStore = flags.has("from-store") ? loadFromStore(bundle, options) : null;
+  const signalList = fromStore ? fromStore.signals : bundle.signals;
+  const priceList = fromStore ? fromStore.prices : bundle.prices;
+  const benchmarkSeries = fromStore ? fromStore.benchmark : bundle.benchmark;
+  if (!signalList || !priceList) {
+    fail("signals / prices がありません。bundle に入れるか --from-store を指定してください");
+  }
+  if (signalList!.length === 0) {
+    fail("シグナルが0件です。backtest を実行できません");
+  }
+
+  const prices = buildUniquePriceSeriesMap(priceList!);
+  const report = runBacktest(bundle.spec, signalList!, prices, benchmarkSeries);
   const useLedger = !flags.has("no-trial-ledger");
   let trials = bundle.trials ?? 1;
   let trialId: string | null = null;
@@ -84,10 +241,12 @@ function main(): void {
         specId: bundle.spec.id,
         params: experimentParams(bundle.spec),
         datasetFingerprint: computeDatasetFingerprint({
-          signalIds: bundle.signals.map((signal) => signal.id),
-          priceCodes: bundle.prices.map((series) => series.code),
-          benchmarkCode: bundle.benchmark?.code,
-          asOf: bundle.signals.map((signal) => signal.observedAt).sort().at(-1) ?? "",
+          // 走らせた実際の母集団で指紋を取る。bundle 側を見ると
+          // --from-store のとき「シグナルが無い」ことになって指紋が縮退する。
+          signalIds: signalList!.map((signal) => signal.id),
+          priceCodes: priceList!.map((series) => series.code),
+          benchmarkCode: benchmarkSeries?.code,
+          asOf: signalList!.map((signal) => signal.observedAt).sort().at(-1) ?? "",
         }),
         intent: intent!,
       },
