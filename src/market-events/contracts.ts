@@ -234,6 +234,7 @@ function stableId(prefix: string, value: unknown): string {
 }
 
 export function buildEventId(input: MarketEventIdentityInput): string {
+  assertKnownValue(MARKET_EVENT_TYPES, input.eventType, "market event type");
   const issuerCode = input.issuerCode ? normalizeIssuerCode(input.issuerCode) : null;
   const issuerName = normalizeIdentityText(input.issuerName);
   const occurrenceKey = normalizeOccurrenceKey(input.occurrenceKey);
