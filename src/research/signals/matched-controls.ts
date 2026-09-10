@@ -39,6 +39,7 @@ const DEFAULT_TURNOVER_LOOKBACK_BARS = 20;
 export const MATCHED_CONTROL_REJECT_REASONS = [
   "same_code",
   "excluded_code",
+  "excluded_sample",
   "is_treatment",
   "date_out_of_window",
   "explained_by_known_event",
@@ -72,6 +73,13 @@ export interface MatchedControlParams {
   corporateActionDates: ReadonlyMap<string, ReadonlySet<string>>;
   /** 対照から除外する銘柄。 */
   excludedCodes?: ReadonlySet<string>;
+  /**
+   * 対照から除外する (code, date) の集合。キー形式は `code|date`。
+   * 原因が特定できていない下落を対照に混ぜると、
+   * それが実は研究対象の事件だった場合に差が過小評価される。
+   * 銘柄ごとではなく日付単位で外したいときに使う。
+   */
+  excludedSampleKeys?: ReadonlySet<string>;
   /** 対照の売買代金が treatment の何倍までを許すか [min, max]。 */
   turnoverRatioBand?: readonly [number, number];
   implausibleSingleDayMovePct?: number;
@@ -185,6 +193,10 @@ export function buildMatchedControls(
         const key = `${code}|${bar.date}`;
 
         if (treatmentKeys.has(key)) { rejectedCounts.is_treatment += 1; continue; }
+        if (params.excludedSampleKeys?.has(key)) {
+          rejectedCounts.excluded_sample += 1;
+          continue;
+        }
         if (params.knownEventDates.get(code)?.has(bar.date)) {
           rejectedCounts.explained_by_known_event += 1;
           continue;

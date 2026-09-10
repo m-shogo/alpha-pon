@@ -2,6 +2,7 @@
 //
 //   pnpm research:edge-study --bundle=research/fixtures/edge-studies/<name>.json \
 //     --intent="この試行で何を確かめるか"
+//   pnpm research:edge-study --bundle=... --labels=research/event_labels.jsonl
 //   pnpm research:edge-study --bundle=... --no-trial-ledger   （fixture / CI 用）
 //
 // 何をするか:
@@ -40,6 +41,11 @@ import {
   type HoldoutAccessRecord,
   type HoldoutVaultManifest,
 } from "../signals/holdout-partition.js";
+import {
+  readEventLabels,
+  resolveEventLabels,
+  splitCandidatesByLabel,
+} from "../signals/event-labels.js";
 import {
   buildMatchedControls,
   type MatchedControlParams,
@@ -138,7 +144,39 @@ function main(): void {
   // 対照は「同じくらい下げたが treatment ではない (code, date)」。
   // 検出候補すべてを treatment にすると、同程度の下落は全部 treatment 側へ行き、
   // 対照が構造的に作れなくなる。ラベリングで treatment を絞るのが本来の使い方。
-  const requestedTreatmentIds = bundle.treatmentCandidateIds;
+  // ラベル台帳があればそちらを優先する。原因を特定したものだけが treatment。
+  const labelsPath = options.get("labels");
+  let requestedTreatmentIds = bundle.treatmentCandidateIds;
+  // 原因が特定できていない下落は対照にも使わない。
+  // 実は研究対象の事件だった場合、対照へ混ぜると差が過小評価される。
+  const excludedSampleKeys = new Set<string>();
+  if (labelsPath) {
+    if (!existsSync(labelsPath)) fail(`ラベル台帳がありません: ${labelsPath}`);
+    const split = splitCandidatesByLabel(
+      usable.map((one) => one.candidateId),
+      resolveEventLabels(readEventLabels(labelsPath)),
+    );
+    requestedTreatmentIds = split.treatmentCandidateIds;
+    console.log(
+      `   ラベル台帳: treatment ${split.treatmentCandidateIds.length}`
+      + ` / 対照候補 ${split.controlPoolCandidateIds.length}`
+      + ` / 未ラベル ${split.unlabelledCandidateIds.length}`,
+    );
+    const byId = new Map(usable.map((one) => [one.candidateId, one]));
+    for (const candidateId of split.unlabelledCandidateIds) {
+      const candidate = byId.get(candidateId);
+      if (candidate) excludedSampleKeys.add(`${candidate.code}|${candidate.date}`);
+    }
+    if (split.unlabelledCandidateIds.length > 0) {
+      console.log(
+        "   ⚠ 未ラベルの候補は treatment にも対照にも使いません。"
+        + "原因を特定していないものを母集団に混ぜないためです",
+      );
+    }
+    if (split.treatmentCandidateIds.length === 0) {
+      fail("ラベル台帳に treatment に該当する候補がありません。ラベリングを進めてください。");
+    }
+  }
   let treatmentSource = usable;
   if (requestedTreatmentIds && requestedTreatmentIds.length > 0) {
     const wanted = new Set(requestedTreatmentIds);
@@ -149,9 +187,10 @@ function main(): void {
       fail(`treatmentCandidateIds に検出されていない候補が含まれています: ${unknown.join(", ")}`);
     }
     treatmentSource = usable.filter((one) => wanted.has(one.candidateId));
+    const controlPoolCount = usable.length - treatmentSource.length - excludedSampleKeys.size;
     console.log(
       `   treatment を ${treatmentSource.length} 件に限定しました`
-      + `（残り ${usable.length - treatmentSource.length} 件は対照候補になります）`,
+      + `（対照候補 ${controlPoolCount} 件 / 除外 ${excludedSampleKeys.size} 件）`,
     );
   } else {
     console.log(
@@ -173,6 +212,7 @@ function main(): void {
     knownEventDates: toDateMap(knownEventDates),
     corporateActionDates: toDateMap(corporateActionDates),
     ...(excludedCodes ? { excludedCodes: new Set(excludedCodes) } : {}),
+    ...(excludedSampleKeys.size > 0 ? { excludedSampleKeys } : {}),
   });
   console.log(
     `③ 対照群     : ${controls.matches.length} 件`

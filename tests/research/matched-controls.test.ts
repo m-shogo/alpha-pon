@@ -147,6 +147,29 @@ function testExcludedCodesAreSkipped() {
   assert.ok(result.rejectedCounts.excluded_code > 0);
 }
 
+function testExcludedSampleKeysAreSkipped() {
+  // 原因が特定できていない下落を対照に混ぜない。
+  // 実は研究対象の事件だった場合、対照へ入れると差が過小評価される。
+  const result = buildMatchedControls([TREATMENT], pool(), BENCHMARK, params({
+    excludedSampleKeys: new Set([`1111|${EVENT_DATE}`, `2222|${EVENT_DATE}`]),
+    controlsPerTreatment: 1,
+  }));
+  assert.equal(result.matches[0].controlCode, "4444", "除外した (code,date) は対照にしない");
+  assert.ok(result.rejectedCounts.excluded_sample > 0);
+}
+
+function testExcludedSampleKeysAreDateSpecific() {
+  // 銘柄まるごとではなく (code, date) 単位で外せる。
+  const securities = pool();
+  securities.set("1111", series("1111", [1000, 1000, 880, 880, 880]));
+  const result = buildMatchedControls([TREATMENT], securities, BENCHMARK, params({
+    excludedSampleKeys: new Set(["1111|2026-01-05"]),
+    controlsPerTreatment: 1,
+  }));
+  assert.equal(result.matches[0].controlCode, "1111", "別日は対照に使える");
+  assert.equal(result.matches[0].controlDate, EVENT_DATE);
+}
+
 function testUnmatchedTreatmentIsReported() {
   const lonely: TreatmentEvent = { id: "t-x", code: "8136", date: EVENT_DATE, abnormalReturnPct: -30 };
   const result = buildMatchedControls([lonely], pool(), BENCHMARK, params());
@@ -260,6 +283,8 @@ testTreatmentItselfIsNeverAControl();
 testOtherTreatmentsAreNotControls();
 testKnownEventDayIsNotAControl();
 testExcludedCodesAreSkipped();
+testExcludedSampleKeysAreSkipped();
+testExcludedSampleKeysAreDateSpecific();
 testUnmatchedTreatmentIsReported();
 testPartialMatchIsReported();
 testReuseIsControlledByFlag();
