@@ -102,3 +102,9 @@ node --import tsx/esm scripts/verify-tdnet-registration-preview-staleness.ts
 node --import tsx/esm scripts/verify-market-event-source-observation-chronology.ts
 node --import tsx/esm scripts/verify-market-event-ledger-read-boundary.ts
 node --import tsx/esm scripts/verify-source-checkpoint-read-validation.ts
+
+# tests/ 配下を漏れなく実行する。
+# 2026-09-10 の監査で 475本中139本がどのチェーンからも実行されておらず、
+# うち14本が誰にも気づかれずに失敗していた。チェーンへの追記忘れという
+# 失敗様式そのものを無くすため、glob で全部拾う。
+node --import tsx/esm scripts/run-all-tests.ts

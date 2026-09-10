@@ -60,6 +60,7 @@
     "audit:outcomes": "node --import tsx/esm src/outcome-quality-audit-report.ts",
     "ops:check": "pnpm catchup && pnpm daily && pnpm health",
     "ops:double-check": "pnpm catchup && pnpm daily && pnpm health && pnpm catchup && pnpm daily && pnpm health",
+    "test:all": "node --import tsx/esm scripts/run-all-tests.ts",
     "typecheck": "tsc --noEmit",
     "typecheck:tests": "tsc --noEmit -p tsconfig.test.json",
     "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json",

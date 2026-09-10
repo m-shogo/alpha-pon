@@ -1,0 +1,67 @@
+{
+  "$comment": "scripts/run-all-tests.ts が参照する既知失敗リスト。理由を必ず書く。直したらここから削除する（既知失敗が通るとランナーはエラーにする）。2026-09-10 のテスト到達性監査で、475本中139本がどのチェーンからも実行されておらず、うち14本が既に失敗していたため作成した。",
+  "prerequisites": [
+    {
+      "script": "theme:ipo",
+      "reason": "tests/ipo-theme-watch.test.ts は reports/ipo_theme_watch_latest.json を前提にする"
+    }
+  ],
+  "knownFailures": [
+    {
+      "path": "tests/catchup-failure-defer.test.ts",
+      "reason": "2026-09-10 監査で判明。today run failure を無視して past date を無条件 skipped 化している。未調査。"
+    },
+    {
+      "path": "tests/knowledge-review-input.test.ts",
+      "reason": "2026-09-10 監査で判明。malformed 入力に対する期待メッセージが一致しない。未調査。"
+    },
+    {
+      "path": "tests/listing-automation-topix-input.test.ts",
+      "reason": "2026-09-10 監査で判明。non-finite な相対リターンが fail closed になっていない。未調査。"
+    },
+    {
+      "path": "tests/market-event-ledger-revision-instants.test.ts",
+      "reason": "2026-09-10 監査で判明。publishedAt が任意文字列のまま read-only ledger projection に入る。未調査。"
+    },
+    {
+      "path": "tests/market-event-ledger-source-chronology.test.ts",
+      "reason": "2026-09-10 監査で判明。公開前に取得された source を read-only ledger validation が拒否しない。未調査。"
+    },
+    {
+      "path": "tests/market-event-occurrence-key-provenance.test.ts",
+      "reason": "2026-09-10 監査で判明。registration が stable event identity と同じ canonical occurrence key を保存していない。未調査。"
+    },
+    {
+      "path": "tests/market-event-source-chronology.test.ts",
+      "reason": "2026-09-10 監査で判明。公開前に取得された source を拒否しない。未調査。"
+    },
+    {
+      "path": "tests/ops-dashboard-alpha-input.test.ts",
+      "reason": "2026-09-10 監査で判明。ops dashboard の入力検査が falsy。未調査。"
+    },
+    {
+      "path": "tests/readiness-pipeline-failures.test.ts",
+      "reason": "2026-09-10 監査で判明。子プロセス実行が失敗する。未調査。"
+    },
+    {
+      "path": "tests/research/evidence-package-repository-invalid-revision-ledger.test.ts",
+      "reason": "2026-09-10 監査で判明。不正な revision があると有効な head まで消え activeHeadCount が 0 になる。PR #450 追加時は通っていた regression。"
+    },
+    {
+      "path": "tests/source-health-history-input.test.ts",
+      "reason": "2026-09-10 監査で判明。妥当な source-health 行まで除外される（fail closed の過剰適用）。未調査。"
+    },
+    {
+      "path": "tests/source-health-result-row-contract.test.ts",
+      "reason": "2026-09-10 監査で判明。正規の run-daily result 行が invalid 扱いになる。未調査。"
+    },
+    {
+      "path": "tests/source-health-step-row-contract.test.ts",
+      "reason": "2026-09-10 監査で判明。明示 status を持つ well-formed な step 行が invalid 扱いになる。未調査。"
+    },
+    {
+      "path": "tests/world-event-reflection-event-id-dedupe.test.ts",
+      "reason": "2026-09-10 監査で判明。異なる非ASCIIタイトルが同一 world-event identity に衝突する。日本語タイトルで誤マージの恐れ。未調査。"
+    }
+  ]
+}
