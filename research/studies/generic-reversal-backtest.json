@@ -1,0 +1,39 @@
+{
+  "spec": {
+    "schemaVersion": 1,
+    "id": "generic-reversal-jquants-long-d5",
+    "edgeId": "generic-reversal",
+    "side": "long",
+    "notionalJpy": 1000000,
+    "entry": { "mode": "next_open" },
+    "exit": { "mode": "holding_period", "holdingPeriodDays": 5 },
+    "costs": {
+      "commissionBps": 5,
+      "spreadBps": 10,
+      "slippageBps": 8,
+      "marketImpactBpsPerPctAdv": 10,
+      "borrowCostAnnualBps": 0
+    },
+    "liquidity": {
+      "participationLimitPct": 3,
+      "minAdtvJpy": 500000000,
+      "lotSize": 100
+    },
+    "benchmark": "UNIVERSE-EW",
+    "notes": "個別要因の急落後に買って5営業日持つ。ラベル無しで測れる基準線。コストは国内ネット証券の現物を想定した保守寄りの見積り（往復で片道23bps相当）。実際の約定で測り直すこと。"
+  },
+  "detector": {
+    "kind": "abnormal_move",
+    "params": {
+      "abnormalReturnThresholdPct": -10,
+      "knownEventDates": {},
+      "marketModel": {
+        "estimationBars": 120,
+        "gapBars": 5,
+        "minObservations": 60,
+        "maxPriorGapDays": 10
+      },
+      "minAverageTurnoverJpy": 500000000
+    }
+  }
+}
