@@ -35,6 +35,95 @@ const BASE_SPEC: BacktestSpec = {
   liquidity: { participationLimitPct: 5 },
 };
 
+
+function testStopFillsAtGappedOpenNotAtStopLevel() {
+  // 寄付がストップ水準を突き抜けた場合、約定するのは寄値。
+  // ストップ水準で約定したことにすると損失を過小評価し、
+  // ストップが無料の保険に見えてしまう。過剰反応戦略はギャップが本体なので影響が大きい。
+  const gapThrough: PriceSeries = {
+    code: "9101",
+    bars: [
+      { date: "2024-01-04", open: 1000, high: 1010, low: 990, close: 1000, volume: 1_000_000 },
+      { date: "2024-01-05", open: 1000, high: 1010, low: 990, close: 1000, volume: 1_000_000 },
+      { date: "2024-01-09", open: 600, high: 610, low: 580, close: 600, volume: 1_000_000 },
+      { date: "2024-01-10", open: 600, high: 610, low: 580, close: 600, volume: 1_000_000 },
+      { date: "2024-01-11", open: 600, high: 610, low: 580, close: 600, volume: 1_000_000 },
+    ],
+  };
+  const spec: BacktestSpec = {
+    ...BASE_SPEC,
+    id: "stop-gap-spec",
+    exit: { mode: "stop_or_period", holdingPeriodDays: 3, stopLossBps: 800 },
+    costs: { commissionBps: 0, spreadBps: 0, slippageBps: 0 },
+  };
+  const report = runBacktest(
+    spec,
+    [{ id: "sig-gap", code: "9101", observedAt: "2024-01-04T15:30:00+09:00" }],
+    new Map([["9101", gapThrough]]),
+  );
+  const [trade] = report.trades;
+  assert.equal(trade.stopped, true);
+  assert.equal(trade.exitPrice, 600, "寄値で約定する");
+  assert.equal(trade.grossReturnBps, -4000, "ストップ水準の -800bps ではない");
+}
+
+function testStopFillsAtStopLevelWhenReachedIntraday() {
+  // 寄付がストップ上で、日中に到達した場合は従来どおりストップ水準で約定する。
+  const intraday: PriceSeries = {
+    code: "9102",
+    bars: [
+      { date: "2024-01-04", open: 1000, high: 1010, low: 990, close: 1000, volume: 1_000_000 },
+      { date: "2024-01-05", open: 1000, high: 1010, low: 990, close: 1000, volume: 1_000_000 },
+      { date: "2024-01-09", open: 995, high: 1000, low: 900, close: 930, volume: 1_000_000 },
+      { date: "2024-01-10", open: 930, high: 940, low: 920, close: 930, volume: 1_000_000 },
+      { date: "2024-01-11", open: 930, high: 940, low: 920, close: 930, volume: 1_000_000 },
+    ],
+  };
+  const spec: BacktestSpec = {
+    ...BASE_SPEC,
+    id: "stop-intraday-spec",
+    exit: { mode: "stop_or_period", holdingPeriodDays: 3, stopLossBps: 800 },
+    costs: { commissionBps: 0, spreadBps: 0, slippageBps: 0 },
+  };
+  const report = runBacktest(
+    spec,
+    [{ id: "sig-intraday", code: "9102", observedAt: "2024-01-04T15:30:00+09:00" }],
+    new Map([["9102", intraday]]),
+  );
+  const [trade] = report.trades;
+  assert.equal(trade.stopped, true);
+  assert.equal(trade.exitPrice, 920, "日中到達はストップ水準で約定");
+  assert.equal(trade.grossReturnBps, -800);
+}
+
+function testShortStopFillsAtGappedOpen() {
+  const gapUp: PriceSeries = {
+    code: "9103",
+    bars: [
+      { date: "2024-01-04", open: 1000, high: 1010, low: 990, close: 1000, volume: 1_000_000 },
+      { date: "2024-01-05", open: 1000, high: 1010, low: 990, close: 1000, volume: 1_000_000 },
+      { date: "2024-01-09", open: 1500, high: 1520, low: 1490, close: 1500, volume: 1_000_000 },
+      { date: "2024-01-10", open: 1500, high: 1520, low: 1490, close: 1500, volume: 1_000_000 },
+      { date: "2024-01-11", open: 1500, high: 1520, low: 1490, close: 1500, volume: 1_000_000 },
+    ],
+  };
+  const spec: BacktestSpec = {
+    ...BASE_SPEC,
+    id: "stop-short-spec",
+    side: "short",
+    exit: { mode: "stop_or_period", holdingPeriodDays: 3, stopLossBps: 800 },
+    costs: { commissionBps: 0, spreadBps: 0, slippageBps: 0 },
+  };
+  const report = runBacktest(
+    spec,
+    [{ id: "sig-short", code: "9103", observedAt: "2024-01-04T15:30:00+09:00" }],
+    new Map([["9103", gapUp]]),
+  );
+  const [trade] = report.trades;
+  assert.equal(trade.exitPrice, 1500, "ショートも寄値で約定する");
+  assert.equal(trade.grossReturnBps, -5000);
+}
+
 function testCostsCountBothLegs() {
   const costs = computeCosts({ commissionBps: 2, spreadBps: 8, slippageBps: 5 }, {
     side: "long",
@@ -317,6 +406,9 @@ function testFixtureBundleIsReproducible() {
   console.log("research/backtest: フィクスチャの再現性 OK");
 }
 
+testStopFillsAtGappedOpenNotAtStopLevel();
+testStopFillsAtStopLevelWhenReachedIntraday();
+testShortStopFillsAtGappedOpen();
 testCostsCountBothLegs();
 testBorrowCostAppliesToShortOnly();
 testNetAlphaSubtractsBenchmarkAndCosts();

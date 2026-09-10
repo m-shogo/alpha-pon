@@ -253,8 +253,13 @@ function resolveExit(
       // ロングは安値、ショートは高値で逆行幅を判定する（保守的）
       const adverse = spec.side === "long" ? bars[i].low : bars[i].high;
       if (returnBps(entryPrice, adverse, spec.side) <= -stopLossBps) {
-        const stopPrice = entryPrice * (spec.side === "long" ? 1 - stopLossBps / 10_000 : 1 + stopLossBps / 10_000);
-        return { index: i, price: stopPrice, stopped: true };
+        const stopLevel = entryPrice * (spec.side === "long" ? 1 - stopLossBps / 10_000 : 1 + stopLossBps / 10_000);
+        // 寄付が既にストップ水準を越えていたら、約定するのは寄値であってストップ水準ではない。
+        // ギャップを無視すると損失を過小評価し、ストップが無料の保険に見えてしまう。
+        const fillPrice = spec.side === "long"
+          ? Math.min(stopLevel, bars[i].open)
+          : Math.max(stopLevel, bars[i].open);
+        return { index: i, price: fillPrice, stopped: true };
       }
     }
   }

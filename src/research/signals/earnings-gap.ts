@@ -48,6 +48,8 @@ export const EARNINGS_GAP_REJECT_REASONS = [
   "no_prior_bar",
   "non_positive_prior_close",
   "gap_not_deep_enough",
+  "reaction_bar_too_far",
+  "prior_bar_too_far",
   "implausible_single_day_move",
   "corporate_action_in_window",
   "forecast_missing",
@@ -85,6 +87,17 @@ export interface EarningsGapParams {
    * 東証の値幅制限を超える下落は分割・併合・異常データのいずれかである。
    */
   implausibleSingleDayMovePct?: number;
+  /**
+   * 開示日から反応日までの暦日数の上限。既定 10。
+   * 売買停止明けの初値は「決算への反応」ではなく停止期間中の全材料の反映なので落とす。
+   * 年末年始・GW の連休(最長でも約9日)は通す。
+   */
+  maxReactionLagDays?: number;
+  /**
+   * 前営業日終値と反応日の暦日数の上限。既定 10。
+   * 基準となる終値が古いと、ギャップが停止期間の累積変化になってしまう。
+   */
+  maxPriorGapDays?: number;
 }
 
 export interface EarningsGapCandidate {
@@ -166,6 +179,28 @@ function indexOfReactionBar(bars: PriceBar[], disclosedDate: string): number {
 }
 
 const DEFAULT_IMPLAUSIBLE_SINGLE_DAY_MOVE_PCT = -35;
+const DEFAULT_MAX_REACTION_LAG_DAYS = 10;
+const DEFAULT_MAX_PRIOR_GAP_DAYS = 10;
+
+const MS_PER_DAY = 86_400_000;
+
+/** JST 暦日どうしの日数差。両方 YYYY-MM-DD 前提。 */
+function calendarDaysBetween(from: string, to: string): number {
+  const fromMs = Date.parse(`${from}T00:00:00Z`);
+  const toMs = Date.parse(`${to}T00:00:00Z`);
+  if (!Number.isFinite(fromMs) || !Number.isFinite(toMs)) {
+    throw new Error(`invalid calendar date range: ${from} -> ${to}`);
+  }
+  return Math.round((toMs - fromMs) / MS_PER_DAY);
+}
+
+function positiveDayLimit(value: number | undefined, fallback: number, label: string): number {
+  const resolved = value ?? fallback;
+  if (!Number.isSafeInteger(resolved) || resolved < 1) {
+    throw new Error(`${label} must be a positive integer: ${resolved}`);
+  }
+  return resolved;
+}
 
 function assertParams(params: EarningsGapParams): void {
   if (!Number.isFinite(params.gapThresholdPct) || params.gapThresholdPct >= 0) {
@@ -180,6 +215,8 @@ function assertParams(params: EarningsGapParams): void {
       `implausibleSingleDayMovePct (${implausible}) must be below gapThresholdPct (${params.gapThresholdPct})`,
     );
   }
+  positiveDayLimit(params.maxReactionLagDays, DEFAULT_MAX_REACTION_LAG_DAYS, "maxReactionLagDays");
+  positiveDayLimit(params.maxPriorGapDays, DEFAULT_MAX_PRIOR_GAP_DAYS, "maxPriorGapDays");
 }
 
 /**
@@ -320,6 +357,19 @@ export function generateEarningsGapSignals(
       const priorBar = series.bars[reactionIndex - 1];
       if (!(priorBar.close > 0)) {
         reject(disclosure, "non_positive_prior_close");
+        continue;
+      }
+
+      // 売買停止・上場後の空白などで反応日や基準終値が離れている場合、
+      // 観測しているのは決算への反応ではないので落とす。
+      const reactionLagDays = calendarDaysBetween(disclosedDate, reactionBar.date);
+      if (reactionLagDays > positiveDayLimit(params.maxReactionLagDays, DEFAULT_MAX_REACTION_LAG_DAYS, "maxReactionLagDays")) {
+        reject(disclosure, "reaction_bar_too_far");
+        continue;
+      }
+      const priorGapDays = calendarDaysBetween(priorBar.date, reactionBar.date);
+      if (priorGapDays > positiveDayLimit(params.maxPriorGapDays, DEFAULT_MAX_PRIOR_GAP_DAYS, "maxPriorGapDays")) {
+        reject(disclosure, "prior_bar_too_far");
         continue;
       }
 

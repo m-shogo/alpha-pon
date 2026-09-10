@@ -343,6 +343,80 @@ function testCorporateActionDatesFromRecords() {
   assert.deepEqual([...(dates.get("5678") ?? [])], ["2026-01-09"], "corporateActions 非空を拾う");
 }
 
+
+function testTradingSuspensionIsRejected() {
+  // 開示後に長期の売買停止があると、停止明けの初値は「決算への反応」ではなく
+  // 停止期間中の全材料の反映になる。停止明け銘柄はサンプルを最も汚す。
+  const suspended: PriceSeries = {
+    code: "1234",
+    bars: [
+      { date: "2026-01-05", open: 1000, high: 1010, low: 990, close: 1000, volume: 1_000_000 },
+      { date: "2026-01-06", open: 1000, high: 1010, low: 990, close: 1000, volume: 1_000_000 },
+      { date: "2026-03-16", open: 850, high: 860, low: 840, close: 850, volume: 1_000_000 },
+      { date: "2026-03-17", open: 850, high: 860, low: 840, close: 855, volume: 1_000_000 },
+    ],
+  };
+  const result = generateEarningsGapSignals([disclosure()], priceMap(suspended), NO_FORECAST_CHECK);
+  assert.equal(result.signals.length, 0, "69日の停止明けを決算ギャップにしない");
+  assert.equal(result.rejectedCounts.reaction_bar_too_far, 1);
+}
+
+function testYearEndHolidayIsStillAccepted() {
+  // 年末年始・GW の連休(最長でも約9日)まで落としてしまうと使い物にならない。
+  const holiday: PriceSeries = {
+    code: "1234",
+    bars: [
+      { date: "2025-12-29", open: 1000, high: 1010, low: 990, close: 1000, volume: 1_000_000 },
+      { date: "2025-12-30", open: 1000, high: 1010, low: 990, close: 1000, volume: 1_000_000 },
+      { date: "2026-01-05", open: 900, high: 910, low: 890, close: 900, volume: 1_000_000 },
+      { date: "2026-01-06", open: 900, high: 910, low: 890, close: 905, volume: 1_000_000 },
+    ],
+  };
+  const result = generateEarningsGapSignals(
+    [disclosure({ disclosedDate: "2025-12-30" })],
+    priceMap(holiday),
+    NO_FORECAST_CHECK,
+  );
+  assert.equal(result.signals.length, 1, "6日の連休は通す");
+  assert.equal(result.candidates[0].gapPct, -10);
+}
+
+function testStalePriorBarIsRejected() {
+  // 反応日は開示直後でも、その前の営業日が古いとギャップが累積変化になる。
+  const staleBefore: PriceSeries = {
+    code: "1234",
+    bars: [
+      { date: "2025-11-04", open: 1000, high: 1010, low: 990, close: 1000, volume: 1_000_000 },
+      { date: "2026-01-07", open: 900, high: 910, low: 890, close: 900, volume: 1_000_000 },
+      { date: "2026-01-08", open: 900, high: 910, low: 890, close: 905, volume: 1_000_000 },
+    ],
+  };
+  const result = generateEarningsGapSignals([disclosure()], priceMap(staleBefore), NO_FORECAST_CHECK);
+  assert.equal(result.signals.length, 0);
+  assert.equal(result.rejectedCounts.prior_bar_too_far, 1);
+}
+
+function testInvalidDayLimitsThrow() {
+  for (const params of [
+    { maxReactionLagDays: 0 },
+    { maxReactionLagDays: -1 },
+    { maxPriorGapDays: 0 },
+    { maxPriorGapDays: 1.5 },
+  ]) {
+    assert.throws(
+      () =>
+        generateEarningsGapSignals([], new Map(), {
+          gapThresholdPct: -7,
+          requireForecastNotCut: false,
+          corporateActionDates: NO_ACTIONS,
+          ...params,
+        }),
+      /must be a positive integer/,
+      `設定ミスを起動時に止める: ${JSON.stringify(params)}`,
+    );
+  }
+}
+
 testGeneratesSignalOnDeepGap();
 testIntradayDisclosureDoesNotUseSameDayMove();
 testEntryIsTheDayAfterReaction();
@@ -366,6 +440,10 @@ testUnknownSplitIsCaughtByImplausibleGuard();
 testRealCrashIsStillAccepted();
 testImplausibleThresholdMustBeBelowGapThreshold();
 testCorporateActionDatesFromRecords();
+testTradingSuspensionIsRejected();
+testYearEndHolidayIsStillAccepted();
+testStalePriorBarIsRejected();
+testInvalidDayLimitsThrow();
 testEveryRejectionIsCounted();
 
 console.log("research/earnings-gap-signals: 全テスト成功");
