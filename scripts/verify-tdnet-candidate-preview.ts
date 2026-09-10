@@ -4,6 +4,7 @@ import { buildTdnetCandidatePreview } from "../src/market-events/tdnet-candidate
 
 const snapshot: TdnetDisclosureSnapshot = {
   observationDate: "2026-09-04",
+  withdrawn: [],
   explicitEmpty: false,
   pageCount: 2,
   pageUrls: [
@@ -249,6 +250,7 @@ assert.throws(
 assert.throws(
   () => buildTdnetCandidatePreview({
     observationDate: "2026-09-05",
+    withdrawn: [],
     explicitEmpty: false,
     pageCount: 1,
     pageUrls: ["https://www.release.tdnet.info/inbs/I_list_001_20260905.html"],
@@ -260,6 +262,7 @@ assert.throws(
 assert.throws(
   () => buildTdnetCandidatePreview({
     observationDate: "2026-09-05",
+    withdrawn: [],
     explicitEmpty: true,
     pageCount: 2,
     pageUrls: [
@@ -274,6 +277,7 @@ assert.throws(
 
 const emptyPreview = buildTdnetCandidatePreview({
   observationDate: "2026-09-05",
+  withdrawn: [],
   explicitEmpty: true,
   pageCount: 1,
   pageUrls: ["https://www.release.tdnet.info/inbs/I_list_001_20260905.html"],

@@ -103,9 +103,24 @@ export type TdnetDisclosure = {
   url: string;
 };
 
+/**
+ * TDnet 上で取り下げ（削除）された開示。
+ * `hyodaiDel` 行として表示され、開示書類へのリンクが外される。
+ * 取得対象からは外すが、silent drop にせず件数と内容を必ず持ち回る。
+ */
+export type TdnetWithdrawnDisclosure = {
+  sourceCode: string;
+  companyName: string;
+  title: string;
+  /** 履歴欄の生テキスト（例: "2026/09/09 08:35 削除"） */
+  historyText: string;
+};
+
 export type TdnetDisclosureSnapshot = {
   observationDate: string;
   disclosures: TdnetDisclosure[];
+  /** 取り下げ済みとして除外した開示。空配列は「取り下げが無かった」を意味する。 */
+  withdrawn: TdnetWithdrawnDisclosure[];
   explicitEmpty: boolean;
   pageCount: number;
   pageUrls: string[];
@@ -202,7 +217,23 @@ function tdnetDocumentUrl(href: string): string {
   return resolved.toString();
 }
 
-export function parseTdnetListHtml(html: string, observationDate: string): TdnetDisclosure[] {
+/**
+ * 取り下げ行かどうかを判定する。
+ * 構造マーカー(`hyodaiDel`)と履歴欄の削除表記のどちらかがあれば取り下げとみなす。
+ * どちらも無いのにリンクが欠けている行は未知の構造なので落とさず例外にする。
+ */
+function isWithdrawnRow(row: string): boolean {
+  const openingTag = row.match(/<tr\b[^>]*>/i)?.[0] ?? "";
+  if (/\bclass\s*=\s*["'][^"']*\bhyodaiDel\b/i.test(openingTag)) return true;
+  const historyCell = cellByClass(row, "kjHistroy");
+  return historyCell !== null && decodeHtmlText(historyCell).includes("削除");
+}
+
+export function parseTdnetListHtml(
+  html: string,
+  observationDate: string,
+  withdrawnOut?: TdnetWithdrawnDisclosure[],
+): TdnetDisclosure[] {
   const normalizedDate = validateObservationDate(observationDate);
   const table = html.match(/<table\b(?=[^>]*\bid\s*=\s*["']main-list-table["'])[^>]*>[\s\S]*?<\/table>/i)?.[0];
   if (!table) return [];
@@ -230,6 +261,20 @@ export function parseTdnetListHtml(html: string, observationDate: string): Tdnet
 
     if (!companyName) throw new Error("TDnet row has empty company name");
     if (!title) throw new Error("TDnet row has empty title");
+
+    // 取り下げられた開示は書類リンクが外される。1行の取り下げでその日の全件を
+    // 失わないよう、取り下げと確認できた行だけを明示的に除外する。
+    if (!href && isWithdrawnRow(row)) {
+      const historyCell = cellByClass(row, "kjHistroy");
+      withdrawnOut?.push({
+        sourceCode,
+        companyName,
+        title,
+        historyText: historyCell === null ? "" : decodeHtmlText(historyCell),
+      });
+      continue;
+    }
+
     if (!href) throw new Error("TDnet row has no disclosure document link");
 
     entries.push({
@@ -256,6 +301,7 @@ export async function fetchTdnetDisclosureSnapshot(
   }
 
   const disclosures: TdnetDisclosure[] = [];
+  const withdrawn: TdnetWithdrawnDisclosure[] = [];
   const pageUrls: string[] = [];
 
   for (let page = 1; page <= maxPages; page += 1) {
@@ -279,6 +325,7 @@ export async function fetchTdnetDisclosureSnapshot(
       return {
         observationDate,
         disclosures,
+        withdrawn,
         explicitEmpty: false,
         pageCount: pageUrls.length,
         pageUrls,
@@ -298,14 +345,17 @@ export async function fetchTdnetDisclosureSnapshot(
       return {
         observationDate,
         disclosures: [],
+        withdrawn,
         explicitEmpty: true,
         pageCount: 1,
         pageUrls,
       };
     }
 
-    const pageDisclosures = parseTdnetListHtml(html, observationDate);
-    if (pageDisclosures.length === 0) {
+    const withdrawnBefore = withdrawn.length;
+    const pageDisclosures = parseTdnetListHtml(html, observationDate, withdrawn);
+    // 全行が取り下げのページは 0 件が正しい。構造未認識と取り違えない。
+    if (pageDisclosures.length === 0 && withdrawn.length === withdrawnBefore) {
       throw new Error("TDnet public viewer page structure was not recognized");
     }
     disclosures.push(...pageDisclosures);
