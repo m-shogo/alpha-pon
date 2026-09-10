@@ -15,9 +15,23 @@ import {
 
 const DEFAULT_BRANCH = process.env.ALPHA_PON_DEFAULT_BRANCH ?? "main";
 
-function git(args: string[]): string | null {
+/** ローカル操作のタイムアウト。ハングして daily を止めないための上限。 */
+const LOCAL_GIT_TIMEOUT_MS = 5_000;
+/** ネットワークを伴う操作のタイムアウト。 */
+const FETCH_TIMEOUT_MS = 15_000;
+
+function git(args: string[], timeoutMs: number = LOCAL_GIT_TIMEOUT_MS): string | null {
   try {
-    return execFileSync("git", args, { encoding: "utf-8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+    return execFileSync("git", args, {
+      encoding: "utf-8",
+      stdio: ["ignore", "pipe", "ignore"],
+      // タイムアウトが無いと、ネットワーク不調や認証プロンプトで
+      // daily が無限に止まる。作業コピーの状態を知るための処理で
+      // 本体を止めてはいけない。
+      timeout: timeoutMs,
+      // 認証を対話で聞かれるとその時点でハングする。必ず非対話にする。
+      env: { ...process.env, GIT_TERMINAL_PROMPT: "0", GIT_ASKPASS: "echo" },
+    }).trim();
   } catch {
     return null;
   }
@@ -50,7 +64,7 @@ function main(): void {
     const inCi = process.env.CI !== undefined && process.env.CI !== "" && process.env.CI !== "false";
     if (!inCi) {
       // ネットワークが無くても daily を止めない。取れなければ比較不能として扱う。
-      git(["fetch", "--quiet", "origin", DEFAULT_BRANCH]);
+      git(["fetch", "--quiet", "origin", DEFAULT_BRANCH], FETCH_TIMEOUT_MS);
     }
     const counts = inCi
       ? null
