@@ -1,5 +1,10 @@
 import assert from "node:assert/strict";
-import { buildSourceId, validateMarketEventBundle } from "../src/market-events/contracts.js";
+import {
+  buildDeliveryId,
+  buildRevisionId,
+  buildSourceId,
+  validateMarketEventBundle,
+} from "../src/market-events/contracts.js";
 import { buildMarketEventBundle, type MarketEventRegistrationInput } from "../src/market-events/registration.js";
 
 const input: MarketEventRegistrationInput = {
@@ -199,6 +204,15 @@ for (const authority of ["tdnet", " TDNET "]) {
 }
 
 const mismatchedSourceId = `src_${"b".repeat(24)}`;
+// revision.sourceIds を書き換えると revision の正準IDも変わるため、
+// revisionId を再計算しておかないと revision identity 検査が先に発火し、
+// ここで確かめたい source identity 検査に到達しない (PR #2005 で追加された検査)。
+const mismatchedRevisionId = buildRevisionId({
+  eventId: valid.revision.eventId,
+  revisionNumber: valid.revision.revisionNumber,
+  facts: valid.revision.facts,
+  sourceIds: [mismatchedSourceId],
+});
 assert.throws(
   () => validateMarketEventBundle({
     ...valid,
@@ -208,6 +222,7 @@ assert.throws(
     })),
     revision: {
       ...valid.revision,
+      revisionId: mismatchedRevisionId,
       sourceIds: [mismatchedSourceId],
     },
   }),
@@ -239,12 +254,21 @@ assert.throws(
   "generic bundle validation must reject malformed HTTPS-looking source URLs before they reach persistence",
 );
 
+// deliveryId も正準IDでなければ delivery identity 検査が先に発火し、
+// ここで確かめたい chronology 検査に到達しない。
+const chronologyDeliveryId = buildDeliveryId({
+  eventId: valid.event.eventId,
+  revisionId: valid.revision.revisionId,
+  channel: "IN_APP",
+  deliveryKey: "chronology-regression",
+  scheduledAt: "2026-09-05T10:00:00+09:00",
+});
 assert.throws(
   () => validateMarketEventBundle({
     ...valid,
     deliveries: [{
       schemaVersion: 1,
-      deliveryId: "dlv_delivery_chronology_regression",
+      deliveryId: chronologyDeliveryId,
       deliveryKey: "chronology-regression",
       eventId: valid.event.eventId,
       revisionId: valid.revision.revisionId,
