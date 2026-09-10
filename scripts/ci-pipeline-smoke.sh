@@ -143,6 +143,11 @@ pnpm research:edge-study:fixtures
 # どちらかになり、どちらも静かに壊れる。
 pnpm ingest:prices -- --from 2025-09-01 --to 2025-09-05 > /dev/null
 
+# 取り込んだ価格ストアの健全性。F1・イベントスタディ・backtest の土台なので、
+# 静かに壊れると先の測定が「動いているが間違っている」状態になる。
+# 価格が1日も無い環境（CI）では検査対象なしで正常終了する。
+node --import tsx/esm scripts/verify-price-store-integrity.ts > /dev/null
+
 # verify script が「追記し忘れ」でどこからも起動されない状態を防ぐ。
 node --import tsx/esm scripts/verify-script-reachability.ts
 
