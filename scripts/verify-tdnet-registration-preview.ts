@@ -312,6 +312,11 @@ assert.throws(
 );
 
 assert.throws(
+  () => prepareTdnetRegistrationPreview(candidate, assessment, { ...metadata, status: "COMPLETED" as never }, evidence),
+  /requires a future event status/,
+  "registration preview must fail closed on runtime statuses outside SCHEDULED/TENTATIVE",
+);
+assert.throws(
   () => prepareTdnetRegistrationPreview(candidate, assessment, { ...metadata, eventTitle: " " }, evidence),
   /eventTitle is required/,
 );
