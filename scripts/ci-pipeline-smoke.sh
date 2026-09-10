@@ -133,6 +133,10 @@ node --import tsx/esm scripts/verify-market-event-projection-metadata-instants.t
 node --import tsx/esm scripts/verify-source-checkpoint-failure-replay.ts
 node --import tsx/esm scripts/verify-d1-bootstrap-export.ts
 
+# Edge 検証チェーン（検出 → Holdout除外 → 対照群 → イベントスタディ）を
+# 合成 fixture で通す。個々のモジュールが揃っていても繋ぐ層で壊れるため。
+pnpm research:edge-study:fixtures
+
 # verify script が「追記し忘れ」でどこからも起動されない状態を防ぐ。
 node --import tsx/esm scripts/verify-script-reachability.ts
 
