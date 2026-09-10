@@ -3,6 +3,7 @@ import {
   linkSync,
   mkdirSync,
   mkdtempSync,
+  realpathSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -16,8 +17,16 @@ import {
 } from "../../src/research/research-knowledge-catalog-repository.js";
 import { loadResearchKnowledgeRepositorySnapshot } from "../../src/research/research-knowledge-repository-loader.js";
 
+// macOS の tmpdir() は /var/folders/... を返すが /var は /private/var への symlink。
+// Catalog validator は祖先 symlink を正しく拒否するため、テスト側で実体パスへ解決する。
+// validator を緩めるのではなく、テストが正規のパスを使う。
+function canonicalTmpdir(): string {
+  return realpathSync(tmpdir());
+}
+
+
 function createRoot(prefix: string): string {
-  const root = mkdtempSync(join(tmpdir(), prefix));
+  const root = mkdtempSync(join(canonicalTmpdir(), prefix));
   return root;
 }
 
@@ -81,7 +90,7 @@ function researchCase(id: string) {
 }
 
 {
-  const missingRoot = join(tmpdir(), `alpha-pon-catalog-missing-${Date.now()}`);
+  const missingRoot = join(canonicalTmpdir(), `alpha-pon-catalog-missing-${Date.now()}`);
   const result = readResearchKnowledgeCatalogRepository({ rootPath: missingRoot });
   assert.ok(result.issues.some((entry) => entry.code === "research_catalog_root_missing"));
   assert.equal(result.totalCount, 0);
@@ -227,7 +236,7 @@ function researchCase(id: string) {
 }
 
 {
-  const explicitMissingRoot = join(tmpdir(), `alpha-pon-catalog-loader-missing-${Date.now()}`);
+  const explicitMissingRoot = join(canonicalTmpdir(), `alpha-pon-catalog-loader-missing-${Date.now()}`);
   const result = loadResearchKnowledgeRepositorySnapshot(undefined, {
     catalogRootPath: explicitMissingRoot,
     marketEventDatabasePath: join(explicitMissingRoot, "missing.db"),

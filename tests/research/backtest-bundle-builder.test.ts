@@ -66,6 +66,7 @@ function spec(over: Partial<BacktestSpec> = {}): BacktestSpec {
     id: "bundle-test-spec",
     edgeId: "earnings-gap-overreaction",
     side: "long",
+    notionalJpy: 1_000_000,
     entry: { mode: "next_open" },
     exit: { mode: "holding_period", holdingPeriodDays: 2 },
     costs: { commissionBps: 2, spreadBps: 8, slippageBps: 5 },

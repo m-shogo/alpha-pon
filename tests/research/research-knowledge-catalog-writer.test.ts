@@ -4,6 +4,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -15,6 +16,14 @@ import {
   ResearchKnowledgeCatalogWriteError,
 } from "../../src/research/research-knowledge-catalog-writer.js";
 import { readResearchKnowledgeCatalogRepository } from "../../src/research/research-knowledge-catalog-repository.js";
+
+// macOS の tmpdir() は /var/folders/... を返すが /var は /private/var への symlink。
+// Catalog validator は祖先 symlink を正しく拒否するため、テスト側で実体パスへ解決する。
+// validator を緩めるのではなく、テストが正規のパスを使う。
+function canonicalTmpdir(): string {
+  return realpathSync(tmpdir());
+}
+
 
 function item(id: string) {
   return {
@@ -54,7 +63,7 @@ function expectWriteError(fn: () => unknown, code: string): ResearchKnowledgeCat
 }
 
 {
-  const root = mkdtempSync(join(tmpdir(), "alpha-pon-catalog-writer-valid-"));
+  const root = mkdtempSync(join(canonicalTmpdir(), "alpha-pon-catalog-writer-valid-"));
   try {
     const created = createResearchKnowledgeCatalogRecord("researchItems", item("writer-item"), { rootPath: root });
     assert.equal(created.path, join(root, "research_items", "writer-item.yml"));
@@ -71,7 +80,7 @@ function expectWriteError(fn: () => unknown, code: string): ResearchKnowledgeCat
 }
 
 {
-  const root = mkdtempSync(join(tmpdir(), "alpha-pon-catalog-writer-existing-"));
+  const root = mkdtempSync(join(canonicalTmpdir(), "alpha-pon-catalog-writer-existing-"));
   try {
     createResearchKnowledgeCatalogRecord("researchItems", item("shared-writer-id"), { rootPath: root });
     expectWriteError(
@@ -90,7 +99,7 @@ function expectWriteError(fn: () => unknown, code: string): ResearchKnowledgeCat
 }
 
 {
-  const root = mkdtempSync(join(tmpdir(), "alpha-pon-catalog-writer-invalid-"));
+  const root = mkdtempSync(join(canonicalTmpdir(), "alpha-pon-catalog-writer-invalid-"));
   try {
     const invalid = { ...item("invalid-writer-item"), status: "invented" };
     expectWriteError(
@@ -104,7 +113,7 @@ function expectWriteError(fn: () => unknown, code: string): ResearchKnowledgeCat
 }
 
 {
-  const root = mkdtempSync(join(tmpdir(), "alpha-pon-catalog-writer-broken-"));
+  const root = mkdtempSync(join(canonicalTmpdir(), "alpha-pon-catalog-writer-broken-"));
   try {
     mkdirSync(join(root, "research_items"));
     writeFileSync(join(root, "research_items", "broken.yml"), "id: [unterminated\n", "utf-8");
@@ -119,7 +128,7 @@ function expectWriteError(fn: () => unknown, code: string): ResearchKnowledgeCat
 }
 
 {
-  const missingRoot = join(tmpdir(), `alpha-pon-catalog-writer-missing-${Date.now()}`);
+  const missingRoot = join(canonicalTmpdir(), `alpha-pon-catalog-writer-missing-${Date.now()}`);
   expectWriteError(
     () => createResearchKnowledgeCatalogRecord("researchItems", item("missing-root-item"), { rootPath: missingRoot }),
     "research_catalog_root_missing",
@@ -128,8 +137,8 @@ function expectWriteError(fn: () => unknown, code: string): ResearchKnowledgeCat
 }
 
 {
-  const root = mkdtempSync(join(tmpdir(), "alpha-pon-catalog-writer-symlink-"));
-  const target = mkdtempSync(join(tmpdir(), "alpha-pon-catalog-writer-target-"));
+  const root = mkdtempSync(join(canonicalTmpdir(), "alpha-pon-catalog-writer-symlink-"));
+  const target = mkdtempSync(join(canonicalTmpdir(), "alpha-pon-catalog-writer-target-"));
   try {
     symlinkSync(target, join(root, "research_items"));
     expectWriteError(
@@ -144,7 +153,7 @@ function expectWriteError(fn: () => unknown, code: string): ResearchKnowledgeCat
 }
 
 {
-  const root = mkdtempSync(join(tmpdir(), "alpha-pon-catalog-writer-size-"));
+  const root = mkdtempSync(join(canonicalTmpdir(), "alpha-pon-catalog-writer-size-"));
   try {
     expectWriteError(
       () => createResearchKnowledgeCatalogRecord("researchItems", item("tiny-limit-item"), {

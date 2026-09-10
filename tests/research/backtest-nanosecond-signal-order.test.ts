@@ -6,6 +6,7 @@ const spec: BacktestSpec = {
   id: "nanosecond-order",
   edgeId: "test-edge",
   side: "long",
+  notionalJpy: 1_000_000,
   entry: { mode: "next_open" },
   exit: { mode: "holding_period", holdingPeriodDays: 1 },
   costs: { commissionBps: 0, spreadBps: 0, slippageBps: 0 },

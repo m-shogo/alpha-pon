@@ -26,6 +26,7 @@ const SPEC: BacktestSpec = {
   id: "benchmark-exact-date-test",
   edgeId: "benchmark-exact-date-test",
   side: "long",
+  notionalJpy: 1_000_000,
   entry: { mode: "next_open" },
   exit: { mode: "holding_period", holdingPeriodDays: 2 },
   costs: { commissionBps: 0, spreadBps: 0, slippageBps: 0 },

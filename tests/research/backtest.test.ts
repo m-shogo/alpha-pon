@@ -29,6 +29,8 @@ const BASE_SPEC: BacktestSpec = {
   id: "test-spec",
   edgeId: "test-edge",
   side: "long",
+  // notionalJpy は必須。無いと参加率上限も market impact も無効になる。
+  notionalJpy: 1_000_000,
   entry: { mode: "next_open" },
   exit: { mode: "holding_period", holdingPeriodDays: 2 },
   costs: { commissionBps: 2, spreadBps: 8, slippageBps: 5 },
@@ -325,6 +327,7 @@ function testSpecConformanceFailsClosed() {
 
   expectSpecRejected((spec) => { spec.entry.lagDays = -1; }, /lagDays must be a non-negative safe integer/);
   expectSpecRejected((spec) => { spec.entry.lagDays = 1.5; }, /lagDays must be a non-negative safe integer/);
+  expectSpecRejected((spec) => { delete (spec as { notionalJpy?: number }).notionalJpy; }, /notionalJpy is required/);
   expectSpecRejected((spec) => { spec.notionalJpy = -1; }, /notionalJpy/);
   expectSpecRejected((spec) => { spec.notionalJpy = Number.NaN; }, /notionalJpy/);
   expectSpecRejected((spec) => { spec.costs.commissionBps = Number.NaN; }, /commissionBps/);
