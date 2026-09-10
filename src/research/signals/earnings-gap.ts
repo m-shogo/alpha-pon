@@ -26,6 +26,11 @@
 import type { BacktestSignal, PriceBar, PriceSeries } from "../backtest.js";
 import { parseExplicitIso8601Instant } from "../iso-instant.js";
 import { jstDateOf } from "../pit.js";
+import {
+  assertAscendingBars,
+  calendarDaysBetween,
+  positiveDayLimit,
+} from "./trading-calendar.js";
 
 /** 反応日の引け。この時刻の情報で当日引けエントリはできない（pit.ts の TSE_CLOSE_JST_MINUTES と一致）。 */
 const REACTION_OBSERVED_TIME_JST = "15:30:00";
@@ -162,17 +167,6 @@ function disclosedAtIso(input: EarningsDisclosureInput): string | null {
   return jstDateOf(iso) === input.disclosedDate.trim() ? iso : null;
 }
 
-function assertAscendingBars(series: PriceSeries): void {
-  for (let index = 1; index < series.bars.length; index += 1) {
-    if (series.bars[index - 1].date >= series.bars[index].date) {
-      throw new Error(
-        `price series ${series.code} must be strictly ascending by date: ` +
-          `${series.bars[index - 1].date} -> ${series.bars[index].date}`,
-      );
-    }
-  }
-}
-
 /** 開示日より後の最初の営業日を反応日とする。場中開示でも当日の値動きは使わない（look-ahead 回避）。 */
 function indexOfReactionBar(bars: PriceBar[], disclosedDate: string): number {
   return bars.findIndex((bar) => bar.date > disclosedDate);
@@ -182,25 +176,7 @@ const DEFAULT_IMPLAUSIBLE_SINGLE_DAY_MOVE_PCT = -35;
 const DEFAULT_MAX_REACTION_LAG_DAYS = 10;
 const DEFAULT_MAX_PRIOR_GAP_DAYS = 10;
 
-const MS_PER_DAY = 86_400_000;
 
-/** JST 暦日どうしの日数差。両方 YYYY-MM-DD 前提。 */
-function calendarDaysBetween(from: string, to: string): number {
-  const fromMs = Date.parse(`${from}T00:00:00Z`);
-  const toMs = Date.parse(`${to}T00:00:00Z`);
-  if (!Number.isFinite(fromMs) || !Number.isFinite(toMs)) {
-    throw new Error(`invalid calendar date range: ${from} -> ${to}`);
-  }
-  return Math.round((toMs - fromMs) / MS_PER_DAY);
-}
-
-function positiveDayLimit(value: number | undefined, fallback: number, label: string): number {
-  const resolved = value ?? fallback;
-  if (!Number.isSafeInteger(resolved) || resolved < 1) {
-    throw new Error(`${label} must be a positive integer: ${resolved}`);
-  }
-  return resolved;
-}
 
 function assertParams(params: EarningsGapParams): void {
   if (!Number.isFinite(params.gapThresholdPct) || params.gapThresholdPct >= 0) {
