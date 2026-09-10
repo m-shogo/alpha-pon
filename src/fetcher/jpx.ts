@@ -182,7 +182,13 @@ function cellByClass(row: string, className: string): string | null {
   return match?.[1] ?? null;
 }
 
-function tdnetIssuerCode(sourceCode: string): string {
+/**
+ * TDnet 一覧の会社コードから発行体コードを取り出す。
+ *
+ * 開示の保存庫でも同じ変換が要る。再実装すると片方だけ直して静かに乖離するため
+ * export している。
+ */
+export function tdnetIssuerCode(sourceCode: string): string {
   // TDnet displays the 4-character solid-name code plus a 1-character reserve code.
   // Preserve that exact 5-character source value separately; only the issuer identity
   // is derived by dropping the reserve character.

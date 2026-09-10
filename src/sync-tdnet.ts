@@ -3,6 +3,7 @@
 // このファイルを直接 --dry-run なしで実行した場合だけ addCandidates が書き込み可能。
 
 import { fetchTdnetDisclosureSnapshot } from "./fetcher/jpx.js";
+import { appendDisclosureSnapshot } from "./disclosure-archive.js";
 import { STRUCTURAL_KEYWORDS } from "./fetcher/edinet.js";
 import { addCandidates, loadWatchlistRaw } from "./watchlist-writer.js";
 import type { Candidate } from "./types.js";
@@ -25,6 +26,23 @@ async function main() {
     }
     process.exit(1);
   }
+
+  // 取得したものは**まず保存する**。
+  //
+  // TDnet の公開閲覧サービスは約1ヶ月しか遡れない。ここで捨てると、
+  // その日の開示は二度と取れない。不祥事・子会社イベントのラベルは
+  // これが一次情報なので、貯め始めないと検証そのものが始まらない。
+  //
+  // 保存に失敗したら止める。「今日のレポートが1段欠ける」は再実行で
+  // 取り戻せるが、「その日の開示を保存し損ねた」は取り戻せない。
+  const archived = appendDisclosureSnapshot({
+    snapshot,
+    retrievedAt: new Date().toISOString(),
+  });
+  console.log(
+    `保存: ${archived.observationDate} → 新規 ${archived.appended}件`
+    + `${archived.alreadyPresent > 0 ? ` / 保存済み ${archived.alreadyPresent}件` : ""}`,
+  );
 
   const disclosures = snapshot.disclosures;
   if (disclosures.length === 0) {

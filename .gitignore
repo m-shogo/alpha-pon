@@ -8,6 +8,8 @@ dist/
 # データはgit管理しない（大きくなるため）
 data/prices/*.json
 data/disclosures/*.json
+# TDnet 開示の保存庫。再配布の判断を避けるためローカル限定にする（価格ストアと同じ扱い）。
+data/disclosures/*.jsonl
 # EDINET inventory / metadata / downloaded PDF・ZIP / batch manifest はすべてlocal-only。
 data/edinet/**
 data/ipo/*.json
