@@ -42,6 +42,13 @@ import {
   loadStudyInputsFromStore,
   resolveResearchTo,
 } from "../study-inputs-from-store.js";
+import { detectReadAcrossEvents } from "../signals/read-across-events.js";
+import { DEFAULT_MARKET_MODEL_PARAMS } from "../signals/market-model.js";
+import { sectorPeerGraph } from "../signals/company-relations.js";
+import {
+  buildSectorPeers,
+  loadMasterAsOf,
+} from "../providers/jquants-master-store.js";
 import {
   generateEarningsGapSignals,
   type EarningsGapParams,
@@ -75,6 +82,18 @@ interface Bundle {
          */
         kind: "earnings_gap";
         params: Omit<EarningsGapParams, "corporateActionDates">;
+      }
+    | {
+        /**
+         * 同業が理由不明で大きく下げた日に、自分も下げた銘柄。
+         * peer は銘柄マスタの33業種から組む。bundle に書き写さない。
+         */
+        kind: "read_across";
+        params: {
+          sourceAbnormalReturnThresholdPct: number;
+          relatedAbnormalReturnThresholdPct: number;
+          matchScaleCategory?: boolean;
+        };
       };
   /** これまでに試した仮説の数。False Discovery Guard の閾値に使う。 */
   trials?: number;
@@ -103,8 +122,11 @@ function loadFromStore(
   flags: ReadonlySet<string>,
 ): { signals: BacktestSignal[]; prices: PriceSeries[]; benchmark: PriceSeries } {
   const kind = bundle.detector?.kind;
-  if (kind !== "abnormal_move" && kind !== "earnings_gap") {
-    fail("--from-store には bundle.detector.kind = \"abnormal_move\" か \"earnings_gap\" が必要です");
+  if (kind !== "abnormal_move" && kind !== "earnings_gap" && kind !== "read_across") {
+    fail(
+      "--from-store には bundle.detector.kind = "
+      + '"abnormal_move" / "earnings_gap" / "read_across" のいずれかが必要です',
+    );
   }
   const minTurnoverJpy = numberOption(options, "min-turnover-jpy", 0);
 
@@ -130,6 +152,55 @@ function loadFromStore(
   } catch (error) {
     if (error instanceof StudyInputsError) fail(error.message);
     throw error;
+  }
+
+  if (bundle.detector!.kind === "read_across") {
+    const master = loadMasterAsOf(to ?? inputs.tradingDates.at(-1)!);
+    if (master.snapshotDate === null) {
+      fail("銘柄マスタがありません。先に pnpm ingest:master を実行してください");
+    }
+    const peers = buildSectorPeers({
+      attributes: master.attributes,
+      ...(bundle.detector!.params.matchScaleCategory ? { matchScaleCategory: true } : {}),
+    });
+    const known = loadEarningsEventDatesFromStore({
+      tradingDates: inputs.tradingDates, ...(to ? { to } : {}),
+    }).byCode;
+    const sources = detectAbnormalMoveEvents(inputs.prices, inputs.benchmark, {
+      abnormalReturnThresholdPct: bundle.detector!.params.sourceAbnormalReturnThresholdPct,
+      knownEventDates: known,
+      corporateActionDates: inputs.corporateActionDates,
+      marketModel: DEFAULT_MARKET_MODEL_PARAMS,
+      minAverageTurnoverJpy: minTurnoverJpy,
+    });
+    const across = detectReadAcrossEvents(
+      sources.candidates.map((one) => ({ code: one.code, date: one.date })),
+      sectorPeerGraph(peers.peersByCode),
+      new Map<string, PriceSeries>(inputs.prices.map((series) => [series.code, series])),
+      inputs.benchmark,
+      {
+        sourceAbnormalReturnThresholdPct: bundle.detector!.params.sourceAbnormalReturnThresholdPct,
+        relatedAbnormalReturnThresholdPct: bundle.detector!.params.relatedAbnormalReturnThresholdPct,
+        knownEventDates: known,
+        corporateActionDates: inputs.corporateActionDates,
+        relationTypes: ["peer"],
+        minAverageTurnoverJpy: minTurnoverJpy,
+      },
+    );
+    for (const line of formatStudyInputs(inputs, minTurnoverJpy)) console.log(line);
+    console.log(
+      `検出  : 発生元 ${sources.candidates.length} → 伝播 ${across.candidates.length}`
+      + `（発生元 ${across.propagatedSourceCount}件から）`,
+    );
+    console.log("");
+    // observedAt は伝播日の引け。entry.mode = next_open なら翌営業日の始値。
+    return {
+      signals: across.candidates.map((one) => ({
+        id: one.candidateId, code: one.relatedCode, observedAt: one.observedAt,
+      })),
+      prices: inputs.prices,
+      benchmark: inputs.benchmark,
+    };
   }
 
   if (bundle.detector!.kind === "earnings_gap") {

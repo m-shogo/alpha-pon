@@ -1,0 +1,33 @@
+{
+  "spec": {
+    "schemaVersion": 1,
+    "id": "read-across-sector-peer-long-d5",
+    "edgeId": "read-across-sector-peer",
+    "side": "long",
+    "notionalJpy": 1000000,
+    "entry": { "mode": "next_open" },
+    "exit": { "mode": "holding_period", "holdingPeriodDays": 5 },
+    "costs": {
+      "commissionBps": 5,
+      "spreadBps": 10,
+      "slippageBps": 8,
+      "marketImpactBpsPerPctAdv": 10,
+      "borrowCostAnnualBps": 0
+    },
+    "liquidity": {
+      "participationLimitPct": 3,
+      "minAdtvJpy": 500000000,
+      "lotSize": 100
+    },
+    "benchmark": "UNIVERSE-EW",
+    "notes": "同業が-10%以下の異常下落を出した日に、自分も-3%以下の異常下落を出した銘柄を翌営業日の寄付で買い5営業日持つ。決算など自前の説明がある日は除外済み。実害の有無は未判定。コストは他の Edge と同じ保守寄りの見積り。事前に決めた1条件のみ。"
+  },
+  "detector": {
+    "kind": "read_across",
+    "params": {
+      "sourceAbnormalReturnThresholdPct": -10,
+      "relatedAbnormalReturnThresholdPct": -3
+    }
+  },
+  "trials": 1
+}
