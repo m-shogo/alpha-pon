@@ -185,6 +185,8 @@ function loadFromStore(
         corporateActionDates: inputs.corporateActionDates,
         relationTypes: ["peer"],
         minAverageTurnoverJpy: minTurnoverJpy,
+        // 発生元と同じ定義で測る。素の差だと β の高い銘柄が過剰に選ばれる。
+        marketModel: DEFAULT_MARKET_MODEL_PARAMS,
       },
     );
     for (const line of formatStudyInputs(inputs, minTurnoverJpy)) console.log(line);
@@ -396,7 +398,7 @@ function main(): void {
 
   if (trialId) {
     const ledgerPath = options.get("trials-ledger") ?? DEFAULT_TRIALS_LEDGER_PATH;
-    recordTrialOutcome(
+    const recorded = recordTrialOutcome(
       trialId,
       {
         executedCount: report.executedCount,
@@ -411,6 +413,16 @@ function main(): void {
       // 省略すると「同じ試行で違う結果」は落ちる（非決定性の検出）。
       { ...(options.get("supersede") ? { supersedesReason: options.get("supersede")! } : {}) },
     );
+    // **理由を渡したのに置き換えが起きなかったら黙らない。**
+    // trialId は dataset の指紋を含むので、シグナル集合が変われば別 ID になる。
+    // 「直して測り直した」つもりが、台帳では別の試行として数えられている。
+    if (options.get("supersede") && !recorded.superseded) {
+      console.log(
+        "  ※ --supersede を渡しましたが置き換えは起きていません。"
+        + "シグナル集合か価格が変わったため別の試行として記録されました"
+        + `（試行 ${trials} 件目）。閾値はその分上がります。`,
+      );
+    }
   }
 
   const out = options.get("out");

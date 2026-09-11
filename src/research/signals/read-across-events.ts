@@ -22,6 +22,7 @@
 //   実害の切り分け（separability）は人間または一次情報の仕事。
 
 import type { PriceSeries } from "../backtest.js";
+import type { MarketModelParams } from "./market-model.js";
 import {
   evaluateAbnormalReturn,
   type AbnormalReturnRejectReason,
@@ -76,6 +77,18 @@ export interface ReadAcrossParams {
   maxPriorGapDays?: number;
   minAverageTurnoverJpy?: number;
   turnoverLookbackBars?: number;
+  /**
+   * 市場モデル。**渡さないと「素のリターン − ベンチマーク」で測る。**
+   *
+   * 2026-09-12 の手検算で、発生元は市場モデル（呼び出し側が
+   * detectAbnormalMoveEvents で -10% を判定）、伝播側はここで素の差、
+   * という**定義の食い違い**が見つかった。同じ日・同じ銘柄で
+   * -4.573%（市場モデル）と -4.330%（素）になる。
+   *
+   * 比（伝播側 ÷ 発生元）は分子と分母の定義が揃っていないと意味が無い。
+   * さらに素の差で閾値を切ると、β の高い銘柄が下げ日に過剰に選ばれる。
+   */
+  marketModel?: MarketModelParams;
 }
 
 export interface ReadAcrossCandidate {
@@ -209,6 +222,7 @@ export function detectReadAcrossEvents(
     const sourceEval = evaluateAbnormalReturn(sourceSeries, sourceIndex, {
       benchmarkCloseByDate,
       corporateActionDates: params.corporateActionDates.get(event.code),
+      ...(params.marketModel ? { marketModel: params.marketModel } : {}),
       implausibleSingleDayMovePct: implausiblePct,
       maxPriorGapDays,
       turnoverLookbackBars: lookback,
@@ -253,6 +267,7 @@ export function detectReadAcrossEvents(
       const relatedEval = evaluateAbnormalReturn(relatedSeries, relatedIndex, {
         benchmarkCloseByDate,
         corporateActionDates: params.corporateActionDates.get(edge.code),
+        ...(params.marketModel ? { marketModel: params.marketModel } : {}),
         implausibleSingleDayMovePct: implausiblePct,
         maxPriorGapDays,
         turnoverLookbackBars: lookback,
