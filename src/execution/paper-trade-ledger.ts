@@ -16,11 +16,18 @@
 //   - 未約定を必ず数える。約定した分だけで成績を語らない。
 //   - 存在しない計画への約定記録、未約定への決済記録を拒否する。
 //   - 二重約定・二重決済を拒否する。
+//   - **時間が戻る記録を拒否する。** 計画より前の約定、約定より前の決済、
+//     期限切れ後の約定、計画株数を超える約定は、どれも別の取引の数字が
+//     この計画の成績として混ざる。混ざると約定率も滑りも意味を失う。
 //   - 判断は純関数。ファイル IO は薄く分ける。
 
 import { appendFileSync, closeSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { parseExplicitIso8601Instant } from "../research/iso-instant.js";
+import { formatJstDate } from "../date.js";
+import {
+  compareExplicitIso8601Instants,
+  parseExplicitIso8601Instant,
+} from "../research/iso-instant.js";
 
 export const DEFAULT_PAPER_TRADE_LEDGER_PATH = "data/paper_trades.jsonl";
 
@@ -100,6 +107,11 @@ function assertNonNegative(value: unknown, field: string): number {
     throw new Error(`paper trade ${field} must be a non-negative finite number: ${String(value)}`);
   }
   return value;
+}
+
+/** 瞬時を JST の暦日に落とす。期限は暦日で切る。 */
+function jstDateOf(instant: string, label: string): string {
+  return formatJstDate(new Date(parseExplicitIso8601Instant(instant, label)));
 }
 
 function assertRecord(record: PaperTradeRecord, label: string): void {
@@ -194,14 +206,11 @@ export function appendPaperTradeRecord(
   assertRecord(record, "paper trade record");
   const existing = readPaperTradeLedger(path);
 
+  const intent = indexOfKind(existing, record.intentId, "intent") as PaperTradeIntent | undefined;
   if (record.kind === "intent") {
-    if (indexOfKind(existing, record.intentId, "intent")) {
-      throw new Error(`duplicate paper trade intent: ${record.intentId}`);
-    }
-  } else {
-    if (!indexOfKind(existing, record.intentId, "intent")) {
-      throw new Error(`cannot record ${record.kind} for an unknown intent: ${record.intentId}`);
-    }
+    if (intent) throw new Error(`duplicate paper trade intent: ${record.intentId}`);
+  } else if (!intent) {
+    throw new Error(`cannot record ${record.kind} for an unknown intent: ${record.intentId}`);
   }
 
   if (record.kind === "fill") {
@@ -211,6 +220,32 @@ export function appendPaperTradeRecord(
     if (indexOfKind(existing, record.intentId, "unfilled")) {
       throw new Error(`paper trade ${record.intentId} was already recorded as unfilled`);
     }
+    // 計画より前に約定はできない。時間が戻る記録を通すと、
+    // 「その計画で買えたのか」という問いそのものが成立しなくなる。
+    if (compareExplicitIso8601Instants(
+      record.filledAt, intent!.recordedAt, "fill.filledAt", "intent.recordedAt",
+    ) < 0) {
+      throw new Error(
+        `paper trade ${record.intentId}: 約定 ${record.filledAt} が`
+        + ` 計画の記録時刻 ${intent!.recordedAt} より前です`,
+      );
+    }
+    // 期限切れの計画に約定を足すと、約定率は実際より高く、
+    // 滑りは別の相場の数字になる。どちらも backtest との比較を壊す。
+    const filledDate = jstDateOf(record.filledAt, "fill.filledAt");
+    if (filledDate > intent!.validUntil) {
+      throw new Error(
+        `paper trade ${record.intentId}: 約定日 ${filledDate} が`
+        + ` 期限 ${intent!.validUntil} を過ぎています。`
+        + "期限内に約定しなかったなら unfilled を、別の取引なら新しい intent を記録してください",
+      );
+    }
+    if (record.filledShares > intent!.plannedShares) {
+      throw new Error(
+        `paper trade ${record.intentId}: 約定株数 ${record.filledShares} が`
+        + ` 計画株数 ${intent!.plannedShares} を超えています`,
+      );
+    }
   }
   if (record.kind === "unfilled") {
     if (indexOfKind(existing, record.intentId, "fill")) {
@@ -219,11 +254,22 @@ export function appendPaperTradeRecord(
     if (indexOfKind(existing, record.intentId, "unfilled")) return { appended: false };
   }
   if (record.kind === "exit") {
-    if (!indexOfKind(existing, record.intentId, "fill")) {
+    const fill = indexOfKind(existing, record.intentId, "fill") as PaperTradeFill | undefined;
+    if (!fill) {
       throw new Error(`cannot exit a paper trade that was never filled: ${record.intentId}`);
     }
     if (indexOfKind(existing, record.intentId, "exit")) {
       throw new Error(`paper trade ${record.intentId} is already closed`);
+    }
+    // 約定より前の決済は保有期間が負になる。
+    // それでもリターンは計算できてしまうので、**利益に見える誤りが残る。**
+    if (compareExplicitIso8601Instants(
+      record.exitedAt, fill.filledAt, "exit.exitedAt", "fill.filledAt",
+    ) < 0) {
+      throw new Error(
+        `paper trade ${record.intentId}: 決済 ${record.exitedAt} が`
+        + ` 約定 ${fill.filledAt} より前です`,
+      );
     }
   }
 
@@ -239,7 +285,7 @@ export interface PaperTradeOutcome {
   status: "open" | "closed" | "unfilled";
   plannedEntryPrice: number;
   filledPrice?: number;
-  /** 計画価格に対する滑り。ロングで高く買えばマイナス。 */
+  /** 計画価格に対する滑り。**正が不利**（ロングで高く買う / ショートで安く売る）。 */
   slippageBps?: number;
   /** 計画株数に対する実約定株数の比。 */
   fillRatio?: number;
@@ -280,6 +326,8 @@ function returnBps(entry: number, exit: number, side: "long" | "short"): number 
 export function reconcilePaperTrades(records: readonly PaperTradeRecord[]): PaperTradeReconciliation {
   const intents = records.filter((one): one is PaperTradeIntent => one.kind === "intent");
   const outcomes: PaperTradeOutcome[] = [];
+  // append を経由せず手で書かれた台帳を読むこともある。そこで気づけるようにする。
+  const inconsistentStops: string[] = [];
 
   for (const intent of [...intents].sort((left, right) =>
     left.intentId < right.intentId ? -1 : left.intentId > right.intentId ? 1 : 0,
@@ -315,6 +363,14 @@ export function reconcilePaperTrades(records: readonly PaperTradeRecord[]): Pape
       feesJpy,
     };
     if (exit) {
+      // 「ストップで降りた」と書かれているのに、ストップより有利な値段で
+      // 降りている。どちらかが事実でない。
+      const stopNotReached = intent.side === "long"
+        ? exit.exitPrice > intent.stopPrice
+        : exit.exitPrice < intent.stopPrice;
+      if (exit.reason === "stop" && stopNotReached) {
+        inconsistentStops.push(intent.intentId);
+      }
       const gross = returnBps(fill.filledPrice, exit.exitPrice, intent.side);
       const notional = fill.filledPrice * fill.filledShares;
       outcome.exitPrice = exit.exitPrice;
@@ -348,6 +404,19 @@ export function reconcilePaperTrades(records: readonly PaperTradeRecord[]): Pape
   const partialFills = filled.filter((one) => (one.fillRatio ?? 1) < 1).length;
   if (partialFills > 0) {
     warnings.push(`部分約定 ${partialFills} 件。計画株数に届いていません`);
+  }
+  const overFills = filled.filter((one) => (one.fillRatio ?? 1) > 1).length;
+  if (overFills > 0) {
+    warnings.push(
+      `過大約定 ${overFills} 件。計画株数を超えています`
+      + "（appendPaperTradeRecord は拒否するので、手で書かれた行です）",
+    );
+  }
+  if (inconsistentStops.length > 0) {
+    warnings.push(
+      `決済理由が stop なのにストップ価格より有利な値段で降りている記録が`
+      + ` ${inconsistentStops.length} 件: ${inconsistentStops.slice(0, 5).join(", ")}`,
+    );
   }
 
   return {
