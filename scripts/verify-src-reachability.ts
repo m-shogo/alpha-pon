@@ -28,6 +28,10 @@ import { dirname, join, relative, resolve } from "node:path";
 
 const ROOT = process.cwd();
 
+const VALIDATE_WRAPPER_REASON =
+  "単体デバッグ用の包み。validate.ts が同じ検証器を呼んでおり、"
+  + "検査自体は pnpm research:validate で CI から走っている（2026-09-11 に確認）。";
+
 /**
  * 本番から到達しないと分かっているモジュール。
  *
@@ -44,6 +48,34 @@ const KNOWN_UNREACHABLE: Record<string, string> = {
   "src/execution/paper-trade-ledger.ts":
     "実行層。Edge が FDR を通るまで配線しない。",
 
+  // 単体デバッグ用の薄い包み。`pnpm research:validate`（validate.ts）が
+  // **同じ検証器を直接呼んでいる**ことを 2026-09-11 に確認した。
+  // 検査自体は CI で走っているので、ここは配線漏れではない。
+  "src/research/cli/validate-bitemporal-evidence.ts":
+    VALIDATE_WRAPPER_REASON,
+  "src/research/cli/validate-catalogs.ts":
+    VALIDATE_WRAPPER_REASON,
+  "src/research/cli/validate-claim-contradiction-graph.ts":
+    VALIDATE_WRAPPER_REASON,
+  "src/research/cli/validate-document-revision-diff.ts":
+    VALIDATE_WRAPPER_REASON,
+  "src/research/cli/validate-evidence-packages.ts":
+    VALIDATE_WRAPPER_REASON,
+  "src/research/cli/validate-foundation-decision-integrations.ts":
+    VALIDATE_WRAPPER_REASON,
+  "src/research/cli/validate-security-master.ts":
+    VALIDATE_WRAPPER_REASON,
+  "src/research/cli/validate-stock-pro-council-calibrations.ts":
+    VALIDATE_WRAPPER_REASON,
+  "src/research/cli/validate-stock-pro-council-ledgers.ts":
+    VALIDATE_WRAPPER_REASON,
+  "src/research/cli/validate-stock-pro-council-replays.ts":
+    VALIDATE_WRAPPER_REASON,
+  "src/research/cli/validate-stock-pro-council-v2.ts":
+    VALIDATE_WRAPPER_REASON,
+  "src/research/cli/validate-testable-hypothesis-scenarios.ts":
+    VALIDATE_WRAPPER_REASON,
+
   // --- 2026-09-11 の棚卸し時点で未到達だった分（未調査） ---
 };
 
@@ -58,18 +90,6 @@ const UNEXAMINED = [
   "src/research/cli/finalize-edinet-foundation-mapping.ts",
   "src/research/cli/prepare-sanrio-edinet-revision-diff.ts",
   "src/research/cli/preview-reviewed-edinet.ts",
-  "src/research/cli/validate-bitemporal-evidence.ts",
-  "src/research/cli/validate-catalogs.ts",
-  "src/research/cli/validate-claim-contradiction-graph.ts",
-  "src/research/cli/validate-document-revision-diff.ts",
-  "src/research/cli/validate-evidence-packages.ts",
-  "src/research/cli/validate-foundation-decision-integrations.ts",
-  "src/research/cli/validate-security-master.ts",
-  "src/research/cli/validate-stock-pro-council-calibrations.ts",
-  "src/research/cli/validate-stock-pro-council-ledgers.ts",
-  "src/research/cli/validate-stock-pro-council-replays.ts",
-  "src/research/cli/validate-stock-pro-council-v2.ts",
-  "src/research/cli/validate-testable-hypothesis-scenarios.ts",
   "src/research/corporate-action-clearance.ts",
   "src/research/document-revision-diff-writer.ts",
   "src/research/edinet-foundation-mapping-edit-finalizer.ts",
