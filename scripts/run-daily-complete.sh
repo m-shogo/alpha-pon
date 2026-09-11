@@ -192,6 +192,12 @@ run_optional_step "ingest-prices-catch-up" \
 run_optional_step "archive-edinet-catch-up" \
   node --env-file-if-exists="$DIR/.env" --import "tsx/esm" \
   "$DIR/src/archive-edinet.ts" --catch-up --execute
+# TDnet は**昨日まで**しか取らない。日本の適時開示は15時以降が大半なので、
+# 朝に当日を保存すると、その日の大半を取りこぼしたまま確定してしまう。
+# 実測: 04:55 に保存した当日ファイルは0件、14時台に取り直すと83件だった。
+run_optional_step "archive-tdnet-catch-up" \
+  node --env-file-if-exists="$DIR/.env" --import "tsx/esm" \
+  "$DIR/src/archive-tdnet.ts" --catch-up --execute
 
 # ── 情報秘書 Lite 通知 ───────────────────────────────────────────────────────
 run_optional_step "data-freshness-report" node --import "tsx/esm" "$DIR/src/data-freshness-report.ts"

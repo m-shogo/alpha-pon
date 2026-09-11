@@ -29,15 +29,31 @@ if (report.lostGaps.length > 0) {
   if (report.lostGaps.length > 10) console.log(`  ほか ${report.lostGaps.length - 10}日`);
 }
 
-if (report.recoverableGaps.length > 0) {
-  const soonest = report.recoverableGaps
+// 末尾の欠落は翌朝の追いつきが埋める。行動は要らないので落とさない。
+const pending = report.gaps.filter((gap) => gap.fillableByCatchUp && gap.recoverable);
+if (pending.length > 0) {
+  console.log(
+    `\n未取得 ${pending.length}日（${pending[0]!.date} 〜）。`
+    + "翌朝の archive:tdnet --catch-up が埋める",
+  );
+}
+
+// 途中の穴は追いつきが飛ばす。人が埋めるしかない。
+if (report.needsManualBackfill.length > 0) {
+  const soonest = report.needsManualBackfill
     .reduce((min, gap) => Math.min(min, gap.daysLeftToRecover), Number.POSITIVE_INFINITY);
-  console.error(`\n欠落 ${report.recoverableGaps.length}日。まだ回収できる（最短であと${soonest}日）:`);
-  for (const gap of report.recoverableGaps.slice(0, 10)) {
+  console.error(
+    `\n欠落 ${report.needsManualBackfill.length}日。`
+    + "**追いつきでは埋まらない**（途中の穴は最終日の翌日からしか取らないため飛ばされる）"
+    + `。最短であと${soonest}日:`,
+  );
+  for (const gap of report.needsManualBackfill.slice(0, 10)) {
     console.error(`  ${gap.date}  残り${gap.daysLeftToRecover}日`);
   }
   console.error("");
-  console.error(`  pnpm archive:tdnet -- --from ${report.recoverableGaps[0]!.date} --to ${today} --execute`);
+  console.error(
+    `  pnpm archive:tdnet -- --from ${report.needsManualBackfill[0]!.date} --to ${today} --execute`,
+  );
   process.exit(1);
 }
 

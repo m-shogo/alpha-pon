@@ -223,7 +223,7 @@ function doc(overrides: Partial<EdinetDoc> = {}): EdinetDoc {
       ? [doc(), doc({ docID: "S100OTHER", edinetCode: "E99999", secCode: "99990" })]
       : [];
     return new Response(JSON.stringify({
-      metadata: { message: null, resultset: { count: results.length } },
+      metadata: { status: "200", message: "OK", resultset: { count: results.length } },
       results,
     }), {
       status: 200,

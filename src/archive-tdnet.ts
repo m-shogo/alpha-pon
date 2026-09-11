@@ -3,6 +3,18 @@
  *
  *   pnpm archive:tdnet -- --from 2026-08-13 --to 2026-09-10            # 計画のみ
  *   pnpm archive:tdnet -- --from 2026-08-13 --to 2026-09-10 --execute  # 実行
+ *   pnpm archive:tdnet -- --catch-up --execute                         # 続きだけ
+ *
+ * ## 当日は保存しない
+ *
+ * 日本の適時開示は15時以降が大半。朝に当日を保存すると、その日の大半を
+ * 取りこぼしたまま「観測済み」として確定してしまう。
+ *
+ * 実測（2026-09-11）: 04:55 に保存した当日ファイルは **0件**。
+ * 同じ日を14時台に取り直すと **83件**。欠落検査もファイルがあるので
+ * 引っかからず、永久に失われる。
+ *
+ * `--catch-up` は**昨日まで**しか取らない。当日は翌朝に完全な形で入る。
  *
  * ## なぜ急ぐか
  *
@@ -18,6 +30,8 @@
  */
 
 import { appendDisclosureSnapshot, assertIsoDate, listArchivedDates } from "./disclosure-archive.js";
+import { resolveCatchUpRange } from "./catch-up-range.js";
+import { todayJst } from "./date.js";
 import { fetchTdnetDisclosureSnapshot } from "./fetcher/jpx.js";
 
 const DEFAULT_INTERVAL_MS = 3_000;
@@ -55,9 +69,38 @@ async function sleep(ms: number): Promise<void> {
   await new Promise((resolveTimer) => setTimeout(resolveTimer, ms));
 }
 
+/** 昨日（JST）。当日は開示が出揃っていないので保存の対象にしない。 */
+function yesterdayJst(): string {
+  const [year, month, day] = todayJst().split("-").map(Number) as [number, number, number];
+  return new Date(Date.UTC(year, month - 1, day - 1)).toISOString().slice(0, 10);
+}
+
 async function main(): Promise<void> {
-  const from = requiredDate("from");
-  const to = requiredDate("to");
+  const catchUp = hasFlag("catch-up");
+  let from: string;
+  let to: string;
+  if (catchUp) {
+    if (argValue("from") || argValue("to")) {
+      throw new Error("--catch-up と --from/--to は同時に指定できない");
+    }
+    const resolved = resolveCatchUpRange({
+      archivedDates: listArchivedDates(),
+      // **昨日まで。** 当日を入れると出揃う前の姿で確定してしまう。
+      today: yesterdayJst(),
+    });
+    if (!resolved.ok) {
+      console.log(resolved.reason === "never_ingested"
+        ? "一度も取り込んでいない。最初は --from を明示して走らせること。"
+        : "既に最新（当日は翌朝に取る）。");
+      return;
+    }
+    from = resolved.range.from;
+    to = resolved.range.to;
+    console.log(`追いつき      ${from} 〜 ${to}（${resolved.range.calendarDays}暦日・当日は含めない）`);
+  } else {
+    from = requiredDate("from");
+    to = requiredDate("to");
+  }
   if (from > to) throw new Error("--from must be on or before --to");
   const execute = hasFlag("execute");
   const includeWeekends = hasFlag("include-weekends");

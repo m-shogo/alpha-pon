@@ -21,9 +21,12 @@ function jsonResponse(body: unknown, status = 200, headers?: HeadersInit): Respo
   });
 }
 
+// 実 API は `metadata.status` を必ず返す（実測 2026-09-11: 正常日も
+// 保持期間外も "200"/"404" が入る）。フィクスチャも同じ形にする。
 const emptyDocList = {
   metadata: {
-    message: null,
+    status: "200",
+    message: "OK",
     resultset: { count: 0 },
   },
   results: [],

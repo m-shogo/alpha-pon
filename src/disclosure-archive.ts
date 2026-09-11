@@ -232,12 +232,32 @@ export interface ArchiveAppendResult {
  *
  * 0件のスナップショットでもファイルを作る。**「その日は開示が無かった」と
  * 「その日は観測しなかった」を区別できないと、後から穴を埋められない。**
+ *
+ * ただし **0件で `explicitEmpty` でないスナップショットは保存しない。**
+ * TDnet は HTML を解析して読む。構造が変わって1件も取れなかった場合も
+ * 「0件」として届くが、それは「開示が無かった」ではなく
+ * 「読めなかった」。空ファイルを作るとその日は観測済みになり、
+ * 欠落検査にも引っかからないまま永久に失われる。
+ *
+ * `explicitEmpty` は一覧が「該当なし」と明示していたときだけ true。
+ * 取り下げ行が取れているなら解析自体は動いているので、それも根拠に数える。
  */
 export function appendDisclosureSnapshot(input: {
   snapshot: TdnetDisclosureSnapshot;
   retrievedAt: string;
   root?: string;
 }): ArchiveAppendResult {
+  const { snapshot } = input;
+  if (
+    snapshot.disclosures.length === 0
+    && snapshot.withdrawn.length === 0
+    && !snapshot.explicitEmpty
+  ) {
+    throw new Error(
+      `TDnet snapshot for ${snapshot.observationDate} has no rows and no explicit-empty proof; `
+      + "保存すると「観測したが開示なし」として永久に残る",
+    );
+  }
   const root = input.root ?? archiveRoot();
   const rows = toArchivedDisclosures(input.snapshot, input.retrievedAt);
   const observationDate = assertIsoDate(input.snapshot.observationDate, "snapshot.observationDate");

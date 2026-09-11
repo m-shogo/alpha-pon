@@ -21,6 +21,46 @@ function audit(archivedDates: string[], today: string, retentionDays = TDNET_RET
   return auditDisclosureArchive({ today, archivedDates, retentionDays });
 }
 
+function testMiddleHolesNeedManualBackfill(): void {
+  // 追いつき（--catch-up）は**保存済みの最終日の翌日から**しか取らない。
+  // 途中の穴は永久に飛ばされるので、人が埋めるしかない。
+  //
+  // 末尾の穴は翌朝の追いつきで入るので、行動は要らない。
+  // これを区別しないと、毎朝「当日が無い」で検査が落ち続ける。
+  const report = audit(
+    ["2026-09-07", "2026-09-09", "2026-09-10"],   // 09-08 が抜けている
+    "2026-09-11",
+  );
+  const dates = (list: { date: string }[]) => list.map((one) => one.date);
+
+  assert.deepEqual(dates(report.gaps), ["2026-09-08", "2026-09-11"]);
+  assert.deepEqual(dates(report.needsManualBackfill), ["2026-09-08"],
+    "途中の穴だけが手作業を要する");
+
+  const middle = report.gaps.find((gap) => gap.date === "2026-09-08")!;
+  const trailing = report.gaps.find((gap) => gap.date === "2026-09-11")!;
+  assert.equal(middle.fillableByCatchUp, false);
+  assert.equal(trailing.fillableByCatchUp, true, "最終日より後は追いつきが埋める");
+}
+
+function testExpiredTrailingGapStillNeedsAction(): void {
+  // 末尾でも回収期限を過ぎていれば、追いつきでも埋まらない。
+  const report = audit(["2026-08-01"], "2026-09-11", 28);
+  const expired = report.needsManualBackfill.filter((gap) => !gap.recoverable);
+  assert.ok(expired.length > 0, "期限切れは手遅れとして報告する");
+  assert.ok(
+    report.needsManualBackfill.every((gap) => !gap.fillableByCatchUp || !gap.recoverable),
+    "自動で埋まる回収可能な穴を手作業扱いにしない",
+  );
+}
+
+function testTrailingOnlyGapNeedsNoAction(): void {
+  // 当日ぶんだけが無い状態。翌朝に入るので行動は要らない。
+  const report = audit(["2026-09-09", "2026-09-10"], "2026-09-11");
+  assert.deepEqual(report.gaps.map((one) => one.date), ["2026-09-11"]);
+  assert.deepEqual(report.needsManualBackfill, []);
+}
+
 function testNoGapsWhenEveryWeekdayIsArchived(): void {
   // 2026-09-07(月) 〜 2026-09-11(金)
   const report = audit(
@@ -137,6 +177,9 @@ testBannerIsSilentWhenThereIsNoGap();
 testBannerShowsTheDeadline();
 testBannerCommandRangeIsNotInverted();
 testBannerReportsUnrecoverableSeparately();
+testMiddleHolesNeedManualBackfill();
+testExpiredTrailingGapStillNeedsAction();
+testTrailingOnlyGapNeedsNoAction();
 testNoGapsWhenEveryWeekdayIsArchived();
 testWeekendsAreNotGaps();
 testMissingWeekdayIsAGap();
