@@ -37,9 +37,15 @@ import {
 import {
   StudyInputsError,
   formatStudyInputs,
+  loadEarningsDisclosureInputs,
   loadEarningsEventDatesFromStore,
   loadStudyInputsFromStore,
+  resolveResearchTo,
 } from "../study-inputs-from-store.js";
+import {
+  generateEarningsGapSignals,
+  type EarningsGapParams,
+} from "../signals/earnings-gap.js";
 import { fail, parseArgs } from "./common.js";
 
 interface Bundle {
@@ -56,11 +62,20 @@ interface Bundle {
    * 変えたときに古いシグナルで backtest を回せてしまう。同じ bundle に
    * 置いて同じ実行で作る。
    */
-  detector?: {
-    kind: "abnormal_move";
-    params: Omit<AbnormalMoveParams, "knownEventDates" | "corporateActionDates">
-      & { knownEventDates?: Record<string, string[]> };
-  };
+  detector?:
+    | {
+        kind: "abnormal_move";
+        params: Omit<AbnormalMoveParams, "knownEventDates" | "corporateActionDates">
+          & { knownEventDates?: Record<string, string[]> };
+      }
+    | {
+        /**
+         * 決算後に下げたが会社予想の営業利益が減額されていない銘柄。
+         * 開示は保存庫（research/fins）から読む。bundle に書き写さない。
+         */
+        kind: "earnings_gap";
+        params: Omit<EarningsGapParams, "corporateActionDates">;
+      };
   /** これまでに試した仮説の数。False Discovery Guard の閾値に使う。 */
   trials?: number;
 }
@@ -87,20 +102,60 @@ function loadFromStore(
   options: Map<string, string>,
   flags: ReadonlySet<string>,
 ): { signals: BacktestSignal[]; prices: PriceSeries[]; benchmark: PriceSeries } {
-  if (bundle.detector?.kind !== "abnormal_move") {
-    fail("--from-store には bundle.detector.kind = \"abnormal_move\" が必要です");
+  const kind = bundle.detector?.kind;
+  if (kind !== "abnormal_move" && kind !== "earnings_gap") {
+    fail("--from-store には bundle.detector.kind = \"abnormal_move\" か \"earnings_gap\" が必要です");
   }
   const minTurnoverJpy = numberOption(options, "min-turnover-jpy", 0);
+
+  // 封印は CLI ごとに書かない。書き忘れた CLI だけが覗くことになる。
+  const research = resolveResearchTo(options.get("to") ?? null);
+  if (research.violation) fail(research.violation);
+  const to = research.to;
+  if (to !== null) {
+    console.log(
+      options.get("to")
+        ? `期間  : 〜 ${to}（明示指定）`
+        : `期間  : 〜 ${to}（封印 ${research.sealed!.windowId} の前日まで）`,
+    );
+  }
+
   let inputs;
   try {
     inputs = loadStudyInputsFromStore({
       ...(options.get("from") ? { from: options.get("from")! } : {}),
-      ...(options.get("to") ? { to: options.get("to")! } : {}),
+      ...(to ? { to } : {}),
       minTurnoverJpy,
     });
   } catch (error) {
     if (error instanceof StudyInputsError) fail(error.message);
     throw error;
+  }
+
+  if (bundle.detector!.kind === "earnings_gap") {
+    // 決算ギャップは開示そのものが起点なので knownEventDates を使わない
+    // （「決算の日を除外する」のは業績以外の原因を探すときの話）。
+    const disclosures = loadEarningsDisclosureInputs(to ? { to } : {});
+    const priceByCode = new Map<string, PriceSeries>(
+      inputs.prices.map((series) => [series.code, series]),
+    );
+    const result = generateEarningsGapSignals(disclosures.disclosures, priceByCode, {
+      ...bundle.detector!.params,
+      corporateActionDates: inputs.corporateActionDates,
+    });
+    for (const line of formatStudyInputs(inputs, minTurnoverJpy)) console.log(line);
+    console.log(
+      `決算開示: ${disclosures.datesScanned}営業日 / ${disclosures.disclosures.length.toLocaleString()}件`,
+    );
+    const gapRejects = Object.entries(result.rejectedCounts)
+      .filter(([, count]) => count > 0)
+      .sort((left, right) => right[1] - left[1])
+      .map(([reason, count]) => `${reason}=${count.toLocaleString()}`)
+      .join(" ");
+    console.log(`検出  : 開示 ${result.disclosureCount.toLocaleString()} → シグナル ${result.signals.length}`);
+    if (gapRejects) console.log(`却下  : ${gapRejects}`);
+    console.log("");
+    return { signals: result.signals, prices: inputs.prices, benchmark: inputs.benchmark };
   }
 
   // 決算開示から「説明のつく日」を組む。
@@ -110,7 +165,7 @@ function loadFromStore(
   // edge-study と同じ材料を同じ作り方で使わないと、
   // 「イベントスタディでは出たのに backtest では出ない」の原因が分からなくなる。
   let knownEventDates = new Map<string, Set<string>>(
-    Object.entries(bundle.detector.params.knownEventDates ?? {})
+    Object.entries(bundle.detector!.params.knownEventDates ?? {})
       .map(([code, dates]) => [code, new Set(dates)]),
   );
   if (!flags.has("no-earnings-calendar")) {
@@ -128,7 +183,7 @@ function loadFromStore(
   }
 
   const detected = detectAbnormalMoveEvents(inputs.prices, inputs.benchmark, {
-    ...bundle.detector.params,
+    ...bundle.detector!.params,
     knownEventDates,
     corporateActionDates: inputs.corporateActionDates,
   });

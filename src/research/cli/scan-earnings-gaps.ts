@@ -19,19 +19,17 @@
  *   「該当が無かった」なのか「測れなかった」なのか分からない。
  */
 
-import { existsSync, readFileSync } from "node:fs";
 import {
   DEFAULT_EXCLUDED_DOCUMENT_TYPE_PATTERNS,
   generateEarningsGapSignals,
 } from "../signals/earnings-gap.js";
-import type { HoldoutVaultManifest } from "../signals/holdout-partition.js";
 import {
   StudyInputsError,
   formatStudyInputs,
   loadEarningsDisclosureInputs,
   loadStudyInputsFromStore,
+  resolveResearchTo,
 } from "../study-inputs-from-store.js";
-import { paths } from "../io.js";
 import type { PriceSeries } from "../backtest.js";
 
 function argValue(name: string): string | null {
@@ -50,30 +48,12 @@ function numberArg(name: string, fallback: number): number {
   return parsed;
 }
 
-/** 封印の開始日の前日。金庫が無ければ null。 */
-function researchCutoffFromVault(): { to: string; windowId: string } | null {
-  const path = paths.holdoutManifest();
-  if (!existsSync(path)) return null;
-  const manifest = JSON.parse(readFileSync(path, "utf-8")) as HoldoutVaultManifest;
-  let earliest: { from: string; id: string } | null = null;
-  for (const window of manifest.windows) {
-    if (!earliest || window.from < earliest.from) earliest = { from: window.from, id: window.id };
-  }
-  if (!earliest) return null;
-  const day = new Date(`${earliest.from}T00:00:00Z`);
-  day.setUTCDate(day.getUTCDate() - 1);
-  return { to: day.toISOString().slice(0, 10), windowId: earliest.id };
-}
 
 function main(): void {
   const explicitTo = argValue("to");
-  const sealed = researchCutoffFromVault();
-  const to = explicitTo ?? sealed?.to ?? null;
-  if (explicitTo && sealed && explicitTo > sealed.to) {
-    console.log(
-      `⚠ --to=${explicitTo} は封印期間（${sealed.windowId} は ${sealed.to} の翌日から）に入っています。`,
-    );
-    console.log("  封印を開けるなら research:holdout:open を通し、access_log に記録を残してください。");
+  const { to, sealed, violation } = resolveResearchTo(explicitTo);
+  if (violation) {
+    console.error(`⚠ ${violation}`);
     process.exitCode = 1;
     return;
   }

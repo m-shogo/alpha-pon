@@ -1,0 +1,33 @@
+{
+  "spec": {
+    "schemaVersion": 1,
+    "id": "earnings-gap-forecast-not-cut-long-d5",
+    "edgeId": "earnings-gap-forecast-not-cut",
+    "side": "long",
+    "notionalJpy": 1000000,
+    "entry": { "mode": "next_open" },
+    "exit": { "mode": "holding_period", "holdingPeriodDays": 5 },
+    "costs": {
+      "commissionBps": 5,
+      "spreadBps": 10,
+      "slippageBps": 8,
+      "marketImpactBpsPerPctAdv": 10,
+      "borrowCostAnnualBps": 0
+    },
+    "liquidity": {
+      "participationLimitPct": 3,
+      "minAdtvJpy": 500000000,
+      "lotSize": 100
+    },
+    "benchmark": "UNIVERSE-EW",
+    "notes": "決算後に-7%以下まで下げたが会社予想の営業利益が減額されていない銘柄を翌営業日の寄付で買い5営業日持つ。コストは generic-reversal と同じ保守寄りの見積り（往復で片道23bps相当）。事前に決めた1つの条件だけを試す。"
+  },
+  "detector": {
+    "kind": "earnings_gap",
+    "params": {
+      "gapThresholdPct": -7,
+      "requireForecastNotCut": true
+    }
+  },
+  "trials": 1
+}
