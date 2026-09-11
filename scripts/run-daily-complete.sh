@@ -71,19 +71,13 @@ else
   echo "---- [backup-data.sh] failed (non-critical, continuing) ----"
 fi
 
-# ── critical ──────────────────────────────────────────────────────────────────
-# run-daily.sh が失敗したら complete pipeline を停止する。
-# 失敗日に古い/不完全な JSON を成功扱いで生成しないため。
-echo "---- [run-daily.sh] start ----"
-if ! bash "$DIR/scripts/run-daily.sh"; then
-  echo "---- [run-daily.sh] FAILED. stopping complete pipeline. ----"
-  exit 1
-fi
-echo "---- [run-daily.sh] ok ----"
-
 # ── noncritical ヘルパー ──────────────────────────────────────────────────────
 # run_optional_step <name> <command...>
 # 失敗してもスクリプト全体は止まらないが、FAILED_COMPLETE_STEPS に記録する。
+#
+# **critical より前で定義する。** 研究用データの追いつきを critical の前に
+# 置いているため、そこより手前で使えないといけない。
+# bash は定義前に呼ぶと "command not found" になり、`bash -n` では気づけない。
 FAILED_COMPLETE_STEPS=""
 
 run_optional_step() {
@@ -102,6 +96,44 @@ run_optional_step() {
     return "$code"
   fi
 }
+
+# ── 研究用データの追いつき（critical より前に実行）────────────────────────────
+#
+# **critical の前に置く。** `run-daily.sh` が失敗するとこの下は実行されない。
+# レポートは翌日でも作り直せるが、**TDnet は約28日で遡れなくなる。**
+# レポート生成が壊れているあいだにデータ収集まで止まると、
+# 取り返しのつかない損失になる。
+#
+# 価格も EDINET も、遡り取り込みは一度きりで走らせた。ここで毎日続きを
+# 取らないと、価格は取り込んだ日で止まる。J-Quants Free は84日遅延なので、
+# 毎日1営業日ぶんずつ契約範囲へ入ってくる。TDnet の保存開始（2026-08-03）に
+# 価格が追いつかなければ、不祥事 Edge はいつまでも測れない。
+#
+# TDnet と EDINET は**昨日まで**しか取らない。日中に出続けるので、
+# 当日を保存すると出揃う前の姿が確定する
+# （実測: TDnet 04:55 に 0件 → 14時台に 83件 / EDINET 153件 → 223件）。
+#
+# どれも1日あたり1リクエスト程度。失敗してもレポートは止めない。
+run_optional_step "ingest-prices-catch-up" \
+  node --env-file-if-exists="$DIR/.env" --import "tsx/esm" \
+  "$DIR/src/research/cli/ingest-jquants-daily.ts" --catch-up --execute
+run_optional_step "archive-edinet-catch-up" \
+  node --env-file-if-exists="$DIR/.env" --import "tsx/esm" \
+  "$DIR/src/archive-edinet.ts" --catch-up --execute
+run_optional_step "archive-tdnet-catch-up" \
+  node --env-file-if-exists="$DIR/.env" --import "tsx/esm" \
+  "$DIR/src/archive-tdnet.ts" --catch-up --execute
+
+# ── critical ──────────────────────────────────────────────────────────────────
+# run-daily.sh が失敗したら complete pipeline を停止する。
+# 失敗日に古い/不完全な JSON を成功扱いで生成しないため。
+echo "---- [run-daily.sh] start ----"
+if ! bash "$DIR/scripts/run-daily.sh"; then
+  echo "---- [run-daily.sh] FAILED. stopping complete pipeline. ----"
+  exit 1
+fi
+echo "---- [run-daily.sh] ok ----"
+
 
 # ── イベント3日前リマインド ─────────────────────────────────────────────────
 # 総会・決算・継続会・ロックアップ解除など、日付がある重要イベントだけ通知する。
@@ -174,30 +206,6 @@ if (batchDir) {
   console.log(text);
 }
 NODE
-
-# ── 研究用データの追いつき ────────────────────────────────────────────────────
-#
-# 価格も EDINET も、遡り取り込みは一度きりで走らせた。ここで毎日
-# 続きを取らないと、価格は取り込んだ日で止まる。
-#
-# J-Quants Free は84日遅延なので、毎日1営業日ぶんずつ契約範囲へ入ってくる。
-# TDnet の保存開始（2026-08-03）に価格が追いつかなければ、
-# 不祥事 Edge はいつまでも測れない。
-#
-# どちらも1日あたり1リクエスト程度。失敗してもレポートは止めない
-# （run_optional_step は非致命）。
-run_optional_step "ingest-prices-catch-up" \
-  node --env-file-if-exists="$DIR/.env" --import "tsx/esm" \
-  "$DIR/src/research/cli/ingest-jquants-daily.ts" --catch-up --execute
-run_optional_step "archive-edinet-catch-up" \
-  node --env-file-if-exists="$DIR/.env" --import "tsx/esm" \
-  "$DIR/src/archive-edinet.ts" --catch-up --execute
-# TDnet は**昨日まで**しか取らない。日本の適時開示は15時以降が大半なので、
-# 朝に当日を保存すると、その日の大半を取りこぼしたまま確定してしまう。
-# 実測: 04:55 に保存した当日ファイルは0件、14時台に取り直すと83件だった。
-run_optional_step "archive-tdnet-catch-up" \
-  node --env-file-if-exists="$DIR/.env" --import "tsx/esm" \
-  "$DIR/src/archive-tdnet.ts" --catch-up --execute
 
 # ── 情報秘書 Lite 通知 ───────────────────────────────────────────────────────
 run_optional_step "data-freshness-report" node --import "tsx/esm" "$DIR/src/data-freshness-report.ts"
