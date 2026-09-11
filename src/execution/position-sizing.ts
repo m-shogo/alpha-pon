@@ -24,6 +24,7 @@ export const POSITION_SIZING_REJECT_REASONS = [
   "stop_equals_entry",
   "risk_budget_below_one_lot",
   "max_position_below_one_lot",
+  "concurrency_below_one_lot",
   "liquidity_below_one_lot",
 ] as const;
 
@@ -68,7 +69,10 @@ export interface PositionSizingResult {
   /** ストップまで逆行した場合に失う額。 */
   riskJpy: number;
   riskPctOfEquity: number;
-  /** サイズを決めた制約。どれにも当たらなければ null（許容リスクちょうど）。 */
+  /**
+   * サイズを決めた制約。建てる場合は必ずどれかが決めるので non-null。
+   * rejected のときだけ null。
+   */
   bindingConstraint: PositionSizingConstraint | null;
   /** 各制約が許した単元数。デバッグと説明のために全部返す。 */
   lotsByConstraint: Record<PositionSizingConstraint, number>;
@@ -177,7 +181,9 @@ export function sizePosition(input: PositionSizingInput): PositionSizingResult {
     );
   }
   if (lotsByConstraint.max_position < 1) return rejection("max_position_below_one_lot");
-  if (lotsByConstraint.concurrency < 1) return rejection("max_position_below_one_lot");
+  // 同時保有数の制約で弾かれたことを max_position と同じ理由で返すと、
+  // 直すべきつまみ（maxPositionPct か maxConcurrentPositions か）を取り違える。
+  if (lotsByConstraint.concurrency < 1) return rejection("concurrency_below_one_lot");
   if (lotsByConstraint.liquidity < 1) return rejection("liquidity_below_one_lot");
 
   let lots = Number.POSITIVE_INFINITY;

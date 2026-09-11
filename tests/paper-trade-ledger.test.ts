@@ -5,6 +5,8 @@
 //   2. append-only。存在しない計画への記録、二重約定・二重決済を拒否する
 //   3. 滑りを計画価格との差で測る
 //   4. 未決着を成績に混ぜない
+//   5. 時間が戻る記録を拒否する（計画より前の約定 / 約定より前の決済 /
+//      期限切れ後の約定 / 計画株数を超える約定）
 
 import assert from "node:assert/strict";
 import { appendFileSync, mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
@@ -208,6 +210,75 @@ try {
     }
   }
 
+  // --- 時系列と数量の整合 ---
+
+  function testFillBeforeTheIntentIsRejected() {
+    const p = ledger("fill-before-intent");
+    appendPaperTradeRecord(intent(), p);
+    assert.throws(
+      () => appendPaperTradeRecord(fill({ filledAt: "2026-09-10T09:00:00+09:00" }), p),
+      /計画の記録時刻 .* より前です/,
+      "計画より前に約定はできない",
+    );
+  }
+
+  function testFillAfterValidUntilIsRejected() {
+    const p = ledger("fill-after-expiry");
+    // 期限は 2026-09-12。JST の暦日で切る。
+    appendPaperTradeRecord(intent(), p);
+    assert.throws(
+      () => appendPaperTradeRecord(fill({ filledAt: "2026-09-13T09:00:00+09:00" }), p),
+      /期限 2026-09-12 を過ぎています/,
+      "期限切れの計画に約定を足すと、約定率も滑りも別の取引の数字になる",
+    );
+  }
+
+  function testFillOnTheValidUntilDayIsAccepted() {
+    const p = ledger("fill-on-expiry-day");
+    appendPaperTradeRecord(intent(), p);
+    // 期限当日の大引けは有効。JST 判定なので UTC 換算で前日になる時刻も通す。
+    appendPaperTradeRecord(fill({ filledAt: "2026-09-12T06:00:00Z" }), p);
+    assert.equal(reconcilePaperTrades(readPaperTradeLedger(p)).filledCount, 1);
+  }
+
+  function testOverFillIsRejected() {
+    const p = ledger("over-fill");
+    appendPaperTradeRecord(intent(), p);
+    assert.throws(
+      () => appendPaperTradeRecord(fill({ filledShares: 301 }), p),
+      /計画株数 300 を超えています/,
+      "計画を超えて建てたなら、それは別の取引",
+    );
+  }
+
+  function testExitBeforeFillIsRejected() {
+    const p = ledger("exit-before-fill");
+    appendPaperTradeRecord(intent(), p);
+    appendPaperTradeRecord(fill({ filledAt: "2026-09-11T09:00:00+09:00" }), p);
+    assert.throws(
+      () => appendPaperTradeRecord(
+        exitRecord({ exitedAt: "2026-09-10T15:00:00+09:00" }), p,
+      ),
+      /約定 .* より前です/,
+      "保有期間が負でもリターンは計算できてしまう。利益に見える誤りを残さない",
+    );
+  }
+
+  function testHandWrittenStopInconsistencyIsWarned() {
+    // append を通さず手で書かれた台帳にも気づけること。
+    const p = ledger("hand-written-stop");
+    for (const record of [
+      intent(),
+      fill(),
+      exitRecord({ exitPrice: 1100, reason: "stop" }),
+    ]) appendFileSync(p, `${JSON.stringify(record)}\n`, "utf-8");
+    const warnings = reconcilePaperTrades(readPaperTradeLedger(p)).warnings;
+    assert.ok(
+      warnings.some((one) => one.includes("stop")),
+      `ストップより有利な値段での stop 決済を警告すること: ${JSON.stringify(warnings)}`,
+    );
+  }
+
   testSlippageIsMeasuredAgainstThePlan();
   testUnfilledIsCountedNotIgnored();
   testClosedTradeNetsOutFees();
@@ -222,6 +293,12 @@ try {
   testAppendOnly();
   testMalformedLedgerFailsClosed();
   testInvalidIntentFailsClosed();
+  testFillBeforeTheIntentIsRejected();
+  testFillAfterValidUntilIsRejected();
+  testFillOnTheValidUntilDayIsAccepted();
+  testOverFillIsRejected();
+  testExitBeforeFillIsRejected();
+  testHandWrittenStopInconsistencyIsWarned();
 
   console.log("paper-trade-ledger: 全テスト成功");
 } finally {
