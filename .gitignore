@@ -12,6 +12,8 @@ data/disclosures/*.json
 data/disclosures/*.jsonl
 # EDINET inventory / metadata / downloaded PDF・ZIP / batch manifest はすべてlocal-only。
 data/edinet/**
+# EDINET 書類一覧の保存庫。再配布の判断を避けるためローカル限定。
+data/edinet-documents/**
 data/ipo/*.json
 
 # PIT価格の実データは利用許諾にかかわらずlocal storeへ置き、Gitへcommitしない。
