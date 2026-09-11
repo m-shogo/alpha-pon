@@ -12,7 +12,7 @@ import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  assertRowsBelongToDate,
+  classifyMasterRows,
   codeOf,
   companyNameOf,
   computeMasterRecordHash,
@@ -96,16 +96,27 @@ try {
     );
   }
 
-  function testMismatchedDateIsRejected() {
-    assert.doesNotThrow(() => assertRowsBelongToDate("2024-06-20", [row(), row()]));
-    assert.throws(
-      () => assertRowsBelongToDate("2024-06-20", [row(), row({ Date: "2024-06-19" })]),
-      /Date が問い合わせた日と違う行が 1 件ある/,
+  function testRowsAreClassifiedByDate() {
+    assert.deepEqual(classifyMasterRows("2024-06-20", [row(), row()]), { kind: "matches" });
+    assert.deepEqual(classifyMasterRows("2024-06-20", []), { kind: "matches" }, "0件は正常");
+
+    // 休場日は翌営業日のマスタが返る（実測 2024-07-15 海の日 → 全4,374行が 07-16）。
+    // **その日のものではないので保存しない。** 決算 /fins/summary は0件を返すので
+    // 端点ごとに挙動が違う。
+    assert.deepEqual(
+      classifyMasterRows("2024-07-15", [row({ Date: "2024-07-16" }), row({ Date: "2024-07-16" })]),
+      { kind: "rolled_forward", returnedDate: "2024-07-16" },
     );
-    assert.throws(
-      () => assertRowsBelongToDate("2024-06-20", [row({ Date: undefined })]),
-      /Date が問い合わせた日と違う行/,
-    );
+
+    // 過去の日が混ざるのは想定外。止める。
+    const back = classifyMasterRows("2024-06-20", [row(), row({ Date: "2024-06-19" })]);
+    assert.equal(back.kind, "mismatch");
+
+    // 全行が「前の日」でも roll-forward ではない。
+    assert.equal(classifyMasterRows("2024-06-20", [row({ Date: "2024-06-19" })]).kind, "mismatch");
+
+    // Date が欠けている行も通さない。
+    assert.equal(classifyMasterRows("2024-06-20", [row({ Date: undefined })]).kind, "mismatch");
   }
 
   function testAccessorsReadThroughOneDoor() {
@@ -145,7 +156,7 @@ try {
   testHashCoversEveryStoredField();
   testHashDoesNotDependOnWhenWeFetched();
   testQueryDateMustBeIsoDate();
-  testMismatchedDateIsRejected();
+  testRowsAreClassifiedByDate();
   testAccessorsReadThroughOneDoor();
   testSidecarLedgerIsNotADateFile();
   testReadingReturnsWhatWasWritten();
