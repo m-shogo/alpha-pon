@@ -175,6 +175,24 @@ if (batchDir) {
 }
 NODE
 
+# ── 研究用データの追いつき ────────────────────────────────────────────────────
+#
+# 価格も EDINET も、遡り取り込みは一度きりで走らせた。ここで毎日
+# 続きを取らないと、価格は取り込んだ日で止まる。
+#
+# J-Quants Free は84日遅延なので、毎日1営業日ぶんずつ契約範囲へ入ってくる。
+# TDnet の保存開始（2026-08-03）に価格が追いつかなければ、
+# 不祥事 Edge はいつまでも測れない。
+#
+# どちらも1日あたり1リクエスト程度。失敗してもレポートは止めない
+# （run_optional_step は非致命）。
+run_optional_step "ingest-prices-catch-up" \
+  node --env-file-if-exists="$DIR/.env" --import "tsx/esm" \
+  "$DIR/src/research/cli/ingest-jquants-daily.ts" --catch-up --execute
+run_optional_step "archive-edinet-catch-up" \
+  node --env-file-if-exists="$DIR/.env" --import "tsx/esm" \
+  "$DIR/src/archive-edinet.ts" --catch-up --execute
+
 # ── 情報秘書 Lite 通知 ───────────────────────────────────────────────────────
 run_optional_step "data-freshness-report" node --import "tsx/esm" "$DIR/src/data-freshness-report.ts"
 run_optional_step "emergency-disclosure-watch" node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/emergency-disclosure-watch.ts"
