@@ -37,6 +37,7 @@ import {
   formatStudyInputs,
   loadEarningsEventDatesFromStore,
   loadStudyInputsFromStore,
+  makeCodeLabeller,
   resolveResearchTo,
 } from "../study-inputs-from-store.js";
 import { assertIsoDate } from "../providers/jquants-daily-ingest.js";
@@ -222,6 +223,14 @@ function main(): void {
   }
   console.log("");
 
+  const labeller = makeCodeLabeller(to);
+  if (labeller.snapshotDate === null) {
+    console.log("（銘柄名なし: 先に pnpm ingest:master を実行するとコードに社名が付きます）");
+  } else {
+    console.log(`銘柄名          ${labeller.snapshotDate} 時点のマスタ / ${labeller.known}銘柄`);
+  }
+  console.log("");
+
   const marketModel: MarketModelParams | null = hasFlag("no-market-model")
     ? null
     : DEFAULT_MARKET_MODEL_PARAMS;
@@ -254,7 +263,7 @@ function main(): void {
       console.log("  下落の大きい候補（上位20件）:");
       for (const candidate of worst) {
         console.log(
-          `    ${candidate.code} ${candidate.date}  `
+          `    ${labeller.label(candidate.code).padEnd(22)} ${candidate.date}  `
           + `異常 ${candidate.abnormalReturnPct.toFixed(1)}%  `
           + `素 ${candidate.rawReturnPct.toFixed(1)}%  `
           + `売買代金 ${(candidate.averageTurnoverJpy / 1e8).toFixed(1)}億`,

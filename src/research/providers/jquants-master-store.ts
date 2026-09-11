@@ -223,3 +223,84 @@ export function readMasterDateRecords(
   }
   return records;
 }
+
+/** その日の1銘柄の属性。 */
+export interface EquityAttributes {
+  code: string;
+  name: string;
+  sector17: string;
+  sector33: string;
+  sector33Name: string;
+  scaleCategory: string;
+  market: string;
+}
+
+/**
+ * 指定日の銘柄属性を引く。**その日が無ければ、それ以前で最新の日を使う。**
+ *
+ * 休場日はマスタを保存しない（API が翌営業日を返すため）ので、
+ * 日付をそのまま引くと空になる。研究では「D 時点で分かっていた属性」が
+ * 欲しいので、**D より後は絶対に使わない**。前に遡るのは正しく、
+ * 後ろを使うのは未来の情報を混ぜることになる。
+ */
+export function loadMasterAsOf(
+  date: string,
+  root = resolveMasterStoreRoot(),
+): { attributes: Map<string, EquityAttributes>; snapshotDate: string | null } {
+  const dates = listIngestedMasterDates(root);
+  let chosen: string | null = null;
+  for (const one of dates) {
+    if (one > date) break;
+    chosen = one;
+  }
+  if (chosen === null) return { attributes: new Map(), snapshotDate: null };
+
+  const attributes = new Map<string, EquityAttributes>();
+  for (const record of readMasterDateRecords(chosen, root)) {
+    const code = codeOf(record);
+    if (code === "") continue;
+    attributes.set(code, {
+      code,
+      name: companyNameOf(record),
+      sector17: sector17Of(record),
+      sector33: sector33Of(record),
+      sector33Name: sector33NameOf(record),
+      scaleCategory: scaleCategoryOf(record),
+      market: marketOf(record),
+    });
+  }
+  return { attributes, snapshotDate: chosen };
+}
+
+/**
+ * 33業種でまとめた peer グラフ。
+ *
+ * config/company-network.yml の手書き peer は実測で **8社ぶんしかない**。
+ * read-across（同業への伝播）はそれでは標本にならない。
+ * 業種でまとめれば全市場ぶんの peer が作れる。
+ *
+ * 粗さは承知の上。同じ33業種でも規模も事業も違う。
+ * 必要なら `scaleCategory` でさらに絞る（`minGroupSize` は絞りすぎの検出用）。
+ */
+export function buildSectorPeers(input: {
+  attributes: ReadonlyMap<string, EquityAttributes>;
+  /** true なら規模区分も一致する銘柄だけを peer にする。既定 false。 */
+  matchScaleCategory?: boolean;
+}): { peersByCode: Map<string, string[]>; groupCount: number; singletonCount: number } {
+  const groups = new Map<string, string[]>();
+  for (const one of input.attributes.values()) {
+    if (one.sector33 === "") continue;
+    const key = input.matchScaleCategory ? `${one.sector33}|${one.scaleCategory}` : one.sector33;
+    const bucket = groups.get(key);
+    if (bucket) bucket.push(one.code);
+    else groups.set(key, [one.code]);
+  }
+  const peersByCode = new Map<string, string[]>();
+  let singletonCount = 0;
+  for (const members of groups.values()) {
+    if (members.length < 2) { singletonCount += 1; continue; }
+    const sorted = [...members].sort();
+    for (const code of sorted) peersByCode.set(code, sorted.filter((one) => one !== code));
+  }
+  return { peersByCode, groupCount: groups.size, singletonCount };
+}
