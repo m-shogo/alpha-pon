@@ -32,7 +32,7 @@ import {
   resolveStoreRoot,
 } from "./providers/jquants-daily-store.js";
 import {
-  DEFAULT_UNIVERSE_BENCHMARK_PARAMS,
+  DEFAULT_UNIVERSE_BENCHMARK_SETTINGS,
   buildUniverseBenchmark,
 } from "./signals/universe-benchmark.js";
 import type { PriceSeries } from "./backtest.js";
@@ -95,7 +95,10 @@ export function loadStudyInputsFromStore(query: StudyInputsQuery = {}): StudyInp
   // benchmark は**流動性で絞る前**の母集団から組む。絞ったあとから組むと、
   // 絞り方を変えるたびに市場の定義まで変わってしまう。
   const universe = buildUniverseBenchmark(loaded.series, {
-    ...DEFAULT_UNIVERSE_BENCHMARK_PARAMS,
+    ...DEFAULT_UNIVERSE_BENCHMARK_SETTINGS,
+    // 権利落ちをまたぐリターンを指数に入れない。
+    // 実測: 100:1 併合が入って指数が1日で +12.95% 動いた。
+    corporateActionDates,
     ...(minTurnoverJpy > 0 ? { minAverageTurnoverJpy: minTurnoverJpy } : {}),
   });
   if (universe.series.bars.length === 0) {
@@ -106,7 +109,7 @@ export function loadStudyInputsFromStore(query: StudyInputsQuery = {}): StudyInp
 
   const prices = minTurnoverJpy > 0
     ? loaded.series.filter((series) => {
-        const window = series.bars.slice(-DEFAULT_UNIVERSE_BENCHMARK_PARAMS.turnoverLookbackBars);
+        const window = series.bars.slice(-DEFAULT_UNIVERSE_BENCHMARK_SETTINGS.turnoverLookbackBars);
         if (window.length === 0) return false;
         const average = window.reduce((sum, bar) => sum + bar.close * bar.volume, 0) / window.length;
         return average >= minTurnoverJpy;

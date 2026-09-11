@@ -40,22 +40,12 @@ import {
   suggestLabel,
 } from "../signals/disclosure-label-suggestions.js";
 import { detectAbnormalMoveEvents } from "../signals/abnormal-move-events.js";
+import { DEFAULT_MARKET_MODEL_PARAMS } from "../signals/market-model.js";
 import {
-  DEFAULT_MARKET_MODEL_PARAMS,
-} from "../signals/market-model.js";
-import {
-  DEFAULT_UNIVERSE_BENCHMARK_PARAMS,
-  buildUniverseBenchmark,
-} from "../signals/universe-benchmark.js";
-import {
-  JQUANTS_ADJUSTMENT_LEDGER_NAME,
-  parseAdjustmentLedger,
-  toCorporateActionDates,
-} from "../providers/jquants-adjustment-events.js";
-import {
-  loadBacktestSeriesAsOf,
-  resolveStoreRoot,
-} from "../providers/jquants-daily-store.js";
+  StudyInputsError,
+  formatStudyInputs,
+  loadStudyInputsFromStore,
+} from "../study-inputs-from-store.js";
 import { TREATMENT_LABELS } from "../signals/event-labels.js";
 
 function argValue(name: string): string | null {
@@ -154,36 +144,46 @@ function main(): void {
   }
 
   // 価格側の候補を作って突き合わせる。
-  const root = resolveStoreRoot();
-  const ledgerPath = resolve(root, JQUANTS_ADJUSTMENT_LEDGER_NAME);
-  if (!existsSync(ledgerPath)) {
-    console.log("価格ストアがまだない。pnpm ingest:prices を先に実行すること。");
-    console.log("開示だけ見るなら --preview-rules を使う。");
+  //
+  // 材料（流動性の足切り・ユニバース benchmark・権利落ち台帳）は
+  // edge-study / backtest と**同じ関数**から取る。ここだけ別に組むと、
+  // 「イベントスタディには出たのにラベル提案には出ない」の原因が分からなくなる。
+  const minTurnoverJpy = Number(argValue("min-turnover-jpy") ?? 500_000_000);
+  if (!Number.isFinite(minTurnoverJpy) || minTurnoverJpy < 0) {
+    console.error("--min-turnover-jpy は0以上の数値で指定してください");
     process.exitCode = 1;
     return;
   }
-  const corporateActionDates = toCorporateActionDates(
-    parseAdjustmentLedger(readFileSync(ledgerPath, "utf-8")),
-  );
-  const loaded = loadBacktestSeriesAsOf({
-    asOf: new Date().toISOString(),
-    root,
-    ...(from ? { from } : {}),
-    ...(to ? { to } : {}),
-  });
+  let inputs;
+  try {
+    inputs = loadStudyInputsFromStore({
+      ...(from ? { from } : {}),
+      ...(to ? { to } : {}),
+      minTurnoverJpy,
+    });
+  } catch (error) {
+    if (error instanceof StudyInputsError) {
+      console.error(error.message);
+      process.exitCode = 1;
+      return;
+    }
+    throw error;
+  }
 
-  const priceDates = loaded.series.flatMap((series) => series.bars.map((bar) => bar.date));
-  const archiveDates = evidence.map((one) => one.observationDate);
-  const priceTo = priceDates.length ? priceDates.sort().at(-1)! : null;
-  const archiveFrom = archiveDates.length ? archiveDates.sort()[0]! : null;
+  const archiveDates = evidence.map((one) => one.observationDate).sort();
+  const priceTo = inputs.prices
+    .flatMap((series) => series.bars.map((bar) => bar.date))
+    .sort()
+    .at(-1) ?? null;
+  const archiveFrom = archiveDates[0] ?? null;
 
   const bySource = new Map<string, number>();
   for (const one of evidence) bySource.set(one.source, (bySource.get(one.source) ?? 0) + 1);
   console.log(
-    `証拠 ${evidence.length}件（${archiveFrom} 〜 ${archiveDates.sort().at(-1)}）`
+    `証拠 ${evidence.length}件（${archiveFrom} 〜 ${archiveDates.at(-1)}）`
     + ` / ${[...bySource].map(([source, count]) => `${source} ${count}`).join(" ")}`,
   );
-  console.log(`価格 ${loaded.series.length}銘柄（〜 ${priceTo}）`);
+  for (const line of formatStudyInputs(inputs, minTurnoverJpy)) console.log(line);
 
   if (priceTo && archiveFrom && priceTo < archiveFrom) {
     console.log("");
@@ -194,17 +194,33 @@ function main(): void {
     return;
   }
 
-  const universe = buildUniverseBenchmark(loaded.series, DEFAULT_UNIVERSE_BENCHMARK_PARAMS);
-  const detected = detectAbnormalMoveEvents(loaded.series, universe.series, {
+  const detected = detectAbnormalMoveEvents(inputs.prices, inputs.benchmark, {
     abnormalReturnThresholdPct: Number(argValue("threshold-pct") ?? -10),
     knownEventDates: new Map(),
-    corporateActionDates,
+    corporateActionDates: inputs.corporateActionDates,
     marketModel: DEFAULT_MARKET_MODEL_PARAMS,
-    minAverageTurnoverJpy: Number(argValue("min-turnover-jpy") ?? 500_000_000),
+    minAverageTurnoverJpy: minTurnoverJpy,
   });
 
-  // 証拠は5桁コードで引く。TDnet の4桁 code ではなく sourceCode を使うので、
-  // 価格ストアと同じ体系のまま突き合わせられる（実測 EDINET 264/268 が一致）。
+  // 却下の内訳を必ず出す。これが無いと「候補0件」の理由が
+  // 「異常が無かった」なのか「測れなかった」なのか分からない。
+  const rejectSummary = Object.entries(detected.rejectedCounts)
+    .filter(([, count]) => count > 0)
+    .sort((left, right) => right[1] - left[1])
+    .map(([reason, count]) => `${reason}=${count}`)
+    .join(" ");
+  console.log(`検出  : 評価 ${detected.evaluatedCount} → 候補 ${detected.candidates.length}`);
+  if (rejectSummary) console.log(`却下  : ${rejectSummary}`);
+  const unavailable = detected.rejectedCounts.market_model_unavailable;
+  if (detected.evaluatedCount > 0 && unavailable > detected.evaluatedCount * 0.5) {
+    console.log(
+      `⚠ 評価の ${(unavailable / detected.evaluatedCount * 100).toFixed(0)}% で市場モデルを推定できていません。`
+      + "候補の少なさを結論にしないでください。"
+      + `--from を早めて推定窓（${DEFAULT_MARKET_MODEL_PARAMS.estimationBars}本）ぶんの履歴を入れること`,
+    );
+  }
+  console.log("");
+
   const byCode = new Map<string, LabelEvidence[]>();
   for (const one of evidence) {
     const bucket = byCode.get(one.code) ?? [];
@@ -212,8 +228,6 @@ function main(): void {
     byCode.set(one.code, bucket);
   }
 
-  console.log(`候補 ${detected.candidates.length}件`);
-  console.log("");
   let suggested = 0;
   let conflicting = 0;
   let noDisclosure = 0;

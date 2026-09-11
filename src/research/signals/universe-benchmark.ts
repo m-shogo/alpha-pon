@@ -22,6 +22,19 @@
  *
  * 手元にはユニバース全体の価格がある。ETF を代理に使う理由がない。
  *
+ * ## 権利落ち日を必ず外す
+ *
+ * 最初の実装は権利落ち台帳を見ていなかった。実測 2024-12-16、
+ * `13570`（日経ダブルインバース）が100:1の株式併合をして
+ * 117円 → 11,755円（**+9,947%**）になり、それが等加重平均に入って
+ * **指数がその日だけ +12.95% 動いた。**
+ *
+ * 1銘柄の併合が市場の動きになる。その日の全銘柄の異常収益が壊れ、
+ * その日を含む推定窓のβもすべて壊れる。
+ *
+ * 台帳は**必須**にしている。省略できるようにすると、渡し忘れたときに
+ * 黙って壊れた指数ができる。
+ *
  * ## PIT
  *
  * 構成銘柄は「その日までに分かっている実績」で決める。全期間の売買代金で
@@ -51,6 +64,13 @@ import { calendarDaysBetween } from "./trading-calendar.js";
 export const UNIVERSE_BENCHMARK_CODE = "UNIVERSE-EW";
 
 export interface UniverseBenchmarkParams {
+  /**
+   * code -> 権利落ち日。**必須。**
+   *
+   * 省略可能にすると渡し忘れたときに黙って壊れた指数ができる。
+   * 「権利落ちが無い」ことを表すなら空の Map を明示的に渡す。
+   */
+  corporateActionDates: ReadonlyMap<string, ReadonlySet<string>>;
   /** 構成銘柄の最低平均売買代金（円/日）。過去時点の実績で判定する。 */
   minAverageTurnoverJpy: number;
   /** 売買代金の参照本数。 */
@@ -61,12 +81,13 @@ export interface UniverseBenchmarkParams {
   maxPriorGapDays: number;
 }
 
-export const DEFAULT_UNIVERSE_BENCHMARK_PARAMS: UniverseBenchmarkParams = {
+/** 台帳を除いた既定値。呼び出し側が `corporateActionDates` を足して使う。 */
+export const DEFAULT_UNIVERSE_BENCHMARK_SETTINGS = {
   minAverageTurnoverJpy: 500_000_000,
   turnoverLookbackBars: 20,
   minConstituents: 100,
   maxPriorGapDays: 10,
-};
+} as const;
 
 export interface UniverseBenchmarkDay {
   date: string;
@@ -87,9 +108,14 @@ export interface UniverseBenchmarkResult {
   days: UniverseBenchmarkDay[];
   /** 構成銘柄が足りず指数を出さなかった日。黙って飛ばさない。 */
   skippedDates: string[];
+  /** 権利落ちをまたぐとして構成から外したリターンの本数。 */
+  excludedForCorporateAction: number;
 }
 
 export function assertUniverseBenchmarkParams(params: UniverseBenchmarkParams): void {
+  if (!(params.corporateActionDates instanceof Map)) {
+    throw new Error("corporateActionDates は必須（権利落ちが無いなら空の Map を渡すこと）");
+  }
   if (!Number.isFinite(params.minAverageTurnoverJpy) || params.minAverageTurnoverJpy < 0) {
     throw new Error(`minAverageTurnoverJpy must be a non-negative finite number`);
   }
@@ -118,7 +144,7 @@ export function assertUniverseBenchmarkParams(params: UniverseBenchmarkParams): 
  */
 export function buildUniverseBenchmark(
   securities: readonly PriceSeries[],
-  params: UniverseBenchmarkParams = DEFAULT_UNIVERSE_BENCHMARK_PARAMS,
+  params: UniverseBenchmarkParams,
 ): UniverseBenchmarkResult {
   assertUniverseBenchmarkParams(params);
 
@@ -127,7 +153,10 @@ export function buildUniverseBenchmark(
   const contributions = new Map<string, Array<{ closePct: number; overnightPct: number }>>();
   const allDates = new Set<string>();
 
+  let excludedForCorporateAction = 0;
+
   for (const series of securities) {
+    const actionDates = params.corporateActionDates.get(series.code);
     let turnoverSum = 0;
     const turnoverWindow: number[] = [];
 
@@ -146,9 +175,15 @@ export function buildUniverseBenchmark(
         && priorTurnoverAvg >= params.minAverageTurnoverJpy
         && calendarDaysBetween(prior.date, bar.date) <= params.maxPriorGapDays
       ) {
+        // 権利落ち日のリターンは株数基準が変わるので市場の動きではない。
+        // 実測: 100:1 併合の +9,947% が入って指数が1日で +12.95% 動いた。
+        // 翌日は新基準どうしなので外さない。
+        const spansCorporateAction = actionDates !== undefined && actionDates.has(bar.date);
+        if (spansCorporateAction) excludedForCorporateAction += 1;
+
         // 始値が取れない行は構成から外す。0 で代用すると
         // オーバーナイトが -100% として平均に入る。
-        if (bar.open > 0) {
+        if (!spansCorporateAction && bar.open > 0) {
           const entry = {
             closePct: ((bar.close - prior.close) / prior.close) * 100,
             overnightPct: ((bar.open - prior.close) / prior.close) * 100,
@@ -208,5 +243,6 @@ export function buildUniverseBenchmark(
     series: { code: UNIVERSE_BENCHMARK_CODE, bars },
     days,
     skippedDates,
+    excludedForCorporateAction,
   };
 }

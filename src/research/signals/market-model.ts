@@ -33,6 +33,16 @@
  * 閾値を「-8%」ではなく「-3σ」で置けるようになる。
  * 値動きの粗い銘柄と静かな銘柄を同じ物差しで測らずに済む。
  *
+ * ## 権利落ち日を外す
+ *
+ * 最初の実装は権利落ち台帳を見ていなかった。実測 `13570` は 2024-12-16 に
+ * 100:1 の株式併合をして +9,947% になり、それが推定期間に入って
+ * **β=245.5 / 残差σ=817%** になった。その結果、異常収益が -262.7% という
+ * あり得ない値で出ていた。
+ *
+ * 呼び出し側が持っている権利落ち日を渡せるようにし、その日をまたぐ
+ * リターンを推定から外す。
+ *
  * ## ここで決めないこと
  *
  * βの大きさによる足切りは**選別方針**であって推定の責務ではない。
@@ -126,6 +136,7 @@ function collectReturnPairs(
   benchmarkCloseByDate: ReadonlyMap<string, number>,
   eventIndex: number,
   params: MarketModelParams,
+  corporateActionDates: ReadonlySet<string> | undefined,
 ): { pairs: ReturnPair[]; fromDate: string; toDate: string } {
   // 事件日そのものは絶対に含めない（-1）。gapBars はそこからの追加分。
   // 含めると事件が β と σ を押し上げ、異常収益が小さく出る。
@@ -142,6 +153,15 @@ function collectReturnPairs(
     if (!(priorBar.close > 0)) continue;
     // 売買停止明けの「1日の値動き」を推定に混ぜない。
     if (calendarDaysBetween(priorBar.date, bar.date) > params.maxPriorGapDays) continue;
+    // 権利落ち日のリターンは株数基準が変わるので値動きではない。
+    // 実測: 100:1 併合の +9,947% が入って β=245.5 / σ=817% になった。
+    //
+    // **翌日は外さない。** 権利落ち日の終値は既に新基準なので、
+    // 翌日のリターンは新基準どうしで正常。検出側
+    // （`evaluateAbnormalReturn` の corporate_action_in_window）は
+    // 候補そのものを出さない方向へ保守的に前日も見るが、推定では
+    // 使える観測を捨てる理由がない。
+    if (corporateActionDates !== undefined && corporateActionDates.has(bar.date)) continue;
 
     const benchmarkClose = benchmarkCloseByDate.get(bar.date);
     const benchmarkPriorClose = benchmarkCloseByDate.get(priorBar.date);
@@ -168,6 +188,8 @@ export function estimateMarketModel(
   benchmarkCloseByDate: ReadonlyMap<string, number>,
   eventIndex: number,
   params: MarketModelParams = DEFAULT_MARKET_MODEL_PARAMS,
+  /** この銘柄の権利落ち日。渡さないと併合・分割が推定に混ざる。 */
+  corporateActionDates?: ReadonlySet<string>,
 ): MarketModelEstimate {
   assertMarketModelParams(params);
   if (!Number.isSafeInteger(eventIndex) || eventIndex < 0) {
@@ -179,7 +201,7 @@ export function estimateMarketModel(
   }
 
   const { pairs, fromDate, toDate } = collectReturnPairs(
-    series, benchmarkCloseByDate, eventIndex, params,
+    series, benchmarkCloseByDate, eventIndex, params, corporateActionDates,
   );
   if (pairs.length < params.minObservations) {
     return { ok: false, reason: "insufficient_observations" };

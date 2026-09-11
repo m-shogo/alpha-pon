@@ -69,6 +69,41 @@ function benchmarkReturns(count: number): number[] {
   return Array.from({ length: count }, (_, index) => (index % 2 === 0 ? 1 : -1) * (1 + (index % 5) * 0.4));
 }
 
+function testCorporateActionReturnsAreExcludedFromEstimation(): void {
+  // 実測で踏んだ欠陥。`13570` は 2024-12-16 に100:1の株式併合をして
+  // +9,947% になり、それが推定期間に入って **β=245.5 / 残差σ=817%** になった。
+  // 結果、異常収益が -262.7% というあり得ない値で出ていた。
+  const returns = benchmarkReturns(80);
+  const { security, benchmarkCloseByDate } = buildSeries({
+    benchmarkReturnsPct: returns, alpha: 0, beta: 1.2,
+  });
+  // 40本目で100倍にする（併合）。以降の水準も100倍のまま。
+  const mergedAt = security.bars[40]!.date;
+  const merged: PriceSeries = {
+    code: security.code,
+    bars: security.bars.map((bar, index) => index >= 40
+      ? { ...bar, open: bar.open * 100, high: bar.high * 100, low: bar.low * 100, close: bar.close * 100 }
+      : bar),
+  };
+  const eventIndex = merged.bars.length - 1;
+
+  const contaminated = estimateMarketModel(merged, benchmarkCloseByDate, eventIndex, PARAMS);
+  assert.ok(contaminated.ok);
+  assert.ok(
+    Math.abs(contaminated.fit.beta) > 50,
+    `テスト前提: 台帳が無いと β が壊れる（実測 ${contaminated.fit.beta}）`,
+  );
+
+  const clean = estimateMarketModel(
+    merged, benchmarkCloseByDate, eventIndex, PARAMS, new Set([mergedAt]),
+  );
+  assert.ok(clean.ok);
+  assert.ok(Math.abs(clean.fit.beta - 1.2) < 0.05, `β=${clean.fit.beta}`);
+  assert.ok(clean.fit.residualStdPct < 0.1, `残差σ=${clean.fit.residualStdPct}`);
+  assert.equal(clean.fit.observations, contaminated.fit.observations - 1,
+    "権利落ち日の1本だけ外れる（翌日は新基準どうしなので残す）");
+}
+
 function testRecoversKnownAlphaAndBeta(): void {
   const { security, benchmarkCloseByDate } = buildSeries({
     benchmarkReturnsPct: benchmarkReturns(80), alpha: 0.05, beta: 1.6,
@@ -331,6 +366,7 @@ function testDefaultsFollowEventStudyConvention(): void {
   assert.ok(DEFAULT_MARKET_MODEL_PARAMS.minObservations >= 3);
 }
 
+testCorporateActionReturnsAreExcludedFromEstimation();
 testRecoversKnownAlphaAndBeta();
 testHighBetaCrashIsNotAbnormal();
 testIdiosyncraticDropIsStillAbnormal();
