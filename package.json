@@ -112,6 +112,7 @@
     "ui:scan:stocks": "pnpm scan:universe && pnpm generate:company-rules && pnpm pro:all && pnpm review:hypotheses && pnpm ui:data",
     "ingest:prices": "node --env-file-if-exists=.env --import tsx/esm src/research/cli/ingest-jquants-daily.ts",
     "ingest:fins": "node --env-file-if-exists=.env --import tsx/esm src/research/cli/ingest-jquants-fins.ts",
+    "ingest:master": "node --env-file-if-exists=.env --import tsx/esm src/research/cli/ingest-jquants-master.ts",
     "research:validate-prices": "node --max-old-space-size=14336 --import tsx/esm src/research/cli/validate-prices.ts",
     "scan:moves": "node --max-old-space-size=8192 --env-file-if-exists=.env --import tsx/esm src/research/cli/scan-abnormal-moves.ts",
     "scan:earnings-gaps": "node --max-old-space-size=8192 --env-file-if-exists=.env --import tsx/esm src/research/cli/scan-earnings-gaps.ts",

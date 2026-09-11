@@ -130,6 +130,11 @@ run_optional_step "ingest-fins-catch-up" \
   node --env-file-if-exists="$DIR/.env" --import "tsx/esm" \
   "$DIR/src/research/cli/ingest-jquants-fins.ts" --catch-up --execute
 
+# 上場銘柄マスタ（社名・業種・規模区分・市場区分）。これも2年ローリング。
+run_optional_step "ingest-master-catch-up" \
+  node --env-file-if-exists="$DIR/.env" --import "tsx/esm" \
+  "$DIR/src/research/cli/ingest-jquants-master.ts" --catch-up --execute
+
 # ── 取った直後に、取ったものを検査する ────────────────────────────────────────
 #
 # この2本は ci-pipeline-smoke.sh からも起動されるが、**CI では必ず素通りする。**

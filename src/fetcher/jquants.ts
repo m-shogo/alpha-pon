@@ -493,6 +493,36 @@ export async function fetchDailyQuotesByDate(
  * 範囲外を叩く前に `null` を返して区別する。「聞いてはいけない」と
  * 「聞いたが開示が無かった」を混ぜないため。
  */
+/**
+ * 上場銘柄マスタを「1日ぶんまとめて」取る。
+ *
+ * `/equities/master?date=` は **その日の全上場銘柄** を1リクエストで返す。
+ * 実測（2026-09-12）:
+ *   項目 Date / Code / CoName / CoNameEn / S17 / S17Nm / S33 / S33Nm /
+ *        ScaleCat / Mkt / MktNm / Mrgn / MrgnNm / ProdCat
+ *   件数 4,367〜4,443（日によって増減する。上場・廃止があるため）
+ *   契約 2024-06-20 〜 2026-06-20（価格・決算と同じ2年ローリング）
+ *
+ * なぜ日次で取るか（実測した変化の量）:
+ *   2024-06-20 → 2024-12-20  属性変化 175 / 新規 93 / 消滅 50
+ *   2024-12-20 → 2025-06-20  属性変化 465 / 新規 63 / 消滅 73
+ *   2025-06-20 → 2025-12-19  属性変化 207 / 新規105 / 消滅 72
+ *   2025-12-19 → 2026-06-19  属性変化  84 / 新規100 / 消滅 90
+ *   業種・規模区分・市場区分は動く。**「変わらないはず」で1枚に畳まない。**
+ */
+export async function fetchEquityMasterByDate(
+  date: string,
+  now: Date = new Date(),
+): Promise<Record<string, unknown>[] | null> {
+  if (!process.env.JQUANTS_API_KEY) {
+    throw new Error("fetchEquityMasterByDate requires the V2 API (JQUANTS_API_KEY)");
+  }
+  const compact = validatedCompactDate(date, "J-Quants master date");
+  if (compact > jquantsV2DateCapCompact(now)) return null;
+
+  return await getV2Paginated<Record<string, unknown>>("/equities/master", { date });
+}
+
 export async function fetchFinancialSummaryByDate(
   date: string,
   now: Date = new Date(),

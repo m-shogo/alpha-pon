@@ -28,18 +28,25 @@ export const TDNET_RETENTION_DAYS = 28;
 export const EDINET_RETENTION_DAYS = 3_470;
 
 /**
- * J-Quants の決算開示（`/fins/summary`）の保持日数（暦日）。
+ * J-Quants の2年ローリング窓（価格・決算・銘柄マスタ共通）の保持日数（暦日）。
  *
- * 契約範囲は **cap を上端とする2年の窓**。cap は「今日 − 84日」。
- * 実測（2026-09-11）: 範囲は 2024-06-19 〜 2026-06-19。
- *   cap = 2026-06-19 = today − 84
- *   下限 = cap − 730（ちょうど2年）
- * したがって、ある日 D が取得できるのは **D + 814日** まで。
+ * 窓は **cap を上端とする2年**。cap は「今日 − 84日」。
+ * 実測（2026-09-12）: 決算は 2024-06-19 〜 2026-06-19、
+ * マスタは 2024-06-20 〜 2026-06-20。どちらも下限 = cap − 730（ちょうど2年）。
+ * したがって、ある日 D が取得できるのは **D + 730 + 84 = D + 814日** まで。
  *
- * **窓は毎日ずれる。取り逃した最古日は翌日には取れない。**
- * 余裕を見て 800日で扱う（期限を長く見積もると取り逃す）。
+ * **ここを短く見積もってはいけない。** TDnet の28日と逆で、
+ * 短くすると「まだ取れる日」を回収不能と判定して諦めることになる
+ * （実際に 800 と置いて、5日ぶんを誤って回収不能と報告した）。
+ * 期限の警告を早めたいなら、判定ではなく表示側で前倒しする。
  */
-export const JQUANTS_FINS_RETENTION_DAYS = 800;
+export const JQUANTS_ROLLING_WINDOW_DAYS = 814;
+
+/** @deprecated JQUANTS_ROLLING_WINDOW_DAYS を使う。 */
+export const JQUANTS_FINS_RETENTION_DAYS = JQUANTS_ROLLING_WINDOW_DAYS;
+
+/** @deprecated JQUANTS_ROLLING_WINDOW_DAYS を使う。 */
+export const JQUANTS_MASTER_RETENTION_DAYS = JQUANTS_ROLLING_WINDOW_DAYS;
 
 export interface ArchiveGap {
   date: string;
