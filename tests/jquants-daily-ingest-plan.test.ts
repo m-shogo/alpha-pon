@@ -10,7 +10,7 @@ import {
   dayOfWeek,
   estimateIngestSeconds,
   formatDuration,
-  isCompletedOutcome,
+  isCompletedIngest,
   isWeekend,
   parseIngestLedger,
   planIngest,
@@ -107,9 +107,44 @@ function testInvalidInputFailsClosed(): void {
 function testNotEntitledIsNeverCompleted(): void {
   // 実際に踏んだバグ。2026-09-01 を「枠外」として台帳に記録してしまい、
   // 84日遅延が明けても二度と取りに行かない状態になっていた。
-  assert.equal(isCompletedOutcome("entitled_rows"), true);
-  assert.equal(isCompletedOutcome("entitled_empty"), true, "休場日も完了。でないと毎回聞き直す");
-  assert.equal(isCompletedOutcome("not_entitled"), false, "枠外は完了ではない。あとで取れる");
+  assert.equal(isCompletedIngest({ outcome: "entitled_rows" }), true);
+  assert.equal(isCompletedIngest({ outcome: "entitled_empty" }), true,
+    "休場日も完了。でないと毎回聞き直す");
+  assert.equal(isCompletedIngest({ outcome: "not_entitled" }), false,
+    "枠外は完了ではない。あとで取れる");
+}
+
+function testWithheldDaysAreNeverCompleted(): void {
+  // 2回目に踏んだバグ。`observedAt` は「対象日+84日の 23:59:59 JST」なので、
+  // 契約上の上限日は**いつ実行しても抑止される**。それを完了にすると、
+  // 追いつきを毎日回すたびに1日ずつ永久の穴ができる。
+  //
+  // 実際に 2026-06-19 で作ってしまった。台帳は rowCount 0 で完了、
+  // いま API を叩くと4,443件返る。
+  assert.equal(
+    isCompletedIngest({ outcome: "entitled_rows", withheldForAsOf: 4443 }),
+    false,
+    "抑止された日を完了にしてはいけない",
+  );
+  assert.equal(
+    isCompletedIngest({ outcome: "entitled_empty", withheldForAsOf: 1 }),
+    false,
+  );
+  // 抑止が0なら従来どおり完了。
+  assert.equal(isCompletedIngest({ outcome: "entitled_rows", withheldForAsOf: 0 }), true);
+}
+
+function testWithheldEntryIsNotCountedAsCompleted(): void {
+  const completed = completedDatesFrom({
+    fileNames: [],
+    ledgerContent: [
+      JSON.stringify({ tradingDate: "2026-06-19", outcome: "entitled_rows", rowCount: 0,
+        retrievedAt: "2026-09-11T00:00:00.000Z", withheldForAsOf: 4443 }),
+      JSON.stringify({ tradingDate: "2026-06-18", outcome: "entitled_rows", rowCount: 4445,
+        retrievedAt: "2026-09-11T00:00:00.000Z" }),
+    ].join("\n"),
+  });
+  assert.deepEqual([...completed], ["2026-06-18"], "抑止された日は再取得の対象に残す");
 }
 
 function testCompletedFromFilesAndLedger(): void {
@@ -187,6 +222,8 @@ testMonthAndYearBoundaries();
 testSingleDayRange();
 testInvalidInputFailsClosed();
 testNotEntitledIsNeverCompleted();
+testWithheldDaysAreNeverCompleted();
+testWithheldEntryIsNotCountedAsCompleted();
 testCompletedFromFilesAndLedger();
 testLedgerSurvivesRenameCrashWindow();
 testCorruptLedgerFailsClosed();
