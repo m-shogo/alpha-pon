@@ -10,7 +10,7 @@
 import assert from "node:assert/strict";
 import { appendFileSync, mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import {
   computeDatasetFingerprint,
   computeTrialId,
@@ -214,4 +214,61 @@ try {
   console.log("research/trials-ledger: 全テスト成功");
 } finally {
   rmSync(dir, { recursive: true, force: true });
+}
+
+// ── 測定コードを直したあとの記録（2026-09-11 追加）──────────────
+//
+// 試行 ID は (edgeId, specId, params, datasetFingerprint) から作るので
+// **コードの版が入っていない。** 測定のバグを直して測り直すと、
+// 同じ ID で違う結果が出る。
+//
+// 実際に起きた: 株式併合が指数とβを壊していた欠陥(#2073)を直したあと、
+// EDINET の子会社スタディを測り直したら
+// 「trial ... already has a different outcome」で記録できなかった。
+//
+// 黙って上書きできるようにすると「非決定的」の検出が死ぬので、
+// 理由を渡したときだけ置き換えを許す。
+
+{
+  const dir = mkdtempSync(resolve(tmpdir(), "trials-supersede-"));
+  const path = resolve(dir, "trials.jsonl");
+  try {
+    const input = {
+      edgeId: "e", specId: "s", params: { threshold: -10 },
+      datasetFingerprint: "fp", intent: "初回",
+    };
+    const { trialId } = registerTrial(input, path);
+    const first = { executedCount: 10, meanNetAlphaBps: 5, tStat: 1, clusteredTStat: 0.5, clusterCount: 4 };
+    assert.deepEqual(recordTrialOutcome(trialId, first, path), { appended: true, superseded: false });
+
+    // 同じ結果の再記録は何もしない。
+    assert.deepEqual(recordTrialOutcome(trialId, first, path), { appended: false, superseded: false });
+
+    // 違う結果を理由なしで記録すると落ちる。
+    const second = { executedCount: 8, meanNetAlphaBps: -3, tStat: -0.5, clusteredTStat: -0.2, clusterCount: 4 };
+    assert.throws(() => recordTrialOutcome(trialId, second, path), /not deterministic/);
+    assert.throws(() => recordTrialOutcome(trialId, second, path, new Date(), { supersedesReason: "  " }),
+      /not deterministic/, "空白だけの理由は理由ではない");
+
+    // 理由つきなら置き換えを追記する。
+    const result = recordTrialOutcome(trialId, second, path, new Date(), {
+      supersedesReason: "指数の欠陥(#2073)を直して測り直した",
+    });
+    assert.deepEqual(result, { appended: true, superseded: true });
+
+    const records = readTrialLedger(path);
+    const outcomes = records.filter((r) => r.kind === "outcome");
+    assert.equal(outcomes.length, 2, "追記のみ。前の結果を消さない");
+    const latest = outcomes.at(-1) as typeof outcomes[number] & {
+      supersedesReason?: string; supersededOutcome?: unknown;
+    };
+    assert.equal(latest.supersedesReason, "指数の欠陥(#2073)を直して測り直した");
+    assert.deepEqual(latest.supersededOutcome, first, "置き換えられた側も残す");
+
+    // 置き換えたあとは、直前の結果と比べる。
+    assert.deepEqual(recordTrialOutcome(trialId, second, path), { appended: false, superseded: false });
+    assert.throws(() => recordTrialOutcome(trialId, first, path), /not deterministic/);
+
+    console.log("research/trials-ledger: 理由つきの置き換えだけ許す OK");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 }
