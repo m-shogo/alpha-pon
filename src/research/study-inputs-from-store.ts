@@ -176,9 +176,17 @@ export function loadEarningsEventDatesFromStore(input: {
   root?: string;
   /** 開示当日も除外するか。既定 true。 */
   includeDisclosureDay?: boolean;
+  /**
+   * この日より後の開示を読まない。
+   *
+   * カレンダー外の開示は結果に影響しないが、**封印期間のファイルを
+   * 開くこと自体を避ける。** 影響が無いかどうかを毎回考えるより、
+   * 触らないほうが確実。
+   */
+  to?: string;
 }): EarningsEventDatesResult & { disclosureCount: number; datesScanned: number } {
   const root = input.root ?? resolveFinsStoreRoot();
-  const dates = listIngestedFinsDates(root);
+  const dates = listIngestedFinsDates(root).filter((date) => !input.to || date <= input.to);
   if (dates.length === 0) {
     throw new StudyInputsError(
       `決算開示の保存庫がありません: ${root}\n`

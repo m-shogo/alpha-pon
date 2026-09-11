@@ -170,7 +170,7 @@ function loadFromStore(
   );
   if (!flags.has("no-earnings-calendar")) {
     try {
-      const earnings = loadEarningsEventDatesFromStore({ tradingDates: inputs.tradingDates });
+      const earnings = loadEarningsEventDatesFromStore({ tradingDates: inputs.tradingDates, ...(to ? { to } : {}) });
       knownEventDates = earnings.byCode;
       console.log(
         `決算カレンダー: ${earnings.datesScanned}営業日 / 開示 ${earnings.disclosureCount.toLocaleString()}件`
