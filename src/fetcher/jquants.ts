@@ -457,6 +457,35 @@ export async function fetchDailyQuotesByDate(
   return rows.map(normalizeV2Quote);
 }
 
+/**
+ * 決算開示を「1日ぶんまとめて」取る。
+ *
+ * `/fins/summary?date=` は **その日に開示された全銘柄ぶん** を1リクエストで返す。
+ * 実測（2026-09-11）:
+ *   - `DiscDate` が問い合わせた日と食い違う行は 0（3日・2,248行で確認）
+ *   - `Code` は日内で一意ではない（1社が同日に決算＋予想修正などを出す）
+ *   - `DiscNo` は日内・日跨ぎとも重複なし（5日・3,613行）だが、
+ *     EDINET の docID が実際に衝突した前例があるので **同一性はハッシュで見る**
+ *   - 土日・休場日は HTTP 200 で 0件（正常な空）
+ *   - 契約範囲外は HTTP 400（`getV2Paginated` が例外にする）
+ *
+ * 契約範囲の上限は価格と同一（実測 2024-06-19 〜 2026-06-19 = 84日遅延）。
+ * 範囲外を叩く前に `null` を返して区別する。「聞いてはいけない」と
+ * 「聞いたが開示が無かった」を混ぜないため。
+ */
+export async function fetchFinancialSummaryByDate(
+  date: string,
+  now: Date = new Date(),
+): Promise<Record<string, unknown>[] | null> {
+  if (!process.env.JQUANTS_API_KEY) {
+    throw new Error("fetchFinancialSummaryByDate requires the V2 API (JQUANTS_API_KEY)");
+  }
+  const compact = validatedCompactDate(date, "J-Quants fins date");
+  if (compact > jquantsV2DateCapCompact(now)) return null;
+
+  return await getV2Paginated<Record<string, unknown>>("/fins/summary", { date });
+}
+
 export async function fetchFinancialStatements(
   code: string
 ): Promise<FinancialStatement[]> {

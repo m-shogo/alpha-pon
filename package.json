@@ -111,6 +111,7 @@
     "generate:company-rules": "node --env-file=.env --import tsx/esm src/generate-company-rules.ts",
     "ui:scan:stocks": "pnpm scan:universe && pnpm generate:company-rules && pnpm pro:all && pnpm review:hypotheses && pnpm ui:data",
     "ingest:prices": "node --env-file-if-exists=.env --import tsx/esm src/research/cli/ingest-jquants-daily.ts",
+    "ingest:fins": "node --env-file-if-exists=.env --import tsx/esm src/research/cli/ingest-jquants-fins.ts",
     "scan:moves": "node --max-old-space-size=8192 --env-file-if-exists=.env --import tsx/esm src/research/cli/scan-abnormal-moves.ts",
     "archive:tdnet": "node --env-file-if-exists=.env --import tsx/esm src/archive-tdnet.ts",
     "label:suggest": "node --max-old-space-size=8192 --env-file-if-exists=.env --import tsx/esm src/research/cli/suggest-event-labels.ts",
