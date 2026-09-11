@@ -63,6 +63,21 @@ export interface StudyInputsQuery {
   minTurnoverJpy?: number;
   root?: string;
   asOf?: string;
+  /**
+   * ETF / ETN / REIT など会社でない銘柄を母集団から外す。既定 true。
+   *
+   * マスタ（`/equities/master`）で `S33 = 9999`（その他）が付くものが該当する。
+   * 実測（2026-09-12）: 全4,443銘柄中 **430**、流動性で絞った826銘柄中 **62**。
+   *
+   * なぜ外すか:
+   *   レバレッジ型・インバース型は設計上2〜3倍動く。それを等加重指数に
+   *   入れると「市場」の定義が歪む。実測で指数の日次リターンが
+   *   **平均4.62bps・最大49.0bps（2024-08-06＝暴落翌日）**変わる。
+   *   さらに ETF には開示が無いので、イベント Edge の母集団としても意味が無い。
+   *
+   * マスタが無ければ外せない。そのときは**外さずに、外していないと明示する**。
+   */
+  excludeNonEquity?: boolean;
 }
 
 export interface StudyInputs {
@@ -70,6 +85,13 @@ export interface StudyInputs {
   prices: PriceSeries[];
   /** 絞る前の銘柄数。絞りが効きすぎていないか見るために返す。 */
   universeSize: number;
+  /**
+   * 会社でない銘柄（ETF/ETN/REIT 等）の扱い。
+   * **「外さなかった」と「外せなかった」を区別する。**
+   */
+  nonEquityHandling: "excluded" | "kept_by_request" | "master_unavailable";
+  /** 外した件数。0 かつ nonEquityExcluded=false なら「判定できなかった」。 */
+  nonEquityCount: number;
   /** ユニバースから組んだ等加重指数。 */
   benchmark: PriceSeries;
   /** 構成銘柄が足りず指数を出せなかった日。 */
@@ -119,9 +141,21 @@ export function loadStudyInputsFromStore(query: StudyInputsQuery = {}): StudyInp
     );
   }
 
+  // 会社でない銘柄（ETF/ETN/REIT 等）を外す。**指数に入れると市場の定義が歪む。**
+  // マスタが無ければ外せないので、外していないことを返り値で示す。
+  const wantExclude = query.excludeNonEquity ?? true;
+  const master = wantExclude
+    ? loadMasterAsOf(query.to ?? loaded.series[0]?.bars.at(-1)?.date ?? "9999-12-31")
+    : { attributes: new Map(), snapshotDate: null };
+  const nonEquityExcluded = wantExclude && master.snapshotDate !== null;
+  const universeSeries = nonEquityExcluded
+    ? loaded.series.filter((series) => master.attributes.get(series.code)?.sector33 !== "9999")
+    : loaded.series;
+  const nonEquityCount = loaded.series.length - universeSeries.length;
+
   // benchmark は**流動性で絞る前**の母集団から組む。絞ったあとから組むと、
   // 絞り方を変えるたびに市場の定義まで変わってしまう。
-  const universe = buildUniverseBenchmark(loaded.series, {
+  const universe = buildUniverseBenchmark(universeSeries, {
     ...DEFAULT_UNIVERSE_BENCHMARK_SETTINGS,
     // 権利落ちをまたぐリターンを指数に入れない。
     // 実測: 100:1 併合が入って指数が1日で +12.95% 動いた。
@@ -135,23 +169,27 @@ export function loadStudyInputsFromStore(query: StudyInputsQuery = {}): StudyInp
   }
 
   const prices = minTurnoverJpy > 0
-    ? loaded.series.filter((series) => {
+    ? universeSeries.filter((series) => {
         const window = series.bars.slice(-DEFAULT_UNIVERSE_BENCHMARK_SETTINGS.turnoverLookbackBars);
         if (window.length === 0) return false;
         const average = window.reduce((sum, bar) => sum + bar.close * bar.volume, 0) / window.length;
         return average >= minTurnoverJpy;
       })
-    : loaded.series;
+    : universeSeries;
 
   const tradingDateSet = new Set<string>();
-  for (const series of loaded.series) {
+  for (const series of universeSeries) {
     for (const bar of series.bars) tradingDateSet.add(bar.date);
   }
 
   return {
     prices,
     tradingDates: [...tradingDateSet].sort(),
-    universeSize: loaded.series.length,
+    universeSize: universeSeries.length,
+    nonEquityHandling: nonEquityExcluded
+      ? "excluded"
+      : wantExclude ? "master_unavailable" : "kept_by_request",
+    nonEquityCount,
     benchmark: universe.series,
     benchmarkSkippedDates: universe.skippedDates,
     corporateActionDates,
@@ -344,5 +382,10 @@ export function formatStudyInputs(inputs: StudyInputs, minTurnoverJpy: number): 
     `benchmark ユニバース等加重 ${inputs.benchmark.bars.length}本`
     + `${inputs.benchmarkSkippedDates.length > 0 ? ` / 構成不足 ${inputs.benchmarkSkippedDates.length}日` : ""}`,
     `権利落ち ${inputs.corporateActionDates.size}銘柄 / ${actionCount}件`,
+    inputs.nonEquityHandling === "excluded"
+      ? `ETF等を除外 ${inputs.nonEquityCount}銘柄（S33=9999。指数にも母集団にも入れない）`
+      : inputs.nonEquityHandling === "kept_by_request"
+        ? "ETF等を**含めている**（--include-non-equity の指定）"
+        : "ETF等を**外せていない**（銘柄マスタが無い。pnpm ingest:master で外せます）",
   ];
 }

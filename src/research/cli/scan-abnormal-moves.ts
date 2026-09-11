@@ -167,6 +167,7 @@ function main(): void {
       ...(from ? { from } : {}),
       ...(to ? { to } : {}),
       minTurnoverJpy,
+      excludeNonEquity: !hasFlag("include-non-equity"),
     });
   } catch (error) {
     if (error instanceof StudyInputsError) {

@@ -91,12 +91,6 @@ const KNOWN_UNREACHABLE: Record<string, string> = {
     "測定結果から Promotion Gate 11項目の裏付けを導出する。"
     + "イベントスタディ・backtest・劣化・Holdout・対照群・試行台帳・紙トレードを"
     + "まとめて渡す必要があり、その組み立て役がまだ無い。",
-  "src/research/signals/read-across-events.ts":
-    "関連銘柄への伝播（キオクシア系子会社 Edge）。"
-    + "関係グラフが要るが、config/company-network.yml の parents/subsidiaries は0件。"
-    + "人が埋めるまで動かせない（ロードマップ §7 の人間作業）。",
-  "src/research/signals/company-relations.ts":
-    "銘柄関係グラフ。read-across の入力。同じく parents/subsidiaries が0件で待ち。",
   "src/research/signals/study-period-plan.ts":
     "探索期間と確認期間の事前登録。**封印を狭めた事故（PR #2093）への本来の答えがこれ。**"
     + "残り約4ヶ月をどう使うかはユーザーの判断待ち。",

@@ -41,6 +41,10 @@ function argValue(name: string): string | null {
   return index >= 0 ? process.argv[index + 1] ?? null : null;
 }
 
+function hasFlag(name: string): boolean {
+  return process.argv.slice(2).includes(`--${name}`);
+}
+
 function numberArg(name: string, fallback: number): number {
   const raw = argValue(name);
   if (raw === null) return fallback;
@@ -70,6 +74,7 @@ function main(): void {
       ...(from ? { from } : {}),
       ...(to ? { to } : {}),
       minTurnoverJpy,
+      excludeNonEquity: !hasFlag("include-non-equity"),
     });
     disclosures = loadEarningsDisclosureInputs(to ? { to } : {});
   } catch (error) {
