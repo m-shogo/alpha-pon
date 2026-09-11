@@ -92,8 +92,12 @@ export function resolveReactionDate(input: {
   let publishedBeforeClose = false;
   if (input.tradingDates[index] === day) {
     const closeAt = jquantsTradingDayCloseJst(day);
+    // **引け「ちょうど」は引け後として扱う。** 終値は引けの板で決まるので、
+    // 同時刻の開示はその終値に入らない。実測（2026-09-12・決算開示37,696件）で
+    // 引け時刻ちょうどが **44.0%**（15:30 が 39.2%）。日本企業は引けに合わせて
+    // 出すので、ここを `<=` にすると最頻値をまるごと1日ずらすことになる。
     publishedBeforeClose =
-      compareExplicitIso8601Instants(input.publishedAt, closeAt, "publishedAt", "close") <= 0;
+      compareExplicitIso8601Instants(input.publishedAt, closeAt, "publishedAt", "close") < 0;
     // 引け後なら次の営業日へ送る。
     if (!publishedBeforeClose) index += 1;
   }

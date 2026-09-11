@@ -41,7 +41,10 @@ function disclosure(over: Partial<EarningsDisclosureInput> = {}): EarningsDisclo
   return {
     code: "1234",
     disclosedDate: "2026-01-06",
-    disclosedTime: "15:00",
+    // 引けちょうど（2024-11-05 以降の東証の引けは 15:30）。
+    // **引け以降は翌営業日が反応日。** 終値は引けの板で決まるので、
+    // 同時刻の開示はその終値に入らない。
+    disclosedTime: "15:30",
     forecastOperatingProfit: 100,
     typeOfDocument: "FYFinancialStatements_Consolidated_JP",
     ...over,
@@ -60,6 +63,7 @@ const NO_FORECAST_CHECK: EarningsGapParams = {
   corporateActionDates: NO_ACTIONS,
 };
 
+
 function testGeneratesSignalOnDeepGap() {
   const result = generateEarningsGapSignals([disclosure()], priceMap(gapSeries()), NO_FORECAST_CHECK);
   assert.equal(result.signals.length, 1, "閾値を超える下落で1件生成される");
@@ -76,20 +80,26 @@ function testGeneratesSignalOnDeepGap() {
   assert.equal(candidate.gapPct, -10);
 }
 
-function testIntradayDisclosureDoesNotUseSameDayMove() {
-  // 場中(11:00)の開示でも、当日の値動きは使わず翌営業日を反応日にする。
+function testIntradayAndAtCloseDisclosuresDiffer() {
+  // **場中開示と引け後開示で反応日は変わる。** かつては「変わってはいけない」と
+  // 固定していたが、それは反応でない日を反応として測っていた。
+  //   引け前(11:00) → 当日が反応日。当日の終値がまさに反応で、
+  //                   開示は終値より前なので look-ahead にならない
+  //   引け以降      → 翌営業日。終値は引けの板で決まるので同時刻の開示は入らない
+  // 場中開示の反応は開示日そのもの。開示日(2026-01-06)に下げる系列で測る。
+  const dropOnDisclosureDay = series("1234", [1000, 900, 905, 910, 915, 920, 925, 930, 935, 940]);
   const intraday = generateEarningsGapSignals(
-    [disclosure({ disclosedTime: "11:00" })],
-    priceMap(gapSeries()),
-    NO_FORECAST_CHECK,
+    [disclosure({ disclosedTime: "11:00" })], priceMap(dropOnDisclosureDay), NO_FORECAST_CHECK,
   );
-  const afterClose = generateEarningsGapSignals([disclosure()], priceMap(gapSeries()), NO_FORECAST_CHECK);
-  assert.deepEqual(
-    intraday.candidates[0].reactionDate,
-    afterClose.candidates[0].reactionDate,
-    "場中開示と引け後開示で反応日が変わってはいけない",
+  const afterClose = generateEarningsGapSignals(
+    [disclosure({ disclosedTime: "16:00" })], priceMap(gapSeries()), NO_FORECAST_CHECK,
   );
-  assert.equal(intraday.candidates[0].reactionDate, "2026-01-07");
+  assert.equal(intraday.candidates[0]!.reactionDate, "2026-01-06", "場中は当日");
+  assert.equal(afterClose.candidates[0]!.reactionDate, "2026-01-07", "引け後は翌営業日");
+  assert.notEqual(
+    intraday.candidates[0]!.reactionDate,
+    afterClose.candidates[0]!.reactionDate,
+  );
 }
 
 function testEntryIsTheDayAfterReaction() {
@@ -122,8 +132,8 @@ function testShallowGapIsRejected() {
 
 function testForecastCutIsRejected() {
   const disclosures = [
-    disclosure({ disclosedDate: "2026-01-05", disclosedTime: "15:00", forecastOperatingProfit: 100 }),
-    disclosure({ disclosedDate: "2026-01-06", disclosedTime: "15:00", forecastOperatingProfit: 80 }),
+    disclosure({ disclosedDate: "2026-01-05", disclosedTime: "15:30", forecastOperatingProfit: 100 }),
+    disclosure({ disclosedDate: "2026-01-06", disclosedTime: "15:30", forecastOperatingProfit: 80 }),
   ];
   const result = generateEarningsGapSignals(disclosures, priceMap(gapSeries()), PARAMS);
   assert.equal(result.signals.length, 0, "会社予想が減額されていたら候補にしない");
@@ -132,8 +142,8 @@ function testForecastCutIsRejected() {
 
 function testForecastHeldIsAccepted() {
   const disclosures = [
-    disclosure({ disclosedDate: "2026-01-05", disclosedTime: "15:00", forecastOperatingProfit: 100 }),
-    disclosure({ disclosedDate: "2026-01-06", disclosedTime: "15:00", forecastOperatingProfit: 100 }),
+    disclosure({ disclosedDate: "2026-01-05", disclosedTime: "15:30", forecastOperatingProfit: 100 }),
+    disclosure({ disclosedDate: "2026-01-06", disclosedTime: "15:30", forecastOperatingProfit: 100 }),
   ];
   const result = generateEarningsGapSignals(disclosures, priceMap(gapSeries()), PARAMS);
   assert.equal(result.signals.length, 1, "据え置きは候補になる");
@@ -187,10 +197,12 @@ function testDuplicateDisclosureIsRejected() {
 
 function testDuplicateReactionDateIsRejected() {
   // 別日の開示が同じ反応日へ落ちる場合、シグナルは1件だけにする。
+  // 01-06 の引け後（17:00）と 01-07 の場中（10:00）は、どちらも反応日が 01-07。
   const disclosures = [
-    disclosure({ disclosedDate: "2026-01-05", disclosedTime: "09:00", forecastOperatingProfit: 100 }),
-    disclosure({ disclosedDate: "2026-01-06", disclosedTime: "09:00", forecastOperatingProfit: 100 }),
+    // 基準となる直前開示（反応日 01-06 は下げていないので候補にはならない）。
+    disclosure({ disclosedDate: "2026-01-05", disclosedTime: "17:00", forecastOperatingProfit: 100 }),
     disclosure({ disclosedDate: "2026-01-06", disclosedTime: "17:00", forecastOperatingProfit: 100 }),
+    disclosure({ disclosedDate: "2026-01-07", disclosedTime: "10:00", forecastOperatingProfit: 100 }),
   ];
   const result = generateEarningsGapSignals(disclosures, priceMap(gapSeries()), PARAMS);
   assert.equal(result.signals.length, 1);
@@ -419,7 +431,7 @@ function testInvalidDayLimitsThrow() {
 }
 
 testGeneratesSignalOnDeepGap();
-testIntradayDisclosureDoesNotUseSameDayMove();
+testIntradayAndAtCloseDisclosuresDiffer();
 testEntryIsTheDayAfterReaction();
 testShallowGapIsRejected();
 testForecastCutIsRejected();

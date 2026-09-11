@@ -24,8 +24,12 @@
 //   provider が `adjustmentFactor` を捨てている間は 2 だけが効く点に注意する。
 
 import type { BacktestSignal, PriceBar, PriceSeries } from "../backtest.js";
-import { parseExplicitIso8601Instant } from "../iso-instant.js";
+import {
+  compareExplicitIso8601Instants,
+  parseExplicitIso8601Instant,
+} from "../iso-instant.js";
 import { jstDateOf } from "../pit.js";
+import { jquantsTradingDayCloseJst } from "../providers/jquants-free.js";
 import {
   assertAscendingBars,
   calendarDaysBetween,
@@ -167,9 +171,30 @@ function disclosedAtIso(input: EarningsDisclosureInput): string | null {
   return jstDateOf(iso) === input.disclosedDate.trim() ? iso : null;
 }
 
-/** 開示日より後の最初の営業日を反応日とする。場中開示でも当日の値動きは使わない（look-ahead 回避）。 */
-function indexOfReactionBar(bars: PriceBar[], disclosedDate: string): number {
-  return bars.findIndex((bar) => bar.date > disclosedDate);
+/**
+ * 反応日のバーを選ぶ。
+ *
+ * **引け前の開示は当日、引け以降は翌営業日。**
+ *
+ * かつては常に翌営業日にしていた（「場中開示でも当日の値動きは使わない」）。
+ * だが10時の開示なら当日の終値がまさに反応であり、しかも開示は終値より前なので
+ * look-ahead にはならない。常に翌日にすると、**反応でない日を反応として測る。**
+ * 実測（2026-09-12・決算開示37,696件）で引け前の開示は **26.1%**。
+ *
+ * 逆に引け「ちょうど」は引け後として扱う。終値は引けの板で決まるので
+ * 同時刻の開示はその終値に入らない。実測で引け時刻ちょうどが **44.0%**。
+ */
+function indexOfReactionBar(
+  bars: PriceBar[],
+  disclosedDate: string,
+  disclosedAt: string,
+): number {
+  const closeAt = jquantsTradingDayCloseJst(disclosedDate);
+  const beforeClose =
+    compareExplicitIso8601Instants(disclosedAt, closeAt, "disclosedAt", "close") < 0;
+  return beforeClose
+    ? bars.findIndex((bar) => bar.date >= disclosedDate)
+    : bars.findIndex((bar) => bar.date > disclosedDate);
 }
 
 const DEFAULT_IMPLAUSIBLE_SINGLE_DAY_MOVE_PCT = -35;
@@ -319,7 +344,7 @@ export function generateEarningsGapSignals(
       }
 
       const disclosedDate = jstDateOf(iso);
-      const reactionIndex = indexOfReactionBar(series.bars, disclosedDate);
+      const reactionIndex = indexOfReactionBar(series.bars, disclosedDate, iso);
       if (reactionIndex < 0) {
         reject(disclosure, "no_reaction_bar");
         continue;
