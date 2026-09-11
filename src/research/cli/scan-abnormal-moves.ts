@@ -35,6 +35,7 @@ import { listIngestedDates } from "../providers/jquants-daily-store.js";
 import {
   StudyInputsError,
   formatStudyInputs,
+  loadEarningsEventDatesFromStore,
   loadStudyInputsFromStore,
 } from "../study-inputs-from-store.js";
 import { assertIsoDate } from "../providers/jquants-daily-ingest.js";
@@ -190,9 +191,25 @@ function main(): void {
   }
   console.log("");
 
-  // knownEventDates は「情報が無い」ことを明示して空で渡す。決算日カレンダーを
-  // 繋ぐまで、決算反応も F1 の候補に混ざる。混ざっている事実を隠さない。
-  console.log("注意: 決算日カレンダー未接続。決算反応も候補に混ざる（explained_by_known_event=0）");
+  // 決算開示から「説明のつく日」を組む。
+  //
+  // 繋ぐまでは空の Map を渡していた。空は「既知イベントが無い」ではなく
+  // 「情報が無い」を意味するので、候補のうち何件が単なる決算反応なのかを
+  // 確かめられないまま「業績で説明できないショック」と呼んでいた。
+  //
+  // `--no-earnings-calendar` で明示的に外せる。**黙って空になる経路は作らない。**
+  let knownEventDates = new Map<string, Set<string>>();
+  if (hasFlag("no-earnings-calendar")) {
+    console.log("注意: --no-earnings-calendar。決算反応も候補に混ざる（explained_by_known_event=0）");
+  } else {
+    const earnings = loadEarningsEventDatesFromStore({ tradingDates: inputs.tradingDates });
+    knownEventDates = earnings.byCode;
+    console.log(
+      `決算カレンダー  ${earnings.datesScanned}営業日 / 開示 ${earnings.disclosureCount.toLocaleString()}件`
+      + ` → ${earnings.byCode.size}銘柄 / 除外対象 ${earnings.markedDates.toLocaleString()}日`
+      + `${earnings.unresolved > 0 ? ` / カレンダー外 ${earnings.unresolved}件` : ""}`,
+    );
+  }
   console.log("");
 
   const marketModel: MarketModelParams | null = hasFlag("no-market-model")
@@ -202,7 +219,7 @@ function main(): void {
   if (marketModel) reportBetaSanity(securities, benchmark, marketModel);
 
   const baseParams: Omit<AbnormalMoveParams, "abnormalReturnThresholdPct"> = {
-    knownEventDates: new Map(),
+    knownEventDates,
     corporateActionDates,
     ...(minTurnoverJpy > 0 ? { minAverageTurnoverJpy: minTurnoverJpy } : {}),
     ...(marketModel ? { marketModel } : {}),

@@ -58,6 +58,7 @@ import {
 import {
   StudyInputsError,
   formatStudyInputs,
+  loadEarningsEventDatesFromStore,
   loadStudyInputsFromStore,
 } from "../study-inputs-from-store.js";
 import { fail, parseArgs } from "./common.js";
@@ -152,13 +153,34 @@ function main(): void {
   }
   const securities = new Map(prices!.map((series) => [series.code, series]));
 
+  // 決算開示から「説明のつく日」を組む。
+  //
+  // 権利落ちと同じ理由で、ストアから走らせるときは bundle ではなく保存庫を見る。
+  // bundle 側に書き写すと、取り込みで開示が伸びても古いまま使われる。
+  // 空の Map は「既知イベントが無い」ではなく「情報が無い」を意味するので、
+  // 黙って空で走らせない（`--no-earnings-calendar` で明示的に外せる）。
+  let storeEarningsDates: Map<string, Set<string>> | null = null;
+  if (fromStore && !flags.has("no-earnings-calendar")) {
+    try {
+      const earnings = loadEarningsEventDatesFromStore({ tradingDates: fromStore.tradingDates });
+      storeEarningsDates = earnings.byCode;
+      console.log(
+        `⓪ 決算カレンダー ${earnings.datesScanned}営業日 / 開示 ${earnings.disclosureCount.toLocaleString()}件`
+        + ` → ${earnings.byCode.size}銘柄 / 除外対象 ${earnings.markedDates.toLocaleString()}日`,
+      );
+    } catch (error) {
+      if (error instanceof StudyInputsError) fail(error.message);
+      throw error;
+    }
+  }
+
   // ① 事件候補の検出
   //
   // ストアから走らせるときは、権利落ちを bundle ではなく台帳から入れる。
   // bundle 側に書き写すと、取り込みで台帳が伸びても古いまま使われる。
   const detected = detectAbnormalMoveEvents(prices!, benchmark!, {
     ...bundle.detector.params,
-    knownEventDates: toDateMap(bundle.detector.params.knownEventDates),
+    knownEventDates: storeEarningsDates ?? toDateMap(bundle.detector.params.knownEventDates),
     corporateActionDates: fromStore
       ? fromStore.corporateActionDates
       : toDateMap(bundle.detector.params.corporateActionDates),
@@ -273,7 +295,7 @@ function main(): void {
   const { excludedCodes, knownEventDates, corporateActionDates, ...controlRest } = bundle.control;
   const controls = buildMatchedControls(treatments, securities, benchmark!, {
     ...controlRest,
-    knownEventDates: toDateMap(knownEventDates),
+    knownEventDates: storeEarningsDates ?? toDateMap(knownEventDates),
     corporateActionDates: fromStore
       ? fromStore.corporateActionDates
       : toDateMap(corporateActionDates),

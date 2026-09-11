@@ -37,6 +37,7 @@ import {
 import {
   StudyInputsError,
   formatStudyInputs,
+  loadEarningsEventDatesFromStore,
   loadStudyInputsFromStore,
 } from "../study-inputs-from-store.js";
 import { fail, parseArgs } from "./common.js";
@@ -84,6 +85,7 @@ function numberOption(options: Map<string, string>, name: string, fallback: numb
 function loadFromStore(
   bundle: Bundle,
   options: Map<string, string>,
+  flags: ReadonlySet<string>,
 ): { signals: BacktestSignal[]; prices: PriceSeries[]; benchmark: PriceSeries } {
   if (bundle.detector?.kind !== "abnormal_move") {
     fail("--from-store には bundle.detector.kind = \"abnormal_move\" が必要です");
@@ -101,12 +103,33 @@ function loadFromStore(
     throw error;
   }
 
+  // 決算開示から「説明のつく日」を組む。
+  //
+  // 権利落ちと同じ理由で bundle ではなく保存庫を見る。bundle に書き写すと、
+  // 取り込みで開示が伸びても古いまま使われる。
+  // edge-study と同じ材料を同じ作り方で使わないと、
+  // 「イベントスタディでは出たのに backtest では出ない」の原因が分からなくなる。
+  let knownEventDates = new Map<string, Set<string>>(
+    Object.entries(bundle.detector.params.knownEventDates ?? {})
+      .map(([code, dates]) => [code, new Set(dates)]),
+  );
+  if (!flags.has("no-earnings-calendar")) {
+    try {
+      const earnings = loadEarningsEventDatesFromStore({ tradingDates: inputs.tradingDates });
+      knownEventDates = earnings.byCode;
+      console.log(
+        `決算カレンダー: ${earnings.datesScanned}営業日 / 開示 ${earnings.disclosureCount.toLocaleString()}件`
+        + ` → ${earnings.byCode.size}銘柄 / 除外対象 ${earnings.markedDates.toLocaleString()}日`,
+      );
+    } catch (error) {
+      if (error instanceof StudyInputsError) fail(error.message);
+      throw error;
+    }
+  }
+
   const detected = detectAbnormalMoveEvents(inputs.prices, inputs.benchmark, {
     ...bundle.detector.params,
-    knownEventDates: new Map(
-      Object.entries(bundle.detector.params.knownEventDates ?? {})
-        .map(([code, dates]) => [code, new Set(dates)]),
-    ),
+    knownEventDates,
     corporateActionDates: inputs.corporateActionDates,
   });
 
@@ -168,7 +191,7 @@ function main(): void {
   const errors = validate(bundle.spec, loadSchema("backtest"));
   if (errors.length > 0) fail(`spec がスキーマに適合しません:\n${formatErrors(errors)}`);
 
-  const fromStore = flags.has("from-store") ? loadFromStore(bundle, options) : null;
+  const fromStore = flags.has("from-store") ? loadFromStore(bundle, options, flags) : null;
   const signalList = fromStore ? fromStore.signals : bundle.signals;
   const priceList = fromStore ? fromStore.prices : bundle.prices;
   const benchmarkSeries = fromStore ? fromStore.benchmark : bundle.benchmark;

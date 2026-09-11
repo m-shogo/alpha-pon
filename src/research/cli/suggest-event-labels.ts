@@ -44,6 +44,7 @@ import { DEFAULT_MARKET_MODEL_PARAMS } from "../signals/market-model.js";
 import {
   StudyInputsError,
   formatStudyInputs,
+  loadEarningsEventDatesFromStore,
   loadStudyInputsFromStore,
 } from "../study-inputs-from-store.js";
 import { TREATMENT_LABELS } from "../signals/event-labels.js";
@@ -194,9 +195,23 @@ function main(): void {
     return;
   }
 
+  // 決算開示から「説明のつく日」を組む。空の Map は「情報が無い」の意味なので、
+  // 黙って空のまま走らせない（`--no-earnings-calendar` で明示的に外せる）。
+  let knownEventDates = new Map<string, Set<string>>();
+  if (hasFlag("no-earnings-calendar")) {
+    console.log("注意: --no-earnings-calendar。決算反応も候補に混ざる");
+  } else {
+    const earnings = loadEarningsEventDatesFromStore({ tradingDates: inputs.tradingDates });
+    knownEventDates = earnings.byCode;
+    console.log(
+      `決算カレンダー: ${earnings.datesScanned}営業日 / 開示 ${earnings.disclosureCount.toLocaleString()}件`
+      + ` → ${earnings.byCode.size}銘柄 / 除外対象 ${earnings.markedDates.toLocaleString()}日`,
+    );
+  }
+
   const detected = detectAbnormalMoveEvents(inputs.prices, inputs.benchmark, {
     abnormalReturnThresholdPct: Number(argValue("threshold-pct") ?? -10),
-    knownEventDates: new Map(),
+    knownEventDates,
     corporateActionDates: inputs.corporateActionDates,
     marketModel: DEFAULT_MARKET_MODEL_PARAMS,
     minAverageTurnoverJpy: minTurnoverJpy,
