@@ -30,6 +30,7 @@ import {
   type EarningsDisclosure,
   type EarningsEventDatesResult,
 } from "./signals/earnings-event-dates.js";
+import { loadMasterAsOf } from "./providers/jquants-master-store.js";
 import {
   codeOf,
   disclosedDateOf,
@@ -300,6 +301,36 @@ export function resolveResearchTo(explicitTo: string | null | undefined): {
     };
   }
   return { to: explicitTo ?? sealed?.to ?? null, sealed, violation: null };
+}
+
+/**
+ * 表示用の銘柄名を引く関数を作る。
+ *
+ * **名前が無くても止めない。** 名前は読みやすさのためであって、測定には
+ * 使わない。ここで fail closed にすると、マスタを取り込む前は
+ * どの走査も動かなくなる。代わりに「引けなかった」ことを返して
+ * 呼び出し側が注記できるようにする。
+ */
+export function makeCodeLabeller(asOf: string | null): {
+  label: (code: string) => string;
+  snapshotDate: string | null;
+  known: number;
+} {
+  if (asOf === null) return { label: (code) => code, snapshotDate: null, known: 0 };
+  let loaded: ReturnType<typeof loadMasterAsOf>;
+  try {
+    loaded = loadMasterAsOf(asOf);
+  } catch {
+    return { label: (code) => code, snapshotDate: null, known: 0 };
+  }
+  return {
+    label: (code) => {
+      const name = loaded.attributes.get(code)?.name;
+      return name ? `${code} ${name}` : code;
+    },
+    snapshotDate: loaded.snapshotDate,
+    known: loaded.attributes.size,
+  };
 }
 
 /** 人向けの1〜3行の要約。CLI が同じ形で出せるようにここに置く。 */

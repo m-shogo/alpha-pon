@@ -26,6 +26,8 @@ import {
   sector33NameOf,
   sector33Of,
   toEquityMasterRecord,
+  loadMasterAsOf,
+  buildSectorPeers,
 } from "../../src/research/providers/jquants-master-store.js";
 
 const dir = mkdtempSync(join(realpathSync(tmpdir()), "alpha-pon-master-"));
@@ -152,6 +154,53 @@ try {
     assert.throws(() => readMasterDateRecords("2024-06-25", dir), /JSON を解析できません/);
   }
 
+  function testAsOfUsesThePastNeverTheFuture() {
+    // 休場日はマスタを保存しない（API が翌営業日を返すため）。
+    // D が無ければ **D 以前で最新**を使う。D より後は未来の情報なので使わない。
+    const dir2 = mkdtempSync(join(realpathSync(tmpdir()), "alpha-pon-asof-"));
+    try {
+      writeFileSync(join(dir2, "2024-06-20.jsonl"),
+        `${JSON.stringify(record({ S33: "0050" }))}\n`, "utf-8");
+      writeFileSync(join(dir2, "2024-06-24.jsonl"),
+        `${JSON.stringify(record({ Date: "2024-06-24", S33: "0051" }, "2024-06-24"))}\n`, "utf-8");
+
+      assert.equal(loadMasterAsOf("2024-06-20", dir2).snapshotDate, "2024-06-20");
+      assert.equal(
+        loadMasterAsOf("2024-06-22", dir2).snapshotDate, "2024-06-20",
+        "無い日は手前の最新を使う",
+      );
+      assert.equal(loadMasterAsOf("2024-06-24", dir2).snapshotDate, "2024-06-24");
+      assert.equal(
+        loadMasterAsOf("2024-06-19", dir2).snapshotDate, null,
+        "**手前に何も無ければ空。後ろを使って未来を混ぜない**",
+      );
+      assert.equal(loadMasterAsOf("2024-06-22", dir2).attributes.get("13010")?.sector33, "0050");
+      assert.equal(loadMasterAsOf("2024-06-25", dir2).attributes.get("13010")?.sector33, "0051");
+    } finally {
+      rmSync(dir2, { recursive: true, force: true });
+    }
+  }
+
+  function testSectorPeersGroupByIndustry() {
+    const attributes = new Map([
+      ["A", { code: "A", name: "a", sector17: "1", sector33: "0050", sector33Name: "水産", scaleCategory: "Small", market: "0111" }],
+      ["B", { code: "B", name: "b", sector17: "1", sector33: "0050", sector33Name: "水産", scaleCategory: "Mid400", market: "0111" }],
+      ["C", { code: "C", name: "c", sector17: "2", sector33: "1050", sector33Name: "鉱業", scaleCategory: "Small", market: "0111" }],
+    ]);
+    const byIndustry = buildSectorPeers({ attributes });
+    assert.deepEqual(byIndustry.peersByCode.get("A"), ["B"]);
+    assert.deepEqual(byIndustry.peersByCode.get("B"), ["A"]);
+    assert.equal(byIndustry.peersByCode.has("C"), false, "1社だけの業種は peer が作れない");
+    assert.equal(byIndustry.singletonCount, 1);
+
+    // 規模でも絞ると A と B は別グループになる。
+    const byScale = buildSectorPeers({ attributes, matchScaleCategory: true });
+    assert.equal(byScale.peersByCode.size, 0);
+    assert.equal(byScale.singletonCount, 3, "絞りすぎたことが件数で分かる");
+  }
+
+  testAsOfUsesThePastNeverTheFuture();
+  testSectorPeersGroupByIndustry();
   testHashIgnoresKeyOrder();
   testHashCoversEveryStoredField();
   testHashDoesNotDependOnWhenWeFetched();

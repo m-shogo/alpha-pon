@@ -28,6 +28,7 @@ import {
   formatStudyInputs,
   loadEarningsDisclosureInputs,
   loadStudyInputsFromStore,
+  makeCodeLabeller,
   resolveResearchTo,
 } from "../study-inputs-from-store.js";
 import type { PriceSeries } from "../backtest.js";
@@ -116,11 +117,15 @@ function main(): void {
     return;
   }
 
+  const labeller = makeCodeLabeller(to);
+  if (labeller.snapshotDate === null) {
+    console.log("（銘柄名なし: 先に pnpm ingest:master を実行するとコードに社名が付きます）");
+  }
   const sorted = [...result.candidates].sort((left, right) => left.gapPct - right.gapPct);
   console.log("\n下落が大きい順に20件:");
   for (const candidate of sorted.slice(0, 20)) {
     console.log(
-      `  ${candidate.code}  ${candidate.reactionDate}  ${candidate.gapPct.toFixed(1)}%`
+      `  ${labeller.label(candidate.code).padEnd(22)} ${candidate.reactionDate}  ${candidate.gapPct.toFixed(1)}%`
       + `  予想営業利益 ${candidate.previousForecastOperatingProfit ?? "?"} → ${candidate.forecastOperatingProfit ?? "?"}`,
     );
   }
