@@ -95,6 +95,37 @@ function testWithdrawnRowIsKept(): void {
   } finally { rmSync(root, { recursive: true, force: true }); }
 }
 
+function testUntrustworthyEmptySnapshotIsRejected(): void {
+  // TDnet は HTML を解析して読む。構造が変わって1件も取れなかった場合も
+  // 「0件」として届くが、それは「開示が無かった」ではなく「読めなかった」。
+  // 空ファイルを作るとその日は観測済みになり、欠落検査にも引っかからないまま
+  // **永久に失われる。**
+  const root = makeRoot();
+  try {
+    assert.throws(
+      () => appendDisclosureSnapshot({
+        snapshot: snapshot({ disclosures: [], withdrawn: [], explicitEmpty: false }),
+        retrievedAt: RETRIEVED_AT,
+        root,
+      }),
+      /no explicit-empty proof/,
+    );
+    assert.deepEqual(listArchivedDates(root), [], "ファイルを作ってはいけない");
+
+    // 取り下げ行が取れているなら解析は動いている。保存してよい。
+    const withWithdrawn = appendDisclosureSnapshot({
+      snapshot: snapshot({
+        disclosures: [],
+        withdrawn: [{ sourceCode: "99840", companyName: "テスト", title: "お知らせ", historyText: "削除" }],
+        explicitEmpty: false,
+      }),
+      retrievedAt: RETRIEVED_AT,
+      root,
+    });
+    assert.equal(withWithdrawn.appended, 1);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+}
+
 function testEmptyDayIsDistinguishableFromUnobservedDay(): void {
   // 「開示が無かった日」と「観測しなかった日」が同じに見えると、
   // あとから穴を埋められない。
@@ -248,6 +279,7 @@ function testArchiveIsAppendOnly(): void {
 
 testPublishedRowIsStored();
 testWithdrawnRowIsKept();
+testUntrustworthyEmptySnapshotIsRejected();
 testEmptyDayIsDistinguishableFromUnobservedDay();
 testRepeatedObservationIsFolded();
 testStatusChangeIsANewFact();

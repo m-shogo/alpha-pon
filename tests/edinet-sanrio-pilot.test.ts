@@ -165,7 +165,7 @@ async function testAuthenticatedRangeScan(): Promise<void> {
     calls.push(date);
     const results = date === "2026-08-03" ? [doc()] : [];
     return new Response(JSON.stringify({
-      metadata: { message: null, resultset: { count: results.length } },
+      metadata: { status: "200", message: "OK", resultset: { count: results.length } },
       results,
     }), {
       status: 200,

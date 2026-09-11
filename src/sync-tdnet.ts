@@ -3,7 +3,6 @@
 // このファイルを直接 --dry-run なしで実行した場合だけ addCandidates が書き込み可能。
 
 import { fetchTdnetDisclosureSnapshot } from "./fetcher/jpx.js";
-import { appendDisclosureSnapshot } from "./disclosure-archive.js";
 import { STRUCTURAL_KEYWORDS } from "./fetcher/edinet.js";
 import { addCandidates, loadWatchlistRaw } from "./watchlist-writer.js";
 import type { Candidate } from "./types.js";
@@ -27,39 +26,19 @@ async function main() {
     process.exit(1);
   }
 
-  // 取得したものは**まず保存する**。
+  // **ここでは保存しない。**
   //
-  // TDnet の公開閲覧サービスは約1ヶ月しか遡れない。ここで捨てると、
-  // その日の開示は二度と取れない。不祥事・子会社イベントのラベルは
-  // これが一次情報なので、貯め始めないと検証そのものが始まらない。
+  // この処理は毎朝9時に走り、`fetchTdnetDisclosureSnapshot()` は
+  // 引数なしなので**当日**を取る。日本の適時開示は15時以降が大半なので、
+  // 朝の姿を保存すると、その日の大半を取りこぼしたまま
+  // 「観測済み」として確定してしまう。
   //
-  // 保存に失敗しても**止めない**。
+  // 実測（2026-09-11）: 04:55 に保存した当日ファイルは 0件。
+  // 同じ日を14時台に取り直すと 83件。欠落検査もファイルがあるので
+  // 引っかからず、永久に失われていた。
   //
-  // 当初は「取り戻せない損失だから止める」としたが、`daily:full` は
-  // `&&` の連鎖なのでここで落とすと**朝のレポートが丸ごと出なくなる**。
-  // しかも止めてしまうと、欠落を知らせるバナー（レポート冒頭に出る）自体が
-  // 生成されない。黙って失うのを防ぐ仕組みを、失敗そのもので壊してしまう。
-  //
-  // 欠落は翌朝のレポートに「あと何日で取り戻せなくなるか」つきで出る。
-  // 28日の猶予があるので、レポートが出るほうが気づける。
-  try {
-    const archived = appendDisclosureSnapshot({
-      snapshot,
-      retrievedAt: new Date().toISOString(),
-    });
-    console.log(
-      `保存: ${archived.observationDate} → 新規 ${archived.appended}件`
-      + `${archived.alreadyPresent > 0 ? ` / 保存済み ${archived.alreadyPresent}件` : ""}`,
-    );
-  } catch (error) {
-    console.error(
-      `[disclosure-archive] 保存に失敗: ${error instanceof Error ? error.message : String(error)}`,
-    );
-    console.error(
-      "[disclosure-archive] TDnet は約28日で遡れなくなる。"
-      + "朝のレポートに欠落として出るので、期限内に pnpm archive:tdnet で埋めること",
-    );
-  }
+  // 保存は `pnpm archive:tdnet -- --catch-up`（昨日まで）が受け持つ。
+  // daily の非致命ステップとして毎朝走る。
 
   const disclosures = snapshot.disclosures;
   if (disclosures.length === 0) {

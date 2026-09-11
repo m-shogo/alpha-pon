@@ -14,6 +14,8 @@ const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 504]);
 
 type EdinetDocListResponse = {
   metadata: {
+    /** **HTTP 200 でも "404" が入ることがある。** 保持期間の外など。 */
+    status?: string | null;
     message: string | null;
     resultset: { count: number };
   };
@@ -254,7 +256,31 @@ export async function fetchEdinetDocList(
     options
   );
 
-  if (!data.metadata || !Array.isArray(data.results)) {
+  // **HTTP 200 でも metadata.status が 404 のことがある。**
+  //
+  // 実測（2026-09-11）: 保持期間の外（2015-01-01 / 2030-01-01）も、
+  // まだ来ていない日（2026-09-12）も、HTTP は 200 で本文はこう返る。
+  //
+  //   { "metadata": { "status": "404", "message": "Not Found" } }
+  //
+  // `results` ごと欠けるので配列チェックでも落ちるが、それだと
+  // 「応答が壊れている」としか言えない。**保存庫はこの違いで
+  // 「書類が無かった日」を永久に記録してしまう**ので、
+  // 理由が分かるエラーにする。
+  //
+  // 休場日（実測 40日）は status=200 で 0件。正常な空と区別できる。
+  if (!data.metadata) {
+    throw new Error("EDINET API returned an invalid document-list response");
+  }
+  const status = String(data.metadata.status ?? "");
+  if (status !== "200") {
+    throw new Error(
+      `EDINET document list is unavailable for ${date}`
+      + ` (metadata.status=${status || "なし"}`
+      + `${data.metadata.message ? `, ${data.metadata.message}` : ""})`,
+    );
+  }
+  if (!Array.isArray(data.results)) {
     throw new Error("EDINET API returned an invalid document-list response");
   }
 

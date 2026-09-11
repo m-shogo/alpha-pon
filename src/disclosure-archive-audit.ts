@@ -19,6 +19,14 @@ export interface ArchiveGap {
   /** あと何日で回収できなくなるか。0 以下なら手遅れ。 */
   daysLeftToRecover: number;
   recoverable: boolean;
+  /**
+   * 追いつき（`--catch-up`）が自動で埋められるか。
+   *
+   * 追いつきは**保存済みの最終日の翌日から**しか取らない。
+   * 途中の穴（最終日より前）は永久に飛ばされるので、人が埋めるしかない。
+   * 末尾の穴（最終日より後）は翌朝の追いつきで入る。
+   */
+  fillableByCatchUp: boolean;
 }
 
 export interface ArchiveAuditReport {
@@ -29,6 +37,11 @@ export interface ArchiveAuditReport {
   gaps: ArchiveGap[];
   recoverableGaps: ArchiveGap[];
   lostGaps: ArchiveGap[];
+  /**
+   * 人が埋めるしかない穴（途中の穴、または回収期限を過ぎたもの）。
+   * **ここが空でなければ行動が要る。**
+   */
+  needsManualBackfill: ArchiveGap[];
   /** 最後に保存した日から今日までの日数。daily が止まっていないかの目安。 */
   daysSinceLastArchive: number | null;
 }
@@ -79,6 +92,7 @@ export function auditDisclosureArchive(input: {
       gaps: [],
       recoverableGaps: [],
       lostGaps: [],
+      needsManualBackfill: [],
       daysSinceLastArchive: null,
     };
   }
@@ -93,7 +107,13 @@ export function auditDisclosureArchive(input: {
     if (known.has(date) || isWeekend(date)) continue;
     // 回収期限は「その日 + 保持日数」。今日がそれを過ぎていたら手遅れ。
     const daysLeftToRecover = retentionDays - daysBetween(date, input.today);
-    gaps.push({ date, daysLeftToRecover, recoverable: daysLeftToRecover > 0 });
+    gaps.push({
+      date,
+      daysLeftToRecover,
+      recoverable: daysLeftToRecover > 0,
+      // 追いつきは最終日の翌日からしか取らない。途中の穴は飛ばされる。
+      fillableByCatchUp: date > last,
+    });
   }
 
   return {
@@ -103,6 +123,8 @@ export function auditDisclosureArchive(input: {
     gaps,
     recoverableGaps: gaps.filter((gap) => gap.recoverable),
     lostGaps: gaps.filter((gap) => !gap.recoverable),
+    // 途中の穴は追いつきが飛ばす。期限切れは追いつきでも埋まらない。
+    needsManualBackfill: gaps.filter((gap) => !gap.fillableByCatchUp || !gap.recoverable),
     daysSinceLastArchive: daysBetween(last, input.today),
   };
 }
