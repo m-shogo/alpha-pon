@@ -41,7 +41,8 @@ import {
   type IngestLedgerEntry,
 } from "../providers/jquants-daily-ingest.js";
 import {
-  assertRowsBelongToDate,
+  classifyMasterRows,
+  MasterRowsDateError,
   MASTER_INGEST_LEDGER_NAME,
   JQUANTS_MASTER_STORE_ROOT,
   toEquityMasterRecord,
@@ -253,13 +254,26 @@ async function main(): Promise<void> {
     for (let attempt = 0; attempt <= RETRY_WAIT_MS.length; attempt += 1) {
       try {
         rows = await fetchEquityMasterByDate(date);
-        if (rows !== null) assertRowsBelongToDate(date, rows);
+        if (rows !== null) {
+          const check = classifyMasterRows(date, rows);
+          if (check.kind === "rolled_forward") {
+            // 休場日。API は翌営業日のマスタを返す。**その日のものではないので保存しない。**
+            rows = [];
+          } else if (check.kind === "mismatch") {
+            throw new MasterRowsDateError(
+              `${date}: Date が問い合わせた日と違う行が ${check.count} 件ある`
+              + `（例: ${check.example}）。\`?date=\` の意味が変わった可能性。保存せずに止める`,
+            );
+          }
+        }
         lastError = null;
         break;
       } catch (error) {
         lastError = error;
-        // 前提が崩れた（DiscDate の食い違い）なら待っても直らない。即座に諦める。
-        if (error instanceof Error && error.message.includes("DiscDate")) break;
+        // 前提が崩れたなら待っても直らない。即座に諦める。
+        // （複製元の判定は "DiscDate" を文字列で見ていた。端点ごとに項目名が
+        //  違うので、文字列ではなく型で判定する。）
+        if (error instanceof MasterRowsDateError) break;
         const wait = RETRY_WAIT_MS[attempt];
         if (wait === undefined) break;
         retries += 1;

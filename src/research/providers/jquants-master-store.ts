@@ -151,18 +151,46 @@ export function marketOf(record: EquityMasterRecord): string {
   return String(record.raw.Mkt ?? "");
 }
 
-export function assertRowsBelongToDate(
+/** `?date=` に対して API が何を返したかの判定。 */
+export type MasterRowsDateCheck =
+  | { kind: "matches" }
+  /**
+   * 休場日は**翌営業日のマスタが返る**（実測 2024-07-15 海の日 →
+   * 全4,374行が 2024-07-16）。決算 `/fins/summary` は0件を返すので、
+   * 同じ `?date=` でも端点ごとに挙動が違う。
+   */
+  | { kind: "rolled_forward"; returnedDate: string }
+  /** 想定外。保存せずに止める。 */
+  | { kind: "mismatch"; count: number; example: string };
+
+/**
+ * 返ってきた行が、問い合わせた日のものかを判定する。
+ *
+ * 黙って保存すると、保存庫の「その日」に別の日のマスタが混ざり、
+ * PIT の属性として使った瞬間に狂う。
+ */
+export function classifyMasterRows(
   date: string,
   rows: readonly Record<string, unknown>[],
-): void {
+): MasterRowsDateCheck {
+  if (rows.length === 0) return { kind: "matches" };
+  const dates = new Set(rows.map((row) => String(row.Date ?? "")));
+  if (dates.size === 1 && dates.has(date)) return { kind: "matches" };
+  // 全行が同じ「後の日」なら、その日は立会が無く翌営業日へ送られている。
+  if (dates.size === 1) {
+    const returned = [...dates][0]!;
+    if (returned > date) return { kind: "rolled_forward", returnedDate: returned };
+  }
   const mismatched = rows.filter((row) => String(row.Date ?? "") !== date);
-  if (mismatched.length === 0) return;
-  throw new Error(
-    `${date}: Date が問い合わせた日と違う行が ${mismatched.length} 件ある`
-    + `（例: ${String(mismatched[0]!.Date)} / Code=${String(mismatched[0]!.Code)}）。`
-    + "`?date=` の意味が変わった可能性。保存せずに止める",
-  );
+  return {
+    kind: "mismatch",
+    count: mismatched.length,
+    example: `${String(mismatched[0]?.Date)} / Code=${String(mismatched[0]?.Code)}`,
+  };
 }
+
+/** 保存してはいけない行のときに投げる。**再試行しても直らない。** */
+export class MasterRowsDateError extends Error {}
 
 
 // --- 保存庫の走査 -----------------------------------------------------------
