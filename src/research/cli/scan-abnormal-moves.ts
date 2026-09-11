@@ -17,8 +17,6 @@
  * 効いていること（＝分割を暴落と読んでいないこと）を毎回確認する。
  */
 
-import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import {
   detectAbnormalMoveEvents,
   type AbnormalMoveParams,
@@ -33,16 +31,12 @@ import {
   DEFAULT_UNIVERSE_BENCHMARK_SETTINGS,
   buildUniverseBenchmark,
 } from "../signals/universe-benchmark.js";
+import { listIngestedDates } from "../providers/jquants-daily-store.js";
 import {
-  JQUANTS_ADJUSTMENT_LEDGER_NAME,
-  parseAdjustmentLedger,
-  toCorporateActionDates,
-} from "../providers/jquants-adjustment-events.js";
-import {
-  listIngestedDates,
-  loadBacktestSeriesAsOf,
-  resolveStoreRoot,
-} from "../providers/jquants-daily-store.js";
+  StudyInputsError,
+  formatStudyInputs,
+  loadStudyInputsFromStore,
+} from "../study-inputs-from-store.js";
 import { assertIsoDate } from "../providers/jquants-daily-ingest.js";
 import type { PriceSeries } from "../backtest.js";
 
@@ -75,20 +69,6 @@ function numberArg(name: string, fallback: number): number {
   const value = Number(raw);
   if (!Number.isFinite(value)) throw new Error(`--${name} must be a number: ${raw}`);
   return value;
-}
-
-function loadCorporateActionDates(root: string): Map<string, Set<string>> {
-  const path = resolve(root, JQUANTS_ADJUSTMENT_LEDGER_NAME);
-  if (!existsSync(path)) {
-    // 台帳が無いまま走らせると、分割が全部「暴落」として候補に上がる。
-    // 黙って空の Map を渡さない。
-    throw new Error(
-      `権利落ち台帳がない: ${path}\n`
-      + "先に pnpm ingest:prices を実行すること。"
-      + "台帳なしで走らせると株式分割を暴落として検出する",
-    );
-  }
-  return toCorporateActionDates(parseAdjustmentLedger(readFileSync(path, "utf-8")));
 }
 
 /**
@@ -152,8 +132,7 @@ function summarise(result: AbnormalMoveResult): string {
 }
 
 function main(): void {
-  const root = resolveStoreRoot();
-  const ingested = listIngestedDates(root);
+  const ingested = listIngestedDates();
   if (ingested.length === 0) throw new Error("取り込み済みの価格がない。先に pnpm ingest:prices");
 
   const from = argValue("from") ? assertIsoDate(argValue("from")!, "--from") : ingested[0]!;
@@ -167,50 +146,48 @@ function main(): void {
     console.log(`未使用の期間    ${to} より後は触らない（確認期間・holdout の保全）`);
   }
 
-  const corporateActionDates = loadCorporateActionDates(root);
-  const actionCount = [...corporateActionDates.values()].reduce((sum, set) => sum + set.size, 0);
-  console.log(`権利落ち台帳    ${corporateActionDates.size}銘柄 / ${actionCount}件`);
+  // 材料は edge-study / backtest と**同じ関数**から取る。ここだけ別に組むと
+  // 走査対象がずれる。実際 13060 を除外していて、edge-study と
+  // 銘柄数が1件食い違っていた（1081 対 1082）。
+  let inputs;
+  try {
+    inputs = loadStudyInputsFromStore({
+      ...(from ? { from } : {}),
+      ...(to ? { to } : {}),
+      minTurnoverJpy,
+    });
+  } catch (error) {
+    if (error instanceof StudyInputsError) {
+      console.error(error.message);
+      process.exitCode = 1;
+      return;
+    }
+    throw error;
+  }
+  const corporateActionDates = inputs.corporateActionDates;
+  const securities = inputs.prices;
 
-  const asOf = new Date().toISOString();
-  const loaded = loadBacktestSeriesAsOf({ asOf, from, to, root });
-  const allSecurities: PriceSeries[] = loaded.series.filter(
-    (series) => series.code !== ETF_BENCHMARK_CODE,
-  );
-
+  // `--benchmark etf` は診断用。1306 ETF の終値は指数そのものではなく
+  // 説明変数の測定誤差になり、β を一様に 0 方向へ引く
+  // （実測 平均0.59 対 1.00）。比較して確かめたいときだけ使う。
   const useEtf = argValue("benchmark") === "etf";
   let benchmark: PriceSeries;
   if (useEtf) {
-    const etf = loaded.series.find((series) => series.code === ETF_BENCHMARK_CODE);
-    if (!etf) throw new Error(`benchmark ${ETF_BENCHMARK_CODE} が価格ストアにない`);
+    const etf = securities.find((series) => series.code === ETF_BENCHMARK_CODE);
+    if (!etf) {
+      console.error(`benchmark ${ETF_BENCHMARK_CODE} が流動性の条件を満たしていない`);
+      process.exitCode = 1;
+      return;
+    }
     benchmark = etf;
-    console.log(`benchmark       ${ETF_BENCHMARK_CODE}（TOPIX連動ETF・${etf.bars.length}本）`);
+    console.log(`benchmark       ${ETF_BENCHMARK_CODE}（TOPIX連動ETF・${etf.bars.length}本）← 診断用`);
+    for (const line of formatStudyInputs(inputs, minTurnoverJpy)) {
+      if (!line.startsWith("benchmark")) console.log(line);
+    }
   } else {
-    const universe = buildUniverseBenchmark(allSecurities, {
-      ...DEFAULT_UNIVERSE_BENCHMARK_SETTINGS,
-      corporateActionDates,
-      ...(minTurnoverJpy > 0 ? { minAverageTurnoverJpy: minTurnoverJpy } : {}),
-    });
-    benchmark = universe.series;
-    const constituents = universe.days.map((day) => day.constituents).sort((a, b) => a - b);
-    console.log(
-      `benchmark       ユニバース等加重（${universe.days.length}本 / 構成中央 `
-      + `${constituents[Math.floor(constituents.length / 2)] ?? 0}銘柄`
-      + `${universe.skippedDates.length > 0 ? ` / 構成不足 ${universe.skippedDates.length}日` : ""}）`,
-    );
+    benchmark = inputs.benchmark;
+    for (const line of formatStudyInputs(inputs, minTurnoverJpy)) console.log(line);
   }
-
-  // 走査対象も流動性で絞る。非流動銘柄は板が薄く終値が当日の市場変動を
-  // 反映しないので、翌日の追いつきを「異常」として拾い続ける。
-  // 実測: 全4,321銘柄では候補1,775件、5億円/日以上の830銘柄では432件。
-  const securities = minTurnoverJpy > 0
-    ? allSecurities.filter((series) => {
-        const window = series.bars.slice(-DEFAULT_UNIVERSE_BENCHMARK_SETTINGS.turnoverLookbackBars);
-        if (window.length === 0) return false;
-        const average = window.reduce((sum, bar) => sum + bar.close * bar.volume, 0) / window.length;
-        return average >= minTurnoverJpy;
-      })
-    : allSecurities;
-  console.log(`銘柄            ${securities.length}${minTurnoverJpy > 0 ? `（全${allSecurities.length}中・売買代金${(minTurnoverJpy / 1e8).toFixed(0)}億円/日以上）` : ""}`);
   console.log("");
 
   // knownEventDates は「情報が無い」ことを明示して空で渡す。決算日カレンダーを
