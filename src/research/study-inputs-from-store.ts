@@ -21,6 +21,8 @@
  */
 
 import { existsSync, readFileSync } from "node:fs";
+import type { HoldoutVaultManifest } from "./signals/holdout-partition.js";
+import { paths } from "./io.js";
 import { resolve } from "node:path";
 import type { EarningsDisclosureInput } from "./signals/earnings-gap.js";
 import {
@@ -244,6 +246,52 @@ export function loadEarningsDisclosureInputs(input: {
     }
   }
   return { disclosures, datesScanned: dates.length, withoutForecast };
+}
+
+/**
+ * 正本の金庫から「研究に使ってよい最終日」を求める。
+ *
+ * 封印の開始日の前日。金庫が無ければ null。
+ *
+ * **CLI ごとに書くと、書き忘れた CLI だけが封印を覗く。**
+ * 2026-09-11 に、bundle 側へ自前の manifest を書くことで封印が
+ * 8ヶ月ぶん狭まった状態で探索した事故があった。入口を1つにする。
+ */
+export function researchCutoffFromVault(): { to: string; windowId: string } | null {
+  const path = paths.holdoutManifest();
+  if (!existsSync(path)) return null;
+  const manifest = JSON.parse(readFileSync(path, "utf-8")) as HoldoutVaultManifest;
+  let earliest: { from: string; id: string } | null = null;
+  for (const window of manifest.windows) {
+    if (!earliest || window.from < earliest.from) earliest = { from: window.from, id: window.id };
+  }
+  if (!earliest) return null;
+  const day = new Date(`${earliest.from}T00:00:00Z`);
+  day.setUTCDate(day.getUTCDate() - 1);
+  return { to: day.toISOString().slice(0, 10), windowId: earliest.id };
+}
+
+/**
+ * `--to` を決める。指定が無ければ封印の前日まで。
+ * 指定が封印の内側なら **止める**（黙って覗かない）。
+ */
+export function resolveResearchTo(explicitTo: string | null | undefined): {
+  to: string | null;
+  sealed: { to: string; windowId: string } | null;
+  violation: string | null;
+} {
+  const sealed = researchCutoffFromVault();
+  if (explicitTo && sealed && explicitTo > sealed.to) {
+    return {
+      to: null,
+      sealed,
+      violation:
+        `--to=${explicitTo} は封印期間に入っています`
+        + `（${sealed.windowId} は ${sealed.to} の翌日から）。`
+        + "封印を開けるなら research:holdout:open を通し、access_log に記録を残してください",
+    };
+  }
+  return { to: explicitTo ?? sealed?.to ?? null, sealed, violation: null };
 }
 
 /** 人向けの1〜3行の要約。CLI が同じ形で出せるようにここに置く。 */

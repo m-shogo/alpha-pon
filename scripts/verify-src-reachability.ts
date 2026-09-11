@@ -112,7 +112,6 @@ const UNEXAMINED = [
   "src/research/research-knowledge-catalog-writer.ts",
   "src/research/signals/backtest-bundle.ts",
   "src/research/signals/company-relations.ts",
-  "src/research/signals/earnings-gap.ts",
   "src/research/signals/edge-decay.ts",
   "src/research/signals/gate-evidence.ts",
   "src/research/signals/read-across-events.ts",
