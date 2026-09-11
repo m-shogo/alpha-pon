@@ -59,6 +59,17 @@ export interface TrialOutcomeRecord {
   trialId: string;
   recordedAt: string;
   outcome: TrialOutcome;
+  /**
+   * 同じ試行の過去の結果を置き換えたときの理由。
+   *
+   * 試行 ID は (edgeId, specId, params, datasetFingerprint) から作るので、
+   * **コードの版が入っていない。** 測定のバグを直して測り直すと、
+   * 同じ ID で違う結果が出る。それを黙って上書きすると
+   * 「パイプラインが非決定的」の検出が死ぬので、理由を必ず残す。
+   */
+  supersedesReason?: string;
+  /** 置き換えられた側の結果。何がどう変わったかを後から追えるように残す。 */
+  supersededOutcome?: TrialOutcome;
 }
 
 export type TrialRecord = TrialRegistrationRecord | TrialOutcomeRecord;
@@ -206,7 +217,16 @@ export function recordTrialOutcome(
   outcome: TrialOutcome,
   path: string = DEFAULT_TRIALS_LEDGER_PATH,
   now: Date = new Date(),
-): { appended: boolean } {
+  options: {
+    /**
+     * 過去の結果と違う値を記録してよい理由。測定のコードを直したときなど。
+     *
+     * **省略すると従来どおり落ちる。** 黙って上書きできるようにすると
+     * 「パイプラインが非決定的」の検出が意味を失う。
+     */
+    supersedesReason?: string;
+  } = {},
+): { appended: boolean; superseded: boolean } {
   assertNonEmpty(trialId, "trialId");
   const records = readTrialLedger(path);
   const registered = records.some(
@@ -216,16 +236,34 @@ export function recordTrialOutcome(
     throw new Error(`cannot record an outcome for an unregistered trial: ${trialId}`);
   }
 
-  const previous = records.find(
-    (record): record is TrialOutcomeRecord => record.kind === "outcome" && record.trialId === trialId,
-  );
+  // 最後に記録された結果と比べる。置き換えを重ねても直前と比較できるように。
+  const previous = [...records]
+    .reverse()
+    .find(
+      (record): record is TrialOutcomeRecord =>
+        record.kind === "outcome" && record.trialId === trialId,
+    );
   if (previous) {
-    if (stableStringify(previous.outcome) !== stableStringify(outcome)) {
+    if (stableStringify(previous.outcome) === stableStringify(outcome)) {
+      return { appended: false, superseded: false };
+    }
+    const reason = options.supersedesReason?.trim();
+    if (!reason) {
       throw new Error(
-        `trial ${trialId} already has a different outcome; the pipeline is not deterministic`,
+        `trial ${trialId} already has a different outcome; the pipeline is not deterministic. `
+        + "測定のコードを直して測り直したのなら supersedesReason に理由を渡すこと",
       );
     }
-    return { appended: false };
+    appendRecord(path, {
+      schemaVersion: 1,
+      kind: "outcome",
+      trialId,
+      recordedAt: now.toISOString(),
+      outcome,
+      supersedesReason: reason,
+      supersededOutcome: previous.outcome,
+    });
+    return { appended: true, superseded: true };
   }
 
   appendRecord(path, {
@@ -235,5 +273,5 @@ export function recordTrialOutcome(
     recordedAt: now.toISOString(),
     outcome,
   });
-  return { appended: true };
+  return { appended: true, superseded: false };
 }

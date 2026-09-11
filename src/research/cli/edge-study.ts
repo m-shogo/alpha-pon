@@ -377,6 +377,10 @@ function main(): void {
         clusterCount: longest?.treatment.clusterCount ?? null,
       },
       ledgerPath,
+      new Date(),
+      // 測定のコードを直して測り直したときだけ、理由つきで置き換える。
+      // 省略すると「同じ試行で違う結果」は落ちる（非決定性の検出）。
+      { ...(options.get("supersede") ? { supersedesReason: options.get("supersede")! } : {}) },
     );
     console.log("");
     console.log(
