@@ -361,4 +361,27 @@ const selector = {
   console.log("price-store-hardening: single-writer/partial-tail guard OK");
 }
 
+// 保存庫の実規模で検査器が落ちないこと。
+//
+// 2026-09-11 に実データ（2,149,545 レコード）で回したところ、
+// `issues.push(...配列)` の引数展開が V8 の上限を超えて RangeError になった。
+// 実測の上限は 10万〜12.5万件のあいだ。**落ちると異常の有無すら分からない。**
+// 上限より確実に多い件数で固定する。
+function testLargeStoreDoesNotOverflowTheCallStack() {
+  const many: PitPriceRecord[] = [];
+  for (let index = 0; index < 150_000; index += 1) {
+    many.push(record({
+      code: `T${index}`,
+      tradingDate: "2026-06-18",
+    }));
+  }
+  const issues = validateHardenedPriceRecords(many, schema, NOW);
+  assert.ok(
+    issues.length > 125_000,
+    `引数展開の上限より多くの issue で試すこと: ${issues.length}`,
+  );
+}
+
+testLargeStoreDoesNotOverflowTheCallStack();
+
 console.log("price-store-hardening: 全テスト成功");
