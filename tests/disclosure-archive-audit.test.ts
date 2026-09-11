@@ -15,6 +15,7 @@ import {
   TDNET_RETENTION_DAYS,
   auditDisclosureArchive,
   formatDisclosureArchiveBanner,
+  EDINET_RETENTION_DAYS,
 } from "../src/disclosure-archive-audit.js";
 
 function audit(archivedDates: string[], today: string, retentionDays = TDNET_RETENTION_DAYS) {
@@ -133,6 +134,41 @@ function testRetentionDefaultIsConservative(): void {
   assert.ok(TDNET_RETENTION_DAYS >= 21);
 }
 
+function testEdinetRetentionMatchesTheMeasuredWindow(): void {
+  // 実測（2026-09-11）: 2016-09-12 は取得でき、2016-09-09 は 404。
+  // 今日の10年前が 2016-09-11 なので 10年のローリング窓。
+  // 期限を長く見積もると取り逃すので、余裕を見て短めに扱う。
+  const tenYears = 3_652;
+  assert.ok(
+    EDINET_RETENTION_DAYS < tenYears,
+    `実測の10年より短く見積もること: ${EDINET_RETENTION_DAYS}`,
+  );
+  assert.ok(
+    EDINET_RETENTION_DAYS > tenYears * 0.9,
+    `短く見積もりすぎると、埋められる穴を諦めることになる: ${EDINET_RETENTION_DAYS}`,
+  );
+  // TDnet と同じ緊急度で扱わないこと。桁が違う。
+  assert.ok(EDINET_RETENTION_DAYS > TDNET_RETENTION_DAYS * 50);
+}
+
+function testEdinetGapIsStillRecoverableAfterAYear(): void {
+  // EDINET は10年窓なので、1年前の穴もまだ埋められる。
+  // TDnet と同じ 28日で扱うと「回収不能」と誤って諦める。
+  const report = audit(
+    ["2025-09-10", "2026-09-10", "2026-09-11"],
+    "2026-09-11",
+    EDINET_RETENTION_DAYS,
+  );
+  const yearOld = report.gaps.find((gap) => gap.date === "2025-09-11");
+  assert.ok(yearOld, "1年前の平日が欠落として挙がること");
+  assert.equal(yearOld!.recoverable, true, "10年窓なら1年前はまだ回収できる");
+  assert.equal(yearOld!.fillableByCatchUp, false, "途中の穴は追いつきでは埋まらない");
+  assert.ok(
+    report.needsManualBackfill.some((gap) => gap.date === "2025-09-11"),
+    "人が埋める対象として挙がること",
+  );
+}
+
 function testBannerIsSilentWhenThereIsNoGap(): void {
   // 問題が無い朝に余計な文言を出さない。毎朝出ると読まれなくなる。
   const report = audit(["2026-09-10", "2026-09-11"], "2026-09-11");
@@ -189,5 +225,7 @@ testEmptyArchiveIsNotAnError();
 testStaleArchiveIsVisible();
 testInvalidTodayFailsClosed();
 testRetentionDefaultIsConservative();
+testEdinetRetentionMatchesTheMeasuredWindow();
+testEdinetGapIsStillRecoverableAfterAYear();
 
 console.log("disclosure-archive-audit: 全テスト成功");
