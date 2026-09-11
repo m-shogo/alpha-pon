@@ -5,8 +5,13 @@
     "edgeId": "generic-reversal",
     "side": "long",
     "notionalJpy": 1000000,
-    "entry": { "mode": "next_open" },
-    "exit": { "mode": "holding_period", "holdingPeriodDays": 5 },
+    "entry": {
+      "mode": "next_open"
+    },
+    "exit": {
+      "mode": "holding_period",
+      "holdingPeriodDays": 5
+    },
     "costs": {
       "commissionBps": 5,
       "spreadBps": 10,
@@ -35,5 +40,6 @@
       },
       "minAverageTurnoverJpy": 500000000
     }
-  }
+  },
+  "trials": 4
 }
