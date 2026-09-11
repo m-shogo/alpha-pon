@@ -23,6 +23,24 @@
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
+/**
+ * 保存してよい最後の日 = 昨日。
+ *
+ * TDnet も EDINET も日中に出続ける。当日を保存すると、出揃う前の姿が
+ * 「観測済み」として確定してしまう。実測（2026-09-11）:
+ *
+ *   TDnet   04:55 に保存 0件 → 14時台に取り直すと 83件
+ *   EDINET  14時台に保存 153件 → 15時台に取り直すと 223件
+ *
+ * どちらも欠落検査に引っかからない（ファイルはある）ので、
+ * 気づかないまま失われる。
+ */
+export function lastCompleteDate(today: string): string {
+  const [year, month, day] = assertIsoDate(today, "today").split("-").map(Number) as
+    [number, number, number];
+  return new Date(Date.UTC(year, month - 1, day - 1)).toISOString().slice(0, 10);
+}
+
 export interface CatchUpRange {
   from: string;
   to: string;
