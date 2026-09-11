@@ -17,7 +17,15 @@ import {
   matchRuleForTitle,
   suggestLabel,
 } from "../src/research/signals/disclosure-label-suggestions.js";
+import { tdnetEvidence } from "../src/research/signals/label-evidence.js";
 import type { ArchivedDisclosure } from "../src/disclosure-archive.js";
+
+/** 証拠1件。コードは5桁でそろえるので sourceCode が効く。 */
+function evidenceOf(patch: Partial<ArchivedDisclosure> = {}) {
+  const one = tdnetEvidence(disclosure(patch));
+  assert.ok(one, "証拠に変換できなかった");
+  return one;
+}
 
 function disclosure(patch: Partial<ArchivedDisclosure> = {}): ArchivedDisclosure {
   return {
@@ -38,9 +46,9 @@ function disclosure(patch: Partial<ArchivedDisclosure> = {}): ArchivedDisclosure
 
 function testBeforeCloseDisclosureMatchesSameDay(): void {
   const matches = matchDisclosuresToEvent({
-    code: "7203",
+    code: "72030",
     date: "2026-08-04",
-    disclosures: [disclosure()],
+    evidence: [evidenceOf()],
   });
   assert.equal(matches.length, 1);
   assert.equal(matches[0]!.timing, "before_close");
@@ -50,10 +58,10 @@ function testAfterCloseDisclosureMatchesNextDay(): void {
   // 15:30 より後に出た開示は翌営業日の価格に出る。
   const after = disclosure({ publishedAt: "2026-08-04T16:00:00+09:00" });
 
-  const sameDay = matchDisclosuresToEvent({ code: "7203", date: "2026-08-04", disclosures: [after] });
+  const sameDay = matchDisclosuresToEvent({ code: "72030", date: "2026-08-04", evidence: [evidenceOf({ publishedAt: "2026-08-04T16:00:00+09:00" })] });
   assert.deepEqual(sameDay, [], "引け後の開示を当日の原因にしてはいけない");
 
-  const nextDay = matchDisclosuresToEvent({ code: "7203", date: "2026-08-05", disclosures: [after] });
+  const nextDay = matchDisclosuresToEvent({ code: "72030", date: "2026-08-05", evidence: [evidenceOf({ publishedAt: "2026-08-04T16:00:00+09:00" })] });
   assert.equal(nextDay.length, 1, "翌営業日に結び付く");
   assert.equal(nextDay[0]!.timing, "after_previous_close");
 }
@@ -62,7 +70,7 @@ function testFutureDisclosureIsNotAttached(): void {
   // 反応日の引けより後に出た開示は、その日にはまだ公になっていない。
   const later = disclosure({ observationDate: "2026-08-06", publishedAt: "2026-08-06T10:00:00+09:00" });
   assert.deepEqual(
-    matchDisclosuresToEvent({ code: "7203", date: "2026-08-04", disclosures: [later] }),
+    matchDisclosuresToEvent({ code: "72030", date: "2026-08-04", evidence: [evidenceOf({ observationDate: "2026-08-06", publishedAt: "2026-08-06T10:00:00+09:00" })] }),
     [],
   );
 }
@@ -71,17 +79,16 @@ function testTooOldDisclosureIsNotAttached(): void {
   // 前営業日の引けより前のものは、その前日の価格に出ているはず。
   const old = disclosure({ observationDate: "2026-08-03", publishedAt: "2026-08-03T10:00:00+09:00" });
   assert.deepEqual(
-    matchDisclosuresToEvent({ code: "7203", date: "2026-08-04", disclosures: [old] }),
+    matchDisclosuresToEvent({ code: "72030", date: "2026-08-04", evidence: [evidenceOf({ observationDate: "2026-08-03", publishedAt: "2026-08-03T10:00:00+09:00" })] }),
     [],
   );
 }
 
 function testOtherCompanyIsNotAttached(): void {
   assert.deepEqual(
-    matchDisclosuresToEvent({
-      code: "7203",
+    matchDisclosuresToEvent({ code: "72030",
       date: "2026-08-04",
-      disclosures: [disclosure({ code: "9984" })],
+      evidence: [evidenceOf({ code: "9984", sourceCode: "99840" })],
     }),
     [],
   );
@@ -91,7 +98,7 @@ function testWithdrawnRowWithoutTimeIsNotGuessed(): void {
   // 取り下げ行には公表時刻が無い。時刻で結び付けられないものを推測しない。
   const withdrawn = disclosure({ status: "withdrawn", publishedAt: undefined, url: undefined });
   assert.deepEqual(
-    matchDisclosuresToEvent({ code: "7203", date: "2026-08-04", disclosures: [withdrawn] }),
+    matchDisclosuresToEvent({ code: "72030", date: "2026-08-04", evidence: [evidenceOf({ status: "withdrawn", publishedAt: undefined, url: undefined })] }),
     [],
   );
 }
@@ -99,9 +106,9 @@ function testWithdrawnRowWithoutTimeIsNotGuessed(): void {
 function testSuggestsMisconductForInvestigationCommittee(): void {
   const suggestion = suggestLabel({
     candidateId: "am-7203-2026-08-04",
-    code: "7203",
+    code: "72030",
     date: "2026-08-04",
-    disclosures: [disclosure()],
+    evidence: [evidenceOf()],
   });
   assert.equal(suggestion.suggestedLabel, "misconduct");
   assert.deepEqual(suggestion.evidenceUrls, ["https://www.release.tdnet.info/inbs/a.pdf"]);
@@ -113,11 +120,11 @@ function testConflictingRulesProduceNoSuggestion(): void {
   // 「不祥事」と「業績」が同じ日に出ることはある。単語では決められない。
   const suggestion = suggestLabel({
     candidateId: "am-7203-2026-08-04",
-    code: "7203",
+    code: "72030",
     date: "2026-08-04",
-    disclosures: [
-      disclosure(),
-      disclosure({
+    evidence: [
+      evidenceOf(),
+      evidenceOf({
         title: "2026年3月期 業績予想の修正に関するお知らせ",
         url: "https://www.release.tdnet.info/inbs/b.pdf",
         contentHash: "hash-b",
@@ -134,9 +141,9 @@ function testConflictingRulesProduceNoSuggestion(): void {
 function testNoDisclosureIsReportedNotGuessed(): void {
   const suggestion = suggestLabel({
     candidateId: "am-7203-2026-08-04",
-    code: "7203",
+    code: "72030",
     date: "2026-08-04",
-    disclosures: [],
+    evidence: [],
   });
   assert.equal(suggestion.suggestedLabel, null);
   assert.deepEqual(suggestion.evidenceUrls, []);
@@ -147,9 +154,9 @@ function testUnmatchedDisclosureStillCarriesEvidence(): void {
   // ルールに当たらなくても「何を見て分からなかったか」は残す。
   const suggestion = suggestLabel({
     candidateId: "am-7203-2026-08-04",
-    code: "7203",
+    code: "72030",
     date: "2026-08-04",
-    disclosures: [disclosure({ title: "本社移転に関するお知らせ" })],
+    evidence: [evidenceOf({ title: "本社移転に関するお知らせ" })],
   });
   assert.equal(suggestion.suggestedLabel, null);
   assert.equal(suggestion.evidenceUrls.length, 1);
@@ -159,11 +166,11 @@ function testUnmatchedDisclosureStillCarriesEvidence(): void {
 function testMatchesAreChronological(): void {
   const suggestion = suggestLabel({
     candidateId: "am-7203-2026-08-04",
-    code: "7203",
+    code: "72030",
     date: "2026-08-04",
-    disclosures: [
-      disclosure({ publishedAt: "2026-08-04T14:00:00+09:00", url: "https://example.invalid/late.pdf", contentHash: "l" }),
-      disclosure({ publishedAt: "2026-08-04T09:00:00+09:00", url: "https://example.invalid/early.pdf", contentHash: "e" }),
+    evidence: [
+      evidenceOf({ publishedAt: "2026-08-04T14:00:00+09:00", url: "https://example.invalid/late.pdf", contentHash: "l" }),
+      evidenceOf({ publishedAt: "2026-08-04T09:00:00+09:00", url: "https://example.invalid/early.pdf", contentHash: "e" }),
     ],
   });
   assert.deepEqual(suggestion.evidenceUrls, [
@@ -209,9 +216,9 @@ function testPreviewAndSuggestionShareTheSameJudgement(): void {
   const title = "連結子会社における特別損失の計上に関するお知らせ";
   const suggestion = suggestLabel({
     candidateId: "am-7203-2026-08-04",
-    code: "7203",
+    code: "72030",
     date: "2026-08-04",
-    disclosures: [disclosure({ title })],
+    evidence: [evidenceOf({ title })],
   });
   assert.equal(suggestion.suggestedLabel, matchRuleForTitle(title)?.label);
 }

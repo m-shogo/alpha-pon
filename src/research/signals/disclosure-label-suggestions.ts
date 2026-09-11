@@ -25,7 +25,7 @@
 
 import { jquantsTradingDayCloseJst } from "../providers/jquants-free.js";
 import { compareExplicitIso8601Instants } from "../iso-instant.js";
-import type { ArchivedDisclosure } from "../../disclosure-archive.js";
+import type { LabelEvidence } from "./label-evidence.js";
 import type { EventCauseLabel } from "./event-labels.js";
 
 export interface DisclosureLabelRule {
@@ -102,7 +102,7 @@ export const DISCLOSURE_LABEL_RULES: readonly DisclosureLabelRule[] = [
 ];
 
 export interface DisclosureMatch {
-  disclosure: ArchivedDisclosure;
+  evidence: LabelEvidence;
   /** 反応日から見て、その開示が引け前か引け後か。 */
   timing: "before_close" | "after_previous_close";
   matchedRule?: DisclosureLabelRule;
@@ -158,41 +158,43 @@ function previousDate(date: string): string {
 }
 
 /**
- * 反応日 `date` の価格イベントに結び付く開示を選ぶ。
+ * 反応日 `date` の価格イベントに結び付く証拠を選ぶ。
  *
- * `disclosures` は同じ銘柄のものだけを渡すこと（呼び出し側で絞る）。
+ * `evidence` は TDnet でも EDINET でもよい（`label-evidence.ts` でそろえる）。
+ * 同じ銘柄のものだけを渡すこと（呼び出し側で絞る）。
  */
 export function matchDisclosuresToEvent(input: {
+  /** 価格ストアと同じ5桁コード。 */
   code: string;
   date: string;
-  disclosures: readonly ArchivedDisclosure[];
+  evidence: readonly LabelEvidence[];
 }): DisclosureMatch[] {
   const closeAt = jquantsTradingDayCloseJst(input.date);
   const previousCloseAt = jquantsTradingDayCloseJst(previousDate(input.date));
   const matches: DisclosureMatch[] = [];
 
-  for (const disclosure of input.disclosures) {
-    if (disclosure.code !== input.code) continue;
-    // 取り下げ行には公表時刻が無い。時刻で結び付けられないものを
-    // 推測で当日扱いにしない。
-    if (!disclosure.publishedAt) continue;
+  for (const evidence of input.evidence) {
+    if (evidence.code !== input.code) continue;
+    // 公表時刻の無い行（TDnet の取り下げ、EDINET の時刻欠落）は
+    // 時刻で結び付けられない。推測で当日扱いにしない。
+    if (!evidence.publishedAt) continue;
 
     const beforeClose =
-      compareExplicitIso8601Instants(disclosure.publishedAt, closeAt, "publishedAt", "close") <= 0;
+      compareExplicitIso8601Instants(evidence.publishedAt, closeAt, "publishedAt", "close") <= 0;
     const afterPreviousClose =
-      compareExplicitIso8601Instants(disclosure.publishedAt, previousCloseAt, "publishedAt", "previousClose") > 0;
+      compareExplicitIso8601Instants(evidence.publishedAt, previousCloseAt, "publishedAt", "previousClose") > 0;
 
     if (!beforeClose || !afterPreviousClose) continue;
 
-    const observationClose = jquantsTradingDayCloseJst(disclosure.observationDate);
+    const observationClose = jquantsTradingDayCloseJst(evidence.observationDate);
     const timing =
-      compareExplicitIso8601Instants(disclosure.publishedAt, observationClose, "publishedAt", "observationClose") > 0
+      compareExplicitIso8601Instants(evidence.publishedAt, observationClose, "publishedAt", "observationClose") > 0
         ? "after_previous_close" as const
         : "before_close" as const;
 
-    const matched = matchRule(disclosure.title);
+    const matched = matchRule(evidence.title);
     matches.push({
-      disclosure,
+      evidence,
       timing,
       ...(matched ? { matchedRule: matched.rule } : {}),
       matchedKeywords: matched?.keywords ?? [],
@@ -200,16 +202,17 @@ export function matchDisclosuresToEvent(input: {
   }
 
   matches.sort((left, right) =>
-    left.disclosure.publishedAt!.localeCompare(right.disclosure.publishedAt!));
+    left.evidence.publishedAt!.localeCompare(right.evidence.publishedAt!));
   return matches;
 }
 
 /** 候補1件ぶんのラベル提案を作る。確定はしない。 */
 export function suggestLabel(input: {
   candidateId: string;
+  /** 価格ストアと同じ5桁コード。 */
   code: string;
   date: string;
-  disclosures: readonly ArchivedDisclosure[];
+  evidence: readonly LabelEvidence[];
 }): LabelSuggestion {
   const matches = matchDisclosuresToEvent(input);
   const ruled = matches.filter((match) => match.matchedRule !== undefined);
@@ -238,7 +241,7 @@ export function suggestLabel(input: {
     // 証拠は当たった開示だけでなく、その日に見えた開示すべてを残す。
     // 「何を見て分からなかったか」も記録として要る。
     evidenceUrls: matches
-      .map((match) => match.disclosure.url)
+      .map((match) => match.evidence.url)
       .filter((url): url is string => Boolean(url)),
     rationale,
     conflicting,

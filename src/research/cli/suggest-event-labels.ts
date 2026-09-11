@@ -27,6 +27,15 @@ import {
   type ArchivedDisclosure,
 } from "../../disclosure-archive.js";
 import {
+  listArchivedEdinetDates,
+  readArchivedEdinetDocuments,
+} from "../../edinet-document-archive.js";
+import {
+  edinetEvidence,
+  tdnetEvidence,
+  type LabelEvidence,
+} from "../signals/label-evidence.js";
+import {
   matchRuleForTitle,
   suggestLabel,
 } from "../signals/disclosure-label-suggestions.js";
@@ -71,6 +80,30 @@ function loadArchive(from?: string, to?: string): ArchivedDisclosure[] {
   return rows;
 }
 
+/**
+ * 証拠を2系統から集める。
+ *
+ * TDnet は 2026-08-03 以降しか無いが見出しが日本語で読める。
+ * EDINET は価格のある期間を丸ごとカバーし、臨時報告書の事由コードを持つ。
+ * **どちらか片方だけでは、価格のある期間のラベルが揃わない。**
+ */
+function loadEvidence(from?: string, to?: string): LabelEvidence[] {
+  const evidence: LabelEvidence[] = [];
+  for (const row of loadArchive(from, to)) {
+    const one = tdnetEvidence(row);
+    if (one) evidence.push(one);
+  }
+  for (const date of listArchivedEdinetDates()) {
+    if (from && date < from) continue;
+    if (to && date > to) continue;
+    for (const row of readArchivedEdinetDocuments(date)) {
+      const one = edinetEvidence(row);
+      if (one) evidence.push(one);
+    }
+  }
+  return evidence;
+}
+
 function previewRules(rows: ArchivedDisclosure[]): void {
   const byLabel = new Map<string, ArchivedDisclosure[]>();
   let unmatched = 0;
@@ -102,15 +135,21 @@ function previewRules(rows: ArchivedDisclosure[]): void {
 function main(): void {
   const from = argValue("from") ?? undefined;
   const to = argValue("to") ?? undefined;
-  const rows = loadArchive(from, to);
-  if (rows.length === 0) {
-    console.log("保存済みの開示がない。先に pnpm archive:tdnet を実行すること。");
-    process.exitCode = 1;
+  if (hasFlag("preview-rules")) {
+    const rows = loadArchive(from, to);
+    if (rows.length === 0) {
+      console.log("保存済みの TDnet 開示がない。先に pnpm archive:tdnet を実行すること。");
+      process.exitCode = 1;
+      return;
+    }
+    previewRules(rows);
     return;
   }
 
-  if (hasFlag("preview-rules")) {
-    previewRules(rows);
+  const evidence = loadEvidence(from, to);
+  if (evidence.length === 0) {
+    console.log("証拠がない。pnpm archive:tdnet / pnpm archive:edinet を先に実行すること。");
+    process.exitCode = 1;
     return;
   }
 
@@ -134,11 +173,16 @@ function main(): void {
   });
 
   const priceDates = loaded.series.flatMap((series) => series.bars.map((bar) => bar.date));
-  const archiveDates = rows.map((row) => row.observationDate);
+  const archiveDates = evidence.map((one) => one.observationDate);
   const priceTo = priceDates.length ? priceDates.sort().at(-1)! : null;
   const archiveFrom = archiveDates.length ? archiveDates.sort()[0]! : null;
 
-  console.log(`開示 ${rows.length}件（${archiveFrom} 〜 ${archiveDates.sort().at(-1)}）`);
+  const bySource = new Map<string, number>();
+  for (const one of evidence) bySource.set(one.source, (bySource.get(one.source) ?? 0) + 1);
+  console.log(
+    `証拠 ${evidence.length}件（${archiveFrom} 〜 ${archiveDates.sort().at(-1)}）`
+    + ` / ${[...bySource].map(([source, count]) => `${source} ${count}`).join(" ")}`,
+  );
   console.log(`価格 ${loaded.series.length}銘柄（〜 ${priceTo}）`);
 
   if (priceTo && archiveFrom && priceTo < archiveFrom) {
@@ -159,11 +203,13 @@ function main(): void {
     minAverageTurnoverJpy: Number(argValue("min-turnover-jpy") ?? 500_000_000),
   });
 
-  const byCode = new Map<string, ArchivedDisclosure[]>();
-  for (const row of rows) {
-    const bucket = byCode.get(row.code) ?? [];
-    bucket.push(row);
-    byCode.set(row.code, bucket);
+  // 証拠は5桁コードで引く。TDnet の4桁 code ではなく sourceCode を使うので、
+  // 価格ストアと同じ体系のまま突き合わせられる（実測 EDINET 264/268 が一致）。
+  const byCode = new Map<string, LabelEvidence[]>();
+  for (const one of evidence) {
+    const bucket = byCode.get(one.code) ?? [];
+    bucket.push(one);
+    byCode.set(one.code, bucket);
   }
 
   console.log(`候補 ${detected.candidates.length}件`);
@@ -172,15 +218,11 @@ function main(): void {
   let conflicting = 0;
   let noDisclosure = 0;
   for (const candidate of detected.candidates) {
-    // 保存庫の code は4桁、価格ストアは5桁。末尾の予備コードを落として合わせる。
-    const shortCode = candidate.code.length === 5 && candidate.code.endsWith("0")
-      ? candidate.code.slice(0, 4)
-      : candidate.code;
     const suggestion = suggestLabel({
       candidateId: candidate.candidateId,
-      code: shortCode,
+      code: candidate.code,
       date: candidate.date,
-      disclosures: byCode.get(shortCode) ?? [],
+      evidence: byCode.get(candidate.code) ?? [],
     });
     if (suggestion.conflicting) conflicting += 1;
     else if (suggestion.suggestedLabel) suggested += 1;
