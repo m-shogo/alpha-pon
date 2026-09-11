@@ -13,7 +13,7 @@ function drawdownText(pct: number | null) {
 
 function drawdownColor(pct: number | null) {
   if (pct == null) return 'var(--ink-3)'
-  return Math.abs(pct) >= 25 ? 'var(--amber)' : 'var(--sky-deep)'
+  return Math.abs(pct) >= 25 ? 'var(--amber)' : 'var(--accent)'
 }
 
 function CandidateRow({ candidate }: { candidate: GeneratedAlertCandidateInput }) {
@@ -23,7 +23,7 @@ function CandidateRow({ candidate }: { candidate: GeneratedAlertCandidateInput }
       <div className={styles.identity}>
         <div className={styles.code}>
           {candidate.code}
-          {isMock && <span className={styles.mock}>サンプル（MOCK）</span>}
+          {isMock && <span className={styles.mock}>サンプル</span>}
         </div>
         <div className={styles.name}>{candidate.name}</div>
         <div className={styles.tags}>
@@ -38,7 +38,7 @@ function CandidateRow({ candidate }: { candidate: GeneratedAlertCandidateInput }
           <div className={styles.metricValue} style={{ color: drawdownColor(candidate.drawdownPct) }}>{drawdownText(candidate.drawdownPct)}</div>
         </div>
         <div className={styles.metric}>
-          <div className={styles.metricLabel}>スクリーニング点</div>
+          <div className={styles.metricLabel}>調査優先</div>
           <div className={styles.metricValue}>{candidate.screeningScore}</div>
         </div>
       </div>
@@ -66,30 +66,25 @@ export default function AlertsPage() {
         </p>
         <div className={styles.meta}>
           {scanDate && <span>最終スキャン {scanDate}</span>}
-          <span>{candidates.length}候補</span>
-          {candidates.length > 0 && <span>{isMock ? 'サンプルデータ（MOCK）' : '本番データ'}</span>}
+          {candidates.length > 0 && <span>{isMock ? 'サンプルデータ' : '実データ'}</span>}
         </div>
       </header>
 
       {candidateLoad.warning && <div className={styles.errorNotice}>データ警告: {candidateLoad.warning}</div>}
       {isMock && (
         <div className={styles.notice}>
-          現在はサンプルデータ（MOCK）です。実際の投資調査候補として扱わず、画面と判定フローの確認用として表示しています。
+          現在はサンプルデータです。実際の投資調査候補として扱わず、画面と判定フローの確認用として表示しています。
         </div>
       )}
 
       <section className={styles.summary} aria-label="監視候補サマリー">
-        <div className={styles.summaryItem}>
-          <div className={styles.summaryLabel}>監視候補</div>
-          <div className={styles.summaryValue}>{candidates.length}件</div>
+        <div className={styles.summaryLead}>
+          <strong>{candidates.length}件</strong>
+          <span>の監視候補を表示中</span>
         </div>
-        <div className={styles.summaryItem}>
-          <div className={styles.summaryLabel}>検証中の仮説</div>
-          <div className={styles.summaryValue}>{openHypotheses}件</div>
-        </div>
-        <div className={styles.summaryItem}>
-          <div className={styles.summaryLabel}>答え合わせ記録</div>
-          <div className={styles.summaryValue}>{outcomes}件</div>
+        <div className={styles.summaryMeta}>
+          <span>検証中の仮説 <strong>{openHypotheses}件</strong></span>
+          <span>答え合わせ <strong>{outcomes}件</strong></span>
         </div>
       </section>
 
@@ -105,8 +100,8 @@ export default function AlertsPage() {
       </nav>
 
       <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>今日のスクリーニング結果</h2>
-        <p className={styles.sectionIntro}>スクリーニング点が高い順です。点数は買い推奨度ではなく、次に調査する順番を整理するための値です。</p>
+        <h2 className={styles.sectionTitle}>今日の候補</h2>
+        <p className={styles.sectionIntro}>調査優先が高い順です。点数は買い推奨度ではなく、次に調査する順番を整理するための値です。</p>
         {candidates.length === 0 ? (
           <div className={styles.empty}>現在、条件に合う監視候補はありません。0件でも異常ではありません。</div>
         ) : (
