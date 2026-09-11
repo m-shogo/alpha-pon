@@ -11,8 +11,21 @@
 
 import { listArchivedDates } from "./disclosure-archive.js";
 
-/** 実測した公開ビューアの保持日数（暦日）。余裕を見て短めに扱う。 */
+/** 実測した TDnet 公開ビューアの保持日数（暦日）。余裕を見て短めに扱う。 */
 export const TDNET_RETENTION_DAYS = 28;
+
+/**
+ * EDINET 書類一覧API の保持日数（暦日）。
+ *
+ * 実測（2026-09-11）:
+ *   2016-09-12 は取得できた（187件）/ 2016-09-09 は metadata.status=404。
+ *   2018-09-10・2020-09-10・2021-09-10・2022-09-09 はいずれも取得できた。
+ *   今日の10年前が 2016-09-11 なので、**10年のローリング窓**と分かる。
+ *
+ * TDnet の 28日とは緊急度が桁違いなので、同じ検査に同じ期限で乗せない。
+ * 余裕を見て 9年半で扱う。
+ */
+export const EDINET_RETENTION_DAYS = 3_470;
 
 export interface ArchiveGap {
   date: string;
