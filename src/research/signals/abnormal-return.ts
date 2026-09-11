@@ -147,8 +147,10 @@ export function evaluateAbnormalReturn(
     };
   }
 
+  // 権利落ち日はここでも持っているので、推定にも必ず渡す。
+  // 渡さないと併合・分割のリターンが β と σ を壊す（実測 β=245.5）。
   const estimate = estimateMarketModel(
-    series, guards.benchmarkCloseByDate, index, guards.marketModel,
+    series, guards.benchmarkCloseByDate, index, guards.marketModel, guards.corporateActionDates,
   );
   // 推定できないなら β=1 で代用しない。それをやると
   // 「市場モデルで測った」と「素朴に引いた」が混ざり、結果を後から解釈できない。

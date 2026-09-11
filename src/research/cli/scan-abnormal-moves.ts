@@ -30,7 +30,7 @@ import {
   type MarketModelParams,
 } from "../signals/market-model.js";
 import {
-  DEFAULT_UNIVERSE_BENCHMARK_PARAMS,
+  DEFAULT_UNIVERSE_BENCHMARK_SETTINGS,
   buildUniverseBenchmark,
 } from "../signals/universe-benchmark.js";
 import {
@@ -186,7 +186,8 @@ function main(): void {
     console.log(`benchmark       ${ETF_BENCHMARK_CODE}（TOPIX連動ETF・${etf.bars.length}本）`);
   } else {
     const universe = buildUniverseBenchmark(allSecurities, {
-      ...DEFAULT_UNIVERSE_BENCHMARK_PARAMS,
+      ...DEFAULT_UNIVERSE_BENCHMARK_SETTINGS,
+      corporateActionDates,
       ...(minTurnoverJpy > 0 ? { minAverageTurnoverJpy: minTurnoverJpy } : {}),
     });
     benchmark = universe.series;
@@ -203,7 +204,7 @@ function main(): void {
   // 実測: 全4,321銘柄では候補1,775件、5億円/日以上の830銘柄では432件。
   const securities = minTurnoverJpy > 0
     ? allSecurities.filter((series) => {
-        const window = series.bars.slice(-DEFAULT_UNIVERSE_BENCHMARK_PARAMS.turnoverLookbackBars);
+        const window = series.bars.slice(-DEFAULT_UNIVERSE_BENCHMARK_SETTINGS.turnoverLookbackBars);
         if (window.length === 0) return false;
         const average = window.reduce((sum, bar) => sum + bar.close * bar.volume, 0) / window.length;
         return average >= minTurnoverJpy;

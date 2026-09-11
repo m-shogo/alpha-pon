@@ -15,7 +15,7 @@
 
 import assert from "node:assert/strict";
 import {
-  DEFAULT_UNIVERSE_BENCHMARK_PARAMS,
+  DEFAULT_UNIVERSE_BENCHMARK_SETTINGS,
   UNIVERSE_BENCHMARK_CODE,
   buildUniverseBenchmark,
   type UniverseBenchmarkParams,
@@ -27,6 +27,7 @@ const PARAMS: UniverseBenchmarkParams = {
   turnoverLookbackBars: 2,
   minConstituents: 2,
   maxPriorGapDays: 10,
+  corporateActionDates: new Map(),
 };
 
 function isoDate(offset: number): string {
@@ -51,6 +52,73 @@ function series(code: string, input: {
     });
   }
   return { code, bars };
+}
+
+function testCorporateActionReturnsAreExcluded(): void {
+  // 実測で踏んだ最悪の欠陥。2024-12-16 に `13570` が100:1の株式併合をして
+  // 117円 → 11,755円（+9,947%）。それが等加重平均に入って
+  // **指数がその日だけ +12.95% 動いた。**
+  // 1銘柄の併合が市場の動きになり、その日の全銘柄の異常収益が壊れる。
+  const dates = [0, 1, 2, 3].map(isoDate);
+  const normal = (code: string): PriceSeries => ({
+    code,
+    bars: dates.map((date) => ({ date, open: 100, high: 100, low: 100, close: 100, volume: 10_000 })),
+  });
+  // 最終日に100倍になる銘柄（併合）。
+  const merged: PriceSeries = {
+    code: "13570",
+    bars: dates.map((date, index) => index === 3
+      ? { date, open: 10_000, high: 10_000, low: 10_000, close: 10_000, volume: 10_000 }
+      : { date, open: 100, high: 100, low: 100, close: 100, volume: 10_000 }),
+  };
+
+  const withoutLedger = buildUniverseBenchmark([normal("10000"), normal("20000"), merged], PARAMS);
+  assert.ok(
+    withoutLedger.days.at(-1)!.returnPct > 1000,
+    "テスト前提: 台帳が無いと併合が指数に入る",
+  );
+
+  const withLedger = buildUniverseBenchmark([normal("10000"), normal("20000"), merged], {
+    ...PARAMS,
+    corporateActionDates: new Map([["13570", new Set([dates[3]!])]]),
+  });
+  const last = withLedger.days.at(-1)!;
+  assert.equal(last.constituents, 2, "権利落ちの銘柄はその日の構成から外す");
+  assert.ok(Math.abs(last.returnPct) < 1e-9, `指数が動いてはいけない: ${last.returnPct}`);
+  assert.equal(withLedger.excludedForCorporateAction, 1, "外した本数を報告する");
+}
+
+function testFollowingDayIsKept(): void {
+  // 権利落ち日の終値は既に新基準なので、**翌日のリターンは正常**。
+  // 外すと使える観測を捨てることになる。
+  const dates = [0, 1, 2, 3, 4].map(isoDate);
+  const normal = (code: string): PriceSeries => ({
+    code,
+    bars: dates.map((date) => ({ date, open: 100, high: 100, low: 100, close: 100, volume: 10_000 })),
+  });
+  const merged: PriceSeries = {
+    code: "13570",
+    bars: dates.map((date, index) => index >= 3
+      ? { date, open: 10_000, high: 10_000, low: 10_000, close: 10_000, volume: 10_000 }
+      : { date, open: 100, high: 100, low: 100, close: 100, volume: 10_000 }),
+  };
+  const result = buildUniverseBenchmark([normal("10000"), normal("20000"), merged], {
+    ...PARAMS,
+    corporateActionDates: new Map([["13570", new Set([dates[3]!])]]),
+  });
+  assert.equal(result.excludedForCorporateAction, 1, "権利落ち日の1本だけ外す");
+  const dayAfter = result.days.find((day) => day.date === dates[4]);
+  assert.ok(dayAfter);
+  assert.equal(dayAfter.constituents, 3, "翌日は3銘柄とも構成に戻る");
+}
+
+function testLedgerIsRequired(): void {
+  // 省略可能にすると渡し忘れたときに黙って壊れた指数ができる。
+  const { corporateActionDates: _omitted, ...withoutLedger } = PARAMS;
+  assert.throws(
+    () => buildUniverseBenchmark([], withoutLedger as UniverseBenchmarkParams),
+    /corporateActionDates は必須/,
+  );
 }
 
 function testOpenLevelIsSeparateFromCloseLevel(): void {
@@ -223,12 +291,15 @@ function testEmptyUniverse(): void {
 }
 
 function testDefaultsAreConservative(): void {
-  assert.ok(DEFAULT_UNIVERSE_BENCHMARK_PARAMS.minConstituents >= 100,
+  assert.ok(DEFAULT_UNIVERSE_BENCHMARK_SETTINGS.minConstituents >= 100,
     "少数銘柄を市場と呼ばない");
-  assert.ok(DEFAULT_UNIVERSE_BENCHMARK_PARAMS.minAverageTurnoverJpy > 0,
+  assert.ok(DEFAULT_UNIVERSE_BENCHMARK_SETTINGS.minAverageTurnoverJpy > 0,
     "非流動銘柄の古い終値を市場リターンに混ぜない");
 }
 
+testCorporateActionReturnsAreExcluded();
+testFollowingDayIsKept();
+testLedgerIsRequired();
 testOpenLevelIsSeparateFromCloseLevel();
 testOpenAndCloseUseTheSameConstituents();
 testEqualWeightedReturn();
