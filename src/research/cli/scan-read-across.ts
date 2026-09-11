@@ -143,6 +143,8 @@ function main(): void {
       corporateActionDates: inputs.corporateActionDates,
       relationTypes: ["peer"],
       minAverageTurnoverJpy: minTurnoverJpy,
+      // 発生元と同じ定義で測る。素の差だと β の高い銘柄が過剰に選ばれる。
+      marketModel: DEFAULT_MARKET_MODEL_PARAMS,
     },
   );
 
