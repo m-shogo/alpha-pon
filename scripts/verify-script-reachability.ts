@@ -39,6 +39,10 @@ const EXPECTED_UNREACHABLE: Record<string, string> = {
     "Cloudflare Pages Functions 用の経路。Workers Static Assets へ移行済みでレガシー。",
   "verify-pro-local":
     "ローカル手動検証用のラッパー。CI では個別の検査を直接起動している。",
+  "verify-price-store-vs-api":
+    "J-Quants API へ実アクセスする（キーとネットワークが要る）。"
+    + "バースト枠があるので日付ごとに20秒空ける。"
+    + "mapJQuantsFreeQuote を触ったときに手で回す運用。",
 };
 
 function listVerifyScripts(): string[] {
