@@ -162,10 +162,32 @@ function main(): void {
     return;
   }
 
+  // **分布を先に出す。** 「伝播側の下落が大きい順」の上位だけを見ると、
+  // 結果で並べ替えた端を典型と誤読する（実際に一度誤読した）。
+  const ratios = result.candidates.map((one) => one.propagationRatio).sort((a, b) => a - b);
+  const quantile = (p: number): string => ratios[Math.floor(ratios.length * p)]!.toFixed(2);
+  const damped = ratios.filter((one) => one < 1).length;
+  console.log(
+    `   伝播の比   発生元より小さい反応 ${damped}/${ratios.length}`
+    + `（${(damped / ratios.length * 100).toFixed(0)}%）`
+    + ` / 10%=${quantile(0.1)} 25%=${quantile(0.25)} 中央=${quantile(0.5)}`
+    + ` 75%=${quantile(0.75)} 90%=${quantile(0.9)}`,
+  );
+  const perSource = new Map<string, number>();
+  for (const one of result.candidates) {
+    const key = `${one.sourceCode}|${one.date}`;
+    perSource.set(key, (perSource.get(key) ?? 0) + 1);
+  }
+  const counts = [...perSource.values()].sort((a, b) => b - a);
+  console.log(
+    `   標本の増え方 発生元 ${counts.length}件 → 伝播 ${result.candidates.length}件`
+    + `（1件あたり 中央 ${counts[Math.floor(counts.length / 2)]} / 最大 ${counts[0]}）`,
+  );
+
   const labeller = makeCodeLabeller(to);
   const sorted = [...result.candidates]
     .sort((left, right) => left.relatedAbnormalReturnPct - right.relatedAbnormalReturnPct);
-  console.log("\n伝播側の下落が大きい順に20件:");
+  console.log("\n伝播側の下落が大きい順に20件（**端であって典型ではない**）:");
   for (const one of sorted.slice(0, 20)) {
     console.log(
       `  ${one.date}  ${labeller.label(one.sourceCode)} ${one.sourceAbnormalReturnPct.toFixed(1)}%`
