@@ -115,7 +115,8 @@
     "archive:tdnet": "node --env-file-if-exists=.env --import tsx/esm src/archive-tdnet.ts",
     "label:suggest": "node --max-old-space-size=8192 --env-file-if-exists=.env --import tsx/esm src/research/cli/suggest-event-labels.ts",
     "archive:edinet": "node --env-file-if-exists=.env --import tsx/esm src/archive-edinet.ts",
-    "research:edinet-study": "node --max-old-space-size=10240 --env-file-if-exists=.env --import tsx/esm src/research/cli/edinet-event-study.ts"
+    "research:edinet-study": "node --max-old-space-size=10240 --env-file-if-exists=.env --import tsx/esm src/research/cli/edinet-event-study.ts",
+    "verify:price-store-vs-api": "node --env-file-if-exists=.env --import tsx/esm scripts/verify-price-store-vs-api.ts"
   },
   "dependencies": { "js-yaml": "^4.1.0" },
   "devDependencies": { "@types/js-yaml": "^4.0.9", "@types/node": "^22.0.0", "tsx": "^4.19.0", "typescript": "^5.7.0" }
