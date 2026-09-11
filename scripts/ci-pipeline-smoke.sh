@@ -172,6 +172,11 @@ node --import tsx/esm scripts/verify-test-function-reachability.ts > /dev/null
 # verify script が「追記し忘れ」でどこからも起動されない状態を防ぐ。
 node --import tsx/esm scripts/verify-script-reachability.ts
 
+# scripts/verify-* だけでなく src/ 側も見る。
+# 2026-09-11 に src/execution/ の3本がテストからしか呼ばれていないことが分かった。
+# 「書いてあるのに動いていない」に気づく仕組みが無かった。
+node --import tsx/esm scripts/verify-src-reachability.ts
+
 # tests/ 配下を漏れなく実行する。
 # 2026-09-10 の監査で 475本中139本がどのチェーンからも実行されておらず、
 # うち14本が誰にも気づかれずに失敗していた。チェーンへの追記忘れという
