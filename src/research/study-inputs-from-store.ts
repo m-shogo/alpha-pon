@@ -70,6 +70,14 @@ export interface StudyInputs {
   benchmarkSkippedDates: string[];
   corporateActionDates: Map<string, Set<string>>;
   datesScanned: number;
+  /**
+   * 実際に板の立った営業日（昇順）。
+   *
+   * 決算開示の「反応日」を決めるのにカレンダーが要る。価格ストアの
+   * ファイル名から作ると休場日や取り込み漏れが混ざるので、
+   * **読み込んだ系列に実際に現れた日**から組む。
+   */
+  tradingDates: string[];
 }
 
 export class StudyInputsError extends Error {}
@@ -129,8 +137,14 @@ export function loadStudyInputsFromStore(query: StudyInputsQuery = {}): StudyInp
       })
     : loaded.series;
 
+  const tradingDateSet = new Set<string>();
+  for (const series of loaded.series) {
+    for (const bar of series.bars) tradingDateSet.add(bar.date);
+  }
+
   return {
     prices,
+    tradingDates: [...tradingDateSet].sort(),
     universeSize: loaded.series.length,
     benchmark: universe.series,
     benchmarkSkippedDates: universe.skippedDates,
