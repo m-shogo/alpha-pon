@@ -3,6 +3,10 @@
  *
  *   pnpm archive:edinet -- --from 2024-06-19 --to 2026-06-18            # 計画のみ
  *   pnpm archive:edinet -- --from 2024-06-19 --to 2026-06-18 --execute  # 実行
+ *   pnpm archive:edinet -- --catch-up --execute                         # 続きだけ
+ *
+ * `--catch-up` は取り込み済みの最終日の翌日から今日まで。
+ * **一度も取り込んでいなければ何もしない。**
  *
  * ## なぜこれで45日の待ちが消えるか
  *
@@ -23,6 +27,8 @@ import {
   listArchivedEdinetDates,
 } from "./edinet-document-archive.js";
 import { fetchEdinetDocList, getEdinetConfigurationStatus } from "./fetcher/edinet.js";
+import { resolveCatchUpRange } from "./catch-up-range.js";
+import { todayJst } from "./date.js";
 
 const DEFAULT_INTERVAL_MS = 3_000;
 
@@ -60,8 +66,30 @@ async function sleep(ms: number): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  const from = requiredDate("from");
-  const to = requiredDate("to");
+  const catchUp = hasFlag("catch-up");
+  let from: string;
+  let to: string;
+  if (catchUp) {
+    if (argValue("from") || argValue("to")) {
+      throw new Error("--catch-up と --from/--to は同時に指定できない");
+    }
+    const resolved = resolveCatchUpRange({
+      archivedDates: listArchivedEdinetDates(),
+      today: todayJst(),
+    });
+    if (!resolved.ok) {
+      console.log(resolved.reason === "never_ingested"
+        ? "一度も取り込んでいない。最初は --from を明示して走らせること。"
+        : "既に最新。取り込む日がない。");
+      return;
+    }
+    from = resolved.range.from;
+    to = resolved.range.to;
+    console.log(`追いつき      ${from} 〜 ${to}（${resolved.range.calendarDays}暦日）`);
+  } else {
+    from = requiredDate("from");
+    to = requiredDate("to");
+  }
   if (from > to) throw new Error("--from must be on or before --to");
   const execute = hasFlag("execute");
   const includeWeekends = hasFlag("include-weekends");

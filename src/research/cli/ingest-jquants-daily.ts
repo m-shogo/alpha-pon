@@ -3,6 +3,11 @@
  *
  *   pnpm ingest:prices -- --from 2024-06-19 --to 2026-06-19            # 計画のみ
  *   pnpm ingest:prices -- --from 2024-06-19 --to 2026-06-19 --execute  # 実行
+ *   pnpm ingest:prices -- --catch-up --execute                         # 続きだけ
+ *
+ * `--catch-up` は取り込み済みの最終日の翌日から今日まで。
+ * **一度も取り込んでいなければ何もしない。** 起点が分からないまま
+ * 適当な日から始めると穴の空いた保存庫ができる。最初は --from を明示する。
  *
  * 性質:
  *   - 既定は dry-run。ネットワークを触らない。
@@ -23,7 +28,9 @@ import { withPriceRecordHash } from "../price-store.js";
 import {
   JQuantsFreePriceProvider,
   isJQuantsFreeConfigured,
+  jquantsFreeObservedAt,
 } from "../providers/jquants-free.js";
+import { compareExplicitIso8601Instants } from "../iso-instant.js";
 import {
   JQUANTS_ADJUSTMENT_LEDGER_NAME,
   dedupeAdjustmentEvents,
@@ -35,11 +42,14 @@ import {
   completedDatesFrom,
   estimateIngestSeconds,
   formatDuration,
-  isCompletedOutcome,
+  isCompletedIngest,
   planIngest,
   type IngestLedgerEntry,
 } from "../providers/jquants-daily-ingest.js";
 import { MEASURED_DATE_QUERY_INTERVAL_MS } from "../../fetcher/adaptive-rate-limit.js";
+import { jquantsV2DateCapCompact } from "../../fetcher/jquants.js";
+import { resolveCatchUpRange } from "../../catch-up-range.js";
+import { todayJst } from "../../date.js";
 import type { JsonSchema } from "../schema.js";
 
 const STORE_ROOT = "research/prices/jquants-free-daily";
@@ -146,8 +156,31 @@ function appendLedger(entry: IngestLedgerEntry): void {
 }
 
 async function main(): Promise<void> {
-  const from = requiredDate("from");
-  const to = requiredDate("to");
+  applyMeasuredRateLimit();
+  const catchUp = hasFlag("catch-up");
+  let from: string;
+  let to: string;
+  if (catchUp) {
+    if (argValue("from") || argValue("to")) {
+      throw new Error("--catch-up と --from/--to は同時に指定できない");
+    }
+    const resolved = resolveCatchUpRange({
+      archivedDates: completedDates(),
+      today: todayJst(),
+    });
+    if (!resolved.ok) {
+      console.log(resolved.reason === "never_ingested"
+        ? "一度も取り込んでいない。最初は --from を明示して走らせること。"
+        : "既に最新。取り込む日がない。");
+      return;
+    }
+    from = resolved.range.from;
+    to = resolved.range.to;
+    console.log(`追いつき      ${from} 〜 ${to}（${resolved.range.calendarDays}暦日）`);
+  } else {
+    from = requiredDate("from");
+    to = requiredDate("to");
+  }
   const execute = hasFlag("execute");
   const maxDaysRaw = argValue("max-days");
   const maxDays = maxDaysRaw === null ? null : Number(maxDaysRaw);
@@ -155,10 +188,26 @@ async function main(): Promise<void> {
     throw new Error(`--max-days must be a positive integer: ${maxDaysRaw}`);
   }
 
-  applyMeasuredRateLimit();
   const removedPartials = execute ? clearStalePartials() : 0;
   const plan = planIngest({ from, to, completed: completedDates() });
-  const targets = maxDays === null ? plan.pending : plan.pending.slice(0, maxDays);
+
+  // 契約範囲（84日遅延）の外は通信せずに弾かれる。見積りに数えると
+  // 「20分かかる」と出て、実際は数秒で終わる。毎日走らせる判断を誤らせない。
+  const capCompact = jquantsV2DateCapCompact();
+  const cap = `${capCompact.slice(0, 4)}-${capCompact.slice(4, 6)}-${capCompact.slice(6, 8)}`;
+  // さらに、開示遅延が明けていない日も外す。
+  // `observedAt` は「対象日+84日の 23:59:59 JST」なので、契約上の上限日は
+  // その日の深夜まで使えない。聞いても全行が抑止されて1リクエスト無駄になる。
+  const nowIso = new Date().toISOString();
+  const withinCap = plan.pending.filter((date) => date <= cap);
+  const entitled = withinCap.filter((date) =>
+    compareExplicitIso8601Instants(
+      jquantsFreeObservedAt(date), nowIso, "observedAt", "now",
+    ) <= 0);
+  const beyondCap = plan.pending.length - withinCap.length;
+  const notYetObservable = withinCap.length - entitled.length;
+
+  const targets = maxDays === null ? entitled : entitled.slice(0, maxDays);
   const estimate = estimateIngestSeconds({
     pendingDays: targets.length,
     optimisticIntervalSec: MEASURED_OPTIMISTIC_INTERVAL_SEC,
@@ -169,7 +218,11 @@ async function main(): Promise<void> {
   console.log(`期間            ${from} 〜 ${to}（暦日 ${plan.totalCalendarDays}）`);
   console.log(`取り込み済み    ${plan.skippedCompleted} 日`);
   console.log(`週末で除外      ${plan.skippedWeekends} 日`);
-  console.log(`残り            ${plan.pending.length} 日${maxDays === null ? "" : `（今回は ${targets.length} 日）`}`);
+  console.log(
+    `残り            ${entitled.length} 日${maxDays === null ? "" : `（今回は ${targets.length} 日）`}`
+    + `${beyondCap > 0 ? ` / 契約範囲外 ${beyondCap} 日（84日遅延。${cap} まで取得可）` : ""}`
+    + `${notYetObservable > 0 ? ` / 遅延明け待ち ${notYetObservable} 日（当日23:59 JST以降）` : ""}`,
+  );
   console.log(`所要見込み      ${formatDuration(estimate.optimisticSec)} 〜 ${formatDuration(estimate.expectedSec)}`);
   console.log(`リクエスト間隔  ${process.env.JQUANTS_V2_REQUEST_INTERVAL_MS}ms（実測ベース）`);
   if (removedPartials > 0) console.log(`書きかけを削除  ${removedPartials} 件`);
@@ -199,6 +252,7 @@ async function main(): Promise<void> {
   const startedAt = Date.now();
   const counts = { entitled_rows: 0, entitled_empty: 0, not_entitled: 0 };
   let rowsWritten = 0;
+  let withheldDays = 0;
   let adjustmentsWritten = 0;
   let failures = 0;
 
@@ -245,15 +299,18 @@ async function main(): Promise<void> {
       rowsWritten += batch.records.length;
     }
 
-    // 枠外は完了ではない。84日遅延が明ければ取れる日なので台帳に載せない。
-    if (isCompletedOutcome(batch.outcome)) {
-      appendLedger({
-        tradingDate,
-        outcome: batch.outcome,
-        rowCount: batch.records.length,
-        retrievedAt: batch.retrievedAt,
-      });
-    }
+    // 枠外も、抑止された日も完了ではない。台帳に「完了」として載せない。
+    // ただし抑止は起きた事実として残す（何度も同じ日で空振りしていないか
+    // 後から分かるように）。
+    const entry = {
+      tradingDate,
+      outcome: batch.outcome,
+      rowCount: batch.records.length,
+      retrievedAt: batch.retrievedAt,
+      ...(batch.withheldForAsOf > 0 ? { withheldForAsOf: batch.withheldForAsOf } : {}),
+    };
+    if (isCompletedIngest(entry) || batch.withheldForAsOf > 0) appendLedger(entry);
+    if (batch.withheldForAsOf > 0) withheldDays += 1;
     counts[batch.outcome] += 1;
 
     const elapsedSec = (Date.now() - dayStartedAt) / 1000;
@@ -272,6 +329,11 @@ async function main(): Promise<void> {
   console.log(`立会あり        ${counts.entitled_rows} 日`);
   console.log(`0件（休場等）   ${counts.entitled_empty} 日`);
   console.log(`枠外            ${counts.not_entitled} 日（84日遅延の内側。完了にはしない）`);
+  if (withheldDays > 0) {
+    console.log(
+      `抑止            ${withheldDays} 日（行はあるが observedAt が未到達。完了にはしない）`,
+    );
+  }
   if (failures > 0) console.log(`失敗            ${failures} 日（次回の再開で拾い直す）`);
   console.log(`総時間          ${formatDuration((Date.now() - startedAt) / 1000)}`);
 

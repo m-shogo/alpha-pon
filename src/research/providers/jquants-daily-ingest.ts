@@ -13,6 +13,13 @@ export interface IngestLedgerEntry {
   outcome: JQuantsUniverseOutcome;
   rowCount: number;
   retrievedAt: string;
+  /**
+   * 開示遅延（84日）の内側で抑止された行数。
+   *
+   * **0 より大きければ完了ではない。** API は行を返したが、その時点では
+   * まだ使ってよい時刻に達していなかった、という状態。
+   */
+  withheldForAsOf?: number;
 }
 
 /**
@@ -20,9 +27,19 @@ export interface IngestLedgerEntry {
  *
  * `not_entitled` は完了ではない。84日遅延の内側というだけで、遅延が明ければ
  * 取得できる日だから。ここを完了に含めると、その日は二度と取りに行かれない。
+ *
+ * **抑止された行があった日も完了ではない。** `observedAt` は
+ * 「対象日+84日の 23:59:59 JST」なので、契約上の上限日は**いつ実行しても
+ * 抑止される**。これを完了にすると、追いつきを毎日回すたびに
+ * 1日ずつ永久の穴ができる。実際に 2026-06-19 で作ってしまった
+ * （台帳は rowCount 0 で完了、いま API を叩くと4,443件返る）。
  */
-export function isCompletedOutcome(outcome: JQuantsUniverseOutcome): boolean {
-  return outcome === "entitled_rows" || outcome === "entitled_empty";
+export function isCompletedIngest(input: {
+  outcome: JQuantsUniverseOutcome;
+  withheldForAsOf?: number;
+}): boolean {
+  if ((input.withheldForAsOf ?? 0) > 0) return false;
+  return input.outcome === "entitled_rows" || input.outcome === "entitled_empty";
 }
 
 export function parseIngestLedger(content: string): IngestLedgerEntry[] {
@@ -60,7 +77,7 @@ export function completedDatesFrom(input: {
     if (match) completed.add(match[1]!);
   }
   for (const entry of parseIngestLedger(input.ledgerContent ?? "")) {
-    if (!isCompletedOutcome(entry.outcome)) continue;
+    if (!isCompletedIngest(entry)) continue;
     completed.add(entry.tradingDate);
   }
   return completed;
