@@ -20,8 +20,8 @@ const TODAY = "2026-09-15";
 function result(over: Partial<ScoreResult> = {}): ScoreResult {
   return {
     candidate: {
-      code: "7203", name: "テスト自動車", market: "prime",
-      status: "watch", priority: "medium", tags: [], rules: [],
+      code: "7203", name: "テスト自動車", market: "TSE",
+      status: "watch", priority: "B", tags: [], rules: [],
     },
     breakdown: {
       structuralEvent: 1, supplyDemand: 1, valuation: 1,
