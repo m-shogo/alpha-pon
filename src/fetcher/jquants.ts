@@ -8,6 +8,7 @@ import {
   onRequestThrottled,
   waitMsBefore,
   type AdaptiveRateLimitConfig,
+  type AdaptiveRateLimitState,
 } from "./adaptive-rate-limit.js";
 
 const V1_BASE_URL = "https://api.jquants.com/v1";
@@ -21,7 +22,21 @@ type TokenCache = {
 let tokenCache: TokenCache | null = null;
 // 相手（J-Quants Free）の制限はレートではなくバースト枠。
 // 固定間隔では必ず溢れるため、429 の観測から間隔を学習する。
-let v2RateLimitState = initialRateLimitState();
+/**
+ * 適応レート制限の状態。**最初に使うときに作る。**
+ *
+ * かつてはモジュール読み込み時に既定値で作っていた。そのため
+ * `JQUANTS_V2_REQUEST_INTERVAL_MS` を main() の中で設定しても
+ * **一切反映されなかった**（状態は import の時点で 3秒で確定していた）。
+ * 価格の取り込みは 20秒のつもりで 3秒で走っていた。
+ * 設定する場所と効く場所の順序に依存する作りをやめる。
+ */
+let v2RateLimitState: AdaptiveRateLimitState | null = null;
+
+function rateLimitState(): AdaptiveRateLimitState {
+  v2RateLimitState ??= initialRateLimitState(v2RateLimitConfig());
+  return v2RateLimitState;
+}
 
 export function parseJQuantsRequestTimeoutMs(value: string | undefined): number {
   const parsed = Number(value ?? "15000");
@@ -240,7 +255,7 @@ function v2RateLimitConfig(): AdaptiveRateLimitConfig {
 }
 
 async function waitForV2RateLimit(): Promise<void> {
-  const waitMs = waitMsBefore(v2RateLimitState, Date.now());
+  const waitMs = waitMsBefore(rateLimitState(), Date.now());
   if (waitMs > 0) {
     await new Promise(resolve => setTimeout(resolve, waitMs));
   }
@@ -252,16 +267,21 @@ export function jquantsV2RateLimitSnapshot(): {
   totalThrottles: number;
   consecutiveThrottles: number;
 } {
+  const state = rateLimitState();
   return {
-    currentIntervalMs: v2RateLimitState.currentIntervalMs,
-    totalThrottles: v2RateLimitState.totalThrottles,
-    consecutiveThrottles: v2RateLimitState.consecutiveThrottles,
+    currentIntervalMs: state.currentIntervalMs,
+    totalThrottles: state.totalThrottles,
+    consecutiveThrottles: state.consecutiveThrottles,
   };
 }
 
-/** テストと一括取得の開始時に状態を戻す。 */
+/**
+ * 状態を捨てる。次に使うときに、そのときの設定で作り直される。
+ *
+ * テスト用。通常は遅延初期化があるので呼ぶ必要はない。
+ */
 export function resetJQuantsV2RateLimit(): void {
-  v2RateLimitState = initialRateLimitState(v2RateLimitConfig());
+  v2RateLimitState = null;
 }
 
 function parseRetryAfterMs(response: Response): number | undefined {
@@ -286,12 +306,12 @@ async function fetchV2(url: string, apiKey: string): Promise<Response> {
       signal: timeoutSignal(),
     });
     if (res.status !== 429) {
-      v2RateLimitState = onRequestSucceeded(v2RateLimitState, Date.now(), config);
+      v2RateLimitState = onRequestSucceeded(rateLimitState(), Date.now(), config);
       return res;
     }
     // バースト枠が尽きている。短い間隔で叩き直しても枠を削るだけ。
     v2RateLimitState = onRequestThrottled(
-      v2RateLimitState, Date.now(), config, parseRetryAfterMs(res),
+      rateLimitState(), Date.now(), config, parseRetryAfterMs(res),
     );
     if (attempt === maxAttempts) return res;
   }

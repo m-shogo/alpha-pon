@@ -60,11 +60,34 @@ import { resolveCatchUpRange } from "../../catch-up-range.js";
 import { todayJst } from "../../date.js";
 
 /**
- * 実測に基づく間隔。3秒でも429は出なかったが、枠の実体（トークンバケット）は
- * 公開されていないので余裕を取る。遅すぎて困る規模ではない
- * （487営業日 × 5秒 ≒ 41分）。
+ * リクエスト間隔の**初期値**。
+ *
+ * 間隔の制御そのものは `fetcher/adaptive-rate-limit.ts` が持っている
+ * （429 を見たら90秒クールダウン＋間隔を×1.5、成功が続けば戻す）。
+ * ここでその上にもう一段 sleep を重ねると**二重待ち**になる。
+ * 実際に重ねてしまい、1日あたり 20秒のはずが約150秒かかった
+ * （適応側が 120秒へ張り付いた上に、こちらの 20秒が乗っていた）。
+ * 待つ場所は1つだけにする。
+ *
+ * **短い連射の測定から長時間の結論を出して失敗した。** 2026-09-11 の実測:
+ *   3秒×16回・8秒×12回 → 429 なし
+ *   → 5秒で本番投入 → **190リクエスト目から 330回連続で `fetch failed`**
+ *      （HTTP エラーではなく接続レベル。しばらく後に叩くと正常に戻った）
+ *
+ * 16回の連射で分かるのはバーストの枠だけで、持続レートの枠は分からない。
+ * 持続側の正確な閾値は測れていないので、**実績のある値に寄せる**:
+ * 価格の `?date=` は 20秒間隔で 487営業日を連続取得できている。
  */
-const REQUEST_INTERVAL_MS = 5_000;
+const DEFAULT_REQUEST_INTERVAL_MS = 20_000;
+
+/**
+ * 接続レベルの失敗からの立ち直り。
+ *
+ * 遮断は一時的だった（後から叩くと正常）。1回の失敗でその日を諦めると、
+ * 330日ぶんを取りこぼしたまま「失敗330日」とだけ出る。
+ * 待ってから繰り返す。待ち時間は回を追うごとに伸ばす。
+ */
+const RETRY_WAIT_MS = [30_000, 120_000, 300_000] as const;
 
 function argValue(name: string): string | null {
   const prefix = `--${name}=`;
@@ -155,6 +178,17 @@ async function main(): Promise<void> {
     throw new Error(`--max-days must be a positive integer: ${maxDaysRaw}`);
   }
 
+  const intervalRaw = argValue("interval-ms");
+  const intervalMs = intervalRaw === null ? DEFAULT_REQUEST_INTERVAL_MS : Number(intervalRaw);
+  if (!Number.isSafeInteger(intervalMs) || intervalMs < 0) {
+    throw new Error(`--interval-ms must be a non-negative integer: ${intervalRaw}`);
+  }
+
+  // 間隔の制御は adaptive-rate-limit に一本化する。ここでは初期値を渡すだけ。
+  if (process.env.JQUANTS_V2_REQUEST_INTERVAL_MS === undefined) {
+    process.env.JQUANTS_V2_REQUEST_INTERVAL_MS = String(intervalMs);
+  }
+
   const removedPartials = execute ? clearStalePartials() : 0;
   const plan = planIngest({ from, to, completed: completedDates() });
 
@@ -168,7 +202,7 @@ async function main(): Promise<void> {
   const targets = maxDays === null ? entitled : entitled.slice(0, maxDays);
   const estimate = estimateIngestSeconds({
     pendingDays: targets.length,
-    optimisticIntervalSec: REQUEST_INTERVAL_MS / 1000,
+    optimisticIntervalSec: intervalMs / 1000,
     // 価格側と違い、追加の絞りは実測されていない（3秒×16回でも429なし）。
     // 「毎回・追加コスト0秒」として見積もる。
     throttleEveryNRequests: 1,
@@ -183,7 +217,7 @@ async function main(): Promise<void> {
     + `${beyondCap > 0 ? ` / 契約範囲外 ${beyondCap} 日（84日遅延。${cap} まで取得可）` : ""}`,
   );
   console.log(`所要見込み      ${formatDuration(estimate.optimisticSec)}`);
-  console.log(`リクエスト間隔  ${REQUEST_INTERVAL_MS}ms（実測ベース）`);
+  console.log(`リクエスト間隔  ${intervalMs}ms（初期値。429 を見たら適応側が広げる）`);
   if (removedPartials > 0) console.log(`書きかけを削除  ${removedPartials} 件`);
 
   if (!execute) {
@@ -211,6 +245,7 @@ async function main(): Promise<void> {
   const counts = { entitled_rows: 0, entitled_empty: 0, not_entitled: 0 };
   let rowsWritten = 0;
   let failures = 0;
+  let retries = 0;
 
   console.log("");
   for (const [index, date] of targets.entries()) {
@@ -222,13 +257,34 @@ async function main(): Promise<void> {
     const retrievedAt = new Date().toISOString();
     const ingestionRunId = `jquants-free-fins:${date}:${retrievedAt}`;
 
-    let rows: Record<string, unknown>[] | null;
-    try {
-      rows = await fetchFinancialSummaryByDate(date);
-      if (rows !== null) assertRowsBelongToDate(date, rows);
-    } catch (error) {
+    let rows: Record<string, unknown>[] | null = null;
+    let lastError: unknown = null;
+    for (let attempt = 0; attempt <= RETRY_WAIT_MS.length; attempt += 1) {
+      try {
+        rows = await fetchFinancialSummaryByDate(date);
+        if (rows !== null) assertRowsBelongToDate(date, rows);
+        lastError = null;
+        break;
+      } catch (error) {
+        lastError = error;
+        // 前提が崩れた（DiscDate の食い違い）なら待っても直らない。即座に諦める。
+        if (error instanceof Error && error.message.includes("DiscDate")) break;
+        const wait = RETRY_WAIT_MS[attempt];
+        if (wait === undefined) break;
+        retries += 1;
+        console.log(
+          `  ${date}  再試行 ${attempt + 1}/${RETRY_WAIT_MS.length}`
+          + `（${Math.round(wait / 1000)}秒待つ）: `
+          + `${error instanceof Error ? error.message : String(error)}`,
+        );
+        await new Promise((resolveWait) => setTimeout(resolveWait, wait));
+      }
+    }
+    if (lastError !== null) {
       failures += 1;
-      console.log(`  ${date}  失敗: ${error instanceof Error ? error.message : String(error)}`);
+      console.log(
+        `  ${date}  失敗: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
+      );
       // 失敗した日は台帳に載せない。次回の再開で拾い直す。
       continue;
     }
@@ -273,9 +329,6 @@ async function main(): Promise<void> {
       + `  [${done}/${targets.length}] 残り約${formatDuration(remainSec)}`,
     );
 
-    if (done < targets.length) {
-      await new Promise((resolveWait) => setTimeout(resolveWait, REQUEST_INTERVAL_MS));
-    }
   }
 
   console.log("");
@@ -283,6 +336,7 @@ async function main(): Promise<void> {
   console.log(`開示あり        ${counts.entitled_rows} 日`);
   console.log(`0件（休場等）   ${counts.entitled_empty} 日`);
   console.log(`枠外            ${counts.not_entitled} 日（84日遅延の内側。完了にはしない）`);
+  if (retries > 0) console.log(`再試行          ${retries} 回`);
   if (failures > 0) console.log(`失敗            ${failures} 日（次回の再開で拾い直す）`);
   console.log(`総時間          ${formatDuration((Date.now() - startedAt) / 1000)}`);
   if (failures > 0) process.exitCode = 1;
