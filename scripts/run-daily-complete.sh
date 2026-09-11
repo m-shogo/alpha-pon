@@ -104,7 +104,7 @@ run_optional_step() {
 # レポート生成が壊れているあいだにデータ収集まで止まると、
 # 取り返しのつかない損失になる。
 #
-# 価格も EDINET も、遡り取り込みは一度きりで走らせた。ここで毎日続きを
+# 価格も決算も EDINET も、遡り取り込みは一度きりで走らせた。ここで毎日続きを
 # 取らないと、価格は取り込んだ日で止まる。J-Quants Free は84日遅延なので、
 # 毎日1営業日ぶんずつ契約範囲へ入ってくる。TDnet の保存開始（2026-08-03）に
 # 価格が追いつかなければ、不祥事 Edge はいつまでも測れない。
@@ -123,6 +123,12 @@ run_optional_step "archive-edinet-catch-up" \
 run_optional_step "archive-tdnet-catch-up" \
   node --env-file-if-exists="$DIR/.env" --import "tsx/esm" \
   "$DIR/src/archive-tdnet.ts" --catch-up --execute
+
+# 決算開示。価格と同じ2年ローリングなので、止めると最古日から順に永久に失われる。
+# **窓は毎日ずれる。** 実測（2026-09-11）である日 D が取得できるのは D + 814日まで。
+run_optional_step "ingest-fins-catch-up" \
+  node --env-file-if-exists="$DIR/.env" --import "tsx/esm" \
+  "$DIR/src/research/cli/ingest-jquants-fins.ts" --catch-up --execute
 
 # ── 取った直後に、取ったものを検査する ────────────────────────────────────────
 #

@@ -10,21 +10,44 @@
 //   2016-09-09 は 404）。緊急度は桁違いだが、**収集が止まったことに
 //   気づく仕組み**は同じだけ要る。止まっていること自体は毎日損をする。
 //
+//   決算（J-Quants /fins/summary）は **cap を上端とする2年の窓**。
+//   cap は「今日 − 84日」なので窓は毎日ずれる。実測（2026-09-11）で
+//   ある日 D が取得できるのは D + 814日まで。**取り逃した最古日は戻らない。**
+//
 // 保存庫が空の環境（CI）では検査対象なしで正常終了する。
 // 実データがあるのはローカルだけなので、実質の実行場所は日次。
 
 import {
   auditDisclosureArchive,
   EDINET_RETENTION_DAYS,
+  JQUANTS_FINS_RETENTION_DAYS,
   TDNET_RETENTION_DAYS,
 } from "../src/disclosure-archive-audit.js";
 import { listArchivedDates } from "../src/disclosure-archive.js";
 import { listArchivedEdinetDates } from "../src/edinet-document-archive.js";
+import {
+  FINS_INGEST_LEDGER_NAME,
+  resolveFinsStoreRoot,
+} from "../src/research/providers/jquants-fins-store.js";
+import { completedDatesFrom } from "../src/research/providers/jquants-daily-ingest.js";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { todayJst } from "../src/date.js";
 
 // どちらも JST 基準の情報源。UTC 日付で数えると、日本の早朝に
 // 「最終保存から -1 日」のような値が出る（実際に出した）。
 const today = todayJst();
+
+/** 取り込み側と同じ判定。純粋関数は jquants-daily-ingest.ts と共有する。 */
+function completedFinsDates(): Set<string> {
+  const root = resolveFinsStoreRoot();
+  if (!existsSync(root)) return new Set<string>();
+  const ledgerPath = join(root, FINS_INGEST_LEDGER_NAME);
+  return completedDatesFrom({
+    fileNames: readdirSync(root),
+    ledgerContent: existsSync(ledgerPath) ? readFileSync(ledgerPath, "utf-8") : "",
+  });
+}
 
 interface Source {
   label: string;
@@ -42,6 +65,16 @@ const SOURCES: Source[] = [
     retentionDays: TDNET_RETENTION_DAYS,
     backfillCommand: (from, to) => `pnpm archive:tdnet -- --from ${from} --to ${to} --execute`,
     catchUpLabel: "archive:tdnet --catch-up",
+  },
+  {
+    label: "決算(J-Quants)",
+    // **ファイルだけ見ると休場日が穴に見える。** 0件の日はファイルを書かず
+    // 台帳にだけ残る（実測で 2024-07-15 海の日、年末年始など29日）。
+    // 取り込み側と同じ「完了」の定義（ファイル ∪ 台帳）を使う。
+    archivedDates: [...completedFinsDates()],
+    retentionDays: JQUANTS_FINS_RETENTION_DAYS,
+    backfillCommand: (from, to) => `pnpm ingest:fins -- --from ${from} --to ${to} --execute`,
+    catchUpLabel: "ingest:fins --catch-up",
   },
   {
     label: "EDINET",
