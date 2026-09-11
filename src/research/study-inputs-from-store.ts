@@ -22,6 +22,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import type { EarningsDisclosureInput } from "./signals/earnings-gap.js";
 import {
   buildEarningsEventDates,
   type EarningsDisclosure,
@@ -31,6 +32,8 @@ import {
   codeOf,
   disclosedDateOf,
   disclosedTimeOf,
+  docTypeOf,
+  forecastOperatingProfitOf,
   listIngestedFinsDates,
   readFinsDateRecords,
   resolveFinsStoreRoot,
@@ -204,6 +207,43 @@ export function loadEarningsEventDatesFromStore(input: {
     disclosureCount: disclosures.length,
     datesScanned: dates.length,
   };
+}
+
+/**
+ * 決算開示の保存庫から earnings-gap の入力を組む。
+ *
+ * **保存庫が無ければ止める。** 空の配列を返すと「決算が1件も無かった」
+ * ように見えて、候補0件の理由が分からなくなる。
+ */
+export function loadEarningsDisclosureInputs(input: {
+  root?: string;
+  /** この日より後の開示を使わない（確認期間・holdout の保全）。 */
+  to?: string;
+} = {}): { disclosures: EarningsDisclosureInput[]; datesScanned: number; withoutForecast: number } {
+  const root = input.root ?? resolveFinsStoreRoot();
+  const dates = listIngestedFinsDates(root).filter((date) => !input.to || date <= input.to);
+  if (dates.length === 0) {
+    throw new StudyInputsError(
+      `決算開示の保存庫がありません: ${root}\n`
+      + "先に pnpm ingest:fins を実行してください。",
+    );
+  }
+  const disclosures: EarningsDisclosureInput[] = [];
+  let withoutForecast = 0;
+  for (const date of dates) {
+    for (const record of readFinsDateRecords(date, root)) {
+      const forecastOperatingProfit = forecastOperatingProfitOf(record);
+      if (forecastOperatingProfit === null) withoutForecast += 1;
+      disclosures.push({
+        code: codeOf(record),
+        disclosedDate: disclosedDateOf(record),
+        disclosedTime: disclosedTimeOf(record),
+        forecastOperatingProfit,
+        typeOfDocument: docTypeOf(record),
+      });
+    }
+  }
+  return { disclosures, datesScanned: dates.length, withoutForecast };
 }
 
 /** 人向けの1〜3行の要約。CLI が同じ形で出せるようにここに置く。 */

@@ -153,6 +153,29 @@ export function assertRowsBelongToDate(
   );
 }
 
+/**
+ * 当期の会社予想営業利益（`FOP`）。取得できなければ null。
+ *
+ * **null は 0 ではない。** 銀行・保険は営業利益を出さない（経常利益で開示する）し、
+ * IFRS や配当予想の修正だけの開示にも入っていない。
+ * 実測（保存済み 21,388件）で `FOP` の充足率は 66.7%。
+ * 0 として扱うと「予想を減額した」に見えるので、判定できない開示は
+ * 呼び出し側で落とす（earnings-gap は fail closed で落とす）。
+ *
+ * J-Quants は数値を文字列で返す。空文字は欠損。
+ */
+export function forecastOperatingProfitOf(record: FinsDisclosureRecord): number | null {
+  return numberOrNull(record.raw.FOP);
+}
+
+function numberOrNull(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  const text = String(value).trim();
+  if (text === "") return null;
+  const parsed = Number(text);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 // --- 保存庫の走査 -----------------------------------------------------------
 
 export function listIngestedFinsDates(root = resolveFinsStoreRoot()): string[] {

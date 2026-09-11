@@ -76,6 +76,10 @@ const KNOWN_UNREACHABLE: Record<string, string> = {
   "src/research/cli/validate-testable-hypothesis-scenarios.ts":
     VALIDATE_WRAPPER_REASON,
 
+  "src/research/research-knowledge-types.ts":
+    "実質は型の集まり。唯一の実行時 export（RESEARCH_KNOWLEDGE_ONTOLOGY_VERSION）を"
+    + "使う箇所が無いことを 2026-09-11 に確認した。",
+
   // --- 2026-09-11 の棚卸し時点で未到達だった分（未調査） ---
 };
 
@@ -165,7 +169,15 @@ function entryFiles(): string[] {
   return [...entries].filter((path) => existsSync(path));
 }
 
-const IMPORT_PATTERN = /from\s+"(\.[^"]+)"|import\s*\(\s*"(\.[^"]+)"/g;
+/**
+ * 相対 import の抽出。**型だけの import は数えない。**
+ *
+ * `import type { Foo } from "./x.js"` はコンパイル後に消える。
+ * 実行時にそのモジュールが読み込まれるわけではないので、
+ * 到達したことにはならない。数えると「使っていないのに到達扱い」になり、
+ * この検査が本来捕まえたい配線漏れを見逃す。
+ */
+const IMPORT_PATTERN = /(?<!\bimport\s+type\s)(?:^|[^\w])from\s+"(\.[^"]+)"|import\s*\(\s*"(\.[^"]+)"/g;
 
 function reachableSrcFiles(): Set<string> {
   const reached = new Set<string>();
@@ -176,7 +188,10 @@ function reachableSrcFiles(): Set<string> {
     if (visited.has(file)) continue;
     visited.add(file);
     if (file.startsWith("src/")) reached.add(file);
-    const text = readFileSync(file, "utf-8");
+    // `import type { ... } from "..."` の塊を落としてから走査する。
+    // 1行に収まらない書き方（複数行の named import）にも効かせる。
+    const text = readFileSync(file, "utf-8")
+      .replace(/\bimport\s+type\s+[^;]*?from\s+"[^"]+";/g, "");
     for (const match of text.matchAll(IMPORT_PATTERN)) {
       const spec = match[1] ?? match[2]!;
       const base = spec.replace(/\.js$/, "");
@@ -192,15 +207,39 @@ function reachableSrcFiles(): Set<string> {
   return reached;
 }
 
-const allSrc = walk("src").filter((path) => path.endsWith(".ts") && !path.endsWith(".d.ts"));
+/**
+ * 実行時の中身を持たないモジュール（型だけ）か。
+ *
+ * `import type` を到達に数えないようにしたので、型だけのモジュールは
+ * 必ず「未到達」になる。**それは配線漏れではない。**
+ * コンパイル後に消えるので、実行時に読み込まれないのが正しい姿。
+ * 一覧に並べても減らしようがないので、対象から外す。
+ */
+function isTypeOnlyModule(path: string): boolean {
+  const text = readFileSync(path, "utf-8");
+  // 型を1つも出していないなら、型モジュールではない。
+  // （export が無いだけのスクリプトを型扱いすると、本物の死蔵を見逃す）
+  if (!/^export\s+(?:interface|type)\b/m.test(text)) return false;
+  // 実行時に値を出していたら、実行時に読み込まれるはず。
+  if (/^export\s+(?:async\s+)?(?:function|const|class|let|var|enum|default)\b/m.test(text)) {
+    return false;
+  }
+  return !/^export\s*\{(?![^}]*\btype\b)[^}]*\}/m.test(text);
+}
+
+const allSrc = walk("src")
+  .filter((path) => path.endsWith(".ts") && !path.endsWith(".d.ts"))
+  .filter((path) => !isTypeOnlyModule(path));
 assert.ok(allSrc.length > 0, "src/**/*.ts が1本も見つからない。走査経路が壊れている");
 
-const reached = reachableSrcFiles();
+const reachedAll = reachableSrcFiles();
+const reached = new Set(allSrc.filter((path) => reachedAll.has(path)));
 assert.ok(
   reached.size > allSrc.length / 2,
   `到達判定が壊れている疑い: ${reached.size}/${allSrc.length} しか到達しない`,
 );
 
+const allSrcSet = new Set(allSrc);
 const unreachable = allSrc.filter((path) => !reached.has(path)).sort();
 const problems: string[] = [];
 
@@ -216,6 +255,10 @@ for (const path of unreachable) {
 for (const path of Object.keys(KNOWN_UNREACHABLE).sort()) {
   if (!existsSync(path)) {
     problems.push(`一覧が古い（ファイルが無い）: ${path} — KNOWN_UNREACHABLE から消すこと`);
+  } else if (!allSrcSet.has(path)) {
+    problems.push(
+      `一覧が古い（型だけのモジュールになった）: ${path} — KNOWN_UNREACHABLE から消すこと`,
+    );
   } else if (reached.has(path)) {
     problems.push(`一覧が古い（到達するようになった）: ${path} — KNOWN_UNREACHABLE から消すこと`);
   }

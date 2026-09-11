@@ -119,6 +119,59 @@ function windowCovers(window: HoldoutWindow, sample: HoldoutSample): boolean {
  * 既定では封印期間のサンプルを除外し、除外件数を返す。
  * 開封するには window id の指定と access_log の記録の両方が必要。
  */
+/**
+ * study bundle が宣言した封印を、正本の金庫（`research/holdout/vault.manifest.json`）
+ * と突き合わせる。**封印は緩められない。**
+ *
+ * なぜ要るか（2026-09-11 に実際に起きたこと）:
+ *   正本の金庫は 2025-07-01 〜 2026-06-30 を封印していた（sealedAt 2026-08-04）。
+ *   ところが study bundle に**自前の manifest**（2026-03-01 〜 2026-06-19）を
+ *   書き足すことで、封印が8ヶ月ぶん狭まった状態で探索してしまった。
+ *   edge-study は bundle の manifest しか見ておらず、正本との突き合わせが無かった。
+ *   **金庫の鍵を、金庫の中に置いていたのと同じ。**
+ *
+ * ここでは常に和集合を返す（どちらかで封印されていれば封印）。
+ * 狭められていた窓は `narrowed` で返すので、呼び出し側が必ず表に出す。
+ * 開封は従来どおり `requestedWindowIds` + access_log の経路だけで行う。
+ */
+export function mergeHoldoutManifests(input: {
+  bundle: HoldoutVaultManifest;
+  vault: HoldoutVaultManifest | null;
+}): { manifest: HoldoutVaultManifest; narrowed: HoldoutWindow[] } {
+  if (!input.vault) return { manifest: input.bundle, narrowed: [] };
+
+  const byId = new Map<string, HoldoutWindow>();
+  for (const window of input.bundle.windows) byId.set(window.id, window);
+
+  const narrowed: HoldoutWindow[] = [];
+  for (const vaultWindow of input.vault.windows) {
+    const existing = byId.get(vaultWindow.id);
+    if (existing
+      && existing.from <= vaultWindow.from
+      && existing.to >= vaultWindow.to
+      && existing.scope === vaultWindow.scope) {
+      continue;
+    }
+    narrowed.push(vaultWindow);
+    byId.set(vaultWindow.id, vaultWindow);
+  }
+
+  return {
+    manifest: {
+      schemaVersion: 1,
+      // 封印した日は「先に封印したほう」を残す。後から上書きして
+      // 「今日封印した」ことにできてしまうと、履歴が意味を失う。
+      sealedAt: input.vault.sealedAt <= input.bundle.sealedAt
+        ? input.vault.sealedAt
+        : input.bundle.sealedAt,
+      policy: input.vault.policy,
+      windows: [...byId.values()].sort((left, right) =>
+        left.id < right.id ? -1 : left.id > right.id ? 1 : 0),
+    },
+    narrowed,
+  };
+}
+
 export function partitionByHoldout(input: HoldoutPartitionInput): HoldoutPartitionResult {
   assertManifest(input.manifest);
   for (const sample of input.samples) {
