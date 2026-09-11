@@ -80,6 +80,53 @@ const KNOWN_UNREACHABLE: Record<string, string> = {
     "実質は型の集まり。唯一の実行時 export（RESEARCH_KNOWLEDGE_ONTOLOGY_VERSION）を"
     + "使う箇所が無いことを 2026-09-11 に確認した。",
 
+  // 研究モジュール。2026-09-11 に中身を読んで、動かせない理由を確かめた。
+  "src/research/signals/backtest-bundle.ts":
+    "PIT record と Signal から backtest 用の bundle を組む。"
+    + "現在の backtest は --from-store で同じ実行の中から作る作りなので、経路が重複している。",
+  "src/research/signals/edge-decay.ts":
+    "Edge の劣化検知。**まだ FDR を通った Edge が1つも無いので、劣化を見る対象が存在しない。**"
+    + "ロードマップ §7 の項目4。",
+  "src/research/signals/gate-evidence.ts":
+    "測定結果から Promotion Gate 11項目の裏付けを導出する。"
+    + "イベントスタディ・backtest・劣化・Holdout・対照群・試行台帳・紙トレードを"
+    + "まとめて渡す必要があり、その組み立て役がまだ無い。",
+  "src/research/signals/read-across-events.ts":
+    "関連銘柄への伝播（キオクシア系子会社 Edge）。"
+    + "関係グラフが要るが、config/company-network.yml の parents/subsidiaries は0件。"
+    + "人が埋めるまで動かせない（ロードマップ §7 の人間作業）。",
+  "src/research/signals/company-relations.ts":
+    "銘柄関係グラフ。read-across の入力。同じく parents/subsidiaries が0件で待ち。",
+  "src/research/signals/study-period-plan.ts":
+    "探索期間と確認期間の事前登録。**封印を狭めた事故（PR #2093）への本来の答えがこれ。**"
+    + "残り約4ヶ月をどう使うかはユーザーの判断待ち。",
+
+  // ⑩ 学習の一群。2026-09-11 に依存関係を確認した。
+  "src/research/outcome-learning-adoption-decision.ts":
+    "⑩ 学習（劣化検知〜改善提案）の一群。**互いに import し合うだけで、CLI が無い。**"
+    + "6本 2,601行 / テスト12本。2026-09-11 に依存関係を確認した。"
+    + "ロードマップでも「枠はあるが未接続」。入口を1本足せば動く。",
+  "src/research/outcome-learning-change-preparation.ts":
+    "⑩ 学習（劣化検知〜改善提案）の一群。**互いに import し合うだけで、CLI が無い。**"
+    + "6本 2,601行 / テスト12本。2026-09-11 に依存関係を確認した。"
+    + "ロードマップでも「枠はあるが未接続」。入口を1本足せば動く。",
+  "src/research/outcome-learning-decision.ts":
+    "⑩ 学習（劣化検知〜改善提案）の一群。**互いに import し合うだけで、CLI が無い。**"
+    + "6本 2,601行 / テスト12本。2026-09-11 に依存関係を確認した。"
+    + "ロードマップでも「枠はあるが未接続」。入口を1本足せば動く。",
+  "src/research/outcome-learning-proposal.ts":
+    "⑩ 学習（劣化検知〜改善提案）の一群。**互いに import し合うだけで、CLI が無い。**"
+    + "6本 2,601行 / テスト12本。2026-09-11 に依存関係を確認した。"
+    + "ロードマップでも「枠はあるが未接続」。入口を1本足せば動く。",
+  "src/research/outcome-learning-shadow-evaluation.ts":
+    "⑩ 学習（劣化検知〜改善提案）の一群。**互いに import し合うだけで、CLI が無い。**"
+    + "6本 2,601行 / テスト12本。2026-09-11 に依存関係を確認した。"
+    + "ロードマップでも「枠はあるが未接続」。入口を1本足せば動く。",
+  "src/research/outcome-learning-status.ts":
+    "⑩ 学習（劣化検知〜改善提案）の一群。**互いに import し合うだけで、CLI が無い。**"
+    + "6本 2,601行 / テスト12本。2026-09-11 に依存関係を確認した。"
+    + "ロードマップでも「枠はあるが未接続」。入口を1本足せば動く。",
+
   // --- 2026-09-11 の棚卸し時点で未到達だった分（未調査） ---
 };
 
@@ -97,12 +144,6 @@ const UNEXAMINED = [
   "src/research/corporate-action-clearance.ts",
   "src/research/document-revision-diff-writer.ts",
   "src/research/edinet-foundation-mapping-edit-finalizer.ts",
-  "src/research/outcome-learning-adoption-decision.ts",
-  "src/research/outcome-learning-change-preparation.ts",
-  "src/research/outcome-learning-decision.ts",
-  "src/research/outcome-learning-proposal.ts",
-  "src/research/outcome-learning-shadow-evaluation.ts",
-  "src/research/outcome-learning-status.ts",
   "src/research/outcome-review-due.ts",
   "src/research/outcome-semantic-review.ts",
   "src/research/price-record-timeline.ts",
@@ -110,12 +151,6 @@ const UNEXAMINED = [
   "src/research/quantitative-outcome.ts",
   "src/research/recommendation-persistence.ts",
   "src/research/research-knowledge-catalog-writer.ts",
-  "src/research/signals/backtest-bundle.ts",
-  "src/research/signals/company-relations.ts",
-  "src/research/signals/edge-decay.ts",
-  "src/research/signals/gate-evidence.ts",
-  "src/research/signals/read-across-events.ts",
-  "src/research/signals/study-period-plan.ts",
   "src/research/stock-pro-council-calibration-hardening.ts",
   "src/research/stock-pro-council-replay-calibration.ts",
   "src/research/testable-hypothesis-scenario-writer.ts",
