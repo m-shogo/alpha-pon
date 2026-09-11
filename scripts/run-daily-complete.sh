@@ -124,6 +124,25 @@ run_optional_step "archive-tdnet-catch-up" \
   node --env-file-if-exists="$DIR/.env" --import "tsx/esm" \
   "$DIR/src/archive-tdnet.ts" --catch-up --execute
 
+# ── 取った直後に、取ったものを検査する ────────────────────────────────────────
+#
+# この2本は ci-pipeline-smoke.sh からも起動されるが、**CI では必ず素通りする。**
+# 価格保存庫（research/prices/**/*.jsonl）も開示保存庫（data/disclosures）も
+# .gitignore されているので、GitHub Actions には存在しない。
+# どちらのスクリプトも「保存庫が空なら検査対象なし: ok」で終わる作りなので、
+# 配線はあるのに一度も実データを見ていなかった。
+#
+# 実データがあるのはこのマシンだけ。だから日次に置く。
+# 保存庫は F1・イベントスタディ・backtest すべての土台で、静かに壊れると
+# 先の測定が「動いているが間違っている」状態になる。候補件数では気づけない。
+#
+# 実測（2026-09-11）: 全期間 487営業日 / 2,149,545行 で 6.3秒 / heap 98MB。
+# 失敗してもレポートは止めない。
+run_optional_step "price-store-integrity" \
+  node --import "tsx/esm" "$DIR/scripts/verify-price-store-integrity.ts"
+run_optional_step "disclosure-archive-gaps" \
+  node --import "tsx/esm" "$DIR/scripts/verify-disclosure-archive-gaps.ts"
+
 # ── critical ──────────────────────────────────────────────────────────────────
 # run-daily.sh が失敗したら complete pipeline を停止する。
 # 失敗日に古い/不完全な JSON を成功扱いで生成しないため。

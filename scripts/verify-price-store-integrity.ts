@@ -8,7 +8,10 @@
 
 import { auditPriceStore } from "../src/research/providers/jquants-daily-store-audit.js";
 
-const report = auditPriceStore();
+// 全期間を見る。既定は 40営業日の抽出だが、それだと 487営業日中 8% しか
+// 見ずに「ok」と出る。実測（2026-09-11）で全期間 487営業日 / 2,149,545行でも
+// 6.3秒 / heap 98MB なので、抽出する理由が無い。
+const report = auditPriceStore({ sampleDates: 0 });
 
 if (report.datesAudited === 0) {
   console.log("price-store-integrity: 取り込み済みの価格が無いので検査対象なし: ok");
@@ -17,8 +20,8 @@ if (report.datesAudited === 0) {
 
 const stats = report.stats;
 console.log(
-  `検査 ${report.datesAudited}営業日 / ${report.rowsAudited}行`
-  + `（取り込み ${stats.firstDate} 〜 ${stats.lastDate}）`,
+  `検査 ${report.datesAudited}営業日 / ${report.rowsAudited.toLocaleString()}行`
+  + `（全期間 ${stats.firstDate} 〜 ${stats.lastDate}）`,
 );
 console.log(
   `  1日の行数   最小 ${stats.minRowsPerDay} / 中央 ${stats.medianRowsPerDay} / 最大 ${stats.maxRowsPerDay}`,
