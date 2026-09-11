@@ -20,6 +20,8 @@ data/ipo/*.json
 research/prices/**/*.jsonl
 # 決算開示（J-Quants fins/summary）。契約範囲は2年ローリングでローカル専用。
 research/fins/**/*.jsonl
+# 上場銘柄マスタ（J-Quants equities/master）。同じく2年ローリングでローカル専用。
+research/master/**/*.jsonl
 research/prices/**/*.json
 !research/prices/README.md
 

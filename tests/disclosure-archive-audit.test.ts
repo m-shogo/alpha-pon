@@ -16,6 +16,7 @@ import {
   auditDisclosureArchive,
   formatDisclosureArchiveBanner,
   EDINET_RETENTION_DAYS,
+  JQUANTS_ROLLING_WINDOW_DAYS,
 } from "../src/disclosure-archive-audit.js";
 
 function audit(archivedDates: string[], today: string, retentionDays = TDNET_RETENTION_DAYS) {
@@ -151,6 +152,22 @@ function testEdinetRetentionMatchesTheMeasuredWindow(): void {
   assert.ok(EDINET_RETENTION_DAYS > TDNET_RETENTION_DAYS * 50);
 }
 
+function testRollingWindowIsNotUnderestimated(): void {
+  // J-Quants の2年ローリング窓は「D + 730 + 84 = D + 814日」まで。
+  // **短く見積もると、まだ取れる日を回収不能と判定して諦めることになる。**
+  // 実際に 800 と置いて、5日ぶんを誤って回収不能と報告した（2026-09-12）。
+  assert.equal(JQUANTS_ROLLING_WINDOW_DAYS, 814);
+
+  const inside = audit(["2024-06-20"], "2026-09-12", JQUANTS_ROLLING_WINDOW_DAYS);
+  const day = inside.gaps.find((gap) => gap.date === "2024-06-28");
+  assert.ok(day, "2024-06-28 が欠落として挙がること");
+  assert.equal(day!.recoverable, true, "窓の内側はまだ取れる");
+
+  const outside = audit(["2024-06-20"], "2026-10-01", JQUANTS_ROLLING_WINDOW_DAYS);
+  const expired = outside.gaps.find((gap) => gap.date === "2024-06-28");
+  assert.equal(expired!.recoverable, false, "窓を出たら回収不能");
+}
+
 function testEdinetGapIsStillRecoverableAfterAYear(): void {
   // EDINET は10年窓なので、1年前の穴もまだ埋められる。
   // TDnet と同じ 28日で扱うと「回収不能」と誤って諦める。
@@ -226,6 +243,7 @@ testStaleArchiveIsVisible();
 testInvalidTodayFailsClosed();
 testRetentionDefaultIsConservative();
 testEdinetRetentionMatchesTheMeasuredWindow();
+testRollingWindowIsNotUnderestimated();
 testEdinetGapIsStillRecoverableAfterAYear();
 
 console.log("disclosure-archive-audit: 全テスト成功");

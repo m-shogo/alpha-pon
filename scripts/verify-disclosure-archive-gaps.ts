@@ -21,6 +21,7 @@ import {
   auditDisclosureArchive,
   EDINET_RETENTION_DAYS,
   JQUANTS_FINS_RETENTION_DAYS,
+  JQUANTS_MASTER_RETENTION_DAYS,
   TDNET_RETENTION_DAYS,
 } from "../src/disclosure-archive-audit.js";
 import { listArchivedDates } from "../src/disclosure-archive.js";
@@ -29,6 +30,10 @@ import {
   FINS_INGEST_LEDGER_NAME,
   resolveFinsStoreRoot,
 } from "../src/research/providers/jquants-fins-store.js";
+import {
+  MASTER_INGEST_LEDGER_NAME,
+  resolveMasterStoreRoot,
+} from "../src/research/providers/jquants-master-store.js";
 import { completedDatesFrom } from "../src/research/providers/jquants-daily-ingest.js";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -39,6 +44,19 @@ import { todayJst } from "../src/date.js";
 const today = todayJst();
 
 /** 取り込み側と同じ判定。純粋関数は jquants-daily-ingest.ts と共有する。 */
+function completedDatesIn(root: string, ledgerName: string): Set<string> {
+  if (!existsSync(root)) return new Set<string>();
+  const ledgerPath = join(root, ledgerName);
+  return completedDatesFrom({
+    fileNames: readdirSync(root),
+    ledgerContent: existsSync(ledgerPath) ? readFileSync(ledgerPath, "utf-8") : "",
+  });
+}
+
+function completedMasterDates(): Set<string> {
+  return completedDatesIn(resolveMasterStoreRoot(), MASTER_INGEST_LEDGER_NAME);
+}
+
 function completedFinsDates(): Set<string> {
   const root = resolveFinsStoreRoot();
   if (!existsSync(root)) return new Set<string>();
@@ -75,6 +93,13 @@ const SOURCES: Source[] = [
     retentionDays: JQUANTS_FINS_RETENTION_DAYS,
     backfillCommand: (from, to) => `pnpm ingest:fins -- --from ${from} --to ${to} --execute`,
     catchUpLabel: "ingest:fins --catch-up",
+  },
+  {
+    label: "銘柄マスタ",
+    archivedDates: [...completedMasterDates()],
+    retentionDays: JQUANTS_MASTER_RETENTION_DAYS,
+    backfillCommand: (from, to) => `pnpm ingest:master -- --from ${from} --to ${to} --execute`,
+    catchUpLabel: "ingest:master --catch-up",
   },
   {
     label: "EDINET",
