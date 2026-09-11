@@ -43,11 +43,6 @@ const KNOWN_UNREACHABLE: Record<string, string> = {
     "実行層。Edge が FDR を通るまで配線しない。",
   "src/execution/paper-trade-ledger.ts":
     "実行層。Edge が FDR を通るまで配線しない。",
-  "src/research/price-store-files.ts":
-    "価格ファイルの列挙。利用者が validate-prices.ts だけで、それ自体が未到達。",
-  "src/research/cli/validate-prices.ts":
-    "価格保存庫の全件検査。全レコードに missing_benchmark 警告が出て 215万行になるため、"
-    + "そのままでは CI に載せられない。警告の整理が先。",
 
   // --- 2026-09-11 の棚卸し時点で未到達だった分（未調査） ---
 };
