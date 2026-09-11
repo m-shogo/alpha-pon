@@ -46,6 +46,9 @@ export const MATCHED_CONTROL_REJECT_REASONS = [
   "guard_failed",
   "abnormal_return_out_of_band",
   "turnover_ratio_out_of_band",
+  "sector_mismatch",
+  "scale_mismatch",
+  "attributes_unknown",
   "already_used",
 ] as const;
 
@@ -82,6 +85,18 @@ export interface MatchedControlParams {
   excludedSampleKeys?: ReadonlySet<string>;
   /** 対照の売買代金が treatment の何倍までを許すか [min, max]。 */
   turnoverRatioBand?: readonly [number, number];
+  /**
+   * code -> 業種・規模区分。銘柄マスタ（`/equities/master`）から渡す。
+   *
+   * ロードマップ §7 が「規模・業種でそろえた対照が要る段階になったら、
+   * その machinery を別に作ること」と書いていた部分。マスタを取り込んで
+   * 作れるようになった。
+   */
+  attributes?: ReadonlyMap<string, { sector33: string; scaleCategory: string }>;
+  /** 対照を同じ33業種に限る。`attributes` が要る。 */
+  requireSameSector33?: boolean;
+  /** 対照を同じ規模区分に限る。`attributes` が要る。 */
+  requireSameScaleCategory?: boolean;
   implausibleSingleDayMovePct?: number;
   maxPriorGapDays?: number;
   turnoverLookbackBars?: number;
@@ -130,6 +145,12 @@ function assertParams(params: MatchedControlParams): void {
   }
   if (!Number.isSafeInteger(params.controlsPerTreatment) || params.controlsPerTreatment < 1) {
     throw new Error(`controlsPerTreatment must be a positive safe integer: ${params.controlsPerTreatment}`);
+  }
+  if ((params.requireSameSector33 || params.requireSameScaleCategory) && !params.attributes) {
+    throw new Error(
+      "requireSameSector33 / requireSameScaleCategory には attributes が必要です"
+      + "（銘柄マスタを取り込んで渡してください）",
+    );
   }
   if (params.turnoverRatioBand) {
     const [min, max] = params.turnoverRatioBand;
@@ -220,6 +241,28 @@ export function buildMatchedControls(
         if (gap > params.abnormalReturnTolerancePct) {
           rejectedCounts.abnormal_return_out_of_band += 1;
           continue;
+        }
+
+        // 業種・規模でそろえる。**属性が分からない銘柄は対照にしない。**
+        // 「分からない」を「一致する」として通すと、そろえたつもりで
+        // そろっていない対照が混ざる。
+        if (params.requireSameSector33 || params.requireSameScaleCategory) {
+          const treatmentAttributes = params.attributes?.get(treatment.code);
+          const controlAttributes = params.attributes?.get(code);
+          if (!treatmentAttributes || !controlAttributes) {
+            rejectedCounts.attributes_unknown += 1;
+            continue;
+          }
+          if (params.requireSameSector33
+            && treatmentAttributes.sector33 !== controlAttributes.sector33) {
+            rejectedCounts.sector_mismatch += 1;
+            continue;
+          }
+          if (params.requireSameScaleCategory
+            && treatmentAttributes.scaleCategory !== controlAttributes.scaleCategory) {
+            rejectedCounts.scale_mismatch += 1;
+            continue;
+          }
         }
 
         let turnoverRatio: number | null = null;

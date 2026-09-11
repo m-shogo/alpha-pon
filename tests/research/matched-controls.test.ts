@@ -67,6 +67,51 @@ function pool(): Map<string, PriceSeries> {
   ]);
 }
 
+const ATTRIBUTES = new Map([
+  ["8136", { sector33: "3050", scaleCategory: "TOPIX Mid400" }],  // treatment
+  ["1111", { sector33: "3050", scaleCategory: "TOPIX Mid400" }],  // 同業・同規模
+  ["2222", { sector33: "3050", scaleCategory: "TOPIX Small 1" }], // 同業・別規模
+  ["4444", { sector33: "9050", scaleCategory: "TOPIX Mid400" }],  // 別業種
+]);
+
+function testSectorMatchingNarrowsTheControls() {
+  // ロードマップ §7 が要求していた「規模・業種でそろえた対照」。
+  const bySector = buildMatchedControls([TREATMENT], pool(), BENCHMARK, params({
+    attributes: ATTRIBUTES, requireSameSector33: true, controlsPerTreatment: 3,
+  }));
+  assert.deepEqual(
+    bySector.matches.map((one) => one.controlCode), ["1111", "2222"],
+    "別業種の 4444 は対照にしない",
+  );
+  assert.ok(bySector.rejectedCounts.sector_mismatch > 0, "落とした理由が件数で分かる");
+
+  const byScale = buildMatchedControls([TREATMENT], pool(), BENCHMARK, params({
+    attributes: ATTRIBUTES, requireSameSector33: true, requireSameScaleCategory: true,
+    controlsPerTreatment: 3,
+  }));
+  assert.deepEqual(byScale.matches.map((one) => one.controlCode), ["1111"], "規模まで揃えるとさらに減る");
+  assert.ok(byScale.rejectedCounts.scale_mismatch > 0);
+}
+
+function testUnknownAttributesAreNotTreatedAsAMatch() {
+  // **「分からない」を「一致する」として通さない。**
+  // そろえたつもりでそろっていない対照が混ざるのが一番まずい。
+  const partial = new Map([["8136", { sector33: "3050", scaleCategory: "TOPIX Mid400" }]]);
+  const result = buildMatchedControls([TREATMENT], pool(), BENCHMARK, params({
+    attributes: partial, requireSameSector33: true, controlsPerTreatment: 3,
+  }));
+  assert.equal(result.matches.length, 0);
+  assert.ok(result.rejectedCounts.attributes_unknown > 0);
+  assert.deepEqual(result.unmatchedTreatmentIds, [TREATMENT.id], "対照が作れなければそう報告する");
+}
+
+function testSectorMatchingRequiresAttributes() {
+  assert.throws(
+    () => buildMatchedControls([TREATMENT], pool(), BENCHMARK, params({ requireSameSector33: true })),
+    /attributes が必要です/,
+  );
+}
+
 function testSelectsClosestMatches() {
   const result = buildMatchedControls([TREATMENT], pool(), BENCHMARK, params());
   assert.equal(result.matches.length, 2);
@@ -276,6 +321,9 @@ function testInvalidParamsFailClosed() {
   }
 }
 
+testSectorMatchingNarrowsTheControls();
+testUnknownAttributesAreNotTreatedAsAMatch();
+testSectorMatchingRequiresAttributes();
 testSelectsClosestMatches();
 testSelectionPrefersClosestNotAlphabetical();
 testSelectionPrefersNearerDate();
