@@ -27,6 +27,7 @@ import { resolve } from "node:path";
 import { isCanonicalReadOnlyJsonFile } from "../../read-only-json-file.js";
 import type { PriceSeries } from "../backtest.js";
 import { paths, writeGeneratedJson } from "../io.js";
+import { loadMasterAsOf } from "../providers/jquants-master-store.js";
 import {
   computeDatasetFingerprint,
   DEFAULT_TRIALS_LEDGER_PATH,
@@ -330,8 +331,32 @@ function main(): void {
     averageTurnoverJpy: one.averageTurnoverJpy,
   }));
   const { excludedCodes, knownEventDates, corporateActionDates, ...controlRest } = bundle.control;
+  // 規模・業種でそろえた対照。ロードマップ §7 が要求していたもの。
+  // マスタが無ければ使えないので、指定されたのに無ければ止める。
+  let attributes: Map<string, { sector33: string; scaleCategory: string }> | undefined;
+  if (flags.has("match-sector") || flags.has("match-scale")) {
+    const asOf = options.get("to") ?? fromStore?.tradingDates.at(-1) ?? null;
+    const master = asOf === null ? null : loadMasterAsOf(asOf);
+    if (!master || master.snapshotDate === null) {
+      fail("--match-sector / --match-scale には銘柄マスタが要ります。先に pnpm ingest:master を実行してください");
+    }
+    attributes = new Map(
+      [...master!.attributes].map(([code, one]) => [
+        code, { sector33: one.sector33, scaleCategory: one.scaleCategory },
+      ]),
+    );
+    console.log(
+      `③ 対照の条件 ${master!.snapshotDate} 時点のマスタ / `
+      + `${flags.has("match-sector") ? "同33業種" : ""}`
+      + `${flags.has("match-scale") ? " 同規模区分" : ""}`,
+    );
+  }
+
   const controls = buildMatchedControls(treatments, securities, benchmark!, {
     ...controlRest,
+    ...(attributes ? { attributes } : {}),
+    ...(flags.has("match-sector") ? { requireSameSector33: true } : {}),
+    ...(flags.has("match-scale") ? { requireSameScaleCategory: true } : {}),
     knownEventDates: storeEarningsDates ?? toDateMap(knownEventDates),
     corporateActionDates: fromStore
       ? fromStore.corporateActionDates
