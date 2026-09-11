@@ -18,6 +18,8 @@ data/ipo/*.json
 
 # PIT価格の実データは利用許諾にかかわらずlocal storeへ置き、Gitへcommitしない。
 research/prices/**/*.jsonl
+# 決算開示（J-Quants fins/summary）。契約範囲は2年ローリングでローカル専用。
+research/fins/**/*.jsonl
 research/prices/**/*.json
 !research/prices/README.md
 

@@ -23,6 +23,19 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
+  buildEarningsEventDates,
+  type EarningsDisclosure,
+  type EarningsEventDatesResult,
+} from "./signals/earnings-event-dates.js";
+import {
+  codeOf,
+  disclosedDateOf,
+  disclosedTimeOf,
+  listIngestedFinsDates,
+  readFinsDateRecords,
+  resolveFinsStoreRoot,
+} from "./providers/jquants-fins-store.js";
+import {
   JQUANTS_ADJUSTMENT_LEDGER_NAME,
   parseAdjustmentLedger,
   toCorporateActionDates,
@@ -123,6 +136,59 @@ export function loadStudyInputsFromStore(query: StudyInputsQuery = {}): StudyInp
     benchmarkSkippedDates: universe.skippedDates,
     corporateActionDates,
     datesScanned: loaded.datesScanned,
+  };
+}
+
+/**
+ * 決算開示の保存庫から `knownEventDates` を組む。
+ *
+ * **保存庫が無ければ止める。** 空の Map を返すと、呼び出し側は
+ * 「既知イベントが無い」と「情報が無い」を区別できない。
+ * F1 は knownEventDates に載っている日を除外する仕組みなので、
+ * 空のまま走らせると候補に決算反応が混ざったまま残り、
+ * それを「業績で説明できないショック」と呼んでしまう。
+ *
+ * 呼び出し側が意図的に決算を無視したいときは、この関数を呼ばずに
+ * 空の Map を渡す。**黙って空になる経路は作らない。**
+ */
+export function loadEarningsEventDatesFromStore(input: {
+  /** 昇順の営業日。価格側と同じカレンダーを渡す。 */
+  tradingDates: readonly string[];
+  root?: string;
+  /** 開示当日も除外するか。既定 true。 */
+  includeDisclosureDay?: boolean;
+}): EarningsEventDatesResult & { disclosureCount: number; datesScanned: number } {
+  const root = input.root ?? resolveFinsStoreRoot();
+  const dates = listIngestedFinsDates(root);
+  if (dates.length === 0) {
+    throw new StudyInputsError(
+      `決算開示の保存庫がありません: ${root}\n`
+      + "先に pnpm ingest:fins を実行してください。\n"
+      + "空のまま走らせると、F1 の候補に決算反応が混ざったまま残ります。",
+    );
+  }
+
+  const disclosures: EarningsDisclosure[] = [];
+  for (const date of dates) {
+    for (const record of readFinsDateRecords(date, root)) {
+      disclosures.push({
+        code: codeOf(record),
+        disclosedDate: disclosedDateOf(record),
+        disclosedTime: disclosedTimeOf(record),
+      });
+    }
+  }
+
+  return {
+    ...buildEarningsEventDates({
+      disclosures,
+      tradingDates: input.tradingDates,
+      ...(input.includeDisclosureDay === undefined
+        ? {}
+        : { includeDisclosureDay: input.includeDisclosureDay }),
+    }),
+    disclosureCount: disclosures.length,
+    datesScanned: dates.length,
   };
 }
 
