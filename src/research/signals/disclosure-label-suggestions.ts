@@ -30,8 +30,23 @@ import type { EventCauseLabel } from "./event-labels.js";
 
 export interface DisclosureLabelRule {
   label: EventCauseLabel;
-  /** 見出しにこのいずれかが含まれること。 */
+  /**
+   * 見出しにこのいずれかが含まれること。
+   *
+   * TDnet の適時開示にしか効かない。**EDINET の `docDescription` は
+   * 「臨時報告書」だけ**で記述が無いため、見出しでは判定できない。
+   * EDINET は `reasonCodes` で判定する。
+   */
   keywords: readonly string[];
+  /**
+   * EDINET 臨時報告書の事由コードがこのいずれかに完全一致すること。
+   *
+   * 条文を読んで決めたのではなく、TDnet の見出しと1対1で対応した130組から
+   * **観測した**対応（`docs/reference/edinet-reason-codes-2026-09-11.md`）。
+   * 観測が曖昧なコード（12号・19号＝財政状態への影響、9号＝代表者異動）は
+   * **載せない。** 分からないものを分類しない。
+   */
+  reasonCodes?: readonly string[];
   /**
    * さらに、見出しにこのいずれかが含まれること。
    *
@@ -50,6 +65,8 @@ export interface DisclosureLabelRule {
  * 「人が最初に見るべき順序」であって、分類器ではない。
  *
  * 上にあるものほど強い手がかり。最初に当たったものを提案する。
+ *
+ * 事由コードは EDINET 用。実測で観測が明確だったものだけを載せている。
  */
 export const DISCLOSURE_LABEL_RULES: readonly DisclosureLabelRule[] = [
   {
@@ -70,6 +87,8 @@ export const DISCLOSURE_LABEL_RULES: readonly DisclosureLabelRule[] = [
   {
     label: "regulatory_or_litigation",
     keywords: ["行政処分", "業務停止", "課徴金", "勧告", "訴訟", "提訴", "損害賠償請求"],
+    // 実測: 6号 → 「当社に対する訴訟の提起」「和解による損害賠償請求訴訟の解決」
+    reasonCodes: ["第19条第2項第6号"],
     rationale: "規制・訴訟",
   },
   {
@@ -92,12 +111,31 @@ export const DISCLOSURE_LABEL_RULES: readonly DisclosureLabelRule[] = [
   {
     label: "equity_offering",
     keywords: ["公募増資", "第三者割当", "新株式発行", "転換社債", "行使価額修正"],
+    // 実測: 2号の2 → 「譲渡制限付株式としての自己株式の処分」「株式報酬型ストックオプション」
+    reasonCodes: ["第19条第2項第2号の2"],
     rationale: "資本政策",
   },
   {
     label: "corporate_action",
     keywords: ["公開買付", "TOB", "MBO", "株式交換", "吸収合併", "会社分割", "スピンオフ"],
-    rationale: "M&A・再編",
+    // 実測で観測した対応:
+    //   3号    → 子会社の異動（取得・譲渡・公開買付の結果）
+    //   4号    → 主要株主の異動
+    //   6号の2 → 株式交換・完全子会社化
+    //   7号    → 会社分割（吸収分割）
+    //   8号の2 → 株式の取得（子会社化）
+    //
+    // 3号は「子会社の異動」だが、中身は通常の M&A。
+    // `subsidiary_localized`（子会社に限定された**問題**）とは別物なので
+    // そちらへは寄せない。
+    reasonCodes: [
+      "第19条第2項第3号",
+      "第19条第2項第4号",
+      "第19条第2項第6号の2",
+      "第19条第2項第7号",
+      "第19条第2項第8号の2",
+    ],
+    rationale: "M&A・再編・資本構成の異動",
   },
 ];
 
@@ -135,15 +173,36 @@ export interface LabelSuggestion {
  * 提案でも下見でも同じ判定を使う。書き直すと共起条件が片方だけに入る。
  */
 export function matchRuleForTitle(title: string): DisclosureLabelRule | null {
-  return matchRule(title)?.rule ?? null;
+  return matchRule({ title, reasonCode: null })?.rule ?? null;
 }
 
-function matchRule(title: string): { rule: DisclosureLabelRule; keywords: string[] } | null {
+/** EDINET の事由コードで当たるルール。完全一致のみ。 */
+export function matchRuleForReasonCode(reasonCode: string | null): DisclosureLabelRule | null {
+  return matchRule({ title: "", reasonCode })?.rule ?? null;
+}
+
+function matchRule(
+  input: { title: string; reasonCode: string | null },
+): { rule: DisclosureLabelRule; keywords: string[] } | null {
+  // 事由コードが先。EDINET の見出しは「臨時報告書」だけで判定材料が無く、
+  // 構造化されたコードのほうが確か。
+  const codes = input.reasonCode === null
+    ? []
+    : input.reasonCode.split(",").map((one) => one.trim()).filter(Boolean);
+  if (codes.length > 0) {
+    for (const rule of DISCLOSURE_LABEL_RULES) {
+      if (!rule.reasonCodes) continue;
+      const matched = codes.filter((code) => rule.reasonCodes!.includes(code));
+      if (matched.length > 0) return { rule, keywords: matched };
+    }
+  }
+
+  if (!input.title) return null;
   for (const rule of DISCLOSURE_LABEL_RULES) {
-    const keywords = rule.keywords.filter((keyword) => title.includes(keyword));
+    const keywords = rule.keywords.filter((keyword) => input.title.includes(keyword));
     if (keywords.length === 0) continue;
     if (rule.requireAlso) {
-      const also = rule.requireAlso.filter((keyword) => title.includes(keyword));
+      const also = rule.requireAlso.filter((keyword) => input.title.includes(keyword));
       if (also.length === 0) continue;
       return { rule, keywords: [...keywords, ...also] };
     }
@@ -192,7 +251,7 @@ export function matchDisclosuresToEvent(input: {
         ? "after_previous_close" as const
         : "before_close" as const;
 
-    const matched = matchRule(evidence.title);
+    const matched = matchRule({ title: evidence.title, reasonCode: evidence.reasonCode });
     matches.push({
       evidence,
       timing,

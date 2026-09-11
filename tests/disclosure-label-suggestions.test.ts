@@ -14,6 +14,7 @@ import assert from "node:assert/strict";
 import {
   DISCLOSURE_LABEL_RULES,
   matchDisclosuresToEvent,
+  matchRuleForReasonCode,
   matchRuleForTitle,
   suggestLabel,
 } from "../src/research/signals/disclosure-label-suggestions.js";
@@ -223,6 +224,69 @@ function testPreviewAndSuggestionShareTheSameJudgement(): void {
   assert.equal(suggestion.suggestedLabel, matchRuleForTitle(title)?.label);
 }
 
+function testEdinetIsMatchedByReasonCodeNotTitle(): void {
+  // EDINET の `docDescription` は「臨時報告書」だけで記述が無い。実測で
+  // 上場会社の臨時報告書1,798件すべてがこの文字列だった。
+  // 見出しのキーワード規則は原理的に当たらないので、事由コードで判定する。
+  assert.equal(matchRuleForTitle("臨時報告書"), null, "見出しだけでは決まらない");
+
+  // 実測で観測した対応（docs/reference/edinet-reason-codes-2026-09-11.md）
+  assert.equal(matchRuleForReasonCode("第19条第2項第6号")?.label, "regulatory_or_litigation");
+  assert.equal(matchRuleForReasonCode("第19条第2項第3号")?.label, "corporate_action");
+  assert.equal(matchRuleForReasonCode("第19条第2項第8号の2")?.label, "corporate_action");
+  assert.equal(matchRuleForReasonCode("第19条第2項第2号の2")?.label, "equity_offering");
+}
+
+function testAmbiguousReasonCodesAreNotClassified(): void {
+  // 12号・19号は「財政状態に著しい影響」で、実測でも
+  // 「連結子会社からの配当金受領」から不祥事まで混ざる。
+  // 9号（代表者異動）・9号の2（支配株主等）も分類先が定まらない。
+  // **分からないものを分類しない。**
+  for (const code of [
+    "第19条第2項第12号", "第19条第2項第19号",
+    "第19条第2項第9号", "第19条第2項第9号の2",
+  ]) {
+    assert.equal(matchRuleForReasonCode(code), null, `${code} を分類してはいけない`);
+  }
+}
+
+function testReasonCodeMatchIsExactNotPrefix(): void {
+  // 「第3号」の規則が「第3号の2」を拾ってはいけない（別の事由）。
+  assert.equal(matchRuleForReasonCode("第19条第2項第3号の2"), null);
+  assert.equal(matchRuleForReasonCode("第19条第2項第6号の3"), null);
+}
+
+function testMultipleReasonCodesUseTheFirstMatch(): void {
+  // 複数事由のときは、規則に載っているものが1つでもあれば当たる。
+  assert.equal(
+    matchRuleForReasonCode("第19条第2項第12号,第19条第2項第6号")?.label,
+    "regulatory_or_litigation",
+  );
+  // 載っていないものだけなら当たらない。
+  assert.equal(matchRuleForReasonCode("第19条第2項第12号,第19条第2項第19号"), null);
+}
+
+function testEdinetEvidenceProducesSuggestion(): void {
+  // 端から端まで: EDINET 由来の証拠から提案が出ること。
+  const suggestion = suggestLabel({
+    candidateId: "am-51100-2025-03-14",
+    code: "51100",
+    date: "2025-03-14",
+    evidence: [{
+      source: "edinet",
+      code: "51100",
+      observationDate: "2025-03-14",
+      publishedAt: "2025-03-14T10:00:00+09:00",
+      title: "臨時報告書",
+      url: "https://api.edinet-fsa.go.jp/api/v2/documents/S100AAAA?type=2",
+      reasonCode: "第19条第2項第6号",
+      documentTypeCode: "180",
+    }],
+  });
+  assert.equal(suggestion.suggestedLabel, "regulatory_or_litigation");
+  assert.equal(suggestion.evidenceUrls.length, 1);
+}
+
 function testRulesDoNotClaimCertainty(): void {
   // 見出しだけで決められないものは、その旨を rationale に書いてあること。
   const ambiguous = DISCLOSURE_LABEL_RULES.find((rule) => rule.keywords.includes("不適切"));
@@ -249,6 +313,11 @@ testUnmatchedDisclosureStillCarriesEvidence();
 testMatchesAreChronological();
 testSubsidiaryRuleRequiresAProblemWord();
 testPreviewAndSuggestionShareTheSameJudgement();
+testEdinetIsMatchedByReasonCodeNotTitle();
+testAmbiguousReasonCodesAreNotClassified();
+testReasonCodeMatchIsExactNotPrefix();
+testMultipleReasonCodesUseTheFirstMatch();
+testEdinetEvidenceProducesSuggestion();
 testRulesDoNotClaimCertainty();
 
 console.log("disclosure-label-suggestions: 全テスト成功");
