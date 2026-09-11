@@ -204,7 +204,13 @@ export function validateHardenedPriceRecords(
 
   const issues: HardenedPriceIssue[] = [];
   for (const group of byBasis.values()) {
-    issues.push(...validatePriceRecords(group, schema, now));
+    // `issues.push(...配列)` は配列を引数に展開するので、
+    // 要素数が V8 の引数上限を超えると RangeError で落ちる。
+    // 実測（2026-09-11・Node 24）で上限は 10万〜12.5万件のあいだ。
+    // ここは1レコードにつき1件以上の issue が出るので、保存庫全体
+    // （実測 2,149,545 レコード）を渡すと必ず超える。
+    // **検査器が落ちると、異常があるかどうかすら分からない。**
+    for (const issue of validatePriceRecords(group, schema, now)) issues.push(issue);
   }
   for (const record of records) {
     issues.push(...validatePriceRecordHardening(record));

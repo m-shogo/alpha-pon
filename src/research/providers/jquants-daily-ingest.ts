@@ -42,6 +42,12 @@ export function isCompletedIngest(input: {
   return input.outcome === "entitled_rows" || input.outcome === "entitled_empty";
 }
 
+/**
+ * 取り込み記録の台帳名。価格ディレクトリに同居するので `_` で始める
+ * （isPriceStoreSidecarName 参照）。
+ */
+export const INGEST_LEDGER_NAME = "_ingest-log.jsonl";
+
 export function parseIngestLedger(content: string): IngestLedgerEntry[] {
   const entries: IngestLedgerEntry[] = [];
   for (const [index, raw] of content.split("\n").entries()) {

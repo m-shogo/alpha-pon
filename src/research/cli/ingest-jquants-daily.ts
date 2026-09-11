@@ -45,6 +45,7 @@ import {
   isCompletedIngest,
   planIngest,
   type IngestLedgerEntry,
+  INGEST_LEDGER_NAME,
 } from "../providers/jquants-daily-ingest.js";
 import { MEASURED_DATE_QUERY_INTERVAL_MS } from "../../fetcher/adaptive-rate-limit.js";
 import { jquantsV2DateCapCompact } from "../../fetcher/jquants.js";
@@ -53,7 +54,6 @@ import { todayJst } from "../../date.js";
 import type { JsonSchema } from "../schema.js";
 
 const STORE_ROOT = "research/prices/jquants-free-daily";
-const LEDGER_NAME = "_ingest-log.jsonl";
 
 // 2026-09-11 の実測（`?date=` を固定間隔で叩いた結果）に基づく。
 //   20s : 10/10 成功 / 12s : 11回目で429 / 8s : 7回目で429
@@ -95,7 +95,7 @@ function root(): string {
 }
 
 function ledgerPath(): string {
-  return resolve(root(), LEDGER_NAME);
+  return resolve(root(), INGEST_LEDGER_NAME);
 }
 
 function adjustmentLedgerPath(): string {

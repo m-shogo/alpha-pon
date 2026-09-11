@@ -459,11 +459,27 @@ export function validatePriceRecords(
   schema: JsonSchema,
   now: Date = new Date(),
 ): PriceStoreIssue[] {
-  const issues = records.flatMap((record) => validatePriceRecord(record, schema, now));
+  const issues: PriceStoreIssue[] = [];
+  // schema を満たさない record は、この先の突き合わせに使わない。
+  //
+  // 理由: 突き合わせは observedAt / firstExecutableAt / contentHash を
+  // 直接比較する。値が欠けていると compareExplicitIso8601Instants が
+  // **例外を投げ、検査そのものが止まる。** 止まるとそれ以降の record が
+  // すべて未報告になるので、「1件の異常で残り全部が見えなくなる」。
+  // 報告できない検査器は検査器ではない。
+  // schema 違反は validatePriceRecord が既に error として報告済みなので、
+  // ここで外しても見逃しにはならない。
+  const comparable: PitPriceRecord[] = [];
+  for (const record of records) {
+    const recordIssues = validatePriceRecord(record, schema, now);
+    issues.push(...recordIssues);
+    if (!recordIssues.some((issue) => issue.code === "schema")) comparable.push(record);
+  }
+
   const byHash = new Map<string, PitPriceRecord>();
   const byRevisionKey = new Map<string, PitPriceRecord[]>();
 
-  for (const record of records) {
+  for (const record of comparable) {
     if (byHash.has(record.contentHash)) {
       pushIssue(issues, {
         code: "duplicate_content_hash",
