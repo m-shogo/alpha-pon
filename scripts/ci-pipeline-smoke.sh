@@ -13,6 +13,17 @@ set -euo pipefail
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$DIR" || exit 1
 
+# 型検査を3種とも通す。
+#
+# 2026-09-11 に tests/ の型エラーを main へ入れた。ローカルでは
+# `tsc --noEmit`（src のみ）しか回しておらず、tests/ と scripts/ は
+# CI の check ワークフローでしか見られていなかった。
+# **検査はあるのに、自分が毎回回すゲートに入っていなかった。**
+# verify script の配線漏れ・未実行テストと同じ失敗様式。
+pnpm -s typecheck
+pnpm -s typecheck:tests
+pnpm -s typecheck:scripts
+
 rm -rf "$DIR/tmp/run-daily.lock"
 
 USE_MOCK=true NOTIFY_MODE=off bash "$DIR/scripts/run-daily.sh"
