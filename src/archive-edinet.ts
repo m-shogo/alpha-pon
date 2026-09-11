@@ -27,7 +27,7 @@ import {
   listArchivedEdinetDates,
 } from "./edinet-document-archive.js";
 import { fetchEdinetDocList, getEdinetConfigurationStatus } from "./fetcher/edinet.js";
-import { resolveCatchUpRange } from "./catch-up-range.js";
+import { lastCompleteDate, resolveCatchUpRange } from "./catch-up-range.js";
 import { todayJst } from "./date.js";
 
 const DEFAULT_INTERVAL_MS = 3_000;
@@ -75,20 +75,29 @@ async function main(): Promise<void> {
     }
     const resolved = resolveCatchUpRange({
       archivedDates: listArchivedEdinetDates(),
-      today: todayJst(),
+      // **昨日まで。** EDINET も日中に出続けるので、当日を保存すると
+      // 出揃う前の姿が確定する。実測: 14時台 153件 → 15時台 223件。
+      today: lastCompleteDate(todayJst()),
     });
     if (!resolved.ok) {
       console.log(resolved.reason === "never_ingested"
         ? "一度も取り込んでいない。最初は --from を明示して走らせること。"
-        : "既に最新。取り込む日がない。");
+        : "既に最新（当日は翌朝に取る）。");
       return;
     }
     from = resolved.range.from;
     to = resolved.range.to;
-    console.log(`追いつき      ${from} 〜 ${to}（${resolved.range.calendarDays}暦日）`);
+    console.log(`追いつき      ${from} 〜 ${to}（${resolved.range.calendarDays}暦日・当日は含めない）`);
   } else {
     from = requiredDate("from");
     to = requiredDate("to");
+    // 明示指定でも当日は切る。出揃う前の姿を確定させないため。
+    // どうしても要るときは --include-today（修復用）。
+    const lastComplete = lastCompleteDate(todayJst());
+    if (!hasFlag("include-today") && to > lastComplete) {
+      console.log(`注意          ${to} → ${lastComplete} へ短縮（当日は出揃っていない）`);
+      to = lastComplete;
+    }
   }
   if (from > to) throw new Error("--from must be on or before --to");
   const execute = hasFlag("execute");

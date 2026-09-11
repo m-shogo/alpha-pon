@@ -14,7 +14,31 @@
 //   4. 日付は JST で数える
 
 import assert from "node:assert/strict";
-import { resolveCatchUpRange } from "../src/catch-up-range.js";
+import { lastCompleteDate, resolveCatchUpRange } from "../src/catch-up-range.js";
+
+function testLastCompleteDateIsYesterday(): void {
+  // TDnet も EDINET も日中に出続ける。当日を保存すると出揃う前の姿が
+  // 「観測済み」として確定する。実測（2026-09-11）:
+  //   TDnet   04:55 保存 0件   → 14時台 83件
+  //   EDINET  14時台 153件     → 15時台 223件
+  // どちらも欠落検査に引っかからない（ファイルはある）。
+  assert.equal(lastCompleteDate("2026-09-11"), "2026-09-10");
+  assert.equal(lastCompleteDate("2026-01-01"), "2025-12-31", "年境界");
+  assert.equal(lastCompleteDate("2026-03-01"), "2026-02-28", "月境界");
+  assert.equal(lastCompleteDate("2024-03-01"), "2024-02-29", "閏年");
+  assert.throws(() => lastCompleteDate("2026-13-01"), /not a real date/);
+}
+
+function testCatchUpStopsBeforeToday(): void {
+  // 呼び出し側が lastCompleteDate を渡す前提。昨日までで止まること。
+  const result = resolveCatchUpRange({
+    archivedDates: ["2026-09-09"],
+    today: lastCompleteDate("2026-09-11"),
+  });
+  assert.ok(result.ok);
+  assert.equal(result.range.from, "2026-09-10");
+  assert.equal(result.range.to, "2026-09-10", "当日(09-11)は含まない");
+}
 
 function testResumesFromTheDayAfterTheLast(): void {
   const result = resolveCatchUpRange({
@@ -85,6 +109,8 @@ function testInvalidInputFailsClosed(): void {
   );
 }
 
+testLastCompleteDateIsYesterday();
+testCatchUpStopsBeforeToday();
 testResumesFromTheDayAfterTheLast();
 testOrderOfArchivedDatesDoesNotMatter();
 testNeverIngestedReturnsNoRange();

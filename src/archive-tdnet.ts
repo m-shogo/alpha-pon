@@ -30,7 +30,7 @@
  */
 
 import { appendDisclosureSnapshot, assertIsoDate, listArchivedDates } from "./disclosure-archive.js";
-import { resolveCatchUpRange } from "./catch-up-range.js";
+import { lastCompleteDate, resolveCatchUpRange } from "./catch-up-range.js";
 import { todayJst } from "./date.js";
 import { fetchTdnetDisclosureSnapshot } from "./fetcher/jpx.js";
 
@@ -69,12 +69,6 @@ async function sleep(ms: number): Promise<void> {
   await new Promise((resolveTimer) => setTimeout(resolveTimer, ms));
 }
 
-/** 昨日（JST）。当日は開示が出揃っていないので保存の対象にしない。 */
-function yesterdayJst(): string {
-  const [year, month, day] = todayJst().split("-").map(Number) as [number, number, number];
-  return new Date(Date.UTC(year, month - 1, day - 1)).toISOString().slice(0, 10);
-}
-
 async function main(): Promise<void> {
   const catchUp = hasFlag("catch-up");
   let from: string;
@@ -86,7 +80,7 @@ async function main(): Promise<void> {
     const resolved = resolveCatchUpRange({
       archivedDates: listArchivedDates(),
       // **昨日まで。** 当日を入れると出揃う前の姿で確定してしまう。
-      today: yesterdayJst(),
+      today: lastCompleteDate(todayJst()),
     });
     if (!resolved.ok) {
       console.log(resolved.reason === "never_ingested"
@@ -100,6 +94,12 @@ async function main(): Promise<void> {
   } else {
     from = requiredDate("from");
     to = requiredDate("to");
+    // 明示指定でも当日は切る。出揃う前の姿を確定させないため。
+    const lastComplete = lastCompleteDate(todayJst());
+    if (!hasFlag("include-today") && to > lastComplete) {
+      console.log(`注意          ${to} → ${lastComplete} へ短縮（当日は出揃っていない）`);
+      to = lastComplete;
+    }
   }
   if (from > to) throw new Error("--from must be on or before --to");
   const execute = hasFlag("execute");
