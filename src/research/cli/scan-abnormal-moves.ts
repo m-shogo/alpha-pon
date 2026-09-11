@@ -37,6 +37,7 @@ import {
   formatStudyInputs,
   loadEarningsEventDatesFromStore,
   loadStudyInputsFromStore,
+  resolveResearchTo,
 } from "../study-inputs-from-store.js";
 import { assertIsoDate } from "../providers/jquants-daily-ingest.js";
 import type { PriceSeries } from "../backtest.js";
@@ -137,14 +138,23 @@ function main(): void {
   if (ingested.length === 0) throw new Error("取り込み済みの価格がない。先に pnpm ingest:prices");
 
   const from = argValue("from") ? assertIsoDate(argValue("from")!, "--from") : ingested[0]!;
-  const to = argValue("to") ? assertIsoDate(argValue("to")!, "--to") : ingested.at(-1)!;
+
+  // 既定で取り込み最終日まで走査すると、**封印期間の中を覗く。**
+  // 正本の金庫から自動で打ち切る（backtest / scan:earnings-gaps と同じ関数）。
+  const explicitTo = argValue("to") ? assertIsoDate(argValue("to")!, "--to") : null;
+  const research = resolveResearchTo(explicitTo);
+  if (research.violation) throw new Error(research.violation);
+  const to = research.to ?? ingested.at(-1)!;
   if (from > to) throw new Error("--from must be on or before --to");
   const minTurnoverJpy = numberArg("min-turnover-jpy", 0);
 
   console.log(`期間            ${from} 〜 ${to}`);
   console.log(`取り込み済み    ${ingested[0]} 〜 ${ingested.at(-1)}（${ingested.length}営業日）`);
   if (to < ingested.at(-1)!) {
-    console.log(`未使用の期間    ${to} より後は触らない（確認期間・holdout の保全）`);
+    console.log(
+      `未使用の期間    ${to} より後は触らない`
+      + `（${explicitTo ? "明示指定" : `封印 ${research.sealed?.windowId ?? "?"}`}）`,
+    );
   }
 
   // 材料は edge-study / backtest と**同じ関数**から取る。ここだけ別に組むと
@@ -202,7 +212,7 @@ function main(): void {
   if (hasFlag("no-earnings-calendar")) {
     console.log("注意: --no-earnings-calendar。決算反応も候補に混ざる（explained_by_known_event=0）");
   } else {
-    const earnings = loadEarningsEventDatesFromStore({ tradingDates: inputs.tradingDates });
+    const earnings = loadEarningsEventDatesFromStore({ tradingDates: inputs.tradingDates, to });
     knownEventDates = earnings.byCode;
     console.log(
       `決算カレンダー  ${earnings.datesScanned}営業日 / 開示 ${earnings.disclosureCount.toLocaleString()}件`

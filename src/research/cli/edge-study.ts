@@ -175,7 +175,10 @@ function main(): void {
   let storeEarningsDates: Map<string, Set<string>> | null = null;
   if (fromStore && !flags.has("no-earnings-calendar")) {
     try {
-      const earnings = loadEarningsEventDatesFromStore({ tradingDates: fromStore.tradingDates });
+      const earnings = loadEarningsEventDatesFromStore({
+        tradingDates: fromStore.tradingDates,
+        ...(options.get("to") ? { to: options.get("to")! } : {}),
+      });
       storeEarningsDates = earnings.byCode;
       console.log(
         `⓪ 決算カレンダー ${earnings.datesScanned}営業日 / 開示 ${earnings.disclosureCount.toLocaleString()}件`
