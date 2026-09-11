@@ -28,6 +28,21 @@
  * 選ぶと、あとで流動的になった銘柄を最初から知っていたことになる。
  * 売買代金は**前営業日まで**で測る。当日の出来高は事件そのもので跳ねるので、
  * それで構成銘柄が入れ替わると指数が事件に引きずられる。
+ *
+ * ## 始値の水準も持つ
+ *
+ * 最初の実装は終値ベースの水準しか作らず、bar の `open` にも同じ値を入れていた。
+ * だが `event-study.ts` は **benchmark の始値 → 終値**で市場リターンを測る。
+ * `open === close` だと、建玉日の**日中の市場変動が銘柄側にだけ入り、
+ * benchmark 側では引かれない**。1日ぶんの日中変動（±0.5〜1%）が
+ * そのまま異常収益に紛れ込む。
+ *
+ * 構成銘柄の始値があるので、同じ構成銘柄で
+ * 「前日終値 → 当日始値」（オーバーナイト）の平均も出し、
+ * 始値の水準として持つ。これで銘柄側と区間がそろう。
+ *
+ * 日中の高値・安値は持たない（構成銘柄の高値が同時刻に付くとは限らず、
+ * 合成しても意味が無い）。`high`/`low` は始値と終値の外側に置くだけ。
  */
 
 import type { PriceBar, PriceSeries } from "../backtest.js";
@@ -55,10 +70,15 @@ export const DEFAULT_UNIVERSE_BENCHMARK_PARAMS: UniverseBenchmarkParams = {
 
 export interface UniverseBenchmarkDay {
   date: string;
-  /** 等加重の日次リターン（%）。 */
+  /** 等加重の日次リターン（前日終値 → 当日終値、%）。 */
   returnPct: number;
+  /** 等加重のオーバーナイトリターン（前日終値 → 当日始値、%）。 */
+  overnightReturnPct: number;
   constituents: number;
+  /** 当日終値の水準。 */
   level: number;
+  /** 当日始値の水準。 */
+  openLevel: number;
 }
 
 export interface UniverseBenchmarkResult {
@@ -102,8 +122,9 @@ export function buildUniverseBenchmark(
 ): UniverseBenchmarkResult {
   assertUniverseBenchmarkParams(params);
 
-  // 日付 → その日にリターンを出せる銘柄の (return, turnover) を集める。
-  const contributions = new Map<string, number[]>();
+  // 日付 → その日にリターンを出せる銘柄の (終値リターン, オーバーナイトリターン)。
+  // **同じ構成銘柄**で両方を取る。母集団がずれると区間もずれる。
+  const contributions = new Map<string, Array<{ closePct: number; overnightPct: number }>>();
   const allDates = new Set<string>();
 
   for (const series of securities) {
@@ -125,10 +146,17 @@ export function buildUniverseBenchmark(
         && priorTurnoverAvg >= params.minAverageTurnoverJpy
         && calendarDaysBetween(prior.date, bar.date) <= params.maxPriorGapDays
       ) {
-        const returnPct = ((bar.close - prior.close) / prior.close) * 100;
-        const bucket = contributions.get(bar.date);
-        if (bucket) bucket.push(returnPct);
-        else contributions.set(bar.date, [returnPct]);
+        // 始値が取れない行は構成から外す。0 で代用すると
+        // オーバーナイトが -100% として平均に入る。
+        if (bar.open > 0) {
+          const entry = {
+            closePct: ((bar.close - prior.close) / prior.close) * 100,
+            overnightPct: ((bar.open - prior.close) / prior.close) * 100,
+          };
+          const bucket = contributions.get(bar.date);
+          if (bucket) bucket.push(entry);
+          else contributions.set(bar.date, [entry]);
+        }
       }
 
       // 当日ぶんを窓へ入れる（次の営業日の判定に使う）。
@@ -156,11 +184,24 @@ export function buildUniverseBenchmark(
       if (started) skippedDates.push(date);
       continue;
     }
-    const returnPct = returns.reduce((sum, value) => sum + value, 0) / returns.length;
-    level *= 1 + returnPct / 100;
+    const returnPct = returns.reduce((sum, one) => sum + one.closePct, 0) / returns.length;
+    const overnightReturnPct =
+      returns.reduce((sum, one) => sum + one.overnightPct, 0) / returns.length;
+    // 始値も終値も**同じ前日終値水準**から積む。
+    const previousLevel = level;
+    const openLevel = previousLevel * (1 + overnightReturnPct / 100);
+    level = previousLevel * (1 + returnPct / 100);
     started = true;
-    days.push({ date, returnPct, constituents: returns.length, level });
-    bars.push({ date, open: level, high: level, low: level, close: level, volume: 0 });
+    days.push({ date, returnPct, overnightReturnPct, constituents: returns.length, level, openLevel });
+    bars.push({
+      date,
+      open: openLevel,
+      // 高値・安値は合成しない。始値と終値の外側に置くだけ。
+      high: Math.max(openLevel, level),
+      low: Math.min(openLevel, level),
+      close: level,
+      volume: 0,
+    });
   }
 
   return {

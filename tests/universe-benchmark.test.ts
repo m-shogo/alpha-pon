@@ -53,6 +53,60 @@ function series(code: string, input: {
   return { code, bars };
 }
 
+function testOpenLevelIsSeparateFromCloseLevel(): void {
+  // 最初の実装は bar の open にも終値水準を入れていた。
+  // `event-study.ts` は **benchmark の始値 → 終値**で市場リターンを測るので、
+  // open === close だと建玉日の日中変動が銘柄側にだけ入り、
+  // benchmark 側で引かれない。1日ぶんの日中変動がそのまま異常収益に紛れ込む。
+  //
+  // 構成銘柄が「前日終値100 → 始値102 → 終値104」なら、
+  // 指数も openLevel/closeLevel がその比で動くこと。
+  const dates = [0, 1, 2, 3].map(isoDate);
+  const build = (code: string): PriceSeries => ({
+    code,
+    bars: [
+      { date: dates[0]!, open: 100, high: 100, low: 100, close: 100, volume: 10_000 },
+      { date: dates[1]!, open: 100, high: 100, low: 100, close: 100, volume: 10_000 },
+      { date: dates[2]!, open: 100, high: 100, low: 100, close: 100, volume: 10_000 },
+      { date: dates[3]!, open: 102, high: 105, low: 101, close: 104, volume: 10_000 },
+    ],
+  });
+
+  const result = buildUniverseBenchmark([build("10000"), build("20000")], PARAMS);
+  const last = result.days.at(-1)!;
+  assert.ok(Math.abs(last.overnightReturnPct - 2) < 1e-9, `オーバーナイト=${last.overnightReturnPct}`);
+  assert.ok(Math.abs(last.returnPct - 4) < 1e-9, `終値リターン=${last.returnPct}`);
+
+  const bar = result.series.bars.at(-1)!;
+  const previous = result.days.at(-2)!.level;
+  assert.ok(Math.abs(bar.open - previous * 1.02) < 1e-9, `始値水準=${bar.open}`);
+  assert.ok(Math.abs(bar.close - previous * 1.04) < 1e-9, `終値水準=${bar.close}`);
+  assert.notEqual(bar.open, bar.close, "始値と終値が同じでは区間がそろわない");
+  assert.ok(bar.high >= Math.max(bar.open, bar.close));
+  assert.ok(bar.low <= Math.min(bar.open, bar.close));
+}
+
+function testOpenAndCloseUseTheSameConstituents(): void {
+  // 母集団がずれると区間もずれる。始値が取れない銘柄は構成から外す
+  // （0 で代用するとオーバーナイトが -100% として平均に入る）。
+  const dates = [0, 1, 2, 3].map(isoDate);
+  const normal = (code: string): PriceSeries => ({
+    code,
+    bars: dates.map((date) => ({ date, open: 100, high: 100, low: 100, close: 100, volume: 10_000 })),
+  });
+  const noOpen: PriceSeries = {
+    code: "30000",
+    bars: dates.map((date, index) => ({
+      date, open: index === 3 ? 0 : 100, high: 100, low: 100, close: 100, volume: 10_000,
+    })),
+  };
+
+  const result = buildUniverseBenchmark([normal("10000"), normal("20000"), noOpen], PARAMS);
+  const last = result.days.at(-1)!;
+  assert.equal(last.constituents, 2, "始値の無い銘柄を構成に入れない");
+  assert.ok(Math.abs(last.overnightReturnPct) < 1e-9, "-100% が平均へ混ざっていない");
+}
+
 function testEqualWeightedReturn(): void {
   // +2% と -1% の等加重は +0.5%。
   const result = buildUniverseBenchmark([
@@ -175,6 +229,8 @@ function testDefaultsAreConservative(): void {
     "非流動銘柄の古い終値を市場リターンに混ぜない");
 }
 
+testOpenLevelIsSeparateFromCloseLevel();
+testOpenAndCloseUseTheSameConstituents();
 testEqualWeightedReturn();
 testLevelCompoundsFromOneHundred();
 testConstituentsUsePriorTurnoverNotToday();
