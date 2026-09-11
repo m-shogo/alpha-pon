@@ -55,6 +55,47 @@ function testEveryReferencedFileExists(): void {
   );
 }
 
+function testHelperIsDefinedBeforeFirstUse(): void {
+  // bash は定義前に関数を呼ぶと "command not found" になる。
+  // **`bash -n`（構文チェック）では気づけない。**
+  //
+  // 実際に踏んだ: 研究用データの追いつきを critical より前へ移したとき、
+  // `run_optional_step` の定義（116行）より手前（91行）で呼んでいた。
+  const lines = readFileSync(resolve(process.cwd(), SCRIPT), "utf-8").split("\n");
+  let definedAt: number | null = null;
+  let firstUseAt: number | null = null;
+  for (const [index, line] of lines.entries()) {
+    if (definedAt === null && /^run_optional_step\(\)\s*\{/.test(line)) definedAt = index + 1;
+    if (firstUseAt === null && /^run_optional_step\s+"/.test(line)) firstUseAt = index + 1;
+  }
+  assert.ok(definedAt !== null, "run_optional_step の定義が見つからない");
+  assert.ok(firstUseAt !== null, "run_optional_step の呼び出しが見つからない");
+  assert.ok(
+    definedAt! < firstUseAt!,
+    `run_optional_step を定義（${definedAt}行）より前（${firstUseAt}行）で呼んでいます。`
+    + "実行時に command not found になります",
+  );
+}
+
+function testDataCollectionRunsBeforeTheCriticalStep(): void {
+  // `run-daily.sh` は critical（失敗で停止）。その後ろに置くと、
+  // レポート生成が壊れているあいだデータ収集まで止まる。
+  // **レポートは翌日でも作り直せるが、TDnet は約28日で遡れなくなる。**
+  const source = readFileSync(resolve(process.cwd(), SCRIPT), "utf-8");
+  const criticalAt = source.indexOf('bash "$DIR/scripts/run-daily.sh"');
+  assert.ok(criticalAt > 0, "critical な run-daily.sh の呼び出しが見つからない");
+
+  for (const name of ["ingest-prices-catch-up", "archive-edinet-catch-up", "archive-tdnet-catch-up"]) {
+    const at = source.indexOf(`run_optional_step "${name}"`);
+    assert.ok(at > 0, `${name} が見つからない`);
+    assert.ok(
+      at < criticalAt,
+      `${name} が critical な run-daily.sh より後ろにあります。`
+      + "レポートが壊れている日にデータ収集まで止まります",
+    );
+  }
+}
+
 function testStepNamesAreUnique(): void {
   // 同じ名前が2つあると、失敗一覧を見てもどちらが落ちたか分からない。
   const steps = parseOptionalSteps(readFileSync(resolve(process.cwd(), SCRIPT), "utf-8"));
@@ -91,6 +132,8 @@ function testHeredocStepsAreParsedWithoutPaths(): void {
 }
 
 testEveryReferencedFileExists();
+testHelperIsDefinedBeforeFirstUse();
+testDataCollectionRunsBeforeTheCriticalStep();
 testStepNamesAreUnique();
 testLineContinuationIsFollowed();
 testHeredocStepsAreParsedWithoutPaths();
