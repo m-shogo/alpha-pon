@@ -177,6 +177,11 @@ node --import tsx/esm scripts/verify-script-reachability.ts
 # 「書いてあるのに動いていない」に気づく仕組みが無かった。
 node --import tsx/esm scripts/verify-src-reachability.ts
 
+# 価格ストアを読む CLI が封印期間を尊重しているか。
+# 2026-09-11 に、scan:moves が既定で封印の中まで走査していたことが分かった。
+# **封印は全部の入口で効いて初めて封印。**
+node --import tsx/esm scripts/verify-holdout-coverage.ts
+
 # tests/ 配下を漏れなく実行する。
 # 2026-09-10 の監査で 475本中139本がどのチェーンからも実行されておらず、
 # うち14本が誰にも気づかれずに失敗していた。チェーンへの追記忘れという

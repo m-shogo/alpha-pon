@@ -39,6 +39,7 @@ import {
   StudyInputsError,
   formatStudyInputs,
   loadStudyInputsFromStore,
+  resolveResearchTo,
 } from "../study-inputs-from-store.js";
 import {
   computeDatasetFingerprint,
@@ -75,7 +76,17 @@ function main(): void {
   if (reasonCodes.length === 0) fail("--reasons が空です");
 
   const from = options.get("from");
-  const to = options.get("to");
+  // 封印は CLI ごとに書かない。書き忘れた CLI だけが覗くことになる。
+  const research = resolveResearchTo(options.get("to") ?? null);
+  if (research.violation) fail(research.violation);
+  const to = research.to ?? undefined;
+  if (to) {
+    console.log(
+      options.get("to")
+        ? `期間  : 〜 ${to}（明示指定）`
+        : `期間  : 〜 ${to}（封印 ${research.sealed!.windowId} の前日まで）`,
+    );
+  }
   const minTurnoverJpy = Number(options.get("min-turnover-jpy") ?? 500_000_000);
   if (!Number.isFinite(minTurnoverJpy) || minTurnoverJpy < 0) {
     fail("--min-turnover-jpy は0以上の数値で指定してください");
