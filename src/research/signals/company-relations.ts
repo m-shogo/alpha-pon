@@ -177,3 +177,29 @@ export function buildCompanyRelationGraph(
     skippedWithoutCode,
   };
 }
+
+/**
+ * 33業種でまとめた peer を関係グラフに変換する。
+ *
+ * config の手書き peer は実測で **8社ぶんしかない**。read-across の
+ * 標本にならないので、業種を peer の代理に使う。
+ *
+ * **これは「同業」であって「関係がある」ではない。** 同じ33業種でも
+ * 事業も規模も違う。config の手書き関係（親子・主要株主・取引先）が
+ * 埋まったら、そちらを優先する。ここで作る辺は `derived: true` として
+ * 印を付け、由来が混ざらないようにする。
+ */
+export function sectorPeerGraph(
+  peersByCode: ReadonlyMap<string, readonly string[]>,
+): Map<string, CompanyRelation[]> {
+  const graph = new Map<string, CompanyRelation[]>();
+  for (const [code, peers] of peersByCode) {
+    graph.set(code, peers.map((peer) => ({
+      code: peer,
+      relationType: "peer" as const,
+      note: "同33業種（マスタ由来）",
+      derived: true,
+    })));
+  }
+  return graph;
+}

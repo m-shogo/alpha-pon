@@ -116,6 +116,7 @@
     "research:validate-prices": "node --max-old-space-size=14336 --import tsx/esm src/research/cli/validate-prices.ts",
     "scan:moves": "node --max-old-space-size=8192 --env-file-if-exists=.env --import tsx/esm src/research/cli/scan-abnormal-moves.ts",
     "scan:earnings-gaps": "node --max-old-space-size=8192 --env-file-if-exists=.env --import tsx/esm src/research/cli/scan-earnings-gaps.ts",
+    "scan:read-across": "node --max-old-space-size=8192 --env-file-if-exists=.env --import tsx/esm src/research/cli/scan-read-across.ts",
     "archive:tdnet": "node --env-file-if-exists=.env --import tsx/esm src/archive-tdnet.ts",
     "label:suggest": "node --max-old-space-size=8192 --env-file-if-exists=.env --import tsx/esm src/research/cli/suggest-event-labels.ts",
     "archive:edinet": "node --env-file-if-exists=.env --import tsx/esm src/archive-edinet.ts",
