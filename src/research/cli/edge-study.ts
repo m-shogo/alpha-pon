@@ -26,7 +26,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { isCanonicalReadOnlyJsonFile } from "../../read-only-json-file.js";
 import type { PriceSeries } from "../backtest.js";
-import { writeGeneratedJson } from "../io.js";
+import { paths, writeGeneratedJson } from "../io.js";
 import {
   computeDatasetFingerprint,
   DEFAULT_TRIALS_LEDGER_PATH,
@@ -45,6 +45,7 @@ import {
   partitionByHoldout,
   type HoldoutAccessRecord,
   type HoldoutVaultManifest,
+  mergeHoldoutManifests,
 } from "../signals/holdout-partition.js";
 import {
   readEventLabels,
@@ -112,6 +113,18 @@ function numberOption(options: Map<string, string>, name: string, fallback: numb
   const value = Number(raw);
   if (!Number.isFinite(value)) fail(`--${name} は数値で指定してください: ${raw}`);
   return value;
+}
+
+/**
+ * 正本の金庫を読む。無ければ null（封印されていない環境もある）。
+ *
+ * **壊れていたら止める。** 読めないのを「封印なし」として扱うと、
+ * 金庫が壊れた瞬間に封印が消える。
+ */
+function readVaultManifest(): HoldoutVaultManifest | null {
+  const path = paths.holdoutManifest();
+  if (!existsSync(path)) return null;
+  return JSON.parse(readFileSync(path, "utf-8")) as HoldoutVaultManifest;
 }
 
 function main(): void {
@@ -206,9 +219,22 @@ function main(): void {
   // ② Holdout の除外。封印期間を黙って使わない。
   let usable = detected.candidates;
   if (bundle.holdout) {
+    // bundle の宣言だけを信じない。正本の金庫と突き合わせて**和集合**を使う。
+    // 2026-09-11 に、bundle へ自前の manifest を書くことで封印が8ヶ月ぶん
+    // 狭まった状態で探索してしまった。金庫の鍵を金庫の中に置いていた。
+    const merged = mergeHoldoutManifests({
+      bundle: bundle.holdout.manifest,
+      vault: readVaultManifest(),
+    });
+    if (merged.narrowed.length > 0) {
+      console.log("   ⚠ bundle の封印が正本より狭い。正本の窓を足して実行する:");
+      for (const window of merged.narrowed) {
+        console.log(`     ${window.id}  ${window.from} 〜 ${window.to}（${window.scope}）`);
+      }
+    }
     const partition = partitionByHoldout({
       samples: detected.candidates.map((one) => ({ id: one.candidateId, code: one.code, date: one.date })),
-      manifest: bundle.holdout.manifest,
+      manifest: merged.manifest,
       requestedWindowIds: bundle.holdout.requestedWindowIds,
       accessLog: bundle.holdout.accessLog,
       edgeId: bundle.edgeId,
