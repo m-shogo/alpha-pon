@@ -46,6 +46,7 @@ import {
   formatStudyInputs,
   loadEarningsEventDatesFromStore,
   loadStudyInputsFromStore,
+  resolveResearchTo,
 } from "../study-inputs-from-store.js";
 import { TREATMENT_LABELS } from "../signals/event-labels.js";
 
@@ -125,7 +126,13 @@ function previewRules(rows: ArchivedDisclosure[]): void {
 
 function main(): void {
   const from = argValue("from") ?? undefined;
-  const to = argValue("to") ?? undefined;
+  const research = resolveResearchTo(argValue("to"));
+  if (research.violation) {
+    console.error(`⚠ ${research.violation}`);
+    process.exitCode = 1;
+    return;
+  }
+  const to = research.to ?? undefined;
   if (hasFlag("preview-rules")) {
     const rows = loadArchive(from, to);
     if (rows.length === 0) {

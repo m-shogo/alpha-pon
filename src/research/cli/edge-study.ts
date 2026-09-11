@@ -221,14 +221,21 @@ function main(): void {
 
   // ② Holdout の除外。封印期間を黙って使わない。
   let usable = detected.candidates;
-  if (bundle.holdout) {
+  // bundle が holdout 節を持っていなくても、正本の金庫があるなら必ず効かせる。
+  // 以前は「manifest 未指定のため分割していません（封印の保護なし）」と
+  // 出して素通りしていた。**書き忘れた bundle だけが封印を覗ける**のは
+  // 封印とは言えない。
+  const vaultOnly = !bundle.holdout ? readVaultManifest() : null;
+  if (bundle.holdout || vaultOnly) {
     // bundle の宣言だけを信じない。正本の金庫と突き合わせて**和集合**を使う。
     // 2026-09-11 に、bundle へ自前の manifest を書くことで封印が8ヶ月ぶん
     // 狭まった状態で探索してしまった。金庫の鍵を金庫の中に置いていた。
-    const merged = mergeHoldoutManifests({
-      bundle: bundle.holdout.manifest,
-      vault: readVaultManifest(),
-    });
+    const merged = bundle.holdout
+      ? mergeHoldoutManifests({ bundle: bundle.holdout.manifest, vault: readVaultManifest() })
+      : { manifest: vaultOnly!, narrowed: [] };
+    if (!bundle.holdout) {
+      console.log("   bundle に holdout 節が無いので正本の金庫をそのまま使う");
+    }
     if (merged.narrowed.length > 0) {
       console.log("   ⚠ bundle の封印が正本より狭い。正本の窓を足して実行する:");
       for (const window of merged.narrowed) {
@@ -238,8 +245,9 @@ function main(): void {
     const partition = partitionByHoldout({
       samples: detected.candidates.map((one) => ({ id: one.candidateId, code: one.code, date: one.date })),
       manifest: merged.manifest,
-      requestedWindowIds: bundle.holdout.requestedWindowIds,
-      accessLog: bundle.holdout.accessLog,
+      ...(bundle.holdout?.requestedWindowIds
+        ? { requestedWindowIds: bundle.holdout.requestedWindowIds } : {}),
+      ...(bundle.holdout?.accessLog ? { accessLog: bundle.holdout.accessLog } : {}),
       edgeId: bundle.edgeId,
     });
     const allowed = new Set([...partition.research, ...partition.opened].map((one) => one.id));
@@ -247,7 +255,7 @@ function main(): void {
     console.log(`② Holdout   : 使用 ${usable.length} / 除外 ${partition.excluded.length}`);
     for (const warning of partition.warnings) console.log(`   ⚠ ${warning}`);
   } else {
-    console.log("② Holdout   : manifest 未指定のため分割していません（封印の保護なし）");
+    console.log("② Holdout   : bundle にも正本にも封印が無い（保護なし）");
   }
 
   if (usable.length === 0) {
