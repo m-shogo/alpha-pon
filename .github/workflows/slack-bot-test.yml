@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       message:
-        description: "Test message sent by the Alpha Pon Slack bot"
+        description: "Test message sent by the Alpha Pon Stock Watch bot"
         required: false
-        default: "🔔 Alpha PonからのSlack Botプッシュ通知テストです。"
+        default: "🔔 Alpha Pon Stock Watch からのSlack Botプッシュ通知テストです。"
 
 permissions:
   contents: read
@@ -15,13 +15,13 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-      - name: Send bot DM to Slack
+      - name: Send stock-watch bot DM to Slack
         id: slack
         uses: slackapi/slack-github-action@v4.0.0
         with:
           errors: true
           method: chat.postMessage
-          token: ${{ secrets.SLACK_BOT_TOKEN }}
+          token: ${{ secrets.SLACK_BOT_TOKEN_STOCK_WATCH }}
           payload: |
             channel: "U0BSZ2X7BKQ"
             text: ${{ toJSON(inputs.message) }}
@@ -36,4 +36,4 @@ jobs:
           set -euo pipefail
           test "$SLACK_OK" = "true"
           test -n "$SLACK_TS"
-          echo "Slack bot delivery accepted: channel=$SLACK_CHANNEL_ID ts=$SLACK_TS"
+          echo "Slack stock-watch bot delivery accepted: channel=$SLACK_CHANNEL_ID ts=$SLACK_TS"
