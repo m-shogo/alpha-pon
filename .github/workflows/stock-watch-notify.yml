@@ -7,9 +7,12 @@ on:
         description: "Stock-watch notification body"
         required: true
         type: string
+  issues:
+    types: [opened]
 
 permissions:
   contents: read
+  issues: write
 
 concurrency:
   group: alpha-pon-stock-watch-notify
@@ -17,7 +20,10 @@ concurrency:
 
 jobs:
   notify:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.issue.title, '[STOCK_ALERT]')
     runs-on: ubuntu-latest
+    env:
+      STOCK_MESSAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.message || github.event.issue.body }}
     steps:
       - name: Open stock-watch bot DM
         id: dm
@@ -38,7 +44,7 @@ jobs:
           token: ${{ secrets.SLACK_BOT_TOKEN_STOCK_WATCH }}
           payload: |
             channel: ${{ toJSON(steps.dm.outputs.channel_id) }}
-            text: ${{ toJSON(inputs.message) }}
+            text: ${{ toJSON(env.STOCK_MESSAGE) }}
 
       - name: Verify Slack accepted delivery
         shell: bash
@@ -54,3 +60,26 @@ jobs:
           test -n "$SLACK_TS"
           test -n "$SLACK_CHANNEL_ID"
           echo "Alpha Pon Stock Watch delivery accepted: channel=$SLACK_CHANNEL_ID ts=$SLACK_TS"
+
+      - name: Mark issue delivery complete
+        if: github.event_name == 'issues'
+        uses: actions/github-script@v7
+        env:
+          SLACK_CHANNEL_ID: ${{ steps.slack.outputs.channel_id }}
+          SLACK_TS: ${{ steps.slack.outputs.ts }}
+        with:
+          script: |
+            const body = `Slack delivery verified. channel=${process.env.SLACK_CHANNEL_ID} ts=${process.env.SLACK_TS}`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: 'closed',
+              state_reason: 'completed',
+            });
