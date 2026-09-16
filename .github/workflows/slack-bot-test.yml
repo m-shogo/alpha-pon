@@ -1,0 +1,39 @@
+name: Slack Bot Push Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: "Test message sent by the Alpha Pon Slack bot"
+        required: false
+        default: "🔔 Alpha PonからのSlack Botプッシュ通知テストです。"
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send bot DM to Slack
+        id: slack
+        uses: slackapi/slack-github-action@v4.0.0
+        with:
+          errors: true
+          method: chat.postMessage
+          token: ${{ secrets.SLACK_BOT_TOKEN }}
+          payload: |
+            channel: "U0BSZ2X7BKQ"
+            text: ${{ toJSON(inputs.message) }}
+
+      - name: Verify Slack accepted the message
+        shell: bash
+        env:
+          SLACK_OK: ${{ steps.slack.outputs.ok }}
+          SLACK_TS: ${{ steps.slack.outputs.ts }}
+          SLACK_CHANNEL_ID: ${{ steps.slack.outputs.channel_id }}
+        run: |
+          set -euo pipefail
+          test "$SLACK_OK" = "true"
+          test -n "$SLACK_TS"
+          echo "Slack bot delivery accepted: channel=$SLACK_CHANNEL_ID ts=$SLACK_TS"
