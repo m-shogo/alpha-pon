@@ -1,0 +1,56 @@
+name: Alpha Pon Stock Watch Notify
+
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: "Stock-watch notification body"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: alpha-pon-stock-watch-notify
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open stock-watch bot DM
+        id: dm
+        uses: slackapi/slack-github-action@v4.0.0
+        with:
+          errors: true
+          method: conversations.open
+          token: ${{ secrets.SLACK_BOT_TOKEN_STOCK_WATCH }}
+          payload: |
+            users: "U0BSZ2X7BKQ"
+
+      - name: Send Alpha Pon Stock Watch DM
+        id: slack
+        uses: slackapi/slack-github-action@v4.0.0
+        with:
+          errors: true
+          method: chat.postMessage
+          token: ${{ secrets.SLACK_BOT_TOKEN_STOCK_WATCH }}
+          payload: |
+            channel: ${{ toJSON(steps.dm.outputs.channel_id) }}
+            text: ${{ toJSON(inputs.message) }}
+
+      - name: Verify Slack accepted delivery
+        shell: bash
+        env:
+          DM_CHANNEL_ID: ${{ steps.dm.outputs.channel_id }}
+          SLACK_OK: ${{ steps.slack.outputs.ok }}
+          SLACK_TS: ${{ steps.slack.outputs.ts }}
+          SLACK_CHANNEL_ID: ${{ steps.slack.outputs.channel_id }}
+        run: |
+          set -euo pipefail
+          test -n "$DM_CHANNEL_ID"
+          test "$SLACK_OK" = "true"
+          test -n "$SLACK_TS"
+          test -n "$SLACK_CHANNEL_ID"
+          echo "Alpha Pon Stock Watch delivery accepted: channel=$SLACK_CHANNEL_ID ts=$SLACK_TS"
