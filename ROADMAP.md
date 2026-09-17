@@ -4,7 +4,7 @@
 
 現行の設計・欠陥台帳・Edge カタログ・実装ロードマップは次を参照してください。
 
-→ [docs/roadmaps/alpha-pon-current-roadmap-2026-09-10.md](docs/roadmaps/alpha-pon-current-roadmap-2026-09-10.md)
+→ [docs/roadmaps/alpha-pon-current-roadmap-2026-09-17.md](docs/roadmaps/alpha-pon-current-roadmap-2026-09-17.md)
 
 ## なぜ置き換えたか
 

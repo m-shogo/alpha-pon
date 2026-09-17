@@ -2,7 +2,7 @@
 
 **このファイルは現行の正本ではありません。**
 
-→ [docs/roadmaps/alpha-pon-current-roadmap-2026-09-10.md](docs/roadmaps/alpha-pon-current-roadmap-2026-09-10.md)
+→ [docs/roadmaps/alpha-pon-current-roadmap-2026-09-17.md](docs/roadmaps/alpha-pon-current-roadmap-2026-09-17.md)
 
 ## 人間しかできない作業（2026-09-11 時点）
 
