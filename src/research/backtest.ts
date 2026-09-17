@@ -227,9 +227,16 @@ function returnBps(entry: number, exit: number, side: "long" | "short"): number 
   return (side === "long" ? raw : -raw) * 10_000;
 }
 
-function averageTurnoverJpy(bars: PriceBar[], endIndex: number): number {
-  const start = Math.max(0, endIndex - ADTV_LOOKBACK_BARS + 1);
-  const window = bars.slice(start, endIndex + 1);
+/**
+ * エントリー**前日まで**の平均売買代金。
+ *
+ * 以前はエントリー当日の足を含めていた。寄付で買う時点では当日の出来高は分からない。
+ * 実測（2026-09-17）で無作為エントリーの超過リターンへの影響は 5日で約 1bps と
+ * 小さいが、先読みなので直す。前日が無ければ 0（＝執行しない）。
+ */
+function averageTurnoverJpyBefore(bars: PriceBar[], entryIndex: number): number {
+  const start = Math.max(0, entryIndex - ADTV_LOOKBACK_BARS);
+  const window = bars.slice(start, entryIndex);
   if (window.length === 0) return 0;
   return window.reduce((sum, bar) => sum + bar.close * bar.volume, 0) / window.length;
 }
@@ -386,7 +393,7 @@ export function runBacktest(
       continue;
     }
 
-    const turnover = averageTurnoverJpy(series.bars, entry.index);
+    const turnover = averageTurnoverJpyBefore(series.bars, entry.index);
     if (spec.liquidity.minAdtvJpy !== undefined && turnover < spec.liquidity.minAdtvJpy) {
       skip("liquidity_adtv_too_low");
       continue;

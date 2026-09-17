@@ -84,7 +84,17 @@ export interface StudyInputsQuery {
 }
 
 export interface StudyInputs {
-  /** 流動性で絞ったあとの銘柄。 */
+  /**
+   * 期間中に**一度でも**売買代金の条件を満たした銘柄（先読みの無い上位集合）。
+   *
+   * **流動性の判定そのものは、各イベント・各エントリーの時点で行うこと。**
+   * 以前は「期間の最後の20営業日」で絞っていた。これは先読みで、
+   * 期間の終わりまでに値上がりして売買が増えた銘柄ばかりが残る。
+   * 実測（2026-09-17、研究期間）で、この集合から無作為に買うだけで
+   * 指数を 5日 +16.1bps / 20日 +52.0bps 上回った（時点で判定した全銘柄では
+   * +2.4 / +11.2bps）。検出器（abnormal-move / read-across）はイベント日、
+   * backtest はエントリー前日までの平均で判定する。
+   */
   prices: PriceSeries[];
   /** 絞る前の銘柄数。絞りが効きすぎていないか見るために返す。 */
   universeSize: number;
@@ -112,6 +122,29 @@ export interface StudyInputs {
 }
 
 export class StudyInputsError extends Error {}
+
+/**
+ * 直近 lookback 本（期首は本数が足りない窓も含む）の平均売買代金の、期間中の最大値。
+ *
+ * 検出器は「その日を含む」窓、backtest は「前日まで」の窓で判定する。
+ * どちらの窓もここで見る窓のどれかと一致するので、この値が閾値未満の銘柄は
+ * どの時点でも判定を通らない。**上位集合として絞るためだけ**に使う。
+ */
+export function maxTrailingAverageTurnoverJpy(series: PriceSeries, lookback: number): number {
+  let best = 0;
+  let sum = 0;
+  for (let index = 0; index < series.bars.length; index += 1) {
+    const bar = series.bars[index]!;
+    sum += bar.close * bar.volume;
+    if (index >= lookback) {
+      const dropped = series.bars[index - lookback]!;
+      sum -= dropped.close * dropped.volume;
+    }
+    const count = Math.min(index + 1, lookback);
+    best = Math.max(best, sum / count);
+  }
+  return best;
+}
 
 export function loadStudyInputsFromStore(query: StudyInputsQuery = {}): StudyInputs {
   const root = query.root ?? resolveStoreRoot();
@@ -181,12 +214,9 @@ export function loadStudyInputsFromStore(query: StudyInputsQuery = {}): StudyInp
   }
 
   const prices = minTurnoverJpy > 0
-    ? universeSeries.filter((series) => {
-        const window = series.bars.slice(-DEFAULT_UNIVERSE_BENCHMARK_SETTINGS.turnoverLookbackBars);
-        if (window.length === 0) return false;
-        const average = window.reduce((sum, bar) => sum + bar.close * bar.volume, 0) / window.length;
-        return average >= minTurnoverJpy;
-      })
+    ? universeSeries.filter((series) =>
+        maxTrailingAverageTurnoverJpy(series, DEFAULT_UNIVERSE_BENCHMARK_SETTINGS.turnoverLookbackBars)
+          >= minTurnoverJpy)
     : universeSeries;
 
   const tradingDateSet = new Set<string>();
@@ -388,7 +418,10 @@ export function formatStudyInputs(inputs: StudyInputs, minTurnoverJpy: number): 
     .reduce((sum, set) => sum + set.size, 0);
   return [
     `${inputs.prices.length}銘柄`
-    + `${minTurnoverJpy > 0 ? `（全${inputs.universeSize}中・売買代金${(minTurnoverJpy / 1e8).toFixed(0)}億円/日以上）` : ""}`
+    + `${minTurnoverJpy > 0
+      ? `（全${inputs.universeSize}中・期間中に一度でも売買代金${(minTurnoverJpy / 1e8).toFixed(0)}億円/日以上。`
+        + "流動性は各時点で判定）"
+      : ""}`
     + ` / ${inputs.datesScanned}営業日`,
     `benchmark ユニバース等加重 ${inputs.benchmark.bars.length}本`
     + `${inputs.benchmarkSkippedDates.length > 0 ? ` / 構成不足 ${inputs.benchmarkSkippedDates.length}日` : ""}`,

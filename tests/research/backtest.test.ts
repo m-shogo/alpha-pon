@@ -453,12 +453,14 @@ function testBenchmarkIsMeasuredFromTheSameInstantAsTheFill() {
   const flatBar = (date: string, price: number) => ({ date, open: price, high: price, low: price, close: price, volume: 1_000_000 });
   const stock: PriceSeries = {
     code: "9001",
-    bars: ["2024-01-04", "2024-01-05", "2024-01-09", "2024-01-10"].map((date) => flatBar(date, 1000)),
+    // 01-04 引けで買うケースのために前日（01-03）の足を置く。売買代金は前日までで判定する。
+    bars: ["2024-01-03", "2024-01-04", "2024-01-05", "2024-01-09", "2024-01-10"].map((date) => flatBar(date, 1000)),
   };
   // 指数はエントリー日（01-05）の寄付 100 → 引け 110。それ以降は 110 で横ばい。
   const topix: PriceSeries = {
     code: "TOPIX",
     bars: [
+      flatBar("2024-01-03", 100),
       flatBar("2024-01-04", 100),
       { date: "2024-01-05", open: 100, high: 110, low: 100, close: 110, volume: 1_000_000 },
       flatBar("2024-01-09", 110),
@@ -495,6 +497,28 @@ function testBenchmarkIsMeasuredFromTheSameInstantAsTheFill() {
   const typical = (110 + 100 + 110) / 3;
   assert.ok(Math.abs(vwap.benchmarkReturnBps! - ((110 - typical) / typical) * 10_000) < 1e-9, "同じ近似で測る");
   console.log("research/backtest: 指数を約定と同じ時点から測る OK");
+}
+
+function testEntryDayVolumeIsNotUsedForLiquidity() {
+  // 寄付で買う時点で、当日の出来高は分からない。売買代金は前日までの平均で判定する。
+  const bars = (volumes: number[]) => ["2024-01-04", "2024-01-05", "2024-01-09", "2024-01-10"].map((date, index) => ({
+    date, open: 1000, high: 1000, low: 1000, close: 1000, volume: volumes[index]!,
+  }));
+  const spec: BacktestSpec = {
+    ...BASE_SPEC,
+    id: "entry-day-volume",
+    exit: { mode: "holding_period", holdingPeriodDays: 1 },
+    liquidity: { participationLimitPct: 5, minAdtvJpy: 500_000_000 },
+  };
+  const signal = [{ id: "s1", code: "9001", observedAt: "2024-01-04T16:00:00+09:00" }];
+  // 前日まで薄く（1億円）、エントリー当日（01-05）だけ厚い（1兆円）。
+  const spike = runBacktest(spec, signal, new Map([["9001", { code: "9001", bars: bars([100_000, 1_000_000_000, 100_000, 100_000]) }]]));
+  assert.equal(spike.executedCount, 0, "当日の出来高で流動性を満たしたことにしない");
+  assert.equal(spike.skipped[0]?.reason, "liquidity_adtv_too_low");
+  // 前日まで厚く（10億円）、当日だけ薄い。前日までで判定するので執行する。
+  const quietDay = runBacktest(spec, signal, new Map([["9001", { code: "9001", bars: bars([1_000_000, 1, 1_000_000, 1_000_000]) }]]));
+  assert.equal(quietDay.executedCount, 1);
+  console.log("research/backtest: 流動性は前日までで判定 OK");
 }
 
 function testSignalOrderingUsesActualInstant() {
@@ -614,6 +638,7 @@ testPriceBarSemanticsFailClosed();
 testSpecConformanceFailsClosed();
 testBenchmarkProvenanceFailsClosed();
 testBenchmarkIsMeasuredFromTheSameInstantAsTheFill();
+testEntryDayVolumeIsNotUsedForLiquidity();
 testSignalOrderingUsesActualInstant();
 testAggregateAndFalseDiscoveryGuard();
 testFixtureBundleIsReproducible();

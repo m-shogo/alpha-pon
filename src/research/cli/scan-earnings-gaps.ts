@@ -107,6 +107,8 @@ function main(): void {
     gapThresholdPct,
     requireForecastNotCut: true,
     corporateActionDates: inputs.corporateActionDates,
+    // 流動性は反応日の時点で判定する（価格の集合は期間中に一度でも流動だった銘柄）。
+    ...(minTurnoverJpy > 0 ? { minAverageTurnoverJpy: minTurnoverJpy } : {}),
   });
 
   console.log(`検出          開示 ${result.disclosureCount.toLocaleString()} → 候補 ${result.candidates.length}`);
