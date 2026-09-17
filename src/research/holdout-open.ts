@@ -108,7 +108,7 @@ export function overlappingWindows(
  */
 export function assertPreregistrationMatches(
   text: string,
-  expected: { bundlePath: string; from: string; tradingDays: number },
+  expected: { bundlePath: string; from: string; tradingDays: number; minT: number; minClusters: number },
 ): void {
   const missing: string[] = [];
   if (!text.includes(expected.bundlePath)) missing.push(`bundle ${expected.bundlePath}`);
@@ -116,28 +116,85 @@ export function assertPreregistrationMatches(
   if (!new RegExp(`(^|[^0-9])${expected.tradingDays}\\s*営業日`).test(text)) {
     missing.push(`${expected.tradingDays} 営業日`);
   }
+  // 引数の閾値が事前登録と食い違っていないか。数字の一部に一致させない。
+  if (!new RegExp(`(^|[^0-9.])${String(expected.minT).replace(".", "\\.")}([^0-9]|$)`).test(text)) {
+    missing.push(`閾値 ${expected.minT}`);
+  }
+  if (!new RegExp(`最小クラスタ ${expected.minClusters}(?![0-9])`).test(text)) {
+    missing.push(`最小クラスタ ${expected.minClusters}`);
+  }
   if (missing.length > 0) {
     throw new HoldoutOpenError(`事前登録に次の条件が書かれていません: ${missing.join(" / ")}`);
   }
 }
 
 /** 合否。補正後 t が閾値以上、かつ Net 平均が正。 */
+function assertMinClusters(value: number): void {
+  if (!Number.isSafeInteger(value) || value < 2) {
+    throw new HoldoutOpenError(`minClusters は 2 以上の整数で指定してください: ${value}`);
+  }
+}
+
+/**
+ * 合否。補正後 t が閾値以上、Net 平均が正、クラスタが最小数以上。
+ * クラスタが少ないと補正後 t は意味を持たない（2クラスタで |t| = 396 が出た）。
+ */
 export function judgeConfirmation(input: {
   clusteredTStat: number | null;
   meanNetAlphaBps: number;
   executedCount: number;
+  clusterCount: number | null;
   minT: number;
+  minClusters: number;
 }): { result: "pass" | "fail"; reason: string } {
   if (!Number.isFinite(input.minT) || input.minT <= 0) {
     throw new HoldoutOpenError(`minT は正の数で指定してください: ${input.minT}`);
   }
+  assertMinClusters(input.minClusters);
   if (input.executedCount === 0 || input.clusteredTStat === null) {
     return { result: "fail", reason: "約定が無い、または t を計算できない" };
+  }
+  if ((input.clusterCount ?? 0) < input.minClusters) {
+    return { result: "fail", reason: `標本不足: クラスタ ${input.clusterCount ?? 0} < ${input.minClusters}` };
   }
   const tOk = input.clusteredTStat >= input.minT;
   const netOk = input.meanNetAlphaBps > 0;
   const reason = `t=${input.clusteredTStat.toFixed(4)}（閾値 ${input.minT}）/ Net ${input.meanNetAlphaBps.toFixed(1)}bps`;
   return { result: tOk && netOk ? "pass" : "fail", reason };
+}
+
+/**
+ * 両側の判定（イベントスタディの初回測定用）。|t| が閾値以上なら「向きのある反応がある」。
+ * 向きは t の符号で返す。**売買の合否ではない。**
+ */
+export function judgeEventStudy(input: {
+  clusteredTStat: number | null;
+  count: number;
+  clusterCount: number | null;
+  minAbsT: number;
+  minClusters: number;
+}): { result: "pass" | "fail"; direction: "positive" | "negative" | "none"; reason: string } {
+  if (!Number.isFinite(input.minAbsT) || input.minAbsT <= 0) {
+    throw new HoldoutOpenError(`minT は正の数で指定してください: ${input.minAbsT}`);
+  }
+  assertMinClusters(input.minClusters);
+  if (input.count === 0 || input.clusteredTStat === null) {
+    return { result: "fail", direction: "none", reason: "観測が無い、または t を計算できない" };
+  }
+  if ((input.clusterCount ?? 0) < input.minClusters) {
+    return {
+      result: "fail",
+      direction: "none",
+      reason: `標本不足: クラスタ ${input.clusterCount ?? 0} < ${input.minClusters}`,
+    };
+  }
+  const t = input.clusteredTStat;
+  const passed = Math.abs(t) >= input.minAbsT;
+  return {
+    result: passed ? "pass" : "fail",
+    direction: passed ? (t > 0 ? "positive" : "negative") : "none",
+    reason: `|t|=${Math.abs(t).toFixed(4)}（閾値 ${input.minAbsT}・両側）/ 符号 ${t >= 0 ? "+" : "-"}`,
+  };
 }
 
 export function buildAccessEntry(input: {
@@ -146,7 +203,8 @@ export function buildAccessEntry(input: {
   openedAt: string;
   actor: string;
   result: "pass" | "fail";
-  netAlphaBps: number;
+  /** コスト後の平均。イベントスタディ（コスト前）では渡さない。 */
+  netAlphaBps?: number;
   sampleCount: number;
   notes: string;
 }): HoldoutAccessEntry {
@@ -163,7 +221,7 @@ export function buildAccessEntry(input: {
     actor: input.actor,
     purpose: "production_gate",
     result: input.result,
-    netAlphaBps: input.netAlphaBps,
+    ...(input.netAlphaBps === undefined ? {} : { netAlphaBps: input.netAlphaBps }),
     sampleCount: input.sampleCount,
     notes: input.notes,
   };

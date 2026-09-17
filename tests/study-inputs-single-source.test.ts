@@ -21,6 +21,8 @@ const PRICE_READING_CLIS = [
   "src/research/cli/edge-study.ts",
   // backtest と holdout:open は backtest-store-run.ts を通す（下で確かめる）。
   "src/research/backtest-store-run.ts",
+  // holdout:open の開示イベントスタディ。
+  "src/research/event-study-store-run.ts",
   "src/research/cli/scan-abnormal-moves.ts",
   "src/research/cli/suggest-event-labels.ts",
   "src/research/cli/edinet-event-study.ts",

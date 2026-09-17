@@ -8,6 +8,8 @@
 //   2. --execute で1回だけ実行し、スキーマに合う記録を1行残す
 //   3. 同じ Edge は2回目を拒否する
 //   4. 事前登録が変更中なら拒否する
+//   5. 開示イベントスタディ（kind = disclosure_event_study）も同じ入口で1回だけ走り、
+//      続報・重複・価格なし・決算日を落として、コスト前の記録を残す
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -50,14 +52,20 @@ function git(args: string[]): void {
   assert.equal(result.status, 0, `git ${args.join(" ")}: ${result.stderr}`);
 }
 
-function runCli(extra: string[]): { status: number | null; stdout: string; stderr: string } {
+function runCli(
+  extra: string[],
+  target: { bundle: string; prereg: string; tradingDays: number } = {
+    bundle: "research/studies/short.json", prereg: "docs/prereg.md", tradingDays: 40,
+  },
+): { status: number | null; stdout: string; stderr: string } {
   const result = spawnSync(process.execPath, [
     "--import", "tsx/esm", CLI,
-    "--bundle=research/studies/short.json",
-    "--prereg=docs/prereg.md",
+    `--bundle=${target.bundle}`,
+    `--prereg=${target.prereg}`,
     "--from=2025-08-01",
-    "--trading-days=40",
+    `--trading-days=${target.tradingDays}`,
     "--min-t=1.96",
+    "--min-clusters=2",
     "--actor=test",
     ...extra,
   ], { cwd: dir, encoding: "utf-8" });
@@ -69,13 +77,15 @@ try {
   for (const sub of ["prices/jquants-free-daily", "fins/jquants-free-daily", "master/jquants-free-daily", "holdout", "studies"]) {
     mkdirSync(join(dir, "research", sub), { recursive: true });
   }
+  mkdirSync(join(dir, "data/disclosures"), { recursive: true });
   mkdirSync(join(dir, "docs"), { recursive: true });
   // スキーマの読み込みはリンクを受け付けない（standalone regular file のみ）。複製する。
   cpSync(join(REPO, "research/schemas"), join(dir, "research/schemas"), { recursive: true });
   symlinkSync(join(REPO, "node_modules"), join(dir, "node_modules"));
 
   const dates = weekdays("2025-01-06", "2025-10-31");
-  const codes = Array.from({ length: 110 }, (_, index) => String(1001 + index));
+  // 実データと同じ5桁（TDnet の4桁コードは末尾0を補って突き合わせる）。
+  const codes = Array.from({ length: 110 }, (_, index) => `${1001 + index}0`);
   // 確認期間（2025-08-01 以降）に 10 銘柄が個別に急落し、その後も下げる。
   const confirmDates = dates.filter((date) => date >= "2025-08-01");
   const crashDayByCode = new Map(codes.slice(0, 10).map((code, index) => [code, confirmDates[3 + index * 3]!]));
@@ -117,17 +127,17 @@ try {
 
   writeFileSync(join(dir, "research/fins/jquants-free-daily/2025-01-06.jsonl"), `${JSON.stringify(toFinsDisclosureRecord({
     queryDate: "2025-01-06",
-    raw: { DiscDate: "2025-01-06", DiscTime: "15:30:00", Code: "1110", DiscNo: "1", DocType: "3QFinancialStatements_Consolidated_JP" },
+    raw: { DiscDate: "2025-01-06", DiscTime: "15:30:00", Code: "11100", DiscNo: "1", DocType: "3QFinancialStatements_Consolidated_JP" },
     retrievedAt: "2025-04-01T00:00:00.000Z",
     ingestionRunId: "synthetic",
   }))}\n`);
 
-  // 1001 だけ信用銘柄（売れない）。
+  // 10010 だけ信用銘柄（売れない）。
   writeFileSync(join(dir, "research/master/jquants-free-daily/2025-01-06.jsonl"), `${codes.map((code) => JSON.stringify(toEquityMasterRecord({
     queryDate: "2025-01-06",
     raw: {
       Date: "2025-01-06", Code: code, CoName: `会社${code}`, S17: "1", S33: "3050", S33Nm: "食料品",
-      ScaleCat: "TOPIX Small 1", Mkt: "0111", Mrgn: code === "1001" ? "1" : "2",
+      ScaleCat: "TOPIX Small 1", Mkt: "0111", Mrgn: code === "10010" ? "1" : "2",
     },
     retrievedAt: "2025-04-01T00:00:00.000Z",
     ingestionRunId: "synthetic",
@@ -164,9 +174,63 @@ try {
   }, null, 2));
 
   writeFileSync(join(dir, "docs/prereg.md"),
-    "bundle: `research/studies/short.json`\n確認: 2025-08-01 以降の 40 営業日で1回だけ\n");
+    "bundle: `research/studies/short.json`\n確認: 2025-08-01 以降の 40 営業日で1回だけ。t ≥ 1.96、最小クラスタ 2\n");
+
+  // --- 開示イベントスタディの材料 -------------------------------------------
+  const crashDay = (index: number) => crashDayByCode.get(codes[index]!)!;
+  const previousTradingDay = (date: string) => dates[dates.indexOf(date) - 1]!;
+  const tdnet = (date: string, time: string, code4: string, title: string) => JSON.stringify({
+    schemaVersion: 1, observationDate: date, status: "published", code: code4, sourceCode: `${code4}0`,
+    companyName: `会社${code4}`, title, publishedAt: `${date}T${time}+09:00`,
+    url: "https://www.release.tdnet.info/inbs/synthetic.pdf", retrievedAt: "2025-09-01T00:00:00.000Z", contentHash: "x",
+  });
+  const disclosureRows = [
+    tdnet(crashDay(1), "12:00:00", "1002", "当社における不適切な会計処理に関するお知らせ"),
+    tdnet(dates[dates.indexOf(crashDay(1)) + 7]!, "12:00:00", "1002", "第三者委員会設置のお知らせ"), // 重複
+    tdnet(crashDay(2), "12:00:00", "1003", "不正アクセスに関するお知らせ"), // 決算日と重なる
+    tdnet(crashDay(3), "12:00:00", "1004", "不正アクセスに関するお知らせ（第２報）"), // 続報
+    tdnet(previousTradingDay(crashDay(4)), "17:00:00", "1005", "調査委員会設置に関するお知らせ"), // 引け後 → 翌日
+    tdnet(crashDay(0), "12:00:00", "9999", "不適切な取引について"), // 価格なし
+    tdnet(crashDay(0), "12:00:00", "1006", "自己株式の取得に関するお知らせ"), // キーワードなし
+  ];
+  const disclosureByDate = new Map<string, string[]>();
+  for (const line of disclosureRows) {
+    const date = JSON.parse(line).observationDate as string;
+    disclosureByDate.set(date, [...(disclosureByDate.get(date) ?? []), line]);
+  }
+  for (const [date, lines] of disclosureByDate) {
+    writeFileSync(join(dir, "data/disclosures", `${date}.jsonl`), `${lines.join("\n")}\n`);
+  }
+  // 10030 は同じ日の昼に決算を出している（決算日として除外される）。
+  writeFileSync(join(dir, "research/fins/jquants-free-daily", `${crashDay(2)}.jsonl`), `${JSON.stringify(toFinsDisclosureRecord({
+    queryDate: crashDay(2),
+    raw: { DiscDate: crashDay(2), DiscTime: "12:30:00", Code: "10030", DiscNo: "2", DocType: "1QFinancialStatements_Consolidated_JP" },
+    retrievedAt: "2025-09-01T00:00:00.000Z",
+    ingestionRunId: "synthetic",
+  }))}\n`);
+  writeFileSync(join(dir, "research/studies/misconduct.json"), JSON.stringify({
+    kind: "disclosure_event_study",
+    schemaVersion: 1,
+    edgeId: "synthetic-misconduct",
+    specId: "synthetic-misconduct-v1",
+    population: {
+      source: "tdnet_archive",
+      eventFrom: "2025-08-01",
+      eventTo: "2025-08-29",
+      keywords: ["第三者委員会", "調査委員会", "不正アクセス", "不適切"],
+      followUpMarkers: ["報告書", "第２報", "経過"],
+      dedupeCalendarDays: 120,
+    },
+    minAverageTurnoverJpy: 100_000_000,
+    excludeKnownEarnings: true,
+    horizons: [1, 5, 20],
+    primaryHorizon: 5,
+    twoSided: true,
+  }, null, 2));
+  writeFileSync(join(dir, "docs/prereg-misconduct.md"),
+    "bundle: `research/studies/misconduct.json`\n確認: 2025-08-01 以降の 45 営業日で1回だけ。|t| ≥ 1.96、最小クラスタ 2\n");
   git(["init", "-q"]);
-  git(["add", "docs/prereg.md"]);
+  git(["add", "docs/prereg.md", "docs/prereg-misconduct.md"]);
   git(["commit", "-q", "-m", "prereg"]);
 
   const accessLogPath = join(dir, "research/holdout/access_log.jsonl");
@@ -181,7 +245,7 @@ try {
   // 2. 1回だけ実行
   const run = runCli(["--execute"]);
   assert.equal(run.status, 0, `${run.stdout}\n${run.stderr}`);
-  assert.match(run.stdout, /貸借  : シグナル \d+ → \d+（貸借でない 1 \/ 区分不明 0）/, "信用銘柄 1001 は売らない");
+  assert.match(run.stdout, /貸借  : シグナル \d+ → \d+（貸借でない 1 \/ 区分不明 0）/, "信用銘柄 10010 は売らない");
   const lines = readFileSync(accessLogPath, "utf-8").trim().split("\n");
   assert.equal(lines.length, 1, "封印の窓1つにつき1行");
   const entry = JSON.parse(lines[0]!);
@@ -203,6 +267,35 @@ try {
   assert.notEqual(again.status, 0);
   assert.match(again.stdout + again.stderr, /開封済み/);
   assert.equal(readFileSync(accessLogPath, "utf-8").trim().split("\n").length, 1, "記録は増えない");
+
+  // 5. 開示イベントスタディ
+  const eventTarget = { bundle: "research/studies/misconduct.json", prereg: "docs/prereg-misconduct.md", tradingDays: 45 };
+  const eventPlan = runCli([], eventTarget);
+  assert.equal(eventPlan.status, 0, eventPlan.stderr);
+  assert.match(eventPlan.stdout, /イベントスタディ・両側・主要 D\+5/);
+  assert.match(eventPlan.stdout, /計画だけ表示しました/);
+  const eventRun = runCli(["--execute"], eventTarget);
+  assert.equal(eventRun.status, 0, `${eventRun.stdout}\n${eventRun.stderr}`);
+  assert.match(eventRun.stdout, /母集団: 開示 7 → イベント 4（.*no_keyword=1.*follow_up=1.*duplicate_within_window=1/);
+  assert.match(eventRun.stdout, /測定  : 2件（価格なし 1 \/ 反応日に足なし 0 \/ 売買代金不足 0 \/ 決算日 1）/);
+  assert.match(eventRun.stdout, /売買の合否ではない/);
+  const eventLines = readFileSync(accessLogPath, "utf-8").trim().split("\n");
+  assert.equal(eventLines.length, 2, "別の Edge なので2行目として記録される");
+  const eventEntry = JSON.parse(eventLines[1]!);
+  assert.deepEqual(validate(eventEntry, loadSchema("holdout-access")), []);
+  assert.equal(eventEntry.edgeId, "synthetic-misconduct");
+  assert.equal("netAlphaBps" in eventEntry, false, "コスト前なので Net を名乗らない");
+  assert.equal(eventEntry.sampleCount, 2);
+  const eventNotes = JSON.parse(eventEntry.notes);
+  assert.equal(eventNotes.kind, "disclosure_event_study");
+  assert.equal(eventNotes.costs, "not_deducted");
+  assert.equal(eventNotes.eventCount, 4);
+  assert.equal(eventNotes.measurementRejected.known_earnings, 1);
+  assert.ok(eventNotes.placebo.subjectCount > 0, "零点も記録する");
+  assert.deepEqual(eventNotes.horizons.map((row: { horizon: number }) => row.horizon), [1, 5, 20]);
+  const eventAgain = runCli(["--execute"], eventTarget);
+  assert.notEqual(eventAgain.status, 0);
+  assert.match(eventAgain.stdout + eventAgain.stderr, /開封済み/);
 
   // 4. 事前登録が変更中なら拒否（計画の表示でも）
   writeFileSync(join(dir, "docs/prereg.md"), "書き換え中\n");
