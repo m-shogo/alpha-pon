@@ -63,6 +63,8 @@
 ## 判定
 
 - **D+20 のクラスタ補正後 t の絶対値が 1.96 以上**なら「向きのある反応がある」（試行1）
+- ただし**最小クラスタ 20**。反応日が 20 日に満たなければ、t が大きくても標本不足として
+  「反応なし」で記録する（2 クラスタから |t| = 396 が出た。合成データの試験）
 - 向きは t の符号で記録する。どちらの向きでも、**売買の Edge とは呼ばない**。
   売買で使うなら、向きと保有期間を事前登録し、この期間より後のデータで別に確かめる
 - D+1 / D+5 / D+60 は参考として記録する（判定には使わない）
@@ -79,7 +81,7 @@
 ```
 pnpm research:holdout:open --bundle=research/studies/misconduct-disclosure-event-study.json \
   --prereg=docs/research/preregistrations/2026-09-17-misconduct-disclosure.md \
-  --from=2026-08-03 --trading-days=185 --min-t=1.96 --actor=<名前> --execute
+  --from=2026-08-03 --trading-days=185 --min-t=1.96 --min-clusters=20 --actor=<名前> --execute
 ```
 
 実行の道具（イベントスタディの経路）は、この登録のあとに作る。
@@ -91,3 +93,8 @@ pnpm research:holdout:open --bundle=research/studies/misconduct-disclosure-event
 不祥事で急落した銘柄は、急落売りの標本の一部になりうる。
 **どちらの実行も時期と条件が固定で、結果を見て変えられない**ので、
 片方の結果がもう片方の判断を変える余地は無い。
+
+## 変更履歴
+
+- **2026-09-17（この期間の価格を誰も見ていない時点）**: 判定に「最小クラスタ 20」を加えた（理由は上）。
+  見込みは初回開示で約30件なので、20 に届かない可能性がある。届かなければその事実を記録する。
