@@ -19,10 +19,20 @@ import { resolve } from "node:path";
 /** 価格ストアから材料を組む CLI。ここに挙げたものは共通ローダーを通ること。 */
 const PRICE_READING_CLIS = [
   "src/research/cli/edge-study.ts",
-  "src/research/cli/backtest.ts",
+  // backtest と holdout:open は backtest-store-run.ts を通す（下で確かめる）。
+  "src/research/backtest-store-run.ts",
   "src/research/cli/scan-abnormal-moves.ts",
   "src/research/cli/suggest-event-labels.ts",
   "src/research/cli/edinet-event-study.ts",
+] as const;
+
+/**
+ * backtest の入力を保存庫から作る CLI。研究期間（backtest）と確認期間（holdout:open）が
+ * 同じ作り方をしないと、確認で「研究と違うものを測る」ことになる。
+ */
+const STORE_RUN_CLIS = [
+  "src/research/cli/backtest.ts",
+  "src/research/cli/holdout-open.ts",
 ] as const;
 
 /**
@@ -52,8 +62,20 @@ function testEveryPriceReadingCliUsesTheSharedLoader(): void {
   }
 }
 
+function testBacktestClisShareTheStoreRun(): void {
+  const called = /\bbuildFromStore\(/;
+  for (const path of STORE_RUN_CLIS) {
+    const source = read(path);
+    assert.ok(called.test(source), `${path} が backtest-store-run.ts の buildFromStore を使っていない`);
+    assert.ok(
+      !/\bloadStudyInputsFromStore\(/.test(source),
+      `${path} が材料を自分で組んでいる。backtest-store-run.ts を通すこと`,
+    );
+  }
+}
+
 function testCliDoesNotBuildInputsItself(): void {
-  for (const path of PRICE_READING_CLIS) {
+  for (const path of [...PRICE_READING_CLIS, ...STORE_RUN_CLIS]) {
     const source = read(path);
     for (const name of LOADER_ONLY) {
       assert.ok(
@@ -78,6 +100,7 @@ function testSharedLoaderActuallyBuildsThem(): void {
 }
 
 testEveryPriceReadingCliUsesTheSharedLoader();
+testBacktestClisShareTheStoreRun();
 testCliDoesNotBuildInputsItself();
 testSharedLoaderActuallyBuildsThem();
 

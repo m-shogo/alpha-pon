@@ -25,6 +25,8 @@ const CLI_DIR = "src/research/cli";
 const READS_PRICE_STORE = [
   "loadStudyInputsFromStore",
   "loadBacktestSeriesAsOf",
+  // backtest-store-run.ts を通す CLI。ここに無いと、共通化した途端に検査から外れる。
+  "buildFromStore",
 ];
 
 /** 封印を効かせていることを示す呼び出し。 */
@@ -34,7 +36,11 @@ const HONORS_HOLDOUT = [
 ];
 
 /** 封印を要求しないもの。理由を必ず書く。 */
-const EXEMPT: Record<string, string> = {};
+const EXEMPT: Record<string, string> = {
+  "src/research/cli/holdout-open.ts":
+    "封印を開ける正規の入口。事前登録のコミット・1 Edge 1回・取り込みの穴・窓との重なりを確かめ、"
+    + "access_log に記録してから確認期間を読む（tests/research/holdout-open-cli.test.ts）",
+};
 
 const files = readdirSync(CLI_DIR)
   .filter((name) => name.endsWith(".ts"))
@@ -44,13 +50,18 @@ assert.ok(files.length > 0, `${CLI_DIR} に CLI が1本も無い。走査経路�
 const problems: string[] = [];
 let checked = 0;
 
+/** 部分一致だと `resolveResearchToX` のような別名を通してしまう（変異テストですり抜けた）。 */
+function calls(text: string, name: string): boolean {
+  return new RegExp(`\\b${name}\\b`).test(text);
+}
+
 for (const name of files) {
   const path = join(CLI_DIR, name);
   const text = readFileSync(path, "utf-8");
-  if (!READS_PRICE_STORE.some((call) => text.includes(call))) continue;
+  if (!READS_PRICE_STORE.some((call) => calls(text, call))) continue;
   checked += 1;
   if (path in EXEMPT) continue;
-  if (HONORS_HOLDOUT.some((call) => text.includes(call))) continue;
+  if (HONORS_HOLDOUT.some((call) => calls(text, call))) continue;
   problems.push(
     `封印を尊重していない: ${path}\n`
     + `  価格ストアを読むなら ${HONORS_HOLDOUT.join(" か ")} を通すこと。`
