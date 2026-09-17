@@ -75,7 +75,8 @@ export type SkipReason =
   | "missing_resolution_date"
   | "resolution_before_entry"
   | "benchmark_missing_entry_bar"
-  | "benchmark_missing_exit_bar";
+  | "benchmark_missing_exit_bar"
+  | "corporate_action_in_holding_window";
 
 export interface TradeResult {
   signalId: string;
@@ -111,6 +112,23 @@ export interface BacktestReport {
   trades: TradeResult[];
   gross: AggregateStats;
   net: AggregateStats;
+  /**
+   * 保有期間中の株式分割・併合を確かめたか。
+   * false のときは、価格が無調整なら損益に分割の段差が混ざっている可能性がある。
+   */
+  corporateActionsChecked: boolean;
+}
+
+export interface RunBacktestOptions {
+  /**
+   * code -> 株式分割・併合の効力発生日（無調整価格が段差を持つ日）。
+   *
+   * 価格は無調整で持っている。保有中に 1:2 分割があると、何も起きていなくても
+   * 損益が -50% になる。実測（2026-09-17）で急落買いの2件が -63% / -51% に
+   * なっており、平均を -127.5bps から -172.2bps へ押し下げていた。
+   * 渡されたら、エントリーの翌日から決済日までに効力発生日がある取引を落とす。
+   */
+  corporateActionDates?: ReadonlyMap<string, ReadonlySet<string>>;
 }
 
 const ADTV_LOOKBACK_BARS = 20;
@@ -284,10 +302,33 @@ function resolveExit(
   return { index: periodExitIndex, price: bars[periodExitIndex].close, stopped: false };
 }
 
+function entryBenchmarkKind(spec: BacktestSpec): BenchmarkPriceKind {
+  if (spec.entry.mode === "same_close") return "close";
+  if (spec.entry.mode === "vwap_next_day") return "typical";
+  return "open";
+}
+
+/**
+ * 銘柄と**同じ時点**の指数の値。
+ *
+ * 以前はエントリーを常に指数の終値で測っていた。next_open で寄付に買うと、
+ * 銘柄はエントリー日の日中の動きを含むのに指数は含まず、その差が
+ * 超過リターンに混ざる。実測（2026-09-17）で1件平均 -16〜+7bps、最大 273bps。
+ */
+type BenchmarkPriceKind = "open" | "close" | "typical";
+
+function benchmarkPriceOf(bar: PriceBar, kind: BenchmarkPriceKind): number {
+  if (kind === "open") return bar.open;
+  if (kind === "typical") return (bar.high + bar.low + bar.close) / 3;
+  return bar.close;
+}
+
 function benchmarkReturnBpsFor(
   benchmark: PriceSeries | undefined,
   entryDate: string,
   exitDate: string,
+  entryKind: BenchmarkPriceKind,
+  exitKind: BenchmarkPriceKind,
 ): number | "benchmark_missing_entry_bar" | "benchmark_missing_exit_bar" | undefined {
   if (!benchmark) return undefined;
   const entryIndex = benchmark.bars.findIndex((bar) => bar.date === entryDate);
@@ -295,8 +336,9 @@ function benchmarkReturnBpsFor(
   const exitIndex = benchmark.bars.findIndex((bar) => bar.date === exitDate);
   if (exitIndex < 0) return "benchmark_missing_exit_bar";
   // ベンチマークは常にロング換算。ショートの超過は「銘柄の逆行 − 指数の逆行」で測る。
-  const raw = (benchmark.bars[exitIndex].close - benchmark.bars[entryIndex].close) / benchmark.bars[entryIndex].close;
-  return raw * 10_000;
+  const entryPrice = benchmarkPriceOf(benchmark.bars[entryIndex], entryKind);
+  const exitPrice = benchmarkPriceOf(benchmark.bars[exitIndex], exitKind);
+  return ((exitPrice - entryPrice) / entryPrice) * 10_000;
 }
 
 /**
@@ -308,6 +350,7 @@ export function runBacktest(
   signals: BacktestSignal[],
   prices: Map<string, PriceSeries>,
   benchmark?: PriceSeries,
+  options: RunBacktestOptions = {},
 ): BacktestReport {
   assertBacktestSpecConformance(spec);
   assertBacktestInputs(spec, signals, prices, benchmark);
@@ -373,10 +416,24 @@ export function runBacktest(
 
     const entryDate = series.bars[entry.index].date;
     const exitDate = series.bars[exit.index].date;
+
+    // エントリーの寄付は効力発生日なら既に新基準なので、エントリー当日は含めない。
+    // 板が立たなかった日に効力が発生していても落とせるよう、足ではなく日付で比べる。
+    const actionDates = options.corporateActionDates?.get(signal.code);
+    if (actionDates && [...actionDates].some((date) => date > entryDate && date <= exitDate)) {
+      skip("corporate_action_in_holding_window");
+      continue;
+    }
     const holdingDays = epochDay(exitDate, "backtest exitDate") - epochDay(entryDate, "backtest entryDate");
 
     const grossReturnBps = returnBps(entry.price, exit.price, spec.side);
-    const rawBenchmarkBps = benchmarkReturnBpsFor(benchmark, entryDate, exitDate);
+    // 決済: 期間満了は引け。ストップが寄付で約定したら寄付。日中のストップ水準の
+    // 時刻の指数は分からないので引けで近似する（ストップを使う bundle は現状無い）。
+    const exitKind: BenchmarkPriceKind =
+      exit.stopped && exit.price === series.bars[exit.index].open ? "open" : "close";
+    const rawBenchmarkBps = benchmarkReturnBpsFor(
+      benchmark, entryDate, exitDate, entryBenchmarkKind(spec), exitKind,
+    );
     if (rawBenchmarkBps === "benchmark_missing_entry_bar" || rawBenchmarkBps === "benchmark_missing_exit_bar") {
       skip(rawBenchmarkBps);
       continue;
@@ -432,5 +489,6 @@ export function runBacktest(
       executed.map((trade) => trade.netAlphaBps ?? 0),
       executed.map((trade) => trade.entryDate ?? ""),
     ),
+    corporateActionsChecked: options.corporateActionDates !== undefined,
   };
 }

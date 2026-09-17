@@ -178,6 +178,46 @@ function testSkipReasonsAreCounted() {
   assert.equal(result.observations.length + result.skipped.length, result.subjectCount);
 }
 
+function testSplitInsideHorizonIsNotMeasured() {
+  // 価格は無調整。イベント日 index2（01-07）、エントリー index3（01-08）。
+  // 01-13（index5）に 1:2 分割 → 無調整価格が半分になる。
+  const stock = series("1111", [1000, 1000, 1000, 1000, 1000, 500, 500, 500, 500, 500]);
+  const unchecked = runEventStudy([subject()], new Map([["1111", stock]]), FLAT_BENCHMARK, params({ horizons: [1, 5] }));
+  assert.equal(unchecked.corporateActionsChecked, false);
+  const d5 = unchecked.observations[0]!.horizons.find((one) => one.horizonBars === 5)!;
+  assert.ok(d5.abnormalReturnBps < -4_900, "台帳なしでは段差が異常リターンに入る（欠陥の形）");
+
+  const checked = runEventStudy([subject()], new Map([["1111", stock]]), FLAT_BENCHMARK, params({
+    horizons: [1, 5],
+    corporateActionDates: new Map([["1111", new Set(["2026-01-13"])]]),
+  }));
+  assert.equal(checked.corporateActionsChecked, true);
+  const observation = checked.observations[0]!;
+  assert.deepEqual(observation.horizons.map((one) => one.horizonBars), [1], "D+1（01-09）は分割の前なので測る");
+  assert.deepEqual(observation.skippedHorizons, [{ horizonBars: 5, reason: "corporate_action_in_horizon" }]);
+
+  // エントリー当日（01-08）の効力発生も落とす。イベント前終値（旧基準）との回復判定が段差をまたぐ。
+  const onEntry = runEventStudy([subject()], new Map([["1111", stock]]), FLAT_BENCHMARK, params({
+    horizons: [1],
+    corporateActionDates: new Map([["1111", new Set(["2026-01-08"])]]),
+  }));
+  assert.equal(onEntry.observations[0]!.horizons.length, 0, "エントリー当日の効力発生は回復判定を壊す");
+
+  // イベント日そのもの（01-07）は検出側の責任。ここでは区間に含めない。
+  const onEvent = runEventStudy([subject()], new Map([["1111", stock]]), FLAT_BENCHMARK, params({
+    horizons: [1],
+    corporateActionDates: new Map([["1111", new Set(["2026-01-07"])]]),
+  }));
+  assert.equal(onEvent.observations[0]!.horizons.length, 1);
+
+  // 板の無い日（01-12 祝日）でも日付で比べて落とす。
+  const noBar = runEventStudy([subject()], new Map([["1111", stock]]), FLAT_BENCHMARK, params({
+    horizons: [5],
+    corporateActionDates: new Map([["1111", new Set(["2026-01-12"])]]),
+  }));
+  assert.equal(noBar.observations[0]!.skippedHorizons[0]?.reason, "corporate_action_in_horizon");
+}
+
 function testInvalidParamsFailClosed() {
   const stock = series("1111", [1000, 1000, 900, 910, 920, 930, 940, 950, 960, 970]);
   const securities = new Map([["1111", stock]]);
@@ -268,6 +308,7 @@ testMissingHorizonIsReportedNotDropped();
 testExcursionsAndReclaim();
 testIntradaySpikeIsNotAReclaim();
 testSkipReasonsAreCounted();
+testSplitInsideHorizonIsNotMeasured();
 testInvalidParamsFailClosed();
 testOutputIsDeterministic();
 testClusteredDifferenceUsesEventDayWeights();
