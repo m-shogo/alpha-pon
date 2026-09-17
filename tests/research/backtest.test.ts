@@ -521,6 +521,29 @@ function testEntryDayVolumeIsNotUsedForLiquidity() {
   console.log("research/backtest: 流動性は前日までで判定 OK");
 }
 
+function testMinHistoryBarsRequiresAFullLiquidityWindow() {
+  // 上場直後は 20本の窓がそろわない。そろわない窓の平均で判定すると、市場指数
+  // （構成銘柄に 20本を求める）と取引できる集合がずれる（実測で 20日 約 +5bps）。
+  const bars = ["2024-01-04", "2024-01-05", "2024-01-09", "2024-01-10"].map((date) => ({
+    date, open: 1000, high: 1000, low: 1000, close: 1000, volume: 10_000_000,
+  }));
+  const prices = new Map([["9001", { code: "9001", bars }]]);
+  const signal = [{ id: "s1", code: "9001", observedAt: "2024-01-05T16:00:00+09:00" }]; // エントリーは index 2
+  const base: BacktestSpec = { ...BASE_SPEC, id: "min-history", exit: { mode: "holding_period", holdingPeriodDays: 1 } };
+  const loose = runBacktest(base, signal, prices);
+  assert.equal(loose.executedCount, 1, "省略時はそろっていない窓でも判定する（従来どおり）");
+  const enough = runBacktest({ ...base, liquidity: { ...base.liquidity, minHistoryBars: 2 } }, signal, prices);
+  assert.equal(enough.executedCount, 1, "前に2本あれば通る");
+  const strict = runBacktest({ ...base, liquidity: { ...base.liquidity, minHistoryBars: 3 } }, signal, prices);
+  assert.equal(strict.executedCount, 0);
+  assert.equal(strict.skipped[0]?.reason, "liquidity_history_too_short");
+  assert.throws(
+    () => runBacktest({ ...base, liquidity: { ...base.liquidity, minHistoryBars: 0 } }, signal, prices),
+    /minHistoryBars/,
+  );
+  console.log("research/backtest: 流動性の窓の本数 OK");
+}
+
 function testSignalOrderingUsesActualInstant() {
   const prices = new Map([["9001", series("9001", [1000, 1010, 1020, 1030, 1040])]]);
   const report = runBacktest(BASE_SPEC, [
@@ -639,6 +662,7 @@ testSpecConformanceFailsClosed();
 testBenchmarkProvenanceFailsClosed();
 testBenchmarkIsMeasuredFromTheSameInstantAsTheFill();
 testEntryDayVolumeIsNotUsedForLiquidity();
+testMinHistoryBarsRequiresAFullLiquidityWindow();
 testSignalOrderingUsesActualInstant();
 testAggregateAndFalseDiscoveryGuard();
 testFixtureBundleIsReproducible();

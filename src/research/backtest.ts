@@ -46,6 +46,13 @@ export interface BacktestSpec {
     participationLimitPct: number;
     minAdtvJpy?: number;
     /**
+     * エントリー前に必要な足の本数。ADTV の窓（20本）がそろわない銘柄（上場直後など）を落とす。
+     * 省略すると、そろっていない窓の平均でも判定する。
+     * 市場指数は構成銘柄に20本を求めるので、研究の bundle では 20 にする。
+     * 実測（2026-09-17）で、そろわない窓を許すと無作為エントリーの超過が 20日で約 +5bps ずれた。
+     */
+    minHistoryBars?: number;
+    /**
      * 売買単位。東証は 2018 年に 100 株へ統一済みなので既定 100。
      * 端数で建てられない制約を無視すると、実際には組めない結果が出る。
      */
@@ -71,6 +78,7 @@ export type SkipReason =
   | "pit_violation_same_close"
   | "liquidity_participation_exceeded"
   | "liquidity_adtv_too_low"
+  | "liquidity_history_too_short"
   | "below_minimum_lot"
   | "missing_resolution_date"
   | "resolution_before_entry"
@@ -393,6 +401,10 @@ export function runBacktest(
       continue;
     }
 
+    if (spec.liquidity.minHistoryBars !== undefined && entry.index < spec.liquidity.minHistoryBars) {
+      skip("liquidity_history_too_short");
+      continue;
+    }
     const turnover = averageTurnoverJpyBefore(series.bars, entry.index);
     if (spec.liquidity.minAdtvJpy !== undefined && turnover < spec.liquidity.minAdtvJpy) {
       skip("liquidity_adtv_too_low");
