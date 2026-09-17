@@ -23,6 +23,7 @@ import {
   disclosureNumberOf,
   docTypeOf,
   FINS_INGEST_LEDGER_NAME,
+  FINS_RAW_KEYS_READ,
   fiscalYearEndOf,
   listIngestedFinsDates,
   nextFiscalYearEndOf,
@@ -31,6 +32,25 @@ import {
   readFinsDateRecords,
   toFinsDisclosureRecord,
 } from "../../src/research/providers/jquants-fins-store.js";
+
+// 実データの本決算短信（research/fins/jquants-free-daily/2025-05-14.jsonl）の raw の項目名。
+// 2026-09-17 に写した。取り出し口が読む名前は、必ずこの中に無ければならない。
+const REAL_RAW_KEYS: readonly string[] = [
+  "DiscDate", "DiscTime", "Code", "DiscNo", "DocType", "CurPerType", "CurPerSt", "CurPerEn",
+  "CurFYSt", "CurFYEn", "NxtFYSt", "NxtFYEn", "Sales", "OP", "OdP", "NP",
+  "EPS", "DEPS", "TA", "Eq", "EqAR", "BPS", "CFO", "CFI",
+  "CFF", "CashEq", "Div1Q", "Div2Q", "Div3Q", "DivFY", "DivAnn", "DivUnit",
+  "DivTotalAnn", "PayoutRatioAnn", "FDiv1Q", "FDiv2Q", "FDiv3Q", "FDivFY", "FDivAnn", "FDivUnit",
+  "FDivTotalAnn", "FPayoutRatioAnn", "NxFDiv1Q", "NxFDiv2Q", "NxFDiv3Q", "NxFDivFY", "NxFDivAnn", "NxFDivUnit",
+  "NxFPayoutRatioAnn", "FSales2Q", "FOP2Q", "FOdP2Q", "FNP2Q", "FEPS2Q", "NxFSales2Q", "NxFOP2Q",
+  "NxFOdP2Q", "NxFNp2Q", "NxFEPS2Q", "FSales", "FOP", "FOdP", "FNP", "FEPS",
+  "NxFSales", "NxFOP", "NxFOdP", "NxFNp", "NxFEPS", "MatChgSub", "SigChgInC", "ChgByASRev",
+  "ChgNoASRev", "ChgAcEst", "RetroRst", "ShOutFY", "TrShFY", "AvgSh", "NCSales", "NCOP",
+  "NCOdP", "NCNP", "NCEPS", "NCTA", "NCEq", "NCEqAR", "NCBPS", "FNCSales2Q",
+  "FNCOP2Q", "FNCOdP2Q", "FNCNP2Q", "FNCEPS2Q", "NxFNCSales2Q", "NxFNCOP2Q", "NxFNCOdP2Q", "NxFNCNP2Q",
+  "NxFNCEPS2Q", "FNCSales", "FNCOP", "FNCOdP", "FNCNP", "FNCEPS", "NxFNCSales", "NxFNCOP",
+  "NxFNCOdP", "NxFNCNP", "NxFNCEPS", "ShEq", "NCShEq", "ROE", "NCROE",
+];
 
 const dir = mkdtempSync(join(realpathSync(tmpdir()), "alpha-pon-fins-"));
 const AT = "2026-09-11T09:00:00.000Z";
@@ -207,14 +227,22 @@ try {
   }
 
   function testFiscalYearFieldsReadThroughOneDoor() {
-    const one = record({ CurFYEn: "2025-03-31", NxFYEn: "2026-03-31", NxFOP: "1200000000" });
+    const one = record({ CurFYEn: "2025-03-31", NxtFYEn: "2026-03-31", NxFOP: "1200000000" });
     assert.equal(fiscalYearEndOf(one), "2025-03-31");
     assert.equal(nextFiscalYearEndOf(one), "2026-03-31");
     assert.equal(nextForecastOperatingProfitOf(one), 1_200_000_000);
-    const blank = record({ CurFYEn: "", NxFYEn: "2026/03/31", NxFOP: "" });
+    const blank = record({ CurFYEn: "", NxtFYEn: "2026/03/31", NxFOP: "" });
     assert.equal(fiscalYearEndOf(blank), null, "空は null");
     assert.equal(nextFiscalYearEndOf(blank), null, "形式が違えば null（別の日付に読み替えない）");
     assert.equal(nextForecastOperatingProfitOf(blank), null);
+  }
+
+  function testAccessorsReadOnlyRealKeys() {
+    // 想像した名前（NxFYEn）で読んでいて、実データでは常に空だった（#2122）。
+    const missing = FINS_RAW_KEYS_READ.filter((key) => !REAL_RAW_KEYS.includes(key));
+    assert.deepEqual(missing, [], "取り出し口が実データに無い項目名を読んでいる");
+    const wrongName = record({ NxFYEn: "2026-03-31" });
+    assert.equal(nextFiscalYearEndOf(wrongName), null, "NxFYEn は実データの名前ではない");
   }
 
   function testNonConsolidatedRevisionUsesFncop() {
@@ -251,6 +279,7 @@ try {
 
   testHashIgnoresKeyOrder();
   testFiscalYearFieldsReadThroughOneDoor();
+  testAccessorsReadOnlyRealKeys();
   testNonConsolidatedRevisionUsesFncop();
   testLaterConsolidationSwitchIsRespected();
   testHashCoversEveryStoredField();

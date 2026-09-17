@@ -190,10 +190,25 @@ export function fiscalYearEndOf(record: FinsDisclosureRecord): string | null {
   return isoDateOrNull(record.raw.CurFYEn);
 }
 
-/** `NxFOP` が指す会計年度末（`NxFYEn`）。YYYY-MM-DD でなければ null。 */
+/**
+ * `NxFOP` が指す会計年度末。YYYY-MM-DD でなければ null。
+ *
+ * **項目名は `NxtFYEn`**（予想の `NxFOP` と綴りが違う）。以前は `NxFYEn` を読んでおり、
+ * 実データには無い名前なので常に null になり、本決算の来期予想が基準に一度も
+ * 使われていなかった（#2122。手で検算して見つけた）。
+ */
 export function nextFiscalYearEndOf(record: FinsDisclosureRecord): string | null {
-  return isoDateOrNull(record.raw.NxFYEn);
+  return isoDateOrNull(record.raw.NxtFYEn);
 }
+
+/**
+ * 取り出し口が読む `raw` の項目名。テストで実データの項目一覧と突き合わせる
+ * （想像した名前で書くと、実データでは常に空になって誰も気づかない）。
+ */
+export const FINS_RAW_KEYS_READ = [
+  "DiscDate", "DiscTime", "Code", "DiscNo", "DocType",
+  "CurFYEn", "NxtFYEn", "FOP", "NxFOP", "FNCOP",
+] as const;
 
 const EARN_FORECAST_REVISION = "EarnForecastRevision";
 
