@@ -36,6 +36,10 @@ import {
   positiveDayLimit,
 } from "./trading-calendar.js";
 import { previousForecasts, type ForecastBaseline } from "./forecast-timeline.js";
+import { averageTurnoverJpy } from "./abnormal-return.js";
+
+/** 流動性の判定に使う本数（検出器・指数と同じ）。 */
+const TURNOVER_LOOKBACK_BARS = 20;
 
 /** 反応日の引け。この時刻の情報で当日引けエントリはできない（pit.ts の TSE_CLOSE_JST_MINUTES と一致）。 */
 export const REACTION_OBSERVED_TIME_JST = "15:30:00";
@@ -64,6 +68,7 @@ export const EARNINGS_GAP_REJECT_REASONS = [
   "corporate_action_in_window",
   "forecast_missing",
   "forecast_cut",
+  "below_min_turnover",
 ] as const;
 
 export type EarningsGapRejectReason = (typeof EARNINGS_GAP_REJECT_REASONS)[number];
@@ -122,6 +127,12 @@ export interface EarningsGapParams {
    * 基準となる終値が古いと、ギャップが停止期間の累積変化になってしまう。
    */
   maxPriorGapDays?: number;
+  /**
+   * 反応日を含む直近20本の平均売買代金の下限（円/日）。省略すると判定しない。
+   * backtest はエントリー前日まで（＝同じ20本）で判定するので、backtest からは渡さない。
+   * 走査の一覧を流動銘柄に限るために使う。
+   */
+  minAverageTurnoverJpy?: number;
 }
 
 export interface EarningsGapCandidate {
@@ -233,6 +244,12 @@ function assertParams(params: EarningsGapParams): void {
   }
   positiveDayLimit(params.maxReactionLagDays, DEFAULT_MAX_REACTION_LAG_DAYS, "maxReactionLagDays");
   positiveDayLimit(params.maxPriorGapDays, DEFAULT_MAX_PRIOR_GAP_DAYS, "maxPriorGapDays");
+  if (
+    params.minAverageTurnoverJpy !== undefined
+    && (!Number.isFinite(params.minAverageTurnoverJpy) || params.minAverageTurnoverJpy < 0)
+  ) {
+    throw new Error(`minAverageTurnoverJpy must be a non-negative finite number: ${params.minAverageTurnoverJpy}`);
+  }
 }
 
 /**
@@ -444,6 +461,14 @@ export function generateEarningsGapSignals(
           reject(disclosure, "forecast_cut");
           continue;
         }
+      }
+
+      if (
+        params.minAverageTurnoverJpy !== undefined
+        && averageTurnoverJpy(series, reactionIndex, TURNOVER_LOOKBACK_BARS) < params.minAverageTurnoverJpy
+      ) {
+        reject(disclosure, "below_min_turnover");
+        continue;
       }
 
       const reactionKey = `${code}|${reactionBar.date}`;

@@ -46,6 +46,13 @@ export interface BacktestSpec {
     participationLimitPct: number;
     minAdtvJpy?: number;
     /**
+     * エントリー前に必要な足の本数。ADTV の窓（20本）がそろわない銘柄（上場直後など）を落とす。
+     * 省略すると、そろっていない窓の平均でも判定する。
+     * 市場指数は構成銘柄に20本を求めるので、研究の bundle では 20 にする。
+     * 実測（2026-09-17）で、そろわない窓を許すと無作為エントリーの超過が 20日で約 +5bps ずれた。
+     */
+    minHistoryBars?: number;
+    /**
      * 売買単位。東証は 2018 年に 100 株へ統一済みなので既定 100。
      * 端数で建てられない制約を無視すると、実際には組めない結果が出る。
      */
@@ -71,6 +78,7 @@ export type SkipReason =
   | "pit_violation_same_close"
   | "liquidity_participation_exceeded"
   | "liquidity_adtv_too_low"
+  | "liquidity_history_too_short"
   | "below_minimum_lot"
   | "missing_resolution_date"
   | "resolution_before_entry"
@@ -227,9 +235,16 @@ function returnBps(entry: number, exit: number, side: "long" | "short"): number 
   return (side === "long" ? raw : -raw) * 10_000;
 }
 
-function averageTurnoverJpy(bars: PriceBar[], endIndex: number): number {
-  const start = Math.max(0, endIndex - ADTV_LOOKBACK_BARS + 1);
-  const window = bars.slice(start, endIndex + 1);
+/**
+ * エントリー**前日まで**の平均売買代金。
+ *
+ * 以前はエントリー当日の足を含めていた。寄付で買う時点では当日の出来高は分からない。
+ * 実測（2026-09-17）で無作為エントリーの超過リターンへの影響は 5日で約 1bps と
+ * 小さいが、先読みなので直す。前日が無ければ 0（＝執行しない）。
+ */
+function averageTurnoverJpyBefore(bars: PriceBar[], entryIndex: number): number {
+  const start = Math.max(0, entryIndex - ADTV_LOOKBACK_BARS);
+  const window = bars.slice(start, entryIndex);
   if (window.length === 0) return 0;
   return window.reduce((sum, bar) => sum + bar.close * bar.volume, 0) / window.length;
 }
@@ -386,7 +401,11 @@ export function runBacktest(
       continue;
     }
 
-    const turnover = averageTurnoverJpy(series.bars, entry.index);
+    if (spec.liquidity.minHistoryBars !== undefined && entry.index < spec.liquidity.minHistoryBars) {
+      skip("liquidity_history_too_short");
+      continue;
+    }
+    const turnover = averageTurnoverJpyBefore(series.bars, entry.index);
     if (spec.liquidity.minAdtvJpy !== undefined && turnover < spec.liquidity.minAdtvJpy) {
       skip("liquidity_adtv_too_low");
       continue;

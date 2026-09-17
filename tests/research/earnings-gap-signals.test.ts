@@ -252,6 +252,25 @@ function testSameInstantRevisionIsNotTheBaseline() {
   assert.equal(result.signals.length, 0);
 }
 
+function testTurnoverIsJudgedAtTheReactionDay() {
+  // gapSeries の出来高は 2,000,000 株 × 900〜1000円 ≈ 18〜20億円/日。
+  const disclosures = [
+    disclosure({ disclosedDate: "2026-01-05", forecastOperatingProfit: 100 }),
+    disclosure({ forecastOperatingProfit: 100 }),
+  ];
+  const liquid = generateEarningsGapSignals(disclosures, priceMap(gapSeries()), { ...PARAMS, minAverageTurnoverJpy: 1_000_000_000 });
+  assert.equal(liquid.signals.length, 1);
+  const thin = generateEarningsGapSignals(disclosures, priceMap(gapSeries()), { ...PARAMS, minAverageTurnoverJpy: 5_000_000_000 });
+  assert.equal(thin.signals.length, 0);
+  assert.equal(thin.rejectedCounts.below_min_turnover, 1, "反応日の時点で薄ければ落とす");
+  const unset = generateEarningsGapSignals(disclosures, priceMap(gapSeries()), PARAMS);
+  assert.equal(unset.rejectedCounts.below_min_turnover, 0, "省略したら判定しない（backtest が判定する）");
+  assert.throws(
+    () => generateEarningsGapSignals(disclosures, priceMap(gapSeries()), { ...PARAMS, minAverageTurnoverJpy: -1 }),
+    /non-negative/,
+  );
+}
+
 function testDuplicateDisclosureIsRejected() {
   const disclosures = [
     disclosure({ disclosedDate: "2026-01-05", forecastOperatingProfit: 100 }),
@@ -511,6 +530,7 @@ testFirstQuarterIsComparedWithFullYearGuidance();
 testForecastRevisionMovesBaselineButIsNotASignal();
 testOtherFiscalYearIsNotTheBaseline();
 testSameInstantRevisionIsNotTheBaseline();
+testTurnoverIsJudgedAtTheReactionDay();
 testDuplicateDisclosureIsRejected();
 testDuplicateReactionDateIsRejected();
 testInvalidTimestampIsRejected();

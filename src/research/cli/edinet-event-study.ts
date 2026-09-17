@@ -29,6 +29,7 @@ import {
   listArchivedEdinetDates,
   readArchivedEdinetDocuments,
 } from "../../edinet-document-archive.js";
+import { averageTurnoverJpy } from "../signals/abnormal-return.js";
 import { edinetEvidence, type LabelEvidence } from "../signals/label-evidence.js";
 import {
   buildEdinetReasonEvents,
@@ -50,6 +51,8 @@ import {
 import { fail, parseArgs } from "./common.js";
 
 const DEFAULT_HORIZONS = [1, 5, 20, 60];
+/** 流動性の判定に使う本数（検出器・指数と同じ）。 */
+const TURNOVER_LOOKBACK_BARS = 20;
 
 function bps(value: number): string {
   return `${value >= 0 ? "+" : ""}${value.toFixed(1)}bps`;
@@ -129,13 +132,34 @@ function main(): void {
     .join(" ");
   if (rejects) console.log(`   除外         ${rejects}`);
 
-  // 流動性で絞ったユニバースの外は測れない（板が薄い銘柄の終値は
-  // その日の市場変動を反映しない）。落ちた件数を出す。
-  const tradable = new Set(inputs.prices.map((series) => series.code));
-  const usable: EdinetReasonEvent[] = built.events.filter((one) => tradable.has(one.code));
+  // 板が薄い銘柄の終値はその日の市場変動を反映しないので測らない。
+  // 流動性は**イベントの時点**で判定する（反応日を含む直近20本の平均売買代金。
+  // エントリーは翌営業日の寄付なので、反応日の出来高は判断の時点で分かっている）。
+  // 以前は期間の最後の20営業日で絞っており、先読みだった。
+  const securities = new Map(inputs.prices.map((series) => [series.code, series]));
+  let illiquidAtEvent = 0;
+  let noBarAtEvent = 0;
+  const usable: EdinetReasonEvent[] = built.events.filter((one) => {
+    const series = securities.get(one.code);
+    if (!series) {
+      illiquidAtEvent += 1;
+      return false;
+    }
+    const index = series.bars.findIndex((bar) => bar.date === one.reactionDate);
+    if (index < 0) {
+      noBarAtEvent += 1;
+      return false;
+    }
+    if (averageTurnoverJpy(series, index, TURNOVER_LOOKBACK_BARS) < minTurnoverJpy) {
+      illiquidAtEvent += 1;
+      return false;
+    }
+    return true;
+  });
   console.log(
     `   流動性で残る ${usable.length}件`
-    + `（売買代金${(minTurnoverJpy / 1e8).toFixed(0)}億円/日以上の${inputs.prices.length}銘柄に限る）`,
+    + `（反応日の時点で売買代金${(minTurnoverJpy / 1e8).toFixed(0)}億円/日以上。`
+    + `落ちた ${illiquidAtEvent}件 / 反応日に足が無い ${noBarAtEvent}件）`,
   );
   if (usable.length === 0) fail("測れるイベントが0件です");
 
@@ -146,7 +170,6 @@ function main(): void {
     group: "treatment",
     pairId: one.eventId,
   }));
-  const securities = new Map(inputs.prices.map((series) => [series.code, series]));
   // 価格は無調整。保有区間の分割・併合は段差になるので台帳で落とす。
   const study = runEventStudy(subjects, securities, inputs.benchmark, {
     horizons: DEFAULT_HORIZONS,

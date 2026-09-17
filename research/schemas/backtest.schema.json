@@ -139,6 +139,11 @@
           "type": "number",
           "minimum": 0
         },
+        "minHistoryBars": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "エントリー前に必要な足の本数。ADTV の窓がそろわない銘柄（上場直後など）を executable:false にする。"
+        },
         "lotSize": {
           "type": "integer",
           "minimum": 1,

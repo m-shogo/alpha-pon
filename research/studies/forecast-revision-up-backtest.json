@@ -17,6 +17,7 @@
     "liquidity": {
       "participationLimitPct": 3,
       "minAdtvJpy": 500000000,
+      "minHistoryBars": 20,
       "lotSize": 100
     },
     "benchmark": "UNIVERSE-EW",
