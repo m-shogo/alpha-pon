@@ -302,10 +302,33 @@ function resolveExit(
   return { index: periodExitIndex, price: bars[periodExitIndex].close, stopped: false };
 }
 
+function entryBenchmarkKind(spec: BacktestSpec): BenchmarkPriceKind {
+  if (spec.entry.mode === "same_close") return "close";
+  if (spec.entry.mode === "vwap_next_day") return "typical";
+  return "open";
+}
+
+/**
+ * 銘柄と**同じ時点**の指数の値。
+ *
+ * 以前はエントリーを常に指数の終値で測っていた。next_open で寄付に買うと、
+ * 銘柄はエントリー日の日中の動きを含むのに指数は含まず、その差が
+ * 超過リターンに混ざる。実測（2026-09-17）で1件平均 -16〜+7bps、最大 273bps。
+ */
+type BenchmarkPriceKind = "open" | "close" | "typical";
+
+function benchmarkPriceOf(bar: PriceBar, kind: BenchmarkPriceKind): number {
+  if (kind === "open") return bar.open;
+  if (kind === "typical") return (bar.high + bar.low + bar.close) / 3;
+  return bar.close;
+}
+
 function benchmarkReturnBpsFor(
   benchmark: PriceSeries | undefined,
   entryDate: string,
   exitDate: string,
+  entryKind: BenchmarkPriceKind,
+  exitKind: BenchmarkPriceKind,
 ): number | "benchmark_missing_entry_bar" | "benchmark_missing_exit_bar" | undefined {
   if (!benchmark) return undefined;
   const entryIndex = benchmark.bars.findIndex((bar) => bar.date === entryDate);
@@ -313,8 +336,9 @@ function benchmarkReturnBpsFor(
   const exitIndex = benchmark.bars.findIndex((bar) => bar.date === exitDate);
   if (exitIndex < 0) return "benchmark_missing_exit_bar";
   // ベンチマークは常にロング換算。ショートの超過は「銘柄の逆行 − 指数の逆行」で測る。
-  const raw = (benchmark.bars[exitIndex].close - benchmark.bars[entryIndex].close) / benchmark.bars[entryIndex].close;
-  return raw * 10_000;
+  const entryPrice = benchmarkPriceOf(benchmark.bars[entryIndex], entryKind);
+  const exitPrice = benchmarkPriceOf(benchmark.bars[exitIndex], exitKind);
+  return ((exitPrice - entryPrice) / entryPrice) * 10_000;
 }
 
 /**
@@ -403,7 +427,13 @@ export function runBacktest(
     const holdingDays = epochDay(exitDate, "backtest exitDate") - epochDay(entryDate, "backtest entryDate");
 
     const grossReturnBps = returnBps(entry.price, exit.price, spec.side);
-    const rawBenchmarkBps = benchmarkReturnBpsFor(benchmark, entryDate, exitDate);
+    // 決済: 期間満了は引け。ストップが寄付で約定したら寄付。日中のストップ水準の
+    // 時刻の指数は分からないので引けで近似する（ストップを使う bundle は現状無い）。
+    const exitKind: BenchmarkPriceKind =
+      exit.stopped && exit.price === series.bars[exit.index].open ? "open" : "close";
+    const rawBenchmarkBps = benchmarkReturnBpsFor(
+      benchmark, entryDate, exitDate, entryBenchmarkKind(spec), exitKind,
+    );
     if (rawBenchmarkBps === "benchmark_missing_entry_bar" || rawBenchmarkBps === "benchmark_missing_exit_bar") {
       skip(rawBenchmarkBps);
       continue;

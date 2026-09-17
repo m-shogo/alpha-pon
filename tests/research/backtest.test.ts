@@ -447,6 +447,56 @@ function testBenchmarkProvenanceFailsClosed() {
   console.log("research/backtest: declared benchmark provenance is required and pinned OK");
 }
 
+function testBenchmarkIsMeasuredFromTheSameInstantAsTheFill() {
+  // 寄付で買うなら、指数も寄付から測る。以前は指数だけ引けから測っていたので、
+  // エントリー日の日中の市場の動きが超過リターンに混ざっていた（実測で最大 273bps）。
+  const flatBar = (date: string, price: number) => ({ date, open: price, high: price, low: price, close: price, volume: 1_000_000 });
+  const stock: PriceSeries = {
+    code: "9001",
+    bars: ["2024-01-04", "2024-01-05", "2024-01-09", "2024-01-10"].map((date) => flatBar(date, 1000)),
+  };
+  // 指数はエントリー日（01-05）の寄付 100 → 引け 110。それ以降は 110 で横ばい。
+  const topix: PriceSeries = {
+    code: "TOPIX",
+    bars: [
+      flatBar("2024-01-04", 100),
+      { date: "2024-01-05", open: 100, high: 110, low: 100, close: 110, volume: 1_000_000 },
+      flatBar("2024-01-09", 110),
+      flatBar("2024-01-10", 110),
+    ],
+  };
+  const spec: BacktestSpec = {
+    ...BASE_SPEC,
+    id: "bench-instant",
+    benchmark: "TOPIX",
+    exit: { mode: "holding_period", holdingPeriodDays: 1 },
+    costs: { commissionBps: 0, spreadBps: 0, slippageBps: 0 },
+  };
+  const signals = [{ id: "s1", code: "9001", observedAt: "2024-01-04T16:00:00+09:00" }];
+  const prices = new Map([["9001", stock]]);
+
+  const nextOpen = runBacktest(spec, signals, prices, topix).trades[0]!;
+  assert.equal(nextOpen.grossReturnBps, 0);
+  assert.ok(Math.abs(nextOpen.benchmarkReturnBps! - 1000) < 1e-9, "寄付(100)→決済日の引け(110) = +10%");
+  assert.ok(Math.abs(nextOpen.grossAlphaBps! + 1000) < 1e-9, "銘柄が横ばいなら指数に 10% 負けている");
+
+  // 引けで買うなら指数も引けから。01-04 引け(100) → 01-05 引け(110)。
+  const sameClose = runBacktest(
+    { ...spec, entry: { mode: "same_close" } },
+    [{ id: "s1", code: "9001", observedAt: "2024-01-04T14:00:00+09:00" }],
+    prices,
+    topix,
+  ).trades[0]!;
+  assert.equal(sameClose.entryDate, "2024-01-04");
+  assert.ok(Math.abs(sameClose.benchmarkReturnBps! - 1000) < 1e-9, "引け→引け");
+
+  // VWAP 近似で買うなら指数も同じ近似。(110+100+110)/3 → 110。
+  const vwap = runBacktest({ ...spec, entry: { mode: "vwap_next_day" } }, signals, prices, topix).trades[0]!;
+  const typical = (110 + 100 + 110) / 3;
+  assert.ok(Math.abs(vwap.benchmarkReturnBps! - ((110 - typical) / typical) * 10_000) < 1e-9, "同じ近似で測る");
+  console.log("research/backtest: 指数を約定と同じ時点から測る OK");
+}
+
 function testSignalOrderingUsesActualInstant() {
   const prices = new Map([["9001", series("9001", [1000, 1010, 1020, 1030, 1040])]]);
   const report = runBacktest(BASE_SPEC, [
@@ -563,6 +613,7 @@ testTemporalInputsFailClosed();
 testPriceBarSemanticsFailClosed();
 testSpecConformanceFailsClosed();
 testBenchmarkProvenanceFailsClosed();
+testBenchmarkIsMeasuredFromTheSameInstantAsTheFill();
 testSignalOrderingUsesActualInstant();
 testAggregateAndFalseDiscoveryGuard();
 testFixtureBundleIsReproducible();
