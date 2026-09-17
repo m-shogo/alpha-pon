@@ -35,10 +35,10 @@ import {
   calendarDaysBetween,
   positiveDayLimit,
 } from "./trading-calendar.js";
-import { previousForecasts } from "./forecast-timeline.js";
+import { previousForecasts, type ForecastBaseline } from "./forecast-timeline.js";
 
 /** 反応日の引け。この時刻の情報で当日引けエントリはできない（pit.ts の TSE_CLOSE_JST_MINUTES と一致）。 */
-const REACTION_OBSERVED_TIME_JST = "15:30:00";
+export const REACTION_OBSERVED_TIME_JST = "15:30:00";
 
 /** 決算短信以外（訂正・予想修正）を既定で除外する。実値は J-Quants 接続後に要確認。 */
 export const DEFAULT_EXCLUDED_DOCUMENT_TYPE_PATTERNS = [
@@ -172,7 +172,7 @@ function normalizedDisclosedTime(value: string): string | null {
 }
 
 /** 開示日時を明示タイムゾーン付き ISO へ変換する。解釈できない値は null を返して落とす。 */
-function disclosedAtIso(input: EarningsDisclosureInput): string | null {
+export function disclosedAtIso(input: Pick<EarningsDisclosureInput, "disclosedDate" | "disclosedTime">): string | null {
   if (!ISO_DATE_PATTERN.test(input.disclosedDate.trim())) return null;
   const time = normalizedDisclosedTime(input.disclosedTime);
   if (!time) return null;
@@ -199,7 +199,7 @@ function disclosedAtIso(input: EarningsDisclosureInput): string | null {
  * 逆に引け「ちょうど」は引け後として扱う。終値は引けの板で決まるので
  * 同時刻の開示はその終値に入らない。実測で引け時刻ちょうどが **44.0%**。
  */
-function indexOfReactionBar(
+export function indexOfReactionBar(
   bars: PriceBar[],
   disclosedDate: string,
   disclosedAt: string,
@@ -261,9 +261,31 @@ export function corporateActionDatesFromPriceRecords(
   return byCode;
 }
 
-function isExcludedDocumentType(typeOfDocument: string, patterns: readonly string[]): boolean {
+export function isExcludedDocumentType(typeOfDocument: string, patterns: readonly string[]): boolean {
   const value = typeOfDocument.toLowerCase();
   return patterns.some((pattern) => value.includes(pattern.toLowerCase()));
+}
+
+/**
+ * 各開示の「同じ会計年度の直前の予想」。決算ギャップと業績予想の修正で
+ * **同じ規則**を使うためにここへ置く（2箇所で書くと定義がずれる。実際にずれた）。
+ *
+ * 除外パターンに当たる開示は基準を動かさない。ただし業績予想の修正は新しい予想なので動かす。
+ */
+export function forecastBaselinesFor(
+  disclosures: readonly EarningsDisclosureInput[],
+  excludedPatterns: readonly string[] = DEFAULT_EXCLUDED_DOCUMENT_TYPE_PATTERNS,
+): Array<ForecastBaseline | null> {
+  return previousForecasts(disclosures.map((disclosure) => ({
+    code: disclosure.code.trim().toUpperCase(),
+    disclosedAt: disclosedAtIso(disclosure),
+    fiscalYearEnd: disclosure.fiscalYearEnd,
+    forecast: disclosure.forecastOperatingProfit,
+    nextFiscalYearEnd: disclosure.nextFiscalYearEnd,
+    nextForecast: disclosure.nextForecastOperatingProfit,
+    updatesBaseline: !isExcludedDocumentType(disclosure.typeOfDocument, excludedPatterns)
+      || disclosure.typeOfDocument === FORECAST_REVISION_DOCUMENT_TYPE,
+  })));
 }
 
 /**
@@ -311,16 +333,7 @@ export function generateEarningsGapSignals(
   const isoByIndex = normalized.map((disclosure) => disclosedAtIso(disclosure));
   const excludedByIndex = normalized.map((disclosure) =>
     isExcludedDocumentType(disclosure.typeOfDocument, excludedPatterns));
-  const baselines = previousForecasts(normalized.map((disclosure, index) => ({
-    code: disclosure.code,
-    disclosedAt: isoByIndex[index]!,
-    fiscalYearEnd: disclosure.fiscalYearEnd,
-    forecast: disclosure.forecastOperatingProfit,
-    nextFiscalYearEnd: disclosure.nextFiscalYearEnd,
-    nextForecast: disclosure.nextForecastOperatingProfit,
-    updatesBaseline: !excludedByIndex[index]
-      || disclosure.typeOfDocument === FORECAST_REVISION_DOCUMENT_TYPE,
-  })));
+  const baselines = forecastBaselinesFor(normalized, excludedPatterns);
 
   const byCode = new Map<string, number[]>();
   normalized.forEach((disclosure, index) => {
