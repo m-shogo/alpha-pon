@@ -21,7 +21,7 @@ CI は「Edge の研究期間と Holdout 期間が重なっていないこと」
 
 ```
 pnpm research:holdout:open --bundle=<bundle> --prereg=<事前登録> \
-  --from=<確認期間の開始日> --trading-days=<営業日数> --min-t=<閾値> --actor=<名前>
+  --from=<確認期間の開始日> --trading-days=<営業日数> --min-t=<閾値> --min-clusters=<最小クラスタ> --actor=<名前>
 ```
 
 - 引数だけなら**計画の表示**（価格は読まない）。`--execute` で1回だけ実行し、`access_log.jsonl` に追記する
@@ -29,4 +29,7 @@ pnpm research:holdout:open --bundle=<bundle> --prereg=<事前登録> \
   この Edge が開封済み／確認期間の営業日が足りない／取り込みに穴がある／封印の窓と重ならない
 - 確認期間の長さは**取り込まれた営業日の数**で決める。「クラスタが N 以上」のように
   価格から数えると、開ける前に封印を覗くことになる
-- 合格は「補正後 t ≥ 閾値 かつ Net 平均 > 0」
+- bundle は2種類: backtest（合格は「補正後 t ≥ 閾値 かつ Net 平均 > 0」）と
+  開示イベントスタディ（`kind: disclosure_event_study`。主要 horizon の |t| ≥ 閾値で「反応あり」。コスト前）
+- どちらもクラスタが最小数に満たなければ標本不足として不合格で記録する
+- 引数の閾値・最小クラスタが事前登録の本文と一致しなければ開けない（`最小クラスタ N` と書く）

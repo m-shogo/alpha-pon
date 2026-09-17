@@ -14,6 +14,7 @@ import {
   assertPreregistrationMatches,
   buildAccessEntry,
   judgeConfirmation,
+  judgeEventStudy,
   missingWeekdays,
   overlappingWindows,
   resolveConfirmationRange,
@@ -89,32 +90,66 @@ function testWindowsOverlap() {
 }
 
 function testPreregistrationMustStateTheConditions() {
-  const text = "bundle: `research/studies/x.json`\n期間: **2026-03-01 以降の 189 営業日**";
-  assert.doesNotThrow(() => assertPreregistrationMatches(text, {
-    bundlePath: "research/studies/x.json", from: "2026-03-01", tradingDays: 189,
-  }));
-  assert.throws(
-    () => assertPreregistrationMatches(text, { bundlePath: "research/studies/y.json", from: "2026-03-01", tradingDays: 189 }),
-    /bundle research\/studies\/y.json/,
-  );
-  assert.throws(
-    () => assertPreregistrationMatches(text, { bundlePath: "research/studies/x.json", from: "2026-04-01", tradingDays: 189 }),
-    /開始日/,
-  );
-  assert.throws(
-    () => assertPreregistrationMatches(text, { bundlePath: "research/studies/x.json", from: "2026-03-01", tradingDays: 89 }),
-    /89 営業日/,
-    "189 の中の 89 に一致させない",
-  );
+  const text = [
+    "bundle: `research/studies/x.json`",
+    "期間: **2026-03-01 以降の 189 営業日**",
+    "合格: 補正後 t ≥ 1.96、最小クラスタ 20",
+  ].join("\n");
+  const ok = { bundlePath: "research/studies/x.json", from: "2026-03-01", tradingDays: 189, minT: 1.96, minClusters: 20 };
+  assert.doesNotThrow(() => assertPreregistrationMatches(text, ok));
+  assert.throws(() => assertPreregistrationMatches(text, { ...ok, bundlePath: "research/studies/y.json" }), /bundle research\/studies\/y.json/);
+  assert.throws(() => assertPreregistrationMatches(text, { ...ok, from: "2026-04-01" }), /開始日/);
+  assert.throws(() => assertPreregistrationMatches(text, { ...ok, tradingDays: 89 }), /89 営業日/, "189 の中の 89 に一致させない");
+  assert.throws(() => assertPreregistrationMatches(text, { ...ok, minT: 1.5 }), /閾値 1.5/, "引数の閾値が登録と違えば止める");
+  assert.throws(() => assertPreregistrationMatches(text, { ...ok, minT: 1.9 }), /閾値 1.9/, "1.96 の中の 1.9 に一致させない");
+  assert.throws(() => assertPreregistrationMatches(text, { ...ok, minT: 96 }), /閾値 96/, "1.96 の中の 96 に一致させない");
+  assert.throws(() => assertPreregistrationMatches(text, { ...ok, minClusters: 2 }), /最小クラスタ 2/, "20 の中の 2 に一致させない");
 }
 
+const BASE_CONFIRM = { clusteredTStat: 1.96, meanNetAlphaBps: 10, executedCount: 50, clusterCount: 30, minT: 1.96, minClusters: 20 };
+
 function testJudgement() {
-  assert.equal(judgeConfirmation({ clusteredTStat: 1.96, meanNetAlphaBps: 10, executedCount: 50, minT: 1.96 }).result, "pass", "閾値ちょうどは合格");
-  assert.equal(judgeConfirmation({ clusteredTStat: 1.95, meanNetAlphaBps: 10, executedCount: 50, minT: 1.96 }).result, "fail");
-  assert.equal(judgeConfirmation({ clusteredTStat: 2.5, meanNetAlphaBps: -1, executedCount: 50, minT: 1.96 }).result, "fail", "Net が負なら不合格");
-  assert.equal(judgeConfirmation({ clusteredTStat: -3, meanNetAlphaBps: -100, executedCount: 50, minT: 1.96 }).result, "fail", "逆向きに有意でも不合格");
-  assert.equal(judgeConfirmation({ clusteredTStat: null, meanNetAlphaBps: 0, executedCount: 0, minT: 1.96 }).result, "fail");
-  assert.throws(() => judgeConfirmation({ clusteredTStat: 2, meanNetAlphaBps: 1, executedCount: 1, minT: 0 }), /minT/);
+  assert.equal(judgeConfirmation(BASE_CONFIRM).result, "pass", "閾値ちょうどは合格");
+  assert.equal(judgeConfirmation({ ...BASE_CONFIRM, clusteredTStat: 1.95 }).result, "fail");
+  assert.equal(judgeConfirmation({ ...BASE_CONFIRM, clusteredTStat: 2.5, meanNetAlphaBps: -1 }).result, "fail", "Net が負なら不合格");
+  assert.equal(judgeConfirmation({ ...BASE_CONFIRM, clusteredTStat: -3, meanNetAlphaBps: -100 }).result, "fail", "逆向きに有意でも不合格");
+  assert.equal(judgeConfirmation({ ...BASE_CONFIRM, clusteredTStat: null, executedCount: 0, clusterCount: null }).result, "fail");
+  const small = judgeConfirmation({ ...BASE_CONFIRM, clusteredTStat: 400, clusterCount: 19 });
+  assert.equal(small.result, "fail", "クラスタが少なければ t が大きくても不合格");
+  assert.match(small.reason, /標本不足: クラスタ 19 < 20/);
+  assert.equal(judgeConfirmation({ ...BASE_CONFIRM, clusterCount: 20 }).result, "pass", "最小クラスタちょうどは判定する");
+  assert.throws(() => judgeConfirmation({ ...BASE_CONFIRM, minT: 0 }), /minT/);
+  assert.throws(() => judgeConfirmation({ ...BASE_CONFIRM, minClusters: 1 }), /minClusters/);
+}
+
+const BASE_EVENT = { clusteredTStat: 2.1, count: 40, clusterCount: 30, minAbsT: 1.96, minClusters: 20 };
+
+function testEventStudyJudgementIsTwoSided() {
+  const positive = judgeEventStudy(BASE_EVENT);
+  assert.deepEqual([positive.result, positive.direction], ["pass", "positive"]);
+  const negative = judgeEventStudy({ ...BASE_EVENT, clusteredTStat: -1.96 });
+  assert.deepEqual([negative.result, negative.direction], ["pass", "negative"], "負の向きも閾値ちょうどで反応あり");
+  const weak = judgeEventStudy({ ...BASE_EVENT, clusteredTStat: -1.5 });
+  assert.deepEqual([weak.result, weak.direction], ["fail", "none"]);
+  const small = judgeEventStudy({ ...BASE_EVENT, clusteredTStat: -396, clusterCount: 2 });
+  assert.deepEqual([small.result, small.direction], ["fail", "none"], "2クラスタの t = -396 を反応とは呼ばない");
+  assert.equal(judgeEventStudy({ ...BASE_EVENT, clusteredTStat: null, count: 0, clusterCount: null }).result, "fail");
+  assert.throws(() => judgeEventStudy({ ...BASE_EVENT, minAbsT: -1 }), /minT/);
+}
+
+function testAccessEntryWithoutNetAlphaIsValid() {
+  // イベントスタディはコスト前なので netAlphaBps を持たない。
+  const entry = buildAccessEntry({
+    edgeId: "misconduct-disclosure",
+    windowId: "vault-2026h2-2027h1",
+    openedAt: "2027-08-02T09:00:00.000+09:00",
+    actor: "claude-code",
+    result: "pass",
+    sampleCount: 31,
+    notes: "{}",
+  });
+  assert.equal("netAlphaBps" in entry, false);
+  assert.deepEqual(validate(entry, loadSchema("holdout-access")), []);
 }
 
 function testAccessEntryMatchesTheSchema() {
@@ -150,6 +185,8 @@ testOneOpenPerEdge();
 testWindowsOverlap();
 testPreregistrationMustStateTheConditions();
 testJudgement();
+testEventStudyJudgementIsTwoSided();
+testAccessEntryWithoutNetAlphaIsValid();
 testAccessEntryMatchesTheSchema();
 
 console.log("research/holdout-open: 全テスト成功");
