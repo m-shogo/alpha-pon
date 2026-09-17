@@ -70,8 +70,13 @@ const DATE_FILE_NAME = /^(\d{4}-\d{2}-\d{2})\.jsonl$/;
 /**
  * 取り込み済みの営業日。
  *
- * 実体ファイルと台帳の和集合。ファイルだけだと非営業日（0件）が永遠に
+ * 実体ファイル ∪ 台帳の「0件の日」。ファイルだけだと非営業日（0件）が永遠に
  * 未完了になり、台帳だけだと rename 後・台帳追記前に落ちた日を二重取得する。
+ *
+ * **行がある日は、台帳に完了とあってもファイルが無ければ未完了。**
+ * 取り込みはファイルを置いてから台帳に書くので、ファイルが無いのは消えたとき。
+ * 以前は和集合で完了にしていたので、消えた日が欠落検査にも
+ * research:holdout:open の穴の検査にも映らなかった。
  */
 export function completedDatesFrom(input: {
   fileNames: Iterable<string>;
@@ -84,6 +89,7 @@ export function completedDatesFrom(input: {
   }
   for (const entry of parseIngestLedger(input.ledgerContent ?? "")) {
     if (!isCompletedIngest(entry)) continue;
+    if (entry.outcome !== "entitled_empty") continue;
     completed.add(entry.tradingDate);
   }
   return completed;
