@@ -544,6 +544,25 @@ function testMinHistoryBarsRequiresAFullLiquidityWindow() {
   console.log("research/backtest: 流動性の窓の本数 OK");
 }
 
+function testMaxLotsCapsThePosition() {
+  // 個人の信用売りは 50 単位以下なら空売り価格規制の適用除外とされる。上限で建てる。
+  const prices = new Map([["9001", series("9001", [100, 100, 100, 100, 100])]]);
+  const signal = [{ id: "s1", code: "9001", observedAt: "2024-01-04T16:00:00+09:00" }];
+  const base: BacktestSpec = { ...BASE_SPEC, id: "max-lots", liquidity: { participationLimitPct: 100 } };
+  const uncapped = runBacktest(base, signal, prices).trades[0]!;
+  assert.equal(uncapped.lots, 100, "100万円 / (100円×100株) = 100単位");
+  const capped = runBacktest({ ...base, liquidity: { ...base.liquidity, maxLots: 50 } }, signal, prices).trades[0]!;
+  assert.equal(capped.lots, 50);
+  assert.equal(capped.notionalJpy, 500_000, "建てる額も上限に合わせる");
+  const loose = runBacktest({ ...base, liquidity: { ...base.liquidity, maxLots: 500 } }, signal, prices).trades[0]!;
+  assert.equal(loose.lots, 100, "上限より少なければそのまま");
+  assert.throws(
+    () => runBacktest({ ...base, liquidity: { ...base.liquidity, maxLots: 0 } }, signal, prices),
+    /maxLots/,
+  );
+  console.log("research/backtest: 単元数の上限 OK");
+}
+
 function testSignalOrderingUsesActualInstant() {
   const prices = new Map([["9001", series("9001", [1000, 1010, 1020, 1030, 1040])]]);
   const report = runBacktest(BASE_SPEC, [
@@ -663,6 +682,7 @@ testBenchmarkProvenanceFailsClosed();
 testBenchmarkIsMeasuredFromTheSameInstantAsTheFill();
 testEntryDayVolumeIsNotUsedForLiquidity();
 testMinHistoryBarsRequiresAFullLiquidityWindow();
+testMaxLotsCapsThePosition();
 testSignalOrderingUsesActualInstant();
 testAggregateAndFalseDiscoveryGuard();
 testFixtureBundleIsReproducible();

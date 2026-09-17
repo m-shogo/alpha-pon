@@ -46,9 +46,12 @@ import { detectReadAcrossEvents } from "../signals/read-across-events.js";
 import { DEFAULT_MARKET_MODEL_PARAMS } from "../signals/market-model.js";
 import { sectorPeerGraph } from "../signals/company-relations.js";
 import {
+  MARGIN_TYPE_LENDABLE,
   buildSectorPeers,
+  loadMarginTypeTimeline,
   loadMasterAsOf,
 } from "../providers/jquants-master-store.js";
+import { filterLendableSignals } from "../signals/lendable-filter.js";
 import {
   generateEarningsGapSignals,
   type EarningsGapParams,
@@ -106,6 +109,11 @@ interface Bundle {
       };
   /** これまでに試した仮説の数。False Discovery Guard の閾値に使う。 */
   trials?: number;
+  /**
+   * 検出したあとに絞る条件（`--from-store` のみ）。
+   * lendableOnly: シグナル日以前で最新の貸借区分が「貸借」の銘柄だけ（売りの研究用）。
+   */
+  filters?: { lendableOnly?: boolean };
 }
 
 
@@ -382,7 +390,25 @@ function main(): void {
   if (errors.length > 0) fail(`spec がスキーマに適合しません:\n${formatErrors(errors)}`);
 
   const fromStore = flags.has("from-store") ? loadFromStore(bundle, options, flags) : null;
-  const signalList = fromStore ? fromStore.signals : bundle.signals;
+  let signalList = fromStore ? fromStore.signals : bundle.signals;
+  if (bundle.filters?.lendableOnly) {
+    if (!fromStore || !signalList) {
+      fail("filters.lendableOnly は --from-store でのみ使えます（貸借区分は銘柄マスタから引きます）");
+    }
+    // 検出と同じ封印の前日までのマスタだけを見る。
+    const research = resolveResearchTo(options.get("to") ?? null);
+    const timeline = loadMarginTypeTimeline(research.to ?? "9999-12-31");
+    if (timeline.snapshotCount === 0) {
+      fail("銘柄マスタがありません。先に pnpm ingest:master を実行してください");
+    }
+    const filtered = filterLendableSignals(signalList!, timeline.marginTypeOn, MARGIN_TYPE_LENDABLE);
+    console.log(
+      `貸借  : シグナル ${signalList!.length} → ${filtered.kept.length}`
+      + `（貸借でない ${filtered.notLendable} / 区分不明 ${filtered.unknown}）`,
+    );
+    console.log("");
+    signalList = filtered.kept;
+  }
   const priceList = fromStore ? fromStore.prices : bundle.prices;
   const benchmarkSeries = fromStore ? fromStore.benchmark : bundle.benchmark;
   if (!signalList || !priceList) {

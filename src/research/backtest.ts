@@ -53,6 +53,12 @@ export interface BacktestSpec {
      */
     minHistoryBars?: number;
     /**
+     * 1回に建てる単元数の上限。超える分は建てない（上限の単元数で建てる）。
+     * 個人の信用売りは 50 売買単位以下なら空売り価格規制の適用除外とされるので、
+     * 売りの研究ではそれに合わせる。
+     */
+    maxLots?: number;
+    /**
      * 売買単位。東証は 2018 年に 100 株へ統一済みなので既定 100。
      * 端数で建てられない制約を無視すると、実際には組めない結果が出る。
      */
@@ -414,7 +420,10 @@ export function runBacktest(
     // 単元株に丸める。1単元も買えない資金では、その取引は存在しなかったことにする。
     const lotSize = spec.liquidity.lotSize ?? DEFAULT_LOT_SIZE;
     const lotCostJpy = entry.price * lotSize;
-    const lots = lotCostJpy > 0 ? Math.floor(spec.notionalJpy / lotCostJpy) : 0;
+    const affordableLots = lotCostJpy > 0 ? Math.floor(spec.notionalJpy / lotCostJpy) : 0;
+    const lots = spec.liquidity.maxLots === undefined
+      ? affordableLots
+      : Math.min(affordableLots, spec.liquidity.maxLots);
     if (lots < 1) {
       skip("below_minimum_lot");
       continue;

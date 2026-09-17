@@ -28,6 +28,9 @@ import {
   toEquityMasterRecord,
   loadMasterAsOf,
   buildSectorPeers,
+  loadMarginTypeTimeline,
+  marginTypeOf,
+  MARGIN_TYPE_LENDABLE,
 } from "../../src/research/providers/jquants-master-store.js";
 
 const dir = mkdtempSync(join(realpathSync(tmpdir()), "alpha-pon-master-"));
@@ -222,6 +225,42 @@ try {
     }
   }
 
+  function testMarginTypeTimelineNeverLooksAhead() {
+    const dir4 = mkdtempSync(join(realpathSync(tmpdir()), "alpha-pon-margin-"));
+    try {
+      const lines = (date: string, rows: Record<string, unknown>[]) =>
+        rows.map((one) => JSON.stringify(record({ Date: date, ...one }, date))).join("\n") + "\n";
+      writeFileSync(join(dir4, "2024-06-20.jsonl"), lines("2024-06-20", [
+        { Code: "13010", Mrgn: "1", MrgnNm: "信用" },
+        { Code: "13050", Mrgn: "2", MrgnNm: "貸借" },
+      ]), "utf-8");
+      writeFileSync(join(dir4, "2024-06-21.jsonl"), lines("2024-06-21", [
+        { Code: "13010", Mrgn: "1", MrgnNm: "信用" },
+        { Code: "13050", Mrgn: "2", MrgnNm: "貸借" },
+      ]), "utf-8");
+      writeFileSync(join(dir4, "2024-06-25.jsonl"), lines("2024-06-25", [
+        { Code: "13010", Mrgn: "2", MrgnNm: "貸借" }, // 貸借に選定された
+        { Code: "13050", Mrgn: "2", MrgnNm: "貸借" },
+      ]), "utf-8");
+      writeFileSync(join(dir4, "2024-06-26.jsonl"), lines("2024-06-26", [
+        { Code: "13010", Mrgn: "2", MrgnNm: "貸借" },
+        { Code: "99990", Mrgn: "2", MrgnNm: "貸借" }, // to より後に初めて出る
+      ]), "utf-8");
+
+      assert.equal(marginTypeOf(record({ Mrgn: "2" })), MARGIN_TYPE_LENDABLE);
+      const timeline = loadMarginTypeTimeline("2024-06-25", dir4);
+      assert.equal(timeline.snapshotCount, 3, "to より後の日は読まない");
+      assert.equal(timeline.marginTypeOn("13010", "2024-06-19"), null, "最初のマスタより前は不明");
+      assert.equal(timeline.marginTypeOn("13010", "2024-06-24"), "1", "変わる前は信用");
+      assert.equal(timeline.marginTypeOn("13010", "2024-06-25"), "2", "変わった日から貸借");
+      assert.equal(timeline.marginTypeOn("13010", "2025-01-01"), "2");
+      assert.equal(timeline.marginTypeOn("13050", "2024-06-22"), "2", "休場日は手前の値");
+      assert.equal(timeline.marginTypeOn("99990", "2024-06-27"), null, "to より後のマスタは使わない");
+    } finally {
+      rmSync(dir4, { recursive: true, force: true });
+    }
+  }
+
   function testSectorPeersGroupByIndustry() {
     const attributes = new Map([
       ["A", { code: "A", name: "a", sector17: "1", sector33: "0050", sector33Name: "水産", scaleCategory: "Small", market: "0111" }],
@@ -242,6 +281,7 @@ try {
 
   testAsOfUsesThePastNeverTheFuture();
   testAsOfKeepsCodesThatLeftTheList();
+  testMarginTypeTimelineNeverLooksAhead();
   testSectorPeersGroupByIndustry();
   testHashIgnoresKeyOrder();
   testHashCoversEveryStoredField();
