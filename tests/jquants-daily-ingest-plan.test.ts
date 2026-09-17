@@ -136,7 +136,7 @@ function testWithheldDaysAreNeverCompleted(): void {
 
 function testWithheldEntryIsNotCountedAsCompleted(): void {
   const completed = completedDatesFrom({
-    fileNames: [],
+    fileNames: ["2026-06-18.jsonl"],
     ledgerContent: [
       JSON.stringify({ tradingDate: "2026-06-19", outcome: "entitled_rows", rowCount: 0,
         retrievedAt: "2026-09-11T00:00:00.000Z", withheldForAsOf: 4443 }),
@@ -161,6 +161,18 @@ function testCompletedFromFilesAndLedger(): void {
   assert.deepEqual([...completed].sort(), ["2025-09-01", "2025-09-02", "2025-09-15"]);
   assert.ok(!completed.has("2026-09-01"), "枠外の日は再取得の対象に残す");
   assert.ok(!completed.has("2025-09-03"), "書きかけ(.partial)は完了ではない");
+}
+
+function testRowsDayWithoutFileIsNotCompleted(): void {
+  // 行があったと台帳にあっても、ファイルが消えていれば取り直す（穴として見える）。
+  const completed = completedDatesFrom({
+    fileNames: ["2025-09-02.jsonl"],
+    ledgerContent: [
+      JSON.stringify({ tradingDate: "2025-09-01", outcome: "entitled_rows", rowCount: 4410, retrievedAt: "2026-01-01T00:00:00.000Z" }),
+      JSON.stringify({ tradingDate: "2025-09-02", outcome: "entitled_rows", rowCount: 4410, retrievedAt: "2026-01-01T00:00:00.000Z" }),
+    ].join("\n"),
+  });
+  assert.deepEqual([...completed], ["2025-09-02"], "ファイルの無い 09-01 は完了ではない");
 }
 
 function testLedgerSurvivesRenameCrashWindow(): void {
@@ -225,6 +237,7 @@ testNotEntitledIsNeverCompleted();
 testWithheldDaysAreNeverCompleted();
 testWithheldEntryIsNotCountedAsCompleted();
 testCompletedFromFilesAndLedger();
+testRowsDayWithoutFileIsNotCompleted();
 testLedgerSurvivesRenameCrashWindow();
 testCorruptLedgerFailsClosed();
 testEstimateShowsThrottleCost();

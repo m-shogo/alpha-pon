@@ -1,4 +1,4 @@
-// 開示保存庫の欠落を検査する。TDnet と EDINET の両方を見る。
+// 保存庫の欠落を検査する。TDnet・EDINET・J-Quants（価格・決算・銘柄マスタ）を見る。
 //
 // なぜ期限を出すか:
 //   TDnet の公開閲覧サービスは約1ヶ月しか遡れない（実測: 2026-08-03 は
@@ -14,12 +14,17 @@
 //   cap は「今日 − 84日」なので窓は毎日ずれる。実測（2026-09-11）で
 //   ある日 D が取得できるのは D + 814日まで。**取り逃した最古日は戻らない。**
 //
+//   価格（J-Quants /equities/bars/daily）も同じ2年の窓。**途中の1日が欠けると、
+//   封印を開ける1回きりの測定（research:holdout:open）が「取り込みの穴」で止まる**
+//   ので、気づいたらすぐ埋める。
+//
 // 保存庫が空の環境（CI）では検査対象なしで正常終了する。
 // 実データがあるのはローカルだけなので、実質の実行場所は日次。
 
 import {
   auditDisclosureArchive,
   EDINET_RETENTION_DAYS,
+  JQUANTS_ROLLING_WINDOW_DAYS,
   JQUANTS_FINS_RETENTION_DAYS,
   JQUANTS_MASTER_RETENTION_DAYS,
   TDNET_RETENTION_DAYS,
@@ -34,7 +39,8 @@ import {
   MASTER_INGEST_LEDGER_NAME,
   resolveMasterStoreRoot,
 } from "../src/research/providers/jquants-master-store.js";
-import { completedDatesFrom } from "../src/research/providers/jquants-daily-ingest.js";
+import { completedDatesFrom, INGEST_LEDGER_NAME } from "../src/research/providers/jquants-daily-ingest.js";
+import { resolveStoreRoot } from "../src/research/providers/jquants-daily-store.js";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { todayJst } from "../src/date.js";
@@ -77,6 +83,14 @@ interface Source {
 }
 
 const SOURCES: Source[] = [
+  {
+    label: "価格(J-Quants)",
+    // 休場日はファイルを書かず台帳にだけ残る。取り込み側と同じ「完了」の定義を使う。
+    archivedDates: [...completedDatesIn(resolveStoreRoot(), INGEST_LEDGER_NAME)],
+    retentionDays: JQUANTS_ROLLING_WINDOW_DAYS,
+    backfillCommand: (from, to) => `pnpm ingest:prices -- --from ${from} --to ${to} --execute`,
+    catchUpLabel: "ingest:prices --catch-up",
+  },
   {
     label: "TDnet",
     archivedDates: listArchivedDates(),
