@@ -9,7 +9,7 @@
 - Research Knowledge Semantic Contract: [../docs/research/research-knowledge-semantic-contract-v1.md](../docs/research/research-knowledge-semantic-contract-v1.md)
 - Research Knowledge Authority Adapter Contract: [../docs/research/research-knowledge-authority-adapter-contract-v1.md](../docs/research/research-knowledge-authority-adapter-contract-v1.md)
 - 毎時プロンプト: [../docs/prompts/hourly-research.md](../docs/prompts/hourly-research.md)
-- 現在の全体ロードマップ: [../docs/roadmaps/alpha-pon-current-roadmap-2026-08-05.md](../docs/roadmaps/alpha-pon-current-roadmap-2026-08-05.md)
+- 現在の全体ロードマップ: [../docs/roadmaps/alpha-pon-current-roadmap-2026-09-17.md](../docs/roadmaps/alpha-pon-current-roadmap-2026-09-17.md)
 - Research OSロードマップ: [../docs/roadmaps/research-os-roadmap.md](../docs/roadmaps/research-os-roadmap.md)
 - エージェント役割分担: [../docs/operations/agent-work-routing.md](../docs/operations/agent-work-routing.md)
 - Claude Code / Codex引き継ぎテンプレート: [../docs/prompts/code-agent-handoff-template.md](../docs/prompts/code-agent-handoff-template.md)

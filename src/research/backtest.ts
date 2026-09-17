@@ -328,7 +328,7 @@ function entryBenchmarkKind(spec: BacktestSpec): BenchmarkPriceKind {
  *
  * 以前はエントリーを常に指数の終値で測っていた。next_open で寄付に買うと、
  * 銘柄はエントリー日の日中の動きを含むのに指数は含まず、その差が
- * 超過リターンに混ざる。実測（2026-09-17）で1件平均 -16〜+7bps、最大 273bps。
+ * 超過リターンに混ざる。実測（2026-09-17）で「現行 − 正しい値」が1件平均 -7〜+16bps、最大 273bps。
  */
 type BenchmarkPriceKind = "open" | "close" | "typical";
 

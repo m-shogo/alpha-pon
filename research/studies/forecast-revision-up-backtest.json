@@ -27,5 +27,5 @@
     "kind": "forecast_revision",
     "params": { "minRevisionRatio": 1.1 }
   },
-  "trials": 1
+  "trials": 2
 }
