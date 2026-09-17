@@ -202,6 +202,51 @@ function testCatalogRecordDeletionIsRejected() {
   console.log("research/history-guard: Catalog record deletion rejection OK");
 }
 
+function testSealCanOnlyTighten() {
+  const path = "research/holdout/vault.manifest.json";
+  const base = {
+    schemaVersion: 1,
+    sealedAt: "2026-08-04",
+    policy: "p",
+    windows: [{ id: "vault-a", from: "2025-07-01", to: "2026-06-30", scope: "all_universe" }],
+  };
+  const change = (next: unknown) => checkChanges([
+    { path, changeType: "modified", oldContent: JSON.stringify(base), newContent: JSON.stringify(next) },
+  ], parseYaml);
+
+  assert.deepEqual(change({
+    ...base,
+    windows: [...base.windows, { id: "vault-b", from: "2026-07-01", to: "2027-06-30", scope: "all_universe" }],
+  }), [], "窓を足すのは自由");
+  assert.deepEqual(change({
+    ...base,
+    windows: [{ ...base.windows[0], from: "2025-06-01", to: "2026-12-31", notes: "広げた" }],
+  }), [], "広げるのは自由");
+
+  const removed = change({ ...base, windows: [{ id: "vault-b", from: "2026-07-01", to: "2027-06-30", scope: "all_universe" }] });
+  assert.equal(removed[0]?.code, "holdout_loosened");
+  assert.match(removed[0]!.message, /vault-a が消えています/);
+
+  assert.match(change({ ...base, windows: [{ ...base.windows[0], from: "2025-08-01" }] })[0]!.message, /開始が遅く/);
+  assert.match(change({ ...base, windows: [{ ...base.windows[0], to: "2026-03-01" }] })[0]!.message, /終了が早く/);
+  assert.match(change({ ...base, sealedAt: "2026-09-17" })[0]!.message, /sealedAt/);
+  assert.match(
+    change({ ...base, windows: [{ ...base.windows[0], scope: "named_codes", codes: ["72030"] }] })[0]!.message,
+    /全銘柄から狭まって/,
+  );
+  assert.match(
+    checkChanges([{ path, changeType: "modified", oldContent: JSON.stringify(base), newContent: "{壊れた" }], parseYaml)[0]!.message,
+    /JSON として読めない/,
+  );
+  assert.equal(
+    checkChanges([{ path, changeType: "deleted", oldContent: JSON.stringify(base), newContent: null }], parseYaml)[0]?.code,
+    "record_removed",
+    "封印を消すことはできない",
+  );
+  console.log("research/history-guard: 封印は締めるだけ OK");
+}
+
+testSealCanOnlyTighten();
 testAppendOnlyAcceptsAppends();
 testAppendOnlyRejectsRewrite();
 testAppendOnlyRejectsDeletion();

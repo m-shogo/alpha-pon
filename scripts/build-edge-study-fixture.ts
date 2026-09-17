@@ -28,8 +28,8 @@ function businessDays(start: string, count: number): string[] {
   return dates;
 }
 
-// Holdout は 2025-07-01〜2026-06-30。その前後にまたがる期間を作る。
-const DATES = businessDays("2026-05-01", 90);
+// Holdout の最後の窓は 2026-07-01〜2027-06-30（2026-09-17 に追加）。その境界にまたがる期間を作る。
+const DATES = businessDays("2027-05-03", 90);
 
 function makeSeries(code: string, seed: number, shocks: Record<string, number>): PriceSeries {
   const random = lcg(seed);
@@ -53,8 +53,8 @@ function makeSeries(code: string, seed: number, shocks: Record<string, number>):
 }
 
 // 封印期間内に1件、封印明けに2件のショックを置く。
-const SEALED_SHOCK = DATES[10];   // 2026-05 中旬 → 封印内
-const OPEN_SHOCK_A = DATES[55];   // 2026-07 以降 → 封印外
+const SEALED_SHOCK = DATES[10];   // 2027-05 中旬 → 封印内
+const OPEN_SHOCK_A = DATES[55];   // 2027-07 以降 → 封印外
 const OPEN_SHOCK_B = DATES[70];
 
 const codes = Array.from({ length: 24 }, (_, index) => String(9001 + index));
@@ -107,6 +107,12 @@ const bundle = {
           id: "vault-2025h2-2026h1",
           from: "2025-07-01",
           to: "2026-06-30",
+          scope: "all_universe" as const,
+        },
+        {
+          id: "vault-2026h2-2027h1",
+          from: "2026-07-01",
+          to: "2027-06-30",
           scope: "all_universe" as const,
         },
       ],
