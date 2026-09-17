@@ -36,8 +36,11 @@ import {
   disclosedDateOf,
   disclosedTimeOf,
   docTypeOf,
-  forecastOperatingProfitOf,
+  fiscalYearEndOf,
   listIngestedFinsDates,
+  nextFiscalYearEndOf,
+  nextForecastOperatingProfitOf,
+  primaryOperatingProfitForecasts,
   readFinsDateRecords,
   resolveFinsStoreRoot,
 } from "./providers/jquants-fins-store.js";
@@ -286,21 +289,20 @@ export function loadEarningsDisclosureInputs(input: {
       + "先に pnpm ingest:fins を実行してください。",
     );
   }
-  const disclosures: EarningsDisclosureInput[] = [];
-  let withoutForecast = 0;
-  for (const date of dates) {
-    for (const record of readFinsDateRecords(date, root)) {
-      const forecastOperatingProfit = forecastOperatingProfitOf(record);
-      if (forecastOperatingProfit === null) withoutForecast += 1;
-      disclosures.push({
-        code: codeOf(record),
-        disclosedDate: disclosedDateOf(record),
-        disclosedTime: disclosedTimeOf(record),
-        forecastOperatingProfit,
-        typeOfDocument: docTypeOf(record),
-      });
-    }
-  }
+  const records = dates.flatMap((date) => readFinsDateRecords(date, root));
+  // 非連結の会社の業績予想修正は FNCOP に入るので、会社ごとの時系列で決める。
+  const forecasts = primaryOperatingProfitForecasts(records);
+  const disclosures: EarningsDisclosureInput[] = records.map((record, index) => ({
+    code: codeOf(record),
+    disclosedDate: disclosedDateOf(record),
+    disclosedTime: disclosedTimeOf(record),
+    forecastOperatingProfit: forecasts[index]!,
+    fiscalYearEnd: fiscalYearEndOf(record),
+    nextFiscalYearEnd: nextFiscalYearEndOf(record),
+    nextForecastOperatingProfit: nextForecastOperatingProfitOf(record),
+    typeOfDocument: docTypeOf(record),
+  }));
+  const withoutForecast = forecasts.filter((value) => value === null).length;
   return { disclosures, datesScanned: dates.length, withoutForecast };
 }
 

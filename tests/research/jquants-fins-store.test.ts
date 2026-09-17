@@ -23,7 +23,11 @@ import {
   disclosureNumberOf,
   docTypeOf,
   FINS_INGEST_LEDGER_NAME,
+  fiscalYearEndOf,
   listIngestedFinsDates,
+  nextFiscalYearEndOf,
+  nextForecastOperatingProfitOf,
+  primaryOperatingProfitForecasts,
   readFinsDateRecords,
   toFinsDisclosureRecord,
 } from "../../src/research/providers/jquants-fins-store.js";
@@ -202,7 +206,53 @@ try {
     }
   }
 
+  function testFiscalYearFieldsReadThroughOneDoor() {
+    const one = record({ CurFYEn: "2025-03-31", NxFYEn: "2026-03-31", NxFOP: "1200000000" });
+    assert.equal(fiscalYearEndOf(one), "2025-03-31");
+    assert.equal(nextFiscalYearEndOf(one), "2026-03-31");
+    assert.equal(nextForecastOperatingProfitOf(one), 1_200_000_000);
+    const blank = record({ CurFYEn: "", NxFYEn: "2026/03/31", NxFOP: "" });
+    assert.equal(fiscalYearEndOf(blank), null, "空は null");
+    assert.equal(nextFiscalYearEndOf(blank), null, "形式が違えば null（別の日付に読み替えない）");
+    assert.equal(nextForecastOperatingProfitOf(blank), null);
+  }
+
+  function testNonConsolidatedRevisionUsesFncop() {
+    // 非連結の会社は業績予想の修正だけ FNCOP に書く。連結の会社の FNCOP は親会社単体の予想。
+    const records = [
+      // 非連結の会社 11110: 短信（非連結）→ 修正（FNCOP だけ）
+      record({ Code: "11110", DiscDate: "2025-05-09", DiscTime: "15:00:00", DocType: "FYFinancialStatements_NonConsolidated_JP" }),
+      record({ Code: "11110", DiscDate: "2025-08-01", DiscTime: "15:00:00", DocType: "EarnForecastRevision", FOP: "", FNCOP: "500" }),
+      // 連結の会社 22220: 短信（連結）→ 修正（FNCOP だけ）は使わない
+      record({ Code: "22220", DiscDate: "2025-05-09", DiscTime: "15:00:00", DocType: "FYFinancialStatements_Consolidated_JP" }),
+      record({ Code: "22220", DiscDate: "2025-08-01", DiscTime: "15:00:00", DocType: "EarnForecastRevision", FOP: "", FNCOP: "900" }),
+      // 短信が一度も無い会社 33330: 判定できないので使わない
+      record({ Code: "33330", DiscDate: "2025-08-01", DiscTime: "15:00:00", DocType: "EarnForecastRevision", FOP: "", FNCOP: "700" }),
+      // 44440: 非連結の短信と**同時刻**の修正は使う（会社の性質なので先読みではない）
+      record({ Code: "44440", DiscDate: "2025-08-01", DiscTime: "15:00", DocType: "EarnForecastRevision", FOP: "", FNCOP: "300" }),
+      record({ Code: "44440", DiscDate: "2025-08-01", DiscTime: "15:00:00", DocType: "1QFinancialStatements_NonConsolidated_JP", FOP: "310" }),
+      // 55550: FOP があればそれを使う。修正以外の FNCOP は使わない
+      record({ Code: "55550", DiscDate: "2025-08-01", DiscTime: "15:00:00", DocType: "EarnForecastRevision", FOP: "42", FNCOP: "999" }),
+      record({ Code: "55550", DiscDate: "2025-05-09", DiscTime: "15:00:00", DocType: "FYFinancialStatements_NonConsolidated_JP", FNCOP: "888" }),
+    ];
+    assert.deepEqual(primaryOperatingProfitForecasts(records), [null, 500, null, null, null, 300, 310, 42, null]);
+  }
+
+  function testLaterConsolidationSwitchIsRespected() {
+    // 非連結 → 連結に変わった会社は、その後の修正で FNCOP を使わない。先の短信は見ない。
+    const records = [
+      record({ Code: "66660", DiscDate: "2025-05-09", DocType: "FYFinancialStatements_NonConsolidated_JP" }),
+      record({ Code: "66660", DiscDate: "2025-06-01", DocType: "EarnForecastRevision", FNCOP: "100" }),
+      record({ Code: "66660", DiscDate: "2025-08-01", DocType: "1QFinancialStatements_Consolidated_JP" }),
+      record({ Code: "66660", DiscDate: "2025-09-01", DocType: "EarnForecastRevision", FNCOP: "200" }),
+    ];
+    assert.deepEqual(primaryOperatingProfitForecasts(records), [null, 100, null, null]);
+  }
+
   testHashIgnoresKeyOrder();
+  testFiscalYearFieldsReadThroughOneDoor();
+  testNonConsolidatedRevisionUsesFncop();
+  testLaterConsolidationSwitchIsRespected();
   testHashCoversEveryStoredField();
   testHashDoesNotDependOnWhenWeFetched();
   testQueryDateMustBeIsoDate();

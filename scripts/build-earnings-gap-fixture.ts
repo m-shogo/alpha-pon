@@ -21,6 +21,8 @@ import {
   type EarningsDisclosureInput,
 } from "../src/research/signals/earnings-gap.js";
 
+const FIXTURE_FISCAL_YEAR_END = "2026-03-31";
+
 const OUT_PATH = resolve(process.cwd(), "research/fixtures/backtests/synthetic-earnings-gap.json");
 const AS_OF = "2027-01-01T00:00:00+09:00";
 const BENCHMARK_CODE = "9999";
@@ -145,18 +147,27 @@ CODES.forEach((code, index) => {
 
   shocksByCode.set(code, new Map([[reactionDate, shockPct]]));
 
+  // 1Q と 2Q は同じ会計年度。基準は「同じ会計年度末の直前の予想」なので揃える。
   disclosures.push({
     code,
     disclosedDate: firstDisclosureDate,
-    disclosedTime: "15:00",
+    // 引けちょうど（2024-11-05 以降は 15:30）は翌営業日が反応日。ショックは翌営業日に置いている。
+    disclosedTime: "15:30",
     forecastOperatingProfit: 1000,
-    typeOfDocument: "FYFinancialStatements_Consolidated_JP",
+    fiscalYearEnd: FIXTURE_FISCAL_YEAR_END,
+    nextFiscalYearEnd: null,
+    nextForecastOperatingProfit: null,
+    typeOfDocument: "1QFinancialStatements_Consolidated_JP",
   });
   disclosures.push({
     code,
     disclosedDate: secondDisclosureDate,
-    disclosedTime: "15:00",
+    // 引けちょうど（2024-11-05 以降は 15:30）は翌営業日が反応日。ショックは翌営業日に置いている。
+    disclosedTime: "15:30",
     forecastOperatingProfit: forecastCut ? 700 : 1000,
+    fiscalYearEnd: FIXTURE_FISCAL_YEAR_END,
+    nextFiscalYearEnd: null,
+    nextForecastOperatingProfit: null,
     typeOfDocument: "2QFinancialStatements_Consolidated_JP",
   });
 });
