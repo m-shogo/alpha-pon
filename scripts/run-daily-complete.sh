@@ -36,6 +36,18 @@ trap 'pl_release' EXIT
 trap 'pl_exit_on_signal 130' INT
 trap 'pl_exit_on_signal 143' TERM
 
+# ── 動いているコードの記録（読むだけ。何も変えない）──────────────────────────
+# launchd はこの作業コピーをそのまま動かす。開発で別ブランチを出したままだと、
+# 古いコードや作業途中のコードが毎朝動く（2026-09-10 に main から1555 commits 遅れていた）。
+# origin/main は最後に fetch した時点の値（ここでは fetch しない）。
+DAILY_BRANCH="$(git -C "$DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)"
+DAILY_COMMIT="$(git -C "$DIR" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+DAILY_BEHIND="$(git -C "$DIR" rev-list --count HEAD..origin/main 2>/dev/null || echo unknown)"
+echo "[complete-wrapper] code: branch=${DAILY_BRANCH} commit=${DAILY_COMMIT} behind_origin_main=${DAILY_BEHIND}"
+if [ "$DAILY_BRANCH" != "main" ]; then
+  echo "[complete-wrapper] WARNING: main 以外のブランチで動いています（${DAILY_BRANCH}）"
+fi
+
 DOW="$(date '+%u')"   # 1=Mon ... 7=Sun
 DOM="$(date '+%d')"   # 01..31
 MONTH="$(date '+%m')" # 01..12
