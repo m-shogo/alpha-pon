@@ -333,6 +333,17 @@ function main(): void {
   const prices = buildUniquePriceSeriesMap(priceList!);
   const report = runBacktest(bundle.spec, signalList!, prices, benchmarkSeries);
   const useLedger = !flags.has("no-trial-ledger");
+  // 台帳を使わないのに bundle が試行数を宣言していないなら止める。
+  // **既定で 1（最も緩い閾値）を仮定してはいけない。**
+  // 偽発見を防ぐ仕組みが、黙って最も通りやすい値を置くのは逆。
+  // 実際に generic-reversal の bundle には trials が無く、--no-trial-ledger の
+  // 下見で「試行1・閾値1.96」として PASS と表示された（台帳では試行4・閾値2.79 で FAIL）。
+  if (!useLedger && bundle.trials === undefined) {
+    fail(
+      "--no-trial-ledger を使うなら bundle.trials を明示してください"
+      + "（何回目の試行かで False Discovery Guard の閾値が変わります）",
+    );
+  }
   let trials = bundle.trials ?? 1;
   let trialId: string | null = null;
   let trialSource = "bundle.trials（自己申告）";

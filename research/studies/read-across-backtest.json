@@ -5,8 +5,13 @@
     "edgeId": "read-across-sector-peer",
     "side": "long",
     "notionalJpy": 1000000,
-    "entry": { "mode": "next_open" },
-    "exit": { "mode": "holding_period", "holdingPeriodDays": 5 },
+    "entry": {
+      "mode": "next_open"
+    },
+    "exit": {
+      "mode": "holding_period",
+      "holdingPeriodDays": 5
+    },
     "costs": {
       "commissionBps": 5,
       "spreadBps": 10,
@@ -29,5 +34,5 @@
       "relatedAbnormalReturnThresholdPct": -3
     }
   },
-  "trials": 1
+  "trials": 2
 }
