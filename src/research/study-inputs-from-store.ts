@@ -143,10 +143,19 @@ export function loadStudyInputsFromStore(query: StudyInputsQuery = {}): StudyInp
 
   // 会社でない銘柄（ETF/ETN/REIT 等）を外す。**指数に入れると市場の定義が歪む。**
   // マスタが無ければ外せないので、外していないことを返り値で示す。
+  // 期間の終わりが無指定なら、**全系列で最も遅い日**を使う。先頭の系列が
+  // 途中で上場廃止していると、その日より後に上場した ETF を判定できない。
   const wantExclude = query.excludeNonEquity ?? true;
+  const lastBarDate = loaded.series.reduce(
+    (latest, series) => {
+      const last = series.bars.at(-1)?.date ?? "";
+      return last > latest ? last : latest;
+    },
+    "",
+  );
   const master = wantExclude
-    ? loadMasterAsOf(query.to ?? loaded.series[0]?.bars.at(-1)?.date ?? "9999-12-31")
-    : { attributes: new Map(), snapshotDate: null };
+    ? loadMasterAsOf(query.to ?? lastBarDate)
+    : { attributes: new Map<string, { sector33: string }>(), snapshotDate: null, carriedFromEarlierCount: 0 };
   const nonEquityExcluded = wantExclude && master.snapshotDate !== null;
   const universeSeries = nonEquityExcluded
     ? loaded.series.filter((series) => master.attributes.get(series.code)?.sector33 !== "9999")

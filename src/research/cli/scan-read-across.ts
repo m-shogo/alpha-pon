@@ -105,7 +105,8 @@ function main(): void {
     ...(hasFlag("match-scale") ? { matchScaleCategory: true } : {}),
   });
   console.log(
-    `業種 peer     ${master.snapshotDate} 時点 / ${peers.peersByCode.size}銘柄が peer を持つ`
+    `業種 peer     ${master.snapshotDate} 時点（うち廃止済み等 ${master.carriedFromEarlierCount}銘柄は最後に載った日の業種）`
+    + ` / ${peers.peersByCode.size}銘柄が peer を持つ`
     + ` / グループ ${peers.groupCount}（1社だけ ${peers.singletonCount}）`
     + `${hasFlag("match-scale") ? " / 規模区分も一致" : ""}`,
   );

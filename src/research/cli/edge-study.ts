@@ -346,7 +346,8 @@ function main(): void {
       ]),
     );
     console.log(
-      `③ 対照の条件 ${master!.snapshotDate} 時点のマスタ / `
+      `③ 対照の条件 ${master!.snapshotDate} 時点のマスタ`
+      + `（廃止済み等 ${master!.carriedFromEarlierCount}銘柄は最後に載った日） / `
       + `${flags.has("match-sector") ? "同33業種" : ""}`
       + `${flags.has("match-scale") ? " 同規模区分" : ""}`,
     );
