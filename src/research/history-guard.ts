@@ -6,7 +6,12 @@ import { stableStringify } from "./schema.js";
 
 export interface GuardViolation {
   file: string;
-  code: "not_append_only" | "immutable_file_modified" | "immutable_field_changed" | "record_removed";
+  code:
+    | "not_append_only"
+    | "immutable_file_modified"
+    | "immutable_field_changed"
+    | "record_removed"
+    | "holdout_loosened";
   message: string;
 }
 
@@ -83,7 +88,62 @@ export interface FileChange {
   newContent: string | null;
 }
 
-export type ImmutabilityRule = "append_only" | "immutable_file" | "immutable_fields" | "mutable";
+export type ImmutabilityRule =
+  | "append_only"
+  | "immutable_file"
+  | "immutable_fields"
+  | "holdout_only_tightens"
+  | "mutable";
+
+interface SealWindow {
+  id?: unknown;
+  from?: unknown;
+  to?: unknown;
+  scope?: unknown;
+  codes?: unknown;
+}
+
+/**
+ * 封印（vault.manifest.json）は**締めることはできても緩めることはできない**。
+ *
+ * 窓を足すのは自由。既存の窓は、同じ id で期間が同じか広く、対象も同じか広いこと。
+ * sealedAt は変えない。以前はこのファイルが「自由に変えてよい」扱いで、
+ * 窓を1つ消すだけで封印の中を研究に使えた。
+ */
+export function sealLooseningReasons(oldContent: string, newContent: string): string[] {
+  let before: { sealedAt?: unknown; windows?: SealWindow[] };
+  let after: { sealedAt?: unknown; windows?: SealWindow[] };
+  try {
+    before = JSON.parse(oldContent);
+    after = JSON.parse(newContent);
+  } catch {
+    return ["JSON として読めない（封印の中身を確かめられない）"];
+  }
+  const reasons: string[] = [];
+  if (before.sealedAt !== after.sealedAt) {
+    reasons.push(`sealedAt が変わっています（${String(before.sealedAt)} → ${String(after.sealedAt)}）`);
+  }
+  const afterById = new Map((after.windows ?? []).map((window) => [String(window.id), window]));
+  for (const window of before.windows ?? []) {
+    const id = String(window.id);
+    const next = afterById.get(id);
+    if (!next) {
+      reasons.push(`窓 ${id} が消えています`);
+      continue;
+    }
+    if (String(next.from) > String(window.from)) reasons.push(`窓 ${id} の開始が遅くなっています（${String(window.from)} → ${String(next.from)}）`);
+    if (String(next.to) < String(window.to)) reasons.push(`窓 ${id} の終了が早くなっています（${String(window.to)} → ${String(next.to)}）`);
+    if (window.scope === "all_universe" && next.scope !== "all_universe") {
+      reasons.push(`窓 ${id} の対象が全銘柄から狭まっています`);
+    }
+    if (window.scope === "named_codes" && next.scope === "named_codes") {
+      const nextCodes = new Set(Array.isArray(next.codes) ? next.codes.map(String) : []);
+      const dropped = (Array.isArray(window.codes) ? window.codes.map(String) : []).filter((code) => !nextCodes.has(code));
+      if (dropped.length > 0) reasons.push(`窓 ${id} から銘柄が外れています（${dropped.join(", ")}）`);
+    }
+  }
+  return reasons;
+}
 
 export function immutableFieldsForPath(path: string): readonly string[] {
   if (path.startsWith("research/edge_registry/edges/")) return EDGE_IMMUTABLE_FIELDS;
@@ -102,6 +162,7 @@ export function ruleForPath(path: string): ImmutabilityRule {
   if (path === "research/counterfactual/counterfactuals.jsonl") return "append_only";
   if (path === "research/confounder/confounders.jsonl") return "append_only";
   if (path === "research/holdout/access_log.jsonl") return "append_only";
+  if (path === "research/holdout/vault.manifest.json") return "holdout_only_tightens";
   if (path === "research/edge_registry/provenance.jsonl") return "append_only";
   if (path === "research/asset_registry/provenance.jsonl") return "append_only";
   if (path === "research/orphan_triage/decisions.jsonl") return "append_only";
@@ -143,6 +204,18 @@ export function checkChanges(
       const result = isAppendOnly(change.oldContent, change.newContent);
       if (!result.ok) {
         violations.push({ file: change.path, code: "not_append_only", message: result.reason ?? "Append Only 違反" });
+      }
+      continue;
+    }
+
+    if (rule === "holdout_only_tightens") {
+      const reasons = sealLooseningReasons(change.oldContent, change.newContent);
+      if (reasons.length > 0) {
+        violations.push({
+          file: change.path,
+          code: "holdout_loosened",
+          message: `封印は緩められません: ${reasons.join(" / ")}`,
+        });
       }
       continue;
     }

@@ -1,0 +1,27 @@
+{
+  "kind": "disclosure_event_study",
+  "schemaVersion": 1,
+  "edgeId": "misconduct-disclosure",
+  "specId": "misconduct-disclosure-event-study-v1",
+  "notes": "事前登録 docs/research/preregistrations/2026-09-17-misconduct-disclosure.md の条件だけで1回測る。コスト前・両側。",
+  "population": {
+    "source": "tdnet_archive",
+    "eventFrom": "2026-08-03",
+    "eventTo": "2027-01-29",
+    "keywords": [
+      "第三者委員会", "特別調査委員会", "独立調査委員会", "調査委員会", "社内調査委員会",
+      "不正アクセス", "ランサムウェア", "情報流出", "漏えい", "漏洩", "不正流出",
+      "不適切", "不正行為", "不正会計", "架空", "横領", "改ざん", "偽装", "虚偽記載", "循環取引", "刑事告訴"
+    ],
+    "followUpMarkers": [
+      "報告書", "第２報", "第2報", "第３報", "第3報", "第４報", "第4報", "第５報", "第5報",
+      "最終報", "経過", "続報", "差替", "訂正", "辞任", "追加選任", "調査の状況", "計上"
+    ],
+    "dedupeCalendarDays": 120
+  },
+  "minAverageTurnoverJpy": 100000000,
+  "excludeKnownEarnings": true,
+  "horizons": [1, 5, 20, 60],
+  "primaryHorizon": 20,
+  "twoSided": true
+}
