@@ -35,6 +35,7 @@ import {
   calendarDaysBetween,
   positiveDayLimit,
 } from "./trading-calendar.js";
+import { previousForecasts } from "./forecast-timeline.js";
 
 /** 反応日の引け。この時刻の情報で当日引けエントリはできない（pit.ts の TSE_CLOSE_JST_MINUTES と一致）。 */
 const REACTION_OBSERVED_TIME_JST = "15:30:00";
@@ -73,10 +74,24 @@ export interface EarningsDisclosureInput {
   disclosedDate: string;
   /** JST の開示時刻 HH:MM または HH:MM:SS */
   disclosedTime: string;
-  /** 会社予想の営業利益。null は「取得できなかった」であり 0 ではない。 */
+  /**
+   * `fiscalYearEnd` の通期営業利益予想。null は「取得できなかった」であり 0 ではない。
+   * 本決算短信では空（今期は終わっている）。
+   */
   forecastOperatingProfit: number | null;
+  /** forecastOperatingProfit が指す会計年度末（CurFYEn）。 */
+  fiscalYearEnd: string | null;
+  /** 本決算短信の来期予想（NxFOP）が指す会計年度末（NxFYEn）。 */
+  nextFiscalYearEnd: string | null;
+  nextForecastOperatingProfit: number | null;
   typeOfDocument: string;
 }
+
+/**
+ * 業績予想の修正。決算ではないのでシグナルにはしないが、
+ * **新しい予想なので基準は更新する**（訂正とは違う）。
+ */
+export const FORECAST_REVISION_DOCUMENT_TYPE = "EarnForecastRevision";
 
 export interface EarningsGapParams {
   /** 反応日終値が前営業日終値比でこの % 以下なら候補にする。負の値のみ。例: -7 */
@@ -254,8 +269,12 @@ function isExcludedDocumentType(typeOfDocument: string, patterns: readonly strin
 /**
  * 決算開示から決算ギャップ Signal を生成する。
  *
- * 同一 code の開示は開示時刻昇順で処理し、直前開示の会社予想を baseline にする。
- * 除外した開示は baseline を更新しない（訂正で baseline が動くと減額判定がぶれるため）。
+ * 基準の予想は「同じ会計年度末について、開示時刻が厳密に前の最新の予想」
+ * （`forecast-timeline.ts`）。以前は「直前の開示の予想」を使っており、
+ * 本決算短信には今期予想が無いので 1Q が常に基準なしで落ち、
+ * 期をまたぐと別の年度の予想と比べていた。
+ * 除外した開示は基準を更新しない（訂正で基準が動くと減額判定がぶれるため）。
+ * ただし業績予想の修正は新しい予想なので更新する。
  */
 export function generateEarningsGapSignals(
   disclosures: readonly EarningsDisclosureInput[],
@@ -282,27 +301,45 @@ export function generateEarningsGapSignals(
     rejectedCounts[reason] += 1;
   };
 
-  const byCode = new Map<string, EarningsDisclosureInput[]>();
-  for (const disclosure of disclosures) {
+  const normalized = disclosures.map((disclosure) => {
     const code = disclosure.code.trim().toUpperCase();
     if (!CODE_PATTERN.test(code)) {
       throw new Error(`earnings disclosure code must be 4-5 alphanumeric characters: ${disclosure.code}`);
     }
-    const bucket = byCode.get(code);
-    if (bucket) bucket.push({ ...disclosure, code });
-    else byCode.set(code, [{ ...disclosure, code }]);
-  }
+    return { ...disclosure, code };
+  });
+  const isoByIndex = normalized.map((disclosure) => disclosedAtIso(disclosure));
+  const excludedByIndex = normalized.map((disclosure) =>
+    isExcludedDocumentType(disclosure.typeOfDocument, excludedPatterns));
+  const baselines = previousForecasts(normalized.map((disclosure, index) => ({
+    code: disclosure.code,
+    disclosedAt: isoByIndex[index]!,
+    fiscalYearEnd: disclosure.fiscalYearEnd,
+    forecast: disclosure.forecastOperatingProfit,
+    nextFiscalYearEnd: disclosure.nextFiscalYearEnd,
+    nextForecast: disclosure.nextForecastOperatingProfit,
+    updatesBaseline: !excludedByIndex[index]
+      || disclosure.typeOfDocument === FORECAST_REVISION_DOCUMENT_TYPE,
+  })));
+
+  const byCode = new Map<string, number[]>();
+  normalized.forEach((disclosure, index) => {
+    const bucket = byCode.get(disclosure.code);
+    if (bucket) bucket.push(index);
+    else byCode.set(disclosure.code, [index]);
+  });
 
   const claimedReactionKeys = new Set<string>();
 
   for (const code of [...byCode.keys()].sort()) {
-    const codeDisclosures = byCode.get(code)!;
-    const resolved = codeDisclosures.map((disclosure) => ({
-      disclosure,
-      iso: disclosedAtIso(disclosure),
+    const resolved = byCode.get(code)!.map((index) => ({
+      disclosure: normalized[index]!,
+      iso: isoByIndex[index]!,
+      excluded: excludedByIndex[index]!,
+      baseline: baselines[index]!,
     }));
 
-    // 開示時刻昇順。解釈できない行は末尾へ寄せて、baseline 計算から確実に外す。
+    // 開示時刻昇順。解釈できない行は末尾へ寄せる。
     resolved.sort((left, right) => {
       if (left.iso === null && right.iso === null) return 0;
       if (left.iso === null) return 1;
@@ -312,15 +349,13 @@ export function generateEarningsGapSignals(
     });
 
     const seenDisclosureKeys = new Set<string>();
-    let previousForecast: number | null = null;
-    let hasPreviousDisclosure = false;
 
-    for (const { disclosure, iso } of resolved) {
+    for (const { disclosure, iso, excluded, baseline } of resolved) {
       if (iso === null) {
         reject(disclosure, "invalid_disclosed_timestamp");
         continue;
       }
-      if (isExcludedDocumentType(disclosure.typeOfDocument, excludedPatterns)) {
+      if (excluded) {
         reject(disclosure, "document_type_excluded");
         continue;
       }
@@ -331,11 +366,6 @@ export function generateEarningsGapSignals(
         continue;
       }
       seenDisclosureKeys.add(disclosureKey);
-
-      const baselineForecast = previousForecast;
-      const baselineExists = hasPreviousDisclosure;
-      previousForecast = disclosure.forecastOperatingProfit;
-      hasPreviousDisclosure = true;
 
       const series = prices.get(code);
       if (!series || series.bars.length === 0) {
@@ -393,11 +423,11 @@ export function generateEarningsGapSignals(
       }
 
       if (params.requireForecastNotCut) {
-        if (!baselineExists || baselineForecast === null || disclosure.forecastOperatingProfit === null) {
+        if (baseline === null || disclosure.forecastOperatingProfit === null) {
           reject(disclosure, "forecast_missing");
           continue;
         }
-        if (disclosure.forecastOperatingProfit < baselineForecast) {
+        if (disclosure.forecastOperatingProfit < baseline.value) {
           reject(disclosure, "forecast_cut");
           continue;
         }
@@ -424,7 +454,7 @@ export function generateEarningsGapSignals(
         reactionClose: reactionBar.close,
         gapPct,
         forecastOperatingProfit: disclosure.forecastOperatingProfit,
-        previousForecastOperatingProfit: baselineExists ? baselineForecast : null,
+        previousForecastOperatingProfit: baseline?.value ?? null,
         observedAt,
       });
     }

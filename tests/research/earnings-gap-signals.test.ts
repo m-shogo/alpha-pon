@@ -46,7 +46,10 @@ function disclosure(over: Partial<EarningsDisclosureInput> = {}): EarningsDisclo
     // 同時刻の開示はその終値に入らない。
     disclosedTime: "15:30",
     forecastOperatingProfit: 100,
-    typeOfDocument: "FYFinancialStatements_Consolidated_JP",
+    fiscalYearEnd: "2026-03-31",
+    nextFiscalYearEnd: null,
+    nextForecastOperatingProfit: null,
+    typeOfDocument: "3QFinancialStatements_Consolidated_JP",
     ...over,
   };
 }
@@ -182,6 +185,71 @@ function testCorrectionDocumentIsExcludedAndDoesNotMoveBaseline() {
   assert.equal(result.rejectedCounts.document_type_excluded, 1, "訂正は除外される");
   assert.equal(result.signals.length, 1, "baseline は訂正前の 100 のままなので減額にならない");
   assert.equal(result.candidates[0].previousForecastOperatingProfit, 100);
+}
+
+function testFirstQuarterIsComparedWithFullYearGuidance() {
+  // 本決算短信に今期予想（FOP）は無く、来期予想（NxFOP）だけがある。
+  // 以前は「直前の開示の FOP」と比べていたので、1Q は常に基準なしで落ちていた。
+  const disclosures = [
+    disclosure({
+      disclosedDate: "2026-01-05",
+      typeOfDocument: "FYFinancialStatements_Consolidated_JP",
+      fiscalYearEnd: "2025-12-31",
+      forecastOperatingProfit: null,
+      nextFiscalYearEnd: "2026-12-31",
+      nextForecastOperatingProfit: 100,
+    }),
+    disclosure({
+      typeOfDocument: "1QFinancialStatements_Consolidated_JP",
+      fiscalYearEnd: "2026-12-31",
+      forecastOperatingProfit: 100,
+    }),
+  ];
+  const result = generateEarningsGapSignals(disclosures, priceMap(gapSeries()), PARAMS);
+  assert.equal(result.signals.length, 1, "1Q は本決算の来期予想と比べて据え置き");
+  assert.equal(result.candidates[0].previousForecastOperatingProfit, 100);
+}
+
+function testForecastRevisionMovesBaselineButIsNotASignal() {
+  // 業績予想の修正は決算ではないのでシグナルにしない。だが新しい予想なので基準は動かす。
+  // 1Q 100 → 修正で 60 → 2Q 60 は「据え置き」（減額は修正の時点で済んでいる）。
+  const disclosures = [
+    disclosure({ disclosedDate: "2026-01-05", disclosedTime: "09:00", forecastOperatingProfit: 100 }),
+    disclosure({
+      disclosedDate: "2026-01-05",
+      disclosedTime: "16:00",
+      typeOfDocument: "EarnForecastRevision",
+      forecastOperatingProfit: 60,
+    }),
+    disclosure({ forecastOperatingProfit: 60 }),
+  ];
+  const result = generateEarningsGapSignals(disclosures, priceMap(gapSeries()), PARAMS);
+  assert.equal(result.rejectedCounts.document_type_excluded, 1, "修正そのものはシグナルにしない");
+  assert.equal(result.signals.length, 1);
+  assert.equal(result.candidates[0].previousForecastOperatingProfit, 60, "基準は修正後の予想");
+}
+
+function testOtherFiscalYearIsNotTheBaseline() {
+  // 前年度の予想 500 と今年度の 100 を比べて「減額」にしない。
+  const disclosures = [
+    disclosure({ disclosedDate: "2026-01-05", fiscalYearEnd: "2025-12-31", forecastOperatingProfit: 500 }),
+    disclosure({ fiscalYearEnd: "2026-12-31", forecastOperatingProfit: 100 }),
+  ];
+  const result = generateEarningsGapSignals(disclosures, priceMap(gapSeries()), PARAMS);
+  assert.equal(result.rejectedCounts.forecast_cut, 0, "別の年度とは比べない");
+  assert.equal(result.rejectedCounts.forecast_missing, 1, "同じ年度の基準が無いので判定できない");
+}
+
+function testSameInstantRevisionIsNotTheBaseline() {
+  // 2Q 短信と同時刻の業績予想の修正は、同じニュース。2Q の基準にしない。
+  const disclosures = [
+    disclosure({ disclosedDate: "2026-01-05", forecastOperatingProfit: 100 }),
+    disclosure({ typeOfDocument: "EarnForecastRevision", forecastOperatingProfit: 60 }),
+    disclosure({ typeOfDocument: "2QFinancialStatements_Consolidated_JP", forecastOperatingProfit: 60 }),
+  ];
+  const result = generateEarningsGapSignals(disclosures, priceMap(gapSeries()), PARAMS);
+  assert.equal(result.rejectedCounts.forecast_cut, 1, "同時に減額した決算は「減額あり」");
+  assert.equal(result.signals.length, 0);
 }
 
 function testDuplicateDisclosureIsRejected() {
@@ -439,6 +507,10 @@ testForecastHeldIsAccepted();
 testFirstDisclosureHasNoBaselineAndFailsClosed();
 testNullForecastFailsClosed();
 testCorrectionDocumentIsExcludedAndDoesNotMoveBaseline();
+testFirstQuarterIsComparedWithFullYearGuidance();
+testForecastRevisionMovesBaselineButIsNotASignal();
+testOtherFiscalYearIsNotTheBaseline();
+testSameInstantRevisionIsNotTheBaseline();
 testDuplicateDisclosureIsRejected();
 testDuplicateReactionDateIsRejected();
 testInvalidTimestampIsRejected();

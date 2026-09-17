@@ -168,6 +168,96 @@ export function forecastOperatingProfitOf(record: FinsDisclosureRecord): number 
   return numberOrNull(record.raw.FOP);
 }
 
+/**
+ * 来期の会社予想営業利益（`NxFOP`）。本決算短信にだけ入る。
+ * 実測（2026-09-17）で本決算短信 8,641件のうち 7,657件。`FOP` は1件も無い。
+ */
+export function nextForecastOperatingProfitOf(record: FinsDisclosureRecord): number | null {
+  return numberOrNull(record.raw.NxFOP);
+}
+
+/**
+ * 単体の会社予想営業利益（`FNCOP`）。
+ * 非連結の会社は**業績予想の修正だけ**ここに書く（決算短信は `FOP`）。
+ * 連結の会社では親会社単体の予想なので、連結の予想と比べてはいけない。
+ */
+export function nonConsolidatedForecastOperatingProfitOf(record: FinsDisclosureRecord): number | null {
+  return numberOrNull(record.raw.FNCOP);
+}
+
+/** `FOP` が指す会計年度末（`CurFYEn`）。YYYY-MM-DD でなければ null。 */
+export function fiscalYearEndOf(record: FinsDisclosureRecord): string | null {
+  return isoDateOrNull(record.raw.CurFYEn);
+}
+
+/** `NxFOP` が指す会計年度末（`NxFYEn`）。YYYY-MM-DD でなければ null。 */
+export function nextFiscalYearEndOf(record: FinsDisclosureRecord): string | null {
+  return isoDateOrNull(record.raw.NxFYEn);
+}
+
+const EARN_FORECAST_REVISION = "EarnForecastRevision";
+
+function isFinancialStatement(docType: string): boolean {
+  return docType.includes("FinancialStatements");
+}
+
+/**
+ * 開示ごとに「その開示が示す今期の通期営業利益予想」を返す（入力と同じ順序）。
+ *
+ * 基本は `FOP`。**業績予想の修正で `FOP` が空のときだけ**、その会社の直近の
+ * 決算短信（同時刻の短信を含む）が非連結なら `FNCOP` を使う。
+ * 実測（2026-09-17）で、`FOP` が空で `FNCOP` だけの修正は 302社、
+ * うち 233社は非連結の会社だった。残りは連結の会社の親会社単体の予想なので使わない。
+ * 会社の連結・非連結は性質なので、同時刻の短信を見ても先読みにはならない。
+ */
+export function primaryOperatingProfitForecasts(
+  records: readonly FinsDisclosureRecord[],
+): Array<number | null> {
+  const result = records.map((record) => forecastOperatingProfitOf(record));
+  const byCode = new Map<string, number[]>();
+  records.forEach((record, index) => {
+    const code = codeOf(record);
+    const bucket = byCode.get(code);
+    if (bucket) bucket.push(index);
+    else byCode.set(code, [index]);
+  });
+  const keyOf = (index: number): string => {
+    const time = disclosedTimeOf(records[index]!).trim();
+    return `${disclosedDateOf(records[index]!).trim()}T${time.length === 5 ? `${time}:00` : time}`;
+  };
+  for (const indices of byCode.values()) {
+    indices.sort((left, right) => {
+      const a = keyOf(left);
+      const b = keyOf(right);
+      return a < b ? -1 : a > b ? 1 : left - right;
+    });
+    let nonConsolidated: boolean | null = null;
+    let start = 0;
+    while (start < indices.length) {
+      let end = start + 1;
+      while (end < indices.length && keyOf(indices[end]!) === keyOf(indices[start]!)) end += 1;
+      const group = indices.slice(start, end);
+      for (const index of group) {
+        const docType = docTypeOf(records[index]!);
+        if (isFinancialStatement(docType)) nonConsolidated = docType.includes("NonConsolidated");
+      }
+      for (const index of group) {
+        const record = records[index]!;
+        if (result[index] !== null || docTypeOf(record) !== EARN_FORECAST_REVISION) continue;
+        if (nonConsolidated === true) result[index] = nonConsolidatedForecastOperatingProfitOf(record);
+      }
+      start = end;
+    }
+  }
+  return result;
+}
+
+function isoDateOrNull(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  const text = String(value).trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : null;
+}
+
 function numberOrNull(value: unknown): number | null {
   if (value === null || value === undefined) return null;
   const text = String(value).trim();
