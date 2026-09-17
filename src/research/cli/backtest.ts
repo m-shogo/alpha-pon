@@ -53,6 +53,7 @@ import {
   generateEarningsGapSignals,
   type EarningsGapParams,
 } from "../signals/earnings-gap.js";
+import { detectForecastRevisionEvents } from "../signals/forecast-revision-events.js";
 import { fail, parseArgs } from "./common.js";
 
 interface Bundle {
@@ -82,6 +83,14 @@ interface Bundle {
          */
         kind: "earnings_gap";
         params: Omit<EarningsGapParams, "corporateActionDates">;
+      }
+    | {
+        /**
+         * 業績予想の上方修正（同じ会計年度の直前の予想から minRevisionRatio 倍以上）。
+         * 事前登録: docs/research/preregistrations/2026-09-17-forecast-revision-up.md
+         */
+        kind: "forecast_revision";
+        params: { minRevisionRatio: number };
       }
     | {
         /**
@@ -127,10 +136,13 @@ function loadFromStore(
   corporateActionDates: ReadonlyMap<string, ReadonlySet<string>>;
 } {
   const kind = bundle.detector?.kind;
-  if (kind !== "abnormal_move" && kind !== "earnings_gap" && kind !== "read_across") {
+  if (
+    kind !== "abnormal_move" && kind !== "earnings_gap"
+    && kind !== "read_across" && kind !== "forecast_revision"
+  ) {
     fail(
       "--from-store には bundle.detector.kind = "
-      + '"abnormal_move" / "earnings_gap" / "read_across" のいずれかが必要です',
+      + '"abnormal_move" / "earnings_gap" / "read_across" / "forecast_revision" のいずれかが必要です',
     );
   }
   const minTurnoverJpy = numberOption(options, "min-turnover-jpy", 0);
@@ -205,6 +217,40 @@ function loadFromStore(
       signals: across.candidates.map((one) => ({
         id: one.candidateId, code: one.relatedCode, observedAt: one.observedAt,
       })),
+      prices: inputs.prices,
+      benchmark: inputs.benchmark,
+      corporateActionDates: inputs.corporateActionDates,
+    };
+  }
+
+  if (bundle.detector!.kind === "forecast_revision") {
+    // 基準の予想は決算短信から引くので、開示は種類を問わず全部渡す。
+    const disclosures = loadEarningsDisclosureInputs(to ? { to } : {});
+    const priceByCode = new Map<string, PriceSeries>(
+      inputs.prices.map((series) => [series.code, series]),
+    );
+    const result = detectForecastRevisionEvents(disclosures.disclosures, priceByCode, {
+      minRevisionRatio: bundle.detector!.params.minRevisionRatio,
+      corporateActionDates: inputs.corporateActionDates,
+    });
+    for (const line of formatStudyInputs(inputs, minTurnoverJpy)) console.log(line);
+    console.log(
+      `決算開示: ${disclosures.datesScanned}営業日 / ${disclosures.disclosures.length.toLocaleString()}件`,
+    );
+    const revisionRejects = Object.entries(result.rejectedCounts)
+      .filter(([reason, count]) => count > 0 && reason !== "not_forecast_revision")
+      .sort((left, right) => right[1] - left[1])
+      .map(([reason, count]) => `${reason}=${count.toLocaleString()}`)
+      .join(" ");
+    const revisionCount = result.disclosureCount - result.rejectedCounts.not_forecast_revision;
+    console.log(
+      `検出  : 業績予想の修正 ${revisionCount.toLocaleString()}件 → シグナル ${result.signals.length}`
+      + `（×${bundle.detector!.params.minRevisionRatio} 以上）`,
+    );
+    if (revisionRejects) console.log(`却下  : ${revisionRejects}`);
+    console.log("");
+    return {
+      signals: result.signals,
       prices: inputs.prices,
       benchmark: inputs.benchmark,
       corporateActionDates: inputs.corporateActionDates,

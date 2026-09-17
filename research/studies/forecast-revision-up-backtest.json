@@ -1,0 +1,30 @@
+{
+  "spec": {
+    "schemaVersion": 1,
+    "id": "forecast-revision-up-long-d20",
+    "edgeId": "forecast-revision-up",
+    "side": "long",
+    "notionalJpy": 1000000,
+    "entry": { "mode": "next_open" },
+    "exit": { "mode": "holding_period", "holdingPeriodDays": 20 },
+    "costs": {
+      "commissionBps": 5,
+      "spreadBps": 10,
+      "slippageBps": 8,
+      "marketImpactBpsPerPctAdv": 10,
+      "borrowCostAnnualBps": 0
+    },
+    "liquidity": {
+      "participationLimitPct": 3,
+      "minAdtvJpy": 500000000,
+      "lotSize": 100
+    },
+    "benchmark": "UNIVERSE-EW",
+    "notes": "営業利益予想を同じ会計年度の直前の予想から+10%以上引き上げた銘柄を、反応日の翌営業日の寄付で買い20営業日持つ。事前登録 docs/research/preregistrations/2026-09-17-forecast-revision-up.md の条件だけで1回測る。コストは既存3測定と同じ（往復36bps＋インパクト）。"
+  },
+  "detector": {
+    "kind": "forecast_revision",
+    "params": { "minRevisionRatio": 1.1 }
+  },
+  "trials": 1
+}
