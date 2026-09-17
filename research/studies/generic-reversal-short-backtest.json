@@ -1,0 +1,50 @@
+{
+  "spec": {
+    "schemaVersion": 1,
+    "id": "generic-reversal-jquants-short-d5",
+    "edgeId": "generic-reversal",
+    "side": "short",
+    "notionalJpy": 1000000,
+    "entry": {
+      "mode": "next_open"
+    },
+    "exit": {
+      "mode": "holding_period",
+      "holdingPeriodDays": 5
+    },
+    "costs": {
+      "commissionBps": 5,
+      "spreadBps": 10,
+      "slippageBps": 8,
+      "marketImpactBpsPerPctAdv": 10,
+      "borrowCostAnnualBps": 1825
+    },
+    "liquidity": {
+      "participationLimitPct": 3,
+      "minAdtvJpy": 500000000,
+      "minHistoryBars": 20,
+      "maxLots": 50,
+      "lotSize": 100
+    },
+    "benchmark": "UNIVERSE-EW",
+    "notes": "個別急落（市場モデル調整後 -10%以下）の翌営業日寄付で売り、5営業日で買い戻す。貸借銘柄のみ、1回50売買単位以下。貸株料と逆日歩の見積りとして年1,825bps（暦日5bps）を足した保守側の仮定。事前登録 docs/research/preregistrations/2026-09-17-generic-reversal-short.md の条件だけで測る。買いと同じ Edge の別条件。"
+  },
+  "detector": {
+    "kind": "abnormal_move",
+    "params": {
+      "abnormalReturnThresholdPct": -10,
+      "knownEventDates": {},
+      "marketModel": {
+        "estimationBars": 120,
+        "gapBars": 5,
+        "minObservations": 60,
+        "maxPriorGapDays": 10
+      },
+      "minAverageTurnoverJpy": 500000000
+    }
+  },
+  "filters": {
+    "lendableOnly": true
+  },
+  "trials": 6
+}

@@ -144,6 +144,11 @@
           "minimum": 1,
           "description": "エントリー前に必要な足の本数。ADTV の窓がそろわない銘柄（上場直後など）を executable:false にする。"
         },
+        "maxLots": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "1回に建てる単元数の上限。超える分は建てない。"
+        },
         "lotSize": {
           "type": "integer",
           "minimum": 1,

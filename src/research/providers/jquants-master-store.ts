@@ -151,6 +151,13 @@ export function marketOf(record: EquityMasterRecord): string {
   return String(record.raw.Mkt ?? "");
 }
 
+/** 貸借区分 `Mrgn`。実データの値は "1"=信用 / "2"=貸借 / "3"=その他（2026-09-17 に確認）。 */
+export const MARGIN_TYPE_LENDABLE = "2";
+
+export function marginTypeOf(record: EquityMasterRecord): string {
+  return String(record.raw.Mrgn ?? "");
+}
+
 /** `?date=` に対して API が何を返したかの判定。 */
 export type MasterRowsDateCheck =
   | { kind: "matches" }
@@ -283,6 +290,43 @@ export function loadMasterAsOf(
     }
   }
   return { attributes, snapshotDate, carriedFromEarlierCount };
+}
+
+/**
+ * 貸借区分の時系列。**D 以前で最新のマスタ**の値を返す（D より後は使わない）。
+ *
+ * 売りの研究では「その日に制度信用で売れたか」が要る。1日分のマスタだけで引くと、
+ * 期間の途中で区分が変わった銘柄を取り違える。変化点だけを持つ。
+ */
+export function loadMarginTypeTimeline(
+  to: string,
+  root = resolveMasterStoreRoot(),
+): { marginTypeOn: (code: string, date: string) => string | null; snapshotCount: number } {
+  const dates = listIngestedMasterDates(root).filter((one) => one <= to);
+  const changes = new Map<string, Array<{ date: string; value: string }>>();
+  for (const date of dates) {
+    for (const record of readMasterDateRecords(date, root)) {
+      const code = codeOf(record);
+      const value = marginTypeOf(record);
+      if (code === "" || value === "") continue;
+      const history = changes.get(code);
+      if (!history) changes.set(code, [{ date, value }]);
+      else if (history[history.length - 1]!.value !== value) history.push({ date, value });
+    }
+  }
+  const marginTypeOn = (code: string, date: string): string | null => {
+    const history = changes.get(code);
+    if (!history || history[0]!.date > date) return null;
+    let low = 0;
+    let high = history.length - 1;
+    while (low < high) {
+      const mid = Math.ceil((low + high) / 2);
+      if (history[mid]!.date <= date) low = mid;
+      else high = mid - 1;
+    }
+    return history[low]!.value;
+  };
+  return { marginTypeOn, snapshotCount: dates.length };
 }
 
 /**

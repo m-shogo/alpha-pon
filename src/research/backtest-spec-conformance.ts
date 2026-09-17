@@ -83,6 +83,11 @@ export function assertBacktestSpecConformance(spec: BacktestSpec): void {
     throw new Error("backtest spec.liquidity.participationLimitPct must be > 0 and <= 100");
   }
   assertOptionalFiniteAtLeast(spec.liquidity.minAdtvJpy, 0, "backtest spec.liquidity.minAdtvJpy");
+  if (spec.liquidity.maxLots !== undefined) {
+    if (!Number.isSafeInteger(spec.liquidity.maxLots) || spec.liquidity.maxLots < 1) {
+      throw new Error("backtest spec.liquidity.maxLots must be a positive safe integer");
+    }
+  }
   if (spec.liquidity.minHistoryBars !== undefined) {
     if (!Number.isSafeInteger(spec.liquidity.minHistoryBars) || spec.liquidity.minHistoryBars < 1) {
       throw new Error("backtest spec.liquidity.minHistoryBars must be a positive safe integer");
