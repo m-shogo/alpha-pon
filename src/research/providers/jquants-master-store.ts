@@ -242,34 +242,47 @@ export interface EquityAttributes {
  * 日付をそのまま引くと空になる。研究では「D 時点で分かっていた属性」が
  * 欲しいので、**D より後は絶対に使わない**。前に遡るのは正しく、
  * 後ろを使うのは未来の情報を混ぜることになる。
+ *
+ * **D の時点で上場していない銘柄も、D 以前に最後に載っていた日の属性で引ける。**
+ * 1日分のマスタには「その日に上場している銘柄」しか載らない。
+ * それだけで引くと、期間の途中で上場廃止した ETF が S33=9999 と判定できず
+ * 指数と母集団に残り、廃止した株式は業種が分からず peer から消える
+ * （不祥事や急落の後に廃止された銘柄ほど消えるので、生存者バイアスになる）。
+ * 実データ（価格 〜2025-06-30 の 4,537銘柄）で、2025-06-30 の1日分だけでは
+ * ETF 等 460銘柄のうち 6 を取りこぼし、125銘柄の属性が引けなかった。
  */
 export function loadMasterAsOf(
   date: string,
   root = resolveMasterStoreRoot(),
-): { attributes: Map<string, EquityAttributes>; snapshotDate: string | null } {
-  const dates = listIngestedMasterDates(root);
-  let chosen: string | null = null;
-  for (const one of dates) {
-    if (one > date) break;
-    chosen = one;
-  }
-  if (chosen === null) return { attributes: new Map(), snapshotDate: null };
-
+): {
+  attributes: Map<string, EquityAttributes>;
+  snapshotDate: string | null;
+  /** D のマスタに載っておらず、それ以前の日から引いた銘柄の数。 */
+  carriedFromEarlierCount: number;
+} {
+  const dates = listIngestedMasterDates(root).filter((one) => one <= date);
+  const snapshotDate = dates.at(-1) ?? null;
   const attributes = new Map<string, EquityAttributes>();
-  for (const record of readMasterDateRecords(chosen, root)) {
-    const code = codeOf(record);
-    if (code === "") continue;
-    attributes.set(code, {
-      code,
-      name: companyNameOf(record),
-      sector17: sector17Of(record),
-      sector33: sector33Of(record),
-      sector33Name: sector33NameOf(record),
-      scaleCategory: scaleCategoryOf(record),
-      market: marketOf(record),
-    });
+  let carriedFromEarlierCount = 0;
+  // 新しい日から遡り、最初に見つかった（＝最も新しい）属性を採る。
+  for (let i = dates.length - 1; i >= 0; i -= 1) {
+    const current = dates[i]!;
+    for (const record of readMasterDateRecords(current, root)) {
+      const code = codeOf(record);
+      if (code === "" || attributes.has(code)) continue;
+      attributes.set(code, {
+        code,
+        name: companyNameOf(record),
+        sector17: sector17Of(record),
+        sector33: sector33Of(record),
+        sector33Name: sector33NameOf(record),
+        scaleCategory: scaleCategoryOf(record),
+        market: marketOf(record),
+      });
+      if (current !== snapshotDate) carriedFromEarlierCount += 1;
+    }
   }
-  return { attributes, snapshotDate: chosen };
+  return { attributes, snapshotDate, carriedFromEarlierCount };
 }
 
 /**

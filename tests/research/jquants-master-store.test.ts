@@ -181,6 +181,47 @@ try {
     }
   }
 
+  function testAsOfKeepsCodesThatLeftTheList() {
+    // 1日分のマスタには「その日に上場している銘柄」しか載らない。
+    // 期間の途中で廃止した ETF を S33=9999 と判定できないと、指数と母集団に残る。
+    const dir3 = mkdtempSync(join(realpathSync(tmpdir()), "alpha-pon-delisted-"));
+    try {
+      const lines = (date: string, rows: Record<string, unknown>[]) =>
+        rows.map((one) => JSON.stringify(record({ Date: date, ...one }, date))).join("\n") + "\n";
+      writeFileSync(join(dir3, "2024-06-20.jsonl"), lines("2024-06-20", [
+        { Code: "13010", S33: "0050" },
+        { Code: "13050", CoName: "廃止されたETF", S33: "9999" },
+        { Code: "99990", CoName: "廃止された会社", S33: "3050" },
+      ]), "utf-8");
+      writeFileSync(join(dir3, "2024-06-21.jsonl"), lines("2024-06-21", [
+        { Code: "13010", S33: "0050" },
+        { Code: "99990", CoName: "廃止された会社", S33: "3100" },
+      ]), "utf-8");
+      writeFileSync(join(dir3, "2024-06-24.jsonl"), lines("2024-06-24", [
+        { Code: "13010", S33: "0051" },
+      ]), "utf-8");
+      writeFileSync(join(dir3, "2024-06-25.jsonl"), lines("2024-06-25", [
+        { Code: "13010", S33: "0052" },
+        { Code: "25100", CoName: "後から上場したETF", S33: "9999" },
+      ]), "utf-8");
+
+      const asOf = loadMasterAsOf("2024-06-24", dir3);
+      assert.equal(asOf.snapshotDate, "2024-06-24");
+      assert.equal(asOf.attributes.get("13050")?.sector33, "9999", "廃止した ETF も ETF と分かる");
+      assert.equal(asOf.attributes.get("99990")?.sector33, "3100", "廃止銘柄は**最後に載った日**の業種");
+      assert.equal(asOf.attributes.get("13010")?.sector33, "0051", "載っている銘柄は D の属性（古い日で上書きしない）");
+      assert.equal(asOf.attributes.has("25100"), false, "**D より後に上場した銘柄は引かない**");
+      assert.equal(asOf.attributes.size, 3);
+      assert.equal(asOf.carriedFromEarlierCount, 2, "D に載っていない2銘柄を数える");
+
+      const empty = loadMasterAsOf("2024-06-19", dir3);
+      assert.equal(empty.attributes.size, 0);
+      assert.equal(empty.carriedFromEarlierCount, 0);
+    } finally {
+      rmSync(dir3, { recursive: true, force: true });
+    }
+  }
+
   function testSectorPeersGroupByIndustry() {
     const attributes = new Map([
       ["A", { code: "A", name: "a", sector17: "1", sector33: "0050", sector33Name: "水産", scaleCategory: "Small", market: "0111" }],
@@ -200,6 +241,7 @@ try {
   }
 
   testAsOfUsesThePastNeverTheFuture();
+  testAsOfKeepsCodesThatLeftTheList();
   testSectorPeersGroupByIndustry();
   testHashIgnoresKeyOrder();
   testHashCoversEveryStoredField();
