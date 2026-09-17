@@ -75,7 +75,8 @@ export type SkipReason =
   | "missing_resolution_date"
   | "resolution_before_entry"
   | "benchmark_missing_entry_bar"
-  | "benchmark_missing_exit_bar";
+  | "benchmark_missing_exit_bar"
+  | "corporate_action_in_holding_window";
 
 export interface TradeResult {
   signalId: string;
@@ -111,6 +112,23 @@ export interface BacktestReport {
   trades: TradeResult[];
   gross: AggregateStats;
   net: AggregateStats;
+  /**
+   * 保有期間中の株式分割・併合を確かめたか。
+   * false のときは、価格が無調整なら損益に分割の段差が混ざっている可能性がある。
+   */
+  corporateActionsChecked: boolean;
+}
+
+export interface RunBacktestOptions {
+  /**
+   * code -> 株式分割・併合の効力発生日（無調整価格が段差を持つ日）。
+   *
+   * 価格は無調整で持っている。保有中に 1:2 分割があると、何も起きていなくても
+   * 損益が -50% になる。実測（2026-09-17）で急落買いの2件が -63% / -51% に
+   * なっており、平均を -127.5bps から -172.2bps へ押し下げていた。
+   * 渡されたら、エントリーの翌日から決済日までに効力発生日がある取引を落とす。
+   */
+  corporateActionDates?: ReadonlyMap<string, ReadonlySet<string>>;
 }
 
 const ADTV_LOOKBACK_BARS = 20;
@@ -308,6 +326,7 @@ export function runBacktest(
   signals: BacktestSignal[],
   prices: Map<string, PriceSeries>,
   benchmark?: PriceSeries,
+  options: RunBacktestOptions = {},
 ): BacktestReport {
   assertBacktestSpecConformance(spec);
   assertBacktestInputs(spec, signals, prices, benchmark);
@@ -373,6 +392,14 @@ export function runBacktest(
 
     const entryDate = series.bars[entry.index].date;
     const exitDate = series.bars[exit.index].date;
+
+    // エントリーの寄付は効力発生日なら既に新基準なので、エントリー当日は含めない。
+    // 板が立たなかった日に効力が発生していても落とせるよう、足ではなく日付で比べる。
+    const actionDates = options.corporateActionDates?.get(signal.code);
+    if (actionDates && [...actionDates].some((date) => date > entryDate && date <= exitDate)) {
+      skip("corporate_action_in_holding_window");
+      continue;
+    }
     const holdingDays = epochDay(exitDate, "backtest exitDate") - epochDay(entryDate, "backtest entryDate");
 
     const grossReturnBps = returnBps(entry.price, exit.price, spec.side);
@@ -432,5 +459,6 @@ export function runBacktest(
       executed.map((trade) => trade.netAlphaBps ?? 0),
       executed.map((trade) => trade.entryDate ?? ""),
     ),
+    corporateActionsChecked: options.corporateActionDates !== undefined,
   };
 }

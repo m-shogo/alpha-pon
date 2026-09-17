@@ -39,6 +39,7 @@ import {
   type AbnormalMoveParams,
 } from "../signals/abnormal-move-events.js";
 import {
+  formatHorizonSkips,
   runEventStudy,
   type EventStudySubject,
 } from "../signals/event-study.js";
@@ -394,8 +395,15 @@ function main(): void {
       pairId: match.treatmentId,
     })),
   ];
-  const study = runEventStudy(subjects, securities, benchmark!, bundle.eventStudy);
+  // 保存庫の価格は無調整。保有区間の分割・併合は段差になるので台帳で落とす。
+  const study = runEventStudy(subjects, securities, benchmark!, {
+    ...bundle.eventStudy,
+    corporateActionDates: fromStore
+      ? fromStore.corporateActionDates
+      : toDateMap(bundle.detector.params.corporateActionDates),
+  });
   console.log(`④ イベントスタディ: 対象 ${study.subjectCount} → 観測 ${study.observations.length}`);
+  for (const line of formatHorizonSkips(study)) console.log(line);
   console.log("");
   // 表示する平均は**イベント日を等加重**にしたもの。t(補正) が検定しているのが
   // それであり、1件ずつの等加重を並べると「平均は正なのに t は負」という

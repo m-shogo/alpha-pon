@@ -34,7 +34,7 @@ import {
   buildEdinetReasonEvents,
   type EdinetReasonEvent,
 } from "../signals/edinet-reason-events.js";
-import { runEventStudy, type EventStudySubject } from "../signals/event-study.js";
+import { formatHorizonSkips, runEventStudy, type EventStudySubject } from "../signals/event-study.js";
 import {
   StudyInputsError,
   formatStudyInputs,
@@ -147,7 +147,11 @@ function main(): void {
     pairId: one.eventId,
   }));
   const securities = new Map(inputs.prices.map((series) => [series.code, series]));
-  const study = runEventStudy(subjects, securities, inputs.benchmark, { horizons: DEFAULT_HORIZONS });
+  // 価格は無調整。保有区間の分割・併合は段差になるので台帳で落とす。
+  const study = runEventStudy(subjects, securities, inputs.benchmark, {
+    horizons: DEFAULT_HORIZONS,
+    corporateActionDates: inputs.corporateActionDates,
+  });
 
   console.log(`② イベントスタディ: 対象 ${study.subjectCount} → 観測 ${study.observations.length}`);
   if (study.skipped.length > 0) {
@@ -155,6 +159,7 @@ function main(): void {
     for (const one of study.skipped) counts.set(one.reason, (counts.get(one.reason) ?? 0) + 1);
     console.log(`   測れず       ${[...counts].map(([r, c]) => `${r}=${c}`).join(" ")}`);
   }
+  for (const line of formatHorizonSkips(study)) console.log(line);
   console.log("");
   console.log("horizon |    n / クラスタ平均 / clusters / t(補正) | 回復率");
   for (const row of study.summaryByHorizon) {

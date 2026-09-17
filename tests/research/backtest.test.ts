@@ -485,7 +485,66 @@ function testFixtureBundleIsReproducible() {
   console.log("research/backtest: フィクスチャの再現性 OK");
 }
 
+function testSplitInsideHoldingWindowIsSkipped() {
+  // 価格は無調整。保有中に 1:2 分割があると、何も起きていなくても -50% に見える。
+  // 実データで急落買いの2件が -63% / -51% になり、平均を 45bps 押し下げていた。
+  const splitSeries: PriceSeries = {
+    code: "5535",
+    bars: [
+      { date: "2024-01-04", open: 1000, high: 1010, low: 990, close: 1000, volume: 1_000_000 },
+      { date: "2024-01-05", open: 1000, high: 1010, low: 990, close: 1000, volume: 1_000_000 },
+      { date: "2024-01-09", open: 1000, high: 1010, low: 990, close: 1000, volume: 1_000_000 },
+      // 2024-01-10 に効力発生（1:2）。無調整価格は半分になる。
+      { date: "2024-01-10", open: 500, high: 505, low: 495, close: 500, volume: 2_000_000 },
+      { date: "2024-01-11", open: 500, high: 505, low: 495, close: 500, volume: 2_000_000 },
+    ],
+  };
+  const prices = new Map([["5535", splitSeries]]);
+  const spec: BacktestSpec = { ...BASE_SPEC, id: "split-spec", costs: { commissionBps: 0, spreadBps: 0, slippageBps: 0 } };
+  // 01-04 引けで観測 → 01-05 寄付で買い → 3日保有で 01-11 引けに決済。
+  const holdSpec: BacktestSpec = { ...spec, exit: { mode: "holding_period", holdingPeriodDays: 3 } };
+  const signal = [{ id: "s1", code: "5535", observedAt: "2024-01-04T16:00:00+09:00" }];
+
+  const unchecked = runBacktest(holdSpec, signal, prices);
+  assert.equal(unchecked.corporateActionsChecked, false, "台帳を渡さなければ「確かめていない」と返す");
+  assert.equal(unchecked.executedCount, 1);
+  assert.ok((unchecked.trades[0].grossReturnBps ?? 0) < -4_900, "台帳なしでは段差が損益に入る（これが欠陥の形）");
+
+  const checked = runBacktest(holdSpec, signal, prices, undefined, {
+    corporateActionDates: new Map([["5535", new Set(["2024-01-10"])]]),
+  });
+  assert.equal(checked.corporateActionsChecked, true);
+  assert.equal(checked.executedCount, 0, "保有中に効力発生日がある取引は落とす");
+  assert.equal(checked.skipped[0].reason, "corporate_action_in_holding_window");
+
+  // 2日保有は 01-05 寄付 → 01-10 引け。決済日ちょうどに効力発生 → 決済値が新基準なので落とす。
+  const onExit = runBacktest(spec, signal, prices, undefined, {
+    corporateActionDates: new Map([["5535", new Set(["2024-01-10"])]]),
+  });
+  assert.equal(onExit.skipped[0]?.reason, "corporate_action_in_holding_window", "決済日が効力発生日なら段差をまたいでいる");
+
+  // エントリー当日に効力発生 → 寄付から既に新基準なので段差は無い。
+  const onEntry = runBacktest(spec, signal, prices, undefined, {
+    corporateActionDates: new Map([["5535", new Set(["2024-01-05"])]]),
+  });
+  assert.equal(onEntry.executedCount, 1, "エントリー当日の効力発生はまたいでいない");
+
+  // 決済（01-10）より後、別の銘柄 → 影響しない。
+  const later = runBacktest(spec, signal, prices, undefined, {
+    corporateActionDates: new Map([["5535", new Set(["2024-01-11"])], ["9999", new Set(["2024-01-09"])]]),
+  });
+  assert.equal(later.executedCount, 1);
+
+  // 足が無い日（売買停止中など）に効力が発生しても、日付で比べるので落とせる。
+  const noBar = runBacktest(holdSpec, signal, prices, undefined, {
+    corporateActionDates: new Map([["5535", new Set(["2024-01-08"])]]),
+  });
+  assert.equal(noBar.executedCount, 0, "板の無い日の効力発生も見落とさない");
+  console.log("research/backtest: 保有中の分割 OK");
+}
+
 testStopFillsAtGappedOpenNotAtStopLevel();
+testSplitInsideHoldingWindowIsSkipped();
 testStopFillsAtStopLevelWhenReachedIntraday();
 testShortStopFillsAtGappedOpen();
 testMinimumLotConstraint();

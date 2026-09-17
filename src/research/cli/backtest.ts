@@ -120,7 +120,12 @@ function loadFromStore(
   bundle: Bundle,
   options: Map<string, string>,
   flags: ReadonlySet<string>,
-): { signals: BacktestSignal[]; prices: PriceSeries[]; benchmark: PriceSeries } {
+): {
+  signals: BacktestSignal[];
+  prices: PriceSeries[];
+  benchmark: PriceSeries;
+  corporateActionDates: ReadonlyMap<string, ReadonlySet<string>>;
+} {
   const kind = bundle.detector?.kind;
   if (kind !== "abnormal_move" && kind !== "earnings_gap" && kind !== "read_across") {
     fail(
@@ -202,6 +207,7 @@ function loadFromStore(
       })),
       prices: inputs.prices,
       benchmark: inputs.benchmark,
+      corporateActionDates: inputs.corporateActionDates,
     };
   }
 
@@ -228,7 +234,12 @@ function loadFromStore(
     console.log(`検出  : 開示 ${result.disclosureCount.toLocaleString()} → シグナル ${result.signals.length}`);
     if (gapRejects) console.log(`却下  : ${gapRejects}`);
     console.log("");
-    return { signals: result.signals, prices: inputs.prices, benchmark: inputs.benchmark };
+    return {
+      signals: result.signals,
+      prices: inputs.prices,
+      benchmark: inputs.benchmark,
+      corporateActionDates: inputs.corporateActionDates,
+    };
   }
 
   // 決算開示から「説明のつく日」を組む。
@@ -286,7 +297,12 @@ function loadFromStore(
     observedAt: candidate.observedAt,
   }));
 
-  return { signals, prices: inputs.prices, benchmark: inputs.benchmark };
+  return {
+    signals,
+    prices: inputs.prices,
+    benchmark: inputs.benchmark,
+    corporateActionDates: inputs.corporateActionDates,
+  };
 }
 
 function bps(value: number): string {
@@ -331,7 +347,15 @@ function main(): void {
   }
 
   const prices = buildUniquePriceSeriesMap(priceList!);
-  const report = runBacktest(bundle.spec, signalList!, prices, benchmarkSeries);
+  // 保存庫の価格は無調整。保有中の分割・併合は損益に段差として入るので、
+  // 権利落ち台帳を渡して該当する取引を落とす。bundle の価格には台帳が無い。
+  const report = runBacktest(
+    bundle.spec,
+    signalList!,
+    prices,
+    benchmarkSeries,
+    fromStore ? { corporateActionDates: fromStore.corporateActionDates } : {},
+  );
   const useLedger = !flags.has("no-trial-ledger");
   // 台帳を使わないのに bundle が試行数を宣言していないなら止める。
   // **既定で 1（最も緩い閾値）を仮定してはいけない。**
@@ -382,6 +406,9 @@ function main(): void {
   console.log(`Backtest: ${report.specId} (edge=${report.edgeId}, side=${report.side})`);
   console.log(`  シグナル ${report.signalCount} 件 / 執行できた ${report.executedCount} 件`);
   for (const skip of report.skipped) console.log(`  skip: ${skip.signalId} — ${skip.reason}`);
+  if (!report.corporateActionsChecked) {
+    console.log("  ※ 保有中の株式分割・併合は確かめていません（権利落ち台帳が無い入力）");
+  }
   console.log(`  Gross Alpha 平均: ${bps(report.gross.meanNetAlphaBps)}`);
   console.log(`  Net   Alpha 平均: ${bps(report.net.meanNetAlphaBps)} / 中央値 ${bps(report.net.medianNetAlphaBps)}`);
   console.log(

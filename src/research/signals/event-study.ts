@@ -43,6 +43,7 @@ export const EVENT_STUDY_HORIZON_SKIP_REASONS = [
   "horizon_bar_missing",
   "benchmark_horizon_bar_missing",
   "non_positive_price",
+  "corporate_action_in_horizon",
 ] as const;
 
 export type EventStudyHorizonSkipReason = (typeof EVENT_STUDY_HORIZON_SKIP_REASONS)[number];
@@ -67,6 +68,13 @@ export interface EventStudyParams {
    * イベント日の終値を条件に使う以上、当日には約定できない。
    */
   entryOffsetBars?: number;
+  /**
+   * code -> 株式分割・併合の効力発生日。価格は無調整なので、
+   * イベント日の翌日から決済日までに効力発生日がある horizon は測らない。
+   * エントリー当日も含める（イベント前終値との比較＝回復判定が段差をまたぐ）。
+   * 渡さなければ確かめない（結果の `corporateActionsChecked` が false になる）。
+   */
+  corporateActionDates?: ReadonlyMap<string, ReadonlySet<string>>;
 }
 
 export interface EventStudyHorizonPoint {
@@ -132,6 +140,8 @@ export interface EventStudyResult {
   skipped: Array<{ subjectId: string; reason: EventStudySkipReason }>;
   skippedCounts: Record<EventStudySkipReason, number>;
   subjectCount: number;
+  /** 保有区間の株式分割・併合を確かめたか。 */
+  corporateActionsChecked: boolean;
 }
 
 const DEFAULT_ENTRY_OFFSET_BARS = 1;
@@ -217,6 +227,7 @@ export function runEventStudy(
     const entryPrice = entryBar.open;
     const points: EventStudyHorizonPoint[] = [];
     const skippedHorizons: EventStudyObservation["skippedHorizons"] = [];
+    const actionDates = [...(params.corporateActionDates?.get(subject.code) ?? [])];
 
     for (const horizonBars of horizons) {
       const exitIndex = entryIndex + horizonBars;
@@ -225,6 +236,11 @@ export function runEventStudy(
         continue;
       }
       const exitBar = series.bars[exitIndex];
+      // 足ではなく日付で比べる（板が立たなかった日の効力発生も見落とさない）。
+      if (actionDates.some((date) => date > subject.eventDate && date <= exitBar.date)) {
+        skippedHorizons.push({ horizonBars, reason: "corporate_action_in_horizon" });
+        continue;
+      }
       const benchmarkExitIndex = benchmarkIndexByDate.get(exitBar.date);
       if (benchmarkExitIndex === undefined) {
         skippedHorizons.push({ horizonBars, reason: "benchmark_horizon_bar_missing" });
@@ -318,5 +334,28 @@ export function runEventStudy(
     skipped,
     skippedCounts,
     subjectCount: subjects.length,
+    corporateActionsChecked: params.corporateActionDates !== undefined,
   };
+}
+
+/**
+ * 測れなかった horizon の内訳（人向け）。
+ * 分割・併合で落とした件数を黙らないために、CLI はこれを必ず出す。
+ */
+export function formatHorizonSkips(study: EventStudyResult): string[] {
+  const lines: string[] = [];
+  if (!study.corporateActionsChecked) {
+    lines.push("   ※ 保有区間の株式分割・併合は確かめていません（権利落ち台帳が無い入力）");
+  }
+  const counts = new Map<string, number>();
+  for (const observation of study.observations) {
+    for (const one of observation.skippedHorizons) {
+      const key = `D+${one.horizonBars}:${one.reason}`;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+  }
+  if (counts.size > 0) {
+    lines.push(`   測れない期間 ${[...counts].map(([key, count]) => `${key}=${count}`).join(" ")}`);
+  }
+  return lines;
 }
