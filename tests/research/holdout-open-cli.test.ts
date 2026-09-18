@@ -54,7 +54,7 @@ function git(args: string[]): void {
 
 function runCli(
   extra: string[],
-  target: { bundle: string; prereg: string; tradingDays: number } = {
+  target: { bundle: string; prereg: string; tradingDays?: number; until?: string } = {
     bundle: "research/studies/short.json", prereg: "docs/prereg.md", tradingDays: 40,
   },
 ): { status: number | null; stdout: string; stderr: string } {
@@ -63,7 +63,8 @@ function runCli(
     `--bundle=${target.bundle}`,
     `--prereg=${target.prereg}`,
     "--from=2025-08-01",
-    `--trading-days=${target.tradingDays}`,
+    ...(target.tradingDays === undefined ? [] : [`--trading-days=${target.tradingDays}`]),
+    ...(target.until === undefined ? [] : [`--until=${target.until}`]),
     "--min-t=1.96",
     "--min-clusters=2",
     "--actor=test",
@@ -227,10 +228,25 @@ try {
     primaryHorizon: 5,
     twoSided: true,
   }, null, 2));
+  // 期間の終わりを日付で決める場（過去側の確認と同じ形）。Edge が違うので別に開ける。
+  const shortBundle = JSON.parse(readFileSync(join(dir, "research/studies/short.json"), "utf-8"));
+  writeFileSync(join(dir, "research/studies/until.json"), JSON.stringify({
+    ...shortBundle,
+    spec: { ...shortBundle.spec, id: "synthetic-until-d5", edgeId: "synthetic-until" },
+  }, null, 2));
+  writeFileSync(join(dir, "docs/prereg-until.md"),
+    "bundle: `research/studies/until.json`\n確認: 2025-08-01 〜 2025-09-10 まで1回だけ。t ≥ 1.96、最小クラスタ 2\n");
+  // 取り込みが終了日まで届いていない場（合成の保存庫は 2025-10-31 まで）。
+  writeFileSync(join(dir, "research/studies/until-late.json"), JSON.stringify({
+    ...shortBundle,
+    spec: { ...shortBundle.spec, id: "synthetic-until-late-d5", edgeId: "synthetic-until-late" },
+  }, null, 2));
+  writeFileSync(join(dir, "docs/prereg-until-late.md"),
+    "bundle: `research/studies/until-late.json`\n確認: 2025-08-01 〜 2025-11-28 まで1回だけ。t ≥ 1.96、最小クラスタ 2\n");
   writeFileSync(join(dir, "docs/prereg-misconduct.md"),
     "bundle: `research/studies/misconduct.json`\n確認: 2025-08-01 以降の 45 営業日で1回だけ。|t| ≥ 1.96、最小クラスタ 2\n");
   git(["init", "-q"]);
-  git(["add", "docs/prereg.md", "docs/prereg-misconduct.md"]);
+  git(["add", "docs/prereg.md", "docs/prereg-misconduct.md", "docs/prereg-until.md", "docs/prereg-until-late.md"]);
   git(["commit", "-q", "-m", "prereg"]);
 
   const accessLogPath = join(dir, "research/holdout/access_log.jsonl");
@@ -238,7 +254,7 @@ try {
   // 1. 計画の表示だけ
   const plan = runCli([]);
   assert.equal(plan.status, 0, plan.stderr);
-  assert.match(plan.stdout, /確認期間: 2025-08-01 〜 2025-09-25（40営業日）\/ 封印の窓 vault-test/);
+  assert.match(plan.stdout, /確認期間: 2025-08-01 〜 2025-09-25（40営業日） \/ 封印の窓 vault-test/);
   assert.match(plan.stdout, /計画だけ表示しました/);
   assert.equal(readFileSync(accessLogPath, "utf-8"), "", "計画の表示では記録を残さない");
 
@@ -296,6 +312,23 @@ try {
   const eventAgain = runCli(["--execute"], eventTarget);
   assert.notEqual(eventAgain.status, 0);
   assert.match(eventAgain.stdout + eventAgain.stderr, /開封済み/);
+
+  // 6. 終わりを日付で決める指定（--until）
+  const untilTarget = { bundle: "research/studies/until.json", prereg: "docs/prereg-until.md", until: "2025-09-10" };
+  const untilPlan = runCli([], untilTarget);
+  assert.equal(untilPlan.status, 0, untilPlan.stderr);
+  assert.match(untilPlan.stdout, /確認期間: 2025-08-01 〜 2025-09-10（2025-09-10 まで・取り込み済み \d+営業日）/);
+  const notIngested = runCli([], {
+    bundle: "research/studies/until-late.json", prereg: "docs/prereg-until-late.md", until: "2025-11-28",
+  });
+  assert.equal(notIngested.status, 0, notIngested.stderr);
+  assert.match(notIngested.stdout, /まだ開けません: 取り込みが 2025-11-28 まで届いていません（最終 2025-10-31）/);
+  const mismatched = runCli([], { ...untilTarget, until: "2025-12-31" });
+  assert.notEqual(mismatched.status, 0, "事前登録に無い終了日は通さない");
+  assert.match(mismatched.stdout + mismatched.stderr, /終了日 2025-12-31/);
+  const bothModes = runCli(["--trading-days=10"], untilTarget);
+  assert.notEqual(bothModes.status, 0, "営業日数と終了日の両方は通さない");
+  assert.match(bothModes.stdout + bothModes.stderr, /どちらか一方/);
 
   // 4. 事前登録が変更中なら拒否（計画の表示でも）
   writeFileSync(join(dir, "docs/prereg.md"), "書き換え中\n");

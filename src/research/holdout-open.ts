@@ -35,22 +35,50 @@ function assertIsoDate(value: string, label: string): void {
 }
 
 /**
- * 確認期間の終わりを、from 以降の取り込み済み営業日の数で決める。
- * 足りなければ to は null（まだ開けない）。
+ * 確認期間の終わりを、取り込み済みの営業日から決める。
+ *
+ * 2通りある。
+ *   tradingDays: from 以降の N 営業日目（前を向いた確認。終わりは時間が決める）
+ *   until:       その日までの最後の営業日（後ろを向いた確認。終わりは最初から決まっている）
+ * どちらも**価格は見ない**（取り込み済みの日付の数と並びだけ）。
  */
 export function resolveConfirmationRange(input: {
   tradingDates: readonly string[];
   from: string;
-  tradingDays: number;
-}): { to: string | null; available: number } {
+  tradingDays?: number;
+  until?: string;
+}): { to: string | null; available: number; reason?: string } {
   assertIsoDate(input.from, "from");
-  if (!Number.isSafeInteger(input.tradingDays) || input.tradingDays < 1) {
-    throw new HoldoutOpenError(`tradingDays は 1 以上の整数で指定してください: ${input.tradingDays}`);
+  if ((input.tradingDays === undefined) === (input.until === undefined)) {
+    throw new HoldoutOpenError("tradingDays と until はどちらか一方だけを指定してください");
   }
   const eligible = [...new Set(input.tradingDates)].filter((date) => date >= input.from).sort();
   for (const date of eligible) assertIsoDate(date, "取り込み済みの営業日");
-  if (eligible.length < input.tradingDays) return { to: null, available: eligible.length };
-  return { to: eligible[input.tradingDays - 1]!, available: eligible.length };
+
+  if (input.until !== undefined) {
+    assertIsoDate(input.until, "until");
+    if (input.until < input.from) throw new HoldoutOpenError(`until は from 以降にしてください: ${input.until}`);
+    const inRange = eligible.filter((date) => date <= input.until!);
+    const last = eligible.at(-1);
+    // until まで取り込みが届いていないなら、まだ開けない（終わりが動いてしまう）。
+    if (inRange.length === 0 || last === undefined || last < input.until) {
+      return {
+        to: null,
+        available: inRange.length,
+        reason: `取り込みが ${input.until} まで届いていません（最終 ${last ?? "なし"}）`,
+      };
+    }
+    return { to: inRange.at(-1)!, available: inRange.length };
+  }
+
+  const tradingDays = input.tradingDays!;
+  if (!Number.isSafeInteger(tradingDays) || tradingDays < 1) {
+    throw new HoldoutOpenError(`tradingDays は 1 以上の整数で指定してください: ${tradingDays}`);
+  }
+  if (eligible.length < tradingDays) {
+    return { to: null, available: eligible.length, reason: `取り込み済み ${eligible.length} / 必要 ${tradingDays}` };
+  }
+  return { to: eligible[tradingDays - 1]!, available: eligible.length };
 }
 
 /**
@@ -108,13 +136,24 @@ export function overlappingWindows(
  */
 export function assertPreregistrationMatches(
   text: string,
-  expected: { bundlePath: string; from: string; tradingDays: number; minT: number; minClusters: number },
+  expected: {
+    bundlePath: string;
+    from: string;
+    tradingDays?: number;
+    until?: string;
+    minT: number;
+    minClusters: number;
+  },
 ): void {
   const missing: string[] = [];
   if (!text.includes(expected.bundlePath)) missing.push(`bundle ${expected.bundlePath}`);
   if (!text.includes(expected.from)) missing.push(`開始日 ${expected.from}`);
-  if (!new RegExp(`(^|[^0-9])${expected.tradingDays}\\s*営業日`).test(text)) {
+  if (expected.tradingDays !== undefined
+    && !new RegExp(`(^|[^0-9])${expected.tradingDays}\\s*営業日`).test(text)) {
     missing.push(`${expected.tradingDays} 営業日`);
+  }
+  if (expected.until !== undefined && !text.includes(expected.until)) {
+    missing.push(`終了日 ${expected.until}`);
   }
   // 引数の閾値が事前登録と食い違っていないか。数字の一部に一致させない。
   if (!new RegExp(`(^|[^0-9.])${String(expected.minT).replace(".", "\\.")}([^0-9]|$)`).test(text)) {

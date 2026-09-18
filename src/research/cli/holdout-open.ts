@@ -3,6 +3,8 @@
 //   pnpm research:holdout:open --bundle=research/studies/<name>.json \
 //     --prereg=docs/research/preregistrations/<name>.md \
 //     --from=2026-03-01 --trading-days=189 --min-t=1.96 --min-clusters=20 --actor=<名前>
+//   期間の終わりが最初から決まっているなら --trading-days の代わりに --until=<日付>
+//     （過去側の確認。例: --from=2021-10-01 --until=2024-06-18）
 //     → 計画だけ表示する（価格は読まない）
 //   同じ引数に --execute を付ける
 //     → 1回だけ実行し、結果を research/holdout/access_log.jsonl に追記する（消せない）
@@ -211,7 +213,12 @@ function main(): void {
   const bundlePath = requiredOption(options, "bundle");
   const preregPath = requiredOption(options, "prereg");
   const from = requiredOption(options, "from");
-  const tradingDays = Number(requiredOption(options, "trading-days"));
+  const tradingDaysRaw = options.get("trading-days")?.trim();
+  const until = options.get("until")?.trim();
+  if ((tradingDaysRaw === undefined) === (until === undefined)) {
+    fail("--trading-days=<営業日数> か --until=<日付> のどちらか一方を指定してください");
+  }
+  const tradingDays = tradingDaysRaw === undefined ? undefined : Number(tradingDaysRaw);
   const minT = Number(requiredOption(options, "min-t"));
   const minClusters = Number(requiredOption(options, "min-clusters"));
   const actor = requiredOption(options, "actor");
@@ -260,17 +267,31 @@ function main(): void {
   const storeRoot = resolveStoreRoot();
   let to: string;
   let windows: string[];
+  let rangeAvailable = 0;
   try {
-    assertPreregistrationMatches(readFileSync(preregPath, "utf-8"), { bundlePath, from, tradingDays, minT, minClusters });
+    assertPreregistrationMatches(readFileSync(preregPath, "utf-8"), {
+      bundlePath,
+      from,
+      ...(tradingDays === undefined ? {} : { tradingDays }),
+      ...(until === undefined ? {} : { until }),
+      minT,
+      minClusters,
+    });
     assertNotOpenedBefore(accessLog, edgeId);
-    const range = resolveConfirmationRange({ tradingDates: listIngestedDates(storeRoot), from, tradingDays });
+    const range = resolveConfirmationRange({
+      tradingDates: listIngestedDates(storeRoot),
+      from,
+      ...(tradingDays === undefined ? {} : { tradingDays }),
+      ...(until === undefined ? {} : { until }),
+    });
     console.log(`Edge    : ${edgeId}（spec ${specId} / ${label}）`);
     console.log(`事前登録: ${preregPath}（${prereg.hash.slice(0, 8)} @ ${prereg.committedAt}）`);
     if (range.to === null) {
-      console.log(`まだ開けません: ${from} 以降の取り込み済み営業日 ${range.available} / 必要 ${tradingDays}`);
+      console.log(`まだ開けません: ${range.reason ?? `${from} 以降の取り込み済み営業日 ${range.available}`}`);
       return;
     }
     to = range.to;
+    rangeAvailable = range.available;
     const ledgerPath = resolve(storeRoot, INGEST_LEDGER_NAME);
     const completed = completedDatesFrom({
       fileNames: readdirSync(storeRoot),
@@ -291,7 +312,11 @@ function main(): void {
     throw error;
   }
 
-  console.log(`確認期間: ${from} 〜 ${to!}（${tradingDays}営業日）/ 封印の窓 ${windows!.join(", ")}`);
+  console.log(
+    `確認期間: ${from} 〜 ${to!}`
+    + `（${tradingDays === undefined ? `${until} まで・取り込み済み ${rangeAvailable}営業日` : `${tradingDays}営業日`}）`
+    + ` / 封印の窓 ${windows!.join(", ")}`,
+  );
   console.log(
     isEventStudy
       ? `判定    : 主要 horizon のクラスタ補正後 |t| ≥ ${minT}（両側。売買の合否ではない）/ 最小クラスタ ${minClusters}`
@@ -326,7 +351,8 @@ function main(): void {
       preregCommit: prereg.hash,
       from,
       to: to!,
-      tradingDays,
+      ...(tradingDays === undefined ? { until } : { tradingDays }),
+      tradingDaysInRange: rangeAvailable,
       minT,
       minClusters,
       ...outcome.notes,
