@@ -60,8 +60,17 @@ export function resolveConfirmationRange(input: {
     if (input.until < input.from) throw new HoldoutOpenError(`until は from 以降にしてください: ${input.until}`);
     const inRange = eligible.filter((date) => date <= input.until!);
     const last = eligible.at(-1);
+    // 期間の中に取り込み済みの日が1日も無い（例: 過去側をまだ契約していない）。
+    if (inRange.length === 0) {
+      return {
+        to: null,
+        available: 0,
+        reason: `${input.from}〜${input.until} に取り込み済みの営業日がありません`
+          + `（${input.from} 以降の取り込み済み: ${eligible[0] ?? "なし"}〜${last ?? "なし"}）`,
+      };
+    }
     // until まで取り込みが届いていないなら、まだ開けない（終わりが動いてしまう）。
-    if (inRange.length === 0 || last === undefined || last < input.until) {
+    if (last === undefined || last < input.until) {
       return {
         to: null,
         available: inRange.length,
@@ -133,6 +142,10 @@ export function overlappingWindows(
 /**
  * 事前登録の本文が、開けようとしている条件を書いているか。
  * bundle のパスと確認期間の開始日と営業日数が、すべて本文に現れること。
+ *
+ * edgeId も本文が名乗っていること（`- edgeId: \`generic-reversal\`` の形）。
+ * これが無いと、同じ bundle を別の edgeId で開けてしまい、「1 Edge 1回」を
+ * 引数だけで回避できる（2026-09-18 に下見で気づいた欠陥）。
  */
 export function assertPreregistrationMatches(
   text: string,
@@ -143,10 +156,18 @@ export function assertPreregistrationMatches(
     until?: string;
     minT: number;
     minClusters: number;
+    edgeId?: string;
   },
 ): void {
   const missing: string[] = [];
   if (!text.includes(expected.bundlePath)) missing.push(`bundle ${expected.bundlePath}`);
+  if (expected.edgeId !== undefined) {
+    const id = expected.edgeId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // 末尾の境界を見る。`generic-reversal` が `generic-reversal-backward` に当たらないように。
+    if (!new RegExp("edgeId:\\s*`?" + id + "`?(?![A-Za-z0-9_-])").test(text)) {
+      missing.push(`edgeId ${expected.edgeId}`);
+    }
+  }
   if (!text.includes(expected.from)) missing.push(`開始日 ${expected.from}`);
   if (expected.tradingDays !== undefined
     && !new RegExp(`(^|[^0-9])${expected.tradingDays}\\s*営業日`).test(text)) {

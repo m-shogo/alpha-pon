@@ -68,6 +68,13 @@ function testRangeCanEndAtAFixedDate() {
   const short = resolveConfirmationRange({ tradingDates, from: "2026-03-01", until: "2026-03-10" });
   assert.equal(short.to, null, "取り込みが終了日まで届いていなければ開けない");
   assert.match(short.reason ?? "", /取り込みが 2026-03-10 まで届いていません（最終 2026-03-05）/);
+  const empty = resolveConfirmationRange({ tradingDates, from: "2021-10-01", until: "2024-06-18" });
+  assert.equal(empty.to, null, "期間の中に取り込み済みの日が1日も無ければ開けない");
+  assert.match(
+    empty.reason ?? "",
+    /2021-10-01〜2024-06-18 に取り込み済みの営業日がありません（2021-10-01 以降の取り込み済み: 2026-02-27〜2026-03-05）/,
+    "「届いていない」ではなく「1日も無い」と言う（理由を取り違えると、契約前に取り込みを疑う）",
+  );
   const holidayEnd = resolveConfirmationRange({
     tradingDates: [...tradingDates, "2026-03-09"],
     from: "2026-03-01",
@@ -135,6 +142,37 @@ function testPreregistrationAcceptsAnEndDate() {
   const ok = { bundlePath: "research/studies/x.json", from: "2021-10-01", until: "2024-06-18", minT: 1.96, minClusters: 20 };
   assert.doesNotThrow(() => assertPreregistrationMatches(text, ok));
   assert.throws(() => assertPreregistrationMatches(text, { ...ok, until: "2024-06-30" }), /終了日 2024-06-30/);
+}
+
+/**
+ * 同じ bundle を別の標本で確かめるとき、edgeId を引数だけで変えられてはいけない
+ * （変えられると「1 Edge 1回」を回避できる）。事前登録が名乗っている id だけを許す。
+ */
+function testPreregistrationMustNameTheEdgeId() {
+  const base = { bundlePath: "research/studies/x.json", from: "2021-10-01", until: "2024-06-18", minT: 1.96, minClusters: 20 };
+  const text = [
+    "- edgeId: `generic-reversal-backward`（売買の規則は `generic-reversal` と同一）",
+    "bundle: `research/studies/x.json`",
+    "期間: **2021-10-01 〜 2024-06-18**",
+    "合格: 補正後 t ≥ 1.96、最小クラスタ 20",
+  ].join("\n");
+  assert.doesNotThrow(() => assertPreregistrationMatches(text, { ...base, edgeId: "generic-reversal-backward" }));
+  assert.throws(
+    () => assertPreregistrationMatches(text, { ...base, edgeId: "generic-reversal" }),
+    /edgeId generic-reversal/,
+    "本文の `generic-reversal-backward` の前半に一致させない",
+  );
+  const forward = "- edgeId: `generic-reversal`（買いと同じ Edge の別条件）\n" + text.split("\n").slice(1).join("\n");
+  assert.doesNotThrow(() => assertPreregistrationMatches(forward, { ...base, edgeId: "generic-reversal" }));
+  assert.throws(
+    () => assertPreregistrationMatches(forward, { ...base, edgeId: "generic-reversal-backward" }),
+    /edgeId generic-reversal-backward/,
+  );
+  assert.throws(
+    () => assertPreregistrationMatches(text.split("\n").slice(1).join("\n"), { ...base, edgeId: "generic-reversal-backward" }),
+    /edgeId generic-reversal-backward/,
+    "edgeId を書いていない事前登録では開けない",
+  );
 }
 
 function testPreregistrationMustStateTheConditions() {
@@ -233,6 +271,7 @@ testOneOpenPerEdge();
 testWindowsOverlap();
 testRangeCanEndAtAFixedDate();
 testPreregistrationAcceptsAnEndDate();
+testPreregistrationMustNameTheEdgeId();
 testPreregistrationMustStateTheConditions();
 testJudgement();
 testEventStudyJudgementIsTwoSided();

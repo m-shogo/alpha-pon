@@ -5,6 +5,7 @@
 //     --from=2026-03-01 --trading-days=189 --min-t=1.96 --min-clusters=20 --actor=<名前>
 //   期間の終わりが最初から決まっているなら --trading-days の代わりに --until=<日付>
 //     （過去側の確認。例: --from=2021-10-01 --until=2024-06-18）
+//   同じ bundle を別の標本で確かめるときは --edge-id=<id>（事前登録が名乗っている id だけ）
 //     → 計画だけ表示する（価格は読まない）
 //   同じ引数に --execute を付ける
 //     → 1回だけ実行し、結果を research/holdout/access_log.jsonl に追記する（消せない）
@@ -14,7 +15,7 @@
 //   - kind = "disclosure_event_study": 主要 horizon の |t| ≥ --min-t（両側）で「反応あり」
 //
 // 止める条件（どれか1つでも当たれば開けない）:
-//   - 事前登録がコミットされていない、変更中、または条件（bundle・開始日・営業日数）を書いていない
+//   - 事前登録がコミットされていない、変更中、または条件（bundle・開始日・営業日数・edgeId）を書いていない
 //   - この Edge がすでに開封されている（1 Edge 1回）
 //   - 確認期間の営業日が足りない（価格は見ずに、取り込み済みの営業日で数える）
 //   - 確認期間に取り込みの穴がある
@@ -222,6 +223,8 @@ function main(): void {
   const minT = Number(requiredOption(options, "min-t"));
   const minClusters = Number(requiredOption(options, "min-clusters"));
   const actor = requiredOption(options, "actor");
+  const edgeIdOverride = options.get("edge-id")?.trim();
+  if (edgeIdOverride !== undefined && edgeIdOverride === "") fail("--edge-id が空です");
   const execute = flags.has("execute");
 
   if (!existsSync(bundlePath) || !isCanonicalReadOnlyJsonFile(bundlePath)) {
@@ -258,6 +261,12 @@ function main(): void {
     label = `backtest・${backtestBundle.spec.side}`;
   }
 
+  // 同じ bundle を別の標本で確かめる場合（例: 過去側の確認）は edgeId を分ける。
+  // 分けないと、先に実行したほうが「1 Edge 1回」でもう一方を永久に塞ぐ。
+  // 引数だけで回避できないように、事前登録が名乗っている id と一致することを必ず確かめる。
+  const bundleEdgeId = edgeId;
+  if (edgeIdOverride !== undefined) edgeId = edgeIdOverride;
+
   if (!existsSync(preregPath)) fail(`事前登録がありません: ${preregPath}`);
   const prereg = gitCommitOf(preregPath);
   const accessLogPath = paths.holdoutAccessLog();
@@ -276,6 +285,7 @@ function main(): void {
       ...(until === undefined ? {} : { until }),
       minT,
       minClusters,
+      edgeId,
     });
     assertNotOpenedBefore(accessLog, edgeId);
     const range = resolveConfirmationRange({
@@ -284,7 +294,10 @@ function main(): void {
       ...(tradingDays === undefined ? {} : { tradingDays }),
       ...(until === undefined ? {} : { until }),
     });
-    console.log(`Edge    : ${edgeId}（spec ${specId} / ${label}）`);
+    console.log(
+      `Edge    : ${edgeId}（spec ${specId} / ${label}`
+      + `${edgeId === bundleEdgeId ? "" : ` / bundle の edgeId は ${bundleEdgeId}`}）`,
+    );
     console.log(`事前登録: ${preregPath}（${prereg.hash.slice(0, 8)} @ ${prereg.committedAt}）`);
     if (range.to === null) {
       console.log(`まだ開けません: ${range.reason ?? `${from} 以降の取り込み済み営業日 ${range.available}`}`);
@@ -349,6 +362,7 @@ function main(): void {
       bundle: bundlePath,
       prereg: preregPath,
       preregCommit: prereg.hash,
+      ...(edgeId === bundleEdgeId ? {} : { bundleEdgeId }),
       from,
       to: to!,
       ...(tradingDays === undefined ? { until } : { tradingDays }),

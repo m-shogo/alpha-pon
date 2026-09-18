@@ -38,7 +38,8 @@ Light を契約すると **2021-10-01〜2024-06-18（誰も見ていない約2.7
 ```
 pnpm research:holdout:open --bundle=research/studies/generic-reversal-short-backtest.json \
   --prereg=docs/research/preregistrations/2026-09-18-generic-reversal-short-backward.md \
-  --from=2021-10-01 --until=2024-06-18 --min-t=1.96 --min-clusters=20 --actor=<名前> --execute
+  --from=2021-10-01 --until=2024-06-18 --min-t=1.96 --min-clusters=20 \
+  --edge-id=generic-reversal-backward --actor=<名前> --execute
 ```
 
 実行の前に必要な作業（順序も含めて事前に決めておく）。
@@ -59,3 +60,11 @@ pnpm research:holdout:open --bundle=research/studies/generic-reversal-short-back
 **この見込みを根拠に合否を語らない。**
 
 実装の誤りを直して測り直すことは認める（理由を記録に残す）。条件の変更は認めない。
+
+## 変更履歴
+
+- **2026-09-18（登録と同じ日・この期間のデータをまだ持っていない時点）**:
+  コマンドに `--edge-id=generic-reversal-backward` を足した。
+  道具が bundle から edgeId を決めていたため、前を向いた確認と同じ Edge として
+  記録され、**先に実行したほうがもう一方を永久に塞ぐ**状態だった（下見で気づいた）。
+  道具の欠陥を直しただけで、**期間・条件・閾値は変えていない**。
