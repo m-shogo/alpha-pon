@@ -99,6 +99,8 @@ function runBacktestOpen(
       to,
       minTurnoverJpy: bundle.spec.liquidity.minAdtvJpy!,
       useEarningsCalendar: true,
+      // 封印を開ける経路。ここだけが明示的に封印期間を読める。
+      allowSealed: true,
     });
     signals = built.signals.filter((signal) => {
       const date = jstDateOf(signal.observedAt);

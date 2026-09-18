@@ -132,7 +132,8 @@ export function runDisclosureEventStudy(
   let inputs;
   try {
     // 全銘柄を読む（0 = 期間中の流動性で絞らない）。ベンチマークは既定の 5億円/日。
-    inputs = loadStudyInputsFromStore({ to: range.to, minTurnoverJpy: 0 });
+    // 封印を開ける経路（事前登録・1回きり・記録つき）なので明示して読む。
+    inputs = loadStudyInputsFromStore({ to: range.to, minTurnoverJpy: 0, allowSealed: true });
   } catch (error) {
     if (error instanceof StudyInputsError) throw new EventStudyRunError(error.message);
     throw error;
@@ -154,7 +155,7 @@ export function runDisclosureEventStudy(
   );
 
   const known = bundle.excludeKnownEarnings
-    ? loadEarningsEventDatesFromStore({ tradingDates: inputs.tradingDates, to: range.to }).byCode
+    ? loadEarningsEventDatesFromStore({ tradingDates: inputs.tradingDates, to: range.to, allowSealed: true }).byCode
     : new Map<string, Set<string>>();
   const securities = new Map<string, PriceSeries>(inputs.prices.map((series) => [series.code, series]));
   const measurementRejected = { no_price_series: 0, no_reaction_bar: 0, below_min_turnover: 0, known_earnings: 0 };

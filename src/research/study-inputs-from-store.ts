@@ -21,7 +21,7 @@
  */
 
 import { existsSync, readFileSync } from "node:fs";
-import type { HoldoutVaultManifest } from "./signals/holdout-partition.js";
+import { researchPeriodOf, type HoldoutVaultManifest } from "./signals/holdout-partition.js";
 import { paths } from "./io.js";
 import { resolve } from "node:path";
 import type { EarningsDisclosureInput } from "./signals/earnings-gap.js";
@@ -62,6 +62,17 @@ import type { PriceSeries } from "./backtest.js";
 export interface StudyInputsQuery {
   from?: string;
   to?: string;
+  /**
+   * 封印期間を読むことを明示する。既定 false。
+   *
+   * **封印は入口で守る。** 以前は各 CLI が `--to` を自分で切っていたので、
+   * 書き忘れた CLI だけが封印の中を読めた（2026-09-11 に実際に起きた）。
+   * ここで止めれば、経路が増えても守りは1か所で効く。
+   * true にするのは `research:holdout:open`（事前登録・1 Edge 1回・記録つき）だけ。
+   */
+  allowSealed?: boolean;
+  /** 封印の定義。省略すると research/holdout/vault.manifest.json を読む（テスト用の注入口）。 */
+  vaultManifest?: HoldoutVaultManifest | null;
   /** 0 なら流動性で絞らない。 */
   minTurnoverJpy?: number;
   root?: string;
@@ -123,6 +134,69 @@ export interface StudyInputs {
 
 export class StudyInputsError extends Error {}
 
+/** 封印の定義を読む。無ければ null（制限なし）。 */
+function loadVaultManifest(): HoldoutVaultManifest | null {
+  const path = paths.holdoutManifest();
+  if (!existsSync(path)) return null;
+  return JSON.parse(readFileSync(path, "utf-8")) as HoldoutVaultManifest;
+}
+
+/**
+ * 研究に使ってよい期間。封印の窓の手前の隙間（`researchPeriodOf`）。
+ * 窓が無ければ null。
+ */
+export function researchRangeFromVault(
+  manifest: HoldoutVaultManifest | null = loadVaultManifest(),
+): { from: string | null; to: string; windowId: string } | null {
+  if (!manifest) return null;
+  const period = researchPeriodOf(manifest);
+  if (!period) return null;
+  return { from: period.from, to: period.to, windowId: period.sealedWindowId };
+}
+
+/**
+ * 要求された期間を、研究に使ってよい期間に収める。
+ * 明示的に外を指していたら止める（黙って切り詰めない）。
+ */
+function assertToIsNotSealed(to: string | undefined, allowSealed: boolean | undefined): void {
+  if (allowSealed || !to) return;
+  const research = researchRangeFromVault();
+  if (research && to > research.to) {
+    throw new StudyInputsError(
+      `to=${to} は封印期間に入っています（${research.windowId} は ${research.to} の翌日から）。`
+      + "封印を開けるなら research:holdout:open を通してください",
+    );
+  }
+}
+
+function resolveLoadRange(query: StudyInputsQuery): { from?: string; to?: string } {
+  if (query.allowSealed) {
+    return { ...(query.from ? { from: query.from } : {}), ...(query.to ? { to: query.to } : {}) };
+  }
+  const research = researchRangeFromVault(
+    query.vaultManifest === undefined ? loadVaultManifest() : query.vaultManifest,
+  );
+  if (!research) {
+    return { ...(query.from ? { from: query.from } : {}), ...(query.to ? { to: query.to } : {}) };
+  }
+  if (query.to && query.to > research.to) {
+    throw new StudyInputsError(
+      `to=${query.to} は封印期間に入っています（${research.windowId} は ${research.to} の翌日から）。`
+      + "封印を開けるなら research:holdout:open を通してください",
+    );
+  }
+  if (query.from && research.from && query.from < research.from) {
+    throw new StudyInputsError(
+      `from=${query.from} は封印期間に入っています（研究に使えるのは ${research.from} 以降）。`
+      + "封印を開けるなら research:holdout:open を通してください",
+    );
+  }
+  return {
+    ...(query.from ?? research.from ? { from: query.from ?? research.from! } : {}),
+    to: query.to ?? research.to,
+  };
+}
+
 /**
  * 直近 lookback 本（期首は本数が足りない窓も含む）の平均売買代金の、期間中の最大値。
  *
@@ -147,6 +221,9 @@ export function maxTrailingAverageTurnoverJpy(series: PriceSeries, lookback: num
 }
 
 export function loadStudyInputsFromStore(query: StudyInputsQuery = {}): StudyInputs {
+  // **封印の検査を最初に置く。** 保存庫の検査より先に落とさないと、
+  // 「封印を覗こうとした」のが別のエラーに隠れる。
+  const loadRange = resolveLoadRange(query);
   const root = query.root ?? resolveStoreRoot();
   const ledgerPath = resolve(root, JQUANTS_ADJUSTMENT_LEDGER_NAME);
   if (!existsSync(ledgerPath)) {
@@ -165,11 +242,11 @@ export function loadStudyInputsFromStore(query: StudyInputsQuery = {}): StudyInp
     throw new StudyInputsError(`minTurnoverJpy must be a non-negative finite number: ${minTurnoverJpy}`);
   }
 
+  // 封印は入口で守る。研究の期間の外を指していたらここで止まる。
   const loaded = loadBacktestSeriesAsOf({
     asOf: query.asOf ?? new Date().toISOString(),
     root,
-    ...(query.from ? { from: query.from } : {}),
-    ...(query.to ? { to: query.to } : {}),
+    ...loadRange,
   });
   if (loaded.series.length === 0) {
     throw new StudyInputsError(
@@ -265,7 +342,10 @@ export function loadEarningsEventDatesFromStore(input: {
    * 触らないほうが確実。
    */
   to?: string;
+  /** 封印期間の開示を読むことを明示する（research:holdout:open だけ）。 */
+  allowSealed?: boolean;
 }): EarningsEventDatesResult & { disclosureCount: number; datesScanned: number } {
+  assertToIsNotSealed(input.to, input.allowSealed);
   const root = input.root ?? resolveFinsStoreRoot();
   const dates = listIngestedFinsDates(root).filter((date) => !input.to || date <= input.to);
   if (dates.length === 0) {
@@ -310,7 +390,10 @@ export function loadEarningsDisclosureInputs(input: {
   root?: string;
   /** この日より後の開示を使わない（確認期間・holdout の保全）。 */
   to?: string;
+  /** 封印期間の開示を読むことを明示する（research:holdout:open だけ）。 */
+  allowSealed?: boolean;
 } = {}): { disclosures: EarningsDisclosureInput[]; datesScanned: number; withoutForecast: number } {
+  assertToIsNotSealed(input.to, input.allowSealed);
   const root = input.root ?? resolveFinsStoreRoot();
   const dates = listIngestedFinsDates(root).filter((date) => !input.to || date <= input.to);
   if (dates.length === 0) {
@@ -346,17 +429,9 @@ export function loadEarningsDisclosureInputs(input: {
  * 8ヶ月ぶん狭まった状態で探索した事故があった。入口を1つにする。
  */
 export function researchCutoffFromVault(): { to: string; windowId: string } | null {
-  const path = paths.holdoutManifest();
-  if (!existsSync(path)) return null;
-  const manifest = JSON.parse(readFileSync(path, "utf-8")) as HoldoutVaultManifest;
-  let earliest: { from: string; id: string } | null = null;
-  for (const window of manifest.windows) {
-    if (!earliest || window.from < earliest.from) earliest = { from: window.from, id: window.id };
-  }
-  if (!earliest) return null;
-  const day = new Date(`${earliest.from}T00:00:00Z`);
-  day.setUTCDate(day.getUTCDate() - 1);
-  return { to: day.toISOString().slice(0, 10), windowId: earliest.id };
+  const research = researchRangeFromVault();
+  if (!research) return null;
+  return { to: research.to, windowId: research.windowId };
 }
 
 /**

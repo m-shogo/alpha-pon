@@ -172,6 +172,51 @@ export function mergeHoldoutManifests(input: {
   };
 }
 
+/**
+ * 研究に使ってよい期間。封印の窓の間の隙間のうち、**最後の窓の手前にある最後の隙間**。
+ *
+ *   窓が 2025-07〜2026-06 と 2026-07〜2027-06 だけ → 〜2025-06-30（始まりは無制限）
+ *   さらに過去側に 〜2024-06-18 の窓を足す       → 2024-06-19〜2025-06-30
+ *
+ * 最後の窓の後ろ（まだ封印していない未来）は研究に使わない。
+ * 窓が無ければ null（制限なし）。隣り合う窓・重なる窓はまとめる。
+ * 対象を銘柄で限った窓（named_codes）は期間の制限には使わない（サンプル単位で分ける）。
+ */
+export function researchPeriodOf(
+  manifest: HoldoutVaultManifest,
+): { from: string | null; to: string; sealedWindowId: string } | null {
+  assertManifest(manifest);
+  const windows = manifest.windows
+    .filter((window) => window.scope === "all_universe")
+    .map((window) => ({ id: window.id, from: window.from, to: window.to }))
+    .sort((left, right) => (left.from < right.from ? -1 : left.from > right.from ? 1 : 0));
+  if (windows.length === 0) return null;
+  // 重なる・隣り合う窓はまとめる。id は先頭の窓のものを残す。
+  const merged: Array<{ id: string; from: string; to: string }> = [];
+  for (const window of windows) {
+    const last = merged.at(-1);
+    if (last && window.from <= addDays(last.to, 1)) {
+      if (window.to > last.to) last.to = window.to;
+    } else {
+      merged.push({ ...window });
+    }
+  }
+  const lastWindow = merged.at(-1)!;
+  const previous = merged.length >= 2 ? merged.at(-2)! : null;
+  // 隣り合う窓は上でまとめているので、隙間は必ず1日以上ある（from <= to）。
+  return {
+    from: previous ? addDays(previous.to, 1) : null,
+    to: addDays(lastWindow.from, -1),
+    sealedWindowId: lastWindow.id,
+  };
+}
+
+function addDays(date: string, days: number): string {
+  const value = new Date(`${assertIsoDate(date, "date")}T00:00:00Z`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+}
+
 export function partitionByHoldout(input: HoldoutPartitionInput): HoldoutPartitionResult {
   assertManifest(input.manifest);
   for (const sample of input.samples) {
