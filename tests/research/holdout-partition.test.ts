@@ -9,6 +9,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
+  researchPeriodOf,
   partitionByHoldout,
   type HoldoutAccessRecord,
   type HoldoutSample,
@@ -188,7 +189,66 @@ function testRealVaultManifestParses() {
   assert.equal(result.excluded.length, 1, "実 manifest でも封印期間が効く");
 }
 
+function testResearchPeriodIsTheLastGapBeforeTheLastWindow() {
+  const window = (id: string, from: string, to: string) => ({ id, from, to, scope: "all_universe" as const });
+  const base = { schemaVersion: 1 as const, sealedAt: "2026-08-04", policy: "p" };
+  assert.deepEqual(
+    researchPeriodOf({ ...base, windows: [window("a", "2025-07-01", "2026-06-30"), window("b", "2026-07-01", "2027-06-30")] }),
+    { from: null, to: "2025-06-30", sealedWindowId: "a" },
+    "隣り合う窓はまとめる。始まりは無制限",
+  );
+  assert.deepEqual(
+    researchPeriodOf({
+      ...base,
+      windows: [
+        window("b", "2026-07-01", "2027-06-30"),
+        window("past", "2019-01-01", "2024-06-18"),
+        window("a", "2025-07-01", "2026-06-30"),
+      ],
+    }),
+    { from: "2024-06-19", to: "2025-06-30", sealedWindowId: "a" },
+    "過去側に窓を足すと、研究の始まりも決まる（入力順に依存しない）",
+  );
+  assert.deepEqual(
+    researchPeriodOf({ ...base, windows: [window("a", "2025-07-01", "2026-06-30"), window("overlap", "2026-01-01", "2026-12-31")] }),
+    { from: null, to: "2025-06-30", sealedWindowId: "a" },
+    "重なる窓もまとめる",
+  );
+  assert.deepEqual(
+    researchPeriodOf({
+      ...base,
+      windows: [
+        window("a", "2025-07-01", "2026-06-30"),
+        { id: "named", from: "2024-01-01", to: "2024-12-31", scope: "named_codes" as const, codes: ["72030"] },
+      ],
+    }),
+    { from: null, to: "2025-06-30", sealedWindowId: "a" },
+    "銘柄を限った窓は期間の制限に使わない",
+  );
+  assert.deepEqual(
+    researchPeriodOf({ ...base, windows: [window("x", "2024-01-01", "2025-06-30"), window("y", "2025-07-01", "2026-06-30")] }),
+    { from: null, to: "2023-12-31", sealedWindowId: "x" },
+    "続きの窓は1つにまとまるので、研究できるのはその手前",
+  );
+  assert.deepEqual(
+    researchPeriodOf({ ...base, windows: [window("x", "2024-01-01", "2025-06-30"), window("y", "2025-07-02", "2026-06-30")] }),
+    { from: "2025-07-01", to: "2025-07-01", sealedWindowId: "y" },
+    "1日だけの隙間もそのまま返す",
+  );
+  assert.equal(
+    researchPeriodOf({
+      ...base,
+      windows: [{ id: "named", from: "2024-01-01", to: "2024-12-31", scope: "named_codes" as const, codes: ["72030"] }],
+    }),
+    null,
+    "期間を限る窓が1つも無ければ制限なし（銘柄を限った窓だけのとき）",
+  );
+  const real = JSON.parse(readFileSync("research/holdout/vault.manifest.json", "utf-8")) as HoldoutVaultManifest;
+  assert.equal(researchPeriodOf(real)?.to, "2025-06-30", "実 manifest の研究期間の終わりは変わらない");
+}
+
 testSealedSamplesAreExcludedByDefault();
+testResearchPeriodIsTheLastGapBeforeTheLastWindow();
 testExclusionIsAlwaysVisible();
 testBoundaryDatesAreInclusive();
 testOpeningRequiresAnAccessRecord();

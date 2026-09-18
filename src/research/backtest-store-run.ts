@@ -101,6 +101,11 @@ export interface StoreRunRange {
   minTurnoverJpy: number;
   /** 決算日を「説明のつく日」として除外するか。 */
   useEarningsCalendar: boolean;
+  /**
+   * 封印期間を読むことを明示する。既定 false。
+   * true にするのは research:holdout:open（事前登録・1 Edge 1回・記録つき）だけ。
+   */
+  allowSealed?: boolean;
 }
 
 export interface StoreRunResult {
@@ -142,6 +147,7 @@ export function buildFromStore(
       ...(range.from ? { from: range.from } : {}),
       ...(to ? { to } : {}),
       minTurnoverJpy,
+      ...(range.allowSealed ? { allowSealed: true } : {}),
     });
   } catch (error) {
     if (error instanceof StudyInputsError) throw new StoreRunError(error.message);
@@ -158,7 +164,9 @@ export function buildFromStore(
       ...(bundle.detector!.params.matchScaleCategory ? { matchScaleCategory: true } : {}),
     });
     const known = loadEarningsEventDatesFromStore({
-      tradingDates: inputs.tradingDates, ...(to ? { to } : {}),
+      tradingDates: inputs.tradingDates,
+      ...(to ? { to } : {}),
+      ...(range.allowSealed ? { allowSealed: true } : {}),
     }).byCode;
     const sources = detectAbnormalMoveEvents(inputs.prices, inputs.benchmark, {
       abnormalReturnThresholdPct: bundle.detector!.params.sourceAbnormalReturnThresholdPct,
@@ -202,7 +210,10 @@ export function buildFromStore(
 
   if (bundle.detector!.kind === "forecast_revision") {
     // 基準の予想は決算短信から引くので、開示は種類を問わず全部渡す。
-    const disclosures = loadEarningsDisclosureInputs(to ? { to } : {});
+    const disclosures = loadEarningsDisclosureInputs({
+      ...(to ? { to } : {}),
+      ...(range.allowSealed ? { allowSealed: true } : {}),
+    });
     const priceByCode = new Map<string, PriceSeries>(
       inputs.prices.map((series) => [series.code, series]),
     );
@@ -237,7 +248,10 @@ export function buildFromStore(
   if (bundle.detector!.kind === "earnings_gap") {
     // 決算ギャップは開示そのものが起点なので knownEventDates を使わない
     // （「決算の日を除外する」のは業績以外の原因を探すときの話）。
-    const disclosures = loadEarningsDisclosureInputs(to ? { to } : {});
+    const disclosures = loadEarningsDisclosureInputs({
+      ...(to ? { to } : {}),
+      ...(range.allowSealed ? { allowSealed: true } : {}),
+    });
     const priceByCode = new Map<string, PriceSeries>(
       inputs.prices.map((series) => [series.code, series]),
     );
@@ -277,7 +291,11 @@ export function buildFromStore(
   );
   if (range.useEarningsCalendar) {
     try {
-      const earnings = loadEarningsEventDatesFromStore({ tradingDates: inputs.tradingDates, ...(to ? { to } : {}) });
+      const earnings = loadEarningsEventDatesFromStore({
+        tradingDates: inputs.tradingDates,
+        ...(to ? { to } : {}),
+        ...(range.allowSealed ? { allowSealed: true } : {}),
+      });
       knownEventDates = earnings.byCode;
       log(
         `決算カレンダー: ${earnings.datesScanned}営業日 / 開示 ${earnings.disclosureCount.toLocaleString()}件`
