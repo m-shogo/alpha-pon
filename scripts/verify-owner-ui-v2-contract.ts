@@ -130,6 +130,9 @@ const expectedShellWidths = [
   ["/alerts", 1120],
   ["/actions", 1120],
   ["/reports", 1120],
+  ["/positions", 1120],
+  ["/hypotheses", 1120],
+  ["/roadmap", 1120],
 ] as const;
 for (const [route, width] of expectedShellWidths) {
   assert(
