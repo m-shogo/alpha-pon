@@ -269,6 +269,22 @@ try {
     assert.deepEqual(recordTrialOutcome(trialId, second, path), { appended: false, superseded: false });
     assert.throws(() => recordTrialOutcome(trialId, first, path), /not deterministic/);
 
+    // horizon は結果の属性。値が違えば「違う結果」として扱う（黙って混ざらない）。
+    // イベントスタディで「どの horizon を見た結果か」を残すために足した（2026-09-21）。
+    const withHorizon = { ...second, horizon: 20 };
+    assert.throws(() => recordTrialOutcome(trialId, withHorizon, path), /not deterministic/,
+      "horizon が付くだけでも理由なしでは置き換えない");
+    assert.deepEqual(
+      recordTrialOutcome(trialId, withHorizon, path, new Date(), {
+        supersedesReason: "事前登録の主要 horizon を記録するよう直した",
+      }),
+      { appended: true, superseded: true },
+    );
+    const afterHorizon = readTrialLedger(path).filter((r) => r.kind === "outcome").at(-1) as {
+      outcome: { horizon?: number };
+    };
+    assert.equal(afterHorizon.outcome.horizon, 20, "どの horizon の結果かが台帳に残る");
+
     console.log("research/trials-ledger: 理由つきの置き換えだけ許す OK");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 }

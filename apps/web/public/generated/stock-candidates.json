@@ -1,24 +1,24 @@
 {
   "candidates": [
     {
-      "code": "6645",
-      "name": "オムロン",
-      "sector": "automation_robotics",
-      "detectedAt": "2026-06-28",
-      "currentPrice": 4428,
-      "high52w": 5552,
-      "drawdownPct": -20.244956772334294,
-      "change5dPct": -0.9174311926605505,
-      "change20dPct": -9.057301293900185,
+      "code": "8058",
+      "name": "三菱商事",
+      "sector": "materials",
+      "detectedAt": "2026-09-21",
+      "currentPrice": 4414,
+      "high52w": 5882,
+      "drawdownPct": -24.95749744984699,
+      "change5dPct": -4.230852679540031,
+      "change20dPct": -10.302783986994514,
       "topixChange5dPct": null,
       "topixChange20dPct": null,
       "relativeTopix5dPct": null,
       "relativeTopix20dPct": null,
-      "volumeSpikeRatio": 1.164532202567068,
+      "volumeSpikeRatio": 1.31849106983821,
       "priceSignalSource": "jquants",
       "priceSignalQuality": "exact",
       "priceRiskWarnings": [],
-      "operatingProfitYoY": 57.35251295789412,
+      "operatingProfitYoY": null,
       "hasDownwardRevision": false,
       "hasNegativeFlag": false,
       "hasRecentDisclosure": false,
@@ -31,24 +31,64 @@
         "summary": "J-Quantsスクリーニング時点では公式IR/TDnet本文を未確認。候補化後に一次情報確認が必要。"
       },
       "matchedWorldEventTags": [
-        "migration_labor_shortage"
+        "war_geopolitics",
+        "financial_crisis_rate_shock"
       ],
-      "screeningScore": 80,
+      "screeningScore": 65,
       "warnings": [
         "公式IR/TDnet本文未確認: disclosureEvidence.status=official_check_required",
-        "[STALE] J-Quants取得が全滅したため前回候補を暫定保持"
+        "営業利益成長データ未取得"
       ],
       "status": "monitoring",
-      "dataSource": "jquants",
-      "staleAsOf": "2026-06-29",
-      "carriedForwardAt": "2026-06-29",
-      "fallbackAsOf": "2026-06-29"
+      "dataSource": "jquants"
+    },
+    {
+      "code": "8031",
+      "name": "三井物産",
+      "sector": "materials",
+      "detectedAt": "2026-09-21",
+      "currentPrice": 4513,
+      "high52w": 6659,
+      "drawdownPct": -32.22706112028833,
+      "change5dPct": -4.768938594640219,
+      "change20dPct": -10.331810053645937,
+      "topixChange5dPct": null,
+      "topixChange20dPct": null,
+      "relativeTopix5dPct": null,
+      "relativeTopix20dPct": null,
+      "volumeSpikeRatio": 0.9518482227588708,
+      "priceSignalSource": "jquants",
+      "priceSignalQuality": "exact",
+      "priceRiskWarnings": [],
+      "operatingProfitYoY": null,
+      "hasDownwardRevision": false,
+      "hasNegativeFlag": false,
+      "hasRecentDisclosure": false,
+      "disclosureEvidence": {
+        "status": "official_check_required",
+        "sourceType": "missing",
+        "sourceUrl": null,
+        "publishedAt": null,
+        "title": null,
+        "summary": "J-Quantsスクリーニング時点では公式IR/TDnet本文を未確認。候補化後に一次情報確認が必要。"
+      },
+      "matchedWorldEventTags": [
+        "war_geopolitics",
+        "food_security"
+      ],
+      "screeningScore": 55,
+      "warnings": [
+        "公式IR/TDnet本文未確認: disclosureEvidence.status=official_check_required",
+        "営業利益成長データ未取得"
+      ],
+      "status": "monitoring",
+      "dataSource": "jquants"
     }
   ],
-  "generatedAt": "2026-06-29",
-  "sourceGeneratedAt": "2026-06-29",
+  "generatedAt": "2026-09-21",
+  "sourceGeneratedAt": "2026-09-21",
   "dataSource": "jquants",
-  "scanStatus": "stale_fallback",
-  "fallbackReason": "jquants_zero_candidates",
-  "count": 1
+  "scanStatus": "fresh",
+  "fallbackReason": null,
+  "count": 2
 }

@@ -1,8 +1,17 @@
 /**
  * EDINET の臨時報告書を母集団にしたイベントスタディ。
  *
- *   pnpm research:edinet-study -- --reasons 第19条第2項第3号 \
- *     --from 2024-06-19 --to 2026-02-28 --intent="..."
+ * 引数は **`--key=値`** の形だけ。空白で区切ると値が読まれない（parseArgs の仕様）。
+ *
+ *   pnpm research:edinet-study -- --reasons=第19条第2項第3号 \
+ *     --from=2024-06-19 --to=2026-02-28 --intent="..."
+ *
+ * 臨時報告書以外（訂正報告書など）を母集団にするときは書類種別の説明で指定する。
+ *
+ *   pnpm research:edinet-study -- --doc-descriptions=訂正有価証券報告書 \
+ *     --dedupe-days=60 --from=2024-06-19 --intent="..."
+ *
+ * `--reasons` と `--doc-descriptions` はどちらか一方だけ。
  *
  * ## F1 と何が違うか
  *
@@ -74,9 +83,20 @@ function loadEdinetEvidence(from?: string, to?: string): LabelEvidence[] {
 function main(): void {
   const { flags, options } = parseArgs();
   const reasonsRaw = options.get("reasons");
-  if (!reasonsRaw) fail("--reasons=<事由コード[,事由コード]> を指定してください");
-  const reasonCodes = reasonsRaw!.split(",").map((one) => one.trim()).filter(Boolean);
-  if (reasonCodes.length === 0) fail("--reasons が空です");
+  const docsRaw = options.get("doc-descriptions");
+  if ((reasonsRaw === undefined) === (docsRaw === undefined)) {
+    fail("--reasons=<事由コード[,…]> か --doc-descriptions=<書類種別の説明[,…]> のどちらか一方を指定してください");
+  }
+  const reasonCodes = (reasonsRaw ?? "").split(",").map((one) => one.trim()).filter(Boolean);
+  const docDescriptions = (docsRaw ?? "").split(",").map((one) => one.trim()).filter(Boolean);
+  if (reasonsRaw !== undefined && reasonCodes.length === 0) fail("--reasons が空です");
+  if (docsRaw !== undefined && docDescriptions.length === 0) fail("--doc-descriptions が空です");
+  const byDocument = docDescriptions.length > 0;
+  // 訂正報告書は同じ会社が数日つづけて出す。まとめる幅は事前登録で決めて渡す。
+  const dedupeCalendarDays = Number(options.get("dedupe-days") ?? 0);
+  if (!Number.isSafeInteger(dedupeCalendarDays) || dedupeCalendarDays < 0) {
+    fail("--dedupe-days は0以上の整数で指定してください");
+  }
 
   const from = options.get("from");
   // 封印は CLI ごとに書かない。書き忘れた CLI だけが覗くことになる。
@@ -120,8 +140,18 @@ function main(): void {
     fail("EDINET の保存が無い。pnpm archive:edinet を先に実行してください");
   }
 
-  const built = buildEdinetReasonEvents({ evidence, reasonCodes, tradingDates });
-  console.log(`① 事由         : ${reasonCodes.join(" / ")}`);
+  const built = buildEdinetReasonEvents({
+    evidence,
+    ...(byDocument ? { documentDescriptionPrefixes: docDescriptions } : { reasonCodes }),
+    tradingDates,
+    dedupeCalendarDays,
+  });
+  console.log(
+    byDocument
+      ? `① 書類種別     : ${docDescriptions.join(" / ")}（先頭一致`
+        + `${dedupeCalendarDays > 0 ? ` / 同一銘柄 ${dedupeCalendarDays}日以内はまとめる` : ""}）`
+      : `① 事由         : ${reasonCodes.join(" / ")}`,
+  );
   console.log(
     `   EDINET 書類  ${built.evaluatedCount}件 → イベント ${built.events.length}件`
     + ` / ${new Set(built.events.map((one) => one.code)).size}社`,
@@ -202,13 +232,17 @@ function main(): void {
 
   if (!useLedger) return;
   const ledgerPath = options.get("trials-ledger") ?? DEFAULT_TRIALS_LEDGER_PATH;
-  const edgeId = `edinet-reason:${reasonCodes.join("+")}`;
+  const edgeId = byDocument
+    ? `edinet-doc:${docDescriptions.join("+")}`
+    : `edinet-reason:${reasonCodes.join("+")}`;
   const registered = registerTrial(
     {
       edgeId,
-      specId: "edinet-reason-event-study-v1",
+      specId: byDocument ? "edinet-document-event-study-v1" : "edinet-reason-event-study-v1",
       params: {
-        reasonCodes: [...reasonCodes].sort(),
+        ...(byDocument
+          ? { docDescriptions: [...docDescriptions].sort(), dedupeCalendarDays }
+          : { reasonCodes: [...reasonCodes].sort() }),
         horizons: DEFAULT_HORIZONS,
         minTurnoverJpy,
         from: from ?? null,
@@ -224,7 +258,17 @@ function main(): void {
     },
     ledgerPath,
   );
-  const longest = study.summaryByHorizon.at(-1);
+  // 台帳に残すのは**事前登録の主要 horizon**。既定は最長（従来の挙動）。
+  // 主要を指定しないまま最長を記録すると、事前登録と台帳が食い違う（2026-09-21 に実際に起きた）。
+  const primaryHorizonRaw = options.get("primary-horizon");
+  const primaryHorizon = primaryHorizonRaw === undefined
+    ? study.summaryByHorizon.at(-1)?.horizonBars
+    : Number(primaryHorizonRaw);
+  const recorded = study.summaryByHorizon.find((row) => row.horizonBars === primaryHorizon);
+  if (primaryHorizonRaw !== undefined && !recorded) {
+    fail(`--primary-horizon=${primaryHorizonRaw} は測った horizon（${study.summaryByHorizon.map((row) => row.horizonBars).join(", ")}）にありません`);
+  }
+  const longest = recorded;
   recordTrialOutcome(
     registered.trialId,
     {
@@ -233,6 +277,7 @@ function main(): void {
       clusterCount: longest?.treatment.clusterCount ?? null,
       tStat: longest?.treatment.tStat ?? null,
       clusteredTStat: longest?.treatment.clusteredTStat ?? null,
+      ...(longest === undefined ? {} : { horizon: longest.horizonBars }),
     },
     ledgerPath,
       new Date(),
@@ -240,7 +285,10 @@ function main(): void {
       // 省略すると「同じ試行で違う結果」は落ちる（非決定性の検出）。
       { ...(options.get("supersede") ? { supersedesReason: options.get("supersede")! } : {}) },
   );
-  console.log(`試行として記録: ${registered.trialId}（${edgeId}）`);
+  console.log(
+    `試行として記録: ${registered.trialId}（${edgeId}`
+    + `${longest === undefined ? "" : ` / D+${longest.horizonBars} の結果`}）`,
+  );
 }
 
 try {
