@@ -59,20 +59,18 @@ MONTH="$(date '+%m')" # 01..12
 export LINE_BATCH_DIR="$DIR/tmp/line-batch-pending"
 mkdir -p "$LINE_BATCH_DIR"
 
-# ── ログローテーション（7日分を保持）───────────────────────────────────────
-# launchd は StandardOutPath に追記するため、1週間分だけ残して truncate する。
-rotate_log() {
-  local log="$1"
-  if [ -f "$log" ]; then
-    local lines
-    lines="$(wc -l < "$log")"
-    if [ "$lines" -gt 5000 ]; then
-      tail -n 5000 "$log" > "$log.tmp" && mv "$log.tmp" "$log"
-    fi
-  fi
-}
-rotate_log "$DIR/logs/daily.log"
-rotate_log "$DIR/logs/daily-error.log"
+# ── ログローテーション（直近5000行を保持）──────────────────────────────────
+# launchd は StandardOutPath / StandardErrorPath を開いたまま持つので、
+# **inode を差し替えてはいけない**（回転より後のその回の出力が全部消える）。
+# 中身の書き戻しで切り詰める。理由と実測は scripts/rotate-log.sh に書いた。
+# shellcheck source=scripts/rotate-log.sh
+# shellcheck disable=SC1091
+. "$DIR/scripts/rotate-log.sh"
+# shellcheck source=scripts/retry-until-ok.sh
+# shellcheck disable=SC1091
+. "$DIR/scripts/retry-until-ok.sh"
+rotate_log "$DIR/logs/daily.log" 5000
+rotate_log "$DIR/logs/daily-error.log" 5000
 
 # ── バックアップ（critical より前に実行）────────────────────────────────────
 # 前日データを保全してから pipeline を開始する。失敗しても続行。
@@ -347,7 +345,14 @@ run_optional_step "ui:data:pro"               node --import "tsx/esm" "$DIR/src/
 write_complete_wrapper_status
 
 # ── LINE統合通知（バッチをまとめて1通送信）─────────────────────────────────
-run_optional_step "line:consolidated" node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/send-consolidated-line.ts"
+# ── LINE統合通知（届かなければ同じ朝に送り直す）──────────────────────────────
+#
+# 送信CLIは届かなかったとき終了コード 1 を返す（2026-09-21 から）。
+# 理由と回数の扱いは scripts/retry-until-ok.sh に書いた。
+# 全部失敗したときだけ FAILED_COMPLETE_STEPS に記録される。
+run_optional_step "line:consolidated" \
+  retry_until_ok "${LINE_SEND_ATTEMPTS:-3}" "${LINE_SEND_WAIT_SECONDS:-180}" \
+  node --env-file="$DIR/.env" --import "tsx/esm" "$DIR/src/send-consolidated-line.ts"
 
 # ── 失敗ステップのサマリー（echo のみ）──────────────────────────────────────
 echo ""

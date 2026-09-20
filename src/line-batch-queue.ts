@@ -124,22 +124,49 @@ export function markSkipped(ledger: Ledger, hashes: string[], now: string): Ledg
   return ledger;
 }
 
+/** 送信待ちを諦めるまでの日数（回線が落ちていた場合）。過ぎた朝の通知は届いても意味がない。 */
+export const MAX_PENDING_DAYS = 3;
+
+/**
+ * 送信の失敗を記録する。
+ *
+ * 2種類を分ける（2026-09-21）。
+ *   - 断られた（http-4xx / 5xx）: 回数を数え、MAX_ATTEMPTS で諦める。
+ *     同じ本文を送り続けても通らないので、回数で打ち切るのが正しい
+ *   - 回線が届かない（network-error）: **回数を数えない**。本文が悪い証拠ではないから。
+ *     代わりに「いつ積まれたか」で諦める（MAX_PENDING_DAYS）。
+ *     回数で数えると、回線の落ちた朝が5回あるだけで本文が永久に消える
+ *     （`requeueFailed` はテストからしか呼ばれていないので、消えたら戻らない）
+ */
 export function markFailed(
   ledger: Ledger,
   hashes: string[],
   error: string,
   now: string,
-  maxAttempts = MAX_ATTEMPTS,
+  options: { maxAttempts?: number; transient?: boolean; maxPendingDays?: number } = {},
 ): Ledger {
+  const maxAttempts = options.maxAttempts ?? MAX_ATTEMPTS;
+  const maxPendingDays = options.maxPendingDays ?? MAX_PENDING_DAYS;
   for (const h of hashes) {
     const e = ledger.entries[h];
     if (!e || e.status === "sent") continue;
-    e.attempts += 1;
     e.lastAttemptAt = now;
     e.lastError = error.slice(0, 300);
+    if (options.transient === true) {
+      e.status = pendingTooLong(e.queuedAt, now, maxPendingDays) ? "failed" : "pending-retry";
+      continue;
+    }
+    e.attempts += 1;
     e.status = e.attempts >= maxAttempts ? "failed" : "pending-retry";
   }
   return ledger;
+}
+
+function pendingTooLong(queuedAt: string, now: string, maxPendingDays: number): boolean {
+  const queued = new Date(queuedAt).getTime();
+  const current = new Date(now).getTime();
+  if (!Number.isFinite(queued) || !Number.isFinite(current)) return false;
+  return current - queued > maxPendingDays * 86400000;
 }
 
 export function pendingHashes(ledger: Ledger, kind?: FragmentKind): string[] {

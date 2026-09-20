@@ -51,7 +51,7 @@ jobs:
 
       - name: Check shell scripts
         if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
-        run: shellcheck scripts/run-draft-checks.sh scripts/run-daily.sh scripts/ci-pipeline-smoke.sh scripts/run-proposal-history.sh scripts/run-daily-complete.sh scripts/pipeline-lock.sh scripts/verify-cloudflare-production.sh scripts/setup-cloudflare-d1-github-secrets.sh
+        run: shellcheck scripts/run-draft-checks.sh scripts/run-daily.sh scripts/ci-pipeline-smoke.sh scripts/run-proposal-history.sh scripts/run-daily-complete.sh scripts/pipeline-lock.sh scripts/rotate-log.sh scripts/retry-until-ok.sh scripts/verify-cloudflare-production.sh scripts/setup-cloudflare-d1-github-secrets.sh
 
       - name: Run full core checks
         if: github.event_name != 'pull_request' || github.event.pull_request.draft == false

@@ -22,6 +22,7 @@ import {
   loadPendingFragments,
   markFailed,
   markSent,
+  MAX_PENDING_DAYS,
   markSkipped,
   pruneLedger,
   reconcileOrphanFragments,
@@ -175,6 +176,8 @@ async function main(): Promise<RunResult> {
       built.includedHashes,
       redactSecrets(sendRes.error ?? sendRes.outcome, SECRETS()),
       now,
+      // 回線が届かないのは本文が悪い証拠ではない。回数で諦めず、積まれた日数で諦める。
+      { transient: sendRes.outcome === "network-error" },
     );
     saveLedger(dir, ledger);
     return {
@@ -211,17 +214,27 @@ async function main(): Promise<RunResult> {
 }
 
 function pruneOld(ledger: ReturnType<typeof loadLedger>, nowIso: string) {
-  const threshold = new Date(new Date(nowIso).getTime() - 3 * 86400000).toISOString();
+  // 送信済みの記録を消す期限。送信待ちを諦める期限（MAX_PENDING_DAYS）と揃える。
+  const threshold = new Date(new Date(nowIso).getTime() - MAX_PENDING_DAYS * 86400000).toISOString();
   return pruneLedger(ledger, threshold).ledger;
+}
+
+/**
+ * 終了コード。**届かなかった回は 1 を返す**（2026-09-21）。
+ * これまで常に 0 だったので、ラッパーには「ok」と記録され、
+ * 同じ朝に送り直す判断ができなかった（翌朝まで届かない）。
+ */
+function exitCodeFor(status: RunResult["status"]): number {
+  return status === "failed" ? 1 : 0;
 }
 
 main()
   .then((result) => {
     logResult(result);
-    process.exit(0);
+    process.exit(exitCodeFor(result.status));
   })
   .catch((err) => {
     const message = err instanceof Error ? err.message : String(err);
     logResult({ status: "failed", reason: redactSecrets(message, SECRETS()) });
-    process.exit(0);
+    process.exit(1);
   });
