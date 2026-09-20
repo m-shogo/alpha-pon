@@ -44,6 +44,7 @@ import {
   markFailed,
   markSent,
   MAX_ATTEMPTS,
+  MAX_PENDING_DAYS,
   readBlockMarker,
   readEnvelope,
   readLedgerState,
@@ -244,6 +245,20 @@ function putEnvelope(
   assert.equal(ledger.entries.h.status, "failed");
   requeueFailed(ledger);
   assert.equal(ledger.entries.h.status, "queued");
+
+  // 回線が届かない失敗（transient）は回数を消費しない。
+  // 回数で数えると、回線の落ちた朝が5回あるだけで本文が永久に消える（2026-09-21）。
+  const transient = emptyLedger();
+  ensureEntry(transient, { hash: "t", section: "s", kind: "normal", now: NOW });
+  for (let i = 0; i < MAX_ATTEMPTS * 2; i++) {
+    markFailed(transient, ["t"], "fetch failed", NOW, { transient: true });
+  }
+  assert.equal(transient.entries.t.status, "pending-retry", "回線の失敗では諦めない");
+  assert.equal(transient.entries.t.attempts, 0, "回数を消費しない");
+  // ただし積まれてから MAX_PENDING_DAYS を過ぎたら諦める（際限なく溜めない）。
+  const late = new Date(new Date(NOW).getTime() + (MAX_PENDING_DAYS + 1) * 86400000).toISOString();
+  markFailed(transient, ["t"], "fetch failed", late, { transient: true });
+  assert.equal(transient.entries.t.status, "failed", `${MAX_PENDING_DAYS}日を過ぎた送信待ちは諦める`);
 
   assert.equal(jstDateOf("2026-08-04T15:00:00.000Z"), "2026-08-05");
   assert.equal(jstDateOf("2026-08-04T14:59:00.000Z"), "2026-08-04");
