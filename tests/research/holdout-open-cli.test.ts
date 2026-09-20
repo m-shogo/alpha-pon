@@ -54,7 +54,7 @@ function git(args: string[]): void {
 
 function runCli(
   extra: string[],
-  target: { bundle: string; prereg: string; tradingDays: number } = {
+  target: { bundle: string; prereg: string; tradingDays?: number; until?: string; edgeId?: string } = {
     bundle: "research/studies/short.json", prereg: "docs/prereg.md", tradingDays: 40,
   },
 ): { status: number | null; stdout: string; stderr: string } {
@@ -63,7 +63,9 @@ function runCli(
     `--bundle=${target.bundle}`,
     `--prereg=${target.prereg}`,
     "--from=2025-08-01",
-    `--trading-days=${target.tradingDays}`,
+    ...(target.tradingDays === undefined ? [] : [`--trading-days=${target.tradingDays}`]),
+    ...(target.until === undefined ? [] : [`--until=${target.until}`]),
+    ...(target.edgeId === undefined ? [] : [`--edge-id=${target.edgeId}`]),
     "--min-t=1.96",
     "--min-clusters=2",
     "--actor=test",
@@ -174,7 +176,14 @@ try {
   }, null, 2));
 
   writeFileSync(join(dir, "docs/prereg.md"),
-    "bundle: `research/studies/short.json`\n確認: 2025-08-01 以降の 40 営業日で1回だけ。t ≥ 1.96、最小クラスタ 2\n");
+    "- edgeId: `synthetic-reversal`\nbundle: `research/studies/short.json`\n"
+    + "確認: 2025-08-01 以降の 40 営業日で1回だけ。t ≥ 1.96、最小クラスタ 2\n");
+  // 同じ bundle・同じ規則を、別の標本で確かめる事前登録（過去側の確認と同じ形）。
+  // edgeId を分けないと、先に実行したほうがもう一方を永久に塞ぐ。
+  writeFileSync(join(dir, "docs/prereg-backward.md"),
+    "- edgeId: `synthetic-reversal-backward`（売買の規則は `synthetic-reversal` と同一）\n"
+    + "bundle: `research/studies/short.json`\n"
+    + "確認: 2025-08-01 〜 2025-09-10 まで1回だけ。t ≥ 1.96、最小クラスタ 2\n");
 
   // --- 開示イベントスタディの材料 -------------------------------------------
   const crashDay = (index: number) => crashDayByCode.get(codes[index]!)!;
@@ -227,10 +236,26 @@ try {
     primaryHorizon: 5,
     twoSided: true,
   }, null, 2));
+  // 期間の終わりを日付で決める場（過去側の確認と同じ形）。Edge が違うので別に開ける。
+  const shortBundle = JSON.parse(readFileSync(join(dir, "research/studies/short.json"), "utf-8"));
+  writeFileSync(join(dir, "research/studies/until.json"), JSON.stringify({
+    ...shortBundle,
+    spec: { ...shortBundle.spec, id: "synthetic-until-d5", edgeId: "synthetic-until" },
+  }, null, 2));
+  writeFileSync(join(dir, "docs/prereg-until.md"),
+    "- edgeId: `synthetic-until`\nbundle: `research/studies/until.json`\n確認: 2025-08-01 〜 2025-09-10 まで1回だけ。t ≥ 1.96、最小クラスタ 2\n");
+  // 取り込みが終了日まで届いていない場（合成の保存庫は 2025-10-31 まで）。
+  writeFileSync(join(dir, "research/studies/until-late.json"), JSON.stringify({
+    ...shortBundle,
+    spec: { ...shortBundle.spec, id: "synthetic-until-late-d5", edgeId: "synthetic-until-late" },
+  }, null, 2));
+  writeFileSync(join(dir, "docs/prereg-until-late.md"),
+    "- edgeId: `synthetic-until-late`\nbundle: `research/studies/until-late.json`\n確認: 2025-08-01 〜 2025-11-28 まで1回だけ。t ≥ 1.96、最小クラスタ 2\n");
   writeFileSync(join(dir, "docs/prereg-misconduct.md"),
-    "bundle: `research/studies/misconduct.json`\n確認: 2025-08-01 以降の 45 営業日で1回だけ。|t| ≥ 1.96、最小クラスタ 2\n");
+    "- edgeId: `synthetic-misconduct`\nbundle: `research/studies/misconduct.json`\n確認: 2025-08-01 以降の 45 営業日で1回だけ。|t| ≥ 1.96、最小クラスタ 2\n");
   git(["init", "-q"]);
-  git(["add", "docs/prereg.md", "docs/prereg-misconduct.md"]);
+  git(["add", "docs/prereg.md", "docs/prereg-misconduct.md", "docs/prereg-until.md", "docs/prereg-until-late.md",
+    "docs/prereg-backward.md"]);
   git(["commit", "-q", "-m", "prereg"]);
 
   const accessLogPath = join(dir, "research/holdout/access_log.jsonl");
@@ -238,7 +263,7 @@ try {
   // 1. 計画の表示だけ
   const plan = runCli([]);
   assert.equal(plan.status, 0, plan.stderr);
-  assert.match(plan.stdout, /確認期間: 2025-08-01 〜 2025-09-25（40営業日）\/ 封印の窓 vault-test/);
+  assert.match(plan.stdout, /確認期間: 2025-08-01 〜 2025-09-25（40営業日） \/ 封印の窓 vault-test/);
   assert.match(plan.stdout, /計画だけ表示しました/);
   assert.equal(readFileSync(accessLogPath, "utf-8"), "", "計画の表示では記録を残さない");
 
@@ -268,6 +293,39 @@ try {
   assert.match(again.stdout + again.stderr, /開封済み/);
   assert.equal(readFileSync(accessLogPath, "utf-8").trim().split("\n").length, 1, "記録は増えない");
 
+  // 4. 同じ bundle・別の標本（edgeId を分ければ塞がれない。分けなければ塞がれる）
+  const backward = {
+    bundle: "research/studies/short.json", prereg: "docs/prereg-backward.md",
+    until: "2025-09-10", edgeId: "synthetic-reversal-backward",
+  };
+  const notDeclared = runCli([], { ...backward, prereg: "docs/prereg.md", until: undefined, tradingDays: 40 });
+  assert.notEqual(notDeclared.status, 0, "事前登録が名乗っていない edgeId では開けない");
+  assert.match(notDeclared.stdout + notDeclared.stderr, /edgeId synthetic-reversal-backward/);
+  const wrongBundleEdge = runCli([], { ...backward, edgeId: undefined });
+  assert.notEqual(wrongBundleEdge.status, 0, "bundle の edgeId のままでは、この事前登録と合わない");
+  assert.match(
+    wrongBundleEdge.stdout + wrongBundleEdge.stderr,
+    /edgeId synthetic-reversal(?!-)/,
+    "別の標本の事前登録を、開封済みの Edge のまま使うことはできない（1 Edge 1回を迂回できない）",
+  );
+  const backwardPlan = runCli([], backward);
+  assert.equal(backwardPlan.status, 0, backwardPlan.stderr);
+  assert.match(
+    backwardPlan.stdout,
+    /Edge    : synthetic-reversal-backward（spec synthetic-short-d5 \/ backtest・short \/ bundle の edgeId は synthetic-reversal）/,
+  );
+  const backwardRun = runCli(["--execute"], backward);
+  assert.equal(backwardRun.status, 0, `${backwardRun.stdout}\n${backwardRun.stderr}`);
+  const backwardLines = readFileSync(accessLogPath, "utf-8").trim().split("\n");
+  assert.equal(backwardLines.length, 2, "別の Edge として2行目に記録される");
+  const backwardEntry = JSON.parse(backwardLines[1]!);
+  assert.deepEqual(validate(backwardEntry, loadSchema("holdout-access")), []);
+  assert.equal(backwardEntry.edgeId, "synthetic-reversal-backward");
+  assert.equal(JSON.parse(backwardEntry.notes).bundleEdgeId, "synthetic-reversal", "元の edgeId も残す");
+  const backwardAgain = runCli(["--execute"], backward);
+  assert.notEqual(backwardAgain.status, 0, "分けた Edge も1回だけ");
+  assert.match(backwardAgain.stdout + backwardAgain.stderr, /開封済み/);
+
   // 5. 開示イベントスタディ
   const eventTarget = { bundle: "research/studies/misconduct.json", prereg: "docs/prereg-misconduct.md", tradingDays: 45 };
   const eventPlan = runCli([], eventTarget);
@@ -280,8 +338,8 @@ try {
   assert.match(eventRun.stdout, /測定  : 2件（価格なし 1 \/ 反応日に足なし 0 \/ 売買代金不足 0 \/ 決算日 1）/);
   assert.match(eventRun.stdout, /売買の合否ではない/);
   const eventLines = readFileSync(accessLogPath, "utf-8").trim().split("\n");
-  assert.equal(eventLines.length, 2, "別の Edge なので2行目として記録される");
-  const eventEntry = JSON.parse(eventLines[1]!);
+  assert.equal(eventLines.length, 3, "別の Edge なので3行目として記録される");
+  const eventEntry = JSON.parse(eventLines[2]!);
   assert.deepEqual(validate(eventEntry, loadSchema("holdout-access")), []);
   assert.equal(eventEntry.edgeId, "synthetic-misconduct");
   assert.equal("netAlphaBps" in eventEntry, false, "コスト前なので Net を名乗らない");
@@ -297,7 +355,24 @@ try {
   assert.notEqual(eventAgain.status, 0);
   assert.match(eventAgain.stdout + eventAgain.stderr, /開封済み/);
 
-  // 4. 事前登録が変更中なら拒否（計画の表示でも）
+  // 6. 終わりを日付で決める指定（--until）
+  const untilTarget = { bundle: "research/studies/until.json", prereg: "docs/prereg-until.md", until: "2025-09-10" };
+  const untilPlan = runCli([], untilTarget);
+  assert.equal(untilPlan.status, 0, untilPlan.stderr);
+  assert.match(untilPlan.stdout, /確認期間: 2025-08-01 〜 2025-09-10（2025-09-10 まで・取り込み済み \d+営業日）/);
+  const notIngested = runCli([], {
+    bundle: "research/studies/until-late.json", prereg: "docs/prereg-until-late.md", until: "2025-11-28",
+  });
+  assert.equal(notIngested.status, 0, notIngested.stderr);
+  assert.match(notIngested.stdout, /まだ開けません: 取り込みが 2025-11-28 まで届いていません（最終 2025-10-31）/);
+  const mismatched = runCli([], { ...untilTarget, until: "2025-12-31" });
+  assert.notEqual(mismatched.status, 0, "事前登録に無い終了日は通さない");
+  assert.match(mismatched.stdout + mismatched.stderr, /終了日 2025-12-31/);
+  const bothModes = runCli(["--trading-days=10"], untilTarget);
+  assert.notEqual(bothModes.status, 0, "営業日数と終了日の両方は通さない");
+  assert.match(bothModes.stdout + bothModes.stderr, /どちらか一方/);
+
+  // 7. 事前登録が変更中なら拒否（計画の表示でも）
   writeFileSync(join(dir, "docs/prereg.md"), "書き換え中\n");
   const dirty = runCli([]);
   assert.notEqual(dirty.status, 0);
