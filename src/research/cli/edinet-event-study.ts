@@ -1,13 +1,15 @@
 /**
  * EDINET の臨時報告書を母集団にしたイベントスタディ。
  *
- *   pnpm research:edinet-study -- --reasons 第19条第2項第3号 \
- *     --from 2024-06-19 --to 2026-02-28 --intent="..."
+ * 引数は **`--key=値`** の形だけ。空白で区切ると値が読まれない（parseArgs の仕様）。
+ *
+ *   pnpm research:edinet-study -- --reasons=第19条第2項第3号 \
+ *     --from=2024-06-19 --to=2026-02-28 --intent="..."
  *
  * 臨時報告書以外（訂正報告書など）を母集団にするときは書類種別の説明で指定する。
  *
- *   pnpm research:edinet-study -- --doc-descriptions 訂正有価証券報告書 \
- *     --dedupe-days 60 --from 2024-06-19 --intent="..."
+ *   pnpm research:edinet-study -- --doc-descriptions=訂正有価証券報告書 \
+ *     --dedupe-days=60 --from=2024-06-19 --intent="..."
  *
  * `--reasons` と `--doc-descriptions` はどちらか一方だけ。
  *
@@ -256,7 +258,17 @@ function main(): void {
     },
     ledgerPath,
   );
-  const longest = study.summaryByHorizon.at(-1);
+  // 台帳に残すのは**事前登録の主要 horizon**。既定は最長（従来の挙動）。
+  // 主要を指定しないまま最長を記録すると、事前登録と台帳が食い違う（2026-09-21 に実際に起きた）。
+  const primaryHorizonRaw = options.get("primary-horizon");
+  const primaryHorizon = primaryHorizonRaw === undefined
+    ? study.summaryByHorizon.at(-1)?.horizonBars
+    : Number(primaryHorizonRaw);
+  const recorded = study.summaryByHorizon.find((row) => row.horizonBars === primaryHorizon);
+  if (primaryHorizonRaw !== undefined && !recorded) {
+    fail(`--primary-horizon=${primaryHorizonRaw} は測った horizon（${study.summaryByHorizon.map((row) => row.horizonBars).join(", ")}）にありません`);
+  }
+  const longest = recorded;
   recordTrialOutcome(
     registered.trialId,
     {
@@ -265,6 +277,7 @@ function main(): void {
       clusterCount: longest?.treatment.clusterCount ?? null,
       tStat: longest?.treatment.tStat ?? null,
       clusteredTStat: longest?.treatment.clusteredTStat ?? null,
+      ...(longest === undefined ? {} : { horizon: longest.horizonBars }),
     },
     ledgerPath,
       new Date(),
@@ -272,7 +285,10 @@ function main(): void {
       // 省略すると「同じ試行で違う結果」は落ちる（非決定性の検出）。
       { ...(options.get("supersede") ? { supersedesReason: options.get("supersede")! } : {}) },
   );
-  console.log(`試行として記録: ${registered.trialId}（${edgeId}）`);
+  console.log(
+    `試行として記録: ${registered.trialId}（${edgeId}`
+    + `${longest === undefined ? "" : ` / D+${longest.horizonBars} の結果`}）`,
+  );
 }
 
 try {

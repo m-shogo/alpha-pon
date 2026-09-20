@@ -44,6 +44,16 @@ export interface TrialOutcome {
   tStat: number | null;
   clusteredTStat: number | null;
   clusterCount: number | null;
+  /**
+   * どの horizon（保有日数）の結果か。イベントスタディで使う。
+   *
+   * **なぜ結果側に置くか（2026-09-21）**: 以前は「最長 horizon」を黙って記録していた。
+   * 事前登録の主要 horizon が D+20 でも台帳には D+60 が入り、ロードマップの表
+   * （画面の D+20 を写したもの）と台帳が食い違っていた。
+   * horizon は登録内容（trialId）ではなく結果の属性なので、ここに置けば
+   * 試行数を増やさずに「どれを見た結果か」を残せる。
+   */
+  horizon?: number;
 }
 
 export interface TrialRegistrationRecord extends TrialRegistrationInput {
