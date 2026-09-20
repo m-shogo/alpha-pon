@@ -248,7 +248,7 @@ function returnBps(entry: number, exit: number, side: "long" | "short"): number 
  * 実測（2026-09-17）で無作為エントリーの超過リターンへの影響は 5日で約 1bps と
  * 小さいが、先読みなので直す。前日が無ければ 0（＝執行しない）。
  */
-function averageTurnoverJpyBefore(bars: PriceBar[], entryIndex: number): number {
+export function averageTurnoverJpyBefore(bars: PriceBar[], entryIndex: number): number {
   const start = Math.max(0, entryIndex - ADTV_LOOKBACK_BARS);
   const window = bars.slice(start, entryIndex);
   if (window.length === 0) return 0;

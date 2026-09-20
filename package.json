@@ -48,6 +48,7 @@
     "research:generate:check": "pnpm research:index --check && pnpm research:queue --check && pnpm research:dashboard --check",
     "research:test": "node --import tsx/esm tests/research/schema.test.ts && node --import tsx/esm tests/research/registry.test.ts && node --import tsx/esm tests/research/pit.test.ts && node --import tsx/esm tests/research/queue.test.ts && node --import tsx/esm tests/research/backtest.test.ts && node --import tsx/esm tests/research/promotion.test.ts && node --import tsx/esm tests/research/history-guard.test.ts && node --import tsx/esm tests/research/dashboard.test.ts && node --import tsx/esm tests/research/earnings-gap-signals.test.ts && node --import tsx/esm tests/research/backtest-bundle-builder.test.ts && node --import tsx/esm tests/research/earnings-gap-end-to-end.test.ts && node --import tsx/esm tests/research/clustered-tstat.test.ts && node --import tsx/esm tests/research/trials-ledger.test.ts && node --import tsx/esm tests/research/abnormal-move-events.test.ts && node --import tsx/esm tests/research/company-relations.test.ts && node --import tsx/esm tests/research/read-across-events.test.ts && node --import tsx/esm tests/research/matched-controls.test.ts && node --import tsx/esm tests/research/event-study.test.ts && node --import tsx/esm tests/research/holdout-partition.test.ts && node --import tsx/esm tests/research/event-labels.test.ts && node --import tsx/esm tests/research/study-period-plan.test.ts && node --import tsx/esm tests/research/edge-decay.test.ts && node --import tsx/esm tests/research/gate-evidence.test.ts",
     "research:check": "pnpm research:validate && pnpm research:orphans && pnpm research:generate:check && pnpm research:check:history && pnpm research:check:docs && pnpm research:backtest:fixtures && pnpm research:test",
+    "research:diagnose:zero-point": "node --import tsx/esm src/research/cli/diagnose-zero-point.ts",
     "learn": "node --import tsx/esm src/learn.ts",
     "register:company:preview": "node --import tsx/esm src/register-company-context.ts --sample=sanrio",
     "register:company:sanrio": "node --import tsx/esm src/register-company-context.ts --sample=sanrio --write",
@@ -124,6 +125,13 @@
     "research:edinet-study": "node --max-old-space-size=10240 --env-file-if-exists=.env --import tsx/esm src/research/cli/edinet-event-study.ts",
     "verify:price-store-vs-api": "node --env-file-if-exists=.env --import tsx/esm scripts/verify-price-store-vs-api.ts"
   },
-  "dependencies": { "js-yaml": "^4.1.0" },
-  "devDependencies": { "@types/js-yaml": "^4.0.9", "@types/node": "^22.0.0", "tsx": "^4.19.0", "typescript": "^5.7.0" }
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
 }
