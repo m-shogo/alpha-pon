@@ -14,6 +14,12 @@
 //   価格ストアを読む CLI（loadStudyInputsFromStore を呼ぶもの）は、
 //   `resolveResearchTo`（期間で切る）か `mergeHoldoutManifests`
 //   （サンプル単位で分割する）のどちらかを使っていること。
+//
+//   例外は2種類だけ。
+//     EXEMPT          … 封印を開ける正規の入口（理由を書く）
+//     NO_RANGE_EXEMPT … 期間の引数を受け取らない CLI。入口の既定が研究期間なので安全。
+//                       その前提（日付の引数を読まない・allowSealed を渡さない）を
+//                       **このスクリプトが機械で確かめる**。理由の文だけで通さない。
 
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
@@ -42,6 +48,19 @@ const EXEMPT: Record<string, string> = {
     + "access_log に記録してから確認期間を読む（tests/research/holdout-open-cli.test.ts）",
 };
 
+/**
+ * 期間を受け取らない CLI。入口（loadStudyInputsFromStore）の既定が研究期間
+ * （#2137 で入口に移した）なので、自分で切らなくても封印の外に出ない。
+ * 前提が崩れたら下の検査で落ちる。
+ */
+const NO_RANGE_EXEMPT: Record<string, string> = {
+  "src/research/cli/diagnose-zero-point.ts":
+    "零点（無作為エントリーの超過）の診断。期間の引数を持たず、入口の既定だけを読む",
+};
+
+/** NO_RANGE_EXEMPT が名乗る前提を壊す字句。1つでもあれば例外を認めない。 */
+const RANGE_TOKENS = ["allowSealed", "--to", "--from", "asOf", "vaultManifest"];
+
 const files = readdirSync(CLI_DIR)
   .filter((name) => name.endsWith(".ts"))
   .sort();
@@ -61,6 +80,16 @@ for (const name of files) {
   if (!READS_PRICE_STORE.some((call) => calls(text, call))) continue;
   checked += 1;
   if (path in EXEMPT) continue;
+  if (path in NO_RANGE_EXEMPT) {
+    const broken = RANGE_TOKENS.filter((token) => text.includes(token));
+    if (broken.length > 0) {
+      problems.push(
+        `期間を受け取らない前提の例外が崩れている: ${path}\n`
+        + `  ${broken.join(" / ")} を含む。期間を扱うなら ${HONORS_HOLDOUT.join(" か ")} を通すこと`,
+      );
+    }
+    continue;
+  }
   if (HONORS_HOLDOUT.some((call) => calls(text, call))) continue;
   problems.push(
     `封印を尊重していない: ${path}\n`
@@ -69,14 +98,19 @@ for (const name of files) {
   );
 }
 
-for (const path of Object.keys(EXEMPT)) {
-  const name = path.replace(`${CLI_DIR}/`, "");
-  if (!files.includes(name)) {
-    problems.push(`一覧が古い: ${path} — EXEMPT から消すこと`);
+for (const [label, list] of [["EXEMPT", EXEMPT], ["NO_RANGE_EXEMPT", NO_RANGE_EXEMPT]] as const) {
+  for (const path of Object.keys(list)) {
+    const name = path.replace(`${CLI_DIR}/`, "");
+    if (!files.includes(name)) {
+      problems.push(`一覧が古い: ${path} — ${label} から消すこと`);
+    }
   }
 }
 
-console.log(`封印カバレッジ: 価格ストアを読む CLI ${checked}本 / 例外 ${Object.keys(EXEMPT).length}本`);
+console.log(
+  `封印カバレッジ: 価格ストアを読む CLI ${checked}本 / 例外 ${Object.keys(EXEMPT).length}本`
+  + ` / 期間を受け取らない例外 ${Object.keys(NO_RANGE_EXEMPT).length}本`,
+);
 if (problems.length > 0) {
   console.error("");
   for (const problem of problems) console.error(problem);
