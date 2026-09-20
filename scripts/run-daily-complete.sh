@@ -64,8 +64,10 @@ mkdir -p "$LINE_BATCH_DIR"
 # **inode を差し替えてはいけない**（回転より後のその回の出力が全部消える）。
 # 中身の書き戻しで切り詰める。理由と実測は scripts/rotate-log.sh に書いた。
 # shellcheck source=scripts/rotate-log.sh
+# shellcheck disable=SC1091
 . "$DIR/scripts/rotate-log.sh"
 # shellcheck source=scripts/retry-until-ok.sh
+# shellcheck disable=SC1091
 . "$DIR/scripts/retry-until-ok.sh"
 rotate_log "$DIR/logs/daily.log" 5000
 rotate_log "$DIR/logs/daily-error.log" 5000

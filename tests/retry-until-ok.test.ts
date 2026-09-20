@@ -13,7 +13,7 @@
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -73,15 +73,25 @@ function testReturnsTheLastExitCodeWhenAllFail() {
   assert.match(result.stdout, /3 回すべて失敗しました（最後の終了コード 3）/);
 }
 
-/** 待ちは試行のあいだだけ。最後の失敗のあとに待つと、朝の処理が無駄に延びる。 */
+/**
+ * 待ちは試行のあいだだけ。最後の失敗のあとに待つと、朝の処理が無駄に延びる。
+ *
+ * 実際に待たせて経過時間で見ると、並行実行の負荷で落ちる（2026-09-21 に実際に落ちた）。
+ * `sleep` をシェル関数で差し替えて、**待った回数と秒数**を見る。
+ */
 function testWaitsOnlyBetweenAttempts() {
   const command = fakeCommand("slow", 9);
-  const started = Date.now();
-  const result = runRetry(3, 1, command.path);
-  const elapsedMs = Date.now() - started;
+  const sleepLog = join(dir, "slept.txt");
+  const result = spawnSync("/bin/bash", [
+    "-c",
+    `. "${RETRY_SH}"; sleep() { echo "$1" >> "${sleepLog}"; }; retry_until_ok 3 180 "${command.path}"`,
+  ], { cwd: dir, encoding: "utf-8" });
   assert.equal(result.status, 1);
-  assert.ok(elapsedMs >= 2000, `試行のあいだは待つ: ${elapsedMs}ms`);
-  assert.ok(elapsedMs < 2900, `最後の失敗のあとには待たない: ${elapsedMs}ms`);
+  assert.equal(command.runs(), 3, "3回試す");
+  const slept = existsSync(sleepLog)
+    ? readFileSync(sleepLog, "utf-8").split("\n").filter((one) => one !== "")
+    : [];
+  assert.deepEqual(slept, ["180", "180"], "3回試すなら待つのは2回（最後の失敗のあとには待たない）");
 }
 
 try {
