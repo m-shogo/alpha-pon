@@ -13,6 +13,10 @@
  *
  * `--reasons` と `--doc-descriptions` はどちらか一方だけ。
  *
+ * `--exclude-known-earnings` を付けると、反応日が決算開示日（と翌営業日）に当たる
+ * イベントを落とす。決算と同じ日に出る事由（連結業績への影響など）を測るときは
+ * **付けないと決算反応を測ってしまう**。事前登録でどちらにするかを決めておくこと。
+ *
  * ## F1 と何が違うか
  *
  * F1 は「大きく下げた」ことを条件に候補を作る。こちらは**事由が起きた事実**
@@ -48,6 +52,7 @@ import { formatHorizonSkips, runEventStudy, type EventStudySubject } from "../si
 import {
   StudyInputsError,
   formatStudyInputs,
+  loadEarningsEventDatesFromStore,
   loadStudyInputsFromStore,
   resolveResearchTo,
 } from "../study-inputs-from-store.js";
@@ -167,8 +172,17 @@ function main(): void {
   // エントリーは翌営業日の寄付なので、反応日の出来高は判断の時点で分かっている）。
   // 以前は期間の最後の20営業日で絞っており、先読みだった。
   const securities = new Map(inputs.prices.map((series) => [series.code, series]));
+  // 決算の反応を「事由の反応」と呼ばないための除外。既定は落とさない（従来の挙動）。
+  const excludeKnownEarnings = flags.has("exclude-known-earnings");
+  const knownEarnings = excludeKnownEarnings
+    ? loadEarningsEventDatesFromStore({
+        tradingDates: inputs.tradingDates,
+        ...(to ? { to } : {}),
+      }).byCode
+    : new Map<string, Set<string>>();
   let illiquidAtEvent = 0;
   let noBarAtEvent = 0;
+  let onKnownEarnings = 0;
   const usable: EdinetReasonEvent[] = built.events.filter((one) => {
     const series = securities.get(one.code);
     if (!series) {
@@ -184,12 +198,17 @@ function main(): void {
       illiquidAtEvent += 1;
       return false;
     }
+    if (knownEarnings.get(one.code)?.has(one.reactionDate)) {
+      onKnownEarnings += 1;
+      return false;
+    }
     return true;
   });
   console.log(
     `   流動性で残る ${usable.length}件`
     + `（反応日の時点で売買代金${(minTurnoverJpy / 1e8).toFixed(0)}億円/日以上。`
-    + `落ちた ${illiquidAtEvent}件 / 反応日に足が無い ${noBarAtEvent}件）`,
+    + `落ちた ${illiquidAtEvent}件 / 反応日に足が無い ${noBarAtEvent}件`
+    + `${excludeKnownEarnings ? ` / 決算日 ${onKnownEarnings}件` : " / 決算日は除外していない"}）`,
   );
   if (usable.length === 0) fail("測れるイベントが0件です");
 
@@ -243,6 +262,7 @@ function main(): void {
         ...(byDocument
           ? { docDescriptions: [...docDescriptions].sort(), dedupeCalendarDays }
           : { reasonCodes: [...reasonCodes].sort() }),
+        ...(excludeKnownEarnings ? { excludeKnownEarnings: true } : {}),
         horizons: DEFAULT_HORIZONS,
         minTurnoverJpy,
         from: from ?? null,
