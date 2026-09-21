@@ -31,6 +31,10 @@ import {
   type EarningsGapParams,
 } from "./signals/earnings-gap.js";
 import { detectForecastRevisionEvents } from "./signals/forecast-revision-events.js";
+import { listArchivedEdinetDates, readArchivedEdinetDocuments } from "../edinet-document-archive.js";
+import { edinetEvidence, type LabelEvidence } from "./signals/label-evidence.js";
+import { buildEdinetReasonEvents } from "./signals/edinet-reason-events.js";
+import { buildEdinetEventSignals } from "./signals/edinet-event-signals.js";
 
 /** 入力を作れなかった（保存庫が無い・bundle の指定が足りない）。CLI は理由を出して止める。 */
 export class StoreRunError extends Error {}
@@ -50,6 +54,27 @@ export interface BacktestStoreBundle {
    * 置いて同じ実行で作る。
    */
   detector?:
+    | {
+        /**
+         * EDINET の臨時報告書（事由）または書類種別から作るシグナル。
+         * イベントスタディ（research:edinet-study）と**同じ母集団の作り方**を使う。
+         * 別々に書くと「イベントスタディでは出たのに backtest では出ない」の
+         * 原因が分からなくなる。
+         */
+        kind: "edinet_event";
+        params: {
+          /** 事由コード（完全一致）。documentDescriptionPrefixes とはどちらか一方。 */
+          reasonCodes?: string[];
+          /** 書類種別の説明（先頭一致）。 */
+          documentDescriptionPrefixes?: string[];
+          /** 同一銘柄の続けての提出をまとめる暦日。 */
+          dedupeCalendarDays?: number;
+          /** 反応日が決算開示日（と翌営業日）に当たるイベントを落とすか。**明示する。** */
+          excludeKnownEarnings: boolean;
+          /** 反応日の時点で見る平均売買代金（直近20本）。 */
+          minAverageTurnoverJpy: number;
+        };
+      }
     | {
         kind: "abnormal_move";
         params: Omit<AbnormalMoveParams, "knownEventDates" | "corporateActionDates">
@@ -132,10 +157,12 @@ export function buildFromStore(
   if (
     kind !== "abnormal_move" && kind !== "earnings_gap"
     && kind !== "read_across" && kind !== "forecast_revision"
+    && kind !== "edinet_event"
   ) {
     throw new StoreRunError(
       "--from-store には bundle.detector.kind = "
-      + '"abnormal_move" / "earnings_gap" / "read_across" / "forecast_revision" のいずれかが必要です',
+      + '"abnormal_move" / "earnings_gap" / "read_across" / "forecast_revision" / "edinet_event"'
+      + " のいずれかが必要です",
     );
   }
   const minTurnoverJpy = range.minTurnoverJpy;
@@ -202,6 +229,81 @@ export function buildFromStore(
       signals: across.candidates.map((one) => ({
         id: one.candidateId, code: one.relatedCode, observedAt: one.observedAt,
       })),
+      prices: inputs.prices,
+      benchmark: inputs.benchmark,
+      corporateActionDates: inputs.corporateActionDates,
+    };
+  }
+
+  if (bundle.detector!.kind === "edinet_event") {
+    const params = bundle.detector!.params;
+    if (typeof params.excludeKnownEarnings !== "boolean") {
+      throw new StoreRunError(
+        "detector.params.excludeKnownEarnings は true / false を明示してください"
+        + "（決算の反応を事由の反応と呼ばないため）",
+      );
+    }
+    const evidence: LabelEvidence[] = [];
+    for (const date of listArchivedEdinetDates()) {
+      if (range.from && date < range.from) continue;
+      if (to && date > to) continue;
+      for (const row of readArchivedEdinetDocuments(date)) {
+        const one = edinetEvidence(row);
+        if (one) evidence.push(one);
+      }
+    }
+    if (evidence.length === 0) {
+      throw new StoreRunError("EDINET の保存がありません。先に pnpm archive:edinet を実行してください");
+    }
+    let built;
+    try {
+      built = buildEdinetReasonEvents({
+        evidence,
+        ...(params.reasonCodes ? { reasonCodes: params.reasonCodes } : {}),
+        ...(params.documentDescriptionPrefixes
+          ? { documentDescriptionPrefixes: params.documentDescriptionPrefixes }
+          : {}),
+        tradingDates: inputs.tradingDates,
+        ...(params.dedupeCalendarDays === undefined
+          ? {}
+          : { dedupeCalendarDays: params.dedupeCalendarDays }),
+      });
+    } catch (error) {
+      throw new StoreRunError(error instanceof Error ? error.message : String(error));
+    }
+
+    const knownEarnings = params.excludeKnownEarnings
+      ? loadEarningsEventDatesFromStore({
+          tradingDates: inputs.tradingDates,
+          ...(to ? { to } : {}),
+          ...(range.allowSealed ? { allowSealed: true } : {}),
+        }).byCode
+      : new Map<string, Set<string>>();
+
+    const built2 = buildEdinetEventSignals({
+      events: built.events,
+      priceByCode: new Map<string, PriceSeries>(inputs.prices.map((series) => [series.code, series])),
+      knownEarningsByCode: knownEarnings,
+      minAverageTurnoverJpy: params.minAverageTurnoverJpy,
+    });
+    const signals = built2.signals;
+
+    for (const line of formatStudyInputs(inputs, minTurnoverJpy)) log(line);
+    log(
+      `EDINET: 書類 ${built.evaluatedCount.toLocaleString()}件 → イベント ${built.events.length}件`
+      + ` → シグナル ${signals.length}件`,
+    );
+    log(
+      `却下  : 価格なし=${built2.rejectedCounts.no_price_series}`
+      + ` 反応日に足なし=${built2.rejectedCounts.no_reaction_bar}`
+      + ` 売買代金不足=${built2.rejectedCounts.below_min_turnover}`
+      + `${params.excludeKnownEarnings
+        ? ` 決算日=${built2.rejectedCounts.known_earnings}`
+        : "（決算日は除外していない）"}`,
+    );
+    log("");
+    return {
+      signals,
       prices: inputs.prices,
       benchmark: inputs.benchmark,
       corporateActionDates: inputs.corporateActionDates,

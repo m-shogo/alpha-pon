@@ -1,0 +1,45 @@
+{
+  "spec": {
+    "schemaVersion": 1,
+    "id": "edinet-19-jquants-short-d5",
+    "edgeId": "edinet-reason:第19条第2項第19号",
+    "side": "short",
+    "notionalJpy": 1000000,
+    "entry": {
+      "mode": "next_open"
+    },
+    "exit": {
+      "mode": "holding_period",
+      "holdingPeriodDays": 5
+    },
+    "costs": {
+      "commissionBps": 5,
+      "spreadBps": 10,
+      "slippageBps": 8,
+      "marketImpactBpsPerPctAdv": 10,
+      "borrowCostAnnualBps": 1825
+    },
+    "liquidity": {
+      "participationLimitPct": 3,
+      "minAdtvJpy": 500000000,
+      "minHistoryBars": 20,
+      "maxLots": 50,
+      "lotSize": 100
+    },
+    "benchmark": "UNIVERSE-EW",
+    "notes": "EDINET 臨時報告書の事由 第19条第2項第19号（連結業績への影響）の反応日の翌営業日寄付で売り、5営業日で買い戻す。決算日に当たるものは除外。貸借銘柄のみ、1回50売買単位以下。貸株料と逆日歩の見積りとして年1,825bps（暦日5bps）。イベントスタディ（同じ edgeId・試行は通算）で D+5 が負だったという観察から作った条件なので、研究期間の結果は証拠にならない。確認は封印期間で1回だけ行う。事前登録 docs/research/preregistrations/2026-09-21-edinet-consolidated-impact-short.md"
+  },
+  "detector": {
+    "kind": "edinet_event",
+    "params": {
+      "reasonCodes": ["第19条第2項第19号"],
+      "dedupeCalendarDays": 60,
+      "excludeKnownEarnings": true,
+      "minAverageTurnoverJpy": 500000000
+    }
+  },
+  "filters": {
+    "lendableOnly": true
+  },
+  "trials": 2
+}
