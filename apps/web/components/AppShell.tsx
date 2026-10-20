@@ -19,6 +19,9 @@ function shellWidth(pathname: string): number {
   if (pathname.startsWith('/alerts')) return 1120
   if (pathname.startsWith('/actions')) return 1120
   if (pathname.startsWith('/reports')) return 1120
+  if (pathname.startsWith('/positions')) return 1120
+  if (pathname.startsWith('/hypotheses')) return 1120
+  if (pathname.startsWith('/roadmap')) return 1120
   return 880
 }
 
