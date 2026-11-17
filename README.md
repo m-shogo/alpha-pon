@@ -1,3 +1,5 @@
+> **投資相談・判断の引き継ぎ:** [希望・役割の正本](docs/investment/user-preferences.md) と [判断の学習・再発防止ログ](docs/investment/decision-learning.md) を最初に確認する。本人の新規決定・助手の認識修正・本人の方針変更を区別し、記録済みと運用検証済みを混同しない。
+
 # alpha-pon
 
 ## 🚨 監視通知で最初に確認すること
